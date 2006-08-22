@@ -231,8 +231,8 @@ dstoperand:	dstreg dstregion regtype
 		   * filled in.
 		   */
 		  $$.bits1 = $1.bits1;
-		  $$.bits1.da1.dest_reg_type = $2; /* XXX */
-		  /* XXX: $3 */
+		  $$.bits1.da1.dest_horiz_stride = $2;
+		  $$.bits1.da1.dest_reg_type = $3;
 		}
 ;
 
@@ -244,7 +244,8 @@ dstoperandex:	accreg dstregion regtype
 		  $$.bits1.da1.dest_reg_file = $1.reg_file;
 		  $$.bits1.da1.dest_reg_nr = $1.reg_nr;
 		  $$.bits1.da1.dest_subreg_nr = $1.subreg_nr;
-		  /* XXX: $2 $3 */
+		  $$.bits1.da1.dest_horiz_stride = $2;
+		  $$.bits1.da1.dest_reg_type = $3;
 		}
 		| nullreg
 		{
@@ -405,7 +406,7 @@ dstregion:	LANGLE INTEGER RANGLE
 		  if ($2 != 1 && $2 != 2 && $2 != 4) {
 		    fprintf(stderr, "Invalid horiz size %d\n", $2);
 		  }
-		  $$ = ffs($2) - 1;
+		  $$ = ffs($2);
 		}
 ;
 
