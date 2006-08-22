@@ -80,7 +80,7 @@
 %type <instruction> binaryaccinstruction triinstruction sendinstruction
 %type <instruction> specialinstruction
 %type <instruction> dst dstoperand dstoperandex dstreg
-%type <instruction> directsrcaccoperand src directsrcoperand srcimm
+%type <instruction> directsrcaccoperand src directsrcoperand srcimm imm32reg
 %type <instruction> srcacc srcaccimm
 %type <instruction> instoptions instoption_list
 %type <program> instrseq
@@ -270,32 +270,19 @@ dstreg:		directgenreg
 ;
 
 /* 1.4.3: Source register */
-srcaccimm:	srcacc
-		| imm32 srcimmtype
-		{
-		  $$.bits1.da1.src0_reg_file = BRW_IMMEDIATE_VALUE;
-		  switch ($2) {
-		  case BRW_REGISTER_TYPE_UD:
-		    $$.bits3.ud = $1;
-		    break;
-		  case BRW_REGISTER_TYPE_D:
-		    $$.bits3.id = $1;
-		    break;
-		  case BRW_REGISTER_TYPE_F:
-		    $$.bits3.fd = $1;
-		    break;
-		  }
-		}
+srcaccimm:	srcacc | imm32reg
 ;
 
 /* XXX: indirectsrcaccoperand */
 srcacc:		directsrcaccoperand
 ;
 
-srcimm:		directsrcoperand
-		| imm32 srcimmtype
+srcimm:		directsrcoperand | imm32reg
+
+imm32reg:	imm32 srcimmtype
 		{
 		  $$.bits1.da1.src0_reg_file = BRW_IMMEDIATE_VALUE;
+		  $$.bits1.da1.src0_reg_type = $2;
 		  switch ($2) {
 		  case BRW_REGISTER_TYPE_UD:
 		    $$.bits3.ud = $1;
@@ -303,9 +290,28 @@ srcimm:		directsrcoperand
 		  case BRW_REGISTER_TYPE_D:
 		    $$.bits3.id = $1;
 		    break;
+		  case BRW_REGISTER_TYPE_UW:
+		    $$.bits3.ud = $1;
+		    break;
+		  case BRW_REGISTER_TYPE_W:
+		    $$.bits3.id = $1;
+		    break;
+		  case BRW_REGISTER_TYPE_UB:
+		    $$.bits3.ud = $1;
+		    /* There is no native byte immediate type */
+		    $$.bits1.da1.src0_reg_type = BRW_REGISTER_TYPE_UD;
+		    break;
+		  case BRW_REGISTER_TYPE_B:
+		    $$.bits3.id = $1;
+		    /* There is no native byte immediate type */
+		    $$.bits1.da1.src0_reg_type = BRW_REGISTER_TYPE_D;
+		    break;
 		  case BRW_REGISTER_TYPE_F:
 		    $$.bits3.fd = $1;
 		    break;
+		  default:
+		    fprintf(stderr, "unknown immediate type %d\n", $2);
+		    YYERROR;
 		  }
 		}
 ;
@@ -427,7 +433,7 @@ regtype:	TYPE_F { $$ = BRW_REGISTER_TYPE_F; }
 		| TYPE_UD { $$ = BRW_REGISTER_TYPE_UD; }
 		| TYPE_D { $$ = BRW_REGISTER_TYPE_D; }
 		| TYPE_UW { $$ = BRW_REGISTER_TYPE_UW; }
-		| TYPE_W { $$ = BRW_REGISTER_TYPE_UW; }
+		| TYPE_W { $$ = BRW_REGISTER_TYPE_W; }
 		| TYPE_UB { $$ = BRW_REGISTER_TYPE_UB; }
 		| TYPE_B { $$ = BRW_REGISTER_TYPE_B; }
 /* XXX: Add TYPE_VF and TYPE_HF */
