@@ -43,9 +43,9 @@
 	struct region {
 		int vert_stride, width, horiz_stride;
 	} region;
-	struct direct_gen_reg {
+	struct gen_reg {
 		int reg_file, reg_nr, subreg_nr;
-	} direct_gen_reg;
+	} direct_gen_reg; /* XXX: naming */
 	double imm32;
 }
 
@@ -59,7 +59,7 @@
 %token TYPE_UD, TYPE_D, TYPE_UW, TYPE_W, TYPE_UB, TYPE_B,
 %token TYPE_VF, TYPE_HF, TYPE_V, TYPE_F
 
-%token ALIGN1 ALIGN16 MASK_DISABLE EOT
+%token <integer> ALIGN1 ALIGN16 MASK_DISABLE EOT
 
 %token GENREG MSGREG ACCREG ADDRESSREG FLAGREG CONTROLREG IPREG
 
@@ -67,6 +67,7 @@
 %token MUL MAC MACH LINE SAD2 SADA2 DP4 DPH DP3 DP2
 %token ADD
 %token SEND NULL_TOKEN MATH SAMPLER GATEWAY READ WRITE URB THREAD_SPAWNER
+%token NOP
 
 %token MSGLEN RETURNLEN
 %token SATURATE
@@ -77,11 +78,12 @@
 %type <instruction> instruction unaryinstruction binaryinstruction
 %type <instruction> binaryaccinstruction triinstruction sendinstruction
 %type <instruction> specialinstruction
-%type <instruction> dstoperand dstoperandex dstreg accreg
+%type <instruction> dst dstoperand dstoperandex dstreg
 %type <instruction> directsrcaccoperand src directsrcoperand srcimm
 %type <instruction> srcacc srcaccimm
-%type <instruction> instoptions instoption_list instoption
+%type <instruction> instoptions instoption_list
 %type <program> instrseq
+%type <integer> instoption
 %type <integer> unaryop binaryop binaryaccop
 %type <integer> conditionalmodifier saturate
 %type <integer> regtype srcimmtype execsize dstregion
@@ -142,8 +144,9 @@ unaryinstruction:
 		  $$.header.saturate = $3;
 		  $$.header.destreg__conditionalmod = $4;
 		  $$.header.execution_size = $5;
-		  $$.bits1 = $7.bits1;
-		  /* XXX: more */
+		  set_instruction_dest(&$$, &$6);
+		  set_instruction_src0(&$$, &$7);
+		  set_instruction_options(&$$, &$8);
 		}
 ;
 
@@ -158,7 +161,10 @@ binaryinstruction:
 		  $$.header.saturate = $3;
 		  $$.header.destreg__conditionalmod = $4;
 		  $$.header.execution_size = $5;
-		  /* XXX: more */
+		  set_instruction_dest(&$$, &$6);
+		  set_instruction_src0(&$$, &$7);
+		  set_instruction_src1(&$$, &$8);
+		  set_instruction_options(&$$, &$9);
 		}
 ;
 
@@ -173,6 +179,10 @@ binaryaccinstruction:
 		  $$.header.saturate = $3;
 		  $$.header.destreg__conditionalmod = $4;
 		  $$.header.execution_size = $5;
+		  set_instruction_dest(&$$, &$6);
+		  set_instruction_src0(&$$, &$7);
+		  set_instruction_src1(&$$, &$8);
+		  set_instruction_options(&$$, &$9);
 		}
 ;
 
@@ -394,15 +404,15 @@ dstregion:	LANGLE INTEGER RANGLE
 		  if ($2 != 1 && $2 != 2 && $2 != 4) {
 		    fprintf(stderr, "Invalid horiz size %d\n", $2);
 		  }
-		  $$ = ffs($2);
+		  $$ = ffs($2) - 1;
 		}
 ;
 
 region:		LANGLE INTEGER COMMA INTEGER COMMA INTEGER RANGLE
 		{
-		  $$.vert_stride = $2;
-		  $$.width = $4;
-		  $$.horiz_stride = $6;
+		  $$.vert_stride = ffs($2);
+		  $$.width = ffs($4) - 1;
+		  $$.horiz_stride = ffs($6) - 1;
 		}
 ;
 
@@ -423,7 +433,8 @@ srcimmtype:	regtype
 ;
 
 /* 1.4.11: */
-imm32:		INTEGER | NUMBER
+imm32:		INTEGER { $$ = $1; }
+		| NUMBER { $$ = $1; }
 
 /* 1.4.12: Predication and modifiers */
 /* XXX: do the predicate */
@@ -439,12 +450,12 @@ execsize:	LPAREN INTEGER RPAREN
 		    fprintf(stderr, "Invalid execution size %d\n", $2);
 		    YYERROR;
 		  }
-		  $$ = ffs($2);
+		  $$ = ffs($2) - 1;
 		}
 ;
 
-saturate:	/* empty */ { $$ = 0; }
-		| DOT SATURATE { $$ = 1; }
+saturate:	/* empty */ { $$ = BRW_INSTRUCTION_NORMAL; }
+		| DOT SATURATE { $$ = BRW_INSTRUCTION_SATURATE; }
 ;
 
 conditionalmodifier:
@@ -457,7 +468,24 @@ instoptions:	LCURLY instoption_list RCURLY
 ;
 
 instoption_list: instoption instoption_list
-		|
+		{
+		  $$ = $2;
+		  switch ($1) {
+		  case ALIGN1:
+		    $$.header.access_mode = BRW_ALIGN_1;
+		    break;
+		  case ALIGN16:
+		    $$.header.access_mode = BRW_ALIGN_16;
+		    break;
+		  case MASK_DISABLE:
+		    $$.header.mask_control = BRW_MASK_DISABLE;
+		    break;
+		  case EOT:
+		    /* XXX: EOT shouldn't be here */
+		    break;
+		  }
+		}
+		| /* empty, header defaults to zeroes. */
 ;
 
 /* XXX: fill me in. alignctrl, comprctrl, threadctrl, depctrl, maskctrl,
@@ -475,3 +503,65 @@ void yyerror (char *msg)
 		msg, yylineno, lex_text());
 }
 
+/**
+ * Fills in the destination register information in instr from the bits in dst.
+ */
+void set_instruction_dest(struct brw_instruction *instr,
+			 struct brw_instruction *dest)
+{
+	instr->bits1.da1.dest_reg_file = dest->bits1.da1.dest_reg_file;
+	instr->bits1.da1.dest_reg_type = dest->bits1.da1.dest_reg_type;
+	instr->bits1.da1.dest_subreg_nr = dest->bits1.da1.dest_subreg_nr;
+	instr->bits1.da1.dest_reg_nr = dest->bits1.da1.dest_reg_nr;
+	instr->bits1.da1.dest_horiz_stride = dest->bits1.da1.dest_horiz_stride;
+	instr->bits1.da1.dest_address_mode = dest->bits1.da1.dest_address_mode;
+}
+
+
+void set_instruction_src0(struct brw_instruction *instr,
+			  struct brw_instruction *src)
+{
+	instr->bits1.da1.src0_reg_file = src->bits1.da1.src0_reg_file;
+	instr->bits1.da1.src0_reg_type = src->bits1.da1.src0_reg_type;
+	if (src->bits1.da1.src0_reg_file == BRW_IMMEDIATE_VALUE) {
+		instr->bits3.ud = src->bits3.ud;
+	} else {
+		instr->bits2.da1.src0_subreg_nr =
+			src->bits2.da1.src0_subreg_nr;
+		instr->bits2.da1.src0_reg_nr = src->bits2.da1.src0_reg_nr;
+		instr->bits2.da1.src0_vert_stride =
+			src->bits2.da1.src0_vert_stride;
+		instr->bits2.da1.src0_width = src->bits2.da1.src0_width;
+		instr->bits2.da1.src0_horiz_stride =
+			src->bits2.da1.src0_horiz_stride;
+	}
+}
+
+void set_instruction_src1(struct brw_instruction *instr,
+			  struct brw_instruction *src)
+{
+	instr->bits1.da1.src1_reg_file = src->bits1.da1.src0_reg_file;
+	instr->bits1.da1.src1_reg_type = src->bits1.da1.src0_reg_type;
+	if (src->bits1.da1.src0_reg_file == BRW_IMMEDIATE_VALUE) {
+		instr->bits3.ud = src->bits3.ud;
+	} else {
+		instr->bits3.da1.src1_subreg_nr =
+			src->bits2.da1.src0_subreg_nr;
+		instr->bits3.da1.src1_reg_nr = src->bits2.da1.src0_reg_nr;
+		instr->bits3.da1.src1_vert_stride =
+			src->bits2.da1.src0_vert_stride;
+		instr->bits3.da1.src1_width = src->bits2.da1.src0_width;
+		instr->bits3.da1.src1_horiz_stride =
+			src->bits2.da1.src0_horiz_stride;
+	}
+}
+
+void set_instruction_options(struct brw_instruction *instr,
+			     struct brw_instruction *options)
+{
+	instr->header.access_mode = options->header.access_mode;
+	instr->header.mask_control = options->header.mask_control;
+	instr->header.dependency_control = options->header.dependency_control;
+	instr->header.compression_control =
+		options->header.compression_control;
+}

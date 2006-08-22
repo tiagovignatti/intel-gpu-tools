@@ -62,9 +62,9 @@ typedef union {
 	struct region {
 		int vert_stride, width, horiz_stride;
 	} region;
-	struct direct_gen_reg {
+	struct gen_reg {
 		int reg_file, reg_nr, subreg_nr;
-	} direct_gen_reg;
+	} direct_gen_reg; /* XXX: naming */
 	double imm32;
 } YYSTYPE;
 #line 71 "y.tab.c"
@@ -120,23 +120,23 @@ typedef union {
 #define WRITE 305
 #define URB 306
 #define THREAD_SPAWNER 307
-#define MSGLEN 308
-#define RETURNLEN 309
-#define SATURATE 310
-#define INTEGER 311
-#define NUMBER 312
-#define flagreg 313
-#define maskreg 314
-#define NOP 315
+#define NOP 308
+#define MSGLEN 309
+#define RETURNLEN 310
+#define SATURATE 311
+#define INTEGER 312
+#define NUMBER 313
+#define flagreg 314
+#define maskreg 315
 const short yylhs[] = {                                        -1,
-    0,   21,   21,   21,    1,    1,    1,    1,    1,    2,
+    0,   20,   20,   20,    1,    1,    1,    1,    1,    2,
    22,    3,   23,   23,    4,   24,    5,    6,    7,   41,
-   32,   32,   32,   32,   32,   32,   32,   32,   40,   40,
-    8,    9,    9,   10,   10,   17,   17,   16,   15,   15,
-   12,   13,   14,   31,   31,   34,   35,   11,   36,   37,
+   32,   32,   32,   32,   32,   32,   32,   32,    8,    8,
+    9,   10,   10,   11,   11,   17,   17,   16,   15,   15,
+   12,   13,   14,   31,   31,   34,   35,   37,   36,   38,
    30,   33,   27,   27,   27,   27,   27,   27,   27,   28,
-   38,   38,   39,   29,   26,   26,   25,   18,   19,   19,
-   20,   20,   20,   20,
+   39,   39,   40,   29,   26,   26,   25,   18,   19,   19,
+   21,   21,   21,   21,
 };
 const short yylen[] = {                                         2,
     1,    3,    2,    3,    1,    1,    1,    1,    1,    8,
@@ -152,44 +152,44 @@ const short yydefred[] = {                                      0,
     0,   19,    0,    0,    5,    6,    7,    8,   17,    9,
     1,    0,    0,    0,   11,   13,   14,   16,    0,   67,
    67,   67,    4,    2,    0,    0,    0,    0,    0,    0,
-    0,    0,    0,    0,    0,    0,    0,    0,   50,   29,
-   30,    0,    0,   34,   35,   33,    0,   66,    0,    0,
-    0,   64,    0,    0,    0,    0,    0,    0,   20,    0,
-    0,    0,    0,    0,    0,   46,   47,   48,    0,   54,
-   55,   56,   57,   58,   59,   53,   31,   32,    0,    0,
-   21,   23,   22,   24,   25,   26,   27,   28,    0,   61,
+    0,    0,    0,    0,    0,    0,    0,    0,   50,    0,
+   29,   30,    0,   34,   35,    0,   33,   66,    0,    0,
+    0,   64,    0,    0,    0,   20,    0,    0,    0,    0,
+    0,    0,    0,    0,    0,   46,   47,   48,    0,    0,
+   21,   23,   22,   24,   25,   26,   27,   28,    0,    0,
+   54,   55,   56,   57,   58,   59,   53,   31,   32,   61,
    62,   38,   41,   36,    0,    0,    0,   42,    0,   44,
-   51,    0,   43,    0,    0,   10,   60,   37,   39,    0,
+    0,   43,    0,   51,    0,   10,   60,   37,   39,    0,
     0,    0,    0,    0,   71,   72,   73,   74,    0,    0,
    12,   40,   15,    0,    0,   68,   69,    0,    0,    0,
    18,   52,
 };
 const short yydgoto[] = {                                       3,
     4,    5,    6,    7,    8,    9,   10,   40,   41,   42,
-   43,   92,   97,   93,  110,   94,   95,  106,  119,  120,
-   11,   20,   21,   22,   26,   32,  107,  108,   30,   57,
-   66,   89,   80,   60,   45,    0,   46,  111,   12,   47,
-   61,
+   43,   92,   97,   93,  110,   94,   95,  106,  119,   11,
+  120,   20,   21,   22,   26,   32,  107,  108,   30,   60,
+   66,   79,   70,   57,   45,    0,   46,   47,  111,   12,
+   58,
 };
-const short yysindex[] = {                                   -256,
- -244,    0,    0, -218,    0,    0,    0,    0,    0,    0,
-    0, -266, -256, -256,    0,    0,    0,    0, -265,    0,
-    0,    0,    0,    0, -205, -194, -194, -194, -239, -274,
- -237, -205, -205, -205, -185, -236, -235, -234,    0,    0,
-    0, -182, -182,    0,    0,    0, -201,    0, -274, -274,
- -274,    0, -184, -184, -184, -231, -226, -226,    0, -178,
- -240, -277, -201, -201, -228,    0,    0,    0, -177,    0,
-    0,    0,    0,    0,    0,    0,    0,    0, -225, -226,
-    0,    0,    0,    0,    0,    0,    0,    0, -223,    0,
-    0,    0,    0,    0, -175, -226, -277,    0, -277,    0,
-    0, -176,    0, -222, -221,    0,    0,    0,    0, -175,
- -226, -175, -220, -219,    0,    0,    0,    0, -171, -221,
-    0,    0,    0, -170, -216,    0,    0, -215, -175, -168,
+const short yysindex[] = {                                   -254,
+ -251,    0,    0, -246,    0,    0,    0,    0,    0,    0,
+    0, -268, -254, -254,    0,    0,    0,    0, -308,    0,
+    0,    0,    0,    0, -230, -207, -207, -207, -239, -273,
+ -236, -230, -230, -230, -187, -238, -235, -234,    0, -204,
+    0,    0, -181,    0,    0, -181,    0,    0, -273, -273,
+ -273,    0, -185, -185, -185,    0, -179, -240, -229, -253,
+ -253, -277, -204, -204, -228,    0,    0,    0, -227, -253,
+    0,    0,    0,    0,    0,    0,    0,    0, -223, -174,
+    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,
+    0,    0,    0,    0, -180, -253, -277,    0, -277,    0,
+ -176,    0, -222,    0, -237,    0,    0,    0,    0, -180,
+ -253, -180, -221, -218,    0,    0,    0,    0, -170, -237,
+    0,    0,    0, -175, -217,    0,    0, -216, -180, -167,
     0,    0,
 };
-const short yyrindex[] = {                                   -251,
+const short yyrindex[] = {                                   -255,
     0,    0,    0,    0,    0,    0,    0,    0,    0,    0,
-    0,    0, -251,    1,    0,    0,    0,    0,    0,    0,
+    0,    0, -255,    1,    0,    0,    0,    0,    0,    0,
     0,    0,    0,    0,    0, -161, -161, -161,    0,    0,
     0,    0,    0,    0,    0,    0,    0,    0,    0,    0,
     0,    0,    0,    0,    0,    0,    0,    0,    0,    0,
@@ -204,25 +204,25 @@ const short yyrindex[] = {                                   -251,
     0,    0,
 };
 const short yygindex[] = {                                      0,
-    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,
-    0,    0,    0,  -45,    2,   36,    0,  -98,  -18,    0,
-   -3,    0,    0,    0,   -2,   23,  -53,   -8,  -17,   61,
-  -30,    0,    0,  -21,    0,    0,    0,   43,    0,   19,
+    0,    0,    0,    0,    0,    0,    0,   -1,    0,    0,
+    0,    0,    0,  -40,    2,   36,    0, -100,  -18,   32,
+    0,    0,    0,    0,   34,   41,  -23,   -8,   19,   58,
+   16,    0,    0,  -25,    0,    0,    0,    0,   43,    0,
     0,
 };
 #define YYTABLESIZE 300
-const short yytable[] = {                                       1,
-    3,   59,   36,   77,   78,   36,   37,   38,   44,   23,
-   24,  121,   13,  123,   49,   50,   51,   98,   27,   28,
-   15,   16,   17,   67,   68,   39,  103,   44,   44,   44,
-  131,   18,   19,   90,   91,   63,   63,   63,   14,   70,
-   71,   72,   73,   74,   75,   25,   63,   63,   76,   33,
-   34,  109,   29,  109,  115,  116,  117,  118,    2,   81,
-   82,   83,   84,   85,   86,   87,   88,   62,   63,   64,
-   31,   35,   48,   52,   53,   54,   55,   56,   36,   69,
-   65,   79,  100,  101,  104,  102,  105,  113,  114,  125,
-  124,  126,  132,  128,  129,  130,   65,   45,   70,   99,
-  112,  127,  122,   58,   96,    0,    0,    0,    0,    0,
+const short yytable[] = {                                      56,
+    3,    1,   36,   25,   44,   13,   36,   37,   38,  121,
+   14,  123,   81,   82,   83,   84,   85,   86,   15,   16,
+   17,   87,   98,   44,   44,   44,   39,   29,  131,   18,
+   19,   63,   63,   63,   90,   91,   88,   89,  115,  116,
+  117,  118,   63,   63,   23,   24,  102,   62,   63,   64,
+   49,   50,   51,    2,   27,   28,  109,   31,  109,   71,
+   72,   73,   74,   75,   76,   77,   78,   33,   34,   67,
+   68,   52,   35,   53,   48,   36,   54,   55,   59,   65,
+   69,  105,   80,  100,  101,  103,  104,  113,  128,  114,
+  124,  125,  126,  132,  129,  130,   65,   45,   70,   99,
+  112,  127,  122,   61,   96,    0,    0,    0,    0,    0,
     0,    0,    0,    0,    0,    0,    0,    0,    0,    0,
     0,    0,    0,    0,    0,    0,    0,    0,    0,    0,
     0,    0,    0,    0,    0,    0,    0,    0,    0,    0,
@@ -243,18 +243,18 @@ const short yytable[] = {                                       1,
     0,    0,    0,    0,    0,    0,    0,   63,   63,   63,
     0,    0,    0,    0,    0,    0,    0,    0,   63,   63,
 };
-const short yycheck[] = {                                     256,
-    0,   47,  280,   57,   58,  280,  281,  282,   30,   13,
-   14,  110,  257,  112,   32,   33,   34,   63,   21,   22,
-  287,  288,  289,   54,   55,  300,   80,   49,   50,   51,
-  129,  298,  299,  311,  312,  287,  288,  289,  257,  266,
-  267,  268,  269,  270,  271,  311,  298,  299,  275,   27,
-   28,   97,  258,   99,  276,  277,  278,  279,  315,  300,
-  301,  302,  303,  304,  305,  306,  307,   49,   50,   51,
-  265,  311,  310,  259,  311,  311,  311,  260,  280,  311,
-  265,  260,  311,  261,  308,  311,  262,  264,  311,  309,
-  311,  263,  261,  264,  311,  311,  258,  260,  263,   64,
-   99,  120,  111,   43,   62,   -1,   -1,   -1,   -1,   -1,
+const short yycheck[] = {                                      40,
+    0,  256,  280,  312,   30,  257,  280,  281,  282,  110,
+  257,  112,  266,  267,  268,  269,  270,  271,  287,  288,
+  289,  275,   63,   49,   50,   51,  300,  258,  129,  298,
+  299,  287,  288,  289,  312,  313,   60,   61,  276,  277,
+  278,  279,  298,  299,   13,   14,   70,   49,   50,   51,
+   32,   33,   34,  308,   21,   22,   97,  265,   99,  300,
+  301,  302,  303,  304,  305,  306,  307,   27,   28,   54,
+   55,  259,  312,  312,  311,  280,  312,  312,  260,  265,
+  260,  262,  312,  312,  312,  309,  261,  264,  264,  312,
+  312,  310,  263,  261,  312,  312,  258,  260,  263,   64,
+   99,  120,  111,   46,   62,   -1,   -1,   -1,   -1,   -1,
    -1,   -1,   -1,   -1,   -1,   -1,   -1,   -1,   -1,   -1,
    -1,   -1,   -1,   -1,   -1,   -1,   -1,   -1,   -1,   -1,
    -1,   -1,   -1,   -1,   -1,   -1,   -1,   -1,   -1,   -1,
@@ -294,8 +294,8 @@ const char * const yyname[] = {
 "ALIGN16","MASK_DISABLE","EOT","GENREG","MSGREG","ACCREG","ADDRESSREG",
 "FLAGREG","CONTROLREG","IPREG","MOV","MUL","MAC","MACH","LINE","SAD2","SADA2",
 "DP4","DPH","DP3","DP2","ADD","SEND","NULL_TOKEN","MATH","SAMPLER","GATEWAY",
-"READ","WRITE","URB","THREAD_SPAWNER","MSGLEN","RETURNLEN","SATURATE","INTEGER",
-"NUMBER","flagreg","maskreg","NOP",
+"READ","WRITE","URB","THREAD_SPAWNER","NOP","MSGLEN","RETURNLEN","SATURATE",
+"INTEGER","NUMBER","flagreg","maskreg",
 };
 const char * const yyrule[] = {
 "$accept : ROOT",
@@ -402,7 +402,7 @@ short *yyss;
 short *yysslim;
 YYSTYPE *yyvs;
 int yystacksize;
-#line 470 "gram.y"
+#line 498 "gram.y"
 extern int yylineno;
 
 void yyerror (char *msg)
@@ -411,7 +411,69 @@ void yyerror (char *msg)
 		msg, yylineno, lex_text());
 }
 
-#line 415 "y.tab.c"
+/**
+ * Fills in the destination register information in instr from the bits in dst.
+ */
+void set_instruction_dest(struct brw_instruction *instr,
+			 struct brw_instruction *dest)
+{
+	instr->bits1.da1.dest_reg_file = dest->bits1.da1.dest_reg_file;
+	instr->bits1.da1.dest_reg_type = dest->bits1.da1.dest_reg_type;
+	instr->bits1.da1.dest_subreg_nr = dest->bits1.da1.dest_subreg_nr;
+	instr->bits1.da1.dest_reg_nr = dest->bits1.da1.dest_reg_nr;
+	instr->bits1.da1.dest_horiz_stride = dest->bits1.da1.dest_horiz_stride;
+	instr->bits1.da1.dest_address_mode = dest->bits1.da1.dest_address_mode;
+}
+
+
+void set_instruction_src0(struct brw_instruction *instr,
+			  struct brw_instruction *src)
+{
+	instr->bits1.da1.src0_reg_file = src->bits1.da1.src0_reg_file;
+	instr->bits1.da1.src0_reg_type = src->bits1.da1.src0_reg_type;
+	if (src->bits1.da1.src0_reg_file == BRW_IMMEDIATE_VALUE) {
+		instr->bits3.ud = src->bits3.ud;
+	} else {
+		instr->bits2.da1.src0_subreg_nr =
+			src->bits2.da1.src0_subreg_nr;
+		instr->bits2.da1.src0_reg_nr = src->bits2.da1.src0_reg_nr;
+		instr->bits2.da1.src0_vert_stride =
+			src->bits2.da1.src0_vert_stride;
+		instr->bits2.da1.src0_width = src->bits2.da1.src0_width;
+		instr->bits2.da1.src0_horiz_stride =
+			src->bits2.da1.src0_horiz_stride;
+	}
+}
+
+void set_instruction_src1(struct brw_instruction *instr,
+			  struct brw_instruction *src)
+{
+	instr->bits1.da1.src1_reg_file = src->bits1.da1.src0_reg_file;
+	instr->bits1.da1.src1_reg_type = src->bits1.da1.src0_reg_type;
+	if (src->bits1.da1.src0_reg_file == BRW_IMMEDIATE_VALUE) {
+		instr->bits3.ud = src->bits3.ud;
+	} else {
+		instr->bits3.da1.src1_subreg_nr =
+			src->bits2.da1.src0_subreg_nr;
+		instr->bits3.da1.src1_reg_nr = src->bits2.da1.src0_reg_nr;
+		instr->bits3.da1.src1_vert_stride =
+			src->bits2.da1.src0_vert_stride;
+		instr->bits3.da1.src1_width = src->bits2.da1.src0_width;
+		instr->bits3.da1.src1_horiz_stride =
+			src->bits2.da1.src0_horiz_stride;
+	}
+}
+
+void set_instruction_options(struct brw_instruction *instr,
+			     struct brw_instruction *options)
+{
+	instr->header.access_mode = options->header.access_mode;
+	instr->header.mask_control = options->header.mask_control;
+	instr->header.dependency_control = options->header.dependency_control;
+	instr->header.compression_control =
+		options->header.compression_control;
+}
+#line 477 "y.tab.c"
 /* allocate initial stack or double stack size, up to YYMAXDEPTH */
 static int yygrowstack()
 {
@@ -607,13 +669,13 @@ yyreduce:
     switch (yyn)
     {
 case 1:
-#line 97 "gram.y"
+#line 99 "gram.y"
 {
 		  compiled_program = yyvsp[0].program;
 		}
 break;
 case 2:
-#line 103 "gram.y"
+#line 105 "gram.y"
 {
 		  struct brw_program_instruction *list_entry =
 		    calloc(sizeof(struct brw_program_instruction), 1);
@@ -626,7 +688,7 @@ case 2:
 		}
 break;
 case 3:
-#line 114 "gram.y"
+#line 116 "gram.y"
 {
 		  struct brw_program_instruction *list_entry =
 		    calloc(sizeof(struct brw_program_instruction), 1);
@@ -638,59 +700,67 @@ case 3:
 		}
 break;
 case 4:
-#line 124 "gram.y"
+#line 126 "gram.y"
 {
 		  yyval.program = yyvsp[0].program;
 		}
 break;
 case 10:
-#line 140 "gram.y"
+#line 142 "gram.y"
 {
 		  yyval.instruction.header.opcode = yyvsp[-6].integer;
 		  yyval.instruction.header.saturate = yyvsp[-5].integer;
 		  yyval.instruction.header.destreg__conditionalmod = yyvsp[-4].integer;
 		  yyval.instruction.header.execution_size = yyvsp[-3].integer;
-		  yyval.instruction.bits1 = yyvsp[-1].instruction.bits1;
-		  /* XXX: more */
+		  set_instruction_dest(&yyval.instruction, &yyvsp[-2].instruction);
+		  set_instruction_src0(&yyval.instruction, &yyvsp[-1].instruction);
+		  set_instruction_options(&yyval.instruction, &yyvsp[0].instruction);
 		}
 break;
 case 11:
-#line 150 "gram.y"
+#line 153 "gram.y"
 { yyval.integer = BRW_OPCODE_MOV; }
 break;
 case 12:
-#line 156 "gram.y"
+#line 159 "gram.y"
 {
 		  yyval.instruction.header.opcode = yyvsp[-7].integer;
 		  yyval.instruction.header.saturate = yyvsp[-6].integer;
 		  yyval.instruction.header.destreg__conditionalmod = yyvsp[-5].integer;
 		  yyval.instruction.header.execution_size = yyvsp[-4].integer;
-		  /* XXX: more */
+		  set_instruction_dest(&yyval.instruction, &yyvsp[-3].instruction);
+		  set_instruction_src0(&yyval.instruction, &yyvsp[-2].instruction);
+		  set_instruction_src1(&yyval.instruction, &yyvsp[-1].instruction);
+		  set_instruction_options(&yyval.instruction, &yyvsp[0].instruction);
 		}
 break;
 case 13:
-#line 165 "gram.y"
+#line 171 "gram.y"
 { yyval.integer = BRW_OPCODE_MUL; }
 break;
 case 14:
-#line 166 "gram.y"
+#line 172 "gram.y"
 { yyval.integer = BRW_OPCODE_MAC; }
 break;
 case 15:
-#line 171 "gram.y"
+#line 177 "gram.y"
 {
 		  yyval.instruction.header.opcode = yyvsp[-7].integer;
 		  yyval.instruction.header.saturate = yyvsp[-6].integer;
 		  yyval.instruction.header.destreg__conditionalmod = yyvsp[-5].integer;
 		  yyval.instruction.header.execution_size = yyvsp[-4].integer;
+		  set_instruction_dest(&yyval.instruction, &yyvsp[-3].instruction);
+		  set_instruction_src0(&yyval.instruction, &yyvsp[-2].instruction);
+		  set_instruction_src1(&yyval.instruction, &yyvsp[-1].instruction);
+		  set_instruction_options(&yyval.instruction, &yyvsp[0].instruction);
 		}
 break;
 case 16:
-#line 179 "gram.y"
+#line 189 "gram.y"
 { yyval.integer = BRW_OPCODE_ADD; }
 break;
 case 18:
-#line 187 "gram.y"
+#line 197 "gram.y"
 {
 		  yyval.instruction.header.opcode = BRW_OPCODE_SEND;
 		  yyval.instruction.header.execution_size = yyvsp[-8].integer;
@@ -698,45 +768,45 @@ case 18:
 		}
 break;
 case 19:
-#line 194 "gram.y"
+#line 204 "gram.y"
 {
 		  yyval.instruction.header.opcode = BRW_OPCODE_NOP;
 		}
 break;
 case 21:
-#line 202 "gram.y"
+#line 212 "gram.y"
 { yyval.integer = BRW_MESSAGE_TARGET_NULL; }
 break;
 case 22:
-#line 203 "gram.y"
+#line 213 "gram.y"
 { yyval.integer = BRW_MESSAGE_TARGET_SAMPLER; }
 break;
 case 23:
-#line 204 "gram.y"
+#line 214 "gram.y"
 { yyval.integer = BRW_MESSAGE_TARGET_MATH; }
 break;
 case 24:
-#line 205 "gram.y"
+#line 215 "gram.y"
 { yyval.integer = BRW_MESSAGE_TARGET_GATEWAY; }
 break;
 case 25:
-#line 206 "gram.y"
+#line 216 "gram.y"
 { yyval.integer = BRW_MESSAGE_TARGET_DATAPORT_READ; }
 break;
 case 26:
-#line 207 "gram.y"
+#line 217 "gram.y"
 { yyval.integer = BRW_MESSAGE_TARGET_DATAPORT_WRITE; }
 break;
 case 27:
-#line 208 "gram.y"
+#line 218 "gram.y"
 { yyval.integer = BRW_MESSAGE_TARGET_URB; }
 break;
 case 28:
-#line 209 "gram.y"
+#line 219 "gram.y"
 { yyval.integer = BRW_MESSAGE_TARGET_THREAD_SPAWNER; }
 break;
 case 31:
-#line 218 "gram.y"
+#line 228 "gram.y"
 {
 		  /* Returns an instruction with just the destination register
 		   * filled in.
@@ -747,7 +817,7 @@ case 31:
 		}
 break;
 case 32:
-#line 229 "gram.y"
+#line 239 "gram.y"
 {
 		  /* Returns an instruction with just the destination register
 		   * filled in.
@@ -759,7 +829,7 @@ case 32:
 		}
 break;
 case 33:
-#line 239 "gram.y"
+#line 249 "gram.y"
 {
 		  /* Returns an instruction with just the destination register
 		   * filled in.
@@ -770,7 +840,7 @@ case 33:
 		}
 break;
 case 34:
-#line 251 "gram.y"
+#line 261 "gram.y"
 {
 		  yyval.instruction.bits1.da1.dest_reg_file = yyvsp[0].direct_gen_reg.reg_file;
 		  yyval.instruction.bits1.da1.dest_reg_nr = yyvsp[0].direct_gen_reg.reg_nr;
@@ -778,7 +848,7 @@ case 34:
 		}
 break;
 case 37:
-#line 263 "gram.y"
+#line 273 "gram.y"
 {
 		  yyval.instruction.bits1.da1.src0_reg_file = BRW_IMMEDIATE_VALUE;
 		  switch (yyvsp[0].integer) {
@@ -795,7 +865,7 @@ case 37:
 		}
 break;
 case 40:
-#line 285 "gram.y"
+#line 295 "gram.y"
 {
 		  yyval.instruction.bits1.da1.src0_reg_file = BRW_IMMEDIATE_VALUE;
 		  switch (yyvsp[0].integer) {
@@ -812,7 +882,7 @@ case 40:
 		}
 break;
 case 43:
-#line 311 "gram.y"
+#line 321 "gram.y"
 {
 		  /* Returns a source operand in the src0 fields of an
 		   * instruction.
@@ -827,30 +897,19 @@ case 43:
 		}
 break;
 case 44:
-#line 326 "gram.y"
+#line 336 "gram.y"
 {
 		  yyval.integer = yyvsp[0].integer;
 		}
 break;
 case 45:
-#line 330 "gram.y"
+#line 340 "gram.y"
 {
 		  /* Default to subreg 0 if unspecified. */
 		  yyval.integer = 0;
 		}
 break;
 case 46:
-#line 338 "gram.y"
-{
-		  /* Returns an instruction with just the destination register
-		   * fields filled in.
-		   */
-		  yyval.direct_gen_reg.reg_file = BRW_GENERAL_REGISTER_FILE;
-		  yyval.direct_gen_reg.reg_nr = yyvsp[-1].integer;
-		  yyval.direct_gen_reg.subreg_nr = yyvsp[0].integer;
-		}
-break;
-case 47:
 #line 348 "gram.y"
 {
 		  /* Returns an instruction with just the destination register
@@ -861,8 +920,19 @@ case 47:
 		  yyval.direct_gen_reg.subreg_nr = yyvsp[0].integer;
 		}
 break;
+case 47:
+#line 358 "gram.y"
+{
+		  /* Returns an instruction with just the destination register
+		   * fields filled in.
+		   */
+		  yyval.direct_gen_reg.reg_file = BRW_GENERAL_REGISTER_FILE;
+		  yyval.direct_gen_reg.reg_nr = yyvsp[-1].integer;
+		  yyval.direct_gen_reg.subreg_nr = yyvsp[0].integer;
+		}
+break;
 case 48:
-#line 359 "gram.y"
+#line 369 "gram.y"
 {
 		  /* Returns an instruction with just the destination register
 		   * fields filled in.
@@ -873,7 +943,7 @@ case 48:
 		}
 break;
 case 49:
-#line 370 "gram.y"
+#line 380 "gram.y"
 {
 		  /* Returns an instruction with just the destination register
 		   * fields filled in.
@@ -884,7 +954,7 @@ case 49:
 		}
 break;
 case 50:
-#line 381 "gram.y"
+#line 391 "gram.y"
 {
 		  yyval.direct_gen_reg.reg_file = BRW_ARCHITECTURE_REGISTER_FILE;
 		  yyval.direct_gen_reg.reg_nr = BRW_ARF_NULL;
@@ -892,7 +962,7 @@ case 50:
 		}
 break;
 case 51:
-#line 390 "gram.y"
+#line 400 "gram.y"
 {
 		  /* Returns a value for a horiz_stride field of an
 		   * instruction.
@@ -900,47 +970,55 @@ case 51:
 		  if (yyvsp[-1].integer != 1 && yyvsp[-1].integer != 2 && yyvsp[-1].integer != 4) {
 		    fprintf(stderr, "Invalid horiz size %d\n", yyvsp[-1].integer);
 		  }
-		  yyval.integer = ffs(yyvsp[-1].integer);
+		  yyval.integer = ffs(yyvsp[-1].integer) - 1;
 		}
 break;
 case 52:
-#line 402 "gram.y"
+#line 412 "gram.y"
 {
-		  yyval.region.vert_stride = yyvsp[-5].integer;
-		  yyval.region.width = yyvsp[-3].integer;
-		  yyval.region.horiz_stride = yyvsp[-1].integer;
+		  yyval.region.vert_stride = ffs(yyvsp[-5].integer);
+		  yyval.region.width = ffs(yyvsp[-3].integer) - 1;
+		  yyval.region.horiz_stride = ffs(yyvsp[-1].integer) - 1;
 		}
 break;
 case 53:
-#line 414 "gram.y"
+#line 424 "gram.y"
 { yyval.integer = BRW_REGISTER_TYPE_F; }
 break;
 case 54:
-#line 415 "gram.y"
+#line 425 "gram.y"
 { yyval.integer = BRW_REGISTER_TYPE_UD; }
 break;
 case 55:
-#line 416 "gram.y"
+#line 426 "gram.y"
 { yyval.integer = BRW_REGISTER_TYPE_D; }
 break;
 case 56:
-#line 417 "gram.y"
+#line 427 "gram.y"
 { yyval.integer = BRW_REGISTER_TYPE_UW; }
 break;
 case 57:
-#line 418 "gram.y"
+#line 428 "gram.y"
 { yyval.integer = BRW_REGISTER_TYPE_UW; }
 break;
 case 58:
-#line 419 "gram.y"
+#line 429 "gram.y"
 { yyval.integer = BRW_REGISTER_TYPE_UB; }
 break;
 case 59:
-#line 420 "gram.y"
+#line 430 "gram.y"
 { yyval.integer = BRW_REGISTER_TYPE_B; }
 break;
+case 61:
+#line 436 "gram.y"
+{ yyval.imm32 = yyvsp[0].integer; }
+break;
+case 62:
+#line 437 "gram.y"
+{ yyval.imm32 = yyvsp[0].number; }
+break;
 case 64:
-#line 433 "gram.y"
+#line 444 "gram.y"
 {
 		  /* Returns a value for the execution_size field of an
 		   * instruction.
@@ -950,22 +1028,42 @@ case 64:
 		    fprintf(stderr, "Invalid execution size %d\n", yyvsp[-1].integer);
 		    YYERROR;
 		  }
-		  yyval.integer = ffs(yyvsp[-1].integer);
+		  yyval.integer = ffs(yyvsp[-1].integer) - 1;
 		}
 break;
 case 65:
-#line 446 "gram.y"
-{ yyval.integer = 0; }
+#line 457 "gram.y"
+{ yyval.integer = BRW_INSTRUCTION_NORMAL; }
 break;
 case 66:
-#line 447 "gram.y"
-{ yyval.integer = 1; }
+#line 458 "gram.y"
+{ yyval.integer = BRW_INSTRUCTION_SATURATE; }
 break;
 case 68:
-#line 456 "gram.y"
+#line 467 "gram.y"
 { yyval.instruction = yyvsp[-1].instruction; }
 break;
-#line 969 "y.tab.c"
+case 69:
+#line 471 "gram.y"
+{
+		  yyval.instruction = yyvsp[0].instruction;
+		  switch (yyvsp[-1].integer) {
+		  case ALIGN1:
+		    yyval.instruction.header.access_mode = BRW_ALIGN_1;
+		    break;
+		  case ALIGN16:
+		    yyval.instruction.header.access_mode = BRW_ALIGN_16;
+		    break;
+		  case MASK_DISABLE:
+		    yyval.instruction.header.mask_control = BRW_MASK_DISABLE;
+		    break;
+		  case EOT:
+		    /* XXX: EOT shouldn't be here */
+		    break;
+		  }
+		}
+break;
+#line 1067 "y.tab.c"
     }
     yyssp -= yym;
     yystate = *yyssp;
