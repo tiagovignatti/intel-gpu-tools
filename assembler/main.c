@@ -48,7 +48,8 @@ int main(int argc, char **argv)
 		printf("   { 0x%08x, 0x%08x, 0x%08x 0x%08x },\n",
 		       ((int *)(&entry->instruction))[0],
 		       ((int *)(&entry->instruction))[1],
-		       ((int *)(&entry->instruction))[2]);
+		       ((int *)(&entry->instruction))[2],
+		       ((int *)(&entry->instruction))[3]);
 	}
 
 	return err;
