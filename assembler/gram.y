@@ -256,6 +256,8 @@ dstoperandex:	accreg dstregion regtype
 		  $$.bits1.da1.dest_reg_file = $1.reg_file;
 		  $$.bits1.da1.dest_reg_nr = $1.reg_nr;
 		  $$.bits1.da1.dest_subreg_nr = $1.subreg_nr;
+		  $$.bits1.da1.dest_horiz_stride = 1;
+		  $$.bits1.da1.dest_reg_type = BRW_REGISTER_TYPE_F;
 		}
 ;
 
