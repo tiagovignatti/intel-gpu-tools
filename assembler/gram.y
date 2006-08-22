@@ -27,6 +27,7 @@
  */
 
 #include <stdio.h>
+#include <string.h>
 #include "gen4asm.h"
 #include "brw_defines.h"
 

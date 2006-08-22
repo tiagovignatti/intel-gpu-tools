@@ -49,10 +49,11 @@ static int yygrowstack();
  */
 
 #include <stdio.h>
+#include <string.h>
 #include "gen4asm.h"
 #include "brw_defines.h"
 
-#line 37 "gram.y"
+#line 38 "gram.y"
 typedef union {
 	char *s;
 	int integer;
@@ -67,7 +68,7 @@ typedef union {
 	} direct_gen_reg; /* XXX: naming */
 	double imm32;
 } YYSTYPE;
-#line 71 "y.tab.c"
+#line 72 "y.tab.c"
 #define YYERRCODE 256
 #define SEMICOLON 257
 #define LPAREN 258
@@ -402,7 +403,7 @@ short *yyss;
 short *yysslim;
 YYSTYPE *yyvs;
 int yystacksize;
-#line 498 "gram.y"
+#line 499 "gram.y"
 extern int yylineno;
 
 void yyerror (char *msg)
@@ -473,7 +474,7 @@ void set_instruction_options(struct brw_instruction *instr,
 	instr->header.compression_control =
 		options->header.compression_control;
 }
-#line 477 "y.tab.c"
+#line 478 "y.tab.c"
 /* allocate initial stack or double stack size, up to YYMAXDEPTH */
 static int yygrowstack()
 {
@@ -669,13 +670,13 @@ yyreduce:
     switch (yyn)
     {
 case 1:
-#line 99 "gram.y"
+#line 100 "gram.y"
 {
 		  compiled_program = yyvsp[0].program;
 		}
 break;
 case 2:
-#line 105 "gram.y"
+#line 106 "gram.y"
 {
 		  struct brw_program_instruction *list_entry =
 		    calloc(sizeof(struct brw_program_instruction), 1);
@@ -688,7 +689,7 @@ case 2:
 		}
 break;
 case 3:
-#line 116 "gram.y"
+#line 117 "gram.y"
 {
 		  struct brw_program_instruction *list_entry =
 		    calloc(sizeof(struct brw_program_instruction), 1);
@@ -700,13 +701,13 @@ case 3:
 		}
 break;
 case 4:
-#line 126 "gram.y"
+#line 127 "gram.y"
 {
 		  yyval.program = yyvsp[0].program;
 		}
 break;
 case 10:
-#line 142 "gram.y"
+#line 143 "gram.y"
 {
 		  yyval.instruction.header.opcode = yyvsp[-6].integer;
 		  yyval.instruction.header.saturate = yyvsp[-5].integer;
@@ -718,11 +719,11 @@ case 10:
 		}
 break;
 case 11:
-#line 153 "gram.y"
+#line 154 "gram.y"
 { yyval.integer = BRW_OPCODE_MOV; }
 break;
 case 12:
-#line 159 "gram.y"
+#line 160 "gram.y"
 {
 		  yyval.instruction.header.opcode = yyvsp[-7].integer;
 		  yyval.instruction.header.saturate = yyvsp[-6].integer;
@@ -735,15 +736,15 @@ case 12:
 		}
 break;
 case 13:
-#line 171 "gram.y"
+#line 172 "gram.y"
 { yyval.integer = BRW_OPCODE_MUL; }
 break;
 case 14:
-#line 172 "gram.y"
+#line 173 "gram.y"
 { yyval.integer = BRW_OPCODE_MAC; }
 break;
 case 15:
-#line 177 "gram.y"
+#line 178 "gram.y"
 {
 		  yyval.instruction.header.opcode = yyvsp[-7].integer;
 		  yyval.instruction.header.saturate = yyvsp[-6].integer;
@@ -756,11 +757,11 @@ case 15:
 		}
 break;
 case 16:
-#line 189 "gram.y"
+#line 190 "gram.y"
 { yyval.integer = BRW_OPCODE_ADD; }
 break;
 case 18:
-#line 197 "gram.y"
+#line 198 "gram.y"
 {
 		  yyval.instruction.header.opcode = BRW_OPCODE_SEND;
 		  yyval.instruction.header.execution_size = yyvsp[-8].integer;
@@ -768,45 +769,45 @@ case 18:
 		}
 break;
 case 19:
-#line 204 "gram.y"
+#line 205 "gram.y"
 {
 		  yyval.instruction.header.opcode = BRW_OPCODE_NOP;
 		}
 break;
 case 21:
-#line 212 "gram.y"
+#line 213 "gram.y"
 { yyval.integer = BRW_MESSAGE_TARGET_NULL; }
 break;
 case 22:
-#line 213 "gram.y"
+#line 214 "gram.y"
 { yyval.integer = BRW_MESSAGE_TARGET_SAMPLER; }
 break;
 case 23:
-#line 214 "gram.y"
+#line 215 "gram.y"
 { yyval.integer = BRW_MESSAGE_TARGET_MATH; }
 break;
 case 24:
-#line 215 "gram.y"
+#line 216 "gram.y"
 { yyval.integer = BRW_MESSAGE_TARGET_GATEWAY; }
 break;
 case 25:
-#line 216 "gram.y"
+#line 217 "gram.y"
 { yyval.integer = BRW_MESSAGE_TARGET_DATAPORT_READ; }
 break;
 case 26:
-#line 217 "gram.y"
+#line 218 "gram.y"
 { yyval.integer = BRW_MESSAGE_TARGET_DATAPORT_WRITE; }
 break;
 case 27:
-#line 218 "gram.y"
+#line 219 "gram.y"
 { yyval.integer = BRW_MESSAGE_TARGET_URB; }
 break;
 case 28:
-#line 219 "gram.y"
+#line 220 "gram.y"
 { yyval.integer = BRW_MESSAGE_TARGET_THREAD_SPAWNER; }
 break;
 case 31:
-#line 228 "gram.y"
+#line 229 "gram.y"
 {
 		  /* Returns an instruction with just the destination register
 		   * filled in.
@@ -817,7 +818,7 @@ case 31:
 		}
 break;
 case 32:
-#line 239 "gram.y"
+#line 240 "gram.y"
 {
 		  /* Returns an instruction with just the destination register
 		   * filled in.
@@ -829,7 +830,7 @@ case 32:
 		}
 break;
 case 33:
-#line 249 "gram.y"
+#line 250 "gram.y"
 {
 		  /* Returns an instruction with just the destination register
 		   * filled in.
@@ -840,7 +841,7 @@ case 33:
 		}
 break;
 case 34:
-#line 261 "gram.y"
+#line 262 "gram.y"
 {
 		  yyval.instruction.bits1.da1.dest_reg_file = yyvsp[0].direct_gen_reg.reg_file;
 		  yyval.instruction.bits1.da1.dest_reg_nr = yyvsp[0].direct_gen_reg.reg_nr;
@@ -848,7 +849,7 @@ case 34:
 		}
 break;
 case 37:
-#line 273 "gram.y"
+#line 274 "gram.y"
 {
 		  yyval.instruction.bits1.da1.src0_reg_file = BRW_IMMEDIATE_VALUE;
 		  switch (yyvsp[0].integer) {
@@ -865,7 +866,7 @@ case 37:
 		}
 break;
 case 40:
-#line 295 "gram.y"
+#line 296 "gram.y"
 {
 		  yyval.instruction.bits1.da1.src0_reg_file = BRW_IMMEDIATE_VALUE;
 		  switch (yyvsp[0].integer) {
@@ -882,7 +883,7 @@ case 40:
 		}
 break;
 case 43:
-#line 321 "gram.y"
+#line 322 "gram.y"
 {
 		  /* Returns a source operand in the src0 fields of an
 		   * instruction.
@@ -897,20 +898,20 @@ case 43:
 		}
 break;
 case 44:
-#line 336 "gram.y"
+#line 337 "gram.y"
 {
 		  yyval.integer = yyvsp[0].integer;
 		}
 break;
 case 45:
-#line 340 "gram.y"
+#line 341 "gram.y"
 {
 		  /* Default to subreg 0 if unspecified. */
 		  yyval.integer = 0;
 		}
 break;
 case 46:
-#line 348 "gram.y"
+#line 349 "gram.y"
 {
 		  /* Returns an instruction with just the destination register
 		   * fields filled in.
@@ -921,7 +922,7 @@ case 46:
 		}
 break;
 case 47:
-#line 358 "gram.y"
+#line 359 "gram.y"
 {
 		  /* Returns an instruction with just the destination register
 		   * fields filled in.
@@ -932,7 +933,7 @@ case 47:
 		}
 break;
 case 48:
-#line 369 "gram.y"
+#line 370 "gram.y"
 {
 		  /* Returns an instruction with just the destination register
 		   * fields filled in.
@@ -943,7 +944,7 @@ case 48:
 		}
 break;
 case 49:
-#line 380 "gram.y"
+#line 381 "gram.y"
 {
 		  /* Returns an instruction with just the destination register
 		   * fields filled in.
@@ -954,7 +955,7 @@ case 49:
 		}
 break;
 case 50:
-#line 391 "gram.y"
+#line 392 "gram.y"
 {
 		  yyval.direct_gen_reg.reg_file = BRW_ARCHITECTURE_REGISTER_FILE;
 		  yyval.direct_gen_reg.reg_nr = BRW_ARF_NULL;
@@ -962,7 +963,7 @@ case 50:
 		}
 break;
 case 51:
-#line 400 "gram.y"
+#line 401 "gram.y"
 {
 		  /* Returns a value for a horiz_stride field of an
 		   * instruction.
@@ -974,7 +975,7 @@ case 51:
 		}
 break;
 case 52:
-#line 412 "gram.y"
+#line 413 "gram.y"
 {
 		  yyval.region.vert_stride = ffs(yyvsp[-5].integer);
 		  yyval.region.width = ffs(yyvsp[-3].integer) - 1;
@@ -982,43 +983,43 @@ case 52:
 		}
 break;
 case 53:
-#line 424 "gram.y"
+#line 425 "gram.y"
 { yyval.integer = BRW_REGISTER_TYPE_F; }
 break;
 case 54:
-#line 425 "gram.y"
+#line 426 "gram.y"
 { yyval.integer = BRW_REGISTER_TYPE_UD; }
 break;
 case 55:
-#line 426 "gram.y"
+#line 427 "gram.y"
 { yyval.integer = BRW_REGISTER_TYPE_D; }
 break;
 case 56:
-#line 427 "gram.y"
-{ yyval.integer = BRW_REGISTER_TYPE_UW; }
-break;
-case 57:
 #line 428 "gram.y"
 { yyval.integer = BRW_REGISTER_TYPE_UW; }
 break;
-case 58:
+case 57:
 #line 429 "gram.y"
+{ yyval.integer = BRW_REGISTER_TYPE_UW; }
+break;
+case 58:
+#line 430 "gram.y"
 { yyval.integer = BRW_REGISTER_TYPE_UB; }
 break;
 case 59:
-#line 430 "gram.y"
+#line 431 "gram.y"
 { yyval.integer = BRW_REGISTER_TYPE_B; }
 break;
 case 61:
-#line 436 "gram.y"
+#line 437 "gram.y"
 { yyval.imm32 = yyvsp[0].integer; }
 break;
 case 62:
-#line 437 "gram.y"
+#line 438 "gram.y"
 { yyval.imm32 = yyvsp[0].number; }
 break;
 case 64:
-#line 444 "gram.y"
+#line 445 "gram.y"
 {
 		  /* Returns a value for the execution_size field of an
 		   * instruction.
@@ -1032,19 +1033,19 @@ case 64:
 		}
 break;
 case 65:
-#line 457 "gram.y"
+#line 458 "gram.y"
 { yyval.integer = BRW_INSTRUCTION_NORMAL; }
 break;
 case 66:
-#line 458 "gram.y"
+#line 459 "gram.y"
 { yyval.integer = BRW_INSTRUCTION_SATURATE; }
 break;
 case 68:
-#line 467 "gram.y"
+#line 468 "gram.y"
 { yyval.instruction = yyvsp[-1].instruction; }
 break;
 case 69:
-#line 471 "gram.y"
+#line 472 "gram.y"
 {
 		  yyval.instruction = yyvsp[0].instruction;
 		  switch (yyvsp[-1].integer) {
@@ -1063,7 +1064,7 @@ case 69:
 		  }
 		}
 break;
-#line 1067 "y.tab.c"
+#line 1068 "y.tab.c"
     }
     yyssp -= yym;
     yystate = *yyssp;

@@ -139,6 +139,6 @@ lex_text(void)
 }
 
 #ifndef yywrap
-yywrap() { return 1; }
+int yywrap() { return 1; }
 #endif
 

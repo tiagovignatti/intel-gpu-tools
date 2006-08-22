@@ -54,3 +54,9 @@ struct brw_program {
 };
 
 extern struct brw_program compiled_program;
+
+int yyparse(void);
+int yylex(void);
+
+char *
+lex_text(void);
