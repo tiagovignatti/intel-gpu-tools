@@ -2,12 +2,31 @@
 %{
 #include "gen4asm.h"
 #include "y.tab.h"
+
+int saved_state = INITIAL;
+
 %}
-%start IN_REG
+%s IN_REG
+%x BLOCK_COMMENT
 
 %%
 \/\/.*[\r\n] { } /* eat up single-line comments */
 
+ /* eat up multi-line comments, non-nesting. */
+\/\* {
+	saved_state = YYSTATE;
+	BEGIN(BLOCK_COMMENT);
+}
+<BLOCK_COMMENT>\*\/ {
+	BEGIN(saved_state);
+}
+<BLOCK_COMMENT>. { }
+<BLOCK_COMMENT>[\r\n] { }
+
+ /* used for both null send and null register. */
+"null" { return NULL_TOKEN; }
+
+ /* opcodes */
 "mov" { return MOV; }
 
 "mul" { return MUL; }
@@ -23,10 +42,11 @@
 
 "add" { return ADD; }
 
+"nop" { return NOP; }
+
 "send" { return SEND; }
 "mlen" { return MSGLEN; }
 "rlen" { return RETURNLEN; }
-"null" { return NULL_TOKEN; }
 "math" { return MATH; }
 "sampler" { return SAMPLER; }
 "gateway" { return GATEWAY; }
@@ -46,8 +66,34 @@
 "." { return DOT; }
 
  /* XXX: this lexing of register files is shady */
-"m" { BEGIN(IN_REG); return MSGREGFILE; }
-[gr] { BEGIN(IN_REG); return GENREGFILE; }
+"acc" {
+	BEGIN(IN_REG);
+	return ACCREG;
+}
+"a" {
+	BEGIN(IN_REG);
+	return ADDRESSREG;
+}
+"m" {
+	BEGIN(IN_REG);
+	return MSGREG;
+}
+"f" {
+	BEGIN(IN_REG);
+	return FLAGREG;
+}
+[gr] {
+	BEGIN(IN_REG);
+	return GENREG;
+}
+"cr" {
+	BEGIN(IN_REG);
+	return CONTROLREG;
+}
+"ip" {
+	BEGIN(IN_REG);
+	return IPREG;
+}
 
  /*
   * Lexing of register types should probably require the ":" symbol specified
@@ -61,7 +107,11 @@
 "B" { BEGIN(INITIAL); return TYPE_B; }
 "F" { BEGIN(INITIAL); return TYPE_F; }
 
+"sat" { return SATURATE; }
 "align1" { return ALIGN1; }
+"align16" { return ALIGN16; }
+"mask_disable" { return MASK_DISABLE; }
+"EOT" { return EOT; }
 
 [0-9]* {
 	yylval.integer = atoi(yytext);

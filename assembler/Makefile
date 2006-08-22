@@ -8,4 +8,5 @@ lextest: ${SOURCES}
 	cc -o lextest ${SOURCES}
 
 clean:
+	rm -f gram.c lex.c
 	rm -f *.o lextest

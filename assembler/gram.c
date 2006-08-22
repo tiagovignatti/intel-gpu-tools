@@ -89,113 +89,140 @@ typedef union {
 #define TYPE_V 274
 #define TYPE_F 275
 #define ALIGN1 276
-#define GENREGFILE 277
-#define MSGREGFILE 278
-#define MOV 279
-#define MUL 280
-#define MAC 281
-#define MACH 282
-#define LINE 283
-#define SAD2 284
-#define SADA2 285
-#define DP4 286
-#define DPH 287
-#define DP3 288
-#define DP2 289
-#define ADD 290
-#define SEND 291
-#define NULL_TOKEN 292
-#define MATH 293
-#define SAMPLER 294
-#define GATEWAY 295
-#define READ 296
-#define WRITE 297
-#define URB 298
-#define THREAD_SPAWNER 299
-#define MSGLEN 300
-#define RETURNLEN 301
-#define INTEGER 302
-#define NUMBER 303
-#define accreg 304
-#define triop 305
+#define ALIGN16 277
+#define MASK_DISABLE 278
+#define EOT 279
+#define GENREG 280
+#define MSGREG 281
+#define ACCREG 282
+#define ADDRESSREG 283
+#define FLAGREG 284
+#define CONTROLREG 285
+#define IPREG 286
+#define MOV 287
+#define MUL 288
+#define MAC 289
+#define MACH 290
+#define LINE 291
+#define SAD2 292
+#define SADA2 293
+#define DP4 294
+#define DPH 295
+#define DP3 296
+#define DP2 297
+#define ADD 298
+#define SEND 299
+#define NULL_TOKEN 300
+#define MATH 301
+#define SAMPLER 302
+#define GATEWAY 303
+#define READ 304
+#define WRITE 305
+#define URB 306
+#define THREAD_SPAWNER 307
+#define MSGLEN 308
+#define RETURNLEN 309
+#define SATURATE 310
+#define INTEGER 311
+#define NUMBER 312
+#define flagreg 313
+#define maskreg 314
+#define NOP 315
 const short yylhs[] = {                                        -1,
-    0,   16,   16,   16,    1,    1,    1,    1,    2,   17,
-    3,   18,    4,   19,    5,    6,   34,   35,   26,   26,
-   26,   26,   26,   26,   26,   26,   32,    7,    8,    9,
-    9,   15,   15,   14,   13,   13,   10,   11,   12,   28,
-   24,   24,   29,   25,   23,   27,   20,   20,   20,   20,
-   20,   20,   20,   21,   30,   30,   31,   22,   33,   36,
+    0,   21,   21,   21,    1,    1,    1,    1,    1,    2,
+   22,    3,   23,   23,    4,   24,    5,    6,    7,   41,
+   32,   32,   32,   32,   32,   32,   32,   32,   40,   40,
+    8,    9,    9,   10,   10,   17,   17,   16,   15,   15,
+   12,   13,   14,   31,   31,   34,   35,   11,   36,   37,
+   30,   33,   27,   27,   27,   27,   27,   27,   27,   28,
+   38,   38,   39,   29,   26,   26,   25,   18,   19,   19,
+   20,   20,   20,   20,
 };
 const short yylen[] = {                                         2,
-    1,    3,    2,    3,    1,    1,    1,    1,    6,    1,
-    7,    1,    7,    1,    1,   12,    1,    1,    1,    1,
-    1,    1,    1,    1,    1,    1,    1,    3,    3,    1,
-    1,    1,    2,    1,    1,    2,    1,    1,    3,    3,
-    2,    0,    3,    1,    3,    7,    1,    1,    1,    1,
-    1,    1,    1,    1,    1,    1,    0,    3,    3,    1,
+    1,    3,    2,    3,    1,    1,    1,    1,    1,    8,
+    1,    9,    1,    1,    9,    1,    1,   12,    1,    1,
+    1,    1,    1,    1,    1,    1,    1,    1,    1,    1,
+    3,    3,    1,    1,    1,    1,    2,    1,    1,    2,
+    1,    1,    3,    2,    0,    3,    3,    3,    3,    1,
+    3,    7,    1,    1,    1,    1,    1,    1,    1,    1,
+    1,    1,    0,    3,    0,    2,    0,    3,    2,    0,
+    1,    1,    1,    1,
 };
 const short yydefred[] = {                                      0,
-    0,    0,    0,    5,    6,    7,    8,   15,    1,    0,
-    0,    0,   10,   12,   14,    0,    0,    0,    0,    4,
-    2,    0,    0,    0,    0,    0,    0,    0,    0,    0,
-   27,    0,   30,   31,    0,    0,    0,   17,    0,   58,
-    0,    0,    0,    0,   55,   56,   34,   37,   32,    0,
-    0,    0,    0,   38,    0,   18,    0,    0,   40,   44,
-   43,    0,   48,   49,   50,   51,   52,   53,   47,   28,
-    0,    9,    0,    0,   54,   33,   35,    0,    0,    0,
-   19,   21,   20,   22,   23,   24,   25,   26,    0,   41,
-   45,   60,    0,    0,   39,   11,   36,   13,    0,   59,
-    0,    0,    0,    0,    0,    0,    0,   16,   46,
+    0,   19,    0,    0,    5,    6,    7,    8,   17,    9,
+    1,    0,    0,    0,   11,   13,   14,   16,    0,   67,
+   67,   67,    4,    2,    0,    0,    0,    0,    0,    0,
+    0,    0,    0,    0,    0,    0,    0,    0,   50,   29,
+   30,    0,    0,   34,   35,   33,    0,   66,    0,    0,
+    0,   64,    0,    0,    0,    0,    0,    0,   20,    0,
+    0,    0,    0,    0,    0,   46,   47,   48,    0,   54,
+   55,   56,   57,   58,   59,   53,   31,   32,    0,    0,
+   21,   23,   22,   24,   25,   26,   27,   28,    0,   61,
+   62,   38,   41,   36,    0,    0,    0,   42,    0,   44,
+   51,    0,   43,    0,    0,   10,   60,   37,   39,    0,
+    0,    0,    0,    0,   71,   72,   73,   74,    0,    0,
+   12,   40,   15,    0,    0,   68,   69,    0,    0,    0,
+   18,   52,
 };
-const short yydgoto[] = {                                       2,
-    3,    4,    5,    6,    7,    8,   31,    0,   32,   47,
-   53,   48,   78,   49,   50,    9,   17,   18,   19,   75,
-   76,   24,   44,   59,   61,   89,   74,   51,   34,   79,
-   10,   35,   72,   39,   57,   93,
+const short yydgoto[] = {                                       3,
+    4,    5,    6,    7,    8,    9,   10,   40,   41,   42,
+   43,   92,   97,   93,  110,   94,   95,  106,  119,  120,
+   11,   20,   21,   22,   26,   32,  107,  108,   30,   57,
+   66,   89,   80,   60,   45,    0,   46,  111,   12,   47,
+   61,
 };
-const short yysindex[] = {                                   -246,
- -251,    0, -239,    0,    0,    0,    0,    0,    0, -271,
- -246, -246,    0,    0,    0, -280, -232, -232, -232,    0,
-    0, -232, -273, -261, -261, -261, -261, -219, -245, -244,
-    0, -204,    0,    0, -275, -218, -218,    0, -218,    0,
- -205, -205, -241, -234,    0,    0,    0,    0,    0, -200,
- -197, -234, -275,    0, -275,    0, -250, -238,    0,    0,
-    0, -196,    0,    0,    0,    0,    0,    0,    0,    0,
- -210,    0, -235, -234,    0,    0,    0, -200, -234, -200,
-    0,    0,    0,    0,    0,    0,    0,    0, -231,    0,
-    0,    0, -195, -194,    0,    0,    0,    0, -230,    0,
- -229, -227, -193, -226, -225, -200, -186,    0,    0,
+const short yysindex[] = {                                   -256,
+ -244,    0,    0, -218,    0,    0,    0,    0,    0,    0,
+    0, -266, -256, -256,    0,    0,    0,    0, -265,    0,
+    0,    0,    0,    0, -205, -194, -194, -194, -239, -274,
+ -237, -205, -205, -205, -185, -236, -235, -234,    0,    0,
+    0, -182, -182,    0,    0,    0, -201,    0, -274, -274,
+ -274,    0, -184, -184, -184, -231, -226, -226,    0, -178,
+ -240, -277, -201, -201, -228,    0,    0,    0, -177,    0,
+    0,    0,    0,    0,    0,    0,    0,    0, -225, -226,
+    0,    0,    0,    0,    0,    0,    0,    0, -223,    0,
+    0,    0,    0,    0, -175, -226, -277,    0, -277,    0,
+    0, -176,    0, -222, -221,    0,    0,    0,    0, -175,
+ -226, -175, -220, -219,    0,    0,    0,    0, -171, -221,
+    0,    0,    0, -170, -216,    0,    0, -215, -175, -168,
+    0,    0,
 };
-const short yyrindex[] = {                                   -266,
+const short yyrindex[] = {                                   -251,
     0,    0,    0,    0,    0,    0,    0,    0,    0,    0,
- -266,    1,    0,    0,    0,    0,    0,    0,    0,    0,
-    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,
-    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,
- -182, -182,    0,    0,    0,    0,    0,    0,    0,    0,
+    0,    0, -251,    1,    0,    0,    0,    0,    0,    0,
+    0,    0,    0,    0,    0, -161, -161, -161,    0,    0,
     0,    0,    0,    0,    0,    0,    0,    0,    0,    0,
     0,    0,    0,    0,    0,    0,    0,    0,    0,    0,
+    0,    0, -162, -162, -162,    0,    0,    0,    0,    0,
     0,    0,    0,    0,    0,    0,    0,    0,    0,    0,
     0,    0,    0,    0,    0,    0,    0,    0,    0,    0,
     0,    0,    0,    0,    0,    0,    0,    0,    0,    0,
-    0,    0,    0,    0,    0,    0,    0,    0,    0,
+    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,
+    0,    0,    0,    0, -164,    0,    0,    0,    0,    0,
+    0,    0,    0,    0,    0,    0,    0,    0,    0, -164,
+    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,
+    0,    0,
 };
 const short yygindex[] = {                                      0,
-    0,    0,    0,    0,    0,    0,   52,    0,    0,    0,
-    0,  -32,   25,   44,    0,   27,    0,    0,    0,  -44,
-    3,   -7,    0,   41,    0,    0,    0,   26,    0,   49,
-    0,   29,  -75,    0,    0,    0,
+    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,
+    0,    0,    0,  -45,    2,   36,    0,  -98,  -18,    0,
+   -3,    0,    0,    0,   -2,   23,  -53,   -8,  -17,   61,
+  -30,    0,    0,  -21,    0,    0,    0,   43,    0,   19,
+    0,
 };
-#define YYTABLESIZE 292
-const short yytable[] = {                                      70,
-    3,   29,   96,   54,   98,   11,   56,   13,   14,    1,
-   25,   26,   57,   57,   27,   29,   30,   12,   15,   16,
-   77,   22,   77,   57,   57,   23,   45,   46,   28,   95,
-  108,   63,   64,   65,   66,   67,   68,   20,   21,   40,
-   69,   81,   82,   83,   84,   85,   86,   87,   88,   33,
-   33,   33,   33,   36,   37,   43,   41,   42,   29,   58,
-   62,   71,   73,   90,   91,   92,   94,  100,   99,  101,
-  105,  102,  103,  104,  109,  106,  107,   42,   38,   80,
-   55,   97,   60,   52,    0,    0,    0,    0,    0,    0,
+#define YYTABLESIZE 300
+const short yytable[] = {                                       1,
+    3,   59,   36,   77,   78,   36,   37,   38,   44,   23,
+   24,  121,   13,  123,   49,   50,   51,   98,   27,   28,
+   15,   16,   17,   67,   68,   39,  103,   44,   44,   44,
+  131,   18,   19,   90,   91,   63,   63,   63,   14,   70,
+   71,   72,   73,   74,   75,   25,   63,   63,   76,   33,
+   34,  109,   29,  109,  115,  116,  117,  118,    2,   81,
+   82,   83,   84,   85,   86,   87,   88,   62,   63,   64,
+   31,   35,   48,   52,   53,   54,   55,   56,   36,   69,
+   65,   79,  100,  101,  104,  102,  105,  113,  114,  125,
+  124,  126,  132,  128,  129,  130,   65,   45,   70,   99,
+  112,  127,  122,   58,   96,    0,    0,    0,    0,    0,
     0,    0,    0,    0,    0,    0,    0,    0,    0,    0,
     0,    0,    0,    0,    0,    0,    0,    0,    0,    0,
     0,    0,    0,    0,    0,    0,    0,    0,    0,    0,
@@ -213,21 +240,21 @@ const short yytable[] = {                                      70,
     0,    0,    0,    0,    0,    0,    0,    0,    0,    0,
     0,    0,    0,    0,    0,    0,    0,    0,    0,    0,
     0,    0,    0,    0,    0,    0,    0,    0,    0,    0,
-    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,
-    0,    0,    0,    0,    0,    0,    0,    0,    0,   57,
-   57,    0,    0,    0,    0,    0,    0,    0,    0,    0,
-   57,   57,
+    0,    0,    0,    0,    0,    0,    0,   63,   63,   63,
+    0,    0,    0,    0,    0,    0,    0,    0,   63,   63,
 };
-const short yycheck[] = {                                      44,
-    0,  277,   78,   36,   80,  257,   39,  279,  280,  256,
-   18,   19,  279,  280,   22,  277,  278,  257,  290,  291,
-   53,  302,   55,  290,  291,  258,  302,  303,  302,   74,
-  106,  266,  267,  268,  269,  270,  271,   11,   12,  259,
-  275,  292,  293,  294,  295,  296,  297,  298,  299,   24,
-   25,   26,   27,   25,   26,  260,  302,  302,  277,  265,
-  302,  262,  260,  302,  261,  276,  302,  263,  300,  264,
-  264,  302,  302,  301,  261,  302,  302,  260,   27,   55,
-   37,   79,   42,   35,   -1,   -1,   -1,   -1,   -1,   -1,
+const short yycheck[] = {                                     256,
+    0,   47,  280,   57,   58,  280,  281,  282,   30,   13,
+   14,  110,  257,  112,   32,   33,   34,   63,   21,   22,
+  287,  288,  289,   54,   55,  300,   80,   49,   50,   51,
+  129,  298,  299,  311,  312,  287,  288,  289,  257,  266,
+  267,  268,  269,  270,  271,  311,  298,  299,  275,   27,
+   28,   97,  258,   99,  276,  277,  278,  279,  315,  300,
+  301,  302,  303,  304,  305,  306,  307,   49,   50,   51,
+  265,  311,  310,  259,  311,  311,  311,  260,  280,  311,
+  265,  260,  311,  261,  308,  311,  262,  264,  311,  309,
+  311,  263,  261,  264,  311,  311,  258,  260,  263,   64,
+   99,  120,  111,   43,   62,   -1,   -1,   -1,   -1,   -1,
    -1,   -1,   -1,   -1,   -1,   -1,   -1,   -1,   -1,   -1,
    -1,   -1,   -1,   -1,   -1,   -1,   -1,   -1,   -1,   -1,
    -1,   -1,   -1,   -1,   -1,   -1,   -1,   -1,   -1,   -1,
@@ -245,16 +272,14 @@ const short yycheck[] = {                                      44,
    -1,   -1,   -1,   -1,   -1,   -1,   -1,   -1,   -1,   -1,
    -1,   -1,   -1,   -1,   -1,   -1,   -1,   -1,   -1,   -1,
    -1,   -1,   -1,   -1,   -1,   -1,   -1,   -1,   -1,   -1,
-   -1,   -1,   -1,   -1,   -1,   -1,   -1,   -1,   -1,   -1,
-   -1,   -1,   -1,   -1,   -1,   -1,   -1,   -1,   -1,  279,
-  280,   -1,   -1,   -1,   -1,   -1,   -1,   -1,   -1,   -1,
-  290,  291,
+   -1,   -1,   -1,   -1,   -1,   -1,   -1,  287,  288,  289,
+   -1,   -1,   -1,   -1,   -1,   -1,   -1,   -1,  298,  299,
 };
-#define YYFINAL 2
+#define YYFINAL 3
 #ifndef YYDEBUG
 #define YYDEBUG 0
 #endif
-#define YYMAXTOKEN 305
+#define YYMAXTOKEN 315
 #if YYDEBUG
 const char * const yyname[] = {
 "end-of-file",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
@@ -266,10 +291,11 @@ const char * const yyname[] = {
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"SEMICOLON","LPAREN","RPAREN",
 "LANGLE","RANGLE","LCURLY","RCURLY","COMMA","DOT","TYPE_UD","TYPE_D","TYPE_UW",
 "TYPE_W","TYPE_UB","TYPE_B","TYPE_VF","TYPE_HF","TYPE_V","TYPE_F","ALIGN1",
-"GENREGFILE","MSGREGFILE","MOV","MUL","MAC","MACH","LINE","SAD2","SADA2","DP4",
-"DPH","DP3","DP2","ADD","SEND","NULL_TOKEN","MATH","SAMPLER","GATEWAY","READ",
-"WRITE","URB","THREAD_SPAWNER","MSGLEN","RETURNLEN","INTEGER","NUMBER","accreg",
-"triop",
+"ALIGN16","MASK_DISABLE","EOT","GENREG","MSGREG","ACCREG","ADDRESSREG",
+"FLAGREG","CONTROLREG","IPREG","MOV","MUL","MAC","MACH","LINE","SAD2","SADA2",
+"DP4","DPH","DP3","DP2","ADD","SEND","NULL_TOKEN","MATH","SAMPLER","GATEWAY",
+"READ","WRITE","URB","THREAD_SPAWNER","MSGLEN","RETURNLEN","SATURATE","INTEGER",
+"NUMBER","flagreg","maskreg","NOP",
 };
 const char * const yyrule[] = {
 "$accept : ROOT",
@@ -281,16 +307,18 @@ const char * const yyrule[] = {
 "instruction : binaryinstruction",
 "instruction : binaryaccinstruction",
 "instruction : triinstruction",
-"unaryinstruction : predicate unaryop execsize dst srcaccimm instoptions",
+"instruction : specialinstruction",
+"unaryinstruction : predicate unaryop conditionalmodifier saturate execsize dst srcaccimm instoptions",
 "unaryop : MOV",
-"binaryinstruction : predicate binaryop execsize dst src srcimm instoptions",
+"binaryinstruction : predicate binaryop conditionalmodifier saturate execsize dst src srcimm instoptions",
 "binaryop : MUL",
-"binaryaccinstruction : predicate binaryaccop execsize dst srcacc srcimm instoptions",
+"binaryop : MAC",
+"binaryaccinstruction : predicate binaryaccop conditionalmodifier saturate execsize dst srcacc srcimm instoptions",
 "binaryaccop : ADD",
 "triinstruction : sendinstruction",
-"sendinstruction : predicate SEND INTEGER execsize postdst curdst msgtarget MSGLEN INTEGER RETURNLEN INTEGER instoptions",
-"postdst : dstoperand",
-"curdst : directsrcoperand",
+"sendinstruction : predicate SEND INTEGER execsize dst payload msgtarget MSGLEN INTEGER RETURNLEN INTEGER instoptions",
+"specialinstruction : NOP",
+"payload : directsrcoperand",
 "msgtarget : NULL_TOKEN",
 "msgtarget : SAMPLER",
 "msgtarget : MATH",
@@ -300,8 +328,10 @@ const char * const yyrule[] = {
 "msgtarget : URB",
 "msgtarget : THREAD_SPAWNER",
 "dst : dstoperand",
+"dst : dstoperandex",
 "dstoperand : dstreg dstregion regtype",
 "dstoperandex : accreg dstregion regtype",
+"dstoperandex : nullreg",
 "dstreg : directgenreg",
 "dstreg : directmsgreg",
 "srcaccimm : srcacc",
@@ -312,11 +342,13 @@ const char * const yyrule[] = {
 "directsrcaccoperand : directsrcoperand",
 "src : directsrcoperand",
 "directsrcoperand : directgenreg region regtype",
-"directgenreg : GENREGFILE INTEGER gensubregnum",
-"gensubregnum : DOT INTEGER",
-"gensubregnum :",
-"directmsgreg : MSGREGFILE INTEGER msgsubregnum",
-"msgsubregnum : gensubregnum",
+"subregnum : DOT INTEGER",
+"subregnum :",
+"directgenreg : GENREG INTEGER subregnum",
+"directmsgreg : MSGREG INTEGER subregnum",
+"accreg : ACCREG INTEGER subregnum",
+"addrreg : ADDRESSREG INTEGER subregnum",
+"nullreg : NULL_TOKEN",
 "dstregion : LANGLE INTEGER RANGLE",
 "region : LANGLE INTEGER COMMA INTEGER COMMA INTEGER RANGLE",
 "regtype : TYPE_F",
@@ -331,8 +363,16 @@ const char * const yyrule[] = {
 "imm32 : NUMBER",
 "predicate :",
 "execsize : LPAREN INTEGER RPAREN",
-"instoptions : LCURLY instoption RCURLY",
+"saturate :",
+"saturate : DOT SATURATE",
+"conditionalmodifier :",
+"instoptions : LCURLY instoption_list RCURLY",
+"instoption_list : instoption instoption_list",
+"instoption_list :",
 "instoption : ALIGN1",
+"instoption : ALIGN16",
+"instoption : MASK_DISABLE",
+"instoption : EOT",
 };
 #endif
 #if YYDEBUG
@@ -362,7 +402,7 @@ short *yyss;
 short *yysslim;
 YYSTYPE *yyvs;
 int yystacksize;
-#line 395 "gram.y"
+#line 470 "gram.y"
 extern int yylineno;
 
 void yyerror (char *msg)
@@ -371,7 +411,7 @@ void yyerror (char *msg)
 		msg, yylineno, lex_text());
 }
 
-#line 375 "y.tab.c"
+#line 415 "y.tab.c"
 /* allocate initial stack or double stack size, up to YYMAXDEPTH */
 static int yygrowstack()
 {
@@ -567,13 +607,13 @@ yyreduce:
     switch (yyn)
     {
 case 1:
-#line 92 "gram.y"
+#line 97 "gram.y"
 {
 		  compiled_program = yyvsp[0].program;
 		}
 break;
 case 2:
-#line 98 "gram.y"
+#line 103 "gram.y"
 {
 		  struct brw_program_instruction *list_entry =
 		    calloc(sizeof(struct brw_program_instruction), 1);
@@ -586,7 +626,7 @@ case 2:
 		}
 break;
 case 3:
-#line 109 "gram.y"
+#line 114 "gram.y"
 {
 		  struct brw_program_instruction *list_entry =
 		    calloc(sizeof(struct brw_program_instruction), 1);
@@ -598,114 +638,147 @@ case 3:
 		}
 break;
 case 4:
-#line 119 "gram.y"
+#line 124 "gram.y"
 {
 		  yyval.program = yyvsp[0].program;
 		}
 break;
-case 9:
-#line 132 "gram.y"
-{
-		  yyval.instruction.header.opcode = yyvsp[-4].integer;
-		  yyval.instruction.header.execution_size = yyvsp[-3].integer;
-		}
-break;
 case 10:
-#line 138 "gram.y"
-{ yyval.integer = BRW_OPCODE_MOV; }
+#line 140 "gram.y"
+{
+		  yyval.instruction.header.opcode = yyvsp[-6].integer;
+		  yyval.instruction.header.saturate = yyvsp[-5].integer;
+		  yyval.instruction.header.destreg__conditionalmod = yyvsp[-4].integer;
+		  yyval.instruction.header.execution_size = yyvsp[-3].integer;
+		  yyval.instruction.bits1 = yyvsp[-1].instruction.bits1;
+		  /* XXX: more */
+		}
 break;
 case 11:
-#line 143 "gram.y"
-{
-		  yyval.instruction.header.opcode = yyvsp[-5].integer;
-		  yyval.instruction.header.execution_size = yyvsp[-4].integer;
-		}
+#line 150 "gram.y"
+{ yyval.integer = BRW_OPCODE_MOV; }
 break;
 case 12:
-#line 149 "gram.y"
-{ yyval.integer = BRW_OPCODE_MUL; }
+#line 156 "gram.y"
+{
+		  yyval.instruction.header.opcode = yyvsp[-7].integer;
+		  yyval.instruction.header.saturate = yyvsp[-6].integer;
+		  yyval.instruction.header.destreg__conditionalmod = yyvsp[-5].integer;
+		  yyval.instruction.header.execution_size = yyvsp[-4].integer;
+		  /* XXX: more */
+		}
 break;
 case 13:
-#line 153 "gram.y"
+#line 165 "gram.y"
+{ yyval.integer = BRW_OPCODE_MUL; }
+break;
+case 14:
+#line 166 "gram.y"
+{ yyval.integer = BRW_OPCODE_MAC; }
+break;
+case 15:
+#line 171 "gram.y"
 {
-		  yyval.instruction.header.opcode = yyvsp[-5].integer;
+		  yyval.instruction.header.opcode = yyvsp[-7].integer;
+		  yyval.instruction.header.saturate = yyvsp[-6].integer;
+		  yyval.instruction.header.destreg__conditionalmod = yyvsp[-5].integer;
 		  yyval.instruction.header.execution_size = yyvsp[-4].integer;
 		}
 break;
-case 14:
-#line 159 "gram.y"
+case 16:
+#line 179 "gram.y"
 { yyval.integer = BRW_OPCODE_ADD; }
 break;
-case 16:
-#line 167 "gram.y"
+case 18:
+#line 187 "gram.y"
 {
 		  yyval.instruction.header.opcode = BRW_OPCODE_SEND;
 		  yyval.instruction.header.execution_size = yyvsp[-8].integer;
-		  yyval.instruction.header.destreg__conditonalmod = yyvsp[-9].integer;
+		  yyval.instruction.header.destreg__conditionalmod = yyvsp[-9].integer;
 		}
 break;
 case 19:
-#line 181 "gram.y"
-{ yyval.integer = BRW_MESSAGE_TARGET_NULL; }
-break;
-case 20:
-#line 182 "gram.y"
-{ yyval.integer = BRW_MESSAGE_TARGET_SAMPLER; }
+#line 194 "gram.y"
+{
+		  yyval.instruction.header.opcode = BRW_OPCODE_NOP;
+		}
 break;
 case 21:
-#line 183 "gram.y"
-{ yyval.integer = BRW_MESSAGE_TARGET_MATH; }
+#line 202 "gram.y"
+{ yyval.integer = BRW_MESSAGE_TARGET_NULL; }
 break;
 case 22:
-#line 184 "gram.y"
-{ yyval.integer = BRW_MESSAGE_TARGET_GATEWAY; }
+#line 203 "gram.y"
+{ yyval.integer = BRW_MESSAGE_TARGET_SAMPLER; }
 break;
 case 23:
-#line 185 "gram.y"
-{ yyval.integer = BRW_MESSAGE_TARGET_DATAPORT_READ; }
+#line 204 "gram.y"
+{ yyval.integer = BRW_MESSAGE_TARGET_MATH; }
 break;
 case 24:
-#line 186 "gram.y"
-{ yyval.integer = BRW_MESSAGE_TARGET_DATAPORT_WRITE; }
+#line 205 "gram.y"
+{ yyval.integer = BRW_MESSAGE_TARGET_GATEWAY; }
 break;
 case 25:
-#line 187 "gram.y"
-{ yyval.integer = BRW_MESSAGE_TARGET_URB; }
+#line 206 "gram.y"
+{ yyval.integer = BRW_MESSAGE_TARGET_DATAPORT_READ; }
 break;
 case 26:
-#line 188 "gram.y"
-{ yyval.integer = BRW_MESSAGE_TARGET_THREAD_SPAWNER; }
+#line 207 "gram.y"
+{ yyval.integer = BRW_MESSAGE_TARGET_DATAPORT_WRITE; }
+break;
+case 27:
+#line 208 "gram.y"
+{ yyval.integer = BRW_MESSAGE_TARGET_URB; }
 break;
 case 28:
-#line 198 "gram.y"
+#line 209 "gram.y"
+{ yyval.integer = BRW_MESSAGE_TARGET_THREAD_SPAWNER; }
+break;
+case 31:
+#line 218 "gram.y"
 {
 		  /* Returns an instruction with just the destination register
 		   * filled in.
 		   */
 		  yyval.instruction.bits1 = yyvsp[-2].instruction.bits1;
-		  yyval.instruction.bits1.da1.dest_reg_type = yyvsp[-1].integer;
+		  yyval.instruction.bits1.da1.dest_reg_type = yyvsp[-1].integer; /* XXX */
+		  /* XXX: $3 */
 		}
 break;
-case 29:
-#line 207 "gram.y"
+case 32:
+#line 229 "gram.y"
 {
 		  /* Returns an instruction with just the destination register
 		   * filled in.
 		   */
-		  yyval.instruction.bits1 = yyvsp[-2].instruction.bits1;
-		  yyval.instruction.bits1.da1.dest_reg_type = yyvsp[-1].integer;
+		  yyval.instruction.bits1.da1.dest_reg_file = yyvsp[-2].direct_gen_reg.reg_file;
+		  yyval.instruction.bits1.da1.dest_reg_nr = yyvsp[-2].direct_gen_reg.reg_nr;
+		  yyval.instruction.bits1.da1.dest_subreg_nr = yyvsp[-2].direct_gen_reg.subreg_nr;
+		  /* XXX: $2 $3 */
 		}
 break;
-case 30:
-#line 217 "gram.y"
+case 33:
+#line 239 "gram.y"
+{
+		  /* Returns an instruction with just the destination register
+		   * filled in.
+		   */
+		  yyval.instruction.bits1.da1.dest_reg_file = yyvsp[0].direct_gen_reg.reg_file;
+		  yyval.instruction.bits1.da1.dest_reg_nr = yyvsp[0].direct_gen_reg.reg_nr;
+		  yyval.instruction.bits1.da1.dest_subreg_nr = yyvsp[0].direct_gen_reg.subreg_nr;
+		}
+break;
+case 34:
+#line 251 "gram.y"
 {
 		  yyval.instruction.bits1.da1.dest_reg_file = yyvsp[0].direct_gen_reg.reg_file;
 		  yyval.instruction.bits1.da1.dest_reg_nr = yyvsp[0].direct_gen_reg.reg_nr;
 		  yyval.instruction.bits1.da1.dest_subreg_nr = yyvsp[0].direct_gen_reg.subreg_nr;
 		}
 break;
-case 33:
-#line 229 "gram.y"
+case 37:
+#line 263 "gram.y"
 {
 		  yyval.instruction.bits1.da1.src0_reg_file = BRW_IMMEDIATE_VALUE;
 		  switch (yyvsp[0].integer) {
@@ -721,8 +794,8 @@ case 33:
 		  }
 		}
 break;
-case 36:
-#line 251 "gram.y"
+case 40:
+#line 285 "gram.y"
 {
 		  yyval.instruction.bits1.da1.src0_reg_file = BRW_IMMEDIATE_VALUE;
 		  switch (yyvsp[0].integer) {
@@ -738,8 +811,8 @@ case 36:
 		  }
 		}
 break;
-case 39:
-#line 277 "gram.y"
+case 43:
+#line 311 "gram.y"
 {
 		  /* Returns a source operand in the src0 fields of an
 		   * instruction.
@@ -753,32 +826,21 @@ case 39:
 		  yyval.instruction.bits2.da1.src0_horiz_stride = yyvsp[-1].region.horiz_stride;
 		}
 break;
-case 40:
-#line 293 "gram.y"
-{
-		  /* Returns an instruction with just the destination register
-		   * fields filled in.
-		   */
-		  yyval.direct_gen_reg.reg_file = BRW_GENERAL_REGISTER_FILE;
-		  yyval.direct_gen_reg.reg_nr = yyvsp[-1].integer;
-		  yyval.direct_gen_reg.subreg_nr = yyvsp[0].integer;
-		}
-break;
-case 41:
-#line 303 "gram.y"
+case 44:
+#line 326 "gram.y"
 {
 		  yyval.integer = yyvsp[0].integer;
 		}
 break;
-case 42:
-#line 307 "gram.y"
+case 45:
+#line 330 "gram.y"
 {
 		  /* Default to subreg 0 if unspecified. */
 		  yyval.integer = 0;
 		}
 break;
-case 43:
-#line 314 "gram.y"
+case 46:
+#line 338 "gram.y"
 {
 		  /* Returns an instruction with just the destination register
 		   * fields filled in.
@@ -788,8 +850,49 @@ case 43:
 		  yyval.direct_gen_reg.subreg_nr = yyvsp[0].integer;
 		}
 break;
-case 45:
-#line 329 "gram.y"
+case 47:
+#line 348 "gram.y"
+{
+		  /* Returns an instruction with just the destination register
+		   * fields filled in.
+		   */
+		  yyval.direct_gen_reg.reg_file = BRW_GENERAL_REGISTER_FILE;
+		  yyval.direct_gen_reg.reg_nr = yyvsp[-1].integer;
+		  yyval.direct_gen_reg.subreg_nr = yyvsp[0].integer;
+		}
+break;
+case 48:
+#line 359 "gram.y"
+{
+		  /* Returns an instruction with just the destination register
+		   * fields filled in.
+		   */
+		  yyval.direct_gen_reg.reg_file = BRW_ARCHITECTURE_REGISTER_FILE;
+		  yyval.direct_gen_reg.reg_nr = BRW_ARF_ACCUMULATOR | yyvsp[-1].integer;
+		  yyval.direct_gen_reg.subreg_nr = yyvsp[0].integer;
+		}
+break;
+case 49:
+#line 370 "gram.y"
+{
+		  /* Returns an instruction with just the destination register
+		   * fields filled in.
+		   */
+		  yyval.direct_gen_reg.reg_file = BRW_ARCHITECTURE_REGISTER_FILE;
+		  yyval.direct_gen_reg.reg_nr = BRW_ARF_ADDRESS | yyvsp[-1].integer;
+		  yyval.direct_gen_reg.subreg_nr = yyvsp[0].integer;
+		}
+break;
+case 50:
+#line 381 "gram.y"
+{
+		  yyval.direct_gen_reg.reg_file = BRW_ARCHITECTURE_REGISTER_FILE;
+		  yyval.direct_gen_reg.reg_nr = BRW_ARF_NULL;
+		  yyval.direct_gen_reg.subreg_nr = 0;
+		}
+break;
+case 51:
+#line 390 "gram.y"
 {
 		  /* Returns a value for a horiz_stride field of an
 		   * instruction.
@@ -800,44 +903,44 @@ case 45:
 		  yyval.integer = ffs(yyvsp[-1].integer);
 		}
 break;
-case 46:
-#line 341 "gram.y"
+case 52:
+#line 402 "gram.y"
 {
 		  yyval.region.vert_stride = yyvsp[-5].integer;
 		  yyval.region.width = yyvsp[-3].integer;
 		  yyval.region.horiz_stride = yyvsp[-1].integer;
 		}
 break;
-case 47:
-#line 353 "gram.y"
+case 53:
+#line 414 "gram.y"
 { yyval.integer = BRW_REGISTER_TYPE_F; }
 break;
-case 48:
-#line 354 "gram.y"
+case 54:
+#line 415 "gram.y"
 { yyval.integer = BRW_REGISTER_TYPE_UD; }
 break;
-case 49:
-#line 355 "gram.y"
+case 55:
+#line 416 "gram.y"
 { yyval.integer = BRW_REGISTER_TYPE_D; }
 break;
-case 50:
-#line 356 "gram.y"
+case 56:
+#line 417 "gram.y"
 { yyval.integer = BRW_REGISTER_TYPE_UW; }
 break;
-case 51:
-#line 357 "gram.y"
+case 57:
+#line 418 "gram.y"
 { yyval.integer = BRW_REGISTER_TYPE_UW; }
-break;
-case 52:
-#line 358 "gram.y"
-{ yyval.integer = BRW_REGISTER_TYPE_UB; }
-break;
-case 53:
-#line 359 "gram.y"
-{ yyval.integer = BRW_REGISTER_TYPE_B; }
 break;
 case 58:
-#line 372 "gram.y"
+#line 419 "gram.y"
+{ yyval.integer = BRW_REGISTER_TYPE_UB; }
+break;
+case 59:
+#line 420 "gram.y"
+{ yyval.integer = BRW_REGISTER_TYPE_B; }
+break;
+case 64:
+#line 433 "gram.y"
 {
 		  /* Returns a value for the execution_size field of an
 		   * instruction.
@@ -850,7 +953,19 @@ case 58:
 		  yyval.integer = ffs(yyvsp[-1].integer);
 		}
 break;
-#line 854 "y.tab.c"
+case 65:
+#line 446 "gram.y"
+{ yyval.integer = 0; }
+break;
+case 66:
+#line 447 "gram.y"
+{ yyval.integer = 1; }
+break;
+case 68:
+#line 456 "gram.y"
+{ yyval.instruction = yyvsp[-1].instruction; }
+break;
+#line 969 "y.tab.c"
     }
     yyssp -= yym;
     yystate = *yyssp;

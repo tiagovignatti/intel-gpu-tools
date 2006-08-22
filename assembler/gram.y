@@ -59,9 +59,9 @@
 %token TYPE_UD, TYPE_D, TYPE_UW, TYPE_W, TYPE_UB, TYPE_B,
 %token TYPE_VF, TYPE_HF, TYPE_V, TYPE_F
 
-%token ALIGN1
+%token ALIGN1 ALIGN16 MASK_DISABLE EOT
 
-%token GENREGFILE MSGREGFILE
+%token GENREG MSGREG ACCREG ADDRESSREG FLAGREG CONTROLREG IPREG
 
 %token MOV
 %token MUL MAC MACH LINE SAD2 SADA2 DP4 DPH DP3 DP2
@@ -69,21 +69,26 @@
 %token SEND NULL_TOKEN MATH SAMPLER GATEWAY READ WRITE URB THREAD_SPAWNER
 
 %token MSGLEN RETURNLEN
+%token SATURATE
 
 %token <integer> INTEGER
 %token <number> NUMBER
 
 %type <instruction> instruction unaryinstruction binaryinstruction
 %type <instruction> binaryaccinstruction triinstruction sendinstruction
+%type <instruction> specialinstruction
 %type <instruction> dstoperand dstoperandex dstreg accreg
 %type <instruction> directsrcaccoperand src directsrcoperand srcimm
 %type <instruction> srcacc srcaccimm
+%type <instruction> instoptions instoption_list instoption
 %type <program> instrseq
-%type <integer> unaryop binaryop binaryaccop triop
+%type <integer> unaryop binaryop binaryaccop
+%type <integer> conditionalmodifier saturate
 %type <integer> regtype srcimmtype execsize dstregion
-%type <integer> gensubregnum msgsubregnum msgtarget
+%type <integer> subregnum msgtarget
 %type <region> region
-%type <direct_gen_reg> directgenreg directmsgreg
+%type <direct_gen_reg> directgenreg directmsgreg addrreg accreg flagreg maskreg
+%type <direct_gen_reg> nullreg
 %type <imm32> imm32
 
 %%
@@ -126,12 +131,19 @@ instruction:	unaryinstruction
 		| binaryinstruction
 		| binaryaccinstruction
 		| triinstruction
+		| specialinstruction
 ;
 
-unaryinstruction: predicate unaryop execsize dst srcaccimm instoptions
+unaryinstruction:
+		predicate unaryop conditionalmodifier saturate execsize
+		dst srcaccimm instoptions
 		{
 		  $$.header.opcode = $2;
-		  $$.header.execution_size = $3;
+		  $$.header.saturate = $3;
+		  $$.header.destreg__conditionalmod = $4;
+		  $$.header.execution_size = $5;
+		  $$.bits1 = $7.bits1;
+		  /* XXX: more */
 		}
 ;
 
@@ -139,20 +151,28 @@ unaryop:	MOV { $$ = BRW_OPCODE_MOV; }
 ;
 
 binaryinstruction:
-		predicate binaryop execsize dst src srcimm instoptions
+		predicate binaryop conditionalmodifier saturate execsize
+		dst src srcimm instoptions
 		{
 		  $$.header.opcode = $2;
-		  $$.header.execution_size = $3;
+		  $$.header.saturate = $3;
+		  $$.header.destreg__conditionalmod = $4;
+		  $$.header.execution_size = $5;
+		  /* XXX: more */
 		}
 ;
 
 binaryop:	MUL { $$ = BRW_OPCODE_MUL; }
+		| MAC { $$ = BRW_OPCODE_MAC; }
 
 binaryaccinstruction:
-		predicate binaryaccop execsize dst srcacc srcimm instoptions
+		predicate binaryaccop conditionalmodifier saturate execsize
+		dst srcacc srcimm instoptions
 		{
 		  $$.header.opcode = $2;
-		  $$.header.execution_size = $3;
+		  $$.header.saturate = $3;
+		  $$.header.destreg__conditionalmod = $4;
+		  $$.header.execution_size = $5;
 		}
 ;
 
@@ -162,20 +182,21 @@ binaryaccop:	ADD { $$ = BRW_OPCODE_ADD; }
 triinstruction:	sendinstruction
 
 /* XXX formatting of this instruction */
-sendinstruction: predicate SEND INTEGER execsize postdst curdst msgtarget
+sendinstruction: predicate SEND INTEGER execsize dst payload msgtarget
 		MSGLEN INTEGER RETURNLEN INTEGER instoptions
 		{
 		  $$.header.opcode = BRW_OPCODE_SEND;
 		  $$.header.execution_size = $4;
-		  $$.header.destreg__conditonalmod = $3;
+		  $$.header.destreg__conditionalmod = $3;
+		}
+
+specialinstruction: NOP
+		{
+		  $$.header.opcode = BRW_OPCODE_NOP;
 		}
 
 /* XXX! */
-postdst: dstoperand
-;
-
-/* XXX! */
-curdst: directsrcoperand
+payload: directsrcoperand
 ;
 
 msgtarget:	NULL_TOKEN { $$ = BRW_MESSAGE_TARGET_NULL; }
@@ -190,8 +211,7 @@ msgtarget:	NULL_TOKEN { $$ = BRW_MESSAGE_TARGET_NULL; }
 
 /* 1.4.2: Destination register */
 
-/** XXX: dstoperandex */
-dst:		dstoperand
+dst:		dstoperand | dstoperandex
 
 /* XXX: dstregion writemask */
 dstoperand:	dstreg dstregion regtype
@@ -200,17 +220,31 @@ dstoperand:	dstreg dstregion regtype
 		   * filled in.
 		   */
 		  $$.bits1 = $1.bits1;
-		  $$.bits1.da1.dest_reg_type = $2;
+		  $$.bits1.da1.dest_reg_type = $2; /* XXX */
+		  /* XXX: $3 */
 		}
+;
 
 dstoperandex:	accreg dstregion regtype
 		{
 		  /* Returns an instruction with just the destination register
 		   * filled in.
 		   */
-		  $$.bits1 = $1.bits1;
-		  $$.bits1.da1.dest_reg_type = $2;
+		  $$.bits1.da1.dest_reg_file = $1.reg_file;
+		  $$.bits1.da1.dest_reg_nr = $1.reg_nr;
+		  $$.bits1.da1.dest_subreg_nr = $1.subreg_nr;
+		  /* XXX: $2 $3 */
 		}
+		| nullreg
+		{
+		  /* Returns an instruction with just the destination register
+		   * filled in.
+		   */
+		  $$.bits1.da1.dest_reg_file = $1.reg_file;
+		  $$.bits1.da1.dest_reg_nr = $1.reg_nr;
+		  $$.bits1.da1.dest_subreg_nr = $1.subreg_nr;
+		}
+;
 
 /* XXX: indirectgenreg, directmsgreg, indirectmsgreg */
 dstreg:		directgenreg
@@ -288,18 +322,7 @@ directsrcoperand:	directgenreg region regtype
 		}
 ;
 
-/* 1.4.5: Register files and register numbers */
-directgenreg:	GENREGFILE INTEGER gensubregnum
-		{
-		  /* Returns an instruction with just the destination register
-		   * fields filled in.
-		   */
-		  $$.reg_file = BRW_GENERAL_REGISTER_FILE;
-		  $$.reg_nr = $2;
-		  $$.subreg_nr = $3;
-		}
-
-gensubregnum:	DOT INTEGER
+subregnum:	DOT INTEGER
 		{
 		  $$ = $2;
 		}
@@ -310,7 +333,18 @@ gensubregnum:	DOT INTEGER
 		}
 ;
 
-directmsgreg:	MSGREGFILE INTEGER msgsubregnum
+/* 1.4.5: Register files and register numbers */
+directgenreg:	GENREG INTEGER subregnum
+		{
+		  /* Returns an instruction with just the destination register
+		   * fields filled in.
+		   */
+		  $$.reg_file = BRW_GENERAL_REGISTER_FILE;
+		  $$.reg_nr = $2;
+		  $$.subreg_nr = $3;
+		}
+
+directmsgreg:	MSGREG INTEGER subregnum
 		{
 		  /* Returns an instruction with just the destination register
 		   * fields filled in.
@@ -321,7 +355,34 @@ directmsgreg:	MSGREGFILE INTEGER msgsubregnum
 		}
 ;
 
-msgsubregnum:	gensubregnum
+accreg:		ACCREG INTEGER subregnum
+		{
+		  /* Returns an instruction with just the destination register
+		   * fields filled in.
+		   */
+		  $$.reg_file = BRW_ARCHITECTURE_REGISTER_FILE;
+		  $$.reg_nr = BRW_ARF_ACCUMULATOR | $2;
+		  $$.subreg_nr = $3;
+		}
+;
+
+addrreg:	ADDRESSREG INTEGER subregnum
+		{
+		  /* Returns an instruction with just the destination register
+		   * fields filled in.
+		   */
+		  $$.reg_file = BRW_ARCHITECTURE_REGISTER_FILE;
+		  $$.reg_nr = BRW_ARF_ADDRESS | $2;
+		  $$.subreg_nr = $3;
+		}
+;
+
+nullreg:	NULL_TOKEN
+		{
+		  $$.reg_file = BRW_ARCHITECTURE_REGISTER_FILE;
+		  $$.reg_nr = BRW_ARF_NULL;
+		  $$.subreg_nr = 0;
+		}
 ;
 
 /* 1.4.7: Regions */
@@ -382,14 +443,28 @@ execsize:	LPAREN INTEGER RPAREN
 		}
 ;
 
+saturate:	/* empty */ { $$ = 0; }
+		| DOT SATURATE { $$ = 1; }
+;
+
+conditionalmodifier:
+;
+
 /* 1.4.13: Instruction options */
 /* XXX: this is a comma-separated list, really. */
-instoptions:	LCURLY instoption RCURLY
+instoptions:	LCURLY instoption_list RCURLY
+		{ $$ = $2; }
+;
+
+instoption_list: instoption instoption_list
+		|
+;
 
 /* XXX: fill me in. alignctrl, comprctrl, threadctrl, depctrl, maskctrl,
  * debugctrl, sendctrl
  */
-instoption:	ALIGN1
+instoption:	ALIGN1 | ALIGN16 | MASK_DISABLE | EOT
+;
 
 %%
 extern int yylineno;
