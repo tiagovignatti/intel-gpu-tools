@@ -56,6 +56,7 @@
 %token LCURLY RCURLY
 %token COMMA
 %token DOT
+%token MINUS ABS
 
 %token TYPE_UD, TYPE_D, TYPE_UW, TYPE_W, TYPE_UB, TYPE_B,
 %token TYPE_VF, TYPE_HF, TYPE_V, TYPE_F
@@ -86,7 +87,7 @@
 %type <program> instrseq
 %type <integer> instoption
 %type <integer> unaryop binaryop binaryaccop
-%type <integer> conditionalmodifier saturate
+%type <integer> conditionalmodifier saturate negate abs
 %type <integer> regtype srcimmtype execsize dstregion
 %type <integer> subregnum msgtarget
 %type <region> region
@@ -324,19 +325,22 @@ directsrcaccoperand:	directsrcoperand
 src:		directsrcoperand
 ;
 
-/* XXX: srcmodifier, swizzle srcaccoperandex */
-directsrcoperand:	directgenreg region regtype
+/* XXX: srcaccoperandex */
+directsrcoperand:
+		negate abs directgenreg region regtype
 		{
 		  /* Returns a source operand in the src0 fields of an
 		   * instruction.
 		   */
-		  $$.bits1.da1.src0_reg_file = $1.reg_file;
-		  $$.bits1.da1.src0_reg_type = $3;
-		  $$.bits2.da1.src0_subreg_nr = $1.subreg_nr;
-		  $$.bits2.da1.src0_reg_nr = $1.reg_nr;
-		  $$.bits2.da1.src0_vert_stride = $2.vert_stride;
-		  $$.bits2.da1.src0_width = $2.width;
-		  $$.bits2.da1.src0_horiz_stride = $2.horiz_stride;
+		  $$.bits1.da1.src0_reg_file = $3.reg_file;
+		  $$.bits1.da1.src0_reg_type = $5;
+		  $$.bits2.da1.src0_subreg_nr = $3.subreg_nr;
+		  $$.bits2.da1.src0_reg_nr = $3.reg_nr;
+		  $$.bits2.da1.src0_vert_stride = $4.vert_stride;
+		  $$.bits2.da1.src0_width = $4.width;
+		  $$.bits2.da1.src0_horiz_stride = $4.horiz_stride;
+		  $$.bits2.da1.src0_negate = $1;
+		  $$.bits2.da1.src0_abs = $2;
 		}
 ;
 
@@ -447,6 +451,13 @@ imm32:		INTEGER { $$ = $1; }
 /* 1.4.12: Predication and modifiers */
 /* XXX: do the predicate */
 predicate:
+;
+
+negate:		/* empty */ { $$ = 0; }
+		| MINUS { $$ = 1; }
+
+abs:		/* empty */ { $$ = 0; }
+		| ABS { $$ = 1; }
 
 execsize:	LPAREN INTEGER RPAREN
 		{
@@ -542,6 +553,8 @@ void set_instruction_src0(struct brw_instruction *instr,
 		instr->bits2.da1.src0_width = src->bits2.da1.src0_width;
 		instr->bits2.da1.src0_horiz_stride =
 			src->bits2.da1.src0_horiz_stride;
+		instr->bits2.da1.src0_negate = src->bits2.da1.src0_negate;
+		instr->bits2.da1.src0_abs = src->bits2.da1.src0_abs;
 	}
 }
 
@@ -561,6 +574,8 @@ void set_instruction_src1(struct brw_instruction *instr,
 		instr->bits3.da1.src1_width = src->bits2.da1.src0_width;
 		instr->bits3.da1.src1_horiz_stride =
 			src->bits2.da1.src0_horiz_stride;
+		instr->bits3.da1.src1_negate = src->bits2.da1.src0_negate;
+		instr->bits3.da1.src1_abs = src->bits2.da1.src0_abs;
 	}
 }
 

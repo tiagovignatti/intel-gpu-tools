@@ -64,6 +64,8 @@ int saved_state = INITIAL;
 "}" { return RCURLY; }
 "," { return COMMA; }
 "." { return DOT; }
+"-" { return MINUS; }
+"(abs)" { return ABS; }
 
  /* XXX: this lexing of register files is shady */
 "acc" {
