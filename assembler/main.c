@@ -45,7 +45,7 @@ int main(int argc, char **argv)
 	for (entry = compiled_program.first;
 	     entry != NULL;
 	     entry = entry->next) {
-		printf("   { 0x%08x, 0x%08x, 0x%08x 0x%08x },\n",
+		printf("   { 0x%08x, 0x%08x, 0x%08x, 0x%08x },\n",
 		       ((int *)(&entry->instruction))[0],
 		       ((int *)(&entry->instruction))[1],
 		       ((int *)(&entry->instruction))[2],
