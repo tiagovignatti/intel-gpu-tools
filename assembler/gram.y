@@ -143,8 +143,8 @@ unaryinstruction:
 		dst srcaccimm instoptions
 		{
 		  $$.header.opcode = $2;
-		  $$.header.saturate = $3;
-		  $$.header.destreg__conditionalmod = $4;
+		  $$.header.destreg__conditionalmod = $3;
+		  $$.header.saturate = $4;
 		  $$.header.execution_size = $5;
 		  set_instruction_dest(&$$, &$6);
 		  set_instruction_src0(&$$, &$7);
@@ -160,8 +160,8 @@ binaryinstruction:
 		dst src srcimm instoptions
 		{
 		  $$.header.opcode = $2;
-		  $$.header.saturate = $3;
-		  $$.header.destreg__conditionalmod = $4;
+		  $$.header.destreg__conditionalmod = $3;
+		  $$.header.saturate = $4;
 		  $$.header.execution_size = $5;
 		  set_instruction_dest(&$$, &$6);
 		  set_instruction_src0(&$$, &$7);
@@ -178,8 +178,8 @@ binaryaccinstruction:
 		dst srcacc srcimm instoptions
 		{
 		  $$.header.opcode = $2;
-		  $$.header.saturate = $3;
-		  $$.header.destreg__conditionalmod = $4;
+		  $$.header.destreg__conditionalmod = $3;
+		  $$.header.saturate = $4;
 		  $$.header.execution_size = $5;
 		  set_instruction_dest(&$$, &$6);
 		  set_instruction_src0(&$$, &$7);
@@ -477,7 +477,7 @@ saturate:	/* empty */ { $$ = BRW_INSTRUCTION_NORMAL; }
 		| DOT SATURATE { $$ = BRW_INSTRUCTION_SATURATE; }
 ;
 
-conditionalmodifier:
+conditionalmodifier: { $$ = 0; }
 ;
 
 /* 1.4.13: Instruction options */
