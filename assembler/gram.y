@@ -413,7 +413,7 @@ region:		LANGLE INTEGER COMMA INTEGER COMMA INTEGER RANGLE
 		{
 		  $$.vert_stride = ffs($2);
 		  $$.width = ffs($4) - 1;
-		  $$.horiz_stride = ffs($6) - 1;
+		  $$.horiz_stride = ffs($6);
 		}
 ;
 

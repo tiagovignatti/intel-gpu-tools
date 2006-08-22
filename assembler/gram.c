@@ -979,7 +979,7 @@ case 52:
 {
 		  yyval.region.vert_stride = ffs(yyvsp[-5].integer);
 		  yyval.region.width = ffs(yyvsp[-3].integer) - 1;
-		  yyval.region.horiz_stride = ffs(yyvsp[-1].integer) - 1;
+		  yyval.region.horiz_stride = ffs(yyvsp[-1].integer);
 		}
 break;
 case 53:
