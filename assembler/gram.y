@@ -267,7 +267,11 @@ dstreg:		directgenreg
 		  $$.bits1.da1.dest_subreg_nr = $1.subreg_nr;
 		}
 		| directmsgreg
-
+		{
+		  $$.bits1.da1.dest_reg_file = $1.reg_file;
+		  $$.bits1.da1.dest_reg_nr = $1.reg_nr;
+		  $$.bits1.da1.dest_subreg_nr = $1.subreg_nr;
+		}
 ;
 
 /* 1.4.3: Source register */
@@ -371,7 +375,7 @@ directmsgreg:	MSGREG INTEGER subregnum
 		  /* Returns an instruction with just the destination register
 		   * fields filled in.
 		   */
-		  $$.reg_file = BRW_GENERAL_REGISTER_FILE;
+		  $$.reg_file = BRW_MESSAGE_REGISTER_FILE;
 		  $$.reg_nr = $2;
 		  $$.subreg_nr = $3;
 		}
