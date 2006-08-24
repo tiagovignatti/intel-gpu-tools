@@ -516,6 +516,9 @@ instoption_list: instoption instoption_list
 		  }
 		}
 		| /* empty, header defaults to zeroes. */
+		{
+		  bzero(&$$, sizeof($$));
+		}
 ;
 
 /* XXX: fill me in. alignctrl, comprctrl, threadctrl, depctrl, maskctrl,
