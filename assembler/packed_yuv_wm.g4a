@@ -89,7 +89,7 @@ mov (8) m4<1>F g7<8,8,1>F { align1 };
      * g0 holds the PS thread payload, which (oddly) contains
      * precisely what the sampler wants to see in m0
      */
-send   0 (16) g12<1>UW g0<8,8,1>UW sampler mlen 5 rlen 8 { align1 };
+send  (16) 0 g12<1>UW g0<8,8,1>UW sampler (1,0,F) mlen 5 rlen 8 { align1 };
 mov (8) g19<1>UW g19<8,8,1>UW { align1 };
 
     /* color space conversion function:
@@ -144,7 +144,7 @@ mac.sat (8) m8<1>F g15<8,8,1>F 1F { align1  };
     */
 mov (8) m1<1>UD g1<8,8,1>UD { align1 mask_disable };
    /* Send framebuffer write message: XXX: acc0? */
-send   0 (16) null g0<8,8,1>UW write mlen 10 rlen 0 { align1 EOT };
+send (16) 0 null g0<8,8,1>UW write mlen 10 rlen 0 { align1 EOT };
    /* padding */
 nop;
 nop;

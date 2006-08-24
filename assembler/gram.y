@@ -58,8 +58,8 @@
 %token DOT
 %token MINUS ABS
 
-%token TYPE_UD, TYPE_D, TYPE_UW, TYPE_W, TYPE_UB, TYPE_B,
-%token TYPE_VF, TYPE_HF, TYPE_V, TYPE_F
+%token <integer> TYPE_UD, TYPE_D, TYPE_UW, TYPE_W, TYPE_UB, TYPE_B,
+%token <integer> TYPE_VF, TYPE_HF, TYPE_V, TYPE_F
 
 %token <integer> ALIGN1 ALIGN16 MASK_DISABLE EOT
 
@@ -82,14 +82,14 @@
 %type <instruction> specialinstruction
 %type <instruction> dst dstoperand dstoperandex dstreg
 %type <instruction> directsrcaccoperand src directsrcoperand srcimm imm32reg
-%type <instruction> srcacc srcaccimm
+%type <instruction> srcacc srcaccimm payload post_dst msgtarget
 %type <instruction> instoptions instoption_list
 %type <program> instrseq
 %type <integer> instoption
 %type <integer> unaryop binaryop binaryaccop
 %type <integer> conditionalmodifier saturate negate abs
 %type <integer> regtype srcimmtype execsize dstregion
-%type <integer> subregnum msgtarget
+%type <integer> subregnum sampler_datatype
 %type <region> region
 %type <direct_gen_reg> directgenreg directmsgreg addrreg accreg flagreg maskreg
 %type <direct_gen_reg> nullreg
@@ -196,14 +196,31 @@ binaryaccop:	ADD { $$ = BRW_OPCODE_ADD; }
 
 triinstruction:	sendinstruction
 
-/* XXX formatting of this instruction */
-sendinstruction: predicate SEND INTEGER execsize dst payload msgtarget
+sendinstruction: predicate SEND execsize INTEGER post_dst payload msgtarget
 		MSGLEN INTEGER RETURNLEN INTEGER instoptions
 		{
+		  /* Send instructions are messy.  The first argument is the
+		   * post destination -- the grf register that the response
+		   * starts from.  The second argument is the current
+		   * destination, which is the start of the message arguments
+		   * to the shared function, and where src0 payload is loaded
+		   * to if not null.  The payload is typically based on the
+		   * grf 0 thread payload of your current thread, and is
+		   * implicitly loaded if non-null.
+		   */
 		  bzero(&$$, sizeof($$));
 		  $$.header.opcode = BRW_OPCODE_SEND;
-		  $$.header.execution_size = $4;
-		  $$.header.destreg__conditionalmod = $3;
+		  $$.header.execution_size = $3;
+		  $$.header.destreg__conditionalmod = $4; /* msg reg index */
+		  set_instruction_dest(&$$, &$5);
+		  set_instruction_src0(&$$, &$6);
+		  $$.bits1.da1.src1_reg_file = BRW_IMMEDIATE_VALUE;
+		  $$.bits1.da1.src1_reg_type = BRW_REGISTER_TYPE_D;
+		  $$.bits3.generic = $7.bits3.generic;
+		  $$.bits3.generic.msg_length = $9;
+		  $$.bits3.generic.response_length = $11;
+		  $$.bits3.generic.end_of_thread =
+		    $12.bits3.generic.msg_target;
 		}
 
 specialinstruction: NOP
@@ -216,15 +233,67 @@ specialinstruction: NOP
 payload: directsrcoperand
 ;
 
-msgtarget:	NULL_TOKEN { $$ = BRW_MESSAGE_TARGET_NULL; }
-		| SAMPLER { $$ = BRW_MESSAGE_TARGET_SAMPLER; }
-		| MATH { $$ = BRW_MESSAGE_TARGET_MATH; }
-		| GATEWAY { $$ = BRW_MESSAGE_TARGET_GATEWAY; }
-		| READ { $$ = BRW_MESSAGE_TARGET_DATAPORT_READ; }
-		| WRITE { $$ = BRW_MESSAGE_TARGET_DATAPORT_WRITE; }
-		| URB { $$ = BRW_MESSAGE_TARGET_URB; }
-		| THREAD_SPAWNER { $$ = BRW_MESSAGE_TARGET_THREAD_SPAWNER; }
+post_dst:	dst
 ;
+
+msgtarget:	NULL_TOKEN
+		{
+		  $$.bits3.generic.msg_target = BRW_MESSAGE_TARGET_NULL;
+		}
+		| SAMPLER LPAREN INTEGER COMMA INTEGER COMMA
+		sampler_datatype RPAREN
+		{
+		  $$.bits3.generic.msg_target = BRW_MESSAGE_TARGET_SAMPLER;
+		  $$.bits3.sampler.binding_table_index = $3;
+		  $$.bits3.sampler.sampler = $5;
+		  switch ($7) {
+		  case TYPE_F:
+		    $$.bits3.sampler.return_format =
+		      BRW_SAMPLER_RETURN_FORMAT_FLOAT32;
+		    break;
+		  case TYPE_UD:
+		    $$.bits3.sampler.return_format =
+		      BRW_SAMPLER_RETURN_FORMAT_UINT32;
+		    break;
+		  case TYPE_D:
+		    $$.bits3.sampler.return_format =
+		      BRW_SAMPLER_RETURN_FORMAT_SINT32;
+		    break;
+		  }
+		}
+		| MATH
+		{
+		  $$.bits3.generic.msg_target = BRW_MESSAGE_TARGET_MATH;
+		}
+		| GATEWAY
+		{
+		  $$.bits3.generic.msg_target = BRW_MESSAGE_TARGET_GATEWAY;
+		}
+		| READ
+		{
+		  $$.bits3.generic.msg_target =
+		    BRW_MESSAGE_TARGET_DATAPORT_READ;
+		}
+		| WRITE
+		{
+		  $$.bits3.generic.msg_target =
+		    BRW_MESSAGE_TARGET_DATAPORT_WRITE;
+		}
+		| URB
+		{
+		  $$.bits3.generic.msg_target = BRW_MESSAGE_TARGET_URB;
+		}
+		| THREAD_SPAWNER
+		{
+		  $$.bits3.generic.msg_target =
+		    BRW_MESSAGE_TARGET_THREAD_SPAWNER;
+		}
+;
+
+sampler_datatype:
+		TYPE_F
+		| TYPE_UD
+		| TYPE_D
 
 /* 1.4.2: Destination register */
 
@@ -511,7 +580,8 @@ instoption_list: instoption instoption_list
 		    $$.header.mask_control = BRW_MASK_DISABLE;
 		    break;
 		  case EOT:
-		    /* XXX: EOT shouldn't be here */
+		    /* XXX: EOT shouldn't be an instoption, I don't think */
+		    $$.bits3.generic.end_of_thread = 1;
 		    break;
 		  }
 		}
