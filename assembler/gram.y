@@ -72,6 +72,7 @@
 %token NOP
 
 %token MSGLEN RETURNLEN
+%token <integer> ALLOCATE USED COMPLETE TRANSPOSE INTERLEAVE
 %token SATURATE
 
 %token <integer> INTEGER
@@ -90,6 +91,7 @@
 %type <integer> conditionalmodifier saturate negate abs
 %type <integer> regtype srcimmtype execsize dstregion
 %type <integer> subregnum sampler_datatype
+%type <integer> urb_swizzle urb_allocate urb_used urb_complete
 %type <region> region
 %type <direct_gen_reg> directgenreg directmsgreg addrreg accreg flagreg maskreg
 %type <direct_gen_reg> nullreg
@@ -289,9 +291,16 @@ msgtarget:	NULL_TOKEN
 		  $$.bits3.dp_write.msg_type = $7;
 		  $$.bits3.dp_write.send_commit_msg = $9;
 		}
-		| URB
+		| URB INTEGER urb_swizzle urb_allocate urb_used urb_complete
 		{
 		  $$.bits3.generic.msg_target = BRW_MESSAGE_TARGET_URB;
+		  $$.bits3.urb.opcode = BRW_URB_OPCODE_WRITE;
+		  $$.bits3.urb.offset = $2;
+		  $$.bits3.urb.swizzle_control = $3;
+		  $$.bits3.urb.pad = 0;
+		  $$.bits3.urb.allocate = $4;
+		  $$.bits3.urb.used = $5;
+		  $$.bits3.urb.complete = $6;
 		}
 		| THREAD_SPAWNER
 		{
@@ -299,6 +308,19 @@ msgtarget:	NULL_TOKEN
 		    BRW_MESSAGE_TARGET_THREAD_SPAWNER;
 		}
 ;
+
+urb_allocate:	ALLOCATE { $$ = 1; }
+		| /* empty */ { $$ = 0; }
+
+urb_used:	USED { $$ = 1; }
+		| /* empty */ { $$ = 0; }
+
+urb_complete:	COMPLETE { $$ = 1; }
+		| /* empty */ { $$ = 0; }
+
+urb_swizzle:	TRANSPOSE { $$ = BRW_URB_SWIZZLE_TRANSPOSE; }
+		| INTERLEAVE { $$ = BRW_URB_SWIZZLE_INTERLEAVE; }
+		| /* empty */ { $$ = BRW_URB_SWIZZLE_NONE; }
 
 sampler_datatype:
 		TYPE_F

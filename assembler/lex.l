@@ -55,6 +55,12 @@ int saved_state = INITIAL;
 "urb" { return URB; }
 "thread_spawner" { return THREAD_SPAWNER; }
 
+"allocate" { return ALLOCATE; }
+"used" { return USED; }
+"complete" { return COMPLETE; }
+"transpose" { return TRANSPOSE; }
+"interleave" { return INTERLEAVE; }
+
 ";" { return SEMICOLON; }
 "(" { return LPAREN; }
 ")" { return RPAREN; }
