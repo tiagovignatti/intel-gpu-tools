@@ -594,7 +594,10 @@ instoption_list: instoption instoption_list
 /* XXX: fill me in. alignctrl, comprctrl, threadctrl, depctrl, maskctrl,
  * debugctrl, sendctrl
  */
-instoption:	ALIGN1 | ALIGN16 | MASK_DISABLE | EOT
+instoption:	ALIGN1 { $$ = ALIGN1; }
+		| ALIGN16 { $$ = ALIGN16; }
+		| MASK_DISABLE { $$ = MASK_DISABLE; }
+		| EOT { $$ = EOT; }
 ;
 
 %%
