@@ -1,1 +1,4 @@
 lextest
+gram.c
+lex.c
+y.tab.h
