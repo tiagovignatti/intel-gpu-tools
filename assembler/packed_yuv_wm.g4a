@@ -132,12 +132,12 @@ add (8) g15<1>F g15<8,8,1>F -0.0627451F { align1 };
 add (8) g13<1>F g13<8,8,1>F -0.501961F { align1 };
 add (8) g17<1>F g17<8,8,1>F -0.501961F { align1 };
 mul (8) g15<1>F g15<8,8,1>F 1.164F { align1 };
-mul (8) null<1>F g13<8,8,1>F 1.596F { align1 };
+mul (8) null g13<8,8,1>F 1.596F { align1 };
 mac.sat (8) m6<1>F g15<8,8,1>F 1F { align1  };
-mul (8) null<1>F g13<8,8,1>F -0.813F { align1 };
-mac (8) null<1>F g17<8,8,1>F -0.392F { align1 };
+mul (8) null g13<8,8,1>F -0.813F { align1 };
+mac (8) null g17<8,8,1>F -0.392F { align1 };
 mac.sat (8) m7<1>F g15<8,8,1>F 1F { align1  };
-mul (8) null<1>F g17<8,8,1>F 2.017F { align1 };
+mul (8) null g17<8,8,1>F 2.017F { align1 };
 mac.sat (8) m8<1>F g15<8,8,1>F 1F { align1  };
 
    /* Pass through control information:
