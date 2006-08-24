@@ -220,7 +220,7 @@ sendinstruction: predicate SEND execsize INTEGER post_dst payload msgtarget
 		  $$.bits3.generic.msg_length = $9;
 		  $$.bits3.generic.response_length = $11;
 		  $$.bits3.generic.end_of_thread =
-		    $12.bits3.generic.msg_target;
+		    $12.bits3.generic.end_of_thread;
 		}
 
 specialinstruction: NOP
@@ -274,10 +274,20 @@ msgtarget:	NULL_TOKEN
 		  $$.bits3.generic.msg_target =
 		    BRW_MESSAGE_TARGET_DATAPORT_READ;
 		}
-		| WRITE
+		| WRITE LPAREN INTEGER COMMA INTEGER COMMA INTEGER COMMA
+		INTEGER RPAREN
 		{
 		  $$.bits3.generic.msg_target =
 		    BRW_MESSAGE_TARGET_DATAPORT_WRITE;
+		  $$.bits3.dp_write.binding_table_index = $3;
+		  /* The msg control field of brw_struct.h is split into
+		   * msg control and pixel_scoreboard_clear, even though
+		   * pixel_scoreboard_clear isn't commot to all write messages.
+		   */
+		  $$.bits3.dp_write.pixel_scoreboard_clear = ($5 & 0x8) >> 3;
+		  $$.bits3.dp_write.msg_control = $5 & 0x7;
+		  $$.bits3.dp_write.msg_type = $7;
+		  $$.bits3.dp_write.send_commit_msg = $9;
 		}
 		| URB
 		{
