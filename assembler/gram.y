@@ -142,6 +142,7 @@ unaryinstruction:
 		predicate unaryop conditionalmodifier saturate execsize
 		dst srcaccimm instoptions
 		{
+		  bzero(&$$, sizeof($$));
 		  $$.header.opcode = $2;
 		  $$.header.destreg__conditionalmod = $3;
 		  $$.header.saturate = $4;
@@ -159,6 +160,7 @@ binaryinstruction:
 		predicate binaryop conditionalmodifier saturate execsize
 		dst src srcimm instoptions
 		{
+		  bzero(&$$, sizeof($$));
 		  $$.header.opcode = $2;
 		  $$.header.destreg__conditionalmod = $3;
 		  $$.header.saturate = $4;
@@ -177,6 +179,7 @@ binaryaccinstruction:
 		predicate binaryaccop conditionalmodifier saturate execsize
 		dst srcacc srcimm instoptions
 		{
+		  bzero(&$$, sizeof($$));
 		  $$.header.opcode = $2;
 		  $$.header.destreg__conditionalmod = $3;
 		  $$.header.saturate = $4;
@@ -197,6 +200,7 @@ triinstruction:	sendinstruction
 sendinstruction: predicate SEND INTEGER execsize dst payload msgtarget
 		MSGLEN INTEGER RETURNLEN INTEGER instoptions
 		{
+		  bzero(&$$, sizeof($$));
 		  $$.header.opcode = BRW_OPCODE_SEND;
 		  $$.header.execution_size = $4;
 		  $$.header.destreg__conditionalmod = $3;
@@ -204,6 +208,7 @@ sendinstruction: predicate SEND INTEGER execsize dst payload msgtarget
 
 specialinstruction: NOP
 		{
+		  bzero(&$$, sizeof($$));
 		  $$.header.opcode = BRW_OPCODE_NOP;
 		}
 
