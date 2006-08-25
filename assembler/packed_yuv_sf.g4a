@@ -1,5 +1,5 @@
-send (1) 0 g6<1>F g1.12<0,1,0>F math mlen 1 rlen 1 { align1 };
-send (1) 0 g6.4<1>F g1.20<0,1,0>F math mlen 1 rlen 1 { align1 };
+send (1) 0 g6<1>F g1.12<0,1,0>F math inv scalar mlen 1 rlen 1 { align1 };
+send (1) 0 g6.4<1>F g1.20<0,1,0>F math inv scalar mlen 1 rlen 1 { align1 };
 add (8) g7<1>F g4<8,8,1>F g3<8,8,1>F { align1 };
 mul (1) g7<1>F g7<0,1,0>F g6<0,1,0>F { align1 };
 mul (1) g7.4<1>F g7.4<0,1,0>F g6.4<0,1,0>F { align1 };

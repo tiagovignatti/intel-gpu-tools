@@ -78,6 +78,10 @@
 %token <integer> INTEGER
 %token <number> NUMBER
 
+%token <integer> INV LOG EXP SQRT RSQ POW SIN COS SINCOS INTDIV INTMOD
+%token <integer> INTDIVMOD
+%token SIGNED SCALAR
+
 %type <instruction> instruction unaryinstruction binaryinstruction
 %type <instruction> binaryaccinstruction triinstruction sendinstruction
 %type <instruction> specialinstruction
@@ -92,6 +96,7 @@
 %type <integer> regtype srcimmtype execsize dstregion
 %type <integer> subregnum sampler_datatype
 %type <integer> urb_swizzle urb_allocate urb_used urb_complete
+%type <integer> math_function math_signed math_scalar
 %type <region> region
 %type <direct_gen_reg> directgenreg directmsgreg addrreg accreg flagreg maskreg
 %type <direct_gen_reg> nullreg
@@ -263,9 +268,17 @@ msgtarget:	NULL_TOKEN
 		    break;
 		  }
 		}
-		| MATH
+		| MATH math_function saturate math_signed math_scalar
 		{
 		  $$.bits3.generic.msg_target = BRW_MESSAGE_TARGET_MATH;
+		  $$.bits3.math.function = $2;
+		  if ($3 == BRW_INSTRUCTION_SATURATE)
+		    $$.bits3.math.saturate = 1;
+		  else
+		    $$.bits3.math.saturate = 0;
+		  $$.bits3.math.int_type = $4;
+		  $$.bits3.math.precision = BRW_MATH_PRECISION_FULL;
+		  $$.bits3.math.data_type = $5;
 		}
 		| GATEWAY
 		{
@@ -311,25 +324,41 @@ msgtarget:	NULL_TOKEN
 
 urb_allocate:	ALLOCATE { $$ = 1; }
 		| /* empty */ { $$ = 0; }
+;
 
 urb_used:	USED { $$ = 1; }
 		| /* empty */ { $$ = 0; }
+;
 
 urb_complete:	COMPLETE { $$ = 1; }
 		| /* empty */ { $$ = 0; }
+;
 
 urb_swizzle:	TRANSPOSE { $$ = BRW_URB_SWIZZLE_TRANSPOSE; }
 		| INTERLEAVE { $$ = BRW_URB_SWIZZLE_INTERLEAVE; }
 		| /* empty */ { $$ = BRW_URB_SWIZZLE_NONE; }
+;
 
 sampler_datatype:
 		TYPE_F
 		| TYPE_UD
 		| TYPE_D
+;
+
+math_function:	INV | LOG | EXP | SQRT | POW | SIN | COS | SINCOS | INTDIV
+		| INTMOD | INTDIVMOD
+;
+
+math_signed:	/* empty */ { $$ = 0; }
+		| SIGNED { $$ = 1; }
+
+math_scalar:	/* empty */ { $$ = 0; }
+		| SCALAR { $$ = 1; }
 
 /* 1.4.2: Destination register */
 
 dst:		dstoperand | dstoperandex
+;
 
 /* XXX: dstregion writemask */
 dstoperand:	dstreg dstregion regtype

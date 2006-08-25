@@ -2,6 +2,7 @@
 %{
 #include "gen4asm.h"
 #include "y.tab.h"
+#include "brw_defines.h"
 
 int saved_state = INITIAL;
 
@@ -120,6 +121,32 @@ int saved_state = INITIAL;
 "align16" { return ALIGN16; }
 "mask_disable" { return MASK_DISABLE; }
 "EOT" { return EOT; }
+
+ /* extended math functions */
+"inv" { yylval.integer = BRW_MATH_FUNCTION_INV; return SIN; }
+"log" { yylval.integer = BRW_MATH_FUNCTION_LOG; return LOG; }
+"exp" { yylval.integer = BRW_MATH_FUNCTION_EXP; return EXP; }
+"sqrt" { yylval.integer = BRW_MATH_FUNCTION_SQRT; return SQRT; }
+"rsq" { yylval.integer = BRW_MATH_FUNCTION_RSQ; return RSQ; }
+"pow" { yylval.integer = BRW_MATH_FUNCTION_POW; return POW; }
+"sin" { yylval.integer = BRW_MATH_FUNCTION_SIN; return SIN; }
+"cos" { yylval.integer = BRW_MATH_FUNCTION_COS; return COS; }
+"sincos" { yylval.integer = BRW_MATH_FUNCTION_SINCOS; return SINCOS; }
+"intdiv" {
+	yylval.integer = BRW_MATH_FUNCTION_INT_DIV_QUOTIENT;
+	return INTDIV;
+}
+"intmod" {
+	yylval.integer = BRW_MATH_FUNCTION_INT_DIV_REMAINDER;
+	return INTMOD;
+}
+"intdivmod" {
+	yylval.integer = BRW_MATH_FUNCTION_INT_DIV_QUOTIENT_AND_REMAINDER;
+	return INTDIVMOD;
+}
+
+"signed" { return SIGNED; }
+"scalar" { return SCALAR; }
 
 [0-9]* {
 	yylval.integer = atoi(yytext);
