@@ -66,11 +66,13 @@
 %token <integer> GENREG MSGREG ACCREG ADDRESSREG
 %token FLAGREG CONTROLREG IPREG
 
-%token MOV
-%token MUL MAC MACH LINE SAD2 SADA2 DP4 DPH DP3 DP2
-%token ADD
-%token SEND NULL_TOKEN MATH SAMPLER GATEWAY READ WRITE URB THREAD_SPAWNER
-%token NOP
+%token <integer> MOV FRC RNDU RNDD RNDE RNDZ NOT LZD
+%token <integer> MUL MAC MACH LINE SAD2 SADA2 DP4 DPH DP3 DP2
+%token <integer> AVG ADD SEL AND OR XOR SHR SHL ASR CMP CMPN
+%token <integer> SEND NOP JMPI IF IFF WHILE SEND ELSE BREAK CONT HALT MSAVE
+%token <integer> PUSH MREST POP WAIT DO ENDIF ILLEGAL
+
+%token NULL_TOKEN MATH SAMPLER GATEWAY READ WRITE URB THREAD_SPAWNER
 
 %token MSGLEN RETURNLEN
 %token <integer> ALLOCATE USED COMPLETE TRANSPOSE INTERLEAVE
@@ -161,7 +163,7 @@ unaryinstruction:
 		}
 ;
 
-unaryop:	MOV { $$ = BRW_OPCODE_MOV; }
+unaryop:	MOV | FRC | RNDU | RNDD | RNDE | RNDZ | NOT | LZD
 ;
 
 binaryinstruction:
@@ -180,8 +182,7 @@ binaryinstruction:
 		}
 ;
 
-binaryop:	MUL { $$ = BRW_OPCODE_MUL; }
-		| MAC { $$ = BRW_OPCODE_MAC; }
+binaryop:	MUL | MAC | MACH | LINE | SAD2 | SADA2 | DP4 | DPH | DP3 | DP2
 
 binaryaccinstruction:
 		predicate binaryaccop conditionalmodifier saturate execsize
@@ -199,7 +200,7 @@ binaryaccinstruction:
 		}
 ;
 
-binaryaccop:	ADD { $$ = BRW_OPCODE_ADD; }
+binaryaccop:	AVG | ADD | SEL | AND | OR | XOR | SHR | SHL | ASR | CMP | CMPN
 ;
 
 triinstruction:	sendinstruction
@@ -217,7 +218,7 @@ sendinstruction: predicate SEND execsize INTEGER post_dst payload msgtarget
 		   * implicitly loaded if non-null.
 		   */
 		  bzero(&$$, sizeof($$));
-		  $$.header.opcode = BRW_OPCODE_SEND;
+		  $$.header.opcode = $2;
 		  $$.header.execution_size = $3;
 		  $$.header.destreg__conditionalmod = $4; /* msg reg index */
 		  set_instruction_dest(&$$, &$5);
@@ -231,10 +232,18 @@ sendinstruction: predicate SEND execsize INTEGER post_dst payload msgtarget
 		    $12.bits3.generic.end_of_thread;
 		}
 
+branchloopop:	IF | IFF | WHILE
+;
+
+breakop:	BREAK | CONT | WAIT
+
+maskpushop:	MSAVE | PUSH
+;
+
 specialinstruction: NOP
 		{
 		  bzero(&$$, sizeof($$));
-		  $$.header.opcode = BRW_OPCODE_NOP;
+		  $$.header.opcode = $1;
 		}
 
 /* XXX! */
