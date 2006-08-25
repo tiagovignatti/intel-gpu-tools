@@ -313,7 +313,7 @@ msgtarget:	NULL_TOKEN
 		  $$.bits3.dp_write.binding_table_index = $3;
 		  /* The msg control field of brw_struct.h is split into
 		   * msg control and pixel_scoreboard_clear, even though
-		   * pixel_scoreboard_clear isn't commot to all write messages.
+		   * pixel_scoreboard_clear isn't common to all write messages.
 		   */
 		  $$.bits3.dp_write.pixel_scoreboard_clear = ($5 & 0x8) >> 3;
 		  $$.bits3.dp_write.msg_control = $5 & 0x7;
