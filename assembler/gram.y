@@ -63,7 +63,8 @@
 
 %token <integer> ALIGN1 ALIGN16 MASK_DISABLE EOT
 
-%token GENREG MSGREG ACCREG ADDRESSREG FLAGREG CONTROLREG IPREG
+%token <integer> GENREG MSGREG ACCREG ADDRESSREG
+%token FLAGREG CONTROLREG IPREG
 
 %token MOV
 %token MUL MAC MACH LINE SAD2 SADA2 DP4 DPH DP3 DP2
@@ -497,46 +498,51 @@ subregnum:	DOT INTEGER
 ;
 
 /* 1.4.5: Register files and register numbers */
-directgenreg:	GENREG INTEGER subregnum
+directgenreg:	GENREG subregnum
 		{
 		  /* Returns an instruction with just the destination register
 		   * fields filled in.
 		   */
 		  $$.reg_file = BRW_GENERAL_REGISTER_FILE;
-		  $$.reg_nr = $2;
-		  $$.subreg_nr = $3;
+		  $$.reg_nr = $1;
+		  $$.subreg_nr = $2;
 		}
 
-directmsgreg:	MSGREG INTEGER subregnum
+directmsgreg:	MSGREG subregnum
 		{
 		  /* Returns an instruction with just the destination register
 		   * fields filled in.
 		   */
 		  $$.reg_file = BRW_MESSAGE_REGISTER_FILE;
-		  $$.reg_nr = $2;
-		  $$.subreg_nr = $3;
+		  $$.reg_nr = $1;
+		  $$.subreg_nr = $2;
 		}
 ;
 
-accreg:		ACCREG INTEGER subregnum
+accreg:		ACCREG subregnum
+		{
+		  /* Returns an instruction with just the destination register
+		   * fields filled in.
+		   */
+		  if ($1 > 1) {
+		    fprintf(stderr,
+			    "accumulator register number %d out of range", $1);
+		    YYERROR;
+		  }
+		  $$.reg_file = BRW_ARCHITECTURE_REGISTER_FILE;
+		  $$.reg_nr = BRW_ARF_ACCUMULATOR | $1;
+		  $$.subreg_nr = $2;
+		}
+;
+
+addrreg:	ADDRESSREG subregnum
 		{
 		  /* Returns an instruction with just the destination register
 		   * fields filled in.
 		   */
 		  $$.reg_file = BRW_ARCHITECTURE_REGISTER_FILE;
-		  $$.reg_nr = BRW_ARF_ACCUMULATOR | $2;
-		  $$.subreg_nr = $3;
-		}
-;
-
-addrreg:	ADDRESSREG INTEGER subregnum
-		{
-		  /* Returns an instruction with just the destination register
-		   * fields filled in.
-		   */
-		  $$.reg_file = BRW_ARCHITECTURE_REGISTER_FILE;
-		  $$.reg_nr = BRW_ARF_ADDRESS | $2;
-		  $$.subreg_nr = $3;
+		  $$.reg_nr = BRW_ARF_ADDRESS | $1;
+		  $$.subreg_nr = $2;
 		}
 ;
 

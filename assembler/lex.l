@@ -7,7 +7,6 @@
 int saved_state = INITIAL;
 
 %}
-%s IN_REG
 %x BLOCK_COMMENT
 
 %%
@@ -74,33 +73,31 @@ int saved_state = INITIAL;
 "-" { return MINUS; }
 "(abs)" { return ABS; }
 
- /* XXX: this lexing of register files is shady */
-"acc" {
-	BEGIN(IN_REG);
+"acc"[0-9]+ {
+	yylval.integer = atoi(yytext + 1);
 	return ACCREG;
 }
-"a" {
-	BEGIN(IN_REG);
+"a"[0-9]+ {
+	yylval.integer = atoi(yytext + 1);
 	return ADDRESSREG;
 }
-"m" {
-	BEGIN(IN_REG);
+"m"[0-9]+ {
+	yylval.integer = atoi(yytext + 1);
 	return MSGREG;
 }
-"f" {
-	BEGIN(IN_REG);
+"f"[0-9]+ {
+	yylval.integer = atoi(yytext + 1);
 	return FLAGREG;
 }
-[gr] {
-	BEGIN(IN_REG);
+[gr][0-9]+ {
+	yylval.integer = atoi(yytext + 1);
 	return GENREG;
 }
-"cr" {
-	BEGIN(IN_REG);
+"cr"[0-9]+ {
+	yylval.integer = atoi(yytext + 1);
 	return CONTROLREG;
 }
 "ip" {
-	BEGIN(IN_REG);
 	return IPREG;
 }
 
@@ -108,13 +105,13 @@ int saved_state = INITIAL;
   * Lexing of register types should probably require the ":" symbol specified
   * in the BNF of the assembly, but our existing source didn't use that syntax.
   */
-"UD" { BEGIN(INITIAL); return TYPE_UD; }
-"D" { BEGIN(INITIAL); return TYPE_D; }
-"UW" { BEGIN(INITIAL); return TYPE_UW; }
-"W" { BEGIN(INITIAL); return TYPE_W; }
-"UB" { BEGIN(INITIAL); return TYPE_UB; }
-"B" { BEGIN(INITIAL); return TYPE_B; }
-"F" { BEGIN(INITIAL); return TYPE_F; }
+"UD" { return TYPE_UD; }
+"D" { return TYPE_D; }
+"UW" { return TYPE_UW; }
+"W" { return TYPE_W; }
+"UB" { return TYPE_UB; }
+"B" { return TYPE_B; }
+"F" { return TYPE_F; }
 
 "sat" { return SATURATE; }
 "align1" { return ALIGN1; }
