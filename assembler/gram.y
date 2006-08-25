@@ -91,7 +91,7 @@
 %type <instruction> binaryaccinstruction triinstruction sendinstruction
 %type <instruction> specialinstruction
 %type <instruction> dst dstoperand dstoperandex dstreg
-%type <instruction> directsrcaccoperand srcaccoperandex src directsrcoperand
+%type <instruction> directsrcaccoperand srcarchoperandex src directsrcoperand
 %type <instruction> srcimm imm32reg
 %type <instruction> srcacc srcaccimm payload post_dst msgtarget
 %type <instruction> instoptions instoption_list
@@ -107,7 +107,7 @@
 %type <direct_gen_reg> directgenreg directmsgreg addrreg accreg flagreg maskreg
 %type <direct_gen_reg> maskstackreg maskstackdepthreg notifyreg
 %type <direct_gen_reg> statereg controlreg ipreg nullreg
-%type <direct_gen_reg> dstoperandex_typed srcaccoperandex_typed
+%type <direct_gen_reg> dstoperandex_typed srcarchoperandex_typed
 %type <integer> mask_subreg maskstack_subreg maskstackdepth_subreg
 %type <imm32> imm32
 
@@ -499,11 +499,11 @@ imm32reg:	imm32 srcimmtype
 ;
 
 /* XXX: accreg regtype */
-directsrcaccoperand:	directsrcoperand | srcaccoperandex
+directsrcaccoperand:	directsrcoperand
 ;
 
 /* Returns a source operand in the src0 fields of an instruction. */
-srcaccoperandex: srcaccoperandex_typed region regtype
+srcarchoperandex: srcarchoperandex_typed region regtype
 		{
 		  $$.bits1.da1.src0_reg_file = $1.reg_file;
 		  $$.bits1.da1.src0_reg_type = $3;
@@ -541,14 +541,13 @@ srcaccoperandex: srcaccoperandex_typed region regtype
 		}
 ;
 
-srcaccoperandex_typed: flagreg | addrreg | maskreg
+srcarchoperandex_typed: flagreg | addrreg | maskreg
 ;
 
 /* XXX: indirectsrcoperand */
 src:		directsrcoperand
 ;
 
-/* XXX: srcaccoperandex */
 directsrcoperand:
 		negate abs directgenreg region regtype
 		{
@@ -565,6 +564,7 @@ directsrcoperand:
 		  $$.bits2.da1.src0_negate = $1;
 		  $$.bits2.da1.src0_abs = $2;
 		}
+		| srcarchoperandex
 ;
 
 subregnum:	DOT INTEGER
