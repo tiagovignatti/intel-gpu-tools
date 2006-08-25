@@ -63,8 +63,10 @@
 
 %token <integer> ALIGN1 ALIGN16 MASK_DISABLE EOT
 
-%token <integer> GENREG MSGREG ACCREG ADDRESSREG
-%token FLAGREG CONTROLREG IPREG
+%token <integer> GENREG MSGREG ADDRESSREG ACCREG FLAGREG
+%token <integer> MASKREG AMASK IMASK LMASK CMASK
+%token <integer> MASKSTACKREG LMS IMS MASKSTACKDEPTHREG IMSD LMSD
+%token <integer> NOTIFYREG STATEREG CONTROLREG IPREG
 
 %token <integer> MOV FRC RNDU RNDD RNDE RNDZ NOT LZD
 %token <integer> MUL MAC MACH LINE SAD2 SADA2 DP4 DPH DP3 DP2
@@ -102,7 +104,9 @@
 %type <integer> math_function math_signed math_scalar
 %type <region> region
 %type <direct_gen_reg> directgenreg directmsgreg addrreg accreg flagreg maskreg
-%type <direct_gen_reg> nullreg
+%type <direct_gen_reg> maskstackreg maskstackdepthreg notifyreg
+%type <direct_gen_reg> statereg controlreg ipreg nullreg dstoperandex_typed
+%type <integer> mask_subreg maskstack_subreg maskstackdepth_subreg
 %type <imm32> imm32
 
 %%
@@ -382,28 +386,52 @@ dstoperand:	dstreg dstregion regtype
 		}
 ;
 
-dstoperandex:	accreg dstregion regtype
+/* The dstoperandex returns an instruction with just the destination register
+ * filled in.
+ */
+dstoperandex:	dstoperandex_typed dstregion regtype
 		{
-		  /* Returns an instruction with just the destination register
-		   * filled in.
-		   */
 		  $$.bits1.da1.dest_reg_file = $1.reg_file;
 		  $$.bits1.da1.dest_reg_nr = $1.reg_nr;
 		  $$.bits1.da1.dest_subreg_nr = $1.subreg_nr;
 		  $$.bits1.da1.dest_horiz_stride = $2;
 		  $$.bits1.da1.dest_reg_type = $3;
 		}
+		| maskstackreg
+		{
+		  $$.bits1.da1.dest_reg_file = $1.reg_file;
+		  $$.bits1.da1.dest_reg_nr = $1.reg_nr;
+		  $$.bits1.da1.dest_subreg_nr = $1.subreg_nr;
+		  $$.bits1.da1.dest_horiz_stride = 1;
+		  $$.bits1.da1.dest_reg_type = BRW_REGISTER_TYPE_UW;
+		}
+		| controlreg
+		{
+		  $$.bits1.da1.dest_reg_file = $1.reg_file;
+		  $$.bits1.da1.dest_reg_nr = $1.reg_nr;
+		  $$.bits1.da1.dest_subreg_nr = $1.subreg_nr;
+		  $$.bits1.da1.dest_horiz_stride = 1;
+		  $$.bits1.da1.dest_reg_type = BRW_REGISTER_TYPE_UD;
+		}
+		| ipreg
+		{
+		  $$.bits1.da1.dest_reg_file = $1.reg_file;
+		  $$.bits1.da1.dest_reg_nr = $1.reg_nr;
+		  $$.bits1.da1.dest_subreg_nr = $1.subreg_nr;
+		  $$.bits1.da1.dest_horiz_stride = 1;
+		  $$.bits1.da1.dest_reg_type = BRW_REGISTER_TYPE_UD;
+		}
 		| nullreg
 		{
-		  /* Returns an instruction with just the destination register
-		   * filled in.
-		   */
 		  $$.bits1.da1.dest_reg_file = $1.reg_file;
 		  $$.bits1.da1.dest_reg_nr = $1.reg_nr;
 		  $$.bits1.da1.dest_subreg_nr = $1.subreg_nr;
 		  $$.bits1.da1.dest_horiz_stride = 1;
 		  $$.bits1.da1.dest_reg_type = BRW_REGISTER_TYPE_F;
 		}
+;
+
+dstoperandex_typed: accreg | flagreg | addrreg | maskreg
 ;
 
 /* XXX: indirectgenreg, directmsgreg, indirectmsgreg */
@@ -468,7 +496,7 @@ imm32reg:	imm32 srcimmtype
 		}
 ;
 
-/* XXX: srcaccoperandex, accreg regtype */
+/* XXX: accreg regtype */
 directsrcaccoperand:	directsrcoperand
 ;
 
@@ -509,9 +537,6 @@ subregnum:	DOT INTEGER
 /* 1.4.5: Register files and register numbers */
 directgenreg:	GENREG subregnum
 		{
-		  /* Returns an instruction with just the destination register
-		   * fields filled in.
-		   */
 		  $$.reg_file = BRW_GENERAL_REGISTER_FILE;
 		  $$.reg_nr = $1;
 		  $$.subreg_nr = $2;
@@ -519,20 +544,22 @@ directgenreg:	GENREG subregnum
 
 directmsgreg:	MSGREG subregnum
 		{
-		  /* Returns an instruction with just the destination register
-		   * fields filled in.
-		   */
 		  $$.reg_file = BRW_MESSAGE_REGISTER_FILE;
 		  $$.reg_nr = $1;
 		  $$.subreg_nr = $2;
 		}
 ;
 
+addrreg:	ADDRESSREG subregnum
+		{
+		  $$.reg_file = BRW_ARCHITECTURE_REGISTER_FILE;
+		  $$.reg_nr = BRW_ARF_ADDRESS | $1;
+		  $$.subreg_nr = $2;
+		}
+;
+
 accreg:		ACCREG subregnum
 		{
-		  /* Returns an instruction with just the destination register
-		   * fields filled in.
-		   */
 		  if ($1 > 1) {
 		    fprintf(stderr,
 			    "accumulator register number %d out of range", $1);
@@ -544,14 +571,140 @@ accreg:		ACCREG subregnum
 		}
 ;
 
-addrreg:	ADDRESSREG subregnum
+flagreg:	FLAGREG subregnum
 		{
-		  /* Returns an instruction with just the destination register
-		   * fields filled in.
-		   */
+		  if ($1 > 0) {
+		    fprintf(stderr,
+			    "flag register number %d out of range", $1);
+		    YYERROR;
+		  }
 		  $$.reg_file = BRW_ARCHITECTURE_REGISTER_FILE;
-		  $$.reg_nr = BRW_ARF_ADDRESS | $1;
+		  $$.reg_nr = BRW_ARF_FLAG | $1;
 		  $$.subreg_nr = $2;
+		}
+;
+
+maskreg:	MASKREG subregnum
+		{
+		  if ($1 > 0) {
+		    fprintf(stderr,
+			    "mask register number %d out of range", $1);
+		    YYERROR;
+		  }
+		  $$.reg_file = BRW_ARCHITECTURE_REGISTER_FILE;
+		  $$.reg_nr = BRW_ARF_MASK;
+		  $$.subreg_nr = $2;
+		}
+		| mask_subreg
+		{
+		  $$.reg_file = BRW_ARCHITECTURE_REGISTER_FILE;
+		  $$.reg_nr = BRW_ARF_MASK;
+		  $$.subreg_nr = $1;
+		}
+;
+
+mask_subreg:	AMASK | IMASK | LMASK | CMASK
+;
+
+maskstackreg:	MASKSTACKREG subregnum
+		{
+		  if ($1 > 0) {
+		    fprintf(stderr,
+			    "mask stack register number %d out of range", $1);
+		    YYERROR;
+		  }
+		  $$.reg_file = BRW_ARCHITECTURE_REGISTER_FILE;
+		  $$.reg_nr = BRW_ARF_MASK_STACK;
+		  $$.subreg_nr = $2;
+		}
+		| maskstack_subreg
+		{
+		  $$.reg_file = BRW_ARCHITECTURE_REGISTER_FILE;
+		  $$.reg_nr = BRW_ARF_MASK_STACK;
+		  $$.subreg_nr = $1;
+		}
+;
+
+maskstack_subreg: IMS | LMS
+;
+
+maskstackdepthreg: MASKSTACKDEPTHREG subregnum
+		{
+		  if ($1 > 0) {
+		    fprintf(stderr,
+			    "mask stack register number %d out of range", $1);
+		    YYERROR;
+		  }
+		  $$.reg_file = BRW_ARCHITECTURE_REGISTER_FILE;
+		  $$.reg_nr = BRW_ARF_MASK_STACK_DEPTH;
+		  $$.subreg_nr = $2;
+		}
+		| maskstackdepth_subreg
+		{
+		  $$.reg_file = BRW_ARCHITECTURE_REGISTER_FILE;
+		  $$.reg_nr = BRW_ARF_MASK_STACK_DEPTH;
+		  $$.subreg_nr = $1;
+		}
+;
+
+maskstackdepth_subreg: IMSD | LMSD
+;
+
+notifyreg:	NOTIFYREG
+		{
+		  if ($1 > 1) {
+		    fprintf(stderr,
+			    "notification register number %d out of range",
+			    $1);
+		    YYERROR;
+		  }
+		  $$.reg_file = BRW_ARCHITECTURE_REGISTER_FILE;
+		  $$.reg_nr = BRW_ARF_NOTIFICATION_COUNT;
+		  $$.subreg_nr = 0;
+		}
+;
+
+statereg:	STATEREG subregnum
+		{
+		  if ($1 > 0) {
+		    fprintf(stderr,
+			    "state register number %d out of range", $1);
+		    YYERROR;
+		  }
+		  if ($2 > 1) {
+		    fprintf(stderr,
+			    "state subregister number %d out of range", $1);
+		    YYERROR;
+		  }
+		  $$.reg_file = BRW_ARCHITECTURE_REGISTER_FILE;
+		  $$.reg_nr = BRW_ARF_STATE | $1;
+		  $$.subreg_nr = $2;
+		}
+;
+
+controlreg:	CONTROLREG subregnum
+		{
+		  if ($1 > 0) {
+		    fprintf(stderr,
+			    "control register number %d out of range", $1);
+		    YYERROR;
+		  }
+		  if ($2 > 2) {
+		    fprintf(stderr,
+			    "control subregister number %d out of range", $1);
+		    YYERROR;
+		  }
+		  $$.reg_file = BRW_ARCHITECTURE_REGISTER_FILE;
+		  $$.reg_nr = BRW_ARF_CONTROL | $1;
+		  $$.subreg_nr = $2;
+		}
+;
+
+ipreg:		IPREG
+		{
+		  $$.reg_file = BRW_ARCHITECTURE_REGISTER_FILE;
+		  $$.reg_nr = BRW_ARF_IP;
+		  $$.subreg_nr = 0;
 		}
 ;
 

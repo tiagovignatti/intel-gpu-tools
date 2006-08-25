@@ -119,6 +119,22 @@ int saved_state = INITIAL;
 	yylval.integer = atoi(yytext + 1);
 	return MSGREG;
 }
+"mask"[0-9]+ {
+	yylval.integer = atoi(yytext + 1);
+	return MASKREG;
+}
+"ms"[0-9]+ {
+	yylval.integer = atoi(yytext + 1);
+	return MASKSTACKREG;
+}
+"msd"[0-9]+ {
+	yylval.integer = atoi(yytext + 1);
+	return MASKSTACKDEPTHREG;
+}
+"n"[0-9]+ {
+	yylval.integer = atoi(yytext + 1);
+	return NOTIFYREG;
+}
 "f"[0-9]+ {
 	yylval.integer = atoi(yytext + 1);
 	return FLAGREG;
@@ -131,8 +147,44 @@ int saved_state = INITIAL;
 	yylval.integer = atoi(yytext + 1);
 	return CONTROLREG;
 }
+"sr"[0-9]+ {
+	yylval.integer = atoi(yytext + 1);
+	return STATEREG;
+}
 "ip" {
 	return IPREG;
+}
+"amask" {
+	yylval.integer = BRW_AMASK;
+	return AMASK;
+}
+"imask" {
+	yylval.integer = BRW_IMASK;
+	return IMASK;
+}
+"lmask" {
+	yylval.integer = BRW_LMASK;
+	return LMASK;
+}
+"cmask" {
+	yylval.integer = BRW_CMASK;
+	return CMASK;
+}
+"imsd" {
+	yylval.integer = 0;
+	return IMSD;
+}
+"lmsd" {
+	yylval.integer = 1;
+	return LMSD;
+}
+"ims" {
+	yylval.integer = 0;
+	return IMS;
+}
+"lms" {
+	yylval.integer = 16;
+	return LMS;
 }
 
  /*
