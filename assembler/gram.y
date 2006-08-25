@@ -91,7 +91,8 @@
 %type <instruction> binaryaccinstruction triinstruction sendinstruction
 %type <instruction> specialinstruction
 %type <instruction> dst dstoperand dstoperandex dstreg
-%type <instruction> directsrcaccoperand src directsrcoperand srcimm imm32reg
+%type <instruction> directsrcaccoperand srcaccoperandex src directsrcoperand
+%type <instruction> srcimm imm32reg
 %type <instruction> srcacc srcaccimm payload post_dst msgtarget
 %type <instruction> instoptions instoption_list
 %type <program> instrseq
@@ -105,7 +106,8 @@
 %type <region> region
 %type <direct_gen_reg> directgenreg directmsgreg addrreg accreg flagreg maskreg
 %type <direct_gen_reg> maskstackreg maskstackdepthreg notifyreg
-%type <direct_gen_reg> statereg controlreg ipreg nullreg dstoperandex_typed
+%type <direct_gen_reg> statereg controlreg ipreg nullreg
+%type <direct_gen_reg> dstoperandex_typed srcaccoperandex_typed
 %type <integer> mask_subreg maskstack_subreg maskstackdepth_subreg
 %type <imm32> imm32
 
@@ -497,7 +499,49 @@ imm32reg:	imm32 srcimmtype
 ;
 
 /* XXX: accreg regtype */
-directsrcaccoperand:	directsrcoperand
+directsrcaccoperand:	directsrcoperand | srcaccoperandex
+;
+
+/* Returns a source operand in the src0 fields of an instruction. */
+srcaccoperandex: srcaccoperandex_typed region regtype
+		{
+		  $$.bits1.da1.src0_reg_file = $1.reg_file;
+		  $$.bits1.da1.src0_reg_type = $3;
+		  $$.bits2.da1.src0_subreg_nr = $1.subreg_nr;
+		  $$.bits2.da1.src0_reg_nr = $1.reg_nr;
+		  $$.bits2.da1.src0_vert_stride = $2.vert_stride;
+		  $$.bits2.da1.src0_width = $2.width;
+		  $$.bits2.da1.src0_horiz_stride = $2.horiz_stride;
+		  $$.bits2.da1.src0_negate = 0;
+		  $$.bits2.da1.src0_abs = 0;
+		}
+		| maskstackreg
+		{
+		  set_src_operand(&$$, &$1, BRW_REGISTER_TYPE_UB);
+		}
+		| controlreg
+		{
+		  set_src_operand(&$$, &$1, BRW_REGISTER_TYPE_UD);
+		}
+		| statereg
+		{
+		  set_src_operand(&$$, &$1, BRW_REGISTER_TYPE_UD);
+		}
+		| notifyreg
+		{
+		  set_src_operand(&$$, &$1, BRW_REGISTER_TYPE_UD);
+		}
+		| ipreg
+		{
+		  set_src_operand(&$$, &$1, BRW_REGISTER_TYPE_UD);
+		}
+		| nullreg
+		{
+		  set_src_operand(&$$, &$1, BRW_REGISTER_TYPE_UD);
+		}
+;
+
+srcaccoperandex_typed: flagreg | addrreg | maskreg
 ;
 
 /* XXX: indirectsrcoperand */
@@ -903,4 +947,18 @@ void set_instruction_options(struct brw_instruction *instr,
 	instr->header.dependency_control = options->header.dependency_control;
 	instr->header.compression_control =
 		options->header.compression_control;
+}
+
+void set_src_operand(struct brw_instruction *instr, struct gen_reg *reg,
+		     int type)
+{
+	instr->bits1.da1.src0_reg_file = reg->reg_file;
+	instr->bits1.da1.src0_reg_type = type;
+	instr->bits2.da1.src0_subreg_nr = reg->subreg_nr;
+	instr->bits2.da1.src0_reg_nr = reg->reg_nr;
+	instr->bits2.da1.src0_vert_stride = 0;
+	instr->bits2.da1.src0_width = 0;
+	instr->bits2.da1.src0_horiz_stride = 1;
+	instr->bits2.da1.src0_negate = 0;
+	instr->bits2.da1.src0_abs = 0;
 }
