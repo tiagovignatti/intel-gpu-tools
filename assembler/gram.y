@@ -46,7 +46,7 @@
 	} region;
 	struct gen_reg {
 		int reg_file, reg_nr, subreg_nr;
-	} direct_gen_reg; /* XXX: naming */
+	} direct_reg;
 	double imm32;
 }
 
@@ -104,10 +104,10 @@
 %type <integer> urb_swizzle urb_allocate urb_used urb_complete
 %type <integer> math_function math_signed math_scalar
 %type <region> region
-%type <direct_gen_reg> directgenreg directmsgreg addrreg accreg flagreg maskreg
-%type <direct_gen_reg> maskstackreg maskstackdepthreg notifyreg
-%type <direct_gen_reg> statereg controlreg ipreg nullreg
-%type <direct_gen_reg> dstoperandex_typed srcarchoperandex_typed
+%type <direct_reg> directgenreg directmsgreg addrreg accreg flagreg maskreg
+%type <direct_reg> maskstackreg maskstackdepthreg notifyreg
+%type <direct_reg> statereg controlreg ipreg nullreg
+%type <direct_reg> dstoperandex_typed srcarchoperandex_typed
 %type <integer> mask_subreg maskstack_subreg maskstackdepth_subreg
 %type <imm32> imm32
 
