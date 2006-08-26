@@ -190,6 +190,7 @@ binaryinstruction:
 ;
 
 binaryop:	MUL | MAC | MACH | LINE | SAD2 | SADA2 | DP4 | DPH | DP3 | DP2
+;
 
 binaryaccinstruction:
 		predicate binaryaccop conditionalmodifier saturate execsize
@@ -211,6 +212,7 @@ binaryaccop:	AVG | ADD | SEL | AND | OR | XOR | SHR | SHL | ASR | CMP | CMPN
 ;
 
 triinstruction:	sendinstruction
+;
 
 sendinstruction: predicate SEND execsize INTEGER post_dst payload msgtarget
 		MSGLEN INTEGER RETURNLEN INTEGER instoptions
@@ -238,11 +240,13 @@ sendinstruction: predicate SEND execsize INTEGER post_dst payload msgtarget
 		  $$.bits3.generic.end_of_thread =
 		    $12.bits3.generic.end_of_thread;
 		}
+;
 
 branchloopop:	IF | IFF | WHILE
 ;
 
 breakop:	BREAK | CONT | WAIT
+;
 
 maskpushop:	MSAVE | PUSH
 ;
@@ -252,6 +256,7 @@ specialinstruction: NOP
 		  bzero(&$$, sizeof($$));
 		  $$.header.opcode = $1;
 		}
+;
 
 /* XXX! */
 payload: directsrcoperand
@@ -368,16 +373,18 @@ math_function:	INV | LOG | EXP | SQRT | POW | SIN | COS | SINCOS | INTDIV
 
 math_signed:	/* empty */ { $$ = 0; }
 		| SIGNED { $$ = 1; }
+;
 
 math_scalar:	/* empty */ { $$ = 0; }
 		| SCALAR { $$ = 1; }
+;
 
 /* 1.4.2: Destination register */
 
 dst:		dstoperand | dstoperandex
 ;
 
-/* XXX: dstregion writemask */
+/* XXX: writemask */
 dstoperand:	dstreg dstregion regtype
 		{
 		  /* Returns an instruction with just the destination register
@@ -437,7 +444,7 @@ dstoperandex:	dstoperandex_typed dstregion regtype
 dstoperandex_typed: accreg | flagreg | addrreg | maskreg
 ;
 
-/* XXX: indirectgenreg, directmsgreg, indirectmsgreg */
+/* XXX: indirectgenreg, indirectmsgreg */
 dstreg:		directgenreg
 		{
 		  $$.bits1.da1.dest_reg_file = $1.reg_file;
@@ -461,6 +468,7 @@ srcacc:		directsrcaccoperand
 ;
 
 srcimm:		directsrcoperand | imm32reg
+;
 
 imm32reg:	imm32 srcimmtype
 		{
@@ -568,6 +576,7 @@ directsrcoperand:
 		| srcarchoperandex
 ;
 
+/* 1.4.5: Register files and register numbers */
 subregnum:	DOT INTEGER
 		{
 		  $$ = $2;
@@ -579,13 +588,13 @@ subregnum:	DOT INTEGER
 		}
 ;
 
-/* 1.4.5: Register files and register numbers */
 directgenreg:	GENREG subregnum
 		{
 		  $$.reg_file = BRW_GENERAL_REGISTER_FILE;
 		  $$.reg_nr = $1;
 		  $$.subreg_nr = $2;
 		}
+;
 
 directmsgreg:	MSGREG subregnum
 		{
@@ -794,13 +803,16 @@ regtype:	TYPE_F { $$ = BRW_REGISTER_TYPE_F; }
 		| TYPE_W { $$ = BRW_REGISTER_TYPE_W; }
 		| TYPE_UB { $$ = BRW_REGISTER_TYPE_UB; }
 		| TYPE_B { $$ = BRW_REGISTER_TYPE_B; }
+;
+
 /* XXX: Add TYPE_VF and TYPE_HF */
 srcimmtype:	regtype
 ;
 
-/* 1.4.11: */
+/* 1.4.11: Immediate values */
 imm32:		INTEGER { $$ = $1; }
 		| NUMBER { $$ = $1; }
+;
 
 /* 1.4.12: Predication and modifiers */
 /* XXX: do the predicate */
@@ -809,9 +821,11 @@ predicate:
 
 negate:		/* empty */ { $$ = 0; }
 		| MINUS { $$ = 1; }
+;
 
 abs:		/* empty */ { $$ = 0; }
 		| ABS { $$ = 1; }
+;
 
 execsize:	LPAREN INTEGER RPAREN
 		{
