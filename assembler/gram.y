@@ -61,7 +61,8 @@
 %token <integer> TYPE_UD, TYPE_D, TYPE_UW, TYPE_W, TYPE_UB, TYPE_B,
 %token <integer> TYPE_VF, TYPE_HF, TYPE_V, TYPE_F
 
-%token <integer> ALIGN1 ALIGN16 MASK_DISABLE EOT
+%token ALIGN1 ALIGN16 SECHALF COMPR SWITCH ATOMIC NODDCHK NODDCLR
+%token MASK_DISABLE BREAKPOINT EOT
 
 %token <integer> GENREG MSGREG ADDRESSREG ACCREG FLAGREG
 %token <integer> MASKREG AMASK IMASK LMASK CMASK
@@ -834,7 +835,6 @@ conditionalmodifier: { $$ = 0; }
 ;
 
 /* 1.4.13: Instruction options */
-/* XXX: this is a comma-separated list, really. */
 instoptions:	LCURLY instoption_list RCURLY
 		{ $$ = $2; }
 ;
@@ -849,8 +849,30 @@ instoption_list: instoption instoption_list
 		  case ALIGN16:
 		    $$.header.access_mode = BRW_ALIGN_16;
 		    break;
+		  case SECHALF:
+		    $$.header.compression_control |= BRW_COMPRESSION_2NDHALF;
+		    break;
+		  case COMPR:
+		    $$.header.compression_control |=
+		      BRW_COMPRESSION_COMPRESSED;
+		    break;
+		  case SWITCH:
+		    $$.header.thread_control |= BRW_THREAD_SWITCH;
+		    break;
+		  case ATOMIC:
+		    $$.header.thread_control |= BRW_THREAD_ATOMIC;
+		    break;
+		  case NODDCHK:
+		    $$.header.dependency_control |= BRW_DEPENDENCY_NOTCHECKED;
+		    break;
+		  case NODDCLR:
+		    $$.header.dependency_control |= BRW_DEPENDENCY_NOTCLEARED;
+		    break;
 		  case MASK_DISABLE:
 		    $$.header.mask_control = BRW_MASK_DISABLE;
+		    break;
+		  case BREAKPOINT:
+		    $$.header.debug_control = BRW_DEBUG_BREAKPOINT;
 		    break;
 		  case EOT:
 		    /* XXX: EOT shouldn't be an instoption, I don't think */
@@ -864,12 +886,16 @@ instoption_list: instoption instoption_list
 		}
 ;
 
-/* XXX: fill me in. alignctrl, comprctrl, threadctrl, depctrl, maskctrl,
- * debugctrl, sendctrl
- */
 instoption:	ALIGN1 { $$ = ALIGN1; }
 		| ALIGN16 { $$ = ALIGN16; }
+		| SECHALF { $$ = SECHALF; }
+		| COMPR { $$ = COMPR; }
+		| SWITCH { $$ = SWITCH; }
+		| ATOMIC { $$ = ATOMIC; }
+		| NODDCHK { $$ = NODDCHK; }
+		| NODDCLR { $$ = NODDCLR; }
 		| MASK_DISABLE { $$ = MASK_DISABLE; }
+		| BREAKPOINT { $$ = BREAKPOINT; }
 		| EOT { $$ = EOT; }
 ;
 

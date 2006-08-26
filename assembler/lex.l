@@ -202,7 +202,15 @@ int saved_state = INITIAL;
 "sat" { return SATURATE; }
 "align1" { return ALIGN1; }
 "align16" { return ALIGN16; }
+"sechalf" { return SECHALF; }
+"compr" { return COMPR; }
+"switch" { return SWITCH; }
+"atomic" { return ATOMIC; }
+"noddchk" { return NODDCHK; }
+"noddclr" { return NODDCLR; }
 "mask_disable" { return MASK_DISABLE; }
+"nomask" { return MASK_DISABLE; }
+"breakpoint" { return BREAKPOINT; }
 "EOT" { return EOT; }
 
  /* extended math functions */
