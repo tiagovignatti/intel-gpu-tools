@@ -507,8 +507,11 @@ imm32reg:	imm32 srcimmtype
 		}
 ;
 
-/* XXX: accreg regtype */
 directsrcaccoperand:	directsrcoperand
+		| accreg regtype
+		{
+		  set_src_operand(&$$, &$1, $2);
+		}
 ;
 
 /* Returns a source operand in the src0 fields of an instruction. */
