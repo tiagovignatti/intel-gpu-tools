@@ -136,8 +136,16 @@ int saved_state = INITIAL;
 	yylval.integer = atoi(yytext + 1);
 	return NOTIFYREG;
 }
-"f"[0-9]+ {
-	yylval.integer = atoi(yytext + 1);
+ /* Unlike other registers, flagreg returns the subreg number in the lvalue
+  * rather than the reg number, to avoid a shift/reduce conflict in the
+  * predicate control.
+  */
+"f0.[0-9]+" {
+	yylval.integer = atoi(yytext + 3);
+	return FLAGREG;
+}
+"f0" {
+	yylval.integer = 0;
 	return FLAGREG;
 }
 [gr][0-9]+ {

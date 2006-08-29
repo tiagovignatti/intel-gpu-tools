@@ -651,16 +651,11 @@ accreg:		ACCREG subregnum
 		}
 ;
 
-flagreg:	FLAGREG subregnum
+flagreg:	FLAGREG
 		{
-		  if ($1 > 0) {
-		    fprintf(stderr,
-			    "flag register number %d out of range", $1);
-		    YYERROR;
-		  }
 		  $$.reg_file = BRW_ARCHITECTURE_REGISTER_FILE;
-		  $$.reg_nr = BRW_ARF_FLAG | $1;
-		  $$.subreg_nr = $2;
+		  $$.reg_nr = BRW_ARF_FLAG | 0;
+		  $$.subreg_nr = $1;
 		}
 ;
 
