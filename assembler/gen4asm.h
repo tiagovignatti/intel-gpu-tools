@@ -26,6 +26,8 @@
  *
  */
 
+#include <sys/types.h>
+
 typedef unsigned char GLubyte;
 typedef short GLshort;
 typedef unsigned int GLuint;
@@ -35,6 +37,26 @@ typedef float GLfloat;
 #include "brw_structs.h"
 
 void yyerror (char *msg);
+
+/**
+ * This structure is the internal representation of source operands in the 
+ * parser.
+ */
+struct src_operand {
+	int reg_file, reg_nr, subreg_nr, reg_type;
+
+	int abs, negate;
+
+	int horiz_stride, width, vert_stride;
+
+	int address_mode; /* 0 if direct, 1 if register-indirect */
+	int indirect_offset; /* XXX */
+
+	int swizzle_set;
+	int swizzle_x, swizzle_y, swizzle_z, swizzle_w;
+
+	uint32_t imm32; /* only set if reg_file == BRW_IMMEDIATE_VALUE */
+} src_operand;
 
 /**
  * This structure is just the list container for instructions accumulated by

@@ -48,6 +48,8 @@
 		int reg_file, reg_nr, subreg_nr;
 	} direct_reg;
 	double imm32;
+
+	struct src_operand src_operand;
 }
 
 %token SEMICOLON
@@ -88,18 +90,18 @@
 %token <integer> INTDIVMOD
 %token SIGNED SCALAR
 
+%token <integer> X Y Z W
+
 %type <instruction> instruction unaryinstruction binaryinstruction
 %type <instruction> binaryaccinstruction triinstruction sendinstruction
 %type <instruction> specialinstruction
 %type <instruction> dst dstoperand dstoperandex dstreg
-%type <instruction> directsrcaccoperand srcarchoperandex src directsrcoperand
-%type <instruction> srcimm imm32reg
-%type <instruction> srcacc srcaccimm payload post_dst msgtarget
+%type <instruction> post_dst msgtarget
 %type <instruction> instoptions instoption_list
 %type <program> instrseq
 %type <integer> instoption
 %type <integer> unaryop binaryop binaryaccop
-%type <integer> conditionalmodifier saturate negate abs
+%type <integer> conditionalmodifier saturate negate abs chansel
 %type <integer> regtype srcimmtype execsize dstregion
 %type <integer> subregnum sampler_datatype
 %type <integer> urb_swizzle urb_allocate urb_used urb_complete
@@ -111,7 +113,8 @@
 %type <direct_reg> dstoperandex_typed srcarchoperandex_typed
 %type <integer> mask_subreg maskstack_subreg maskstackdepth_subreg
 %type <imm32> imm32
-
+%type <src_operand> directsrcoperand srcarchoperandex directsrcaccoperand
+%type <src_operand> src srcimm imm32reg payload srcacc srcaccimm swizzle
 %%
 
 ROOT:		instrseq
@@ -164,9 +167,10 @@ unaryinstruction:
 		  $$.header.destreg__conditionalmod = $3;
 		  $$.header.saturate = $4;
 		  $$.header.execution_size = $5;
-		  set_instruction_dest(&$$, &$6);
-		  set_instruction_src0(&$$, &$7);
 		  set_instruction_options(&$$, &$8);
+		  set_instruction_dest(&$$, &$6);
+		  if (set_instruction_src0(&$$, &$7) != 0)
+		    YYERROR;
 		}
 ;
 
@@ -182,10 +186,12 @@ binaryinstruction:
 		  $$.header.destreg__conditionalmod = $3;
 		  $$.header.saturate = $4;
 		  $$.header.execution_size = $5;
-		  set_instruction_dest(&$$, &$6);
-		  set_instruction_src0(&$$, &$7);
-		  set_instruction_src1(&$$, &$8);
 		  set_instruction_options(&$$, &$9);
+		  set_instruction_dest(&$$, &$6);
+		  if (set_instruction_src0(&$$, &$7) != 0)
+		    YYERROR;
+		  if (set_instruction_src1(&$$, &$8) != 0)
+		    YYERROR;
 		}
 ;
 
@@ -201,10 +207,12 @@ binaryaccinstruction:
 		  $$.header.destreg__conditionalmod = $3;
 		  $$.header.saturate = $4;
 		  $$.header.execution_size = $5;
-		  set_instruction_dest(&$$, &$6);
-		  set_instruction_src0(&$$, &$7);
-		  set_instruction_src1(&$$, &$8);
 		  set_instruction_options(&$$, &$9);
+		  set_instruction_dest(&$$, &$6);
+		  if (set_instruction_src0(&$$, &$7) != 0)
+		    YYERROR;
+		  if (set_instruction_src1(&$$, &$8) != 0)
+		    YYERROR;
 		}
 ;
 
@@ -231,7 +239,8 @@ sendinstruction: predicate SEND execsize INTEGER post_dst payload msgtarget
 		  $$.header.execution_size = $3;
 		  $$.header.destreg__conditionalmod = $4; /* msg reg index */
 		  set_instruction_dest(&$$, &$5);
-		  set_instruction_src0(&$$, &$6);
+		  if (set_instruction_src0(&$$, &$6) != 0)
+		    YYERROR;
 		  $$.bits1.da1.src1_reg_file = BRW_IMMEDIATE_VALUE;
 		  $$.bits1.da1.src1_reg_type = BRW_REGISTER_TYPE_D;
 		  $$.bits3.generic = $7.bits3.generic;
@@ -472,33 +481,39 @@ srcimm:		directsrcoperand | imm32reg
 
 imm32reg:	imm32 srcimmtype
 		{
-		  $$.bits1.da1.src0_reg_file = BRW_IMMEDIATE_VALUE;
-		  $$.bits1.da1.src0_reg_type = $2;
+		  union {
+		    int i;
+		    float f;
+		  } intfloat;
+
+		  $$.reg_file = BRW_IMMEDIATE_VALUE;
+		  $$.reg_type = $2;
 		  switch ($2) {
 		  case BRW_REGISTER_TYPE_UD:
-		    $$.bits3.ud = $1;
+		    $$.imm32 = $1;
 		    break;
 		  case BRW_REGISTER_TYPE_D:
-		    $$.bits3.id = $1;
+		    $$.imm32 = $1;
 		    break;
 		  case BRW_REGISTER_TYPE_UW:
-		    $$.bits3.ud = $1;
+		    $$.imm32 = $1;
 		    break;
 		  case BRW_REGISTER_TYPE_W:
-		    $$.bits3.id = $1;
+		    $$.imm32 = $1;
 		    break;
 		  case BRW_REGISTER_TYPE_UB:
-		    $$.bits3.ud = $1;
 		    /* There is no native byte immediate type */
-		    $$.bits1.da1.src0_reg_type = BRW_REGISTER_TYPE_UD;
+		    $$.imm32 = (unsigned int)$1;
+		    $$.reg_type = BRW_REGISTER_TYPE_UD;
 		    break;
 		  case BRW_REGISTER_TYPE_B:
-		    $$.bits3.id = $1;
 		    /* There is no native byte immediate type */
-		    $$.bits1.da1.src0_reg_type = BRW_REGISTER_TYPE_D;
+		    $$.imm32 = (int)$1;
+		    $$.reg_type = BRW_REGISTER_TYPE_D;
 		    break;
 		  case BRW_REGISTER_TYPE_F:
-		    $$.bits3.fd = $1;
+		    intfloat.f = $1;
+		    $$.imm32 = intfloat.i;
 		    break;
 		  default:
 		    fprintf(stderr, "unknown immediate type %d\n", $2);
@@ -517,15 +532,15 @@ directsrcaccoperand:	directsrcoperand
 /* Returns a source operand in the src0 fields of an instruction. */
 srcarchoperandex: srcarchoperandex_typed region regtype
 		{
-		  $$.bits1.da1.src0_reg_file = $1.reg_file;
-		  $$.bits1.da1.src0_reg_type = $3;
-		  $$.bits2.da1.src0_subreg_nr = $1.subreg_nr;
-		  $$.bits2.da1.src0_reg_nr = $1.reg_nr;
-		  $$.bits2.da1.src0_vert_stride = $2.vert_stride;
-		  $$.bits2.da1.src0_width = $2.width;
-		  $$.bits2.da1.src0_horiz_stride = $2.horiz_stride;
-		  $$.bits2.da1.src0_negate = 0;
-		  $$.bits2.da1.src0_abs = 0;
+		  $$.reg_file = $1.reg_file;
+		  $$.reg_type = $3;
+		  $$.subreg_nr = $1.subreg_nr;
+		  $$.reg_nr = $1.reg_nr;
+		  $$.vert_stride = $2.vert_stride;
+		  $$.width = $2.width;
+		  $$.horiz_stride = $2.horiz_stride;
+		  $$.negate = 0;
+		  $$.abs = 0;
 		}
 		| maskstackreg
 		{
@@ -561,20 +576,22 @@ src:		directsrcoperand
 ;
 
 directsrcoperand:
-		negate abs directgenreg region regtype
+		negate abs directgenreg region regtype swizzle
 		{
-		  /* Returns a source operand in the src0 fields of an
-		   * instruction.
-		   */
-		  $$.bits1.da1.src0_reg_file = $3.reg_file;
-		  $$.bits1.da1.src0_reg_type = $5;
-		  $$.bits2.da1.src0_subreg_nr = $3.subreg_nr;
-		  $$.bits2.da1.src0_reg_nr = $3.reg_nr;
-		  $$.bits2.da1.src0_vert_stride = $4.vert_stride;
-		  $$.bits2.da1.src0_width = $4.width;
-		  $$.bits2.da1.src0_horiz_stride = $4.horiz_stride;
-		  $$.bits2.da1.src0_negate = $1;
-		  $$.bits2.da1.src0_abs = $2;
+		  $$.reg_file = $3.reg_file;
+		  $$.reg_nr = $3.reg_nr;
+		  $$.subreg_nr = $3.subreg_nr;
+		  $$.reg_type = $5;
+		  $$.vert_stride = $4.vert_stride;
+		  $$.width = $4.width;
+		  $$.horiz_stride = $4.horiz_stride;
+		  $$.negate = $1;
+		  $$.abs = $2;
+		  $$.swizzle_set = $6.swizzle_set;
+		  $$.swizzle_x = $6.swizzle_x;
+		  $$.swizzle_y = $6.swizzle_y;
+		  $$.swizzle_z = $6.swizzle_z;
+		  $$.swizzle_w = $6.swizzle_w;
 		}
 		| srcarchoperandex
 ;
@@ -812,6 +829,39 @@ regtype:	TYPE_F { $$ = BRW_REGISTER_TYPE_F; }
 srcimmtype:	regtype
 ;
 
+/* 1.4.10: Swizzle control */
+/* Returns the swizzle control for an align16 instruction's source operand
+ * in the src0 fields.
+ */
+swizzle:	/* empty */
+		{
+		  $$.swizzle_set = 0;
+		  $$.swizzle_x = BRW_CHANNEL_X;
+		  $$.swizzle_y = BRW_CHANNEL_Y;
+		  $$.swizzle_z = BRW_CHANNEL_Z;
+		  $$.swizzle_w = BRW_CHANNEL_W;
+		}
+		| DOT chansel
+		{
+		  $$.swizzle_set = 1;
+		  $$.swizzle_x = $2;
+		  $$.swizzle_y = $2;
+		  $$.swizzle_z = $2;
+		  $$.swizzle_w = $2;
+		}
+		| DOT chansel chansel chansel chansel
+		{
+		  $$.swizzle_set = 1;
+		  $$.swizzle_x = $2;
+		  $$.swizzle_y = $3;
+		  $$.swizzle_z = $4;
+		  $$.swizzle_w = $5;
+		}
+;
+
+chansel:	X | Y | Z | W
+;
+
 /* 1.4.11: Immediate values */
 imm32:		INTEGER { $$ = $1; }
 		| NUMBER { $$ = $1; }
@@ -939,52 +989,95 @@ void set_instruction_dest(struct brw_instruction *instr,
 	instr->bits1.da1.dest_address_mode = dest->bits1.da1.dest_address_mode;
 }
 
-
-void set_instruction_src0(struct brw_instruction *instr,
-			  struct brw_instruction *src)
+/* Sets the first source operand for the instruction.  Returns 0 on success. */
+int set_instruction_src0(struct brw_instruction *instr,
+			  struct src_operand *src)
 {
-	instr->bits1.da1.src0_reg_file = src->bits1.da1.src0_reg_file;
-	instr->bits1.da1.src0_reg_type = src->bits1.da1.src0_reg_type;
-	if (src->bits1.da1.src0_reg_file == BRW_IMMEDIATE_VALUE) {
-		instr->bits3.ud = src->bits3.ud;
+	instr->bits1.da1.src0_reg_file = src->reg_file;
+	instr->bits1.da1.src0_reg_type = src->reg_type;
+	if (src->reg_file == BRW_IMMEDIATE_VALUE) {
+		instr->bits3.ud = src->imm32;
+	} else if (instr->header.access_mode == BRW_ALIGN_1) {
+		instr->bits2.da1.src0_subreg_nr = src->subreg_nr;
+		instr->bits2.da1.src0_reg_nr = src->reg_nr;
+		instr->bits2.da1.src0_vert_stride = src->vert_stride;
+		instr->bits2.da1.src0_width = src->width;
+		instr->bits2.da1.src0_horiz_stride = src->horiz_stride;
+		instr->bits2.da1.src0_negate = src->negate;
+		instr->bits2.da1.src0_abs = src->abs;
+		instr->bits2.da1.src0_address_mode = src->address_mode;
+		if (src->swizzle_set) {
+			fprintf(stderr, "error: swizzle bits set in align1 "
+				"instruction\n");
+			return 1;
+		}
 	} else {
-		instr->bits2.da1.src0_subreg_nr =
-			src->bits2.da1.src0_subreg_nr;
-		instr->bits2.da1.src0_reg_nr = src->bits2.da1.src0_reg_nr;
-		instr->bits2.da1.src0_vert_stride =
-			src->bits2.da1.src0_vert_stride;
-		instr->bits2.da1.src0_width = src->bits2.da1.src0_width;
-		instr->bits2.da1.src0_horiz_stride =
-			src->bits2.da1.src0_horiz_stride;
-		instr->bits2.da1.src0_negate = src->bits2.da1.src0_negate;
-		instr->bits2.da1.src0_abs = src->bits2.da1.src0_abs;
+		instr->bits2.da16.src0_subreg_nr = src->subreg_nr;
+		instr->bits2.da16.src0_reg_nr = src->reg_nr;
+		instr->bits2.da16.src0_vert_stride = src->vert_stride;
+		instr->bits2.da16.src0_negate = src->negate;
+		instr->bits2.da16.src0_abs = src->abs;
+		instr->bits2.da16.src0_swz_x = src->swizzle_x;
+		instr->bits2.da16.src0_swz_y = src->swizzle_y;
+		instr->bits2.da16.src0_swz_z = src->swizzle_z;
+		instr->bits2.da16.src0_swz_w = src->swizzle_w;
+		instr->bits2.da16.src0_address_mode = src->address_mode;
 	}
+
+	return 0;
 }
 
-void set_instruction_src1(struct brw_instruction *instr,
-			  struct brw_instruction *src)
+/* Sets the second source operand for the instruction.  Returns 0 on success.
+ */
+int set_instruction_src1(struct brw_instruction *instr,
+			  struct src_operand *src)
 {
-	instr->bits1.da1.src1_reg_file = src->bits1.da1.src0_reg_file;
-	instr->bits1.da1.src1_reg_type = src->bits1.da1.src0_reg_type;
-	if (src->bits1.da1.src0_reg_file == BRW_IMMEDIATE_VALUE) {
-		instr->bits3.ud = src->bits3.ud;
+	instr->bits1.da1.src1_reg_file = src->reg_file;
+	instr->bits1.da1.src1_reg_type = src->reg_type;
+	if (src->reg_file == BRW_IMMEDIATE_VALUE) {
+		instr->bits3.ud = src->imm32;
+	} else if (instr->header.access_mode == BRW_ALIGN_1) {
+		instr->bits3.da1.src1_subreg_nr = src->subreg_nr;
+		instr->bits3.da1.src1_reg_nr = src->reg_nr;
+		instr->bits3.da1.src1_vert_stride = src->vert_stride;
+		instr->bits3.da1.src1_width = src->width;
+		instr->bits3.da1.src1_horiz_stride = src->horiz_stride;
+		instr->bits3.da1.src1_negate = src->negate;
+		instr->bits3.da1.src1_abs = src->abs;
+		if (src->address_mode != BRW_ADDRESS_DIRECT) {
+			fprintf(stderr, "error: swizzle bits set in align1 "
+				"instruction\n");
+			return 1;
+		}
+		if (src->swizzle_set) {
+			fprintf(stderr, "error: swizzle bits set in align1 "
+				"instruction\n");
+			return 1;
+		}
 	} else {
-		instr->bits3.da1.src1_subreg_nr =
-			src->bits2.da1.src0_subreg_nr;
-		instr->bits3.da1.src1_reg_nr = src->bits2.da1.src0_reg_nr;
-		instr->bits3.da1.src1_vert_stride =
-			src->bits2.da1.src0_vert_stride;
-		instr->bits3.da1.src1_width = src->bits2.da1.src0_width;
-		instr->bits3.da1.src1_horiz_stride =
-			src->bits2.da1.src0_horiz_stride;
-		instr->bits3.da1.src1_negate = src->bits2.da1.src0_negate;
-		instr->bits3.da1.src1_abs = src->bits2.da1.src0_abs;
+		instr->bits3.da16.src1_subreg_nr = src->subreg_nr;
+		instr->bits3.da16.src1_reg_nr = src->reg_nr;
+		instr->bits3.da16.src1_vert_stride = src->vert_stride;
+		instr->bits3.da16.src1_negate = src->negate;
+		instr->bits3.da16.src1_abs = src->abs;
+		instr->bits3.da16.src1_swz_x = src->swizzle_x;
+		instr->bits3.da16.src1_swz_y = src->swizzle_y;
+		instr->bits3.da16.src1_swz_z = src->swizzle_z;
+		instr->bits3.da16.src1_swz_w = src->swizzle_w;
+		if (src->address_mode != BRW_ADDRESS_DIRECT) {
+			fprintf(stderr, "error: swizzle bits set in align1 "
+				"instruction\n");
+			return 1;
+		}
 	}
+
+	return 0;
 }
 
 void set_instruction_options(struct brw_instruction *instr,
 			     struct brw_instruction *options)
 {
+	/* XXX: more instr options */
 	instr->header.access_mode = options->header.access_mode;
 	instr->header.mask_control = options->header.mask_control;
 	instr->header.dependency_control = options->header.dependency_control;
@@ -992,16 +1085,17 @@ void set_instruction_options(struct brw_instruction *instr,
 		options->header.compression_control;
 }
 
-void set_src_operand(struct brw_instruction *instr, struct gen_reg *reg,
+void set_src_operand(struct src_operand *src, struct gen_reg *reg,
 		     int type)
 {
-	instr->bits1.da1.src0_reg_file = reg->reg_file;
-	instr->bits1.da1.src0_reg_type = type;
-	instr->bits2.da1.src0_subreg_nr = reg->subreg_nr;
-	instr->bits2.da1.src0_reg_nr = reg->reg_nr;
-	instr->bits2.da1.src0_vert_stride = 0;
-	instr->bits2.da1.src0_width = 0;
-	instr->bits2.da1.src0_horiz_stride = 1;
-	instr->bits2.da1.src0_negate = 0;
-	instr->bits2.da1.src0_abs = 0;
+	bzero(src, sizeof(*src));
+	src->reg_file = reg->reg_file;
+	src->reg_type = type;
+	src->subreg_nr = reg->subreg_nr;
+	src->reg_nr = reg->reg_nr;
+	src->vert_stride = 0;
+	src->width = 0;
+	src->horiz_stride = 1;
+	src->negate = 0;
+	src->abs = 0;
 }

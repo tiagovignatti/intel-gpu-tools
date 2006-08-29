@@ -239,6 +239,24 @@ int saved_state = INITIAL;
 "signed" { return SIGNED; }
 "scalar" { return SCALAR; }
 
+ /* channel selectors */
+"x" {
+	yylval.integer = BRW_CHANNEL_X;
+	return X;
+}
+"y" {
+	yylval.integer = BRW_CHANNEL_Y;
+	return Y;
+}
+"z" {
+	yylval.integer = BRW_CHANNEL_Z;
+	return Z;
+}
+"w" {
+	yylval.integer = BRW_CHANNEL_W;
+	return W;
+}
+
 [0-9]* {
 	yylval.integer = atoi(yytext);
 	return INTEGER;
