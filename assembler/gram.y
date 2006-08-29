@@ -58,7 +58,7 @@
 %token LCURLY RCURLY
 %token COMMA
 %token DOT
-%token MINUS ABS
+%token PLUS MINUS ABS
 
 %token <integer> TYPE_UD, TYPE_D, TYPE_UW, TYPE_W, TYPE_UB, TYPE_B,
 %token <integer> TYPE_VF, TYPE_HF, TYPE_V, TYPE_F
@@ -66,6 +66,7 @@
 %token ALIGN1 ALIGN16 SECHALF COMPR SWITCH ATOMIC NODDCHK NODDCLR
 %token MASK_DISABLE BREAKPOINT EOT
 
+%token ANY2H ALL2H ANY4H ALL4H ANY8H ALL8H ANY16H ALL16H
 %token <integer> GENREG MSGREG ADDRESSREG ACCREG FLAGREG
 %token <integer> MASKREG AMASK IMASK LMASK CMASK
 %token <integer> MASKSTACKREG LMS IMS MASKSTACKDEPTHREG IMSD LMSD
@@ -97,7 +98,7 @@
 %type <instruction> specialinstruction
 %type <instruction> dst dstoperand dstoperandex dstreg
 %type <instruction> post_dst msgtarget
-%type <instruction> instoptions instoption_list
+%type <instruction> instoptions instoption_list predicate
 %type <program> instrseq
 %type <integer> instoption
 %type <integer> unaryop binaryop binaryaccop
@@ -106,6 +107,7 @@
 %type <integer> subregnum sampler_datatype
 %type <integer> urb_swizzle urb_allocate urb_used urb_complete
 %type <integer> math_function math_signed math_scalar
+%type <integer> predctrl predstate
 %type <region> region
 %type <direct_reg> directgenreg directmsgreg addrreg accreg flagreg maskreg
 %type <direct_reg> maskstackreg maskstackdepthreg notifyreg
@@ -168,6 +170,7 @@ unaryinstruction:
 		  $$.header.saturate = $4;
 		  $$.header.execution_size = $5;
 		  set_instruction_options(&$$, &$8);
+		  set_instruction_predicate(&$$, &$1);
 		  set_instruction_dest(&$$, &$6);
 		  if (set_instruction_src0(&$$, &$7) != 0)
 		    YYERROR;
@@ -187,6 +190,7 @@ binaryinstruction:
 		  $$.header.saturate = $4;
 		  $$.header.execution_size = $5;
 		  set_instruction_options(&$$, &$9);
+		  set_instruction_predicate(&$$, &$1);
 		  set_instruction_dest(&$$, &$6);
 		  if (set_instruction_src0(&$$, &$7) != 0)
 		    YYERROR;
@@ -208,6 +212,7 @@ binaryaccinstruction:
 		  $$.header.saturate = $4;
 		  $$.header.execution_size = $5;
 		  set_instruction_options(&$$, &$9);
+		  set_instruction_predicate(&$$, &$1);
 		  set_instruction_dest(&$$, &$6);
 		  if (set_instruction_src0(&$$, &$7) != 0)
 		    YYERROR;
@@ -238,6 +243,7 @@ sendinstruction: predicate SEND execsize INTEGER post_dst payload msgtarget
 		  $$.header.opcode = $2;
 		  $$.header.execution_size = $3;
 		  $$.header.destreg__conditionalmod = $4; /* msg reg index */
+		  set_instruction_predicate(&$$, &$1);
 		  set_instruction_dest(&$$, &$5);
 		  if (set_instruction_src0(&$$, &$6) != 0)
 		    YYERROR;
@@ -868,8 +874,42 @@ imm32:		INTEGER { $$ = $1; }
 ;
 
 /* 1.4.12: Predication and modifiers */
-/* XXX: do the predicate */
-predicate:
+predicate:	/* empty */
+		{
+		  $$.header.predicate_control = BRW_PREDICATE_NONE;
+		  $$.bits2.da1.flag_reg_nr = 0;
+		  $$.header.predicate_inverse = 0;
+		}
+		| LPAREN predstate flagreg predctrl RPAREN
+		{
+		  $$.header.predicate_control = $4;
+		  /* XXX: Should deal with erroring when the user tries to
+		   * set a predicate for one flag register and conditional
+		   * modification on the other flag register.
+		   */
+		  $$.bits2.da1.flag_reg_nr = $3.subreg_nr;
+		  $$.header.predicate_inverse = $2;
+		}
+;
+
+predstate:	/* empty */ { $$ = 0; }
+		| PLUS { $$ = 0; }
+		| MINUS { $$ = 1; }
+;
+
+predctrl:	/* empty */ { $$ = BRW_PREDICATE_NONE; }
+		| DOT X { $$ = BRW_PREDICATE_ALIGN16_REPLICATE_X; }
+		| DOT Y { $$ = BRW_PREDICATE_ALIGN16_REPLICATE_Y; }
+		| DOT Z { $$ = BRW_PREDICATE_ALIGN16_REPLICATE_Z; }
+		| DOT W { $$ = BRW_PREDICATE_ALIGN16_REPLICATE_W; }
+		| ANY2H { $$ = BRW_PREDICATE_ALIGN1_ANY2H; }
+		| ALL2H { $$ = BRW_PREDICATE_ALIGN1_ALL2H; }
+		| ANY4H { $$ = BRW_PREDICATE_ALIGN1_ANY4H; }
+		| ALL4H { $$ = BRW_PREDICATE_ALIGN1_ALL4H; }
+		| ANY8H { $$ = BRW_PREDICATE_ALIGN1_ANY8H; }
+		| ALL8H { $$ = BRW_PREDICATE_ALIGN1_ALL8H; }
+		| ANY16H { $$ = BRW_PREDICATE_ALIGN1_ANY16H; }
+		| ALL16H { $$ = BRW_PREDICATE_ALIGN1_ALL16H; }
 ;
 
 negate:		/* empty */ { $$ = 0; }
@@ -1083,6 +1123,14 @@ void set_instruction_options(struct brw_instruction *instr,
 	instr->header.dependency_control = options->header.dependency_control;
 	instr->header.compression_control =
 		options->header.compression_control;
+}
+
+void set_instruction_predicate(struct brw_instruction *instr,
+			       struct brw_instruction *predicate)
+{
+	instr->header.predicate_control = predicate->header.predicate_control;
+	instr->header.predicate_inverse = predicate->header.predicate_inverse;
+	instr->bits2.da1.flag_reg_nr = predicate->bits2.da1.flag_reg_nr;
 }
 
 void set_src_operand(struct src_operand *src, struct gen_reg *reg,

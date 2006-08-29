@@ -104,6 +104,7 @@ int saved_state = INITIAL;
 "}" { return RCURLY; }
 "," { return COMMA; }
 "." { return DOT; }
+"+" { return PLUS; }
 "-" { return MINUS; }
 "(abs)" { return ABS; }
 
@@ -238,6 +239,16 @@ int saved_state = INITIAL;
 
 "signed" { return SIGNED; }
 "scalar" { return SCALAR; }
+
+ /* predicate control */
+"any2h" { return ANY2H; }
+"all2h" { return ALL2H; }
+"any4h" { return ANY4H; }
+"all4h" { return ALL4H; }
+"any8h" { return ANY8H; }
+"all8h" { return ALL8H; }
+"any16h" { return ANY16H; }
+"all16h" { return ALL16H; }
 
  /* channel selectors */
 "x" {
