@@ -39,6 +39,21 @@ typedef float GLfloat;
 void yyerror (char *msg);
 
 /**
+ * This structure is the internal representation of destination operands in the
+ * parser.
+ */
+struct dst_operand {
+	int reg_file, reg_nr, subreg_nr, reg_type;
+
+	int writemask_set;
+	int writemask;
+
+	int horiz_stride;
+	int address_mode; /* 0 if direct, 1 if register-indirect */
+	int indirect_offset;
+};
+
+/**
  * This structure is the internal representation of source operands in the 
  * parser.
  */

@@ -49,6 +49,7 @@
 	} direct_reg;
 	double imm32;
 
+	struct dst_operand dst_operand;
 	struct src_operand src_operand;
 }
 
@@ -82,7 +83,7 @@
 
 %token MSGLEN RETURNLEN
 %token <integer> ALLOCATE USED COMPLETE TRANSPOSE INTERLEAVE
-%token SATURATE
+%token SATURATE X Y Z W
 
 %token <integer> INTEGER
 %token <number> NUMBER
@@ -96,13 +97,13 @@
 %type <instruction> instruction unaryinstruction binaryinstruction
 %type <instruction> binaryaccinstruction triinstruction sendinstruction
 %type <instruction> specialinstruction
-%type <instruction> dst dstoperand dstoperandex dstreg
-%type <instruction> post_dst msgtarget
+%type <instruction> msgtarget
 %type <instruction> instoptions instoption_list predicate
 %type <program> instrseq
 %type <integer> instoption
 %type <integer> unaryop binaryop binaryaccop
 %type <integer> conditionalmodifier saturate negate abs chansel
+%type <integer> writemask_x writemask_y writemask_z writemask_w
 %type <integer> regtype srcimmtype execsize dstregion
 %type <integer> subregnum sampler_datatype
 %type <integer> urb_swizzle urb_allocate urb_used urb_complete
@@ -115,6 +116,7 @@
 %type <direct_reg> dstoperandex_typed srcarchoperandex_typed
 %type <integer> mask_subreg maskstack_subreg maskstackdepth_subreg
 %type <imm32> imm32
+%type <dst_operand> dst dstoperand dstoperandex dstreg post_dst writemask
 %type <src_operand> directsrcoperand srcarchoperandex directsrcaccoperand
 %type <src_operand> src srcimm imm32reg payload srcacc srcaccimm swizzle
 %%
@@ -171,7 +173,8 @@ unaryinstruction:
 		  $$.header.execution_size = $5;
 		  set_instruction_options(&$$, &$8);
 		  set_instruction_predicate(&$$, &$1);
-		  set_instruction_dest(&$$, &$6);
+		  if (set_instruction_dest(&$$, &$6) != 0)
+		    YYERROR;
 		  if (set_instruction_src0(&$$, &$7) != 0)
 		    YYERROR;
 		}
@@ -191,7 +194,8 @@ binaryinstruction:
 		  $$.header.execution_size = $5;
 		  set_instruction_options(&$$, &$9);
 		  set_instruction_predicate(&$$, &$1);
-		  set_instruction_dest(&$$, &$6);
+		  if (set_instruction_dest(&$$, &$6) != 0)
+		    YYERROR;
 		  if (set_instruction_src0(&$$, &$7) != 0)
 		    YYERROR;
 		  if (set_instruction_src1(&$$, &$8) != 0)
@@ -213,7 +217,8 @@ binaryaccinstruction:
 		  $$.header.execution_size = $5;
 		  set_instruction_options(&$$, &$9);
 		  set_instruction_predicate(&$$, &$1);
-		  set_instruction_dest(&$$, &$6);
+		  if (set_instruction_dest(&$$, &$6) != 0)
+		    YYERROR;
 		  if (set_instruction_src0(&$$, &$7) != 0)
 		    YYERROR;
 		  if (set_instruction_src1(&$$, &$8) != 0)
@@ -244,7 +249,8 @@ sendinstruction: predicate SEND execsize INTEGER post_dst payload msgtarget
 		  $$.header.execution_size = $3;
 		  $$.header.destreg__conditionalmod = $4; /* msg reg index */
 		  set_instruction_predicate(&$$, &$1);
-		  set_instruction_dest(&$$, &$5);
+		  if (set_instruction_dest(&$$, &$5) != 0)
+		    YYERROR;
 		  if (set_instruction_src0(&$$, &$6) != 0)
 		    YYERROR;
 		  $$.bits1.da1.src1_reg_file = BRW_IMMEDIATE_VALUE;
@@ -399,15 +405,18 @@ math_scalar:	/* empty */ { $$ = 0; }
 dst:		dstoperand | dstoperandex
 ;
 
-/* XXX: writemask */
-dstoperand:	dstreg dstregion regtype
+dstoperand:	dstreg dstregion writemask regtype
 		{
 		  /* Returns an instruction with just the destination register
 		   * filled in.
 		   */
-		  $$.bits1 = $1.bits1;
-		  $$.bits1.da1.dest_horiz_stride = $2;
-		  $$.bits1.da1.dest_reg_type = $3;
+		  $$.reg_file = $1.reg_file;
+		  $$.reg_nr = $1.reg_nr;
+		  $$.subreg_nr = $1.subreg_nr;
+		  $$.horiz_stride = $2;
+		  $$.writemask_set = $3.writemask_set;
+		  $$.writemask = $3.writemask;
+		  $$.reg_type = $4;
 		}
 ;
 
@@ -416,43 +425,43 @@ dstoperand:	dstreg dstregion regtype
  */
 dstoperandex:	dstoperandex_typed dstregion regtype
 		{
-		  $$.bits1.da1.dest_reg_file = $1.reg_file;
-		  $$.bits1.da1.dest_reg_nr = $1.reg_nr;
-		  $$.bits1.da1.dest_subreg_nr = $1.subreg_nr;
-		  $$.bits1.da1.dest_horiz_stride = $2;
-		  $$.bits1.da1.dest_reg_type = $3;
+		  $$.reg_file = $1.reg_file;
+		  $$.reg_nr = $1.reg_nr;
+		  $$.subreg_nr = $1.subreg_nr;
+		  $$.horiz_stride = $2;
+		  $$.reg_type = $3;
 		}
 		| maskstackreg
 		{
-		  $$.bits1.da1.dest_reg_file = $1.reg_file;
-		  $$.bits1.da1.dest_reg_nr = $1.reg_nr;
-		  $$.bits1.da1.dest_subreg_nr = $1.subreg_nr;
-		  $$.bits1.da1.dest_horiz_stride = 1;
-		  $$.bits1.da1.dest_reg_type = BRW_REGISTER_TYPE_UW;
+		  $$.reg_file = $1.reg_file;
+		  $$.reg_nr = $1.reg_nr;
+		  $$.subreg_nr = $1.subreg_nr;
+		  $$.horiz_stride = 1;
+		  $$.reg_type = BRW_REGISTER_TYPE_UW;
 		}
 		| controlreg
 		{
-		  $$.bits1.da1.dest_reg_file = $1.reg_file;
-		  $$.bits1.da1.dest_reg_nr = $1.reg_nr;
-		  $$.bits1.da1.dest_subreg_nr = $1.subreg_nr;
-		  $$.bits1.da1.dest_horiz_stride = 1;
-		  $$.bits1.da1.dest_reg_type = BRW_REGISTER_TYPE_UD;
+		  $$.reg_file = $1.reg_file;
+		  $$.reg_nr = $1.reg_nr;
+		  $$.subreg_nr = $1.subreg_nr;
+		  $$.horiz_stride = 1;
+		  $$.reg_type = BRW_REGISTER_TYPE_UD;
 		}
 		| ipreg
 		{
-		  $$.bits1.da1.dest_reg_file = $1.reg_file;
-		  $$.bits1.da1.dest_reg_nr = $1.reg_nr;
-		  $$.bits1.da1.dest_subreg_nr = $1.subreg_nr;
-		  $$.bits1.da1.dest_horiz_stride = 1;
-		  $$.bits1.da1.dest_reg_type = BRW_REGISTER_TYPE_UD;
+		  $$.reg_file = $1.reg_file;
+		  $$.reg_nr = $1.reg_nr;
+		  $$.subreg_nr = $1.subreg_nr;
+		  $$.horiz_stride = 1;
+		  $$.reg_type = BRW_REGISTER_TYPE_UD;
 		}
 		| nullreg
 		{
-		  $$.bits1.da1.dest_reg_file = $1.reg_file;
-		  $$.bits1.da1.dest_reg_nr = $1.reg_nr;
-		  $$.bits1.da1.dest_subreg_nr = $1.subreg_nr;
-		  $$.bits1.da1.dest_horiz_stride = 1;
-		  $$.bits1.da1.dest_reg_type = BRW_REGISTER_TYPE_F;
+		  $$.reg_file = $1.reg_file;
+		  $$.reg_nr = $1.reg_nr;
+		  $$.subreg_nr = $1.subreg_nr;
+		  $$.horiz_stride = 1;
+		  $$.reg_type = BRW_REGISTER_TYPE_F;
 		}
 ;
 
@@ -462,15 +471,15 @@ dstoperandex_typed: accreg | flagreg | addrreg | maskreg
 /* XXX: indirectgenreg, indirectmsgreg */
 dstreg:		directgenreg
 		{
-		  $$.bits1.da1.dest_reg_file = $1.reg_file;
-		  $$.bits1.da1.dest_reg_nr = $1.reg_nr;
-		  $$.bits1.da1.dest_subreg_nr = $1.subreg_nr;
+		  $$.reg_file = $1.reg_file;
+		  $$.reg_nr = $1.reg_nr;
+		  $$.subreg_nr = $1.subreg_nr;
 		}
 		| directmsgreg
 		{
-		  $$.bits1.da1.dest_reg_file = $1.reg_file;
-		  $$.bits1.da1.dest_reg_nr = $1.reg_nr;
-		  $$.bits1.da1.dest_subreg_nr = $1.subreg_nr;
+		  $$.reg_file = $1.reg_file;
+		  $$.reg_nr = $1.reg_nr;
+		  $$.subreg_nr = $1.subreg_nr;
 		}
 ;
 
@@ -863,6 +872,33 @@ swizzle:	/* empty */
 chansel:	X | Y | Z | W
 ;
 
+/* 1.4.9: Write mask */
+/* Returns a partially completed dst_operand, with just the writemask bits
+ * filled out.
+ */
+writemask:	/* empty */
+		{
+		  $$.writemask_set = 0;
+		  $$.writemask = 0xf;
+		}
+		| DOT writemask_x writemask_y writemask_z writemask_w
+		{
+		  $$.writemask_set = 1;
+		  $$.writemask = $2 | $3 | $4 | $5;
+		}
+
+writemask_x:	/* empty */ { $$ = 0; }
+		 | X { $$ = 1 << BRW_CHANNEL_X; }
+
+writemask_y:	/* empty */ { $$ = 0; }
+		 | Y { $$ = 1 << BRW_CHANNEL_Y; }
+
+writemask_z:	/* empty */ { $$ = 0; }
+		 | Z { $$ = 1 << BRW_CHANNEL_Z; }
+
+writemask_w:	/* empty */ { $$ = 0; }
+		 | W { $$ = 1 << BRW_CHANNEL_W; }
+
 /* 1.4.11: Immediate values */
 imm32:		INTEGER { $$ = $1; }
 		| NUMBER { $$ = $1; }
@@ -1013,15 +1049,31 @@ void yyerror (char *msg)
 /**
  * Fills in the destination register information in instr from the bits in dst.
  */
-void set_instruction_dest(struct brw_instruction *instr,
-			 struct brw_instruction *dest)
+int set_instruction_dest(struct brw_instruction *instr,
+			 struct dst_operand *dest)
 {
-	instr->bits1.da1.dest_reg_file = dest->bits1.da1.dest_reg_file;
-	instr->bits1.da1.dest_reg_type = dest->bits1.da1.dest_reg_type;
-	instr->bits1.da1.dest_subreg_nr = dest->bits1.da1.dest_subreg_nr;
-	instr->bits1.da1.dest_reg_nr = dest->bits1.da1.dest_reg_nr;
-	instr->bits1.da1.dest_horiz_stride = dest->bits1.da1.dest_horiz_stride;
-	instr->bits1.da1.dest_address_mode = dest->bits1.da1.dest_address_mode;
+	if (instr->header.access_mode == BRW_ALIGN_1) {
+		instr->bits1.da1.dest_reg_file = dest->reg_file;
+		instr->bits1.da1.dest_reg_type = dest->reg_type;
+		instr->bits1.da1.dest_subreg_nr = dest->subreg_nr;
+		instr->bits1.da1.dest_reg_nr = dest->reg_nr;
+		instr->bits1.da1.dest_horiz_stride = dest->horiz_stride;
+		instr->bits1.da1.dest_address_mode = dest->address_mode;
+		if (dest->writemask_set) {
+			fprintf(stderr, "error: write mask set in align1 "
+				"instruction\n");
+			return 1;
+		}
+	} else {
+		instr->bits1.da16.dest_reg_file = dest->reg_file;
+		instr->bits1.da16.dest_reg_type = dest->reg_type;
+		instr->bits1.da16.dest_subreg_nr = dest->subreg_nr;
+		instr->bits1.da16.dest_reg_nr = dest->reg_nr;
+		instr->bits1.da16.dest_address_mode = dest->address_mode;
+		instr->bits1.da16.dest_writemask = dest->writemask;
+	}
+
+	return 0;
 }
 
 /* Sets the first source operand for the instruction.  Returns 0 on success. */
