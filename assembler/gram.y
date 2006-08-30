@@ -115,7 +115,7 @@
 %type <integer> urb_swizzle urb_allocate urb_used urb_complete
 %type <integer> math_function math_signed math_scalar
 %type <integer> predctrl predstate
-%type <region> region region_wh
+%type <region> region region_wh indirectregion
 %type <direct_reg> directgenreg directmsgreg addrreg accreg flagreg maskreg
 %type <direct_reg> maskstackreg maskstackdepthreg notifyreg
 %type <direct_reg> statereg controlreg ipreg nullreg
@@ -125,6 +125,7 @@
 %type <imm32> imm32
 %type <dst_operand> dst dstoperand dstoperandex dstreg post_dst writemask
 %type <src_operand> directsrcoperand srcarchoperandex directsrcaccoperand
+%type <src_operand> indirectsrcoperand
 %type <src_operand> src srcimm imm32reg payload srcacc srcaccimm swizzle
 %%
 
@@ -512,8 +513,7 @@ dstreg:		directgenreg
 srcaccimm:	srcacc | imm32reg
 ;
 
-/* XXX: indirectsrcaccoperand */
-srcacc:		directsrcaccoperand
+srcacc:		directsrcaccoperand | indirectsrcoperand
 ;
 
 srcimm:		directsrcoperand | imm32reg
@@ -611,13 +611,13 @@ srcarchoperandex: srcarchoperandex_typed region regtype
 srcarchoperandex_typed: flagreg | addrreg | maskreg
 ;
 
-/* XXX: indirectsrcoperand */
-src:		directsrcoperand
+src:		directsrcoperand | indirectsrcoperand
 ;
 
 directsrcoperand:
 		negate abs directgenreg region regtype swizzle
 		{
+		  $$.address_mode = BRW_ADDRESS_DIRECT;
 		  $$.reg_file = $3.reg_file;
 		  $$.reg_nr = $3.reg_nr;
 		  $$.subreg_nr = $3.subreg_nr;
@@ -634,6 +634,27 @@ directsrcoperand:
 		  $$.swizzle_w = $6.swizzle_w;
 		}
 		| srcarchoperandex
+;
+
+indirectsrcoperand:
+		negate abs indirectgenreg indirectregion regtype swizzle
+		{
+		  $$.address_mode = BRW_ADDRESS_REGISTER_INDIRECT_REGISTER;
+		  $$.reg_file = $3.reg_file;
+		  $$.address_subreg_nr = $3.address_subreg_nr;
+		  $$.indirect_offset = $3.indirect_offset;
+		  $$.reg_type = $5;
+		  $$.vert_stride = $4.vert_stride;
+		  $$.width = $4.width;
+		  $$.horiz_stride = $4.horiz_stride;
+		  $$.negate = $1;
+		  $$.abs = $2;
+		  $$.swizzle_set = $6.swizzle_set;
+		  $$.swizzle_x = $6.swizzle_x;
+		  $$.swizzle_y = $6.swizzle_y;
+		  $$.swizzle_z = $6.swizzle_z;
+		  $$.swizzle_w = $6.swizzle_w;
+		}
 ;
 
 /* 1.4.4: Address Registers */
@@ -893,7 +914,7 @@ region:		LANGLE INTEGER COMMA INTEGER COMMA INTEGER RANGLE
 
 /* region_wh is used in specifying indirect operands where rather than having
  * a vertical stride, you use subsequent address registers to get a new base
- * offset for the next row. XXX: source indirect addressing not set up yet.
+ * offset for the next row.
  */
 region_wh:	LANGLE INTEGER COMMA INTEGER RANGLE
 		{
@@ -903,6 +924,8 @@ region_wh:	LANGLE INTEGER COMMA INTEGER RANGLE
 		}
 ;
 
+indirectregion:	region | region_wh
+;
 
 /* 1.4.8: Types */
 
