@@ -102,12 +102,23 @@ int saved_state = INITIAL;
 ">" { return RANGLE; }
 "{" { return LCURLY; }
 "}" { return RCURLY; }
+"[" { return LSQUARE; }
+"]" { return RSQUARE; }
 "," { return COMMA; }
 "." { return DOT; }
 "+" { return PLUS; }
 "-" { return MINUS; }
 "(abs)" { return ABS; }
 
+ /* Most register accesses are lexed as REGFILE[0-9]+, to prevent the register
+  * with subreg from being lexed as REGFILE NUMBER instead of
+  * REGISTER INTEGER DOT INTEGER like we want.  The alternative was to use a
+  * start condition, which wasn't very clean-looking.
+  *
+  * However, this means we need to lex the general and message register file
+  * characters as well, for register-indirect access which is formatted
+  * like g[a#.#] or m[a#.#].
+  */
 "acc"[0-9]+ {
 	yylval.integer = atoi(yytext + 1);
 	return ACCREG;
@@ -119,6 +130,9 @@ int saved_state = INITIAL;
 "m"[0-9]+ {
 	yylval.integer = atoi(yytext + 1);
 	return MSGREG;
+}
+"m" {
+	return MSGREGFILE;
 }
 "mask"[0-9]+ {
 	yylval.integer = atoi(yytext + 1);
@@ -151,6 +165,9 @@ int saved_state = INITIAL;
 [gr][0-9]+ {
 	yylval.integer = atoi(yytext + 1);
 	return GENREG;
+}
+[gr] {
+	return GENREGFILE;
 }
 "cr"[0-9]+ {
 	yylval.integer = atoi(yytext + 1);

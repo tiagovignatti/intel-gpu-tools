@@ -44,9 +44,13 @@
 	struct region {
 		int vert_stride, width, horiz_stride;
 	} region;
-	struct gen_reg {
+	struct direct_reg {
 		int reg_file, reg_nr, subreg_nr;
 	} direct_reg;
+	struct indirect_reg {
+		int reg_file, address_subreg_nr, indirect_offset;
+	} indirect_reg;
+
 	double imm32;
 
 	struct dst_operand dst_operand;
@@ -57,6 +61,7 @@
 %token LPAREN RPAREN
 %token LANGLE RANGLE
 %token LCURLY RCURLY
+%token LSQUARE RSQUARE
 %token COMMA
 %token DOT
 %token PLUS MINUS ABS
@@ -72,6 +77,7 @@
 %token <integer> MASKREG AMASK IMASK LMASK CMASK
 %token <integer> MASKSTACKREG LMS IMS MASKSTACKDEPTHREG IMSD LMSD
 %token <integer> NOTIFYREG STATEREG CONTROLREG IPREG
+%token GENREGFILE MSGREGFILE
 
 %token <integer> MOV FRC RNDU RNDD RNDE RNDZ NOT LZD
 %token <integer> MUL MAC MACH LINE SAD2 SADA2 DP4 DPH DP3 DP2
@@ -104,16 +110,17 @@
 %type <integer> unaryop binaryop binaryaccop
 %type <integer> conditionalmodifier saturate negate abs chansel
 %type <integer> writemask_x writemask_y writemask_z writemask_w
-%type <integer> regtype srcimmtype execsize dstregion
+%type <integer> regtype srcimmtype execsize dstregion immaddroffset
 %type <integer> subregnum sampler_datatype
 %type <integer> urb_swizzle urb_allocate urb_used urb_complete
 %type <integer> math_function math_signed math_scalar
 %type <integer> predctrl predstate
-%type <region> region
+%type <region> region region_wh
 %type <direct_reg> directgenreg directmsgreg addrreg accreg flagreg maskreg
 %type <direct_reg> maskstackreg maskstackdepthreg notifyreg
 %type <direct_reg> statereg controlreg ipreg nullreg
 %type <direct_reg> dstoperandex_typed srcarchoperandex_typed
+%type <indirect_reg> indirectgenreg indirectmsgreg addrparam
 %type <integer> mask_subreg maskstack_subreg maskstackdepth_subreg
 %type <imm32> imm32
 %type <dst_operand> dst dstoperand dstoperandex dstreg post_dst writemask
@@ -468,18 +475,36 @@ dstoperandex:	dstoperandex_typed dstregion regtype
 dstoperandex_typed: accreg | flagreg | addrreg | maskreg
 ;
 
-/* XXX: indirectgenreg, indirectmsgreg */
+/* Returns a partially complete destination register consisting of the
+ * direct or indirect register addressing fields, but not stride or writemask.
+ */
 dstreg:		directgenreg
 		{
+		  $$.address_mode = BRW_ADDRESS_DIRECT;
 		  $$.reg_file = $1.reg_file;
 		  $$.reg_nr = $1.reg_nr;
 		  $$.subreg_nr = $1.subreg_nr;
 		}
 		| directmsgreg
 		{
+		  $$.address_mode = BRW_ADDRESS_DIRECT;
 		  $$.reg_file = $1.reg_file;
 		  $$.reg_nr = $1.reg_nr;
 		  $$.subreg_nr = $1.subreg_nr;
+		}
+		| indirectgenreg
+		{
+		  $$.address_mode = BRW_ADDRESS_REGISTER_INDIRECT_REGISTER;
+		  $$.reg_file = $1.reg_file;
+		  $$.address_subreg_nr = $1.address_subreg_nr;
+		  $$.indirect_offset = $1.indirect_offset;
+		}
+		| indirectmsgreg
+		{
+		  $$.address_mode = BRW_ADDRESS_REGISTER_INDIRECT_REGISTER;
+		  $$.reg_file = $1.reg_file;
+		  $$.address_subreg_nr = $1.address_subreg_nr;
+		  $$.indirect_offset = $1.indirect_offset;
 		}
 ;
 
@@ -540,7 +565,7 @@ imm32reg:	imm32 srcimmtype
 directsrcaccoperand:	directsrcoperand
 		| accreg regtype
 		{
-		  set_src_operand(&$$, &$1, $2);
+		  set_direct_src_operand(&$$, &$1, $2);
 		}
 ;
 
@@ -559,27 +584,27 @@ srcarchoperandex: srcarchoperandex_typed region regtype
 		}
 		| maskstackreg
 		{
-		  set_src_operand(&$$, &$1, BRW_REGISTER_TYPE_UB);
+		  set_direct_src_operand(&$$, &$1, BRW_REGISTER_TYPE_UB);
 		}
 		| controlreg
 		{
-		  set_src_operand(&$$, &$1, BRW_REGISTER_TYPE_UD);
+		  set_direct_src_operand(&$$, &$1, BRW_REGISTER_TYPE_UD);
 		}
 		| statereg
 		{
-		  set_src_operand(&$$, &$1, BRW_REGISTER_TYPE_UD);
+		  set_direct_src_operand(&$$, &$1, BRW_REGISTER_TYPE_UD);
 		}
 		| notifyreg
 		{
-		  set_src_operand(&$$, &$1, BRW_REGISTER_TYPE_UD);
+		  set_direct_src_operand(&$$, &$1, BRW_REGISTER_TYPE_UD);
 		}
 		| ipreg
 		{
-		  set_src_operand(&$$, &$1, BRW_REGISTER_TYPE_UD);
+		  set_direct_src_operand(&$$, &$1, BRW_REGISTER_TYPE_UD);
 		}
 		| nullreg
 		{
-		  set_src_operand(&$$, &$1, BRW_REGISTER_TYPE_UD);
+		  set_direct_src_operand(&$$, &$1, BRW_REGISTER_TYPE_UD);
 		}
 ;
 
@@ -611,6 +636,30 @@ directsrcoperand:
 		| srcarchoperandex
 ;
 
+/* 1.4.4: Address Registers */
+/* Returns a partially-completed indirect_reg consisting of the address
+ * register fields for register-indirect access.
+ */
+addrparam:	addrreg immaddroffset
+		{
+		  if ($2 < -512 || $2 > 511) {
+		    fprintf(stderr, "Address immediate offset %d out of"
+			    "range\n", $2);
+		    YYERROR;
+		  }
+		  $$.address_subreg_nr = $1.subreg_nr;
+		  $$.indirect_offset = $2;
+		}
+;
+
+/* The immaddroffset provides an immediate offset value added to the addresses
+ * from the address register in register-indirect register access.
+ */
+immaddroffset:	/* empty */ { $$ = 0; }
+		| INTEGER
+;
+
+
 /* 1.4.5: Register files and register numbers */
 subregnum:	DOT INTEGER
 		{
@@ -631,6 +680,14 @@ directgenreg:	GENREG subregnum
 		}
 ;
 
+indirectgenreg: GENREGFILE LSQUARE addrparam RSQUARE
+		{
+		  $$.reg_file = BRW_GENERAL_REGISTER_FILE;
+		  $$.address_subreg_nr = $3.address_subreg_nr;
+		  $$.indirect_offset = $3.indirect_offset;
+		}
+;
+
 directmsgreg:	MSGREG subregnum
 		{
 		  $$.reg_file = BRW_MESSAGE_REGISTER_FILE;
@@ -639,8 +696,21 @@ directmsgreg:	MSGREG subregnum
 		}
 ;
 
+indirectmsgreg: MSGREGFILE LSQUARE addrparam RSQUARE
+		{
+		  $$.reg_file = BRW_MESSAGE_REGISTER_FILE;
+		  $$.address_subreg_nr = $3.address_subreg_nr;
+		  $$.indirect_offset = $3.indirect_offset;
+		}
+;
+
 addrreg:	ADDRESSREG subregnum
 		{
+		  if ($1 != 0) {
+		    fprintf(stderr,
+			    "address register number %d out of range", $1);
+		    YYERROR;
+		  }
 		  $$.reg_file = BRW_ARCHITECTURE_REGISTER_FILE;
 		  $$.reg_nr = BRW_ARF_ADDRESS | $1;
 		  $$.subreg_nr = $2;
@@ -820,6 +890,19 @@ region:		LANGLE INTEGER COMMA INTEGER COMMA INTEGER RANGLE
 		  $$.horiz_stride = ffs($6);
 		}
 ;
+
+/* region_wh is used in specifying indirect operands where rather than having
+ * a vertical stride, you use subsequent address registers to get a new base
+ * offset for the next row. XXX: source indirect addressing not set up yet.
+ */
+region_wh:	LANGLE INTEGER COMMA INTEGER RANGLE
+		{
+		  $$.vert_stride = BRW_VERTICAL_STRIDE_ONE_DIMENSIONAL;
+		  $$.width = ffs($2) - 1;
+		  $$.horiz_stride = ffs($4);
+		}
+;
+
 
 /* 1.4.8: Types */
 
@@ -1052,7 +1135,8 @@ void yyerror (char *msg)
 int set_instruction_dest(struct brw_instruction *instr,
 			 struct dst_operand *dest)
 {
-	if (instr->header.access_mode == BRW_ALIGN_1) {
+	if (dest->address_mode == BRW_ADDRESS_DIRECT &&
+	    instr->header.access_mode == BRW_ALIGN_1) {
 		instr->bits1.da1.dest_reg_file = dest->reg_file;
 		instr->bits1.da1.dest_reg_type = dest->reg_type;
 		instr->bits1.da1.dest_subreg_nr = dest->subreg_nr;
@@ -1064,13 +1148,32 @@ int set_instruction_dest(struct brw_instruction *instr,
 				"instruction\n");
 			return 1;
 		}
-	} else {
+	} else if (dest->address_mode == BRW_ADDRESS_DIRECT) {
 		instr->bits1.da16.dest_reg_file = dest->reg_file;
 		instr->bits1.da16.dest_reg_type = dest->reg_type;
 		instr->bits1.da16.dest_subreg_nr = dest->subreg_nr;
 		instr->bits1.da16.dest_reg_nr = dest->reg_nr;
 		instr->bits1.da16.dest_address_mode = dest->address_mode;
 		instr->bits1.da16.dest_writemask = dest->writemask;
+	} else if (instr->header.access_mode == BRW_ALIGN_1) {
+		instr->bits1.ia1.dest_reg_file = dest->reg_file;
+		instr->bits1.ia1.dest_reg_type = dest->reg_type;
+		instr->bits1.ia1.dest_subreg_nr = dest->address_subreg_nr;
+		instr->bits1.ia1.dest_horiz_stride = dest->horiz_stride;
+		instr->bits1.ia1.dest_indirect_offset = dest->indirect_offset;
+		instr->bits1.ia1.dest_address_mode = dest->address_mode;
+		if (dest->writemask_set) {
+			fprintf(stderr, "error: write mask set in align1 "
+				"instruction\n");
+			return 1;
+		}
+	} else {
+		instr->bits1.ia16.dest_reg_file = dest->reg_file;
+		instr->bits1.ia16.dest_reg_type = dest->reg_type;
+		instr->bits1.ia16.dest_subreg_nr = dest->address_subreg_nr;
+		instr->bits1.ia16.dest_writemask = dest->writemask;
+		instr->bits1.ia16.dest_indirect_offset = dest->indirect_offset;
+		instr->bits1.ia16.dest_address_mode = dest->address_mode;
 	}
 
 	return 0;
@@ -1180,8 +1283,8 @@ void set_instruction_predicate(struct brw_instruction *instr,
 	instr->bits2.da1.flag_reg_nr = predicate->bits2.da1.flag_reg_nr;
 }
 
-void set_src_operand(struct src_operand *src, struct gen_reg *reg,
-		     int type)
+void set_direct_src_operand(struct src_operand *src, struct direct_reg *reg,
+			    int type)
 {
 	bzero(src, sizeof(*src));
 	src->reg_file = reg->reg_file;
