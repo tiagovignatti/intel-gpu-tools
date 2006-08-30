@@ -31,6 +31,22 @@
 #include "gen4asm.h"
 #include "brw_defines.h"
 
+
+int set_instruction_dest(struct brw_instruction *instr,
+			 struct dst_operand *dest);
+int set_instruction_src1(struct brw_instruction *instr,
+			 struct src_operand *src);
+int set_instruction_src1(struct brw_instruction *instr,
+			 struct src_operand *src);
+void set_instruction_options(struct brw_instruction *instr,
+			     struct brw_instruction *options);
+void set_instruction_predicate(struct brw_instruction *instr,
+			       struct brw_instruction *predicate);
+void set_instruction_predicate(struct brw_instruction *instr,
+			       struct brw_instruction *predicate);
+void set_direct_src_operand(struct src_operand *src, struct direct_reg *reg,
+			    int type);
+
 %}
 
 %start ROOT
@@ -66,8 +82,8 @@
 %token DOT
 %token PLUS MINUS ABS
 
-%token <integer> TYPE_UD, TYPE_D, TYPE_UW, TYPE_W, TYPE_UB, TYPE_B,
-%token <integer> TYPE_VF, TYPE_HF, TYPE_V, TYPE_F
+%token <integer> TYPE_UD TYPE_D TYPE_UW TYPE_W TYPE_UB TYPE_B
+%token <integer> TYPE_VF TYPE_HF TYPE_V TYPE_F
 
 %token ALIGN1 ALIGN16 SECHALF COMPR SWITCH ATOMIC NODDCHK NODDCLR
 %token MASK_DISABLE BREAKPOINT EOT
@@ -82,7 +98,7 @@
 %token <integer> MOV FRC RNDU RNDD RNDE RNDZ NOT LZD
 %token <integer> MUL MAC MACH LINE SAD2 SADA2 DP4 DPH DP3 DP2
 %token <integer> AVG ADD SEL AND OR XOR SHR SHL ASR CMP CMPN
-%token <integer> SEND NOP JMPI IF IFF WHILE SEND ELSE BREAK CONT HALT MSAVE
+%token <integer> SEND NOP JMPI IF IFF WHILE ELSE BREAK CONT HALT MSAVE
 %token <integer> PUSH MREST POP WAIT DO ENDIF ILLEGAL
 
 %token NULL_TOKEN MATH SAMPLER GATEWAY READ WRITE URB THREAD_SPAWNER
@@ -992,18 +1008,23 @@ writemask:	/* empty */
 		  $$.writemask_set = 1;
 		  $$.writemask = $2 | $3 | $4 | $5;
 		}
+;
 
 writemask_x:	/* empty */ { $$ = 0; }
 		 | X { $$ = 1 << BRW_CHANNEL_X; }
+;
 
 writemask_y:	/* empty */ { $$ = 0; }
 		 | Y { $$ = 1 << BRW_CHANNEL_Y; }
+;
 
 writemask_z:	/* empty */ { $$ = 0; }
 		 | Z { $$ = 1 << BRW_CHANNEL_Z; }
+;
 
 writemask_w:	/* empty */ { $$ = 0; }
 		 | W { $$ = 1 << BRW_CHANNEL_W; }
+;
 
 /* 1.4.11: Immediate values */
 imm32:		INTEGER { $$ = $1; }
