@@ -31,7 +31,6 @@
 #include "gen4asm.h"
 #include "brw_defines.h"
 
-
 int set_instruction_dest(struct brw_instruction *instr,
 			 struct dst_operand *dest);
 int set_instruction_src1(struct brw_instruction *instr,
@@ -60,12 +59,8 @@ void set_direct_src_operand(struct src_operand *src, struct direct_reg *reg,
 	struct region {
 		int vert_stride, width, horiz_stride;
 	} region;
-	struct direct_reg {
-		int reg_file, reg_nr, subreg_nr;
-	} direct_reg;
-	struct indirect_reg {
-		int reg_file, address_subreg_nr, indirect_offset;
-	} indirect_reg;
+	struct direct_reg direct_reg;
+	struct indirect_reg indirect_reg;
 
 	double imm32;
 

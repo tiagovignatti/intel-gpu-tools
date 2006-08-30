@@ -39,6 +39,23 @@ typedef float GLfloat;
 void yyerror (char *msg);
 
 /**
+ * This structure is the internal representation of directly-addressed
+ * registers in the parser.
+ */
+struct direct_reg {
+	int reg_file, reg_nr, subreg_nr;
+};
+
+/**
+ * This structure is the internal representation of register-indirect addressed
+ * registers in the parser.
+ */
+
+struct indirect_reg {
+	int reg_file, address_subreg_nr, indirect_offset;
+};
+
+/**
  * This structure is the internal representation of destination operands in the
  * parser.
  */
