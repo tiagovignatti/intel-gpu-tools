@@ -1,0 +1,5 @@
+gen4asm is a program to compile an assembly language for the Intel 965 Express
+Chipset.  It has been used to construct programs for textured video in the 2d
+driver.
+
+Some examples of gen4 assembly programs are in the doc/examples directory.

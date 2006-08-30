@@ -1,7 +1,7 @@
 %option yylineno
 %{
 #include "gen4asm.h"
-#include "y.tab.h"
+#include "gram.h"
 #include "brw_defines.h"
 
 int saved_state = INITIAL;
