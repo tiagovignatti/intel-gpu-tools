@@ -28,6 +28,8 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <getopt.h>
 
 #include "gen4asm.h"
 
@@ -35,17 +37,59 @@ extern FILE *yyin;
 
 struct brw_program compiled_program;
 
+static const struct option longopts[] = {
+	{ NULL, 0, NULL, 0 }
+};
+
+void usage(void)
+{
+	fprintf(stderr, "usage: gen4asm [-o outputfile] inputfile\n");
+}
+
 int main(int argc, char **argv)
 {
-	int err;
+	FILE *output = stdout;
 	struct brw_program_instruction *entry;
+	int err;
+	char o;
+
+	while ((o = getopt_long(argc, argv, "o:", longopts, NULL)) != -1) {
+		switch (o) {
+		case 'o':
+			if (strcmp(optarg, "-") != 0) {
+				output = fopen(optarg, "w");
+				if (output == NULL) {
+					perror("Couldn't open output file");
+					exit(1);
+				}
+			}
+			break;
+		default:
+			usage();
+			exit(1);
+		}
+	}
+	argc -= optind;
+	argv += optind;
+	if (argc != 1) {
+		usage();
+		exit(1);
+	}
+
+	if (strcmp(argv[0], "-") != 0) {
+		yyin = fopen(argv[0], "r");
+		if (yyin == NULL) {
+			perror("Couldn't open input file");
+			exit(1);
+		}
+	}
 
 	err = yyparse();
 
 	for (entry = compiled_program.first;
 	     entry != NULL;
 	     entry = entry->next) {
-		printf("   { 0x%08x, 0x%08x, 0x%08x, 0x%08x },\n",
+		fprintf(output, "   { 0x%08x, 0x%08x, 0x%08x, 0x%08x },\n",
 		       ((int *)(&entry->instruction))[0],
 		       ((int *)(&entry->instruction))[1],
 		       ((int *)(&entry->instruction))[2],
