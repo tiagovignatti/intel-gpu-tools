@@ -1,1 +1,2 @@
+/* Non-float types are not permitted in the sources of round instructions. */
 rnde (1) g0<1>UD g1<0,1,0>UD { align1 };
