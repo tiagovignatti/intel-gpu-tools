@@ -303,6 +303,9 @@ jumpinstruction: JMPI relativelocation2
 		   * offset is the second source operand.  The next instruction
 		   * is the post-incremented IP plus the offset.
 		   */
+		  dst.reg_file = BRW_ARCHITECTURE_REGISTER_FILE;
+		  dst.reg_nr = BRW_ARF_IP;
+		  dst.subreg_nr = 0;
 
 		  bzero(&$$, sizeof($$));
 		  $$.header.opcode = $1;
@@ -326,6 +329,9 @@ branchloopinstruction:
 		   * offset is the second source operand.  The offset is added
 		   * to the pre-incremented IP.
 		   */
+		  dst.reg_file = BRW_ARCHITECTURE_REGISTER_FILE;
+		  dst.reg_nr = BRW_ARF_IP;
+		  dst.subreg_nr = 0;
 
 		  bzero(&$$, sizeof($$));
 		  $$.header.opcode = $2;
