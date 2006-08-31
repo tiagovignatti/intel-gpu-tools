@@ -1010,7 +1010,7 @@ relativelocation: imm32
 
 		  $$.reg_file = BRW_IMMEDIATE_VALUE;
 		  $$.reg_type = BRW_REGISTER_TYPE_D;
-		  $$.imm32 = $1;
+		  $$.imm32 = (int)$1 & 0x0000ffff;
 		}
 ;
 
@@ -1151,6 +1151,7 @@ writemask_w:	/* empty */ { $$ = 0; }
 
 /* 1.4.11: Immediate values */
 imm32:		INTEGER { $$ = $1; }
+		| MINUS INTEGER { $$ = -$2; }
 		| NUMBER { $$ = $1; }
 ;
 
