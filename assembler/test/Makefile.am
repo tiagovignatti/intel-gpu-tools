@@ -13,7 +13,8 @@ TESTS = \
 	jmpi \
 	if \
 	iff \
-	while
+	while \
+	immediate
 
 # Tests that are expected to fail because they contain some inccorect code.
 XFAIL_TESTS = \
@@ -45,7 +46,9 @@ TESTDATA = \
 	iff.expected \
 	iff.g4a \
 	while.expected \
-	while.g4a
+	while.g4a \
+	immediate.g4a \
+	immediate.expected
 
 EXTRA_DIST = \
 	${TESTDATA} \
