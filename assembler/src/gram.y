@@ -115,7 +115,8 @@ void set_direct_src_operand(struct src_operand *src, struct direct_reg *reg,
 
 %type <instruction> instruction unaryinstruction binaryinstruction
 %type <instruction> binaryaccinstruction triinstruction sendinstruction
-%type <instruction> jumpinstruction branchloopinstruction specialinstruction
+%type <instruction> jumpinstruction branchloopinstruction elseinstruction
+%type <instruction> specialinstruction
 %type <instruction> msgtarget
 %type <instruction> instoptions instoption_list predicate
 %type <program> instrseq
@@ -183,6 +184,7 @@ instruction:	unaryinstruction
 		| triinstruction
 		| jumpinstruction
 		| branchloopinstruction
+		| elseinstruction
 		| specialinstruction
 ;
 
@@ -337,6 +339,28 @@ branchloopinstruction:
 ;
 
 branchloopop:	IF | IFF | WHILE
+;
+
+elseinstruction: ELSE relativelocation
+		{
+		  struct direct_reg dst;
+		  struct dst_operand ip_dst;
+		  struct src_operand ip_src;
+
+		  /* The jump instruction requires that the IP register
+		   * be the destination and first source operand, while the
+		   * offset is the second source operand.  The offset is added
+		   * to the IP pre-increment.
+		   */
+
+		  bzero(&$$, sizeof($$));
+		  $$.header.opcode = $1;
+		  set_direct_dst_operand(&ip_dst, &dst, BRW_REGISTER_TYPE_UD);
+		  set_instruction_dest(&$$, &ip_dst);
+		  set_direct_src_operand(&ip_src, &dst, BRW_REGISTER_TYPE_UD);
+		  set_instruction_src0(&$$, &ip_src);
+		  set_instruction_src1(&$$, &$2);
+		}
 ;
 
 breakop:	BREAK | CONT | WAIT
