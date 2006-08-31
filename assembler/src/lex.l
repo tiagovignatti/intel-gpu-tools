@@ -294,7 +294,7 @@ int saved_state = INITIAL;
 }
 
 [0-9]* {
-	yylval.integer = atoi(yytext);
+	yylval.integer = strtoul(yytext, NULL, 10);
 	return INTEGER;
 }
 
