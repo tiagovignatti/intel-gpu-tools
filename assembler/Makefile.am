@@ -1,4 +1,4 @@
-SUBDIRS = doc src
+SUBDIRS = doc src test
 
 EXTRA_DIST = \
 	AUTHORS \
