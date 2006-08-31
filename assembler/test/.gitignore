@@ -8,3 +8,7 @@ rndu
 rndz
 lzd
 not
+jmpi
+if
+iff
+while

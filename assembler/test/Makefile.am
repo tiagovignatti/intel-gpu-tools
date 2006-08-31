@@ -9,7 +9,11 @@ TESTS = \
 	rnde-intsrc \
 	rndz \
 	lzd \
-	not
+	not \
+	jmpi \
+	if \
+	iff \
+	while
 
 # Tests that are expected to fail because they contain some inccorect code.
 XFAIL_TESTS = \
@@ -33,7 +37,15 @@ TESTDATA = \
 	lzd.expected \
 	lzd.g4a \
 	not.expected \
-	not.g4a
+	not.g4a \
+	jmpi.expected \
+	jmpi.g4a \
+	if.expected \
+	if.g4a \
+	iff.expected \
+	iff.g4a \
+	while.expected \
+	while.g4a
 
 EXTRA_DIST = \
 	${TESTDATA} \
