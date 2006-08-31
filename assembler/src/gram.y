@@ -43,6 +43,8 @@ void set_instruction_predicate(struct brw_instruction *instr,
 			       struct brw_instruction *predicate);
 void set_instruction_predicate(struct brw_instruction *instr,
 			       struct brw_instruction *predicate);
+void set_direct_dst_operand(struct dst_operand *dst, struct direct_reg *reg,
+			    int type);
 void set_direct_src_operand(struct src_operand *src, struct direct_reg *reg,
 			    int type);
 
@@ -113,12 +115,12 @@ void set_direct_src_operand(struct src_operand *src, struct direct_reg *reg,
 
 %type <instruction> instruction unaryinstruction binaryinstruction
 %type <instruction> binaryaccinstruction triinstruction sendinstruction
-%type <instruction> specialinstruction
+%type <instruction> jumpinstruction branchloopinstruction specialinstruction
 %type <instruction> msgtarget
 %type <instruction> instoptions instoption_list predicate
 %type <program> instrseq
 %type <integer> instoption
-%type <integer> unaryop binaryop binaryaccop
+%type <integer> unaryop binaryop binaryaccop branchloopop
 %type <integer> conditionalmodifier saturate negate abs chansel
 %type <integer> writemask_x writemask_y writemask_z writemask_w
 %type <integer> regtype srcimmtype execsize dstregion immaddroffset
@@ -138,6 +140,7 @@ void set_direct_src_operand(struct src_operand *src, struct direct_reg *reg,
 %type <src_operand> directsrcoperand srcarchoperandex directsrcaccoperand
 %type <src_operand> indirectsrcoperand
 %type <src_operand> src srcimm imm32reg payload srcacc srcaccimm swizzle
+%type <src_operand> relativelocation relativelocation2
 %%
 
 ROOT:		instrseq
@@ -178,6 +181,8 @@ instruction:	unaryinstruction
 		| binaryinstruction
 		| binaryaccinstruction
 		| triinstruction
+		| jumpinstruction
+		| branchloopinstruction
 		| specialinstruction
 ;
 
@@ -282,6 +287,55 @@ sendinstruction: predicate SEND execsize INTEGER post_dst payload msgtarget
 		}
 ;
 
+/* XXX: This should probably allow predication (i.e. be a branchloopop),
+ * though the BNF didn't specify it.
+ */
+jumpinstruction: JMPI relativelocation2
+		{
+		  struct direct_reg dst;
+		  struct dst_operand ip_dst;
+		  struct src_operand ip_src;
+
+		  /* The jump instruction requires that the IP register
+		   * be the destination and first source operand, while the
+		   * offset is the second source operand.  The next instruction
+		   * is the post-incremented IP plus the offset.
+		   */
+
+		  bzero(&$$, sizeof($$));
+		  $$.header.opcode = $1;
+		  set_direct_dst_operand(&ip_dst, &dst, BRW_REGISTER_TYPE_UD);
+		  set_instruction_dest(&$$, &ip_dst);
+		  set_direct_src_operand(&ip_src, &dst, BRW_REGISTER_TYPE_UD);
+		  set_instruction_src0(&$$, &ip_src);
+		  set_instruction_src1(&$$, &$2);
+		}
+;
+
+branchloopinstruction:
+		predicate branchloopop relativelocation
+		{
+		  struct direct_reg dst;
+		  struct dst_operand ip_dst;
+		  struct src_operand ip_src;
+
+		  /* The branch instructions require that the IP register
+		   * be the destination and first source operand, while the
+		   * offset is the second source operand.  The offset is added
+		   * to the pre-incremented IP.
+		   */
+
+		  bzero(&$$, sizeof($$));
+		  $$.header.opcode = $2;
+		  set_instruction_predicate(&$$, &$1);
+		  set_direct_dst_operand(&ip_dst, &dst, BRW_REGISTER_TYPE_UD);
+		  set_instruction_dest(&$$, &ip_dst);
+		  set_direct_src_operand(&ip_src, &dst, BRW_REGISTER_TYPE_UD);
+		  set_instruction_src0(&$$, &ip_src);
+		  set_instruction_src1(&$$, &$3);
+		}
+;
+
 branchloopop:	IF | IFF | WHILE
 ;
 
@@ -309,7 +363,6 @@ specialinstruction: NOP
 		  $$.bits1.da1.src1_reg_type = BRW_REGISTER_TYPE_UD;
 		  $$.bits3.if_else.pop_count = 1;
 		}
-
 ;
 
 /* XXX! */
@@ -916,6 +969,37 @@ nullreg:	NULL_TOKEN
 		}
 ;
 
+/* 1.4.6: Relative locations */
+relativelocation: imm32
+		{
+		  if ($1 > 32767 || $1 < -32768) {
+		    fprintf(stderr,
+			    "error: relative offset %d out of range\n");
+		    YYERROR;
+		  }
+
+		  $$.reg_file = BRW_IMMEDIATE_VALUE;
+		  $$.reg_type = BRW_REGISTER_TYPE_D;
+		  $$.imm32 = $1;
+		}
+;
+
+relativelocation2:
+		imm32
+		{
+		  $$.reg_file = BRW_IMMEDIATE_VALUE;
+		  $$.reg_type = BRW_REGISTER_TYPE_D;
+		  $$.imm32 = $1;
+		}
+		| directgenreg region regtype
+		{
+		  set_direct_src_operand(&$$, &$1, $3);
+		  $$.vert_stride = $2.vert_stride;
+		  $$.width = $2.width;
+		  $$.horiz_stride = $2.horiz_stride;
+		}
+;
+
 /* 1.4.7: Regions */
 dstregion:	LANGLE INTEGER RANGLE
 		{
@@ -1336,10 +1420,25 @@ void set_instruction_predicate(struct brw_instruction *instr,
 	instr->bits2.da1.flag_reg_nr = predicate->bits2.da1.flag_reg_nr;
 }
 
+void set_direct_dst_operand(struct dst_operand *dst, struct direct_reg *reg,
+			    int type)
+{
+	bzero(dst, sizeof(*dst));
+	dst->address_mode = BRW_ADDRESS_DIRECT;
+	dst->reg_file = reg->reg_file;
+	dst->reg_nr = reg->reg_nr;
+	dst->subreg_nr = reg->subreg_nr;
+	dst->reg_type = type;
+	dst->horiz_stride = 1;
+	dst->writemask_set = 0;
+	dst->writemask = 0xf;
+}
+
 void set_direct_src_operand(struct src_operand *src, struct direct_reg *reg,
 			    int type)
 {
 	bzero(src, sizeof(*src));
+	src->address_mode = BRW_ADDRESS_DIRECT;
 	src->reg_file = reg->reg_file;
 	src->reg_type = type;
 	src->subreg_nr = reg->subreg_nr;
@@ -1349,4 +1448,9 @@ void set_direct_src_operand(struct src_operand *src, struct direct_reg *reg,
 	src->horiz_stride = 1;
 	src->negate = 0;
 	src->abs = 0;
+	src->swizzle_set = 0;
+	src->swizzle_x = BRW_CHANNEL_X;
+	src->swizzle_y = BRW_CHANNEL_Y;
+	src->swizzle_z = BRW_CHANNEL_Z;
+	src->swizzle_w = BRW_CHANNEL_W;
 }

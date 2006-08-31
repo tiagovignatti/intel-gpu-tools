@@ -7,3 +7,4 @@
 - more error cases.
 - boolean types
 - replace GL* with non-GL?
+- labels for branch/jump instruction destinations
