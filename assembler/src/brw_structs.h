@@ -1043,36 +1043,36 @@ struct brw_instruction
 {
    struct 
    {
-      GLuint opcode:7;
-      GLuint pad:1;
-      GLuint access_mode:1;
-      GLuint mask_control:1;
-      GLuint dependency_control:2;
-      GLuint compression_control:2;
-      GLuint thread_control:2;
-      GLuint predicate_control:4;
-      GLuint predicate_inverse:1;
-      GLuint execution_size:3;
+      GLuint opcode:7;			/* 0x0000007f */
+      GLuint pad:1;			/* 0x00000080 */
+      GLuint access_mode:1;		/* 0x00000100 */
+      GLuint mask_control:1;		/* 0x00000200 */
+      GLuint dependency_control:2;	/* 0x00000c00 */
+      GLuint compression_control:2;	/* 0x00003000 */
+      GLuint thread_control:2;		/* 0x0000c000 */
+      GLuint predicate_control:4;	/* 0x000f0000 */
+      GLuint predicate_inverse:1;	/* 0x00100000 */
+      GLuint execution_size:3;		/* 0x00e00000 */
       GLuint destreg__conditionalmod:4; /* destreg - send, conditionalmod - others */
-      GLuint pad0:2;
-      GLuint debug_control:1;
-      GLuint saturate:1;
+      GLuint pad0:2;			/* 0x30000000 */
+      GLuint debug_control:1;		/* 0x40000000 */
+      GLuint saturate:1;		/* 0x80000000 */
    } header;
 
    union {
       struct
       {
-	 GLuint dest_reg_file:2;
-	 GLuint dest_reg_type:3;
-	 GLuint src0_reg_file:2;
-	 GLuint src0_reg_type:3;
-	 GLuint src1_reg_file:2;
-	 GLuint src1_reg_type:3;
-	 GLuint pad:1;
-	 GLuint dest_subreg_nr:5;
-	 GLuint dest_reg_nr:8;
-	 GLuint dest_horiz_stride:2;
-	 GLuint dest_address_mode:1;
+	 GLuint dest_reg_file:2;	/* 0x00000003 */
+	 GLuint dest_reg_type:3;	/* 0x0000001c */
+	 GLuint src0_reg_file:2;	/* 0x00000060 */
+	 GLuint src0_reg_type:3;	/* 0x00000380 */
+	 GLuint src1_reg_file:2;	/* 0x00000c00 */
+	 GLuint src1_reg_type:3;	/* 0x00007000 */
+	 GLuint pad:1;			/* 0x00008000 */
+	 GLuint dest_subreg_nr:5;	/* 0x001f0000 */
+	 GLuint dest_reg_nr:8;		/* 0x1f700000 */
+	 GLuint dest_horiz_stride:2;	/* 0x60000000 */
+	 GLuint dest_address_mode:1;	/* 0x80000000 */
       } da1;
 
       struct
@@ -1123,16 +1123,16 @@ struct brw_instruction
    union {
       struct
       {
-	 GLuint src0_subreg_nr:5;
-	 GLuint src0_reg_nr:8;
-	 GLuint src0_abs:1;
-	 GLuint src0_negate:1;
-	 GLuint src0_address_mode:1;
-	 GLuint src0_horiz_stride:2;
-	 GLuint src0_width:3;
-	 GLuint src0_vert_stride:4;
-	 GLuint flag_reg_nr:1;
-	 GLuint pad:6;
+	 GLuint src0_subreg_nr:5;	/* 0x0000001f */
+	 GLuint src0_reg_nr:8;		/* 0x00001fe0 */
+	 GLuint src0_abs:1;		/* 0x00002000 */
+	 GLuint src0_negate:1;		/* 0x00004000 */
+	 GLuint src0_address_mode:1;	/* 0x00008000 */
+	 GLuint src0_horiz_stride:2;	/* 0x00030000 */
+	 GLuint src0_width:3;		/* 0x001c0000 */
+	 GLuint src0_vert_stride:4;	/* 0x01e00000 */
+	 GLuint flag_reg_nr:1;		/* 0x02000000 */
+	 GLuint pad:6;			/* 0xfc000000 */
       } da1;
 
       struct
