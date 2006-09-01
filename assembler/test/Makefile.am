@@ -16,6 +16,7 @@ TESTS = \
 	while \
 	else \
 	wait \
+	endif \
 	immediate
 
 # Tests that are expected to fail because they contain some inccorect code.
@@ -53,6 +54,8 @@ TESTDATA = \
 	else.g4a \
 	wait.expected \
 	wait.g4a \
+	endif.expected \
+	endif.g4a \
 	immediate.g4a \
 	immediate.expected
 
