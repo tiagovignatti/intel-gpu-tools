@@ -6,6 +6,7 @@ TESTS = \
 	frc \
 	rndd \
 	rndu \
+	rnde \
 	rnde-intsrc \
 	rndz \
 	lzd \
