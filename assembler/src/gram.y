@@ -359,6 +359,12 @@ elseinstruction: ELSE relativelocation
 		   * offset is the second source operand.  The offset is added
 		   * to the IP pre-increment.
 		   */
+		  dst.reg_file = BRW_ARCHITECTURE_REGISTER_FILE;
+		  dst.reg_nr = BRW_ARF_IP;
+		  dst.subreg_nr = 0;
+
+		  /* Set the istack pop count, which must always be 1. */
+		  $2.imm32 |= (1 << 16);
 
 		  bzero(&$$, sizeof($$));
 		  $$.header.opcode = $1;
