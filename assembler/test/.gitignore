@@ -12,5 +12,6 @@ jmpi
 if
 iff
 while
+else
 wait
 immediate
