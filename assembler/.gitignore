@@ -12,7 +12,7 @@ install-sh
 missing
 *.o
 
-gen4asm
+src/intel-gen4asm
 src/gram.c
 src/gram.h
 src/lex.c
