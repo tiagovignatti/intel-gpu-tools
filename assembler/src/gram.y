@@ -417,7 +417,7 @@ specialinstruction: NOP
 		  bzero(&$$, sizeof($$));
 		  $$.header.opcode = $1;
 		  $$.bits1.da1.src1_reg_file = BRW_IMMEDIATE_VALUE;
-		  $$.bits1.da1.src1_reg_type = BRW_REGISTER_TYPE_UD;
+		  $$.bits1.da1.src1_reg_type = BRW_REGISTER_TYPE_D;
 		  $$.bits3.if_else.pop_count = 1;
 		}
 ;
