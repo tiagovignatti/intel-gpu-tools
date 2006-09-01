@@ -1,11 +1,14 @@
-- Add support for more instructions
+- Add support for push, pop, msave, and mrest instructions
 - Fix up send argument formatting for some send instructions
 - Add send arguments for more send instructions
-- Fix up registers allowed for send arguments
+- Fix up the sets of registers allowed for send arguments
 - manpage
 - binary output?
-- more error cases.
-- boolean types
+- check for more error cases.
+- boolean types in parser internal structs where appropriate
 - replace GL* with non-GL?
-- labels for branch/jump instruction destinations
-- break/cont syntax should be better.
+- support labels for branch/jump instruction destinations
+- support math on immediate operand values
+- break/cont syntax should be better
+- valgrind it
+- do something to allow use as a library?
