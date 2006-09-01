@@ -26,7 +26,7 @@
  *
  */
 
-#include <sys/types.h>
+#include <inttypes.h>
 
 typedef unsigned char GLubyte;
 typedef short GLshort;
