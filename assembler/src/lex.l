@@ -4,7 +4,7 @@
 #include "gram.h"
 #include "brw_defines.h"
 
-int saved_state = INITIAL;
+int saved_state = 0;
 
 %}
 %x BLOCK_COMMENT
