@@ -1,8 +1,8 @@
 AM_YFLAGS = -d
 
-bin_PROGRAMS = gen4asm
+bin_PROGRAMS = intel-gen4asm
 
-gen4asm_SOURCES = \
+intel_gen4asm_SOURCES = \
 	brw_defines.h \
 	brw_structs.h \
 	gen4asm.h \

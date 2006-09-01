@@ -2,10 +2,10 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.57)
-AC_INIT([gen4asm],
+AC_INIT([intel-gen4asm],
         0.1,
         [eric@anholt.net],
-        gen4asm)
+        intel-gen4asm)
 
 AC_CONFIG_SRCDIR([Makefile.am])
 AM_INIT_AUTOMAKE([dist-bzip2 foreign])
