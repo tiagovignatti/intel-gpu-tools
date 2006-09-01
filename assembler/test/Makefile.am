@@ -14,6 +14,7 @@ TESTS = \
 	if \
 	iff \
 	while \
+	wait \
 	immediate
 
 # Tests that are expected to fail because they contain some inccorect code.
@@ -47,6 +48,8 @@ TESTDATA = \
 	iff.g4a \
 	while.expected \
 	while.g4a \
+	wait.expected \
+	wait.g4a \
 	immediate.g4a \
 	immediate.expected
 
