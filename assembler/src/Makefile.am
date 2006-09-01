@@ -15,4 +15,4 @@ gram.h: gram.c
 BUILT_SOURCES = gram.h gram.c lex.c
 MAINTAINERCLEANFILES = $(BUILT_SOURCES)
 
-# man_MANS = gen4asm.1
+# man_MANS = intel-gen4asm.1

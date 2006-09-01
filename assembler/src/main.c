@@ -43,7 +43,7 @@ static const struct option longopts[] = {
 
 void usage(void)
 {
-	fprintf(stderr, "usage: gen4asm [-o outputfile] inputfile\n");
+	fprintf(stderr, "usage: intel-gen4asm [-o outputfile] inputfile\n");
 }
 
 int main(int argc, char **argv)
