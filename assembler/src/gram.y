@@ -116,7 +116,7 @@ void set_direct_src_operand(struct src_operand *src, struct direct_reg *reg,
 %type <instruction> instruction unaryinstruction binaryinstruction
 %type <instruction> binaryaccinstruction triinstruction sendinstruction
 %type <instruction> jumpinstruction branchloopinstruction elseinstruction
-%type <instruction> specialinstruction
+%type <instruction> syncinstruction specialinstruction
 %type <instruction> msgtarget
 %type <instruction> instoptions instoption_list predicate
 %type <program> instrseq
@@ -185,6 +185,7 @@ instruction:	unaryinstruction
 		| jumpinstruction
 		| branchloopinstruction
 		| elseinstruction
+		| syncinstruction
 		| specialinstruction
 ;
 
@@ -373,6 +374,26 @@ breakop:	BREAK | CONT | WAIT
 ;
 
 maskpushop:	MSAVE | PUSH
+;
+
+syncinstruction: predicate WAIT notifyreg
+		{
+		  struct direct_reg null;
+		  struct dst_operand null_dst;
+		  struct src_operand null_src;
+
+		  null.reg_file = BRW_ARCHITECTURE_REGISTER_FILE;
+		  null.reg_nr = BRW_ARF_NULL;
+		  null.subreg_nr = 0;
+
+		  bzero(&$$, sizeof($$));
+		  $$.header.opcode = $2;
+		  set_direct_dst_operand(&null_dst, &null, BRW_REGISTER_TYPE_UD);
+		  set_instruction_dest(&$$, &null_dst);
+		  set_direct_src_operand(&null_src, &null, BRW_REGISTER_TYPE_UD);
+		  set_instruction_src0(&$$, &$3);
+		  set_instruction_src1(&$$, &null_src);
+		}
 ;
 
 specialinstruction: NOP
