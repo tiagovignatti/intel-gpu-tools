@@ -116,12 +116,12 @@ void set_direct_src_operand(struct src_operand *src, struct direct_reg *reg,
 %type <instruction> instruction unaryinstruction binaryinstruction
 %type <instruction> binaryaccinstruction triinstruction sendinstruction
 %type <instruction> jumpinstruction branchloopinstruction elseinstruction
-%type <instruction> syncinstruction specialinstruction
+%type <instruction> breakinstruction syncinstruction specialinstruction
 %type <instruction> msgtarget
 %type <instruction> instoptions instoption_list predicate
 %type <program> instrseq
 %type <integer> instoption
-%type <integer> unaryop binaryop binaryaccop branchloopop
+%type <integer> unaryop binaryop binaryaccop branchloopop breakop
 %type <integer> conditionalmodifier saturate negate abs chansel
 %type <integer> writemask_x writemask_y writemask_z writemask_w
 %type <integer> regtype srcimmtype execsize dstregion immaddroffset
@@ -141,7 +141,7 @@ void set_direct_src_operand(struct src_operand *src, struct direct_reg *reg,
 %type <src_operand> directsrcoperand srcarchoperandex directsrcaccoperand
 %type <src_operand> indirectsrcoperand
 %type <src_operand> src srcimm imm32reg payload srcacc srcaccimm swizzle
-%type <src_operand> relativelocation relativelocation2
+%type <src_operand> relativelocation relativelocation2 locationstackcontrol
 %%
 
 ROOT:		instrseq
@@ -185,6 +185,7 @@ instruction:	unaryinstruction
 		| jumpinstruction
 		| branchloopinstruction
 		| elseinstruction
+		| breakinstruction
 		| syncinstruction
 		| specialinstruction
 ;
@@ -376,7 +377,32 @@ elseinstruction: ELSE relativelocation
 		}
 ;
 
-breakop:	BREAK | CONT | WAIT
+breakinstruction: breakop locationstackcontrol
+		{
+		  struct direct_reg dst;
+		  struct dst_operand ip_dst;
+		  struct src_operand ip_src;
+
+		  /* The jump instruction requires that the IP register
+		   * be the destination and first source operand, while the
+		   * offset is the second source operand.  The offset is added
+		   * to the IP pre-increment.
+		   */
+		  dst.reg_file = BRW_ARCHITECTURE_REGISTER_FILE;
+		  dst.reg_nr = BRW_ARF_IP;
+		  dst.subreg_nr = 0;
+
+		  bzero(&$$, sizeof($$));
+		  $$.header.opcode = $1;
+		  set_direct_dst_operand(&ip_dst, &dst, BRW_REGISTER_TYPE_UD);
+		  set_instruction_dest(&$$, &ip_dst);
+		  set_direct_src_operand(&ip_src, &dst, BRW_REGISTER_TYPE_UD);
+		  set_instruction_src0(&$$, &ip_src);
+		  set_instruction_src1(&$$, &$2);
+		}
+;
+
+breakop:	BREAK | CONT | HALT
 ;
 
 maskpushop:	MSAVE | PUSH
@@ -1031,7 +1057,7 @@ relativelocation: imm32
 		{
 		  if ($1 > 32767 || $1 < -32768) {
 		    fprintf(stderr,
-			    "error: relative offset %d out of range\n");
+			    "error: relative offset %d out of range\n", $1);
 		    YYERROR;
 		  }
 
@@ -1054,6 +1080,15 @@ relativelocation2:
 		  $$.vert_stride = $2.vert_stride;
 		  $$.width = $2.width;
 		  $$.horiz_stride = $2.horiz_stride;
+		}
+;
+
+locationstackcontrol:
+		imm32
+		{
+		  $$.reg_file = BRW_IMMEDIATE_VALUE;
+		  $$.reg_type = BRW_REGISTER_TYPE_D;
+		  $$.imm32 = $1;
 		}
 ;
 

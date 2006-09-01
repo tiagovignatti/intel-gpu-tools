@@ -8,3 +8,4 @@
 - boolean types
 - replace GL* with non-GL?
 - labels for branch/jump instruction destinations
+- break/cont syntax should be better.
