@@ -13,6 +13,9 @@ if
 iff
 while
 else
+break
+cont
+halt
 wait
 endif
 immediate

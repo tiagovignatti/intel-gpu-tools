@@ -1,0 +1,6 @@
+/* The cont instruction syntax, which is currently just what was in the BNF,
+ * is bad.  It really needs 2 arguments -- pop count (19:16, how many
+ * loops to break out of), and the IP count (15:0).  For now, this argument
+ * should cover 1 loop, and jumping 2 instructions.
+ */
+cont 65538;

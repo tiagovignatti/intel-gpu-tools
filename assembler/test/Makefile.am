@@ -15,6 +15,9 @@ TESTS = \
 	iff \
 	while \
 	else \
+	break \
+	cont \
+	halt \
 	wait \
 	endif \
 	immediate
@@ -52,6 +55,12 @@ TESTDATA = \
 	while.g4a \
 	else.expected \
 	else.g4a \
+	break.expected \
+	break.g4a \
+	cont.expected \
+	cont.g4a \
+	halt.expected \
+	halt.g4a \
 	wait.expected \
 	wait.g4a \
 	endif.expected \
