@@ -1,5 +1,6 @@
 AM_YFLAGS = -d
 
+AM_CFLAGS= $(WARN_CFLAGS)
 bin_PROGRAMS = intel-gen4asm
 
 intel_gen4asm_SOURCES = \
