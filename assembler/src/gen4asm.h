@@ -94,6 +94,16 @@ struct src_operand {
 	uint32_t imm32; /* only set if reg_file == BRW_IMMEDIATE_VALUE */
 } src_operand;
 
+typedef struct {
+    enum {
+	imm32_d, imm32_f
+    } r;
+    union {
+	uint32_t    d;
+	float	    f;
+    } u;
+} imm32_t;
+
 /**
  * This structure is just the list container for instructions accumulated by
  * the parser.

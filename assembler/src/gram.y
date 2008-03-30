@@ -28,12 +28,13 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 #include "gen4asm.h"
 #include "brw_defines.h"
 
 int set_instruction_dest(struct brw_instruction *instr,
 			 struct dst_operand *dest);
-int set_instruction_src1(struct brw_instruction *instr,
+int set_instruction_src0(struct brw_instruction *instr,
 			 struct src_operand *src);
 int set_instruction_src1(struct brw_instruction *instr,
 			 struct src_operand *src);
@@ -64,7 +65,7 @@ void set_direct_src_operand(struct src_operand *src, struct direct_reg *reg,
 	struct direct_reg direct_reg;
 	struct indirect_reg indirect_reg;
 
-	double imm32;
+	imm32_t imm32;
 
 	struct dst_operand dst_operand;
 	struct src_operand src_operand;
@@ -102,7 +103,7 @@ void set_direct_src_operand(struct src_operand *src, struct direct_reg *reg,
 
 %token MSGLEN RETURNLEN
 %token <integer> ALLOCATE USED COMPLETE TRANSPOSE INTERLEAVE
-%token SATURATE X Y Z W
+%token SATURATE
 
 %token <integer> INTEGER
 %token <number> NUMBER
@@ -131,11 +132,13 @@ void set_direct_src_operand(struct src_operand *src, struct direct_reg *reg,
 %type <integer> predctrl predstate
 %type <region> region region_wh indirectregion
 %type <direct_reg> directgenreg directmsgreg addrreg accreg flagreg maskreg
-%type <direct_reg> maskstackreg maskstackdepthreg notifyreg
+%type <direct_reg> maskstackreg notifyreg
+/* %type <direct_reg>  maskstackdepthreg */
 %type <direct_reg> statereg controlreg ipreg nullreg
 %type <direct_reg> dstoperandex_typed srcarchoperandex_typed
 %type <indirect_reg> indirectgenreg indirectmsgreg addrparam
-%type <integer> mask_subreg maskstack_subreg maskstackdepth_subreg
+%type <integer> mask_subreg maskstack_subreg 
+/* %type <intger> maskstackdepth_subreg */
 %type <imm32> imm32
 %type <dst_operand> dst dstoperand dstoperandex dstreg post_dst writemask
 %type <src_operand> directsrcoperand srcarchoperandex directsrcaccoperand
@@ -405,25 +408,33 @@ breakinstruction: breakop locationstackcontrol
 breakop:	BREAK | CONT | HALT
 ;
 
+/*
 maskpushop:	MSAVE | PUSH
 ;
+ */
 
 syncinstruction: predicate WAIT notifyreg
 		{
 		  struct direct_reg null;
 		  struct dst_operand null_dst;
 		  struct src_operand null_src;
+		  struct src_operand notify_src;
 
 		  null.reg_file = BRW_ARCHITECTURE_REGISTER_FILE;
 		  null.reg_nr = BRW_ARF_NULL;
 		  null.subreg_nr = 0;
+		  
+		  notify_src.reg_file = $3.reg_file;
+		  notify_src.reg_nr = $3.reg_nr;
+		  notify_src.subreg_nr = $3.subreg_nr;
+		  notify_src.reg_type = BRW_REGISTER_TYPE_UD;
 
 		  bzero(&$$, sizeof($$));
 		  $$.header.opcode = $2;
 		  set_direct_dst_operand(&null_dst, &null, BRW_REGISTER_TYPE_UD);
 		  set_instruction_dest(&$$, &null_dst);
 		  set_direct_src_operand(&null_src, &null, BRW_REGISTER_TYPE_UD);
-		  set_instruction_src0(&$$, &$3);
+		  set_instruction_src0(&$$, &notify_src);
 		  set_instruction_src1(&$$, &null_src);
 		}
 ;
@@ -579,6 +590,7 @@ dstoperand:	dstreg dstregion writemask regtype
 		  /* Returns an instruction with just the destination register
 		   * filled in.
 		   */
+		  memset (&$$, '\0', sizeof ($$));
 		  $$.reg_file = $1.reg_file;
 		  $$.reg_nr = $1.reg_nr;
 		  $$.subreg_nr = $1.subreg_nr;
@@ -594,6 +606,7 @@ dstoperand:	dstreg dstregion writemask regtype
  */
 dstoperandex:	dstoperandex_typed dstregion regtype
 		{
+		  memset (&$$, '\0', sizeof ($$));
 		  $$.reg_file = $1.reg_file;
 		  $$.reg_nr = $1.reg_nr;
 		  $$.subreg_nr = $1.subreg_nr;
@@ -602,6 +615,7 @@ dstoperandex:	dstoperandex_typed dstregion regtype
 		}
 		| maskstackreg
 		{
+		  memset (&$$, '\0', sizeof ($$));
 		  $$.reg_file = $1.reg_file;
 		  $$.reg_nr = $1.reg_nr;
 		  $$.subreg_nr = $1.subreg_nr;
@@ -610,6 +624,7 @@ dstoperandex:	dstoperandex_typed dstregion regtype
 		}
 		| controlreg
 		{
+		  memset (&$$, '\0', sizeof ($$));
 		  $$.reg_file = $1.reg_file;
 		  $$.reg_nr = $1.reg_nr;
 		  $$.subreg_nr = $1.subreg_nr;
@@ -618,6 +633,7 @@ dstoperandex:	dstoperandex_typed dstregion regtype
 		}
 		| ipreg
 		{
+		  memset (&$$, '\0', sizeof ($$));
 		  $$.reg_file = $1.reg_file;
 		  $$.reg_nr = $1.reg_nr;
 		  $$.subreg_nr = $1.subreg_nr;
@@ -626,6 +642,7 @@ dstoperandex:	dstoperandex_typed dstregion regtype
 		}
 		| nullreg
 		{
+		  memset (&$$, '\0', sizeof ($$));
 		  $$.reg_file = $1.reg_file;
 		  $$.reg_nr = $1.reg_nr;
 		  $$.subreg_nr = $1.subreg_nr;
@@ -642,6 +659,7 @@ dstoperandex_typed: accreg | flagreg | addrreg | maskreg
  */
 dstreg:		directgenreg
 		{
+		  memset (&$$, '\0', sizeof ($$));
 		  $$.address_mode = BRW_ADDRESS_DIRECT;
 		  $$.reg_file = $1.reg_file;
 		  $$.reg_nr = $1.reg_nr;
@@ -649,6 +667,7 @@ dstreg:		directgenreg
 		}
 		| directmsgreg
 		{
+		  memset (&$$, '\0', sizeof ($$));
 		  $$.address_mode = BRW_ADDRESS_DIRECT;
 		  $$.reg_file = $1.reg_file;
 		  $$.reg_nr = $1.reg_nr;
@@ -656,6 +675,7 @@ dstreg:		directgenreg
 		}
 		| indirectgenreg
 		{
+		  memset (&$$, '\0', sizeof ($$));
 		  $$.address_mode = BRW_ADDRESS_REGISTER_INDIRECT_REGISTER;
 		  $$.reg_file = $1.reg_file;
 		  $$.address_subreg_nr = $1.address_subreg_nr;
@@ -663,6 +683,7 @@ dstreg:		directgenreg
 		}
 		| indirectmsgreg
 		{
+		  memset (&$$, '\0', sizeof ($$));
 		  $$.address_mode = BRW_ADDRESS_REGISTER_INDIRECT_REGISTER;
 		  $$.reg_file = $1.reg_file;
 		  $$.address_subreg_nr = $1.address_subreg_nr;
@@ -686,40 +707,59 @@ imm32reg:	imm32 srcimmtype
 		    int i;
 		    float f;
 		  } intfloat;
+		  uint32_t	d;
 
-		  $$.reg_file = BRW_IMMEDIATE_VALUE;
-		  $$.reg_type = $2;
 		  switch ($2) {
 		  case BRW_REGISTER_TYPE_UD:
-		    $$.imm32 = $1;
-		    break;
 		  case BRW_REGISTER_TYPE_D:
-		    $$.imm32 = $1;
+		  case BRW_REGISTER_TYPE_V:
+		    switch ($1.r) {
+		    case imm32_d:
+		      d = $1.u.d;
+		      break;
+		    default:
+		      fprintf (stderr, "non-int D/UD/V representation\n");
+		      YYERROR;
+		    }
 		    break;
 		  case BRW_REGISTER_TYPE_UW:
-		    $$.imm32 = $1;
-		    break;
 		  case BRW_REGISTER_TYPE_W:
-		    $$.imm32 = $1;
-		    break;
-		  case BRW_REGISTER_TYPE_UB:
-		    /* There is no native byte immediate type */
-		    $$.imm32 = (unsigned int)$1;
-		    $$.reg_type = BRW_REGISTER_TYPE_UD;
-		    break;
-		  case BRW_REGISTER_TYPE_B:
-		    /* There is no native byte immediate type */
-		    $$.imm32 = (int)$1;
-		    $$.reg_type = BRW_REGISTER_TYPE_D;
+		    switch ($1.r) {
+		    case imm32_d:
+		      d = $1.u.d;
+		      break;
+		    default:
+		      fprintf (stderr, "non-int W/UW representation\n");
+		      YYERROR;
+		    }
+		    d &= 0xffff;
+		    d |= d << 16;
 		    break;
 		  case BRW_REGISTER_TYPE_F:
-		    intfloat.f = $1;
-		    $$.imm32 = intfloat.i;
+		    switch ($1.r) {
+		    case imm32_f:
+		      intfloat.f = $1.u.f;
+		      break;
+		    case imm32_d:
+		      intfloat.f = (float) $1.u.d;
+		      break;
+		    default:
+		      fprintf (stderr, "non-float F representation\n");
+		      YYERROR;
+		    }
+		    d = intfloat.i;
 		    break;
+		  case BRW_REGISTER_TYPE_VF:
+		    fprintf (stderr, "Immediate type VF not supported yet\n");
+		    YYERROR;
 		  default:
 		    fprintf(stderr, "unknown immediate type %d\n", $2);
 		    YYERROR;
 		  }
+		  memset (&$$, '\0', sizeof ($$));
+		  $$.reg_file = BRW_IMMEDIATE_VALUE;
+		  $$.reg_type = $2;
+		  $$.imm32 = d;
 		}
 ;
 
@@ -733,6 +773,7 @@ directsrcaccoperand:	directsrcoperand
 /* Returns a source operand in the src0 fields of an instruction. */
 srcarchoperandex: srcarchoperandex_typed region regtype
 		{
+		  memset (&$$, '\0', sizeof ($$));
 		  $$.reg_file = $1.reg_file;
 		  $$.reg_type = $3;
 		  $$.subreg_nr = $1.subreg_nr;
@@ -778,6 +819,7 @@ src:		directsrcoperand | indirectsrcoperand
 directsrcoperand:
 		negate abs directgenreg region regtype swizzle
 		{
+		  memset (&$$, '\0', sizeof ($$));
 		  $$.address_mode = BRW_ADDRESS_DIRECT;
 		  $$.reg_file = $3.reg_file;
 		  $$.reg_nr = $3.reg_nr;
@@ -800,6 +842,7 @@ directsrcoperand:
 indirectsrcoperand:
 		negate abs indirectgenreg indirectregion regtype swizzle
 		{
+		  memset (&$$, '\0', sizeof ($$));
 		  $$.address_mode = BRW_ADDRESS_REGISTER_INDIRECT_REGISTER;
 		  $$.reg_file = $3.reg_file;
 		  $$.address_subreg_nr = $3.address_subreg_nr;
@@ -829,6 +872,7 @@ addrparam:	addrreg immaddroffset
 			    "range\n", $2);
 		    YYERROR;
 		  }
+		  memset (&$$, '\0', sizeof ($$));
 		  $$.address_subreg_nr = $1.subreg_nr;
 		  $$.indirect_offset = $2;
 		}
@@ -856,6 +900,7 @@ subregnum:	DOT INTEGER
 
 directgenreg:	GENREG subregnum
 		{
+		  memset (&$$, '\0', sizeof ($$));
 		  $$.reg_file = BRW_GENERAL_REGISTER_FILE;
 		  $$.reg_nr = $1;
 		  $$.subreg_nr = $2;
@@ -864,6 +909,7 @@ directgenreg:	GENREG subregnum
 
 indirectgenreg: GENREGFILE LSQUARE addrparam RSQUARE
 		{
+		  memset (&$$, '\0', sizeof ($$));
 		  $$.reg_file = BRW_GENERAL_REGISTER_FILE;
 		  $$.address_subreg_nr = $3.address_subreg_nr;
 		  $$.indirect_offset = $3.indirect_offset;
@@ -872,6 +918,7 @@ indirectgenreg: GENREGFILE LSQUARE addrparam RSQUARE
 
 directmsgreg:	MSGREG subregnum
 		{
+		  memset (&$$, '\0', sizeof ($$));
 		  $$.reg_file = BRW_MESSAGE_REGISTER_FILE;
 		  $$.reg_nr = $1;
 		  $$.subreg_nr = $2;
@@ -880,6 +927,7 @@ directmsgreg:	MSGREG subregnum
 
 indirectmsgreg: MSGREGFILE LSQUARE addrparam RSQUARE
 		{
+		  memset (&$$, '\0', sizeof ($$));
 		  $$.reg_file = BRW_MESSAGE_REGISTER_FILE;
 		  $$.address_subreg_nr = $3.address_subreg_nr;
 		  $$.indirect_offset = $3.indirect_offset;
@@ -893,6 +941,7 @@ addrreg:	ADDRESSREG subregnum
 			    "address register number %d out of range", $1);
 		    YYERROR;
 		  }
+		  memset (&$$, '\0', sizeof ($$));
 		  $$.reg_file = BRW_ARCHITECTURE_REGISTER_FILE;
 		  $$.reg_nr = BRW_ARF_ADDRESS | $1;
 		  $$.subreg_nr = $2;
@@ -906,6 +955,7 @@ accreg:		ACCREG subregnum
 			    "accumulator register number %d out of range", $1);
 		    YYERROR;
 		  }
+		  memset (&$$, '\0', sizeof ($$));
 		  $$.reg_file = BRW_ARCHITECTURE_REGISTER_FILE;
 		  $$.reg_nr = BRW_ARF_ACCUMULATOR | $1;
 		  $$.subreg_nr = $2;
@@ -914,6 +964,7 @@ accreg:		ACCREG subregnum
 
 flagreg:	FLAGREG
 		{
+		  memset (&$$, '\0', sizeof ($$));
 		  $$.reg_file = BRW_ARCHITECTURE_REGISTER_FILE;
 		  $$.reg_nr = BRW_ARF_FLAG | 0;
 		  $$.subreg_nr = $1;
@@ -927,12 +978,14 @@ maskreg:	MASKREG subregnum
 			    "mask register number %d out of range", $1);
 		    YYERROR;
 		  }
+		  memset (&$$, '\0', sizeof ($$));
 		  $$.reg_file = BRW_ARCHITECTURE_REGISTER_FILE;
 		  $$.reg_nr = BRW_ARF_MASK;
 		  $$.subreg_nr = $2;
 		}
 		| mask_subreg
 		{
+		  memset (&$$, '\0', sizeof ($$));
 		  $$.reg_file = BRW_ARCHITECTURE_REGISTER_FILE;
 		  $$.reg_nr = BRW_ARF_MASK;
 		  $$.subreg_nr = $1;
@@ -949,12 +1002,14 @@ maskstackreg:	MASKSTACKREG subregnum
 			    "mask stack register number %d out of range", $1);
 		    YYERROR;
 		  }
+		  memset (&$$, '\0', sizeof ($$));
 		  $$.reg_file = BRW_ARCHITECTURE_REGISTER_FILE;
 		  $$.reg_nr = BRW_ARF_MASK_STACK;
 		  $$.subreg_nr = $2;
 		}
 		| maskstack_subreg
 		{
+		  memset (&$$, '\0', sizeof ($$));
 		  $$.reg_file = BRW_ARCHITECTURE_REGISTER_FILE;
 		  $$.reg_nr = BRW_ARF_MASK_STACK;
 		  $$.subreg_nr = $1;
@@ -964,6 +1019,7 @@ maskstackreg:	MASKSTACKREG subregnum
 maskstack_subreg: IMS | LMS
 ;
 
+/*
 maskstackdepthreg: MASKSTACKDEPTHREG subregnum
 		{
 		  if ($1 > 0) {
@@ -971,12 +1027,14 @@ maskstackdepthreg: MASKSTACKDEPTHREG subregnum
 			    "mask stack register number %d out of range", $1);
 		    YYERROR;
 		  }
+		  memset (&$$, '\0', sizeof ($$));
 		  $$.reg_file = BRW_ARCHITECTURE_REGISTER_FILE;
 		  $$.reg_nr = BRW_ARF_MASK_STACK_DEPTH;
 		  $$.subreg_nr = $2;
 		}
 		| maskstackdepth_subreg
 		{
+		  memset (&$$, '\0', sizeof ($$));
 		  $$.reg_file = BRW_ARCHITECTURE_REGISTER_FILE;
 		  $$.reg_nr = BRW_ARF_MASK_STACK_DEPTH;
 		  $$.subreg_nr = $1;
@@ -985,6 +1043,7 @@ maskstackdepthreg: MASKSTACKDEPTHREG subregnum
 
 maskstackdepth_subreg: IMSD | LMSD
 ;
+ */
 
 notifyreg:	NOTIFYREG
 		{
@@ -994,6 +1053,7 @@ notifyreg:	NOTIFYREG
 			    $1);
 		    YYERROR;
 		  }
+		  memset (&$$, '\0', sizeof ($$));
 		  $$.reg_file = BRW_ARCHITECTURE_REGISTER_FILE;
 		  $$.reg_nr = BRW_ARF_NOTIFICATION_COUNT;
 		  $$.subreg_nr = 0;
@@ -1012,6 +1072,7 @@ statereg:	STATEREG subregnum
 			    "state subregister number %d out of range", $1);
 		    YYERROR;
 		  }
+		  memset (&$$, '\0', sizeof ($$));
 		  $$.reg_file = BRW_ARCHITECTURE_REGISTER_FILE;
 		  $$.reg_nr = BRW_ARF_STATE | $1;
 		  $$.subreg_nr = $2;
@@ -1030,6 +1091,7 @@ controlreg:	CONTROLREG subregnum
 			    "control subregister number %d out of range", $1);
 		    YYERROR;
 		  }
+		  memset (&$$, '\0', sizeof ($$));
 		  $$.reg_file = BRW_ARCHITECTURE_REGISTER_FILE;
 		  $$.reg_nr = BRW_ARF_CONTROL | $1;
 		  $$.subreg_nr = $2;
@@ -1038,6 +1100,7 @@ controlreg:	CONTROLREG subregnum
 
 ipreg:		IPREG
 		{
+		  memset (&$$, '\0', sizeof ($$));
 		  $$.reg_file = BRW_ARCHITECTURE_REGISTER_FILE;
 		  $$.reg_nr = BRW_ARF_IP;
 		  $$.subreg_nr = 0;
@@ -1046,6 +1109,7 @@ ipreg:		IPREG
 
 nullreg:	NULL_TOKEN
 		{
+		  memset (&$$, '\0', sizeof ($$));
 		  $$.reg_file = BRW_ARCHITECTURE_REGISTER_FILE;
 		  $$.reg_nr = BRW_ARF_NULL;
 		  $$.subreg_nr = 0;
@@ -1055,24 +1119,37 @@ nullreg:	NULL_TOKEN
 /* 1.4.6: Relative locations */
 relativelocation: imm32
 		{
-		  if ($1 > 32767 || $1 < -32768) {
+		  if ($1.r != imm32_d) {
+		    fprintf (stderr,
+			     "error: non-int offset representation\n");
+		    YYERROR;
+		  }
+		    
+		  if ($1.u.d > 32767 || $1.u.d < -32768) {
 		    fprintf(stderr,
-			    "error: relative offset %d out of range\n", $1);
+			    "error: relative offset %d out of range\n", $1.u.d);
 		    YYERROR;
 		  }
 
+		  memset (&$$, '\0', sizeof ($$));
 		  $$.reg_file = BRW_IMMEDIATE_VALUE;
 		  $$.reg_type = BRW_REGISTER_TYPE_D;
-		  $$.imm32 = (int)$1 & 0x0000ffff;
+		  $$.imm32 = $1.u.d & 0x0000ffff;
 		}
 ;
 
 relativelocation2:
 		imm32
 		{
+		  if ($1.r != imm32_d) {
+		    fprintf (stderr,
+			     "error: non-int location representation\n");
+		    YYERROR;
+		  }
+		  memset (&$$, '\0', sizeof ($$));
 		  $$.reg_file = BRW_IMMEDIATE_VALUE;
 		  $$.reg_type = BRW_REGISTER_TYPE_D;
-		  $$.imm32 = $1;
+		  $$.imm32 = $1.u.d;
 		}
 		| directgenreg region regtype
 		{
@@ -1086,9 +1163,15 @@ relativelocation2:
 locationstackcontrol:
 		imm32
 		{
+		  if ($1.r != imm32_d) {
+		    fprintf (stderr,
+			     "error: non-int stack control representation\n");
+		    YYERROR;
+		  }
+		  memset (&$$, '\0', sizeof ($$));
 		  $$.reg_file = BRW_IMMEDIATE_VALUE;
 		  $$.reg_type = BRW_REGISTER_TYPE_D;
-		  $$.imm32 = $1;
+		  $$.imm32 = $1.u.d;
 		}
 ;
 
@@ -1107,6 +1190,7 @@ dstregion:	LANGLE INTEGER RANGLE
 
 region:		LANGLE INTEGER COMMA INTEGER COMMA INTEGER RANGLE
 		{
+		  memset (&$$, '\0', sizeof ($$));
 		  $$.vert_stride = ffs($2);
 		  $$.width = ffs($4) - 1;
 		  $$.horiz_stride = ffs($6);
@@ -1119,6 +1203,7 @@ region:		LANGLE INTEGER COMMA INTEGER COMMA INTEGER RANGLE
  */
 region_wh:	LANGLE INTEGER COMMA INTEGER RANGLE
 		{
+		  memset (&$$, '\0', sizeof ($$));
 		  $$.vert_stride = BRW_VERTICAL_STRIDE_ONE_DIMENSIONAL;
 		  $$.width = ffs($2) - 1;
 		  $$.horiz_stride = ffs($4);
@@ -1142,8 +1227,13 @@ regtype:	TYPE_F { $$ = BRW_REGISTER_TYPE_F; }
 		| TYPE_B { $$ = BRW_REGISTER_TYPE_B; }
 ;
 
-/* XXX: Add TYPE_VF and TYPE_HF */
-srcimmtype:	regtype
+srcimmtype:	TYPE_F { $$ = BRW_REGISTER_TYPE_F; }
+		| TYPE_UD { $$ = BRW_REGISTER_TYPE_UD; }
+		| TYPE_D { $$ = BRW_REGISTER_TYPE_D; }
+		| TYPE_UW { $$ = BRW_REGISTER_TYPE_UW; }
+		| TYPE_W { $$ = BRW_REGISTER_TYPE_W; }
+		| TYPE_V { $$ = BRW_REGISTER_TYPE_V; }
+		| TYPE_VF { $$ = BRW_REGISTER_TYPE_VF; }
 ;
 
 /* 1.4.10: Swizzle control */
@@ -1212,9 +1302,9 @@ writemask_w:	/* empty */ { $$ = 0; }
 ;
 
 /* 1.4.11: Immediate values */
-imm32:		INTEGER { $$ = $1; }
-		| MINUS INTEGER { $$ = -$2; }
-		| NUMBER { $$ = $1; }
+imm32:		INTEGER { $$.r = imm32_d; $$.u.d = $1; }
+		| MINUS INTEGER { $$.r = imm32_d; $$.u.d = -$2; }
+		| NUMBER { $$.r = imm32_f; $$.u.f = $1; }
 ;
 
 /* 1.4.12: Predication and modifiers */
@@ -1352,11 +1442,15 @@ instoption:	ALIGN1 { $$ = ALIGN1; }
 
 %%
 extern int yylineno;
+extern char *input_filename;
+
+int errors;
 
 void yyerror (char *msg)
 {
-	fprintf(stderr, "parse error \"%s\" at line %d, token \"%s\"\n",
-		msg, yylineno, lex_text());
+	fprintf(stderr, "%s: %d: %s at \"%s\"\n",
+		input_filename, yylineno, msg, lex_text());
+	++errors;
 }
 
 /**

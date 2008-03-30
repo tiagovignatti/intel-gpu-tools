@@ -65,7 +65,6 @@ int saved_state = 0;
 "if" { yylval.integer = BRW_OPCODE_IF; return IF; }
 "iff" { yylval.integer = BRW_OPCODE_IFF; return IFF; }
 "while" { yylval.integer = BRW_OPCODE_WHILE; return WHILE; }
-"send" { yylval.integer = BRW_OPCODE_SEND; return SEND; }
 "else" { yylval.integer = BRW_OPCODE_ELSE; return ELSE; }
 "break" { yylval.integer = BRW_OPCODE_BREAK; return BREAK; }
 "cont" { yylval.integer = BRW_OPCODE_CONTINUE; return CONT; }
@@ -224,6 +223,8 @@ int saved_state = 0;
 "UB" { return TYPE_UB; }
 "B" { return TYPE_B; }
 "F" { return TYPE_F; }
+"VF" {return TYPE_VF; }
+"V" { return TYPE_V; }
 
 "sat" { return SATURATE; }
 "align1" { return ALIGN1; }
@@ -293,7 +294,11 @@ int saved_state = 0;
 	return W;
 }
 
-[0-9]* {
+0x[0-9a-fA-F][0-9a-fA-F]* {
+	yylval.integer = strtoul(yytext + 2, NULL, 16);
+	return INTEGER;
+}
+[0-9][0-9]* {
 	yylval.integer = strtoul(yytext, NULL, 10);
 	return INTEGER;
 }
@@ -316,6 +321,7 @@ char *
 lex_text(void)
 {
 	return yytext;
+  (void) yyunput;
 }
 
 #ifndef yywrap
