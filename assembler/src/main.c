@@ -30,10 +30,15 @@
 #include <stdlib.h>
 #include <string.h>
 #include <getopt.h>
+#include <unistd.h>
 
 #include "gen4asm.h"
 
 extern FILE *yyin;
+
+extern int errors;
+
+char *input_filename = "<stdin>";
 
 struct brw_program compiled_program;
 
@@ -41,13 +46,14 @@ static const struct option longopts[] = {
 	{ NULL, 0, NULL, 0 }
 };
 
-void usage(void)
+static void usage(void)
 {
 	fprintf(stderr, "usage: intel-gen4asm [-o outputfile] inputfile\n");
 }
 
 int main(int argc, char **argv)
 {
+	char *output_file = NULL;
 	FILE *output = stdout;
 	struct brw_program_instruction *entry;
 	int err;
@@ -56,13 +62,8 @@ int main(int argc, char **argv)
 	while ((o = getopt_long(argc, argv, "o:", longopts, NULL)) != -1) {
 		switch (o) {
 		case 'o':
-			if (strcmp(optarg, "-") != 0) {
-				output = fopen(optarg, "w");
-				if (output == NULL) {
-					perror("Couldn't open output file");
-					exit(1);
-				}
-			}
+			if (strcmp(optarg, "-") != 0)
+				output_file = optarg;
 			break;
 		default:
 			usage();
@@ -77,7 +78,8 @@ int main(int argc, char **argv)
 	}
 
 	if (strcmp(argv[0], "-") != 0) {
-		yyin = fopen(argv[0], "r");
+		input_filename = argv[0];
+		yyin = fopen(input_filename, "r");
 		if (yyin == NULL) {
 			perror("Couldn't open input file");
 			exit(1);
@@ -86,6 +88,16 @@ int main(int argc, char **argv)
 
 	err = yyparse();
 
+	if (err || errors)
+		exit (1);
+
+	if (output_file) {
+		output = fopen(output_file, "w");
+		if (output == NULL) {
+			perror("Couldn't open output file");
+			exit(1);
+		}
+	}
 	for (entry = compiled_program.first;
 	     entry != NULL;
 	     entry = entry->next) {
@@ -96,5 +108,12 @@ int main(int argc, char **argv)
 		       ((int *)(&entry->instruction))[3]);
 	}
 
+	fflush (output);
+	if (ferror (output)) {
+		perror ("Could not flush output file");
+		if (output_file)
+			unlink (output_file);
+		err = 1;
+	}
 	return err;
 }
