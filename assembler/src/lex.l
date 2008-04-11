@@ -5,9 +5,12 @@
 #include "brw_defines.h"
 
 int saved_state = 0;
+extern char *input_filename;
 
 %}
 %x BLOCK_COMMENT
+%x LINENUMBER
+%x FILENAME
 
 %%
 \/\/.*[\r\n] { } /* eat up single-line comments */
@@ -22,7 +25,21 @@ int saved_state = 0;
 }
 <BLOCK_COMMENT>. { }
 <BLOCK_COMMENT>[\r\n] { }
-
+"#line"" "* { 
+	saved_state = YYSTATE;
+	BEGIN(LINENUMBER);
+}
+<LINENUMBER>[0-9]+" "* {
+	yylineno = atoi (yytext) - 1;
+	BEGIN(FILENAME);
+}
+<FILENAME>\"[^\"]+\" {
+	char *name = malloc (yyleng - 1);
+	memmove (name, yytext + 1, yyleng - 2);
+	name[yyleng-1] = '\0';
+	input_filename = name;
+	BEGIN(saved_state);
+}
  /* used for both null send and null register. */
 "null" { return NULL_TOKEN; }
 
@@ -311,10 +328,9 @@ int saved_state = 0;
 [ \t\n]+ { } /* eat up whitespace */
 
 . {
-	printf("parse error at line %d: unexpected \"%s\"\n",
-	       yylineno, yytext);
-	exit(1);
-}
+	fprintf(stderr, "%s: %d: %s at \"%s\"\n",
+		input_filename, yylineno, "unexpected token", lex_text());
+  }
 %%
 
 char *
