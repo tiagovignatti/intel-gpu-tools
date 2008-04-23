@@ -523,6 +523,7 @@
 #define BRW_CONDITIONAL_LE    6
 #define BRW_CONDITIONAL_C     7
 #define BRW_CONDITIONAL_O     8
+#define BRW_CONDITIONAL_U     9
 
 #define BRW_DEBUG_NONE        0
 #define BRW_DEBUG_BREAKPOINT  1

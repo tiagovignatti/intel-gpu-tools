@@ -1,7 +1,7 @@
 AM_YFLAGS = -d
 
 AM_CFLAGS= $(WARN_CFLAGS)
-bin_PROGRAMS = intel-gen4asm
+bin_PROGRAMS = intel-gen4asm intel-gen4disasm
 
 intel_gen4asm_SOURCES = \
 	brw_defines.h \
@@ -10,6 +10,9 @@ intel_gen4asm_SOURCES = \
 	gram.y \
 	lex.l \
 	main.c
+
+intel_gen4disasm_SOURCES =  \
+	disasm.c disasm-main.c
 
 gram.h: gram.c
 
