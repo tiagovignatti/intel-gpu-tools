@@ -522,8 +522,9 @@
 #define BRW_CONDITIONAL_L     5
 #define BRW_CONDITIONAL_LE    6
 #define BRW_CONDITIONAL_C     7
-#define BRW_CONDITIONAL_O     8
-#define BRW_CONDITIONAL_U     9
+#define BRW_CONDITIONAL_R     7	/* round increment */
+#define BRW_CONDITIONAL_O     8	/* overflow */
+#define BRW_CONDITIONAL_U     9	/* unordered */
 
 #define BRW_DEBUG_NONE        0
 #define BRW_DEBUG_BREAKPOINT  1
@@ -601,8 +602,8 @@
 #define BRW_OPCODE_LINE       89
 #define BRW_OPCODE_NOP        126
 
-#define BRW_PREDICATE_NONE             0
-#define BRW_PREDICATE_NORMAL           1
+#define BRW_PREDICATE_NONE		      0
+#define BRW_PREDICATE_NORMAL		      1
 #define BRW_PREDICATE_ALIGN1_ANYV             2
 #define BRW_PREDICATE_ALIGN1_ALLV             3
 #define BRW_PREDICATE_ALIGN1_ANY2H            4

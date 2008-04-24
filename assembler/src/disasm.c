@@ -88,17 +88,15 @@ struct {
 
 char *conditional_modifier[16] = {
     [BRW_CONDITIONAL_NONE] = "",
-    [BRW_CONDITIONAL_Z] = ".Z",
-    [BRW_CONDITIONAL_NZ] = ".NZ",
-    [BRW_CONDITIONAL_EQ] = ".EQ",
-    [BRW_CONDITIONAL_NEQ] = ".NEQ",
-    [BRW_CONDITIONAL_G] = ".G",
-    [BRW_CONDITIONAL_GE] = ".GE",
-    [BRW_CONDITIONAL_L] = ".L",
-    [BRW_CONDITIONAL_LE] = ".LE",
-    [BRW_CONDITIONAL_C] = ".C",
-    [BRW_CONDITIONAL_O] = ".O",
-    [BRW_CONDITIONAL_U] = ".U",
+    [BRW_CONDITIONAL_Z] = ".e",
+    [BRW_CONDITIONAL_NZ] = ".ne",
+    [BRW_CONDITIONAL_G] = ".g",
+    [BRW_CONDITIONAL_GE] = ".ge",
+    [BRW_CONDITIONAL_L] = ".l",
+    [BRW_CONDITIONAL_LE] = ".le",
+    [BRW_CONDITIONAL_R] = ".r",
+    [BRW_CONDITIONAL_O] = ".o",
+    [BRW_CONDITIONAL_U] = ".u",
 };
 
 char *negate[2] = {
@@ -172,19 +170,17 @@ char *pred_inv[2] = {
 };
 
 char *pred_ctrl_align16[16] = {
-    [0] = "",
-    [1] = "sequential",
-    [2] = "replication swizzle .x",
-    [3] = "replication swizzle .y",
-    [4] = "replication swizzle .z",
-    [5] = "replication swizzle .w",
+    [1] = "",
+    [2] = ".x",
+    [3] = ".y",
+    [4] = ".z",
+    [5] = ".w",
     [6] = ".any4h",
     [7] = ".all4h",
 };
 
 char *pred_ctrl_align1[16] = {
-    [0] = "",
-    [1] = "sequential",
+    [1] = "",
     [2] = ".anyv",
     [3] = ".allv",
     [4] = ".any2h",
@@ -250,6 +246,25 @@ char *reg_file[4] = {
     [1] = "g",
     [2] = "m",
     [3] = "imm",
+};
+
+char *writemask[16] = {
+    [0x0] = ".",
+    [0x1] = ".x",
+    [0x2] = ".y",
+    [0x3] = ".xy",
+    [0x4] = ".z",
+    [0x5] = ".xz",
+    [0x6] = ".yz",
+    [0x7] = ".xyz",
+    [0x8] = ".w",
+    [0x9] = ".xw",
+    [0xa] = ".yw",
+    [0xb] = ".xyw",
+    [0xc] = ".zw",
+    [0xd] = ".xzw",
+    [0xe] = ".yzw",
+    [0xf] = "",
 };
 
 char *end_of_thread[2] = {
@@ -361,8 +376,9 @@ static int newline (FILE *f)
 
 static int pad (FILE *f, int c)
 {
-    while (column < c)
+    do
 	string (f, " ");
+    while (column < c);
     return 0;
 }
 
@@ -394,65 +410,105 @@ static int print_opcode (FILE *file, int id)
     return 0;
 }
 		       
+static int reg (FILE *file, GLuint _reg_file, GLuint _reg_nr)
+{
+    int	err = 0;
+    if (_reg_file == BRW_ARCHITECTURE_REGISTER_FILE) {
+	switch (_reg_nr & 0xf0) {
+	case BRW_ARF_NULL:
+	    string (file, "null");
+	    return -1;
+	case BRW_ARF_ADDRESS:
+	    format (file, "a%d", _reg_nr & 0x0f);
+	    break;
+	case BRW_ARF_ACCUMULATOR:
+	    format (file, "acc%d", _reg_nr & 0x0f);
+	    break;
+	case BRW_ARF_MASK:
+	    format (file, "mask%d", _reg_nr & 0x0f);
+	    break;
+	case BRW_ARF_MASK_STACK:
+	    format (file, "msd%d", _reg_nr & 0x0f);
+	    break;
+	case BRW_ARF_STATE:
+	    format (file, "sr%d", _reg_nr & 0x0f);
+	    break;
+	case BRW_ARF_CONTROL:
+	    format (file, "cr%d", _reg_nr & 0x0f);
+	    break;
+	case BRW_ARF_NOTIFICATION_COUNT:
+	    format (file, "n%d", _reg_nr & 0x0f);
+	    break;
+	case BRW_ARF_IP:
+	    string (file, "ip");
+	    return -1;
+	    break;
+	default:
+	    format (file, "ARF%d", _reg_nr);
+	    break;
+	}
+    } else {
+	err  |= control (file, "src reg file", reg_file, _reg_file, NULL);
+	format (file, "%d", _reg_nr);
+    }
+    return err;
+}
+
 static int dest (FILE *file, struct brw_instruction *inst)
 {
     int	err = 0;
 
-    if (inst->bits1.da1.dest_reg_file == BRW_ARCHITECTURE_REGISTER_FILE) {
-	switch (inst->bits1.da1.dest_reg_nr & 0xf0) {
-	case BRW_ARF_NULL:
-	    string (file, "null");
-	    return 0;
-	case BRW_ARF_ADDRESS:
-	    format (file, "a%d", inst->bits1.da1.dest_reg_nr & 0x0f);
-	    break;
-	case BRW_ARF_ACCUMULATOR:
-	    format (file, "acc%d", inst->bits1.da1.dest_reg_nr & 0x0f);
-	    break;
-	case BRW_ARF_MASK:
-	    format (file, "mask%d", inst->bits1.da1.dest_reg_nr & 0x0f);
-	    break;
-	case BRW_ARF_MASK_STACK:
-	    format (file, "msd%d", inst->bits1.da1.dest_reg_nr & 0x0f);
-	    break;
-	case BRW_ARF_STATE:
-	    format (file, "sr%d", inst->bits1.da1.dest_reg_nr & 0x0f);
-	    break;
-	case BRW_ARF_CONTROL:
-	    format (file, "cr%d", inst->bits1.da1.dest_reg_nr & 0x0f);
-	    break;
-	case BRW_ARF_NOTIFICATION_COUNT:
-	    format (file, "n%d", inst->bits1.da1.dest_reg_nr & 0x0f);
-	    break;
-	case BRW_ARF_IP:
-	    string (file, "ip");
-	    break;
-	default:
-	    format (file, "ARF%d", inst->bits1.da1.dest_reg_nr);
-	    break;
+    if (inst->header.access_mode == BRW_ALIGN_1)
+    {
+	if (inst->bits1.da1.dest_address_mode == BRW_ADDRESS_DIRECT)
+	{
+	    err |= reg (file, inst->bits1.da1.dest_reg_file, inst->bits1.da1.dest_reg_nr);
+	    if (err == -1)
+		return 0;
+	    if (inst->bits1.da1.dest_subreg_nr)
+		format (file, ".%d", inst->bits1.da1.dest_subreg_nr);
+	    format (file, "<%d>", inst->bits1.da1.dest_horiz_stride);
+	    err |= control (file, "dest reg encoding", reg_encoding, inst->bits1.da1.dest_reg_type, NULL);
 	}
-    } else {
-	err |= control (file, "dest reg file", reg_file, inst->bits1.da1.dest_reg_file, NULL);
-	format (file, "%d", inst->bits1.da1.dest_reg_nr);
+	else
+	{
+	    err = 1;
+	    string (file, "Indirect align1 address mode not supported");
+	}
     }
-    if (inst->bits1.da1.dest_subreg_nr)
-	format (file, ".%d", inst->bits1.da1.dest_subreg_nr);
-    format (file, "<%d>", inst->bits1.da1.dest_horiz_stride);
-    err |= control (file, "dest reg encoding", reg_encoding, inst->bits1.da1.dest_reg_type, NULL);
+    else
+    {
+	if (inst->bits1.da16.dest_address_mode == BRW_ADDRESS_DIRECT)
+	{
+	    err |= reg (file, inst->bits1.da16.dest_reg_file, inst->bits1.da16.dest_reg_nr);
+	    if (err == -1)
+		return 0;
+	    if (inst->bits1.da16.dest_subreg_nr)
+		format (file, ".%d", inst->bits1.da16.dest_subreg_nr);
+	    err |= control (file, "writemask", writemask, inst->bits1.da16.dest_writemask, NULL);
+	    string (file, "<1>");
+	}
+	else
+	{
+	    err = 1;
+	    string (file, "Indirect align16 address mode not supported");
+	}
+    }
     
     return 0;
 }
 
-static int src (FILE *file, GLuint type, GLuint _reg_file,
-		GLuint _vert_stride, GLuint _width, GLuint _horiz_stride,
-		GLuint reg_num, GLuint sub_reg_num, GLuint __abs, GLuint _negate)
+static int src_da1 (FILE *file, GLuint type, GLuint _reg_file,
+		    GLuint _vert_stride, GLuint _width, GLuint _horiz_stride,
+		    GLuint reg_num, GLuint sub_reg_num, GLuint __abs, GLuint _negate)
 {
     int err = 0;
     err |= control (file, "negate", negate, _negate, NULL);
     err |= control (file, "abs", _abs, __abs, NULL);
     
-    err  |= control (file, "src reg file", reg_file, _reg_file, NULL);
-    format (file, "%d", reg_num);
+    err |= reg (file, _reg_file, reg_num);
+    if (err == -1)
+	return 0;
     if (sub_reg_num)
 	format (file, ".%d", sub_reg_num);
     string (file, "<");
@@ -500,17 +556,40 @@ static int src0 (FILE *file, struct brw_instruction *inst)
     if (inst->bits1.da1.src0_reg_file == BRW_IMMEDIATE_VALUE)
 	return imm (file, inst->bits1.da1.src0_reg_type, 
 		    inst);
+    else if (inst->header.access_mode == BRW_ALIGN_1)
+    {
+	if (inst->bits2.da1.src0_address_mode == BRW_ADDRESS_DIRECT)
+	{
+	    return src_da1 (file,
+			    inst->bits1.da1.src0_reg_type,
+			    inst->bits1.da1.src0_reg_file,
+			    inst->bits2.da1.src0_vert_stride,
+			    inst->bits2.da1.src0_width,
+			    inst->bits2.da1.src0_horiz_stride,
+			    inst->bits2.da1.src0_reg_nr,
+			    inst->bits2.da1.src0_subreg_nr,
+			    inst->bits2.da1.src0_abs,
+			    inst->bits2.da1.src0_negate);
+	}
+	else
+	{
+	    string (file, "Indirect align1 address mode not supported");
+	    return 1;
+	}
+    }
     else
-	return src (file,
-		    inst->bits1.da1.src0_reg_type,
-		    inst->bits1.da1.src0_reg_file,
-		    inst->bits2.da1.src0_vert_stride,
-		    inst->bits2.da1.src0_width,
-		    inst->bits2.da1.src0_horiz_stride,
-		    inst->bits2.da1.src0_reg_nr,
-		    inst->bits2.da1.src0_subreg_nr,
-		    inst->bits2.da1.src0_abs,
-		    inst->bits2.da1.src0_negate);
+    {
+	if (inst->bits2.da16.src0_address_mode == BRW_ADDRESS_DIRECT)
+	{
+	    string (file, "Indirect align16 address mode not supported");
+	    return 1;
+	}
+	else
+	{
+	    string (file, "Indirect align16 address mode not supported");
+	    return 1;
+	}
+    }
 }
 
 static int src1 (FILE *file, struct brw_instruction *inst)
@@ -518,17 +597,40 @@ static int src1 (FILE *file, struct brw_instruction *inst)
     if (inst->bits1.da1.src1_reg_file == BRW_IMMEDIATE_VALUE)
 	return imm (file, inst->bits1.da1.src1_reg_type, 
 		    inst);
+    else if (inst->header.access_mode == BRW_ALIGN_1)
+    {
+	if (inst->bits3.da1.src1_address_mode == BRW_ADDRESS_DIRECT)
+	{
+	    return src_da1 (file,
+			    inst->bits1.da1.src1_reg_type,
+			    inst->bits1.da1.src1_reg_file,
+			    inst->bits3.da1.src1_vert_stride,
+			    inst->bits3.da1.src1_width,
+			    inst->bits3.da1.src1_horiz_stride,
+			    inst->bits3.da1.src1_reg_nr,
+			    inst->bits3.da1.src1_subreg_nr,
+			    inst->bits3.da1.src1_abs,
+			    inst->bits3.da1.src1_negate);
+	}
+	else
+	{
+	    string (file, "Indirect align1 address mode not supported");
+	    return 1;
+	}
+    }
     else
-	return src (file,
-		    inst->bits1.da1.src1_reg_type,
-		    inst->bits1.da1.src1_reg_file,
-		    inst->bits3.da1.src1_vert_stride,
-		    inst->bits3.da1.src1_width,
-		    inst->bits3.da1.src1_horiz_stride,
-		    inst->bits3.da1.src1_reg_nr,
-		    inst->bits3.da1.src1_subreg_nr,
-		    inst->bits3.da1.src1_abs,
-		    inst->bits3.da1.src1_negate);
+    {
+	if (inst->bits3.da16.src1_address_mode == BRW_ADDRESS_DIRECT)
+	{
+	    string (file, "Indirect align16 address mode not supported");
+	    return 1;
+	}
+	else
+	{
+	    string (file, "Indirect align16 address mode not supported");
+	    return 1;
+	}
+    }
 }
 
 int disasm (FILE *file, struct brw_instruction *inst)
@@ -536,22 +638,29 @@ int disasm (FILE *file, struct brw_instruction *inst)
     int	err = 0;
     int space = 0;
 
-    if (inst->header.predicate_control || inst->header.predicate_inverse) {
+    if (inst->header.predicate_control) {
 	string (file, "(");
-	space = 0;
-	err |= control (file, "predicate inverse", pred_inv, inst->header.predicate_inverse, &space);
+	err |= control (file, "predicate inverse", pred_inv, inst->header.predicate_inverse, NULL);
+	string (file, "f0");
+	if (inst->bits2.da1.flag_reg_nr)
+	    format (file, ".%d", inst->bits2.da1.flag_reg_nr);
 	if (inst->header.access_mode == BRW_ALIGN_1)
 	    err |= control (file, "predicate control align1", pred_ctrl_align1,
-			    inst->header.predicate_control, &space);
+			    inst->header.predicate_control, NULL);
 	else
 	    err |= control (file, "predicate control align16", pred_ctrl_align16,
-			    inst->header.predicate_control, &space);
+			    inst->header.predicate_control, NULL);
+	string (file, ") ");
     }
 	
     err |= print_opcode (file, inst->header.opcode);
     err |= control (file, "saturate", saturate, inst->header.saturate, NULL);
     err |= control (file, "debug control", debug_ctrl, inst->header.debug_control, NULL);
 
+    if (inst->header.opcode != BRW_OPCODE_SEND)
+	err |= control (file, "conditional modifier", conditional_modifier,
+			inst->header.destreg__conditionalmod, NULL);
+	
     if (inst->header.opcode != BRW_OPCODE_NOP) {
 	string (file, "(");
 	err |= control (file, "execution size", exec_size, inst->header.execution_size, NULL);
@@ -560,9 +669,6 @@ int disasm (FILE *file, struct brw_instruction *inst)
 
     if (inst->header.opcode == BRW_OPCODE_SEND)
 	format (file, " %d", inst->header.destreg__conditionalmod);
-    else
-	err |= control (file, "conditional modifier", conditional_modifier,
-			inst->header.destreg__conditionalmod, NULL);
 
     if (opcode[inst->header.opcode].ndst > 0) {
 	pad (file, 16);

@@ -1193,7 +1193,7 @@ struct brw_instruction
 	 GLuint src1_reg_nr:8;
 	 GLuint src1_abs:1;
 	 GLuint src1_negate:1;
-	 GLuint pad:1;
+	 GLuint src1_address_mode:1;
 	 GLuint src1_horiz_stride:2;
 	 GLuint src1_width:3;
 	 GLuint src1_vert_stride:4;
@@ -1208,7 +1208,7 @@ struct brw_instruction
 	 GLuint src1_reg_nr:8;
 	 GLuint src1_abs:1;
 	 GLuint src1_negate:1;
-	 GLuint pad0:1;
+	 GLuint src1_address_mode:1;
 	 GLuint src1_swz_z:2;
 	 GLuint src1_swz_w:2;
 	 GLuint pad1:1;
@@ -1222,7 +1222,7 @@ struct brw_instruction
 	 GLuint src1_subreg_nr:3;
 	 GLuint src1_abs:1;
 	 GLuint src1_negate:1;
-	 GLuint pad0:1;
+	 GLuint src1_address_mode:1;
 	 GLuint src1_horiz_stride:2;
 	 GLuint src1_width:3;
 	 GLuint src1_vert_stride:4;
@@ -1238,7 +1238,7 @@ struct brw_instruction
 	 GLuint src1_subreg_nr:3;
 	 GLuint src1_abs:1;
 	 GLuint src1_negate:1;
-	 GLuint pad0:1;
+	 GLuint src1_address_mode:1;
 	 GLuint src1_swz_z:2;
 	 GLuint src1_swz_w:2;
 	 GLuint pad1:1;

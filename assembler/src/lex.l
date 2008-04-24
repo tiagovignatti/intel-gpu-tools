@@ -284,14 +284,28 @@ extern char *input_filename;
 "scalar" { return SCALAR; }
 
  /* predicate control */
-"any2h" { return ANY2H; }
-"all2h" { return ALL2H; }
-"any4h" { return ANY4H; }
-"all4h" { return ALL4H; }
-"any8h" { return ANY8H; }
-"all8h" { return ALL8H; }
-"any16h" { return ANY16H; }
-"all16h" { return ALL16H; }
+".anyv" { return ANYV; }
+".allv" { return ALLV; }
+".any2h" { return ANY2H; }
+".all2h" { return ALL2H; }
+".any4h" { return ANY4H; }
+".all4h" { return ALL4H; }
+".any8h" { return ANY8H; }
+".all8h" { return ALL8H; }
+".any16h" { return ANY16H; }
+".all16h" { return ALL16H; }
+
+".z" { yylval.integer = BRW_CONDITIONAL_Z; return ZERO; }
+".e" { yylval.integer = BRW_CONDITIONAL_Z; return EQUAL; }
+".nz" { yylval.integer = BRW_CONDITIONAL_NZ; return NOT_ZERO; }
+".ne" { yylval.integer = BRW_CONDITIONAL_NZ; return NOT_EQUAL; }
+".g" { yylval.integer = BRW_CONDITIONAL_G; return GREATER; }
+".ge" { yylval.integer = BRW_CONDITIONAL_GE; return GREATER_EQUAL; }
+".l" { yylval.integer = BRW_CONDITIONAL_L; return LESS; }
+".le" { yylval.integer = BRW_CONDITIONAL_LE; return LESS_EQUAL; }
+".r" { yylval.integer = BRW_CONDITIONAL_R; return ROUND_INCREMENT; }
+".o" { yylval.integer = BRW_CONDITIONAL_O; return OVERFLOW; }
+".u" { yylval.integer = BRW_CONDITIONAL_U; return UNORDERED; }
 
  /* channel selectors */
 "x" {

@@ -86,7 +86,9 @@ void set_direct_src_operand(struct src_operand *src, struct direct_reg *reg,
 %token ALIGN1 ALIGN16 SECHALF COMPR SWITCH ATOMIC NODDCHK NODDCLR
 %token MASK_DISABLE BREAKPOINT EOT
 
-%token ANY2H ALL2H ANY4H ALL4H ANY8H ALL8H ANY16H ALL16H
+%token SEQ ANY2H ALL2H ANY4H ALL4H ANY8H ALL8H ANY16H ALL16H ANYV ALLV
+%token <integer> ZERO EQUAL NOT_ZERO NOT_EQUAL GREATER GREATER_EQUAL LESS LESS_EQUAL
+%token <integer> ROUND_INCREMENT OVERFLOW UNORDERED
 %token <integer> GENREG MSGREG ADDRESSREG ACCREG FLAGREG
 %token <integer> MASKREG AMASK IMASK LMASK CMASK
 %token <integer> MASKSTACKREG LMS IMS MASKSTACKDEPTHREG IMSD LMSD
@@ -1331,11 +1333,13 @@ predstate:	/* empty */ { $$ = 0; }
 		| MINUS { $$ = 1; }
 ;
 
-predctrl:	/* empty */ { $$ = BRW_PREDICATE_NONE; }
+predctrl:	/* empty */ { $$ = BRW_PREDICATE_NORMAL; }
 		| DOT X { $$ = BRW_PREDICATE_ALIGN16_REPLICATE_X; }
 		| DOT Y { $$ = BRW_PREDICATE_ALIGN16_REPLICATE_Y; }
 		| DOT Z { $$ = BRW_PREDICATE_ALIGN16_REPLICATE_Z; }
 		| DOT W { $$ = BRW_PREDICATE_ALIGN16_REPLICATE_W; }
+		| ANYV { $$ = BRW_PREDICATE_ALIGN1_ANYV; }
+		| ALLV { $$ = BRW_PREDICATE_ALIGN1_ALLV; }
 		| ANY2H { $$ = BRW_PREDICATE_ALIGN1_ANY2H; }
 		| ALL2H { $$ = BRW_PREDICATE_ALIGN1_ALL2H; }
 		| ANY4H { $$ = BRW_PREDICATE_ALIGN1_ANY4H; }
@@ -1372,7 +1376,18 @@ saturate:	/* empty */ { $$ = BRW_INSTRUCTION_NORMAL; }
 		| DOT SATURATE { $$ = BRW_INSTRUCTION_SATURATE; }
 ;
 
-conditionalmodifier: { $$ = 0; }
+conditionalmodifier: /* empty */    { $$ = BRW_CONDITIONAL_NONE; }
+		| ZERO
+		| EQUAL
+		| NOT_ZERO
+		| NOT_EQUAL
+		| GREATER
+		| GREATER_EQUAL
+		| LESS
+		| LESS_EQUAL
+		| ROUND_INCREMENT
+		| OVERFLOW
+		| UNORDERED
 ;
 
 /* 1.4.13: Instruction options */
@@ -1632,7 +1647,7 @@ void set_direct_src_operand(struct src_operand *src, struct direct_reg *reg,
 	src->reg_nr = reg->reg_nr;
 	src->vert_stride = 0;
 	src->width = 0;
-	src->horiz_stride = 1;
+	src->horiz_stride = 0;
 	src->negate = 0;
 	src->abs = 0;
 	src->swizzle_set = 0;
