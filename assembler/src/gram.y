@@ -540,10 +540,14 @@ msgtarget:	NULL_TOKEN
 		  $$.bits3.urb.used = $5;
 		  $$.bits3.urb.complete = $6;
 		}
-		| THREAD_SPAWNER
+		| THREAD_SPAWNER  LPAREN INTEGER COMMA INTEGER COMMA
+                        INTEGER RPAREN
 		{
 		  $$.bits3.generic.msg_target =
 		    BRW_MESSAGE_TARGET_THREAD_SPAWNER;
+                  $$.bits3.thread_spawner.opcode = $3;
+                  $$.bits3.thread_spawner.requester_type  = $5;
+                  $$.bits3.thread_spawner.resource_select = $7;
 		}
 ;
 

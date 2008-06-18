@@ -1309,6 +1309,19 @@ struct brw_instruction
       } dp_write;
 
       struct {
+	  GLuint opcode:1;
+          GLuint requester_type:1;
+          GLuint pad:2;
+          GLuint resource_select:1;
+          GLuint pad1:11;
+          GLuint response_length:4;
+          GLuint msg_length:4;
+          GLuint msg_target:4;
+          GLuint pad2:3;
+          GLuint end_of_thread:1;
+      } thread_spawner;
+
+      struct {
 	 GLuint pad:16;
 	 GLuint response_length:4;
 	 GLuint msg_length:4;
