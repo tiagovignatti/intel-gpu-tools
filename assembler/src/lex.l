@@ -1,5 +1,6 @@
 %option yylineno
 %{
+#include <string.h>
 #include "gen4asm.h"
 #include "gram.h"
 #include "brw_defines.h"
