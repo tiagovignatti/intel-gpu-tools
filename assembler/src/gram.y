@@ -509,10 +509,15 @@ msgtarget:	NULL_TOKEN
 		{
 		  $$.bits3.generic.msg_target = BRW_MESSAGE_TARGET_GATEWAY;
 		}
-		| READ
+		| READ  LPAREN INTEGER COMMA INTEGER COMMA INTEGER COMMA
+                INTEGER RPAREN
 		{
 		  $$.bits3.generic.msg_target =
 		    BRW_MESSAGE_TARGET_DATAPORT_READ;
+		  $$.bits3.dp_read.binding_table_index = $3;
+		  $$.bits3.dp_read.target_cache = $5;
+                  $$.bits3.dp_read.msg_control = $7;
+                  $$.bits3.dp_read.msg_type = $9;
 		}
 		| WRITE LPAREN INTEGER COMMA INTEGER COMMA INTEGER COMMA
 		INTEGER RPAREN
