@@ -472,8 +472,14 @@ static int dest (FILE *file, struct brw_instruction *inst)
 	}
 	else
 	{
-	    err = 1;
-	    string (file, "Indirect align1 address mode not supported");
+	    string (file, "g[a0");
+	    if (inst->bits1.ia1.dest_subreg_nr)
+		format (file, ".%d", inst->bits1.ia1.dest_subreg_nr);
+	    if (inst->bits1.ia1.dest_indirect_offset)
+		format (file, " %d", inst->bits1.ia1.dest_indirect_offset);
+	    string (file, "]");
+	    format (file, "<%d>", inst->bits1.ia1.dest_horiz_stride);
+	    err |= control (file, "dest reg encoding", reg_encoding, inst->bits1.ia1.dest_reg_type, NULL);
 	}
     }
     else
@@ -485,8 +491,9 @@ static int dest (FILE *file, struct brw_instruction *inst)
 		return 0;
 	    if (inst->bits1.da16.dest_subreg_nr)
 		format (file, ".%d", inst->bits1.da16.dest_subreg_nr);
-	    err |= control (file, "writemask", writemask, inst->bits1.da16.dest_writemask, NULL);
 	    string (file, "<1>");
+	    err |= control (file, "writemask", writemask, inst->bits1.da16.dest_writemask, NULL);
+	    err |= control (file, "dest reg encoding", reg_encoding, inst->bits1.da16.dest_reg_type, NULL);
 	}
 	else
 	{
@@ -498,6 +505,21 @@ static int dest (FILE *file, struct brw_instruction *inst)
     return 0;
 }
 
+static int src_align1_region (FILE *file, 
+			      GLuint _vert_stride, GLuint _width, GLuint _horiz_stride)
+{
+    int err = 0;
+    string (file, "<");
+    err |= control (file, "vert stride", vert_stride, _vert_stride, NULL);
+    string (file, ",");
+    err |= control (file, "width", width, _width, NULL);
+    string (file, ",");
+    err |= control (file, "horiz_stride", horiz_stride, _horiz_stride, NULL);
+    string (file, ">");
+    return err;
+}
+
+			      
 static int src_da1 (FILE *file, GLuint type, GLuint _reg_file,
 		    GLuint _vert_stride, GLuint _width, GLuint _horiz_stride,
 		    GLuint reg_num, GLuint sub_reg_num, GLuint __abs, GLuint _negate)
@@ -511,16 +533,93 @@ static int src_da1 (FILE *file, GLuint type, GLuint _reg_file,
 	return 0;
     if (sub_reg_num)
 	format (file, ".%d", sub_reg_num);
-    string (file, "<");
-    err |= control (file, "vert stride", vert_stride, _vert_stride, NULL);
-    string (file, ",");
-    err |= control (file, "width", width, _width, NULL);
-    string (file, ",");
-    err |= control (file, "horiz_stride", horiz_stride, _horiz_stride, NULL);
-    string (file, ">");
+    src_align1_region (file, _vert_stride, _width, _horiz_stride);
     err |= control (file, "src reg encoding", reg_encoding, type, NULL);
     return err;
 }
+
+static int src_ia1 (FILE *file,
+		    GLuint type,
+		    GLuint _reg_file, 
+		    GLint _addr_imm,
+		    GLuint _addr_subreg_nr,
+		    GLuint _negate,
+		    GLuint __abs,
+		    GLuint _addr_mode,
+		    GLuint _horiz_stride,
+		    GLuint _width,
+		    GLuint _vert_stride)
+{
+    int err = 0;
+    err |= control (file, "negate", negate, _negate, NULL);
+    err |= control (file, "abs", _abs, __abs, NULL);
+
+    string (file, "g[a0");
+    if (_addr_subreg_nr)
+	format (file, ".%d", _addr_subreg_nr);
+    if (_addr_imm)
+	format (file, " %d", _addr_imm);
+    string (file, "]");
+    src_align1_region (file, _vert_stride, _width, _horiz_stride);
+    err |= control (file, "src reg encoding", reg_encoding, type, NULL);
+    return err;
+}
+
+static int src_da16 (FILE *file,
+		     GLuint _reg_type,
+		     GLuint _reg_file,
+		     GLuint _vert_stride,
+		     GLuint _reg_nr,
+		     GLuint _subreg_nr,
+		     GLuint __abs,
+		     GLuint _negate,
+		     GLuint swz_x,
+		     GLuint swz_y,
+		     GLuint swz_z,
+		     GLuint swz_w)
+{
+    int err = 0;
+    err |= control (file, "negate", negate, _negate, NULL);
+    err |= control (file, "abs", _abs, __abs, NULL);
+    
+    err |= reg (file, _reg_file, _reg_nr);
+    if (err == -1)
+	return 0;
+    if (_subreg_nr)
+	format (file, ".%d", _subreg_nr);
+    string (file, "<");
+    err |= control (file, "vert stride", vert_stride, _vert_stride, NULL);
+    string (file, ",1,1>");
+    err |= control (file, "src da16 reg type", reg_encoding, _reg_type, NULL);
+    /*
+     * Three kinds of swizzle display:
+     *  identity - nothing printed
+     *  1->all	 - print the single channel
+     *  1->1     - print the mapping
+     */
+    if (swz_x == BRW_CHANNEL_X &&
+	swz_y == BRW_CHANNEL_Y &&
+	swz_z == BRW_CHANNEL_Z &&
+	swz_w == BRW_CHANNEL_W)
+    {
+	;
+    }
+    else if (swz_x == swz_y && swz_x == swz_z && swz_x == swz_w)
+    {
+	string (file, ".");
+	err |= control (file, "channel select", chan_sel, swz_x, NULL);
+    }
+    else
+    {
+	string (file, ".");
+	err |= control (file, "channel select", chan_sel, swz_x, NULL);
+	err |= control (file, "channel select", chan_sel, swz_y, NULL);
+	err |= control (file, "channel select", chan_sel, swz_z, NULL);
+	err |= control (file, "channel select", chan_sel, swz_w, NULL);
+    }
+    return err;
+}
+
 
 static int imm (FILE *file, GLuint type, struct brw_instruction *inst) {
     switch (type) {
@@ -573,16 +672,35 @@ static int src0 (FILE *file, struct brw_instruction *inst)
 	}
 	else
 	{
-	    string (file, "Indirect align1 address mode not supported");
-	    return 1;
+	    return src_ia1 (file,
+			    inst->bits1.ia1.src0_reg_type,
+			    inst->bits1.ia1.src0_reg_file,
+			    inst->bits2.ia1.src0_indirect_offset,
+			    inst->bits2.ia1.src0_subreg_nr,
+			    inst->bits2.ia1.src0_negate,
+			    inst->bits2.ia1.src0_abs,
+			    inst->bits2.ia1.src0_address_mode,
+			    inst->bits2.ia1.src0_horiz_stride,
+			    inst->bits2.ia1.src0_width,
+			    inst->bits2.ia1.src0_vert_stride);
 	}
     }
     else
     {
 	if (inst->bits2.da16.src0_address_mode == BRW_ADDRESS_DIRECT)
 	{
-	    string (file, "Indirect align16 address mode not supported");
-	    return 1;
+	    return src_da16 (file,
+			     inst->bits1.da16.src0_reg_type,
+			     inst->bits1.da16.src0_reg_file,
+			     inst->bits2.da16.src0_vert_stride,
+			     inst->bits2.da16.src0_reg_nr,
+			     inst->bits2.da16.src0_subreg_nr,
+			     inst->bits2.da16.src0_abs,
+			     inst->bits2.da16.src0_negate,
+			     inst->bits2.da16.src0_swz_x,
+			     inst->bits2.da16.src0_swz_y,
+			     inst->bits2.da16.src0_swz_z,
+			     inst->bits2.da16.src0_swz_w);
 	}
 	else
 	{
@@ -614,16 +732,35 @@ static int src1 (FILE *file, struct brw_instruction *inst)
 	}
 	else
 	{
-	    string (file, "Indirect align1 address mode not supported");
-	    return 1;
+	    return src_ia1 (file,
+			    inst->bits1.ia1.src1_reg_type,
+			    inst->bits1.ia1.src1_reg_file,
+			    inst->bits3.ia1.src1_indirect_offset,
+			    inst->bits3.ia1.src1_subreg_nr,
+			    inst->bits3.ia1.src1_negate,
+			    inst->bits3.ia1.src1_abs,
+			    inst->bits3.ia1.src1_address_mode,
+			    inst->bits3.ia1.src1_horiz_stride,
+			    inst->bits3.ia1.src1_width,
+			    inst->bits3.ia1.src1_vert_stride);
 	}
     }
     else
     {
 	if (inst->bits3.da16.src1_address_mode == BRW_ADDRESS_DIRECT)
 	{
-	    string (file, "Indirect align16 address mode not supported");
-	    return 1;
+	    return src_da16 (file,
+			     inst->bits1.da16.src1_reg_type,
+			     inst->bits1.da16.src1_reg_file,
+			     inst->bits3.da16.src1_vert_stride,
+			     inst->bits3.da16.src1_reg_nr,
+			     inst->bits3.da16.src1_subreg_nr,
+			     inst->bits3.da16.src1_abs,
+			     inst->bits3.da16.src1_negate,
+			     inst->bits3.da16.src1_swz_x,
+			     inst->bits3.da16.src1_swz_y,
+			     inst->bits3.da16.src1_swz_z,
+			     inst->bits3.da16.src1_swz_w);
 	}
 	else
 	{

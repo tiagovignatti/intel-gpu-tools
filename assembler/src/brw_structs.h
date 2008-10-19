@@ -1081,7 +1081,9 @@ struct brw_instruction
 	 GLuint dest_reg_type:3;
 	 GLuint src0_reg_file:2;
 	 GLuint src0_reg_type:3;
-	 GLuint pad:6;
+	 GLuint src1_reg_file:2;	/* 0x00000c00 */
+	 GLuint src1_reg_type:3;	/* 0x00007000 */
+	 GLuint pad:1;
 	 GLint dest_indirect_offset:10;	/* offset against the deref'd address reg */
 	 GLuint dest_subreg_nr:3; /* subnr for the address reg a0.x */
 	 GLuint dest_horiz_stride:2;
