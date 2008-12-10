@@ -5,6 +5,7 @@
 #include "gram.h"
 #include "brw_defines.h"
 
+#include "string.h"
 int saved_state = 0;
 extern char *input_filename;
 
@@ -112,6 +113,7 @@ extern char *input_filename;
 "transpose" { return TRANSPOSE; }
 "interleave" { return INTERLEAVE; }
 
+":" { return COLON; }
 ";" { return SEMICOLON; }
 "(" { return LPAREN; }
 ")" { return RPAREN; }
@@ -171,7 +173,7 @@ extern char *input_filename;
   * rather than the reg number, to avoid a shift/reduce conflict in the
   * predicate control.
   */
-"f0.[0-9]+" {
+"f0."[0-9]+ {
 	yylval.integer = atoi(yytext + 3);
 	return FLAGREG;
 }
@@ -324,6 +326,11 @@ extern char *input_filename;
 "w" {
 	yylval.integer = BRW_CHANNEL_W;
 	return W;
+}
+
+[a-zA-Z_][0-9a-zA-Z_]* {
+           yylval.string = strdup(yytext);
+           return STRING;
 }
 
 0x[0-9a-fA-F][0-9a-fA-F]* {

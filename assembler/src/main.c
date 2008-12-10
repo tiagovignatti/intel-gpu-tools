@@ -55,8 +55,8 @@ int main(int argc, char **argv)
 {
 	char *output_file = NULL;
 	FILE *output = stdout;
-	struct brw_program_instruction *entry;
-	int err;
+	struct brw_program_instruction *entry, *entry1;
+	int err, inst_offset;
 	char o;
 
 	while ((o = getopt_long(argc, argv, "o:", longopts, NULL)) != -1) {
@@ -98,22 +98,54 @@ int main(int argc, char **argv)
 			exit(1);
 		}
 	}
+	inst_offset = 0 ;
 	for (entry = compiled_program.first;
-	     entry != NULL;
-	     entry = entry->next) {
+		entry != NULL; entry = entry->next) {
+	    entry->inst_offset = inst_offset;
+	    if (!entry->islabel)
+		inst_offset++;
+	}
+
+	for (entry = compiled_program.first;
+		entry != NULL; entry = entry->next) {
+	    if (!entry->islabel) {
+		if (entry->instruction.reloc_target) {
+		    for (entry1 = entry;
+			    entry1 != NULL; entry1 = entry1->next) {
+			if (entry1->islabel && 
+				strcmp(entry1->string, 
+				    entry->instruction.reloc_target) == 0) {
+			    int offset = 
+				entry1->inst_offset - entry->inst_offset;
+			    entry->instruction.bits3.ud = offset - 1;
+			    break;
+			}
+		    }
+		    if (entry1 == NULL)
+			fprintf(stderr, "can not find lable %s\n",
+				entry->instruction.reloc_target);
+		}
+	    }
+	}
+
+
+	for (entry = compiled_program.first;
+		entry != NULL;
+		entry = entry->next) {
+	    if (!entry->islabel)
 		fprintf(output, "   { 0x%08x, 0x%08x, 0x%08x, 0x%08x },\n",
-		       ((int *)(&entry->instruction))[0],
-		       ((int *)(&entry->instruction))[1],
-		       ((int *)(&entry->instruction))[2],
-		       ((int *)(&entry->instruction))[3]);
+			((int *)(&entry->instruction))[0],
+			((int *)(&entry->instruction))[1],
+			((int *)(&entry->instruction))[2],
+			((int *)(&entry->instruction))[3]);
 	}
 
 	fflush (output);
 	if (ferror (output)) {
-		perror ("Could not flush output file");
-		if (output_file)
-			unlink (output_file);
-		err = 1;
+	    perror ("Could not flush output file");
+	    if (output_file)
+		unlink (output_file);
+	    err = 1;
 	}
 	return err;
 }

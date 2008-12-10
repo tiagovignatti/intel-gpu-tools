@@ -54,7 +54,7 @@ void set_direct_src_operand(struct src_operand *src, struct direct_reg *reg,
 %start ROOT
 
 %union {
-	char *s;
+	char *string;
 	int integer;
 	double number;
 	struct brw_instruction instruction;
@@ -71,6 +71,7 @@ void set_direct_src_operand(struct src_operand *src, struct direct_reg *reg,
 	struct src_operand src_operand;
 }
 
+%token COLON
 %token SEMICOLON
 %token LPAREN RPAREN
 %token LANGLE RANGLE
@@ -108,6 +109,7 @@ void set_direct_src_operand(struct src_operand *src, struct direct_reg *reg,
 %token SATURATE
 
 %token <integer> INTEGER
+%token <string> STRING
 %token <number> NUMBER
 
 %token <integer> INV LOG EXP SQRT RSQ POW SIN COS SINCOS INTDIV INTMOD
@@ -122,6 +124,7 @@ void set_direct_src_operand(struct src_operand *src, struct direct_reg *reg,
 %type <instruction> breakinstruction syncinstruction specialinstruction
 %type <instruction> msgtarget
 %type <instruction> instoptions instoption_list predicate
+%type <string> label
 %type <program> instrseq
 %type <integer> instoption
 %type <integer> unaryop binaryop binaryaccop branchloopop breakop
@@ -155,6 +158,13 @@ ROOT:		instrseq
 		}
 ;
 
+
+label:          STRING COLON
+		{
+    		  $$ = $1;
+		}
+;
+
 instrseq:	instruction SEMICOLON instrseq
 		{
 		  struct brw_program_instruction *list_entry =
@@ -176,6 +186,16 @@ instrseq:	instruction SEMICOLON instrseq
 
 		  $$.first = list_entry;
 		}
+                | label instrseq
+                {
+                  struct brw_program_instruction *list_entry =
+                    calloc(sizeof(struct brw_program_instruction), 1);
+                  list_entry->string = $1;
+                  list_entry->islabel = 1;
+                  list_entry->next = $2.first;
+                      $2.first = list_entry;
+                      $$ = $2;
+                }
 		| error SEMICOLON instrseq
 		{
 		  $$ = $3;
@@ -296,10 +316,7 @@ sendinstruction: predicate SEND execsize INTEGER post_dst payload msgtarget
 		}
 ;
 
-/* XXX: This should probably allow predication (i.e. be a branchloopop),
- * though the BNF didn't specify it.
- */
-jumpinstruction: JMPI relativelocation2
+jumpinstruction: predicate JMPI relativelocation2
 		{
 		  struct direct_reg dst;
 		  struct dst_operand ip_dst;
@@ -315,12 +332,43 @@ jumpinstruction: JMPI relativelocation2
 		  dst.subreg_nr = 0;
 
 		  bzero(&$$, sizeof($$));
-		  $$.header.opcode = $1;
+		  $$.header.opcode = $2;
 		  set_direct_dst_operand(&ip_dst, &dst, BRW_REGISTER_TYPE_UD);
+		  set_instruction_predicate(&$$, &$1);
 		  set_instruction_dest(&$$, &ip_dst);
 		  set_direct_src_operand(&ip_src, &dst, BRW_REGISTER_TYPE_UD);
 		  set_instruction_src0(&$$, &ip_src);
-		  set_instruction_src1(&$$, &$2);
+		  set_instruction_src1(&$$, &$3);
+		}
+		| predicate JMPI STRING
+		{
+		    struct direct_reg dst;
+		    struct dst_operand ip_dst;
+		    struct src_operand ip_src;
+		    struct src_operand imm;
+		    
+		    /* The jump instruction requires that the IP register
+	 	     * be the destination and first source operand, while the
+	             * offset is the second source operand.  The next instruction
+		      is the post-incremented IP plus the offset.
+		     */
+		    dst.reg_file = BRW_ARCHITECTURE_REGISTER_FILE;
+		    dst.reg_nr = BRW_ARF_IP;
+		    dst.subreg_nr = 0;
+		    memset (&imm, '\0', sizeof (imm));
+		    imm.reg_file = BRW_IMMEDIATE_VALUE;
+		    imm.reg_type = BRW_REGISTER_TYPE_D;
+		    imm.imm32 = 0;
+		    
+		    bzero(&$$, sizeof($$));
+		    $$.header.opcode = $2;
+		    set_direct_dst_operand(&ip_dst, &dst, BRW_REGISTER_TYPE_UD);
+		    set_instruction_dest(&$$, &ip_dst);
+		    set_instruction_predicate(&$$, &$1);
+		    set_direct_src_operand(&ip_src, &dst, BRW_REGISTER_TYPE_UD);
+		    set_instruction_src0(&$$, &ip_src);
+		    set_instruction_src1(&$$, &imm);
+		    $$.reloc_target = $3;
 		}
 ;
 

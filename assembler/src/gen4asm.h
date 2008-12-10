@@ -106,11 +106,14 @@ typedef struct {
 
 /**
  * This structure is just the list container for instructions accumulated by
- * the parser.
+ * the parser and labels.
  */
 struct brw_program_instruction {
 	struct brw_instruction instruction;
 	struct brw_program_instruction *next;
+	GLuint islabel;
+	GLuint inst_offset;
+	char   *string;
 };
 
 /**

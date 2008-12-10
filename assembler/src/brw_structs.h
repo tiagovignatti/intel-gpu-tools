@@ -1336,6 +1336,7 @@ struct brw_instruction
       GLint id;
       GLfloat fd;
    } bits3;
+   char *reloc_target;
 };
 
 
