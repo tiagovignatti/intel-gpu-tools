@@ -22,4 +22,4 @@
 AUTOMAKE_OPTIONS = foreign
 ACLOCAL_AMFLAGS = -I m4
 
-SUBDIRS = tests tools benchmarks
+SUBDIRS = lib tests benchmarks

@@ -1,23 +1,15 @@
-TESTS = auth \
-	openclose \
-	getversion \
+TESTS = getversion \
 	getclient \
 	getstats \
-	lock \
-	setversion \
-	updatedraw \
 	gem_basic \
 	gem_flink \
 	gem_readwrite \
 	gem_mmap
 
-EXTRA_LTLIBRARIES = libdrmtest.la
-EXTRA_LTLIBRARIES = libdrmtest.la
-libdrmtest_la_SOURCES = \
-	drmtest.c \
-	drmtest.h
-libdrmtest_la_LIBADD = \
-	$(top_builddir)/libdrm/libdrm.la
-
 EXTRA_PROGRAMS = $(TESTS)
-CLEANFILES = $(EXTRA_PROGRAMS) $(EXTRA_LTLIBRARIES)
+CLEANFILES = $(EXTRA_PROGRAMS)
+
+AM_CFLAGS = $(DRM_CFLAGS) $(WARN_CFLAGS) \
+	-I$(srcdir)/.. \
+	-I$(srcdir)/../lib
+LDADD = $(DRM_LIBS) ../lib/libintel_tools.la

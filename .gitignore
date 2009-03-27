@@ -30,3 +30,10 @@ stamp-h1
 cscope.*
 benchmarks/intel_upload_blit_large
 benchmarks/intel_upload_blit_small
+tests/getclient
+tests/getstats
+tests/getversion
+tests/gem_basic
+tests/gem_flink
+tests/gem_mmap
+tests/gem_readwrite
