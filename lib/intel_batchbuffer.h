@@ -2,7 +2,7 @@
 #define INTEL_BATCHBUFFER_H
 
 #include "intel_bufmgr.h"
-#include "i810_reg.h"
+#include "intel_reg.h"
 
 #define BATCH_SZ 4096
 #define BATCH_RESERVED 16

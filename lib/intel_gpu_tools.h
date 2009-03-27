@@ -28,7 +28,7 @@
 #include <sys/types.h>
 #include <pciaccess.h>
 #include "intel_chipset.h"
-#include "i810_reg.h"
+#include "intel_reg.h"
 
 extern struct pci_device *pci_dev;
 extern uint32_t devid;

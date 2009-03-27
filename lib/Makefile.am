@@ -3,6 +3,7 @@ libintel_tools_la_SOURCES = \
 	intel_batchbuffer.h \
 	intel_gpu_tools.c \
 	intel_gpu_tools.h \
+	intel_reg.h \
 	drmtest.c \
 	drmtest.h
 
