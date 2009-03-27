@@ -23,3 +23,9 @@ tools/
 	built with the 2D driver but not shipped.  Some distros were hacking
 	up the 2D build to ship them.  Instead, here's a separate package for
 	people debugging the driver.
+
+Note that most of these tools must be run as root.  Several tools require
+MMIO register access (which may be denied if CONFIG_STRICT_DEVMEM is enabled).
+When an X Server is running, benchmarks and tests clients won't be able to
+run due to being unable to authenticate against it, unless you run them as
+root.
