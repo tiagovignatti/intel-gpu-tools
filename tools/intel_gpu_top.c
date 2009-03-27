@@ -88,17 +88,35 @@ int main(int argc, char **argv)
 	intel_get_mmio();
 
 	if (IS_965(devid)) {
-		add_instdone_bit(I965_SF_DONE, "Perspective interpolation");
-		add_instdone_bit(I965_SE_DONE, "Dispatcher");
-		add_instdone_bit(I965_WM_DONE, "Projection and LOD");
+		add_instdone_bit(I965_ROW_0_EU_0_DONE, "Row 0, EU 0");
+		add_instdone_bit(I965_ROW_0_EU_1_DONE, "Row 0, EU 1");
+		add_instdone_bit(I965_ROW_0_EU_2_DONE, "Row 0, EU 2");
+		add_instdone_bit(I965_ROW_0_EU_3_DONE, "Row 0, EU 3");
+		add_instdone_bit(I965_ROW_1_EU_0_DONE, "Row 1, EU 0");
+		add_instdone_bit(I965_ROW_1_EU_1_DONE, "Row 1, EU 1");
+		add_instdone_bit(I965_ROW_1_EU_2_DONE, "Row 1, EU 2");
+		add_instdone_bit(I965_ROW_1_EU_3_DONE, "Row 1, EU 3");
+		add_instdone_bit(I965_SF_DONE, "Strips and Fans");
+		add_instdone_bit(I965_SE_DONE, "Setup Engine");
+		add_instdone_bit(I965_WM_DONE, "Windowizer");
+		add_instdone_bit(I965_DISPATCHER_DONE, "Dispatcher");
+		add_instdone_bit(I965_PROJECTION_DONE, "Projection and LOD");
+		add_instdone_bit(I965_DG_DONE, "Dependent address generator");
+		add_instdone_bit(I965_QUAD_CACHE_DONE, "Texture fetch");
 		add_instdone_bit(I965_TEXTURE_FETCH_DONE, "Texture fetch");
-		add_instdone_bit(I965_SAMPLER_CACHE_DONE, "Sampler Cache");
+		add_instdone_bit(I965_TEXTURE_DECOMPRESS_DONE, "Texture decompress");
+		add_instdone_bit(I965_SAMPLER_CACHE_DONE, "Sampler cache");
 		add_instdone_bit(I965_FILTER_DONE, "Filtering");
+		add_instdone_bit(I965_BYPASS_DONE, "Bypass FIFO");
 		add_instdone_bit(I965_PS_DONE, "Pixel shader");
 		add_instdone_bit(I965_CC_DONE, "Color calculator");
 		add_instdone_bit(I965_MAP_FILTER_DONE, "Map filter");
 		add_instdone_bit(I965_MAP_L2_IDLE, "Map L2");
-		add_instdone_bit(I965_CP_DONE, "CP");
+		add_instdone_bit(I965_MA_ROW_0_DONE, "Message Arbiter row 0");
+		add_instdone_bit(I965_MA_ROW_1_DONE, "Message Arbiter row 1");
+		add_instdone_bit(I965_IC_ROW_0_DONE, "Instruction cache row 0");
+		add_instdone_bit(I965_IC_ROW_1_DONE, "Instruction cache row 1");
+		add_instdone_bit(I965_CP_DONE, "Command Processor");
 	} else if (IS_9XX(devid)) {
 		add_instdone_bit(IDCT_DONE, "IDCT");
 		add_instdone_bit(IQ_DONE, "IQ");
