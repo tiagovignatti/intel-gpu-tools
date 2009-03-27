@@ -13,10 +13,17 @@ benchmarks/
 	that people can use these to tune some pieces of DRM code in relevant
 	ways.
 
+	The benchmarks require KMS to be enabled.  When run with an X Server
+	running, they must be run as root to avoid the authentication
+	requirement.
+
 tests/
 	This is a set of automated tests to run against the DRM to validate
 	changes.  Hopefully this can cover the relevant cases we need to
 	worry about, including backwards compatibility.
+
+	To run the tests, do "sudo make check" from this directory with
+	KMS enabled.
 
 tools/
 	This is a collection of debugging tools that had previously been
@@ -24,8 +31,4 @@ tools/
 	up the 2D build to ship them.  Instead, here's a separate package for
 	people debugging the driver.
 
-Note that most of these tools must be run as root.  Several tools require
-MMIO register access (which may be denied if CONFIG_STRICT_DEVMEM is enabled).
-When an X Server is running, benchmarks and tests clients won't be able to
-run due to being unable to authenticate against it, unless you run them as
-root.
+	These tools generally must be run as root.
