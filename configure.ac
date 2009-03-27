@@ -21,10 +21,10 @@
 # Process this file with autoconf to produce a configure script
 
 AC_PREREQ(2.57)
-AC_INIT([intel-graphics-tools],
+AC_INIT([intel-gpu-tools],
         1.0,
         [https://bugs.freedesktop.org/enter_bug.cgi?product=xorg],
-        intel-graphics-tools)
+        intel-gpu-tools)
 
 AC_CONFIG_SRCDIR([Makefile.am])
 AM_CONFIG_HEADER([config.h])
