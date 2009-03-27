@@ -1,0 +1,25 @@
+This is a collection of tools for development and testing of the Intel DRM
+driver.  There are many macro-level test suites that get used against our
+driver, including xtest, rendercheck, piglit, and oglconform, but failures
+from those can be difficult to track down to kernel changes, and many require
+complicated build procedures or specific testing environments to get useful
+results.
+
+Thus, intel-graphics-tools was a project I started to collect some low-level
+tools I intended to build.  There are 3 subdirectories:
+
+benchmarks/
+	This should be a collection of useful microbenchmarks.  The hope is
+	that people can use these to tune some pieces of DRM code in relevant
+	ways.
+
+tests/
+	This is a set of automated tests to run against the DRM to validate
+	changes.  Hopefully this can cover the relevant cases we need to
+	worry about, including backwards compatibility.
+
+tools/
+	This is a collection of debugging tools that had previously been
+	built with the 2D driver but not shipped.  Some distros were hacking
+	up the 2D build to ship them.  Instead, here's a separate package for
+	people debugging the driver.
