@@ -25,6 +25,7 @@
  *
  */
 
+#include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -33,12 +34,15 @@
 #include <inttypes.h>
 #include <errno.h>
 #include <sys/stat.h>
+#include <sys/ioctl.h>
 #include "drm.h"
 #include "i915_drm.h"
+#include "drmtest.h"
 
 #define OBJECT_SIZE 16384
 
-int do_read(int fd, int handle, void *buf, int offset, int size)
+static int
+do_read(int fd, int handle, void *buf, int offset, int size)
 {
 	struct drm_i915_gem_pread read;
 
@@ -56,7 +60,8 @@ int do_read(int fd, int handle, void *buf, int offset, int size)
 	return ioctl(fd, DRM_IOCTL_I915_GEM_PREAD, &read);
 }
 
-int do_write(int fd, int handle, void *buf, int offset, int size)
+static int
+do_write(int fd, int handle, void *buf, int offset, int size)
 {
 	struct drm_i915_gem_pwrite write;
 
@@ -94,7 +99,6 @@ int main(int argc, char **argv)
 
 	printf("Testing read beyond end of buffer.\n");
 	ret = do_read(fd, handle, buf, OBJECT_SIZE / 2, OBJECT_SIZE);
-	printf("%d %d\n", ret, errno);
 	assert(ret == -1 && errno == EINVAL);
 
 	printf("Testing full write of buffer\n");

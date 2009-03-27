@@ -25,6 +25,7 @@
  *
  */
 
+#include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -33,30 +34,16 @@
 #include <inttypes.h>
 #include <errno.h>
 #include <sys/stat.h>
+#include <sys/ioctl.h>
+#include <sys/mman.h>
 #include "drm.h"
 #include "i915_drm.h"
+#include "drmtest.h"
 
 #define OBJECT_SIZE 16384
 
-int do_read(int fd, int handle, void *buf, int offset, int size)
-{
-	struct drm_i915_gem_pread read;
-
-	/* Ensure that we don't have any convenient data in buf in case
-	 * we fail.
-	 */
-	memset(buf, 0xd0, size);
-
-	memset(&read, 0, sizeof(read));
-	read.handle = handle;
-	read.data_ptr = (uintptr_t)buf;
-	read.size = size;
-	read.offset = offset;
-
-	return ioctl(fd, DRM_IOCTL_I915_GEM_PREAD, &read);
-}
-
-int do_write(int fd, int handle, void *buf, int offset, int size)
+static int
+do_write(int fd, int handle, void *buf, int offset, int size)
 {
 	struct drm_i915_gem_pwrite write;
 

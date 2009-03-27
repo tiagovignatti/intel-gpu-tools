@@ -33,8 +33,10 @@
 #include <inttypes.h>
 #include <errno.h>
 #include <sys/stat.h>
+#include <sys/ioctl.h>
 #include "drm.h"
 #include "i915_drm.h"
+#include "drmtest.h"
 
 static void
 test_flink(int fd)
