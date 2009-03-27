@@ -129,6 +129,26 @@ int main(int argc, char **argv)
 		else
 			step_desc = ">E0";
 		break;
+	case PCI_CHIP_GM45_GM:
+		if (stepping < 0x07)
+			step_desc = "<B3";
+		else if (stepping == 0x03)
+			step_desc = "B3";
+		else
+			step_desc = ">B3";
+		break;
+	case PCI_CHIP_G45_G:
+	case PCI_CHIP_Q45_G:
+	case PCI_CHIP_G41_G:
+		if (stepping < 0x02)
+			step_desc = "<A2";
+		else if (stepping == 0x02)
+			step_desc = "A2";
+		else if (stepping == 0x03)
+			step_desc = "A3";
+		else
+			step_desc = ">A3";
+		break;
 	}
 
 	printf("Vendor: 0x%04x, Device: 0x%04x, Revision: 0x%02x (%s)\n",
