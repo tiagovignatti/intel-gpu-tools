@@ -1,6 +1,7 @@
 libintel_tools_la_SOURCES = \
 	intel_batchbuffer.c \
 	intel_batchbuffer.h \
+	intel_chipset.h \
 	intel_gpu_tools.c \
 	intel_gpu_tools.h \
 	intel_reg.h \
