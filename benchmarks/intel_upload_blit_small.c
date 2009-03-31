@@ -76,6 +76,7 @@ do_render(drm_intel_bufmgr *bufmgr, struct intel_batchbuffer *batch,
 	uint32_t data[64];
 	drm_intel_bo *src_bo;
 	int i;
+	static uint32_t seed = 1;
 
 	src_bo = drm_intel_bo_alloc(bufmgr, "src", width * height * 4, 4096);
 
@@ -96,7 +97,7 @@ do_render(drm_intel_bufmgr *bufmgr, struct intel_batchbuffer *batch,
 			size = width * height - i;
 
 		for (j = 0; j < size; j++)
-			data[j] = (uint32_t)random();
+			data[j] = seed++;
 
 		/* Upload the junk. */
 		drm_intel_bo_subdata(src_bo, i * 4, size * 4, data);
@@ -160,7 +161,7 @@ int main(int argc, char **argv)
 
 	printf("%d iterations in %.03f secs: %.01f MB/sec\n", i,
 	       end_time - start_time,
-	       (double)OBJECT_WIDTH * OBJECT_HEIGHT * 4 /
+	       (double)i * OBJECT_WIDTH * OBJECT_HEIGHT * 4 / 1024.0 / 1024.0 /
 	       (end_time - start_time));
 
 	intel_batchbuffer_free(batch);

@@ -77,12 +77,13 @@ do_render(drm_intel_bufmgr *bufmgr, struct intel_batchbuffer *batch,
 	uint32_t data[width * height];
 	drm_intel_bo *src_bo;
 	int i;
+	static uint32_t seed = 1;
 
 	/* Generate some junk.  Real workloads would be doing a lot more
 	 * work to generate the junk.
 	 */
 	for (i = 0; i < width * height; i++) {
-		data[i] = (uint32_t)random();
+		data[i] = seed++;
 	}
 
 	/* Upload the junk. */
@@ -145,7 +146,7 @@ int main(int argc, char **argv)
 
 	printf("%d iterations in %.03f secs: %.01f MB/sec\n", i,
 	       end_time - start_time,
-	       (double)OBJECT_WIDTH * OBJECT_HEIGHT * 4 /
+	       (double)i * OBJECT_WIDTH * OBJECT_HEIGHT * 4 / 1024.0 / 1024.0 /
 	       (end_time - start_time));
 
 	intel_batchbuffer_free(batch);
