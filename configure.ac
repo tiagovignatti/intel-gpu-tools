@@ -46,7 +46,7 @@ DOLT
 AC_PROG_CC
 AM_PROG_CC_C_O
 
-PKG_CHECK_MODULES(DRM, [libdrm_intel >= 2.4.5])
+PKG_CHECK_MODULES(DRM, [libdrm_intel >= 2.4.6])
 PKG_CHECK_MODULES(PCIACCESS, [pciaccess >= 0.10])
 
 dnl Use lots of warning flags with GCC

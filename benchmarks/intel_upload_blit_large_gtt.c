@@ -41,7 +41,7 @@
  * rate, while this test has no limits, and so can get itself into the
  * working set larger than aperture size performance disaster.
  *
- * The current workload doing this path is pixmap upload for non-KMS.
+ * The current workload doing this path is pixmap upload in 2D with KMS.
  */
 
 #include <stdlib.h>
@@ -76,21 +76,21 @@ static void
 do_render(drm_intel_bufmgr *bufmgr, struct intel_batchbuffer *batch,
 	  drm_intel_bo *dst_bo, int width, int height)
 {
-	uint32_t data[width * height];
+	uint32_t *data;
 	drm_intel_bo *src_bo;
 	int i;
 	static uint32_t seed = 1;
 
-	/* Generate some junk.  Real workloads would be doing a lot more
-	 * work to generate the junk.
-	 */
+	src_bo = drm_intel_bo_alloc(bufmgr, "src", width * height * 4, 4096);
+
+	drm_intel_gem_bo_map_gtt(src_bo);
+
+	data = src_bo->virtual;
 	for (i = 0; i < width * height; i++) {
 		data[i] = seed++;
 	}
 
-	/* Upload the junk. */
-	src_bo = drm_intel_bo_alloc(bufmgr, "src", sizeof(data), 4096);
-	drm_intel_bo_subdata(src_bo, 0, sizeof(data), data);
+	drm_intel_gem_bo_unmap_gtt(src_bo);
 
 	/* Render the junk to the dst. */
 	BEGIN_BATCH(8);

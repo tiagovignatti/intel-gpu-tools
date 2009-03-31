@@ -29,6 +29,8 @@ shave-libtool
 stamp-h1
 cscope.*
 benchmarks/intel_upload_blit_large
+benchmarks/intel_upload_blit_large_gtt
+benchmarks/intel_upload_blit_large_map
 benchmarks/intel_upload_blit_small
 tests/getclient
 tests/getstats

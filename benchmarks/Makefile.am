@@ -1,5 +1,7 @@
 bin_PROGRAMS = \
 	intel_upload_blit_large \
+	intel_upload_blit_large_gtt \
+	intel_upload_blit_large_map \
 	intel_upload_blit_small
 
 BENCHMARK_LIBS = \
@@ -7,6 +9,8 @@ BENCHMARK_LIBS = \
 	$(DRM_LIBS)
 
 intel_upload_blit_large_LDADD = $(BENCHMARK_LIBS)
+intel_upload_blit_large_gtt_LDADD = $(BENCHMARK_LIBS)
+intel_upload_blit_large_map_LDADD = $(BENCHMARK_LIBS)
 intel_upload_blit_small_LDADD = $(BENCHMARK_LIBS)
 
 AM_CFLAGS = $(DRM_CFLAGS) $(WARN_CFLAGS) \
