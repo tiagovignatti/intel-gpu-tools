@@ -4,7 +4,8 @@ TESTS = getversion \
 	gem_basic \
 	gem_flink \
 	gem_readwrite \
-	gem_mmap
+	gem_mmap \
+	gem_tiled_blits
 
 EXTRA_PROGRAMS = $(TESTS)
 CLEANFILES = $(EXTRA_PROGRAMS)
@@ -12,4 +13,4 @@ CLEANFILES = $(EXTRA_PROGRAMS)
 AM_CFLAGS = $(DRM_CFLAGS) $(WARN_CFLAGS) \
 	-I$(srcdir)/.. \
 	-I$(srcdir)/../lib
-LDADD = $(DRM_LIBS) ../lib/libintel_tools.la
+LDADD = ../lib/libintel_tools.la $(PCIACCESS_LIBS) $(DRM_LIBS) 

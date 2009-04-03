@@ -29,12 +29,28 @@
 #include <stdio.h>
 #include <string.h>
 #include <err.h>
+#include <assert.h>
+#include <sys/ioctl.h>
 #include "intel_gpu_tools.h"
 #include "intel_chipset.h"
+#include "i915_drm.h"
 
 struct pci_device *pci_dev;
 uint32_t devid;
 void *mmio;
+
+void
+intel_get_drm_devid(int fd)
+{
+	int ret;
+	struct drm_i915_getparam gp;
+
+	gp.param = I915_PARAM_CHIPSET_ID;
+	gp.value = (int *)&devid;
+
+	ret = ioctl(fd, DRM_IOCTL_I915_GETPARAM, &gp, sizeof(gp));
+	assert(ret == 0);
+}
 
 void
 intel_get_mmio(void)

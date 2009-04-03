@@ -41,3 +41,4 @@ INREG(uint32_t reg)
 }
 
 void intel_get_mmio(void);
+void intel_get_drm_devid(int fd);
