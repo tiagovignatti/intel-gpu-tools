@@ -27,6 +27,8 @@
 
 #include <sys/types.h>
 #include <pciaccess.h>
+#include "i915_drm.h"
+#include "intel_batchbuffer.h"
 #include "intel_chipset.h"
 #include "intel_reg.h"
 
@@ -42,3 +44,6 @@ INREG(uint32_t reg)
 
 void intel_get_mmio(void);
 void intel_get_drm_devid(int fd);
+void intel_copy_bo(struct intel_batchbuffer *batch,
+		   drm_intel_bo *dst_bo, drm_intel_bo *src_bo,
+		   int width, int height);

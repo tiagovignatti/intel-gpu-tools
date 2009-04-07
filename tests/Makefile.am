@@ -5,6 +5,7 @@ TESTS = getversion \
 	gem_flink \
 	gem_readwrite \
 	gem_mmap \
+	gem_pread_after_blit \
 	gem_tiled_blits
 
 EXTRA_PROGRAMS = $(TESTS)

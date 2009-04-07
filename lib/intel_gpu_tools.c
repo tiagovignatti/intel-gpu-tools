@@ -32,8 +32,9 @@
 #include <assert.h>
 #include <sys/ioctl.h>
 #include "intel_gpu_tools.h"
-#include "intel_chipset.h"
 #include "i915_drm.h"
+#include "intel_batchbuffer.h"
+#include "intel_chipset.h"
 
 struct pci_device *pci_dev;
 uint32_t devid;
@@ -98,3 +99,48 @@ intel_get_mmio(void)
 		exit(1);
 	}
 }
+
+void
+intel_copy_bo(struct intel_batchbuffer *batch,
+	      drm_intel_bo *dst_bo, drm_intel_bo *src_bo,
+	      int width, int height)
+{
+	uint32_t src_tiling, dst_tiling, swizzle;
+	uint32_t src_pitch, dst_pitch;
+	uint32_t cmd_bits = 0;
+
+	drm_intel_bo_get_tiling(src_bo, &src_tiling, &swizzle);
+	drm_intel_bo_get_tiling(dst_bo, &dst_tiling, &swizzle);
+
+	src_pitch = width * 4;
+	if (IS_965(devid) && src_tiling != I915_TILING_NONE) {
+		src_pitch /= 4;
+		cmd_bits |= XY_SRC_COPY_BLT_SRC_TILED;
+	}
+
+	dst_pitch = width * 4;
+	if (IS_965(devid) && dst_tiling != I915_TILING_NONE) {
+		dst_pitch /= 4;
+		cmd_bits |= XY_SRC_COPY_BLT_DST_TILED;
+	}
+
+	BEGIN_BATCH(8);
+	OUT_BATCH(XY_SRC_COPY_BLT_CMD |
+		  XY_SRC_COPY_BLT_WRITE_ALPHA |
+		  XY_SRC_COPY_BLT_WRITE_RGB |
+		  cmd_bits);
+	OUT_BATCH((3 << 24) | /* 32 bits */
+		  (0xcc << 16) | /* copy ROP */
+		  dst_pitch);
+	OUT_BATCH(0); /* dst x1,y1 */
+	OUT_BATCH((height << 16) | width); /* dst x2,y2 */
+	OUT_RELOC(dst_bo, I915_GEM_DOMAIN_RENDER, I915_GEM_DOMAIN_RENDER, 0);
+	OUT_BATCH(0); /* src x1,y1 */
+	OUT_BATCH(src_pitch);
+	OUT_RELOC(src_bo, I915_GEM_DOMAIN_RENDER, 0, 0);
+	ADVANCE_BATCH();
+
+	intel_batchbuffer_flush(batch);
+}
+
+

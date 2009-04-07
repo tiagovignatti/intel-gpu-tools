@@ -38,6 +38,7 @@ tests/getversion
 tests/gem_basic
 tests/gem_flink
 tests/gem_mmap
+tests/gem_pread_after_blit
 tests/gem_readwrite
 tests/gem_tiled_blits
 tools/intel_gpu_dump
