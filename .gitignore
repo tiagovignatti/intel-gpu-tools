@@ -40,5 +40,6 @@ tests/gem_flink
 tests/gem_mmap
 tests/gem_readwrite
 tests/gem_tiled_blits
+tools/intel_gpu_dump
 tools/intel_gpu_top
 tools/intel_stepping

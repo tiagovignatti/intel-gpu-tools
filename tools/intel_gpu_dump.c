@@ -1,6 +1,7 @@
 /* -*- c-basic-offset: 4 -*- */
 /*
  * Copyright © 2007 Intel Corporation
+ * Copyright © 2009 Intel Corporation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -23,6 +24,7 @@
  *
  * Authors:
  *    Eric Anholt <eric@anholt.net>
+ *    Carl Worth <cworth@cworth.org>
  *
  */
 
@@ -35,10 +37,13 @@
  * decode, but never crash in the process.
  */
 
+#define _GNU_SOURCE 
 #include <stdio.h>
+#include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
 #include <inttypes.h>
+#include <errno.h>
 
 #include "intel_decode.h"
 #include "intel_chipset.h"
@@ -1713,7 +1718,7 @@ intel_decode(uint32_t *data, int count, uint32_t hw_offset, uint32_t devid)
     int index = 0;
     int failures = 0;
 
-    out = stderr;
+    out = stdout;
 
     while (index < count) {
 	switch ((data[index] & 0xe0000000) >> 29) {
@@ -1755,3 +1760,111 @@ void intel_decode_context_reset(void)
     saved_s4_set = 1;
 }
 
+/* Read a data file of the following form:
+ *
+ *	Offset0 :  Data0
+ *	Offset1 :  Data1
+ *	...
+ *
+ * Where both Offset and Data are ASCII representations of 8-digit
+ * hexadecimal numbers.
+ *
+ * After this function returns, *data will point to an allocated
+ * buffer, (which should be free()ed by the caller), and *count will
+ * indicate the number of data values read from the filename.
+ *
+ * Note: The values of the offset field are currently ignored. There
+ * are no guarantees that errors will be detected at all, (but for any
+ * error that is detected, this function is likely to just call
+ * exit()).
+ */
+static void
+read_data_file (const char * filename, uint32_t **data_ret, int *count_ret)
+{
+    FILE *file;
+    uint32_t *data = NULL;
+    int data_size = 0, count = 0, line_number = 0, matched;
+    char *line = NULL;
+    size_t line_size;
+    uint32_t offset, value;
+
+    file = fopen (filename, "r");
+    if (file == NULL) {
+	fprintf (stderr, "Failed to open %s: %s\n",
+		 filename, strerror (errno));
+	exit (1);
+    }
+
+    while (getline (&line, &line_size, file) > 0) {
+	line_number++;
+
+	matched = sscanf (line, "%08x : %08x", &offset, &value);
+	if (matched !=2 ) {
+	    fprintf (stderr, "Warning: Ignoring unrecognized line at %s:%d:\n%s",
+		     filename, line_number, line);
+	    continue;
+	}
+
+	count++;
+
+	if (count > data_size) {
+	    data_size = data_size ? data_size * 2 : 1024;
+	    data = realloc (data, data_size * sizeof (uint32_t));
+	    if (data == NULL) {
+		fprintf (stderr, "Out of memory.\n");
+		exit (1);
+	    }
+	}
+
+	data[count-1] = value;
+    }
+
+    free (line);
+
+    fclose (file);
+
+    *data_ret = data;
+    *count_ret = count;
+}
+
+/* By default, we'll want to grab the state of the current hardware
+ * by looking into the various debugfs nodes and grabbing all the
+ * relevant data.
+ *
+ * A secondary mode is to interpret a file with data captured
+ * previously. This is less interesting since a single file won't have
+ * compelte information, (we want both ringbuffer plus batchbuffer as
+ * well as error-status registers, etc). But for now, we'll start with
+ * this secondary mode as we let this program mature.
+ */
+int
+main (int argc, char *argv[])
+{
+    const char *filename;
+    uint32_t *data;
+    int count;
+
+    if (argc < 2) {
+	fprintf (stderr,
+		 "intel_gpu_dump: Parse an Intel GPU ringbuffer/batchbuffer data file\n"
+		 "\n"
+		 "Usage:\n"
+		 "\t%s <data-file>\n"
+		 "\n"
+		 "The data file can be found in either i915_ringbuffer_data\n"
+		 "or i915_batchbuffers file as made available via debugfs by\n"
+		 "the i915 kernel driver (as of Linux 2.6.30 or so).\n",
+		 argv[0]);
+	return 1;
+    }
+
+    filename = argv[1];
+
+    read_data_file (filename, &data, &count);
+
+    intel_decode (data, count, 0, 0);
+
+    free (data);
+
+    return 0;
+}
