@@ -41,6 +41,7 @@ tests/gem_mmap
 tests/gem_pread_after_blit
 tests/gem_readwrite
 tests/gem_tiled_blits
+tests/gem_tiled_pread
 tools/intel_gpu_dump
 tools/intel_gpu_top
 tools/intel_stepping
