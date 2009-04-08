@@ -1,6 +1,7 @@
 #ifndef INTEL_BATCHBUFFER_H
 #define INTEL_BATCHBUFFER_H
 
+#include <assert.h>
 #include "intel_bufmgr.h"
 #include "intel_reg.h"
 
