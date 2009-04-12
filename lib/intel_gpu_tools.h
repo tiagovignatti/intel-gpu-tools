@@ -42,6 +42,7 @@ INREG(uint32_t reg)
 	return *(volatile uint32_t *)((volatile char *)mmio + reg);
 }
 
+void intel_get_pci_device(void);
 void intel_get_mmio(void);
 void intel_get_drm_devid(int fd);
 void intel_copy_bo(struct intel_batchbuffer *batch,

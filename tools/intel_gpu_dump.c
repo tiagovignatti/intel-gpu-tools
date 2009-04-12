@@ -47,6 +47,7 @@
 
 #include "intel_decode.h"
 #include "intel_chipset.h"
+#include "intel_gpu_tools.h"
 
 #define BUFFER_FAIL(_count, _len, _name) do {			\
     fprintf(out, "Buffer size too small in %s (%d < %d)\n",	\
@@ -1858,11 +1859,12 @@ main (int argc, char *argv[])
 	return 1;
     }
 
+    intel_get_pci_device();
     filename = argv[1];
 
     read_data_file (filename, &data, &count);
 
-    intel_decode (data, count, 0, 0);
+    intel_decode (data, count, 0, devid);
 
     free (data);
 

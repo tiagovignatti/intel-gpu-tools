@@ -54,10 +54,9 @@ intel_get_drm_devid(int fd)
 }
 
 void
-intel_get_mmio(void)
+intel_get_pci_device(void)
 {
 	int err;
-	int mmio_bar;
 
 	err = pci_system_init();
 	if (err != 0) {
@@ -81,6 +80,15 @@ intel_get_mmio(void)
 	if (pci_dev->vendor_id != 0x8086)
 		errx(1, "Graphics card is non-intel");
 	devid = pci_dev->device_id;
+}
+
+void
+intel_get_mmio(void)
+{
+	int mmio_bar;
+	int err;
+
+	intel_get_pci_device();
 
 	if (IS_9XX(devid))
 		mmio_bar = 0;
