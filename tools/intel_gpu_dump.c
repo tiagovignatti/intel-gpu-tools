@@ -1953,7 +1953,10 @@ main (int argc, char *argv[])
 	    path = "/sys/kernel/debug/dri/0";
 	    err = stat(path, &st);
 	    if (err != 0) {
-		errx(1, "Couldn't find i915 debugfs directory\n");
+		errx(1,
+		     "Couldn't find i915 debugfs directory.\n\n"
+		     "Is debugfs mounted? You might try mounting it with a command such as:\n\n"
+		     "\tsudo mount -t debugfs debugfs /sys/kernel/debug\n");
 	    }
 	}
     } else {
