@@ -1857,11 +1857,8 @@ read_data_file (const char * filename, int is_batch)
     fclose (file);
 }
 
-/* Go poking in the directory next to the named file to see if ringbuffer
- * info's there.
- *
- * It would be cleaner if the argv to gpu dump was the location of the
- * debugfs dir, and we just appended.
+/* Grab the head/tail pointers we know about so we can annotate the batch
+ * and ring dumps.
  */
 static void
 parse_ringbuffer_info(const char *filename,
@@ -1911,7 +1908,7 @@ parse_ringbuffer_info(const char *filename,
     fclose (file);
 }
 
-/* By default, we'll want to grab the state of the current hardware
+/* By default, we grab the state of the current hardware
  * by looking into the various debugfs nodes and grabbing all the
  * relevant data.
  *
@@ -1928,28 +1925,43 @@ main (int argc, char *argv[])
     struct stat st;
     int err;
 
-    if (argc < 2) {
+    if (argc > 2) {
 	fprintf (stderr,
-		 "intel_gpu_dump: Parse an Intel GPU ringbuffer/batchbuffer data file\n"
+		 "intel_gpu_dump: Parse an Intel GPU ringbuffer/batchbuffer state\n"
 		 "\n"
 		 "Usage:\n"
+		 "\t%s\n"
 		 "\t%s <debugfs-dri-directory>\n"
 		 "\t%s <data-file>\n"
 		 "\n"
-		 "The data file can be found in either i915_ringbuffer_data\n"
-		 "or i915_batchbuffers file as made available via debugfs by\n"
-		 "the i915 kernel driver (as of Linux 2.6.30 or so).\n",
-		 argv[0], argv[0]);
+		 "With no arguments, debugfs-dri-directory is probed for in "
+		 "/debug and \n"
+		 "/sys/kernel/debug.  Otherwise, it may be "
+		 "specified.  If a file is given,\n"
+		 "it is parsed as a batchbuffer in the format of "
+		 "/debug/dri/0/i915_batchbuffers.\n",
+		 argv[0], argv[0], argv[0]);
 	return 1;
     }
 
     intel_get_pci_device();
 
-    path = argv[1];
-
-    err = stat(path, &st);
-    if (err != 0)
-	errx(1, "Couldn't stat the file or directory\n");
+    if (argc == 1) {
+	path = "/debug/dri/0";
+	err = stat(path, &st);
+	if (err != 0) {
+	    path = "/sys/kernel/debug/dri/0";
+	    err = stat(path, &st);
+	    if (err != 0) {
+		errx(1, "Couldn't find i915 debugfs directory\n");
+	    }
+	}
+    } else {
+	path = argv[1];
+	err = stat(path, &st);
+	if (err != 0)
+	    errx(1, "Couldn't stat the file or directory\n");
+    }
 
     if (S_ISDIR(st.st_mode)) {
 	char filename[1000];
