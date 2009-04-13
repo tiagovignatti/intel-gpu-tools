@@ -1788,6 +1788,7 @@ read_data_file (const char * filename, uint32_t **data_ret, int *count_ret)
     char *line = NULL;
     size_t line_size;
     uint32_t offset, value;
+    uint32_t gtt_offset = 0, new_gtt_offset;
 
     file = fopen (filename, "r");
     if (file == NULL) {
@@ -1798,6 +1799,17 @@ read_data_file (const char * filename, uint32_t **data_ret, int *count_ret)
 
     while (getline (&line, &line_size, file) > 0) {
 	line_number++;
+
+	matched = sscanf (line, "--- gtt_offset = 0x%08x\n", &new_gtt_offset);
+	if (matched == 1) {
+	    if (count) {
+		printf("buffer at 0x%08x:\n", gtt_offset);
+		intel_decode (data, count, gtt_offset, devid);
+		count = 0;
+	    }
+	    gtt_offset = new_gtt_offset;
+	    continue;
+	}
 
 	matched = sscanf (line, "%08x : %08x", &offset, &value);
 	if (matched !=2 ) {
@@ -1820,12 +1832,15 @@ read_data_file (const char * filename, uint32_t **data_ret, int *count_ret)
 	data[count-1] = value;
     }
 
+    if (count) {
+	printf("Batchbuffer at 0x%08x:\n", gtt_offset);
+	intel_decode (data, count, gtt_offset, devid);
+    }
+
+    free (data);
     free (line);
 
     fclose (file);
-
-    *data_ret = data;
-    *count_ret = count;
 }
 
 /* By default, we'll want to grab the state of the current hardware
@@ -1863,10 +1878,6 @@ main (int argc, char *argv[])
     filename = argv[1];
 
     read_data_file (filename, &data, &count);
-
-    intel_decode (data, count, 0, devid);
-
-    free (data);
 
     return 0;
 }
