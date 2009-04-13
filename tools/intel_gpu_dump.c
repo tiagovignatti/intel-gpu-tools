@@ -44,6 +44,8 @@
 #include <string.h>
 #include <inttypes.h>
 #include <errno.h>
+#include <sys/stat.h>
+#include <err.h>
 
 #include "intel_decode.h"
 #include "intel_chipset.h"
@@ -59,6 +61,8 @@
 static FILE *out;
 static uint32_t saved_s2 = 0, saved_s4 = 0;
 static char saved_s2_set = 0, saved_s4_set = 0;
+static uint32_t head_offset = 0xffffffff; /* undefined */
+static uint32_t tail_offset = 0xffffffff; /* undefined */
 
 static float
 int_as_float(uint32_t intval)
@@ -77,9 +81,18 @@ instr_out(uint32_t *data, uint32_t hw_offset, unsigned int index,
 	  char *fmt, ...)
 {
     va_list va;
+    char *parseinfo;
 
-    fprintf(out, "0x%08x: 0x%08x:%s ", hw_offset + index * 4, data[index],
-	    index == 0 ? "" : "  ");
+    if (hw_offset == head_offset)
+	parseinfo = "HEAD";
+    else if (hw_offset == tail_offset)
+	parseinfo = "TAIL";
+    else
+	parseinfo = "    ";
+
+    fprintf(out, "0x%08x: %s 0x%08x: %s", hw_offset + index * 4, parseinfo,
+	    data[index],
+	    index == 0 ? "" : "   ");
     va_start(va, fmt);
     vfprintf(out, fmt, va);
     va_end(va);
@@ -1780,7 +1793,7 @@ void intel_decode_context_reset(void)
  * exit()).
  */
 static void
-read_data_file (const char * filename, uint32_t **data_ret, int *count_ret)
+read_data_file (const char * filename, int is_batch)
 {
     FILE *file;
     uint32_t *data = NULL;
@@ -1789,6 +1802,7 @@ read_data_file (const char * filename, uint32_t **data_ret, int *count_ret)
     size_t line_size;
     uint32_t offset, value;
     uint32_t gtt_offset = 0, new_gtt_offset;
+    char *buffer_type = is_batch ? "batchbuffer" : "ringbuffer";
 
     file = fopen (filename, "r");
     if (file == NULL) {
@@ -1803,7 +1817,7 @@ read_data_file (const char * filename, uint32_t **data_ret, int *count_ret)
 	matched = sscanf (line, "--- gtt_offset = 0x%08x\n", &new_gtt_offset);
 	if (matched == 1) {
 	    if (count) {
-		printf("buffer at 0x%08x:\n", gtt_offset);
+		printf("%s at 0x%08x:\n", buffer_type, gtt_offset);
 		intel_decode (data, count, gtt_offset, devid);
 		count = 0;
 	    }
@@ -1833,11 +1847,65 @@ read_data_file (const char * filename, uint32_t **data_ret, int *count_ret)
     }
 
     if (count) {
-	printf("Batchbuffer at 0x%08x:\n", gtt_offset);
+	printf("%s at 0x%08x:\n", buffer_type, gtt_offset);
 	intel_decode (data, count, gtt_offset, devid);
     }
 
     free (data);
+    free (line);
+
+    fclose (file);
+}
+
+/* Go poking in the directory next to the named file to see if ringbuffer
+ * info's there.
+ *
+ * It would be cleaner if the argv to gpu dump was the location of the
+ * debugfs dir, and we just appended.
+ */
+static void
+parse_ringbuffer_info(const char *filename,
+		      uint32_t *ring_head, uint32_t *ring_tail,
+		      uint32_t *acthd)
+{
+    FILE *file;
+    int matched;
+    char *line = NULL;
+    size_t line_size;
+
+    *ring_head = 0xffffffff;
+    *ring_tail = 0xffffffff;
+    *acthd = 0xffffffff;
+
+    file = fopen (filename, "r");
+    if (file == NULL) {
+	fprintf (stderr, "Failed to open %s: %s\n",
+		 filename, strerror (errno));
+	exit (1);
+    }
+
+    while (getline (&line, &line_size, file) > 0) {
+	uint32_t val;
+
+	matched = sscanf (line, "RingHead : %x\n", &val);
+	if (matched == 1) {
+	    *ring_head = val;
+	    continue;
+	}
+
+	matched = sscanf (line, "RingTail : %x\n", &val);
+	if (matched == 1) {
+	    *ring_tail = val;
+	    continue;
+	}
+
+	matched = sscanf (line, "Acthd : %x\n", &val);
+	if (matched == 1) {
+	    *acthd = val;
+	    continue;
+	}
+    }
+
     free (line);
 
     fclose (file);
@@ -1856,28 +1924,55 @@ read_data_file (const char * filename, uint32_t **data_ret, int *count_ret)
 int
 main (int argc, char *argv[])
 {
-    const char *filename;
-    uint32_t *data;
-    int count;
+    const char *path;
+    struct stat st;
+    int err;
 
     if (argc < 2) {
 	fprintf (stderr,
 		 "intel_gpu_dump: Parse an Intel GPU ringbuffer/batchbuffer data file\n"
 		 "\n"
 		 "Usage:\n"
+		 "\t%s <debugfs-dri-directory>\n"
 		 "\t%s <data-file>\n"
 		 "\n"
 		 "The data file can be found in either i915_ringbuffer_data\n"
 		 "or i915_batchbuffers file as made available via debugfs by\n"
 		 "the i915 kernel driver (as of Linux 2.6.30 or so).\n",
-		 argv[0]);
+		 argv[0], argv[0]);
 	return 1;
     }
 
     intel_get_pci_device();
-    filename = argv[1];
 
-    read_data_file (filename, &data, &count);
+    path = argv[1];
+
+    err = stat(path, &st);
+    if (err != 0)
+	errx(1, "Couldn't stat the file or directory\n");
+
+    if (S_ISDIR(st.st_mode)) {
+	char filename[1000];
+	uint32_t ring_head, ring_tail, acthd;
+
+	sprintf(filename, "%s/i915_ringbuffer_info", path);
+	parse_ringbuffer_info(filename, &ring_head, &ring_tail, &acthd);
+
+	sprintf(filename, "%s/i915_batchbuffers", path);
+	head_offset = acthd;
+	tail_offset = 0xffffffff;
+	read_data_file (filename, 1);
+
+	sprintf(filename, "%s/i915_ringbuffer_data", path);
+	head_offset = ring_head;
+	tail_offset = ring_tail;
+	printf("Ringbuffer: ");
+	printf("Reminder: head pointer is GPU read, tail pointer is CPU "
+	       "write\n");
+	read_data_file (filename, 0);
+    } else {
+	read_data_file (path, 1);
+    }
 
     return 0;
 }
