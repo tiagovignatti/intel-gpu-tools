@@ -1974,6 +1974,19 @@ main (int argc, char *argv[])
 	uint32_t ring_head, ring_tail, acthd;
 
 	sprintf(filename, "%s/i915_ringbuffer_info", path);
+
+	err = stat(filename, &st);
+	if (err != 0) {
+	    fprintf (stderr,
+		     "Error opening %s: %s\n\n"
+		     "Perhaps your i915 kernel driver has no support for "
+		     "dumping batchbuffer data?\n"
+		     "(In kernels prior to 2.6.30 this requires "
+		     "manually-applied patches.)\n",
+		     path, strerror (errno));
+	    exit (1);
+	}
+
 	parse_ringbuffer_info(filename, &ring_head, &ring_tail, &acthd);
 
 	sprintf(filename, "%s/i915_batchbuffers", path);
