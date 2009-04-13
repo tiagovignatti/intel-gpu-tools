@@ -1970,10 +1970,10 @@ main (int argc, char *argv[])
     }
 
     if (S_ISDIR(st.st_mode)) {
-	char filename[1000];
+	char *filename;
 	uint32_t ring_head, ring_tail, acthd;
 
-	sprintf(filename, "%s/i915_ringbuffer_info", path);
+	asprintf(&filename, "%s/i915_ringbuffer_info", path);
 
 	err = stat(filename, &st);
 	if (err != 0) {
@@ -1988,19 +1988,22 @@ main (int argc, char *argv[])
 	}
 
 	parse_ringbuffer_info(filename, &ring_head, &ring_tail, &acthd);
+	free (filename);
 
-	sprintf(filename, "%s/i915_batchbuffers", path);
+	asprintf (&filename, "%s/i915_batchbuffers", path);
 	head_offset = acthd;
 	tail_offset = 0xffffffff;
 	read_data_file (filename, 1);
+	free (filename);
 
-	sprintf(filename, "%s/i915_ringbuffer_data", path);
+	asprintf (&filename, "%s/i915_ringbuffer_data", path);
 	head_offset = ring_head;
 	tail_offset = ring_tail;
 	printf("Ringbuffer: ");
 	printf("Reminder: head pointer is GPU read, tail pointer is CPU "
 	       "write\n");
 	read_data_file (filename, 0);
+	free (filename);
     } else {
 	read_data_file (path, 1);
     }
