@@ -1962,8 +1962,11 @@ main (int argc, char *argv[])
     } else {
 	path = argv[1];
 	err = stat(path, &st);
-	if (err != 0)
-	    errx(1, "Couldn't stat the file or directory\n");
+	if (err != 0) {
+	    fprintf (stderr, "Error opening %s: %s\n",
+		     path, strerror (errno));
+	    exit (1);
+	}
     }
 
     if (S_ISDIR(st.st_mode)) {
