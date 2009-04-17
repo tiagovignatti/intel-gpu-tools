@@ -31,7 +31,10 @@
 #include <err.h>
 #include "intel_gpu_tools.h"
 
-#define MAX_NUM_TOP_BITS	100
+#define SAMPLES_PER_SEC             10000
+#define SAMPLES_TO_PERCENT_RATIO    (SAMPLES_PER_SEC / 100)
+
+#define MAX_NUM_TOP_BITS            100
 
 struct top_bit {
 	/* initial setup */
@@ -247,7 +250,7 @@ int main(int argc, char **argv)
 		int total_ring_full = 0;
 		int ring_idle = 0;
 
-		for (i = 0; i < 100; i++) {
+		for (i = 0; i < SAMPLES_PER_SEC; i++) {
 			uint32_t ring_head, ring_tail;
 			int ring_full;
 
@@ -271,7 +274,7 @@ int main(int argc, char **argv)
 
 			total_ring_full += ring_full;
 
-			usleep(10000);
+			usleep(1000000 / SAMPLES_PER_SEC);
 		}
 
 		qsort(top_bits_sorted, num_top_bits, sizeof(struct top_bit *),
@@ -282,17 +285,17 @@ int main(int argc, char **argv)
 		print_clock_info();
 
 		printf("ring idle: %3d%%  ring space: %d/%d (%d%%)\n",
-		       ring_idle,
-		       total_ring_full / 100, ring_size,
-		       total_ring_full / ring_size);
+		       ring_idle / SAMPLES_TO_PERCENT_RATIO,
+		       total_ring_full / SAMPLES_PER_SEC, ring_size,
+		       (total_ring_full / SAMPLES_TO_PERCENT_RATIO) / ring_size);
 		printf("%30s  %s\n\n", "task", "percent busy");
 		for (i = 0; i < num_top_bits; i++) {
-			if (top_bits_sorted[i]->count == 0)
+			if (top_bits_sorted[i]->count < 1)
 				break;
 
 			printf("%30s: %d%%\n",
 			       top_bits_sorted[i]->name,
-			       top_bits_sorted[i]->count);
+			       top_bits_sorted[i]->count / SAMPLES_TO_PERCENT_RATIO);
 
 			top_bits_sorted[i]->count = 0;
 		}
