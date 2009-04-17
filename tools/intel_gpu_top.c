@@ -313,7 +313,7 @@ int main(int argc, char **argv)
 		qsort(top_bits_sorted, num_top_bits, sizeof(struct top_bit *),
 		      top_bits_sort);
 
-		printf(clear_screen);
+		printf("%s", clear_screen);
 
 		print_clock_info();
 
