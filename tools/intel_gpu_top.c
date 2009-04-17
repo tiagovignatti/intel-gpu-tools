@@ -52,6 +52,18 @@ int num_top_bits;
 
 uint32_t instdone;
 
+static const char *bars[] = {
+	" ",
+	"▏",
+	"▎",
+	"▍",
+	"▌",
+	"▋",
+	"▊",
+	"▉",
+	"█"
+};
+
 static int
 top_bits_sort(const void *a, const void *b)
 {
@@ -178,6 +190,26 @@ print_clock_info(void)
 	return -1;
 }
 
+static void
+print_percentage_bar(float percent)
+{
+	int bar_len = 3.6 * percent;
+	int bar_char_len = bar_len / 8;
+	int i;
+
+	if (bar_len % 8)
+		bar_char_len++;
+
+	for (i = bar_len; i >= 8; i -= 8)
+		printf("%s", bars[8]);
+	if (i)
+		printf("%s", bars[i]);
+
+	/* NB: We can't use a field width with utf8 so we manually
+	* guarantee a field with of 45 chars for any bar. */
+	printf("%*s\n", (45 - bar_char_len), "");
+}
+
 int main(int argc, char **argv)
 {
 	intel_get_mmio();
@@ -249,6 +281,7 @@ int main(int argc, char **argv)
 				       0x0};
 		int total_ring_full = 0;
 		int ring_idle = 0;
+		int percent;
 
 		for (i = 0; i < SAMPLES_PER_SEC; i++) {
 			uint32_t ring_head, ring_tail;
@@ -284,18 +317,25 @@ int main(int argc, char **argv)
 
 		print_clock_info();
 
-		printf("ring idle: %3d%%  ring space: %d/%d (%d%%)\n",
-		       ring_idle / SAMPLES_TO_PERCENT_RATIO,
-		       total_ring_full / SAMPLES_PER_SEC, ring_size,
+		percent = ring_idle / SAMPLES_TO_PERCENT_RATIO;
+		printf("%30s: %3d%%: ", "ring idle", percent);
+		print_percentage_bar (percent);
+
+		printf("%30s: %d/%d (%d%%)\n", "ring space",
+		       total_ring_full / SAMPLES_PER_SEC,
+		       ring_size,
 		       (total_ring_full / SAMPLES_TO_PERCENT_RATIO) / ring_size);
+
 		printf("%30s  %s\n\n", "task", "percent busy");
 		for (i = 0; i < num_top_bits; i++) {
 			if (top_bits_sorted[i]->count < 1)
 				break;
 
-			printf("%30s: %d%%\n",
+			percent = top_bits_sorted[i]->count / SAMPLES_TO_PERCENT_RATIO;
+			printf("%30s: %3d%%: ",
 			       top_bits_sorted[i]->name,
-			       top_bits_sorted[i]->count / SAMPLES_TO_PERCENT_RATIO);
+			       percent);
+			print_percentage_bar (percent);
 
 			top_bits_sorted[i]->count = 0;
 		}
