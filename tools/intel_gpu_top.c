@@ -86,6 +86,7 @@ add_instdone_bit(uint32_t bit, char *name)
 int main(int argc, char **argv)
 {
 	intel_get_mmio();
+	uint32_t ring_size;
 
 	if (IS_965(devid)) {
 		add_instdone_bit(I965_ROW_0_EU_0_DONE, "Row 0, EU 0");
@@ -144,13 +145,20 @@ int main(int argc, char **argv)
 		add_instdone_bit(MAP_L2_IDLE, "Map L2");
 	}
 
+	ring_size = ((INREG(LP_RING + RING_LEN) & RING_NR_PAGES) >> 12) * 4096;
+
 	for (;;) {
 		int i, j;
 		char clear_screen[] = {0x1b, '[', 'H',
 				       0x1b, '[', 'J',
 				       0x0};
+		int total_ring_full = 0;
+		int ring_idle = 0;
 
 		for (i = 0; i < 100; i++) {
+			uint32_t ring_head, ring_tail;
+			int ring_full;
+
 			if (IS_965(devid))
 				instdone = INREG(INST_DONE_I965);
 			else
@@ -159,6 +167,18 @@ int main(int argc, char **argv)
 			for (j = 0; j < num_top_bits; j++)
 				top_bits[j].update(&top_bits[j]);
 
+			ring_head = INREG(LP_RING + RING_HEAD) & HEAD_ADDR;
+			ring_tail = INREG(LP_RING + RING_TAIL) & TAIL_ADDR;
+
+			if (ring_tail == ring_head)
+				ring_idle++;
+
+			ring_full = ring_tail - ring_head;
+			if (ring_full < 0)
+				ring_full += ring_size;
+
+			total_ring_full += ring_full;
+
 			usleep(10000);
 		}
 
@@ -166,12 +186,16 @@ int main(int argc, char **argv)
 		      top_bits_sort);
 
 		printf(clear_screen);
+		printf("ring idle: %3d%%  ring space: %d/%d (%d%%)\n",
+		       ring_idle,
+		       total_ring_full / 100, ring_size,
+		       total_ring_full / ring_size);
 		printf("%30s  %s\n\n", "task", "percent busy");
 		for (i = 0; i < num_top_bits; i++) {
 			if (top_bits_sorted[i]->count == 0)
 				break;
 
-			printf("%30s: %d\n",
+			printf("%30s: %d%%\n",
 			       top_bits_sorted[i]->name,
 			       top_bits_sorted[i]->count);
 
