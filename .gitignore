@@ -32,6 +32,8 @@ benchmarks/intel_upload_blit_large
 benchmarks/intel_upload_blit_large_gtt
 benchmarks/intel_upload_blit_large_map
 benchmarks/intel_upload_blit_small
+m4/libtool.m4
+m4/lt*.m4
 tests/getclient
 tests/getstats
 tests/getversion
