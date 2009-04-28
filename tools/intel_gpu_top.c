@@ -28,10 +28,13 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include <err.h>
 #include "intel_gpu_tools.h"
 
 #define MAX_NUM_TOP_BITS	100
+
+int use_stars;
 
 struct top_bit {
 	/* initial setup */
@@ -87,6 +90,11 @@ int main(int argc, char **argv)
 {
 	intel_get_mmio();
 	uint32_t ring_size;
+
+	if (argc > 1) {
+		if (strcmp(argv[1], "--stars")==0)
+			use_stars = 1;
+	}
 
 	if (IS_965(devid)) {
 		add_instdone_bit(I965_ROW_0_EU_0_DONE, "Row 0, EU 0");
@@ -192,13 +200,19 @@ int main(int argc, char **argv)
 		       total_ring_full / ring_size);
 		printf("%30s  %s\n\n", "task", "percent busy");
 		for (i = 0; i < num_top_bits; i++) {
+			int j;
 			if (top_bits_sorted[i]->count == 0)
 				break;
 
-			printf("%30s: %d%%\n",
-			       top_bits_sorted[i]->name,
-			       top_bits_sorted[i]->count);
+			printf("%30s: %d%% ",
+				top_bits_sorted[i]->name,
+				top_bits_sorted[i]->count);
 
+			if (use_stars) {
+				for (j = 0; j < top_bits_sorted[i]->count / 4; j++)
+					printf("*");
+			}
+			printf("\n");
 			top_bits_sorted[i]->count = 0;
 		}
 	}
