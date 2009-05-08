@@ -2100,7 +2100,7 @@ main (int argc, char *argv[])
 		     "dumping batchbuffer data?\n"
 		     "(In kernels prior to 2.6.30 this requires "
 		     "manually-applied patches.)\n",
-		     path, strerror (errno));
+		     filename, strerror (errno));
 	    exit (1);
 	}
 
