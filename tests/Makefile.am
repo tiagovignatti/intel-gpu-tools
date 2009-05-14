@@ -8,7 +8,8 @@ TESTS = getversion \
 	gem_mmap \
 	gem_pread_after_blit \
 	gem_tiled_pread \
-	gem_tiled_blits
+	gem_tiled_blits \
+	gem_largeobject
 
 EXTRA_PROGRAMS = $(TESTS)
 CLEANFILES = $(EXTRA_PROGRAMS)
