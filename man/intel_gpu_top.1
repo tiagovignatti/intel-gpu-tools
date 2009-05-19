@@ -1,0 +1,18 @@
+.\" shorthand for double quote that works everywhere.
+.ds q \N'34'
+.TH intel_gpu_top 1 "intel_gpu_top 1.0"
+.SH NAME
+intel_gpu_top \- Display a top-like summary of Intel GPU usage
+.SH SYNOPSIS
+.B intel_gpu_top
+.SH DESCRIPTION
+.B intel_gpu_top
+is a tool to display usage information of an Intel GPU.  It requires root
+privilege to map the graphics device.
+.PP
+Note that idle units are not
+displayed, so an entirely idle GPU will only display the ring status and
+header.
+.SH BUGS
+Some GPUs report some units as busy when they aren't, such that even when
+idle and not hung, it will show up as 100% busy.

@@ -22,7 +22,7 @@
 AUTOMAKE_OPTIONS = foreign
 ACLOCAL_AMFLAGS = -I m4
 
-SUBDIRS = lib tests tools benchmarks
+SUBDIRS = lib man tests tools benchmarks
 DISTCLEANFILES = \
 	doltcompile \
 	doltlibtool

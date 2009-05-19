@@ -67,6 +67,7 @@ AC_OUTPUT([
 	Makefile
 	benchmarks/Makefile
 	lib/Makefile
+	man/Makefile
 	tests/Makefile
 	tools/Makefile
 ])
