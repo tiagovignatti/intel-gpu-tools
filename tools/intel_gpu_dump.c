@@ -130,6 +130,11 @@ decode_mi(uint32_t *data, int count, uint32_t hw_offset, int *failures)
 	{ 0x03, 0, 1, 1, "MI_WAIT_FOR_EVENT" },
     };
 
+    switch ((data[0] & 0x1f800000) >> 23) {
+    case 0x0a:
+	instr_out(data, hw_offset, 0, "MI_BATCH_BUFFER_END\n");
+	return -1;
+    }
 
     for (opcode = 0; opcode < sizeof(opcodes_mi) / sizeof(opcodes_mi[0]);
 	 opcode++) {
@@ -1785,6 +1790,7 @@ decode_3d_i830(uint32_t *data, int count, uint32_t hw_offset, int *failures)
 int
 intel_decode(uint32_t *data, int count, uint32_t hw_offset, uint32_t devid)
 {
+    int ret;
     int index = 0;
     int failures = 0;
 
@@ -1793,8 +1799,19 @@ intel_decode(uint32_t *data, int count, uint32_t hw_offset, uint32_t devid)
     while (index < count) {
 	switch ((data[index] & 0xe0000000) >> 29) {
 	case 0x0:
-	    index += decode_mi(data + index, count - index,
+	    ret = decode_mi(data + index, count - index,
 			       hw_offset + index * 4, &failures);
+
+	    /* If MI_BATCHBUFFER_END happened, then dump the rest of the
+	     * output in case we some day want it in debugging, but don't
+	     * decode it since it'll just confuse in the common case.
+	     */
+	    if (ret == -1) {
+		for (index = index + 1; index < count; index++) {
+		    instr_out(data, hw_offset, index, "\n");
+		}
+	    } else
+		index += ret;
 	    break;
 	case 0x2:
 	    index += decode_2d(data + index, count - index,
