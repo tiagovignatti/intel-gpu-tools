@@ -190,24 +190,26 @@ print_clock_info(void)
 	return -1;
 }
 
+#define PERCENTAGE_BAR_END	79
 static void
-print_percentage_bar(float percent)
+print_percentage_bar(float percent, int cur_line_len)
 {
-	int bar_len = 3.6 * percent;
-	int bar_char_len = bar_len / 8;
+	int bar_avail_len = (PERCENTAGE_BAR_END - cur_line_len - 1) * 8;
+	int bar_len = bar_avail_len * (percent + .5) / 100.0;
 	int i;
 
-	if (bar_len % 8)
-		bar_char_len++;
-
-	for (i = bar_len; i >= 8; i -= 8)
+	for (i = bar_len; i >= 8; i -= 8) {
 		printf("%s", bars[8]);
-	if (i)
+		cur_line_len++;
+	}
+	if (i) {
 		printf("%s", bars[i]);
+		cur_line_len++;
+	}
 
 	/* NB: We can't use a field width with utf8 so we manually
 	* guarantee a field with of 45 chars for any bar. */
-	printf("%*s\n", (45 - bar_char_len), "");
+	printf("%*s\n", PERCENTAGE_BAR_END - cur_line_len, "");
 }
 
 int main(int argc, char **argv)
@@ -282,6 +284,7 @@ int main(int argc, char **argv)
 		int total_ring_full = 0;
 		int ring_idle = 0;
 		int percent;
+		int len;
 
 		for (i = 0; i < SAMPLES_PER_SEC; i++) {
 			uint32_t ring_head, ring_tail;
@@ -318,8 +321,8 @@ int main(int argc, char **argv)
 		print_clock_info();
 
 		percent = ring_idle / SAMPLES_TO_PERCENT_RATIO;
-		printf("%30s: %3d%%: ", "ring idle", percent);
-		print_percentage_bar (percent);
+		len = printf("%30s: %3d%%: ", "ring idle", percent);
+		print_percentage_bar (percent, len);
 
 		printf("%30s: %d/%d (%d%%)\n", "ring space",
 		       total_ring_full / SAMPLES_PER_SEC,
@@ -332,10 +335,10 @@ int main(int argc, char **argv)
 				break;
 
 			percent = top_bits_sorted[i]->count / SAMPLES_TO_PERCENT_RATIO;
-			printf("%30s: %3d%%: ",
-			       top_bits_sorted[i]->name,
-			       percent);
-			print_percentage_bar (percent);
+			len = printf("%30s: %3d%%: ",
+				     top_bits_sorted[i]->name,
+				     percent);
+			print_percentage_bar (percent, len);
 
 			top_bits_sorted[i]->count = 0;
 		}
