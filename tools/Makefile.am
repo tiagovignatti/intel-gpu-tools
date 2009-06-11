@@ -1,7 +1,8 @@
 bin_PROGRAMS = \
 	intel_gpu_dump \
 	intel_gpu_top \
-	intel_stepping
+	intel_stepping \
+	intel_reg_write
 
 intel_gpu_dump_SOURCES = \
 	intel_gpu_dump.c \
