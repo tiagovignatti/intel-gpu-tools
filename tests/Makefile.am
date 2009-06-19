@@ -9,7 +9,11 @@ TESTS = getversion \
 	gem_pread_after_blit \
 	gem_tiled_pread \
 	gem_tiled_blits \
-	gem_largeobject
+	gem_largeobject \
+	gem_bad_address \
+	gem_bad_blit \
+	gem_bad_batch \
+	gem_hang
 
 EXTRA_PROGRAMS = $(TESTS)
 CLEANFILES = $(EXTRA_PROGRAMS)

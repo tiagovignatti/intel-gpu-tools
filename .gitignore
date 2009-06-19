@@ -46,6 +46,10 @@ tests/gem_readwrite
 tests/gem_ringfill
 tests/gem_tiled_blits
 tests/gem_tiled_pread
+tests/gem_bad_address
+tests/gem_bad_batch
+tests/gem_bad_blit
+tests/gem_hang
 tools/intel_gpu_dump
 tools/intel_gpu_top
 tools/intel_stepping
