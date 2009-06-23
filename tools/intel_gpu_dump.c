@@ -82,15 +82,16 @@ instr_out(uint32_t *data, uint32_t hw_offset, unsigned int index,
 {
     va_list va;
     char *parseinfo;
+    uint32_t offset = hw_offset + index * 4;
 
-    if (hw_offset == head_offset)
+    if (offset == head_offset)
 	parseinfo = "HEAD";
-    else if (hw_offset == tail_offset)
+    else if (offset == tail_offset)
 	parseinfo = "TAIL";
     else
 	parseinfo = "    ";
 
-    fprintf(out, "0x%08x: %s 0x%08x: %s", hw_offset + index * 4, parseinfo,
+    fprintf(out, "0x%08x: %s 0x%08x: %s", offset + index * 4, parseinfo,
 	    data[index],
 	    index == 0 ? "" : "   ");
     va_start(va, fmt);
