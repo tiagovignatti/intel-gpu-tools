@@ -2063,6 +2063,8 @@ main (int argc, char *argv[])
 	parse_ringbuffer_info(filename, &ring_head, &ring_tail, &acthd);
 	free (filename);
 
+	printf("ACTHD: 0x%08x\n", acthd);
+
 	asprintf (&filename, "%s/i915_batchbuffers", path);
 	head_offset = acthd;
 	tail_offset = 0xffffffff;
