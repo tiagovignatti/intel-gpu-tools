@@ -91,7 +91,7 @@ instr_out(uint32_t *data, uint32_t hw_offset, unsigned int index,
     else
 	parseinfo = "    ";
 
-    fprintf(out, "0x%08x: %s 0x%08x: %s", offset + index * 4, parseinfo,
+    fprintf(out, "0x%08x: %s 0x%08x: %s", offset, parseinfo,
 	    data[index],
 	    index == 0 ? "" : "   ");
     va_start(va, fmt);
@@ -2018,7 +2018,7 @@ main (int argc, char *argv[])
 	return 1;
     }
 
-    intel_get_pci_device();
+    intel_get_mmio();
 
     if (argc == 1) {
 	path = "/debug/dri/0";
@@ -2065,6 +2065,10 @@ main (int argc, char *argv[])
 	free (filename);
 
 	printf("ACTHD: 0x%08x\n", acthd);
+	printf("EIR: 0x%08x\n", INREG(EIR));
+	printf("EMR: 0x%08x\n", INREG(EMR));
+	printf("ESR: 0x%08x\n", INREG(ESR));
+	printf("IPEHR: 0x%08x\n", INREG(IPEHR_I965));
 
 	asprintf (&filename, "%s/i915_batchbuffers", path);
 	head_offset = acthd;
