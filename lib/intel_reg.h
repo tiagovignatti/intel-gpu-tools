@@ -446,6 +446,26 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #define DMA_FADD_P             0x2078
 #define DMA_FADD_S               0x20d4
 #define INST_DONE_1              0x207c
+# define I965_GW_CS_DONE_CR		(1 << 19)
+# define I965_SVSM_CS_DONE_CR		(1 << 18)
+# define I965_SVDW_CS_DONE_CR		(1 << 17)
+# define I965_SVDR_CS_DONE_CR		(1 << 16)
+# define I965_SVRW_CS_DONE_CR		(1 << 15)
+# define I965_SVRR_CS_DONE_CR		(1 << 14)
+# define I965_SVTW_CS_DONE_CR		(1 << 13)
+# define I965_MASM_CS_DONE_CR		(1 << 12)
+# define I965_MASF_CS_DONE_CR		(1 << 11)
+# define I965_MAW_CS_DONE_CR		(1 << 10)
+# define I965_EM1_CS_DONE_CR		(1 << 9)
+# define I965_EM0_CS_DONE_CR		(1 << 8)
+# define I965_UC1_CS_DONE		(1 << 7)
+# define I965_UC0_CS_DONE		(1 << 6)
+# define I965_URB_CS_DONE		(1 << 5)
+# define I965_ISC_CS_DONE		(1 << 4)
+# define I965_CL_CS_DONE		(1 << 3)
+# define I965_GS_CS_DONE		(1 << 2)
+# define I965_VS0_CS_DONE		(1 << 1)
+# define I965_VF_CS_DONE		(1 << 0)
 
 #define CACHE_MODE_0           0x2120
 #define CACHE_MODE_1           0x2124

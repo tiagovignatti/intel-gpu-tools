@@ -50,7 +50,7 @@ struct top_bit *top_bits_sorted[MAX_NUM_TOP_BITS];
 
 int num_top_bits;
 
-uint32_t instdone;
+static uint32_t instdone, instdone1;
 
 static const char *bars[] = {
 	" ",
@@ -91,6 +91,17 @@ static void
 add_instdone_bit(uint32_t bit, char *name)
 {
 	top_bits[num_top_bits].reg = &instdone;
+	top_bits[num_top_bits].bit = bit;
+	top_bits[num_top_bits].name = name;
+	top_bits[num_top_bits].update = update_idle_bit;
+	top_bits_sorted[num_top_bits] = &top_bits[num_top_bits];
+	num_top_bits++;
+}
+
+static void
+add_instdone1_bit(uint32_t bit, char *name)
+{
+	top_bits[num_top_bits].reg = &instdone1;
 	top_bits[num_top_bits].bit = bit;
 	top_bits[num_top_bits].name = name;
 	top_bits[num_top_bits].update = update_idle_bit;
@@ -247,6 +258,27 @@ int main(int argc, char **argv)
 		add_instdone_bit(I965_IC_ROW_0_DONE, "Instruction cache row 0");
 		add_instdone_bit(I965_IC_ROW_1_DONE, "Instruction cache row 1");
 		add_instdone_bit(I965_CP_DONE, "Command Processor");
+
+		add_instdone1_bit(I965_GW_CS_DONE_CR, "GW CS CR");
+		add_instdone1_bit(I965_SVSM_CS_DONE_CR, "SVSM CS CR");
+		add_instdone1_bit(I965_SVDW_CS_DONE_CR, "SVDW CS CR");
+		add_instdone1_bit(I965_SVDR_CS_DONE_CR, "SVDR CS CR");
+		add_instdone1_bit(I965_SVRW_CS_DONE_CR, "SVRW CS CR");
+		add_instdone1_bit(I965_SVRR_CS_DONE_CR, "SVRR CS CR");
+		add_instdone1_bit(I965_SVTW_CS_DONE_CR, "SVTW CS CR");
+		add_instdone1_bit(I965_MASM_CS_DONE_CR, "MASM CS CR");
+		add_instdone1_bit(I965_MASF_CS_DONE_CR, "MASF CS CR");
+		add_instdone1_bit(I965_MAW_CS_DONE_CR, "MAW CS CR");
+		add_instdone1_bit(I965_EM1_CS_DONE_CR, "EM1 CS CR");
+		add_instdone1_bit(I965_EM0_CS_DONE_CR, "EM0 CS CR");
+		add_instdone1_bit(I965_UC1_CS_DONE, "UC1 CS");
+		add_instdone1_bit(I965_UC0_CS_DONE, "UC0 CS");
+		add_instdone1_bit(I965_URB_CS_DONE, "URB CS");
+		add_instdone1_bit(I965_ISC_CS_DONE, "ISC CS");
+		add_instdone1_bit(I965_CL_CS_DONE, "CL CS");
+		add_instdone1_bit(I965_GS_CS_DONE, "GS CS");
+		add_instdone1_bit(I965_VS0_CS_DONE, "VS0 CS");
+		add_instdone1_bit(I965_VF_CS_DONE, "VF CS");
 	} else if (IS_9XX(devid)) {
 		add_instdone_bit(IDCT_DONE, "IDCT");
 		add_instdone_bit(IQ_DONE, "IQ");
@@ -290,9 +322,10 @@ int main(int argc, char **argv)
 			uint32_t ring_head, ring_tail;
 			int ring_full;
 
-			if (IS_965(devid))
+			if (IS_965(devid)) {
 				instdone = INREG(INST_DONE_I965);
-			else
+				instdone1 = INREG(INST_DONE_1);
+			} else
 				instdone = INREG(INST_DONE);
 
 			for (j = 0; j < num_top_bits; j++)
