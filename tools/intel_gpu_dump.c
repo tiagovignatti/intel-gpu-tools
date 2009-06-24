@@ -1428,6 +1428,43 @@ get_965_prim_type(uint32_t data)
 }
 
 static int
+i965_decode_urb_fence(uint32_t *data, uint32_t hw_offset, int len, int count,
+ 		      int *failures)
+{
+	uint32_t vs_fence, clip_fence, gs_fence, sf_fence, vfe_fence, cs_fence;
+
+	if (len != 3)
+	    fprintf(out, "Bad count in URB_FENCE\n");
+	if (count < 3)
+	    BUFFER_FAIL(count, len, "URB_FENCE");
+
+	vs_fence = data[1] & 0x3ff;
+	gs_fence = (data[1] >> 10) & 0x3ff;
+	clip_fence = (data[1] >> 20) & 0x3ff;
+	sf_fence = data[2] & 0x3ff;
+	vfe_fence = (data[2] >> 10) & 0x3ff;
+	cs_fence = (data[2] >> 20) & 0x3ff;
+
+	instr_out(data, hw_offset, 0, "URB_FENCE\n");
+	instr_out(data, hw_offset, 1,
+		  "vs fence: %d, clip_fence: %d, gs_fence: %d\n",
+		  vs_fence, clip_fence, sf_fence);
+	instr_out(data, hw_offset, 2,
+		  "sf fence: %d, vfe_fence: %d, cs_fence: %d\n",
+		  sf_fence, vfe_fence, cs_fence);
+	if (gs_fence < vs_fence)
+	    fprintf(out, "gs fence < vs fence!\n");
+	if (clip_fence < gs_fence)
+	    fprintf(out, "clip fence < gs fence!\n");
+	if (sf_fence < clip_fence)
+	    fprintf(out, "sf fence < clip fence!\n");
+	if (cs_fence < sf_fence)
+	    fprintf(out, "cs fence < sf fence!\n");
+
+	return len;
+}
+
+static int
 decode_3d_965(uint32_t *data, int count, uint32_t hw_offset, int *failures)
 {
     unsigned int opcode, len;
@@ -1468,6 +1505,9 @@ decode_3d_965(uint32_t *data, int count, uint32_t hw_offset, int *failures)
     len = (data[0] & 0x0000ffff) + 2;
 
     switch ((data[0] & 0xffff0000) >> 16) {
+    case 0x6000:
+    len = (data[0] & 0x000000ff) + 2;
+	return i965_decode_urb_fence(data, hw_offset, len, count, failures);
     case 0x6101:
 	if (len != 6)
 	    fprintf(out, "Bad count in STATE_BASE_ADDRESS\n");
