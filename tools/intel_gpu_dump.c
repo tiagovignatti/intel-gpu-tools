@@ -2108,7 +2108,8 @@ main (int argc, char *argv[])
 	printf("EIR: 0x%08x\n", INREG(EIR));
 	printf("EMR: 0x%08x\n", INREG(EMR));
 	printf("ESR: 0x%08x\n", INREG(ESR));
-	printf("IPEHR: 0x%08x\n", INREG(IPEHR_I965));
+	printf("IPEHR: 0x%08x\n",
+	       IS_965(devid) ? INREG(IPEHR_I965) : INREG(IPEHR));
 
 	asprintf (&filename, "%s/i915_batchbuffers", path);
 	head_offset = acthd;
