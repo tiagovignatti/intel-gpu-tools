@@ -38,6 +38,7 @@ extern FILE *yyin;
 
 extern int errors;
 
+long int gen_level = 4;
 char *input_filename = "<stdin>";
 
 struct brw_program compiled_program;
@@ -48,7 +49,7 @@ static const struct option longopts[] = {
 
 static void usage(void)
 {
-	fprintf(stderr, "usage: intel-gen4asm [-o outputfile] inputfile\n");
+	fprintf(stderr, "usage: intel-gen4asm [-o outputfile] [-g <4|5>] inputfile\n");
 }
 
 int main(int argc, char **argv)
@@ -59,12 +60,23 @@ int main(int argc, char **argv)
 	int err, inst_offset;
 	char o;
 
-	while ((o = getopt_long(argc, argv, "o:", longopts, NULL)) != -1) {
+	while ((o = getopt_long(argc, argv, "o:g:", longopts, NULL)) != -1) {
 		switch (o) {
 		case 'o':
 			if (strcmp(optarg, "-") != 0)
 				output_file = optarg;
 			break;
+
+		case 'g':
+			gen_level = strtol(optarg, NULL, 0);
+
+			if (gen_level < 4 || gen_level > 5) {
+				usage();
+				exit(1);
+			}
+
+			break;
+
 		default:
 			usage();
 			exit(1);

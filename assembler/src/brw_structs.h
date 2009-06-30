@@ -1185,6 +1185,14 @@ struct brw_instruction
 	 GLuint pad1:6;
       } ia16;
 
+       struct 
+       {
+           GLuint pad:26;
+           GLuint end_of_thread:1;
+           GLuint pad1:1;
+           GLuint sfid:4;
+       } send_gen5;  /* for GEN5 only */
+
    } bits2;
 
    union
@@ -1331,6 +1339,99 @@ struct brw_instruction
 	 GLuint pad1:3;
 	 GLuint end_of_thread:1;
       } generic;
+
+       struct {
+           GLuint function:4;
+           GLuint int_type:1;
+           GLuint precision:1;
+           GLuint saturate:1;
+           GLuint data_type:1;
+           GLuint snapshot:1;
+           GLuint pad0:10;
+           GLuint header_present:1;
+           GLuint response_length:5;
+           GLuint msg_length:4;
+           GLuint pad1:2;
+           GLuint end_of_thread:1;
+       } math_gen5;
+
+       struct {
+           GLuint opcode:4;
+           GLuint offset:6;
+           GLuint swizzle_control:2; 
+           GLuint pad:1;
+           GLuint allocate:1;
+           GLuint used:1;
+           GLuint complete:1;
+           GLuint pad0:3;
+           GLuint header_present:1;
+           GLuint response_length:5;
+           GLuint msg_length:4;
+           GLuint pad1:2;
+           GLuint end_of_thread:1;
+       } urb_gen5;
+
+       struct {
+           GLuint binding_table_index:8;
+           GLuint sampler:4;
+           GLuint msg_type:4;
+           GLuint simd_mode:2;
+           GLuint pad0:1;
+           GLuint header_present:1;
+           GLuint response_length:5;
+           GLuint msg_length:4;
+           GLuint pad1:2;
+           GLuint end_of_thread:1;
+       } sampler_gen5;
+
+       struct {
+           GLuint binding_table_index:8;
+           GLuint msg_control:3;  
+           GLuint msg_type:3;  
+           GLuint target_cache:2;    
+           GLuint pad0:3;
+           GLuint header_present:1;
+           GLuint response_length:5;
+           GLuint msg_length:4;
+           GLuint pad1:2;
+           GLuint end_of_thread:1;
+       } dp_read_gen5;
+
+       struct {
+           GLuint binding_table_index:8;
+           GLuint msg_control:3;
+           GLuint pixel_scoreboard_clear:1;
+           GLuint msg_type:3;    
+           GLuint send_commit_msg:1;
+           GLuint pad0:3;
+           GLuint header_present:1;
+           GLuint response_length:5;
+           GLuint msg_length:4;
+           GLuint pad1:2;
+           GLuint end_of_thread:1;
+       } dp_write_gen5;
+
+       struct {
+           GLuint opcode:1;
+           GLuint requester_type:1;
+           GLuint pad0:2;
+           GLuint resource_select:1;
+           GLuint pad1:14;
+           GLuint header_present:1;
+           GLuint response_length:5;
+           GLuint msg_length:4;
+           GLuint pad2:2;
+           GLuint end_of_thread:1;
+       } thread_spawner_gen5;
+
+       struct {
+           GLuint pad:19;
+           GLuint header_present:1;
+           GLuint response_length:5;
+           GLuint msg_length:4;
+           GLuint pad1:2;
+           GLuint end_of_thread:1;
+       } generic_gen5;
 
       GLuint ud;
       GLint id;

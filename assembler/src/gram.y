@@ -32,6 +32,8 @@
 #include "gen4asm.h"
 #include "brw_defines.h"
 
+extern long int gen_level;
+
 int set_instruction_dest(struct brw_instruction *instr,
 			 struct dst_operand *dest);
 int set_instruction_src0(struct brw_instruction *instr,
@@ -308,11 +310,22 @@ sendinstruction: predicate SEND execsize INTEGER post_dst payload msgtarget
 		    YYERROR;
 		  $$.bits1.da1.src1_reg_file = BRW_IMMEDIATE_VALUE;
 		  $$.bits1.da1.src1_reg_type = BRW_REGISTER_TYPE_D;
-		  $$.bits3.generic = $7.bits3.generic;
-		  $$.bits3.generic.msg_length = $9;
-		  $$.bits3.generic.response_length = $11;
-		  $$.bits3.generic.end_of_thread =
-		    $12.bits3.generic.end_of_thread;
+
+		  if (gen_level == 5) {
+                      $$.bits2.send_gen5.sfid = $7.bits2.send_gen5.sfid;
+                      $$.bits2.send_gen5.end_of_thread = $12.bits3.generic_gen5.end_of_thread;
+                      $$.bits3.generic_gen5 = $7.bits3.generic_gen5;
+                      $$.bits3.generic_gen5.msg_length = $9;
+                      $$.bits3.generic_gen5.response_length = $11;
+                      $$.bits3.generic_gen5.end_of_thread =
+                          $12.bits3.generic_gen5.end_of_thread;
+		  } else {
+                      $$.bits3.generic = $7.bits3.generic;
+                      $$.bits3.generic.msg_length = $9;
+                      $$.bits3.generic.response_length = $11;
+                      $$.bits3.generic.end_of_thread =
+                          $12.bits3.generic.end_of_thread;
+		  }
 		}
 ;
 
@@ -518,89 +531,165 @@ post_dst:	dst
 
 msgtarget:	NULL_TOKEN
 		{
-		  $$.bits3.generic.msg_target = BRW_MESSAGE_TARGET_NULL;
+		  if (gen_level == 5) {
+                      $$.bits2.send_gen5.sfid= BRW_MESSAGE_TARGET_NULL;
+                      $$.bits3.generic_gen5.header_present = 0;  /* ??? */
+		  } else {
+                      $$.bits3.generic.msg_target = BRW_MESSAGE_TARGET_NULL;
+		  }
 		}
 		| SAMPLER LPAREN INTEGER COMMA INTEGER COMMA
 		sampler_datatype RPAREN
 		{
-		  $$.bits3.generic.msg_target = BRW_MESSAGE_TARGET_SAMPLER;
-		  $$.bits3.sampler.binding_table_index = $3;
-		  $$.bits3.sampler.sampler = $5;
-		  switch ($7) {
-		  case TYPE_F:
-		    $$.bits3.sampler.return_format =
-		      BRW_SAMPLER_RETURN_FORMAT_FLOAT32;
-		    break;
-		  case TYPE_UD:
-		    $$.bits3.sampler.return_format =
-		      BRW_SAMPLER_RETURN_FORMAT_UINT32;
-		    break;
-		  case TYPE_D:
-		    $$.bits3.sampler.return_format =
-		      BRW_SAMPLER_RETURN_FORMAT_SINT32;
-		    break;
+		  if (gen_level == 5) {
+                      $$.bits2.send_gen5.sfid = BRW_MESSAGE_TARGET_SAMPLER;
+                      $$.bits3.generic_gen5.header_present = 1;   /* ??? */
+                      $$.bits3.sampler_gen5.binding_table_index = $3;
+                      $$.bits3.sampler_gen5.sampler = $5;
+                      $$.bits3.sampler_gen5.simd_mode = 2; /* SIMD16, maybe we should add a new parameter */
+		  } else {
+                      $$.bits3.generic.msg_target = BRW_MESSAGE_TARGET_SAMPLER;	
+                      $$.bits3.sampler.binding_table_index = $3;
+                      $$.bits3.sampler.sampler = $5;
+                      switch ($7) {
+                      case TYPE_F:
+                          $$.bits3.sampler.return_format =
+                              BRW_SAMPLER_RETURN_FORMAT_FLOAT32;
+                          break;
+                      case TYPE_UD:
+                          $$.bits3.sampler.return_format =
+                              BRW_SAMPLER_RETURN_FORMAT_UINT32;
+                          break;
+                      case TYPE_D:
+                          $$.bits3.sampler.return_format =
+                              BRW_SAMPLER_RETURN_FORMAT_SINT32;
+                          break;
+                      }
 		  }
 		}
 		| MATH math_function saturate math_signed math_scalar
 		{
-		  $$.bits3.generic.msg_target = BRW_MESSAGE_TARGET_MATH;
-		  $$.bits3.math.function = $2;
-		  if ($3 == BRW_INSTRUCTION_SATURATE)
-		    $$.bits3.math.saturate = 1;
-		  else
-		    $$.bits3.math.saturate = 0;
-		  $$.bits3.math.int_type = $4;
-		  $$.bits3.math.precision = BRW_MATH_PRECISION_FULL;
-		  $$.bits3.math.data_type = $5;
+		  if (gen_level == 5) {
+                      $$.bits2.send_gen5.sfid = BRW_MESSAGE_TARGET_MATH;
+                      $$.bits3.generic_gen5.header_present = 0;
+                      $$.bits3.math_gen5.function = $2;
+                      if ($3 == BRW_INSTRUCTION_SATURATE)
+                          $$.bits3.math_gen5.saturate = 1;
+                      else
+                          $$.bits3.math_gen5.saturate = 0;
+                      $$.bits3.math_gen5.int_type = $4;
+                      $$.bits3.math_gen5.precision = BRW_MATH_PRECISION_FULL;
+                      $$.bits3.math_gen5.data_type = $5;
+		  } else {
+                      $$.bits3.generic.msg_target = BRW_MESSAGE_TARGET_MATH;
+                      $$.bits3.math.function = $2;
+                      if ($3 == BRW_INSTRUCTION_SATURATE)
+                          $$.bits3.math.saturate = 1;
+                      else
+                          $$.bits3.math.saturate = 0;
+                      $$.bits3.math.int_type = $4;
+                      $$.bits3.math.precision = BRW_MATH_PRECISION_FULL;
+                      $$.bits3.math.data_type = $5;
+		  }
 		}
 		| GATEWAY
 		{
-		  $$.bits3.generic.msg_target = BRW_MESSAGE_TARGET_GATEWAY;
+		  if (gen_level == 5) {
+                      $$.bits2.send_gen5.sfid = BRW_MESSAGE_TARGET_GATEWAY;
+                      $$.bits3.generic_gen5.header_present = 0;  /* ??? */
+		  } else {
+                      $$.bits3.generic.msg_target = BRW_MESSAGE_TARGET_GATEWAY;
+		  }
 		}
 		| READ  LPAREN INTEGER COMMA INTEGER COMMA INTEGER COMMA
                 INTEGER RPAREN
 		{
-		  $$.bits3.generic.msg_target =
-		    BRW_MESSAGE_TARGET_DATAPORT_READ;
-		  $$.bits3.dp_read.binding_table_index = $3;
-		  $$.bits3.dp_read.target_cache = $5;
-                  $$.bits3.dp_read.msg_control = $7;
-                  $$.bits3.dp_read.msg_type = $9;
+		  if (gen_level == 5) {
+                      $$.bits2.send_gen5.sfid = 
+                          BRW_MESSAGE_TARGET_DATAPORT_READ;
+                      $$.bits3.generic_gen5.header_present = 1;
+                      $$.bits3.dp_read_gen5.binding_table_index = $3;
+                      $$.bits3.dp_read_gen5.target_cache = $5;
+                      $$.bits3.dp_read_gen5.msg_control = $7;
+                      $$.bits3.dp_read_gen5.msg_type = $9;
+		  } else {
+                      $$.bits3.generic.msg_target =
+                          BRW_MESSAGE_TARGET_DATAPORT_READ;
+                      $$.bits3.dp_read.binding_table_index = $3;
+                      $$.bits3.dp_read.target_cache = $5;
+                      $$.bits3.dp_read.msg_control = $7;
+                      $$.bits3.dp_read.msg_type = $9;
+		  }
 		}
 		| WRITE LPAREN INTEGER COMMA INTEGER COMMA INTEGER COMMA
 		INTEGER RPAREN
 		{
-		  $$.bits3.generic.msg_target =
-		    BRW_MESSAGE_TARGET_DATAPORT_WRITE;
-		  $$.bits3.dp_write.binding_table_index = $3;
-		  /* The msg control field of brw_struct.h is split into
-		   * msg control and pixel_scoreboard_clear, even though
-		   * pixel_scoreboard_clear isn't common to all write messages.
-		   */
-		  $$.bits3.dp_write.pixel_scoreboard_clear = ($5 & 0x8) >> 3;
-		  $$.bits3.dp_write.msg_control = $5 & 0x7;
-		  $$.bits3.dp_write.msg_type = $7;
-		  $$.bits3.dp_write.send_commit_msg = $9;
+		  if (gen_level == 5) {
+                      $$.bits2.send_gen5.sfid =
+                          BRW_MESSAGE_TARGET_DATAPORT_WRITE;
+                      $$.bits3.generic_gen5.header_present = 1;
+                      $$.bits3.dp_write_gen5.binding_table_index = $3;
+                      $$.bits3.dp_write_gen5.pixel_scoreboard_clear = ($5 & 0x8) >> 3;
+                      $$.bits3.dp_write_gen5.msg_control = $5 & 0x7;
+                      $$.bits3.dp_write_gen5.msg_type = $7;
+                      $$.bits3.dp_write_gen5.send_commit_msg = $9;
+		  } else {
+                      $$.bits3.generic.msg_target =
+                          BRW_MESSAGE_TARGET_DATAPORT_WRITE;
+                      $$.bits3.dp_write.binding_table_index = $3;
+                      /* The msg control field of brw_struct.h is split into
+                       * msg control and pixel_scoreboard_clear, even though
+                       * pixel_scoreboard_clear isn't common to all write messages.
+                       */
+                      $$.bits3.dp_write.pixel_scoreboard_clear = ($5 & 0x8) >> 3;
+                      $$.bits3.dp_write.msg_control = $5 & 0x7;
+                      $$.bits3.dp_write.msg_type = $7;
+                      $$.bits3.dp_write.send_commit_msg = $9;
+		  }
 		}
 		| URB INTEGER urb_swizzle urb_allocate urb_used urb_complete
 		{
 		  $$.bits3.generic.msg_target = BRW_MESSAGE_TARGET_URB;
-		  $$.bits3.urb.opcode = BRW_URB_OPCODE_WRITE;
-		  $$.bits3.urb.offset = $2;
-		  $$.bits3.urb.swizzle_control = $3;
-		  $$.bits3.urb.pad = 0;
-		  $$.bits3.urb.allocate = $4;
-		  $$.bits3.urb.used = $5;
-		  $$.bits3.urb.complete = $6;
+		  if (gen_level == 5) {
+                      $$.bits2.send_gen5.sfid = BRW_MESSAGE_TARGET_URB;
+                      $$.bits3.generic_gen5.header_present = 1;
+                      $$.bits3.urb_gen5.opcode = BRW_URB_OPCODE_WRITE;
+                      $$.bits3.urb_gen5.offset = $2;
+                      $$.bits3.urb_gen5.swizzle_control = $3;
+                      $$.bits3.urb_gen5.pad = 0;
+                      $$.bits3.urb_gen5.allocate = $4;
+                      $$.bits3.urb_gen5.used = $5;
+                      $$.bits3.urb_gen5.complete = $6;
+		  } else {
+                      $$.bits3.generic.msg_target = BRW_MESSAGE_TARGET_URB;
+                      $$.bits3.urb.opcode = BRW_URB_OPCODE_WRITE;
+                      $$.bits3.urb.offset = $2;
+                      $$.bits3.urb.swizzle_control = $3;
+                      $$.bits3.urb.pad = 0;
+                      $$.bits3.urb.allocate = $4;
+                      $$.bits3.urb.used = $5;
+                      $$.bits3.urb.complete = $6;
+		  }
 		}
 		| THREAD_SPAWNER  LPAREN INTEGER COMMA INTEGER COMMA
                         INTEGER RPAREN
 		{
 		  $$.bits3.generic.msg_target =
 		    BRW_MESSAGE_TARGET_THREAD_SPAWNER;
-                  $$.bits3.thread_spawner.opcode = $3;
-                  $$.bits3.thread_spawner.requester_type  = $5;
-                  $$.bits3.thread_spawner.resource_select = $7;
+		  if (gen_level == 5) {
+                      $$.bits2.send_gen5.sfid = 
+                          BRW_MESSAGE_TARGET_THREAD_SPAWNER;
+                      $$.bits3.generic_gen5.header_present = 0;
+                      $$.bits3.thread_spawner_gen5.opcode = $3;
+                      $$.bits3.thread_spawner_gen5.requester_type  = $5;
+                      $$.bits3.thread_spawner_gen5.resource_select = $7;
+		  } else {
+                      $$.bits3.generic.msg_target =
+                          BRW_MESSAGE_TARGET_THREAD_SPAWNER;
+                      $$.bits3.thread_spawner.opcode = $3;
+                      $$.bits3.thread_spawner.requester_type  = $5;
+                      $$.bits3.thread_spawner.resource_select = $7;
+		  }
 		}
 ;
 
