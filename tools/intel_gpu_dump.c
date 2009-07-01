@@ -1446,7 +1446,13 @@ i965_decode_urb_fence(uint32_t *data, uint32_t hw_offset, int len, int count,
 	vfe_fence = (data[2] >> 10) & 0x3ff;
 	cs_fence = (data[2] >> 20) & 0x3ff;
 
-	instr_out(data, hw_offset, 0, "URB_FENCE\n");
+	instr_out(data, hw_offset, 0, "URB_FENCE: %s%s%s%s%s%s\n",
+			(data[0] >> 13) & 1 ? "cs " : "",
+			(data[0] >> 12) & 1 ? "vfe " : "",
+			(data[0] >> 11) & 1 ? "sf " : "",
+			(data[0] >> 10) & 1 ? "clip " : "",
+			(data[0] >> 9)  & 1 ? "gs " : "",
+			(data[0] >> 8)  & 1 ? "vs " : "");
 	instr_out(data, hw_offset, 1,
 		  "vs fence: %d, clip_fence: %d, gs_fence: %d\n",
 		  vs_fence, clip_fence, sf_fence);
