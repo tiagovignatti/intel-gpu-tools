@@ -1515,6 +1515,11 @@ decode_3d_965(uint32_t *data, int count, uint32_t hw_offset, int *failures)
     case 0x6000:
     len = (data[0] & 0x000000ff) + 2;
 	return i965_decode_urb_fence(data, hw_offset, len, count, failures);
+    case 0x6001:
+	instr_out(data, hw_offset, 0, "CS_URB_STATE\n");
+	instr_out(data, hw_offset, 1, "entry_size: %d, n_entries: %d\n",
+			(data[1] >> 4) & 0x1f, data[1] & 0x7);
+	return len;
     case 0x6002:
 	instr_out(data, hw_offset, 0, "CONSTANT_BUFFER: %s\n",
 			(data[0] >> 8) & 1 ? "valid" : "invalid");
