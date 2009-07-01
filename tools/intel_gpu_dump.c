@@ -50,6 +50,7 @@
 #include "intel_decode.h"
 #include "intel_chipset.h"
 #include "intel_gpu_tools.h"
+#include "instdone.h"
 
 #define BUFFER_FAIL(_count, _len, _name) do {			\
     fprintf(out, "Buffer size too small in %s (%d < %d)\n",	\
@@ -2038,6 +2039,8 @@ main (int argc, char *argv[])
     const char *path;
     struct stat st;
     int err;
+    uint32_t instdone, instdone1 = 0;
+    int i;
 
     if (argc > 2) {
 	fprintf (stderr,
@@ -2104,12 +2107,41 @@ main (int argc, char *argv[])
 	parse_ringbuffer_info(filename, &ring_head, &ring_tail, &acthd);
 	free (filename);
 
+	init_instdone_definitions();
+
 	printf("ACTHD: 0x%08x\n", acthd);
 	printf("EIR: 0x%08x\n", INREG(EIR));
 	printf("EMR: 0x%08x\n", INREG(EMR));
 	printf("ESR: 0x%08x\n", INREG(ESR));
-	printf("IPEHR: 0x%08x\n",
-	       IS_965(devid) ? INREG(IPEHR_I965) : INREG(IPEHR));
+	if (IS_965(devid)) {
+	    instdone = INREG(INST_DONE_I965);
+	    instdone1 = INREG(INST_DONE_1);
+
+	    printf("IPEHR: 0x%08x\n", INREG(IPEHR_I965));
+	    printf("INSTDONE: 0x%08x\n", instdone);
+	    printf("INSTDONE1: 0x%08x\n", instdone1);
+	} else {
+	    instdone = INREG(INST_DONE);
+
+	    printf("IPEHR: 0x%08x\n", INREG(IPEHR));
+	    printf("INSTDONE: 0x%08x\n", instdone);
+	}
+
+	for (i = 0; i < num_instdone_bits; i++) {
+	    int busy = 0;
+
+	    if (instdone_bits[i].reg == INST_DONE_1) {
+		if (!(instdone1 & instdone_bits[i].bit))
+		    busy = 1;
+	    } else {
+		if (!(instdone & instdone_bits[i].bit))
+		    busy = 1;
+	    }
+
+	    if (busy) {
+		printf("  busy: %s\n", instdone_bits[i].name);
+	    }
+	}
 
 	asprintf (&filename, "%s/i915_batchbuffers", path);
 	head_offset = acthd;
