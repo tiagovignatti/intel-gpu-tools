@@ -5,6 +5,8 @@ libintel_tools_la_SOURCES = \
 	intel_gpu_tools.c \
 	intel_gpu_tools.h \
 	intel_reg.h \
+	instdone.c \
+	instdone.h \
 	drmtest.c \
 	drmtest.h
 

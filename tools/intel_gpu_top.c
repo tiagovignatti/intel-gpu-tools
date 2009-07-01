@@ -30,6 +30,7 @@
 #include <stdio.h>
 #include <err.h>
 #include "intel_gpu_tools.h"
+#include "instdone.h"
 
 #define SAMPLES_PER_SEC             10000
 #define SAMPLES_TO_PERCENT_RATIO    (SAMPLES_PER_SEC / 100)
@@ -37,18 +38,10 @@
 #define MAX_NUM_TOP_BITS            100
 
 struct top_bit {
-	/* initial setup */
-	uint32_t *reg;
-	uint32_t bit;
-	char *name;
-	void (*update)(struct top_bit *top_bit);
-
-	/* runtime */
+	struct instdone_bit *bit;
 	int count;
 } top_bits[MAX_NUM_TOP_BITS];
 struct top_bit *top_bits_sorted[MAX_NUM_TOP_BITS];
-
-int num_top_bits;
 
 static uint32_t instdone, instdone1;
 
@@ -83,30 +76,15 @@ top_bits_sort(const void *a, const void *b)
 static void
 update_idle_bit(struct top_bit *top_bit)
 {
-	if ((*top_bit->reg & top_bit->bit) == 0)
+	uint32_t reg_val;
+
+	if (top_bit->bit->reg == INST_DONE_1)
+		reg_val = instdone1;
+	else
+		reg_val = instdone;
+
+	if ((reg_val & top_bit->bit->bit) == 0)
 		top_bit->count++;
-}
-
-static void
-add_instdone_bit(uint32_t bit, char *name)
-{
-	top_bits[num_top_bits].reg = &instdone;
-	top_bits[num_top_bits].bit = bit;
-	top_bits[num_top_bits].name = name;
-	top_bits[num_top_bits].update = update_idle_bit;
-	top_bits_sorted[num_top_bits] = &top_bits[num_top_bits];
-	num_top_bits++;
-}
-
-static void
-add_instdone1_bit(uint32_t bit, char *name)
-{
-	top_bits[num_top_bits].reg = &instdone1;
-	top_bits[num_top_bits].bit = bit;
-	top_bits[num_top_bits].name = name;
-	top_bits[num_top_bits].update = update_idle_bit;
-	top_bits_sorted[num_top_bits] = &top_bits[num_top_bits];
-	num_top_bits++;
 }
 
 static void
@@ -227,89 +205,19 @@ int main(int argc, char **argv)
 {
 	intel_get_mmio();
 	uint32_t ring_size;
+	int i;
 
-	if (IS_965(devid)) {
-		add_instdone_bit(I965_ROW_0_EU_0_DONE, "Row 0, EU 0");
-		add_instdone_bit(I965_ROW_0_EU_1_DONE, "Row 0, EU 1");
-		add_instdone_bit(I965_ROW_0_EU_2_DONE, "Row 0, EU 2");
-		add_instdone_bit(I965_ROW_0_EU_3_DONE, "Row 0, EU 3");
-		add_instdone_bit(I965_ROW_1_EU_0_DONE, "Row 1, EU 0");
-		add_instdone_bit(I965_ROW_1_EU_1_DONE, "Row 1, EU 1");
-		add_instdone_bit(I965_ROW_1_EU_2_DONE, "Row 1, EU 2");
-		add_instdone_bit(I965_ROW_1_EU_3_DONE, "Row 1, EU 3");
-		add_instdone_bit(I965_SF_DONE, "Strips and Fans");
-		add_instdone_bit(I965_SE_DONE, "Setup Engine");
-		add_instdone_bit(I965_WM_DONE, "Windowizer");
-		add_instdone_bit(I965_DISPATCHER_DONE, "Dispatcher");
-		add_instdone_bit(I965_PROJECTION_DONE, "Projection and LOD");
-		add_instdone_bit(I965_DG_DONE, "Dependent address generator");
-		add_instdone_bit(I965_QUAD_CACHE_DONE, "Texture fetch");
-		add_instdone_bit(I965_TEXTURE_FETCH_DONE, "Texture fetch");
-		add_instdone_bit(I965_TEXTURE_DECOMPRESS_DONE, "Texture decompress");
-		add_instdone_bit(I965_SAMPLER_CACHE_DONE, "Sampler cache");
-		add_instdone_bit(I965_FILTER_DONE, "Filtering");
-		add_instdone_bit(I965_BYPASS_DONE, "Bypass FIFO");
-		add_instdone_bit(I965_PS_DONE, "Pixel shader");
-		add_instdone_bit(I965_CC_DONE, "Color calculator");
-		add_instdone_bit(I965_MAP_FILTER_DONE, "Map filter");
-		add_instdone_bit(I965_MAP_L2_IDLE, "Map L2");
-		add_instdone_bit(I965_MA_ROW_0_DONE, "Message Arbiter row 0");
-		add_instdone_bit(I965_MA_ROW_1_DONE, "Message Arbiter row 1");
-		add_instdone_bit(I965_IC_ROW_0_DONE, "Instruction cache row 0");
-		add_instdone_bit(I965_IC_ROW_1_DONE, "Instruction cache row 1");
-		add_instdone_bit(I965_CP_DONE, "Command Processor");
-
-		add_instdone1_bit(I965_GW_CS_DONE_CR, "GW CS CR");
-		add_instdone1_bit(I965_SVSM_CS_DONE_CR, "SVSM CS CR");
-		add_instdone1_bit(I965_SVDW_CS_DONE_CR, "SVDW CS CR");
-		add_instdone1_bit(I965_SVDR_CS_DONE_CR, "SVDR CS CR");
-		add_instdone1_bit(I965_SVRW_CS_DONE_CR, "SVRW CS CR");
-		add_instdone1_bit(I965_SVRR_CS_DONE_CR, "SVRR CS CR");
-		add_instdone1_bit(I965_SVTW_CS_DONE_CR, "SVTW CS CR");
-		add_instdone1_bit(I965_MASM_CS_DONE_CR, "MASM CS CR");
-		add_instdone1_bit(I965_MASF_CS_DONE_CR, "MASF CS CR");
-		add_instdone1_bit(I965_MAW_CS_DONE_CR, "MAW CS CR");
-		add_instdone1_bit(I965_EM1_CS_DONE_CR, "EM1 CS CR");
-		add_instdone1_bit(I965_EM0_CS_DONE_CR, "EM0 CS CR");
-		add_instdone1_bit(I965_UC1_CS_DONE, "UC1 CS");
-		add_instdone1_bit(I965_UC0_CS_DONE, "UC0 CS");
-		add_instdone1_bit(I965_URB_CS_DONE, "URB CS");
-		add_instdone1_bit(I965_ISC_CS_DONE, "ISC CS");
-		add_instdone1_bit(I965_CL_CS_DONE, "CL CS");
-		add_instdone1_bit(I965_GS_CS_DONE, "GS CS");
-		add_instdone1_bit(I965_VS0_CS_DONE, "VS0 CS");
-		add_instdone1_bit(I965_VF_CS_DONE, "VF CS");
-	} else if (IS_9XX(devid)) {
-		add_instdone_bit(IDCT_DONE, "IDCT");
-		add_instdone_bit(IQ_DONE, "IQ");
-		add_instdone_bit(PR_DONE, "PR");
-		add_instdone_bit(VLD_DONE, "VLD");
-		add_instdone_bit(IP_DONE, "Instruction parser");
-		add_instdone_bit(FBC_DONE, "Framebuffer Compression");
-		add_instdone_bit(BINNER_DONE, "Binner");
-		add_instdone_bit(SF_DONE, "Strips and fans");
-		add_instdone_bit(SE_DONE, "Setup engine");
-		add_instdone_bit(WM_DONE, "Windowizer");
-		add_instdone_bit(IZ_DONE, "Intermediate Z");
-		add_instdone_bit(PERSPECTIVE_INTERP_DONE, "Perspective interpolation");
-		add_instdone_bit(DISPATCHER_DONE, "Dispatcher");
-		add_instdone_bit(PROJECTION_DONE, "Projection and LOD");
-		add_instdone_bit(DEPENDENT_ADDRESS_DONE, "Dependent address calculation");
-		add_instdone_bit(TEXTURE_FETCH_DONE, "Texture fetch");
-		add_instdone_bit(TEXTURE_DECOMPRESS_DONE, "Texture decompression");
-		add_instdone_bit(SAMPLER_CACHE_DONE, "Sampler Cache");
-		add_instdone_bit(FILTER_DONE, "Filtering");
-		add_instdone_bit(BYPASS_FIFO_DONE, "Bypass FIFO");
-		add_instdone_bit(PS_DONE, "Pixel shader");
-		add_instdone_bit(CC_DONE, "Color calculator");
-		add_instdone_bit(MAP_FILTER_DONE, "Map filter");
-		add_instdone_bit(MAP_L2_IDLE, "Map L2");
+	init_instdone_definitions();
+	for (i = 0; i < num_instdone_bits; i++) {
+		top_bits[i].bit = &instdone_bits[i];
+		top_bits[i].count = 0;
+		top_bits_sorted[i] = &top_bits[i];
 	}
 
 	ring_size = ((INREG(LP_RING + RING_LEN) & RING_NR_PAGES) >> 12) * 4096;
 
 	for (;;) {
-		int i, j;
+		int j;
 		char clear_screen[] = {0x1b, '[', 'H',
 				       0x1b, '[', 'J',
 				       0x0};
@@ -328,8 +236,8 @@ int main(int argc, char **argv)
 			} else
 				instdone = INREG(INST_DONE);
 
-			for (j = 0; j < num_top_bits; j++)
-				top_bits[j].update(&top_bits[j]);
+			for (j = 0; j < num_instdone_bits; j++)
+				update_idle_bit(&top_bits[j]);
 
 			ring_head = INREG(LP_RING + RING_HEAD) & HEAD_ADDR;
 			ring_tail = INREG(LP_RING + RING_TAIL) & TAIL_ADDR;
@@ -346,8 +254,8 @@ int main(int argc, char **argv)
 			usleep(1000000 / SAMPLES_PER_SEC);
 		}
 
-		qsort(top_bits_sorted, num_top_bits, sizeof(struct top_bit *),
-		      top_bits_sort);
+		qsort(top_bits_sorted, num_instdone_bits,
+		      sizeof(struct top_bit *), top_bits_sort);
 
 		printf("%s", clear_screen);
 
@@ -363,13 +271,13 @@ int main(int argc, char **argv)
 		       (total_ring_full / SAMPLES_TO_PERCENT_RATIO) / ring_size);
 
 		printf("%30s  %s\n\n", "task", "percent busy");
-		for (i = 0; i < num_top_bits; i++) {
+		for (i = 0; i < num_instdone_bits; i++) {
 			if (top_bits_sorted[i]->count < 1)
 				break;
 
 			percent = top_bits_sorted[i]->count / SAMPLES_TO_PERCENT_RATIO;
 			len = printf("%30s: %3d%%: ",
-				     top_bits_sorted[i]->name,
+				     top_bits_sorted[i]->bit->name,
 				     percent);
 			print_percentage_bar (percent, len);
 
