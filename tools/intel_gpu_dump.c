@@ -914,7 +914,7 @@ decode_3d_1d(uint32_t *data, int count, uint32_t hw_offset, int *failures, int i
 	instr_out(data, hw_offset, 0, "3DSTATE_LOAD_STATE_IMMEDIATE_1\n");
 	len = (data[0] & 0x0000000f) + 2;
 	i = 1;
-	for (word = 0; word <= 7; word++) {
+	for (word = 0; word <= 8; word++) {
 	    if (data[0] & (1 << (4 + word))) {
 		if (i >= count)
 		    BUFFER_FAIL(count, len, "3DSTATE_LOAD_STATE_IMMEDIATE_1");
@@ -933,7 +933,7 @@ decode_3d_1d(uint32_t *data, int count, uint32_t hw_offset, int *failures, int i
 	    }
 	}
 	if (len != i) {
-	    fprintf(out, "Bad count in 3DSTATE_LOAD_INDIRECT\n");
+	    fprintf(out, "Bad count in 3DSTATE_LOAD_STATE_IMMEDIATE_1\n");
 	    (*failures)++;
 	}
 	return len;
