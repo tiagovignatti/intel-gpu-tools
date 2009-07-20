@@ -2130,17 +2130,21 @@ main (int argc, char *argv[])
 	printf("EIR: 0x%08x\n", INREG(EIR));
 	printf("EMR: 0x%08x\n", INREG(EMR));
 	printf("ESR: 0x%08x\n", INREG(ESR));
+	printf("PGTBL_ER: 0x%08x\n", INREG(PGTBL_ER));
+
 	if (IS_965(devid)) {
 	    instdone = INREG(INST_DONE_I965);
 	    instdone1 = INREG(INST_DONE_1);
 
 	    printf("IPEHR: 0x%08x\n", INREG(IPEHR_I965));
+	    printf("IPEIR: 0x%08x\n", INREG(IPEIR_I965));
 	    printf("INSTDONE: 0x%08x\n", instdone);
 	    printf("INSTDONE1: 0x%08x\n", instdone1);
 	} else {
 	    instdone = INREG(INST_DONE);
 
 	    printf("IPEHR: 0x%08x\n", INREG(IPEHR));
+	    printf("IPEIR: 0x%08x\n", INREG(IPEIR));
 	    printf("INSTDONE: 0x%08x\n", instdone);
 	}
 
