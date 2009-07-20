@@ -137,5 +137,33 @@ init_instdone_definitions(void)
 		gen3_instdone_bit(CC_DONE, "Color calculator");
 		gen3_instdone_bit(MAP_FILTER_DONE, "Map filter");
 		gen3_instdone_bit(MAP_L2_IDLE, "Map L2");
+	} else {
+		gen3_instdone_bit(I830_GMBUS_DONE, "GMBUS");
+		gen3_instdone_bit(I830_FBC_DONE, "FBC");
+		gen3_instdone_bit(I830_BINNER_DONE, "BINNER");
+		gen3_instdone_bit(I830_MPEG_DONE, "MPEG");
+		gen3_instdone_bit(I830_MECO_DONE, "MECO");
+		gen3_instdone_bit(I830_MCD_DONE, "MCD");
+		gen3_instdone_bit(I830_MCSTP_DONE, "MCSTP");
+		gen3_instdone_bit(I830_CC_DONE, "CC");
+		gen3_instdone_bit(I830_DG_DONE, "DG");
+		gen3_instdone_bit(I830_DCMP_DONE, "DCMP");
+		gen3_instdone_bit(I830_FTCH_DONE, "FTCH");
+		gen3_instdone_bit(I830_IT_DONE, "IT");
+		gen3_instdone_bit(I830_MG_DONE, "MG");
+		gen3_instdone_bit(I830_MEC_DONE, "MEC");
+		gen3_instdone_bit(I830_PC_DONE, "PC");
+		gen3_instdone_bit(I830_QCC_DONE, "QCC");
+		gen3_instdone_bit(I830_TB_DONE, "TB");
+		gen3_instdone_bit(I830_WM_DONE, "WM");
+		gen3_instdone_bit(I830_EF_DONE, "EF");
+		gen3_instdone_bit(I830_BLITTER_DONE, "Blitter");
+		gen3_instdone_bit(I830_MAP_L2_DONE, "Map L2 cache");
+		gen3_instdone_bit(I830_SECONDARY_RING_3_DONE, "Secondary ring 3");
+		gen3_instdone_bit(I830_SECONDARY_RING_2_DONE, "Secondary ring 2");
+		gen3_instdone_bit(I830_SECONDARY_RING_1_DONE, "Secondary ring 1");
+		gen3_instdone_bit(I830_SECONDARY_RING_0_DONE, "Secondary ring 0");
+		gen3_instdone_bit(I830_PRIMARY_RING_1_DONE, "Primary ring 1");
+		gen3_instdone_bit(I830_PRIMARY_RING_0_DONE, "Primary ring 0");
 	}
 }
