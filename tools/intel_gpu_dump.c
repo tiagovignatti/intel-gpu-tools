@@ -937,6 +937,34 @@ decode_3d_1d(uint32_t *data, int count, uint32_t hw_offset, int *failures, int i
 	    (*failures)++;
 	}
 	return len;
+    case 0x03:
+	instr_out(data, hw_offset, 0, "3DSTATE_LOAD_STATE_IMMEDIATE_2\n");
+	len = (data[0] & 0x0000000f) + 2;
+	i = 1;
+	for (word = 6; word <= 14; word++) {
+	    if (data[0] & (1 << word)) {
+		if (i >= count)
+		    BUFFER_FAIL(count, len, "3DSTATE_LOAD_STATE_IMMEDIATE_2");
+
+		if (word == 6)
+		    instr_out(data, hw_offset, i++, "TBCF\n");
+		else if (word >= 7 && word <= 10) {
+		    instr_out(data, hw_offset, i++, "TB%dC\n", word - 7);
+		    instr_out(data, hw_offset, i++, "TB%dA\n", word - 7);
+		} else if (word >= 11 && word <= 14) {
+		    instr_out(data, hw_offset, i++, "TM%dS0\n", word - 11);
+		    instr_out(data, hw_offset, i++, "TM%dS1\n", word - 11);
+		    instr_out(data, hw_offset, i++, "TM%dS2\n", word - 11);
+		    instr_out(data, hw_offset, i++, "TM%dS3\n", word - 11);
+		    instr_out(data, hw_offset, i++, "TM%dS4\n", word - 11);
+		}
+	    }
+	}
+	if (len != i) {
+	    fprintf(out, "Bad count in 3DSTATE_LOAD_STATE_IMMEDIATE_2\n");
+	    (*failures)++;
+	}
+	return len;
     case 0x00:
 	instr_out(data, hw_offset, 0, "3DSTATE_MAP_STATE\n");
 	len = (data[0] & 0x0000003f) + 2;
