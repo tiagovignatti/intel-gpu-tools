@@ -920,13 +920,15 @@ decode_3d_1d(uint32_t *data, int count, uint32_t hw_offset, int *failures, int i
 		    BUFFER_FAIL(count, len, "3DSTATE_LOAD_STATE_IMMEDIATE_1");
 
 		/* save vertex state for decode */
-		if (word == 2) {
-		    saved_s2_set = 1;
-		    saved_s2 = data[i];
-		}
-		if (word == 4) {
-		    saved_s4_set = 1;
-		    saved_s4 = data[i];
+		if (IS_9XX(devid)) {
+		    if (word == 2) {
+			saved_s2_set = 1;
+			saved_s2 = data[i];
+		    }
+		    if (word == 4) {
+			saved_s4_set = 1;
+			saved_s4 = data[i];
+		    }
 		}
 
 		instr_out(data, hw_offset, i++, "S%d\n", word);
