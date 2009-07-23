@@ -1386,8 +1386,8 @@ struct brw_instruction
 
        struct {
            GLuint binding_table_index:8;
-           GLuint msg_control:3;  
-           GLuint msg_type:3;  
+           GLuint msg_control:4;  
+           GLuint msg_type:2;  
            GLuint target_cache:2;    
            GLuint pad0:3;
            GLuint header_present:1;
