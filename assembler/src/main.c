@@ -129,7 +129,12 @@ int main(int argc, char **argv)
 				    entry->instruction.reloc_target) == 0) {
 			    int offset = 
 				entry1->inst_offset - entry->inst_offset;
-			    entry->instruction.bits3.ud = offset - 1;
+
+                            if (gen_level == 5)
+                                    entry->instruction.bits3.ud = 2 * (offset - 1);
+                            else
+                                    entry->instruction.bits3.ud = offset - 1;
+
 			    break;
 			}
 		    }
