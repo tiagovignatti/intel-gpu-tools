@@ -1,0 +1,10 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+libdir=@libdir@
+includedir=@includedir@
+
+Name: intel-gen4asm
+Description: An assembler compiler for the Intel 965+ Chipset
+Version: @VERSION@
+Libs:
+Cflags:

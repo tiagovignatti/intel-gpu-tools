@@ -6,4 +6,8 @@ EXTRA_DIST = \
 	INSTALL \
 	README \
 	TODO \
-	autogen.sh
+	autogen.sh \
+	intel-gen4asm.pc.in
+
+pkgconfigdir = $(libdir)/pkgconfig
+pkgconfig_DATA = intel-gen4asm.pc

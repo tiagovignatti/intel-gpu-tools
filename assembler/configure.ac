@@ -3,7 +3,7 @@
 
 AC_PREREQ(2.57)
 AC_INIT([intel-gen4asm],
-        0.1,
+        1.0,
         [eric@anholt.net],
         intel-gen4asm)
 
@@ -37,4 +37,5 @@ AC_OUTPUT([
 	doc/Makefile
 	src/Makefile
 	test/Makefile
+	intel-gen4asm.pc
 ])
