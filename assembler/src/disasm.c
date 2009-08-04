@@ -283,7 +283,7 @@ char *target_function[16] = {
     [BRW_MESSAGE_TARGET_THREAD_SPAWNER] = "thread_spawner"
 };
 
-char *math_function[16] = { 
+char *math_function[16] = {
     [BRW_MATH_FUNCTION_INV] = "inv",
     [BRW_MATH_FUNCTION_LOG] = "log",
     [BRW_MATH_FUNCTION_EXP] = "exp",
@@ -346,7 +346,7 @@ char *sampler_target_format[4] = {
     [3] = "D"
 };
 
-    
+
 static int column;
 
 static int string (FILE *file, char *string)
@@ -366,7 +366,7 @@ static int format (FILE *f, char *format, ...)
     string (f, buf);
     return 0;
 }
-    
+
 static int newline (FILE *f)
 {
     putc ('\n', f);
@@ -399,7 +399,7 @@ static int control (FILE *file, char *name, char *ctrl[], GLuint id, int *space)
     }
     return 0;
 }
-		       
+
 static int print_opcode (FILE *file, int id)
 {
     if (!opcode[id].name) {
@@ -409,7 +409,7 @@ static int print_opcode (FILE *file, int id)
     string (file, opcode[id].name);
     return 0;
 }
-		       
+
 static int reg (FILE *file, GLuint _reg_file, GLuint _reg_nr)
 {
     int	err = 0;
@@ -501,11 +501,11 @@ static int dest (FILE *file, struct brw_instruction *inst)
 	    string (file, "Indirect align16 address mode not supported");
 	}
     }
-    
+
     return 0;
 }
 
-static int src_align1_region (FILE *file, 
+static int src_align1_region (FILE *file,
 			      GLuint _vert_stride, GLuint _width, GLuint _horiz_stride)
 {
     int err = 0;
@@ -519,7 +519,6 @@ static int src_align1_region (FILE *file,
     return err;
 }
 
-			      
 static int src_da1 (FILE *file, GLuint type, GLuint _reg_file,
 		    GLuint _vert_stride, GLuint _width, GLuint _horiz_stride,
 		    GLuint reg_num, GLuint sub_reg_num, GLuint __abs, GLuint _negate)
@@ -527,7 +526,7 @@ static int src_da1 (FILE *file, GLuint type, GLuint _reg_file,
     int err = 0;
     err |= control (file, "negate", negate, _negate, NULL);
     err |= control (file, "abs", _abs, __abs, NULL);
-    
+
     err |= reg (file, _reg_file, reg_num);
     if (err == -1)
 	return 0;
@@ -540,7 +539,7 @@ static int src_da1 (FILE *file, GLuint type, GLuint _reg_file,
 
 static int src_ia1 (FILE *file,
 		    GLuint type,
-		    GLuint _reg_file, 
+		    GLuint _reg_file,
 		    GLint _addr_imm,
 		    GLuint _addr_subreg_nr,
 		    GLuint _negate,
@@ -581,7 +580,7 @@ static int src_da16 (FILE *file,
     int err = 0;
     err |= control (file, "negate", negate, _negate, NULL);
     err |= control (file, "abs", _abs, __abs, NULL);
-    
+
     err |= reg (file, _reg_file, _reg_nr);
     if (err == -1)
 	return 0;
@@ -653,7 +652,7 @@ static int imm (FILE *file, GLuint type, struct brw_instruction *inst) {
 static int src0 (FILE *file, struct brw_instruction *inst)
 {
     if (inst->bits1.da1.src0_reg_file == BRW_IMMEDIATE_VALUE)
-	return imm (file, inst->bits1.da1.src0_reg_type, 
+	return imm (file, inst->bits1.da1.src0_reg_type,
 		    inst);
     else if (inst->header.access_mode == BRW_ALIGN_1)
     {
@@ -713,7 +712,7 @@ static int src0 (FILE *file, struct brw_instruction *inst)
 static int src1 (FILE *file, struct brw_instruction *inst)
 {
     if (inst->bits1.da1.src1_reg_file == BRW_IMMEDIATE_VALUE)
-	return imm (file, inst->bits1.da1.src1_reg_type, 
+	return imm (file, inst->bits1.da1.src1_reg_type,
 		    inst);
     else if (inst->header.access_mode == BRW_ALIGN_1)
     {
@@ -789,7 +788,7 @@ int disasm (FILE *file, struct brw_instruction *inst)
 			    inst->header.predicate_control, NULL);
 	string (file, ") ");
     }
-	
+
     err |= print_opcode (file, inst->header.opcode);
     err |= control (file, "saturate", saturate, inst->header.saturate, NULL);
     err |= control (file, "debug control", debug_ctrl, inst->header.debug_control, NULL);
@@ -797,7 +796,7 @@ int disasm (FILE *file, struct brw_instruction *inst)
     if (inst->header.opcode != BRW_OPCODE_SEND)
 	err |= control (file, "conditional modifier", conditional_modifier,
 			inst->header.destreg__conditionalmod, NULL);
-	
+
     if (inst->header.opcode != BRW_OPCODE_NOP) {
 	string (file, "(");
 	err |= control (file, "execution size", exec_size, inst->header.execution_size, NULL);
@@ -858,13 +857,13 @@ int disasm (FILE *file, struct brw_instruction *inst)
 	case BRW_MESSAGE_TARGET_URB:
 	    format (file, " %d", inst->bits3.urb.offset);
 	    space = 1;
-	    err |= control (file, "urb swizzle", urb_swizzle, 
+	    err |= control (file, "urb swizzle", urb_swizzle,
 			    inst->bits3.urb.swizzle_control, &space);
-	    err |= control (file, "urb allocate", urb_allocate, 
+	    err |= control (file, "urb allocate", urb_allocate,
 			    inst->bits3.urb.allocate, &space);
-	    err |= control (file, "urb used", urb_used, 
+	    err |= control (file, "urb used", urb_used,
 			    inst->bits3.urb.used, &space);
-	    err |= control (file, "urb complete", urb_complete, 
+	    err |= control (file, "urb complete", urb_complete,
 			    inst->bits3.urb.complete, &space);
 	    break;
 	case BRW_MESSAGE_TARGET_THREAD_SPAWNER:
