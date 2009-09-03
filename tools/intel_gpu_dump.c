@@ -1502,7 +1502,7 @@ i965_decode_urb_fence(uint32_t *data, uint32_t hw_offset, int len, int count,
 }
 
 static int
-decode_3d_965(uint32_t *data, int count, uint32_t hw_offset, int *failures)
+decode_3d_965(uint32_t *data, int count, uint32_t hw_offset, int *failures, uint32_t devid)
 {
     unsigned int opcode, len;
     int i;
@@ -1558,9 +1558,11 @@ decode_3d_965(uint32_t *data, int count, uint32_t hw_offset, int *failures)
 			data[1] >> 6, data[1] & 0x3f);
 	return len;
     case 0x6101:
-	if (len != 6)
+	if ((IS_IRONLAKE(devid) && len != 8) ||
+            (!IS_IRONLAKE(devid) && len != 6))
 	    fprintf(out, "Bad count in STATE_BASE_ADDRESS\n");
-	if (count < 6)
+	if ((IS_IRONLAKE(devid) && count < 8) ||
+            (!IS_IRONLAKE(devid) && count < 6))
 	    BUFFER_FAIL(count, len, "STATE_BASE_ADDRESS");
 
 	instr_out(data, hw_offset, 0,
@@ -1584,17 +1586,43 @@ decode_3d_965(uint32_t *data, int count, uint32_t hw_offset, int *failures)
 	} else
 	    instr_out(data, hw_offset, 3, "Indirect state not updated\n");
 
-	if (data[4] & 1) {
-	    instr_out(data, hw_offset, 4, "General state upper bound 0x%08x\n",
-		      data[4] & ~1);
-	} else
-	    instr_out(data, hw_offset, 4, "General state not updated\n");
+        if (IS_IRONLAKE(devid)) {
+            if (data[4] & 1) {
+                instr_out(data, hw_offset, 4, "Instruction base address at 0x%08x\n",
+                          data[4] & ~1);
+            } else
+                instr_out(data, hw_offset, 4, "Instruction base address not updated\n");
 
-	if (data[5] & 1) {
-	    instr_out(data, hw_offset, 5, "Indirect state upper bound 0x%08x\n",
-		      data[5] & ~1);
-	} else
-	    instr_out(data, hw_offset, 5, "Indirect state not updated\n");
+            if (data[5] & 1) {
+                instr_out(data, hw_offset, 5, "General state upper bound 0x%08x\n",
+                          data[5] & ~1);
+            } else
+                instr_out(data, hw_offset, 5, "General state not updated\n");
+
+            if (data[6] & 1) {
+                instr_out(data, hw_offset, 6, "Indirect state upper bound 0x%08x\n",
+                          data[6] & ~1);
+            } else
+                instr_out(data, hw_offset, 6, "Indirect state not updated\n");
+
+            if (data[7] & 1) {
+                instr_out(data, hw_offset, 7, "Instruction access upper bound 0x%08x\n",
+                          data[7] & ~1);
+            } else
+                instr_out(data, hw_offset, 7, "Instruction access upper bound not updated\n");
+        } else {
+            if (data[4] & 1) {
+                instr_out(data, hw_offset, 4, "General state upper bound 0x%08x\n",
+                          data[4] & ~1);
+            } else
+                instr_out(data, hw_offset, 4, "General state not updated\n");
+
+            if (data[5] & 1) {
+                instr_out(data, hw_offset, 5, "Indirect state upper bound 0x%08x\n",
+                          data[5] & ~1);
+            } else
+                instr_out(data, hw_offset, 5, "Indirect state not updated\n");
+        }
 
 	return len;
     case 0x7800:
@@ -1910,7 +1938,7 @@ intel_decode(uint32_t *data, int count, uint32_t hw_offset, uint32_t devid)
 	case 0x3:
 	    if (IS_965(devid)) {
 		index += decode_3d_965(data + index, count - index,
-				       hw_offset + index * 4, &failures);
+				       hw_offset + index * 4, &failures, devid);
 	    } else if (IS_9XX(devid)) {
 		index += decode_3d(data + index, count - index,
 				   hw_offset + index * 4, &failures);
