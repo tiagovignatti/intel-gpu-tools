@@ -333,7 +333,7 @@ decode_3d_1c(uint32_t *data, int count, uint32_t hw_offset, int *failures)
 {
     switch ((data[0] & 0x00f80000) >> 19) {
     case 0x11:
-	instr_out(data, hw_offset, 0, "3DSTATE_DEPTH_SUBRECTANGLE_DISALBE\n");
+	instr_out(data, hw_offset, 0, "3DSTATE_DEPTH_SUBRECTANGLE_DISABLE\n");
 	return 1;
     case 0x10:
 	instr_out(data, hw_offset, 0, "3DSTATE_SCISSOR_ENABLE\n");
