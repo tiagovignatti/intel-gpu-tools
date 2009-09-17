@@ -59,6 +59,8 @@
     return count;						\
 } while (0)
 
+#define ARRAY_SIZE(arr) (sizeof(arr)/sizeof(arr[0]))
+
 static FILE *out;
 static uint32_t saved_s2 = 0, saved_s4 = 0;
 static char saved_s2_set = 0, saved_s4_set = 0;
@@ -331,7 +333,11 @@ decode_2d(uint32_t *data, int count, uint32_t hw_offset, int *failures)
 static int
 decode_3d_1c(uint32_t *data, int count, uint32_t hw_offset, int *failures)
 {
-    switch ((data[0] & 0x00f80000) >> 19) {
+    uint32_t opcode;
+
+    opcode = (data[0] & 0x00f80000) >> 19;
+
+    switch (opcode) {
     case 0x11:
 	instr_out(data, hw_offset, 0, "3DSTATE_DEPTH_SUBRECTANGLE_DISABLE\n");
 	return 1;
@@ -349,7 +355,8 @@ decode_3d_1c(uint32_t *data, int count, uint32_t hw_offset, int *failures)
 	return 1;
     }
 
-    instr_out(data, hw_offset, 0, "3D UNKNOWN\n");
+    instr_out(data, hw_offset, 0, "3D UNKNOWN: 3d_1c opcode = 0x%x\n",
+	      opcode);
     (*failures)++;
     return 1;
 }
@@ -825,8 +832,9 @@ i915_decode_instruction(uint32_t *data, uint32_t hw_offset,
 static int
 decode_3d_1d(uint32_t *data, int count, uint32_t hw_offset, int *failures, int i830)
 {
-    unsigned int len, i, c, opcode, word, map, sampler, instr;
+    unsigned int len, i, c, idx, word, map, sampler, instr;
     char *format;
+    uint32_t opcode;
 
     struct {
 	uint32_t opcode;
@@ -857,9 +865,11 @@ decode_3d_1d(uint32_t *data, int count, uint32_t hw_offset, int *failures, int i
 	{ 0x8d, 1, 3, 3, "3DSTATE_W_STATE_I830" },
 	{ 0x01, 1, 2, 2, "3DSTATE_COLOR_FACTOR_I830" },
 	{ 0x02, 1, 2, 2, "3DSTATE_MAP_COORD_SETBIND_I830" },
-    };
+    }, *opcode_3d_1d;
 
-    switch ((data[0] & 0x00ff0000) >> 16) {
+    opcode = (data[0] & 0x00ff0000) >> 16;
+
+    switch (opcode) {
     case 0x07:
 	/* This instruction is unusual.  A 0 length means just 1 DWORD instead of
 	 * 2.  The 0 length is specified in one place to be unsupported, but
@@ -1089,30 +1099,30 @@ decode_3d_1d(uint32_t *data, int count, uint32_t hw_offset, int *failures, int i
 	return len;
     }
 
-    for (opcode = 0; opcode < sizeof(opcodes_3d_1d) / sizeof(opcodes_3d_1d[0]);
-	 opcode++)
+    for (idx = 0; idx < ARRAY_SIZE(opcodes_3d_1d); idx++)
     {
-	if (opcodes_3d_1d[opcode].i830_only && !i830)
+	opcode_3d_1d = &opcodes_3d_1d[idx];
+	if (opcode_3d_1d->i830_only && !i830)
 	    continue;
 
-	if (((data[0] & 0x00ff0000) >> 16) == opcodes_3d_1d[opcode].opcode) {
+	if (((data[0] & 0x00ff0000) >> 16) == opcode_3d_1d->opcode) {
 	    len = 1;
 
-	    instr_out(data, hw_offset, 0, "%s\n", opcodes_3d_1d[opcode].name);
-	    if (opcodes_3d_1d[opcode].max_len > 1) {
+	    instr_out(data, hw_offset, 0, "%s\n", opcode_3d_1d->name);
+	    if (opcode_3d_1d->max_len > 1) {
 		len = (data[0] & 0x0000ffff) + 2;
-		if (len < opcodes_3d_1d[opcode].min_len ||
-		    len > opcodes_3d_1d[opcode].max_len)
+		if (len < opcode_3d_1d->min_len ||
+		    len > opcode_3d_1d->max_len)
 		{
 		    fprintf(out, "Bad count in %s\n",
-			    opcodes_3d_1d[opcode].name);
+			    opcode_3d_1d->name);
 		    (*failures)++;
 		}
 	    }
 
 	    for (i = 1; i < len; i++) {
 		if (i >= count)
-		    BUFFER_FAIL(count, len,  opcodes_3d_1d[opcode].name);
+		    BUFFER_FAIL(count, len,  opcode_3d_1d->name);
 		instr_out(data, hw_offset, i, "dword %d\n", i);
 	    }
 
@@ -1120,7 +1130,7 @@ decode_3d_1d(uint32_t *data, int count, uint32_t hw_offset, int *failures, int i
 	}
     }
 
-    instr_out(data, hw_offset, 0, "3D UNKNOWN\n");
+    instr_out(data, hw_offset, 0, "3D UNKNOWN: 3d_1d opcode = 0x%x\n", opcode);
     (*failures)++;
     return 1;
 }
@@ -1315,7 +1325,8 @@ decode_3d_primitive(uint32_t *data, int count, uint32_t hw_offset,
 static int
 decode_3d(uint32_t *data, int count, uint32_t hw_offset, int *failures)
 {
-    unsigned int opcode;
+    uint32_t opcode;
+    unsigned int idx;
 
     struct {
 	uint32_t opcode;
@@ -1332,9 +1343,11 @@ decode_3d(uint32_t *data, int count, uint32_t hw_offset, int *failures)
 	{ 0x0d, 1, 1, "3DSTATE_MODES_4" },
 	{ 0x0c, 1, 1, "3DSTATE_MODES_5" },
 	{ 0x07, 1, 1, "3DSTATE_RASTERIZATION_RULES" },
-    };
+    }, *opcode_3d;
 
-    switch ((data[0] & 0x1f000000) >> 24) {
+    opcode = (data[0] & 0x1f000000) >> 24;
+
+    switch (opcode) {
     case 0x1f:
 	return decode_3d_primitive(data, count, hw_offset, failures);
     case 0x1d:
@@ -1343,31 +1356,31 @@ decode_3d(uint32_t *data, int count, uint32_t hw_offset, int *failures)
 	return decode_3d_1c(data, count, hw_offset, failures);
     }
 
-    for (opcode = 0; opcode < sizeof(opcodes_3d) / sizeof(opcodes_3d[0]);
-	 opcode++) {
-	if ((data[0] & 0x1f000000) >> 24 == opcodes_3d[opcode].opcode) {
+    for (idx = 0; idx < ARRAY_SIZE(opcodes_3d); idx++) {
+	opcode_3d = &opcodes_3d[idx];
+	if (opcode == opcode_3d->opcode) {
 	    unsigned int len = 1, i;
 
-	    instr_out(data, hw_offset, 0, "%s\n", opcodes_3d[opcode].name);
-	    if (opcodes_3d[opcode].max_len > 1) {
+	    instr_out(data, hw_offset, 0, "%s\n", opcode_3d->name);
+	    if (opcode_3d->max_len > 1) {
 		len = (data[0] & 0xff) + 2;
-		if (len < opcodes_3d[opcode].min_len ||
-		    len > opcodes_3d[opcode].max_len)
+		if (len < opcode_3d->min_len ||
+		    len > opcode_3d->max_len)
 		{
-		    fprintf(out, "Bad count in %s\n", opcodes_3d[opcode].name);
+		    fprintf(out, "Bad count in %s\n", opcode_3d->name);
 		}
 	    }
 
 	    for (i = 1; i < len; i++) {
 		if (i >= count)
-		    BUFFER_FAIL(count, len, opcodes_3d[opcode].name);
+		    BUFFER_FAIL(count, len, opcode_3d->name);
 		instr_out(data, hw_offset, i, "dword %d\n", i);
 	    }
 	    return len;
 	}
     }
 
-    instr_out(data, hw_offset, 0, "3D UNKNOWN\n");
+    instr_out(data, hw_offset, 0, "3D UNKNOWN: 3d opcode = 0x%x\n", opcode);
     (*failures)++;
     return 1;
 }
@@ -1504,7 +1517,8 @@ i965_decode_urb_fence(uint32_t *data, uint32_t hw_offset, int len, int count,
 static int
 decode_3d_965(uint32_t *data, int count, uint32_t hw_offset, int *failures, uint32_t devid)
 {
-    unsigned int opcode, len;
+    uint32_t opcode;
+    unsigned int idx, len;
     int i;
     char *desc1 = NULL;
 
@@ -1537,11 +1551,12 @@ decode_3d_965(uint32_t *data, int count, uint32_t hw_offset, int *failures, uint
 	{ 0x7909, 2, 2, "3DSTATE_GLOBAL_DEPTH_OFFSET_CLAMP" },
 	{ 0x790a, 3, 3, "3DSTATE_AA_LINE_PARAMETERS" },
 	{ 0x7b00, 6, 6, "3DPRIMITIVE" },
-    };
+    }, *opcode_3d;
 
     len = (data[0] & 0x0000ffff) + 2;
 
-    switch ((data[0] & 0xffff0000) >> 16) {
+    opcode = (data[0] & 0xffff0000) >> 16;
+    switch (opcode) {
     case 0x6000:
     len = (data[0] & 0x000000ff) + 2;
 	return i965_decode_urb_fence(data, hw_offset, len, count, failures);
@@ -1801,32 +1816,32 @@ decode_3d_965(uint32_t *data, int count, uint32_t hw_offset, int *failures, uint
 	return len;
     }
 
-    for (opcode = 0; opcode < sizeof(opcodes_3d) / sizeof(opcodes_3d[0]);
-	 opcode++) {
-	if ((data[0] & 0xffff0000) >> 16 == opcodes_3d[opcode].opcode) {
+    for (idx = 0; idx < ARRAY_SIZE(opcodes_3d); idx++) {
+	opcode_3d = &opcodes_3d[idx];
+	if ((data[0] & 0xffff0000) >> 16 == opcode_3d->opcode) {
 	    unsigned int i;
 	    len = 1;
 
-	    instr_out(data, hw_offset, 0, "%s\n", opcodes_3d[opcode].name);
-	    if (opcodes_3d[opcode].max_len > 1) {
+	    instr_out(data, hw_offset, 0, "%s\n", opcode_3d->name);
+	    if (opcode_3d->max_len > 1) {
 		len = (data[0] & 0xff) + 2;
-		if (len < opcodes_3d[opcode].min_len ||
-		    len > opcodes_3d[opcode].max_len)
+		if (len < opcode_3d->min_len ||
+		    len > opcode_3d->max_len)
 		{
-		    fprintf(out, "Bad count in %s\n", opcodes_3d[opcode].name);
+		    fprintf(out, "Bad count in %s\n", opcode_3d->name);
 		}
 	    }
 
 	    for (i = 1; i < len; i++) {
 		if (i >= count)
-		    BUFFER_FAIL(count, len, opcodes_3d[opcode].name);
+		    BUFFER_FAIL(count, len, opcode_3d->name);
 		instr_out(data, hw_offset, i, "dword %d\n", i);
 	    }
 	    return len;
 	}
     }
 
-    instr_out(data, hw_offset, 0, "3D UNKNOWN\n");
+    instr_out(data, hw_offset, 0, "3D UNKNOWN: 3d_965 opcode = 0x%x\n", opcode);
     (*failures)++;
     return 1;
 }
@@ -1834,7 +1849,8 @@ decode_3d_965(uint32_t *data, int count, uint32_t hw_offset, int *failures, uint
 static int
 decode_3d_i830(uint32_t *data, int count, uint32_t hw_offset, int *failures)
 {
-    unsigned int opcode;
+    unsigned int idx;
+    uint32_t opcode;
 
     struct {
 	uint32_t opcode;
@@ -1858,9 +1874,11 @@ decode_3d_i830(uint32_t *data, int count, uint32_t hw_offset, int *failures)
 	{ 0x0f, 1, 1, "3DSTATE_MODES_2" },
 	{ 0x15, 1, 1, "3DSTATE_FOG_COLOR" },
 	{ 0x16, 1, 1, "3DSTATE_MODES_4" },
-    };
+    }, *opcode_3d;
 
-    switch ((data[0] & 0x1f000000) >> 24) {
+    opcode = (data[0] & 0x1f000000) >> 24;
+
+    switch (opcode) {
     case 0x1f:
 	return decode_3d_primitive(data, count, hw_offset, failures);
     case 0x1d:
@@ -1869,31 +1887,31 @@ decode_3d_i830(uint32_t *data, int count, uint32_t hw_offset, int *failures)
 	return decode_3d_1c(data, count, hw_offset, failures);
     }
 
-    for (opcode = 0; opcode < sizeof(opcodes_3d) / sizeof(opcodes_3d[0]);
-	 opcode++) {
-	if ((data[0] & 0x1f000000) >> 24 == opcodes_3d[opcode].opcode) {
+    for (idx = 0; idx < ARRAY_SIZE(opcodes_3d); idx++) {
+	opcode_3d = &opcodes_3d[idx];
+	if ((data[0] & 0x1f000000) >> 24 == opcode_3d->opcode) {
 	    unsigned int len = 1, i;
 
-	    instr_out(data, hw_offset, 0, "%s\n", opcodes_3d[opcode].name);
-	    if (opcodes_3d[opcode].max_len > 1) {
+	    instr_out(data, hw_offset, 0, "%s\n", opcode_3d->name);
+	    if (opcode_3d->max_len > 1) {
 		len = (data[0] & 0xff) + 2;
-		if (len < opcodes_3d[opcode].min_len ||
-		    len > opcodes_3d[opcode].max_len)
+		if (len < opcode_3d->min_len ||
+		    len > opcode_3d->max_len)
 		{
-		    fprintf(out, "Bad count in %s\n", opcodes_3d[opcode].name);
+		    fprintf(out, "Bad count in %s\n", opcode_3d->name);
 		}
 	    }
 
 	    for (i = 1; i < len; i++) {
 		if (i >= count)
-		    BUFFER_FAIL(count, len, opcodes_3d[opcode].name);
+		    BUFFER_FAIL(count, len, opcode_3d->name);
 		instr_out(data, hw_offset, i, "dword %d\n", i);
 	    }
 	    return len;
 	}
     }
 
-    instr_out(data, hw_offset, 0, "3D UNKNOWN\n");
+    instr_out(data, hw_offset, 0, "3D UNKNOWN: 3d_i830 opcode = 0x%x\n", opcode);
     (*failures)++;
     return 1;
 }
