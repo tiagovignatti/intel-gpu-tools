@@ -36,6 +36,8 @@ extern struct pci_device *pci_dev;
 extern uint32_t devid;
 extern void *mmio;
 
+#define ARRAY_SIZE(arr) (sizeof(arr)/sizeof(arr[0]))
+
 static inline uint32_t
 INREG(uint32_t reg)
 {

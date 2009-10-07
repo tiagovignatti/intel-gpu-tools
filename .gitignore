@@ -53,5 +53,6 @@ tests/gem_bad_blit
 tests/gem_hang
 tools/intel_gpu_dump
 tools/intel_gpu_top
+tools/intel_reg_dumper
 tools/intel_reg_write
 tools/intel_stepping

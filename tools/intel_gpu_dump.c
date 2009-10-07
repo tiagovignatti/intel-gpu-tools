@@ -59,8 +59,6 @@
     return count;						\
 } while (0)
 
-#define ARRAY_SIZE(arr) (sizeof(arr)/sizeof(arr[0]))
-
 static FILE *out;
 static uint32_t saved_s2 = 0, saved_s4 = 0;
 static char saved_s2_set = 0, saved_s4_set = 0;
