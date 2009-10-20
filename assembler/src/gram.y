@@ -80,8 +80,9 @@ void set_direct_src_operand(struct src_operand *src, struct direct_reg *reg,
 %token LCURLY RCURLY
 %token LSQUARE RSQUARE
 %token COMMA
-%token DOT
-%token PLUS MINUS ABS
+%token DOT ABS
+%left  PLUS MINUS 
+%left  MULTIPLY DIVIDE
 
 %token <integer> TYPE_UD TYPE_D TYPE_UW TYPE_W TYPE_UB TYPE_B
 %token <integer> TYPE_VF TYPE_HF TYPE_V TYPE_F
@@ -120,6 +121,7 @@ void set_direct_src_operand(struct src_operand *src, struct direct_reg *reg,
 
 %token <integer> X Y Z W
 
+%type <integer> exp
 %type <instruction> instruction unaryinstruction binaryinstruction
 %type <instruction> binaryaccinstruction triinstruction sendinstruction
 %type <instruction> jumpinstruction branchloopinstruction elseinstruction
@@ -152,7 +154,15 @@ void set_direct_src_operand(struct src_operand *src, struct direct_reg *reg,
 %type <src_operand> indirectsrcoperand
 %type <src_operand> src srcimm imm32reg payload srcacc srcaccimm swizzle
 %type <src_operand> relativelocation relativelocation2 locationstackcontrol
+
 %%
+exp:		INTEGER { $$ = $1; }
+		| exp MULTIPLY exp { $$ = $1 * $3; } 
+		| exp DIVIDE exp { if ($3) $$ = $1 / $3; else YYERROR;}
+		| exp PLUS exp { $$ = $1 + $3; }
+		| exp MINUS exp { $$ = $1 - $3; }
+		| MINUS exp { $$ = -$2;}
+		| LPAREN exp RPAREN { $$ = $2; }
 
 ROOT:		instrseq
 		{
@@ -287,8 +297,8 @@ binaryaccop:	AVG | ADD | SEL | AND | OR | XOR | SHR | SHL | ASR | CMP | CMPN
 triinstruction:	sendinstruction
 ;
 
-sendinstruction: predicate SEND execsize INTEGER post_dst payload msgtarget
-		MSGLEN INTEGER RETURNLEN INTEGER instoptions
+sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
+		MSGLEN exp RETURNLEN exp instoptions
 		{
 		  /* Send instructions are messy.  The first argument is the
 		   * post destination -- the grf register that the response
@@ -1030,12 +1040,12 @@ addrparam:	addrreg immaddroffset
  * from the address register in register-indirect register access.
  */
 immaddroffset:	/* empty */ { $$ = 0; }
-		| INTEGER
+		| exp
 ;
 
 
 /* 1.4.5: Register files and register numbers */
-subregnum:	DOT INTEGER
+subregnum:	DOT exp
 		{
 		  $$ = $2;
 		}
@@ -1324,7 +1334,7 @@ locationstackcontrol:
 ;
 
 /* 1.4.7: Regions */
-dstregion:	LANGLE INTEGER RANGLE
+dstregion:	LANGLE exp RANGLE
 		{
 		  /* Returns a value for a horiz_stride field of an
 		   * instruction.
@@ -1336,7 +1346,7 @@ dstregion:	LANGLE INTEGER RANGLE
 		}
 ;
 
-region:		LANGLE INTEGER COMMA INTEGER COMMA INTEGER RANGLE
+region:		LANGLE exp COMMA exp COMMA exp RANGLE
 		{
 		  memset (&$$, '\0', sizeof ($$));
 		  $$.vert_stride = ffs($2);
@@ -1349,7 +1359,7 @@ region:		LANGLE INTEGER COMMA INTEGER COMMA INTEGER RANGLE
  * a vertical stride, you use subsequent address registers to get a new base
  * offset for the next row.
  */
-region_wh:	LANGLE INTEGER COMMA INTEGER RANGLE
+region_wh:	LANGLE exp COMMA exp RANGLE
 		{
 		  memset (&$$, '\0', sizeof ($$));
 		  $$.vert_stride = BRW_VERTICAL_STRIDE_ONE_DIMENSIONAL;
@@ -1450,8 +1460,8 @@ writemask_w:	/* empty */ { $$ = 0; }
 ;
 
 /* 1.4.11: Immediate values */
-imm32:		INTEGER { $$.r = imm32_d; $$.u.d = $1; }
-		| MINUS INTEGER { $$.r = imm32_d; $$.u.d = -$2; }
+imm32:		exp { $$.r = imm32_d; $$.u.d = $1; }
+		| MINUS exp { $$.r = imm32_d; $$.u.d = -$2; }
 		| NUMBER { $$.r = imm32_f; $$.u.f = $1; }
 ;
 
@@ -1504,7 +1514,7 @@ abs:		/* empty */ { $$ = 0; }
 		| ABS { $$ = 1; }
 ;
 
-execsize:	LPAREN INTEGER RPAREN
+execsize:	LPAREN exp RPAREN
 		{
 		  /* Returns a value for the execution_size field of an
 		   * instruction.

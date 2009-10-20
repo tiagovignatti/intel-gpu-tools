@@ -113,7 +113,6 @@ extern char *input_filename;
 "transpose" { return TRANSPOSE; }
 "interleave" { return INTERLEAVE; }
 
-":" { return COLON; }
 ";" { return SEMICOLON; }
 "(" { return LPAREN; }
 ")" { return RPAREN; }
@@ -127,6 +126,9 @@ extern char *input_filename;
 "." { return DOT; }
 "+" { return PLUS; }
 "-" { return MINUS; }
+"*" { return MULTIPLY;}
+"/" { return DIVIDE; }
+":" { return COLON; }
 "(abs)" { return ABS; }
 
  /* Most register accesses are lexed as REGFILE[0-9]+, to prevent the register
