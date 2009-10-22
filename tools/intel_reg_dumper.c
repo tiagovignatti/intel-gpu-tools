@@ -131,7 +131,7 @@ DEBUGSTRING(i830_debug_dspcntr)
 {
 	char *enabled = val & DISPLAY_PLANE_ENABLE ? "enabled" : "disabled";
 	char plane = val & DISPPLANE_SEL_PIPE_B ? 'B' : 'A';
-	if (IS_IRONLAKE(devid))
+	if (HAS_PCH_SPLIT(devid))
 		asprintf(result, "%s", enabled);
 	else
 		asprintf(result, "%s, pipe %c", enabled, plane);
@@ -149,7 +149,7 @@ DEBUGSTRING(i830_debug_pipeconf)
 		bit30 =
 		    val & PIPEACONF_DOUBLE_WIDE ? "double-wide" : "single-wide";
 
-	if (IS_IRONLAKE(devid)) {
+	if (HAS_PCH_SPLIT(devid)) {
 		switch (val & (7 << 5)) {
 		case PIPECONF_8BPP:
 			bpc = "8bpc";
@@ -165,7 +165,7 @@ DEBUGSTRING(i830_debug_pipeconf)
 			break;
 		}
 	}
-	if (IS_IRONLAKE(devid))
+	if (HAS_PCH_SPLIT(devid))
 		asprintf(result, "%s, %s, %s", enabled, bit30, bpc);
 	else
 		asprintf(result, "%s, %s", enabled, bit30);
@@ -447,7 +447,7 @@ DEBUGSTRING(i830_debug_adpa)
 	char hsync = (val & ADPA_HSYNC_ACTIVE_HIGH) ? '+' : '-';
 	char vsync = (val & ADPA_VSYNC_ACTIVE_HIGH) ? '+' : '-';
 
-	if (IS_IRONLAKE(devid))
+	if (HAS_PCH_SPLIT(devid))
 		asprintf(result, "%s, transcoder %c, %chsync, %cvsync",
 				 enable, pipe, hsync, vsync);
 	else
@@ -1655,7 +1655,7 @@ int main(int argc, char** argv)
 {
 	intel_get_mmio();
 
-	if (IS_IRONLAKE(devid))
+	if (HAS_PCH_SPLIT(devid))
 		ironlake_dump_regs();
 	else
 		intel_dump_regs();

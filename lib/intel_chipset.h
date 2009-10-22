@@ -70,6 +70,8 @@
 #define PCI_CHIP_ILD_G                  0x0042
 #define PCI_CHIP_ILM_G                  0x0046
 
+#define PCI_CHIP_SANDYBRIDGE		0x0102
+
 #define IS_MOBILE(devid)	(devid == PCI_CHIP_I855_GM || \
 				 devid == PCI_CHIP_I915_GM || \
 				 devid == PCI_CHIP_I945_GM || \
@@ -100,15 +102,23 @@
 				 devid == PCI_CHIP_Q33_G || \
 				 devid == PCI_CHIP_Q35_G || IS_IGD(devid))
 
-#define IS_965(devid)		(devid == PCI_CHIP_I965_G || \
+#define IS_GEN4(devid)		(devid == PCI_CHIP_I965_G || \
 				 devid == PCI_CHIP_I965_Q || \
 				 devid == PCI_CHIP_I965_G_1 || \
 				 devid == PCI_CHIP_I965_GM || \
 				 devid == PCI_CHIP_I965_GME || \
 				 devid == PCI_CHIP_I946_GZ || \
-				 IS_G4X(devid) || \
-				 IS_IRONLAKE(devid))
+				 IS_G4X(devid))
+
+#define IS_965(devid)		(IS_GEN4(devid) || \
+				 IS_IRONLAKE(devid) || \
+				 IS_GEN6(devid))
+
+#define IS_GEN6(devid)		(devid == PCI_CHIP_SANDYBRIDGE)
 
 #define IS_9XX(devid)		(IS_915(devid) || \
 				 IS_945(devid) || \
 				 IS_965(devid))
+
+#define HAS_PCH_SPLIT(devid)	(IS_IRONLAKE(devid) ||	\
+				 IS_GEN6(devid))
