@@ -239,14 +239,23 @@ extern char *input_filename;
   * in the BNF of the assembly, but our existing source didn't use that syntax.
   */
 "UD" { return TYPE_UD; }
+":UD" { return TYPE_UD; }
 "D" { return TYPE_D; }
+":D" { return TYPE_D; }
 "UW" { return TYPE_UW; }
+":UW" { return TYPE_UW; }
 "W" { return TYPE_W; }
+":W" { return TYPE_W; }
 "UB" { return TYPE_UB; }
+":UB" { return TYPE_UB; }
 "B" { return TYPE_B; }
+":B" { return TYPE_B; }
 "F" { return TYPE_F; }
+":F" { return TYPE_B; }
 "VF" {return TYPE_VF; }
+":VF" {return TYPE_VF; }
 "V" { return TYPE_V; }
+":V" { return TYPE_V; }
 
 "sat" { return SATURATE; }
 "align1" { return ALIGN1; }

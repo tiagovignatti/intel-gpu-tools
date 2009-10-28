@@ -172,9 +172,6 @@ ROOT:		instrseq
 
 
 label:          STRING COLON
-		{
-    		  $$ = $1;
-		}
 ;
 
 instrseq:	instruction SEMICOLON instrseq
@@ -202,7 +199,7 @@ instrseq:	instruction SEMICOLON instrseq
                 {
                   struct brw_program_instruction *list_entry =
                     calloc(sizeof(struct brw_program_instruction), 1);
-                  list_entry->string = $1;
+                  list_entry->string = strdup($1);
                   list_entry->islabel = 1;
                   list_entry->next = $2.first;
                       $2.first = list_entry;
@@ -1353,6 +1350,13 @@ region:		LANGLE exp COMMA exp COMMA exp RANGLE
 		  $$.width = ffs($4) - 1;
 		  $$.horiz_stride = ffs($6);
 		}
+		| LANGLE exp SEMICOLON exp COMMA exp RANGLE
+		{
+		  memset (&$$, '\0', sizeof ($$));
+		  $$.vert_stride = ffs($2);
+		  $$.width = ffs($4) - 1;
+		  $$.horiz_stride = ffs($6);
+		}
 ;
 
 /* region_wh is used in specifying indirect operands where rather than having
@@ -1461,7 +1465,6 @@ writemask_w:	/* empty */ { $$ = 0; }
 
 /* 1.4.11: Immediate values */
 imm32:		exp { $$.r = imm32_d; $$.u.d = $1; }
-		| MINUS exp { $$.r = imm32_d; $$.u.d = -$2; }
 		| NUMBER { $$.r = imm32_f; $$.u.f = $1; }
 ;
 
@@ -1547,11 +1550,14 @@ conditionalmodifier: /* empty */    { $$ = BRW_CONDITIONAL_NONE; }
 ;
 
 /* 1.4.13: Instruction options */
-instoptions:	LCURLY instoption_list RCURLY
+instoptions:	/* empty */
+		{ memset(&$$, 0, sizeof($$)); }
+		| LCURLY instoption_list RCURLY
 		{ $$ = $2; }
 ;
 
-instoption_list: instoption instoption_list
+instoption_list:
+ 		instoption instoption_list
 		{
 		  $$ = $2;
 		  switch ($1) {
