@@ -34,15 +34,9 @@ AM_INIT_AUTOMAKE([dist-bzip2])
 
 AM_MAINTAINER_MODE
 
-AC_CONFIG_FILES([
-	shave
-	shave-libtool
-])
-
 # Checks for programs.
 AC_DISABLE_STATIC
 AC_PROG_LIBTOOL
-DOLT
 AC_PROG_CC
 AM_PROG_CC_C_O
 
@@ -61,7 +55,9 @@ fi
 
 AC_SUBST([WARN_CFLAGS])
 
-SHAVE_INIT([.], [enable])
+m4_ifndef([XORG_MACROS_VERSION], [AC_FATAL([must install xorg-macros 1.3 or later before running autoconf/autogen])])
+XORG_MACROS_VERSION(1.3)
+XORG_DEFAULT_OPTIONS
 
 AC_OUTPUT([
 	Makefile

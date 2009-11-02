@@ -18,14 +18,10 @@ config.sub
 configure
 configure.lineno
 depcomp
-doltcompile
-doltlibtool
 install-sh
 libtool
 ltmain.sh
 missing
-shave
-shave-libtool
 stamp-h1
 cscope.*
 benchmarks/intel_upload_blit_large
