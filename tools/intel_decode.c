@@ -1618,18 +1618,32 @@ decode_3d_965(uint32_t *data, int count, uint32_t hw_offset, uint32_t devid, int
 	instr_out(data, hw_offset, 6, "CC state\n");
 	return len;
     case 0x7801:
-	if (len != 6)
+	if (len != 6 && len != 4)
 	    fprintf(out, "Bad count in 3DSTATE_BINDING_TABLE_POINTERS\n");
-	if (count < 6)
-	    BUFFER_FAIL(count, len, "3DSTATE_BINDING_TABLE_POINTERS");
+	if (len == 6) {
+	    if (count < 6)
+		BUFFER_FAIL(count, len, "3DSTATE_BINDING_TABLE_POINTERS");
+	    instr_out(data, hw_offset, 0,
+		      "3DSTATE_BINDING_TABLE_POINTERS\n");
+	    instr_out(data, hw_offset, 1, "VS binding table\n");
+	    instr_out(data, hw_offset, 2, "GS binding table\n");
+	    instr_out(data, hw_offset, 3, "Clip binding table\n");
+	    instr_out(data, hw_offset, 4, "SF binding table\n");
+	    instr_out(data, hw_offset, 5, "WM binding table\n");
+	} else {
+	    if (count < 4)
+		BUFFER_FAIL(count, len, "3DSTATE_BINDING_TABLE_POINTERS");
 
-	instr_out(data, hw_offset, 0,
-		  "3DSTATE_BINDING_TABLE_POINTERS\n");
-	instr_out(data, hw_offset, 1, "VS binding table\n");
-	instr_out(data, hw_offset, 2, "GS binding table\n");
-	instr_out(data, hw_offset, 3, "Clip binding table\n");
-	instr_out(data, hw_offset, 4, "SF binding table\n");
-	instr_out(data, hw_offset, 5, "WM binding table\n");
+	    instr_out(data, hw_offset, 0,
+		      "3DSTATE_BINDING_TABLE_POINTERS: VS mod %d, "
+		      "GS mod %d, PS mod %d\n",
+		      (data[0] & (1 << 8)) != 0,
+		      (data[0] & (1 << 9)) != 0,
+		      (data[0] & (1 << 10)) != 0);
+	    instr_out(data, hw_offset, 1, "VS binding table\n");
+	    instr_out(data, hw_offset, 2, "GS binding table\n");
+	    instr_out(data, hw_offset, 3, "WM binding table\n");
+	}
 
 	return len;
 
@@ -1712,7 +1726,7 @@ decode_3d_965(uint32_t *data, int count, uint32_t hw_offset, uint32_t devid, int
 	return len;
 
     case 0x7905:
-	if (len != 5 && len != 6)
+	if (len < 5 || len > 7)
 	    fprintf(out, "Bad count in 3DSTATE_DEPTH_BUFFER\n");
 	if (count < len)
 	    BUFFER_FAIL(count, len, "3DSTATE_DEPTH_BUFFER");
@@ -1729,8 +1743,10 @@ decode_3d_965(uint32_t *data, int count, uint32_t hw_offset, uint32_t devid, int
 		  ((data[3] & 0x0007ffc0) >> 6) + 1,
 		  ((data[3] & 0xfff80000) >> 19) + 1);
 	instr_out(data, hw_offset, 4, "volume depth\n");
-	if (len == 6)
+	if (len >= 6)
 	    instr_out(data, hw_offset, 5, "\n");
+       if (len >= 7)
+           instr_out(data, hw_offset, 6, "render target view extent\n");
 
 	return len;
 
