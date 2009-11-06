@@ -3489,5 +3489,6 @@ typedef enum {
 #define AUD_CTS_ENABLE          0x62128
 
 #define VIDEO_DIP_CTL           0x61170
+#define VIDEO_DIP_DATA          0x61178
 
 #endif /* _I810_REG_H */

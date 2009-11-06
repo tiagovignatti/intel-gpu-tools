@@ -44,6 +44,12 @@ INREG(uint32_t reg)
 	return *(volatile uint32_t *)((volatile char *)mmio + reg);
 }
 
+static inline void
+OUTREG(uint32_t reg, uint32_t val)
+{
+	*(volatile uint32_t *)((volatile char *)mmio + reg) = val;
+}
+
 void intel_get_pci_device(void);
 void intel_get_mmio(void);
 void intel_get_drm_devid(int fd);

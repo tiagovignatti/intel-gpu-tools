@@ -1,4 +1,5 @@
 bin_PROGRAMS = \
+	intel_audio_dump \
 	intel_gpu_dump \
 	intel_gpu_top \
 	intel_gpu_time \
