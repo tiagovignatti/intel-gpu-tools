@@ -1,5 +1,6 @@
 bin_PROGRAMS = \
 	intel_audio_dump \
+	intel_decode \
 	intel_gpu_dump \
 	intel_gpu_top \
 	intel_gpu_time \
@@ -9,6 +10,12 @@ bin_PROGRAMS = \
 
 intel_gpu_dump_SOURCES = \
 	intel_gpu_dump.c \
+	intel_decode.c \
+	intel_decode.h
+
+intel_decode_SOURCES = \
+	intel_decode_file.c \
+	intel_decode.c \
 	intel_decode.h
 
 LDADD = ../lib/libintel_tools.la $(DRM_LIBS) $(PCIACCESS_LIBS)
