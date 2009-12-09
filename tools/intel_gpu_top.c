@@ -29,6 +29,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <err.h>
+#include <sys/ioctl.h>
 #include "intel_gpu_tools.h"
 #include "instdone.h"
 
@@ -257,6 +258,13 @@ int main(int argc, char **argv)
 		qsort(top_bits_sorted, num_instdone_bits,
 		      sizeof(struct top_bit *), top_bits_sort);
 
+		/* Limit the number of lines printed to the terminal height so the
+		 * most important info (at the top) will stay on screen. */
+		unsigned short int max_lines = -1;
+		struct winsize ws;
+		if (ioctl(0, TIOCGWINSZ, &ws) != -1)
+			max_lines = ws.ws_row - 6; /* exclude header lines */
+
 		printf("%s", clear_screen);
 
 		print_clock_info();
@@ -275,11 +283,13 @@ int main(int argc, char **argv)
 			if (top_bits_sorted[i]->count < 1)
 				break;
 
-			percent = top_bits_sorted[i]->count / SAMPLES_TO_PERCENT_RATIO;
-			len = printf("%30s: %3d%%: ",
-				     top_bits_sorted[i]->bit->name,
-				     percent);
-			print_percentage_bar (percent, len);
+			if (i < max_lines) {
+				percent = top_bits_sorted[i]->count / SAMPLES_TO_PERCENT_RATIO;
+				len = printf("%30s: %3d%%: ",
+					     top_bits_sorted[i]->bit->name,
+					     percent);
+				print_percentage_bar (percent, len);
+			}
 
 			top_bits_sorted[i]->count = 0;
 		}
