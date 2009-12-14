@@ -107,10 +107,18 @@ print_clock_info(void)
 		pci_device_cfg_read_u16(pci_dev, &gcfgc, I915_GCFGC);
 
 		switch (gcfgc & 0xf) {
-		case 8: core_clock = 266;
-		case 9: core_clock = 320;
-		case 11: core_clock = 400;
-		case 13: core_clock = 533;
+		case 8:
+			core_clock = 266;
+			break;
+		case 9:
+			core_clock = 320;
+			break;
+		case 11:
+			core_clock = 400;
+			break;
+		case 13:
+			core_clock = 533;
+			break;
 		}
 		print_clock("core", core_clock);
 	} else if (IS_965(devid) && IS_MOBILE(devid)) {
@@ -119,10 +127,18 @@ print_clock_info(void)
 		pci_device_cfg_read_u16(pci_dev, &gcfgc, I915_GCFGC);
 
 		switch (gcfgc & 0xf) {
-		case 2: render_clock = 250; sampler_clock = 267;
-		case 3: render_clock = 320; sampler_clock = 333;
-		case 4: render_clock = 400; sampler_clock = 444;
-		case 5: render_clock = 500; sampler_clock = 533;
+		case 2:
+			render_clock = 250; sampler_clock = 267;
+			break;
+		case 3:
+			render_clock = 320; sampler_clock = 333;
+			break;
+		case 4:
+			render_clock = 400; sampler_clock = 444;
+			break;
+		case 5:
+			render_clock = 500; sampler_clock = 533;
+			break;
 		}
 
 		print_clock("render", render_clock);
@@ -134,15 +150,27 @@ print_clock_info(void)
 		pci_device_cfg_read_u16(pci_dev, &gcfgc, I915_GCFGC);
 
 		switch (gcfgc & 0x7) {
-		case 0: render_clock = 166;
-		case 1: render_clock = 200;
-		case 3: render_clock = 250;
-		case 5: render_clock = 400;
+		case 0:
+			render_clock = 166;
+			break;
+		case 1:
+			render_clock = 200;
+			break;
+		case 3:
+			render_clock = 250;
+			break;
+		case 5:
+			render_clock = 400;
+			break;
 		}
 
 		switch (gcfgc & 0x70) {
-		case 0: display_clock = 200;
-		case 4: display_clock = 320;
+		case 0:
+			display_clock = 200;
+			break;
+		case 4:
+			display_clock = 320;
+			break;
 		}
 		if (gcfgc & (1 << 7))
 		    display_clock = 133;
@@ -156,16 +184,26 @@ print_clock_info(void)
 		pci_device_cfg_read_u16(pci_dev, &gcfgc, I915_GCFGC);
 
 		switch (gcfgc & 0x7) {
-		case 0: render_clock = 160;
-		case 1: render_clock = 190;
-		case 4: render_clock = 333;
+		case 0:
+			render_clock = 160;
+			break;
+		case 1:
+			render_clock = 190;
+			break;
+		case 4:
+			render_clock = 333;
+			break;
 		}
 		if (gcfgc & (1 << 13))
 		    render_clock = 133;
 
 		switch (gcfgc & 0x70) {
-		case 0: display_clock = 190;
-		case 4: display_clock = 333;
+		case 0:
+			display_clock = 190;
+			break;
+		case 4:
+			display_clock = 333;
+			break;
 		}
 		if (gcfgc & (1 << 7))
 		    display_clock = 133;
