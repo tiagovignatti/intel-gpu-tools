@@ -1697,6 +1697,18 @@ decode_3d_965(uint32_t *data, int count, uint32_t hw_offset, uint32_t devid, int
 	}
 	return len;
 
+    case 0x780d:
+	len = (data[0] & 0xff) + 2;
+	if (len != 4)
+	    fprintf(out, "Bad count in 3DSTATE_VIEWPORT_STATE_POINTERS\n");
+	if (count < len)
+	    BUFFER_FAIL(count, len, "3DSTATE_VIEWPORT_STATE_POINTERS");
+	instr_out(data, hw_offset, 0, "3DSTATE_VIEWPORT_STATE_POINTERS\n");
+	instr_out(data, hw_offset, 1, "clip\n");
+	instr_out(data, hw_offset, 2, "sf\n");
+	instr_out(data, hw_offset, 3, "cc\n");
+	return len;
+
     case 0x780a:
 	len = (data[0] & 0xff) + 2;
 	if (len != 3)
