@@ -52,6 +52,27 @@
 #include "intel_gpu_tools.h"
 #include "instdone.h"
 
+static void
+print_instdone (unsigned int instdone, unsigned int instdone1)
+{
+    int i;
+
+    for (i = 0; i < num_instdone_bits; i++) {
+	int busy = 0;
+
+	if (instdone_bits[i].reg == INST_DONE_1) {
+	    if (!(instdone1 & instdone_bits[i].bit))
+		busy = 1;
+	} else {
+	    if (!(instdone & instdone_bits[i].bit))
+		busy = 1;
+	}
+
+	if (busy)
+	    printf("    busy: %s\n", instdone_bits[i].name);
+    }
+}
+
 /* Read a data file of the following form:
  *
  *	Offset0 :  Data0
@@ -104,9 +125,23 @@ read_data_file (const char * filename, int is_batch)
 	}
 
 	matched = sscanf (line, "%08x : %08x", &offset, &value);
-	if (matched !=2 ) {
-	    fprintf (stderr, "Warning: Ignoring unrecognized line at %s:%d:\n%s",
-		     filename, line_number, line);
+	if (matched != 2) {
+	    unsigned int reg;
+
+	    printf("%s", line);
+
+	    matched = sscanf (line, "  ACTHD: 0x%08x\n", &reg);
+	    if (matched)
+		    intel_decode_context_set_head_tail(reg, 0xffffffff);
+
+	    matched = sscanf (line, "  INSTDONE: 0x%08x\n", &reg);
+	    if (matched)
+		print_instdone (reg, -1);
+
+	    matched = sscanf (line, "  INSTDONE1: 0x%08x\n", &reg);
+	    if (matched)
+		print_instdone (-1, reg);
+
 	    continue;
 	}
 
@@ -203,7 +238,6 @@ main (int argc, char *argv[])
     struct stat st;
     int err;
     uint32_t instdone, instdone1 = 0;
-    int i;
 
     if (argc > 2) {
 	fprintf (stderr,
@@ -225,6 +259,7 @@ main (int argc, char *argv[])
     }
 
     intel_get_mmio();
+    init_instdone_definitions();
 
     if (argc == 1) {
 	path = "/debug/dri/0";
@@ -270,8 +305,6 @@ main (int argc, char *argv[])
 	parse_ringbuffer_info(filename, &ring_head, &ring_tail, &acthd);
 	free (filename);
 
-	init_instdone_definitions();
-
 	printf("ACTHD: 0x%08x\n", acthd);
 	printf("EIR: 0x%08x\n", INREG(EIR));
 	printf("EMR: 0x%08x\n", INREG(EMR));
@@ -294,21 +327,7 @@ main (int argc, char *argv[])
 	    printf("INSTDONE: 0x%08x\n", instdone);
 	}
 
-	for (i = 0; i < num_instdone_bits; i++) {
-	    int busy = 0;
-
-	    if (instdone_bits[i].reg == INST_DONE_1) {
-		if (!(instdone1 & instdone_bits[i].bit))
-		    busy = 1;
-	    } else {
-		if (!(instdone & instdone_bits[i].bit))
-		    busy = 1;
-	    }
-
-	    if (busy) {
-		printf("  busy: %s\n", instdone_bits[i].name);
-	    }
-	}
+	print_instdone (instdone, instdone1);
 
 	asprintf (&filename, "%s/i915_batchbuffers", path);
 	intel_decode_context_set_head_tail(acthd, 0xffffffff);
