@@ -1521,15 +1521,17 @@ decode_3d_965(uint32_t *data, int count, uint32_t hw_offset, uint32_t devid, int
 	return i965_decode_urb_fence(data, hw_offset, len, count, failures);
     case 0x6001:
 	instr_out(data, hw_offset, 0, "CS_URB_STATE\n");
-	instr_out(data, hw_offset, 1, "entry_size: %d, n_entries: %d\n",
-			(data[1] >> 4) & 0x1f, data[1] & 0x7);
+	instr_out(data, hw_offset, 1, "entry_size: %d [%d bytes], n_entries: %d\n",
+			(data[1] >> 4) & 0x1f,
+			(((data[1] >> 4) & 0x1f) + 1) * 64,
+			data[1] & 0x7);
 	return len;
     case 0x6002:
 	len = (data[0] & 0x000000ff) + 2;
 	instr_out(data, hw_offset, 0, "CONSTANT_BUFFER: %s\n",
 			(data[0] >> 8) & 1 ? "valid" : "invalid");
-	instr_out(data, hw_offset, 1, "offset: 0x%08x, length: 0x%08x\n",
-			data[1] >> 6, data[1] & 0x3f);
+	instr_out(data, hw_offset, 1, "offset: 0x%08x, length: %d bytes\n",
+			data[1] & ~0x3f, ((data[1] & 0x3f) + 1) * 64);
 	return len;
     case 0x6101:
 	if ((IS_IRONLAKE(devid) && len != 8) ||
