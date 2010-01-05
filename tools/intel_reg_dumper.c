@@ -877,6 +877,8 @@ static struct reg_debug intel_debug_regs[] = {
 	DEFINEFENCE_965(13),
 	DEFINEFENCE_965(14),
 	DEFINEFENCE_965(15),
+
+	DEFINEREG(INST_PM),
 };
 
 DEBUGSTRING(ironlake_debug_rr_hw_ctl)
