@@ -54,3 +54,5 @@ tools/intel_gpu_top
 tools/intel_reg_dumper
 tools/intel_reg_write
 tools/intel_stepping
+tools/intel_audio_dump
+tools/intel_reg_read
