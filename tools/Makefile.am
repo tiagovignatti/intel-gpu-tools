@@ -7,7 +7,8 @@ bin_PROGRAMS = \
 	intel_stepping \
 	intel_reg_dumper \
 	intel_reg_write \
-	intel_reg_read
+	intel_reg_read \
+	intel_bios_reader
 
 intel_gpu_dump_SOURCES = \
 	intel_gpu_dump.c \
@@ -18,6 +19,10 @@ intel_decode_SOURCES = \
 	intel_decode_file.c \
 	intel_decode.c \
 	intel_decode.h
+
+intel_bios_reader_SOURCES = \
+	intel_bios_reader.c \
+	intel_bios.h
 
 LDADD = ../lib/libintel_tools.la $(DRM_LIBS) $(PCIACCESS_LIBS)
 
