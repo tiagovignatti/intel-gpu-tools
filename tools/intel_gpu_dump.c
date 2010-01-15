@@ -324,7 +324,15 @@ main (int argc, char *argv[])
 	printf("ESR: 0x%08x\n", INREG(ESR));
 	printf("PGTBL_ER: 0x%08x\n", INREG(PGTBL_ER));
 
-	if (IS_965(devid)) {
+	if (IS_GEN6(devid)) {
+	    instdone = INREG(GEN6_INSTDONE_1);
+	    instdone1 = INREG(GEN6_INSTDONE_2);
+
+	    printf("IPEHR: 0x%08x\n", INREG(IPEHR_I965));
+	    printf("IPEIR: 0x%08x\n", INREG(IPEIR_I965));
+	    printf("INSTDONE1: 0x%08x\n", instdone);
+	    printf("INSTDONE2: 0x%08x\n", instdone1);
+	} else if (IS_965(devid)) {
 	    instdone = INREG(INST_DONE_I965);
 	    instdone1 = INREG(INST_DONE_1);
 
