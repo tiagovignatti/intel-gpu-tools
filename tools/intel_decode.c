@@ -1545,10 +1545,14 @@ decode_3d_965(uint32_t *data, int count, uint32_t hw_offset, uint32_t devid, int
 	{ 0x7805, 3, 3, "3DSTATE_URB" },
 	{ 0x780e, 4, 4, "3DSTATE_CC_STATE_POINTERS" },
 	{ 0x7810, 6, 6, "3DSTATE_VS_STATE" },
-	{ 0x7811, 6, 6, "3DSTATE_GS_STATE" },
+	{ 0x7811, 7, 7, "3DSTATE_GS_STATE" },
+	{ 0x7812, 4, 4, "3DSTATE_CLIP_STATE" },
+	{ 0x7813, 20, 20, "3DSTATE_SF_STATE" },
+	{ 0x7814, 9, 9, "3DSTATE_WM_STATE" },
 	{ 0x7812, 4, 4, "3DSTATE_CLIP_STATE" },
 	{ 0x7815, 5, 5, "3DSTATE_CONSTANT_VS_STATE" },
 	{ 0x7816, 5, 5, "3DSTATE_CONSTANT_GS_STATE" },
+	{ 0x7817, 5, 5, "3DSTATE_CONSTANT_PS_STATE" },
    }, *opcode_3d;
 
     len = (data[0] & 0x0000ffff) + 2;
@@ -1556,7 +1560,7 @@ decode_3d_965(uint32_t *data, int count, uint32_t hw_offset, uint32_t devid, int
     opcode = (data[0] & 0xffff0000) >> 16;
     switch (opcode) {
     case 0x6000:
-    len = (data[0] & 0x000000ff) + 2;
+	len = (data[0] & 0x000000ff) + 2;
 	return i965_decode_urb_fence(data, hw_offset, len, count, failures);
     case 0x6001:
 	instr_out(data, hw_offset, 0, "CS_URB_STATE\n");
@@ -1621,6 +1625,7 @@ decode_3d_965(uint32_t *data, int count, uint32_t hw_offset, uint32_t devid, int
 	instr_out(data, hw_offset, 6, "CC state\n");
 	return len;
     case 0x7801:
+	len = (data[0] & 0x000000ff) + 2;
 	if (len != 6 && len != 4)
 	    fprintf(out, "Bad count in 3DSTATE_BINDING_TABLE_POINTERS\n");
 	if (len == 6) {
