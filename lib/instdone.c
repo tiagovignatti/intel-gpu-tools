@@ -58,10 +58,90 @@ gen4_instdone1_bit(uint32_t bit, const char *name)
 	add_instdone_bit(INST_DONE_1, bit, name);
 }
 
+static void
+gen6_instdone1_bit(uint32_t bit, const char *name)
+{
+	add_instdone_bit(GEN6_INSTDONE_1, bit, name);
+}
+
+static void
+gen6_instdone2_bit(uint32_t bit, const char *name)
+{
+	add_instdone_bit(GEN6_INSTDONE_2, bit, name);
+}
+
 void
 init_instdone_definitions(void)
 {
-	if (IS_965(devid)) {
+	if (IS_GEN6(devid)) {
+		/* Now called INSTDONE_1 in the docs. */
+		gen6_instdone1_bit(GEN6_MA_3_DONE, "Message Arbiter 3");
+		gen6_instdone1_bit(GEN6_EU_32_DONE, "EU 32");
+		gen6_instdone1_bit(GEN6_EU_31_DONE, "EU 31");
+		gen6_instdone1_bit(GEN6_EU_30_DONE, "EU 30");
+		gen6_instdone1_bit(GEN6_MA_3_DONE, "Message Arbiter 2");
+		gen6_instdone1_bit(GEN6_EU_22_DONE, "EU 22");
+		gen6_instdone1_bit(GEN6_EU_21_DONE, "EU 21");
+		gen6_instdone1_bit(GEN6_EU_20_DONE, "EU 20");
+		gen6_instdone1_bit(GEN6_MA_3_DONE, "Message Arbiter 1");
+		gen6_instdone1_bit(GEN6_EU_12_DONE, "EU 12");
+		gen6_instdone1_bit(GEN6_EU_11_DONE, "EU 11");
+		gen6_instdone1_bit(GEN6_EU_10_DONE, "EU 10");
+		gen6_instdone1_bit(GEN6_MA_3_DONE, "Message Arbiter 0");
+		gen6_instdone1_bit(GEN6_EU_02_DONE, "EU 02");
+		gen6_instdone1_bit(GEN6_EU_01_DONE, "EU 01");
+		gen6_instdone1_bit(GEN6_EU_00_DONE, "EU 00");
+
+		gen6_instdone1_bit(GEN6_IC_3_DONE, "IC 3");
+		gen6_instdone1_bit(GEN6_IC_2_DONE, "IC 2");
+		gen6_instdone1_bit(GEN6_IC_1_DONE, "IC 1");
+		gen6_instdone1_bit(GEN6_IC_0_DONE, "IC 0");
+		gen6_instdone1_bit(GEN6_ISC_10_DONE, "ISC 1/0");
+		gen6_instdone1_bit(GEN6_ISC_32_DONE, "ISC 3/2");
+
+		gen6_instdone1_bit(GEN6_VSC_DONE, "VSC");
+		gen6_instdone1_bit(GEN6_IEF_DONE, "IEF");
+		gen6_instdone1_bit(GEN6_VFE_DONE, "VFE");
+		gen6_instdone1_bit(GEN6_TD_DONE, "TD");
+		gen6_instdone1_bit(GEN6_TS_DONE, "TS");
+		gen6_instdone1_bit(GEN6_GW_DONE, "GW");
+		gen6_instdone1_bit(GEN6_HIZ_DONE, "HIZ");
+		gen6_instdone1_bit(GEN6_AVS_DONE, "AVS");
+
+		/* Now called INSTDONE_2 in the docs. */
+		gen6_instdone2_bit(GEN6_GAM_DONE, "GAM");
+		gen6_instdone2_bit(GEN6_CS_DONE, "CS");
+		gen6_instdone2_bit(GEN6_WMBE_DONE, "WMBE");
+		gen6_instdone2_bit(GEN6_SVRW_DONE, "SVRW");
+		gen6_instdone2_bit(GEN6_RCC_DONE, "RCC");
+		gen6_instdone2_bit(GEN6_SVG_DONE, "SVG");
+		gen6_instdone2_bit(GEN6_ISC_DONE, "ISC");
+		gen6_instdone2_bit(GEN6_MT_DONE, "MT");
+		gen6_instdone2_bit(GEN6_RCPFE_DONE, "RCPFE");
+		gen6_instdone2_bit(GEN6_RCPBE_DONE, "RCPBE");
+		gen6_instdone2_bit(GEN6_VDI_DONE, "VDI");
+		gen6_instdone2_bit(GEN6_RCZ_DONE, "RCZ");
+		gen6_instdone2_bit(GEN6_DAP_DONE, "DAP");
+		gen6_instdone2_bit(GEN6_PSD_DONE, "PSD");
+		gen6_instdone2_bit(GEN6_IZ_DONE, "IZ");
+		gen6_instdone2_bit(GEN6_WMFE_DONE, "WMFE");
+		gen6_instdone2_bit(GEN6_SVSM_DONE, "SVSM");
+		gen6_instdone2_bit(GEN6_QC_DONE, "QC");
+		gen6_instdone2_bit(GEN6_FL_DONE, "FL");
+		gen6_instdone2_bit(GEN6_SC_DONE, "SC");
+		gen6_instdone2_bit(GEN6_DM_DONE, "DM");
+		gen6_instdone2_bit(GEN6_FT_DONE, "FT");
+		gen6_instdone2_bit(GEN6_DG_DONE, "DG");
+		gen6_instdone2_bit(GEN6_SI_DONE, "SI");
+		gen6_instdone2_bit(GEN6_SO_DONE, "SO");
+		gen6_instdone2_bit(GEN6_PL_DONE, "PL");
+		gen6_instdone2_bit(GEN6_VME_DONE, "VME");
+		gen6_instdone2_bit(GEN6_SF_DONE, "SF");
+		gen6_instdone2_bit(GEN6_CL_DONE, "CL");
+		gen6_instdone2_bit(GEN6_GS_DONE, "GS");
+		gen6_instdone2_bit(GEN6_VS0_DONE, "VS0");
+		gen6_instdone2_bit(GEN6_VF_DONE, "VF");
+	} else if (IS_965(devid)) {
 		gen4_instdone_bit(I965_ROW_0_EU_0_DONE, "Row 0, EU 0");
 		gen4_instdone_bit(I965_ROW_0_EU_1_DONE, "Row 0, EU 1");
 		gen4_instdone_bit(I965_ROW_0_EU_2_DONE, "Row 0, EU 2");
