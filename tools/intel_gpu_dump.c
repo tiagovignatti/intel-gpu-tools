@@ -101,7 +101,7 @@ read_data_file (const char * filename, int is_batch)
     size_t line_size;
     uint32_t offset, value;
     uint32_t gtt_offset = 0, new_gtt_offset;
-    char *buffer_type = is_batch ? "batchbuffer" : "ringbuffer";
+    char *buffer_type[2] = {  "ringbuffer", "batchbuffer" };
 
     file = fopen (filename, "r");
     if (file == NULL) {
@@ -116,11 +116,24 @@ read_data_file (const char * filename, int is_batch)
 	matched = sscanf (line, "--- gtt_offset = 0x%08x\n", &new_gtt_offset);
 	if (matched == 1) {
 	    if (count) {
-		printf("%s at 0x%08x:\n", buffer_type, gtt_offset);
+		printf("%s at 0x%08x:\n", buffer_type[is_batch], gtt_offset);
 		intel_decode (data, count, gtt_offset, devid, 0);
 		count = 0;
 	    }
 	    gtt_offset = new_gtt_offset;
+	    is_batch = 1;
+	    continue;
+	}
+
+	matched = sscanf (line, "--- ringbuffer = 0x%08x\n", &new_gtt_offset);
+	if (matched == 1) {
+	    if (count) {
+		printf("%s at 0x%08x:\n", buffer_type[is_batch], gtt_offset);
+		intel_decode (data, count, gtt_offset, devid, 0);
+		count = 0;
+	    }
+	    gtt_offset = new_gtt_offset;
+	    is_batch = 0;
 	    continue;
 	}
 
@@ -160,7 +173,7 @@ read_data_file (const char * filename, int is_batch)
     }
 
     if (count) {
-	printf("%s at 0x%08x:\n", buffer_type, gtt_offset);
+	printf("%s at 0x%08x:\n", buffer_type[is_batch], gtt_offset);
 	intel_decode (data, count, gtt_offset, devid, 0);
     }
 
