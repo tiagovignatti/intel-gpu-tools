@@ -1,6 +1,7 @@
 dist_man1_MANS = \
 	intel_gpu_dump.1 \
 	intel_gpu_top.1 \
+	intel_gtt.1 \
 	intel_reg_dumper.1 \
 	intel_reg_write.1 \
 	intel_stepping.1 \

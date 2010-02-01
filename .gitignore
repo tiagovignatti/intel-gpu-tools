@@ -51,6 +51,7 @@ tools/intel_decode
 tools/intel_gpu_dump
 tools/intel_gpu_time
 tools/intel_gpu_top
+tools/intel_gtt
 tools/intel_reg_dumper
 tools/intel_reg_write
 tools/intel_stepping
