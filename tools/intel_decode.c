@@ -1540,8 +1540,12 @@ decode_3d_965(uint32_t *data, int count, uint32_t hw_offset, uint32_t devid, int
 	{ 0x7907, 33, 33, "3DSTATE_POLY_STIPPLE_PATTERN" },
 	{ 0x7908, 3, 3, "3DSTATE_LINE_STIPPLE" },
 	{ 0x7909, 2, 2, "3DSTATE_GLOBAL_DEPTH_OFFSET_CLAMP" },
+	{ 0x7909, 2, 2, "3DSTATE_CLEAR_PARAMS" },
 	{ 0x790a, 3, 3, "3DSTATE_AA_LINE_PARAMETERS" },
+	{ 0x790b, 4, 4, "3DSTATE_GS_SVB_INDEX" },
+	{ 0x790d, 3, 3, "3DSTATE_MULTISAMPLE" },
 	{ 0x7b00, 6, 6, "3DPRIMITIVE" },
+	{ 0x7802, 4, 4, "3DSTATE_SAMPLER_STATE_POINTERS" },
 	{ 0x7805, 3, 3, "3DSTATE_URB" },
 	{ 0x780e, 4, 4, "3DSTATE_CC_STATE_POINTERS" },
 	{ 0x7810, 6, 6, "3DSTATE_VS_STATE" },
@@ -1553,6 +1557,7 @@ decode_3d_965(uint32_t *data, int count, uint32_t hw_offset, uint32_t devid, int
 	{ 0x7815, 5, 5, "3DSTATE_CONSTANT_VS_STATE" },
 	{ 0x7816, 5, 5, "3DSTATE_CONSTANT_GS_STATE" },
 	{ 0x7817, 5, 5, "3DSTATE_CONSTANT_PS_STATE" },
+	{ 0x7818, 2, 2, "3DSTATE_SAMPLE_MASK" },
    }, *opcode_3d;
 
     len = (data[0] & 0x0000ffff) + 2;
