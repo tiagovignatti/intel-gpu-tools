@@ -1,6 +1,6 @@
 bin_PROGRAMS = \
 	intel_audio_dump \
-	intel_decode \
+	intel_error_decode \
 	intel_gpu_dump \
 	intel_gpu_top \
 	intel_gpu_time \
@@ -16,8 +16,8 @@ intel_gpu_dump_SOURCES = \
 	intel_decode.c \
 	intel_decode.h
 
-intel_decode_SOURCES = \
-	intel_decode_file.c \
+intel_error_decode_SOURCES = \
+	intel_error_decode.c \
 	intel_decode.c \
 	intel_decode.h
 
