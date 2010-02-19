@@ -5,6 +5,7 @@ bin_PROGRAMS = \
 	intel_gpu_top \
 	intel_gpu_time \
 	intel_gtt \
+	intel_lid \
 	intel_stepping \
 	intel_reg_dumper \
 	intel_reg_write \
