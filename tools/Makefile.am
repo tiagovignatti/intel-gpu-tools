@@ -1,5 +1,7 @@
 bin_PROGRAMS = \
 	intel_audio_dump \
+	intel_bios_dumper \
+	intel_bios_reader \
 	intel_error_decode \
 	intel_gpu_dump \
 	intel_gpu_top \
@@ -9,8 +11,7 @@ bin_PROGRAMS = \
 	intel_stepping \
 	intel_reg_dumper \
 	intel_reg_write \
-	intel_reg_read \
-	intel_bios_reader
+	intel_reg_read
 
 intel_gpu_dump_SOURCES = \
 	intel_gpu_dump.c \
