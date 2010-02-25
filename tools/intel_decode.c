@@ -73,6 +73,7 @@ decode_mi(uint32_t *data, int count, uint32_t hw_offset, int *failures)
     } opcodes_mi[] = {
 	{ 0x08, 0, 1, 1, "MI_ARB_ON_OFF" },
 	{ 0x0a, 0, 1, 1, "MI_BATCH_BUFFER_END" },
+	{ 0x30, 0x3f, 3, 3, "MI_BATCH_BUFFER" },
 	{ 0x31, 0x3f, 2, 2, "MI_BATCH_BUFFER_START" },
 	{ 0x14, 0x3f, 3, 3, "MI_DISPLAY_BUFFER_INFO" },
 	{ 0x04, 0, 1, 1, "MI_FLUSH" },
