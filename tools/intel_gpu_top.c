@@ -58,6 +58,46 @@ static const char *bars[] = {
 	"█"
 };
 
+enum stats_counts {
+	IA_VERTICES,
+	IA_PRIMITIVES,
+	VS_INVOCATION,
+	GS_INVOCATION,
+	GS_PRIMITIVES,
+	CL_INVOCATION,
+	CL_PRIMITIVES,
+	PS_INVOCATION,
+	PS_DEPTH,
+	STATS_COUNT
+};
+
+const uint32_t stats_regs[STATS_COUNT] = {
+	IA_VERTICES_COUNT_QW,
+	IA_PRIMITIVES_COUNT_QW,
+	VS_INVOCATION_COUNT_QW,
+	GS_INVOCATION_COUNT_QW,
+	GS_PRIMITIVES_COUNT_QW,
+	CL_INVOCATION_COUNT_QW,
+	CL_PRIMITIVES_COUNT_QW,
+	PS_INVOCATION_COUNT_QW,
+	PS_DEPTH_COUNT_QW,
+};
+
+const char *stats_reg_names[STATS_COUNT] = {
+	"vert fetch",
+	"prim fetch",
+	"VS invocations",
+	"GS invocations",
+	"GS prims",
+	"CL invocations",
+	"CL prims",
+	"PS invocations",
+	"PS depth pass",
+};
+
+uint64_t stats[STATS_COUNT];
+uint64_t last_stats[STATS_COUNT];
+
 static int
 top_bits_sort(const void *a, const void *b)
 {
@@ -218,7 +258,9 @@ print_clock_info(void)
 	return -1;
 }
 
-#define PERCENTAGE_BAR_END	79
+#define STATS_LEN (20)
+#define PERCENTAGE_BAR_END	(79 - STATS_LEN)
+
 static void
 print_percentage_bar(float percent, int cur_line_len)
 {
@@ -237,7 +279,7 @@ print_percentage_bar(float percent, int cur_line_len)
 
 	/* NB: We can't use a field width with utf8 so we manually
 	* guarantee a field with of 45 chars for any bar. */
-	printf("%*s\n", PERCENTAGE_BAR_END - cur_line_len, "");
+	printf("%*s", PERCENTAGE_BAR_END - cur_line_len, "");
 }
 
 int main(int argc, char **argv)
@@ -293,6 +335,21 @@ int main(int argc, char **argv)
 			usleep(1000000 / SAMPLES_PER_SEC);
 		}
 
+		if (IS_GEN4(devid) || IS_GEN6(devid)) {
+			for (i = 0; i < STATS_COUNT; i++) {
+				uint32_t stats_high, stats_low, stats_high_2;
+
+				do {
+					stats_high = INREG(stats_regs[i] + 4);
+					stats_low = INREG(stats_regs[i]);
+					stats_high_2 = INREG(stats_regs[i] + 4);
+				} while (stats_high != stats_high_2);
+
+				stats[i] = (uint64_t)stats_high << 32 |
+					stats_low;
+			}
+		}
+
 		qsort(top_bits_sorted, num_instdone_bits,
 		      sizeof(struct top_bit *), top_bits_sort);
 
@@ -328,6 +385,17 @@ int main(int argc, char **argv)
 					     percent);
 				print_percentage_bar (percent, len);
 			}
+
+
+			if (i < STATS_COUNT &&
+			    (IS_GEN4(devid) || IS_GEN6(devid))) {
+				printf("%13s: %llu (%lld/sec)",
+				       stats_reg_names[i],
+				       stats[i],
+				       stats[i] - last_stats[i]);
+				last_stats[i] = stats[i];
+			}
+			printf("\n");
 
 			top_bits_sorted[i]->count = 0;
 		}
