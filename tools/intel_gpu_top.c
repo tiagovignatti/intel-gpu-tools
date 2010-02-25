@@ -375,17 +375,16 @@ int main(int argc, char **argv)
 
 		printf("%30s  %s\n\n", "task", "percent busy");
 		for (i = 0; i < num_instdone_bits; i++) {
-			if (top_bits_sorted[i]->count < 1)
-				break;
-
-			if (i < max_lines) {
-				percent = top_bits_sorted[i]->count / SAMPLES_TO_PERCENT_RATIO;
+			if (top_bits_sorted[i]->count > 0 && i < max_lines) {
+				percent = top_bits_sorted[i]->count /
+					SAMPLES_TO_PERCENT_RATIO;
 				len = printf("%30s: %3d%%: ",
 					     top_bits_sorted[i]->bit->name,
 					     percent);
 				print_percentage_bar (percent, len);
+			} else {
+				printf("%*s", PERCENTAGE_BAR_END, "");
 			}
-
 
 			if (i < STATS_COUNT &&
 			    (IS_GEN4(devid) || IS_GEN6(devid))) {
@@ -394,6 +393,9 @@ int main(int argc, char **argv)
 				       stats[i],
 				       stats[i] - last_stats[i]);
 				last_stats[i] = stats[i];
+			} else {
+				if (!top_bits_sorted[i]->count)
+					break;
 			}
 			printf("\n");
 
