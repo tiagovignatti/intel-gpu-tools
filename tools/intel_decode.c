@@ -77,7 +77,7 @@ decode_mi(uint32_t *data, int count, uint32_t hw_offset, int *failures)
 	{ 0x31, 0x3f, 2, 2, "MI_BATCH_BUFFER_START" },
 	{ 0x14, 0x3f, 3, 3, "MI_DISPLAY_BUFFER_INFO" },
 	{ 0x04, 0, 1, 1, "MI_FLUSH" },
-	{ 0x22, 0, 3, 3, "MI_LOAD_REGISTER_IMM" },
+	{ 0x22, 0x1f, 3, 3, "MI_LOAD_REGISTER_IMM" },
 	{ 0x13, 0x3f, 2, 2, "MI_LOAD_SCAN_LINES_EXCL" },
 	{ 0x12, 0x3f, 2, 2, "MI_LOAD_SCAN_LINES_INCL" },
 	{ 0x00, 0, 1, 1, "MI_NOOP" },
