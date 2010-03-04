@@ -76,6 +76,53 @@ print_instdone (unsigned int instdone, unsigned int instdone1)
 }
 
 static void
+print_i830_pgtbl_err(unsigned int reg)
+{
+	const char *str;
+
+	switch((reg >> 3) & 0xf) {
+	case 0x1: str = "Overlay TLB"; break;
+	case 0x2: str = "Display A TLB"; break;
+	case 0x3: str = "Host TLB"; break;
+	case 0x4: str = "Render TLB"; break;
+	case 0x5: str = "Display C TLB"; break;
+	case 0x6: str = "Mapping TLB"; break;
+	case 0x7: str = "Command Stream TLB"; break;
+	case 0x8: str = "Vertex Buffer TLB"; break;
+	case 0x9: str = "Display B TLB"; break;
+	case 0xa: str = "Reserved System Memory"; break;
+	case 0xb: str = "Compressor TLB"; break;
+	case 0xc: str = "Binner TLB"; break;
+	default: str = "unknown"; break;
+	}
+
+	if (str)
+		printf ("    source = %s\n", str);
+
+	switch(reg & 0x7) {
+	case 0x0: str  = "Invalid GTT"; break;
+	case 0x1: str = "Invalid GTT PTE"; break;
+	case 0x2: str = "Invalid Memory"; break;
+	case 0x3: str = "Invalid TLB miss"; break;
+	case 0x4: str = "Invalid PTE data"; break;
+	case 0x5: str = "Invalid LocalMemory not present"; break;
+	case 0x6: str = "Invalid Tiling"; break;
+	case 0x7: str = "Host to CAM"; break;
+	}
+	printf ("    error = %s\n", str);
+}
+
+static void
+print_pgtbl_err(unsigned int reg, unsigned int devid)
+{
+	if (IS_965(devid)) {
+	} else if (IS_9XX(devid)) {
+	} else {
+		return print_i830_pgtbl_err(reg);
+	}
+}
+
+static void
 read_data_file (const char * filename)
 {
     FILE *file;
@@ -136,6 +183,10 @@ read_data_file (const char * filename)
 	    matched = sscanf (line, "  ACTHD: 0x%08x\n", &reg);
 	    if (matched)
 		    intel_decode_context_set_head_tail(reg, 0xffffffff);
+
+	    matched = sscanf (line, "  PGTBL_ER: 0x%08x\n", &reg);
+	    if (matched && reg)
+		    print_pgtbl_err(reg, devid);
 
 	    matched = sscanf (line, "  INSTDONE: 0x%08x\n", &reg);
 	    if (matched)
