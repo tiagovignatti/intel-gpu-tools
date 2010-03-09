@@ -569,21 +569,23 @@ DEBUGSTRING(i830_debug_dspclk_gate_d)
 
 DEBUGSTRING(i810_debug_915_fence)
 {
-	char *enable = (val & 1) ? " enabled" : "disabled";
 	char format = (val & 1 << 12) ? 'Y' : 'X';
-	int pitch = 1 << (((val & 0x70) >> 4) - 1);
+	int pitch = 128 << ((val & 0x70) >> 4);
 	unsigned int offset = val & 0x0ff00000;
-	int size = (1024 * 1024) << (((val & 0x700) >> 8) - 1);
+	int size = (1024 * 1024) << ((val & 0x700) >> 8);
 
 	if (IS_965(devid) || (IS_915(devid) && reg >= FENCE_NEW))
 		return;
 
 	if (format == 'X')
 		pitch *= 4;
-
-	asprintf(result, "%s, %c tiled, %4d pitch, 0x%08x - 0x%08x (%dkb)",
-		 enable, format, pitch, offset, offset + size,
-		 size / 1024);
+	if (val & 1) {
+		asprintf(result, "enabled, %c tiled, %4d pitch, 0x%08x - 0x%08x (%dkb)",
+			 format, pitch, offset, offset + size,
+			 size / 1024);
+	} else {
+		asprintf(result, "disabled");
+	}
 }
 
 DEBUGSTRING(i810_debug_965_fence_start)
