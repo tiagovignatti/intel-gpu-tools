@@ -945,11 +945,28 @@ decode_3d_1d(uint32_t *data, int count,
 	i = 2;
 	for (map = 0; map <= 15; map++) {
 	    if (data[1] & (1 << map)) {
+		int width, height, pitch, dword;
+		const char *tiling;
+
 		if (i + 3 >= count)
 		    BUFFER_FAIL(count, len, "3DSTATE_MAP_STATE");
+
 		instr_out(data, hw_offset, i++, "map %d MS2\n", map);
-		instr_out(data, hw_offset, i++, "map %d MS3\n", map);
-		instr_out(data, hw_offset, i++, "map %d MS4\n", map);
+
+		dword = data[i];
+		width = ((dword >> 10) & ((1 << 11) - 1))+1;
+		height = ((dword >> 21) & ((1 << 11) - 1))+1;
+
+		tiling = "none";
+		if (dword & (1 << 2))
+			tiling = "fenced";
+		else if (dword & (1 << 1))
+			tiling = dword & (1 << 0) ? "Y" : "X";
+		instr_out(data, hw_offset, i++, "map %d MS3 [width=%d, height=%d, tiling=%s]\n", map, width, height, tiling);
+
+		dword = data[i];
+		pitch = 4*(((dword >> 21) & ((1 << 11) - 1))+1);
+		instr_out(data, hw_offset, i++, "map %d MS4 [pitch=%d]\n", map, pitch);
 	    }
 	}
 	if (len != i) {
