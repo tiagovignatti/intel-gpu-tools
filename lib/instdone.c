@@ -70,6 +70,68 @@ gen6_instdone2_bit(uint32_t bit, const char *name)
 	add_instdone_bit(GEN6_INSTDONE_2, bit, name);
 }
 
+static void
+init_g965_instdone1(void)
+{
+	gen4_instdone1_bit(I965_GW_CS_DONE_CR, "GW CS CR");
+	gen4_instdone1_bit(I965_SVSM_CS_DONE_CR, "SVSM CS CR");
+	gen4_instdone1_bit(I965_SVDW_CS_DONE_CR, "SVDW CS CR");
+	gen4_instdone1_bit(I965_SVDR_CS_DONE_CR, "SVDR CS CR");
+	gen4_instdone1_bit(I965_SVRW_CS_DONE_CR, "SVRW CS CR");
+	gen4_instdone1_bit(I965_SVRR_CS_DONE_CR, "SVRR CS CR");
+	gen4_instdone1_bit(I965_SVTW_CS_DONE_CR, "SVTW CS CR");
+	gen4_instdone1_bit(I965_MASM_CS_DONE_CR, "MASM CS CR");
+	gen4_instdone1_bit(I965_MASF_CS_DONE_CR, "MASF CS CR");
+	gen4_instdone1_bit(I965_MAW_CS_DONE_CR, "MAW CS CR");
+	gen4_instdone1_bit(I965_EM1_CS_DONE_CR, "EM1 CS CR");
+	gen4_instdone1_bit(I965_EM0_CS_DONE_CR, "EM0 CS CR");
+	gen4_instdone1_bit(I965_UC1_CS_DONE, "UC1 CS");
+	gen4_instdone1_bit(I965_UC0_CS_DONE, "UC0 CS");
+	gen4_instdone1_bit(I965_URB_CS_DONE, "URB CS");
+	gen4_instdone1_bit(I965_ISC_CS_DONE, "ISC CS");
+	gen4_instdone1_bit(I965_CL_CS_DONE, "CL CS");
+	gen4_instdone1_bit(I965_GS_CS_DONE, "GS CS");
+	gen4_instdone1_bit(I965_VS0_CS_DONE, "VS0 CS");
+	gen4_instdone1_bit(I965_VF_CS_DONE, "VF CS");
+}
+
+static void
+init_g4x_instdone1(void)
+{
+	gen4_instdone1_bit(G4X_BCS_DONE, "BCS");
+	gen4_instdone1_bit(G4X_CS_DONE, "CS");
+	gen4_instdone1_bit(G4X_MASF_DONE, "MASF");
+	gen4_instdone1_bit(G4X_SVDW_DONE, "SVDW");
+	gen4_instdone1_bit(G4X_SVDR_DONE, "SVDR");
+	gen4_instdone1_bit(G4X_SVRW_DONE, "SVRW");
+	gen4_instdone1_bit(G4X_SVRR_DONE, "SVRR");
+	gen4_instdone1_bit(G4X_ISC_DONE, "ISC");
+	gen4_instdone1_bit(G4X_MT_DONE, "MT");
+	gen4_instdone1_bit(G4X_RC_DONE, "RC");
+	gen4_instdone1_bit(G4X_DAP_DONE, "DAP");
+	gen4_instdone1_bit(G4X_MAWB_DONE, "MAWB");
+	gen4_instdone1_bit(G4X_MT_IDLE, "MT idle");
+	//gen4_instdone1_bit(G4X_GBLT_BUSY, "GBLT");
+	gen4_instdone1_bit(G4X_SVSM_DONE, "SVSM");
+	gen4_instdone1_bit(G4X_MASM_DONE, "MASM");
+	gen4_instdone1_bit(G4X_QC_DONE, "QC");
+	gen4_instdone1_bit(G4X_FL_DONE, "FL");
+	gen4_instdone1_bit(G4X_SC_DONE, "SC");
+	gen4_instdone1_bit(G4X_DM_DONE, "DM");
+	gen4_instdone1_bit(G4X_FT_DONE, "FT");
+	gen4_instdone1_bit(G4X_DG_DONE, "DG");
+	gen4_instdone1_bit(G4X_SI_DONE, "SI");
+	gen4_instdone1_bit(G4X_SO_DONE, "SO");
+	gen4_instdone1_bit(G4X_PL_DONE, "PL");
+	gen4_instdone1_bit(G4X_WIZ_DONE, "WIZ");
+	gen4_instdone1_bit(G4X_URB_DONE, "URB");
+	gen4_instdone1_bit(G4X_SF_DONE, "SF");
+	gen4_instdone1_bit(G4X_CL_DONE, "CL");
+	gen4_instdone1_bit(G4X_GS_DONE, "GS");
+	gen4_instdone1_bit(G4X_VS0_DONE, "VS0");
+	gen4_instdone1_bit(G4X_VF_DONE, "VF");
+}
+
 void
 init_instdone_definitions(void)
 {
@@ -173,6 +235,8 @@ init_instdone_definitions(void)
 		gen4_instdone_bit(ILK_AI_DONE, "AI");
 		gen4_instdone_bit(ILK_AC_DONE, "AC");
 		gen4_instdone_bit(ILK_AM_DONE, "AM");
+
+		init_g4x_instdone1();
 	} else if (IS_965(devid)) {
 		gen4_instdone_bit(I965_ROW_0_EU_0_DONE, "Row 0, EU 0");
 		gen4_instdone_bit(I965_ROW_0_EU_1_DONE, "Row 0, EU 1");
@@ -204,26 +268,11 @@ init_instdone_definitions(void)
 		gen4_instdone_bit(I965_IC_ROW_1_DONE, "Instruction cache row 1");
 		gen4_instdone_bit(I965_CP_DONE, "Command Processor");
 
-		gen4_instdone1_bit(I965_GW_CS_DONE_CR, "GW CS CR");
-		gen4_instdone1_bit(I965_SVSM_CS_DONE_CR, "SVSM CS CR");
-		gen4_instdone1_bit(I965_SVDW_CS_DONE_CR, "SVDW CS CR");
-		gen4_instdone1_bit(I965_SVDR_CS_DONE_CR, "SVDR CS CR");
-		gen4_instdone1_bit(I965_SVRW_CS_DONE_CR, "SVRW CS CR");
-		gen4_instdone1_bit(I965_SVRR_CS_DONE_CR, "SVRR CS CR");
-		gen4_instdone1_bit(I965_SVTW_CS_DONE_CR, "SVTW CS CR");
-		gen4_instdone1_bit(I965_MASM_CS_DONE_CR, "MASM CS CR");
-		gen4_instdone1_bit(I965_MASF_CS_DONE_CR, "MASF CS CR");
-		gen4_instdone1_bit(I965_MAW_CS_DONE_CR, "MAW CS CR");
-		gen4_instdone1_bit(I965_EM1_CS_DONE_CR, "EM1 CS CR");
-		gen4_instdone1_bit(I965_EM0_CS_DONE_CR, "EM0 CS CR");
-		gen4_instdone1_bit(I965_UC1_CS_DONE, "UC1 CS");
-		gen4_instdone1_bit(I965_UC0_CS_DONE, "UC0 CS");
-		gen4_instdone1_bit(I965_URB_CS_DONE, "URB CS");
-		gen4_instdone1_bit(I965_ISC_CS_DONE, "ISC CS");
-		gen4_instdone1_bit(I965_CL_CS_DONE, "CL CS");
-		gen4_instdone1_bit(I965_GS_CS_DONE, "GS CS");
-		gen4_instdone1_bit(I965_VS0_CS_DONE, "VS0 CS");
-		gen4_instdone1_bit(I965_VF_CS_DONE, "VF CS");
+		if (IS_G4X(devid)) {
+			init_g4x_instdone1();
+		} else {
+			init_g965_instdone1();
+		}
 	} else if (IS_9XX(devid)) {
 		gen3_instdone_bit(IDCT_DONE, "IDCT");
 		gen3_instdone_bit(IQ_DONE, "IQ");
