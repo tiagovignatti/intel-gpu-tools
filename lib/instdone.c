@@ -141,6 +141,38 @@ init_instdone_definitions(void)
 		gen6_instdone2_bit(GEN6_GS_DONE, "GS");
 		gen6_instdone2_bit(GEN6_VS0_DONE, "VS0");
 		gen6_instdone2_bit(GEN6_VF_DONE, "VF");
+	} else if (IS_IRONLAKE(devid)) {
+		gen4_instdone_bit(ILK_ROW_0_EU_0_DONE, "Row 0, EU 0");
+		gen4_instdone_bit(ILK_ROW_0_EU_1_DONE, "Row 0, EU 1");
+		gen4_instdone_bit(ILK_ROW_0_EU_2_DONE, "Row 0, EU 2");
+		gen4_instdone_bit(ILK_ROW_0_EU_3_DONE, "Row 0, EU 3");
+		gen4_instdone_bit(ILK_ROW_1_EU_0_DONE, "Row 1, EU 0");
+		gen4_instdone_bit(ILK_ROW_1_EU_1_DONE, "Row 1, EU 1");
+		gen4_instdone_bit(ILK_ROW_1_EU_2_DONE, "Row 1, EU 2");
+		gen4_instdone_bit(ILK_ROW_1_EU_3_DONE, "Row 1, EU 3");
+		gen4_instdone_bit(ILK_ROW_2_EU_0_DONE, "Row 2, EU 0");
+		gen4_instdone_bit(ILK_ROW_2_EU_1_DONE, "Row 2, EU 1");
+		gen4_instdone_bit(ILK_ROW_2_EU_2_DONE, "Row 2, EU 2");
+		gen4_instdone_bit(ILK_ROW_2_EU_3_DONE, "Row 2, EU 3");
+		gen4_instdone_bit(ILK_VCP_DONE, "VCP");
+		gen4_instdone_bit(ILK_ROW_0_MATH_DONE, "Row 0 math");
+		gen4_instdone_bit(ILK_ROW_1_MATH_DONE, "Row 1 math");
+		gen4_instdone_bit(ILK_ROW_2_MATH_DONE, "Row 2 math");
+		gen4_instdone_bit(ILK_VC1_DONE, "VC1");
+		gen4_instdone_bit(ILK_ROW_0_MA_DONE, "Row 0 MA");
+		gen4_instdone_bit(ILK_ROW_1_MA_DONE, "Row 1 MA");
+		gen4_instdone_bit(ILK_ROW_2_MA_DONE, "Row 2 MA");
+		gen4_instdone_bit(ILK_ROW_0_ISC_DONE, "Row 0 ISC");
+		gen4_instdone_bit(ILK_ROW_1_ISC_DONE, "Row 1 ISC");
+		gen4_instdone_bit(ILK_ROW_2_ISC_DONE, "Row 2 ISC");
+		gen4_instdone_bit(ILK_VFE_DONE, "VFE");
+		gen4_instdone_bit(ILK_TD_DONE, "TD");
+		gen4_instdone_bit(ILK_SVTS_DONE, "SVTS");
+		gen4_instdone_bit(ILK_TS_DONE, "TS");
+		gen4_instdone_bit(ILK_GW_DONE, "GW");
+		gen4_instdone_bit(ILK_AI_DONE, "AI");
+		gen4_instdone_bit(ILK_AC_DONE, "AC");
+		gen4_instdone_bit(ILK_AM_DONE, "AM");
 	} else if (IS_965(devid)) {
 		gen4_instdone_bit(I965_ROW_0_EU_0_DONE, "Row 0, EU 0");
 		gen4_instdone_bit(I965_ROW_0_EU_1_DONE, "Row 0, EU 1");

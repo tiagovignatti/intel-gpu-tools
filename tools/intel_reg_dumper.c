@@ -1242,6 +1242,9 @@ DEBUGSTRING(ironlake_debug_pf_win)
 }
 
 static struct reg_debug ironlake_debug_regs[] = {
+	DEFINEREG(PGETBL_CTL),
+	DEFINEREG(GEN6_INSTDONE_1),
+	DEFINEREG(GEN6_INSTDONE_2),
 	DEFINEREG2(CPU_VGACNTRL, i830_debug_vgacntrl),
 	DEFINEREG(DIGITAL_PORT_HOTPLUG_CNTRL),
 
