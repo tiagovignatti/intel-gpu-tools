@@ -1658,9 +1658,12 @@ intel_dump_regs(void)
 
 int main(int argc, char** argv)
 {
-	intel_get_mmio();
+	if (argc == 2)
+		intel_map_file(argv[1]);
+	else
+		intel_get_mmio();
 
-	if (HAS_PCH_SPLIT(devid))
+	if (HAS_PCH_SPLIT(devid) || getenv("HAS_PCH_SPLIT"))
 		ironlake_dump_regs();
 	else
 		intel_dump_regs();

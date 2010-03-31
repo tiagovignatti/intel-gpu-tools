@@ -4,8 +4,21 @@
 .SH NAME
 intel_reg_dumper \- Decode a bunch of Intel GPU registers for debugging
 .SH SYNOPSIS
-.B intel_reg_dumper
+.B intel_reg_dumper [ file ]
 .SH DESCRIPTION
-.B intel_reg_write
+.B intel_reg_dumper
 is a tool to read and decode the values of many Intel GPU registers.  It is
-commonly used in debugging video mode setting issues.
+commonly used in debugging video mode setting issues.  If the
+.B file
+argument is present, the registers will be decoded from the given file
+instead of the current registers.  Use the
+.B intel_reg_snapshot
+tool to generate such files.
+.SH ENVIRONMENT
+.BR HAS_PCH_SPLIT
+.PP
+If set, decode as though the GPU has a PCH split.  This is only necessary for
+Intel HD (Ironlake) and later register dumps in files; live decodes get this
+correct automatically.
+.SH SEE ALSO
+.BR intel_reg_snapshot(1)

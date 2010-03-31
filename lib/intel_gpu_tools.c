@@ -25,12 +25,17 @@
  *
  */
 
+#include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <errno.h>
 #include <err.h>
 #include <assert.h>
 #include <sys/ioctl.h>
+#include <sys/fcntl.h>
+#include <sys/stat.h>
+#include <sys/mman.h>
 #include "intel_gpu_tools.h"
 #include "i915_drm.h"
 #include "intel_batchbuffer.h"
@@ -80,6 +85,28 @@ intel_get_pci_device(void)
 	if (pci_dev->vendor_id != 0x8086)
 		errx(1, "Graphics card is non-intel");
 	devid = pci_dev->device_id;
+}
+
+void
+intel_map_file(char *file)
+{
+	int fd;
+	struct stat st;
+
+	fd = open(file, O_RDWR);
+	if (fd == -1) {
+		    fprintf(stderr, "Couldn't open %s: %s\n", file,
+			    strerror(errno));
+		    exit(1);
+	}
+	fstat(fd, &st);
+	mmio = mmap(NULL, st.st_size, PROT_READ|PROT_WRITE, MAP_PRIVATE, fd, 0);
+	if (mmio == MAP_FAILED) {
+		    fprintf(stderr, "Couldn't mmap %s: %s\n", file,
+			    strerror(errno));
+		    exit(1);
+	}
+	close(fd);
 }
 
 void

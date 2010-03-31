@@ -56,3 +56,4 @@ void intel_get_drm_devid(int fd);
 void intel_copy_bo(struct intel_batchbuffer *batch,
 		   drm_intel_bo *dst_bo, drm_intel_bo *src_bo,
 		   int width, int height);
+void intel_map_file(char *);
