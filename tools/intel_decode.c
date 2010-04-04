@@ -442,7 +442,7 @@ i915_get_instruction_src_name(uint32_t src_type, uint32_t src_nr, char *name)
 	break;
     case 6:
 	sprintf(name, "U%d", src_nr);
-	if (src_nr > 2)
+	if (src_nr > 3)
 	    fprintf(out, "bad src reg %s\n", name);
 	break;
     default:
