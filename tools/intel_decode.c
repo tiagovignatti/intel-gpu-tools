@@ -371,7 +371,7 @@ i915_get_instruction_dst(uint32_t *data, int i, char *dstname, int do_mask)
 	sprintf(dstname, "oD%s%s",  dstmask, sat);
 	break;
     case 6:
-	if (dst_nr > 2)
+	if (dst_nr > 3)
 	    fprintf(out, "bad destination reg U%d\n", dst_nr);
 	sprintf(dstname, "U%d%s%s", dst_nr, dstmask, sat);
 	break;
