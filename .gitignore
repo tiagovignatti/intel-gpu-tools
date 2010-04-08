@@ -58,5 +58,6 @@ tools/intel_reg_write
 tools/intel_stepping
 tools/intel_audio_dump
 tools/intel_reg_read
+tools/intel_reg_snapshot
 tools/intel_bios_dumper
 tools/intel_bios_reader
