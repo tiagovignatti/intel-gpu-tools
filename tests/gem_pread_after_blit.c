@@ -131,9 +131,10 @@ main(int argc, char **argv)
 	drm_intel_bo *src1, *src2, *bo;
 	uint32_t start1 = 0;
 	uint32_t start2 = 1024 * 1024 / 4;
+	uint32_t devid;
 
 	fd = drm_open_any();
-	intel_get_drm_devid(fd);
+	devid = intel_get_drm_devid(fd);
 
 	bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
 	drm_intel_bufmgr_gem_enable_reuse(bufmgr);
@@ -146,21 +147,21 @@ main(int argc, char **argv)
 
 	/* First, do a full-buffer read after blitting */
 	printf("Large read after blit 1\n");
-	intel_copy_bo(batch, bo, src1, width, height);
+	intel_copy_bo(batch, bo, src1, width, height, devid);
 	verify_large_read(bo, start1);
 	printf("Large read after blit 2\n");
-	intel_copy_bo(batch, bo, src2, width, height);
+	intel_copy_bo(batch, bo, src2, width, height, devid);
 	verify_large_read(bo, start2);
 
 	printf("Small reads after blit 1\n");
-	intel_copy_bo(batch, bo, src1, width, height);
+	intel_copy_bo(batch, bo, src1, width, height, devid);
 	verify_small_read(bo, start1);
 	printf("Small reads after blit 2\n");
-	intel_copy_bo(batch, bo, src2, width, height);
+	intel_copy_bo(batch, bo, src2, width, height, devid);
 	verify_small_read(bo, start2);
 
 	printf("Large read after blit 3\n");
-	intel_copy_bo(batch, bo, src1, width, height);
+	intel_copy_bo(batch, bo, src1, width, height, devid);
 	verify_large_read(bo, start1);
 
 	drm_intel_bo_unreference(src1);

@@ -42,10 +42,14 @@
 
 int main(int argc, char **argv)
 {
+	struct pci_device *pci_dev;
 	int start, aper_size;
 	unsigned char *gtt;
+	uint32_t devid;
 
-	intel_get_mmio();
+	pci_dev = intel_get_pci_device();
+	devid = pci_dev->device_id;
+	intel_get_mmio(pci_dev);
 
 	if (!IS_9XX(devid)) {
 		printf("Unsupported chipset for gtt dumper\n");

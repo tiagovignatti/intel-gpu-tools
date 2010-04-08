@@ -40,7 +40,12 @@ AC_PROG_LIBTOOL
 AC_PROG_CC
 AM_PROG_CC_C_O
 
-PKG_CHECK_MODULES(DRM, [libdrm_intel >= 2.4.6])
+PKG_CHECK_MODULES(DRM, [libdrm_intel >= 2.4.6], have_drm=yes, have_drm=no)
+if test "x$have_drm" = "xyes"; then
+	AC_DEFINE([HAVE_DRM], 1, [Define to 1 if we have DRM support])
+fi
+AM_CONDITIONAL(HAVE_DRM, test "x$have_drm" = "xyes")
+
 PKG_CHECK_MODULES(PCIACCESS, [pciaccess >= 0.10])
 
 dnl Use lots of warning flags with GCC

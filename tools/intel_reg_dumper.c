@@ -33,6 +33,8 @@
 #include <err.h>
 #include "intel_gpu_tools.h"
 
+static uint32_t devid;
+
 #define DEBUGSTRING(func) static void func(char **result, int reg, uint32_t val)
 
 DEBUGSTRING(i830_16bit_func)
@@ -1658,10 +1660,15 @@ intel_dump_regs(void)
 
 int main(int argc, char** argv)
 {
+	struct pci_device *pci_dev;
+
+	pci_dev = intel_get_pci_device();
+	devid = pci_dev->device_id; /* XXX not true when mapping! */
+
 	if (argc == 2)
 		intel_map_file(argv[1]);
 	else
-		intel_get_mmio();
+		intel_get_mmio(pci_dev);
 
 	if (HAS_PCH_SPLIT(devid) || getenv("HAS_PCH_SPLIT"))
 		ironlake_dump_regs();

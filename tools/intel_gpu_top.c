@@ -137,8 +137,9 @@ print_clock(char *name, int clock) {
 }
 
 static int
-print_clock_info(void)
+print_clock_info(struct pci_device *pci_dev)
 {
+	uint32_t devid = pci_dev->device_id;
 	uint16_t gcfgc;
 
 	if (IS_GM45(devid)) {
@@ -284,11 +285,16 @@ print_percentage_bar(float percent, int cur_line_len)
 
 int main(int argc, char **argv)
 {
-	intel_get_mmio();
+	struct pci_device *pci_dev;
 	uint32_t ring_size;
+	uint32_t devid;
 	int i;
 
-	init_instdone_definitions();
+	pci_dev = intel_get_pci_device();
+	devid = pci_dev->device_id;
+	intel_get_mmio(pci_dev);
+	init_instdone_definitions(devid);
+
 	for (i = 0; i < num_instdone_bits; i++) {
 		top_bits[i].bit = &instdone_bits[i];
 		top_bits[i].count = 0;
@@ -362,7 +368,7 @@ int main(int argc, char **argv)
 
 		printf("%s", clear_screen);
 
-		print_clock_info();
+		print_clock_info(pci_dev);
 
 		percent = ring_idle / SAMPLES_TO_PERCENT_RATIO;
 		len = printf("%30s: %3d%%: ", "ring idle", percent);

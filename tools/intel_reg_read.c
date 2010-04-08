@@ -53,7 +53,7 @@ int main(int argc, char** argv)
 		exit(1);
 	}
 
-	intel_get_mmio();
+	intel_get_mmio(intel_get_pci_device());
 
 	if (!strcmp(argv[1], "-f")) {
 		dump_range(0x00000, 0x00fff);   /* VGA registers */

@@ -25,8 +25,10 @@
  *
  */
 
-#include "intel_gpu_tools.h"
 #include "instdone.h"
+
+#include "intel_chipset.h"
+#include "intel_reg.h"
 
 struct instdone_bit instdone_bits[MAX_INSTDONE_BITS];
 int num_instdone_bits = 0;
@@ -133,7 +135,7 @@ init_g4x_instdone1(void)
 }
 
 void
-init_instdone_definitions(void)
+init_instdone_definitions(uint32_t devid)
 {
 	if (IS_GEN6(devid)) {
 		/* Now called INSTDONE_1 in the docs. */

@@ -63,7 +63,7 @@ struct intel_batchbuffer *batch;
 #define BAD_GTT_DEST ((256*1024*1024)) /* past end of aperture */
 
 static void
-bad_blit(drm_intel_bo *src_bo)
+bad_blit(drm_intel_bo *src_bo, uint32_t devid)
 {
 	uint32_t src_pitch = 512, dst_pitch = 512;
 	uint32_t cmd_bits = 0;
@@ -100,10 +100,11 @@ bad_blit(drm_intel_bo *src_bo)
 int main(int argc, char **argv)
 {
 	drm_intel_bo *src;
+	uint32_t devid;
 	int fd;
 
 	fd = drm_open_any();
-	intel_get_drm_devid(fd);
+	devid = intel_get_drm_devid(fd);
 
 	bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
 	drm_intel_bufmgr_gem_enable_reuse(bufmgr);
@@ -111,7 +112,7 @@ int main(int argc, char **argv)
 
 	src = drm_intel_bo_alloc(bufmgr, "src", 128 * 128, 4096);
 
-	bad_blit(src);
+	bad_blit(src, devid);
 
 	intel_batchbuffer_free(batch);
 	drm_intel_bufmgr_destroy(bufmgr);

@@ -115,4 +115,8 @@ intel_batchbuffer_emit_mi_flush(struct intel_batchbuffer *batch)
 	intel_batchbuffer_emit_dword(batch, MI_FLUSH);
 }
 
+void intel_copy_bo(struct intel_batchbuffer *batch,
+		   drm_intel_bo *dst_bo, drm_intel_bo *src_bo,
+		   int width, int height, uint32_t devid);
+
 #endif

@@ -60,47 +60,7 @@
 static drm_intel_bufmgr *bufmgr;
 struct intel_batchbuffer *batch;
 static int width = 512, height = 512;
-
-static void
-copy_bo(drm_intel_bo *dst_bo, drm_intel_bo *src_bo)
-{
-	uint32_t src_tiling, dst_tiling, swizzle;
-	uint32_t src_pitch, dst_pitch;
-	uint32_t cmd_bits = 0;
-
-	drm_intel_bo_get_tiling(src_bo, &src_tiling, &swizzle);
-	drm_intel_bo_get_tiling(dst_bo, &dst_tiling, &swizzle);
-
-	src_pitch = width * 4;
-	if (IS_965(devid) && src_tiling != I915_TILING_NONE) {
-		src_pitch /= 4;
-		cmd_bits |= XY_SRC_COPY_BLT_SRC_TILED;
-	}
-
-	dst_pitch = width * 4;
-	if (IS_965(devid) && dst_tiling != I915_TILING_NONE) {
-		dst_pitch /= 4;
-		cmd_bits |= XY_SRC_COPY_BLT_DST_TILED;
-	}
-
-	BEGIN_BATCH(8);
-	OUT_BATCH(XY_SRC_COPY_BLT_CMD |
-		  XY_SRC_COPY_BLT_WRITE_ALPHA |
-		  XY_SRC_COPY_BLT_WRITE_RGB |
-		  cmd_bits);
-	OUT_BATCH((3 << 24) | /* 32 bits */
-		  (0xcc << 16) | /* copy ROP */
-		  dst_pitch);
-	OUT_BATCH(0); /* dst x1,y1 */
-	OUT_BATCH((height << 16) | width); /* dst x2,y2 */
-	OUT_RELOC(dst_bo, I915_GEM_DOMAIN_RENDER, I915_GEM_DOMAIN_RENDER, 0);
-	OUT_BATCH(0); /* src x1,y1 */
-	OUT_BATCH(src_pitch);
-	OUT_RELOC(src_bo, I915_GEM_DOMAIN_RENDER, 0, 0);
-	ADVANCE_BATCH();
-
-	intel_batchbuffer_flush(batch);
-}
+static uint32_t devid;
 
 static drm_intel_bo *
 create_bo(uint32_t start_val)
@@ -126,7 +86,7 @@ create_bo(uint32_t start_val)
 	}
 	drm_intel_bo_unmap(linear_bo);
 
-	copy_bo(bo, linear_bo);
+	intel_copy_bo (batch, bo, linear_bo, width, height, devid);
 
 	drm_intel_bo_unreference(linear_bo);
 
@@ -142,7 +102,7 @@ check_bo(drm_intel_bo *bo, uint32_t start_val)
 
 	linear_bo = drm_intel_bo_alloc(bufmgr, "linear dst", 1024 * 1024, 4096);
 
-	copy_bo(linear_bo, bo);
+	intel_copy_bo(batch, linear_bo, bo, width, height, devid);
 
 	drm_intel_bo_map(linear_bo, 0);
 	linear = linear_bo->virtual;
@@ -171,7 +131,7 @@ int main(int argc, char **argv)
 	int i;
 
 	fd = drm_open_any();
-	intel_get_drm_devid(fd);
+	devid = intel_get_drm_devid(fd);
 
 	bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
 	drm_intel_bufmgr_gem_enable_reuse(bufmgr);
@@ -196,7 +156,7 @@ int main(int argc, char **argv)
 		if (src == dst)
 			continue;
 
-		copy_bo(bo[dst], bo[src]);
+		intel_copy_bo(batch, bo[dst], bo[src], width, height, devid);
 		bo_start_val[dst] = bo_start_val[src];
 
 		/*

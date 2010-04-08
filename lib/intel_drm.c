@@ -1,5 +1,5 @@
 /*
- * Copyright © 2009 Intel Corporation
+ * Copyright © 2008 Intel Corporation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -25,32 +25,33 @@
  *
  */
 
-#include <stdint.h>
-#include <sys/types.h>
-#include <pciaccess.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <errno.h>
+#include <err.h>
+#include <assert.h>
+#include <sys/ioctl.h>
+#include <sys/fcntl.h>
+#include <sys/stat.h>
+#include <sys/mman.h>
 
-#include "intel_chipset.h"
-#include "intel_reg.h"
+#include "intel_gpu_tools.h"
+#include "i915_drm.h"
 
-#define ARRAY_SIZE(arr) (sizeof(arr)/sizeof(arr[0]))
-
-extern void *mmio;
-void intel_get_mmio(struct pci_device *pci_dev);
-
-static inline uint32_t
-INREG(uint32_t reg)
+uint32_t
+intel_get_drm_devid(int fd)
 {
-	return *(volatile uint32_t *)((volatile char *)mmio + reg);
+	int ret;
+	struct drm_i915_getparam gp;
+	uint32_t devid;
+
+	gp.param = I915_PARAM_CHIPSET_ID;
+	gp.value = (int *)&devid;
+
+	ret = ioctl(fd, DRM_IOCTL_I915_GETPARAM, &gp, sizeof(gp));
+	assert(ret == 0);
+
+	return devid;
 }
-
-static inline void
-OUTREG(uint32_t reg, uint32_t val)
-{
-	*(volatile uint32_t *)((volatile char *)mmio + reg) = val;
-}
-
-struct pci_device *intel_get_pci_device(void);
-
-uint32_t intel_get_drm_devid(int fd);
-
-void intel_map_file(char *);

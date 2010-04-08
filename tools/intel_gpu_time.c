@@ -65,7 +65,7 @@ int main(int argc, char **argv)
 	static struct rusage rusage;
 	int status;
 
-	intel_get_mmio();
+	intel_get_mmio(intel_get_pci_device());
 
 	if (argc == 1) {
 		fprintf(stderr, "usage: %s cmd [args...]\n", argv[0]);

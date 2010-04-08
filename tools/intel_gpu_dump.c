@@ -92,7 +92,7 @@ print_instdone (unsigned int instdone, unsigned int instdone1)
  * exit()).
  */
 static void
-read_data_file (const char * filename, int is_batch)
+read_data_file (uint32_t devid, const char * filename, int is_batch)
 {
     FILE *file;
     uint32_t *data = NULL;
@@ -250,7 +250,9 @@ main (int argc, char *argv[])
     const char *path;
     struct stat st;
     int err;
+    uint32_t devid;
     uint32_t instdone, instdone1 = 0;
+    struct pci_device *pci_dev;
 
     if (argc > 2) {
 	fprintf (stderr,
@@ -271,8 +273,10 @@ main (int argc, char *argv[])
 	return 1;
     }
 
-    intel_get_mmio();
-    init_instdone_definitions();
+    pci_dev = intel_get_pci_device();
+    devid = pci_dev->device_id;
+    intel_get_mmio(pci_dev);
+    init_instdone_definitions(devid);
 
     if (argc == 1) {
 	path = "/debug/dri/0";
@@ -352,7 +356,7 @@ main (int argc, char *argv[])
 
 	asprintf (&filename, "%s/i915_batchbuffers", path);
 	intel_decode_context_set_head_tail(acthd, 0xffffffff);
-	read_data_file (filename, 1);
+	read_data_file (devid, filename, 1);
 	free (filename);
 
 	asprintf (&filename, "%s/i915_ringbuffer_data", path);
@@ -360,10 +364,10 @@ main (int argc, char *argv[])
 	printf("Ringbuffer: ");
 	printf("Reminder: head pointer is GPU read, tail pointer is CPU "
 	       "write\n");
-	read_data_file (filename, 0);
+	read_data_file (devid, filename, 0);
 	free (filename);
     } else {
-	read_data_file (path, 1);
+	read_data_file (devid, path, 1);
     }
 
     return 0;

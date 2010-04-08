@@ -38,6 +38,7 @@
 #include <fcntl.h>
 #include <getopt.h>
 #include <arpa/inet.h>
+
 #include "intel_gpu_tools.h"
 
 #define AUD_CONFIG		0x62000
@@ -187,7 +188,8 @@ int main(int argc, char **argv)
     int i;
 
     do_self_tests();
-    intel_get_mmio();
+
+    intel_get_mmio(intel_get_pci_device());
 
     /* printf("%-18s   %8s  %s\n\n", "register name", "raw value", "description"); */
 

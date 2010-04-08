@@ -55,9 +55,15 @@
 #include "instdone.h"
 
 static void
-print_instdone (unsigned int instdone, unsigned int instdone1)
+print_instdone (uint32_t devid, unsigned int instdone, unsigned int instdone1)
 {
     int i;
+    static int once;
+
+    if (!once) {
+	init_instdone_definitions(devid);
+	once = 1;
+    }
 
     for (i = 0; i < num_instdone_bits; i++) {
 	int busy = 0;
@@ -190,11 +196,11 @@ read_data_file (const char * filename)
 
 	    matched = sscanf (line, "  INSTDONE: 0x%08x\n", &reg);
 	    if (matched)
-		print_instdone (reg, -1);
+		print_instdone (devid, reg, -1);
 
 	    matched = sscanf (line, "  INSTDONE1: 0x%08x\n", &reg);
 	    if (matched)
-		print_instdone (-1, reg);
+		print_instdone (devid, -1, reg);
 
 	    continue;
 	}
@@ -246,8 +252,6 @@ main (int argc, char *argv[])
 		 argv[0]);
 	return 1;
     }
-
-    init_instdone_definitions();
 
     if (argc == 1) {
 	path = "/debug/dri/0";

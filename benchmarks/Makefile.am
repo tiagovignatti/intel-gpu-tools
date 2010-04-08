@@ -1,8 +1,15 @@
-bin_PROGRAMS = \
-	intel_upload_blit_large \
-	intel_upload_blit_large_gtt \
-	intel_upload_blit_large_map \
-	intel_upload_blit_small
+NULL=#
+
+bin_PROGRAMS = $(NULL)
+
+if HAVE_DRM
+bin_PROGRAMS += \
+		intel_upload_blit_large \
+		intel_upload_blit_large_gtt \
+		intel_upload_blit_large_map \
+		intel_upload_blit_small \
+		$(NULL)
+endif
 
 BENCHMARK_LIBS = \
 	../lib/libintel_tools.la \

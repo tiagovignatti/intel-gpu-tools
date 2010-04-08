@@ -117,7 +117,7 @@ int main(int argc, char **argv)
 {
 	int swf14, acpi_lid;
 
-	intel_get_mmio();
+	intel_get_mmio(intel_get_pci_device());
 
 	while (1) {
 		swf14 = INREG(SWF14);

@@ -43,7 +43,7 @@ int main(int argc, char** argv)
 		exit(1);
 	}
 
-	intel_get_mmio();
+	intel_get_mmio(intel_get_pci_device());
 	sscanf(argv[1], "0x%x", &reg);
 	sscanf(argv[2], "0x%x", &value);
 	ptr = (volatile uint32_t *)((volatile char *)mmio + reg);

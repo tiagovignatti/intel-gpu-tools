@@ -61,7 +61,6 @@ int main(int argc, char **argv)
 	int fd;
 
 	fd = drm_open_any();
-	intel_get_drm_devid(fd);
 
 	bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
 	drm_intel_bufmgr_gem_enable_reuse(bufmgr);
