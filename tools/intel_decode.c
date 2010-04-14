@@ -1117,8 +1117,9 @@ decode_3d_primitive(uint32_t *data, int count, uint32_t hw_offset,
 		    int *failures)
 {
     char immediate = (data[0] & (1 << 23)) == 0;
-    unsigned int len, i;
+    unsigned int len, i, ret;
     char *primtype;
+    int original_s4 = saved_s4;
 
     switch ((data[0] >> 18) & 0xf) {
     case 0x0: primtype = "TRILIST"; break;
@@ -1131,7 +1132,7 @@ decode_3d_primitive(uint32_t *data, int count, uint32_t hw_offset,
     case 0x7: primtype = "RECTLIST"; break;
     case 0x8: primtype = "POINTLIST"; break;
     case 0x9: primtype = "DIB"; break;
-    case 0xa: primtype = "CLEAR_RECT"; break;
+    case 0xa: primtype = "CLEAR_RECT"; saved_s4 = 0; break;
     default: primtype = "unknown"; break;
     }
 
@@ -1235,6 +1236,8 @@ decode_3d_primitive(uint32_t *data, int count, uint32_t hw_offset,
 		vertex++;
 	    }
 	}
+
+	ret = len;
     } else {
 	/* indirect vertices */
 	len = data[0] & 0x0000ffff; /* index count */
@@ -1252,13 +1255,15 @@ decode_3d_primitive(uint32_t *data, int count, uint32_t hw_offset,
 		    if ((data[i] & 0xffff) == 0xffff) {
 			instr_out(data, hw_offset, i,
 				  "            indices: (terminator)\n");
-			return i;
+			ret = i;
+			goto out;
 		    } else if ((data[i] >> 16) == 0xffff) {
 			instr_out(data, hw_offset, i,
 				  "            indices: 0x%04x, "
 				  "(terminator)\n",
 				  data[i] & 0xffff);
-			return i;
+			ret = i;
+			goto out;
 		    } else {
 			instr_out(data, hw_offset, i,
 				  "            indices: 0x%04x, 0x%04x\n",
@@ -1268,7 +1273,8 @@ decode_3d_primitive(uint32_t *data, int count, uint32_t hw_offset,
 		fprintf(out,
 			"3DPRIMITIVE: no terminator found in index buffer\n");
 		(*failures)++;
-		return count;
+		ret = count;
+		goto out;
 	    } else {
 		/* fixed size vertex index buffer */
 		for (i = 0; i < len; i += 2) {
@@ -1283,7 +1289,8 @@ decode_3d_primitive(uint32_t *data, int count, uint32_t hw_offset,
 		    }
 		}
 	    }
-	    return (len + 1) / 2 + 1;
+	    ret = (len + 1) / 2 + 1;
+	    goto out;
 	} else {
 	    /* sequential vertex access */
 	    if (count < 2)
@@ -1292,11 +1299,14 @@ decode_3d_primitive(uint32_t *data, int count, uint32_t hw_offset,
 		      "3DPRIMITIVE sequential indirect %s, %d starting from "
 		      "%d\n", primtype, len, data[1] & 0xffff);
 	    instr_out(data, hw_offset, 1, "           start\n");
-	    return 2;
+	    ret = 2;
+	    goto out;
 	}
     }
 
-    return len;
+out:
+    saved_s4 = original_s4;
+    return ret;
 }
 
 static int
