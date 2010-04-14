@@ -3398,6 +3398,20 @@ typedef enum {
 #define PCH_SSC4_PARMS		0xc6210
 #define PCH_SSC4_AUX_PARMS	0xc6214
 
+/* CPT */
+#define PCH_DPLL_ANALOG_CTL	0xc6300
+
+#define PCH_DPLL_SEL            0xc7000
+#define  TRANSA_DPLL_ENABLE     (1<<3)
+#define  TRANSA_DPLLA_SEL	(0)
+#define  TRANSA_DPLLB_SEL	(1<<0)
+#define  TRANSB_DPLL_ENABLE     (1<<7)
+#define  TRANSB_DPLLA_SEL	(0<<4)
+#define  TRANSB_DPLLB_SEL	(1<<4)
+#define  TRANSC_DPLL_ENABLE     (1<<11)
+#define  TRANSC_DPLLA_SEL	(0<<8)
+#define  TRANSC_DPLLB_SEL	(1<<8)
+
 /* transcoder */
 
 #define TRANS_HTOTAL_A		0xe0000
@@ -3444,8 +3458,25 @@ typedef enum {
 #define TRANSB_DP_LINK_M2	0xe1048
 #define TRANSB_DP_LINK_N2	0xe104c
 
+#define TRANS_HTOTAL_C		0xe2000
+#define TRANS_HBLANK_C		0xe2004
+#define TRANS_HSYNC_C		0xe2008
+#define TRANS_VTOTAL_C		0xe200c
+#define TRANS_VBLANK_C		0xe2010
+#define TRANS_VSYNC_C		0xe2014
+
+#define TRANSC_DATA_M1		0xe2030
+#define TRANSC_DATA_N1		0xe2034
+#define TRANSC_DATA_M2		0xe2038
+#define TRANSC_DATA_N2		0xe203c
+#define TRANSC_DP_LINK_M1	0xe2040
+#define TRANSC_DP_LINK_N1	0xe2044
+#define TRANSC_DP_LINK_M2	0xe2048
+#define TRANSC_DP_LINK_N2	0xe204c
+
 #define TRANSACONF		0xf0008
 #define TRANSBCONF		0xf1008
+#define TRANSCCONF		0xf2008
 #define  TRANS_DISABLE		(0<<31)
 #define  TRANS_ENABLE		(1<<31)
 #define  TRANS_STATE_MASK	(1<<30)
@@ -3484,6 +3515,19 @@ typedef enum {
 #define  FDI_LINK_TRAIN_PRE_EMPHASIS_1_5X (1<<22)
 #define  FDI_LINK_TRAIN_PRE_EMPHASIS_2X	  (2<<22)
 #define  FDI_LINK_TRAIN_PRE_EMPHASIS_3X	  (3<<22)
+/* ILK always use 400mV 0dB for voltage swing and pre-emphasis level.
+   SNB has different settings. */
+/* SNB A-stepping */
+#define  FDI_LINK_TRAIN_400MV_0DB_SNB_A		(0x38<<22)
+#define  FDI_LINK_TRAIN_400MV_6DB_SNB_A		(0x02<<22)
+#define  FDI_LINK_TRAIN_600MV_3_5DB_SNB_A	(0x01<<22)
+#define  FDI_LINK_TRAIN_800MV_0DB_SNB_A		(0x0<<22)
+/* SNB B-stepping */
+#define  FDI_LINK_TRAIN_400MV_0DB_SNB_B		(0x0<<22)
+#define  FDI_LINK_TRAIN_400MV_6DB_SNB_B		(0x3a<<22)
+#define  FDI_LINK_TRAIN_600MV_3_5DB_SNB_B	(0x39<<22)
+#define  FDI_LINK_TRAIN_800MV_0DB_SNB_B		(0x38<<22)
+#define  FDI_LINK_TRAIN_VOL_EMP_MASK		(0x3f<<22)
 #define  FDI_DP_PORT_WIDTH_X1		(0<<19)
 #define  FDI_DP_PORT_WIDTH_X2		(1<<19)
 #define  FDI_DP_PORT_WIDTH_X3		(2<<19)
@@ -3498,6 +3542,7 @@ typedef enum {
 /* FDI_RX, FDI_X is hard-wired to Transcoder_X */
 #define FDI_RXA_CTL		0xf000c
 #define FDI_RXB_CTL		0xf100c
+#define FDI_RXC_CTL		0xf200c
 #define  FDI_RX_ENABLE		(1<<31)
 #define  FDI_RX_DISABLE		(0<<31)
 /* train, dp width same as FDI_TX */
@@ -3516,13 +3561,23 @@ typedef enum {
 #define  FDI_RX_ENHANCE_FRAME_ENABLE	(1<<6)
 #define  FDI_SEL_RAWCLK			(0<<4)
 #define  FDI_SEL_PCDCLK			(1<<4)
+/* CPT */
+#define  FDI_AUTO_TRAINING			(1<<10)
+#define  FDI_LINK_TRAIN_PATTERN_1_CPT		(0<<8)
+#define  FDI_LINK_TRAIN_PATTERN_2_CPT		(1<<8)
+#define  FDI_LINK_TRAIN_PATTERN_IDLE_CPT	(2<<8)
+#define  FDI_LINK_TRAIN_NORMAL_CPT		(3<<8)
+#define  FDI_LINK_TRAIN_PATTERN_MASK_CPT	(3<<8)
 
 #define FDI_RXA_MISC		0xf0010
 #define FDI_RXB_MISC		0xf1010
+#define FDI_RXC_MISC		0xf2010
 #define FDI_RXA_TUSIZE1		0xf0030
 #define FDI_RXA_TUSIZE2		0xf0038
 #define FDI_RXB_TUSIZE1		0xf1030
 #define FDI_RXB_TUSIZE2		0xf1038
+#define FDI_RXC_TUSIZE1		0xf2030
+#define FDI_RXC_TUSIZE2		0xf2038
 
 /* FDI_RX interrupt register format */
 #define FDI_RX_INTER_LANE_ALIGN		(1<<10)
@@ -3593,6 +3648,33 @@ typedef enum {
 #define HDMID	0xe1160
 #define PCH_LVDS		0xe1180
 
+#define BLC_PWM_CPU_CTL2        0x48250
+#define  PWM_ENABLE             (1 << 31)
+#define  PWM_PIPE_A             (0 << 29)
+#define  PWM_PIPE_B             (1 << 29)
+#define BLC_PWM_CPU_CTL         0x48254
+
+#define BLC_PWM_PCH_CTL1        0xc8250
+#define  PWM_PCH_ENABLE         (1 << 31)
+#define  PWM_POLARITY_ACTIVE_LOW        (1 << 29)
+#define  PWM_POLARITY_ACTIVE_HIGH       (0 << 29)
+#define  PWM_POLARITY_ACTIVE_LOW2       (1 << 28)
+#define  PWM_POLARITY_ACTIVE_HIGH2      (0 << 28)
+
+#define BLC_PWM_PCH_CTL2        0xc8254
+
+#define PCH_PP_STATUS           0xc7200
+#define PCH_PP_CONTROL          0xc7204
+#define  EDP_FORCE_VDD          (1 << 3)
+#define  EDP_BLC_ENABLE         (1 << 2)
+#define  PANEL_POWER_RESET      (1 << 1)
+#define  PANEL_POWER_OFF        (0 << 0)
+#define  PANEL_POWER_ON         (1 << 0)
+#define PCH_PP_ON_DELAYS        0xc7208
+#define  EDP_PANEL              (1 << 30)
+#define PCH_PP_OFF_DELAYS       0xc720c
+#define PCH_PP_DIVISOR          0xc7210
+
 #define AUD_CONFIG              0x62000
 #define AUD_DEBUG               0x62010
 #define AUD_VID_DID             0x62020
@@ -3626,5 +3708,26 @@ typedef enum {
 
 #define VIDEO_DIP_CTL           0x61170
 #define VIDEO_DIP_DATA          0x61178
+
+/* CPT */
+#define TRANS_DP_CTL_A		0xe0300
+#define TRANS_DP_CTL_B		0xe1300
+#define TRANS_DP_CTL_C		0xe2300
+#define  TRANS_DP_OUTPUT_ENABLE (1<<31)
+#define  TRANS_DP_PORT_SEL_B    (0<<29)
+#define  TRANS_DP_PORT_SEL_C    (1<<29)
+#define  TRANS_DP_PORT_SEL_D    (2<<29)
+#define  TRANS_DP_PORT_SEL_MASK (3<<29)
+#define  TRANS_DP_AUDIO_ONLY    (1<<26)
+#define  TRANS_DP_ENH_FRAMING   (1<<18)
+#define  TRANS_DP_8BPC          (0<<9)
+#define  TRANS_DP_10BPC         (1<<9)
+#define  TRANS_DP_6BPC          (2<<9)
+#define  TRANS_DP_12BPC         (3<<9)
+#define  TRANS_DP_VSYNC_ACTIVE_HIGH     (1<<4)
+#define  TRANS_DP_VSYNC_ACTIVE_LOW      0
+#define  TRANS_DP_HSYNC_ACTIVE_HIGH     (1<<3)
+#define  TRANS_DP_HSYNC_ACTIVE_LOW      0
+
 
 #endif /* _I810_REG_H */

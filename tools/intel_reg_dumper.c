@@ -473,6 +473,9 @@ DEBUGSTRING(i830_debug_lvds)
 	else
 		channels = "1 channel";
 
+	if (HAS_CPT)
+		pipe = val & (1<<29) ? 'B' : 'A';
+
 	asprintf(result, "%s, pipe %c, %d bit, %s",
 			 enable, pipe, depth, channels);
 }
@@ -922,38 +925,63 @@ DEBUGSTRING(ironlake_debug_fdi_tx_ctl)
 		break;
 	}
 
-	switch (val & (7 << 25)) {
-	case FDI_LINK_TRAIN_VOLTAGE_0_4V:
-		voltage = "0.4V";
-		break;
-	case FDI_LINK_TRAIN_VOLTAGE_0_6V:
-		voltage = "0.6V";
-		break;
-	case FDI_LINK_TRAIN_VOLTAGE_0_8V:
-		voltage = "0.8V";
-		break;
-	case FDI_LINK_TRAIN_VOLTAGE_1_2V:
-		voltage = "1.2V";
-		break;
-	default:
-		voltage = "reserved";
-	}
+	if (HAS_CPT) {
+		/* SNB B0 */
+		switch (val & (0x3f << 22)) {
+		case FDI_LINK_TRAIN_400MV_0DB_SNB_B:
+			voltage = "0.4V";
+			pre_emphasis = "0dB";
+			break;
+		case FDI_LINK_TRAIN_400MV_6DB_SNB_B:
+			voltage = "0.4V";
+			pre_emphasis = "6dB";
+			break;
+		case FDI_LINK_TRAIN_600MV_3_5DB_SNB_B:
+			voltage = "0.6V";
+			pre_emphasis = "3.5dB";
+			break;
+		case FDI_LINK_TRAIN_800MV_0DB_SNB_B:
+			voltage = "0.8V";
+			pre_emphasis = "0dB";
+			break;
+		}
 
-	switch (val & (7 << 22)) {
-	case FDI_LINK_TRAIN_PRE_EMPHASIS_NONE:
-		pre_emphasis = "none";
-		break;
-	case FDI_LINK_TRAIN_PRE_EMPHASIS_1_5X:
-		pre_emphasis = "1.5x";
-		break;
-	case FDI_LINK_TRAIN_PRE_EMPHASIS_2X:
-		pre_emphasis = "2x";
-		break;
-	case FDI_LINK_TRAIN_PRE_EMPHASIS_3X:
-		pre_emphasis = "3x";
-		break;
-	default:
-		pre_emphasis = "reserved";
+	} else {
+
+		switch (val & (7 << 25)) {
+			case FDI_LINK_TRAIN_VOLTAGE_0_4V:
+				voltage = "0.4V";
+				break;
+			case FDI_LINK_TRAIN_VOLTAGE_0_6V:
+				voltage = "0.6V";
+				break;
+			case FDI_LINK_TRAIN_VOLTAGE_0_8V:
+				voltage = "0.8V";
+				break;
+			case FDI_LINK_TRAIN_VOLTAGE_1_2V:
+				voltage = "1.2V";
+				break;
+			default:
+				voltage = "reserved";
+		}
+
+		switch (val & (7 << 22)) {
+			case FDI_LINK_TRAIN_PRE_EMPHASIS_NONE:
+				pre_emphasis = "none";
+				break;
+			case FDI_LINK_TRAIN_PRE_EMPHASIS_1_5X:
+				pre_emphasis = "1.5x";
+				break;
+			case FDI_LINK_TRAIN_PRE_EMPHASIS_2X:
+				pre_emphasis = "2x";
+				break;
+			case FDI_LINK_TRAIN_PRE_EMPHASIS_3X:
+				pre_emphasis = "3x";
+				break;
+			default:
+				pre_emphasis = "reserved";
+		}
+
 	}
 
 	switch (val & (7 << 19)) {
@@ -986,19 +1014,36 @@ DEBUGSTRING(ironlake_debug_fdi_rx_ctl)
 {
 	char *train = NULL, *portw = NULL, *bpc = NULL;
 
-	switch (val & FDI_LINK_TRAIN_NONE) {
-	case FDI_LINK_TRAIN_PATTERN_1:
-		train = "pattern_1";
-		break;
-	case FDI_LINK_TRAIN_PATTERN_2:
-		train = "pattern_2";
-		break;
-	case FDI_LINK_TRAIN_PATTERN_IDLE:
-		train = "pattern_idle";
-		break;
-	case FDI_LINK_TRAIN_NONE:
-		train = "not train";
-		break;
+	if (HAS_CPT) {
+		switch (val & FDI_LINK_TRAIN_PATTERN_MASK_CPT) {
+		case FDI_LINK_TRAIN_PATTERN_1_CPT:
+			train = "pattern_1";
+			break;
+		case FDI_LINK_TRAIN_PATTERN_2_CPT:
+			train = "pattern_2";
+			break;
+		case FDI_LINK_TRAIN_PATTERN_IDLE_CPT:
+			train = "pattern_idle";
+			break;
+		case FDI_LINK_TRAIN_NORMAL_CPT:
+			train = "not train";
+			break;
+		}
+	} else {
+		switch (val & FDI_LINK_TRAIN_NONE) {
+		case FDI_LINK_TRAIN_PATTERN_1:
+			train = "pattern_1";
+			break;
+		case FDI_LINK_TRAIN_PATTERN_2:
+			train = "pattern_2";
+			break;
+		case FDI_LINK_TRAIN_PATTERN_IDLE:
+			train = "pattern_idle";
+			break;
+		case FDI_LINK_TRAIN_NONE:
+			train = "not train";
+			break;
+		}
 	}
 
 	switch (val & (7 << 19)) {
@@ -1243,6 +1288,89 @@ DEBUGSTRING(ironlake_debug_pf_win)
 	asprintf(result, "%d, %d", a, b);
 }
 
+DEBUGSTRING(snb_debug_dpll_sel)
+{
+	char *transa, *transb;
+	char *dplla = NULL, *dpllb = NULL;
+
+	if (!HAS_CPT)
+		return;
+
+	if (val & TRANSA_DPLL_ENABLE) {
+		transa = "enable";
+		if (val & TRANSA_DPLLB_SEL)
+			dplla = "B";
+		else
+			dplla = "A";
+	} else
+		transa = "disable";
+
+	if (val & TRANSB_DPLL_ENABLE) {
+		transb = "enable";
+		if (val & TRANSB_DPLLB_SEL)
+			dpllb = "B";
+		else
+			dpllb = "A";
+	} else
+		transb = "disable";
+
+	asprintf(result, "TransA DPLL %s (DPLL %s), TransB DPLL %s (DPLL %s)",
+		 transa, dplla, transb, dpllb);
+}
+
+DEBUGSTRING(snb_debug_trans_dp_ctl)
+{
+	char *enable, *port = NULL, *bpc = NULL, *vsync, *hsync;
+
+	if (!HAS_CPT)
+		return;
+
+	if (val & TRANS_DP_OUTPUT_ENABLE)
+		enable = "enable";
+	else
+		enable = "disable";
+
+	switch (val & TRANS_DP_PORT_SEL_MASK) {
+	case TRANS_DP_PORT_SEL_B:
+		port = "B";
+		break;
+	case TRANS_DP_PORT_SEL_C:
+		port = "C";
+		break;
+	case TRANS_DP_PORT_SEL_D:
+		port = "D";
+		break;
+	}
+
+	switch (val & (7<<9)) {
+	case TRANS_DP_8BPC:
+		bpc = "8bpc";
+		break;
+	case TRANS_DP_10BPC:
+		bpc = "10bpc";
+		break;
+	case TRANS_DP_6BPC:
+		bpc = "6bpc";
+		break;
+	case TRANS_DP_12BPC:
+		bpc = "12bpc";
+		break;
+	}
+
+	if (val & TRANS_DP_VSYNC_ACTIVE_HIGH)
+		vsync = "+vsync";
+	else
+		vsync = "-vsync";
+
+	if (val & TRANS_DP_HSYNC_ACTIVE_HIGH)
+		hsync = "+hsync";
+	else
+		hsync = "-hsync";
+
+	asprintf(result, "%s port %s %s %s %s",
+		 enable, port, bpc, vsync, hsync);
+}
+
 static struct reg_debug ironlake_debug_regs[] = {
 	DEFINEREG(PGETBL_CTL),
 	DEFINEREG(GEN6_INSTDONE_1),
@@ -1331,6 +1459,8 @@ static struct reg_debug ironlake_debug_regs[] = {
 	DEFINEREG(PCH_DPLL_TMR_CFG),
 	DEFINEREG(PCH_SSC4_PARMS),
 	DEFINEREG(PCH_SSC4_AUX_PARMS),
+	DEFINEREG2(PCH_DPLL_SEL, snb_debug_dpll_sel),
+	DEFINEREG(PCH_DPLL_ANALOG_CTL),
 
 	DEFINEREG2(PCH_DPLL_A, ironlake_debug_pch_dpll),
 	DEFINEREG2(PCH_DPLL_B, ironlake_debug_pch_dpll),
@@ -1371,20 +1501,41 @@ static struct reg_debug ironlake_debug_regs[] = {
 	DEFINEREG2(TRANSB_DP_LINK_M2, ironlake_debug_n),
 	DEFINEREG2(TRANSB_DP_LINK_N2, ironlake_debug_n),
 
+	DEFINEREG2(TRANS_HTOTAL_C, i830_debug_hvtotal),
+	DEFINEREG2(TRANS_HBLANK_C, i830_debug_hvsyncblank),
+	DEFINEREG2(TRANS_HSYNC_C, i830_debug_hvsyncblank),
+	DEFINEREG2(TRANS_VTOTAL_C, i830_debug_hvtotal),
+	DEFINEREG2(TRANS_VBLANK_C, i830_debug_hvsyncblank),
+	DEFINEREG2(TRANS_VSYNC_C, i830_debug_hvsyncblank),
+
+	DEFINEREG2(TRANSC_DATA_M1, ironlake_debug_m_tu),
+	DEFINEREG2(TRANSC_DATA_N1, ironlake_debug_n),
+	DEFINEREG2(TRANSC_DATA_M2, ironlake_debug_m_tu),
+	DEFINEREG2(TRANSC_DATA_N2, ironlake_debug_n),
+	DEFINEREG2(TRANSC_DP_LINK_M1, ironlake_debug_n),
+	DEFINEREG2(TRANSC_DP_LINK_N1, ironlake_debug_n),
+	DEFINEREG2(TRANSC_DP_LINK_M2, ironlake_debug_n),
+	DEFINEREG2(TRANSC_DP_LINK_N2, ironlake_debug_n),
+
 	DEFINEREG2(TRANSACONF, ironlake_debug_transconf),
 	DEFINEREG2(TRANSBCONF, ironlake_debug_transconf),
+	DEFINEREG2(TRANSCCONF, ironlake_debug_transconf),
 
 	DEFINEREG2(FDI_TXA_CTL, ironlake_debug_fdi_tx_ctl),
 	DEFINEREG2(FDI_TXB_CTL, ironlake_debug_fdi_tx_ctl),
 	DEFINEREG2(FDI_RXA_CTL, ironlake_debug_fdi_rx_ctl),
 	DEFINEREG2(FDI_RXB_CTL, ironlake_debug_fdi_rx_ctl),
+	DEFINEREG2(FDI_RXC_CTL, ironlake_debug_fdi_rx_ctl),
 
 	DEFINEREG2(FDI_RXA_MISC, ironlake_debug_fdi_rx_misc),
 	DEFINEREG2(FDI_RXB_MISC, ironlake_debug_fdi_rx_misc),
+	DEFINEREG2(FDI_RXC_MISC, ironlake_debug_fdi_rx_misc),
 	DEFINEREG(FDI_RXA_TUSIZE1),
 	DEFINEREG(FDI_RXA_TUSIZE2),
 	DEFINEREG(FDI_RXB_TUSIZE1),
 	DEFINEREG(FDI_RXB_TUSIZE2),
+	DEFINEREG(FDI_RXC_TUSIZE1),
+	DEFINEREG(FDI_RXC_TUSIZE2),
 
 	DEFINEREG(FDI_PLL_CTL_1),
 	DEFINEREG(FDI_PLL_CTL_2),
@@ -1403,6 +1554,20 @@ static struct reg_debug ironlake_debug_regs[] = {
 	DEFINEREG(PCH_DP_B),
 	DEFINEREG(PCH_DP_C),
 	DEFINEREG(PCH_DP_D),
+	DEFINEREG2(TRANS_DP_CTL_A, snb_debug_trans_dp_ctl),
+	DEFINEREG2(TRANS_DP_CTL_B, snb_debug_trans_dp_ctl),
+	DEFINEREG2(TRANS_DP_CTL_C, snb_debug_trans_dp_ctl),
+
+	DEFINEREG(BLC_PWM_CPU_CTL2),
+	DEFINEREG(BLC_PWM_CPU_CTL),
+	DEFINEREG(BLC_PWM_PCH_CTL1),
+	DEFINEREG(BLC_PWM_PCH_CTL2),
+
+	DEFINEREG(PCH_PP_STATUS),
+	DEFINEREG(PCH_PP_CONTROL),
+	DEFINEREG(PCH_PP_ON_DELAYS),
+	DEFINEREG(PCH_PP_OFF_DELAYS),
+	DEFINEREG(PCH_PP_DIVISOR),
 };
 
 static void
@@ -1670,8 +1835,10 @@ int main(int argc, char** argv)
 	else
 		intel_get_mmio(pci_dev);
 
-	if (HAS_PCH_SPLIT(devid) || getenv("HAS_PCH_SPLIT"))
+	if (HAS_PCH_SPLIT(devid) || getenv("HAS_PCH_SPLIT")) {
+		intel_check_pch();
 		ironlake_dump_regs();
+	}
 	else
 		intel_dump_regs();
 
