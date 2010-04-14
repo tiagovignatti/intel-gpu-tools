@@ -805,7 +805,7 @@ decode_3d_1d(uint32_t *data, int count,
     } opcodes_3d_1d[] = {
 	{ 0x8e, 0, 3, 3, "3DSTATE_BUFFER_INFO" },
 	{ 0x86, 0, 4, 4, "3DSTATE_CHROMA_KEY" },
-	{ 0x9c, 0, 1, 1, "3DSTATE_CLEAR_PARAMETERS" },
+	{ 0x9c, 0, 7, 7, "3DSTATE_CLEAR_PARAMETERS" },
 	{ 0x88, 0, 2, 2, "3DSTATE_CONSTANT_BLEND_COLOR" },
 	{ 0x99, 0, 2, 2, "3DSTATE_DEFAULT_DIFFUSE" },
 	{ 0x9a, 0, 2, 2, "3DSTATE_DEFAULT_SPECULAR" },
