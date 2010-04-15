@@ -449,6 +449,9 @@ DEBUGSTRING(i830_debug_adpa)
 	char hsync = (val & ADPA_HSYNC_ACTIVE_HIGH) ? '+' : '-';
 	char vsync = (val & ADPA_VSYNC_ACTIVE_HIGH) ? '+' : '-';
 
+	if (HAS_CPT)
+		pipe = val & (1<<29) ? 'B' : 'A';
+
 	if (HAS_PCH_SPLIT(devid))
 		asprintf(result, "%s, transcoder %c, %chsync, %cvsync",
 				 enable, pipe, hsync, vsync);
@@ -1288,6 +1291,64 @@ DEBUGSTRING(ironlake_debug_pf_win)
 	asprintf(result, "%d, %d", a, b);
 }
 
+DEBUGSTRING(ironlake_debug_hdmi)
+{
+	char *enable, pipe, *bpc = NULL, *encoding;
+	char *mode, *audio, *vsync, *hsync, *detect;
+
+	if (val & PORT_ENABLE)
+		enable = "enabled";
+	else
+		enable = "disabled";
+
+	if (HAS_CPT)
+		pipe = (val & (1<<29)) ? 'B' : 'A';
+	else
+		pipe = (val & TRANSCODER_B) ? 'B' : 'A';
+
+	switch (val & (7 << 26)) {
+	case COLOR_FORMAT_8bpc:
+		bpc = "8bpc";
+		break;
+	case COLOR_FORMAT_12bpc:
+		bpc = "12bpc";
+		break;
+	}
+
+	if ((val & (3 << 10)) == TMDS_ENCODING)
+		encoding = "TMDS";
+	else
+		encoding = "SDVO";
+
+	if (val & (1 << 9))
+		mode = "HDMI";
+	else
+		mode = "DVI";
+
+	if (val & AUDIO_ENABLE)
+		audio = "enabled";
+	else
+		audio = "disabled";
+
+	if (val & VSYNC_ACTIVE_HIGH)
+		vsync = "+vsync";
+	else
+		vsync = "-vsync";
+
+	if (val & HSYNC_ACTIVE_HIGH)
+		hsync = "+hsync";
+	else
+		hsync = "-hsync";
+
+	if (val & PORT_DETECTED)
+		detect = "detected";
+	else
+		detect = "non-detected";
+
+	asprintf(result, "%s pipe %c %s %s %s audio %s %s %s %s",
+		 enable, pipe, bpc, encoding, mode, audio, vsync, hsync, detect);
+}
+
 DEBUGSTRING(snb_debug_dpll_sel)
 {
 	char *transa, *transb;
@@ -1546,9 +1607,9 @@ static struct reg_debug ironlake_debug_regs[] = {
 	DEFINEREG(FDI_RXB_IMR),
 
 	DEFINEREG2(PCH_ADPA, i830_debug_adpa),
-	DEFINEREG(HDMIB),
-	DEFINEREG(HDMIC),
-	DEFINEREG(HDMID),
+	DEFINEREG2(HDMIB, ironlake_debug_hdmi),
+	DEFINEREG2(HDMIC, ironlake_debug_hdmi),
+	DEFINEREG2(HDMID, ironlake_debug_hdmi),
 	DEFINEREG2(PCH_LVDS, i830_debug_lvds),
 	DEFINEREG(PCH_eDP_A),
 	DEFINEREG(PCH_DP_B),
