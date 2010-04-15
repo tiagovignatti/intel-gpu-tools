@@ -39,6 +39,8 @@
 
 #include "intel_gpu_tools.h"
 
+enum pch_type pch;
+
 struct pci_device *
 intel_get_pci_device(void)
 {
@@ -69,3 +71,18 @@ intel_get_pci_device(void)
 
 	return pci_dev;
 }
+
+void
+intel_check_pch(void)
+{
+	struct pci_device *pch_dev;
+
+	pch_dev = pci_device_find_by_slot(0, 0, 31, 0);
+	if (pch_dev == NULL)
+		return;
+
+	if (pch_dev->vendor_id == 0x8086 &&
+		(pch_dev->device_id & 0xff00) == 0x1c00)
+		pch = PCH_CPT;
+}
+

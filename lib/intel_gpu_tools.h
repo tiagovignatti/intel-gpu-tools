@@ -54,3 +54,13 @@ struct pci_device *intel_get_pci_device(void);
 uint32_t intel_get_drm_devid(int fd);
 
 void intel_map_file(char *);
+
+enum pch_type {
+	PCH_IBX,
+	PCH_CPT,
+};
+
+extern enum pch_type pch;
+void intel_check_pch(void);
+
+#define HAS_CPT (pch == PCH_CPT)
