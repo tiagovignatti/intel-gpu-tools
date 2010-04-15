@@ -1132,7 +1132,7 @@ decode_3d_primitive(uint32_t *data, int count, uint32_t hw_offset,
     case 0x7: primtype = "RECTLIST"; break;
     case 0x8: primtype = "POINTLIST"; break;
     case 0x9: primtype = "DIB"; break;
-    case 0xa: primtype = "CLEAR_RECT"; saved_s4 = 0; break;
+    case 0xa: primtype = "CLEAR_RECT"; saved_s4 = 3 << 6; break;
     default: primtype = "unknown"; break;
     }
 
