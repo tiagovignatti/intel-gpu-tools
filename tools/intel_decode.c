@@ -1119,6 +1119,7 @@ decode_3d_primitive(uint32_t *data, int count, uint32_t hw_offset,
     char immediate = (data[0] & (1 << 23)) == 0;
     unsigned int len, i, ret;
     char *primtype;
+    int original_s2 = saved_s2;
     int original_s4 = saved_s4;
 
     switch ((data[0] >> 18) & 0xf) {
@@ -1132,7 +1133,7 @@ decode_3d_primitive(uint32_t *data, int count, uint32_t hw_offset,
     case 0x7: primtype = "RECTLIST"; break;
     case 0x8: primtype = "POINTLIST"; break;
     case 0x9: primtype = "DIB"; break;
-    case 0xa: primtype = "CLEAR_RECT"; saved_s4 = 3 << 6; break;
+    case 0xa: primtype = "CLEAR_RECT"; saved_s4 = 3 << 6; saved_s2 = ~0; break;
     default: primtype = "unknown"; break;
     }
 
@@ -1305,6 +1306,7 @@ decode_3d_primitive(uint32_t *data, int count, uint32_t hw_offset,
     }
 
 out:
+    saved_s2 = original_s2;
     saved_s4 = original_s4;
     return ret;
 }
