@@ -813,7 +813,6 @@ decode_3d_1d(uint32_t *data, int count,
 	{ 0x97, 0, 2, 2, "3DSTATE_DEPTH_OFFSET_SCALE" },
 	{ 0x85, 0, 2, 2, "3DSTATE_DEST_BUFFER_VARIABLES" },
 	{ 0x80, 0, 5, 5, "3DSTATE_DRAWING_RECTANGLE" },
-	{ 0x8e, 0, 3, 3, "3DSTATE_BUFFER_INFO" },
 	{ 0x9d, 0, 65, 65, "3DSTATE_FILTER_COEFFICIENTS_4X4" },
 	{ 0x9e, 0, 4, 4, "3DSTATE_MONO_FILTER" },
 	{ 0x89, 0, 4, 4, "3DSTATE_FOG_MODE" },
@@ -1074,6 +1073,35 @@ decode_3d_1d(uint32_t *data, int count,
 		  format,
 		  (data[1] & (1 << 31)) ? "en" : "dis");
 	return len;
+
+    case 0x8e:
+	{
+	    const char *name, *tiling;
+
+	    len = (data[0] & 0x0000000f) + 2;
+	    if (len != 3)
+		fprintf(out, "Bad count in 3DSTATE_BUFFER_INFO\n");
+	    if (count < 3)
+		BUFFER_FAIL(count, len, "3DSTATE_BUFFER_INFO");
+
+	    switch((data[1] >> 24) & 0x7) {
+	    case 0x3: name = "color"; break;
+	    case 0x7: name = "depth"; break;
+	    default: name = "unknown"; break;
+	    }
+
+	    tiling = "none";
+	    if (data[1] & (1 << 23))
+		tiling = "fenced";
+	    else if (data[1] & (1 << 22))
+		tiling = data[1] & (1 << 21) ? "Y" : "X";
+
+	    instr_out(data, hw_offset, 0, "3DSTATE_BUFFER_INFO\n");
+	    instr_out(data, hw_offset, 1, "%s, tiling = %s, pitch=%d\n", name, tiling, data[1]&0xffff);
+
+	    instr_out(data, hw_offset, 2, "address\n");
+	    return len;
+	}
     }
 
     for (idx = 0; idx < ARRAY_SIZE(opcodes_3d_1d); idx++)
