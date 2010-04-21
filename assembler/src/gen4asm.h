@@ -122,6 +122,7 @@ struct brw_program_instruction {
  */
 struct brw_program {
 	struct brw_program_instruction *first;
+	struct brw_program_instruction *last;
 };
 
 extern struct brw_program compiled_program;

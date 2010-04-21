@@ -174,16 +174,15 @@ ROOT:		instrseq
 label:          STRING COLON
 ;
 
-instrseq:	instruction SEMICOLON instrseq
+instrseq:	instrseq instruction SEMICOLON 
 		{
 		  struct brw_program_instruction *list_entry =
 		    calloc(sizeof(struct brw_program_instruction), 1);
-		  list_entry->instruction = $1;
-
-		  list_entry->next = $3.first;
-		  $3.first = list_entry;
-
-		  $$ = $3;
+		  list_entry->instruction = $2;
+		  list_entry->next = NULL;
+		  $1.last->next = list_entry;
+		  $1.last = list_entry;
+		  $$ = $1;
 		}
 		| instruction SEMICOLON
 		{
@@ -194,17 +193,31 @@ instrseq:	instruction SEMICOLON instrseq
 		  list_entry->next = NULL;
 
 		  $$.first = list_entry;
+		  $$.last = list_entry;
 		}
-                | label instrseq
+                | instrseq label
                 {
                   struct brw_program_instruction *list_entry =
                     calloc(sizeof(struct brw_program_instruction), 1);
+                  list_entry->string = strdup($2);
+                  list_entry->islabel = 1;
+		  list_entry->next = NULL;
+		  $1.last->next = list_entry;
+		  $1.last = list_entry;
+		  $$ = $1;
+                }
+		| label
+		{
+		  struct brw_program_instruction *list_entry =
+		    calloc(sizeof(struct brw_program_instruction), 1);
                   list_entry->string = strdup($1);
                   list_entry->islabel = 1;
-                  list_entry->next = $2.first;
-                      $2.first = list_entry;
-                      $$ = $2;
-                }
+
+		  list_entry->next = NULL;
+
+		  $$.first = list_entry;
+		  $$.last = list_entry;
+		}
 		| error SEMICOLON instrseq
 		{
 		  $$ = $3;
