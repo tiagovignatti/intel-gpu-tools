@@ -202,13 +202,79 @@ static void dump_backlight_info(void)
 	printf("\tI2C command: 0x%02x\n", blc->i2c_cmd);
 }
 
+static const struct {
+	unsigned short type;
+	const char *name;
+} child_device_types[] = {
+	{ DEVICE_TYPE_NONE, "none" },
+	{ DEVICE_TYPE_CRT, "CRT" },
+	{ DEVICE_TYPE_TV, "TV" },
+	{ DEVICE_TYPE_EFP, "EFP" },
+	{ DEVICE_TYPE_LFP, "LFP" },
+	{ DEVICE_TYPE_CRT_DPMS, "CRT" },
+	{ DEVICE_TYPE_CRT_DPMS_HOTPLUG, "CRT" },
+	{ DEVICE_TYPE_TV_COMPOSITE, "TV composite" },
+	{ DEVICE_TYPE_TV_MACROVISION, "TV" },
+	{ DEVICE_TYPE_TV_RF_COMPOSITE, "TV" },
+	{ DEVICE_TYPE_TV_SVIDEO_COMPOSITE, "TV S-Video" },
+	{ DEVICE_TYPE_TV_SCART, "TV SCART" },
+	{ DEVICE_TYPE_TV_CODEC_HOTPLUG_PWR, "TV" },
+	{ DEVICE_TYPE_EFP_HOTPLUG_PWR, "EFP" },
+	{ DEVICE_TYPE_EFP_DVI_HOTPLUG_PWR, "DVI" },
+	{ DEVICE_TYPE_EFP_DVI_I, "DVI-I" },
+	{ DEVICE_TYPE_EFP_DVI_D_DUAL, "DL-DVI-D" },
+	{ DEVICE_TYPE_EFP_DVI_D_HDCP, "DVI-D" },
+	{ DEVICE_TYPE_OPENLDI_HOTPLUG_PWR, "OpenLDI" },
+	{ DEVICE_TYPE_OPENLDI_DUALPIX, "OpenLDI" },
+	{ DEVICE_TYPE_LFP_PANELLINK, "PanelLink" },
+	{ DEVICE_TYPE_LFP_CMOS_PWR, "CMOS LFP" },
+	{ DEVICE_TYPE_LFP_LVDS_PWR, "LVDS" },
+	{ DEVICE_TYPE_LFP_LVDS_DUAL, "LVDS" },
+	{ DEVICE_TYPE_LFP_LVDS_DUAL_HDCP, "LVDS" },
+	{ DEVICE_TYPE_INT_LFP, "LFP" },
+	{ DEVICE_TYPE_INT_TV, "TV" },
+	{ DEVICE_TYPE_HDMI, "HDMI" },
+	{ DEVICE_TYPE_DP, "DisplayPort" },
+	{ DEVICE_TYPE_eDP, "eDP" },
+};
+static const int num_child_device_types =
+	sizeof(child_device_types) / sizeof(child_device_types[0]);
+
+static const char *child_device_type(unsigned short type)
+{
+	int i;
+
+	for (i = 0; i < num_child_device_types; i++)
+		if (child_device_types[i].type == type)
+			return child_device_types[i].name;
+
+	return "unknown";
+}
+
+static void dump_child_device(struct child_device_config *child)
+{
+	char child_id[11];
+
+	if (!child->device_type)
+		return;
+
+	strncpy(child_id, (char *)child->device_id, 10);
+	child_id[10] = 0;
+
+	printf("\tChild device info:\n");
+	printf("\t\tDevice type: %04x (%s)\n", child->device_type,
+	       child_device_type(child->device_type));
+	printf("\t\tSignature: %s\n", child_id);
+	printf("\t\tAIM offset: %d\n", child->addin_offset);
+	printf("\t\tDVO port: 0x%02x\n", child->dvo_port);
+}
+
 static void dump_general_definitions(void)
 {
 	struct bdb_block *block;
 	struct bdb_general_definitions *defs;
 	struct child_device_config *child;
 	int i;
-	char child_id[11];
 	int child_device_num;
 
 	block = find_section(BDB_GENERAL_DEFINITIONS);
@@ -230,19 +296,8 @@ static void dump_general_definitions(void)
 	       defs->boot_display[0]);
 	printf("\tTV data block present: %s\n", YESNO(tv_present));
 	child_device_num = (block->size - sizeof(*defs)) / sizeof(*child);
-	for (i = 0; i < child_device_num; i++) {
-		child = &defs->devices[i];
-		if (!child->device_type) {
-			printf("\tChild device %d not present\n", i);
-			continue;
-		}
-		strncpy(child_id, (char *)child->device_id, 10);
-		child_id[10] = 0;
-		printf("\tChild %d device info:\n", i);
-		printf("\t\tSignature: %s\n", child_id);
-		printf("\t\tAIM offset: %d\n", child->addin_offset);
-		printf("\t\tDVO port: 0x%02x\n", child->dvo_port);
-	}
+	for (i = 0; i < child_device_num; i++)
+		dump_child_device(&defs->devices[i]);
 
 	free(block);
 }
