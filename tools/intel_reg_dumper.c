@@ -1888,13 +1888,14 @@ int main(int argc, char** argv)
 {
 	struct pci_device *pci_dev;
 
-	pci_dev = intel_get_pci_device();
-	devid = pci_dev->device_id; /* XXX not true when mapping! */
-
 	if (argc == 2)
 		intel_map_file(argv[1]);
-	else
+	else {
+		pci_dev = intel_get_pci_device();
+		devid = pci_dev->device_id; /* XXX not true when mapping! */
+
 		intel_get_mmio(pci_dev);
+	}
 
 	if (HAS_PCH_SPLIT(devid) || getenv("HAS_PCH_SPLIT")) {
 		intel_check_pch();
