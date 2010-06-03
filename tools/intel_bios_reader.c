@@ -36,6 +36,9 @@
 #include <sys/types.h>
 
 #include "intel_bios.h"
+#include "intel_gpu_tools.h"
+
+static uint32_t devid;
 
 /* no bother to include "edid.h" */
 #define _H_ACTIVE(x) (x[2] + ((x[4] & 0xF0) << 4))
@@ -148,9 +151,14 @@ static void dump_general_features(void)
 	printf("\tDVO color flip required: %s\n", YESNO(features->color_flip));
 	printf("\tExternal VBT: %s\n", YESNO(features->download_ext_vbt));
 	printf("\tEnable SSC: %s\n", YESNO(features->enable_ssc));
-	if (features->enable_ssc)
-		printf("\tSSC frequency: %s\n", features->ssc_freq ?
-		       "100 MHz (66 MHz on 855)" : "96 MHz (48 MHz on 855)");
+	if (features->enable_ssc) {
+		if (HAS_PCH_SPLIT(devid))
+			printf("\tSSC frequency: %s\n", features->ssc_freq ?
+			       "100 MHz" : "120 MHz");
+		else
+			printf("\tSSC frequency: %s\n", features->ssc_freq ?
+			       "100 MHz (66 MHz on 855)" : "96 MHz (48 MHz on 855)");
+	}
 	printf("\tLFP on override: %s\n",
 	       YESNO(features->enable_lfp_on_override));
 	printf("\tDisable SSC on clone: %s\n",
@@ -661,6 +669,7 @@ int main(int argc, char **argv)
 	struct stat finfo;
 	struct bdb_block *block;
 	char signature[17];
+	struct pci_device *pci_dev;
 
 	if (argc != 2) {
 		printf("usage: %s <rom file>\n", argv[0]);
@@ -719,6 +728,9 @@ int main(int argc, char **argv)
 		free(block);
 	}
 	printf("\n");
+
+	pci_dev = intel_get_pci_device();
+	devid = pci_dev->device_id;
 
 	dump_general_features();
 	dump_general_definitions();
