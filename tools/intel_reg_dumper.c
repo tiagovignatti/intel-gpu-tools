@@ -600,7 +600,7 @@ DEBUGSTRING(i810_debug_965_fence_start)
 {
 	char *enable = (val & FENCE_VALID) ? " enabled" : "disabled";
 	char format = (val & I965_FENCE_Y_MAJOR) ? 'Y' : 'X';
-	int pitch = ((val & 0xffc) >> 2) * 128;
+	int pitch = ((val & 0xffc) >> 2) * 128 + 128;
 	unsigned int offset = val & 0xfffff000;
 
 	if (!IS_965(devid))
