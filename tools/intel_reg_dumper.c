@@ -1646,13 +1646,13 @@ ironlake_dump_regs(void)
 							  [i].reg,
 							  val);
 			if (debug != NULL) {
-				printf("%20.20s: 0x%08x (%s)\n",
+				printf("%30.30s: 0x%08x (%s)\n",
 				       ironlake_debug_regs[i].name,
 				       (unsigned int)val, debug);
 				free(debug);
 			}
 		} else {
-			printf("%20.20s: 0x%08x\n", ironlake_debug_regs[i].name,
+			printf("%30.30s: 0x%08x\n", ironlake_debug_regs[i].name,
 			       (unsigned int)val);
 		}
 	}
