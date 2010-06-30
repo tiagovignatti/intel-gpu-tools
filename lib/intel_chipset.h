@@ -96,6 +96,9 @@
 				 devid == PCI_CHIP_E7221_G || \
 				 devid == PCI_CHIP_I915_GM)
 
+#define IS_945GM(devid)		(devid == PCI_CHIP_I945_GM || \
+				 devid == PCI_CHIP_I945_GME)
+
 #define IS_945(devid)		(devid == PCI_CHIP_I945_G || \
 				 devid == PCI_CHIP_I945_GM || \
 				 devid == PCI_CHIP_I945_GME || \

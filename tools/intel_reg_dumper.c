@@ -1631,6 +1631,55 @@ static struct reg_debug ironlake_debug_regs[] = {
 	DEFINEREG(PCH_PP_DIVISOR),
 };
 
+static struct reg_debug i945gm_mi_regs[] = {
+	DEFINEREG(PGETBL_CTL),
+	DEFINEREG(PGTBL_ER),
+	DEFINEREG(EXCC),
+	DEFINEREG(HWS_PGA),
+	DEFINEREG(IPEIR),
+	DEFINEREG(IPEHR),
+	DEFINEREG(INST_DONE),
+	DEFINEREG(NOPID),
+	DEFINEREG(HWSTAM),
+	DEFINEREG(SCPD0),
+	DEFINEREG(IER),
+	DEFINEREG(IIR),
+	DEFINEREG(IMR),
+	DEFINEREG(ISR),
+	DEFINEREG(EIR),
+	DEFINEREG(EMR),
+	DEFINEREG(ESR),
+	DEFINEREG(INST_PM),
+	DEFINEREG(ECOSKPD),
+};
+
+static void
+i945_dump_mi_regs(void)
+{
+	int i;
+
+	for (i = 0; i < ARRAY_SIZE(i945gm_mi_regs); i++) {
+		uint32_t val = INREG(i945gm_mi_regs[i].reg);
+
+		if (i945gm_mi_regs[i].debug_output != NULL) {
+			char *debug = NULL;
+			i945gm_mi_regs[i].debug_output(&debug,
+							  i945gm_mi_regs
+							  [i].reg,
+							  val);
+			if (debug != NULL) {
+				printf("%30.30s: 0x%08x (%s)\n",
+				       i945gm_mi_regs[i].name,
+				       (unsigned int)val, debug);
+				free(debug);
+			}
+		} else {
+			printf("%30.30s: 0x%08x\n", i945gm_mi_regs[i].name,
+			       (unsigned int)val);
+		}
+	}
+}
+
 static void
 ironlake_dump_regs(void)
 {
@@ -1901,7 +1950,10 @@ int main(int argc, char** argv)
 		intel_check_pch();
 		ironlake_dump_regs();
 	}
-	else
+	else if (IS_945GM(devid)) {
+		i945_dump_mi_regs();
+		intel_dump_regs();
+	} else
 		intel_dump_regs();
 
 	return 0;
