@@ -1490,7 +1490,7 @@ get_965_prim_type(uint32_t data)
 
 static int
 i965_decode_urb_fence(uint32_t *data, uint32_t hw_offset, int len, int count,
- 		      int *failures)
+		      int *failures)
 {
 	uint32_t vs_fence, clip_fence, gs_fence, sf_fence, vfe_fence, cs_fence;
 
