@@ -1748,8 +1748,8 @@ decode_3d_965(uint32_t *data, int count, uint32_t hw_offset, uint32_t devid, int
 	for (i = 1; i < len;) {
 	    instr_out(data, hw_offset, i, "buffer %d: %svalid, type 0x%04x, "
 		      "src offset 0x%04x bytes\n",
-		      data[i] >> 27,
-		      data[i] & (1 << 26) ? "" : "in",
+		      data[i] >> (IS_GEN6(devid) ? 26 : 27),
+		      data[i] & (1 << (IS_GEN6(devid) ? 25 : 26)) ? "" : "in",
 		      (data[i] >> 16) & 0x1ff,
 		      data[i] & 0x07ff);
 	    i++;
