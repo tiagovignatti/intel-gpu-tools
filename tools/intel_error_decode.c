@@ -119,10 +119,58 @@ print_i830_pgtbl_err(unsigned int reg)
 }
 
 static void
+print_i915_pgtbl_err(unsigned int reg)
+{
+	if (reg & (1 << 29))
+		printf ("    Cursor A: Invalid GTT PTE\n");
+	if (reg & (1 << 28))
+		printf ("    Cursor B: Invalid GTT PTE\n");
+	if (reg & (1 << 27))
+		printf ("    MT: Invalid tiling\n");
+	if (reg & (1 << 26))
+		printf ("    MT: Invalid GTT PTE\n");
+	if (reg & (1 << 25))
+		printf ("    LC: Invalid tiling\n");
+	if (reg & (1 << 24))
+		printf ("    LC: Invalid GTT PTE\n");
+	if (reg & (1 << 23))
+		printf ("    BIN VertexData: Invalid GTT PTE\n");
+	if (reg & (1 << 22))
+		printf ("    BIN Instruction: Invalid GTT PTE\n");
+	if (reg & (1 << 21))
+		printf ("    CS VertexData: Invalid GTT PTE\n");
+	if (reg & (1 << 20))
+		printf ("    CS Instruction: Invalid GTT PTE\n");
+	if (reg & (1 << 19))
+		printf ("    CS: Invalid GTT\n");
+	if (reg & (1 << 18))
+		printf ("    Overlay: Invalid tiling\n");
+	if (reg & (1 << 16))
+		printf ("    Overlay: Invalid GTT PTE\n");
+	if (reg & (1 << 14))
+		printf ("    Display C: Invalid tiling\n");
+	if (reg & (1 << 12))
+		printf ("    Display C: Invalid GTT PTE\n");
+	if (reg & (1 << 10))
+		printf ("    Display B: Invalid tiling\n");
+	if (reg & (1 << 8))
+		printf ("    Display B: Invalid GTT PTE\n");
+	if (reg & (1 << 6))
+		printf ("    Display A: Invalid tiling\n");
+	if (reg & (1 << 4))
+		printf ("    Display A: Invalid GTT PTE\n");
+	if (reg & (1 << 1))
+		printf ("    Host Invalid PTE data\n");
+	if (reg & (1 << 0))
+		printf ("    Host Invalid GTT PTE\n");
+}
+
+static void
 print_pgtbl_err(unsigned int reg, unsigned int devid)
 {
 	if (IS_965(devid)) {
 	} else if (IS_9XX(devid)) {
+		return print_i915_pgtbl_err(reg);
 	} else {
 		return print_i830_pgtbl_err(reg);
 	}
