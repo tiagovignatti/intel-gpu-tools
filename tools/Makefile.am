@@ -12,10 +12,20 @@ bin_PROGRAMS = \
 	intel_reg_dumper \
 	intel_reg_snapshot \
 	intel_reg_write \
-	intel_reg_read
+	intel_reg_read \
+	$(NULL)
+
+noinst_PROGRAMS = \
+	intel_dump_decode \
+	$(NULL)
 
 intel_gpu_dump_SOURCES = \
 	intel_gpu_dump.c \
+	intel_decode.c \
+	intel_decode.h
+
+intel_dump_decode_SOURCES = \
+	intel_dump_decode.c \
 	intel_decode.c \
 	intel_decode.h
 
