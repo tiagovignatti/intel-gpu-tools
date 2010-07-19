@@ -365,6 +365,8 @@ int main(int argc, char **argv)
 		struct winsize ws;
 		if (ioctl(0, TIOCGWINSZ, &ws) != -1)
 			max_lines = ws.ws_row - 6; /* exclude header lines */
+		if (max_lines >= num_instdone_bits)
+			max_lines = num_instdone_bits;
 
 		printf("%s", clear_screen);
 
@@ -380,8 +382,8 @@ int main(int argc, char **argv)
 		       (total_ring_full / SAMPLES_TO_PERCENT_RATIO) / ring_size);
 
 		printf("%30s  %s\n\n", "task", "percent busy");
-		for (i = 0; i < num_instdone_bits; i++) {
-			if (top_bits_sorted[i]->count > 0 && i < max_lines) {
+		for (i = 0; i < max_lines; i++) {
+			if (top_bits_sorted[i]->count > 0) {
 				percent = top_bits_sorted[i]->count /
 					SAMPLES_TO_PERCENT_RATIO;
 				len = printf("%30s: %3d%%: ",
@@ -404,8 +406,13 @@ int main(int argc, char **argv)
 					break;
 			}
 			printf("\n");
+		}
 
+		for (i = 0; i < num_instdone_bits; i++) {
 			top_bits_sorted[i]->count = 0;
+
+			if (i < STATS_COUNT)
+				last_stats[i] = stats[i];
 		}
 	}
 
