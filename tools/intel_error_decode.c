@@ -231,23 +231,23 @@ read_data_file (const char * filename)
 	    printf("%s", line);
 
 	    matched = sscanf (line, "PCI ID: 0x%04x\n", &reg);
-	    if (matched)
+	    if (matched == 1)
 		    devid = reg;
 
 	    matched = sscanf (line, "  ACTHD: 0x%08x\n", &reg);
-	    if (matched)
+	    if (matched == 1)
 		    intel_decode_context_set_head_tail(reg, 0xffffffff);
 
 	    matched = sscanf (line, "  PGTBL_ER: 0x%08x\n", &reg);
-	    if (matched && reg)
+	    if (matched == 1 && reg)
 		    print_pgtbl_err(reg, devid);
 
 	    matched = sscanf (line, "  INSTDONE: 0x%08x\n", &reg);
-	    if (matched)
+	    if (matched == 1)
 		print_instdone (devid, reg, -1);
 
 	    matched = sscanf (line, "  INSTDONE1: 0x%08x\n", &reg);
-	    if (matched)
+	    if (matched == 1)
 		print_instdone (devid, -1, reg);
 
 	    continue;
