@@ -1432,6 +1432,14 @@ DEBUGSTRING(snb_debug_trans_dp_ctl)
 		 enable, port, bpc, vsync, hsync);
 }
 
+DEBUGSTRING(ilk_debug_pp_control)
+{
+	asprintf(result, "blacklight %s, %spower down on reset, panel %s",
+		 (val & (1 << 2)) ? "enabled" : "disabled",
+		 (val & (1 << 1)) ? "" : "do not ",
+		 (val & (1 << 0)) ? "on" : "off");
+}
+
 static struct reg_debug ironlake_debug_regs[] = {
 	DEFINEREG(PGETBL_CTL),
 	DEFINEREG(GEN6_INSTDONE_1),
@@ -1624,8 +1632,8 @@ static struct reg_debug ironlake_debug_regs[] = {
 	DEFINEREG(BLC_PWM_PCH_CTL1),
 	DEFINEREG(BLC_PWM_PCH_CTL2),
 
-	DEFINEREG(PCH_PP_STATUS),
-	DEFINEREG(PCH_PP_CONTROL),
+	DEFINEREG2(PCH_PP_STATUS, i830_debug_pp_status),
+	DEFINEREG2(PCH_PP_CONTROL, ilk_debug_pp_control),
 	DEFINEREG(PCH_PP_ON_DELAYS),
 	DEFINEREG(PCH_PP_OFF_DELAYS),
 	DEFINEREG(PCH_PP_DIVISOR),
