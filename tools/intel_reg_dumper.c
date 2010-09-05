@@ -1258,13 +1258,13 @@ DEBUGSTRING(ironlake_debug_panel_fitting)
 	case 0:
 		filter_sel = "programmed";
 		break;
-	case (1 << 25):
+	case (1 << 23):
 		filter_sel = "hardcoded";
 		break;
-	case (2 << 25):
+	case (2 << 23):
 		filter_sel = "edge_enhance";
 		break;
-	case (3 << 25):
+	case (3 << 23):
 		filter_sel = "edge_soften";
 		break;
 	}
@@ -1273,9 +1273,12 @@ DEBUGSTRING(ironlake_debug_panel_fitting)
 		 "%s, auto_scale %s, auto_scale_cal %s, v_filter %s, vadapt %s, mode %s, filter_sel %s,"
 		 "chroma pre-filter %s, vert3tap %s, v_inter_invert %s",
 		 val & PF_ENABLE ? "enable" : "disable",
-		 val & (1 << 30) ? "no" : "yes", val & (1 << 29) ? "yes" : "no",
+		 val & (1 << 30) ? "no" : "yes",
+		 val & (1 << 29) ? "yes" : "no",
 		 val & (1 << 28) ? "bypass" : "enable",
-		 val & (1 << 27) ? "enable" : "disable", vadapt, filter_sel,
+		 val & (1 << 27) ? "enable" : "disable",
+		 vadapt,
+		 filter_sel,
 		 val & (1 << 22) ? "enable" : "disable",
 		 val & (1 << 21) ? "force" : "auto",
 		 val & (1 << 20) ? "field 0" : "field 1");
