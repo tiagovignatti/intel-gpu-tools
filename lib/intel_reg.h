@@ -3255,6 +3255,12 @@ typedef enum {
 #define PFA_CTL_1		0x68080
 #define PFB_CTL_1		0x68880
 #define  PF_ENABLE		(1<<31)
+#define PFA_CTL_2		0x68084
+#define PFB_CTL_2		0x68884
+#define PFA_CTL_3		0x68088
+#define PFB_CTL_3		0x68888
+#define PFA_CTL_4		0x68090
+#define PFB_CTL_4		0x68890
 
 #define PFA_WIN_POS		0x68070
 #define PFB_WIN_POS		0x68870

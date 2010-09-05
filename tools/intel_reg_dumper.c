@@ -1284,6 +1284,27 @@ DEBUGSTRING(ironlake_debug_panel_fitting)
 		 val & (1 << 20) ? "field 0" : "field 1");
 }
 
+DEBUGSTRING(ironlake_debug_panel_fitting_2)
+{
+	asprintf(result,
+		 "vscale %f",
+		 val / (float) (1<<15));
+}
+
+DEBUGSTRING(ironlake_debug_panel_fitting_3)
+{
+	asprintf(result,
+		 "vscale initial phase %f",
+		 val / (float) (1<<15));
+}
+
+DEBUGSTRING(ironlake_debug_panel_fitting_4)
+{
+	asprintf(result,
+		 "hscale %f",
+		 val / (float) (1<<15));
+}
+
 DEBUGSTRING(ironlake_debug_pf_win)
 {
 	int a, b;
@@ -1518,10 +1539,16 @@ static struct reg_debug ironlake_debug_regs[] = {
 	DEFINEREG2(PIPEB_LINK_N2, ironlake_debug_n),
 
 	DEFINEREG2(PFA_CTL_1, ironlake_debug_panel_fitting),
-	DEFINEREG2(PFB_CTL_1, ironlake_debug_panel_fitting),
+	DEFINEREG2(PFA_CTL_2, ironlake_debug_panel_fitting_2),
+	DEFINEREG2(PFA_CTL_3, ironlake_debug_panel_fitting_3),
+	DEFINEREG2(PFA_CTL_4, ironlake_debug_panel_fitting_4),
 	DEFINEREG2(PFA_WIN_POS, ironlake_debug_pf_win),
-	DEFINEREG2(PFB_WIN_POS, ironlake_debug_pf_win),
 	DEFINEREG2(PFA_WIN_SIZE, ironlake_debug_pf_win),
+	DEFINEREG2(PFB_CTL_1, ironlake_debug_panel_fitting),
+	DEFINEREG2(PFB_CTL_2, ironlake_debug_panel_fitting_2),
+	DEFINEREG2(PFB_CTL_3, ironlake_debug_panel_fitting_3),
+	DEFINEREG2(PFB_CTL_4, ironlake_debug_panel_fitting_4),
+	DEFINEREG2(PFB_WIN_POS, ironlake_debug_pf_win),
 	DEFINEREG2(PFB_WIN_SIZE, ironlake_debug_pf_win),
 
 	/* PCH */
