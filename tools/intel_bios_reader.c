@@ -660,6 +660,23 @@ static void dump_edp(void)
 	free(block);
 }
 
+static int
+get_device_id(unsigned char *bios)
+{
+    int device;
+    int offset = (bios[0x19] << 8) + bios[0x18];
+
+    if (bios[offset] != 'P' ||
+	bios[offset+1] != 'C' ||
+	bios[offset+2] != 'I' ||
+	bios[offset+3] != 'R')
+	return -1;
+
+    device = (bios[offset+7] << 8) + bios[offset+6];
+
+    return device;
+}
+
 int main(int argc, char **argv)
 {
 	int fd;
@@ -669,7 +686,6 @@ int main(int argc, char **argv)
 	struct stat finfo;
 	struct bdb_block *block;
 	char signature[17];
-	struct pci_device *pci_dev;
 
 	if (argc != 2) {
 		printf("usage: %s <rom file>\n", argv[0]);
@@ -729,8 +745,9 @@ int main(int argc, char **argv)
 	}
 	printf("\n");
 
-	pci_dev = intel_get_pci_device();
-	devid = pci_dev->device_id;
+	devid = get_device_id(pI830->VBIOS);
+	if (devid == -1)
+	    printf("Warning: could not find PCI device ID!\n");
 
 	dump_general_features();
 	dump_general_definitions();
