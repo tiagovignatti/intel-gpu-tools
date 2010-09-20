@@ -1649,7 +1649,7 @@ static struct reg_debug ironlake_debug_regs[] = {
 	DEFINEREG2(HDMIC, ironlake_debug_hdmi),
 	DEFINEREG2(HDMID, ironlake_debug_hdmi),
 	DEFINEREG2(PCH_LVDS, i830_debug_lvds),
-	DEFINEREG(PCH_eDP_A),
+	DEFINEREG(CPU_eDP_A),
 	DEFINEREG(PCH_DP_B),
 	DEFINEREG(PCH_DP_C),
 	DEFINEREG(PCH_DP_D),
