@@ -70,8 +70,13 @@
 #define PCI_CHIP_ILD_G                  0x0042
 #define PCI_CHIP_ILM_G                  0x0046
 
-#define PCI_CHIP_SANDYBRIDGE		0x0102
-#define PCI_CHIP_SANDYBRIDGE_M		0x0106
+#define PCI_CHIP_SANDYBRIDGE_GT1	0x0102 /* desktop */
+#define PCI_CHIP_SANDYBRIDGE_GT2	0x0112
+#define PCI_CHIP_SANDYBRIDGE_GT2_PLUS	0x0122
+#define PCI_CHIP_SANDYBRIDGE_M_GT1	0x0106 /* mobile */
+#define PCI_CHIP_SANDYBRIDGE_M_GT2	0x0116
+#define PCI_CHIP_SANDYBRIDGE_M_GT2_PLUS	0x0126
+#define PCI_CHIP_SANDYBRIDGE_S		0x010A /* server */
 
 #define IS_MOBILE(devid)	(devid == PCI_CHIP_I855_GM || \
 				 devid == PCI_CHIP_I915_GM || \
@@ -118,8 +123,13 @@
 				 IS_IRONLAKE(devid) || \
 				 IS_GEN6(devid))
 
-#define IS_GEN6(devid)		(devid == PCI_CHIP_SANDYBRIDGE || \
-				 devid == PCI_CHIP_SANDYBRIDGE_M)
+#define IS_GEN6(devid)		(devid == PCI_CHIP_SANDYBRIDGE_GT1 || \
+				 devid == PCI_CHIP_SANDYBRIDGE_GT2 || \
+				 devid == PCI_CHIP_SANDYBRIDGE_GT2_PLUS || \
+				 devid == PCI_CHIP_SANDYBRIDGE_M_GT1 || \
+				 devid == PCI_CHIP_SANDYBRIDGE_M_GT2 || \
+				 devid == PCI_CHIP_SANDYBRIDGE_M_GT2_PLUS || \
+				 devid == PCI_CHIP_SANDYBRIDGE_S)
 
 #define IS_9XX(devid)		(IS_915(devid) || \
 				 IS_945(devid) || \
