@@ -1726,7 +1726,7 @@ decode_3d_965(uint32_t *data, int count, uint32_t hw_offset, uint32_t devid, int
                   "GS mod %d, PS mod %d\n",
                   (data[0] & (1 << 8)) != 0,
                   (data[0] & (1 << 9)) != 0,
-                  (data[0] & (1 << 10)) != 0);
+                  (data[0] & (1 << 12)) != 0);
         instr_out(data, hw_offset, 1, "VS sampler state\n");
         instr_out(data, hw_offset, 2, "GS sampler state\n");
         instr_out(data, hw_offset, 3, "WM sampler state\n");
