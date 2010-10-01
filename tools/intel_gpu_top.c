@@ -283,10 +283,73 @@ print_percentage_bar(float percent, int cur_line_len)
 	printf("%*s", PERCENTAGE_BAR_END - cur_line_len, "");
 }
 
+struct ring {
+	const char *name;
+	uint32_t mmio;
+	uint32_t head, tail, size;
+	uint64_t full;
+	int idle;
+};
+
+static void ring_init(struct ring *ring)
+{
+	ring->size = ((INREG(ring->mmio + RING_LEN) & RING_NR_PAGES) >> 12) * 4096;
+}
+
+static void ring_reset(struct ring *ring)
+{
+	ring->idle = ring->full = 0;
+}
+
+static void ring_sample(struct ring *ring)
+{
+	int full;
+
+	if (!ring->size)
+		return;
+
+	ring->head = INREG(ring->mmio + RING_HEAD) & HEAD_ADDR;
+	ring->tail = INREG(ring->mmio + RING_TAIL) & TAIL_ADDR;
+
+	if (ring->tail == ring->head)
+		ring->idle++;
+
+	full = ring->tail - ring->head;
+	if (full < 0)
+		full += ring->size;
+	ring->full += full;
+}
+
+static void ring_print(struct ring *ring)
+{
+	int percent, len;
+
+	if (!ring->size)
+		return;
+
+	percent = 100 - ring->idle / SAMPLES_TO_PERCENT_RATIO;
+	len = printf("%25s busy: %3d%%: ", ring->name, percent);
+	print_percentage_bar (percent, len);
+	printf("%24s space: %d/%d (%d%%)\n",
+	       ring->name,
+	       (int)(ring->full / SAMPLES_PER_SEC),
+	       ring->size,
+	       (int)((ring->full / SAMPLES_TO_PERCENT_RATIO) / ring->size));
+}
+
 int main(int argc, char **argv)
 {
 	struct pci_device *pci_dev;
-	uint32_t ring_size;
+	struct ring render_ring = {
+		.name = "render",
+		.mmio = 0x2030,
+	}, bsd_ring = {
+		.name = "bitstream",
+		.mmio = 0x4030,
+	}, bsd6_ring = {
+		.name = "bitstream",
+		.mmio = 0x12030,
+	};
 	uint32_t devid;
 	int i;
 
@@ -301,22 +364,25 @@ int main(int argc, char **argv)
 		top_bits_sorted[i] = &top_bits[i];
 	}
 
-	ring_size = ((INREG(LP_RING + RING_LEN) & RING_NR_PAGES) >> 12) * 4096;
+	ring_init(&render_ring);
+	if (IS_GEN4(devid) || IS_IRONLAKE(devid))
+		ring_init(&bsd_ring);
+	if (IS_GEN6(devid))
+		ring_init(&bsd6_ring);
 
 	for (;;) {
 		int j;
 		char clear_screen[] = {0x1b, '[', 'H',
 				       0x1b, '[', 'J',
 				       0x0};
-		int total_ring_full = 0;
-		int ring_idle = 0;
 		int percent;
 		int len;
 
-		for (i = 0; i < SAMPLES_PER_SEC; i++) {
-			uint32_t ring_head, ring_tail;
-			int ring_full;
+		ring_reset(&render_ring);
+		ring_reset(&bsd_ring);
+		ring_reset(&bsd6_ring);
 
+		for (i = 0; i < SAMPLES_PER_SEC; i++) {
 			if (IS_965(devid)) {
 				instdone = INREG(INST_DONE_I965);
 				instdone1 = INREG(INST_DONE_1);
@@ -326,18 +392,9 @@ int main(int argc, char **argv)
 			for (j = 0; j < num_instdone_bits; j++)
 				update_idle_bit(&top_bits[j]);
 
-			ring_head = INREG(LP_RING + RING_HEAD) & HEAD_ADDR;
-			ring_tail = INREG(LP_RING + RING_TAIL) & TAIL_ADDR;
-
-			if (ring_tail == ring_head)
-				ring_idle++;
-
-			ring_full = ring_tail - ring_head;
-			if (ring_full < 0)
-				ring_full += ring_size;
-
-			total_ring_full += ring_full;
-
+			ring_sample(&render_ring);
+			ring_sample(&bsd_ring);
+			ring_sample(&bsd6_ring);
 			usleep(1000000 / SAMPLES_PER_SEC);
 		}
 
@@ -372,16 +429,11 @@ int main(int argc, char **argv)
 
 		print_clock_info(pci_dev);
 
-		percent = ring_idle / SAMPLES_TO_PERCENT_RATIO;
-		len = printf("%30s: %3d%%: ", "ring idle", percent);
-		print_percentage_bar (percent, len);
+		ring_print(&render_ring);
+		ring_print(&bsd_ring);
+		ring_print(&bsd6_ring);
 
-		printf("%30s: %d/%d (%d%%)\n", "ring space",
-		       total_ring_full / SAMPLES_PER_SEC,
-		       ring_size,
-		       (total_ring_full / SAMPLES_TO_PERCENT_RATIO) / ring_size);
-
-		printf("%30s  %s\n\n", "task", "percent busy");
+		printf("\n%30s  %s\n", "task", "percent busy");
 		for (i = 0; i < max_lines; i++) {
 			if (top_bits_sorted[i]->count > 0) {
 				percent = top_bits_sorted[i]->count /
