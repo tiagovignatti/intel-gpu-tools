@@ -49,7 +49,7 @@ static const struct option longopts[] = {
 
 static void usage(void)
 {
-	fprintf(stderr, "usage: intel-gen4asm [-o outputfile] [-g <4|5>] inputfile\n");
+	fprintf(stderr, "usage: intel-gen4asm [-o outputfile] [-g <4|5|6>] inputfile\n");
 }
 
 int main(int argc, char **argv)
@@ -70,7 +70,7 @@ int main(int argc, char **argv)
 		case 'g':
 			gen_level = strtol(optarg, NULL, 0);
 
-			if (gen_level < 4 || gen_level > 5) {
+			if (gen_level < 4 || gen_level > 6) {
 				usage();
 				exit(1);
 			}
