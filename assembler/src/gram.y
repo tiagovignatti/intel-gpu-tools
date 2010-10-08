@@ -650,7 +650,19 @@ msgtarget:	NULL_TOKEN
 		| WRITE LPAREN INTEGER COMMA INTEGER COMMA INTEGER COMMA
 		INTEGER RPAREN
 		{
-		  if (gen_level == 5) {
+		  if (gen_level == 6) {
+                      $$.bits2.send_gen5.sfid =
+                          BRW_MESSAGE_TARGET_DATAPORT_WRITE;
+                      /* Sandybridge supports headerlesss message for render target write.
+                       * Currently the GFX assembler doesn't support it. so the program must provide 
+                       * message header
+                       */
+                      $$.bits3.generic_gen5.header_present = 1;
+                      $$.bits3.dp_write_gen6.binding_table_index = $3;
+                      $$.bits3.dp_write_gen6.msg_control = $5;
+                      $$.bits3.dp_write_gen6.msg_type = $7;
+                      $$.bits3.dp_write_gen6.send_commit_msg = $9;
+		  } else if (gen_level == 5) {
                       $$.bits2.send_gen5.sfid =
                           BRW_MESSAGE_TARGET_DATAPORT_WRITE;
                       $$.bits3.generic_gen5.header_present = 1;
