@@ -243,7 +243,7 @@ unaryinstruction:
 		{
 		  bzero(&$$, sizeof($$));
 		  $$.header.opcode = $2;
-		  $$.header.destreg__conditionalmod = $3;
+		  $$.header.sfid_destreg__conditionalmod = $3;
 		  $$.header.saturate = $4;
 		  $$.header.execution_size = $5;
 		  set_instruction_options(&$$, &$8);
@@ -264,7 +264,7 @@ binaryinstruction:
 		{
 		  bzero(&$$, sizeof($$));
 		  $$.header.opcode = $2;
-		  $$.header.destreg__conditionalmod = $3;
+		  $$.header.sfid_destreg__conditionalmod = $3;
 		  $$.header.saturate = $4;
 		  $$.header.execution_size = $5;
 		  set_instruction_options(&$$, &$9);
@@ -287,7 +287,7 @@ binaryaccinstruction:
 		{
 		  bzero(&$$, sizeof($$));
 		  $$.header.opcode = $2;
-		  $$.header.destreg__conditionalmod = $3;
+		  $$.header.sfid_destreg__conditionalmod = $3;
 		  $$.header.saturate = $4;
 		  $$.header.execution_size = $5;
 		  set_instruction_options(&$$, &$9);
@@ -322,7 +322,6 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
 		  bzero(&$$, sizeof($$));
 		  $$.header.opcode = $2;
 		  $$.header.execution_size = $3;
-		  $$.header.destreg__conditionalmod = $4; /* msg reg index */
 		  set_instruction_predicate(&$$, &$1);
 		  if (set_instruction_dest(&$$, &$5) != 0)
 		    YYERROR;
@@ -331,15 +330,22 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
 		  $$.bits1.da1.src1_reg_file = BRW_IMMEDIATE_VALUE;
 		  $$.bits1.da1.src1_reg_type = BRW_REGISTER_TYPE_D;
 
-		  if (gen_level == 5) {
-                      $$.bits2.send_gen5.sfid = $7.bits2.send_gen5.sfid;
-                      $$.bits2.send_gen5.end_of_thread = $12.bits3.generic_gen5.end_of_thread;
+		  if (gen_level >= 5) {
+                      if (gen_level > 5) {
+                          $$.header.sfid_destreg__conditionalmod = $7.bits2.send_gen5.sfid;
+                      } else {
+                          $$.header.sfid_destreg__conditionalmod = $4; /* msg reg index */
+                          $$.bits2.send_gen5.sfid = $7.bits2.send_gen5.sfid;
+                          $$.bits2.send_gen5.end_of_thread = $12.bits3.generic_gen5.end_of_thread;
+                      }
+
                       $$.bits3.generic_gen5 = $7.bits3.generic_gen5;
                       $$.bits3.generic_gen5.msg_length = $9;
                       $$.bits3.generic_gen5.response_length = $11;
                       $$.bits3.generic_gen5.end_of_thread =
                           $12.bits3.generic_gen5.end_of_thread;
 		  } else {
+                      $$.header.sfid_destreg__conditionalmod = $4; /* msg reg index */
                       $$.bits3.generic = $7.bits3.generic;
                       $$.bits3.generic.msg_length = $9;
                       $$.bits3.generic.response_length = $11;

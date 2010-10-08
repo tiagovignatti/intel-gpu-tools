@@ -795,7 +795,7 @@ int disasm (FILE *file, struct brw_instruction *inst)
 
     if (inst->header.opcode != BRW_OPCODE_SEND)
 	err |= control (file, "conditional modifier", conditional_modifier,
-			inst->header.destreg__conditionalmod, NULL);
+			inst->header.sfid_destreg__conditionalmod, NULL);
 
     if (inst->header.opcode != BRW_OPCODE_NOP) {
 	string (file, "(");
@@ -804,7 +804,7 @@ int disasm (FILE *file, struct brw_instruction *inst)
     }
 
     if (inst->header.opcode == BRW_OPCODE_SEND)
-	format (file, " %d", inst->header.destreg__conditionalmod);
+	format (file, " %d", inst->header.sfid_destreg__conditionalmod);
 
     if (opcode[inst->header.opcode].ndst > 0) {
 	pad (file, 16);
