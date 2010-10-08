@@ -130,7 +130,7 @@ int main(int argc, char **argv)
 			    int offset = 
 				entry1->inst_offset - entry->inst_offset;
 
-                            if (gen_level == 5)
+                            if (gen_level >= 5)
                                     entry->instruction.bits3.ud = 2 * (offset - 1);
                             else
                                     entry->instruction.bits3.ud = offset - 1;
