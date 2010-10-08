@@ -1668,6 +1668,7 @@ int set_instruction_dest(struct brw_instruction *instr,
 		instr->bits1.da16.dest_subreg_nr = dest->subreg_nr;
 		instr->bits1.da16.dest_reg_nr = dest->reg_nr;
 		instr->bits1.da16.dest_address_mode = dest->address_mode;
+		instr->bits1.da16.dest_horiz_stride = 1;
 		instr->bits1.da16.dest_writemask = dest->writemask;
 	} else if (instr->header.access_mode == BRW_ALIGN_1) {
 		instr->bits1.ia1.dest_reg_file = dest->reg_file;
@@ -1687,6 +1688,7 @@ int set_instruction_dest(struct brw_instruction *instr,
 		instr->bits1.ia16.dest_subreg_nr = dest->address_subreg_nr;
 		instr->bits1.ia16.dest_writemask = dest->writemask;
 		instr->bits1.ia16.dest_indirect_offset = dest->indirect_offset;
+		instr->bits1.ia16.dest_horiz_stride = 1;
 		instr->bits1.ia16.dest_address_mode = dest->address_mode;
 	}
 
