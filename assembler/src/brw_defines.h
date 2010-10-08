@@ -552,6 +552,9 @@
 #define BRW_MASK_ENABLE   0
 #define BRW_MASK_DISABLE  1
 
+#define BRW_ACCWRCTRL_NONE      0
+#define BRW_ACCWRCTRL_ACCWRCTRL 1
+
 #define BRW_OPCODE_MOV        1
 #define BRW_OPCODE_SEL        2
 #define BRW_OPCODE_NOT        4

@@ -269,6 +269,7 @@ extern char *input_filename;
 "mask_disable" { return MASK_DISABLE; }
 "nomask" { return MASK_DISABLE; }
 "breakpoint" { return BREAKPOINT; }
+"accwrctrl" { return ACCWRCTRL; }
 "EOT" { return EOT; }
 
  /* extended math functions */

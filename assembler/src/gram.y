@@ -88,7 +88,7 @@ void set_direct_src_operand(struct src_operand *src, struct direct_reg *reg,
 %token <integer> TYPE_VF TYPE_HF TYPE_V TYPE_F
 
 %token ALIGN1 ALIGN16 SECHALF COMPR SWITCH ATOMIC NODDCHK NODDCLR
-%token MASK_DISABLE BREAKPOINT EOT
+%token MASK_DISABLE BREAKPOINT ACCWRCTRL EOT
 
 %token SEQ ANY2H ALL2H ANY4H ALL4H ANY8H ALL8H ANY16H ALL16H ANYV ALLV
 %token <integer> ZERO EQUAL NOT_ZERO NOT_EQUAL GREATER GREATER_EQUAL LESS LESS_EQUAL
@@ -1605,6 +1605,9 @@ instoption_list:
 		  case BREAKPOINT:
 		    $$.header.debug_control = BRW_DEBUG_BREAKPOINT;
 		    break;
+		  case ACCWRCTRL:
+		    $$.header.acc_wr_control = BRW_ACCWRCTRL_ACCWRCTRL;
+		    break;
 		  case EOT:
 		    /* XXX: EOT shouldn't be an instoption, I don't think */
 		    $$.bits3.generic.end_of_thread = 1;
@@ -1627,6 +1630,7 @@ instoption:	ALIGN1 { $$ = ALIGN1; }
 		| NODDCLR { $$ = NODDCLR; }
 		| MASK_DISABLE { $$ = MASK_DISABLE; }
 		| BREAKPOINT { $$ = BREAKPOINT; }
+		| ACCWRCTRL { $$ = ACCWRCTRL; }
 		| EOT { $$ = EOT; }
 ;
 
