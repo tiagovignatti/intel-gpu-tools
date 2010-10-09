@@ -557,7 +557,7 @@ post_dst:	dst
 
 msgtarget:	NULL_TOKEN
 		{
-		  if (gen_level == 5) {
+		  if (gen_level >= 5) {
                       $$.bits2.send_gen5.sfid= BRW_MESSAGE_TARGET_NULL;
                       $$.bits3.generic_gen5.header_present = 0;  /* ??? */
 		  } else {
@@ -567,7 +567,7 @@ msgtarget:	NULL_TOKEN
 		| SAMPLER LPAREN INTEGER COMMA INTEGER COMMA
 		sampler_datatype RPAREN
 		{
-		  if (gen_level == 5) {
+		  if (gen_level >= 5) {
                       $$.bits2.send_gen5.sfid = BRW_MESSAGE_TARGET_SAMPLER;
                       $$.bits3.generic_gen5.header_present = 1;   /* ??? */
                       $$.bits3.sampler_gen5.binding_table_index = $3;
@@ -620,7 +620,7 @@ msgtarget:	NULL_TOKEN
 		}
 		| GATEWAY
 		{
-		  if (gen_level == 5) {
+		  if (gen_level >= 5) {
                       $$.bits2.send_gen5.sfid = BRW_MESSAGE_TARGET_GATEWAY;
                       $$.bits3.generic_gen5.header_present = 0;  /* ??? */
 		  } else {
@@ -695,7 +695,7 @@ msgtarget:	NULL_TOKEN
 		| URB INTEGER urb_swizzle urb_allocate urb_used urb_complete
 		{
 		  $$.bits3.generic.msg_target = BRW_MESSAGE_TARGET_URB;
-		  if (gen_level == 5) {
+		  if (gen_level >= 5) {
                       $$.bits2.send_gen5.sfid = BRW_MESSAGE_TARGET_URB;
                       $$.bits3.generic_gen5.header_present = 1;
                       $$.bits3.urb_gen5.opcode = BRW_URB_OPCODE_WRITE;
@@ -721,7 +721,7 @@ msgtarget:	NULL_TOKEN
 		{
 		  $$.bits3.generic.msg_target =
 		    BRW_MESSAGE_TARGET_THREAD_SPAWNER;
-		  if (gen_level == 5) {
+		  if (gen_level >= 5) {
                       $$.bits2.send_gen5.sfid = 
                           BRW_MESSAGE_TARGET_THREAD_SPAWNER;
                       $$.bits3.generic_gen5.header_present = 0;
