@@ -595,7 +595,10 @@ msgtarget:	NULL_TOKEN
 		}
 		| MATH math_function saturate math_signed math_scalar
 		{
-		  if (gen_level == 5) {
+		  if (gen_level == 6) {
+                      fprintf (stderr, "Gen6+ donesn't have math function\n");
+                      YYERROR;
+		  } else if (gen_level == 5) {
                       $$.bits2.send_gen5.sfid = BRW_MESSAGE_TARGET_MATH;
                       $$.bits3.generic_gen5.header_present = 0;
                       $$.bits3.math_gen5.function = $2;
