@@ -1612,8 +1612,10 @@ instoption_list:
 		    $$.header.compression_control |= BRW_COMPRESSION_2NDHALF;
 		    break;
 		  case COMPR:
-		    $$.header.compression_control |=
-		      BRW_COMPRESSION_COMPRESSED;
+		    if (gen_level < 6) {
+                        $$.header.compression_control |=
+                            BRW_COMPRESSION_COMPRESSED;
+		    }
 		    break;
 		  case SWITCH:
 		    $$.header.thread_control |= BRW_THREAD_SWITCH;
