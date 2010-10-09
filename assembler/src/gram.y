@@ -630,7 +630,14 @@ msgtarget:	NULL_TOKEN
 		| READ  LPAREN INTEGER COMMA INTEGER COMMA INTEGER COMMA
                 INTEGER RPAREN
 		{
-		  if (gen_level == 5) {
+		  if (gen_level == 6) {
+                      $$.bits2.send_gen5.sfid = 
+                          BRW_MESSAGE_TARGET_DATAPORT_READ;
+                      $$.bits3.generic_gen5.header_present = 1;
+                      $$.bits3.dp_read_gen6.binding_table_index = $3;
+                      $$.bits3.dp_read_gen6.msg_control = $7;
+                      $$.bits3.dp_read_gen6.msg_type = $9;
+		  } else if (gen_level == 5) {
                       $$.bits2.send_gen5.sfid = 
                           BRW_MESSAGE_TARGET_DATAPORT_READ;
                       $$.bits3.generic_gen5.header_present = 1;
