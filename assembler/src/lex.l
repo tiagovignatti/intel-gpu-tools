@@ -96,6 +96,8 @@ extern char *input_filename;
 "do" { yylval.integer = BRW_OPCODE_DO; return DO; }
 "endif" { yylval.integer = BRW_OPCODE_ENDIF; return ENDIF; }
 
+"pln" { yylval.integer = BRW_OPCODE_PLN; return PLN; }
+
  /* send argument tokens */
 "mlen" { return MSGLEN; }
 "rlen" { return RETURNLEN; }
