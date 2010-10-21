@@ -325,8 +325,22 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
 		  set_instruction_predicate(&$$, &$1);
 		  if (set_instruction_dest(&$$, &$5) != 0)
 		    YYERROR;
-		  if (set_instruction_src0(&$$, &$6) != 0)
-		    YYERROR;
+
+		  if (gen_level >= 6) {
+                      struct src_operand src0;
+
+                      memset(&src0, 0, sizeof(src0));
+                      src0.address_mode = BRW_ADDRESS_DIRECT;
+                      src0.reg_file = BRW_MESSAGE_REGISTER_FILE;
+                      src0.reg_type = BRW_REGISTER_TYPE_D;
+                      src0.reg_nr = $4;
+                      src0.subreg_nr = 0;
+                      set_instruction_src0(&$$, &src0);
+		  } else {
+                      if (set_instruction_src0(&$$, &$6) != 0)
+                          YYERROR;
+		  }
+
 		  $$.bits1.da1.src1_reg_file = BRW_IMMEDIATE_VALUE;
 		  $$.bits1.da1.src1_reg_type = BRW_REGISTER_TYPE_D;
 
