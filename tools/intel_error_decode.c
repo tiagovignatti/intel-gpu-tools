@@ -166,9 +166,41 @@ print_i915_pgtbl_err(unsigned int reg)
 }
 
 static void
+print_i965_pgtbl_err(unsigned int reg)
+{
+	if (reg & (1 << 26))
+		printf ("    Invalid Sampler Cache GTT entry\n");
+	if (reg & (1 << 24))
+		printf ("    Invalid Render Cache GTT entry\n");
+	if (reg & (1 << 23))
+		printf ("    Invalid Instruction/State Cache GTT entry\n");
+	if (reg & (1 << 22))
+		printf ("    There is no ROC, this cannot occur!\n");
+	if (reg & (1 << 21))
+		printf ("    Invalid GTT entry during Vertex Fetch\n");
+	if (reg & (1 << 20))
+		printf ("    Invalid GTT entry during Command Fetch\n");
+	if (reg & (1 << 19))
+		printf ("    Invalid GTT entry during CS\n");
+	if (reg & (1 << 18))
+		printf ("    Invalid GTT entry during Cursor Fetch\n");
+	if (reg & (1 << 17))
+		printf ("    Invalid GTT entry during Overlay Fetch\n");
+	if (reg & (1 << 8))
+		printf ("    Invalid GTT entry during Display B Fetch\n");
+	if (reg & (1 << 4))
+		printf ("    Invalid GTT entry during Display A Fetch\n");
+	if (reg & (1 << 1))
+		printf ("    Valid PTE references illegal memory\n");
+	if (reg & (1 << 0))
+		printf ("    Invalid GTT entry during fetch for host\n");
+}
+
+static void
 print_pgtbl_err(unsigned int reg, unsigned int devid)
 {
 	if (IS_965(devid)) {
+		return print_i965_pgtbl_err(reg);
 	} else if (IS_9XX(devid)) {
 		return print_i915_pgtbl_err(reg);
 	} else {
