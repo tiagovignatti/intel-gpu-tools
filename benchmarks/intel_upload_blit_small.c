@@ -54,6 +54,7 @@
 #include "drmtest.h"
 #include "intel_bufmgr.h"
 #include "intel_batchbuffer.h"
+#include "intel_gpu_tools.h"
 
 /* Happens to be 128k, the size of the VBOs used by i965's Mesa driver. */
 #define OBJECT_WIDTH	256
@@ -141,7 +142,7 @@ int main(int argc, char **argv)
 	bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
 	drm_intel_bufmgr_gem_enable_reuse(bufmgr);
 
-	batch = intel_batchbuffer_alloc(bufmgr);
+	batch = intel_batchbuffer_alloc(bufmgr, intel_get_drm_devid(fd));
 
 	dst_bo = drm_intel_bo_alloc(bufmgr, "dst", object_size, 4096);
 

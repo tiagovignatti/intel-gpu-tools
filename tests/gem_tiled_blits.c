@@ -60,7 +60,6 @@
 static drm_intel_bufmgr *bufmgr;
 struct intel_batchbuffer *batch;
 static int width = 512, height = 512;
-static uint32_t devid;
 
 static drm_intel_bo *
 create_bo(uint32_t start_val)
@@ -86,7 +85,7 @@ create_bo(uint32_t start_val)
 	}
 	drm_intel_bo_unmap(linear_bo);
 
-	intel_copy_bo (batch, bo, linear_bo, width, height, devid);
+	intel_copy_bo (batch, bo, linear_bo, width, height);
 
 	drm_intel_bo_unreference(linear_bo);
 
@@ -102,7 +101,7 @@ check_bo(drm_intel_bo *bo, uint32_t start_val)
 
 	linear_bo = drm_intel_bo_alloc(bufmgr, "linear dst", 1024 * 1024, 4096);
 
-	intel_copy_bo(batch, linear_bo, bo, width, height, devid);
+	intel_copy_bo(batch, linear_bo, bo, width, height);
 
 	drm_intel_bo_map(linear_bo, 0);
 	linear = linear_bo->virtual;
@@ -131,11 +130,10 @@ int main(int argc, char **argv)
 	int i;
 
 	fd = drm_open_any();
-	devid = intel_get_drm_devid(fd);
 
 	bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
 	drm_intel_bufmgr_gem_enable_reuse(bufmgr);
-	batch = intel_batchbuffer_alloc(bufmgr);
+	batch = intel_batchbuffer_alloc(bufmgr, intel_get_drm_devid(fd));
 
 	for (i = 0; i < bo_count; i++) {
 		bo[i] = create_bo(start);
@@ -156,7 +154,7 @@ int main(int argc, char **argv)
 		if (src == dst)
 			continue;
 
-		intel_copy_bo(batch, bo[dst], bo[src], width, height, devid);
+		intel_copy_bo(batch, bo[dst], bo[src], width, height);
 		bo_start_val[dst] = bo_start_val[src];
 
 		/*

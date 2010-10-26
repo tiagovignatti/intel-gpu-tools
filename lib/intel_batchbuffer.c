@@ -58,11 +58,12 @@ intel_batchbuffer_reset(struct intel_batchbuffer *batch)
 }
 
 struct intel_batchbuffer *
-intel_batchbuffer_alloc(drm_intel_bufmgr *bufmgr)
+intel_batchbuffer_alloc(drm_intel_bufmgr *bufmgr, uint32_t devid)
 {
 	struct intel_batchbuffer *batch = calloc(sizeof(*batch), 1);
 
 	batch->bufmgr = bufmgr;
+	batch->devid = devid;
 	intel_batchbuffer_reset(batch);
 
 	return batch;
@@ -82,6 +83,7 @@ void
 intel_batchbuffer_flush(struct intel_batchbuffer *batch)
 {
 	unsigned int used = batch->ptr - batch->map;
+	int ring;
 	int ret;
 
 	if (used == 0)
@@ -104,7 +106,10 @@ intel_batchbuffer_flush(struct intel_batchbuffer *batch)
 	batch->map = NULL;
 	batch->ptr = NULL;
 
-	ret = drm_intel_bo_exec(batch->bo, used, NULL, 0, 0);
+	ring = 0;
+	if (IS_GEN6(batch->devid))
+		ring = I915_EXEC_BLT;
+	ret = drm_intel_bo_mrb_exec(batch->bo, used, NULL, 0, 0, ring);
 	assert(ret == 0);
 
 	intel_batchbuffer_reset(batch);
@@ -145,7 +150,7 @@ intel_batchbuffer_data(struct intel_batchbuffer *batch,
 void
 intel_copy_bo(struct intel_batchbuffer *batch,
 	      drm_intel_bo *dst_bo, drm_intel_bo *src_bo,
-	      int width, int height, uint32_t devid)
+	      int width, int height)
 {
 	uint32_t src_tiling, dst_tiling, swizzle;
 	uint32_t src_pitch, dst_pitch;
@@ -155,13 +160,13 @@ intel_copy_bo(struct intel_batchbuffer *batch,
 	drm_intel_bo_get_tiling(dst_bo, &dst_tiling, &swizzle);
 
 	src_pitch = width * 4;
-	if (IS_965(devid) && src_tiling != I915_TILING_NONE) {
+	if (IS_965(batch->devid) && src_tiling != I915_TILING_NONE) {
 		src_pitch /= 4;
 		cmd_bits |= XY_SRC_COPY_BLT_SRC_TILED;
 	}
 
 	dst_pitch = width * 4;
-	if (IS_965(devid) && dst_tiling != I915_TILING_NONE) {
+	if (IS_965(batch->devid) && dst_tiling != I915_TILING_NONE) {
 		dst_pitch /= 4;
 		cmd_bits |= XY_SRC_COPY_BLT_DST_TILED;
 	}

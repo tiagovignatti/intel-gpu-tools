@@ -11,6 +11,7 @@
 struct intel_batchbuffer
 {
 	drm_intel_bufmgr *bufmgr;
+	uint32_t devid;
 
 	drm_intel_bo *bo;
 
@@ -28,7 +29,8 @@ struct intel_batchbuffer
 	unsigned int size;
 };
 
-struct intel_batchbuffer *intel_batchbuffer_alloc(drm_intel_bufmgr *bufmgr);
+struct intel_batchbuffer *intel_batchbuffer_alloc(drm_intel_bufmgr *bufmgr,
+						  uint32_t devid);
 
 void intel_batchbuffer_free(struct intel_batchbuffer *batch);
 
@@ -117,6 +119,6 @@ intel_batchbuffer_emit_mi_flush(struct intel_batchbuffer *batch)
 
 void intel_copy_bo(struct intel_batchbuffer *batch,
 		   drm_intel_bo *dst_bo, drm_intel_bo *src_bo,
-		   int width, int height, uint32_t devid);
+		   int width, int height);
 
 #endif

@@ -55,16 +55,14 @@ static const int size = 1024 * 1024;
 int main(int argc, char **argv)
 {
 	int fd;
-	uint32_t devid;
 	int i;
 	drm_intel_bo *src_bo, *dst_bo;
 
 	fd = drm_open_any();
-	devid = intel_get_drm_devid(fd);
 
 	bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
 	drm_intel_bufmgr_gem_enable_reuse(bufmgr);
-	batch = intel_batchbuffer_alloc(bufmgr);
+	batch = intel_batchbuffer_alloc(bufmgr, intel_get_drm_devid(fd));
 
 	src_bo = drm_intel_bo_alloc(bufmgr, "src bo", size, 4096);
 	dst_bo = drm_intel_bo_alloc(bufmgr, "src bo", size, 4096);
@@ -85,7 +83,7 @@ int main(int argc, char **argv)
 	 * doing this, we aren't likely to with this test.
 	 */
 	for (i = 0; i < 128 * 1024 / (8 * 4) * 1.25; i++) {
-		intel_copy_bo(batch, dst_bo, src_bo, width, height, devid);
+		intel_copy_bo(batch, dst_bo, src_bo, width, height);
 		intel_batchbuffer_flush(batch);
 	}
 

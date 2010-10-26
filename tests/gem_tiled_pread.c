@@ -81,7 +81,7 @@ create_bo(uint32_t devid)
 		linear[i] = val++;
 	drm_intel_bo_unmap(linear_bo);
 
-	intel_copy_bo(batch, bo, linear_bo, width, height, devid);
+	intel_copy_bo(batch, bo, linear_bo, width, height);
 
 	drm_intel_bo_unreference(linear_bo);
 
@@ -133,7 +133,7 @@ main(int argc, char **argv)
 
 	bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
 	drm_intel_bufmgr_gem_enable_reuse(bufmgr);
-	batch = intel_batchbuffer_alloc(bufmgr);
+	batch = intel_batchbuffer_alloc(bufmgr, intel_get_drm_devid(fd));
 
 	bo = create_bo(devid);
 
