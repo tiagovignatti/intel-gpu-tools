@@ -8,7 +8,7 @@
 #include "string.h"
 int saved_state = 0;
 extern char *input_filename;
-
+extern long int gen_level;
 %}
 %x BLOCK_COMMENT
 %x LINENUMBER
@@ -101,7 +101,7 @@ extern char *input_filename;
  /* send argument tokens */
 "mlen" { return MSGLEN; }
 "rlen" { return RETURNLEN; }
-"math" { return MATH; }
+"math" { if (gen_level >= 6) { yylval.integer = BRW_OPCODE_MATH; return MATH_INST; } else return MATH; }
 "sampler" { return SAMPLER; }
 "gateway" { return GATEWAY; }
 "read" { return READ; }

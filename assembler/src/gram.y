@@ -104,6 +104,7 @@ void set_direct_src_operand(struct src_operand *src, struct direct_reg *reg,
 %token <integer> AVG ADD SEL AND OR XOR SHR SHL ASR CMP CMPN PLN
 %token <integer> SEND NOP JMPI IF IFF WHILE ELSE BREAK CONT HALT MSAVE
 %token <integer> PUSH MREST POP WAIT DO ENDIF ILLEGAL
+%token <integer> MATH_INST
 
 %token NULL_TOKEN MATH SAMPLER GATEWAY READ WRITE URB THREAD_SPAWNER
 
@@ -128,6 +129,7 @@ void set_direct_src_operand(struct src_operand *src, struct direct_reg *reg,
 %type <instruction> breakinstruction syncinstruction specialinstruction
 %type <instruction> msgtarget
 %type <instruction> instoptions instoption_list predicate
+%type <instruction> mathinstruction
 %type <string> label
 %type <program> instrseq
 %type <integer> instoption
@@ -235,6 +237,7 @@ instruction:	unaryinstruction
 		| breakinstruction
 		| syncinstruction
 		| specialinstruction
+		| mathinstruction
 ;
 
 unaryinstruction:
@@ -480,6 +483,23 @@ elseinstruction: ELSE relativelocation
 		  set_direct_src_operand(&ip_src, &dst, BRW_REGISTER_TYPE_UD);
 		  set_instruction_src0(&$$, &ip_src);
 		  set_instruction_src1(&$$, &$2);
+		}
+;
+
+mathinstruction: predicate MATH_INST execsize dst src srcimm math_function instoptions
+		{
+		  bzero(&$$, sizeof($$));
+		  $$.header.opcode = $2;
+		  $$.header.sfid_destreg__conditionalmod = $7;
+		  $$.header.execution_size = $3;
+		  set_instruction_options(&$$, &$8);
+		  set_instruction_predicate(&$$, &$1);
+		  if (set_instruction_dest(&$$, &$4) != 0)
+		    YYERROR;
+		  if (set_instruction_src0(&$$, &$5) != 0)
+		    YYERROR;
+		  if (set_instruction_src1(&$$, &$6) != 0)
+		    YYERROR;
 		}
 ;
 
