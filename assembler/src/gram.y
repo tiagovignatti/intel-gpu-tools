@@ -729,6 +729,40 @@ msgtarget:	NULL_TOKEN
                       $$.bits3.dp_write.send_commit_msg = $9;
 		  }
 		}
+		| WRITE LPAREN INTEGER COMMA INTEGER COMMA INTEGER COMMA
+		INTEGER COMMA INTEGER RPAREN
+		{
+		  if (gen_level == 6) {
+                      $$.bits2.send_gen5.sfid =
+                          BRW_MESSAGE_TARGET_DATAPORT_WRITE;
+                      $$.bits3.generic_gen5.header_present = ($11 != 0);
+                      $$.bits3.dp_write_gen6.binding_table_index = $3;
+                      $$.bits3.dp_write_gen6.msg_control = $5;
+                      $$.bits3.dp_write_gen6.msg_type = $7;
+                      $$.bits3.dp_write_gen6.send_commit_msg = $9;
+		  } else if (gen_level == 5) {
+                      $$.bits2.send_gen5.sfid =
+                          BRW_MESSAGE_TARGET_DATAPORT_WRITE;
+                      $$.bits3.generic_gen5.header_present = ($11 != 0);
+                      $$.bits3.dp_write_gen5.binding_table_index = $3;
+                      $$.bits3.dp_write_gen5.pixel_scoreboard_clear = ($5 & 0x8) >> 3;
+                      $$.bits3.dp_write_gen5.msg_control = $5 & 0x7;
+                      $$.bits3.dp_write_gen5.msg_type = $7;
+                      $$.bits3.dp_write_gen5.send_commit_msg = $9;
+		  } else {
+                      $$.bits3.generic.msg_target =
+                          BRW_MESSAGE_TARGET_DATAPORT_WRITE;
+                      $$.bits3.dp_write.binding_table_index = $3;
+                      /* The msg control field of brw_struct.h is split into
+                       * msg control and pixel_scoreboard_clear, even though
+                       * pixel_scoreboard_clear isn't common to all write messages.
+                       */
+                      $$.bits3.dp_write.pixel_scoreboard_clear = ($5 & 0x8) >> 3;
+                      $$.bits3.dp_write.msg_control = $5 & 0x7;
+                      $$.bits3.dp_write.msg_type = $7;
+                      $$.bits3.dp_write.send_commit_msg = $9;
+		  }
+		}
 		| URB INTEGER urb_swizzle urb_allocate urb_used urb_complete
 		{
 		  $$.bits3.generic.msg_target = BRW_MESSAGE_TARGET_URB;
