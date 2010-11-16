@@ -38,6 +38,8 @@
 
 #define MAX_NUM_TOP_BITS            100
 
+#define HAS_STATS_REGS(devid)		IS_965(devid)
+
 struct top_bit {
 	struct instdone_bit *bit;
 	int count;
@@ -398,7 +400,7 @@ int main(int argc, char **argv)
 			usleep(1000000 / SAMPLES_PER_SEC);
 		}
 
-		if (IS_GEN4(devid) || IS_GEN6(devid)) {
+		if (HAS_STATS_REGS(devid)) {
 			for (i = 0; i < STATS_COUNT; i++) {
 				uint32_t stats_high, stats_low, stats_high_2;
 
@@ -446,8 +448,7 @@ int main(int argc, char **argv)
 				printf("%*s", PERCENTAGE_BAR_END, "");
 			}
 
-			if (i < STATS_COUNT &&
-			    (IS_GEN4(devid) || IS_GEN6(devid))) {
+			if (i < STATS_COUNT && HAS_STATS_REGS(devid)) {
 				printf("%13s: %llu (%lld/sec)",
 				       stats_reg_names[i],
 				       stats[i],
