@@ -1145,7 +1145,7 @@ decode_3d_primitive(uint32_t *data, int count, uint32_t hw_offset,
 		    int *failures)
 {
     char immediate = (data[0] & (1 << 23)) == 0;
-    unsigned int len, i, ret;
+    unsigned int len, i, j, ret;
     char *primtype;
     int original_s2 = saved_s2;
     int original_s4 = saved_s4;
@@ -1283,19 +1283,18 @@ decode_3d_primitive(uint32_t *data, int count, uint32_t hw_offset,
 		for (i = 1; i < count; i++) {
 		    if ((data[i] & 0xffff) == 0xffff) {
 			instr_out(data, hw_offset, i,
-				  "            indices: (terminator)\n");
+				  "    indices: (terminator)\n");
 			ret = i;
 			goto out;
 		    } else if ((data[i] >> 16) == 0xffff) {
 			instr_out(data, hw_offset, i,
-				  "            indices: 0x%04x, "
-				  "(terminator)\n",
+				  "    indices: 0x%04x, (terminator)\n",
 				  data[i] & 0xffff);
 			ret = i;
 			goto out;
 		    } else {
 			instr_out(data, hw_offset, i,
-				  "            indices: 0x%04x, 0x%04x\n",
+				  "    indices: 0x%04x, 0x%04x\n",
 				  data[i] & 0xffff, data[i] >> 16);
 		    }
 		}
@@ -1306,15 +1305,15 @@ decode_3d_primitive(uint32_t *data, int count, uint32_t hw_offset,
 		goto out;
 	    } else {
 		/* fixed size vertex index buffer */
-		for (i = 0; i < len; i += 2) {
+		for (j = 1, i = 0; i < len; i += 2, j++) {
 		    if (i * 2 == len - 1) {
-			instr_out(data, hw_offset, i,
-				  "            indices: 0x%04x\n",
-				  data[i] & 0xffff);
+			instr_out(data, hw_offset, j,
+				  "    indices: 0x%04x\n",
+				  data[j] & 0xffff);
 		    } else {
-			instr_out(data, hw_offset, i,
-				  "            indices: 0x%04x, 0x%04x\n",
-				  data[i] & 0xffff, data[i] >> 16);
+			instr_out(data, hw_offset, j,
+				  "    indices: 0x%04x, 0x%04x\n",
+				  data[j] & 0xffff, data[j] >> 16);
 		    }
 		}
 	    }
