@@ -44,6 +44,7 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
+#include <unistd.h>
 #include <inttypes.h>
 #include <errno.h>
 #include <sys/stat.h>
@@ -209,9 +210,8 @@ print_pgtbl_err(unsigned int reg, unsigned int devid)
 }
 
 static void
-read_data_file (const char * filename)
+read_data_file (FILE *file)
 {
-    FILE *file;
     int devid = PCI_CHIP_I855_GM;
     uint32_t *data = NULL;
     int data_size = 0, count = 0, line_number = 0, matched;
@@ -221,13 +221,6 @@ read_data_file (const char * filename)
     uint32_t gtt_offset = 0, new_gtt_offset;
     char *buffer_type[2] = {  "ringbuffer", "batchbuffer" };
     int is_batch = 1;
-
-    file = fopen (filename, "r");
-    if (file == NULL) {
-	fprintf (stderr, "Failed to open %s: %s\n",
-		 filename, strerror (errno));
-	exit (1);
-    }
 
     while (getline (&line, &line_size, file) > 0) {
 	line_number++;
@@ -306,14 +299,14 @@ read_data_file (const char * filename)
 
     free (data);
     free (line);
-
-    fclose (file);
 }
 
 int
 main (int argc, char *argv[])
 {
+    FILE *file;
     const char *path;
+    char *filename;
     struct stat st;
     int err;
 
@@ -334,17 +327,22 @@ main (int argc, char *argv[])
     }
 
     if (argc == 1) {
-	path = "/debug/dri/0";
-	err = stat (path, &st);
-	if (err != 0) {
-	    path = "/sys/kernel/debug/dri/0";
+	if (isatty(1)) {
+	    path = "/debug/dri/0";
 	    err = stat (path, &st);
 	    if (err != 0) {
-		errx(1,
-		     "Couldn't find i915 debugfs directory.\n\n"
-		     "Is debugfs mounted? You might try mounting it with a command such as:\n\n"
-		     "\tsudo mount -t debugfs debugfs /sys/kernel/debug\n");
+		path = "/sys/kernel/debug/dri/0";
+		err = stat (path, &st);
+		if (err != 0) {
+		    errx(1,
+			 "Couldn't find i915 debugfs directory.\n\n"
+			 "Is debugfs mounted? You might try mounting it with a command such as:\n\n"
+			 "\tsudo mount -t debugfs debugfs /sys/kernel/debug\n");
+		}
 	    }
+	} else {
+	    read_data_file(stdin);
+	    exit(0);
 	}
     } else {
 	path = argv[1];
@@ -356,15 +354,23 @@ main (int argc, char *argv[])
 	}
     }
 
-    if (S_ISDIR (st.st_mode)) {
-	char *filename;
-
+    if (S_ISDIR (st.st_mode))
 	asprintf (&filename, "%s/i915_error_state", path);
-	read_data_file (filename);
-	free (filename);
+    else
+	filename = (char *) path;
+
+    file = fopen(filename, "r");
+    if (file) {
+	read_data_file (file);
+	fclose (file);
     } else {
-	read_data_file (path);
+	fprintf (stderr, "Failed to open %s: %s\n",
+		 filename, strerror (errno));
+	exit (1);
     }
+
+    if (filename != path)
+	free (filename);
 
     return 0;
 }
