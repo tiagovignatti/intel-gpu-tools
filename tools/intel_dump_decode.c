@@ -63,8 +63,13 @@ main (int argc, char *argv[])
 	uint32_t devid = 0xa011;
 	int i;
 
-	for (i = 1; i < argc; i++)
+	for (i = 1; i < argc; i++) {
+		if (strncmp (argv[i], "--devid=", 8) == 0) {
+			devid = atoi(argv[i] + 8);
+			continue;
+		}
 		read_bin_file (devid, argv[i]);
+	}
 
 	return 0;
 }
