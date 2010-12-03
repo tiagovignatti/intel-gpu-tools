@@ -1721,6 +1721,8 @@ decode_3d_965(uint32_t *data, int count, uint32_t hw_offset, uint32_t devid, int
         len = (data[0] & 0xff) + 2;
         if (len != 4)
             fprintf(out, "Bad count in 3DSTATE_SAMPLER_STATE_POINTERS\n");
+	if (count < 4)
+	    BUFFER_FAIL(count, len, "3DSTATE_SAMPLER_STATE_POINTERS");
         instr_out(data, hw_offset, 0, "3DSTATE_SAMPLER_STATE_POINTERS: VS mod %d, "
                   "GS mod %d, PS mod %d\n",
                   (data[0] & (1 << 8)) != 0,
@@ -1734,6 +1736,8 @@ decode_3d_965(uint32_t *data, int count, uint32_t hw_offset, uint32_t devid, int
         len = (data[0] & 0xff) + 2;
         if (len != 3)
             fprintf(out, "Bad count in 3DSTATE_URB\n");
+	if (count < 3)
+	    BUFFER_FAIL(count, len, "3DSTATE_URB");
         instr_out(data, hw_offset, 0, "3DSTATE_URB\n");
         instr_out(data, hw_offset, 1, "VS entries %d, alloc size %d (1024bit row)\n",
                         data[1] & 0xffff, ((data[1] >> 16) & 0x0fff) - 1);
@@ -1823,6 +1827,8 @@ decode_3d_965(uint32_t *data, int count, uint32_t hw_offset, uint32_t devid, int
         len = (data[0] & 0xff) + 2;
         if (len != 4)
             fprintf(out, "Bad count in 3DSTATE_CC_STATE_POINTERS\n");
+	if (count < 4)
+	    BUFFER_FAIL(count, len, "3DSTATE_CC_STATE_POINTERS");
         instr_out(data, hw_offset, 0, "3DSTATE_CC_STATE_POINTERS\n");
         instr_out(data, hw_offset, 1, "blend change %d\n", data[1] & 1);
         instr_out(data, hw_offset, 2, "depth stencil change %d\n", data[2] & 1);
@@ -1833,6 +1839,8 @@ decode_3d_965(uint32_t *data, int count, uint32_t hw_offset, uint32_t devid, int
         len = (data[0] & 0xff) + 2;
         if (len != 2)
             fprintf(out, "Bad count in 3DSTATE_SCISSOR_POINTERS\n");
+	if (count < 2)
+	    BUFFER_FAIL(count, len, "3DSTATE_SCISSOR_POINTERS");
         instr_out(data, hw_offset, 0, "3DSTATE_SCISSOR_POINTERS\n");
         instr_out(data, hw_offset, 1, "scissor rect offset\n");
         return len;
@@ -1841,6 +1849,8 @@ decode_3d_965(uint32_t *data, int count, uint32_t hw_offset, uint32_t devid, int
         len = (data[0] & 0xff) + 2;
         if (len != 6)
             fprintf(out, "Bad count in 3DSTATE_VS\n");
+	if (count < 6)
+	    BUFFER_FAIL(count, len, "3DSTATE_VS");
         instr_out(data, hw_offset, 0, "3DSTATE_VS\n");
         instr_out(data, hw_offset, 1, "kernel pointer\n");
         instr_out(data, hw_offset, 2, "SPF=%d, VME=%d, Sampler Count %d, "
@@ -1866,6 +1876,8 @@ decode_3d_965(uint32_t *data, int count, uint32_t hw_offset, uint32_t devid, int
         len = (data[0] & 0xff) + 2;
         if (len != 7)
             fprintf(out, "Bad count in 3DSTATE_GS\n");
+	if (count < 7)
+	    BUFFER_FAIL(count, len, "3DSTATE_GS");
         instr_out(data, hw_offset, 0, "3DSTATE_GS\n");
         instr_out(data, hw_offset, 1, "kernel pointer\n");
         instr_out(data, hw_offset, 2, "SPF=%d, VME=%d, Sampler Count %d, "
@@ -1894,6 +1906,8 @@ decode_3d_965(uint32_t *data, int count, uint32_t hw_offset, uint32_t devid, int
         len = (data[0] & 0xff) + 2;
         if (len != 4)
             fprintf(out, "Bad count in 3DSTATE_CLIP\n");
+	if (count < 4)
+	    BUFFER_FAIL(count, len, "3DSTATE_CLIP");
         instr_out(data, hw_offset, 0, "3DSTATE_CLIP\n");
         instr_out(data, hw_offset, 1, "UserClip distance cull test mask 0x%x\n",
                   data[1] & 0xff);
@@ -1924,6 +1938,8 @@ decode_3d_965(uint32_t *data, int count, uint32_t hw_offset, uint32_t devid, int
         len = (data[0] & 0xff) + 2;
         if (len != 20)
             fprintf(out, "Bad count in 3DSTATE_SF\n");
+	if (count < 20)
+	    BUFFER_FAIL(count, len, "3DSTATE_SF");
         instr_out(data, hw_offset, 0, "3DSTATE_SF\n");
         instr_out(data, hw_offset, 1, "Attrib Out %d, Attrib Swizzle %sable, VUE read length %d, "
                   "VUE read offset %d\n",
@@ -1979,6 +1995,8 @@ decode_3d_965(uint32_t *data, int count, uint32_t hw_offset, uint32_t devid, int
         len = (data[0] & 0xff) + 2;
         if (len != 9)
             fprintf(out, "Bad count in 3DSTATE_WM\n");
+	if (count < 9)
+	    BUFFER_FAIL(count, len, "3DSTATE_WM");
         instr_out(data, hw_offset, 0, "3DSTATE_WM\n");
         instr_out(data, hw_offset, 1, "kernel start pointer 0\n");
         instr_out(data, hw_offset, 2, "SPF=%d, VME=%d, Sampler Count %d, "

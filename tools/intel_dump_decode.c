@@ -39,7 +39,7 @@
 static void
 read_bin_file (uint32_t devid, const char * filename)
 {
-	uint32_t buf[2048];
+	uint32_t buf[16384];
 	int fd, offset, ret;
 
 	fd = open (filename, O_RDONLY);
