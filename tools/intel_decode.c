@@ -89,6 +89,8 @@ decode_mi(uint32_t *data, int count, uint32_t hw_offset, int *failures)
 	{ 0x24, 0x3f, 3, 3, "MI_STORE_REGISTER_MEM" },
 	{ 0x02, 0, 1, 1, "MI_USER_INTERRUPT" },
 	{ 0x03, 0, 1, 1, "MI_WAIT_FOR_EVENT" },
+	{ 0x16, 0x7f, 3, 3, "MI_SEMAPHORE_MBOX" },
+	{ 0x26, 0x1f, 3, 4, "MI_FLUSH_DW" },
     };
 
     switch ((data[0] & 0x1f800000) >> 23) {
