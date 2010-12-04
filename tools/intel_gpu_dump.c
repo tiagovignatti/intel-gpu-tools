@@ -366,6 +366,30 @@ main (int argc, char *argv[])
 	       "write\n");
 	read_data_file (devid, filename, 0);
 	free (filename);
+
+	asprintf(&filename, "%s/i915_blt_ringbuffer_info", path);
+	if (stat(filename, &st) == 0) {
+		parse_ringbuffer_info(filename, &ring_head, &ring_tail, &acthd);
+		free(filename);
+
+		asprintf (&filename, "%s/i915_blt_ringbuffer_data", path);
+		intel_decode_context_set_head_tail(ring_head, ring_tail);
+		printf("BLT Ringbuffer: ");
+		read_data_file (devid, filename, 0);
+	}
+	free (filename);
+
+	asprintf(&filename, "%s/i915_bsd_ringbuffer_info", path);
+	if (stat(filename, &st) == 0) {
+		parse_ringbuffer_info(filename, &ring_head, &ring_tail, &acthd);
+		free(filename);
+
+		asprintf (&filename, "%s/i915_bsd_ringbuffer_data", path);
+		intel_decode_context_set_head_tail(ring_head, ring_tail);
+		printf("BSD Ringbuffer: ");
+		read_data_file (devid, filename, 0);
+	}
+	free (filename);
     } else {
 	read_data_file (devid, path, 1);
     }
