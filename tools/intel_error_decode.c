@@ -327,7 +327,7 @@ main (int argc, char *argv[])
     }
 
     if (argc == 1) {
-	if (isatty(1)) {
+	if (isatty(0)) {
 	    path = "/debug/dri/0";
 	    err = stat (path, &st);
 	    if (err != 0) {
