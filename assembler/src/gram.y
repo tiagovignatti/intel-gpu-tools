@@ -80,9 +80,10 @@ void set_direct_src_operand(struct src_operand *src, struct direct_reg *reg,
 %token LCURLY RCURLY
 %token LSQUARE RSQUARE
 %token COMMA
-%token DOT ABS
+%token ABS
 %left  PLUS MINUS 
 %left  MULTIPLY DIVIDE
+%nonassoc DOT
 
 %token <integer> TYPE_UD TYPE_D TYPE_UW TYPE_W TYPE_UB TYPE_B
 %token <integer> TYPE_VF TYPE_HF TYPE_V TYPE_F
@@ -220,9 +221,8 @@ instrseq:	instrseq instruction SEMICOLON
 		  $$.first = list_entry;
 		  $$.last = list_entry;
 		}
-		| error SEMICOLON instrseq
-		{
-		  $$ = $3;
+		| instrseq error SEMICOLON {
+		  $$ = $1;
 		}
 ;
 
