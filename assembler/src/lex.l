@@ -11,6 +11,7 @@ extern char *input_filename;
 extern long int gen_level;
 %}
 %x BLOCK_COMMENT
+%x CHANNEL
 %x LINENUMBER
 %x FILENAME
 
@@ -42,6 +43,28 @@ extern long int gen_level;
 	input_filename = name;
 	BEGIN(saved_state);
 }
+
+<CHANNEL>"x" {
+	yylval.integer = BRW_CHANNEL_X;
+	return X;
+}
+<CHANNEL>"y" {
+	yylval.integer = BRW_CHANNEL_Y;
+	return Y;
+}
+<CHANNEL>"z" {
+	yylval.integer = BRW_CHANNEL_Z;
+	return Z;
+}
+<CHANNEL>"w" {
+	yylval.integer = BRW_CHANNEL_W;
+	return W;
+}
+<CHANNEL>. {
+	yyless(0);
+	BEGIN(INITIAL);
+}
+
  /* used for both null send and null register. */
 "null" { return NULL_TOKEN; }
 
@@ -125,7 +148,7 @@ extern long int gen_level;
 "[" { return LSQUARE; }
 "]" { return RSQUARE; }
 "," { return COMMA; }
-"." { return DOT; }
+"." { BEGIN(CHANNEL); return DOT; }
 "+" { return PLUS; }
 "-" { return MINUS; }
 "*" { return MULTIPLY;}
@@ -323,24 +346,6 @@ extern long int gen_level;
 ".r" { yylval.integer = BRW_CONDITIONAL_R; return ROUND_INCREMENT; }
 ".o" { yylval.integer = BRW_CONDITIONAL_O; return OVERFLOW; }
 ".u" { yylval.integer = BRW_CONDITIONAL_U; return UNORDERED; }
-
- /* channel selectors */
-"x" {
-	yylval.integer = BRW_CHANNEL_X;
-	return X;
-}
-"y" {
-	yylval.integer = BRW_CHANNEL_Y;
-	return Y;
-}
-"z" {
-	yylval.integer = BRW_CHANNEL_Z;
-	return Z;
-}
-"w" {
-	yylval.integer = BRW_CHANNEL_W;
-	return W;
-}
 
 [a-zA-Z_][0-9a-zA-Z_]* {
            yylval.string = strdup(yytext);
