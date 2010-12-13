@@ -1193,7 +1193,11 @@ struct brw_instruction
            GLuint pad1:1;
            GLuint sfid:4;
        } send_gen5;  /* for GEN5 only */
-
+       struct 
+       {
+           GLuint pad:26;
+           GLuint msg_ext:6;
+       } msg_ext;
    } bits2;
 
    union

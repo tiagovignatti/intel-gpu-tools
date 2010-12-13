@@ -18,5 +18,6 @@ gram.h: gram.c
 
 BUILT_SOURCES = gram.h gram.c lex.c
 MAINTAINERCLEANFILES = $(BUILT_SOURCES)
+LEX = flex -i
 
 # man_MANS = intel-gen4asm.1

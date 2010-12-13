@@ -9,6 +9,7 @@
 int saved_state = 0;
 extern char *input_filename;
 extern long int gen_level;
+
 %}
 %x BLOCK_COMMENT
 %x CHANNEL
@@ -17,6 +18,10 @@ extern long int gen_level;
 
 %%
 \/\/.*[\r\n] { } /* eat up single-line comments */
+"\.kernel".*[\r\n] { }
+"\.end_kernel".*[\r\n] { }
+"\.code".*[\r\n] { }
+"\.end_code".*[\r\n] { }
 
  /* eat up multi-line comments, non-nesting. */
 \/\* {
@@ -57,7 +62,7 @@ extern long int gen_level;
 	return Z;
 }
 <CHANNEL>"w" {
-	yylval.integer = BRW_CHANNEL_W;
+yylval.integer = BRW_CHANNEL_W;
 	return W;
 }
 <CHANNEL>. {
@@ -154,6 +159,7 @@ extern long int gen_level;
 "*" { return MULTIPLY;}
 "/" { return DIVIDE; }
 ":" { return COLON; }
+"=" { return EQ; }
 "(abs)" { return ABS; }
 
  /* Most register accesses are lexed as REGFILE[0-9]+, to prevent the register
@@ -166,7 +172,7 @@ extern long int gen_level;
   * like g[a#.#] or m[a#.#].
   */
 "acc"[0-9]+ {
-	yylval.integer = atoi(yytext + 1);
+	yylval.integer = atoi(yytext + 3);
 	return ACCREG;
 }
 "a"[0-9]+ {
@@ -181,17 +187,23 @@ extern long int gen_level;
 	return MSGREGFILE;
 }
 "mask"[0-9]+ {
-	yylval.integer = atoi(yytext + 1);
+	yylval.integer = atoi(yytext + 4);
 	return MASKREG;
 }
 "ms"[0-9]+ {
-	yylval.integer = atoi(yytext + 1);
+	yylval.integer = atoi(yytext + 2);
 	return MASKSTACKREG;
 }
 "msd"[0-9]+ {
-	yylval.integer = atoi(yytext + 1);
+	yylval.integer = atoi(yytext + 3);
 	return MASKSTACKDEPTHREG;
 }
+
+"n0."[0-9]+ {
+	yylval.integer = atoi(yytext + 3);
+	return NOTIFYREG;
+}
+
 "n"[0-9]+ {
 	yylval.integer = atoi(yytext + 1);
 	return NOTIFYREG;
@@ -216,11 +228,11 @@ extern long int gen_level;
 	return GENREGFILE;
 }
 "cr"[0-9]+ {
-	yylval.integer = atoi(yytext + 1);
+	yylval.integer = atoi(yytext + 2);
 	return CONTROLREG;
 }
 "sr"[0-9]+ {
-	yylval.integer = atoi(yytext + 1);
+	yylval.integer = atoi(yytext + 2);
 	return STATEREG;
 }
 "ip" {
@@ -276,13 +288,29 @@ extern long int gen_level;
 "B" { return TYPE_B; }
 ":B" { return TYPE_B; }
 "F" { return TYPE_F; }
-":F" { return TYPE_B; }
+":F" { return TYPE_F; }
 "VF" {return TYPE_VF; }
 ":VF" {return TYPE_VF; }
 "V" { return TYPE_V; }
 ":V" { return TYPE_V; }
 
-"sat" { return SATURATE; }
+#".kernel" { return KERNEL_PRAGMA;}
+#".end_kernel" { return END_KERNEL_PRAGMA;}
+#".code" { return CODE_PRAGMA;}
+#".end_code" { return END_CODE_PRAGMA;}
+".reg_count_payload" { return REG_COUNT_PAYLOAD_PRAGMA; }
+".reg_count_total" { return REG_COUNT_TOTAL_PRAGMA; }
+".default_execution_size" { return DEFAULT_EXEC_SIZE_PRAGMA; }
+".default_register_type" { return DEFAULT_REG_TYPE_PRAGMA; }
+".declare" { return DECLARE_PRAGMA; }
+"Base" { return BASE; }
+"ElementSize" { return ELEMENTSIZE; }
+"SrcRegion" { return SRCREGION; }
+"DstRegion" { return DSTREGION; }
+"Type" { return TYPE; }
+
+
+".sat" { return SATURATE; }
 "align1" { return ALIGN1; }
 "align16" { return ALIGN16; }
 "sechalf" { return SECHALF; }

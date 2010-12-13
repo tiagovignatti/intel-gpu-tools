@@ -34,6 +34,7 @@ typedef unsigned int GLuint;
 typedef int GLint;
 typedef float GLfloat;
 
+#include "brw_defines.h"
 #include "brw_structs.h"
 
 void yyerror (char *msg);
@@ -46,6 +47,19 @@ struct direct_reg {
 	int reg_file, reg_nr, subreg_nr;
 };
 
+struct condition {
+    	int cond;
+	int flagreg;
+};
+
+struct region {
+    int vert_stride, width, horiz_stride;
+    int is_default;        
+};
+struct regtype {
+    int type;
+    int is_default;
+};
 /**
  * This structure is the internal representation of register-indirect addressed
  * registers in the parser.
@@ -83,6 +97,7 @@ struct src_operand {
 	int abs, negate;
 
 	int horiz_stride, width, vert_stride;
+	int default_region;
 
 	int address_mode; /* 0 if direct, 1 if register-indirect */
 	int address_subreg_nr;
@@ -101,6 +116,7 @@ typedef struct {
     union {
 	uint32_t    d;
 	float	    f;
+	int32_t	    signed_d;
     } u;
 } imm32_t;
 
@@ -126,6 +142,40 @@ struct brw_program {
 };
 
 extern struct brw_program compiled_program;
+
+#define TYPE_B_INDEX            0
+#define TYPE_UB_INDEX           1
+#define TYPE_W_INDEX            2
+#define TYPE_UW_INDEX           3
+#define TYPE_D_INDEX            4
+#define TYPE_UD_INDEX           5
+#define TYPE_F_INDEX            6
+
+#define TOTAL_TYPES             7
+
+struct program_defaults {
+    int execute_size;
+    int execute_type[TOTAL_TYPES];
+    int register_type;
+    int register_type_regfile;
+    struct region source_region;
+    struct region source_region_type[TOTAL_TYPES];
+    struct region dest_region;
+    struct region dest_region_type[TOTAL_TYPES];
+};
+extern struct program_defaults program_defaults;
+
+struct declared_register {
+    char *name;
+    struct direct_reg base;
+    int element_size;
+    struct region src_region;
+    int dst_region;
+    int type;
+    struct declared_register *next;
+};
+struct declared_register *find_register(char *name);
+void insert_register(struct declared_register *reg);
 
 int yyparse(void);
 int yylex(void);

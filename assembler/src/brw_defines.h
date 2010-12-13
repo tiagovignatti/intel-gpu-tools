@@ -848,6 +848,7 @@
 #define R02_PRIM_END    0x1
 #define R02_PRIM_START  0x2
 
-
+#define EX_DESC_SFID_MASK 0xF
+#define EX_DESC_EOT_MASK  0x20
 
 #endif

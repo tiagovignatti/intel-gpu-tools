@@ -29,11 +29,19 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <assert.h>
 #include "gen4asm.h"
 #include "brw_defines.h"
 
-extern long int gen_level;
+#define DEFAULT_EXECSIZE (ffs(program_defaults.execute_size) - 1)
+#define DEFAULT_DSTREGION -1
 
+extern long int gen_level;
+extern int advanced_flag;
+extern int yylineno;
+extern int need_export;
+
+static int get_type_size(GLuint type);
 int set_instruction_dest(struct brw_instruction *instr,
 			 struct dst_operand *dest);
 int set_instruction_src0(struct brw_instruction *instr,
@@ -42,8 +50,6 @@ int set_instruction_src1(struct brw_instruction *instr,
 			 struct src_operand *src);
 void set_instruction_options(struct brw_instruction *instr,
 			     struct brw_instruction *options);
-void set_instruction_predicate(struct brw_instruction *instr,
-			       struct brw_instruction *predicate);
 void set_instruction_predicate(struct brw_instruction *instr,
 			       struct brw_instruction *predicate);
 void set_direct_dst_operand(struct dst_operand *dst, struct direct_reg *reg,
@@ -61,12 +67,12 @@ void set_direct_src_operand(struct src_operand *src, struct direct_reg *reg,
 	double number;
 	struct brw_instruction instruction;
 	struct brw_program program;
-	struct region {
-		int vert_stride, width, horiz_stride;
-	} region;
+	struct region region;
+	struct regtype regtype;
 	struct direct_reg direct_reg;
 	struct indirect_reg indirect_reg;
-
+	struct condition condition;
+	struct declared_register symbol_reg;
 	imm32_t imm32;
 
 	struct dst_operand dst_operand;
@@ -79,11 +85,9 @@ void set_direct_src_operand(struct src_operand *src, struct direct_reg *reg,
 %token LANGLE RANGLE
 %token LCURLY RCURLY
 %token LSQUARE RSQUARE
-%token COMMA
-%token ABS
-%left  PLUS MINUS 
-%left  MULTIPLY DIVIDE
-%nonassoc DOT
+%token COMMA EQ
+%token ABS DOT 
+%token PLUS MINUS MULTIPLY DIVIDE
 
 %token <integer> TYPE_UD TYPE_D TYPE_UW TYPE_W TYPE_UB TYPE_B
 %token <integer> TYPE_VF TYPE_HF TYPE_V TYPE_F
@@ -123,7 +127,22 @@ void set_direct_src_operand(struct src_operand *src, struct direct_reg *reg,
 
 %token <integer> X Y Z W
 
-%type <integer> exp
+%token <integer> KERNEL_PRAGMA END_KERNEL_PRAGMA CODE_PRAGMA END_CODE_PRAGMA
+%token <integer> REG_COUNT_PAYLOAD_PRAGMA REG_COUNT_TOTAL_PRAGMA DECLARE_PRAGMA
+%token <integer> BASE ELEMENTSIZE SRCREGION DSTREGION TYPE
+
+%token <integer> DEFAULT_EXEC_SIZE_PRAGMA DEFAULT_REG_TYPE_PRAGMA
+%nonassoc SUBREGNUM
+%nonassoc SNDOPR
+%left  PLUS MINUS
+%left  MULTIPLY DIVIDE
+%right UMINUS
+%nonassoc DOT
+%nonassoc STR_SYMBOL_REG
+%nonassoc EMPTEXECSIZE
+%nonassoc LPAREN
+
+%type <integer> exp sndopr
 %type <instruction> instruction unaryinstruction binaryinstruction
 %type <instruction> binaryaccinstruction triinstruction sendinstruction
 %type <instruction> jumpinstruction branchloopinstruction elseinstruction
@@ -135,37 +154,42 @@ void set_direct_src_operand(struct src_operand *src, struct direct_reg *reg,
 %type <program> instrseq
 %type <integer> instoption
 %type <integer> unaryop binaryop binaryaccop branchloopop breakop
-%type <integer> conditionalmodifier saturate negate abs chansel
+%type <condition> conditionalmodifier 
+%type <integer> condition saturate negate abs chansel
 %type <integer> writemask_x writemask_y writemask_z writemask_w
-%type <integer> regtype srcimmtype execsize dstregion immaddroffset
+%type <integer> srcimmtype execsize dstregion immaddroffset
 %type <integer> subregnum sampler_datatype
 %type <integer> urb_swizzle urb_allocate urb_used urb_complete
 %type <integer> math_function math_signed math_scalar
 %type <integer> predctrl predstate
-%type <region> region region_wh indirectregion
+%type <region> region region_wh indirectregion declare_srcregion;
+%type <regtype> regtype
 %type <direct_reg> directgenreg directmsgreg addrreg accreg flagreg maskreg
-%type <direct_reg> maskstackreg notifyreg
+%type <direct_reg> maskstackreg notifyreg 
 /* %type <direct_reg>  maskstackdepthreg */
 %type <direct_reg> statereg controlreg ipreg nullreg
 %type <direct_reg> dstoperandex_typed srcarchoperandex_typed
 %type <indirect_reg> indirectgenreg indirectmsgreg addrparam
 %type <integer> mask_subreg maskstack_subreg 
+%type <integer> declare_elementsize declare_dstregion declare_type
 /* %type <intger> maskstackdepth_subreg */
+%type <symbol_reg> symbol_reg symbol_reg_p;
 %type <imm32> imm32
 %type <dst_operand> dst dstoperand dstoperandex dstreg post_dst writemask
+%type <dst_operand> declare_base
 %type <src_operand> directsrcoperand srcarchoperandex directsrcaccoperand
 %type <src_operand> indirectsrcoperand
 %type <src_operand> src srcimm imm32reg payload srcacc srcaccimm swizzle
 %type <src_operand> relativelocation relativelocation2 locationstackcontrol
-
 %%
 exp:		INTEGER { $$ = $1; }
-		| exp MULTIPLY exp { $$ = $1 * $3; } 
-		| exp DIVIDE exp { if ($3) $$ = $1 / $3; else YYERROR;}
 		| exp PLUS exp { $$ = $1 + $3; }
 		| exp MINUS exp { $$ = $1 - $3; }
-		| MINUS exp { $$ = -$2;}
+		| exp MULTIPLY exp { $$ = $1 * $3; } 
+		| exp DIVIDE exp { if ($3) $$ = $1 / $3; else YYERROR;}
+		| MINUS exp %prec UMINUS { $$ = -$2;}
 		| LPAREN exp RPAREN { $$ = $2; }
+		;
 
 ROOT:		instrseq
 		{
@@ -177,13 +201,108 @@ ROOT:		instrseq
 label:          STRING COLON
 ;
 
-instrseq:	instrseq instruction SEMICOLON 
+declare_base:  	BASE EQ dstreg 
+	       	{
+		   $$ = $3;
+	       	}
+;
+declare_elementsize:  ELEMENTSIZE EQ exp
+		{
+		   $$ = $3;
+		}
+;
+declare_srcregion: /* empty */
+		{
+		  /* XXX is this default correct?*/
+		  memset (&$$, '\0', sizeof ($$));
+		  $$.vert_stride = ffs(0);
+		  $$.width = ffs(1) - 1;
+		  $$.horiz_stride = ffs(0);
+		}
+		| SRCREGION EQ region
+		{
+		    $$ = $3;
+		}
+;
+declare_dstregion: /* empty */
+		{
+		    $$ = 1;
+		}
+		| DSTREGION EQ dstregion
+		{
+		    $$ = $3;
+		}
+;
+declare_type:	TYPE EQ regtype
+		{
+		    $$ = $3.type;
+		}
+;
+declare_pragma:	DECLARE_PRAGMA STRING declare_base declare_elementsize declare_srcregion declare_dstregion declare_type
+		{
+			struct declared_register *reg;
+		    if ((reg = find_register($2)) != NULL) {
+			fprintf(stderr, "WARNING: %s already defined\n", $2);
+			reg->name = $2;
+			reg->base.reg_file = $3.reg_file;
+			reg->base.reg_nr = $3.reg_nr;
+			reg->base.subreg_nr = $3.subreg_nr;
+			reg->element_size = $4;
+			reg->src_region = $5;
+			reg->dst_region = $6;
+			reg->type = $7;
+		    }else {
+			reg = calloc(sizeof(struct declared_register), 1);
+			reg->name = $2;
+			reg->base.reg_file = $3.reg_file;
+			reg->base.reg_nr = $3.reg_nr;
+			reg->base.subreg_nr = $3.subreg_nr;
+			reg->element_size = $4;
+			reg->src_region = $5;
+			reg->dst_region = $6;
+			reg->type = $7;
+			insert_register(reg);
+		    }
+		}
+;
+
+reg_count_total_pragma: 	REG_COUNT_TOTAL_PRAGMA exp
+;
+reg_count_payload_pragma: 	REG_COUNT_PAYLOAD_PRAGMA exp
+;
+
+default_exec_size_pragma:	DEFAULT_EXEC_SIZE_PRAGMA exp
+				{
+				    program_defaults.execute_size = $2;
+				}
+;
+default_reg_type_pragma:	DEFAULT_REG_TYPE_PRAGMA regtype
+				{
+				    program_defaults.register_type = $2.type;
+				}
+;
+pragma:		reg_count_total_pragma
+		|reg_count_payload_pragma
+		|default_exec_size_pragma
+		|default_reg_type_pragma
+		|declare_pragma
+;		
+
+instrseq:	instrseq pragma
+		{
+		    $$ = $1;
+		}
+		| instrseq instruction SEMICOLON
 		{
 		  struct brw_program_instruction *list_entry =
 		    calloc(sizeof(struct brw_program_instruction), 1);
 		  list_entry->instruction = $2;
 		  list_entry->next = NULL;
-		  $1.last->next = list_entry;
+		  if ($1.last) {
+			$1.last->next = list_entry;
+		  } else {
+			$1.first = list_entry;
+		  }
 		  $1.last = list_entry;
 		  $$ = $1;
 		}
@@ -198,14 +317,22 @@ instrseq:	instrseq instruction SEMICOLON
 		  $$.first = list_entry;
 		  $$.last = list_entry;
 		}
-                | instrseq label
-                {
-                  struct brw_program_instruction *list_entry =
-                    calloc(sizeof(struct brw_program_instruction), 1);
-                  list_entry->string = strdup($2);
-                  list_entry->islabel = 1;
+        | instrseq SEMICOLON
+		{
+		    $$ = $1;
+		}
+        | instrseq label
+        	{
+          struct brw_program_instruction *list_entry =
+            calloc(sizeof(struct brw_program_instruction), 1);
+          list_entry->string = strdup($2);
+          list_entry->islabel = 1;
 		  list_entry->next = NULL;
-		  $1.last->next = list_entry;
+		  if ($1.last) {
+			$1.last->next = list_entry;
+		  } else {
+			$1.first = list_entry;
+		  }
 		  $1.last = list_entry;
 		  $$ = $1;
                 }
@@ -220,6 +347,11 @@ instrseq:	instrseq instruction SEMICOLON
 
 		  $$.first = list_entry;
 		  $$.last = list_entry;
+		}
+		| pragma
+		{
+		  $$.first = NULL;
+		  $$.last = NULL;
 		}
 		| instrseq error SEMICOLON {
 		  $$ = $1;
@@ -246,7 +378,7 @@ unaryinstruction:
 		{
 		  bzero(&$$, sizeof($$));
 		  $$.header.opcode = $2;
-		  $$.header.sfid_destreg__conditionalmod = $3;
+		  $$.header.sfid_destreg__conditionalmod = $3.cond;
 		  $$.header.saturate = $4;
 		  $$.header.execution_size = $5;
 		  set_instruction_options(&$$, &$8);
@@ -255,6 +387,13 @@ unaryinstruction:
 		    YYERROR;
 		  if (set_instruction_src0(&$$, &$7) != 0)
 		    YYERROR;
+
+		  if ($3.flagreg != -1)
+		    $$.bits2.da1.flag_reg_nr = $3.flagreg;
+
+		  if (gen_level < 6 && 
+				get_type_size($$.bits1.da1.dest_reg_type) * (1 << $$.header.execution_size) == 64)
+		    $$.header.compression_control = BRW_COMPRESSION_COMPRESSED;
 		}
 ;
 
@@ -267,7 +406,7 @@ binaryinstruction:
 		{
 		  bzero(&$$, sizeof($$));
 		  $$.header.opcode = $2;
-		  $$.header.sfid_destreg__conditionalmod = $3;
+		  $$.header.sfid_destreg__conditionalmod = $3.cond;
 		  $$.header.saturate = $4;
 		  $$.header.execution_size = $5;
 		  set_instruction_options(&$$, &$9);
@@ -278,6 +417,13 @@ binaryinstruction:
 		    YYERROR;
 		  if (set_instruction_src1(&$$, &$8) != 0)
 		    YYERROR;
+
+		  if ($3.flagreg != -1)
+		    $$.bits2.da1.flag_reg_nr = $3.flagreg;
+
+		  if (gen_level < 6 && 
+				get_type_size($$.bits1.da1.dest_reg_type) * (1 << $$.header.execution_size) == 64)
+		    $$.header.compression_control = BRW_COMPRESSION_COMPRESSED;
 		}
 ;
 
@@ -290,7 +436,7 @@ binaryaccinstruction:
 		{
 		  bzero(&$$, sizeof($$));
 		  $$.header.opcode = $2;
-		  $$.header.sfid_destreg__conditionalmod = $3;
+		  $$.header.sfid_destreg__conditionalmod = $3.cond;
 		  $$.header.saturate = $4;
 		  $$.header.execution_size = $5;
 		  set_instruction_options(&$$, &$9);
@@ -301,6 +447,13 @@ binaryaccinstruction:
 		    YYERROR;
 		  if (set_instruction_src1(&$$, &$8) != 0)
 		    YYERROR;
+
+		  if ($3.flagreg != -1)
+		    $$.bits2.da1.flag_reg_nr = $3.flagreg;
+
+		  if (gen_level < 6 && 
+				get_type_size($$.bits1.da1.dest_reg_type) * (1 << $$.header.execution_size) == 64)
+		    $$.header.compression_control = BRW_COMPRESSION_COMPRESSED;
 		}
 ;
 
@@ -325,6 +478,7 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
 		  bzero(&$$, sizeof($$));
 		  $$.header.opcode = $2;
 		  $$.header.execution_size = $3;
+		  $$.header.sfid_destreg__conditionalmod = $4; /* msg reg index */
 		  set_instruction_predicate(&$$, &$1);
 		  if (set_instruction_dest(&$$, &$5) != 0)
 		    YYERROR;
@@ -370,9 +524,65 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
                           $12.bits3.generic.end_of_thread;
 		  }
 		}
+
+		| predicate SEND execsize dst directmsgreg payload sndopr imm32reg instoptions
+		{
+		  if ($8.reg_type != BRW_REGISTER_TYPE_UD &&
+		  	  $8.reg_type != BRW_REGISTER_TYPE_D &&
+		  	  $8.reg_type != BRW_REGISTER_TYPE_V) {
+		    fprintf (stderr, "%d: non-int D/UD/V representation: %d,type=%d\n", yylineno, $8.imm32, $8.reg_type);
+			YYERROR;
+		  }
+		  bzero(&$$, sizeof($$));
+		  $$.header.opcode = $2;
+		  $$.header.execution_size = $3;
+		  $$.header.sfid_destreg__conditionalmod = $5.reg_nr; /* msg reg index */
+
+		  set_instruction_predicate(&$$, &$1);
+		  if (set_instruction_dest(&$$, &$4) != 0)
+		    YYERROR;
+		  if (set_instruction_src0(&$$, &$6) != 0)
+		    YYERROR;
+		  $$.bits1.da1.src1_reg_file = BRW_IMMEDIATE_VALUE;
+		  $$.bits1.da1.src1_reg_type = $8.reg_type;
+		  if (gen_level == 5) {
+		      $$.bits2.send_gen5.sfid = ($7 & EX_DESC_SFID_MASK);
+		      $$.bits3.ud = $8.imm32;
+		      $$.bits3.generic_gen5.end_of_thread = !!($7 & EX_DESC_EOT_MASK);
+		  }
+		  else
+		      $$.bits3.ud = $8.imm32;
+		}
+		| predicate SEND execsize dst directmsgreg payload exp directsrcoperand instoptions
+		{
+		  bzero(&$$, sizeof($$));
+		  $$.header.opcode = $2;
+		  $$.header.execution_size = $3;
+		  $$.header.sfid_destreg__conditionalmod = $5.reg_nr; /* msg reg index */
+
+		  set_instruction_predicate(&$$, &$1);
+
+		  if (set_instruction_dest(&$$, &$4) != 0)
+		    YYERROR;
+		  if (set_instruction_src0(&$$, &$6) != 0)
+		    YYERROR;
+		  /* XXX is this correct? */
+		  if (set_instruction_src1(&$$, &$8) != 0)
+		    YYERROR;
+		  if (gen_level == 5) {
+                      $$.bits2.send_gen5.sfid = $7;
+		  }
+		}
+		
 ;
 
-jumpinstruction: predicate JMPI relativelocation2
+sndopr: exp %prec SNDOPR
+		{
+			$$ = $1;
+		}
+;
+
+jumpinstruction: predicate JMPI execsize relativelocation2
 		{
 		  struct direct_reg dst;
 		  struct dst_operand ip_dst;
@@ -389,14 +599,17 @@ jumpinstruction: predicate JMPI relativelocation2
 
 		  bzero(&$$, sizeof($$));
 		  $$.header.opcode = $2;
+		  $$.header.execution_size = ffs(1) - 1;
+		  if(advanced_flag)
+		  	$$.header.mask_control = BRW_MASK_DISABLE;
 		  set_direct_dst_operand(&ip_dst, &dst, BRW_REGISTER_TYPE_UD);
 		  set_instruction_predicate(&$$, &$1);
 		  set_instruction_dest(&$$, &ip_dst);
 		  set_direct_src_operand(&ip_src, &dst, BRW_REGISTER_TYPE_UD);
 		  set_instruction_src0(&$$, &ip_src);
-		  set_instruction_src1(&$$, &$3);
+		  set_instruction_src1(&$$, &$4);
 		}
-		| predicate JMPI STRING
+		| predicate JMPI execsize STRING
 		{
 		    struct direct_reg dst;
 		    struct dst_operand ip_dst;
@@ -418,18 +631,21 @@ jumpinstruction: predicate JMPI relativelocation2
 		    
 		    bzero(&$$, sizeof($$));
 		    $$.header.opcode = $2;
+		    $$.header.execution_size = ffs(1) - 1;
+		    if(advanced_flag)
+				$$.header.mask_control = BRW_MASK_DISABLE;
 		    set_direct_dst_operand(&ip_dst, &dst, BRW_REGISTER_TYPE_UD);
 		    set_instruction_dest(&$$, &ip_dst);
 		    set_instruction_predicate(&$$, &$1);
 		    set_direct_src_operand(&ip_src, &dst, BRW_REGISTER_TYPE_UD);
 		    set_instruction_src0(&$$, &ip_src);
 		    set_instruction_src1(&$$, &imm);
-		    $$.reloc_target = $3;
+		    $$.reloc_target = $4;
 		}
 ;
 
 branchloopinstruction:
-		predicate branchloopop relativelocation
+		predicate branchloopop execsize relativelocation
 		{
 		  struct direct_reg dst;
 		  struct dst_operand ip_dst;
@@ -446,19 +662,49 @@ branchloopinstruction:
 
 		  bzero(&$$, sizeof($$));
 		  $$.header.opcode = $2;
+		  $$.header.execution_size = $3;
+		  $$.header.thread_control |= BRW_THREAD_SWITCH;
 		  set_instruction_predicate(&$$, &$1);
 		  set_direct_dst_operand(&ip_dst, &dst, BRW_REGISTER_TYPE_UD);
 		  set_instruction_dest(&$$, &ip_dst);
 		  set_direct_src_operand(&ip_src, &dst, BRW_REGISTER_TYPE_UD);
 		  set_instruction_src0(&$$, &ip_src);
-		  set_instruction_src1(&$$, &$3);
+		  set_instruction_src1(&$$, &$4);
+		}
+		| predicate branchloopop execsize STRING
+		{
+		  struct direct_reg dst;
+		  struct dst_operand ip_dst;
+		  struct src_operand ip_src;
+		  struct src_operand imm;
+
+		  dst.reg_file = BRW_ARCHITECTURE_REGISTER_FILE;
+		  dst.reg_nr = BRW_ARF_IP;
+		  dst.subreg_nr = 0;
+
+		  memset (&imm, '\0', sizeof (imm));
+		  imm.reg_file = BRW_IMMEDIATE_VALUE;
+		  imm.reg_type = BRW_REGISTER_TYPE_D;
+		  imm.imm32 = 0;
+
+		  bzero(&$$, sizeof($$));
+		  $$.header.opcode = $2;
+		  $$.header.execution_size = $3;
+		  set_instruction_predicate(&$$, &$1);
+		  $$.header.thread_control |= BRW_THREAD_SWITCH;
+		  set_direct_dst_operand(&ip_dst, &dst, BRW_REGISTER_TYPE_UD);
+		  set_instruction_dest(&$$, &ip_dst);
+		  set_direct_src_operand(&ip_src, &dst, BRW_REGISTER_TYPE_UD);
+		  set_instruction_src0(&$$, &ip_src);
+		  set_instruction_src1(&$$, &imm);
+		  $$.reloc_target = $4;
 		}
 ;
 
 branchloopop:	IF | IFF | WHILE
 ;
 
-elseinstruction: ELSE relativelocation
+elseinstruction: ELSE execsize relativelocation
 		{
 		  struct direct_reg dst;
 		  struct dst_operand ip_dst;
@@ -474,21 +720,50 @@ elseinstruction: ELSE relativelocation
 		  dst.subreg_nr = 0;
 
 		  /* Set the istack pop count, which must always be 1. */
-		  $2.imm32 |= (1 << 16);
+		  $3.imm32 |= (1 << 16);
 
 		  bzero(&$$, sizeof($$));
 		  $$.header.opcode = $1;
+		  $$.header.execution_size = $2;
+		  $$.header.thread_control |= BRW_THREAD_SWITCH;
 		  set_direct_dst_operand(&ip_dst, &dst, BRW_REGISTER_TYPE_UD);
 		  set_instruction_dest(&$$, &ip_dst);
 		  set_direct_src_operand(&ip_src, &dst, BRW_REGISTER_TYPE_UD);
 		  set_instruction_src0(&$$, &ip_src);
-		  set_instruction_src1(&$$, &$2);
+		  set_instruction_src1(&$$, &$3);
+		}
+		| ELSE execsize STRING
+		{
+		  struct direct_reg dst;
+		  struct dst_operand ip_dst;
+		  struct src_operand ip_src;
+		  struct src_operand imm;
+
+		  dst.reg_file = BRW_ARCHITECTURE_REGISTER_FILE;
+		  dst.reg_nr = BRW_ARF_IP;
+		  dst.subreg_nr = 0;
+
+		  memset (&imm, '\0', sizeof (imm));
+		  imm.reg_file = BRW_IMMEDIATE_VALUE;
+		  imm.reg_type = BRW_REGISTER_TYPE_D;
+		  imm.imm32 = 0;
+		    
+		  bzero(&$$, sizeof($$));
+		  $$.header.opcode = $1;
+		  $$.header.execution_size = $2;
+		  $$.header.thread_control |= BRW_THREAD_SWITCH;
+		  set_direct_dst_operand(&ip_dst, &dst, BRW_REGISTER_TYPE_UD);
+		  set_instruction_dest(&$$, &ip_dst);
+		  set_direct_src_operand(&ip_src, &dst, BRW_REGISTER_TYPE_UD);
+		  set_instruction_src0(&$$, &ip_src);
+		  set_instruction_src1(&$$, &imm);
+		  $$.reloc_target = $3;
 		}
 ;
 
 mathinstruction: predicate MATH_INST execsize dst src srcimm math_function instoptions
 		{
-		  bzero(&$$, sizeof($$));
+ 		  bzero(&$$, sizeof($$));
 		  $$.header.opcode = $2;
 		  $$.header.sfid_destreg__conditionalmod = $7;
 		  $$.header.execution_size = $3;
@@ -539,7 +814,7 @@ maskpushop:	MSAVE | PUSH
 syncinstruction: predicate WAIT notifyreg
 		{
 		  struct direct_reg null;
-		  struct dst_operand null_dst;
+		  struct dst_operand notify_dst;
 		  struct src_operand null_src;
 		  struct src_operand notify_src;
 
@@ -550,16 +825,18 @@ syncinstruction: predicate WAIT notifyreg
 		  notify_src.reg_file = $3.reg_file;
 		  notify_src.reg_nr = $3.reg_nr;
 		  notify_src.subreg_nr = $3.subreg_nr;
-		  notify_src.reg_type = BRW_REGISTER_TYPE_UD;
+		  notify_src.reg_type = BRW_REGISTER_TYPE_D;
 
 		  bzero(&$$, sizeof($$));
 		  $$.header.opcode = $2;
-		  set_direct_dst_operand(&null_dst, &null, BRW_REGISTER_TYPE_UD);
-		  set_instruction_dest(&$$, &null_dst);
+		  $$.header.execution_size = ffs(1) - 1;
+		  set_direct_dst_operand(&notify_dst, &$3, BRW_REGISTER_TYPE_D);
+		  set_instruction_dest(&$$, &notify_dst);
 		  set_direct_src_operand(&null_src, &null, BRW_REGISTER_TYPE_UD);
 		  set_instruction_src0(&$$, &notify_src);
 		  set_instruction_src1(&$$, &null_src);
 		}
+		
 ;
 
 specialinstruction: NOP
@@ -576,9 +853,10 @@ specialinstruction: NOP
 		{
 		  bzero(&$$, sizeof($$));
 		  $$.header.opcode = $1;
-		  $$.bits1.da1.src1_reg_file = BRW_IMMEDIATE_VALUE;
-		  $$.bits1.da1.src1_reg_type = BRW_REGISTER_TYPE_D;
-		  $$.bits3.if_else.pop_count = 1;
+		  $$.header.thread_control |= BRW_THREAD_SWITCH;
+		  $$.bits1.da1.dest_horiz_stride = 1;
+		  $$.bits1.da1.src1_reg_file = BRW_ARCHITECTURE_REGISTER_FILE;
+		  $$.bits1.da1.src1_reg_type = BRW_REGISTER_TYPE_UD;
 		}
 ;
 
@@ -704,7 +982,7 @@ msgtarget:	NULL_TOKEN
                       $$.bits3.generic_gen5.header_present = 1;
                       $$.bits3.dp_write_gen6.binding_table_index = $3;
                       $$.bits3.dp_write_gen6.msg_control = $5;
-                      $$.bits3.dp_write_gen6.msg_type = $7;
+                     $$.bits3.dp_write_gen6.msg_type = $7;
                       $$.bits3.dp_write_gen6.send_commit_msg = $9;
 		  } else if (gen_level == 5) {
                       $$.bits2.send_gen5.sfid =
@@ -738,7 +1016,7 @@ msgtarget:	NULL_TOKEN
                       $$.bits3.generic_gen5.header_present = ($11 != 0);
                       $$.bits3.dp_write_gen6.binding_table_index = $3;
                       $$.bits3.dp_write_gen6.msg_control = $5;
-                      $$.bits3.dp_write_gen6.msg_type = $7;
+                     $$.bits3.dp_write_gen6.msg_type = $7;
                       $$.bits3.dp_write_gen6.send_commit_msg = $9;
 		  } else if (gen_level == 5) {
                       $$.bits2.send_gen5.sfid =
@@ -849,7 +1127,20 @@ math_scalar:	/* empty */ { $$ = 0; }
 dst:		dstoperand | dstoperandex
 ;
 
-dstoperand:	dstreg dstregion writemask regtype
+dstoperand:	symbol_reg dstregion
+		{
+		  memset (&$$, '\0', sizeof ($$));
+		  $$.reg_file = $1.base.reg_file;
+		  $$.reg_nr = $1.base.reg_nr;
+		  $$.subreg_nr = $1.base.subreg_nr;
+		  if ($2 == DEFAULT_DSTREGION) {
+		      $$.horiz_stride = $1.dst_region;
+		  } else {
+		      $$.horiz_stride = $2;
+		  }
+		  $$.reg_type = $1.type;
+		}
+		| dstreg dstregion writemask regtype
 		{
 		  /* Returns an instruction with just the destination register
 		   * filled in.
@@ -858,10 +1149,13 @@ dstoperand:	dstreg dstregion writemask regtype
 		  $$.reg_file = $1.reg_file;
 		  $$.reg_nr = $1.reg_nr;
 		  $$.subreg_nr = $1.subreg_nr;
+		  $$.address_mode = $1.address_mode;
+		  $$.address_subreg_nr = $1.address_subreg_nr;
+		  $$.indirect_offset = $1.indirect_offset;
 		  $$.horiz_stride = $2;
 		  $$.writemask_set = $3.writemask_set;
 		  $$.writemask = $3.writemask;
-		  $$.reg_type = $4;
+		  $$.reg_type = $4.type;
 		}
 ;
 
@@ -875,7 +1169,7 @@ dstoperandex:	dstoperandex_typed dstregion regtype
 		  $$.reg_nr = $1.reg_nr;
 		  $$.subreg_nr = $1.subreg_nr;
 		  $$.horiz_stride = $2;
-		  $$.reg_type = $3;
+		  $$.reg_type = $3.type;
 		}
 		| maskstackreg
 		{
@@ -904,20 +1198,65 @@ dstoperandex:	dstoperandex_typed dstregion regtype
 		  $$.horiz_stride = 1;
 		  $$.reg_type = BRW_REGISTER_TYPE_UD;
 		}
-		| nullreg
+		| nullreg dstregion regtype
 		{
 		  memset (&$$, '\0', sizeof ($$));
 		  $$.reg_file = $1.reg_file;
 		  $$.reg_nr = $1.reg_nr;
 		  $$.subreg_nr = $1.subreg_nr;
-		  $$.horiz_stride = 1;
-		  $$.reg_type = BRW_REGISTER_TYPE_F;
+		  $$.horiz_stride = $2;
+		  $$.reg_type = $3.type;
 		}
 ;
 
 dstoperandex_typed: accreg | flagreg | addrreg | maskreg
 ;
 
+symbol_reg:	STRING %prec STR_SYMBOL_REG 
+		{
+		    struct declared_register *dcl_reg = find_register($1);
+
+		    if (dcl_reg == NULL) {
+			fprintf(stderr, "can't find register %s\n", $1);
+			YYERROR;
+		    }
+
+		    memcpy(&$$, dcl_reg, sizeof(*dcl_reg));
+		}
+		| symbol_reg_p 
+		{
+			$$=$1;
+		}
+;
+
+symbol_reg_p: STRING LPAREN exp RPAREN 
+		{
+		    struct declared_register *dcl_reg = find_register($1);	
+
+		    if (dcl_reg == NULL) {
+			fprintf(stderr, "can't find register %s\n", $1);
+			YYERROR;
+		    }
+
+		    memcpy(&$$, dcl_reg, sizeof(*dcl_reg));
+		    $$.base.reg_nr += $3;
+		}
+		| STRING LPAREN exp COMMA exp RPAREN
+		{
+		    struct declared_register *dcl_reg = find_register($1);	
+
+		    if (dcl_reg == NULL) {
+			fprintf(stderr, "can't find register %s\n", $1);
+			YYERROR;
+		    }
+
+		    memcpy(&$$, dcl_reg, sizeof(*dcl_reg));
+		    $$.base.reg_nr += $3;
+		    $$.base.subreg_nr += $5;
+		    $$.base.reg_nr += $$.base.subreg_nr / (32 / get_type_size(dcl_reg->type));
+		    $$.base.subreg_nr = $$.base.subreg_nr % (32 / get_type_size(dcl_reg->type));
+		}
+;
 /* Returns a partially complete destination register consisting of the
  * direct or indirect register addressing fields, but not stride or writemask.
  */
@@ -962,7 +1301,7 @@ srcaccimm:	srcacc | imm32reg
 srcacc:		directsrcaccoperand | indirectsrcoperand
 ;
 
-srcimm:		directsrcoperand | imm32reg
+srcimm:		directsrcoperand | indirectsrcoperand| imm32reg
 ;
 
 imm32reg:	imm32 srcimmtype
@@ -977,12 +1316,13 @@ imm32reg:	imm32 srcimmtype
 		  case BRW_REGISTER_TYPE_UD:
 		  case BRW_REGISTER_TYPE_D:
 		  case BRW_REGISTER_TYPE_V:
+		  case BRW_REGISTER_TYPE_VF:
 		    switch ($1.r) {
 		    case imm32_d:
 		      d = $1.u.d;
 		      break;
 		    default:
-		      fprintf (stderr, "non-int D/UD/V representation\n");
+		      fprintf (stderr, "%d: non-int D/UD/V/VF representation: %d,type=%d\n", yylineno, $1.r, $2);
 		      YYERROR;
 		    }
 		    break;
@@ -1013,9 +1353,11 @@ imm32reg:	imm32 srcimmtype
 		    }
 		    d = intfloat.i;
 		    break;
+#if 0
 		  case BRW_REGISTER_TYPE_VF:
 		    fprintf (stderr, "Immediate type VF not supported yet\n");
 		    YYERROR;
+#endif
 		  default:
 		    fprintf(stderr, "unknown immediate type %d\n", $2);
 		    YYERROR;
@@ -1028,9 +1370,13 @@ imm32reg:	imm32 srcimmtype
 ;
 
 directsrcaccoperand:	directsrcoperand
-		| accreg regtype
+		| accreg region regtype
 		{
-		  set_direct_src_operand(&$$, &$1, $2);
+		  set_direct_src_operand(&$$, &$1, $3.type);
+		  $$.vert_stride = $2.vert_stride;
+		  $$.width = $2.width;
+		  $$.horiz_stride = $2.horiz_stride;
+		  $$.default_region = $2.is_default;
 		}
 ;
 
@@ -1039,12 +1385,13 @@ srcarchoperandex: srcarchoperandex_typed region regtype
 		{
 		  memset (&$$, '\0', sizeof ($$));
 		  $$.reg_file = $1.reg_file;
-		  $$.reg_type = $3;
+		  $$.reg_type = $3.type;
 		  $$.subreg_nr = $1.subreg_nr;
 		  $$.reg_nr = $1.reg_nr;
 		  $$.vert_stride = $2.vert_stride;
 		  $$.width = $2.width;
 		  $$.horiz_stride = $2.horiz_stride;
+		  $$.default_region = $2.is_default;
 		  $$.negate = 0;
 		  $$.abs = 0;
 		}
@@ -1056,10 +1403,10 @@ srcarchoperandex: srcarchoperandex_typed region regtype
 		{
 		  set_direct_src_operand(&$$, &$1, BRW_REGISTER_TYPE_UD);
 		}
-		| statereg
+/*		| statereg
 		{
 		  set_direct_src_operand(&$$, &$1, BRW_REGISTER_TYPE_UD);
-		}
+		}*/
 		| notifyreg
 		{
 		  set_direct_src_operand(&$$, &$1, BRW_REGISTER_TYPE_UD);
@@ -1068,9 +1415,14 @@ srcarchoperandex: srcarchoperandex_typed region regtype
 		{
 		  set_direct_src_operand(&$$, &$1, BRW_REGISTER_TYPE_UD);
 		}
-		| nullreg
+		| nullreg region regtype
 		{
-		  set_direct_src_operand(&$$, &$1, BRW_REGISTER_TYPE_UD);
+		  if ($3.is_default) {
+		    set_direct_src_operand(&$$, &$1, BRW_REGISTER_TYPE_UD);
+		  } else {
+		    set_direct_src_operand(&$$, &$1, $3.type);
+		  }
+		  $$.default_region = 1;
 		}
 ;
 
@@ -1080,18 +1432,60 @@ srcarchoperandex_typed: flagreg | addrreg | maskreg
 src:		directsrcoperand | indirectsrcoperand
 ;
 
-directsrcoperand:
-		negate abs directgenreg region regtype swizzle
+directsrcoperand:	negate abs symbol_reg region regtype
+		{
+		  memset (&$$, '\0', sizeof ($$));
+		  $$.address_mode = BRW_ADDRESS_DIRECT;
+		  $$.reg_file = $3.base.reg_file;
+		  $$.reg_nr = $3.base.reg_nr;
+		  $$.subreg_nr = $3.base.subreg_nr;
+		  if ($5.is_default) {
+		    $$.reg_type = $3.type;
+		  } else {
+		    $$.reg_type = $5.type;
+		  }
+		  if ($4.is_default) {
+		    $$.vert_stride = $3.src_region.vert_stride;
+		    $$.width = $3.src_region.width;
+		    $$.horiz_stride = $3.src_region.horiz_stride;
+		  } else {
+		    $$.vert_stride = $4.vert_stride;
+		    $$.width = $4.width;
+		    $$.horiz_stride = $4.horiz_stride;
+		  }
+		  $$.negate = $1;
+		  $$.abs = $2;
+		} 
+		| statereg region regtype 
+		{
+		  if($2.is_default ==1 && $3.is_default == 1)
+		  {
+		    set_direct_src_operand(&$$, &$1, BRW_REGISTER_TYPE_UD);
+		  }
+		  else{
+		    memset (&$$, '\0', sizeof ($$));
+		    $$.address_mode = BRW_ADDRESS_DIRECT;
+		    $$.reg_file = $1.reg_file;
+		    $$.reg_nr = $1.reg_nr;
+		    $$.subreg_nr = $1.subreg_nr;
+		    $$.vert_stride = $2.vert_stride;
+		    $$.width = $2.width;
+		    $$.horiz_stride = $2.horiz_stride;
+		    $$.reg_type = $3.type;
+		  }
+		}
+		| negate abs directgenreg region regtype swizzle
 		{
 		  memset (&$$, '\0', sizeof ($$));
 		  $$.address_mode = BRW_ADDRESS_DIRECT;
 		  $$.reg_file = $3.reg_file;
 		  $$.reg_nr = $3.reg_nr;
 		  $$.subreg_nr = $3.subreg_nr;
-		  $$.reg_type = $5;
+		  $$.reg_type = $5.type;
 		  $$.vert_stride = $4.vert_stride;
 		  $$.width = $4.width;
 		  $$.horiz_stride = $4.horiz_stride;
+		  $$.default_region = $4.is_default;
 		  $$.negate = $1;
 		  $$.abs = $2;
 		  $$.swizzle_set = $6.swizzle_set;
@@ -1111,7 +1505,7 @@ indirectsrcoperand:
 		  $$.reg_file = $3.reg_file;
 		  $$.address_subreg_nr = $3.address_subreg_nr;
 		  $$.indirect_offset = $3.indirect_offset;
-		  $$.reg_type = $5;
+		  $$.reg_type = $5.type;
 		  $$.vert_stride = $4.vert_stride;
 		  $$.width = $4.width;
 		  $$.horiz_stride = $4.horiz_stride;
@@ -1129,16 +1523,22 @@ indirectsrcoperand:
 /* Returns a partially-completed indirect_reg consisting of the address
  * register fields for register-indirect access.
  */
-addrparam:	addrreg immaddroffset
+addrparam:	addrreg COMMA immaddroffset
 		{
-		  if ($2 < -512 || $2 > 511) {
+		    if ($3 < -512 || $3 > 511) {
 		    fprintf(stderr, "Address immediate offset %d out of"
-			    "range\n", $2);
+			    "range %d\n", $3, yylineno);
 		    YYERROR;
 		  }
 		  memset (&$$, '\0', sizeof ($$));
 		  $$.address_subreg_nr = $1.subreg_nr;
-		  $$.indirect_offset = $2;
+		  $$.indirect_offset = $3;
+		}
+		| addrreg 
+		{
+		  memset (&$$, '\0', sizeof ($$));
+		  $$.address_subreg_nr = $1.subreg_nr;
+		  $$.indirect_offset = 0;
 		}
 ;
 
@@ -1155,7 +1555,7 @@ subregnum:	DOT exp
 		{
 		  $$ = $2;
 		}
-		|
+		|  %prec SUBREGNUM
 		{
 		  /* Default to subreg 0 if unspecified. */
 		  $$ = 0;
@@ -1309,7 +1709,7 @@ maskstackdepth_subreg: IMSD | LMSD
 ;
  */
 
-notifyreg:	NOTIFYREG
+notifyreg:	NOTIFYREG regtype
 		{
 		  if ($1 > 1) {
 		    fprintf(stderr,
@@ -1322,6 +1722,21 @@ notifyreg:	NOTIFYREG
 		  $$.reg_nr = BRW_ARF_NOTIFICATION_COUNT;
 		  $$.subreg_nr = 0;
 		}
+/*
+		| NOTIFYREG regtype
+		{
+		  if ($1 > 1) {
+		    fprintf(stderr,
+			    "notification register number %d out of range",
+			    $1);
+		    YYERROR;
+		  }
+		  memset (&$$, '\0', sizeof ($$));
+		  $$.reg_file = BRW_ARCHITECTURE_REGISTER_FILE;
+		  $$.reg_nr = BRW_ARF_NOTIFICATION_COUNT;
+		  $$.subreg_nr = 0;
+		}
+*/
 ;
 
 statereg:	STATEREG subregnum
@@ -1362,7 +1777,7 @@ controlreg:	CONTROLREG subregnum
 		}
 ;
 
-ipreg:		IPREG
+ipreg:		IPREG regtype
 		{
 		  memset (&$$, '\0', sizeof ($$));
 		  $$.reg_file = BRW_ARCHITECTURE_REGISTER_FILE;
@@ -1389,9 +1804,10 @@ relativelocation: imm32
 		    YYERROR;
 		  }
 		    
-		  if ($1.u.d > 32767 || $1.u.d < -32768) {
+		  if (($1.u.signed_d > 32767) || ($1.u.signed_d < -32768)) {
 		    fprintf(stderr,
-			    "error: relative offset %d out of range\n", $1.u.d);
+			    "error: relative offset %d out of range \n", 
+			    	$1.u.signed_d);
 		    YYERROR;
 		  }
 
@@ -1417,7 +1833,32 @@ relativelocation2:
 		}
 		| directgenreg region regtype
 		{
-		  set_direct_src_operand(&$$, &$1, $3);
+		  set_direct_src_operand(&$$, &$1, $3.type);
+		  $$.vert_stride = $2.vert_stride;
+		  $$.width = $2.width;
+		  $$.horiz_stride = $2.horiz_stride;
+		  $$.default_region = $2.is_default;
+		}
+		| symbol_reg_p
+		{
+		  memset (&$$, '\0', sizeof ($$));
+		  $$.address_mode = BRW_ADDRESS_DIRECT;
+		  $$.reg_file = $1.base.reg_file;
+		  $$.reg_nr = $1.base.reg_nr;
+		  $$.subreg_nr = $1.base.subreg_nr;
+		  $$.reg_type = $1.type;
+		  $$.vert_stride = $1.src_region.vert_stride;
+		  $$.width = $1.src_region.width;
+		  $$.horiz_stride = $1.src_region.horiz_stride;
+		}
+		| indirectgenreg indirectregion regtype
+		{
+		  memset (&$$, '\0', sizeof ($$));
+		  $$.address_mode = BRW_ADDRESS_REGISTER_INDIRECT_REGISTER;
+		  $$.reg_file = $1.reg_file;
+		  $$.address_subreg_nr = $1.address_subreg_nr;
+		  $$.indirect_offset = $1.indirect_offset;
+		  $$.reg_type = $3.type;
 		  $$.vert_stride = $2.vert_stride;
 		  $$.width = $2.width;
 		  $$.horiz_stride = $2.horiz_stride;
@@ -1440,7 +1881,11 @@ locationstackcontrol:
 ;
 
 /* 1.4.7: Regions */
-dstregion:	LANGLE exp RANGLE
+dstregion:	/* empty */
+		{
+		  $$ = DEFAULT_DSTREGION;
+		}
+		|LANGLE exp RANGLE
 		{
 		  /* Returns a value for a horiz_stride field of an
 		   * instruction.
@@ -1452,7 +1897,24 @@ dstregion:	LANGLE exp RANGLE
 		}
 ;
 
-region:		LANGLE exp COMMA exp COMMA exp RANGLE
+region:		/* empty */
+		{
+		  /* XXX is this default value correct?*/
+		  memset (&$$, '\0', sizeof ($$));
+		  $$.vert_stride = ffs(0);
+		  $$.width = ffs(1) - 1;
+		  $$.horiz_stride = ffs(0);
+		  $$.is_default = 1;
+		}
+		|LANGLE exp RANGLE
+		{
+		  /* XXX is this default value correct for accreg?*/
+		  memset (&$$, '\0', sizeof ($$));
+		  $$.vert_stride = ffs($2);
+		  $$.width = ffs(1) - 1;
+		  $$.horiz_stride = ffs(0);
+		}
+		|LANGLE exp COMMA exp COMMA exp RANGLE
 		{
 		  memset (&$$, '\0', sizeof ($$));
 		  $$.vert_stride = ffs($2);
@@ -1466,8 +1928,8 @@ region:		LANGLE exp COMMA exp COMMA exp RANGLE
 		  $$.width = ffs($4) - 1;
 		  $$.horiz_stride = ffs($6);
 		}
-;
 
+;
 /* region_wh is used in specifying indirect operands where rather than having
  * a vertical stride, you use subsequent address registers to get a new base
  * offset for the next row.
@@ -1489,16 +1951,23 @@ indirectregion:	region | region_wh
 /* regtype returns an integer register type suitable for inserting into an
  * instruction.
  */
-regtype:	TYPE_F { $$ = BRW_REGISTER_TYPE_F; }
-		| TYPE_UD { $$ = BRW_REGISTER_TYPE_UD; }
-		| TYPE_D { $$ = BRW_REGISTER_TYPE_D; }
-		| TYPE_UW { $$ = BRW_REGISTER_TYPE_UW; }
-		| TYPE_W { $$ = BRW_REGISTER_TYPE_W; }
-		| TYPE_UB { $$ = BRW_REGISTER_TYPE_UB; }
-		| TYPE_B { $$ = BRW_REGISTER_TYPE_B; }
+regtype:	/* empty */
+		{ $$.type = program_defaults.register_type;$$.is_default = 1;}
+		| TYPE_F { $$.type = BRW_REGISTER_TYPE_F;$$.is_default = 0; }
+		| TYPE_UD { $$.type = BRW_REGISTER_TYPE_UD;$$.is_default = 0; }
+		| TYPE_D { $$.type = BRW_REGISTER_TYPE_D;$$.is_default = 0; }
+		| TYPE_UW { $$.type = BRW_REGISTER_TYPE_UW;$$.is_default = 0; }
+		| TYPE_W { $$.type = BRW_REGISTER_TYPE_W;$$.is_default = 0; }
+		| TYPE_UB { $$.type = BRW_REGISTER_TYPE_UB;$$.is_default = 0; }
+		| TYPE_B { $$.type = BRW_REGISTER_TYPE_B;$$.is_default = 0; }
 ;
 
-srcimmtype:	TYPE_F { $$ = BRW_REGISTER_TYPE_F; }
+srcimmtype:	/* empty */
+		{
+		    /* XXX change to default when pragma parse is done */
+		   $$ = BRW_REGISTER_TYPE_D;
+		}
+		|TYPE_F { $$ = BRW_REGISTER_TYPE_F; }
 		| TYPE_UD { $$ = BRW_REGISTER_TYPE_UD; }
 		| TYPE_D { $$ = BRW_REGISTER_TYPE_D; }
 		| TYPE_UW { $$ = BRW_REGISTER_TYPE_UW; }
@@ -1626,7 +2095,11 @@ abs:		/* empty */ { $$ = 0; }
 		| ABS { $$ = 1; }
 ;
 
-execsize:	LPAREN exp RPAREN
+execsize:	/* empty */ %prec EMPTEXECSIZE
+		{
+		  $$ = ffs(program_defaults.execute_size) - 1;
+		}
+		|LPAREN exp RPAREN
 		{
 		  /* Returns a value for the execution_size field of an
 		   * instruction.
@@ -1641,10 +2114,20 @@ execsize:	LPAREN exp RPAREN
 ;
 
 saturate:	/* empty */ { $$ = BRW_INSTRUCTION_NORMAL; }
-		| DOT SATURATE { $$ = BRW_INSTRUCTION_SATURATE; }
+		| SATURATE { $$ = BRW_INSTRUCTION_SATURATE; }
 ;
+conditionalmodifier: condition 
+		{
+		    $$.cond = $1;
+		    $$.flagreg = -1;
+		}
+		| condition DOT flagreg
+		{
+		    $$.cond = $1;
+		    $$.flagreg = $3.subreg_nr;
+		}
 
-conditionalmodifier: /* empty */    { $$ = BRW_CONDITIONAL_NONE; }
+condition: /* empty */    { $$ = BRW_CONDITIONAL_NONE; }
 		| ZERO
 		| EQUAL
 		| NOT_ZERO
@@ -1665,10 +2148,9 @@ instoptions:	/* empty */
 		{ $$ = $2; }
 ;
 
-instoption_list:
- 		instoption instoption_list
+instoption_list:instoption COMMA instoption_list
 		{
-		  $$ = $2;
+		  $$ = $3;
 		  switch ($1) {
 		  case ALIGN1:
 		    $$.header.access_mode = BRW_ALIGN_1;
@@ -1705,6 +2187,44 @@ instoption_list:
 		    break;
 		  case ACCWRCTRL:
 		    $$.header.acc_wr_control = BRW_ACCWRCTRL_ACCWRCTRL;
+		  }
+		}
+		| instoption instoption_list
+		{
+		  $$ = $2;
+		  switch ($1) {
+		  case ALIGN1:
+		    $$.header.access_mode = BRW_ALIGN_1;
+		    break;
+		  case ALIGN16:
+		    $$.header.access_mode = BRW_ALIGN_16;
+		    break;
+		  case SECHALF:
+		    $$.header.compression_control |= BRW_COMPRESSION_2NDHALF;
+		    break;
+		  case COMPR:
+			if (gen_level < 6) {
+		      $$.header.compression_control |=
+		        BRW_COMPRESSION_COMPRESSED;
+			}
+		    break;
+		  case SWITCH:
+		    $$.header.thread_control |= BRW_THREAD_SWITCH;
+		    break;
+		  case ATOMIC:
+		    $$.header.thread_control |= BRW_THREAD_ATOMIC;
+		    break;
+		  case NODDCHK:
+		    $$.header.dependency_control |= BRW_DEPENDENCY_NOTCHECKED;
+		    break;
+		  case NODDCLR:
+		    $$.header.dependency_control |= BRW_DEPENDENCY_NOTCLEARED;
+		    break;
+		  case MASK_DISABLE:
+		    $$.header.mask_control = BRW_MASK_DISABLE;
+		    break;
+		  case BREAKPOINT:
+		    $$.header.debug_control = BRW_DEBUG_BREAKPOINT;
 		    break;
 		  case EOT:
 		    /* XXX: EOT shouldn't be an instoption, I don't think */
@@ -1745,17 +2265,134 @@ void yyerror (char *msg)
 	++errors;
 }
 
+static int get_type_size(GLuint type)
+{
+    int size = 1;
+
+    switch (type) {
+    case BRW_REGISTER_TYPE_F:
+    case BRW_REGISTER_TYPE_UD:
+    case BRW_REGISTER_TYPE_D:
+        size = 4;
+        break;
+
+    case BRW_REGISTER_TYPE_UW:
+    case BRW_REGISTER_TYPE_W:
+        size = 2;
+        break;
+
+    case BRW_REGISTER_TYPE_UB:
+    case BRW_REGISTER_TYPE_B:
+        size = 1;
+        break;
+
+    default:
+        assert(0);
+        size = 1;
+        break;
+    }
+
+    return size;
+}
+
+static int get_subreg_address(GLuint regfile, GLuint type, GLuint subreg, GLuint address_mode)
+{
+    int unit_size = 1;
+
+    if (address_mode == BRW_ADDRESS_DIRECT) {
+        if (advanced_flag == 1) {
+            if ((regfile == BRW_GENERAL_REGISTER_FILE ||
+                 regfile == BRW_MESSAGE_REGISTER_FILE || 
+                 regfile == BRW_ARCHITECTURE_REGISTER_FILE)) {
+                
+                unit_size = get_type_size(type);
+            } 
+        }
+    } else {
+        assert(regfile == BRW_GENERAL_REGISTER_FILE ||
+               regfile == BRW_MESSAGE_REGISTER_FILE);
+        unit_size = 1;
+    }
+
+    return subreg * unit_size;
+}
+
+static void reset_instruction_src_region(struct brw_instruction *instr, 
+                                         struct src_operand *src)
+{
+    if (!src->default_region)
+        return;
+
+    if (src->reg_file == BRW_ARCHITECTURE_REGISTER_FILE && 
+        ((src->reg_nr & 0xF0) == BRW_ARF_ADDRESS)) {
+        src->vert_stride = ffs(0);
+        src->width = ffs(1) - 1;
+        src->horiz_stride = ffs(0);
+    } else if (src->reg_file == BRW_ARCHITECTURE_REGISTER_FILE &&
+               ((src->reg_nr & 0xF0) == BRW_ARF_ACCUMULATOR)) {
+        int horiz_stride = 1, width, vert_stride;
+        if (instr->header.compression_control == BRW_COMPRESSION_COMPRESSED) {
+            width = 16;
+        } else {
+            width = 8;
+        }
+
+        if (width > (1 << instr->header.execution_size))
+            width = (1 << instr->header.execution_size);
+
+        vert_stride = horiz_stride * width;
+        src->vert_stride = ffs(vert_stride);
+        src->width = ffs(width) - 1;
+        src->horiz_stride = ffs(horiz_stride);
+    } else if ((src->reg_file == BRW_ARCHITECTURE_REGISTER_FILE) &&
+               (src->reg_nr == BRW_ARF_NULL) &&
+               (instr->header.opcode == BRW_OPCODE_SEND)) {
+        src->vert_stride = ffs(8);
+        src->width = ffs(8) - 1;
+        src->horiz_stride = ffs(1);
+    } else {
+
+        int horiz_stride = 1, width, vert_stride;
+
+        if (instr->header.execution_size == 0) { /* scalar */
+            horiz_stride = 0;
+            width = 1;
+            vert_stride = 0;
+        } else {
+            if ((instr->header.opcode == BRW_OPCODE_MUL) ||
+                (instr->header.opcode == BRW_OPCODE_MAC) ||
+                (instr->header.opcode == BRW_OPCODE_CMP) ||
+                (instr->header.opcode == BRW_OPCODE_ASR) ||
+                (instr->header.opcode == BRW_OPCODE_ADD) ||
+				(instr->header.opcode == BRW_OPCODE_SHL)) {
+                horiz_stride = 0;
+                width = 1;
+                vert_stride = 0;
+            } else {
+                width = (1 << instr->header.execution_size) / horiz_stride;
+                vert_stride = horiz_stride * width;
+            }
+        }
+
+        src->vert_stride = ffs(vert_stride);
+        src->width = ffs(width) - 1;
+        src->horiz_stride = ffs(horiz_stride);
+    }
+}
+
 /**
  * Fills in the destination register information in instr from the bits in dst.
  */
 int set_instruction_dest(struct brw_instruction *instr,
 			 struct dst_operand *dest)
 {
+	if (dest->horiz_stride == DEFAULT_DSTREGION)
+		dest->horiz_stride = ffs(1);
 	if (dest->address_mode == BRW_ADDRESS_DIRECT &&
 	    instr->header.access_mode == BRW_ALIGN_1) {
 		instr->bits1.da1.dest_reg_file = dest->reg_file;
 		instr->bits1.da1.dest_reg_type = dest->reg_type;
-		instr->bits1.da1.dest_subreg_nr = dest->subreg_nr;
+		instr->bits1.da1.dest_subreg_nr = get_subreg_address(dest->reg_file, dest->reg_type, dest->subreg_nr, dest->address_mode);
 		instr->bits1.da1.dest_reg_nr = dest->reg_nr;
 		instr->bits1.da1.dest_horiz_stride = dest->horiz_stride;
 		instr->bits1.da1.dest_address_mode = dest->address_mode;
@@ -1767,15 +2404,15 @@ int set_instruction_dest(struct brw_instruction *instr,
 	} else if (dest->address_mode == BRW_ADDRESS_DIRECT) {
 		instr->bits1.da16.dest_reg_file = dest->reg_file;
 		instr->bits1.da16.dest_reg_type = dest->reg_type;
-		instr->bits1.da16.dest_subreg_nr = dest->subreg_nr;
+		instr->bits1.da16.dest_subreg_nr = get_subreg_address(dest->reg_file, dest->reg_type, dest->subreg_nr, dest->address_mode);
 		instr->bits1.da16.dest_reg_nr = dest->reg_nr;
 		instr->bits1.da16.dest_address_mode = dest->address_mode;
-		instr->bits1.da16.dest_horiz_stride = 1;
+		instr->bits1.da16.dest_horiz_stride = ffs(1);
 		instr->bits1.da16.dest_writemask = dest->writemask;
 	} else if (instr->header.access_mode == BRW_ALIGN_1) {
 		instr->bits1.ia1.dest_reg_file = dest->reg_file;
 		instr->bits1.ia1.dest_reg_type = dest->reg_type;
-		instr->bits1.ia1.dest_subreg_nr = dest->address_subreg_nr;
+		instr->bits1.ia1.dest_subreg_nr = get_subreg_address(dest->reg_file, dest->reg_type, dest->address_subreg_nr, dest->address_mode);
 		instr->bits1.ia1.dest_horiz_stride = dest->horiz_stride;
 		instr->bits1.ia1.dest_indirect_offset = dest->indirect_offset;
 		instr->bits1.ia1.dest_address_mode = dest->address_mode;
@@ -1787,10 +2424,10 @@ int set_instruction_dest(struct brw_instruction *instr,
 	} else {
 		instr->bits1.ia16.dest_reg_file = dest->reg_file;
 		instr->bits1.ia16.dest_reg_type = dest->reg_type;
-		instr->bits1.ia16.dest_subreg_nr = dest->address_subreg_nr;
+		instr->bits1.ia16.dest_subreg_nr = get_subreg_address(dest->reg_file, dest->reg_type, dest->address_subreg_nr, dest->address_mode);
 		instr->bits1.ia16.dest_writemask = dest->writemask;
-		instr->bits1.ia16.dest_indirect_offset = dest->indirect_offset;
-		instr->bits1.ia16.dest_horiz_stride = 1;
+		instr->bits1.ia16.dest_horiz_stride = ffs(1);
+		instr->bits1.ia16.dest_indirect_offset = (dest->indirect_offset >> 4); /* half register aligned */
 		instr->bits1.ia16.dest_address_mode = dest->address_mode;
 	}
 
@@ -1801,12 +2438,16 @@ int set_instruction_dest(struct brw_instruction *instr,
 int set_instruction_src0(struct brw_instruction *instr,
 			  struct src_operand *src)
 {
+	if (advanced_flag) {
+		reset_instruction_src_region(instr, src);
+	}
 	instr->bits1.da1.src0_reg_file = src->reg_file;
 	instr->bits1.da1.src0_reg_type = src->reg_type;
 	if (src->reg_file == BRW_IMMEDIATE_VALUE) {
 		instr->bits3.ud = src->imm32;
-	} else if (instr->header.access_mode == BRW_ALIGN_1) {
-		instr->bits2.da1.src0_subreg_nr = src->subreg_nr;
+	} else if (src->address_mode == BRW_ADDRESS_DIRECT) {
+            if (instr->header.access_mode == BRW_ALIGN_1) {
+		instr->bits2.da1.src0_subreg_nr = get_subreg_address(src->reg_file, src->reg_type, src->subreg_nr, src->address_mode);
 		instr->bits2.da1.src0_reg_nr = src->reg_nr;
 		instr->bits2.da1.src0_vert_stride = src->vert_stride;
 		instr->bits2.da1.src0_width = src->width;
@@ -1819,8 +2460,8 @@ int set_instruction_src0(struct brw_instruction *instr,
 				"instruction\n");
 			return 1;
 		}
-	} else {
-		instr->bits2.da16.src0_subreg_nr = src->subreg_nr;
+            } else {
+		instr->bits2.da16.src0_subreg_nr = get_subreg_address(src->reg_file, src->reg_type, src->subreg_nr, src->address_mode);
 		instr->bits2.da16.src0_reg_nr = src->reg_nr;
 		instr->bits2.da16.src0_vert_stride = src->vert_stride;
 		instr->bits2.da16.src0_negate = src->negate;
@@ -1830,7 +2471,35 @@ int set_instruction_src0(struct brw_instruction *instr,
 		instr->bits2.da16.src0_swz_z = src->swizzle_z;
 		instr->bits2.da16.src0_swz_w = src->swizzle_w;
 		instr->bits2.da16.src0_address_mode = src->address_mode;
-	}
+            }
+        } else {
+            if (instr->header.access_mode == BRW_ALIGN_1) {
+		instr->bits2.ia1.src0_indirect_offset = src->indirect_offset;
+		instr->bits2.ia1.src0_subreg_nr = get_subreg_address(src->reg_file, src->reg_type, src->address_subreg_nr, src->address_mode);
+		instr->bits2.ia1.src0_abs = src->abs;
+		instr->bits2.ia1.src0_negate = src->negate;
+		instr->bits2.ia1.src0_address_mode = src->address_mode;
+		instr->bits2.ia1.src0_horiz_stride = src->horiz_stride;
+		instr->bits2.ia1.src0_width = src->width;
+		instr->bits2.ia1.src0_vert_stride = src->vert_stride;
+		if (src->swizzle_set) {
+			fprintf(stderr, "error: swizzle bits set in align1 "
+				"instruction\n");
+			return 1;
+		}
+            } else {
+		instr->bits2.ia16.src0_swz_x = src->swizzle_x;
+		instr->bits2.ia16.src0_swz_y = src->swizzle_y;
+		instr->bits2.ia16.src0_indirect_offset = (src->indirect_offset >> 4); /* half register aligned */
+		instr->bits2.ia16.src0_subreg_nr = get_subreg_address(src->reg_file, src->reg_type, src->address_subreg_nr, src->address_mode);
+		instr->bits2.ia16.src0_abs = src->abs;
+		instr->bits2.ia16.src0_negate = src->negate;
+		instr->bits2.ia16.src0_address_mode = src->address_mode;
+		instr->bits2.ia16.src0_swz_z = src->swizzle_z;
+		instr->bits2.ia16.src0_swz_w = src->swizzle_w;
+		instr->bits2.ia16.src0_vert_stride = src->vert_stride;
+            }
+        }
 
 	return 0;
 }
@@ -1840,30 +2509,37 @@ int set_instruction_src0(struct brw_instruction *instr,
 int set_instruction_src1(struct brw_instruction *instr,
 			  struct src_operand *src)
 {
+	if (advanced_flag) {
+		reset_instruction_src_region(instr, src);
+	}
 	instr->bits1.da1.src1_reg_file = src->reg_file;
 	instr->bits1.da1.src1_reg_type = src->reg_type;
 	if (src->reg_file == BRW_IMMEDIATE_VALUE) {
 		instr->bits3.ud = src->imm32;
-	} else if (instr->header.access_mode == BRW_ALIGN_1) {
-		instr->bits3.da1.src1_subreg_nr = src->subreg_nr;
+	} else if (src->address_mode == BRW_ADDRESS_DIRECT) {
+            if (instr->header.access_mode == BRW_ALIGN_1) {
+		instr->bits3.da1.src1_subreg_nr = get_subreg_address(src->reg_file, src->reg_type, src->subreg_nr, src->address_mode);
 		instr->bits3.da1.src1_reg_nr = src->reg_nr;
 		instr->bits3.da1.src1_vert_stride = src->vert_stride;
 		instr->bits3.da1.src1_width = src->width;
 		instr->bits3.da1.src1_horiz_stride = src->horiz_stride;
 		instr->bits3.da1.src1_negate = src->negate;
 		instr->bits3.da1.src1_abs = src->abs;
+                instr->bits3.da1.src1_address_mode = src->address_mode;
+		/* XXX why?
 		if (src->address_mode != BRW_ADDRESS_DIRECT) {
 			fprintf(stderr, "error: swizzle bits set in align1 "
 				"instruction\n");
 			return 1;
 		}
+		*/
 		if (src->swizzle_set) {
 			fprintf(stderr, "error: swizzle bits set in align1 "
 				"instruction\n");
 			return 1;
 		}
-	} else {
-		instr->bits3.da16.src1_subreg_nr = src->subreg_nr;
+            } else {
+		instr->bits3.da16.src1_subreg_nr = get_subreg_address(src->reg_file, src->reg_type, src->subreg_nr, src->address_mode);
 		instr->bits3.da16.src1_reg_nr = src->reg_nr;
 		instr->bits3.da16.src1_vert_stride = src->vert_stride;
 		instr->bits3.da16.src1_negate = src->negate;
@@ -1872,12 +2548,41 @@ int set_instruction_src1(struct brw_instruction *instr,
 		instr->bits3.da16.src1_swz_y = src->swizzle_y;
 		instr->bits3.da16.src1_swz_z = src->swizzle_z;
 		instr->bits3.da16.src1_swz_w = src->swizzle_w;
+                instr->bits3.da16.src1_address_mode = src->address_mode;
 		if (src->address_mode != BRW_ADDRESS_DIRECT) {
 			fprintf(stderr, "error: swizzle bits set in align1 "
 				"instruction\n");
 			return 1;
 		}
-	}
+            }
+	} else {
+            if (instr->header.access_mode == BRW_ALIGN_1) {
+		instr->bits3.ia1.src1_indirect_offset = src->indirect_offset;
+		instr->bits3.ia1.src1_subreg_nr = get_subreg_address(src->reg_file, src->reg_type, src->address_subreg_nr, src->address_mode);
+		instr->bits3.ia1.src1_abs = src->abs;
+		instr->bits3.ia1.src1_negate = src->negate;
+		instr->bits3.ia1.src1_address_mode = src->address_mode;
+		instr->bits3.ia1.src1_horiz_stride = src->horiz_stride;
+		instr->bits3.ia1.src1_width = src->width;
+		instr->bits3.ia1.src1_vert_stride = src->vert_stride;
+		if (src->swizzle_set) {
+			fprintf(stderr, "error: swizzle bits set in align1 "
+				"instruction\n");
+			return 1;
+		}
+            } else {
+		instr->bits3.ia16.src1_swz_x = src->swizzle_x;
+		instr->bits3.ia16.src1_swz_y = src->swizzle_y;
+		instr->bits3.ia16.src1_indirect_offset = (src->indirect_offset >> 4); /* half register aligned */
+		instr->bits3.ia16.src1_subreg_nr = get_subreg_address(src->reg_file, src->reg_type, src->address_subreg_nr, src->address_mode);
+		instr->bits3.ia16.src1_abs = src->abs;
+		instr->bits3.ia16.src1_negate = src->negate;
+		instr->bits3.ia16.src1_address_mode = src->address_mode;
+		instr->bits3.ia16.src1_swz_z = src->swizzle_z;
+		instr->bits3.ia16.src1_swz_w = src->swizzle_w;
+		instr->bits3.ia16.src1_vert_stride = src->vert_stride;
+            }
+        }
 
 	return 0;
 }
