@@ -193,7 +193,7 @@ static void dump_backlight_info(void)
 	printf("Backlight info block (len %d):\n", block->size);
 
 	if (sizeof(struct blc_struct) != backlight->blcstruct_size) {
-		printf("\tBacklight struct sizes don't match (expected %u, got %u), skipping\n",
+		printf("\tBacklight struct sizes don't match (expected %lu, got %u), skipping\n",
 		     sizeof(struct blc_struct), backlight->blcstruct_size);
 		return;
 	}
@@ -241,8 +241,11 @@ static const struct {
 	{ DEVICE_TYPE_LFP_LVDS_DUAL_HDCP, "LVDS" },
 	{ DEVICE_TYPE_INT_LFP, "LFP" },
 	{ DEVICE_TYPE_INT_TV, "TV" },
-	{ DEVICE_TYPE_HDMI, "HDMI" },
 	{ DEVICE_TYPE_DP, "DisplayPort" },
+	{ DEVICE_TYPE_DP_HDMI_DVI, "DisplayPort/HDMI/DVI" },
+	{ DEVICE_TYPE_DP_DVI, "DisplayPort/DVI" },
+	{ DEVICE_TYPE_HDMI_DVI, "HDMI/DVI" },
+	{ DEVICE_TYPE_DVI, "DVI" },
 	{ DEVICE_TYPE_eDP, "eDP" },
 };
 static const int num_child_device_types =
@@ -259,6 +262,55 @@ static const char *child_device_type(unsigned short type)
 	return "unknown";
 }
 
+static const struct {
+	unsigned short type;
+	const char *name;
+} efp_ports[] = {
+	{ DEVICE_PORT_NONE, "N/A" },
+	{ DEVICE_PORT_HDMIB, "HDMI-B" },
+	{ DEVICE_PORT_HDMIC, "HDMI-C" },
+	{ DEVICE_PORT_HDMID, "HDMI-D" },
+	{ DEVICE_PORT_DPB, "DP-B" },
+	{ DEVICE_PORT_DPC, "DP-C" },
+	{ DEVICE_PORT_DPD, "DP-D" },
+};
+static const int num_efp_ports = sizeof(efp_ports) / sizeof(efp_ports[0]);
+
+static const char *efp_port(uint8_t type)
+{
+	int i;
+
+	for (i = 0; i < num_efp_ports; i++)
+		if (efp_ports[i].type == type)
+			return efp_ports[i].name;
+
+	return "unknown";
+}
+
+static const struct {
+	unsigned short type;
+	const char *name;
+} efp_conn_info[] = {
+	{ DEVICE_INFO_NONE, "N/A" },
+	{ DEVICE_INFO_HDMI_CERT, "HDMI certified" },
+	{ DEVICE_INFO_DP, "DisplayPort" },
+	{ DEVICE_INFO_DVI, "DVI" },
+};
+static const int num_efp_conn_info = sizeof(efp_conn_info) / sizeof(efp_conn_info[0]);
+
+static const char *efp_conn(uint8_t type)
+{
+	int i;
+
+	for (i = 0; i < num_efp_conn_info; i++)
+		if (efp_conn_info[i].type == type)
+			return efp_conn_info[i].name;
+
+	return "unknown";
+}
+
+
+
 static void dump_child_device(struct child_device_config *child)
 {
 	char child_id[11];
@@ -266,15 +318,32 @@ static void dump_child_device(struct child_device_config *child)
 	if (!child->device_type)
 		return;
 
-	strncpy(child_id, (char *)child->device_id, 10);
-	child_id[10] = 0;
+	if (bdb->version < 152) {
+		strncpy(child_id, (char *)child->device_id, 10);
+		child_id[10] = 0;
 
-	printf("\tChild device info:\n");
-	printf("\t\tDevice type: %04x (%s)\n", child->device_type,
-	       child_device_type(child->device_type));
-	printf("\t\tSignature: %s\n", child_id);
-	printf("\t\tAIM offset: %d\n", child->addin_offset);
-	printf("\t\tDVO port: 0x%02x\n", child->dvo_port);
+		printf("\tChild device info:\n");
+		printf("\t\tDevice type: %04x (%s)\n", child->device_type,
+		       child_device_type(child->device_type));
+		printf("\t\tSignature: %s\n", child_id);
+		printf("\t\tAIM offset: %d\n", child->addin_offset);
+		printf("\t\tDVO port: 0x%02x\n", child->dvo_port);
+	} else { /* 152+ have EFP blocks here */
+		struct efp_child_device_config *efp =
+			(struct efp_child_device_config *)child;
+		printf("\tEFP device info:\n");
+		printf("\t\tDevice type: 0x%04x (%s)\n", efp->device_type,
+		       child_device_type(efp->device_type));
+		printf("\t\tPort: 0x%02x (%s)\n", efp->port,
+		       efp_port(efp->port));
+		printf("\t\tDDC pin: 0x%02x\n", efp->ddc_pin);
+		printf("\t\tDock port: 0x%02x (%s)\n", efp->docked_port,
+		       efp_port(efp->docked_port));
+		printf("\t\tHDMI compatible? %s\n", efp->hdmi_compat ? "Yes" : "No");
+		printf("\t\tInfo: %s\n", efp_conn(efp->conn_info));
+		printf("\t\tAux channel: 0x%02x\n", efp->aux_chan);
+		printf("\t\tDongle detect: 0x%02x\n", efp->dongle_detect);
+	}
 }
 
 static void dump_general_definitions(void)
@@ -306,11 +375,9 @@ static void dump_general_definitions(void)
 	child_device_num = (block->size - sizeof(*defs)) / sizeof(*child);
 	for (i = 0; i < child_device_num; i++)
 		dump_child_device(&defs->devices[i]);
-
 	free(block);
 }
 
-#if 0
 static void dump_child_devices(void)
 {
 	struct bdb_block *block;
@@ -333,7 +400,8 @@ static void dump_child_devices(void)
 		if (!child->device_type)
 			continue;
 		printf("\tChild device %d\n", i);
-		printf("\t\tType: 0x%04x\n", child->device_type);
+		printf("\t\tType: 0x%04x (%s)\n", child->device_type,
+		       child_device_type(child->device_type));
 		printf("\t\tDVO port: 0x%02x\n", child->dvo_port);
 		printf("\t\tI2C pin: 0x%02x\n", child->i2c_pin);
 		printf("\t\tSlave addr: 0x%02x\n", child->slave_addr);
@@ -344,7 +412,6 @@ static void dump_child_devices(void)
 
 	free(block);
 }
-#endif
 
 static void dump_lvds_options(void)
 {
@@ -733,7 +800,7 @@ int main(int argc, char **argv)
 	strncpy(signature, (char *)bdb->signature, 16);
 	signature[16] = 0;
 	printf("BDB sig: %s\n", signature);
-	printf("BDB vers: %d.%d\n", bdb->version / 100, bdb->version % 100);
+	printf("BDB vers: %d\n", bdb->version);
 
 	printf("Available sections: ");
 	for (i = 0; i < 256; i++) {
@@ -751,7 +818,7 @@ int main(int argc, char **argv)
 
 	dump_general_features();
 	dump_general_definitions();
-//    dump_child_devices();
+	dump_child_devices();
 	dump_lvds_options();
 	dump_lvds_data();
 	dump_lvds_ptr_data();

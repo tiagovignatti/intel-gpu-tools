@@ -158,10 +158,15 @@ struct bdb_general_features {
 #define DEVICE_TYPE_LFP_LVDS_PWR	0x5062
 #define DEVICE_TYPE_LFP_LVDS_DUAL	0x5162
 #define DEVICE_TYPE_LFP_LVDS_DUAL_HDCP	0x51e2
+#define DEVICE_TYPE_INT_HDMI		0xf0D2
+
 #define DEVICE_TYPE_INT_LFP		0x1022
 #define DEVICE_TYPE_INT_TV		0x1009
-#define DEVICE_TYPE_HDMI		0x60D2
 #define DEVICE_TYPE_DP			0x68C6
+#define DEVICE_TYPE_DP_HDMI_DVI		0x60d6
+#define DEVICE_TYPE_DP_DVI		0x68d6
+#define DEVICE_TYPE_HDMI_DVI		0x60d2
+#define DEVICE_TYPE_DVI			0x68d2
 #define DEVICE_TYPE_eDP			0x78C6
 
 #define DEVICE_CFG_NONE		0x00
@@ -188,6 +193,19 @@ struct bdb_general_features {
 #define DEVICE_PORT_DVOB	0x01
 #define DEVICE_PORT_DVOC	0x02
 
+#define DEVICE_PORT_NONE	0
+#define DEVICE_PORT_HDMIB	1
+#define DEVICE_PORT_HDMIC	2
+#define DEVICE_PORT_HDMID	3
+#define DEVICE_PORT_DPB		7
+#define DEVICE_PORT_DPC		8
+#define DEVICE_PORT_DPD		9
+
+#define DEVICE_INFO_NONE	0
+#define DEVICE_INFO_HDMI_CERT	1
+#define DEVICE_INFO_DP		2
+#define DEVICE_INFO_DVI		3
+
 struct child_device_config {
 	uint16_t handle;
 	uint16_t device_type;	/* See DEVICE_TYPE_* above */
@@ -208,6 +226,23 @@ struct child_device_config {
 	uint8_t dvo2_wiring;
 	uint16_t extended_type;
 	uint8_t dvo_function;
+} __attribute__ ((packed));
+
+struct efp_child_device_config {
+	uint16_t handle;
+	uint16_t device_type;
+	uint8_t skip1[12];
+	uint8_t port;
+	uint8_t skip2[2];
+	uint8_t ddc_pin;
+	uint8_t skip3[3];
+	uint8_t docked_port;
+	uint8_t hdmi_compat:1;
+	uint8_t conn_info:3;
+	uint8_t skip4:4;
+	uint8_t aux_chan;
+	uint8_t dongle_detect;
+	uint8_t skip5[6];
 } __attribute__ ((packed));
 
 struct bdb_general_definitions {
