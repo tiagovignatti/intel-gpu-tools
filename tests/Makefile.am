@@ -14,7 +14,9 @@ TESTS = getversion \
 	gem_bad_blit \
 	gem_bad_batch \
 	gem_hang \
-	gem_fence_thrash
+	gem_fence_thrash \
+	gem_gtt_speed \
+	$(NULL)
 
 EXTRA_PROGRAMS = $(TESTS)
 CLEANFILES = $(EXTRA_PROGRAMS)

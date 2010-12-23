@@ -36,6 +36,7 @@ tests/getversion
 tests/gem_basic
 tests/gem_fence_thrash
 tests/gem_flink
+tests/gem_gtt_speed
 tests/gem_largeobject
 tests/gem_mmap
 tests/gem_pread_after_blit
