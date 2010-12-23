@@ -256,8 +256,16 @@ read_data_file (FILE *file)
 	    printf("%s", line);
 
 	    matched = sscanf (line, "PCI ID: 0x%04x\n", &reg);
-	    if (matched == 1)
+	    if (matched == 1) {
 		    devid = reg;
+		    if (IS_965(devid)) {
+			    printf("Detected i965+ chipset\n");
+		    } else if (IS_9XX(devid)) {
+			    printf("Detected i9xx chipset\n");
+		    } else {
+			    printf("Detected i8xx chipset\n");
+		    }
+	    }
 
 	    matched = sscanf (line, "  ACTHD: 0x%08x\n", &reg);
 	    if (matched == 1)
