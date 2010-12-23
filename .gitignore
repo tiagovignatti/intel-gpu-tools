@@ -48,6 +48,7 @@ tests/gem_bad_address
 tests/gem_bad_batch
 tests/gem_bad_blit
 tests/gem_hang
+tests/gem_gtt_speed
 tools/intel_disable_clock_gating
 tools/intel_error_decode
 tools/intel_gpu_dump
