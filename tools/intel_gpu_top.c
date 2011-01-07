@@ -391,6 +391,9 @@ int main(int argc, char **argv)
 	}, bsd6_ring = {
 		.name = "bitstream",
 		.mmio = 0x12030,
+	}, blt_ring = {
+		.name = "blitter",
+		.mmio = 0x22030,
 	};
 	int i;
 
@@ -408,8 +411,10 @@ int main(int argc, char **argv)
 	ring_init(&render_ring);
 	if (IS_GEN4(devid) || IS_IRONLAKE(devid))
 		ring_init(&bsd_ring);
-	if (IS_GEN6(devid))
+	if (IS_GEN6(devid)) {
 		ring_init(&bsd6_ring);
+		ring_init(&blt_ring);
+	}
 
 	for (;;) {
 		int j;
@@ -422,6 +427,7 @@ int main(int argc, char **argv)
 		ring_reset(&render_ring);
 		ring_reset(&bsd_ring);
 		ring_reset(&bsd6_ring);
+		ring_reset(&blt_ring);
 
 		for (i = 0; i < SAMPLES_PER_SEC; i++) {
 			if (IS_965(devid)) {
@@ -436,6 +442,7 @@ int main(int argc, char **argv)
 			ring_sample(&render_ring);
 			ring_sample(&bsd_ring);
 			ring_sample(&bsd6_ring);
+			ring_sample(&blt_ring);
 			usleep(1000000 / SAMPLES_PER_SEC);
 		}
 
@@ -473,6 +480,7 @@ int main(int argc, char **argv)
 		ring_print(&render_ring);
 		ring_print(&bsd_ring);
 		ring_print(&bsd6_ring);
+		ring_print(&blt_ring);
 
 		printf("\n%30s  %s\n", "task", "percent busy");
 		for (i = 0; i < max_lines; i++) {
