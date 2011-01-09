@@ -223,30 +223,38 @@ read_data_file (FILE *file)
     int is_batch = 1;
 
     while (getline (&line, &line_size, file) > 0) {
+	char *dashes;
 	line_number++;
 
-	matched = sscanf (line, "--- gtt_offset = 0x%08x\n", &new_gtt_offset);
-	if (matched == 1) {
-	    if (count) {
-		printf("%s at 0x%08x:\n", buffer_type[is_batch], gtt_offset);
-		intel_decode (data, count, gtt_offset, devid, 0);
-		count = 0;
-	    }
-	    gtt_offset = new_gtt_offset;
-	    is_batch = 1;
-	    continue;
-	}
+	dashes = strstr(line, "---");
+	if (dashes) {
+		matched = sscanf (dashes, "--- gtt_offset = 0x%08x\n",
+				  &new_gtt_offset);
+		if (matched == 1) {
+			if (count) {
+				printf("%s at 0x%08x:\n",
+				       buffer_type[is_batch], gtt_offset);
+				intel_decode (data, count, gtt_offset, devid, 0);
+				count = 0;
+			}
+			gtt_offset = new_gtt_offset;
+			is_batch = 1;
+			continue;
+		}
 
-	matched = sscanf (line, "--- ringbuffer = 0x%08x\n", &new_gtt_offset);
-	if (matched == 1) {
-	    if (count) {
-		printf("%s at 0x%08x:\n", buffer_type[is_batch], gtt_offset);
-		intel_decode (data, count, gtt_offset, devid, 0);
-		count = 0;
-	    }
-	    gtt_offset = new_gtt_offset;
-	    is_batch = 0;
-	    continue;
+		matched = sscanf (dashes, "--- ringbuffer = 0x%08x\n",
+				  &new_gtt_offset);
+		if (matched == 1) {
+			if (count) {
+				printf("%s at 0x%08x:\n",
+				       buffer_type[is_batch], gtt_offset);
+				intel_decode (data, count, gtt_offset, devid, 0);
+				count = 0;
+			}
+			gtt_offset = new_gtt_offset;
+			is_batch = 0;
+			continue;
+		}
 	}
 
 	matched = sscanf (line, "%08x : %08x", &offset, &value);
