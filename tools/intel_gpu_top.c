@@ -292,7 +292,7 @@ print_percentage_bar(float percent, int cur_line_len)
 struct ring {
 	const char *name;
 	uint32_t mmio;
-	uint32_t head, tail, size;
+	int head, tail, size;
 	uint64_t full;
 	int idle;
 };
@@ -332,7 +332,7 @@ static uint32_t ring_read(struct ring *ring, uint32_t reg)
 static void ring_init(struct ring *ring)
 {
 	gen6_force_wake_get();
-	ring->size = ((ring_read(ring, RING_LEN) & RING_NR_PAGES) >> 12) * 4096;
+	ring->size = (((ring_read(ring, RING_LEN) & RING_NR_PAGES) >> 12) + 1) * 4096;
 	gen6_force_wake_put();
 }
 
