@@ -2,6 +2,7 @@ TESTS = getversion \
 	getclient \
 	getstats \
 	gem_basic \
+	gem_exec_nop \
 	gem_flink \
 	gem_readwrite \
 	gem_ringfill \

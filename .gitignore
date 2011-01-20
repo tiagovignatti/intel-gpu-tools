@@ -34,6 +34,7 @@ tests/getclient
 tests/getstats
 tests/getversion
 tests/gem_basic
+tests/gem_exec_nop
 tests/gem_fence_thrash
 tests/gem_flink
 tests/gem_gtt_speed
