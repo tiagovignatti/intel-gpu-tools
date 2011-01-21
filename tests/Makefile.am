@@ -3,10 +3,12 @@ TESTS = getversion \
 	getstats \
 	gem_basic \
 	gem_exec_nop \
+	gem_exec_blt \
 	gem_flink \
 	gem_readwrite \
 	gem_ringfill \
 	gem_mmap \
+	gem_pwrite \
 	gem_pread_after_blit \
 	gem_tiled_pread \
 	gem_tiled_blits \
