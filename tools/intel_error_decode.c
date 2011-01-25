@@ -344,10 +344,10 @@ main (int argc, char *argv[])
 
     if (argc == 1) {
 	if (isatty(0)) {
-	    path = "/debug/dri/0";
+	    path = "/debug/dri";
 	    err = stat (path, &st);
 	    if (err != 0) {
-		path = "/sys/kernel/debug/dri/0";
+		path = "/sys/kernel/debug/dri";
 		err = stat (path, &st);
 		if (err != 0) {
 		    errx(1,
@@ -370,20 +370,36 @@ main (int argc, char *argv[])
 	}
     }
 
-    if (S_ISDIR (st.st_mode))
+    if (S_ISDIR (st.st_mode)) {
 	asprintf (&filename, "%s/i915_error_state", path);
-    else
-	filename = (char *) path;
-
-    file = fopen(filename, "r");
-    if (file) {
-	read_data_file (file);
-	fclose (file);
+	file = fopen(filename, "r");
+	if (!file) {
+	    int minor;
+	    for (minor = 0; minor < 64; minor++) {
+		free(filename);
+		asprintf(&filename, "%s/%d/i915_error_state", path, minor);
+		file = fopen(filename, "r");
+		if (file)
+		    break;
+	    }
+	}
+	if (!file) {
+	    fprintf (stderr, "Failed to find i915_error_state beneath %s\n",
+		     path);
+	    exit (1);
+	}
     } else {
-	fprintf (stderr, "Failed to open %s: %s\n",
-		 filename, strerror (errno));
-	exit (1);
+	filename = (char *) path;
+	file = fopen(filename, "r");
+	if (!file) {
+	    fprintf (stderr, "Failed to open %s: %s\n",
+		     filename, strerror (errno));
+	    exit (1);
+	}
     }
+
+    read_data_file (file);
+    fclose (file);
 
     if (filename != path)
 	free (filename);
