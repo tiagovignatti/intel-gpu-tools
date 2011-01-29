@@ -51,20 +51,15 @@ static uint32_t devid;
 #define _V_BLANK(x) (x[6] + ((x[7] & 0x0F) << 8))
 #define _PIXEL_CLOCK(x) (x[0] + (x[1] << 8)) * 10000
 
-/* Make a fake pI830 so we can easily pull i830_bios.c code in here. */
-struct _fake_i830 {
-	uint8_t *VBIOS;
-};
-struct _fake_i830 I830;
-struct _fake_i830 *pI830 = &I830;
+uint8_t *VBIOS;
 
-#define INTEL_BIOS_8(_addr)	(pI830->VBIOS[_addr])
-#define INTEL_BIOS_16(_addr)	(pI830->VBIOS[_addr] | \
-				 (pI830->VBIOS[_addr + 1] << 8))
-#define INTEL_BIOS_32(_addr)	(pI830->VBIOS[_addr] | \
-				 (pI830->VBIOS[_addr + 1] << 8) | \
-				 (pI830->VBIOS[_addr + 2] << 16) | \
-				 (pI830->VBIOS[_addr + 3] << 24))
+#define INTEL_BIOS_8(_addr)	(VBIOS[_addr])
+#define INTEL_BIOS_16(_addr)	(VBIOS[_addr] | \
+				 (VBIOS[_addr + 1] << 8))
+#define INTEL_BIOS_32(_addr)	(VBIOS[_addr] | \
+				 (VBIOS[_addr + 1] << 8) | \
+				 (VBIOS[_addr + 2] << 16) | \
+				 (VBIOS[_addr + 3] << 24))
 
 #define YESNO(val) ((val) ? "yes" : "no")
 
@@ -727,6 +722,91 @@ static void dump_edp(void)
 	free(block);
 }
 
+static void
+print_detail_timing_data(struct lvds_dvo_timing2 *dvo_timing)
+{
+	int display, sync_start, sync_end, total;
+
+	display = (dvo_timing->hactive_hi << 8) | dvo_timing->hactive_lo;
+	sync_start = display +
+		((dvo_timing->hsync_off_hi << 8) | dvo_timing->hsync_off_lo);
+	sync_end = sync_start + dvo_timing->hsync_pulse_width;
+	total = display +
+		((dvo_timing->hblank_hi << 8) | dvo_timing->hblank_lo);
+	printf("\thdisplay: %d\n", display);
+	printf("\thsync [%d, %d] %s\n", sync_start, sync_end,
+	       dvo_timing->hsync_positive ? "+sync" : "-sync");
+	printf("\thtotal: %d\n", total);
+
+	display = (dvo_timing->vactive_hi << 8) | dvo_timing->vactive_lo;
+	sync_start = display + dvo_timing->vsync_off;
+	sync_end = sync_start + dvo_timing->vsync_pulse_width;
+	total = display +
+		((dvo_timing->vblank_hi << 8) | dvo_timing->vblank_lo);
+	printf("\tvdisplay: %d\n", display);
+	printf("\tvsync [%d, %d] %s\n", sync_start, sync_end,
+	       dvo_timing->vsync_positive ? "+sync" : "-sync");
+	printf("\tvtotal: %d\n", total);
+
+	printf("\tclock: %d\n", dvo_timing->clock * 10);
+}
+
+static void dump_sdvo_panel_dtds(void)
+{
+	struct bdb_block *block;
+	struct lvds_dvo_timing2 *dvo_timing;
+	int n, count;
+
+	block = find_section(BDB_SDVO_PANEL_DTDS);
+	if (!block) {
+		printf("No SDVO panel dtds block\n");
+		return;
+	}
+
+	printf("SDVO panel dtds:\n");
+	count = block->size / sizeof(struct lvds_dvo_timing2);
+	dvo_timing = block->data;
+	for (n = 0; n < count; n++) {
+		printf("%d:\n", n);
+		print_detail_timing_data(dvo_timing++);
+	}
+
+	free(block);
+}
+
+static void dump_sdvo_lvds_options(void)
+{
+	struct bdb_block *block;
+	struct bdb_sdvo_lvds_options *options;
+
+	block = find_section(BDB_SDVO_LVDS_OPTIONS);
+	if (!block) {
+		printf("No SDVO LVDS options block\n");
+		return;
+	}
+
+	options = block->data;
+
+	printf("SDVO LVDS options block:\n");
+	printf("\tbacklight: %d\n", options->panel_backlight);
+	printf("\th40 type: %d\n", options->h40_set_panel_type);
+	printf("\ttype: %d\n", options->panel_type);
+	printf("\tssc_clk_freq: %d\n", options->ssc_clk_freq);
+	printf("\tals_low_trip: %d\n", options->als_low_trip);
+	printf("\tals_high_trip: %d\n", options->als_high_trip);
+	/*
+	u8 sclalarcoeff_tab_row_num;
+	u8 sclalarcoeff_tab_row_size;
+	u8 coefficient[8];
+	*/
+	printf("\tmisc[0]: %x\n", options->panel_misc_bits_1);
+	printf("\tmisc[1]: %x\n", options->panel_misc_bits_2);
+	printf("\tmisc[2]: %x\n", options->panel_misc_bits_3);
+	printf("\tmisc[3]: %x\n", options->panel_misc_bits_4);
+
+	free(block);
+}
+
 static int
 get_device_id(unsigned char *bios)
 {
@@ -773,17 +853,36 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
-	pI830->VBIOS = mmap(NULL, finfo.st_size, PROT_READ, MAP_SHARED, fd, 0);
-	if (pI830->VBIOS == MAP_FAILED) {
-		printf("failed to map \"%s\": %s\n", filename, strerror(errno));
-		return 1;
+	if (finfo.st_size == 0) {
+		int len = 0, ret;
+		finfo.st_size = 8192;
+		VBIOS = malloc (finfo.st_size);
+		while ((ret = read(fd, VBIOS + len, finfo.st_size - len))) {
+			if (ret < 0) {
+				printf("failed to read \"%s\": %s\n", filename,
+				       strerror(errno));
+				return 1;
+			}
+
+			len += ret;
+			if (len == finfo.st_size) {
+				finfo.st_size *= 2;
+				VBIOS = realloc(VBIOS, finfo.st_size);
+			}
+		}
+	} else {
+		VBIOS = mmap(NULL, finfo.st_size, PROT_READ, MAP_SHARED, fd, 0);
+		if (VBIOS == MAP_FAILED) {
+			printf("failed to map \"%s\": %s\n", filename, strerror(errno));
+			return 1;
+		}
 	}
 
 	/* Scour memory looking for the VBT signature */
 	for (i = 0; i + 4 < finfo.st_size; i++) {
-		if (!memcmp(pI830->VBIOS + i, "$VBT", 4)) {
+		if (!memcmp(VBIOS + i, "$VBT", 4)) {
 			vbt_off = i;
-			vbt = (struct vbt_header *)(pI830->VBIOS + i);
+			vbt = (struct vbt_header *)(VBIOS + i);
 			break;
 		}
 	}
@@ -796,7 +895,7 @@ int main(int argc, char **argv)
 	printf("VBT vers: %d.%d\n", vbt->version / 100, vbt->version % 100);
 
 	bdb_off = vbt_off + vbt->bdb_offset;
-	bdb = (struct bdb_header *)(pI830->VBIOS + bdb_off);
+	bdb = (struct bdb_header *)(VBIOS + bdb_off);
 	strncpy(signature, (char *)bdb->signature, 16);
 	signature[16] = 0;
 	printf("BDB sig: %s\n", signature);
@@ -812,7 +911,7 @@ int main(int argc, char **argv)
 	}
 	printf("\n");
 
-	devid = get_device_id(pI830->VBIOS);
+	devid = get_device_id(VBIOS);
 	if (devid == -1)
 	    printf("Warning: could not find PCI device ID!\n");
 
@@ -823,6 +922,9 @@ int main(int argc, char **argv)
 	dump_lvds_data();
 	dump_lvds_ptr_data();
 	dump_backlight_info();
+
+	dump_sdvo_lvds_options();
+	dump_sdvo_panel_dtds();
 
 	dump_driver_feature();
 	dump_edp();
