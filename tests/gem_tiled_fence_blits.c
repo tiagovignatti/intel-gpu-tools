@@ -1,5 +1,5 @@
 /*
- * Copyright © 2009 Intel Corporation
+ * Copyright © 2009,2011 Intel Corporation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -25,7 +25,7 @@
  *
  */
 
-/** @file gem_tiled_blits.c
+/** @file gem_tiled_fence_blits.c
  *
  * This is a test of doing many tiled blits, with a working set
  * larger than the aperture size.
@@ -60,6 +60,7 @@
 static drm_intel_bufmgr *bufmgr;
 struct intel_batchbuffer *batch;
 static int width = 512, height = 512;
+static uint32_t linear[1024*1024/4];
 
 static uint64_t
 gem_aperture_size(int fd)
@@ -71,11 +72,38 @@ gem_aperture_size(int fd)
 	return aperture.aper_size;
 }
 
-static drm_intel_bo *
-create_bo(uint32_t start_val)
+static void
+gem_write(int fd, drm_intel_bo *bo, const void *buf, int size)
 {
-	drm_intel_bo *bo, *linear_bo;
-	uint32_t *linear;
+	struct drm_i915_gem_pwrite pwrite;
+	int ret;
+
+	pwrite.handle = bo->handle;
+	pwrite.offset = 0;
+	pwrite.size = size;
+	pwrite.data_ptr = (uintptr_t)buf;
+	ret = drmIoctl(fd, DRM_IOCTL_I915_GEM_PWRITE, &pwrite);
+	assert(ret == 0);
+}
+
+static void
+gem_read(int fd, drm_intel_bo *bo, void *buf, int size)
+{
+	struct drm_i915_gem_pread pread;
+	int ret;
+
+	pread.handle = bo->handle;
+	pread.offset = 0;
+	pread.size = size;
+	pread.data_ptr = (uintptr_t)buf;
+	ret = drmIoctl(fd, DRM_IOCTL_I915_GEM_PREAD, &pread);
+	assert(ret == 0);
+}
+
+static drm_intel_bo *
+create_bo(int fd, uint32_t start_val)
+{
+	drm_intel_bo *bo;
 	uint32_t tiling = I915_TILING_X;
 	int ret, i;
 
@@ -84,35 +112,21 @@ create_bo(uint32_t start_val)
 	assert(ret == 0);
 	assert(tiling == I915_TILING_X);
 
-	linear_bo = drm_intel_bo_alloc(bufmgr, "linear src", 1024 * 1024, 4096);
-
 	/* Fill the BO with dwords starting at start_val */
-	drm_intel_bo_map(linear_bo, 1);
-	linear = linear_bo->virtual;
 	for (i = 0; i < 1024 * 1024 / 4; i++)
 		linear[i] = start_val++;
-	drm_intel_bo_unmap(linear_bo);
 
-	intel_copy_bo (batch, bo, linear_bo, width, height);
-
-	drm_intel_bo_unreference(linear_bo);
+	gem_write(fd, bo, linear, sizeof(linear));
 
 	return bo;
 }
 
 static void
-check_bo(drm_intel_bo *bo, uint32_t start_val)
+check_bo(int fd, drm_intel_bo *bo, uint32_t start_val)
 {
-	drm_intel_bo *linear_bo;
-	uint32_t *linear;
 	int i;
 
-	linear_bo = drm_intel_bo_alloc(bufmgr, "linear dst", 1024 * 1024, 4096);
-
-	intel_copy_bo(batch, linear_bo, bo, width, height);
-
-	drm_intel_bo_map(linear_bo, 0);
-	linear = linear_bo->virtual;
+	gem_read(fd, bo, linear, sizeof(linear));
 
 	for (i = 0; i < 1024 * 1024 / 4; i++) {
 		if (linear[i] != start_val) {
@@ -123,9 +137,6 @@ check_bo(drm_intel_bo *bo, uint32_t start_val)
 		}
 		start_val++;
 	}
-	drm_intel_bo_unmap(linear_bo);
-
-	drm_intel_bo_unreference(linear_bo);
 }
 
 int main(int argc, char **argv)
@@ -133,21 +144,19 @@ int main(int argc, char **argv)
 	drm_intel_bo *bo[4096];
 	uint32_t bo_start_val[4096];
 	uint32_t start = 0;
-	int i, fd, count;
+	int fd, i, count;
 
 	fd = drm_open_any();
-
 	count = 3 * gem_aperture_size(fd) / (1024*1024) / 2;
 	count += (count & 1) == 0;
 	printf("Using %d 1MiB buffers\n", count);
-	assert(count <= 4096);
 
 	bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
 	drm_intel_bufmgr_gem_enable_reuse(bufmgr);
 	batch = intel_batchbuffer_alloc(bufmgr, intel_get_drm_devid(fd));
 
 	for (i = 0; i < count; i++) {
-		bo[i] = create_bo(start);
+		bo[i] = create_bo(fd, start);
 		bo_start_val[i] = start;
 
 		/*
@@ -156,6 +165,12 @@ int main(int argc, char **argv)
 		*/
 
 		start += 1024 * 1024 / 4;
+	}
+
+	for (i = 0; i < count; i++) {
+		int src = count - i - 1;
+		intel_copy_bo(batch, bo[i], bo[src], width, height);
+		bo_start_val[i] = bo_start_val[src];
 	}
 
 	for (i = 0; i < count * 4; i++) {
@@ -178,7 +193,7 @@ int main(int argc, char **argv)
 		/*
 		printf("check %d\n", i);
 		*/
-		check_bo(bo[i], bo_start_val[i]);
+		check_bo(fd, bo[i], bo_start_val[i]);
 
 		drm_intel_bo_unreference(bo[i]);
 		bo[i] = NULL;

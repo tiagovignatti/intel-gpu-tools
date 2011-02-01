@@ -46,15 +46,10 @@ intel_batchbuffer_reset(struct intel_batchbuffer *batch)
 		batch->bo = NULL;
 	}
 
-	if (!batch->buffer)
-		batch->buffer = malloc(BATCH_SZ);
-
 	batch->bo = drm_intel_bo_alloc(batch->bufmgr, "batchbuffer",
 				       BATCH_SZ, 4096);
 
-	batch->map = batch->buffer;
-	batch->size = BATCH_SZ;
-	batch->ptr = batch->map;
+	batch->ptr = batch->buffer;
 }
 
 struct intel_batchbuffer *
@@ -72,8 +67,6 @@ intel_batchbuffer_alloc(drm_intel_bufmgr *bufmgr, uint32_t devid)
 void
 intel_batchbuffer_free(struct intel_batchbuffer *batch)
 {
-	free (batch->buffer);
-
 	drm_intel_bo_unreference(batch->bo);
 	batch->bo = NULL;
 	free(batch);
@@ -82,7 +75,7 @@ intel_batchbuffer_free(struct intel_batchbuffer *batch)
 void
 intel_batchbuffer_flush(struct intel_batchbuffer *batch)
 {
-	unsigned int used = batch->ptr - batch->map;
+	unsigned int used = batch->ptr - batch->buffer;
 	int ring;
 	int ret;
 
@@ -93,17 +86,16 @@ intel_batchbuffer_flush(struct intel_batchbuffer *batch)
 	if ((used & 4) == 0) {
 		*(uint32_t *) (batch->ptr) = 0; /* noop */
 		batch->ptr += 4;
-		used = batch->ptr - batch->map;
 	}
 
 	/* Mark the end of the buffer. */
-	*(uint32_t *) (batch->ptr) = MI_BATCH_BUFFER_END; /* noop */
+	*(uint32_t *)(batch->ptr) = MI_BATCH_BUFFER_END; /* noop */
 	batch->ptr += 4;
-	used = batch->ptr - batch->map;
+	used = batch->ptr - batch->buffer;
 
-	drm_intel_bo_subdata(batch->bo, 0, used, batch->buffer);
+	ret = drm_intel_bo_subdata(batch->bo, 0, used, batch->buffer);
+	assert(ret == 0);
 
-	batch->map = NULL;
 	batch->ptr = NULL;
 
 	ring = 0;
@@ -125,12 +117,13 @@ intel_batchbuffer_emit_reloc(struct intel_batchbuffer *batch,
 {
 	int ret;
 
-	if (batch->ptr - batch->map > batch->bo->size)
-		printf("bad relocation ptr %p map %p offset %d size %ld\n",
-		       batch->ptr, batch->map, batch->ptr - batch->map,
-		       batch->bo->size);
+	if (batch->ptr - batch->buffer > BATCH_SZ)
+		printf("bad relocation ptr %p map %p offset %d size %d\n",
+		       batch->ptr, batch->buffer,
+		       (int)(batch->ptr - batch->buffer),
+		       BATCH_SZ);
 
-	ret = drm_intel_bo_emit_reloc(batch->bo, batch->ptr - batch->map,
+	ret = drm_intel_bo_emit_reloc(batch->bo, batch->ptr - batch->buffer,
 				      buffer, delta,
 				      read_domains, write_domain);
 	intel_batchbuffer_emit_dword(batch, buffer->offset + delta);

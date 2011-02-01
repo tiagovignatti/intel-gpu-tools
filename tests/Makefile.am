@@ -12,6 +12,7 @@ TESTS = getversion \
 	gem_pread_after_blit \
 	gem_tiled_pread \
 	gem_tiled_blits \
+	gem_tiled_fence_blits \
 	gem_largeobject \
 	gem_bad_address \
 	gem_bad_blit \

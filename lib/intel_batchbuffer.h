@@ -15,18 +15,8 @@ struct intel_batchbuffer
 
 	drm_intel_bo *bo;
 
-	uint8_t *buffer;
-
-	uint8_t *map;
+	uint8_t buffer[BATCH_SZ];
 	uint8_t *ptr;
-
-	/* debug stuff */
-	struct {
-		uint8_t *start_ptr;
-		unsigned int total;
-	} emit;
-
-	unsigned int size;
 };
 
 struct intel_batchbuffer *intel_batchbuffer_alloc(drm_intel_bufmgr *bufmgr,
@@ -56,14 +46,13 @@ void intel_batchbuffer_emit_reloc(struct intel_batchbuffer *batch,
 static inline int
 intel_batchbuffer_space(struct intel_batchbuffer *batch)
 {
-	return (batch->size - BATCH_RESERVED) - (batch->ptr - batch->map);
+	return (BATCH_SZ - BATCH_RESERVED) - (batch->ptr - batch->buffer);
 }
 
 
 static inline void
 intel_batchbuffer_emit_dword(struct intel_batchbuffer *batch, uint32_t dword)
 {
-	assert(batch->map);
 	assert(intel_batchbuffer_space(batch) >= 4);
 	*(uint32_t *) (batch->ptr) = dword;
 	batch->ptr += 4;
@@ -73,7 +62,7 @@ static inline void
 intel_batchbuffer_require_space(struct intel_batchbuffer *batch,
                                 unsigned int sz)
 {
-	assert(sz < batch->size - 8);
+	assert(sz < BATCH_SZ - 8);
 	if (intel_batchbuffer_space(batch) < sz)
 		intel_batchbuffer_flush(batch);
 }
@@ -84,9 +73,6 @@ intel_batchbuffer_require_space(struct intel_batchbuffer *batch,
 
 #define BEGIN_BATCH(n) do {						\
 	intel_batchbuffer_require_space(batch, (n)*4);			\
-	assert(batch->emit.start_ptr == NULL);				\
-	batch->emit.total = (n) * 4;					\
-	batch->emit.start_ptr = batch->ptr;				\
 } while (0)
 
 #define OUT_BATCH(d) intel_batchbuffer_emit_dword(batch, d)
@@ -98,15 +84,6 @@ intel_batchbuffer_require_space(struct intel_batchbuffer *batch,
 } while (0)
 
 #define ADVANCE_BATCH() do {						\
-	unsigned int _n = batch->ptr - batch->emit.start_ptr;		\
-	assert(batch->emit.start_ptr != NULL);				\
-	if (_n != batch->emit.total) {					\
-		fprintf(stderr,						\
-			"ADVANCE_BATCH: %d of %d dwords emitted\n",	\
-			_n, batch->emit.total);				\
-		abort();						\
-	}								\
-	batch->emit.start_ptr = NULL;					\
 } while(0)
 
 
