@@ -44,48 +44,108 @@
 #include <errno.h>
 #include <sys/stat.h>
 #include <sys/time.h>
+#include <sys/ioctl.h>
+#include <sys/mman.h>
 #include "drm.h"
 #include "i915_drm.h"
 #include "drmtest.h"
-#include "intel_bufmgr.h"
-#include "intel_batchbuffer.h"
-#include "intel_gpu_tools.h"
 
-static drm_intel_bufmgr *bufmgr;
-struct intel_batchbuffer *batch;
-static const int width = 512, height = 512;
-static const int size = 1024 * 1024;
+#define WIDTH 512
+#define HEIGHT 512
+static uint32_t linear[WIDTH * HEIGHT];
 
 #define PAGE_SIZE 4096
 
-static drm_intel_bo *
-create_bo(uint32_t devid)
+static uint32_t
+gem_create(int fd, int size)
 {
-	drm_intel_bo *bo, *linear_bo;
-	uint32_t *linear;
-	uint32_t tiling = I915_TILING_X;
-	int ret, i;
-	int val = 0;
+	struct drm_i915_gem_create create;
 
-	bo = drm_intel_bo_alloc(bufmgr, "tiled bo", size, 4096);
-	ret = drm_intel_bo_set_tiling(bo, &tiling, width * 4);
+	create.handle = 0;
+	create.size = size;
+	(void)drmIoctl(fd, DRM_IOCTL_I915_GEM_CREATE, &create);
+
+	return create.handle;
+}
+
+static void *gem_mmap(int fd, uint32_t handle, int size, int prot)
+{
+	struct drm_i915_gem_mmap_gtt mmap_arg;
+	void *ptr;
+
+	mmap_arg.handle = handle;
+	if (drmIoctl(fd, DRM_IOCTL_I915_GEM_MMAP_GTT, &mmap_arg))
+		return NULL;
+
+	ptr = mmap(0, size, prot, MAP_SHARED, fd, mmap_arg.offset);
+	if (ptr == MAP_FAILED)
+		ptr = NULL;
+
+	return ptr;
+}
+
+static void
+gem_read(int fd, uint32_t handle, int offset, int length, void *buf)
+{
+	struct drm_i915_gem_pread pread;
+	int ret;
+
+	pread.handle = handle;
+	pread.offset = offset;
+	pread.size = length;
+	pread.data_ptr = (uintptr_t)buf;
+	ret = drmIoctl(fd, DRM_IOCTL_I915_GEM_PREAD, &pread);
 	assert(ret == 0);
-	assert(tiling == I915_TILING_X);
-	linear_bo = drm_intel_bo_alloc(bufmgr, "linear src", size, 4096);
+}
+
+static void
+gem_set_tiling(int fd, uint32_t handle, int tiling)
+{
+	struct drm_i915_gem_set_tiling set_tiling;
+	int ret;
+
+	do {
+		set_tiling.handle = handle;
+		set_tiling.tiling_mode = tiling;
+		set_tiling.stride = WIDTH * sizeof(uint32_t);
+
+		ret = ioctl(fd, DRM_IOCTL_I915_GEM_SET_TILING, &set_tiling);
+	} while (ret == -1 && (errno == EINTR || errno == EAGAIN));
+}
+
+static void
+gem_get_tiling(int fd, uint32_t handle, uint32_t *tiling, uint32_t *swizzle)
+{
+	struct drm_i915_gem_get_tiling get_tiling;
+	int ret;
+
+	memset(&get_tiling, 0, sizeof(get_tiling));
+	get_tiling.handle = handle;
+
+	ret = drmIoctl(fd, DRM_IOCTL_I915_GEM_GET_TILING, &get_tiling);
+	assert(ret == 0);
+
+	*tiling = get_tiling.tiling_mode;
+	*swizzle = get_tiling.swizzle_mode;
+}
+
+static uint32_t
+create_bo(int fd)
+{
+	uint32_t handle;
+	uint32_t *data;
+	int i;
+
+	handle = gem_create(fd, sizeof(linear));
+	gem_set_tiling(fd, handle, I915_TILING_X);
 
 	/* Fill the BO with dwords starting at start_val */
-	drm_intel_bo_map(linear_bo, 1);
-	linear = linear_bo->virtual;
+	data = gem_mmap(fd, handle, sizeof(linear), PROT_READ | PROT_WRITE);
+	for (i = 0; i < WIDTH*HEIGHT; i++)
+		data[i] = i;
+	munmap(data, sizeof(linear));
 
-	for (i = 0; i < 1024 * 1024 / 4; i++)
-		linear[i] = val++;
-	drm_intel_bo_unmap(linear_bo);
-
-	intel_copy_bo(batch, bo, linear_bo, width, height);
-
-	drm_intel_bo_unreference(linear_bo);
-
-	return bo;
+	return handle;
 }
 
 static int
@@ -101,48 +161,40 @@ static uint32_t
 calculate_expected(int offset)
 {
 	int tile_off = offset & (PAGE_SIZE - 1);
-	int tile_base = offset - tile_off;
+	int tile_base = offset & -PAGE_SIZE;
 	int tile_index = tile_base / PAGE_SIZE;
-	int tiles_per_row = width / (512 / 4); /* X tiled = 512b rows */
+	int tiles_per_row = 4*WIDTH / 512; /* X tiled = 512b rows */
 
 	/* base x,y values from the tile (page) index. */
 	int base_y = tile_index / tiles_per_row * 8;
 	int base_x = tile_index % tiles_per_row * 128;
 
-	assert((offset % 4) == 0);
 	/* x, y offsets within the tile */
 	int tile_y = tile_off / 512;
 	int tile_x = (tile_off % 512) / 4;
 
 	/* printf("%3d, %3d, %3d,%3d\n", base_x, base_y, tile_x, tile_y); */
-	return (base_y + tile_y) * width + base_x + tile_x;
+	return (base_y + tile_y) * WIDTH + base_x + tile_x;
 }
 
 int
 main(int argc, char **argv)
 {
 	int fd;
-	uint32_t devid;
-	drm_intel_bo *bo;
 	int i, iter = 100;
-	uint32_t buf[width * height];
 	uint32_t tiling, swizzle;
+	uint32_t handle;
 
 	fd = drm_open_any();
-	devid = intel_get_drm_devid(fd);
 
-	bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
-	drm_intel_bufmgr_gem_enable_reuse(bufmgr);
-	batch = intel_batchbuffer_alloc(bufmgr, intel_get_drm_devid(fd));
-
-	bo = create_bo(devid);
-
-	drm_intel_bo_get_tiling(bo, &tiling, &swizzle);
+	handle = create_bo(fd);
+	gem_get_tiling(fd, handle, &tiling, &swizzle);
 
 	/* Read a bunch of random subsets of the data and check that they come
 	 * out right.
 	 */
 	for (i = 0; i < iter; i++) {
+		int size = WIDTH * HEIGHT * 4;
 		int offset = (random() % size) & ~3;
 		int len = (random() % size) & ~3;
 		int j;
@@ -153,15 +205,12 @@ main(int argc, char **argv)
 		if (offset + len > size)
 			len = size - offset;
 
-		/* For sanity of reporting, make the first iteration be the
-		 * whole buffer.
-		 */
 		if (i == 0) {
 			offset = 0;
 			len = size;
 		}
 
-		drm_intel_bo_get_subdata(bo, offset, len, buf);
+		gem_read(fd, handle, offset, len, linear);
 
 		/* Translate from offsets in the read buffer to the swizzled
 		 * address that it corresponds to.  This is the opposite of
@@ -171,30 +220,36 @@ main(int argc, char **argv)
 		for (j = offset; j < offset + len; j += 4) {
 			uint32_t expected_val, found_val;
 			int swizzled_offset;
+			const char *swizzle_str;
 
 			switch (swizzle) {
 			case I915_BIT_6_SWIZZLE_NONE:
 				swizzled_offset = j;
+				swizzle_str = "none";
 				break;
 			case I915_BIT_6_SWIZZLE_9:
 				swizzled_offset = j ^
 					swizzle_bit(9, j);
+				swizzle_str = "bit9";
 				break;
 			case I915_BIT_6_SWIZZLE_9_10:
 				swizzled_offset = j ^
 					swizzle_bit(9, j) ^
 					swizzle_bit(10, j);
+				swizzle_str = "bit9^10";
 				break;
 			case I915_BIT_6_SWIZZLE_9_11:
 				swizzled_offset = j ^
 					swizzle_bit(9, j) ^
 					swizzle_bit(11, j);
+				swizzle_str = "bit9^11";
 				break;
 			case I915_BIT_6_SWIZZLE_9_10_11:
 				swizzled_offset = j ^
 					swizzle_bit(9, j) ^
 					swizzle_bit(10, j) ^
 					swizzle_bit(11, j);
+				swizzle_str = "bit9^10^11";
 				break;
 			default:
 				fprintf(stderr, "Bad swizzle bits; %d\n",
@@ -202,22 +257,18 @@ main(int argc, char **argv)
 				abort();
 			}
 			expected_val = calculate_expected(swizzled_offset);
-			found_val = buf[(j - offset) / 4];
+			found_val = linear[(j - offset) / 4];
 			if (expected_val != found_val) {
 				fprintf(stderr,
-					"Bad read: %d instead of %d at 0x%08x "
-					"for read from 0x%08x to 0x%08x\n",
-					found_val, expected_val, j,
-					offset, offset + len);
+					"Bad read [%d]: %d instead of %d at 0x%08x "
+					"for read from 0x%08x to 0x%08x, swizzle=%s\n",
+					i, found_val, expected_val, j,
+					offset, offset + len,
+					swizzle_str);
 				abort();
 			}
 		}
 	}
-
-	drm_intel_bo_unreference(bo);
-
-	intel_batchbuffer_free(batch);
-	drm_intel_bufmgr_destroy(bufmgr);
 
 	close(fd);
 

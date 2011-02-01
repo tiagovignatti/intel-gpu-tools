@@ -45,6 +45,7 @@ tests/gem_pread_after_blit
 tests/gem_pwrite
 tests/gem_readwrite
 tests/gem_ringfill
+tests/gem_linear_blits
 tests/gem_tiled_blits
 tests/gem_tiled_fence_blits
 tests/gem_tiled_pread

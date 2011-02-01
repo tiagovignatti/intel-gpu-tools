@@ -11,6 +11,7 @@ TESTS = getversion \
 	gem_pwrite \
 	gem_pread_after_blit \
 	gem_tiled_pread \
+	gem_linear_blits \
 	gem_tiled_blits \
 	gem_tiled_fence_blits \
 	gem_largeobject \
