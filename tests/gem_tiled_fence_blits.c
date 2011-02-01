@@ -148,7 +148,7 @@ int main(int argc, char **argv)
 
 	fd = drm_open_any();
 	count = 3 * gem_aperture_size(fd) / (1024*1024) / 2;
-	count += (count & 1) == 0;
+	count |= 1;
 	printf("Using %d 1MiB buffers\n", count);
 
 	bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
