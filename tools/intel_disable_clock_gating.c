@@ -40,7 +40,7 @@ int main(int argc, char** argv)
 	pci_dev = intel_get_pci_device();
 	intel_get_mmio(pci_dev);
 
-	if (IS_IRONLAKE(pci_dev->device_id)) {
+	if (IS_GEN5(pci_dev->device_id)) {
 		printf("Restore method:\n");
 
 		printf("intel_reg_write 0x%x 0x%08x\n",

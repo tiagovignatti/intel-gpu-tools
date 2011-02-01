@@ -29,6 +29,23 @@
 #include <sys/stat.h>
 #include <sys/ioctl.h>
 #include "drmtest.h"
+#include "i915_drm.h"
+#include "intel_chipset.h"
+
+static int
+is_intel(int fd)
+{
+	struct drm_i915_getparam gp;
+	int devid;
+
+	gp.param = I915_PARAM_CHIPSET_ID;
+	gp.value = &devid;
+
+	if (ioctl(fd, DRM_IOCTL_I915_GETPARAM, &gp, sizeof(gp)))
+		return 0;
+
+	return IS_INTEL(devid);
+}
 
 /** Open the first DRM device we can find, searching up to 16 device nodes */
 int drm_open_any(void)
@@ -39,8 +56,13 @@ int drm_open_any(void)
 	for (i = 0; i < 16; i++) {
 		sprintf(name, "/dev/dri/card%d", i);
 		fd = open(name, O_RDWR);
-		if (fd != -1)
+		if (fd == -1)
+			continue;
+
+		if (is_intel(fd))
 			return fd;
+
+		close(fd);
 	}
 	abort();
 }
@@ -62,6 +84,11 @@ int drm_open_any_master(void)
 		fd = open(name, O_RDWR);
 		if (fd == -1)
 			continue;
+
+		if (!is_intel(fd)) {
+			close(fd);
+			continue;
+		}
 
 		/* Check that we're the only opener and authed. */
 		client.idx = 0;

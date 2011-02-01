@@ -56,7 +56,7 @@ int main(int argc, char **argv)
 		exit(1);
 	}
 
-	if (IS_G4X(devid) || IS_IRONLAKE(devid))
+	if (IS_G4X(devid) || IS_GEN5(devid))
 		gtt = ((unsigned char *)mmio + MB(2));
 	else if (IS_965(devid))
 		gtt = ((unsigned char *)mmio + KB(512));

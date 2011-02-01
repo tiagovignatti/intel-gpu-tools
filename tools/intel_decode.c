@@ -1644,7 +1644,7 @@ decode_3d_965(uint32_t *data, int count, uint32_t hw_offset, uint32_t devid, int
     case 0x6101:
 	if (IS_GEN6(devid))
 	    sba_len = 10;
-	else if (IS_IRONLAKE(devid))
+	else if (IS_GEN5(devid))
 	    sba_len = 8;
 	else
 	    sba_len = 6;
@@ -1663,14 +1663,14 @@ decode_3d_965(uint32_t *data, int count, uint32_t hw_offset, uint32_t devid, int
 	if (IS_GEN6(devid))
 	    state_base_out(data, hw_offset, i++, "dynamic");
 	state_base_out(data, hw_offset, i++, "indirect");
-	if (IS_IRONLAKE(devid) || IS_GEN6(devid))
+	if (IS_GEN5(devid) || IS_GEN6(devid))
 	    state_base_out(data, hw_offset, i++, "instruction");
 
 	state_max_out(data, hw_offset, i++, "general");
 	if (IS_GEN6(devid))
 	    state_max_out(data, hw_offset, i++, "dynamic");
 	state_max_out(data, hw_offset, i++, "indirect");
-	if (IS_IRONLAKE(devid) || IS_GEN6(devid))
+	if (IS_GEN5(devid) || IS_GEN6(devid))
 	    state_max_out(data, hw_offset, i++, "instruction");
 
 	return len;
@@ -2071,7 +2071,7 @@ decode_3d_965(uint32_t *data, int count, uint32_t hw_offset, uint32_t devid, int
 
 	instr_out(data, hw_offset, 0,
 		  "3DSTATE_DEPTH_BUFFER\n");
-	if (IS_IRONLAKE(devid) || IS_GEN6(devid))
+	if (IS_GEN5(devid) || IS_GEN6(devid))
             instr_out(data, hw_offset, 1, "%s, %s, pitch = %d bytes, %stiled, HiZ %d, Seperate Stencil %d\n",
                     get_965_surfacetype(data[1] >> 29),
                     get_965_depthformat((data[1] >> 18) & 0x7),

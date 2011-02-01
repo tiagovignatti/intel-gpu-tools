@@ -205,7 +205,7 @@ init_instdone_definitions(uint32_t devid)
 		gen6_instdone2_bit(GEN6_GS_DONE, "GS");
 		gen6_instdone2_bit(GEN6_VS0_DONE, "VS0");
 		gen6_instdone2_bit(GEN6_VF_DONE, "VF");
-	} else if (IS_IRONLAKE(devid)) {
+	} else if (IS_GEN5(devid)) {
 		gen4_instdone_bit(ILK_ROW_0_EU_0_DONE, "Row 0, EU 0");
 		gen4_instdone_bit(ILK_ROW_0_EU_1_DONE, "Row 0, EU 1");
 		gen4_instdone_bit(ILK_ROW_0_EU_2_DONE, "Row 0, EU 2");

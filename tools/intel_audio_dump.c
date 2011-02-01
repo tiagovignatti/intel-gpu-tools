@@ -1197,7 +1197,7 @@ int main(int argc, char **argv)
 	if (HAS_PCH_SPLIT(devid) || getenv("HAS_PCH_SPLIT")) {
 		intel_check_pch();
 		dump_cpt();
-	} else if (IS_IRONLAKE(devid))
+	} else if (IS_GEN5(devid))
 		dump_ironlake();
 	else
 		dump_eaglelake();
