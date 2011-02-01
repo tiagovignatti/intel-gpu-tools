@@ -41,6 +41,8 @@
 #include "drm.h"
 #include "i915_drm.h"
 #include "drmtest.h"
+#include "intel_chipset.h"
+#include "intel_gpu_tools.h"
 
 #define OBJECT_SIZE 16384
 
@@ -49,7 +51,6 @@
 #define BLT_WRITE_RGB		(1<<20)
 #define BLT_SRC_TILED		(1<<15)
 #define BLT_DST_TILED		(1<<11)
-#define MI_BATCH_BUFFER_END	(0xA<<23)
 
 static uint32_t gem_create(int fd, int size)
 {
@@ -250,6 +251,10 @@ static void run(int object_size)
 	exec[2].rsvd1 = 0;
 	exec[2].rsvd2 = 0;
 
+	ring = 0;
+	if (IS_GEN6(intel_get_drm_devid(fd)))
+		ring = I915_EXEC_BLT;
+
 	execbuf.buffers_ptr = (uintptr_t)exec;
 	execbuf.buffer_count = 3;
 	execbuf.batch_start_offset = 0;
@@ -258,7 +263,7 @@ static void run(int object_size)
 	execbuf.num_cliprects = 0;
 	execbuf.DR1 = 0;
 	execbuf.DR4 = 0;
-	execbuf.flags = 0;
+	execbuf.flags = ring;
 	execbuf.rsvd1 = 0;
 	execbuf.rsvd2 = 0;
 
