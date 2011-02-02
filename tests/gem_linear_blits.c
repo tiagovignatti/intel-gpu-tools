@@ -49,9 +49,32 @@
 #include "intel_batchbuffer.h"
 #include "intel_gpu_tools.h"
 
-static drm_intel_bufmgr *bufmgr;
-struct intel_batchbuffer *batch;
-static int width = 512, height = 512;
+#define WIDTH 512
+#define HEIGHT 512
+
+static uint32_t linear[WIDTH*HEIGHT];
+
+static uint32_t gem_create(int fd, int size)
+{
+	struct drm_i915_gem_create create;
+
+	create.handle = 0;
+	create.size = size;
+	(void)drmIoctl(fd, DRM_IOCTL_I915_GEM_CREATE, &create);
+	assert(create.handle);
+
+	return create.handle;
+}
+
+static void gem_close(int fd, uint32_t handle)
+{
+	struct drm_gem_close close;
+	int ret;
+
+	close.handle = handle;
+	ret = drmIoctl(fd, DRM_IOCTL_GEM_CLOSE, &close);
+	assert(ret == 0);
+}
 
 static uint64_t
 gem_aperture_size(int fd)
@@ -63,50 +86,159 @@ gem_aperture_size(int fd)
 	return aperture.aper_size;
 }
 
-static drm_intel_bo *
-create_bo(uint32_t start_val)
+static void
+gem_write(int fd, uint32_t handle, int offset, int size, const void *buf)
 {
-	drm_intel_bo *bo;
-	uint32_t *linear;
-	int i;
+	struct drm_i915_gem_pwrite pwrite;
+	int ret;
 
-	bo = drm_intel_bo_alloc(bufmgr, "linear bo", 1024 * 1024, 4096);
-
-	/* Fill the BO with dwords starting at start_val */
-	drm_intel_bo_map(bo, 1);
-	linear = bo->virtual;
-	for (i = 0; i < 1024 * 1024 / 4; i++)
-		linear[i] = start_val++;
-	drm_intel_bo_unmap(bo);
-
-	return bo;
+	pwrite.handle = handle;
+	pwrite.offset = offset;
+	pwrite.size = size;
+	pwrite.data_ptr = (uintptr_t)buf;
+	ret = drmIoctl(fd, DRM_IOCTL_I915_GEM_PWRITE, &pwrite);
+	assert(ret == 0);
 }
 
 static void
-check_bo(drm_intel_bo *bo, uint32_t start_val)
+gem_read(int fd, uint32_t handle, int offset, int size, void *buf)
 {
-	uint32_t *linear;
+	struct drm_i915_gem_pread pread;
+	int ret;
+
+	pread.handle = handle;
+	pread.offset = offset;
+	pread.size = size;
+	pread.data_ptr = (uintptr_t)buf;
+	ret = drmIoctl(fd, DRM_IOCTL_I915_GEM_PREAD, &pread);
+	assert(ret == 0);
+}
+
+static void
+copy(int fd, uint32_t dst, uint32_t src)
+{
+	uint32_t batch[10];
+	struct drm_i915_gem_relocation_entry reloc[2];
+	struct drm_i915_gem_exec_object2 obj[3];
+	struct drm_i915_gem_execbuffer2 exec;
+	uint32_t handle;
+	int ret;
+
+	batch[0] = XY_SRC_COPY_BLT_CMD |
+		  XY_SRC_COPY_BLT_WRITE_ALPHA |
+		  XY_SRC_COPY_BLT_WRITE_RGB;
+	batch[1] = (3 << 24) | /* 32 bits */
+		  (0xcc << 16) | /* copy ROP */
+		  WIDTH*4;
+	batch[2] = 0; /* dst x1,y1 */
+	batch[3] = (HEIGHT << 16) | WIDTH; /* dst x2,y2 */
+	batch[4] = 0; /* dst reloc */
+	batch[5] = 0; /* src x1,y1 */
+	batch[6] = WIDTH*4;
+	batch[7] = 0; /* src reloc */
+	batch[8] = MI_BATCH_BUFFER_END;
+	batch[9] = MI_NOOP;
+
+	handle = gem_create(fd, 4096);
+	gem_write(fd, handle, 0, sizeof(batch), batch);
+
+	reloc[0].target_handle = dst;
+	reloc[0].delta = 0;
+	reloc[0].offset = 4 * sizeof(batch[0]);
+	reloc[0].presumed_offset = 0;
+	reloc[0].read_domains = I915_GEM_DOMAIN_RENDER;;
+	reloc[0].write_domain = I915_GEM_DOMAIN_RENDER;
+
+	reloc[1].target_handle = src;
+	reloc[1].delta = 0;
+	reloc[1].offset = 7 * sizeof(batch[0]);
+	reloc[1].presumed_offset = 0;
+	reloc[1].read_domains = I915_GEM_DOMAIN_RENDER;;
+	reloc[1].write_domain = 0;
+
+	obj[0].handle = dst;
+	obj[0].relocation_count = 0;
+	obj[0].relocs_ptr = 0;
+	obj[0].alignment = 0;
+	obj[0].offset = 0;
+	obj[0].flags = 0;
+	obj[0].rsvd1 = 0;
+	obj[0].rsvd2 = 0;
+
+	obj[1].handle = src;
+	obj[1].relocation_count = 0;
+	obj[1].relocs_ptr = 0;
+	obj[1].alignment = 0;
+	obj[1].offset = 0;
+	obj[1].flags = 0;
+	obj[1].rsvd1 = 0;
+	obj[1].rsvd2 = 0;
+
+	obj[2].handle = handle;
+	obj[2].relocation_count = 2;
+	obj[2].relocs_ptr = (uintptr_t)reloc;
+	obj[2].alignment = 0;
+	obj[2].offset = 0;
+	obj[2].flags = 0;
+	obj[2].rsvd1 = obj[2].rsvd2 = 0;
+
+	exec.buffers_ptr = (uintptr_t)obj;
+	exec.buffer_count = 3;
+	exec.batch_start_offset = 0;
+	exec.batch_len = sizeof(batch);
+	exec.DR1 = exec.DR4 = 0;
+	exec.num_cliprects = 0;
+	exec.cliprects_ptr = 0;
+	exec.flags = IS_GEN6(intel_get_drm_devid(fd)) ? I915_EXEC_BLT : 0;
+	exec.rsvd1 = exec.rsvd2 = 0;
+
+	ret = drmIoctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &exec);
+	while (ret && errno == EBUSY) {
+		drmCommandNone(fd, DRM_I915_GEM_THROTTLE);
+		ret = drmIoctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &exec);
+	}
+	assert(ret == 0);
+
+	gem_close(fd, handle);
+}
+
+static uint32_t
+create_bo(int fd, uint32_t val)
+{
+	uint32_t handle;
 	int i;
 
-	drm_intel_bo_map(bo, 0);
-	linear = bo->virtual;
+	handle = gem_create(fd, sizeof(linear));
 
-	for (i = 0; i < 1024 * 1024 / 4; i++) {
-		if (linear[i] != start_val) {
+	/* Fill the BO with dwords starting at val */
+	for (i = 0; i < WIDTH*HEIGHT; i++)
+		linear[i] = val++;
+	gem_write(fd, handle, 0, sizeof(linear), linear);
+
+	return handle;
+}
+
+static void
+check_bo(int fd, uint32_t handle, uint32_t val)
+{
+	int i;
+
+	gem_read(fd, handle, 0, sizeof(linear), linear);
+	for (i = 0; i < WIDTH*HEIGHT; i++) {
+		if (linear[i] != val) {
 			fprintf(stderr, "Expected 0x%08x, found 0x%08x "
 				"at offset 0x%08x\n",
-				start_val, linear[i], i * 4);
+				val, linear[i], i * 4);
 			abort();
 		}
-		start_val++;
+		val++;
 	}
-	drm_intel_bo_unmap(bo);
 }
 
 int main(int argc, char **argv)
 {
-	drm_intel_bo *bo[4096];
-	uint32_t bo_start_val[4096];
+	uint32_t handle[4096];
+	uint32_t start_val[4096];
 	uint32_t start = 0;
 	int i, fd, count;
 
@@ -116,19 +248,9 @@ int main(int argc, char **argv)
 	printf("Using %d 1MiB buffers\n", count);
 	assert(count <= 4096);
 
-	bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
-	drm_intel_bufmgr_gem_enable_reuse(bufmgr);
-	batch = intel_batchbuffer_alloc(bufmgr, intel_get_drm_devid(fd));
-
 	for (i = 0; i < count; i++) {
-		bo[i] = create_bo(start);
-		bo_start_val[i] = start;
-
-		/*
-		printf("Creating bo %d\n", i);
-		check_bo(bo[i], bo_start_val[i]);
-		*/
-
+		handle[i] = create_bo(fd, start);
+		start_val[i] = start;
 		start += 1024 * 1024 / 4;
 	}
 
@@ -139,29 +261,12 @@ int main(int argc, char **argv)
 		if (src == dst)
 			continue;
 
-		intel_copy_bo(batch, bo[dst], bo[src], width, height);
-		bo_start_val[dst] = bo_start_val[src];
-
-		/*
-		check_bo(bo[dst], bo_start_val[dst]);
-		printf("%d: copy bo %d to %d\n", i, src, dst);
-		*/
+		copy(fd, handle[dst], handle[src]);
+		start_val[dst] = start_val[src];
 	}
 
-	for (i = 0; i < count; i++) {
-		/*
-		printf("check %d\n", i);
-		*/
-		check_bo(bo[i], bo_start_val[i]);
-
-		drm_intel_bo_unreference(bo[i]);
-		bo[i] = NULL;
-	}
-
-	intel_batchbuffer_free(batch);
-	drm_intel_bufmgr_destroy(bufmgr);
-
-	close(fd);
+	for (i = 0; i < count; i++)
+		check_bo(fd, handle[i], start_val[i]);
 
 	return 0;
 }
