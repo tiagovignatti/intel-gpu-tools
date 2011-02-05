@@ -254,6 +254,33 @@ int main(int argc, char **argv)
 		start += 1024 * 1024 / 4;
 	}
 
+	printf("Verifying initialisation...\n");
+	for (i = 0; i < count; i++)
+		check_bo(fd, handle[i], start_val[i]);
+
+	printf("Cyclic blits, forward...\n");
+	for (i = 0; i < count * 4; i++) {
+		int src = i % count;
+		int dst = (i + 1) % count;
+
+		copy(fd, handle[dst], handle[src]);
+		start_val[dst] = start_val[src];
+	}
+	for (i = 0; i < count; i++)
+		check_bo(fd, handle[i], start_val[i]);
+
+	printf("Cyclic blits, backward...\n");
+	for (i = 0; i < count * 4; i++) {
+		int src = (i + 1) % count;
+		int dst = i % count;
+
+		copy(fd, handle[dst], handle[src]);
+		start_val[dst] = start_val[src];
+	}
+	for (i = 0; i < count; i++)
+		check_bo(fd, handle[i], start_val[i]);
+
+	printf("Random blits...\n");
 	for (i = 0; i < count * 4; i++) {
 		int src = random() % count;
 		int dst = random() % count;
@@ -264,7 +291,6 @@ int main(int argc, char **argv)
 		copy(fd, handle[dst], handle[src]);
 		start_val[dst] = start_val[src];
 	}
-
 	for (i = 0; i < count; i++)
 		check_bo(fd, handle[i], start_val[i]);
 
