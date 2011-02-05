@@ -149,15 +149,41 @@ int main(int argc, char **argv)
 	for (i = 0; i < count; i++) {
 		bo[i] = create_bo(start);
 		bo_start_val[i] = start;
-
-		/*
-		printf("Creating bo %d\n", i);
-		check_bo(bo[i], bo_start_val[i]);
-		*/
-
 		start += 1024 * 1024 / 4;
 	}
+	printf("Verifying initialisation...\n");
+	for (i = 0; i < count; i++)
+		check_bo(bo[i], bo_start_val[i]);
 
+	printf("Cyclic blits, forward...\n");
+	for (i = 0; i < count * 4; i++) {
+		int src = i % count;
+		int dst = (i+1) % count;
+
+		if (src == dst)
+			continue;
+
+		intel_copy_bo(batch, bo[dst], bo[src], width, height);
+		bo_start_val[dst] = bo_start_val[src];
+	}
+	for (i = 0; i < count; i++)
+		check_bo(bo[i], bo_start_val[i]);
+
+	printf("Cyclic blits, backward...\n");
+	for (i = 0; i < count * 4; i++) {
+		int src = (i+1) % count;
+		int dst = i % count;
+
+		if (src == dst)
+			continue;
+
+		intel_copy_bo(batch, bo[dst], bo[src], width, height);
+		bo_start_val[dst] = bo_start_val[src];
+	}
+	for (i = 0; i < count; i++)
+		check_bo(bo[i], bo_start_val[i]);
+
+	printf("Random blits...\n");
 	for (i = 0; i < count * 4; i++) {
 		int src = random() % count;
 		int dst = random() % count;
@@ -167,19 +193,11 @@ int main(int argc, char **argv)
 
 		intel_copy_bo(batch, bo[dst], bo[src], width, height);
 		bo_start_val[dst] = bo_start_val[src];
-
-		/*
-		check_bo(bo[dst], bo_start_val[dst]);
-		printf("%d: copy bo %d to %d\n", i, src, dst);
-		*/
 	}
-
-	for (i = 0; i < count; i++) {
-		/*
-		printf("check %d\n", i);
-		*/
+	for (i = 0; i < count; i++)
 		check_bo(bo[i], bo_start_val[i]);
 
+	for (i = 0; i < count; i++) {
 		drm_intel_bo_unreference(bo[i]);
 		bo[i] = NULL;
 	}
