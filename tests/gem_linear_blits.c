@@ -237,16 +237,21 @@ check_bo(int fd, uint32_t handle, uint32_t val)
 
 int main(int argc, char **argv)
 {
-	uint32_t handle[4096];
-	uint32_t start_val[4096];
+	uint32_t *handle, *start_val;
 	uint32_t start = 0;
 	int i, fd, count;
 
 	fd = drm_open_any();
 
-	count = 3 * gem_aperture_size(fd) / (1024*1024) / 2;
+	count = 0;
+	if (argc > 1)
+		count = atoi(argv[1]);
+	if (count == 0)
+		count = 3 * gem_aperture_size(fd) / (1024*1024) / 2;
 	printf("Using %d 1MiB buffers\n", count);
-	assert(count <= 4096);
+
+	handle = malloc(sizeof(uint32_t)*count*2);
+	start_val = handle + count;
 
 	for (i = 0; i < count; i++) {
 		handle[i] = create_bo(fd, start);

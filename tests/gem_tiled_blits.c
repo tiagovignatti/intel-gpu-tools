@@ -130,17 +130,24 @@ check_bo(drm_intel_bo *bo, uint32_t start_val)
 
 int main(int argc, char **argv)
 {
-	drm_intel_bo *bo[4096];
-	uint32_t bo_start_val[4096];
+	drm_intel_bo **bo;
+	uint32_t *bo_start_val;
 	uint32_t start = 0;
 	int i, fd, count;
 
 	fd = drm_open_any();
 
-	count = 3 * gem_aperture_size(fd) / (1024*1024) / 2;
-	count += (count & 1) == 0;
+	count = 0;
+	if (argc > 1)
+		count = atoi(argv[1]);
+	if (count == 0) {
+		count = 3 * gem_aperture_size(fd) / (1024*1024) / 2;
+		count += (count & 1) == 0;
+	}
 	printf("Using %d 1MiB buffers\n", count);
-	assert(count <= 4096);
+
+	bo = malloc(sizeof(drm_intel_bo *)*count);
+	bo_start_val = malloc(sizeof(uint32_t)*count);
 
 	bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
 	drm_intel_bufmgr_gem_enable_reuse(bufmgr);
