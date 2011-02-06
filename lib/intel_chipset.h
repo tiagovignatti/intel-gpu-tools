@@ -147,7 +147,7 @@
 #define IS_INTEL(devid)		(IS_GEN2(devid) || \
 				 IS_GEN3(devid) || \
 				 IS_GEN4(devid) || \
-				 IS_GEN4(devid) || \
+				 IS_GEN5(devid) || \
 				 IS_GEN6(devid))
 
 #define HAS_PCH_SPLIT(devid)	(IS_GEN5(devid) ||	\
