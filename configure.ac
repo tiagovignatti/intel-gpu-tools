@@ -20,25 +20,32 @@
 #
 # Process this file with autoconf to produce a configure script
 
-AC_PREREQ(2.57)
+AC_PREREQ([2.63])
 AC_INIT([intel-gpu-tools],
-        1.0.2,
+        [1.0.2],
         [https://bugs.freedesktop.org/enter_bug.cgi?product=xorg],
-        intel-gpu-tools)
+        [intel-gpu-tools])
 
 AC_CONFIG_SRCDIR([Makefile.am])
-AM_CONFIG_HEADER([config.h])
-AC_CONFIG_AUX_DIR(.)
+AC_CONFIG_HEADERS([config.h])
+AC_CONFIG_MACRO_DIR([m4])
+AC_CONFIG_AUX_DIR([build-aux])
 
-AM_INIT_AUTOMAKE([dist-bzip2])
+AM_INIT_AUTOMAKE([1.10 foreign dist-bzip2])
+AM_MAINTAINER_MODE([enable])
 
-AM_MAINTAINER_MODE
+# Support silent build rules, requires at least automake-1.11. Disable
+# by either passing --disable-silent-rules to configure or passing V=1
+# to make
+m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 
 # Checks for programs.
-AC_DISABLE_STATIC
-AC_PROG_LIBTOOL
 AC_PROG_CC
 AM_PROG_CC_C_O
+
+# Initialize libtool
+LT_PREREQ([2.2])
+LT_INIT([disable-static])
 
 PKG_CHECK_MODULES(DRM, [libdrm_intel >= 2.4.23], have_drm=yes, have_drm=no)
 if test "x$have_drm" = "xyes"; then
@@ -82,7 +89,7 @@ m4_ifndef([XORG_MACROS_VERSION], [AC_FATAL([must install xorg-macros 1.3 or late
 XORG_MACROS_VERSION(1.3)
 XORG_DEFAULT_OPTIONS
 
-AC_OUTPUT([
+AC_CONFIG_FILES([
 	Makefile
 	benchmarks/Makefile
 	lib/Makefile
@@ -90,3 +97,4 @@ AC_OUTPUT([
 	tests/Makefile
 	tools/Makefile
 ])
+AC_OUTPUT
