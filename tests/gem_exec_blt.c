@@ -215,6 +215,7 @@ static void run(int object_size)
 	uint32_t buf[20];
 	uint32_t handle, src, dst;
 	int fd, len, count;
+	int ring;
 
 	fd = drm_open_any();
 	handle = gem_create(fd, 4096);
