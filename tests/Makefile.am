@@ -18,12 +18,15 @@ TESTS = getversion \
 	gem_bad_address \
 	gem_bad_blit \
 	gem_bad_batch \
-	gem_hang \
 	gem_fence_thrash \
 	gem_gtt_speed \
 	$(NULL)
 
-EXTRA_PROGRAMS = $(TESTS)
+HANG = \
+	gem_hang \
+	$(NULL)
+
+EXTRA_PROGRAMS = $(TESTS) $(HANG)
 CLEANFILES = $(EXTRA_PROGRAMS)
 
 AM_CFLAGS = $(DRM_CFLAGS) $(WARN_CFLAGS) \
