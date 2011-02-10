@@ -188,7 +188,7 @@ static void dump_backlight_info(void)
 	printf("Backlight info block (len %d):\n", block->size);
 
 	if (sizeof(struct blc_struct) != backlight->blcstruct_size) {
-		printf("\tBacklight struct sizes don't match (expected %lu, got %u), skipping\n",
+		printf("\tBacklight struct sizes don't match (expected %zu, got %u), skipping\n",
 		     sizeof(struct blc_struct), backlight->blcstruct_size);
 		return;
 	}
