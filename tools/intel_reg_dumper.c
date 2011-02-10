@@ -35,11 +35,11 @@
 
 static uint32_t devid;
 
-#define DEBUGSTRING(func) static void func(char **result, int reg, uint32_t val)
+#define DEBUGSTRING(func) static void func(char *result, int len, int reg, uint32_t val)
 
 DEBUGSTRING(i830_16bit_func)
 {
-	asprintf(result, "0x%04x", (uint16_t) val);
+	snprintf(result, len, "0x%04x", (uint16_t) val);
 }
 
 DEBUGSTRING(i830_debug_dcc)
@@ -71,7 +71,7 @@ DEBUGSTRING(i830_debug_dcc)
 		}
 	}
 
-	asprintf(result, "%s, XOR randomization: %sabled, XOR bit: %d",
+	snprintf(result, len, "%s, XOR randomization: %sabled, XOR bit: %d",
 		 addressing,
 		 (val & (1 << 10)) ? "dis" : "en",
 		 (val & (1 << 9)) ? 17 : 11);
@@ -96,7 +96,7 @@ DEBUGSTRING(i830_debug_chdecmisc)
 		break;
 	}
 
-	asprintf(result,
+	snprintf(result, len,
 		 "%s, ch2 enh %sabled, ch1 enh %sabled, "
 		 "ch0 enh %sabled, "
 		 "flex %sabled, ep %spresent", enhmodesel,
@@ -109,24 +109,24 @@ DEBUGSTRING(i830_debug_chdecmisc)
 
 DEBUGSTRING(i830_debug_xyminus1)
 {
-	asprintf(result, "%d, %d", (val & 0xffff) + 1,
+	snprintf(result, len, "%d, %d", (val & 0xffff) + 1,
 		 ((val & 0xffff0000) >> 16) + 1);
 }
 
 DEBUGSTRING(i830_debug_yxminus1)
 {
-	asprintf(result, "%d, %d", ((val & 0xffff0000) >> 16) + 1,
+	snprintf(result, len, "%d, %d", ((val & 0xffff0000) >> 16) + 1,
 		 (val & 0xffff) + 1);
 }
 
 DEBUGSTRING(i830_debug_xy)
 {
-	asprintf(result, "%d, %d", (val & 0xffff), ((val & 0xffff0000) >> 16));
+	snprintf(result, len, "%d, %d", (val & 0xffff), ((val & 0xffff0000) >> 16));
 }
 
 DEBUGSTRING(i830_debug_dspstride)
 {
-	asprintf(result, "%d bytes", val);
+	snprintf(result, len, "%d bytes", val);
 }
 
 DEBUGSTRING(i830_debug_dspcntr)
@@ -134,9 +134,9 @@ DEBUGSTRING(i830_debug_dspcntr)
 	char *enabled = val & DISPLAY_PLANE_ENABLE ? "enabled" : "disabled";
 	char plane = val & DISPPLANE_SEL_PIPE_B ? 'B' : 'A';
 	if (HAS_PCH_SPLIT(devid))
-		asprintf(result, "%s", enabled);
+		snprintf(result, len, "%s", enabled);
 	else
-		asprintf(result, "%s, pipe %c", enabled, plane);
+		snprintf(result, len, "%s, pipe %c", enabled, plane);
 }
 
 DEBUGSTRING(i830_debug_pipeconf)
@@ -168,9 +168,9 @@ DEBUGSTRING(i830_debug_pipeconf)
 		}
 	}
 	if (HAS_PCH_SPLIT(devid))
-		asprintf(result, "%s, %s, %s", enabled, bit30, bpc);
+		snprintf(result, len, "%s, %s, %s", enabled, bit30, bpc);
 	else
-		asprintf(result, "%s, %s", enabled, bit30);
+		snprintf(result, len, "%s, %s", enabled, bit30);
 }
 
 DEBUGSTRING(i830_debug_pipestat)
@@ -224,7 +224,7 @@ DEBUGSTRING(i830_debug_pipestat)
 	    val & VBLANK_INT_STATUS ? " VBLANK_INT_STATUS" : "";
 	char *_OREG_UPDATE_STATUS =
 	    val & OREG_UPDATE_STATUS ? " OREG_UPDATE_STATUS" : "";
-	asprintf(result,
+	snprintf(result, len,
 		 "status:%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s",
 		 _FIFO_UNDERRUN,
 		 _CRC_ERROR_ENABLE,
@@ -255,35 +255,35 @@ DEBUGSTRING(i830_debug_pipestat)
 
 DEBUGSTRING(i830_debug_hvtotal)
 {
-	asprintf(result, "%d active, %d total",
+	snprintf(result, len, "%d active, %d total",
 		 (val & 0xffff) + 1,
 		 ((val & 0xffff0000) >> 16) + 1);
 }
 
 DEBUGSTRING(i830_debug_hvsyncblank)
 {
-	asprintf(result, "%d start, %d end",
+	snprintf(result, len, "%d start, %d end",
 		 (val & 0xffff) + 1,
 		 ((val & 0xffff0000) >> 16) + 1);
 }
 
 DEBUGSTRING(i830_debug_vgacntrl)
 {
-	asprintf(result, "%s",
+	snprintf(result, len, "%s",
 		 val & VGA_DISP_DISABLE ? "disabled" : "enabled");
 }
 
 DEBUGSTRING(i830_debug_fp)
 {
 	if (IS_IGD(devid)) {
-		asprintf(result, "n = %d, m1 = %d, m2 = %d",
+		snprintf(result, len, "n = %d, m1 = %d, m2 = %d",
 			 ffs((val & FP_N_IGD_DIV_MASK) >>
 			     FP_N_DIV_SHIFT) - 1,
 			 ((val & FP_M1_DIV_MASK) >> FP_M1_DIV_SHIFT),
 			 ((val & FP_M2_IGD_DIV_MASK) >>
 			  FP_M2_DIV_SHIFT));
 	}
-	asprintf(result, "n = %d, m1 = %d, m2 = %d",
+	snprintf(result, len, "n = %d, m1 = %d, m2 = %d",
 		 ((val & FP_N_DIV_MASK) >> FP_N_DIV_SHIFT),
 		 ((val & FP_M1_DIV_MASK) >> FP_M1_DIV_SHIFT),
 		 ((val & FP_M2_DIV_MASK) >> FP_M2_DIV_SHIFT));
@@ -307,7 +307,7 @@ DEBUGSTRING(i830_debug_vga_pd)
 		vga1_p1 = ((val & VGA1_PD_P1_MASK) >> VGA1_PD_P1_SHIFT) + 2;
 	vga1_p2 = (val & VGA1_PD_P2_DIV_4) ? 4 : 2;
 
-	asprintf(result, "vga0 p1 = %d, p2 = %d, vga1 p1 = %d, p2 = %d",
+	snprintf(result, len, "vga0 p1 = %d, p2 = %d, vga1 p1 = %d, p2 = %d",
 			 vga0_p1, vga0_p2, vga1_p1, vga1_p2);
 }
 
@@ -329,12 +329,12 @@ DEBUGSTRING(i830_debug_pp_status)
 		break;
 	}
 
-	asprintf(result, "%s, %s, sequencing %s", status, ready, seq);
+	snprintf(result, len, "%s, %s, sequencing %s", status, ready, seq);
 }
 
 DEBUGSTRING(i830_debug_pp_control)
 {
-	asprintf(result, "power target: %s",
+	snprintf(result, len, "power target: %s",
 			 val & POWER_TARGET_ON ? "on" : "off");
 }
 
@@ -420,7 +420,7 @@ DEBUGSTRING(i830_debug_dpll)
 		sdvoextra[0] = '\0';
 	}
 
-	asprintf(result, "%s, %s%s, %s clock, %s mode, p1 = %d, "
+	snprintf(result, len, "%s, %s%s, %s clock, %s mode, p1 = %d, "
 			 "p2 = %d%s%s",
 			 enabled, dvomode, vgamode, clock, mode, p1, p2,
 			 fpextra, sdvoextra);
@@ -437,7 +437,7 @@ DEBUGSTRING(i830_debug_dpll_test)
 	char *dpllbinput = val & DPLLB_INPUT_BUFFER_ENABLE ?
 	    "" : ", DPLLB input buffer disabled";
 
-	asprintf(result, "%s%s%s%s%s%s",
+	snprintf(result, len, "%s%s%s%s%s%s",
 			 dpllandiv, dpllamdiv, dpllainput,
 			 dpllbndiv, dpllbmdiv, dpllbinput);
 }
@@ -453,10 +453,10 @@ DEBUGSTRING(i830_debug_adpa)
 		pipe = val & (1<<29) ? 'B' : 'A';
 
 	if (HAS_PCH_SPLIT(devid))
-		asprintf(result, "%s, transcoder %c, %chsync, %cvsync",
+		snprintf(result, len, "%s, transcoder %c, %chsync, %cvsync",
 				 enable, pipe, hsync, vsync);
 	else
-		asprintf(result, "%s, pipe %c, %chsync, %cvsync",
+		snprintf(result, len, "%s, pipe %c, %chsync, %cvsync",
 				 enable, pipe, hsync, vsync);
 }
 
@@ -479,7 +479,7 @@ DEBUGSTRING(i830_debug_lvds)
 	if (HAS_CPT)
 		pipe = val & (1<<29) ? 'B' : 'A';
 
-	asprintf(result, "%s, pipe %c, %d bit, %s",
+	snprintf(result, len, "%s, pipe %c, %d bit, %s",
 			 enable, pipe, depth, channels);
 }
 
@@ -506,7 +506,7 @@ DEBUGSTRING(i830_debug_dvo)
 		break;
 	}
 
-	asprintf(result, "%s, pipe %c, %s, %chsync, %cvsync",
+	snprintf(result, len, "%s, pipe %c, %s, %chsync, %cvsync",
 			 enable, pipe, stall, hsync, vsync);
 }
 
@@ -527,7 +527,7 @@ DEBUGSTRING(i830_debug_sdvo)
 		sdvoextra[0] = '\0';
 	}
 
-	asprintf(result, "%s, pipe %c, stall %s, %sdetected%s%s",
+	snprintf(result, len, "%s, pipe %c, stall %s, %sdetected%s%s",
 			 enable, pipe, stall, detected, sdvoextra, gang);
 }
 
@@ -566,7 +566,7 @@ DEBUGSTRING(i830_debug_dspclk_gate_d)
 	char *OVUUNIT = val & OVUUNIT_CLOCK_GATE_DISABLE ? " OVUUNIT" : "";
 	char *OVLUNIT = val & OVLUNIT_CLOCK_GATE_DISABLE ? " OVLUNIT" : "";
 
-	asprintf(result,
+	snprintf(result, len,
 		 "clock gates disabled:%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s",
 		 DPUNIT_B, VSUNIT, VRHUNIT, VRDUNIT, AUDUNIT, DPUNIT_A, DPCUNIT,
 		 TVRUNIT, TVCUNIT, TVFUNIT, TVEUNIT, DVSUNIT, DSSUNIT, DDBUNIT,
@@ -588,11 +588,11 @@ DEBUGSTRING(i810_debug_915_fence)
 	if (format == 'X')
 		pitch *= 4;
 	if (val & 1) {
-		asprintf(result, "enabled, %c tiled, %4d pitch, 0x%08x - 0x%08x (%dkb)",
+		snprintf(result, len, "enabled, %c tiled, %4d pitch, 0x%08x - 0x%08x (%dkb)",
 			 format, pitch, offset, offset + size,
 			 size / 1024);
 	} else {
-		asprintf(result, "disabled");
+		snprintf(result, len, "disabled");
 	}
 }
 
@@ -606,7 +606,7 @@ DEBUGSTRING(i810_debug_965_fence_start)
 	if (!IS_965(devid))
 		return;
 
-	asprintf(result, "%s, %c tile walk, %4d pitch, 0x%08x start",
+	snprintf(result, len, "%s, %c tile walk, %4d pitch, 0x%08x start",
 		 enable, format, pitch, offset);
 }
 
@@ -617,7 +617,7 @@ DEBUGSTRING(i810_debug_965_fence_end)
 	if (!IS_965(devid))
 		return;
 
-	asprintf(result, "                                   0x%08x end", end);
+	snprintf(result, len, "                                   0x%08x end", end);
 }
 
 #define DEFINEREG(reg) \
@@ -630,7 +630,7 @@ DEBUGSTRING(i810_debug_965_fence_end)
 struct reg_debug {
 	int reg;
 	char *name;
-	void (*debug_output) (char **result, int reg, uint32_t val);
+	void (*debug_output) (char *result, int len, int reg, uint32_t val);
 	uint32_t val;
 };
 
@@ -893,19 +893,19 @@ static struct reg_debug intel_debug_regs[] = {
 
 DEBUGSTRING(ironlake_debug_rr_hw_ctl)
 {
-	asprintf(result, "low %d, high %d", val & RR_HW_LOW_POWER_FRAMES_MASK,
+	snprintf(result, len, "low %d, high %d", val & RR_HW_LOW_POWER_FRAMES_MASK,
 		 (val & RR_HW_HIGH_POWER_FRAMES_MASK) >> 8);
 }
 
 DEBUGSTRING(ironlake_debug_m_tu)
 {
-	asprintf(result, "TU %d, val 0x%x %d", (val >> 25) + 1, val & 0xffffff,
+	snprintf(result, len, "TU %d, val 0x%x %d", (val >> 25) + 1, val & 0xffffff,
 		 val & 0xffffff);
 }
 
 DEBUGSTRING(ironlake_debug_n)
 {
-	asprintf(result, "val 0x%x %d", val & 0xffffff, val & 0xffffff);
+	snprintf(result, len, "val 0x%x %d", val & 0xffffff, val & 0xffffff);
 }
 
 DEBUGSTRING(ironlake_debug_fdi_tx_ctl)
@@ -1002,7 +1002,7 @@ DEBUGSTRING(ironlake_debug_fdi_tx_ctl)
 		break;
 	}
 
-	asprintf(result, "%s, train pattern %s, voltage swing %s,"
+	snprintf(result, len, "%s, train pattern %s, voltage swing %s,"
 		 "pre-emphasis %s, port width %s, enhanced framing %s, FDI PLL %s, scrambing %s, master mode %s",
 		 val & FDI_TX_ENABLE ? "enable" : "disable",
 		 train, voltage, pre_emphasis, portw,
@@ -1079,7 +1079,7 @@ DEBUGSTRING(ironlake_debug_fdi_rx_ctl)
 		break;
 	}
 
-	asprintf(result, "%s, train pattern %s, port width %s, %s,"
+	snprintf(result, len, "%s, train pattern %s, port width %s, %s,"
 		 "link_reverse_strap_overwrite %s, dmi_link_reverse %s, FDI PLL %s,"
 		 "FS ecc %s, FE ecc %s, FS err report %s, FE err report %s,"
 		 "scrambing %s, enhanced framing %s, %s",
@@ -1099,7 +1099,7 @@ DEBUGSTRING(ironlake_debug_fdi_rx_ctl)
 
 DEBUGSTRING(ironlake_debug_dspstride)
 {
-	asprintf(result, "%d", val >> 6);
+	snprintf(result, len, "%d", val >> 6);
 }
 
 DEBUGSTRING(ironlake_debug_pch_dpll)
@@ -1148,7 +1148,7 @@ DEBUGSTRING(ironlake_debug_pch_dpll)
 
 	sdvo_mul = ((val & PLL_REF_SDVO_HDMI_MULTIPLIER_MASK) >> 9) + 1;
 
-	asprintf(result, "%s, sdvo high speed %s, mode %s, p2 %s, "
+	snprintf(result, len, "%s, sdvo high speed %s, mode %s, p2 %s, "
 		 "FPA0 P1 %d, FPA1 P1 %d, refclk %s, sdvo/hdmi mul %d",
 		 enable, highspeed, mode, p2, fpa0_p1, fpa1_p1, refclk,
 		 sdvo_mul);
@@ -1180,7 +1180,7 @@ DEBUGSTRING(ironlake_debug_dref_ctl)
 	default:
 		cpu_source = "reserved";
 	}
-	asprintf(result, "cpu source %s, ssc_source %s, nonspread_source %s, "
+	snprintf(result, len, "cpu source %s, ssc_source %s, nonspread_source %s, "
 		 "superspread_source %s, ssc4_mode %s, ssc1 %s, ssc4 %s",
 		 cpu_source, ssc_source, nonspread_source,
 		 superspread_source, ssc4_mode, ssc1, ssc4);
@@ -1218,19 +1218,19 @@ DEBUGSTRING(ironlake_debug_rawclk_freq)
 		tp2 = "12.0us";
 		break;
 	}
-	asprintf(result, "FDL_TP1 timer %s, FDL_TP2 timer %s, freq %d",
+	snprintf(result, len, "FDL_TP1 timer %s, FDL_TP2 timer %s, freq %d",
 		 tp1, tp2, val & RAWCLK_FREQ_MASK);
 
 }
 
 DEBUGSTRING(ironlake_debug_fdi_rx_misc)
 {
-	asprintf(result, "FDI Delay %d", val & ((1 << 13) - 1));
+	snprintf(result, len, "FDI Delay %d", val & ((1 << 13) - 1));
 }
 
 DEBUGSTRING(ironlake_debug_transconf)
 {
-	asprintf(result, "%s, %s",
+	snprintf(result, len, "%s, %s",
 		 val & TRANS_ENABLE ? "enable" : "disable",
 		 val & TRANS_STATE_ENABLE ? "active" : "inactive");
 }
@@ -1269,7 +1269,7 @@ DEBUGSTRING(ironlake_debug_panel_fitting)
 		break;
 	}
 
-	asprintf(result,
+	snprintf(result, len,
 		 "%s, auto_scale %s, auto_scale_cal %s, v_filter %s, vadapt %s, mode %s, filter_sel %s,"
 		 "chroma pre-filter %s, vert3tap %s, v_inter_invert %s",
 		 val & PF_ENABLE ? "enable" : "disable",
@@ -1286,21 +1286,21 @@ DEBUGSTRING(ironlake_debug_panel_fitting)
 
 DEBUGSTRING(ironlake_debug_panel_fitting_2)
 {
-	asprintf(result,
+	snprintf(result, len,
 		 "vscale %f",
 		 val / (float) (1<<15));
 }
 
 DEBUGSTRING(ironlake_debug_panel_fitting_3)
 {
-	asprintf(result,
+	snprintf(result, len,
 		 "vscale initial phase %f",
 		 val / (float) (1<<15));
 }
 
 DEBUGSTRING(ironlake_debug_panel_fitting_4)
 {
-	asprintf(result,
+	snprintf(result, len,
 		 "hscale %f",
 		 val / (float) (1<<15));
 }
@@ -1312,7 +1312,7 @@ DEBUGSTRING(ironlake_debug_pf_win)
 	a = (val >> 16) & 0x1fff;
 	b = val & 0xfff;
 
-	asprintf(result, "%d, %d", a, b);
+	snprintf(result, len, "%d, %d", a, b);
 }
 
 DEBUGSTRING(ironlake_debug_hdmi)
@@ -1369,7 +1369,7 @@ DEBUGSTRING(ironlake_debug_hdmi)
 	else
 		detect = "non-detected";
 
-	asprintf(result, "%s pipe %c %s %s %s audio %s %s %s %s",
+	snprintf(result, len, "%s pipe %c %s %s %s audio %s %s %s %s",
 		 enable, pipe, bpc, encoding, mode, audio, vsync, hsync, detect);
 }
 
@@ -1399,7 +1399,7 @@ DEBUGSTRING(snb_debug_dpll_sel)
 	} else
 		transb = "disable";
 
-	asprintf(result, "TransA DPLL %s (DPLL %s), TransB DPLL %s (DPLL %s)",
+	snprintf(result, len, "TransA DPLL %s (DPLL %s), TransB DPLL %s (DPLL %s)",
 		 transa, dplla, transb, dpllb);
 }
 
@@ -1452,13 +1452,13 @@ DEBUGSTRING(snb_debug_trans_dp_ctl)
 	else
 		hsync = "-hsync";
 
-	asprintf(result, "%s port %s %s %s %s",
+	snprintf(result, len, "%s port %s %s %s %s",
 		 enable, port, bpc, vsync, hsync);
 }
 
 DEBUGSTRING(ilk_debug_pp_control)
 {
-	asprintf(result, "blacklight %s, %spower down on reset, panel %s",
+	snprintf(result, len, "blacklight %s, %spower down on reset, panel %s",
 		 (val & (1 << 2)) ? "enabled" : "disabled",
 		 (val & (1 << 1)) ? "" : "do not ",
 		 (val & (1 << 0)) ? "on" : "off");
@@ -1694,23 +1694,20 @@ static struct reg_debug i945gm_mi_regs[] = {
 static void
 i945_dump_mi_regs(void)
 {
+	char debug[1024];
 	int i;
 
 	for (i = 0; i < ARRAY_SIZE(i945gm_mi_regs); i++) {
 		uint32_t val = INREG(i945gm_mi_regs[i].reg);
 
 		if (i945gm_mi_regs[i].debug_output != NULL) {
-			char *debug = NULL;
-			i945gm_mi_regs[i].debug_output(&debug,
-							  i945gm_mi_regs
-							  [i].reg,
-							  val);
-			if (debug != NULL) {
-				printf("%30.30s: 0x%08x (%s)\n",
-				       i945gm_mi_regs[i].name,
-				       (unsigned int)val, debug);
-				free(debug);
-			}
+			i945gm_mi_regs[i].debug_output(debug, sizeof(debug),
+						       i945gm_mi_regs
+						       [i].reg,
+						       val);
+			printf("%30.30s: 0x%08x (%s)\n",
+			       i945gm_mi_regs[i].name,
+			       (unsigned int)val, debug);
 		} else {
 			printf("%30.30s: 0x%08x\n", i945gm_mi_regs[i].name,
 			       (unsigned int)val);
@@ -1721,23 +1718,20 @@ i945_dump_mi_regs(void)
 static void
 ironlake_dump_regs(void)
 {
+	char debug[1024];
 	int i;
 
 	for (i = 0; i < ARRAY_SIZE(ironlake_debug_regs); i++) {
 		uint32_t val = INREG(ironlake_debug_regs[i].reg);
 
 		if (ironlake_debug_regs[i].debug_output != NULL) {
-			char *debug = NULL;
-			ironlake_debug_regs[i].debug_output(&debug,
-							  ironlake_debug_regs
-							  [i].reg,
-							  val);
-			if (debug != NULL) {
-				printf("%30.30s: 0x%08x (%s)\n",
-				       ironlake_debug_regs[i].name,
-				       (unsigned int)val, debug);
-				free(debug);
-			}
+			ironlake_debug_regs[i].debug_output(debug, sizeof(debug),
+							    ironlake_debug_regs
+							    [i].reg,
+							    val);
+			printf("%30.30s: 0x%08x (%s)\n",
+			       ironlake_debug_regs[i].name,
+			       (unsigned int)val, debug);
 		} else {
 			printf("%30.30s: 0x%08x\n", ironlake_debug_regs[i].name,
 			       (unsigned int)val);
@@ -1748,6 +1742,7 @@ ironlake_dump_regs(void)
 static void
 intel_dump_regs(void)
 {
+	char debug[1024];
 	int i;
 	int fp, dpll;
 	int pipe;
@@ -1764,17 +1759,12 @@ intel_dump_regs(void)
 		uint32_t val = INREG(intel_debug_regs[i].reg);
 
 		if (intel_debug_regs[i].debug_output != NULL) {
-			char *debug = NULL;
-			
-			intel_debug_regs[i].debug_output(&debug,
+			intel_debug_regs[i].debug_output(debug, sizeof(debug),
 							 intel_debug_regs[i].reg,
 							 val);
-			if (debug != NULL) {
-				printf("%20.20s: 0x%08x (%s)\n",
-				       intel_debug_regs[i].name,
-				       (unsigned int)val, debug);
-				free(debug);
-			}
+			printf("%20.20s: 0x%08x (%s)\n",
+			       intel_debug_regs[i].name,
+			       (unsigned int)val, debug);
 		} else {
 			printf("%20.20s: 0x%08x\n",
 			       intel_debug_regs[i].name,
