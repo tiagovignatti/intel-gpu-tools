@@ -247,6 +247,7 @@ parse_ringbuffer_info(const char *filename,
 int
 main (int argc, char *argv[])
 {
+    char filename[4096];
     const char *path;
     struct stat st;
     int err;
@@ -302,10 +303,10 @@ main (int argc, char *argv[])
     }
 
     if (S_ISDIR(st.st_mode)) {
-	char *filename;
 	uint32_t ring_head, ring_tail, acthd;
 
-	asprintf(&filename, "%s/i915_ringbuffer_info", path);
+	snprintf(filename, sizeof(filename),
+		 "%s/i915_ringbuffer_info", path);
 
 	err = stat(filename, &st);
 	if (err != 0) {
@@ -320,7 +321,6 @@ main (int argc, char *argv[])
 	}
 
 	parse_ringbuffer_info(filename, &ring_head, &ring_tail, &acthd);
-	free (filename);
 
 	printf("ACTHD: 0x%08x\n", acthd);
 	printf("EIR: 0x%08x\n", INREG(EIR));
@@ -354,42 +354,40 @@ main (int argc, char *argv[])
 
 	print_instdone (instdone, instdone1);
 
-	asprintf (&filename, "%s/i915_batchbuffers", path);
+	snprintf(filename, sizeof(filename), "%s/i915_batchbuffers", path);
 	intel_decode_context_set_head_tail(acthd, 0xffffffff);
 	read_data_file (devid, filename, 1);
-	free (filename);
 
-	asprintf (&filename, "%s/i915_ringbuffer_data", path);
+	snprintf(filename, sizeof(filename), "%s/i915_ringbuffer_data", path);
 	intel_decode_context_set_head_tail(ring_head, ring_tail);
 	printf("Ringbuffer: ");
 	printf("Reminder: head pointer is GPU read, tail pointer is CPU "
 	       "write\n");
 	read_data_file (devid, filename, 0);
-	free (filename);
 
-	asprintf(&filename, "%s/i915_blt_ringbuffer_info", path);
+	snprintf(filename, sizeof(filename),
+		 "%s/i915_blt_ringbuffer_info", path);
 	if (stat(filename, &st) == 0) {
 		parse_ringbuffer_info(filename, &ring_head, &ring_tail, &acthd);
-		free(filename);
 
-		asprintf (&filename, "%s/i915_blt_ringbuffer_data", path);
+		snprintf(filename, sizeof(filename),
+			 "%s/i915_blt_ringbuffer_data", path);
 		intel_decode_context_set_head_tail(ring_head, ring_tail);
 		printf("BLT Ringbuffer: ");
 		read_data_file (devid, filename, 0);
 	}
-	free (filename);
 
-	asprintf(&filename, "%s/i915_bsd_ringbuffer_info", path);
+	snprintf(filename, sizeof(filename),
+		 "%s/i915_bsd_ringbuffer_info", path);
 	if (stat(filename, &st) == 0) {
 		parse_ringbuffer_info(filename, &ring_head, &ring_tail, &acthd);
-		free(filename);
 
-		asprintf (&filename, "%s/i915_bsd_ringbuffer_data", path);
+		snprintf(filename, sizeof(filename),
+			 "%s/i915_bsd_ringbuffer_data", path);
 		intel_decode_context_set_head_tail(ring_head, ring_tail);
 		printf("BSD Ringbuffer: ");
 		read_data_file (devid, filename, 0);
 	}
-	free (filename);
     } else {
 	read_data_file (devid, path, 1);
     }
