@@ -4,11 +4,9 @@ bin_PROGRAMS = \
 	intel_bios_dumper \
 	intel_bios_reader \
 	intel_error_decode \
-	intel_gpu_dump \
 	intel_gpu_top \
 	intel_gpu_time \
 	intel_gtt \
-	intel_lid \
 	intel_stepping \
 	intel_reg_dumper \
 	intel_reg_snapshot \
@@ -18,6 +16,8 @@ bin_PROGRAMS = \
 
 noinst_PROGRAMS = \
 	intel_dump_decode \
+	intel_gpu_dump \
+	intel_lid \
 	$(NULL)
 
 intel_gpu_dump_SOURCES = \
