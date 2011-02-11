@@ -69,6 +69,18 @@
 struct udev_monitor *uevent_monitor;
 drmModeRes *resources;
 int fd, modes;
+int dump_info = 0, test_all_modes =0, test_preferred_mode = 0, force_mode = 0;
+int sleep_between_modes = 5;
+
+float force_clock;
+int	force_hdisplay;
+int	force_hsync_start;
+int	force_hsync_end;
+int	force_htotal;
+int	force_vdisplay;
+int	force_vsync_start;
+int	force_vsync_end;
+int	force_vtotal;
 
 #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
 
@@ -140,6 +152,86 @@ struct connector {
 	drmModeConnector *connector;
 	int crtc;
 };
+
+static void dump_mode(drmModeModeInfo *mode)
+{
+	printf("  %s %d %d %d %d %d %d %d %d %d\n",
+	       mode->name,
+	       mode->vrefresh,
+	       mode->hdisplay,
+	       mode->hsync_start,
+	       mode->hsync_end,
+	       mode->htotal,
+	       mode->vdisplay,
+	       mode->vsync_start,
+	       mode->vsync_end,
+	       mode->vtotal);
+}
+
+static void dump_connectors(void)
+{
+	int i, j;
+
+	printf("Connectors:\n");
+	printf("id\tencoder\tstatus\t\ttype\tsize (mm)\tmodes\n");
+	for (i = 0; i < resources->count_connectors; i++) {
+		drmModeConnector *connector;
+
+		connector = drmModeGetConnector(fd, resources->connectors[i]);
+		if (!connector) {
+			fprintf(stderr, "could not get connector %i: %s\n",
+				resources->connectors[i], strerror(errno));
+			continue;
+		}
+
+		printf("%d\t%d\t%s\t%s\t%dx%d\t\t%d\n",
+		       connector->connector_id,
+		       connector->encoder_id,
+		       connector_status_str(connector->connection),
+		       connector_type_str(connector->connector_type),
+		       connector->mmWidth, connector->mmHeight,
+		       connector->count_modes);
+
+		if (!connector->count_modes)
+			continue;
+
+		printf("  modes:\n");
+		printf("  name refresh (Hz) hdisp hss hse htot vdisp "
+		       "vss vse vtot)\n");
+		for (j = 0; j < connector->count_modes; j++)
+			dump_mode(&connector->modes[j]);
+
+		drmModeFreeConnector(connector);
+	}
+	printf("\n");
+}
+
+static void dump_crtcs(void)
+{
+	int i;
+
+	printf("CRTCs:\n");
+	printf("id\tfb\tpos\tsize\n");
+	for (i = 0; i < resources->count_crtcs; i++) {
+		drmModeCrtc *crtc;
+
+		crtc = drmModeGetCrtc(fd, resources->crtcs[i]);
+		if (!crtc) {
+			fprintf(stderr, "could not get crtc %i: %s\n",
+				resources->crtcs[i], strerror(errno));
+			continue;
+		}
+		printf("%d\t%d\t(%d,%d)\t(%dx%d)\n",
+		       crtc->crtc_id,
+		       crtc->buffer_id,
+		       crtc->x, crtc->y,
+		       crtc->width, crtc->height);
+		dump_mode(&crtc->mode);
+
+		drmModeFreeCrtc(crtc);
+	}
+	printf("\n");
+}
 
 static void connector_find_preferred_mode(struct connector *c)
 {
@@ -420,6 +512,7 @@ set_mode(struct connector *c)
 	cairo_surface_t *surface;
 	cairo_t *cr;
 	char buf[128];
+	int j, test_mode_num;
 
 	width = 0;
 	height = 0;
@@ -427,62 +520,91 @@ set_mode(struct connector *c)
 	if (!c->mode_valid)
 		return;
 
-	width += c->mode.hdisplay;
-	if (height < c->mode.vdisplay)
-		height = c->mode.vdisplay;
+	if (test_preferred_mode || force_mode)
+		test_mode_num = 1;
+	if (test_all_modes)
+		test_mode_num = c->connector->count_modes;
 
-	bufmgr = drm_intel_bufmgr_gem_init(fd, 2<<20);
-	if (!bufmgr) {
-		fprintf(stderr, "failed to init bufmgr: %s\n", strerror(errno));
-		return;
+	for (j = 0; j < test_mode_num; j++) {
+		if (test_all_modes)
+			c->mode = c->connector->modes[j];
+		width = 0;
+		height = 0;
+		width += c->mode.hdisplay;
+		if (height < c->mode.vdisplay)
+			height = c->mode.vdisplay;
+		if (force_mode){
+			width = force_hdisplay;
+			height = force_vdisplay;
+			c->mode.clock = force_clock*1000;
+			c->mode.hdisplay = force_hdisplay;
+			c->mode.hsync_start = force_hsync_start;
+			c->mode.hsync_end = force_hsync_end;
+			c->mode.htotal = force_htotal;
+			c->mode.vdisplay = force_vdisplay;
+			c->mode.vsync_start = force_vsync_start;
+			c->mode.vsync_end = force_vsync_end;
+			c->mode.vtotal = force_vtotal;
+			c->mode.vrefresh =(force_clock*1e6)/(force_htotal*force_vtotal);
+			sprintf(c->mode.name,"%d%s%d",width,"x",height);
+		}
+
+		bufmgr = drm_intel_bufmgr_gem_init(fd, 2<<20);
+		if (!bufmgr) {
+			fprintf(stderr, "failed to init bufmgr: %s\n", strerror(errno));
+			return;
+		}
+
+		if (create_test_buffer(bufmgr, width, height, &stride, &bo))
+			return;
+
+		surface = cairo_image_surface_create_for_data(bo->virtual,
+							      CAIRO_FORMAT_ARGB32,
+							      width, height,
+							      stride);
+		cr = cairo_create(surface);
+		cairo_surface_destroy(surface);
+
+		cairo_set_line_cap(cr, CAIRO_LINE_CAP_SQUARE);
+
+		/* Paint corner markers */
+		snprintf(buf, sizeof buf, "(%d, %d)", 0, 0);
+		paint_marker(cr, 0, 0, buf, bottomright);
+		snprintf(buf, sizeof buf, "(%d, %d)", width, 0);
+		paint_marker(cr, width, 0, buf, bottomleft);
+		snprintf(buf, sizeof buf, "(%d, %d)", 0, height);
+		paint_marker(cr, 0, height, buf, topright);
+		snprintf(buf, sizeof buf, "(%d, %d)", width, height);
+		paint_marker(cr, width, height, buf, topleft);
+
+		/* Paint output info */
+		paint_output_info(cr, c, width, height);
+
+		cairo_destroy(cr);
+		drm_intel_gem_bo_unmap_gtt(bo);
+
+		ret = drmModeAddFB(fd, width, height, 32, 32, stride, bo->handle,
+				   &fb_id);
+		if (ret) {
+			fprintf(stderr, "failed to add fb (width=%d, height=%d): %s\n",
+				width, height, strerror(errno));
+			return;
+		}
+
+		if (!c->mode_valid)
+			return;
+
+		dump_mode(&c->mode);
+		ret = drmModeSetCrtc(fd, c->crtc, fb_id, 0, 0,
+				     &c->id, 1, &c->mode);
+		if (ret) {
+			fprintf(stderr, "failed to set mode: %s\n", strerror(errno));
+			return;
+		}
+
+		if (sleep_between_modes && test_all_modes)
+			sleep(5);
 	}
-
-	if (create_test_buffer(bufmgr, width, height, &stride, &bo))
-		return;
-
-	surface = cairo_image_surface_create_for_data(bo->virtual,
-						      CAIRO_FORMAT_ARGB32,
-						      width, height,
-						      stride);
-	cr = cairo_create(surface);
-	cairo_surface_destroy(surface);
-
-	cairo_set_line_cap(cr, CAIRO_LINE_CAP_SQUARE);
-
-	/* Paint corner markers */
-	snprintf(buf, sizeof buf, "(%d, %d)", 0, 0);
-	paint_marker(cr, 0, 0, buf, bottomright);
-	snprintf(buf, sizeof buf, "(%d, %d)", width, 0);
-	paint_marker(cr, width, 0, buf, bottomleft);
-	snprintf(buf, sizeof buf, "(%d, %d)", 0, height);
-	paint_marker(cr, 0, height, buf, topright);
-	snprintf(buf, sizeof buf, "(%d, %d)", width, height);
-	paint_marker(cr, width, height, buf, topleft);
-
-	/* Paint output info */
-	paint_output_info(cr, c, width, height);
-
-	cairo_destroy(cr);
-	drm_intel_gem_bo_unmap_gtt(bo);
-
-	ret = drmModeAddFB(fd, width, height, 32, 32, stride, bo->handle,
-			   &fb_id);
-	if (ret) {
-		fprintf(stderr, "failed to add fb: %s\n", strerror(errno));
-		return;
-	}
-
-	if (!c->mode_valid)
-		return;
-
-	ret = drmModeSetCrtc(fd, c->crtc, fb_id, 0, 0,
-			     &c->id, 1, &c->mode);
-
-	if (ret) {
-		fprintf(stderr, "failed to set mode: %s\n", strerror(errno));
-		return;
-	}
-
 	drmModeFreeEncoder(c->encoder);
 	drmModeFreeConnector(c->connector);
 }
@@ -513,23 +635,40 @@ static void update_display(void)
 	if (!connectors)
 		return;
 
-	/* Find any connected displays */
-	for (c = 0; c < resources->count_connectors; c++) {
-		connectors[c].id = resources->connectors[c];
-		set_mode(&connectors[c]);
+	if (dump_info) {
+		dump_connectors();
+		dump_crtcs();
+	}
+	if (test_preferred_mode || test_all_modes || force_mode) {
+		/* Find any connected displays */
+		for (c = 0; c < resources->count_connectors; c++) {
+			connectors[c].id = resources->connectors[c];
+			set_mode(&connectors[c]);
+		}
 	}
 	drmModeFreeResources(resources);
+	if (dump_info || test_all_modes)
+		exit(0);
 }
 
 extern char *optarg;
 extern int optind, opterr, optopt;
-static char optstr[] = "h";
+static char optstr[] = "hiaf:s:";
 
 static void usage(char *name)
 {
-	fprintf(stderr, "usage: %s [-h]\n", name);
+	fprintf(stderr, "usage: %s [-hiafs]\n", name);
+	fprintf(stderr, "\t-i\tdump info\n");
+	fprintf(stderr, "\t-a\ttest all modes\n");
+	fprintf(stderr, "\t-s\t<duration>\tsleep between each mode test\n");
+	fprintf(stderr, "\t-f\t<clock MHz>,<hdisp>,<hsync-start>,<hsync-end>,<htotal>,\n");
+	fprintf(stderr, "\t\t<vdisp>,<vsync-start>,<vsync-end>,<vtotal>\n");
+	fprintf(stderr, "\t\ttest force mode\n");
+	fprintf(stderr, "\tDefault is to test the preferred mode.\n");
 	exit(0);
 }
+
+#define dump_resource(res) if (res) dump_##res()
 
 static gboolean hotplug_event(GIOChannel *source, GIOCondition condition,
 			      gpointer data)
@@ -590,6 +729,23 @@ int main(int argc, char **argv)
 	opterr = 0;
 	while ((c = getopt(argc, argv, optstr)) != -1) {
 		switch (c) {
+		case 'i':
+			dump_info = 1;
+			encoders = connectors = crtcs = modes = framebuffers = 1;
+			break;
+		case 'a':
+			test_all_modes = 1;
+			break;
+		case 'f':
+			force_mode = 1;
+			if(sscanf(optarg,"%f,%d,%d,%d,%d,%d,%d,%d,%d",
+				&force_clock,&force_hdisplay, &force_hsync_start,&force_hsync_end,&force_htotal,
+				&force_vdisplay, &force_vsync_start, &force_vsync_end, &force_vtotal)!= 9)
+				usage(argv[0]);
+			break;
+		case 's':
+			sleep_between_modes = atoi(optarg);
+			break;
 		default:
 			fprintf(stderr, "unknown option %c\n", c);
 			/* fall through */
@@ -598,9 +754,8 @@ int main(int argc, char **argv)
 			break;
 		}
 	}
-
 	if (argc == 1)
-		encoders = connectors = crtcs = modes = framebuffers = 1;
+		test_preferred_mode = 1;
 
 	for (i = 0; i < ARRAY_SIZE(modules); i++) {
 		fd = drmOpen(modules[i], NULL);
