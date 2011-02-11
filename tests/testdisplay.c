@@ -60,10 +60,11 @@
 #include <unistd.h>
 #include <sys/poll.h>
 #include <sys/time.h>
+#include <sys/mman.h>
+#include <sys/ioctl.h>
 
 #include "xf86drm.h"
 #include "xf86drmMode.h"
-#include "intel_bufmgr.h"
 #include "i915_drm.h"
 
 struct udev_monitor *uevent_monitor;
@@ -313,19 +314,54 @@ static void connector_find_preferred_mode(struct connector *c)
 	c->connector = connector;
 }
 
-static drm_intel_bo *
-allocate_buffer(drm_intel_bufmgr *bufmgr,
-		int width, int height, int *stride)
+static uint32_t gem_create(int fd, int size)
 {
-	int size;
+	struct drm_i915_gem_create create;
+
+	create.handle = 0;
+	create.size = (size + 4095) & -4096;
+	(void)drmIoctl(fd, DRM_IOCTL_I915_GEM_CREATE, &create);
+
+	return create.handle;
+}
+
+static void *gem_mmap(int fd, uint32_t handle, int size, int prot)
+{
+	struct drm_i915_gem_mmap_gtt mmap_arg;
+	void *ptr;
+
+	mmap_arg.handle = handle;
+	if (drmIoctl(fd, DRM_IOCTL_I915_GEM_MMAP_GTT, &mmap_arg))
+		return NULL;
+
+	ptr = mmap(0, size, prot, MAP_SHARED, fd, mmap_arg.offset);
+	if (ptr == MAP_FAILED)
+		ptr = NULL;
+
+	return ptr;
+}
+
+static void gem_close(int fd, uint32_t handle)
+{
+	struct drm_gem_close close;
+
+	close.handle = handle;
+	(void)drmIoctl(fd, DRM_IOCTL_GEM_CLOSE, &close);
+}
+
+static cairo_surface_t *
+allocate_surface(int fd, int width, int height, uint32_t *handle)
+{
+	int size, stride;
 
 	/* Scan-out has a 64 byte alignment restriction */
-	width *= 4; /* 32bpp */
-	size = (width + 63) & -64;
-	*stride = size;
-	size *= height;
+	stride = (width*4 + 63) & -64;
+	size = stride * height;
 
-	return drm_intel_bo_alloc(bufmgr, "frontbuffer", size, 0);
+	*handle = gem_create(fd, size);
+	return cairo_image_surface_create_for_data
+		(gem_mmap(fd, *handle, size, PROT_READ | PROT_WRITE),
+		 CAIRO_FORMAT_ARGB32, width, height, stride);
 }
 
 enum corner {
@@ -475,95 +511,57 @@ paint_output_info(cairo_t *cr, struct connector *c, int width, int height)
 	}
 }
 
-static int
-create_test_buffer(drm_intel_bufmgr *bufmgr, int width, int height,
-		   int *stride_out, drm_intel_bo **bo_out)
-{
-	drm_intel_bo *bo;
-	int ret, stride;
-
-	bo = allocate_buffer(bufmgr, width, height, &stride);
-	if (!bo) {
-		fprintf(stderr, "failed to alloc buffer: %s\n",
-
-			strerror(errno));
-		return -1;
-	}
-
-	ret = drm_intel_gem_bo_map_gtt(bo);
-	if (ret) {
-		fprintf(stderr, "failed to GTT map buffer: %s\n",
-			strerror(errno));
-		return -1;
-	}
-
-	*bo_out = bo;
-	*stride_out = stride;
-	return 0;
-}
-
 static void
 set_mode(struct connector *c)
 {
-	drm_intel_bufmgr *bufmgr;
-	drm_intel_bo *bo;
 	unsigned int fb_id;
-	int ret, width, height, stride;
-	cairo_surface_t *surface;
-	cairo_t *cr;
+	int ret, width, height;
 	char buf[128];
 	int j, test_mode_num;
 
-	width = 0;
-	height = 0;
 	connector_find_preferred_mode(c);
 	if (!c->mode_valid)
 		return;
 
-	if (test_preferred_mode || force_mode)
-		test_mode_num = 1;
-	if (test_all_modes)
+	test_mode_num = 1;
+	if (force_mode){
+		c->mode.clock = force_clock*1000;
+		c->mode.hdisplay = force_hdisplay;
+		c->mode.hsync_start = force_hsync_start;
+		c->mode.hsync_end = force_hsync_end;
+		c->mode.htotal = force_htotal;
+		c->mode.vdisplay = force_vdisplay;
+		c->mode.vsync_start = force_vsync_start;
+		c->mode.vsync_end = force_vsync_end;
+		c->mode.vtotal = force_vtotal;
+		c->mode.vrefresh =(force_clock*1e6)/(force_htotal*force_vtotal);
+		c->mode_valid = 1;
+		sprintf(c->mode.name, "%dx%d", force_hdisplay, force_vdisplay);
+	} else if (test_all_modes)
 		test_mode_num = c->connector->count_modes;
 
 	for (j = 0; j < test_mode_num; j++) {
+		cairo_surface_t *surface;
+		cairo_status_t status;
+		cairo_t *cr;
+		uint32_t handle;
+
 		if (test_all_modes)
 			c->mode = c->connector->modes[j];
-		width = 0;
-		height = 0;
-		width += c->mode.hdisplay;
-		if (height < c->mode.vdisplay)
-			height = c->mode.vdisplay;
-		if (force_mode){
-			width = force_hdisplay;
-			height = force_vdisplay;
-			c->mode.clock = force_clock*1000;
-			c->mode.hdisplay = force_hdisplay;
-			c->mode.hsync_start = force_hsync_start;
-			c->mode.hsync_end = force_hsync_end;
-			c->mode.htotal = force_htotal;
-			c->mode.vdisplay = force_vdisplay;
-			c->mode.vsync_start = force_vsync_start;
-			c->mode.vsync_end = force_vsync_end;
-			c->mode.vtotal = force_vtotal;
-			c->mode.vrefresh =(force_clock*1e6)/(force_htotal*force_vtotal);
-			sprintf(c->mode.name,"%d%s%d",width,"x",height);
+
+		if (!c->mode_valid)
+			continue;
+
+		width = c->mode.hdisplay;
+		height = c->mode.vdisplay;
+
+		surface = allocate_surface(fd, width, height, &handle);
+		if (!surface) {
+			fprintf(stderr, "allocation failed %dx%d\n", width, height);
+			continue;
 		}
 
-		bufmgr = drm_intel_bufmgr_gem_init(fd, 2<<20);
-		if (!bufmgr) {
-			fprintf(stderr, "failed to init bufmgr: %s\n", strerror(errno));
-			return;
-		}
-
-		if (create_test_buffer(bufmgr, width, height, &stride, &bo))
-			return;
-
-		surface = cairo_image_surface_create_for_data(bo->virtual,
-							      CAIRO_FORMAT_ARGB32,
-							      width, height,
-							      stride);
 		cr = cairo_create(surface);
-		cairo_surface_destroy(surface);
 
 		cairo_set_line_cap(cr, CAIRO_LINE_CAP_SQUARE);
 
@@ -580,31 +578,37 @@ set_mode(struct connector *c)
 		/* Paint output info */
 		paint_output_info(cr, c, width, height);
 
+		status = cairo_status(cr);
 		cairo_destroy(cr);
-		drm_intel_gem_bo_unmap_gtt(bo);
+		if (status)
+			fprintf(stderr, "failed to draw pretty picture %x%d: %s\n",
+				width, height, cairo_status_to_string(status));
 
-		ret = drmModeAddFB(fd, width, height, 32, 32, stride, bo->handle,
-				   &fb_id);
+		ret = drmModeAddFB(fd, width, height, 32, 32,
+				   cairo_image_surface_get_stride(surface),
+				   handle, &fb_id);
+		cairo_surface_destroy(surface);
+		gem_close(fd, handle);
+
 		if (ret) {
-			fprintf(stderr, "failed to add fb (width=%d, height=%d): %s\n",
+			fprintf(stderr, "failed to add fb (%dx%d): %s\n",
 				width, height, strerror(errno));
-			return;
+			continue;
 		}
 
-		if (!c->mode_valid)
-			return;
-
 		dump_mode(&c->mode);
-		ret = drmModeSetCrtc(fd, c->crtc, fb_id, 0, 0,
-				     &c->id, 1, &c->mode);
-		if (ret) {
-			fprintf(stderr, "failed to set mode: %s\n", strerror(errno));
-			return;
+		if (drmModeSetCrtc(fd, c->crtc, fb_id, 0, 0,
+				   &c->id, 1, &c->mode)) {
+			fprintf(stderr, "failed to set mode (%dx%d@%dHz): %s\n",
+				width, height, c->mode.vrefresh,
+				strerror(errno));
+			continue;
 		}
 
 		if (sleep_between_modes && test_all_modes)
 			sleep(5);
 	}
+
 	drmModeFreeEncoder(c->encoder);
 	drmModeFreeConnector(c->connector);
 }
