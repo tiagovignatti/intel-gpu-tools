@@ -684,7 +684,11 @@ static gboolean hotplug_event(GIOChannel *source, GIOCondition condition,
 	struct stat s;
 	const char *hotplug;
 
-	g_io_channel_read(source, buf, 256, &count);
+	/* drain all pending events */
+	do {
+		count = read(g_io_channel_unix_get_fd(source),
+			     buf, sizeof(buf));
+	} while (count > 0);
 
 	dev = udev_monitor_receive_device(uevent_monitor);
 	if (!dev)
@@ -710,9 +714,7 @@ static gboolean input_event(GIOChannel *source, GIOCondition condition,
 	gchar buf[256];
 	gsize count;
 
-	g_io_channel_read(source, buf, 255, &count);
-	buf[count] = '\0';
-
+	count = read(g_io_channel_unix_get_fd(source), buf, sizeof(buf));
 	if (buf[0] == 'q' && (count == 1 || buf[1] == '\n'))
 		exit(0);
 
