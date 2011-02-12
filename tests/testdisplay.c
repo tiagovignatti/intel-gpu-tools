@@ -606,7 +606,7 @@ set_mode(struct connector *c)
 		}
 
 		if (sleep_between_modes && test_all_modes)
-			sleep(5);
+			sleep(sleep_between_modes);
 	}
 
 	drmModeFreeEncoder(c->encoder);
