@@ -71,10 +71,10 @@ intel_get_mmio(struct pci_device *pci_dev)
 	int err;
 
 	devid = pci_dev->device_id;
-	if (IS_9XX(devid))
-		mmio_bar = 0;
-	else
+	if (IS_GEN2(devid))
 		mmio_bar = 1;
+	else
+		mmio_bar = 0;
 
 	err = pci_device_map_range (pci_dev,
 				    pci_dev->regions[mmio_bar].base_addr,

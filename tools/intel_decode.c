@@ -891,7 +891,7 @@ decode_3d_1d(uint32_t *data, int count,
 		    BUFFER_FAIL(count, len, "3DSTATE_LOAD_STATE_IMMEDIATE_1");
 
 		/* save vertex state for decode */
-		if (IS_9XX(devid)) {
+		if (!IS_GEN2(devid)) {
 		    if (word == 2) {
 			saved_s2_set = 1;
 			saved_s2 = data[i];
@@ -1023,7 +1023,7 @@ decode_3d_1d(uint32_t *data, int count,
 	}
 	return len;
     case 0x01:
-	if (!IS_9XX(devid))
+	if (IS_GEN2(devid))
 		break;
 	instr_out(data, hw_offset, 0, "3DSTATE_SAMPLER_STATE\n");
 	instr_out(data, hw_offset, 1, "mask\n");
@@ -1109,7 +1109,7 @@ decode_3d_1d(uint32_t *data, int count,
     for (idx = 0; idx < ARRAY_SIZE(opcodes_3d_1d); idx++)
     {
 	opcode_3d_1d = &opcodes_3d_1d[idx];
-	if (opcode_3d_1d->i830_only && IS_9XX(devid))
+	if (opcode_3d_1d->i830_only && !IS_GEN2(devid))
 	    continue;
 
 	if (((data[0] & 0x00ff0000) >> 16) == opcode_3d_1d->opcode) {
@@ -2333,7 +2333,7 @@ intel_decode(uint32_t *data, int count,
 		index += decode_3d_965(data + index, count - index,
 				       hw_offset + index * 4,
 				       devid, &failures);
-	    } else if (IS_9XX(devid)) {
+	    } else if (IS_GEN3(devid)) {
 		index += decode_3d(data + index, count - index,
 				   hw_offset + index * 4,
 				   devid, &failures);

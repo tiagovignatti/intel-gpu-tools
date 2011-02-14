@@ -51,7 +51,7 @@ int main(int argc, char **argv)
 	devid = pci_dev->device_id;
 	intel_get_mmio(pci_dev);
 
-	if (!IS_9XX(devid)) {
+	if (IS_GEN2(devid)) {
 		printf("Unsupported chipset for gtt dumper\n");
 		exit(1);
 	}

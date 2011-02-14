@@ -37,10 +37,10 @@ int main(int argc, char** argv)
 	devid = pci_dev->device_id;
 	intel_get_mmio(pci_dev);
 
-	if (IS_9XX(devid))
-		mmio_bar = 0;
-	else
+	if (IS_GEN2(devid))
 		mmio_bar = 1;
+	else
+		mmio_bar = 0;
 
 	write(1, mmio, pci_dev->regions[mmio_bar].size);
 

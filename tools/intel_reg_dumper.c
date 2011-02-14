@@ -349,25 +349,7 @@ DEBUGSTRING(i830_debug_dpll)
 	char sdvoextra[20];
 	int p1, p2 = 0;
 
-	if (IS_9XX(devid)) {
-		if (IS_IGD(devid)) {
-			p1 = ffs((val & DPLL_FPA01_P1_POST_DIV_MASK_IGD) >>
-				 DPLL_FPA01_P1_POST_DIV_SHIFT_IGD);
-		} else {
-			p1 = ffs((val & DPLL_FPA01_P1_POST_DIV_MASK) >>
-				 DPLL_FPA01_P1_POST_DIV_SHIFT);
-		}
-		switch (val & DPLL_MODE_MASK) {
-		case DPLLB_MODE_DAC_SERIAL:
-			mode = "DAC/serial";
-			p2 = val & DPLL_DAC_SERIAL_P2_CLOCK_DIV_5 ? 5 : 10;
-			break;
-		case DPLLB_MODE_LVDS:
-			mode = "LVDS";
-			p2 = val & DPLLB_LVDS_P2_CLOCK_DIV_7 ? 7 : 14;
-			break;
-		}
-	} else {
+	if (IS_GEN2(devid)) {
 		char is_lvds = (INREG(LVDS) & LVDS_PORT_EN) && (reg == DPLL_B);
 
 		if (is_lvds) {
@@ -393,6 +375,24 @@ DEBUGSTRING(i830_debug_dpll)
 				p2 = 4;
 			else
 				p2 = 2;
+		}
+	} else {
+		if (IS_IGD(devid)) {
+			p1 = ffs((val & DPLL_FPA01_P1_POST_DIV_MASK_IGD) >>
+				 DPLL_FPA01_P1_POST_DIV_SHIFT_IGD);
+		} else {
+			p1 = ffs((val & DPLL_FPA01_P1_POST_DIV_MASK) >>
+				 DPLL_FPA01_P1_POST_DIV_SHIFT);
+		}
+		switch (val & DPLL_MODE_MASK) {
+		case DPLLB_MODE_DAC_SERIAL:
+			mode = "DAC/serial";
+			p2 = val & DPLL_DAC_SERIAL_P2_CLOCK_DIV_5 ? 5 : 10;
+			break;
+		case DPLLB_MODE_LVDS:
+			mode = "LVDS";
+			p2 = val & DPLLB_LVDS_P2_CLOCK_DIV_7 ? 7 : 14;
+			break;
 		}
 	}
 
@@ -1787,7 +1787,65 @@ intel_dump_regs(void)
 	for (pipe = 0; pipe <= 1; pipe++) {
 		fp = INREG(pipe == 0 ? FPA0 : FPB0);
 		dpll = INREG(pipe == 0 ? DPLL_A : DPLL_B);
-		if (IS_9XX(devid)) {
+		if (IS_GEN2(devid)) {
+			uint32_t lvds = INREG(LVDS);
+			if (devid == PCI_CHIP_I855_GM &&
+			    (lvds & LVDS_PORT_EN) &&
+			    (lvds & LVDS_PIPEB_SELECT) == (pipe << 30)) {
+				if ((lvds & LVDS_CLKB_POWER_MASK) ==
+				    LVDS_CLKB_POWER_UP)
+					p2 = 7;
+				else
+					p2 = 14;
+				switch ((dpll >> 16) & 0x3f) {
+				case 0x01:
+					p1 = 1;
+					break;
+				case 0x02:
+					p1 = 2;
+					break;
+				case 0x04:
+					p1 = 3;
+					break;
+				case 0x08:
+					p1 = 4;
+					break;
+				case 0x10:
+					p1 = 5;
+					break;
+				case 0x20:
+					p1 = 6;
+					break;
+				default:
+					p1 = 1;
+					printf("LVDS P1 0x%x invalid encoding\n",
+					       (dpll >> 16) & 0x3f);
+					break;
+				}
+			} else {
+				if (dpll & (1 << 23))
+					p2 = 4;
+				else
+					p2 = 2;
+				if (dpll & PLL_P1_DIVIDE_BY_TWO)
+					p1 = 2;
+				else
+					p1 = ((dpll >> 16) & 0x3f) + 2;
+			}
+
+			switch ((dpll >> 13) & 0x3) {
+			case 0:
+				ref = 48000;
+				break;
+			case 3:
+				ref = 66000;
+				break;
+			default:
+				ref = 0;
+				printf("ref out of range\n");
+				break;
+			}
+		} else {
 			uint32_t lvds = INREG(LVDS);
 			if ((lvds & LVDS_PORT_EN) &&
 			    (lvds & LVDS_PIPEB_SELECT) == (pipe << 30)) {
@@ -1858,64 +1916,6 @@ intel_dump_regs(void)
 				break;
 			case 3:
 				ref = 100000;
-				break;
-			default:
-				ref = 0;
-				printf("ref out of range\n");
-				break;
-			}
-		} else {
-			uint32_t lvds = INREG(LVDS);
-			if (devid == PCI_CHIP_I855_GM &&
-			    (lvds & LVDS_PORT_EN) &&
-			    (lvds & LVDS_PIPEB_SELECT) == (pipe << 30)) {
-				if ((lvds & LVDS_CLKB_POWER_MASK) ==
-				    LVDS_CLKB_POWER_UP)
-					p2 = 7;
-				else
-					p2 = 14;
-				switch ((dpll >> 16) & 0x3f) {
-				case 0x01:
-					p1 = 1;
-					break;
-				case 0x02:
-					p1 = 2;
-					break;
-				case 0x04:
-					p1 = 3;
-					break;
-				case 0x08:
-					p1 = 4;
-					break;
-				case 0x10:
-					p1 = 5;
-					break;
-				case 0x20:
-					p1 = 6;
-					break;
-				default:
-					p1 = 1;
-					printf("LVDS P1 0x%x invalid encoding\n",
-					       (dpll >> 16) & 0x3f);
-					break;
-				}
-			} else {
-				if (dpll & (1 << 23))
-					p2 = 4;
-				else
-					p2 = 2;
-				if (dpll & PLL_P1_DIVIDE_BY_TWO)
-					p1 = 2;
-				else
-					p1 = ((dpll >> 16) & 0x3f) + 2;
-			}
-
-			switch ((dpll >> 13) & 0x3) {
-			case 0:
-				ref = 48000;
-				break;
-			case 3:
-				ref = 66000;
 				break;
 			default:
 				ref = 0;

@@ -275,7 +275,7 @@ init_instdone_definitions(uint32_t devid)
 		} else {
 			init_g965_instdone1();
 		}
-	} else if (IS_9XX(devid)) {
+	} else if (IS_GEN3(devid)) {
 		gen3_instdone_bit(IDCT_DONE, "IDCT");
 		gen3_instdone_bit(IQ_DONE, "IQ");
 		gen3_instdone_bit(PR_DONE, "PR");
