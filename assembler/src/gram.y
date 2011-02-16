@@ -822,18 +822,14 @@ syncinstruction: predicate WAIT notifyreg
 		  null.reg_nr = BRW_ARF_NULL;
 		  null.subreg_nr = 0;
 		  
-		  notify_src.reg_file = $3.reg_file;
-		  notify_src.reg_nr = $3.reg_nr;
-		  notify_src.subreg_nr = $3.subreg_nr;
-		  notify_src.reg_type = BRW_REGISTER_TYPE_D;
-
 		  bzero(&$$, sizeof($$));
 		  $$.header.opcode = $2;
 		  $$.header.execution_size = ffs(1) - 1;
 		  set_direct_dst_operand(&notify_dst, &$3, BRW_REGISTER_TYPE_D);
 		  set_instruction_dest(&$$, &notify_dst);
-		  set_direct_src_operand(&null_src, &null, BRW_REGISTER_TYPE_UD);
+		  set_direct_src_operand(&notify_src, &$3, BRW_REGISTER_TYPE_D);
 		  set_instruction_src0(&$$, &notify_src);
+		  set_direct_src_operand(&null_src, &null, BRW_REGISTER_TYPE_UD);
 		  set_instruction_src1(&$$, &null_src);
 		}
 		
@@ -1711,7 +1707,9 @@ maskstackdepth_subreg: IMSD | LMSD
 
 notifyreg:	NOTIFYREG regtype
 		{
-		  if ($1 > 1) {
+		  int num_notifyreg = (gen_level >= 6) ? 3 : 2;
+
+		  if ($1 > num_notifyreg) {
 		    fprintf(stderr,
 			    "notification register number %d out of range",
 			    $1);
@@ -1719,8 +1717,14 @@ notifyreg:	NOTIFYREG regtype
 		  }
 		  memset (&$$, '\0', sizeof ($$));
 		  $$.reg_file = BRW_ARCHITECTURE_REGISTER_FILE;
-		  $$.reg_nr = BRW_ARF_NOTIFICATION_COUNT;
-		  $$.subreg_nr = 0;
+
+                  if (gen_level >= 6) {
+		    $$.reg_nr = BRW_ARF_NOTIFICATION_COUNT;
+                    $$.subreg_nr = $1;
+                  } else {
+		    $$.reg_nr = BRW_ARF_NOTIFICATION_COUNT | $1;
+                    $$.subreg_nr = 0;
+                  }
 		}
 /*
 		| NOTIFYREG regtype
@@ -2309,8 +2313,6 @@ static int get_subreg_address(GLuint regfile, GLuint type, GLuint subreg, GLuint
             } 
         }
     } else {
-        assert(regfile == BRW_GENERAL_REGISTER_FILE ||
-               regfile == BRW_MESSAGE_REGISTER_FILE);
         unit_size = 1;
     }
 
