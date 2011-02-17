@@ -524,7 +524,44 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
                           $12.bits3.generic.end_of_thread;
 		  }
 		}
+		| predicate SEND execsize dst directmsgreg sndopr imm32reg instoptions
+		{
+		  struct src_operand src0;
 
+		  if (gen_level < 6) {
+                      fprintf(stderr, "error: the syntax of send instruction\n");
+                      YYERROR;
+		  }
+
+		  if ($7.reg_type != BRW_REGISTER_TYPE_UD &&
+                      $7.reg_type != BRW_REGISTER_TYPE_D &&
+                      $7.reg_type != BRW_REGISTER_TYPE_V) {
+                      fprintf (stderr, "%d: non-int D/UD/V representation: %d,type=%d\n", yylineno, $7.imm32, $7.reg_type);
+                      YYERROR;
+		  }
+
+		  bzero(&$$, sizeof($$));
+		  $$.header.opcode = $2;
+		  $$.header.execution_size = $3;
+                  $$.header.sfid_destreg__conditionalmod = ($6 & EX_DESC_SFID_MASK); /* SFID */
+		  set_instruction_predicate(&$$, &$1);
+
+		  if (set_instruction_dest(&$$, &$4) != 0)
+                      YYERROR;
+
+                  memset(&src0, 0, sizeof(src0));
+                  src0.address_mode = BRW_ADDRESS_DIRECT;
+                  src0.reg_file = BRW_MESSAGE_REGISTER_FILE;
+                  src0.reg_type = BRW_REGISTER_TYPE_D;
+                  src0.reg_nr = $5.reg_nr;
+                  src0.subreg_nr = 0;
+                  set_instruction_src0(&$$, &src0);
+
+		  $$.bits1.da1.src1_reg_file = BRW_IMMEDIATE_VALUE;
+		  $$.bits1.da1.src1_reg_type = $7.reg_type;
+                  $$.bits3.ud = $7.imm32;
+                  $$.bits3.generic_gen5.end_of_thread = !!($6 & EX_DESC_EOT_MASK);
+		}
 		| predicate SEND execsize dst directmsgreg payload sndopr imm32reg instoptions
 		{
 		  if ($8.reg_type != BRW_REGISTER_TYPE_UD &&
