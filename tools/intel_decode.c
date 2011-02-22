@@ -91,6 +91,7 @@ decode_mi(uint32_t *data, int count, uint32_t hw_offset, int *failures)
 	{ 0x03, 0, 1, 1, "MI_WAIT_FOR_EVENT" },
 	{ 0x16, 0x7f, 3, 3, "MI_SEMAPHORE_MBOX" },
 	{ 0x26, 0x1f, 3, 4, "MI_FLUSH_DW" },
+	{ 0x0b, 0, 1, 1, "MI_SUSPEND_FLUSH" },
     };
 
     switch ((data[0] & 0x1f800000) >> 23) {
