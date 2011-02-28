@@ -796,7 +796,7 @@ decode_3d_1d(uint32_t *data, int count,
 	     int *failures)
 {
     unsigned int len, i, c, idx, word, map, sampler, instr;
-    char *format, *zformat;
+    char *format, *zformat, *type;
     uint32_t opcode;
 
     struct {
@@ -964,7 +964,75 @@ decode_3d_1d(uint32_t *data, int count,
 			tiling = "fenced";
 		else if (dword & (1 << 1))
 			tiling = dword & (1 << 0) ? "Y" : "X";
-		instr_out(data, hw_offset, i++, "map %d MS3 [width=%d, height=%d, tiling=%s]\n", map, width, height, tiling);
+		type = " BAD";
+		switch ((dword>>7) & 0x7) {
+		case 1:
+		    type = "8b";
+		    switch ((dword>>3) & 0xf) {
+		    case 0: format = "I"; break;
+		    case 1: format = "L"; break;
+		    case 2: format = "A"; break;
+		    case 3: format = " mono"; break; }
+		    break;
+		case 2:
+		    type = "16b";
+		    switch ((dword>>3) & 0xf) {
+		    case 0: format = " rgb565"; break;
+		    case 1: format = " argb1555"; break;
+		    case 2: format = " argb4444"; break;
+		    case 5: format = " ay88"; break;
+		    case 6: format = " bump655"; break;
+		    case 7: format = "I"; break;
+		    case 8: format = "L"; break;
+		    case 9: format = "A"; break; }
+		    break;
+		case 3:
+		    type = "32b";
+		    switch ((dword>>3) & 0xf) {
+		    case 0: format = " argb8888"; break;
+		    case 1: format = " abgr8888"; break;
+		    case 2: format = " xrgb8888"; break;
+		    case 3: format = " xbgr8888"; break;
+		    case 4: format = " qwvu8888"; break;
+		    case 5: format = " axvu8888"; break;
+		    case 6: format = " lxvu8888"; break;
+		    case 7: format = " xlvu8888"; break;
+		    case 8: format = " argb2101010"; break;
+		    case 9: format = " abgr2101010"; break;
+		    case 10: format = " awvu2101010"; break;
+		    case 11: format = " gr1616"; break;
+		    case 12: format = " vu1616"; break;
+		    case 13: format = " xI824"; break;
+		    case 14: format = " xA824"; break;
+		    case 15: format = " xL824"; break; }
+		    break;
+		case 5:
+		    type = "422";
+		    switch ((dword>>3) & 0xf) {
+		    case 0: format = " yuv_swapy"; break;
+		    case 1: format = " yuv"; break;
+		    case 2: format = " yuv_swapuv"; break;
+		    case 3: format = " yuv_swapuvy"; break; }
+		    break;
+		case 6:
+		    type = "compressed";
+		    switch ((dword>>3) & 0x7) {
+		    case 0: format = " dxt1"; break;
+		    case 1: format = " dxt2_3"; break;
+		    case 2: format = " dxt4_5"; break;
+		    case 3: format = " fxt1"; break;
+		    case 4: format = " dxt1_rb"; break; }
+		    break;
+		case 7:
+		    type = "4b indexed";
+		    switch ((dword>>3) & 0xf) {
+		    case 7: format = " argb8888"; break; }
+		    break;
+		default:
+		    format = "BAD";
+		}
+		instr_out(data, hw_offset, i++, "map %d MS3 [width=%d, height=%d, format=%s%s, tiling=%s]\n",
+			map, width, height, type, format, tiling);
 
 		dword = data[i];
 		pitch = 4*(((dword >> 21) & ((1 << 11) - 1))+1);
