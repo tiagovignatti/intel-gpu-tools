@@ -796,7 +796,7 @@ decode_3d_1d(uint32_t *data, int count,
 	     int *failures)
 {
     unsigned int len, i, c, idx, word, map, sampler, instr;
-    char *format;
+    char *format, *zformat;
     uint32_t opcode;
 
     struct {
@@ -1072,8 +1072,14 @@ decode_3d_1d(uint32_t *data, int count,
 	case 0xa: format = "a2r10g10b10"; break;
 	default: format = "BAD"; break;
 	}
-	instr_out(data, hw_offset, 1, "%s format, early Z %sabled\n",
-		  format,
+	switch ((data[1] >> 2) & 0x3) {
+	case 0x0: zformat = "u16"; break;
+	case 0x1: zformat = "f16"; break;
+	case 0x2: zformat = "u24x8"; break;
+	default: zformat = "BAD"; break;
+	}
+	instr_out(data, hw_offset, 1, "%s format, %s depth format, early Z %sabled\n",
+		  format, zformat,
 		  (data[1] & (1 << 31)) ? "en" : "dis");
 	return len;
 
