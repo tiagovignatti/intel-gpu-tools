@@ -2410,6 +2410,12 @@ static void reset_instruction_src_region(struct brw_instruction *instr,
             } else {
                 width = (1 << instr->header.execution_size) / horiz_stride;
                 vert_stride = horiz_stride * width;
+
+                if (get_type_size(src->reg_type) * (width + src->subreg_nr) > 32) {
+                    horiz_stride = 0;
+                    width = 1;
+                    vert_stride = 0;
+                }
             }
         }
 
