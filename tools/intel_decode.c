@@ -1817,9 +1817,9 @@ decode_3d_965(uint32_t *data, int count, uint32_t hw_offset, uint32_t devid, int
 	    BUFFER_FAIL(count, len, "3DSTATE_URB");
         instr_out(data, hw_offset, 0, "3DSTATE_URB\n");
         instr_out(data, hw_offset, 1, "VS entries %d, alloc size %d (1024bit row)\n",
-                        data[1] & 0xffff, ((data[1] >> 16) & 0x0fff) - 1);
+                        data[1] & 0xffff, ((data[1] >> 16) & 0x07f) + 1);
         instr_out(data, hw_offset, 2, "GS entries %d, alloc size %d (1024bit row)\n",
-                        (data[2] >> 8) & 0x3ff, (data[2] & 7) - 1);
+                        (data[2] >> 8) & 0x3ff, (data[2] & 7) + 1);
         return len;
 
     case 0x7808:
