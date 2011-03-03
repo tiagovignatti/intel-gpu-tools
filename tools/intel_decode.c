@@ -820,7 +820,6 @@ decode_3d_1d(uint32_t *data, int count,
 	{ 0x9e, 0, 4, 4, "3DSTATE_MONO_FILTER" },
 	{ 0x89, 0, 4, 4, "3DSTATE_FOG_MODE" },
 	{ 0x8f, 0, 2, 16, "3DSTATE_MAP_PALLETE_LOAD_32" },
-	{ 0x81, 0, 3, 3, "3DSTATE_SCISSOR_RECTANGLE" },
 	{ 0x83, 0, 2, 2, "3DSTATE_SPAN_STIPPLE" },
 	{ 0x8c, 1, 2, 2, "3DSTATE_MAP_COORD_TRANSFORM_I830" },
 	{ 0x8b, 1, 2, 2, "3DSTATE_MAP_VERTEX_TRANSFORM_I830" },
@@ -1179,6 +1178,22 @@ decode_3d_1d(uint32_t *data, int count,
 	    instr_out(data, hw_offset, 2, "address\n");
 	    return len;
 	}
+    case 0x81:
+	len = (data[0] & 0x0000000f) + 2;
+
+	if (len != 3)
+	    fprintf(out, "Bad count in 3DSTATE_SCISSOR_RECTANGLE\n");
+	if (count < 3)
+	    BUFFER_FAIL(count, len, "3DSTATE_SCISSOR_RECTANGLE");
+
+	instr_out(data, hw_offset, 0,
+		  "3DSTATE_SCISSOR_RECTANGLE\n");
+	instr_out(data, hw_offset, 1, "(%d,%d)\n",
+		  data[1] & 0xffff, data[1] >> 16);
+	instr_out(data, hw_offset, 2, "(%d,%d)\n",
+		  data[2] & 0xffff, data[2] >> 16);
+
+	return len;
     }
 
     for (idx = 0; idx < ARRAY_SIZE(opcodes_3d_1d); idx++)
