@@ -815,7 +815,6 @@ decode_3d_1d(uint32_t *data, int count,
 	{ 0x98, 0, 2, 2, "3DSTATE_DEFAULT_Z" },
 	{ 0x97, 0, 2, 2, "3DSTATE_DEPTH_OFFSET_SCALE" },
 	{ 0x85, 0, 2, 2, "3DSTATE_DEST_BUFFER_VARIABLES" },
-	{ 0x80, 0, 5, 5, "3DSTATE_DRAWING_RECTANGLE" },
 	{ 0x9d, 0, 65, 65, "3DSTATE_FILTER_COEFFICIENTS_4X4" },
 	{ 0x9e, 0, 4, 4, "3DSTATE_MONO_FILTER" },
 	{ 0x89, 0, 4, 4, "3DSTATE_FOG_MODE" },
@@ -1192,6 +1191,26 @@ decode_3d_1d(uint32_t *data, int count,
 		  data[1] & 0xffff, data[1] >> 16);
 	instr_out(data, hw_offset, 2, "(%d,%d)\n",
 		  data[2] & 0xffff, data[2] >> 16);
+
+	return len;
+    case 0x80:
+	len = (data[0] & 0x0000000f) + 2;
+
+	if (len != 5)
+	    fprintf(out, "Bad count in 3DSTATE_DRAWING_RECTANGLE\n");
+	if (count < 5)
+	    BUFFER_FAIL(count, len, "3DSTATE_DRAWING_RECTANGLE");
+
+	instr_out(data, hw_offset, 0,
+		  "3DSTATE_DRAWING_RECTANGLE\n");
+	instr_out(data, hw_offset, 1, "%s\n",
+		  data[1]&(1<<30)?"depth ofs disabled ":"");
+	instr_out(data, hw_offset, 2, "(%d,%d)\n",
+		  data[2] & 0xffff, data[2] >> 16);
+	instr_out(data, hw_offset, 3, "(%d,%d)\n",
+		  data[3] & 0xffff, data[3] >> 16);
+	instr_out(data, hw_offset, 4, "(%d,%d)\n",
+		  data[4] & 0xffff, data[4] >> 16);
 
 	return len;
     }
