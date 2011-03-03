@@ -302,7 +302,8 @@ decode_3d_1c(uint32_t *data, int count, uint32_t hw_offset, int *failures)
 	instr_out(data, hw_offset, 0, "3DSTATE_DEPTH_SUBRECTANGLE_DISABLE\n");
 	return 1;
     case 0x10:
-	instr_out(data, hw_offset, 0, "3DSTATE_SCISSOR_ENABLE\n");
+	instr_out(data, hw_offset, 0, "3DSTATE_SCISSOR_ENABLE %s\n",
+		data[0]&1?"enabled":"disabled");
 	return 1;
     case 0x01:
 	instr_out(data, hw_offset, 0, "3DSTATE_MAP_COORD_SET_I830\n");
