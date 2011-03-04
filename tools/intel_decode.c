@@ -807,7 +807,6 @@ decode_3d_1d(uint32_t *data, int count,
 	int max_len;
 	char *name;
     } opcodes_3d_1d[] = {
-	{ 0x8e, 0, 3, 3, "3DSTATE_BUFFER_INFO" },
 	{ 0x86, 0, 4, 4, "3DSTATE_CHROMA_KEY" },
 	{ 0x9c, 0, 7, 7, "3DSTATE_CLEAR_PARAMETERS" },
 	{ 0x88, 0, 2, 2, "3DSTATE_CONSTANT_BLEND_COLOR" },
@@ -815,7 +814,6 @@ decode_3d_1d(uint32_t *data, int count,
 	{ 0x9a, 0, 2, 2, "3DSTATE_DEFAULT_SPECULAR" },
 	{ 0x98, 0, 2, 2, "3DSTATE_DEFAULT_Z" },
 	{ 0x97, 0, 2, 2, "3DSTATE_DEPTH_OFFSET_SCALE" },
-	{ 0x85, 0, 2, 2, "3DSTATE_DEST_BUFFER_VARIABLES" },
 	{ 0x9d, 0, 65, 65, "3DSTATE_FILTER_COEFFICIENTS_4X4" },
 	{ 0x9e, 0, 4, 4, "3DSTATE_MONO_FILTER" },
 	{ 0x89, 0, 4, 4, "3DSTATE_FOG_MODE" },
@@ -902,7 +900,85 @@ decode_3d_1d(uint32_t *data, int count,
 		    }
 		}
 
-		instr_out(data, hw_offset, i++, "S%d\n", word);
+		switch (word) {
+		case 0:
+		    instr_out(data, hw_offset, i, "S0: vbo offset: 0x%08x%s\n",
+			      data[i]&(~1),data[i]&1?", auto cache invalidate disabled":"");
+		    break;
+		case 1:
+		    instr_out(data, hw_offset, i, "S1: vertex width: %i, vertex pitch: %i\n",
+			      (data[i]>>24)&0x3f,(data[i]>>16)&0x3f);
+		    break;
+		case 2:
+		    instr_out(data, hw_offset, i, "S2: texcoord formats: ");
+		    for (int tex_num = 0; tex_num < 8; tex_num++) {
+			switch((data[i]>>tex_num*4)&0xf) {
+			case 0: fprintf(out, "%i=2D ", tex_num); break;
+			case 1: fprintf(out, "%i=3D ", tex_num); break;
+			case 2: fprintf(out, "%i=4D ", tex_num); break;
+			case 3: fprintf(out, "%i=1D ", tex_num); break;
+			case 4: fprintf(out, "%i=2D_16 ", tex_num); break;
+			case 5: fprintf(out, "%i=4D_16 ", tex_num); break;
+			case 0xf: fprintf(out, "%i=NP ", tex_num); break;
+			}
+		    }
+		    fprintf(out, "\n");
+
+		    break;
+		case 3:
+		    instr_out(data, hw_offset, i, "S3: not documented\n", word);
+		    break;
+		case 4:
+		    {
+			char *cullmode = "";
+			char *vfmt_xyzw = "";
+			switch((data[i]>>13)&0x3) {
+			case 0: cullmode = "both"; break;
+			case 1: cullmode = "none"; break;
+			case 2: cullmode = "cw"; break;
+			case 3: cullmode = "ccw"; break;
+			}
+			switch((data[i]>>6)&0x7) {
+			case 1: vfmt_xyzw = "XYZ,"; break;
+			case 2: vfmt_xyzw = "XYZW,"; break;
+			case 3: vfmt_xyzw = "XY,"; break;
+			case 4: vfmt_xyzw = "XYW,"; break;
+			}
+			instr_out(data, hw_offset, i, "S4: point_width=%x, line_width=%.1f,"
+				    "%s%s%s%s%s cullmode=%s, vfmt=%s%s%s%s%s%s "
+				    "%s%s\n",
+				  (data[i]>>23)&0x1ff,
+				  ((data[i]>>19)&0xf) / 2.0,
+				  data[i]&(0xf<<15)?"flatshade=":"",
+				  data[i]&(1<<18)?"Alpha,":"",
+				  data[i]&(1<<17)?"Fog,":"",
+				  data[i]&(1<<16)?"Specular,":"",
+				  data[i]&(1<<15)?"Color,":"",
+				  cullmode,
+				  data[i]&(1<<12)?"PointWidth,":"",
+				  data[i]&(1<<11)?"SpecFog,":"",
+				  data[i]&(1<<10)?"Color,":"",
+				  data[i]&(1<<9)?"DepthOfs,":"",
+				  vfmt_xyzw,
+				  data[i]&(1<<9)?"FogParam,":"",
+				  data[i]&(1<<5)?"diffuse=force default, ":"",
+				  data[i]&(1<<4)?"specular=force default, ":"",
+				  data[i]&(1<<3)?"local depth ofs enable, ":"",
+				  data[i]&(1<<3)?"point sprite enable, ":"",
+				  data[i]&(1<<3)?"line AA enable, ":"");
+			break;
+		    }
+		case 5:
+		    instr_out(data, hw_offset, i, "S%d\n", word);
+		    break;
+		case 6:
+		    instr_out(data, hw_offset, i, "S%d\n", word);
+		    break;
+		case 7:
+		    instr_out(data, hw_offset, i, "S%d\n", word);
+		    break;
+		}
+		i++;
 	    }
 	}
 	if (len != i) {
