@@ -790,6 +790,85 @@ i915_decode_instruction(uint32_t *data, uint32_t hw_offset,
     }
 }
 
+static char *
+decode_compare_func(uint32_t op)
+{
+    switch (op&0x7) {
+    case 0: return "always";
+    case 1: return "never";
+    case 2: return "less";
+    case 3: return "equal";
+    case 4: return "lequal";
+    case 5: return "greater";
+    case 6: return "notequal";
+    case 7: return "gequal";
+    }
+    return "";
+}
+
+static char *
+decode_stencil_op(uint32_t op)
+{
+    switch (op&0x7) {
+    case 0: return "keep";
+    case 1: return "zero";
+    case 2: return "replace";
+    case 3: return "incr_sat";
+    case 4: return "decr_sat";
+    case 5: return "greater";
+    case 6: return "incr";
+    case 7: return "decr";
+    }
+    return "";
+}
+
+static char *
+ecode_logic_op(uint32_t op)
+{
+    switch (op&0xf) {
+    case 0: return "clear";
+    case 1: return "nor";
+    case 2: return "and_inv";
+    case 3: return "copy_inv";
+    case 4: return "and_rvrse";
+    case 5: return "inv";
+    case 6: return "xor";
+    case 7: return "nand";
+    case 8: return "and";
+    case 9: return "equiv";
+    case 10: return "noop";
+    case 11: return "or_inv";
+    case 12: return "copy";
+    case 13: return "or_rvrse";
+    case 14: return "or";
+    case 15: return "set";
+    }
+    return "";
+}
+
+static char *
+decode_blend_fact(uint32_t op)
+{
+    switch (op&0xf) {
+    case 1: return "zero";
+    case 2: return "one";
+    case 3: return "src_colr";
+    case 4: return "inv_src_colr";
+    case 5: return "src_alpha";
+    case 6: return "inv_src_alpha";
+    case 7: return "dst_alpha";
+    case 8: return "inv_dst_alpha";
+    case 9: return "dst_colr";
+    case 10: return "inv_dst_colr";
+    case 11: return "src_alpha_sat";
+    case 12: return "cnst_colr";
+    case 13: return "inv_cnst_colr";
+    case 14: return "cnst_alpha";
+    case 15: return "inv_const_alpha";
+    }
+    return "";
+}
+
 static int
 decode_3d_1d(uint32_t *data, int count,
 	     uint32_t hw_offset,
@@ -944,12 +1023,12 @@ decode_3d_1d(uint32_t *data, int count,
 			case 3: vfmt_xyzw = "XY,"; break;
 			case 4: vfmt_xyzw = "XYW,"; break;
 			}
-			instr_out(data, hw_offset, i, "S4: point_width=%x, line_width=%.1f,"
+			instr_out(data, hw_offset, i, "S4: point_width=%i, line_width=%.1f,"
 				    "%s%s%s%s%s cullmode=%s, vfmt=%s%s%s%s%s%s "
 				    "%s%s\n",
 				  (data[i]>>23)&0x1ff,
 				  ((data[i]>>19)&0xf) / 2.0,
-				  data[i]&(0xf<<15)?"flatshade=":"",
+				  data[i]&(0xf<<15)?" flatshade=":"",
 				  data[i]&(1<<18)?"Alpha,":"",
 				  data[i]&(1<<17)?"Fog,":"",
 				  data[i]&(1<<16)?"Specular,":"",
@@ -961,21 +1040,63 @@ decode_3d_1d(uint32_t *data, int count,
 				  data[i]&(1<<9)?"DepthOfs,":"",
 				  vfmt_xyzw,
 				  data[i]&(1<<9)?"FogParam,":"",
-				  data[i]&(1<<5)?"diffuse=force default, ":"",
-				  data[i]&(1<<4)?"specular=force default, ":"",
+				  data[i]&(1<<5)?"force default diffuse, ":"",
+				  data[i]&(1<<4)?"force default specular, ":"",
 				  data[i]&(1<<3)?"local depth ofs enable, ":"",
 				  data[i]&(1<<3)?"point sprite enable, ":"",
 				  data[i]&(1<<3)?"line AA enable, ":"");
 			break;
 		    }
 		case 5:
-		    instr_out(data, hw_offset, i, "S%d\n", word);
+		    {
+			char *vfmt_xyzw = "";
+			switch((data[i]>>6)&0x7) {
+			case 1: vfmt_xyzw = "XYZ,"; break;
+			case 2: vfmt_xyzw = "XYZW,"; break;
+			case 3: vfmt_xyzw = "XY,"; break;
+			case 4: vfmt_xyzw = "XYW,"; break;
+			}
+			instr_out(data, hw_offset, i, "S5:%s%s%s%s%s "
+				    "%s%s%s%s stencil_ref=0x%x, stencil_test=%s, "
+				    "stencil_fail=%s, stencil_pass_z_fail=%s, "
+				    "stencil_pass_z_pass=%s, %s%s%s%s\n",
+				  data[i]&(0xf<<28)?" write_disable=":"",
+				  data[i]&(1<<31)?"Alpha,":"",
+				  data[i]&(1<<30)?"Red,":"",
+				  data[i]&(1<<29)?"Green,":"",
+				  data[i]&(1<<28)?"Blue,":"",
+				  data[i]&(1<<27)?"force default point size, ":"",
+				  data[i]&(1<<26)?"last pixel enable, ":"",
+				  data[i]&(1<<25)?"global depth ofs enable, ":"",
+				  data[i]&(1<<24)?"fog enable, ":"",
+				  data[i]&(0xff<<16),
+				  decode_compare_func(data[i]>>13),
+				  decode_stencil_op(data[i]>>10),
+				  decode_stencil_op(data[i]>>7),
+				  decode_stencil_op(data[i]>>4),
+				  data[i]&(1<<3)?"stencil write enable, ":"",
+				  data[i]&(1<<2)?"stencil test enable, ":"",
+				  data[i]&(1<<1)?"color dither enable, ":"",
+				  data[i]&(1<<0)?"logicop enable, ":"");
+		    }
 		    break;
 		case 6:
-		    instr_out(data, hw_offset, i, "S%d\n", word);
+		    instr_out(data, hw_offset, i, "S6: %salpha_test=%s, alpha_ref=0x%x, "
+				"depth_test=%s, %ssrc_blnd_fct=%s, dst_blnd_fct=%s, "
+				"%s%stristrip_provoking_vertex=%i\n",
+			      data[i]&(1<<31)?"alpha test enable, ":"",
+			      decode_compare_func(data[i]>>28),
+			      data[i]&(0xff<<20),
+			      decode_compare_func(data[i]>>16),
+			      data[i]&(1<<15)?"cbuf blend enable, ":"",
+			      decode_blend_fact(data[i]>>12),
+			      decode_blend_fact(data[i]>>8),
+			      data[i]&(1<<3)?"depth write enable, ":"",
+			      data[i]&(1<<2)?"cbuf write enable, ":"",
+			      data[i]&(0x3));
 		    break;
 		case 7:
-		    instr_out(data, hw_offset, i, "S%d\n", word);
+		    instr_out(data, hw_offset, i, "S7: depth offset constant: 0x%08x\n", data[i]);
 		    break;
 		}
 		i++;
