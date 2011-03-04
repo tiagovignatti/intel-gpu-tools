@@ -823,7 +823,7 @@ decode_stencil_op(uint32_t op)
 }
 
 static char *
-ecode_logic_op(uint32_t op)
+decode_logic_op(uint32_t op)
 {
     switch (op&0xf) {
     case 0: return "clear";
@@ -1149,7 +1149,11 @@ decode_3d_1d(uint32_t *data, int count,
 		if (i + 3 >= count)
 		    BUFFER_FAIL(count, len, "3DSTATE_MAP_STATE");
 
-		instr_out(data, hw_offset, i++, "map %d MS2\n", map);
+		dword = data[i];
+		instr_out(data, hw_offset, i++, "map %d MS2 %s%s%s\n", map,
+			  dword&(1<<31)?"untrusted surface, ":"",
+			  dword&(1<<1)?"vertical line stride enable, ":"",
+			  dword&(1<<0)?"vertical ofs enable, ":"");
 
 		dword = data[i];
 		width = ((dword >> 10) & ((1 << 11) - 1))+1;
@@ -1227,12 +1231,17 @@ decode_3d_1d(uint32_t *data, int count,
 		default:
 		    format = "BAD";
 		}
-		instr_out(data, hw_offset, i++, "map %d MS3 [width=%d, height=%d, format=%s%s, tiling=%s]\n",
-			map, width, height, type, format, tiling);
+		dword = data[i];
+		instr_out(data, hw_offset, i++, "map %d MS3 [width=%d, height=%d, format=%s%s, tiling=%s%s]\n",
+			  map, width, height, type, format, tiling,
+			  dword&(1<<9)?" palette select":"");
 
 		dword = data[i];
 		pitch = 4*(((dword >> 21) & ((1 << 11) - 1))+1);
-		instr_out(data, hw_offset, i++, "map %d MS4 [pitch=%d]\n", map, pitch);
+		instr_out(data, hw_offset, i++, "map %d MS4 [pitch=%d, max_lod=%i, vol_depth=%i, cube_face_ena=%x, %s]\n",
+			  map, pitch,
+			  (dword>>9)&0x3f, dword&0xff, (dword>>15)&0x3f,
+			  dword&(1<<8)?"miplayout legacy":"miplayout right");
 	    }
 	}
 	if (len != i) {
