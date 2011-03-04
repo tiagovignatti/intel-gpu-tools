@@ -869,6 +869,35 @@ decode_blend_fact(uint32_t op)
     return "";
 }
 
+static char *
+decode_tex_coord_mode(uint32_t mode)
+{
+    switch (mode&0x7) {
+    case 0: return "wrap";
+    case 1: return "mirror";
+    case 2: return "clamp_edge";
+    case 3: return "cube";
+    case 4: return "clamp_border";
+    case 5: return "mirror_once";
+    }
+    return "";
+}
+
+static char *
+decode_sample_filter(uint32_t mode)
+{
+    switch (mode&0x7) {
+    case 0: return "nearest";
+    case 1: return "linear";
+    case 2: return "anisotropic";
+    case 3: return "4x4_1";
+    case 4: return "4x4_2";
+    case 5: return "4x4_flat";
+    case 6: return "6x5_mono";
+    }
+    return "";
+}
+
 static int
 decode_3d_1d(uint32_t *data, int count,
 	     uint32_t hw_offset,
@@ -1305,14 +1334,45 @@ decode_3d_1d(uint32_t *data, int count,
 	i = 2;
 	for (sampler = 0; sampler <= 15; sampler++) {
 	    if (data[1] & (1 << sampler)) {
+		uint32_t dword;
+		char *mip_filter = "";
 		if (i + 3 >= count)
 		    BUFFER_FAIL(count, len, "3DSTATE_SAMPLER_STATE");
-		instr_out(data, hw_offset, i++, "sampler %d SS2\n",
-			  sampler);
-		instr_out(data, hw_offset, i++, "sampler %d SS3\n",
-			  sampler);
-		instr_out(data, hw_offset, i++, "sampler %d SS4\n",
-			  sampler);
+		dword = data[i];
+		switch ((dword>>20)&0x3) {
+		case 0: mip_filter = "none"; break;
+		case 1: mip_filter = "nearest"; break;
+		case 3: mip_filter = "linear"; break;
+		}
+		instr_out(data, hw_offset, i++, "sampler %d SS2:%s%s%s "
+			  "base_mip_level=%i, mip_filter=%s, mag_filter=%s, min_filter=%s "
+			  "lod_bias=%.2f,%s max_aniso=%i, shadow_func=%s\n", sampler,
+			  dword&(1<<31)?" reverse gamma,":"",
+			  dword&(1<<30)?" packed2planar,":"",
+			  dword&(1<<29)?" colorspace conversion,":"",
+			  (dword>>22)&0x1f,
+			  mip_filter,
+			  decode_sample_filter(dword>>17),
+			  decode_sample_filter(dword>>14),
+			  ((dword>>5)&0x1ff)/(0x10*1.0),
+			  dword&(1<<4)?" shadow,":"",
+			  dword&(1<<3)?4:2,
+			  decode_compare_func(dword));
+		dword = data[i];
+		instr_out(data, hw_offset, i++, "sampler %d SS3: min_lod=%.2f,%s "
+			  "tcmode_x=%s, tcmode_y=%s, tcmode_z=%s,%s texmap_idx=%i,%s\n",
+			  sampler, ((dword>>24)&0xff)/(0x10*1.0),
+			  dword&(1<<17)?" kill pixel enable,":"",
+			  decode_tex_coord_mode(dword>>12),
+			  decode_tex_coord_mode(dword>>9),
+			  decode_tex_coord_mode(dword>>6),
+			  dword&(1<<5)?" normalized coords,":"",
+			  (dword>>1)&0xf,
+			  dword&(1<<0)?" deinterlacer,":"");
+		dword = data[i];
+		instr_out(data, hw_offset, i++, "sampler %d SS4: border color\n",
+			  sampler, ((dword>>24)&0xff)/(0x10*1.0),
+			  dword);
 	    }
 	}
 	if (len != i) {
