@@ -17,12 +17,12 @@ TESTS = getversion \
 	gem_largeobject \
 	gem_bad_address \
 	gem_bad_blit \
-	gem_bad_batch \
 	gem_fence_thrash \
 	gem_gtt_speed \
 	$(NULL)
 
 HANG = \
+	gem_bad_batch \
 	gem_hang \
 	$(NULL)
 
