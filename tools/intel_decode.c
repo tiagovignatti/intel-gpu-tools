@@ -1085,7 +1085,7 @@ decode_3d_1d(uint32_t *data, int count,
 			case 3: vfmt_xyzw = "XY,"; break;
 			case 4: vfmt_xyzw = "XYW,"; break;
 			}
-			instr_out(data, hw_offset, i, "S5:%s%s%s%s%s "
+			instr_out(data, hw_offset, i, "S5:%s%s%s%s%s"
 				    "%s%s%s%s stencil_ref=0x%x, stencil_test=%s, "
 				    "stencil_fail=%s, stencil_pass_z_fail=%s, "
 				    "stencil_pass_z_pass=%s, %s%s%s%s\n",
@@ -1094,11 +1094,11 @@ decode_3d_1d(uint32_t *data, int count,
 				  data[i]&(1<<30)?"Red,":"",
 				  data[i]&(1<<29)?"Green,":"",
 				  data[i]&(1<<28)?"Blue,":"",
-				  data[i]&(1<<27)?"force default point size, ":"",
-				  data[i]&(1<<26)?"last pixel enable, ":"",
-				  data[i]&(1<<25)?"global depth ofs enable, ":"",
-				  data[i]&(1<<24)?"fog enable, ":"",
-				  data[i]&(0xff<<16),
+				  data[i]&(1<<27)?" force default point size,":"",
+				  data[i]&(1<<26)?" last pixel enable,":"",
+				  data[i]&(1<<25)?" global depth ofs enable,":"",
+				  data[i]&(1<<24)?" fog enable,":"",
+				  (data[i]>>16)&0xff,
 				  decode_compare_func(data[i]>>13),
 				  decode_stencil_op(data[i]>>10),
 				  decode_stencil_op(data[i]>>7),
