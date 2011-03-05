@@ -916,7 +916,6 @@ decode_3d_1d(uint32_t *data, int count,
 	char *name;
     } opcodes_3d_1d[] = {
 	{ 0x86, 0, 4, 4, "3DSTATE_CHROMA_KEY" },
-	{ 0x9c, 0, 7, 7, "3DSTATE_CLEAR_PARAMETERS" },
 	{ 0x88, 0, 2, 2, "3DSTATE_CONSTANT_BLEND_COLOR" },
 	{ 0x99, 0, 2, 2, "3DSTATE_DEFAULT_DIFFUSE" },
 	{ 0x9a, 0, 2, 2, "3DSTATE_DEFAULT_SPECULAR" },
@@ -1479,6 +1478,28 @@ decode_3d_1d(uint32_t *data, int count,
 	instr_out(data, hw_offset, 4, "(%d,%d)\n",
 		  data[4] & 0xffff, data[4] >> 16);
 
+	return len;
+    case 0x9c:
+	len = (data[0] & 0x0000000f) + 2;
+
+	if (len != 7)
+	    fprintf(out, "Bad count in 3DSTATE_CLEAR_PARAMETERS\n");
+	if (count < 7)
+	    BUFFER_FAIL(count, len, "3DSTATE_CLEAR_PARAMETERS");
+
+	instr_out(data, hw_offset, 0,
+		  "3DSTATE_CLEAR_PARAMETERS\n");
+	instr_out(data, hw_offset, 1, "prim_type=%s, clear=%s%s%s\n",
+		  data[1]&(1<<16)?"CLEAR_RECT":"ZONE_INIT",
+		  data[1]&(1<<2)?"color,":"",
+		  data[1]&(1<<1)?"depth,":"",
+		  data[1]&(1<<0)?"stencil,":"");
+	instr_out(data, hw_offset, 2, "clear color\n");
+	instr_out(data, hw_offset, 3, "clear depth/stencil\n");
+	instr_out(data, hw_offset, 4, "color value (rgba8888)\n");
+	instr_out(data, hw_offset, 5, "depth value %f\n",
+		  int_as_float(data[5]));
+	instr_out(data, hw_offset, 6, "clear stencil\n");
 	return len;
     }
 
