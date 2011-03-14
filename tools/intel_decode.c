@@ -1150,11 +1150,22 @@ decode_3d_1d(uint32_t *data, int count,
 		    instr_out(data, hw_offset, i++, "TB%dC\n", word - 7);
 		    instr_out(data, hw_offset, i++, "TB%dA\n", word - 7);
 		} else if (word >= 11 && word <= 14) {
-		    instr_out(data, hw_offset, i++, "TM%dS0\n", word - 11);
-		    instr_out(data, hw_offset, i++, "TM%dS1\n", word - 11);
-		    instr_out(data, hw_offset, i++, "TM%dS2\n", word - 11);
+		    instr_out(data, hw_offset, i, "TM%dS0: offset=0x%08x, %s\n",
+			      word - 11,
+			      data[i]&0xfffffffe,
+			      data[i]&1?"use fence":"");
+		    i++;
+		    instr_out(data, hw_offset, i, "TM%dS1: height=%i, width=%i, %s\n",
+			      word - 11,
+			      data[i]>>21, (data[i]>>10)&0x3ff,
+			      data[i]&2?(data[i]&1?"y-tiled":"x-tiled"):"");
+		    i++;
+		    instr_out(data, hw_offset, i, "TM%dS2: pitch=%i, \n",
+			      word - 11,
+			      ((data[i]>>21) + 1)*4);
+		    i++;
 		    instr_out(data, hw_offset, i++, "TM%dS3\n", word - 11);
-		    instr_out(data, hw_offset, i++, "TM%dS4\n", word - 11);
+		    instr_out(data, hw_offset, i++, "TM%dS4: dflt color\n", word - 11);
 		}
 	    }
 	}
