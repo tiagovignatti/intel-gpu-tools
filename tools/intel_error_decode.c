@@ -210,10 +210,51 @@ print_pgtbl_err(unsigned int reg, unsigned int devid)
 }
 
 static void
+print_i915_fence(unsigned int devid, uint64_t fence)
+{
+	unsigned tile_width;
+	if ((fence & 12) && !IS_915(devid))
+		tile_width = 128;
+	else
+		tile_width = 512;
+
+	printf("    %svalid, %c-tiled, pitch: %i, start: 0x%08x, size: %i\n",
+		fence & 1 ? "" : "in",
+		fence & 12 ? 'y' : 'x',
+		(1<<((fence>>4)&0xf))*tile_width,
+		(uint32_t)fence & 0x7f80000,
+		1<<(20 + ((fence>>8)&0xf)));
+}
+
+static void
+print_i830_fence(unsigned int devid, uint64_t fence)
+{
+	printf("    %svalid, %c-tiled, pitch: %i, start: 0x%08x, size: %i\n",
+		fence & 1 ? "" : "in",
+		fence & 12 ? 'y' : 'x',
+		(1<<((fence>>4)&0xf))*128,
+		(uint32_t)fence & 0x7f80000,
+		1<<(19 + ((fence>>8)&0xf)));
+}
+
+static void
+print_fence(unsigned int devid, uint64_t fence)
+{
+	if (IS_965(devid)) {
+		return;
+	} else if (IS_GEN3(devid)) {
+		return print_i915_fence(devid, fence);
+	} else {
+		return print_i830_fence(devid, fence);
+	}
+}
+
+static void
 read_data_file (FILE *file)
 {
     int devid = PCI_CHIP_I855_GM;
     uint32_t *data = NULL;
+    long long unsigned fence;
     int data_size = 0, count = 0, line_number = 0, matched;
     char *line = NULL;
     size_t line_size;
@@ -290,6 +331,10 @@ read_data_file (FILE *file)
 	    matched = sscanf (line, "  INSTDONE1: 0x%08x\n", &reg);
 	    if (matched == 1)
 		print_instdone (devid, -1, reg);
+
+	    matched = sscanf (line, "  fence[%i] = %8Lx\n", &reg, &fence); 
+	    if (matched == 2)
+		print_fence (devid, fence);
 
 	    continue;
 	}
