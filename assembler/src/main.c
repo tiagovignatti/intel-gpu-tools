@@ -40,9 +40,12 @@ extern int errors;
 
 long int gen_level = 4;
 int advanced_flag = 0; /* 0: in unit of type, 1: in unit of data element size */
+int binary_like_output = 0; /* 0: default type, 1: nice c like output */
 int need_export = 0;
 char *input_filename = "<stdin>";
 char *export_filename = NULL;
+
+const char const *binary_prepend = "static const char gen_eu_bytes[] = {\n";
 
 struct brw_program compiled_program;
 struct program_defaults program_defaults;
@@ -53,6 +56,7 @@ static struct declared_register *declared_register_table[HASHSZ];
 
 static const struct option longopts[] = {
 	{"advanced", no_argument, 0, 'a'},
+	{"binary", no_argument, 0, 'b'},
 	{"export", required_argument, 0, 'e'},
 	{"input_list", required_argument, 0, 'l'},
 	{"output", required_argument, 0, 'o'},
@@ -65,6 +69,7 @@ static void usage(void)
 	fprintf(stderr, "usage: intel-gen4asm [options] inputfile\n");
 	fprintf(stderr, "OPTIONS:\n");
 	fprintf(stderr, "\t-a, --advanced                       Set advanced flag\n");
+	fprintf(stderr, "\t-b, --binary                         C style binary output\n");
 	fprintf(stderr, "\t-e, --export {exportfile}            Export label file\n");
 	fprintf(stderr, "\t-l, --input_list {entrytablefile}    Input entry_table_list file\n");
 	fprintf(stderr, "\t-o, --output {outputfile}            Specify output file\n");
@@ -168,6 +173,38 @@ static int is_entry_point(char *s)
 	return 0;
 }
 
+static void
+print_instruction(FILE *output, struct brw_program_instruction *entry)
+{
+	if (binary_like_output) {
+		fprintf(output, "\t0x%02x, 0x%02x, 0x%02x, 0x%02x, "
+				"0x%02x, 0x%02x, 0x%02x, 0x%02x,\n"
+				"\t0x%02x, 0x%02x, 0x%02x, 0x%02x, "
+				"0x%02x, 0x%02x, 0x%02x, 0x%02x,\n",
+			((unsigned char *)(&entry->instruction))[0],
+			((unsigned char *)(&entry->instruction))[1],
+			((unsigned char *)(&entry->instruction))[2],
+			((unsigned char *)(&entry->instruction))[3],
+			((unsigned char *)(&entry->instruction))[4],
+			((unsigned char *)(&entry->instruction))[5],
+			((unsigned char *)(&entry->instruction))[6],
+			((unsigned char *)(&entry->instruction))[7],
+			((unsigned char *)(&entry->instruction))[8],
+			((unsigned char *)(&entry->instruction))[9],
+			((unsigned char *)(&entry->instruction))[10],
+			((unsigned char *)(&entry->instruction))[11],
+			((unsigned char *)(&entry->instruction))[12],
+			((unsigned char *)(&entry->instruction))[13],
+			((unsigned char *)(&entry->instruction))[14],
+			((unsigned char *)(&entry->instruction))[15]);
+	} else {
+		fprintf(output, "   { 0x%08x, 0x%08x, 0x%08x, 0x%08x },\n",
+			((int *)(&entry->instruction))[0],
+			((int *)(&entry->instruction))[1],
+			((int *)(&entry->instruction))[2],
+			((int *)(&entry->instruction))[3]);
+	}
+}
 int main(int argc, char **argv)
 {
 	char *output_file = NULL;
@@ -177,7 +214,7 @@ int main(int argc, char **argv)
 	struct brw_program_instruction *entry, *entry1, *tmp_entry;
 	int err, inst_offset;
 	char o;
-	while ((o = getopt_long(argc, argv, "e:l:o:g:a", longopts, NULL)) != -1) {
+	while ((o = getopt_long(argc, argv, "e:l:o:g:ab", longopts, NULL)) != -1) {
 		switch (o) {
 		case 'o':
 			if (strcmp(optarg, "-") != 0)
@@ -197,6 +234,9 @@ int main(int argc, char **argv)
 
 		case 'a':
 			advanced_flag = 1;
+			break;
+		case 'b':
+			binary_like_output = 1;
 			break;
 
 		case 'e':
@@ -317,20 +357,21 @@ int main(int argc, char **argv)
 	}
 
 
+	if (binary_like_output)
+		fprintf(output, "%s", binary_prepend);
+
 	for (entry = compiled_program.first;
 		entry != NULL;
 		entry = entry1) {
 	    entry1 = entry->next;
 	    if (!entry->islabel)
-		fprintf(output, "   { 0x%08x, 0x%08x, 0x%08x, 0x%08x },\n",
-			((int *)(&entry->instruction))[0],
-			((int *)(&entry->instruction))[1],
-			((int *)(&entry->instruction))[2],
-			((int *)(&entry->instruction))[3]);
+		print_instruction(output, entry);
 	    else
 		free(entry->string);
 	    free(entry);
 	}
+	if (binary_like_output)
+		fprintf(output, "};");
 
 	free_register_table();
 	fflush (output);
