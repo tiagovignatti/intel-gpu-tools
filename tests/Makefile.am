@@ -1,3 +1,7 @@
+bin_PROGRAMS = \
+	gem_stress \
+	$(NULL)
+
 TESTS = getversion \
 	getclient \
 	getstats \
