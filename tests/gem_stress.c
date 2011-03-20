@@ -73,6 +73,9 @@
  * - multi-threading: probably just a wrapper script to launch multiple
  *   instances + an option to accordingly reduce the working set
  * - gen6 inter-ring coherency (needs render copy, first)
+ * - variable buffer size
+ * - add an option to fork a second process that randomly sends signals to the
+ *   first one (to check consistency of the kernel recovery paths)
  */
 
 static uint64_t gem_aperture_size(int fd)
@@ -162,11 +165,13 @@ static void keep_gpu_busy(void)
 
 static unsigned int copyfunc_seq = 0;
 static void (*copyfunc)(struct scratch_buf *src, unsigned src_x, unsigned src_y,
-			struct scratch_buf *dst, unsigned dst_x, unsigned dst_y);
+			struct scratch_buf *dst, unsigned dst_x, unsigned dst_y,
+			unsigned logical_tile_no);
 
 /* stride, x, y in units of uint32_t! */
 static void cpucpy2d(uint32_t *src, unsigned src_stride, unsigned src_x, unsigned src_y,
-		     uint32_t *dst, unsigned dst_stride, unsigned dst_x, unsigned dst_y)
+		     uint32_t *dst, unsigned dst_stride, unsigned dst_x, unsigned dst_y,
+		     unsigned logical_tile_no)
 {
 	int i, j;
 
@@ -174,7 +179,15 @@ static void cpucpy2d(uint32_t *src, unsigned src_stride, unsigned src_x, unsigne
 		for (j = 0; j < TILE_SIZE; j++) {
 			unsigned dst_ofs = dst_x + j + dst_stride * (dst_y + i);
 			unsigned src_ofs = src_x + j + src_stride * (src_y + i);
-			dst[dst_ofs] = src[src_ofs];
+			unsigned expect = logical_tile_no*TILE_SIZE*TILE_SIZE
+			    + i*TILE_SIZE + j;
+			uint32_t tmp = src[src_ofs]; 
+			if (tmp != expect) {
+			    printf("mismatch at tile %i pos %i, read %u, expected %u\n",
+				    logical_tile_no, j*TILE_SIZE, tmp, expect);
+			    exit(1);
+			}
+			dst[dst_ofs] = tmp;
 		}
 	}
 }
@@ -182,26 +195,50 @@ static void cpucpy2d(uint32_t *src, unsigned src_stride, unsigned src_x, unsigne
 static void next_copyfunc(void);
 
 static void cpu_copyfunc(struct scratch_buf *src, unsigned src_x, unsigned src_y,
-			 struct scratch_buf *dst, unsigned dst_x, unsigned dst_y)
+			 struct scratch_buf *dst, unsigned dst_x, unsigned dst_y,
+			 unsigned logical_tile_no)
 {
 	cpucpy2d(src->data, src->stride/sizeof(uint32_t), src_x, src_y,
-		 dst->data, dst->stride/sizeof(uint32_t), dst_x, dst_y);
+		 dst->data, dst->stride/sizeof(uint32_t), dst_x, dst_y,
+		 logical_tile_no);
 }
 
 static void prw_copyfunc(struct scratch_buf *src, unsigned src_x, unsigned src_y,
-			 struct scratch_buf *dst, unsigned dst_x, unsigned dst_y)
+			 struct scratch_buf *dst, unsigned dst_x, unsigned dst_y,
+			 unsigned logical_tile_no)
 {
 	uint32_t tmp_tile[TILE_SIZE*TILE_SIZE];
+	int i;
 
-	/* TODO: use pwrite/pread here if dst/src is untiled */
-	cpucpy2d(src->data, src->stride/sizeof(uint32_t), src_x, src_y,
-		 tmp_tile, TILE_SIZE, 0, 0);
-	cpucpy2d(tmp_tile, TILE_SIZE, 0, 0,
-		 dst->data, dst->stride/sizeof(uint32_t), dst_x, dst_y);
+	if (src->tiling == I915_TILING_NONE) {
+		for (i = 0; i < TILE_SIZE; i++) {
+			unsigned ofs = src_x*sizeof(uint32_t) + src->stride*(src_y + i);
+			drm_intel_bo_get_subdata(src->bo, ofs,
+						 TILE_SIZE*sizeof(uint32_t),
+						 tmp_tile + TILE_SIZE*i);
+		}
+	} else {
+		cpucpy2d(src->data, src->stride/sizeof(uint32_t), src_x, src_y,
+			 tmp_tile, TILE_SIZE, 0, 0, logical_tile_no);
+	}
+
+	if (dst->tiling == I915_TILING_NONE) {
+		for (i = 0; i < TILE_SIZE; i++) {
+			unsigned ofs = dst_x*sizeof(uint32_t) + dst->stride*(dst_y + i);
+			drm_intel_bo_subdata(dst->bo, ofs,
+					     TILE_SIZE*sizeof(uint32_t),
+					     tmp_tile + TILE_SIZE*i);
+		}
+	} else {
+		cpucpy2d(tmp_tile, TILE_SIZE, 0, 0,
+			 dst->data, dst->stride/sizeof(uint32_t), dst_x, dst_y,
+			 logical_tile_no);
+	}
 }
 
 static void blitter_copyfunc(struct scratch_buf *src, unsigned src_x, unsigned src_y,
-			     struct scratch_buf *dst, unsigned dst_x, unsigned dst_y)
+			     struct scratch_buf *dst, unsigned dst_x, unsigned dst_y,
+			     unsigned logical_tile_no)
 {
 	uint32_t src_pitch, dst_pitch, cmd_bits;
 	src_pitch = src->stride;
@@ -289,7 +326,7 @@ static void fan_out(void)
 			cpucpy2d(tmp_tile, TILE_SIZE, 0, 0,
 				 buffers[current_set][i].data,
 				 buffers[current_set][i].stride / sizeof(uint32_t),
-				 x, y);
+				 x, y, i*TILES_PER_BUF + j);
 		}
 	}
 
@@ -301,7 +338,7 @@ static void fan_in_and_check(void)
 {
 	uint32_t tmp_tile[TILE_SIZE*TILE_SIZE];
 	unsigned tile, buf_idx, x, y;
-	int i,j;
+	int i;
 	for (i = 0; i < num_buffers*TILES_PER_BUF; i++) {
 		tile = tile_permutation[i];
 		buf_idx = tile / TILES_PER_BUF;
@@ -312,15 +349,8 @@ static void fan_in_and_check(void)
 		cpucpy2d(buffers[current_set][buf_idx].data,
 			 buffers[current_set][buf_idx].stride / sizeof(uint32_t),
 			 x, y,
-			 tmp_tile, TILE_SIZE, 0, 0);
-		for (j = 0; j < TILE_SIZE*TILE_SIZE; j++) {
-			unsigned expect = i*TILE_SIZE*TILE_SIZE + j;
-			if (tmp_tile[j] != expect) {
-				printf("mismatch at tile %i pos %i, read %u, expected %u\n",
-						i, j, tmp_tile[j], expect);
-				exit(1);
-			}
-		}
+			 tmp_tile, TILE_SIZE, 0, 0,
+			 i);
 	}
 }
 
@@ -466,11 +496,13 @@ static void copy_tiles(unsigned *permutation)
 			 src_x, src_y,
 			 dst_buf->data,
 			 dst_buf->stride / sizeof(uint32_t),
-			 dst_x, dst_y);
+			 dst_x, dst_y,
+			 i);
 #else
 		next_copyfunc();
 
-		copyfunc(src_buf, src_x, src_y, dst_buf, dst_x, dst_y);
+		copyfunc(src_buf, src_x, src_y, dst_buf, dst_x, dst_y,
+			 i);
 #endif
 	}
 
