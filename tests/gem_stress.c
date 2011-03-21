@@ -287,7 +287,7 @@ static void blitter_copyfunc(struct scratch_buf *src, unsigned src_x, unsigned s
 	if (dst->tiling)
 		fence_storm--;
 
-	if (fence_storm <= 0) {
+	if (fence_storm <= 1) {
 		fence_storm = 0;
 		intel_batchbuffer_flush(batch);
 	}
