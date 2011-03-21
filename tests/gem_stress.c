@@ -106,7 +106,8 @@ drm_intel_bo *busy_bo;
 
 #define MAX_BUFS		4096
 #define SCRATCH_BUF_SIZE	1024*1024
-#define TILE_SIZE 		16
+#define BUSY_BUF_SIZE		(256*4096)
+#define TILE_SIZE		16
 #define TILES_PER_BUF		(SCRATCH_BUF_SIZE / (TILE_SIZE*TILE_SIZE*sizeof(uint32_t)))
 
 static struct scratch_buf buffers[2][MAX_BUFS];
@@ -540,7 +541,7 @@ int main(int argc, char **argv)
 	devid = intel_get_drm_devid(drm_fd);
 	num_fences = get_num_fences();
 	batch = intel_batchbuffer_alloc(bufmgr, devid);
-	busy_bo = drm_intel_bo_alloc(bufmgr, "tiled bo", SCRATCH_BUF_SIZE, 4096);
+	busy_bo = drm_intel_bo_alloc(bufmgr, "tiled bo", BUSY_BUF_SIZE, 4096);
 
 	for (i = 0; i < num_buffers; i++) {
 		init_buffer(&buffers[0][i]);
