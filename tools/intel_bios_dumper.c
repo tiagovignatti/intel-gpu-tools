@@ -77,6 +77,11 @@ int main(int argc, char **argv)
 	if (dev->vendor_id != 0x8086)
 		errx(1, "Graphics card is non-intel");
 
+	/* Some versions of libpciaccess correct this automatically, but some
+	 * don't. */
+	if (dev->rom_size == 0)
+		dev->rom_size = 64 * 1024;
+
 	bios = malloc(dev->rom_size);
 	if (bios == NULL)
 		errx(1, "Couldn't allocate memory for BIOS data\n");
