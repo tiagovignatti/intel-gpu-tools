@@ -40,7 +40,7 @@ read_program (FILE *input)
     struct brw_program_instruction  *entry, **prev;
     int			c;
     int			n = 0;
-    
+
     program = malloc (sizeof (struct brw_program));
     program->first = NULL;
     prev = &program->first;
@@ -62,9 +62,40 @@ read_program (FILE *input)
     return program;
 }
 
+static struct brw_program *
+read_program_binary (FILE *input)
+{
+    uint32_t			    temp;
+    uint8_t			    inst[16];
+    struct brw_program		    *program;
+    struct brw_program_instruction  *entry, **prev;
+    int			c;
+    int			n = 0;
+
+    program = malloc (sizeof (struct brw_program));
+    program->first = NULL;
+    prev = &program->first;
+    while ((c = getc (input)) != EOF) {
+	if (c == '0') {
+	    if (fscanf (input, "x%2x", &temp) == 1) {
+		inst[n++] = (uint8_t)temp;
+		if (n == 16) {
+		    entry = malloc (sizeof (struct brw_program_instruction));
+		    memcpy (&entry->instruction, inst, 16 * sizeof (uint8_t));
+		    entry->next = NULL;
+		    *prev = entry;
+		    prev = &entry->next;
+		    n = 0;
+		}
+	    }
+	}
+    }
+    return program;
+}
+
 static void usage(void)
 {
-    fprintf(stderr, "usage: intel-gen4disasm [-o outputfile] inputfile\n");
+    fprintf(stderr, "usage: intel-gen4disasm [-o outputfile] [-b] inputfile\n");
 }
 
 int main(int argc, char **argv)
@@ -74,14 +105,18 @@ int main(int argc, char **argv)
     FILE		*output = stdout;
     char		*input_filename = NULL;
     char		*output_file = NULL;
+    int			byte_array_input = 0;
     int			o;
     struct brw_program_instruction  *inst;
 
-    while ((o = getopt_long(argc, argv, "o:", longopts, NULL)) != -1) {
+    while ((o = getopt_long(argc, argv, "o:b", longopts, NULL)) != -1) {
 	switch (o) {
 	case 'o':
 	    if (strcmp(optarg, "-") != 0)
 		output_file = optarg;
+	    break;
+	case 'b':
+	    byte_array_input = 1;
 	    break;
 	default:
 	    usage();
@@ -103,7 +138,10 @@ int main(int argc, char **argv)
 	    exit(1);
 	}
     }
-    program = read_program (input);
+    if (byte_array_input)
+	program = read_program_binary (input);
+    else
+	program = read_program (input);
     if (!program)
 	exit (1);
     if (output_file) {
