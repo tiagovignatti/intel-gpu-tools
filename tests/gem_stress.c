@@ -548,9 +548,12 @@ int main(int argc, char **argv)
 {
 	int i, j;
 	unsigned *current_permutation, *tmp_permutation;
+	unsigned tmp;
 
 	drm_fd = drm_open_any();
-	num_buffers = 2 * gem_aperture_size(drm_fd) / (1024*1024) / 3;
+	tmp = gem_aperture_size(drm_fd) / (1024*1024);;
+	tmp = tmp > 256 ? 256 : tmp;
+	num_buffers = 2 * tmp / 3;
 	num_buffers /= 2;
 	printf("Using %d 1MiB buffers\n", num_buffers);
 
