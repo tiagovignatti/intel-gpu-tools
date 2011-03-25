@@ -72,6 +72,8 @@ intel_batchbuffer_free(struct intel_batchbuffer *batch)
 	free(batch);
 }
 
+#define CMD_POLY_STIPPLE_OFFSET       0x7906
+
 void
 intel_batchbuffer_flush(struct intel_batchbuffer *batch)
 {
@@ -81,6 +83,13 @@ intel_batchbuffer_flush(struct intel_batchbuffer *batch)
 
 	if (used == 0)
 		return;
+
+	if (IS_GEN5(batch->devid)) {
+		BEGIN_BATCH(2);
+		OUT_BATCH(CMD_POLY_STIPPLE_OFFSET << 16);
+		OUT_BATCH(0);
+		ADVANCE_BATCH();
+	}
 
 	/* Round batchbuffer usage to 2 DWORDs. */
 	if ((used & 4) == 0) {
