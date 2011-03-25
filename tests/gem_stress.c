@@ -66,6 +66,8 @@
 #include "intel_batchbuffer.h"
 #include "intel_gpu_tools.h"
 
+#define CMD_POLY_STIPPLE_OFFSET       0x7906
+
 /** TODO:
  * - beat on relaxed fencing (i.e. mappable/fenceable tracking in the kernel)
  * - render copy (to check fence tracking and cache coherency management by the
@@ -164,6 +166,13 @@ static void keep_gpu_busy(void)
 	OUT_BATCH(src_pitch);
 	OUT_RELOC(busy_bo, I915_GEM_DOMAIN_RENDER, 0, 0);
 	ADVANCE_BATCH();
+
+	if (IS_GEN5(devid)) {
+		BEGIN_BATCH(2);
+		OUT_BATCH(CMD_POLY_STIPPLE_OFFSET << 16);
+		OUT_BATCH(0);
+		ADVANCE_BATCH();
+	}
 }
 
 static unsigned int copyfunc_seq = 0;
@@ -278,6 +287,13 @@ static void blitter_copyfunc(struct scratch_buf *src, unsigned src_x, unsigned s
 	OUT_BATCH(src_pitch);
 	OUT_RELOC(src->bo, I915_GEM_DOMAIN_RENDER, 0, 0);
 	ADVANCE_BATCH();
+
+	if (IS_GEN5(devid)) {
+		BEGIN_BATCH(2);
+		OUT_BATCH(CMD_POLY_STIPPLE_OFFSET << 16);
+		OUT_BATCH(0);
+		ADVANCE_BATCH();
+	}
 
 	if (!(keep_gpu_busy_counter & 1) && !fence_storm)
 		keep_gpu_busy();
