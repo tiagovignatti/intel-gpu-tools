@@ -136,6 +136,7 @@ static void keep_gpu_busy(void)
 	dst_pitch = 4096;
 	cmd_bits =  0;
 
+#if 0 /* busy_buf is untiled */
 	if (IS_965(devid)) {
 		src_pitch /= 4;
 		cmd_bits |= XY_SRC_COPY_BLT_SRC_TILED;
@@ -145,6 +146,7 @@ static void keep_gpu_busy(void)
 		dst_pitch /= 4;
 		cmd_bits |= XY_SRC_COPY_BLT_DST_TILED;
 	}
+#endif
 
 	/* copy lower half to upper half */
 	BEGIN_BATCH(8);
@@ -251,12 +253,12 @@ static void blitter_copyfunc(struct scratch_buf *src, unsigned src_x, unsigned s
 	if (keep_gpu_busy_counter & 1 && !fence_storm)
 		keep_gpu_busy();
 
-	if (IS_965(devid)) {
+	if (IS_965(devid) && src->tiling) {
 		src_pitch /= 4;
 		cmd_bits |= XY_SRC_COPY_BLT_SRC_TILED;
 	}
 
-	if (IS_965(devid)) {
+	if (IS_965(devid) && dst->tiling) {
 		dst_pitch /= 4;
 		cmd_bits |= XY_SRC_COPY_BLT_DST_TILED;
 	}
