@@ -108,6 +108,7 @@ drm_intel_bo *busy_bo;
 
 static struct {
     unsigned scratch_buf_size;
+    unsigned num_buffers;
     int no_hw;
     int gpu_busy_load;
 } options;
@@ -565,14 +566,16 @@ static void parse_options(int argc, char **argv)
 	static struct option long_options[] = {
 		{"no-hw", 0, 0, 'd'},
 		{"buf-size", 1, 0, 's'},
-		{"gpu-busy-load", 1, 0, 'g'}
+		{"gpu-busy-load", 1, 0, 'g'},
+		{"buffer-count", 1, 0, 'c'}
 	};
 
 	options.scratch_buf_size = 256*4096;
 	options.no_hw = 0;
 	options.gpu_busy_load = 0;
+	options.num_buffers = 0;
 
-	while((c = getopt_long(argc, argv, "ns:g:",
+	while((c = getopt_long(argc, argv, "ns:g:c:",
 			       long_options, &option_index)) != -1) {
 		switch(c) {
 		case 'd':
@@ -600,6 +603,10 @@ static void parse_options(int argc, char **argv)
 				gpu_busy_load = options.gpu_busy_load = tmp;
 			}
 			break;
+		case 'c':
+			options.num_buffers = atoi(optarg);
+			printf("buffer count set to %i\n", options.num_buffers);
+			break;
 		default:
 			printf("unkown command options\n");
 			break;
@@ -616,11 +623,14 @@ static void init(void)
 	unsigned tmp;
 
 	drm_fd = drm_open_any();
-	tmp = gem_aperture_size(drm_fd) / (1024*1024);;
-	tmp = tmp > 256 ? 256 : tmp;
-	num_buffers = 2 * tmp / 3;
-	num_buffers /= 2;
-	printf("Using %d 1MiB buffers\n", num_buffers);
+	if (options.num_buffers == 0) {
+		tmp = gem_aperture_size(drm_fd);
+		tmp = tmp > 256*(1024*1024) ? 256*(1024*1024) : tmp;
+		num_buffers = 2 * tmp / options.scratch_buf_size / 3;
+		num_buffers /= 2;
+		printf("using %u buffers\n", num_buffers);
+	} else
+		num_buffers = options.num_buffers;
 
 	bufmgr = drm_intel_bufmgr_gem_init(drm_fd, 4096);
 	drm_intel_bufmgr_gem_enable_reuse(bufmgr);
