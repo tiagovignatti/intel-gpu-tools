@@ -59,6 +59,7 @@
 #include <errno.h>
 #include <sys/stat.h>
 #include <sys/time.h>
+#include <getopt.h>
 #include "drm.h"
 #include "i915_drm.h"
 #include "drmtest.h"
@@ -94,9 +95,8 @@ struct scratch_buf {
     uint32_t stride;
     uint32_t tiling;
     uint32_t *data;
+    unsigned num_tiles;
 };
-
-#define NO_HW 0
 
 static drm_intel_bufmgr *bufmgr;
 struct intel_batchbuffer *batch;
@@ -106,24 +106,32 @@ static int num_fences;
 
 drm_intel_bo *busy_bo;
 
+static struct {
+    unsigned scratch_buf_size;
+    int no_hw;
+} options;
+
 #define MAX_BUFS		4096
 #define SCRATCH_BUF_SIZE	1024*1024
 #define BUSY_BUF_SIZE		(256*4096)
 #define TILE_SIZE		16
-#define TILES_PER_BUF		(SCRATCH_BUF_SIZE / (TILE_SIZE*TILE_SIZE*sizeof(uint32_t)))
+#define TILE_BYTES		(TILE_SIZE*TILE_SIZE*sizeof(uint32_t))
 
 static struct scratch_buf buffers[2][MAX_BUFS];
 /* tile i is at logical position tile_permutation[i] */
-static unsigned tile_permutation[MAX_BUFS*TILES_PER_BUF];
+static unsigned *tile_permutation;
 static unsigned num_buffers = 0;
 static unsigned current_set = 0;
 static unsigned target_set = 0;
+static unsigned num_total_tiles = 0;
+
+#define TILES_PER_BUF		(num_total_tiles / num_buffers)
 
 static int fence_storm = 0;
 
 static void tile2xy(struct scratch_buf *buf, unsigned tile, unsigned *x, unsigned *y)
 {
-	assert(tile < TILES_PER_BUF);
+	assert(tile < buf->num_tiles);
 	*x = (tile*TILE_SIZE) % (buf->stride/sizeof(uint32_t));
 	*y = ((tile*TILE_SIZE) / (buf->stride/sizeof(uint32_t))) * TILE_SIZE;
 }
@@ -322,23 +330,26 @@ static void fan_out(void)
 {
 	uint32_t tmp_tile[TILE_SIZE*TILE_SIZE];
 	uint32_t seq = 0;
-	int i, j, k;
-	unsigned x, y;
+	int i, k;
+	unsigned tile, buf_idx, x, y;
 
-	for (i = 0; i < num_buffers; i++) {
-		for (j = 0; j < TILES_PER_BUF; j++) {
-			tile2xy(&buffers[current_set][i], j, &x, &y);
-			for (k = 0; k < TILE_SIZE*TILE_SIZE; k++)
-				tmp_tile[k] = seq++;
+	for (i = 0; i < num_total_tiles; i++) {
+		tile = i;
+		buf_idx = tile / TILES_PER_BUF;
+		tile %= TILES_PER_BUF;
 
-			cpucpy2d(tmp_tile, TILE_SIZE, 0, 0,
-				 buffers[current_set][i].data,
-				 buffers[current_set][i].stride / sizeof(uint32_t),
-				 x, y, i*TILES_PER_BUF + j);
-		}
+		tile2xy(&buffers[current_set][buf_idx], tile, &x, &y);
+
+		for (k = 0; k < TILE_SIZE*TILE_SIZE; k++)
+			tmp_tile[k] = seq++;
+
+		cpucpy2d(tmp_tile, TILE_SIZE, 0, 0,
+			 buffers[current_set][buf_idx].data,
+			 buffers[current_set][buf_idx].stride / sizeof(uint32_t),
+			 x, y, i);
 	}
 
-	for (i = 0; i < num_buffers*TILES_PER_BUF; i++)
+	for (i = 0; i < num_total_tiles; i++)
 		tile_permutation[i] = i;
 }
 
@@ -347,7 +358,7 @@ static void fan_in_and_check(void)
 	uint32_t tmp_tile[TILE_SIZE*TILE_SIZE];
 	unsigned tile, buf_idx, x, y;
 	int i;
-	for (i = 0; i < num_buffers*TILES_PER_BUF; i++) {
+	for (i = 0; i < num_total_tiles; i++) {
 		tile = tile_permutation[i];
 		buf_idx = tile / TILES_PER_BUF;
 		tile %= TILES_PER_BUF;
@@ -362,19 +373,21 @@ static void fan_in_and_check(void)
 	}
 }
 
-static void init_buffer(struct scratch_buf *buf)
+static void init_buffer(struct scratch_buf *buf, unsigned size)
 {
-	buf->bo = drm_intel_bo_alloc(bufmgr, "tiled bo", SCRATCH_BUF_SIZE, 4096);
+	buf->bo = drm_intel_bo_alloc(bufmgr, "tiled bo", size, 4096);
 	assert(buf->bo);
 	buf->tiling = I915_TILING_NONE;
 	buf->stride = 8192;
-	/* XXX for development of the shuffling */
-#if NO_HW
-	buf->data = malloc(SCRATCH_BUF_SIZE);
-#else
-	drm_intel_gem_bo_map_gtt(buf->bo);
-	buf->data = buf->bo->virtual;
-#endif
+
+	if (options.no_hw)
+		buf->data = malloc(size);
+	else {
+		drm_intel_gem_bo_map_gtt(buf->bo);
+		buf->data = buf->bo->virtual;
+	}
+
+	buf->num_tiles = size / TILE_BYTES;
 }
 
 static void permute_array(void *array, unsigned size,
@@ -482,7 +495,7 @@ static void copy_tiles(unsigned *permutation)
 	unsigned dst_tile, dst_buf_idx, dst_x, dst_y;
 	struct scratch_buf *src_buf, *dst_buf;
 	int i, idx;
-	for (i = 0; i < num_buffers*TILES_PER_BUF; i++) {
+	for (i = 0; i < num_total_tiles; i++) {
 		/* tile_permutation is independant of current_permutation, so
 		 * abuse it to randomize the order of the src bos */
 		idx  = tile_permutation[i];
@@ -498,20 +511,20 @@ static void copy_tiles(unsigned *permutation)
 
 		tile2xy(dst_buf, dst_tile, &dst_x, &dst_y);
 
-#if NO_HW
-		cpucpy2d(src_buf->data,
-			 src_buf->stride / sizeof(uint32_t),
-			 src_x, src_y,
-			 dst_buf->data,
-			 dst_buf->stride / sizeof(uint32_t),
-			 dst_x, dst_y,
-			 i);
-#else
-		next_copyfunc();
+		if (options.no_hw) {
+			cpucpy2d(src_buf->data,
+				 src_buf->stride / sizeof(uint32_t),
+				 src_x, src_y,
+				 dst_buf->data,
+				 dst_buf->stride / sizeof(uint32_t),
+				 dst_x, dst_y,
+				 i);
+		} else {
+			next_copyfunc();
 
-		copyfunc(src_buf, src_x, src_y, dst_buf, dst_x, dst_y,
-			 i);
-#endif
+			copyfunc(src_buf, src_x, src_y, dst_buf, dst_x, dst_y,
+				 i);
+		}
 	}
 
 	intel_batchbuffer_flush(batch);
@@ -533,10 +546,50 @@ static int get_num_fences(void)
 	return val - 2;
 }
 
-int main(int argc, char **argv)
+static void parse_options(int argc, char **argv)
 {
-	int i, j;
-	unsigned *current_permutation, *tmp_permutation;
+	int c, tmp;
+	int option_index = 0;
+	static struct option long_options[] = {
+		{"no-hw", 0, 0, 'd'},
+		{"buf-size", 1, 0, 's'}
+	};
+
+	options.scratch_buf_size = 256*4096;
+	options.no_hw = 0;
+
+	while((c = getopt_long(argc, argv, "ns:",
+			       long_options, &option_index)) != -1) {
+		switch(c) {
+		case 'd':
+			options.no_hw = 1;
+			printf("no-hw debug mode\n");
+			break;
+		case 's':
+			tmp = atoi(optarg);
+			if (tmp < TILE_SIZE*8192)
+				printf("scratch buffer size needs to be at least %i\n",
+				       TILE_SIZE*8192);
+			else if (tmp & (tmp - 1)) {
+				printf("scratch buffer size needs to be a power-of-two\n");
+			} else {
+				printf("fixed scratch buffer size to %u\n", tmp);
+				options.scratch_buf_size = tmp;
+			}
+			break;
+		default:
+			printf("unkown command options\n");
+			break;
+		}
+	}
+
+	if (optind < argc)
+		printf("unkown command options\n");
+}
+
+static void init(void)
+{
+	int i;
 	unsigned tmp;
 
 	drm_fd = drm_open_any();
@@ -554,22 +607,37 @@ int main(int argc, char **argv)
 	busy_bo = drm_intel_bo_alloc(bufmgr, "tiled bo", BUSY_BUF_SIZE, 4096);
 
 	for (i = 0; i < num_buffers; i++) {
-		init_buffer(&buffers[0][i]);
-		init_buffer(&buffers[1][i]);
+		init_buffer(&buffers[0][i], options.scratch_buf_size);
+		init_buffer(&buffers[1][i], options.scratch_buf_size);
+
+		num_total_tiles += buffers[0][i].num_tiles;
 	}
 	current_set = 0;
 
-	current_permutation = malloc(MAX_BUFS*TILES_PER_BUF*sizeof(uint32_t));
-	tmp_permutation = malloc(MAX_BUFS*TILES_PER_BUF*sizeof(uint32_t));
-	assert(current_permutation);
-	assert(tmp_permutation);
-
 	/* just in case it helps reproducability */
 	srandom(0xdeadbeef);
+}
+
+int main(int argc, char **argv)
+{
+	int i, j;
+	unsigned *current_permutation, *tmp_permutation;
+
+	parse_options(argc, argv);
+
+	init();
+
+	tile_permutation = malloc(num_total_tiles*sizeof(uint32_t));
+	current_permutation = malloc(num_total_tiles*sizeof(uint32_t));
+	tmp_permutation = malloc(num_total_tiles*sizeof(uint32_t));
+	assert(tile_permutation);
+	assert(current_permutation);
+	assert(tmp_permutation);
 
 	fan_out();
 
 	for (i = 0; i < 512; i++) {
+		printf("round %i\n", i);
 		if (i % 64 == 63) {
 			fan_in_and_check();
 			printf("everything correct after %i rounds\n", i + 1);
@@ -578,16 +646,16 @@ int main(int argc, char **argv)
 		target_set = (current_set + 1) & 1;
 		init_set(target_set);
 
-		for (j = 0; j < num_buffers*TILES_PER_BUF; j++)
+		for (j = 0; j < num_total_tiles; j++)
 			current_permutation[j] = j;
-		permute_array(current_permutation, num_buffers*TILES_PER_BUF, exchange_uint);
+		permute_array(current_permutation, num_total_tiles, exchange_uint);
 
 		copy_tiles(current_permutation);
 
-		memcpy(tmp_permutation, tile_permutation, sizeof(tile_permutation));
+		memcpy(tmp_permutation, tile_permutation, sizeof(unsigned)*num_total_tiles);
 
 		/* accumulate the permutations */
-		for (j = 0; j < num_buffers*TILES_PER_BUF; j++)
+		for (j = 0; j < num_total_tiles; j++)
 			tile_permutation[j] = current_permutation[tmp_permutation[j]];
 
 		current_set = target_set;
