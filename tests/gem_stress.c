@@ -109,6 +109,7 @@ drm_intel_bo *busy_bo;
 static struct {
     unsigned scratch_buf_size;
     int no_hw;
+    int gpu_busy_load;
 } options;
 
 #define MAX_BUFS		4096
@@ -128,6 +129,7 @@ static unsigned num_total_tiles = 0;
 #define TILES_PER_BUF		(num_total_tiles / num_buffers)
 
 static int fence_storm = 0;
+static int gpu_busy_load = 10;
 
 static void tile2xy(struct scratch_buf *buf, unsigned tile, unsigned *x, unsigned *y)
 {
@@ -137,10 +139,11 @@ static void tile2xy(struct scratch_buf *buf, unsigned tile, unsigned *x, unsigne
 }
 
 /* All this gem trashing wastes too much cpu time, so give the gpu something to
- * do to increase changes for races. TODO: Should be autotuned. */
+ * do to increase changes for races. */
 static void keep_gpu_busy(void)
 {
 	uint32_t src_pitch, dst_pitch, cmd_bits;
+	int tmp;
 
 	src_pitch = 4096;
 	dst_pitch = 4096;
@@ -157,6 +160,8 @@ static void keep_gpu_busy(void)
 		cmd_bits |= XY_SRC_COPY_BLT_DST_TILED;
 	}
 #endif
+	tmp = 1 << gpu_busy_load;
+	assert(tmp <= 1024);
 
 	/* copy lower half to upper half */
 	BEGIN_BATCH(8);
@@ -168,7 +173,7 @@ static void keep_gpu_busy(void)
 		  (0xcc << 16) | /* copy ROP */
 		  dst_pitch);
 	OUT_BATCH(128 << 16 | 0);
-	OUT_BATCH(256 << 16 | 1024);
+	OUT_BATCH(256 << 16 | tmp);
 	OUT_RELOC(busy_bo, I915_GEM_DOMAIN_RENDER, I915_GEM_DOMAIN_RENDER, 0);
 	OUT_BATCH(0 << 16 | 0);
 	OUT_BATCH(src_pitch);
@@ -446,6 +451,13 @@ static void init_set(unsigned set)
 
 	permute_array(buffers[set], num_buffers, exchange_buf);
 
+	if (current_set == 1 && options.gpu_busy_load == 0) {
+		gpu_busy_load++;
+		if (gpu_busy_load > 10)
+			gpu_busy_load = 6;
+	}
+
+
 	for (i = 0; i < num_buffers; i++) {
 		r = random();
 		if ((r & 3) != 0)
@@ -552,13 +564,15 @@ static void parse_options(int argc, char **argv)
 	int option_index = 0;
 	static struct option long_options[] = {
 		{"no-hw", 0, 0, 'd'},
-		{"buf-size", 1, 0, 's'}
+		{"buf-size", 1, 0, 's'},
+		{"gpu-busy-load", 1, 0, 'g'}
 	};
 
 	options.scratch_buf_size = 256*4096;
 	options.no_hw = 0;
+	options.gpu_busy_load = 0;
 
-	while((c = getopt_long(argc, argv, "ns:",
+	while((c = getopt_long(argc, argv, "ns:g:",
 			       long_options, &option_index)) != -1) {
 		switch(c) {
 		case 'd':
@@ -575,6 +589,15 @@ static void parse_options(int argc, char **argv)
 			} else {
 				printf("fixed scratch buffer size to %u\n", tmp);
 				options.scratch_buf_size = tmp;
+			}
+			break;
+		case 'g':
+			tmp = atoi(optarg);
+			if (tmp < 0 || tmp > 10)
+				printf("gpu busy load needs to be bigger than 0 and smaller than 10\n");
+			else {
+				printf("gpu busy load factor set to %i\n", tmp);
+				gpu_busy_load = options.gpu_busy_load = tmp;
 			}
 			break;
 		default:
