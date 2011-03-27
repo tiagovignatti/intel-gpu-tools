@@ -36,7 +36,8 @@ void intel_batchbuffer_emit_reloc(struct intel_batchbuffer *batch,
 				  drm_intel_bo *buffer,
 				  uint32_t delta,
 				  uint32_t read_domains,
-				  uint32_t write_domain);
+				  uint32_t write_domain,
+				  int fenced);
 
 /* Inline functions - might actually be better off with these
  * non-inlined.  Certainly better off switching all command packets to
@@ -77,10 +78,16 @@ intel_batchbuffer_require_space(struct intel_batchbuffer *batch,
 
 #define OUT_BATCH(d) intel_batchbuffer_emit_dword(batch, d)
 
+#define OUT_RELOC_FENCED(buf, read_domains, write_domain, delta) do {		\
+	assert((delta) >= 0);						\
+	intel_batchbuffer_emit_reloc(batch, buf, delta,			\
+				     read_domains, write_domain, 1);	\
+} while (0)
+
 #define OUT_RELOC(buf, read_domains, write_domain, delta) do {		\
 	assert((delta) >= 0);						\
 	intel_batchbuffer_emit_reloc(batch, buf, delta,			\
-				     read_domains, write_domain);	\
+				     read_domains, write_domain, 0);	\
 } while (0)
 
 #define ADVANCE_BATCH() do {						\

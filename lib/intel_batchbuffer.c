@@ -122,7 +122,8 @@ intel_batchbuffer_flush(struct intel_batchbuffer *batch)
 void
 intel_batchbuffer_emit_reloc(struct intel_batchbuffer *batch,
                              drm_intel_bo *buffer, uint32_t delta,
-			     uint32_t read_domains, uint32_t write_domain)
+			     uint32_t read_domains, uint32_t write_domain,
+			     int fenced)
 {
 	int ret;
 
@@ -132,9 +133,14 @@ intel_batchbuffer_emit_reloc(struct intel_batchbuffer *batch,
 		       (int)(batch->ptr - batch->buffer),
 		       BATCH_SZ);
 
-	ret = drm_intel_bo_emit_reloc(batch->bo, batch->ptr - batch->buffer,
-				      buffer, delta,
-				      read_domains, write_domain);
+	if (fenced)
+		ret = drm_intel_bo_emit_reloc_fence(batch->bo, batch->ptr - batch->buffer,
+						    buffer, delta,
+						    read_domains, write_domain);
+	else
+		ret = drm_intel_bo_emit_reloc(batch->bo, batch->ptr - batch->buffer,
+					      buffer, delta,
+					      read_domains, write_domain);
 	intel_batchbuffer_emit_dword(batch, buffer->offset + delta);
 	assert(ret == 0);
 }
