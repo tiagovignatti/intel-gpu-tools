@@ -179,6 +179,7 @@ static void cpucpy2d(uint32_t *src, unsigned src_stride, unsigned src_x, unsigne
 		     unsigned logical_tile_no)
 {
 	int i, j;
+	int failed = 0;
 
 	for (i = 0; i < TILE_SIZE; i++) {
 		for (j = 0; j < TILE_SIZE; j++) {
@@ -189,12 +190,14 @@ static void cpucpy2d(uint32_t *src, unsigned src_stride, unsigned src_x, unsigne
 			uint32_t tmp = src[src_ofs]; 
 			if (tmp != expect) {
 			    printf("mismatch at tile %i pos %i, read %u, expected %u\n",
-				    logical_tile_no, j*TILE_SIZE, tmp, expect);
-			    exit(1);
+				    logical_tile_no, i*TILE_SIZE + j, tmp, expect);
+			    failed = 1;
 			}
 			dst[dst_ofs] = tmp;
 		}
 	}
+	if (failed)
+		exit(1);
 }
 
 static void next_copyfunc(void);
