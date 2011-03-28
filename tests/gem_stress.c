@@ -448,7 +448,7 @@ static void set_tiling(drm_intel_bo *bo, unsigned *tiling, unsigned stride)
 		 */
 		set_tiling.handle = bo->handle;
 		set_tiling.tiling_mode = *tiling;
-		set_tiling.stride = stride;
+		set_tiling.stride = tiling ? stride : 0;
 
 		ret = ioctl(drm_fd,
 			    DRM_IOCTL_I915_GEM_SET_TILING,
