@@ -109,6 +109,7 @@ drm_intel_bo *busy_bo;
 static struct {
     unsigned scratch_buf_size;
     unsigned num_buffers;
+    int trace_tile;
     int no_hw;
     int gpu_busy_load;
 } options;
@@ -203,8 +204,10 @@ static void cpucpy2d(uint32_t *src, unsigned src_stride, unsigned src_x, unsigne
 			    + i*TILE_SIZE + j;
 			uint32_t tmp = src[src_ofs]; 
 			if (tmp != expect) {
-			    printf("mismatch at tile %i pos %i, read %u, expected %u\n",
-				    logical_tile_no, i*TILE_SIZE + j, tmp, expect);
+			    printf("mismatch at tile %i pos %i, read %i, expected %i, diff %i\n",
+				    logical_tile_no, i*TILE_SIZE + j, tmp, expect, (int) tmp - expect);
+			    if (options.trace_tile >= 0)
+				    exit(1);
 			    failed = 1;
 			}
 			dst[dst_ofs] = tmp;
@@ -213,8 +216,6 @@ static void cpucpy2d(uint32_t *src, unsigned src_stride, unsigned src_x, unsigne
 	if (failed)
 		exit(1);
 }
-
-static void next_copyfunc(void);
 
 static void cpu_copyfunc(struct scratch_buf *src, unsigned src_x, unsigned src_y,
 			 struct scratch_buf *dst, unsigned dst_x, unsigned dst_y,
@@ -314,20 +315,33 @@ static void blitter_copyfunc(struct scratch_buf *src, unsigned src_x, unsigned s
 	}
 }
 
-static void next_copyfunc(void)
+static void next_copyfunc(int tile)
 {
-	if (fence_storm)
+	if (fence_storm) {
+		if (tile == options.trace_tile)
+		printf(" using fence storm\n");
 		return;
+	}
 
 	if (copyfunc_seq % 61 == 0) {
+		if (tile == options.trace_tile)
+			printf(" using fence storm\n");
 		fence_storm = num_fences;
 		copyfunc = blitter_copyfunc;
-	} else if (copyfunc_seq % 17 == 0)
+	} else if (copyfunc_seq % 17 == 0) {
+		if (tile == options.trace_tile)
+			printf(" using cpu\n");
+		fence_storm = num_fences;
 		copyfunc = cpu_copyfunc;
-	else if (copyfunc_seq % 19 == 0)
+	} else if (copyfunc_seq % 19 == 0) {
+		if (tile == options.trace_tile)
+			printf(" using prw\n");
 		copyfunc = prw_copyfunc;
-	else
+	} else {
+		if (tile == options.trace_tile)
+			printf(" using blitter\n");
 		copyfunc = blitter_copyfunc;
+	}
 
 	copyfunc_seq++;
 }
@@ -489,6 +503,11 @@ static void init_set(unsigned set)
 		set_tiling(buffers[set][i].bo,
 			   &buffers[set][i].tiling,
 			   buffers[set][i].stride);
+
+		if (i == options.trace_tile/TILES_PER_BUF)
+			printf("changing buffer %i containing tile %i: tiling %i, stride %i\n", i, 
+					options.trace_tile,
+					buffers[set][i].tiling, buffers[set][i].stride);
 	}
 }
 
@@ -524,6 +543,11 @@ static void copy_tiles(unsigned *permutation)
 
 		tile2xy(dst_buf, dst_tile, &dst_x, &dst_y);
 
+		if (options.trace_tile == i)
+			printf("copying tile %i from %i (%i, %i) to %i (%i, %i)", i,
+				tile_permutation[i], src_buf_idx, src_tile,
+				permutation[idx], dst_buf_idx, dst_tile);
+
 		if (options.no_hw) {
 			cpucpy2d(src_buf->data,
 				 src_buf->stride / sizeof(uint32_t),
@@ -533,7 +557,7 @@ static void copy_tiles(unsigned *permutation)
 				 dst_x, dst_y,
 				 i);
 		} else {
-			next_copyfunc();
+			next_copyfunc(i);
 
 			copyfunc(src_buf, src_x, src_y, dst_buf, dst_x, dst_y,
 				 i);
@@ -567,15 +591,17 @@ static void parse_options(int argc, char **argv)
 		{"no-hw", 0, 0, 'd'},
 		{"buf-size", 1, 0, 's'},
 		{"gpu-busy-load", 1, 0, 'g'},
-		{"buffer-count", 1, 0, 'c'}
+		{"buffer-count", 1, 0, 'c'},
+		{"trace-tile", 1, 0, 't'}
 	};
 
 	options.scratch_buf_size = 256*4096;
 	options.no_hw = 0;
 	options.gpu_busy_load = 0;
 	options.num_buffers = 0;
+	options.trace_tile = -1;
 
-	while((c = getopt_long(argc, argv, "ns:g:c:",
+	while((c = getopt_long(argc, argv, "ns:g:c:t:",
 			       long_options, &option_index)) != -1) {
 		switch(c) {
 		case 'd':
@@ -606,6 +632,10 @@ static void parse_options(int argc, char **argv)
 		case 'c':
 			options.num_buffers = atoi(optarg);
 			printf("buffer count set to %i\n", options.num_buffers);
+			break;
+		case 't':
+			options.trace_tile = atoi(optarg);
+			printf("tracing tile %i\n", options.trace_tile);
 			break;
 		default:
 			printf("unkown command options\n");
