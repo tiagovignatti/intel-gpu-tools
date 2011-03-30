@@ -114,6 +114,7 @@ static struct {
     int trace_tile;
     int no_hw;
     int gpu_busy_load;
+    int use_render;
 } options;
 
 #define MAX_BUFS		4096
@@ -574,7 +575,7 @@ static void next_copyfunc(int tile)
 		if (tile == options.trace_tile)
 			printf(" using prw\n");
 		copyfunc = prw_copyfunc;
-	} else if (copyfunc_seq % 3 == 0) {
+	} else if (copyfunc_seq % 3 == 0 && options.use_render) {
 		if (tile == options.trace_tile)
 			printf(" using render\n");
 		copyfunc = render_copyfunc;
@@ -833,7 +834,8 @@ static void parse_options(int argc, char **argv)
 		{"buf-size", 1, 0, 's'},
 		{"gpu-busy-load", 1, 0, 'g'},
 		{"buffer-count", 1, 0, 'c'},
-		{"trace-tile", 1, 0, 't'}
+		{"trace-tile", 1, 0, 't'},
+		{"disable-render", 0, 0, 'r'}
 	};
 
 	options.scratch_buf_size = 256*4096;
@@ -841,8 +843,9 @@ static void parse_options(int argc, char **argv)
 	options.gpu_busy_load = 0;
 	options.num_buffers = 0;
 	options.trace_tile = -1;
+	options.use_render = 1;
 
-	while((c = getopt_long(argc, argv, "ns:g:c:t:",
+	while((c = getopt_long(argc, argv, "ns:g:c:t:r",
 			       long_options, &option_index)) != -1) {
 		switch(c) {
 		case 'd':
@@ -878,6 +881,9 @@ static void parse_options(int argc, char **argv)
 			options.trace_tile = atoi(optarg);
 			printf("tracing tile %i\n", options.trace_tile);
 			break;
+		case 'r':
+			options.use_render = 0;
+			printf("disabling render copy\n");
 		default:
 			printf("unkown command options\n");
 			break;
