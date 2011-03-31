@@ -1,6 +1,11 @@
-bin_PROGRAMS = \
+noinst_PROGRAMS = \
 	gem_stress \
 	$(NULL)
+
+gem_stress_SOURCES = \
+	gem_stress.c \
+	gem_stress.h \
+	gem_stress_i915.c
 
 TESTS = getversion \
 	getclient \
