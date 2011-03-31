@@ -5,7 +5,8 @@ noinst_PROGRAMS = \
 gem_stress_SOURCES = \
 	gem_stress.c \
 	gem_stress.h \
-	gem_stress_i915.c
+	gem_stress_i915.c \
+	gem_stress_i830.c
 
 TESTS = getversion \
 	getclient \
