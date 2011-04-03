@@ -104,30 +104,22 @@ static void tile2xy(struct scratch_buf *buf, unsigned tile, unsigned *x, unsigne
 	*y = ((tile*TILE_SIZE) / (buf->stride/sizeof(uint32_t))) * TILE_SIZE;
 }
 
-/* All this gem trashing wastes too much cpu time, so give the gpu something to
- * do to increase changes for races. */
-void keep_gpu_busy(void)
+static void emit_blt(drm_intel_bo *src_bo, uint32_t src_tiling, unsigned src_pitch,
+		     unsigned src_x, unsigned src_y, unsigned w, unsigned h,
+		     drm_intel_bo *dst_bo, uint32_t dst_tiling, unsigned dst_pitch,
+		     unsigned dst_x, unsigned dst_y)
 {
-	uint32_t src_pitch, dst_pitch, cmd_bits;
-	int tmp;
+	uint32_t cmd_bits = 0;
 
-	src_pitch = 4096;
-	dst_pitch = 4096;
-	cmd_bits =  0;
-
-#if 0 /* busy_buf is untiled */
-	if (IS_965(devid)) {
+	if (IS_965(devid) && src_tiling) {
 		src_pitch /= 4;
 		cmd_bits |= XY_SRC_COPY_BLT_SRC_TILED;
 	}
 
-	if (IS_965(devid)) {
+	if (IS_965(devid) && dst_tiling) {
 		dst_pitch /= 4;
 		cmd_bits |= XY_SRC_COPY_BLT_DST_TILED;
 	}
-#endif
-	tmp = 1 << gpu_busy_load;
-	assert(tmp <= 1024);
 
 	/* copy lower half to upper half */
 	BEGIN_BATCH(8);
@@ -138,13 +130,26 @@ void keep_gpu_busy(void)
 	OUT_BATCH((3 << 24) | /* 32 bits */
 		  (0xcc << 16) | /* copy ROP */
 		  dst_pitch);
-	OUT_BATCH(128 << 16 | 0);
-	OUT_BATCH(256 << 16 | tmp);
-	OUT_RELOC(busy_bo, I915_GEM_DOMAIN_RENDER, I915_GEM_DOMAIN_RENDER, 0);
-	OUT_BATCH(0 << 16 | 0);
+	OUT_BATCH(dst_y << 16 | dst_x);
+	OUT_BATCH((dst_y+h) << 16 | (dst_x+w));
+	OUT_RELOC_FENCED(dst_bo, I915_GEM_DOMAIN_RENDER, I915_GEM_DOMAIN_RENDER, 0);
+	OUT_BATCH(src_y << 16 | src_x);
 	OUT_BATCH(src_pitch);
-	OUT_RELOC(busy_bo, I915_GEM_DOMAIN_RENDER, 0, 0);
+	OUT_RELOC_FENCED(src_bo, I915_GEM_DOMAIN_RENDER, 0, 0);
 	ADVANCE_BATCH();
+}
+
+/* All this gem trashing wastes too much cpu time, so give the gpu something to
+ * do to increase changes for races. */
+void keep_gpu_busy(void)
+{
+	int tmp;
+
+	tmp = 1 << gpu_busy_load;
+	assert(tmp <= 1024);
+
+	emit_blt(busy_bo, 0, 4096, 0, 0, tmp, 128,
+		 busy_bo, 0, 4096, 0, 128);
 }
 
 static unsigned int copyfunc_seq = 0;
@@ -227,41 +232,15 @@ static void blitter_copyfunc(struct scratch_buf *src, unsigned src_x, unsigned s
 			     struct scratch_buf *dst, unsigned dst_x, unsigned dst_y,
 			     unsigned logical_tile_no)
 {
-	uint32_t src_pitch, dst_pitch, cmd_bits;
-	src_pitch = src->stride;
-	dst_pitch = dst->stride;
-	cmd_bits =  0;
 	static unsigned keep_gpu_busy_counter = 0;
 
 	/* check both edges of the fence usage */
 	if (keep_gpu_busy_counter & 1 && !fence_storm)
 		keep_gpu_busy();
 
-	if (IS_965(devid) && src->tiling) {
-		src_pitch /= 4;
-		cmd_bits |= XY_SRC_COPY_BLT_SRC_TILED;
-	}
-
-	if (IS_965(devid) && dst->tiling) {
-		dst_pitch /= 4;
-		cmd_bits |= XY_SRC_COPY_BLT_DST_TILED;
-	}
-
-	BEGIN_BATCH(8);
-	OUT_BATCH(XY_SRC_COPY_BLT_CMD |
-		  XY_SRC_COPY_BLT_WRITE_ALPHA |
-		  XY_SRC_COPY_BLT_WRITE_RGB |
-		  cmd_bits);
-	OUT_BATCH((3 << 24) | /* 32 bits */
-		  (0xcc << 16) | /* copy ROP */
-		  dst_pitch);
-	OUT_BATCH(dst_y << 16 | dst_x);
-	OUT_BATCH((dst_y+TILE_SIZE) << 16 | (dst_x+TILE_SIZE));
-	OUT_RELOC_FENCED(dst->bo, I915_GEM_DOMAIN_RENDER, I915_GEM_DOMAIN_RENDER, 0);
-	OUT_BATCH(src_y << 16 | src_x);
-	OUT_BATCH(src_pitch);
-	OUT_RELOC_FENCED(src->bo, I915_GEM_DOMAIN_RENDER, 0, 0);
-	ADVANCE_BATCH();
+	emit_blt(src->bo, src->tiling, src->stride, src_x, src_y,
+		 TILE_SIZE, TILE_SIZE,
+		 dst->bo, dst->tiling, dst->stride, dst_x, dst_y);
 
 	if (!(keep_gpu_busy_counter & 1) && !fence_storm)
 		keep_gpu_busy();
