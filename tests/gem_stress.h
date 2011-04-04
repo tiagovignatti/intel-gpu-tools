@@ -31,6 +31,7 @@ struct option_struct {
     int no_hw;
     int gpu_busy_load;
     int use_render;
+    int no_tiling;
 };
 
 extern struct option_struct options;

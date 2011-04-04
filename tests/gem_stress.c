@@ -448,6 +448,8 @@ static void init_set(unsigned set)
 		else
 			buffers[set][i].tiling = I915_TILING_NONE;
 		r >>= 2;
+		if (options.no_tiling)
+			buffers[set][i].tiling = I915_TILING_NONE;
 
 		if (buffers[set][i].tiling == I915_TILING_NONE) {
 			/* min 64 byte stride */
@@ -557,7 +559,8 @@ static void parse_options(int argc, char **argv)
 		{"gpu-busy-load", 1, 0, 'g'},
 		{"buffer-count", 1, 0, 'c'},
 		{"trace-tile", 1, 0, 't'},
-		{"disable-render", 0, 0, 'r'}
+		{"disable-render", 0, 0, 'r'},
+		{"untiled", 0, 0, 'u'}
 	};
 
 	options.scratch_buf_size = 256*4096;
@@ -566,8 +569,9 @@ static void parse_options(int argc, char **argv)
 	options.num_buffers = 0;
 	options.trace_tile = -1;
 	options.use_render = 1;
+	options.no_tiling = 0;
 
-	while((c = getopt_long(argc, argv, "ns:g:c:t:r",
+	while((c = getopt_long(argc, argv, "ns:g:c:t:ru",
 			       long_options, &option_index)) != -1) {
 		switch(c) {
 		case 'd':
@@ -606,6 +610,11 @@ static void parse_options(int argc, char **argv)
 		case 'r':
 			options.use_render = 0;
 			printf("disabling render copy\n");
+			break;
+		case 'u':
+			options.no_tiling = 1;
+			printf("disabling tiling\n");
+			break;
 		default:
 			printf("unkown command options\n");
 			break;
