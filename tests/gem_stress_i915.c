@@ -9,7 +9,7 @@ void gen3_render_copyfunc(struct scratch_buf *src, unsigned src_x, unsigned src_
 	static unsigned keep_gpu_busy_counter = 0;
 
 	/* check both edges of the fence usage */
-	if (keep_gpu_busy_counter & 1 && !fence_storm)
+	if (keep_gpu_busy_counter & 1)
 		keep_gpu_busy();
 
 	/* invariant state */
@@ -187,7 +187,7 @@ void gen3_render_copyfunc(struct scratch_buf *src, unsigned src_x, unsigned src_
 	emit_vertex_normalized(src_x, buf_width(src));
 	emit_vertex_normalized(src_y, buf_height(src));
 
-	if (!(keep_gpu_busy_counter & 1) && !fence_storm)
+	if (!(keep_gpu_busy_counter & 1))
 		keep_gpu_busy();
 
 	keep_gpu_busy_counter++;

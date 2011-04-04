@@ -292,7 +292,6 @@ static void next_copyfunc(int tile)
 	} else if (copyfunc_seq % 17 == 0) {
 		if (tile == options.trace_tile)
 			printf(" using cpu\n");
-		fence_storm = num_fences;
 		copyfunc = cpu_copyfunc;
 	} else if (copyfunc_seq % 19 == 0) {
 		if (tile == options.trace_tile)
