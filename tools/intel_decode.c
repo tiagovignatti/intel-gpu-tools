@@ -997,135 +997,141 @@ decode_3d_1d(uint32_t *data, int count,
 
 		/* save vertex state for decode */
 		if (!IS_GEN2(devid)) {
-		    if (word == 2) {
-			saved_s2_set = 1;
-			saved_s2 = data[i];
-		    }
-		    if (word == 4) {
-			saved_s4_set = 1;
-			saved_s4 = data[i];
-		    }
-		}
+			if (word == 2) {
+				saved_s2_set = 1;
+				saved_s2 = data[i];
+			}
+			if (word == 4) {
+				saved_s4_set = 1;
+				saved_s4 = data[i];
+			}
 
-		switch (word) {
-		case 0:
-		    instr_out(data, hw_offset, i, "S0: vbo offset: 0x%08x%s\n",
-			      data[i]&(~1),data[i]&1?", auto cache invalidate disabled":"");
-		    break;
-		case 1:
-		    instr_out(data, hw_offset, i, "S1: vertex width: %i, vertex pitch: %i\n",
-			      (data[i]>>24)&0x3f,(data[i]>>16)&0x3f);
-		    break;
-		case 2:
-		    instr_out(data, hw_offset, i, "S2: texcoord formats: ");
-		    for (int tex_num = 0; tex_num < 8; tex_num++) {
-			switch((data[i]>>tex_num*4)&0xf) {
-			case 0: fprintf(out, "%i=2D ", tex_num); break;
-			case 1: fprintf(out, "%i=3D ", tex_num); break;
-			case 2: fprintf(out, "%i=4D ", tex_num); break;
-			case 3: fprintf(out, "%i=1D ", tex_num); break;
-			case 4: fprintf(out, "%i=2D_16 ", tex_num); break;
-			case 5: fprintf(out, "%i=4D_16 ", tex_num); break;
-			case 0xf: fprintf(out, "%i=NP ", tex_num); break;
-			}
-		    }
-		    fprintf(out, "\n");
+			switch (word) {
+			case 0:
+				instr_out(data, hw_offset, i, "S0: vbo offset: 0x%08x%s\n",
+					  data[i]&(~1),data[i]&1?", auto cache invalidate disabled":"");
+				break;
+			case 1:
+				instr_out(data, hw_offset, i, "S1: vertex width: %i, vertex pitch: %i\n",
+					  (data[i]>>24)&0x3f,(data[i]>>16)&0x3f);
+				break;
+			case 2:
+				instr_out(data, hw_offset, i, "S2: texcoord formats: ");
+				for (int tex_num = 0; tex_num < 8; tex_num++) {
+					switch((data[i]>>tex_num*4)&0xf) {
+					case 0: fprintf(out, "%i=2D ", tex_num); break;
+					case 1: fprintf(out, "%i=3D ", tex_num); break;
+					case 2: fprintf(out, "%i=4D ", tex_num); break;
+					case 3: fprintf(out, "%i=1D ", tex_num); break;
+					case 4: fprintf(out, "%i=2D_16 ", tex_num); break;
+					case 5: fprintf(out, "%i=4D_16 ", tex_num); break;
+					case 0xf: fprintf(out, "%i=NP ", tex_num); break;
+					}
+				}
+				fprintf(out, "\n");
 
-		    break;
-		case 3:
-		    instr_out(data, hw_offset, i, "S3: not documented\n", word);
-		    break;
-		case 4:
-		    {
-			char *cullmode = "";
-			char *vfmt_xyzw = "";
-			switch((data[i]>>13)&0x3) {
-			case 0: cullmode = "both"; break;
-			case 1: cullmode = "none"; break;
-			case 2: cullmode = "cw"; break;
-			case 3: cullmode = "ccw"; break;
+				break;
+			case 3:
+				instr_out(data, hw_offset, i, "S3: not documented\n", word);
+				break;
+			case 4:
+				{
+					char *cullmode = "";
+					char *vfmt_xyzw = "";
+					switch((data[i]>>13)&0x3) {
+					case 0: cullmode = "both"; break;
+					case 1: cullmode = "none"; break;
+					case 2: cullmode = "cw"; break;
+					case 3: cullmode = "ccw"; break;
+					}
+					switch(data[i] & (7<<6 | 1<<2)) {
+					case 1<<6: vfmt_xyzw = "XYZ,"; break;
+					case 2<<6: vfmt_xyzw = "XYZW,"; break;
+					case 3<<6: vfmt_xyzw = "XY,"; break;
+					case 4<<6: vfmt_xyzw = "XYW,"; break;
+					case 1<<6 | 1<<2: vfmt_xyzw = "XYZF,"; break;
+					case 2<<6 | 1<<2: vfmt_xyzw = "XYZWF,"; break;
+					case 3<<6 | 1<<2: vfmt_xyzw = "XYF,"; break;
+					case 4<<6 | 1<<2: vfmt_xyzw = "XYWF,"; break;
+					}
+					instr_out(data, hw_offset, i, "S4: point_width=%i, line_width=%.1f,"
+						  "%s%s%s%s%s cullmode=%s, vfmt=%s%s%s%s%s%s "
+						  "%s%s\n",
+						  (data[i]>>23)&0x1ff,
+						  ((data[i]>>19)&0xf) / 2.0,
+						  data[i]&(0xf<<15)?" flatshade=":"",
+						  data[i]&(1<<18)?"Alpha,":"",
+						  data[i]&(1<<17)?"Fog,":"",
+						  data[i]&(1<<16)?"Specular,":"",
+						  data[i]&(1<<15)?"Color,":"",
+						  cullmode,
+						  data[i]&(1<<12)?"PointWidth,":"",
+						  data[i]&(1<<11)?"SpecFog,":"",
+						  data[i]&(1<<10)?"Color,":"",
+						  data[i]&(1<<9)?"DepthOfs,":"",
+						  vfmt_xyzw,
+						  data[i]&(1<<9)?"FogParam,":"",
+						  data[i]&(1<<5)?"force default diffuse, ":"",
+						  data[i]&(1<<4)?"force default specular, ":"",
+						  data[i]&(1<<3)?"local depth ofs enable, ":"",
+						  data[i]&(1<<1)?"point sprite enable, ":"",
+						  data[i]&(1<<0)?"line AA enable, ":"");
+					break;
+				}
+			case 5:
+				{
+					char *vfmt_xyzw = "";
+					switch((data[i]>>6)&0x7) {
+					case 1: vfmt_xyzw = "XYZ,"; break;
+					case 2: vfmt_xyzw = "XYZW,"; break;
+					case 3: vfmt_xyzw = "XY,"; break;
+					case 4: vfmt_xyzw = "XYW,"; break;
+					}
+					instr_out(data, hw_offset, i, "S5:%s%s%s%s%s"
+						  "%s%s%s%s stencil_ref=0x%x, stencil_test=%s, "
+						  "stencil_fail=%s, stencil_pass_z_fail=%s, "
+						  "stencil_pass_z_pass=%s, %s%s%s%s\n",
+						  data[i]&(0xf<<28)?" write_disable=":"",
+						  data[i]&(1<<31)?"Alpha,":"",
+						  data[i]&(1<<30)?"Red,":"",
+						  data[i]&(1<<29)?"Green,":"",
+						  data[i]&(1<<28)?"Blue,":"",
+						  data[i]&(1<<27)?" force default point size,":"",
+						  data[i]&(1<<26)?" last pixel enable,":"",
+						  data[i]&(1<<25)?" global depth ofs enable,":"",
+						  data[i]&(1<<24)?" fog enable,":"",
+						  (data[i]>>16)&0xff,
+						  decode_compare_func(data[i]>>13),
+						  decode_stencil_op(data[i]>>10),
+						  decode_stencil_op(data[i]>>7),
+						  decode_stencil_op(data[i]>>4),
+						  data[i]&(1<<3)?"stencil write enable, ":"",
+						  data[i]&(1<<2)?"stencil test enable, ":"",
+						  data[i]&(1<<1)?"color dither enable, ":"",
+						  data[i]&(1<<0)?"logicop enable, ":"");
+				}
+				break;
+			case 6:
+				instr_out(data, hw_offset, i, "S6: %salpha_test=%s, alpha_ref=0x%x, "
+					  "depth_test=%s, %ssrc_blnd_fct=%s, dst_blnd_fct=%s, "
+					  "%s%stristrip_provoking_vertex=%i\n",
+					  data[i]&(1<<31)?"alpha test enable, ":"",
+					  decode_compare_func(data[i]>>28),
+					  data[i]&(0xff<<20),
+					  decode_compare_func(data[i]>>16),
+					  data[i]&(1<<15)?"cbuf blend enable, ":"",
+					  decode_blend_fact(data[i]>>8),
+					  decode_blend_fact(data[i]>>4),
+					  data[i]&(1<<3)?"depth write enable, ":"",
+					  data[i]&(1<<2)?"cbuf write enable, ":"",
+					  data[i]&(0x3));
+				break;
+			case 7:
+				instr_out(data, hw_offset, i, "S7: depth offset constant: 0x%08x\n", data[i]);
+				break;
 			}
-			switch((data[i]>>6)&0x7) {
-			case 1: vfmt_xyzw = "XYZ,"; break;
-			case 2: vfmt_xyzw = "XYZW,"; break;
-			case 3: vfmt_xyzw = "XY,"; break;
-			case 4: vfmt_xyzw = "XYW,"; break;
-			}
-			instr_out(data, hw_offset, i, "S4: point_width=%i, line_width=%.1f,"
-				    "%s%s%s%s%s cullmode=%s, vfmt=%s%s%s%s%s%s "
-				    "%s%s\n",
-				  (data[i]>>23)&0x1ff,
-				  ((data[i]>>19)&0xf) / 2.0,
-				  data[i]&(0xf<<15)?" flatshade=":"",
-				  data[i]&(1<<18)?"Alpha,":"",
-				  data[i]&(1<<17)?"Fog,":"",
-				  data[i]&(1<<16)?"Specular,":"",
-				  data[i]&(1<<15)?"Color,":"",
-				  cullmode,
-				  data[i]&(1<<12)?"PointWidth,":"",
-				  data[i]&(1<<11)?"SpecFog,":"",
-				  data[i]&(1<<10)?"Color,":"",
-				  data[i]&(1<<9)?"DepthOfs,":"",
-				  vfmt_xyzw,
-				  data[i]&(1<<9)?"FogParam,":"",
-				  data[i]&(1<<5)?"force default diffuse, ":"",
-				  data[i]&(1<<4)?"force default specular, ":"",
-				  data[i]&(1<<3)?"local depth ofs enable, ":"",
-				  data[i]&(1<<3)?"point sprite enable, ":"",
-				  data[i]&(1<<3)?"line AA enable, ":"");
-			break;
-		    }
-		case 5:
-		    {
-			char *vfmt_xyzw = "";
-			switch((data[i]>>6)&0x7) {
-			case 1: vfmt_xyzw = "XYZ,"; break;
-			case 2: vfmt_xyzw = "XYZW,"; break;
-			case 3: vfmt_xyzw = "XY,"; break;
-			case 4: vfmt_xyzw = "XYW,"; break;
-			}
-			instr_out(data, hw_offset, i, "S5:%s%s%s%s%s"
-				    "%s%s%s%s stencil_ref=0x%x, stencil_test=%s, "
-				    "stencil_fail=%s, stencil_pass_z_fail=%s, "
-				    "stencil_pass_z_pass=%s, %s%s%s%s\n",
-				  data[i]&(0xf<<28)?" write_disable=":"",
-				  data[i]&(1<<31)?"Alpha,":"",
-				  data[i]&(1<<30)?"Red,":"",
-				  data[i]&(1<<29)?"Green,":"",
-				  data[i]&(1<<28)?"Blue,":"",
-				  data[i]&(1<<27)?" force default point size,":"",
-				  data[i]&(1<<26)?" last pixel enable,":"",
-				  data[i]&(1<<25)?" global depth ofs enable,":"",
-				  data[i]&(1<<24)?" fog enable,":"",
-				  (data[i]>>16)&0xff,
-				  decode_compare_func(data[i]>>13),
-				  decode_stencil_op(data[i]>>10),
-				  decode_stencil_op(data[i]>>7),
-				  decode_stencil_op(data[i]>>4),
-				  data[i]&(1<<3)?"stencil write enable, ":"",
-				  data[i]&(1<<2)?"stencil test enable, ":"",
-				  data[i]&(1<<1)?"color dither enable, ":"",
-				  data[i]&(1<<0)?"logicop enable, ":"");
-		    }
-		    break;
-		case 6:
-		    instr_out(data, hw_offset, i, "S6: %salpha_test=%s, alpha_ref=0x%x, "
-				"depth_test=%s, %ssrc_blnd_fct=%s, dst_blnd_fct=%s, "
-				"%s%stristrip_provoking_vertex=%i\n",
-			      data[i]&(1<<31)?"alpha test enable, ":"",
-			      decode_compare_func(data[i]>>28),
-			      data[i]&(0xff<<20),
-			      decode_compare_func(data[i]>>16),
-			      data[i]&(1<<15)?"cbuf blend enable, ":"",
-			      decode_blend_fact(data[i]>>12),
-			      decode_blend_fact(data[i]>>8),
-			      data[i]&(1<<3)?"depth write enable, ":"",
-			      data[i]&(1<<2)?"cbuf write enable, ":"",
-			      data[i]&(0x3));
-		    break;
-		case 7:
-		    instr_out(data, hw_offset, i, "S7: depth offset constant: 0x%08x\n", data[i]);
-		    break;
+		} else {
+			instr_out(data, hw_offset, i, "S%d: 0x%08x\n", i, data[i]);
 		}
 		i++;
 	    }
