@@ -1080,13 +1080,6 @@ decode_3d_1d(uint32_t *data, int count,
 				}
 			case 5:
 				{
-					char *vfmt_xyzw = "";
-					switch((data[i]>>6)&0x7) {
-					case 1: vfmt_xyzw = "XYZ,"; break;
-					case 2: vfmt_xyzw = "XYZW,"; break;
-					case 3: vfmt_xyzw = "XY,"; break;
-					case 4: vfmt_xyzw = "XYW,"; break;
-					}
 					instr_out(data, hw_offset, i, "S5:%s%s%s%s%s"
 						  "%s%s%s%s stencil_ref=0x%x, stencil_test=%s, "
 						  "stencil_fail=%s, stencil_pass_z_fail=%s, "
