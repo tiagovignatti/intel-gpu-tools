@@ -448,8 +448,8 @@ static void init_set(unsigned set)
 		else
 			buffers[set][i].tiling = I915_TILING_NONE;
 		r >>= 2;
-		if (options.no_tiling)
-			buffers[set][i].tiling = I915_TILING_NONE;
+		if (options.forced_tiling >= 0)
+			buffers[set][i].tiling = options.forced_tiling;
 
 		if (buffers[set][i].tiling == I915_TILING_NONE) {
 			/* min 64 byte stride */
@@ -560,7 +560,8 @@ static void parse_options(int argc, char **argv)
 		{"buffer-count", 1, 0, 'c'},
 		{"trace-tile", 1, 0, 't'},
 		{"disable-render", 0, 0, 'r'},
-		{"untiled", 0, 0, 'u'}
+		{"untiled", 0, 0, 'u'},
+		{"x-tiled", 0, 0, 'x'}
 	};
 
 	options.scratch_buf_size = 256*4096;
@@ -569,9 +570,9 @@ static void parse_options(int argc, char **argv)
 	options.num_buffers = 0;
 	options.trace_tile = -1;
 	options.use_render = 1;
-	options.no_tiling = 0;
+	options.forced_tiling = -1;
 
-	while((c = getopt_long(argc, argv, "ns:g:c:t:ru",
+	while((c = getopt_long(argc, argv, "ns:g:c:t:rux",
 			       long_options, &option_index)) != -1) {
 		switch(c) {
 		case 'd':
@@ -612,8 +613,12 @@ static void parse_options(int argc, char **argv)
 			printf("disabling render copy\n");
 			break;
 		case 'u':
-			options.no_tiling = 1;
+			options.forced_tiling = I915_TILING_NONE;
 			printf("disabling tiling\n");
+			break;
+		case 'x':
+			options.forced_tiling = I915_TILING_X;
+			printf("using only X-tiling\n");
 			break;
 		default:
 			printf("unkown command options\n");
@@ -646,7 +651,13 @@ static void init(void)
 	devid = intel_get_drm_devid(drm_fd);
 	num_fences = get_num_fences();
 	batch = intel_batchbuffer_alloc(bufmgr, devid);
+
 	busy_bo = drm_intel_bo_alloc(bufmgr, "tiled bo", BUSY_BUF_SIZE, 4096);
+	if (options.forced_tiling >= 0) {
+		tmp = options.forced_tiling;
+		set_tiling(busy_bo, &tmp, 4096);
+		assert(tmp == options.forced_tiling);
+	}
 
 	for (i = 0; i < num_buffers; i++) {
 		init_buffer(&buffers[0][i], options.scratch_buf_size);
