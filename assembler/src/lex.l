@@ -136,6 +136,7 @@ yylval.integer = BRW_CHANNEL_W;
 "write" { return WRITE; }
 "urb" { return URB; }
 "thread_spawner" { return THREAD_SPAWNER; }
+"vme" { return VME; }
 
 "allocate" { return ALLOCATE; }
 "used" { return USED; }

@@ -1455,6 +1455,15 @@ struct brw_instruction
        } thread_spawner_gen5;
 
        struct {
+           GLuint binding_table_index:8;
+           GLuint search_path_index:3;
+           GLuint lut_subindex:2;
+           GLuint message_type:2;
+           GLuint pad0:4;
+           GLuint header_present:1;
+       } vme_gen6;
+
+       struct {
            GLuint pad:19;
            GLuint header_present:1;
            GLuint response_length:5;

@@ -111,7 +111,7 @@ void set_direct_src_operand(struct src_operand *src, struct direct_reg *reg,
 %token <integer> PUSH MREST POP WAIT DO ENDIF ILLEGAL
 %token <integer> MATH_INST
 
-%token NULL_TOKEN MATH SAMPLER GATEWAY READ WRITE URB THREAD_SPAWNER
+%token NULL_TOKEN MATH SAMPLER GATEWAY READ WRITE URB THREAD_SPAWNER VME
 
 %token MSGLEN RETURNLEN
 %token <integer> ALLOCATE USED COMPLETE TRANSPOSE INTERLEAVE
@@ -1118,6 +1118,24 @@ msgtarget:	NULL_TOKEN
                       $$.bits3.thread_spawner.resource_select = $7;
 		  }
 		}
+		| VME  LPAREN INTEGER COMMA INTEGER COMMA INTEGER COMMA INTEGER RPAREN
+		{
+		  $$.bits3.generic.msg_target =
+                      BRW_MESSAGE_TARGET_VME;
+
+		  if (gen_level == 6) { 
+                      $$.bits2.send_gen5.sfid =
+                          BRW_MESSAGE_TARGET_VME;
+                      $$.bits3.vme_gen6.binding_table_index = $3;
+                      $$.bits3.vme_gen6.search_path_index = $5;
+                      $$.bits3.vme_gen6.lut_subindex = $7;
+                      $$.bits3.vme_gen6.message_type = $9;
+                      $$.bits3.generic_gen5.header_present = 1; 
+		  } else {
+                      fprintf (stderr, "Gen6- donesn't have vme function\n");
+                      YYERROR;
+		  }    
+		} 
 ;
 
 urb_allocate:	ALLOCATE { $$ = 1; }
