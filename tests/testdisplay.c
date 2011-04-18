@@ -372,6 +372,45 @@ enum corner {
 };
 
 static void
+paint_color_gradient(cairo_t *cr, int x, int y, int width, int height,
+		     int r, int g, int b)
+{
+	cairo_pattern_t *pat;
+
+	pat = cairo_pattern_create_linear(x, y, x + width, y + height);
+	cairo_pattern_add_color_stop_rgba(pat, 1, 0, 0, 0, 1);
+	cairo_pattern_add_color_stop_rgba(pat, 0, r, g, b, 1);
+
+	cairo_rectangle(cr, x, y, width, height);
+	cairo_set_source(cr, pat);
+	cairo_fill(cr);
+	cairo_pattern_destroy(pat);
+}
+
+static void
+paint_test_patterns(cairo_t *cr, int width, int height, int stride)
+{
+	double gr_height, gr_width;
+	int x, y;
+
+	y = height * 0.10;
+	gr_width = width * 0.75;
+	gr_height = height * 0.08;
+	x = (width / 2) - (gr_width / 2);
+
+	paint_color_gradient(cr, x, y, gr_width, gr_height, 1, 0, 0);
+
+	y += gr_height;
+	paint_color_gradient(cr, x, y, gr_width, gr_height, 0, 1, 0);
+
+	y += gr_height;
+	paint_color_gradient(cr, x, y, gr_width, gr_height, 0, 0, 1);
+
+	y += gr_height;
+	paint_color_gradient(cr, x, y, gr_width, gr_height, 1, 1, 1);
+}
+
+static void
 paint_marker(cairo_t *cr, int x, int y, char *str, enum corner text_location)
 {
 	cairo_text_extents_t extents;
@@ -562,6 +601,9 @@ set_mode(struct connector *c)
 		}
 
 		cr = cairo_create(surface);
+
+		paint_test_patterns(cr, width, height,
+				    cairo_image_surface_get_stride(surface));
 
 		cairo_set_line_cap(cr, CAIRO_LINE_CAP_SQUARE);
 
