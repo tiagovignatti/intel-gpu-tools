@@ -77,7 +77,7 @@ subslice_total(void)
 	int ret;
 
 	ret = getparam(LOCAL_I915_PARAM_SUBSLICE_TOTAL, (int*)&subslice_total);
-	igt_skip_on_f(ret == -EINVAL, "Interface not supported by kernel\n");
+	igt_skip_on_f(ret == -EINVAL && intel_gen(devid), "Interface not supported by kernel\n");
 
 	if (ret) {
 		/*
@@ -92,7 +92,7 @@ subslice_total(void)
 		/*
 		 * All other devices must implement the interface, so
 		 * fail them if we are here.
-		*/
+		 */
 		} else {
 			igt_assert_eq(ret, 0);
 		}
