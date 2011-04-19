@@ -72,6 +72,7 @@ drmModeRes *resources;
 int fd, modes;
 int dump_info = 0, test_all_modes =0, test_preferred_mode = 0, force_mode = 0;
 int sleep_between_modes = 5;
+uint32_t depth = 24;
 
 float force_clock;
 int	force_hdisplay;
@@ -350,18 +351,36 @@ static void gem_close(int fd, uint32_t handle)
 }
 
 static cairo_surface_t *
-allocate_surface(int fd, int width, int height, uint32_t *handle)
+allocate_surface(int fd, int width, int height, uint32_t depth, uint32_t bpp,
+		 uint32_t *handle)
 {
+	cairo_format_t format;
 	int size, stride;
 
 	/* Scan-out has a 64 byte alignment restriction */
-	stride = (width*4 + 63) & -64;
+	stride = (width * (bpp / 8) + 63) & -64;
 	size = stride * height;
+
+	switch (depth) {
+	case 16:
+		format = CAIRO_FORMAT_RGB16_565;
+		break;
+	case 24:
+		format = CAIRO_FORMAT_RGB24;
+		break;
+	case 30:
+	case 32:
+		format = CAIRO_FORMAT_ARGB32;
+		break;
+	default:
+		fprintf(stderr, "bad depth %d\n", depth);
+		return NULL;
+	}
 
 	*handle = gem_create(fd, size);
 	return cairo_image_surface_create_for_data
 		(gem_mmap(fd, *handle, size, PROT_READ | PROT_WRITE),
-		 CAIRO_FORMAT_ARGB32, width, height, stride);
+		 format, width, height, stride);
 }
 
 enum corner {
@@ -557,6 +576,14 @@ set_mode(struct connector *c)
 	int ret, width, height;
 	char buf[128];
 	int j, test_mode_num;
+	uint32_t bpp = 32;
+
+	if (depth <= 8)
+		bpp = 8;
+	else if (depth > 8 && depth <= 16)
+		bpp = 16;
+	else if (depth > 16 && depth <= 32)
+		bpp = 32;
 
 	connector_find_preferred_mode(c);
 	if (!c->mode_valid)
@@ -594,7 +621,8 @@ set_mode(struct connector *c)
 		width = c->mode.hdisplay;
 		height = c->mode.vdisplay;
 
-		surface = allocate_surface(fd, width, height, &handle);
+		surface = allocate_surface(fd, width, height, depth, bpp,
+					   &handle);
 		if (!surface) {
 			fprintf(stderr, "allocation failed %dx%d\n", width, height);
 			continue;
@@ -626,7 +654,7 @@ set_mode(struct connector *c)
 			fprintf(stderr, "failed to draw pretty picture %x%d: %s\n",
 				width, height, cairo_status_to_string(status));
 
-		ret = drmModeAddFB(fd, width, height, 32, 32,
+		ret = drmModeAddFB(fd, width, height, depth, bpp,
 				   cairo_image_surface_get_stride(surface),
 				   handle, &fb_id);
 		cairo_surface_destroy(surface);
@@ -699,7 +727,7 @@ static void update_display(void)
 
 extern char *optarg;
 extern int optind, opterr, optopt;
-static char optstr[] = "hiaf:s:";
+static char optstr[] = "hiaf:s:d:";
 
 static void usage(char *name)
 {
@@ -707,6 +735,7 @@ static void usage(char *name)
 	fprintf(stderr, "\t-i\tdump info\n");
 	fprintf(stderr, "\t-a\ttest all modes\n");
 	fprintf(stderr, "\t-s\t<duration>\tsleep between each mode test\n");
+	fprintf(stderr, "\t-d\t<depth>\tbit depth of scanout buffer\n");
 	fprintf(stderr, "\t-f\t<clock MHz>,<hdisp>,<hsync-start>,<hsync-end>,<htotal>,\n");
 	fprintf(stderr, "\t\t<vdisp>,<vsync-start>,<vsync-end>,<vtotal>\n");
 	fprintf(stderr, "\t\ttest force mode\n");
@@ -794,6 +823,10 @@ int main(int argc, char **argv)
 		case 's':
 			sleep_between_modes = atoi(optarg);
 			break;
+		case 'd':
+			depth = atoi(optarg);
+			fprintf(stderr, "using depth %d\n", depth);
+			break;
 		default:
 			fprintf(stderr, "unknown option %c\n", c);
 			/* fall through */
@@ -802,7 +835,7 @@ int main(int argc, char **argv)
 			break;
 		}
 	}
-	if (argc == 1)
+	if (!test_all_modes && !force_mode && !dump_info)
 		test_preferred_mode = 1;
 
 	for (i = 0; i < ARRAY_SIZE(modules); i++) {
