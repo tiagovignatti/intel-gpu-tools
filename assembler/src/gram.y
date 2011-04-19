@@ -524,6 +524,45 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
                           $12.bits3.generic.end_of_thread;
 		  }
 		}
+		| predicate SEND execsize dst directmsgreg payload directsrcoperand instoptions
+		{
+		  bzero(&$$, sizeof($$));
+		  $$.header.opcode = $2;
+		  $$.header.execution_size = $3;
+		  $$.header.sfid_destreg__conditionalmod = $5.reg_nr; /* msg reg index */
+
+		  set_instruction_predicate(&$$, &$1);
+
+		  if (set_instruction_dest(&$$, &$4) != 0)
+		    YYERROR;
+		  if (set_instruction_src0(&$$, &$6) != 0)
+		    YYERROR;
+		  /* XXX is this correct? */
+		  if (set_instruction_src1(&$$, &$7) != 0)
+		    YYERROR;
+		  }
+		| predicate SEND execsize dst directmsgreg payload imm32reg instoptions
+                {
+		  if ($7.reg_type != BRW_REGISTER_TYPE_UD &&
+		  	  $7.reg_type != BRW_REGISTER_TYPE_D &&
+		  	  $7.reg_type != BRW_REGISTER_TYPE_V) {
+		    fprintf (stderr, "%d: non-int D/UD/V representation: %d,type=%d\n", yylineno, $7.imm32, $7.reg_type);
+			YYERROR;
+		  }
+		  bzero(&$$, sizeof($$));
+		  $$.header.opcode = $2;
+		  $$.header.execution_size = $3;
+		  $$.header.sfid_destreg__conditionalmod = $5.reg_nr; /* msg reg index */
+
+		  set_instruction_predicate(&$$, &$1);
+		  if (set_instruction_dest(&$$, &$4) != 0)
+		    YYERROR;
+		  if (set_instruction_src0(&$$, &$6) != 0)
+		    YYERROR;
+		  $$.bits1.da1.src1_reg_file = BRW_IMMEDIATE_VALUE;
+		  $$.bits1.da1.src1_reg_type = $7.reg_type;
+		  $$.bits3.ud = $7.imm32;
+                }
 		| predicate SEND execsize dst directmsgreg sndopr imm32reg instoptions
 		{
 		  struct src_operand src0;
