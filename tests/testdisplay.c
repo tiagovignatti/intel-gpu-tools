@@ -157,7 +157,7 @@ struct connector {
 
 static void dump_mode(drmModeModeInfo *mode)
 {
-	printf("  %s %d %d %d %d %d %d %d %d %d\n",
+	printf("  %s %d %d %d %d %d %d %d %d %d 0x%x 0x%x\n",
 	       mode->name,
 	       mode->vrefresh,
 	       mode->hdisplay,
@@ -167,7 +167,9 @@ static void dump_mode(drmModeModeInfo *mode)
 	       mode->vdisplay,
 	       mode->vsync_start,
 	       mode->vsync_end,
-	       mode->vtotal);
+	       mode->vtotal,
+	       mode->flags,
+	       mode->type);
 }
 
 static void dump_connectors(void)
@@ -199,7 +201,7 @@ static void dump_connectors(void)
 
 		printf("  modes:\n");
 		printf("  name refresh (Hz) hdisp hss hse htot vdisp "
-		       "vss vse vtot)\n");
+		       "vss vse vtot flags type\n");
 		for (j = 0; j < connector->count_modes; j++)
 			dump_mode(&connector->modes[j]);
 
@@ -271,7 +273,7 @@ static void connector_find_preferred_mode(struct connector *c)
 
 	for (j = 0; j < connector->count_modes; j++) {
 		c->mode = connector->modes[j];
-		if (c->mode.flags & DRM_MODE_TYPE_PREFERRED) {
+		if (c->mode.type & DRM_MODE_TYPE_PREFERRED) {
 			c->mode_valid = 1;
 			break;
 		}
