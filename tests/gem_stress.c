@@ -152,6 +152,24 @@ void keep_gpu_busy(void)
 		 busy_bo, 0, 4096, 0, 128);
 }
 
+static void set_to_cpu_domain(struct scratch_buf *buf, int write)
+{
+	struct drm_i915_gem_set_domain set_domain;
+	int ret;
+
+	set_domain.handle = buf->bo->handle;
+	set_domain.read_domains = I915_GEM_DOMAIN_CPU;
+	if (write)
+		set_domain.write_domain = I915_GEM_DOMAIN_CPU;
+	else
+		set_domain.write_domain = 0;
+
+	ret = drmIoctl(drm_fd,
+		       DRM_IOCTL_I915_GEM_SET_DOMAIN,
+		       &set_domain);
+	assert(ret == 0);
+}
+
 static unsigned int copyfunc_seq = 0;
 static void (*copyfunc)(struct scratch_buf *src, unsigned src_x, unsigned src_y,
 			struct scratch_buf *dst, unsigned dst_x, unsigned dst_y,
@@ -190,6 +208,12 @@ static void cpu_copyfunc(struct scratch_buf *src, unsigned src_x, unsigned src_y
 			 struct scratch_buf *dst, unsigned dst_x, unsigned dst_y,
 			 unsigned logical_tile_no)
 {
+	if (options.use_cpu_maps) {
+		set_to_cpu_domain(src, 0);
+		set_to_cpu_domain(dst, 1);
+
+	}
+
 	cpucpy2d(src->data, src->stride/sizeof(uint32_t), src_x, src_y,
 		 dst->data, dst->stride/sizeof(uint32_t), dst_x, dst_y,
 		 logical_tile_no);
@@ -210,6 +234,9 @@ static void prw_copyfunc(struct scratch_buf *src, unsigned src_x, unsigned src_y
 						 tmp_tile + TILE_SIZE*i);
 		}
 	} else {
+		if (options.use_cpu_maps)
+			set_to_cpu_domain(src, 0);
+
 		cpucpy2d(src->data, src->stride/sizeof(uint32_t), src_x, src_y,
 			 tmp_tile, TILE_SIZE, 0, 0, logical_tile_no);
 	}
@@ -222,6 +249,9 @@ static void prw_copyfunc(struct scratch_buf *src, unsigned src_x, unsigned src_y
 					     tmp_tile + TILE_SIZE*i);
 		}
 	} else {
+		if (options.use_cpu_maps)
+			set_to_cpu_domain(dst, 1);
+
 		cpucpy2d(tmp_tile, TILE_SIZE, 0, 0,
 			 dst->data, dst->stride/sizeof(uint32_t), dst_x, dst_y,
 			 logical_tile_no);
@@ -327,6 +357,9 @@ static void fan_out(void)
 		for (k = 0; k < TILE_SIZE*TILE_SIZE; k++)
 			tmp_tile[k] = seq++;
 
+		if (options.use_cpu_maps)
+			set_to_cpu_domain(&buffers[current_set][buf_idx], 1);
+
 		cpucpy2d(tmp_tile, TILE_SIZE, 0, 0,
 			 buffers[current_set][buf_idx].data,
 			 buffers[current_set][buf_idx].stride / sizeof(uint32_t),
@@ -349,6 +382,9 @@ static void fan_in_and_check(void)
 
 		tile2xy(&buffers[current_set][buf_idx], tile, &x, &y);
 
+		if (options.use_cpu_maps)
+			set_to_cpu_domain(&buffers[current_set][buf_idx], 0);
+
 		cpucpy2d(buffers[current_set][buf_idx].data,
 			 buffers[current_set][buf_idx].stride / sizeof(uint32_t),
 			 x, y,
@@ -367,7 +403,10 @@ static void init_buffer(struct scratch_buf *buf, unsigned size)
 	if (options.no_hw)
 		buf->data = malloc(size);
 	else {
-		drm_intel_gem_bo_map_gtt(buf->bo);
+		if (options.use_cpu_maps)
+			drm_intel_bo_map(buf->bo, 1);
+		else
+			drm_intel_gem_bo_map_gtt(buf->bo);
 		buf->data = buf->bo->virtual;
 	}
 
@@ -561,7 +600,8 @@ static void parse_options(int argc, char **argv)
 		{"trace-tile", 1, 0, 't'},
 		{"disable-render", 0, 0, 'r'},
 		{"untiled", 0, 0, 'u'},
-		{"x-tiled", 0, 0, 'x'}
+		{"x-tiled", 0, 0, 'x'},
+		{"use-cpu-maps", 0, 0, 'm'}
 	};
 
 	options.scratch_buf_size = 256*4096;
@@ -571,8 +611,9 @@ static void parse_options(int argc, char **argv)
 	options.trace_tile = -1;
 	options.use_render = 1;
 	options.forced_tiling = -1;
+	options.use_cpu_maps = 0;
 
-	while((c = getopt_long(argc, argv, "ns:g:c:t:rux",
+	while((c = getopt_long(argc, argv, "ds:g:c:t:ruxm",
 			       long_options, &option_index)) != -1) {
 		switch(c) {
 		case 'd':
@@ -617,7 +658,16 @@ static void parse_options(int argc, char **argv)
 			printf("disabling tiling\n");
 			break;
 		case 'x':
-			options.forced_tiling = I915_TILING_X;
+			if (options.use_cpu_maps) {
+				printf("tiling not possible with cpu maps\n");
+			} else {
+				options.forced_tiling = I915_TILING_X;
+				printf("using only X-tiling\n");
+			}
+			break;
+		case 'm':
+			options.use_cpu_maps = 1;
+			options.forced_tiling = I915_TILING_NONE;
 			printf("using only X-tiling\n");
 			break;
 		default:

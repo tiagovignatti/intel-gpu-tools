@@ -21,6 +21,7 @@ struct scratch_buf {
     uint32_t stride;
     uint32_t tiling;
     uint32_t *data;
+    uint32_t *cpu_mapping;
     unsigned num_tiles;
 };
 
@@ -32,6 +33,7 @@ struct option_struct {
     int gpu_busy_load;
     int use_render;
     int forced_tiling;
+    int use_cpu_maps;
 };
 
 extern struct option_struct options;
