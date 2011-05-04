@@ -750,18 +750,10 @@ static void usage(char *name)
 static gboolean hotplug_event(GIOChannel *source, GIOCondition condition,
 			      gpointer data)
 {
-	gchar buf[256];
-	gsize count;
 	struct udev_device *dev;
 	dev_t udev_devnum;
 	struct stat s;
 	const char *hotplug;
-
-	/* drain all pending events */
-	do {
-		count = read(g_io_channel_unix_get_fd(source),
-			     buf, sizeof(buf));
-	} while (count > 0);
 
 	dev = udev_monitor_receive_device(uevent_monitor);
 	if (!dev)
