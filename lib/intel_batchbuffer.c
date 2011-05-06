@@ -108,7 +108,7 @@ intel_batchbuffer_flush(struct intel_batchbuffer *batch)
 	batch->ptr = NULL;
 
 	ring = 0;
-	if (IS_GEN6(batch->devid))
+	if (HAS_BLT_RING(batch->devid))
 		ring = I915_EXEC_BLT;
 	ret = drm_intel_bo_mrb_exec(batch->bo, used, NULL, 0, 0, ring);
 	assert(ret == 0);

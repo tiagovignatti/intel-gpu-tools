@@ -253,7 +253,7 @@ static void run(int object_size)
 	exec[2].rsvd2 = 0;
 
 	ring = 0;
-	if (IS_GEN6(intel_get_drm_devid(fd)))
+	if (HAS_BLT_RING(intel_get_drm_devid(fd)))
 		ring = I915_EXEC_BLT;
 
 	execbuf.buffers_ptr = (uintptr_t)exec;

@@ -328,7 +328,7 @@ main (int argc, char *argv[])
 	printf("ESR: 0x%08x\n", INREG(ESR));
 	printf("PGTBL_ER: 0x%08x\n", INREG(PGTBL_ER));
 
-	if (IS_GEN6(devid)) {
+	if (IS_GEN6(devid) || IS_GEN7(devid)) {
 	    instdone = INREG(GEN6_INSTDONE_1);
 	    instdone1 = INREG(GEN6_INSTDONE_2);
 

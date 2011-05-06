@@ -189,7 +189,7 @@ copy(int fd, uint32_t dst, uint32_t src)
 	exec.DR1 = exec.DR4 = 0;
 	exec.num_cliprects = 0;
 	exec.cliprects_ptr = 0;
-	exec.flags = IS_GEN6(intel_get_drm_devid(fd)) ? I915_EXEC_BLT : 0;
+	exec.flags = HAS_BLT_RING(intel_get_drm_devid(fd)) ? I915_EXEC_BLT : 0;
 	exec.rsvd1 = exec.rsvd2 = 0;
 
 	ret = drmIoctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &exec);

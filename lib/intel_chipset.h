@@ -90,7 +90,9 @@
 				 devid == PCI_CHIP_I945_GME || \
 				 devid == PCI_CHIP_I965_GM || \
 				 devid == PCI_CHIP_I965_GME || \
-				 devid == PCI_CHIP_GM45_GM || IS_IGD(devid))
+				 devid == PCI_CHIP_GM45_GM || IS_IGD(devid) || \
+				 devid == PCI_CHIP_IVYBRIDGE_M_GT1 ||	\
+				 devid == PCI_CHIP_IVYBRIDGE_M_GT2)
 
 #define IS_G45(devid)           (devid == PCI_CHIP_IGD_E_G || \
                                  devid == PCI_CHIP_Q45_G || \
@@ -162,4 +164,7 @@
 
 #define HAS_PCH_SPLIT(devid)	(IS_GEN5(devid) ||	\
 				 IS_GEN6(devid) ||	\
+				 IS_GEN7(devid))
+
+#define HAS_BLT_RING(devid)	(IS_GEN6(devid) || \
 				 IS_GEN7(devid))
