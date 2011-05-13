@@ -370,7 +370,11 @@ allocate_surface(int fd, int width, int height, uint32_t depth, uint32_t bpp,
 	case 24:
 		format = CAIRO_FORMAT_RGB24;
 		break;
+#if 0
 	case 30:
+		format = CAIRO_FORMAT_RGB30;
+		break;
+#endif
 	case 32:
 		format = CAIRO_FORMAT_ARGB32;
 		break;
