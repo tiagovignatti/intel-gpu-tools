@@ -300,6 +300,10 @@ static void render_copyfunc(struct scratch_buf *src, unsigned src_x, unsigned sr
 		gen3_render_copyfunc(src, src_x, src_y,
 				     dst, dst_x, dst_y,
 				     logical_tile_no);
+	else if (IS_GEN6(devid))
+		gen6_render_copyfunc(src, src_x, src_y,
+				     dst, dst_x, dst_y,
+				     logical_tile_no);
 	else
 		blitter_copyfunc(src, src_x, src_y,
 				 dst, dst_x, dst_y,
@@ -310,7 +314,7 @@ static void next_copyfunc(int tile)
 {
 	if (fence_storm) {
 		if (tile == options.trace_tile)
-		printf(" using fence storm\n");
+			printf(" using fence storm\n");
 		return;
 	}
 
@@ -417,12 +421,12 @@ static void permute_array(void *array, unsigned size,
 			  void (*exchange_func)(void *array, unsigned i, unsigned j))
 {
 	int i;
-	long int l;
 
 	for (i = size - 1; i > 1; i--) {
-		l = random();
-		l %= i+1; /* yes, no perfectly uniform, who cares */
-		exchange_func(array, i, l);
+		/* yes, not perfectly uniform, who cares */
+		long l = random() % (i +1);
+		if (i != l)
+			exchange_func(array, i, l);
 	}
 }
 
@@ -437,7 +441,7 @@ static void exchange_buf(void *array, unsigned i, unsigned j)
 }
 
 
-/* libdrm is to clever and prevents us from changin tiling of buffers already
+/* libdrm is too clever and prevents us from changing tiling of buffers already
  * used in relocations. */
 static void set_tiling(drm_intel_bo *bo, unsigned *tiling, unsigned stride)
 {
@@ -510,7 +514,7 @@ static void init_set(unsigned set)
 			   buffers[set][i].stride);
 
 		if (i == options.trace_tile/TILES_PER_BUF)
-			printf("changing buffer %i containing tile %i: tiling %i, stride %i\n", i, 
+			printf("changing buffer %i containing tile %i: tiling %i, stride %i\n", i,
 					options.trace_tile,
 					buffers[set][i].tiling, buffers[set][i].stride);
 	}
@@ -533,7 +537,7 @@ static void copy_tiles(unsigned *permutation)
 	struct scratch_buf *src_buf, *dst_buf;
 	int i, idx;
 	for (i = 0; i < num_total_tiles; i++) {
-		/* tile_permutation is independant of current_permutation, so
+		/* tile_permutation is independent of current_permutation, so
 		 * abuse it to randomize the order of the src bos */
 		idx  = tile_permutation[i];
 		src_buf_idx = idx / TILES_PER_BUF;
@@ -721,6 +725,35 @@ static void init(void)
 	srandom(0xdeadbeef);
 }
 
+static void check_render_copyfunc(void)
+{
+	struct scratch_buf src, dst;
+	uint32_t *ptr;
+	int i, j;
+
+	init_buffer(&src, options.scratch_buf_size);
+	init_buffer(&dst, options.scratch_buf_size);
+
+	memset(src.data, 0xff, options.scratch_buf_size);
+	for (j = 0; j < TILE_SIZE; j++) {
+		ptr = (uint32_t*)((char *)src.data + j * src.stride);
+		for (i = 0; i < TILE_SIZE; i++)
+			ptr[i] = j * TILE_SIZE + i;
+	}
+
+	render_copyfunc(&src, 0, 0, &dst, 0, 0, 0);
+
+	for (j = 0; j < TILE_SIZE; j++) {
+		ptr = (uint32_t*)((char *)dst.data + j * dst.stride);
+		for (i = 0; i < TILE_SIZE; i++)
+			if (ptr[i] != j * TILE_SIZE + i) {
+				printf("render copyfunc mismatch at (%d, %d): found %d, expected %d\n",
+				       i, j, ptr[i], j*TILE_SIZE + i);
+			}
+	}
+}
+
+
 int main(int argc, char **argv)
 {
 	int i, j;
@@ -729,6 +762,8 @@ int main(int argc, char **argv)
 	parse_options(argc, argv);
 
 	init();
+
+	check_render_copyfunc();
 
 	tile_permutation = malloc(num_total_tiles*sizeof(uint32_t));
 	current_permutation = malloc(num_total_tiles*sizeof(uint32_t));

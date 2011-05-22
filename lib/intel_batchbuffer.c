@@ -197,3 +197,10 @@ intel_copy_bo(struct intel_batchbuffer *batch,
 
 	intel_batchbuffer_flush(batch);
 }
+
+void
+intel_batchbuffer_emit_mi_flush(struct intel_batchbuffer *batch)
+{
+	intel_batchbuffer_require_space(batch, 4);
+	intel_batchbuffer_emit_dword(batch, MI_FLUSH);
+}

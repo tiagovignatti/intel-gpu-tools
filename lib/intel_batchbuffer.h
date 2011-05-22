@@ -3,13 +3,11 @@
 
 #include <assert.h>
 #include "intel_bufmgr.h"
-#include "intel_reg.h"
 
 #define BATCH_SZ 4096
 #define BATCH_RESERVED 16
 
-struct intel_batchbuffer
-{
+struct intel_batchbuffer {
 	drm_intel_bufmgr *bufmgr;
 	uint32_t devid;
 
@@ -93,13 +91,8 @@ intel_batchbuffer_require_space(struct intel_batchbuffer *batch,
 #define ADVANCE_BATCH() do {						\
 } while(0)
 
-
-static inline void
-intel_batchbuffer_emit_mi_flush(struct intel_batchbuffer *batch)
-{
-	intel_batchbuffer_require_space(batch, 4);
-	intel_batchbuffer_emit_dword(batch, MI_FLUSH);
-}
+void
+intel_batchbuffer_emit_mi_flush(struct intel_batchbuffer *batch);
 
 void intel_copy_bo(struct intel_batchbuffer *batch,
 		   drm_intel_bo *dst_bo, drm_intel_bo *src_bo,

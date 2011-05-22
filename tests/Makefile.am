@@ -7,7 +7,10 @@ gem_stress_SOURCES = \
 	gem_stress.c \
 	gem_stress.h \
 	gem_stress_i915.c \
-	gem_stress_i830.c
+	gem_stress_i830.c \
+	gen6_render.h \
+	gem_stress_gen6.c \
+	$(NULL)
 
 TESTS = getversion \
 	getclient \

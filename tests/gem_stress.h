@@ -52,6 +52,11 @@ extern int fence_storm;
 
 void keep_gpu_busy(void);
 
+static inline void emit_vertex_2s(int16_t x, int16_t y)
+{
+	OUT_BATCH((uint16_t)y << 16 | (uint16_t)x);
+}
+
 static inline void emit_vertex(float f)
 {
 	union { float f; uint32_t ui; } u;
@@ -76,6 +81,9 @@ static inline unsigned buf_height(struct scratch_buf *buf)
 	return options.scratch_buf_size/buf->stride;
 }
 
+void gen6_render_copyfunc(struct scratch_buf *src, unsigned src_x, unsigned src_y,
+			  struct scratch_buf *dst, unsigned dst_x, unsigned dst_y,
+			  unsigned logical_tile_no);
 void gen3_render_copyfunc(struct scratch_buf *src, unsigned src_x, unsigned src_y,
 			  struct scratch_buf *dst, unsigned dst_x, unsigned dst_y,
 			  unsigned logical_tile_no);
