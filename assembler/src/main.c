@@ -73,7 +73,7 @@ static void usage(void)
 	fprintf(stderr, "\t-e, --export {exportfile}            Export label file\n");
 	fprintf(stderr, "\t-l, --input_list {entrytablefile}    Input entry_table_list file\n");
 	fprintf(stderr, "\t-o, --output {outputfile}            Specify output file\n");
-	fprintf(stderr, "\t-g, --gen <4|5|6>                    Specify GPU generation\n");
+	fprintf(stderr, "\t-g, --gen <4|5|6|7>                  Specify GPU generation\n");
 }
 
 static int hash(char *name)
@@ -225,7 +225,7 @@ int main(int argc, char **argv)
 		case 'g':
 			gen_level = strtol(optarg, NULL, 0);
 
-			if (gen_level < 4 || gen_level > 6) {
+			if (gen_level < 4 || gen_level > 7) {
 				usage();
 				exit(1);
 			}
