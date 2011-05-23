@@ -951,7 +951,13 @@ msgtarget:	NULL_TOKEN
 		| SAMPLER LPAREN INTEGER COMMA INTEGER COMMA
 		sampler_datatype RPAREN
 		{
-		  if (gen_level >= 5) {
+		  if (gen_level >= 7) {
+                      $$.bits2.send_gen5.sfid = BRW_MESSAGE_TARGET_SAMPLER;
+                      $$.bits3.generic_gen5.header_present = 1;   /* ??? */
+                      $$.bits3.sampler_gen7.binding_table_index = $3;
+                      $$.bits3.sampler_gen7.sampler = $5;
+                      $$.bits3.sampler_gen7.simd_mode = 2; /* SIMD16, maybe we should add a new parameter */
+		  } else if (gen_level >= 5) {
                       $$.bits2.send_gen5.sfid = BRW_MESSAGE_TARGET_SAMPLER;
                       $$.bits3.generic_gen5.header_present = 1;   /* ??? */
                       $$.bits3.sampler_gen5.binding_table_index = $3;
