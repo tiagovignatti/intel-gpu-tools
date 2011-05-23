@@ -1442,6 +1442,18 @@ struct brw_instruction
        } dp_write_gen6;
 
        struct {
+           GLuint binding_table_index:8;
+           GLuint msg_control:6;
+           GLuint msg_type:4;    
+           GLuint pad0:1;
+           GLuint header_present:1;
+           GLuint response_length:5;
+           GLuint msg_length:4;
+           GLuint pad1:2;
+           GLuint end_of_thread:1;
+       } dp_gen7;
+
+       struct {
            GLuint opcode:1;
            GLuint requester_type:1;
            GLuint pad0:2;
