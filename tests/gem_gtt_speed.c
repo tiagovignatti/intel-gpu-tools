@@ -130,14 +130,23 @@ static double elapsed(const struct timeval *start,
 int main(int argc, char **argv)
 {
 	struct timeval start, end;
-	uint8_t buf[OBJECT_SIZE];
+	uint8_t *buf;
 	uint32_t handle;
+	int size = OBJECT_SIZE;
 	int loop, i, tiling;
 	int fd;
 
+	if (argc > 1)
+		size = atoi(argv[1]);
+	if (size == 0) {
+		fprintf(stderr, "Invalid object size specified\n");
+		return 1;
+	}
+
+	buf = malloc(size);
 	fd = drm_open_any();
 
-	handle = gem_create(fd, OBJECT_SIZE);
+	handle = gem_create(fd, size);
 	assert(handle);
 
 	for (tiling = I915_TILING_NONE; tiling <= I915_TILING_Y; tiling++) {
@@ -151,80 +160,80 @@ int main(int argc, char **argv)
 			/* CPU pwrite */
 			gettimeofday(&start, NULL);
 			for (loop = 0; loop < 1000; loop++)
-				gem_write(fd, handle, 0, buf, sizeof(buf));
+				gem_write(fd, handle, 0, buf, size);
 			gettimeofday(&end, NULL);
-			printf("Time to pwrite 16k through the CPU:		%7.3fµs\n",
-			       elapsed(&start, &end, loop));
+			printf("Time to pwrite %dk through the CPU:		%7.3fµs\n",
+			       size/1024, elapsed(&start, &end, loop));
 
 			/* CPU pread */
 			gettimeofday(&start, NULL);
 			for (loop = 0; loop < 1000; loop++)
-				gem_read(fd, handle, 0, buf, sizeof(buf));
+				gem_read(fd, handle, 0, buf, size);
 			gettimeofday(&end, NULL);
-			printf("Time to pread 16k through the CPU:		%7.3fµs\n",
-			       elapsed(&start, &end, loop));
+			printf("Time to pread %dk through the CPU:		%7.3fµs\n",
+			       size/1024, elapsed(&start, &end, loop));
 		}
 
 		/* mmap read */
 		gettimeofday(&start, NULL);
 		for (loop = 0; loop < 1000; loop++) {
-			volatile uint32_t *ptr = gem_mmap(fd, handle, OBJECT_SIZE, PROT_READ);
+			volatile uint32_t *ptr = gem_mmap(fd, handle, size, PROT_READ);
 			int x = 0;
 
-			for (i = 0; i < OBJECT_SIZE/sizeof(*ptr); i++)
+			for (i = 0; i < size/sizeof(*ptr); i++)
 				x += ptr[i];
 
-			munmap((void *)ptr, OBJECT_SIZE);
+			munmap((void *)ptr, size);
 		}
 		gettimeofday(&end, NULL);
-		printf("Time to read 16k through a GTT map:		%7.3fµs\n",
-		       elapsed(&start, &end, loop));
+		printf("Time to read %dk through a GTT map:		%7.3fµs\n",
+		       size/1024, elapsed(&start, &end, loop));
 
 		/* mmap write */
 		gettimeofday(&start, NULL);
 		for (loop = 0; loop < 1000; loop++) {
-			volatile uint32_t *ptr = gem_mmap(fd, handle, OBJECT_SIZE, PROT_READ | PROT_WRITE);
+			volatile uint32_t *ptr = gem_mmap(fd, handle, size, PROT_READ | PROT_WRITE);
 
-			for (i = 0; i < OBJECT_SIZE/sizeof(*ptr); i++)
+			for (i = 0; i < size/sizeof(*ptr); i++)
 				ptr[i] = i;
 
-			munmap((void *)ptr, OBJECT_SIZE);
+			munmap((void *)ptr, size);
 		}
 		gettimeofday(&end, NULL);
-		printf("Time to write 16k through a GTT map:		%7.3fµs\n",
-		       elapsed(&start, &end, loop));
+		printf("Time to write %dk through a GTT map:		%7.3fµs\n",
+		       size/1024, elapsed(&start, &end, loop));
 
 		/* mmap read */
 		gettimeofday(&start, NULL);
 		for (loop = 0; loop < 1000; loop++) {
-			volatile uint32_t *ptr = gem_mmap(fd, handle, OBJECT_SIZE, PROT_READ);
+			volatile uint32_t *ptr = gem_mmap(fd, handle, size, PROT_READ);
 			int x = 0;
 
-			for (i = 0; i < OBJECT_SIZE/sizeof(*ptr); i++)
+			for (i = 0; i < size/sizeof(*ptr); i++)
 				x += ptr[i];
 
-			munmap((void *)ptr, OBJECT_SIZE);
+			munmap((void *)ptr, size);
 		}
 		gettimeofday(&end, NULL);
-		printf("Time to read 16k (again) through a GTT map:	%7.3fµs\n",
-		       elapsed(&start, &end, loop));
+		printf("Time to read %dk (again) through a GTT map:	%7.3fµs\n",
+		       size/1024, elapsed(&start, &end, loop));
 
 		if (tiling == I915_TILING_NONE) {
 			/* GTT pwrite */
 			gettimeofday(&start, NULL);
 			for (loop = 0; loop < 1000; loop++)
-				gem_write(fd, handle, 0, buf, sizeof(buf));
+				gem_write(fd, handle, 0, buf, size);
 			gettimeofday(&end, NULL);
-			printf("Time to pwrite 16k through the GTT:		%7.3fµs\n",
-			       elapsed(&start, &end, loop));
+			printf("Time to pwrite %dk through the GTT:		%7.3fµs\n",
+			       size, elapsed(&start, &end, loop));
 
 			/* GTT pread */
 			gettimeofday(&start, NULL);
 			for (loop = 0; loop < 1000; loop++)
-				gem_read(fd, handle, 0, buf, sizeof(buf));
+				gem_read(fd, handle, 0, buf, size);
 			gettimeofday(&end, NULL);
-			printf("Time to pread 16k through the GTT:		%7.3fµs\n",
-			       elapsed(&start, &end, loop));
+			printf("Time to pread %dk through the GTT:		%7.3fµs\n",
+			       size, elapsed(&start, &end, loop));
 		}
 
 	}
