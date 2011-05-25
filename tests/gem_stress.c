@@ -242,6 +242,8 @@ static void cpu_copyfunc(struct scratch_buf *src, unsigned src_x, unsigned src_y
 			 struct scratch_buf *dst, unsigned dst_x, unsigned dst_y,
 			 unsigned logical_tile_no)
 {
+	assert(batch->ptr == batch->buffer);
+
 	if (options.ducttape)
 		drm_intel_bo_wait_rendering(dst->bo);
 
@@ -261,6 +263,8 @@ static void prw_copyfunc(struct scratch_buf *src, unsigned src_x, unsigned src_y
 {
 	uint32_t tmp_tile[options.tile_size*options.tile_size];
 	int i;
+
+	assert(batch->ptr == batch->buffer);
 
 	if (options.ducttape)
 		drm_intel_bo_wait_rendering(dst->bo);
