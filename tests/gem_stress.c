@@ -335,10 +335,16 @@ static void next_copyfunc(int tile)
 		if (tile == options.trace_tile)
 			printf(" using render\n");
 		copyfunc = render_copyfunc;
-	} else {
+	} else if (options.use_blt){
 		if (tile == options.trace_tile)
 			printf(" using blitter\n");
 		copyfunc = blitter_copyfunc;
+	} else if (options.use_render){
+		if (tile == options.trace_tile)
+			printf(" using render\n");
+		copyfunc = render_copyfunc;
+	} else {
+		copyfunc = cpu_copyfunc;
 	}
 
 	copyfunc_seq++;
@@ -602,6 +608,7 @@ static void parse_options(int argc, char **argv)
 		{"gpu-busy-load", 1, 0, 'g'},
 		{"buffer-count", 1, 0, 'c'},
 		{"trace-tile", 1, 0, 't'},
+		{"disable-blt", 0, 0, 'b'},
 		{"disable-render", 0, 0, 'r'},
 		{"untiled", 0, 0, 'u'},
 		{"x-tiled", 0, 0, 'x'},
@@ -614,10 +621,11 @@ static void parse_options(int argc, char **argv)
 	options.num_buffers = 0;
 	options.trace_tile = -1;
 	options.use_render = 1;
+	options.use_blt = 1;
 	options.forced_tiling = -1;
 	options.use_cpu_maps = 0;
 
-	while((c = getopt_long(argc, argv, "ds:g:c:t:ruxm",
+	while((c = getopt_long(argc, argv, "ds:g:c:t:rbuxm",
 			       long_options, &option_index)) != -1) {
 		switch(c) {
 		case 'd':
@@ -656,6 +664,10 @@ static void parse_options(int argc, char **argv)
 		case 'r':
 			options.use_render = 0;
 			printf("disabling render copy\n");
+			break;
+		case 'b':
+			options.use_blt = 0;
+			printf("disabling blt copy\n");
 			break;
 		case 'u':
 			options.forced_tiling = I915_TILING_NONE;

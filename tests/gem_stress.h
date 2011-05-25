@@ -32,6 +32,7 @@ struct option_struct {
     int no_hw;
     int gpu_busy_load;
     int use_render;
+    int use_blt;
     int forced_tiling;
     int use_cpu_maps;
 };
