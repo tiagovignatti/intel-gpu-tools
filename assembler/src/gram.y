@@ -488,7 +488,12 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
 
                       memset(&src0, 0, sizeof(src0));
                       src0.address_mode = BRW_ADDRESS_DIRECT;
-                      src0.reg_file = BRW_MESSAGE_REGISTER_FILE;
+
+                      if (gen_level >= 7)
+                          src0.reg_file = BRW_GENERAL_REGISTER_FILE;
+                      else
+                          src0.reg_file = BRW_MESSAGE_REGISTER_FILE;
+
                       src0.reg_type = BRW_REGISTER_TYPE_D;
                       src0.reg_nr = $4;
                       src0.subreg_nr = 0;
@@ -590,7 +595,12 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
 
                   memset(&src0, 0, sizeof(src0));
                   src0.address_mode = BRW_ADDRESS_DIRECT;
-                  src0.reg_file = BRW_MESSAGE_REGISTER_FILE;
+
+                  if (gen_level >= 7)
+                      src0.reg_file = BRW_GENERAL_REGISTER_FILE;
+                  else
+                      src0.reg_file = BRW_MESSAGE_REGISTER_FILE;
+
                   src0.reg_type = BRW_REGISTER_TYPE_D;
                   src0.reg_nr = $5.reg_nr;
                   src0.subreg_nr = 0;
