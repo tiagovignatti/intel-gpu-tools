@@ -1074,7 +1074,7 @@ msgtarget:	NULL_TOKEN
                       $$.bits3.dp_gen7.binding_table_index = $3;
                       $$.bits3.dp_gen7.msg_control = $5;
                       $$.bits3.dp_gen7.msg_type = $7;
-                  } if (gen_level == 6) {
+                  } else if (gen_level == 6) {
                       $$.bits2.send_gen5.sfid =
                           BRW_MESSAGE_TARGET_DATAPORT_WRITE;
                       /* Sandybridge supports headerlesss message for render target write.
