@@ -1035,14 +1035,14 @@ msgtarget:	NULL_TOKEN
 		{
 		  if (gen_level == 7) {
                       $$.bits2.send_gen5.sfid = 
-                          BRW_MESSAGE_TARGET_DATAPORT_READ;
+                          BRW_MESSAGE_TARGET_DP_SC;
                       $$.bits3.generic_gen5.header_present = 1;
                       $$.bits3.dp_gen7.binding_table_index = $3;
                       $$.bits3.dp_gen7.msg_control = $7;
                       $$.bits3.dp_gen7.msg_type = $9;
 		  } else if (gen_level == 6) {
                       $$.bits2.send_gen5.sfid = 
-                          BRW_MESSAGE_TARGET_DATAPORT_READ;
+                          BRW_MESSAGE_TARGET_DP_SC;
                       $$.bits3.generic_gen5.header_present = 1;
                       $$.bits3.dp_read_gen6.binding_table_index = $3;
                       $$.bits3.dp_read_gen6.msg_control = $7;
@@ -1069,14 +1069,14 @@ msgtarget:	NULL_TOKEN
 		{
 		  if (gen_level == 7) {
                       $$.bits2.send_gen5.sfid =
-                          BRW_MESSAGE_TARGET_DATAPORT_WRITE;
+                          BRW_MESSAGE_TARGET_DP_RC;
                       $$.bits3.generic_gen5.header_present = 1;
                       $$.bits3.dp_gen7.binding_table_index = $3;
                       $$.bits3.dp_gen7.msg_control = $5;
                       $$.bits3.dp_gen7.msg_type = $7;
                   } else if (gen_level == 6) {
                       $$.bits2.send_gen5.sfid =
-                          BRW_MESSAGE_TARGET_DATAPORT_WRITE;
+                          BRW_MESSAGE_TARGET_DP_RC;
                       /* Sandybridge supports headerlesss message for render target write.
                        * Currently the GFX assembler doesn't support it. so the program must provide 
                        * message header
@@ -1114,14 +1114,14 @@ msgtarget:	NULL_TOKEN
 		{
 		  if (gen_level == 7) {
                       $$.bits2.send_gen5.sfid =
-                          BRW_MESSAGE_TARGET_DATAPORT_WRITE;
+                          BRW_MESSAGE_TARGET_DP_RC;
                       $$.bits3.generic_gen5.header_present = ($11 != 0);
                       $$.bits3.dp_gen7.binding_table_index = $3;
                       $$.bits3.dp_gen7.msg_control = $5;
                       $$.bits3.dp_gen7.msg_type = $7;
 		  } else if (gen_level == 6) {
                       $$.bits2.send_gen5.sfid =
-                          BRW_MESSAGE_TARGET_DATAPORT_WRITE;
+                          BRW_MESSAGE_TARGET_DP_RC;
                       $$.bits3.generic_gen5.header_present = ($11 != 0);
                       $$.bits3.dp_write_gen6.binding_table_index = $3;
                       $$.bits3.dp_write_gen6.msg_control = $5;

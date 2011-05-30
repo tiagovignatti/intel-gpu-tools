@@ -704,10 +704,13 @@
 #define BRW_MESSAGE_TARGET_SAMPLER            2
 #define BRW_MESSAGE_TARGET_GATEWAY            3
 #define BRW_MESSAGE_TARGET_DATAPORT_READ      4
-#define BRW_MESSAGE_TARGET_DATAPORT_WRITE     5
+#define BRW_MESSAGE_TARGET_DP_SC              4  /* data port sampler cache */
+#define BRW_MESSAGE_TARGET_DATAPORT_WRITE     5  
+#define BRW_MESSAGE_TARGET_DP_RC              5  /* data port render cache */
 #define BRW_MESSAGE_TARGET_URB                6
 #define BRW_MESSAGE_TARGET_THREAD_SPAWNER     7
 #define BRW_MESSAGE_TARGET_VME                8
+#define BRW_MESSAGE_TARGET_DP_CC              9  /* data port constant cache */
 
 #define BRW_SAMPLER_RETURN_FORMAT_FLOAT32     0
 #define BRW_SAMPLER_RETURN_FORMAT_UINT32      2
