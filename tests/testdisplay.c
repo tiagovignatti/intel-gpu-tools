@@ -325,9 +325,16 @@ static void connector_find_preferred_mode(struct connector *c)
 	}
 
 	if (!c->mode_valid) {
-		fprintf(stderr, "failed to find any modes on connector %d\n",
-			c->id);
-		return;
+		if (connector->count_modes > 0) {
+			/* use the first mode as test mode */
+			c->mode = connector->modes[0];
+			c->mode_valid = 1;
+		}
+		else {
+			fprintf(stderr, "failed to find any modes on connector %d\n",
+				c->id);
+			return;
+		}
 	}
 
 	/* Now get the encoder */
