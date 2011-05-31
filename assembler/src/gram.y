@@ -1199,7 +1199,7 @@ msgtarget:	NULL_TOKEN
 		  $$.bits3.generic.msg_target =
                       BRW_MESSAGE_TARGET_VME;
 
-		  if (gen_level == 6) { 
+		  if (gen_level >= 6) { 
                       $$.bits2.send_gen5.sfid =
                           BRW_MESSAGE_TARGET_VME;
                       $$.bits3.vme_gen6.binding_table_index = $3;
