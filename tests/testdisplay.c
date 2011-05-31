@@ -157,7 +157,7 @@ struct connector {
 
 static void dump_mode(drmModeModeInfo *mode)
 {
-	printf("  %s %d %d %d %d %d %d %d %d %d 0x%x 0x%x\n",
+	printf("  %s %d %d %d %d %d %d %d %d %d 0x%x 0x%x %d\n",
 	       mode->name,
 	       mode->vrefresh,
 	       mode->hdisplay,
@@ -169,7 +169,8 @@ static void dump_mode(drmModeModeInfo *mode)
 	       mode->vsync_end,
 	       mode->vtotal,
 	       mode->flags,
-	       mode->type);
+	       mode->type,
+	       mode->clock);
 }
 
 static void dump_connectors(void)
@@ -201,7 +202,7 @@ static void dump_connectors(void)
 
 		printf("  modes:\n");
 		printf("  name refresh (Hz) hdisp hss hse htot vdisp "
-		       "vss vse vtot flags type\n");
+		       "vss vse vtot flags type clock\n");
 		for (j = 0; j < connector->count_modes; j++)
 			dump_mode(&connector->modes[j]);
 
