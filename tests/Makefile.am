@@ -32,6 +32,7 @@ TESTS = getversion \
 	gem_bad_address \
 	gem_bad_blit \
 	gem_fence_thrash \
+	gem_fenced_exec_thrash \
 	gem_gtt_speed \
 	$(NULL)
 
