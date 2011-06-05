@@ -453,10 +453,14 @@ copy(int fd,
      uint32_t dst, int dst_tiling,
      uint32_t src, int src_tiling)
 {
+retry:
 	switch (random() % 3) {
 	case 0: render_copy(fd, dst, dst_tiling, src, src_tiling, 0); break;
 	case 1: render_copy(fd, dst, dst_tiling, src, src_tiling, 1); break;
-	case 2: blt_copy(fd, dst, src); break;
+	case 2: if (dst_tiling == I915_TILING_Y || src_tiling == I915_TILING_Y)
+			goto retry;
+		blt_copy(fd, dst, src);
+		break;
 	}
 }
 
