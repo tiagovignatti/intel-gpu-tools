@@ -512,7 +512,12 @@ static void init_set(unsigned set)
 			r %= 5;
 			buffers[set][i].stride = 512 * (1 << r);
 		}
+
+		if (options.scratch_buf_size / buffers[set][i].stride > options.max_dimension)
+			buffers[set][i].stride = options.scratch_buf_size / options.max_dimension;
 		assert(buffers[set][i].stride <= 8192);
+		assert(buf_width(&buffers[set][i]) <= options.max_dimension);
+		assert(buf_height(&buffers[set][i]) <= options.max_dimension);
 
 		set_tiling(buffers[set][i].bo,
 			   &buffers[set][i].tiling,
@@ -693,6 +698,16 @@ static void parse_options(int argc, char **argv)
 
 	if (optind < argc)
 		printf("unkown command options\n");
+
+	options.max_dimension = 32767;
+	if (options.use_render) {
+		if (IS_GEN2(devid) || IS_GEN3(devid))
+			options.max_dimension = 2048;
+		else
+			options.max_dimension = 8192;
+	}
+	printf("Limiting buffer to %dx%d\n",
+	       options.max_dimension, options.max_dimension);
 }
 
 static void init(void)
@@ -700,7 +715,6 @@ static void init(void)
 	int i;
 	unsigned tmp;
 
-	drm_fd = drm_open_any();
 	if (options.num_buffers == 0) {
 		tmp = gem_aperture_size(drm_fd);
 		tmp = tmp > 256*(1024*1024) ? 256*(1024*1024) : tmp;
@@ -713,7 +727,6 @@ static void init(void)
 	bufmgr = drm_intel_bufmgr_gem_init(drm_fd, 4096);
 	drm_intel_bufmgr_gem_enable_reuse(bufmgr);
 	drm_intel_bufmgr_gem_enable_fenced_relocs(bufmgr);
-	devid = intel_get_drm_devid(drm_fd);
 	num_fences = get_num_fences();
 	batch = intel_batchbuffer_alloc(bufmgr, devid);
 
@@ -782,6 +795,9 @@ int main(int argc, char **argv)
 {
 	int i, j;
 	unsigned *current_permutation, *tmp_permutation;
+
+	drm_fd = drm_open_any();
+	devid = intel_get_drm_devid(drm_fd);
 
 	parse_options(argc, argv);
 

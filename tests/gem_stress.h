@@ -27,6 +27,7 @@ struct scratch_buf {
 
 struct option_struct {
     unsigned scratch_buf_size;
+    unsigned max_dimension;
     unsigned num_buffers;
     int trace_tile;
     int no_hw;
