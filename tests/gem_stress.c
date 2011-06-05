@@ -683,7 +683,7 @@ static void parse_options(int argc, char **argv)
 		case 'm':
 			options.use_cpu_maps = 1;
 			options.forced_tiling = I915_TILING_NONE;
-			printf("using only X-tiling\n");
+			printf("disabling tiling\n");
 			break;
 		default:
 			printf("unkown command options\n");
