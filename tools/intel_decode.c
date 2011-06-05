@@ -1203,6 +1203,7 @@ decode_3d_1d(uint32_t *data, int count,
 		else if (dword & (1 << 1))
 			tiling = dword & (1 << 0) ? "Y" : "X";
 		type = " BAD";
+		format = "BAD";
 		switch ((dword>>7) & 0x7) {
 		case 1:
 		    type = "8b";
@@ -1266,8 +1267,6 @@ decode_3d_1d(uint32_t *data, int count,
 		    switch ((dword>>3) & 0xf) {
 		    case 7: format = " argb8888"; break; }
 		    break;
-		default:
-		    format = "BAD";
 		}
 		dword = data[i];
 		instr_out(data, hw_offset, i++, "map %d MS3 [width=%d, height=%d, format=%s%s, tiling=%s%s]\n",
