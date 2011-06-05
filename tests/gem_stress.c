@@ -740,27 +740,40 @@ static void check_render_copyfunc(void)
 {
 	struct scratch_buf src, dst;
 	uint32_t *ptr;
-	int i, j;
+	int i, j, pass;
 
 	init_buffer(&src, options.scratch_buf_size);
 	init_buffer(&dst, options.scratch_buf_size);
 
-	memset(src.data, 0xff, options.scratch_buf_size);
-	for (j = 0; j < TILE_SIZE; j++) {
-		ptr = (uint32_t*)((char *)src.data + j * src.stride);
-		for (i = 0; i < TILE_SIZE; i++)
-			ptr[i] = j * TILE_SIZE + i;
-	}
+	for (pass = 0; pass < 16; pass++) {
+		int sx = random() % (buf_width(&src)-TILE_SIZE);
+		int sy = random() % (buf_height(&src)-TILE_SIZE);
+		int dx = random() % (buf_width(&dst)-TILE_SIZE);
+		int dy = random() % (buf_height(&dst)-TILE_SIZE);
 
-	render_copyfunc(&src, 0, 0, &dst, 0, 0, 0);
+		if (options.use_cpu_maps)
+			set_to_cpu_domain(&src, 1);
 
-	for (j = 0; j < TILE_SIZE; j++) {
-		ptr = (uint32_t*)((char *)dst.data + j * dst.stride);
-		for (i = 0; i < TILE_SIZE; i++)
-			if (ptr[i] != j * TILE_SIZE + i) {
-				printf("render copyfunc mismatch at (%d, %d): found %d, expected %d\n",
-				       i, j, ptr[i], j*TILE_SIZE + i);
-			}
+		memset(src.data, 0xff, options.scratch_buf_size);
+		for (j = 0; j < TILE_SIZE; j++) {
+			ptr = (uint32_t*)((char *)src.data + sx*4 + (sy+j) * src.stride);
+			for (i = 0; i < TILE_SIZE; i++)
+				ptr[i] = j * TILE_SIZE + i;
+		}
+
+		render_copyfunc(&src, sx, sy, &dst, dx, dy, 0);
+
+		if (options.use_cpu_maps)
+			set_to_cpu_domain(&dst, 0);
+
+		for (j = 0; j < TILE_SIZE; j++) {
+			ptr = (uint32_t*)((char *)dst.data + dx*4 + (dy+j) * dst.stride);
+			for (i = 0; i < TILE_SIZE; i++)
+				if (ptr[i] != j * TILE_SIZE + i) {
+					printf("render copyfunc mismatch at (%d, %d): found %d, expected %d\n",
+					       i, j, ptr[i], j*TILE_SIZE + i);
+				}
+		}
 	}
 }
 
