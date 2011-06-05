@@ -37,6 +37,8 @@ TESTS = getversion \
 	gen3_render_linear_blits \
 	gen3_render_tiledx_blits \
 	gen3_render_tiledy_blits \
+	gen3_render_mixed_blits \
+	gen3_mixed_blits \
 	$(NULL)
 
 HANG = \

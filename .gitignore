@@ -59,6 +59,8 @@ tests/gem_stress
 tests/gen3_render_linear_blits
 tests/gen3_render_tiledx_blits
 tests/gen3_render_tiledy_blits
+tests/gen3_render_mixed_blits
+tests/gen3_mixed_blits
 tools/intel_disable_clock_gating
 tools/intel_dump_decode
 tools/intel_error_decode

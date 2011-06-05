@@ -128,13 +128,16 @@ static uint32_t fill_reloc(struct drm_i915_gem_relocation_entry *reloc,
 }
 
 static void
-copy(int fd, uint32_t dst, uint32_t src)
+copy(int fd,
+     uint32_t dst, int dst_tiling,
+     uint32_t src, int src_tiling)
 {
 	uint32_t batch[1024], *b = batch;
 	struct drm_i915_gem_relocation_entry reloc[2], *r = reloc;
 	struct drm_i915_gem_exec_object2 obj[3];
 	struct drm_i915_gem_execbuffer2 exec;
 	uint32_t handle;
+	uint32_t tiling_bits;
 	int ret;
 
 	/* invariant state */
@@ -192,12 +195,17 @@ copy(int fd, uint32_t dst, uint32_t src)
 	*b++ = (_3DSTATE_BACKFACE_STENCIL_OPS | BFO_ENABLE_STENCIL_TWO_SIDE | 0);
 
 	/* samler state */
+	tiling_bits = 0;
+	if (src_tiling != I915_TILING_NONE)
+		tiling_bits = MS3_TILED_SURFACE;
+	if (src_tiling == I915_TILING_Y)
+		tiling_bits |= MS3_TILE_WALK;
+
 #define TEX_COUNT 1
 	*b++ = (_3DSTATE_MAP_STATE | (3 * TEX_COUNT));
 	*b++ = ((1 << TEX_COUNT) - 1);
 	*b = fill_reloc(r++, b-batch, src, I915_GEM_DOMAIN_SAMPLER, 0); b++;
-	*b++ = (MAPSURF_32BIT | MT_32BIT_ARGB8888 |
-		MS3_TILED_SURFACE | MS3_TILE_WALK |
+	*b++ = (MAPSURF_32BIT | MT_32BIT_ARGB8888 | tiling_bits |
 		(HEIGHT - 1) << MS3_HEIGHT_SHIFT |
 		(WIDTH - 1) << MS3_WIDTH_SHIFT);
 	*b++ = ((WIDTH-1) << MS4_PITCH_SHIFT);
@@ -213,8 +221,13 @@ copy(int fd, uint32_t dst, uint32_t src)
 	*b++ = (0x00000000);
 
 	/* render target state */
+	tiling_bits = 0;
+	if (dst_tiling != I915_TILING_NONE)
+		tiling_bits = BUF_3D_TILED_SURFACE;
+	if (dst_tiling == I915_TILING_Y)
+		tiling_bits |= BUF_3D_TILE_WALK_Y;
 	*b++ = (_3DSTATE_BUF_INFO_CMD);
-	*b++ = (BUF_3D_ID_COLOR_BACK | BUF_3D_TILED_SURFACE | BUF_3D_TILE_WALK_Y | WIDTH*4);
+	*b++ = (BUF_3D_ID_COLOR_BACK | tiling_bits | WIDTH*4);
 	*b = fill_reloc(r++, b-batch, dst,
 			I915_GEM_DOMAIN_RENDER, I915_GEM_DOMAIN_RENDER);
 	b++;
@@ -377,14 +390,14 @@ static void gem_set_tiling(int fd, uint32_t handle, int tiling, int stride)
 }
 
 static uint32_t
-create_bo(int fd, uint32_t val)
+create_bo(int fd, uint32_t val, int tiling)
 {
 	uint32_t handle;
 	uint32_t *v;
 	int i;
 
 	handle = gem_create(fd, WIDTH*HEIGHT*4);
-	gem_set_tiling(fd, handle, I915_TILING_Y, WIDTH*4);
+	gem_set_tiling(fd, handle, tiling, WIDTH*4);
 
 	/* Fill the BO with dwords starting at val */
 	v = gem_mmap(fd, handle, WIDTH*HEIGHT*4, PROT_READ | PROT_WRITE);
@@ -416,7 +429,7 @@ check_bo(int fd, uint32_t handle, uint32_t val)
 
 int main(int argc, char **argv)
 {
-	uint32_t *handle, *start_val;
+	uint32_t *handle, *tiling, *start_val;
 	uint32_t start = 0;
 	int i, fd, count;
 
@@ -429,11 +442,12 @@ int main(int argc, char **argv)
 		count = 3 * gem_aperture_size(fd) / (1024*1024) / 2;
 	printf("Using %d 1MiB buffers\n", count);
 
-	handle = malloc(sizeof(uint32_t)*count*2);
-	start_val = handle + count;
+	handle = malloc(sizeof(uint32_t)*count*3);
+	tiling = handle + count;
+	start_val = tiling + count;
 
 	for (i = 0; i < count; i++) {
-		handle[i] = create_bo(fd, start);
+		handle[i] = create_bo(fd, start, tiling[i] = i % 3);
 		start_val[i] = start;
 		start += 1024 * 1024 / 4;
 	}
@@ -448,7 +462,7 @@ int main(int argc, char **argv)
 		int src = i % count;
 		int dst = (i + 1) % count;
 
-		copy(fd, handle[dst], handle[src]);
+		copy(fd, handle[dst], tiling[dst], handle[src], tiling[src]);
 		start_val[dst] = start_val[src];
 	}
 	printf("verifying..."); fflush(stdout);
@@ -461,7 +475,7 @@ int main(int argc, char **argv)
 		int src = (i + 1) % count;
 		int dst = i % count;
 
-		copy(fd, handle[dst], handle[src]);
+		copy(fd, handle[dst], tiling[dst], handle[src], tiling[src]);
 		start_val[dst] = start_val[src];
 	}
 	printf("verifying..."); fflush(stdout);
@@ -477,7 +491,7 @@ int main(int argc, char **argv)
 		while (src == dst)
 			dst = random() % count;
 
-		copy(fd, handle[dst], handle[src]);
+		copy(fd, handle[dst], tiling[dst], handle[src], tiling[src]);
 		start_val[dst] = start_val[src];
 	}
 	printf("verifying..."); fflush(stdout);

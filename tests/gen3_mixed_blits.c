@@ -52,8 +52,8 @@
 #include "i915_reg.h"
 #include "i915_3d.h"
 
-#define WIDTH 512
-#define HEIGHT 512
+#define WIDTH (512)
+#define HEIGHT (512)
 
 static inline uint32_t pack_float(float f)
 {
@@ -128,13 +128,16 @@ static uint32_t fill_reloc(struct drm_i915_gem_relocation_entry *reloc,
 }
 
 static void
-copy(int fd, uint32_t dst, uint32_t src)
+render_copy(int fd,
+     uint32_t dst, int dst_tiling,
+     uint32_t src, int src_tiling)
 {
 	uint32_t batch[1024], *b = batch;
 	struct drm_i915_gem_relocation_entry reloc[2], *r = reloc;
 	struct drm_i915_gem_exec_object2 obj[3];
 	struct drm_i915_gem_execbuffer2 exec;
 	uint32_t handle;
+	uint32_t tiling_bits;
 	int ret;
 
 	/* invariant state */
@@ -145,10 +148,10 @@ copy(int fd, uint32_t dst, uint32_t src)
 	*b++ = (_3DSTATE_INDEPENDENT_ALPHA_BLEND_CMD |
 		IAB_MODIFY_ENABLE |
 		IAB_MODIFY_FUNC | (BLENDFUNC_ADD << IAB_FUNC_SHIFT) |
-		IAB_MODIFY_SRC_FACTOR | (BLENDFACT_ONE <<
-					 IAB_SRC_FACTOR_SHIFT) |
-		IAB_MODIFY_DST_FACTOR | (BLENDFACT_ZERO <<
-					 IAB_DST_FACTOR_SHIFT));
+		IAB_MODIFY_SRC_FACTOR |
+		(BLENDFACT_ONE << IAB_SRC_FACTOR_SHIFT) |
+		IAB_MODIFY_DST_FACTOR |
+		(BLENDFACT_ZERO << IAB_DST_FACTOR_SHIFT));
 	*b++ = (_3DSTATE_DFLT_DIFFUSE_CMD);
 	*b++ = (0);
 	*b++ = (_3DSTATE_DFLT_SPEC_CMD);
@@ -161,14 +164,18 @@ copy(int fd, uint32_t dst, uint32_t src)
 		CSB_TCB(2, 2) |
 		CSB_TCB(3, 3) |
 		CSB_TCB(4, 4) |
-		CSB_TCB(5, 5) | CSB_TCB(6, 6) | CSB_TCB(7, 7));
+		CSB_TCB(5, 5) |
+		CSB_TCB(6, 6) |
+		CSB_TCB(7, 7));
 	*b++ = (_3DSTATE_RASTER_RULES_CMD |
 		ENABLE_POINT_RASTER_RULE |
 		OGL_POINT_RASTER_RULE |
 		ENABLE_LINE_STRIP_PROVOKE_VRTX |
 		ENABLE_TRI_FAN_PROVOKE_VRTX |
 		LINE_STRIP_PROVOKE_VRTX(1) |
-		TRI_FAN_PROVOKE_VRTX(2) | ENABLE_TEXKILL_3D_4D | TEXKILL_4D);
+		TRI_FAN_PROVOKE_VRTX(2) |
+		ENABLE_TEXKILL_3D_4D |
+		TEXKILL_4D);
 	*b++ = (_3DSTATE_MODES_4_CMD |
 		ENABLE_LOGIC_OP_FUNC | LOGIC_OP_FUNC(LOGICOP_COPY) |
 		ENABLE_STENCIL_WRITE_MASK | STENCIL_WRITE_MASK(0xff) |
@@ -192,12 +199,17 @@ copy(int fd, uint32_t dst, uint32_t src)
 	*b++ = (_3DSTATE_BACKFACE_STENCIL_OPS | BFO_ENABLE_STENCIL_TWO_SIDE | 0);
 
 	/* samler state */
+	tiling_bits = 0;
+	if (src_tiling != I915_TILING_NONE)
+		tiling_bits = MS3_TILED_SURFACE;
+	if (src_tiling == I915_TILING_Y)
+		tiling_bits |= MS3_TILE_WALK;
+
 #define TEX_COUNT 1
 	*b++ = (_3DSTATE_MAP_STATE | (3 * TEX_COUNT));
 	*b++ = ((1 << TEX_COUNT) - 1);
 	*b = fill_reloc(r++, b-batch, src, I915_GEM_DOMAIN_SAMPLER, 0); b++;
-	*b++ = (MAPSURF_32BIT | MT_32BIT_ARGB8888 |
-		MS3_TILED_SURFACE | MS3_TILE_WALK |
+	*b++ = (MAPSURF_32BIT | MT_32BIT_ARGB8888 | tiling_bits |
 		(HEIGHT - 1) << MS3_HEIGHT_SHIFT |
 		(WIDTH - 1) << MS3_WIDTH_SHIFT);
 	*b++ = ((WIDTH-1) << MS4_PITCH_SHIFT);
@@ -213,8 +225,13 @@ copy(int fd, uint32_t dst, uint32_t src)
 	*b++ = (0x00000000);
 
 	/* render target state */
+	tiling_bits = 0;
+	if (dst_tiling != I915_TILING_NONE)
+		tiling_bits = BUF_3D_TILED_SURFACE;
+	if (dst_tiling == I915_TILING_Y)
+		tiling_bits |= BUF_3D_TILE_WALK_Y;
 	*b++ = (_3DSTATE_BUF_INFO_CMD);
-	*b++ = (BUF_3D_ID_COLOR_BACK | BUF_3D_TILED_SURFACE | BUF_3D_TILE_WALK_Y | WIDTH*4);
+	*b++ = (BUF_3D_ID_COLOR_BACK | tiling_bits | WIDTH*4);
 	*b = fill_reloc(r++, b-batch, dst,
 			I915_GEM_DOMAIN_RENDER, I915_GEM_DOMAIN_RENDER);
 	b++;
@@ -340,6 +357,83 @@ copy(int fd, uint32_t dst, uint32_t src)
 	gem_close(fd, handle);
 }
 
+static void blt_copy(int fd, uint32_t dst, uint32_t src)
+{
+	uint32_t batch[1024], *b = batch;
+	struct drm_i915_gem_relocation_entry reloc[2], *r = reloc;
+	struct drm_i915_gem_exec_object2 obj[3];
+	struct drm_i915_gem_execbuffer2 exec;
+	uint32_t handle;
+	int ret;
+
+	*b++ = (XY_SRC_COPY_BLT_CMD |
+		XY_SRC_COPY_BLT_WRITE_ALPHA |
+		XY_SRC_COPY_BLT_WRITE_RGB);
+	*b++ = 3 << 24 | 0xcc << 16 | WIDTH * 4;
+	*b++ = 0;
+	*b++ = HEIGHT << 16 | WIDTH;
+	*b = fill_reloc(r++, b-batch, dst,
+			I915_GEM_DOMAIN_RENDER, I915_GEM_DOMAIN_RENDER); b++;
+	*b++ = 0;
+	*b++ = WIDTH*4;
+	*b = fill_reloc(r++, b-batch, src, I915_GEM_DOMAIN_RENDER, 0); b++;
+
+	*b++ = MI_BATCH_BUFFER_END;
+	if ((b - batch) & 1)
+		*b++ = 0;
+
+	assert(b - batch <= 1024);
+	handle = gem_create(fd, 4096);
+	gem_write(fd, handle, 0, (b-batch)*sizeof(batch[0]), batch);
+
+	assert(r-reloc == 2);
+
+	obj[0].handle = dst;
+	obj[0].relocation_count = 0;
+	obj[0].relocs_ptr = 0;
+	obj[0].alignment = 0;
+	obj[0].offset = 0;
+	obj[0].flags = 0;
+	obj[0].rsvd1 = 0;
+	obj[0].rsvd2 = 0;
+
+	obj[1].handle = src;
+	obj[1].relocation_count = 0;
+	obj[1].relocs_ptr = 0;
+	obj[1].alignment = 0;
+	obj[1].offset = 0;
+	obj[1].flags = 0;
+	obj[1].rsvd1 = 0;
+	obj[1].rsvd2 = 0;
+
+	obj[2].handle = handle;
+	obj[2].relocation_count = 2;
+	obj[2].relocs_ptr = (uintptr_t)reloc;
+	obj[2].alignment = 0;
+	obj[2].offset = 0;
+	obj[2].flags = 0;
+	obj[2].rsvd1 = obj[2].rsvd2 = 0;
+
+	exec.buffers_ptr = (uintptr_t)obj;
+	exec.buffer_count = 3;
+	exec.batch_start_offset = 0;
+	exec.batch_len = (b-batch)*sizeof(batch[0]);
+	exec.DR1 = exec.DR4 = 0;
+	exec.num_cliprects = 0;
+	exec.cliprects_ptr = 0;
+	exec.flags = 0;
+	exec.rsvd1 = exec.rsvd2 = 0;
+
+	ret = drmIoctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &exec);
+	while (ret && errno == EBUSY) {
+		drmCommandNone(fd, DRM_I915_GEM_THROTTLE);
+		ret = drmIoctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &exec);
+	}
+	assert(ret == 0);
+
+	gem_close(fd, handle);
+}
+
 static void *gem_mmap(int fd, uint32_t handle, int size, int prot)
 {
 	struct drm_i915_gem_mmap_gtt mmap_arg;
@@ -377,14 +471,14 @@ static void gem_set_tiling(int fd, uint32_t handle, int tiling, int stride)
 }
 
 static uint32_t
-create_bo(int fd, uint32_t val)
+create_bo(int fd, uint32_t val, int tiling)
 {
 	uint32_t handle;
 	uint32_t *v;
 	int i;
 
 	handle = gem_create(fd, WIDTH*HEIGHT*4);
-	gem_set_tiling(fd, handle, I915_TILING_Y, WIDTH*4);
+	gem_set_tiling(fd, handle, tiling, WIDTH*4);
 
 	/* Fill the BO with dwords starting at val */
 	v = gem_mmap(fd, handle, WIDTH*HEIGHT*4, PROT_READ | PROT_WRITE);
@@ -416,7 +510,7 @@ check_bo(int fd, uint32_t handle, uint32_t val)
 
 int main(int argc, char **argv)
 {
-	uint32_t *handle, *start_val;
+	uint32_t *handle, *tiling, *start_val;
 	uint32_t start = 0;
 	int i, fd, count;
 
@@ -429,11 +523,12 @@ int main(int argc, char **argv)
 		count = 3 * gem_aperture_size(fd) / (1024*1024) / 2;
 	printf("Using %d 1MiB buffers\n", count);
 
-	handle = malloc(sizeof(uint32_t)*count*2);
-	start_val = handle + count;
+	handle = malloc(sizeof(uint32_t)*count*3);
+	tiling = handle + count;
+	start_val = tiling + count;
 
 	for (i = 0; i < count; i++) {
-		handle[i] = create_bo(fd, start);
+		handle[i] = create_bo(fd, start, tiling[i] = i % 3);
 		start_val[i] = start;
 		start += 1024 * 1024 / 4;
 	}
@@ -448,7 +543,10 @@ int main(int argc, char **argv)
 		int src = i % count;
 		int dst = (i + 1) % count;
 
-		copy(fd, handle[dst], handle[src]);
+		if (random() & 1)
+			render_copy(fd, handle[dst], tiling[dst], handle[src], tiling[src]);
+		else
+			blt_copy(fd, handle[dst], handle[src]);
 		start_val[dst] = start_val[src];
 	}
 	printf("verifying..."); fflush(stdout);
@@ -461,7 +559,10 @@ int main(int argc, char **argv)
 		int src = (i + 1) % count;
 		int dst = i % count;
 
-		copy(fd, handle[dst], handle[src]);
+		if (random() & 1)
+			render_copy(fd, handle[dst], tiling[dst], handle[src], tiling[src]);
+		else
+			blt_copy(fd, handle[dst], handle[src]);
 		start_val[dst] = start_val[src];
 	}
 	printf("verifying..."); fflush(stdout);
@@ -477,7 +578,10 @@ int main(int argc, char **argv)
 		while (src == dst)
 			dst = random() % count;
 
-		copy(fd, handle[dst], handle[src]);
+		if (random() & 1)
+			render_copy(fd, handle[dst], tiling[dst], handle[src], tiling[src]);
+		else
+			blt_copy(fd, handle[dst], handle[src]);
 		start_val[dst] = start_val[src];
 	}
 	printf("verifying..."); fflush(stdout);

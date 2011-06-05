@@ -91,8 +91,7 @@ void gen3_render_copyfunc(struct scratch_buf *src, unsigned src_x, unsigned src_
 		OUT_BATCH(MIPFILTER_NONE << SS2_MIP_FILTER_SHIFT |
 			  FILTER_NEAREST << SS2_MAG_FILTER_SHIFT |
 			  FILTER_NEAREST << SS2_MIN_FILTER_SHIFT);
-		OUT_BATCH(SS3_NORMALIZED_COORDS |
-			  TEXCOORDMODE_WRAP << SS3_TCX_ADDR_MODE_SHIFT |
+		OUT_BATCH(TEXCOORDMODE_WRAP << SS3_TCX_ADDR_MODE_SHIFT |
 			  TEXCOORDMODE_WRAP << SS3_TCY_ADDR_MODE_SHIFT |
 			  0 << SS3_TEXTUREMAP_INDEX_SHIFT);
 		OUT_BATCH(0x00000000);
@@ -128,20 +127,15 @@ void gen3_render_copyfunc(struct scratch_buf *src, unsigned src_x, unsigned src_
 
 	/* texfmt */
 	{
-		uint32_t ss2 = ~0;
-		ss2 &= ~S2_TEXCOORD_FMT(0, TEXCOORDFMT_NOT_PRESENT);
-		ss2 |= S2_TEXCOORD_FMT(0, TEXCOORDFMT_2D);
-		OUT_BATCH(_3DSTATE_LOAD_STATE_IMMEDIATE_1 | I1_LOAD_S(2) | I1_LOAD_S(6) | 1);
-		OUT_BATCH(ss2);
+		OUT_BATCH(_3DSTATE_LOAD_STATE_IMMEDIATE_1 |
+			  I1_LOAD_S(1) | I1_LOAD_S(2) | I1_LOAD_S(6) | 2);
+		OUT_BATCH((4 << S1_VERTEX_WIDTH_SHIFT) |
+			  (4 << S1_VERTEX_PITCH_SHIFT));
+		OUT_BATCH(~S2_TEXCOORD_FMT(0, TEXCOORDFMT_NOT_PRESENT) | S2_TEXCOORD_FMT(0, TEXCOORDFMT_2D));
 		OUT_BATCH(S6_CBUF_BLEND_ENABLE | S6_COLOR_WRITE_ENABLE |
 			  BLENDFUNC_ADD << S6_CBUF_BLEND_FUNC_SHIFT |
 			  BLENDFACT_ONE << S6_CBUF_SRC_BLEND_FACT_SHIFT |
 			  BLENDFACT_ZERO << S6_CBUF_DST_BLEND_FACT_SHIFT);
-		OUT_BATCH(_3DSTATE_LOAD_STATE_IMMEDIATE_1 |
-			  I1_LOAD_S(0) | I1_LOAD_S(1) | 1);
-		OUT_BATCH(0); /* no vbo */
-		OUT_BATCH((4 << S1_VERTEX_WIDTH_SHIFT) |
-			  (4 << S1_VERTEX_PITCH_SHIFT));
 	}
 
 	/* frage shader */
@@ -174,18 +168,18 @@ void gen3_render_copyfunc(struct scratch_buf *src, unsigned src_x, unsigned src_
 	OUT_BATCH(PRIM3D_RECTLIST | (3*4 - 1));
 	emit_vertex(dst_x + TILE_SIZE);
 	emit_vertex(dst_y + TILE_SIZE);
-	emit_vertex_normalized(src_x + TILE_SIZE, buf_width(src));
-	emit_vertex_normalized(src_y + TILE_SIZE, buf_height(src));
+	emit_vertex(src_x + TILE_SIZE);
+	emit_vertex(src_y + TILE_SIZE);
 
 	emit_vertex(dst_x);
 	emit_vertex(dst_y + TILE_SIZE);
-	emit_vertex_normalized(src_x, buf_width(src));
-	emit_vertex_normalized(src_y + TILE_SIZE, buf_height(src));
+	emit_vertex(src_x);
+	emit_vertex(src_y + TILE_SIZE);
 
 	emit_vertex(dst_x);
 	emit_vertex(dst_y);
-	emit_vertex_normalized(src_x, buf_width(src));
-	emit_vertex_normalized(src_y, buf_height(src));
+	emit_vertex(src_x);
+	emit_vertex(src_y);
 
 	if (!(keep_gpu_busy_counter & 1))
 		keep_gpu_busy();
@@ -194,4 +188,3 @@ void gen3_render_copyfunc(struct scratch_buf *src, unsigned src_x, unsigned src_
 
 	intel_batchbuffer_flush(batch);
 }
-

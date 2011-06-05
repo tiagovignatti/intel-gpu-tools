@@ -211,7 +211,6 @@ static void cpu_copyfunc(struct scratch_buf *src, unsigned src_x, unsigned src_y
 	if (options.use_cpu_maps) {
 		set_to_cpu_domain(src, 0);
 		set_to_cpu_domain(dst, 1);
-
 	}
 
 	cpucpy2d(src->data, src->stride/sizeof(uint32_t), src_x, src_y,
