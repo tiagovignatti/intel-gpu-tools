@@ -129,8 +129,9 @@ static uint32_t fill_reloc(struct drm_i915_gem_relocation_entry *reloc,
 
 static void
 render_copy(int fd,
-     uint32_t dst, int dst_tiling,
-     uint32_t src, int src_tiling)
+	    uint32_t dst, int dst_tiling,
+	    uint32_t src, int src_tiling,
+	    int use_fence)
 {
 	uint32_t batch[1024], *b = batch;
 	struct drm_i915_gem_relocation_entry reloc[2], *r = reloc;
@@ -199,11 +200,15 @@ render_copy(int fd,
 	*b++ = (_3DSTATE_BACKFACE_STENCIL_OPS | BFO_ENABLE_STENCIL_TWO_SIDE | 0);
 
 	/* samler state */
-	tiling_bits = 0;
-	if (src_tiling != I915_TILING_NONE)
-		tiling_bits = MS3_TILED_SURFACE;
-	if (src_tiling == I915_TILING_Y)
-		tiling_bits |= MS3_TILE_WALK;
+	if (use_fence) {
+		tiling_bits = MS3_USE_FENCE_REGS;
+	} else {
+		tiling_bits = 0;
+		if (src_tiling != I915_TILING_NONE)
+			tiling_bits = MS3_TILED_SURFACE;
+		if (src_tiling == I915_TILING_Y)
+			tiling_bits |= MS3_TILE_WALK;
+	}
 
 #define TEX_COUNT 1
 	*b++ = (_3DSTATE_MAP_STATE | (3 * TEX_COUNT));
@@ -225,11 +230,15 @@ render_copy(int fd,
 	*b++ = (0x00000000);
 
 	/* render target state */
-	tiling_bits = 0;
-	if (dst_tiling != I915_TILING_NONE)
-		tiling_bits = BUF_3D_TILED_SURFACE;
-	if (dst_tiling == I915_TILING_Y)
-		tiling_bits |= BUF_3D_TILE_WALK_Y;
+	if (use_fence) {
+		tiling_bits = BUF_3D_USE_FENCE;
+	} else {
+		tiling_bits = 0;
+		if (dst_tiling != I915_TILING_NONE)
+			tiling_bits = BUF_3D_TILED_SURFACE;
+		if (dst_tiling == I915_TILING_Y)
+			tiling_bits |= BUF_3D_TILE_WALK_Y;
+	}
 	*b++ = (_3DSTATE_BUF_INFO_CMD);
 	*b++ = (BUF_3D_ID_COLOR_BACK | tiling_bits | WIDTH*4);
 	*b = fill_reloc(r++, b-batch, dst,
@@ -311,12 +320,16 @@ render_copy(int fd,
 
 	assert(r-reloc == 2);
 
+	tiling_bits = 0;
+	if (use_fence)
+		tiling_bits = EXEC_OBJECT_NEEDS_FENCE;
+
 	obj[0].handle = dst;
 	obj[0].relocation_count = 0;
 	obj[0].relocs_ptr = 0;
 	obj[0].alignment = 0;
 	obj[0].offset = 0;
-	obj[0].flags = 0;
+	obj[0].flags = tiling_bits;
 	obj[0].rsvd1 = 0;
 	obj[0].rsvd2 = 0;
 
@@ -325,7 +338,7 @@ render_copy(int fd,
 	obj[1].relocs_ptr = 0;
 	obj[1].alignment = 0;
 	obj[1].offset = 0;
-	obj[1].flags = 0;
+	obj[1].flags = tiling_bits;
 	obj[1].rsvd1 = 0;
 	obj[1].rsvd2 = 0;
 
@@ -432,6 +445,19 @@ static void blt_copy(int fd, uint32_t dst, uint32_t src)
 	assert(ret == 0);
 
 	gem_close(fd, handle);
+}
+
+
+static void
+copy(int fd,
+     uint32_t dst, int dst_tiling,
+     uint32_t src, int src_tiling)
+{
+	switch (random() % 3) {
+	case 0: render_copy(fd, dst, dst_tiling, src, src_tiling, 0); break;
+	case 1: render_copy(fd, dst, dst_tiling, src, src_tiling, 1); break;
+	case 2: blt_copy(fd, dst, src); break;
+	}
 }
 
 static void *gem_mmap(int fd, uint32_t handle, int size, int prot)
@@ -543,10 +569,7 @@ int main(int argc, char **argv)
 		int src = i % count;
 		int dst = (i + 1) % count;
 
-		if (random() & 1)
-			render_copy(fd, handle[dst], tiling[dst], handle[src], tiling[src]);
-		else
-			blt_copy(fd, handle[dst], handle[src]);
+		copy(fd, handle[dst], tiling[dst], handle[src], tiling[src]);
 		start_val[dst] = start_val[src];
 	}
 	printf("verifying..."); fflush(stdout);
@@ -559,10 +582,7 @@ int main(int argc, char **argv)
 		int src = (i + 1) % count;
 		int dst = i % count;
 
-		if (random() & 1)
-			render_copy(fd, handle[dst], tiling[dst], handle[src], tiling[src]);
-		else
-			blt_copy(fd, handle[dst], handle[src]);
+		copy(fd, handle[dst], tiling[dst], handle[src], tiling[src]);
 		start_val[dst] = start_val[src];
 	}
 	printf("verifying..."); fflush(stdout);
@@ -578,10 +598,7 @@ int main(int argc, char **argv)
 		while (src == dst)
 			dst = random() % count;
 
-		if (random() & 1)
-			render_copy(fd, handle[dst], tiling[dst], handle[src], tiling[src]);
-		else
-			blt_copy(fd, handle[dst], handle[src]);
+			copy(fd, handle[dst], tiling[dst], handle[src], tiling[src]);
 		start_val[dst] = start_val[src];
 	}
 	printf("verifying..."); fflush(stdout);
