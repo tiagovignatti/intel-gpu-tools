@@ -393,7 +393,7 @@ static void blt_copy(int fd, uint32_t dst, uint32_t src)
 	obj[0].relocs_ptr = 0;
 	obj[0].alignment = 0;
 	obj[0].offset = 0;
-	obj[0].flags = 0;
+	obj[0].flags = EXEC_OBJECT_NEEDS_FENCE;
 	obj[0].rsvd1 = 0;
 	obj[0].rsvd2 = 0;
 
@@ -402,7 +402,7 @@ static void blt_copy(int fd, uint32_t dst, uint32_t src)
 	obj[1].relocs_ptr = 0;
 	obj[1].alignment = 0;
 	obj[1].offset = 0;
-	obj[1].flags = 0;
+	obj[1].flags = EXEC_OBJECT_NEEDS_FENCE;
 	obj[1].rsvd1 = 0;
 	obj[1].rsvd2 = 0;
 
