@@ -34,6 +34,9 @@ TESTS = getversion \
 	gem_fence_thrash \
 	gem_fenced_exec_thrash \
 	gem_gtt_speed \
+	gen3_render_linear_blits \
+	gen3_render_tiledx_blits \
+	gen3_render_tiledy_blits \
 	$(NULL)
 
 HANG = \
