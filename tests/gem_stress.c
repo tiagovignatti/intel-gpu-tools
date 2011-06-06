@@ -408,7 +408,7 @@ static void init_buffer(struct scratch_buf *buf, unsigned size)
 	buf->bo = drm_intel_bo_alloc(bufmgr, "tiled bo", size, 4096);
 	assert(buf->bo);
 	buf->tiling = I915_TILING_NONE;
-	buf->stride = 8192;
+	buf->stride = 4096;
 
 	if (options.no_hw)
 		buf->data = malloc(size);
