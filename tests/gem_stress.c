@@ -317,7 +317,8 @@ static void next_copyfunc(int tile)
 		return;
 	}
 
-	if (copyfunc_seq % 61 == 0) {
+	if (copyfunc_seq % 61 == 0
+			&& options.forced_tiling != I915_TILING_NONE) {
 		if (tile == options.trace_tile)
 			printf(" using fence storm\n");
 		fence_storm = num_fences;
