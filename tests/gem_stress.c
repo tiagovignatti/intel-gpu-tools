@@ -699,7 +699,8 @@ static void parse_options(int argc, char **argv)
 	if (optind < argc)
 		printf("unkown command options\n");
 
-	options.max_dimension = 32767;
+	/* actually 32767, according to docs, but that kills our nice pot calculations. */
+	options.max_dimension = 16*1024;
 	if (options.use_render) {
 		if (IS_GEN2(devid) || IS_GEN3(devid))
 			options.max_dimension = 2048;
