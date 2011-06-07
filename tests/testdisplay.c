@@ -67,6 +67,10 @@
 #include "xf86drmMode.h"
 #include "i915_drm.h"
 
+#ifdef DRM_IOCTL_MODE_ADDFB2
+#define TEST_PLANES 1
+#endif
+
 struct udev_monitor *uevent_monitor;
 drmModeRes *resources;
 int fd, modes;
