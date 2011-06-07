@@ -617,7 +617,8 @@ static void parse_options(int argc, char **argv)
 		{"disable-render", 0, 0, 'r'},
 		{"untiled", 0, 0, 'u'},
 		{"x-tiled", 0, 0, 'x'},
-		{"use-cpu-maps", 0, 0, 'm'}
+		{"use-cpu-maps", 0, 0, 'm'},
+		{"rounds", 1, 0, 'o'},
 	};
 
 	options.scratch_buf_size = 256*4096;
@@ -629,8 +630,9 @@ static void parse_options(int argc, char **argv)
 	options.use_blt = 1;
 	options.forced_tiling = -1;
 	options.use_cpu_maps = 0;
+	options.total_rounds = 512;
 
-	while((c = getopt_long(argc, argv, "ds:g:c:t:rbuxm",
+	while((c = getopt_long(argc, argv, "ds:g:c:t:rbuxmo:",
 			       long_options, &option_index)) != -1) {
 		switch(c) {
 		case 'd':
@@ -690,6 +692,10 @@ static void parse_options(int argc, char **argv)
 			options.use_cpu_maps = 1;
 			options.forced_tiling = I915_TILING_NONE;
 			printf("disabling tiling\n");
+			break;
+		case 'o':
+			options.total_rounds = atoi(optarg);
+			printf("total rounds %i\n", options.total_rounds);
 			break;
 		default:
 			printf("unkown command options\n");
@@ -816,7 +822,7 @@ int main(int argc, char **argv)
 
 	fan_out();
 
-	for (i = 0; i < 512; i++) {
+	for (i = 0; i < options.total_rounds; i++) {
 		printf("round %i\n", i);
 		if (i % 64 == 63) {
 			fan_in_and_check();
