@@ -854,7 +854,7 @@ set_mode(struct connector *c)
 		status = cairo_status(cr);
 		cairo_destroy(cr);
 		if (status)
-			fprintf(stderr, "failed to draw pretty picture %x%d: %s\n",
+			fprintf(stderr, "failed to draw pretty picture %dx%d: %s\n",
 				width, height, cairo_status_to_string(status));
 
 		ret = drmModeAddFB(fd, width, height, depth, bpp,
