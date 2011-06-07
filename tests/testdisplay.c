@@ -71,7 +71,7 @@ struct udev_monitor *uevent_monitor;
 drmModeRes *resources;
 int fd, modes;
 int dump_info = 0, test_all_modes =0, test_preferred_mode = 0, force_mode = 0,
-	test_plane;
+	test_plane, enable_tiling;
 int sleep_between_modes = 5;
 uint32_t depth = 24;
 
@@ -395,14 +395,20 @@ static void gem_close(int fd, uint32_t handle)
 
 static cairo_surface_t *
 allocate_surface(int fd, int width, int height, uint32_t depth, uint32_t bpp,
-		 uint32_t *handle)
+		 uint32_t *handle, int tiled)
 {
 	cairo_format_t format;
+	struct drm_i915_gem_set_tiling set_tiling;
 	int size, stride;
 
-	/* Scan-out has a 64 byte alignment restriction */
-	stride = (width * (bpp / 8) + 63) & -64;
-	size = stride * height;
+	if (tiled) {
+		stride = (width * (bpp / 8) + 511) & ~511;
+		size = stride * height;
+	} else {
+		/* Scan-out has a 64 byte alignment restriction */
+		stride = (width * (bpp / 8) + 63) & ~63;
+		size = stride * height;
+	}
 
 	switch (depth) {
 	case 16:
@@ -425,6 +431,18 @@ allocate_surface(int fd, int width, int height, uint32_t depth, uint32_t bpp,
 	}
 
 	*handle = gem_create(fd, size);
+
+	if (tiled) {
+		set_tiling.handle = *handle;
+		set_tiling.tiling_mode = I915_TILING_X;
+		set_tiling.stride = stride;
+		if (ioctl(fd, DRM_IOCTL_I915_GEM_SET_TILING, &set_tiling)) {
+			fprintf(stderr, "set tiling failed: %s\n",
+				strerror(errno));
+			return NULL;
+		}
+	}
+
 	return cairo_image_surface_create_for_data
 		(gem_mmap(fd, *handle, size, PROT_READ | PROT_WRITE),
 		 format, width, height, stride);
@@ -698,7 +716,7 @@ enable_plane(struct connector *c)
 		return;
 	}
 
-	surface = allocate_surface(fd, width, height, 24, 32, &handle);
+	surface = allocate_surface(fd, width, height, 24, 32, &handle, 1);
 	if (!surface) {
 		fprintf(stderr, "allocation failed %dx%d\n", width, height);
 		return;
@@ -807,7 +825,7 @@ set_mode(struct connector *c)
 		height = c->mode.vdisplay;
 
 		surface = allocate_surface(fd, width, height, depth, bpp,
-					   &handle);
+					   &handle, enable_tiling);
 		if (!surface) {
 			fprintf(stderr, "allocation failed %dx%d\n", width, height);
 			continue;
@@ -917,7 +935,7 @@ static void update_display(void)
 
 extern char *optarg;
 extern int optind, opterr, optopt;
-static char optstr[] = "hiaf:s:d:p";
+static char optstr[] = "hiaf:s:d:pt";
 
 static void usage(char *name)
 {
@@ -927,6 +945,7 @@ static void usage(char *name)
 	fprintf(stderr, "\t-s\t<duration>\tsleep between each mode test\n");
 	fprintf(stderr, "\t-d\t<depth>\tbit depth of scanout buffer\n");
 	fprintf(stderr, "\t-p\ttest overlay plane\n");
+	fprintf(stderr, "\t-t\tuse a tiled framebuffer\n");
 	fprintf(stderr, "\t-f\t<clock MHz>,<hdisp>,<hsync-start>,<hsync-end>,<htotal>,\n");
 	fprintf(stderr, "\t\t<vdisp>,<vsync-start>,<vsync-end>,<vtotal>\n");
 	fprintf(stderr, "\t\ttest force mode\n");
@@ -1012,6 +1031,9 @@ int main(int argc, char **argv)
 			break;
 		case 'p':
 			test_plane = 1;
+			break;
+		case 't':
+			enable_tiling = 1;
 			break;
 		default:
 			fprintf(stderr, "unknown option %c\n", c);
