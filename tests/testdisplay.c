@@ -70,7 +70,8 @@
 struct udev_monitor *uevent_monitor;
 drmModeRes *resources;
 int fd, modes;
-int dump_info = 0, test_all_modes =0, test_preferred_mode = 0, force_mode = 0;
+int dump_info = 0, test_all_modes =0, test_preferred_mode = 0, force_mode = 0,
+	test_plane;
 int sleep_between_modes = 5;
 uint32_t depth = 24;
 
@@ -237,6 +238,45 @@ static void dump_crtcs(void)
 	}
 	printf("\n");
 }
+
+#ifdef TEST_PLANES
+static void dump_planes(void)
+{
+	drmModePlaneRes *plane_resources;
+	drmModePlane *ovr;
+	int i;
+
+	plane_resources = drmModeGetPlaneResources(fd);
+	if (!plane_resources) {
+		fprintf(stderr, "drmModeGetPlaneResources failed: %s\n",
+			strerror(errno));
+		return;
+	}
+
+	printf("Planes:\n");
+	printf("id\tcrtc\tfb\tCRTC x,y\tx,y\tgamma size\n");
+	for (i = 0; i < plane_resources->count_planes; i++) {
+		ovr = drmModeGetPlane(fd, plane_resources->planes[i]);
+		if (!ovr) {
+			fprintf(stderr, "drmModeGetPlane failed: %s\n",
+				strerror(errno));
+			continue;
+		}
+
+		printf("%d\t%d\t%d\t%d,%d\t\t%d,%d\t%d\n",
+		       ovr->plane_id, ovr->crtc_id, ovr->fb_id,
+		       ovr->crtc_x, ovr->crtc_y, ovr->x, ovr->y,
+		       ovr->gamma_size);
+
+		drmModeFreePlane(ovr);
+	}
+	printf("\n");
+
+	return;
+}
+#else
+static void dump_planes(void) { return; }
+#endif
 
 static void connector_find_preferred_mode(struct connector *c)
 {
@@ -576,6 +616,144 @@ paint_output_info(cairo_t *cr, struct connector *c, int width, int height)
 	}
 }
 
+#ifdef TEST_PLANES
+static int
+connector_find_plane(struct connector *c)
+{
+	drmModePlaneRes *plane_resources;
+	drmModePlane *ovr;
+	uint32_t id = 0;
+	int i;
+
+	plane_resources = drmModeGetPlaneResources(fd);
+	if (!plane_resources) {
+		fprintf(stderr, "drmModeGetPlaneResources failed: %s\n",
+			strerror(errno));
+		return 0;
+	}
+
+	for (i = 0; i < plane_resources->count_planes; i++) {
+		ovr = drmModeGetPlane(fd, plane_resources->planes[i]);
+		if (!ovr) {
+			fprintf(stderr, "drmModeGetPlane failed: %s\n",
+				strerror(errno));
+			continue;
+		}
+
+		if (ovr->possible_crtcs & (1<<i)) {
+			id = ovr->plane_id;
+			drmModeFreePlane(ovr);
+			break;
+		}
+		drmModeFreePlane(ovr);
+	}
+
+	return 4;
+	return id;
+}
+
+static void
+paint_plane(cairo_t *cr, int width, int height, int stride)
+{
+	double gr_height, gr_width;
+	int x, y;
+
+	y = height * 0.10;
+	gr_width = width * 0.75;
+	gr_height = height * 0.08;
+	x = (width / 2) - (gr_width / 2);
+
+	paint_color_gradient(cr, x, y, gr_width, gr_height, 1, 0, 0);
+
+	y += gr_height;
+	paint_color_gradient(cr, x, y, gr_width, gr_height, 0, 1, 0);
+
+	y += gr_height;
+	paint_color_gradient(cr, x, y, gr_width, gr_height, 0, 0, 1);
+
+	y += gr_height;
+	paint_color_gradient(cr, x, y, gr_width, gr_height, 1, 1, 1);
+}
+
+static void
+enable_plane(struct connector *c)
+{
+	cairo_surface_t *surface;
+	cairo_status_t status;
+	cairo_t *cr;
+	unsigned int fb_id;
+	uint32_t handle, x, y, plane_id;
+	int width, height;
+	int ret;
+
+	width = c->mode.hdisplay * 0.50;
+	height = c->mode.vdisplay * 0.50;
+
+	x = (c->mode.hdisplay - width) / 2;
+	y = (c->mode.vdisplay - height) / 2;
+
+	plane_id = connector_find_plane(c);
+	if (!plane_id) {
+		fprintf(stderr, "failed to find plane for crtc\n");
+		return;
+	}
+
+	surface = allocate_surface(fd, width, height, 24, 32, &handle);
+	if (!surface) {
+		fprintf(stderr, "allocation failed %dx%d\n", width, height);
+		return;
+	}
+
+	cr = cairo_create(surface);
+
+	paint_plane(cr, width, height,
+		      cairo_image_surface_get_stride(surface));
+	status = cairo_status(cr);
+	cairo_destroy(cr);
+	if (status)
+		fprintf(stderr, "failed to draw plane %dx%d: %s\n",
+			width, height, cairo_status_to_string(status));
+
+	ret = drmModeAddFB2(fd, width, height, V4L2_PIX_FMT_RGB32, 24, 32,
+			   cairo_image_surface_get_stride(surface),
+			   handle, &fb_id);
+	cairo_surface_destroy(surface);
+	gem_close(fd, handle);
+
+	if (ret) {
+		fprintf(stderr, "failed to add fb (%dx%d): %s\n",
+			width, height, strerror(errno));
+		return;
+	}
+
+	if (drmModeSetPlane(fd, plane_id, c->crtc, fb_id, x, y, 0, 0)) {
+		fprintf(stderr, "failed to enable plane: %s\n",
+			strerror(errno));
+		return;
+	}
+}
+
+static void
+disable_plane(struct connector *c)
+{
+	uint32_t plane_id;
+
+	plane_id = connector_find_plane(c);
+	if (!plane_id) {
+		fprintf(stderr, "failed to find plane for crtc\n");
+		return;
+	}
+
+	if (drmModeSetPlane(fd, plane_id, c->crtc, 0, 0, 0, 0, 0)) {
+		fprintf(stderr, "failed to enable plane: %s\n",
+			strerror(errno));
+		return;
+	}
+}
+#else
+static void enable_plane(struct connector *c) { return; }
+#endif
+
 static void
 set_mode(struct connector *c)
 {
@@ -682,6 +860,9 @@ set_mode(struct connector *c)
 			continue;
 		}
 
+		if (test_plane)
+			enable_plane(c);
+
 		if (sleep_between_modes && test_all_modes)
 			sleep(sleep_between_modes);
 	}
@@ -719,7 +900,9 @@ static void update_display(void)
 	if (dump_info) {
 		dump_connectors();
 		dump_crtcs();
+		dump_planes();
 	}
+
 	if (test_preferred_mode || test_all_modes || force_mode) {
 		/* Find any connected displays */
 		for (c = 0; c < resources->count_connectors; c++) {
@@ -734,7 +917,7 @@ static void update_display(void)
 
 extern char *optarg;
 extern int optind, opterr, optopt;
-static char optstr[] = "hiaf:s:d:";
+static char optstr[] = "hiaf:s:d:p";
 
 static void usage(char *name)
 {
@@ -743,6 +926,7 @@ static void usage(char *name)
 	fprintf(stderr, "\t-a\ttest all modes\n");
 	fprintf(stderr, "\t-s\t<duration>\tsleep between each mode test\n");
 	fprintf(stderr, "\t-d\t<depth>\tbit depth of scanout buffer\n");
+	fprintf(stderr, "\t-p\ttest overlay plane\n");
 	fprintf(stderr, "\t-f\t<clock MHz>,<hdisp>,<hsync-start>,<hsync-end>,<htotal>,\n");
 	fprintf(stderr, "\t\t<vdisp>,<vsync-start>,<vsync-end>,<vtotal>\n");
 	fprintf(stderr, "\t\ttest force mode\n");
@@ -825,6 +1009,9 @@ int main(int argc, char **argv)
 		case 'd':
 			depth = atoi(optarg);
 			fprintf(stderr, "using depth %d\n", depth);
+			break;
+		case 'p':
+			test_plane = 1;
 			break;
 		default:
 			fprintf(stderr, "unknown option %c\n", c);
