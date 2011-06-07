@@ -310,7 +310,7 @@ static void connector_find_preferred_mode(struct connector *c)
 
 	/* Find first CRTC not in use */
 	for (i = 0; i < resources->count_crtcs; i++) {
-		if (resources->crtcs[i])
+		if (resources->crtcs[i] && (c->encoder->possible_crtcs & (1<<i)))
 			break;
 	}
 	c->crtc = resources->crtcs[i];
