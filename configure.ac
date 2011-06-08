@@ -95,6 +95,7 @@ AC_CONFIG_FILES([
 	benchmarks/Makefile
 	lib/Makefile
 	man/Makefile
+	scripts/Makefile
 	tests/Makefile
 	tools/Makefile
 ])

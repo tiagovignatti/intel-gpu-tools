@@ -21,4 +21,4 @@
 
 ACLOCAL_AMFLAGS = -I m4 ${ACLOCAL_FLAGS}
 
-SUBDIRS = lib man tests tools benchmarks
+SUBDIRS = lib man tools scripts tests benchmarks
