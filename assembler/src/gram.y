@@ -111,7 +111,7 @@ void set_direct_src_operand(struct src_operand *src, struct direct_reg *reg,
 %token <integer> PUSH MREST POP WAIT DO ENDIF ILLEGAL
 %token <integer> MATH_INST
 
-%token NULL_TOKEN MATH SAMPLER GATEWAY READ WRITE URB THREAD_SPAWNER VME
+%token NULL_TOKEN MATH SAMPLER GATEWAY READ WRITE URB THREAD_SPAWNER VME DATA_PORT
 
 %token MSGLEN RETURNLEN
 %token <integer> ALLOCATE USED COMPLETE TRANSPOSE INTERLEAVE
@@ -1211,6 +1211,43 @@ msgtarget:	NULL_TOKEN
                       fprintf (stderr, "Gen6- donesn't have vme function\n");
                       YYERROR;
 		  }    
+		} 
+
+		| DATA_PORT LPAREN INTEGER COMMA INTEGER COMMA INTEGER COMMA 
+                INTEGER COMMA INTEGER COMMA INTEGER RPAREN
+		{
+                    $$.bits2.send_gen5.sfid = $3;
+                    $$.bits3.generic_gen5.header_present = ($13 != 0);
+
+                    if (gen_level >= 7) {
+                        if ($3 != BRW_MESSAGE_TARGET_DP_SC &&
+                            $3 != BRW_MESSAGE_TARGET_DP_RC &&
+                            $3 != BRW_MESSAGE_TARGET_DP_CC &&
+                            $3 != BRW_MESSAGE_TARGET_DP_DC) {
+                            fprintf (stderr, "error: wrong cache type\n");
+                            YYERROR;
+                        }
+
+                        $$.bits3.dp_gen7.category = $11;
+                        $$.bits3.dp_gen7.binding_table_index = $9;
+                        $$.bits3.dp_gen7.msg_control = $7;
+                        $$.bits3.dp_gen7.msg_type = $5;
+                    } else if (gen_level == 6) {
+                        if ($3 != BRW_MESSAGE_TARGET_DP_SC &&
+                            $3 != BRW_MESSAGE_TARGET_DP_RC &&
+                            $3 != BRW_MESSAGE_TARGET_DP_CC) {
+                            fprintf (stderr, "error: wrong cache type\n");
+                            YYERROR;
+                        }
+
+                        $$.bits3.dp_gen6.send_commit_msg = $11;
+                        $$.bits3.dp_gen6.binding_table_index = $9;
+                        $$.bits3.dp_gen6.msg_control = $7;
+                        $$.bits3.dp_gen6.msg_type = $5;
+                    } else if (gen_level < 5) {
+                        fprintf (stderr, "Gen6- donesn't support data port for sampler/render/constant/data cache\n");
+                        YYERROR;
+                    }
 		} 
 ;
 
