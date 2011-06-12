@@ -193,14 +193,15 @@ static void cpucpy2d(uint32_t *src, unsigned src_stride, unsigned src_x, unsigne
 			if (tmp != expect) {
 			    printf("mismatch at tile %i pos %i, read %i, expected %i, diff %i\n",
 				    logical_tile_no, i*TILE_SIZE + j, tmp, expect, (int) tmp - expect);
-			    if (options.trace_tile >= 0)
+			    if (options.trace_tile >= 0 && options.fail)
 				    exit(1);
 			    failed = 1;
 			}
-			dst[dst_ofs] = tmp;
+			/* when not aborting, correct any errors */
+			dst[dst_ofs] = expect;
 		}
 	}
-	if (failed)
+	if (failed && options.fail)
 		exit(1);
 }
 
@@ -619,6 +620,7 @@ static void parse_options(int argc, char **argv)
 		{"x-tiled", 0, 0, 'x'},
 		{"use-cpu-maps", 0, 0, 'm'},
 		{"rounds", 1, 0, 'o'},
+		{"no-fail", 0, 0, 'f'},
 	};
 
 	options.scratch_buf_size = 256*4096;
@@ -631,8 +633,9 @@ static void parse_options(int argc, char **argv)
 	options.forced_tiling = -1;
 	options.use_cpu_maps = 0;
 	options.total_rounds = 512;
+	options.fail = 1;
 
-	while((c = getopt_long(argc, argv, "ds:g:c:t:rbuxmo:",
+	while((c = getopt_long(argc, argv, "ds:g:c:t:rbuxmo:f",
 			       long_options, &option_index)) != -1) {
 		switch(c) {
 		case 'd':
@@ -696,6 +699,10 @@ static void parse_options(int argc, char **argv)
 		case 'o':
 			options.total_rounds = atoi(optarg);
 			printf("total rounds %i\n", options.total_rounds);
+			break;
+		case 'f':
+			options.fail = 0;
+			printf("not failing when detecting errors\n");
 			break;
 		default:
 			printf("unkown command options\n");

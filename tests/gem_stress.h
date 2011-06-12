@@ -37,6 +37,7 @@ struct option_struct {
     int forced_tiling;
     int use_cpu_maps;
     int total_rounds;
+    int fail;
 };
 
 extern struct option_struct options;
