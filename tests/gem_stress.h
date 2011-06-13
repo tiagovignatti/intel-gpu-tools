@@ -41,6 +41,7 @@ struct option_struct {
     int tiles_per_buf;
     int ducttape;
     int tile_size;
+    int check_render_cpyfn;
 };
 
 extern struct option_struct options;

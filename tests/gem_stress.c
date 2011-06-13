@@ -655,6 +655,8 @@ static void parse_options(int argc, char **argv)
 		{"apply-duct-tape", 0, 0, DUCTAPE},
 #define TILESZ	0xdead0002
 		{"tile-size", 1, 0, TILESZ},
+#define CHCK_RENDER 0xdead0003
+		{"check-render-cpyfn", 0, 0, CHCK_RENDER},
 	};
 
 	options.scratch_buf_size = 256*4096;
@@ -671,6 +673,7 @@ static void parse_options(int argc, char **argv)
 	options.ducttape = 0;
 	options.tile_size = 16;
 	options.tiles_per_buf = options.scratch_buf_size / TILE_BYTES(options.tile_size);
+	options.check_render_cpyfn = 0;
 
 	while((c = getopt_long(argc, argv, "ds:g:c:t:rbuxmo:fp:",
 			       long_options, &option_index)) != -1) {
@@ -755,6 +758,10 @@ static void parse_options(int argc, char **argv)
 			sanitize_tiles_per_buf();
 			printf("til size %i\n", options.tile_size);
 			break;
+		case CHCK_RENDER:
+			options.check_render_cpyfn = 1;
+			printf("checking render copy function\n");
+			break;
 		default:
 			printf("unkown command options\n");
 			break;
@@ -820,6 +827,9 @@ static void check_render_copyfunc(void)
 	struct scratch_buf src, dst;
 	uint32_t *ptr;
 	int i, j, pass;
+
+	if (!options.check_render_cpyfn)
+		return;
 
 	init_buffer(&src, options.scratch_buf_size);
 	init_buffer(&dst, options.scratch_buf_size);
