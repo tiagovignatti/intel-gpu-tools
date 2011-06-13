@@ -95,6 +95,11 @@ static unsigned num_total_tiles = 0;
 int fence_storm = 0;
 static int gpu_busy_load = 10;
 
+struct {
+	unsigned num_failed;
+	unsigned max_failed_reads;
+} stats;
+
 static void tile2xy(struct scratch_buf *buf, unsigned tile, unsigned *x, unsigned *y)
 {
 	assert(tile < buf->num_tiles);
@@ -193,7 +198,7 @@ static void cpucpy2d(uint32_t *src, unsigned src_stride, unsigned src_x, unsigne
 				    logical_tile_no, i*options.tile_size + j, tmp, expect, (int) tmp - expect);
 			    if (options.trace_tile >= 0 && options.fail)
 				    exit(1);
-			    failed = 1;
+			    failed++;
 			}
 			/* when not aborting, correct any errors */
 			dst[dst_ofs] = expect;
@@ -201,6 +206,11 @@ static void cpucpy2d(uint32_t *src, unsigned src_stride, unsigned src_x, unsigne
 	}
 	if (failed && options.fail)
 		exit(1);
+
+	if (failed > stats.max_failed_reads)
+		stats.max_failed_reads = failed;
+	if (failed)
+		stats.num_failed++;
 }
 
 static void cpu_copyfunc(struct scratch_buf *src, unsigned src_x, unsigned src_y,
@@ -916,6 +926,9 @@ int main(int argc, char **argv)
 	}
 
 	fan_in_and_check();
+
+	fprintf(stderr, "num failed tiles %u, max incoherent bytes %lu\n",
+		stats.num_failed, stats.max_failed_reads*sizeof(uint32_t));
 
 	intel_batchbuffer_free(batch);
 	drm_intel_bufmgr_destroy(bufmgr);
