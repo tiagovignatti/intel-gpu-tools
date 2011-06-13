@@ -166,15 +166,15 @@ void gen3_render_copyfunc(struct scratch_buf *src, unsigned src_x, unsigned src_
 	}
 
 	OUT_BATCH(PRIM3D_RECTLIST | (3*4 - 1));
-	emit_vertex(dst_x + TILE_SIZE);
-	emit_vertex(dst_y + TILE_SIZE);
-	emit_vertex(src_x + TILE_SIZE);
-	emit_vertex(src_y + TILE_SIZE);
+	emit_vertex(dst_x + options.tile_size);
+	emit_vertex(dst_y + options.tile_size);
+	emit_vertex(src_x + options.tile_size);
+	emit_vertex(src_y + options.tile_size);
 
 	emit_vertex(dst_x);
-	emit_vertex(dst_y + TILE_SIZE);
+	emit_vertex(dst_y + options.tile_size);
 	emit_vertex(src_x);
-	emit_vertex(src_y + TILE_SIZE);
+	emit_vertex(src_y + options.tile_size);
 
 	emit_vertex(dst_x);
 	emit_vertex(dst_y);

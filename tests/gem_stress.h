@@ -40,6 +40,7 @@ struct option_struct {
     int fail;
     int tiles_per_buf;
     int ducttape;
+    int tile_size;
 };
 
 extern struct option_struct options;
@@ -53,8 +54,7 @@ extern int fence_storm;
 #define MAX_BUFS		4096
 #define SCRATCH_BUF_SIZE	1024*1024
 #define BUSY_BUF_SIZE		(256*4096)
-#define TILE_SIZE		16
-#define TILE_BYTES		(TILE_SIZE*TILE_SIZE*sizeof(uint32_t))
+#define TILE_BYTES(size)	((size)*(size)*sizeof(uint32_t))
 
 void keep_gpu_busy(void);
 

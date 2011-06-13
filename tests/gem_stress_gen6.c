@@ -578,13 +578,13 @@ void gen6_render_copyfunc(struct scratch_buf *src, unsigned src_x, unsigned src_
 	*(uint32_t*)(batch->buffer + offset) =
 		batch_round_upto(VERTEX_SIZE)/VERTEX_SIZE;
 
-	emit_vertex_2s(dst_x + TILE_SIZE, dst_y + TILE_SIZE);
-	emit_vertex_normalized(src_x + TILE_SIZE, buf_width(src));
-	emit_vertex_normalized(src_y + TILE_SIZE, buf_height(src));
+	emit_vertex_2s(dst_x + options.tile_size, dst_y + options.tile_size);
+	emit_vertex_normalized(src_x + options.tile_size, buf_width(src));
+	emit_vertex_normalized(src_y + options.tile_size, buf_height(src));
 
-	emit_vertex_2s(dst_x, dst_y + TILE_SIZE);
+	emit_vertex_2s(dst_x, dst_y + options.tile_size);
 	emit_vertex_normalized(src_x, buf_width(src));
-	emit_vertex_normalized(src_y + TILE_SIZE, buf_height(src));
+	emit_vertex_normalized(src_y + options.tile_size, buf_height(src));
 
 	emit_vertex_2s(dst_x, dst_y);
 	emit_vertex_normalized(src_x, buf_width(src));

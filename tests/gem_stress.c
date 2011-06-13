@@ -98,8 +98,8 @@ static int gpu_busy_load = 10;
 static void tile2xy(struct scratch_buf *buf, unsigned tile, unsigned *x, unsigned *y)
 {
 	assert(tile < buf->num_tiles);
-	*x = (tile*TILE_SIZE) % (buf->stride/sizeof(uint32_t));
-	*y = ((tile*TILE_SIZE) / (buf->stride/sizeof(uint32_t))) * TILE_SIZE;
+	*x = (tile*options.tile_size) % (buf->stride/sizeof(uint32_t));
+	*y = ((tile*options.tile_size) / (buf->stride/sizeof(uint32_t))) * options.tile_size;
 }
 
 static void emit_blt(drm_intel_bo *src_bo, uint32_t src_tiling, unsigned src_pitch,
@@ -181,16 +181,16 @@ static void cpucpy2d(uint32_t *src, unsigned src_stride, unsigned src_x, unsigne
 	int i, j;
 	int failed = 0;
 
-	for (i = 0; i < TILE_SIZE; i++) {
-		for (j = 0; j < TILE_SIZE; j++) {
+	for (i = 0; i < options.tile_size; i++) {
+		for (j = 0; j < options.tile_size; j++) {
 			unsigned dst_ofs = dst_x + j + dst_stride * (dst_y + i);
 			unsigned src_ofs = src_x + j + src_stride * (src_y + i);
-			unsigned expect = logical_tile_no*TILE_SIZE*TILE_SIZE
-			    + i*TILE_SIZE + j;
+			unsigned expect = logical_tile_no*options.tile_size*options.tile_size
+			    + i*options.tile_size + j;
 			uint32_t tmp = src[src_ofs];
 			if (tmp != expect) {
 			    printf("mismatch at tile %i pos %i, read %i, expected %i, diff %i\n",
-				    logical_tile_no, i*TILE_SIZE + j, tmp, expect, (int) tmp - expect);
+				    logical_tile_no, i*options.tile_size + j, tmp, expect, (int) tmp - expect);
 			    if (options.trace_tile >= 0 && options.fail)
 				    exit(1);
 			    failed = 1;
@@ -224,39 +224,39 @@ static void prw_copyfunc(struct scratch_buf *src, unsigned src_x, unsigned src_y
 			 struct scratch_buf *dst, unsigned dst_x, unsigned dst_y,
 			 unsigned logical_tile_no)
 {
-	uint32_t tmp_tile[TILE_SIZE*TILE_SIZE];
+	uint32_t tmp_tile[options.tile_size*options.tile_size];
 	int i;
 
 	if (options.ducttape)
 		drm_intel_bo_wait_rendering(dst->bo);
 
 	if (src->tiling == I915_TILING_NONE) {
-		for (i = 0; i < TILE_SIZE; i++) {
+		for (i = 0; i < options.tile_size; i++) {
 			unsigned ofs = src_x*sizeof(uint32_t) + src->stride*(src_y + i);
 			drm_intel_bo_get_subdata(src->bo, ofs,
-						 TILE_SIZE*sizeof(uint32_t),
-						 tmp_tile + TILE_SIZE*i);
+						 options.tile_size*sizeof(uint32_t),
+						 tmp_tile + options.tile_size*i);
 		}
 	} else {
 		if (options.use_cpu_maps)
 			set_to_cpu_domain(src, 0);
 
 		cpucpy2d(src->data, src->stride/sizeof(uint32_t), src_x, src_y,
-			 tmp_tile, TILE_SIZE, 0, 0, logical_tile_no);
+			 tmp_tile, options.tile_size, 0, 0, logical_tile_no);
 	}
 
 	if (dst->tiling == I915_TILING_NONE) {
-		for (i = 0; i < TILE_SIZE; i++) {
+		for (i = 0; i < options.tile_size; i++) {
 			unsigned ofs = dst_x*sizeof(uint32_t) + dst->stride*(dst_y + i);
 			drm_intel_bo_subdata(dst->bo, ofs,
-					     TILE_SIZE*sizeof(uint32_t),
-					     tmp_tile + TILE_SIZE*i);
+					     options.tile_size*sizeof(uint32_t),
+					     tmp_tile + options.tile_size*i);
 		}
 	} else {
 		if (options.use_cpu_maps)
 			set_to_cpu_domain(dst, 1);
 
-		cpucpy2d(tmp_tile, TILE_SIZE, 0, 0,
+		cpucpy2d(tmp_tile, options.tile_size, 0, 0,
 			 dst->data, dst->stride/sizeof(uint32_t), dst_x, dst_y,
 			 logical_tile_no);
 	}
@@ -273,7 +273,7 @@ static void blitter_copyfunc(struct scratch_buf *src, unsigned src_x, unsigned s
 		keep_gpu_busy();
 
 	emit_blt(src->bo, src->tiling, src->stride, src_x, src_y,
-		 TILE_SIZE, TILE_SIZE,
+		 options.tile_size, options.tile_size,
 		 dst->bo, dst->tiling, dst->stride, dst_x, dst_y);
 
 	if (!(keep_gpu_busy_counter & 1) && !fence_storm)
@@ -357,7 +357,7 @@ static void next_copyfunc(int tile)
 
 static void fan_out(void)
 {
-	uint32_t tmp_tile[TILE_SIZE*TILE_SIZE];
+	uint32_t tmp_tile[options.tile_size*options.tile_size];
 	uint32_t seq = 0;
 	int i, k;
 	unsigned tile, buf_idx, x, y;
@@ -369,13 +369,13 @@ static void fan_out(void)
 
 		tile2xy(&buffers[current_set][buf_idx], tile, &x, &y);
 
-		for (k = 0; k < TILE_SIZE*TILE_SIZE; k++)
+		for (k = 0; k < options.tile_size*options.tile_size; k++)
 			tmp_tile[k] = seq++;
 
 		if (options.use_cpu_maps)
 			set_to_cpu_domain(&buffers[current_set][buf_idx], 1);
 
-		cpucpy2d(tmp_tile, TILE_SIZE, 0, 0,
+		cpucpy2d(tmp_tile, options.tile_size, 0, 0,
 			 buffers[current_set][buf_idx].data,
 			 buffers[current_set][buf_idx].stride / sizeof(uint32_t),
 			 x, y, i);
@@ -387,7 +387,7 @@ static void fan_out(void)
 
 static void fan_in_and_check(void)
 {
-	uint32_t tmp_tile[TILE_SIZE*TILE_SIZE];
+	uint32_t tmp_tile[options.tile_size*options.tile_size];
 	unsigned tile, buf_idx, x, y;
 	int i;
 	for (i = 0; i < num_total_tiles; i++) {
@@ -403,9 +403,30 @@ static void fan_in_and_check(void)
 		cpucpy2d(buffers[current_set][buf_idx].data,
 			 buffers[current_set][buf_idx].stride / sizeof(uint32_t),
 			 x, y,
-			 tmp_tile, TILE_SIZE, 0, 0,
+			 tmp_tile, options.tile_size, 0, 0,
 			 i);
 	}
+}
+
+static void sanitize_stride(struct scratch_buf *buf)
+{
+
+	if (buf_height(buf) > options.max_dimension)
+		buf->stride = options.scratch_buf_size / options.max_dimension;
+
+	if (buf_height(buf) < options.tile_size)
+		buf->stride = options.scratch_buf_size / options.tile_size;
+
+	if (buf_width(buf) < options.tile_size)
+		buf->stride = options.tile_size * sizeof(uint32_t);
+
+	assert(buf->stride <= 8192);
+	assert(buf_width(buf) <= options.max_dimension);
+	assert(buf_height(buf) <= options.max_dimension);
+
+	assert(buf_width(buf) >= options.tile_size);
+	assert(buf_height(buf) >= options.tile_size);
+
 }
 
 static void init_buffer(struct scratch_buf *buf, unsigned size)
@@ -414,6 +435,8 @@ static void init_buffer(struct scratch_buf *buf, unsigned size)
 	assert(buf->bo);
 	buf->tiling = I915_TILING_NONE;
 	buf->stride = 4096;
+
+	sanitize_stride(buf);
 
 	if (options.no_hw)
 		buf->data = malloc(size);
@@ -519,11 +542,7 @@ static void init_set(unsigned set)
 			buffers[set][i].stride = 512 * (1 << r);
 		}
 
-		if (options.scratch_buf_size / buffers[set][i].stride > options.max_dimension)
-			buffers[set][i].stride = options.scratch_buf_size / options.max_dimension;
-		assert(buffers[set][i].stride <= 8192);
-		assert(buf_width(&buffers[set][i]) <= options.max_dimension);
-		assert(buf_height(&buffers[set][i]) <= options.max_dimension);
+		sanitize_stride(&buffers[set][i]);
 
 		set_tiling(buffers[set][i].bo,
 			   &buffers[set][i].tiling,
@@ -608,6 +627,12 @@ static int get_num_fences(void)
 	return val - 2;
 }
 
+static void sanitize_tiles_per_buf(void)
+{
+	if (options.tiles_per_buf > options.scratch_buf_size / TILE_BYTES(options.tile_size))
+		options.tiles_per_buf = options.scratch_buf_size / TILE_BYTES(options.tile_size);
+}
+
 static void parse_options(int argc, char **argv)
 {
 	int c, tmp;
@@ -628,6 +653,8 @@ static void parse_options(int argc, char **argv)
 		{"tiles-per-buf", 0, 0, 'p'},
 #define DUCTAPE 0xdead0001
 		{"apply-duct-tape", 0, 0, DUCTAPE},
+#define TILESZ	0xdead0002
+		{"tile-size", 1, 0, TILESZ},
 	};
 
 	options.scratch_buf_size = 256*4096;
@@ -641,8 +668,9 @@ static void parse_options(int argc, char **argv)
 	options.use_cpu_maps = 0;
 	options.total_rounds = 512;
 	options.fail = 1;
-	options.tiles_per_buf = options.scratch_buf_size / TILE_BYTES;
 	options.ducttape = 0;
+	options.tile_size = 16;
+	options.tiles_per_buf = options.scratch_buf_size / TILE_BYTES(options.tile_size);
 
 	while((c = getopt_long(argc, argv, "ds:g:c:t:rbuxmo:fp:",
 			       long_options, &option_index)) != -1) {
@@ -653,14 +681,15 @@ static void parse_options(int argc, char **argv)
 			break;
 		case 's':
 			tmp = atoi(optarg);
-			if (tmp < TILE_SIZE*8192)
+			if (tmp < options.tile_size*8192)
 				printf("scratch buffer size needs to be at least %i\n",
-				       TILE_SIZE*8192);
+				       options.tile_size*8192);
 			else if (tmp & (tmp - 1)) {
 				printf("scratch buffer size needs to be a power-of-two\n");
 			} else {
 				printf("fixed scratch buffer size to %u\n", tmp);
 				options.scratch_buf_size = tmp;
+				sanitize_tiles_per_buf();
 			}
 			break;
 		case 'g':
@@ -720,6 +749,11 @@ static void parse_options(int argc, char **argv)
 		case DUCTAPE:
 			options.ducttape = 1;
 			printf("applying duct-tape\n");
+			break;
+		case TILESZ:
+			options.tile_size = atoi(optarg);
+			sanitize_tiles_per_buf();
+			printf("til size %i\n", options.tile_size);
 			break;
 		default:
 			printf("unkown command options\n");
@@ -791,19 +825,19 @@ static void check_render_copyfunc(void)
 	init_buffer(&dst, options.scratch_buf_size);
 
 	for (pass = 0; pass < 16; pass++) {
-		int sx = random() % (buf_width(&src)-TILE_SIZE);
-		int sy = random() % (buf_height(&src)-TILE_SIZE);
-		int dx = random() % (buf_width(&dst)-TILE_SIZE);
-		int dy = random() % (buf_height(&dst)-TILE_SIZE);
+		int sx = random() % (buf_width(&src)-options.tile_size);
+		int sy = random() % (buf_height(&src)-options.tile_size);
+		int dx = random() % (buf_width(&dst)-options.tile_size);
+		int dy = random() % (buf_height(&dst)-options.tile_size);
 
 		if (options.use_cpu_maps)
 			set_to_cpu_domain(&src, 1);
 
 		memset(src.data, 0xff, options.scratch_buf_size);
-		for (j = 0; j < TILE_SIZE; j++) {
+		for (j = 0; j < options.tile_size; j++) {
 			ptr = (uint32_t*)((char *)src.data + sx*4 + (sy+j) * src.stride);
-			for (i = 0; i < TILE_SIZE; i++)
-				ptr[i] = j * TILE_SIZE + i;
+			for (i = 0; i < options.tile_size; i++)
+				ptr[i] = j * options.tile_size + i;
 		}
 
 		render_copyfunc(&src, sx, sy, &dst, dx, dy, 0);
@@ -811,12 +845,12 @@ static void check_render_copyfunc(void)
 		if (options.use_cpu_maps)
 			set_to_cpu_domain(&dst, 0);
 
-		for (j = 0; j < TILE_SIZE; j++) {
+		for (j = 0; j < options.tile_size; j++) {
 			ptr = (uint32_t*)((char *)dst.data + dx*4 + (dy+j) * dst.stride);
-			for (i = 0; i < TILE_SIZE; i++)
-				if (ptr[i] != j * TILE_SIZE + i) {
+			for (i = 0; i < options.tile_size; i++)
+				if (ptr[i] != j * options.tile_size + i) {
 					printf("render copyfunc mismatch at (%d, %d): found %d, expected %d\n",
-					       i, j, ptr[i], j*TILE_SIZE + i);
+					       i, j, ptr[i], j*options.tile_size + i);
 				}
 		}
 	}
