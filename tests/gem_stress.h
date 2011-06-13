@@ -38,6 +38,8 @@ struct option_struct {
     int use_cpu_maps;
     int total_rounds;
     int fail;
+    int tiles_per_buf;
+    int ducttape;
 };
 
 extern struct option_struct options;

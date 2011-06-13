@@ -92,8 +92,6 @@ static unsigned current_set = 0;
 static unsigned target_set = 0;
 static unsigned num_total_tiles = 0;
 
-#define TILES_PER_BUF		(num_total_tiles / num_buffers)
-
 int fence_storm = 0;
 static int gpu_busy_load = 10;
 
@@ -209,6 +207,9 @@ static void cpu_copyfunc(struct scratch_buf *src, unsigned src_x, unsigned src_y
 			 struct scratch_buf *dst, unsigned dst_x, unsigned dst_y,
 			 unsigned logical_tile_no)
 {
+	if (options.ducttape)
+		drm_intel_bo_wait_rendering(dst->bo);
+
 	if (options.use_cpu_maps) {
 		set_to_cpu_domain(src, 0);
 		set_to_cpu_domain(dst, 1);
@@ -225,6 +226,9 @@ static void prw_copyfunc(struct scratch_buf *src, unsigned src_x, unsigned src_y
 {
 	uint32_t tmp_tile[TILE_SIZE*TILE_SIZE];
 	int i;
+
+	if (options.ducttape)
+		drm_intel_bo_wait_rendering(dst->bo);
 
 	if (src->tiling == I915_TILING_NONE) {
 		for (i = 0; i < TILE_SIZE; i++) {
@@ -360,8 +364,8 @@ static void fan_out(void)
 
 	for (i = 0; i < num_total_tiles; i++) {
 		tile = i;
-		buf_idx = tile / TILES_PER_BUF;
-		tile %= TILES_PER_BUF;
+		buf_idx = tile / options.tiles_per_buf;
+		tile %= options.tiles_per_buf;
 
 		tile2xy(&buffers[current_set][buf_idx], tile, &x, &y);
 
@@ -388,8 +392,8 @@ static void fan_in_and_check(void)
 	int i;
 	for (i = 0; i < num_total_tiles; i++) {
 		tile = tile_permutation[i];
-		buf_idx = tile / TILES_PER_BUF;
-		tile %= TILES_PER_BUF;
+		buf_idx = tile / options.tiles_per_buf;
+		tile %= options.tiles_per_buf;
 
 		tile2xy(&buffers[current_set][buf_idx], tile, &x, &y);
 
@@ -421,7 +425,7 @@ static void init_buffer(struct scratch_buf *buf, unsigned size)
 		buf->data = buf->bo->virtual;
 	}
 
-	buf->num_tiles = size / TILE_BYTES;
+	buf->num_tiles = options.tiles_per_buf;
 }
 
 static void permute_array(void *array, unsigned size,
@@ -525,7 +529,7 @@ static void init_set(unsigned set)
 			   &buffers[set][i].tiling,
 			   buffers[set][i].stride);
 
-		if (i == options.trace_tile/TILES_PER_BUF)
+		if (options.trace_tile != -1 && i == options.trace_tile/options.tiles_per_buf)
 			printf("changing buffer %i containing tile %i: tiling %i, stride %i\n", i,
 					options.trace_tile,
 					buffers[set][i].tiling, buffers[set][i].stride);
@@ -552,14 +556,14 @@ static void copy_tiles(unsigned *permutation)
 		/* tile_permutation is independent of current_permutation, so
 		 * abuse it to randomize the order of the src bos */
 		idx  = tile_permutation[i];
-		src_buf_idx = idx / TILES_PER_BUF;
-		src_tile = idx % TILES_PER_BUF;
+		src_buf_idx = idx / options.tiles_per_buf;
+		src_tile = idx % options.tiles_per_buf;
 		src_buf = &buffers[current_set][src_buf_idx];
 
 		tile2xy(src_buf, src_tile, &src_x, &src_y);
 
-		dst_buf_idx = permutation[idx] / TILES_PER_BUF;
-		dst_tile = permutation[idx] % TILES_PER_BUF;
+		dst_buf_idx = permutation[idx] / options.tiles_per_buf;
+		dst_tile = permutation[idx] % options.tiles_per_buf;
 		dst_buf = &buffers[target_set][dst_buf_idx];
 
 		tile2xy(dst_buf, dst_tile, &dst_x, &dst_y);
@@ -621,6 +625,9 @@ static void parse_options(int argc, char **argv)
 		{"use-cpu-maps", 0, 0, 'm'},
 		{"rounds", 1, 0, 'o'},
 		{"no-fail", 0, 0, 'f'},
+		{"tiles-per-buf", 0, 0, 'p'},
+#define DUCTAPE 0xdead0001
+		{"apply-duct-tape", 0, 0, DUCTAPE},
 	};
 
 	options.scratch_buf_size = 256*4096;
@@ -634,8 +641,10 @@ static void parse_options(int argc, char **argv)
 	options.use_cpu_maps = 0;
 	options.total_rounds = 512;
 	options.fail = 1;
+	options.tiles_per_buf = options.scratch_buf_size / TILE_BYTES;
+	options.ducttape = 0;
 
-	while((c = getopt_long(argc, argv, "ds:g:c:t:rbuxmo:f",
+	while((c = getopt_long(argc, argv, "ds:g:c:t:rbuxmo:fp:",
 			       long_options, &option_index)) != -1) {
 		switch(c) {
 		case 'd':
@@ -703,6 +712,14 @@ static void parse_options(int argc, char **argv)
 		case 'f':
 			options.fail = 0;
 			printf("not failing when detecting errors\n");
+			break;
+		case 'p':
+			options.tiles_per_buf = atoi(optarg);
+			printf("tiles per buffer %i\n", options.tiles_per_buf);
+			break;
+		case DUCTAPE:
+			options.ducttape = 1;
+			printf("applying duct-tape\n");
 			break;
 		default:
 			printf("unkown command options\n");
