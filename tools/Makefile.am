@@ -13,6 +13,7 @@ bin_PROGRAMS = \
 	intel_reg_snapshot \
 	intel_reg_write \
 	intel_reg_read \
+	forcewaked \
 	$(NULL)
 
 noinst_PROGRAMS = \
