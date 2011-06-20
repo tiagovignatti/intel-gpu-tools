@@ -22,6 +22,7 @@ TESTS = getversion \
 	gem_readwrite \
 	gem_ringfill \
 	gem_mmap \
+	gem_mmap_gtt \
 	gem_pwrite \
 	gem_pread_after_blit \
 	gem_tiled_pread \

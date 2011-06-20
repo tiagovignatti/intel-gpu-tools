@@ -42,6 +42,7 @@ tests/gem_flink
 tests/gem_gtt_speed
 tests/gem_largeobject
 tests/gem_mmap
+tests/gem_mmap_gtt
 tests/gem_pread_after_blit
 tests/gem_pwrite
 tests/gem_readwrite
