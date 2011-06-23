@@ -54,6 +54,7 @@ tests/gem_tiled_pread
 tests/gem_bad_address
 tests/gem_bad_batch
 tests/gem_bad_blit
+tests/gem_bad_length
 tests/gem_hang
 tests/gem_gtt_speed
 tests/gem_stress
