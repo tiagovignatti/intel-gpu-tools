@@ -86,6 +86,16 @@ fi
 
 AC_SUBST([WARN_CFLAGS])
 
+AC_ARG_ENABLE(shader-debugger,
+	      AS_HELP_STRING([--enable-shader-debugger],
+			     [Enable shader debugging support [default=no]]),
+	      [SHADER_DEBUGGER="$enableval"],
+	      [SHADER_DEBUGGER=no])
+AM_CONDITIONAL(HAVE_SHADER_DEBUGGER, [test "x$SHADER_DEBUGGER" = xyes])
+if test "x$SHADER_DEBUGGER" = xyes; then
+	AC_DEFINE(HAVE_SHADER_DEBUGGER, 1, [Have shader debugging support])
+fi
+
 m4_ifndef([XORG_MACROS_VERSION], [AC_FATAL([must install xorg-macros 1.3 or later before running autoconf/autogen])])
 XORG_MACROS_VERSION(1.3)
 XORG_DEFAULT_OPTIONS
@@ -98,5 +108,6 @@ AC_CONFIG_FILES([
 	scripts/Makefile
 	tests/Makefile
 	tools/Makefile
+	debugger/Makefile
 ])
 AC_OUTPUT

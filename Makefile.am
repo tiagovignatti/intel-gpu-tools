@@ -21,4 +21,8 @@
 
 ACLOCAL_AMFLAGS = -I m4 ${ACLOCAL_FLAGS}
 
-SUBDIRS = lib man tools scripts tests benchmarks
+if HAVE_SHADER_DEBUGGER
+SHADER_DEBUGGER_SUBDIR = debugger
+endif
+
+SUBDIRS = lib man tools scripts tests benchmarks $(SHADER_DEBUGGER_SUBDIR)

@@ -1,0 +1,64 @@
+/*
+ * Copyright © 2011 Intel Corporation
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a
+ * copy of this software and associated documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
+ * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ *
+ * Authors:
+ *    Ben Widawsky <ben@bwidawsk.net>
+ *
+ */
+
+#include "debug.h"
+
+#define CR0_0_ME_STATE_CTRL (1 << 31)
+#define CR0_0_BP_SUPPRESS (1 << 15)
+#define CR0_0_SPF_EN (1 << 2)
+#define CR0_0_ACC_DIS (1 << 1)
+#define CR0_1_BES_CTRL (1 << 31)
+#define CR0_1_HALT_CTRL (1 << 30)
+#define CR0_1_SOFT_EXCEPTION_CTRL (1 << 29)
+#define CR0_1_ILLGL_OP_STS (1 << 28)
+#define CR0_1_STACK_OVRFLW_STS (1 << 27)
+
+#define CR0_0_ENTRY_UNMASK (CR0_0_SPF_EN | CR0_0_ACC_DIS)
+// TODO: Need to fix this for non breakpoint case
+#define CR0_1_ENTRY_UNMASK ~(CR0_1_BES_CTRL)
+#define CR0_0_RETURN_MASK ~(CR0_0_ME_STATE_CTRL | CR0_0_SPF_EN | CR0_0_ACC_DIS)
+
+#ifndef SANDYBRIDGE
+	#error Only SandyBridge is supported
+#endif
+
+/* Default flags for an instruction */
+#define FLAGS { ALIGN1, SWITCH, MASK_DISABLE, ACCWRCTRL}
+
+Enter:
+	nop;
+
+	or (1) cr0.0 cr0.0 CR0_0_ENTRY_UNMASK:ud FLAGS;
+
+	/* Clear breakpoint status */
+	and (1) cr0.1 cr0.1 CR0_1_ENTRY_UNMASK:ud FLAGS;
+
+	/* set breakpoint suppress this should be conditional on bes */
+	or  (1) cr0.0 cr0.0 CR0_0_BP_SUPPRESS:ud FLAGS;
+
+	and (1) cr0.0 cr0.0 CR0_0_RETURN_MASK:ud FLAGS;
+	nop;

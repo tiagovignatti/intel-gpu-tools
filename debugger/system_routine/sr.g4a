@@ -1,0 +1,277 @@
+/*
+ * Copyright © 2011 Intel Corporation
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a
+ * copy of this software and associated documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
+ * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ *
+ * Authors:
+ *    Ben Widawsky <ben@bwidawsk.net>
+ *
+ */
+
+#include "debug.h"
+#include "evict.h"
+
+#define CR0_0_ME_STATE_CTRL (1 << 31)
+#define CR0_0_BP_SUPPRESS (1 << 15)
+#define CR0_0_SPF_EN (1 << 2)
+#define CR0_0_ACC_DIS (1 << 1)
+#define CR0_1_BES_CTRL (1 << 31)
+#define CR0_1_HALT_CTRL (1 << 30)
+#define CR0_1_SOFT_EXCEPTION_CTRL (1 << 29)
+#define CR0_1_ILLGL_OP_STS (1 << 28)
+#define CR0_1_STACK_OVRFLW_STS (1 << 27)
+
+#define CR0_0_ENTRY_UNMASK (CR0_0_SPF_EN | CR0_0_ACC_DIS)
+// TODO: Need to fix this for non breakpoint case
+#define CR0_1_ENTRY_UNMASK ~(CR0_1_BES_CTRL)
+#define CR0_0_RETURN_MASK ~(CR0_0_ME_STATE_CTRL | CR0_0_SPF_EN | CR0_0_ACC_DIS)
+
+// TODO: not sure how to make this not hardcoded
+#define PER_THREAD_SCRATCH_SIZE (1 << 20)
+#define PER_THREAD_QWORDS (PER_THREAD_SCRATCH_SIZE >> 4)
+
+/* Should get this from brw_defines.h */
+#define BRW_DATAPORT_OWORD_BLOCK_2_OWORDS     		2
+#define BRW_DATAPORT_OWORD_BLOCK_4_OWORDS     		3
+#define BRW_DATAPORT_OWORD_BLOCK_8_OWORDS     		4
+#define GEN6_DATAPORT_WRITE_MESSAGE_OWORD_BLOCK_WRITE	8
+#define BRW_DATAPORT_READ_MESSAGE_OWORD_BLOCK_READ	0
+
+/* desc field, ie. dword3 6.3.66.2 and 2.11.2.1.4 */
+#define SEND_MLEN_5		(5<<25)
+#define SEND_MLEN_3		(3<<25)
+#define SEND_MLEN_2		(2<<25)
+#define SEND_MLEN_1		(1<<25)
+#define SEND_RLEN_1		(1<<20)
+#define SEND_RLEN_0		(0<<20)
+#define SEND_HEADER_PRESENT	(1<<19)
+#define SEND_WRITE_COMMIT	(1<<17)
+#define SEND_TYPE_WRITE	(GEN6_DATAPORT_WRITE_MESSAGE_OWORD_BLOCK_WRITE<<13)
+#define SEND_TYPE_READ	(BRW_DATAPORT_READ_MESSAGE_OWORD_BLOCK_READ<<13)
+#define SEND_BLOCK_SIZE1	(BRW_DATAPORT_OWORD_BLOCK_2_OWORDS<<8)
+#define SEND_BLOCK_SIZE2	(BRW_DATAPORT_OWORD_BLOCK_4_OWORDS<<8)
+#define SEND_BLOCK_SIZE4	(BRW_DATAPORT_OWORD_BLOCK_8_OWORDS<<8)
+#define SEND_BINDING_TABLE	(255<<0)
+// No write commit
+#define WRITE_DESC1_XXX SEND_BINDING_TABLE | SEND_BLOCK_SIZE1 | SEND_TYPE_WRITE | SEND_HEADER_PRESENT | SEND_MLEN_2
+#define WRITE_DESC1_WC SEND_BINDING_TABLE | SEND_BLOCK_SIZE1 | SEND_TYPE_WRITE | SEND_HEADER_PRESENT | SEND_MLEN_2 | SEND_WRITE_COMMIT
+#define WRITE_DESC2 SEND_BINDING_TABLE | SEND_BLOCK_SIZE2 | SEND_TYPE_WRITE | SEND_HEADER_PRESENT | SEND_MLEN_3
+#define WRITE_DESC4 SEND_BINDING_TABLE | SEND_BLOCK_SIZE4 | SEND_TYPE_WRITE | SEND_HEADER_PRESENT | SEND_MLEN_5
+#define RECV_DESC1 SEND_BINDING_TABLE | SEND_BLOCK_SIZE1 | SEND_TYPE_READ | SEND_HEADER_PRESENT | SEND_MLEN_1 | SEND_RLEN_1
+//#define SEND_DESC1 0x40902FF
+#define SEND_DESC1_WC 0x40b02FF
+
+/* ex_desc field 6.3.66.2 */
+#define SEND_DP_RENDER_CACHE	(5<<0)
+#define SEND_EOT		(1<<5)
+#define SEND_EX_DESC SEND_DP_RENDER_CACHE
+
+/**
+ * WRITE_SCRATCH1 - Write 2 owords.
+ * cdst.2 - offset
+ * cdst.5 - per thread scratch base, relative to gsba??
+ * cdst+1 - data to be written.
+ */
+#define WRITE_SCRATCH1(cdst) \
+	send (16) null cdst SEND_EX_DESC WRITE_DESC1_XXX FLAGS
+#define WRITE_SCRATCH1_WC(cdst) \
+	send (16) g1 cdst SEND_EX_DESC WRITE_DESC1_WC FLAGS
+#define WRITE_SCRATCH2(cdst) \
+	send (16) null cdst SEND_EX_DESC WRITE_DESC2 FLAGS
+#define WRITE_SCRATCH4(cdst) \
+	send (16) null cdst SEND_EX_DESC WRITE_DESC4 FLAGS
+
+/**
+ * READ_SCRATCH1 - Read 2 owords.
+ * cdst.2 - offset
+ * cdst.5 - per thread scratch base, relative to gsba??
+ * grf - register where read data is populated.
+ */
+#define READ_SCRATCH1(grf, cdst) \
+	send (16) grf:ud cdst SEND_EX_DESC RECV_DESC1 FLAGS
+
+/**
+ * SET_OFFSET - setup mrf for the given offset prior to a send instruction.
+ * mrf - message register to be used as the header.
+ * offset - offset.
+ *
+ * If a WRITE_SCRATCH follows, mrf+1 -> mrf+1+n should contain the data to be
+ * written.
+ */
+#define SET_OFFSET(mrf, offset) \
+	mov (1) mrf.5:ud g0.5:ud FLAGS; \
+	mov (1) mrf.2:ud offset:ud FLAGS
+
+/**
+ * SAVE_CRF - save the control register
+ * clobbers: m0.2, m0.5
+ */
+#define CR_OFFSET 0x40
+#define SAVE_CRF \
+	SET_OFFSET(m0, CR_OFFSET); \
+	mov (8) m1:ud 0xdeadbeef:ud FLAGS; \
+	mov (1) m1.0:ud cr0.0 FLAGS; \
+	mov (1) m1.1:ud cr0.1 FLAGS; \
+	mov (1) m1.2:ud cr0.2 FLAGS; \
+	mov (1) m1.3:ud sr0:ud FLAGS; \
+	WRITE_SCRATCH1(m0)
+
+/*
+ * clobbers: m0.2, m0.5
+ */
+#define STORE_GRF(grf, offset) \
+	SET_OFFSET(m0, offset); \
+	mov (8) m1:ud grf:ud FLAGS; \
+	WRITE_SCRATCH1(m0)
+
+/*
+ * clobbers: m0.2, m0.5
+ */
+#define LOAD_GRF(grf, offset) \
+	SET_OFFSET(m0, offset); \
+	READ_SCRATCH1(grf, m0)
+
+/*
+ * clobbers: mrf.2 mrf.5
+ */
+#define STORE_MRF(mrf, offset) \
+	SET_OFFSET(mrf, offset); \
+	WRITE_SCRATCH1(mrf)
+
+/*
+ * non-quirky semantics, unlike STORE_MRF
+ * clobbers: g1
+ */
+#define LOAD_MRF(mrf, offset) \
+	LOAD_GRF(g1, offset); \
+	mov (8) mrf:ud g1:ud FLAGS
+
+#define SAVE_ALL_MRF \
+	/* m1 is saved already */ \
+	STORE_MRF(m1, 0x2); \
+	STORE_MRF(m2, 0x4); \
+	STORE_MRF(m3, 0x6); \
+	STORE_MRF(m4, 0x8); \
+	STORE_MRF(m5, 0xa); \
+	STORE_MRF(m6, 0xc); \
+	STORE_MRF(m7, 0xe); \
+	STORE_MRF(m8, 0x10); \
+	STORE_MRF(m9, 0x12); \
+	STORE_MRF(m10, 0x14); \
+	STORE_MRF(m11, 0x16); \
+	STORE_MRF(m12, 0x18); \
+	STORE_MRF(m13, 0x1a); \
+	STORE_MRF(m14, 0x1c)
+
+#define RESTORE_ALL_MRF \
+	LOAD_MRF(m15, 0x1c); \
+	LOAD_MRF(m14, 0x1a); \
+	LOAD_MRF(m13, 0x18); \
+	LOAD_MRF(m12, 0x16); \
+	LOAD_MRF(m11, 0x14); \
+	LOAD_MRF(m10, 0x12); \
+	LOAD_MRF(m9, 0x10); \
+	LOAD_MRF(m8, 0xe); \
+	LOAD_MRF(m7, 0xc); \
+	LOAD_MRF(m6, 0xa); \
+	LOAD_MRF(m5, 0x8); \
+	LOAD_MRF(m4, 0x6); \
+	LOAD_MRF(m3, 0x4); \
+	LOAD_MRF(m2, 0x2); \
+	LOAD_MRF(m1, 0x0)
+
+#ifndef SANDYBRIDGE
+	#error Only SandyBridge is supported
+#endif
+
+/* Default flags for an instruction */
+#define FLAGS { ALIGN1, SWITCH, MASK_DISABLE, ACCWRCTRL}
+
+/*
+ * We can clobber m0, and g0.4, everything else must be saved.
+ */
+Enter:
+	nop;
+
+	or (1) cr0.0 cr0.0 CR0_0_ENTRY_UNMASK:ud FLAGS;
+
+	/*
+	 * g0.5 has the per thread scratch space when running in FS or VS.
+	 * If we don't have a valid g0.5, we can calculate a per thread scratch offset
+	 * using the system registers. The problem is we do not have a good way to know
+	 * the offset from GSBA. The system routine will have to be hardcoded or
+	 * dynamically patched with the correct offset.
+	 * TID is in sr0.0[2:0]
+	 * EUID is in sr0.0[11:8]
+	 */
+
+#ifdef GPGPU
+	mov (1) g0.4:ud 0:ud				FLAGS;
+#if 0
+	/* This should work according to the docs, the add blows up */
+	shr (1) g0.8:uw sr0.0:uw 5			FLAGS;
+	add (1) g0.16:ub gr0.16:ub sr0.0:ub		FLAGS;
+#else
+	shr (1) g0.8:uw sr0.0:uw 5			FLAGS;
+	mov (1) g0.9:uw sr0.0:uw			FLAGS;
+	and (1) g0.9:uw g0.9:uw 0x7:uw			FLAGS;
+	add (1) g0.8:uw g0.8:uw g0.9:uw			FLAGS;
+	mov (1) g0.9:uw 0:uw				FLAGS;
+	mul (1) g0.4:ud g0.4:ud PER_THREAD_QWORDS	FLAGS;
+#endif
+#endif
+
+	mov (8) m0:ud 0:ud FLAGS;
+
+	/* Saves must occur in order so as not to clobber the next register */
+	STORE_MRF(m0, 0);
+	STORE_GRF(g0, 0x20);
+	STORE_GRF(g1, 0x22);
+	SAVE_ALL_MRF;
+
+	mov (8) g1:ud STATE_EU_MSG:ud FLAGS;
+	STORE_GRF(g1, STATE_QWORD);
+
+	mov (8) g1:ud DEBUG_PROTOCOL_VERSION:ud FLAGS;
+	STORE_GRF(g1, COMMUNICATION_QWORD);
+
+	SAVE_CRF;
+
+	EVICT_CACHE;
+	wait n1:ud;
+	EVICT_CACHE;
+
+	/* Using this to try to keep coherency */
+	LOAD_GRF(g1, CR_OFFSET);
+	LOAD_GRF(g1, COMMUNICATION_QWORD);
+	LOAD_GRF(g1, STATE_QWORD);
+
+	RESTORE_ALL_MRF;
+	LOAD_GRF(g1, 0x22);
+	LOAD_GRF(g0, 0x20);
+
+	/* Clear breakpoint status */
+	and (1) cr0.1 cr0.1 CR0_1_ENTRY_UNMASK:ud FLAGS;
+
+	/* set breakpoint suppress this should be conditional on bes */
+	or  (1) cr0.0 cr0.0 CR0_0_BP_SUPPRESS:ud FLAGS;
+
+	and (1) cr0.0 cr0.0 CR0_0_RETURN_MASK:ud FLAGS;
+	nop;
