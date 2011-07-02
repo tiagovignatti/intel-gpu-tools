@@ -42,6 +42,7 @@ struct option_struct {
     int ducttape;
     int tile_size;
     int check_render_cpyfn;
+    int use_signal_helper;
 };
 
 extern struct option_struct options;
