@@ -386,7 +386,7 @@ int main(int argc, char **argv)
 
 		if (random() & 1) {
 			copy(fd, gpu[dst], cpu[src]);
-			gpu_val[dst] = gpu_val[src];
+			gpu_val[dst] = cpu_val[src];
 		} else {
 			copy(fd, cpu[dst], gpu[src]);
 			cpu_val[dst] = gpu_val[src];
