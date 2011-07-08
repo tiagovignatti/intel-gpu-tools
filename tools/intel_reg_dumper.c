@@ -143,7 +143,6 @@ DEBUGSTRING(i830_debug_pipeconf)
 {
 	char *enabled = val & PIPEACONF_ENABLE ? "enabled" : "disabled";
 	char *bit30;
-	char *bpc = NULL;
 
 	if (IS_965(devid))
 		bit30 = val & I965_PIPECONF_ACTIVE ? "active" : "inactive";
@@ -152,6 +151,8 @@ DEBUGSTRING(i830_debug_pipeconf)
 		    val & PIPEACONF_DOUBLE_WIDE ? "double-wide" : "single-wide";
 
 	if (HAS_PCH_SPLIT(devid)) {
+		char *bpc;
+
 		switch (val & (7 << 5)) {
 		case PIPECONF_8BPP:
 			bpc = "8bpc";
@@ -165,11 +166,12 @@ DEBUGSTRING(i830_debug_pipeconf)
 		case PIPECONF_12BPP:
 			bpc = "12bpc";
 			break;
+		default:
+			bpc = "invalid bpc";
+			break;
 		}
-	}
-	if (HAS_PCH_SPLIT(devid))
 		snprintf(result, len, "%s, %s, %s", enabled, bit30, bpc);
-	else
+	} else
 		snprintf(result, len, "%s, %s", enabled, bit30);
 }
 
