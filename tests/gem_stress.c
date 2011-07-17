@@ -692,7 +692,7 @@ static void parse_options(int argc, char **argv)
 		{"no-fail", 0, 0, 'f'},
 		{"tiles-per-buf", 0, 0, 'p'},
 #define DUCTAPE 0xdead0001
-		{"apply-duct-tape", 0, 0, DUCTAPE},
+		{"remove-duct-tape", 0, 0, DUCTAPE},
 #define TILESZ	0xdead0002
 		{"tile-size", 1, 0, TILESZ},
 #define CHCK_RENDER 0xdead0003
@@ -711,7 +711,7 @@ static void parse_options(int argc, char **argv)
 	options.use_cpu_maps = 0;
 	options.total_rounds = 512;
 	options.fail = 1;
-	options.ducttape = 0;
+	options.ducttape = 1;
 	options.tile_size = 16;
 	options.tiles_per_buf = options.scratch_buf_size / TILE_BYTES(options.tile_size);
 	options.check_render_cpyfn = 0;
@@ -795,7 +795,7 @@ static void parse_options(int argc, char **argv)
 			printf("tiles per buffer %i\n", options.tiles_per_buf);
 			break;
 		case DUCTAPE:
-			options.ducttape = 1;
+			options.ducttape = 0;
 			printf("applying duct-tape\n");
 			break;
 		case TILESZ:
