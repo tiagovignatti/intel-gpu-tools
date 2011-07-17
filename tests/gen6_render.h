@@ -259,7 +259,10 @@
 #define GEN6_TS_STRG_VAL		       0x7e04
 #define GEN6_TS_RDATA		       0x7e08
 
+/* TD_CTL on gen6 is 0x7000, to not break stuff which depends on this... */
+#ifndef GEN6_TD_CTL
 #define GEN6_TD_CTL		       0x8000
+#endif
 #define GEN6_TD_CTL_MUX_SHIFT	       8
 #define GEN6_TD_CTL_EXTERNAL_HALT_R0_DEBUG_MATCH	   (1 << 7)
 #define GEN6_TD_CTL_FORCE_EXTERNAL_HALT		   (1 << 6)
@@ -565,7 +568,10 @@
 #define GEN6_TS_STRG_VAL		       0x7e04
 #define GEN6_TS_RDATA		       0x7e08
 
-#define GEN6_TD_CTL		       0x8000
+/* TD_CTL on gen6 is 0x7000, to not break stuff which depends on this... */
+#ifndef GEN6_TD_CTL
+#define GEN6_TD_CTL                   0x8000
+#endif
 #define GEN6_TD_CTL_MUX_SHIFT	       8
 #define GEN6_TD_CTL_EXTERNAL_HALT_R0_DEBUG_MATCH	   (1 << 7)
 #define GEN6_TD_CTL_FORCE_EXTERNAL_HALT		   (1 << 6)

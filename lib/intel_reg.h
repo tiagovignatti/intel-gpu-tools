@@ -359,6 +359,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #define THREE_D_INST_DISABLE         0x04
 #define STATE_VAR_UPDATE_DISABLE     0x02
 #define PAL_STIP_DISABLE             0x01
+#define GEN6_GLOBAL_DEBUG_ENABLE     0x10
 
 
 #define MEMMODE                  0x20dc
@@ -3488,5 +3489,8 @@ typedef enum {
 #define  TRANS_DP_HSYNC_ACTIVE_HIGH     (1<<3)
 #define  TRANS_DP_HSYNC_ACTIVE_LOW      0
 
+/* Debug regs */
+#define GEN6_TD_CTL		0x7000 /* <= GEN5 was at 0x8000 */
+#define GEN6_TD_CTL_FORCE_TD_BKPT (1<<4)
 
 #endif /* _I810_REG_H */
