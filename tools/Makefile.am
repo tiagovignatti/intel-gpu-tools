@@ -1,6 +1,7 @@
 bin_PROGRAMS = \
 	intel_disable_clock_gating \
 	intel_audio_dump \
+	intel_backlight \
 	intel_bios_dumper \
 	intel_bios_reader \
 	intel_error_decode \
