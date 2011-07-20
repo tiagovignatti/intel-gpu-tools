@@ -2048,7 +2048,12 @@ decode_3d_965(uint32_t *data, int count, uint32_t hw_offset, uint32_t devid, int
 			data[1] & ~0x3f, ((data[1] & 0x3f) + 1) * 64);
 	return len;
     case 0x6101:
-	if (IS_GEN6(devid))
+	i = 0;
+	instr_out(data, hw_offset, 0,
+		  "STATE_BASE_ADDRESS\n");
+	i++;
+
+	if (IS_GEN6(devid) || IS_GEN7(devid))
 	    sba_len = 10;
 	else if (IS_GEN5(devid))
 	    sba_len = 8;
@@ -2059,24 +2064,19 @@ decode_3d_965(uint32_t *data, int count, uint32_t hw_offset, uint32_t devid, int
 	if (len != sba_len)
 	    BUFFER_FAIL(count, len, "STATE_BASE_ADDRESS");
 
-	i = 0;
-	instr_out(data, hw_offset, 0,
-		  "STATE_BASE_ADDRESS\n");
-	i++;
-
 	state_base_out(data, hw_offset, i++, "general");
 	state_base_out(data, hw_offset, i++, "surface");
-	if (IS_GEN6(devid))
+	if (IS_GEN6(devid) || IS_GEN7(devid))
 	    state_base_out(data, hw_offset, i++, "dynamic");
 	state_base_out(data, hw_offset, i++, "indirect");
-	if (IS_GEN5(devid) || IS_GEN6(devid))
+	if (IS_GEN5(devid) || IS_GEN6(devid) || IS_GEN7(devid))
 	    state_base_out(data, hw_offset, i++, "instruction");
 
 	state_max_out(data, hw_offset, i++, "general");
-	if (IS_GEN6(devid))
+	if (IS_GEN6(devid) || IS_GEN7(devid))
 	    state_max_out(data, hw_offset, i++, "dynamic");
 	state_max_out(data, hw_offset, i++, "indirect");
-	if (IS_GEN5(devid) || IS_GEN6(devid))
+	if (IS_GEN5(devid) || IS_GEN6(devid) || IS_GEN7(devid))
 	    state_max_out(data, hw_offset, i++, "instruction");
 
 	return len;
