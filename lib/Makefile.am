@@ -8,6 +8,7 @@ libintel_tools_la_SOURCES = \
 	intel_mmio.c \
 	intel_pci.c \
 	intel_reg.h \
+	intel_reg_map.c \
 	instdone.c \
 	instdone.h \
 	drmtest.h

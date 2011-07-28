@@ -51,6 +51,7 @@ static struct _mmio_data {
 	char debugfs_path[FILENAME_MAX];
 	char debugfs_forcewake_path[FILENAME_MAX];
 	uint32_t i915_devid;
+	struct intel_register_map map;
 	int key;
 } mmio_data;
 
@@ -151,7 +152,7 @@ release_forcewake_lock(int fd)
  * @safe: use safe register access tables
  */
 int
-intel_register_access_init(struct pci_device *pci_dev)
+intel_register_access_init(struct pci_device *pci_dev, int safe)
 {
 	int ret;
 
@@ -164,6 +165,8 @@ intel_register_access_init(struct pci_device *pci_dev)
 	if (mmio_data.inited)
 		return -1;
 
+	mmio_data.safe = safe != 0 ? true : false;
+
 	/* Find where the forcewake lock is */
 	ret = find_debugfs_path("/sys/kernel/debug/dri");
 	if (ret) {
@@ -175,6 +178,8 @@ intel_register_access_init(struct pci_device *pci_dev)
 	}
 
 	mmio_data.i915_devid = pci_dev->device_id;
+	if (mmio_data.safe)
+		mmio_data.map = intel_get_register_map(mmio_data.i915_devid);
 
 	mmio_data.key = get_forcewake_lock();
 	mmio_data.inited++;
@@ -198,6 +203,25 @@ intel_register_read(uint32_t reg)
 
 	if (IS_GEN6(mmio_data.i915_devid))
 		assert(mmio_data.key != -1);
+
+	if (!mmio_data.safe)
+		goto read_out;
+
+	range = intel_get_register_range(mmio_data.map,
+					 reg,
+					 INTEL_RANGE_READ);
+
+	if(!range) {
+		fprintf(stderr, "Register read blocked for safety "
+			"(*0x%08x)\n", reg);
+		ret = 0xffffffff;
+		goto out;
+	}
+
+read_out:
+	ret = *(volatile uint32_t *)((volatile char *)mmio + reg);
+out:
+	return ret;
 }
 
 void
@@ -210,5 +234,18 @@ intel_register_write(uint32_t reg, uint32_t val)
 	if (IS_GEN6(mmio_data.i915_devid))
 		assert(mmio_data.key != -1);
 
+	if (!mmio_data.safe)
+		goto write_out;
+
+	range = intel_get_register_range(mmio_data.map,
+					 reg,
+					 INTEL_RANGE_WRITE);
+
+	if (!range) {
+		fprintf(stderr, "Register write blocked for safety "
+			"(*0x%08x = 0x%x)\n", reg, val);
+	}
+
+write_out:
 	*(volatile uint32_t *)((volatile char *)mmio + reg) = val;
 }

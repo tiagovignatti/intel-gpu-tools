@@ -38,10 +38,31 @@ extern void *mmio;
 void intel_get_mmio(struct pci_device *pci_dev);
 
 /* New style register access API */
-int intel_register_access_init(struct pci_device *pci_dev);
+int intel_register_access_init(struct pci_device *pci_dev, int safe);
 void intel_register_access_fini(void);
 uint32_t intel_register_read(uint32_t reg);
 void intel_register_write(uint32_t reg, uint32_t val);
+
+#define INTEL_RANGE_RSVD	(0<<0) /*  Shouldn't be read or written */
+#define INTEL_RANGE_READ	(1<<0)
+#define INTEL_RANGE_WRITE	(1<<1)
+#define INTEL_RANGE_RW		(INTEL_RANGE_READ | INTEL_RANGE_WRITE)
+#define INTEL_RANGE_END		(1<<31)
+
+struct intel_register_range {
+	uint32_t base;
+	uint32_t size;
+	uint32_t flags;
+};
+
+struct intel_register_map {
+	struct intel_register_range *map;
+	uint32_t top;
+	uint32_t alignment_mask;
+};
+struct intel_register_map intel_get_register_map(uint32_t devid);
+struct intel_register_range *intel_get_register_range(struct intel_register_map map, uint32_t offset, int mode);
+
 
 static inline uint32_t
 INREG(uint32_t reg)

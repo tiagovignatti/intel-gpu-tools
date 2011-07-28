@@ -168,3 +168,11 @@
 
 #define HAS_BLT_RING(devid)	(IS_GEN6(devid) || \
 				 IS_GEN7(devid))
+
+#define IS_BROADWATER(devid)	(devid == PCI_CHIP_I946_GZ || \
+				 devid == PCI_CHIP_I965_G_1 || \
+				 devid == PCI_CHIP_I965_Q || \
+				 devid == PCI_CHIP_I965_G)
+
+#define IS_CRESTLINE(devid)	(devid == PCI_CHIP_I965_GM || \
+				 devid == PCI_CHIP_I965_GME)
