@@ -37,6 +37,12 @@
 extern void *mmio;
 void intel_get_mmio(struct pci_device *pci_dev);
 
+/* New style register access API */
+int intel_register_access_init(struct pci_device *pci_dev);
+void intel_register_access_fini(void);
+uint32_t intel_register_read(uint32_t reg);
+void intel_register_write(uint32_t reg, uint32_t val);
+
 static inline uint32_t
 INREG(uint32_t reg)
 {

@@ -22,12 +22,16 @@
  *
  * Authors:
  *    Eric Anholt <eric@anholt.net>
+ *    Ben Widawsky <ben@bwidawsk.net>
  *
  */
 
 #include <unistd.h>
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdarg.h>
+#include <stdlib.h>
+#include <stdint.h>
+#include <stdbool.h>
 #include <string.h>
 #include <errno.h>
 #include <err.h>
@@ -40,6 +44,15 @@
 #include "intel_gpu_tools.h"
 
 void *mmio;
+
+static struct _mmio_data {
+	int inited;
+	bool safe;
+	char debugfs_path[FILENAME_MAX];
+	char debugfs_forcewake_path[FILENAME_MAX];
+	uint32_t i915_devid;
+	int key;
+} mmio_data;
 
 void
 intel_map_file(char *file)
@@ -89,3 +102,113 @@ intel_get_mmio(struct pci_device *pci_dev)
 	}
 }
 
+/*
+ * If successful, i915_debugfs_path and i915_debugfs_forcewake_path are both
+ * updated with the correct path.
+ */
+static int
+find_debugfs_path(char *dri_base)
+{
+	char buf[FILENAME_MAX];
+	struct stat sb;
+	int i, ret;
+
+	for (i = 0; i < 16; i++) {
+		snprintf(buf, FILENAME_MAX, "%s/%i/name", dri_base, i);
+
+		snprintf(mmio_data.debugfs_path, FILENAME_MAX,
+			 "%s/%i/", dri_base, i);
+		snprintf(mmio_data.debugfs_forcewake_path, FILENAME_MAX,
+			 "%s/%i/i915_forcewake_user", dri_base, i);
+
+		ret = stat(mmio_data.debugfs_forcewake_path, &sb);
+		if (ret) {
+			mmio_data.debugfs_path[0] = 0;
+			mmio_data.debugfs_forcewake_path[0] = 0;
+		} else
+			return 0;
+	}
+
+	return -1;
+}
+
+static int
+get_forcewake_lock(void)
+{
+	return open(mmio_data.debugfs_forcewake_path, 0);
+}
+
+static void
+release_forcewake_lock(int fd)
+{
+	close(fd);
+}
+
+/*
+ * Initialize register access library.
+ *
+ * @pci_dev: pci device we're mucking with
+ * @safe: use safe register access tables
+ */
+int
+intel_register_access_init(struct pci_device *pci_dev)
+{
+	int ret;
+
+	/* after old API is deprecated, remove this */
+	if (mmio == NULL)
+		intel_get_mmio(pci_dev);
+
+	assert(mmio != NULL);
+
+	if (mmio_data.inited)
+		return -1;
+
+	/* Find where the forcewake lock is */
+	ret = find_debugfs_path("/sys/kernel/debug/dri");
+	if (ret) {
+		ret = find_debugfs_path("/debug/dri");
+		if (ret) {
+			fprintf(stderr, "Couldn't find path to dri/debugfs entry\n");
+			return ret;
+		}
+	}
+
+	mmio_data.i915_devid = pci_dev->device_id;
+
+	mmio_data.key = get_forcewake_lock();
+	mmio_data.inited++;
+	return 0;
+}
+
+void
+intel_register_access_fini(void)
+{
+	release_forcewake_lock(mmio_data.key);
+	mmio_data.inited--;
+}
+
+uint32_t
+intel_register_read(uint32_t reg)
+{
+	struct intel_register_range *range;
+	uint32_t ret;
+
+	assert(mmio_data.inited);
+
+	if (IS_GEN6(mmio_data.i915_devid))
+		assert(mmio_data.key != -1);
+}
+
+void
+intel_register_write(uint32_t reg, uint32_t val)
+{
+	struct intel_register_range *range;
+
+	assert(mmio_data.inited);
+
+	if (IS_GEN6(mmio_data.i915_devid))
+		assert(mmio_data.key != -1);
+
+	*(volatile uint32_t *)((volatile char *)mmio + reg) = val;
+}
