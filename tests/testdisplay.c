@@ -414,7 +414,7 @@ allocate_surface(int fd, int width, int height, uint32_t depth, uint32_t bpp,
 
 	if (tiled) {
 		stride = (width * (bpp / 8) + 511) & ~511;
-		size = stride * height;
+		size = stride * (height + 7) & ~7;
 	} else {
 		/* Scan-out has a 64 byte alignment restriction */
 		stride = (width * (bpp / 8) + 63) & ~63;
