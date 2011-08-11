@@ -169,6 +169,7 @@ void set_direct_src_operand(struct src_operand *src, struct direct_reg *reg,
 /* %type <direct_reg>  maskstackdepthreg */
 %type <direct_reg> statereg controlreg ipreg nullreg
 %type <direct_reg> dstoperandex_typed srcarchoperandex_typed
+%type <direct_reg> sendleadreg
 %type <indirect_reg> indirectgenreg indirectmsgreg addrparam
 %type <integer> mask_subreg maskstack_subreg 
 %type <integer> declare_elementsize declare_dstregion declare_type
@@ -529,7 +530,7 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
                           $12.bits3.generic.end_of_thread;
 		  }
 		}
-		| predicate SEND execsize dst directmsgreg payload directsrcoperand instoptions
+		| predicate SEND execsize dst sendleadreg payload directsrcoperand instoptions
 		{
 		  bzero(&$$, sizeof($$));
 		  $$.header.opcode = $2;
@@ -546,7 +547,7 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
 		  if (set_instruction_src1(&$$, &$7) != 0)
 		    YYERROR;
 		  }
-		| predicate SEND execsize dst directmsgreg payload imm32reg instoptions
+		| predicate SEND execsize dst sendleadreg payload imm32reg instoptions
                 {
 		  if ($7.reg_type != BRW_REGISTER_TYPE_UD &&
 		  	  $7.reg_type != BRW_REGISTER_TYPE_D &&
@@ -568,7 +569,7 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
 		  $$.bits1.da1.src1_reg_type = $7.reg_type;
 		  $$.bits3.ud = $7.imm32;
                 }
-		| predicate SEND execsize dst directmsgreg sndopr imm32reg instoptions
+		| predicate SEND execsize dst sendleadreg sndopr imm32reg instoptions
 		{
 		  struct src_operand src0;
 
@@ -596,12 +597,14 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
                   memset(&src0, 0, sizeof(src0));
                   src0.address_mode = BRW_ADDRESS_DIRECT;
 
-                  if (gen_level >= 7)
+                  if (gen_level >= 7) {
                       src0.reg_file = BRW_GENERAL_REGISTER_FILE;
-                  else
+                      src0.reg_type = BRW_REGISTER_TYPE_UB;
+                  } else {
                       src0.reg_file = BRW_MESSAGE_REGISTER_FILE;
+                      src0.reg_type = BRW_REGISTER_TYPE_D;
+                  }
 
-                  src0.reg_type = BRW_REGISTER_TYPE_D;
                   src0.reg_nr = $5.reg_nr;
                   src0.subreg_nr = 0;
                   set_instruction_src0(&$$, &src0);
@@ -611,7 +614,51 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
                   $$.bits3.ud = $7.imm32;
                   $$.bits3.generic_gen5.end_of_thread = !!($6 & EX_DESC_EOT_MASK);
 		}
-		| predicate SEND execsize dst directmsgreg payload sndopr imm32reg instoptions
+		| predicate SEND execsize dst sendleadreg sndopr directsrcoperand instoptions
+		{
+		  struct src_operand src0;
+
+		  if (gen_level < 6) {
+                      fprintf(stderr, "error: the syntax of send instruction\n");
+                      YYERROR;
+		  }
+
+                  if ($7.reg_file != BRW_ARCHITECTURE_REGISTER_FILE ||
+                      ($7.reg_nr & 0xF0) != BRW_ARF_ADDRESS ||
+                      ($7.reg_nr & 0x0F) != 0 ||
+                      $7.subreg_nr != 0) {
+                      fprintf (stderr, "%d: scalar register must be a0.0<0;1,0>:ud\n", yylineno);
+                      YYERROR;
+		  }
+
+		  bzero(&$$, sizeof($$));
+		  $$.header.opcode = $2;
+		  $$.header.execution_size = $3;
+                  $$.header.sfid_destreg__conditionalmod = ($6 & EX_DESC_SFID_MASK); /* SFID */
+		  set_instruction_predicate(&$$, &$1);
+
+		  if (set_instruction_dest(&$$, &$4) != 0)
+                      YYERROR;
+
+                  memset(&src0, 0, sizeof(src0));
+                  src0.address_mode = BRW_ADDRESS_DIRECT;
+
+                  if (gen_level >= 7) {
+                      src0.reg_file = BRW_GENERAL_REGISTER_FILE;
+                      src0.reg_type = BRW_REGISTER_TYPE_UB;
+                  } else {
+                      src0.reg_file = BRW_MESSAGE_REGISTER_FILE;
+                      src0.reg_type = BRW_REGISTER_TYPE_D;
+                  }
+
+                  src0.reg_nr = $5.reg_nr;
+                  src0.subreg_nr = 0;
+                  set_instruction_src0(&$$, &src0);
+
+                  set_instruction_src1(&$$, &$7);
+                  $$.bits3.generic_gen5.end_of_thread = !!($6 & EX_DESC_EOT_MASK);
+		}
+		| predicate SEND execsize dst sendleadreg payload sndopr imm32reg instoptions
 		{
 		  if ($8.reg_type != BRW_REGISTER_TYPE_UD &&
 		  	  $8.reg_type != BRW_REGISTER_TYPE_D &&
@@ -639,7 +686,7 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
 		  else
 		      $$.bits3.ud = $8.imm32;
 		}
-		| predicate SEND execsize dst directmsgreg payload exp directsrcoperand instoptions
+		| predicate SEND execsize dst sendleadreg payload exp directsrcoperand instoptions
 		{
 		  bzero(&$$, sizeof($$));
 		  $$.header.opcode = $2;
@@ -1591,6 +1638,9 @@ srcarchoperandex: srcarchoperandex_typed region regtype
 ;
 
 srcarchoperandex_typed: flagreg | addrreg | maskreg
+;
+
+sendleadreg: directgenreg | directmsgreg
 ;
 
 src:		directsrcoperand | indirectsrcoperand
