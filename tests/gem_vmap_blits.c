@@ -53,6 +53,11 @@
 
 #if !defined(I915_PARAM_HAS_VMAP)
 #warning No vmap support in drm, skipping
+int main(int argc, char **argv)
+{
+	fprintf(stderr, "No vmap support in drm.\n");
+	return 77;
+}
 #else
 
 #define WIDTH 512
