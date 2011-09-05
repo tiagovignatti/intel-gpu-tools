@@ -1,5 +1,6 @@
 /*
  * Copyright © 2007 Intel Corporation
+ * Copyright © 2011 Intel Corporation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -22,6 +23,7 @@
  *
  * Authors:
  *    Eric Anholt <eric@anholt.net>
+ *    Eugeni Dodonov <eugeni.dodonov@intel.com>
  *
  */
 
@@ -30,6 +32,7 @@
 #include <stdio.h>
 #include <err.h>
 #include <sys/ioctl.h>
+#include <sys/time.h>
 #include "intel_gpu_tools.h"
 #include "instdone.h"
 
@@ -103,6 +106,14 @@ const char *stats_reg_names[STATS_COUNT] = {
 
 uint64_t stats[STATS_COUNT];
 uint64_t last_stats[STATS_COUNT];
+
+static unsigned long
+gettime(void)
+{
+    struct timeval t;
+    gettimeofday(&t, NULL);
+    return (t.tv_usec + (t.tv_sec * 1000000));
+}
 
 static int
 top_bits_sort(const void *a, const void *b)
@@ -362,21 +373,23 @@ static void ring_sample(struct ring *ring)
 	ring->full += full;
 }
 
-static void ring_print(struct ring *ring)
+static void ring_print(struct ring *ring, unsigned long samples_per_sec)
 {
-	int percent, len;
+	int samples_to_percent_ratio, percent, len;
 
 	if (!ring->size)
 		return;
 
-	percent = 100 - ring->idle / SAMPLES_TO_PERCENT_RATIO;
+	/* Calculate current value of samples_to_percent_ratio */
+	samples_to_percent_ratio = (ring->idle * 100) / samples_per_sec;
+	percent = 100 - samples_to_percent_ratio;
 	len = printf("%25s busy: %3d%%: ", ring->name, percent);
 	print_percentage_bar (percent, len);
 	printf("%24s space: %d/%d (%d%%)\n",
 	       ring->name,
-	       (int)(ring->full / SAMPLES_PER_SEC),
+	       (int)(ring->full / samples_per_sec),
 	       ring->size,
-	       (int)((ring->full / SAMPLES_TO_PERCENT_RATIO) / ring->size));
+	       (int)((ring->full / samples_to_percent_ratio) / ring->size));
 }
 
 int main(int argc, char **argv)
@@ -418,11 +431,16 @@ int main(int argc, char **argv)
 
 	for (;;) {
 		int j;
+		unsigned long long t1, ti, tf;
+		unsigned long long def_sleep = 1000000 / SAMPLES_PER_SEC;
+		unsigned long long last_samples_per_sec = SAMPLES_PER_SEC;
 		char clear_screen[] = {0x1b, '[', 'H',
 				       0x1b, '[', 'J',
 				       0x0};
 		int percent;
 		int len;
+
+		t1 = gettime();
 
 		ring_reset(&render_ring);
 		ring_reset(&bsd_ring);
@@ -430,6 +448,8 @@ int main(int argc, char **argv)
 		ring_reset(&blt_ring);
 
 		for (i = 0; i < SAMPLES_PER_SEC; i++) {
+			long long interval;
+			ti = gettime();
 			if (IS_965(devid)) {
 				instdone = INREG(INST_DONE_I965);
 				instdone1 = INREG(INST_DONE_1);
@@ -443,7 +463,16 @@ int main(int argc, char **argv)
 			ring_sample(&bsd_ring);
 			ring_sample(&bsd6_ring);
 			ring_sample(&blt_ring);
-			usleep(1000000 / SAMPLES_PER_SEC);
+
+			tf = gettime();
+			if (tf - t1 >= 1000000) {
+				/* We are out of sync, bail out */
+				last_samples_per_sec = i+1;
+				break;
+			}
+			interval = def_sleep - (tf - ti);
+			if (interval > 0)
+				usleep(interval);
 		}
 
 		if (HAS_STATS_REGS(devid)) {
@@ -477,16 +506,16 @@ int main(int argc, char **argv)
 
 		print_clock_info(pci_dev);
 
-		ring_print(&render_ring);
-		ring_print(&bsd_ring);
-		ring_print(&bsd6_ring);
-		ring_print(&blt_ring);
+		ring_print(&render_ring, last_samples_per_sec);
+		ring_print(&bsd_ring, last_samples_per_sec);
+		ring_print(&bsd6_ring, last_samples_per_sec);
+		ring_print(&blt_ring, last_samples_per_sec);
 
 		printf("\n%30s  %s\n", "task", "percent busy");
 		for (i = 0; i < max_lines; i++) {
 			if (top_bits_sorted[i]->count > 0) {
-				percent = top_bits_sorted[i]->count /
-					SAMPLES_TO_PERCENT_RATIO;
+				percent = (top_bits_sorted[i]->count * 100) /
+					last_samples_per_sec;
 				len = printf("%30s: %3d%%: ",
 					     top_bits_sorted[i]->bit->name,
 					     percent);
