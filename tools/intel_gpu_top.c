@@ -392,6 +392,23 @@ static void ring_print(struct ring *ring, unsigned long samples_per_sec)
 	       (int)((ring->full / samples_to_percent_ratio) / ring->size));
 }
 
+static void
+usage(const char *appname)
+{
+	printf("intel_gpu_top - Display a top-like summary of Intel GPU usage\n"
+			"\n"
+			"usage: %s [parameters]\n"
+			"\n"
+			"The following parameters apply:\n"
+			"[-s <samples>]       samples per seconds (default %d)\n"
+			"[-h]                 show this help screen\n"
+			"\n",
+			appname,
+			SAMPLES_PER_SEC
+		  );
+	return;
+}
+
 int main(int argc, char **argv)
 {
 	struct pci_device *pci_dev;
@@ -408,7 +425,32 @@ int main(int argc, char **argv)
 		.name = "blitter",
 		.mmio = 0x22030,
 	};
-	int i;
+	int i, ch;
+	int samples_per_sec = SAMPLES_PER_SEC;
+
+	/* Parse options? */
+	while ((ch = getopt(argc, argv, "s:h")) != -1)
+	{
+		switch (ch) {
+		case 's': samples_per_sec = atoi(optarg);
+			if (samples_per_sec < 100) {
+				fprintf(stderr, "Error: samples per second must be >= 100\n");
+				exit(1);
+			}
+			break;
+		case 'h':
+			usage(argv[0]);
+			exit(0);
+			break;
+		default:
+			fprintf(stderr, "Invalid flag %c!\n", (char)optopt);
+			usage(argv[0]);
+			exit(1);
+			break;
+		}
+	}
+	argc -= optind;
+	argv += optind;
 
 	pci_dev = intel_get_pci_device();
 	devid = pci_dev->device_id;
@@ -432,8 +474,8 @@ int main(int argc, char **argv)
 	for (;;) {
 		int j;
 		unsigned long long t1, ti, tf;
-		unsigned long long def_sleep = 1000000 / SAMPLES_PER_SEC;
-		unsigned long long last_samples_per_sec = SAMPLES_PER_SEC;
+		unsigned long long def_sleep = 1000000 / samples_per_sec;
+		unsigned long long last_samples_per_sec = samples_per_sec;
 		char clear_screen[] = {0x1b, '[', 'H',
 				       0x1b, '[', 'J',
 				       0x0};
@@ -447,7 +489,7 @@ int main(int argc, char **argv)
 		ring_reset(&bsd6_ring);
 		ring_reset(&blt_ring);
 
-		for (i = 0; i < SAMPLES_PER_SEC; i++) {
+		for (i = 0; i < samples_per_sec; i++) {
 			long long interval;
 			ti = gettime();
 			if (IS_965(devid)) {
