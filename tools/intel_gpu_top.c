@@ -454,8 +454,7 @@ int main(int argc, char **argv)
 	char *cmd=NULL;
 
 	/* Parse options? */
-	while ((ch = getopt(argc, argv, "s:o:e:h")) != -1)
-	{
+	while ((ch = getopt(argc, argv, "s:o:e:h")) != -1) {
 		switch (ch) {
 		case 'e': cmd = strdup(optarg);
 			break;
@@ -487,22 +486,20 @@ int main(int argc, char **argv)
 	argv += optind;
 
 	/* Do we have a command to run? */
-	if (cmd != NULL)
-	{
+	if (cmd != NULL) {
 		if (output != stdout) {
 			fprintf(output, "# Profiling: %s\n", cmd);
 			fflush(output);
 		}
 		child_pid = fork();
-		if (child_pid < 0)
-		{
+		if (child_pid < 0) {
 			perror("fork");
 			exit(1);
 		}
 		else if (child_pid == 0) {
 			int res;
 			res = system(cmd);
-            free(cmd);
+			free(cmd);
 			if (res < 0)
 				perror("running command");
 			if (output != stdout) {
@@ -511,10 +508,9 @@ int main(int argc, char **argv)
 				fflush(output);
 			}
 			exit(0);
+		} else {
+			free(cmd);
 		}
-        else {
-            free(cmd);
-        }
 	}
 
 	pci_dev = intel_get_pci_device();
@@ -536,21 +532,21 @@ int main(int argc, char **argv)
 		ring_init(&blt_ring);
 	}
 
-    /* Initialize GPU stats */
-    if (HAS_STATS_REGS(devid)) {
-        for (i = 0; i < STATS_COUNT; i++) {
-            uint32_t stats_high, stats_low, stats_high_2;
+	/* Initialize GPU stats */
+	if (HAS_STATS_REGS(devid)) {
+		for (i = 0; i < STATS_COUNT; i++) {
+			uint32_t stats_high, stats_low, stats_high_2;
 
-            do {
-                stats_high = INREG(stats_regs[i] + 4);
-                stats_low = INREG(stats_regs[i]);
-                stats_high_2 = INREG(stats_regs[i] + 4);
-            } while (stats_high != stats_high_2);
+			do {
+				stats_high = INREG(stats_regs[i] + 4);
+				stats_low = INREG(stats_regs[i]);
+				stats_high_2 = INREG(stats_regs[i] + 4);
+			} while (stats_high != stats_high_2);
 
-            last_stats[i] = (uint64_t)stats_high << 32 |
-                stats_low;
-        }
-    }
+			last_stats[i] = (uint64_t)stats_high << 32 |
+				stats_low;
+		}
+	}
 
 	for (;;) {
 		int j;
@@ -625,8 +621,8 @@ int main(int argc, char **argv)
 		if (max_lines >= num_instdone_bits)
 			max_lines = num_instdone_bits;
 
-        t2 = gettime();
-        elapsed_time += (t2 - t1) / 1000000.0;
+		t2 = gettime();
+		elapsed_time += (t2 - t1) / 1000000.0;
 
 		if (output == stdout) {
 			fprintf(output, "%s", clear_screen);
@@ -711,8 +707,7 @@ int main(int argc, char **argv)
 		}
 
 		/* Check if child has gone */
-		if (child_pid > 0)
-		{
+		if (child_pid > 0) {
 			int res;
 			if ((res = waitpid(child_pid, &child_stat, WNOHANG)) == -1) {
 				perror("waitpid");
