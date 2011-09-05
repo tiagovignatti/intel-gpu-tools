@@ -373,7 +373,8 @@ static void ring_sample(struct ring *ring)
 	ring->full += full;
 }
 
-static void ring_print(struct ring *ring, unsigned long samples_per_sec)
+static void ring_print(struct ring *ring, unsigned long samples_per_sec,
+		FILE *output)
 {
 	int samples_to_percent_ratio, percent, len;
 
@@ -383,9 +384,9 @@ static void ring_print(struct ring *ring, unsigned long samples_per_sec)
 	/* Calculate current value of samples_to_percent_ratio */
 	samples_to_percent_ratio = (ring->idle * 100) / samples_per_sec;
 	percent = 100 - samples_to_percent_ratio;
-	len = printf("%25s busy: %3d%%: ", ring->name, percent);
+	len = fprintf(output, "%25s busy: %3d%%: ", ring->name, percent);
 	print_percentage_bar (percent, len);
-	printf("%24s space: %d/%d (%d%%)\n",
+	fprintf(output, "%24s space: %d/%d (%d%%)\n",
 	       ring->name,
 	       (int)(ring->full / samples_per_sec),
 	       ring->size,
@@ -427,6 +428,7 @@ int main(int argc, char **argv)
 	};
 	int i, ch;
 	int samples_per_sec = SAMPLES_PER_SEC;
+	FILE *output = stdout;
 
 	/* Parse options? */
 	while ((ch = getopt(argc, argv, "s:h")) != -1)
@@ -544,30 +546,30 @@ int main(int argc, char **argv)
 		if (max_lines >= num_instdone_bits)
 			max_lines = num_instdone_bits;
 
-		printf("%s", clear_screen);
+		fprintf(output, "%s", clear_screen);
 
 		print_clock_info(pci_dev);
 
-		ring_print(&render_ring, last_samples_per_sec);
-		ring_print(&bsd_ring, last_samples_per_sec);
-		ring_print(&bsd6_ring, last_samples_per_sec);
-		ring_print(&blt_ring, last_samples_per_sec);
+		ring_print(&render_ring, last_samples_per_sec, output);
+		ring_print(&bsd_ring, last_samples_per_sec, output);
+		ring_print(&bsd6_ring, last_samples_per_sec, output);
+		ring_print(&blt_ring, last_samples_per_sec, output);
 
-		printf("\n%30s  %s\n", "task", "percent busy");
+		fprintf(output, "\n%30s  %s\n", "task", "percent busy");
 		for (i = 0; i < max_lines; i++) {
 			if (top_bits_sorted[i]->count > 0) {
 				percent = (top_bits_sorted[i]->count * 100) /
 					last_samples_per_sec;
-				len = printf("%30s: %3d%%: ",
+				len = fprintf(output, "%30s: %3d%%: ",
 					     top_bits_sorted[i]->bit->name,
 					     percent);
 				print_percentage_bar (percent, len);
 			} else {
-				printf("%*s", PERCENTAGE_BAR_END, "");
+				fprintf(output, "%*s", PERCENTAGE_BAR_END, "");
 			}
 
 			if (i < STATS_COUNT && HAS_STATS_REGS(devid)) {
-				printf("%13s: %llu (%lld/sec)",
+				fprintf(output, "%13s: %llu (%lld/sec)",
 				       stats_reg_names[i],
 				       stats[i],
 				       stats[i] - last_stats[i]);
@@ -576,7 +578,7 @@ int main(int argc, char **argv)
 				if (!top_bits_sorted[i]->count)
 					break;
 			}
-			printf("\n");
+			fprintf(output, "\n");
 		}
 
 		for (i = 0; i < num_instdone_bits; i++) {
