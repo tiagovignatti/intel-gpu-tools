@@ -33,8 +33,6 @@
 #include <err.h>
 #include <sys/ioctl.h>
 #include <sys/time.h>
-#include <sys/wait.h>
-#include <string.h>
 #include "intel_gpu_tools.h"
 #include "instdone.h"
 
@@ -375,39 +373,24 @@ static void ring_sample(struct ring *ring)
 	ring->full += full;
 }
 
-static void ring_print_header(FILE *out, struct ring *ring)
-{
-    fprintf(out, "%.6s%%\tops\t",
-            ring->name
-          );
-}
-
 static void ring_print(struct ring *ring, unsigned long samples_per_sec,
 		FILE *output)
 {
 	int samples_to_percent_ratio, percent, len;
 
+	if (!ring->size)
+		return;
+
 	/* Calculate current value of samples_to_percent_ratio */
 	samples_to_percent_ratio = (ring->idle * 100) / samples_per_sec;
 	percent = 100 - samples_to_percent_ratio;
-
-	if (output == stdout) {
-		if (!ring->size)
-			return;
-
-		len = fprintf(output, "%25s busy: %3d%%: ", ring->name, percent);
-		print_percentage_bar (percent, len);
-		fprintf(output, "%24s space: %d/%d (%d%%)\n",
-			   ring->name,
-			   (int)(ring->full / samples_per_sec),
-			   ring->size,
-			   (int)((ring->full / samples_to_percent_ratio) / ring->size));
-	} else {
-		fprintf(output, "%3d\t%d\t",
-			   (ring->size) ? 100 - ring->idle / samples_to_percent_ratio : -1,
-			   (ring->size) ? (int)(ring->full / samples_per_sec) : -1
-			   );
-	}
+	len = fprintf(output, "%25s busy: %3d%%: ", ring->name, percent);
+	print_percentage_bar (percent, len);
+	fprintf(output, "%24s space: %d/%d (%d%%)\n",
+	       ring->name,
+	       (int)(ring->full / samples_per_sec),
+	       ring->size,
+	       (int)((ring->full / samples_to_percent_ratio) / ring->size));
 }
 
 static void
@@ -419,7 +402,6 @@ usage(const char *appname)
 			"\n"
 			"The following parameters apply:\n"
 			"[-s <samples>]       samples per seconds (default %d)\n"
-            "[-o <file>]          output to file (default to stdio)\n"
 			"[-h]                 show this help screen\n"
 			"\n",
 			appname,
@@ -447,26 +429,14 @@ int main(int argc, char **argv)
 	int i, ch;
 	int samples_per_sec = SAMPLES_PER_SEC;
 	FILE *output = stdout;
-	double elapsed_time=0;
-	int print_headers=1;
-	pid_t child_pid=-1;
-	int child_stat;
-	char *cmd=NULL;
 
 	/* Parse options? */
-	while ((ch = getopt(argc, argv, "s:o:h")) != -1) {
+	while ((ch = getopt(argc, argv, "s:h")) != -1)
+	{
 		switch (ch) {
-		case 'e': cmd = strdup(optarg);
-			break;
 		case 's': samples_per_sec = atoi(optarg);
 			if (samples_per_sec < 100) {
 				fprintf(stderr, "Error: samples per second must be >= 100\n");
-				exit(1);
-			}
-			break;
-		case 'o': output = fopen(optarg, "w");
-			if (!output) {
-				perror("fopen");
 				exit(1);
 			}
 			break;
@@ -483,37 +453,6 @@ int main(int argc, char **argv)
 	}
 	argc -= optind;
 	argv += optind;
-
-	/* Do we have a command to run? */
-	if (cmd != NULL)
-	{
-		if (output != stdout) {
-			fprintf(output, "# Profiling: %s\n", cmd);
-			fflush(output);
-		}
-		child_pid = fork();
-		if (child_pid < 0)
-		{
-			perror("fork");
-			exit(1);
-		}
-		else if (child_pid == 0) {
-			int res;
-			res = system(cmd);
-            free(cmd);
-			if (res < 0)
-				perror("running command");
-			if (output != stdout) {
-				fflush(output);
-				fprintf(output, "# %s exited with status %d\n", cmd, res);
-				fflush(output);
-			}
-			exit(0);
-		}
-        else {
-            free(cmd);
-        }
-	}
 
 	pci_dev = intel_get_pci_device();
 	devid = pci_dev->device_id;
@@ -534,25 +473,9 @@ int main(int argc, char **argv)
 		ring_init(&blt_ring);
 	}
 
-    /* Initialize GPU stats */
-    if (HAS_STATS_REGS(devid)) {
-        for (i = 0; i < STATS_COUNT; i++) {
-            uint32_t stats_high, stats_low, stats_high_2;
-
-            do {
-                stats_high = INREG(stats_regs[i] + 4);
-                stats_low = INREG(stats_regs[i]);
-                stats_high_2 = INREG(stats_regs[i] + 4);
-            } while (stats_high != stats_high_2);
-
-            last_stats[i] = (uint64_t)stats_high << 32 |
-                stats_low;
-        }
-    }
-
 	for (;;) {
 		int j;
-		unsigned long long t1, ti, tf, t2;
+		unsigned long long t1, ti, tf;
 		unsigned long long def_sleep = 1000000 / samples_per_sec;
 		unsigned long long last_samples_per_sec = samples_per_sec;
 		char clear_screen[] = {0x1b, '[', 'H',
@@ -623,82 +546,39 @@ int main(int argc, char **argv)
 		if (max_lines >= num_instdone_bits)
 			max_lines = num_instdone_bits;
 
-        t2 = gettime();
-        elapsed_time += (t2 - t1) / 1000000.0;
+		fprintf(output, "%s", clear_screen);
 
-		if (output == stdout) {
-			fprintf(output, "%s", clear_screen);
-			print_clock_info(pci_dev);
+		print_clock_info(pci_dev);
 
-			ring_print(&render_ring, last_samples_per_sec, output);
-			ring_print(&bsd_ring, last_samples_per_sec, output);
-			ring_print(&bsd6_ring, last_samples_per_sec, output);
-			ring_print(&blt_ring, last_samples_per_sec, output);
+		ring_print(&render_ring, last_samples_per_sec, output);
+		ring_print(&bsd_ring, last_samples_per_sec, output);
+		ring_print(&bsd6_ring, last_samples_per_sec, output);
+		ring_print(&blt_ring, last_samples_per_sec, output);
 
-			fprintf(output, "\n%30s  %s\n", "task", "percent busy");
-			for (i = 0; i < max_lines; i++) {
-				if (top_bits_sorted[i]->count > 0) {
-					percent = (top_bits_sorted[i]->count * 100) /
-						last_samples_per_sec;
-					len = fprintf(output, "%30s: %3d%%: ",
-							 top_bits_sorted[i]->bit->name,
-							 percent);
-					print_percentage_bar (percent, len);
-				} else {
-					fprintf(output, "%*s", PERCENTAGE_BAR_END, "");
-				}
-
-				if (i < STATS_COUNT && HAS_STATS_REGS(devid)) {
-					fprintf(output, "%13s: %llu (%lld/sec)",
-						   stats_reg_names[i],
-						   stats[i],
-						   stats[i] - last_stats[i]);
-					last_stats[i] = stats[i];
-				} else {
-					if (!top_bits_sorted[i]->count)
-						break;
-				}
-				fprintf(output, "\n");
-			}
-		} else {
-			/* Print headers for columns at first run */
-			if (print_headers) {
-				fprintf(output, "# time\t");
-				ring_print_header(output, &render_ring);
-				ring_print_header(output, &bsd_ring);
-				ring_print_header(output, &bsd6_ring);
-				ring_print_header(output, &blt_ring);
-				for (i = 0; i < MAX_NUM_TOP_BITS; i++) {
-					if (i < STATS_COUNT && HAS_STATS_REGS(devid)) {
-						fprintf(output, "%.6s\t",
-							   stats_reg_names[i]
-							   );
-					}
-					if (!top_bits[i].count)
-						continue;
-				}
-				fprintf(output, "\n");
-				print_headers = 0;
+		fprintf(output, "\n%30s  %s\n", "task", "percent busy");
+		for (i = 0; i < max_lines; i++) {
+			if (top_bits_sorted[i]->count > 0) {
+				percent = (top_bits_sorted[i]->count * 100) /
+					last_samples_per_sec;
+				len = fprintf(output, "%30s: %3d%%: ",
+					     top_bits_sorted[i]->bit->name,
+					     percent);
+				print_percentage_bar (percent, len);
+			} else {
+				fprintf(output, "%*s", PERCENTAGE_BAR_END, "");
 			}
 
-			/* Print statistics */
-			fprintf(output, "%.2f\t", elapsed_time);
-			ring_print(&render_ring, last_samples_per_sec, output);
-			ring_print(&bsd_ring, last_samples_per_sec, output);
-			ring_print(&bsd6_ring, last_samples_per_sec, output);
-			ring_print(&blt_ring, last_samples_per_sec, output);
-
-			for (i = 0; i < MAX_NUM_TOP_BITS; i++) {
-				if (i < STATS_COUNT && HAS_STATS_REGS(devid)) {
-					fprintf(output, "%lu\t",
-						   stats[i] - last_stats[i]);
-					last_stats[i] = stats[i];
-				}
-					if (!top_bits[i].count)
-						continue;
+			if (i < STATS_COUNT && HAS_STATS_REGS(devid)) {
+				fprintf(output, "%13s: %llu (%lld/sec)",
+				       stats_reg_names[i],
+				       stats[i],
+				       stats[i] - last_stats[i]);
+				last_stats[i] = stats[i];
+			} else {
+				if (!top_bits_sorted[i]->count)
+					break;
 			}
 			fprintf(output, "\n");
-			fflush(output);
 		}
 
 		for (i = 0; i < num_instdone_bits; i++) {
@@ -707,23 +587,7 @@ int main(int argc, char **argv)
 			if (i < STATS_COUNT)
 				last_stats[i] = stats[i];
 		}
-
-		/* Check if child has gone */
-		if (child_pid > 0)
-		{
-			int res;
-			if ((res = waitpid(child_pid, &child_stat, WNOHANG)) == -1) {
-				perror("waitpid");
-				exit(1);
-			}
-			if (res == 0)
-				continue;
-			if (WIFEXITED(child_stat))
-				break;
-		}
 	}
-
-	fclose(output);
 
 	return 0;
 }
