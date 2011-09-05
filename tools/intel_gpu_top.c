@@ -419,7 +419,8 @@ usage(const char *appname)
 			"\n"
 			"The following parameters apply:\n"
 			"[-s <samples>]       samples per seconds (default %d)\n"
-            "[-o <file>]          output to file (default to stdio)\n"
+			"[-e <command>]       command to profile\n"
+			"[-o <file>]          output to file (default to stdio)\n"
 			"[-h]                 show this help screen\n"
 			"\n",
 			appname,
