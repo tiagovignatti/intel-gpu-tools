@@ -486,6 +486,11 @@ int main(int argc, char **argv)
 	argc -= optind;
 	argv += optind;
 
+	pci_dev = intel_get_pci_device();
+	devid = pci_dev->device_id;
+	intel_get_mmio(pci_dev);
+	init_instdone_definitions(devid);
+
 	/* Do we have a command to run? */
 	if (cmd != NULL) {
 		if (output != stdout) {
@@ -513,11 +518,6 @@ int main(int argc, char **argv)
 			free(cmd);
 		}
 	}
-
-	pci_dev = intel_get_pci_device();
-	devid = pci_dev->device_id;
-	intel_get_mmio(pci_dev);
-	init_instdone_definitions(devid);
 
 	for (i = 0; i < num_instdone_bits; i++) {
 		top_bits[i].bit = &instdone_bits[i];
