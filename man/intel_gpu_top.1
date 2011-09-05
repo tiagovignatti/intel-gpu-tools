@@ -19,8 +19,18 @@ number of samples to acquire per second
 .B -o [output file]
 run non-interactively and collect usage statistics to [file]
 .TP
+.B -e ["command to profile"]
+execute a command, and leave when it is finished. Note that the entire command
+with all parameters should be included as one parameter.
+.TP
 .B -h
 show usage notes
+.SH EXAMPLES
+.TP
+intel_gpu_top -o "cairo-trace-gvim.log" -s 100 -e "cairo-perf-trace /tmp/gvim"
+will run cairo-perf-trace with /tmp/gvim trace, non-interactively, saving the
+statistics into cairo-trace-gvim.log file, and collecting 100 samples per
+second.
 .PP
 Note that idle units are not
 displayed, so an entirely idle GPU will only display the ring status and

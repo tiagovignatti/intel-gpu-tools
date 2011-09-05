@@ -33,6 +33,8 @@
 #include <err.h>
 #include <sys/ioctl.h>
 #include <sys/time.h>
+#include <sys/wait.h>
+#include <string.h>
 #include "intel_gpu_tools.h"
 #include "instdone.h"
 
@@ -447,11 +449,16 @@ int main(int argc, char **argv)
 	FILE *output = stdout;
 	double elapsed_time=0;
 	int print_headers=1;
+	pid_t child_pid=-1;
+	int child_stat;
+	char *cmd=NULL;
 
 	/* Parse options? */
-	while ((ch = getopt(argc, argv, "s:o:h")) != -1)
+	while ((ch = getopt(argc, argv, "s:o:e:h")) != -1)
 	{
 		switch (ch) {
+		case 'e': cmd = strdup(optarg);
+			break;
 		case 's': samples_per_sec = atoi(optarg);
 			if (samples_per_sec < 100) {
 				fprintf(stderr, "Error: samples per second must be >= 100\n");
@@ -478,6 +485,37 @@ int main(int argc, char **argv)
 	}
 	argc -= optind;
 	argv += optind;
+
+	/* Do we have a command to run? */
+	if (cmd != NULL)
+	{
+		if (output != stdout) {
+			fprintf(output, "# Profiling: %s\n", cmd);
+			fflush(output);
+		}
+		child_pid = fork();
+		if (child_pid < 0)
+		{
+			perror("fork");
+			exit(1);
+		}
+		else if (child_pid == 0) {
+			int res;
+			res = system(cmd);
+            free(cmd);
+			if (res < 0)
+				perror("running command");
+			if (output != stdout) {
+				fflush(output);
+				fprintf(output, "# %s exited with status %d\n", cmd, res);
+				fflush(output);
+			}
+			exit(0);
+		}
+        else {
+            free(cmd);
+        }
+	}
 
 	pci_dev = intel_get_pci_device();
 	devid = pci_dev->device_id;
@@ -671,7 +709,23 @@ int main(int argc, char **argv)
 			if (i < STATS_COUNT)
 				last_stats[i] = stats[i];
 		}
+
+		/* Check if child has gone */
+		if (child_pid > 0)
+		{
+			int res;
+			if ((res = waitpid(child_pid, &child_stat, WNOHANG)) == -1) {
+				perror("waitpid");
+				exit(1);
+			}
+			if (res == 0)
+				continue;
+			if (WIFEXITED(child_stat))
+				break;
+		}
 	}
+
+	fclose(output);
 
 	return 0;
 }
