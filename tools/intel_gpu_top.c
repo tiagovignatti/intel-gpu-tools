@@ -473,6 +473,22 @@ int main(int argc, char **argv)
 		ring_init(&blt_ring);
 	}
 
+    /* Initialize GPU stats */
+    if (HAS_STATS_REGS(devid)) {
+        for (i = 0; i < STATS_COUNT; i++) {
+            uint32_t stats_high, stats_low, stats_high_2;
+
+            do {
+                stats_high = INREG(stats_regs[i] + 4);
+                stats_low = INREG(stats_regs[i]);
+                stats_high_2 = INREG(stats_regs[i] + 4);
+            } while (stats_high != stats_high_2);
+
+            last_stats[i] = (uint64_t)stats_high << 32 |
+                stats_low;
+        }
+    }
+
 	for (;;) {
 		int j;
 		unsigned long long t1, ti, tf;
