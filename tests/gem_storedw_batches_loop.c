@@ -55,7 +55,7 @@ store_dword_loop(void)
 
 	cmd = MI_STORE_DWORD_IMM | MI_MEM_VIRTUAL;
 
-	for (i = 0; i < 0x10000; i++) {
+	for (i = 0; i < 0x80000; i++) {
 		cmd_bo = drm_intel_bo_alloc(bufmgr, "cmd bo", 4096, 4096);
 		if (!cmd_bo) {
 			fprintf(stderr, "failed to alloc cmd bo\n");
@@ -77,8 +77,8 @@ store_dword_loop(void)
 		}
 
 		ret = drm_intel_bo_emit_reloc(cmd_bo, 8, target_bo, 0,
-					      I915_GEM_DOMAIN_RENDER,
-					      I915_GEM_DOMAIN_RENDER);
+					      I915_GEM_DOMAIN_INSTRUCTION,
+					      I915_GEM_DOMAIN_INSTRUCTION);
 		if (ret) {
 			fprintf(stderr, "failed to emit reloc\n");
 			exit(-1);

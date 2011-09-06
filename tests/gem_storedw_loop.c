@@ -58,8 +58,8 @@ store_dword_loop(void)
 		BEGIN_BATCH(4);
 		OUT_BATCH(cmd);
 		OUT_BATCH(0); /* reserved */
-		OUT_RELOC(target_buffer, I915_GEM_DOMAIN_RENDER,
-			  I915_GEM_DOMAIN_RENDER, 0);
+		OUT_RELOC(target_buffer, I915_GEM_DOMAIN_INSTRUCTION,
+			  I915_GEM_DOMAIN_INSTRUCTION, 0);
 		OUT_BATCH(val);
 		ADVANCE_BATCH();
 
