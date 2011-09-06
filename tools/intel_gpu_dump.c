@@ -251,9 +251,17 @@ main (int argc, char *argv[])
     const char *path;
     struct stat st;
     int err;
-    uint32_t devid;
+    uint32_t devid = 0;
     uint32_t instdone, instdone1 = 0;
     struct pci_device *pci_dev;
+
+    if (argc > 2 && strcmp(argv[1], "--devid") == 0) {
+	    char *tmp = argv[0];
+	    devid = atoi(argv[2]);
+	    argc -= 2;
+	    argv += 2;
+	    argv[0] = tmp;
+    }
 
     if (argc > 2) {
 	fprintf (stderr,
@@ -274,9 +282,12 @@ main (int argc, char *argv[])
 	return 1;
     }
 
-    pci_dev = intel_get_pci_device();
-    devid = pci_dev->device_id;
-    intel_get_mmio(pci_dev);
+    if (devid == 0) {
+	    pci_dev = intel_get_pci_device();
+	    devid = pci_dev->device_id;
+	    intel_get_mmio(pci_dev);
+    }
+
     init_instdone_definitions(devid);
 
     if (argc == 1) {
