@@ -58,8 +58,8 @@ store_dword_loop(void)
 		BEGIN_BATCH(4);
 		OUT_BATCH(cmd);
 		OUT_BATCH(0); /* reserved */
-		OUT_RELOC(target_buffer, I915_GEM_DOMAIN_INSTRUCTION,
-			  I915_GEM_DOMAIN_INSTRUCTION, 0);
+		OUT_RELOC(target_buffer, I915_GEM_DOMAIN_RENDER,
+			  I915_GEM_DOMAIN_RENDER, 0);
 		OUT_BATCH(val);
 		ADVANCE_BATCH();
 
@@ -87,6 +87,7 @@ store_dword_loop(void)
 int main(int argc, char **argv)
 {
 	int fd;
+	int devid;
 
 	if (argc != 1) {
 		fprintf(stderr, "usage: %s\n", argv[0]);
@@ -94,6 +95,14 @@ int main(int argc, char **argv)
 	}
 
 	fd = drm_open_any();
+	devid = intel_get_drm_devid(fd);
+
+	if (IS_GEN2(devid) || IS_GEN3(devid) || IS_GEN4(devid) || IS_GEN5(devid)) {
+
+		fprintf(stderr, "MI_STORE_DATA can only use GTT address on gen4+/g33 and "
+			"needs snoopable mem on pre-gen6\n");
+		goto out;
+	}
 
 	bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
 	if (!bufmgr) {
@@ -102,7 +111,7 @@ int main(int argc, char **argv)
 	}
 	drm_intel_bufmgr_gem_enable_reuse(bufmgr);
 
-	batch = intel_batchbuffer_alloc(bufmgr, intel_get_drm_devid(fd));
+	batch = intel_batchbuffer_alloc(bufmgr, devid);
 	if (!batch) {
 		fprintf(stderr, "failed to create batch buffer\n");
 		exit(-1);
@@ -120,6 +129,7 @@ int main(int argc, char **argv)
 	intel_batchbuffer_free(batch);
 	drm_intel_bufmgr_destroy(bufmgr);
 
+out:
 	close(fd);
 
 	return 0;
