@@ -48,6 +48,7 @@ TESTS = getversion \
 	gem_storedw_batches_loop \
 	gem_dummy_reloc_loop \
 	gem_ring_sync_loop \
+	gem_pipe_control_store_loop \
 	$(NULL)
 
 HANG = \
