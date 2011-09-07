@@ -75,10 +75,9 @@ intel_batchbuffer_free(struct intel_batchbuffer *batch)
 #define CMD_POLY_STIPPLE_OFFSET       0x7906
 
 void
-intel_batchbuffer_flush(struct intel_batchbuffer *batch)
+intel_batchbuffer_flush_on_ring(struct intel_batchbuffer *batch, int ring)
 {
 	unsigned int used = batch->ptr - batch->buffer;
-	int ring;
 	int ret;
 
 	if (used == 0)
@@ -107,13 +106,19 @@ intel_batchbuffer_flush(struct intel_batchbuffer *batch)
 
 	batch->ptr = NULL;
 
-	ring = 0;
-	if (HAS_BLT_RING(batch->devid))
-		ring = I915_EXEC_BLT;
 	ret = drm_intel_bo_mrb_exec(batch->bo, used, NULL, 0, 0, ring);
 	assert(ret == 0);
 
 	intel_batchbuffer_reset(batch);
+}
+
+void
+intel_batchbuffer_flush(struct intel_batchbuffer *batch)
+{
+	int ring = 0;
+	if (HAS_BLT_RING(batch->devid))
+		ring = I915_EXEC_BLT;
+	intel_batchbuffer_flush_on_ring(batch, ring);
 }
 
 

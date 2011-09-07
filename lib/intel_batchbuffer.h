@@ -24,6 +24,7 @@ void intel_batchbuffer_free(struct intel_batchbuffer *batch);
 
 
 void intel_batchbuffer_flush(struct intel_batchbuffer *batch);
+void intel_batchbuffer_flush_on_ring(struct intel_batchbuffer *batch, int ring);
 
 void intel_batchbuffer_reset(struct intel_batchbuffer *batch);
 
