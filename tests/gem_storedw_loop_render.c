@@ -46,6 +46,10 @@ static drm_intel_bufmgr *bufmgr;
 struct intel_batchbuffer *batch;
 static drm_intel_bo *target_buffer;
 
+/*
+ * Testcase: Basic render MI check using MI_STORE_DATA_IMM
+ */
+
 static void
 store_dword_loop(void)
 {
@@ -63,7 +67,7 @@ store_dword_loop(void)
 		OUT_BATCH(val);
 		ADVANCE_BATCH();
 
-		intel_batchbuffer_flush(batch);
+		intel_batchbuffer_flush_on_ring(batch, 0);
 
 		drm_intel_bo_map(target_buffer, 0);
 
@@ -80,7 +84,9 @@ store_dword_loop(void)
 
 	drm_intel_bo_map(target_buffer, 0);
 	buf = target_buffer->virtual;
-	printf("current value: 0x%08x\n", buf[0]);
+
+	printf("completed %d writes successfully, current value: 0x%08x\n", i,
+			buf[0]);
 	drm_intel_bo_unmap(target_buffer);
 }
 
