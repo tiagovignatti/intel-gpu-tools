@@ -85,7 +85,7 @@ instr_out(uint32_t *data, uint32_t hw_offset, unsigned int index,
 static int
 decode_mi(uint32_t *data, int count, uint32_t hw_offset, int *failures)
 {
-    unsigned int opcode;
+    unsigned int opcode, len = -1;
 
     struct {
 	uint32_t opcode;
@@ -117,18 +117,11 @@ decode_mi(uint32_t *data, int count, uint32_t hw_offset, int *failures)
 	{ 0x0b, 0, 1, 1, "MI_SUSPEND_FLUSH" },
     };
 
-    switch ((data[0] & 0x1f800000) >> 23) {
-    case 0x0a:
-	instr_out(data, hw_offset, 0, "MI_BATCH_BUFFER_END\n");
-	return -1;
-    }
-
+    /* check instruction length */
     for (opcode = 0; opcode < sizeof(opcodes_mi) / sizeof(opcodes_mi[0]);
 	 opcode++) {
 	if ((data[0] & 0x1f800000) >> 23 == opcodes_mi[opcode].opcode) {
-	    unsigned int len = 1, i;
-
-	    instr_out(data, hw_offset, 0, "%s\n", opcodes_mi[opcode].name);
+	    len = 1;
 	    if (opcodes_mi[opcode].max_len > 1) {
 		len = (data[0] & opcodes_mi[opcode].len_mask) + 2;
 		if (len < opcodes_mi[opcode].min_len ||
@@ -140,8 +133,32 @@ decode_mi(uint32_t *data, int count, uint32_t hw_offset, int *failures)
 			    opcodes_mi[opcode].max_len);
 		}
 	    }
+	    break;
+	}
+    }
 
-	    for (i = 1; i < len; i++) {
+    switch ((data[0] & 0x1f800000) >> 23) {
+    case 0x0a:
+	instr_out(data, hw_offset, 0, "MI_BATCH_BUFFER_END\n");
+	return -1;
+    case 0x16:
+	instr_out(data, hw_offset, 0, "MI_SEMAPHORE_MBOX%s%s%s%s %u\n",
+		  data[0] & (1<<22) ? " global gtt," : "",
+		  data[0] & (1<<21) ? " update semaphore," : "",
+		  data[0] & (1<<20) ? " compare semaphore," : "",
+		  data[0] & (1<<18) ? " use compare reg" : "",
+		  data[0] & (0x3<<16));
+	instr_out(data, hw_offset, 1, "value\n");
+	instr_out(data, hw_offset, 2, "address\n");
+	return len;
+    }
+
+    for (opcode = 0; opcode < sizeof(opcodes_mi) / sizeof(opcodes_mi[0]);
+	 opcode++) {
+	if ((data[0] & 0x1f800000) >> 23 == opcodes_mi[opcode].opcode) {
+
+	    instr_out(data, hw_offset, 0, "%s\n", opcodes_mi[opcode].name);
+	    for (int i = 1; i < len; i++) {
 		if (i >= count)
 		    BUFFER_FAIL(count, len, opcodes_mi[opcode].name);
 		instr_out(data, hw_offset, i, "dword %d\n", i);
