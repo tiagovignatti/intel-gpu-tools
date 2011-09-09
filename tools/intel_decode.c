@@ -86,6 +86,7 @@ static int
 decode_mi(uint32_t *data, int count, uint32_t hw_offset, int *failures)
 {
     unsigned int opcode, len = -1;
+    char *post_sync_op = "";
 
     struct {
 	uint32_t opcode;
@@ -150,6 +151,44 @@ decode_mi(uint32_t *data, int count, uint32_t hw_offset, int *failures)
 		  data[0] & (0x3<<16));
 	instr_out(data, hw_offset, 1, "value\n");
 	instr_out(data, hw_offset, 2, "address\n");
+	return len;
+    case 0x21:
+	instr_out(data, hw_offset, 0, "MI_STORE_DATA_INDEX%s\n",
+		  data[0] & (1<<21) ? " use per-process HWS," : "");
+	instr_out(data, hw_offset, 1, "index\n");
+	instr_out(data, hw_offset, 2, "dword\n");
+	if (len == 4)
+		instr_out(data, hw_offset, 3, "upper dword\n");
+	return len;
+    case 0x00:
+	if (data[0] & (1<<22))
+		instr_out(data, hw_offset, 0, "MI_NOOP write NOPID reg, val=0x%x\n",
+			  data[0] & ((1<<22) - 1));
+	else
+		instr_out(data, hw_offset, 0, "MI_NOOP\n");
+	return len;
+    case 0x26:
+	switch (data[0] & (0x3<<14)) {
+	case 0: post_sync_op = "no write"; break;
+	case 1: post_sync_op = "write data"; break;
+	case 2: post_sync_op = "reserved"; break;
+	case 3: post_sync_op = "write TIMESTAMP"; break;
+	}
+	instr_out(data, hw_offset, 0, "MI_FLUSH_DW%s%s%s%s post_sync_op='%s' %s%s\n",
+		  data[0] & (1<<22) ? " enable protected mem (BCS-only)," : "",
+		  data[0] & (1<<21) ? " store in hws," : "",
+		  data[0] & (1<<18) ? " invalidate tlb," : "",
+		  data[0] & (1<<17) ? " flush gfdt," : "",
+		  post_sync_op,
+		  data[0] & (1<<8) ? " enable notify interrupt," : "",
+		  data[0] & (1<<7) ? " invalidate video state (BCS-only)," : "");
+	if (data[0] & (1<<21))
+		instr_out(data, hw_offset, 1, "hws index\n");
+	else
+		instr_out(data, hw_offset, 1, "address\n");
+	instr_out(data, hw_offset, 2, "dword\n");
+	if (len == 4)
+		instr_out(data, hw_offset, 3, "upper dword\n");
 	return len;
     }
 
