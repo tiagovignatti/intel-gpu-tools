@@ -79,6 +79,7 @@ OUTREG(uint32_t reg, uint32_t val)
 struct pci_device *intel_get_pci_device(void);
 
 uint32_t intel_get_drm_devid(int fd);
+int intel_gen(uint32_t devid);
 
 void intel_map_file(char *);
 
