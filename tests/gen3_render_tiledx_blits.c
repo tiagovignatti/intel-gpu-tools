@@ -422,6 +422,11 @@ int main(int argc, char **argv)
 
 	fd = drm_open_any();
 
+	if (!IS_GEN3(intel_get_drm_devid(fd))) {
+		printf("gen3-only test, doing nothing\n");
+		return 0;
+	}
+
 	count = 0;
 	if (argc > 1)
 		count = atoi(argv[1]);
