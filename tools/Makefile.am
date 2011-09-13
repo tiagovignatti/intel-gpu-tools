@@ -18,14 +18,8 @@ bin_PROGRAMS = \
 
 noinst_PROGRAMS = \
 	intel_dump_decode \
-	intel_gpu_dump \
 	intel_lid \
 	$(NULL)
-
-intel_gpu_dump_SOURCES = \
-	intel_gpu_dump.c \
-	intel_decode.c \
-	intel_decode.h
 
 intel_dump_decode_SOURCES = \
 	intel_dump_decode.c \
