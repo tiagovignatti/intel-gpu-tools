@@ -33,11 +33,12 @@
 #include <errno.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <getopt.h>
 
 #include "intel_decode.h"
 
 static void
-read_bin_file (uint32_t devid, const char * filename)
+read_bin_file(uint32_t devid, const char * filename)
 {
 	uint32_t buf[16384];
 	int fd, offset, ret;
@@ -57,18 +58,134 @@ read_bin_file (uint32_t devid, const char * filename)
 	close (fd);
 }
 
+static void
+read_data_file(uint32_t devid, const char * filename)
+{
+    FILE *file;
+    uint32_t *data = NULL;
+    int data_size = 0, count = 0, line_number = 0, matched;
+    char *line = NULL;
+    size_t line_size;
+    uint32_t offset, value;
+    uint32_t gtt_offset = 0;
+
+    file = fopen (filename, "r");
+    if (file == NULL) {
+	fprintf (stderr, "Failed to open %s: %s\n",
+		 filename, strerror (errno));
+	exit (1);
+    }
+
+    while (getline (&line, &line_size, file) > 0) {
+	line_number++;
+
+	matched = sscanf (line, "%08x : %08x", &offset, &value);
+	if (matched != 2) {
+	    printf("ignoring line %s", line);
+
+	    continue;
+	}
+
+	count++;
+
+	if (count > data_size) {
+	    data_size = data_size ? data_size * 2 : 1024;
+	    data = realloc (data, data_size * sizeof (uint32_t));
+	    if (data == NULL) {
+		fprintf (stderr, "Out of memory.\n");
+		exit (1);
+	    }
+	}
+
+	data[count-1] = value;
+    }
+
+    if (count) {
+	intel_decode (data, count, gtt_offset, devid, 0);
+    }
+
+    free (data);
+    free (line);
+
+    fclose (file);
+}
+
+static void
+read_autodetect_file(uint32_t devid, const char * filename)
+{
+	int binary = 0, c;
+	FILE *file;
+
+	file = fopen (filename, "r");
+	if (file == NULL) {
+		fprintf (stderr, "Failed to open %s: %s\n",
+			 filename, strerror (errno));
+		exit (1);
+	}
+
+	while ((c = fgetc(file)) != EOF) {
+		/* totally lazy binary detector */
+		if (c < 10) {
+			binary = 1;
+			break;
+		}
+	}
+
+	fclose(file);
+
+	if (binary == 1)
+		read_bin_file(devid, filename);
+	else
+		read_data_file(devid, filename);
+
+}
+
+
 int
 main (int argc, char *argv[])
 {
 	uint32_t devid = 0xa011;
-	int i;
+	int i, c;
+	int option_index = 0;
+	int binary = -1;
 
-	for (i = 1; i < argc; i++) {
-		if (strncmp (argv[i], "--devid=", 8) == 0) {
-			devid = atoi(argv[i] + 8);
-			continue;
+	static struct option long_options[] = {
+		{"devid", 1, 0, 'd'},
+		{"ascii", 0, 0, 'a'},
+		{"binary", 0, 0, 'b'}
+	};
+
+	while((c = getopt_long(argc, argv, "ab",
+			       long_options, &option_index)) != -1) {
+		switch(c) {
+		case 'd':
+			devid = atoi(optarg);
+			break;
+		case 'b':
+			binary = 1;
+			break;
+		case 'a':
+			binary = 0;
+			break;
+		default:
+			printf("unkown command options\n");
+			break;
 		}
-		read_bin_file (devid, argv[i]);
+	}
+
+	if (optind == argc) {
+		fprintf(stderr, "no input file given\n");
+		exit(-1);
+	}
+
+
+	for (i = optind; i < argc; i++) {
+		if (binary == 1)
+			read_bin_file(devid, argv[i]);
+		else if (binary == 0)
+			read_data_file(devid, argv[i]);
+		else
+			read_autodetect_file(devid, argv[i]);
 	}
 
 	return 0;
