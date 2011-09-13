@@ -424,7 +424,7 @@ int main(int argc, char **argv)
 
 	if (!IS_GEN3(intel_get_drm_devid(fd))) {
 		printf("gen3-only test, doing nothing\n");
-		return 0;
+		return 77;
 	}
 
 	count = 0;

@@ -154,7 +154,7 @@ int main(int argc, char **argv)
 
 	if (IS_GEN2(devid) || IS_GEN3(devid)) {
 		fprintf(stderr, "no pipe_control on gen2/3\n");
-		goto out;
+		return 77;
 	}
 	/* IMPORTANT: No call to
 	 * drm_intel_bufmgr_gem_enable_reuse(bufmgr);
@@ -170,7 +170,6 @@ int main(int argc, char **argv)
 	store_pipe_control_loop();
 
 	intel_batchbuffer_free(batch);
-out:
 	drm_intel_bufmgr_destroy(bufmgr);
 
 	close(fd);

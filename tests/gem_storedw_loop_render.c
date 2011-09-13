@@ -107,7 +107,7 @@ int main(int argc, char **argv)
 
 		fprintf(stderr, "MI_STORE_DATA can only use GTT address on gen4+/g33 and "
 			"needs snoopable mem on pre-gen6\n");
-		goto out;
+		return 77;
 	}
 
 	bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
@@ -135,7 +135,6 @@ int main(int argc, char **argv)
 	intel_batchbuffer_free(batch);
 	drm_intel_bufmgr_destroy(bufmgr);
 
-out:
 	close(fd);
 
 	return 0;

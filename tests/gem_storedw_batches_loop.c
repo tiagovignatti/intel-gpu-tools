@@ -138,7 +138,7 @@ int main(int argc, char **argv)
 
 		fprintf(stderr, "MI_STORE_DATA can only use GTT address on gen4+/g33 and"
 			"needs snoopable mem on pre-gen6\n");
-		goto out;
+		return 77;
 	}
 
 
@@ -160,7 +160,6 @@ int main(int argc, char **argv)
 	drm_intel_bo_unreference(target_bo);
 	drm_intel_bufmgr_destroy(bufmgr);
 
-out:
 	close(fd);
 
 	return 0;

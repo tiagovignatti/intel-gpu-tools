@@ -104,7 +104,7 @@ int main(int argc, char **argv)
 	devid = intel_get_drm_devid(fd);
 	if (!HAS_BLT_RING(devid)) {
 		fprintf(stderr, "inter ring check needs gen6+\n");
-		goto out;
+		return 77;
 	}
 
 
@@ -133,7 +133,6 @@ int main(int argc, char **argv)
 	intel_batchbuffer_free(batch);
 	drm_intel_bufmgr_destroy(bufmgr);
 
-out:
 	close(fd);
 
 	return 0;

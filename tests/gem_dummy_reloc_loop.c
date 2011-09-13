@@ -136,7 +136,7 @@ int main(int argc, char **argv)
 	devid = intel_get_drm_devid(fd);
 	if (!HAS_BLT_RING(devid)) {
 		fprintf(stderr, "not (yet) implemented for pre-snb\n");
-		goto out;
+		return 77;
 	}
 
 	bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
@@ -188,7 +188,6 @@ skip:
 	intel_batchbuffer_free(batch);
 	drm_intel_bufmgr_destroy(bufmgr);
 
-out:
 	close(fd);
 
 	return 0;
