@@ -90,7 +90,7 @@ static void exec0(int fd)
 {
 	struct drm_i915_gem_execbuffer2 execbuf;
 	struct drm_i915_gem_exec_object2 exec[2];
-	uint32_t buf[2] = { MI_BATCH_BUFFER_END };
+	uint32_t buf[2] = { MI_BATCH_BUFFER_END, 0 };
 
 	/* Just try executing with a zero-length bo.
 	 * We expect the kernel to either accept the nop batch, or reject it
