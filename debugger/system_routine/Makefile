@@ -79,6 +79,7 @@ maintainer-clean: clean
 EMPTY_AUTOMAKE_TARGETS = install install-data install-exec uninstall \
 			 install-dvi install-html install-info install-ps \
 			 install-pdf installdirs check installcheck \
-			 mostlyclean dvi pdf ps info html tags ctags
+			 mostlyclean dvi pdf ps info html tags ctags \
+			 distcheck distdir
 .PHONY: $(EMPTY_AUTOMAKE_TARGETS)
 $(EMPTY_AUTOMAKE_TARGETS):
