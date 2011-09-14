@@ -1,6 +1,8 @@
 if HAVE_DRM
 noinst_PROGRAMS = \
 	gem_stress \
+	$(TESTS) \
+	$(HANG) \
 	$(NULL)
 
 gem_stress_SOURCES = \
