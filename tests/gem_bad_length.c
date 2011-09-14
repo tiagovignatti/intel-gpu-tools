@@ -42,7 +42,14 @@
 
 #define MI_BATCH_BUFFER_END	(0xA<<23)
 
-static uint32_t gem_create(int fd, int size)
+/*
+ * Testcase: Minmal bo_create and batchbuffer exec
+ *
+ * Originally this caught an kernel oops due to the unchecked assumption that
+ * objects have size > 0.
+ */
+
+static uint32_t gem_create(int fd, int size, int *retval)
 {
 	struct drm_i915_gem_create create;
 	int ret;
@@ -50,7 +57,9 @@ static uint32_t gem_create(int fd, int size)
 	create.handle = 0;
 	create.size = (size + 4095) & -4096;
 	ret = drmIoctl(fd, DRM_IOCTL_I915_GEM_CREATE, &create);
-	assert(ret == 0);
+	assert(retval || ret == 0);
+	if (retval)
+		*retval = errno;
 
 	return create.handle;
 }
@@ -86,17 +95,27 @@ static void gem_close(int fd, uint32_t handle)
 	assert(ret == 0);
 }
 
+static void create0(int fd)
+{
+	int retval = 0;
+	printf("trying to create a zero-length gem object\n");
+	gem_create(fd, 0, &retval);
+	assert(retval == EINVAL);
+}
+
 static void exec0(int fd)
 {
 	struct drm_i915_gem_execbuffer2 execbuf;
-	struct drm_i915_gem_exec_object2 exec[2];
+	struct drm_i915_gem_exec_object2 exec[1];
 	uint32_t buf[2] = { MI_BATCH_BUFFER_END, 0 };
 
 	/* Just try executing with a zero-length bo.
 	 * We expect the kernel to either accept the nop batch, or reject it
 	 * for the zero-length buffer, but never crash.
 	 */
-	exec[0].handle = gem_create(fd, 0);
+
+	exec[0].handle = gem_create(fd, 4096, NULL);
+	gem_write(fd, exec[0].handle, 0, buf, sizeof(buf));
 	exec[0].relocation_count = 0;
 	exec[0].relocs_ptr = 0;
 	exec[0].alignment = 0;
@@ -105,18 +124,8 @@ static void exec0(int fd)
 	exec[0].rsvd1 = 0;
 	exec[0].rsvd2 = 0;
 
-	exec[1].handle = gem_create(fd, 4096);
-	gem_write(fd, exec[1].handle, 0, buf, sizeof(buf));
-	exec[1].relocation_count = 0;
-	exec[1].relocs_ptr = 0;
-	exec[1].alignment = 0;
-	exec[1].offset = 0;
-	exec[1].flags = 0;
-	exec[1].rsvd1 = 0;
-	exec[1].rsvd2 = 0;
-
 	execbuf.buffers_ptr = (uintptr_t)exec;
-	execbuf.buffer_count = 2;
+	execbuf.buffer_count = 1;
 	execbuf.batch_start_offset = 0;
 	execbuf.batch_len = sizeof(buf);
 	execbuf.cliprects_ptr = 0;
@@ -127,10 +136,10 @@ static void exec0(int fd)
 	execbuf.rsvd1 = 0;
 	execbuf.rsvd2 = 0;
 
+	printf("trying to run an empty batchbuffer\n");
 	gem_exec(fd, &execbuf);
 
 	gem_close(fd, exec[0].handle);
-	gem_close(fd, exec[1].handle);
 }
 
 int main(int argc, char **argv)
@@ -138,6 +147,8 @@ int main(int argc, char **argv)
 	int fd;
 
 	fd = drm_open_any();
+
+	create0(fd);
 
 	exec0(fd);
 
