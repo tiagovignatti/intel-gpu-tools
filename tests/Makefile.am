@@ -32,7 +32,6 @@ TESTS = getversion \
 	gem_tiled_fence_blits \
 	gem_largeobject \
 	gem_bad_address \
-	gem_bad_blit \
 	gem_bad_length \
 	gem_fence_thrash \
 	gem_fenced_exec_thrash \
@@ -55,6 +54,7 @@ TESTS = getversion \
 HANG = \
 	gem_bad_batch \
 	gem_hang \
+	gem_bad_blit \
 	$(NULL)
 
 EXTRA_PROGRAMS = $(TESTS) $(HANG)
