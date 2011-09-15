@@ -909,7 +909,7 @@ set_mode(struct connector *c)
  * Each connector has a corresponding encoder, except in the SDVO case
  * where an encoder may have multiple connectors.
  */
-static void update_display(void)
+static int update_display(void)
 {
 	struct connector *connectors;
 	int c;
@@ -918,13 +918,13 @@ static void update_display(void)
 	if (!resources) {
 		fprintf(stderr, "drmModeGetResources failed: %s\n",
 			strerror(errno));
-		return;
+		return 0;
 	}
 
 	connectors = calloc(resources->count_connectors,
 			    sizeof(struct connector));
 	if (!connectors)
-		return;
+		return 0;
 
 	if (dump_info) {
 		dump_connectors();
@@ -940,8 +940,7 @@ static void update_display(void)
 		}
 	}
 	drmModeFreeResources(resources);
-	if (dump_info || test_all_modes)
-		exit(0);
+	return 1;
 }
 
 extern char *optarg;
@@ -1138,7 +1137,14 @@ int main(int argc, char **argv)
 		goto out_stdio_off;
 	}
 
-	update_display();
+	if (!update_display()) {
+		ret = 1;
+		goto out_stdio_off;
+	}
+
+	if (dump_info || test_all_modes)
+		goto out_stdio_off;
+
 	g_main_loop_run(mainloop);
 
 out_stdio_off:
