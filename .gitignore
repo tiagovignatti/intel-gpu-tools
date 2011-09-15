@@ -34,6 +34,8 @@ tests/getclient
 tests/getstats
 tests/getversion
 tests/gem_basic
+tests/gem_double_irq_loop
+tests/gem_dummy_reloc_loop
 tests/gem_exec_blt
 tests/gem_exec_nop
 tests/gem_fence_thrash
@@ -43,11 +45,17 @@ tests/gem_gtt_speed
 tests/gem_largeobject
 tests/gem_mmap
 tests/gem_mmap_gtt
+tests/gem_pipe_control_store_loop
 tests/gem_pread_after_blit
 tests/gem_pwrite
 tests/gem_readwrite
 tests/gem_ringfill
+tests/gem_ring_sync_loop
 tests/gem_linear_blits
+tests/gem_storedw_batches_loop
+tests/gem_storedw_loop_blt
+tests/gem_storedw_loop_bsd
+tests/gem_storedw_loop_render
 tests/gem_vmap_blits
 tests/gem_tiled_blits
 tests/gem_tiled_fence_blits
@@ -64,6 +72,9 @@ tests/gen3_render_tiledx_blits
 tests/gen3_render_tiledy_blits
 tests/gen3_render_mixed_blits
 tests/gen3_mixed_blits
+tests/testdisplay
+tools/forcewaked
+tools/intel_backlight
 tools/intel_disable_clock_gating
 tools/intel_dump_decode
 tools/intel_error_decode
