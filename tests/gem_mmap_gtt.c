@@ -97,17 +97,27 @@ static void gem_close(int fd, uint32_t handle)
 	assert(ret == 0);
 }
 
+static void set_domain(int fd, uint32_t handle)
+{
+	struct drm_i915_gem_set_domain set_domain;
+	int ret;
+
+	set_domain.handle = handle;
+	set_domain.read_domains = I915_GEM_DOMAIN_GTT;
+	set_domain.write_domain = I915_GEM_DOMAIN_GTT;
+
+	ret = drmIoctl(fd, DRM_IOCTL_I915_GEM_SET_DOMAIN, &set_domain);
+	assert(ret == 0);
+}
+
 static void *
-create_pointer(int fd)
+mmap_bo(int fd, uint32_t handle)
 {
 	struct drm_i915_gem_mmap_gtt arg;
-	uint32_t handle;
 	void *ptr;
 	int ret;
 
 	memset(&arg, 0, sizeof(arg));
-
-	handle = gem_create(fd, OBJECT_SIZE);
 
 	arg.handle = handle;
 	ret = ioctl(fd, DRM_IOCTL_I915_GEM_MMAP_GTT, &arg);
@@ -116,6 +126,19 @@ create_pointer(int fd)
 	ptr = mmap(0, OBJECT_SIZE, PROT_READ | PROT_WRITE,
 		   MAP_SHARED, fd, arg.offset);
 	assert(ptr != MAP_FAILED);
+
+	return ptr;
+}
+
+static void *
+create_pointer(int fd)
+{
+	uint32_t handle;
+	void *ptr;
+
+	handle = gem_create(fd, OBJECT_SIZE);
+
+	ptr = mmap_bo(fd, handle);
 
 	gem_close(fd, handle);
 
@@ -155,6 +178,29 @@ test_write(int fd)
 }
 
 static void
+test_write_gtt(int fd)
+{
+	uint32_t dst;
+	char *dst_gtt;
+	void *src;
+
+	dst = gem_create(fd, OBJECT_SIZE);
+
+	/* prefault object into gtt */
+	dst_gtt = mmap_bo(fd, dst);
+	set_domain(fd, dst);
+	memset(dst_gtt, 0, OBJECT_SIZE);
+	munmap(dst_gtt, OBJECT_SIZE);
+
+	src = create_pointer(fd);
+
+	gem_write(fd, dst, 0, src, OBJECT_SIZE);
+
+	gem_close(fd, dst);
+	munmap(src, OBJECT_SIZE);
+}
+
+static void
 test_read(int fd)
 {
 	void *dst;
@@ -179,6 +225,7 @@ int main(int argc, char **argv)
 	test_copy(fd);
 	test_read(fd);
 	test_write(fd);
+	test_write_gtt(fd);
 
 	close(fd);
 
