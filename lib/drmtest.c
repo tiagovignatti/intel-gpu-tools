@@ -64,6 +64,7 @@ int drm_open_any(void)
 
 		close(fd);
 	}
+	fprintf(stderr, "failed to open any drm device. retry as root?\n");
 	abort();
 }
 
