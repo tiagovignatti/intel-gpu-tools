@@ -98,7 +98,7 @@ struct type_name {
 
 #define type_name_fn(res) \
 static char * res##_str(int type) {			\
-	int i;						\
+	unsigned int i;					\
 	for (i = 0; i < ARRAY_SIZE(res##_names); i++) { \
 		if (res##_names[i].type == type)	\
 			return res##_names[i].name;	\
@@ -1010,7 +1010,7 @@ int main(int argc, char **argv)
 	int c;
 	int encoders = 0, connectors = 0, crtcs = 0, framebuffers = 0;
 	char *modules[] = { "i915" };
-	int i;
+	unsigned int i;
 	struct udev *u;
 	int ret = 0;
 	GIOChannel *udevchannel, *stdinchannel;
