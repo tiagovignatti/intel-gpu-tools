@@ -946,7 +946,7 @@ static void update_display(void)
 
 extern char *optarg;
 extern int optind, opterr, optopt;
-static char optstr[] = "hiaf:s:d:pt";
+static char optstr[] = "hiaf:s:d:pmt";
 
 static void usage(char *name)
 {
@@ -956,11 +956,12 @@ static void usage(char *name)
 	fprintf(stderr, "\t-s\t<duration>\tsleep between each mode test\n");
 	fprintf(stderr, "\t-d\t<depth>\tbit depth of scanout buffer\n");
 	fprintf(stderr, "\t-p\ttest overlay plane\n");
+	fprintf(stderr, "\t-m\ttest the preferred mode\n");
 	fprintf(stderr, "\t-t\tuse a tiled framebuffer\n");
 	fprintf(stderr, "\t-f\t<clock MHz>,<hdisp>,<hsync-start>,<hsync-end>,<htotal>,\n");
 	fprintf(stderr, "\t\t<vdisp>,<vsync-start>,<vsync-end>,<vtotal>\n");
 	fprintf(stderr, "\t\ttest force mode\n");
-	fprintf(stderr, "\tDefault is to test the preferred mode.\n");
+	fprintf(stderr, "\tDefault is to test all modes.\n");
 	exit(0);
 }
 
@@ -1043,6 +1044,9 @@ int main(int argc, char **argv)
 		case 'p':
 			test_plane = 1;
 			break;
+		case 'm':
+			test_preferred_mode = 1;
+			break;
 		case 't':
 			enable_tiling = 1;
 			break;
@@ -1054,8 +1058,9 @@ int main(int argc, char **argv)
 			break;
 		}
 	}
-	if (!test_all_modes && !force_mode && !dump_info)
-		test_preferred_mode = 1;
+	if (!test_all_modes && !force_mode && !dump_info &&
+	    !test_preferred_mode)
+		test_all_modes = 1;
 
 	for (i = 0; i < ARRAY_SIZE(modules); i++) {
 		fd = drmOpen(modules[i], NULL);
