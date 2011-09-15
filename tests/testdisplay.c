@@ -677,7 +677,6 @@ connector_find_plane(struct connector *c)
 		drmModeFreePlane(ovr);
 	}
 
-	return 4;
 	return id;
 }
 
