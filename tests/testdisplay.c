@@ -1136,6 +1136,8 @@ int main(int argc, char **argv)
 		goto out_stdio_off;
 	}
 
+	ret = 0;
+
 	if (!update_display()) {
 		ret = 1;
 		goto out_stdio_off;
