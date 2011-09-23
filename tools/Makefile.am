@@ -9,6 +9,7 @@ bin_PROGRAMS = \
 	intel_gpu_time \
 	intel_gtt \
 	intel_stepping \
+	intel_reg_checker \
 	intel_reg_dumper \
 	intel_reg_snapshot \
 	intel_reg_write \
