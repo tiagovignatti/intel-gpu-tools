@@ -110,6 +110,9 @@ int main(int argc, char **argv)
 		return 77;
 	}
 
+	/* This supposedly only works with ppgtt */
+	return 77;
+
 	bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
 	if (!bufmgr) {
 		fprintf(stderr, "failed to init libdrm\n");
