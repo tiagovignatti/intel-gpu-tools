@@ -148,7 +148,7 @@ decode_mi(uint32_t *data, int count, uint32_t hw_offset, int *failures)
 		  data[0] & (1<<21) ? " update semaphore," : "",
 		  data[0] & (1<<20) ? " compare semaphore," : "",
 		  data[0] & (1<<18) ? " use compare reg" : "",
-		  data[0] & (0x3<<16));
+		  (data[0] & (0x3<<16)) >> 16);
 	instr_out(data, hw_offset, 1, "value\n");
 	instr_out(data, hw_offset, 2, "address\n");
 	return len;
