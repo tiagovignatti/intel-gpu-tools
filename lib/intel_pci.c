@@ -82,7 +82,8 @@ intel_check_pch(void)
 		return;
 
 	if (pch_dev->vendor_id == 0x8086 &&
-		(pch_dev->device_id & 0xff00) == 0x1c00)
+	    (((pch_dev->device_id & 0xff00) == 0x1c00) ||
+	     (pch_dev->device_id & 0xff00) == 0x1e00))
 		pch = PCH_CPT;
 }
 
