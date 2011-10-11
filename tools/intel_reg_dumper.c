@@ -1427,6 +1427,9 @@ DEBUGSTRING(snb_debug_trans_dp_ctl)
 	case TRANS_DP_PORT_SEL_D:
 		port = "D";
 		break;
+	default:
+		port = "none";
+		break;
 	}
 
 	switch (val & (7<<9)) {
