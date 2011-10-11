@@ -261,6 +261,7 @@ read_data_file (FILE *file)
     uint32_t offset, value;
     uint32_t gtt_offset = 0, new_gtt_offset;
     char *buffer_type[2] = {  "ringbuffer", "batchbuffer" };
+    char *ring_name = NULL;
     int is_batch = 1;
 
     while (getline (&line, &line_size, file) > 0) {
@@ -269,17 +270,25 @@ read_data_file (FILE *file)
 
 	dashes = strstr(line, "---");
 	if (dashes) {
+		char *new_ring_name = malloc(dashes - line);
+		strncpy(new_ring_name, line, dashes - line);
+		new_ring_name[dashes - line - 1] = '\0';
+
 		matched = sscanf (dashes, "--- gtt_offset = 0x%08x\n",
 				  &new_gtt_offset);
 		if (matched == 1) {
 			if (count) {
-				printf("%s at 0x%08x:\n",
-				       buffer_type[is_batch], gtt_offset);
+				printf("%s (%s) at 0x%08x:\n",
+				       buffer_type[is_batch],
+				       ring_name,
+				       gtt_offset);
 				intel_decode (data, count, gtt_offset, devid, 0);
 				count = 0;
 			}
 			gtt_offset = new_gtt_offset;
 			is_batch = 1;
+			free(ring_name);
+			ring_name = new_ring_name;
 			continue;
 		}
 
@@ -287,13 +296,17 @@ read_data_file (FILE *file)
 				  &new_gtt_offset);
 		if (matched == 1) {
 			if (count) {
-				printf("%s at 0x%08x:\n",
-				       buffer_type[is_batch], gtt_offset);
+				printf("%s (%s) at 0x%08x:\n",
+				       buffer_type[is_batch],
+				       ring_name,
+				       gtt_offset);
 				intel_decode (data, count, gtt_offset, devid, 0);
 				count = 0;
 			}
 			gtt_offset = new_gtt_offset;
 			is_batch = 0;
+			free(ring_name);
+			ring_name = new_ring_name;
 			continue;
 		}
 	}
@@ -360,6 +373,7 @@ read_data_file (FILE *file)
 
     free (data);
     free (line);
+    free (ring_name);
 }
 
 int
