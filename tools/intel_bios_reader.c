@@ -38,7 +38,7 @@
 #include "intel_bios.h"
 #include "intel_gpu_tools.h"
 
-static uint32_t devid;
+static uint32_t devid = -1;
 
 /* no bother to include "edid.h" */
 #define _H_ACTIVE(x) (x[2] + ((x[4] & 0xF0) << 4))
@@ -833,11 +833,15 @@ int main(int argc, char **argv)
 	struct stat finfo;
 	struct bdb_block *block;
 	char signature[17];
+	char *devid_string;
 
 	if (argc != 2) {
 		printf("usage: %s <rom file>\n", argv[0]);
 		return 1;
 	}
+
+	if ((devid_string = getenv("DEVICE")))
+	    devid = strtoul(devid_string, NULL, 0);
 
 	filename = argv[1];
 
@@ -911,7 +915,8 @@ int main(int argc, char **argv)
 	}
 	printf("\n");
 
-	devid = get_device_id(VBIOS);
+	if (devid == -1)
+	    devid = get_device_id(VBIOS);
 	if (devid == -1)
 	    printf("Warning: could not find PCI device ID!\n");
 
