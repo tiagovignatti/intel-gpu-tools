@@ -382,7 +382,27 @@ static void ring_print_header(FILE *out, struct ring *ring)
           );
 }
 
-static void ring_print(struct ring *ring, unsigned long samples_per_sec,
+static void ring_print(struct ring *ring, unsigned long samples_per_sec)
+{
+	int samples_to_percent_ratio, percent, len;
+
+	/* Calculate current value of samples_to_percent_ratio */
+	samples_to_percent_ratio = (ring->idle * 100) / samples_per_sec;
+	percent = 100 - samples_to_percent_ratio;
+
+	if (!ring->size)
+		return;
+
+	len = printf("%25s busy: %3d%%: ", ring->name, percent);
+	print_percentage_bar (percent, len);
+	printf("%24s space: %d/%d (%d%%)\n",
+		   ring->name,
+		   (int)(ring->full / samples_per_sec),
+		   ring->size,
+		   (int)((ring->full / samples_to_percent_ratio) / ring->size));
+}
+
+static void ring_log(struct ring *ring, unsigned long samples_per_sec,
 		FILE *output)
 {
 	int samples_to_percent_ratio, percent, len;
@@ -391,23 +411,10 @@ static void ring_print(struct ring *ring, unsigned long samples_per_sec,
 	samples_to_percent_ratio = (ring->idle * 100) / samples_per_sec;
 	percent = 100 - samples_to_percent_ratio;
 
-	if (output == stdout) {
-		if (!ring->size)
-			return;
-
-		len = fprintf(output, "%25s busy: %3d%%: ", ring->name, percent);
-		print_percentage_bar (percent, len);
-		fprintf(output, "%24s space: %d/%d (%d%%)\n",
-			   ring->name,
-			   (int)(ring->full / samples_per_sec),
-			   ring->size,
-			   (int)((ring->full / samples_to_percent_ratio) / ring->size));
-	} else {
-		fprintf(output, "%3d\t%d\t",
-			   (ring->size) ? 100 - ring->idle / samples_to_percent_ratio : -1,
-			   (ring->size) ? (int)(ring->full / samples_per_sec) : -1
-			   );
-	}
+	fprintf(output, "%3d\t%d\t",
+		   (ring->size) ? 100 - ring->idle / samples_to_percent_ratio : -1,
+		   (ring->size) ? (int)(ring->full / samples_per_sec) : -1
+		   );
 }
 
 static void
@@ -420,7 +427,8 @@ usage(const char *appname)
 			"The following parameters apply:\n"
 			"[-s <samples>]       samples per seconds (default %d)\n"
 			"[-e <command>]       command to profile\n"
-			"[-o <file>]          output to file (default to stdio)\n"
+			"[-o <file>]          output statistics to file. If file is '-',"
+			"                     run in batch mode and output statistics to stdio only \n"
 			"[-h]                 show this help screen\n"
 			"\n",
 			appname,
@@ -447,12 +455,13 @@ int main(int argc, char **argv)
 	};
 	int i, ch;
 	int samples_per_sec = SAMPLES_PER_SEC;
-	FILE *output = stdout;
+	FILE *output = NULL;
 	double elapsed_time=0;
 	int print_headers=1;
 	pid_t child_pid=-1;
 	int child_stat;
 	char *cmd=NULL;
+	int interactive=1;
 
 	/* Parse options? */
 	while ((ch = getopt(argc, argv, "s:o:e:h")) != -1) {
@@ -465,7 +474,14 @@ int main(int argc, char **argv)
 				exit(1);
 			}
 			break;
-		case 'o': output = fopen(optarg, "w");
+		case 'o':
+			if (!strcmp(optarg, "-")) {
+				/* Running in non-interactive mode */
+				interactive = 0;
+				output = stdout;
+			}
+			else
+				output = fopen(optarg, "w");
 			if (!output)
 			{
 				perror("fopen");
@@ -493,7 +509,7 @@ int main(int argc, char **argv)
 
 	/* Do we have a command to run? */
 	if (cmd != NULL) {
-		if (output != stdout) {
+		if (output) {
 			fprintf(output, "# Profiling: %s\n", cmd);
 			fflush(output);
 		}
@@ -508,7 +524,7 @@ int main(int argc, char **argv)
 			free(cmd);
 			if (res < 0)
 				perror("running command");
-			if (output != stdout) {
+			if (output) {
 				fflush(output);
 				fprintf(output, "# %s exited with status %d\n", cmd, res);
 				fflush(output);
@@ -625,30 +641,30 @@ int main(int argc, char **argv)
 		t2 = gettime();
 		elapsed_time += (t2 - t1) / 1000000.0;
 
-		if (output == stdout) {
-			fprintf(output, "%s", clear_screen);
+		if (interactive) {
+			printf("%s", clear_screen);
 			print_clock_info(pci_dev);
 
-			ring_print(&render_ring, last_samples_per_sec, output);
-			ring_print(&bsd_ring, last_samples_per_sec, output);
-			ring_print(&bsd6_ring, last_samples_per_sec, output);
-			ring_print(&blt_ring, last_samples_per_sec, output);
+			ring_print(&render_ring, last_samples_per_sec);
+			ring_print(&bsd_ring, last_samples_per_sec);
+			ring_print(&bsd6_ring, last_samples_per_sec);
+			ring_print(&blt_ring, last_samples_per_sec);
 
-			fprintf(output, "\n%30s  %s\n", "task", "percent busy");
+			printf("\n%30s  %s\n", "task", "percent busy");
 			for (i = 0; i < max_lines; i++) {
 				if (top_bits_sorted[i]->count > 0) {
 					percent = (top_bits_sorted[i]->count * 100) /
 						last_samples_per_sec;
-					len = fprintf(output, "%30s: %3d%%: ",
+					len = printf("%30s: %3d%%: ",
 							 top_bits_sorted[i]->bit->name,
 							 percent);
 					print_percentage_bar (percent, len);
 				} else {
-					fprintf(output, "%*s", PERCENTAGE_BAR_END, "");
+					printf("%*s", PERCENTAGE_BAR_END, "");
 				}
 
 				if (i < STATS_COUNT && HAS_STATS_REGS(devid)) {
-					fprintf(output, "%13s: %llu (%lld/sec)",
+					printf("%13s: %llu (%lld/sec)",
 						   stats_reg_names[i],
 						   stats[i],
 						   stats[i] - last_stats[i]);
@@ -657,9 +673,10 @@ int main(int argc, char **argv)
 					if (!top_bits_sorted[i]->count)
 						break;
 				}
-				fprintf(output, "\n");
+				printf("\n");
 			}
-		} else {
+		}
+		if (output) {
 			/* Print headers for columns at first run */
 			if (print_headers) {
 				fprintf(output, "# time\t");
@@ -682,10 +699,10 @@ int main(int argc, char **argv)
 
 			/* Print statistics */
 			fprintf(output, "%.2f\t", elapsed_time);
-			ring_print(&render_ring, last_samples_per_sec, output);
-			ring_print(&bsd_ring, last_samples_per_sec, output);
-			ring_print(&bsd6_ring, last_samples_per_sec, output);
-			ring_print(&blt_ring, last_samples_per_sec, output);
+			ring_log(&render_ring, last_samples_per_sec, output);
+			ring_log(&bsd_ring, last_samples_per_sec, output);
+			ring_log(&bsd6_ring, last_samples_per_sec, output);
+			ring_log(&blt_ring, last_samples_per_sec, output);
 
 			for (i = 0; i < MAX_NUM_TOP_BITS; i++) {
 				if (i < STATS_COUNT && HAS_STATS_REGS(devid)) {
