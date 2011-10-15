@@ -44,7 +44,7 @@
 #include "i915_drm.h"
 #include "drmtest.h"
 
-#define OBJECT_SIZE (1024*1024) /* restricted to 1MiB alignment on i915 fences */
+#define OBJECT_SIZE (128*1024) /* restricted to 1MiB alignment on i915 fences */
 
 /* Before introduction of the LRU list for fences, allocation of a fence for a page
  * fault would use the first inactive fence (i.e. in preference one with no outstanding
@@ -102,17 +102,15 @@ static void *
 bo_copy (void *_arg)
 {
 	int fd = *(int *)_arg;
-	int offset = 0, n;
+	int n;
 	char *a, *b;
 
 	a = bo_create (fd);
 	b = bo_create (fd);
 
-	for (n = 0; n < OBJECT_SIZE; n++) {
-		memcpy (a + offset, b + offset, 1);
+	for (n = 0; n < 1000; n++) {
+		memcpy (a, b, OBJECT_SIZE);
 		pthread_yield ();
-		offset += 4097;
-		offset %= OBJECT_SIZE;
 	}
 
 	return NULL;
