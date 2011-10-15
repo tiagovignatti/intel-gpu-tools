@@ -36,6 +36,7 @@
 #include <sys/fcntl.h>
 #include <sys/stat.h>
 #include <sys/mman.h>
+#include <sys/sysinfo.h>
 
 #include "intel_gpu_tools.h"
 #include "i915_drm.h"
@@ -72,4 +73,20 @@ int intel_gen(uint32_t devid)
 		return 7;
 
 	return -1;
+}
+
+uint64_t
+intel_get_total_ram_mb(void)
+{
+	struct sysinfo sysinf;
+	uint64_t retval;
+	int ret;
+
+	ret = sysinfo(&sysinf);
+	assert(ret == 0);
+
+	retval = sysinf.totalram;
+	retval *= sysinf.mem_unit;
+
+	return retval / (1024*1024);
 }

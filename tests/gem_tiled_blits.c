@@ -144,6 +144,13 @@ int main(int argc, char **argv)
 		count = 3 * gem_aperture_size(fd) / (1024*1024) / 2;
 		count += (count & 1) == 0;
 	}
+
+	if (count > intel_get_total_ram_mb() * 9 / 10) {
+		count = intel_get_total_ram_mb() * 9 / 10;
+		fprintf(stderr, "not enough RAM to run test, reducing buffer count\n");
+		return 77;
+	}
+
 	printf("Using %d 1MiB buffers\n", count);
 
 	bo = malloc(sizeof(drm_intel_bo *)*count);

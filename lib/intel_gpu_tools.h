@@ -80,6 +80,7 @@ struct pci_device *intel_get_pci_device(void);
 
 uint32_t intel_get_drm_devid(int fd);
 int intel_gen(uint32_t devid);
+uint64_t intel_get_total_ram_mb(void);
 
 void intel_map_file(char *);
 
