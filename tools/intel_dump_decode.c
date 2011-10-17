@@ -43,7 +43,10 @@ read_bin_file(uint32_t devid, const char * filename)
 	uint32_t buf[16384];
 	int fd, offset, ret;
 
-	fd = open (filename, O_RDONLY);
+	if (!strcmp(filename, "-"))
+		fd = fileno(stdin);
+	else
+		fd = open (filename, O_RDONLY);
 	if (fd < 0) {
 		fprintf (stderr, "Failed to open %s: %s\n",
 			 filename, strerror (errno));
@@ -69,7 +72,11 @@ read_data_file(uint32_t devid, const char * filename)
     uint32_t offset, value;
     uint32_t gtt_offset = 0;
 
-    file = fopen (filename, "r");
+	if (!strcmp(filename, "-"))
+		file = stdin;
+	else
+		file = fopen (filename, "r");
+
     if (file == NULL) {
 	fprintf (stderr, "Failed to open %s: %s\n",
 		 filename, strerror (errno));
@@ -179,6 +186,11 @@ main (int argc, char *argv[])
 	}
 
 	for (i = optind; i < argc; i++) {
+		/* For stdin input, let's read as data file */
+		if (!strcmp(argv[i], "-")) {
+			read_data_file(devid, argv[i]);
+			continue;
+		}
 		if (binary == 1)
 			read_bin_file(devid, argv[i]);
 		else if (binary == 0)
