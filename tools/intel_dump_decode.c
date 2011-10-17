@@ -159,7 +159,7 @@ main (int argc, char *argv[])
 			       long_options, &option_index)) != -1) {
 		switch(c) {
 		case 'd':
-			devid = atoi(optarg);
+			devid = strtoul(optarg, NULL, 0);
 			break;
 		case 'b':
 			binary = 1;
@@ -177,7 +177,6 @@ main (int argc, char *argv[])
 		fprintf(stderr, "no input file given\n");
 		exit(-1);
 	}
-
 
 	for (i = optind; i < argc; i++) {
 		if (binary == 1)
