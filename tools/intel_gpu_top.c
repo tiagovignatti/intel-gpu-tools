@@ -384,37 +384,30 @@ static void ring_print_header(FILE *out, struct ring *ring)
 
 static void ring_print(struct ring *ring, unsigned long samples_per_sec)
 {
-	int samples_to_percent_ratio, percent, len;
-
-	/* Calculate current value of samples_to_percent_ratio */
-	samples_to_percent_ratio = (ring->idle * 100) / samples_per_sec;
-	percent = 100 - samples_to_percent_ratio;
+	int percent_busy, len;
 
 	if (!ring->size)
 		return;
 
-	len = printf("%25s busy: %3d%%: ", ring->name, percent);
-	print_percentage_bar (percent, len);
-	printf("%24s space: %d/%d (%d%%)\n",
+	percent_busy = 100 - 100 * ring->idle / samples_per_sec;
+
+	len = printf("%25s busy: %3d%%: ", ring->name, percent_busy);
+	print_percentage_bar (percent_busy, len);
+	printf("%24s space: %d/%d\n",
 		   ring->name,
 		   (int)(ring->full / samples_per_sec),
-		   ring->size,
-		   (int)((ring->full / samples_to_percent_ratio) / ring->size));
+		   ring->size);
 }
 
 static void ring_log(struct ring *ring, unsigned long samples_per_sec,
 		FILE *output)
 {
-	int samples_to_percent_ratio, percent, len;
-
-	/* Calculate current value of samples_to_percent_ratio */
-	samples_to_percent_ratio = (ring->idle * 100) / samples_per_sec;
-	percent = 100 - samples_to_percent_ratio;
-
-	fprintf(output, "%3d\t%d\t",
-		   (ring->size) ? 100 - ring->idle / samples_to_percent_ratio : -1,
-		   (ring->size) ? (int)(ring->full / samples_per_sec) : -1
-		   );
+	if (ring->size)
+		fprintf(output, "%3d\t%d\t",
+			(int)(100 - 100 * ring->idle / samples_per_sec),
+			(int)(ring->full / samples_per_sec));
+	else
+		fprintf(output, "-1\t-1\t");
 }
 
 static void
@@ -666,8 +659,8 @@ int main(int argc, char **argv)
 				if (i < STATS_COUNT && HAS_STATS_REGS(devid)) {
 					printf("%13s: %llu (%lld/sec)",
 						   stats_reg_names[i],
-						   stats[i],
-						   stats[i] - last_stats[i]);
+						   (long long)stats[i],
+						   (long long)(stats[i] - last_stats[i]));
 					last_stats[i] = stats[i];
 				} else {
 					if (!top_bits_sorted[i]->count)
