@@ -330,13 +330,8 @@ read_data_file (FILE *file)
 	    matched = sscanf (line, "PCI ID: 0x%04x\n", &reg);
 	    if (matched == 1) {
 		    devid = reg;
-		    if (IS_965(devid)) {
-			    printf("Detected i965+ chipset\n");
-		    } else if (IS_GEN3(devid)) {
-			    printf("Detected i9xx chipset\n");
-		    } else {
-			    printf("Detected i8xx chipset\n");
-		    }
+		    printf("Detected GEN%i chipset\n",
+			   intel_gen(devid));
 	    }
 
 	    matched = sscanf (line, "  ACTHD: 0x%08x\n", &reg);
