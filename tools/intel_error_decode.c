@@ -367,7 +367,10 @@ read_data_file (FILE *file)
     }
 
     if (count) {
-	printf("%s at 0x%08x:\n", buffer_type[is_batch], gtt_offset);
+	printf("%s (%s) at 0x%08x:\n",
+	       buffer_type[is_batch],
+	       ring_name,
+	       gtt_offset);
 	intel_decode (data, count, gtt_offset, devid, 0);
     }
 
