@@ -210,6 +210,28 @@ print_pgtbl_err(unsigned int reg, unsigned int devid)
 }
 
 static void
+print_snb_fence(unsigned int devid, uint64_t fence)
+{
+	printf("    %svalid, %c-tiled, pitch: %i, start: 0x%08x, size: %u\n",
+		fence & 1 ? "" : "in",
+		fence & (1<<1) ? 'y' : 'x',
+		(int)(((fence>>32)&0xfff)+1)*128,
+		(uint32_t)fence & 0xfffff000,
+		(uint32_t)(((fence>>32)&0xfffff000) - (fence&0xfffff000) + 4096));
+}
+
+static void
+print_i965_fence(unsigned int devid, uint64_t fence)
+{
+	printf("    %svalid, %c-tiled, pitch: %i, start: 0x%08x, size: %u\n",
+		fence & 1 ? "" : "in",
+		fence & (1<<1) ? 'y' : 'x',
+		(int)(((fence>>2)&0x1ff)+1)*128,
+		(uint32_t)fence & 0xfffff000,
+		(uint32_t)(((fence>>32)&0xfffff000) - (fence&0xfffff000) + 4096));
+}
+
+static void
 print_i915_fence(unsigned int devid, uint64_t fence)
 {
 	unsigned tile_width;
@@ -240,8 +262,10 @@ print_i830_fence(unsigned int devid, uint64_t fence)
 static void
 print_fence(unsigned int devid, uint64_t fence)
 {
-	if (IS_965(devid)) {
-		return;
+	if (IS_GEN6(devid) || IS_GEN7(devid)) {
+		return print_snb_fence(devid, fence);
+	} else if (IS_GEN4(devid) || IS_GEN5(devid)) {
+		return print_i965_fence(devid, fence);
 	} else if (IS_GEN3(devid)) {
 		return print_i915_fence(devid, fence);
 	} else {
@@ -350,7 +374,7 @@ read_data_file (FILE *file)
 	    if (matched == 1)
 		print_instdone (devid, -1, reg);
 
-	    matched = sscanf (line, "  fence[%i] = %8Lx\n", &reg, &fence); 
+	    matched = sscanf (line, "  fence[%i] = %Lx\n", &reg, &fence); 
 	    if (matched == 2)
 		print_fence (devid, fence);
 
