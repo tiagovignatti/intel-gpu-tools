@@ -28,6 +28,7 @@
 
 #include "intel_decode.h"
 #include "intel_chipset.h"
+#include "intel_gpu_tools.h"
 
 static FILE *out;
 static uint32_t saved_s2 = 0, saved_s4 = 0;
@@ -2588,7 +2589,7 @@ decode_3d_965(uint32_t *data, int count, uint32_t hw_offset, uint32_t devid, int
 	return len;
 
     case 0x7a00:
-	if (IS_GEN6(devid)) {
+	if (intel_gen(devid) >= 6) {
 		int i;
 		len = (data[0] & 0xff) + 2;
 		if (len != 4 && len != 5)
@@ -2604,17 +2605,27 @@ decode_3d_965(uint32_t *data, int count, uint32_t hw_offset, uint32_t devid, int
 		}
 		instr_out(data, hw_offset, 0, "PIPE_CONTROL\n");
 		instr_out(data, hw_offset, 1,
-			  "%s, %scs stall, %stlb invalidate, "
-			  "%ssync gfdt, %sdepth stall, %sRC write flush, "
-			  "%sinst flush, %sTC flush\n",
+			  "%s, %s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s\n",
 			  desc1,
-			  data[1] & (1 << 20) ? "" : "no ",
-			  data[1] & (1 << 18) ? "" : "no ",
-			  data[1] & (1 << 17) ? "" : "no ",
-			  data[1] & (1 << 13) ? "" : "no ",
-			  data[1] & (1 << 12) ? "" : "no ",
-			  data[1] & (1 << 11) ? "" : "no ",
-			  data[1] & (1 << 10) ? "" : "no ");
+			  data[1] & (1 << 20) ? "cs stall, " : "",
+			  data[1] & (1 << 19) ? "global snapshot count reset, " : "",
+			  data[1] & (1 << 18) ? "tlb invalidate, " : "",
+			  data[1] & (1 << 17) ? "gfdt flush, " : "",
+			  data[1] & (1 << 17) ? "media state clear, " : "",
+			  data[1] & (1 << 13) ? "depth stall, " : "",
+			  data[1] & (1 << 12) ? "render target cache flush, " : "",
+			  data[1] & (1 << 11) ? "instruction cache invalidate, " : "",
+			  data[1] & (1 << 10) ? "texture cache invalidate, " : "",
+			  data[1] & (1 << 9) ? "indirect state invalidate, " : "",
+			  data[1] & (1 << 8) ? "notify irq, " : "",
+			  data[1] & (1 << 7) ? "PIPE_CONTROL flush, " : "",
+			  data[1] & (1 << 6) ? "protect mem app_id, " : "",
+			  data[1] & (1 << 5) ? "DC flush, " : "",
+			  data[1] & (1 << 4) ? "vf fetch invalidate, " : "",
+			  data[1] & (1 << 3) ? "constant cache invalidate, " : "",
+			  data[1] & (1 << 2) ? "state cache invalidate, " : "",
+			  data[1] & (1 << 1) ? "stall at scoreboard, " : "",
+			  data[1] & (1 << 0) ? "depth cache flush, " : "");
 		if (len == 5) {
 		    instr_out(data, hw_offset, 2, "destination address\n");
 		    instr_out(data, hw_offset, 3, "immediate dword low\n");
