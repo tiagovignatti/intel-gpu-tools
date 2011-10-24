@@ -89,6 +89,8 @@ int	force_vsync_start;
 int	force_vsync_end;
 int	force_vtotal;
 
+int crtc_x, crtc_y, crtc_w, crtc_h;
+
 #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
 
 struct type_name {
@@ -686,10 +688,10 @@ paint_plane(cairo_t *cr, int width, int height, int stride)
 	double gr_height, gr_width;
 	int x, y;
 
-	y = height * 0.10;
-	gr_width = width * 0.75;
-	gr_height = height * 0.08;
-	x = (width / 2) - (gr_width / 2);
+	y = 0;
+	gr_width = width;
+	gr_height = height * 0.25;
+	x = 0;
 
 	paint_color_gradient(cr, x, y, gr_width, gr_height, 1, 0, 0);
 
@@ -743,8 +745,8 @@ enable_plane(struct connector *c)
 			width, height, cairo_status_to_string(status));
 
 	ret = drmModeAddFB2(fd, width, height, V4L2_PIX_FMT_RGB32, 24, 32,
-			   cairo_image_surface_get_stride(surface),
-			   handle, &fb_id);
+			    cairo_image_surface_get_stride(surface),
+			    handle, &fb_id);
 	cairo_surface_destroy(surface);
 	gem_close(fd, handle);
 
@@ -754,7 +756,8 @@ enable_plane(struct connector *c)
 		return;
 	}
 
-	if (drmModeSetPlane(fd, plane_id, c->crtc, fb_id, x, y, 0, 0)) {
+	if (drmModeSetPlane(fd, plane_id, c->crtc, fb_id, crtc_x, crtc_y,
+			    crtc_w, crtc_h, 0, 0, width, height)) {
 		fprintf(stderr, "failed to enable plane: %s\n",
 			strerror(errno));
 		return;
@@ -762,21 +765,42 @@ enable_plane(struct connector *c)
 }
 
 static void
-disable_plane(struct connector *c)
+disable_planes(int fd)
 {
-	uint32_t plane_id;
+	struct connector *connectors;
+	int c;
 
-	plane_id = connector_find_plane(c);
-	if (!plane_id) {
-		fprintf(stderr, "failed to find plane for crtc\n");
-		return;
-	}
-
-	if (drmModeSetPlane(fd, plane_id, c->crtc, 0, 0, 0, 0, 0)) {
-		fprintf(stderr, "failed to enable plane: %s\n",
+	resources = drmModeGetResources(fd);
+	if (!resources) {
+		fprintf(stderr, "drmModeGetResources failed: %s\n",
 			strerror(errno));
 		return;
 	}
+
+	connectors = calloc(resources->count_connectors,
+			    sizeof(struct connector));
+	if (!connectors)
+		return;
+
+	/* Find any connected displays */
+	for (c = 0; c < resources->count_connectors; c++) {
+		uint32_t plane_id;
+
+		plane_id = connector_find_plane(&connectors[c]);
+		if (!plane_id) {
+			fprintf(stderr,
+				"failed to find plane for crtc\n");
+			return;
+		}
+		if (drmModeSetPlane(fd, plane_id, connectors[c].crtc, 0, 0, 0,
+				    0, 0, 0, 0, 0, 0)) {
+			fprintf(stderr, "failed to disable plane: %s\n",
+				strerror(errno));
+			return;
+		}
+	}
+	drmModeFreeResources(resources);
+	return;
 }
 #else
 static void enable_plane(struct connector *c) { return; }
@@ -944,16 +968,16 @@ static int update_display(void)
 
 extern char *optarg;
 extern int optind, opterr, optopt;
-static char optstr[] = "hiaf:s:d:pmt";
+static char optstr[] = "hiaf:s:d:p:mt";
 
 static void usage(char *name)
 {
-	fprintf(stderr, "usage: %s [-hiafs]\n", name);
+	fprintf(stderr, "usage: %s [-hiasdpmtf]\n", name);
 	fprintf(stderr, "\t-i\tdump info\n");
 	fprintf(stderr, "\t-a\ttest all modes\n");
 	fprintf(stderr, "\t-s\t<duration>\tsleep between each mode test\n");
 	fprintf(stderr, "\t-d\t<depth>\tbit depth of scanout buffer\n");
-	fprintf(stderr, "\t-p\ttest overlay plane\n");
+	fprintf(stderr, "\t-p\t<crtcx,y>,<crtcw,h> test overlay plane\n");
 	fprintf(stderr, "\t-m\ttest the preferred mode\n");
 	fprintf(stderr, "\t-t\tuse a tiled framebuffer\n");
 	fprintf(stderr, "\t-f\t<clock MHz>,<hdisp>,<hsync-start>,<hsync-end>,<htotal>,\n");
@@ -998,8 +1022,10 @@ static gboolean input_event(GIOChannel *source, GIOCondition condition,
 	gsize count;
 
 	count = read(g_io_channel_unix_get_fd(source), buf, sizeof(buf));
-	if (buf[0] == 'q' && (count == 1 || buf[1] == '\n'))
+	if (buf[0] == 'q' && (count == 1 || buf[1] == '\n')) {
+		disable_planes(fd);
 		exit(0);
+	}
 
 	return TRUE;
 }
@@ -1040,6 +1066,9 @@ int main(int argc, char **argv)
 			fprintf(stderr, "using depth %d\n", depth);
 			break;
 		case 'p':
+			if (sscanf(optarg, "%d,%d,%d,%d", &crtc_x, &crtc_y,
+				   &crtc_w, &crtc_h) != 4)
+				usage(argv[0]);
 			test_plane = 1;
 			break;
 		case 'm':
@@ -1159,6 +1188,8 @@ out_udev_mon_unref:
 out_udev_unref:
 	udev_unref(u);
 out_close:
+	if (test_plane)
+		disable_planes(fd);
 	drmClose(fd);
 out:
 	return ret;
