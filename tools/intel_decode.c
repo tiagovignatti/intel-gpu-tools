@@ -213,11 +213,53 @@ decode_mi(uint32_t *data, int count, uint32_t hw_offset, int *failures)
     return 1;
 }
 
+static void
+decode_2d_br00(uint32_t *data, int count, uint32_t hw_offset, char *cmd)
+{
+    instr_out(data, hw_offset, 0,
+	      "%s (rgb %sabled, alpha %sabled, src tile %d, dst tile %d)\n",
+	      cmd,
+	      (data[count] & (1 << 20)) ? "en" : "dis",
+	      (data[count] & (1 << 21)) ? "en" : "dis",
+	      (data[count] >> 15) & 1,
+	      (data[count] >> 11) & 1);
+}
+
+static void
+decode_2d_br01(uint32_t *data, int count, uint32_t hw_offset)
+{
+    char *format;
+    switch ((data[count] >> 24) & 0x3) {
+    case 0:
+	format="8";
+	break;
+    case 1:
+	format="565";
+	break;
+    case 2:
+	format="1555";
+	break;
+    case 3:
+	format="8888";
+	break;
+    }
+
+    instr_out(data, hw_offset, count, "format %s, pitch %d, rop 0x%02x, "
+	      "clipping %sabled, %s%s \n",
+
+	      format,
+	      (short)(data[count] & 0xffff),
+	      (data[count] >> 16) &0xff,
+	      data[count] & (1 << 30) ? "en" : "dis",
+	      data[count] & (1 << 31) ? "solid pattern enabled, " : "",
+	      data[count] & (1 << 31) ? "mono pattern transparency enabled, " : "");
+
+}
+
 static int
 decode_2d(uint32_t *data, int count, uint32_t hw_offset, int *failures)
 {
     unsigned int opcode, len;
-    char *format = NULL;
 
     struct {
 	uint32_t opcode;
@@ -253,12 +295,61 @@ decode_2d(uint32_t *data, int count, uint32_t hw_offset, int *failures)
     };
 
     switch ((data[0] & 0x1fc00000) >> 22) {
+    case 0x01:
+	decode_2d_br00(data, 0, hw_offset, "XY_SETUP_BLT");
+
+	len = (data[0] & 0x000000ff) + 2;
+	if (len != 8)
+	    fprintf(out, "Bad count in XY_SETUP_BLT\n");
+	if (count < 8)
+	    BUFFER_FAIL(count, len, "XY_SETUP_BLT");
+
+	decode_2d_br01(data, 1, hw_offset);
+	instr_out(data, hw_offset, 2, "cliprect (%d,%d)\n",
+		  data[2] & 0xffff, data[2] >> 16);
+	instr_out(data, hw_offset, 3, "cliprect (%d,%d)\n",
+		  data[3] & 0xffff, data[3] >> 16);
+	instr_out(data, hw_offset, 4, "setup dst offset 0x%08x\n", data[4]);
+	instr_out(data, hw_offset, 5, "setup background color\n");
+	instr_out(data, hw_offset, 6, "setup foreground color\n");
+	instr_out(data, hw_offset, 7, "color pattern offset\n");
+	return len;
+    case 0x03:
+	decode_2d_br00(data, 0, hw_offset, "XY_SETUP_CLIP_BLT");
+
+	len = (data[0] & 0x000000ff) + 2;
+	if (len != 3)
+	    fprintf(out, "Bad count in XY_SETUP_CLIP_BLT\n");
+	if (count < 3)
+	    BUFFER_FAIL(count, len, "XY_SETUP_CLIP_BLT");
+
+	instr_out(data, hw_offset, 1, "cliprect (%d,%d)\n",
+		  data[1] & 0xffff, data[2] >> 16);
+	instr_out(data, hw_offset, 2, "cliprect (%d,%d)\n",
+		  data[2] & 0xffff, data[3] >> 16);
+	return len;
+    case 0x11:
+	decode_2d_br00(data, 0, hw_offset, "XY_SETUP_MONO_PATTERN_SL_BLT");
+
+	len = (data[0] & 0x000000ff) + 2;
+	if (len != 9)
+	    fprintf(out, "Bad count in XY_SETUP_MONO_PATTERN_SL_BLT\n");
+	if (count < 9)
+	    BUFFER_FAIL(count, len, "XY_SETUP_MONO_PATTERN_SL_BLT");
+
+	decode_2d_br01(data, 1, hw_offset);
+	instr_out(data, hw_offset, 2, "cliprect (%d,%d)\n",
+		  data[2] & 0xffff, data[2] >> 16);
+	instr_out(data, hw_offset, 3, "cliprect (%d,%d)\n",
+		  data[3] & 0xffff, data[3] >> 16);
+	instr_out(data, hw_offset, 4, "setup dst offset 0x%08x\n", data[4]);
+	instr_out(data, hw_offset, 5, "setup background color\n");
+	instr_out(data, hw_offset, 6, "setup foreground color\n");
+	instr_out(data, hw_offset, 7, "mono pattern dw0\n");
+	instr_out(data, hw_offset, 8, "mono pattern dw1\n");
+	return len;
     case 0x50:
-	instr_out(data, hw_offset, 0,
-		  "XY_COLOR_BLT (rgb %sabled, alpha %sabled, dst tile %d)\n",
-		  (data[0] & (1 << 20)) ? "en" : "dis",
-		  (data[0] & (1 << 21)) ? "en" : "dis",
-		  (data[0] >> 11) & 1);
+	decode_2d_br00(data, 0, hw_offset, "XY_COLOR_BLT");
 
 	len = (data[0] & 0x000000ff) + 2;
 	if (len != 6)
@@ -266,25 +357,7 @@ decode_2d(uint32_t *data, int count, uint32_t hw_offset, int *failures)
 	if (count < 6)
 	    BUFFER_FAIL(count, len, "XY_COLOR_BLT");
 
-	switch ((data[1] >> 24) & 0x3) {
-	case 0:
-	    format="8";
-	    break;
-	case 1:
-	    format="565";
-	    break;
-	case 2:
-	    format="1555";
-	    break;
-	case 3:
-	    format="8888";
-	    break;
-	}
-
-	instr_out(data, hw_offset, 1, "format %s, pitch %d, "
-		  "clipping %sabled\n", format,
-		  (short)(data[1] & 0xffff),
-		  data[1] & (1 << 30) ? "en" : "dis");
+	decode_2d_br01(data, 1, hw_offset);
 	instr_out(data, hw_offset, 2, "(%d,%d)\n",
 		  data[2] & 0xffff, data[2] >> 16);
 	instr_out(data, hw_offset, 3, "(%d,%d)\n",
@@ -293,13 +366,7 @@ decode_2d(uint32_t *data, int count, uint32_t hw_offset, int *failures)
 	instr_out(data, hw_offset, 5, "color\n");
 	return len;
     case 0x53:
-	instr_out(data, hw_offset, 0,
-		  "XY_SRC_COPY_BLT (rgb %sabled, alpha %sabled, "
-		  "src tile %d, dst tile %d)\n",
-		  (data[0] & (1 << 20)) ? "en" : "dis",
-		  (data[0] & (1 << 21)) ? "en" : "dis",
-		  (data[0] >> 15) & 1,
-		  (data[0] >> 11) & 1);
+	decode_2d_br00(data, 0, hw_offset, "XY_SRC_COPY_BLT");
 
 	len = (data[0] & 0x000000ff) + 2;
 	if (len != 8)
@@ -307,25 +374,7 @@ decode_2d(uint32_t *data, int count, uint32_t hw_offset, int *failures)
 	if (count < 8)
 	    BUFFER_FAIL(count, len, "XY_SRC_COPY_BLT");
 
-	switch ((data[1] >> 24) & 0x3) {
-	case 0:
-	    format="8";
-	    break;
-	case 1:
-	    format="565";
-	    break;
-	case 2:
-	    format="1555";
-	    break;
-	case 3:
-	    format="8888";
-	    break;
-	}
-
-	instr_out(data, hw_offset, 1, "format %s, dst pitch %d, "
-		  "clipping %sabled\n", format,
-		  (short)(data[1] & 0xffff),
-		  data[1] & (1 << 30) ? "en" : "dis");
+	decode_2d_br01(data, 1, hw_offset);
 	instr_out(data, hw_offset, 2, "dst (%d,%d)\n",
 		  data[2] & 0xffff, data[2] >> 16);
 	instr_out(data, hw_offset, 3, "dst (%d,%d)\n",
