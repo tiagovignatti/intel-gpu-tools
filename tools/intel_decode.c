@@ -295,6 +295,24 @@ decode_2d(uint32_t *data, int count, uint32_t hw_offset, int *failures)
     };
 
     switch ((data[0] & 0x1fc00000) >> 22) {
+    case 0x25:
+	instr_out(data, hw_offset, 0,
+		  "XY_SCANLINES_BLT (pattern seed (%d, %d), dst tile %d)\n",
+		  (data[0] >> 12) &0x8,
+		  (data[0] >> 8) &0x8,
+		  (data[0] >> 11) & 1);
+
+	len = (data[0] & 0x000000ff) + 2;
+	if (len != 3)
+	    fprintf(out, "Bad count in XY_SCANLINES_BLT\n");
+	if (count < 3)
+	    BUFFER_FAIL(count, len, "XY_SCANLINES_BLT");
+
+	instr_out(data, hw_offset, 1, "dest (%d,%d)\n",
+		  data[1] & 0xffff, data[1] >> 16);
+	instr_out(data, hw_offset, 2, "dest (%d,%d)\n",
+		  data[2] & 0xffff, data[2] >> 16);
+	return len;
     case 0x01:
 	decode_2d_br00(data, 0, hw_offset, "XY_SETUP_BLT");
 
