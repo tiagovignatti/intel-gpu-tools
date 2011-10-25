@@ -3494,4 +3494,12 @@ typedef enum {
 #define GEN6_TD_CTL		0x7000 /* <= GEN5 was at 0x8000 */
 #define GEN6_TD_CTL_FORCE_TD_BKPT (1<<4)
 
+/* Port debugging
+ */
+
+#define PORT_DBG                    0x42308
+#define  PORT_DBG_DRRS_HW_STATE_OFF     (0<<30)
+#define  PORT_DBG_DRRS_HW_STATE_LOW     (1<<30)
+#define  PORT_DBG_DRRS_HW_STATE_HIGH    (2<<30)
+
 #endif /* _I810_REG_H */

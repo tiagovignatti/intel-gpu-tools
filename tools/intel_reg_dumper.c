@@ -255,6 +255,24 @@ DEBUGSTRING(i830_debug_pipestat)
 		 _OREG_UPDATE_STATUS);
 }
 
+DEBUGSTRING(ivb_debug_port)
+{
+	char *drrs;
+	switch (val & (2 << 30)) {
+		case PORT_DBG_DRRS_HW_STATE_OFF:
+			drrs = "off";
+			break;
+		case PORT_DBG_DRRS_HW_STATE_LOW:
+			drrs = "low";
+			break;
+		case PORT_DBG_DRRS_HW_STATE_HIGH:
+			drrs = "high";
+			break;
+	}
+	snprintf(result, len, "HW DRRS %s",
+			drrs);
+}
+
 DEBUGSTRING(i830_debug_hvtotal)
 {
 	snprintf(result, len, "%d active, %d total",
@@ -1674,6 +1692,8 @@ static struct reg_debug ironlake_debug_regs[] = {
 	DEFINEREG(PCH_PP_ON_DELAYS),
 	DEFINEREG(PCH_PP_OFF_DELAYS),
 	DEFINEREG(PCH_PP_DIVISOR),
+
+	DEFINEREG2(PORT_DBG, ivb_debug_port),
 };
 
 static struct reg_debug i945gm_mi_regs[] = {
