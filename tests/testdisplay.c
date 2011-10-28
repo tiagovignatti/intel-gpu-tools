@@ -804,6 +804,7 @@ disable_planes(int fd)
 }
 #else
 static void enable_plane(struct connector *c) { return; }
+static void disable_planes(int fd) { return; }
 #endif
 
 static void
