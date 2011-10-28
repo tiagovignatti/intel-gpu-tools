@@ -1319,7 +1319,8 @@ DEBUGSTRING(ironlake_debug_pf_win)
 
 DEBUGSTRING(ironlake_debug_hdmi)
 {
-	char *enable, pipe, *bpc = NULL, *encoding;
+	int pipe;
+	char *enable, *bpc = NULL, *encoding;
 	char *mode, *audio, *vsync, *hsync, *detect;
 
 	if (val & PORT_ENABLE)
@@ -1328,9 +1329,9 @@ DEBUGSTRING(ironlake_debug_hdmi)
 		enable = "disabled";
 
 	if (HAS_CPT)
-		pipe = (val & (1<<29)) ? 'B' : 'A';
+		pipe = (val & (3<<29)) >> 29;
 	else
-		pipe = (val & TRANSCODER_B) ? 'B' : 'A';
+		pipe = (val & TRANSCODER_B) >> 29;
 
 	switch (val & (7 << 26)) {
 	case COLOR_FORMAT_8bpc:
@@ -1372,7 +1373,7 @@ DEBUGSTRING(ironlake_debug_hdmi)
 		detect = "non-detected";
 
 	snprintf(result, len, "%s pipe %c %s %s %s audio %s %s %s %s",
-		 enable, pipe, bpc, encoding, mode, audio, vsync, hsync, detect);
+		 enable, pipe + 'A', bpc, encoding, mode, audio, vsync, hsync, detect);
 }
 
 DEBUGSTRING(snb_debug_dpll_sel)
@@ -1627,6 +1628,7 @@ static struct reg_debug ironlake_debug_regs[] = {
 
 	DEFINEREG2(FDI_TXA_CTL, ironlake_debug_fdi_tx_ctl),
 	DEFINEREG2(FDI_TXB_CTL, ironlake_debug_fdi_tx_ctl),
+	DEFINEREG2(FDI_TXC_CTL, ironlake_debug_fdi_tx_ctl),
 	DEFINEREG2(FDI_RXA_CTL, ironlake_debug_fdi_rx_ctl),
 	DEFINEREG2(FDI_RXB_CTL, ironlake_debug_fdi_rx_ctl),
 	DEFINEREG2(FDI_RXC_CTL, ironlake_debug_fdi_rx_ctl),

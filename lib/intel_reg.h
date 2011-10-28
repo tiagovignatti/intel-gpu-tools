@@ -3261,6 +3261,7 @@ typedef enum {
 /* CPU: FDI_TX */
 #define FDI_TXA_CTL		0x60100
 #define FDI_TXB_CTL		0x61100
+#define FDI_TXC_CTL		0x62100
 #define  FDI_TX_DISABLE		(0<<31)
 #define  FDI_TX_ENABLE		(1<<31)
 #define  FDI_LINK_TRAIN_PATTERN_1	(0<<28)
