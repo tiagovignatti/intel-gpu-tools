@@ -90,6 +90,10 @@ int	force_vsync_end;
 int	force_vtotal;
 
 int crtc_x, crtc_y, crtc_w, crtc_h;
+unsigned int plane_fb_id;
+unsigned int plane_crtc_id;
+unsigned int plane_id;
+int plane_width, plane_height;
 
 #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
 
@@ -711,57 +715,68 @@ enable_plane(struct connector *c)
 	cairo_surface_t *surface;
 	cairo_status_t status;
 	cairo_t *cr;
-	unsigned int fb_id;
-	uint32_t handle, x, y, plane_id;
-	int width, height;
+	uint32_t handle, x, y;
 	int ret;
 
-	width = c->mode.hdisplay * 0.50;
-	height = c->mode.vdisplay * 0.50;
+	plane_width = c->mode.hdisplay * 0.50;
+	plane_height = c->mode.vdisplay * 0.50;
 
-	x = (c->mode.hdisplay - width) / 2;
-	y = (c->mode.vdisplay - height) / 2;
+	x = (c->mode.hdisplay - plane_width) / 2;
+	y = (c->mode.vdisplay - plane_height) / 2;
 
 	plane_id = connector_find_plane(c);
+	plane_crtc_id = c->crtc;
 	if (!plane_id) {
 		fprintf(stderr, "failed to find plane for crtc\n");
 		return;
 	}
 
-	surface = allocate_surface(fd, width, height, 24, 32, &handle, 1);
+	surface = allocate_surface(fd, plane_width, plane_height, 24, 32, &handle, 1);
 	if (!surface) {
-		fprintf(stderr, "allocation failed %dx%d\n", width, height);
+		fprintf(stderr, "allocation failed %dx%d\n", plane_width, plane_height);
 		return;
 	}
 
 	cr = cairo_create(surface);
 
-	paint_plane(cr, width, height,
+	paint_plane(cr, plane_width, plane_height,
 		      cairo_image_surface_get_stride(surface));
 	status = cairo_status(cr);
 	cairo_destroy(cr);
 	if (status)
 		fprintf(stderr, "failed to draw plane %dx%d: %s\n",
-			width, height, cairo_status_to_string(status));
+			plane_width, plane_height, cairo_status_to_string(status));
 
-	ret = drmModeAddFB2(fd, width, height, V4L2_PIX_FMT_RGB32, 24, 32,
+	ret = drmModeAddFB2(fd, plane_width, plane_height, V4L2_PIX_FMT_RGB32, 24, 32,
 			    cairo_image_surface_get_stride(surface),
-			    handle, &fb_id);
+			    handle, &plane_fb_id);
 	cairo_surface_destroy(surface);
 	gem_close(fd, handle);
 
 	if (ret) {
 		fprintf(stderr, "failed to add fb (%dx%d): %s\n",
-			width, height, strerror(errno));
+			plane_width, plane_height, strerror(errno));
 		return;
 	}
 
-	if (drmModeSetPlane(fd, plane_id, c->crtc, fb_id, crtc_x, crtc_y,
-			    crtc_w, crtc_h, 0, 0, width, height)) {
+	if (drmModeSetPlane(fd, plane_id, plane_crtc_id, plane_fb_id, crtc_x, crtc_y,
+			    crtc_w, crtc_h, 0, 0, plane_width, plane_height)) {
 		fprintf(stderr, "failed to enable plane: %s\n",
 			strerror(errno));
 		return;
 	}
+}
+
+static void
+adjust_plane(int fd, int xdistance, int ydistance, int wdiff, int hdiff)
+{
+	crtc_x += xdistance;
+	crtc_y += ydistance;
+	crtc_w += wdiff;
+	crtc_h += hdiff;
+	if (drmModeSetPlane(fd, plane_id, plane_crtc_id, plane_fb_id, crtc_x, crtc_y,
+			    crtc_w, crtc_h, 0, 0, plane_width, plane_height))
+		fprintf(stderr, "failed to adjust plane: %s\n",	strerror(errno));
 }
 
 static void
@@ -1019,14 +1034,29 @@ out:
 static gboolean input_event(GIOChannel *source, GIOCondition condition,
 			    gpointer data)
 {
-	gchar buf[256];
+	gchar buf[1];
 	gsize count;
 
 	count = read(g_io_channel_unix_get_fd(source), buf, sizeof(buf));
 	if (buf[0] == 'q' && (count == 1 || buf[1] == '\n')) {
 		disable_planes(fd);
 		exit(0);
-	}
+	} else if (buf[0] == 'a')
+		adjust_plane(fd, -10, 0, 0, 0);
+	else if (buf[0] == 'd')
+		adjust_plane(fd, 10, 0, 0, 0);
+	else if (buf[0] == 'w')
+		adjust_plane(fd, 0, -10, 0, 0);
+	else if (buf[0] == 's')
+		adjust_plane(fd, 0, 10, 0, 0);
+	else if (buf[0] == 'j')
+		adjust_plane(fd, 0, 0, 10, 0);
+	else if (buf[0] == 'l')
+		adjust_plane(fd, 0, 0, -10, 0);
+	else if (buf[0] == 'k')
+		adjust_plane(fd, 0, 0, 0, -10);
+	else if (buf[0] == 'i')
+		adjust_plane(fd, 0, 0, 0, 10);
 
 	return TRUE;
 }
