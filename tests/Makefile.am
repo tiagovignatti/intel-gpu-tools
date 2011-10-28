@@ -52,6 +52,7 @@ TESTS = getversion \
 	gem_ring_sync_loop \
 	gem_pipe_control_store_loop \
 	gem_hangcheck_forcewake \
+	gem_unref_active_buffers \
 	$(NULL)
 
 HANG = \
