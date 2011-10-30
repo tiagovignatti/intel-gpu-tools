@@ -60,9 +60,17 @@ TESTS_scripts = \
 	debugfs_reader \
 	$(NULL)
 
-TESTS = $(TESTS_progs) \
+kernel_tests = \
+	$(TESTS_progs) \
 	$(TESTS_scripts) \
 	$(NULL)
+
+TESTS = \
+	$(NULL)
+
+test:
+	whoami | grep root || ( echo not running as root; exit 1 )
+	make TESTS="${kernel_tests}" check
 
 HANG = \
 	gem_bad_batch \

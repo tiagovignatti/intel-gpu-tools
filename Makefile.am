@@ -26,3 +26,6 @@ SHADER_DEBUGGER_SUBDIR = debugger
 endif
 
 SUBDIRS = lib man tools scripts tests benchmarks $(SHADER_DEBUGGER_SUBDIR)
+
+test:
+	${MAKE} -C tests test
