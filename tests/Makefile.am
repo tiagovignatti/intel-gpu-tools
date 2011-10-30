@@ -56,9 +56,13 @@ TESTS_progs = \
 	gem_unref_active_buffers \
 	$(NULL)
 
+TESTS_scripts = \
+	debugfs_reader \
+	$(NULL)
+
 TESTS = $(TESTS_progs) \
-       debugfs_reader \
-       $(NULL)
+	$(TESTS_scripts) \
+	$(NULL)
 
 HANG = \
 	gem_bad_batch \
@@ -67,6 +71,7 @@ HANG = \
 	$(NULL)
 
 EXTRA_PROGRAMS = $(TESTS_progs) $(HANG)
+EXTRA_DIST = $(TESTS_scripts)
 CLEANFILES = $(EXTRA_PROGRAMS)
 
 AM_CFLAGS = $(DRM_CFLAGS) $(WARN_CFLAGS) \

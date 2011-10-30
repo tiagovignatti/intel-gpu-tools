@@ -8,6 +8,9 @@ libintel_tools_la_SOURCES = \
 	intel_mmio.c \
 	intel_pci.c \
 	intel_reg.h \
+	i915_3d.h \
+	i915_reg.h \
+	i830_reg.h \
 	intel_reg_map.c \
 	instdone.c \
 	instdone.h \
@@ -21,6 +24,7 @@ libintel_tools_la_SOURCES += \
 	$(NULL)
 AM_CFLAGS += $(DRM_CFLAGS)
 endif
+
 
 noinst_LTLIBRARIES = libintel_tools.la
 
