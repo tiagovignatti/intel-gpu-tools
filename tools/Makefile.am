@@ -17,6 +17,9 @@ bin_PROGRAMS = \
 	forcewaked \
 	$(NULL)
 
+bin_SCRIPTS = intel_gpu_abrt \
+	$(NULL)
+
 noinst_PROGRAMS = \
 	intel_dump_decode \
 	intel_lid \
@@ -35,6 +38,8 @@ intel_error_decode_SOURCES = \
 intel_bios_reader_SOURCES = \
 	intel_bios_reader.c \
 	intel_bios.h
+
+EXTRA_DIST = $(bin_SCRIPTS)
 
 LDADD = ../lib/libintel_tools.la $(DRM_LIBS) $(PCIACCESS_LIBS)
 

@@ -1,0 +1,45 @@
+#!/bin/sh
+
+if [ -d /debug/dri ] ; then
+	debugfs_path=/debug_dri
+fi
+
+if [ -d /sys/kernel/debug/dri ] ; then
+	debugfs_path=/sys/kernel/debug/dri
+fi
+
+i915_debugfs=x
+for dir in `ls $debugfs_path` ; do
+	if [ -f $debugfs_path/$dir/i915_error_state ] ; then
+		i915_debugfs=$debugfs_path/$dir
+		break
+	fi
+done
+
+if [ $i915_debugfs = "x" ] ; then
+	echo i915 debugfs path not found.
+	exit 1
+fi
+
+tmpdir=`mktemp -d`
+tardir=$tmpdir/intel_gpu_abrt
+mkdir $tardir
+
+mkdir $tardir/debugfs
+cp $i915_debugfs/* $tardir/debugfs
+
+mkdir $tardir/mod_opts
+cp /sys/module/i915/parameters/* $tardir/mod_opts
+
+mkdir $tardir/X
+cp /var/log/Xorg.*.log $tardir/X
+cp /etc/X11/xorg.conf $tardir/X
+
+dmesg > $tardir/dmesg
+lspci -nn > $tardir/lspci
+
+(cd $tmpdir; tar -c intel_gpu_abrt ) > intel_gpu_abrt.tar
+
+rm $tmpdir -Rf
+
+exit 0
