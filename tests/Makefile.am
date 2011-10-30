@@ -1,7 +1,7 @@
 if HAVE_DRM
 noinst_PROGRAMS = \
 	gem_stress \
-	$(TESTS) \
+	$(TESTS_progs) \
 	$(HANG) \
 	$(NULL)
 
@@ -14,7 +14,8 @@ gem_stress_SOURCES = \
 	gem_stress_gen6.c \
 	$(NULL)
 
-TESTS = getversion \
+TESTS_progs = \
+	getversion \
 	getclient \
 	getstats \
 	gem_basic \
@@ -55,13 +56,17 @@ TESTS = getversion \
 	gem_unref_active_buffers \
 	$(NULL)
 
+TESTS = $(TESTS_progs) \
+       debugfs_reader \
+       $(NULL)
+
 HANG = \
 	gem_bad_batch \
 	gem_hang \
 	gem_bad_blit \
 	$(NULL)
 
-EXTRA_PROGRAMS = $(TESTS) $(HANG)
+EXTRA_PROGRAMS = $(TESTS_progs) $(HANG)
 CLEANFILES = $(EXTRA_PROGRAMS)
 
 AM_CFLAGS = $(DRM_CFLAGS) $(WARN_CFLAGS) \
@@ -72,7 +77,7 @@ LDADD = ../lib/libintel_tools.la $(PCIACCESS_LIBS) $(DRM_LIBS)
 if HAVE_CAIRO
 if HAVE_LIBUDEV
 if HAVE_GLIB
-TESTS += testdisplay
+TESTS_progs += testdisplay
 LDADD += $(CAIRO_LIBS) $(LIBUDEV_LIBS) $(GLIB_LIBS)
 AM_CFLAGS += $(CAIRO_CFLAGS) $(LIBUDEV_CFLAGS) $(GLIB_CFLAGS)
 endif
