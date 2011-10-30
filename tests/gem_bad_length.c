@@ -150,7 +150,7 @@ int main(int argc, char **argv)
 
 	create0(fd);
 
-	exec0(fd);
+	//exec0(fd);
 
 	close(fd);
 
