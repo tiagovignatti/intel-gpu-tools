@@ -93,7 +93,12 @@ AC_ARG_ENABLE(shader-debugger,
 	      [SHADER_DEBUGGER=no])
 AM_CONDITIONAL(HAVE_SHADER_DEBUGGER, [test "x$SHADER_DEBUGGER" = xyes])
 if test "x$SHADER_DEBUGGER" = xyes; then
-	AC_DEFINE(HAVE_SHADER_DEBUGGER, 1, [Have shader debugging support])
+	AC_CHECK_PROG([GEN4ASM], intel-gen4asm, intel-gen4asm)
+	if test -z "$GEN4ASM"; then
+		AC_MSG_ERROR([Cannot find intel-gen4asm in your path; please set GEN4ASM env variable])
+	else
+		AC_DEFINE(HAVE_SHADER_DEBUGGER, 1, [Have shader debugging support])
+	fi
 fi
 
 m4_ifndef([XORG_MACROS_VERSION], [AC_FATAL([must install xorg-macros 1.3 or later before running autoconf/autogen])])

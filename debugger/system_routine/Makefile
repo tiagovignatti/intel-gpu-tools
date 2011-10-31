@@ -27,8 +27,7 @@ OBJCOPY?=objcopy
 PRECPP=./pre_cpp.py
 CPP_FLAGS=-x assembler-with-cpp -P
 
-GEN_AS?=~/intel-gfx/intel-gen4asm/src/intel-gen4asm
-GEN_AS_FLAGS?=-g6 -a -b
+GEN4ASM_FLAGS?=-g6 -a -b
 
 TEMP:=$(shell mktemp)
 TEMP2:=$(shell mktemp)
@@ -41,7 +40,7 @@ all: sr
 sr.c: sr.g4a eviction_macro evict.h
 	$(PRECPP) $^ > $(TEMP)
 	$(CPP) $(CPP_FLAGS) $(DEFINES) -o $(TEMP2) $(TEMP)
-	$(GEN_AS) $(GEN_AS_FLAGS) $(TEMP2) -o $@
+	$(GEN4ASM) $(GEN4ASM_FLAGS) $(TEMP2) -o $@
 
 sr : sr.o
 	$(OBJCOPY) -O binary -K gen_eu_bytes $^ $@
@@ -51,7 +50,7 @@ sr : sr.o
 test.c: test.g4a
 	$(PRECPP) $^ > $(TEMP)
 	$(CPP) $(CPP_FLAGS) $(DEFINES) -o $(TEMP2) $(TEMP)
-	$(GEN_AS) $(GEN_AS_FLAGS) $(TEMP2) -o $@
+	$(GEN4ASM) $(GEN4ASM_FLAGS) $(TEMP2) -o $@
 
 test : test.o
 	$(OBJCOPY) -O binary -K gen_eu_bytes $^ $@
@@ -59,7 +58,7 @@ test : test.o
 helper: sr.g4a eviction_macro
 	$(PRECPP) $^ > help
 	$(CPP) $(CPP_FLAGS) $(DEFINES) -o help2 help
-	$(GEN_AS) $(GEN_AS_FLAGS) help2 -o $@
+	$(GEN4ASM) $(GEN4ASM_FLAGS) help2 -o $@
 
 eviction_macro :
 
