@@ -17,6 +17,7 @@ libintel_tools_la_SOURCES = \
 	instdone.c \
 	instdone.h \
 	drmtest.h \
+	drmtest.c \
 	debug.h \
 	$(NULL)
 

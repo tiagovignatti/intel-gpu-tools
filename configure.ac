@@ -48,7 +48,7 @@ AM_PROG_CC_C_O
 LT_PREREQ([2.2])
 LT_INIT([disable-static])
 
-PKG_CHECK_MODULES(DRM, [libdrm_intel >= 2.4.23])
+PKG_CHECK_MODULES(DRM, [libdrm_intel >= 2.4.23 libdrm])
 PKG_CHECK_MODULES(PCIACCESS, [pciaccess >= 0.10])
 
 PKG_CHECK_MODULES(CAIRO, cairo, [HAVE_CAIRO=yes], [HAVE_CAIRO=no])
