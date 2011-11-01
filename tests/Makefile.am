@@ -1,4 +1,3 @@
-if HAVE_DRM
 noinst_PROGRAMS = \
 	gem_stress \
 	$(TESTS_progs) \
@@ -100,4 +99,3 @@ endif
 
 gem_fence_thrash_CFLAGS = $(AM_CFLAGS) -pthread
 gem_fence_thrash_LDADD = $(LDADD) -lpthread
-endif

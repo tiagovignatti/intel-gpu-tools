@@ -48,12 +48,7 @@ AM_PROG_CC_C_O
 LT_PREREQ([2.2])
 LT_INIT([disable-static])
 
-PKG_CHECK_MODULES(DRM, [libdrm_intel >= 2.4.23], have_drm=yes, have_drm=no)
-if test "x$have_drm" = "xyes"; then
-	AC_DEFINE([HAVE_DRM], 1, [Define to 1 if we have DRM support])
-fi
-AM_CONDITIONAL(HAVE_DRM, test "x$have_drm" = "xyes")
-
+PKG_CHECK_MODULES(DRM, [libdrm_intel >= 2.4.23])
 PKG_CHECK_MODULES(PCIACCESS, [pciaccess >= 0.10])
 
 PKG_CHECK_MODULES(CAIRO, cairo, [HAVE_CAIRO=yes], [HAVE_CAIRO=no])
