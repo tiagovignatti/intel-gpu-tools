@@ -71,7 +71,7 @@ clean :
 
 .PHONY : clean
 distclean: clean
-	$(RM) help*
+	$(RM) help* GNUmakefile
 
 maintainer-clean: clean
 
@@ -79,6 +79,6 @@ EMPTY_AUTOMAKE_TARGETS = install install-data install-exec uninstall \
 			 install-dvi install-html install-info install-ps \
 			 install-pdf installdirs check installcheck \
 			 mostlyclean dvi pdf ps info html tags ctags \
-			 distcheck distdir
+			 distdir
 .PHONY: $(EMPTY_AUTOMAKE_TARGETS)
 $(EMPTY_AUTOMAKE_TARGETS):

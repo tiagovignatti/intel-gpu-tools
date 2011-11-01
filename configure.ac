@@ -97,6 +97,7 @@ if test "x$SHADER_DEBUGGER" = xyes; then
 	if test -z "$GEN4ASM"; then
 		AC_MSG_ERROR([Cannot find intel-gen4asm in your path; please set GEN4ASM env variable])
 	else
+		AC_CONFIG_FILES([debugger/system_routine/GNUmakefile])
 		AC_DEFINE(HAVE_SHADER_DEBUGGER, 1, [Have shader debugging support])
 	fi
 fi
