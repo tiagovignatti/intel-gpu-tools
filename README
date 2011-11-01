@@ -17,13 +17,30 @@ benchmarks/
 	running, they must be run as root to avoid the authentication
 	requirement.
 
+	Note that a few other microbenchmarks are in tests (like gem_gtt_speed).
+
 tests/
 	This is a set of automated tests to run against the DRM to validate
 	changes.  Hopefully this can cover the relevant cases we need to
 	worry about, including backwards compatibility.
 
-	To run the tests, do "sudo make check" from this directory with
-	KMS enabled.
+	Run this tests with "make test" as root from this directory. Note that
+	no other drm clients (X server) may run.
+
+	"make test" only runs a default of test usefull for regression testing.
+	Other tests not run are:
+	- tests that might hang the gpu, see HANG in Makefile.am
+	- gem_stress, a stress test suite. Look at the source for all the
+	  various options.
+	- testdisplay is only run in the default mode. testdisplay has tons of
+	  options to test different kms functionality, again read the source of
+	  the details.
+
+lib/
+	Common helper functions and headers used by the other tools.
+
+man/
+	Manpages, unfortunately rather incomplete.
 
 tools/
 	This is a collection of debugging tools that had previously been
@@ -31,7 +48,8 @@ tools/
 	up the 2D build to ship them.  Instead, here's a separate package for
 	people debugging the driver.
 
-	These tools generally must be run as root.
+	These tools generally must be run as root, safe for the ones that just
+	decode dumps.
 
 debugger/
 	This tool is to be used to do shader debugging. It acts like a
