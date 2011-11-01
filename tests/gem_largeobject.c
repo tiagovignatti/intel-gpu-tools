@@ -43,19 +43,38 @@
 
 unsigned char data[OBJ_SIZE];
 
+static uint64_t
+gem_aperture_size(int fd)
+{
+	struct drm_i915_gem_get_aperture aperture;
+
+	aperture.aper_size = 512*1024*1024;
+	(void)drmIoctl(fd, DRM_IOCTL_I915_GEM_GET_APERTURE, &aperture);
+	return aperture.aper_size;
+}
+
 static void
 test_large_object(int fd)
 {
 	struct drm_i915_gem_create create;
 	struct drm_i915_gem_pwrite pwrite;
 	struct drm_i915_gem_pin pin;
+	uint32_t obj_size;
 	int ret;
 
 	memset(&create, 0, sizeof(create));
 	memset(&pwrite, 0, sizeof(pwrite));
 	memset(&pin, 0, sizeof(pin));
 
-	create.size = OBJ_SIZE;
+	if (gem_aperture_size(fd)*3/4 < OBJ_SIZE/2)
+		obj_size = OBJ_SIZE / 4;
+	else if (gem_aperture_size(fd)*3/4 < OBJ_SIZE)
+		obj_size = OBJ_SIZE / 2;
+	else
+		obj_size = OBJ_SIZE;
+	create.size = obj_size;
+	printf("obj size %i\n", obj_size);
+
 	ret = ioctl(fd, DRM_IOCTL_I915_GEM_CREATE, &create);
 	if (ret) {
 		fprintf(stderr, "object creation failed: %s\n",
@@ -72,7 +91,7 @@ test_large_object(int fd)
 	}
 
 	pwrite.handle = create.handle;
-	pwrite.size = OBJ_SIZE;
+	pwrite.size = obj_size;
 	pwrite.data_ptr = (uint64_t)data;
 
 	ret = ioctl(fd, DRM_IOCTL_I915_GEM_PWRITE, &pwrite);
