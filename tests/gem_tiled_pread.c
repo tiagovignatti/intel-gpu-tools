@@ -49,12 +49,17 @@
 #include "drm.h"
 #include "i915_drm.h"
 #include "drmtest.h"
+#include "intel_gpu_tools.h"
 
 #define WIDTH 512
 #define HEIGHT 512
 static uint32_t linear[WIDTH * HEIGHT];
 
 #define PAGE_SIZE 4096
+
+static int tile_width;
+static int tile_height;
+static int tile_size;
 
 static uint32_t
 gem_create(int fd, int size)
@@ -160,18 +165,18 @@ swizzle_bit(int bit, int offset)
 static uint32_t
 calculate_expected(int offset)
 {
-	int tile_off = offset & (PAGE_SIZE - 1);
-	int tile_base = offset & -PAGE_SIZE;
-	int tile_index = tile_base / PAGE_SIZE;
-	int tiles_per_row = 4*WIDTH / 512; /* X tiled = 512b rows */
+	int tile_off = offset & (tile_size - 1);
+	int tile_base = offset & -tile_size;
+	int tile_index = tile_base / tile_size;
+	int tiles_per_row = 4*WIDTH / tile_width;
 
 	/* base x,y values from the tile (page) index. */
-	int base_y = tile_index / tiles_per_row * 8;
-	int base_x = tile_index % tiles_per_row * 128;
+	int base_y = tile_index / tiles_per_row * tile_height;
+	int base_x = tile_index % tiles_per_row * (tile_width/4);
 
 	/* x, y offsets within the tile */
-	int tile_y = tile_off / 512;
-	int tile_x = (tile_off % 512) / 4;
+	int tile_y = tile_off / tile_width;
+	int tile_x = (tile_off % tile_width) / 4;
 
 	/* printf("%3d, %3d, %3d,%3d\n", base_x, base_y, tile_x, tile_y); */
 	return (base_y + tile_y) * WIDTH + base_x + tile_x;
@@ -184,11 +189,24 @@ main(int argc, char **argv)
 	int i, iter = 100;
 	uint32_t tiling, swizzle;
 	uint32_t handle;
+	uint32_t devid;
 
 	fd = drm_open_any();
 
 	handle = create_bo(fd);
 	gem_get_tiling(fd, handle, &tiling, &swizzle);
+
+	devid = intel_get_drm_devid(fd);
+
+	if (IS_GEN2(devid)) {
+		tile_height = 16;
+		tile_width = 128;
+		tile_size = 2048;
+	} else {
+		tile_height = 8;
+		tile_width = 512;
+		tile_size = PAGE_SIZE;
+	}
 
 	/* Read a bunch of random subsets of the data and check that they come
 	 * out right.
