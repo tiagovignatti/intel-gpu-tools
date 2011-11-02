@@ -164,6 +164,7 @@ struct connector {
 	drmModeEncoder *encoder;
 	drmModeConnector *connector;
 	int crtc;
+	int pipe;
 };
 
 static void dump_mode(drmModeModeInfo *mode)
@@ -371,6 +372,7 @@ static void connector_find_preferred_mode(struct connector *c)
 			break;
 	}
 	c->crtc = resources->crtcs[i];
+	c->pipe = i;
 	resources->crtcs[i] = 0;
 	c->connector = connector;
 }
@@ -675,7 +677,7 @@ connector_find_plane(struct connector *c)
 			continue;
 		}
 
-		if (ovr->possible_crtcs & (1<<i)) {
+		if (ovr->possible_crtcs & (1 << c->pipe)) {
 			id = ovr->plane_id;
 			drmModeFreePlane(ovr);
 			break;
