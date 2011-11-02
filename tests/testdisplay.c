@@ -717,6 +717,7 @@ enable_plane(struct connector *c)
 	cairo_t *cr;
 	uint32_t handle, x, y;
 	int ret;
+	uint32_t pitches[4], offsets[4]; /* we only use [0] */
 
 	plane_width = c->mode.hdisplay * 0.50;
 	plane_height = c->mode.vdisplay * 0.50;
@@ -725,11 +726,11 @@ enable_plane(struct connector *c)
 	y = (c->mode.vdisplay - plane_height) / 2;
 
 	plane_id = connector_find_plane(c);
-	plane_crtc_id = c->crtc;
 	if (!plane_id) {
 		fprintf(stderr, "failed to find plane for crtc\n");
 		return;
 	}
+	plane_crtc_id = c->crtc;
 
 	surface = allocate_surface(fd, plane_width, plane_height, 24, 32, &handle, 1);
 	if (!surface) {
@@ -747,9 +748,10 @@ enable_plane(struct connector *c)
 		fprintf(stderr, "failed to draw plane %dx%d: %s\n",
 			plane_width, plane_height, cairo_status_to_string(status));
 
-	ret = drmModeAddFB2(fd, plane_width, plane_height, V4L2_PIX_FMT_RGB32, 24, 32,
-			    cairo_image_surface_get_stride(surface),
-			    handle, &plane_fb_id);
+	pitches[0] = cairo_image_surface_get_stride(surface);
+	memset(offsets, 0, sizeof(offsets));
+	ret = drmModeAddFB2(fd, plane_width, plane_height, V4L2_PIX_FMT_RGB24,
+			    handle, pitches, offsets, &plane_fb_id);
 	cairo_surface_destroy(surface);
 	gem_close(fd, handle);
 
