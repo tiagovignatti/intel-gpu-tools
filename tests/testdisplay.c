@@ -421,8 +421,23 @@ allocate_surface(int fd, int width, int height, uint32_t depth, uint32_t bpp,
 	int size, stride;
 
 	if (tiled) {
-		stride = (width * (bpp / 8) + 511) & ~511;
-		size = stride * (height + 7) & ~7;
+		int v;
+
+		/* Round the tiling up to the next power-of-two and the
+		 * region up to the next pot fence size so that this works
+		 * on all generations.
+		 *
+		 * This can still fail if the framebuffer is too large to
+		 * be tiled. But then that failure is expected.
+		 */
+
+		v = width * bpp / 8;
+		for (stride = 512; stride < v; stride *= 2)
+			;
+
+		v = stride * height;
+		for (size = 1024*1024; size < v; size *= 2)
+			;
 	} else {
 		/* Scan-out has a 64 byte alignment restriction */
 		stride = (width * (bpp / 8) + 63) & ~63;
@@ -456,8 +471,8 @@ allocate_surface(int fd, int width, int height, uint32_t depth, uint32_t bpp,
 		set_tiling.tiling_mode = I915_TILING_X;
 		set_tiling.stride = stride;
 		if (ioctl(fd, DRM_IOCTL_I915_GEM_SET_TILING, &set_tiling)) {
-			fprintf(stderr, "set tiling failed: %s\n",
-				strerror(errno));
+			fprintf(stderr, "set tiling failed: %s (stride=%d, size=%d)\n",
+				strerror(errno), stride, size);
 			return NULL;
 		}
 	}
