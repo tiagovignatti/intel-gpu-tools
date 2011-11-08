@@ -156,6 +156,10 @@ int main(int argc, char **argv)
 		fprintf(stderr, "no pipe_control on gen2/3\n");
 		return 77;
 	}
+	if (devid == PCI_CHIP_I965_G) {
+		fprintf(stderr, "pipe_control totally broken on i965\n");
+		return 77;
+	}
 	/* IMPORTANT: No call to
 	 * drm_intel_bufmgr_gem_enable_reuse(bufmgr);
 	 * here because we wan't to have fresh buffers (to trash the tlb)
