@@ -310,33 +310,6 @@ struct ring {
 	int idle;
 };
 
-static void gen6_force_wake_get(void)
-{
-	int count;
-
-	if (!IS_GEN6(devid))
-		return;
-
-	/* This will probably have undesirable side-effects upon the system. */
-	count = 0;
-	while (count++ < 50 && (INREG(FORCEWAKE_ACK) & 1))
-		usleep(10);
-
-	OUTREG(FORCEWAKE, 1);
-
-	count = 0;
-	while (count++ < 50 && (INREG(FORCEWAKE_ACK) & 1) == 0)
-		usleep(10);
-}
-
-static void gen6_force_wake_put(void)
-{
-	if (!IS_GEN6(devid))
-		return;
-
-	OUTREG(FORCEWAKE, 0);
-}
-
 static uint32_t ring_read(struct ring *ring, uint32_t reg)
 {
 	return INREG(ring->mmio + reg);
@@ -344,9 +317,7 @@ static uint32_t ring_read(struct ring *ring, uint32_t reg)
 
 static void ring_init(struct ring *ring)
 {
-	gen6_force_wake_get();
 	ring->size = (((ring_read(ring, RING_LEN) & RING_NR_PAGES) >> 12) + 1) * 4096;
-	gen6_force_wake_put();
 }
 
 static void ring_reset(struct ring *ring)
@@ -361,10 +332,8 @@ static void ring_sample(struct ring *ring)
 	if (!ring->size)
 		return;
 
-	gen6_force_wake_get();
 	ring->head = ring_read(ring, RING_HEAD) & HEAD_ADDR;
 	ring->tail = ring_read(ring, RING_TAIL) & TAIL_ADDR;
-	gen6_force_wake_put();
 
 	if (ring->tail == ring->head)
 		ring->idle++;
@@ -533,6 +502,9 @@ int main(int argc, char **argv)
 		top_bits[i].count = 0;
 		top_bits_sorted[i] = &top_bits[i];
 	}
+
+	/* Grab access to the registers */
+	intel_register_access_init(pci_dev, 1);
 
 	ring_init(&render_ring);
 	if (IS_GEN4(devid) || IS_GEN5(devid))
@@ -733,5 +705,6 @@ int main(int argc, char **argv)
 
 	fclose(output);
 
+	intel_register_access_fini();
 	return 0;
 }
