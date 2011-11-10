@@ -56,6 +56,7 @@ TESTS_progs = \
 
 TESTS_scripts = \
 	debugfs_reader \
+	debugfs_emon_crash \
 	$(NULL)
 
 kernel_tests = \
