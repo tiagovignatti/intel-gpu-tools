@@ -57,6 +57,7 @@ TESTS_progs = \
 TESTS_scripts = \
 	debugfs_reader \
 	debugfs_emon_crash \
+	sysfs_edid_timing \
 	$(NULL)
 
 kernel_tests = \
