@@ -52,7 +52,7 @@ gpu_hang(void)
 	int cmd;
 
 	cmd = bad_pipe ? MI_WAIT_FOR_PIPEB_SCAN_LINE_WINDOW :
-		MI_WAIT_FOR_PIPEB_SCAN_LINE_WINDOW;
+		MI_WAIT_FOR_PIPEA_SCAN_LINE_WINDOW;
 
 	BEGIN_BATCH(6);
 	/* The documentation says that the LOAD_SCAN_LINES command
