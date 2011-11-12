@@ -156,6 +156,12 @@ static char *bits_per_sample[] = {
 	[5] = "reserved",
 };
 
+static char *sdvo_hdmi_encoding[] = {
+	[0] = "SDVO",
+	[1] = "reserved",
+	[2] = "TMDS",
+	[3] = "reserved",
+};
 
 static void do_self_tests(void)
 {
@@ -562,6 +568,8 @@ static void dump_ironlake(void)
     printf("HDMIB Transcoder_Select\t\t\t\t\t%s\n", BIT(dword, 30) ? "Transcoder B" : "Transcoder A");
     printf("HDMIB HDCP_Port_Select\t\t\t\t\t%lu\n", BIT(dword, 5));
     printf("HDMIB Digital_Port_B_Detected\t\t\t\t%lu\n", BIT(dword, 2));
+    printf("HDMIB Encoding\t\t\t\t\t\t[0x%lx] %s\n",
+				BITS(dword, 11, 10), sdvo_hdmi_encoding[BITS(dword, 11, 10)]);
     printf("HDMIB Null_packets_enabled_during_Vsync\t\t\t%u\n",  !!(dword & SDVO_NULL_PACKETS_DURING_VSYNC));
     printf("HDMIB Audio_Output_Enable\t\t\t\t%u\n", !!(dword & SDVO_AUDIO_ENABLE));
 
@@ -570,6 +578,8 @@ static void dump_ironlake(void)
     printf("HDMIC Transcoder_Select\t\t\t\t\t%s\n", BIT(dword, 30) ? "Transcoder B" : "Transcoder A");
     printf("HDMIC HDCP_Port_Select\t\t\t\t\t%lu\n", BIT(dword, 5));
     printf("HDMIC Digital_Port_C_Detected\t\t\t\t%lu\n", BIT(dword, 2));
+    printf("HDMIC Encoding\t\t\t\t\t\t[0x%lx] %s\n",
+				BITS(dword, 11, 10), sdvo_hdmi_encoding[BITS(dword, 11, 10)]);
     printf("HDMIC Null_packets_enabled_during_Vsync\t\t\t%u\n",  !!(dword & SDVO_NULL_PACKETS_DURING_VSYNC));
     printf("HDMIC Audio_Output_Enable\t\t\t\t%u\n", !!(dword & SDVO_AUDIO_ENABLE));
 
@@ -578,6 +588,8 @@ static void dump_ironlake(void)
     printf("HDMID Transcoder_Select\t\t\t\t\t%s\n", BIT(dword, 30) ? "Transcoder B" : "Transcoder A");
     printf("HDMID HDCP_Port_Select\t\t\t\t\t%lu\n", BIT(dword, 5));
     printf("HDMID Digital_Port_D_Detected\t\t\t\t%lu\n", BIT(dword, 2));
+    printf("HDMID Encoding\t\t\t\t\t\t[0x%lx] %s\n",
+				BITS(dword, 11, 10), sdvo_hdmi_encoding[BITS(dword, 11, 10)]);
     printf("HDMID Null_packets_enabled_during_Vsync\t\t\t%u\n",  !!(dword & SDVO_NULL_PACKETS_DURING_VSYNC));
     printf("HDMID Audio_Output_Enable\t\t\t\t%u\n", !!(dword & SDVO_AUDIO_ENABLE));
 
@@ -988,6 +1000,8 @@ static void dump_cpt(void)
     printf("HDMIB sDVO_Border_Enable\t\t\t\t%lu\n", BIT(dword, 7));
     printf("HDMIB HDCP_Port_Select\t\t\t\t\t%lu\n", BIT(dword, 5));
     printf("HDMIB Port_Detected\t\t\t\t\t%lu\n", BIT(dword, 2));
+    printf("HDMIB Encoding\t\t\t\t\t\t[0x%lx] %s\n",
+				BITS(dword, 11, 10), sdvo_hdmi_encoding[BITS(dword, 11, 10)]);
     printf("HDMIB HDMI_or_DVI_Select\t\t\t\t%s\n", BIT(dword, 9) ? "HDMI" : "DVI");
     printf("HDMIB Audio_Output_Enable\t\t\t\t%u\n", !!(dword & SDVO_AUDIO_ENABLE));
 
@@ -998,6 +1012,8 @@ static void dump_cpt(void)
     printf("HDMIC sDVO_Border_Enable\t\t\t\t%lu\n", BIT(dword, 7));
     printf("HDMIC HDCP_Port_Select\t\t\t\t\t%lu\n", BIT(dword, 5));
     printf("HDMIC Port_Detected\t\t\t\t\t%lu\n", BIT(dword, 2));
+    printf("HDMIC Encoding\t\t\t\t\t\t[0x%lx] %s\n",
+				BITS(dword, 11, 10), sdvo_hdmi_encoding[BITS(dword, 11, 10)]);
     printf("HDMIC HDMI_or_DVI_Select\t\t\t\t%s\n", BIT(dword, 9) ? "HDMI" : "DVI");
     printf("HDMIC Audio_Output_Enable\t\t\t\t%u\n", !!(dword & SDVO_AUDIO_ENABLE));
 
@@ -1008,6 +1024,8 @@ static void dump_cpt(void)
     printf("HDMID sDVO_Border_Enable\t\t\t\t%lu\n", BIT(dword, 7));
     printf("HDMID HDCP_Port_Select\t\t\t\t\t%lu\n", BIT(dword, 5));
     printf("HDMID Port_Detected\t\t\t\t\t%lu\n", BIT(dword, 2));
+    printf("HDMID Encoding\t\t\t\t\t\t[0x%lx] %s\n",
+				BITS(dword, 11, 10), sdvo_hdmi_encoding[BITS(dword, 11, 10)]);
     printf("HDMID HDMI_or_DVI_Select\t\t\t\t%s\n", BIT(dword, 9) ? "HDMI" : "DVI");
     printf("HDMID Audio_Output_Enable\t\t\t\t%u\n", !!(dword & SDVO_AUDIO_ENABLE));
 
