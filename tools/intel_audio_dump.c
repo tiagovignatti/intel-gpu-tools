@@ -537,7 +537,7 @@ static void dump_ironlake(void)
     printf("HDMIB HDMIB_Enable\t\t\t\t\t%u\n",      !!(dword & SDVO_ENABLE));
     printf("HDMIB Transcoder_Select\t\t\t\t\t%s\n", BIT(dword, 30) ? "Transcoder B" : "Transcoder A");
     printf("HDMIB HDCP_Port_Select\t\t\t\t\t%lu\n", BIT(dword, 5));
-    printf("HDMIB Digital_Port_D_Detected\t\t\t\t%lu\n", BIT(dword, 2));
+    printf("HDMIB Digital_Port_B_Detected\t\t\t\t%lu\n", BIT(dword, 2));
     printf("HDMIB Null_packets_enabled_during_Vsync\t\t\t%u\n",  !!(dword & SDVO_NULL_PACKETS_DURING_VSYNC));
     printf("HDMIB Audio_Output_Enable\t\t\t\t%u\n", !!(dword & SDVO_AUDIO_ENABLE));
 
@@ -545,7 +545,7 @@ static void dump_ironlake(void)
     printf("HDMIC HDMIC_Enable\t\t\t\t\t%u\n",      !!(dword & SDVO_ENABLE));
     printf("HDMIC Transcoder_Select\t\t\t\t\t%s\n", BIT(dword, 30) ? "Transcoder B" : "Transcoder A");
     printf("HDMIC HDCP_Port_Select\t\t\t\t\t%lu\n", BIT(dword, 5));
-    printf("HDMIC Digital_Port_D_Detected\t\t\t\t%lu\n", BIT(dword, 2));
+    printf("HDMIC Digital_Port_C_Detected\t\t\t\t%lu\n", BIT(dword, 2));
     printf("HDMIC Null_packets_enabled_during_Vsync\t\t\t%u\n",  !!(dword & SDVO_NULL_PACKETS_DURING_VSYNC));
     printf("HDMIC Audio_Output_Enable\t\t\t\t%u\n", !!(dword & SDVO_AUDIO_ENABLE));
 
