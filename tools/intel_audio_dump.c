@@ -764,6 +764,7 @@ static void dump_ironlake(void)
 /*
  * CougarPoint registers
  */
+#define DP_CTL_B              0xE4100
 #define DP_CTL_C              0xE4200
 #define DP_AUX_CTL_C          0xE4210
 #define DP_AUX_TST_C          0xE4228
@@ -825,6 +826,12 @@ static void dump_cpt(void)
     dump_reg(HDMIB,			"sDVO/HDMI Port B Control");
     dump_reg(HDMIC,			"HDMI Port C Control");
     dump_reg(HDMID,			"HDMI Port D Control");
+    dump_reg(DP_CTL_B,			"DisplayPort B Control");
+    dump_reg(DP_CTL_C,			"DisplayPort C Control");
+    dump_reg(DP_CTL_D,			"DisplayPort D Control");
+    dump_reg(TRANS_DP_CTL_A,		"Transcoder A DisplayPort Control");
+    dump_reg(TRANS_DP_CTL_B,		"Transcoder B DisplayPort Control");
+    dump_reg(TRANS_DP_CTL_C,		"Transcoder C DisplayPort Control");
     dump_reg(AUD_CONFIG_A,		"Audio Configuration - Transcoder A");
     dump_reg(AUD_CONFIG_B,		"Audio Configuration - Transcoder B");
     dump_reg(AUD_CONFIG_C,		"Audio Configuration - Transcoder C");
@@ -902,29 +909,29 @@ static void dump_cpt(void)
     printf("HDMID HDMI_or_DVI_Select\t\t\t\t%s\n", BIT(dword, 9) ? "HDMI" : "DVI");
     printf("HDMID Audio_Output_Enable\t\t\t\t%u\n", !!(dword & SDVO_AUDIO_ENABLE));
 
-    dword = INREG(TRANS_DP_CTL_A);
-    printf("TRANS_DP_CTL_A DisplayPort_Enable\t\t\t%lu\n",      BIT(dword, 31));
-    printf("TRANS_DP_CTL_A Port_Width_Selection\t\t\t[0x%lx] %s\n",
+    dword = INREG(DP_CTL_B);
+    printf("DP_CTL_B DisplayPort_Enable\t\t\t\t%lu\n", BIT(dword, 31));
+    printf("DP_CTL_B Port_Width_Selection\t\t\t\t[0x%lx] %s\n",
 				BITS(dword, 21, 19), dp_port_width[BITS(dword, 21, 19)]);
-    printf("TRANS_DP_CTL_A Port_Detected\t\t\t\t%lu\n", BIT(dword, 2));
-    printf("TRANS_DP_CTL_A HDCP_Port_Select\t\t\t\t%lu\n", BIT(dword, 5));
-    printf("TRANS_DP_CTL_A Audio_Output_Enable\t\t\t%lu\n", BIT(dword, 6));
+    printf("DP_CTL_B Port_Detected\t\t\t\t\t%lu\n", BIT(dword, 2));
+    printf("DP_CTL_B HDCP_Port_Select\t\t\t\t%lu\n", BIT(dword, 5));
+    printf("DP_CTL_B Audio_Output_Enable\t\t\t\t%lu\n", BIT(dword, 6));
 
-    dword = INREG(TRANS_DP_CTL_B);
-    printf("TRANS_DP_CTL_B DisplayPort_Enable\t\t\t%lu\n",      BIT(dword, 31));
-    printf("TRANS_DP_CTL_B Port_Width_Selection\t\t\t[0x%lx] %s\n",
+    dword = INREG(DP_CTL_C);
+    printf("DP_CTL_C DisplayPort_Enable\t\t\t\t%lu\n", BIT(dword, 31));
+    printf("DP_CTL_C Port_Width_Selection\t\t\t\t[0x%lx] %s\n",
 				BITS(dword, 21, 19), dp_port_width[BITS(dword, 21, 19)]);
-    printf("TRANS_DP_CTL_B Port_Detected\t\t\t\t%lu\n", BIT(dword, 2));
-    printf("TRANS_DP_CTL_B HDCP_Port_Select\t\t\t\t%lu\n", BIT(dword, 5));
-    printf("TRANS_DP_CTL_B Audio_Output_Enable\t\t\t%lu\n", BIT(dword, 6));
+    printf("DP_CTL_C Port_Detected\t\t\t\t\t%lu\n", BIT(dword, 2));
+    printf("DP_CTL_C HDCP_Port_Select\t\t\t\t%lu\n", BIT(dword, 5));
+    printf("DP_CTL_C Audio_Output_Enable\t\t\t\t%lu\n", BIT(dword, 6));
 
-    dword = INREG(TRANS_DP_CTL_C);
-    printf("TRANS_DP_CTL_C DisplayPort_Enable\t\t\t%lu\n",      BIT(dword, 31));
-    printf("TRANS_DP_CTL_C Port_Width_Selection\t\t\t[0x%lx] %s\n",
+    dword = INREG(DP_CTL_D);
+    printf("DP_CTL_D DisplayPort_Enable\t\t\t\t%lu\n", BIT(dword, 31));
+    printf("DP_CTL_D Port_Width_Selection\t\t\t\t[0x%lx] %s\n",
 				BITS(dword, 21, 19), dp_port_width[BITS(dword, 21, 19)]);
-    printf("TRANS_DP_CTL_C Port_Detected\t\t\t\t%lu\n", BIT(dword, 2));
-    printf("TRANS_DP_CTL_C HDCP_Port_Select\t\t\t\t%lu\n", BIT(dword, 5));
-    printf("TRANS_DP_CTL_C Audio_Output_Enable\t\t\t%lu\n", BIT(dword, 6));
+    printf("DP_CTL_D Port_Detected\t\t\t\t\t%lu\n", BIT(dword, 2));
+    printf("DP_CTL_D HDCP_Port_Select\t\t\t\t%lu\n", BIT(dword, 5));
+    printf("DP_CTL_D Audio_Output_Enable\t\t\t\t%lu\n", BIT(dword, 6));
 
     dword = INREG(AUD_CONFIG_A);
     printf("AUD_CONFIG_A  Pixel_Clock_HDMI\t\t\t\t[0x%lx] %s\n", BITS(dword, 19, 16),
