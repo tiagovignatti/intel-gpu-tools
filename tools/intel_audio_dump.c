@@ -455,6 +455,14 @@ static void dump_eaglelake(void)
 	    printf("\t\t\t\t\t[0x%x] %u => %lu \n", dword, i, BITS(dword, 7, 4));
     }
 
+    printf("AUD_HDMIW_HDMIEDID HDMI ELD:\n\t");
+    dword = INREG(AUD_CNTL_ST);
+    dword &= ~BITMASK(8, 5);
+    OUTREG(AUD_CNTL_ST, dword);
+    for (i = 0; i < BITS(dword, 14, 10) / 4; i++)
+	    printf("%08x ", htonl(INREG(AUD_HDMIW_HDMIEDID)));
+    printf("\n");
+
     printf("AUD_HDMIW_INFOFR HDMI audio Infoframe:\n\t");
     dword = INREG(AUD_CNTL_ST);
     dword &= ~BITMASK(20, 18);
