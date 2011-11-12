@@ -112,7 +112,7 @@ static char *dip_trans[] = {
 static char *video_dip_index[] = {
 	[0] = "AVI DIP",
 	[1] = "Vendor-specific DIP",
-	[2] = "Reserved",
+	[2] = "Gamut Metadata DIP",
 	[3] = "Source Product Description DIP",
 };
 
