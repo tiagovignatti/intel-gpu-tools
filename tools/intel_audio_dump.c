@@ -142,8 +142,9 @@ static char *transcoder_select[] = {
 static char *dp_port_width[] = {
 	[0] = "x1 mode",
 	[1] = "x2 mode",
-	[2] = "x4 mode",
-	[3] = "reserved",
+	[2] = "reserved",
+	[3] = "x4 mode",
+	[4 ... 7] = "reserved",
 };
 
 static void do_self_tests(void)
