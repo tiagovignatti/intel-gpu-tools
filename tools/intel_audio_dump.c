@@ -615,7 +615,7 @@ static void dump_ironlake(void)
     printf("AUD_OUT_DIG_CNVT_A  VCFG\t\t\t\t%lu\n",		BIT(dword, 2));
     printf("AUD_OUT_DIG_CNVT_A  PRE\t\t\t\t\t%lu\n",		BIT(dword, 3));
     printf("AUD_OUT_DIG_CNVT_A  Copy\t\t\t\t%lu\n",		BIT(dword, 4));
-    printf("AUD_OUT_DIG_CNVT_A  Non-Audio\t\t\t\t0x%lx\n",	BIT(dword, 5));
+    printf("AUD_OUT_DIG_CNVT_A  NonAudio\t\t\t\t%lu\n",		BIT(dword, 5));
     printf("AUD_OUT_DIG_CNVT_A  PRO\t\t\t\t\t%lu\n",		BIT(dword, 6));
     printf("AUD_OUT_DIG_CNVT_A  Level\t\t\t\t%lu\n",		BIT(dword, 7));
     printf("AUD_OUT_DIG_CNVT_A  Category_Code\t\t\t%lu\n",	BITS(dword, 14, 8));
@@ -627,7 +627,7 @@ static void dump_ironlake(void)
     printf("AUD_OUT_DIG_CNVT_B  VCFG\t\t\t\t%lu\n",		BIT(dword, 2));
     printf("AUD_OUT_DIG_CNVT_B  PRE\t\t\t\t\t%lu\n",		BIT(dword, 3));
     printf("AUD_OUT_DIG_CNVT_B  Copy\t\t\t\t%lu\n",		BIT(dword, 4));
-    printf("AUD_OUT_DIG_CNVT_B  Non-Audio\t\t\t\t0x%lx\n",	BIT(dword, 5));
+    printf("AUD_OUT_DIG_CNVT_B  NonAudio\t\t\t\t%lu\n",		BIT(dword, 5));
     printf("AUD_OUT_DIG_CNVT_B  PRO\t\t\t\t\t%lu\n",		BIT(dword, 6));
     printf("AUD_OUT_DIG_CNVT_B  Level\t\t\t\t%lu\n",		BIT(dword, 7));
     printf("AUD_OUT_DIG_CNVT_B  Category_Code\t\t\t%lu\n",	BITS(dword, 14, 8));
@@ -1000,7 +1000,7 @@ static void dump_cpt(void)
     printf("AUD_OUT_DIG_CNVT_A  VCFG\t\t\t\t%lu\n",		BIT(dword, 2));
     printf("AUD_OUT_DIG_CNVT_A  PRE\t\t\t\t\t%lu\n",		BIT(dword, 3));
     printf("AUD_OUT_DIG_CNVT_A  Copy\t\t\t\t%lu\n",		BIT(dword, 4));
-    printf("AUD_OUT_DIG_CNVT_A  NonAudio\t\t\t\t0x%lx\n",	BIT(dword, 5));
+    printf("AUD_OUT_DIG_CNVT_A  NonAudio\t\t\t\t%lu\n",		BIT(dword, 5));
     printf("AUD_OUT_DIG_CNVT_A  PRO\t\t\t\t\t%lu\n",		BIT(dword, 6));
     printf("AUD_OUT_DIG_CNVT_A  Level\t\t\t\t%lu\n",		BIT(dword, 7));
     printf("AUD_OUT_DIG_CNVT_A  Category_Code\t\t\t%lu\n",	BITS(dword, 14, 8));
@@ -1012,7 +1012,7 @@ static void dump_cpt(void)
     printf("AUD_OUT_DIG_CNVT_B  VCFG\t\t\t\t%lu\n",		BIT(dword, 2));
     printf("AUD_OUT_DIG_CNVT_B  PRE\t\t\t\t\t%lu\n",		BIT(dword, 3));
     printf("AUD_OUT_DIG_CNVT_B  Copy\t\t\t\t%lu\n",		BIT(dword, 4));
-    printf("AUD_OUT_DIG_CNVT_B  NonAudio\t\t\t\t0x%lx\n",	BIT(dword, 5));
+    printf("AUD_OUT_DIG_CNVT_B  NonAudio\t\t\t\t%lu\n",		BIT(dword, 5));
     printf("AUD_OUT_DIG_CNVT_B  PRO\t\t\t\t\t%lu\n",		BIT(dword, 6));
     printf("AUD_OUT_DIG_CNVT_B  Level\t\t\t\t%lu\n",		BIT(dword, 7));
     printf("AUD_OUT_DIG_CNVT_B  Category_Code\t\t\t%lu\n",	BITS(dword, 14, 8));
@@ -1024,7 +1024,7 @@ static void dump_cpt(void)
     printf("AUD_OUT_DIG_CNVT_C  VCFG\t\t\t\t%lu\n",		BIT(dword, 2));
     printf("AUD_OUT_DIG_CNVT_C  PRE\t\t\t\t\t%lu\n",		BIT(dword, 3));
     printf("AUD_OUT_DIG_CNVT_C  Copy\t\t\t\t%lu\n",		BIT(dword, 4));
-    printf("AUD_OUT_DIG_CNVT_C  NonAudio\t\t\t\t0x%lx\n",	BIT(dword, 5));
+    printf("AUD_OUT_DIG_CNVT_C  NonAudio\t\t\t\t%lu\n",		BIT(dword, 5));
     printf("AUD_OUT_DIG_CNVT_C  PRO\t\t\t\t\t%lu\n",		BIT(dword, 6));
     printf("AUD_OUT_DIG_CNVT_C  Level\t\t\t\t%lu\n",		BIT(dword, 7));
     printf("AUD_OUT_DIG_CNVT_C  Category_Code\t\t\t%lu\n",	BITS(dword, 14, 8));
@@ -1061,9 +1061,9 @@ static void dump_cpt(void)
     printf("AUD_OUT_STR_DESC_C  Number_of_Channels_in_a_Stream\t%lu\n", 1 + BITS(dword, 3, 0));
 
     dword = INREG(AUD_PINW_CONNLNG_SEL);
-    printf("AUD_PINW_CONNLNG_SEL  Connection_select_Control_B\t%lu\n", BITS(dword,  7,  0));
-    printf("AUD_PINW_CONNLNG_SEL  Connection_select_Control_C\t%lu\n", BITS(dword, 15,  8));
-    printf("AUD_PINW_CONNLNG_SEL  Connection_select_Control_D\t%lu\n", BITS(dword, 23, 16));
+    printf("AUD_PINW_CONNLNG_SEL  Connection_select_Control_B\t%#lx\n", BITS(dword,  7,  0));
+    printf("AUD_PINW_CONNLNG_SEL  Connection_select_Control_C\t%#lx\n", BITS(dword, 15,  8));
+    printf("AUD_PINW_CONNLNG_SEL  Connection_select_Control_D\t%#lx\n", BITS(dword, 23, 16));
 
     dword = INREG(AUD_CNTL_ST_A);
     printf("AUD_CNTL_ST_A  DIP_Port_Select\t\t\t\t[%#lx] %s\n",
