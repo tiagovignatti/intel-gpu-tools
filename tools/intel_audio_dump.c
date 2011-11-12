@@ -1194,7 +1194,7 @@ int main(int argc, char **argv)
 	else
 		intel_get_mmio(pci_dev);
 
-	if (HAS_PCH_SPLIT(devid) || getenv("HAS_PCH_SPLIT")) {
+	if (IS_GEN6(devid) || IS_GEN7(devid) || getenv("HAS_PCH_SPLIT")) {
 		intel_check_pch();
 		dump_cpt();
 	} else if (IS_GEN5(devid))
