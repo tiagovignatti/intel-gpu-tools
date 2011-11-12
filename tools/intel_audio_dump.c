@@ -508,6 +508,9 @@ static void dump_ironlake(void)
     dump_reg(HDMIB,			"sDVO/HDMI Port B Control");
     dump_reg(HDMIC,			"HDMI Port C Control");
     dump_reg(HDMID,			"HDMI Port D Control");
+    dump_reg(PCH_DP_B,			"DisplayPort B Control Register");
+    dump_reg(PCH_DP_C,			"DisplayPort C Control Register");
+    dump_reg(PCH_DP_D,			"DisplayPort D Control Register");
     dump_reg(AUD_CONFIG_A,		"Audio Configuration - Transcoder A");
     dump_reg(AUD_CONFIG_B,		"Audio Configuration - Transcoder B");
     dump_reg(AUD_CTS_ENABLE_A,		"Audio CTS Programming Enable - Transcoder A");
@@ -569,6 +572,33 @@ static void dump_ironlake(void)
     printf("HDMID Digital_Port_D_Detected\t\t\t\t%lu\n", BIT(dword, 2));
     printf("HDMID Null_packets_enabled_during_Vsync\t\t\t%u\n",  !!(dword & SDVO_NULL_PACKETS_DURING_VSYNC));
     printf("HDMID Audio_Output_Enable\t\t\t\t%u\n", !!(dword & SDVO_AUDIO_ENABLE));
+
+    dword = INREG(PCH_DP_B);
+    printf("PCH_DP_B DisplayPort_Enable\t\t\t\t%lu\n", BIT(dword, 31));
+    printf("PCH_DP_B Transcoder_Select\t\t\t\t%s\n", BIT(dword, 30) ? "Transcoder B" : "Transcoder A");
+    printf("PCH_DP_B Port_Width_Selection\t\t\t\t[0x%lx] %s\n",
+				BITS(dword, 21, 19), dp_port_width[BITS(dword, 21, 19)]);
+    printf("PCH_DP_B Port_Detected\t\t\t\t\t%lu\n", BIT(dword, 2));
+    printf("PCH_DP_B HDCP_Port_Select\t\t\t\t%lu\n", BIT(dword, 5));
+    printf("PCH_DP_B Audio_Output_Enable\t\t\t\t%lu\n", BIT(dword, 6));
+
+    dword = INREG(PCH_DP_C);
+    printf("PCH_DP_C DisplayPort_Enable\t\t\t\t%lu\n", BIT(dword, 31));
+    printf("PCH_DP_C Transcoder_Select\t\t\t\t%s\n", BIT(dword, 30) ? "Transcoder B" : "Transcoder A");
+    printf("PCH_DP_C Port_Width_Selection\t\t\t\t[0x%lx] %s\n",
+				BITS(dword, 21, 19), dp_port_width[BITS(dword, 21, 19)]);
+    printf("PCH_DP_C Port_Detected\t\t\t\t\t%lu\n", BIT(dword, 2));
+    printf("PCH_DP_C HDCP_Port_Select\t\t\t\t%lu\n", BIT(dword, 5));
+    printf("PCH_DP_C Audio_Output_Enable\t\t\t\t%lu\n", BIT(dword, 6));
+
+    dword = INREG(PCH_DP_D);
+    printf("PCH_DP_D DisplayPort_Enable\t\t\t\t%lu\n", BIT(dword, 31));
+    printf("PCH_DP_D Transcoder_Select\t\t\t\t%s\n", BIT(dword, 30) ? "Transcoder B" : "Transcoder A");
+    printf("PCH_DP_D Port_Width_Selection\t\t\t\t[0x%lx] %s\n",
+				BITS(dword, 21, 19), dp_port_width[BITS(dword, 21, 19)]);
+    printf("PCH_DP_D Port_Detected\t\t\t\t\t%lu\n", BIT(dword, 2));
+    printf("PCH_DP_D HDCP_Port_Select\t\t\t\t%lu\n", BIT(dword, 5));
+    printf("PCH_DP_D Audio_Output_Enable\t\t\t\t%lu\n", BIT(dword, 6));
 
     dword = INREG(AUD_CONFIG_A);
     printf("AUD_CONFIG_A  Pixel_Clock\t\t\t\t[0x%lx] %s\n", BITS(dword, 19, 16),
