@@ -725,6 +725,7 @@ static void dump_ironlake(void)
 					BITS(dword, 17, 16), dip_trans[BITS(dword, 17, 16)]);
     printf("AUD_CNTL_ST_A  ELD_ACK\t\t\t\t\t%lu\n", BIT(dword, 4));
     printf("AUD_CNTL_ST_A  ELD_buffer_size\t\t\t\t%lu\n", BITS(dword, 14, 10));
+    printf("AUD_CNTL_ST_A  ELD_access_address\t\t\t%lu\n", BITS(dword, 9, 5));
 
     dword = INREG(AUD_CNTL_ST_B);
     printf("AUD_CNTL_ST_B  DIP_Port_Select\t\t\t\t[%#lx] %s\n",
@@ -736,6 +737,7 @@ static void dump_ironlake(void)
 					BITS(dword, 17, 16), dip_trans[BITS(dword, 17, 16)]);
     printf("AUD_CNTL_ST_B  ELD_ACK\t\t\t\t\t%lu\n", BIT(dword, 4));
     printf("AUD_CNTL_ST_B  ELD_buffer_size\t\t\t\t%lu\n", BITS(dword, 14, 10));
+    printf("AUD_CNTL_ST_B  ELD_access_address\t\t\t%lu\n", BITS(dword, 9, 5));
 
     dword = INREG(AUD_CNTL_ST2);
     printf("AUD_CNTL_ST2  CP_ReadyB\t\t\t\t\t%lu\n",	BIT(dword, 1));
