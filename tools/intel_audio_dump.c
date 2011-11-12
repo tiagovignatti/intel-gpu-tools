@@ -872,6 +872,11 @@ static void dump_ironlake(void)
 #define AUD_OUT_STR_DESC_D    0xE5384
 #define AUD_CNTL_ST_D         0xE53B4
 
+#define VIDEO_DIP_CTL_A		0xE0200
+#define VIDEO_DIP_CTL_B		0xE1200
+#define VIDEO_DIP_CTL_C		0xE2200
+#define VIDEO_DIP_CTL_D		0xE3200
+
 
 static void dump_cpt(void)
 {
@@ -923,6 +928,48 @@ static void dump_cpt(void)
     dump_reg(AUD_HDMIW_INFOFR_C,	"Audio Widget Data Island Packet - Transcoder C");
 
     printf("\nDetails:\n\n");
+
+    dword = INREG(VIDEO_DIP_CTL_A);
+    printf("VIDEO_DIP_CTL_A Enable_Graphics_DIP\t\t\t%ld\n",     BIT(dword, 31)),
+    printf("VIDEO_DIP_CTL_A GCP_DIP_enable\t\t\t\t%ld\n",     BIT(dword, 25)),
+    printf("VIDEO_DIP_CTL_A Video_DIP_type_enable AVI\t\t%lu\n",       BIT(dword, 21));
+    printf("VIDEO_DIP_CTL_A Video_DIP_type_enable Vendor\t\t%lu\n",      BIT(dword, 22));
+    printf("VIDEO_DIP_CTL_A Video_DIP_type_enable Gamut\t\t%lu\n",       BIT(dword, 23));
+    printf("VIDEO_DIP_CTL_A Video_DIP_type_enable Source \t\t%lu\n",       BIT(dword, 24));
+    printf("VIDEO_DIP_CTL_A Video_DIP_buffer_index\t\t\t[0x%lx] %s\n",
+		    BITS(dword, 20, 19), video_dip_index[BITS(dword, 20, 19)]);
+    printf("VIDEO_DIP_CTL_A Video_DIP_frequency\t\t\t[0x%lx] %s\n",
+		    BITS(dword, 17, 16), video_dip_trans[BITS(dword, 17, 16)]);
+    printf("VIDEO_DIP_CTL_A Video_DIP_buffer_size\t\t\t%lu\n", BITS(dword, 11, 8));
+    printf("VIDEO_DIP_CTL_A Video_DIP_access_address\t\t%lu\n", BITS(dword, 3, 0));
+
+    dword = INREG(VIDEO_DIP_CTL_B);
+    printf("VIDEO_DIP_CTL_B Enable_Graphics_DIP\t\t\t%ld\n",     BIT(dword, 31)),
+    printf("VIDEO_DIP_CTL_B GCP_DIP_enable\t\t\t\t%ld\n",     BIT(dword, 25)),
+    printf("VIDEO_DIP_CTL_B Video_DIP_type_enable AVI\t\t%lu\n",       BIT(dword, 21));
+    printf("VIDEO_DIP_CTL_B Video_DIP_type_enable Vendor\t\t%lu\n",      BIT(dword, 22));
+    printf("VIDEO_DIP_CTL_B Video_DIP_type_enable Gamut\t\t%lu\n",       BIT(dword, 23));
+    printf("VIDEO_DIP_CTL_B Video_DIP_type_enable Source \t\t%lu\n",       BIT(dword, 24));
+    printf("VIDEO_DIP_CTL_B Video_DIP_buffer_index\t\t\t[0x%lx] %s\n",
+		    BITS(dword, 20, 19), video_dip_index[BITS(dword, 20, 19)]);
+    printf("VIDEO_DIP_CTL_B Video_DIP_frequency\t\t\t[0x%lx] %s\n",
+		    BITS(dword, 17, 16), video_dip_trans[BITS(dword, 17, 16)]);
+    printf("VIDEO_DIP_CTL_B Video_DIP_buffer_size\t\t\t%lu\n", BITS(dword, 11, 8));
+    printf("VIDEO_DIP_CTL_B Video_DIP_access_address\t\t%lu\n", BITS(dword, 3, 0));
+
+    dword = INREG(VIDEO_DIP_CTL_C);
+    printf("VIDEO_DIP_CTL_C Enable_Graphics_DIP\t\t\t%ld\n",     BIT(dword, 31)),
+    printf("VIDEO_DIP_CTL_C GCP_DIP_enable\t\t\t\t%ld\n",     BIT(dword, 25)),
+    printf("VIDEO_DIP_CTL_C Video_DIP_type_enable AVI\t\t%lu\n",       BIT(dword, 21));
+    printf("VIDEO_DIP_CTL_C Video_DIP_type_enable Vendor\t\t%lu\n",      BIT(dword, 22));
+    printf("VIDEO_DIP_CTL_C Video_DIP_type_enable Gamut\t\t%lu\n",       BIT(dword, 23));
+    printf("VIDEO_DIP_CTL_C Video_DIP_type_enable Source \t\t%lu\n",       BIT(dword, 24));
+    printf("VIDEO_DIP_CTL_C Video_DIP_buffer_index\t\t\t[0x%lx] %s\n",
+		    BITS(dword, 20, 19), video_dip_index[BITS(dword, 20, 19)]);
+    printf("VIDEO_DIP_CTL_C Video_DIP_frequency\t\t\t[0x%lx] %s\n",
+		    BITS(dword, 17, 16), video_dip_trans[BITS(dword, 17, 16)]);
+    printf("VIDEO_DIP_CTL_C Video_DIP_buffer_size\t\t\t%lu\n", BITS(dword, 11, 8));
+    printf("VIDEO_DIP_CTL_C Video_DIP_access_address\t\t%lu\n", BITS(dword, 3, 0));
 
     dword = INREG(AUD_VID_DID);
     printf("AUD_VID_DID vendor id\t\t\t\t\t0x%x\n", dword >> 16);
