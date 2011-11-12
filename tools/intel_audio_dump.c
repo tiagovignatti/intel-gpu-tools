@@ -1250,12 +1250,17 @@ int main(int argc, char **argv)
 		intel_get_mmio(pci_dev);
 
 	if (IS_GEN6(devid) || IS_GEN7(devid) || getenv("HAS_PCH_SPLIT")) {
+		printf("%s audio registers:\n\n",
+		       IS_GEN6(devid) ? "SandyBridge" : "IvyBridge");
 		intel_check_pch();
 		dump_cpt();
-	} else if (IS_GEN5(devid))
+	} else if (IS_GEN5(devid)) {
+		printf("Ironlake audio registers:\n\n");
 		dump_ironlake();
-	else
+	} else if (IS_G4X(devid)) {
+		printf("G45 audio registers:\n\n");
 		dump_eaglelake();
+	}
 
 	return 0;
 }
