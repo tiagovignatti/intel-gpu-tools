@@ -620,7 +620,7 @@ static void dump_ironlake(void)
     printf("AUD_OUT_DIG_CNVT_A  Level\t\t\t\t%lu\n",		BIT(dword, 7));
     printf("AUD_OUT_DIG_CNVT_A  Category_Code\t\t\t%lu\n",	BITS(dword, 14, 8));
     printf("AUD_OUT_DIG_CNVT_A  Lowest_Channel_Number\t\t%lu\n",BITS(dword, 19, 16));
-    printf("AUD_OUT_DIG_CNVT_A  Stream_ID\t\t\t\t\t\t%lu\n",	BITS(dword, 23, 20));
+    printf("AUD_OUT_DIG_CNVT_A  Stream_ID\t\t\t\t%lu\n",	BITS(dword, 23, 20));
 
     dword = INREG(AUD_OUT_DIG_CNVT_B);
     printf("AUD_OUT_DIG_CNVT_B  V\t\t\t\t\t%lu\n",		BIT(dword, 1));
@@ -632,7 +632,7 @@ static void dump_ironlake(void)
     printf("AUD_OUT_DIG_CNVT_B  Level\t\t\t\t%lu\n",		BIT(dword, 7));
     printf("AUD_OUT_DIG_CNVT_B  Category_Code\t\t\t%lu\n",	BITS(dword, 14, 8));
     printf("AUD_OUT_DIG_CNVT_B  Lowest_Channel_Number\t\t%lu\n",BITS(dword, 19, 16));
-    printf("AUD_OUT_DIG_CNVT_B  Stream_ID\t\t\t%lu\n",		BITS(dword, 23, 20));
+    printf("AUD_OUT_DIG_CNVT_B  Stream_ID\t\t\t\t%lu\n",	BITS(dword, 23, 20));
 
     printf("AUD_OUT_CH_STR  Converter_Channel_MAP	PORTB	PORTC	PORTD\n");
     for (i = 0; i < 8; i++) {
