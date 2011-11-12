@@ -567,6 +567,7 @@ static void dump_ironlake(void)
     printf("HDMIB HDMIB_Enable\t\t\t\t\t%u\n",      !!(dword & SDVO_ENABLE));
     printf("HDMIB Transcoder_Select\t\t\t\t\t%s\n", BIT(dword, 30) ? "Transcoder B" : "Transcoder A");
     printf("HDMIB HDCP_Port_Select\t\t\t\t\t%lu\n", BIT(dword, 5));
+    printf("HDMIB SDVOB Hot Plug Interrupt Detect Enable\t\t%lu\n", BIT(dword, 23));
     printf("HDMIB Digital_Port_B_Detected\t\t\t\t%lu\n", BIT(dword, 2));
     printf("HDMIB Encoding\t\t\t\t\t\t[0x%lx] %s\n",
 				BITS(dword, 11, 10), sdvo_hdmi_encoding[BITS(dword, 11, 10)]);
@@ -999,6 +1000,7 @@ static void dump_cpt(void)
 				BITS(dword, 30, 29), transcoder_select[BITS(dword, 30, 29)]);
     printf("HDMIB sDVO_Border_Enable\t\t\t\t%lu\n", BIT(dword, 7));
     printf("HDMIB HDCP_Port_Select\t\t\t\t\t%lu\n", BIT(dword, 5));
+    printf("HDMIB SDVO_HPD_Interrupt_Enable\t\t\t\t%lu\n", BIT(dword, 23));
     printf("HDMIB Port_Detected\t\t\t\t\t%lu\n", BIT(dword, 2));
     printf("HDMIB Encoding\t\t\t\t\t\t[0x%lx] %s\n",
 				BITS(dword, 11, 10), sdvo_hdmi_encoding[BITS(dword, 11, 10)]);
@@ -1011,6 +1013,7 @@ static void dump_cpt(void)
 				BITS(dword, 30, 29), transcoder_select[BITS(dword, 30, 29)]);
     printf("HDMIC sDVO_Border_Enable\t\t\t\t%lu\n", BIT(dword, 7));
     printf("HDMIC HDCP_Port_Select\t\t\t\t\t%lu\n", BIT(dword, 5));
+    printf("HDMIC SDVO_HPD_Interrupt_Enable\t\t\t\t%lu\n", BIT(dword, 23));
     printf("HDMIC Port_Detected\t\t\t\t\t%lu\n", BIT(dword, 2));
     printf("HDMIC Encoding\t\t\t\t\t\t[0x%lx] %s\n",
 				BITS(dword, 11, 10), sdvo_hdmi_encoding[BITS(dword, 11, 10)]);
@@ -1023,6 +1026,7 @@ static void dump_cpt(void)
 				BITS(dword, 30, 29), transcoder_select[BITS(dword, 30, 29)]);
     printf("HDMID sDVO_Border_Enable\t\t\t\t%lu\n", BIT(dword, 7));
     printf("HDMID HDCP_Port_Select\t\t\t\t\t%lu\n", BIT(dword, 5));
+    printf("HDMID SDVO_HPD_Interrupt_Enable\t\t\t\t%lu\n", BIT(dword, 23));
     printf("HDMID Port_Detected\t\t\t\t\t%lu\n", BIT(dword, 2));
     printf("HDMID Encoding\t\t\t\t\t\t[0x%lx] %s\n",
 				BITS(dword, 11, 10), sdvo_hdmi_encoding[BITS(dword, 11, 10)]);
