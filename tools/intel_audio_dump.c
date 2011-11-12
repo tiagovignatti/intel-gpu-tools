@@ -367,16 +367,16 @@ static void dump_eaglelake(void)
 
     dword = INREG(AUD_OUT_CH_STR);
     printf("AUD_OUT_CH_STR stream id\t\t0x%lx\n",        BITS(dword, 7, 4));
-    printf("AUD_OUT_CH_STR lowest channel\t\t0x%lx\n",   BITS(dword, 3, 0));
+    printf("AUD_OUT_CH_STR lowest channel\t\t%lu\n",     BITS(dword, 3, 0));
 
     dword = INREG(AUD_OUT_STR_DESC);
-    printf("AUD_OUT_STR_DESC stream channels\t0x%lx\n",  BITS(dword, 3, 0));
+    printf("AUD_OUT_STR_DESC stream channels\t%lu\n",    BITS(dword, 3, 0) + 1);
 
     dword = INREG(AUD_PINW_CAP);
     printf("AUD_PINW_CAP widget type\t\t0x%lx\n",        BITS(dword, 23, 20));
     printf("AUD_PINW_CAP sample delay\t\t0x%lx\n",       BITS(dword, 19, 16));
-    printf("AUD_PINW_CAP channel count\t\t0x%lx\n",
-		    BITS(dword, 15, 13) * 2 + BIT(dword, 0));
+    printf("AUD_PINW_CAP channel count\t\t%lu\n",
+		    BITS(dword, 15, 13) * 2 + BIT(dword, 0) + 1);
     printf("AUD_PINW_CAP HDCP\t\t\t%lu\n",               BIT(dword, 12));
     printf("AUD_PINW_CAP L-R swap\t\t\t%lu\n",           BIT(dword, 11));
     printf("AUD_PINW_CAP power control\t\t%lu\n",        BIT(dword, 10));
@@ -647,13 +647,13 @@ static void dump_ironlake(void)
 
     dword = INREG(AUD_OUT_STR_DESC_A);
     printf("AUD_OUT_STR_DESC_A  HBR_enable\t\t\t\t%lu\n",	 BITS(dword, 28, 27));
-    printf("AUD_OUT_STR_DESC_A  Convertor_Channel_Count\t\t%lu\n", BITS(dword, 20, 16));
+    printf("AUD_OUT_STR_DESC_A  Convertor_Channel_Count\t\t%lu\n", BITS(dword, 20, 16) + 1);
     printf("AUD_OUT_STR_DESC_A  Bits_per_Sample\t\t\t%lu\n",	 BITS(dword, 6, 4));
     printf("AUD_OUT_STR_DESC_A  Number_of_Channels_in_a_Stream\t%lu\n", 1 + BITS(dword, 3, 0));
 
     dword = INREG(AUD_OUT_STR_DESC_B);
     printf("AUD_OUT_STR_DESC_B  HBR_enable\t\t\t\t%lu\n",	 BITS(dword, 28, 27));
-    printf("AUD_OUT_STR_DESC_B  Convertor_Channel_Count\t\t%lu\n", BITS(dword, 20, 16));
+    printf("AUD_OUT_STR_DESC_B  Convertor_Channel_Count\t\t%lu\n", BITS(dword, 20, 16) + 1);
     printf("AUD_OUT_STR_DESC_B  Bits_per_Sample\t\t\t%lu\n",	 BITS(dword, 6, 4));
     printf("AUD_OUT_STR_DESC_B  Number_of_Channels_in_a_Stream\t%lu\n", 1 + BITS(dword, 3, 0));
 
@@ -1044,19 +1044,19 @@ static void dump_cpt(void)
 
     dword = INREG(AUD_OUT_STR_DESC_A);
     printf("AUD_OUT_STR_DESC_A  HBR_enable\t\t\t\t%lu\n",	 BITS(dword, 28, 27));
-    printf("AUD_OUT_STR_DESC_A  Convertor_Channel_Count\t\t%lu\n", BITS(dword, 20, 16));
+    printf("AUD_OUT_STR_DESC_A  Convertor_Channel_Count\t\t%lu\n", BITS(dword, 20, 16) + 1);
     printf("AUD_OUT_STR_DESC_A  Bits_per_Sample\t\t\t%lu\n",	 BITS(dword, 6, 4));
     printf("AUD_OUT_STR_DESC_A  Number_of_Channels_in_a_Stream\t%lu\n", 1 + BITS(dword, 3, 0));
 
     dword = INREG(AUD_OUT_STR_DESC_B);
     printf("AUD_OUT_STR_DESC_B  HBR_enable\t\t\t\t%lu\n",	 BITS(dword, 28, 27));
-    printf("AUD_OUT_STR_DESC_B  Convertor_Channel_Count\t\t%lu\n", BITS(dword, 20, 16));
+    printf("AUD_OUT_STR_DESC_B  Convertor_Channel_Count\t\t%lu\n", BITS(dword, 20, 16) + 1);
     printf("AUD_OUT_STR_DESC_B  Bits_per_Sample\t\t\t%lu\n",	 BITS(dword, 6, 4));
     printf("AUD_OUT_STR_DESC_B  Number_of_Channels_in_a_Stream\t%lu\n", 1 + BITS(dword, 3, 0));
 
     dword = INREG(AUD_OUT_STR_DESC_C);
     printf("AUD_OUT_STR_DESC_C  HBR_enable\t\t\t\t%lu\n",	 BITS(dword, 28, 27));
-    printf("AUD_OUT_STR_DESC_C  Convertor_Channel_Count\t\t%lu\n", BITS(dword, 20, 16));
+    printf("AUD_OUT_STR_DESC_C  Convertor_Channel_Count\t\t%lu\n", BITS(dword, 20, 16) + 1);
     printf("AUD_OUT_STR_DESC_C  Bits_per_Sample\t\t\t%lu\n",	 BITS(dword, 6, 4));
     printf("AUD_OUT_STR_DESC_C  Number_of_Channels_in_a_Stream\t%lu\n", 1 + BITS(dword, 3, 0));
 
