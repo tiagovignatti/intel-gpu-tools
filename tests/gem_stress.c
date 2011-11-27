@@ -165,6 +165,14 @@ static void emit_blt(drm_intel_bo *src_bo, uint32_t src_tiling, unsigned src_pit
 	OUT_BATCH(src_pitch);
 	OUT_RELOC_FENCED(src_bo, I915_GEM_DOMAIN_RENDER, 0, 0);
 	ADVANCE_BATCH();
+
+	if (IS_GEN6(devid) || IS_GEN7(devid)) {
+		BEGIN_BATCH(3);
+		OUT_BATCH(XY_SETUP_CLIP_BLT_CMD);
+		OUT_BATCH(0);
+		OUT_BATCH(0);
+		ADVANCE_BATCH();
+	}
 }
 
 /* All this gem trashing wastes too much cpu time, so give the gpu something to

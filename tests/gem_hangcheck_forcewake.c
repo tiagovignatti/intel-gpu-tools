@@ -102,6 +102,14 @@ int main(int argc, char **argv)
 		OUT_BATCH(pitch);
 		OUT_RELOC_FENCED(bo, I915_GEM_DOMAIN_RENDER, 0, 0);
 		ADVANCE_BATCH();
+
+		if (IS_GEN6(devid) || IS_GEN7(devid)) {
+			BEGIN_BATCH(3);
+			OUT_BATCH(XY_SETUP_CLIP_BLT_CMD);
+			OUT_BATCH(0);
+			OUT_BATCH(0);
+			ADVANCE_BATCH();
+		}
 	}
 
 	printf("waiting\n");
