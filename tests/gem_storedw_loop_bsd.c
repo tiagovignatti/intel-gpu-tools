@@ -72,10 +72,12 @@ store_dword_loop(void)
 		drm_intel_bo_map(target_buffer, 0);
 
 		buf = target_buffer->virtual;
-		if (buf[0] != val)
+		if (buf[0] != val) {
 			fprintf(stderr,
 				"value mismatch: cur 0x%08x, stored 0x%08x\n",
 				buf[0], val);
+			exit(-1);
+		}
 
 		drm_intel_bo_unmap(target_buffer);
 
