@@ -127,6 +127,17 @@ static double elapsed(const struct timeval *start,
 	return (1e6*(end->tv_sec - start->tv_sec) + (end->tv_usec - start->tv_usec))/loop;
 }
 
+static void gem_sync(int fd, uint32_t handle)
+{
+	struct drm_i915_gem_set_domain set_domain;
+
+	set_domain.handle = handle;
+	set_domain.read_domains = I915_GEM_DOMAIN_GTT;
+	set_domain.write_domain = I915_GEM_DOMAIN_GTT;
+
+	drmIoctl(fd, DRM_IOCTL_I915_GEM_SET_DOMAIN, &set_domain);
+}
+
 int main(int argc, char **argv)
 {
 	struct timeval start, end;
@@ -144,6 +155,7 @@ int main(int argc, char **argv)
 	}
 
 	buf = malloc(size);
+	memset(buf, 0, size);
 	fd = drm_open_any();
 
 	handle = gem_create(fd, size);
@@ -174,6 +186,16 @@ int main(int argc, char **argv)
 			       size/1024, elapsed(&start, &end, loop));
 		}
 
+		/* prefault into gtt */
+		{
+			volatile uint32_t *ptr = gem_mmap(fd, handle, size, PROT_READ);
+			int x = 0;
+
+			for (i = 0; i < size/sizeof(*ptr); i++)
+				x += ptr[i];
+
+			munmap((void *)ptr, size);
+		}
 		/* mmap read */
 		gettimeofday(&start, NULL);
 		for (loop = 0; loop < 1000; loop++) {
@@ -225,7 +247,7 @@ int main(int argc, char **argv)
 				gem_write(fd, handle, 0, buf, size);
 			gettimeofday(&end, NULL);
 			printf("Time to pwrite %dk through the GTT:		%7.3fµs\n",
-			       size, elapsed(&start, &end, loop));
+			       size/1024, elapsed(&start, &end, loop));
 
 			/* GTT pread */
 			gettimeofday(&start, NULL);
@@ -233,7 +255,51 @@ int main(int argc, char **argv)
 				gem_read(fd, handle, 0, buf, size);
 			gettimeofday(&end, NULL);
 			printf("Time to pread %dk through the GTT:		%7.3fµs\n",
-			       size, elapsed(&start, &end, loop));
+			       size/1024, elapsed(&start, &end, loop));
+
+			/* GTT pwrite, including clflush */
+			gettimeofday(&start, NULL);
+			for (loop = 0; loop < 1000; loop++) {
+				gem_write(fd, handle, 0, buf, size);
+				gem_sync(fd, handle);
+			}
+			gettimeofday(&end, NULL);
+			printf("Time to pwrite %dk through the GTT (clflush):	%7.3fµs\n",
+			       size/1024, elapsed(&start, &end, loop));
+
+			/* GTT pread, including clflush */
+			gettimeofday(&start, NULL);
+			for (loop = 0; loop < 1000; loop++) {
+				gem_sync(fd, handle);
+				gem_read(fd, handle, 0, buf, size);
+			}
+			gettimeofday(&end, NULL);
+			printf("Time to pread %dk through the GTT (clflush):	%7.3fµs\n",
+			       size/1024, elapsed(&start, &end, loop));
+
+			/* partial writes */
+			printf("Now partial writes.\n");
+			size /= 4;
+
+			/* partial GTT pwrite, including clflush */
+			gettimeofday(&start, NULL);
+			for (loop = 0; loop < 1000; loop++) {
+				gem_write(fd, handle, 0, buf, size);
+				gem_sync(fd, handle);
+			}
+			gettimeofday(&end, NULL);
+			printf("Time to pwrite %dk through the GTT (clflush):	%7.3fµs\n",
+			       size/1024, elapsed(&start, &end, loop));
+
+			/* partial GTT pread, including clflush */
+			gettimeofday(&start, NULL);
+			for (loop = 0; loop < 1000; loop++) {
+				gem_sync(fd, handle);
+				gem_read(fd, handle, 0, buf, size);
+			}
+			gettimeofday(&end, NULL);
+			printf("Time to pread %dk through the GTT (clflush):	%7.3fµs\n",
+			       size/1024, elapsed(&start, &end, loop));
 		}
 
 	}
