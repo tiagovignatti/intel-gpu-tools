@@ -60,11 +60,13 @@ tests/gem_vmap_blits
 tests/gem_tiled_blits
 tests/gem_tiled_fence_blits
 tests/gem_tiled_pread
+tests/gem_unref_active_buffers
 tests/gem_bad_address
 tests/gem_bad_batch
 tests/gem_bad_blit
 tests/gem_bad_length
 tests/gem_hang
+tests/gem_hangcheck_forcewake
 tests/gem_gtt_speed
 tests/gem_stress
 tests/gen3_render_linear_blits
@@ -83,6 +85,7 @@ tools/intel_gpu_time
 tools/intel_gpu_top
 tools/intel_gtt
 tools/intel_lid
+tools/intel_reg_checker
 tools/intel_reg_dumper
 tools/intel_reg_write
 tools/intel_stepping
