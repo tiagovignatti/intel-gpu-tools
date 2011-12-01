@@ -376,7 +376,10 @@ static void connector_find_preferred_mode(struct connector *c)
 	}
 	c->crtc = resources->crtcs[i];
 	c->pipe = i;
-	resources->crtcs[i] = 0;
+
+	if(test_preferred_mode)
+		resources->crtcs[i] = 0;
+
 	c->connector = connector;
 }
 
@@ -970,6 +973,7 @@ set_mode(struct connector *c)
 			continue;
 		}
 
+		fprintf(stdout, "CRTS(%u):",c->crtc);
 		dump_mode(&c->mode);
 		if (drmModeSetCrtc(fd, c->crtc, fb_id, 0, 0,
 				   &c->id, 1, &c->mode)) {
@@ -984,6 +988,12 @@ set_mode(struct connector *c)
 
 		if (sleep_between_modes && test_all_modes)
 			sleep(sleep_between_modes);
+
+	}
+
+	if(!test_preferred_mode){
+		drmModeRmFB(fd,fb_id);
+		drmModeSetCrtc(fd, c->crtc, fb_id, 0, 0,  &c->id, 1, 0);
 	}
 
 	drmModeFreeEncoder(c->encoder);
