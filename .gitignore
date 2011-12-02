@@ -5,6 +5,8 @@ Makefile.in
 *.la
 *.lo
 *.o
+*.swo
+*.swp
 *~
 aclocal.m4
 autom4te.cache
@@ -60,6 +62,7 @@ tests/gem_vmap_blits
 tests/gem_tiled_blits
 tests/gem_tiled_fence_blits
 tests/gem_tiled_pread
+tests/gem_tiled_pread_pwrite
 tests/gem_unref_active_buffers
 tests/gem_bad_address
 tests/gem_bad_batch
