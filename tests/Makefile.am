@@ -21,6 +21,7 @@ TESTS_progs = \
 	gem_exec_nop \
 	gem_exec_blt \
 	gem_exec_bad_domains \
+	gem_exec_faulting_reloc \
 	gem_flink \
 	gem_readwrite \
 	gem_ringfill \
