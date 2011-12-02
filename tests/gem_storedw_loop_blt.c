@@ -56,7 +56,7 @@ store_dword_loop(void)
 	int cmd, i, val = 0;
 	uint32_t *buf;
 
-	cmd = MI_STORE_DWORD_IMM; // | MI_MEM_VIRTUAL;
+	cmd = MI_STORE_DWORD_IMM | MI_MEM_VIRTUAL;
 
 	for (i = 0; i < 0x100000; i++) {
 		BEGIN_BATCH(4);
@@ -113,7 +113,7 @@ int main(int argc, char **argv)
 	}
 
 	/* This supposedly only works with ppgtt */
-	//return 77;
+	return 77;
 
 	bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
 	if (!bufmgr) {
