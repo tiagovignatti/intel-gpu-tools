@@ -20,6 +20,7 @@ TESTS_progs = \
 	gem_basic \
 	gem_exec_nop \
 	gem_exec_blt \
+	gem_exec_bad_domains \
 	gem_flink \
 	gem_readwrite \
 	gem_ringfill \
@@ -51,7 +52,6 @@ TESTS_progs = \
 	gem_double_irq_loop \
 	gem_ring_sync_loop \
 	gem_pipe_control_store_loop \
-	gem_hangcheck_forcewake \
 	gem_unref_active_buffers \
 	$(NULL)
 
