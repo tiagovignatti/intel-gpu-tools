@@ -191,14 +191,11 @@ main(int argc, char **argv)
 	int i, j;
 	uint32_t tiling, swizzle;
 	uint32_t handle, handle_target;
-	uint32_t devid;
 	int count;
 	
 
 	fd = drm_open_any();
 	count = intel_get_total_ram_mb() * 9 / 10;
-
-	devid = intel_get_drm_devid(fd);
 
 	for (i = 0; i < count/2; i++) {
 		current_tiling_mode = I915_TILING_X;
