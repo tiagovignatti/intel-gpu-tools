@@ -75,32 +75,19 @@ static void create_special_bo(void)
 {
 	uint32_t data[1024];
 	int len = 0;
+	int small_pitch = 64;
 #define BATCH(dw) data[len++] = (dw);
 
 	memset(data, 0, 4096);
 	special_bo = drm_intel_bo_alloc(bufmgr, "special batch", 4096, 4096);
 
-	if (intel_gen(devid) >= 6) {
-		/* work-around hw issue, see intel_emit_post_sync_nonzero_flush
-		 * in mesa sources. */
-		BATCH(GFX_OP_PIPE_CONTROL);
-		BATCH(PIPE_CONTROL_CS_STALL | PIPE_CONTROL_STALL_AT_SCOREBOARD);
-		BATCH(0); /* address */
-		BATCH(0); /* write data */
-		BATCH(GFX_OP_PIPE_CONTROL);
-		BATCH(PIPE_CONTROL_WRITE_IMMEDIATE);
-		special_reloc_ofs = 4*len;
-		BATCH(PIPE_CONTROL_GLOBAL_GTT);
-		BATCH(0xdeadbeef); /* write data */
-	} else if (intel_gen(devid) >= 4) {
-		BATCH(GFX_OP_PIPE_CONTROL | PIPE_CONTROL_WC_FLUSH |
-		    	PIPE_CONTROL_TC_FLUSH |
-		    	PIPE_CONTROL_WRITE_IMMEDIATE | 2);
-		special_reloc_ofs = 4*len;
-		BATCH(PIPE_CONTROL_GLOBAL_GTT);
-		BATCH(0xdeadbeef);
-		BATCH(0);
-	}
+	BATCH(XY_COLOR_BLT_CMD | COLOR_BLT_WRITE_ALPHA | XY_COLOR_BLT_WRITE_RGB);
+	BATCH((3 << 24) | (0xf0 << 16) | small_pitch);
+	BATCH(0);
+	BATCH(1 << 16 | 1);
+	special_reloc_ofs = 4*len;
+	BATCH(0);
+	BATCH(0xdeadbeef);
 
 #define CMD_POLY_STIPPLE_OFFSET       0x7906
 	/* batchbuffer end */
@@ -119,17 +106,20 @@ static void create_special_bo(void)
 static void emit_dummy_load(void)
 {
 	int i;
+	uint32_t tile_flags = 0;
 
-	if (IS_965(devid))
+	if (IS_965(devid)) {
 		pitch /= 4;
+		tile_flags = XY_SRC_COPY_BLT_SRC_TILED |
+			XY_SRC_COPY_BLT_DST_TILED;
+	}
 
-	for (i = 0; i < 100; i++) {
+	for (i = 0; i < 10; i++) {
 		BEGIN_BATCH(8);
 		OUT_BATCH(XY_SRC_COPY_BLT_CMD |
 			  XY_SRC_COPY_BLT_WRITE_ALPHA |
 			  XY_SRC_COPY_BLT_WRITE_RGB |
-			  XY_SRC_COPY_BLT_SRC_TILED |
-			  XY_SRC_COPY_BLT_DST_TILED);
+			  tile_flags);
 		OUT_BATCH((3 << 24) | /* 32 bits */
 			  (0xcc << 16) | /* copy ROP */
 			  pitch);
@@ -169,11 +159,6 @@ int main(int argc, char **argv)
 	devid = intel_get_drm_devid(fd);
 	batch = intel_batchbuffer_alloc(bufmgr, devid);
 
-	if (IS_GEN2(devid) || IS_GEN3(devid)) {
-		fprintf(stderr, "test abuses pipe_control which does not exist on gen2/3\n");
-		return 77;
-	}
-
 	act_size = 2048;
 	dummy_bo = drm_intel_bo_alloc_tiled(bufmgr, "tiled dummy_bo", act_size, act_size,
 				      4, &tiling_mode, &pitch, 0);
@@ -187,9 +172,9 @@ int main(int argc, char **argv)
 		emit_dummy_load();
 		drm_intel_bo_emit_reloc(special_bo, special_reloc_ofs,
 					pc_target_bo[i],
-					PIPE_CONTROL_GLOBAL_GTT,
-					I915_GEM_DOMAIN_INSTRUCTION,
-					I915_GEM_DOMAIN_INSTRUCTION);
+					0,
+					I915_GEM_DOMAIN_RENDER,
+					I915_GEM_DOMAIN_RENDER);
 		drm_intel_bo_mrb_exec(special_bo, special_batch_len, NULL, 0, 0, 0);
 	}
 
