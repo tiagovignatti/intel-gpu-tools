@@ -54,6 +54,7 @@ TESTS_progs = \
 	gem_ring_sync_loop \
 	gem_pipe_control_store_loop \
 	gem_unref_active_buffers \
+	gem_reloc_vs_gpu \
 	$(NULL)
 
 TESTS_scripts = \
