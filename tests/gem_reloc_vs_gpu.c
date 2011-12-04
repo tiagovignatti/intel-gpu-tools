@@ -147,7 +147,7 @@ int main(int argc, char **argv)
 {
 	uint32_t tiling_mode = I915_TILING_X;
 	unsigned long pitch, act_size;
-	int fd, i;
+	int fd, i, ring;
 	uint32_t test;
 
 	memset(blob, 'A', sizeof(blob));
@@ -167,6 +167,11 @@ int main(int argc, char **argv)
 
 	create_special_bo();
 
+	if (intel_gen(devid) >= 6)
+		ring = I915_EXEC_BLT;
+	else
+		ring = 0;
+
 	for (i = 0; i < NUM_TARGET_BOS; i++) {
 		pc_target_bo[i] = drm_intel_bo_alloc(bufmgr, "special batch", 4096, 4096);
 		emit_dummy_load();
@@ -175,7 +180,8 @@ int main(int argc, char **argv)
 					0,
 					I915_GEM_DOMAIN_RENDER,
 					I915_GEM_DOMAIN_RENDER);
-		drm_intel_bo_mrb_exec(special_bo, special_batch_len, NULL, 0, 0, 0);
+		drm_intel_bo_mrb_exec(special_bo, special_batch_len, NULL,
+				      0, 0, ring);
 	}
 
 	/* Only check at the end to avoid unnecessary synchronous behaviour. */
