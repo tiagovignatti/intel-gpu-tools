@@ -31,6 +31,7 @@ TESTS_progs = \
 	gem_pread_after_blit \
 	gem_tiled_pread \
 	gem_tiled_pread_pwrite \
+	gem_partial_pwrite_pread \
 	gem_linear_blits \
 	gem_vmap_blits \
 	gem_tiled_blits \
