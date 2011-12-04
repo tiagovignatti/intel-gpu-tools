@@ -56,7 +56,6 @@ drm_intel_bo *dummy_bo;
 drm_intel_bo *special_bo;
 uint32_t devid;
 int fd;
-unsigned pitch;
 int special_reloc_ofs;
 int special_batch_len;
 
@@ -103,7 +102,7 @@ static void create_special_bo(void)
 	special_batch_len = len*4;
 }
 
-static void emit_dummy_load(void)
+static void emit_dummy_load(int pitch)
 {
 	int i;
 	uint32_t tile_flags = 0;
@@ -155,7 +154,8 @@ int main(int argc, char **argv)
 	fd = drm_open_any();
 
 	bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
-	drm_intel_bufmgr_gem_enable_reuse(bufmgr);
+	/* disable reuse, otherwise the test fails */
+	//drm_intel_bufmgr_gem_enable_reuse(bufmgr);
 	devid = intel_get_drm_devid(fd);
 	batch = intel_batchbuffer_alloc(bufmgr, devid);
 
@@ -174,7 +174,8 @@ int main(int argc, char **argv)
 
 	for (i = 0; i < NUM_TARGET_BOS; i++) {
 		pc_target_bo[i] = drm_intel_bo_alloc(bufmgr, "special batch", 4096, 4096);
-		emit_dummy_load();
+		emit_dummy_load(pitch);
+		assert(pc_target_bo[i]->offset == 0);
 		drm_intel_bo_emit_reloc(special_bo, special_reloc_ofs,
 					pc_target_bo[i],
 					0,
