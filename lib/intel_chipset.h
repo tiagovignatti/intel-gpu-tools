@@ -114,7 +114,9 @@
 #define IS_945(devid)		(devid == PCI_CHIP_I945_G || \
 				 devid == PCI_CHIP_I945_GM || \
 				 devid == PCI_CHIP_I945_GME || \
-				 devid == PCI_CHIP_G33_G || \
+				 IS_G33(devid))
+
+#define IS_G33(devid)		(devid == PCI_CHIP_G33_G || \
 				 devid == PCI_CHIP_Q33_G || \
 				 devid == PCI_CHIP_Q35_G || IS_IGD(devid))
 

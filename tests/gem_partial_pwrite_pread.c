@@ -124,7 +124,8 @@ blt_bo_fill(drm_intel_bo *tmp_bo, drm_intel_bo *bo, int val)
 
 	drm_intel_gem_bo_unmap_gtt(tmp_bo);
 
-	if (bo->offset < num_trash_bos*1024*1024)
+	if (bo->offset < num_trash_bos*1024*1024 &&
+	    (IS_G33(devid) || intel_gen(devid) >= 4))
 		trash_aperture();
 
 	copy_bo(tmp_bo, bo);
