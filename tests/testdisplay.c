@@ -65,6 +65,7 @@
 
 #include "xf86drm.h"
 #include "xf86drmMode.h"
+#include "drm_fourcc.h"
 #include "i915_drm.h"
 
 #ifdef DRM_IOCTL_MODE_ADDFB2
@@ -77,7 +78,7 @@ int fd, modes;
 int dump_info = 0, test_all_modes =0, test_preferred_mode = 0, force_mode = 0,
 	test_plane, enable_tiling;
 int sleep_between_modes = 5;
-uint32_t depth = 24;
+uint32_t depth = 24, stride, bpp;
 
 float force_clock;
 int	force_hdisplay;
@@ -89,11 +90,13 @@ int	force_vsync_start;
 int	force_vsync_end;
 int	force_vtotal;
 
-int crtc_x, crtc_y, crtc_w, crtc_h;
+int crtc_x, crtc_y, crtc_w, crtc_h, width, height;
 unsigned int plane_fb_id;
 unsigned int plane_crtc_id;
 unsigned int plane_id;
 int plane_width, plane_height;
+static const uint32_t SPRITE_COLOR_KEY = 0x00aaaaaa;
+uint32_t *fb_ptr;
 
 #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
 
@@ -413,12 +416,12 @@ static void gem_close(int fd, uint32_t handle)
 }
 
 static cairo_surface_t *
-allocate_surface(int fd, int width, int height, uint32_t depth, uint32_t bpp,
+allocate_surface(int fd, int width, int height, uint32_t depth,
 		 uint32_t *handle, int tiled)
 {
 	cairo_format_t format;
 	struct drm_i915_gem_set_tiling set_tiling;
-	int size, stride;
+	int size;
 
 	if (tiled) {
 		int v;
@@ -477,9 +480,11 @@ allocate_surface(int fd, int width, int height, uint32_t depth, uint32_t bpp,
 		}
 	}
 
-	return cairo_image_surface_create_for_data
-		(gem_mmap(fd, *handle, size, PROT_READ | PROT_WRITE),
-		 format, width, height, stride);
+	fb_ptr = gem_mmap(fd, *handle, size, PROT_READ | PROT_WRITE);
+
+	return cairo_image_surface_create_for_data((unsigned char *)fb_ptr,
+						   format, width, height,
+						   stride);
 }
 
 enum corner {
@@ -503,6 +508,20 @@ paint_color_gradient(cairo_t *cr, int x, int y, int width, int height,
 	cairo_set_source(cr, pat);
 	cairo_fill(cr);
 	cairo_pattern_destroy(pat);
+}
+
+static void
+paint_color_key(void)
+{
+	int i, j;
+
+	for (i = crtc_y; i < crtc_y + crtc_h; i++)
+		for (j = crtc_x; j < crtc_x + crtc_w; j++) {
+			uint32_t offset;
+
+			offset = (i * width) + j;
+			fb_ptr[offset] = SPRITE_COLOR_KEY;
+		}
 }
 
 static void
@@ -732,15 +751,11 @@ enable_plane(struct connector *c)
 	cairo_surface_t *surface;
 	cairo_status_t status;
 	cairo_t *cr;
-	uint32_t handle, x, y;
+	uint32_t handle;
 	int ret;
-	uint32_t pitches[4], offsets[4]; /* we only use [0] */
-
-	plane_width = c->mode.hdisplay * 0.50;
-	plane_height = c->mode.vdisplay * 0.50;
-
-	x = (c->mode.hdisplay - plane_width) / 2;
-	y = (c->mode.vdisplay - plane_height) / 2;
+	uint32_t handles[4], pitches[4], offsets[4]; /* we only use [0] */
+	struct drm_intel_set_sprite_destkey set;
+	uint32_t plane_flags = 0;
 
 	plane_id = connector_find_plane(c);
 	if (!plane_id) {
@@ -749,7 +764,7 @@ enable_plane(struct connector *c)
 	}
 	plane_crtc_id = c->crtc;
 
-	surface = allocate_surface(fd, plane_width, plane_height, 24, 32, &handle, 1);
+	surface = allocate_surface(fd, plane_width, plane_height, 24, &handle, 1);
 	if (!surface) {
 		fprintf(stderr, "allocation failed %dx%d\n", plane_width, plane_height);
 		return;
@@ -767,8 +782,10 @@ enable_plane(struct connector *c)
 
 	pitches[0] = cairo_image_surface_get_stride(surface);
 	memset(offsets, 0, sizeof(offsets));
-	ret = drmModeAddFB2(fd, plane_width, plane_height, V4L2_PIX_FMT_RGB24,
-			    handle, pitches, offsets, &plane_fb_id);
+	handles[0] = handles[1] = handles[2] = handles[3] = handle;
+	ret = drmModeAddFB2(fd, plane_width, plane_height, DRM_FORMAT_XRGB8888,
+			    handles, pitches, offsets, &plane_fb_id,
+			    plane_flags);
 	cairo_surface_destroy(surface);
 	gem_close(fd, handle);
 
@@ -778,8 +795,14 @@ enable_plane(struct connector *c)
 		return;
 	}
 
-	if (drmModeSetPlane(fd, plane_id, plane_crtc_id, plane_fb_id, crtc_x, crtc_y,
-			    crtc_w, crtc_h, 0, 0, plane_width, plane_height)) {
+	set.plane_id = plane_id;
+	set.value = SPRITE_COLOR_KEY;
+	ret = drmCommandWrite(fd, DRM_I915_SET_SPRITE_DESTKEY, &set,
+			      sizeof(set));
+
+	if (drmModeSetPlane(fd, plane_id, plane_crtc_id, plane_fb_id,
+			    plane_flags, crtc_x, crtc_y, crtc_w, crtc_h,
+			    0, 0, plane_width, plane_height)) {
 		fprintf(stderr, "failed to enable plane: %s\n",
 			strerror(errno));
 		return;
@@ -789,11 +812,16 @@ enable_plane(struct connector *c)
 static void
 adjust_plane(int fd, int xdistance, int ydistance, int wdiff, int hdiff)
 {
+	uint32_t plane_flags = 0;
+
 	crtc_x += xdistance;
 	crtc_y += ydistance;
 	crtc_w += wdiff;
 	crtc_h += hdiff;
-	if (drmModeSetPlane(fd, plane_id, plane_crtc_id, plane_fb_id, crtc_x, crtc_y,
+	fprintf(stderr, "setting plane %dx%d @ %d,%d (source %dx%d)\n",
+		crtc_w, crtc_h, crtc_x, crtc_y, plane_width, plane_height);
+	if (drmModeSetPlane(fd, plane_id, plane_crtc_id, plane_fb_id,
+			    plane_flags, crtc_x, crtc_y,
 			    crtc_w, crtc_h, 0, 0, plane_width, plane_height))
 		fprintf(stderr, "failed to adjust plane: %s\n",	strerror(errno));
 }
@@ -827,7 +855,7 @@ disable_planes(int fd)
 			return;
 		}
 		if (drmModeSetPlane(fd, plane_id, connectors[c].crtc, 0, 0, 0,
-				    0, 0, 0, 0, 0, 0)) {
+				    0, 0, 0, 0, 0, 0, 0)) {
 			fprintf(stderr, "failed to disable plane: %s\n",
 				strerror(errno));
 			return;
@@ -848,10 +876,9 @@ static void
 set_mode(struct connector *c)
 {
 	unsigned int fb_id;
-	int ret, width, height;
+	int ret;
 	char buf[128];
 	int j, test_mode_num;
-	uint32_t bpp = 32;
 
 	if (depth <= 8)
 		bpp = 8;
@@ -896,7 +923,7 @@ set_mode(struct connector *c)
 		width = c->mode.hdisplay;
 		height = c->mode.vdisplay;
 
-		surface = allocate_surface(fd, width, height, depth, bpp,
+		surface = allocate_surface(fd, width, height, depth,
 					   &handle, enable_tiling);
 		if (!surface) {
 			fprintf(stderr, "allocation failed %dx%d\n", width, height);
@@ -922,6 +949,8 @@ set_mode(struct connector *c)
 
 		/* Paint output info */
 		paint_output_info(cr, c, width, height);
+
+		paint_color_key();
 
 		status = cairo_status(cr);
 		cairo_destroy(cr);
@@ -1015,7 +1044,7 @@ static void usage(char *name)
 	fprintf(stderr, "\t-a\ttest all modes\n");
 	fprintf(stderr, "\t-s\t<duration>\tsleep between each mode test\n");
 	fprintf(stderr, "\t-d\t<depth>\tbit depth of scanout buffer\n");
-	fprintf(stderr, "\t-p\t<crtcx,y>,<crtcw,h> test overlay plane\n");
+	fprintf(stderr, "\t-p\t<planew,h>,<crtcx,y>,<crtcw,h> test overlay plane\n");
 	fprintf(stderr, "\t-m\ttest the preferred mode\n");
 	fprintf(stderr, "\t-t\tuse a tiled framebuffer\n");
 	fprintf(stderr, "\t-f\t<clock MHz>,<hdisp>,<hsync-start>,<hsync-end>,<htotal>,\n");
@@ -1119,8 +1148,9 @@ int main(int argc, char **argv)
 			fprintf(stderr, "using depth %d\n", depth);
 			break;
 		case 'p':
-			if (sscanf(optarg, "%d,%d,%d,%d", &crtc_x, &crtc_y,
-				   &crtc_w, &crtc_h) != 4)
+			if (sscanf(optarg, "%d,%d,%d,%d,%d,%d", &plane_width,
+				   &plane_height, &crtc_x, &crtc_y,
+				   &crtc_w, &crtc_h) != 6)
 				usage(argv[0]);
 			test_plane = 1;
 			break;
