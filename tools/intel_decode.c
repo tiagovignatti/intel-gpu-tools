@@ -1357,8 +1357,8 @@ decode_3d_1d(uint32_t *data, int count,
 		    switch ((dword>>3) & 0xf) {
 		    case 0: format = "I"; break;
 		    case 1: format = "L"; break;
-		    case 2: format = "A"; break;
-		    case 3: format = " mono"; break; }
+		    case 4: format = "A"; break;
+		    case 5: format = " mono"; break; }
 		    break;
 		case 2:
 		    type = "16b";
