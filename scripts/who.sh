@@ -9,5 +9,5 @@
 for i in `lsof -t /dev/dri/card0`; do
 	who=`readlink /proc/$i/exe`
 	count=`grep /dev/dri/card0 /proc/$i/maps | wc -l | cut -f1 -d\ `
-	echo "$who: $count"
+	echo "$who [$i]: $count"
 done
