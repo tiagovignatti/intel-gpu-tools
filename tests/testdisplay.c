@@ -68,7 +68,7 @@
 #include "drm_fourcc.h"
 #include "i915_drm.h"
 
-#ifdef DRM_IOCTL_MODE_ADDFB2
+#if defined(DRM_IOCTL_MODE_ADDFB2) && defined(DRM_I915_SET_SPRITE_COLORKEY)
 #define TEST_PLANES 1
 #endif
 
