@@ -92,7 +92,7 @@ test_large_object(int fd)
 
 	pwrite.handle = create.handle;
 	pwrite.size = obj_size;
-	pwrite.data_ptr = (uint64_t)data;
+	pwrite.data_ptr = (uintptr_t)data;
 
 	ret = ioctl(fd, DRM_IOCTL_I915_GEM_PWRITE, &pwrite);
 	if (ret) {
