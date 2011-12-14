@@ -94,11 +94,11 @@ static double elapsed(const struct timeval *start,
 	return (1e6*(end->tv_sec - start->tv_sec) + (end->tv_usec - start->tv_usec))/loop;
 }
 
-static void exec(int fd, uint32_t handle, int loops)
+static int exec(int fd, uint32_t handle, int loops)
 {
 	struct drm_i915_gem_execbuffer2 execbuf;
 	struct drm_i915_gem_exec_object2 exec[1];
-	int ret;
+	int ret = 0;
 
 	exec[0].handle = handle;
 	exec[0].relocation_count = 0;
@@ -121,12 +121,14 @@ static void exec(int fd, uint32_t handle, int loops)
 	execbuf.rsvd1 = 0;
 	execbuf.rsvd2 = 0;
 
-	while (loops--) {
+	while (loops-- && ret == 0) {
 		ret = drmIoctl(fd,
 			       DRM_IOCTL_I915_GEM_EXECBUFFER2,
 			       &execbuf);
 	}
 	gem_sync(fd, handle);
+
+	return ret;
 }
 
 int main(int argc, char **argv)
@@ -145,7 +147,8 @@ int main(int argc, char **argv)
 		struct timeval start, end;
 
 		gettimeofday(&start, NULL);
-		exec(fd, handle, count);
+		if (exec(fd, handle, count))
+			exit(1);
 		gettimeofday(&end, NULL);
 		printf("Time to exec x %d:		%7.3fµs\n",
 		       count, elapsed(&start, &end, count));
