@@ -169,15 +169,17 @@ static void gem_sync(int fd, uint32_t handle)
 	drmIoctl(fd, DRM_IOCTL_I915_GEM_SET_DOMAIN, &set_domain);
 }
 
-static void gem_exec(int fd, struct drm_i915_gem_execbuffer2 *execbuf, int loops)
+static int gem_exec(int fd, struct drm_i915_gem_execbuffer2 *execbuf, int loops)
 {
-	int ret;
+	int ret = 0;
 
-	while (loops--) {
+	while (loops-- && ret == 0) {
 		ret = drmIoctl(fd,
 			       DRM_IOCTL_I915_GEM_EXECBUFFER2,
 			       execbuf);
 	}
+
+	return ret;
 }
 
 static double elapsed(const struct timeval *start,
@@ -272,7 +274,8 @@ static void run(int object_size)
 		struct timeval start, end;
 
 		gettimeofday(&start, NULL);
-		gem_exec(fd, &execbuf, count);
+		if (gem_exec(fd, &execbuf, count))
+			exit(1);
 		gem_sync(fd, handle);
 		gettimeofday(&end, NULL);
 		printf("Time to blt %d bytes x %6d:	%7.3fµs, %s\n",
