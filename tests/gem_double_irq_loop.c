@@ -59,7 +59,7 @@ static drm_intel_bo *target_buffer, *blt_bo;
 static void
 dummy_reloc_loop(void)
 {
-	int i, j;
+	int i;
 
 	for (i = 0; i < 0x800; i++) {
 		BEGIN_BATCH(8);
