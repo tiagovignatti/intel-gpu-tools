@@ -170,10 +170,10 @@ decode_mi(uint32_t *data, int count, uint32_t hw_offset, int *failures)
 	return len;
     case 0x26:
 	switch (data[0] & (0x3<<14)) {
-	case 0: post_sync_op = "no write"; break;
-	case 1: post_sync_op = "write data"; break;
-	case 2: post_sync_op = "reserved"; break;
-	case 3: post_sync_op = "write TIMESTAMP"; break;
+	case (0<<14): post_sync_op = "no write"; break;
+	case (1<<14): post_sync_op = "write data"; break;
+	case (2<<14): post_sync_op = "reserved"; break;
+	case (3<<14): post_sync_op = "write TIMESTAMP"; break;
 	}
 	instr_out(data, hw_offset, 0, "MI_FLUSH_DW%s%s%s%s post_sync_op='%s' %s%s\n",
 		  data[0] & (1<<22) ? " enable protected mem (BCS-only)," : "",
