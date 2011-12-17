@@ -65,11 +65,11 @@
 
 #include "xf86drm.h"
 #include "xf86drmMode.h"
-#include "drm_fourcc.h"
 #include "i915_drm.h"
 
 #if defined(DRM_IOCTL_MODE_ADDFB2) && defined(DRM_I915_SET_SPRITE_COLORKEY)
 #define TEST_PLANES 1
+#include "drm_fourcc.h"
 #endif
 
 struct udev_monitor *uevent_monitor;
