@@ -1095,7 +1095,7 @@ out:
 static gboolean input_event(GIOChannel *source, GIOCondition condition,
 			    gpointer data)
 {
-	gchar buf[1];
+	gchar buf[2];
 	gsize count;
 
 	count = read(g_io_channel_unix_get_fd(source), buf, sizeof(buf));
@@ -1125,7 +1125,6 @@ static gboolean input_event(GIOChannel *source, GIOCondition condition,
 int main(int argc, char **argv)
 {
 	int c;
-	int encoders = 0, connectors = 0, crtcs = 0, framebuffers = 0;
 	char *modules[] = { "i915" };
 	unsigned int i;
 	struct udev *u;
@@ -1138,7 +1137,6 @@ int main(int argc, char **argv)
 		switch (c) {
 		case 'i':
 			dump_info = 1;
-			encoders = connectors = crtcs = modes = framebuffers = 1;
 			break;
 		case 'a':
 			test_all_modes = 1;
