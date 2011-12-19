@@ -3502,4 +3502,10 @@ typedef enum {
 #define  PORT_DBG_DRRS_HW_STATE_LOW     (1<<30)
 #define  PORT_DBG_DRRS_HW_STATE_HIGH    (2<<30)
 
+/* RC6 residence counters
+ */
+#define RC6_RESIDENCY_TIME          0x138108
+#define RC6p_RESIDENCY_TIME         0x13810C
+#define RC6pp_RESIDENCY_TIME        0x138110
+
 #endif /* _I810_REG_H */

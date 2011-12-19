@@ -1694,6 +1694,10 @@ static struct reg_debug ironlake_debug_regs[] = {
 	DEFINEREG(PCH_PP_DIVISOR),
 
 	DEFINEREG2(PORT_DBG, ivb_debug_port),
+
+	DEFINEREG(RC6_RESIDENCY_TIME),
+	DEFINEREG(RC6p_RESIDENCY_TIME),
+	DEFINEREG(RC6pp_RESIDENCY_TIME),
 };
 
 static struct reg_debug i945gm_mi_regs[] = {
