@@ -1,6 +1,6 @@
 NULL=#
 
-AM_CFLAGS = $(WARN_CFLAGS) -I$(srcdir)/..
+AM_CFLAGS = $(CWARNFLAGS) -I$(srcdir)/..
 libintel_tools_la_SOURCES = \
 	intel_batchbuffer.h \
 	intel_batchbuffer.c \

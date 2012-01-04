@@ -65,18 +65,6 @@ if test "x$HAVE_GLIB" = xyes; then
 fi
 AM_CONDITIONAL(HAVE_GLIB, [test "x$HAVE_GLIB" = xyes])
 
-dnl Use lots of warning flags with GCC
-
-WARN_CFLAGS=""
-
-if test "x$GCC" = "xyes"; then
-	WARN_CFLAGS="-Wall -Wpointer-arith -Wstrict-prototypes \
-	-Wmissing-prototypes -Wmissing-declarations \
-	-Wnested-externs -fno-strict-aliasing"
-fi
-
-AC_SUBST([WARN_CFLAGS])
-
 AC_ARG_ENABLE(shader-debugger,
 	      AS_HELP_STRING([--enable-shader-debugger],
 			     [Enable shader debugging support [default=no]]),

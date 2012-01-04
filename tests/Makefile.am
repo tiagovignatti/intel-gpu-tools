@@ -88,7 +88,7 @@ EXTRA_PROGRAMS = $(TESTS_progs) $(HANG)
 EXTRA_DIST = $(TESTS_scripts) check_drm_clients
 CLEANFILES = $(EXTRA_PROGRAMS)
 
-AM_CFLAGS = $(DRM_CFLAGS) $(WARN_CFLAGS) \
+AM_CFLAGS = $(DRM_CFLAGS) $(CWARNFLAGS) \
 	-I$(srcdir)/.. \
 	-I$(srcdir)/../lib
 LDADD = ../lib/libintel_tools.la $(PCIACCESS_LIBS) $(DRM_LIBS) 

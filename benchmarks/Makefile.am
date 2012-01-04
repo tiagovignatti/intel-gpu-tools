@@ -18,6 +18,6 @@ intel_upload_blit_large_gtt_LDADD = $(BENCHMARK_LIBS)
 intel_upload_blit_large_map_LDADD = $(BENCHMARK_LIBS)
 intel_upload_blit_small_LDADD = $(BENCHMARK_LIBS)
 
-AM_CFLAGS = $(DRM_CFLAGS) $(WARN_CFLAGS) \
+AM_CFLAGS = $(DRM_CFLAGS) $(CWARNFLAGS) \
 	-I$(srcdir)/.. \
 	-I$(srcdir)/../lib

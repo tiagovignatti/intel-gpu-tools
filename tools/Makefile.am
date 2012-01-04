@@ -43,6 +43,6 @@ EXTRA_DIST = $(bin_SCRIPTS)
 
 LDADD = ../lib/libintel_tools.la $(DRM_LIBS) $(PCIACCESS_LIBS)
 
-AM_CFLAGS = $(DRM_CFLAGS) $(PCIACCESS_CFLAGS) $(WARN_CFLAGS) \
+AM_CFLAGS = $(DRM_CFLAGS) $(PCIACCESS_CFLAGS) $(CWARNFLAGS) \
 	-I$(srcdir)/.. \
 	-I$(srcdir)/../lib
