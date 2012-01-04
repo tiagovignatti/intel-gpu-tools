@@ -34,18 +34,15 @@ AC_CONFIG_AUX_DIR([build-aux])
 AM_INIT_AUTOMAKE([1.10 foreign dist-bzip2])
 AM_MAINTAINER_MODE([enable])
 
-# Support silent build rules, requires at least automake-1.11. Disable
-# by either passing --disable-silent-rules to configure or passing V=1
-# to make
-m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
-
-# Checks for programs.
-AC_PROG_CC
-AC_PROG_CC_C99
-
 # Initialize libtool
 LT_PREREQ([2.2])
 LT_INIT([disable-static])
+
+# Require X.Org macros 1.8 or later for MAN_SUBSTS set by XORG_MANPAGE_SECTIONS
+m4_ifndef([XORG_MACROS_VERSION],
+	  [m4_fatal([must install xorg-macros 1.8 or later before running autoconf/autogen])])
+XORG_MACROS_VERSION(1.8)
+XORG_DEFAULT_OPTIONS
 
 PKG_CHECK_MODULES(DRM, [libdrm_intel >= 2.4.23 libdrm])
 PKG_CHECK_MODULES(PCIACCESS, [pciaccess >= 0.10])
@@ -95,12 +92,6 @@ if test "x$SHADER_DEBUGGER" = xyes; then
 		AC_DEFINE(HAVE_SHADER_DEBUGGER, 1, [Have shader debugging support])
 	fi
 fi
-
-# Require X.Org macros 1.8 or later for MAN_SUBSTS set by XORG_MANPAGE_SECTIONS
-m4_ifndef([XORG_MACROS_VERSION],
-	  [m4_fatal([must install xorg-macros 1.8 or later before running autoconf/autogen])])
-XORG_MACROS_VERSION(1.8)
-XORG_DEFAULT_OPTIONS
 
 AC_CONFIG_FILES([
 	Makefile
