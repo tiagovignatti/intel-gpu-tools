@@ -32,7 +32,7 @@ AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_AUX_DIR([build-aux])
 
 AM_INIT_AUTOMAKE([1.10 foreign dist-bzip2])
-AM_MAINTAINER_MODE([enable])
+AM_MAINTAINER_MODE
 
 # Initialize libtool
 LT_PREREQ([2.2])
