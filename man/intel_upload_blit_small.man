@@ -1,14 +1,14 @@
 .\" shorthand for double quote that works everywhere.
 .ds q \N'34'
-.TH intel_upload_blit_large_gtt 1 "intel_upload_blit_large_gtt 1.0"
+.TH intel_upload_blit_small __appmansuffix__ __xorgversion__
 .SH NAME
-intel_upload_blit_large_gtt \- microbenchmark of Intel GPU performance
+intel_upload_blit_small \- microbenchmark of Intel GPU performance
 .SH SYNOPSIS
 .nf
-.B intel_upload_blit_large_gtt
+.B intel_upload_blit_small
 .fi
 .SH DESCRIPTION
-.B intel_upload_blit_large_gtt
+.B intel_upload_blit_small
 is a microbenchmark tool for DRM performance.  It should be run with kernel
 modesetting enabled, and may require root privilege for correct operation.
 It does not require X to be running.

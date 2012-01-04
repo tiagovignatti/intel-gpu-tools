@@ -1,6 +1,6 @@
 .\" shorthand for double quote that works everywhere.
 .ds q \N'34'
-.TH intel_gtt 1 "intel_gtt 1.0"
+.TH intel_gtt __appmansuffix__ __xorgversion__
 .SH NAME
 intel_gtt \- Dump the contents of an Intel GPU's GTT
 .SH SYNOPSIS
