@@ -1,0 +1,20 @@
+forcewaked
+intel_audio_dump
+intel_backlight
+intel_bios_dumper
+intel_bios_reader
+intel_disable_clock_gating
+intel_dump_decode
+intel_error_decode
+intel_gpu_dump
+intel_gpu_time
+intel_gpu_top
+intel_gtt
+intel_lid
+intel_reg_checker
+intel_reg_dumper
+intel_reg_read
+intel_reg_snapshot
+intel_reg_write
+intel_stepping
+# Please keep sorted alphabetically
