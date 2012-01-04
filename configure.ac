@@ -20,7 +20,7 @@
 #
 # Process this file with autoconf to produce a configure script
 
-AC_PREREQ([2.63])
+AC_PREREQ([2.60])
 AC_INIT([intel-gpu-tools],
         [1.1],
         [https://bugs.freedesktop.org/enter_bug.cgi?product=xorg],
@@ -31,7 +31,7 @@ AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_AUX_DIR([build-aux])
 
-AM_INIT_AUTOMAKE([1.10 foreign dist-bzip2])
+AM_INIT_AUTOMAKE([foreign dist-bzip2])
 AM_MAINTAINER_MODE
 
 # Initialize libtool
