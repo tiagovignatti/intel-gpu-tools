@@ -27,3 +27,15 @@ SUBDIRS = lib man tools scripts tests benchmarks $(SHADER_DEBUGGER_SUBDIR)
 
 test:
 	${MAKE} -C tests test
+
+MAINTAINERCLEANFILES = ChangeLog INSTALL
+
+.PHONY: ChangeLog INSTALL
+
+INSTALL:
+	$(INSTALL_CMD)
+
+ChangeLog:
+	$(CHANGELOG_CMD)
+
+dist-hook: ChangeLog INSTALL
