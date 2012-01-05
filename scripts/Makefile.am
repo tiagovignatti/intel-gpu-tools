@@ -1,6 +1,3 @@
-noinst_SCRIPTS = \
-	throttle.py\
-	who.sh \
-	$(NULL)
 
-EXTRA_DIST = $(noinst_SCRIPTS)
+dist_noinst_SCRIPTS = who.sh
+noinst_PYTHON = throttle.py
