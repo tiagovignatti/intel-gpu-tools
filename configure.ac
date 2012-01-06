@@ -34,6 +34,11 @@ AC_CONFIG_AUX_DIR([build-aux])
 AM_INIT_AUTOMAKE([foreign dist-bzip2])
 AM_MAINTAINER_MODE
 
+# Checks for functions, headers, structures, etc.
+AC_CHECK_MEMBERS([struct sysinfo.totalram],[],[],[AC_INCLUDES_DEFAULT
+#include <sys/sysinfo.h>
+])
+
 # Initialize libtool
 AC_DISABLE_STATIC
 AC_PROG_LIBTOOL
