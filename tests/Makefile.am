@@ -103,5 +103,5 @@ endif
 endif
 endif
 
-gem_fence_thrash_CFLAGS = $(AM_CFLAGS) -pthread
+gem_fence_thrash_CFLAGS = $(AM_CFLAGS) $(THREAD_CFLAGS)
 gem_fence_thrash_LDADD = $(LDADD) -lpthread

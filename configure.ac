@@ -30,6 +30,7 @@ AC_CONFIG_SRCDIR([Makefile.am])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_AUX_DIR([build-aux])
+AC_USE_SYSTEM_EXTENSIONS
 
 AM_INIT_AUTOMAKE([foreign dist-bzip2])
 AM_MAINTAINER_MODE
@@ -44,10 +45,10 @@ AC_CHECK_MEMBERS([struct sysinfo.totalram],[],[],[AC_INCLUDES_DEFAULT
 AC_DISABLE_STATIC
 AC_PROG_LIBTOOL
 
-# Require X.Org macros 1.8 or later for MAN_SUBSTS set by XORG_MANPAGE_SECTIONS
+# Require X.Org macros 1.16 or later for XORG_TESTSET_CFLAG
 m4_ifndef([XORG_MACROS_VERSION],
-	  [m4_fatal([must install xorg-macros 1.8 or later before running autoconf/autogen])])
-XORG_MACROS_VERSION(1.8)
+	  [m4_fatal([must install xorg-macros 1.16 or later before running autoconf/autogen])])
+XORG_MACROS_VERSION(1.16)
 XORG_DEFAULT_OPTIONS
 
 PKG_CHECK_MODULES(DRM, [libdrm_intel >= 2.4.23 libdrm])
@@ -86,6 +87,10 @@ if test "x$SHADER_DEBUGGER" = xyes; then
 		AC_DEFINE(HAVE_SHADER_DEBUGGER, 1, [Have shader debugging support])
 	fi
 fi
+
+# To build multithread code, gcc uses -pthread, Solaris Studio cc uses -mt
+XORG_TESTSET_CFLAG([THREAD_CFLAGS], [-pthread], [-mt])
+AC_SUBST([THREAD_CFLAGS])
 
 AC_CONFIG_FILES([
 	Makefile
