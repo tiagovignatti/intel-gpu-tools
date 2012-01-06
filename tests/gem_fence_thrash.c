@@ -110,7 +110,7 @@ bo_copy (void *_arg)
 
 	for (n = 0; n < 1000; n++) {
 		memcpy (a, b, OBJECT_SIZE);
-		pthread_yield ();
+		sched_yield ();
 	}
 
 	return NULL;
