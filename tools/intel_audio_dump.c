@@ -129,7 +129,9 @@ static char *trans_to_port_sel[] = {
 	[2] = "Digital Port B",
 	[3] = "Digital Port B",
 	[4] = "Digital Port B",
-	[5 ... 7] = "reserved",
+	[5] = "reserved",
+	[6] = "reserved",
+	[7] = "reserved",
 };
 
 static char *transcoder_select[] = {
@@ -144,7 +146,10 @@ static char *dp_port_width[] = {
 	[1] = "x2 mode",
 	[2] = "reserved",
 	[3] = "x4 mode",
-	[4 ... 7] = "reserved",
+	[4] = "reserved",
+	[5] = "reserved",
+	[6] = "reserved",
+	[7] = "reserved",
 };
 
 static char *bits_per_sample[] = {
