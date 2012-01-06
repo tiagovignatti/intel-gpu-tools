@@ -27,6 +27,7 @@
  */
 
 #include <unistd.h>
+#include <fcntl.h>
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdlib.h>
