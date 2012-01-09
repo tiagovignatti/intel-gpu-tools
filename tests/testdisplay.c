@@ -757,7 +757,7 @@ enable_plane(struct connector *c)
 	uint32_t handle;
 	int ret;
 	uint32_t handles[4], pitches[4], offsets[4]; /* we only use [0] */
-	struct drm_intel_set_sprite_destkey set;
+	struct drm_intel_sprite_colorkey set;
 	uint32_t plane_flags = 0;
 
 	plane_id = connector_find_plane(c);
@@ -799,8 +799,10 @@ enable_plane(struct connector *c)
 	}
 
 	set.plane_id = plane_id;
-	set.value = SPRITE_COLOR_KEY;
-	ret = drmCommandWrite(fd, DRM_I915_SET_SPRITE_DESTKEY, &set,
+	set.max_value = SPRITE_COLOR_KEY;
+	set.min_value = SPRITE_COLOR_KEY;
+	set.channel_mask = 0xffffff;
+	ret = drmCommandWrite(fd, DRM_I915_SET_SPRITE_COLORKEY, &set,
 			      sizeof(set));
 
 	if (drmModeSetPlane(fd, plane_id, plane_crtc_id, plane_fb_id,
