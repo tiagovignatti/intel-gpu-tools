@@ -49,8 +49,8 @@
 #include <errno.h>
 #include <sys/stat.h>
 #include <err.h>
+#include <intel_bufmgr.h>
 
-#include "intel_decode.h"
 #include "intel_chipset.h"
 #include "intel_gpu_tools.h"
 #include "instdone.h"
@@ -276,7 +276,8 @@ print_fence(unsigned int devid, uint64_t fence)
 static void
 read_data_file (FILE *file)
 {
-    int devid = PCI_CHIP_I855_GM;
+    struct drm_intel_decode *decode_ctx = NULL;
+    uint32_t devid = PCI_CHIP_I855_GM;
     uint32_t *data = NULL;
     long long unsigned fence;
     int data_size = 0, count = 0, line_number = 0, matched;
@@ -306,7 +307,10 @@ read_data_file (FILE *file)
 				       buffer_type[is_batch],
 				       ring_name,
 				       gtt_offset);
-				intel_decode (data, count, gtt_offset, devid, 0);
+				drm_intel_decode_set_batch_pointer(decode_ctx,
+								   data, gtt_offset,
+								   count);
+				drm_intel_decode(decode_ctx);
 				count = 0;
 			}
 			gtt_offset = new_gtt_offset;
@@ -324,7 +328,10 @@ read_data_file (FILE *file)
 				       buffer_type[is_batch],
 				       ring_name,
 				       gtt_offset);
-				intel_decode (data, count, gtt_offset, devid, 0);
+				drm_intel_decode_set_batch_pointer(decode_ctx,
+								   data, gtt_offset,
+								   count);
+				drm_intel_decode(decode_ctx);
 				count = 0;
 			}
 			gtt_offset = new_gtt_offset;
@@ -345,7 +352,10 @@ read_data_file (FILE *file)
 			   buffer_type[is_batch],
 			   ring_name,
 			   gtt_offset);
-		    intel_decode (data, count, gtt_offset, devid, 0);
+		    drm_intel_decode_set_batch_pointer(decode_ctx,
+						       data, gtt_offset,
+						       count);
+		    drm_intel_decode(decode_ctx);
 		    count = 0;
 	    }
 
@@ -356,11 +366,13 @@ read_data_file (FILE *file)
 		    devid = reg;
 		    printf("Detected GEN%i chipset\n",
 			   intel_gen(devid));
+
+		    decode_ctx = drm_intel_decode_context_alloc(devid);
 	    }
 
 	    matched = sscanf (line, "  ACTHD: 0x%08x\n", &reg);
 	    if (matched == 1)
-		    intel_decode_context_set_head_tail(reg, 0xffffffff);
+		    drm_intel_decode_set_head_tail(decode_ctx, reg, 0xffffffff);
 
 	    matched = sscanf (line, "  PGTBL_ER: 0x%08x\n", &reg);
 	    if (matched == 1 && reg)
@@ -400,7 +412,10 @@ read_data_file (FILE *file)
 	       buffer_type[is_batch],
 	       ring_name,
 	       gtt_offset);
-	intel_decode (data, count, gtt_offset, devid, 0);
+	drm_intel_decode_set_batch_pointer(decode_ctx,
+					   data, gtt_offset,
+					   count);
+	drm_intel_decode(decode_ctx);
     }
 
     free (data);

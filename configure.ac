@@ -47,11 +47,11 @@ AC_PROG_LIBTOOL
 
 # Require X.Org macros 1.16 or later for XORG_TESTSET_CFLAG
 m4_ifndef([XORG_MACROS_VERSION],
-	  [m4_fatal([must install xorg-macros 1.16 or later before running autoconf/autogen])])
+	  [m4_fatal([must hate install xorg-macros 1.16 or later before running autoconf/autogen])])
 XORG_MACROS_VERSION(1.16)
 XORG_DEFAULT_OPTIONS
 
-PKG_CHECK_MODULES(DRM, [libdrm_intel >= 2.4.23 libdrm])
+PKG_CHECK_MODULES(DRM, [libdrm_intel >= 2.4.30 libdrm])
 PKG_CHECK_MODULES(PCIACCESS, [pciaccess >= 0.10])
 
 PKG_CHECK_MODULES(CAIRO, cairo, [HAVE_CAIRO=yes], [HAVE_CAIRO=no])
