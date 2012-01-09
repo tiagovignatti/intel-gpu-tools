@@ -35,7 +35,7 @@
 #include "intel_gpu_tools.h"
 
 static void
-print_clock(char *name, int clock) {
+print_clock(const char *name, int clock) {
 	if (clock == -1)
 		printf("%s clock: unknown", name);
 	else
@@ -167,14 +167,14 @@ print_clock_info(struct pci_device *pci_dev)
 int main(int argc, char **argv)
 {
 	struct pci_device *dev, *bridge;
-	int err;
+	int error;
 	uint8_t stepping;
-	char *step_desc = "??";
+	const char *step_desc = "??";
 
-	err = pci_system_init();
-	if (err != 0) {
+	error = pci_system_init();
+	if (error != 0) {
 		fprintf(stderr, "Couldn't initialize PCI system: %s\n",
-			strerror(err));
+			strerror(error));
 		exit(1);
 	}
 
@@ -183,10 +183,10 @@ int main(int argc, char **argv)
 	if (dev == NULL)
 		errx(1, "Couldn't find graphics card");
 
-	err = pci_device_probe(dev);
-	if (err != 0) {
+	error = pci_device_probe(dev);
+	if (error != 0) {
 		fprintf(stderr, "Couldn't probe graphics card: %s\n",
-			strerror(err));
+			strerror(error));
 		exit(1);
 	}
 
@@ -197,10 +197,10 @@ int main(int argc, char **argv)
 	if (dev == NULL)
 		errx(1, "Couldn't bridge");
 
-	err = pci_device_cfg_read_u8(bridge, &stepping, 8);
-	if (err != 0) {
+	error = pci_device_cfg_read_u8(bridge, &stepping, 8);
+	if (error != 0) {
 		fprintf(stderr, "Couldn't read revision ID: %s\n",
-			strerror(err));
+			strerror(error));
 		exit(1);
 	}
 
