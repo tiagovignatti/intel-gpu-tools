@@ -45,12 +45,12 @@ struct pci_device *
 intel_get_pci_device(void)
 {
 	struct pci_device *pci_dev;
-	int err;
+	int error;
 
-	err = pci_system_init();
-	if (err != 0) {
+	error = pci_system_init();
+	if (error != 0) {
 		fprintf(stderr, "Couldn't initialize PCI system: %s\n",
-			strerror(err));
+			strerror(error));
 		exit(1);
 	}
 
@@ -59,10 +59,10 @@ intel_get_pci_device(void)
 	if (pci_dev == NULL)
 		errx(1, "Couldn't find graphics card");
 
-	err = pci_device_probe(pci_dev);
-	if (err != 0) {
+	error = pci_device_probe(pci_dev);
+	if (error != 0) {
 		fprintf(stderr, "Couldn't probe graphics card: %s\n",
-			strerror(err));
+			strerror(error));
 		exit(1);
 	}
 

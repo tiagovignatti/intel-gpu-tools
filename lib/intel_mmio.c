@@ -83,7 +83,7 @@ intel_get_mmio(struct pci_device *pci_dev)
 {
 	uint32_t devid;
 	int mmio_bar;
-	int err;
+	int error;
 
 	devid = pci_dev->device_id;
 	if (IS_GEN2(devid))
@@ -91,15 +91,15 @@ intel_get_mmio(struct pci_device *pci_dev)
 	else
 		mmio_bar = 0;
 
-	err = pci_device_map_range (pci_dev,
+	error = pci_device_map_range (pci_dev,
 				    pci_dev->regions[mmio_bar].base_addr,
 				    pci_dev->regions[mmio_bar].size,
 				    PCI_DEV_MAP_FLAG_WRITABLE,
 				    &mmio);
 
-	if (err != 0) {
+	if (error != 0) {
 		fprintf(stderr, "Couldn't map MMIO region: %s\n",
-			strerror(err));
+			strerror(error));
 		exit(1);
 	}
 }
@@ -109,7 +109,7 @@ intel_get_mmio(struct pci_device *pci_dev)
  * updated with the correct path.
  */
 static int
-find_debugfs_path(char *dri_base)
+find_debugfs_path(const char *dri_base)
 {
 	char buf[FILENAME_MAX];
 	struct stat sb;
