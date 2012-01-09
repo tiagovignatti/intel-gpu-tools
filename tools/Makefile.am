@@ -26,14 +26,10 @@ noinst_PROGRAMS = \
 	$(NULL)
 
 intel_dump_decode_SOURCES = \
-	intel_dump_decode.c \
-	intel_decode.c \
-	intel_decode.h
+	intel_dump_decode.c
 
 intel_error_decode_SOURCES = \
-	intel_error_decode.c \
-	intel_decode.c \
-	intel_decode.h
+	intel_error_decode.c
 
 intel_bios_reader_SOURCES = \
 	intel_bios_reader.c \
