@@ -50,15 +50,15 @@ int main(int argc, char **argv)
 {
 	struct pci_device *dev;
 	void *bios;
-	int err, fd;
+	int error, fd;
 
 	if (argc != 2)
 		usage();
 
-	err = pci_system_init();
-	if (err != 0) {
+	error = pci_system_init();
+	if (error != 0) {
 		fprintf(stderr, "Couldn't initialize PCI system: %s\n",
-			strerror(err));
+			strerror(error));
 		exit(1);
 	}
 
@@ -67,10 +67,10 @@ int main(int argc, char **argv)
 	if (dev == NULL)
 		errx(1, "Couldn't find graphics card");
 
-	err = pci_device_probe(dev);
-	if (err != 0) {
+	error = pci_device_probe(dev);
+	if (error != 0) {
 		fprintf(stderr, "Couldn't probe graphics card: %s\n",
-			strerror(err));
+			strerror(error));
 		exit(1);
 	}
 
@@ -86,10 +86,10 @@ int main(int argc, char **argv)
 	if (bios == NULL)
 		errx(1, "Couldn't allocate memory for BIOS data\n");
 
-	err = pci_device_read_rom(dev, bios);
-	if (err != 0) {
+	error = pci_device_read_rom(dev, bios);
+	if (error != 0) {
 		fprintf(stderr, "Couldn't read graphics card ROM: %s\n",
-			strerror(err));
+			strerror(error));
 		exit(1);
 	}
 
