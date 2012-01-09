@@ -285,7 +285,7 @@ read_data_file (FILE *file)
     size_t line_size;
     uint32_t offset, value;
     uint32_t gtt_offset = 0, new_gtt_offset;
-    char *buffer_type[2] = {  "ringbuffer", "batchbuffer" };
+    const char *buffer_type[2] = {  "ringbuffer", "batchbuffer" };
     char *ring_name = NULL;
     int is_batch = 1;
 
@@ -430,7 +430,7 @@ main (int argc, char *argv[])
     const char *path;
     char *filename;
     struct stat st;
-    int err;
+    int error;
 
     if (argc > 2) {
 	fprintf (stderr,
@@ -451,11 +451,11 @@ main (int argc, char *argv[])
     if (argc == 1) {
 	if (isatty(0)) {
 	    path = "/debug/dri";
-	    err = stat (path, &st);
-	    if (err != 0) {
+	    error = stat (path, &st);
+	    if (error != 0) {
 		path = "/sys/kernel/debug/dri";
-		err = stat (path, &st);
-		if (err != 0) {
+		error = stat (path, &st);
+		if (error != 0) {
 		    errx(1,
 			 "Couldn't find i915 debugfs directory.\n\n"
 			 "Is debugfs mounted? You might try mounting it with a command such as:\n\n"
@@ -468,8 +468,8 @@ main (int argc, char *argv[])
 	}
     } else {
 	path = argv[1];
-	err = stat (path, &st);
-	if (err != 0) {
+	error = stat (path, &st);
+	if (error != 0) {
 	    fprintf (stderr, "Error opening %s: %s\n",
 		     path, strerror (errno));
 	    exit (1);
@@ -495,11 +495,10 @@ main (int argc, char *argv[])
 	    exit (1);
 	}
     } else {
-	filename = (char *) path;
-	file = fopen(filename, "r");
+	file = fopen(path, "r");
 	if (!file) {
 	    fprintf (stderr, "Failed to open %s: %s\n",
-		     filename, strerror (errno));
+		     path, strerror (errno));
 	    exit (1);
 	}
     }
