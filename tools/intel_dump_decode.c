@@ -35,10 +35,12 @@
 #include <fcntl.h>
 #include <getopt.h>
 
-#include "intel_decode.h"
+#include <intel_bufmgr.h>
+
+struct drm_intel_decode *ctx;
 
 static void
-read_bin_file(uint32_t devid, const char * filename)
+read_bin_file(const char * filename)
 {
 	uint32_t buf[16384];
 	int fd, offset, ret;
@@ -53,16 +55,19 @@ read_bin_file(uint32_t devid, const char * filename)
 		exit (1);
 	}
 
+	drm_intel_decode_set_dump_past_end(ctx, 1);
+
 	offset = 0;
 	while ((ret = read (fd, buf, sizeof(buf))) > 0) {
-		intel_decode (buf, ret/4, offset, devid, 1);
+		drm_intel_decode_set_batch_pointer(ctx, buf, offset, ret/4);
+		drm_intel_decode(ctx);
 		offset += ret;
 	}
 	close (fd);
 }
 
 static void
-read_data_file(uint32_t devid, const char * filename)
+read_data_file(const char * filename)
 {
     FILE *file;
     uint32_t *data = NULL;
@@ -108,7 +113,8 @@ read_data_file(uint32_t devid, const char * filename)
     }
 
     if (count) {
-	intel_decode (data, count, gtt_offset, devid, 0);
+	drm_intel_decode_set_batch_pointer(ctx, data, gtt_offset, count);
+	drm_intel_decode(ctx);
     }
 
     free (data);
@@ -118,7 +124,7 @@ read_data_file(uint32_t devid, const char * filename)
 }
 
 static void
-read_autodetect_file(uint32_t devid, const char * filename)
+read_autodetect_file(const char * filename)
 {
 	int binary = 0, c;
 	FILE *file;
@@ -141,9 +147,9 @@ read_autodetect_file(uint32_t devid, const char * filename)
 	fclose(file);
 
 	if (binary == 1)
-		read_bin_file(devid, filename);
+		read_bin_file(filename);
 	else
-		read_data_file(devid, filename);
+		read_data_file(filename);
 
 }
 
@@ -180,6 +186,8 @@ main (int argc, char *argv[])
 		}
 	}
 
+	ctx = drm_intel_decode_context_alloc(devid);
+
 	if (optind == argc) {
 		fprintf(stderr, "no input file given\n");
 		exit(-1);
@@ -188,15 +196,15 @@ main (int argc, char *argv[])
 	for (i = optind; i < argc; i++) {
 		/* For stdin input, let's read as data file */
 		if (!strcmp(argv[i], "-")) {
-			read_data_file(devid, argv[i]);
+			read_data_file(argv[i]);
 			continue;
 		}
 		if (binary == 1)
-			read_bin_file(devid, argv[i]);
+			read_bin_file(argv[i]);
 		else if (binary == 0)
-			read_data_file(devid, argv[i]);
+			read_data_file(argv[i]);
 		else
-			read_autodetect_file(devid, argv[i]);
+			read_autodetect_file(argv[i]);
 	}
 
 	return 0;
