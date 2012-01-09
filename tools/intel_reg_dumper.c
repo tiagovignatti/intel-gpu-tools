@@ -26,7 +26,6 @@
  */
 
 #define _GNU_SOURCE
-#include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -44,7 +43,7 @@ DEBUGSTRING(i830_16bit_func)
 
 DEBUGSTRING(i830_debug_dcc)
 {
-	char *addressing = NULL;
+	const char *addressing = NULL;
 
 	if (!IS_MOBILE(devid))
 		return;
@@ -79,7 +78,7 @@ DEBUGSTRING(i830_debug_dcc)
 
 DEBUGSTRING(i830_debug_chdecmisc)
 {
-	char *enhmodesel = NULL;
+	const char *enhmodesel = NULL;
 
 	switch ((val >> 5) & 3) {
 	case 1:
@@ -131,7 +130,7 @@ DEBUGSTRING(i830_debug_dspstride)
 
 DEBUGSTRING(i830_debug_dspcntr)
 {
-	char *enabled = val & DISPLAY_PLANE_ENABLE ? "enabled" : "disabled";
+	const char *enabled = val & DISPLAY_PLANE_ENABLE ? "enabled" : "disabled";
 	char plane = val & DISPPLANE_SEL_PIPE_B ? 'B' : 'A';
 	if (HAS_PCH_SPLIT(devid))
 		snprintf(result, len, "%s", enabled);
@@ -141,8 +140,8 @@ DEBUGSTRING(i830_debug_dspcntr)
 
 DEBUGSTRING(i830_debug_pipeconf)
 {
-	char *enabled = val & PIPEACONF_ENABLE ? "enabled" : "disabled";
-	char *bit30;
+	const char *enabled = val & PIPEACONF_ENABLE ? "enabled" : "disabled";
+	const char *bit30;
 
 	if (IS_965(devid))
 		bit30 = val & I965_PIPECONF_ACTIVE ? "active" : "inactive";
@@ -151,7 +150,7 @@ DEBUGSTRING(i830_debug_pipeconf)
 		    val & PIPEACONF_DOUBLE_WIDE ? "double-wide" : "single-wide";
 
 	if (HAS_PCH_SPLIT(devid)) {
-		char *bpc;
+		const char *bpc;
 
 		switch (val & (7 << 5)) {
 		case PIPECONF_8BPP:
@@ -177,54 +176,54 @@ DEBUGSTRING(i830_debug_pipeconf)
 
 DEBUGSTRING(i830_debug_pipestat)
 {
-	char *_FIFO_UNDERRUN = val & FIFO_UNDERRUN ? " FIFO_UNDERRUN" : "";
-	char *_CRC_ERROR_ENABLE =
+	const char *_FIFO_UNDERRUN = val & FIFO_UNDERRUN ? " FIFO_UNDERRUN" : "";
+	const char *_CRC_ERROR_ENABLE =
 	    val & CRC_ERROR_ENABLE ? " CRC_ERROR_ENABLE" : "";
-	char *_CRC_DONE_ENABLE =
+	const char *_CRC_DONE_ENABLE =
 	    val & CRC_DONE_ENABLE ? " CRC_DONE_ENABLE" : "";
-	char *_GMBUS_EVENT_ENABLE =
+	const char *_GMBUS_EVENT_ENABLE =
 	    val & GMBUS_EVENT_ENABLE ? " GMBUS_EVENT_ENABLE" : "";
-	char *_VSYNC_INT_ENABLE =
+	const char *_VSYNC_INT_ENABLE =
 	    val & VSYNC_INT_ENABLE ? " VSYNC_INT_ENABLE" : "";
-	char *_DLINE_COMPARE_ENABLE =
+	const char *_DLINE_COMPARE_ENABLE =
 	    val & DLINE_COMPARE_ENABLE ? " DLINE_COMPARE_ENABLE" : "";
-	char *_DPST_EVENT_ENABLE =
+	const char *_DPST_EVENT_ENABLE =
 	    val & DPST_EVENT_ENABLE ? " DPST_EVENT_ENABLE" : "";
-	char *_LBLC_EVENT_ENABLE =
+	const char *_LBLC_EVENT_ENABLE =
 	    val & LBLC_EVENT_ENABLE ? " LBLC_EVENT_ENABLE" : "";
-	char *_OFIELD_INT_ENABLE =
+	const char *_OFIELD_INT_ENABLE =
 	    val & OFIELD_INT_ENABLE ? " OFIELD_INT_ENABLE" : "";
-	char *_EFIELD_INT_ENABLE =
+	const char *_EFIELD_INT_ENABLE =
 	    val & EFIELD_INT_ENABLE ? " EFIELD_INT_ENABLE" : "";
-	char *_SVBLANK_INT_ENABLE =
+	const char *_SVBLANK_INT_ENABLE =
 	    val & SVBLANK_INT_ENABLE ? " SVBLANK_INT_ENABLE" : "";
-	char *_VBLANK_INT_ENABLE =
+	const char *_VBLANK_INT_ENABLE =
 	    val & VBLANK_INT_ENABLE ? " VBLANK_INT_ENABLE" : "";
-	char *_OREG_UPDATE_ENABLE =
+	const char *_OREG_UPDATE_ENABLE =
 	    val & OREG_UPDATE_ENABLE ? " OREG_UPDATE_ENABLE" : "";
-	char *_CRC_ERROR_INT_STATUS =
+	const char *_CRC_ERROR_INT_STATUS =
 	    val & CRC_ERROR_INT_STATUS ? " CRC_ERROR_INT_STATUS" : "";
-	char *_CRC_DONE_INT_STATUS =
+	const char *_CRC_DONE_INT_STATUS =
 	    val & CRC_DONE_INT_STATUS ? " CRC_DONE_INT_STATUS" : "";
-	char *_GMBUS_INT_STATUS =
+	const char *_GMBUS_INT_STATUS =
 	    val & GMBUS_INT_STATUS ? " GMBUS_INT_STATUS" : "";
-	char *_VSYNC_INT_STATUS =
+	const char *_VSYNC_INT_STATUS =
 	    val & VSYNC_INT_STATUS ? " VSYNC_INT_STATUS" : "";
-	char *_DLINE_COMPARE_STATUS =
+	const char *_DLINE_COMPARE_STATUS =
 	    val & DLINE_COMPARE_STATUS ? " DLINE_COMPARE_STATUS" : "";
-	char *_DPST_EVENT_STATUS =
+	const char *_DPST_EVENT_STATUS =
 	    val & DPST_EVENT_STATUS ? " DPST_EVENT_STATUS" : "";
-	char *_LBLC_EVENT_STATUS =
+	const char *_LBLC_EVENT_STATUS =
 	    val & LBLC_EVENT_STATUS ? " LBLC_EVENT_STATUS" : "";
-	char *_OFIELD_INT_STATUS =
+	const char *_OFIELD_INT_STATUS =
 	    val & OFIELD_INT_STATUS ? " OFIELD_INT_STATUS" : "";
-	char *_EFIELD_INT_STATUS =
+	const char *_EFIELD_INT_STATUS =
 	    val & EFIELD_INT_STATUS ? " EFIELD_INT_STATUS" : "";
-	char *_SVBLANK_INT_STATUS =
+	const char *_SVBLANK_INT_STATUS =
 	    val & SVBLANK_INT_STATUS ? " SVBLANK_INT_STATUS" : "";
-	char *_VBLANK_INT_STATUS =
+	const char *_VBLANK_INT_STATUS =
 	    val & VBLANK_INT_STATUS ? " VBLANK_INT_STATUS" : "";
-	char *_OREG_UPDATE_STATUS =
+	const char *_OREG_UPDATE_STATUS =
 	    val & OREG_UPDATE_STATUS ? " OREG_UPDATE_STATUS" : "";
 	snprintf(result, len,
 		 "status:%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s",
@@ -257,7 +256,7 @@ DEBUGSTRING(i830_debug_pipestat)
 
 DEBUGSTRING(ivb_debug_port)
 {
-	char *drrs;
+	const char *drrs = NULL;
 	switch (val & (2 << 30)) {
 		case PORT_DBG_DRRS_HW_STATE_OFF:
 			drrs = "off";
@@ -333,9 +332,9 @@ DEBUGSTRING(i830_debug_vga_pd)
 
 DEBUGSTRING(i830_debug_pp_status)
 {
-	char *status = val & PP_ON ? "on" : "off";
-	char *ready = val & PP_READY ? "ready" : "not ready";
-	char *seq = "unknown";
+	const char *status = val & PP_ON ? "on" : "off";
+	const char *ready = val & PP_READY ? "ready" : "not ready";
+	const char *seq = "unknown";
 
 	switch (val & PP_SEQUENCE_MASK) {
 	case PP_SEQUENCE_NONE:
@@ -360,12 +359,12 @@ DEBUGSTRING(i830_debug_pp_control)
 
 DEBUGSTRING(i830_debug_dpll)
 {
-	char *enabled = val & DPLL_VCO_ENABLE ? "enabled" : "disabled";
-	char *dvomode = val & DPLL_DVO_HIGH_SPEED ? "dvo" : "non-dvo";
-	char *vgamode = val & DPLL_VGA_MODE_DIS ? "" : ", VGA";
-	char *mode = "unknown";
-	char *clock = "unknown";
-	char *fpextra = val & DISPLAY_RATE_SELECT_FPA1 ? ", using FPx1!" : "";
+	const char *enabled = val & DPLL_VCO_ENABLE ? "enabled" : "disabled";
+	const char *dvomode = val & DPLL_DVO_HIGH_SPEED ? "dvo" : "non-dvo";
+	const char *vgamode = val & DPLL_VGA_MODE_DIS ? "" : ", VGA";
+	const char *mode = "unknown";
+	const char *clock = "unknown";
+	const char *fpextra = val & DISPLAY_RATE_SELECT_FPA1 ? ", using FPx1!" : "";
 	char sdvoextra[20];
 	int p1, p2 = 0;
 
@@ -448,13 +447,13 @@ DEBUGSTRING(i830_debug_dpll)
 
 DEBUGSTRING(i830_debug_dpll_test)
 {
-	char *dpllandiv = val & DPLLA_TEST_N_BYPASS ? ", DPLLA N bypassed" : "";
-	char *dpllamdiv = val & DPLLA_TEST_M_BYPASS ? ", DPLLA M bypassed" : "";
-	char *dpllainput = val & DPLLA_INPUT_BUFFER_ENABLE ?
+	const char *dpllandiv = val & DPLLA_TEST_N_BYPASS ? ", DPLLA N bypassed" : "";
+	const char *dpllamdiv = val & DPLLA_TEST_M_BYPASS ? ", DPLLA M bypassed" : "";
+	const char *dpllainput = val & DPLLA_INPUT_BUFFER_ENABLE ?
 	    "" : ", DPLLA input buffer disabled";
-	char *dpllbndiv = val & DPLLB_TEST_N_BYPASS ? ", DPLLB N bypassed" : "";
-	char *dpllbmdiv = val & DPLLB_TEST_M_BYPASS ? ", DPLLB M bypassed" : "";
-	char *dpllbinput = val & DPLLB_INPUT_BUFFER_ENABLE ?
+	const char *dpllbndiv = val & DPLLB_TEST_N_BYPASS ? ", DPLLB N bypassed" : "";
+	const char *dpllbmdiv = val & DPLLB_TEST_M_BYPASS ? ", DPLLB M bypassed" : "";
+	const char *dpllbinput = val & DPLLB_INPUT_BUFFER_ENABLE ?
 	    "" : ", DPLLB input buffer disabled";
 
 	snprintf(result, len, "%s%s%s%s%s%s",
@@ -465,7 +464,7 @@ DEBUGSTRING(i830_debug_dpll_test)
 DEBUGSTRING(i830_debug_adpa)
 {
 	char pipe = (val & ADPA_PIPE_B_SELECT) ? 'B' : 'A';
-	char *enable = (val & ADPA_DAC_ENABLE) ? "enabled" : "disabled";
+	const char *enable = (val & ADPA_DAC_ENABLE) ? "enabled" : "disabled";
 	char hsync = (val & ADPA_HSYNC_ACTIVE_HIGH) ? '+' : '-';
 	char vsync = (val & ADPA_VSYNC_ACTIVE_HIGH) ? '+' : '-';
 
@@ -483,9 +482,9 @@ DEBUGSTRING(i830_debug_adpa)
 DEBUGSTRING(i830_debug_lvds)
 {
 	char pipe = val & LVDS_PIPEB_SELECT ? 'B' : 'A';
-	char *enable = val & LVDS_PORT_EN ? "enabled" : "disabled";
+	const char *enable = val & LVDS_PORT_EN ? "enabled" : "disabled";
 	int depth;
-	char *channels;
+	const char *channels;
 
 	if ((val & LVDS_A3_POWER_MASK) == LVDS_A3_POWER_UP)
 		depth = 24;
@@ -505,9 +504,9 @@ DEBUGSTRING(i830_debug_lvds)
 
 DEBUGSTRING(i830_debug_dvo)
 {
-	char *enable = val & DVO_ENABLE ? "enabled" : "disabled";
+	const char *enable = val & DVO_ENABLE ? "enabled" : "disabled";
 	char pipe = val & DVO_PIPE_B_SELECT ? 'B' : 'A';
-	char *stall;
+	const char *stall;
 	char hsync = val & DVO_HSYNC_ACTIVE_HIGH ? '+' : '-';
 	char vsync = val & DVO_VSYNC_ACTIVE_HIGH ? '+' : '-';
 
@@ -532,11 +531,11 @@ DEBUGSTRING(i830_debug_dvo)
 
 DEBUGSTRING(i830_debug_sdvo)
 {
-	char *enable = val & SDVO_ENABLE ? "enabled" : "disabled";
+	const char *enable = val & SDVO_ENABLE ? "enabled" : "disabled";
 	char pipe = val & SDVO_PIPE_B_SELECT ? 'B' : 'A';
-	char *stall = val & SDVO_STALL_SELECT ? "enabled" : "disabled";
-	char *detected = val & SDVO_DETECTED ? "" : "not ";
-	char *gang = val & SDVOC_GANG_MODE ? ", gang mode" : "";
+	const char *stall = val & SDVO_STALL_SELECT ? "enabled" : "disabled";
+	const char *detected = val & SDVO_DETECTED ? "" : "not ";
+	const char *gang = val & SDVOC_GANG_MODE ? ", gang mode" : "";
 	char sdvoextra[20];
 
 	if (IS_915(devid)) {
@@ -553,38 +552,38 @@ DEBUGSTRING(i830_debug_sdvo)
 
 DEBUGSTRING(i830_debug_dspclk_gate_d)
 {
-	char *DPUNIT_B = val & DPUNIT_B_CLOCK_GATE_DISABLE ? " DPUNIT_B" : "";
-	char *VSUNIT = val & VSUNIT_CLOCK_GATE_DISABLE ? " VSUNIT" : "";
-	char *VRHUNIT = val & VRHUNIT_CLOCK_GATE_DISABLE ? " VRHUNIT" : "";
-	char *VRDUNIT = val & VRDUNIT_CLOCK_GATE_DISABLE ? " VRDUNIT" : "";
-	char *AUDUNIT = val & AUDUNIT_CLOCK_GATE_DISABLE ? " AUDUNIT" : "";
-	char *DPUNIT_A = val & DPUNIT_A_CLOCK_GATE_DISABLE ? " DPUNIT_A" : "";
-	char *DPCUNIT = val & DPCUNIT_CLOCK_GATE_DISABLE ? " DPCUNIT" : "";
-	char *TVRUNIT = val & TVRUNIT_CLOCK_GATE_DISABLE ? " TVRUNIT" : "";
-	char *TVCUNIT = val & TVCUNIT_CLOCK_GATE_DISABLE ? " TVCUNIT" : "";
-	char *TVFUNIT = val & TVFUNIT_CLOCK_GATE_DISABLE ? " TVFUNIT" : "";
-	char *TVEUNIT = val & TVEUNIT_CLOCK_GATE_DISABLE ? " TVEUNIT" : "";
-	char *DVSUNIT = val & DVSUNIT_CLOCK_GATE_DISABLE ? " DVSUNIT" : "";
-	char *DSSUNIT = val & DSSUNIT_CLOCK_GATE_DISABLE ? " DSSUNIT" : "";
-	char *DDBUNIT = val & DDBUNIT_CLOCK_GATE_DISABLE ? " DDBUNIT" : "";
-	char *DPRUNIT = val & DPRUNIT_CLOCK_GATE_DISABLE ? " DPRUNIT" : "";
-	char *DPFUNIT = val & DPFUNIT_CLOCK_GATE_DISABLE ? " DPFUNIT" : "";
-	char *DPBMUNIT = val & DPBMUNIT_CLOCK_GATE_DISABLE ? " DPBMUNIT" : "";
-	char *DPLSUNIT = val & DPLSUNIT_CLOCK_GATE_DISABLE ? " DPLSUNIT" : "";
-	char *DPLUNIT = val & DPLUNIT_CLOCK_GATE_DISABLE ? " DPLUNIT" : "";
-	char *DPOUNIT = val & DPOUNIT_CLOCK_GATE_DISABLE ? " DPOUNIT" : "";
-	char *DPBUNIT = val & DPBUNIT_CLOCK_GATE_DISABLE ? " DPBUNIT" : "";
-	char *DCUNIT = val & DCUNIT_CLOCK_GATE_DISABLE ? " DCUNIT" : "";
-	char *DPUNIT = val & DPUNIT_CLOCK_GATE_DISABLE ? " DPUNIT" : "";
-	char *VRUNIT = val & VRUNIT_CLOCK_GATE_DISABLE ? " VRUNIT" : "";
-	char *OVHUNIT = val & OVHUNIT_CLOCK_GATE_DISABLE ? " OVHUNIT" : "";
-	char *DPIOUNIT = val & DPIOUNIT_CLOCK_GATE_DISABLE ? " DPIOUNIT" : "";
-	char *OVFUNIT = val & OVFUNIT_CLOCK_GATE_DISABLE ? " OVFUNIT" : "";
-	char *OVBUNIT = val & OVBUNIT_CLOCK_GATE_DISABLE ? " OVBUNIT" : "";
-	char *OVRUNIT = val & OVRUNIT_CLOCK_GATE_DISABLE ? " OVRUNIT" : "";
-	char *OVCUNIT = val & OVCUNIT_CLOCK_GATE_DISABLE ? " OVCUNIT" : "";
-	char *OVUUNIT = val & OVUUNIT_CLOCK_GATE_DISABLE ? " OVUUNIT" : "";
-	char *OVLUNIT = val & OVLUNIT_CLOCK_GATE_DISABLE ? " OVLUNIT" : "";
+	const char *DPUNIT_B = val & DPUNIT_B_CLOCK_GATE_DISABLE ? " DPUNIT_B" : "";
+	const char *VSUNIT = val & VSUNIT_CLOCK_GATE_DISABLE ? " VSUNIT" : "";
+	const char *VRHUNIT = val & VRHUNIT_CLOCK_GATE_DISABLE ? " VRHUNIT" : "";
+	const char *VRDUNIT = val & VRDUNIT_CLOCK_GATE_DISABLE ? " VRDUNIT" : "";
+	const char *AUDUNIT = val & AUDUNIT_CLOCK_GATE_DISABLE ? " AUDUNIT" : "";
+	const char *DPUNIT_A = val & DPUNIT_A_CLOCK_GATE_DISABLE ? " DPUNIT_A" : "";
+	const char *DPCUNIT = val & DPCUNIT_CLOCK_GATE_DISABLE ? " DPCUNIT" : "";
+	const char *TVRUNIT = val & TVRUNIT_CLOCK_GATE_DISABLE ? " TVRUNIT" : "";
+	const char *TVCUNIT = val & TVCUNIT_CLOCK_GATE_DISABLE ? " TVCUNIT" : "";
+	const char *TVFUNIT = val & TVFUNIT_CLOCK_GATE_DISABLE ? " TVFUNIT" : "";
+	const char *TVEUNIT = val & TVEUNIT_CLOCK_GATE_DISABLE ? " TVEUNIT" : "";
+	const char *DVSUNIT = val & DVSUNIT_CLOCK_GATE_DISABLE ? " DVSUNIT" : "";
+	const char *DSSUNIT = val & DSSUNIT_CLOCK_GATE_DISABLE ? " DSSUNIT" : "";
+	const char *DDBUNIT = val & DDBUNIT_CLOCK_GATE_DISABLE ? " DDBUNIT" : "";
+	const char *DPRUNIT = val & DPRUNIT_CLOCK_GATE_DISABLE ? " DPRUNIT" : "";
+	const char *DPFUNIT = val & DPFUNIT_CLOCK_GATE_DISABLE ? " DPFUNIT" : "";
+	const char *DPBMUNIT = val & DPBMUNIT_CLOCK_GATE_DISABLE ? " DPBMUNIT" : "";
+	const char *DPLSUNIT = val & DPLSUNIT_CLOCK_GATE_DISABLE ? " DPLSUNIT" : "";
+	const char *DPLUNIT = val & DPLUNIT_CLOCK_GATE_DISABLE ? " DPLUNIT" : "";
+	const char *DPOUNIT = val & DPOUNIT_CLOCK_GATE_DISABLE ? " DPOUNIT" : "";
+	const char *DPBUNIT = val & DPBUNIT_CLOCK_GATE_DISABLE ? " DPBUNIT" : "";
+	const char *DCUNIT = val & DCUNIT_CLOCK_GATE_DISABLE ? " DCUNIT" : "";
+	const char *DPUNIT = val & DPUNIT_CLOCK_GATE_DISABLE ? " DPUNIT" : "";
+	const char *VRUNIT = val & VRUNIT_CLOCK_GATE_DISABLE ? " VRUNIT" : "";
+	const char *OVHUNIT = val & OVHUNIT_CLOCK_GATE_DISABLE ? " OVHUNIT" : "";
+	const char *DPIOUNIT = val & DPIOUNIT_CLOCK_GATE_DISABLE ? " DPIOUNIT" : "";
+	const char *OVFUNIT = val & OVFUNIT_CLOCK_GATE_DISABLE ? " OVFUNIT" : "";
+	const char *OVBUNIT = val & OVBUNIT_CLOCK_GATE_DISABLE ? " OVBUNIT" : "";
+	const char *OVRUNIT = val & OVRUNIT_CLOCK_GATE_DISABLE ? " OVRUNIT" : "";
+	const char *OVCUNIT = val & OVCUNIT_CLOCK_GATE_DISABLE ? " OVCUNIT" : "";
+	const char *OVUUNIT = val & OVUUNIT_CLOCK_GATE_DISABLE ? " OVUUNIT" : "";
+	const char *OVLUNIT = val & OVLUNIT_CLOCK_GATE_DISABLE ? " OVLUNIT" : "";
 
 	snprintf(result, len,
 		 "clock gates disabled:%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s",
@@ -618,7 +617,7 @@ DEBUGSTRING(i810_debug_915_fence)
 
 DEBUGSTRING(i810_debug_965_fence_start)
 {
-	char *enable = (val & FENCE_VALID) ? " enabled" : "disabled";
+	const char *enable = (val & FENCE_VALID) ? " enabled" : "disabled";
 	char format = (val & I965_FENCE_Y_MAJOR) ? 'Y' : 'X';
 	int pitch = ((val & 0xffc) >> 2) * 128 + 128;
 	unsigned int offset = val & 0xfffff000;
@@ -649,7 +648,7 @@ DEBUGSTRING(i810_debug_965_fence_end)
 
 struct reg_debug {
 	int reg;
-	char *name;
+	const char *name;
 	void (*debug_output) (char *result, int len, int reg, uint32_t val);
 	uint32_t val;
 };
@@ -930,7 +929,7 @@ DEBUGSTRING(ironlake_debug_n)
 
 DEBUGSTRING(ironlake_debug_fdi_tx_ctl)
 {
-	char *train = NULL, *voltage = NULL, *pre_emphasis = NULL, *portw =
+	const char *train = NULL, *voltage = NULL, *pre_emphasis = NULL, *portw =
 	    NULL;
 
 	switch (val & FDI_LINK_TRAIN_NONE) {
@@ -1035,7 +1034,7 @@ DEBUGSTRING(ironlake_debug_fdi_tx_ctl)
 
 DEBUGSTRING(ironlake_debug_fdi_rx_ctl)
 {
-	char *train = NULL, *portw = NULL, *bpc = NULL;
+	const char *train = NULL, *portw = NULL, *bpc = NULL;
 
 	if (HAS_CPT) {
 		switch (val & FDI_LINK_TRAIN_PATTERN_MASK_CPT) {
@@ -1124,12 +1123,12 @@ DEBUGSTRING(ironlake_debug_dspstride)
 
 DEBUGSTRING(ironlake_debug_pch_dpll)
 {
-	char *enable = val & DPLL_VCO_ENABLE ? "enable" : "disable";
-	char *highspeed = val & DPLL_DVO_HIGH_SPEED ? "yes" : "no";
-	char *mode = NULL;
-	char *p2 = NULL;
+	const char *enable = val & DPLL_VCO_ENABLE ? "enable" : "disable";
+	const char *highspeed = val & DPLL_DVO_HIGH_SPEED ? "yes" : "no";
+	const char *mode = NULL;
+	const char *p2 = NULL;
 	int fpa0_p1, fpa1_p1;
-	char *refclk = NULL;
+	const char *refclk = NULL;
 	int sdvo_mul;
 
 	if ((val & DPLLB_MODE_LVDS) == DPLLB_MODE_LVDS) {
@@ -1176,16 +1175,16 @@ DEBUGSTRING(ironlake_debug_pch_dpll)
 
 DEBUGSTRING(ironlake_debug_dref_ctl)
 {
-	char *cpu_source;
-	char *ssc_source = val & DREF_SSC_SOURCE_ENABLE ? "enable" : "disable";
-	char *nonspread_source =
+	const char *cpu_source;
+	const char *ssc_source = val & DREF_SSC_SOURCE_ENABLE ? "enable" : "disable";
+	const char *nonspread_source =
 	    val & DREF_NONSPREAD_SOURCE_ENABLE ? "enable" : "disable";
-	char *superspread_source =
+	const char *superspread_source =
 	    val & DREF_SUPERSPREAD_SOURCE_ENABLE ? "enable" : "disable";
-	char *ssc4_mode =
+	const char *ssc4_mode =
 	    val & DREF_SSC4_CENTERSPREAD ? "centerspread" : "downspread";
-	char *ssc1 = val & DREF_SSC1_ENABLE ? "enable" : "disable";
-	char *ssc4 = val & DREF_SSC4_ENABLE ? "enable" : "disable";
+	const char *ssc1 = val & DREF_SSC1_ENABLE ? "enable" : "disable";
+	const char *ssc4 = val & DREF_SSC4_ENABLE ? "enable" : "disable";
 
 	switch (val & DREF_CPU_SOURCE_OUTPUT_NONSPREAD) {
 	case DREF_CPU_SOURCE_OUTPUT_DISABLE:
@@ -1208,7 +1207,7 @@ DEBUGSTRING(ironlake_debug_dref_ctl)
 
 DEBUGSTRING(ironlake_debug_rawclk_freq)
 {
-	char *tp1 = NULL, *tp2 = NULL;
+	const char *tp1 = NULL, *tp2 = NULL;
 
 	switch (val & FDL_TP1_TIMER_MASK) {
 	case 0:
@@ -1257,7 +1256,7 @@ DEBUGSTRING(ironlake_debug_transconf)
 
 DEBUGSTRING(ironlake_debug_panel_fitting)
 {
-	char *vadapt = NULL, *filter_sel = NULL;
+	const char *vadapt = NULL, *filter_sel = NULL;
 
 	switch (val & (3 << 25)) {
 	case 0:
@@ -1338,8 +1337,8 @@ DEBUGSTRING(ironlake_debug_pf_win)
 DEBUGSTRING(ironlake_debug_hdmi)
 {
 	int pipe;
-	char *enable, *bpc = NULL, *encoding;
-	char *mode, *audio, *vsync, *hsync, *detect;
+	const char *enable, *bpc = NULL, *encoding;
+	const char *mode, *audio, *vsync, *hsync, *detect;
 
 	if (val & PORT_ENABLE)
 		enable = "enabled";
@@ -1396,8 +1395,8 @@ DEBUGSTRING(ironlake_debug_hdmi)
 
 DEBUGSTRING(snb_debug_dpll_sel)
 {
-	char *transa, *transb;
-	char *dplla = NULL, *dpllb = NULL;
+	const char *transa, *transb;
+	const char *dplla = NULL, *dpllb = NULL;
 
 	if (!HAS_CPT)
 		return;
@@ -1426,7 +1425,7 @@ DEBUGSTRING(snb_debug_dpll_sel)
 
 DEBUGSTRING(snb_debug_trans_dp_ctl)
 {
-	char *enable, *port = NULL, *bpc = NULL, *vsync, *hsync;
+	const char *enable, *port = NULL, *bpc = NULL, *vsync, *hsync;
 
 	if (!HAS_CPT)
 		return;
