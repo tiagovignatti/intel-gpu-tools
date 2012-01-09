@@ -78,12 +78,12 @@ static struct bdb_block *find_section(int section_id)
 {
 	struct bdb_block *block;
 	unsigned char *base = (unsigned char *)bdb;
-	int index = 0;
+	int idx = 0;
 	uint16_t total, current_size;
 	unsigned char current_id;
 
 	/* skip to first section */
-	index += bdb->header_size;
+	idx += bdb->header_size;
 	total = bdb->bdb_size;
 
 	block = malloc(sizeof(*block));
@@ -93,18 +93,18 @@ static struct bdb_block *find_section(int section_id)
 	}
 
 	/* walk the sections looking for section_id */
-	while (index < total) {
-		current_id = *(base + index);
-		index++;
-		current_size = *((uint16_t *) (base + index));
-		index += 2;
+	while (idx < total) {
+		current_id = *(base + idx);
+		idx++;
+		current_size = *((uint16_t *) (base + idx));
+		idx += 2;
 		if (current_id == section_id) {
 			block->id = current_id;
 			block->size = current_size;
-			block->data = base + index;
+			block->data = base + idx;
 			return block;
 		}
-		index += current_size;
+		idx += current_size;
 	}
 
 	free(block);
@@ -829,7 +829,7 @@ int main(int argc, char **argv)
 	int fd;
 	struct vbt_header *vbt = NULL;
 	int vbt_off, bdb_off, i;
-	char *filename = "bios";
+	const char *filename = "bios";
 	struct stat finfo;
 	struct bdb_block *block;
 	char signature[17];
