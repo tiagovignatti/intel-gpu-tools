@@ -30,7 +30,6 @@
 #include <string.h>
 #include <stdarg.h>
 #include <pciaccess.h>
-#include <err.h>
 #include <unistd.h>
 
 #include "intel_gpu_tools.h"
