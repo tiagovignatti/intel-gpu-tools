@@ -58,7 +58,7 @@ static uint32_t devid;
     } while (0)
 
 
-static char *pixel_clock[] = {
+static const char *pixel_clock[] = {
 	[0] = "25.2 / 1.001 MHz",
 	[1] = "25.2 MHz",
 	[2] = "27 MHz",
@@ -72,14 +72,14 @@ static char *pixel_clock[] = {
 	[10] = "Reserved",
 };
 
-static char *power_state[] = {
+static const char *power_state[] = {
 	[0] = "D0",
 	[1] = "D1",
 	[2] = "D2",
 	[3] = "D3",
 };
 
-static char *stream_type[] = {
+static const char *stream_type[] = {
 	[0] = "default samples",
 	[1] = "one bit stream",
 	[2] = "DST stream",
@@ -87,14 +87,14 @@ static char *stream_type[] = {
 	[4] = "Reserved",
 };
 
-static char *dip_port[] = {
+static const char *dip_port[] = {
 	[0] = "Reserved",
 	[1] = "Digital Port B",
 	[2] = "Digital Port C",
 	[3] = "Digital Port D",
 };
 
-static char *dip_index[] = {
+static const char *dip_index[] = {
 	[0] = "Audio DIP",
 	[1] = "ACP DIP",
 	[2] = "ISRC1 DIP",
@@ -102,28 +102,28 @@ static char *dip_index[] = {
 	[4] = "Reserved",
 };
 
-static char *dip_trans[] = {
+static const char *dip_trans[] = {
 	[0] = "disabled",
 	[1] = "reserved",
 	[2] = "send once",
 	[3] = "best effort",
 };
 
-static char *video_dip_index[] = {
+static const char *video_dip_index[] = {
 	[0] = "AVI DIP",
 	[1] = "Vendor-specific DIP",
 	[2] = "Gamut Metadata DIP",
 	[3] = "Source Product Description DIP",
 };
 
-static char *video_dip_trans[] = {
+static const char *video_dip_trans[] = {
 	[0] = "send once",
 	[1] = "send every vsync",
 	[2] = "send at least every other vsync",
 	[3] = "reserved",
 };
 
-static char *trans_to_port_sel[] = {
+static const char *trans_to_port_sel[] = {
 	[0] = "no port",
 	[1] = "Digital Port B",
 	[2] = "Digital Port B",
@@ -134,14 +134,14 @@ static char *trans_to_port_sel[] = {
 	[7] = "reserved",
 };
 
-static char *transcoder_select[] = {
+static const char *transcoder_select[] = {
 	[0] = "Transcoder A",
 	[1] = "Transcoder B",
 	[2] = "Transcoder C",
 	[3] = "reserved",
 };
 
-static char *dp_port_width[] = {
+static const char *dp_port_width[] = {
 	[0] = "x1 mode",
 	[1] = "x2 mode",
 	[2] = "reserved",
@@ -152,7 +152,7 @@ static char *dp_port_width[] = {
 	[7] = "reserved",
 };
 
-static char *bits_per_sample[] = {
+static const char *bits_per_sample[] = {
 	[0] = "reserved",
 	[1] = "16 bits",
 	[2] = "24 bits",
@@ -161,7 +161,7 @@ static char *bits_per_sample[] = {
 	[5] = "reserved",
 };
 
-static char *sdvo_hdmi_encoding[] = {
+static const char *sdvo_hdmi_encoding[] = {
 	[0] = "SDVO",
 	[1] = "reserved",
 	[2] = "TMDS",
