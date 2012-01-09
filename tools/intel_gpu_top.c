@@ -60,7 +60,6 @@ struct top_bit {
 struct top_bit *top_bits_sorted[MAX_NUM_TOP_BITS];
 
 static uint32_t instdone, instdone1;
-static uint32_t devid;
 
 static const char *bars[] = {
 	" ",
@@ -153,7 +152,7 @@ update_idle_bit(struct top_bit *top_bit)
 }
 
 static void
-print_clock(char *name, int clock) {
+print_clock(const char *name, int clock) {
 	if (clock == -1)
 		printf("%s clock: unknown", name);
 	else
@@ -406,6 +405,7 @@ usage(const char *appname)
 
 int main(int argc, char **argv)
 {
+	uint32_t devid;
 	struct pci_device *pci_dev;
 	struct ring render_ring = {
 		.name = "render",
@@ -540,6 +540,8 @@ int main(int argc, char **argv)
 		unsigned long long t1, ti, tf, t2;
 		unsigned long long def_sleep = 1000000 / samples_per_sec;
 		unsigned long long last_samples_per_sec = samples_per_sec;
+		unsigned short int max_lines;
+		struct winsize ws;
 		char clear_screen[] = {0x1b, '[', 'H',
 				       0x1b, '[', 'J',
 				       0x0};
@@ -601,8 +603,7 @@ int main(int argc, char **argv)
 
 		/* Limit the number of lines printed to the terminal height so the
 		 * most important info (at the top) will stay on screen. */
-		unsigned short int max_lines = -1;
-		struct winsize ws;
+		max_lines = -1;
 		if (ioctl(0, TIOCGWINSZ, &ws) != -1)
 			max_lines = ws.ws_row - 6; /* exclude header lines */
 		if (max_lines >= num_instdone_bits)
