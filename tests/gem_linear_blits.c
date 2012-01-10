@@ -54,18 +54,6 @@
 
 static uint32_t linear[WIDTH*HEIGHT];
 
-static uint32_t gem_create(int fd, int size)
-{
-	struct drm_i915_gem_create create;
-
-	create.handle = 0;
-	create.size = size;
-	(void)drmIoctl(fd, DRM_IOCTL_I915_GEM_CREATE, &create);
-	assert(create.handle);
-
-	return create.handle;
-}
-
 static uint64_t
 gem_aperture_size(int fd)
 {

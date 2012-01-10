@@ -61,18 +61,6 @@ static int tile_width;
 static int tile_height;
 static int tile_size;
 
-static uint32_t
-gem_create(int fd, int size)
-{
-	struct drm_i915_gem_create create;
-
-	create.handle = 0;
-	create.size = size;
-	(void)drmIoctl(fd, DRM_IOCTL_I915_GEM_CREATE, &create);
-
-	return create.handle;
-}
-
 static void *gem_mmap(int fd, uint32_t handle, int size, int prot)
 {
 	struct drm_i915_gem_mmap_gtt mmap_arg;

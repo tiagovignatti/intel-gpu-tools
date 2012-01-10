@@ -51,17 +51,6 @@
 #define BLT_DST_TILED		(1<<11)
 #define MI_BATCH_BUFFER_END	(0xA<<23)
 
-static uint32_t gem_create(int fd, int size)
-{
-	struct drm_i915_gem_create create;
-
-	create.handle = 0;
-	create.size = (size + 4095) & -4096;
-	(void)drmIoctl(fd, DRM_IOCTL_I915_GEM_CREATE, &create);
-
-	return create.handle;
-}
-
 static void do_gem_write(int fd, uint32_t handle, void *buf, int len, int loops)
 {
 	while (loops--)

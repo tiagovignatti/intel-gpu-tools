@@ -66,6 +66,7 @@
 #include "xf86drm.h"
 #include "xf86drmMode.h"
 #include "i915_drm.h"
+#include "drmtest.h"
 
 #if defined(DRM_IOCTL_MODE_ADDFB2) && defined(DRM_I915_SET_SPRITE_COLORKEY)
 #define TEST_PLANES 1
@@ -381,17 +382,6 @@ static void connector_find_preferred_mode(struct connector *c)
 		resources->crtcs[i] = 0;
 
 	c->connector = connector;
-}
-
-static uint32_t gem_create(int fd, int size)
-{
-	struct drm_i915_gem_create create;
-
-	create.handle = 0;
-	create.size = (size + 4095) & -4096;
-	(void)drmIoctl(fd, DRM_IOCTL_I915_GEM_CREATE, &create);
-
-	return create.handle;
 }
 
 static void *gem_mmap(int fd, uint32_t handle, int size, int prot)

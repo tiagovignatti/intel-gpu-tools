@@ -65,18 +65,6 @@ int main(int argc, char **argv)
 
 static uint32_t linear[WIDTH*HEIGHT];
 
-static uint32_t gem_create(int fd, int size)
-{
-	struct drm_i915_gem_create create;
-
-	create.handle = 0;
-	create.size = size;
-	(void)drmIoctl(fd, DRM_IOCTL_I915_GEM_CREATE, &create);
-	assert(create.handle);
-
-	return create.handle;
-}
-
 static uint32_t gem_vmap(int fd, void *ptr, int size, int read_only)
 {
 	struct drm_i915_gem_vmap vmap;

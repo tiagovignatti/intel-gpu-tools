@@ -49,7 +49,7 @@
  * objects have size > 0.
  */
 
-static uint32_t gem_create(int fd, int size, int *retval)
+static uint32_t do_gem_create(int fd, int size, int *retval)
 {
 	struct drm_i915_gem_create create;
 	int ret;
@@ -73,7 +73,7 @@ static void create0(int fd)
 {
 	int retval = 0;
 	printf("trying to create a zero-length gem object\n");
-	gem_create(fd, 0, &retval);
+	do_gem_create(fd, 0, &retval);
 	assert(retval == EINVAL);
 }
 
@@ -88,7 +88,7 @@ static void exec0(int fd)
 	 * for the zero-length buffer, but never crash.
 	 */
 
-	exec[0].handle = gem_create(fd, 4096, NULL);
+	exec[0].handle = gem_create(fd, 4096);
 	gem_write(fd, exec[0].handle, 0, buf, sizeof(buf));
 	exec[0].relocation_count = 0;
 	exec[0].relocs_ptr = 0;

@@ -44,3 +44,4 @@ void gem_read(int fd, uint32_t handle, uint32_t offset, void *buf, uint32_t size
 void gem_set_domain(int fd, uint32_t handle,
 		    uint32_t read_domains, uint32_t write_domain);
 void gem_sync(int fd, uint32_t handle);
+uint32_t gem_create(int fd, int size);
