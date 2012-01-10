@@ -428,26 +428,6 @@ retry:
 	}
 }
 
-static void *gem_mmap(int fd, uint32_t handle, int size, int prot)
-{
-	struct drm_i915_gem_mmap_gtt mmap_arg;
-	void *ptr;
-
-	mmap_arg.handle = handle;
-	if (drmIoctl(fd, DRM_IOCTL_I915_GEM_MMAP_GTT, &mmap_arg)) {
-		assert(0);
-		return NULL;
-	}
-
-	ptr = mmap(0, size, prot, MAP_SHARED, fd, mmap_arg.offset);
-	if (ptr == MAP_FAILED) {
-		assert(0);
-		ptr = NULL;
-	}
-
-	return ptr;
-}
-
 static uint32_t
 create_bo(int fd, uint32_t val, int tiling)
 {
@@ -460,6 +440,7 @@ create_bo(int fd, uint32_t val, int tiling)
 
 	/* Fill the BO with dwords starting at val */
 	v = gem_mmap(fd, handle, WIDTH*HEIGHT*4, PROT_READ | PROT_WRITE);
+	assert(v);
 	for (i = 0; i < WIDTH*HEIGHT; i++)
 		v[i] = val++;
 	munmap(v, WIDTH*HEIGHT*4);
@@ -474,6 +455,7 @@ check_bo(int fd, uint32_t handle, uint32_t val)
 	int i;
 
 	v = gem_mmap(fd, handle, WIDTH*HEIGHT*4, PROT_READ);
+	assert(v);
 	for (i = 0; i < WIDTH*HEIGHT; i++) {
 		if (v[i] != val) {
 			fprintf(stderr, "Expected 0x%08x, found 0x%08x "

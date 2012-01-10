@@ -30,6 +30,7 @@
 #include <sys/stat.h>
 #include <sys/ioctl.h>
 #include <string.h>
+#include <sys/mman.h>
 #include "drmtest.h"
 #include "i915_drm.h"
 #include "intel_chipset.h"
@@ -200,5 +201,21 @@ uint32_t gem_create(int fd, int size)
 	assert(create.handle);
 
 	return create.handle;
+}
+
+void *gem_mmap(int fd, uint32_t handle, int size, int prot)
+{
+	struct drm_i915_gem_mmap_gtt mmap_arg;
+	void *ptr;
+
+	mmap_arg.handle = handle;
+	if (drmIoctl(fd, DRM_IOCTL_I915_GEM_MMAP_GTT, &mmap_arg))
+		return NULL;
+
+	ptr = mmap(0, size, prot, MAP_SHARED, fd, mmap_arg.offset);
+	if (ptr == MAP_FAILED)
+		ptr = NULL;
+
+	return ptr;
 }
 

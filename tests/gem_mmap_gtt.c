@@ -50,18 +50,9 @@ static void set_domain(int fd, uint32_t handle)
 static void *
 mmap_bo(int fd, uint32_t handle)
 {
-	struct drm_i915_gem_mmap_gtt arg;
 	void *ptr;
-	int ret;
 
-	memset(&arg, 0, sizeof(arg));
-
-	arg.handle = handle;
-	ret = ioctl(fd, DRM_IOCTL_I915_GEM_MMAP_GTT, &arg);
-	assert(ret == 0);
-
-	ptr = mmap(0, OBJECT_SIZE, PROT_READ | PROT_WRITE,
-		   MAP_SHARED, fd, arg.offset);
+	ptr = gem_mmap(fd, handle, OBJECT_SIZE, PROT_READ | PROT_WRITE);
 	assert(ptr != MAP_FAILED);
 
 	return ptr;
