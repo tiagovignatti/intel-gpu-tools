@@ -102,11 +102,11 @@ uint32_t *fb_ptr;
 
 struct type_name {
 	int type;
-	char *name;
+	const char *name;
 };
 
 #define type_name_fn(res) \
-static char * res##_str(int type) {			\
+static const char * res##_str(int type) {			\
 	unsigned int i;					\
 	for (i = 0; i < ARRAY_SIZE(res##_names); i++) { \
 		if (res##_names[i].type == type)	\
@@ -1037,8 +1037,6 @@ static int update_display(void)
 	return 1;
 }
 
-extern char *optarg;
-extern int optind, opterr, optopt;
 static char optstr[] = "hiaf:s:d:p:mt";
 
 static void usage(char *name)
@@ -1119,7 +1117,7 @@ static gboolean input_event(GIOChannel *source, GIOCondition condition,
 int main(int argc, char **argv)
 {
 	int c;
-	char *modules[] = { "i915" };
+	const char *modules[] = { "i915" };
 	unsigned int i;
 	struct udev *u;
 	int ret = 0;
