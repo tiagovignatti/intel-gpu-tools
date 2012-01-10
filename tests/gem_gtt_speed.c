@@ -98,14 +98,6 @@ static int gem_read(int fd,
 	return drmIoctl(fd, DRM_IOCTL_I915_GEM_PREAD, &pread);
 }
 
-static void gem_close(int fd, uint32_t handle)
-{
-	struct drm_gem_close close;
-
-	close.handle = handle;
-	(void)drmIoctl(fd, DRM_IOCTL_GEM_CLOSE, &close);
-}
-
 static double elapsed(const struct timeval *start,
 		      const struct timeval *end,
 		      int loop)

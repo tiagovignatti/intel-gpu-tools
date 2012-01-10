@@ -38,3 +38,4 @@ int drm_open_any_master(void);
 
 
 void gem_set_tiling(int fd, uint32_t handle, int tiling, int stride);
+void gem_close(int fd, uint32_t handle);

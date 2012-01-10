@@ -410,14 +410,6 @@ static void *gem_mmap(int fd, uint32_t handle, int size, int prot)
 	return ptr;
 }
 
-static void gem_close(int fd, uint32_t handle)
-{
-	struct drm_gem_close close;
-
-	close.handle = handle;
-	(void)drmIoctl(fd, DRM_IOCTL_GEM_CLOSE, &close);
-}
-
 static cairo_surface_t *
 allocate_surface(int fd, int width, int height, uint32_t depth,
 		 uint32_t *handle, int tiled)

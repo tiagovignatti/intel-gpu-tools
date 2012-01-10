@@ -75,14 +75,6 @@ static int gem_write(int fd,
 	return drmIoctl(fd, DRM_IOCTL_I915_GEM_PWRITE, &pwrite);
 }
 
-static void gem_close(int fd, uint32_t handle)
-{
-	struct drm_gem_close close;
-
-	close.handle = handle;
-	(void)drmIoctl(fd, DRM_IOCTL_GEM_CLOSE, &close);
-}
-
 static void do_gem_write(int fd, uint32_t handle, void *buf, int len, int loops)
 {
 	while (loops--)

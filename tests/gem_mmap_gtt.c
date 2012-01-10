@@ -87,16 +87,6 @@ static void gem_read(int fd,
 	assert(ret == 0);
 }
 
-static void gem_close(int fd, uint32_t handle)
-{
-	struct drm_gem_close close;
-	int ret;
-
-	close.handle = handle;
-	ret = drmIoctl(fd, DRM_IOCTL_GEM_CLOSE, &close);
-	assert(ret == 0);
-}
-
 static void set_domain(int fd, uint32_t handle)
 {
 	struct drm_i915_gem_set_domain set_domain;

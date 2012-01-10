@@ -107,16 +107,6 @@ static void gem_vmap_sync(int fd, uint32_t handle)
 	assert(ret == 0);
 }
 
-static void gem_close(int fd, uint32_t handle)
-{
-	struct drm_gem_close close;
-	int ret;
-
-	close.handle = handle;
-	ret = drmIoctl(fd, DRM_IOCTL_GEM_CLOSE, &close);
-	assert(ret == 0);
-}
-
 static uint64_t
 gem_aperture_size(int fd)
 {

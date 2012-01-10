@@ -150,14 +150,6 @@ static int gem_linear_blt(uint32_t *batch,
 	return (b+2 - batch) * sizeof(uint32_t);
 }
 
-static void gem_close(int fd, uint32_t handle)
-{
-	struct drm_gem_close close;
-
-	close.handle = handle;
-	(void)drmIoctl(fd, DRM_IOCTL_GEM_CLOSE, &close);
-}
-
 static void gem_sync(int fd, uint32_t handle)
 {
 	struct drm_i915_gem_set_domain set_domain;

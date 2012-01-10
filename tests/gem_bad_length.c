@@ -85,16 +85,6 @@ static int gem_exec(int fd, struct drm_i915_gem_execbuffer2 *execbuf)
 	return drmIoctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, execbuf);
 }
 
-static void gem_close(int fd, uint32_t handle)
-{
-	struct drm_gem_close close;
-	int ret;
-
-	close.handle = handle;
-	ret = drmIoctl(fd, DRM_IOCTL_GEM_CLOSE, &close);
-	assert(ret == 0);
-}
-
 static void create0(int fd)
 {
 	int retval = 0;

@@ -133,4 +133,12 @@ void gem_set_tiling(int fd, uint32_t handle, int tiling, int stride)
 	assert(st.tiling_mode == tiling);
 }
 
+void gem_close(int fd, uint32_t handle)
+{
+	struct drm_gem_close close_bo;
+	int ret;
 
+	close_bo.handle = handle;
+	ret = drmIoctl(fd, DRM_IOCTL_GEM_CLOSE, &close_bo);
+	assert(ret == 0);
+}
