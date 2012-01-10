@@ -55,17 +55,6 @@ static uint32_t gem_create(int fd, int size)
 	return create.handle;
 }
 
-static void gem_sync(int fd, uint32_t handle)
-{
-	struct drm_i915_gem_set_domain set_domain;
-
-	set_domain.handle = handle;
-	set_domain.read_domains = I915_GEM_DOMAIN_GTT;
-	set_domain.write_domain = I915_GEM_DOMAIN_GTT;
-
-	drmIoctl(fd, DRM_IOCTL_I915_GEM_SET_DOMAIN, &set_domain);
-}
-
 static double elapsed(const struct timeval *start,
 		      const struct timeval *end,
 		      int loop)

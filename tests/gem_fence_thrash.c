@@ -58,7 +58,6 @@ bo_create (int fd)
 {
 	struct drm_i915_gem_create create;
 	struct drm_i915_gem_set_tiling tiling;
-	struct drm_i915_gem_set_domain domain;
 	struct drm_i915_gem_mmap_gtt mmap_arg;
 	void *ptr;
 	int handle;
@@ -88,12 +87,7 @@ bo_create (int fd)
 	assert (ptr != MAP_FAILED);
 
 	/* XXX: mmap_gtt pulls the bo into the GTT read domain. */
-	memset(&domain, 0, sizeof(domain));
-	domain.handle = handle;
-	domain.read_domains = I915_GEM_DOMAIN_GTT;
-	domain.write_domain = I915_GEM_DOMAIN_GTT;
-	ret = ioctl(fd, DRM_IOCTL_I915_GEM_SET_DOMAIN, &domain);
-	assert (ret == 0);
+	gem_sync(fd, handle);
 
 	return ptr;
 }

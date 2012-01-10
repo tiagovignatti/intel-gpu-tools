@@ -96,15 +96,7 @@ static uint32_t gem_vmap(int fd, void *ptr, int size, int read_only)
 
 static void gem_vmap_sync(int fd, uint32_t handle)
 {
-	struct drm_i915_gem_set_domain set_domain;
-	int ret;
-
-	set_domain.handle = handle;
-	set_domain.read_domains = I915_GEM_DOMAIN_CPU;
-	set_domain.write_domain = I915_GEM_DOMAIN_CPU;
-
-	ret = drmIoctl(fd, DRM_IOCTL_I915_GEM_SET_DOMAIN, &set_domain);
-	assert(ret == 0);
+	gem_set_domain(fd, handle, I915_GEM_DOMAIN_CPU, I915_GEM_DOMAIN_CPU);
 }
 
 static uint64_t

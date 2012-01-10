@@ -162,17 +162,6 @@ static int gem_linear_blt(uint32_t *batch,
 	return (b+2 - batch) * sizeof(uint32_t);
 }
 
-static void gem_sync(int fd, uint32_t handle)
-{
-	struct drm_i915_gem_set_domain set_domain;
-
-	set_domain.handle = handle;
-	set_domain.read_domains = I915_GEM_DOMAIN_GTT;
-	set_domain.write_domain = I915_GEM_DOMAIN_GTT;
-
-	drmIoctl(fd, DRM_IOCTL_I915_GEM_SET_DOMAIN, &set_domain);
-}
-
 static void gem_exec(int fd, struct drm_i915_gem_execbuffer2 *execbuf)
 {
 	int ret;

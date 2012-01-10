@@ -169,3 +169,22 @@ void gem_read(int fd, uint32_t handle, uint32_t offset, void *buf, uint32_t leng
 	assert(ret == 0);
 }
 
+void gem_set_domain(int fd, uint32_t handle,
+		    uint32_t read_domains, uint32_t write_domain)
+{
+	struct drm_i915_gem_set_domain set_domain;
+	int ret;
+
+	set_domain.handle = handle;
+	set_domain.read_domains = read_domains;
+	set_domain.write_domain = write_domain;
+
+	ret = drmIoctl(fd, DRM_IOCTL_I915_GEM_SET_DOMAIN, &set_domain);
+	assert(ret == 0);
+}
+
+void gem_sync(int fd, uint32_t handle)
+{
+	gem_set_domain(fd, handle, I915_GEM_DOMAIN_GTT, I915_GEM_DOMAIN_GTT);
+}
+

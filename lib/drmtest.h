@@ -41,3 +41,6 @@ void gem_set_tiling(int fd, uint32_t handle, int tiling, int stride);
 void gem_close(int fd, uint32_t handle);
 void gem_write(int fd, uint32_t handle, uint32_t offset,  const void *buf, uint32_t size);
 void gem_read(int fd, uint32_t handle, uint32_t offset, void *buf, uint32_t size);
+void gem_set_domain(int fd, uint32_t handle,
+		    uint32_t read_domains, uint32_t write_domain);
+void gem_sync(int fd, uint32_t handle);

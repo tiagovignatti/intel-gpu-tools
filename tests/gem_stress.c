@@ -190,20 +190,8 @@ void keep_gpu_busy(void)
 
 static void set_to_cpu_domain(struct scratch_buf *buf, int writing)
 {
-	struct drm_i915_gem_set_domain set_domain;
-	int ret;
-
-	set_domain.handle = buf->bo->handle;
-	set_domain.read_domains = I915_GEM_DOMAIN_CPU;
-	if (writing)
-		set_domain.write_domain = I915_GEM_DOMAIN_CPU;
-	else
-		set_domain.write_domain = 0;
-
-	ret = drmIoctl(drm_fd,
-		       DRM_IOCTL_I915_GEM_SET_DOMAIN,
-		       &set_domain);
-	assert(ret == 0);
+	gem_set_domain(drm_fd, buf->bo->handle, I915_GEM_DOMAIN_CPU,
+		       writing ? I915_GEM_DOMAIN_CPU : 0);
 }
 
 static unsigned int copyfunc_seq = 0;
