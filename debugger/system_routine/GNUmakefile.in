@@ -1,3 +1,0 @@
-include Makefile
-srcdir = @srcdir@
-VPATH = @srcdir@

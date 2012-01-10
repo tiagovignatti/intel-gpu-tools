@@ -33,6 +33,7 @@ AC_CONFIG_AUX_DIR([build-aux])
 AC_USE_SYSTEM_EXTENSIONS
 
 AM_INIT_AUTOMAKE([foreign dist-bzip2])
+AM_PATH_PYTHON([3],, [:])
 AM_MAINTAINER_MODE
 
 # Checks for functions, headers, structures, etc.
@@ -47,7 +48,7 @@ AC_PROG_LIBTOOL
 
 # Require X.Org macros 1.16 or later for XORG_TESTSET_CFLAG
 m4_ifndef([XORG_MACROS_VERSION],
-	  [m4_fatal([must hate install xorg-macros 1.16 or later before running autoconf/autogen])])
+	  [m4_fatal([must install xorg-macros 1.16 or later before running autoconf/autogen])])
 XORG_MACROS_VERSION(1.16)
 XORG_DEFAULT_OPTIONS
 
@@ -72,21 +73,46 @@ if test "x$HAVE_GLIB" = xyes; then
 fi
 AM_CONDITIONAL(HAVE_GLIB, [test "x$HAVE_GLIB" = xyes])
 
-AC_ARG_ENABLE(shader-debugger,
-	      AS_HELP_STRING([--enable-shader-debugger],
-			     [Enable shader debugging support [default=no]]),
-	      [SHADER_DEBUGGER="$enableval"],
-	      [SHADER_DEBUGGER=no])
-AM_CONDITIONAL(HAVE_SHADER_DEBUGGER, [test "x$SHADER_DEBUGGER" = xyes])
-if test "x$SHADER_DEBUGGER" = xyes; then
-	AC_CHECK_PROG([GEN4ASM], intel-gen4asm, intel-gen4asm)
-	if test -z "$GEN4ASM"; then
-		AC_MSG_ERROR([Cannot find intel-gen4asm in your path; please set GEN4ASM env variable])
+# -----------------------------------------------------------------------------
+#			Configuration options
+# -----------------------------------------------------------------------------
+# Define a configure option for the shadder debugger
+AC_ARG_ENABLE(shader-debugger, AS_HELP_STRING([--enable-shader-debugger],
+    [Enable shader debugging support [autodetected]]),
+    [BUILD_SHADER_DEBUGGER="$enableval"], [BUILD_SHADER_DEBUGGER=auto])
+
+# Shadder debugger depends on python3, intel-genasm and objcopy
+if test "x$BUILD_SHADER_DEBUGGER" != xno; then
+    # Check Python 3 is installed
+    if test "$PYTHON" = ":" ; then
+	if test "x$BUILD_SHADER_DEBUGGER" = xyes; then
+	    AC_MSG_ERROR([Shader debugger requested, python version 3 not found.])
 	else
-		AC_CONFIG_FILES([debugger/system_routine/GNUmakefile])
-		AC_DEFINE(HAVE_SHADER_DEBUGGER, 1, [Have shader debugging support])
+	    BUILD_SHADER_DEBUGGER=no
 	fi
+    fi
+    # Check for the Intel Chipset assembler compiler
+    AC_PATH_PROGS([GEN4ASM], intel-gen4asm)
+    if test -z "$GEN4ASM" ; then
+	if test "x$BUILD_SHADER_DEBUGGER" = xyes; then
+	    AC_MSG_ERROR([Shader debugger requested, but intel-gen4asm not found.])
+	else
+	    BUILD_SHADER_DEBUGGER=no
+	fi
+    fi
+    # Check for the objcopy GNU binary utiliy command
+    AC_PATH_PROGS([OBJCOPY], objcopy)
+    if test -z "$OBJCOPY" ; then
+	if test "x$BUILD_SHADER_DEBUGGER" = xyes; then
+	    AC_MSG_ERROR([Shader debugger requested, but objcopy command not found.])
+	else
+	    BUILD_SHADER_DEBUGGER=no
+	fi
+    fi
 fi
+
+AM_CONDITIONAL(BUILD_SHADER_DEBUGGER, [test "x$BUILD_SHADER_DEBUGGER" != xno])
+# -----------------------------------------------------------------------------
 
 # To build multithread code, gcc uses -pthread, Solaris Studio cc uses -mt
 XORG_TESTSET_CFLAG([THREAD_CFLAGS], [-pthread], [-mt])
@@ -101,5 +127,6 @@ AC_CONFIG_FILES([
 	tests/Makefile
 	tools/Makefile
 	debugger/Makefile
+	debugger/system_routine/Makefile
 ])
 AC_OUTPUT

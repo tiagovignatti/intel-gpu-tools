@@ -1,2 +1,10 @@
-GNUmakefile
-!Makefile
+evict.h
+eviction_macro
+sr
+sr.asm
+sr.c
+sr.cpp
+tiny
+tiny.asm
+tiny.c
+tiny.cpp

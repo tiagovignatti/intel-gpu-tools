@@ -1,19 +1,16 @@
-SUBDIRS=system_routine
 
-bin_PROGRAMS = #
+SUBDIRS = system_routine
 
-if HAVE_SHADER_DEBUGGER
-##needed by distcheck
-DIST_SUBDIRS=system_routine
-EXTRA_DIST=system_routine/
+bin_PROGRAMS = eudb
+noinst_PROGRAMS = debug_rdata
 
-bin_PROGRAMS += \
-	eudb \
-	debug_rdata \
-	$(NULL)
-endif
-LDADD = ../lib/libintel_tools.la $(DRM_LIBS) $(PCIACCESS_LIBS)
+AM_CPPFLAGS = 			\
+	-I$(top_srcdir)		\
+	-I$(top_srcdir)/lib
 
-AM_CFLAGS = $(DRM_CFLAGS) $(PCIACCESS_CFLAGS) $(CWARNFLAGS) \
-	-I$(srcdir)/.. \
-	-I$(srcdir)/../lib
+AM_CFLAGS = 			\
+	$(DRM_CFLAGS) 		\
+	$(PCIACCESS_CFLAGS) 	\
+	$(CWARNFLAGS)
+
+LDADD = $(top_builddir)/lib/libintel_tools.la $(DRM_LIBS) $(PCIACCESS_LIBS)
