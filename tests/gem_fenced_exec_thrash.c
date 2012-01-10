@@ -50,6 +50,8 @@
 #define MI_BATCH_BUFFER_END	(0xA<<23)
 
 /*
+ * Testcase: execbuf fence accounting
+ *
  * We had a bug where we were falsely accounting upon reservation already
  * fenced buffers as occupying a fence register even if they did not require
  * one for the batch.
@@ -62,40 +64,26 @@
 static uint32_t
 tiled_bo_create (int fd)
 {
-	struct drm_i915_gem_create create;
-	struct drm_i915_gem_set_tiling tiling;
-	int ret;
+	uint32_t handle;
 
-	memset(&create, 0, sizeof(create));
-	create.size = OBJECT_SIZE;
-	ret = ioctl(fd, DRM_IOCTL_I915_GEM_CREATE, &create);
-	assert(ret == 0);
+	handle = gem_create(fd, OBJECT_SIZE);
 
-	memset(&tiling, 0, sizeof(tiling));
-	tiling.handle = create.handle;
-	tiling.tiling_mode = I915_TILING_X;
-	tiling.stride = WIDTH*4;
-	ret = ioctl(fd, DRM_IOCTL_I915_GEM_SET_TILING, &tiling);
-	assert(ret == 0);
+	gem_set_tiling(fd, handle, I915_TILING_X, WIDTH*4);
 
-	return create.handle;
+	return handle;
 }
 
 static uint32_t
 batch_create (int fd)
 {
-	struct drm_i915_gem_create create;
 	uint32_t buf[] = { MI_BATCH_BUFFER_END, 0 };
-	int ret;
+	uint32_t batch_handle;
 
-	memset(&create, 0, sizeof(create));
-	create.size = BATCH_SIZE;
-	ret = ioctl(fd, DRM_IOCTL_I915_GEM_CREATE, &create);
-	assert(ret == 0);
+	batch_handle = gem_create(fd, BATCH_SIZE);
 
-	gem_write(fd, create.handle, 0, buf, sizeof(buf));
+	gem_write(fd, batch_handle, 0, buf, sizeof(buf));
 
-	return create.handle;
+	return batch_handle;
 }
 
 static int get_num_fences(int fd)
