@@ -269,7 +269,7 @@ check_cpu(uint32_t *ptr, uint32_t val)
 static void
 check_gpu(int fd, uint32_t handle, uint32_t val)
 {
-	gem_read(fd, handle, 0, sizeof(linear), linear);
+	gem_read(fd, handle, 0, linear, sizeof(linear));
 	check_cpu(linear, val);
 }
 

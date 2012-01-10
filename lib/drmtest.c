@@ -156,3 +156,16 @@ void gem_write(int fd, uint32_t handle, uint32_t offset, const void *buf, uint32
 	assert(ret == 0);
 }
 
+void gem_read(int fd, uint32_t handle, uint32_t offset, void *buf, uint32_t length)
+{
+	struct drm_i915_gem_pread gem_pread;
+	int ret;
+
+	gem_pread.handle = handle;
+	gem_pread.offset = offset;
+	gem_pread.size = length;
+	gem_pread.data_ptr = (uintptr_t)buf;
+	ret = drmIoctl(fd, DRM_IOCTL_I915_GEM_PREAD, &gem_pread);
+	assert(ret == 0);
+}
+

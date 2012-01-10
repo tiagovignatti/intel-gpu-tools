@@ -72,20 +72,6 @@ gem_aperture_size(int fd)
 	return aperture.aper_size;
 }
 
-static void
-gem_read(int fd, drm_intel_bo *bo, void *buf, int size)
-{
-	struct drm_i915_gem_pread pread;
-	int ret;
-
-	pread.handle = bo->handle;
-	pread.offset = 0;
-	pread.size = size;
-	pread.data_ptr = (uintptr_t)buf;
-	ret = drmIoctl(fd, DRM_IOCTL_I915_GEM_PREAD, &pread);
-	assert(ret == 0);
-}
-
 static drm_intel_bo *
 create_bo(int fd, uint32_t start_val)
 {
@@ -112,7 +98,7 @@ check_bo(int fd, drm_intel_bo *bo, uint32_t start_val)
 {
 	int i;
 
-	gem_read(fd, bo, linear, sizeof(linear));
+	gem_read(fd, bo->handle, 0, linear, sizeof(linear));
 
 	for (i = 0; i < 1024 * 1024 / 4; i++) {
 		if (linear[i] != start_val) {

@@ -90,20 +90,6 @@ static void *gem_mmap(int fd, uint32_t handle, int size, int prot)
 }
 
 static void
-gem_read(int fd, uint32_t handle, int offset, int length, void *buf)
-{
-	struct drm_i915_gem_pread pread;
-	int ret;
-
-	pread.handle = handle;
-	pread.offset = offset;
-	pread.size = length;
-	pread.data_ptr = (uintptr_t)buf;
-	ret = drmIoctl(fd, DRM_IOCTL_I915_GEM_PREAD, &pread);
-	assert(ret == 0);
-}
-
-static void
 gem_get_tiling(int fd, uint32_t handle, uint32_t *tiling, uint32_t *swizzle)
 {
 	struct drm_i915_gem_get_tiling get_tiling;
@@ -213,7 +199,7 @@ main(int argc, char **argv)
 			len = size;
 		}
 
-		gem_read(fd, handle, offset, len, linear);
+		gem_read(fd, handle, offset, linear, len);
 
 		/* Translate from offsets in the read buffer to the swizzled
 		 * address that it corresponds to.  This is the opposite of

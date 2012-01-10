@@ -87,20 +87,6 @@ gem_aperture_size(int fd)
 	return aperture.aper_size;
 }
 
-static void
-gem_read(int fd, uint32_t handle, int offset, int size, void *buf)
-{
-	struct drm_i915_gem_pread pread;
-	int ret;
-
-	pread.handle = handle;
-	pread.offset = offset;
-	pread.size = size;
-	pread.data_ptr = (uintptr_t)buf;
-	ret = drmIoctl(fd, DRM_IOCTL_I915_GEM_PREAD, &pread);
-	assert(ret == 0);
-}
-
 static uint32_t fill_reloc(struct drm_i915_gem_relocation_entry *reloc,
 			   uint32_t offset,
 			   uint32_t handle,
@@ -350,7 +336,7 @@ check_bo(int fd, uint32_t handle, uint32_t val)
 {
 	int i;
 
-	gem_read(fd, handle, 0, sizeof(linear), linear);
+	gem_read(fd, handle, 0, linear, sizeof(linear));
 	for (i = 0; i < WIDTH*HEIGHT; i++) {
 		if (linear[i] != val) {
 			fprintf(stderr, "Expected 0x%08x, found 0x%08x "

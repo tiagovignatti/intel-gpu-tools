@@ -72,19 +72,6 @@ static void *gem_mmap(int fd, uint32_t handle, int size, int prot)
 	return ptr;
 }
 
-static int gem_read(int fd,
-		    uint32_t handle, uint32_t offset,
-		    const void *src, int length)
-{
-	struct drm_i915_gem_pread pread;
-
-	pread.handle = handle;
-	pread.offset = offset;
-	pread.size = length;
-	pread.data_ptr = (uintptr_t)src;
-	return drmIoctl(fd, DRM_IOCTL_I915_GEM_PREAD, &pread);
-}
-
 static double elapsed(const struct timeval *start,
 		      const struct timeval *end,
 		      int loop)
