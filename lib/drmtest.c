@@ -1,5 +1,5 @@
 /*
- * Copyright © 2007 Intel Corporation
+ * Copyright © 2007, 2011 Intel Corporation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -22,15 +22,20 @@
  *
  * Authors:
  *    Eric Anholt <eric@anholt.net>
+ *    Daniel Vetter <daniel.vetter@ffwll.ch>
  *
  */
 
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/ioctl.h>
+#include <string.h>
 #include "drmtest.h"
 #include "i915_drm.h"
 #include "intel_chipset.h"
+
+/* This file contains a bunch of wrapper functions to directly use gem ioctls.
+ * Mostly useful to write kernel tests. */
 
 static int
 is_intel(int fd)
@@ -110,3 +115,22 @@ int drm_open_any_master(void)
 	fprintf(stderr, "Couldn't find an un-controlled DRM device\n");
 	abort();
 }
+
+void gem_set_tiling(int fd, uint32_t handle, int tiling, int stride)
+{
+	struct drm_i915_gem_set_tiling st;
+	int ret;
+
+	memset(&st, 0, sizeof(st));
+	do {
+		st.handle = handle;
+		st.tiling_mode = tiling;
+		st.stride = tiling ? stride : 0;
+
+		ret = ioctl(fd, DRM_IOCTL_I915_GEM_SET_TILING, &st);
+	} while (ret == -1 && (errno == EINTR || errno == EAGAIN));
+	assert(ret == 0);
+	assert(st.tiling_mode == tiling);
+}
+
+

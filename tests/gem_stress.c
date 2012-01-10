@@ -188,14 +188,14 @@ void keep_gpu_busy(void)
 		 busy_bo, 0, 4096, 0, 128);
 }
 
-static void set_to_cpu_domain(struct scratch_buf *buf, int write)
+static void set_to_cpu_domain(struct scratch_buf *buf, int writing)
 {
 	struct drm_i915_gem_set_domain set_domain;
 	int ret;
 
 	set_domain.handle = buf->bo->handle;
 	set_domain.read_domains = I915_GEM_DOMAIN_CPU;
-	if (write)
+	if (writing)
 		set_domain.write_domain = I915_GEM_DOMAIN_CPU;
 	else
 		set_domain.write_domain = 0;
@@ -522,32 +522,6 @@ static void exchange_buf(void *array, unsigned i, unsigned j)
 }
 
 
-/* libdrm is too clever and prevents us from changing tiling of buffers already
- * used in relocations. */
-static void set_tiling(drm_intel_bo *bo, unsigned *tiling, unsigned stride)
-{
-	struct drm_i915_gem_set_tiling set_tiling;
-	int ret;
-
-	memset(&set_tiling, 0, sizeof(set_tiling));
-	do {
-		/* set_tiling is slightly broken and overwrites the
-		 * input on the error path, so we have to open code
-		 * drmIoctl.
-		 */
-		set_tiling.handle = bo->handle;
-		set_tiling.tiling_mode = *tiling;
-		set_tiling.stride = tiling ? stride : 0;
-
-		ret = ioctl(drm_fd,
-			    DRM_IOCTL_I915_GEM_SET_TILING,
-			    &set_tiling);
-	} while (ret == -1 && (errno == EINTR || errno == EAGAIN));
-	assert(ret != -1);
-
-	*tiling = set_tiling.tiling_mode;
-}
-
 static void init_set(unsigned set)
 {
 	long int r;
@@ -591,9 +565,9 @@ static void init_set(unsigned set)
 
 		sanitize_stride(&buffers[set][i]);
 
-		set_tiling(buffers[set][i].bo,
-			   &buffers[set][i].tiling,
-			   buffers[set][i].stride);
+		gem_set_tiling(drm_fd, buffers[set][i].bo->handle,
+			       buffers[set][i].tiling,
+			       buffers[set][i].stride);
 
 		if (options.trace_tile != -1 && i == options.trace_tile/options.tiles_per_buf)
 			printf("changing buffer %i containing tile %i: tiling %i, stride %i\n", i,
@@ -857,11 +831,8 @@ static void init(void)
 	batch = intel_batchbuffer_alloc(bufmgr, devid);
 
 	busy_bo = drm_intel_bo_alloc(bufmgr, "tiled bo", BUSY_BUF_SIZE, 4096);
-	if (options.forced_tiling >= 0) {
-		tmp = options.forced_tiling;
-		set_tiling(busy_bo, &tmp, 4096);
-		assert(tmp == options.forced_tiling);
-	}
+	if (options.forced_tiling >= 0)
+		gem_set_tiling(drm_fd, busy_bo->handle, options.forced_tiling, 4096);
 
 	for (i = 0; i < num_buffers; i++) {
 		init_buffer(&buffers[0][i], options.scratch_buf_size);

@@ -98,20 +98,6 @@ static int gem_read(int fd,
 	return drmIoctl(fd, DRM_IOCTL_I915_GEM_PREAD, &pread);
 }
 
-static void gem_set_tiling(int fd, uint32_t handle, int tiling)
-{
-	struct drm_i915_gem_set_tiling set_tiling;
-	int ret;
-
-	do {
-		set_tiling.handle = handle;
-		set_tiling.tiling_mode = tiling;
-		set_tiling.stride = 512;
-
-		ret = ioctl(fd, DRM_IOCTL_I915_GEM_SET_TILING, &set_tiling);
-	} while (ret == -1 && (errno == EINTR || errno == EAGAIN));
-}
-
 static void gem_close(int fd, uint32_t handle)
 {
 	struct drm_gem_close close;
@@ -165,7 +151,7 @@ int main(int argc, char **argv)
 		if (tiling != I915_TILING_NONE) {
 			printf("\nSetting tiling mode to %s\n",
 			       tiling == I915_TILING_X ? "X" : "Y");
-			gem_set_tiling(fd, handle, tiling);
+			gem_set_tiling(fd, handle, tiling, 512);
 		}
 
 		if (tiling == I915_TILING_NONE) {

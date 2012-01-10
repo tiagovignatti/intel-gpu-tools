@@ -123,21 +123,6 @@ gem_read(int fd, uint32_t handle, int offset, int length, void *buf)
 }
 
 static void
-gem_set_tiling(int fd, uint32_t handle, int tiling)
-{
-	struct drm_i915_gem_set_tiling set_tiling;
-	int ret;
-
-	do {
-		set_tiling.handle = handle;
-		set_tiling.tiling_mode = tiling;
-		set_tiling.stride = WIDTH * sizeof(uint32_t);
-
-		ret = ioctl(fd, DRM_IOCTL_I915_GEM_SET_TILING, &set_tiling);
-	} while (ret == -1 && (errno == EINTR || errno == EAGAIN));
-}
-
-static void
 gem_get_tiling(int fd, uint32_t handle, uint32_t *tiling, uint32_t *swizzle)
 {
 	struct drm_i915_gem_get_tiling get_tiling;
@@ -161,7 +146,7 @@ create_bo_and_fill(int fd)
 	int i;
 
 	handle = gem_create(fd, sizeof(linear));
-	gem_set_tiling(fd, handle, current_tiling_mode);
+	gem_set_tiling(fd, handle, current_tiling_mode, WIDTH * sizeof(uint32_t));
 
 	/* Fill the BO with dwords starting at start_val */
 	data = gem_mmap(fd, handle, sizeof(linear), PROT_READ | PROT_WRITE);
@@ -178,7 +163,7 @@ create_bo(int fd)
 	uint32_t handle;
 
 	handle = gem_create(fd, sizeof(linear));
-	gem_set_tiling(fd, handle, current_tiling_mode);
+	gem_set_tiling(fd, handle, current_tiling_mode, WIDTH * sizeof(uint32_t));
 
 	return handle;
 }

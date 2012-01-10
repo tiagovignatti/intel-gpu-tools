@@ -360,22 +360,6 @@ static void *gem_mmap(int fd, uint32_t handle, int size, int prot)
 	return ptr;
 }
 
-static void gem_set_tiling(int fd, uint32_t handle, int tiling, int stride)
-{
-	struct drm_i915_gem_set_tiling set_tiling;
-	int ret;
-
-	do {
-		set_tiling.handle = handle;
-		set_tiling.tiling_mode = tiling;
-		set_tiling.stride = stride;
-
-		ret = ioctl(fd, DRM_IOCTL_I915_GEM_SET_TILING, &set_tiling);
-	} while (ret == -1 && (errno == EINTR || errno == EAGAIN));
-	assert(ret == 0);
-	assert(set_tiling.tiling_mode == tiling);
-}
-
 static uint32_t
 create_bo(int fd, uint32_t val)
 {
