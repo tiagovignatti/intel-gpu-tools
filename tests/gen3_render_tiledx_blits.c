@@ -87,20 +87,6 @@ gem_aperture_size(int fd)
 	return aperture.aper_size;
 }
 
-static void
-gem_write(int fd, uint32_t handle, int offset, int size, const void *buf)
-{
-	struct drm_i915_gem_pwrite pwrite;
-	int ret;
-
-	pwrite.handle = handle;
-	pwrite.offset = offset;
-	pwrite.size = size;
-	pwrite.data_ptr = (uintptr_t)buf;
-	ret = drmIoctl(fd, DRM_IOCTL_I915_GEM_PWRITE, &pwrite);
-	assert(ret == 0);
-}
-
 static uint32_t fill_reloc(struct drm_i915_gem_relocation_entry *reloc,
 			   uint32_t offset,
 			   uint32_t handle,
@@ -280,7 +266,7 @@ copy(int fd, uint32_t dst, uint32_t src)
 
 	assert(b - batch <= 1024);
 	handle = gem_create(fd, 4096);
-	gem_write(fd, handle, 0, (b-batch)*sizeof(batch[0]), batch);
+	gem_write(fd, handle, 0, batch, (b-batch)*sizeof(batch[0]));
 
 	assert(r-reloc == 2);
 

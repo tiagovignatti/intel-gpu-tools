@@ -88,19 +88,6 @@ static uint32_t gem_create(int fd, int size)
 	return create.handle;
 }
 
-static int gem_write(int fd,
-		     uint32_t handle, uint32_t offset,
-		     const void *src, int length)
-{
-	struct drm_i915_gem_pwrite pwrite;
-
-	pwrite.handle = handle;
-	pwrite.offset = offset;
-	pwrite.size = length;
-	pwrite.data_ptr = (uintptr_t)src;
-	return drmIoctl(fd, DRM_IOCTL_I915_GEM_PWRITE, &pwrite);
-}
-
 static int gem_linear_blt(uint32_t *batch,
 			  uint32_t src,
 			  uint32_t dst,
@@ -234,8 +221,7 @@ static void run(int object_size)
 	exec[1].rsvd2 = 0;
 
 	handle_relocs = gem_create(fd, 4096);
-	ret = gem_write(fd, handle_relocs, 0, reloc, sizeof(reloc));
-	assert(ret == 0);
+	gem_write(fd, handle_relocs, 0, reloc, sizeof(reloc));
 	gtt_relocs = mmap_bo(fd, handle_relocs);
 	assert(gtt_relocs);
 

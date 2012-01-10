@@ -73,20 +73,6 @@ gem_aperture_size(int fd)
 }
 
 static void
-gem_write(int fd, drm_intel_bo *bo, const void *buf, int size)
-{
-	struct drm_i915_gem_pwrite pwrite;
-	int ret;
-
-	pwrite.handle = bo->handle;
-	pwrite.offset = 0;
-	pwrite.size = size;
-	pwrite.data_ptr = (uintptr_t)buf;
-	ret = drmIoctl(fd, DRM_IOCTL_I915_GEM_PWRITE, &pwrite);
-	assert(ret == 0);
-}
-
-static void
 gem_read(int fd, drm_intel_bo *bo, void *buf, int size)
 {
 	struct drm_i915_gem_pread pread;
@@ -116,7 +102,7 @@ create_bo(int fd, uint32_t start_val)
 	for (i = 0; i < 1024 * 1024 / 4; i++)
 		linear[i] = start_val++;
 
-	gem_write(fd, bo, linear, sizeof(linear));
+	gem_write(fd, bo->handle, 0, linear, sizeof(linear));
 
 	return bo;
 }

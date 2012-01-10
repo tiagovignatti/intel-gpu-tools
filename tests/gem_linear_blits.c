@@ -77,20 +77,6 @@ gem_aperture_size(int fd)
 }
 
 static void
-gem_write(int fd, uint32_t handle, int offset, int size, const void *buf)
-{
-	struct drm_i915_gem_pwrite pwrite;
-	int ret;
-
-	pwrite.handle = handle;
-	pwrite.offset = offset;
-	pwrite.size = size;
-	pwrite.data_ptr = (uintptr_t)buf;
-	ret = drmIoctl(fd, DRM_IOCTL_I915_GEM_PWRITE, &pwrite);
-	assert(ret == 0);
-}
-
-static void
 gem_read(int fd, uint32_t handle, int offset, int size, void *buf)
 {
 	struct drm_i915_gem_pread pread;
@@ -130,7 +116,7 @@ copy(int fd, uint32_t dst, uint32_t src)
 	batch[9] = MI_NOOP;
 
 	handle = gem_create(fd, 4096);
-	gem_write(fd, handle, 0, sizeof(batch), batch);
+	gem_write(fd, handle, 0, batch, sizeof(batch));
 
 	reloc[0].target_handle = dst;
 	reloc[0].delta = 0;
@@ -203,7 +189,7 @@ create_bo(int fd, uint32_t val)
 	/* Fill the BO with dwords starting at val */
 	for (i = 0; i < WIDTH*HEIGHT; i++)
 		linear[i] = val++;
-	gem_write(fd, handle, 0, sizeof(linear), linear);
+	gem_write(fd, handle, 0, linear, sizeof(linear));
 
 	return handle;
 }

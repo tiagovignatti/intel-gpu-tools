@@ -55,22 +55,6 @@ static uint32_t gem_create(int fd, int size)
 	return create.handle;
 }
 
-static void gem_write(int fd,
-		      uint32_t handle, uint32_t offset,
-		      const void *src, int length)
-{
-	struct drm_i915_gem_pwrite arg;
-	int ret;
-
-	arg.handle = handle;
-	arg.offset = offset;
-	arg.size = length;
-	arg.data_ptr = (uintptr_t)src;
-
-	ret = drmIoctl(fd, DRM_IOCTL_I915_GEM_PWRITE, &arg);
-	assert(ret == 0);
-}
-
 static void gem_read(int fd,
 		     uint32_t handle, uint32_t offset,
 		     void *dst, int length)

@@ -142,3 +142,17 @@ void gem_close(int fd, uint32_t handle)
 	ret = drmIoctl(fd, DRM_IOCTL_GEM_CLOSE, &close_bo);
 	assert(ret == 0);
 }
+
+void gem_write(int fd, uint32_t handle, uint32_t offset, const void *buf, uint32_t size)
+{
+	struct drm_i915_gem_pwrite gem_pwrite;
+	int ret;
+
+	gem_pwrite.handle = handle;
+	gem_pwrite.offset = offset;
+	gem_pwrite.size = size;
+	gem_pwrite.data_ptr = (uintptr_t)buf;
+	ret = drmIoctl(fd, DRM_IOCTL_I915_GEM_PWRITE, &gem_pwrite);
+	assert(ret == 0);
+}
+

@@ -42,20 +42,6 @@
 
 #define OBJECT_SIZE 16384
 
-static int
-do_write(int fd, int handle, void *buf, int offset, int size)
-{
-	struct drm_i915_gem_pwrite write;
-
-	memset(&write, 0, sizeof(write));
-	write.handle = handle;
-	write.data_ptr = (uintptr_t)buf;
-	write.size = size;
-	write.offset = offset;
-
-	return ioctl(fd, DRM_IOCTL_I915_GEM_PWRITE, &write);
-}
-
 int main(int argc, char **argv)
 {
 	int fd;
@@ -100,8 +86,7 @@ int main(int argc, char **argv)
 	memset(buf, 0, sizeof(buf));
 	memset(buf + 1024, 0x01, 1024);
 	memset(expected + 1024, 0x01, 1024);
-	ret = do_write(fd, handle, buf, 0, OBJECT_SIZE);
-	assert(ret == 0);
+	gem_write(fd, handle, 0, buf, OBJECT_SIZE);
 	assert(memcmp(buf, addr, sizeof(buf)) == 0);
 
 	printf("Testing that mapping stays after close\n");
