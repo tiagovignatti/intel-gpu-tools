@@ -74,7 +74,7 @@
 
 struct udev_monitor *uevent_monitor;
 drmModeRes *resources;
-int fd, modes;
+int drm_fd, modes;
 int dump_info = 0, test_all_modes =0, test_preferred_mode = 0, force_mode = 0,
 	test_plane, enable_tiling;
 int sleep_between_modes = 5;
@@ -197,7 +197,7 @@ static void dump_connectors(void)
 	for (i = 0; i < resources->count_connectors; i++) {
 		drmModeConnector *connector;
 
-		connector = drmModeGetConnector(fd, resources->connectors[i]);
+		connector = drmModeGetConnector(drm_fd, resources->connectors[i]);
 		if (!connector) {
 			fprintf(stderr, "could not get connector %i: %s\n",
 				resources->connectors[i], strerror(errno));
@@ -235,7 +235,7 @@ static void dump_crtcs(void)
 	for (i = 0; i < resources->count_crtcs; i++) {
 		drmModeCrtc *crtc;
 
-		crtc = drmModeGetCrtc(fd, resources->crtcs[i]);
+		crtc = drmModeGetCrtc(drm_fd, resources->crtcs[i]);
 		if (!crtc) {
 			fprintf(stderr, "could not get crtc %i: %s\n",
 				resources->crtcs[i], strerror(errno));
@@ -260,7 +260,7 @@ static void dump_planes(void)
 	drmModePlane *ovr;
 	int i;
 
-	plane_resources = drmModeGetPlaneResources(fd);
+	plane_resources = drmModeGetPlaneResources(drm_fd);
 	if (!plane_resources) {
 		fprintf(stderr, "drmModeGetPlaneResources failed: %s\n",
 			strerror(errno));
@@ -270,7 +270,7 @@ static void dump_planes(void)
 	printf("Planes:\n");
 	printf("id\tcrtc\tfb\tCRTC x,y\tx,y\tgamma size\n");
 	for (i = 0; i < plane_resources->count_planes; i++) {
-		ovr = drmModeGetPlane(fd, plane_resources->planes[i]);
+		ovr = drmModeGetPlane(drm_fd, plane_resources->planes[i]);
 		if (!ovr) {
 			fprintf(stderr, "drmModeGetPlane failed: %s\n",
 				strerror(errno));
@@ -300,7 +300,7 @@ static void connector_find_preferred_mode(struct connector *c)
 
 	/* First, find the connector & mode */
 	c->mode_valid = 0;
-	connector = drmModeGetConnector(fd, c->id);
+	connector = drmModeGetConnector(drm_fd, c->id);
 	if (!connector) {
 		fprintf(stderr, "could not get connector %d: %s\n",
 			c->id, strerror(errno));
@@ -349,7 +349,7 @@ static void connector_find_preferred_mode(struct connector *c)
 
 	/* Now get the encoder */
 	for (i = 0; i < connector->count_encoders; i++) {
-		encoder = drmModeGetEncoder(fd, connector->encoders[i]);
+		encoder = drmModeGetEncoder(drm_fd, connector->encoders[i]);
 
 		if (!encoder) {
 			fprintf(stderr, "could not get encoder %i: %s\n",
@@ -691,7 +691,7 @@ connector_find_plane(struct connector *c)
 	uint32_t id = 0;
 	int i;
 
-	plane_resources = drmModeGetPlaneResources(fd);
+	plane_resources = drmModeGetPlaneResources(drm_fd);
 	if (!plane_resources) {
 		fprintf(stderr, "drmModeGetPlaneResources failed: %s\n",
 			strerror(errno));
@@ -699,7 +699,7 @@ connector_find_plane(struct connector *c)
 	}
 
 	for (i = 0; i < plane_resources->count_planes; i++) {
-		ovr = drmModeGetPlane(fd, plane_resources->planes[i]);
+		ovr = drmModeGetPlane(drm_fd, plane_resources->planes[i]);
 		if (!ovr) {
 			fprintf(stderr, "drmModeGetPlane failed: %s\n",
 				strerror(errno));
@@ -759,7 +759,7 @@ enable_plane(struct connector *c)
 	}
 	plane_crtc_id = c->crtc;
 
-	surface = allocate_surface(fd, plane_width, plane_height, 24, &handle, 1);
+	surface = allocate_surface(drm_fd, plane_width, plane_height, 24, &handle, 1);
 	if (!surface) {
 		fprintf(stderr, "allocation failed %dx%d\n", plane_width, plane_height);
 		return;
@@ -778,11 +778,11 @@ enable_plane(struct connector *c)
 	pitches[0] = cairo_image_surface_get_stride(surface);
 	memset(offsets, 0, sizeof(offsets));
 	handles[0] = handles[1] = handles[2] = handles[3] = handle;
-	ret = drmModeAddFB2(fd, plane_width, plane_height, DRM_FORMAT_XRGB8888,
+	ret = drmModeAddFB2(drm_fd, plane_width, plane_height, DRM_FORMAT_XRGB8888,
 			    handles, pitches, offsets, &plane_fb_id,
 			    plane_flags);
 	cairo_surface_destroy(surface);
-	gem_close(fd, handle);
+	gem_close(drm_fd, handle);
 
 	if (ret) {
 		fprintf(stderr, "failed to add fb (%dx%d): %s\n",
@@ -794,10 +794,10 @@ enable_plane(struct connector *c)
 	set.max_value = SPRITE_COLOR_KEY;
 	set.min_value = SPRITE_COLOR_KEY;
 	set.channel_mask = 0xffffff;
-	ret = drmCommandWrite(fd, DRM_I915_SET_SPRITE_COLORKEY, &set,
+	ret = drmCommandWrite(drm_fd, DRM_I915_SET_SPRITE_COLORKEY, &set,
 			      sizeof(set));
 
-	if (drmModeSetPlane(fd, plane_id, plane_crtc_id, plane_fb_id,
+	if (drmModeSetPlane(drm_fd, plane_id, plane_crtc_id, plane_fb_id,
 			    plane_flags, crtc_x, crtc_y, crtc_w, crtc_h,
 			    0, 0, plane_width, plane_height)) {
 		fprintf(stderr, "failed to enable plane: %s\n",
@@ -920,7 +920,7 @@ set_mode(struct connector *c)
 		width = c->mode.hdisplay;
 		height = c->mode.vdisplay;
 
-		surface = allocate_surface(fd, width, height, depth,
+		surface = allocate_surface(drm_fd, width, height, depth,
 					   &handle, enable_tiling);
 		if (!surface) {
 			fprintf(stderr, "allocation failed %dx%d\n", width, height);
@@ -955,11 +955,11 @@ set_mode(struct connector *c)
 			fprintf(stderr, "failed to draw pretty picture %dx%d: %s\n",
 				width, height, cairo_status_to_string(status));
 
-		ret = drmModeAddFB(fd, width, height, depth, bpp,
+		ret = drmModeAddFB(drm_fd, width, height, depth, bpp,
 				   cairo_image_surface_get_stride(surface),
 				   handle, &fb_id);
 		cairo_surface_destroy(surface);
-		gem_close(fd, handle);
+		gem_close(drm_fd, handle);
 
 		if (ret) {
 			fprintf(stderr, "failed to add fb (%dx%d): %s\n",
@@ -969,7 +969,7 @@ set_mode(struct connector *c)
 
 		fprintf(stdout, "CRTS(%u):",c->crtc);
 		dump_mode(&c->mode);
-		if (drmModeSetCrtc(fd, c->crtc, fb_id, 0, 0,
+		if (drmModeSetCrtc(drm_fd, c->crtc, fb_id, 0, 0,
 				   &c->id, 1, &c->mode)) {
 			fprintf(stderr, "failed to set mode (%dx%d@%dHz): %s\n",
 				width, height, c->mode.vrefresh,
@@ -986,8 +986,8 @@ set_mode(struct connector *c)
 	}
 
 	if(!test_preferred_mode){
-		drmModeRmFB(fd,fb_id);
-		drmModeSetCrtc(fd, c->crtc, fb_id, 0, 0,  &c->id, 1, 0);
+		drmModeRmFB(drm_fd,fb_id);
+		drmModeSetCrtc(drm_fd, c->crtc, fb_id, 0, 0,  &c->id, 1, 0);
 	}
 
 	drmModeFreeEncoder(c->encoder);
@@ -1008,7 +1008,7 @@ static int update_display(void)
 	struct connector *connectors;
 	int c;
 
-	resources = drmModeGetResources(fd);
+	resources = drmModeGetResources(drm_fd);
 	if (!resources) {
 		fprintf(stderr, "drmModeGetResources failed: %s\n",
 			strerror(errno));
@@ -1071,7 +1071,7 @@ static gboolean hotplug_event(GIOChannel *source, GIOCondition condition,
 		goto out;
 
 	udev_devnum = udev_device_get_devnum(dev);
-	fstat(fd, &s);
+	fstat(drm_fd, &s);
 
 	hotplug = udev_device_get_property_value(dev, "HOTPLUG");
 
@@ -1092,24 +1092,24 @@ static gboolean input_event(GIOChannel *source, GIOCondition condition,
 
 	count = read(g_io_channel_unix_get_fd(source), buf, sizeof(buf));
 	if (buf[0] == 'q' && (count == 1 || buf[1] == '\n')) {
-		disable_planes(fd);
+		disable_planes(drm_fd);
 		exit(0);
 	} else if (buf[0] == 'a')
-		adjust_plane(fd, -10, 0, 0, 0);
+		adjust_plane(drm_fd, -10, 0, 0, 0);
 	else if (buf[0] == 'd')
-		adjust_plane(fd, 10, 0, 0, 0);
+		adjust_plane(drm_fd, 10, 0, 0, 0);
 	else if (buf[0] == 'w')
-		adjust_plane(fd, 0, -10, 0, 0);
+		adjust_plane(drm_fd, 0, -10, 0, 0);
 	else if (buf[0] == 's')
-		adjust_plane(fd, 0, 10, 0, 0);
+		adjust_plane(drm_fd, 0, 10, 0, 0);
 	else if (buf[0] == 'j')
-		adjust_plane(fd, 0, 0, 10, 0);
+		adjust_plane(drm_fd, 0, 0, 10, 0);
 	else if (buf[0] == 'l')
-		adjust_plane(fd, 0, 0, -10, 0);
+		adjust_plane(drm_fd, 0, 0, -10, 0);
 	else if (buf[0] == 'k')
-		adjust_plane(fd, 0, 0, 0, -10);
+		adjust_plane(drm_fd, 0, 0, 0, -10);
 	else if (buf[0] == 'i')
-		adjust_plane(fd, 0, 0, 0, 10);
+		adjust_plane(drm_fd, 0, 0, 0, 10);
 
 	return TRUE;
 }
@@ -1173,8 +1173,8 @@ int main(int argc, char **argv)
 		test_all_modes = 1;
 
 	for (i = 0; i < ARRAY_SIZE(modules); i++) {
-		fd = drmOpen(modules[i], NULL);
-		if (fd < 0)
+		drm_fd = drmOpen(modules[i], NULL);
+		if (drm_fd < 0)
 			printf("failed to load %s driver.\n", modules[i]);
 		else
 			break;
@@ -1272,8 +1272,8 @@ out_udev_unref:
 	udev_unref(u);
 out_close:
 	if (test_plane)
-		disable_planes(fd);
-	drmClose(fd);
+		disable_planes(drm_fd);
+	drmClose(drm_fd);
 out:
 	return ret;
 }
