@@ -56,7 +56,7 @@ static drm_intel_bo *target_buffer;
 #define MI_DO_COMPARE			(1<<21)
 
 static void
-store_dword_loop(int ring)
+store_dword_loop(void)
 {
 	int i;
 
@@ -127,7 +127,7 @@ int main(int argc, char **argv)
 		exit(-1);
 	}
 
-	store_dword_loop(I915_EXEC_RENDER);
+	store_dword_loop();
 
 	drm_intel_bo_unreference(target_buffer);
 	intel_batchbuffer_free(batch);

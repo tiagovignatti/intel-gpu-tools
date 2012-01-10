@@ -42,13 +42,13 @@
 static void
 test_bad_close(int fd)
 {
-	struct drm_gem_close close;
+	struct drm_gem_close close_bo;
 	int ret;
 
 	printf("Testing error return on bad close ioctl.\n");
 
-	close.handle = 0x10101010;
-	ret = ioctl(fd, DRM_IOCTL_GEM_CLOSE, &close);
+	close_bo.handle = 0x10101010;
+	ret = ioctl(fd, DRM_IOCTL_GEM_CLOSE, &close_bo);
 
 	assert(ret == -1 && errno == EINVAL);
 }
@@ -57,7 +57,6 @@ static void
 test_create_close(int fd)
 {
 	struct drm_i915_gem_create create;
-	struct drm_gem_close close;
 	int ret;
 
 	printf("Testing creating and closing an object.\n");
@@ -67,8 +66,7 @@ test_create_close(int fd)
 	ret = ioctl(fd, DRM_IOCTL_I915_GEM_CREATE, &create);
 	assert(ret == 0);
 
-	close.handle = create.handle;
-	ret = ioctl(fd, DRM_IOCTL_GEM_CLOSE, &close);
+	gem_close(fd, create.handle);
 }
 
 static void

@@ -192,7 +192,7 @@ static void run(int object_size)
 	uint32_t handle, handle_relocs, src, dst;
 	void *gtt_relocs;
 	int fd, len;
-	int ring, ret;
+	int ring;
 
 	fd = drm_open_any();
 	handle = gem_create(fd, 4096);

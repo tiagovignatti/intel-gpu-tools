@@ -76,19 +76,19 @@ static double elapsed(const struct timeval *start,
 static int exec(int fd, uint32_t handle, int loops)
 {
 	struct drm_i915_gem_execbuffer2 execbuf;
-	struct drm_i915_gem_exec_object2 exec[1];
+	struct drm_i915_gem_exec_object2 gem_exec[1];
 	int ret = 0;
 
-	exec[0].handle = handle;
-	exec[0].relocation_count = 0;
-	exec[0].relocs_ptr = 0;
-	exec[0].alignment = 0;
-	exec[0].offset = 0;
-	exec[0].flags = 0;
-	exec[0].rsvd1 = 0;
-	exec[0].rsvd2 = 0;
+	gem_exec[0].handle = handle;
+	gem_exec[0].relocation_count = 0;
+	gem_exec[0].relocs_ptr = 0;
+	gem_exec[0].alignment = 0;
+	gem_exec[0].offset = 0;
+	gem_exec[0].flags = 0;
+	gem_exec[0].rsvd1 = 0;
+	gem_exec[0].rsvd2 = 0;
 
-	execbuf.buffers_ptr = (uintptr_t)exec;
+	execbuf.buffers_ptr = (uintptr_t)gem_exec;
 	execbuf.buffer_count = 1;
 	execbuf.batch_start_offset = 0;
 	execbuf.batch_len = 8;

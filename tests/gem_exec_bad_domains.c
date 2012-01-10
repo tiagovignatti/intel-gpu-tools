@@ -52,7 +52,7 @@ struct intel_batchbuffer *batch;
 #define BAD_GTT_DEST ((512*1024*1024)) /* past end of aperture */
 
 static int
-run_batch(struct intel_batchbuffer *batch)
+run_batch(void)
 {
 	unsigned int used = batch->ptr - batch->buffer;
 	int ret;
@@ -100,7 +100,7 @@ int main(int argc, char **argv)
 	OUT_BATCH(0);
 	OUT_RELOC(tmp, I915_GEM_DOMAIN_CPU, 0, 0);
 	ADVANCE_BATCH();
-	ret = run_batch(batch);
+	ret = run_batch();
 	if (ret != -EINVAL) {
 		fprintf(stderr, "(cpu, 0) reloc not rejected\n");
 		exit(1);
@@ -110,7 +110,7 @@ int main(int argc, char **argv)
 	OUT_BATCH(0);
 	OUT_RELOC(tmp, I915_GEM_DOMAIN_CPU, I915_GEM_DOMAIN_CPU, 0);
 	ADVANCE_BATCH();
-	ret = run_batch(batch);
+	ret = run_batch();
 	if (ret != -EINVAL) {
 		fprintf(stderr, "(cpu, cpu) reloc not rejected\n");
 		exit(1);
@@ -120,7 +120,7 @@ int main(int argc, char **argv)
 	OUT_BATCH(0);
 	OUT_RELOC(tmp, I915_GEM_DOMAIN_GTT, 0, 0);
 	ADVANCE_BATCH();
-	ret = run_batch(batch);
+	ret = run_batch();
 	if (ret != -EINVAL) {
 		fprintf(stderr, "(gtt, 0) reloc not rejected\n");
 		exit(1);
@@ -130,7 +130,7 @@ int main(int argc, char **argv)
 	OUT_BATCH(0);
 	OUT_RELOC(tmp, I915_GEM_DOMAIN_GTT, I915_GEM_DOMAIN_GTT, 0);
 	ADVANCE_BATCH();
-	ret = run_batch(batch);
+	ret = run_batch();
 	if (ret != -EINVAL) {
 		fprintf(stderr, "(gtt, gtt) reloc not rejected\n");
 		exit(1);

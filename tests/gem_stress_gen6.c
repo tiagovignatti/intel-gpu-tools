@@ -49,10 +49,10 @@ batch_align(uint32_t align)
 }
 
 static uint32_t
-batch_round_upto(uint32_t div)
+batch_round_upto(uint32_t divisor)
 {
 	uint32_t offset = batch_used();
-	offset = (offset + div-1) / div * div;
+	offset = (offset + divisor-1) / divisor * divisor;
 	batch->ptr = batch->buffer + offset;
 	return offset;
 }

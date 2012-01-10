@@ -55,7 +55,6 @@ drm_intel_bo *pc_target_bo[NUM_TARGET_BOS];
 drm_intel_bo *dummy_bo;
 drm_intel_bo *special_bo;
 uint32_t devid;
-int fd;
 int special_reloc_ofs;
 int special_batch_len;
 

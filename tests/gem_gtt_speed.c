@@ -140,24 +140,24 @@ int main(int argc, char **argv)
 
 		/* prefault into gtt */
 		{
-			volatile uint32_t *ptr = gem_mmap(fd, handle, size, PROT_READ);
+			uint32_t *ptr = gem_mmap(fd, handle, size, PROT_READ);
 			int x = 0;
 
 			for (i = 0; i < size/sizeof(*ptr); i++)
 				x += ptr[i];
 
-			munmap((void *)ptr, size);
+			munmap(ptr, size);
 		}
 		/* mmap read */
 		gettimeofday(&start, NULL);
 		for (loop = 0; loop < 1000; loop++) {
-			volatile uint32_t *ptr = gem_mmap(fd, handle, size, PROT_READ);
+			uint32_t *ptr = gem_mmap(fd, handle, size, PROT_READ);
 			int x = 0;
 
 			for (i = 0; i < size/sizeof(*ptr); i++)
 				x += ptr[i];
 
-			munmap((void *)ptr, size);
+			munmap(ptr, size);
 		}
 		gettimeofday(&end, NULL);
 		printf("Time to read %dk through a GTT map:		%7.3fµs\n",
@@ -166,12 +166,12 @@ int main(int argc, char **argv)
 		/* mmap write */
 		gettimeofday(&start, NULL);
 		for (loop = 0; loop < 1000; loop++) {
-			volatile uint32_t *ptr = gem_mmap(fd, handle, size, PROT_READ | PROT_WRITE);
+			uint32_t *ptr = gem_mmap(fd, handle, size, PROT_READ | PROT_WRITE);
 
 			for (i = 0; i < size/sizeof(*ptr); i++)
 				ptr[i] = i;
 
-			munmap((void *)ptr, size);
+			munmap(ptr, size);
 		}
 		gettimeofday(&end, NULL);
 		printf("Time to write %dk through a GTT map:		%7.3fµs\n",
@@ -180,13 +180,13 @@ int main(int argc, char **argv)
 		/* mmap read */
 		gettimeofday(&start, NULL);
 		for (loop = 0; loop < 1000; loop++) {
-			volatile uint32_t *ptr = gem_mmap(fd, handle, size, PROT_READ);
+			uint32_t *ptr = gem_mmap(fd, handle, size, PROT_READ);
 			int x = 0;
 
 			for (i = 0; i < size/sizeof(*ptr); i++)
 				x += ptr[i];
 
-			munmap((void *)ptr, size);
+			munmap(ptr, size);
 		}
 		gettimeofday(&end, NULL);
 		printf("Time to read %dk (again) through a GTT map:	%7.3fµs\n",
