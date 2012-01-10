@@ -85,7 +85,6 @@ static uint32_t
 batch_create (int fd)
 {
 	struct drm_i915_gem_create create;
-	struct drm_i915_gem_pwrite pwrite;
 	uint32_t buf[] = { MI_BATCH_BUFFER_END, 0 };
 	int ret;
 
@@ -94,12 +93,7 @@ batch_create (int fd)
 	ret = ioctl(fd, DRM_IOCTL_I915_GEM_CREATE, &create);
 	assert(ret == 0);
 
-	pwrite.handle = create.handle;
-	pwrite.offset = 0;
-	pwrite.size = sizeof(buf);
-	pwrite.data_ptr = (uintptr_t)buf;
-	ret = drmIoctl(fd, DRM_IOCTL_I915_GEM_PWRITE, &pwrite);
-	assert(ret == 0);
+	gem_write(fd, create.handle, 0, buf, sizeof(buf));
 
 	return create.handle;
 }

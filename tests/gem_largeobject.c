@@ -57,13 +57,11 @@ static void
 test_large_object(int fd)
 {
 	struct drm_i915_gem_create create;
-	struct drm_i915_gem_pwrite pwrite;
 	struct drm_i915_gem_pin pin;
 	uint32_t obj_size;
 	int ret;
 
 	memset(&create, 0, sizeof(create));
-	memset(&pwrite, 0, sizeof(pwrite));
 	memset(&pin, 0, sizeof(pin));
 
 	if (gem_aperture_size(fd)*3/4 < OBJ_SIZE/2)
@@ -90,16 +88,7 @@ test_large_object(int fd)
 		exit(ret);
 	}
 
-	pwrite.handle = create.handle;
-	pwrite.size = obj_size;
-	pwrite.data_ptr = (uintptr_t)data;
-
-	ret = ioctl(fd, DRM_IOCTL_I915_GEM_PWRITE, &pwrite);
-	if (ret) {
-		fprintf(stderr, "pwrite failed: %s\n",
-			strerror(errno));
-		exit(ret);
-	}
+	gem_write(fd, create.handle, 0, data, obj_size);
 
 	/* kernel should clean this up for us */
 }
