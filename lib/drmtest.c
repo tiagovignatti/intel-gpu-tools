@@ -55,6 +55,48 @@ is_intel(int fd)
 	return IS_INTEL(devid);
 }
 
+/* Ensure the gpu is idle by launching a nop execbuf and stalling for it. */
+void gem_quiescent_gpu(int fd)
+{
+#define MI_BATCH_BUFFER_END	(0xA<<23)
+	uint32_t batch[2] = {MI_BATCH_BUFFER_END, 0};
+	uint32_t handle;
+	struct drm_i915_gem_execbuffer2 execbuf;
+	struct drm_i915_gem_exec_object2 gem_exec[1];
+	int ret = 0;
+
+	handle = gem_create(fd, 4096);
+	gem_write(fd, handle, 0, batch, sizeof(batch));
+
+	gem_exec[0].handle = handle;
+	gem_exec[0].relocation_count = 0;
+	gem_exec[0].relocs_ptr = 0;
+	gem_exec[0].alignment = 0;
+	gem_exec[0].offset = 0;
+	gem_exec[0].flags = 0;
+	gem_exec[0].rsvd1 = 0;
+	gem_exec[0].rsvd2 = 0;
+
+	execbuf.buffers_ptr = (uintptr_t)gem_exec;
+	execbuf.buffer_count = 1;
+	execbuf.batch_start_offset = 0;
+	execbuf.batch_len = 8;
+	execbuf.cliprects_ptr = 0;
+	execbuf.num_cliprects = 0;
+	execbuf.DR1 = 0;
+	execbuf.DR4 = 0;
+	execbuf.flags = 0;
+	execbuf.rsvd1 = 0;
+	execbuf.rsvd2 = 0;
+
+	ret = drmIoctl(fd,
+		       DRM_IOCTL_I915_GEM_EXECBUFFER2,
+		       &execbuf);
+	assert(ret == 0);
+
+	gem_sync(fd, handle);
+}
+
 /** Open the first DRM device we can find, searching up to 16 device nodes */
 int drm_open_any(void)
 {
@@ -67,8 +109,10 @@ int drm_open_any(void)
 		if (fd == -1)
 			continue;
 
-		if (is_intel(fd))
+		if (is_intel(fd)) {
+			gem_quiescent_gpu(fd);
 			return fd;
+		}
 
 		close(fd);
 	}
