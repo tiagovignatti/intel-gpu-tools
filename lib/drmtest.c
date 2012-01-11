@@ -31,6 +31,8 @@
 #include <sys/ioctl.h>
 #include <string.h>
 #include <sys/mman.h>
+#include <signal.h>
+
 #include "drmtest.h"
 #include "i915_drm.h"
 #include "intel_chipset.h"
@@ -219,3 +221,44 @@ void *gem_mmap(int fd, uint32_t handle, int size, int prot)
 	return ptr;
 }
 
+static pid_t signal_helper = -1;
+long long int sig_stat;
+static void signal_helper_process(pid_t pid)
+{
+	/* Interrupt the parent process at 500Hz, just to be annoying */
+	while (1) {
+		usleep(1000 * 1000 / 500);
+		if (kill(pid, SIGUSR1)) /* Parent has died, so must we. */
+			exit(0);
+	}
+}
+
+static void sig_handler(int i)
+{
+	sig_stat++;
+}
+
+void drmtest_fork_signal_helper(void)
+{
+	pid_t pid;
+
+	signal(SIGUSR1, sig_handler);
+	pid = fork();
+	if (pid == 0) {
+		signal_helper_process(getppid());
+		return;
+	}
+
+	signal_helper = pid;
+}
+
+void drmtest_stop_signal_helper(void)
+{
+	if (signal_helper != -1)
+		kill(signal_helper, SIGQUIT);
+
+	if (sig_stat)
+		fprintf(stderr, "signal handler called %llu times\n", sig_stat);
+
+	signal_helper = -1;
+}

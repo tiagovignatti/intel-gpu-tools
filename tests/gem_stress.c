@@ -51,8 +51,6 @@
 
 #include "gem_stress.h"
 
-#include <signal.h>
-
 #define CMD_POLY_STIPPLE_OFFSET       0x7906
 
 /** TODO:
@@ -101,29 +99,6 @@ struct {
 	unsigned num_failed;
 	unsigned max_failed_reads;
 } stats;
-
-static void signal_helper_process(pid_t pid)
-{
-	/* Interrupt the parent process at 500Hz, just to be annoying */
-	while (1) {
-		usleep(1000 * 1000 / 500);
-		if (kill(pid, SIGUSR1)) /* Parent has died, so must we. */
-			exit(0);
-	}
-}
-
-static pid_t fork_signal_helper(void)
-{
-	pid_t pid;
-
-	pid = fork();
-	if (pid == 0) {
-		signal_helper_process(getppid());
-		return -1;
-	}
-
-	return pid;
-}
 
 static void tile2xy(struct scratch_buf *buf, unsigned tile, unsigned *x, unsigned *y)
 {
@@ -883,7 +858,6 @@ int main(int argc, char **argv)
 {
 	int i, j;
 	unsigned *current_permutation, *tmp_permutation;
-	pid_t signal_helper = -1;
 
 	drm_fd = drm_open_any();
 	devid = intel_get_drm_devid(drm_fd);
@@ -891,9 +865,8 @@ int main(int argc, char **argv)
 	parse_options(argc, argv);
 
 	/* start our little helper early before too may allocations occur */
-	signal(SIGUSR1, SIG_IGN);
 	if (options.use_signal_helper)
-		signal_helper = fork_signal_helper();
+		drmtest_fork_signal_helper();
 
 	init();
 
@@ -943,8 +916,7 @@ int main(int argc, char **argv)
 
 	close(drm_fd);
 
-	if (signal_helper != -1)
-		kill(signal_helper, SIGQUIT);
+	drmtest_stop_signal_helper();
 
 	return 0;
 }
