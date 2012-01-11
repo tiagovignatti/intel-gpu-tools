@@ -56,6 +56,7 @@ TESTS_progs = \
 	gem_pipe_control_store_loop \
 	gem_unref_active_buffers \
 	gem_reloc_vs_gpu \
+	drm_vma_limiter \
 	$(NULL)
 
 TESTS_scripts = \
