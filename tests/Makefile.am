@@ -59,6 +59,7 @@ TESTS_progs = \
 	drm_vma_limiter \
 	drm_vma_limiter_cpu \
 	drm_vma_limiter_gtt \
+	drm_vma_limiter_cached \
 	$(NULL)
 
 TESTS_scripts = \
