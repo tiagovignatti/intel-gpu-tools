@@ -1,0 +1,11 @@
+#!/bin/sh
+
+if dmesg | grep '\*ERROR\*'  > /dev/null ; then
+	echo "DRM_ERROR dirt in dmesg"
+	exit 1
+fi
+
+if dmesg | grep -- '------\[ cut here \]----' > /dev/null  ; then
+	echo "found a backtrace in dmesg"
+	exit 1
+fi

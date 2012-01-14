@@ -62,10 +62,13 @@ TESTS_progs = \
 	drm_vma_limiter_cached \
 	$(NULL)
 
+# IMPORTANT: The ZZ_ tests need to be run last!
+# ... and make can't deal with inlined comments ...
 TESTS_scripts = \
 	debugfs_reader \
 	debugfs_emon_crash \
 	sysfs_edid_timing \
+	ZZ_check_dmesg \
 	$(NULL)
 
 kernel_tests = \
