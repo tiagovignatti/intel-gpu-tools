@@ -54,16 +54,6 @@
 
 static uint32_t linear[WIDTH*HEIGHT];
 
-static uint64_t
-gem_aperture_size(int fd)
-{
-	struct drm_i915_gem_get_aperture aperture;
-
-	aperture.aper_size = 512*1024*1024;
-	(void)drmIoctl(fd, DRM_IOCTL_I915_GEM_GET_APERTURE, &aperture);
-	return aperture.aper_size;
-}
-
 static void
 copy(int fd, uint32_t dst, uint32_t src)
 {

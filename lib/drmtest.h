@@ -47,6 +47,7 @@ void gem_set_domain(int fd, uint32_t handle,
 void gem_sync(int fd, uint32_t handle);
 uint32_t gem_create(int fd, int size);
 void *gem_mmap(int fd, uint32_t handle, int size, int prot);
+uint64_t gem_aperture_size(int fd);
 
 void drmtest_fork_signal_helper(void);
 void drmtest_stop_signal_helper(void);

@@ -65,15 +65,6 @@
  *   first one (to check consistency of the kernel recovery paths)
  */
 
-static uint64_t gem_aperture_size(int fd)
-{
-	struct drm_i915_gem_get_aperture aperture;
-
-	aperture.aper_size = 256*1024*1024;
-	(void)drmIoctl(fd, DRM_IOCTL_I915_GEM_GET_APERTURE, &aperture);
-	return aperture.aper_size;
-}
-
 drm_intel_bufmgr *bufmgr;
 struct intel_batchbuffer *batch;
 int drm_fd;

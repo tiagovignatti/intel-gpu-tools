@@ -265,6 +265,15 @@ void *gem_mmap(int fd, uint32_t handle, int size, int prot)
 	return ptr;
 }
 
+uint64_t gem_aperture_size(int fd)
+{
+	struct drm_i915_gem_get_aperture aperture;
+
+	aperture.aper_size = 256*1024*1024;
+	(void)drmIoctl(fd, DRM_IOCTL_I915_GEM_GET_APERTURE, &aperture);
+	return aperture.aper_size;
+}
+
 static pid_t signal_helper = -1;
 long long int sig_stat;
 static void signal_helper_process(pid_t pid)

@@ -87,16 +87,6 @@ static void gem_vmap_sync(int fd, uint32_t handle)
 	gem_set_domain(fd, handle, I915_GEM_DOMAIN_CPU, I915_GEM_DOMAIN_CPU);
 }
 
-static uint64_t
-gem_aperture_size(int fd)
-{
-	struct drm_i915_gem_get_aperture aperture;
-
-	aperture.aper_size = 512*1024*1024;
-	(void)drmIoctl(fd, DRM_IOCTL_I915_GEM_GET_APERTURE, &aperture);
-	return aperture.aper_size;
-}
-
 static void
 gem_read(int fd, uint32_t handle, int offset, int size, void *buf)
 {
