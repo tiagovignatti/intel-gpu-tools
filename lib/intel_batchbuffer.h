@@ -43,6 +43,7 @@ void intel_batchbuffer_emit_reloc(struct intel_batchbuffer *batch,
  * be passed as structs rather than dwords, but that's a little bit of
  * work...
  */
+#pragma GCC diagnostic ignored "-Winline"
 static inline int
 intel_batchbuffer_space(struct intel_batchbuffer *batch)
 {
