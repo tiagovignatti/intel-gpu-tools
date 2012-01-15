@@ -32,10 +32,12 @@
 #include <string.h>
 #include <sys/mman.h>
 #include <signal.h>
+#include <pciaccess.h>
 
 #include "drmtest.h"
 #include "i915_drm.h"
 #include "intel_chipset.h"
+#include "intel_gpu_tools.h"
 
 /* This file contains a bunch of wrapper functions to directly use gem ioctls.
  * Mostly useful to write kernel tests. */
@@ -58,7 +60,6 @@ is_intel(int fd)
 /* Ensure the gpu is idle by launching a nop execbuf and stalling for it. */
 void gem_quiescent_gpu(int fd)
 {
-#define MI_BATCH_BUFFER_END	(0xA<<23)
 	uint32_t batch[2] = {MI_BATCH_BUFFER_END, 0};
 	uint32_t handle;
 	struct drm_i915_gem_execbuffer2 execbuf;
@@ -272,6 +273,20 @@ uint64_t gem_aperture_size(int fd)
 	aperture.aper_size = 256*1024*1024;
 	(void)drmIoctl(fd, DRM_IOCTL_I915_GEM_GET_APERTURE, &aperture);
 	return aperture.aper_size;
+}
+
+uint64_t gem_mappable_aperture_size(void)
+{
+	struct pci_device *pci_dev;
+	int bar;
+	pci_dev = intel_get_pci_device();
+
+	if (intel_gen(pci_dev->device_id) < 3)
+		bar = 0;
+	else
+		bar = 2;
+
+	return pci_dev->regions[bar].size;
 }
 
 static pid_t signal_helper = -1;
