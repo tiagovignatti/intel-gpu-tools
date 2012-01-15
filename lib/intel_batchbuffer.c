@@ -75,13 +75,13 @@ intel_batchbuffer_free(struct intel_batchbuffer *batch)
 
 #define CMD_POLY_STIPPLE_OFFSET       0x7906
 
-void
-intel_batchbuffer_flush_on_ring(struct intel_batchbuffer *batch, int ring)
+static unsigned int
+flush_on_ring_common(struct intel_batchbuffer *batch, int ring)
 {
 	unsigned int used = batch->ptr - batch->buffer;
 
 	if (used == 0)
-		return;
+		return 0;
 
 	if (IS_GEN5(batch->devid)) {
 		/* emit gen5 w/a without batch space checks - we reserve that
@@ -100,13 +100,45 @@ intel_batchbuffer_flush_on_ring(struct intel_batchbuffer *batch, int ring)
 	/* Mark the end of the buffer. */
 	*(uint32_t *)(batch->ptr) = MI_BATCH_BUFFER_END; /* noop */
 	batch->ptr += 4;
-	used = batch->ptr - batch->buffer;
+	return batch->ptr - batch->buffer;
+}
+
+void
+intel_batchbuffer_flush_on_ring(struct intel_batchbuffer *batch, int ring)
+{
+	int ret;
+	unsigned int used = flush_on_ring_common(batch, ring);
+
+	if (used == 0)
+		return;
 
 	do_or_die(drm_intel_bo_subdata(batch->bo, 0, used, batch->buffer));
 
 	batch->ptr = NULL;
 
 	do_or_die(drm_intel_bo_mrb_exec(batch->bo, used, NULL, 0, 0, ring));
+
+	intel_batchbuffer_reset(batch);
+}
+
+void
+intel_batchbuffer_flush_with_context(struct intel_batchbuffer *batch,
+				     drm_intel_context *context)
+{
+	int ret;
+	unsigned int used = flush_on_ring_common(batch, I915_EXEC_RENDER);
+
+	if (used == 0)
+		return;
+
+	ret = drm_intel_bo_subdata(batch->bo, 0, used, batch->buffer);
+	assert(ret == 0);
+
+	batch->ptr = NULL;
+
+	ret = drm_intel_gem_bo_context_exec(batch->bo, context, used,
+					    I915_EXEC_RENDER);
+	assert(ret == 0);
 
 	intel_batchbuffer_reset(batch);
 }
