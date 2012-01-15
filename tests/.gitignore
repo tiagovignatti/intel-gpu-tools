@@ -1,3 +1,7 @@
+drm_vma_limiter
+drm_vma_limiter_cached
+drm_vma_limiter_cpu
+drm_vma_limiter_gtt
 gem_bad_address
 gem_bad_batch
 gem_bad_blit
