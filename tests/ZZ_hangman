@@ -1,0 +1,62 @@
+#!/bin/sh
+#
+# Testcase: Simulate gpu hang
+#
+# This check uses the stop_rings facility to exercise the gpu hang code.
+# by reading /sys/kernel/debug/dri/0/i915_emon_status too quickly
+#
+
+if [ -d /debug/dri ] ; then
+	debugfs_path=/debug_dri
+fi
+
+if [ -d /sys/kernel/debug/dri ] ; then
+	debugfs_path=/sys/kernel/debug/dri
+fi
+
+cur_path=`pwd`
+i915_path=x
+for dir in `ls $debugfs_path` ; do
+	if [ -f $debugfs_path/$dir/i915_error_state ] ; then
+		i915_path=$debugfs_path/$dir
+		break
+	fi
+done
+
+if [ $i915_path = "x" ] ; then
+	echo i915 debugfs path not found.
+	exit 1
+fi
+
+cd $i915_path
+
+if [ ! -f i915_ring_stop ] ; then
+	echo "kernel doesn't support ring stopping"
+	exit 77
+fi
+
+if cat i915_error_state | grep -v "no error state collected" > /dev/null ; then
+	echo "gpu hang dectected"
+	exit 1
+fi
+
+# stop rings
+echo 0xf > i915_ring_stop
+
+# need to run it twice, otherwise there are no waiters
+$cur_path/gem_exec_nop > /dev/null 2>&1 &
+$cur_path/gem_exec_nop > /dev/null 2>&1 &
+
+sleep 10
+
+if cat i915_error_state | grep -v "no error state collected" > /dev/null ; then
+	echo "gpu hang correctly dectected"
+else
+	echo "gpu hang not dectected"
+	exit 2
+fi
+
+# clear error state
+echo 0 > i915_ring_stop
+
+exit 0
