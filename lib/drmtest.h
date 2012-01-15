@@ -32,12 +32,14 @@
 #include <errno.h>
 
 #include "xf86drm.h"
+#include "intel_batchbuffer.h"
 
 int drm_open_any(void);
 int drm_open_any_master(void);
 
 void gem_quiescent_gpu(int fd);
 
+/* ioctl wrappers and similar stuff for bare metal testing */
 void gem_set_tiling(int fd, uint32_t handle, int tiling, int stride);
 void gem_close(int fd, uint32_t handle);
 void gem_write(int fd, uint32_t handle, uint32_t offset,  const void *buf, uint32_t size);
@@ -50,5 +52,11 @@ void *gem_mmap(int fd, uint32_t handle, int size, int prot);
 uint64_t gem_aperture_size(int fd);
 uint64_t gem_mappable_aperture_size(void);
 
+/* generally useful helpers */
 void drmtest_fork_signal_helper(void);
 void drmtest_stop_signal_helper(void);
+
+/* helpers based upon the libdrm buffer manager */
+void drmtest_init_aperture_trashers(drm_intel_bufmgr *bufmgr);
+void drmtest_trash_aperture(void);
+void drmtest_cleanup_aperture_trashers(void);

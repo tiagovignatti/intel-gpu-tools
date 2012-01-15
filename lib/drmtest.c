@@ -289,6 +289,7 @@ uint64_t gem_mappable_aperture_size(void)
 	return pci_dev->regions[bar].size;
 }
 
+/* signal interrupt helpers */
 static pid_t signal_helper = -1;
 long long int sig_stat;
 static void signal_helper_process(pid_t pid)
@@ -329,4 +330,44 @@ void drmtest_stop_signal_helper(void)
 		fprintf(stderr, "signal handler called %llu times\n", sig_stat);
 
 	signal_helper = -1;
+}
+
+/* mappable aperture trasher helper */
+drm_intel_bo **trash_bos;
+int num_trash_bos;
+
+void drmtest_init_aperture_trashers(drm_intel_bufmgr *bufmgr)
+{
+	int i;
+
+	num_trash_bos = gem_mappable_aperture_size() / (1024*1024);
+
+	trash_bos = malloc(num_trash_bos * sizeof(drm_intel_bo *));
+	assert(trash_bos);
+
+	for (i = 0; i < num_trash_bos; i++)
+		trash_bos[i] = drm_intel_bo_alloc(bufmgr, "trash bo", 1024*1024, 4096);
+}
+
+void drmtest_trash_aperture(void)
+{
+	int i;
+	uint8_t *gtt_ptr;
+
+	for (i = 0; i < num_trash_bos; i++) {
+		drm_intel_gem_bo_map_gtt(trash_bos[i]);
+		gtt_ptr = trash_bos[i]->virtual;
+		*gtt_ptr = 0;
+		drm_intel_gem_bo_unmap_gtt(trash_bos[i]);
+	}
+}
+
+void drmtest_cleanup_aperture_trashers(void)
+{
+	int i;
+
+	for (i = 0; i < num_trash_bos; i++)
+		drm_intel_bo_unreference(trash_bos[i]);
+
+	free(trash_bos);
 }

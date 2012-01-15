@@ -56,38 +56,8 @@ drm_intel_bo *scratch_bo;
 drm_intel_bo *staging_bo;
 #define BO_SIZE (4*4096)
 uint32_t devid;
+uint64_t mappable_gtt_limit;
 int fd;
-
-drm_intel_bo *trash_bos[10000];
-int num_trash_bos;
-
-static void
-init_aperture_trashers(void)
-{
-	int i;
-
-	if (intel_gen(devid) >= 6)
-		num_trash_bos = 512;
-	else
-		num_trash_bos = 256;
-
-	for (i = 0; i < num_trash_bos; i++)
-		trash_bos[i] = drm_intel_bo_alloc(bufmgr, "trash bo", 1024*1024, 4096);
-}
-
-static void
-trash_aperture(void)
-{
-	int i;
-	uint8_t *gtt_ptr;
-
-	for (i = 0; i < num_trash_bos; i++) {
-		drm_intel_gem_bo_map_gtt(trash_bos[i]);
-		gtt_ptr = trash_bos[i]->virtual;
-		*gtt_ptr = 0;
-		drm_intel_gem_bo_unmap_gtt(trash_bos[i]);
-	}
-}
 
 static void
 copy_bo(drm_intel_bo *src, drm_intel_bo *dst)
@@ -124,9 +94,9 @@ blt_bo_fill(drm_intel_bo *tmp_bo, drm_intel_bo *bo, int val)
 
 	drm_intel_gem_bo_unmap_gtt(tmp_bo);
 
-	if (bo->offset < num_trash_bos*1024*1024 &&
+	if (bo->offset < mappable_gtt_limit &&
 	    (IS_G33(devid) || intel_gen(devid) >= 4))
-		trash_aperture();
+		drmtest_trash_aperture();
 
 	copy_bo(tmp_bo, bo);
 }
@@ -151,7 +121,8 @@ int main(int argc, char **argv)
 	scratch_bo = drm_intel_bo_alloc(bufmgr, "scratch bo", BO_SIZE, 4096);
 	staging_bo = drm_intel_bo_alloc(bufmgr, "staging bo", BO_SIZE, 4096);
 
-	init_aperture_trashers();
+	drmtest_init_aperture_trashers(bufmgr);
+	mappable_gtt_limit = gem_mappable_aperture_size();
 
 	printf("checking partial reads\n");
 	for (i = 0; i < 1000; i++) {
@@ -276,6 +247,7 @@ int main(int argc, char **argv)
 		drm_intel_gem_bo_unmap_gtt(staging_bo);
 	}
 
+	drmtest_cleanup_aperture_trashers();
 	drm_intel_bufmgr_destroy(bufmgr);
 
 	close(fd);
