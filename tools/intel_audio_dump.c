@@ -1207,7 +1207,7 @@ static void dump_cpt(void)
     dword = INREG(AUD_CNTL_ST_A);
     printf("AUD_CNTL_ST_A  DIP_Port_Select\t\t\t\t[%#lx] %s\n",
 					BITS(dword, 30, 29), dip_port[BITS(dword, 30, 29)]);
-    printf("AUD_CNTL_ST_A  DIP_type_enable_status Audio DIP\t%lu\n", BIT(dword, 21));
+    printf("AUD_CNTL_ST_A  DIP_type_enable_status Audio DIP\t\t%lu\n", BIT(dword, 21));
     printf("AUD_CNTL_ST_A  DIP_type_enable_status ACP DIP\t\t%lu\n", BIT(dword, 22));
     printf("AUD_CNTL_ST_A  DIP_type_enable_status Generic 2 DIP\t%lu\n", BIT(dword, 23));
     printf("AUD_CNTL_ST_A  DIP_transmission_frequency\t\t[0x%lx] %s\n",
@@ -1218,7 +1218,7 @@ static void dump_cpt(void)
     dword = INREG(AUD_CNTL_ST_B);
     printf("AUD_CNTL_ST_B  DIP_Port_Select\t\t\t\t[%#lx] %s\n",
 					BITS(dword, 30, 29), dip_port[BITS(dword, 30, 29)]);
-    printf("AUD_CNTL_ST_B  DIP_type_enable_status Audio DIP\t%lu\n", BIT(dword, 21));
+    printf("AUD_CNTL_ST_B  DIP_type_enable_status Audio DIP\t\t%lu\n", BIT(dword, 21));
     printf("AUD_CNTL_ST_B  DIP_type_enable_status ACP DIP\t\t%lu\n", BIT(dword, 22));
     printf("AUD_CNTL_ST_B  DIP_type_enable_status Generic 2 DIP\t%lu\n", BIT(dword, 23));
     printf("AUD_CNTL_ST_B  DIP_transmission_frequency\t\t[0x%lx] %s\n",
@@ -1229,7 +1229,7 @@ static void dump_cpt(void)
     dword = INREG(AUD_CNTL_ST_C);
     printf("AUD_CNTL_ST_C  DIP_Port_Select\t\t\t\t[%#lx] %s\n",
 					BITS(dword, 30, 29), dip_port[BITS(dword, 30, 29)]);
-    printf("AUD_CNTL_ST_C  DIP_type_enable_status Audio DIP\t%lu\n", BIT(dword, 21));
+    printf("AUD_CNTL_ST_C  DIP_type_enable_status Audio DIP\t\t%lu\n", BIT(dword, 21));
     printf("AUD_CNTL_ST_C  DIP_type_enable_status ACP DIP\t\t%lu\n", BIT(dword, 22));
     printf("AUD_CNTL_ST_C  DIP_type_enable_status Generic 2 DIP\t%lu\n", BIT(dword, 23));
     printf("AUD_CNTL_ST_C  DIP_transmission_frequency\t\t[0x%lx] %s\n",
