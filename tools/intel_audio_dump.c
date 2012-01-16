@@ -168,6 +168,11 @@ static const char *sdvo_hdmi_encoding[] = {
 	[3] = "reserved",
 };
 
+static const char *n_index_value[] = {
+	[0] = "HDMI",
+	[1] = "DisplayPort",
+};
+
 static void do_self_tests(void)
 {
     if (BIT(1, 0) != 1)
@@ -627,11 +632,23 @@ static void dump_ironlake(void)
     printf("PCH_DP_D Audio_Output_Enable\t\t\t\t%lu\n", BIT(dword, 6));
 
     dword = INREG(AUD_CONFIG_A);
+    printf("AUD_CONFIG_A  N_index_value\t\t\t\t[0x%lx] %s\n", BIT(dword, 29),
+						n_index_value[BIT(dword, 29)]);
+    printf("AUD_CONFIG_A  N_programming_enable\t\t\t%lu\n", BIT(dword, 28));
+    printf("AUD_CONFIG_A  Upper_N_value\t\t\t\t0x%02lx\n", BITS(dword, 27, 20));
+    printf("AUD_CONFIG_A  Lower_N_value\t\t\t\t0x%03lx\n", BITS(dword, 15, 4));
     printf("AUD_CONFIG_A  Pixel_Clock\t\t\t\t[0x%lx] %s\n", BITS(dword, 19, 16),
 		    OPNAME(pixel_clock, BITS(dword, 19, 16)));
+    printf("AUD_CONFIG_A  Disable_NCTS\t\t\t\t%lu\n", BIT(dword, 3));
     dword = INREG(AUD_CONFIG_B);
+    printf("AUD_CONFIG_B  N_index_value\t\t\t\t[0x%lx] %s\n", BIT(dword, 29),
+						n_index_value[BIT(dword, 29)]);
+    printf("AUD_CONFIG_B  N_programming_enable\t\t\t%lu\n", BIT(dword, 28));
+    printf("AUD_CONFIG_B  Upper_N_value\t\t\t\t0x%02lx\n", BITS(dword, 27, 20));
+    printf("AUD_CONFIG_B  Lower_N_value\t\t\t\t0x%03lx\n", BITS(dword, 15, 4));
     printf("AUD_CONFIG_B  Pixel_Clock\t\t\t\t[0x%lx] %s\n", BITS(dword, 19, 16),
 		    OPNAME(pixel_clock, BITS(dword, 19, 16)));
+    printf("AUD_CONFIG_B  Disable_NCTS\t\t\t\t%lu\n", BIT(dword, 3));
 
     dword = INREG(AUD_CTS_ENABLE_A);
     printf("AUD_CTS_ENABLE_A  Enable_CTS_or_M_programming\t\t%lu\n", BIT(dword, 20));
@@ -1063,14 +1080,32 @@ static void dump_cpt(void)
     printf("DP_CTL_D Audio_Output_Enable\t\t\t\t%lu\n", BIT(dword, 6));
 
     dword = INREG(AUD_CONFIG_A);
+    printf("AUD_CONFIG_A  N_index_value\t\t\t\t[0x%lx] %s\n", BIT(dword, 29),
+						n_index_value[BIT(dword, 29)]);
+    printf("AUD_CONFIG_A  N_programming_enable\t\t\t%lu\n", BIT(dword, 28));
+    printf("AUD_CONFIG_A  Upper_N_value\t\t\t\t0x%02lx\n", BITS(dword, 27, 20));
+    printf("AUD_CONFIG_A  Lower_N_value\t\t\t\t0x%03lx\n", BITS(dword, 15, 4));
     printf("AUD_CONFIG_A  Pixel_Clock_HDMI\t\t\t\t[0x%lx] %s\n", BITS(dword, 19, 16),
 		    OPNAME(pixel_clock, BITS(dword, 19, 16)));
+    printf("AUD_CONFIG_A  Disable_NCTS\t\t\t\t%lu\n", BIT(dword, 3));
     dword = INREG(AUD_CONFIG_B);
+    printf("AUD_CONFIG_B  N_index_value\t\t\t\t[0x%lx] %s\n", BIT(dword, 29),
+						n_index_value[BIT(dword, 29)]);
+    printf("AUD_CONFIG_B  N_programming_enable\t\t\t%lu\n", BIT(dword, 28));
+    printf("AUD_CONFIG_B  Upper_N_value\t\t\t\t0x%02lx\n", BITS(dword, 27, 20));
+    printf("AUD_CONFIG_B  Lower_N_value\t\t\t\t0x%03lx\n", BITS(dword, 15, 4));
     printf("AUD_CONFIG_B  Pixel_Clock_HDMI\t\t\t\t[0x%lx] %s\n", BITS(dword, 19, 16),
 		    OPNAME(pixel_clock, BITS(dword, 19, 16)));
+    printf("AUD_CONFIG_B  Disable_NCTS\t\t\t\t%lu\n", BIT(dword, 3));
     dword = INREG(AUD_CONFIG_C);
+    printf("AUD_CONFIG_C  N_index_value\t\t\t\t[0x%lx] %s\n", BIT(dword, 29),
+						n_index_value[BIT(dword, 29)]);
+    printf("AUD_CONFIG_C  N_programming_enable\t\t\t%lu\n", BIT(dword, 28));
+    printf("AUD_CONFIG_C  Upper_N_value\t\t\t\t0x%02lx\n", BITS(dword, 27, 20));
+    printf("AUD_CONFIG_C  Lower_N_value\t\t\t\t0x%03lx\n", BITS(dword, 15, 4));
     printf("AUD_CONFIG_C  Pixel_Clock_HDMI\t\t\t\t[0x%lx] %s\n", BITS(dword, 19, 16),
 		    OPNAME(pixel_clock, BITS(dword, 19, 16)));
+    printf("AUD_CONFIG_C  Disable_NCTS\t\t\t\t%lu\n", BIT(dword, 3));
 
     dword = INREG(AUD_CTS_ENABLE_A);
     printf("AUD_CTS_ENABLE_A  Enable_CTS_or_M_programming\t\t%lu\n", BIT(dword, 20));
