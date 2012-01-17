@@ -22,6 +22,7 @@ struct scratch_buf {
     uint32_t tiling;
     uint32_t *data;
     uint32_t *cpu_mapping;
+    uint32_t size;
     unsigned num_tiles;
 };
 
@@ -86,7 +87,7 @@ static inline unsigned buf_width(struct scratch_buf *buf)
 
 static inline unsigned buf_height(struct scratch_buf *buf)
 {
-	return options.scratch_buf_size/buf->stride;
+	return buf->size/buf->stride;
 }
 
 void gen6_render_copyfunc(struct scratch_buf *src, unsigned src_x, unsigned src_y,

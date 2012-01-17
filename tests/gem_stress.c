@@ -413,10 +413,10 @@ static void sanitize_stride(struct scratch_buf *buf)
 {
 
 	if (buf_height(buf) > options.max_dimension)
-		buf->stride = options.scratch_buf_size / options.max_dimension;
+		buf->stride = buf->size / options.max_dimension;
 
 	if (buf_height(buf) < options.tile_size)
-		buf->stride = options.scratch_buf_size / options.tile_size;
+		buf->stride = buf->size / options.tile_size;
 
 	if (buf_width(buf) < options.tile_size)
 		buf->stride = options.tile_size * sizeof(uint32_t);
@@ -433,6 +433,7 @@ static void sanitize_stride(struct scratch_buf *buf)
 static void init_buffer(struct scratch_buf *buf, unsigned size)
 {
 	buf->bo = drm_intel_bo_alloc(bufmgr, "tiled bo", size, 4096);
+	buf->size = size;
 	assert(buf->bo);
 	buf->tiling = I915_TILING_NONE;
 	buf->stride = 4096;
