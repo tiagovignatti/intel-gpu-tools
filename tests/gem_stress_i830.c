@@ -53,8 +53,7 @@
 #define TB0A_ARG1_SEL_TEXEL3		(9 << 6)
 
 void gen2_render_copyfunc(struct scratch_buf *src, unsigned src_x, unsigned src_y,
-			  struct scratch_buf *dst, unsigned dst_x, unsigned dst_y,
-			  unsigned logical_tile_no)
+			  struct scratch_buf *dst, unsigned dst_x, unsigned dst_y)
 {
 	static unsigned keep_gpu_busy_counter = 0;
 

@@ -299,16 +299,13 @@ static void render_copyfunc(struct scratch_buf *src, unsigned src_x, unsigned sr
 {
 	if (IS_GEN2(devid))
 		gen2_render_copyfunc(src, src_x, src_y,
-				     dst, dst_x, dst_y,
-				     logical_tile_no);
+				     dst, dst_x, dst_y);
 	else if (IS_GEN3(devid))
 		gen3_render_copyfunc(src, src_x, src_y,
-				     dst, dst_x, dst_y,
-				     logical_tile_no);
+				     dst, dst_x, dst_y);
 	else if (IS_GEN6(devid))
 		gen6_render_copyfunc(src, src_x, src_y,
-				     dst, dst_x, dst_y,
-				     logical_tile_no);
+				     dst, dst_x, dst_y);
 	else
 		blitter_copyfunc(src, src_x, src_y,
 				 dst, dst_x, dst_y,

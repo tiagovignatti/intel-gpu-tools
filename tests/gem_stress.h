@@ -91,11 +91,8 @@ static inline unsigned buf_height(struct scratch_buf *buf)
 }
 
 void gen6_render_copyfunc(struct scratch_buf *src, unsigned src_x, unsigned src_y,
-			  struct scratch_buf *dst, unsigned dst_x, unsigned dst_y,
-			  unsigned logical_tile_no);
+			  struct scratch_buf *dst, unsigned dst_x, unsigned dst_y);
 void gen3_render_copyfunc(struct scratch_buf *src, unsigned src_x, unsigned src_y,
-			  struct scratch_buf *dst, unsigned dst_x, unsigned dst_y,
-			  unsigned logical_tile_no);
+			  struct scratch_buf *dst, unsigned dst_x, unsigned dst_y);
 void gen2_render_copyfunc(struct scratch_buf *src, unsigned src_x, unsigned src_y,
-			  struct scratch_buf *dst, unsigned dst_x, unsigned dst_y,
-			  unsigned logical_tile_no);
+			  struct scratch_buf *dst, unsigned dst_x, unsigned dst_y);

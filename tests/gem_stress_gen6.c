@@ -527,8 +527,7 @@ static uint32_t gen6_emit_primitive(void)
 }
 
 void gen6_render_copyfunc(struct scratch_buf *src, unsigned src_x, unsigned src_y,
-			  struct scratch_buf *dst, unsigned dst_x, unsigned dst_y,
-			  unsigned logical_tile_no)
+			  struct scratch_buf *dst, unsigned dst_x, unsigned dst_y)
 {
 	uint32_t wm_state, wm_kernel, wm_table;
 	uint32_t cc_vp, cc_blend, offset;

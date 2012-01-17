@@ -3,8 +3,7 @@
 #include "gem_stress.h"
 
 void gen3_render_copyfunc(struct scratch_buf *src, unsigned src_x, unsigned src_y,
-			  struct scratch_buf *dst, unsigned dst_x, unsigned dst_y,
-			  unsigned logical_tile_no)
+			  struct scratch_buf *dst, unsigned dst_x, unsigned dst_y)
 {
 	static unsigned keep_gpu_busy_counter = 0;
 
