@@ -52,7 +52,8 @@
 #define TB0A_ARG1_SEL_TEXEL2		(8 << 6)
 #define TB0A_ARG1_SEL_TEXEL3		(9 << 6)
 
-void gen2_render_copyfunc(struct scratch_buf *src, unsigned src_x, unsigned src_y,
+void gen2_render_copyfunc(struct intel_batchbuffer *batch,
+			  struct scratch_buf *src, unsigned src_x, unsigned src_y,
 			  struct scratch_buf *dst, unsigned dst_x, unsigned dst_y)
 {
 	static unsigned keep_gpu_busy_counter = 0;
@@ -329,20 +330,20 @@ void gen2_render_copyfunc(struct scratch_buf *src, unsigned src_x, unsigned src_
 	}
 
 	OUT_BATCH(PRIM3D_INLINE | PRIM3D_RECTLIST | (3*4 -1));
-	emit_vertex(dst_x + options.tile_size);
-	emit_vertex(dst_y + options.tile_size);
-	emit_vertex_normalized(src_x + options.tile_size, buf_width(src));
-	emit_vertex_normalized(src_y + options.tile_size, buf_height(src));
+	emit_vertex(batch, dst_x + options.tile_size);
+	emit_vertex(batch, dst_y + options.tile_size);
+	emit_vertex_normalized(batch, src_x + options.tile_size, buf_width(src));
+	emit_vertex_normalized(batch, src_y + options.tile_size, buf_height(src));
 
-	emit_vertex(dst_x);
-	emit_vertex(dst_y + options.tile_size);
-	emit_vertex_normalized(src_x, buf_width(src));
-	emit_vertex_normalized(src_y + options.tile_size, buf_height(src));
+	emit_vertex(batch, dst_x);
+	emit_vertex(batch, dst_y + options.tile_size);
+	emit_vertex_normalized(batch, src_x, buf_width(src));
+	emit_vertex_normalized(batch, src_y + options.tile_size, buf_height(src));
 
-	emit_vertex(dst_x);
-	emit_vertex(dst_y);
-	emit_vertex_normalized(src_x, buf_width(src));
-	emit_vertex_normalized(src_y, buf_height(src));
+	emit_vertex(batch, dst_x);
+	emit_vertex(batch, dst_y);
+	emit_vertex_normalized(batch, src_x, buf_width(src));
+	emit_vertex_normalized(batch, src_y, buf_height(src));
 
 	if (!(keep_gpu_busy_counter & 1))
 		keep_gpu_busy();

@@ -48,7 +48,6 @@ struct option_struct {
 
 extern struct option_struct options;
 extern drm_intel_bufmgr *bufmgr;
-extern struct intel_batchbuffer *batch;
 extern int drm_fd;
 extern int devid;
 
@@ -61,19 +60,22 @@ extern int fence_storm;
 
 void keep_gpu_busy(void);
 
-static inline void emit_vertex_2s(int16_t x, int16_t y)
+static inline void emit_vertex_2s(struct intel_batchbuffer *batch,
+				  int16_t x, int16_t y)
 {
 	OUT_BATCH((uint16_t)y << 16 | (uint16_t)x);
 }
 
-static inline void emit_vertex(float f)
+static inline void emit_vertex(struct intel_batchbuffer *batch,
+			       float f)
 {
 	union { float f; uint32_t ui; } u;
 	u.f = f;
 	OUT_BATCH(u.ui);
 }
 
-static inline void emit_vertex_normalized(float f, float total)
+static inline void emit_vertex_normalized(struct intel_batchbuffer *batch,
+					  float f, float total)
 {
 	union { float f; uint32_t ui; } u;
 	u.f = f / total;
@@ -90,9 +92,12 @@ static inline unsigned buf_height(struct scratch_buf *buf)
 	return buf->size/buf->stride;
 }
 
-void gen6_render_copyfunc(struct scratch_buf *src, unsigned src_x, unsigned src_y,
+void gen6_render_copyfunc(struct intel_batchbuffer *batch,
+			  struct scratch_buf *src, unsigned src_x, unsigned src_y,
 			  struct scratch_buf *dst, unsigned dst_x, unsigned dst_y);
-void gen3_render_copyfunc(struct scratch_buf *src, unsigned src_x, unsigned src_y,
+void gen3_render_copyfunc(struct intel_batchbuffer *batch,
+			  struct scratch_buf *src, unsigned src_x, unsigned src_y,
 			  struct scratch_buf *dst, unsigned dst_x, unsigned dst_y);
-void gen2_render_copyfunc(struct scratch_buf *src, unsigned src_x, unsigned src_y,
+void gen2_render_copyfunc(struct intel_batchbuffer *batch,
+			  struct scratch_buf *src, unsigned src_x, unsigned src_y,
 			  struct scratch_buf *dst, unsigned dst_x, unsigned dst_y);
