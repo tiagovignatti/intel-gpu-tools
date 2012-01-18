@@ -49,7 +49,7 @@
  * In short: designed for maximum evilness.
  */
 
-#include "gem_stress.h"
+#include "rendercopy.h"
 
 #define CMD_POLY_STIPPLE_OFFSET       0x7906
 

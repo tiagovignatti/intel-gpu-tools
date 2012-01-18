@@ -1,5 +1,5 @@
 #include "i830_reg.h"
-#include "gem_stress.h"
+#include "rendercopy.h"
 
 #define TB0C_LAST_STAGE	(1 << 31)
 #define TB0C_RESULT_SCALE_1X		(0 << 29)

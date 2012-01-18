@@ -1,4 +1,4 @@
-#include "gem_stress.h"
+#include "rendercopy.h"
 #include "gen6_render.h"
 
 #include <assert.h>

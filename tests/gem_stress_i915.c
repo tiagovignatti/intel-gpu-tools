@@ -1,6 +1,6 @@
 #include "i915_reg.h"
 #include "i915_3d.h"
-#include "gem_stress.h"
+#include "rendercopy.h"
 
 void gen3_render_copyfunc(struct intel_batchbuffer *batch,
 			  struct scratch_buf *src, unsigned src_x, unsigned src_y,
