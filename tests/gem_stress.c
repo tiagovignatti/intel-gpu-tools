@@ -75,6 +75,11 @@ drm_intel_bo *busy_bo;
 
 struct option_struct options;
 
+#define MAX_BUFS		4096
+#define SCRATCH_BUF_SIZE	1024*1024
+#define BUSY_BUF_SIZE		(256*4096)
+#define TILE_BYTES(size)	((size)*(size)*sizeof(uint32_t))
+
 static struct scratch_buf buffers[2][MAX_BUFS];
 /* tile i is at logical position tile_permutation[i] */
 static unsigned *tile_permutation;

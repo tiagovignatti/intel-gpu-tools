@@ -47,16 +47,6 @@ struct option_struct {
 };
 
 extern struct option_struct options;
-extern drm_intel_bufmgr *bufmgr;
-extern int drm_fd;
-extern int devid;
-
-extern int fence_storm;
-
-#define MAX_BUFS		4096
-#define SCRATCH_BUF_SIZE	1024*1024
-#define BUSY_BUF_SIZE		(256*4096)
-#define TILE_BYTES(size)	((size)*(size)*sizeof(uint32_t))
 
 void keep_gpu_busy(void);
 
