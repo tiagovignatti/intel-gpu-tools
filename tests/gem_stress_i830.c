@@ -54,6 +54,7 @@
 
 void gen2_render_copyfunc(struct intel_batchbuffer *batch,
 			  struct scratch_buf *src, unsigned src_x, unsigned src_y,
+			  unsigned width, unsigned height,
 			  struct scratch_buf *dst, unsigned dst_x, unsigned dst_y)
 {
 	static unsigned keep_gpu_busy_counter = 0;
@@ -330,15 +331,15 @@ void gen2_render_copyfunc(struct intel_batchbuffer *batch,
 	}
 
 	OUT_BATCH(PRIM3D_INLINE | PRIM3D_RECTLIST | (3*4 -1));
-	emit_vertex(batch, dst_x + options.tile_size);
-	emit_vertex(batch, dst_y + options.tile_size);
-	emit_vertex_normalized(batch, src_x + options.tile_size, buf_width(src));
-	emit_vertex_normalized(batch, src_y + options.tile_size, buf_height(src));
+	emit_vertex(batch, dst_x + width);
+	emit_vertex(batch, dst_y + height);
+	emit_vertex_normalized(batch, src_x + width, buf_width(src));
+	emit_vertex_normalized(batch, src_y + height, buf_height(src));
 
 	emit_vertex(batch, dst_x);
-	emit_vertex(batch, dst_y + options.tile_size);
+	emit_vertex(batch, dst_y + height);
 	emit_vertex_normalized(batch, src_x, buf_width(src));
-	emit_vertex_normalized(batch, src_y + options.tile_size, buf_height(src));
+	emit_vertex_normalized(batch, src_y + height, buf_height(src));
 
 	emit_vertex(batch, dst_x);
 	emit_vertex(batch, dst_y);

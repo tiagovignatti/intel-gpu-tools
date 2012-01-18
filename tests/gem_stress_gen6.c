@@ -530,6 +530,7 @@ static uint32_t gen6_emit_primitive(struct intel_batchbuffer *batch)
 
 void gen6_render_copyfunc(struct intel_batchbuffer *batch,
 			  struct scratch_buf *src, unsigned src_x, unsigned src_y,
+			  unsigned width, unsigned height,
 			  struct scratch_buf *dst, unsigned dst_x, unsigned dst_y)
 {
 	uint32_t wm_state, wm_kernel, wm_table;
@@ -581,13 +582,13 @@ void gen6_render_copyfunc(struct intel_batchbuffer *batch,
 	*(uint32_t*)(batch->buffer + offset) =
 		batch_round_upto(batch, VERTEX_SIZE)/VERTEX_SIZE;
 
-	emit_vertex_2s(batch, dst_x + options.tile_size, dst_y + options.tile_size);
-	emit_vertex_normalized(batch, src_x + options.tile_size, buf_width(src));
-	emit_vertex_normalized(batch, src_y + options.tile_size, buf_height(src));
+	emit_vertex_2s(batch, dst_x + width, dst_y + height);
+	emit_vertex_normalized(batch, src_x + width, buf_width(src));
+	emit_vertex_normalized(batch, src_y + height, buf_height(src));
 
-	emit_vertex_2s(batch, dst_x, dst_y + options.tile_size);
+	emit_vertex_2s(batch, dst_x, dst_y + height);
 	emit_vertex_normalized(batch, src_x, buf_width(src));
-	emit_vertex_normalized(batch, src_y + options.tile_size, buf_height(src));
+	emit_vertex_normalized(batch, src_y + height, buf_height(src));
 
 	emit_vertex_2s(batch, dst_x, dst_y);
 	emit_vertex_normalized(batch, src_x, buf_width(src));
