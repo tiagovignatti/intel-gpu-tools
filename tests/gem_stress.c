@@ -168,7 +168,7 @@ static void emit_blt(drm_intel_bo *src_bo, uint32_t src_tiling, unsigned src_pit
 
 /* All this gem trashing wastes too much cpu time, so give the gpu something to
  * do to increase changes for races. */
-void keep_gpu_busy(void)
+static void keep_gpu_busy(void)
 {
 	int tmp;
 
@@ -322,6 +322,12 @@ static void render_copyfunc(struct scratch_buf *src, unsigned src_x, unsigned sr
 			    struct scratch_buf *dst, unsigned dst_x, unsigned dst_y,
 			    unsigned logical_tile_no)
 {
+	static unsigned keep_gpu_busy_counter = 0;
+
+	/* check both edges of the fence usage */
+	if (keep_gpu_busy_counter & 1)
+		keep_gpu_busy();
+
 	if (IS_GEN2(devid))
 		gen2_render_copyfunc(batch,
 				     src, src_x, src_y,
@@ -341,6 +347,11 @@ static void render_copyfunc(struct scratch_buf *src, unsigned src_x, unsigned sr
 		blitter_copyfunc(src, src_x, src_y,
 				 dst, dst_x, dst_y,
 				 logical_tile_no);
+	if (!(keep_gpu_busy_counter & 1))
+		keep_gpu_busy();
+
+	keep_gpu_busy_counter++;
+	intel_batchbuffer_flush(batch);
 }
 
 static void next_copyfunc(int tile)

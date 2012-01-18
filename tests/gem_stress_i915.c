@@ -7,12 +7,6 @@ void gen3_render_copyfunc(struct intel_batchbuffer *batch,
 			  unsigned width, unsigned height,
 			  struct scratch_buf *dst, unsigned dst_x, unsigned dst_y)
 {
-	static unsigned keep_gpu_busy_counter = 0;
-
-	/* check both edges of the fence usage */
-	if (keep_gpu_busy_counter & 1)
-		keep_gpu_busy();
-
 	/* invariant state */
 	{
 		OUT_BATCH(_3DSTATE_AA_CMD |
@@ -181,11 +175,6 @@ void gen3_render_copyfunc(struct intel_batchbuffer *batch,
 	emit_vertex(batch, dst_y);
 	emit_vertex(batch, src_x);
 	emit_vertex(batch, src_y);
-
-	if (!(keep_gpu_busy_counter & 1))
-		keep_gpu_busy();
-
-	keep_gpu_busy_counter++;
 
 	intel_batchbuffer_flush(batch);
 }

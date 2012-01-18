@@ -26,8 +26,6 @@ struct scratch_buf {
     unsigned num_tiles;
 };
 
-void keep_gpu_busy(void);
-
 static inline void emit_vertex_2s(struct intel_batchbuffer *batch,
 				  int16_t x, int16_t y)
 {
