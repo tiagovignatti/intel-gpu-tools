@@ -26,28 +26,6 @@ struct scratch_buf {
     unsigned num_tiles;
 };
 
-struct option_struct {
-    unsigned scratch_buf_size;
-    unsigned max_dimension;
-    unsigned num_buffers;
-    int trace_tile;
-    int no_hw;
-    int gpu_busy_load;
-    int use_render;
-    int use_blt;
-    int forced_tiling;
-    int use_cpu_maps;
-    int total_rounds;
-    int fail;
-    int tiles_per_buf;
-    int ducttape;
-    int tile_size;
-    int check_render_cpyfn;
-    int use_signal_helper;
-};
-
-extern struct option_struct options;
-
 void keep_gpu_busy(void);
 
 static inline void emit_vertex_2s(struct intel_batchbuffer *batch,
