@@ -91,15 +91,9 @@ AM_CFLAGS = $(DRM_CFLAGS) $(CWARNFLAGS) \
 	-I$(srcdir)/../lib
 LDADD = ../lib/libintel_tools.la $(PCIACCESS_LIBS) $(DRM_LIBS) 
 
-if HAVE_CAIRO
-if HAVE_LIBUDEV
-if HAVE_GLIB
 TESTS_progs += testdisplay
 LDADD += $(CAIRO_LIBS) $(LIBUDEV_LIBS) $(GLIB_LIBS)
 AM_CFLAGS += $(CAIRO_CFLAGS) $(LIBUDEV_CFLAGS) $(GLIB_CFLAGS)
-endif
-endif
-endif
 
 gem_fence_thrash_CFLAGS = $(AM_CFLAGS) $(THREAD_CFLAGS)
 gem_fence_thrash_LDADD = $(LDADD) -lpthread

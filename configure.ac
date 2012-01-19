@@ -55,23 +55,10 @@ XORG_DEFAULT_OPTIONS
 PKG_CHECK_MODULES(DRM, [libdrm_intel >= 2.4.30 libdrm])
 PKG_CHECK_MODULES(PCIACCESS, [pciaccess >= 0.10])
 
-PKG_CHECK_MODULES(CAIRO, cairo, [HAVE_CAIRO=yes], [HAVE_CAIRO=no])
-if test "x$HAVE_CAIRO" = xyes; then
-	AC_DEFINE(HAVE_CAIRO, 1, [Have cairo support])
-fi
-AM_CONDITIONAL(HAVE_CAIRO, [test "x$HAVE_CAIRO" = xyes])
-
-PKG_CHECK_MODULES(LIBUDEV, libudev, [HAVE_LIBUDEV=yes], [HAVE_LIBUDEV=no])
-if test "x$HAVE_LIBUDEV" = xyes; then
-   	AC_DEFINE(HAVE_LIBUDEV, 1, [Have libudev support])
-fi
-AM_CONDITIONAL(HAVE_LIBUDEV, [test "x$HAVE_LIBUDEV" = xyes])
-
-PKG_CHECK_MODULES(GLIB, glib-2.0, [HAVE_GLIB=yes], [HAVE_GLIB=no])
-if test "x$HAVE_GLIB" = xyes; then
-   	AC_DEFINE(HAVE_GLIB, 1, [Have glib support])
-fi
-AM_CONDITIONAL(HAVE_GLIB, [test "x$HAVE_GLIB" = xyes])
+# for testdisplay
+PKG_CHECK_MODULES(CAIRO, cairo)
+PKG_CHECK_MODULES(LIBUDEV, libudev)
+PKG_CHECK_MODULES(GLIB, glib-2.0)
 
 # -----------------------------------------------------------------------------
 #			Configuration options
