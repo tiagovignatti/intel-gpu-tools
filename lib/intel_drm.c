@@ -106,3 +106,24 @@ intel_get_total_ram_mb(void)
 
 	return retval / (1024*1024);
 }
+
+uint64_t
+intel_get_total_swap_mb(void)
+{
+	uint64_t retval;
+
+#ifdef HAVE_STRUCT_SYSINFO_TOTALRAM /* Linux */
+	struct sysinfo sysinf;
+	int ret;
+
+	ret = sysinfo(&sysinf);
+	assert(ret == 0);
+
+	retval = sysinf.totalswap;
+	retval *= sysinf.mem_unit;
+#else
+#error "Unknown how to get swap size for this OS"
+#endif
+
+	return retval / (1024*1024);
+}
