@@ -492,19 +492,6 @@ static void init_buffer(struct scratch_buf *buf, unsigned size)
 	buf->num_tiles = options.tiles_per_buf;
 }
 
-static void permute_array(void *array, unsigned size,
-			  void (*exchange_func)(void *array, unsigned i, unsigned j))
-{
-	int i;
-
-	for (i = size - 1; i > 1; i--) {
-		/* yes, not perfectly uniform, who cares */
-		long l = random() % (i +1);
-		if (i != l)
-			exchange_func(array, i, l);
-	}
-}
-
 static void exchange_buf(void *array, unsigned i, unsigned j)
 {
 	struct scratch_buf *buf_arr, tmp;
@@ -521,7 +508,7 @@ static void init_set(unsigned set)
 	long int r;
 	int i;
 
-	permute_array(buffers[set], num_buffers, exchange_buf);
+	drmtest_permute_array(buffers[set], num_buffers, exchange_buf);
 
 	if (current_set == 1 && options.gpu_busy_load == 0) {
 		gpu_busy_load++;
@@ -924,7 +911,7 @@ int main(int argc, char **argv)
 
 		for (j = 0; j < num_total_tiles; j++)
 			current_permutation[j] = j;
-		permute_array(current_permutation, num_total_tiles, exchange_uint);
+		drmtest_permute_array(current_permutation, num_total_tiles, exchange_uint);
 
 		copy_tiles(current_permutation);
 

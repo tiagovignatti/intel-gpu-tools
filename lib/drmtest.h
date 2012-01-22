@@ -55,6 +55,10 @@ uint64_t gem_mappable_aperture_size(void);
 /* generally useful helpers */
 void drmtest_fork_signal_helper(void);
 void drmtest_stop_signal_helper(void);
+void drmtest_permute_array(void *array, unsigned size,
+			   void (*exchange_func)(void *array,
+						 unsigned i,
+						 unsigned j));
 
 /* helpers based upon the libdrm buffer manager */
 void drmtest_init_aperture_trashers(drm_intel_bufmgr *bufmgr);

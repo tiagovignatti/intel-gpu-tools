@@ -332,6 +332,22 @@ void drmtest_stop_signal_helper(void)
 	signal_helper = -1;
 }
 
+/* other helpers */
+void drmtest_permute_array(void *array, unsigned size,
+			   void (*exchange_func)(void *array,
+						 unsigned i,
+						 unsigned j))
+{
+	int i;
+
+	for (i = size - 1; i > 1; i--) {
+		/* yes, not perfectly uniform, who cares */
+		long l = random() % (i +1);
+		if (i != l)
+			exchange_func(array, i, l);
+	}
+}
+
 /* mappable aperture trasher helper */
 drm_intel_bo **trash_bos;
 int num_trash_bos;
