@@ -125,7 +125,7 @@ main(int argc, char **argv)
 	
 
 	fd = drm_open_any();
-	count = intel_get_total_ram_mb() * 9 / 10;
+	count = intel_get_total_ram_mb() * 11 / 10;
 
 	for (i = 0; i < count/2; i++) {
 		current_tiling_mode = I915_TILING_X;
