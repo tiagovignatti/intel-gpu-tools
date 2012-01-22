@@ -41,6 +41,7 @@ gem_tiled_blits
 gem_tiled_fence_blits
 gem_tiled_pread
 gem_tiled_pread_pwrite
+gem_tiled_swapping
 gem_unref_active_buffers
 gem_vmap_blits
 gen3_mixed_blits

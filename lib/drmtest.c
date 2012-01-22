@@ -333,6 +333,16 @@ void drmtest_stop_signal_helper(void)
 }
 
 /* other helpers */
+void drmtest_exchange_int(void *array, unsigned i, unsigned j)
+{
+	int *int_arr, tmp;
+	int_arr = array;
+
+	tmp = int_arr[i];
+	int_arr[i] = int_arr[j];
+	int_arr[j] = tmp;
+}
+
 void drmtest_permute_array(void *array, unsigned size,
 			   void (*exchange_func)(void *array,
 						 unsigned i,
