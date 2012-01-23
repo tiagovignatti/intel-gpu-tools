@@ -112,6 +112,11 @@ main(int argc, char **argv)
 		return 77;
 	}
 
+	if (intel_get_total_ram_mb() / 4 > intel_get_total_swap_mb()) {
+		printf("not enough swap detected\n");
+		return 77;
+	}
+
 	for (i = 0; i < count; i++)
 		bo_handles[i] = create_bo_and_fill(fd);
 
