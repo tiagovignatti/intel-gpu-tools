@@ -50,13 +50,8 @@
 #include <assert.h>
 #include <cairo.h>
 #include <errno.h>
-#include <glib.h>
-#include <libudev.h>
 #include <math.h>
 #include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <unistd.h>
 #include <sys/poll.h>
 #include <sys/time.h>
@@ -67,13 +62,13 @@
 #include "xf86drmMode.h"
 #include "i915_drm.h"
 #include "drmtest.h"
+#include "testdisplay.h"
 
 #if defined(DRM_IOCTL_MODE_ADDFB2) && defined(DRM_I915_SET_SPRITE_COLORKEY)
 #define TEST_PLANES 1
 #include "drm_fourcc.h"
 #endif
 
-struct udev_monitor *uevent_monitor;
 drmModeRes *resources;
 int drm_fd, modes;
 int dump_info = 0, test_all_modes =0, test_preferred_mode = 0, force_mode = 0,
@@ -977,7 +972,7 @@ set_mode(struct connector *c)
  * Each connector has a corresponding encoder, except in the SDVO case
  * where an encoder may have multiple connectors.
  */
-static int update_display(void)
+int update_display(void)
 {
 	struct connector *connectors;
 	int c;
@@ -1032,32 +1027,6 @@ static void usage(char *name)
 
 #define dump_resource(res) if (res) dump_##res()
 
-static gboolean hotplug_event(GIOChannel *source, GIOCondition condition,
-			      gpointer data)
-{
-	struct udev_device *dev;
-	dev_t udev_devnum;
-	struct stat s;
-	const char *hotplug;
-
-	dev = udev_monitor_receive_device(uevent_monitor);
-	if (!dev)
-		goto out;
-
-	udev_devnum = udev_device_get_devnum(dev);
-	fstat(drm_fd, &s);
-
-	hotplug = udev_device_get_property_value(dev, "HOTPLUG");
-
-	if (memcmp(&s.st_rdev, &udev_devnum, sizeof(dev_t)) == 0 &&
-	    hotplug && atoi(hotplug) == 1)
-		update_display();
-
-	udev_device_unref(dev);
-out:
-	return TRUE;
-}
-
 static gboolean input_event(GIOChannel *source, GIOCondition condition,
 			    gpointer data)
 {
@@ -1093,9 +1062,8 @@ int main(int argc, char **argv)
 	int c;
 	const char *modules[] = { "i915" };
 	unsigned int i;
-	struct udev *u;
 	int ret = 0;
-	GIOChannel *udevchannel, *stdinchannel;
+	GIOChannel *stdinchannel;
 	GMainLoop *mainloop;
 
 	opterr = 0;
@@ -1160,90 +1128,49 @@ int main(int argc, char **argv)
 		goto out;
 	}
 
-	u = udev_new();
-	if (!u) {
-		fprintf(stderr, "failed to create udev object\n");
-		ret = -1;
-		goto out_close;
-	}
-
-	uevent_monitor = udev_monitor_new_from_netlink(u, "udev");
-	if (!uevent_monitor) {
-		fprintf(stderr, "failed to create udev event monitor\n");
-		ret = -1;
-		goto out_udev_unref;
-	}
-
-	ret = udev_monitor_filter_add_match_subsystem_devtype(uevent_monitor,
-							      "drm",
-							      "drm_minor");
-	if (ret < 0) {
-		fprintf(stderr, "failed to filter for drm events\n");
-		goto out_udev_mon_unref;
-	}
-
-	ret = udev_monitor_enable_receiving(uevent_monitor);
-	if (ret < 0) {
-		fprintf(stderr, "failed to enable udev event reception\n");
-		goto out_udev_mon_unref;
-	}
-
 	mainloop = g_main_loop_new(NULL, FALSE);
 	if (!mainloop) {
 		fprintf(stderr, "failed to create glib mainloop\n");
 		ret = -1;
-		goto out_mainloop_unref;
+		goto out_close;
 	}
 
-	udevchannel =
-		g_io_channel_unix_new(udev_monitor_get_fd(uevent_monitor));
-	if (!udevchannel) {
-		fprintf(stderr, "failed to create udev GIO channel\n");
-		goto out_mainloop_unref;
-	}
-
-	ret = g_io_add_watch(udevchannel, G_IO_IN | G_IO_ERR, hotplug_event,
-			     u);
-	if (ret < 0) {
-		fprintf(stderr, "failed to add watch on udev GIO channel\n");
-		goto out_udev_off;
+	if (!testdisplay_setup_hotplug()) {
+		fprintf(stderr, "failed to initialize hotplug support\n");
+		goto out_mainloop;
 	}
 
 	stdinchannel = g_io_channel_unix_new(0);
 	if (!stdinchannel) {
 		fprintf(stderr, "failed to create stdin GIO channel\n");
-		goto out_udev_off;
+		goto out_hotplug;
 	}
 
 	ret = g_io_add_watch(stdinchannel, G_IO_IN | G_IO_ERR, input_event,
 			     NULL);
 	if (ret < 0) {
 		fprintf(stderr, "failed to add watch on stdin GIO channel\n");
-		goto out_stdio_off;
+		goto out_stdio;
 	}
 
 	ret = 0;
 
 	if (!update_display()) {
 		ret = 1;
-		goto out_stdio_off;
+		goto out_stdio;
 	}
 
 	if (dump_info || test_all_modes)
-		goto out_stdio_off;
+		goto out_stdio;
 
 	g_main_loop_run(mainloop);
 
-out_stdio_off:
+out_stdio:
 	g_io_channel_shutdown(stdinchannel, TRUE, NULL);
-out_udev_off:
-	g_io_channel_shutdown(udevchannel, TRUE, NULL);
-out_mainloop_unref:
+out_hotplug:
+	testdisplay_cleanup_hotplug();
+out_mainloop:
 	g_main_loop_unref(mainloop);
-out_udev_mon_unref:
-	udev_monitor_unref(uevent_monitor);
-out_udev_unref:
-	udev_unref(u);
 out_close:
 	if (test_plane)
 		disable_planes(drm_fd);

@@ -92,6 +92,12 @@ AM_CFLAGS = $(DRM_CFLAGS) $(CWARNFLAGS) \
 	-I$(srcdir)/../lib
 LDADD = ../lib/libintel_tools.la $(PCIACCESS_LIBS) $(DRM_LIBS) 
 
+testdisplay_SOURCES = \
+	testdisplay.c \
+	testdisplay.h \
+	testdisplay_hotplug.c \
+	$(NULL)
+
 TESTS_progs += testdisplay
 LDADD += $(CAIRO_LIBS) $(LIBUDEV_LIBS) $(GLIB_LIBS)
 AM_CFLAGS += $(CAIRO_CFLAGS) $(LIBUDEV_CFLAGS) $(GLIB_CFLAGS)
