@@ -60,6 +60,7 @@ void drmtest_permute_array(void *array, unsigned size,
 			   void (*exchange_func)(void *array,
 						 unsigned i,
 						 unsigned j));
+void drmtest_progress(const char *header, uint64_t i, uint64_t total);
 
 /* helpers based upon the libdrm buffer manager */
 void drmtest_init_aperture_trashers(drm_intel_bufmgr *bufmgr);
