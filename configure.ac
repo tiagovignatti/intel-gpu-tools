@@ -41,6 +41,7 @@ AC_CHECK_HEADERS([termios.h])
 AC_CHECK_MEMBERS([struct sysinfo.totalram],[],[],[AC_INCLUDES_DEFAULT
 #include <sys/sysinfo.h>
 ])
+AC_CHECK_FUNCS([swapctl])
 
 # Initialize libtool
 AC_DISABLE_STATIC
