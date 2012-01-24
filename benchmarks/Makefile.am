@@ -7,4 +7,4 @@ bin_PROGRAMS = 				\
 
 AM_CPPFLAGS = -I$(top_srcdir) -I$(top_srcdir)/lib
 AM_CFLAGS = $(DRM_CFLAGS) $(CWARNFLAGS)
-LDADD = $(top_builddir)/lib/libintel_tools.la $(DRM_LIBS)
+LDADD = $(top_builddir)/lib/libintel_tools.la $(DRM_LIBS) $(PCIACCESS_LIBS)
