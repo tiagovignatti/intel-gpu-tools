@@ -33,6 +33,7 @@ TESTS_progs = \
 	gem_fence_thrash \
 	gem_fenced_exec_thrash \
 	gem_gtt_speed \
+	gem_cs_prefetch \
 	gen3_render_linear_blits \
 	gen3_render_tiledx_blits \
 	gen3_render_tiledy_blits \
