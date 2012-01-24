@@ -57,7 +57,10 @@ PKG_CHECK_MODULES(PCIACCESS, [pciaccess >= 0.10])
 
 # for testdisplay
 PKG_CHECK_MODULES(CAIRO, cairo)
-PKG_CHECK_MODULES(LIBUDEV, libudev)
+PKG_CHECK_MODULES(LIBUDEV, [libudev], [udev=yes], [udev=no])
+if test x"$udev" = xyes; then
+	AC_DEFINE(HAVE_UDEV,1,[Enable udev-based monitor hotplug detection])
+fi
 PKG_CHECK_MODULES(GLIB, glib-2.0)
 
 # -----------------------------------------------------------------------------

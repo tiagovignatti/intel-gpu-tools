@@ -24,10 +24,14 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <libudev.h>
 
 #include "testdisplay.h"
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 
+#if HAVE_UDEV
+#include <libudev.h>
 static struct udev_monitor *uevent_monitor;
 static struct udev *udev;
 static GIOChannel *udevchannel;
@@ -119,3 +123,14 @@ void testdisplay_cleanup_hotplug(void)
 	if (udev)
 		udev_unref(udev);
 }
+#else
+gboolean testdisplay_setup_hotplug(void)
+{
+	fprintf(stderr, "no hotplug support on this platform\n");
+	return TRUE;
+}
+
+void testdisplay_cleanup_hotplug(void)
+{
+}
+#endif
