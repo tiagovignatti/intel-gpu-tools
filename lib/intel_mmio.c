@@ -202,7 +202,7 @@ intel_register_read(uint32_t reg)
 
 	assert(mmio_data.inited);
 
-	if (IS_GEN6(mmio_data.i915_devid))
+	if (intel_gen(mmio_data.i915_devid) >= 6)
 		assert(mmio_data.key != -1);
 
 	if (!mmio_data.safe)
@@ -232,7 +232,7 @@ intel_register_write(uint32_t reg, uint32_t val)
 
 	assert(mmio_data.inited);
 
-	if (IS_GEN6(mmio_data.i915_devid))
+	if (intel_gen(mmio_data.i915_devid) >= 6)
 		assert(mmio_data.key != -1);
 
 	if (!mmio_data.safe)
