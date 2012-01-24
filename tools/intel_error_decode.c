@@ -428,7 +428,7 @@ main (int argc, char *argv[])
 {
     FILE *file;
     const char *path;
-    char *filename;
+    char *filename = NULL;
     struct stat st;
     int error;
 
