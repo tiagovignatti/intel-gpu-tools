@@ -43,7 +43,7 @@ int main(int argc, char** argv)
 		exit(1);
 	}
 
-	intel_get_mmio(intel_get_pci_device());
+	intel_register_access_init(intel_get_pci_device(), 0);
 	sscanf(argv[1], "0x%x", &reg);
 	sscanf(argv[2], "0x%x", &value);
 	ptr = (volatile uint32_t *)((volatile char *)mmio + reg);
@@ -52,6 +52,7 @@ int main(int argc, char** argv)
 	*ptr = value;
 	printf("Value after: 0x%X\n", *ptr);
 
+	intel_register_access_fini();
 	return 0;
 }
 
