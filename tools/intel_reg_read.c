@@ -53,7 +53,7 @@ int main(int argc, char** argv)
 		exit(1);
 	}
 
-	intel_get_mmio(intel_get_pci_device());
+	intel_register_access_init(intel_get_pci_device(), 0);
 
 	if (!strcmp(argv[1], "-f")) {
 		dump_range(0x00000, 0x00fff);   /* VGA registers */
@@ -74,6 +74,8 @@ int main(int argc, char** argv)
 		sscanf(argv[1], "0x%x", &reg);
 		dump_range(reg, reg + 4);
 	}
+
+	intel_register_access_fini();
 
 	return 0;
 }
