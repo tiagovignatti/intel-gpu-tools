@@ -167,6 +167,13 @@ intel_register_access_init(struct pci_device *pci_dev, int safe)
 		return -1;
 
 	mmio_data.safe = safe != 0 ? true : false;
+	mmio_data.i915_devid = pci_dev->device_id;
+	if (mmio_data.safe)
+		mmio_data.map = intel_get_register_map(mmio_data.i915_devid);
+
+	if (!(IS_GEN6(pci_dev->device_id) ||
+	      IS_GEN7(pci_dev->device_id)))
+		goto done;
 
 	/* Find where the forcewake lock is */
 	ret = find_debugfs_path("/sys/kernel/debug/dri");
@@ -177,12 +184,9 @@ intel_register_access_init(struct pci_device *pci_dev, int safe)
 			return ret;
 		}
 	}
-
-	mmio_data.i915_devid = pci_dev->device_id;
-	if (mmio_data.safe)
-		mmio_data.map = intel_get_register_map(mmio_data.i915_devid);
-
 	mmio_data.key = get_forcewake_lock();
+
+done:
 	mmio_data.inited++;
 	return 0;
 }
@@ -190,7 +194,8 @@ intel_register_access_init(struct pci_device *pci_dev, int safe)
 void
 intel_register_access_fini(void)
 {
-	release_forcewake_lock(mmio_data.key);
+	if (mmio_data.key)
+		release_forcewake_lock(mmio_data.key);
 	mmio_data.inited--;
 }
 
