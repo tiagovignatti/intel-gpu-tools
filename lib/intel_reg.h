@@ -3192,6 +3192,7 @@ typedef enum {
 #define TRANS_VSYNC_A		0xe0014
 #define  TRANS_VSYNC_END_SHIFT	16
 #define  TRANS_VSYNC_START_SHIFT 0
+#define TRANS_VSYNCSHIFT_A	0xe0028
 
 #define TRANSA_DATA_M1		0xe0030
 #define TRANSA_DATA_N1		0xe0034
@@ -3208,6 +3209,7 @@ typedef enum {
 #define TRANS_VTOTAL_B		0xe100c
 #define TRANS_VBLANK_B		0xe1010
 #define TRANS_VSYNC_B		0xe1014
+#define TRANS_VSYNCSHIFT_B	0xe1028
 
 #define TRANSB_DATA_M1		0xe1030
 #define TRANSB_DATA_N1		0xe1034
@@ -3224,6 +3226,7 @@ typedef enum {
 #define TRANS_VTOTAL_C		0xe200c
 #define TRANS_VBLANK_C		0xe2010
 #define TRANS_VSYNC_C		0xe2014
+#define TRANS_VSYNCSHIFT_C	0xe2028
 
 #define TRANSC_DATA_M1		0xe2030
 #define TRANSC_DATA_N1		0xe2034

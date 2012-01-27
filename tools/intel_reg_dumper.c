@@ -1597,6 +1597,7 @@ static struct reg_debug ironlake_debug_regs[] = {
 	DEFINEREG2(TRANS_VTOTAL_A, i830_debug_hvtotal),
 	DEFINEREG2(TRANS_VBLANK_A, i830_debug_hvsyncblank),
 	DEFINEREG2(TRANS_VSYNC_A, i830_debug_hvsyncblank),
+	DEFINEREG(TRANS_VSYNCSHIFT_A),
 
 	DEFINEREG2(TRANSA_DATA_M1, ironlake_debug_m_tu),
 	DEFINEREG2(TRANSA_DATA_N1, ironlake_debug_n),
@@ -1613,6 +1614,7 @@ static struct reg_debug ironlake_debug_regs[] = {
 	DEFINEREG2(TRANS_VTOTAL_B, i830_debug_hvtotal),
 	DEFINEREG2(TRANS_VBLANK_B, i830_debug_hvsyncblank),
 	DEFINEREG2(TRANS_VSYNC_B, i830_debug_hvsyncblank),
+	DEFINEREG(TRANS_VSYNCSHIFT_B),
 
 	DEFINEREG2(TRANSB_DATA_M1, ironlake_debug_m_tu),
 	DEFINEREG2(TRANSB_DATA_N1, ironlake_debug_n),
@@ -1629,6 +1631,7 @@ static struct reg_debug ironlake_debug_regs[] = {
 	DEFINEREG2(TRANS_VTOTAL_C, i830_debug_hvtotal),
 	DEFINEREG2(TRANS_VBLANK_C, i830_debug_hvsyncblank),
 	DEFINEREG2(TRANS_VSYNC_C, i830_debug_hvsyncblank),
+	DEFINEREG(TRANS_VSYNCSHIFT_C),
 
 	DEFINEREG2(TRANSC_DATA_M1, ironlake_debug_m_tu),
 	DEFINEREG2(TRANSC_DATA_N1, ironlake_debug_n),
