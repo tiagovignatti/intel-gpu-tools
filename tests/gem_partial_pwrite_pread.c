@@ -102,6 +102,7 @@ blt_bo_fill(drm_intel_bo *tmp_bo, drm_intel_bo *bo, int val)
 }
 
 #define MAX_BLT_SIZE 128
+#define ROUNDS 1000
 int main(int argc, char **argv)
 {
 	int i, j;
@@ -125,7 +126,7 @@ int main(int argc, char **argv)
 	mappable_gtt_limit = gem_mappable_aperture_size();
 
 	printf("checking partial reads\n");
-	for (i = 0; i < 1000; i++) {
+	for (i = 0; i < ROUNDS; i++) {
 		int start, len;
 		int val = i % 256;
 
@@ -142,10 +143,12 @@ int main(int argc, char **argv)
 				exit(1);
 			}
 		}
+
+		drmtest_progress("partial reads test: ", i, ROUNDS);
 	}
 
 	printf("checking partial writes\n");
-	for (i = 0; i < 1000; i++) {
+	for (i = 0; i < ROUNDS; i++) {
 		int start, len;
 		int val = i % 256;
 
@@ -184,10 +187,12 @@ int main(int argc, char **argv)
 			}
 		}
 		drm_intel_gem_bo_unmap_gtt(staging_bo);
+
+		drmtest_progress("partial writes test: ", i, ROUNDS);
 	}
 
 	printf("checking partial writes after partial reads\n");
-	for (i = 0; i < 1000; i++) {
+	for (i = 0; i < ROUNDS; i++) {
 		int start, len;
 		int val = i % 256;
 
@@ -245,6 +250,8 @@ int main(int argc, char **argv)
 			}
 		}
 		drm_intel_gem_bo_unmap_gtt(staging_bo);
+
+		drmtest_progress("partial read/writes test: ", i, ROUNDS);
 	}
 
 	drmtest_cleanup_aperture_trashers();
