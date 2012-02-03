@@ -76,15 +76,7 @@ int dump_info = 0, test_all_modes =0, test_preferred_mode = 0, force_mode = 0,
 int sleep_between_modes = 5;
 uint32_t depth = 24, stride, bpp;
 
-float force_clock;
-int	force_hdisplay;
-int	force_hsync_start;
-int	force_hsync_end;
-int	force_htotal;
-int	force_vdisplay;
-int	force_vsync_start;
-int	force_vsync_end;
-int	force_vtotal;
+drmModeModeInfo force_timing;
 
 int crtc_x, crtc_y, crtc_w, crtc_h, width, height;
 unsigned int plane_fb_id;
@@ -373,7 +365,7 @@ static void connector_find_preferred_mode(struct connector *c)
 	c->crtc = resources->crtcs[i];
 	c->pipe = i;
 
-	if(test_preferred_mode)
+	if(test_preferred_mode || force_mode)
 		resources->crtcs[i] = 0;
 
 	c->connector = connector;
@@ -859,18 +851,10 @@ set_mode(struct connector *c)
 
 	test_mode_num = 1;
 	if (force_mode){
-		c->mode.clock = force_clock*1000;
-		c->mode.hdisplay = force_hdisplay;
-		c->mode.hsync_start = force_hsync_start;
-		c->mode.hsync_end = force_hsync_end;
-		c->mode.htotal = force_htotal;
-		c->mode.vdisplay = force_vdisplay;
-		c->mode.vsync_start = force_vsync_start;
-		c->mode.vsync_end = force_vsync_end;
-		c->mode.vtotal = force_vtotal;
-		c->mode.vrefresh =(force_clock*1e6)/(force_htotal*force_vtotal);
+		memcpy( &c->mode, &force_timing, sizeof(force_timing));
+		c->mode.vrefresh =(force_timing.clock*1e3)/(force_timing.htotal*force_timing.vtotal);
 		c->mode_valid = 1;
-		sprintf(c->mode.name, "%dx%d", force_hdisplay, force_vdisplay);
+		sprintf(c->mode.name, "%dx%d", force_timing.hdisplay, force_timing.vdisplay);
 	} else if (test_all_modes)
 		test_mode_num = c->connector->count_modes;
 
@@ -954,7 +938,7 @@ set_mode(struct connector *c)
 
 	}
 
-	if(!test_preferred_mode){
+	if(test_all_modes){
 		drmModeRmFB(drm_fd,fb_id);
 		drmModeSetCrtc(drm_fd, c->crtc, fb_id, 0, 0,  &c->id, 1, 0);
 	}
@@ -1065,6 +1049,7 @@ int main(int argc, char **argv)
 	int ret = 0;
 	GIOChannel *stdinchannel;
 	GMainLoop *mainloop;
+	float force_clock;
 
 	opterr = 0;
 	while ((c = getopt(argc, argv, optstr)) != -1) {
@@ -1077,10 +1062,12 @@ int main(int argc, char **argv)
 			break;
 		case 'f':
 			force_mode = 1;
-			if(sscanf(optarg,"%f,%d,%d,%d,%d,%d,%d,%d,%d",
-				&force_clock,&force_hdisplay, &force_hsync_start,&force_hsync_end,&force_htotal,
-				&force_vdisplay, &force_vsync_start, &force_vsync_end, &force_vtotal)!= 9)
+			if(sscanf(optarg,"%f,%hu,%hu,%hu,%hu,%hu,%hu,%hu,%hu",
+				&force_clock,&force_timing.hdisplay, &force_timing.hsync_start,&force_timing.hsync_end,&force_timing.htotal,
+				&force_timing.vdisplay, &force_timing.vsync_start, &force_timing.vsync_end, &force_timing.vtotal)!= 9)
 				usage(argv[0]);
+			force_timing.clock = force_clock*1000;
+
 			break;
 		case 's':
 			sleep_between_modes = atoi(optarg);
