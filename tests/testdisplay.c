@@ -176,19 +176,28 @@ static void dump_mode(drmModeModeInfo *mode)
 	       mode->clock);
 }
 
-static void dump_connectors(void)
+
+static void dump_connectors_fd(int drmfd)
 {
 	int i, j;
 
+	drmModeRes *mode_resources = drmModeGetResources(drmfd);
+
+	if (!mode_resources) {
+		fprintf(stderr, "drmModeGetResources failed: %s\n",
+			strerror(errno));
+		return;
+	}
+
 	printf("Connectors:\n");
 	printf("id\tencoder\tstatus\t\ttype\tsize (mm)\tmodes\n");
-	for (i = 0; i < resources->count_connectors; i++) {
+	for (i = 0; i < mode_resources->count_connectors; i++) {
 		drmModeConnector *connector;
 
-		connector = drmModeGetConnector(drm_fd, resources->connectors[i]);
+		connector = drmModeGetConnector(drmfd, mode_resources->connectors[i]);
 		if (!connector) {
 			fprintf(stderr, "could not get connector %i: %s\n",
-				resources->connectors[i], strerror(errno));
+				mode_resources->connectors[i], strerror(errno));
 			continue;
 		}
 
@@ -212,21 +221,24 @@ static void dump_connectors(void)
 		drmModeFreeConnector(connector);
 	}
 	printf("\n");
+
+	drmModeFreeResources(mode_resources);
 }
 
-static void dump_crtcs(void)
+static void dump_crtcs_fd(int drmfd)
 {
 	int i;
+	drmModeRes *mode_resources = drmModeGetResources(drmfd);
 
 	printf("CRTCs:\n");
 	printf("id\tfb\tpos\tsize\n");
-	for (i = 0; i < resources->count_crtcs; i++) {
+	for (i = 0; i < mode_resources->count_crtcs; i++) {
 		drmModeCrtc *crtc;
 
-		crtc = drmModeGetCrtc(drm_fd, resources->crtcs[i]);
+		crtc = drmModeGetCrtc(drmfd, mode_resources->crtcs[i]);
 		if (!crtc) {
 			fprintf(stderr, "could not get crtc %i: %s\n",
-				resources->crtcs[i], strerror(errno));
+				mode_resources->crtcs[i], strerror(errno));
 			continue;
 		}
 		printf("%d\t%d\t(%d,%d)\t(%dx%d)\n",
@@ -239,7 +251,10 @@ static void dump_crtcs(void)
 		drmModeFreeCrtc(crtc);
 	}
 	printf("\n");
+
+	drmModeFreeResources(mode_resources);
 }
+
 
 #ifdef TEST_PLANES
 static void dump_planes(void)
@@ -250,7 +265,7 @@ static void dump_planes(void)
 
 	plane_resources = drmModeGetPlaneResources(drm_fd);
 	if (!plane_resources) {
-		fprintf(stderr, "drmModeGetPlaneResources failed: %s\n",
+		fprintf(stderr, "drmModeGetPlaneResources dump failed: %s\n",
 			strerror(errno));
 		return;
 	}
@@ -974,8 +989,8 @@ int update_display(void)
 		return 0;
 
 	if (dump_info) {
-		dump_connectors();
-		dump_crtcs();
+		dump_connectors_fd(drm_fd);
+		dump_crtcs_fd(drm_fd);
 		dump_planes();
 	}
 
