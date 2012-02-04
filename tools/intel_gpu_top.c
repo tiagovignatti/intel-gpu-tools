@@ -488,7 +488,6 @@ int main(int argc, char **argv)
 		else if (child_pid == 0) {
 			int res;
 			res = system(cmd);
-			free(cmd);
 			if (res < 0)
 				perror("running command");
 			if (output) {
@@ -496,6 +495,7 @@ int main(int argc, char **argv)
 				fprintf(output, "# %s exited with status %d\n", cmd, res);
 				fflush(output);
 			}
+			free(cmd);
 			exit(0);
 		} else {
 			free(cmd);
