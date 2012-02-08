@@ -19,7 +19,7 @@
 #  IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 #  CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-SUBDIRS = lib man tools scripts tests benchmarks
+SUBDIRS = lib man tools scripts tests benchmarks demos
 
 if BUILD_SHADER_DEBUGGER
 SUBDIRS += debugger
