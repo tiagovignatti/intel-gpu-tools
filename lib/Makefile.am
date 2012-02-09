@@ -21,11 +21,11 @@ libintel_tools_la_SOURCES = 	\
 	intel_mmio.c		\
 	intel_pci.c		\
 	intel_reg.h		\
-	gem_stress_i915.c	\
-	gem_stress_i830.c	\
+	rendercopy_i915.c	\
+	rendercopy_i830.c	\
 	gen6_render.h		\
-	gem_stress_gen6.c	\
+	rendercopy_gen6.c	\
+	rendercopy.h		\
 	intel_reg_map.c		\
-	gem_stress.h		\
 	$(NULL)
 
