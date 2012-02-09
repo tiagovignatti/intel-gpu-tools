@@ -4,7 +4,7 @@
 .SH NAME
 intel_bios_dumper \- Saves the Intel video BIOS contents to a file.
 .SH SYNOPSIS
-.B intel_reg_read \fIfilename\fR
+.B intel_bios_dumper \fIfilename\fR
 .SH DESCRIPTION
 .B intel_bios_dumper
 is a tool to save the contents of the Intel video BIOS to a file.  It
