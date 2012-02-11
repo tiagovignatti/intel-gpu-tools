@@ -361,8 +361,7 @@ void drmtest_permute_array(void *array, unsigned size,
 void drmtest_progress(const char *header, uint64_t i, uint64_t total)
 {
 	if (i+1 >= total) {
-		fprintf(stderr, "\r%s100%%\n", header,
-			(long long unsigned) i * 100 / total);
+		fprintf(stderr, "\r%s100%%\n", header);
 		return;
 	}
 
