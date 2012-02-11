@@ -38,11 +38,6 @@
 #include <err.h>
 #include <assert.h>
 #include <sys/ioctl.h>
-#ifdef ANDROID
-#include <fcntl.h>
-#else
-#include <sys/fcntl.h>
-#endif
 #include <sys/stat.h>
 #include <sys/mman.h>
 
