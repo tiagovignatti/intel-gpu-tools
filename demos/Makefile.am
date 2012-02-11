@@ -1,5 +1,5 @@
 bin_PROGRAMS = 				\
-	sprite_on			\
+	intel_sprite_on			\
 	$(NULL)
 
 AM_CPPFLAGS = -I$(top_srcdir) -I$(top_srcdir)/lib

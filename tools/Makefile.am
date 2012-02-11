@@ -14,7 +14,7 @@ bin_PROGRAMS = 				\
 	intel_reg_snapshot 		\
 	intel_reg_write 		\
 	intel_reg_read 			\
-	forcewaked
+	intel_forcewaked
 
 noinst_PROGRAMS = 			\
 	intel_dump_decode 		\
