@@ -141,7 +141,7 @@ DEBUGSTRING(i830_debug_dspcntr)
 DEBUGSTRING(i830_debug_pipeconf)
 {
 	const char *enabled = val & PIPEACONF_ENABLE ? "enabled" : "disabled";
-	const char *bit30;
+	const char *bit30, *interlace;
 
 	if (IS_965(devid))
 		bit30 = val & I965_PIPECONF_ACTIVE ? "active" : "inactive";
@@ -150,7 +150,43 @@ DEBUGSTRING(i830_debug_pipeconf)
 		    val & PIPEACONF_DOUBLE_WIDE ? "double-wide" : "single-wide";
 
 	if (HAS_PCH_SPLIT(devid)) {
-		const char *bpc;
+		const char *bpc, *rotation;
+
+		switch ((val >> 21) & 7) {
+		case 0:
+			interlace = "pf-pd";
+			break;
+		case 1:
+			interlace = "pf-id";
+			break;
+		case 3:
+			interlace = "if-id";
+			break;
+		case 4:
+			interlace = "if-id-dbl";
+			break;
+		case 5:
+			interlace = "pf-id-dbl";
+			break;
+		default:
+			interlace = "rsvd";
+			break;
+		}
+
+		switch ((val >> 14) & 3) {
+		case 0:
+			rotation = "rotate 0";
+			break;
+		case 1:
+			rotation = "rotate 90";
+			break;
+		case 2:
+			rotation = "rotate 180";
+			break;
+		case 3:
+			rotation = "rotate 270";
+			break;
+		}
 
 		switch (val & (7 << 5)) {
 		case PIPECONF_8BPP:
@@ -169,7 +205,30 @@ DEBUGSTRING(i830_debug_pipeconf)
 			bpc = "invalid bpc";
 			break;
 		}
-		snprintf(result, len, "%s, %s, %s", enabled, bit30, bpc);
+		snprintf(result, len, "%s, %s, %s, %s, %s", enabled, bit30,
+			 interlace, rotation, bpc);
+	} else if (IS_GEN4(devid)) {
+		switch ((val >> 21) & 7) {
+		case 0:
+		case 1:
+		case 2:
+		case 3:
+			interlace = "progressive";
+			break;
+		case 4:
+			interlace = "interlaced embedded";
+			break;
+		case 5:
+			interlace = "interlaced";
+			break;
+		case 6:
+			interlace = "interlaced sdvo";
+			break;
+		case 7:
+			interlace = "interlaced legacy";
+			break;
+		}
+		snprintf(result, len, "%s, %s, %s", enabled, bit30, interlace);
 	} else
 		snprintf(result, len, "%s, %s", enabled, bit30);
 }
