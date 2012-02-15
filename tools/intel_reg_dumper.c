@@ -1308,9 +1308,28 @@ DEBUGSTRING(ironlake_debug_fdi_rx_misc)
 
 DEBUGSTRING(ironlake_debug_transconf)
 {
-	snprintf(result, len, "%s, %s",
-		 val & TRANS_ENABLE ? "enable" : "disable",
-		 val & TRANS_STATE_ENABLE ? "active" : "inactive");
+	const char *enable = val & TRANS_ENABLE ? "enable" : "disable";
+	const char *state = val & TRANS_STATE_ENABLE ? "active" : "inactive";
+	const char *interlace;
+
+	switch ((val >> 21) & 7) {
+	case 0:
+		interlace = "progressive";
+		break;
+	case 2:
+		if (IS_GEN5(devid))
+			interlace = "interlaced sdvo";
+		else
+			interlace = "rsvd";
+		break;
+	case 3:
+		interlace = "interlaced";
+		break;
+	default:
+		interlace = "rsvd";
+	}
+
+	snprintf(result, len, "%s, %s, %s", enable, state, interlace);
 }
 
 DEBUGSTRING(ironlake_debug_panel_fitting)
