@@ -30,9 +30,10 @@
 #include <stdio.h>
 #include <string.h>
 #include <err.h>
+#include <unistd.h>
 #include "intel_gpu_tools.h"
 
-static uint32_t devid;
+static uint32_t devid = 0;
 
 #define DEBUGSTRING(func) static void func(char *result, int len, int reg, uint32_t val)
 
@@ -2072,21 +2073,61 @@ intel_dump_regs(void)
 	}
 }
 
+static void print_usage(void)
+{
+	printf("Usage: intel_reg_dumper [options] [file]\n"
+	       "Options:\n"
+	       "  -d id   when a dump file is used, use 'id' as device id (in "
+	       "hex)\n"
+	       "  -h      prints this help\n");
+}
+
 int main(int argc, char** argv)
 {
 	struct pci_device *pci_dev;
+	int opt;
+	char *file = NULL;
 
-	if (argc == 2)
-		intel_map_file(argv[1]);
-	else {
+	while ((opt = getopt(argc, argv, "d:h")) != -1) {
+		switch (opt) {
+		case 'd':
+			devid = strtol(optarg, NULL, 16);
+			break;
+		case 'h':
+			print_usage();
+			return 0;
+		default:
+			print_usage();
+			return 1;
+		}
+	}
+	if (optind < argc)
+		file = argv[optind];
+
+	if (file) {
+		intel_map_file(file);
+		if (devid) {
+			if (IS_GEN5(devid))
+				pch = PCH_IBX;
+			else
+				pch = PCH_CPT;
+		} else {
+			printf("Dumping from file without -d argument. "
+			       "Assuming Ironlake machine.\n");
+			devid = 0x0042;
+			pch = PCH_IBX;
+		}
+	} else {
 		pci_dev = intel_get_pci_device();
-		devid = pci_dev->device_id; /* XXX not true when mapping! */
+		devid = pci_dev->device_id;
 
 		intel_get_mmio(pci_dev);
+
+		if (HAS_PCH_SPLIT(devid))
+			intel_check_pch();
 	}
 
-	if (HAS_PCH_SPLIT(devid) || getenv("HAS_PCH_SPLIT")) {
-		intel_check_pch();
+	if (HAS_PCH_SPLIT(devid)) {
 		ironlake_dump_regs();
 	}
 	else if (IS_945GM(devid)) {
