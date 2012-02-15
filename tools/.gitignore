@@ -11,6 +11,7 @@ intel_gpu_time
 intel_gpu_top
 intel_gtt
 intel_lid
+intel_panel_fitter
 intel_reg_checker
 intel_reg_dumper
 intel_reg_read

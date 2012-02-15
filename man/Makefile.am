@@ -7,6 +7,7 @@ appman_PRE = 				\
 	intel_gpu_top.man		\
 	intel_gtt.man			\
 	intel_lid.man			\
+	intel_panel_fitter.man		\
 	intel_reg_dumper.man		\
 	intel_reg_read.man		\
 	intel_reg_write.man		\

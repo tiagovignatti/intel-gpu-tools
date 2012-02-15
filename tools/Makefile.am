@@ -18,7 +18,8 @@ bin_PROGRAMS = 				\
 
 noinst_PROGRAMS = 			\
 	intel_dump_decode 		\
-	intel_lid
+	intel_lid			\
+	intel_panel_fitter
 
 dist_bin_SCRIPTS = intel_gpu_abrt
 
