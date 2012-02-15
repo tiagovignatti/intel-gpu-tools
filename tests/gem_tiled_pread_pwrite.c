@@ -149,6 +149,8 @@ main(int argc, char **argv)
 		munmap(data, sizeof(linear));
 
 		/* Leak both bos so that we use all of system mem! */
+
+		drmtest_progress("gem_cs_prefetch: ", i, count/2);
 	}
 
 	close(fd);
