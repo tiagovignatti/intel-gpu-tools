@@ -523,25 +523,25 @@ DEBUGSTRING(i830_debug_dpll_test)
 
 DEBUGSTRING(i830_debug_adpa)
 {
-	char pipe = (val & ADPA_PIPE_B_SELECT) ? 'B' : 'A';
+	char disp_pipe = (val & ADPA_PIPE_B_SELECT) ? 'B' : 'A';
 	const char *enable = (val & ADPA_DAC_ENABLE) ? "enabled" : "disabled";
 	char hsync = (val & ADPA_HSYNC_ACTIVE_HIGH) ? '+' : '-';
 	char vsync = (val & ADPA_VSYNC_ACTIVE_HIGH) ? '+' : '-';
 
 	if (HAS_CPT)
-		pipe = val & (1<<29) ? 'B' : 'A';
+		disp_pipe = val & (1<<29) ? 'B' : 'A';
 
 	if (HAS_PCH_SPLIT(devid))
 		snprintf(result, len, "%s, transcoder %c, %chsync, %cvsync",
-				 enable, pipe, hsync, vsync);
+				 enable, disp_pipe, hsync, vsync);
 	else
 		snprintf(result, len, "%s, pipe %c, %chsync, %cvsync",
-				 enable, pipe, hsync, vsync);
+				 enable, disp_pipe, hsync, vsync);
 }
 
 DEBUGSTRING(i830_debug_lvds)
 {
-	char pipe = val & LVDS_PIPEB_SELECT ? 'B' : 'A';
+	char disp_pipe = val & LVDS_PIPEB_SELECT ? 'B' : 'A';
 	const char *enable = val & LVDS_PORT_EN ? "enabled" : "disabled";
 	int depth;
 	const char *channels;
@@ -556,16 +556,16 @@ DEBUGSTRING(i830_debug_lvds)
 		channels = "1 channel";
 
 	if (HAS_CPT)
-		pipe = val & (1<<29) ? 'B' : 'A';
+		disp_pipe = val & (1<<29) ? 'B' : 'A';
 
 	snprintf(result, len, "%s, pipe %c, %d bit, %s",
-			 enable, pipe, depth, channels);
+			 enable, disp_pipe, depth, channels);
 }
 
 DEBUGSTRING(i830_debug_dvo)
 {
 	const char *enable = val & DVO_ENABLE ? "enabled" : "disabled";
-	char pipe = val & DVO_PIPE_B_SELECT ? 'B' : 'A';
+	char disp_pipe = val & DVO_PIPE_B_SELECT ? 'B' : 'A';
 	const char *stall;
 	char hsync = val & DVO_HSYNC_ACTIVE_HIGH ? '+' : '-';
 	char vsync = val & DVO_VSYNC_ACTIVE_HIGH ? '+' : '-';
@@ -586,13 +586,13 @@ DEBUGSTRING(i830_debug_dvo)
 	}
 
 	snprintf(result, len, "%s, pipe %c, %s, %chsync, %cvsync",
-			 enable, pipe, stall, hsync, vsync);
+			 enable, disp_pipe, stall, hsync, vsync);
 }
 
 DEBUGSTRING(i830_debug_sdvo)
 {
 	const char *enable = val & SDVO_ENABLE ? "enabled" : "disabled";
-	char pipe = val & SDVO_PIPE_B_SELECT ? 'B' : 'A';
+	char disp_pipe = val & SDVO_PIPE_B_SELECT ? 'B' : 'A';
 	const char *stall = val & SDVO_STALL_SELECT ? "enabled" : "disabled";
 	const char *detected = val & SDVO_DETECTED ? "" : "not ";
 	const char *gang = val & SDVOC_GANG_MODE ? ", gang mode" : "";
@@ -607,7 +607,7 @@ DEBUGSTRING(i830_debug_sdvo)
 	}
 
 	snprintf(result, len, "%s, pipe %c, stall %s, %sdetected%s%s",
-			 enable, pipe, stall, detected, sdvoextra, gang);
+			 enable, disp_pipe, stall, detected, sdvoextra, gang);
 }
 
 DEBUGSTRING(i830_debug_dspclk_gate_d)
@@ -1415,7 +1415,7 @@ DEBUGSTRING(ironlake_debug_pf_win)
 
 DEBUGSTRING(ironlake_debug_hdmi)
 {
-	int pipe;
+	int disp_pipe;
 	const char *enable, *bpc = NULL, *encoding;
 	const char *mode, *audio, *vsync, *hsync, *detect;
 
@@ -1425,9 +1425,9 @@ DEBUGSTRING(ironlake_debug_hdmi)
 		enable = "disabled";
 
 	if (HAS_CPT)
-		pipe = (val & (3<<29)) >> 29;
+		disp_pipe = (val & (3<<29)) >> 29;
 	else
-		pipe = (val & TRANSCODER_B) >> 29;
+		disp_pipe = (val & TRANSCODER_B) >> 29;
 
 	switch (val & (7 << 26)) {
 	case COLOR_FORMAT_8bpc:
@@ -1469,7 +1469,7 @@ DEBUGSTRING(ironlake_debug_hdmi)
 		detect = "non-detected";
 
 	snprintf(result, len, "%s pipe %c %s %s %s audio %s %s %s %s",
-		 enable, pipe + 'A', bpc, encoding, mode, audio, vsync, hsync, detect);
+		 enable, disp_pipe + 'A', bpc, encoding, mode, audio, vsync, hsync, detect);
 }
 
 DEBUGSTRING(snb_debug_dpll_sel)
@@ -1857,7 +1857,7 @@ intel_dump_regs(void)
 	char debug[1024];
 	int i;
 	int fp, dpll;
-	int pipe;
+	int disp_pipe;
 	int n, m1, m2, m, p1, p2;
 	int ref;
 	int dot;
@@ -1896,14 +1896,14 @@ intel_dump_regs(void)
 		crt = 0x3b0;
 	i830DumpIndexed(pScrn, "CR", crt + 4, crt + 5, 0, 0x24);
 #endif
-	for (pipe = 0; pipe <= 1; pipe++) {
-		fp = INREG(pipe == 0 ? FPA0 : FPB0);
-		dpll = INREG(pipe == 0 ? DPLL_A : DPLL_B);
+	for (disp_pipe = 0; disp_pipe <= 1; disp_pipe++) {
+		fp = INREG(disp_pipe == 0 ? FPA0 : FPB0);
+		dpll = INREG(disp_pipe == 0 ? DPLL_A : DPLL_B);
 		if (IS_GEN2(devid)) {
 			uint32_t lvds = INREG(LVDS);
 			if (devid == PCI_CHIP_I855_GM &&
 			    (lvds & LVDS_PORT_EN) &&
-			    (lvds & LVDS_PIPEB_SELECT) == (pipe << 30)) {
+			    (lvds & LVDS_PIPEB_SELECT) == (disp_pipe << 30)) {
 				if ((lvds & LVDS_CLKB_POWER_MASK) ==
 				    LVDS_CLKB_POWER_UP)
 					p2 = 7;
@@ -1960,7 +1960,7 @@ intel_dump_regs(void)
 		} else {
 			uint32_t lvds = INREG(LVDS);
 			if ((lvds & LVDS_PORT_EN) &&
-			    (lvds & LVDS_PIPEB_SELECT) == (pipe << 30)) {
+			    (lvds & LVDS_PIPEB_SELECT) == (disp_pipe << 30)) {
 				if ((lvds & LVDS_CLKB_POWER_MASK) ==
 				    LVDS_CLKB_POWER_UP)
 					p2 = 7;
@@ -2069,7 +2069,7 @@ intel_dump_regs(void)
 		}
 
 		printf("pipe %s dot %d n %d m1 %d m2 %d p1 %d p2 %d\n",
-		       pipe == 0 ? "A" : "B", dot, n, m1, m2, p1, p2);
+		       disp_pipe == 0 ? "A" : "B", dot, n, m1, m2, p1, p2);
 	}
 }
 
