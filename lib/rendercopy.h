@@ -58,6 +58,11 @@ static inline unsigned buf_height(struct scratch_buf *buf)
 	return buf->size/buf->stride;
 }
 
+typedef void (*render_copyfunc_t)(struct intel_batchbuffer *batch,
+				  struct scratch_buf *src, unsigned src_x, unsigned src_y,
+				  unsigned width, unsigned height,
+				  struct scratch_buf *dst, unsigned dst_x, unsigned dst_y);
+
 void gen6_render_copyfunc(struct intel_batchbuffer *batch,
 			  struct scratch_buf *src, unsigned src_x, unsigned src_y,
 			  unsigned width, unsigned height,

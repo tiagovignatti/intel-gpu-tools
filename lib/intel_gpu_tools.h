@@ -25,6 +25,9 @@
  *
  */
 
+#ifndef INTEL_GPU_TOOLS_H
+#define INTEL_GPU_TOOLS_H
+
 #include <stdint.h>
 #include <sys/types.h>
 #include <pciaccess.h>
@@ -94,3 +97,5 @@ extern enum pch_type pch;
 void intel_check_pch(void);
 
 #define HAS_CPT (pch == PCH_CPT)
+
+#endif /* INTEL_GPU_TOOLS_H */
