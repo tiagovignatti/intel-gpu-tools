@@ -1826,6 +1826,23 @@ _intel_dump_regs(struct reg_debug *regs, int count)
 	}
 }
 
+DEBUGSTRING(gen6_rp_control)
+{
+	snprintf(result, len, "%s",
+		 (val & (1 << 7)) ? "enabled" : "disabled");
+}
+
+static struct reg_debug gen6_rp_debug_regs[] = {
+	DEFINEREG2(GEN6_RP_CONTROL, gen6_rp_control),
+	DEFINEREG(GEN6_RPNSWREQ),
+	DEFINEREG(GEN6_RP_DOWN_TIMEOUT),
+	DEFINEREG(GEN6_RP_INTERRUPT_LIMITS),
+	DEFINEREG(GEN6_RP_UP_THRESHOLD),
+	DEFINEREG(GEN6_RP_UP_EI),
+	DEFINEREG(GEN6_RP_DOWN_EI),
+	DEFINEREG(GEN6_RP_IDLE_HYSTERSIS),
+};
+
 static void
 intel_dump_other_regs(void)
 {
@@ -2096,6 +2113,9 @@ int main(int argc, char** argv)
 		intel_dump_regs(intel_debug_regs);
 		intel_dump_other_regs();
 	}
+
+	if (IS_GEN6(devid) || IS_GEN7(devid))
+		intel_dump_regs(gen6_rp_debug_regs);
 
 	return 0;
 }
