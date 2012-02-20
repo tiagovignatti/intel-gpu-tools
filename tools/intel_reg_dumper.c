@@ -1803,58 +1803,32 @@ static struct reg_debug i945gm_mi_regs[] = {
 	DEFINEREG(ECOSKPD),
 };
 
+#define intel_dump_regs(regs) _intel_dump_regs(regs, ARRAY_SIZE(regs))
+
 static void
-i945_dump_mi_regs(void)
+_intel_dump_regs(struct reg_debug *regs, int count)
 {
 	char debug[1024];
 	int i;
 
-	for (i = 0; i < ARRAY_SIZE(i945gm_mi_regs); i++) {
-		uint32_t val = INREG(i945gm_mi_regs[i].reg);
+	for (i = 0; i < count; i++) {
+		uint32_t val = INREG(regs[i].reg);
 
-		if (i945gm_mi_regs[i].debug_output != NULL) {
-			i945gm_mi_regs[i].debug_output(debug, sizeof(debug),
-						       i945gm_mi_regs
-						       [i].reg,
-						       val);
+		if (regs[i].debug_output != NULL) {
+			regs[i].debug_output(debug, sizeof(debug), regs[i].reg, val);
 			printf("%30.30s: 0x%08x (%s)\n",
-			       i945gm_mi_regs[i].name,
+			       regs[i].name,
 			       (unsigned int)val, debug);
 		} else {
-			printf("%30.30s: 0x%08x\n", i945gm_mi_regs[i].name,
+			printf("%30.30s: 0x%08x\n", regs[i].name,
 			       (unsigned int)val);
 		}
 	}
 }
 
 static void
-ironlake_dump_regs(void)
+intel_dump_other_regs(void)
 {
-	char debug[1024];
-	int i;
-
-	for (i = 0; i < ARRAY_SIZE(ironlake_debug_regs); i++) {
-		uint32_t val = INREG(ironlake_debug_regs[i].reg);
-
-		if (ironlake_debug_regs[i].debug_output != NULL) {
-			ironlake_debug_regs[i].debug_output(debug, sizeof(debug),
-							    ironlake_debug_regs
-							    [i].reg,
-							    val);
-			printf("%30.30s: 0x%08x (%s)\n",
-			       ironlake_debug_regs[i].name,
-			       (unsigned int)val, debug);
-		} else {
-			printf("%30.30s: 0x%08x\n", ironlake_debug_regs[i].name,
-			       (unsigned int)val);
-		}
-	}
-}
-
-static void
-intel_dump_regs(void)
-{
-	char debug[1024];
 	int i;
 	int fp, dpll;
 	int disp_pipe;
@@ -1867,22 +1841,6 @@ intel_dump_regs(void)
 	int crt;
 #endif
 
-	for (i = 0; i < ARRAY_SIZE(intel_debug_regs); i++) {
-		uint32_t val = INREG(intel_debug_regs[i].reg);
-
-		if (intel_debug_regs[i].debug_output != NULL) {
-			intel_debug_regs[i].debug_output(debug, sizeof(debug),
-							 intel_debug_regs[i].reg,
-							 val);
-			printf("%20.20s: 0x%08x (%s)\n",
-			       intel_debug_regs[i].name,
-			       (unsigned int)val, debug);
-		} else {
-			printf("%20.20s: 0x%08x\n",
-			       intel_debug_regs[i].name,
-			       (unsigned int)val);
-		}
-	}
 #if 0
 	i830DumpIndexed(pScrn, "SR", 0x3c4, 0x3c5, 0, 7);
 	msr = INREG8(0x3cc);
@@ -2128,13 +2086,16 @@ int main(int argc, char** argv)
 	}
 
 	if (HAS_PCH_SPLIT(devid)) {
-		ironlake_dump_regs();
+		intel_dump_regs(ironlake_debug_regs);
 	}
 	else if (IS_945GM(devid)) {
-		i945_dump_mi_regs();
-		intel_dump_regs();
-	} else
-		intel_dump_regs();
+		intel_dump_regs(i945gm_mi_regs);
+		intel_dump_regs(intel_debug_regs);
+		intel_dump_other_regs();
+	} else {
+		intel_dump_regs(intel_debug_regs);
+		intel_dump_other_regs();
+	}
 
 	return 0;
 }
