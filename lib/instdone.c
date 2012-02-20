@@ -25,6 +25,7 @@
  *
  */
 
+#include <assert.h>
 #include "instdone.h"
 
 #include "intel_chipset.h"
@@ -263,7 +264,7 @@ init_instdone_definitions(uint32_t devid)
 		gen4_instdone_bit(ILK_AM_DONE, "AM");
 
 		init_g4x_instdone1();
-	} else if (IS_965(devid)) {
+	} else if (IS_GEN4(devid)) {
 		gen4_instdone_bit(I965_ROW_0_EU_0_DONE, "Row 0, EU 0");
 		gen4_instdone_bit(I965_ROW_0_EU_1_DONE, "Row 0, EU 1");
 		gen4_instdone_bit(I965_ROW_0_EU_2_DONE, "Row 0, EU 2");
@@ -325,6 +326,7 @@ init_instdone_definitions(uint32_t devid)
 		gen3_instdone_bit(MAP_FILTER_DONE, "Map filter");
 		gen3_instdone_bit(MAP_L2_IDLE, "Map L2");
 	} else {
+		assert(IS_GEN2(devid));
 		gen3_instdone_bit(I830_GMBUS_DONE, "GMBUS");
 		gen3_instdone_bit(I830_FBC_DONE, "FBC");
 		gen3_instdone_bit(I830_BINNER_DONE, "BINNER");
