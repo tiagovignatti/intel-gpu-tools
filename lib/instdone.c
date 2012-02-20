@@ -134,10 +134,34 @@ init_g4x_instdone1(void)
 	gen4_instdone1_bit(G4X_VF_DONE, "VF");
 }
 
+static void
+init_gen7_instdone(void)
+{
+	gen6_instdone1_bit(1 << 19, "GAM");
+	gen6_instdone1_bit(1 << 18, "GAFM");
+	gen6_instdone1_bit(1 << 17, "TSG");
+	gen6_instdone1_bit(1 << 16, "VFE");
+	gen6_instdone1_bit(1 << 15, "GAFS");
+	gen6_instdone1_bit(1 << 14, "SVG");
+	gen6_instdone1_bit(1 << 13, "URBM");
+	gen6_instdone1_bit(1 << 12, "TDG");
+	gen6_instdone1_bit(1 << 9, "SF");
+	gen6_instdone1_bit(1 << 8, "CL");
+	gen6_instdone1_bit(1 << 7, "SOL");
+	gen6_instdone1_bit(1 << 6, "GS");
+	gen6_instdone1_bit(1 << 5, "DS");
+	gen6_instdone1_bit(1 << 4, "TE");
+	gen6_instdone1_bit(1 << 3, "HS");
+	gen6_instdone1_bit(1 << 2, "VS");
+	gen6_instdone1_bit(1 << 1, "VF");
+}
+
 void
 init_instdone_definitions(uint32_t devid)
 {
-	if (IS_GEN6(devid)) {
+	if (IS_GEN7(devid)) {
+		init_gen7_instdone();
+	} else if (IS_GEN6(devid)) {
 		/* Now called INSTDONE_1 in the docs. */
 		gen6_instdone1_bit(GEN6_MA_3_DONE, "Message Arbiter 3");
 		gen6_instdone1_bit(GEN6_EU_32_DONE, "EU 32");
