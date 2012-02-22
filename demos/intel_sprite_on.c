@@ -54,12 +54,12 @@
 
 struct type_name
 {
-	int type;
-	char *name;
+	int                 type;
+	const char          *name;
 };
 
 #define type_name_fn(res) \
-static char * res##_str(int type) {			\
+static const char * res##_str(int type) {			\
 	unsigned int i;					\
 	for (i = 0; i < ARRAY_SIZE(res##_names); i++) { \
 		if (res##_names[i].type == type)	\
@@ -457,50 +457,6 @@ static int connector_find_plane(int gfx_fd, struct connector *c)
 	}
 
 	return id;
-}
-
-//*****************************************************************************
-//
-// disable_planes
-//
-//*****************************************************************************
-static void disable_planes(
-        int                     gfx_fd)
-{
-	struct                  connector *connectors;
-    drmModeRes              *resources;
-	int                     c;
-
-	resources = drmModeGetResources(gfx_fd);
-	if (!resources) {
-		printf("drmModeGetResources failed: %s\n",
-			   strerror(errno));
-		return;
-	}
-
-	connectors = calloc(resources->count_connectors,
-			    sizeof(struct connector));
-	if (!connectors)
-		return;
-
-	/* Find any connected displays */
-	for (c = 0; c < resources->count_connectors; c++) {
-		uint32_t sprite_plane_id;
-
-		sprite_plane_id = connector_find_plane(gfx_fd, &connectors[c]);
-		if (!sprite_plane_id) {
-			printf("failed to find plane for crtc\n");
-			return;
-		}
-		if (drmModeSetPlane(gfx_fd, sprite_plane_id, connectors[c].crtc, 0, 0, 0,
-				    0, 0, 0, 0, 0, 0, 0)) {
-			printf("failed to disable plane: %s\n",
-				strerror(errno));
-			return;
-		}
-	}
-	drmModeFreeResources(resources);
-	return;
 }
 
 //*****************************************************************************
@@ -921,14 +877,14 @@ static void ricochet(
                    "        .flags = %08x\n"
                    "    drmModeEncoder ...\n"
                    "        .encoder_id = %d\n"
-                   "        .encoder_type = %d\n"
+                   "        .encoder_type = %d (%s)\n"
                    "        .crtc_id = %d\n"
                    "        .possible_crtcs = %d\n"
                    "        .possible_clones = %d\n"
                    "    drmModeConnector ...\n"
                    "        .connector_id = %d\n"
                    "        .encoder_id = %d\n"
-                   "        .connector_type = %d\n"
+                   "        .connector_type = %d (%s)\n"
                    "        .connector_type_id = %d\n\n",
                    curr_connector.id,
                    curr_connector.mode_valid,
@@ -939,12 +895,14 @@ static void ricochet(
                    curr_connector.mode.flags,
                    curr_connector.encoder->encoder_id,
                    curr_connector.encoder->encoder_type,
+                   encoder_type_str(curr_connector.encoder->encoder_type),
                    curr_connector.encoder->crtc_id,
                    curr_connector.encoder->possible_crtcs,
                    curr_connector.encoder->possible_clones,
                    curr_connector.connector->connector_id,
                    curr_connector.connector->encoder_id,
                    curr_connector.connector->connector_type,
+                   connector_type_str(curr_connector.connector->connector_type),
                    curr_connector.connector->connector_type_id);
 
             printf("Sprite surface dimensions = %dx%d\n"
@@ -990,7 +948,7 @@ static void ricochet(
         if (out_w > prim_width / 2)
             out_w = prim_width / 2;
         if (out_h > prim_height / 2)
-            out_h - prim_height / 2;
+            out_h = prim_height / 2;
 
         delta_x = 3;
         delta_y = 4;
