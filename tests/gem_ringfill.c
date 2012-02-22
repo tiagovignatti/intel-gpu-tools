@@ -44,7 +44,6 @@
 
 #include "drm.h"
 #include "i915_drm.h"
-#include "drmtest.h"
 #include "intel_bufmgr.h"
 #include "intel_batchbuffer.h"
 #include "intel_gpu_tools.h"
@@ -170,7 +169,7 @@ static int check_ring(drm_intel_bufmgr *bufmgr,
 
 static void blt_copy(struct intel_batchbuffer *batch,
 		     struct scratch_buf *src, unsigned src_x, unsigned src_y,
-		     unsigned width, unsigned height,
+		     unsigned w, unsigned h,
 		     struct scratch_buf *dst, unsigned dst_x, unsigned dst_y)
 {
 	BEGIN_BATCH(8);
@@ -181,7 +180,7 @@ static void blt_copy(struct intel_batchbuffer *batch,
 		  (0xcc << 16) | /* copy ROP */
 		  dst->stride);
 	OUT_BATCH((dst_y << 16) | dst_x); /* dst x1,y1 */
-	OUT_BATCH(((dst_y + width) << 16) | (dst_x + width)); /* dst x2,y2 */
+	OUT_BATCH(((dst_y + h) << 16) | (dst_x + w)); /* dst x2,y2 */
 	OUT_RELOC(dst->bo, I915_GEM_DOMAIN_RENDER, I915_GEM_DOMAIN_RENDER, 0);
 	OUT_BATCH((src_y << 16) | src_x); /* src x1,y1 */
 	OUT_BATCH(src->stride);
