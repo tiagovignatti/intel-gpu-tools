@@ -64,11 +64,6 @@
 #include "drmtest.h"
 #include "testdisplay.h"
 
-#if defined(DRM_IOCTL_MODE_ADDFB2) && defined(DRM_I915_SET_SPRITE_COLORKEY)
-#define TEST_PLANES 1
-#include "drm_fourcc.h"
-#endif
-
 drmModeRes *resources;
 int drm_fd, modes;
 int dump_info = 0, test_all_modes =0, test_preferred_mode = 0, force_mode = 0,
@@ -254,46 +249,6 @@ static void dump_crtcs_fd(int drmfd)
 
 	drmModeFreeResources(mode_resources);
 }
-
-
-#ifdef TEST_PLANES
-static void dump_planes(void)
-{
-	drmModePlaneRes *plane_resources;
-	drmModePlane *ovr;
-	int i;
-
-	plane_resources = drmModeGetPlaneResources(drm_fd);
-	if (!plane_resources) {
-		fprintf(stderr, "drmModeGetPlaneResources dump failed: %s\n",
-			strerror(errno));
-		return;
-	}
-
-	printf("Planes:\n");
-	printf("id\tcrtc\tfb\tCRTC x,y\tx,y\tgamma size\n");
-	for (i = 0; i < plane_resources->count_planes; i++) {
-		ovr = drmModeGetPlane(drm_fd, plane_resources->planes[i]);
-		if (!ovr) {
-			fprintf(stderr, "drmModeGetPlane failed: %s\n",
-				strerror(errno));
-			continue;
-		}
-
-		printf("%d\t%d\t%d\t%d,%d\t\t%d,%d\t%d\n",
-		       ovr->plane_id, ovr->crtc_id, ovr->fb_id,
-		       ovr->crtc_x, ovr->crtc_y, ovr->x, ovr->y,
-		       ovr->gamma_size);
-
-		drmModeFreePlane(ovr);
-	}
-	printf("\n");
-
-	return;
-}
-#else
-static void dump_planes(void) { return; }
-#endif
 
 static void connector_find_preferred_mode(struct connector *c)
 {
@@ -658,193 +613,6 @@ paint_output_info(cairo_t *cr, struct connector *c, int width, int height)
 	}
 }
 
-#ifdef TEST_PLANES
-static int
-connector_find_plane(struct connector *c)
-{
-	drmModePlaneRes *plane_resources;
-	drmModePlane *ovr;
-	uint32_t id = 0;
-	int i;
-
-	plane_resources = drmModeGetPlaneResources(drm_fd);
-	if (!plane_resources) {
-		fprintf(stderr, "drmModeGetPlaneResources failed: %s\n",
-			strerror(errno));
-		return 0;
-	}
-
-	for (i = 0; i < plane_resources->count_planes; i++) {
-		ovr = drmModeGetPlane(drm_fd, plane_resources->planes[i]);
-		if (!ovr) {
-			fprintf(stderr, "drmModeGetPlane failed: %s\n",
-				strerror(errno));
-			continue;
-		}
-
-		if (ovr->possible_crtcs & (1 << c->pipe)) {
-			id = ovr->plane_id;
-			drmModeFreePlane(ovr);
-			break;
-		}
-		drmModeFreePlane(ovr);
-	}
-
-	return id;
-}
-
-static void
-paint_plane(cairo_t *cr, int width, int height, int stride)
-{
-	double gr_height, gr_width;
-	int x, y;
-
-	y = 0;
-	gr_width = width;
-	gr_height = height * 0.25;
-	x = 0;
-
-	paint_color_gradient(cr, x, y, gr_width, gr_height, 1, 0, 0);
-
-	y += gr_height;
-	paint_color_gradient(cr, x, y, gr_width, gr_height, 0, 1, 0);
-
-	y += gr_height;
-	paint_color_gradient(cr, x, y, gr_width, gr_height, 0, 0, 1);
-
-	y += gr_height;
-	paint_color_gradient(cr, x, y, gr_width, gr_height, 1, 1, 1);
-}
-
-static void
-enable_plane(struct connector *c)
-{
-	cairo_surface_t *surface;
-	cairo_status_t status;
-	cairo_t *cr;
-	uint32_t handle;
-	int ret;
-	uint32_t handles[4], pitches[4], offsets[4]; /* we only use [0] */
-	struct drm_intel_sprite_colorkey set;
-	uint32_t plane_flags = 0;
-
-	plane_id = connector_find_plane(c);
-	if (!plane_id) {
-		fprintf(stderr, "failed to find plane for crtc\n");
-		return;
-	}
-	plane_crtc_id = c->crtc;
-
-	surface = allocate_surface(drm_fd, plane_width, plane_height, 24, &handle, 1);
-	if (!surface) {
-		fprintf(stderr, "allocation failed %dx%d\n", plane_width, plane_height);
-		return;
-	}
-
-	cr = cairo_create(surface);
-
-	paint_plane(cr, plane_width, plane_height,
-		      cairo_image_surface_get_stride(surface));
-	status = cairo_status(cr);
-	cairo_destroy(cr);
-	if (status)
-		fprintf(stderr, "failed to draw plane %dx%d: %s\n",
-			plane_width, plane_height, cairo_status_to_string(status));
-
-	pitches[0] = cairo_image_surface_get_stride(surface);
-	memset(offsets, 0, sizeof(offsets));
-	handles[0] = handles[1] = handles[2] = handles[3] = handle;
-	ret = drmModeAddFB2(drm_fd, plane_width, plane_height, DRM_FORMAT_XRGB8888,
-			    handles, pitches, offsets, &plane_fb_id,
-			    plane_flags);
-	cairo_surface_destroy(surface);
-	gem_close(drm_fd, handle);
-
-	if (ret) {
-		fprintf(stderr, "failed to add fb (%dx%d): %s\n",
-			plane_width, plane_height, strerror(errno));
-		return;
-	}
-
-	set.plane_id = plane_id;
-	set.max_value = SPRITE_COLOR_KEY;
-	set.min_value = SPRITE_COLOR_KEY;
-	set.channel_mask = 0xffffff;
-	ret = drmCommandWrite(drm_fd, DRM_I915_SET_SPRITE_COLORKEY, &set,
-			      sizeof(set));
-
-	if (drmModeSetPlane(drm_fd, plane_id, plane_crtc_id, plane_fb_id,
-			    plane_flags, crtc_x, crtc_y, crtc_w, crtc_h,
-			    0, 0, plane_width, plane_height)) {
-		fprintf(stderr, "failed to enable plane: %s\n",
-			strerror(errno));
-		return;
-	}
-}
-
-static void
-adjust_plane(int fd, int xdistance, int ydistance, int wdiff, int hdiff)
-{
-	uint32_t plane_flags = 0;
-
-	crtc_x += xdistance;
-	crtc_y += ydistance;
-	crtc_w += wdiff;
-	crtc_h += hdiff;
-	fprintf(stderr, "setting plane %dx%d @ %d,%d (source %dx%d)\n",
-		crtc_w, crtc_h, crtc_x, crtc_y, plane_width, plane_height);
-	if (drmModeSetPlane(fd, plane_id, plane_crtc_id, plane_fb_id,
-			    plane_flags, crtc_x, crtc_y,
-			    crtc_w, crtc_h, 0, 0, plane_width, plane_height))
-		fprintf(stderr, "failed to adjust plane: %s\n",	strerror(errno));
-}
-
-static void
-disable_planes(int fd)
-{
-	struct connector *connectors;
-	int c;
-
-	resources = drmModeGetResources(fd);
-	if (!resources) {
-		fprintf(stderr, "drmModeGetResources failed: %s\n",
-			strerror(errno));
-		return;
-	}
-
-	connectors = calloc(resources->count_connectors,
-			    sizeof(struct connector));
-	if (!connectors)
-		return;
-
-	/* Find any connected displays */
-	for (c = 0; c < resources->count_connectors; c++) {
-		uint32_t plane_id;
-
-		plane_id = connector_find_plane(&connectors[c]);
-		if (!plane_id) {
-			fprintf(stderr,
-				"failed to find plane for crtc\n");
-			return;
-		}
-		if (drmModeSetPlane(fd, plane_id, connectors[c].crtc, 0, 0, 0,
-				    0, 0, 0, 0, 0, 0, 0)) {
-			fprintf(stderr, "failed to disable plane: %s\n",
-				strerror(errno));
-			return;
-		}
-	}
-	drmModeFreeResources(resources);
-	return;
-}
-#else
-static void enable_plane(struct connector *c) { return; }
-static void
-adjust_plane(int fd, int xdistance, int ydistance, int wdiff, int hdiff)
-{ return; }
-static void disable_planes(int fd) { return; }
-#endif
-
 static void
 set_mode(struct connector *c)
 {
@@ -945,9 +713,6 @@ set_mode(struct connector *c)
 			continue;
 		}
 
-		if (test_plane)
-			enable_plane(c);
-
 		if (sleep_between_modes && test_all_modes)
 			sleep(sleep_between_modes);
 
@@ -991,7 +756,6 @@ int update_display(void)
 	if (dump_info) {
 		dump_connectors_fd(drm_fd);
 		dump_crtcs_fd(drm_fd);
-		dump_planes();
 	}
 
 	if (test_preferred_mode || test_all_modes || force_mode) {
@@ -1034,24 +798,8 @@ static gboolean input_event(GIOChannel *source, GIOCondition condition,
 
 	count = read(g_io_channel_unix_get_fd(source), buf, sizeof(buf));
 	if (buf[0] == 'q' && (count == 1 || buf[1] == '\n')) {
-		disable_planes(drm_fd);
 		exit(0);
-	} else if (buf[0] == 'a')
-		adjust_plane(drm_fd, -10, 0, 0, 0);
-	else if (buf[0] == 'd')
-		adjust_plane(drm_fd, 10, 0, 0, 0);
-	else if (buf[0] == 'w')
-		adjust_plane(drm_fd, 0, -10, 0, 0);
-	else if (buf[0] == 's')
-		adjust_plane(drm_fd, 0, 10, 0, 0);
-	else if (buf[0] == 'j')
-		adjust_plane(drm_fd, 0, 0, 10, 0);
-	else if (buf[0] == 'l')
-		adjust_plane(drm_fd, 0, 0, -10, 0);
-	else if (buf[0] == 'k')
-		adjust_plane(drm_fd, 0, 0, 0, -10);
-	else if (buf[0] == 'i')
-		adjust_plane(drm_fd, 0, 0, 0, 10);
+	}
 
 	return TRUE;
 }
@@ -1174,8 +922,6 @@ out_hotplug:
 out_mainloop:
 	g_main_loop_unref(mainloop);
 out_close:
-	if (test_plane)
-		disable_planes(drm_fd);
 	drmClose(drm_fd);
 out:
 	return ret;
