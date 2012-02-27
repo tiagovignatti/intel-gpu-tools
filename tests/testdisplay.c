@@ -342,8 +342,7 @@ static void connector_find_preferred_mode(struct connector *c)
 }
 
 static cairo_surface_t *
-allocate_surface(int fd, int width, int height, uint32_t depth,
-		 uint32_t *handle, int tiled)
+allocate_surface(int fd, uint32_t *handle, int tiled)
 {
 	cairo_format_t format;
 	struct drm_i915_gem_set_tiling set_tiling;
@@ -421,16 +420,16 @@ enum corner {
 };
 
 static void
-paint_color_gradient(cairo_t *cr, int x, int y, int width, int height,
+paint_color_gradient(cairo_t *cr, int x, int y, int w, int h,
 		     int r, int g, int b)
 {
 	cairo_pattern_t *pat;
 
-	pat = cairo_pattern_create_linear(x, y, x + width, y + height);
+	pat = cairo_pattern_create_linear(x, y, x + w, y + h);
 	cairo_pattern_add_color_stop_rgba(pat, 1, 0, 0, 0, 1);
 	cairo_pattern_add_color_stop_rgba(pat, 0, r, g, b, 1);
 
-	cairo_rectangle(cr, x, y, width, height);
+	cairo_rectangle(cr, x, y, w, h);
 	cairo_set_source(cr, pat);
 	cairo_fill(cr);
 	cairo_pattern_destroy(pat);
@@ -451,7 +450,7 @@ paint_color_key(void)
 }
 
 static void
-paint_test_patterns(cairo_t *cr, int width, int height, int stride)
+paint_test_patterns(cairo_t *cr)
 {
 	double gr_height, gr_width;
 	int x, y;
@@ -528,7 +527,7 @@ paint_marker(cairo_t *cr, int x, int y, char *str, enum corner text_location)
 }
 
 static void
-paint_output_info(cairo_t *cr, struct connector *c, int width, int height)
+paint_output_info(cairo_t *cr, struct connector *c)
 {
 	cairo_text_extents_t name_extents, mode_extents;
 	char name_buf[128], mode_buf[128];
@@ -656,8 +655,7 @@ set_mode(struct connector *c)
 		width = c->mode.hdisplay;
 		height = c->mode.vdisplay;
 
-		surface = allocate_surface(drm_fd, width, height, depth,
-					   &handle, enable_tiling);
+		surface = allocate_surface(drm_fd, &handle, enable_tiling);
 		if (!surface) {
 			fprintf(stderr, "allocation failed %dx%d\n", width, height);
 			continue;
@@ -665,8 +663,7 @@ set_mode(struct connector *c)
 
 		cr = cairo_create(surface);
 
-		paint_test_patterns(cr, width, height,
-				    cairo_image_surface_get_stride(surface));
+		paint_test_patterns(cr);
 
 		cairo_set_line_cap(cr, CAIRO_LINE_CAP_SQUARE);
 
@@ -681,7 +678,7 @@ set_mode(struct connector *c)
 		paint_marker(cr, width, height, buf, topleft);
 
 		/* Paint output info */
-		paint_output_info(cr, c, width, height);
+		paint_output_info(cr, c);
 
 		paint_color_key();
 
@@ -691,8 +688,7 @@ set_mode(struct connector *c)
 			fprintf(stderr, "failed to draw pretty picture %dx%d: %s\n",
 				width, height, cairo_status_to_string(status));
 
-		ret = drmModeAddFB(drm_fd, width, height, depth, bpp,
-				   cairo_image_surface_get_stride(surface),
+		ret = drmModeAddFB(drm_fd, width, height, depth, bpp, stride,
 				   handle, &fb_id);
 		cairo_surface_destroy(surface);
 		gem_close(drm_fd, handle);
