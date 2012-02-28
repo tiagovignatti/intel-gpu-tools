@@ -104,7 +104,8 @@ intel_get_total_ram_mb(void)
 
 	retval = (uint64_t) pagesize * npages;
 #else
-#error "Unknown how to get RAM size for this OS"
+#warning "Unknown how to get RAM size for this OS"
+	return 0;
 #endif
 
 	return retval / (1024*1024);
