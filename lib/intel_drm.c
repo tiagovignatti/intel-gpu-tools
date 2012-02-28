@@ -104,8 +104,7 @@ intel_get_total_ram_mb(void)
 
 	retval = (uint64_t) pagesize * npages;
 #else
-#warning "Unknown how to get RAM size for this OS"
-	return 0;
+#error "Unknown how to get RAM size for this OS"
 #endif
 
 	return retval / (1024*1024);
@@ -164,7 +163,8 @@ intel_get_total_swap_mb(void)
 
 	retval = (uint64_t) pagesize * totalpages;
 #else
-#error "Unknown how to get swap size for this OS"
+#warning "Unknown how to get swap size for this OS"
+	return 0;
 #endif
 
 	return retval / (1024*1024);
