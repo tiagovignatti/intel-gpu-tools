@@ -41,21 +41,45 @@ static void dump_range(uint32_t start, uint32_t end)
 		       *(volatile uint32_t *)((volatile char*)mmio + i));
 }
 
+static void usage(char *cmdname)
+{
+	printf("Usage: %s [-f | addr]\n", cmdname);
+	printf("\t -f : read back full range of registers.\n");
+	printf("\t      WARNING! This option may result in a machine hang!\n");
+	printf("\t addr : in 0xXXXX format\n");
+}
+
 int main(int argc, char** argv)
 {
+	int ret = 0;
 	uint32_t reg;
+	int ch;
+	char *cmdname = strdup(argv[0]);
+	int full_dump = 0;
 
-	if (argc != 2) {
-		printf("Usage: %s [-f | addr]\n", argv[0]);
-		printf("\t -f : read back full range of registers.\n");
-		printf("\t      WARNING! This could be danger to hang the machine!\n");
-		printf("\t addr : in 0xXXXX format\n");
-		exit(1);
+	while ((ch = getopt(argc, argv, "fh")) != -1) {
+		switch(ch) {
+		case 'f':
+			full_dump = 1;
+			break;
+		case 'h':
+			usage(cmdname);
+			ret = 1;
+			goto out;
+		}
+	}
+	argc -= optind;
+	argv += optind;
+
+	if (argc != 1) {
+		usage(cmdname);
+		ret = 1;
+		goto out;
 	}
 
 	intel_register_access_init(intel_get_pci_device(), 0);
 
-	if (!strcmp(argv[1], "-f")) {
+	if (full_dump) {
 		dump_range(0x00000, 0x00fff);   /* VGA registers */
 		dump_range(0x02000, 0x02fff);   /* instruction, memory, interrupt control registers */
 		dump_range(0x03000, 0x031ff);   /* FENCE and PPGTT control registers */
@@ -71,12 +95,14 @@ int main(int argc, char** argv)
 		dump_range(0x70000, 0x72fff);   /* display and cursor registers */
 		dump_range(0x73000, 0x73fff);   /* performance counters */
 	} else {
-		sscanf(argv[1], "0x%x", &reg);
+		sscanf(argv[0], "0x%x", &reg);
 		dump_range(reg, reg + 4);
 	}
 
 	intel_register_access_fini();
 
-	return 0;
+out:
+	free(cmdname);
+	return ret;
 }
 
