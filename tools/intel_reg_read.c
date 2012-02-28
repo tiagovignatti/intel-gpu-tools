@@ -32,6 +32,19 @@
 #include <string.h>
 #include "intel_gpu_tools.h"
 
+static void bit_decode(uint32_t reg)
+{
+	int i;
+
+	for (i=31; i >= 0; i--)
+		printf(" %2d", i);
+	printf("\n");
+
+	for (i=31; i >= 0; i--)
+		printf(" %2d", (reg & (1 << i)) && 1);
+	printf("\n");
+}
+
 static void dump_range(uint32_t start, uint32_t end)
 {
 	int i;
@@ -43,9 +56,10 @@ static void dump_range(uint32_t start, uint32_t end)
 
 static void usage(char *cmdname)
 {
-	printf("Usage: %s [-f] [addr1] [addr2] .. [addrN]\n", cmdname);
+	printf("Usage: %s [-f|-d] [addr1] [addr2] .. [addrN]\n", cmdname);
 	printf("\t -f : read back full range of registers.\n");
 	printf("\t      WARNING! This option may result in a machine hang!\n");
+	printf("\t -d : decode register bits.\n");
 	printf("\t addr : in 0xXXXX format\n");
 }
 
@@ -56,9 +70,13 @@ int main(int argc, char** argv)
 	int i, ch;
 	char *cmdname = strdup(argv[0]);
 	int full_dump = 0;
+	int decode_bits = 0;
 
-	while ((ch = getopt(argc, argv, "fh")) != -1) {
+	while ((ch = getopt(argc, argv, "dfh")) != -1) {
 		switch(ch) {
+		case 'd':
+			decode_bits = 1;
+			break;
 		case 'f':
 			full_dump = 1;
 			break;
@@ -98,6 +116,9 @@ int main(int argc, char** argv)
 		for (i=0; i < argc; i++) {
 			sscanf(argv[i], "0x%x", &reg);
 			dump_range(reg, reg + 4);
+
+			if (decode_bits)
+				bit_decode(*(volatile uint32_t *)((volatile char*)mmio + reg));
 		}
 	}
 
