@@ -43,7 +43,7 @@ static void dump_range(uint32_t start, uint32_t end)
 
 static void usage(char *cmdname)
 {
-	printf("Usage: %s [-f | addr]\n", cmdname);
+	printf("Usage: %s [-f] [addr1] [addr2] .. [addrN]\n", cmdname);
 	printf("\t -f : read back full range of registers.\n");
 	printf("\t      WARNING! This option may result in a machine hang!\n");
 	printf("\t addr : in 0xXXXX format\n");
@@ -53,7 +53,7 @@ int main(int argc, char** argv)
 {
 	int ret = 0;
 	uint32_t reg;
-	int ch;
+	int i, ch;
 	char *cmdname = strdup(argv[0]);
 	int full_dump = 0;
 
@@ -71,7 +71,7 @@ int main(int argc, char** argv)
 	argc -= optind;
 	argv += optind;
 
-	if (argc != 1) {
+	if (argc < 1) {
 		usage(cmdname);
 		ret = 1;
 		goto out;
@@ -95,8 +95,10 @@ int main(int argc, char** argv)
 		dump_range(0x70000, 0x72fff);   /* display and cursor registers */
 		dump_range(0x73000, 0x73fff);   /* performance counters */
 	} else {
-		sscanf(argv[0], "0x%x", &reg);
-		dump_range(reg, reg + 4);
+		for (i=0; i < argc; i++) {
+			sscanf(argv[i], "0x%x", &reg);
+			dump_range(reg, reg + 4);
+		}
 	}
 
 	intel_register_access_fini();
