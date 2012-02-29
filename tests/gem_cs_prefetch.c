@@ -87,7 +87,7 @@ static void exec(int fd, uint32_t handle)
 
 int main(int argc, char **argv)
 {
-	uint32_t batch_end[2] = {MI_BATCH_BUFFER_END};
+	uint32_t batch_end[4] = {MI_BATCH_BUFFER_END, 0, 0, 0};
 	int fd, i, ret;
 	uint64_t aper_size;
 	int count;
