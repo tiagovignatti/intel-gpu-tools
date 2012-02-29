@@ -59,7 +59,7 @@ drm_intel_bo *scratch_bo;
 drm_intel_bo *staging_bo;
 drm_intel_bo *tiled_staging_bo;
 unsigned long scratch_pitch;
-#define BO_SIZE (8*4096)
+#define BO_SIZE (32*4096)
 uint32_t devid;
 uint64_t mappable_gtt_limit;
 int fd;
