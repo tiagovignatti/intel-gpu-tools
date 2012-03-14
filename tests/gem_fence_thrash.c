@@ -75,6 +75,7 @@ bo_create (int fd)
 	tiling.stride = 1024;
 	ret = ioctl(fd, DRM_IOCTL_I915_GEM_SET_TILING, &tiling);
 	assert(ret == 0);
+	assert(tiling.tiling_mode == I915_TILING_X);
 
 	memset(&mmap_arg, 0, sizeof(mmap_arg));
 	mmap_arg.handle = handle;
