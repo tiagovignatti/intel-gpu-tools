@@ -75,7 +75,7 @@ static int exec(int fd, uint32_t handle, int loops)
 	execbuf.DR1 = 0;
 	execbuf.DR4 = 0;
 	execbuf.flags = 0;
-	execbuf.rsvd1 = 0;
+	i915_execbuffer2_set_context_id(execbuf, 0);
 	execbuf.rsvd2 = 0;
 
 	while (loops-- && ret == 0) {

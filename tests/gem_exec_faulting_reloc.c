@@ -207,7 +207,7 @@ static void run(int object_size)
 	execbuf.DR1 = 0;
 	execbuf.DR4 = 0;
 	execbuf.flags = ring;
-	execbuf.rsvd1 = 0;
+	i915_execbuffer2_set_context_id(execbuf, 0);
 	execbuf.rsvd2 = 0;
 
 	gem_exec(fd, &execbuf);

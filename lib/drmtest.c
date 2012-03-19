@@ -118,7 +118,7 @@ void gem_quiescent_gpu(int fd)
 	execbuf.DR1 = 0;
 	execbuf.DR4 = 0;
 	execbuf.flags = 0;
-	execbuf.rsvd1 = 0;
+	i915_execbuffer2_set_context_id(execbuf, 0);
 	execbuf.rsvd2 = 0;
 
 	do_ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf);

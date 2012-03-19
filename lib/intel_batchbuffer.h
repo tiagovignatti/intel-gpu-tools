@@ -100,4 +100,11 @@ void intel_copy_bo(struct intel_batchbuffer *batch,
 		   drm_intel_bo *dst_bo, drm_intel_bo *src_bo,
 		   int width, int height);
 
+#define I915_EXEC_CONTEXT_ID_MASK      (0xffffffff)
+#define i915_execbuffer2_set_context_id(eb2, context) \
+	(eb2).rsvd1 = context & I915_EXEC_CONTEXT_ID_MASK
+#define i915_execbuffer2_get_context_id(eb2) \
+	((eb2).rsvd1 & I915_EXEC_CONTEXT_ID_MASK)
+
+
 #endif

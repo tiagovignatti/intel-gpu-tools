@@ -107,7 +107,7 @@ static void exec0(int fd)
 	execbuf.DR1 = 0;
 	execbuf.DR4 = 0;
 	execbuf.flags = 0;
-	execbuf.rsvd1 = 0;
+	i915_execbuffer2_set_context_id(execbuf, 0);
 	execbuf.rsvd2 = 0;
 
 	printf("trying to run an empty batchbuffer\n");
