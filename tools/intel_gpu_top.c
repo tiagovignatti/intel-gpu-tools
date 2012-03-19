@@ -509,7 +509,7 @@ int main(int argc, char **argv)
 	}
 
 	/* Grab access to the registers */
-	intel_register_access_init(pci_dev, 1);
+	intel_register_access_init(pci_dev, 0);
 
 	ring_init(&render_ring);
 	if (IS_GEN4(devid) || IS_GEN5(devid))
