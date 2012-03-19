@@ -244,7 +244,7 @@ print_i915_fence(unsigned int devid, uint64_t fence)
 		fence & 1 ? "" : "in",
 		fence & 12 ? 'y' : 'x',
 		(1<<((fence>>4)&0xf))*tile_width,
-		(uint32_t)fence & 0x7f80000,
+		(uint32_t)fence & 0xff00000,
 		1<<(20 + ((fence>>8)&0xf)));
 }
 
