@@ -44,6 +44,7 @@
 #include "xf86drm.h"
 #include "xf86drmMode.h"
 #include "i915_drm.h"
+#include "drmtest.h"
 
 #if defined(DRM_IOCTL_MODE_ADDFB2) && defined(DRM_I915_SET_SPRITE_COLORKEY)
 #define TEST_PLANES 1
@@ -369,56 +370,6 @@ static void connector_find_preferred_mode(
 	gfx_resources->crtcs[i] = 0;
 
 	c->connector = connector;
-}
-
-//*****************************************************************************
-//
-// gem_create
-//
-//*****************************************************************************
-static uint32_t gem_create(int fd, int size)
-{
-	struct drm_i915_gem_create create;
-
-	create.handle = 0;
-	create.size = (size + 4095) & -4096;
-	(void)drmIoctl(fd, DRM_IOCTL_I915_GEM_CREATE, &create);
-
-	return create.handle;
-}
-
-//*****************************************************************************
-//
-// gem_mmap
-//
-//*****************************************************************************
-static void *gem_mmap(int fd, uint32_t handle, int size, int prot)
-{
-	struct drm_i915_gem_mmap_gtt mmap_arg;
-	void *ptr;
-
-	mmap_arg.handle = handle;
-	if (drmIoctl(fd, DRM_IOCTL_I915_GEM_MMAP_GTT, &mmap_arg))
-		return NULL;
-
-	ptr = mmap(0, size, prot, MAP_SHARED, fd, mmap_arg.offset);
-	if (ptr == MAP_FAILED)
-		ptr = NULL;
-
-	return ptr;
-}
-
-//*****************************************************************************
-//
-// gem_close
-//
-//*****************************************************************************
-static void gem_close(int fd, uint32_t handle)
-{
-	struct drm_gem_close close_st;
-
-	close_st.handle = handle;
-	(void)drmIoctl(fd, DRM_IOCTL_GEM_CLOSE, &close_st);
 }
 
 //*****************************************************************************
