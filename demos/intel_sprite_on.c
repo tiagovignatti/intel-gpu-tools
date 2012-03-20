@@ -125,11 +125,6 @@ struct connector
 	int                 pipe;
 };
 
-//*****************************************************************************
-//
-// usage
-//
-//*****************************************************************************
 static void dump_mode(
         drmModeModeInfo             *mode)
 {
@@ -149,11 +144,6 @@ static void dump_mode(
 	       mode->clock);
 }
 
-//*****************************************************************************
-//
-// dump_connectors
-//
-//*****************************************************************************
 static void dump_connectors(
         int                         gfx_fd,
         drmModeRes                  *resources)
@@ -194,11 +184,6 @@ static void dump_connectors(
 	printf("\n");
 }
 
-//*****************************************************************************
-//
-// dump_crtcs
-//
-//*****************************************************************************
 static void dump_crtcs(
         int                         gfx_fd,
         drmModeRes                  *resources)
@@ -229,11 +214,6 @@ static void dump_crtcs(
 	printf("\n");
 }
 
-//*****************************************************************************
-//
-// dump_planes
-//
-//*****************************************************************************
 static void dump_planes(
         int                         gfx_fd,
         drmModeRes                  *resources)
@@ -271,11 +251,6 @@ static void dump_planes(
 	return;
 }
 
-//*****************************************************************************
-//
-// connector_find_preferred_mode
-//
-//*****************************************************************************
 static void connector_find_preferred_mode(
         int                     gfx_fd,
         drmModeRes              *gfx_resources,
@@ -372,11 +347,6 @@ static void connector_find_preferred_mode(
 	c->connector = connector;
 }
 
-//*****************************************************************************
-//
-// connector_find_plane
-//
-//*****************************************************************************
 static int connector_find_plane(int gfx_fd, struct connector *c)
 {
 	drmModePlaneRes *plane_resources;
@@ -410,11 +380,6 @@ static int connector_find_plane(int gfx_fd, struct connector *c)
 	return id;
 }
 
-//*****************************************************************************
-//
-// prepare_primary_surface
-//
-//*****************************************************************************
 static int prepare_primary_surface(
             int                     fd,
             int                     prim_width,
@@ -484,11 +449,6 @@ static int prepare_primary_surface(
     return 0;
 }
 
-//*****************************************************************************
-//
-// fill_sprite
-//
-//*****************************************************************************
 static void fill_sprite(
         int                             sprite_width,
         int                             sprite_height,
@@ -531,11 +491,6 @@ static void fill_sprite(
     return;
 }
 
-//*****************************************************************************
-//
-// prepare_sprite_surfaces
-//
-//*****************************************************************************
 static int prepare_sprite_surfaces(
             int                     fd,
             int                     sprite_width,
@@ -621,11 +576,6 @@ static int prepare_sprite_surfaces(
     return 0;
 }
 
-//*****************************************************************************
-//
-// ricochet
-//
-//*****************************************************************************
 static void ricochet(
         int                             tiled,
         int                             sprite_w,
@@ -1037,11 +987,6 @@ out:
     drmModeFreeResources(gfx_resources);
 }
 
-//*****************************************************************************
-//
-// usage
-//
-//*****************************************************************************
 static void usage(char *name)
 {
 	printf("usage: %s -s <plane width>x<plane height> [-dhto]\n"
@@ -1059,11 +1004,6 @@ static void usage(char *name)
            name);
 }
 
-//*****************************************************************************
-//
-// main
-//
-//*****************************************************************************
 int main(int argc, char **argv)
 {
 	int                 c;
