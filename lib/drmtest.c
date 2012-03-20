@@ -289,6 +289,20 @@ uint64_t gem_mappable_aperture_size(void)
 	return pci_dev->regions[bar].size;
 }
 
+int gem_madvise(int fd, uint32_t handle, int state)
+{
+	struct drm_i915_gem_madvise madv;
+	int ret;
+
+	madv.handle = handle;
+	madv.madv = state;
+	madv.retained = 1;
+	ret = drmIoctl(fd, DRM_IOCTL_I915_GEM_MADVISE, &madv);
+	assert(ret == 0);
+
+	return madv.retained;
+}
+
 /* signal interrupt helpers */
 static pid_t signal_helper = -1;
 long long int sig_stat;

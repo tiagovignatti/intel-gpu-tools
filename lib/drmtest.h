@@ -51,6 +51,7 @@ uint32_t gem_create(int fd, int size);
 void *gem_mmap(int fd, uint32_t handle, int size, int prot);
 uint64_t gem_aperture_size(int fd);
 uint64_t gem_mappable_aperture_size(void);
+int gem_madvise(int fd, uint32_t handle, int state);
 
 /* generally useful helpers */
 void drmtest_fork_signal_helper(void);
