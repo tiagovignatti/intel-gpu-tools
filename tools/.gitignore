@@ -6,6 +6,7 @@ intel_bios_reader
 intel_disable_clock_gating
 intel_dump_decode
 intel_error_decode
+intel_forcewaked
 intel_gpu_dump
 intel_gpu_time
 intel_gpu_top

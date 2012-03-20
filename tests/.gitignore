@@ -25,6 +25,7 @@ gem_largeobject
 gem_linear_blits
 gem_mmap
 gem_mmap_gtt
+gem_mmap_offset_exhaustion
 gem_partial_pwrite_pread
 gem_pipe_control_store_loop
 gem_pread_after_blit
@@ -40,6 +41,7 @@ gem_storedw_loop_render
 gem_stress
 gem_tiled_blits
 gem_tiled_fence_blits
+gem_tiled_partial_pwrite_pread
 gem_tiled_pread
 gem_tiled_pread_pwrite
 gem_tiled_swapping
