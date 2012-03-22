@@ -44,6 +44,7 @@
 
 static drm_intel_bufmgr *bufmgr;
 static drm_intel_bo *target_bo;
+static int has_ppgtt = 0;
 
 /* Like the store dword test, but we create new command buffers each time */
 static void
@@ -53,7 +54,9 @@ store_dword_loop(void)
 	uint32_t *buf;
 	drm_intel_bo *cmd_bo;
 
-	cmd = MI_STORE_DWORD_IMM | MI_MEM_VIRTUAL;
+	cmd = MI_STORE_DWORD_IMM;
+	if (!has_ppgtt)
+		cmd |= MI_MEM_VIRTUAL;
 
 	for (i = 0; i < 0x80000; i++) {
 		cmd_bo = drm_intel_bo_alloc(bufmgr, "cmd bo", 4096, 4096);
@@ -135,6 +138,8 @@ int main(int argc, char **argv)
 
 	fd = drm_open_any();
 	devid = intel_get_drm_devid(fd);
+
+	has_ppgtt = gem_uses_aliasing_ppgtt(fd);
 
 	if (IS_GEN2(devid) || IS_GEN3(devid) || IS_GEN4(devid) || IS_GEN5(devid)) {
 

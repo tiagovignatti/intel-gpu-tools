@@ -30,6 +30,7 @@
 #include <unistd.h>
 #include <assert.h>
 #include <errno.h>
+#include <stdbool.h>
 
 #include "xf86drm.h"
 #include "intel_batchbuffer.h"
@@ -52,6 +53,9 @@ void *gem_mmap(int fd, uint32_t handle, int size, int prot);
 uint64_t gem_aperture_size(int fd);
 uint64_t gem_mappable_aperture_size(void);
 int gem_madvise(int fd, uint32_t handle, int state);
+
+/* feature test helpers */
+bool gem_uses_aliasing_ppgtt(int fd);
 
 /* generally useful helpers */
 void drmtest_fork_signal_helper(void);

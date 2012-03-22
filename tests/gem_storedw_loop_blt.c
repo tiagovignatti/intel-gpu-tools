@@ -45,6 +45,7 @@
 static drm_intel_bufmgr *bufmgr;
 struct intel_batchbuffer *batch;
 static drm_intel_bo *target_buffer;
+static int has_ppgtt = 0;
 
 /*
  * Testcase: Basic blitter MI check using MI_STORE_DATA_IMM
@@ -56,7 +57,9 @@ store_dword_loop(void)
 	int cmd, i, val = 0;
 	uint32_t *buf;
 
-	cmd = MI_STORE_DWORD_IMM | MI_MEM_VIRTUAL;
+	cmd = MI_STORE_DWORD_IMM;
+	if (!has_ppgtt)
+		cmd |= MI_MEM_VIRTUAL;
 
 	for (i = 0; i < 0x100000; i++) {
 		BEGIN_BATCH(4);
@@ -105,6 +108,8 @@ int main(int argc, char **argv)
 	fd = drm_open_any();
 	devid = intel_get_drm_devid(fd);
 
+	has_ppgtt = gem_uses_aliasing_ppgtt(fd);
+
 	if (IS_GEN2(devid) || IS_GEN3(devid) || IS_GEN4(devid) || IS_GEN5(devid)) {
 
 		fprintf(stderr, "MI_STORE_DATA can only use GTT address on gen4+/g33 and "
@@ -112,8 +117,11 @@ int main(int argc, char **argv)
 		return 77;
 	}
 
-	/* This supposedly only works with ppgtt */
-	return 77;
+	/* This only works with ppgtt */
+	if (!has_ppgtt) {
+		fprintf(stderr, "no ppgtt detected, which is required\n");
+		return 77;
+	}
 
 	bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
 	if (!bufmgr) {

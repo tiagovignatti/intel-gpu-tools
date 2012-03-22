@@ -57,6 +57,20 @@ is_intel(int fd)
 	return IS_INTEL(devid);
 }
 
+bool gem_uses_aliasing_ppgtt(int fd)
+{
+	struct drm_i915_getparam gp;
+	int val;
+
+	gp.param = 18; /* HAS_ALIASING_PPGTT */
+	gp.value = &val;
+
+	if (ioctl(fd, DRM_IOCTL_I915_GETPARAM, &gp, sizeof(gp)))
+		return 0;
+
+	return val;
+}
+
 /* Ensure the gpu is idle by launching a nop execbuf and stalling for it. */
 void gem_quiescent_gpu(int fd)
 {
