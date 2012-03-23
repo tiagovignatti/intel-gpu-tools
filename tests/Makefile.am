@@ -21,6 +21,7 @@ TESTS_progs = \
 	gem_mmap_offset_exhaustion \
 	gem_pwrite \
 	gem_pread_after_blit \
+	gem_tiled_after_untiled_blt \
 	gem_tiled_pread \
 	gem_tiled_pread_pwrite \
 	gem_tiled_partial_pwrite_pread \
