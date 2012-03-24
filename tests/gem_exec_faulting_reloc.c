@@ -57,17 +57,6 @@
 #define BLT_SRC_TILED		(1<<15)
 #define BLT_DST_TILED		(1<<11)
 
-static void *
-mmap_bo(int fd, uint32_t handle)
-{
-	void *ptr;
-
-	ptr = gem_mmap(fd, handle, 4096, PROT_READ | PROT_WRITE);
-	assert(ptr != MAP_FAILED);
-
-	return ptr;
-}
-
 static int gem_linear_blt(uint32_t *batch,
 			  uint32_t src,
 			  uint32_t dst,
@@ -191,7 +180,8 @@ static void run(int object_size)
 
 	handle_relocs = gem_create(fd, 4096);
 	gem_write(fd, handle_relocs, 0, reloc, sizeof(reloc));
-	gtt_relocs = mmap_bo(fd, handle_relocs);
+	gtt_relocs = gem_mmap(fd, handle_relocs, 4096,
+			      PROT_READ | PROT_WRITE);
 	assert(gtt_relocs);
 
 	exec[2].handle = handle;
