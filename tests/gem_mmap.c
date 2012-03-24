@@ -45,9 +45,7 @@
 int main(int argc, char **argv)
 {
 	int fd;
-	struct drm_i915_gem_create create;
 	struct drm_i915_gem_mmap gem_mmap;
-	struct drm_gem_close unref;
 	uint8_t expected[OBJECT_SIZE];
 	uint8_t buf[OBJECT_SIZE];
 	uint8_t *addr;
@@ -64,11 +62,7 @@ int main(int argc, char **argv)
 	ret = ioctl(fd, DRM_IOCTL_I915_GEM_MMAP, &gem_mmap);
 	assert(ret == -1 && errno == ENOENT);
 
-	memset(&create, 0, sizeof(create));
-	create.size = OBJECT_SIZE;
-	ret = ioctl(fd, DRM_IOCTL_I915_GEM_CREATE, &create);
-	assert(ret == 0);
-	handle = create.handle;
+	handle = gem_create(fd, OBJECT_SIZE);
 
 	printf("Testing mmaping of newly created object.\n");
 	gem_mmap.handle = handle;
@@ -90,9 +84,7 @@ int main(int argc, char **argv)
 	assert(memcmp(buf, addr, sizeof(buf)) == 0);
 
 	printf("Testing that mapping stays after close\n");
-	unref.handle = handle;
-	ret = ioctl(fd, DRM_IOCTL_GEM_CLOSE, &unref);
-	assert(ret == 0);
+	gem_close(fd, handle);
 	assert(memcmp(buf, addr, sizeof(buf)) == 0);
 
 	printf("Testing unmapping\n");

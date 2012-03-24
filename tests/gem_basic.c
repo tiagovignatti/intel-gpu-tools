@@ -56,31 +56,22 @@ test_bad_close(int fd)
 static void
 test_create_close(int fd)
 {
-	struct drm_i915_gem_create create;
-	int ret;
+	uint32_t handle;
 
 	printf("Testing creating and closing an object.\n");
 
-	memset(&create, 0, sizeof(create));
-	create.size = 16 * 1024;
-	ret = ioctl(fd, DRM_IOCTL_I915_GEM_CREATE, &create);
-	assert(ret == 0);
+	handle = gem_create(fd, 16*1024);
 
-	gem_close(fd, create.handle);
+	gem_close(fd, handle);
 }
 
 static void
 test_create_fd_close(int fd)
 {
-	struct drm_i915_gem_create create;
-	int ret;
-
 	printf("Testing closing with an object allocated.\n");
 
-	memset(&create, 0, sizeof(create));
-	create.size = 16 * 1024;
-	ret = ioctl(fd, DRM_IOCTL_I915_GEM_CREATE, &create);
-	assert(ret == 0);
+	gem_create(fd, 16*1024);
+	/* leak it */
 
 	close(fd);
 }
