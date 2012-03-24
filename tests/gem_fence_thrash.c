@@ -56,36 +56,14 @@
 static void *
 bo_create (int fd)
 {
-	struct drm_i915_gem_create create;
-	struct drm_i915_gem_set_tiling tiling;
-	struct drm_i915_gem_mmap_gtt mmap_arg;
 	void *ptr;
 	int handle;
-	int ret;
 
-	memset(&create, 0, sizeof(create));
-	create.size = OBJECT_SIZE;
-	ret = ioctl(fd, DRM_IOCTL_I915_GEM_CREATE, &create);
-	assert(ret == 0);
-	handle = create.handle;
+	handle = gem_create(fd, OBJECT_SIZE);
 
-	memset(&tiling, 0, sizeof(tiling));
-	tiling.handle = handle;
-	tiling.tiling_mode = I915_TILING_X;
-	tiling.stride = 1024;
-	ret = ioctl(fd, DRM_IOCTL_I915_GEM_SET_TILING, &tiling);
-	assert(ret == 0);
-	assert(tiling.tiling_mode == I915_TILING_X);
+	gem_set_tiling(fd, handle, I915_TILING_X, 1024);
 
-	memset(&mmap_arg, 0, sizeof(mmap_arg));
-	mmap_arg.handle = handle;
-
-	/* Get the fake offset back... */
-	ret = ioctl(fd, DRM_IOCTL_I915_GEM_MMAP_GTT, &mmap_arg);
-	assert (ret == 0);
-	ptr = mmap64(0, OBJECT_SIZE, PROT_READ | PROT_WRITE,
-		    MAP_SHARED, fd, mmap_arg.offset);
-	assert (ptr != MAP_FAILED);
+	ptr = gem_mmap(fd, handle, OBJECT_SIZE, PROT_READ | PROT_WRITE);
 
 	/* XXX: mmap_gtt pulls the bo into the GTT read domain. */
 	gem_sync(fd, handle);
