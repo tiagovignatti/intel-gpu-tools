@@ -26,6 +26,8 @@
  *
  */
 
+#define _GNU_SOURCE
+#include <stdio.h>
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/ioctl.h>
@@ -108,70 +110,112 @@ void gem_quiescent_gpu(int fd)
 	gem_sync(fd, handle);
 }
 
-/** Open the first DRM device we can find, searching up to 16 device nodes */
-int drm_open_any(void)
+static bool is_master(int fd)
 {
-	char name[20];
+	drm_client_t client;
+	int ret;
+
+	/* Check that we're the only opener and authed. */
+	client.idx = 0;
+	ret = ioctl(fd, DRM_IOCTL_GET_CLIENT, &client);
+	assert (ret == 0);
+	if (!client.auth) {
+		return 0;
+	}
+	client.idx = 1;
+	ret = ioctl(fd, DRM_IOCTL_GET_CLIENT, &client);
+	if (ret != -1 || errno != EINVAL) {
+		return 0;
+	}
+	return 1;
+}
+
+/**
+ * drm_get_card() - get an intel card number for use in /dev or /sys
+ *
+ * @master: -1 not a master, 0 don't care, 1 is the master
+ *
+ * returns -1 on error
+ */
+int drm_get_card(int master)
+{
+	char *name;
 	int i, fd;
 
 	for (i = 0; i < 16; i++) {
-		sprintf(name, "/dev/dri/card%d", i);
+		int ret;
+
+		ret = asprintf(&name, "/dev/dri/card%u", i);
+		if (ret == -1)
+			return -1;
 		fd = open(name, O_RDWR);
+		free(name);
+
 		if (fd == -1)
 			continue;
 
-		if (is_intel(fd)) {
+		if (is_intel(fd) && master == 0) {
 			gem_quiescent_gpu(fd);
-			return fd;
+			break;
+		}
+
+		if (master == 1 && is_master(fd)) {
+			close(fd);
+			break;
+		}
+
+		if (master == -1 && !is_master(fd)) {
+			close(fd);
+			break;
 		}
 
 		close(fd);
 	}
-	fprintf(stderr, "failed to open any drm device. retry as root?\n");
-	abort();
+
+	return i;
 }
 
+/** Open the first DRM device we can find, searching up to 16 device nodes */
+int drm_open_any(void)
+{
+	char *name;
+	int ret, fd;
+
+	ret = asprintf(&name, "/dev/dri/card%d", drm_get_card(0));
+	if (ret == -1)
+		return -1;
+
+	fd = open(name, O_RDWR);
+	free(name);
+
+	if (fd == -1)
+		fprintf(stderr, "failed to open any drm device. retry as root?\n");
+
+	assert(is_intel(fd));
+
+	return fd;
+}
 
 /**
  * Open the first DRM device we can find where we end up being the master.
  */
 int drm_open_any_master(void)
 {
-	char name[20];
-	int i, fd;
+	char *name;
+	int ret, fd;
 
-	for (i = 0; i < 16; i++) {
-		drm_client_t client;
-		int ret;
+	ret = asprintf(&name, "/dev/dri/card%d", drm_get_card(1));
+	if (ret == -1)
+		return -1;
 
-		sprintf(name, "/dev/dri/card%d", i);
-		fd = open(name, O_RDWR);
-		if (fd == -1)
-			continue;
+	fd = open(name, O_RDWR);
+	free(name);
+	if (fd == -1)
+		fprintf(stderr, "Couldn't find an un-controlled DRM device\n");
 
-		if (!is_intel(fd)) {
-			close(fd);
-			continue;
-		}
+	assert(is_intel(fd));
 
-		/* Check that we're the only opener and authed. */
-		client.idx = 0;
-		ret = ioctl(fd, DRM_IOCTL_GET_CLIENT, &client);
-		assert (ret == 0);
-		if (!client.auth) {
-			close(fd);
-			continue;
-		}
-		client.idx = 1;
-		ret = ioctl(fd, DRM_IOCTL_GET_CLIENT, &client);
-		if (ret != -1 || errno != EINVAL) {
-			close(fd);
-			continue;
-		}
-		return fd;
-	}
-	fprintf(stderr, "Couldn't find an un-controlled DRM device\n");
-	abort();
+	return fd;
 }
 
 void gem_set_tiling(int fd, uint32_t handle, int tiling, int stride)
