@@ -35,6 +35,7 @@
 #include "xf86drm.h"
 #include "intel_batchbuffer.h"
 
+int drm_get_card(int master);
 int drm_open_any(void);
 int drm_open_any_master(void);
 
