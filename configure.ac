@@ -32,6 +32,7 @@ AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_USE_SYSTEM_EXTENSIONS
 AC_SYS_LARGEFILE
+AC_GNU_SOURCE
 
 AM_INIT_AUTOMAKE([foreign dist-bzip2])
 AM_PATH_PYTHON([3],, [:])
@@ -43,6 +44,7 @@ AC_CHECK_MEMBERS([struct sysinfo.totalram],[],[],[AC_INCLUDES_DEFAULT
 #include <sys/sysinfo.h>
 ])
 AC_CHECK_FUNCS([swapctl])
+AC_CHECK_FUNCS([asprintf])
 
 # Initialize libtool
 AC_DISABLE_STATIC
