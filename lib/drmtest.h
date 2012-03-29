@@ -71,3 +71,15 @@ void drmtest_progress(const char *header, uint64_t i, uint64_t total);
 void drmtest_init_aperture_trashers(drm_intel_bufmgr *bufmgr);
 void drmtest_trash_aperture(void);
 void drmtest_cleanup_aperture_trashers(void);
+
+inline static void _do_or_die(const char *function, int line, int ret)
+{
+	if (ret == 0)
+		return;
+
+	fprintf(stderr, "%s:%d failed, ret=%d, errno=%d\n",
+		function, line, ret, errno);
+	abort();
+}
+#define do_or_die(x) _do_or_die(__FUNCTION__, __LINE__, x)
+#define do_ioctl(fd, ptr, sz) do_or_die(drmIoctl((fd), (ptr), (sz)))

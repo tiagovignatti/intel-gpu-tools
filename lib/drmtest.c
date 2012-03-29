@@ -78,7 +78,6 @@ void gem_quiescent_gpu(int fd)
 	uint32_t handle;
 	struct drm_i915_gem_execbuffer2 execbuf;
 	struct drm_i915_gem_exec_object2 gem_exec[1];
-	int ret = 0;
 
 	handle = gem_create(fd, 4096);
 	gem_write(fd, handle, 0, batch, sizeof(batch));
@@ -104,10 +103,7 @@ void gem_quiescent_gpu(int fd)
 	execbuf.rsvd1 = 0;
 	execbuf.rsvd2 = 0;
 
-	ret = drmIoctl(fd,
-		       DRM_IOCTL_I915_GEM_EXECBUFFER2,
-		       &execbuf);
-	assert(ret == 0);
+	do_ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf);
 
 	gem_sync(fd, handle);
 }
@@ -198,51 +194,43 @@ void gem_set_tiling(int fd, uint32_t handle, int tiling, int stride)
 void gem_close(int fd, uint32_t handle)
 {
 	struct drm_gem_close close_bo;
-	int ret;
 
 	close_bo.handle = handle;
-	ret = drmIoctl(fd, DRM_IOCTL_GEM_CLOSE, &close_bo);
-	assert(ret == 0);
+	do_ioctl(fd, DRM_IOCTL_GEM_CLOSE, &close_bo);
 }
 
 void gem_write(int fd, uint32_t handle, uint32_t offset, const void *buf, uint32_t size)
 {
 	struct drm_i915_gem_pwrite gem_pwrite;
-	int ret;
 
 	gem_pwrite.handle = handle;
 	gem_pwrite.offset = offset;
 	gem_pwrite.size = size;
 	gem_pwrite.data_ptr = (uintptr_t)buf;
-	ret = drmIoctl(fd, DRM_IOCTL_I915_GEM_PWRITE, &gem_pwrite);
-	assert(ret == 0);
+	do_ioctl(fd, DRM_IOCTL_I915_GEM_PWRITE, &gem_pwrite);
 }
 
 void gem_read(int fd, uint32_t handle, uint32_t offset, void *buf, uint32_t length)
 {
 	struct drm_i915_gem_pread gem_pread;
-	int ret;
 
 	gem_pread.handle = handle;
 	gem_pread.offset = offset;
 	gem_pread.size = length;
 	gem_pread.data_ptr = (uintptr_t)buf;
-	ret = drmIoctl(fd, DRM_IOCTL_I915_GEM_PREAD, &gem_pread);
-	assert(ret == 0);
+	do_ioctl(fd, DRM_IOCTL_I915_GEM_PREAD, &gem_pread);
 }
 
 void gem_set_domain(int fd, uint32_t handle,
 		    uint32_t read_domains, uint32_t write_domain)
 {
 	struct drm_i915_gem_set_domain set_domain;
-	int ret;
 
 	set_domain.handle = handle;
 	set_domain.read_domains = read_domains;
 	set_domain.write_domain = write_domain;
 
-	ret = drmIoctl(fd, DRM_IOCTL_I915_GEM_SET_DOMAIN, &set_domain);
-	assert(ret == 0);
+	do_ioctl(fd, DRM_IOCTL_I915_GEM_SET_DOMAIN, &set_domain);
 }
 
 void gem_sync(int fd, uint32_t handle)
@@ -253,12 +241,10 @@ void gem_sync(int fd, uint32_t handle)
 uint32_t gem_create(int fd, int size)
 {
 	struct drm_i915_gem_create create;
-	int ret;
 
 	create.handle = 0;
 	create.size = size;
-	ret = drmIoctl(fd, DRM_IOCTL_I915_GEM_CREATE, &create);
-	assert(ret == 0);
+	do_ioctl(fd, DRM_IOCTL_I915_GEM_CREATE, &create);
 	assert(create.handle);
 
 	return create.handle;
@@ -285,7 +271,7 @@ uint64_t gem_aperture_size(int fd)
 	struct drm_i915_gem_get_aperture aperture;
 
 	aperture.aper_size = 256*1024*1024;
-	(void)drmIoctl(fd, DRM_IOCTL_I915_GEM_GET_APERTURE, &aperture);
+	do_ioctl(fd, DRM_IOCTL_I915_GEM_GET_APERTURE, &aperture);
 	return aperture.aper_size;
 }
 
@@ -306,13 +292,11 @@ uint64_t gem_mappable_aperture_size(void)
 int gem_madvise(int fd, uint32_t handle, int state)
 {
 	struct drm_i915_gem_madvise madv;
-	int ret;
 
 	madv.handle = handle;
 	madv.madv = state;
 	madv.retained = 1;
-	ret = drmIoctl(fd, DRM_IOCTL_I915_GEM_MADVISE, &madv);
-	assert(ret == 0);
+	do_ioctl(fd, DRM_IOCTL_I915_GEM_MADVISE, &madv);
 
 	return madv.retained;
 }

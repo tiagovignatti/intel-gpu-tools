@@ -32,6 +32,7 @@
 #include <assert.h>
 
 #include "drm.h"
+#include "drmtest.h"
 #include "intel_batchbuffer.h"
 #include "intel_bufmgr.h"
 #include "intel_chipset.h"
@@ -78,7 +79,6 @@ void
 intel_batchbuffer_flush_on_ring(struct intel_batchbuffer *batch, int ring)
 {
 	unsigned int used = batch->ptr - batch->buffer;
-	int ret;
 
 	if (used == 0)
 		return;
@@ -101,13 +101,11 @@ intel_batchbuffer_flush_on_ring(struct intel_batchbuffer *batch, int ring)
 	batch->ptr += 4;
 	used = batch->ptr - batch->buffer;
 
-	ret = drm_intel_bo_subdata(batch->bo, 0, used, batch->buffer);
-	assert(ret == 0);
+	do_or_die(drm_intel_bo_subdata(batch->bo, 0, used, batch->buffer));
 
 	batch->ptr = NULL;
 
-	ret = drm_intel_bo_mrb_exec(batch->bo, used, NULL, 0, 0, ring);
-	assert(ret == 0);
+	do_or_die(drm_intel_bo_mrb_exec(batch->bo, used, NULL, 0, 0, ring));
 
 	intel_batchbuffer_reset(batch);
 }
