@@ -6,27 +6,7 @@
 # by reading /sys/kernel/debug/dri/0/i915_emon_status too quickly
 #
 
-if [ -d /debug/dri ] ; then
-	debugfs_path=/debug_dri
-fi
-
-if [ -d /sys/kernel/debug/dri ] ; then
-	debugfs_path=/sys/kernel/debug/dri
-fi
-
-cur_path=`pwd`
-i915_path=x
-for dir in `ls $debugfs_path` ; do
-	if [ -f $debugfs_path/$dir/i915_error_state ] ; then
-		i915_path=$debugfs_path/$dir
-		break
-	fi
-done
-
-if [ $i915_path = "x" ] ; then
-	echo i915 debugfs path not found.
-	exit 1
-fi
+. ./drm_lib.sh
 
 cd $i915_path
 
