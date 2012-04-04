@@ -88,7 +88,7 @@ HANG = \
 	$(NULL)
 
 EXTRA_PROGRAMS = $(TESTS_progs) $(HANG)
-EXTRA_DIST = $(TESTS_scripts) check_drm_clients
+EXTRA_DIST = $(TESTS_scripts) drm_lib.sh check_drm_clients debugfs_wedged
 CLEANFILES = $(EXTRA_PROGRAMS)
 
 AM_CFLAGS = $(DRM_CFLAGS) $(CWARNFLAGS) \
