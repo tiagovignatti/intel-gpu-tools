@@ -6,7 +6,8 @@
 # by reading /sys/kernel/debug/dri/0/i915_emon_status too quickly
 #
 
-. ./drm_lib.sh
+SOURCE_DIR="$( dirname "${BASH_SOURCE[0]}" )"
+. $SOURCE_DIR/drm_lib.sh
 
 cd $i915_path
 

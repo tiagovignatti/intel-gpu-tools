@@ -1,6 +1,7 @@
 #!/bin/sh
 
-. ./drm_lib.sh
+SOURCE_DIR="$( dirname "${BASH_SOURCE[0]}" )"
+. $SOURCE_DIR/drm_lib.sh
 
 # read everything we can
 cat $i915_path/* > /dev/null 2>&1 
