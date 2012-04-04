@@ -5,7 +5,7 @@ die() {
 }
 
 if [ -d /debug/dri ] ; then
-	debugfs_path=/debug_dri
+	debugfs_path=/debug/dri
 fi
 
 if [ -d /sys/kernel/debug/dri ] ; then
