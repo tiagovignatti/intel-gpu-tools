@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 # This check if we can crash the kernel with segmentation-fault
 # by reading /sys/kernel/debug/dri/0/i915_emon_status too quickly
