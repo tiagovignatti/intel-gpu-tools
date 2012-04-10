@@ -8,6 +8,7 @@ gem_bad_blit
 gem_bad_length
 gem_basic
 gem_cs_prefetch
+gem_cpu_concurrent_blit
 gem_double_irq_loop
 gem_dummy_reloc_loop
 gem_exec_bad_domains
