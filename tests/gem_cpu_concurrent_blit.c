@@ -92,13 +92,17 @@ main(int argc, char **argv)
 {
 	drm_intel_bufmgr *bufmgr;
 	struct intel_batchbuffer *batch;
-	int num_buffers = 128;
+	int num_buffers = 128, max;
 	drm_intel_bo *src[128], *dst[128];
 	int width = 512, height = 512;
 	int fd;
 	int i;
 
 	fd = drm_open_any();
+
+	max = gem_aperture_size (fd) / (1024 * 1024) / 2;
+	if (num_buffers > max)
+		num_buffers = max;
 
 	bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
 	drm_intel_bufmgr_gem_enable_reuse(bufmgr);
