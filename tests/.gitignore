@@ -20,6 +20,7 @@ gem_fence_thrash
 gem_flink
 gem_gtt_speed
 gem_gtt_speed
+gem_gtt_concurrent_blit
 gem_hang
 gem_hangcheck_forcewake
 gem_largeobject

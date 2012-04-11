@@ -10,6 +10,7 @@ TESTS_progs = \
 	getstats \
 	gem_basic \
 	gem_cpu_concurrent_blit \
+	gem_gtt_concurrent_blit \
 	gem_exec_nop \
 	gem_exec_blt \
 	gem_exec_bad_domains \
