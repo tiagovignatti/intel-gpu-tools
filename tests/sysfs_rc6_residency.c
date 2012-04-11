@@ -66,6 +66,10 @@ int main(int argc, char *argv[])
 	ret = asprintf(&path, "/sys/class/drm/card%d/power/rc6_enable", device);
 	assert(ret != -1);
 
+	/* For some reason my ivb isn't idle even after syncing up with the gpu.
+	 * Let's add a sleept just to make it happy. */
+	sleep(5);
+
 	if (readit(path) == 0)
 		exit(EXIT_SUCCESS);
 
