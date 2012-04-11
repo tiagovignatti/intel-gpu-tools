@@ -58,4 +58,5 @@ getclient
 getstats
 getversion
 testdisplay
+sysfs_rc6_residency
 # Please keep sorted alphabetically
