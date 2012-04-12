@@ -57,6 +57,7 @@ int main(int argc, char *argv[])
 	char *path, *pathp, *pathpp;
 	int fd, ret;
 	unsigned int value1, value1p, value1pp, value2, value2p, value2pp;
+	FILE *file;
 	int diff;
 
 	/* Use drm_open_any to verify device existence */
@@ -70,6 +71,13 @@ int main(int argc, char *argv[])
 	 * Let's add a sleept just to make it happy. */
 	sleep(5);
 
+	file = fopen(path, "r");
+	if (!file) {
+		printf("kernel too old or rc6 not supported on this platform.\n");
+		exit(77);
+	}
+
+	/* claim success if no rc6 enabled. */
 	if (readit(path) == 0)
 		exit(EXIT_SUCCESS);
 
