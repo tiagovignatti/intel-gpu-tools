@@ -303,7 +303,7 @@ void *gem_mmap(int fd, uint32_t handle, int size, int prot)
 	if (drmIoctl(fd, DRM_IOCTL_I915_GEM_MMAP_GTT, &mmap_arg))
 		return NULL;
 
-	ptr = mmap(0, size, prot, MAP_SHARED, fd, mmap_arg.offset);
+	ptr = mmap64(0, size, prot, MAP_SHARED, fd, mmap_arg.offset);
 	if (ptr == MAP_FAILED)
 		ptr = NULL;
 
