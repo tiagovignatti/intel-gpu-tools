@@ -18,6 +18,7 @@ bin_PROGRAMS = 				\
 
 noinst_PROGRAMS = 			\
 	intel_dump_decode 		\
+	intel_infoframes		\
 	intel_lid			\
 	intel_panel_fitter
 

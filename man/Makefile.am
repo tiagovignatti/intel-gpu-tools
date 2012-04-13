@@ -6,6 +6,7 @@ appman_PRE = 				\
 	intel_error_decode.man		\
 	intel_gpu_top.man		\
 	intel_gtt.man			\
+	intel_infoframes.man		\
 	intel_lid.man			\
 	intel_panel_fitter.man		\
 	intel_reg_dumper.man		\
