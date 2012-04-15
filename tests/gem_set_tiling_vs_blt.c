@@ -25,9 +25,10 @@
  *
  */
 
-/** @file gem_tiled_after_untiled_blt.c
+/** @file gem_set_tiling_vs_blt.c
  *
- * Testcase: Check for proper synchronization when switching untiled->tiled
+ * Testcase: Check for proper synchronization of tiling changes vs. tiled gpu
+ * access
  *
  * The blitter on gen3 and earlier needs properly set up fences. Which also
  * means that for untiled blits we may not set up a fence before that blt has
@@ -38,6 +39,9 @@
  * - a blt on an untiled object which is aligned correctly for tiling.
  * - a set_tiling to switch that object to tiling
  * - another blt without any intervening cpu access that uses this object.
+ *
+ * Testcase has been extended to also check tiled->untiled and tiled->tiled
+ * transitions (i.e. changing stride).
  */
 
 #include <stdlib.h>
@@ -111,8 +115,8 @@ static void do_test(uint32_t tiling, unsigned stride,
 	 * tricks */
 	target_bo = drm_intel_bo_alloc(bufmgr, "target bo", TEST_SIZE, 4096);
 
-	/* allocate buffer tiled and touch it, so that it's properly aligned in
-	 * the gtt. */
+	/* allocate buffer with parameters _after_ transition we want to check
+	 * and touch it, so that it's properly aligned in the gtt. */
 	test_bo = drm_intel_bo_alloc(bufmgr, "tiled busy bo", TEST_SIZE, 4096);
 	test_bo_handle = test_bo->handle;
 	ret = drm_intel_bo_set_tiling(test_bo, &tiling_after, stride_after);
@@ -190,8 +194,8 @@ static void do_test(uint32_t tiling, unsigned stride,
 	ADVANCE_BATCH();
 	intel_batchbuffer_flush(batch);
 
-	/* Now try to trick the kernel the kernel into setting up the fence too
-	 * early. */
+	/* Now try to trick the kernel the kernel into changing up the fencing
+	 * too early. */
 
 	printf("checking .. ");
 	memset(data, 0, TEST_SIZE);

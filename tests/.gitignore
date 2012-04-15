@@ -36,12 +36,12 @@ gem_readwrite
 gem_reloc_vs_gpu
 gem_ringfill
 gem_ring_sync_loop
+gem_set_tiling_vs_blt
 gem_storedw_batches_loop
 gem_storedw_loop_blt
 gem_storedw_loop_bsd
 gem_storedw_loop_render
 gem_stress
-gem_tiled_after_untiled_blt
 gem_tiled_blits
 gem_tiled_fence_blits
 gem_tiled_partial_pwrite_pread
