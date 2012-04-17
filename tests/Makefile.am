@@ -25,6 +25,7 @@ TESTS_progs = \
 	gem_pread_after_blit \
 	gem_set_tiling_vs_blt \
 	gem_set_tiling_vs_gtt \
+	gem_set_tiling_vs_pwrite \
 	gem_tiled_pread \
 	gem_tiled_pread_pwrite \
 	gem_tiled_partial_pwrite_pread \
