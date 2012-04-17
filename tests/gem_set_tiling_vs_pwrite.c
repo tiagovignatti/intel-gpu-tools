@@ -67,7 +67,6 @@ int main(int argc, char **argv)
 
 	gem_set_tiling(fd, handle, I915_TILING_X, TEST_STRIDE);
 
-#if 0
 	/* touch it */
 	gem_set_domain(fd, handle, I915_GEM_DOMAIN_GTT, I915_GEM_DOMAIN_GTT);
 	*ptr = 0xdeadbeef;
@@ -78,7 +77,6 @@ int main(int argc, char **argv)
 	gem_read(fd, handle, 0, data, OBJECT_SIZE);
 	for (i = 0; i < OBJECT_SIZE/4; i++)
 		assert(i == data[i]);
-#endif
 
 	/* touch it before changing the tiling, so that the fence sticks around */
 	gem_set_domain(fd, handle, I915_GEM_DOMAIN_GTT, I915_GEM_DOMAIN_GTT);
