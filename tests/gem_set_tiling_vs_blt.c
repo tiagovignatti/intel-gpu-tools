@@ -79,6 +79,7 @@ static void do_test(uint32_t tiling, unsigned stride,
 	int i, ret;
 	uint32_t *ptr;
 	uint32_t test_bo_handle;
+	uint32_t blt_stride, blt_bits;
 	bool tiling_changed = false;
 
 	printf("filling ring .. ");
@@ -151,9 +152,17 @@ static void do_test(uint32_t tiling, unsigned stride,
 		drm_intel_gem_bo_unmap_gtt(test_bo);
 	}
 
+	blt_stride = stride;
+	blt_bits = 0;
+	if (intel_gen(devid) >= 4 && tiling != I915_TILING_NONE) {
+		blt_stride /= 4;
+		blt_bits = XY_SRC_COPY_BLT_SRC_TILED;
+	}
+
 	BEGIN_BATCH(8);
 	OUT_BATCH(XY_SRC_COPY_BLT_CMD |
 		  XY_SRC_COPY_BLT_WRITE_ALPHA |
+		  blt_bits |
 		  XY_SRC_COPY_BLT_WRITE_RGB);
 	OUT_BATCH((3 << 24) | /* 32 bits */
 		  (0xcc << 16) | /* copy ROP */
@@ -162,7 +171,7 @@ static void do_test(uint32_t tiling, unsigned stride,
 	OUT_BATCH((TEST_HEIGHT(stride)) << 16 | (TEST_WIDTH(stride)));
 	OUT_RELOC_FENCED(target_bo, I915_GEM_DOMAIN_RENDER, I915_GEM_DOMAIN_RENDER, 0);
 	OUT_BATCH(0 << 16 | 0);
-	OUT_BATCH(stride);
+	OUT_BATCH(blt_stride);
 	OUT_RELOC_FENCED(test_bo, I915_GEM_DOMAIN_RENDER, 0, 0);
 	ADVANCE_BATCH();
 	intel_batchbuffer_flush(batch);
