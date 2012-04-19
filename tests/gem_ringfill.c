@@ -118,7 +118,10 @@ static int check_ring(drm_intel_bufmgr *bufmgr,
 {
 	struct scratch_buf src, tmp, dst;
 	struct bo bo;
+	char output[100];
 	int i;
+
+	snprintf(output, 100, "filling %s ring: ", ring);
 
 	create_bo(bufmgr, &bo, ring);
 
@@ -152,6 +155,8 @@ static int check_ring(drm_intel_bufmgr *bufmgr,
 		int x = i % width;
 		int y = i / width;
 
+		drmtest_progress(output, i, width*height);
+
 		assert(y < height);
 
 		/* Dummy load to fill the ring */
@@ -161,6 +166,7 @@ static int check_ring(drm_intel_bufmgr *bufmgr,
 	}
 
 	/* verify */
+	printf("verifying\n");
 	i = check_bo(&bo);
 	destroy_bo(&bo);
 
