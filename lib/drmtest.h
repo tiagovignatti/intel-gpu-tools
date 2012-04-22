@@ -57,6 +57,7 @@ int gem_madvise(int fd, uint32_t handle, int state);
 
 /* feature test helpers */
 bool gem_uses_aliasing_ppgtt(int fd);
+int gem_available_fences(int fd);
 
 /* generally useful helpers */
 void drmtest_fork_signal_helper(void);

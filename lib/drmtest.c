@@ -73,6 +73,21 @@ bool gem_uses_aliasing_ppgtt(int fd)
 	return val;
 }
 
+int gem_available_fences(int fd)
+{
+	struct drm_i915_getparam gp;
+	int val;
+
+	gp.param = I915_PARAM_NUM_FENCES_AVAIL;
+	gp.value = &val;
+
+	if (ioctl(fd, DRM_IOCTL_I915_GETPARAM, &gp, sizeof(gp)))
+		return 0;
+
+	return val;
+}
+
+
 /* Ensure the gpu is idle by launching a nop execbuf and stalling for it. */
 void gem_quiescent_gpu(int fd)
 {
