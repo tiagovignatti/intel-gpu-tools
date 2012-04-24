@@ -40,15 +40,19 @@ typedef enum {
 } Transcoder;
 
 typedef enum {
-	REG_HDMIB      = 0xe1140,
-	REG_HDMIC      = 0xe1150,
-	REG_HDMID      = 0xe1160,
-	REG_DIP_CTL_A  = 0xe0200,
-	REG_DIP_CTL_B  = 0xe1200,
-	REG_DIP_CTL_C  = 0xe2200,
-	REG_DIP_DATA_A = 0xe0208,
-	REG_DIP_DATA_B = 0xe1208,
-	REG_DIP_DATA_C = 0xe2208,
+	REG_HDMIB_GEN4    = 0x61140,
+	REG_HDMIC_GEN4    = 0x61160,
+	REG_HDMIB_PCH     = 0xe1140,
+	REG_HDMIC_PCH     = 0xe1150,
+	REG_HDMID_PCH     = 0xe1160,
+	REG_DIP_CTL_GEN4  = 0x61170,
+	REG_DIP_CTL_A     = 0xe0200,
+	REG_DIP_CTL_B     = 0xe1200,
+	REG_DIP_CTL_C     = 0xe2200,
+	REG_DIP_DATA_GEN4 = 0x61178,
+	REG_DIP_DATA_A    = 0xe0208,
+	REG_DIP_DATA_B    = 0xe1208,
+	REG_DIP_DATA_C    = 0xe2208,
 } Register;
 
 typedef enum {
@@ -82,13 +86,14 @@ typedef enum {
 	SOURCE_DEVICE_RESERVED          = 0x0c
 } SourceDevice;
 
-#define HDMI_PORT_ENABLE         (1 << 31)
-#define HDMI_PORT_TRANSCODER_IBX (1 << 30)
-#define HDMI_PORT_TRANSCODER_CPT (3 << 29)
-#define HDMI_PORT_ENCODING       (3 << 10)
-#define HDMI_PORT_MODE           (1 << 9)
-#define HDMI_PORT_AUDIO          (1 << 6)
-#define HDMI_PORT_DETECTED       (1 << 2)
+#define HDMI_PORT_ENABLE          (1 << 31)
+#define HDMI_PORT_TRANSCODER_GEN4 (1 << 30)
+#define HDMI_PORT_TRANSCODER_IBX  (1 << 30)
+#define HDMI_PORT_TRANSCODER_CPT  (3 << 29)
+#define HDMI_PORT_ENCODING        (3 << 10)
+#define HDMI_PORT_MODE            (1 << 9)
+#define HDMI_PORT_AUDIO           (1 << 6)
+#define HDMI_PORT_DETECTED        (1 << 2)
 
 #define DIP_CTL_ENABLE           (1 << 31)
 #define DIP_CTL_GCP_ENABLE       (1 << 25)
@@ -107,6 +112,11 @@ typedef enum {
 #define DIP_CTL_FREQ_EVERY_OTHER (2 << 16)
 #define DIP_CTL_BUFFER_SIZE      (15 << 8)
 #define DIP_CTL_ACCESS_ADDR      (15 << 0)
+
+#define DIP_CTL_PORT_SEL_MASK_GEN4       (3 << 29)
+#define DIP_CTL_PORT_SEL_B_GEN4          (1 << 29)
+#define DIP_CTL_PORT_SEL_C_GEN4          (2 << 29)
+#define DIP_CTL_BUFFER_TRANS_ACTIVE_GEN4 (1 << 28)
 
 #define AVI_INFOFRAME_TYPE    0x82
 #define AVI_INFOFRAME_VERSION 0x02
@@ -171,17 +181,21 @@ typedef union {
 	uint32_t data32[16];
 } DipInfoFrame;
 
-Register hdmi_ports[] = {
-	REG_HDMIB,
-	REG_HDMIC,
-	REG_HDMID
+Register gen4_hdmi_ports[] = {
+	REG_HDMIB_GEN4,
+	REG_HDMIC_GEN4,
 };
-Register dip_ctl_regs[] = {
+Register pch_hdmi_ports[] = {
+	REG_HDMIB_PCH,
+	REG_HDMIC_PCH,
+	REG_HDMID_PCH
+};
+Register pch_dip_ctl_regs[] = {
 	REG_DIP_CTL_A,
 	REG_DIP_CTL_B,
 	REG_DIP_CTL_C
 };
-Register dip_data_regs[] = {
+Register pch_dip_data_regs[] = {
 	REG_DIP_DATA_A,
 	REG_DIP_DATA_B,
 	REG_DIP_DATA_C
@@ -202,6 +216,8 @@ const char *dip_frequency_names[] = {
 	"every other vsync",
 	"reserved (invalid)"
 };
+
+int gen = 0;
 
 static const char *spd_source_to_string(SourceDevice source)
 {
@@ -235,11 +251,37 @@ static const char *spd_source_to_string(SourceDevice source)
 	}
 }
 
+static Register get_dip_ctl_reg(Transcoder transcoder)
+{
+	if (gen == 4)
+		return REG_DIP_CTL_GEN4;
+	else
+		return pch_dip_ctl_regs[transcoder];
+}
+
+static Register get_dip_data_reg(Transcoder transcoder)
+{
+	if (gen == 4)
+		return REG_DIP_DATA_GEN4;
+	else
+		return pch_dip_data_regs[transcoder];
+}
+
+static Register get_hdmi_port(int hdmi_port_index)
+{
+	if (gen == 4) {
+		assert(hdmi_port_index <= 2);
+		return gen4_hdmi_ports[hdmi_port_index];
+	} else {
+		return pch_hdmi_ports[hdmi_port_index];
+	}
+}
+
 static void load_infoframe(Transcoder transcoder, DipInfoFrame *frame,
 			   DipType type)
 {
-	Register ctl_reg = dip_ctl_regs[transcoder];
-	Register data_reg = dip_data_regs[transcoder];
+	Register ctl_reg = get_dip_ctl_reg(transcoder);
+	Register data_reg = get_dip_data_reg(transcoder);
 	uint32_t ctl_val;
 	uint32_t i;
 
@@ -290,21 +332,23 @@ static void infoframe_fix_checksum(DipInfoFrame *frame)
 
 static void dump_port_info(int hdmi_port_index)
 {
-	Register port = hdmi_ports[hdmi_port_index];
+	Register port = get_hdmi_port(hdmi_port_index);
 	uint32_t val = INREG(port);
 	Transcoder transcoder;
 
 	printf("\nPort %s:\n", hdmi_port_names[hdmi_port_index]);
-	printf("- %sdetected\n", val & HDMI_PORT_DETECTED ? "" : "not  ");
+	printf("- %sdetected\n", val & HDMI_PORT_DETECTED ? "" : "not ");
 	printf("- %s\n", val & HDMI_PORT_ENABLE ? "enabled" : "disabled");
 
 	if (!(val & HDMI_PORT_ENABLE))
 		return;
 
-	if (pch >= PCH_CPT)
+	if (gen == 4)
+		transcoder = (val & HDMI_PORT_TRANSCODER_GEN4) >> 30;
+	else if (pch >= PCH_CPT)
 		transcoder = (val & HDMI_PORT_TRANSCODER_CPT) >> 29;
 	else
-		transcoder = (val & HDMI_PORT_TRANSCODER_CPT) >> 30;
+		transcoder = (val & HDMI_PORT_TRANSCODER_IBX) >> 30;
 	printf("- transcoder: %s\n", transcoder_names[transcoder]);
 
 	switch ((val & HDMI_PORT_ENCODING) >> 10) {
@@ -336,7 +380,7 @@ static void dump_raw_infoframe(DipInfoFrame *frame)
 
 static void dump_avi_info(Transcoder transcoder)
 {
-	Register reg = dip_ctl_regs[transcoder];
+	Register reg = get_dip_ctl_reg(transcoder);
 	uint32_t val = INREG(reg);
 	DipFrequency freq;
 	DipInfoFrame frame;
@@ -345,6 +389,11 @@ static void dump_avi_info(Transcoder transcoder)
 	val = INREG(reg);
 
 	printf("AVI InfoFrame:\n");
+
+	if (gen == 4) {
+		printf("- %sbeing transmitted\n",
+		       val & DIP_CTL_BUFFER_TRANS_ACTIVE_GEN4 ? "" : "not ");
+	}
 
 	freq = (val & DIP_CTL_FREQUENCY) >> 16;
 	printf("- frequency: %s\n", dip_frequency_names[freq]);
@@ -377,7 +426,7 @@ static void dump_avi_info(Transcoder transcoder)
 
 static void dump_vendor_info(Transcoder transcoder)
 {
-	Register reg = dip_ctl_regs[transcoder];
+	Register reg = get_dip_ctl_reg(transcoder);
 	uint32_t val = INREG(reg);
 	DipFrequency freq;
 	DipInfoFrame frame;
@@ -386,6 +435,11 @@ static void dump_vendor_info(Transcoder transcoder)
 	val = INREG(reg);
 
 	printf("Vendor InfoFrame:\n");
+
+	if (gen == 4) {
+		printf("- %sbeing transmitted\n",
+		       val & DIP_CTL_BUFFER_TRANS_ACTIVE_GEN4 ? "" : "not ");
+	}
 
 	freq = (val & DIP_CTL_FREQUENCY) >> 16;
 	printf("- frequency: %s\n", dip_frequency_names[freq]);
@@ -398,7 +452,7 @@ static void dump_vendor_info(Transcoder transcoder)
 
 static void dump_gamut_info(Transcoder transcoder)
 {
-	Register reg = dip_ctl_regs[transcoder];
+	Register reg = get_dip_ctl_reg(transcoder);
 	uint32_t val = INREG(reg);
 	DipFrequency freq;
 	DipInfoFrame frame;
@@ -407,6 +461,11 @@ static void dump_gamut_info(Transcoder transcoder)
 	val = INREG(reg);
 
 	printf("Gamut InfoFrame:\n");
+
+	if (gen == 4) {
+		printf("- %sbeing transmitted\n",
+		       val & DIP_CTL_BUFFER_TRANS_ACTIVE_GEN4 ? "" : "not ");
+	}
 
 	freq = (val & DIP_CTL_FREQUENCY) >> 16;
 	printf("- frequency: %s\n", dip_frequency_names[freq]);
@@ -419,7 +478,7 @@ static void dump_gamut_info(Transcoder transcoder)
 
 static void dump_spd_info(Transcoder transcoder)
 {
-	Register reg = dip_ctl_regs[transcoder];
+	Register reg = get_dip_ctl_reg(transcoder);
 	uint32_t val = INREG(reg);
 	DipFrequency freq;
 	DipInfoFrame frame;
@@ -430,6 +489,11 @@ static void dump_spd_info(Transcoder transcoder)
 	val = INREG(reg);
 
 	printf("SPD InfoFrame:\n");
+
+	if (gen == 4) {
+		printf("- %sbeing transmitted\n",
+		       val & DIP_CTL_BUFFER_TRANS_ACTIVE_GEN4 ? "" : "not ");
+	}
 
 	freq = (val & DIP_CTL_FREQUENCY) >> 16;
 	printf("- frequency: %s\n", dip_frequency_names[freq]);
@@ -456,10 +520,24 @@ static void dump_spd_info(Transcoder transcoder)
 
 static void dump_transcoder_info(Transcoder transcoder)
 {
-	Register reg = dip_ctl_regs[transcoder];
+	Register reg = get_dip_ctl_reg(transcoder);
 	uint32_t val = INREG(reg);
 
-	printf("\nTranscoder %s:\n", transcoder_names[transcoder]);
+	if (gen == 4) {
+		printf("\nDIP information:\n");
+		switch (val & DIP_CTL_PORT_SEL_MASK_GEN4) {
+		case DIP_CTL_PORT_SEL_B_GEN4:
+			printf("- port B\n");
+			break;
+		case DIP_CTL_PORT_SEL_C_GEN4:
+			printf("- port C\n");
+			break;
+		default:
+			printf("- INVALID port!\n");
+		}
+	} else {
+		printf("\nTranscoder %s:\n", transcoder_names[transcoder]);
+	}
 	printf("- %s\n", val & DIP_CTL_ENABLE ? "enabled" : "disabled");
 	if (!(val & DIP_CTL_ENABLE))
 		return;
@@ -481,17 +559,23 @@ static void dump_all_info(void)
 {
 	unsigned int i;
 
-	for (i = 0; i < ARRAY_SIZE(hdmi_ports); i++)
-		dump_port_info(i);
-	for (i = 0; i < ARRAY_SIZE(dip_ctl_regs); i++)
-		dump_transcoder_info(i);
+	if (gen == 4) {
+		for (i = 0; i < ARRAY_SIZE(gen4_hdmi_ports); i++)
+			dump_port_info(i);
+		dump_transcoder_info(0);
+	} else {
+		for (i = 0; i < ARRAY_SIZE(pch_hdmi_ports); i++)
+			dump_port_info(i);
+		for (i = 0; i < ARRAY_SIZE(pch_dip_ctl_regs); i++)
+			dump_transcoder_info(i);
+	}
 }
 
 static void write_infoframe(Transcoder transcoder, DipType type,
 			    DipInfoFrame *frame)
 {
-	Register ctl_reg = dip_ctl_regs[transcoder];
-	Register data_reg = dip_data_regs[transcoder];
+	Register ctl_reg = get_dip_ctl_reg(transcoder);
+	Register data_reg = get_dip_data_reg(transcoder);
 	uint32_t ctl_val;
 	unsigned int i;
 
@@ -510,9 +594,9 @@ static void write_infoframe(Transcoder transcoder, DipType type,
 
 static void disable_infoframe(Transcoder transcoder, DipType type)
 {
-	Register reg = dip_ctl_regs[transcoder];
+	Register reg = get_dip_ctl_reg(transcoder);
 	uint32_t val = INREG(reg);
-	if (type == DIP_AVI)
+	if (gen != 4 && type == DIP_AVI)
 		val &= ~DIP_CTL_ENABLE;
 	val &= ~(1 << (21 + type));
 	OUTREG(reg, val);
@@ -520,9 +604,9 @@ static void disable_infoframe(Transcoder transcoder, DipType type)
 
 static void enable_infoframe(Transcoder transcoder, DipType type)
 {
-	Register reg = dip_ctl_regs[transcoder];
+	Register reg = get_dip_ctl_reg(transcoder);
 	uint32_t val = INREG(reg);
-	if (type == DIP_AVI)
+	if (gen != 4 && type == DIP_AVI)
 		val |= DIP_CTL_ENABLE;
 	val |= (1 << (21 + type));
 	OUTREG(reg, val);
@@ -575,7 +659,7 @@ static int parse_infoframe_option_s(const char *name, const char *s,
 
 static void change_avi_infoframe(Transcoder transcoder, char *commands)
 {
-	Register reg = dip_ctl_regs[transcoder];
+	Register reg = get_dip_ctl_reg(transcoder);
 	uint32_t val = INREG(reg);
 	DipInfoFrame frame;
 	char option[32];
@@ -675,7 +759,7 @@ static void change_avi_infoframe(Transcoder transcoder, char *commands)
 
 static void change_spd_infoframe(Transcoder transcoder, char *commands)
 {
-	Register reg = dip_ctl_regs[transcoder];
+	Register reg = get_dip_ctl_reg(transcoder);
 	uint32_t val = INREG(reg);
 	DipInfoFrame frame;
 	char option[16];
@@ -742,7 +826,7 @@ static void change_infoframe_checksum(Transcoder transcoder, DipType type,
 static void change_infoframe_frequency(Transcoder transcoder, DipType type,
 				       DipFrequency frequency)
 {
-	Register reg = dip_ctl_regs[transcoder];
+	Register reg = get_dip_ctl_reg(transcoder);
 	uint32_t val = INREG(reg);
 
 	if (type == DIP_AVI && frequency != DIP_FREQ_EVERY_VSYNC) {
@@ -757,7 +841,7 @@ static void change_infoframe_frequency(Transcoder transcoder, DipType type,
 
 static void disable_dip(Transcoder transcoder)
 {
-	Register reg = dip_ctl_regs[transcoder];
+	Register reg = get_dip_ctl_reg(transcoder);
 	uint32_t val = INREG(reg);
 	val &= ~DIP_CTL_ENABLE;
 	OUTREG(reg, val);
@@ -765,7 +849,7 @@ static void disable_dip(Transcoder transcoder)
 
 static void enable_dip(Transcoder transcoder)
 {
-	Register reg = dip_ctl_regs[transcoder];
+	Register reg = get_dip_ctl_reg(transcoder);
 	uint32_t val = INREG(reg);
 	val |= DIP_CTL_ENABLE;
 	OUTREG(reg, val);
@@ -908,8 +992,16 @@ int main(int argc, char *argv[])
 	intel_register_access_init(pci_dev, 0);
 	intel_check_pch();
 
-	if (!HAS_PCH_SPLIT(pci_dev->device_id)) {
-		printf("This program still only supports ILK or newer.\n");
+	if (IS_GEN4(pci_dev->device_id))
+		gen = 4;
+	else if (IS_GEN5(pci_dev->device_id))
+		gen = 5;
+	else if (IS_GEN6(pci_dev->device_id))
+		gen = 6;
+	else if (IS_GEN7(pci_dev->device_id))
+		gen = 7;
+	else {
+		printf("This program does not support your hardware yet.\n");
 		ret = 1;
 		goto out;
 	}
@@ -991,11 +1083,11 @@ int main(int argc, char *argv[])
 		case 'p':
 		case 'P':
 			if (!strcmp(optarg, "B"))
-				hdmi_port = REG_HDMIB;
+				hdmi_port = get_hdmi_port(0);
 			else if (!strcmp(optarg, "C"))
-				hdmi_port = REG_HDMIC;
+				hdmi_port = get_hdmi_port(1);
 			else if (!strcmp(optarg, "D"))
-				hdmi_port = REG_HDMID;
+				hdmi_port = get_hdmi_port(2);
 			else {
 				printf("Invalid HDMI port.\n");
 				ret = 1;

@@ -20,7 +20,7 @@ or
 .B --help
 options to learn how to use the command
 .SH LIMITATIONS
-Not all HDMI monitors respect the InfoFrames sent to them. Only Iron Lake
+Not all HDMI monitors respect the InfoFrames sent to them. Only GEN 4
 or newer hardware is supported yet.
 .SH SEE ALSO
 HDMI specification, CEA-861 specification.
