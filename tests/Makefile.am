@@ -71,6 +71,7 @@ TESTS_scripts = \
 	debugfs_emon_crash \
 	sysfs_edid_timing \
 	ZZ_check_dmesg \
+	ZZ_hangman \
 	$(NULL)
 
 kernel_tests = \

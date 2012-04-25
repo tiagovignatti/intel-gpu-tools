@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 # Testcase: Simulate gpu hang
 #
@@ -8,6 +8,8 @@
 
 SOURCE_DIR="$( dirname "${BASH_SOURCE[0]}" )"
 . $SOURCE_DIR/drm_lib.sh
+
+oldpath=`pwd`
 
 cd $i915_path
 
@@ -23,12 +25,9 @@ fi
 
 # stop rings
 echo 0xf > i915_ring_stop
+echo "rings stopped"
 
-# need to run it twice, otherwise there are no waiters
-$cur_path/gem_exec_nop > /dev/null 2>&1 &
-$cur_path/gem_exec_nop > /dev/null 2>&1 &
-
-sleep 10
+$oldpath/$SOURCE_DIR/gem_exec_nop > /dev/null
 
 if cat i915_error_state | grep -v "no error state collected" > /dev/null ; then
 	echo "gpu hang correctly dectected"
