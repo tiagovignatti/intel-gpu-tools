@@ -968,7 +968,7 @@ int main(int argc, char *argv[])
 	DipType dip = DIP_INVALID;
 	Register hdmi_port;
 
-	char short_opts[] = "dc:k:q:nNxXpPt:f:h";
+	char short_opts[] = "dc:k:q:nNxXp:P:t:f:h";
 	struct option long_opts[] = {
 		{ "dump",               no_argument,       NULL, 'd' },
 		{ "change-fields",      required_argument, NULL, 'c' },
@@ -978,8 +978,8 @@ int main(int argc, char *argv[])
 		{ "enable",             no_argument,       NULL, 'N' },
 		{ "disable-infoframes", no_argument,       NULL, 'x' },
 		{ "enable-infoframes",  no_argument,       NULL, 'X' },
-		{ "disable-hdmi-port",  no_argument,       NULL, 'p' },
-		{ "enable-hdmi-port",   no_argument,       NULL, 'P' },
+		{ "disable-hdmi-port",  required_argument, NULL, 'p' },
+		{ "enable-hdmi-port",   required_argument, NULL, 'P' },
 		{ "transcoder" ,        required_argument, NULL, 't' },
 		{ "infoframe",          required_argument, NULL, 'f' },
 		{ "help",               no_argument,       NULL, 'h' },
