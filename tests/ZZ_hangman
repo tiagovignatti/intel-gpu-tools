@@ -37,6 +37,6 @@ else
 fi
 
 # clear error state
-echo 0 > i915_ring_stop
+echo > i915_error_state
 
 exit 0
