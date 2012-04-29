@@ -270,7 +270,7 @@ static Register get_dip_data_reg(Transcoder transcoder)
 static Register get_hdmi_port(int hdmi_port_index)
 {
 	if (gen == 4) {
-		assert(hdmi_port_index <= 2);
+		assert(hdmi_port_index < 2);
 		return gen4_hdmi_ports[hdmi_port_index];
 	} else {
 		return pch_hdmi_ports[hdmi_port_index];
