@@ -152,12 +152,6 @@
 				 devid == PCI_CHIP_SANDYBRIDGE_M_GT2_PLUS || \
 				 devid == PCI_CHIP_SANDYBRIDGE_S)
 
-#define IS_GEN7(devid)		(devid == PCI_CHIP_IVYBRIDGE_GT1 || \
-				 devid == PCI_CHIP_IVYBRIDGE_GT2 || \
-				 devid == PCI_CHIP_IVYBRIDGE_M_GT1 || \
-				 devid == PCI_CHIP_IVYBRIDGE_M_GT2 || \
-				 devid == PCI_CHIP_IVYBRIDGE_S)
-
 #define IS_GEN7(devid)          (IS_IVYBRIDGE(devid) || \
                                  IS_HASWELL(devid))
 
