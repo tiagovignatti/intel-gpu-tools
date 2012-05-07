@@ -62,6 +62,7 @@ TESTS_progs = \
 	drm_vma_limiter_gtt \
 	drm_vma_limiter_cached \
 	sysfs_rc6_residency \
+	flip_test \
 	$(NULL)
 
 # IMPORTANT: The ZZ_ tests need to be run last!
