@@ -63,8 +63,6 @@ struct test_output {
 	int pipe;
 	unsigned int current_fb_id;
 	unsigned int fb_ids[2];
-	unsigned long swap_count;
-	struct timeval start;
 };
 
 static void dump_mode(drmModeModeInfo *mode)
@@ -90,8 +88,6 @@ static void page_flip_handler(int fd, unsigned int frame, unsigned int sec,
 {
 	struct test_output *o = data;
 	unsigned int new_fb_id;
-	struct timeval end;
-	double t;
 
 	if (o->current_fb_id == o->fb_ids[0])
 		new_fb_id = o->fb_ids[1];
@@ -101,15 +97,6 @@ static void page_flip_handler(int fd, unsigned int frame, unsigned int sec,
 	drmModePageFlip(drm_fd, o->crtc, new_fb_id,
 			DRM_MODE_PAGE_FLIP_EVENT, o);
 	o->current_fb_id = new_fb_id;
-	o->swap_count++;
-	if (o->swap_count == 60) {
-		gettimeofday(&end, NULL);
-		t = end.tv_sec + end.tv_usec * 1e-6 -
-			(o->start.tv_sec + o->start.tv_usec * 1e-6);
-		fprintf(stderr, "freq: %.02fHz\n", o->swap_count / t);
-		o->swap_count = 0;
-		o->start = end;
-	}
 }
 
 static void connector_find_preferred_mode(struct test_output *o, int crtc_id)
@@ -357,9 +344,6 @@ static void paint_image(cairo_t *cr, const char *file, int width, int height)
 
 	cairo_translate(cr, img_x, img_y);
 
-	fprintf(stderr, "drew %dx%d image at %d,%d\n", img_w, img_h,
-		img_x, img_y);
-
 	cairo_set_source_surface(cr, image, 0, 0);
 	cairo_paint(cr);
 	cairo_surface_destroy(image);
@@ -424,14 +408,15 @@ static unsigned int initialize_fb(int fd, int width, int height, int bpp,
 	return fb_id;
 }
 
-static void set_mode(struct test_output *o)
+static void set_mode(struct test_output *o, int crtc)
 {
 	int ret;
 	int bpp = 32, depth = 24;
 	drmEventContext evctx;
 	int width, height;
+	struct timeval end;
 
-	connector_find_preferred_mode(o, resources->crtcs[0]);
+	connector_find_preferred_mode(o, crtc);
 	if (!o->mode_valid)
 		return;
 
@@ -444,27 +429,26 @@ static void set_mode(struct test_output *o)
 				     "cage-thaumatrope.png");
 	if (!o->fb_ids[0] || !o->fb_ids[1]) {
 		fprintf(stderr, "failed to create fbs\n");
-		return;
+		ret = -1;
+		goto out;
 	}
 
-	fprintf(stdout, "CRTS(%u):",o->crtc);
 	dump_mode(&o->mode);
 	if (drmModeSetCrtc(drm_fd, o->crtc, o->fb_ids[0], 0, 0,
 			   &o->id, 1, &o->mode)) {
 		fprintf(stderr, "failed to set mode (%dx%d@%dHz): %s\n",
 			width, height, o->mode.vrefresh,
 			strerror(errno));
-		return;
+		ret = -1;
+		goto out;
 	}
 
 	ret = drmModePageFlip(drm_fd, o->crtc, o->fb_ids[1],
 			      DRM_MODE_PAGE_FLIP_EVENT, o);
 	if (ret) {
 		fprintf(stderr, "failed to page flip: %s\n", strerror(errno));
-		return;
+		goto out;
 	}
-	gettimeofday(&o->start, NULL);
-	o->swap_count = 0;
 	o->current_fb_id = o->fb_ids[1];
 
 	memset(&evctx, 0, sizeof evctx);
@@ -472,8 +456,11 @@ static void set_mode(struct test_output *o)
 	evctx.vblank_handler = NULL;
 	evctx.page_flip_handler = page_flip_handler;
 
+	gettimeofday(&end, NULL);
+	end.tv_sec += 3;
+
 	while (1) {
-		struct timeval timeout = { .tv_sec = 3, .tv_usec = 0 };
+		struct timeval now, timeout = { .tv_sec = 3, .tv_usec = 0 };
 		fd_set fds;
 
 		FD_ZERO(&fds);
@@ -490,8 +477,19 @@ static void set_mode(struct test_output *o)
 			break;
 		}
 
+		gettimeofday(&now, NULL);
+		if (now.tv_sec > end.tv_sec ||
+		    (now.tv_sec == end.tv_sec && now.tv_usec >= end.tv_usec)) {
+			ret = 0;
+			break;
+		}
+
 		drmHandleEvent(drm_fd, &evctx);
 	}
+
+out:
+	fprintf(stdout, "page flipping on crtc %d, connector %d: %s\n", crtc,
+		o->id, ret ? "FAILED" : "PASSED");
 
 	drmModeFreeEncoder(o->encoder);
 	drmModeFreeConnector(o->connector);
@@ -500,7 +498,7 @@ static void set_mode(struct test_output *o)
 static int run_test(void)
 {
 	struct test_output *connectors;
-	int c;
+	int c, i;
 
 	resources = drmModeGetResources(drm_fd);
 	if (!resources) {
@@ -517,7 +515,8 @@ static int run_test(void)
 	/* Find any connected displays */
 	for (c = 0; c < resources->count_connectors; c++) {
 		connectors[c].id = resources->connectors[c];
-		set_mode(&connectors[c]);
+		for (i = 0; i < resources->count_crtcs; i++)
+			set_mode(&connectors[c], resources->crtcs[i]);
 	}
 
 	drmModeFreeResources(resources);
