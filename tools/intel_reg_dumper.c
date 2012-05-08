@@ -1781,6 +1781,71 @@ static struct reg_debug ironlake_debug_regs[] = {
 	DEFINEREG(RC6pp_RESIDENCY_TIME),
 };
 
+static struct reg_debug haswell_debug_regs[] = {
+	/* Power wells */
+	DEFINEREG(HSW_PWR_WELL_CTL1),
+	DEFINEREG(HSW_PWR_WELL_CTL2),
+	DEFINEREG(HSW_PWR_WELL_CTL3),
+	DEFINEREG(HSW_PWR_WELL_CTL4),
+	DEFINEREG(HSW_PWR_WELL_CTL5),
+	DEFINEREG(HSW_PWR_WELL_CTL6),
+
+	/* DDI pipe function */
+	DEFINEREG(PIPE_DDI_FUNC_CTL_A),
+	DEFINEREG(PIPE_DDI_FUNC_CTL_B),
+	DEFINEREG(PIPE_DDI_FUNC_CTL_C),
+	DEFINEREG(PIPE_DDI_FUNC_CTL_EDP),
+
+	/* DP transport control */
+	DEFINEREG(DP_TP_CTL_A),
+	DEFINEREG(DP_TP_CTL_B),
+	DEFINEREG(DP_TP_CTL_C),
+	DEFINEREG(DP_TP_CTL_D),
+	DEFINEREG(DP_TP_CTL_E),
+
+	/* DP status */
+	DEFINEREG(DP_TP_STATUS_A),
+	DEFINEREG(DP_TP_STATUS_B),
+	DEFINEREG(DP_TP_STATUS_C),
+	DEFINEREG(DP_TP_STATUS_D),
+	DEFINEREG(DP_TP_STATUS_E),
+
+	/* DDI buffer control */
+	DEFINEREG(DDI_BUF_CTL_A),
+	DEFINEREG(DDI_BUF_CTL_B),
+	DEFINEREG(DDI_BUF_CTL_C),
+	DEFINEREG(DDI_BUF_CTL_D),
+	DEFINEREG(DDI_BUF_CTL_E),
+
+	/* Clocks */
+	DEFINEREG(PIXCLK_GATE),
+	DEFINEREG(SPLL_CTL),
+	DEFINEREG(LCPLL_CTL),
+	DEFINEREG(WRPLL_CTL1),
+	DEFINEREG(WRPLL_CTL2),
+
+	/* DDI port clock control */
+	DEFINEREG(PORT_CLK_SEL_A),
+	DEFINEREG(PORT_CLK_SEL_B),
+	DEFINEREG(PORT_CLK_SEL_C),
+	DEFINEREG(PORT_CLK_SEL_D),
+	DEFINEREG(PORT_CLK_SEL_E),
+
+	/* Pipe clock control */
+	DEFINEREG(PIPE_CLK_SEL_A),
+	DEFINEREG(PIPE_CLK_SEL_B),
+	DEFINEREG(PIPE_CLK_SEL_C),
+
+	/* Pipe line time */
+	DEFINEREG(PIPE_WM_LINETIME_A),
+	DEFINEREG(PIPE_WM_LINETIME_B),
+	DEFINEREG(PIPE_WM_LINETIME_C),
+
+	/* Fuses */
+	DEFINEREG(SFUSE_STRAP),
+
+};
+
 static struct reg_debug i945gm_mi_regs[] = {
 	DEFINEREG(PGETBL_CTL),
 	DEFINEREG(PGTBL_ER),
@@ -2116,6 +2181,9 @@ int main(int argc, char** argv)
 
 	if (IS_GEN6(devid) || IS_GEN7(devid))
 		intel_dump_regs(gen6_rp_debug_regs);
+
+	if (IS_HASWELL(devid))
+		intel_dump_regs(haswell_debug_regs);
 
 	return 0;
 }
