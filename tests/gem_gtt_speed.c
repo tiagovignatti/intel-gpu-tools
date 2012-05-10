@@ -102,22 +102,28 @@ int main(int argc, char **argv)
 
 		/* prefault into gtt */
 		{
-			uint32_t *ptr = gem_mmap(fd, handle, size, PROT_READ);
+			uint32_t *ptr = gem_mmap(fd, handle, size, PROT_READ | PROT_WRITE);
 			int x = 0;
 
 			for (i = 0; i < size/sizeof(*ptr); i++)
 				x += ptr[i];
+
+			/* force overtly clever gcc to actually compute x */
+			ptr[0] = x;
 
 			munmap(ptr, size);
 		}
 		/* mmap read */
 		gettimeofday(&start, NULL);
 		for (loop = 0; loop < 1000; loop++) {
-			uint32_t *ptr = gem_mmap(fd, handle, size, PROT_READ);
+			uint32_t *ptr = gem_mmap(fd, handle, size, PROT_READ | PROT_WRITE);
 			int x = 0;
 
 			for (i = 0; i < size/sizeof(*ptr); i++)
 				x += ptr[i];
+
+			/* force overtly clever gcc to actually compute x */
+			ptr[0] = x;
 
 			munmap(ptr, size);
 		}
@@ -142,11 +148,14 @@ int main(int argc, char **argv)
 		/* mmap read */
 		gettimeofday(&start, NULL);
 		for (loop = 0; loop < 1000; loop++) {
-			uint32_t *ptr = gem_mmap(fd, handle, size, PROT_READ);
+			uint32_t *ptr = gem_mmap(fd, handle, size, PROT_READ | PROT_WRITE);
 			int x = 0;
 
 			for (i = 0; i < size/sizeof(*ptr); i++)
 				x += ptr[i];
+
+			/* force overtly clever gcc to actually compute x */
+			ptr[0] = x;
 
 			munmap(ptr, size);
 		}
@@ -214,6 +223,8 @@ int main(int argc, char **argv)
 			gettimeofday(&end, NULL);
 			printf("Time to pread %dk through the GTT (clflush):	%7.3fµs\n",
 			       size/1024, elapsed(&start, &end, loop));
+
+			size *= 4;
 		}
 
 	}
