@@ -63,6 +63,7 @@ TESTS_progs = \
 	drm_vma_limiter_cached \
 	sysfs_rc6_residency \
 	flip_test \
+	gem_wait_render_timeout \
 	$(NULL)
 
 # IMPORTANT: The ZZ_ tests need to be run last!
@@ -117,3 +118,5 @@ AM_CFLAGS += $(CAIRO_CFLAGS) $(LIBUDEV_CFLAGS) $(GLIB_CFLAGS)
 
 gem_fence_thrash_CFLAGS = $(AM_CFLAGS) $(THREAD_CFLAGS)
 gem_fence_thrash_LDADD = $(LDADD) -lpthread
+
+gem_wait_render_timeout_LDADD = $(LDADD) -lrt
