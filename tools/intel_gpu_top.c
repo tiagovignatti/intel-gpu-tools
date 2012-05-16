@@ -514,7 +514,7 @@ int main(int argc, char **argv)
 	ring_init(&render_ring);
 	if (IS_GEN4(devid) || IS_GEN5(devid))
 		ring_init(&bsd_ring);
-	if (IS_GEN6(devid)) {
+	if (IS_GEN6(devid) || IS_GEN7(devid)) {
 		ring_init(&bsd6_ring);
 		ring_init(&blt_ring);
 	}
