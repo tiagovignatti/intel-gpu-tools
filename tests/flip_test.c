@@ -322,40 +322,13 @@ static void paint_marker(cairo_t *cr, int x, int y, char *str,
 	cairo_fill(cr);
 }
 
-static void paint_image(cairo_t *cr, const char *file, int width, int height)
-{
-	cairo_surface_t *image;
-	int img_w, img_h;
-	int img_x, img_y;
-
-	image = cairo_image_surface_create_from_png(file);
-
-	img_w = cairo_image_surface_get_width(image);
-	img_h = cairo_image_surface_get_height(image);
-
-	if (img_w > width || img_h > height) {
-		cairo_scale(cr, width/img_w, height/img_h);
-		img_w = img_w * (width / img_w);
-		img_h = img_h * (height / img_h);
-	}
-
-	img_x = (width / 2) - (img_w / 2);
-	img_y = (height / 2) - (img_h / 2);
-
-	cairo_translate(cr, img_x, img_y);
-
-	cairo_set_source_surface(cr, image, 0, 0);
-	cairo_paint(cr);
-	cairo_surface_destroy(image);
-}
-
 /*
  * Images from:
  * http://www.docstoc.com/docs/28101658/Make-a-Thaumatrope
  * listed as public domain.
  */
 static unsigned int initialize_fb(int fd, int width, int height, int bpp,
-				  int depth, const char *file)
+				  int depth)
 {
 	cairo_surface_t *surface;
 	cairo_status_t status;
@@ -385,8 +358,6 @@ static unsigned int initialize_fb(int fd, int width, int height, int bpp,
 	paint_marker(cr, 0, height, buf, topright);
 	snprintf(buf, sizeof buf, "(%d, %d)", width, height);
 	paint_marker(cr, width, height, buf, topleft);
-
-	paint_image(cr, file, width, height);
 
 	status = cairo_status(cr);
 	cairo_destroy(cr);
@@ -423,10 +394,8 @@ static void set_mode(struct test_output *o, int crtc)
 	width = o->mode.hdisplay;
 	height = o->mode.vdisplay;
 
-	o->fb_ids[0] = initialize_fb(drm_fd, width, height, bpp, depth,
-				     "bird-thaumatrope.png");
-	o->fb_ids[1] = initialize_fb(drm_fd, width, height, bpp, depth,
-				     "cage-thaumatrope.png");
+	o->fb_ids[0] = initialize_fb(drm_fd, width, height, bpp, depth);
+	o->fb_ids[1] = initialize_fb(drm_fd, width, height, bpp, depth);
 	if (!o->fb_ids[0] || !o->fb_ids[1]) {
 		fprintf(stderr, "failed to create fbs\n");
 		ret = -1;
