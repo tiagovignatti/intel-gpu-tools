@@ -34,8 +34,6 @@
 #include <sys/mman.h>
 #include <sys/ioctl.h>
 
-#include "xf86drm.h"
-#include "xf86drmMode.h"
 #include "i915_drm.h"
 #include "drmtest.h"
 #include "testdisplay.h"
@@ -64,24 +62,6 @@ struct test_output {
 	unsigned int current_fb_id;
 	unsigned int fb_ids[2];
 };
-
-static void dump_mode(drmModeModeInfo *mode)
-{
-	printf("  %s %d %d %d %d %d %d %d %d %d 0x%x 0x%x %d\n",
-	       mode->name,
-	       mode->vrefresh,
-	       mode->hdisplay,
-	       mode->hsync_start,
-	       mode->hsync_end,
-	       mode->htotal,
-	       mode->vdisplay,
-	       mode->vsync_start,
-	       mode->vsync_end,
-	       mode->vtotal,
-	       mode->flags,
-	       mode->type,
-	       mode->clock);
-}
 
 static void page_flip_handler(int fd, unsigned int frame, unsigned int sec,
 			      unsigned int usec, void *data)
@@ -243,7 +223,7 @@ static void set_mode(struct test_output *o, int crtc)
 	gem_close(drm_fd, fb_info[0].gem_handle);
 	gem_close(drm_fd, fb_info[1].gem_handle);
 
-	dump_mode(&o->mode);
+	kmstest_dump_mode(&o->mode);
 	if (drmModeSetCrtc(drm_fd, o->crtc, o->fb_ids[0], 0, 0,
 			   &o->id, 1, &o->mode)) {
 		fprintf(stderr, "failed to set mode (%dx%d@%dHz): %s\n",

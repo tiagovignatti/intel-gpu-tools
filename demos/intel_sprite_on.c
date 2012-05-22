@@ -41,8 +41,6 @@
 #include <sys/mman.h>
 #include <sys/ioctl.h>
 
-#include "xf86drm.h"
-#include "xf86drmMode.h"
 #include "i915_drm.h"
 #include "drmtest.h"
 

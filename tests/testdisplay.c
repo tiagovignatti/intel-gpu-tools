@@ -58,8 +58,6 @@
 #include <sys/mman.h>
 #include <sys/ioctl.h>
 
-#include "xf86drm.h"
-#include "xf86drmMode.h"
 #include "i915_drm.h"
 #include "drmtest.h"
 #include "testdisplay.h"
@@ -153,25 +151,6 @@ struct connector {
 	int pipe;
 };
 
-static void dump_mode(drmModeModeInfo *mode)
-{
-	printf("  %s %d %d %d %d %d %d %d %d %d 0x%x 0x%x %d\n",
-	       mode->name,
-	       mode->vrefresh,
-	       mode->hdisplay,
-	       mode->hsync_start,
-	       mode->hsync_end,
-	       mode->htotal,
-	       mode->vdisplay,
-	       mode->vsync_start,
-	       mode->vsync_end,
-	       mode->vtotal,
-	       mode->flags,
-	       mode->type,
-	       mode->clock);
-}
-
-
 static void dump_connectors_fd(int drmfd)
 {
 	int i, j;
@@ -211,7 +190,7 @@ static void dump_connectors_fd(int drmfd)
 		printf("  name refresh (Hz) hdisp hss hse htot vdisp "
 		       "vss vse vtot flags type clock\n");
 		for (j = 0; j < connector->count_modes; j++)
-			dump_mode(&connector->modes[j]);
+			kmstest_dump_mode(&connector->modes[j]);
 
 		drmModeFreeConnector(connector);
 	}
@@ -241,7 +220,7 @@ static void dump_crtcs_fd(int drmfd)
 		       crtc->buffer_id,
 		       crtc->x, crtc->y,
 		       crtc->width, crtc->height);
-		dump_mode(&crtc->mode);
+		kmstest_dump_mode(&crtc->mode);
 
 		drmModeFreeCrtc(crtc);
 	}
@@ -492,7 +471,7 @@ set_mode(struct connector *c)
 		gem_close(drm_fd, fb_info.gem_handle);
 
 		fprintf(stdout, "CRTS(%u):",c->crtc);
-		dump_mode(&c->mode);
+		kmstest_dump_mode(&c->mode);
 		if (drmModeSetCrtc(drm_fd, c->crtc, fb_id, 0, 0,
 				   &c->id, 1, &c->mode)) {
 			fprintf(stderr, "failed to set mode (%dx%d@%dHz): %s\n",

@@ -37,8 +37,6 @@
 #include <pciaccess.h>
 #include <math.h>
 
-#include "xf86drmMode.h"
-
 #include "drmtest.h"
 #include "i915_drm.h"
 #include "intel_chipset.h"
@@ -719,3 +717,22 @@ unsigned int kmstest_create_fb(int fd, int width, int height, int bpp,
 
 	return fb_id;
 }
+
+void kmstest_dump_mode(drmModeModeInfo *mode)
+{
+	printf("  %s %d %d %d %d %d %d %d %d %d 0x%x 0x%x %d\n",
+	       mode->name,
+	       mode->vrefresh,
+	       mode->hdisplay,
+	       mode->hsync_start,
+	       mode->hsync_end,
+	       mode->htotal,
+	       mode->vdisplay,
+	       mode->vsync_start,
+	       mode->vsync_end,
+	       mode->vtotal,
+	       mode->flags,
+	       mode->type,
+	       mode->clock);
+}
+
