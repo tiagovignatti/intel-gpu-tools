@@ -35,6 +35,9 @@
 #include <sys/mman.h>
 #include <signal.h>
 #include <pciaccess.h>
+#include <math.h>
+
+#include "xf86drmMode.h"
 
 #include "drmtest.h"
 #include "i915_drm.h"
@@ -482,4 +485,237 @@ void drmtest_cleanup_aperture_trashers(void)
 		drm_intel_bo_unreference(trash_bos[i]);
 
 	free(trash_bos);
+}
+
+/* helpers to create nice-looking framebuffers */
+static cairo_surface_t *
+paint_allocate_surface(int fd, int width, int height, int depth, int bpp,
+		       bool tiled,
+		       struct kmstest_fb *fb_info)
+{
+	cairo_format_t format;
+	struct drm_i915_gem_set_tiling set_tiling;
+	int size;
+	unsigned stride;
+	uint32_t *fb_ptr;
+
+	if (tiled) {
+		int v;
+
+		/* Round the tiling up to the next power-of-two and the
+		 * region up to the next pot fence size so that this works
+		 * on all generations.
+		 *
+		 * This can still fail if the framebuffer is too large to
+		 * be tiled. But then that failure is expected.
+		 */
+
+		v = width * bpp / 8;
+		for (stride = 512; stride < v; stride *= 2)
+			;
+
+		v = stride * height;
+		for (size = 1024*1024; size < v; size *= 2)
+			;
+	} else {
+		/* Scan-out has a 64 byte alignment restriction */
+		stride = (width * (bpp / 8) + 63) & ~63;
+		size = stride * height;
+	}
+
+	switch (depth) {
+	case 16:
+		format = CAIRO_FORMAT_RGB16_565;
+		break;
+	case 24:
+		format = CAIRO_FORMAT_RGB24;
+		break;
+#if 0
+	case 30:
+		format = CAIRO_FORMAT_RGB30;
+		break;
+#endif
+	case 32:
+		format = CAIRO_FORMAT_ARGB32;
+		break;
+	default:
+		fprintf(stderr, "bad depth %d\n", depth);
+		return NULL;
+	}
+
+	assert (bpp >= depth);
+
+	fb_info->gem_handle = gem_create(fd, size);
+
+	if (tiled) {
+		set_tiling.handle = fb_info->gem_handle;
+		set_tiling.tiling_mode = I915_TILING_X;
+		set_tiling.stride = stride;
+		if (ioctl(fd, DRM_IOCTL_I915_GEM_SET_TILING, &set_tiling)) {
+			fprintf(stderr, "set tiling failed: %s (stride=%d, size=%d)\n",
+				strerror(errno), stride, size);
+			return NULL;
+		}
+	}
+
+	fb_ptr = gem_mmap(fd, fb_info->gem_handle, size, PROT_READ | PROT_WRITE);
+
+	fb_info->stride = stride;
+	fb_info->size = size;
+
+	return cairo_image_surface_create_for_data((unsigned char *)fb_ptr,
+						   format, width, height,
+						   stride);
+}
+
+static void
+paint_color_gradient(cairo_t *cr, int x, int y, int w, int h,
+		     int r, int g, int b)
+{
+	cairo_pattern_t *pat;
+
+	pat = cairo_pattern_create_linear(x, y, x + w, y + h);
+	cairo_pattern_add_color_stop_rgba(pat, 1, 0, 0, 0, 1);
+	cairo_pattern_add_color_stop_rgba(pat, 0, r, g, b, 1);
+
+	cairo_rectangle(cr, x, y, w, h);
+	cairo_set_source(cr, pat);
+	cairo_fill(cr);
+	cairo_pattern_destroy(pat);
+}
+
+static void
+paint_test_patterns(cairo_t *cr, int width, int height)
+{
+	double gr_height, gr_width;
+	int x, y;
+
+	y = height * 0.10;
+	gr_width = width * 0.75;
+	gr_height = height * 0.08;
+	x = (width / 2) - (gr_width / 2);
+
+	paint_color_gradient(cr, x, y, gr_width, gr_height, 1, 0, 0);
+
+	y += gr_height;
+	paint_color_gradient(cr, x, y, gr_width, gr_height, 0, 1, 0);
+
+	y += gr_height;
+	paint_color_gradient(cr, x, y, gr_width, gr_height, 0, 0, 1);
+
+	y += gr_height;
+	paint_color_gradient(cr, x, y, gr_width, gr_height, 1, 1, 1);
+}
+
+enum corner {
+	topleft,
+	topright,
+	bottomleft,
+	bottomright,
+};
+
+static void
+paint_marker(cairo_t *cr, int x, int y, char *str, enum corner text_location)
+{
+	cairo_text_extents_t extents;
+	int xoff, yoff;
+
+	cairo_set_font_size(cr, 18);
+	cairo_text_extents(cr, str, &extents);
+
+	switch (text_location) {
+	case topleft:
+		xoff = -20;
+		xoff -= extents.width;
+		yoff = -20;
+		break;
+	case topright:
+		xoff = 20;
+		yoff = -20;
+		break;
+	case bottomleft:
+		xoff = -20;
+		xoff -= extents.width;
+		yoff = 20;
+		break;
+	case bottomright:
+		xoff = 20;
+		yoff = 20;
+		break;
+	default:
+		xoff = 0;
+		yoff = 0;
+	}
+
+	cairo_move_to(cr, x, y - 20);
+	cairo_line_to(cr, x, y + 20);
+	cairo_move_to(cr, x - 20, y);
+	cairo_line_to(cr, x + 20, y);
+	cairo_new_sub_path(cr);
+	cairo_arc(cr, x, y, 10, 0, M_PI * 2);
+	cairo_set_line_width(cr, 4);
+	cairo_set_source_rgb(cr, 0, 0, 0);
+	cairo_stroke_preserve(cr);
+	cairo_set_source_rgb(cr, 1, 1, 1);
+	cairo_set_line_width(cr, 2);
+	cairo_stroke(cr);
+
+	cairo_move_to(cr, x + xoff, y + yoff);
+	cairo_text_path(cr, str);
+	cairo_set_source_rgb(cr, 0, 0, 0);
+	cairo_stroke_preserve(cr);
+	cairo_set_source_rgb(cr, 1, 1, 1);
+	cairo_fill(cr);
+}
+
+unsigned int kmstest_create_fb(int fd, int width, int height, int bpp,
+			       int depth, bool tiled,
+			       struct kmstest_fb *fb_info,
+			       kmstest_paint_func paint_func,
+			       void *func_arg)
+{
+	cairo_surface_t *surface;
+	cairo_status_t status;
+	cairo_t *cr;
+	char buf[128];
+	int ret;
+	unsigned int fb_id;
+
+	surface = paint_allocate_surface(fd, width, height, depth, bpp,
+					 tiled, fb_info);
+	assert(surface);
+
+	cr = cairo_create(surface);
+
+	paint_test_patterns(cr, width, height);
+
+	cairo_set_line_cap(cr, CAIRO_LINE_CAP_SQUARE);
+
+	/* Paint corner markers */
+	snprintf(buf, sizeof buf, "(%d, %d)", 0, 0);
+	paint_marker(cr, 0, 0, buf, bottomright);
+	snprintf(buf, sizeof buf, "(%d, %d)", width, 0);
+	paint_marker(cr, width, 0, buf, bottomleft);
+	snprintf(buf, sizeof buf, "(%d, %d)", 0, height);
+	paint_marker(cr, 0, height, buf, topright);
+	snprintf(buf, sizeof buf, "(%d, %d)", width, height);
+	paint_marker(cr, width, height, buf, topleft);
+
+	if (paint_func)
+		paint_func(cr, width, height, func_arg);
+
+	status = cairo_status(cr);
+	assert(!status);
+	cairo_destroy(cr);
+
+	ret = drmModeAddFB(fd, width, height, depth, bpp,
+			   fb_info->stride,
+			   fb_info->gem_handle, &fb_id);
+
+	assert(ret == 0);
+	cairo_surface_destroy(surface);
+
+	fb_info->fb_id = fb_id;
+
+	return fb_id;
 }

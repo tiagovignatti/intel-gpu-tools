@@ -31,6 +31,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <stdbool.h>
+#include <cairo.h>
 
 #include "xf86drm.h"
 #include "intel_batchbuffer.h"
@@ -73,6 +74,22 @@ void drmtest_progress(const char *header, uint64_t i, uint64_t total);
 void drmtest_init_aperture_trashers(drm_intel_bufmgr *bufmgr);
 void drmtest_trash_aperture(void);
 void drmtest_cleanup_aperture_trashers(void);
+
+/* helpers to create nice-looking framebuffers */
+struct kmstest_fb {
+	uint32_t fb_id;
+	uint32_t gem_handle;
+	unsigned stride;
+	unsigned size;
+};
+
+typedef void (*kmstest_paint_func)(cairo_t *cr, int width, int height, void *priv);
+
+unsigned int kmstest_create_fb(int fd, int width, int height, int bpp,
+			       int depth, bool tiled,
+			       struct kmstest_fb *fb_info,
+			       kmstest_paint_func paint_func,
+			       void *func_arg);
 
 inline static void _do_or_die(const char *function, int line, int ret)
 {

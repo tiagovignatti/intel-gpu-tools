@@ -29,3 +29,5 @@ libintel_tools_la_SOURCES = 	\
 	intel_reg_map.c		\
 	$(NULL)
 
+LDADD = $(CAIRO_LIBS)
+AM_CFLAGS += $(CAIRO_CFLAGS)

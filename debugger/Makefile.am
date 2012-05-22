@@ -13,4 +13,4 @@ AM_CFLAGS = 			\
 	$(PCIACCESS_CFLAGS) 	\
 	$(CWARNFLAGS)
 
-LDADD = $(top_builddir)/lib/libintel_tools.la $(DRM_LIBS) $(PCIACCESS_LIBS)
+LDADD = $(top_builddir)/lib/libintel_tools.la $(DRM_LIBS) $(PCIACCESS_LIBS) $(CAIRO_LIBS)
