@@ -492,33 +492,11 @@ static int run_test(void)
 	return 1;
 }
 
-static char optstr[] = "h";
-
-static void usage(char *name)
-{
-	fprintf(stderr, "usage: %s [-h]\n", name);
-	fprintf(stderr, "\t-h: help\n");
-	exit(0);
-}
-
 int main(int argc, char **argv)
 {
-	int c;
 	const char *modules[] = { "i915" };
 	unsigned int i;
 	int ret = 0;
-
-	opterr = 0;
-	while ((c = getopt(argc, argv, optstr)) != -1) {
-		switch (c) {
-		default:
-			fprintf(stderr, "unknown option %c\n", c);
-			/* fall through */
-		case 'h':
-			usage(argv[0]);
-			break;
-		}
-	}
 
 	for (i = 0; i < ARRAY_SIZE(modules); i++) {
 		drm_fd = drmOpen(modules[i], NULL);
