@@ -89,12 +89,7 @@ static void connector_find_preferred_mode(struct test_output *o, int crtc_id)
 	o->mode_valid = 0;
 	o->crtc = 0;
 	connector = drmModeGetConnector(drm_fd, o->id);
-	if (!connector) {
-		fprintf(stderr, "could not get connector %d: %s\n",
-			o->id, strerror(errno));
-		drmModeFreeConnector(connector);
-		return;
-	}
+	assert(connector);
 
 	if (connector->connection != DRM_MODE_CONNECTED) {
 		drmModeFreeConnector(connector);
@@ -216,8 +211,7 @@ static void set_mode(struct test_output *o, int crtc)
 					 paint_flip_mode, (void *)true);
 	if (!o->fb_ids[0] || !o->fb_ids[1]) {
 		fprintf(stderr, "failed to create fbs\n");
-		ret = -1;
-		goto out;
+		exit(3);
 	}
 
 	gem_close(drm_fd, fb_info[0].gem_handle);
@@ -229,15 +223,14 @@ static void set_mode(struct test_output *o, int crtc)
 		fprintf(stderr, "failed to set mode (%dx%d@%dHz): %s\n",
 			width, height, o->mode.vrefresh,
 			strerror(errno));
-		ret = -1;
-		goto out;
+		exit(3);
 	}
 
 	ret = drmModePageFlip(drm_fd, o->crtc, o->fb_ids[1],
 			      DRM_MODE_PAGE_FLIP_EVENT, o);
 	if (ret) {
 		fprintf(stderr, "failed to page flip: %s\n", strerror(errno));
-		goto out;
+		exit(4);
 	}
 	o->current_fb_id = o->fb_ids[1];
 
@@ -261,10 +254,10 @@ static void set_mode(struct test_output *o, int crtc)
 		if (ret <= 0) {
 			fprintf(stderr, "select timed out or error (ret %d)\n",
 				ret);
-			continue;
+			exit(1);
 		} else if (FD_ISSET(0, &fds)) {
 			fprintf(stderr, "no fds active, breaking\n");
-			break;
+			exit(2);
 		}
 
 		gettimeofday(&now, NULL);
@@ -278,8 +271,8 @@ static void set_mode(struct test_output *o, int crtc)
 	}
 
 out:
-	fprintf(stdout, "page flipping on crtc %d, connector %d: %s\n", crtc,
-		o->id, ret ? "FAILED" : "PASSED");
+	fprintf(stdout, "page flipping on crtc %d, connector %d: PASSED\n",
+		crtc, o->id);
 
 	drmModeFreeEncoder(o->encoder);
 	drmModeFreeConnector(o->connector);
@@ -294,13 +287,12 @@ static int run_test(void)
 	if (!resources) {
 		fprintf(stderr, "drmModeGetResources failed: %s\n",
 			strerror(errno));
-		return 0;
+		exit(5);
 	}
 
 	connectors = calloc(resources->count_connectors,
 			    sizeof(struct test_output));
-	if (!connectors)
-		return 0;
+	assert(connectors);
 
 	/* Find any connected displays */
 	for (c = 0; c < resources->count_connectors; c++) {
