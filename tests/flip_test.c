@@ -198,185 +198,18 @@ static void connector_find_preferred_mode(struct test_output *o, int crtc_id)
 	o->connector = connector;
 }
 
-static cairo_surface_t *
-allocate_surface(int fd, uint32_t *handle, int width, int height,
-		 int bpp, int depth, int *_stride)
+static void
+paint_flip_mode(cairo_t *cr, int width, int height, void *priv)
 {
-	cairo_format_t format;
-	struct drm_i915_gem_set_tiling set_tiling;
-	int size, v, stride;
+	bool odd_frame = priv;
 
-	/* Round the tiling up to the next power-of-two and the
-	 * region up to the next pot fence size so that this works
-	 * on all generations.
-	 *
-	 * This can still fail if the framebuffer is too large to
-	 * be tiled. But then that failure is expected.
-	 */
-	v = width * bpp / 8;
-	for (stride = 512; stride < v; stride *= 2)
-		;
+	if (odd_frame)
+		cairo_rectangle(cr, width/4, height/2, width/4, height/8);
+	else
+		cairo_rectangle(cr, width/2, height/2, width/4, height/8);
 
-	v = stride * height;
-	for (size = 1024*1024; size < v; size *= 2)
-		;
-
-	*_stride = stride;
-
-	switch (depth) {
-	case 16:
-		format = CAIRO_FORMAT_RGB16_565;
-		break;
-	case 24:
-		format = CAIRO_FORMAT_RGB24;
-		break;
-#if 0
-	case 30:
-		format = CAIRO_FORMAT_RGB30;
-		break;
-#endif
-	case 32:
-		format = CAIRO_FORMAT_ARGB32;
-		break;
-	default:
-		fprintf(stderr, "bad depth %d\n", depth);
-		return NULL;
-	}
-
-	*handle = gem_create(fd, size);
-
-	set_tiling.handle = *handle;
-	set_tiling.tiling_mode = I915_TILING_X;
-	set_tiling.stride = stride;
-	if (ioctl(fd, DRM_IOCTL_I915_GEM_SET_TILING, &set_tiling)) {
-		fprintf(stderr, "set tiling failed: %s (stride=%d, size=%d)\n",
-			strerror(errno), stride, size);
-		return NULL;
-	}
-
-	fb_ptr = gem_mmap(fd, *handle, size, PROT_READ | PROT_WRITE);
-
-	return cairo_image_surface_create_for_data((unsigned char *)fb_ptr,
-						   format, width, height,
-						   stride);
-}
-
-enum corner {
-	topleft,
-	topright,
-	bottomleft,
-	bottomright,
-};
-
-static void paint_marker(cairo_t *cr, int x, int y, char *str,
-			 enum corner text_location)
-{
-	cairo_text_extents_t extents;
-	int xoff, yoff;
-
-	cairo_set_font_size(cr, 18);
-	cairo_text_extents(cr, str, &extents);
-
-	switch (text_location) {
-	case topleft:
-		xoff = -20;
-		xoff -= extents.width;
-		yoff = -20;
-		break;
-	case topright:
-		xoff = 20;
-		yoff = -20;
-		break;
-	case bottomleft:
-		xoff = -20;
-		xoff -= extents.width;
-		yoff = 20;
-		break;
-	case bottomright:
-		xoff = 20;
-		yoff = 20;
-		break;
-	default:
-		xoff = 0;
-		yoff = 0;
-	}
-
-	cairo_move_to(cr, x, y - 20);
-	cairo_line_to(cr, x, y + 20);
-	cairo_move_to(cr, x - 20, y);
-	cairo_line_to(cr, x + 20, y);
-	cairo_new_sub_path(cr);
-	cairo_arc(cr, x, y, 10, 0, M_PI * 2);
-	cairo_set_line_width(cr, 4);
-	cairo_set_source_rgb(cr, 0, 0, 0);
-	cairo_stroke_preserve(cr);
-	cairo_set_source_rgb(cr, 1, 1, 1);
-	cairo_set_line_width(cr, 2);
-	cairo_stroke(cr);
-
-	cairo_move_to(cr, x + xoff, y + yoff);
-	cairo_text_path(cr, str);
-	cairo_set_source_rgb(cr, 0, 0, 0);
-	cairo_stroke_preserve(cr);
 	cairo_set_source_rgb(cr, 1, 1, 1);
 	cairo_fill(cr);
-}
-
-/*
- * Images from:
- * http://www.docstoc.com/docs/28101658/Make-a-Thaumatrope
- * listed as public domain.
- */
-static unsigned int initialize_fb(int fd, int width, int height, int bpp,
-				  int depth)
-{
-	cairo_surface_t *surface;
-	cairo_status_t status;
-	cairo_t *cr;
-	uint32_t handle;
-	unsigned int fb_id;
-	int ret, stride;
-	char buf[128];
-
-	surface = allocate_surface(drm_fd, &handle, width, height, bpp, depth,
-				   &stride);
-	if (!surface) {
-		fprintf(stderr, "allocation failed %dx%d\n", width, height);
-		return 0;
-	}
-
-	cr = cairo_create(surface);
-
-	cairo_set_line_cap(cr, CAIRO_LINE_CAP_SQUARE);
-
-	/* Paint corner markers */
-	snprintf(buf, sizeof buf, "(%d, %d)", 0, 0);
-	paint_marker(cr, 0, 0, buf, bottomright);
-	snprintf(buf, sizeof buf, "(%d, %d)", width, 0);
-	paint_marker(cr, width, 0, buf, bottomleft);
-	snprintf(buf, sizeof buf, "(%d, %d)", 0, height);
-	paint_marker(cr, 0, height, buf, topright);
-	snprintf(buf, sizeof buf, "(%d, %d)", width, height);
-	paint_marker(cr, width, height, buf, topleft);
-
-	status = cairo_status(cr);
-	cairo_destroy(cr);
-	if (status)
-		fprintf(stderr, "failed to draw pretty picture %dx%d: %s\n",
-			width, height, cairo_status_to_string(status));
-
-	ret = drmModeAddFB(drm_fd, width, height, depth, bpp, stride,
-			   handle, &fb_id);
-	cairo_surface_destroy(surface);
-	gem_close(drm_fd, handle);
-
-	if (ret) {
-		fprintf(stderr, "failed to add fb (%dx%d): %s\n",
-			width, height, strerror(errno));
-		return 0;
-	}
-
-	return fb_id;
 }
 
 static void set_mode(struct test_output *o, int crtc)
@@ -386,6 +219,7 @@ static void set_mode(struct test_output *o, int crtc)
 	drmEventContext evctx;
 	int width, height;
 	struct timeval end;
+	struct kmstest_fb fb_info[2];
 
 	connector_find_preferred_mode(o, crtc);
 	if (!o->mode_valid)
@@ -394,13 +228,20 @@ static void set_mode(struct test_output *o, int crtc)
 	width = o->mode.hdisplay;
 	height = o->mode.vdisplay;
 
-	o->fb_ids[0] = initialize_fb(drm_fd, width, height, bpp, depth);
-	o->fb_ids[1] = initialize_fb(drm_fd, width, height, bpp, depth);
+	o->fb_ids[0] = kmstest_create_fb(drm_fd, width, height, bpp, depth,
+					 false, &fb_info[0],
+					 paint_flip_mode, (void *)false);
+	o->fb_ids[1] = kmstest_create_fb(drm_fd, width, height, bpp, depth,
+					 false, &fb_info[1],
+					 paint_flip_mode, (void *)true);
 	if (!o->fb_ids[0] || !o->fb_ids[1]) {
 		fprintf(stderr, "failed to create fbs\n");
 		ret = -1;
 		goto out;
 	}
+
+	gem_close(drm_fd, fb_info[0].gem_handle);
+	gem_close(drm_fd, fb_info[1].gem_handle);
 
 	dump_mode(&o->mode);
 	if (drmModeSetCrtc(drm_fd, o->crtc, o->fb_ids[0], 0, 0,
