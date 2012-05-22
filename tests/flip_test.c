@@ -494,29 +494,11 @@ static int run_test(void)
 
 int main(int argc, char **argv)
 {
-	const char *modules[] = { "i915" };
-	unsigned int i;
-	int ret = 0;
-
-	for (i = 0; i < ARRAY_SIZE(modules); i++) {
-		drm_fd = drmOpen(modules[i], NULL);
-		if (drm_fd < 0) {
-			printf("failed to load %s driver.\n", modules[i]);
-			goto out;
-		} else
-			break;
-	}
-
-	if (i == ARRAY_SIZE(modules)) {
-		fprintf(stderr, "failed to load any modules, aborting.\n");
-		ret = -1;
-		goto out_close;
-	}
+	drm_fd = drm_open_any();
 
 	run_test();
 
-out_close:
-	drmClose(drm_fd);
-out:
-	return ret;
+	close(drm_fd);
+
+	return 0;
 }

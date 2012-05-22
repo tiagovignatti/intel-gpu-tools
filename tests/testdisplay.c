@@ -803,8 +803,6 @@ static gboolean input_event(GIOChannel *source, GIOCondition condition,
 int main(int argc, char **argv)
 {
 	int c;
-	const char *modules[] = { "i915" };
-	unsigned int i;
 	int ret = 0;
 	GIOChannel *stdinchannel;
 	GMainLoop *mainloop;
@@ -860,19 +858,7 @@ int main(int argc, char **argv)
 	    !test_preferred_mode)
 		test_all_modes = 1;
 
-	for (i = 0; i < ARRAY_SIZE(modules); i++) {
-		drm_fd = drmOpen(modules[i], NULL);
-		if (drm_fd < 0)
-			printf("failed to load %s driver.\n", modules[i]);
-		else
-			break;
-	}
-
-	if (i == ARRAY_SIZE(modules)) {
-		fprintf(stderr, "failed to load any modules, aborting.\n");
-		ret = -1;
-		goto out;
-	}
+	drm_fd = drm_open_any();
 
 	mainloop = g_main_loop_new(NULL, FALSE);
 	if (!mainloop) {
@@ -918,7 +904,7 @@ out_hotplug:
 out_mainloop:
 	g_main_loop_unref(mainloop);
 out_close:
-	drmClose(drm_fd);
-out:
+	close(drm_fd);
+
 	return ret;
 }

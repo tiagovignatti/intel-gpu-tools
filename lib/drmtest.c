@@ -171,6 +171,7 @@ int drm_get_card(int master)
 
 		if (is_intel(fd) && master == 0) {
 			gem_quiescent_gpu(fd);
+			close(fd);
 			break;
 		}
 
