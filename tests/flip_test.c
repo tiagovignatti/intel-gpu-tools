@@ -165,6 +165,7 @@ static void connector_find_preferred_mode(struct test_output *o, int crtc_id)
 
 	if (!o->crtc) {
 		fprintf(stderr, "could not find requested crtc %d\n", crtc_id);
+		o->mode_valid = 0;
 		return;
 	}
 
