@@ -27,7 +27,7 @@ fi
 echo 0xf > i915_ring_stop
 echo "rings stopped"
 
-$oldpath/$SOURCE_DIR/gem_exec_nop > /dev/null
+(cd $oldpath; $SOURCE_DIR/gem_exec_nop) > /dev/null
 
 if cat i915_error_state | grep -v "no error state collected" > /dev/null ; then
 	echo "gpu hang correctly dectected"
