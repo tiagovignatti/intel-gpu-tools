@@ -14,7 +14,8 @@ bin_PROGRAMS = 				\
 	intel_reg_snapshot 		\
 	intel_reg_write 		\
 	intel_reg_read 			\
-	intel_forcewaked
+	intel_forcewaked		\
+	intel_l3_parity
 
 noinst_PROGRAMS = 			\
 	intel_dump_decode 		\

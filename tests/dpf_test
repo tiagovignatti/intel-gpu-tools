@@ -1,0 +1,8 @@
+#!/bin/bash
+
+SOURCE_DIR="$( dirname "${BASH_SOURCE[0]}" )"
+. $SOURCE_DIR/drm_lib.sh
+
+$SOURCE_DIR/../tools/intel_l3_parity -c 2>&1
+$SOURCE_DIR/../tools/intel_l3_parity 0,0,0 2>&1
+$SOURCE_DIR/../tools/intel_l3_parity 2>&1
