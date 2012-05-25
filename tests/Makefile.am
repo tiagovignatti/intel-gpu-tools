@@ -71,6 +71,7 @@ TESTS_scripts = \
 	debugfs_reader \
 	debugfs_emon_crash \
 	sysfs_edid_timing \
+	module_reload \
 	ZZ_check_dmesg \
 	ZZ_hangman \
 	$(NULL)
