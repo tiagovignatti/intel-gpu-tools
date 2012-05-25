@@ -12,7 +12,7 @@ SOURCE_DIR="$( dirname "${BASH_SOURCE[0]}" )"
 
 # vtcon0 is vga, vtcon1 fbcon and let's pray that won't change due to boot load
 # time changes
-if ! echo 0 > /ys/class/vtconsole/vtcon1/bind ; then
+if ! echo 0 > /sys/class/vtconsole/vtcon1/bind ; then
 	echo -e "no kms unload support"
 	echo "please enable CONFIG_VT_HW_CONSOLE_BINDING in the kernel"
 	exit 77
