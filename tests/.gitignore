@@ -54,6 +54,7 @@ gem_tiled_swapping
 gem_unfence_active_buffers
 gem_unref_active_buffers
 gem_vmap_blits
+gem_wait_render_timeout
 gen3_mixed_blits
 gen3_render_linear_blits
 gen3_render_mixed_blits
