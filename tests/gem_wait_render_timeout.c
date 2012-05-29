@@ -163,8 +163,6 @@ int main(int argc, char **argv)
 	intel_batchbuffer_flush(batch);
 
 	ret = gem_bo_wait_timeout(fd, dst2->handle, &timeout);
-	if (do_signals)
-		drmtest_stop_signal_helper();
 	if (ret) {
 		fprintf(stderr, "Timed wait failed %s\n", strerror(errno));
 		exit(EXIT_FAILURE);
@@ -178,6 +176,20 @@ int main(int argc, char **argv)
 		printf("Finished with %lu time remaining\n", timeout);
 	}
 
+	/* Now check that we correctly time out, twice the auto-tune load should
+	 * be good enough. */
+	timeout = ENOUGH_WORK_IN_SECONDS * NSEC_PER_SEC;
+	for (i = 0; i < iter*2; i++)
+		blt_color_fill(batch, dst2, BUF_PAGES);
+
+	intel_batchbuffer_flush(batch);
+
+	ret = gem_bo_wait_timeout(fd, dst2->handle, &timeout);
+	assert(ret == -ETIME);
+	assert(timeout == 0);
+
+	if (do_signals)
+		drmtest_stop_signal_helper();
 	drm_intel_bo_unreference(dst2);
 	drm_intel_bo_unreference(dst);
 	intel_batchbuffer_free(batch);
