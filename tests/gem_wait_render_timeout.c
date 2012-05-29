@@ -80,6 +80,17 @@ gem_bo_wait_timeout(int fd, uint32_t handle, uint64_t *timeout_ns)
 	return ret ? -errno : 0;
 }
 
+static bool
+gem_bo_busy(int fd, uint32_t handle)
+{
+	struct drm_i915_gem_busy busy;
+
+	busy.handle = handle;
+	do_or_die(drmIoctl(fd, DRM_IOCTL_I915_GEM_BUSY, &busy));
+
+	return !!busy.busy;
+}
+
 static void blt_color_fill(struct intel_batchbuffer *batch,
 			   drm_intel_bo *buf,
 			   const unsigned int pages)
@@ -161,12 +172,14 @@ int main(int argc, char **argv)
 		blt_color_fill(batch, dst2, BUF_PAGES);
 
 	intel_batchbuffer_flush(batch);
+	assert(gem_bo_busy(fd, dst2->handle) == true);
 
 	ret = gem_bo_wait_timeout(fd, dst2->handle, &timeout);
 	if (ret) {
 		fprintf(stderr, "Timed wait failed %s\n", strerror(errno));
 		exit(EXIT_FAILURE);
 	}
+	assert(gem_bo_busy(fd, dst2->handle) == false);
 
 	assert(timeout != 0);
 
@@ -187,6 +200,7 @@ int main(int argc, char **argv)
 	ret = gem_bo_wait_timeout(fd, dst2->handle, &timeout);
 	assert(ret == -ETIME);
 	assert(timeout == 0);
+	assert(gem_bo_busy(fd, dst2->handle) == true);
 
 	if (do_signals)
 		drmtest_stop_signal_helper();
