@@ -75,12 +75,9 @@ gem_bo_wait_timeout(int fd, uint32_t handle, uint64_t *timeout_ns)
 	wait.timeout_ns = *timeout_ns;
 	wait.flags = 0;
 	ret = drmIoctl(fd, WAIT_IOCTL, &wait);
-	if (ret)
-		return ret;
-
 	*timeout_ns = wait.timeout_ns;
 
-	return ret;
+	return ret ? -errno : 0;
 }
 
 static void blt_color_fill(struct intel_batchbuffer *batch,
@@ -122,6 +119,12 @@ int main(int argc, char **argv)
 
 	dst = drm_intel_bo_alloc(bufmgr, "dst", BUF_SIZE, 4096);
 	dst2 = drm_intel_bo_alloc(bufmgr, "dst2", BUF_SIZE, 4096);
+
+	if (gem_bo_wait_timeout(fd, dst->handle, &timeout) == -EINVAL) {
+		printf("kernel doesn't support wait_timeout, skipping test\n");
+		return -77;
+	}
+	timeout = ENOUGH_WORK_IN_SECONDS * NSEC_PER_SEC;
 
 	/* Figure out a rough number of fills required to consume 1 second of
 	 * GPU work.
