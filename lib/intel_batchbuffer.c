@@ -84,10 +84,11 @@ intel_batchbuffer_flush_on_ring(struct intel_batchbuffer *batch, int ring)
 		return;
 
 	if (IS_GEN5(batch->devid)) {
-		BEGIN_BATCH(2);
-		OUT_BATCH(CMD_POLY_STIPPLE_OFFSET << 16);
-		OUT_BATCH(0);
-		ADVANCE_BATCH();
+		/* emit gen5 w/a without batch space checks - we reserve that
+		 * already. */
+		*(uint32_t *) (batch->ptr) = CMD_POLY_STIPPLE_OFFSET << 16;
+		*(uint32_t *) (batch->ptr) = 0;
+		batch->ptr += 8;
 	}
 
 	/* Round batchbuffer usage to 2 DWORDs. */

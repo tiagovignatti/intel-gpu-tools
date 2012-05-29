@@ -63,7 +63,7 @@ static inline void
 intel_batchbuffer_require_space(struct intel_batchbuffer *batch,
                                 unsigned int sz)
 {
-	assert(sz < BATCH_SZ - 8);
+	assert(sz < BATCH_SZ - BATCH_RESERVED);
 	if (intel_batchbuffer_space(batch) < sz)
 		intel_batchbuffer_flush(batch);
 }
