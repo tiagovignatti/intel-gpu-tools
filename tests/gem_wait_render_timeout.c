@@ -109,7 +109,7 @@ int main(int argc, char **argv)
 	const bool do_signals = true; /* signals will seem to make the operation
 				       * use less process CPU time */
 	bool done = false;
-	int i, iter = 0x100;
+	int i, iter = 1;
 
 	fd = drm_open_any();
 
@@ -155,8 +155,9 @@ int main(int argc, char **argv)
 	gem_quiescent_gpu(fd);
 	if (do_signals)
 		drmtest_fork_signal_helper();
+
 	/* We should be able to do half as much work in the same amount of time */
-	for (i = 0; i < iter; i++)
+	for (i = 0; i < iter/2; i++)
 		blt_color_fill(batch, dst2, BUF_PAGES);
 
 	intel_batchbuffer_flush(batch);
