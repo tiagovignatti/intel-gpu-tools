@@ -84,7 +84,7 @@ static void blt_color_fill(struct intel_batchbuffer *batch,
 			   drm_intel_bo *buf,
 			   const unsigned int pages)
 {
-	const unsigned short height = pages;
+	const unsigned short height = pages/4;
 	const unsigned short width =  4096;
 	BEGIN_BATCH(5);
 	OUT_BATCH(COLOR_BLT_CMD		|
@@ -95,7 +95,7 @@ static void blt_color_fill(struct intel_batchbuffer *batch,
 		  0);		  /* Dest pitch is 0 */
 	OUT_BATCH(width << 16	|
 		  height);
-	OUT_RELOC(buf, I915_GEM_DOMAIN_RENDER, 0, 0);
+	OUT_RELOC(buf, I915_GEM_DOMAIN_RENDER, I915_GEM_DOMAIN_RENDER, 0);
 	OUT_BATCH(rand()); /* random pattern */
 	ADVANCE_BATCH();
 }
