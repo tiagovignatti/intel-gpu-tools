@@ -47,7 +47,7 @@ static int64_t
 do_time_diff(struct timespec *end, struct timespec *start)
 {
 	int64_t ret;
-	ret = (NSEC_PER_MSEC * difftime(end->tv_sec, start->tv_sec)) +
+	ret = (MSEC_PER_SEC * difftime(end->tv_sec, start->tv_sec)) +
 	      ((end->tv_nsec/NSEC_PER_MSEC) - (start->tv_nsec/NSEC_PER_MSEC));
 	return ret;
 }
