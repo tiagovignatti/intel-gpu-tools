@@ -52,6 +52,36 @@ do_time_diff(struct timespec *end, struct timespec *start)
 	return ret;
 }
 
+/* to avoid stupid depencies on libdrm, copy&paste */
+struct local_drm_i915_gem_wait {
+	/** Handle of BO we shall wait on */
+	__u32 bo_handle;
+	__u32 flags;
+	/** Number of nanoseconds to wait, Returns time remaining. */
+	__u64 timeout_ns;
+};
+
+# define WAIT_IOCTL DRM_IOWR(DRM_COMMAND_BASE + 0x2c, struct local_drm_i915_gem_wait)
+
+static int
+gem_bo_wait_timeout(int fd, uint32_t handle, uint64_t *timeout_ns)
+{
+	struct local_drm_i915_gem_wait wait;
+	int ret;
+
+	assert(timeout_ns);
+
+	wait.bo_handle = handle;
+	wait.timeout_ns = *timeout_ns;
+	wait.flags = 0;
+	ret = drmIoctl(fd, WAIT_IOCTL, &wait);
+	if (ret)
+		return ret;
+
+	*timeout_ns = wait.timeout_ns;
+
+	return ret;
+}
 
 static void blt_color_fill(struct intel_batchbuffer *batch,
 			   drm_intel_bo *buf,
@@ -128,7 +158,7 @@ int main(int argc, char **argv)
 
 	intel_batchbuffer_flush(batch);
 
-	ret = drm_intel_gem_bo_wait(dst2, &timeout);
+	ret = gem_bo_wait_timeout(fd, dst2->handle, &timeout);
 	if (do_signals)
 		drmtest_stop_signal_helper();
 	if (ret) {
