@@ -180,14 +180,17 @@ int main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 	assert(gem_bo_busy(fd, dst2->handle) == false);
-
 	assert(timeout != 0);
-
 	if (timeout ==  (ENOUGH_WORK_IN_SECONDS * NSEC_PER_SEC))
 		printf("Buffer was already done!\n");
 	else {
 		printf("Finished with %lu time remaining\n", timeout);
 	}
+
+	/* check that polling with timeout=0 works. */
+	timeout = 0;
+	assert(gem_bo_wait_timeout(fd, dst2->handle, &timeout) == 0);
+	assert(timeout == 0);
 
 	/* Now check that we correctly time out, twice the auto-tune load should
 	 * be good enough. */
@@ -201,6 +204,12 @@ int main(int argc, char **argv)
 	assert(ret == -ETIME);
 	assert(timeout == 0);
 	assert(gem_bo_busy(fd, dst2->handle) == true);
+
+	/* check that polling with timeout=0 works. */
+	timeout = 0;
+	assert(gem_bo_wait_timeout(fd, dst2->handle, &timeout) == -ETIME);
+	assert(timeout == 0);
+
 
 	if (do_signals)
 		drmtest_stop_signal_helper();
