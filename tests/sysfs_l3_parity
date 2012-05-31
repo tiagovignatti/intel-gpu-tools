@@ -3,13 +3,22 @@
 SOURCE_DIR="$( dirname "${BASH_SOURCE[0]}" )"
 . $SOURCE_DIR/drm_lib.sh
 
-$SOURCE_DIR/../tools/intel_l3_parity -c 2>&1
+$SOURCE_DIR/../tools/intel_l3_parity -c
 
 #Check that we can remap a row
-$SOURCE_DIR/../tools/intel_l3_parity 0,0,0 2>&1
+$SOURCE_DIR/../tools/intel_l3_parity 0,0,0
 disabled=`$SOURCE_DIR/../tools/intel_l3_parity | grep -c 'Row 0, Bank 0, Subbank 0 is disabled'`
-[ "$disabled" = "1" ] || echo "Fail" && exit -1
-$SOURCE_DIR/../tools/intel_l3_parity -c 2>&1
+if [ "$disabled" != "1" ] ; then
+	echo "Fail"
+	exit 1
+fi
+
+$SOURCE_DIR/../tools/intel_l3_parity -c
 
 #Check that we can clear remaps
-[ `$SOURCE_DIR/../tools/intel_l3_parity | wc -c` = "0" ] || echo "Fail" && exit -1
+if [ `$SOURCE_DIR/../tools/intel_l3_parity | wc -c` != "0" ] ; then
+	echo "Fail"
+	exit 1
+fi
+
+exit 0
