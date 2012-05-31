@@ -12,6 +12,7 @@ intel_gpu_time
 intel_gpu_top
 intel_gtt
 intel_infoframes
+intel_l3_parity
 intel_lid
 intel_panel_fitter
 intel_reg_checker

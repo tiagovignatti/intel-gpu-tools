@@ -71,7 +71,7 @@ TESTS_progs = \
 TESTS_scripts = \
 	debugfs_reader \
 	debugfs_emon_crash \
-	dpf_test \
+	sysfs_l3_parity \
 	sysfs_edid_timing \
 	module_reload \
 	ZZ_check_dmesg \
