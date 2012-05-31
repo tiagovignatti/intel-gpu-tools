@@ -1,5 +1,10 @@
 #!/bin/bash
 
+if ! find /sys/class/drm/card*/ | grep l3_parity > /dev/null ; then
+	echo "no l3_parity interface, skipping test"
+	exit 77
+fi
+
 SOURCE_DIR="$( dirname "${BASH_SOURCE[0]}" )"
 . $SOURCE_DIR/drm_lib.sh
 
@@ -20,5 +25,3 @@ if [ `$SOURCE_DIR/../tools/intel_l3_parity | wc -c` != "0" ] ; then
 	echo "Fail"
 	exit 1
 fi
-
-exit 0
