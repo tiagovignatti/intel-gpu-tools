@@ -311,7 +311,7 @@ uint32_t gem_create(int fd, int size)
 	return create.handle;
 }
 
-void *gem_mmap(int fd, uint32_t handle, int size, int prot)
+void *gem_mmap__gtt(int fd, uint32_t handle, int size, int prot)
 {
 	struct drm_i915_gem_mmap_gtt mmap_arg;
 	void *ptr;
@@ -325,6 +325,19 @@ void *gem_mmap(int fd, uint32_t handle, int size, int prot)
 		ptr = NULL;
 
 	return ptr;
+}
+
+void *gem_mmap__cpu(int fd, uint32_t handle, int size, int prot)
+{
+	struct drm_i915_gem_mmap mmap_arg;
+
+	mmap_arg.handle = handle;
+	mmap_arg.offset = 0;
+	mmap_arg.size = size;
+	if (drmIoctl(fd, DRM_IOCTL_I915_GEM_MMAP, &mmap_arg))
+		return NULL;
+
+	return (void *)(uintptr_t)mmap_arg.addr_ptr;
 }
 
 uint64_t gem_aperture_size(int fd)

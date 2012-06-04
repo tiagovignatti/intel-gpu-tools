@@ -45,7 +45,7 @@
 int main(int argc, char **argv)
 {
 	int fd;
-	struct drm_i915_gem_mmap gem_mmap;
+	struct drm_i915_gem_mmap arg;
 	uint8_t expected[OBJECT_SIZE];
 	uint8_t buf[OBJECT_SIZE];
 	uint8_t *addr;
@@ -54,23 +54,23 @@ int main(int argc, char **argv)
 
 	fd = drm_open_any();
 
-	memset(&gem_mmap, 0, sizeof(gem_mmap));
-	gem_mmap.handle = 0x10101010;
-	gem_mmap.offset = 0;
-	gem_mmap.size = 4096;
+	memset(&arg, 0, sizeof(arg));
+	arg.handle = 0x10101010;
+	arg.offset = 0;
+	arg.size = 4096;
 	printf("Testing mmaping of bad object.\n");
-	ret = ioctl(fd, DRM_IOCTL_I915_GEM_MMAP, &gem_mmap);
+	ret = ioctl(fd, DRM_IOCTL_I915_GEM_MMAP, &arg);
 	assert(ret == -1 && errno == ENOENT);
 
 	handle = gem_create(fd, OBJECT_SIZE);
 
 	printf("Testing mmaping of newly created object.\n");
-	gem_mmap.handle = handle;
-	gem_mmap.offset = 0;
-	gem_mmap.size = OBJECT_SIZE;
-	ret = ioctl(fd, DRM_IOCTL_I915_GEM_MMAP, &gem_mmap);
+	arg.handle = handle;
+	arg.offset = 0;
+	arg.size = OBJECT_SIZE;
+	ret = ioctl(fd, DRM_IOCTL_I915_GEM_MMAP, &arg);
 	assert(ret == 0);
-	addr = (uint8_t *)(uintptr_t)gem_mmap.addr_ptr;
+	addr = (uint8_t *)(uintptr_t)arg.addr_ptr;
 
 	printf("Testing contents of newly created object.\n");
 	memset(expected, 0, sizeof(expected));
