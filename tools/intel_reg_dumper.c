@@ -760,6 +760,9 @@ static struct reg_debug intel_debug_regs[] = {
 	DEFINEREG(DVOB_SRCDIM),
 	DEFINEREG(DVOC_SRCDIM),
 
+	DEFINEREG(BLC_PWM_CTL),
+	DEFINEREG(BLC_PWM_CTL2),
+
 	DEFINEREG2(PP_CONTROL, i830_debug_pp_control),
 	DEFINEREG2(PP_STATUS, i830_debug_pp_status),
 	DEFINEREG(PP_ON_DELAYS),
