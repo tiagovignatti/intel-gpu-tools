@@ -91,6 +91,8 @@
 #define PCI_CHIP_HASWELL_M_GT2          0x0416
 #define PCI_CHIP_HASWELL_M_ULT_GT2      0x0A16 /* Mobile ULT */
 
+#define PCI_CHIP_VALLEYVIEW_PO		0x0f30 /* VLV PO board */
+
 #define IS_MOBILE(devid)	(devid == PCI_CHIP_I855_GM || \
 				 devid == PCI_CHIP_I915_GM || \
 				 devid == PCI_CHIP_I945_GM || \
@@ -160,7 +162,8 @@
 				 dev == PCI_CHIP_IVYBRIDGE_M_GT1 || \
 				 dev == PCI_CHIP_IVYBRIDGE_M_GT2 || \
 				 dev == PCI_CHIP_IVYBRIDGE_S || \
-				 dev == PCI_CHIP_IVYBRIDGE_S_GT2)
+				 dev == PCI_CHIP_IVYBRIDGE_S_GT2 || \
+				 dev == PCI_CHIP_VALLEYVIEW_PO)
 
 #define IS_HSW_GT1(devid)       (devid == PCI_CHIP_HASWELL_GT1 || \
                                  devid == PCI_CHIP_HASWELL_M_GT1)
