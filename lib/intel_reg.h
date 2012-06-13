@@ -3541,6 +3541,11 @@ typedef enum {
 #define GEN6_RC6p_THRESHOLD			0xA0BC
 #define GEN6_RC6pp_THRESHOLD			0xA0C0
 #define GEN6_PMINTRMSK				0xA168
+#define GEN6_RC_EVALUATION_INTERVAL		0xA0A8
+#define GEN6_RC_IDLE_HYSTERSIS			0xA0AC
+#define GEN6_PMIER				0x4402C
+#define GEN6_PMIMR				0x44024 /* rps_lock */
+#define GEN6_PMINTRMSK				0xA168
 
 /* Haswell-related items */
 
