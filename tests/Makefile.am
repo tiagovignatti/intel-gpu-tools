@@ -68,6 +68,7 @@ TESTS_progs = \
 	gem_ctx_bad_destroy \
 	gem_ctx_exec \
 	gem_ctx_bad_exec \
+	gem_ctx_basic \
 	$(NULL)
 
 # IMPORTANT: The ZZ_ tests need to be run last!
@@ -125,3 +126,5 @@ gem_fence_thrash_CFLAGS = $(AM_CFLAGS) $(THREAD_CFLAGS)
 gem_fence_thrash_LDADD = $(LDADD) -lpthread
 
 gem_wait_render_timeout_LDADD = $(LDADD) -lrt
+
+gem_ctx_basic_LDADD = $(LDADD) -lpthread
