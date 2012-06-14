@@ -64,6 +64,10 @@ TESTS_progs = \
 	sysfs_rc6_residency \
 	flip_test \
 	gem_wait_render_timeout \
+	gem_ctx_create \
+	gem_ctx_bad_destroy \
+	gem_ctx_exec \
+	gem_ctx_bad_exec \
 	$(NULL)
 
 # IMPORTANT: The ZZ_ tests need to be run last!
