@@ -2177,7 +2177,7 @@ int main(int argc, char** argv)
 		pci_dev = intel_get_pci_device();
 		devid = pci_dev->device_id;
 
-		intel_get_mmio(pci_dev);
+		intel_register_access_init(pci_dev, 1);
 
 		if (HAS_PCH_SPLIT(devid))
 			intel_check_pch();
@@ -2201,5 +2201,7 @@ int main(int argc, char** argv)
 	if (IS_HASWELL(devid))
 		intel_dump_regs(haswell_debug_regs);
 
+
+	intel_register_access_fini();
 	return 0;
 }
