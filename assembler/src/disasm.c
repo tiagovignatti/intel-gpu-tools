@@ -826,8 +826,8 @@ int disasm (FILE *file, struct brw_instruction *inst)
 	pad (file, 16);
 	space = 0;
 	err |= control (file, "target function", target_function,
-			inst->bits3.generic.msg_target, &space);
-	switch (inst->bits3.generic.msg_target) {
+			inst->header.sfid_destreg__conditionalmod, &space);
+	switch (inst->header.sfid_destreg__conditionalmod) {
 	case BRW_MESSAGE_TARGET_MATH:
 	    err |= control (file, "math function", math_function,
 			    inst->bits3.math.function, &space);
