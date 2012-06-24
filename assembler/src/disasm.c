@@ -54,6 +54,7 @@ struct {
     [BRW_OPCODE_DPH] = { .name = "dph", .nsrc = 2, .ndst = 1 },
     [BRW_OPCODE_DP3] = { .name = "dp3", .nsrc = 2, .ndst = 1 },
     [BRW_OPCODE_DP2] = { .name = "dp2", .nsrc = 2, .ndst = 1 },
+    [BRW_OPCODE_PLN] = { .name = "pln", .nsrc = 2, .ndst = 1},
 
     [BRW_OPCODE_AVG] = { .name = "avg", .nsrc = 2, .ndst = 1 },
     [BRW_OPCODE_ADD] = { .name = "add", .nsrc = 2, .ndst = 1 },
