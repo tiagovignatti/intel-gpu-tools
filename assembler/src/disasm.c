@@ -795,7 +795,8 @@ int disasm (FILE *file, struct brw_instruction *inst)
     err |= control (file, "saturate", saturate, inst->header.saturate, NULL);
     err |= control (file, "debug control", debug_ctrl, inst->header.debug_control, NULL);
 
-    if (inst->header.opcode != BRW_OPCODE_SEND)
+    if (inst->header.opcode != BRW_OPCODE_SEND &&
+	inst->header.opcode != BRW_OPCODE_SENDC)
 	err |= control (file, "conditional modifier", conditional_modifier,
 			inst->header.sfid_destreg__conditionalmod, NULL);
 
@@ -805,7 +806,8 @@ int disasm (FILE *file, struct brw_instruction *inst)
 	string (file, ")");
     }
 
-    if (inst->header.opcode == BRW_OPCODE_SEND)
+    if (inst->header.opcode == BRW_OPCODE_SEND ||
+	inst->header.opcode == BRW_OPCODE_SENDC)
 	format (file, " %d", inst->header.sfid_destreg__conditionalmod);
 
     if (opcode[inst->header.opcode].ndst > 0) {
@@ -821,7 +823,8 @@ int disasm (FILE *file, struct brw_instruction *inst)
 	err |= src1 (file, inst);
     }
 
-    if (inst->header.opcode == BRW_OPCODE_SEND) {
+    if (inst->header.opcode == BRW_OPCODE_SEND ||
+	inst->header.opcode == BRW_OPCODE_SENDC) {
 	newline (file);
 	pad (file, 16);
 	space = 0;
