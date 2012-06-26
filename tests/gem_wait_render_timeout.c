@@ -167,8 +167,10 @@ int main(int argc, char **argv)
 	if (do_signals)
 		drmtest_fork_signal_helper();
 
-	/* We should be able to do half as much work in the same amount of time */
-	for (i = 0; i < iter/2; i++)
+	/* We should be able to do half as much work in the same amount of time,
+	 * but because we might schedule almost twice as much as required, we
+	 * might accidentally time out. Hence add some fudge. */
+	for (i = 0; i < iter/3; i++)
 		blt_color_fill(batch, dst2, BUF_PAGES);
 
 	intel_batchbuffer_flush(batch);
