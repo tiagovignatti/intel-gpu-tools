@@ -61,14 +61,15 @@ static uint32_t context_create(int fd)
 	return create.ctx_id;
 }
 
-static void handle_bad(int ret, int lerrno, int expected)
+static void handle_bad(int ret, int lerrno, int expected, const char *desc)
 {
 	if (ret != 0 && lerrno != expected) {
-		fprintf(stderr, "errno was %d, but should have been %d\n",
-				lerrno, expected);
+		fprintf(stderr, "%s - errno was %d, but should have been %d\n",
+				desc, lerrno, expected);
 		exit(EXIT_FAILURE);
 	} else if (ret == 0) {
-		fprintf(stderr, "Command succeeded, but should have failed\n");
+		fprintf(stderr, "%s - Command succeeded, but should have failed\n",
+			desc);
 		exit(EXIT_FAILURE);
 	}
 }
@@ -90,17 +91,17 @@ int main(int argc, char *argv[])
 
 	/* try double destroy */
 	ret = drmIoctl(fd, CONTEXT_DESTROY_IOCTL, &destroy);
-	handle_bad(ret, errno, EINVAL);
+	handle_bad(ret, errno, EINVAL, "double destroy");
 
 	/* destroy something random */
 	destroy.ctx_id = 2;
 	ret = drmIoctl(fd, CONTEXT_DESTROY_IOCTL, &destroy);
-	handle_bad(ret, errno, EINVAL);
+	handle_bad(ret, errno, EINVAL, "random destroy");
 
 	/* Try to destroy the default context */
 	destroy.ctx_id = 0;
 	ret = drmIoctl(fd, CONTEXT_DESTROY_IOCTL, &destroy);
-	handle_bad(ret, errno, EINVAL);
+	handle_bad(ret, errno, EINVAL, "default destroy");
 
 	close(fd);
 
