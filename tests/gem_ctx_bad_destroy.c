@@ -45,7 +45,7 @@ struct local_drm_i915_context_destroy {
 };
 
 #define CONTEXT_CREATE_IOCTL DRM_IOWR(DRM_COMMAND_BASE + 0x2d, struct local_drm_i915_context_create)
-#define CONTEXT_DESTROY_IOCTL DRM_IOWR(DRM_COMMAND_BASE + 0x23, struct local_drm_i915_context_destroy)
+#define CONTEXT_DESTROY_IOCTL DRM_IOWR(DRM_COMMAND_BASE + 0x2e, struct local_drm_i915_context_destroy)
 
 static uint32_t context_create(int fd)
 {
