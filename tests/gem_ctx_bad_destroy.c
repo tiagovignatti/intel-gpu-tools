@@ -91,17 +91,17 @@ int main(int argc, char *argv[])
 
 	/* try double destroy */
 	ret = drmIoctl(fd, CONTEXT_DESTROY_IOCTL, &destroy);
-	handle_bad(ret, errno, EINVAL, "double destroy");
+	handle_bad(ret, errno, ENOENT, "double destroy");
 
 	/* destroy something random */
 	destroy.ctx_id = 2;
 	ret = drmIoctl(fd, CONTEXT_DESTROY_IOCTL, &destroy);
-	handle_bad(ret, errno, EINVAL, "random destroy");
+	handle_bad(ret, errno, ENOENT, "random destroy");
 
 	/* Try to destroy the default context */
 	destroy.ctx_id = 0;
 	ret = drmIoctl(fd, CONTEXT_DESTROY_IOCTL, &destroy);
-	handle_bad(ret, errno, EINVAL, "default destroy");
+	handle_bad(ret, errno, ENOENT, "default destroy");
 
 	close(fd);
 
