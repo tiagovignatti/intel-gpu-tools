@@ -343,6 +343,11 @@ static void render_copyfunc(struct scratch_buf *src, unsigned src_x, unsigned sr
 				     src, src_x, src_y,
 				     options.tile_size, options.tile_size,
 				     dst, dst_x, dst_y);
+	else if (IS_GEN7(devid))
+		gen7_render_copyfunc(batch,
+				     src, src_x, src_y,
+				     options.tile_size, options.tile_size,
+				     dst, dst_x, dst_y);
 	else
 		blitter_copyfunc(src, src_x, src_y,
 				 dst, dst_x, dst_y,
