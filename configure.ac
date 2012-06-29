@@ -56,7 +56,7 @@ m4_ifndef([XORG_MACROS_VERSION],
 XORG_MACROS_VERSION(1.16)
 XORG_DEFAULT_OPTIONS
 
-PKG_CHECK_MODULES(DRM, [libdrm_intel >= 2.4.31 libdrm])
+PKG_CHECK_MODULES(DRM, [libdrm_intel >= 2.4.37 libdrm])
 PKG_CHECK_MODULES(PCIACCESS, [pciaccess >= 0.10])
 
 # for testdisplay
