@@ -1640,7 +1640,14 @@ srcarchoperandex: srcarchoperandex_typed region regtype
 srcarchoperandex_typed: flagreg | addrreg | maskreg
 ;
 
-sendleadreg: directgenreg | directmsgreg
+sendleadreg: symbol_reg
+             {
+		  memset (&$$, '\0', sizeof ($$));
+		  $$.reg_file = $1.base.reg_file;
+		  $$.reg_nr = $1.base.reg_nr;
+		  $$.subreg_nr = $1.base.subreg_nr;
+             }
+             | directgenreg | directmsgreg
 ;
 
 src:		directsrcoperand | indirectsrcoperand
