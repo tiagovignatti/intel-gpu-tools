@@ -1,0 +1,9 @@
+mov(8) g112:UD 0x3f800000:UD { align1 };
+mov(8) g113:UD 0x3f800000:UD { align1 };
+mov(8) g114:UD 0x3f800000:UD { align1 };
+mov(8) g115:UD 0x3f800000:UD { align1 };
+mov(8) g116:UD 0x3f800000:UD { align1 };
+mov(8) g117:UD 0x3f800000:UD { align1 };
+mov(8) g118:UD 0x3f800000:UD { align1 };
+mov(8) g119:UD 0x3f800000:UD { align1 };
+send(16) null g112  0x25 0x10031000 { align1, EOT };

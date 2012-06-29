@@ -24,7 +24,9 @@ libintel_tools_la_SOURCES = 	\
 	rendercopy_i915.c	\
 	rendercopy_i830.c	\
 	gen6_render.h		\
+	gen7_render.h		\
 	rendercopy_gen6.c	\
+	rendercopy_gen7.c	\
 	rendercopy.h		\
 	intel_reg_map.c		\
 	$(NULL)
