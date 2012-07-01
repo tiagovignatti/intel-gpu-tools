@@ -128,6 +128,13 @@ gen7_bind_buf(struct intel_batchbuffer *batch, struct scratch_buf *buf,
 	ss->ss2.width  = buf_width(buf) - 1;
 	ss->ss3.pitch  = buf->stride - 1;
 
+	if (IS_HASWELL(batch->devid)) {
+		ss->ss7.shader_chanel_select_a = 4;
+		ss->ss7.shader_chanel_select_g = 5;
+		ss->ss7.shader_chanel_select_b = 6;
+		ss->ss7.shader_chanel_select_a = 7;
+	}
+
 	return batch_offset(batch, ss);
 }
 
@@ -595,9 +602,15 @@ gen7_emit_ps(struct intel_batchbuffer *batch, uint32_t kernel) {
 	OUT_BATCH(1 << GEN6_3DSTATE_WM_SAMPLER_COUNT_SHITF |
 		  2 << GEN6_3DSTATE_WM_BINDING_TABLE_ENTRY_COUNT_SHIFT);
 	OUT_BATCH(0); /* scratch space stuff */
-	OUT_BATCH((max_threads - 1) << GEN7_3DSTATE_WM_MAX_THREADS_SHIFT | // needs HSW change
-		  GEN7_3DSTATE_PS_ATTRIBUTE_ENABLED |
-		  GEN6_3DSTATE_WM_16_DISPATCH_ENABLE);
+	if (IS_HASWELL(batch->devid)) {
+		OUT_BATCH((max_threads - 1) << GEN7_3DSTATE_WM_MAX_THREADS_SHIFT |
+			  GEN7_3DSTATE_PS_ATTRIBUTE_ENABLED |
+			  GEN6_3DSTATE_WM_16_DISPATCH_ENABLE);
+	} else {
+		OUT_BATCH((max_threads - 1) << HSW_3DSTATE_WM_MAX_THREADS_SHIFT |
+			  GEN7_3DSTATE_PS_ATTRIBUTE_ENABLED |
+			  GEN6_3DSTATE_WM_16_DISPATCH_ENABLE);
+	}
 	OUT_BATCH(6 << GEN6_3DSTATE_WM_DISPATCH_START_GRF_0_SHIFT);
 	OUT_BATCH(0); // kernel 1
 	OUT_BATCH(0); // kernel 2

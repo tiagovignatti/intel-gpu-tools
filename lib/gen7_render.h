@@ -55,6 +55,7 @@
 
 /* Random shifts */
 #define GEN7_3DSTATE_WM_MAX_THREADS_SHIFT 24
+#define HSW_3DSTATE_WM_MAX_THREADS_SHIFT 23
 
 /* Shamelessly ripped from mesa */
 struct gen7_surface_state
