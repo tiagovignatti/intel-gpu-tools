@@ -42,7 +42,6 @@ int iter = 10000;
 pthread_t *threads;
 int devid;
 int fd;
-int use_rendercpy = 1;
 
 static void init_buffer(drm_intel_bufmgr *bufmgr,
 			struct scratch_buf *buf,
@@ -135,9 +134,6 @@ int main(int argc, char *argv[])
 
 	fd = drm_open_any();
 	devid = intel_get_drm_devid(fd);
-
-	if (!IS_GEN6(devid))
-		use_rendercpy = 0;
 
 	parse(argc, argv);
 
