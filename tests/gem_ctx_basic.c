@@ -40,6 +40,7 @@ int iter = 10000;
 
 /* globals */
 pthread_t *threads;
+int *returns;
 int devid;
 int fd;
 
@@ -59,6 +60,7 @@ static void *work(void *arg)
 	struct intel_batchbuffer *batch;
 	drm_intel_context *context;
 	drm_intel_bufmgr *bufmgr;
+	int thread_id = *(int *)arg;
 	int td_fd;
 	int i;
 
@@ -73,9 +75,13 @@ static void *work(void *arg)
 	batch = intel_batchbuffer_alloc(bufmgr, devid);
 	context = drm_intel_gem_context_create(bufmgr);
 
+	if (!context) {
+		returns[thread_id] = 77;
+		goto out;
+	}
+
 	for (i = 0; i < iter; i++) {
 		struct scratch_buf src, dst;
-		uint32_t batch_len;
 
 		init_buffer(bufmgr, &src, 4096);
 		init_buffer(bufmgr, &dst, 4096);
@@ -91,6 +97,7 @@ static void *work(void *arg)
 		}
 	}
 
+out:
 	drm_intel_gem_context_destroy(context);
 	intel_batchbuffer_free(batch);
 	drm_intel_bufmgr_destroy(bufmgr);
@@ -98,7 +105,7 @@ static void *work(void *arg)
 	if (multiple_fds)
 		close(td_fd);
 
-	pthread_exit(NULL);
+	pthread_exit(&returns[thread_id]);
 }
 
 static void parse(int argc, char *argv[])
@@ -129,7 +136,6 @@ static void parse(int argc, char *argv[])
 
 int main(int argc, char *argv[])
 {
-	void *ret;
 	int i;
 
 	fd = drm_open_any();
@@ -138,15 +144,21 @@ int main(int argc, char *argv[])
 	parse(argc, argv);
 
 	threads = calloc(num_contexts, sizeof(*threads));
+	returns = calloc(num_contexts, sizeof(*returns));
 
 	for (i = 0; i < num_contexts; i++)
-		pthread_create(&threads[i], NULL, work, NULL);
+		pthread_create(&threads[i], NULL, work, &i);
 
 	for (i = 0; i < num_contexts; i++) {
-		pthread_join(threads[i], &ret);
-		free(ret);
+		int thread_status, ret;
+		void *retval;
+		ret = pthread_join(threads[i], &retval);
+		thread_status = *(int *)retval;
+		if (!ret && thread_status)
+			exit(thread_status);
 	}
 
+	free(returns);
 	free(threads);
 	close(fd);
 
