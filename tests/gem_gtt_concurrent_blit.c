@@ -96,7 +96,7 @@ main(int argc, char **argv)
 	drm_intel_bufmgr *bufmgr;
 	struct intel_batchbuffer *batch;
 	int num_buffers = 128, max;
-	drm_intel_bo *src[128], *dst[128];
+	drm_intel_bo *src[128], *dst[128], *dummy;
 	int width = 512, height = 512;
 	int fd;
 	int i;
@@ -115,6 +115,7 @@ main(int argc, char **argv)
 		src[i] = create_bo(bufmgr, i, width, height);
 		dst[i] = create_bo(bufmgr, ~i, width, height);
 	}
+	dummy = create_bo(bufmgr, 0, width, height);
 
 	/* try to overwrite the source values */
 	for (i = 0; i < num_buffers; i++)
@@ -129,6 +130,16 @@ main(int argc, char **argv)
 		intel_copy_bo(batch, dst[i], src[i], width, height);
 	for (i = num_buffers; i--; )
 		cmp_bo(dst[i], 0xdeadbeef, width, height);
+
+	/* and finally try to trick the kernel into loosing the pending write */
+	for (i = num_buffers; i--; )
+		set_bo(src[i], 0xabcdabcd, width, height);
+	for (i = 0; i < num_buffers; i++)
+		intel_copy_bo(batch, dst[i], src[i], width, height);
+	for (i = num_buffers; i--; )
+		intel_copy_bo(batch, dummy, dst[i], width, height);
+	for (i = num_buffers; i--; )
+		cmp_bo(dst[i], 0xabcdabcd, width, height);
 
 	return 0;
 }
