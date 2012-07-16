@@ -252,6 +252,58 @@ void gem_set_tiling(int fd, uint32_t handle, int tiling, int stride)
 	assert(st.tiling_mode == tiling);
 }
 
+struct local_drm_i915_gem_cacheing {
+	uint32_t handle;
+	uint32_t cacheing;
+};
+
+#define LOCAL_DRM_I915_GEM_SET_CACHEING    0x2f
+#define LOCAL_DRM_I915_GEM_GET_CACHEING    0x30
+#define LOCAL_DRM_IOCTL_I915_GEM_SET_CACHEING \
+	DRM_IOW(DRM_COMMAND_BASE + LOCAL_DRM_I915_GEM_SET_CACHEING, struct local_drm_i915_gem_cacheing)
+#define LOCAL_DRM_IOCTL_I915_GEM_GET_CACHEING \
+	DRM_IOWR(DRM_COMMAND_BASE + LOCAL_DRM_I915_GEM_GET_CACHEING, struct local_drm_i915_gem_cacheing)
+
+int gem_has_cacheing(int fd)
+{
+	struct local_drm_i915_gem_cacheing arg;
+	int ret;
+
+	arg.handle = gem_create(fd, 4096);
+	if (arg.handle == 0)
+		return 0;
+
+	arg.cacheing = 0;
+	ret = ioctl(fd, LOCAL_DRM_IOCTL_I915_GEM_SET_CACHEING, &arg);
+	gem_close(fd, arg.handle);
+
+	return ret == 0;
+}
+
+void gem_set_cacheing(int fd, uint32_t handle, int cacheing)
+{
+	struct local_drm_i915_gem_cacheing arg;
+	int ret;
+
+	arg.handle = handle;
+	arg.cacheing = cacheing;
+	ret = ioctl(fd, LOCAL_DRM_IOCTL_I915_GEM_SET_CACHEING, &arg);
+	assert(ret == 0);
+}
+
+int gem_get_cacheing(int fd, uint32_t handle)
+{
+	struct local_drm_i915_gem_cacheing arg;
+	int ret;
+
+	arg.handle = handle;
+	arg.cacheing = 0;
+	ret = ioctl(fd, LOCAL_DRM_IOCTL_I915_GEM_GET_CACHEING, &arg);
+	assert(ret == 0);
+
+	return arg.cacheing;
+}
+
 void gem_close(int fd, uint32_t handle)
 {
 	struct drm_gem_close close_bo;
