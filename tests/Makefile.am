@@ -16,6 +16,7 @@ TESTS_progs = \
 	getclient \
 	getstats \
 	gem_basic \
+	gem_cacheing \
 	gem_cpu_concurrent_blit \
 	gem_gtt_concurrent_blit \
 	gem_exec_nop \
