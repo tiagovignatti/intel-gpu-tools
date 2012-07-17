@@ -1241,8 +1241,7 @@ struct brw_instruction
 	 GLuint src1_horiz_stride:2;
 	 GLuint src1_width:3;
 	 GLuint src1_vert_stride:4;
-	 GLuint flag_reg_nr:1;
-	 GLuint pad1:6;	
+	 GLuint pad1:7;	
       } ia1;
 
       struct
@@ -1258,8 +1257,7 @@ struct brw_instruction
 	 GLuint src1_swz_w:2;
 	 GLuint pad1:1;
 	 GLuint src1_vert_stride:4;
-	 GLuint flag_reg_nr:1;
-	 GLuint pad2:6;
+	 GLuint pad2:7;
       } ia16;
 
 
