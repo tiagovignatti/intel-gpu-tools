@@ -389,8 +389,10 @@ unaryinstruction:
 		  if (set_instruction_src0(&$$, &$7) != 0)
 		    YYERROR;
 
-		  if ($3.flag_subreg_nr != -1)
+		  if ($3.flag_subreg_nr != -1) {
+		    $$.bits2.da1.flag_reg_nr = $3.flag_reg_nr;
 		    $$.bits2.da1.flag_subreg_nr = $3.flag_subreg_nr;
+		  }
 
 		  if (gen_level < 6 && 
 				get_type_size($$.bits1.da1.dest_reg_type) * (1 << $$.header.execution_size) == 64)
@@ -419,8 +421,10 @@ binaryinstruction:
 		  if (set_instruction_src1(&$$, &$8) != 0)
 		    YYERROR;
 
-		  if ($3.flag_subreg_nr != -1)
+		  if ($3.flag_subreg_nr != -1) {
+		    $$.bits2.da1.flag_reg_nr = $3.flag_reg_nr;
 		    $$.bits2.da1.flag_subreg_nr = $3.flag_subreg_nr;
+		  }
 
 		  if (gen_level < 6 && 
 				get_type_size($$.bits1.da1.dest_reg_type) * (1 << $$.header.execution_size) == 64)
@@ -449,8 +453,10 @@ binaryaccinstruction:
 		  if (set_instruction_src1(&$$, &$8) != 0)
 		    YYERROR;
 
-		  if ($3.flag_subreg_nr != -1)
+		  if ($3.flag_subreg_nr != -1) {
+		    $$.bits2.da1.flag_reg_nr = $3.flag_reg_nr;
 		    $$.bits2.da1.flag_subreg_nr = $3.flag_subreg_nr;
+		  }
 
 		  if (gen_level < 6 && 
 				get_type_size($$.bits1.da1.dest_reg_type) * (1 << $$.header.execution_size) == 64)
@@ -1849,7 +1855,8 @@ accreg:		ACCREG subregnum
 
 flagreg:	FLAGREG subregnum
 		{
-		  if ($1 > 0) {
+		  if ((gen_level <= 6 && $1) > 0 ||
+		      (gen_level > 6 && $1 > 1)) {
                     fprintf(stderr,
 			    "flag register number %d out of range\n", $1);
 		    YYERROR;
@@ -2291,6 +2298,7 @@ imm32:		exp { $$.r = imm32_d; $$.u.d = $1; }
 predicate:	/* empty */
 		{
 		  $$.header.predicate_control = BRW_PREDICATE_NONE;
+		  $$.bits2.da1.flag_reg_nr = 0;
 		  $$.bits2.da1.flag_subreg_nr = 0;
 		  $$.header.predicate_inverse = 0;
 		}
@@ -2301,6 +2309,7 @@ predicate:	/* empty */
 		   * set a predicate for one flag register and conditional
 		   * modification on the other flag register.
 		   */
+		  $$.bits2.da1.flag_reg_nr = ($3.reg_nr & 0xF);
 		  $$.bits2.da1.flag_subreg_nr = $3.subreg_nr;
 		  $$.header.predicate_inverse = $2;
 		}
@@ -2360,11 +2369,13 @@ saturate:	/* empty */ { $$ = BRW_INSTRUCTION_NORMAL; }
 conditionalmodifier: condition 
 		{
 		    $$.cond = $1;
+		    $$.flag_reg_nr = 0;
 		    $$.flag_subreg_nr = -1;
 		}
 		| condition DOT flagreg
 		{
 		    $$.cond = $1;
+		    $$.flag_reg_nr = ($3.reg_nr & 0xF);
 		    $$.flag_subreg_nr = $3.subreg_nr;
 		}
 
@@ -2848,6 +2859,7 @@ void set_instruction_predicate(struct brw_instruction *instr,
 {
 	instr->header.predicate_control = predicate->header.predicate_control;
 	instr->header.predicate_inverse = predicate->header.predicate_inverse;
+	instr->bits2.da1.flag_reg_nr = predicate->bits2.da1.flag_reg_nr;
 	instr->bits2.da1.flag_subreg_nr = predicate->bits2.da1.flag_subreg_nr;
 }
 

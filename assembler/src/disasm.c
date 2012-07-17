@@ -779,7 +779,7 @@ int disasm (FILE *file, struct brw_instruction *inst)
     if (inst->header.predicate_control) {
 	string (file, "(");
 	err |= control (file, "predicate inverse", pred_inv, inst->header.predicate_inverse, NULL);
-	string (file, "f0");
+	format (file, "f%d", inst->bits2.da1.flag_reg_nr);
 	if (inst->bits2.da1.flag_subreg_nr)
 	    format (file, ".%d", inst->bits2.da1.flag_subreg_nr);
 	if (inst->header.access_mode == BRW_ALIGN_1)

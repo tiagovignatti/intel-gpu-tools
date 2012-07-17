@@ -49,6 +49,7 @@ struct direct_reg {
 
 struct condition {
     	int cond;
+	int flag_reg_nr;
 	int flag_subreg_nr;
 };
 
