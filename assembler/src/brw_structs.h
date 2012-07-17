@@ -1134,7 +1134,7 @@ struct brw_instruction
 	 GLuint src0_horiz_stride:2;	/* 0x00030000 */
 	 GLuint src0_width:3;		/* 0x001c0000 */
 	 GLuint src0_vert_stride:4;	/* 0x01e00000 */
-	 GLuint flag_reg_nr:1;		/* 0x02000000 */
+	 GLuint flag_subreg_nr:1;	/* 0x02000000 */
 	 GLuint pad:6;			/* 0xfc000000 */
       } da1;
 
@@ -1148,7 +1148,7 @@ struct brw_instruction
 	 GLuint src0_horiz_stride:2;
 	 GLuint src0_width:3;
 	 GLuint src0_vert_stride:4;
-	 GLuint flag_reg_nr:1;
+	 GLuint flag_subreg_nr:1;
 	 GLuint pad:6;	
       } ia1;
 
@@ -1165,7 +1165,7 @@ struct brw_instruction
 	 GLuint src0_swz_w:2;
 	 GLuint pad0:1;
 	 GLuint src0_vert_stride:4;
-	 GLuint flag_reg_nr:1;
+	 GLuint flag_subreg_nr:1;
 	 GLuint pad1:6;
       } da16;
 
@@ -1182,7 +1182,7 @@ struct brw_instruction
 	 GLuint src0_swz_w:2;
 	 GLuint pad0:1;
 	 GLuint src0_vert_stride:4;
-	 GLuint flag_reg_nr:1;
+	 GLuint flag_subreg_nr:1;
 	 GLuint pad1:6;
       } ia16;
 

@@ -49,7 +49,7 @@ struct direct_reg {
 
 struct condition {
     	int cond;
-	int flagreg;
+	int flag_subreg_nr;
 };
 
 struct region {
