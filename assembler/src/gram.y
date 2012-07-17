@@ -1847,12 +1847,24 @@ accreg:		ACCREG subregnum
 		}
 ;
 
-flagreg:	FLAGREG
+flagreg:	FLAGREG subregnum
 		{
+		  if ($1 > 0) {
+                    fprintf(stderr,
+			    "flag register number %d out of range\n", $1);
+		    YYERROR;
+		  }
+
+		  if ($2 > 1) {
+		    fprintf(stderr,
+			    "flag subregister number %d out of range\n", $1);
+		    YYERROR;
+		  }
+
 		  memset (&$$, '\0', sizeof ($$));
 		  $$.reg_file = BRW_ARCHITECTURE_REGISTER_FILE;
-		  $$.reg_nr = BRW_ARF_FLAG | 0;
-		  $$.subreg_nr = $1;
+		  $$.reg_nr = BRW_ARF_FLAG | $1;
+		  $$.subreg_nr = $2;
 		}
 ;
 
