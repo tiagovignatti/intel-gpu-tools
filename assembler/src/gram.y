@@ -390,6 +390,11 @@ unaryinstruction:
 		    YYERROR;
 
 		  if ($3.flag_subreg_nr != -1) {
+		    if ($$.header.predicate_control != BRW_PREDICATE_NONE &&
+                        ($1.bits2.da1.flag_reg_nr != $3.flag_reg_nr ||
+                         $1.bits2.da1.flag_subreg_nr != $3.flag_subreg_nr))
+                        fprintf(stderr, "WARNING: must use the same flag register if both prediction and conditional modifier are enabled\n");
+
 		    $$.bits2.da1.flag_reg_nr = $3.flag_reg_nr;
 		    $$.bits2.da1.flag_subreg_nr = $3.flag_subreg_nr;
 		  }
@@ -422,6 +427,11 @@ binaryinstruction:
 		    YYERROR;
 
 		  if ($3.flag_subreg_nr != -1) {
+		    if ($$.header.predicate_control != BRW_PREDICATE_NONE &&
+                        ($1.bits2.da1.flag_reg_nr != $3.flag_reg_nr ||
+                         $1.bits2.da1.flag_subreg_nr != $3.flag_subreg_nr))
+                        fprintf(stderr, "WARNING: must use the same flag register if both prediction and conditional modifier are enabled\n");
+
 		    $$.bits2.da1.flag_reg_nr = $3.flag_reg_nr;
 		    $$.bits2.da1.flag_subreg_nr = $3.flag_subreg_nr;
 		  }
@@ -454,6 +464,11 @@ binaryaccinstruction:
 		    YYERROR;
 
 		  if ($3.flag_subreg_nr != -1) {
+		    if ($$.header.predicate_control != BRW_PREDICATE_NONE &&
+                        ($1.bits2.da1.flag_reg_nr != $3.flag_reg_nr ||
+                         $1.bits2.da1.flag_subreg_nr != $3.flag_subreg_nr))
+                        fprintf(stderr, "WARNING: must use the same flag register if both prediction and conditional modifier are enabled\n");
+
 		    $$.bits2.da1.flag_reg_nr = $3.flag_reg_nr;
 		    $$.bits2.da1.flag_subreg_nr = $3.flag_subreg_nr;
 		  }
