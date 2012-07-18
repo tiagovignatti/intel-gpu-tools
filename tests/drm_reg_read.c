@@ -50,33 +50,40 @@ static void handle_bad(int ret, int lerrno, int expected, const char *desc)
 	}
 }
 
+static uint64_t timer_query(int fd)
+{
+	struct local_drm_i915_reg_read read;
+	int ret;
+
+	read.offset = 0x2358;
+	ret = drmIoctl(fd, REG_READ_IOCTL, &read);
+	if (ret) {
+		perror("positive test case failed: ");
+		exit(EXIT_FAILURE);
+	}
+
+	return read.val;
+}
+
 int main(int argc, char *argv[])
 {
 	struct local_drm_i915_reg_read read;
 	int ret, fd;
-	__u64 val;
-
-	read.offset = 0x2358;
+	uint64_t val;
 
 	fd = drm_open_any();
 
 	ret = drmIoctl(fd, REG_READ_IOCTL, &read);
-	if (ret) {
-		perror("positive test case failed\n");
+	if (ret == EINVAL)
+		exit(77);
+	else if (ret)
 		exit(EXIT_FAILURE);
-	}
-	val = read.val;
-	ret = drmIoctl(fd, REG_READ_IOCTL, &read);
-	if (ret) {
-		perror("positive test case 2 failed\n");
-		exit(EXIT_FAILURE);
-	}
 
-	if (val == read.val) {
+	val = timer_query(fd);
+	if (timer_query(fd) == val) {
 		fprintf(stderr, "Timer isn't moving, probably busted\n");
 		exit(EXIT_FAILURE);
 	}
-
 
 	/* bad reg */
 	read.offset = 0x12345678;
