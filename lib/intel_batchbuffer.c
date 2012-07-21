@@ -106,7 +106,6 @@ flush_on_ring_common(struct intel_batchbuffer *batch, int ring)
 void
 intel_batchbuffer_flush_on_ring(struct intel_batchbuffer *batch, int ring)
 {
-	int ret;
 	unsigned int used = flush_on_ring_common(batch, ring);
 
 	if (used == 0)

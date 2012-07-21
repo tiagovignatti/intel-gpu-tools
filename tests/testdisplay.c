@@ -335,7 +335,7 @@ paint_color_key(void)
 }
 
 static void
-paint_output_info(cairo_t *cr, int width, int height, void *priv)
+paint_output_info(cairo_t *cr, int l_width, int l_height, void *priv)
 {
 	struct connector *c = priv;
 	cairo_text_extents_t name_extents, mode_extents;
@@ -358,9 +358,9 @@ paint_output_info(cairo_t *cr, int width, int height, void *priv)
 	cairo_text_extents(cr, mode_buf, &mode_extents);
 
 	/* Paint output name */
-	x = width / 2;
+	x = l_width / 2;
 	x -= name_extents.width / 2;
-	y = height / 2;
+	y = l_height / 2;
 	y -= (name_extents.height / 2) - (mode_extents.height / 2) - 10;
 	cairo_set_font_size(cr, 48);
 	cairo_move_to(cr, x, y);
@@ -371,10 +371,10 @@ paint_output_info(cairo_t *cr, int width, int height, void *priv)
 	cairo_fill(cr);
 
 	/* Paint mode name */
-	x = width / 2;
+	x = l_width / 2;
 	x -= mode_extents.width / 2;
 	modes_x = x;
-	y = height / 2;
+	y = l_height / 2;
 	y += (mode_extents.height / 2) + (name_extents.height / 2) + 10;
 	cairo_set_font_size(cr, 36);
 	cairo_move_to(cr, x, y);
@@ -424,7 +424,7 @@ paint_output_info(cairo_t *cr, int width, int height, void *priv)
 static void
 set_mode(struct connector *c)
 {
-	unsigned int fb_id;
+	unsigned int fb_id = 0;
 	int j, test_mode_num;
 
 	if (depth <= 8)

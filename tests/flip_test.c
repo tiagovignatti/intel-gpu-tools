@@ -270,7 +270,6 @@ static void set_mode(struct test_output *o, int crtc)
 		drmHandleEvent(drm_fd, &evctx);
 	}
 
-out:
 	fprintf(stdout, "page flipping on crtc %d, connector %d: PASSED\n",
 		crtc, o->id);
 
