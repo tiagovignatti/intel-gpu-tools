@@ -73,8 +73,9 @@ int main(int argc, char *argv[])
 
 	fd = drm_open_any();
 
+	read.offset = 0x2358;
 	ret = drmIoctl(fd, REG_READ_IOCTL, &read);
-	if (ret == EINVAL)
+	if (errno == EINVAL)
 		exit(77);
 	else if (ret)
 		exit(EXIT_FAILURE);
