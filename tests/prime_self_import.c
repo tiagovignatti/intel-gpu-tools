@@ -62,8 +62,8 @@ check_bo(int fd1, uint32_t handle1, int fd2, uint32_t handle2)
 
 	/* check whether it's still our old object first. */
 	for (i = 0; i < BO_SIZE; i++) {
-		assert(ptr1[i] == 0);
-		assert(ptr2[i] == 0);
+		assert(ptr1[i] == counter);
+		assert(ptr2[i] == counter);
 	}
 
 	counter++;
