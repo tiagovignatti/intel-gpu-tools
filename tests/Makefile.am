@@ -69,7 +69,7 @@ TESTS_progs = \
 	gem_ctx_exec \
 	gem_ctx_bad_exec \
 	gem_ctx_basic \
-	drm_reg_read \
+	gem_reg_read \
 	$(NULL)
 
 # IMPORTANT: The ZZ_ tests need to be run last!
