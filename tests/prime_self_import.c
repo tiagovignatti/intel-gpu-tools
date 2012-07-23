@@ -53,19 +53,26 @@ check_bo(int fd1, uint32_t handle1, int fd2, uint32_t handle2)
 {
 	char *ptr1, *ptr2;
 	static char counter = 0;
+	int i;
 
 	ptr1 = gem_mmap(fd1, handle1, BO_SIZE, PROT_READ | PROT_WRITE);
 	ptr2 = gem_mmap(fd2, handle2, BO_SIZE, PROT_READ | PROT_WRITE);
 
 	assert(ptr1);
 
+	/* check whether it's still our old object first. */
+	for (i = 0; i < BO_SIZE; i++) {
+		assert(ptr1[i] == 0);
+		assert(ptr2[i] == 0);
+	}
+
+	counter++;
+
 	memset(ptr1, counter, BO_SIZE);
 	assert(memcmp(ptr1, ptr2, BO_SIZE) == 0);
 
 	munmap(ptr1, BO_SIZE);
 	munmap(ptr2, BO_SIZE);
-
-	counter++;
 }
 
 int main(int argc, char **argv)
@@ -102,7 +109,10 @@ int main(int argc, char **argv)
 
 	/* re-import into old exporter */
 	dma_buf_fd = prime_handle_to_fd(fd2, handle_import1);
+	/* but drop all references to the obj in between */
+	gem_close(fd2, handle_import1);
 	handle = prime_fd_to_handle(fd1, dma_buf_fd);
+	handle_import1 = prime_fd_to_handle(fd2, dma_buf_fd);
 	check_bo(fd1, handle, fd2, handle_import1);
 
 	/* Completely rip out exporting fd. */
