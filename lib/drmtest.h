@@ -65,6 +65,10 @@ int gem_madvise(int fd, uint32_t handle, int state);
 bool gem_uses_aliasing_ppgtt(int fd);
 int gem_available_fences(int fd);
 
+/* prime */
+int prime_handle_to_fd(int fd, uint32_t handle);
+uint32_t prime_fd_to_handle(int fd, int dma_buf_fd);
+
 /* generally useful helpers */
 void drmtest_fork_signal_helper(void);
 void drmtest_stop_signal_helper(void);

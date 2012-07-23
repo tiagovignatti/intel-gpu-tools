@@ -375,6 +375,33 @@ int gem_madvise(int fd, uint32_t handle, int state)
 	return madv.retained;
 }
 
+/* prime */
+int prime_handle_to_fd(int fd, uint32_t handle)
+{
+	struct drm_prime_handle args;
+
+	args.handle = handle;
+	args.flags = DRM_CLOEXEC;
+	args.fd = -1;
+
+	do_ioctl(fd, DRM_IOCTL_PRIME_HANDLE_TO_FD, &args);
+
+	return args.fd;
+}
+
+uint32_t prime_fd_to_handle(int fd, int dma_buf_fd)
+{
+	struct drm_prime_handle args;
+
+	args.fd = dma_buf_fd;
+	args.flags = 0;
+	args.handle = 0;
+
+	do_ioctl(fd, DRM_IOCTL_PRIME_FD_TO_HANDLE, &args);
+
+	return args.handle;
+}
+
 /* signal interrupt helpers */
 static pid_t signal_helper = -1;
 long long int sig_stat;

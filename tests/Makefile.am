@@ -70,6 +70,7 @@ TESTS_progs = \
 	gem_ctx_bad_exec \
 	gem_ctx_basic \
 	gem_reg_read \
+	prime_self_import \
 	$(NULL)
 
 # IMPORTANT: The ZZ_ tests need to be run last!
