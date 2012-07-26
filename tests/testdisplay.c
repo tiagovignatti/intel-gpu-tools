@@ -62,12 +62,16 @@
 #include "drmtest.h"
 #include "testdisplay.h"
 
+#include <stdlib.h>
+#include <signal.h>
+
 drmModeRes *resources;
 int drm_fd, modes;
 int dump_info = 0, test_all_modes =0, test_preferred_mode = 0, force_mode = 0,
 	test_plane, enable_tiling;
 int sleep_between_modes = 5;
 uint32_t depth = 24, stride, bpp;
+int qr_code = 0;
 
 drmModeModeInfo force_timing;
 
@@ -334,6 +338,40 @@ paint_color_key(void)
 		}
 }
 
+static void paint_image(cairo_t *cr, const char *file)
+{
+	int img_x, img_y, img_w, img_h, img_w_o, img_h_o;
+	double img_w_scale, img_h_scale;
+
+	cairo_surface_t *image;
+
+	img_y = height * (0.10 );
+	img_h = height * 0.08 * 4;
+	img_w = img_h;
+
+	img_x = (width / 2) - (img_w / 2);
+
+	image = cairo_image_surface_create_from_png(file);
+
+	img_w_o = cairo_image_surface_get_width(image);
+	img_h_o = cairo_image_surface_get_height(image);
+
+	cairo_translate(cr, img_x, img_y);
+
+	fprintf(stderr, "drew %dx%d image at %d,%d\n", img_w, img_h,
+		img_x, img_y);
+
+	img_w_scale = (double)img_w / (double)img_w_o;
+	img_h_scale = (double)img_h / (double)img_h_o;
+	cairo_scale(cr, img_w_scale, img_h_scale);
+
+	cairo_set_source_surface(cr, image, 0, 0);
+	cairo_scale(cr, 1, 1);
+
+	cairo_paint(cr);
+	cairo_surface_destroy(image);
+}
+
 static void
 paint_output_info(cairo_t *cr, int l_width, int l_height, void *priv)
 {
@@ -419,6 +457,26 @@ paint_output_info(cairo_t *cr, int l_width, int l_height, void *priv)
 		cairo_set_source_rgb(cr, 1, 1, 1);
 		cairo_fill(cr);
 	}
+
+	if (qr_code)
+		paint_image(cr, "./pass.png");
+}
+
+static void sighandler(int signo)
+{
+	return;
+}
+
+static void set_single(void)
+{
+	int sigs[] = { SIGUSR1 };
+	struct sigaction sa;
+	sa.sa_handler = sighandler;
+
+	sigemptyset(&sa.sa_mask);
+
+	if (sigaction(sigs[0], &sa, NULL) == -1)
+		perror("Could not set signal handler");
 }
 
 static void
@@ -480,8 +538,13 @@ set_mode(struct connector *c)
 			continue;
 		}
 
-		if (sleep_between_modes && test_all_modes)
+		if (sleep_between_modes && test_all_modes && !qr_code)
 			sleep(sleep_between_modes);
+
+		if (qr_code){
+			set_single();
+			pause();
+		}
 
 	}
 
@@ -536,7 +599,7 @@ int update_display(void)
 	return 1;
 }
 
-static char optstr[] = "hiaf:s:d:p:mt";
+static char optstr[] = "hiaf:s:d:p:mrt";
 
 static void usage(char *name)
 {
@@ -548,6 +611,7 @@ static void usage(char *name)
 	fprintf(stderr, "\t-p\t<planew,h>,<crtcx,y>,<crtcw,h> test overlay plane\n");
 	fprintf(stderr, "\t-m\ttest the preferred mode\n");
 	fprintf(stderr, "\t-t\tuse a tiled framebuffer\n");
+	fprintf(stderr, "\t-r\tprint a QR code on the screen whose content is \"pass\" for the automatic test\n");
 	fprintf(stderr, "\t-f\t<clock MHz>,<hdisp>,<hsync-start>,<hsync-end>,<htotal>,\n");
 	fprintf(stderr, "\t\t<vdisp>,<vsync-start>,<vsync-end>,<vtotal>\n");
 	fprintf(stderr, "\t\ttest force mode\n");
@@ -558,7 +622,7 @@ static void usage(char *name)
 #define dump_resource(res) if (res) dump_##res()
 
 static gboolean input_event(GIOChannel *source, GIOCondition condition,
-			    gpointer data)
+				gpointer data)
 {
 	gchar buf[2];
 	gsize count;
@@ -571,6 +635,24 @@ static gboolean input_event(GIOChannel *source, GIOCondition condition,
 	return TRUE;
 }
 
+static void enter_exec_path( char **argv )
+{
+	char *exec_path = NULL;
+	char *pos = NULL;
+	short len_path = 0;
+
+	len_path = strlen( argv[0] );
+	exec_path = (char*) malloc(len_path);
+
+	memcpy(exec_path, argv[0], len_path);
+	pos = strrchr(exec_path, '/');
+	if (pos != NULL)
+		*(pos+1) = '\0';
+
+	chdir(exec_path);
+	free(exec_path);
+}
+
 int main(int argc, char **argv)
 {
 	int c;
@@ -578,6 +660,8 @@ int main(int argc, char **argv)
 	GIOChannel *stdinchannel;
 	GMainLoop *mainloop;
 	float force_clock;
+
+	enter_exec_path( argv );
 
 	opterr = 0;
 	while ((c = getopt(argc, argv, optstr)) != -1) {
@@ -616,6 +700,9 @@ int main(int argc, char **argv)
 			break;
 		case 't':
 			enable_tiling = 1;
+			break;
+		case 'r':
+			qr_code = 1;
 			break;
 		default:
 			fprintf(stderr, "unknown option %c\n", c);

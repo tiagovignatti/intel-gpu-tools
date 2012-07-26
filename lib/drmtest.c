@@ -774,5 +774,6 @@ void kmstest_dump_mode(drmModeModeInfo *mode)
 	       mode->flags,
 	       mode->type,
 	       mode->clock);
+	fflush(stdout);
 }
 
