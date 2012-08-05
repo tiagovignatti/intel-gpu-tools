@@ -81,6 +81,7 @@ int main(int argc, char *argv[])
 		exit(EXIT_FAILURE);
 
 	val = timer_query(fd);
+	sleep(1);
 	if (timer_query(fd) == val) {
 		fprintf(stderr, "Timer isn't moving, probably busted\n");
 		exit(EXIT_FAILURE);
