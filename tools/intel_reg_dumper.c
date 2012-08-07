@@ -1588,6 +1588,8 @@ static struct reg_debug ironlake_debug_regs[] = {
 
 	DEFINEREG(FDI_PLL_FREQ_CTL),
 
+	/* pipe B */
+
 	DEFINEREG2(PIPEACONF, i830_debug_pipeconf),
 
 	DEFINEREG2(HTOTAL_A, i830_debug_hvtotal),
@@ -1615,6 +1617,8 @@ static struct reg_debug ironlake_debug_regs[] = {
 	DEFINEREG(DSPASURF),
 	DEFINEREG2(DSPATILEOFF, i830_debug_xy),
 
+	/* pipe B */
+
 	DEFINEREG2(PIPEBCONF, i830_debug_pipeconf),
 
 	DEFINEREG2(HTOTAL_B, i830_debug_hvtotal),
@@ -1624,13 +1628,6 @@ static struct reg_debug ironlake_debug_regs[] = {
 	DEFINEREG2(VBLANK_B, i830_debug_hvsyncblank),
 	DEFINEREG2(VSYNC_B, i830_debug_hvsyncblank),
 	DEFINEREG(VSYNCSHIFT_B),
-
-	DEFINEREG2(DSPBCNTR, i830_debug_dspcntr),
-	DEFINEREG(DSPBBASE),
-	DEFINEREG2(DSPBSTRIDE, ironlake_debug_dspstride),
-	DEFINEREG(DSPBSURF),
-	DEFINEREG2(DSPBTILEOFF, i830_debug_xy),
-
 	DEFINEREG2(PIPEBSRC, i830_debug_yxminus1),
 
 	DEFINEREG2(PIPEB_DATA_M1, ironlake_debug_m_tu),
@@ -1642,6 +1639,12 @@ static struct reg_debug ironlake_debug_regs[] = {
 	DEFINEREG2(PIPEB_LINK_N1, ironlake_debug_n),
 	DEFINEREG2(PIPEB_LINK_M2, ironlake_debug_n),
 	DEFINEREG2(PIPEB_LINK_N2, ironlake_debug_n),
+
+	DEFINEREG2(DSPBCNTR, i830_debug_dspcntr),
+	DEFINEREG(DSPBBASE),
+	DEFINEREG2(DSPBSTRIDE, ironlake_debug_dspstride),
+	DEFINEREG(DSPBSURF),
+	DEFINEREG2(DSPBTILEOFF, i830_debug_xy),
 
 	DEFINEREG2(PFA_CTL_1, ironlake_debug_panel_fitting),
 	DEFINEREG2(PFA_CTL_2, ironlake_debug_panel_fitting_2),
@@ -1655,6 +1658,41 @@ static struct reg_debug ironlake_debug_regs[] = {
 	DEFINEREG2(PFB_CTL_4, ironlake_debug_panel_fitting_4),
 	DEFINEREG2(PFB_WIN_POS, ironlake_debug_pf_win),
 	DEFINEREG2(PFB_WIN_SIZE, ironlake_debug_pf_win),
+	DEFINEREG2(PFC_CTL_1, ironlake_debug_panel_fitting),
+	DEFINEREG2(PFC_CTL_2, ironlake_debug_panel_fitting_2),
+	DEFINEREG2(PFC_CTL_3, ironlake_debug_panel_fitting_3),
+	DEFINEREG2(PFC_CTL_4, ironlake_debug_panel_fitting_4),
+	DEFINEREG2(PFC_WIN_POS, ironlake_debug_pf_win),
+	DEFINEREG2(PFC_WIN_SIZE, ironlake_debug_pf_win),
+
+	/* pipe C */
+
+	DEFINEREG2(PIPEBCONF, i830_debug_pipeconf),
+
+	DEFINEREG2(HTOTAL_B, i830_debug_hvtotal),
+	DEFINEREG2(HBLANK_B, i830_debug_hvsyncblank),
+	DEFINEREG2(HSYNC_B, i830_debug_hvsyncblank),
+	DEFINEREG2(VTOTAL_B, i830_debug_hvtotal),
+	DEFINEREG2(VBLANK_B, i830_debug_hvsyncblank),
+	DEFINEREG2(VSYNC_B, i830_debug_hvsyncblank),
+	DEFINEREG(VSYNCSHIFT_B),
+	DEFINEREG2(PIPEBSRC, i830_debug_yxminus1),
+
+	DEFINEREG2(PIPEB_DATA_M1, ironlake_debug_m_tu),
+	DEFINEREG2(PIPEB_DATA_N1, ironlake_debug_n),
+	DEFINEREG2(PIPEB_DATA_M2, ironlake_debug_m_tu),
+	DEFINEREG2(PIPEB_DATA_N2, ironlake_debug_n),
+
+	DEFINEREG2(PIPEB_LINK_M1, ironlake_debug_n),
+	DEFINEREG2(PIPEB_LINK_N1, ironlake_debug_n),
+	DEFINEREG2(PIPEB_LINK_M2, ironlake_debug_n),
+	DEFINEREG2(PIPEB_LINK_N2, ironlake_debug_n),
+
+	DEFINEREG2(DSPBCNTR, i830_debug_dspcntr),
+	DEFINEREG(DSPBBASE),
+	DEFINEREG2(DSPBSTRIDE, ironlake_debug_dspstride),
+	DEFINEREG(DSPBSURF),
+	DEFINEREG2(DSPBTILEOFF, i830_debug_xy),
 
 	/* PCH */
 
@@ -2185,8 +2223,7 @@ int main(int argc, char** argv)
 
 	if (HAS_PCH_SPLIT(devid)) {
 		intel_dump_regs(ironlake_debug_regs);
-	}
-	else if (IS_945GM(devid)) {
+	} else if (IS_945GM(devid)) {
 		intel_dump_regs(i945gm_mi_regs);
 		intel_dump_regs(intel_debug_regs);
 		intel_dump_other_regs();

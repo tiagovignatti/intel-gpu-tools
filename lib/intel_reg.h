@@ -3006,18 +3006,24 @@ typedef enum {
 /* CPU panel fitter */
 #define PFA_CTL_1		0x68080
 #define PFB_CTL_1		0x68880
+#define PFC_CTL_1		0x69080
 #define  PF_ENABLE		(1<<31)
 #define PFA_CTL_2		0x68084
 #define PFB_CTL_2		0x68884
+#define PFC_CTL_2		0x69084
 #define PFA_CTL_3		0x68088
 #define PFB_CTL_3		0x68888
+#define PFC_CTL_3		0x69088
 #define PFA_CTL_4		0x68090
 #define PFB_CTL_4		0x68890
+#define PFC_CTL_4		0x69090
 
 #define PFA_WIN_POS		0x68070
 #define PFB_WIN_POS		0x68870
+#define PFC_WIN_POS		0x69070
 #define PFA_WIN_SIZE		0x68074
 #define PFB_WIN_SIZE		0x68874
+#define PFC_WIN_SIZE		0x69074
 
 /* legacy palette */
 #define LGC_PALETTE_A		0x4a000
