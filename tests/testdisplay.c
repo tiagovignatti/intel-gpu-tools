@@ -358,9 +358,6 @@ static void paint_image(cairo_t *cr, const char *file)
 
 	cairo_translate(cr, img_x, img_y);
 
-	fprintf(stderr, "drew %dx%d image at %d,%d\n", img_w, img_h,
-		img_x, img_y);
-
 	img_w_scale = (double)img_w / (double)img_w_o;
 	img_h_scale = (double)img_h / (double)img_h_o;
 	cairo_scale(cr, img_w_scale, img_h_scale);
