@@ -70,6 +70,9 @@ TESTS_progs = \
 	gem_ctx_bad_exec \
 	gem_ctx_basic \
 	gem_reg_read \
+	prime_api  \
+	prime_pcopy \
+	prime_test \
 	prime_self_import \
 	$(NULL)
 
@@ -130,3 +133,10 @@ gem_fence_thrash_LDADD = $(LDADD) -lpthread
 gem_wait_render_timeout_LDADD = $(LDADD) -lrt
 
 gem_ctx_basic_LDADD = $(LDADD) -lpthread
+
+prime_test_CFLAGS = $(AM_CFLAGS) $(DRM_NOUVEAU_CFLAGS)
+prime_test_LDADD = $(LDADD) $(DRM_NOUVEAU_LIBS)
+prime_api_CFLAGS = $(AM_CFLAGS) $(DRM_NOUVEAU_CFLAGS)
+prime_api_LDADD = $(LDADD) $(DRM_NOUVEAU_LIBS)
+prime_pcopy_CFLAGS = $(AM_CFLAGS) $(DRM_NOUVEAU_CFLAGS)
+prime_pcopy_LDADD = $(LDADD) $(DRM_NOUVEAU_LIBS)
