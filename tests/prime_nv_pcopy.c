@@ -21,6 +21,7 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/ioctl.h>
+#include <errno.h>
 
 #include "i915_drm.h"
 #include "intel_bufmgr.h"
@@ -289,7 +290,7 @@ static int init_nouveau(void)
 			fprintf(stderr, "Make sure nouveau_accel is active\n");
 			fprintf(stderr, "nvd9 is likely broken regardless\n");
 		}
-		return 77;
+		return ret;
 	}
 
 	fifo = nchannel->data;
