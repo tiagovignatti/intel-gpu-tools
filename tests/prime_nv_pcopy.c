@@ -285,7 +285,11 @@ static int init_nouveau(void)
 				 data, size, &nchannel);
 	if (ret) {
 		fprintf(stderr, "Error creating GPU channel: %d\n", ret);
-		return ret;
+		if (ret == -ENODEV) {
+			fprintf(stderr, "Make sure nouveau_accel is active\n");
+			fprintf(stderr, "nvd9 is likely broken regardless\n");
+		}
+		return 77;
 	}
 
 	fifo = nchannel->data;
