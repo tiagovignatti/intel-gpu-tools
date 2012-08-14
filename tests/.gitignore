@@ -69,10 +69,10 @@ gen3_render_tiledy_blits
 getclient
 getstats
 getversion
-prime_api
-prime_pcopy
+prime_nv_api
+prime_nv_pcopy
+prime_nv_test
 prime_self_import
-prime_test
 testdisplay
 sysfs_rc6_residency
 # Please keep sorted alphabetically

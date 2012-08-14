@@ -508,9 +508,9 @@ int main(int argc, char **argv)
 	if (ret < 0)
 		return ret;
 
-	if (nouveau_fd == -1 && intel_fd == -1) {
+	if (nouveau_fd == -1 || intel_fd == -1) {
 		fprintf(stderr,"failed to find intel and nouveau GPU\n");
-		return -1;
+		return 77;
 	}
 
 	/* set up intel bufmgr */
@@ -521,7 +521,7 @@ int main(int argc, char **argv)
 	ret = nouveau_device_wrap(nouveau_fd, 0, &ndev);
 	if (ret < 0) {
 		fprintf(stderr,"failed to wrap nouveau device\n");
-		return -1;
+		return 77;
 	}
 
 	ret = nouveau_client_new(ndev, &nclient);

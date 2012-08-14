@@ -1278,9 +1278,9 @@ int main(int argc, char **argv)
 	if (ret < 0)
 		return ret;
 
-	if (nouveau_fd == -1 && intel_fd == -1) {
+	if (nouveau_fd == -1 || intel_fd == -1) {
 		fprintf(stderr,"failed to find intel and nouveau GPU\n");
-		return -1;
+		return 77;
 	}
 
 	/* set up intel bufmgr */
@@ -1290,7 +1290,7 @@ int main(int argc, char **argv)
 	/* set up nouveau bufmgr */
 	ret = init_nouveau();
 	if (ret < 0)
-		return ret;
+		return 77;
 
 	/* set up an intel batch buffer */
 	devid = intel_get_drm_devid(intel_fd);
