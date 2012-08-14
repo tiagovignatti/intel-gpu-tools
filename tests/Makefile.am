@@ -96,6 +96,7 @@ TESTS_progs = \
 	gem_reg_read \
 	$(NOUVEAU_TESTS) \
 	prime_self_import \
+	prime_udl \
 	$(NULL)
 
 # IMPORTANT: The ZZ_ tests need to be run last!
