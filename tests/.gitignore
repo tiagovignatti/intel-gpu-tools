@@ -25,8 +25,8 @@ gem_fenced_exec_thrash
 gem_fence_thrash
 gem_flink
 gem_gtt_speed
-gem_gtt_speed
 gem_gtt_concurrent_blit
+gem_gtt_cpu_tlb
 gem_hang
 gem_hangcheck_forcewake
 gem_largeobject
