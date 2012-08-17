@@ -15,6 +15,8 @@ bin_PROGRAMS = 				\
 	intel_reg_write 		\
 	intel_reg_read 			\
 	intel_forcewaked		\
+	intel_dpio_read			\
+	intel_dpio_write		\
 	intel_l3_parity
 
 noinst_PROGRAMS = 			\

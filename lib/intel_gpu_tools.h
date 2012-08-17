@@ -45,6 +45,9 @@ int intel_register_access_init(struct pci_device *pci_dev, int safe);
 void intel_register_access_fini(void);
 uint32_t intel_register_read(uint32_t reg);
 void intel_register_write(uint32_t reg, uint32_t val);
+/* Following functions are relevant only for SoCs like Valleyview */
+uint32_t intel_dpio_reg_read(uint32_t reg);
+void intel_dpio_reg_write(uint32_t reg, uint32_t val);
 
 #define INTEL_RANGE_RSVD	(0<<0) /*  Shouldn't be read or written */
 #define INTEL_RANGE_READ	(1<<0)

@@ -3741,5 +3741,18 @@ typedef enum {
 #define  SFUSE_STRAP_DDIC_DETECTED	(1<<1)
 #define  SFUSE_STRAP_DDID_DETECTED	(1<<0)
 
+/* Valleyview related items */
+
+/* Valleyview DPIO registers */
+#define VLV_DISPLAY_BASE	0x180000
+#define DPIO_PKT			0x2100
+#define  DPIO_RID			(0 << 24)
+#define  DPIO_OP_WRITE		(1 << 16)
+#define  DPIO_OP_READ		(0 << 16)
+#define  DPIO_PORTID		(0x12 << 8)
+#define  DPIO_BYTE			(0xf << 4)
+#define  DPIO_BUSY			(1 << 0)
+#define DPIO_DATA			0x2104
+#define DPIO_REG			0x2108
 
 #endif /* _I810_REG_H */

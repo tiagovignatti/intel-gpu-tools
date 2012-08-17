@@ -29,6 +29,7 @@ libintel_tools_la_SOURCES = 	\
 	rendercopy_gen7.c	\
 	rendercopy.h		\
 	intel_reg_map.c		\
+	intel_dpio.c		\
 	$(NULL)
 
 LDADD = $(CAIRO_LIBS)

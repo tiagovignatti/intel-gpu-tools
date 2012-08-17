@@ -196,6 +196,8 @@
 				 dev == PCI_CHIP_IVYBRIDGE_S_GT2 || \
 				 dev == PCI_CHIP_VALLEYVIEW_PO)
 
+#define IS_VALLEYVIEW(devid)	(devid == PCI_CHIP_VALLEYVIEW_PO)
+
 #define IS_HSW_GT1(devid)       (devid == PCI_CHIP_HASWELL_GT1 || \
 				 devid == PCI_CHIP_HASWELL_M_GT1 || \
 				 devid == PCI_CHIP_HASWELL_S_GT1 || \
