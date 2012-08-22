@@ -329,6 +329,7 @@ int main(int argc, char **argv)
 	    if (!entry->islabel) {
 		if (entry->instruction.reloc_target) {
 			entry1 = entry;
+			int found = 0;
 			do {
 			if (entry1->islabel && 
 				strcmp(entry1->string, 
@@ -343,13 +344,14 @@ int main(int argc, char **argv)
 
                             if (entry->instruction.header.opcode == BRW_OPCODE_ELSE)
                                     entry->instruction.bits3.if_else.pop_count = 1;
+				found = 1;
 			    break;
 			}
 			entry1 = entry1->next;
 			if (entry1 == NULL)
 				entry1 = compiled_program.first;
 			} while (entry1 != entry);
-		    if (entry1 == NULL)
+		    if (found == 0)
 			fprintf(stderr, "can not find lable %s\n",
 				entry->instruction.reloc_target);
 		}
