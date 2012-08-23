@@ -87,7 +87,7 @@ int main(int argc, char** argv)
 			ret = 1;
 			goto out;
 		case 'c':
-			dwords = atoi(optarg);
+			dwords = strtol(optarg, NULL, 0);
 			break;
 		}
 	}
