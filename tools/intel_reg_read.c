@@ -60,6 +60,7 @@ static void usage(char *cmdname)
 	printf("\t -f : read back full range of registers.\n");
 	printf("\t      WARNING! This option may result in a machine hang!\n");
 	printf("\t -d : decode register bits.\n");
+	printf("\t -c : number of dwords to dump (can't be used with -f/-d).\n");
 	printf("\t addr : in 0xXXXX format\n");
 }
 
@@ -71,8 +72,9 @@ int main(int argc, char** argv)
 	char *cmdname = strdup(argv[0]);
 	int full_dump = 0;
 	int decode_bits = 0;
+	int dwords = 1;
 
-	while ((ch = getopt(argc, argv, "dfh")) != -1) {
+	while ((ch = getopt(argc, argv, "dfhc:")) != -1) {
 		switch(ch) {
 		case 'd':
 			decode_bits = 1;
@@ -84,12 +86,21 @@ int main(int argc, char** argv)
 			usage(cmdname);
 			ret = 1;
 			goto out;
+		case 'c':
+			dwords = atoi(optarg);
+			break;
 		}
 	}
 	argc -= optind;
 	argv += optind;
 
 	if (argc < 1) {
+		usage(cmdname);
+		ret = 1;
+		goto out;
+	}
+
+	if ((dwords > 1) && (argc != 1 || full_dump || decode_bits)) {
 		usage(cmdname);
 		ret = 1;
 		goto out;
@@ -115,7 +126,7 @@ int main(int argc, char** argv)
 	} else {
 		for (i=0; i < argc; i++) {
 			sscanf(argv[i], "0x%x", &reg);
-			dump_range(reg, reg + 4);
+			dump_range(reg, reg + (dwords * 4));
 
 			if (decode_bits)
 				bit_decode(*(volatile uint32_t *)((volatile char*)mmio + reg));
