@@ -535,24 +535,10 @@ static int perform_copy(struct nouveau_bo *nvbo, const rect *dst,
 	uint32_t src_off = 0, dst_off = 0;
 	struct nouveau_pushbuf *push = npush;
 
-	if (nvbi->config.nv50.tile_mode == tile_intel_y) {
+	if (nvbi->config.nv50.tile_mode == tile_intel_y)
 		dbg("src is y-tiled\n");
-		exec |= 0 << 16; // unk11
-		exec |= 0 << 20; // unk14
-		exec |= 0 << 24; // unk1
-		exec |= 0 << 29; // unk10
-		exec |= 0 << 30; // unk19
-		exec |= 0 << 31; // unk20 (nvc0 and later)
-	}
-	if (nvbo->config.nv50.tile_mode == tile_intel_y) {
+	if (nvbo->config.nv50.tile_mode == tile_intel_y)
 		dbg("dst is y-tiled\n");
-		exec |= 0 << 16; // unk11
-		exec |= 0 << 20; // unk14
-		exec |= 0 << 24; // unk1
-		exec |= 0 << 29; // unk10
-		exec |= 0 << 30; // unk19
-		exec |= 0 << 31; // unk20 (nvc0 and later)
-	}
 
 	if (nouveau_pushbuf_space(push, 64, 0, 0) ||
 	    nouveau_pushbuf_refn(push, refs, 3))
