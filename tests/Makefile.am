@@ -71,17 +71,11 @@ TESTS_progs = \
 	gem_ctx_bad_exec \
 	gem_ctx_basic \
 	gem_reg_read \
-	prime_self_import \
-	$(NULL)
-
-if BUILD_NOUVEAU
-TESTS_progs += \
 	prime_nv_api  \
 	prime_nv_pcopy \
 	prime_nv_test \
+	prime_self_import \
 	$(NULL)
-endif
-
 
 # IMPORTANT: The ZZ_ tests need to be run last!
 # ... and make can't deal with inlined comments ...
