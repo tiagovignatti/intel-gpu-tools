@@ -4,6 +4,13 @@ noinst_PROGRAMS = \
 	$(HANG) \
 	$(NULL)
 
+if HAVE_NOUVEAU
+NOUVEAU_TESTS = \
+	prime_nv_api  \
+	prime_nv_pcopy \
+	prime_nv_test
+endif
+
 TESTS_progs = \
 	getversion \
 	getclient \
@@ -71,9 +78,7 @@ TESTS_progs = \
 	gem_ctx_bad_exec \
 	gem_ctx_basic \
 	gem_reg_read \
-	prime_nv_api  \
-	prime_nv_pcopy \
-	prime_nv_test \
+	$(NOUVEAU_TESTS) \
 	prime_self_import \
 	$(NULL)
 

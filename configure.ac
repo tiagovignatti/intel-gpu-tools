@@ -60,7 +60,16 @@ PKG_CHECK_MODULES(DRM, [libdrm_intel >= 2.4.38 libdrm])
 PKG_CHECK_MODULES(PCIACCESS, [pciaccess >= 0.10])
 
 # for dma-buf tests
-PKG_CHECK_MODULES(DRM_NOUVEAU, [libdrm_nouveau >= 2.4.33])
+AC_ARG_ENABLE(nouveau,
+              AS_HELP_STRING([--disable-nouveau],
+              [Enable use of nouveau API for prime tests (default: enabled)]),
+              [NOUVEAU=$enableval], [NOUVEAU=yes])
+if test "x$NOUVEAU" = xyes; then
+   PKG_CHECK_MODULES(DRM_NOUVEAU, [libdrm_nouveau >= 2.4.33])
+   AC_DEFINE(HAVE_NOUVEAU, 1, [Have nouveau support])
+fi
+AM_CONDITIONAL(HAVE_NOUVEAU, [test "x$NOUVEAU" = xyes])
+
 
 # for testdisplay
 PKG_CHECK_MODULES(CAIRO, cairo)
