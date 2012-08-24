@@ -566,6 +566,10 @@ int main(int argc, char **argv)
 	if (ret)
 		fprintf(stderr,"prime_test: failed test 7\n");
 
+	ret = test8();
+	if (ret)
+		fprintf(stderr,"prime_test: failed test 8\n");
+
 	intel_batchbuffer_free(intel_batch);
 
 	nouveau_device_del(&ndev);
