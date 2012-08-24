@@ -326,7 +326,8 @@ int main(int argc, char **argv)
 	bufmgr = drm_intel_bufmgr_gem_init(intel_fd, 4096);
 	if (!bufmgr)
 		return -1;
-	drm_intel_bufmgr_gem_enable_reuse(bufmgr);
+	/* Do not enable reuse, we share (almost) all buffers. */
+	//drm_intel_bufmgr_gem_enable_reuse(bufmgr);
 
 	bufmgr2 = drm_intel_bufmgr_gem_init(intel_fd2, 4096);
 	if (!bufmgr2)

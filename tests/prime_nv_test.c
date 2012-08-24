@@ -517,7 +517,8 @@ int main(int argc, char **argv)
 	bufmgr = drm_intel_bufmgr_gem_init(intel_fd, 4096);
 	if (!bufmgr)
 		return -1;
-	drm_intel_bufmgr_gem_enable_reuse(bufmgr);
+	/* Do not enable reuse, we share (almost) all buffers. */
+	//drm_intel_bufmgr_gem_enable_reuse(bufmgr);
 
 	/* set up nouveau bufmgr */
 	ret = nouveau_device_wrap(nouveau_fd, 0, &ndev);
