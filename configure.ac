@@ -60,7 +60,9 @@ PKG_CHECK_MODULES(DRM, [libdrm_intel >= 2.4.38 libdrm])
 PKG_CHECK_MODULES(PCIACCESS, [pciaccess >= 0.10])
 
 # for dma-buf tests
-PKG_CHECK_MODULES(DRM_NOUVEAU, [libdrm_nouveau >= 2.4.33])
+PKG_CHECK_MODULES(DRM_NOUVEAU, [libdrm_nouveau >= 2.4.33], nouveau=yes, nouveau=no)
+
+AM_CONDITIONAL(BUILD_NOUVEAU, [test "x$nouveau" != xno])
 
 # for testdisplay
 PKG_CHECK_MODULES(CAIRO, cairo)
