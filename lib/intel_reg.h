@@ -428,7 +428,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 # define I830_PRIMARY_RING_1_DONE	(1 << 1)
 # define I830_PRIMARY_RING_0_DONE	(1 << 0)
 
-#define NOPID                    0x2094
+#define NO_PID                   0x2094
 
 #define SCPD0                    0x209c	/* debug */
 #define INST_PS                  0x20c4
