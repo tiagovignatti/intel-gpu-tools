@@ -177,7 +177,7 @@ static void connector_find_preferred_mode(struct test_output *o, int crtc_id)
 static void
 paint_flip_mode(cairo_t *cr, int width, int height, void *priv)
 {
-	bool odd_frame = priv;
+	bool odd_frame = (bool) priv;
 
 	if (odd_frame)
 		cairo_rectangle(cr, width/4, height/2, width/4, height/8);
