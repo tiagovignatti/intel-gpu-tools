@@ -144,6 +144,10 @@ int main(int argc, char **argv)
 		struct timespec start, end;
 		long diff;
 
+#ifndef CLOCK_MONOTONIC_RAW
+#define CLOCK_MONOTONIC_RAW CLOCK_MONOTONIC
+#endif
+
 		assert(clock_gettime(CLOCK_MONOTONIC_RAW, &start) == 0);
 		for (i = 0; i < iter; i++)
 			blt_color_fill(batch, dst, BUF_PAGES);
