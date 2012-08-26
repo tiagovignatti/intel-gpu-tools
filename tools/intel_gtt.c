@@ -45,32 +45,46 @@ int main(int argc, char **argv)
 	int start, aper_size;
 	unsigned char *gtt;
 	uint32_t devid;
+	int flag[] = {
+		PCI_DEV_MAP_FLAG_WRITE_COMBINE,
+		PCI_DEV_MAP_FLAG_WRITABLE,
+		0
+	}, f;
 
 	pci_dev = intel_get_pci_device();
 	devid = pci_dev->device_id;
-	intel_get_mmio(pci_dev);
 
 	if (IS_GEN2(devid)) {
 		printf("Unsupported chipset for gtt dumper\n");
 		exit(1);
 	}
 
-	if (IS_G4X(devid) || IS_GEN5(devid))
-		gtt = ((unsigned char *)mmio + MB(2));
-	else if (IS_965(devid))
-		gtt = ((unsigned char *)mmio + KB(512));
-	else {
-		/* 915/945 chips has GTT range in bar 3 */
-		int err;
-		err = pci_device_map_range(pci_dev,
-					   pci_dev->regions[3].base_addr,
-					   pci_dev->regions[3].size,
-					   PCI_DEV_MAP_FLAG_WRITABLE,
-					   (void **)&gtt);
-		if (err != 0) {
-			fprintf(stderr, "mapping GTT bar failed\n");
-			exit(1);
+	for (f = 0; flag[f] != 0; f++) {
+		if (IS_GEN3(devid)) {
+			/* 915/945 chips has GTT range in bar 3 */
+			if (pci_device_map_range(pci_dev,
+						 pci_dev->regions[3].base_addr,
+						 pci_dev->regions[3].size,
+						 flag[f],
+						 (void **)&gtt) == 0)
+				break;
+		} else {
+			int offset;
+			if (IS_G4X(devid) || IS_GEN5(devid))
+				offset = MB(2);
+			else
+				offset = KB(512);
+			if (pci_device_map_range(pci_dev,
+						 pci_dev->regions[0].base_addr + offset,
+						 offset,
+						 flag[f],
+						 (void **)&gtt) == 0)
+				break;
 		}
+	}
+	if (flag[f] == 0) {
+		printf("Failed to map gtt\n");
+		exit(1);
 	}
 
 	aper_size = pci_dev->regions[2].size;
