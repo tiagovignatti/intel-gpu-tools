@@ -80,8 +80,8 @@ intel_map_file(char *file)
 void
 intel_get_mmio(struct pci_device *pci_dev)
 {
-	uint32_t devid;
-	int mmio_bar;
+	uint32_t devid, gen;
+	int mmio_bar, mmio_size;
 	int error;
 
 	devid = pci_dev->device_id;
@@ -90,11 +90,19 @@ intel_get_mmio(struct pci_device *pci_dev)
 	else
 		mmio_bar = 0;
 
+	gen = intel_gen(devid);
+	if (gen < 3)
+		mmio_size = 64*1024;
+	else if (gen < 5)
+		mmio_size = 512*1024;
+	else
+		mmio_size = 2*1024*1024;
+
 	error = pci_device_map_range (pci_dev,
-				    pci_dev->regions[mmio_bar].base_addr,
-				    pci_dev->regions[mmio_bar].size,
-				    PCI_DEV_MAP_FLAG_WRITABLE,
-				    &mmio);
+				      pci_dev->regions[mmio_bar].base_addr,
+				      mmio_size,
+				      PCI_DEV_MAP_FLAG_WRITABLE,
+				      &mmio);
 
 	if (error != 0) {
 		fprintf(stderr, "Couldn't map MMIO region: %s\n",
