@@ -62,7 +62,7 @@
 
 #define WIDTH 512
 #define HEIGHT 512
-static uint32_t linear[WIDTH * HEIGHT];
+#define LINEAR_DWORDS (4 * WIDTH * HEIGHT)
 static uint32_t current_tiling_mode;
 
 #define PAGE_SIZE 4096
@@ -74,14 +74,14 @@ create_bo_and_fill(int fd)
 	uint32_t *data;
 	int i;
 
-	handle = gem_create(fd, sizeof(linear));
+	handle = gem_create(fd, LINEAR_DWORDS);
 	gem_set_tiling(fd, handle, current_tiling_mode, WIDTH * sizeof(uint32_t));
 
 	/* Fill the BO with dwords starting at start_val */
-	data = gem_mmap(fd, handle, sizeof(linear), PROT_READ | PROT_WRITE);
+	data = gem_mmap(fd, handle, LINEAR_DWORDS, PROT_READ | PROT_WRITE);
 	for (i = 0; i < WIDTH*HEIGHT; i++)
 		data[i] = i;
-	munmap(data, sizeof(linear));
+	munmap(data, LINEAR_DWORDS);
 
 	return handle;
 }
@@ -129,14 +129,14 @@ main(int argc, char **argv)
 	for (i = 0; i < count/2; i++) {
 		/* Check the target bo's contents. */
 		data = gem_mmap(fd, bo_handles[idx_arr[i]],
-				sizeof(linear), PROT_READ | PROT_WRITE);
+				LINEAR_DWORDS, PROT_READ | PROT_WRITE);
 		for (j = 0; j < WIDTH*HEIGHT; j++)
 			if (data[j] != j) {
 				fprintf(stderr, "mismatch at %i: %i\n",
 						j, data[j]);
 				exit(1);
 			}
-		munmap(data, sizeof(linear));
+		munmap(data, LINEAR_DWORDS);
 	}
 
 	close(fd);

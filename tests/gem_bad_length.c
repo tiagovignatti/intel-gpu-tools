@@ -64,10 +64,12 @@ static uint32_t do_gem_create(int fd, int size, int *retval)
 	return create.handle;
 }
 
+#if 0
 static int gem_exec(int fd, struct drm_i915_gem_execbuffer2 *execbuf)
 {
 	return drmIoctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, execbuf);
 }
+#endif
 
 static void create0(int fd)
 {
@@ -77,6 +79,7 @@ static void create0(int fd)
 	assert(retval == EINVAL);
 }
 
+#if 0
 static void exec0(int fd)
 {
 	struct drm_i915_gem_execbuffer2 execbuf;
@@ -115,6 +118,7 @@ static void exec0(int fd)
 
 	gem_close(fd, exec[0].handle);
 }
+#endif
 
 int main(int argc, char **argv)
 {

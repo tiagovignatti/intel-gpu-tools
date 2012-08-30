@@ -40,7 +40,7 @@
 #define DEFFILEMODE (S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH)	/* 0666 */
 #endif
 
-static void usage(void)
+static void __attribute__((noreturn)) usage(void)
 {
 	fprintf(stderr, "usage: bios_dumper <filename>\n");
 	exit(1);

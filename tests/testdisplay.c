@@ -598,7 +598,7 @@ int update_display(void)
 
 static char optstr[] = "hiaf:s:d:p:mrt";
 
-static void usage(char *name)
+static void __attribute__((noreturn)) usage(char *name)
 {
 	fprintf(stderr, "usage: %s [-hiasdpmtf]\n", name);
 	fprintf(stderr, "\t-i\tdump info\n");

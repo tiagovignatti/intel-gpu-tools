@@ -457,7 +457,7 @@ uint32_t prime_fd_to_handle(int fd, int dma_buf_fd)
 /* signal interrupt helpers */
 static pid_t signal_helper = -1;
 long long int sig_stat;
-static void signal_helper_process(pid_t pid)
+static void __attribute__((noreturn)) signal_helper_process(pid_t pid)
 {
 	/* Interrupt the parent process at 500Hz, just to be annoying */
 	while (1) {
