@@ -466,8 +466,6 @@ int main(int argc, char **argv)
 			break;
 		}
 	}
-	argc -= optind;
-	argv += optind;
 
 	pci_dev = intel_get_pci_device();
 	devid = pci_dev->device_id;

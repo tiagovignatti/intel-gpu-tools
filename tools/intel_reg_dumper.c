@@ -2158,7 +2158,7 @@ intel_dump_other_regs(void)
 		} else {
 			n = ((fp >> 16) & 0x3f);
 			m2 = ((fp >> 0) & 0x3f);
-			m = 5 * (m1 + 2) + (m2 + 2);
+			//m = 5 * (m1 + 2) + (m2 + 2);
 			dot =
 			    (ref * (5 * (m1 + 2) + (m2 + 2)) / (n + 2)) / (p1 *
 									   p2);

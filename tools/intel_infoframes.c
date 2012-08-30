@@ -381,7 +381,7 @@ static void dump_raw_infoframe(DipInfoFrame *frame)
 static void dump_avi_info(Transcoder transcoder)
 {
 	Register reg = get_dip_ctl_reg(transcoder);
-	uint32_t val = INREG(reg);
+	uint32_t val;
 	DipFrequency freq;
 	DipInfoFrame frame;
 
@@ -427,7 +427,7 @@ static void dump_avi_info(Transcoder transcoder)
 static void dump_vendor_info(Transcoder transcoder)
 {
 	Register reg = get_dip_ctl_reg(transcoder);
-	uint32_t val = INREG(reg);
+	uint32_t val;
 	DipFrequency freq;
 	DipInfoFrame frame;
 
@@ -453,7 +453,7 @@ static void dump_vendor_info(Transcoder transcoder)
 static void dump_gamut_info(Transcoder transcoder)
 {
 	Register reg = get_dip_ctl_reg(transcoder);
-	uint32_t val = INREG(reg);
+	uint32_t val;
 	DipFrequency freq;
 	DipInfoFrame frame;
 
@@ -479,7 +479,7 @@ static void dump_gamut_info(Transcoder transcoder)
 static void dump_spd_info(Transcoder transcoder)
 {
 	Register reg = get_dip_ctl_reg(transcoder);
-	uint32_t val = INREG(reg);
+	uint32_t val;
 	DipFrequency freq;
 	DipInfoFrame frame;
 	char vendor[9];
@@ -660,7 +660,7 @@ static int parse_infoframe_option_s(const char *name, const char *s,
 static void change_avi_infoframe(Transcoder transcoder, char *commands)
 {
 	Register reg = get_dip_ctl_reg(transcoder);
-	uint32_t val = INREG(reg);
+	uint32_t val;
 	DipInfoFrame frame;
 	char option[32];
 	uint32_t option_val;
@@ -760,7 +760,7 @@ static void change_avi_infoframe(Transcoder transcoder, char *commands)
 static void change_spd_infoframe(Transcoder transcoder, char *commands)
 {
 	Register reg = get_dip_ctl_reg(transcoder);
-	uint32_t val = INREG(reg);
+	uint32_t val;
 	DipInfoFrame frame;
 	char option[16];
 	char option_val_s[32];

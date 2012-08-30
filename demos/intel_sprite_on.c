@@ -842,6 +842,7 @@ static void ricochet(
         set.flags = I915_SET_COLORKEY_NONE;
         ret = drmCommandWrite(gfx_fd, DRM_I915_SET_SPRITE_COLORKEY, &set,
                       sizeof(set));
+	assert(ret == 0);
 
         // Set up sprite output dimensions, initial position, etc.
         if (out_w > prim_width / 2)

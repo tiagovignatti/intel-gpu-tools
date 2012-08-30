@@ -264,7 +264,6 @@ static void set_mode(struct test_output *o, int crtc)
 		gettimeofday(&now, NULL);
 		if (now.tv_sec > end.tv_sec ||
 		    (now.tv_sec == end.tv_sec && now.tv_usec >= end.tv_usec)) {
-			ret = 0;
 			break;
 		}
 

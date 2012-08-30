@@ -89,8 +89,9 @@ int main(int argc, char *argv[])
 		if (!is_alive()) {
 			INFO_PRINT("gpu reset? restarting daemon\n");
 			intel_register_access_fini();
-			ret = intel_register_access_init(intel_get_pci_device(),
-							 1);
+			ret = intel_register_access_init(intel_get_pci_device(), 1);
+			if (ret)
+				INFO_PRINT("Reg access init fail\n");
 		}
 		sleep(1);
 	}
