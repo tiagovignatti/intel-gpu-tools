@@ -1911,26 +1911,31 @@ static struct reg_debug i945gm_mi_regs[] = {
 	DEFINEREG(ECOSKPD),
 };
 
+static void
+_intel_dump_reg(struct reg_debug *reg, uint32_t val)
+{
+	char debug[1024];
+
+	if (reg->debug_output != NULL) {
+		reg->debug_output(debug, sizeof(debug), reg->reg, val);
+		printf("%30.30s: 0x%08x (%s)\n",
+		       reg->name, val, debug);
+	} else {
+		printf("%30.30s: 0x%08x\n", reg->name, val);
+	}
+}
+
 #define intel_dump_regs(regs) _intel_dump_regs(regs, ARRAY_SIZE(regs))
 
 static void
 _intel_dump_regs(struct reg_debug *regs, int count)
 {
-	char debug[1024];
 	int i;
 
 	for (i = 0; i < count; i++) {
 		uint32_t val = INREG(regs[i].reg);
 
-		if (regs[i].debug_output != NULL) {
-			regs[i].debug_output(debug, sizeof(debug), regs[i].reg, val);
-			printf("%30.30s: 0x%08x (%s)\n",
-			       regs[i].name,
-			       (unsigned int)val, debug);
-		} else {
-			printf("%30.30s: 0x%08x\n", regs[i].name,
-			       (unsigned int)val);
-		}
+		_intel_dump_reg(&regs[i], val);
 	}
 }
 
@@ -1963,6 +1968,54 @@ static struct reg_debug gen6_rp_debug_regs[] = {
 	DEFINEREG(GEN6_PMIMR),
 	DEFINEREG(GEN6_PMINTRMSK),
 };
+
+#define DECLARE_REGS(r)	{ .regs = r, .count = ARRAY_SIZE(r) }
+static struct {
+	struct reg_debug *regs;
+	int count;
+} known_registers[] = {
+	DECLARE_REGS(ironlake_debug_regs),
+	DECLARE_REGS(i945gm_mi_regs),
+	DECLARE_REGS(intel_debug_regs),
+	DECLARE_REGS(gen6_rp_debug_regs),
+	DECLARE_REGS(haswell_debug_regs)
+};
+#undef DECLARE_REGS
+
+static struct reg_debug *
+find_register_by_name(struct reg_debug *regs, int count,
+		      const char *name)
+{
+	int i;
+
+	for (i = 0; i < count; i++)
+		if (strcasecmp(name, regs[i].name) == 0)
+			return &regs[i];
+
+	return NULL;
+}
+
+static void
+decode_register(const char *name, uint32_t val)
+{
+	int i;
+	struct reg_debug *reg = NULL;
+
+	for (i = 0; i < ARRAY_SIZE(known_registers); i++) {
+		reg = find_register_by_name(known_registers[i].regs,
+					    known_registers[i].count,
+					    name);
+		if (reg)
+			break;
+	}
+
+	if (!reg) {
+		fprintf(stderr, "Unknown register: %s\n", name);
+		return;
+	}
+
+	_intel_dump_reg(reg, val);
+}
 
 static void
 intel_dump_other_regs(void)
@@ -2172,6 +2225,7 @@ intel_dump_other_regs(void)
 static void print_usage(void)
 {
 	printf("Usage: intel_reg_dumper [options] [file]\n"
+	       "       intel_reg_dumper [options] register value\n"
 	       "Options:\n"
 	       "  -d id   when a dump file is used, use 'id' as device id (in "
 	       "hex)\n"
@@ -2181,8 +2235,9 @@ static void print_usage(void)
 int main(int argc, char** argv)
 {
 	struct pci_device *pci_dev;
-	int opt;
-	char *file = NULL;
+	int opt, n_args;
+	char *file = NULL, *reg_name = NULL;
+	uint32_t reg_val;
 
 	while ((opt = getopt(argc, argv, "d:h")) != -1) {
 		switch (opt) {
@@ -2197,8 +2252,24 @@ int main(int argc, char** argv)
 			return 1;
 		}
 	}
-	if (optind < argc)
+
+	n_args = argc - optind;
+	if (n_args == 1) {
 		file = argv[optind];
+	} else if (n_args == 2) {
+		reg_name = argv[optind];
+		reg_val = strtoul(argv[optind + 1], NULL, 0);
+	} else if (n_args) {
+		print_usage();
+		return 1;
+	}
+
+	/* the tool operates in "single" mode, decode a single register given
+	 * on the command line: intel_reg_dumper PCH_PP_CONTROL 0xabcd0002 */
+	if (reg_name) {
+		decode_register(reg_name, reg_val);
+		return 0;
+	}
 
 	if (file) {
 		intel_map_file(file);
