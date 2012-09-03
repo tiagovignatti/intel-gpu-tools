@@ -27,6 +27,7 @@
 
 #define _GNU_SOURCE
 #include <ctype.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -1970,18 +1971,35 @@ static struct reg_debug gen6_rp_debug_regs[] = {
 	DEFINEREG(GEN6_PMINTRMSK),
 };
 
-#define DECLARE_REGS(r)	{ .regs = r, .count = ARRAY_SIZE(r) }
+#define DECLARE_REGS(d,r)	\
+	{ .description = d, .regs = r, .count = ARRAY_SIZE(r) }
 static struct {
+	const char *description;
 	struct reg_debug *regs;
 	int count;
 } known_registers[] = {
-	DECLARE_REGS(ironlake_debug_regs),
-	DECLARE_REGS(i945gm_mi_regs),
-	DECLARE_REGS(intel_debug_regs),
-	DECLARE_REGS(gen6_rp_debug_regs),
-	DECLARE_REGS(haswell_debug_regs)
+	DECLARE_REGS("Gen5",   ironlake_debug_regs),
+	DECLARE_REGS("i945GM", i945gm_mi_regs),
+	DECLARE_REGS("Gen2",   intel_debug_regs),
+	DECLARE_REGS("Gen6",   gen6_rp_debug_regs),
+	DECLARE_REGS("Gen7.5", haswell_debug_regs)
 };
 #undef DECLARE_REGS
+
+static void
+dump_reg(struct reg_debug *reg, uint32_t val, const char *prefix)
+{
+	char debug[1024];
+
+	if (reg->debug_output != NULL) {
+		reg->debug_output(debug, sizeof(debug), reg->reg, val);
+		printf("%s: %s (0x%x): 0x%08x (%s)\n",
+		       prefix, reg->name, reg->reg, val, debug);
+	} else {
+		printf("%s: %s (0x%x): 0x%08x\n",
+		       prefix, reg->name, reg->reg, val);
+	}
+}
 
 static void
 str_to_upper(char *str)
@@ -2004,7 +2022,8 @@ decode_register_name(char *name, uint32_t val)
 
 		for (j = 0; j < known_registers[i].count; j++)
 			if (strstr(regs[j].name, name))
-				_intel_dump_reg(&regs[j], val);
+				dump_reg(&regs[j], val,
+					 known_registers[i].description);
 	}
 }
 
@@ -2018,7 +2037,8 @@ decode_register_address(int address, uint32_t val)
 
 		for (j = 0; j < known_registers[i].count; j++)
 			if (regs[j].reg == address)
-				_intel_dump_reg(&regs[j], val);
+				dump_reg(&regs[j], val,
+					 known_registers[i].description);
 	}
 }
 
