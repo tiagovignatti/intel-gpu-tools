@@ -26,6 +26,7 @@
  */
 
 #define _GNU_SOURCE
+#include <ctype.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -1982,39 +1983,29 @@ static struct {
 };
 #undef DECLARE_REGS
 
-static struct reg_debug *
-find_register_by_name(struct reg_debug *regs, int count,
-		      const char *name)
+static void
+str_to_upper(char *str)
 {
-	int i;
-
-	for (i = 0; i < count; i++)
-		if (strcasecmp(name, regs[i].name) == 0)
-			return &regs[i];
-
-	return NULL;
+	while(*str) {
+		*str = toupper(*str);
+		str++;
+	}
 }
 
 static void
-decode_register_name(const char *name, uint32_t val)
+decode_register_name(char *name, uint32_t val)
 {
-	int i;
-	struct reg_debug *reg = NULL;
+	int i, j;
+
+	str_to_upper(name);
 
 	for (i = 0; i < ARRAY_SIZE(known_registers); i++) {
-		reg = find_register_by_name(known_registers[i].regs,
-					    known_registers[i].count,
-					    name);
-		if (reg)
-			break;
-	}
+		struct reg_debug *regs = known_registers[i].regs;
 
-	if (!reg) {
-		fprintf(stderr, "Unknown register: %s\n", name);
-		return;
+		for (j = 0; j < known_registers[i].count; j++)
+			if (strstr(regs[j].name, name))
+				_intel_dump_reg(&regs[j], val);
 	}
-
-	_intel_dump_reg(reg, val);
 }
 
 static void
@@ -2032,7 +2023,7 @@ decode_register_address(int address, uint32_t val)
 }
 
 static void
-decode_register(const char *name, uint32_t val)
+decode_register(char *name, uint32_t val)
 {
 	long int address;
 	char *end;
