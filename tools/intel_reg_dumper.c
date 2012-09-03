@@ -1996,7 +1996,7 @@ find_register_by_name(struct reg_debug *regs, int count,
 }
 
 static void
-decode_register(const char *name, uint32_t val)
+decode_register_name(const char *name, uint32_t val)
 {
 	int i;
 	struct reg_debug *reg = NULL;
@@ -2015,6 +2015,35 @@ decode_register(const char *name, uint32_t val)
 	}
 
 	_intel_dump_reg(reg, val);
+}
+
+static void
+decode_register_address(int address, uint32_t val)
+{
+	int i, j;
+
+	for (i = 0; i < ARRAY_SIZE(known_registers); i++) {
+		struct reg_debug *regs = known_registers[i].regs;
+
+		for (j = 0; j < known_registers[i].count; j++)
+			if (regs[j].reg == address)
+				_intel_dump_reg(&regs[j], val);
+	}
+}
+
+static void
+decode_register(const char *name, uint32_t val)
+{
+	long int address;
+	char *end;
+
+	address = strtoul(name, &end, 0);
+
+	/* found a register address */
+	if (address && *end == '\0')
+		decode_register_address(address, val);
+	else
+		decode_register_name(name, val);
 }
 
 static void
