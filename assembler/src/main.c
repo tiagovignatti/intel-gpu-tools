@@ -275,10 +275,10 @@ int main(int argc, char **argv)
 
 	err = yyparse();
 
-	yylex_destroy();
-
-	if (yyin)
+	if (strcmp(argv[0], "-"))
 		fclose(yyin);
+
+	yylex_destroy();
 
 	if (err || errors)
 		exit (1);
