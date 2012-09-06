@@ -352,7 +352,7 @@ int main(int argc, char **argv)
 				entry1 = compiled_program.first;
 			} while (entry1 != entry);
 		    if (found == 0)
-			fprintf(stderr, "can not find lable %s\n",
+			fprintf(stderr, "can not find label %s\n",
 				entry->instruction.reloc_target);
 		}
 	    }
