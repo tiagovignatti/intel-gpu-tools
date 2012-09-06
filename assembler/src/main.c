@@ -275,6 +275,9 @@ int main(int argc, char **argv)
 
 	err = yyparse();
 
+	if (yyin)
+		fclose(yyin);
+
 	if (err || errors)
 		exit (1);
 
