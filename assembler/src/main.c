@@ -275,6 +275,8 @@ int main(int argc, char **argv)
 
 	err = yyparse();
 
+	yylex_destroy();
+
 	if (yyin)
 		fclose(yyin);
 

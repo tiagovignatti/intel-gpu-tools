@@ -180,6 +180,7 @@ void insert_register(struct declared_register *reg);
 
 int yyparse(void);
 int yylex(void);
+int yylex_destroy(void);
 
 char *
 lex_text(void);
