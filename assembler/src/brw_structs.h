@@ -1120,6 +1120,25 @@ struct brw_instruction
 	 GLuint dest_horiz_stride:2;
 	 GLuint dest_address_mode:1;
       } ia16; /* indirect align16 */
+
+      struct
+      {
+	 GLuint pad0:1; /* reserved */
+	 GLuint flag_subreg_nr:1;
+	 GLuint flag_reg_nr:1;
+	 GLuint pad1:1; /* reserved */
+	 GLuint src0_modifier:2;
+	 GLuint src1_modifier:2;
+	 GLuint src2_modifier:2;
+	 GLuint src_reg_type:2;
+	 GLuint dest_reg_type:2;
+	 GLuint pad2:1; /* reserved */
+	 GLuint nib_ctrl:1;
+	 GLuint pad3:1; /* reserved */
+	 GLuint dest_writemask:4;
+	 GLuint dest_subreg_nr:3;
+	 GLuint dest_reg_nr:8;
+      } three_src_gen7; /* Three-source-operator instructions for Gen7+ */
    } bits1;
 
 
@@ -1189,6 +1208,18 @@ struct brw_instruction
 	 GLuint flag_reg_nr:1;
 	 GLuint pad1:5;
       } ia16; /* indirect align16 */
+
+      struct
+      {
+	 GLuint src0_rep_ctrl:1;
+	 GLuint src0_swizzle:8;
+	 GLuint src0_subreg_nr:3;
+	 GLuint src0_reg_nr:8;
+	 GLuint pad0:1; /* reserved */
+	 GLuint src1_rep_ctrl:1;
+	 GLuint src1_swizzle:8;
+	 GLuint src1_subreg_nr_low:2; /* src1_subreg_nr spans on two DWORDs */
+      } three_src_gen7; /* Three-source-operator instructions for Gen7+ */
 
        struct 
        {
@@ -1264,6 +1295,17 @@ struct brw_instruction
 	 GLuint pad2:7;
       } ia16; /* indirect align16 */
 
+      struct
+      {
+	 GLuint src1_subreg_nr_high:1; /* src1_subreg_nr spans on two DWORDs */
+	 GLuint src1_reg_nr:8;
+	 GLuint pad0:1; /* reserved */
+	 GLuint src2_rep_ctrl:1;
+	 GLuint src2_swizzle:8;
+	 GLuint src2_subreg_nr:3;
+	 GLuint src2_reg_nr:8;
+	 GLuint pad1:2; /* reserved */
+      } three_src_gen7; /* Three-source-operator instructions for Gen7+ */
 
       struct
       {
