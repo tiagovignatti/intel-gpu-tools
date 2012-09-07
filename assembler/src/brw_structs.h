@@ -1044,7 +1044,7 @@ struct brw_instruction
    struct 
    {
       GLuint opcode:7;			/* 0x0000007f */
-      GLuint pad:1;			/* 0x00000080 */
+      GLuint pad:1;			/* 0x00000080 */ /* reserved for Opcode */
       GLuint access_mode:1;		/* 0x00000100 */
       GLuint mask_control:1;		/* 0x00000200 */
       GLuint dependency_control:2;	/* 0x00000c00 */
@@ -1074,7 +1074,7 @@ struct brw_instruction
 	 GLuint dest_reg_nr:8;		/* 0x1f700000 */
 	 GLuint dest_horiz_stride:2;	/* 0x60000000 */
 	 GLuint dest_address_mode:1;	/* 0x80000000 */
-      } da1;
+      } da1; /* direct align1 */
 
       struct
       {
@@ -1089,7 +1089,7 @@ struct brw_instruction
 	 GLuint dest_subreg_nr:3; /* subnr for the address reg a0.x */
 	 GLuint dest_horiz_stride:2;
 	 GLuint dest_address_mode:1;
-      } ia1;
+      } ia1; /* indirect align1 */
 
       struct
       {
@@ -1105,7 +1105,7 @@ struct brw_instruction
 	 GLuint dest_reg_nr:8;
 	 GLuint dest_horiz_stride:2;
 	 GLuint dest_address_mode:1;
-      } da16;
+      } da16; /* direct align16 */
 
       struct
       {
@@ -1119,7 +1119,7 @@ struct brw_instruction
 	 GLuint dest_subreg_nr:3;
 	 GLuint dest_horiz_stride:2;
 	 GLuint dest_address_mode:1;
-      } ia16;
+      } ia16; /* indirect align16 */
    } bits1;
 
 
@@ -1137,7 +1137,7 @@ struct brw_instruction
 	 GLuint flag_subreg_nr:1;	/* 0x02000000 */
 	 GLuint flag_reg_nr:1;		/* 0x04000000 */
 	 GLuint pad:5;			/* 0xf8000000 */
-      } da1;
+      } da1; /* direct align1 */
 
       struct
       {
@@ -1152,7 +1152,7 @@ struct brw_instruction
 	 GLuint flag_subreg_nr:1;
 	 GLuint flag_reg_nr:1;
 	 GLuint pad:5;	
-      } ia1;
+      } ia1; /* indirect align1 */
 
       struct
       {
@@ -1170,7 +1170,7 @@ struct brw_instruction
 	 GLuint flag_subreg_nr:1;
 	 GLuint flag_reg_nr:1;
 	 GLuint pad1:5;
-      } da16;
+      } da16; /* direct align16 */
 
       struct
       {
@@ -1188,7 +1188,7 @@ struct brw_instruction
 	 GLuint flag_subreg_nr:1;
 	 GLuint flag_reg_nr:1;
 	 GLuint pad1:5;
-      } ia16;
+      } ia16; /* indirect align16 */
 
        struct 
        {
@@ -1217,7 +1217,7 @@ struct brw_instruction
 	 GLuint src1_width:3;
 	 GLuint src1_vert_stride:4;
 	 GLuint pad0:7;
-      } da1;
+      } da1; /* direct align1 */
 
       struct
       {
@@ -1233,7 +1233,7 @@ struct brw_instruction
 	 GLuint pad1:1;
 	 GLuint src1_vert_stride:4;
 	 GLuint pad2:7;
-      } da16;
+      } da16; /* direct align16 */
 
       struct
       {
@@ -1246,7 +1246,7 @@ struct brw_instruction
 	 GLuint src1_width:3;
 	 GLuint src1_vert_stride:4;
 	 GLuint pad1:7;	
-      } ia1;
+      } ia1; /* indirect align1 */
 
       struct
       {
@@ -1262,7 +1262,7 @@ struct brw_instruction
 	 GLuint pad1:1;
 	 GLuint src1_vert_stride:4;
 	 GLuint pad2:7;
-      } ia16;
+      } ia16; /* indirect align16 */
 
 
       struct
