@@ -48,6 +48,14 @@ int set_instruction_src0(struct brw_instruction *instr,
 			 struct src_operand *src);
 int set_instruction_src1(struct brw_instruction *instr,
 			 struct src_operand *src);
+int set_instruction_dest_three_src(struct brw_instruction *instr,
+                                   struct dst_operand *dest);
+int set_instruction_src0_three_src(struct brw_instruction *instr,
+                                   struct src_operand *src);
+int set_instruction_src1_three_src(struct brw_instruction *instr,
+                                   struct src_operand *src);
+int set_instruction_src2_three_src(struct brw_instruction *instr,
+                                   struct src_operand *src);
 void set_instruction_options(struct brw_instruction *instr,
 			     struct brw_instruction *options);
 void set_instruction_predicate(struct brw_instruction *instr,
@@ -110,6 +118,7 @@ void set_direct_src_operand(struct src_operand *src, struct direct_reg *reg,
 %token <integer> SEND NOP JMPI IF IFF WHILE ELSE BREAK CONT HALT MSAVE
 %token <integer> PUSH MREST POP WAIT DO ENDIF ILLEGAL
 %token <integer> MATH_INST
+%token <integer> MAD
 
 %token NULL_TOKEN MATH SAMPLER GATEWAY READ WRITE URB THREAD_SPAWNER VME DATA_PORT
 
@@ -144,7 +153,7 @@ void set_direct_src_operand(struct src_operand *src, struct direct_reg *reg,
 
 %type <integer> exp sndopr
 %type <instruction> instruction unaryinstruction binaryinstruction
-%type <instruction> binaryaccinstruction triinstruction sendinstruction
+%type <instruction> binaryaccinstruction trinaryinstruction sendinstruction
 %type <instruction> jumpinstruction branchloopinstruction elseinstruction
 %type <instruction> breakinstruction syncinstruction specialinstruction
 %type <instruction> msgtarget
@@ -154,6 +163,7 @@ void set_direct_src_operand(struct src_operand *src, struct direct_reg *reg,
 %type <program> instrseq
 %type <integer> instoption
 %type <integer> unaryop binaryop binaryaccop branchloopop breakop
+%type <integer> trinaryop
 %type <condition> conditionalmodifier 
 %type <integer> condition saturate negate abs chansel
 %type <integer> writemask_x writemask_y writemask_z writemask_w
@@ -363,7 +373,8 @@ instrseq:	instrseq pragma
 instruction:	unaryinstruction
 		| binaryinstruction
 		| binaryaccinstruction
-		| triinstruction
+		| trinaryinstruction
+		| sendinstruction
 		| jumpinstruction
 		| branchloopinstruction
 		| elseinstruction
@@ -482,7 +493,42 @@ binaryaccinstruction:
 binaryaccop:	AVG | ADD | SEL | AND | OR | XOR | SHR | SHL | ASR | CMP | CMPN | PLN
 ;
 
-triinstruction:	sendinstruction
+trinaryop:	MAD
+;
+
+trinaryinstruction:
+		predicate trinaryop conditionalmodifier saturate execsize
+		dst src src src instoptions
+{
+		  memset(&$$, 0, sizeof($$));
+
+		  $$.header.predicate_control = $1.header.predicate_control;
+		  $$.header.predicate_inverse = $1.header.predicate_inverse;
+		  $$.bits1.three_src_gen7.flag_reg_nr = $1.bits2.da1.flag_reg_nr;
+		  $$.bits1.three_src_gen7.flag_subreg_nr = $1.bits2.da1.flag_subreg_nr;
+
+		  $$.header.opcode = $2;
+		  $$.header.sfid_destreg__conditionalmod = $3.cond;
+		  $$.header.saturate = $4;
+		  $$.header.execution_size = $5;
+
+		  if (set_instruction_dest_three_src(&$$, &$6))
+		    YYERROR;
+		  if (set_instruction_src0_three_src(&$$, &$7))
+		    YYERROR;
+		  if (set_instruction_src1_three_src(&$$, &$8))
+		    YYERROR;
+		  if (set_instruction_src2_three_src(&$$, &$9))
+		    YYERROR;
+		  set_instruction_options(&$$, &$10);
+
+		  if ($3.flag_subreg_nr != -1) {
+		    if ($$.header.predicate_control != BRW_PREDICATE_NONE &&
+                        ($1.bits2.da1.flag_reg_nr != $3.flag_reg_nr ||
+                         $1.bits2.da1.flag_subreg_nr != $3.flag_subreg_nr))
+                        fprintf(stderr, "WARNING: must use the same flag register if both prediction and conditional modifier are enabled\n");
+		  }
+}
 ;
 
 sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
@@ -2855,6 +2901,75 @@ int set_instruction_src1(struct brw_instruction *instr,
             }
         }
 
+	return 0;
+}
+
+/* convert 2-src reg type to 3-src reg type
+ *
+ * 2-src reg type:
+ *  000=UD 001=D 010=UW 011=W 100=UB 101=B 110=DF 111=F
+ *
+ * 3-src reg type:
+ *  00=F  01=D  10=UD  11=DF
+ */
+static int reg_type_2_to_3(int reg_type)
+{
+	int r = 0;
+	switch(reg_type) {
+		case 7: r = 0; break;
+		case 1: r = 1; break;
+		case 0: r = 2; break;
+		// TODO: supporting DF
+	}
+	return r;
+}
+
+int set_instruction_dest_three_src(struct brw_instruction *instr,
+                                   struct dst_operand *dest)
+{
+	instr->bits1.three_src_gen7.dest_reg_nr = dest->reg_nr;
+	instr->bits1.three_src_gen7.dest_subreg_nr = get_subreg_address(dest->reg_file, dest->reg_type, dest->subreg_nr, dest->address_mode) / 4; // in DWORD
+	instr->bits1.three_src_gen7.dest_writemask = dest->writemask;
+	instr->bits1.three_src_gen7.dest_reg_type = reg_type_2_to_3(dest->reg_type);
+	return 0;
+}
+
+int set_instruction_src0_three_src(struct brw_instruction *instr,
+                                   struct src_operand *src)
+{
+	if (advanced_flag) {
+		reset_instruction_src_region(instr, src);
+	}
+	// TODO: supporting src0 swizzle, src0 modifier, src0 rep_ctrl
+	instr->bits1.three_src_gen7.src_reg_type = reg_type_2_to_3(src->reg_type);
+	instr->bits2.three_src_gen7.src0_subreg_nr = get_subreg_address(src->reg_file, src->reg_type, src->subreg_nr, src->address_mode) / 4; // in DWORD
+	instr->bits2.three_src_gen7.src0_reg_nr = src->reg_nr;
+	return 0;
+}
+
+int set_instruction_src1_three_src(struct brw_instruction *instr,
+                                   struct src_operand *src)
+{
+	if (advanced_flag) {
+		reset_instruction_src_region(instr, src);
+	}
+	// TODO: supporting src1 swizzle, src1 modifier, src1 rep_ctrl
+	int v = get_subreg_address(src->reg_file, src->reg_type, src->subreg_nr, src->address_mode) / 4; // in DWORD
+	instr->bits2.three_src_gen7.src1_subreg_nr_low = v % 4; // lower 2 bits
+	instr->bits3.three_src_gen7.src1_subreg_nr_high = v / 4; // highest bit
+	instr->bits3.three_src_gen7.src1_reg_nr = src->reg_nr;
+	return 0;
+}
+
+int set_instruction_src2_three_src(struct brw_instruction *instr,
+                                   struct src_operand *src)
+{
+	if (advanced_flag) {
+		reset_instruction_src_region(instr, src);
+	}
+	// TODO: supporting src2 swizzle, src2 modifier, src2 rep_ctrl
+	instr->bits3.three_src_gen7.src2_subreg_nr = get_subreg_address(src->reg_file, src->reg_type, src->subreg_nr, src->address_mode) / 4; // in DWORD
+	instr->bits3.three_src_gen7.src2_reg_nr = src->reg_nr;
 	return 0;
 }
 
