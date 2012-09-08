@@ -71,6 +71,7 @@ TESTS_progs = \
 	drm_vma_limiter_gtt \
 	drm_vma_limiter_cached \
 	sysfs_rc6_residency \
+	sysfs_rps \
 	flip_test \
 	gem_wait_render_timeout \
 	gem_ctx_create \
