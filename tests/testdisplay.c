@@ -54,10 +54,13 @@
 #include <math.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <strings.h>
 #include <unistd.h>
 #include <sys/poll.h>
 #include <sys/time.h>
 #include <sys/ioctl.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 
 #include "i915_drm.h"
 #include "drmtest.h"
@@ -69,7 +72,7 @@
 drmModeRes *resources;
 int drm_fd, modes;
 int test_all_modes = 0, test_preferred_mode = 0, force_mode = 0, test_plane,
-    enable_tiling;
+    test_stereo_modes, enable_tiling;
 int sleep_between_modes = 5;
 uint32_t depth = 24, stride, bpp;
 int qr_code = 0;
@@ -362,6 +365,9 @@ set_mode(struct connector *c)
 		if (test_all_modes)
 			c->mode = c->connector->modes[j];
 
+		/* set_mode() only tests 2D modes */
+		c->mode.flags &= ~DRMTEST_MODE_FLAG_3D_MASK;
+
 		if (!c->mode_valid)
 			continue;
 
@@ -399,6 +405,198 @@ set_mode(struct connector *c)
 
 	if (test_all_modes)
 		kmstest_remove_fb(drm_fd, &fb_info[old_fb]);
+
+	drmModeFreeEncoder(c->encoder);
+	drmModeFreeConnector(c->connector);
+}
+
+static void adjust_stereo_timings(drmModeModeInfo *mode)
+{
+	unsigned int layout = mode->flags & DRMTEST_MODE_FLAG_3D_MASK;
+	uint16_t vdisplay, vactive_space;
+
+	switch (layout) {
+	case DRM_MODE_FLAG_3D_TOP_AND_BOTTOM:
+	case DRM_MODE_FLAG_3D_SIDE_BY_SIDE_HALF:
+		return;
+	case DRM_MODE_FLAG_3D_FRAME_PACKING:
+		vactive_space = mode->vtotal - mode->vdisplay;
+		vdisplay = mode->vdisplay;
+
+		mode->vdisplay += vdisplay + vactive_space;
+		mode->vsync_start += vdisplay + vactive_space;
+		mode->vsync_end += vdisplay + vactive_space;
+		mode->vtotal += vdisplay + vactive_space;
+		mode->clock = (mode->vtotal * mode->htotal * mode->vrefresh) /
+			      1000;
+		return;
+	default:
+		assert(0);
+	}
+}
+
+struct box {
+	int x, y, width, height;
+};
+
+struct stereo_fb_layout {
+	int fb_width, fb_height;
+	struct box left, right;
+};
+
+static void box_init(struct box *box, int x, int y, int bwidth, int bheight)
+{
+	box->x = x;
+	box->y = y;
+	box->width = bwidth;
+	box->height = bheight;
+}
+
+static void box_print(const char * prefix, struct box *box)
+{
+	printf("%s: %d, %d, %d, %d\n", prefix,
+			box->x, box->y, box->width, box->height);
+}
+
+static void stereo_fb_layout_from_mode(struct stereo_fb_layout *layout,
+				       drmModeModeInfo *mode)
+{
+	unsigned int format = mode->flags & DRMTEST_MODE_FLAG_3D_MASK;
+	const int hdisplay = mode->hdisplay, vdisplay = mode->vdisplay;
+	int middle;
+
+	switch (format) {
+	case DRM_MODE_FLAG_3D_TOP_AND_BOTTOM:
+		layout->fb_width = hdisplay;
+		layout->fb_height = vdisplay;
+
+		middle = vdisplay / 2;
+		box_init(&layout->left, 0, 0, hdisplay, middle);
+		box_init(&layout->right,
+			 0, middle, hdisplay, vdisplay - middle);
+		break;
+	case DRM_MODE_FLAG_3D_SIDE_BY_SIDE_HALF:
+		layout->fb_width = hdisplay;
+		layout->fb_height = vdisplay;
+
+		middle = hdisplay / 2;
+		box_init(&layout->left, 0, 0, middle, vdisplay);
+		box_init(&layout->right,
+			 middle, 0, hdisplay - middle, vdisplay);
+		break;
+	case DRM_MODE_FLAG_3D_FRAME_PACKING:
+	{
+		int vactive_space = mode->vtotal - vdisplay;
+
+		layout->fb_width = hdisplay;
+		layout->fb_height = 2 * vdisplay + vactive_space;
+
+		box_init(&layout->left,
+			 0, 0, hdisplay, vdisplay);
+		box_init(&layout->right,
+			 0, vdisplay + vactive_space, hdisplay, vdisplay);
+		break;
+	}
+	default:
+		assert(0);
+	}
+}
+
+static const char *stereo_mode_str(drmModeModeInfo *mode)
+{
+	unsigned int layout = mode->flags & DRMTEST_MODE_FLAG_3D_MASK;
+
+	switch (layout) {
+	case DRM_MODE_FLAG_3D_TOP_AND_BOTTOM:
+		return "TB";
+	case DRM_MODE_FLAG_3D_SIDE_BY_SIDE_HALF:
+		return "SbSH";
+	case DRM_MODE_FLAG_3D_FRAME_PACKING:
+		return "FP";
+	default:
+		assert(0);
+	}
+}
+
+static uint32_t create_stereo_fb(drmModeModeInfo *mode, struct kmstest_fb *fb)
+{
+	struct stereo_fb_layout layout;
+	cairo_t *cr;
+	uint32_t fb_id;
+
+	stereo_fb_layout_from_mode(&layout, mode);
+	box_print("left: ", &layout.left);
+	box_print("right: ", &layout.right);
+	fb_id = kmstest_create_fb(drm_fd, layout.fb_width, layout.fb_height,
+				  bpp, depth, enable_tiling, fb);
+	cr = kmstest_get_cairo_ctx(drm_fd, fb);
+
+	kmstest_paint_image(cr, IGT_DATADIR"/1080p-left.png",
+			    layout.left.x, layout.left.y,
+			    layout.left.width, layout.left.height);
+	kmstest_paint_image(cr, IGT_DATADIR"/1080p-right.png",
+			    layout.right.x, layout.right.y,
+			    layout.right.width, layout.right.height);
+
+	{
+		char buffer[64];
+
+		snprintf(buffer, sizeof(buffer), "%dx%d@%dHz-%s.png",
+			 mode->hdisplay,
+			 mode->vdisplay,
+			 mode->vrefresh,
+			 stereo_mode_str(mode));
+
+		kmstest_write_fb(drm_fd, fb, buffer);
+	}
+
+	return fb_id;
+}
+
+static void do_set_stereo_mode(struct connector *c)
+{
+	uint32_t fb_id;
+	struct kmstest_fb fb_info;
+
+	fb_id = create_stereo_fb(&c->mode, &fb_info);
+	adjust_stereo_timings(&c->mode);
+
+	if (drmModeSetCrtc(drm_fd, c->crtc, fb_id, 0, 0,
+			   &c->id, 1, &c->mode)) {
+		fprintf(stderr, "failed to set mode (%dx%d@%dHz): %s\n",
+			width, height, c->mode.vrefresh,
+			strerror(errno));
+	}
+}
+
+static void
+set_stereo_mode(struct connector *c)
+{
+	int i;
+
+	for (i = 0; i < c->connector->count_modes; i++) {
+		c->mode = c->connector->modes[i];
+
+		if (!c->mode_valid)
+			continue;
+
+		if (!(c->mode.flags & DRMTEST_MODE_FLAG_3D_MASK))
+			continue;
+
+		do_set_stereo_mode(c);
+
+		/*
+		 * The mode may have been adjusted for this format,
+		 * reset it to its origin timings
+		 */
+		c->mode = c->connector->modes[i];
+
+		if (qr_code) {
+			set_single();
+			pause();
+		} else if (sleep_between_modes)
+			sleep(sleep_between_modes);
+	}
 
 	drmModeFreeEncoder(c->encoder);
 	drmModeFreeConnector(c->connector);
@@ -458,12 +656,29 @@ int update_display(void)
 		}
 	}
 
+	if (test_stereo_modes) {
+		for (c = 0; c < resources->count_connectors; c++) {
+			struct connector *connector = &connectors[c];
+
+			connector->id = resources->connectors[c];
+
+			connector_find_preferred_mode(connector->id,
+						      -1UL,
+						      specified_mode_num,
+						      connector);
+			if (!connector->mode_valid)
+				continue;
+
+			set_stereo_mode(connector);
+		}
+	}
+
 	free(connectors);
 	drmModeFreeResources(resources);
 	return 1;
 }
 
-static char optstr[] = "hiaf:s:d:p:mrto:";
+static char optstr[] = "3hiaf:s:d:p:mrto:";
 
 static void __attribute__((noreturn)) usage(char *name)
 {
@@ -474,6 +689,7 @@ static void __attribute__((noreturn)) usage(char *name)
 	fprintf(stderr, "\t-d\t<depth>\tbit depth of scanout buffer\n");
 	fprintf(stderr, "\t-p\t<planew,h>,<crtcx,y>,<crtcw,h> test overlay plane\n");
 	fprintf(stderr, "\t-m\ttest the preferred mode\n");
+	fprintf(stderr, "\t-3\ttest all 3D modes\n");
 	fprintf(stderr, "\t-t\tuse a tiled framebuffer\n");
 	fprintf(stderr, "\t-r\tprint a QR code on the screen whose content is \"pass\" for the automatic test\n");
 	fprintf(stderr, "\t-o\t<id of the display>,<number of the mode>\tonly test specified mode on the specified display\n");
@@ -536,6 +752,9 @@ int main(int argc, char **argv)
 	opterr = 0;
 	while ((c = getopt(argc, argv, optstr)) != -1) {
 		switch (c) {
+		case '3':
+			test_stereo_modes = 1;
+			break;
 		case 'i':
 			opt_dump_info = true;
 			break;
@@ -594,10 +813,16 @@ int main(int argc, char **argv)
 		bpp = 32;
 
 	if (!test_all_modes && !force_mode && !test_preferred_mode &&
-	    specified_mode_num == -1)
+	    specified_mode_num == -1 && !test_stereo_modes)
 		test_all_modes = 1;
 
 	drm_fd = drm_open_any();
+
+	if (test_stereo_modes &&
+	    drmSetClientCap(drm_fd, DRM_CLIENT_CAP_STEREO_3D, 1) < 0) {
+		fprintf(stderr, "DRM_CLIENT_CAP_STEREO_3D failed\n");
+		goto out_close;
+	}
 
 	if (opt_dump_info) {
 		dump_info();
