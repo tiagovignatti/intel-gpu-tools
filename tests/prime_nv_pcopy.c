@@ -534,6 +534,7 @@ static int perform_copy(struct nouveau_bo *nvbo, const rect *dst,
 	uint32_t cpp = 1, exec = 0x00003000; /* QUERY|QUERY_SHORT|FORMAT */
 	uint32_t src_off = 0, dst_off = 0;
 	struct nouveau_pushbuf *push = npush;
+	int ret;
 
 	if (nvbi->config.nv50.tile_mode == tile_intel_y)
 		dbg("src is y-tiled\n");
@@ -591,9 +592,9 @@ static int perform_copy(struct nouveau_bo *nvbo, const rect *dst,
 	BEGIN_NVXX(push, SUBC_COPY(0x0300), 1);
 	PUSH_DATA (push, exec);
 
-	nouveau_pushbuf_kick(push, push->channel);
-	while (*query < query_counter) { usleep(1000); }
-	return 0;
+	ret = nouveau_pushbuf_kick(push, push->channel);
+	while (!ret && *query < query_counter) { usleep(1000); }
+	return ret;
 }
 
 static int check1_macro(uint32_t *p, uint32_t w, uint32_t h)
