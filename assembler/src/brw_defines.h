@@ -607,6 +607,7 @@
 #define BRW_OPCODE_LINE       89
 #define BRW_OPCODE_PLN        90
 #define BRW_OPCODE_MAD        91
+#define BRW_OPCODE_LRP        92
 #define BRW_OPCODE_NOP        126
 
 #define BRW_PREDICATE_NONE		      0
