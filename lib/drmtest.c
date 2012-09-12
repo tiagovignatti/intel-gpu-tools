@@ -1724,10 +1724,42 @@ struct type_name connector_type_names[] = {
 
 type_name_fn(connector_type)
 
+#define DRM_MODE_FOR_EACH_3D_FLAG(func, sep) \
+		func(DRM_MODE_FLAG_3D_FRAME_PACKING) sep \
+	        func(DRM_MODE_FLAG_3D_FIELD_ALTERNATIVE) sep \
+	        func(DRM_MODE_FLAG_3D_LINE_ALTERNATIVE) sep \
+	        func(DRM_MODE_FLAG_3D_SIDE_BY_SIDE_FULL) sep \
+	        func(DRM_MODE_FLAG_3D_L_DEPTH) sep \
+	        func(DRM_MODE_FLAG_3D_L_DEPTH_GFX_GFX_DEPTH) sep \
+	        func(DRM_MODE_FLAG_3D_TOP_AND_BOTTOM) sep \
+	        func(DRM_MODE_FLAG_3D_SIDE_BY_SIDE_HALF)
 
 void kmstest_dump_mode(drmModeModeInfo *mode)
 {
-	printf("  %s %d %d %d %d %d %d %d %d %d 0x%x 0x%x %d\n",
+	bool stereo_3d = mode->flags & DRMTEST_MODE_FLAG_3D_MASK;
+	char flags_str[32];
+
+#define PRINT_S(name) "%s"
+#define SEP_EMPTY
+#define PRINT_FLAG(flag, str)	\
+	mode->flags & DRM_MODE_FLAG_3D_ ## flag ? " "str : ""
+
+	snprintf(flags_str, sizeof(flags_str), " (3D:"
+		 DRM_MODE_FOR_EACH_3D_FLAG(PRINT_S, SEP_EMPTY) ")",
+		 PRINT_FLAG(FRAME_PACKING, "FP"),
+		 PRINT_FLAG(FIELD_ALTERNATIVE, "FA"),
+		 PRINT_FLAG(LINE_ALTERNATIVE, "LA"),
+		 PRINT_FLAG(SIDE_BY_SIDE_FULL, "SBSF"),
+		 PRINT_FLAG(L_DEPTH, "LD"),
+		 PRINT_FLAG(L_DEPTH_GFX_GFX_DEPTH, "LDGFX"),
+		 PRINT_FLAG(TOP_AND_BOTTOM, "TB"),
+		 PRINT_FLAG(SIDE_BY_SIDE_HALF, "SBSH"));
+
+#undef PRINT_S
+#undef SEP_EMPTY
+#undef PRINT_FLAG
+
+	printf("  %s %d %d %d %d %d %d %d %d %d 0x%x 0x%x %d%s\n",
 	       mode->name,
 	       mode->vrefresh,
 	       mode->hdisplay,
@@ -1740,7 +1772,8 @@ void kmstest_dump_mode(drmModeModeInfo *mode)
 	       mode->vtotal,
 	       mode->flags,
 	       mode->type,
-	       mode->clock);
+	       mode->clock,
+	       stereo_3d ? flags_str : "");
 	fflush(stdout);
 }
 

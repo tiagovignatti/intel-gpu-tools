@@ -288,6 +288,15 @@ bool igt_run_in_simulation(void);
  */
 void igt_skip_on_simulation(void);
 
+#define DRMTEST_MODE_FLAG_3D_MASK   (DRM_MODE_FLAG_3D_FRAME_PACKING         | \
+				     DRM_MODE_FLAG_3D_FIELD_ALTERNATIVE     | \
+				     DRM_MODE_FLAG_3D_LINE_ALTERNATIVE      | \
+				     DRM_MODE_FLAG_3D_SIDE_BY_SIDE_FULL     | \
+				     DRM_MODE_FLAG_3D_L_DEPTH               | \
+				     DRM_MODE_FLAG_3D_L_DEPTH_GFX_GFX_DEPTH | \
+				     DRM_MODE_FLAG_3D_TOP_AND_BOTTOM        | \
+				     DRM_MODE_FLAG_3D_SIDE_BY_SIDE_HALF)
+
 /* helpers based upon the libdrm buffer manager */
 void igt_init_aperture_trashers(drm_intel_bufmgr *bufmgr);
 void igt_trash_aperture(void);
