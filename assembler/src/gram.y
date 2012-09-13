@@ -118,7 +118,7 @@ void set_direct_src_operand(struct src_operand *src, struct direct_reg *reg,
 %token <integer> SEND NOP JMPI IF IFF WHILE ELSE BREAK CONT HALT MSAVE
 %token <integer> PUSH MREST POP WAIT DO ENDIF ILLEGAL
 %token <integer> MATH_INST
-%token <integer> MAD LRP
+%token <integer> MAD LRP BFE BFI2
 
 %token NULL_TOKEN MATH SAMPLER GATEWAY READ WRITE URB THREAD_SPAWNER VME DATA_PORT
 
@@ -493,7 +493,7 @@ binaryaccinstruction:
 binaryaccop:	AVG | ADD | SEL | AND | OR | XOR | SHR | SHL | ASR | CMP | CMPN | PLN
 ;
 
-trinaryop:	MAD | LRP
+trinaryop:	MAD | LRP | BFE | BFI2
 ;
 
 trinaryinstruction:
