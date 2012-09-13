@@ -819,11 +819,13 @@ static void ricochet(int tiled, int sprite_w, int sprite_h,
 
 			// Move the sprite on the screen and flip
 			// the surface if the index has changed
+			// NB: sprite_w and sprite_h must be 16.16 fixed point, herego << 16
 			if (drmModeSetPlane(gfx_fd, sprite_plane_id, curr_connector.crtc,
 					    sprite_fb_id[sprite_index], plane_flags,
 					    sprite_x, sprite_y,
 					    out_w, out_h,
-					    0, 0, sprite_w, sprite_h))
+					    0, 0,
+					    sprite_w << 16, sprite_h << 16))
 				printf("Failed to enable sprite plane: %s\n", strerror(errno));
 
 			// Check if it's time to move the sprite surface
