@@ -53,18 +53,17 @@
 
 #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
 
-struct type_name
-{
+struct type_name {
 	int                 type;
 	const char          *name;
 };
 
 #define type_name_fn(res) \
-	static const char * res##_str(int type) {			\
+	static const char * res##_str(int type) {		\
 		unsigned int i;					\
 		for (i = 0; i < ARRAY_SIZE(res##_names); i++) { \
 			if (res##_names[i].type == type)	\
-			return res##_names[i].name;	\
+			return res##_names[i].name;		\
 		}						\
 		return "(invalid)";				\
 	}
@@ -76,46 +75,42 @@ struct type_name encoder_type_names[] = {
 	{ DRM_MODE_ENCODER_LVDS, "LVDS" },
 	{ DRM_MODE_ENCODER_TVDAC, "TVDAC" },
 };
-
 type_name_fn(encoder_type)
 
-	struct type_name connector_status_names[] = {
-		{ DRM_MODE_CONNECTED, "connected" },
-		{ DRM_MODE_DISCONNECTED, "disconnected" },
-		{ DRM_MODE_UNKNOWNCONNECTION, "unknown" },
-	};
-
+struct type_name connector_status_names[] = {
+	{ DRM_MODE_CONNECTED, "connected" },
+	{ DRM_MODE_DISCONNECTED, "disconnected" },
+	{ DRM_MODE_UNKNOWNCONNECTION, "unknown" },
+};
 type_name_fn(connector_status)
 
-	struct type_name connector_type_names[] = {
-		{ DRM_MODE_CONNECTOR_Unknown, "unknown" },
-		{ DRM_MODE_CONNECTOR_VGA, "VGA" },
-		{ DRM_MODE_CONNECTOR_DVII, "DVI-I" },
-		{ DRM_MODE_CONNECTOR_DVID, "DVI-D" },
-		{ DRM_MODE_CONNECTOR_DVIA, "DVI-A" },
-		{ DRM_MODE_CONNECTOR_Composite, "composite" },
-		{ DRM_MODE_CONNECTOR_SVIDEO, "s-video" },
-		{ DRM_MODE_CONNECTOR_LVDS, "LVDS" },
-		{ DRM_MODE_CONNECTOR_Component, "component" },
-		{ DRM_MODE_CONNECTOR_9PinDIN, "9-pin DIN" },
-		{ DRM_MODE_CONNECTOR_DisplayPort, "DisplayPort" },
-		{ DRM_MODE_CONNECTOR_HDMIA, "HDMI-A" },
-		{ DRM_MODE_CONNECTOR_HDMIB, "HDMI-B" },
-		{ DRM_MODE_CONNECTOR_TV, "TV" },
-		{ DRM_MODE_CONNECTOR_eDP, "Embedded DisplayPort" },
-	};
-
+struct type_name connector_type_names[] = {
+	{ DRM_MODE_CONNECTOR_Unknown, "unknown" },
+	{ DRM_MODE_CONNECTOR_VGA, "VGA" },
+	{ DRM_MODE_CONNECTOR_DVII, "DVI-I" },
+	{ DRM_MODE_CONNECTOR_DVID, "DVI-D" },
+	{ DRM_MODE_CONNECTOR_DVIA, "DVI-A" },
+	{ DRM_MODE_CONNECTOR_Composite, "composite" },
+	{ DRM_MODE_CONNECTOR_SVIDEO, "s-video" },
+	{ DRM_MODE_CONNECTOR_LVDS, "LVDS" },
+	{ DRM_MODE_CONNECTOR_Component, "component" },
+	{ DRM_MODE_CONNECTOR_9PinDIN, "9-pin DIN" },
+	{ DRM_MODE_CONNECTOR_DisplayPort, "DisplayPort" },
+	{ DRM_MODE_CONNECTOR_HDMIA, "HDMI-A" },
+	{ DRM_MODE_CONNECTOR_HDMIB, "HDMI-B" },
+	{ DRM_MODE_CONNECTOR_TV, "TV" },
+	{ DRM_MODE_CONNECTOR_eDP, "Embedded DisplayPort" },
+};
 type_name_fn(connector_type)
 
-	/*
-	 * Mode setting with the kernel interfaces is a bit of a chore.
-	 * First you have to find the connector in question and make sure the
-	 * requested mode is available.
-	 * Then you need to find the encoder attached to that connector so you
-	 * can bind it with a free crtc.
-	 */
-	struct connector
-{
+/*
+ * Mode setting with the kernel interfaces is a bit of a chore.
+ * First you have to find the connector in question and make sure the
+ * requested mode is available.
+ * Then you need to find the encoder attached to that connector so you
+ * can bind it with a free crtc.
+ */
+struct connector {
 	uint32_t            id;
 	int                 mode_valid;
 	drmModeModeInfo     mode;
@@ -125,28 +120,25 @@ type_name_fn(connector_type)
 	int                 pipe;
 };
 
-static void dump_mode(
-		drmModeModeInfo             *mode)
+static void dump_mode(drmModeModeInfo *mode)
 {
 	printf("  %s %d %d %d %d %d %d %d %d %d 0x%x 0x%x %d\n",
-			mode->name,
-			mode->vrefresh,
-			mode->hdisplay,
-			mode->hsync_start,
-			mode->hsync_end,
-			mode->htotal,
-			mode->vdisplay,
-			mode->vsync_start,
-			mode->vsync_end,
-			mode->vtotal,
-			mode->flags,
-			mode->type,
-			mode->clock);
+		mode->name,
+		mode->vrefresh,
+		mode->hdisplay,
+		mode->hsync_start,
+		mode->hsync_end,
+		mode->htotal,
+		mode->vdisplay,
+		mode->vsync_start,
+		mode->vsync_end,
+		mode->vtotal,
+		mode->flags,
+		mode->type,
+		mode->clock);
 }
 
-static void dump_connectors(
-		int                         gfx_fd,
-		drmModeRes                  *resources)
+static void dump_connectors(int gfx_fd, drmModeRes *resources)
 {
 	int i, j;
 
@@ -163,19 +155,18 @@ static void dump_connectors(
 		}
 
 		printf("%d\t%d\t%s\t%s\t%dx%d\t\t%d\n",
-				connector->connector_id,
-				connector->encoder_id,
-				connector_status_str(connector->connection),
-				connector_type_str(connector->connector_type),
-				connector->mmWidth, connector->mmHeight,
-				connector->count_modes);
+			connector->connector_id,
+			connector->encoder_id,
+			connector_status_str(connector->connection),
+			connector_type_str(connector->connector_type),
+			connector->mmWidth, connector->mmHeight,
+			connector->count_modes);
 
 		if (!connector->count_modes)
 			continue;
 
 		printf("  modes:\n");
-		printf("  name refresh (Hz) hdisp hss hse htot vdisp "
-				"vss vse vtot flags type clock\n");
+		printf("  name refresh (Hz) hdisp hss hse htot vdisp vss vse vtot flags type clock\n");
 		for (j = 0; j < connector->count_modes; j++)
 			dump_mode(&connector->modes[j]);
 
@@ -184,9 +175,7 @@ static void dump_connectors(
 	printf("\n");
 }
 
-static void dump_crtcs(
-		int                         gfx_fd,
-		drmModeRes                  *resources)
+static void dump_crtcs(int gfx_fd, drmModeRes *resources)
 {
 	int i;
 
@@ -198,15 +187,15 @@ static void dump_crtcs(
 		crtc = drmModeGetCrtc(gfx_fd, resources->crtcs[i]);
 		if (!crtc) {
 			printf("could not get crtc %i: %s\n",
-					resources->crtcs[i],
-					strerror(errno));
+				resources->crtcs[i],
+				strerror(errno));
 			continue;
 		}
 		printf("%d\t%d\t(%d,%d)\t(%dx%d)\n",
-				crtc->crtc_id,
-				crtc->buffer_id,
-				crtc->x, crtc->y,
-				crtc->width, crtc->height);
+			crtc->crtc_id,
+			crtc->buffer_id,
+			crtc->x, crtc->y,
+			crtc->width, crtc->height);
 		dump_mode(&crtc->mode);
 
 		drmModeFreeCrtc(crtc);
@@ -214,9 +203,7 @@ static void dump_crtcs(
 	printf("\n");
 }
 
-static void dump_planes(
-		int                         gfx_fd,
-		drmModeRes                  *resources)
+static void dump_planes(int gfx_fd, drmModeRes *resources)
 {
 	drmModePlaneRes             *plane_resources;
 	drmModePlane                *ovr;
@@ -225,7 +212,7 @@ static void dump_planes(
 	plane_resources = drmModeGetPlaneResources(gfx_fd);
 	if (!plane_resources) {
 		printf("drmModeGetPlaneResources failed: %s\n",
-				strerror(errno));
+			strerror(errno));
 		return;
 	}
 
@@ -235,14 +222,14 @@ static void dump_planes(
 		ovr = drmModeGetPlane(gfx_fd, plane_resources->planes[i]);
 		if (!ovr) {
 			printf("drmModeGetPlane failed: %s\n",
-					strerror(errno));
+				strerror(errno));
 			continue;
 		}
 
 		printf("%d\t%d\t%d\t%d,%d\t\t%d,%d\t%d\n",
-				ovr->plane_id, ovr->crtc_id, ovr->fb_id,
-				ovr->crtc_x, ovr->crtc_y, ovr->x, ovr->y,
-				ovr->gamma_size);
+			ovr->plane_id, ovr->crtc_id, ovr->fb_id,
+			ovr->crtc_x, ovr->crtc_y, ovr->x, ovr->y,
+			ovr->gamma_size);
 
 		drmModeFreePlane(ovr);
 	}
@@ -251,10 +238,9 @@ static void dump_planes(
 	return;
 }
 
-static void connector_find_preferred_mode(
-		int                     gfx_fd,
-		drmModeRes              *gfx_resources,
-		struct connector        *c)
+static void connector_find_preferred_mode(int gfx_fd,
+					  drmModeRes *gfx_resources,
+					  struct connector *c)
 {
 	drmModeConnector *connector;
 	drmModeEncoder *encoder = NULL;
@@ -265,8 +251,8 @@ static void connector_find_preferred_mode(
 	connector = drmModeGetConnector(gfx_fd, c->id);
 	if (!connector) {
 		printf("could not get connector %d: %s\n",
-				c->id,
-				strerror(errno));
+			c->id,
+			strerror(errno));
 		drmModeFreeConnector(connector);
 		return;
 	}
@@ -278,15 +264,15 @@ static void connector_find_preferred_mode(
 
 	if (!connector->count_modes) {
 		printf("connector %d has no modes\n",
-				c->id);
+			c->id);
 		drmModeFreeConnector(connector);
 		return;
 	}
 
 	if (connector->connector_id != c->id) {
 		printf("connector id doesn't match (%d != %d)\n",
-				connector->connector_id,
-				c->id);
+			connector->connector_id,
+			c->id);
 		drmModeFreeConnector(connector);
 		return;
 	}
@@ -306,7 +292,7 @@ static void connector_find_preferred_mode(
 			c->mode_valid = 1;
 		} else {
 			printf("failed to find any modes on connector %d\n",
-					c->id);
+				c->id);
 			return;
 		}
 	}
@@ -317,8 +303,8 @@ static void connector_find_preferred_mode(
 
 		if (!encoder) {
 			printf("could not get encoder %i: %s\n",
-					gfx_resources->encoders[i],
-					strerror(errno));
+				gfx_resources->encoders[i],
+				strerror(errno));
 			drmModeFreeEncoder(encoder);
 			continue;
 		}
@@ -357,7 +343,7 @@ static int connector_find_plane(int gfx_fd, struct connector *c)
 	plane_resources = drmModeGetPlaneResources(gfx_fd);
 	if (!plane_resources) {
 		printf("drmModeGetPlaneResources failed: %s\n",
-				strerror(errno));
+			strerror(errno));
 		return 0;
 	}
 
@@ -365,7 +351,7 @@ static int connector_find_plane(int gfx_fd, struct connector *c)
 		ovr = drmModeGetPlane(gfx_fd, plane_resources->planes[i]);
 		if (!ovr) {
 			printf("drmModeGetPlane failed: %s\n",
-					strerror(errno));
+				strerror(errno));
 			continue;
 		}
 
@@ -380,14 +366,9 @@ static int connector_find_plane(int gfx_fd, struct connector *c)
 	return id;
 }
 
-static int prepare_primary_surface(
-		int                     fd,
-		int                     prim_width,
-		int                     prim_height,
-		uint32_t                *prim_handle,
-		uint32_t                *prim_stride,
-		uint32_t                *prim_size,
-		int                     tiled)
+static int prepare_primary_surface(int fd, int prim_width, int prim_height,
+				   uint32_t *prim_handle, uint32_t *prim_stride,
+				   uint32_t *prim_size, int tiled)
 {
 	uint32_t                        bytes_per_pixel = sizeof(uint32_t);
 	uint32_t                        *prim_fb_ptr;
@@ -395,7 +376,7 @@ static int prepare_primary_surface(
 
 	if (bytes_per_pixel != sizeof(uint32_t)) {
 		printf("Bad bytes_per_pixel for primary surface: %d\n",
-				bytes_per_pixel);
+			bytes_per_pixel);
 		return -EINVAL;
 	}
 
@@ -431,14 +412,12 @@ static int prepare_primary_surface(
 		set_tiling.stride = *prim_stride;
 		if (ioctl(fd, DRM_IOCTL_I915_GEM_SET_TILING, &set_tiling)) {
 			printf("Set tiling failed: %s (stride=%d, size=%d)\n",
-					strerror(errno), *prim_stride, *prim_size);
+				strerror(errno), *prim_stride, *prim_size);
 			return -1;
 		}
 	}
 
-	prim_fb_ptr = gem_mmap(fd,
-			*prim_handle, *prim_size,
-			PROT_READ | PROT_WRITE);
+	prim_fb_ptr = gem_mmap(fd, *prim_handle, *prim_size, PROT_READ | PROT_WRITE);
 
 	if (prim_fb_ptr != NULL) {
 		// Write primary surface with gray background
@@ -449,12 +428,8 @@ static int prepare_primary_surface(
 	return 0;
 }
 
-static void fill_sprite(
-		int                             sprite_width,
-		int                             sprite_height,
-		int                             sprite_stride,
-		int                             sprite_index,
-		void                            *sprite_fb_ptr)
+static void fill_sprite(int sprite_width, int sprite_height, int sprite_stride,
+			int sprite_index, void *sprite_fb_ptr)
 {
 	__u32                           *pLinePat0,
 					*pLinePat1,
@@ -491,15 +466,10 @@ static void fill_sprite(
 	return;
 }
 
-static int prepare_sprite_surfaces(
-		int                     fd,
-		int                     sprite_width,
-		int                     sprite_height,
-		uint32_t                num_surfaces,
-		uint32_t                *sprite_handles,
-		uint32_t                *sprite_stride,
-		uint32_t                *sprite_size,
-		int                     tiled)
+static int prepare_sprite_surfaces(int fd, int sprite_width, int sprite_height,
+				   uint32_t num_surfaces, uint32_t *sprite_handles,
+				   uint32_t *sprite_stride, uint32_t *sprite_size,
+				   int tiled)
 {
 	uint32_t                        bytes_per_pixel = sizeof(uint32_t);
 	uint32_t                        *sprite_fb_ptr;
@@ -557,11 +527,7 @@ static int prepare_sprite_surfaces(
 
 		if (sprite_fb_ptr != NULL) {
 			// Fill with checkerboard pattern
-			fill_sprite(
-					sprite_width,
-					sprite_height,
-					*sprite_stride,
-					i, sprite_fb_ptr);
+			fill_sprite(sprite_width, sprite_height, *sprite_stride, i, sprite_fb_ptr);
 
 			munmap(sprite_fb_ptr, *sprite_size);
 		} else {
@@ -576,13 +542,8 @@ static int prepare_sprite_surfaces(
 	return 0;
 }
 
-static void ricochet(
-		int                             tiled,
-		int                             sprite_w,
-		int                             sprite_h,
-		int                             out_w,
-		int                             out_h,
-		int                             dump_info)
+static void ricochet(int tiled, int sprite_w, int sprite_h,
+		     int out_w, int out_h, int dump_info)
 {
 	int                                 ret;
 	int                                 gfx_fd;
@@ -657,8 +618,7 @@ static void ricochet(
 	curr_term.c_cc[VTIME] = 0 ;     // Return immediately, even if
 	// nothing has been entered.
 	if (tcsetattr( 0, TCSANOW, &curr_term) != 0) {
-		printf("tcgetattr failure: %s\n",
-				strerror(errno));
+		printf("tcgetattr failure: %s\n", strerror(errno));
 		return;
 	}
 
@@ -697,19 +657,13 @@ static void ricochet(
 				tiled);
 		if (ret != 0) {
 			printf("Failed to add primary fb (%dx%d): %s\n",
-					prim_width, prim_height, strerror(errno));
+				prim_width, prim_height, strerror(errno));
 			goto out;
 		}
 
 		// Add the primary surface framebuffer
-		ret = drmModeAddFB(
-				gfx_fd,
-				prim_width,
-				prim_height,
-				24, 32,
-				prim_stride,
-				prim_handle,
-				&prim_fb_id);
+		ret = drmModeAddFB(gfx_fd, prim_width, prim_height, 24, 32,
+				   prim_stride, prim_handle, &prim_fb_id);
 		gem_close(gfx_fd, prim_handle);
 
 		if (ret != 0) {
@@ -719,18 +673,13 @@ static void ricochet(
 		}
 
 		// Allocate and fill sprite surfaces
-		ret = prepare_sprite_surfaces(
-				gfx_fd,
-				sprite_w,
-				sprite_h,
-				num_surfaces,
-				&sprite_handles[0],
-				&sprite_stride,
-				&sprite_size,
-				tiled);
+		ret = prepare_sprite_surfaces(gfx_fd, sprite_w, sprite_h, num_surfaces,
+					      &sprite_handles[0],
+					      &sprite_stride, &sprite_size,
+					      tiled);
 		if (ret != 0) {
 			printf("Preparation of sprite surfaces failed %dx%d\n",
-					sprite_w, sprite_h);
+				sprite_w, sprite_h);
 			goto out;
 		}
 
@@ -746,16 +695,15 @@ static void ricochet(
 			pitches[3] = sprite_stride;
 			memset(offsets, 0, sizeof(offsets));
 
-			ret = drmModeAddFB2(
-					gfx_fd,
-					sprite_w, sprite_h, DRM_FORMAT_XRGB8888,
-					handles, pitches, offsets, &sprite_fb_id[sprite_index],
-					plane_flags);
+			ret = drmModeAddFB2(gfx_fd, sprite_w, sprite_h,
+					    DRM_FORMAT_XRGB8888,
+					    handles, pitches, offsets,
+					    &sprite_fb_id[sprite_index], plane_flags);
 			gem_close(gfx_fd, sprite_handles[sprite_index]);
 
 			if (ret) {
 				printf("Failed to add sprite fb (%dx%d): %s\n",
-						sprite_w, sprite_h, strerror(errno));
+				       sprite_w, sprite_h, strerror(errno));
 
 				sprite_index--;
 				while (sprite_index >= 0) {
@@ -768,51 +716,48 @@ static void ricochet(
 
 		if (dump_info != 0) {
 			printf("Displayed Mode Connector struct:\n"
-					"    .id = %d\n"
-					"    .mode_valid = %d\n"
-					"    .crtc = %d\n"
-					"    .pipe = %d\n"
-					"    drmModeModeInfo ...\n"
-					"        .name = %s\n"
-					"        .type = %d\n"
-					"        .flags = %08x\n"
-					"    drmModeEncoder ...\n"
-					"        .encoder_id = %d\n"
-					"        .encoder_type = %d (%s)\n"
-					"        .crtc_id = %d\n"
-					"        .possible_crtcs = %d\n"
-					"        .possible_clones = %d\n"
-					"    drmModeConnector ...\n"
-					"        .connector_id = %d\n"
-					"        .encoder_id = %d\n"
-					"        .connector_type = %d (%s)\n"
-					"        .connector_type_id = %d\n\n",
-					curr_connector.id,
-					curr_connector.mode_valid,
-					curr_connector.crtc,
-					curr_connector.pipe,
-					curr_connector.mode.name,
-					curr_connector.mode.type,
-					curr_connector.mode.flags,
-					curr_connector.encoder->encoder_id,
-					curr_connector.encoder->encoder_type,
-					encoder_type_str(curr_connector.encoder->encoder_type),
-					curr_connector.encoder->crtc_id,
-					curr_connector.encoder->possible_crtcs,
-					curr_connector.encoder->possible_clones,
-					curr_connector.connector->connector_id,
-					curr_connector.connector->encoder_id,
-					curr_connector.connector->connector_type,
-					connector_type_str(curr_connector.connector->connector_type),
-					curr_connector.connector->connector_type_id);
+				"    .id = %d\n"
+				"    .mode_valid = %d\n"
+				"    .crtc = %d\n"
+				"    .pipe = %d\n"
+				"    drmModeModeInfo ...\n"
+				"        .name = %s\n"
+				"        .type = %d\n"
+				"        .flags = %08x\n"
+				"    drmModeEncoder ...\n"
+				"        .encoder_id = %d\n"
+				"        .encoder_type = %d (%s)\n"
+				"        .crtc_id = %d\n"
+				"        .possible_crtcs = %d\n"
+				"        .possible_clones = %d\n"
+				"    drmModeConnector ...\n"
+				"        .connector_id = %d\n"
+				"        .encoder_id = %d\n"
+				"        .connector_type = %d (%s)\n"
+				"        .connector_type_id = %d\n\n",
+				curr_connector.id,
+				curr_connector.mode_valid,
+				curr_connector.crtc,
+				curr_connector.pipe,
+				curr_connector.mode.name,
+				curr_connector.mode.type,
+				curr_connector.mode.flags,
+				curr_connector.encoder->encoder_id,
+				curr_connector.encoder->encoder_type,
+				encoder_type_str(curr_connector.encoder->encoder_type),
+				curr_connector.encoder->crtc_id,
+				curr_connector.encoder->possible_crtcs,
+				curr_connector.encoder->possible_clones,
+				curr_connector.connector->connector_id,
+				curr_connector.connector->encoder_id,
+				curr_connector.connector->connector_type,
+				connector_type_str(curr_connector.connector->connector_type),
+				curr_connector.connector->connector_type_id);
 
 			printf("Sprite surface dimensions = %dx%d\n"
-					"Sprite output dimensions = %dx%d\n"
-					"Press any key to continue >\n",
-					sprite_w,
-					sprite_h,
-					out_w,
-					out_h);
+				"Sprite output dimensions = %dx%d\n"
+				"Press any key to continue >\n",
+				sprite_w, sprite_h, out_w, out_h);
 
 			// Wait for a key-press
 			while( read(0, &key, 1) == 0);
@@ -821,19 +766,12 @@ static void ricochet(
 		}
 
 		// Set up the primary display mode
-		ret = drmModeSetCrtc(
-				gfx_fd,
-				curr_connector.crtc,
-				prim_fb_id,
-				0, 0,
-				&curr_connector.id,
-				1,
-				&curr_connector.mode);
-		if (ret != 0)
-		{
+		ret = drmModeSetCrtc(gfx_fd, curr_connector.crtc, prim_fb_id,
+				     0, 0, &curr_connector.id, 1, &curr_connector.mode);
+		if (ret != 0) {
 			printf("Failed to set mode (%dx%d@%dHz): %s\n",
-					prim_width, prim_height, curr_connector.mode.vrefresh,
-					strerror(errno));
+				prim_width, prim_height, curr_connector.mode.vrefresh,
+				strerror(errno));
 			continue;
 		}
 
@@ -842,8 +780,7 @@ static void ricochet(
 		set.min_value = 0;
 		set.max_value = 0;
 		set.flags = I915_SET_COLORKEY_NONE;
-		ret = drmCommandWrite(gfx_fd, DRM_I915_SET_SPRITE_COLORKEY, &set,
-				sizeof(set));
+		ret = drmCommandWrite(gfx_fd, DRM_I915_SET_SPRITE_COLORKEY, &set, sizeof(set));
 		assert(ret == 0);
 
 		// Set up sprite output dimensions, initial position, etc.
@@ -868,15 +805,13 @@ static void ricochet(
 		// Bounce sprite off the walls
 		while (keep_moving) {
 			// Obtain system time in usec.
-			if (gettimeofday( &stTimeVal, NULL ) != 0) {
-				printf("gettimeofday error: %s\n",
-						strerror(errno));
-			} else {
+			if (gettimeofday( &stTimeVal, NULL ) != 0)
+				printf("gettimeofday error: %s\n", strerror(errno));
+			else
 				currTime = ((long long)stTimeVal.tv_sec * 1000000) + stTimeVal.tv_usec;
-			}
 
 			// Check if it's time to flip the sprite surface
-			if (currTime - prevFlipTime > deltaFlipTime)  {
+			if (currTime - prevFlipTime > deltaFlipTime) {
 				sprite_index = (sprite_index + 1) % num_surfaces;
 
 				prevFlipTime = currTime;
@@ -884,19 +819,12 @@ static void ricochet(
 
 			// Move the sprite on the screen and flip
 			// the surface if the index has changed
-			if (drmModeSetPlane(
-						gfx_fd,
-						sprite_plane_id,
-						curr_connector.crtc,
-						sprite_fb_id[sprite_index],
-						plane_flags,
-						sprite_x, sprite_y,
-						out_w, out_h,
-						0, 0,
-						sprite_w, sprite_h)) {
-				printf("Failed to enable sprite plane: %s\n",
-						strerror(errno));
-			}
+			if (drmModeSetPlane(gfx_fd, sprite_plane_id, curr_connector.crtc,
+					    sprite_fb_id[sprite_index], plane_flags,
+					    sprite_x, sprite_y,
+					    out_w, out_h,
+					    0, 0, sprite_w, sprite_h))
+				printf("Failed to enable sprite plane: %s\n", strerror(errno));
 
 			// Check if it's time to move the sprite surface
 			if (currTime - prevMoveTime > deltaMoveTime)  {
@@ -928,40 +856,38 @@ static void ricochet(
 			// Fetch a key from input (non-blocking)
 			if (read(0, &key, 1) == 1) {
 				switch (key) {
-					case 'q':       // Kill the program
-					case 'Q':
-						goto out;
-						break;
-					case 's':       // Slow down sprite movement;
-						deltaMoveTime = (deltaMoveTime * 100) / 90;
-						if (deltaMoveTime > 800000) {
-							deltaMoveTime = 800000;
-						}
-						break;
-					case 'S':       // Speed up sprite movement;
-						deltaMoveTime = (deltaMoveTime * 100) / 110;
-						if (deltaMoveTime < 2000) {
-							deltaMoveTime = 2000;
-						}
-						break;
-					case 'f':       // Slow down sprite flipping;
-						deltaFlipTime = (deltaFlipTime * 100) / 90;
-						if (deltaFlipTime > 1000000) {
-							deltaFlipTime = 1000000;
-						}
-						break;
-					case 'F':       // Speed up sprite flipping;
-						deltaFlipTime = (deltaFlipTime * 100) / 110;
-						if (deltaFlipTime < 20000) {
-							deltaFlipTime = 20000;
-						}
-						break;
-					case 'n':       // Next connector
-					case 'N':
-						keep_moving = 0;
-						break;
-					default:
-						break;
+				case 'q':       // Kill the program
+				case 'Q':
+					goto out;
+					break;
+				case 's':       // Slow down sprite movement;
+					deltaMoveTime = (deltaMoveTime * 100) / 90;
+					if (deltaMoveTime > 800000) {
+						deltaMoveTime = 800000;
+					}
+					break;
+				case 'S':       // Speed up sprite movement;
+					deltaMoveTime = (deltaMoveTime * 100) / 110;
+					if (deltaMoveTime < 2000) {
+						deltaMoveTime = 2000;
+					}
+					break;
+				case 'f':       // Slow down sprite flipping;
+					deltaFlipTime = (deltaFlipTime * 100) / 90;
+					if (deltaFlipTime > 1000000)
+						deltaFlipTime = 1000000;
+					break;
+				case 'F':       // Speed up sprite flipping;
+					deltaFlipTime = (deltaFlipTime * 100) / 110;
+					if (deltaFlipTime < 20000)
+						deltaFlipTime = 20000;
+					break;
+				case 'n':       // Next connector
+				case 'N':
+					keep_moving = 0;
+					break;
+				default:
+					break;
 				}
 
 				// Purge unread characters
@@ -980,8 +906,7 @@ out:
 	tcflush(0, TCIFLUSH);
 	// Restore previous terminal settings
 	if (tcsetattr( 0, TCSANOW, &orig_term) != 0) {
-		printf("tcgetattr failure: %s\n",
-				strerror(errno));
+		printf("tcgetattr failure: %s\n", strerror(errno));
 		return;
 	}
 
@@ -991,18 +916,18 @@ out:
 static void usage(char *name)
 {
 	printf("usage: %s -s <plane width>x<plane height> [-dhto]\n"
-			"\t-d\t[optional] dump mode information\n"
-			"\t-h\t[optional] output help message\n"
-			"\t-t\t[optional] enable tiling\n"
-			"\t-o\t[optional] <output rect width>x<output rect height>\n\n"
-			"Keyboard control for sprite movement and flip rate ...\n"
-			"\t'q' or 'Q' - Quit the program\n"
-			"\t'n' or 'N' - Switch to next display\n"
-			"\t's'        - Slow sprite movement\n"
-			"\t'S'        - Speed up sprite movement\n"
-			"\t'f'        - Slow sprite surface flipping\n"
-			"\t'F'        - Speed up sprite surface flipping\n",
-			name);
+		"\t-d\t[optional] dump mode information\n"
+		"\t-h\t[optional] output help message\n"
+		"\t-t\t[optional] enable tiling\n"
+		"\t-o\t[optional] <output rect width>x<output rect height>\n\n"
+		"Keyboard control for sprite movement and flip rate ...\n"
+		"\t'q' or 'Q' - Quit the program\n"
+		"\t'n' or 'N' - Switch to next display\n"
+		"\t's'        - Slow sprite movement\n"
+		"\t'S'        - Speed up sprite movement\n"
+		"\t'f'        - Slow sprite surface flipping\n"
+		"\t'F'        - Speed up sprite surface flipping\n",
+		name);
 }
 
 int main(int argc, char **argv)
@@ -1020,47 +945,38 @@ int main(int argc, char **argv)
 	opterr = 0;
 	while ((c = getopt(argc, argv, optstr)) != -1) {
 		switch (c) {
-			case 'd':               // Dump information
-				dump_info = 1;
-				break;
-			case 't':               // Tiling enable
-				enable_tiling = 1;
-				break;
-			case 's':               // Surface dimensions
-				if (sscanf(optarg, "%dx%d",
-							&plane_width, &plane_height) != 2)
-					usage(argv[0]);
-				test_overlay = 1;
-				break;
-			case 'o':               // Output dimensions
-				if (sscanf(optarg, "%dx%d",
-							&out_width, &out_height) != 2)
-					usage(argv[0]);
-				break;
-			default:
-				printf("unknown option %c\n", c);
-				/* fall through */
-			case 'h':               // Help!
+		case 'd':               // Dump information
+			dump_info = 1;
+			break;
+		case 't':               // Tiling enable
+			enable_tiling = 1;
+			break;
+		case 's':               // Surface dimensions
+			if (sscanf(optarg, "%dx%d", &plane_width, &plane_height) != 2)
 				usage(argv[0]);
-				goto out;
+			test_overlay = 1;
+			break;
+		case 'o':               // Output dimensions
+			if (sscanf(optarg, "%dx%d", &out_width, &out_height) != 2)
+				usage(argv[0]);
+			break;
+		default:
+			printf("unknown option %c\n", c);
+			/* fall through */
+		case 'h':               // Help!
+			usage(argv[0]);
+			goto out;
 		}
 	}
 
 	if (test_overlay) {
-		if (out_width < (plane_width / 2)) {
+		if (out_width < (plane_width / 2))
 			out_width = plane_width;
-		}
 
-		if (out_height < (plane_height / 2)) {
+		if (out_height < (plane_height / 2))
 			out_height = plane_height;
-		}
 
-		ricochet(enable_tiling,
-				plane_width,
-				plane_height,
-				out_width,
-				out_height,
-				dump_info);
+		ricochet(enable_tiling, plane_width, plane_height, out_width, out_height, dump_info);
 	} else {
 		printf("Sprite dimensions are required:\n");
 		usage(argv[0]);
