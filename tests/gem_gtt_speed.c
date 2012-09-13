@@ -133,6 +133,16 @@ int main(int argc, char **argv)
 				gettimeofday(&end, NULL);
 				printf("Time to write %dk through a CPU map:		%7.3fµs\n",
 				       size/1024, elapsed(&start, &end, loop));
+
+				gettimeofday(&start, NULL);
+				for (loop = 0; loop < 1000; loop++) {
+					base = gem_mmap__cpu(fd, handle, size, PROT_READ | PROT_WRITE);
+					memset(base, 0, size);
+					munmap(base, size);
+				}
+				gettimeofday(&end, NULL);
+				printf("Time to clear %dk through a CPU map:		%7.3fµs\n",
+				       size/1024, elapsed(&start, &end, loop));
 			}
 
 			/* CPU pwrite */
@@ -198,6 +208,17 @@ int main(int argc, char **argv)
 		}
 		gettimeofday(&end, NULL);
 		printf("Time to write %dk through a GTT map:		%7.3fµs\n",
+		       size/1024, elapsed(&start, &end, loop));
+
+		/* mmap clear */
+		gettimeofday(&start, NULL);
+		for (loop = 0; loop < 1000; loop++) {
+			uint32_t *base = gem_mmap(fd, handle, size, PROT_READ | PROT_WRITE);
+			memset(base, 0, size);
+			munmap(base, size);
+		}
+		gettimeofday(&end, NULL);
+		printf("Time to clear %dk through a GTT map:		%7.3fµs\n",
 		       size/1024, elapsed(&start, &end, loop));
 
 		/* mmap read */
