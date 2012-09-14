@@ -115,6 +115,7 @@ void set_direct_src_operand(struct src_operand *src, struct direct_reg *reg,
 %token <integer> MOV FRC RNDU RNDD RNDE RNDZ NOT LZD
 %token <integer> MUL MAC MACH LINE SAD2 SADA2 DP4 DPH DP3 DP2
 %token <integer> AVG ADD SEL AND OR XOR SHR SHL ASR CMP CMPN PLN
+%token <integer> ADDC
 %token <integer> SEND NOP JMPI IF IFF WHILE ELSE BREAK CONT HALT MSAVE
 %token <integer> PUSH MREST POP WAIT DO ENDIF ILLEGAL
 %token <integer> MATH_INST
@@ -491,6 +492,7 @@ binaryaccinstruction:
 ;
 
 binaryaccop:	AVG | ADD | SEL | AND | OR | XOR | SHR | SHL | ASR | CMP | CMPN | PLN
+              | ADDC
 ;
 
 trinaryop:	MAD | LRP | BFE | BFI2

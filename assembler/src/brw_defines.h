@@ -599,6 +599,7 @@
 #define BRW_OPCODE_MAC        72
 #define BRW_OPCODE_MACH       73
 #define BRW_OPCODE_LZD        74
+#define BRW_OPCODE_ADDC       78
 #define BRW_OPCODE_SAD2       80
 #define BRW_OPCODE_SADA2      81
 #define BRW_OPCODE_DP4        84

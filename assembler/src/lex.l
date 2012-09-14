@@ -100,6 +100,7 @@ yylval.integer = BRW_CHANNEL_W;
 
 "avg" { yylval.integer = BRW_OPCODE_AVG; return AVG; }
 "add" { yylval.integer = BRW_OPCODE_ADD; return ADD; }
+"addc" { yylval.integer = BRW_OPCODE_ADDC; return ADDC; }
 "sel" { yylval.integer = BRW_OPCODE_SEL; return SEL; }
 "and" { yylval.integer = BRW_OPCODE_AND; return AND; }
 "or" { yylval.integer = BRW_OPCODE_OR; return OR; }
