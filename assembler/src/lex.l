@@ -84,6 +84,8 @@ yylval.integer = BRW_CHANNEL_W;
 "lzd" { yylval.integer = BRW_OPCODE_LZD; return LZD; }
 "f16to32" { yylval.integer = BRW_OPCODE_F16TO32; return F16TO32; }
 "f32to16" { yylval.integer = BRW_OPCODE_F32TO16; return F32TO16; }
+"fbh" { yylval.integer = BRW_OPCODE_FBH; return FBH; }
+"fbl" { yylval.integer = BRW_OPCODE_FBL; return FBL; }
 
 "mad" { yylval.integer = BRW_OPCODE_MAD; return MAD; }
 "lrp" { yylval.integer = BRW_OPCODE_LRP; return LRP; }
