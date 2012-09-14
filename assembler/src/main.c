@@ -300,7 +300,8 @@ int main(int argc, char **argv)
 	    entry->inst_offset = inst_offset;
 	    entry1 = entry->next;
 	    if (entry1 && entry1->islabel && is_entry_point(entry1->string)) {
-		while (((inst_offset+1) & 0x3) != 0) {
+		// insert empty instructions until (inst_offset+1) % 4 == 0
+		while (((inst_offset+1) % 4) != 0) {
 		    tmp_entry = calloc(sizeof(*tmp_entry), 1);
 		    entry->next = tmp_entry;
 		    tmp_entry->next = entry1;
