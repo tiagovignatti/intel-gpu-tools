@@ -100,6 +100,7 @@ yylval.integer = BRW_CHANNEL_W;
 "dp3" { yylval.integer = BRW_OPCODE_DP3; return DP3; }
 "dp2" { yylval.integer = BRW_OPCODE_DP2; return DP2; }
 
+"cbit" { yylval.integer = BRW_OPCODE_CBIT; return CBIT; }
 "avg" { yylval.integer = BRW_OPCODE_AVG; return AVG; }
 "add" { yylval.integer = BRW_OPCODE_ADD; return ADD; }
 "addc" { yylval.integer = BRW_OPCODE_ADDC; return ADDC; }
