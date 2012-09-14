@@ -116,47 +116,27 @@ static void free_register_table(void)
     }
 }
 
-char **entry_point_table = NULL;
-int entry_point_table_length = 0;
+struct entry_point_item {
+	char *str;
+	struct entry_point_item *next;
+} *entry_point_table;
 
-#define DEFAULTBUFSIZE 800
 static int read_entry_file(char *fn)
 {
 	FILE *entry_table_file;
-	char buf[DEFAULTBUFSIZE];
-	char *ptr;
-	int curr_table_length = 80;
-	if (!fn) {
+	char buf[2048];
+	struct entry_point_item **p = &entry_point_table;
+	if (!fn)
 		return 0;
-	}
-	if ((entry_point_table = 
-			malloc(curr_table_length*sizeof(char*))) == NULL) {
-		return 1;
-	}
-	
-	entry_table_file = fopen(fn, "r");
-	if (!entry_table_file) {
-		return 1;
-	}
-	
-	while (1) {
-		int size = DEFAULTBUFSIZE;
-		if((ptr = fgets(buf, size, entry_table_file))==NULL)
-		{
-			break;
-		}
-		buf[strlen(buf)-1] = '\0';
-		if(entry_point_table_length == curr_table_length)
-		{
-			if ((entry_point_table = realloc(entry_point_table, 
-					curr_table_length*2*sizeof(char*))) == NULL) {
-				return 1;
-			}
-			curr_table_length *= 2;
-		}
-		entry_point_table[entry_point_table_length] = strdup(buf);
-		entry_point_table_length ++;
-		
+	if ((entry_table_file = fopen(fn, "r")) == NULL)
+		return -1;
+	while (fgets(buf, sizeof(buf)-1, entry_table_file) != NULL) {
+		// drop the final char '\n'
+		if(buf[strlen(buf)-1] == '\n')
+			buf[strlen(buf)-1] = 0;
+		*p = calloc(1, sizeof(struct entry_point_item));
+		(*p)->str = strdup(buf);
+		p = &((*p)->next);
 	}
 	fclose(entry_table_file);
 	return 0;
@@ -164,13 +144,20 @@ static int read_entry_file(char *fn)
 
 static int is_entry_point(char *s)
 {
-	int i;
-	for (i = 0; i < entry_point_table_length; i++) {
-	    if (strcmp(entry_point_table[i], s) == 0) {
+	struct entry_point_item *p;
+	for (p = entry_point_table; p; p = p->next) {
+	    if (strcmp(p->str, s) == 0)
 		return 1;
-	    }
 	}
 	return 0;
+}
+
+static void free_entry_point_table(struct entry_point_item *p) {
+	if (p) {
+		free_entry_point_table(p->next);
+		free(p->str);
+		free(p);
+	}
 }
 
 static void
@@ -379,6 +366,7 @@ int main(int argc, char **argv)
 	if (binary_like_output)
 		fprintf(output, "};");
 
+	free_entry_point_table(entry_point_table);
 	free_register_table();
 	fflush (output);
 	if (ferror (output)) {
