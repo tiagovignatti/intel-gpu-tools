@@ -48,7 +48,7 @@ char *export_filename = NULL;
 const char const *binary_prepend = "static const char gen_eu_bytes[] = {\n";
 
 struct brw_program compiled_program;
-struct program_defaults program_defaults;
+struct program_defaults program_defaults = {.register_type = BRW_REGISTER_TYPE_F};
 
 
 #define HASHSZ 	37
@@ -270,8 +270,6 @@ int main(int argc, char **argv)
 			exit(1);
 		}
 	}
-
-	program_defaults.register_type = BRW_REGISTER_TYPE_F;
 
 	err = yyparse();
 
