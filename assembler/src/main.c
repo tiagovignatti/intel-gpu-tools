@@ -78,10 +78,10 @@ static void usage(void)
 
 static int hash(char *name)
 {
-    int ret = 0;
+    unsigned ret = 0;
     while(*name)
-	ret += *name++;
-    return ret%HASHSZ;
+        ret = (ret << 1) + (*name++);
+    return ret % HASHSZ;
 }
 
 struct declared_register *find_register(char *name)
