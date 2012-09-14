@@ -40,7 +40,7 @@ extern int errors;
 
 long int gen_level = 4;
 int advanced_flag = 0; /* 0: in unit of type, 1: in unit of data element size */
-int binary_like_output = 0; /* 0: default type, 1: nice c like output */
+int binary_like_output = 0; /* 0: default output style, 1: nice C-style output */
 int need_export = 0;
 char *input_filename = "<stdin>";
 char *export_filename = NULL;
