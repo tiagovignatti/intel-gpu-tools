@@ -568,6 +568,7 @@
 #define BRW_OPCODE_ASR        12
 #define BRW_OPCODE_CMP        16
 #define BRW_OPCODE_CMPN       17
+#define BRW_OPCODE_BFREV      23
 #define BRW_OPCODE_BFE        24
 #define BRW_OPCODE_BFI1       25
 #define BRW_OPCODE_BFI2       26

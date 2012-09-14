@@ -88,6 +88,7 @@ yylval.integer = BRW_CHANNEL_W;
 "bfe" { yylval.integer = BRW_OPCODE_BFE; return BFE; }
 "bfi1" { yylval.integer = BRW_OPCODE_BFI1; return BFI1; }
 "bfi2" { yylval.integer = BRW_OPCODE_BFI2; return BFI2; }
+"bfrev" { yylval.integer = BRW_OPCODE_BFREV; return BFREV; }
 "mul" { yylval.integer = BRW_OPCODE_MUL; return MUL; }
 "mac" { yylval.integer = BRW_OPCODE_MAC; return MAC; }
 "mach" { yylval.integer = BRW_OPCODE_MACH; return MACH; }
