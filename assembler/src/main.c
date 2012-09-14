@@ -39,7 +39,7 @@ extern FILE *yyin;
 extern int errors;
 
 long int gen_level = 4;
-int advanced_flag = 0; /* 0: in unit of type, 1: in unit of data element size */
+int advanced_flag = 0; /* 0: in unit of byte, 1: in unit of data element size */
 int binary_like_output = 0; /* 0: default output style, 1: nice C-style output */
 int need_export = 0;
 char *input_filename = "<stdin>";
