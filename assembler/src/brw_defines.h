@@ -607,6 +607,7 @@
 #define BRW_OPCODE_FBL        76
 #define BRW_OPCODE_CBIT       77
 #define BRW_OPCODE_ADDC       78
+#define BRW_OPCODE_SUBB       79
 #define BRW_OPCODE_SAD2       80
 #define BRW_OPCODE_SADA2      81
 #define BRW_OPCODE_DP4        84

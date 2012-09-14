@@ -117,6 +117,7 @@ yylval.integer = BRW_CHANNEL_W;
 "asr" { yylval.integer = BRW_OPCODE_ASR; return ASR; }
 "cmp" { yylval.integer = BRW_OPCODE_CMP; return CMP; }
 "cmpn" { yylval.integer = BRW_OPCODE_CMPN; return CMPN; }
+"subb" { yylval.integer = BRW_OPCODE_SUBB; return SUBB; }
 
 "send" { yylval.integer = BRW_OPCODE_SEND; return SEND; }
 "nop" { yylval.integer = BRW_OPCODE_NOP; return NOP; }
