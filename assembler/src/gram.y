@@ -389,7 +389,7 @@ unaryinstruction:
 		predicate unaryop conditionalmodifier saturate execsize
 		dst srcaccimm instoptions
 		{
-		  bzero(&$$, sizeof($$));
+		  memset(&$$, 0, sizeof($$));
 		  $$.header.opcode = $2;
 		  $$.header.sfid_destreg__conditionalmod = $3.cond;
 		  $$.header.saturate = $4;
@@ -425,7 +425,7 @@ binaryinstruction:
 		predicate binaryop conditionalmodifier saturate execsize
 		dst src srcimm instoptions
 		{
-		  bzero(&$$, sizeof($$));
+		  memset(&$$, 0, sizeof($$));
 		  $$.header.opcode = $2;
 		  $$.header.sfid_destreg__conditionalmod = $3.cond;
 		  $$.header.saturate = $4;
@@ -462,7 +462,7 @@ binaryaccinstruction:
 		predicate binaryaccop conditionalmodifier saturate execsize
 		dst srcacc srcimm instoptions
 		{
-		  bzero(&$$, sizeof($$));
+		  memset(&$$, 0, sizeof($$));
 		  $$.header.opcode = $2;
 		  $$.header.sfid_destreg__conditionalmod = $3.cond;
 		  $$.header.saturate = $4;
@@ -546,7 +546,7 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
 		   * grf 0 thread payload of your current thread, and is
 		   * implicitly loaded if non-null.
 		   */
-		  bzero(&$$, sizeof($$));
+		  memset(&$$, 0, sizeof($$));
 		  $$.header.opcode = $2;
 		  $$.header.execution_size = $3;
 		  $$.header.sfid_destreg__conditionalmod = $4; /* msg reg index */
@@ -602,7 +602,7 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
 		}
 		| predicate SEND execsize dst sendleadreg payload directsrcoperand instoptions
 		{
-		  bzero(&$$, sizeof($$));
+		  memset(&$$, 0, sizeof($$));
 		  $$.header.opcode = $2;
 		  $$.header.execution_size = $3;
 		  $$.header.sfid_destreg__conditionalmod = $5.reg_nr; /* msg reg index */
@@ -625,7 +625,7 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
 		    fprintf (stderr, "%d: non-int D/UD/V representation: %d,type=%d\n", yylineno, $7.imm32, $7.reg_type);
 			YYERROR;
 		  }
-		  bzero(&$$, sizeof($$));
+		  memset(&$$, 0, sizeof($$));
 		  $$.header.opcode = $2;
 		  $$.header.execution_size = $3;
 		  $$.header.sfid_destreg__conditionalmod = $5.reg_nr; /* msg reg index */
@@ -655,7 +655,7 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
                       YYERROR;
 		  }
 
-		  bzero(&$$, sizeof($$));
+		  memset(&$$, 0, sizeof($$));
 		  $$.header.opcode = $2;
 		  $$.header.execution_size = $3;
                   $$.header.sfid_destreg__conditionalmod = ($6 & EX_DESC_SFID_MASK); /* SFID */
@@ -701,7 +701,7 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
                       YYERROR;
 		  }
 
-		  bzero(&$$, sizeof($$));
+		  memset(&$$, 0, sizeof($$));
 		  $$.header.opcode = $2;
 		  $$.header.execution_size = $3;
                   $$.header.sfid_destreg__conditionalmod = ($6 & EX_DESC_SFID_MASK); /* SFID */
@@ -736,7 +736,7 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
 		    fprintf (stderr, "%d: non-int D/UD/V representation: %d,type=%d\n", yylineno, $8.imm32, $8.reg_type);
 			YYERROR;
 		  }
-		  bzero(&$$, sizeof($$));
+		  memset(&$$, 0, sizeof($$));
 		  $$.header.opcode = $2;
 		  $$.header.execution_size = $3;
 		  $$.header.sfid_destreg__conditionalmod = $5.reg_nr; /* msg reg index */
@@ -758,7 +758,7 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
 		}
 		| predicate SEND execsize dst sendleadreg payload exp directsrcoperand instoptions
 		{
-		  bzero(&$$, sizeof($$));
+		  memset(&$$, 0, sizeof($$));
 		  $$.header.opcode = $2;
 		  $$.header.execution_size = $3;
 		  $$.header.sfid_destreg__conditionalmod = $5.reg_nr; /* msg reg index */
@@ -800,7 +800,7 @@ jumpinstruction: predicate JMPI execsize relativelocation2
 		  dst.reg_nr = BRW_ARF_IP;
 		  dst.subreg_nr = 0;
 
-		  bzero(&$$, sizeof($$));
+		  memset(&$$, 0, sizeof($$));
 		  $$.header.opcode = $2;
 		  $$.header.execution_size = ffs(1) - 1;
 		  if(advanced_flag)
@@ -832,7 +832,7 @@ jumpinstruction: predicate JMPI execsize relativelocation2
 		    imm.reg_type = BRW_REGISTER_TYPE_D;
 		    imm.imm32 = 0;
 		    
-		    bzero(&$$, sizeof($$));
+		    memset(&$$, 0, sizeof($$));
 		    $$.header.opcode = $2;
 		    $$.header.execution_size = ffs(1) - 1;
 		    if(advanced_flag)
@@ -863,7 +863,7 @@ branchloopinstruction:
 		  dst.reg_nr = BRW_ARF_IP;
 		  dst.subreg_nr = 0;
 
-		  bzero(&$$, sizeof($$));
+		  memset(&$$, 0, sizeof($$));
 		  $$.header.opcode = $2;
 		  $$.header.execution_size = $3;
 		  $$.header.thread_control |= BRW_THREAD_SWITCH;
@@ -890,7 +890,7 @@ branchloopinstruction:
 		  imm.reg_type = BRW_REGISTER_TYPE_D;
 		  imm.imm32 = 0;
 
-		  bzero(&$$, sizeof($$));
+		  memset(&$$, 0, sizeof($$));
 		  $$.header.opcode = $2;
 		  $$.header.execution_size = $3;
 		  set_instruction_predicate(&$$, &$1);
@@ -925,7 +925,7 @@ elseinstruction: ELSE execsize relativelocation
 		  /* Set the istack pop count, which must always be 1. */
 		  $3.imm32 |= (1 << 16);
 
-		  bzero(&$$, sizeof($$));
+		  memset(&$$, 0, sizeof($$));
 		  $$.header.opcode = $1;
 		  $$.header.execution_size = $2;
 		  $$.header.thread_control |= BRW_THREAD_SWITCH;
@@ -951,7 +951,7 @@ elseinstruction: ELSE execsize relativelocation
 		  imm.reg_type = BRW_REGISTER_TYPE_D;
 		  imm.imm32 = 0;
 		    
-		  bzero(&$$, sizeof($$));
+		  memset(&$$, 0, sizeof($$));
 		  $$.header.opcode = $1;
 		  $$.header.execution_size = $2;
 		  $$.header.thread_control |= BRW_THREAD_SWITCH;
@@ -966,7 +966,7 @@ elseinstruction: ELSE execsize relativelocation
 
 mathinstruction: predicate MATH_INST execsize dst src srcimm math_function instoptions
 		{
- 		  bzero(&$$, sizeof($$));
+		  memset(&$$, 0, sizeof($$));
 		  $$.header.opcode = $2;
 		  $$.header.sfid_destreg__conditionalmod = $7;
 		  $$.header.execution_size = $3;
@@ -996,7 +996,7 @@ breakinstruction: breakop locationstackcontrol
 		  dst.reg_nr = BRW_ARF_IP;
 		  dst.subreg_nr = 0;
 
-		  bzero(&$$, sizeof($$));
+		  memset(&$$, 0, sizeof($$));
 		  $$.header.opcode = $1;
 		  set_direct_dst_operand(&ip_dst, &dst, BRW_REGISTER_TYPE_UD);
 		  set_instruction_dest(&$$, &ip_dst);
@@ -1025,7 +1025,7 @@ syncinstruction: predicate WAIT notifyreg
 		  null.reg_nr = BRW_ARF_NULL;
 		  null.subreg_nr = 0;
 		  
-		  bzero(&$$, sizeof($$));
+		  memset(&$$, 0, sizeof($$));
 		  $$.header.opcode = $2;
 		  $$.header.execution_size = ffs(1) - 1;
 		  set_direct_dst_operand(&notify_dst, &$3, BRW_REGISTER_TYPE_D);
@@ -1040,17 +1040,17 @@ syncinstruction: predicate WAIT notifyreg
 
 specialinstruction: NOP
 		{
-		  bzero(&$$, sizeof($$));
+		  memset(&$$, 0, sizeof($$));
 		  $$.header.opcode = $1;
 		}
 		| DO
 		{
-		  bzero(&$$, sizeof($$));
+		  memset(&$$, 0, sizeof($$));
 		  $$.header.opcode = $1;
 		}
 		| ENDIF
 		{
-		  bzero(&$$, sizeof($$));
+		  memset(&$$, 0, sizeof($$));
 		  $$.header.opcode = $1;
 		  $$.header.thread_control |= BRW_THREAD_SWITCH;
 		  $$.bits1.da1.dest_horiz_stride = 1;
@@ -2550,7 +2550,7 @@ instoption_list:instoption COMMA instoption_list
 		}
 		| /* empty, header defaults to zeroes. */
 		{
-		  bzero(&$$, sizeof($$));
+		  memset(&$$, 0, sizeof($$));
 		}
 ;
 
@@ -2999,7 +2999,7 @@ void set_instruction_predicate(struct brw_instruction *instr,
 void set_direct_dst_operand(struct dst_operand *dst, struct direct_reg *reg,
 			    int type)
 {
-	bzero(dst, sizeof(*dst));
+	memset(dst, 0, sizeof(*dst));
 	dst->address_mode = BRW_ADDRESS_DIRECT;
 	dst->reg_file = reg->reg_file;
 	dst->reg_nr = reg->reg_nr;
@@ -3013,7 +3013,7 @@ void set_direct_dst_operand(struct dst_operand *dst, struct direct_reg *reg,
 void set_direct_src_operand(struct src_operand *src, struct direct_reg *reg,
 			    int type)
 {
-	bzero(src, sizeof(*src));
+	memset(src, 0, sizeof(*src));
 	src->address_mode = BRW_ADDRESS_DIRECT;
 	src->reg_file = reg->reg_file;
 	src->reg_type = type;
