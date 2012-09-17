@@ -252,27 +252,23 @@ declare_type:	TYPE EQ regtype
 ;
 declare_pragma:	DECLARE_PRAGMA STRING declare_base declare_elementsize declare_srcregion declare_dstregion declare_type
 		{
-			struct declared_register *reg;
-		    if ((reg = find_register($2)) != NULL) {
+		    struct declared_register *reg;
+		    int defined;
+		    defined = (reg = find_register($2)) != NULL;
+		    if (defined) {
 			fprintf(stderr, "WARNING: %s already defined\n", $2);
-			reg->name = $2;
-			reg->base.reg_file = $3.reg_file;
-			reg->base.reg_nr = $3.reg_nr;
-			reg->base.subreg_nr = $3.subreg_nr;
-			reg->element_size = $4;
-			reg->src_region = $5;
-			reg->dst_region = $6;
-			reg->type = $7;
-		    }else {
+		    } else {
 			reg = calloc(sizeof(struct declared_register), 1);
-			reg->name = $2;
-			reg->base.reg_file = $3.reg_file;
-			reg->base.reg_nr = $3.reg_nr;
-			reg->base.subreg_nr = $3.subreg_nr;
-			reg->element_size = $4;
-			reg->src_region = $5;
-			reg->dst_region = $6;
-			reg->type = $7;
+		    }
+		    reg->name = $2;
+		    reg->base.reg_file = $3.reg_file;
+		    reg->base.reg_nr = $3.reg_nr;
+		    reg->base.subreg_nr = $3.subreg_nr;
+		    reg->element_size = $4;
+		    reg->src_region = $5;
+		    reg->dst_region = $6;
+		    reg->type = $7;
+		    if (!defined) {
 			insert_register(reg);
 		    }
 		}
