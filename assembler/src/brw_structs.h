@@ -1309,9 +1309,8 @@ struct brw_instruction
 
       struct
       {
-	 GLint  jump_count:16;	/* note: signed */
-	 GLuint  pop_count:4;
-	 GLuint  pad0:12;
+	 GLint JIP:16; /* bspec: both the JIP and UIP are signed 16-bit numbers */
+	 GLint UIP:16;
       } if_else;
 
       struct {

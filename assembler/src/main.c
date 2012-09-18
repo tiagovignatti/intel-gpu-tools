@@ -330,13 +330,13 @@ int main(int argc, char **argv)
 				entry1->inst_offset - entry->inst_offset;
 			    int delta = (entry->instruction.header.opcode == BRW_OPCODE_JMPI ? 1 : 0);
                             if (gen_level >= 5)
-                                    entry->instruction.bits3.if_else.jump_count = 2 * (offset - delta); // bspec: the jump distance in number of eight-byte units
+                                    entry->instruction.bits3.if_else.JIP = 2 * (offset - delta); // bspec: the jump distance in number of eight-byte units
                             else
-                                    entry->instruction.bits3.if_else.jump_count = offset - delta;
+                                    entry->instruction.bits3.if_else.JIP = offset - delta;
 
                             if (entry->instruction.header.opcode == BRW_OPCODE_ELSE)
-                                    entry->instruction.bits3.if_else.pop_count = 1;
-				found = 1;
+                                    entry->instruction.bits3.if_else.UIP = 1;
+			    found = 1;
 			    break;
 			}
 			entry1 = entry1->next;
