@@ -367,6 +367,8 @@ instrseq:	instrseq pragma
 ;
 
 /* 1.4.1: Instruction groups */
+// binaryinstruction:    Source operands cannot be accumulators
+// binaryaccinstruction: Source operands can be accumulators
 instruction:	unaryinstruction
 		| binaryinstruction
 		| binaryaccinstruction
@@ -417,6 +419,7 @@ unaryop:	MOV | FRC | RNDU | RNDD | RNDE | RNDZ | NOT | LZD | BFREV | CBIT
           | F16TO32 | F32TO16 | FBH | FBL
 ;
 
+// Source operands cannot be accumulators
 binaryinstruction:
 		predicate binaryop conditionalmodifier saturate execsize
 		dst src srcimm instoptions
@@ -454,6 +457,7 @@ binaryinstruction:
 binaryop:	MUL | MAC | MACH | LINE | SAD2 | SADA2 | DP4 | DPH | DP3 | DP2 | SUBB
 ;
 
+// Source operands can be accumulators
 binaryaccinstruction:
 		predicate binaryaccop conditionalmodifier saturate execsize
 		dst srcacc srcimm instoptions
