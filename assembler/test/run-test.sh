@@ -1,11 +1,13 @@
 #!/bin/sh
 
-SRCDIR=${srcdir-`pwd`}
-BUILDDIR=${top_builddir-`pwd`}
+DIR="$( cd -P "$( dirname "$0" )" && pwd )"
 
-${BUILDDIR}/src/intel-gen4asm -o TEST.out $SRCDIR/TEST.g4a
-if cmp TEST.out ${SRCDIR}/TEST.expected 2> /dev/null; then : ; else
+${DIR}/../src/intel-gen4asm -o TEST.out ${DIR}/TEST.g4a
+if cmp TEST.out ${DIR}/TEST.expected 2> /dev/null;
+then
+  echo "Good";
+else
   echo "Output comparison for TEST"
-  diff -u ${SRCDIR}/TEST.expected TEST.out
+  diff -u ${DIR}/TEST.expected TEST.out
   exit 1;
 fi
