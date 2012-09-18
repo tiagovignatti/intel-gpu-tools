@@ -23,8 +23,9 @@ rmmod intel_ips &> /dev/null
 rmmod i915
 #ignore errors in intel-gtt, often built-in
 rmmod intel-gtt &> /dev/null
-rmmod drm_kms_helper
-rmmod drm
+# drm may be used by other devices (nouveau, radeon, udl, etc)
+rmmod drm_kms_helper &> /dev/null
+rmmod drm &> /dev/null
 
 if lsmod | grep i915 &> /dev/null ; then
 	echo WARNING: i915.ko still loaded!
