@@ -21,6 +21,7 @@ TESTS = \
 	halt \
 	wait \
 	endif \
+	declare \
 	immediate
 
 # Tests that are expected to fail because they contain some inccorect code.
@@ -66,6 +67,8 @@ TESTDATA = \
 	wait.g4a \
 	endif.expected \
 	endif.g4a \
+	declare.expected \
+	declare.g4a \
 	immediate.g4a \
 	immediate.expected
 
