@@ -173,7 +173,6 @@ struct declared_register {
     struct region src_region;
     int dst_region;
     int type;
-    struct declared_register *next;
 };
 struct declared_register *find_register(char *name);
 void insert_register(struct declared_register *reg);

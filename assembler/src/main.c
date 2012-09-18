@@ -50,9 +50,17 @@ const char const *binary_prepend = "static const char gen_eu_bytes[] = {\n";
 struct brw_program compiled_program;
 struct program_defaults program_defaults = {.register_type = BRW_REGISTER_TYPE_F};
 
+#define HASH_SIZE 37
 
-#define HASHSZ 	37
-static struct declared_register *declared_register_table[HASHSZ];
+struct hash_item {
+	char *key;
+	void *value;
+	struct hash_item *next;
+};
+
+typedef struct hash_item *hash_table[HASH_SIZE];
+
+static hash_table declared_register_table;
 
 static const struct option longopts[] = {
 	{"advanced", no_argument, 0, 'a'},
@@ -76,44 +84,57 @@ static void usage(void)
 	fprintf(stderr, "\t-g, --gen <4|5|6|7>                  Specify GPU generation\n");
 }
 
-static int hash(char *name)
+static int hash(char *key)
 {
     unsigned ret = 0;
-    while(*name)
-        ret = (ret << 1) + (*name++);
-    return ret % HASHSZ;
+    while(*key)
+        ret = (ret << 1) + (*key++);
+    return ret % HASH_SIZE;
+}
+
+static void *find_hash_item(hash_table t, char *key)
+{
+    struct hash_item *p;
+    for(p = t[hash(key)]; p; p = p->next)
+	if(strcasecmp(p->key, key) == 0)
+	    return p->value;
+    return NULL;
+}
+
+static void insert_hash_item(hash_table t, char *key, void *v)
+{
+    int index = hash(key);
+    struct hash_item *p = malloc(sizeof(*p));
+    p->key = key;
+    p->value = v;
+    p->next = t[index];
+    t[index] = p;
+}
+
+static void free_hash_table(hash_table t)
+{
+    struct hash_item *p, *next;
+    int i;
+    for (i = 0; i < HASH_SIZE; i++) {
+	p = t[i];
+	while(p) {
+	    next = p->next;
+	    free(p->key);
+	    free(p->value);
+	    free(p);
+	    p = next;
+	}
+    }
 }
 
 struct declared_register *find_register(char *name)
 {
-    int index = hash(name);
-    struct declared_register *reg;
-    for (reg = declared_register_table[index];reg; reg = reg->next)
-	if (strcasecmp(reg->name,name) == 0)
-	    return reg;
-    return NULL;
+    return find_hash_item(declared_register_table, name);
 }
 
 void insert_register(struct declared_register *reg)
 {
-    int	index = hash(reg->name);
-    reg->next = declared_register_table[index];
-    declared_register_table[index] = reg;
-}
-
-static void free_register_table(void)
-{
-    struct declared_register *reg, *next;
-    int i;
-    for (i = 0; i < HASHSZ; i++) {
-	reg = declared_register_table[i];
-	while(reg) {
-	    next = reg->next;
-	    free(reg->name);
-	    free(reg);
-	    reg = next;
-	}
-    }
+    insert_hash_item(declared_register_table, reg->name, reg);
 }
 
 struct entry_point_item {
@@ -368,7 +389,7 @@ int main(int argc, char **argv)
 		fprintf(output, "};");
 
 	free_entry_point_table(entry_point_table);
-	free_register_table();
+	free_hash_table(declared_register_table);
 	fflush (output);
 	if (ferror (output)) {
 	    perror ("Could not flush output file");
