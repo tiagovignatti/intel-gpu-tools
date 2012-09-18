@@ -454,7 +454,8 @@ binaryinstruction:
 		}
 ;
 
-binaryop:	MUL | MAC | MACH | LINE | SAD2 | SADA2 | DP4 | DPH | DP3 | DP2 | SUBB
+/* bspec: BFI1 should not access accumulator. */
+binaryop:	MUL | MAC | MACH | LINE | SAD2 | SADA2 | DP4 | DPH | DP3 | DP2 | PLN | BFI1
 ;
 
 // Source operands can be accumulators
@@ -492,8 +493,8 @@ binaryaccinstruction:
 		}
 ;
 
-binaryaccop:	AVG | ADD | SEL | AND | OR | XOR | SHR | SHL | ASR | CMP | CMPN | PLN
-              | ADDC | BFI1
+/* TODO: bspec says ADDC/SUBB/CMP/CMPN/SHL/BFI1 cannot use accumulator as dest. */
+binaryaccop:	AVG | ADD | SEL | AND | OR | XOR | SHR | SHL | ASR | CMP | CMPN | ADDC | SUBB
 ;
 
 trinaryop:	MAD | LRP | BFE | BFI2
