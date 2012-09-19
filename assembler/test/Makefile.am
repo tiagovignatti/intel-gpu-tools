@@ -77,8 +77,7 @@ EXTRA_DIST = \
 	run-test.sh
 
 $(TESTS): run-test.sh
-	sed "s|TEST|$@|g" ${srcdir}/run-test.sh > $@
-	chmod +x $@
+	chmod +x ${srcdir}/run-test.sh
 
 CLEANFILES = \
 	*.out \
