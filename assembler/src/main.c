@@ -351,12 +351,12 @@ int main(int argc, char **argv)
 				entry1->inst_offset - entry->inst_offset;
 			    int delta = (entry->instruction.header.opcode == BRW_OPCODE_JMPI ? 1 : 0);
                             if (gen_level >= 5)
-                                    entry->instruction.bits3.branch.JIP = 2 * (offset - delta); // bspec: the jump distance in number of eight-byte units
+                                    entry->instruction.bits3.JIP = 2 * (offset - delta); // bspec: the jump distance in number of eight-byte units
                             else
-                                    entry->instruction.bits3.branch.JIP = offset - delta;
+                                    entry->instruction.bits3.JIP = offset - delta;
 
                             if (entry->instruction.header.opcode == BRW_OPCODE_ELSE)
-                                    entry->instruction.bits3.branch.UIP = 1;
+                                    entry->instruction.bits3.branch_2_offset.UIP = 1;
 			    found = 1;
 			    break;
 			}

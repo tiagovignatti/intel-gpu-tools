@@ -1311,7 +1311,10 @@ struct brw_instruction
       {
 	 GLint JIP:16; /* bspec: both the JIP and UIP are signed 16-bit numbers */
 	 GLint UIP:16;
-      } branch; /* for branch instructions: brc, brd, if, else, endif, while, break, cont, call, ret, halt, ... */
+      } branch_2_offset; /* for Gen6, Gen7 2-offsets branch instructions */
+
+      GLint JIP; /* for Gen6, Gen7 1-offset branch instructions 
+                    Gen6 uses low 25 bits. Gen7 uses low 16 bits. */
 
       struct {
 	 GLuint function:4;
