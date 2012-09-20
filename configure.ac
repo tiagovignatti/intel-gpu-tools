@@ -140,6 +140,7 @@ AC_CONFIG_FILES([
 		 scripts/Makefile
 		 tests/Makefile
 		 tools/Makefile
+		 tools/quick_dump/Makefile
 		 debugger/Makefile
 		 debugger/system_routine/Makefile
 		 ])

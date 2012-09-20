@@ -1,3 +1,5 @@
+DIST_SUBDIRS = quick_dump
+
 bin_PROGRAMS = 				\
 	intel_disable_clock_gating 	\
 	intel_audio_dump 		\
