@@ -257,10 +257,11 @@ declare_pragma:	DECLARE_PRAGMA STRING declare_base declare_elementsize declare_s
 		    defined = (reg = find_register($2)) != NULL;
 		    if (defined) {
 			fprintf(stderr, "WARNING: %s already defined\n", $2);
+			free($2); // $2 has been malloc'ed by strdup
 		    } else {
 			reg = calloc(sizeof(struct declared_register), 1);
+			reg->name = $2;
 		    }
-		    reg->name = $2;
 		    reg->base.reg_file = $3.reg_file;
 		    reg->base.reg_nr = $3.reg_nr;
 		    reg->base.subreg_nr = $3.subreg_nr;
@@ -1504,6 +1505,7 @@ symbol_reg:	STRING %prec STR_SYMBOL_REG
 		    }
 
 		    memcpy(&$$, dcl_reg, sizeof(*dcl_reg));
+		    free($1); // $1 has been malloc'ed by strdup
 		}
 		| symbol_reg_p 
 		{
@@ -1522,6 +1524,7 @@ symbol_reg_p: STRING LPAREN exp RPAREN
 
 		    memcpy(&$$, dcl_reg, sizeof(*dcl_reg));
 		    $$.base.reg_nr += $3;
+		    free($1);
 		}
 		| STRING LPAREN exp COMMA exp RPAREN
 		{
@@ -1537,6 +1540,7 @@ symbol_reg_p: STRING LPAREN exp RPAREN
 		    $$.base.subreg_nr += $5;
 		    $$.base.reg_nr += $$.base.subreg_nr / (32 / get_type_size(dcl_reg->type));
 		    $$.base.subreg_nr = $$.base.subreg_nr % (32 / get_type_size(dcl_reg->type));
+		    free($1);
 		}
 ;
 /* Returns a partially complete destination register consisting of the
