@@ -1,3 +1,4 @@
+.declare X1 Base=g99.0 ElementSize=1 SrcRegion=<8,8,1> DstRegion=<1> Type=F
 .declare X1 Base=g123.4 ElementSize=4 SrcRegion=<8,8,1> DstRegion=<1> Type=F
 add g0<1>:f X1 1.23:f;
 add g0<1>:f X1 g1<8,8,1>:f;
