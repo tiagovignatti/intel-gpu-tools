@@ -843,34 +843,7 @@ branchloopinstruction:
 		  set_direct_src_operand(&ip_src, &dst, BRW_REGISTER_TYPE_UD);
 		  set_instruction_src0(&$$, &ip_src);
 		  set_instruction_src1(&$$, &$4);
-		}
-		| predicate branchloopop execsize STRING
-		{
-		  struct direct_reg dst;
-		  struct dst_operand ip_dst;
-		  struct src_operand ip_src;
-		  struct src_operand imm;
-
-		  dst.reg_file = BRW_ARCHITECTURE_REGISTER_FILE;
-		  dst.reg_nr = BRW_ARF_IP;
-		  dst.subreg_nr = 0;
-
-		  memset (&imm, '\0', sizeof (imm));
-		  imm.reg_file = BRW_IMMEDIATE_VALUE;
-		  imm.reg_type = BRW_REGISTER_TYPE_D;
-		  imm.imm32 = 0;
-
-		  memset(&$$, 0, sizeof($$));
-		  $$.header.opcode = $2;
-		  $$.header.execution_size = $3;
-		  set_instruction_predicate(&$$, &$1);
-		  $$.header.thread_control |= BRW_THREAD_SWITCH;
-		  set_direct_dst_operand(&ip_dst, &dst, BRW_REGISTER_TYPE_UD);
-		  set_instruction_dest(&$$, &ip_dst);
-		  set_direct_src_operand(&ip_src, &dst, BRW_REGISTER_TYPE_UD);
-		  set_instruction_src0(&$$, &ip_src);
-		  set_instruction_src1(&$$, &imm);
-		  $$.first_reloc_target = $4;
+		  $$.first_reloc_target = $4.reloc_target;
 		}
 ;
 
@@ -883,11 +856,6 @@ elseinstruction: ELSE execsize relativelocation
 		  struct dst_operand ip_dst;
 		  struct src_operand ip_src;
 
-		  /* The jump instruction requires that the IP register
-		   * be the destination and first source operand, while the
-		   * offset is the second source operand.  The offset is added
-		   * to the IP pre-increment.
-		   */
 		  dst.reg_file = BRW_ARCHITECTURE_REGISTER_FILE;
 		  dst.reg_nr = BRW_ARF_IP;
 		  dst.subreg_nr = 0;
@@ -904,33 +872,7 @@ elseinstruction: ELSE execsize relativelocation
 		  set_direct_src_operand(&ip_src, &dst, BRW_REGISTER_TYPE_UD);
 		  set_instruction_src0(&$$, &ip_src);
 		  set_instruction_src1(&$$, &$3);
-		}
-		| ELSE execsize STRING
-		{
-		  struct direct_reg dst;
-		  struct dst_operand ip_dst;
-		  struct src_operand ip_src;
-		  struct src_operand imm;
-
-		  dst.reg_file = BRW_ARCHITECTURE_REGISTER_FILE;
-		  dst.reg_nr = BRW_ARF_IP;
-		  dst.subreg_nr = 0;
-
-		  memset (&imm, '\0', sizeof (imm));
-		  imm.reg_file = BRW_IMMEDIATE_VALUE;
-		  imm.reg_type = BRW_REGISTER_TYPE_D;
-		  imm.imm32 = 0;
-		    
-		  memset(&$$, 0, sizeof($$));
-		  $$.header.opcode = $1;
-		  $$.header.execution_size = $2;
-		  $$.header.thread_control |= BRW_THREAD_SWITCH;
-		  set_direct_dst_operand(&ip_dst, &dst, BRW_REGISTER_TYPE_UD);
-		  set_instruction_dest(&$$, &ip_dst);
-		  set_direct_src_operand(&ip_src, &dst, BRW_REGISTER_TYPE_UD);
-		  set_instruction_src0(&$$, &ip_src);
-		  set_instruction_src1(&$$, &imm);
-		  $$.first_reloc_target = $3;
+		  $$.first_reloc_target = $3.reloc_target;
 		}
 ;
 
@@ -2081,25 +2023,27 @@ nullreg:	NULL_TOKEN
 ;
 
 /* 1.4.6: Relative locations */
-relativelocation: imm32
+relativelocation:
+		EXP
 		{
-		  if ($1.r != imm32_d) {
-		    fprintf (stderr,
-			     "error: non-int offset representation\n");
-		    YYERROR;
-		  }
-		    
-		  if (($1.u.signed_d > 32767) || ($1.u.signed_d < -32768)) {
+		  if (($1 > 32767) || ($1 < -32768)) {
 		    fprintf(stderr,
 			    "error: relative offset %d out of range \n", 
-			    	$1.u.signed_d);
+			    $1);
 		    YYERROR;
 		  }
 
 		  memset (&$$, '\0', sizeof ($$));
 		  $$.reg_file = BRW_IMMEDIATE_VALUE;
 		  $$.reg_type = BRW_REGISTER_TYPE_D;
-		  $$.imm32 = $1.u.d & 0x0000ffff;
+		  $$.imm32 = $1 & 0x0000ffff;
+		}
+		| STRING
+		{
+		  memset (&$$, '\0', sizeof ($$));
+		  $$.reg_file = BRW_IMMEDIATE_VALUE;
+		  $$.reg_type = BRW_REGISTER_TYPE_D;
+		  $$.reloc_target = $1;
 		}
 ;
 
