@@ -1559,7 +1559,9 @@ struct brw_instruction
       GLint id;
       GLfloat fd;
    } bits3;
-   char *reloc_target;
+
+   char *first_reloc_target, *second_reloc_target; // first for JIP, second for UIP
+   GLint first_reloc_offset, second_reloc_offset; // in number of instructions
 };
 
 

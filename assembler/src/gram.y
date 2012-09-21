@@ -845,7 +845,7 @@ jumpinstruction: predicate JMPI execsize relativelocation2
 		    set_direct_src_operand(&ip_src, &dst, BRW_REGISTER_TYPE_UD);
 		    set_instruction_src0(&$$, &ip_src);
 		    set_instruction_src1(&$$, &imm);
-		    $$.reloc_target = $4;
+		    $$.first_reloc_target = $4;
 		}
 ;
 
@@ -902,7 +902,7 @@ branchloopinstruction:
 		  set_direct_src_operand(&ip_src, &dst, BRW_REGISTER_TYPE_UD);
 		  set_instruction_src0(&$$, &ip_src);
 		  set_instruction_src1(&$$, &imm);
-		  $$.reloc_target = $4;
+		  $$.first_reloc_target = $4;
 		}
 ;
 
@@ -962,7 +962,7 @@ elseinstruction: ELSE execsize relativelocation
 		  set_direct_src_operand(&ip_src, &dst, BRW_REGISTER_TYPE_UD);
 		  set_instruction_src0(&$$, &ip_src);
 		  set_instruction_src1(&$$, &imm);
-		  $$.reloc_target = $3;
+		  $$.first_reloc_target = $3;
 		}
 ;
 

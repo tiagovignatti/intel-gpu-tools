@@ -340,13 +340,13 @@ int main(int argc, char **argv)
 	for (entry = compiled_program.first;
 		entry != NULL; entry = entry->next) {
 	    if (!entry->islabel) {
-		if (entry->instruction.reloc_target) {
+		if (entry->instruction.first_reloc_target) {
 			entry1 = entry;
 			int found = 0;
 			do {
 			if (entry1->islabel && 
 				strcmp(entry1->string, 
-				    entry->instruction.reloc_target) == 0) {
+				    entry->instruction.first_reloc_target) == 0) {
 			    int offset = 
 				entry1->inst_offset - entry->inst_offset;
 			    int delta = (entry->instruction.header.opcode == BRW_OPCODE_JMPI ? 1 : 0);
@@ -366,7 +366,7 @@ int main(int argc, char **argv)
 			} while (entry1 != entry);
 		    if (found == 0)
 			fprintf(stderr, "can not find label %s\n",
-				entry->instruction.reloc_target);
+				entry->instruction.first_reloc_target);
 		}
 	    }
 	}
