@@ -2434,10 +2434,10 @@ instoptions:	/* empty */
 		{ $$ = $2; }
 ;
 
-instoption_list:instoption COMMA instoption_list
+instoption_list:instoption_list COMMA instoption
 		{
-		  $$ = $3;
-		  switch ($1) {
+		  $$ = $1;
+		  switch ($3) {
 		  case ALIGN1:
 		    $$.header.access_mode = BRW_ALIGN_1;
 		    break;
@@ -2475,10 +2475,10 @@ instoption_list:instoption COMMA instoption_list
 		    $$.header.acc_wr_control = BRW_ACCWRCTRL_ACCWRCTRL;
 		  }
 		}
-		| instoption instoption_list
+		| instoption_list instoption
 		{
-		  $$ = $2;
-		  switch ($1) {
+		  $$ = $1;
+		  switch ($2) {
 		  case ALIGN1:
 		    $$.header.access_mode = BRW_ALIGN_1;
 		    break;
