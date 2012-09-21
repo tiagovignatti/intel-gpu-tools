@@ -813,39 +813,7 @@ jumpinstruction: predicate JMPI execsize relativelocation2
 		  set_direct_src_operand(&ip_src, &dst, BRW_REGISTER_TYPE_UD);
 		  set_instruction_src0(&$$, &ip_src);
 		  set_instruction_src1(&$$, &$4);
-		}
-		| predicate JMPI execsize STRING
-		{
-		    struct direct_reg dst;
-		    struct dst_operand ip_dst;
-		    struct src_operand ip_src;
-		    struct src_operand imm;
-		    
-		    /* The jump instruction requires that the IP register
-	 	     * be the destination and first source operand, while the
-	             * offset is the second source operand.  The next instruction
-		      is the post-incremented IP plus the offset.
-		     */
-		    dst.reg_file = BRW_ARCHITECTURE_REGISTER_FILE;
-		    dst.reg_nr = BRW_ARF_IP;
-		    dst.subreg_nr = 0;
-		    memset (&imm, '\0', sizeof (imm));
-		    imm.reg_file = BRW_IMMEDIATE_VALUE;
-		    imm.reg_type = BRW_REGISTER_TYPE_D;
-		    imm.imm32 = 0;
-		    
-		    memset(&$$, 0, sizeof($$));
-		    $$.header.opcode = $2;
-		    $$.header.execution_size = ffs(1) - 1;
-		    if(advanced_flag)
-				$$.header.mask_control = BRW_MASK_DISABLE;
-		    set_direct_dst_operand(&ip_dst, &dst, BRW_REGISTER_TYPE_UD);
-		    set_instruction_dest(&$$, &ip_dst);
-		    set_instruction_predicate(&$$, &$1);
-		    set_direct_src_operand(&ip_src, &dst, BRW_REGISTER_TYPE_UD);
-		    set_instruction_src0(&$$, &ip_src);
-		    set_instruction_src1(&$$, &imm);
-		    $$.first_reloc_target = $4;
+		  $$.first_reloc_target = $4.reloc_target;
 		}
 ;
 
@@ -2136,12 +2104,19 @@ relativelocation: imm32
 ;
 
 relativelocation2:
-		exp
+		  STRING
 		{
 		  memset (&$$, '\0', sizeof ($$));
 		  $$.reg_file = BRW_IMMEDIATE_VALUE;
 		  $$.reg_type = BRW_REGISTER_TYPE_D;
-		  $$.imm32 = $1.u.d;
+		  $$.reloc_target = $1;
+		}
+		| exp
+		{
+		  memset (&$$, '\0', sizeof ($$));
+		  $$.reg_file = BRW_IMMEDIATE_VALUE;
+		  $$.reg_type = BRW_REGISTER_TYPE_D;
+		  $$.imm32 = $1;
 		}
 		| directgenreg region regtype
 		{

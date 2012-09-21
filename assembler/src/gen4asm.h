@@ -108,6 +108,7 @@ struct src_operand {
 	int swizzle_x, swizzle_y, swizzle_z, swizzle_w;
 
 	uint32_t imm32; /* only set if reg_file == BRW_IMMEDIATE_VALUE */
+	char *reloc_target; /* bspec: branching instructions JIP and UIP are source operands */
 } src_operand;
 
 typedef struct {
