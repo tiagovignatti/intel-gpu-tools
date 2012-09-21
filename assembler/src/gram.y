@@ -2136,13 +2136,8 @@ relativelocation: imm32
 ;
 
 relativelocation2:
-		imm32
+		exp
 		{
-		  if ($1.r != imm32_d) {
-		    fprintf (stderr,
-			     "error: non-int location representation\n");
-		    YYERROR;
-		  }
 		  memset (&$$, '\0', sizeof ($$));
 		  $$.reg_file = BRW_IMMEDIATE_VALUE;
 		  $$.reg_type = BRW_REGISTER_TYPE_D;
