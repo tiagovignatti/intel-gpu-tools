@@ -176,6 +176,8 @@ struct declared_register {
 };
 struct declared_register *find_register(char *name);
 void insert_register(struct declared_register *reg);
+void add_label(char *name, int addr);
+int label_to_addr(char *name, int start_addr);
 
 int yyparse(void);
 int yylex(void);

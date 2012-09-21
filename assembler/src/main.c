@@ -62,6 +62,13 @@ typedef struct hash_item *hash_table[HASH_SIZE];
 
 static hash_table declared_register_table;
 
+struct label_item {
+	char *name;
+	int addr;
+	struct label_item *next;
+};
+static struct label_item *label_table;
+
 static const struct option longopts[] = {
 	{"advanced", no_argument, 0, 'a'},
 	{"binary", no_argument, 0, 'b'},
@@ -135,6 +142,42 @@ struct declared_register *find_register(char *name)
 void insert_register(struct declared_register *reg)
 {
     insert_hash_item(declared_register_table, reg->name, reg);
+}
+
+void add_label(char *name, int addr)
+{
+    struct label_item **p = &label_table;
+    while(*p)
+        p = &((*p)->next);
+    *p = calloc(1, sizeof(**p));
+    (*p)->name = name;
+    (*p)->addr = addr;
+}
+
+/* Some assembly code have duplicated labels.
+   Start from start_addr. Search as a loop. Return the first label found. */
+int label_to_addr(char *name, int start_addr)
+{
+    /* return the first label just after start_addr, or the first label from the head */
+    struct label_item *p;
+    int r = -1;
+    for(p = label_table; p; p = p->next) {
+        if(strcmp(p->name, name) == 0) {
+            if(p->addr >= start_addr) // the first label just after start_addr
+                return p->addr;
+            else if(r == -1) // the first label from the head
+                r = p->addr;
+        }
+    }
+    return r;
+}
+
+static void free_label_table(struct label_item *p)
+{
+    if(p) {
+        free_label_table(p->next);
+        free(p);
+    }
 }
 
 struct entry_point_item {
@@ -322,6 +365,10 @@ int main(int argc, char **argv)
               inst_offset++;
 	}
 
+	for (entry = compiled_program.first; entry; entry = entry->next)
+	    if (entry->islabel)
+		add_label(entry->string, entry->inst_offset);
+
 	if (need_export) {
 		if (export_filename) {
 			export_file = fopen(export_filename, "w");
@@ -337,40 +384,25 @@ int main(int argc, char **argv)
 		fclose(export_file);
 	}
 
-	for (entry = compiled_program.first;
-		entry != NULL; entry = entry->next) {
-	    if (!entry->islabel) {
-		if (entry->instruction.first_reloc_target) {
-			entry1 = entry;
-			int found = 0;
-			do {
-			if (entry1->islabel && 
-				strcmp(entry1->string, 
-				    entry->instruction.first_reloc_target) == 0) {
-			    int offset = 
-				entry1->inst_offset - entry->inst_offset;
-			    int delta = (entry->instruction.header.opcode == BRW_OPCODE_JMPI ? 1 : 0);
-                            if (gen_level >= 5)
-                                    entry->instruction.bits3.JIP = 2 * (offset - delta); // bspec: the jump distance in number of eight-byte units
-                            else
-                                    entry->instruction.bits3.JIP = offset - delta;
-
-                            if (entry->instruction.header.opcode == BRW_OPCODE_ELSE)
-                                    entry->instruction.bits3.branch_2_offset.UIP = 1;
-			    found = 1;
-			    break;
-			}
-			entry1 = entry1->next;
-			if (entry1 == NULL)
-				entry1 = compiled_program.first;
-			} while (entry1 != entry);
-		    if (found == 0)
-			fprintf(stderr, "can not find label %s\n",
-				entry->instruction.first_reloc_target);
+	for (entry = compiled_program.first; entry; entry = entry->next) {
+	    if (entry->instruction.first_reloc_target) {
+		int addr = label_to_addr(entry->instruction.first_reloc_target,
+		                         entry->inst_offset);
+		if(addr == -1) {
+		    fprintf(stderr, "can not find label %s\n",
+			    entry->instruction.first_reloc_target);
+		    exit(1);
 		}
+		int offset = addr - entry->inst_offset;
+		if(entry->instruction.header.opcode == BRW_OPCODE_JMPI)
+		    offset --;
+		if(gen_level >= 5)
+		    offset *= 2; // bspec: the jump distance in number of eight-byte units
+		entry->instruction.bits3.JIP = offset;
+		if(entry->instruction.header.opcode == BRW_OPCODE_ELSE)
+		    entry->instruction.bits3.branch_2_offset.UIP = 1;
 	    }
 	}
-
 
 	if (binary_like_output)
 		fprintf(output, "%s", binary_prepend);
@@ -390,6 +422,8 @@ int main(int argc, char **argv)
 
 	free_entry_point_table(entry_point_table);
 	free_hash_table(declared_register_table);
+	free_label_table(label_table);
+
 	fflush (output);
 	if (ferror (output)) {
 	    perror ("Could not flush output file");
