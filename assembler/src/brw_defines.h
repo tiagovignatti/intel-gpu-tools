@@ -585,7 +585,9 @@
 #define BRW_OPCODE_CONTINUE   41
 #define BRW_OPCODE_HALT       42
 #define BRW_OPCODE_MSAVE      44
+#define BRW_OPCODE_CALL       44
 #define BRW_OPCODE_MRESTORE   45
+#define BRW_OPCODE_RET        45
 #define BRW_OPCODE_PUSH       46
 #define BRW_OPCODE_POP        47
 #define BRW_OPCODE_WAIT       48

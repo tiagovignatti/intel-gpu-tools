@@ -107,7 +107,7 @@ struct src_operand {
 	int swizzle_set;
 	int swizzle_x, swizzle_y, swizzle_z, swizzle_w;
 
-	uint32_t imm32; /* only set if reg_file == BRW_IMMEDIATE_VALUE */
+	uint32_t imm32; /* set if reg_file == BRW_IMMEDIATE_VALUE or it is expressing a branch offset */
 	char *reloc_target; /* bspec: branching instructions JIP and UIP are source operands */
 } src_operand;
 

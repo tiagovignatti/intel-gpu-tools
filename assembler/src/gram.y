@@ -120,6 +120,7 @@ void set_direct_src_operand(struct src_operand *src, struct direct_reg *reg,
 %token <integer> PUSH MREST POP WAIT DO ENDIF ILLEGAL
 %token <integer> MATH_INST
 %token <integer> MAD LRP BFE BFI2 SUBB
+%token <integer> CALL RET
 
 %token NULL_TOKEN MATH SAMPLER GATEWAY READ WRITE URB THREAD_SPAWNER VME DATA_PORT
 
@@ -160,6 +161,7 @@ void set_direct_src_operand(struct src_operand *src, struct direct_reg *reg,
 %type <instruction> msgtarget
 %type <instruction> instoptions instoption_list predicate
 %type <instruction> mathinstruction
+%type <instruction> subroutineinstruction
 %type <string> label
 %type <program> instrseq
 %type <integer> instoption
@@ -382,6 +384,55 @@ instruction:	unaryinstruction
 		| syncinstruction
 		| specialinstruction
 		| mathinstruction
+		| subroutineinstruction
+;
+
+subroutineinstruction:
+		predicate CALL execsize dst relativelocation instoptions
+		{
+		  if($3 != 1 /* encoded int 2 */) {
+		    fprintf(stderr, "The execution size of CALL should be 2.\n");
+		    YYERROR;
+		  }
+		  if($4.reg_type != BRW_REGISTER_TYPE_UD && $4.reg_type != BRW_REGISTER_TYPE_D) {
+		    fprintf(stderr, "The dest type of CALL should be UD or D.\n");
+		    YYERROR;
+		  }
+		  memset(&$$, 0, sizeof($$));
+		  set_instruction_predicate(&$$, &$1);
+		  $$.header.opcode = $2;
+		  $$.header.execution_size = $3;
+		  set_instruction_dest(&$$, &$4);
+		  $$.first_reloc_target = $5.reloc_target;
+		  $$.first_reloc_offset = $5.imm32;
+		}
+		| predicate RET execsize dstoperandex src instoptions
+		{
+		  if($3 != 1 /* encoded int 2 */) {
+		    fprintf(stderr, "The execution size of RET should be 2.\n");
+		    YYERROR;
+		  }
+		  if($4.reg_file != BRW_ARCHITECTURE_REGISTER_FILE && $4.reg_nr != BRW_ARF_NULL) {
+		    fprintf(stderr, "The dest reg of RET should be NULL.\n");
+		    YYERROR;
+		  }
+		  if($5.reg_type != BRW_REGISTER_TYPE_UD && $5.reg_type != BRW_REGISTER_TYPE_D) {
+		    fprintf(stderr, "The source reg type of RET should be UD or D.\n");
+		    YYERROR;
+		  }
+		  if($5.horiz_stride != 1 /*encoded 1*/
+		     || $5.width != 1 /*encoded 2*/
+		     || $5.vert_stride != 2 /*encoded 2*/) {
+		    fprintf(stderr, "The source reg region of RET should be <2,2,1>.\n");
+		    YYERROR;
+		  }
+		  memset(&$$, 0, sizeof($$));
+		  set_instruction_predicate(&$$, &$1);
+		  $$.header.opcode = $2;
+		  $$.header.execution_size = $3;
+		  set_instruction_dest(&$$, &$4);
+		  set_instruction_src0(&$$, &$5);
+		}
 ;
 
 unaryinstruction:

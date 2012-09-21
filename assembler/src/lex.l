@@ -136,6 +136,8 @@ yylval.integer = BRW_CHANNEL_W;
 "wait" { yylval.integer = BRW_OPCODE_WAIT; return WAIT; }
 "do" { yylval.integer = BRW_OPCODE_DO; return DO; }
 "endif" { yylval.integer = BRW_OPCODE_ENDIF; return ENDIF; }
+"call" { yylval.integer = BRW_OPCODE_CALL; return CALL; }
+"ret" { yylval.integer = BRW_OPCODE_RET; return RET; }
 
 "pln" { yylval.integer = BRW_OPCODE_PLN; return PLN; }
 
