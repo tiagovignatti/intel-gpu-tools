@@ -402,18 +402,18 @@ int main(int argc, char **argv)
 	    struct brw_instruction *inst = & entry->instruction;
 
 	    if (inst->first_reloc_target)
-		inst->first_reloc_offset = label_to_addr(inst->first_reloc_target, entry->inst_offset);
+		inst->first_reloc_offset = label_to_addr(inst->first_reloc_target, entry->inst_offset) - entry->inst_offset;
 
 	    if (inst->second_reloc_target)
-		inst->second_reloc_offset = label_to_addr(inst->second_reloc_target, entry->inst_offset);
+		inst->second_reloc_offset = label_to_addr(inst->second_reloc_target, entry->inst_offset) - entry->inst_offset;
 
 	    if (inst->second_reloc_offset) {
 		// this is a branch instruction with two offset arguments
-		entry->instruction.bits3.branch_2_offset.JIP = jump_distance(inst->first_reloc_offset - entry->inst_offset);
-		entry->instruction.bits3.branch_2_offset.UIP = jump_distance(inst->second_reloc_offset - entry->inst_offset);
+		entry->instruction.bits3.branch_2_offset.JIP = jump_distance(inst->first_reloc_offset);
+		entry->instruction.bits3.branch_2_offset.UIP = jump_distance(inst->second_reloc_offset);
 	    } else if (inst->first_reloc_offset) {
 		// this is a branch instruction with one offset argument
-		int offset = inst->first_reloc_offset - entry->inst_offset;
+		int offset = inst->first_reloc_offset;
 		/* bspec: Unlike other flow control instructions, the offset used by JMPI is relative to the incremented instruction pointer rather than the IP value for the instruction itself. */
 		if(entry->instruction.header.opcode == BRW_OPCODE_JMPI)
 		    offset --;
