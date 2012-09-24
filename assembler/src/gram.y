@@ -165,19 +165,21 @@ void set_direct_src_operand(struct src_operand *src, struct direct_reg *reg,
 %nonassoc LPAREN
 
 %type <integer> exp sndopr
+%type <integer> simple_int
 %type <instruction> instruction unaryinstruction binaryinstruction
 %type <instruction> binaryaccinstruction trinaryinstruction sendinstruction
-%type <instruction> jumpinstruction branchloopinstruction elseinstruction
-%type <instruction> breakinstruction syncinstruction specialinstruction
+%type <instruction> jumpinstruction
+%type <instruction> breakinstruction syncinstruction
 %type <instruction> msgtarget
 %type <instruction> instoptions instoption_list predicate
 %type <instruction> mathinstruction
 %type <instruction> subroutineinstruction
 %type <instruction> multibranchinstruction
+%type <instruction> nopinstruction loopinstruction ifelseinstruction haltinstruction
 %type <string> label
 %type <program> instrseq
 %type <integer> instoption
-%type <integer> unaryop binaryop binaryaccop branchloopop breakop
+%type <integer> unaryop binaryop binaryaccop breakop
 %type <integer> trinaryop
 %type <condition> conditionalmodifier 
 %type <integer> condition saturate negate abs chansel
@@ -206,8 +208,12 @@ void set_direct_src_operand(struct src_operand *src, struct direct_reg *reg,
 %type <src_operand> directsrcoperand srcarchoperandex directsrcaccoperand
 %type <src_operand> indirectsrcoperand
 %type <src_operand> src srcimm imm32reg payload srcacc srcaccimm swizzle
-%type <src_operand> relativelocation relativelocation2 locationstackcontrol
+%type <src_operand> relativelocation relativelocation2
 %%
+simple_int:     INTEGER { $$ = $1; }
+		| MINUS INTEGER { $$ = -$2;}
+;
+
 exp:		INTEGER { $$ = $1; }
 		| exp PLUS exp { $$ = $1 + $3; }
 		| exp MINUS exp { $$ = $1 - $3; }
@@ -390,15 +396,176 @@ instruction:	unaryinstruction
 		| trinaryinstruction
 		| sendinstruction
 		| jumpinstruction
-		| branchloopinstruction
-		| elseinstruction
+		| ifelseinstruction
 		| breakinstruction
 		| syncinstruction
-		| specialinstruction
 		| mathinstruction
 		| subroutineinstruction
 		| multibranchinstruction
+		| nopinstruction
+		| haltinstruction
+		| loopinstruction
 ;
+
+ifelseinstruction: ENDIF
+		{
+		  // for Gen4
+		  memset(&$$, 0, sizeof($$));
+		  $$.header.opcode = $1;
+		  $$.header.thread_control |= BRW_THREAD_SWITCH;
+		  $$.bits1.da1.dest_horiz_stride = 1;
+		  $$.bits1.da1.src1_reg_file = BRW_ARCHITECTURE_REGISTER_FILE;
+		  $$.bits1.da1.src1_reg_type = BRW_REGISTER_TYPE_UD;
+		}
+		| ENDIF execsize relativelocation instoptions
+		{
+		  // for Gen7+
+		  /* Gen7 bspec: predication is prohibited */
+		  memset(&$$, 0, sizeof($$));
+		  $$.header.opcode = $1;
+		  $$.header.execution_size = $2;
+		  $$.first_reloc_target = $3.reloc_target;
+		  $$.first_reloc_offset = $3.imm32;
+		}
+		| ELSE execsize relativelocation instoptions
+		{
+		  // for Gen4
+		  if(gen_level == 4) {
+		    struct direct_reg dst;
+		    struct dst_operand ip_dst;
+		    struct src_operand ip_src;
+
+		    dst.reg_file = BRW_ARCHITECTURE_REGISTER_FILE;
+		    dst.reg_nr = BRW_ARF_IP;
+		    dst.subreg_nr = 0;
+
+		    /* Set the istack pop count, which must always be 1. */
+		    $3.imm32 |= (1 << 16);
+
+		    memset(&$$, 0, sizeof($$));
+		    $$.header.opcode = $1;
+		    $$.header.execution_size = $2;
+		    $$.header.thread_control |= BRW_THREAD_SWITCH;
+		    set_direct_dst_operand(&ip_dst, &dst, BRW_REGISTER_TYPE_UD);
+		    set_instruction_dest(&$$, &ip_dst);
+		    set_direct_src_operand(&ip_src, &dst, BRW_REGISTER_TYPE_UD);
+		    set_instruction_src0(&$$, &ip_src);
+		    set_instruction_src1(&$$, &$3);
+		    $$.first_reloc_target = $3.reloc_target;
+		    $$.first_reloc_offset = $3.imm32;
+		  } else if(gen_level == 7) { // TODO: Gen5 Gen6 also OK?
+		    memset(&$$, 0, sizeof($$));
+		    $$.header.opcode = $1;
+		    $$.header.execution_size = $2;
+		    $$.first_reloc_target = $3.reloc_target;
+		    $$.first_reloc_offset = $3.imm32;
+		  } else {
+		    fprintf(stderr, "'ELSE' instruction is not implemented.\n");
+		    YYERROR;
+		  }
+		}
+		| predicate IF execsize relativelocation
+		{
+		  /* for Gen4 */
+		  struct direct_reg dst;
+		  struct dst_operand ip_dst;
+		  struct src_operand ip_src;
+
+		  /* The branch instructions require that the IP register
+		   * be the destination and first source operand, while the
+		   * offset is the second source operand.  The offset is added
+		   * to the pre-incremented IP.
+		   */
+		  dst.reg_file = BRW_ARCHITECTURE_REGISTER_FILE;
+		  dst.reg_nr = BRW_ARF_IP;
+		  dst.subreg_nr = 0;
+
+		  memset(&$$, 0, sizeof($$));
+		  $$.header.opcode = $2;
+		  $$.header.execution_size = $3;
+		  $$.header.thread_control |= BRW_THREAD_SWITCH;
+		  set_instruction_predicate(&$$, &$1);
+		  set_direct_dst_operand(&ip_dst, &dst, BRW_REGISTER_TYPE_UD);
+		  set_instruction_dest(&$$, &ip_dst);
+		  set_direct_src_operand(&ip_src, &dst, BRW_REGISTER_TYPE_UD);
+		  set_instruction_src0(&$$, &ip_src);
+		  set_instruction_src1(&$$, &$4);
+		  $$.first_reloc_target = $4.reloc_target;
+		  $$.first_reloc_offset = $4.imm32;
+		}
+		| predicate IF execsize relativelocation relativelocation
+		{
+		  /* for Gen7+ */
+		  memset(&$$, 0, sizeof($$));
+		  set_instruction_predicate(&$$, &$1);
+		  $$.header.opcode = $2;
+		  $$.header.execution_size = $3;
+		  $$.first_reloc_target = $4.reloc_target;
+		  $$.first_reloc_offset = $4.imm32;
+		  $$.second_reloc_target = $5.reloc_target;
+		  $$.second_reloc_offset = $5.imm32;
+		}
+;
+
+loopinstruction: predicate WHILE execsize relativelocation instoptions
+		{
+		  if(gen_level == 4) {
+		    struct direct_reg dst;
+		    struct dst_operand ip_dst;
+		    struct src_operand ip_src;
+
+		    /* The branch instructions require that the IP register
+		     * be the destination and first source operand, while the
+		     * offset is the second source operand.  The offset is added
+		     * to the pre-incremented IP.
+		     */
+		    dst.reg_file = BRW_ARCHITECTURE_REGISTER_FILE;
+		    dst.reg_nr = BRW_ARF_IP;
+		    dst.subreg_nr = 0;
+		    set_direct_dst_operand(&ip_dst, &dst, BRW_REGISTER_TYPE_UD);
+		    set_instruction_dest(&$$, &ip_dst);
+		    set_direct_src_operand(&ip_src, &dst, BRW_REGISTER_TYPE_UD);
+
+		    memset(&$$, 0, sizeof($$));
+		    set_instruction_predicate(&$$, &$1);
+		    $$.header.opcode = $2;
+		    $$.header.execution_size = $3;
+		    $$.header.thread_control |= BRW_THREAD_SWITCH;
+		    set_instruction_src0(&$$, &ip_src);
+		    set_instruction_src1(&$$, &$4);
+		    $$.first_reloc_target = $4.reloc_target;
+		    $$.first_reloc_offset = $4.imm32;
+		  } else if (gen_level == 7) { // TODO: Gen5, Gen6 also OK?
+		    memset(&$$, 0, sizeof($$));
+		    set_instruction_predicate(&$$, &$1);
+		    $$.header.opcode = $2;
+		    $$.header.execution_size = $3;
+		    $$.first_reloc_target = $4.reloc_target;
+		    $$.first_reloc_offset = $4.imm32;
+		  }
+		}
+		| DO
+		{
+		  // deprecated
+		  memset(&$$, 0, sizeof($$));
+		  $$.header.opcode = $1;
+		};
+
+haltinstruction: predicate HALT execsize relativelocation relativelocation instoptions
+		{
+		  // for Gen7
+		  /* Gen7 bspec: dst and src0 must be the null reg. */
+		  memset(&$$, 0, sizeof($$));
+		  set_instruction_predicate(&$$, &$1);
+		  $$.header.opcode = $2;
+		  $$.header.execution_size = $3;
+		  $$.first_reloc_target = $4.reloc_target;
+		  $$.first_reloc_offset = $4.imm32;
+		  $$.second_reloc_target = $5.reloc_target;
+		  $$.second_reloc_offset = $5.imm32;
+		  set_instruction_dest(&$$, &dst_null_reg);
+		  set_instruction_src0(&$$, &src_null_reg);
+		};
 
 multibranchinstruction:
 		predicate BRD execsize relativelocation instoptions
@@ -412,21 +579,6 @@ multibranchinstruction:
 		  $$.first_reloc_target = $4.reloc_target;
 		  $$.first_reloc_offset = $4.imm32;
 		  set_instruction_dest(&$$, &dst_null_reg);
-		}
-		| predicate BRD execsize src instoptions
-		{
-		  /* Gen7 bspec: dest must be null. src must be a scalar DWord */
-		  if($4.reg_type != BRW_REGISTER_TYPE_D) {
-		    fprintf(stderr, "The dest type of BRD should be D.\n");
-		    YYERROR;
-		  }
-		  memset(&$$, 0, sizeof($$));
-		  set_instruction_predicate(&$$, &$1);
-		  $$.header.opcode = $2;
-		  $$.header.execution_size = $3;
-		  $$.header.thread_control |= BRW_THREAD_SWITCH;
-		  set_instruction_dest(&$$, &dst_null_reg);
-		  set_instruction_src0(&$$, &$4);
 		}
 		| predicate BRC execsize relativelocation relativelocation instoptions
 		{
@@ -442,21 +594,6 @@ multibranchinstruction:
 		  $$.second_reloc_offset = $5.imm32;
 		  set_instruction_dest(&$$, &dst_null_reg);
 		  set_instruction_src0(&$$, &src_null_reg);
-		}
-		| predicate BRC execsize src instoptions
-		{
-		  /* Gen7 bspec: dest must be null. src must be DWORD. use Switch option */
-		  if($4.reg_type != BRW_REGISTER_TYPE_D) {
-		    fprintf(stderr, "The dest type of BRC should be D.\n");
-		    YYERROR;
-		  }
-		  memset(&$$, 0, sizeof($$));
-		  set_instruction_predicate(&$$, &$1);
-		  $$.header.opcode = $2;
-		  $$.header.execution_size = $3;
-		  $$.header.thread_control |= BRW_THREAD_SWITCH;
-		  set_instruction_dest(&$$, &dst_null_reg);
-		  set_instruction_src0(&$$, &$4);
 		}
 ;
 
@@ -938,65 +1075,7 @@ jumpinstruction: predicate JMPI execsize relativelocation2
 		  set_instruction_src0(&$$, &ip_src);
 		  set_instruction_src1(&$$, &$4);
 		  $$.first_reloc_target = $4.reloc_target;
-		}
-;
-
-branchloopinstruction:
-		predicate branchloopop execsize relativelocation
-		{
-		  struct direct_reg dst;
-		  struct dst_operand ip_dst;
-		  struct src_operand ip_src;
-
-		  /* The branch instructions require that the IP register
-		   * be the destination and first source operand, while the
-		   * offset is the second source operand.  The offset is added
-		   * to the pre-incremented IP.
-		   */
-		  dst.reg_file = BRW_ARCHITECTURE_REGISTER_FILE;
-		  dst.reg_nr = BRW_ARF_IP;
-		  dst.subreg_nr = 0;
-
-		  memset(&$$, 0, sizeof($$));
-		  $$.header.opcode = $2;
-		  $$.header.execution_size = $3;
-		  $$.header.thread_control |= BRW_THREAD_SWITCH;
-		  set_instruction_predicate(&$$, &$1);
-		  set_direct_dst_operand(&ip_dst, &dst, BRW_REGISTER_TYPE_UD);
-		  set_instruction_dest(&$$, &ip_dst);
-		  set_direct_src_operand(&ip_src, &dst, BRW_REGISTER_TYPE_UD);
-		  set_instruction_src0(&$$, &ip_src);
-		  set_instruction_src1(&$$, &$4);
-		  $$.first_reloc_target = $4.reloc_target;
-		}
-;
-
-branchloopop:	IF | IFF | WHILE
-;
-
-elseinstruction: ELSE execsize relativelocation
-		{
-		  struct direct_reg dst;
-		  struct dst_operand ip_dst;
-		  struct src_operand ip_src;
-
-		  dst.reg_file = BRW_ARCHITECTURE_REGISTER_FILE;
-		  dst.reg_nr = BRW_ARF_IP;
-		  dst.subreg_nr = 0;
-
-		  /* Set the istack pop count, which must always be 1. */
-		  $3.imm32 |= (1 << 16);
-
-		  memset(&$$, 0, sizeof($$));
-		  $$.header.opcode = $1;
-		  $$.header.execution_size = $2;
-		  $$.header.thread_control |= BRW_THREAD_SWITCH;
-		  set_direct_dst_operand(&ip_dst, &dst, BRW_REGISTER_TYPE_UD);
-		  set_instruction_dest(&$$, &ip_dst);
-		  set_direct_src_operand(&ip_src, &dst, BRW_REGISTER_TYPE_UD);
-		  set_instruction_src0(&$$, &ip_src);
-		  set_instruction_src1(&$$, &$3);
-		  $$.first_reloc_target = $3.reloc_target;
+		  $$.first_reloc_offset = $4.imm32;
 		}
 ;
 
@@ -1017,32 +1096,21 @@ mathinstruction: predicate MATH_INST execsize dst src srcimm math_function insto
 		}
 ;
 
-breakinstruction: breakop locationstackcontrol
+breakinstruction: predicate breakop execsize relativelocation relativelocation instoptions
 		{
-		  struct direct_reg dst;
-		  struct dst_operand ip_dst;
-		  struct src_operand ip_src;
-
-		  /* The jump instruction requires that the IP register
-		   * be the destination and first source operand, while the
-		   * offset is the second source operand.  The offset is added
-		   * to the IP pre-increment.
-		   */
-		  dst.reg_file = BRW_ARCHITECTURE_REGISTER_FILE;
-		  dst.reg_nr = BRW_ARF_IP;
-		  dst.subreg_nr = 0;
-
+		  // for Gen7
 		  memset(&$$, 0, sizeof($$));
-		  $$.header.opcode = $1;
-		  set_direct_dst_operand(&ip_dst, &dst, BRW_REGISTER_TYPE_UD);
-		  set_instruction_dest(&$$, &ip_dst);
-		  set_direct_src_operand(&ip_src, &dst, BRW_REGISTER_TYPE_UD);
-		  set_instruction_src0(&$$, &ip_src);
-		  set_instruction_src1(&$$, &$2);
+		  set_instruction_predicate(&$$, &$1);
+		  $$.header.opcode = $2;
+		  $$.header.execution_size = $3;
+		  $$.first_reloc_target = $4.reloc_target;
+		  $$.first_reloc_offset = $4.imm32;
+		  $$.second_reloc_target = $5.reloc_target;
+		  $$.second_reloc_offset = $5.imm32;
 		}
 ;
 
-breakop:	BREAK | CONT | HALT
+breakop:	BREAK | CONT
 ;
 
 /*
@@ -1074,26 +1142,11 @@ syncinstruction: predicate WAIT notifyreg
 		
 ;
 
-specialinstruction: NOP
+nopinstruction: NOP
 		{
 		  memset(&$$, 0, sizeof($$));
 		  $$.header.opcode = $1;
-		}
-		| DO
-		{
-		  memset(&$$, 0, sizeof($$));
-		  $$.header.opcode = $1;
-		}
-		| ENDIF
-		{
-		  memset(&$$, 0, sizeof($$));
-		  $$.header.opcode = $1;
-		  $$.header.thread_control |= BRW_THREAD_SWITCH;
-		  $$.bits1.da1.dest_horiz_stride = 1;
-		  $$.bits1.da1.src1_reg_file = BRW_ARCHITECTURE_REGISTER_FILE;
-		  $$.bits1.da1.src1_reg_type = BRW_REGISTER_TYPE_UD;
-		}
-;
+		};
 
 /* XXX! */
 payload: directsrcoperand
@@ -2148,7 +2201,7 @@ nullreg:	NULL_TOKEN
 
 /* 1.4.6: Relative locations */
 relativelocation:
-		EXP
+		simple_int
 		{
 		  if (($1 > 32767) || ($1 < -32768)) {
 		    fprintf(stderr,
@@ -2217,21 +2270,6 @@ relativelocation2:
 		  $$.vert_stride = $2.vert_stride;
 		  $$.width = $2.width;
 		  $$.horiz_stride = $2.horiz_stride;
-		}
-;
-
-locationstackcontrol:
-		imm32
-		{
-		  if ($1.r != imm32_d) {
-		    fprintf (stderr,
-			     "error: non-int stack control representation\n");
-		    YYERROR;
-		  }
-		  memset (&$$, '\0', sizeof ($$));
-		  $$.reg_file = BRW_IMMEDIATE_VALUE;
-		  $$.reg_type = BRW_REGISTER_TYPE_D;
-		  $$.imm32 = $1.u.d;
 		}
 ;
 
