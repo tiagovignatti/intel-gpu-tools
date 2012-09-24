@@ -138,6 +138,8 @@ yylval.integer = BRW_CHANNEL_W;
 "endif" { yylval.integer = BRW_OPCODE_ENDIF; return ENDIF; }
 "call" { yylval.integer = BRW_OPCODE_CALL; return CALL; }
 "ret" { yylval.integer = BRW_OPCODE_RET; return RET; }
+"brd" { yylval.integer = BRW_OPCODE_BRD; return BRD; }
+"brc" { yylval.integer = BRW_OPCODE_BRC; return BRC; }
 
 "pln" { yylval.integer = BRW_OPCODE_PLN; return PLN; }
 

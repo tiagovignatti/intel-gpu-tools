@@ -40,6 +40,16 @@ extern long int gen_level;
 extern int advanced_flag;
 extern int yylineno;
 extern int need_export;
+static struct src_operand src_null_reg =
+{
+    .reg_file = BRW_ARCHITECTURE_REGISTER_FILE,
+    .reg_nr = BRW_ARF_NULL,
+};
+static struct dst_operand dst_null_reg =
+{
+    .reg_file = BRW_ARCHITECTURE_REGISTER_FILE,
+    .reg_nr = BRW_ARF_NULL,
+};
 
 static int get_type_size(GLuint type);
 int set_instruction_dest(struct brw_instruction *instr,
@@ -121,6 +131,7 @@ void set_direct_src_operand(struct src_operand *src, struct direct_reg *reg,
 %token <integer> MATH_INST
 %token <integer> MAD LRP BFE BFI2 SUBB
 %token <integer> CALL RET
+%token <integer> BRD BRC
 
 %token NULL_TOKEN MATH SAMPLER GATEWAY READ WRITE URB THREAD_SPAWNER VME DATA_PORT
 
@@ -162,6 +173,7 @@ void set_direct_src_operand(struct src_operand *src, struct direct_reg *reg,
 %type <instruction> instoptions instoption_list predicate
 %type <instruction> mathinstruction
 %type <instruction> subroutineinstruction
+%type <instruction> multibranchinstruction
 %type <string> label
 %type <program> instrseq
 %type <integer> instoption
@@ -385,6 +397,67 @@ instruction:	unaryinstruction
 		| specialinstruction
 		| mathinstruction
 		| subroutineinstruction
+		| multibranchinstruction
+;
+
+multibranchinstruction:
+		predicate BRD execsize relativelocation instoptions
+		{
+		  /* Gen7 bspec: dest must be null. use Switch option */
+		  memset(&$$, 0, sizeof($$));
+		  set_instruction_predicate(&$$, &$1);
+		  $$.header.opcode = $2;
+		  $$.header.execution_size = $3;
+		  $$.header.thread_control |= BRW_THREAD_SWITCH;
+		  $$.first_reloc_target = $4.reloc_target;
+		  $$.first_reloc_offset = $4.imm32;
+		  set_instruction_dest(&$$, &dst_null_reg);
+		}
+		| predicate BRD execsize src instoptions
+		{
+		  /* Gen7 bspec: dest must be null. src must be a scalar DWord */
+		  if($4.reg_type != BRW_REGISTER_TYPE_D) {
+		    fprintf(stderr, "The dest type of BRD should be D.\n");
+		    YYERROR;
+		  }
+		  memset(&$$, 0, sizeof($$));
+		  set_instruction_predicate(&$$, &$1);
+		  $$.header.opcode = $2;
+		  $$.header.execution_size = $3;
+		  $$.header.thread_control |= BRW_THREAD_SWITCH;
+		  set_instruction_dest(&$$, &dst_null_reg);
+		  set_instruction_src0(&$$, &$4);
+		}
+		| predicate BRC execsize relativelocation relativelocation instoptions
+		{
+		  /* Gen7 bspec: dest must be null. src0 must be null. use Switch option */
+		  memset(&$$, 0, sizeof($$));
+		  set_instruction_predicate(&$$, &$1);
+		  $$.header.opcode = $2;
+		  $$.header.execution_size = $3;
+		  $$.header.thread_control |= BRW_THREAD_SWITCH;
+		  $$.first_reloc_target = $4.reloc_target;
+		  $$.first_reloc_offset = $4.imm32;
+		  $$.second_reloc_target = $5.reloc_target;
+		  $$.second_reloc_offset = $5.imm32;
+		  set_instruction_dest(&$$, &dst_null_reg);
+		  set_instruction_src0(&$$, &src_null_reg);
+		}
+		| predicate BRC execsize src instoptions
+		{
+		  /* Gen7 bspec: dest must be null. src must be DWORD. use Switch option */
+		  if($4.reg_type != BRW_REGISTER_TYPE_D) {
+		    fprintf(stderr, "The dest type of BRC should be D.\n");
+		    YYERROR;
+		  }
+		  memset(&$$, 0, sizeof($$));
+		  set_instruction_predicate(&$$, &$1);
+		  $$.header.opcode = $2;
+		  $$.header.execution_size = $3;
+		  $$.header.thread_control |= BRW_THREAD_SWITCH;
+		  set_instruction_dest(&$$, &dst_null_reg);
+		  set_instruction_src0(&$$, &$4);
+		}
 ;
 
 subroutineinstruction:

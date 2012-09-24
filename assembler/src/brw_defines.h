@@ -575,7 +575,9 @@
 #define BRW_OPCODE_BFI1       25
 #define BRW_OPCODE_BFI2       26
 #define BRW_OPCODE_JMPI       32
+#define BRW_OPCODE_BRD        33
 #define BRW_OPCODE_IF         34
+#define BRW_OPCODE_BRC        35
 #define BRW_OPCODE_IFF        35
 #define BRW_OPCODE_ELSE       36
 #define BRW_OPCODE_ENDIF      37

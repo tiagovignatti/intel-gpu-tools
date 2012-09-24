@@ -79,6 +79,16 @@ static const struct option longopts[] = {
 	{ NULL, 0, NULL, 0 }
 };
 
+// jump distance used in branch instructions as JIP or UIP
+static int jump_distance(int offset)
+{
+    // Gen4- bspec: the jump distance is in number of sixteen-byte units
+    // Gen5+ bspec: the jump distance is in number of eight-byte units
+    if(gen_level >= 5)
+        offset *= 2;
+    return offset;
+}
+
 static void usage(void)
 {
 	fprintf(stderr, "usage: intel-gen4asm [options] inputfile\n");
@@ -168,6 +178,10 @@ int label_to_addr(char *name, int start_addr)
             else if(r == -1) // the first label from the head
                 r = p->addr;
         }
+    }
+    if(r == -1) {
+        fprintf(stderr, "Can't find label %s\n", name);
+        exit(1);
     }
     return r;
 }
@@ -385,20 +399,25 @@ int main(int argc, char **argv)
 	}
 
 	for (entry = compiled_program.first; entry; entry = entry->next) {
-	    if (entry->instruction.first_reloc_target) {
-		int addr = label_to_addr(entry->instruction.first_reloc_target,
-		                         entry->inst_offset);
-		if(addr == -1) {
-		    fprintf(stderr, "can not find label %s\n",
-			    entry->instruction.first_reloc_target);
-		    exit(1);
-		}
-		int offset = addr - entry->inst_offset;
+	    struct brw_instruction *inst = & entry->instruction;
+
+	    if (inst->first_reloc_target)
+		inst->first_reloc_offset = label_to_addr(inst->first_reloc_target, entry->inst_offset);
+
+	    if (inst->second_reloc_target)
+		inst->second_reloc_offset = label_to_addr(inst->second_reloc_target, entry->inst_offset);
+
+	    if (inst->second_reloc_offset) {
+		// this is a branch instruction with two offset arguments
+		entry->instruction.bits3.branch_2_offset.JIP = jump_distance(inst->first_reloc_offset - entry->inst_offset);
+		entry->instruction.bits3.branch_2_offset.UIP = jump_distance(inst->second_reloc_offset - entry->inst_offset);
+	    } else if (inst->first_reloc_offset) {
+		// this is a branch instruction with one offset argument
+		int offset = inst->first_reloc_offset - entry->inst_offset;
+		/* bspec: Unlike other flow control instructions, the offset used by JMPI is relative to the incremented instruction pointer rather than the IP value for the instruction itself. */
 		if(entry->instruction.header.opcode == BRW_OPCODE_JMPI)
 		    offset --;
-		if(gen_level >= 5)
-		    offset *= 2; // bspec: the jump distance in number of eight-byte units
-		entry->instruction.bits3.JIP = offset;
+		entry->instruction.bits3.JIP = jump_distance(offset);
 		if(entry->instruction.header.opcode == BRW_OPCODE_ELSE)
 		    entry->instruction.bits3.branch_2_offset.UIP = 1;
 	    }
