@@ -72,6 +72,7 @@ int dump_info = 0, test_all_modes =0, test_preferred_mode = 0, force_mode = 0,
 int sleep_between_modes = 5;
 uint32_t depth = 24, stride, bpp;
 int qr_code = 0;
+int only_one_mode = 0, specified_mode_num = 0;
 
 drmModeModeInfo force_timing;
 
@@ -193,8 +194,10 @@ static void dump_connectors_fd(int drmfd)
 		printf("  modes:\n");
 		printf("  name refresh (Hz) hdisp hss hse htot vdisp "
 		       "vss vse vtot flags type clock\n");
-		for (j = 0; j < connector->count_modes; j++)
+		for (j = 0; j < connector->count_modes; j++){
+			fprintf(stdout, "[%d]", j );
 			kmstest_dump_mode(&connector->modes[j]);
+		}
 
 		drmModeFreeConnector(connector);
 	}
@@ -275,6 +278,12 @@ static void connector_find_preferred_mode(struct connector *c)
 		}
 	}
 
+	if ( only_one_mode ){
+		c->mode = connector->modes[specified_mode_num];
+		if (c->mode.type & DRM_MODE_TYPE_PREFERRED)
+			c->mode_valid = 1;
+	}
+
 	if (!c->mode_valid) {
 		if (connector->count_modes > 0) {
 			/* use the first mode as test mode */
@@ -318,7 +327,7 @@ static void connector_find_preferred_mode(struct connector *c)
 	c->crtc = resources->crtcs[i];
 	c->pipe = i;
 
-	if(test_preferred_mode || force_mode)
+	if(test_preferred_mode || force_mode || only_one_mode)
 		resources->crtcs[i] = 0;
 
 	c->connector = connector;
@@ -525,7 +534,7 @@ set_mode(struct connector *c)
 
 		gem_close(drm_fd, fb_info.gem_handle);
 
-		fprintf(stdout, "CRTS(%u):",c->crtc);
+		fprintf(stdout, "CRTS(%u):[%d]",c->crtc, j);
 		kmstest_dump_mode(&c->mode);
 		if (drmModeSetCrtc(drm_fd, c->crtc, fb_id, 0, 0,
 				   &c->id, 1, &c->mode)) {
@@ -585,7 +594,7 @@ int update_display(void)
 		dump_crtcs_fd(drm_fd);
 	}
 
-	if (test_preferred_mode || test_all_modes || force_mode) {
+	if (test_preferred_mode || test_all_modes || force_mode || only_one_mode) {
 		/* Find any connected displays */
 		for (c = 0; c < resources->count_connectors; c++) {
 			connectors[c].id = resources->connectors[c];
@@ -596,7 +605,7 @@ int update_display(void)
 	return 1;
 }
 
-static char optstr[] = "hiaf:s:d:p:mrt";
+static char optstr[] = "hiaf:s:d:p:mrto:";
 
 static void __attribute__((noreturn)) usage(char *name)
 {
@@ -609,6 +618,7 @@ static void __attribute__((noreturn)) usage(char *name)
 	fprintf(stderr, "\t-m\ttest the preferred mode\n");
 	fprintf(stderr, "\t-t\tuse a tiled framebuffer\n");
 	fprintf(stderr, "\t-r\tprint a QR code on the screen whose content is \"pass\" for the automatic test\n");
+	fprintf(stderr, "\t-o\t<number of the mode>\tonly test specified mode\n");
 	fprintf(stderr, "\t-f\t<clock MHz>,<hdisp>,<hsync-start>,<hsync-end>,<htotal>,\n");
 	fprintf(stderr, "\t\t<vdisp>,<vsync-start>,<vsync-end>,<vtotal>\n");
 	fprintf(stderr, "\t\ttest force mode\n");
@@ -701,6 +711,10 @@ int main(int argc, char **argv)
 		case 'r':
 			qr_code = 1;
 			break;
+		case 'o':
+			only_one_mode = 1;
+			specified_mode_num = atoi(optarg);
+			break;
 		default:
 			fprintf(stderr, "unknown option %c\n", c);
 			/* fall through */
@@ -710,7 +724,7 @@ int main(int argc, char **argv)
 		}
 	}
 	if (!test_all_modes && !force_mode && !dump_info &&
-	    !test_preferred_mode)
+	    !test_preferred_mode && !only_one_mode)
 		test_all_modes = 1;
 
 	drm_fd = drm_open_any();
