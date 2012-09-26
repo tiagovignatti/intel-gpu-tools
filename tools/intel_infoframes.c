@@ -125,6 +125,8 @@ typedef enum {
 #define SPD_INFOFRAME_VERSION 0x01
 #define SPD_INFOFRAME_LENGTH  0x19
 
+#define VENDOR_ID_HDMI	0x000c03
+
 typedef struct {
 	uint8_t type;
 	uint8_t version;
@@ -173,6 +175,21 @@ typedef union {
 		uint8_t description[16];
 		uint8_t source;
 	} __attribute__((packed)) spd;
+	struct {
+		DipInfoFrameHeader header;
+		uint8_t checksum;
+
+		uint8_t id[3];
+
+		uint8_t Rsvd0        :5;
+		uint8_t video_format :3;
+
+		uint8_t Rsvd1         :4;
+		uint8_t s3d_structure :4;
+
+		uint8_t Rsvd2        :4;
+		uint8_t s3d_ext_data :4;
+	} __attribute__((packed)) vendor;
 	struct {
 		DipInfoFrameHeader header;
 		uint8_t body[27];
@@ -424,10 +441,45 @@ static void dump_avi_info(Transcoder transcoder)
 		printf("Invalid InfoFrame checksum!\n");
 }
 
+static const char *vendor_id_to_string(uint32_t id)
+{
+	switch (id) {
+	case VENDOR_ID_HDMI:
+		return "HDMI";
+	default:
+		return "Unknown";
+	}
+}
+
+static const char *s3d_structure_to_string(int format)
+{
+	switch (format) {
+	case 0:
+		return "Frame Packing";
+	case 6:
+		return "Top Bottom";
+	case 8:
+		return "Side By Side (half)";
+	default:
+		return "Reserved";
+	}
+}
+
+static void dump_vendor_hdmi(DipInfoFrame *frame)
+{
+	int s3d_present = frame->vendor.video_format & 0x2;
+
+	printf("- video format: 0x%03x %s\n", frame->vendor.video_format,
+	       s3d_present ? "(3D)" : "");
+	if (s3d_present)
+		printf("- 3D Format: %s\n",
+		       s3d_structure_to_string(frame->vendor.s3d_structure));
+}
+
 static void dump_vendor_info(Transcoder transcoder)
 {
 	Register reg = get_dip_ctl_reg(transcoder);
-	uint32_t val;
+	uint32_t val, vendor_id;
 	DipFrequency freq;
 	DipInfoFrame frame;
 
@@ -445,6 +497,15 @@ static void dump_vendor_info(Transcoder transcoder)
 	printf("- frequency: %s\n", dip_frequency_names[freq]);
 
 	dump_raw_infoframe(&frame);
+
+	vendor_id = frame.vendor.id[2] << 16 | frame.vendor.id[1] << 8 |
+		    frame.vendor.id[0];
+
+	printf("- vendor Id: 0x%06x (%s)\n", vendor_id,
+	       vendor_id_to_string(vendor_id));
+
+	if (vendor_id == VENDOR_ID_HDMI)
+		dump_vendor_hdmi(&frame);
 
 	if (!infoframe_valid_checksum(&frame))
 		printf("Invalid InfoFrame checksum!\n");
