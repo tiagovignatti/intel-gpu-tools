@@ -44,6 +44,7 @@ static struct src_operand src_null_reg =
 {
     .reg_file = BRW_ARCHITECTURE_REGISTER_FILE,
     .reg_nr = BRW_ARF_NULL,
+    .reg_type = BRW_REGISTER_TYPE_UD,
 };
 static struct dst_operand dst_null_reg =
 {
@@ -1103,15 +1104,9 @@ maskpushop:	MSAVE | PUSH
 
 syncinstruction: predicate WAIT notifyreg
 		{
-		  struct direct_reg null;
 		  struct dst_operand notify_dst;
-		  struct src_operand null_src;
 		  struct src_operand notify_src;
 
-		  null.reg_file = BRW_ARCHITECTURE_REGISTER_FILE;
-		  null.reg_nr = BRW_ARF_NULL;
-		  null.subreg_nr = 0;
-		  
 		  memset(&$$, 0, sizeof($$));
 		  $$.header.opcode = $2;
 		  $$.header.execution_size = ffs(1) - 1;
@@ -1119,8 +1114,7 @@ syncinstruction: predicate WAIT notifyreg
 		  set_instruction_dest(&$$, &notify_dst);
 		  set_direct_src_operand(&notify_src, &$3, BRW_REGISTER_TYPE_D);
 		  set_instruction_src0(&$$, &notify_src);
-		  set_direct_src_operand(&null_src, &null, BRW_REGISTER_TYPE_UD);
-		  set_instruction_src1(&$$, &null_src);
+		  set_instruction_src1(&$$, &src_null_reg);
 		}
 		
 ;
