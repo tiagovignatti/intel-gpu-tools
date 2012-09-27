@@ -429,8 +429,8 @@ ifelseinstruction: ENDIF
 		}
 		| ELSE execsize relativelocation instoptions
 		{
-		  // for Gen4
-		  if(gen_level == 4) {
+		  // for Gen4, Gen5
+		  if(gen_level <= 5) {
 		    struct direct_reg dst;
 		    struct dst_operand ip_dst;
 		    struct src_operand ip_src;
@@ -509,7 +509,7 @@ ifelseinstruction: ENDIF
 
 loopinstruction: predicate WHILE execsize relativelocation instoptions
 		{
-		  if(gen_level == 4) {
+		  if(gen_level <= 5) {
 		    struct direct_reg dst;
 		    struct dst_operand ip_dst;
 		    struct src_operand ip_src;
@@ -535,13 +535,16 @@ loopinstruction: predicate WHILE execsize relativelocation instoptions
 		    set_instruction_src1(&$$, &$4);
 		    $$.first_reloc_target = $4.reloc_target;
 		    $$.first_reloc_offset = $4.imm32;
-		  } else if (gen_level == 7) { // TODO: Gen5, Gen6 also OK?
+		  } else if (gen_level == 7) { // TODO: Gen6 also OK?
 		    memset(&$$, 0, sizeof($$));
 		    set_instruction_predicate(&$$, &$1);
 		    $$.header.opcode = $2;
 		    $$.header.execution_size = $3;
 		    $$.first_reloc_target = $4.reloc_target;
 		    $$.first_reloc_offset = $4.imm32;
+		  } else {
+		    fprintf(stderr, "'WHILE' instruction is not implemented!\n");
+		    YYERROR;
 		  }
 		}
 		| DO
