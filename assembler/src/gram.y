@@ -594,19 +594,37 @@ multibranchinstruction:
 subroutineinstruction:
 		predicate CALL execsize dst relativelocation instoptions
 		{
-		  if($3 != 1 /* encoded int 2 */) {
-		    fprintf(stderr, "The execution size of CALL should be 2.\n");
-		    YYERROR;
-		  }
-		  if($4.reg_type != BRW_REGISTER_TYPE_UD && $4.reg_type != BRW_REGISTER_TYPE_D) {
-		    fprintf(stderr, "The dest type of CALL should be UD or D.\n");
-		    YYERROR;
-		  }
+		  /*
+		    Gen6 bspec:
+		       source, dest type should be DWORD.
+		       dest must be QWord aligned.
+		       source0 region control must be <2,2,1>.
+		       execution size must be 2.
+		       QtrCtrl is prohibited.
+		       JIP is an immediate operand, must be of type W.
+		    Gen7 bspec:
+		       source, dest type should be DWORD.
+		       dest must be QWord aligned.
+		       source0 region control must be <2,2,1>.
+		       execution size must be 2.
+		   */
 		  memset(&$$, 0, sizeof($$));
 		  set_instruction_predicate(&$$, &$1);
 		  $$.header.opcode = $2;
-		  $$.header.execution_size = $3;
+		  $$.header.execution_size = 1; /* execution size must be 2. Here 1 is encoded 2. */
+
+		  $4.reg_type = BRW_REGISTER_TYPE_D; /* dest type should be DWORD */
 		  set_instruction_dest(&$$, &$4);
+
+		  struct src_operand src0;
+		  memset(&src0, 0, sizeof(src0));
+		  src0.reg_type = BRW_REGISTER_TYPE_D; /* source type should be DWORD */
+		  /* source0 region control must be <2,2,1>. */
+		  src0.horiz_stride = 1; /*encoded 1*/
+		  src0.width = 1; /*encoded 2*/
+		  src0.vert_stride = 2; /*encoded 2*/
+		  set_instruction_src0(&$$, &src0);
+
 		  $$.first_reloc_target = $5.reloc_target;
 		  $$.first_reloc_offset = $5.imm32;
 		}
