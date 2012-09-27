@@ -1139,6 +1139,12 @@ struct brw_instruction
 	 GLuint dest_subreg_nr:3;
 	 GLuint dest_reg_nr:8;
       } three_src_gen6; /* Three-source-operator instructions for Gen6+ */
+
+      struct
+      {
+	 GLuint pad:16;
+	 GLint JIP:16;
+      } branch; /* conditional branch JIP for Gen6 only */
    } bits1;
 
 
@@ -1309,12 +1315,11 @@ struct brw_instruction
 
       struct
       {
-	 GLint JIP:16; /* bspec: both the JIP and UIP are signed 16-bit numbers */
+	 GLint JIP:16; /* Gen7 bspec: both the JIP and UIP are signed 16-bit numbers */
 	 GLint UIP:16;
-      } branch_2_offset; /* for Gen6, Gen7 2-offsets branch instructions */
+      } branch_2_offset; /* for Gen6, Gen7 2-offsets branch; for Gen7 1-offset branch */
 
-      GLint JIP; /* for Gen6, Gen7 1-offset branch instructions 
-                    Gen6 uses low 25 bits. Gen7 uses low 16 bits. */
+      GLint JIP; /* used by Gen6 CALL instructions */
 
       struct {
 	 GLuint function:4;

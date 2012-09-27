@@ -450,8 +450,8 @@ ifelseinstruction: ENDIF
 		}
 		| ELSE execsize relativelocation instoptions
 		{
-		  // for Gen4, Gen5
 		  if(gen_level <= 5) {
+		    // for Gen4, Gen5
 		    /* Set the istack pop count, which must always be 1. */
 		    $3.imm32 |= (1 << 16);
 
@@ -464,7 +464,7 @@ ifelseinstruction: ENDIF
 		    set_instruction_src1(&$$, &$3);
 		    $$.first_reloc_target = $3.reloc_target;
 		    $$.first_reloc_offset = $3.imm32;
-		  } else if(gen_level == 7) { // TODO: Gen5 Gen6 also OK?
+		  } else if(gen_level <= 7) {
 		    memset(&$$, 0, sizeof($$));
 		    $$.header.opcode = $1;
 		    $$.header.execution_size = $2;
@@ -640,7 +640,7 @@ subroutineinstruction:
 		  set_instruction_predicate(&$$, &$1);
 		  $$.header.opcode = $2;
 		  $$.header.execution_size = 1; /* execution size of RET should be 2 */
-		  set_instruction_dest(&$$, dst_null_reg);
+		  set_instruction_dest(&$$, &dst_null_reg);
 		  $5.reg_type = BRW_REGISTER_TYPE_D;
 		  $5.horiz_stride = 1; /*encoded 1*/
 		  $5.width = 1; /*encoded 2*/
