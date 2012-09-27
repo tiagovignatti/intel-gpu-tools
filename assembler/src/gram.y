@@ -630,29 +630,21 @@ subroutineinstruction:
 		}
 		| predicate RET execsize dstoperandex src instoptions
 		{
-		  if($3 != 1 /* encoded int 2 */) {
-		    fprintf(stderr, "The execution size of RET should be 2.\n");
-		    YYERROR;
-		  }
-		  if($4.reg_file != BRW_ARCHITECTURE_REGISTER_FILE && $4.reg_nr != BRW_ARF_NULL) {
-		    fprintf(stderr, "The dest reg of RET should be NULL.\n");
-		    YYERROR;
-		  }
-		  if($5.reg_type != BRW_REGISTER_TYPE_UD && $5.reg_type != BRW_REGISTER_TYPE_D) {
-		    fprintf(stderr, "The source reg type of RET should be UD or D.\n");
-		    YYERROR;
-		  }
-		  if($5.horiz_stride != 1 /*encoded 1*/
-		     || $5.width != 1 /*encoded 2*/
-		     || $5.vert_stride != 2 /*encoded 2*/) {
-		    fprintf(stderr, "The source reg region of RET should be <2,2,1>.\n");
-		    YYERROR;
-		  }
+		  /*
+		     Gen6, 7:
+		       source cannot be accumulator.
+		       dest must be null.
+		       src0 region control must be <2,2,1> (not specified clearly. should be same as CALL)
+		   */
 		  memset(&$$, 0, sizeof($$));
 		  set_instruction_predicate(&$$, &$1);
 		  $$.header.opcode = $2;
-		  $$.header.execution_size = $3;
-		  set_instruction_dest(&$$, &$4);
+		  $$.header.execution_size = 1; /* execution size of RET should be 2 */
+		  set_instruction_dest(&$$, dst_null_reg);
+		  $5.reg_type = BRW_REGISTER_TYPE_D;
+		  $5.horiz_stride = 1; /*encoded 1*/
+		  $5.width = 1; /*encoded 2*/
+		  $5.vert_stride = 2; /*encoded 2*/
 		  set_instruction_src0(&$$, &$5);
 		}
 ;
