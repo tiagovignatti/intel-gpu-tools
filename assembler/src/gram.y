@@ -50,6 +50,26 @@ static struct dst_operand dst_null_reg =
     .reg_file = BRW_ARCHITECTURE_REGISTER_FILE,
     .reg_nr = BRW_ARF_NULL,
 };
+static struct dst_operand ip_dst =
+{
+    .reg_file = BRW_ARCHITECTURE_REGISTER_FILE,
+    .reg_nr = BRW_ARF_IP,
+    .reg_type = BRW_REGISTER_TYPE_UD,
+    .address_mode = BRW_ADDRESS_DIRECT,
+    .horiz_stride = 1,
+    .writemask = 0xF,
+};
+static struct src_operand ip_src =
+{
+    .reg_file = BRW_ARCHITECTURE_REGISTER_FILE,
+    .reg_nr = BRW_ARF_IP,
+    .reg_type = BRW_REGISTER_TYPE_UD,
+    .address_mode = BRW_ADDRESS_DIRECT,
+    .swizzle_x = BRW_CHANNEL_X,
+    .swizzle_y = BRW_CHANNEL_Y,
+    .swizzle_z = BRW_CHANNEL_Z,
+    .swizzle_w = BRW_CHANNEL_W,
+};
 
 static int get_type_size(GLuint type);
 int set_instruction_dest(struct brw_instruction *instr,
@@ -431,14 +451,6 @@ ifelseinstruction: ENDIF
 		{
 		  // for Gen4, Gen5
 		  if(gen_level <= 5) {
-		    struct direct_reg dst;
-		    struct dst_operand ip_dst;
-		    struct src_operand ip_src;
-
-		    dst.reg_file = BRW_ARCHITECTURE_REGISTER_FILE;
-		    dst.reg_nr = BRW_ARF_IP;
-		    dst.subreg_nr = 0;
-
 		    /* Set the istack pop count, which must always be 1. */
 		    $3.imm32 |= (1 << 16);
 
@@ -446,9 +458,7 @@ ifelseinstruction: ENDIF
 		    $$.header.opcode = $1;
 		    $$.header.execution_size = $2;
 		    $$.header.thread_control |= BRW_THREAD_SWITCH;
-		    set_direct_dst_operand(&ip_dst, &dst, BRW_REGISTER_TYPE_UD);
 		    set_instruction_dest(&$$, &ip_dst);
-		    set_direct_src_operand(&ip_src, &dst, BRW_REGISTER_TYPE_UD);
 		    set_instruction_src0(&$$, &ip_src);
 		    set_instruction_src1(&$$, &$3);
 		    $$.first_reloc_target = $3.reloc_target;
@@ -467,27 +477,17 @@ ifelseinstruction: ENDIF
 		| predicate IF execsize relativelocation
 		{
 		  /* for Gen4 */
-		  struct direct_reg dst;
-		  struct dst_operand ip_dst;
-		  struct src_operand ip_src;
-
 		  /* The branch instructions require that the IP register
 		   * be the destination and first source operand, while the
 		   * offset is the second source operand.  The offset is added
 		   * to the pre-incremented IP.
 		   */
-		  dst.reg_file = BRW_ARCHITECTURE_REGISTER_FILE;
-		  dst.reg_nr = BRW_ARF_IP;
-		  dst.subreg_nr = 0;
-
 		  memset(&$$, 0, sizeof($$));
 		  $$.header.opcode = $2;
 		  $$.header.execution_size = $3;
 		  $$.header.thread_control |= BRW_THREAD_SWITCH;
 		  set_instruction_predicate(&$$, &$1);
-		  set_direct_dst_operand(&ip_dst, &dst, BRW_REGISTER_TYPE_UD);
 		  set_instruction_dest(&$$, &ip_dst);
-		  set_direct_src_operand(&ip_src, &dst, BRW_REGISTER_TYPE_UD);
 		  set_instruction_src0(&$$, &ip_src);
 		  set_instruction_src1(&$$, &$4);
 		  $$.first_reloc_target = $4.reloc_target;
@@ -510,22 +510,12 @@ ifelseinstruction: ENDIF
 loopinstruction: predicate WHILE execsize relativelocation instoptions
 		{
 		  if(gen_level <= 5) {
-		    struct direct_reg dst;
-		    struct dst_operand ip_dst;
-		    struct src_operand ip_src;
-
 		    /* The branch instructions require that the IP register
 		     * be the destination and first source operand, while the
 		     * offset is the second source operand.  The offset is added
 		     * to the pre-incremented IP.
 		     */
-		    dst.reg_file = BRW_ARCHITECTURE_REGISTER_FILE;
-		    dst.reg_nr = BRW_ARF_IP;
-		    dst.subreg_nr = 0;
-		    set_direct_dst_operand(&ip_dst, &dst, BRW_REGISTER_TYPE_UD);
 		    set_instruction_dest(&$$, &ip_dst);
-		    set_direct_src_operand(&ip_src, &dst, BRW_REGISTER_TYPE_UD);
-
 		    memset(&$$, 0, sizeof($$));
 		    set_instruction_predicate(&$$, &$1);
 		    $$.header.opcode = $2;
@@ -1053,28 +1043,18 @@ sndopr: exp %prec SNDOPR
 
 jumpinstruction: predicate JMPI execsize relativelocation2
 		{
-		  struct direct_reg dst;
-		  struct dst_operand ip_dst;
-		  struct src_operand ip_src;
-
 		  /* The jump instruction requires that the IP register
 		   * be the destination and first source operand, while the
 		   * offset is the second source operand.  The next instruction
 		   * is the post-incremented IP plus the offset.
 		   */
-		  dst.reg_file = BRW_ARCHITECTURE_REGISTER_FILE;
-		  dst.reg_nr = BRW_ARF_IP;
-		  dst.subreg_nr = 0;
-
 		  memset(&$$, 0, sizeof($$));
 		  $$.header.opcode = $2;
 		  $$.header.execution_size = ffs(1) - 1;
 		  if(advanced_flag)
 		  	$$.header.mask_control = BRW_MASK_DISABLE;
-		  set_direct_dst_operand(&ip_dst, &dst, BRW_REGISTER_TYPE_UD);
 		  set_instruction_predicate(&$$, &$1);
 		  set_instruction_dest(&$$, &ip_dst);
-		  set_direct_src_operand(&ip_src, &dst, BRW_REGISTER_TYPE_UD);
 		  set_instruction_src0(&$$, &ip_src);
 		  set_instruction_src1(&$$, &$4);
 		  $$.first_reloc_target = $4.reloc_target;
