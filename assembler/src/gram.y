@@ -547,8 +547,8 @@ loopinstruction: predicate WHILE execsize relativelocation instoptions
 
 haltinstruction: predicate HALT execsize relativelocation relativelocation instoptions
 		{
-		  // for Gen7
-		  /* Gen7 bspec: dst and src0 must be the null reg. */
+		  // for Gen6, Gen7
+		  /* Gen6, Gen7 bspec: dst and src0 must be the null reg. */
 		  memset(&$$, 0, sizeof($$));
 		  set_instruction_predicate(&$$, &$1);
 		  $$.header.opcode = $2;
@@ -1092,7 +1092,7 @@ mathinstruction: predicate MATH_INST execsize dst src srcimm math_function insto
 
 breakinstruction: predicate breakop execsize relativelocation relativelocation instoptions
 		{
-		  // for Gen7
+		  // for Gen6, Gen7
 		  memset(&$$, 0, sizeof($$));
 		  set_instruction_predicate(&$$, &$1);
 		  $$.header.opcode = $2;
