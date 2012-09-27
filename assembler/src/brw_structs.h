@@ -1123,9 +1123,9 @@ struct brw_instruction
 
       struct
       {
-	 GLuint pad0:1; /* reserved */
+	 GLuint dest_reg_file:1; /* used in Gen6, deleted in Gen7 */
 	 GLuint flag_subreg_nr:1;
-	 GLuint flag_reg_nr:1;
+	 GLuint flag_reg_nr:1;   /* not in Gen6. Add in Gen7 */
 	 GLuint pad1:1; /* reserved */
 	 GLuint src0_modifier:2;
 	 GLuint src1_modifier:2;
@@ -1138,7 +1138,7 @@ struct brw_instruction
 	 GLuint dest_writemask:4;
 	 GLuint dest_subreg_nr:3;
 	 GLuint dest_reg_nr:8;
-      } three_src_gen7; /* Three-source-operator instructions for Gen7+ */
+      } three_src_gen6; /* Three-source-operator instructions for Gen6+ */
    } bits1;
 
 
@@ -1219,7 +1219,7 @@ struct brw_instruction
 	 GLuint src1_rep_ctrl:1;
 	 GLuint src1_swizzle:8;
 	 GLuint src1_subreg_nr_low:2; /* src1_subreg_nr spans on two DWORDs */
-      } three_src_gen7; /* Three-source-operator instructions for Gen7+ */
+      } three_src_gen6; /* Three-source-operator instructions for Gen6+ */
 
        struct 
        {
@@ -1305,7 +1305,7 @@ struct brw_instruction
 	 GLuint src2_subreg_nr:3;
 	 GLuint src2_reg_nr:8;
 	 GLuint pad1:2; /* reserved */
-      } three_src_gen7; /* Three-source-operator instructions for Gen7+ */
+      } three_src_gen6; /* Three-source-operator instructions for Gen6+ */
 
       struct
       {

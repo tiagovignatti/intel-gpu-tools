@@ -773,8 +773,8 @@ trinaryinstruction:
 
 		  $$.header.predicate_control = $1.header.predicate_control;
 		  $$.header.predicate_inverse = $1.header.predicate_inverse;
-		  $$.bits1.three_src_gen7.flag_reg_nr = $1.bits2.da1.flag_reg_nr;
-		  $$.bits1.three_src_gen7.flag_subreg_nr = $1.bits2.da1.flag_subreg_nr;
+		  $$.bits1.three_src_gen6.flag_reg_nr = $1.bits2.da1.flag_reg_nr;
+		  $$.bits1.three_src_gen6.flag_subreg_nr = $1.bits2.da1.flag_subreg_nr;
 
 		  $$.header.opcode = $2;
 		  $$.header.sfid_destreg__conditionalmod = $3.cond;
@@ -3014,10 +3014,11 @@ static int reg_type_2_to_3(int reg_type)
 int set_instruction_dest_three_src(struct brw_instruction *instr,
                                    struct dst_operand *dest)
 {
-	instr->bits1.three_src_gen7.dest_reg_nr = dest->reg_nr;
-	instr->bits1.three_src_gen7.dest_subreg_nr = get_subreg_address(dest->reg_file, dest->reg_type, dest->subreg_nr, dest->address_mode) / 4; // in DWORD
-	instr->bits1.three_src_gen7.dest_writemask = dest->writemask;
-	instr->bits1.three_src_gen7.dest_reg_type = reg_type_2_to_3(dest->reg_type);
+	instr->bits1.three_src_gen6.dest_reg_file = dest->reg_file;
+	instr->bits1.three_src_gen6.dest_reg_nr = dest->reg_nr;
+	instr->bits1.three_src_gen6.dest_subreg_nr = get_subreg_address(dest->reg_file, dest->reg_type, dest->subreg_nr, dest->address_mode) / 4; // in DWORD
+	instr->bits1.three_src_gen6.dest_writemask = dest->writemask;
+	instr->bits1.three_src_gen6.dest_reg_type = reg_type_2_to_3(dest->reg_type);
 	return 0;
 }
 
@@ -3028,9 +3029,9 @@ int set_instruction_src0_three_src(struct brw_instruction *instr,
 		reset_instruction_src_region(instr, src);
 	}
 	// TODO: supporting src0 swizzle, src0 modifier, src0 rep_ctrl
-	instr->bits1.three_src_gen7.src_reg_type = reg_type_2_to_3(src->reg_type);
-	instr->bits2.three_src_gen7.src0_subreg_nr = get_subreg_address(src->reg_file, src->reg_type, src->subreg_nr, src->address_mode) / 4; // in DWORD
-	instr->bits2.three_src_gen7.src0_reg_nr = src->reg_nr;
+	instr->bits1.three_src_gen6.src_reg_type = reg_type_2_to_3(src->reg_type);
+	instr->bits2.three_src_gen6.src0_subreg_nr = get_subreg_address(src->reg_file, src->reg_type, src->subreg_nr, src->address_mode) / 4; // in DWORD
+	instr->bits2.three_src_gen6.src0_reg_nr = src->reg_nr;
 	return 0;
 }
 
@@ -3042,9 +3043,9 @@ int set_instruction_src1_three_src(struct brw_instruction *instr,
 	}
 	// TODO: supporting src1 swizzle, src1 modifier, src1 rep_ctrl
 	int v = get_subreg_address(src->reg_file, src->reg_type, src->subreg_nr, src->address_mode) / 4; // in DWORD
-	instr->bits2.three_src_gen7.src1_subreg_nr_low = v % 4; // lower 2 bits
-	instr->bits3.three_src_gen7.src1_subreg_nr_high = v / 4; // highest bit
-	instr->bits3.three_src_gen7.src1_reg_nr = src->reg_nr;
+	instr->bits2.three_src_gen6.src1_subreg_nr_low = v % 4; // lower 2 bits
+	instr->bits3.three_src_gen6.src1_subreg_nr_high = v / 4; // highest bit
+	instr->bits3.three_src_gen6.src1_reg_nr = src->reg_nr;
 	return 0;
 }
 
@@ -3055,8 +3056,8 @@ int set_instruction_src2_three_src(struct brw_instruction *instr,
 		reset_instruction_src_region(instr, src);
 	}
 	// TODO: supporting src2 swizzle, src2 modifier, src2 rep_ctrl
-	instr->bits3.three_src_gen7.src2_subreg_nr = get_subreg_address(src->reg_file, src->reg_type, src->subreg_nr, src->address_mode) / 4; // in DWORD
-	instr->bits3.three_src_gen7.src2_reg_nr = src->reg_nr;
+	instr->bits3.three_src_gen6.src2_subreg_nr = get_subreg_address(src->reg_file, src->reg_type, src->subreg_nr, src->address_mode) / 4; // in DWORD
+	instr->bits3.three_src_gen6.src2_reg_nr = src->reg_nr;
 	return 0;
 }
 
