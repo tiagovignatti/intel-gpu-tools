@@ -1,4 +1,4 @@
-AM_YFLAGS = -d
+AM_YFLAGS = -d --warnings=all
 
 AM_CFLAGS= $(WARN_CFLAGS)
 bin_PROGRAMS = intel-gen4asm intel-gen4disasm
