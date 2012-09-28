@@ -431,6 +431,10 @@ instruction:	unaryinstruction
 ifelseinstruction: ENDIF
 		{
 		  // for Gen4
+		  if(gen_level > 5) {
+		    fprintf(stderr, "ENDIF Syntax error: should be 'ENDIF execsize relativelocation'\n");
+		    YYERROR;
+		  }
 		  memset(&$$, 0, sizeof($$));
 		  $$.header.opcode = $1;
 		  $$.header.thread_control |= BRW_THREAD_SWITCH;
@@ -440,8 +444,12 @@ ifelseinstruction: ENDIF
 		}
 		| ENDIF execsize relativelocation instoptions
 		{
-		  // for Gen7+
-		  /* Gen7 bspec: predication is prohibited */
+		  // for Gen6+
+		  /* Gen6, Gen7 bspec: predication is prohibited */
+		  if(gen_level <= 5) {
+		    fprintf(stderr, "ENDIF Syntax error: should be 'ENDIF'\n");
+		    YYERROR;
+		  }
 		  memset(&$$, 0, sizeof($$));
 		  $$.header.opcode = $1;
 		  $$.header.execution_size = $2;
