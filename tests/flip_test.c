@@ -38,6 +38,8 @@
 #include "drmtest.h"
 #include "testdisplay.h"
 
+#define TEST_DPMS 1
+
 drmModeRes *resources;
 int drm_fd;
 int test_time = 3;
@@ -58,10 +60,38 @@ struct test_output {
 	drmModeEncoder *encoder;
 	drmModeConnector *connector;
 	int crtc;
-	int pipe;
+	int flags;
 	unsigned int current_fb_id;
 	unsigned int fb_ids[2];
 };
+
+static int set_dpms(struct test_output *o, int mode)
+{
+	int i, dpms = 0;
+
+	for (i = 0; i < o->connector->count_props; i++) {
+		struct drm_mode_get_property prop;
+
+		prop.prop_id = o->connector->props[i];
+		prop.count_values = 0;
+		prop.count_enum_blobs = 0;
+		if (drmIoctl(drm_fd, DRM_IOCTL_MODE_GETPROPERTY, &prop))
+			continue;
+
+		if (strcmp(prop.name, "DPMS"))
+			continue;
+
+		dpms = prop.prop_id;
+		break;
+	}
+	if (!dpms) {
+		fprintf(stderr, "DPMS property not found on %d\n", o->id);
+		errno = ENOENT;
+		return -1;
+	}
+
+	return drmModeConnectorSetProperty(drm_fd, o->id, dpms, mode);
+}
 
 static void page_flip_handler(int fd, unsigned int frame, unsigned int sec,
 			      unsigned int usec, void *data)
@@ -69,14 +99,18 @@ static void page_flip_handler(int fd, unsigned int frame, unsigned int sec,
 	struct test_output *o = data;
 	unsigned int new_fb_id;
 
-	if (o->current_fb_id == o->fb_ids[0])
-		new_fb_id = o->fb_ids[1];
-	else
-		new_fb_id = o->fb_ids[0];
+	o->current_fb_id = !o->current_fb_id;
+	new_fb_id = o->fb_ids[o->current_fb_id];
 
-	drmModePageFlip(drm_fd, o->crtc, new_fb_id,
-			DRM_MODE_PAGE_FLIP_EVENT, o);
-	o->current_fb_id = new_fb_id;
+	printf("."); fflush(stdout);
+	if (o->flags & TEST_DPMS)
+		do_or_die(set_dpms(o, 0));
+
+	do_or_die(drmModePageFlip(drm_fd, o->crtc, new_fb_id,
+				  DRM_MODE_PAGE_FLIP_EVENT, o));
+
+	if (o->flags & TEST_DPMS)
+		do_or_die(set_dpms(o, 3));
 }
 
 static void connector_find_preferred_mode(struct test_output *o, int crtc_id)
@@ -169,8 +203,6 @@ static void connector_find_preferred_mode(struct test_output *o, int crtc_id)
 		return;
 	}
 
-	o->pipe = i;
-
 	o->connector = connector;
 }
 
@@ -188,7 +220,19 @@ paint_flip_mode(cairo_t *cr, int width, int height, void *priv)
 	cairo_fill(cr);
 }
 
-static void set_mode(struct test_output *o, int crtc)
+static int
+fb_is_bound(struct test_output *o, int fb)
+{
+	struct drm_mode_crtc mode;
+
+	mode.crtc_id = o->crtc;
+	if (drmIoctl(drm_fd, DRM_IOCTL_MODE_GETCRTC, &mode))
+		return 0;
+
+	return mode.mode_valid && mode.fb_id == fb;
+}
+
+static void flip_mode(struct test_output *o, int crtc, int duration)
 {
 	int ret;
 	int bpp = 32, depth = 24;
@@ -200,6 +244,9 @@ static void set_mode(struct test_output *o, int crtc)
 	connector_find_preferred_mode(o, crtc);
 	if (!o->mode_valid)
 		return;
+
+	fprintf(stdout, "Beginning page flipping on crtc %d, connector %d\n",
+		crtc, o->id);
 
 	width = o->mode.hdisplay;
 	height = o->mode.vdisplay;
@@ -226,14 +273,14 @@ static void set_mode(struct test_output *o, int crtc)
 			strerror(errno));
 		exit(3);
 	}
+	assert(fb_is_bound(o, o->fb_ids[0]));
 
-	ret = drmModePageFlip(drm_fd, o->crtc, o->fb_ids[1],
-			      DRM_MODE_PAGE_FLIP_EVENT, o);
-	if (ret) {
+	if (drmModePageFlip(drm_fd, o->crtc, o->fb_ids[1],
+			      DRM_MODE_PAGE_FLIP_EVENT, o)) {
 		fprintf(stderr, "failed to page flip: %s\n", strerror(errno));
 		exit(4);
 	}
-	o->current_fb_id = o->fb_ids[1];
+	o->current_fb_id = 1;
 
 	memset(&evctx, 0, sizeof evctx);
 	evctx.version = DRM_EVENT_CONTEXT_VERSION;
@@ -241,7 +288,7 @@ static void set_mode(struct test_output *o, int crtc)
 	evctx.page_flip_handler = page_flip_handler;
 
 	gettimeofday(&end, NULL);
-	end.tv_sec += 3;
+	end.tv_sec += duration;
 
 	while (1) {
 		struct timeval now, timeout = { .tv_sec = 3, .tv_usec = 0 };
@@ -270,16 +317,20 @@ static void set_mode(struct test_output *o, int crtc)
 		drmHandleEvent(drm_fd, &evctx);
 	}
 
-	fprintf(stdout, "page flipping on crtc %d, connector %d: PASSED\n",
+	/* and drain the event queue */
+	evctx.page_flip_handler = NULL;
+	drmHandleEvent(drm_fd, &evctx);
+
+	fprintf(stdout, "\npage flipping on crtc %d, connector %d: PASSED\n",
 		crtc, o->id);
 
 	drmModeFreeEncoder(o->encoder);
 	drmModeFreeConnector(o->connector);
 }
 
-static int run_test(void)
+static int run_test(int duration, int flags)
 {
-	struct test_output *connectors;
+	struct test_output o;
 	int c, i;
 
 	resources = drmModeGetResources(drm_fd);
@@ -289,15 +340,13 @@ static int run_test(void)
 		exit(5);
 	}
 
-	connectors = calloc(resources->count_connectors,
-			    sizeof(struct test_output));
-	assert(connectors);
-
 	/* Find any connected displays */
 	for (c = 0; c < resources->count_connectors; c++) {
-		connectors[c].id = resources->connectors[c];
+		memset(&o, 0, sizeof(o));
+		o.id = resources->connectors[c];
+		o.flags = flags;
 		for (i = 0; i < resources->count_crtcs; i++)
-			set_mode(&connectors[c], resources->crtcs[i]);
+			flip_mode(&o, resources->crtcs[i], duration);
 	}
 
 	drmModeFreeResources(resources);
@@ -306,9 +355,19 @@ static int run_test(void)
 
 int main(int argc, char **argv)
 {
+	struct {
+		int duration;
+		int flags;
+	} tests[] = {
+		{ 5, 0 },
+		{ 30, TEST_DPMS },
+	};
+	int i;
+
 	drm_fd = drm_open_any();
 
-	run_test();
+	for (i = 0; i < sizeof(tests) / sizeof (tests[0]); i++)
+		run_test(tests[i].duration, tests[i].flags);
 
 	close(drm_fd);
 
