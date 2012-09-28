@@ -485,26 +485,37 @@ ifelseinstruction: ENDIF
 		}
 		| predicate IF execsize relativelocation
 		{
-		  /* for Gen4 */
+		  /* for Gen4, Gen5 */
 		  /* The branch instructions require that the IP register
 		   * be the destination and first source operand, while the
 		   * offset is the second source operand.  The offset is added
 		   * to the pre-incremented IP.
 		   */
+		  /* for Gen6 */
+		  if(gen_level > 6) {
+		    fprintf(stderr, "Syntax error: IF should be 'IF execsize JIP UIP'\n");
+		    YYERROR;
+		  }
 		  memset(&$$, 0, sizeof($$));
+		  set_instruction_predicate(&$$, &$1);
 		  $$.header.opcode = $2;
 		  $$.header.execution_size = $3;
-		  $$.header.thread_control |= BRW_THREAD_SWITCH;
-		  set_instruction_predicate(&$$, &$1);
-		  set_instruction_dest(&$$, &ip_dst);
-		  set_instruction_src0(&$$, &ip_src);
-		  set_instruction_src1(&$$, &$4);
+		  if(gen_level <= 5) {
+		    $$.header.thread_control |= BRW_THREAD_SWITCH;
+		    set_instruction_dest(&$$, &ip_dst);
+		    set_instruction_src0(&$$, &ip_src);
+		    set_instruction_src1(&$$, &$4);
+		  }
 		  $$.first_reloc_target = $4.reloc_target;
 		  $$.first_reloc_offset = $4.imm32;
 		}
 		| predicate IF execsize relativelocation relativelocation
 		{
 		  /* for Gen7+ */
+		  if(gen_level < 7) {
+		    fprintf(stderr, "Syntax error: IF should be 'IF execsize relativelocation'\n");
+		    YYERROR;
+		  }
 		  memset(&$$, 0, sizeof($$));
 		  set_instruction_predicate(&$$, &$1);
 		  $$.header.opcode = $2;
