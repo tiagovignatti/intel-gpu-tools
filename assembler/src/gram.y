@@ -545,7 +545,10 @@ loopinstruction: predicate WHILE execsize relativelocation instoptions
 		    set_instruction_src1(&$$, &$4);
 		    $$.first_reloc_target = $4.reloc_target;
 		    $$.first_reloc_offset = $4.imm32;
-		  } else if (gen_level == 7) { // TODO: Gen6 also OK?
+		  } else if (gen_level >= 6) {
+		    /* Gen6 spec:
+		         dest must have the same element size as src0.
+		         dest horizontal stride must be 1. */
 		    memset(&$$, 0, sizeof($$));
 		    set_instruction_predicate(&$$, &$1);
 		    $$.header.opcode = $2;
