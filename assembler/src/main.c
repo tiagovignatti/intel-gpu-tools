@@ -419,12 +419,17 @@ int main(int argc, char **argv)
 		    offset --;
 		offset = jump_distance(offset);
 
-		if(gen_level <= 5 && entry->instruction.header.opcode == BRW_OPCODE_ELSE)
-		    entry->instruction.bits3.branch_2_offset.UIP = 1; /* Set the istack pop count, which must always be 1. */
-		else if(gen_level == 6) {
-		    /* TODO: position of JIP for endif is not written down in Gen6 spec, may be bits1 */
-		    entry->instruction.bits1.branch.JIP = offset; // for CASE,ELSE,FORK,IF,WHILE
-		    entry->instruction.bits3.JIP = offset; // for CALL
+		if(gen_level <= 5) {
+		    entry->instruction.bits3.JIP = offset;
+		    if(entry->instruction.header.opcode == BRW_OPCODE_ELSE)
+			entry->instruction.bits3.branch_2_offset.UIP = 1; /* Set the istack pop count, which must always be 1. */
+		} else if(gen_level == 6) {
+		    /* TODO: endif JIP pos is not in Gen6 spec. may be bits1 */
+		    int opcode = entry->instruction.header.opcode;
+		    if(opcode == BRW_OPCODE_CALL || opcode == BRW_OPCODE_JMPI)
+			entry->instruction.bits3.JIP = offset; // for CALL, JMPI
+		    else
+			entry->instruction.bits1.branch.JIP = offset; // for CASE,ELSE,FORK,IF,WHILE
 		} else if(gen_level >= 7)
 		    entry->instruction.bits3.branch_2_offset.JIP = offset;
 	    }
