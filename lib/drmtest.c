@@ -798,11 +798,10 @@ unsigned int kmstest_create_fb(int fd, int width, int height, int bpp,
 	assert(!status);
 	cairo_destroy(cr);
 
-	ret = drmModeAddFB(fd, width, height, depth, bpp,
-			   fb_info->stride,
-			   fb_info->gem_handle, &fb_id);
+	do_or_die(drmModeAddFB(fd, width, height, depth, bpp,
+			       fb_info->stride,
+			       fb_info->gem_handle, &fb_id));
 
-	assert(ret == 0);
 	cairo_surface_destroy(surface);
 
 	fb_info->fb_id = fb_id;
