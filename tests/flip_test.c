@@ -72,7 +72,8 @@ struct test_output {
 	unsigned int current_fb_id;
 	unsigned int fb_ids[2];
 	struct kmstest_fb fb_info[2];
-	struct timeval last_flip;
+	struct timeval last_flip_received;
+	struct timeval last_flip_ts;
 };
 
 static void emit_dummy_load(struct test_output *o)
@@ -157,6 +158,7 @@ static void page_flip_handler(int fd, unsigned int frame, unsigned int sec,
 	struct test_output *o = data;
 	unsigned int new_fb_id;
 	struct timeval now, diff, pageflip_ts;
+	double usec_interflip;
 
 	pageflip_ts.tv_sec = sec;
 	pageflip_ts.tv_usec = usec;
@@ -171,9 +173,22 @@ static void page_flip_handler(int fd, unsigned int frame, unsigned int sec,
 		exit(5);
 	}
 
-	if (!timercmp(&o->last_flip, &pageflip_ts, <)) {
+	if (!timercmp(&o->last_flip_received, &pageflip_ts, <)) {
 		fprintf(stderr, "pageflip ts before the pageflip was issued!\n");
 		exit(6);
+	}
+
+	if (o->count > 1 && o->flags == 0) {
+		timersub(&pageflip_ts, &o->last_flip_ts, &diff);
+		usec_interflip = 1.0 / ((double) o->mode.vrefresh) * 1000.0 * 1000.0;
+
+		if (fabs((((double) diff.tv_usec) - usec_interflip) / usec_interflip) > 0.005) {
+			fprintf(stderr, "inter-flip timestamp jitter: %is, %ius\n",
+				(int) diff.tv_sec, (int) diff.tv_usec);
+			/* atm this is way too easy to hit, thanks to the hpd
+			 * poll helper :( hence make it non-fatal for now */
+			//exit(9);
+		}
 	}
 
 	o->count++;
@@ -216,7 +231,8 @@ static void page_flip_handler(int fd, unsigned int frame, unsigned int sec,
 		}
 	}
 
-	o->last_flip = now;
+	o->last_flip_received = now;
+	o->last_flip_ts = pageflip_ts;
 }
 
 static void connector_find_preferred_mode(struct test_output *o, int crtc_id)
@@ -407,7 +423,7 @@ static void flip_mode(struct test_output *o, int crtc, int duration)
 	evctx.page_flip_handler = page_flip_handler;
 
 	gettimeofday(&end, NULL);
-	gettimeofday(&o->last_flip, NULL);
+	gettimeofday(&o->last_flip_received, NULL);
 	end.tv_sec += duration;
 
 	while (1) {
