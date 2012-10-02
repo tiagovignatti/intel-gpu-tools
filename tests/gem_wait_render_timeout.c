@@ -133,7 +133,7 @@ int main(int argc, char **argv)
 
 	if (gem_bo_wait_timeout(fd, dst->handle, &timeout) == -EINVAL) {
 		printf("kernel doesn't support wait_timeout, skipping test\n");
-		return -77;
+		return 77;
 	}
 	timeout = ENOUGH_WORK_IN_SECONDS * NSEC_PER_SEC;
 
