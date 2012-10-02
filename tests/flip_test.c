@@ -151,6 +151,20 @@ static void page_flip_handler(int fd, unsigned int frame, unsigned int sec,
 {
 	struct test_output *o = data;
 	unsigned int new_fb_id;
+	struct timeval now, diff, pageflip_ts;
+
+	pageflip_ts.tv_sec = sec;
+	pageflip_ts.tv_usec = usec;
+
+	gettimeofday(&now, NULL);
+
+	timersub(&pageflip_ts, &now, &diff);
+
+	if (diff.tv_sec > 0 || diff.tv_usec > 2000) {
+		fprintf(stderr, "pageflip timestamp delayed for too long: %us, %uusec\n",
+			(unsigned) diff.tv_sec, (unsigned) diff.tv_usec);
+		exit(5);
+	}
 
 	o->count++;
 
