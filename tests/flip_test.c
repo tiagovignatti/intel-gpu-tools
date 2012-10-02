@@ -391,6 +391,10 @@ static void flip_mode(struct test_output *o, int crtc, int duration)
 		struct timeval now, timeout = { .tv_sec = 3, .tv_usec = 0 };
 		fd_set fds;
 
+		/* make timeout lax with the dummy load */
+		if (o->flags & TEST_WITH_DUMMY_LOAD)
+			timeout.tv_sec *= 10;
+
 		FD_ZERO(&fds);
 		FD_SET(0, &fds);
 		FD_SET(drm_fd, &fds);
@@ -497,6 +501,7 @@ int main(int argc, char **argv)
 		{ 30, TEST_DPMS, "flip vs dpms" },
 		{ 30, TEST_DPMS | TEST_WITH_DUMMY_LOAD, "delayed flip vs. dpms" },
 		{ 5, TEST_PAN, "flip vs panning" },
+		{ 30, TEST_PAN | TEST_WITH_DUMMY_LOAD, "delayed flip vs panning" },
 	};
 	int i;
 
