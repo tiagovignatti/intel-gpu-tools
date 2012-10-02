@@ -146,9 +146,13 @@ int main(int argc, char **argv)
 	if (intel_gen(noop) >= 6)
 		use_blt = I915_EXEC_BLT;
 
-	aper_size = gem_aperture_size(fd);
-	count = aper_size / 4096 * 2;
+	aper_size = gem_mappable_aperture_size();
+	if (intel_get_total_ram_mb() < aper_size / (1024*1024) * 2) {
+		fprintf(stderr, "not enough mem to run test\n");
+		return 77;
+	}
 
+	count = aper_size / 4096 * 2;
 	handles = malloc (count * sizeof(uint32_t));
 	assert(handles);
 
