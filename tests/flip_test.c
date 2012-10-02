@@ -75,17 +75,19 @@ struct test_output {
 
 static void emit_dummy_load(struct test_output *o)
 {
-	int i;
+	int i, limit;
 	drm_intel_bo *dummy_bo, *target_bo, *tmp_bo;
 	struct kmstest_fb *fb_info = &o->fb_info[o->current_fb_id];
 	unsigned pitch = fb_info->stride;
+
+	limit = intel_gen(devid) < 6 ? 500 : 5000;
 
 	dummy_bo = drm_intel_bo_alloc(bufmgr, "dummy_bo", fb_info->size, 4096);
 	assert(dummy_bo);
 	target_bo = gem_handle_to_libdrm_bo(bufmgr, drm_fd, "imported", fb_info->gem_handle);
 	assert(target_bo);
 
-	for (i = 0; i < 5000; i++) {
+	for (i = 0; i < limit; i++) {
 		BEGIN_BATCH(8);
 		OUT_BATCH(XY_SRC_COPY_BLT_CMD |
 			  XY_SRC_COPY_BLT_WRITE_ALPHA |
@@ -312,6 +314,14 @@ fb_is_bound(struct test_output *o, int fb)
 	return mode.mode_valid && mode.fb_id == fb;
 }
 
+static bool
+analog_tv_connector(uint32_t connector_type)
+{
+	return connector_type == DRM_MODE_CONNECTOR_TV ||
+		connector_type == DRM_MODE_CONNECTOR_9PinDIN ||
+		connector_type == DRM_MODE_CONNECTOR_SVIDEO ||
+		connector_type == DRM_MODE_CONNECTOR_Composite;
+}
 static void flip_mode(struct test_output *o, int crtc, int duration)
 {
 	int ret;
@@ -351,6 +361,10 @@ static void flip_mode(struct test_output *o, int crtc, int duration)
 		exit(3);
 	}
 	assert(fb_is_bound(o, o->fb_ids[0]));
+
+	/* quiescent the hw a bit so ensure we don't miss a single frame */
+	if (o->flags == 0)
+		sleep(1);
 
 	if (drmModePageFlip(drm_fd, o->crtc, o->fb_ids[1],
 			      DRM_MODE_PAGE_FLIP_EVENT, o)) {
@@ -400,8 +414,9 @@ static void flip_mode(struct test_output *o, int crtc, int duration)
 	evctx.page_flip_handler = NULL;
 	drmHandleEvent(drm_fd, &evctx);
 
-	/* Verify we drop no frames */
-	if (o->flags == 0) {
+	/* Verify we drop no frames, but only if it's not a TV encoder, since
+	 * those use some funny fake timings behind userspace's back. */
+	if (o->flags == 0 && !analog_tv_connector(o->connector->connector_type)) {
 		struct timeval now;
 		long us;
 		int expected;
@@ -413,9 +428,9 @@ static void flip_mode(struct test_output *o, int crtc, int duration)
 		us += now.tv_usec - end.tv_usec;
 
 		expected = us * o->mode.vrefresh / (1000 * 1000);
-		if (o->count < expected) {
-			fprintf(stderr, "dropped frames, expected %d, counted %d\n",
-				expected, o->count);
+		if (o->count < expected * 99/100) {
+			fprintf(stderr, "dropped frames, expected %d, counted %d, encoder type %d\n",
+				expected, o->count, o->encoder->encoder_type);
 			exit(3);
 		}
 	}
