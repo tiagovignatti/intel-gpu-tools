@@ -41,7 +41,7 @@
 #include "intel_batchbuffer.h"
 #include "intel_gpu_tools.h"
 
-#define TEST_DPMS 		(1 << 0)
+#define TEST_DPMS		(1 << 0)
 #define TEST_WITH_DUMMY_LOAD	(1 << 1)
 
 drmModeRes *resources;
@@ -66,6 +66,7 @@ struct test_output {
 	drmModeConnector *connector;
 	int crtc;
 	int flags;
+	int count;
 	unsigned int current_fb_id;
 	unsigned int fb_ids[2];
 	struct kmstest_fb fb_info[2];
@@ -150,6 +151,8 @@ static void page_flip_handler(int fd, unsigned int frame, unsigned int sec,
 {
 	struct test_output *o = data;
 	unsigned int new_fb_id;
+
+	o->count++;
 
 	o->current_fb_id = !o->current_fb_id;
 	new_fb_id = o->fb_ids[o->current_fb_id];
@@ -333,6 +336,7 @@ static void flip_mode(struct test_output *o, int crtc, int duration)
 		exit(4);
 	}
 	o->current_fb_id = 1;
+	o->count = 1; /* for the uncounted tail */
 
 	memset(&evctx, 0, sizeof evctx);
 	evctx.version = DRM_EVENT_CONTEXT_VERSION;
@@ -372,6 +376,26 @@ static void flip_mode(struct test_output *o, int crtc, int duration)
 	/* and drain the event queue */
 	evctx.page_flip_handler = NULL;
 	drmHandleEvent(drm_fd, &evctx);
+
+	/* Verify we drop no frames */
+	if (o->flags == 0) {
+		struct timeval now;
+		long us;
+		int expected;
+
+		gettimeofday(&now, NULL);
+
+		us = duration * 1000 * 1000;
+		us += (now.tv_sec - end.tv_sec) * 1000 * 1000;
+		us += now.tv_usec - end.tv_usec;
+
+		expected = us * o->mode.vrefresh / (1000 * 1000);
+		if (o->count < expected) {
+			fprintf(stderr, "dropped frames, expected %d, counted %d\n",
+				expected, o->count);
+			exit(3);
+		}
+	}
 
 	fprintf(stdout, "\npage flipping on crtc %d, connector %d: PASSED\n",
 		crtc, o->id);
