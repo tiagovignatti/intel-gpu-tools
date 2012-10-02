@@ -61,6 +61,8 @@
 #include "intel_batchbuffer.h"
 #include "intel_gpu_tools.h"
 
+static uint32_t use_blt;
+
 static void copy(int fd, uint32_t batch, uint32_t src, uint32_t dst)
 {
 	struct drm_i915_gem_execbuffer2 execbuf;
@@ -92,6 +94,7 @@ static void copy(int fd, uint32_t batch, uint32_t src, uint32_t dst)
 	execbuf.buffers_ptr = (uintptr_t)gem_exec;
 	execbuf.buffer_count = 3;
 	execbuf.batch_len = 4096;
+	execbuf.flags = use_blt;
 
 	do_or_die(drmIoctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf));
 }
@@ -136,6 +139,12 @@ int main(int argc, char **argv)
 	int fd, i, count;
 
 	fd = drm_open_any();
+	noop = intel_get_drm_devid(fd);
+
+	use_blt = 0;
+	if (intel_gen(noop) >= 6)
+		use_blt = I915_EXEC_BLT;
+
 	aper_size = gem_aperture_size(fd);
 	count = aper_size / 4096 * 2;
 
