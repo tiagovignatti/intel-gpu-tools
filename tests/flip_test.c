@@ -70,6 +70,7 @@ struct test_output {
 	unsigned int current_fb_id;
 	unsigned int fb_ids[2];
 	struct kmstest_fb fb_info[2];
+	struct timeval last_flip_ts;
 };
 
 static void emit_dummy_load(struct test_output *o)
@@ -166,6 +167,11 @@ static void page_flip_handler(int fd, unsigned int frame, unsigned int sec,
 		exit(5);
 	}
 
+	if (!timercmp(&o->last_flip_ts, &now, <)) {
+		fprintf(stderr, "pageflip ts before the pageflip was issued!\n");
+		exit(6);
+	}
+
 	o->count++;
 
 	o->current_fb_id = !o->current_fb_id;
@@ -183,6 +189,8 @@ static void page_flip_handler(int fd, unsigned int frame, unsigned int sec,
 
 	if (o->flags & TEST_DPMS)
 		do_or_die(set_dpms(o, DRM_MODE_DPMS_OFF));
+
+	o->last_flip_ts = now;
 }
 
 static void connector_find_preferred_mode(struct test_output *o, int crtc_id)
@@ -358,6 +366,7 @@ static void flip_mode(struct test_output *o, int crtc, int duration)
 	evctx.page_flip_handler = page_flip_handler;
 
 	gettimeofday(&end, NULL);
+	gettimeofday(&o->last_flip_ts, NULL);
 	end.tv_sec += duration;
 
 	while (1) {
