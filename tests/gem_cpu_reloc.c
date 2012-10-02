@@ -136,6 +136,7 @@ int main(int argc, char **argv)
 	const uint32_t end[] = {MI_BATCH_BUFFER_END, 0};
 	uint64_t aper_size;
 	uint32_t noop;
+	uint32_t *handles;
 	int fd, i, count;
 
 	fd = drm_open_any();
@@ -148,25 +149,43 @@ int main(int argc, char **argv)
 	aper_size = gem_aperture_size(fd);
 	count = aper_size / 4096 * 2;
 
+	handles = malloc (count * sizeof(uint32_t));
+	assert(handles);
+
 	noop = gem_create(fd, 4096);
 	gem_write(fd, noop, 0, end, sizeof(end));
 
 	/* fill the entire gart with batches and run them */
 	for (i = 0; i < count; i++) {
-		uint32_t handle, bad;
+		uint32_t bad;
 
-		handle = gem_create(fd, 4096);
-		gem_write(fd, handle, 0, batch, sizeof(batch));
+		handles[i] = gem_create(fd, 4096);
+		gem_write(fd, handles[i], 0, batch, sizeof(batch));
 
 		bad = gem_create(fd, 4096);
 		gem_write(fd, bad, 0, hang, sizeof(hang));
 
 		/* launch the newly created batch */
-		copy(fd, handle, noop, bad);
+		copy(fd, handles[i], noop, bad);
 		exec(fd, bad);
 		gem_close(fd, bad);
 
-		drmtest_progress("gem_cpu_reloc: ", i, count);
+		drmtest_progress("gem_cpu_reloc: ", i, 2*count);
+	}
+
+	/* And again in reverse to try and catch the relocation code out */
+	for (i = 0; i < count; i++) {
+		uint32_t bad;
+
+		bad = gem_create(fd, 4096);
+		gem_write(fd, bad, 0, hang, sizeof(hang));
+
+		/* launch the newly created batch */
+		copy(fd, handles[count-i-1], noop, bad);
+		exec(fd, bad);
+		gem_close(fd, bad);
+
+		drmtest_progress("gem_cpu_reloc: ", count+i, 2*count);
 	}
 
 	fprintf(stderr, "Test suceeded, cleanup up - this might take a while.\n");
