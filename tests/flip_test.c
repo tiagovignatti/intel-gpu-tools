@@ -45,6 +45,7 @@
 #define TEST_WITH_DUMMY_LOAD	(1 << 1)
 #define TEST_PAN		(1 << 2)
 #define TEST_MODESET		(1 << 3)
+#define TEST_CHECK_TS		(1 << 4)
 
 drmModeRes *resources;
 int drm_fd;
@@ -189,7 +190,7 @@ static void page_flip_handler(int fd, unsigned int frame, unsigned int sec,
 		exit(6);
 	}
 
-	if (o->count > 1 && o->flags == 0 && !analog_tv_connector(o)) {
+	if (o->count > 1 && o->flags & TEST_CHECK_TS && !analog_tv_connector(o)) {
 		timersub(&pageflip_ts, &o->last_flip_ts, &diff);
 		usec_interflip = 1.0 / ((double) o->mode.vrefresh) * 1000.0 * 1000.0;
 
@@ -409,7 +410,7 @@ static void flip_mode(struct test_output *o, int crtc, int duration)
 	assert(fb_is_bound(o, o->fb_ids[0]));
 
 	/* quiescent the hw a bit so ensure we don't miss a single frame */
-	if (o->flags == 0)
+	if (o->flags & TEST_CHECK_TS)
 		sleep(1);
 
 	if (drmModePageFlip(drm_fd, o->crtc, o->fb_ids[1],
@@ -481,7 +482,7 @@ static void flip_mode(struct test_output *o, int crtc, int duration)
 
 	/* Verify we drop no frames, but only if it's not a TV encoder, since
 	 * those use some funny fake timings behind userspace's back. */
-	if (o->flags == 0 && !analog_tv_connector(o)) {
+	if (o->flags & TEST_CHECK_TS && !analog_tv_connector(o)) {
 		struct timeval now;
 		long us;
 		int expected;
@@ -539,7 +540,7 @@ int main(int argc, char **argv)
 		int flags;
 		const char *name;
 	} tests[] = {
-		{ 15, 0 , "plain flip" },
+		{ 15, TEST_CHECK_TS , "plain flip" },
 		{ 30, TEST_DPMS, "flip vs dpms" },
 		{ 30, TEST_DPMS | TEST_WITH_DUMMY_LOAD, "delayed flip vs. dpms" },
 		{ 5, TEST_PAN, "flip vs panning" },
