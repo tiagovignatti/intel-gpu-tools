@@ -76,4 +76,5 @@ prime_nv_test
 prime_self_import
 testdisplay
 sysfs_rc6_residency
+sysfs_rps
 # Please keep sorted alphabetically
