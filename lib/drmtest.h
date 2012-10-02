@@ -37,6 +37,9 @@
 #include "xf86drmMode.h"
 #include "intel_batchbuffer.h"
 
+drm_intel_bo * gem_handle_to_libdrm_bo(drm_intel_bufmgr *bufmgr, int fd,
+				       const char *name, uint32_t handle);
+
 int drm_get_card(int master);
 int drm_open_any(void);
 int drm_open_any_master(void);
