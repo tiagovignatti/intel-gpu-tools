@@ -189,7 +189,24 @@ int main(int argc, char **argv)
 		exec(fd, bad);
 		gem_close(fd, bad);
 
-		drmtest_progress("gem_cpu_reloc: ", count+i, 2*count);
+		drmtest_progress("gem_cpu_reloc: ", count+i, 3*count);
+	}
+
+	/* Third time lucky? */
+	for (i = 0; i < count; i++) {
+		uint32_t bad;
+
+		bad = gem_create(fd, 4096);
+		gem_write(fd, bad, 0, hang, sizeof(hang));
+
+		/* launch the newly created batch */
+		gem_set_domain(fd, handles[i],
+			       I915_GEM_DOMAIN_CPU, I915_GEM_DOMAIN_CPU);
+		copy(fd, handles[i], noop, bad);
+		exec(fd, bad);
+		gem_close(fd, bad);
+
+		drmtest_progress("gem_cpu_reloc: ", 2*count+i, 3*count);
 	}
 
 	fprintf(stderr, "Test suceeded, cleanup up - this might take a while.\n");
