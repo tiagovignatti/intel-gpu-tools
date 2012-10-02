@@ -43,6 +43,7 @@
 
 #define TEST_DPMS		(1 << 0)
 #define TEST_WITH_DUMMY_LOAD	(1 << 1)
+#define TEST_PAN		(1 << 2)
 
 drmModeRes *resources;
 int drm_fd;
@@ -340,6 +341,9 @@ static void flip_mode(struct test_output *o, int crtc, int duration)
 	width = o->mode.hdisplay;
 	height = o->mode.vdisplay;
 
+	if (o->flags & TEST_PAN)
+		width *= 2;
+
 	o->fb_ids[0] = kmstest_create_fb(drm_fd, width, height, bpp, depth,
 					 false, &o->fb_info[0],
 					 paint_flip_mode, (void *)false);
@@ -405,6 +409,21 @@ static void flip_mode(struct test_output *o, int crtc, int duration)
 		if (now.tv_sec > end.tv_sec ||
 		    (now.tv_sec == end.tv_sec && now.tv_usec >= end.tv_usec)) {
 			break;
+		}
+
+		/* pan before the flip completes */
+		if (o->flags & TEST_PAN) {
+			int x_ofs = o->count * 10 > o->mode.hdisplay ? o->mode.hdisplay :
+				o->count * 10;
+
+			if (drmModeSetCrtc(drm_fd, o->crtc, o->fb_ids[o->current_fb_id],
+					   x_ofs, 0,
+					   &o->id, 1, &o->mode)) {
+				fprintf(stderr, "failed to pan (%dx%d@%dHz): %s\n",
+					width, height, o->mode.vrefresh,
+					strerror(errno));
+				exit(7);
+			}
 		}
 
 		drmHandleEvent(drm_fd, &evctx);
@@ -477,6 +496,7 @@ int main(int argc, char **argv)
 		{ 5, 0 , "plain flip" },
 		{ 30, TEST_DPMS, "flip vs dpms" },
 		{ 30, TEST_DPMS | TEST_WITH_DUMMY_LOAD, "delayed flip vs. dpms" },
+		{ 5, TEST_PAN, "flip vs panning" },
 	};
 	int i;
 
