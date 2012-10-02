@@ -11,6 +11,7 @@ gem_basic
 gem_cacheing
 gem_cs_prefetch
 gem_cpu_concurrent_blit
+gem_cpu_reloc
 gem_ctx_bad_destroy
 gem_ctx_bad_exec
 gem_ctx_basic

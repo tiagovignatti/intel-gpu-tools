@@ -50,6 +50,7 @@ TESTS_progs = \
 	gem_gtt_speed \
 	gem_gtt_cpu_tlb \
 	gem_cs_prefetch \
+	gem_cpu_reloc \
 	gen3_render_linear_blits \
 	gen3_render_tiledx_blits \
 	gen3_render_tiledy_blits \
