@@ -412,8 +412,8 @@ int main(int argc, char **argv)
 		int flags;
 		const char *name;
 	} tests[] = {
-		//{ 5, 0 , "plain flip" },
-		//{ 30, TEST_DPMS, "flip vs dpms" },
+		{ 5, 0 , "plain flip" },
+		{ 30, TEST_DPMS, "flip vs dpms" },
 		{ 30, TEST_DPMS | TEST_WITH_DUMMY_LOAD, "delayed flip vs. dpms" },
 	};
 	int i;
