@@ -37,16 +37,21 @@
 #include "i915_drm.h"
 #include "drmtest.h"
 #include "testdisplay.h"
+#include "intel_bufmgr.h"
+#include "intel_batchbuffer.h"
+#include "intel_gpu_tools.h"
 
-#define TEST_DPMS 1
+#define TEST_DPMS 		(1 << 0)
+#define TEST_WITH_DUMMY_LOAD	(1 << 1)
 
 drmModeRes *resources;
 int drm_fd;
+static drm_intel_bufmgr *bufmgr;
+struct intel_batchbuffer *batch;
+uint32_t devid;
 int test_time = 3;
 
 uint32_t *fb_ptr;
-
-#define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
 
 struct type_name {
 	int type;
@@ -63,7 +68,54 @@ struct test_output {
 	int flags;
 	unsigned int current_fb_id;
 	unsigned int fb_ids[2];
+	struct kmstest_fb fb_info[2];
 };
+
+static void emit_dummy_load(struct test_output *o)
+{
+	int i;
+	drm_intel_bo *dummy_bo, *target_bo, *tmp_bo;
+	struct kmstest_fb *fb_info = &o->fb_info[o->current_fb_id];
+	unsigned pitch = fb_info->stride;
+
+	dummy_bo = drm_intel_bo_alloc(bufmgr, "dummy_bo", fb_info->size, 4096);
+	assert(dummy_bo);
+	target_bo = gem_handle_to_libdrm_bo(bufmgr, drm_fd, "imported", fb_info->gem_handle);
+	assert(target_bo);
+
+	for (i = 0; i < 5000; i++) {
+		BEGIN_BATCH(8);
+		OUT_BATCH(XY_SRC_COPY_BLT_CMD |
+			  XY_SRC_COPY_BLT_WRITE_ALPHA |
+			  XY_SRC_COPY_BLT_WRITE_RGB);
+		OUT_BATCH((3 << 24) | /* 32 bits */
+			  (0xcc << 16) | /* copy ROP */
+			  pitch);
+		OUT_BATCH(0 << 16 | 0);
+		OUT_BATCH((o->mode.vdisplay) << 16 | (o->mode.hdisplay));
+		OUT_RELOC_FENCED(dummy_bo, I915_GEM_DOMAIN_RENDER, I915_GEM_DOMAIN_RENDER, 0);
+		OUT_BATCH(0 << 16 | 0);
+		OUT_BATCH(pitch);
+		OUT_RELOC_FENCED(target_bo, I915_GEM_DOMAIN_RENDER, 0, 0);
+		ADVANCE_BATCH();
+
+		if (IS_GEN6(devid) || IS_GEN7(devid)) {
+			BEGIN_BATCH(3);
+			OUT_BATCH(XY_SETUP_CLIP_BLT_CMD);
+			OUT_BATCH(0);
+			OUT_BATCH(0);
+			ADVANCE_BATCH();
+		}
+
+		tmp_bo = dummy_bo;
+		dummy_bo = target_bo;
+		target_bo = tmp_bo;
+	}
+	intel_batchbuffer_flush(batch);
+
+	drm_intel_bo_unreference(dummy_bo);
+	drm_intel_bo_unreference(target_bo);
+}
 
 static int set_dpms(struct test_output *o, int mode)
 {
@@ -102,15 +154,18 @@ static void page_flip_handler(int fd, unsigned int frame, unsigned int sec,
 	o->current_fb_id = !o->current_fb_id;
 	new_fb_id = o->fb_ids[o->current_fb_id];
 
+	if (o->flags & TEST_WITH_DUMMY_LOAD)
+		emit_dummy_load(o);
+
 	printf("."); fflush(stdout);
 	if (o->flags & TEST_DPMS)
-		do_or_die(set_dpms(o, 0));
+		do_or_die(set_dpms(o, DRM_MODE_DPMS_ON));
 
 	do_or_die(drmModePageFlip(drm_fd, o->crtc, new_fb_id,
 				  DRM_MODE_PAGE_FLIP_EVENT, o));
 
 	if (o->flags & TEST_DPMS)
-		do_or_die(set_dpms(o, 3));
+		do_or_die(set_dpms(o, DRM_MODE_DPMS_OFF));
 }
 
 static void connector_find_preferred_mode(struct test_output *o, int crtc_id)
@@ -239,7 +294,6 @@ static void flip_mode(struct test_output *o, int crtc, int duration)
 	drmEventContext evctx;
 	int width, height;
 	struct timeval end;
-	struct kmstest_fb fb_info[2];
 
 	connector_find_preferred_mode(o, crtc);
 	if (!o->mode_valid)
@@ -252,18 +306,16 @@ static void flip_mode(struct test_output *o, int crtc, int duration)
 	height = o->mode.vdisplay;
 
 	o->fb_ids[0] = kmstest_create_fb(drm_fd, width, height, bpp, depth,
-					 false, &fb_info[0],
+					 false, &o->fb_info[0],
 					 paint_flip_mode, (void *)false);
 	o->fb_ids[1] = kmstest_create_fb(drm_fd, width, height, bpp, depth,
-					 false, &fb_info[1],
+					 false, &o->fb_info[1],
 					 paint_flip_mode, (void *)true);
+
 	if (!o->fb_ids[0] || !o->fb_ids[1]) {
 		fprintf(stderr, "failed to create fbs\n");
 		exit(3);
 	}
-
-	gem_close(drm_fd, fb_info[0].gem_handle);
-	gem_close(drm_fd, fb_info[1].gem_handle);
 
 	kmstest_dump_mode(&o->mode);
 	if (drmModeSetCrtc(drm_fd, o->crtc, o->fb_ids[0], 0, 0,
@@ -358,16 +410,24 @@ int main(int argc, char **argv)
 	struct {
 		int duration;
 		int flags;
+		const char *name;
 	} tests[] = {
-		{ 5, 0 },
-		{ 30, TEST_DPMS },
+		//{ 5, 0 , "plain flip" },
+		//{ 30, TEST_DPMS, "flip vs dpms" },
+		{ 30, TEST_DPMS | TEST_WITH_DUMMY_LOAD, "delayed flip vs. dpms" },
 	};
 	int i;
 
 	drm_fd = drm_open_any();
 
-	for (i = 0; i < sizeof(tests) / sizeof (tests[0]); i++)
+	bufmgr = drm_intel_bufmgr_gem_init(drm_fd, 4096);
+	devid = intel_get_drm_devid(drm_fd);
+	batch = intel_batchbuffer_alloc(bufmgr, devid);
+
+	for (i = 0; i < sizeof(tests) / sizeof (tests[0]); i++) {
+		printf("running testcase: %s\n", tests[i].name);
 		run_test(tests[i].duration, tests[i].flags);
+	}
 
 	close(drm_fd);
 
