@@ -44,6 +44,7 @@
 #define TEST_DPMS		(1 << 0)
 #define TEST_WITH_DUMMY_LOAD	(1 << 1)
 #define TEST_PAN		(1 << 2)
+#define TEST_MODESET		(1 << 3)
 
 drmModeRes *resources;
 int drm_fd;
@@ -184,6 +185,17 @@ static void page_flip_handler(int fd, unsigned int frame, unsigned int sec,
 		emit_dummy_load(o);
 
 	printf("."); fflush(stdout);
+	if (o->flags & TEST_MODESET) {
+		if (drmModeSetCrtc(drm_fd, o->crtc,
+				   o->fb_ids[o->current_fb_id],
+				   0, 0,
+				   &o->id, 1, &o->mode)) {
+			fprintf(stderr, "failed to restore output mode: %s\n",
+				strerror(errno));
+			exit(7);
+		}
+	}
+
 	if (o->flags & TEST_DPMS)
 		do_or_die(set_dpms(o, DRM_MODE_DPMS_ON));
 
@@ -192,6 +204,17 @@ static void page_flip_handler(int fd, unsigned int frame, unsigned int sec,
 
 	if (o->flags & TEST_DPMS)
 		do_or_die(set_dpms(o, DRM_MODE_DPMS_OFF));
+
+	if (o->flags & TEST_MODESET) {
+		if (drmModeSetCrtc(drm_fd, o->crtc,
+				   0, /* no fb */
+				   0, 0,
+				   NULL, 0, NULL)) {
+			fprintf(stderr, "failed to disable output: %s\n",
+				strerror(errno));
+			exit(7);
+		}
+	}
 
 	o->last_flip = now;
 }
@@ -502,6 +525,8 @@ int main(int argc, char **argv)
 		{ 30, TEST_DPMS | TEST_WITH_DUMMY_LOAD, "delayed flip vs. dpms" },
 		{ 5, TEST_PAN, "flip vs panning" },
 		{ 30, TEST_PAN | TEST_WITH_DUMMY_LOAD, "delayed flip vs panning" },
+		{ 30, TEST_MODESET, "flip vs modeset" },
+		{ 30, TEST_MODESET | TEST_WITH_DUMMY_LOAD, "delayed flip vs modeset" },
 	};
 	int i;
 
