@@ -152,6 +152,17 @@ static int set_dpms(struct test_output *o, int mode)
 	return drmModeConnectorSetProperty(drm_fd, o->id, dpms, mode);
 }
 
+static bool
+analog_tv_connector(struct test_output *o)
+{
+	uint32_t connector_type = o->connector->connector_type;
+
+	return connector_type == DRM_MODE_CONNECTOR_TV ||
+		connector_type == DRM_MODE_CONNECTOR_9PinDIN ||
+		connector_type == DRM_MODE_CONNECTOR_SVIDEO ||
+		connector_type == DRM_MODE_CONNECTOR_Composite;
+}
+
 static void page_flip_handler(int fd, unsigned int frame, unsigned int sec,
 			      unsigned int usec, void *data)
 {
@@ -178,7 +189,7 @@ static void page_flip_handler(int fd, unsigned int frame, unsigned int sec,
 		exit(6);
 	}
 
-	if (o->count > 1 && o->flags == 0) {
+	if (o->count > 1 && o->flags == 0 && !analog_tv_connector(o)) {
 		timersub(&pageflip_ts, &o->last_flip_ts, &diff);
 		usec_interflip = 1.0 / ((double) o->mode.vrefresh) * 1000.0 * 1000.0;
 
@@ -354,14 +365,6 @@ fb_is_bound(struct test_output *o, int fb)
 	return mode.mode_valid && mode.fb_id == fb;
 }
 
-static bool
-analog_tv_connector(uint32_t connector_type)
-{
-	return connector_type == DRM_MODE_CONNECTOR_TV ||
-		connector_type == DRM_MODE_CONNECTOR_9PinDIN ||
-		connector_type == DRM_MODE_CONNECTOR_SVIDEO ||
-		connector_type == DRM_MODE_CONNECTOR_Composite;
-}
 static void flip_mode(struct test_output *o, int crtc, int duration)
 {
 	int ret;
@@ -478,7 +481,7 @@ static void flip_mode(struct test_output *o, int crtc, int duration)
 
 	/* Verify we drop no frames, but only if it's not a TV encoder, since
 	 * those use some funny fake timings behind userspace's back. */
-	if (o->flags == 0 && !analog_tv_connector(o->connector->connector_type)) {
+	if (o->flags == 0 && !analog_tv_connector(o)) {
 		struct timeval now;
 		long us;
 		int expected;
@@ -536,7 +539,7 @@ int main(int argc, char **argv)
 		int flags;
 		const char *name;
 	} tests[] = {
-		{ 5, 0 , "plain flip" },
+		{ 15, 0 , "plain flip" },
 		{ 30, TEST_DPMS, "flip vs dpms" },
 		{ 30, TEST_DPMS | TEST_WITH_DUMMY_LOAD, "delayed flip vs. dpms" },
 		{ 5, TEST_PAN, "flip vs panning" },
