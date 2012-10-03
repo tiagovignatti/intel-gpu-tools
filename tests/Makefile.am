@@ -41,6 +41,7 @@ TESTS_progs = \
 	gem_partial_pwrite_pread \
 	gem_linear_blits \
 	gem_vmap_blits \
+	gem_threaded_access_tiled \
 	gem_tiled_blits \
 	gem_tiled_fence_blits \
 	gem_largeobject \
@@ -138,6 +139,7 @@ AM_CFLAGS += $(CAIRO_CFLAGS) $(LIBUDEV_CFLAGS) $(GLIB_CFLAGS)
 
 gem_fence_thrash_CFLAGS = $(AM_CFLAGS) $(THREAD_CFLAGS)
 gem_fence_thrash_LDADD = $(LDADD) -lpthread
+gem_threaded_access_tiled_LDADD = $(LDADD) -lpthread
 
 gem_wait_render_timeout_LDADD = $(LDADD) -lrt
 
