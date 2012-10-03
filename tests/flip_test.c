@@ -413,6 +413,8 @@ static void flip_mode(struct test_output *o, int crtc, int duration)
 	if (o->flags & TEST_CHECK_TS)
 		sleep(1);
 
+	gettimeofday(&o->last_flip_received, NULL);
+
 	if (drmModePageFlip(drm_fd, o->crtc, o->fb_ids[1],
 			      DRM_MODE_PAGE_FLIP_EVENT, o)) {
 		fprintf(stderr, "failed to page flip: %s\n", strerror(errno));
@@ -427,7 +429,6 @@ static void flip_mode(struct test_output *o, int crtc, int duration)
 	evctx.page_flip_handler = page_flip_handler;
 
 	gettimeofday(&end, NULL);
-	gettimeofday(&o->last_flip_received, NULL);
 	end.tv_sec += duration;
 
 	while (1) {
