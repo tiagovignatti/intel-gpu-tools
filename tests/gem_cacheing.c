@@ -115,14 +115,20 @@ int main(int argc, char **argv)
 
 	fd = drm_open_any();
 
-	if (!gem_has_cacheing(fd))
+	if (!gem_has_cacheing(fd)) {
+		printf("no set_caching support detected\n");
 		return 77;
+	}
 
 	devid = intel_get_drm_devid(fd);
 	if (IS_GEN2(devid)) /* chipset only handles cached -> uncached */
 		flags &= ~TEST_READ;
-	if (IS_965(devid)) /* chipset is completely fubar */
+	if (IS_BROADWATER(devid) || IS_CRESTLINE(devid)) {
+		/* chipset is completely fubar */
+		printf("coherency broken on i965g/gm\n");
 		flags = 0;
+	}
+
 	if (flags == 0)
 		return 77;
 
