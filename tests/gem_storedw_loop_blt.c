@@ -52,10 +52,12 @@ static int has_ppgtt = 0;
  */
 
 static void
-store_dword_loop(void)
+store_dword_loop(int div)
 {
 	int cmd, i, val = 0;
 	uint32_t *buf;
+
+	printf("running storedw loop on blt with stall every %i batch\n", div);
 
 	cmd = MI_STORE_DWORD_IMM;
 	if (!has_ppgtt)
@@ -72,6 +74,9 @@ store_dword_loop(void)
 
 		intel_batchbuffer_flush_on_ring(batch, I915_EXEC_BLT);
 
+		if (i % div != 0)
+			goto cont;
+
 		drm_intel_bo_map(target_buffer, 0);
 
 		buf = target_buffer->virtual;
@@ -84,6 +89,7 @@ store_dword_loop(void)
 
 		drm_intel_bo_unmap(target_buffer);
 
+cont:
 		val++;
 	}
 
@@ -142,7 +148,10 @@ int main(int argc, char **argv)
 		exit(-1);
 	}
 
-	store_dword_loop();
+	store_dword_loop(1);
+	store_dword_loop(2);
+	store_dword_loop(3);
+	store_dword_loop(5);
 
 	drm_intel_bo_unreference(target_buffer);
 	intel_batchbuffer_free(batch);

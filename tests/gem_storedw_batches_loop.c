@@ -48,11 +48,13 @@ static int has_ppgtt = 0;
 
 /* Like the store dword test, but we create new command buffers each time */
 static void
-store_dword_loop(void)
+store_dword_loop(int div)
 {
 	int cmd, i, val = 0, ret;
 	uint32_t *buf;
 	drm_intel_bo *cmd_bo;
+
+	printf("running storedw loop with stall every %i batch\n", div);
 
 	cmd = MI_STORE_DWORD_IMM;
 	if (!has_ppgtt)
@@ -104,6 +106,9 @@ store_dword_loop(void)
 			exit(-1);
 		}
 
+		if (i % div != 0)
+			goto cont;
+
 		drm_intel_bo_wait_rendering(cmd_bo);
 
 		drm_intel_bo_map(target_bo, 1);
@@ -118,6 +123,7 @@ store_dword_loop(void)
 		buf[0] = 0; /* let batch write it again */
 		drm_intel_bo_unmap(target_bo);
 
+cont:
 		drm_intel_bo_unreference(cmd_bo);
 
 		val++;
@@ -162,7 +168,10 @@ int main(int argc, char **argv)
 		exit(-1);
 	}
 
-	store_dword_loop();
+	store_dword_loop(1);
+	store_dword_loop(2);
+	store_dword_loop(3);
+	store_dword_loop(5);
 
 	drm_intel_bo_unreference(target_bo);
 	drm_intel_bufmgr_destroy(bufmgr);
