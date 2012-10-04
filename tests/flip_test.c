@@ -46,6 +46,8 @@
 #define TEST_PAN		(1 << 2)
 #define TEST_MODESET		(1 << 3)
 #define TEST_CHECK_TS		(1 << 4)
+#define TEST_EBUSY		(1 << 5)
+#define TEST_EINVAL		(1 << 6)
 
 drmModeRes *resources;
 int drm_fd;
@@ -171,6 +173,8 @@ static void page_flip_handler(int fd, unsigned int frame, unsigned int sec,
 	unsigned int new_fb_id;
 	struct timeval now, diff, pageflip_ts;
 	double usec_interflip;
+	/* for funny reasons page_flip returns -EBUSY on disabled crtcs ... */
+	int expected_einval = o->flags & TEST_MODESET ? -EBUSY : -EINVAL;
 
 	pageflip_ts.tv_sec = sec;
 	pageflip_ts.tv_usec = usec;
@@ -187,6 +191,9 @@ static void page_flip_handler(int fd, unsigned int frame, unsigned int sec,
 
 	if (!timercmp(&o->last_flip_received, &pageflip_ts, <)) {
 		fprintf(stderr, "pageflip ts before the pageflip was issued!\n");
+		timersub(&pageflip_ts, &o->last_flip_received, &diff);
+		fprintf(stderr, "timerdiff %is, %ius\n",
+			(int) diff.tv_sec, (int) diff.tv_usec);
 		exit(6);
 	}
 
@@ -203,15 +210,17 @@ static void page_flip_handler(int fd, unsigned int frame, unsigned int sec,
 		}
 	}
 
-	o->count++;
+	if (o->flags & TEST_WITH_DUMMY_LOAD)
+		emit_dummy_load(o);
+
 
 	o->current_fb_id = !o->current_fb_id;
 	new_fb_id = o->fb_ids[o->current_fb_id];
 
-	if (o->flags & TEST_WITH_DUMMY_LOAD)
-		emit_dummy_load(o);
+	if (o->flags & TEST_EINVAL && o->count > 1)
+		assert(drmModePageFlip(drm_fd, o->crtc, new_fb_id,
+				       DRM_MODE_PAGE_FLIP_EVENT, o) == expected_einval);
 
-	printf("."); fflush(stdout);
 	if (o->flags & TEST_MODESET) {
 		if (drmModeSetCrtc(drm_fd, o->crtc,
 				   o->fb_ids[o->current_fb_id],
@@ -226,8 +235,15 @@ static void page_flip_handler(int fd, unsigned int frame, unsigned int sec,
 	if (o->flags & TEST_DPMS)
 		do_or_die(set_dpms(o, DRM_MODE_DPMS_ON));
 
+	o->count++;
+	printf("."); fflush(stdout);
+
 	do_or_die(drmModePageFlip(drm_fd, o->crtc, new_fb_id,
 				  DRM_MODE_PAGE_FLIP_EVENT, o));
+
+	if (o->flags & TEST_EBUSY)
+		assert(drmModePageFlip(drm_fd, o->crtc, new_fb_id,
+				       DRM_MODE_PAGE_FLIP_EVENT, o) == -EBUSY);
 
 	if (o->flags & TEST_DPMS)
 		do_or_die(set_dpms(o, DRM_MODE_DPMS_OFF));
@@ -242,6 +258,10 @@ static void page_flip_handler(int fd, unsigned int frame, unsigned int sec,
 			exit(7);
 		}
 	}
+
+	if (o->flags & TEST_EINVAL)
+		assert(drmModePageFlip(drm_fd, o->crtc, new_fb_id,
+				       DRM_MODE_PAGE_FLIP_EVENT, o) == expected_einval);
 
 	o->last_flip_received = now;
 	o->last_flip_ts = pageflip_ts;
@@ -541,12 +561,12 @@ int main(int argc, char **argv)
 		int flags;
 		const char *name;
 	} tests[] = {
-		{ 15, TEST_CHECK_TS , "plain flip" },
-		{ 30, TEST_DPMS, "flip vs dpms" },
+		{ 15, TEST_CHECK_TS | TEST_EBUSY , "plain flip" },
+		{ 30, TEST_DPMS | TEST_EINVAL, "flip vs dpms" },
 		{ 30, TEST_DPMS | TEST_WITH_DUMMY_LOAD, "delayed flip vs. dpms" },
 		{ 5, TEST_PAN, "flip vs panning" },
 		{ 30, TEST_PAN | TEST_WITH_DUMMY_LOAD, "delayed flip vs panning" },
-		{ 30, TEST_MODESET, "flip vs modeset" },
+		{ 30, TEST_MODESET | TEST_EINVAL, "flip vs modeset" },
 		{ 30, TEST_MODESET | TEST_WITH_DUMMY_LOAD, "delayed flip vs modeset" },
 	};
 	int i;
