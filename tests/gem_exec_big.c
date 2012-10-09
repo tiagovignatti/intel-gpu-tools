@@ -64,7 +64,7 @@ static int exec(int fd, uint32_t handle, uint32_t reloc_ofs)
 	gem_reloc[0].delta = 0;
 	gem_reloc[0].target_handle = handle;
 	gem_reloc[0].read_domains = I915_GEM_DOMAIN_RENDER;
-	gem_reloc[0].write_domain = I915_GEM_DOMAIN_RENDER;
+	gem_reloc[0].write_domain = 0;
 	gem_reloc[0].presumed_offset = 0;
 
 	gem_exec[0].handle = handle;
@@ -94,6 +94,7 @@ static int exec(int fd, uint32_t handle, uint32_t reloc_ofs)
 	gem_sync(fd, handle);
 
 	gem_read(fd, handle, reloc_ofs, &tmp, 4);
+
 	assert(tmp == gem_reloc[0].presumed_offset);
 
 	return ret;
@@ -105,15 +106,18 @@ int main(int argc, char **argv)
 	uint32_t handle;
 	int fd;
 	uint32_t reloc_ofs;
+	unsigned batch_size;
 
 	fd = drm_open_any();
 
-	handle = gem_create(fd, BATCH_SIZE);
-	gem_write(fd, handle, 0, batch, sizeof(batch));
+	for (batch_size = BATCH_SIZE/4; batch_size <= BATCH_SIZE; batch_size += 4096) {
+		handle = gem_create(fd, batch_size);
+		gem_write(fd, handle, 0, batch, sizeof(batch));
 
-	for (reloc_ofs = 4096; reloc_ofs < BATCH_SIZE; reloc_ofs += 4096)
-		if (exec(fd, handle, reloc_ofs))
-			exit(1);
+		for (reloc_ofs = 4096; reloc_ofs < batch_size; reloc_ofs += 4096)
+			if (exec(fd, handle, reloc_ofs))
+				exit(1);
+	}
 
 	gem_close(fd, handle);
 
