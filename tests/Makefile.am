@@ -18,6 +18,7 @@ TESTS_progs = \
 	gem_basic \
 	gem_cacheing \
 	gem_cpu_concurrent_blit \
+	gem_cs_tlb \
 	gem_gtt_concurrent_blit \
 	gem_exec_nop \
 	gem_exec_blt \

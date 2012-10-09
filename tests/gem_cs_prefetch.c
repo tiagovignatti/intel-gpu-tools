@@ -31,6 +31,9 @@
  * Historically the batch prefetcher doesn't check whether it's crossing page
  * boundaries and likes to throw up when it gets a pagefault in return for his
  * over-eager behaviour. Check for this.
+ * 
+ * This test for a bug where we've failed to plug a scratch pte entry into the
+ * very last gtt pte.
  */
 #include <stdlib.h>
 #include <stdio.h>
