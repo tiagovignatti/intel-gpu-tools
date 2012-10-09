@@ -50,16 +50,26 @@
 #include "drmtest.h"
 
 #define MI_BATCH_BUFFER_END	(0xA<<23)
+#define BATCH_SIZE		(1024*1024)
 
-static int exec(int fd, uint32_t handle)
+static int exec(int fd, uint32_t handle, uint32_t reloc_ofs)
 {
 	struct drm_i915_gem_execbuffer2 execbuf;
 	struct drm_i915_gem_exec_object2 gem_exec[1];
+	struct drm_i915_gem_relocation_entry gem_reloc[1];
+	uint32_t tmp;
 	int ret = 0;
 
+	gem_reloc[0].offset = reloc_ofs;
+	gem_reloc[0].delta = 0;
+	gem_reloc[0].target_handle = handle;
+	gem_reloc[0].read_domains = I915_GEM_DOMAIN_RENDER;
+	gem_reloc[0].write_domain = I915_GEM_DOMAIN_RENDER;
+	gem_reloc[0].presumed_offset = 0;
+
 	gem_exec[0].handle = handle;
-	gem_exec[0].relocation_count = 0;
-	gem_exec[0].relocs_ptr = 0;
+	gem_exec[0].relocation_count = 1;
+	gem_exec[0].relocs_ptr = (uintptr_t) gem_reloc;
 	gem_exec[0].alignment = 0;
 	gem_exec[0].offset = 0;
 	gem_exec[0].flags = 0;
@@ -83,6 +93,9 @@ static int exec(int fd, uint32_t handle)
 		       &execbuf);
 	gem_sync(fd, handle);
 
+	gem_read(fd, handle, reloc_ofs, &tmp, 4);
+	assert(tmp == gem_reloc[0].presumed_offset);
+
 	return ret;
 }
 
@@ -91,14 +104,17 @@ int main(int argc, char **argv)
 	uint32_t batch[2] = {MI_BATCH_BUFFER_END};
 	uint32_t handle;
 	int fd;
+	uint32_t reloc_ofs;
 
 	fd = drm_open_any();
 
-	handle = gem_create(fd, 1024*1024);
+	handle = gem_create(fd, BATCH_SIZE);
 	gem_write(fd, handle, 0, batch, sizeof(batch));
 
-	if (exec(fd, handle))
-		exit(1);
+	for (reloc_ofs = 4096; reloc_ofs < BATCH_SIZE; reloc_ofs += 4096)
+		if (exec(fd, handle, reloc_ofs))
+			exit(1);
+
 	gem_close(fd, handle);
 
 	close(fd);
