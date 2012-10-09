@@ -22,6 +22,7 @@ gem_double_irq_loop
 gem_dummy_reloc_loop
 gem_exec_bad_domains
 gem_exec_blt
+gem_exec_big
 gem_exec_faulting_reloc
 gem_exec_nop
 gem_fenced_exec_thrash

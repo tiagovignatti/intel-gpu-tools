@@ -21,6 +21,7 @@ TESTS_progs = \
 	gem_cs_tlb \
 	gem_gtt_concurrent_blit \
 	gem_exec_nop \
+	gem_exec_big \
 	gem_exec_blt \
 	gem_exec_bad_domains \
 	gem_exec_faulting_reloc \
