@@ -10,6 +10,7 @@ gem_bad_length
 gem_basic
 gem_cacheing
 gem_cs_prefetch
+gem_cs_tlb
 gem_cpu_concurrent_blit
 gem_cpu_reloc
 gem_ctx_bad_destroy
