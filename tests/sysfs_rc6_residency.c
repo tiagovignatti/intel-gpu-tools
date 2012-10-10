@@ -38,6 +38,7 @@
 static unsigned int readit(const char *path)
 {
 	unsigned int ret;
+	int scanned;
 
 	FILE *file;
 	file = fopen(path, "r");
@@ -45,7 +46,9 @@ static unsigned int readit(const char *path)
 		fprintf(stderr, "Couldn't open %s (%d)\n", path, errno);
 		abort();
 	}
-	fscanf(file, "%u", &ret);
+	scanned = fscanf(file, "%u", &ret);
+	assert(scanned == 1);
+
 	fclose(file);
 
 	return ret;

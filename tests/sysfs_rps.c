@@ -64,9 +64,13 @@ struct junk {
 static int readval(FILE *filp)
 {
 	int val;
+	int scanned;
+
 	fflush(filp);
 	rewind(filp);
-	fscanf(filp, "%d", &val);
+	scanned = fscanf(filp, "%d", &val);
+	assert(scanned == 1);
+
 	return val;
 }
 
