@@ -647,6 +647,7 @@ static void enter_exec_path( char **argv )
 	char *exec_path = NULL;
 	char *pos = NULL;
 	short len_path = 0;
+	int ret;
 
 	len_path = strlen( argv[0] );
 	exec_path = (char*) malloc(len_path);
@@ -656,7 +657,8 @@ static void enter_exec_path( char **argv )
 	if (pos != NULL)
 		*(pos+1) = '\0';
 
-	chdir(exec_path);
+	ret = chdir(exec_path);
+	assert(ret == 0);
 	free(exec_path);
 }
 
