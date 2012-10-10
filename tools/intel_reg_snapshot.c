@@ -25,6 +25,7 @@
  */
 
 #include <unistd.h>
+#include <assert.h>
 #include "intel_gpu_tools.h"
 
 int main(int argc, char** argv)
@@ -32,6 +33,7 @@ int main(int argc, char** argv)
 	struct pci_device *pci_dev;
 	uint32_t devid;
 	int mmio_bar;
+	int ret;
 
 	pci_dev = intel_get_pci_device();
 	devid = pci_dev->device_id;
@@ -42,7 +44,8 @@ int main(int argc, char** argv)
 	else
 		mmio_bar = 0;
 
-	write(1, mmio, pci_dev->regions[mmio_bar].size);
+	ret = write(1, mmio, pci_dev->regions[mmio_bar].size);
+	assert(ret > 0);
 
 	return 0;
 }
