@@ -250,6 +250,20 @@ static void page_flip_handler(int fd, unsigned int frame, unsigned int sec,
 	if (o->flags & TEST_EBUSY)
 		assert(do_page_flip(o, new_fb_id) == -EBUSY);
 
+	/* pan before the flip completes */
+	if (o->flags & TEST_PAN) {
+		int x_ofs = o->count * 10 > o->mode.hdisplay ?
+			    o->mode.hdisplay : o->count * 10;
+
+		if (drmModeSetCrtc(drm_fd, o->crtc, o->fb_ids[o->current_fb_id],
+				   x_ofs, 0, &o->id, 1, &o->mode)) {
+			fprintf(stderr, "failed to pan (%dx%d@%dHz): %s\n",
+				o->fb_width, o->fb_height,
+				o->mode.vrefresh, strerror(errno));
+			exit(7);
+		}
+	}
+
 	if (o->flags & TEST_DPMS)
 		do_or_die(set_dpms(o, DRM_MODE_DPMS_OFF));
 
@@ -479,21 +493,6 @@ static void flip_mode(struct test_output *o, int crtc, int duration)
 		if (now.tv_sec > end.tv_sec ||
 		    (now.tv_sec == end.tv_sec && now.tv_usec >= end.tv_usec)) {
 			break;
-		}
-
-		/* pan before the flip completes */
-		if (o->flags & TEST_PAN) {
-			int x_ofs = o->count * 10 > o->mode.hdisplay ? o->mode.hdisplay :
-				o->count * 10;
-
-			if (drmModeSetCrtc(drm_fd, o->crtc, o->fb_ids[o->current_fb_id],
-					   x_ofs, 0,
-					   &o->id, 1, &o->mode)) {
-				fprintf(stderr, "failed to pan (%dx%d@%dHz): %s\n",
-					o->fb_width, o->fb_height,
-					o->mode.vrefresh, strerror(errno));
-				exit(7);
-			}
 		}
 
 		do_or_die(drmHandleEvent(drm_fd, &evctx));
