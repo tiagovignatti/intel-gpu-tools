@@ -541,7 +541,7 @@ void drmtest_permute_array(void *array, unsigned size,
 
 void drmtest_progress(const char *header, uint64_t i, uint64_t total)
 {
-	int div = 200;
+	int divider = 200;
 
 	if (i+1 >= total) {
 		fprintf(stderr, "\r%s100%%\n", header);
@@ -549,10 +549,10 @@ void drmtest_progress(const char *header, uint64_t i, uint64_t total)
 	}
 
 	if (total / 200 == 0)
-		div = 1;
+		divider = 1;
 
 	/* only bother updating about every 0.5% */
-	if (i % (total / div) == 0 || i+1 >= total) {
+	if (i % (total / divider) == 0 || i+1 >= total) {
 		fprintf(stderr, "\r%s%3llu%%", header,
 			(long long unsigned) i * 100 / total);
 	}

@@ -52,12 +52,12 @@ static int has_ppgtt = 0;
  */
 
 static void
-store_dword_loop(int div)
+store_dword_loop(int divider)
 {
 	int cmd, i, val = 0;
 	uint32_t *buf;
 
-	printf("running storedw loop on bsd with stall every %i batch\n", div);
+	printf("running storedw loop on bsd with stall every %i batch\n", divider);
 
 	cmd = MI_STORE_DWORD_IMM;
 	if (!has_ppgtt)
@@ -74,7 +74,7 @@ store_dword_loop(int div)
 
 		intel_batchbuffer_flush_on_ring(batch, I915_EXEC_BSD);
 
-		if (i % div != 0)
+		if (i % divider != 0)
 			goto cont;
 
 		drm_intel_bo_map(target_buffer, 0);

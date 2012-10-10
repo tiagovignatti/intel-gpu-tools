@@ -48,13 +48,13 @@ static int has_ppgtt = 0;
 
 /* Like the store dword test, but we create new command buffers each time */
 static void
-store_dword_loop(int div)
+store_dword_loop(int divider)
 {
 	int cmd, i, val = 0, ret;
 	uint32_t *buf;
 	drm_intel_bo *cmd_bo;
 
-	printf("running storedw loop with stall every %i batch\n", div);
+	printf("running storedw loop with stall every %i batch\n", divider);
 
 	cmd = MI_STORE_DWORD_IMM;
 	if (!has_ppgtt)
@@ -106,7 +106,7 @@ store_dword_loop(int div)
 			exit(-1);
 		}
 
-		if (i % div != 0)
+		if (i % divider != 0)
 			goto cont;
 
 		drm_intel_bo_wait_rendering(cmd_bo);
