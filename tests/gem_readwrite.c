@@ -44,34 +44,34 @@
 static int
 do_read(int fd, int handle, void *buf, int offset, int size)
 {
-	struct drm_i915_gem_pread read;
+	struct drm_i915_gem_pread gem_pread;
 
 	/* Ensure that we don't have any convenient data in buf in case
 	 * we fail.
 	 */
 	memset(buf, 0xd0, size);
 
-	memset(&read, 0, sizeof(read));
-	read.handle = handle;
-	read.data_ptr = (uintptr_t)buf;
-	read.size = size;
-	read.offset = offset;
+	memset(&gem_pread, 0, sizeof(gem_pread));
+	gem_pread.handle = handle;
+	gem_pread.data_ptr = (uintptr_t)buf;
+	gem_pread.size = size;
+	gem_pread.offset = offset;
 
-	return ioctl(fd, DRM_IOCTL_I915_GEM_PREAD, &read);
+	return ioctl(fd, DRM_IOCTL_I915_GEM_PREAD, &gem_pread);
 }
 
 static int
 do_write(int fd, int handle, void *buf, int offset, int size)
 {
-	struct drm_i915_gem_pwrite write;
+	struct drm_i915_gem_pwrite gem_pwrite;
 
-	memset(&write, 0, sizeof(write));
-	write.handle = handle;
-	write.data_ptr = (uintptr_t)buf;
-	write.size = size;
-	write.offset = offset;
+	memset(&gem_pwrite, 0, sizeof(gem_pwrite));
+	gem_pwrite.handle = handle;
+	gem_pwrite.data_ptr = (uintptr_t)buf;
+	gem_pwrite.size = size;
+	gem_pwrite.offset = offset;
 
-	return ioctl(fd, DRM_IOCTL_I915_GEM_PWRITE, &write);
+	return ioctl(fd, DRM_IOCTL_I915_GEM_PWRITE, &gem_pwrite);
 }
 
 int main(int argc, char **argv)
