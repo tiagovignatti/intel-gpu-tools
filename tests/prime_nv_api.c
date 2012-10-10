@@ -38,6 +38,8 @@ static int find_and_open_devices(void)
 	char vendor_id[8];
 	int venid;
 	for (i = 0; i < 9; i++) {
+		char *ret;
+
 		sprintf(path, "/sys/class/drm/card%d/device/vendor", i);
 		if (stat(path, &buf))
 			break;
@@ -46,7 +48,8 @@ static int find_and_open_devices(void)
 		if (!fl)
 			break;
 
-		fgets(vendor_id, 8, fl);
+		ret = fgets(vendor_id, 8, fl);
+		assert(ret);
 		fclose(fl);
 
 		venid = strtoul(vendor_id, NULL, 16);
