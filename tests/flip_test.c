@@ -73,6 +73,8 @@ struct test_output {
 	int flags;
 	int count;
 	unsigned int current_fb_id;
+	unsigned int fb_width;
+	unsigned int fb_height;
 	unsigned int fb_ids[2];
 	struct kmstest_fb fb_info[2];
 	struct timeval last_flip_received;
@@ -393,7 +395,6 @@ static void flip_mode(struct test_output *o, int crtc, int duration)
 	int ret;
 	int bpp = 32, depth = 24;
 	drmEventContext evctx;
-	int width, height;
 	struct timeval end;
 
 	connector_find_preferred_mode(o, crtc);
@@ -403,17 +404,17 @@ static void flip_mode(struct test_output *o, int crtc, int duration)
 	fprintf(stdout, "Beginning page flipping on crtc %d, connector %d\n",
 		crtc, o->id);
 
-	width = o->mode.hdisplay;
-	height = o->mode.vdisplay;
+	o->fb_width = o->mode.hdisplay;
+	o->fb_height = o->mode.vdisplay;
 
 	if (o->flags & TEST_PAN)
-		width *= 2;
+		o->fb_width *= 2;
 
-	o->fb_ids[0] = kmstest_create_fb(drm_fd, width, height, bpp, depth,
-					 false, &o->fb_info[0],
+	o->fb_ids[0] = kmstest_create_fb(drm_fd, o->fb_width, o->fb_height, bpp,
+					 depth, false, &o->fb_info[0],
 					 paint_flip_mode, (void *)false);
-	o->fb_ids[1] = kmstest_create_fb(drm_fd, width, height, bpp, depth,
-					 false, &o->fb_info[1],
+	o->fb_ids[1] = kmstest_create_fb(drm_fd, o->fb_width, o->fb_height, bpp,
+					 depth, false, &o->fb_info[1],
 					 paint_flip_mode, (void *)true);
 
 	if (!o->fb_ids[0] || !o->fb_ids[1]) {
@@ -425,7 +426,7 @@ static void flip_mode(struct test_output *o, int crtc, int duration)
 	if (drmModeSetCrtc(drm_fd, o->crtc, o->fb_ids[0], 0, 0,
 			   &o->id, 1, &o->mode)) {
 		fprintf(stderr, "failed to set mode (%dx%d@%dHz): %s\n",
-			width, height, o->mode.vrefresh,
+			o->fb_width, o->fb_height, o->mode.vrefresh,
 			strerror(errno));
 		exit(3);
 	}
@@ -489,8 +490,8 @@ static void flip_mode(struct test_output *o, int crtc, int duration)
 					   x_ofs, 0,
 					   &o->id, 1, &o->mode)) {
 				fprintf(stderr, "failed to pan (%dx%d@%dHz): %s\n",
-					width, height, o->mode.vrefresh,
-					strerror(errno));
+					o->fb_width, o->fb_height,
+					o->mode.vrefresh, strerror(errno));
 				exit(7);
 			}
 		}
