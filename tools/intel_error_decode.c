@@ -49,6 +49,7 @@
 #include <errno.h>
 #include <sys/stat.h>
 #include <err.h>
+#include <assert.h>
 #include <intel_bufmgr.h>
 
 #include "intel_chipset.h"
@@ -479,13 +480,18 @@ main (int argc, char *argv[])
     }
 
     if (S_ISDIR (st.st_mode)) {
-	asprintf (&filename, "%s/i915_error_state", path);
+	int ret;
+
+	ret = asprintf (&filename, "%s/i915_error_state", path);
+	assert(ret > 0);
 	file = fopen(filename, "r");
 	if (!file) {
 	    int minor;
 	    for (minor = 0; minor < 64; minor++) {
 		free(filename);
-		asprintf(&filename, "%s/%d/i915_error_state", path, minor);
+		ret = asprintf(&filename, "%s/%d/i915_error_state", path, minor);
+		assert(ret > 0);
+
 		file = fopen(filename, "r");
 		if (file)
 		    break;
