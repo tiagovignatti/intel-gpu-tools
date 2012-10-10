@@ -52,29 +52,29 @@ static void handle_bad(int ret, int lerrno, int expected, const char *desc)
 
 static uint64_t timer_query(int fd)
 {
-	struct local_drm_i915_reg_read read;
+	struct local_drm_i915_reg_read reg_read;
 	int ret;
 
-	read.offset = 0x2358;
-	ret = drmIoctl(fd, REG_READ_IOCTL, &read);
+	reg_read.offset = 0x2358;
+	ret = drmIoctl(fd, REG_READ_IOCTL, &reg_read);
 	if (ret) {
 		perror("positive test case failed: ");
 		exit(EXIT_FAILURE);
 	}
 
-	return read.val;
+	return reg_read.val;
 }
 
 int main(int argc, char *argv[])
 {
-	struct local_drm_i915_reg_read read;
+	struct local_drm_i915_reg_read reg_read;
 	int ret, fd;
 	uint64_t val;
 
 	fd = drm_open_any();
 
-	read.offset = 0x2358;
-	ret = drmIoctl(fd, REG_READ_IOCTL, &read);
+	reg_read.offset = 0x2358;
+	ret = drmIoctl(fd, REG_READ_IOCTL, &reg_read);
 	if (errno == EINVAL)
 		exit(77);
 	else if (ret)
@@ -88,8 +88,8 @@ int main(int argc, char *argv[])
 	}
 
 	/* bad reg */
-	read.offset = 0x12345678;
-	ret = drmIoctl(fd, REG_READ_IOCTL, &read);
+	reg_read.offset = 0x12345678;
+	ret = drmIoctl(fd, REG_READ_IOCTL, &reg_read);
 	handle_bad(ret, errno, EINVAL, "bad register");
 
 	close(fd);
