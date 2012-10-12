@@ -404,12 +404,75 @@ fb_is_bound(struct test_output *o, int fb)
 	return mode.mode_valid && mode.fb_id == fb;
 }
 
+static void wait_for_events(struct test_output *o)
+{
+	drmEventContext evctx;
+	struct timeval timeout = { .tv_sec = 3, .tv_usec = 0 };
+	fd_set fds;
+	int ret;
+
+	memset(&evctx, 0, sizeof evctx);
+	evctx.version = DRM_EVENT_CONTEXT_VERSION;
+	evctx.vblank_handler = NULL;
+	evctx.page_flip_handler = page_flip_handler;
+
+	/* make timeout lax with the dummy load */
+	if (o->flags & TEST_WITH_DUMMY_LOAD)
+		timeout.tv_sec *= 10;
+
+	FD_ZERO(&fds);
+	FD_SET(0, &fds);
+	FD_SET(drm_fd, &fds);
+	ret = select(drm_fd + 1, &fds, NULL, NULL, &timeout);
+
+	if (ret <= 0) {
+		fprintf(stderr, "select timed out or error (ret %d)\n",
+				ret);
+		exit(1);
+	} else if (FD_ISSET(0, &fds)) {
+		fprintf(stderr, "no fds active, breaking\n");
+		exit(2);
+	}
+
+	do_or_die(drmHandleEvent(drm_fd, &evctx));
+}
+
+/* Returned the ellapsed time in us */
+static unsigned event_loop(struct test_output *o, unsigned duration_sec)
+{
+	drmEventContext evctx;
+	struct timeval start, end;
+	struct timeval tv_dur;
+
+	gettimeofday(&start, NULL);
+	end.tv_sec = start.tv_sec + duration_sec;
+	end.tv_usec = start.tv_usec;
+
+	while (1) {
+		struct timeval now;
+
+		wait_for_events(o);
+
+		gettimeofday(&now, NULL);
+		if (!timercmp(&now, &end, <))
+			break;
+	}
+
+	gettimeofday(&end, NULL);
+	timersub(&end, &start, &tv_dur);
+
+	/* and drain the event queue */
+	memset(&evctx, 0, sizeof evctx);
+	evctx.page_flip_handler = NULL;
+	do_or_die(drmHandleEvent(drm_fd, &evctx));
+
+	return tv_dur.tv_sec * 1000 * 1000 + tv_dur.tv_usec;
+}
+
 static void flip_mode(struct test_output *o, int crtc, int duration)
 {
-	int ret;
 	int bpp = 32, depth = 24;
-	drmEventContext evctx;
-	struct timeval end;
+	unsigned ellapsed;
 
 	connector_find_preferred_mode(o, crtc);
 	if (!o->mode_valid)
@@ -459,63 +522,14 @@ static void flip_mode(struct test_output *o, int crtc, int duration)
 	o->current_fb_id = 1;
 	o->count = 1; /* for the uncounted tail */
 
-	memset(&evctx, 0, sizeof evctx);
-	evctx.version = DRM_EVENT_CONTEXT_VERSION;
-	evctx.vblank_handler = NULL;
-	evctx.page_flip_handler = page_flip_handler;
-
-	gettimeofday(&end, NULL);
-	end.tv_sec += duration;
-
-	while (1) {
-		struct timeval now, timeout = { .tv_sec = 3, .tv_usec = 0 };
-		fd_set fds;
-
-		/* make timeout lax with the dummy load */
-		if (o->flags & TEST_WITH_DUMMY_LOAD)
-			timeout.tv_sec *= 10;
-
-		FD_ZERO(&fds);
-		FD_SET(0, &fds);
-		FD_SET(drm_fd, &fds);
-		ret = select(drm_fd + 1, &fds, NULL, NULL, &timeout);
-
-		if (ret <= 0) {
-			fprintf(stderr, "select timed out or error (ret %d)\n",
-				ret);
-			exit(1);
-		} else if (FD_ISSET(0, &fds)) {
-			fprintf(stderr, "no fds active, breaking\n");
-			exit(2);
-		}
-
-		gettimeofday(&now, NULL);
-		if (now.tv_sec > end.tv_sec ||
-		    (now.tv_sec == end.tv_sec && now.tv_usec >= end.tv_usec)) {
-			break;
-		}
-
-		do_or_die(drmHandleEvent(drm_fd, &evctx));
-	}
-
-	/* and drain the event queue */
-	evctx.page_flip_handler = NULL;
-	do_or_die(drmHandleEvent(drm_fd, &evctx));
+	ellapsed = event_loop(o, duration);
 
 	/* Verify we drop no frames, but only if it's not a TV encoder, since
 	 * those use some funny fake timings behind userspace's back. */
 	if (o->flags & TEST_CHECK_TS && !analog_tv_connector(o)) {
-		struct timeval now;
-		long us;
 		int expected;
 
-		gettimeofday(&now, NULL);
-
-		us = duration * 1000 * 1000;
-		us += (now.tv_sec - end.tv_sec) * 1000 * 1000;
-		us += now.tv_usec - end.tv_usec;
-
-		expected = us * o->mode.vrefresh / (1000 * 1000);
+		expected = ellapsed * o->mode.vrefresh / (1000 * 1000);
 		if (o->count < expected * 99/100) {
 			fprintf(stderr, "dropped frames, expected %d, counted %d, encoder type %d\n",
 				expected, o->count, o->encoder->encoder_type);
