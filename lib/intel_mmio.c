@@ -92,7 +92,7 @@ intel_get_mmio(struct pci_device *pci_dev)
 
 	gen = intel_gen(devid);
 	if (gen < 3)
-		mmio_size = 64*1024;
+		mmio_size = 512*1024;
 	else if (gen < 5)
 		mmio_size = 512*1024;
 	else
