@@ -84,6 +84,7 @@ struct event_state {
 };
 
 struct test_output {
+	const char *test_name;
 	uint32_t id;
 	int mode_valid;
 	drmModeModeInfo mode;
@@ -543,8 +544,8 @@ static void flip_mode(struct test_output *o, int crtc, int duration)
 	if (!o->mode_valid)
 		return;
 
-	fprintf(stdout, "Beginning page flipping on crtc %d, connector %d\n",
-		crtc, o->id);
+	fprintf(stdout, "Beginning %s on crtc %d, connector %d\n",
+		o->test_name, crtc, o->id);
 
 	o->fb_width = o->mode.hdisplay;
 	o->fb_height = o->mode.vdisplay;
@@ -592,8 +593,8 @@ static void flip_mode(struct test_output *o, int crtc, int duration)
 
 	check_final_state(o, &o->flip_state, ellapsed);
 
-	fprintf(stdout, "\npage flipping on crtc %d, connector %d: PASSED\n",
-		crtc, o->id);
+	fprintf(stdout, "\n%s on crtc %d, connector %d: PASSED\n\n",
+		o->test_name, crtc, o->id);
 
 	kmstest_remove_fb(drm_fd, o->fb_ids[1]);
 	kmstest_remove_fb(drm_fd, o->fb_ids[0]);
@@ -615,7 +616,7 @@ static int get_pipe_from_crtc_id(int crtc_id)
 	return pfci.pipe;
 }
 
-static int run_test(int duration, int flags)
+static int run_test(int duration, int flags, const char *test_name)
 {
 	struct test_output o;
 	int c, i;
@@ -633,6 +634,7 @@ static int run_test(int duration, int flags)
 			int crtc;
 
 			memset(&o, 0, sizeof(o));
+			o.test_name = test_name;
 			o.id = resources->connectors[c];
 			o.flags = flags;
 			o.flip_state.name = "flip";
@@ -672,7 +674,7 @@ int main(int argc, char **argv)
 
 	for (i = 0; i < sizeof(tests) / sizeof (tests[0]); i++) {
 		printf("running testcase: %s\n", tests[i].name);
-		run_test(tests[i].duration, tests[i].flags);
+		run_test(tests[i].duration, tests[i].flags, tests[i].name);
 	}
 
 	close(drm_fd);
