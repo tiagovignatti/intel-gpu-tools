@@ -63,6 +63,26 @@ struct type_name {
 	const char *name;
 };
 
+struct event_state {
+	const char *name;
+
+	/*
+	 * Event data for the last event that has already passed our check.
+	 * Updated using the below current_* vars in update_state().
+	 */
+	struct timeval last_ts;			/* kernel reported timestamp */
+	struct timeval last_received_ts;	/* the moment we received it */
+
+	/*
+	 * Event data for for the current event that we just received and
+	 * going to check for validity. Set in event_handler().
+	 */
+	struct timeval current_ts;		/* kernel reported timestamp */
+	struct timeval current_received_ts;	/* the moment we received it */
+
+	int count;				/* # of events of this type */
+};
+
 struct test_output {
 	uint32_t id;
 	int mode_valid;
@@ -71,16 +91,13 @@ struct test_output {
 	drmModeConnector *connector;
 	int crtc;
 	int flags;
-	int count;
 	unsigned int current_fb_id;
 	unsigned int fb_width;
 	unsigned int fb_height;
 	unsigned int fb_ids[2];
 	struct kmstest_fb fb_info[2];
-	struct timeval current_flip_received;
-	struct timeval current_flip_ts;
-	struct timeval last_flip_received;
-	struct timeval last_flip_ts;
+
+	struct event_state flip_state;
 };
 
 static void emit_dummy_load(struct test_output *o)
@@ -176,50 +193,63 @@ analog_tv_connector(struct test_output *o)
 		connector_type == DRM_MODE_CONNECTOR_Composite;
 }
 
+static void event_handler(struct event_state *es, unsigned int frame,
+			  unsigned int sec, unsigned int usec)
+{
+	gettimeofday(&es->current_received_ts, NULL);
+	es->current_ts.tv_sec = sec;
+	es->current_ts.tv_usec = usec;
+}
+
 static void page_flip_handler(int fd, unsigned int frame, unsigned int sec,
 			      unsigned int usec, void *data)
 {
 	struct test_output *o = data;
 
-	o->current_flip_ts.tv_sec = sec;
-	o->current_flip_ts.tv_usec = usec;
-
-	gettimeofday(&o->current_flip_received, NULL);
+	event_handler(&o->flip_state, frame, sec, usec);
 }
 
-static void check_all_state(struct test_output *o)
+static void check_state(struct test_output *o, struct event_state *es)
 {
 	struct timeval diff;
 	double usec_interflip;
 
-	timersub(&o->current_flip_ts, &o->current_flip_received, &diff);
-
+	timersub(&es->current_ts, &es->current_received_ts, &diff);
 	if (diff.tv_sec > 0 || (diff.tv_sec == 0 && diff.tv_usec > 2000)) {
-		fprintf(stderr, "pageflip timestamp delayed for too long: %is, %iusec\n",
-			(int) diff.tv_sec, (int) diff.tv_usec);
+		fprintf(stderr, "%s ts delayed for too long: %is, %iusec\n",
+			es->name, (int)diff.tv_sec, (int)diff.tv_usec);
 		exit(5);
 	}
 
-	if (!timercmp(&o->last_flip_received, &o->current_flip_ts, <)) {
-		fprintf(stderr, "pageflip ts before the pageflip was issued!\n");
-		timersub(&o->current_flip_ts, &o->last_flip_received, &diff);
+	if (!timercmp(&es->last_received_ts, &es->current_ts, <)) {
+		fprintf(stderr, "%s ts before the %s was issued!\n",
+				es->name, es->name);
+
+		timersub(&es->current_ts, &es->last_received_ts, &diff);
 		fprintf(stderr, "timerdiff %is, %ius\n",
 			(int) diff.tv_sec, (int) diff.tv_usec);
 		exit(6);
 	}
 
-	if (o->count > 1 && o->flags & TEST_CHECK_TS && !analog_tv_connector(o)) {
-		timersub(&o->current_flip_ts, &o->last_flip_ts, &diff);
-		usec_interflip = 1.0 / ((double) o->mode.vrefresh) * 1000.0 * 1000.0;
 
-		if (fabs((((double) diff.tv_usec) - usec_interflip) / usec_interflip) > 0.005) {
-			fprintf(stderr, "inter-flip timestamp jitter: %is, %ius\n",
+	if (es->count > 1 && (o->flags & TEST_CHECK_TS) && (!analog_tv_connector(o))) {
+		timersub(&es->current_ts, &es->last_ts, &diff);
+		usec_interflip = 1.0 / ((double)o->mode.vrefresh) * 1000.0 * 1000.0;
+		if (fabs((((double) diff.tv_usec) - usec_interflip) /
+		    usec_interflip) > 0.005) {
+			fprintf(stderr, "inter-%s ts jitter: %is, %ius\n",
+				es->name,
 				(int) diff.tv_sec, (int) diff.tv_usec);
 			/* atm this is way too easy to hit, thanks to the hpd
 			 * poll helper :( hence make it non-fatal for now */
 			//exit(9);
 		}
 	}
+}
+
+static void check_all_state(struct test_output *o)
+{
+	check_state(o, &o->flip_state);
 }
 
 static void run_test_step(struct test_output *o)
@@ -235,7 +265,7 @@ static void run_test_step(struct test_output *o)
 	o->current_fb_id = !o->current_fb_id;
 	new_fb_id = o->fb_ids[o->current_fb_id];
 
-	if (o->flags & TEST_EINVAL && o->count > 1)
+	if ((o->flags & TEST_EINVAL) && o->flip_state.count > 1)
 		assert(do_page_flip(o, new_fb_id) == expected_einval);
 
 	if (o->flags & TEST_MODESET) {
@@ -252,7 +282,6 @@ static void run_test_step(struct test_output *o)
 	if (o->flags & TEST_DPMS)
 		do_or_die(set_dpms(o, DRM_MODE_DPMS_ON));
 
-	o->count++;
 	printf("."); fflush(stdout);
 
 	do_or_die(do_page_flip(o, new_fb_id));
@@ -262,8 +291,9 @@ static void run_test_step(struct test_output *o)
 
 	/* pan before the flip completes */
 	if (o->flags & TEST_PAN) {
-		int x_ofs = o->count * 10 > o->mode.hdisplay ?
-			    o->mode.hdisplay : o->count * 10;
+		int count = o->flip_state.count;
+		int x_ofs = count * 10 > o->mode.hdisplay ?
+			    o->mode.hdisplay : count * 10;
 
 		if (drmModeSetCrtc(drm_fd, o->crtc, o->fb_ids[o->current_fb_id],
 				   x_ofs, 0, &o->id, 1, &o->mode)) {
@@ -292,10 +322,16 @@ static void run_test_step(struct test_output *o)
 		assert(do_page_flip(o, new_fb_id) == expected_einval);
 }
 
+static void update_state(struct event_state *es)
+{
+	es->last_received_ts = es->current_received_ts;
+	es->last_ts = es->current_ts;
+	es->count++;
+}
+
 static void update_all_state(struct test_output *o)
 {
-	o->last_flip_received = o->current_flip_received;
-	o->last_flip_ts = o->current_flip_ts;
+	update_state(&o->flip_state);
 }
 
 static void connector_find_preferred_mode(struct test_output *o, int crtc_id)
@@ -417,17 +453,19 @@ fb_is_bound(struct test_output *o, int fb)
 	return mode.mode_valid && mode.fb_id == fb;
 }
 
-static void check_final_state(struct test_output *o, unsigned int ellapsed)
+static void check_final_state(struct test_output *o, struct event_state *es,
+			      unsigned int ellapsed)
 {
 	/* Verify we drop no frames, but only if it's not a TV encoder, since
 	 * those use some funny fake timings behind userspace's back. */
 	if (o->flags & TEST_CHECK_TS && !analog_tv_connector(o)) {
 		int expected;
+		int count = es->count;
 
 		expected = ellapsed * o->mode.vrefresh / (1000 * 1000);
-		if (o->count < expected * 99/100) {
+		if (count < expected * 99/100) {
 			fprintf(stderr, "dropped frames, expected %d, counted %d, encoder type %d\n",
-				expected, o->count, o->encoder->encoder_type);
+				expected, count, o->encoder->encoder_type);
 			exit(3);
 		}
 	}
@@ -539,7 +577,7 @@ static void flip_mode(struct test_output *o, int crtc, int duration)
 	if (o->flags & TEST_CHECK_TS)
 		sleep(1);
 
-	gettimeofday(&o->last_flip_received, NULL);
+	gettimeofday(&o->flip_state.last_ts, NULL);
 
 	if (do_page_flip(o, o->fb_ids[1])) {
 		fprintf(stderr, "failed to page flip: %s\n", strerror(errno));
@@ -551,7 +589,7 @@ static void flip_mode(struct test_output *o, int crtc, int duration)
 
 	ellapsed = event_loop(o, duration);
 
-	check_final_state(o, ellapsed);
+	check_final_state(o, &o->flip_state, ellapsed);
 
 	fprintf(stdout, "\npage flipping on crtc %d, connector %d: PASSED\n",
 		crtc, o->id);
@@ -581,6 +619,7 @@ static int run_test(int duration, int flags)
 			memset(&o, 0, sizeof(o));
 			o.id = resources->connectors[c];
 			o.flags = flags;
+			o.flip_state.name = "flip";
 
 			flip_mode(&o, resources->crtcs[i], duration);
 		}
