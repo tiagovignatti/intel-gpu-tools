@@ -469,7 +469,6 @@ static void wait_for_events(struct test_output *o)
 /* Returned the ellapsed time in us */
 static unsigned event_loop(struct test_output *o, unsigned duration_sec)
 {
-	drmEventContext evctx;
 	struct timeval start, end;
 	struct timeval tv_dur;
 
@@ -480,9 +479,9 @@ static unsigned event_loop(struct test_output *o, unsigned duration_sec)
 	while (1) {
 		struct timeval now;
 
+		run_test_step(o);
 		wait_for_events(o);
 		check_all_state(o);
-		run_test_step(o);
 		update_all_state(o);
 
 		gettimeofday(&now, NULL);
@@ -492,11 +491,6 @@ static unsigned event_loop(struct test_output *o, unsigned duration_sec)
 
 	gettimeofday(&end, NULL);
 	timersub(&end, &start, &tv_dur);
-
-	/* and drain the event queue */
-	memset(&evctx, 0, sizeof evctx);
-	evctx.page_flip_handler = NULL;
-	do_or_die(drmHandleEvent(drm_fd, &evctx));
 
 	return tv_dur.tv_sec * 1000 * 1000 + tv_dur.tv_usec;
 }
@@ -551,8 +545,9 @@ static void flip_mode(struct test_output *o, int crtc, int duration)
 		fprintf(stderr, "failed to page flip: %s\n", strerror(errno));
 		exit(4);
 	}
+	wait_for_events(o);
+
 	o->current_fb_id = 1;
-	o->count = 1; /* for the uncounted tail */
 
 	ellapsed = event_loop(o, duration);
 
