@@ -48,6 +48,7 @@
 #define TEST_CHECK_TS		(1 << 4)
 #define TEST_EBUSY		(1 << 5)
 #define TEST_EINVAL		(1 << 6)
+#define TEST_FLIP		(1 << 7)
 
 drmModeRes *resources;
 int drm_fd;
@@ -251,7 +252,8 @@ static void check_state(struct test_output *o, struct event_state *es)
 
 static void check_all_state(struct test_output *o)
 {
-	check_state(o, &o->flip_state);
+	if (o->flags & TEST_FLIP)
+		check_state(o, &o->flip_state);
 }
 
 static void run_test_step(struct test_output *o)
@@ -259,6 +261,9 @@ static void run_test_step(struct test_output *o)
 	unsigned int new_fb_id;
 	/* for funny reasons page_flip returns -EBUSY on disabled crtcs ... */
 	int expected_einval = o->flags & TEST_MODESET ? -EBUSY : -EINVAL;
+	bool do_flip;
+
+	do_flip = o->flags & TEST_FLIP;
 
 	if (o->flags & TEST_WITH_DUMMY_LOAD)
 		emit_dummy_load(o);
@@ -267,7 +272,7 @@ static void run_test_step(struct test_output *o)
 	o->current_fb_id = !o->current_fb_id;
 	new_fb_id = o->fb_ids[o->current_fb_id];
 
-	if ((o->flags & TEST_EINVAL) && o->flip_state.count > 0)
+	if (do_flip && (o->flags & TEST_EINVAL) && o->flip_state.count > 0)
 		assert(do_page_flip(o, new_fb_id) == expected_einval);
 
 	if (o->flags & TEST_MODESET) {
@@ -286,9 +291,10 @@ static void run_test_step(struct test_output *o)
 
 	printf("."); fflush(stdout);
 
-	do_or_die(do_page_flip(o, new_fb_id));
+	if (do_flip)
+		do_or_die(do_page_flip(o, new_fb_id));
 
-	if (o->flags & TEST_EBUSY)
+	if (do_flip && (o->flags & TEST_EBUSY))
 		assert(do_page_flip(o, new_fb_id) == -EBUSY);
 
 	/* pan before the flip completes */
@@ -320,7 +326,7 @@ static void run_test_step(struct test_output *o)
 		}
 	}
 
-	if (o->flags & TEST_EINVAL)
+	if (do_flip && (o->flags & TEST_EINVAL))
 		assert(do_page_flip(o, new_fb_id) == expected_einval);
 }
 
@@ -591,7 +597,8 @@ static void flip_mode(struct test_output *o, int crtc, int duration)
 
 	ellapsed = event_loop(o, duration);
 
-	check_final_state(o, &o->flip_state, ellapsed);
+	if (o->flags & TEST_FLIP)
+		check_final_state(o, &o->flip_state, ellapsed);
 
 	fprintf(stdout, "\n%s on crtc %d, connector %d: PASSED\n\n",
 		o->test_name, crtc, o->id);
@@ -656,13 +663,13 @@ int main(int argc, char **argv)
 		int flags;
 		const char *name;
 	} tests[] = {
-		{ 15, TEST_CHECK_TS | TEST_EBUSY , "plain flip" },
-		{ 30, TEST_DPMS | TEST_EINVAL, "flip vs dpms" },
-		{ 30, TEST_DPMS | TEST_WITH_DUMMY_LOAD, "delayed flip vs. dpms" },
-		{ 5, TEST_PAN, "flip vs panning" },
-		{ 30, TEST_PAN | TEST_WITH_DUMMY_LOAD, "delayed flip vs panning" },
-		{ 30, TEST_MODESET | TEST_EINVAL, "flip vs modeset" },
-		{ 30, TEST_MODESET | TEST_WITH_DUMMY_LOAD, "delayed flip vs modeset" },
+		{ 15, TEST_FLIP | TEST_CHECK_TS | TEST_EBUSY , "plain flip" },
+		{ 30, TEST_FLIP | TEST_DPMS | TEST_EINVAL, "flip vs dpms" },
+		{ 30, TEST_FLIP | TEST_DPMS | TEST_WITH_DUMMY_LOAD, "delayed flip vs dpms" },
+		{ 5,  TEST_FLIP | TEST_PAN, "flip vs panning" },
+		{ 30, TEST_FLIP | TEST_PAN | TEST_WITH_DUMMY_LOAD, "delayed flip vs panning" },
+		{ 30, TEST_FLIP | TEST_MODESET | TEST_EINVAL, "flip vs modeset" },
+		{ 30, TEST_FLIP | TEST_MODESET | TEST_WITH_DUMMY_LOAD, "delayed flip vs modeset" },
 	};
 	int i;
 
