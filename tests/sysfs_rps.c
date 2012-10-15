@@ -74,12 +74,20 @@ static int readval(FILE *filp)
 	return val;
 }
 
-static void writeval(FILE *filp, int val)
+static int do_writeval(FILE *filp, int val, int lerrno)
 {
+	/* Must write twice to sysfs since the first one simply calculates the size and won't return the error */
+	int ret;
 	rewind(filp);
-	fprintf(filp, "%d", val);
+	ret = fprintf(filp, "%d", val);
+	rewind(filp);
+	ret = fprintf(filp, "%d", val);
+	if (ret && lerrno)
+		assert(errno = lerrno);
 	fflush(filp);
+	return ret;
 }
+#define writeval(filp, val) do_writeval(filp, val, 0)
 
 #define fcur (readval(stuff[CUR].filp))
 #define fmin (readval(stuff[MIN].filp))
@@ -175,6 +183,9 @@ int main(int argc, char *argv[])
 	writeval(stuff[MIN].filp, fmax + 1000);
 	writeval(stuff[MAX].filp, fmin - 1);
 	checkit();
+
+	do_writeval(stuff[MIN].filp, 0x11111110, EINVAL);
+	do_writeval(stuff[MAX].filp, 0, EINVAL);
 
 	writeval(stuff[MIN].filp, origmin);
 	writeval(stuff[MAX].filp, origmax);
