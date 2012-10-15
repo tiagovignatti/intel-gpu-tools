@@ -50,6 +50,8 @@
 #define TEST_EINVAL		(1 << 6)
 #define TEST_FLIP		(1 << 7)
 
+#define EVENT_FLIP		(1 << 0)
+
 drmModeRes *resources;
 int drm_fd;
 static drm_intel_bufmgr *bufmgr;
@@ -101,6 +103,7 @@ struct test_output {
 	struct kmstest_fb fb_info[2];
 
 	struct event_state flip_state;
+	unsigned int pending_events;
 };
 
 static void emit_dummy_load(struct test_output *o)
@@ -179,10 +182,28 @@ static int set_dpms(struct test_output *o, int mode)
 	return drmModeConnectorSetProperty(drm_fd, o->id, dpms, mode);
 }
 
+static void set_flag(unsigned int *v, unsigned int flag)
+{
+	assert(!(*v & flag));
+	*v |= flag;
+}
+
+static void clear_flag(unsigned int *v, unsigned int flag)
+{
+	assert(*v & flag);
+	*v &= ~flag;
+}
+
 static int do_page_flip(struct test_output *o, int fb_id)
 {
-	return drmModePageFlip(drm_fd, o->crtc, fb_id, DRM_MODE_PAGE_FLIP_EVENT,
+	int ret;
+
+	ret = drmModePageFlip(drm_fd, o->crtc, fb_id, DRM_MODE_PAGE_FLIP_EVENT,
 				o);
+	if (ret == 0)
+		set_flag(&o->pending_events, EVENT_FLIP);
+
+	return ret;
 }
 
 static bool
@@ -209,6 +230,7 @@ static void page_flip_handler(int fd, unsigned int frame, unsigned int sec,
 {
 	struct test_output *o = data;
 
+	clear_flag(&o->pending_events, EVENT_FLIP);
 	event_handler(&o->flip_state, frame, sec, usec);
 }
 
@@ -250,20 +272,23 @@ static void check_state(struct test_output *o, struct event_state *es)
 	}
 }
 
-static void check_all_state(struct test_output *o)
+static void check_all_state(struct test_output *o,
+			    unsigned int completed_events)
 {
-	if (o->flags & TEST_FLIP)
+	if (completed_events & EVENT_FLIP)
 		check_state(o, &o->flip_state);
 }
 
-static void run_test_step(struct test_output *o)
+/* Return mask of completed events. */
+static unsigned int run_test_step(struct test_output *o)
 {
 	unsigned int new_fb_id;
 	/* for funny reasons page_flip returns -EBUSY on disabled crtcs ... */
 	int expected_einval = o->flags & TEST_MODESET ? -EBUSY : -EINVAL;
+	unsigned int completed_events = 0;
 	bool do_flip;
 
-	do_flip = o->flags & TEST_FLIP;
+	do_flip = (o->flags & TEST_FLIP) && !(o->pending_events & EVENT_FLIP);
 
 	if (o->flags & TEST_WITH_DUMMY_LOAD)
 		emit_dummy_load(o);
@@ -328,6 +353,8 @@ static void run_test_step(struct test_output *o)
 
 	if (do_flip && (o->flags & TEST_EINVAL))
 		assert(do_page_flip(o, new_fb_id) == expected_einval);
+
+	return completed_events;
 }
 
 static void update_state(struct event_state *es)
@@ -337,9 +364,11 @@ static void update_state(struct event_state *es)
 	es->count++;
 }
 
-static void update_all_state(struct test_output *o)
+static void update_all_state(struct test_output *o,
+			     unsigned int completed_events)
 {
-	update_state(&o->flip_state);
+	if (completed_events & EVENT_FLIP)
+		update_state(&o->flip_state);
 }
 
 static void connector_find_preferred_mode(struct test_output *o, int crtc_id)
@@ -479,12 +508,20 @@ static void check_final_state(struct test_output *o, struct event_state *es,
 	}
 }
 
-static void wait_for_events(struct test_output *o)
+/*
+ * Wait until at least one pending event completes. Return mask of completed
+ * events.
+ */
+static unsigned int wait_for_events(struct test_output *o)
 {
 	drmEventContext evctx;
 	struct timeval timeout = { .tv_sec = 3, .tv_usec = 0 };
 	fd_set fds;
+	unsigned int event_mask;
 	int ret;
+
+	event_mask = o->pending_events;
+	assert(event_mask);
 
 	memset(&evctx, 0, sizeof evctx);
 	evctx.version = DRM_EVENT_CONTEXT_VERSION;
@@ -510,6 +547,11 @@ static void wait_for_events(struct test_output *o)
 	}
 
 	do_or_die(drmHandleEvent(drm_fd, &evctx));
+
+	event_mask ^= o->pending_events;
+	assert(event_mask);
+
+	return event_mask;
 }
 
 /* Returned the ellapsed time in us */
@@ -524,11 +566,13 @@ static unsigned event_loop(struct test_output *o, unsigned duration_sec)
 
 	while (1) {
 		struct timeval now;
+		unsigned int completed_events;
 
-		run_test_step(o);
-		wait_for_events(o);
-		check_all_state(o);
-		update_all_state(o);
+		completed_events = run_test_step(o);
+		if (o->pending_events)
+			completed_events |= wait_for_events(o);
+		check_all_state(o, completed_events);
+		update_all_state(o, completed_events);
 
 		gettimeofday(&now, NULL);
 		if (!timercmp(&now, &end, <))
