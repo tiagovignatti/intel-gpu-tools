@@ -90,6 +90,7 @@ struct test_output {
 	drmModeEncoder *encoder;
 	drmModeConnector *connector;
 	int crtc;
+	int pipe;
 	int flags;
 	unsigned int current_fb_id;
 	unsigned int fb_width;
@@ -601,6 +602,19 @@ static void flip_mode(struct test_output *o, int crtc, int duration)
 	drmModeFreeConnector(o->connector);
 }
 
+static int get_pipe_from_crtc_id(int crtc_id)
+{
+	struct drm_i915_get_pipe_from_crtc_id pfci;
+	int ret;
+
+	memset(&pfci, 0, sizeof(pfci));
+	pfci.crtc_id = crtc_id;
+	ret = drmIoctl(drm_fd, DRM_IOCTL_I915_GET_PIPE_FROM_CRTC_ID, &pfci);
+	assert(ret == 0);
+
+	return pfci.pipe;
+}
+
 static int run_test(int duration, int flags)
 {
 	struct test_output o;
@@ -616,12 +630,16 @@ static int run_test(int duration, int flags)
 	/* Find any connected displays */
 	for (c = 0; c < resources->count_connectors; c++) {
 		for (i = 0; i < resources->count_crtcs; i++) {
+			int crtc;
+
 			memset(&o, 0, sizeof(o));
 			o.id = resources->connectors[c];
 			o.flags = flags;
 			o.flip_state.name = "flip";
+			crtc = resources->crtcs[i];
+			o.pipe = get_pipe_from_crtc_id(crtc);
 
-			flip_mode(&o, resources->crtcs[i], duration);
+			flip_mode(&o, crtc, duration);
 		}
 	}
 
