@@ -77,6 +77,8 @@ struct test_output {
 	unsigned int fb_height;
 	unsigned int fb_ids[2];
 	struct kmstest_fb fb_info[2];
+	struct timeval current_flip_received;
+	struct timeval current_flip_ts;
 	struct timeval last_flip_received;
 	struct timeval last_flip_ts;
 };
@@ -179,17 +181,17 @@ static void page_flip_handler(int fd, unsigned int frame, unsigned int sec,
 {
 	struct test_output *o = data;
 	unsigned int new_fb_id;
-	struct timeval now, diff, pageflip_ts;
+	struct timeval diff;
 	double usec_interflip;
 	/* for funny reasons page_flip returns -EBUSY on disabled crtcs ... */
 	int expected_einval = o->flags & TEST_MODESET ? -EBUSY : -EINVAL;
 
-	pageflip_ts.tv_sec = sec;
-	pageflip_ts.tv_usec = usec;
+	o->current_flip_ts.tv_sec = sec;
+	o->current_flip_ts.tv_usec = usec;
 
-	gettimeofday(&now, NULL);
+	gettimeofday(&o->current_flip_received, NULL);
 
-	timersub(&pageflip_ts, &now, &diff);
+	timersub(&o->current_flip_ts, &o->current_flip_received, &diff);
 
 	if (diff.tv_sec > 0 || (diff.tv_sec == 0 && diff.tv_usec > 2000)) {
 		fprintf(stderr, "pageflip timestamp delayed for too long: %is, %iusec\n",
@@ -197,16 +199,16 @@ static void page_flip_handler(int fd, unsigned int frame, unsigned int sec,
 		exit(5);
 	}
 
-	if (!timercmp(&o->last_flip_received, &pageflip_ts, <)) {
+	if (!timercmp(&o->last_flip_received, &o->current_flip_ts, <)) {
 		fprintf(stderr, "pageflip ts before the pageflip was issued!\n");
-		timersub(&pageflip_ts, &o->last_flip_received, &diff);
+		timersub(&o->current_flip_ts, &o->last_flip_received, &diff);
 		fprintf(stderr, "timerdiff %is, %ius\n",
 			(int) diff.tv_sec, (int) diff.tv_usec);
 		exit(6);
 	}
 
 	if (o->count > 1 && o->flags & TEST_CHECK_TS && !analog_tv_connector(o)) {
-		timersub(&pageflip_ts, &o->last_flip_ts, &diff);
+		timersub(&o->current_flip_ts, &o->last_flip_ts, &diff);
 		usec_interflip = 1.0 / ((double) o->mode.vrefresh) * 1000.0 * 1000.0;
 
 		if (fabs((((double) diff.tv_usec) - usec_interflip) / usec_interflip) > 0.005) {
@@ -281,8 +283,8 @@ static void page_flip_handler(int fd, unsigned int frame, unsigned int sec,
 	if (o->flags & TEST_EINVAL)
 		assert(do_page_flip(o, new_fb_id) == expected_einval);
 
-	o->last_flip_received = now;
-	o->last_flip_ts = pageflip_ts;
+	o->last_flip_received = o->current_flip_received;
+	o->last_flip_ts = o->current_flip_ts;
 }
 
 static void connector_find_preferred_mode(struct test_output *o, int crtc_id)
