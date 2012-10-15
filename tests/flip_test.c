@@ -180,16 +180,17 @@ static void page_flip_handler(int fd, unsigned int frame, unsigned int sec,
 			      unsigned int usec, void *data)
 {
 	struct test_output *o = data;
-	unsigned int new_fb_id;
-	struct timeval diff;
-	double usec_interflip;
-	/* for funny reasons page_flip returns -EBUSY on disabled crtcs ... */
-	int expected_einval = o->flags & TEST_MODESET ? -EBUSY : -EINVAL;
 
 	o->current_flip_ts.tv_sec = sec;
 	o->current_flip_ts.tv_usec = usec;
 
 	gettimeofday(&o->current_flip_received, NULL);
+}
+
+static void check_all_state(struct test_output *o)
+{
+	struct timeval diff;
+	double usec_interflip;
 
 	timersub(&o->current_flip_ts, &o->current_flip_received, &diff);
 
@@ -219,6 +220,13 @@ static void page_flip_handler(int fd, unsigned int frame, unsigned int sec,
 			//exit(9);
 		}
 	}
+}
+
+static void run_test_step(struct test_output *o)
+{
+	unsigned int new_fb_id;
+	/* for funny reasons page_flip returns -EBUSY on disabled crtcs ... */
+	int expected_einval = o->flags & TEST_MODESET ? -EBUSY : -EINVAL;
 
 	if (o->flags & TEST_WITH_DUMMY_LOAD)
 		emit_dummy_load(o);
@@ -282,7 +290,10 @@ static void page_flip_handler(int fd, unsigned int frame, unsigned int sec,
 
 	if (o->flags & TEST_EINVAL)
 		assert(do_page_flip(o, new_fb_id) == expected_einval);
+}
 
+static void update_all_state(struct test_output *o)
+{
 	o->last_flip_received = o->current_flip_received;
 	o->last_flip_ts = o->current_flip_ts;
 }
@@ -470,6 +481,9 @@ static unsigned event_loop(struct test_output *o, unsigned duration_sec)
 		struct timeval now;
 
 		wait_for_events(o);
+		check_all_state(o);
+		run_test_step(o);
+		update_all_state(o);
 
 		gettimeofday(&now, NULL);
 		if (!timercmp(&now, &end, <))
