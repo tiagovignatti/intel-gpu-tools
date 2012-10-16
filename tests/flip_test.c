@@ -525,6 +525,9 @@ static void flip_mode(struct test_output *o, int crtc, int duration)
 	fprintf(stdout, "\npage flipping on crtc %d, connector %d: PASSED\n",
 		crtc, o->id);
 
+	kmstest_remove_fb(drm_fd, o->fb_ids[1]);
+	kmstest_remove_fb(drm_fd, o->fb_ids[0]);
+
 	drmModeFreeEncoder(o->encoder);
 	drmModeFreeConnector(o->connector);
 }
