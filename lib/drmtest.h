@@ -105,6 +105,7 @@ unsigned int kmstest_create_fb(int fd, int width, int height, int bpp,
 			       struct kmstest_fb *fb_info,
 			       kmstest_paint_func paint_func,
 			       void *func_arg);
+void kmstest_remove_fb(int fd, int fb_id);
 void kmstest_dump_mode(drmModeModeInfo *mode);
 
 inline static void _do_or_die(const char *function, int line, int ret)

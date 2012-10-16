@@ -829,6 +829,11 @@ unsigned int kmstest_create_fb(int fd, int width, int height, int bpp,
 	return fb_id;
 }
 
+void kmstest_remove_fb(int fd, int fb_id)
+{
+	do_or_die(drmModeRmFB(fd, fb_id));
+}
+
 void kmstest_dump_mode(drmModeModeInfo *mode)
 {
 	printf("  %s %d %d %d %d %d %d %d %d %d 0x%x 0x%x %d\n",
