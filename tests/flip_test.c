@@ -404,6 +404,22 @@ fb_is_bound(struct test_output *o, int fb)
 	return mode.mode_valid && mode.fb_id == fb;
 }
 
+static void check_final_state(struct test_output *o, unsigned int ellapsed)
+{
+	/* Verify we drop no frames, but only if it's not a TV encoder, since
+	 * those use some funny fake timings behind userspace's back. */
+	if (o->flags & TEST_CHECK_TS && !analog_tv_connector(o)) {
+		int expected;
+
+		expected = ellapsed * o->mode.vrefresh / (1000 * 1000);
+		if (o->count < expected * 99/100) {
+			fprintf(stderr, "dropped frames, expected %d, counted %d, encoder type %d\n",
+				expected, o->count, o->encoder->encoder_type);
+			exit(3);
+		}
+	}
+}
+
 static void wait_for_events(struct test_output *o)
 {
 	drmEventContext evctx;
@@ -524,18 +540,7 @@ static void flip_mode(struct test_output *o, int crtc, int duration)
 
 	ellapsed = event_loop(o, duration);
 
-	/* Verify we drop no frames, but only if it's not a TV encoder, since
-	 * those use some funny fake timings behind userspace's back. */
-	if (o->flags & TEST_CHECK_TS && !analog_tv_connector(o)) {
-		int expected;
-
-		expected = ellapsed * o->mode.vrefresh / (1000 * 1000);
-		if (o->count < expected * 99/100) {
-			fprintf(stderr, "dropped frames, expected %d, counted %d, encoder type %d\n",
-				expected, o->count, o->encoder->encoder_type);
-			exit(3);
-		}
-	}
+	check_final_state(o, ellapsed);
 
 	fprintf(stdout, "\npage flipping on crtc %d, connector %d: PASSED\n",
 		crtc, o->id);
