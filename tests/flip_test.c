@@ -75,6 +75,7 @@ struct event_state {
 	 */
 	struct timeval last_ts;			/* kernel reported timestamp */
 	struct timeval last_received_ts;	/* the moment we received it */
+	unsigned int last_seq;			/* kernel reported seq. num */
 
 	/*
 	 * Event data for for the current event that we just received and
@@ -82,8 +83,12 @@ struct event_state {
 	 */
 	struct timeval current_ts;		/* kernel reported timestamp */
 	struct timeval current_received_ts;	/* the moment we received it */
+	unsigned int current_seq;		/* kernel reported seq. num */
 
 	int count;				/* # of events of this type */
+
+	/* Step between the current and next 'target' sequence number. */
+	int seq_step;
 };
 
 struct test_output {
@@ -223,6 +228,7 @@ static void event_handler(struct event_state *es, unsigned int frame,
 	gettimeofday(&es->current_received_ts, NULL);
 	es->current_ts.tv_sec = sec;
 	es->current_ts.tv_usec = usec;
+	es->current_seq = frame;
 }
 
 static void page_flip_handler(int fd, unsigned int frame, unsigned int sec,
@@ -256,10 +262,20 @@ static void check_state(struct test_output *o, struct event_state *es)
 		exit(6);
 	}
 
+	if (es->count == 0)
+		return;
 
-	if (es->count > 0 && (o->flags & TEST_CHECK_TS) && (!analog_tv_connector(o))) {
+	/* This bounding matches the one in DRM_IOCTL_WAIT_VBLANK. */
+	if (es->current_seq - (es->last_seq + es->seq_step) > 1UL << 23) {
+		fprintf(stderr, "unexpected %s seq %u, should be >= %u\n",
+			es->name, es->current_seq, es->last_seq + es->seq_step);
+		exit(10);
+	}
+
+	if ((o->flags & TEST_CHECK_TS) && (!analog_tv_connector(o))) {
 		timersub(&es->current_ts, &es->last_ts, &diff);
-		usec_interflip = 1.0 / ((double)o->mode.vrefresh) * 1000.0 * 1000.0;
+		usec_interflip = (double)es->seq_step /
+				 ((double)o->mode.vrefresh) * 1000.0 * 1000.0;
 		if (fabs((((double) diff.tv_usec) - usec_interflip) /
 		    usec_interflip) > 0.005) {
 			fprintf(stderr, "inter-%s ts jitter: %is, %ius\n",
@@ -269,6 +285,12 @@ static void check_state(struct test_output *o, struct event_state *es)
 			 * poll helper :( hence make it non-fatal for now */
 			//exit(9);
 		}
+
+		if (es->current_seq != es->last_seq + es->seq_step)
+			fprintf(stderr, "unexpected %s seq %u, expected %u\n",
+					es->name, es->current_seq,
+					es->last_seq + es->seq_step);
+			/* no exit, due to the same reason as above */
 	}
 }
 
@@ -361,6 +383,7 @@ static void update_state(struct event_state *es)
 {
 	es->last_received_ts = es->current_received_ts;
 	es->last_ts = es->current_ts;
+	es->last_seq = es->current_seq;
 	es->count++;
 }
 
@@ -499,6 +522,7 @@ static void check_final_state(struct test_output *o, struct event_state *es,
 		int expected;
 		int count = es->count;
 
+		count *= es->seq_step;
 		expected = ellapsed * o->mode.vrefresh / (1000 * 1000);
 		if (count < expected * 99/100) {
 			fprintf(stderr, "dropped frames, expected %d, counted %d, encoder type %d\n",
@@ -638,6 +662,7 @@ static void flip_mode(struct test_output *o, int crtc, int duration)
 	wait_for_events(o);
 
 	o->current_fb_id = 1;
+	o->flip_state.seq_step = 1;
 
 	ellapsed = event_loop(o, duration);
 
