@@ -183,7 +183,7 @@ static void page_flip_handler(int fd, unsigned int frame, unsigned int sec,
 
 	timersub(&pageflip_ts, &now, &diff);
 
-	if (diff.tv_sec > 0 || (diff.tv_sec > 0 && diff.tv_usec > 2000)) {
+	if (diff.tv_sec > 0 || (diff.tv_sec == 0 && diff.tv_usec > 2000)) {
 		fprintf(stderr, "pageflip timestamp delayed for too long: %is, %iusec\n",
 			(int) diff.tv_sec, (int) diff.tv_usec);
 		exit(5);
