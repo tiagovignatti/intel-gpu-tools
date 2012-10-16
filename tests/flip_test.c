@@ -232,7 +232,7 @@ static void check_state(struct test_output *o, struct event_state *es)
 	}
 
 
-	if (es->count > 1 && (o->flags & TEST_CHECK_TS) && (!analog_tv_connector(o))) {
+	if (es->count > 0 && (o->flags & TEST_CHECK_TS) && (!analog_tv_connector(o))) {
 		timersub(&es->current_ts, &es->last_ts, &diff);
 		usec_interflip = 1.0 / ((double)o->mode.vrefresh) * 1000.0 * 1000.0;
 		if (fabs((((double) diff.tv_usec) - usec_interflip) /
@@ -265,7 +265,7 @@ static void run_test_step(struct test_output *o)
 	o->current_fb_id = !o->current_fb_id;
 	new_fb_id = o->fb_ids[o->current_fb_id];
 
-	if ((o->flags & TEST_EINVAL) && o->flip_state.count > 1)
+	if ((o->flags & TEST_EINVAL) && o->flip_state.count > 0)
 		assert(do_page_flip(o, new_fb_id) == expected_einval);
 
 	if (o->flags & TEST_MODESET) {
