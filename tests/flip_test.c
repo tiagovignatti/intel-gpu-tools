@@ -516,6 +516,11 @@ fb_is_bound(struct test_output *o, int fb)
 static void check_final_state(struct test_output *o, struct event_state *es,
 			      unsigned int ellapsed)
 {
+	if (es->count == 0) {
+		fprintf(stderr, "no %s event received\n", es->name);
+		exit(12);
+	}
+
 	/* Verify we drop no frames, but only if it's not a TV encoder, since
 	 * those use some funny fake timings behind userspace's back. */
 	if (o->flags & TEST_CHECK_TS && !analog_tv_connector(o)) {
