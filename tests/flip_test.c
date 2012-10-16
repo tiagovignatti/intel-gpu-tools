@@ -546,11 +546,13 @@ static int run_test(int duration, int flags)
 
 	/* Find any connected displays */
 	for (c = 0; c < resources->count_connectors; c++) {
-		memset(&o, 0, sizeof(o));
-		o.id = resources->connectors[c];
-		o.flags = flags;
-		for (i = 0; i < resources->count_crtcs; i++)
+		for (i = 0; i < resources->count_crtcs; i++) {
+			memset(&o, 0, sizeof(o));
+			o.id = resources->connectors[c];
+			o.flags = flags;
+
 			flip_mode(&o, resources->crtcs[i], duration);
+		}
 	}
 
 	drmModeFreeResources(resources);
