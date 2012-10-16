@@ -155,6 +155,12 @@ static int set_dpms(struct test_output *o, int mode)
 	return drmModeConnectorSetProperty(drm_fd, o->id, dpms, mode);
 }
 
+static int do_page_flip(struct test_output *o, int fb_id)
+{
+	return drmModePageFlip(drm_fd, o->crtc, fb_id, DRM_MODE_PAGE_FLIP_EVENT,
+				o);
+}
+
 static bool
 analog_tv_connector(struct test_output *o)
 {
@@ -218,8 +224,7 @@ static void page_flip_handler(int fd, unsigned int frame, unsigned int sec,
 	new_fb_id = o->fb_ids[o->current_fb_id];
 
 	if (o->flags & TEST_EINVAL && o->count > 1)
-		assert(drmModePageFlip(drm_fd, o->crtc, new_fb_id,
-				       DRM_MODE_PAGE_FLIP_EVENT, o) == expected_einval);
+		assert(do_page_flip(o, new_fb_id) == expected_einval);
 
 	if (o->flags & TEST_MODESET) {
 		if (drmModeSetCrtc(drm_fd, o->crtc,
@@ -238,12 +243,10 @@ static void page_flip_handler(int fd, unsigned int frame, unsigned int sec,
 	o->count++;
 	printf("."); fflush(stdout);
 
-	do_or_die(drmModePageFlip(drm_fd, o->crtc, new_fb_id,
-				  DRM_MODE_PAGE_FLIP_EVENT, o));
+	do_or_die(do_page_flip(o, new_fb_id));
 
 	if (o->flags & TEST_EBUSY)
-		assert(drmModePageFlip(drm_fd, o->crtc, new_fb_id,
-				       DRM_MODE_PAGE_FLIP_EVENT, o) == -EBUSY);
+		assert(do_page_flip(o, new_fb_id) == -EBUSY);
 
 	if (o->flags & TEST_DPMS)
 		do_or_die(set_dpms(o, DRM_MODE_DPMS_OFF));
@@ -260,8 +263,7 @@ static void page_flip_handler(int fd, unsigned int frame, unsigned int sec,
 	}
 
 	if (o->flags & TEST_EINVAL)
-		assert(drmModePageFlip(drm_fd, o->crtc, new_fb_id,
-				       DRM_MODE_PAGE_FLIP_EVENT, o) == expected_einval);
+		assert(do_page_flip(o, new_fb_id) == expected_einval);
 
 	o->last_flip_received = now;
 	o->last_flip_ts = pageflip_ts;
@@ -435,8 +437,7 @@ static void flip_mode(struct test_output *o, int crtc, int duration)
 
 	gettimeofday(&o->last_flip_received, NULL);
 
-	if (drmModePageFlip(drm_fd, o->crtc, o->fb_ids[1],
-			      DRM_MODE_PAGE_FLIP_EVENT, o)) {
+	if (do_page_flip(o, o->fb_ids[1])) {
 		fprintf(stderr, "failed to page flip: %s\n", strerror(errno));
 		exit(4);
 	}
