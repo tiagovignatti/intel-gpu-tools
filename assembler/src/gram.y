@@ -1634,8 +1634,13 @@ symbol_reg_p: STRING LPAREN exp RPAREN
 		    memcpy(&$$, dcl_reg, sizeof(*dcl_reg));
 		    $$.base.reg_nr += $3;
 		    $$.base.subreg_nr += $5;
-		    $$.base.reg_nr += $$.base.subreg_nr / (32 / get_type_size(dcl_reg->type));
-		    $$.base.subreg_nr = $$.base.subreg_nr % (32 / get_type_size(dcl_reg->type));
+		    if(advanced_flag) {
+		        $$.base.reg_nr += $$.base.subreg_nr / (32 / get_type_size(dcl_reg->type));
+		        $$.base.subreg_nr = $$.base.subreg_nr % (32 / get_type_size(dcl_reg->type));
+		    } else {
+		        $$.base.reg_nr += $$.base.subreg_nr / 32;
+		        $$.base.subreg_nr = $$.base.subreg_nr % 32;
+			}
 		    free($1);
 		}
 ;
