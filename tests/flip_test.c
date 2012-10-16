@@ -836,21 +836,21 @@ int main(int argc, char **argv)
 		int flags;
 		const char *name;
 	} tests[] = {
-		{ 30, TEST_VBLANK | TEST_CHECK_TS, "wf-vblank" },
-		{ 30, TEST_VBLANK | TEST_VBLANK_BLOCK | TEST_CHECK_TS,
+		{ 15, TEST_VBLANK | TEST_CHECK_TS, "wf-vblank" },
+		{ 15, TEST_VBLANK | TEST_VBLANK_BLOCK | TEST_CHECK_TS,
 					"blocking wf-vblank" },
 		{ 5,  TEST_VBLANK | TEST_VBLANK_ABSOLUTE,
 					"absolute wf-vblank" },
 		{ 5,  TEST_VBLANK | TEST_VBLANK_BLOCK | TEST_VBLANK_ABSOLUTE,
 					"blocking absolute wf-vblank" },
-		{ 5,  TEST_VBLANK | TEST_DPMS, "wf-vblank vs dpms" },
-		{ 5,  TEST_VBLANK | TEST_DPMS | TEST_WITH_DUMMY_LOAD,
+		{ 30,  TEST_VBLANK | TEST_DPMS, "wf-vblank vs dpms" },
+		{ 30,  TEST_VBLANK | TEST_DPMS | TEST_WITH_DUMMY_LOAD,
 					"delayed wf-vblank vs dpms" },
 		{ 5,  TEST_VBLANK | TEST_PAN, "wf-vblank vs panning" },
 		{ 5,  TEST_VBLANK | TEST_PAN | TEST_WITH_DUMMY_LOAD,
 					"delayed wf-vblank vs panning" },
-		{ 5,  TEST_VBLANK | TEST_MODESET, "wf-vblank vs modeset" },
-		{ 5,  TEST_VBLANK | TEST_MODESET | TEST_WITH_DUMMY_LOAD,
+		{ 30,  TEST_VBLANK | TEST_MODESET, "wf-vblank vs modeset" },
+		{ 30,  TEST_VBLANK | TEST_MODESET | TEST_WITH_DUMMY_LOAD,
 					"delayed wf-vblank vs modeset" },
 
 		{ 15, TEST_FLIP | TEST_CHECK_TS | TEST_EBUSY , "plain flip" },
@@ -861,11 +861,11 @@ int main(int argc, char **argv)
 		{ 30, TEST_FLIP | TEST_MODESET | TEST_EINVAL, "flip vs modeset" },
 		{ 30, TEST_FLIP | TEST_MODESET | TEST_WITH_DUMMY_LOAD, "delayed flip vs modeset" },
 
-		{ 30, TEST_FLIP | TEST_VBLANK | TEST_VBLANK_ABSOLUTE |
+		{ 5, TEST_FLIP | TEST_VBLANK | TEST_VBLANK_ABSOLUTE |
 		      TEST_CHECK_TS, "flip vs absolute wf-vblank" },
-		{ 30, TEST_FLIP | TEST_VBLANK | TEST_CHECK_TS,
+		{ 5, TEST_FLIP | TEST_VBLANK | TEST_CHECK_TS,
 					"flip vs wf-vblank" },
-		{ 30, TEST_FLIP | TEST_VBLANK | TEST_VBLANK_BLOCK |
+		{ 5, TEST_FLIP | TEST_VBLANK | TEST_VBLANK_BLOCK |
 			TEST_CHECK_TS, "flip vs blocking wf-vblank" },
 	};
 	int i;
