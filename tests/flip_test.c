@@ -494,12 +494,12 @@ static void flip_mode(struct test_output *o, int crtc, int duration)
 			}
 		}
 
-		drmHandleEvent(drm_fd, &evctx);
+		do_or_die(drmHandleEvent(drm_fd, &evctx));
 	}
 
 	/* and drain the event queue */
 	evctx.page_flip_handler = NULL;
-	drmHandleEvent(drm_fd, &evctx);
+	do_or_die(drmHandleEvent(drm_fd, &evctx));
 
 	/* Verify we drop no frames, but only if it's not a TV encoder, since
 	 * those use some funny fake timings behind userspace's back. */
