@@ -256,7 +256,8 @@ static int do_wait_for_vblank(struct test_output *o, int crtc_idx,
 			assert(!(o->pending_events & EVENT_VBLANK));
 			o->pending_events |= EVENT_VBLANK;
 		}
-	}
+	} else
+		ret = -errno;
 
 	return ret;
 }
@@ -372,6 +373,12 @@ static unsigned int run_test_step(struct test_output *o)
 	unsigned int completed_events = 0;
 	bool do_flip;
 	bool do_vblank;
+	struct vblank_reply vbl_reply;
+	unsigned int target_seq;
+
+	target_seq = o->vblank_state.seq_step;
+	if (o->flags & TEST_VBLANK_ABSOLUTE)
+		target_seq += o->vblank_state.last_seq;
 
 	do_flip = (o->flags & TEST_FLIP) && !(o->pending_events & EVENT_FLIP);
 	do_vblank = (o->flags & TEST_VBLANK) &&
@@ -386,6 +393,10 @@ static unsigned int run_test_step(struct test_output *o)
 
 	if (do_flip && (o->flags & TEST_EINVAL) && o->flip_state.count > 0)
 		assert(do_page_flip(o, new_fb_id) == expected_einval);
+
+	if (do_vblank && (o->flags & TEST_EINVAL) && o->vblank_state.count > 0)
+		assert(do_wait_for_vblank(o, o->pipe, target_seq, &vbl_reply)
+		       == -EINVAL);
 
 	if (o->flags & TEST_MODESET) {
 		if (drmModeSetCrtc(drm_fd, o->crtc,
@@ -407,13 +418,6 @@ static unsigned int run_test_step(struct test_output *o)
 		do_or_die(do_page_flip(o, new_fb_id));
 
 	if (do_vblank) {
-		struct vblank_reply vbl_reply;
-		unsigned int target_seq;
-
-		target_seq = o->vblank_state.seq_step;
-		if (o->flags & TEST_VBLANK_ABSOLUTE)
-			target_seq += o->vblank_state.last_seq;
-
 		do_or_die(do_wait_for_vblank(o, o->pipe, target_seq,
 					     &vbl_reply));
 		if (o->flags & TEST_VBLANK_BLOCK) {
@@ -456,6 +460,10 @@ static unsigned int run_test_step(struct test_output *o)
 			exit(7);
 		}
 	}
+
+	if (do_vblank && (o->flags & TEST_EINVAL) && o->vblank_state.count > 0)
+		assert(do_wait_for_vblank(o, o->pipe, target_seq, &vbl_reply)
+		       == -EINVAL);
 
 	if (do_flip && (o->flags & TEST_EINVAL))
 		assert(do_page_flip(o, new_fb_id) == expected_einval);
@@ -843,10 +851,10 @@ int main(int argc, char **argv)
 					"absolute wf-vblank" },
 		{ 5,  TEST_VBLANK | TEST_VBLANK_BLOCK | TEST_VBLANK_ABSOLUTE,
 					"blocking absolute wf-vblank" },
-		{ 30,  TEST_VBLANK | TEST_DPMS, "wf-vblank vs dpms" },
+		{ 30,  TEST_VBLANK | TEST_DPMS | TEST_EINVAL, "wf-vblank vs dpms" },
 		{ 30,  TEST_VBLANK | TEST_DPMS | TEST_WITH_DUMMY_LOAD,
 					"delayed wf-vblank vs dpms" },
-		{ 30,  TEST_VBLANK | TEST_MODESET, "wf-vblank vs modeset" },
+		{ 30,  TEST_VBLANK | TEST_MODESET | TEST_EINVAL, "wf-vblank vs modeset" },
 		{ 30,  TEST_VBLANK | TEST_MODESET | TEST_WITH_DUMMY_LOAD,
 					"delayed wf-vblank vs modeset" },
 
