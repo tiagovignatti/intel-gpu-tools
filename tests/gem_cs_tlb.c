@@ -151,6 +151,11 @@ int main(int argc, char **argv)
 	fd = drm_open_any();
 	devid = intel_get_drm_devid(fd);
 
+	/* This test is very sensitive to residual gtt_mm noise from previous
+	 * tests. Try to quiet thing down first. */
+	gem_quiescent_gpu(fd);
+	sleep(5); /* needs more serious ducttape */
+
 	run_on_ring(fd, I915_EXEC_RENDER, "render");
 
 	if (HAS_BSD_RING(devid))
