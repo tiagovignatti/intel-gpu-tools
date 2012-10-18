@@ -2726,6 +2726,29 @@ static int get_subreg_address(GLuint regfile, GLuint type, GLuint subreg, GLuint
     return subreg * unit_size;
 }
 
+/* only used in indirect address mode.
+ * input: sub-register number of an address register
+ * output: the value of AddrSubRegNum in the instruction binary code
+ *
+ * input  output(advanced_flag==0)  output(advanced_flag==1)
+ *  a0.0             0                         0
+ *  a0.1        invalid input                  1
+ *  a0.2             1                         2
+ *  a0.3        invalid input                  3
+ *  a0.4             2                         4
+ *  a0.5        invalid input                  5
+ *  a0.6             3                         6
+ *  a0.7        invalid input                  7
+ *  a0.8             4                  invalid input
+ *  a0.10            5                  invalid input
+ *  a0.12            6                  invalid input
+ *  a0.14            7                  invalid input
+ */
+static int get_indirect_subreg_address(GLuint subreg)
+{
+    return advanced_flag == 0 ? subreg / 2 : subreg;
+}
+
 static void reset_instruction_src_region(struct brw_instruction *instr, 
                                          struct src_operand *src)
 {
@@ -2827,7 +2850,7 @@ int set_instruction_dest(struct brw_instruction *instr,
 	} else if (instr->header.access_mode == BRW_ALIGN_1) {
 		instr->bits1.ia1.dest_reg_file = dest->reg_file;
 		instr->bits1.ia1.dest_reg_type = dest->reg_type;
-		instr->bits1.ia1.dest_subreg_nr = get_subreg_address(dest->reg_file, dest->reg_type, dest->address_subreg_nr, dest->address_mode);
+		instr->bits1.ia1.dest_subreg_nr = get_indirect_subreg_address(dest->address_subreg_nr);
 		instr->bits1.ia1.dest_horiz_stride = dest->horiz_stride;
 		instr->bits1.ia1.dest_indirect_offset = dest->indirect_offset;
 		instr->bits1.ia1.dest_address_mode = dest->address_mode;
@@ -2839,7 +2862,7 @@ int set_instruction_dest(struct brw_instruction *instr,
 	} else {
 		instr->bits1.ia16.dest_reg_file = dest->reg_file;
 		instr->bits1.ia16.dest_reg_type = dest->reg_type;
-		instr->bits1.ia16.dest_subreg_nr = get_subreg_address(dest->reg_file, dest->reg_type, dest->address_subreg_nr, dest->address_mode);
+		instr->bits1.ia16.dest_subreg_nr = get_indirect_subreg_address(dest->address_subreg_nr);
 		instr->bits1.ia16.dest_writemask = dest->writemask;
 		instr->bits1.ia16.dest_horiz_stride = ffs(1);
 		instr->bits1.ia16.dest_indirect_offset = (dest->indirect_offset >> 4); /* half register aligned */
@@ -2890,7 +2913,7 @@ int set_instruction_src0(struct brw_instruction *instr,
         } else {
             if (instr->header.access_mode == BRW_ALIGN_1) {
 		instr->bits2.ia1.src0_indirect_offset = src->indirect_offset;
-		instr->bits2.ia1.src0_subreg_nr = get_subreg_address(src->reg_file, src->reg_type, src->address_subreg_nr, src->address_mode);
+		instr->bits2.ia1.src0_subreg_nr = get_indirect_subreg_address(src->address_subreg_nr);
 		instr->bits2.ia1.src0_abs = src->abs;
 		instr->bits2.ia1.src0_negate = src->negate;
 		instr->bits2.ia1.src0_address_mode = src->address_mode;
@@ -2906,7 +2929,7 @@ int set_instruction_src0(struct brw_instruction *instr,
 		instr->bits2.ia16.src0_swz_x = src->swizzle_x;
 		instr->bits2.ia16.src0_swz_y = src->swizzle_y;
 		instr->bits2.ia16.src0_indirect_offset = (src->indirect_offset >> 4); /* half register aligned */
-		instr->bits2.ia16.src0_subreg_nr = get_subreg_address(src->reg_file, src->reg_type, src->address_subreg_nr, src->address_mode);
+		instr->bits2.ia16.src0_subreg_nr = get_indirect_subreg_address(src->address_subreg_nr);
 		instr->bits2.ia16.src0_abs = src->abs;
 		instr->bits2.ia16.src0_negate = src->negate;
 		instr->bits2.ia16.src0_address_mode = src->address_mode;
@@ -2973,7 +2996,7 @@ int set_instruction_src1(struct brw_instruction *instr,
 	} else {
             if (instr->header.access_mode == BRW_ALIGN_1) {
 		instr->bits3.ia1.src1_indirect_offset = src->indirect_offset;
-		instr->bits3.ia1.src1_subreg_nr = get_subreg_address(src->reg_file, src->reg_type, src->address_subreg_nr, src->address_mode);
+		instr->bits3.ia1.src1_subreg_nr = get_indirect_subreg_address(src->address_subreg_nr);
 		instr->bits3.ia1.src1_abs = src->abs;
 		instr->bits3.ia1.src1_negate = src->negate;
 		instr->bits3.ia1.src1_address_mode = src->address_mode;
@@ -2989,7 +3012,7 @@ int set_instruction_src1(struct brw_instruction *instr,
 		instr->bits3.ia16.src1_swz_x = src->swizzle_x;
 		instr->bits3.ia16.src1_swz_y = src->swizzle_y;
 		instr->bits3.ia16.src1_indirect_offset = (src->indirect_offset >> 4); /* half register aligned */
-		instr->bits3.ia16.src1_subreg_nr = get_subreg_address(src->reg_file, src->reg_type, src->address_subreg_nr, src->address_mode);
+		instr->bits3.ia16.src1_subreg_nr = get_indirect_subreg_address(src->address_subreg_nr);
 		instr->bits3.ia16.src1_abs = src->abs;
 		instr->bits3.ia16.src1_negate = src->negate;
 		instr->bits3.ia16.src1_address_mode = src->address_mode;
