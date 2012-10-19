@@ -1319,7 +1319,7 @@ struct brw_instruction
 	 GLint UIP:16;
       } branch_2_offset; /* for Gen6, Gen7 2-offsets branch; for Gen7 1-offset branch */
 
-      GLint JIP; /* used by Gen6 CALL instructions */
+      GLint JIP; /* used by Gen6 CALL instructions; Gen7 JMPI */
 
       struct {
 	 GLuint function:4;

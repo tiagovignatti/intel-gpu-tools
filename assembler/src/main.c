@@ -430,8 +430,16 @@ int main(int argc, char **argv)
 			entry->instruction.bits3.JIP = offset; // for CALL, JMPI
 		    else
 			entry->instruction.bits1.branch.JIP = offset; // for CASE,ELSE,FORK,IF,WHILE
-		} else if(gen_level >= 7)
-		    entry->instruction.bits3.branch_2_offset.JIP = offset;
+		} else if(gen_level >= 7) {
+		    int opcode = entry->instruction.header.opcode;
+		    /* Gen7 JMPI Restrictions in bspec:
+		     * The JIP data type must be Signed DWord
+		     */
+		    if(opcode == BRW_OPCODE_JMPI)
+			entry->instruction.bits3.JIP = offset;
+		    else
+			entry->instruction.bits3.branch_2_offset.JIP = offset;
+		}
 	    }
 	}
 
