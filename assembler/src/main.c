@@ -38,7 +38,7 @@ extern FILE *yyin;
 
 extern int errors;
 
-long int gen_level = 4;
+long int gen_level = 40;
 int advanced_flag = 0; /* 0: in unit of byte, 1: in unit of data element size */
 int binary_like_output = 0; /* 0: default output style, 1: nice C-style output */
 int need_export = 0;
@@ -84,7 +84,7 @@ static int jump_distance(int offset)
 {
     // Gen4- bspec: the jump distance is in number of sixteen-byte units
     // Gen5+ bspec: the jump distance is in number of eight-byte units
-    if(gen_level >= 5)
+    if(IS_GENp(5))
         offset *= 2;
     return offset;
 }
@@ -288,9 +288,9 @@ int main(int argc, char **argv)
 			break;
 
 		case 'g':
-			gen_level = strtol(optarg, NULL, 0);
+			gen_level = strtol(optarg, NULL, 0) * 10;
 
-			if (gen_level < 4 || gen_level > 7) {
+			if (gen_level < 40 || gen_level > 70) {
 				usage();
 				exit(1);
 			}
@@ -393,7 +393,7 @@ int main(int argc, char **argv)
 			entry != NULL; entry = entry->next) {
 		    if (entry->islabel) 
 			fprintf(export_file, "#define %s_IP %d\n",
-				entry->string, (gen_level == 5 ? 2 : 1)*(entry->inst_offset));
+				entry->string, (IS_GENx(5) ? 2 : 1)*(entry->inst_offset));
 		}
 		fclose(export_file);
 	}
@@ -419,18 +419,18 @@ int main(int argc, char **argv)
 		    offset --;
 		offset = jump_distance(offset);
 
-		if(gen_level <= 5) {
+		if(!IS_GENp(6)) {
 		    entry->instruction.bits3.JIP = offset;
 		    if(entry->instruction.header.opcode == BRW_OPCODE_ELSE)
 			entry->instruction.bits3.branch_2_offset.UIP = 1; /* Set the istack pop count, which must always be 1. */
-		} else if(gen_level == 6) {
+		} else if(IS_GENx(6)) {
 		    /* TODO: endif JIP pos is not in Gen6 spec. may be bits1 */
 		    int opcode = entry->instruction.header.opcode;
 		    if(opcode == BRW_OPCODE_CALL || opcode == BRW_OPCODE_JMPI)
 			entry->instruction.bits3.JIP = offset; // for CALL, JMPI
 		    else
 			entry->instruction.bits1.branch.JIP = offset; // for CASE,ELSE,FORK,IF,WHILE
-		} else if(gen_level >= 7) {
+		} else if(IS_GENp(7)) {
 		    int opcode = entry->instruction.header.opcode;
 		    /* Gen7 JMPI Restrictions in bspec:
 		     * The JIP data type must be Signed DWord
