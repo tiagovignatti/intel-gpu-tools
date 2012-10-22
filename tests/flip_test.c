@@ -866,11 +866,11 @@ int main(int argc, char **argv)
 		{ 30, TEST_FLIP | TEST_MODESET | TEST_EINVAL, "flip vs modeset" },
 		{ 30, TEST_FLIP | TEST_MODESET | TEST_WITH_DUMMY_LOAD, "delayed flip vs modeset" },
 
-		{ 5, TEST_FLIP | TEST_VBLANK | TEST_VBLANK_ABSOLUTE |
+		{ 15, TEST_FLIP | TEST_VBLANK | TEST_VBLANK_ABSOLUTE |
 		      TEST_CHECK_TS, "flip vs absolute wf-vblank" },
-		{ 5, TEST_FLIP | TEST_VBLANK | TEST_CHECK_TS,
+		{ 15, TEST_FLIP | TEST_VBLANK | TEST_CHECK_TS,
 					"flip vs wf-vblank" },
-		{ 5, TEST_FLIP | TEST_VBLANK | TEST_VBLANK_BLOCK |
+		{ 15, TEST_FLIP | TEST_VBLANK | TEST_VBLANK_BLOCK |
 			TEST_CHECK_TS, "flip vs blocking wf-vblank" },
 	};
 	int i;
