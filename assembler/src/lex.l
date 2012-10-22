@@ -153,6 +153,7 @@ yylval.integer = BRW_CHANNEL_W;
 "urb" { return URB; }
 "thread_spawner" { return THREAD_SPAWNER; }
 "vme" { return VME; }
+"cre" { return CRE; }
 "data_port" { return DATA_PORT; }
 
 "allocate" { return ALLOCATE; }

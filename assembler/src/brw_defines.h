@@ -730,6 +730,7 @@
 #define BRW_MESSAGE_TARGET_VME                8
 #define BRW_MESSAGE_TARGET_DP_CC              9  /* data port constant cache */
 #define BRW_MESSAGE_TARGET_DP_DC              10 /* data port data cache */
+#define BRW_MESSAGE_TARGET_CRE                0x0d /* check & refinement enginee */ 
 
 #define BRW_SAMPLER_RETURN_FORMAT_FLOAT32     0
 #define BRW_SAMPLER_RETURN_FORMAT_UINT32      2

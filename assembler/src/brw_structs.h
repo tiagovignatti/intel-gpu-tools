@@ -1550,7 +1550,13 @@ struct brw_instruction
            GLuint pad0:4;
            GLuint header_present:1;
        } vme_gen6;
-
+       struct {
+           GLuint binding_table_index:8;
+	   GLuint pad0:5;
+           GLuint message_type:2;
+           GLuint pad1:4;
+           GLuint header_present:1;
+       } cre_gen75;
        struct {
            GLuint pad:19;
            GLuint header_present:1;

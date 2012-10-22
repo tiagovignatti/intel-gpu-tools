@@ -154,7 +154,7 @@ void set_direct_src_operand(struct src_operand *src, struct direct_reg *reg,
 %token <integer> CALL RET
 %token <integer> BRD BRC
 
-%token NULL_TOKEN MATH SAMPLER GATEWAY READ WRITE URB THREAD_SPAWNER VME DATA_PORT
+%token NULL_TOKEN MATH SAMPLER GATEWAY READ WRITE URB THREAD_SPAWNER VME DATA_PORT CRE
 
 %token MSGLEN RETURNLEN
 %token <integer> ALLOCATE USED COMPLETE TRANSPOSE INTERLEAVE
@@ -1428,6 +1428,21 @@ msgtarget:	NULL_TOKEN
                       YYERROR;
 		  }    
 		} 
+		| CRE LPAREN INTEGER COMMA INTEGER RPAREN
+		{
+		   if (gen_level < 75) {
+                      fprintf (stderr, "Below Gen7.5 donesn't have CRE function\n");
+                      YYERROR;
+		    }
+		   $$.bits3.generic.msg_target =
+                      BRW_MESSAGE_TARGET_CRE;
+
+                   $$.bits2.send_gen5.sfid =
+                          BRW_MESSAGE_TARGET_CRE;
+                   $$.bits3.cre_gen75.binding_table_index = $3;
+                   $$.bits3.cre_gen75.message_type = $5;
+                   $$.bits3.generic_gen5.header_present = 1; 
+		}
 
 		| DATA_PORT LPAREN INTEGER COMMA INTEGER COMMA INTEGER COMMA 
                 INTEGER COMMA INTEGER COMMA INTEGER RPAREN
