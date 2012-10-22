@@ -444,6 +444,11 @@ static unsigned int run_test_step(struct test_output *o)
 	if (o->flags & TEST_VBLANK_ABSOLUTE)
 		target_seq += o->vblank_state.last_seq;
 
+	/*
+	 * It's possible that we don't have a pending flip here, in case both
+	 * wf-vblank and flip were scheduled and the wf-vblank event was
+	 * delivered earlier. The same applies to vblank events w.r.t flip.
+	 */
 	do_flip = (o->flags & TEST_FLIP) && !(o->pending_events & EVENT_FLIP);
 	do_vblank = (o->flags & TEST_VBLANK) &&
 		    !(o->pending_events & EVENT_VBLANK);
