@@ -291,6 +291,11 @@ static void page_flip_handler(int fd, unsigned int frame, unsigned int sec,
 	event_handler(&o->flip_state, frame, sec, usec);
 }
 
+static double frame_time(struct test_output *o)
+{
+	return 1000.0 * 1000.0 / o->mode.vrefresh;
+}
+
 static void fixup_premature_vblank_ts(struct test_output *o,
 				      struct event_state *es)
 {
@@ -359,8 +364,7 @@ static void check_state(struct test_output *o, struct event_state *es)
 
 	if ((o->flags & TEST_CHECK_TS) && (!analog_tv_connector(o))) {
 		timersub(&es->current_ts, &es->last_ts, &diff);
-		usec_interflip = (double)es->seq_step /
-				 ((double)o->mode.vrefresh) * 1000.0 * 1000.0;
+		usec_interflip = (double)es->seq_step * frame_time(o);
 		if (fabs((((double) diff.tv_usec) - usec_interflip) /
 		    usec_interflip) > 0.005) {
 			fprintf(stderr, "inter-%s ts jitter: %is, %ius\n",
@@ -380,13 +384,48 @@ static void check_state(struct test_output *o, struct event_state *es)
 	}
 }
 
+static void check_state_correlation(struct test_output *o,
+				    struct event_state *es1,
+				    struct event_state *es2)
+{
+	struct timeval tv_diff;
+	double ftime;
+	double usec_diff;
+	int seq_diff;
+
+	if (es1->count == 0 || es2->count == 0)
+		return;
+
+	timersub(&es2->current_ts, &es1->current_ts, &tv_diff);
+	usec_diff = tv_diff.tv_sec * 1000 * 1000 + tv_diff.tv_usec;
+
+	seq_diff = es2->current_seq - es1->current_seq;
+	ftime = frame_time(o);
+	usec_diff -= seq_diff * ftime;
+
+	if (fabs(usec_diff) / ftime > 0.005) {
+		fprintf(stderr,
+			"timestamp mismatch between %s and %s (diff %.4f sec)\n",
+			es1->name, es2->name, usec_diff / 1000 / 1000);
+		exit(14);
+	}
+}
+
 static void check_all_state(struct test_output *o,
 			    unsigned int completed_events)
 {
-	if (completed_events & EVENT_FLIP)
+	bool flip, vblank;
+
+	flip = completed_events & EVENT_FLIP;
+	vblank = completed_events & EVENT_VBLANK;
+
+	if (flip)
 		check_state(o, &o->flip_state);
-	if (completed_events & EVENT_VBLANK)
+	if (vblank)
 		check_state(o, &o->vblank_state);
+
+	if (flip && vblank)
+		check_state_correlation(o, &o->flip_state, &o->vblank_state);
 }
 
 /* Return mask of completed events. */
