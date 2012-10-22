@@ -34,6 +34,17 @@ typedef unsigned int GLuint;
 typedef int GLint;
 typedef float GLfloat;
 
+extern long int gen_level;
+
+/* Predicate for Gen X and above */
+#define IS_GENp(x) (gen_level >= (x)*10)
+
+/* Predicate for Gen X exactly */
+#define IS_GENx(x) (gen_level >= (x)*10 && gen_level < ((x)+1)*10)
+
+/* Predicate to match Haswell processors */
+#define IS_HASWELL(x) (gen_level == 75)
+
 #include "brw_defines.h"
 #include "brw_structs.h"
 

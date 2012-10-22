@@ -430,8 +430,8 @@ instruction:	unaryinstruction
 
 ifelseinstruction: ENDIF
 		{
-		  // for Gen4
-		  if(gen_level > 5) {
+		  // for Gen4 
+		  if(IS_GENp(6)) { // For gen6+.
 		    fprintf(stderr, "ENDIF Syntax error: should be 'ENDIF execsize relativelocation'\n");
 		    YYERROR;
 		  }
@@ -446,7 +446,7 @@ ifelseinstruction: ENDIF
 		{
 		  // for Gen6+
 		  /* Gen6, Gen7 bspec: predication is prohibited */
-		  if(gen_level <= 5) {
+		  if(!IS_GENp(6)) { // for gen6-
 		    fprintf(stderr, "ENDIF Syntax error: should be 'ENDIF'\n");
 		    YYERROR;
 		  }
@@ -458,8 +458,8 @@ ifelseinstruction: ENDIF
 		}
 		| ELSE execsize relativelocation instoptions
 		{
-		  if(gen_level <= 5) {
-		    // for Gen4, Gen5
+		  if(!IS_GENp(6)) {
+		    // for Gen4, Gen5. gen_level < 60
 		    /* Set the istack pop count, which must always be 1. */
 		    $3.imm32 |= (1 << 16);
 
@@ -472,7 +472,7 @@ ifelseinstruction: ENDIF
 		    set_instruction_src1(&$$, &$3);
 		    $$.first_reloc_target = $3.reloc_target;
 		    $$.first_reloc_offset = $3.imm32;
-		  } else if(gen_level <= 7) {
+		  } else if(IS_GENp(6)) {
 		    memset(&$$, 0, sizeof($$));
 		    $$.header.opcode = $1;
 		    $$.header.execution_size = $2;
@@ -492,7 +492,8 @@ ifelseinstruction: ENDIF
 		   * to the pre-incremented IP.
 		   */
 		  /* for Gen6 */
-		  if(gen_level > 6) {
+		  if(IS_GENp(7)) {
+			/* Error in Gen7+. */		   
 		    fprintf(stderr, "Syntax error: IF should be 'IF execsize JIP UIP'\n");
 		    YYERROR;
 		  }
@@ -500,7 +501,7 @@ ifelseinstruction: ENDIF
 		  set_instruction_predicate(&$$, &$1);
 		  $$.header.opcode = $2;
 		  $$.header.execution_size = $3;
-		  if(gen_level <= 5) {
+		  if(!IS_GENp(6)) {
 		    $$.header.thread_control |= BRW_THREAD_SWITCH;
 		    set_instruction_dest(&$$, &ip_dst);
 		    set_instruction_src0(&$$, &ip_src);
@@ -512,7 +513,7 @@ ifelseinstruction: ENDIF
 		| predicate IF execsize relativelocation relativelocation
 		{
 		  /* for Gen7+ */
-		  if(gen_level < 7) {
+		  if(!IS_GENp(7)) {
 		    fprintf(stderr, "Syntax error: IF should be 'IF execsize relativelocation'\n");
 		    YYERROR;
 		  }
@@ -529,7 +530,7 @@ ifelseinstruction: ENDIF
 
 loopinstruction: predicate WHILE execsize relativelocation instoptions
 		{
-		  if(gen_level <= 5) {
+		  if(!IS_GENp(6)) {
 		    /* The branch instructions require that the IP register
 		     * be the destination and first source operand, while the
 		     * offset is the second source operand.  The offset is added
@@ -545,7 +546,7 @@ loopinstruction: predicate WHILE execsize relativelocation instoptions
 		    set_instruction_src1(&$$, &$4);
 		    $$.first_reloc_target = $4.reloc_target;
 		    $$.first_reloc_offset = $4.imm32;
-		  } else if (gen_level >= 6) {
+		  } else if (IS_GENp(6)) {
 		    /* Gen6 spec:
 		         dest must have the same element size as src0.
 		         dest horizontal stride must be 1. */
@@ -697,7 +698,7 @@ unaryinstruction:
 		    $$.bits2.da1.flag_subreg_nr = $3.flag_subreg_nr;
 		  }
 
-		  if (gen_level < 6 && 
+		  if (!IS_GENp(6) && 
 				get_type_size($$.bits1.da1.dest_reg_type) * (1 << $$.header.execution_size) == 64)
 		    $$.header.compression_control = BRW_COMPRESSION_COMPRESSED;
 		}
@@ -736,7 +737,7 @@ binaryinstruction:
 		    $$.bits2.da1.flag_subreg_nr = $3.flag_subreg_nr;
 		  }
 
-		  if (gen_level < 6 && 
+		  if (!IS_GENp(6) && 
 				get_type_size($$.bits1.da1.dest_reg_type) * (1 << $$.header.execution_size) == 64)
 		    $$.header.compression_control = BRW_COMPRESSION_COMPRESSED;
 		}
@@ -775,7 +776,7 @@ binaryaccinstruction:
 		    $$.bits2.da1.flag_subreg_nr = $3.flag_subreg_nr;
 		  }
 
-		  if (gen_level < 6 && 
+		  if (!IS_GENp(6) && 
 				get_type_size($$.bits1.da1.dest_reg_type) * (1 << $$.header.execution_size) == 64)
 		    $$.header.compression_control = BRW_COMPRESSION_COMPRESSED;
 		}
@@ -843,13 +844,13 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
 		  if (set_instruction_dest(&$$, &$5) != 0)
 		    YYERROR;
 
-		  if (gen_level >= 6) {
+		  if (IS_GENp(6)) {
                       struct src_operand src0;
 
                       memset(&src0, 0, sizeof(src0));
                       src0.address_mode = BRW_ADDRESS_DIRECT;
 
-                      if (gen_level >= 7)
+                      if (IS_GENp(7))
                           src0.reg_file = BRW_GENERAL_REGISTER_FILE;
                       else
                           src0.reg_file = BRW_MESSAGE_REGISTER_FILE;
@@ -866,8 +867,8 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
 		  $$.bits1.da1.src1_reg_file = BRW_IMMEDIATE_VALUE;
 		  $$.bits1.da1.src1_reg_type = BRW_REGISTER_TYPE_D;
 
-		  if (gen_level >= 5) {
-                      if (gen_level > 5) {
+		  if (IS_GENp(5)) {
+                      if (IS_GENp(6)) {
                           $$.header.sfid_destreg__conditionalmod = $7.bits2.send_gen5.sfid;
                       } else {
                           $$.header.sfid_destreg__conditionalmod = $4; /* msg reg index */
@@ -932,7 +933,7 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
 		{
 		  struct src_operand src0;
 
-		  if (gen_level < 6) {
+		  if (!IS_GENp(6)) {
                       fprintf(stderr, "error: the syntax of send instruction\n");
                       YYERROR;
 		  }
@@ -956,7 +957,7 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
                   memset(&src0, 0, sizeof(src0));
                   src0.address_mode = BRW_ADDRESS_DIRECT;
 
-                  if (gen_level >= 7) {
+                  if (IS_GENp(7)) {
                       src0.reg_file = BRW_GENERAL_REGISTER_FILE;
                       src0.reg_type = BRW_REGISTER_TYPE_UB;
                   } else {
@@ -977,7 +978,7 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
 		{
 		  struct src_operand src0;
 
-		  if (gen_level < 6) {
+		  if (!IS_GENp(6)) {
                       fprintf(stderr, "error: the syntax of send instruction\n");
                       YYERROR;
 		  }
@@ -1002,7 +1003,7 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
                   memset(&src0, 0, sizeof(src0));
                   src0.address_mode = BRW_ADDRESS_DIRECT;
 
-                  if (gen_level >= 7) {
+                  if (IS_GENp(7)) {
                       src0.reg_file = BRW_GENERAL_REGISTER_FILE;
                       src0.reg_type = BRW_REGISTER_TYPE_UB;
                   } else {
@@ -1037,7 +1038,7 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
 		    YYERROR;
 		  $$.bits1.da1.src1_reg_file = BRW_IMMEDIATE_VALUE;
 		  $$.bits1.da1.src1_reg_type = $8.reg_type;
-		  if (gen_level == 5) {
+		  if (IS_GENx(5)) {
 		      $$.bits2.send_gen5.sfid = ($7 & EX_DESC_SFID_MASK);
 		      $$.bits3.ud = $8.imm32;
 		      $$.bits3.generic_gen5.end_of_thread = !!($7 & EX_DESC_EOT_MASK);
@@ -1061,7 +1062,7 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
 		  /* XXX is this correct? */
 		  if (set_instruction_src1(&$$, &$8) != 0)
 		    YYERROR;
-		  if (gen_level == 5) {
+		  if (IS_GENx(5)) {
                       $$.bits2.send_gen5.sfid = $7;
 		  }
 		}
@@ -1166,7 +1167,7 @@ post_dst:	dst
 
 msgtarget:	NULL_TOKEN
 		{
-		  if (gen_level >= 5) {
+		  if (IS_GENp(5)) {
                       $$.bits2.send_gen5.sfid= BRW_MESSAGE_TARGET_NULL;
                       $$.bits3.generic_gen5.header_present = 0;  /* ??? */
 		  } else {
@@ -1176,13 +1177,13 @@ msgtarget:	NULL_TOKEN
 		| SAMPLER LPAREN INTEGER COMMA INTEGER COMMA
 		sampler_datatype RPAREN
 		{
-		  if (gen_level >= 7) {
+		  if (IS_GENp(7)) {
                       $$.bits2.send_gen5.sfid = BRW_MESSAGE_TARGET_SAMPLER;
                       $$.bits3.generic_gen5.header_present = 1;   /* ??? */
                       $$.bits3.sampler_gen7.binding_table_index = $3;
                       $$.bits3.sampler_gen7.sampler = $5;
                       $$.bits3.sampler_gen7.simd_mode = 2; /* SIMD16, maybe we should add a new parameter */
-		  } else if (gen_level >= 5) {
+		  } else if (IS_GENp(5)) {
                       $$.bits2.send_gen5.sfid = BRW_MESSAGE_TARGET_SAMPLER;
                       $$.bits3.generic_gen5.header_present = 1;   /* ??? */
                       $$.bits3.sampler_gen5.binding_table_index = $3;
@@ -1210,10 +1211,10 @@ msgtarget:	NULL_TOKEN
 		}
 		| MATH math_function saturate math_signed math_scalar
 		{
-		  if (gen_level == 6) {
+		  if (IS_GENp(6)) {
                       fprintf (stderr, "Gen6+ donesn't have math function\n");
                       YYERROR;
-		  } else if (gen_level == 5) {
+		  } else if (IS_GENx(5)) {
                       $$.bits2.send_gen5.sfid = BRW_MESSAGE_TARGET_MATH;
                       $$.bits3.generic_gen5.header_present = 0;
                       $$.bits3.math_gen5.function = $2;
@@ -1238,7 +1239,7 @@ msgtarget:	NULL_TOKEN
 		}
 		| GATEWAY
 		{
-		  if (gen_level >= 5) {
+		  if (IS_GENp(5)) {
                       $$.bits2.send_gen5.sfid = BRW_MESSAGE_TARGET_GATEWAY;
                       $$.bits3.generic_gen5.header_present = 0;  /* ??? */
 		  } else {
@@ -1248,21 +1249,21 @@ msgtarget:	NULL_TOKEN
 		| READ  LPAREN INTEGER COMMA INTEGER COMMA INTEGER COMMA
                 INTEGER RPAREN
 		{
-		  if (gen_level == 7) {
+		  if (IS_GENx(7)) {
                       $$.bits2.send_gen5.sfid = 
                           BRW_MESSAGE_TARGET_DP_SC;
                       $$.bits3.generic_gen5.header_present = 1;
                       $$.bits3.dp_gen7.binding_table_index = $3;
                       $$.bits3.dp_gen7.msg_control = $7;
                       $$.bits3.dp_gen7.msg_type = $9;
-		  } else if (gen_level == 6) {
+		  } else if (IS_GENx(6)) {
                       $$.bits2.send_gen5.sfid = 
                           BRW_MESSAGE_TARGET_DP_SC;
                       $$.bits3.generic_gen5.header_present = 1;
                       $$.bits3.dp_read_gen6.binding_table_index = $3;
                       $$.bits3.dp_read_gen6.msg_control = $7;
                       $$.bits3.dp_read_gen6.msg_type = $9;
-		  } else if (gen_level == 5) {
+		  } else if (IS_GENx(5)) {
                       $$.bits2.send_gen5.sfid = 
                           BRW_MESSAGE_TARGET_DATAPORT_READ;
                       $$.bits3.generic_gen5.header_present = 1;
@@ -1282,14 +1283,14 @@ msgtarget:	NULL_TOKEN
 		| WRITE LPAREN INTEGER COMMA INTEGER COMMA INTEGER COMMA
 		INTEGER RPAREN
 		{
-		  if (gen_level == 7) {
+		  if (IS_GENx(7)) {
                       $$.bits2.send_gen5.sfid =
                           BRW_MESSAGE_TARGET_DP_RC;
                       $$.bits3.generic_gen5.header_present = 1;
                       $$.bits3.dp_gen7.binding_table_index = $3;
                       $$.bits3.dp_gen7.msg_control = $5;
                       $$.bits3.dp_gen7.msg_type = $7;
-                  } else if (gen_level == 6) {
+                  } else if (IS_GENx(6)) {
                       $$.bits2.send_gen5.sfid =
                           BRW_MESSAGE_TARGET_DP_RC;
                       /* Sandybridge supports headerlesss message for render target write.
@@ -1301,7 +1302,7 @@ msgtarget:	NULL_TOKEN
                       $$.bits3.dp_write_gen6.msg_control = $5;
                      $$.bits3.dp_write_gen6.msg_type = $7;
                       $$.bits3.dp_write_gen6.send_commit_msg = $9;
-		  } else if (gen_level == 5) {
+		  } else if (IS_GENx(5)) {
                       $$.bits2.send_gen5.sfid =
                           BRW_MESSAGE_TARGET_DATAPORT_WRITE;
                       $$.bits3.generic_gen5.header_present = 1;
@@ -1327,14 +1328,14 @@ msgtarget:	NULL_TOKEN
 		| WRITE LPAREN INTEGER COMMA INTEGER COMMA INTEGER COMMA
 		INTEGER COMMA INTEGER RPAREN
 		{
-		  if (gen_level == 7) {
+		  if (IS_GENx(7)) {
                       $$.bits2.send_gen5.sfid =
                           BRW_MESSAGE_TARGET_DP_RC;
                       $$.bits3.generic_gen5.header_present = ($11 != 0);
                       $$.bits3.dp_gen7.binding_table_index = $3;
                       $$.bits3.dp_gen7.msg_control = $5;
                       $$.bits3.dp_gen7.msg_type = $7;
-		  } else if (gen_level == 6) {
+		  } else if (IS_GENx(6)) {
                       $$.bits2.send_gen5.sfid =
                           BRW_MESSAGE_TARGET_DP_RC;
                       $$.bits3.generic_gen5.header_present = ($11 != 0);
@@ -1342,7 +1343,7 @@ msgtarget:	NULL_TOKEN
                       $$.bits3.dp_write_gen6.msg_control = $5;
                      $$.bits3.dp_write_gen6.msg_type = $7;
                       $$.bits3.dp_write_gen6.send_commit_msg = $9;
-		  } else if (gen_level == 5) {
+		  } else if (IS_GENx(5)) {
                       $$.bits2.send_gen5.sfid =
                           BRW_MESSAGE_TARGET_DATAPORT_WRITE;
                       $$.bits3.generic_gen5.header_present = ($11 != 0);
@@ -1368,7 +1369,7 @@ msgtarget:	NULL_TOKEN
 		| URB INTEGER urb_swizzle urb_allocate urb_used urb_complete
 		{
 		  $$.bits3.generic.msg_target = BRW_MESSAGE_TARGET_URB;
-		  if (gen_level >= 5) {
+		  if (IS_GENp(5)) {
                       $$.bits2.send_gen5.sfid = BRW_MESSAGE_TARGET_URB;
                       $$.bits3.generic_gen5.header_present = 1;
                       $$.bits3.urb_gen5.opcode = BRW_URB_OPCODE_WRITE;
@@ -1394,7 +1395,7 @@ msgtarget:	NULL_TOKEN
 		{
 		  $$.bits3.generic.msg_target =
 		    BRW_MESSAGE_TARGET_THREAD_SPAWNER;
-		  if (gen_level >= 5) {
+		  if (IS_GENp(5)) {
                       $$.bits2.send_gen5.sfid = 
                           BRW_MESSAGE_TARGET_THREAD_SPAWNER;
                       $$.bits3.generic_gen5.header_present = 0;
@@ -1414,7 +1415,7 @@ msgtarget:	NULL_TOKEN
 		  $$.bits3.generic.msg_target =
                       BRW_MESSAGE_TARGET_VME;
 
-		  if (gen_level >= 6) { 
+		  if (IS_GENp(6)) { 
                       $$.bits2.send_gen5.sfid =
                           BRW_MESSAGE_TARGET_VME;
                       $$.bits3.vme_gen6.binding_table_index = $3;
@@ -1434,7 +1435,7 @@ msgtarget:	NULL_TOKEN
                     $$.bits2.send_gen5.sfid = $3;
                     $$.bits3.generic_gen5.header_present = ($13 != 0);
 
-                    if (gen_level >= 7) {
+                    if (IS_GENp(7)) {
                         if ($3 != BRW_MESSAGE_TARGET_DP_SC &&
                             $3 != BRW_MESSAGE_TARGET_DP_RC &&
                             $3 != BRW_MESSAGE_TARGET_DP_CC &&
@@ -1447,7 +1448,7 @@ msgtarget:	NULL_TOKEN
                         $$.bits3.dp_gen7.binding_table_index = $9;
                         $$.bits3.dp_gen7.msg_control = $7;
                         $$.bits3.dp_gen7.msg_type = $5;
-                    } else if (gen_level == 6) {
+                    } else if (IS_GENx(6)) {
                         if ($3 != BRW_MESSAGE_TARGET_DP_SC &&
                             $3 != BRW_MESSAGE_TARGET_DP_RC &&
                             $3 != BRW_MESSAGE_TARGET_DP_CC) {
@@ -1459,7 +1460,7 @@ msgtarget:	NULL_TOKEN
                         $$.bits3.dp_gen6.binding_table_index = $9;
                         $$.bits3.dp_gen6.msg_control = $7;
                         $$.bits3.dp_gen6.msg_type = $5;
-                    } else if (gen_level < 5) {
+                    } else if (!IS_GENp(5)) {
                         fprintf (stderr, "Gen6- donesn't support data port for sampler/render/constant/data cache\n");
                         YYERROR;
                     }
@@ -2025,8 +2026,8 @@ accreg:		ACCREG subregnum
 
 flagreg:	FLAGREG subregnum
 		{
-		  if ((gen_level <= 6 && $1) > 0 ||
-		      (gen_level > 6 && $1 > 1)) {
+		  if ((!IS_GENp(7) && $1) > 0 ||
+		      (IS_GENp(7) && $1 > 1)) {
                     fprintf(stderr,
 			    "flag register number %d out of range\n", $1);
 		    YYERROR;
@@ -2121,7 +2122,7 @@ maskstackdepth_subreg: IMSD | LMSD
 
 notifyreg:	NOTIFYREG regtype
 		{
-		  int num_notifyreg = (gen_level >= 6) ? 3 : 2;
+		  int num_notifyreg = (IS_GENp(6)) ? 3 : 2;
 
 		  if ($1 > num_notifyreg) {
 		    fprintf(stderr,
@@ -2132,7 +2133,7 @@ notifyreg:	NOTIFYREG regtype
 		  memset (&$$, '\0', sizeof ($$));
 		  $$.reg_file = BRW_ARCHITECTURE_REGISTER_FILE;
 
-                  if (gen_level >= 6) {
+                  if (IS_GENp(6)) {
 		    $$.reg_nr = BRW_ARF_NOTIFICATION_COUNT;
                     $$.subreg_nr = $1;
                   } else {
@@ -2573,7 +2574,7 @@ instoption_list:instoption_list COMMA instoption
 		    $$.header.compression_control |= BRW_COMPRESSION_2NDHALF;
 		    break;
 		  case COMPR:
-		    if (gen_level < 6) {
+		    if (!IS_GENp(6)) {
                         $$.header.compression_control |=
                             BRW_COMPRESSION_COMPRESSED;
 		    }
@@ -2614,7 +2615,7 @@ instoption_list:instoption_list COMMA instoption
 		    $$.header.compression_control |= BRW_COMPRESSION_2NDHALF;
 		    break;
 		  case COMPR:
-			if (gen_level < 6) {
+			if (!IS_GENp(6)) {
 		      $$.header.compression_control |=
 		        BRW_COMPRESSION_COMPRESSED;
 			}

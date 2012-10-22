@@ -304,7 +304,7 @@ int main(int argc, char **argv)
 				}
 			}
 
-			if (gen_level < 40 || gen_level > 70) {
+			if (gen_level < 40 || gen_level > 75) {
 				usage();
 				exit(1);
 			}
