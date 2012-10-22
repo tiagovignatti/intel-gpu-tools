@@ -291,6 +291,30 @@ static void page_flip_handler(int fd, unsigned int frame, unsigned int sec,
 	event_handler(&o->flip_state, frame, sec, usec);
 }
 
+static void fixup_premature_vblank_ts(struct test_output *o,
+				      struct event_state *es)
+{
+	/*
+	 * In case a power off event preempts the completion of a
+	 * wait-for-vblank event the kernel will return a wf-vblank event with
+	 * a zeroed-out timestamp. In order that check_state() doesn't
+	 * complain replace this ts with a valid ts. As we can't calculate the
+	 * exact timestamp, just use the time we received the event.
+	 */
+	struct timeval tv;
+
+	if (!(o->flags & (TEST_DPMS | TEST_MODESET)))
+		return;
+
+	if (o->vblank_state.current_ts.tv_sec != 0 ||
+	    o->vblank_state.current_ts.tv_usec != 0)
+		return;
+
+	tv.tv_sec = 0;
+	tv.tv_usec = 1;
+	timersub(&es->current_received_ts, &tv, &es->current_ts);
+}
+
 static void vblank_handler(int fd, unsigned int frame, unsigned int sec,
 			      unsigned int usec, void *data)
 {
@@ -298,6 +322,7 @@ static void vblank_handler(int fd, unsigned int frame, unsigned int sec,
 
 	clear_flag(&o->pending_events, EVENT_VBLANK);
 	event_handler(&o->vblank_state, frame, sec, usec);
+	fixup_premature_vblank_ts(o, &o->vblank_state);
 }
 
 static void check_state(struct test_output *o, struct event_state *es)
