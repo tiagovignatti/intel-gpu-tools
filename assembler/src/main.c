@@ -287,8 +287,22 @@ int main(int argc, char **argv)
 
 			break;
 
-		case 'g':
-			gen_level = strtol(optarg, NULL, 0) * 10;
+		case 'g': {
+			char *dec_ptr, *end_ptr;
+			unsigned long decimal;
+
+			gen_level = strtol(optarg, &dec_ptr, 10) * 10;
+
+			if (*dec_ptr == '.') {
+				decimal = strtoul(++dec_ptr, &end_ptr, 10);
+				if (end_ptr != dec_ptr && *end_ptr == '\0') {
+					if (decimal > 10) {
+						fprintf(stderr, "Invalid Gen X decimal version\n");
+						exit(1);
+					}
+					gen_level += decimal;
+				}
+			}
 
 			if (gen_level < 40 || gen_level > 70) {
 				usage();
@@ -296,6 +310,7 @@ int main(int argc, char **argv)
 			}
 
 			break;
+		}
 
 		case 'a':
 			advanced_flag = 1;
