@@ -1212,7 +1212,7 @@ msgtarget:	NULL_TOKEN
 		| MATH math_function saturate math_signed math_scalar
 		{
 		  if (IS_GENp(6)) {
-                      fprintf (stderr, "Gen6+ donesn't have math function\n");
+                      fprintf (stderr, "Gen6+ doesn't have math function\n");
                       YYERROR;
 		  } else if (IS_GENx(5)) {
                       $$.bits2.send_gen5.sfid = BRW_MESSAGE_TARGET_MATH;
@@ -1424,14 +1424,14 @@ msgtarget:	NULL_TOKEN
                       $$.bits3.vme_gen6.message_type = $9;
                       $$.bits3.generic_gen5.header_present = 1; 
 		  } else {
-                      fprintf (stderr, "Gen6- donesn't have vme function\n");
+                      fprintf (stderr, "Gen6- doesn't have vme function\n");
                       YYERROR;
 		  }    
 		} 
 		| CRE LPAREN INTEGER COMMA INTEGER RPAREN
 		{
 		   if (gen_level < 75) {
-                      fprintf (stderr, "Below Gen7.5 donesn't have CRE function\n");
+                      fprintf (stderr, "Below Gen7.5 doesn't have CRE function\n");
                       YYERROR;
 		    }
 		   $$.bits3.generic.msg_target =
@@ -1476,7 +1476,7 @@ msgtarget:	NULL_TOKEN
                         $$.bits3.dp_gen6.msg_control = $7;
                         $$.bits3.dp_gen6.msg_type = $5;
                     } else if (!IS_GENp(5)) {
-                        fprintf (stderr, "Gen6- donesn't support data port for sampler/render/constant/data cache\n");
+                        fprintf (stderr, "Gen6- doesn't support data port for sampler/render/constant/data cache\n");
                         YYERROR;
                     }
 		} 
