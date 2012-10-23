@@ -52,6 +52,7 @@
 #define TEST_VBLANK		(1 << 8)
 #define TEST_VBLANK_BLOCK	(1 << 9)
 #define TEST_VBLANK_ABSOLUTE	(1 << 10)
+#define TEST_VBLANK_EXPIRED_SEQ	(1 << 11)
 
 #define EVENT_FLIP		(1 << 0)
 #define EVENT_VBLANK		(1 << 1)
@@ -115,6 +116,16 @@ struct test_output {
 	struct event_state vblank_state;
 	unsigned int pending_events;
 };
+
+
+static unsigned long gettime_us(void)
+{
+	struct timespec ts;
+
+	clock_gettime(CLOCK_MONOTONIC, &ts);
+
+	return ts.tv_sec * 1000000 + ts.tv_nsec / 1000;
+}
 
 static void emit_dummy_load(struct test_output *o)
 {
@@ -221,13 +232,14 @@ struct vblank_reply {
 	struct timeval ts;
 };
 
-static int do_wait_for_vblank(struct test_output *o, int crtc_idx,
-			      int target_seq, struct vblank_reply *reply)
+static int __wait_for_vblank(unsigned int flags, int crtc_idx,
+			      int target_seq, unsigned long ret_data,
+			      struct vblank_reply *reply)
 {
 	drmVBlank wait_vbl;
 	int ret;
 	unsigned crtc_idx_mask;
-	bool event = !(o->flags & TEST_VBLANK_BLOCK);
+	bool event = !(flags & TEST_VBLANK_BLOCK);
 
 	memset(&wait_vbl, 0, sizeof(wait_vbl));
 
@@ -235,13 +247,13 @@ static int do_wait_for_vblank(struct test_output *o, int crtc_idx,
 	assert(!(crtc_idx_mask & ~DRM_VBLANK_HIGH_CRTC_MASK));
 
 	wait_vbl.request.type = crtc_idx_mask;
-	if (o->flags & TEST_VBLANK_ABSOLUTE)
+	if (flags & TEST_VBLANK_ABSOLUTE)
 		wait_vbl.request.type |= DRM_VBLANK_ABSOLUTE;
 	else
 		wait_vbl.request.type |= DRM_VBLANK_RELATIVE;
 	if (event) {
 		wait_vbl.request.type |= DRM_VBLANK_EVENT;
-		wait_vbl.request.signal = (unsigned long)o;
+		wait_vbl.request.signal = ret_data;
 	}
 	wait_vbl.request.sequence = target_seq;
 
@@ -251,13 +263,21 @@ static int do_wait_for_vblank(struct test_output *o, int crtc_idx,
 		reply->ts.tv_sec = wait_vbl.reply.tval_sec;
 		reply->ts.tv_usec = wait_vbl.reply.tval_usec;
 		reply->sequence = wait_vbl.reply.sequence;
-
-		if (event) {
-			assert(!(o->pending_events & EVENT_VBLANK));
-			o->pending_events |= EVENT_VBLANK;
-		}
 	} else
 		ret = -errno;
+
+	return ret;
+}
+
+static int do_wait_for_vblank(struct test_output *o, int pipe_id,
+			      int target_seq, struct vblank_reply *reply)
+{
+	int ret;
+
+	ret = __wait_for_vblank(o->flags, pipe_id, target_seq, (unsigned long)o,
+				reply);
+	if (ret == 0 && !(o->flags & TEST_VBLANK_BLOCK))
+		set_flag(&o->pending_events, EVENT_VBLANK);
 
 	return ret;
 }
@@ -459,6 +479,22 @@ static unsigned int run_test_step(struct test_output *o)
 
 	o->current_fb_id = !o->current_fb_id;
 	new_fb_id = o->fb_ids[o->current_fb_id];
+
+	if ((o->flags & TEST_VBLANK_EXPIRED_SEQ) &&
+	    !(o->pending_events & EVENT_VBLANK) && o->flip_state.count > 0) {
+		struct vblank_reply reply;
+		unsigned int exp_seq;
+		unsigned long start;
+
+		exp_seq = o->flip_state.current_seq;
+		start = gettime_us();
+		do_or_die(__wait_for_vblank(TEST_VBLANK_ABSOLUTE |
+					    TEST_VBLANK_BLOCK, o->pipe, exp_seq,
+					    0, &reply));
+		assert(gettime_us() - start < 500);
+		assert(reply.sequence == exp_seq);
+		assert(timercmp(&reply.ts, &o->flip_state.last_ts, ==));
+	}
 
 	if (do_flip && (o->flags & TEST_EINVAL) && o->flip_state.count > 0)
 		assert(do_page_flip(o, new_fb_id) == expected_einval);
@@ -934,6 +970,8 @@ int main(int argc, char **argv)
 		{ 30, TEST_FLIP | TEST_PAN | TEST_WITH_DUMMY_LOAD, "delayed flip vs panning" },
 		{ 30, TEST_FLIP | TEST_MODESET | TEST_EINVAL, "flip vs modeset" },
 		{ 30, TEST_FLIP | TEST_MODESET | TEST_WITH_DUMMY_LOAD, "delayed flip vs modeset" },
+		{ 5,  TEST_FLIP | TEST_VBLANK_EXPIRED_SEQ,
+					"flip vs. expired vblank" },
 
 		{ 15, TEST_FLIP | TEST_VBLANK | TEST_VBLANK_ABSOLUTE |
 		      TEST_CHECK_TS, "flip vs absolute wf-vblank" },
