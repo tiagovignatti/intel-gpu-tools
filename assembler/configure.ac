@@ -3,7 +3,7 @@
 
 AC_PREREQ(2.57)
 AC_INIT([intel-gen4asm],
-        1.2,
+        1.3,
         [eric@anholt.net],
         intel-gen4asm)
 
