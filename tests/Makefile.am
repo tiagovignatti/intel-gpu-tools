@@ -41,6 +41,7 @@ TESTS_progs = \
 	gem_exec_faulting_reloc \
 	gem_readwrite \
 	gem_lut_handle \
+	gem_exec_lut_handle \
 	gem_mmap \
 	gem_mmap_offset_exhaustion \
 	gem_hangcheck_forcewake \
