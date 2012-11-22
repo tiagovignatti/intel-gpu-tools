@@ -57,12 +57,17 @@
 #define EVENT_FLIP		(1 << 0)
 #define EVENT_VBLANK		(1 << 1)
 
+#ifndef DRM_CAP_TIMESTAMP_MONOTONIC
+#define DRM_CAP_TIMESTAMP_MONOTONIC 6
+#endif
+
 drmModeRes *resources;
 int drm_fd;
 static drm_intel_bufmgr *bufmgr;
 struct intel_batchbuffer *batch;
 uint32_t devid;
 int test_time = 3;
+static bool monotonic_timestamp;
 
 uint32_t *fb_ptr;
 
@@ -296,7 +301,19 @@ analog_tv_connector(struct test_output *o)
 static void event_handler(struct event_state *es, unsigned int frame,
 			  unsigned int sec, unsigned int usec)
 {
-	gettimeofday(&es->current_received_ts, NULL);
+	struct timeval now;
+
+	if (monotonic_timestamp) {
+		struct timespec ts;
+
+		clock_gettime(CLOCK_MONOTONIC, &ts);
+		now.tv_sec = ts.tv_sec;
+		now.tv_usec = ts.tv_nsec / 1000;
+	} else {
+		gettimeofday(&now, NULL);
+	}
+	es->current_received_ts = now;
+
 	es->current_ts.tv_sec = sec;
 	es->current_ts.tv_usec = usec;
 	es->current_seq = frame;
@@ -933,6 +950,18 @@ static int run_test(int duration, int flags, const char *test_name)
 	return 1;
 }
 
+static void get_timestamp_format(void)
+{
+	uint64_t cap_mono;
+	int ret;
+
+	ret = drmGetCap(drm_fd, DRM_CAP_TIMESTAMP_MONOTONIC, &cap_mono);
+	assert(ret == 0 || errno == EINVAL);
+	monotonic_timestamp = ret == 0 && cap_mono == 1;
+	printf("Using %s timestamps\n",
+		monotonic_timestamp ? "monotonic" : "real");
+}
+
 int main(int argc, char **argv)
 {
 	struct {
@@ -974,6 +1003,8 @@ int main(int argc, char **argv)
 	int i;
 
 	drm_fd = drm_open_any();
+
+	get_timestamp_format();
 
 	bufmgr = drm_intel_bufmgr_gem_init(drm_fd, 4096);
 	devid = intel_get_drm_devid(drm_fd);
