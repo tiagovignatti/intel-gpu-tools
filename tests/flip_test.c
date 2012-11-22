@@ -362,6 +362,9 @@ static void check_state(struct test_output *o, struct event_state *es)
 		exit(5);
 	}
 
+	if (es->count == 0)
+		return;
+
 	if (!timercmp(&es->last_received_ts, &es->current_ts, <)) {
 		fprintf(stderr, "%s ts before the %s was issued!\n",
 				es->name, es->name);
@@ -371,9 +374,6 @@ static void check_state(struct test_output *o, struct event_state *es)
 			(int) diff.tv_sec, (int) diff.tv_usec);
 		exit(6);
 	}
-
-	if (es->count == 0)
-		return;
 
 	/* This bounding matches the one in DRM_IOCTL_WAIT_VBLANK. */
 	if (es->current_seq - (es->last_seq + es->seq_step) > 1UL << 23) {
@@ -861,9 +861,6 @@ static void run_test_on_crtc(struct test_output *o, int crtc, int duration)
 	/* quiescent the hw a bit so ensure we don't miss a single frame */
 	if (o->flags & TEST_CHECK_TS)
 		sleep(1);
-
-	gettimeofday(&o->flip_state.last_ts, NULL);
-	gettimeofday(&o->vblank_state.last_ts, NULL);
 
 	if (do_page_flip(o, o->fb_ids[1])) {
 		fprintf(stderr, "failed to page flip: %s\n", strerror(errno));
