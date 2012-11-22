@@ -786,15 +786,11 @@ static unsigned int wait_for_events(struct test_output *o)
 /* Returned the ellapsed time in us */
 static unsigned event_loop(struct test_output *o, unsigned duration_sec)
 {
-	struct timeval start, end;
-	struct timeval tv_dur;
+	unsigned long start, end;
 
-	gettimeofday(&start, NULL);
-	end.tv_sec = start.tv_sec + duration_sec;
-	end.tv_usec = start.tv_usec;
+	start = gettime_us();
 
 	while (1) {
-		struct timeval now;
 		unsigned int completed_events;
 
 		completed_events = run_test_step(o);
@@ -803,19 +799,17 @@ static unsigned event_loop(struct test_output *o, unsigned duration_sec)
 		check_all_state(o, completed_events);
 		update_all_state(o, completed_events);
 
-		gettimeofday(&now, NULL);
-		if (!timercmp(&now, &end, <))
+		if ((gettime_us() - start) / 1000000 >= duration_sec)
 			break;
 	}
 
-	gettimeofday(&end, NULL);
-	timersub(&end, &start, &tv_dur);
+	end = gettime_us();
 
 	/* Flush any remaining events */
 	if (o->pending_events)
 		wait_for_events(o);
 
-	return tv_dur.tv_sec * 1000 * 1000 + tv_dur.tv_usec;
+	return end - start;
 }
 
 static void run_test_on_crtc(struct test_output *o, int crtc, int duration)
