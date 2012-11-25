@@ -38,6 +38,7 @@ gem_linear_blits
 gem_mmap
 gem_mmap_gtt
 gem_mmap_offset_exhaustion
+gem_non_secure_batch
 gem_partial_pwrite_pread
 gem_pipe_control_store_loop
 gem_pread_after_blit
