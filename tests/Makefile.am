@@ -104,7 +104,6 @@ TESTS_scripts = \
 	sysfs_l3_parity \
 	sysfs_edid_timing \
 	module_reload \
-	ZZ_check_dmesg \
 	ZZ_hangman \
 	$(NULL)
 
