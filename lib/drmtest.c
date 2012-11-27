@@ -36,6 +36,7 @@
 #include <signal.h>
 #include <pciaccess.h>
 #include <math.h>
+#include <getopt.h>
 
 #include "drmtest.h"
 #include "i915_drm.h"
@@ -511,6 +512,65 @@ void drmtest_stop_signal_helper(void)
 		fprintf(stderr, "signal handler called %llu times\n", sig_stat);
 
 	signal_helper = -1;
+}
+
+/* subtests helpers */
+static bool list_subtests = false;
+static char *run_single_subtest = NULL;
+
+void drmtest_subtest_init(int argc, char **argv)
+{
+	int c, option_index = 0;
+	static struct option long_options[] = {
+		{"list-subtests", 0, 0, 'l'},
+		{"run-subtest", 1, 0, 'r'},
+		{NULL, 0, 0, 0,}
+	};
+
+	/* supress getopt errors about unknown options */
+	opterr = 0;
+	while((c = getopt_long(argc, argv, "",
+			       long_options, &option_index)) != -1) {
+		switch(c) {
+		case 'l':
+			list_subtests = true;
+			goto out;
+		case 'r':
+			run_single_subtest = strdup(optarg);
+			goto out;
+		}
+	}
+
+out:
+	/* reset opt parsing */
+	optind = 1;
+}
+
+/*
+ * Note: Testcases which use these helpers MUST NOT output anything to stdout
+ * outside of places protected by drmtest_run_subtest checks - the piglit
+ * runner adds every line to the subtest list.
+ */
+bool drmtest_run_subtest(const char *subtest_name)
+{
+	if (list_subtests) {
+		printf("%s\n", subtest_name);
+		return false;
+	}
+
+	if (!run_single_subtest) {
+		return true;
+	} else {
+		if (strcmp(subtest_name, run_single_subtest) == 0)
+			return true;
+
+		return false;
+	}
+}
+
+bool drmtest_only_list_subtests(void)
+{
+	return list_subtests;
 }
 
 /* other helpers */
