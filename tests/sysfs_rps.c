@@ -147,7 +147,7 @@ int main(int argc, char *argv[])
 		assert(ret != -1);
 		junk->filp = fopen(path, junk->mode);
 		if (junk->filp == NULL) {
-			fprintf(stderr, "Kernel is too old. GTFO\n");
+			printf("Kernel is too old. GTFO\n");
 			exit(77);
 		}
 		val = readval(junk->filp);

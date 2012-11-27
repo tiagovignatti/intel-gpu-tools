@@ -543,6 +543,9 @@ void drmtest_progress(const char *header, uint64_t i, uint64_t total)
 {
 	int divider = 200;
 
+	if (!isatty(fileno(stderr)))
+		return;
+
 	if (i+1 >= total) {
 		fprintf(stderr, "\r%s100%%\n", header);
 		return;

@@ -49,7 +49,7 @@ int main(int argc, char *argv[])
 
 	ret = drmIoctl(fd, CONTEXT_CREATE_IOCTL, &create);
 	if (ret != 0 && (errno == ENODEV || errno == EINVAL)) {
-		fprintf(stderr, "Kernel is too old, or contexts not supported: %s\n",
+		printf("Kernel is too old, or contexts not supported: %s\n",
 			strerror(errno));
 		exit(77);
 	} else if (ret != 0) {

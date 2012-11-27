@@ -163,7 +163,7 @@ int main(int argc, char **argv)
 		drmtest_progress("gem_cs_prefetch: ", i, count);
 	}
 
-	fprintf(stderr, "Test suceeded, cleanup up - this might take a while.\n");
+	printf("Test suceeded, cleanup up - this might take a while.\n");
 	drm_intel_bufmgr_destroy(bufmgr);
 
 	close(fd);

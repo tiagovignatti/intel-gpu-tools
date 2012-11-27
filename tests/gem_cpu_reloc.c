@@ -209,7 +209,7 @@ int main(int argc, char **argv)
 		drmtest_progress("gem_cpu_reloc: ", 2*count+i, 3*count);
 	}
 
-	fprintf(stderr, "Test suceeded, cleanup up - this might take a while.\n");
+	printf("Test suceeded, cleanup up - this might take a while.\n");
 	close(fd);
 
 	return 0;
