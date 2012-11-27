@@ -969,50 +969,55 @@ int main(int argc, char **argv)
 		int flags;
 		const char *name;
 	} tests[] = {
-		{ 15, TEST_VBLANK | TEST_CHECK_TS, "wf-vblank" },
+		{ 15, TEST_VBLANK | TEST_CHECK_TS, "wf_vblank" },
 		{ 15, TEST_VBLANK | TEST_VBLANK_BLOCK | TEST_CHECK_TS,
-					"blocking wf-vblank" },
+					"blocking-wf_vblank" },
 		{ 5,  TEST_VBLANK | TEST_VBLANK_ABSOLUTE,
-					"absolute wf-vblank" },
+					"absolute-wf_vblank" },
 		{ 5,  TEST_VBLANK | TEST_VBLANK_BLOCK | TEST_VBLANK_ABSOLUTE,
-					"blocking absolute wf-vblank" },
-		{ 30,  TEST_VBLANK | TEST_DPMS | TEST_EINVAL, "wf-vblank vs dpms" },
+					"blocking-absolute-wf_vblank" },
+		{ 30,  TEST_VBLANK | TEST_DPMS | TEST_EINVAL, "wf_vblank-vs-dpms" },
 		{ 30,  TEST_VBLANK | TEST_DPMS | TEST_WITH_DUMMY_LOAD,
-					"delayed wf-vblank vs dpms" },
-		{ 30,  TEST_VBLANK | TEST_MODESET | TEST_EINVAL, "wf-vblank vs modeset" },
+					"delayed-wf_vblank-vs-dpms" },
+		{ 30,  TEST_VBLANK | TEST_MODESET | TEST_EINVAL, "wf_vblank-vs-modeset" },
 		{ 30,  TEST_VBLANK | TEST_MODESET | TEST_WITH_DUMMY_LOAD,
-					"delayed wf-vblank vs modeset" },
+					"delayed-wf_vblank-vs-modeset" },
 
-		{ 15, TEST_FLIP | TEST_CHECK_TS | TEST_EBUSY , "plain flip" },
-		{ 30, TEST_FLIP | TEST_DPMS | TEST_EINVAL, "flip vs dpms" },
-		{ 30, TEST_FLIP | TEST_DPMS | TEST_WITH_DUMMY_LOAD, "delayed flip vs dpms" },
-		{ 5,  TEST_FLIP | TEST_PAN, "flip vs panning" },
-		{ 30, TEST_FLIP | TEST_PAN | TEST_WITH_DUMMY_LOAD, "delayed flip vs panning" },
-		{ 30, TEST_FLIP | TEST_MODESET | TEST_EINVAL, "flip vs modeset" },
-		{ 30, TEST_FLIP | TEST_MODESET | TEST_WITH_DUMMY_LOAD, "delayed flip vs modeset" },
+		{ 15, TEST_FLIP | TEST_CHECK_TS | TEST_EBUSY , "plain-flip" },
+		{ 30, TEST_FLIP | TEST_DPMS | TEST_EINVAL, "flip-vs-dpms" },
+		{ 30, TEST_FLIP | TEST_DPMS | TEST_WITH_DUMMY_LOAD, "delayed-flip-vs-dpms" },
+		{ 5,  TEST_FLIP | TEST_PAN, "flip-vs-panning" },
+		{ 30, TEST_FLIP | TEST_PAN | TEST_WITH_DUMMY_LOAD, "delayed-flip-vs-panning" },
+		{ 30, TEST_FLIP | TEST_MODESET | TEST_EINVAL, "flip-vs-modeset" },
+		{ 30, TEST_FLIP | TEST_MODESET | TEST_WITH_DUMMY_LOAD, "delayed-flip-vs-modeset" },
 		{ 5,  TEST_FLIP | TEST_VBLANK_EXPIRED_SEQ,
-					"flip vs. expired vblank" },
+					"flip-vs-expired-vblank" },
 
 		{ 15, TEST_FLIP | TEST_VBLANK | TEST_VBLANK_ABSOLUTE |
-		      TEST_CHECK_TS, "flip vs absolute wf-vblank" },
+		      TEST_CHECK_TS, "flip-vs-absolute-wf_vblank" },
 		{ 15, TEST_FLIP | TEST_VBLANK | TEST_CHECK_TS,
-					"flip vs wf-vblank" },
+					"flip-vs-wf_vblank" },
 		{ 15, TEST_FLIP | TEST_VBLANK | TEST_VBLANK_BLOCK |
-			TEST_CHECK_TS, "flip vs blocking wf-vblank" },
+			TEST_CHECK_TS, "flip-vs-blocking-wf-vblank" },
 	};
 	int i;
 
+	drmtest_subtest_init(argc, argv);
+
 	drm_fd = drm_open_any();
 
-	get_timestamp_format();
+	if (!drmtest_only_list_subtests())
+		get_timestamp_format();
 
 	bufmgr = drm_intel_bufmgr_gem_init(drm_fd, 4096);
 	devid = intel_get_drm_devid(drm_fd);
 	batch = intel_batchbuffer_alloc(bufmgr, devid);
 
 	for (i = 0; i < sizeof(tests) / sizeof (tests[0]); i++) {
-		printf("running testcase: %s\n", tests[i].name);
-		run_test(tests[i].duration, tests[i].flags, tests[i].name);
+		if (drmtest_run_subtest(tests[i].name)) {
+			printf("running testcase: %s\n", tests[i].name);
+			run_test(tests[i].duration, tests[i].flags, tests[i].name);
+		}
 	}
 
 	close(drm_fd);

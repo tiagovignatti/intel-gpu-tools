@@ -13,6 +13,7 @@ NOUVEAU_TESTS = \
 endif
 
 TESTS_progs_M = \
+	flip_test \
 	$(NULL)
 
 TESTS_progs = \
@@ -81,7 +82,6 @@ TESTS_progs = \
 	drm_vma_limiter_cached \
 	sysfs_rc6_residency \
 	sysfs_rps \
-	flip_test \
 	gem_wait_render_timeout \
 	gem_ctx_create \
 	gem_ctx_bad_destroy \
