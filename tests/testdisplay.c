@@ -334,7 +334,7 @@ static void connector_find_preferred_mode(struct connector *c)
 }
 
 static void
-paint_color_key(void)
+paint_color_key(struct kmstest_fb *fb_info)
 {
 	int i, j;
 
@@ -342,7 +342,7 @@ paint_color_key(void)
 		for (j = crtc_x; j < crtc_x + crtc_w; j++) {
 			uint32_t offset;
 
-			offset = (i * width) + j;
+			offset = (i * fb_info->stride / 4) + j;
 			fb_ptr[offset] = SPRITE_COLOR_KEY;
 		}
 }
@@ -530,7 +530,7 @@ set_mode(struct connector *c)
 		fb_ptr = gem_mmap(drm_fd, fb_info.gem_handle,
 				  fb_info.size, PROT_READ | PROT_WRITE);
 		assert(fb_ptr);
-		paint_color_key();
+		paint_color_key(&fb_info);
 
 		gem_close(drm_fd, fb_info.gem_handle);
 
