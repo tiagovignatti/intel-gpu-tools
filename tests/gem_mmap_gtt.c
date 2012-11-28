@@ -148,12 +148,18 @@ int main(int argc, char **argv)
 {
 	int fd;
 
+	drmtest_subtest_init(argc, argv);
+
 	fd = drm_open_any();
 
-	test_copy(fd);
-	test_read(fd);
-	test_write(fd);
-	test_write_gtt(fd);
+	if (drmtest_run_subtest("copy"))
+		test_copy(fd);
+	if (drmtest_run_subtest("read"))
+		test_read(fd);
+	if (drmtest_run_subtest("write"))
+		test_write(fd);
+	if (drmtest_run_subtest("write-gtt"))
+		test_write_gtt(fd);
 
 	close(fd);
 

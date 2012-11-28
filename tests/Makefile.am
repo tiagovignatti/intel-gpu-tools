@@ -19,6 +19,7 @@ TESTS_progs_M = \
 	gem_cs_tlb \
 	gem_flink \
 	gem_gtt_concurrent_blit \
+	gem_mmap_gtt \
 	flip_test \
 	$(NULL)
 
@@ -34,7 +35,6 @@ TESTS_progs = \
 	gem_readwrite \
 	gem_ringfill \
 	gem_mmap \
-	gem_mmap_gtt \
 	gem_mmap_offset_exhaustion \
 	gem_hangcheck_forcewake \
 	gem_non_secure_batch \
