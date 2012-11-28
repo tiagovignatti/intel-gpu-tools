@@ -20,6 +20,7 @@ TESTS_progs_M = \
 	gem_flink \
 	gem_gtt_concurrent_blit \
 	gem_mmap_gtt \
+	gem_partial_pwrite_pread \
 	flip_test \
 	$(NULL)
 
@@ -47,7 +48,6 @@ TESTS_progs = \
 	gem_tiled_pread_pwrite \
 	gem_tiled_partial_pwrite_pread \
 	gem_tiled_swapping \
-	gem_partial_pwrite_pread \
 	gem_linear_blits \
 	gem_vmap_blits \
 	gem_threaded_access_tiled \

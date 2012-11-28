@@ -257,6 +257,8 @@ int main(int argc, char **argv)
 {
 	srandom(0xdeadbeef);
 
+	drmtest_subtest_init(argc, argv);
+
 	fd = drm_open_any();
 
 	bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
@@ -271,11 +273,14 @@ int main(int argc, char **argv)
 	drmtest_init_aperture_trashers(bufmgr);
 	mappable_gtt_limit = gem_mappable_aperture_size();
 
-	test_partial_reads();
+	if (drmtest_run_subtest("reads"))
+		test_partial_reads();
 
-	test_partial_writes();
+	if (drmtest_run_subtest("writes"))
+		test_partial_writes();
 
-	test_partial_read_writes();
+	if (drmtest_run_subtest("writes-after-reads"))
+		test_partial_read_writes();
 
 	drmtest_cleanup_aperture_trashers();
 	drm_intel_bufmgr_destroy(bufmgr);
