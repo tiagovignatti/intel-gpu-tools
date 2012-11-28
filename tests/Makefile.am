@@ -22,6 +22,7 @@ TESTS_progs_M = \
 	gem_mmap_gtt \
 	gem_partial_pwrite_pread \
 	gem_ringfill \
+	gem_set_tiling_vs_blt \
 	flip_test \
 	$(NULL)
 
@@ -41,7 +42,6 @@ TESTS_progs = \
 	gem_non_secure_batch \
 	gem_pwrite \
 	gem_pread_after_blit \
-	gem_set_tiling_vs_blt \
 	gem_set_tiling_vs_gtt \
 	gem_set_tiling_vs_pwrite \
 	gem_tiled_pread \
