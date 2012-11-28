@@ -96,10 +96,12 @@ main(int argc, char **argv)
 	drm_intel_bufmgr *bufmgr;
 	struct intel_batchbuffer *batch;
 	int num_buffers = 128, max;
-	drm_intel_bo *src[128], *dst[128], *dummy;
+	drm_intel_bo *src[128], *dst[128], *dummy = NULL;
 	int width = 512, height = 512;
 	int fd;
 	int i;
+
+	drmtest_subtest_init(argc, argv);
 
 	fd = drm_open_any();
 
@@ -111,35 +113,45 @@ main(int argc, char **argv)
 	drm_intel_bufmgr_gem_enable_reuse(bufmgr);
 	batch = intel_batchbuffer_alloc(bufmgr, intel_get_drm_devid(fd));
 
-	for (i = 0; i < num_buffers; i++) {
-		src[i] = create_bo(bufmgr, i, width, height);
-		dst[i] = create_bo(bufmgr, ~i, width, height);
+	if (!drmtest_only_list_subtests()) {
+		for (i = 0; i < num_buffers; i++) {
+			src[i] = create_bo(bufmgr, i, width, height);
+			dst[i] = create_bo(bufmgr, ~i, width, height);
+		}
+		dummy = create_bo(bufmgr, 0, width, height);
 	}
-	dummy = create_bo(bufmgr, 0, width, height);
 
 	/* try to overwrite the source values */
-	for (i = 0; i < num_buffers; i++)
-		intel_copy_bo(batch, dst[i], src[i], width, height);
-	for (i = num_buffers; i--; )
-		set_bo(src[i], 0xdeadbeef, width, height);
-	for (i = 0; i < num_buffers; i++)
-		cmp_bo(dst[i], i, width, height);
+	if (drmtest_run_subtest("overwrite-source")) {
+		for (i = 0; i < num_buffers; i++)
+			intel_copy_bo(batch, dst[i], src[i], width, height);
+		for (i = num_buffers; i--; )
+			set_bo(src[i], 0xdeadbeef, width, height);
+		for (i = 0; i < num_buffers; i++)
+			cmp_bo(dst[i], i, width, height);
+	}
 
 	/* try to read the results before the copy completes */
-	for (i = 0; i < num_buffers; i++)
-		intel_copy_bo(batch, dst[i], src[i], width, height);
-	for (i = num_buffers; i--; )
-		cmp_bo(dst[i], 0xdeadbeef, width, height);
+	if (drmtest_run_subtest("early-read")) {
+		for (i = num_buffers; i--; )
+			set_bo(src[i], 0xdeadbeef, width, height);
+		for (i = 0; i < num_buffers; i++)
+			intel_copy_bo(batch, dst[i], src[i], width, height);
+		for (i = num_buffers; i--; )
+			cmp_bo(dst[i], 0xdeadbeef, width, height);
+	}
 
 	/* and finally try to trick the kernel into loosing the pending write */
-	for (i = num_buffers; i--; )
-		set_bo(src[i], 0xabcdabcd, width, height);
-	for (i = 0; i < num_buffers; i++)
-		intel_copy_bo(batch, dst[i], src[i], width, height);
-	for (i = num_buffers; i--; )
-		intel_copy_bo(batch, dummy, dst[i], width, height);
-	for (i = num_buffers; i--; )
-		cmp_bo(dst[i], 0xabcdabcd, width, height);
+	if (drmtest_run_subtest("gpu-read-after-write")) {
+		for (i = num_buffers; i--; )
+			set_bo(src[i], 0xabcdabcd, width, height);
+		for (i = 0; i < num_buffers; i++)
+			intel_copy_bo(batch, dst[i], src[i], width, height);
+		for (i = num_buffers; i--; )
+			intel_copy_bo(batch, dummy, dst[i], width, height);
+		for (i = num_buffers; i--; )
+			cmp_bo(dst[i], 0xabcdabcd, width, height);
+	}
 
 	return 0;
 }
