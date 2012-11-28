@@ -1,6 +1,7 @@
 noinst_PROGRAMS = \
 	gem_stress \
 	$(TESTS_progs) \
+	$(TESTS_progs_M) \
 	$(HANG) \
 	$(NULL)
 
@@ -10,6 +11,9 @@ NOUVEAU_TESTS = \
 	prime_nv_pcopy \
 	prime_nv_test
 endif
+
+TESTS_progs_M = \
+	$(NULL)
 
 TESTS_progs = \
 	getversion \
@@ -91,6 +95,9 @@ TESTS_progs = \
 
 # IMPORTANT: The ZZ_ tests need to be run last!
 # ... and make can't deal with inlined comments ...
+TESTS_scripts_M = \
+	$(NULL)
+
 TESTS_scripts = \
 	debugfs_reader \
 	debugfs_emon_crash \
@@ -101,18 +108,38 @@ TESTS_scripts = \
 	ZZ_hangman \
 	$(NULL)
 
-kernel_tests = \
+multi_kernel_tests = \
+	$(TESTS_progs_M) \
+	$(TESTS_scripts_M) \
+	$(NULL)
+
+single_kernel_tests = \
 	$(TESTS_progs) \
 	$(TESTS_scripts) \
+	$(NULL)
+
+kernel_tests = \
+	$(single_kernel_tests) \
+	$(multi_kernel_tests) \
 	$(NULL)
 
 TESTS = \
 	$(NULL)
 
 test:
-	whoami | grep root || ( echo ERROR: not running as root; exit 1 )
-	./check_drm_clients
-	make TESTS="${kernel_tests}" check
+	@whoami | grep root || ( echo ERROR: not running as root; exit 1 )
+	@./check_drm_clients
+	@make TESTS="${kernel_tests}" check
+
+list-single-tests:
+	@echo TESTLIST
+	@echo ${single_kernel_tests}
+	@echo END TESTLIST
+
+list-multi-tests:
+	@echo TESTLIST
+	@echo ${multi_kernel_tests}
+	@echo END TESTLIST
 
 HANG = \
 	gem_bad_batch \
@@ -121,8 +148,8 @@ HANG = \
 	gem_bad_address \
 	$(NULL)
 
-EXTRA_PROGRAMS = $(TESTS_progs) $(HANG)
-EXTRA_DIST = $(TESTS_scripts) drm_lib.sh check_drm_clients debugfs_wedged
+EXTRA_PROGRAMS = $(TESTS_progs) $(TESTS_progs_M) $(HANG)
+EXTRA_DIST = $(TESTS_scripts) $(TESTS_scripts_M) drm_lib.sh check_drm_clients debugfs_wedged
 CLEANFILES = $(EXTRA_PROGRAMS)
 
 AM_CFLAGS = $(DRM_CFLAGS) $(CWARNFLAGS) \
