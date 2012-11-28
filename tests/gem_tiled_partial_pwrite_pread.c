@@ -125,36 +125,12 @@ blt_bo_fill(drm_intel_bo *tmp_bo, drm_intel_bo *bo, int val)
 
 #define MAX_BLT_SIZE 128
 #define ROUNDS 200
-int main(int argc, char **argv)
+uint8_t tmp[BO_SIZE];
+uint8_t compare_tmp[BO_SIZE];
+
+static void test_partial_reads(void)
 {
 	int i, j;
-	uint8_t tmp[BO_SIZE];
-	uint8_t compare_tmp[BO_SIZE];
-	uint32_t tiling_mode = I915_TILING_X;
-
-	srandom(0xdeadbeef);
-
-	fd = drm_open_any();
-
-	bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
-	//drm_intel_bufmgr_gem_enable_reuse(bufmgr);
-	devid = intel_get_drm_devid(fd);
-	batch = intel_batchbuffer_alloc(bufmgr, devid);
-
-	/* overallocate the buffers we're actually using because */
-	scratch_bo = drm_intel_bo_alloc_tiled(bufmgr, "scratch bo", 1024, 
-					      BO_SIZE/4096, 4,
-					      &tiling_mode, &scratch_pitch, 0);
-	assert(tiling_mode == I915_TILING_X);
-	assert(scratch_pitch == 4096);
-	staging_bo = drm_intel_bo_alloc(bufmgr, "staging bo", BO_SIZE, 4096);
-	tiled_staging_bo = drm_intel_bo_alloc_tiled(bufmgr, "scratch bo", 1024,
-						    BO_SIZE/4096, 4,
-						    &tiling_mode,
-						    &scratch_pitch, 0);
-
-	drmtest_init_aperture_trashers(bufmgr);
-	mappable_gtt_limit = gem_mappable_aperture_size();
 
 	printf("checking partial reads\n");
 	for (i = 0; i < ROUNDS; i++) {
@@ -177,6 +153,11 @@ int main(int argc, char **argv)
 
 		drmtest_progress("partial reads test: ", i, ROUNDS);
 	}
+}
+
+static void test_partial_writes(void)
+{
+	int i, j;
 
 	printf("checking partial writes\n");
 	for (i = 0; i < ROUNDS; i++) {
@@ -221,6 +202,11 @@ int main(int argc, char **argv)
 
 		drmtest_progress("partial writes test: ", i, ROUNDS);
 	}
+}
+
+static void test_partial_read_writes(void)
+{
+	int i, j;
 
 	printf("checking partial writes after partial reads\n");
 	for (i = 0; i < ROUNDS; i++) {
@@ -284,6 +270,41 @@ int main(int argc, char **argv)
 
 		drmtest_progress("partial read/writes test: ", i, ROUNDS);
 	}
+}
+
+int main(int argc, char **argv)
+{
+	uint32_t tiling_mode = I915_TILING_X;
+
+	srandom(0xdeadbeef);
+
+	fd = drm_open_any();
+
+	bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
+	//drm_intel_bufmgr_gem_enable_reuse(bufmgr);
+	devid = intel_get_drm_devid(fd);
+	batch = intel_batchbuffer_alloc(bufmgr, devid);
+
+	/* overallocate the buffers we're actually using because */
+	scratch_bo = drm_intel_bo_alloc_tiled(bufmgr, "scratch bo", 1024,
+					      BO_SIZE/4096, 4,
+					      &tiling_mode, &scratch_pitch, 0);
+	assert(tiling_mode == I915_TILING_X);
+	assert(scratch_pitch == 4096);
+	staging_bo = drm_intel_bo_alloc(bufmgr, "staging bo", BO_SIZE, 4096);
+	tiled_staging_bo = drm_intel_bo_alloc_tiled(bufmgr, "scratch bo", 1024,
+						    BO_SIZE/4096, 4,
+						    &tiling_mode,
+						    &scratch_pitch, 0);
+
+	drmtest_init_aperture_trashers(bufmgr);
+	mappable_gtt_limit = gem_mappable_aperture_size();
+
+	test_partial_reads();
+
+	test_partial_writes();
+
+	test_partial_read_writes();
 
 	drmtest_cleanup_aperture_trashers();
 	drm_intel_bufmgr_destroy(bufmgr);
