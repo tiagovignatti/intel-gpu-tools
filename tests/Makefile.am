@@ -17,6 +17,7 @@ TESTS_progs_M = \
 	gem_cacheing \
 	gem_cpu_concurrent_blit \
 	gem_cs_tlb \
+	gem_flink \
 	flip_test \
 	$(NULL)
 
@@ -30,7 +31,6 @@ TESTS_progs = \
 	gem_exec_blt \
 	gem_exec_bad_domains \
 	gem_exec_faulting_reloc \
-	gem_flink \
 	gem_readwrite \
 	gem_ringfill \
 	gem_mmap \

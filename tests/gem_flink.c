@@ -119,12 +119,18 @@ int main(int argc, char **argv)
 {
 	int fd;
 
+	drmtest_subtest_init(argc, argv);
+
 	fd = drm_open_any();
 
-	test_flink(fd);
-	test_double_flink(fd);
-	test_bad_flink(fd);
-	test_bad_open(fd);
+	if (drmtest_run_subtest("basic"))
+		test_flink(fd);
+	if (drmtest_run_subtest("double-flink"))
+		test_double_flink(fd);
+	if (drmtest_run_subtest("bad-flink"))
+		test_bad_flink(fd);
+	if (drmtest_run_subtest("bad-open"))
+		test_bad_open(fd);
 
 	return 0;
 }
