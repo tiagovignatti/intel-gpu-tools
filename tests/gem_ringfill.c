@@ -55,6 +55,7 @@ struct bo {
 };
 
 static const int width = 512, height = 512;
+static bool skipped_all = true;
 
 static void create_bo(drm_intel_bufmgr *bufmgr,
 		      struct bo *b,
@@ -122,6 +123,7 @@ static int check_ring(drm_intel_bufmgr *bufmgr,
 	int i;
 
 	snprintf(output, 100, "filling %s ring: ", ring);
+	skipped_all = false;
 
 	create_bo(bufmgr, &bo, ring);
 
@@ -203,13 +205,16 @@ int main(int argc, char **argv)
 	render_copyfunc_t copy;
 	int fd, fails = 0;
 
+	drmtest_subtest_init(argc, argv);
+
 	fd = drm_open_any();
 
 	bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
 	drm_intel_bufmgr_gem_enable_reuse(bufmgr);
 	batch = intel_batchbuffer_alloc(bufmgr, intel_get_drm_devid(fd));
 
-	fails += check_ring(bufmgr, batch, "blt", blt_copy);
+	if (drmtest_run_subtest("blitter"))
+		fails += check_ring(bufmgr, batch, "blt", blt_copy);
 
 	/* Strictly only required on architectures with a separate BLT ring,
 	 * but lets stress everybody.
@@ -221,7 +226,8 @@ int main(int argc, char **argv)
 		copy = gen3_render_copyfunc;
 	else if (IS_GEN6(batch->devid))
 		copy = gen6_render_copyfunc;
-	if (copy)
+
+	if (drmtest_run_subtest("render") && copy)
 		fails += check_ring(bufmgr, batch, "render", copy);
 
 	intel_batchbuffer_free(batch);
@@ -229,5 +235,5 @@ int main(int argc, char **argv)
 
 	close(fd);
 
-	return fails != 0;
+	return skipped_all ? 77 : fails != 0;
 }

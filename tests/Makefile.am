@@ -21,6 +21,7 @@ TESTS_progs_M = \
 	gem_gtt_concurrent_blit \
 	gem_mmap_gtt \
 	gem_partial_pwrite_pread \
+	gem_ringfill \
 	flip_test \
 	$(NULL)
 
@@ -34,7 +35,6 @@ TESTS_progs = \
 	gem_exec_bad_domains \
 	gem_exec_faulting_reloc \
 	gem_readwrite \
-	gem_ringfill \
 	gem_mmap \
 	gem_mmap_offset_exhaustion \
 	gem_hangcheck_forcewake \
