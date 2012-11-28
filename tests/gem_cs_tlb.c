@@ -54,6 +54,7 @@
 #include "intel_gpu_tools.h"
 
 #define BATCH_SIZE (1024*1024)
+bool skipped_all = true;
 
 static int exec(int fd, uint32_t handle, int split,
 		uint64_t *gtt_ofs, unsigned ring_id)
@@ -102,6 +103,7 @@ static void run_on_ring(int fd, unsigned ring_id, const char *ring_name)
 	int i;
 
 	sprintf(buf, "testing %s cs tlb coherency: ", ring_name);
+	skipped_all = false;
 
 	/* Shut up gcc, too stupid. */
 	batch_ptr_old = NULL;
@@ -148,23 +150,30 @@ int main(int argc, char **argv)
 	int fd;
 	uint32_t devid;
 
+	drmtest_subtest_init(argc, argv);
+
 	fd = drm_open_any();
 	devid = intel_get_drm_devid(fd);
 
-	/* This test is very sensitive to residual gtt_mm noise from previous
-	 * tests. Try to quiet thing down first. */
-	gem_quiescent_gpu(fd);
-	sleep(5); /* needs more serious ducttape */
+	if (!drmtest_only_list_subtests()) {
+		/* This test is very sensitive to residual gtt_mm noise from previous
+		 * tests. Try to quiet thing down first. */
+		gem_quiescent_gpu(fd);
+		sleep(5); /* needs more serious ducttape */
+	}
 
-	run_on_ring(fd, I915_EXEC_RENDER, "render");
+	if (drmtest_run_subtest("render"))
+		run_on_ring(fd, I915_EXEC_RENDER, "render");
 
-	if (HAS_BSD_RING(devid))
-		run_on_ring(fd, I915_EXEC_BSD, "bsd");
+	if (drmtest_run_subtest("bsd"))
+		if (HAS_BSD_RING(devid))
+			run_on_ring(fd, I915_EXEC_BSD, "bsd");
 
-	if (HAS_BLT_RING(devid))
-		run_on_ring(fd, I915_EXEC_BLT, "blt");
+	if (drmtest_run_subtest("blt"))
+		if (HAS_BLT_RING(devid))
+			run_on_ring(fd, I915_EXEC_BLT, "blt");
 
 	close(fd);
 
-	return 0;
+	return skipped_all ? 77 : 0;
 }
