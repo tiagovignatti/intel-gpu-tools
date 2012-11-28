@@ -23,6 +23,7 @@ TESTS_progs_M = \
 	gem_partial_pwrite_pread \
 	gem_ringfill \
 	gem_set_tiling_vs_blt \
+	gem_tiled_partial_pwrite_pread \
 	flip_test \
 	$(NULL)
 
@@ -46,7 +47,6 @@ TESTS_progs = \
 	gem_set_tiling_vs_pwrite \
 	gem_tiled_pread \
 	gem_tiled_pread_pwrite \
-	gem_tiled_partial_pwrite_pread \
 	gem_tiled_swapping \
 	gem_linear_blits \
 	gem_vmap_blits \
