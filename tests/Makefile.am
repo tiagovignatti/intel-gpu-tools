@@ -13,6 +13,7 @@ NOUVEAU_TESTS = \
 endif
 
 TESTS_progs_M = \
+	gem_basic \
 	flip_test \
 	$(NULL)
 
@@ -20,7 +21,6 @@ TESTS_progs = \
 	getversion \
 	getclient \
 	getstats \
-	gem_basic \
 	gem_cacheing \
 	gem_cpu_concurrent_blit \
 	gem_cs_tlb \
