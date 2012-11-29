@@ -650,6 +650,7 @@ static void parse_options(int argc, char **argv)
 		{"tile-size", 1, 0, TILESZ},
 #define CHCK_RENDER 0xdead0003
 		{"check-render-cpyfn", 0, 0, CHCK_RENDER},
+		{NULL, 0, 0, 0},
 	};
 
 	options.scratch_buf_size = 256*4096;
