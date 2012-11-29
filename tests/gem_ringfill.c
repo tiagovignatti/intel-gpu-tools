@@ -219,13 +219,7 @@ int main(int argc, char **argv)
 	/* Strictly only required on architectures with a separate BLT ring,
 	 * but lets stress everybody.
 	 */
-	copy = NULL;
-	if (IS_GEN2(batch->devid))
-		copy = gen2_render_copyfunc;
-	else if (IS_GEN3(batch->devid))
-		copy = gen3_render_copyfunc;
-	else if (IS_GEN6(batch->devid))
-		copy = gen6_render_copyfunc;
+	copy = get_render_copyfunc(batch->devid);
 
 	if (drmtest_run_subtest("render") && copy)
 		fails += check_ring(bufmgr, batch, "render", copy);

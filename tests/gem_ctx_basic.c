@@ -58,6 +58,7 @@ static void init_buffer(drm_intel_bufmgr *bufmgr,
 static void *work(void *arg)
 {
 	struct intel_batchbuffer *batch;
+	render_copyfunc_t rendercopy = get_render_copyfunc(devid);
 	drm_intel_context *context;
 	drm_intel_bufmgr *bufmgr;
 	int thread_id = *(int *)arg;
@@ -88,7 +89,8 @@ static void *work(void *arg)
 
 
 		if (uncontexted) {
-			gen6_render_copyfunc(batch, &src, 0, 0, 0, 0, &dst, 0, 0);
+			assert(rendercopy);
+			rendercopy(batch, &src, 0, 0, 0, 0, &dst, 0, 0);
 		} else {
 			int ret;
 			ret = drm_intel_bo_subdata(batch->bo, 0, 4096, batch->buffer);

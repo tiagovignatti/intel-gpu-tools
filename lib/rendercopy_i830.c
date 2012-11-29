@@ -227,3 +227,19 @@ void gen2_render_copyfunc(struct intel_batchbuffer *batch,
 
 	intel_batchbuffer_flush(batch);
 }
+
+render_copyfunc_t get_render_copyfunc(int devid)
+{
+	render_copyfunc_t copy = NULL;
+
+	if (IS_GEN2(devid))
+		copy = gen2_render_copyfunc;
+	else if (IS_GEN3(devid))
+		copy = gen3_render_copyfunc;
+	else if (IS_GEN6(devid))
+		copy = gen6_render_copyfunc;
+	else if (IS_GEN7(devid))
+		copy = gen7_render_copyfunc;
+
+	return copy;
+}

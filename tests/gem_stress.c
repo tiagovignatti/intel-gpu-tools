@@ -323,31 +323,16 @@ static void render_copyfunc(struct scratch_buf *src, unsigned src_x, unsigned sr
 			    unsigned logical_tile_no)
 {
 	static unsigned keep_gpu_busy_counter = 0;
+	render_copyfunc_t rendercopy = get_render_copyfunc(devid);
 
 	/* check both edges of the fence usage */
 	if (keep_gpu_busy_counter & 1)
 		keep_gpu_busy();
 
-	if (IS_GEN2(devid))
-		gen2_render_copyfunc(batch,
-				     src, src_x, src_y,
-				     options.tile_size, options.tile_size,
-				     dst, dst_x, dst_y);
-	else if (IS_GEN3(devid))
-		gen3_render_copyfunc(batch,
-				     src, src_x, src_y,
-				     options.tile_size, options.tile_size,
-				     dst, dst_x, dst_y);
-	else if (IS_GEN6(devid))
-		gen6_render_copyfunc(batch,
-				     src, src_x, src_y,
-				     options.tile_size, options.tile_size,
-				     dst, dst_x, dst_y);
-	else if (IS_GEN7(devid))
-		gen7_render_copyfunc(batch,
-				     src, src_x, src_y,
-				     options.tile_size, options.tile_size,
-				     dst, dst_x, dst_y);
+	if (rendercopy)
+		rendercopy(batch, src, src_x, src_y,
+		     options.tile_size, options.tile_size,
+		     dst, dst_x, dst_y);
 	else
 		blitter_copyfunc(src, src_x, src_y,
 				 dst, dst_x, dst_y,
