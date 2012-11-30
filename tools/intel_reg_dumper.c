@@ -1777,6 +1777,16 @@ static struct reg_debug ironlake_debug_regs[] = {
 	DEFINEREG2(FDI_RXB_CTL, ironlake_debug_fdi_rx_ctl),
 	DEFINEREG2(FDI_RXC_CTL, ironlake_debug_fdi_rx_ctl),
 
+	DEFINEREG(DPAFE_BMFUNC),
+	DEFINEREG(DPAFE_DL_IREFCAL0),
+	DEFINEREG(DPAFE_DL_IREFCAL1),
+	DEFINEREG(DPAFE_DP_IREFCAL),
+
+	DEFINEREG(PCH_DSPCLK_GATE_D),
+	DEFINEREG(PCH_DSP_CHICKEN1),
+	DEFINEREG(PCH_DSP_CHICKEN2),
+	DEFINEREG(PCH_DSP_CHICKEN3),
+
 	DEFINEREG2(FDI_RXA_MISC, ironlake_debug_fdi_rx_misc),
 	DEFINEREG2(FDI_RXB_MISC, ironlake_debug_fdi_rx_misc),
 	DEFINEREG2(FDI_RXC_MISC, ironlake_debug_fdi_rx_misc),

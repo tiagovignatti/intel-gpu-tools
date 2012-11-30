@@ -1577,6 +1577,9 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #define ADPA_HSYNC_ACTIVE_HIGH	(1<<3)
 #define ADPA_HSYNC_ACTIVE_LOW	0
 
+#define PCH_DSP_CHICKEN1	0x42000
+#define PCH_DSP_CHICKEN2	0x42004
+#define PCH_DSP_CHICKEN3	0x4200c
 #define PCH_DSPCLK_GATE_D	0x42020
 #define PCH_DSPRAMCLK_GATE_D	0x42024
 #define PCH_3DCGDIS0		0x46020
@@ -3340,6 +3343,12 @@ typedef enum {
 /* both Tx and Rx */
 #define  FDI_SCRAMBLING_ENABLE		(0<<7)
 #define  FDI_SCRAMBLING_DISABLE		(1<<7)
+
+/* Additional cpu TX control regs, from ivb bspec */
+#define DPAFE_BMFUNC		0x6c024
+#define DPAFE_DL_IREFCAL0	0x6c02c
+#define DPAFE_DL_IREFCAL1	0x6c030
+#define DPAFE_DP_IREFCAL	0x6c034
 
 /* FDI_RX, FDI_X is hard-wired to Transcoder_X */
 #define FDI_RXA_CTL		0xf000c
