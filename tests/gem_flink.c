@@ -115,6 +115,41 @@ test_bad_open(int fd)
 	assert(ret == -1 && errno == ENOENT);
 }
 
+static void
+test_flink_lifetime(int fd)
+{
+	struct drm_i915_gem_create create;
+	struct drm_gem_flink flink;
+	struct drm_gem_open gem_open;
+	int ret, fd2;
+
+	printf("Testing flink lifetime.\n");
+
+	fd2 = drm_open_any();
+
+	memset(&create, 0, sizeof(create));
+	create.size = 16 * 1024;
+	ret = ioctl(fd2, DRM_IOCTL_I915_GEM_CREATE, &create);
+	assert(ret == 0);
+
+	flink.handle = create.handle;
+	ret = ioctl(fd2, DRM_IOCTL_GEM_FLINK, &flink);
+	assert(ret == 0);
+
+	gem_open.name = flink.name;
+	ret = ioctl(fd, DRM_IOCTL_GEM_OPEN, &gem_open);
+	assert(ret == 0);
+	assert(gem_open.handle != 0);
+
+	close(fd2);
+	fd2 = drm_open_any();
+
+	gem_open.name = flink.name;
+	ret = ioctl(fd2, DRM_IOCTL_GEM_OPEN, &gem_open);
+	assert(ret == 0);
+	assert(gem_open.handle != 0);
+}
+
 int main(int argc, char **argv)
 {
 	int fd;
@@ -130,6 +165,8 @@ int main(int argc, char **argv)
 	if (drmtest_run_subtest("bad-flink"))
 		test_bad_flink(fd);
 	if (drmtest_run_subtest("bad-open"))
+		test_bad_open(fd);
+	if (drmtest_run_subtest("flink-lifetime"))
 		test_bad_open(fd);
 
 	return 0;
