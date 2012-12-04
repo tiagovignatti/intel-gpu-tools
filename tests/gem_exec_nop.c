@@ -41,8 +41,7 @@
 #include "drm.h"
 #include "i915_drm.h"
 #include "drmtest.h"
-
-#define MI_BATCH_BUFFER_END	(0xA<<23)
+#include "intel_gpu_tools.h"
 
 static double elapsed(const struct timeval *start,
 		      const struct timeval *end,
@@ -51,7 +50,7 @@ static double elapsed(const struct timeval *start,
 	return (1e6*(end->tv_sec - start->tv_sec) + (end->tv_usec - start->tv_usec))/loop;
 }
 
-static int exec(int fd, uint32_t handle, int loops)
+static int exec(int fd, uint32_t handle, int loops, unsigned ring_id)
 {
 	struct drm_i915_gem_execbuffer2 execbuf;
 	struct drm_i915_gem_exec_object2 gem_exec[1];
@@ -88,29 +87,48 @@ static int exec(int fd, uint32_t handle, int loops)
 	return ret;
 }
 
-int main(int argc, char **argv)
+static void loop(int fd, uint32_t handle, unsigned ring_id, const char *ring_name)
 {
-	uint32_t batch[2] = {MI_BATCH_BUFFER_END};
-	uint32_t handle;
 	int count;
-	int fd;
-
-	fd = drm_open_any();
-
-	handle = gem_create(fd, 4096);
-	gem_write(fd, handle, 0, batch, sizeof(batch));
 
 	for (count = 1; count <= 1<<17; count <<= 1) {
 		struct timeval start, end;
 
 		gettimeofday(&start, NULL);
-		if (exec(fd, handle, count))
+		if (exec(fd, handle, count, ring_id))
 			exit(1);
 		gettimeofday(&end, NULL);
-		printf("Time to exec x %d:		%7.3fµs\n",
-		       count, elapsed(&start, &end, count));
+		printf("Time to exec x %d:		%7.3fµs (ring=%s)\n",
+		       count, elapsed(&start, &end, count), ring_name);
 		fflush(stdout);
 	}
+
+}
+int main(int argc, char **argv)
+{
+	uint32_t batch[2] = {MI_BATCH_BUFFER_END};
+	uint32_t handle;
+	uint32_t devid;
+	int fd;
+
+	fd = drm_open_any();
+	devid = intel_get_drm_devid(fd);
+
+	handle = gem_create(fd, 4096);
+	gem_write(fd, handle, 0, batch, sizeof(batch));
+
+	if (drmtest_run_subtest("render"))
+		loop(fd, handle, I915_EXEC_RENDER, "render");
+
+	if (drmtest_run_subtest("bsd"))
+		if (HAS_BSD_RING(devid))
+			loop(fd, handle, I915_EXEC_BSD, "bsd");
+
+	if (drmtest_run_subtest("blt"))
+		if (HAS_BLT_RING(devid))
+			loop(fd, handle, I915_EXEC_BLT, "blt");
+
+
 	gem_close(fd, handle);
 
 	close(fd);
