@@ -36,6 +36,30 @@ tests/
 	  options to test different kms functionality, again read the source of
 	  the details.
 
+	The more comfortable way to run tests is with piglit. First grab piglit
+	from
+
+	git://anongit.freedesktop.org/piglit
+
+	and build it (no need to install anything). Then we need to link up the
+	i-g-t sources with piglit
+
+	piglit-sources $ cd bin
+	piglit-sources/bin $ ln $i-g-t-sources igt -s
+
+	The tests in the i-g-t sources need to have been built already. Then we
+	can run the testcases with (as usual as root, no other drm clients
+	running):
+
+	piglit-sources # ./piglit-run.py tests/igt.tests
+
+	The testlist is built at runtime, so no need to update anything in
+	piglit when adding new tests. See
+
+	piglit-sources $ ./piglit-run.py -h
+
+	for some useful options.
+
 lib/
 	Common helper functions and headers used by the other tools.
 
