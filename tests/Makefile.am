@@ -50,6 +50,7 @@ TESTS_progs = \
 	gem_linear_blits \
 	gem_vmap_blits \
 	gem_threaded_access_tiled \
+	gem_seqno_wrap \
 	gem_tiled_blits \
 	gem_tiled_fence_blits \
 	gem_largeobject \
