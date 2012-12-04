@@ -107,6 +107,9 @@ TESTS_scripts = \
 	ZZ_hangman \
 	$(NULL)
 
+# This target contains testcases which support automagic subtest enumeration
+# from the piglit testrunner with --list-subtests and running individual
+# subtests with --run-subtest <testname>
 multi_kernel_tests = \
 	$(TESTS_progs_M) \
 	$(TESTS_scripts_M) \
