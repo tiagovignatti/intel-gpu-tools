@@ -43,6 +43,8 @@
 #include "drmtest.h"
 #include "intel_gpu_tools.h"
 
+bool skipped_all = true;
+
 static double elapsed(const struct timeval *start,
 		      const struct timeval *end,
 		      int loop)
@@ -91,6 +93,8 @@ static void loop(int fd, uint32_t handle, unsigned ring_id, const char *ring_nam
 {
 	int count;
 
+	skipped_all = false;
+
 	for (count = 1; count <= 1<<17; count <<= 1) {
 		struct timeval start, end;
 
@@ -135,5 +139,5 @@ int main(int argc, char **argv)
 
 	close(fd);
 
-	return 0;
+	return skipped_all ? 77 : 0;
 }
