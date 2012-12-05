@@ -127,10 +127,7 @@ int main(int argc, char **argv)
 	int fd;
 	int devid;
 
-	if (argc != 1) {
-		fprintf(stderr, "usage: %s\n", argv[0]);
-		exit(-1);
-	}
+	drmtest_subtest_init(argc, argv);
 
 	fd = drm_open_any();
 	devid = intel_get_drm_devid(fd);
@@ -158,32 +155,39 @@ int main(int argc, char **argv)
 		exit(-1);
 	}
 
-	fprintf(stderr, "running dummy loop on render\n");
-	dummy_reloc_loop(I915_EXEC_RENDER);
-	fprintf(stderr, "dummy loop run on render completed\n");
+	if (drmtest_run_subtest("render")) {
+		printf("running dummy loop on render\n");
+		dummy_reloc_loop(I915_EXEC_RENDER);
+		printf("dummy loop run on render completed\n");
+	}
 
-	if (!HAS_BSD_RING(devid))
-		goto skip;
+	if (drmtest_run_subtest("bsd")) {
+		if (HAS_BSD_RING(devid)) {
+			sleep(2);
+			printf("running dummy loop on bsd\n");
+			dummy_reloc_loop(I915_EXEC_BSD);
+			printf("dummy loop run on bsd completed\n");
+		}
+	}
 
-	sleep(2);
-	fprintf(stderr, "running dummy loop on bsd\n");
-	dummy_reloc_loop(I915_EXEC_BSD);
-	fprintf(stderr, "dummy loop run on bsd completed\n");
+	if (drmtest_run_subtest("blt")) {
+		if (HAS_BLT_RING(devid)) {
+			sleep(2);
+			printf("running dummy loop on blt\n");
+			dummy_reloc_loop(I915_EXEC_BLT);
+			printf("dummy loop run on blt completed\n");
+		}
+	}
 
-	if (!HAS_BLT_RING(devid))
-		goto skip;
+	if (drmtest_run_subtest("mixed")) {
+		if (HAS_BLT_RING(devid) && HAS_BSD_RING(devid)) {
+			sleep(2);
+			printf("running dummy loop on random rings\n");
+			dummy_reloc_loop_random_ring();
+			printf("dummy loop run on random rings completed\n");
+		}
+	}
 
-	sleep(2);
-	fprintf(stderr, "running dummy loop on blt\n");
-	dummy_reloc_loop(I915_EXEC_BLT);
-	fprintf(stderr, "dummy loop run on blt completed\n");
-
-	sleep(2);
-	fprintf(stderr, "running dummy loop on random rings\n");
-	dummy_reloc_loop_random_ring();
-	fprintf(stderr, "dummy loop run on random rings completed\n");
-
-skip:
 	drm_intel_bo_unreference(target_buffer);
 	intel_batchbuffer_free(batch);
 	drm_intel_bufmgr_destroy(bufmgr);

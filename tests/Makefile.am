@@ -17,6 +17,7 @@ TESTS_progs_M = \
 	gem_cacheing \
 	gem_cpu_concurrent_blit \
 	gem_cs_tlb \
+	gem_dummy_reloc_loop \
 	gem_exec_bad_domains \
 	gem_exec_nop \
 	gem_flink \
@@ -70,7 +71,6 @@ TESTS_progs = \
 	gem_storedw_loop_blt \
 	gem_storedw_loop_bsd \
 	gem_storedw_batches_loop \
-	gem_dummy_reloc_loop \
 	gem_double_irq_loop \
 	gem_ring_sync_loop \
 	gem_pipe_control_store_loop \
