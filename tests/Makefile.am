@@ -18,6 +18,7 @@ TESTS_progs_M = \
 	gem_cpu_concurrent_blit \
 	gem_cs_tlb \
 	gem_exec_bad_domains \
+	gem_exec_nop \
 	gem_flink \
 	gem_gtt_concurrent_blit \
 	gem_mmap_gtt \
@@ -32,7 +33,6 @@ TESTS_progs = \
 	getversion \
 	getclient \
 	getstats \
-	gem_exec_nop \
 	gem_exec_big \
 	gem_exec_blt \
 	gem_exec_faulting_reloc \

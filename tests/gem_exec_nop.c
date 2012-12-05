@@ -73,7 +73,7 @@ static int exec(int fd, uint32_t handle, int loops, unsigned ring_id)
 	execbuf.num_cliprects = 0;
 	execbuf.DR1 = 0;
 	execbuf.DR4 = 0;
-	execbuf.flags = 0;
+	execbuf.flags = ring_id;
 	i915_execbuffer2_set_context_id(execbuf, 0);
 	execbuf.rsvd2 = 0;
 
@@ -110,6 +110,8 @@ int main(int argc, char **argv)
 	uint32_t handle;
 	uint32_t devid;
 	int fd;
+
+	drmtest_subtest_init(argc, argv);
 
 	fd = drm_open_any();
 	devid = intel_get_drm_devid(fd);
