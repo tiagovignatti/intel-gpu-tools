@@ -54,8 +54,27 @@ intel_get_pci_device(void)
 		exit(1);
 	}
 
-	/* Grab the graphics card */
+	/* Grab the graphics card. Try the canonical slot first, then
+	 * walk the entire PCI bus for a matching device. */
 	pci_dev = pci_device_find_by_slot(0, 0, 2, 0);
+	if (pci_dev == NULL || pci_dev->vendor_id != 0x8086) {
+		struct pci_device_iterator *iter;
+		struct pci_id_match match;
+
+		match.vendor_id = 0x8086; /* Intel */
+		match.device_id = PCI_MATCH_ANY;
+		match.subvendor_id = PCI_MATCH_ANY;
+		match.subdevice_id = PCI_MATCH_ANY;
+
+		match.device_class = 0x3 << 16;
+		match.device_class_mask = 0xff << 16;
+
+		match.match_data = 0;
+
+		iter = pci_id_match_iterator_create(&match);
+		pci_dev = pci_device_next(iter);
+		pci_iterator_destroy(iter);
+	}
 	if (pci_dev == NULL)
 		errx(1, "Couldn't find graphics card");
 
