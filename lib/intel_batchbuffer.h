@@ -15,6 +15,7 @@ struct intel_batchbuffer {
 
 	uint8_t buffer[BATCH_SZ];
 	uint8_t *ptr;
+	uint8_t *state;
 };
 
 struct intel_batchbuffer *intel_batchbuffer_alloc(drm_intel_bufmgr *bufmgr,
