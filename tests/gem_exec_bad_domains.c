@@ -210,6 +210,8 @@ int main(int argc, char **argv)
 		}
 	}
 
+#if 0 /* kernel checks have been eased, doesn't reject conflicting write domains
+	 any more */
 	if (drmtest_run_subtest("conflicting-write-domain")) {
 		BEGIN_BATCH(4);
 		OUT_BATCH(0);
@@ -225,6 +227,7 @@ int main(int argc, char **argv)
 			exit(1);
 		}
 	}
+#endif
 
 	if (drmtest_run_subtest("double-write-domain"))
 		multi_write_domain(fd);
