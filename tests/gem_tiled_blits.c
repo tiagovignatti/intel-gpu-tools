@@ -67,17 +67,16 @@ create_bo(uint32_t start_val)
 	drm_intel_bo *bo, *linear_bo;
 	uint32_t *linear;
 	uint32_t tiling = I915_TILING_X;
-	int ret, i;
+	int i;
 
 	bo = drm_intel_bo_alloc(bufmgr, "tiled bo", 1024 * 1024, 4096);
-	ret = drm_intel_bo_set_tiling(bo, &tiling, width * 4);
-	assert(ret == 0);
+	do_or_die(drm_intel_bo_set_tiling(bo, &tiling, width * 4));
 	assert(tiling == I915_TILING_X);
 
 	linear_bo = drm_intel_bo_alloc(bufmgr, "linear src", 1024 * 1024, 4096);
 
 	/* Fill the BO with dwords starting at start_val */
-	drm_intel_bo_map(linear_bo, 1);
+	do_or_die(drm_intel_bo_map(linear_bo, 1));
 	linear = linear_bo->virtual;
 	for (i = 0; i < 1024 * 1024 / 4; i++)
 		linear[i] = start_val++;
@@ -101,7 +100,7 @@ check_bo(drm_intel_bo *bo, uint32_t start_val)
 
 	intel_copy_bo(batch, linear_bo, bo, width, height);
 
-	drm_intel_bo_map(linear_bo, 0);
+	do_or_die(drm_intel_bo_map(linear_bo, 0));
 	linear = linear_bo->virtual;
 
 	for (i = 0; i < 1024 * 1024 / 4; i++) {
@@ -147,6 +146,7 @@ int main(int argc, char **argv)
 
 	bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
 	drm_intel_bufmgr_gem_enable_reuse(bufmgr);
+	drm_intel_bufmgr_gem_set_vma_cache_size(bufmgr, 32);
 	batch = intel_batchbuffer_alloc(bufmgr, intel_get_drm_devid(fd));
 
 	for (i = 0; i < count; i++) {

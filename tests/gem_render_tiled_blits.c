@@ -80,6 +80,7 @@ int main(int argc, char **argv)
 	}
 
 	bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
+	drm_intel_bufmgr_gem_set_vma_cache_size(bufmgr, 32);
 	batch = intel_batchbuffer_alloc(bufmgr, intel_get_drm_devid(fd));
 
 	count = 0;
