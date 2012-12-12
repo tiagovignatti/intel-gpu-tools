@@ -149,6 +149,8 @@ main(int argc, char **argv)
 		munmap(data, sizeof(linear));
 
 		/* Leak both bos so that we use all of system mem! */
+		gem_madvise(fd, handle_target, I915_MADV_DONTNEED);
+		gem_madvise(fd, handle, I915_MADV_DONTNEED);
 
 		drmtest_progress("gem_tiled_pread_pwrite: ", i, count/2);
 	}
