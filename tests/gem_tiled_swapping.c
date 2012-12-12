@@ -79,6 +79,9 @@ create_bo_and_fill(int fd)
 
 	/* Fill the BO with dwords starting at start_val */
 	data = gem_mmap(fd, handle, LINEAR_DWORDS, PROT_READ | PROT_WRITE);
+	if (data == NULL && errno == ENOSPC)
+		return 0;
+
 	for (i = 0; i < WIDTH*HEIGHT; i++)
 		data[i] = i;
 	munmap(data, LINEAR_DWORDS);
@@ -117,8 +120,13 @@ main(int argc, char **argv)
 		return 77;
 	}
 
-	for (i = 0; i < count; i++)
+	for (i = 0; i < count; i++) {
 		bo_handles[i] = create_bo_and_fill(fd);
+		if (bo_handles[i] == 0) {
+			printf("insufficient address space\n");
+			return 77;
+		}
+	}
 
 	for (i = 0; i < count; i++)
 		idx_arr[i] = i;
