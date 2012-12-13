@@ -373,7 +373,8 @@ static void check_state(struct test_output *o, struct event_state *es)
 	double usec_interflip;
 
 	timersub(&es->current_ts, &es->current_received_ts, &diff);
-	if (diff.tv_sec > 0 || (diff.tv_sec == 0 && diff.tv_usec > 2000)) {
+	if ((!analog_tv_connector(o)) &&
+	    (diff.tv_sec > 0 || (diff.tv_sec == 0 && diff.tv_usec > 2000))) {
 		fprintf(stderr, "%s ts delayed for too long: %is, %iusec\n",
 			es->name, (int)diff.tv_sec, (int)diff.tv_usec);
 		exit(5);
@@ -407,16 +408,14 @@ static void check_state(struct test_output *o, struct event_state *es)
 			fprintf(stderr, "inter-%s ts jitter: %is, %ius\n",
 				es->name,
 				(int) diff.tv_sec, (int) diff.tv_usec);
-			/* atm this is way too easy to hit, thanks to the hpd
-			 * poll helper :( hence make it non-fatal for now */
-			//exit(9);
+			exit(9);
 		}
 
 		if (es->current_seq != es->last_seq + es->seq_step) {
 			fprintf(stderr, "unexpected %s seq %u, expected %u\n",
 					es->name, es->current_seq,
 					es->last_seq + es->seq_step);
-			/* no exit, due to the same reason as above */
+			exit(9);
 		}
 	}
 }
@@ -969,7 +968,8 @@ int main(int argc, char **argv)
 		int flags;
 		const char *name;
 	} tests[] = {
-		{ 15, TEST_VBLANK | TEST_CHECK_TS, "wf_vblank" },
+		{ 15, TEST_VBLANK, "wf_vblank" },
+		{ 15, TEST_VBLANK | TEST_CHECK_TS, "wf_vblank-ts-check" },
 		{ 15, TEST_VBLANK | TEST_VBLANK_BLOCK | TEST_CHECK_TS,
 					"blocking-wf_vblank" },
 		{ 5,  TEST_VBLANK | TEST_VBLANK_ABSOLUTE,
@@ -983,7 +983,8 @@ int main(int argc, char **argv)
 		{ 30,  TEST_VBLANK | TEST_MODESET | TEST_WITH_DUMMY_LOAD,
 					"delayed-wf_vblank-vs-modeset" },
 
-		{ 15, TEST_FLIP | TEST_CHECK_TS | TEST_EBUSY , "plain-flip" },
+		{ 15, TEST_FLIP | TEST_EBUSY , "plain-flip" },
+		{ 15, TEST_FLIP | TEST_CHECK_TS | TEST_EBUSY , "plain-flip-ts-check" },
 		{ 30, TEST_FLIP | TEST_DPMS | TEST_EINVAL, "flip-vs-dpms" },
 		{ 30, TEST_FLIP | TEST_DPMS | TEST_WITH_DUMMY_LOAD, "delayed-flip-vs-dpms" },
 		{ 5,  TEST_FLIP | TEST_PAN, "flip-vs-panning" },
