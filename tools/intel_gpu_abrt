@@ -8,6 +8,9 @@ get(){
 	cp -a ${@:1:$#-1} $tardir/${@:$#} 2>/dev/null
     fi
 }
+
+igtdir=`dirname $0`
+
 if [ -d /debug/dri ] ; then
 	debugfs_path=/debug_dri
 fi
@@ -38,6 +41,7 @@ get $i915_debugfs/* debugfs
 get /sys/module/i915/parameters/* mod_opts
 
 mkdir $tardir/X
+xrandr --verbose > $tardir/X/xrandr
 get /var/log/Xorg.0.log X
 get /var/log/Xorg.0.log.old X
 get /etc/X11/xorg.conf X
@@ -45,6 +49,14 @@ get /etc/X11/xorg.conf.d/ X
 
 dmesg > $tardir/dmesg
 lspci -nn > $tardir/lspci
+
+$igtdir/intel_reg_dumper > $tardir/intel_reg_dumper.txt
+$igtdir/intel_bios_dumper $tardir/intel_bios_dump
+$igtdir/intel_stepping > $tardir/intel_stepping
+
+echo 1 > /sys/devices/pci0000:00/0000:00:02.0/rom
+cat /sys/devices/pci0000:00/0000:00:02.0/rom > $tardir/vbios.dump
+echo 0 > /sys/devices/pci0000:00/0000:00:02.0/rom
 
 (cd $tmpdir; tar -c intel_gpu_abrt ) > intel_gpu_abrt.tar
 
