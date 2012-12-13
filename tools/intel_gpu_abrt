@@ -67,4 +67,36 @@ echo 0 > /sys/devices/pci0000:00/0000:00:02.0/rom
 
 rm $tmpdir -Rf
 
+if [ -f intel_gpu_abrt.tar ] ; then
+	cat <<EOF
+intel_gpu_abrt.tar has been created.
+
+Please attach it to https://bugs.freedesktop.org
+with a good bug description as suggested in this template:
+
+System environment:
+-- chipset:
+-- system architecture: `uname -m`
+-- xf86-video-intel:
+-- xserver: `grep "X.Org X Server" /var/log/Xorg.0.log | awk '{print $NF}'`
+-- mesa:
+-- libdrm: `pkg-config --modversion libdrm`
+-- kernel: `uname -r`
+-- Linux distribution:
+-- Machine or mobo model:
+-- Display connector:
+
+Reproducing steps:
+
+Additional info:
+
+EOF
 exit 0
+else
+cat <<EOF
+Error on tarball generation.
+For bug report, please follow manual instructions available at:
+https://01.org/linuxgraphics/documentation/how-report-bugs-0
+EOF
+exit 1
+fi
