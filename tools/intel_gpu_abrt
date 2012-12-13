@@ -1,5 +1,13 @@
 #!/bin/sh
 
+get(){
+    if [ ! -e $tardir/${@:$#} ] ; then
+	mkdir -p $tardir/${@:$#}
+    fi
+    if [ -e $1 ] ; then
+	cp -a ${@:1:$#-1} $tardir/${@:$#} 2>/dev/null
+    fi
+}
 if [ -d /debug/dri ] ; then
 	debugfs_path=/debug_dri
 fi
@@ -25,15 +33,15 @@ tmpdir=`mktemp -d`
 tardir=$tmpdir/intel_gpu_abrt
 mkdir $tardir
 
-mkdir $tardir/debugfs
-cp $i915_debugfs/* $tardir/debugfs
+get $i915_debugfs/* debugfs
 
-mkdir $tardir/mod_opts
-cp /sys/module/i915/parameters/* $tardir/mod_opts
+get /sys/module/i915/parameters/* mod_opts
 
 mkdir $tardir/X
-cp /var/log/Xorg.*.log $tardir/X
-cp /etc/X11/xorg.conf $tardir/X
+get /var/log/Xorg.0.log X
+get /var/log/Xorg.0.log.old X
+get /etc/X11/xorg.conf X
+get /etc/X11/xorg.conf.d/ X
 
 dmesg > $tardir/dmesg
 lspci -nn > $tardir/lspci
