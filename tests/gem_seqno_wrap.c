@@ -47,7 +47,7 @@
 #include "intel_gpu_tools.h"
 #include "rendercopy.h"
 
-#define BUFFERS_TO_SYNC 128
+#define SAFETY_REGION 0x1f
 
 static int devid;
 static uint32_t last_seqno = 0;
@@ -64,6 +64,8 @@ struct option_struct {
 	int timeout;
 	int dontwrap;
 	int prewrap_space;
+	int random;
+	int buffers;
 };
 
 static struct option_struct options;
@@ -145,6 +147,7 @@ static void render_copyfunc(struct scratch_buf *src,
 {
 	const int src_x = 0, src_y = 0, dst_x = 0, dst_y = 0;
 	render_copyfunc_t rendercopy = get_render_copyfunc(devid);
+	static int warned = 0;
 
 	if (rendercopy) {
 		rendercopy(batch_3d,
@@ -153,27 +156,44 @@ static void render_copyfunc(struct scratch_buf *src,
 			   dst, dst_x, dst_y);
 		intel_batchbuffer_flush(batch_3d);
 	} else {
-		printf("No render copy found for this gen, test is shallow!\n");
+		if (!warned) {
+			printf("No render copy found for this gen, "
+			       "test is shallow!\n");
+			warned = 1;
+		}
 		intel_copy_bo(batch_blt, dst->bo, src->bo, width, height);
 		intel_batchbuffer_flush(batch_blt);
 	}
 }
 
-static int run_sync_test(void)
+static void exchange_uint(void *array, unsigned i, unsigned j)
+{
+	unsigned *i_arr = array;
+	unsigned i_tmp;
+
+	i_tmp = i_arr[i];
+	i_arr[i] = i_arr[j];
+	i_arr[j] = i_tmp;
+}
+
+static int run_sync_test(int num_buffers, bool verify)
 {
 	drm_intel_bufmgr *bufmgr;
-	int num_buffers = BUFFERS_TO_SYNC, max;
+	int max;
 	drm_intel_bo *src[128], *dst1[128], *dst2[128];
 	int width = 128, height = 128;
 	int fd;
 	int i;
 	int r = -1;
 	int failed = 0;
-
+	unsigned int *p_dst1, *p_dst2;
 	struct scratch_buf s_src[128], s_dst[128];
 
 	fd = drm_open_any();
 	assert(fd >= 0);
+
+	gem_quiescent_gpu(fd);
+
 	devid = intel_get_drm_devid(fd);
 
 	max = gem_aperture_size (fd) / (1024 * 1024) / 2;
@@ -187,7 +207,16 @@ static int run_sync_test(void)
 	batch_3d = intel_batchbuffer_alloc(bufmgr, intel_get_drm_devid(fd));
 	assert(batch_3d);
 
+	p_dst1 = malloc(num_buffers * sizeof(unsigned int));
+	if (p_dst1 == NULL)
+		return -ENOMEM;
+
+	p_dst2 = malloc(num_buffers * sizeof(unsigned int));
+	if (p_dst2 == NULL)
+		return -ENOMEM;
+
 	for (i = 0; i < num_buffers; i++) {
+		p_dst1[i] = p_dst2[i] = i;
 		src[i] = create_bo(bufmgr, i, width, height);
 		dst1[i] = create_bo(bufmgr, ~i, width, height);
 		dst2[i] = create_bo(bufmgr, ~i, width, height);
@@ -195,19 +224,27 @@ static int run_sync_test(void)
 		init_buffer(bufmgr, &s_dst[i], dst1[i], width, height);
 	}
 
-	/* dummy = create_bo(bufmgr, 0, width, height); */
+	drmtest_permute_array(p_dst1, num_buffers, exchange_uint);
+	drmtest_permute_array(p_dst2, num_buffers, exchange_uint);
 
-	for (i = 0; i < num_buffers; i++) {
-		render_copyfunc(&s_src[i], &s_dst[i], width, height);
-		intel_copy_bo(batch_blt, dst2[i], dst1[i], width, height);
-	}
+	for (i = 0; i < num_buffers; i++)
+		render_copyfunc(&s_src[i], &s_dst[p_dst1[i]], width, height);
 
-	for (i = 0; i < num_buffers; i++) {
-		r = cmp_bo(dst2[i], i, width, height);
-		if (r) {
-			printf("buffer %d differs, seqno_before_test 0x%x, approximated seqno on test fail 0x%x\n",
-			       i, last_seqno_write, last_seqno_write + i * 2);
-			failed = -1;
+	/* Only sync between buffers if this is actual test run and
+	 * not a seqno filler */
+	if (verify) {
+		for (i = 0; i < num_buffers; i++)
+			intel_copy_bo(batch_blt, dst2[p_dst2[i]], dst1[p_dst1[i]],
+				      width, height);
+
+		for (i = 0; i < num_buffers; i++) {
+			r = cmp_bo(dst2[p_dst2[i]], i, width, height);
+			if (r) {
+				printf("buffer %d differs, seqno_before_test 0x%x, "
+				       " approximated seqno on test fail 0x%x\n",
+				       i, last_seqno_write, last_seqno_write + i * 2);
+				failed = -1;
+			}
 		}
 	}
 
@@ -220,6 +257,11 @@ static int run_sync_test(void)
 	intel_batchbuffer_free(batch_3d);
 	intel_batchbuffer_free(batch_blt);
 	drm_intel_bufmgr_destroy(bufmgr);
+
+	free(p_dst1);
+	free(p_dst2);
+
+	gem_quiescent_gpu(fd);
 
 	close(fd);
 
@@ -270,7 +312,9 @@ static int run_cmd(char *s)
 			if (r == pid) {
 				if(WIFEXITED(status)) {
 					if (WEXITSTATUS(status))
-						fprintf(stderr, "child returned with %d\n", WEXITSTATUS(status));
+						fprintf(stderr,
+						    "child returned with %d\n",
+							WEXITSTATUS(status));
 					return WEXITSTATUS(status);
 				}
 			} else if (r != 0) {
@@ -365,9 +409,25 @@ static int write_seqno(uint32_t seqno)
 
 static uint32_t calc_prewrap_val(void)
 {
-	const int pval = options.prewrap_space - 1;
+	const int pval = options.prewrap_space;
 
-	return (pval >> 1) + (random() % (pval >> 1));
+	if (options.random == 0)
+		return pval;
+
+	return random() % pval;
+}
+
+static int seqno_near_boundary(uint32_t seqno)
+{
+	if (seqno > UINT32_MAX - options.prewrap_space ||
+	    seqno < options.prewrap_space)
+		return 1;
+
+	if (seqno < UINT32_MAX/2 + SAFETY_REGION &&
+	    seqno > UINT32_MAX/2 - SAFETY_REGION)
+		return 1;
+
+	return 0;
 }
 
 static int run_once(void)
@@ -382,29 +442,25 @@ static int run_once(void)
 	r = read_seqno(&seqno_before);
 	assert(r == 0);
 
-	if (seqno_before == last_seqno) {
-		sleep(2);
-		return 0;
-	}
-
 	seqno = last_seqno = seqno_before;
 
-	if (seqno < UINT32_MAX - options.prewrap_space) {
-		if (seqno < UINT32_MAX/2)
-			seqno = UINT32_MAX/2 - options.prewrap_space;
-		else
+	/* Skip seqno write if close to boundary */
+	if (!seqno_near_boundary(seqno)) {
+		if (seqno > UINT32_MAX/2 + 1)
 			seqno = UINT32_MAX - pw_val;
-
-		if ((int)(seqno - seqno_before) <= 0)
-			return 0;
+		else
+			seqno = UINT32_MAX/2 - SAFETY_REGION;
 
 		if (!options.dontwrap) {
 			r = write_seqno(seqno);
 			if (r < 0) {
-				fprintf(stderr, "write_seqno returned %d\n", r);
+				fprintf(stderr,
+					"write_seqno 0x%x returned %d\n",
+					seqno, r);
 
-				/* We might fail if we are at background and some
-				 * operations were done between seqno read and this write
+				/* We might fail if we are at background and
+				 * some operations were done between seqno
+				 * read and this write
 				 */
 				if (!options.background)
 					return r;
@@ -412,11 +468,18 @@ static int run_once(void)
 		}
 	}
 
-	if (options.background == 0) {
-		if (strnlen(options.cmd, sizeof(options.cmd)) > 0) {
-			r = run_cmd(options.cmd);
+	if (!options.background) {
+		/* Only run tests if we are across the half way of seqno space.
+		 * If we are not, run something which just increments seqnos
+		 */
+		if (seqno >= UINT32_MAX/2 + 1) {
+			if (strnlen(options.cmd, sizeof(options.cmd)) > 0) {
+				r = run_cmd(options.cmd);
+			} else {
+				r = run_sync_test(options.buffers, true);
+			}
 		} else {
-			r = run_sync_test();
+			r = run_sync_test(options.buffers, false);
 		}
 
 		if (r != 0) {
@@ -434,7 +497,8 @@ static int run_once(void)
 	if (seqno_before > seqno_after) {
 		if (options.verbose)
 			printf("before 0x%x, after 0x%x , diff %d\n",
-			       seqno_before, seqno_after, seqno_after - seqno_before);
+			       seqno_before, seqno_after,
+			       seqno_after - seqno_before);
 
 		return 1;
 	}
@@ -452,6 +516,8 @@ static void print_usage(const char *s)
 	printf("    -t --timeout=sec      set timeout to wait for testrun to sec seconds\n");
 	printf("    -d --dontwrap         don't wrap just run the test\n");
 	printf("    -p --prewrap=n        set seqno to WRAP - n for each testrun\n");
+	printf("    -r --norandom         dont randomize prewrap space\n");
+	printf("    -i --buffers          number of buffers to copy\n");
 	exit(-1);
 }
 
@@ -467,17 +533,21 @@ static void parse_options(int argc, char **argv)
 		{"dontwrap", no_argument, 0, 'd'},
 		{"verbose", no_argument, 0, 'v'},
 		{"prewrap", required_argument, 0, 'p'},
+		{"norandom", no_argument, 0, 'r'},
+		{"buffers", required_argument, 0, 'i'},
 	};
 
 	strcpy(options.cmd, "");
-	options.rounds = 5;
+	options.rounds = 50;
 	options.background = 0;
 	options.dontwrap = 0;
 	options.timeout = 20;
 	options.verbose = 0;
-	options.prewrap_space = BUFFERS_TO_SYNC/2;
+	options.random = 1;
+	options.prewrap_space = 30;
+	options.buffers = 20;
 
-	while((c = getopt_long(argc, argv, "c:n:bvt:dp:",
+	while((c = getopt_long(argc, argv, "c:n:bvt:dp:ri:",
 			       long_options, &option_index)) != -1) {
 		switch(c) {
 		case 'b':
@@ -497,14 +567,22 @@ static void parse_options(int argc, char **argv)
 			options.cmd[sizeof(options.cmd) - 1] = 0;
 			printf("cmd set to %s\n", options.cmd);
 			break;
+		case 'i':
+			options.buffers = atoi(optarg);
+			printf("buffers %d\n", options.buffers);
+			break;
 		case 't':
 			options.timeout = atoi(optarg);
 			if (options.timeout == 0)
 				options.timeout = 10;
-			printf("setting timeout to %d seconds\n", options.timeout);
+			printf("setting timeout to %d seconds\n",
+			       options.timeout);
 			break;
 		case 'v':
 			options.verbose = 1;
+			break;
+		case 'r':
+			options.random = 0;
 			break;
 		case 'p':
 			options.prewrap_space = atoi(optarg);
