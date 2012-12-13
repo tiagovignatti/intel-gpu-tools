@@ -53,6 +53,7 @@
 #define TEST_VBLANK_BLOCK	(1 << 9)
 #define TEST_VBLANK_ABSOLUTE	(1 << 10)
 #define TEST_VBLANK_EXPIRED_SEQ	(1 << 11)
+#define TEST_FB_RECREATE	(1 << 12)
 
 #define EVENT_FLIP		(1 << 0)
 #define EVENT_VBLANK		(1 << 1)
@@ -115,6 +116,7 @@ struct test_output {
 	unsigned int fb_width;
 	unsigned int fb_height;
 	unsigned int fb_ids[2];
+	int bpp, depth;
 	struct kmstest_fb fb_info[2];
 
 	struct event_state flip_state;
@@ -464,6 +466,28 @@ static void check_all_state(struct test_output *o,
 		check_state_correlation(o, &o->flip_state, &o->vblank_state);
 }
 
+static void recreate_fb(struct test_output *o)
+{
+	drmModeFBPtr r;
+	struct kmstest_fb *fb_info = &o->fb_info[o->current_fb_id];
+	uint32_t new_fb_id;
+
+	/* Call rmfb/getfb/addfb to ensure those don't introduce stalls */
+	r = drmModeGetFB(drm_fd, fb_info->fb_id);
+	assert(r);
+
+	do_or_die(drmModeAddFB(drm_fd, o->fb_width, o->fb_height, o->depth,
+			       o->bpp, fb_info->stride,
+			       r->handle, &new_fb_id));
+
+	drmFree(r);
+	gem_close(drm_fd, r->handle);
+	do_or_die(drmModeRmFB(drm_fd, fb_info->fb_id));
+
+	o->fb_ids[o->current_fb_id] = new_fb_id;
+	o->fb_info[o->current_fb_id].fb_id = new_fb_id;
+}
+
 /* Return mask of completed events. */
 static unsigned int run_test_step(struct test_output *o)
 {
@@ -494,6 +518,8 @@ static unsigned int run_test_step(struct test_output *o)
 
 
 	o->current_fb_id = !o->current_fb_id;
+	if (o->flags & TEST_FB_RECREATE)
+		recreate_fb(o);
 	new_fb_id = o->fb_ids[o->current_fb_id];
 
 	if ((o->flags & TEST_VBLANK_EXPIRED_SEQ) &&
@@ -830,8 +856,10 @@ static unsigned event_loop(struct test_output *o, unsigned duration_sec)
 
 static void run_test_on_crtc(struct test_output *o, int crtc, int duration)
 {
-	int bpp = 32, depth = 24;
 	unsigned ellapsed;
+
+	o->bpp = 32;
+	o->depth = 24;
 
 	connector_find_preferred_mode(o, crtc);
 	if (!o->mode_valid)
@@ -846,11 +874,11 @@ static void run_test_on_crtc(struct test_output *o, int crtc, int duration)
 	if (o->flags & TEST_PAN)
 		o->fb_width *= 2;
 
-	o->fb_ids[0] = kmstest_create_fb(drm_fd, o->fb_width, o->fb_height, bpp,
-					 depth, false, &o->fb_info[0],
+	o->fb_ids[0] = kmstest_create_fb(drm_fd, o->fb_width, o->fb_height,
+					 o->bpp, o->depth, false, &o->fb_info[0],
 					 paint_flip_mode, (void *)false);
-	o->fb_ids[1] = kmstest_create_fb(drm_fd, o->fb_width, o->fb_height, bpp,
-					 depth, false, &o->fb_info[1],
+	o->fb_ids[1] = kmstest_create_fb(drm_fd, o->fb_width, o->fb_height,
+					 o->bpp, o->depth, false, &o->fb_info[1],
 					 paint_flip_mode, (void *)true);
 
 	if (!o->fb_ids[0] || !o->fb_ids[1]) {
@@ -985,6 +1013,8 @@ int main(int argc, char **argv)
 
 		{ 15, TEST_FLIP | TEST_EBUSY , "plain-flip" },
 		{ 15, TEST_FLIP | TEST_CHECK_TS | TEST_EBUSY , "plain-flip-ts-check" },
+		{ 15, TEST_FLIP | TEST_CHECK_TS | TEST_EBUSY | TEST_FB_RECREATE,
+			"plain-flip-fb-recreate" },
 		{ 30, TEST_FLIP | TEST_DPMS | TEST_EINVAL, "flip-vs-dpms" },
 		{ 30, TEST_FLIP | TEST_DPMS | TEST_WITH_DUMMY_LOAD, "delayed-flip-vs-dpms" },
 		{ 5,  TEST_FLIP | TEST_PAN, "flip-vs-panning" },
