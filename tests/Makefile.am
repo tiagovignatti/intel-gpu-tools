@@ -28,8 +28,8 @@ TESTS_progs_M = \
 	gem_ringfill \
 	gem_set_tiling_vs_blt \
 	gem_tiled_partial_pwrite_pread \
-	flip_test \
 	$(NOUVEAU_TESTS_M) \
+	kms_flip \
 	$(NULL)
 
 TESTS_progs = \
@@ -180,7 +180,7 @@ gem_fence_thrash_LDADD = $(LDADD) -lpthread
 gem_threaded_access_tiled_LDADD = $(LDADD) -lpthread
 
 gem_wait_render_timeout_LDADD = $(LDADD) -lrt
-flip_test_LDADD = $(LDADD) -lrt
+kms_flip = $(LDADD) -lrt
 
 gem_ctx_basic_LDADD = $(LDADD) -lpthread
 
