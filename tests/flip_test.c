@@ -54,6 +54,7 @@
 #define TEST_VBLANK_ABSOLUTE	(1 << 10)
 #define TEST_VBLANK_EXPIRED_SEQ	(1 << 11)
 #define TEST_FB_RECREATE	(1 << 12)
+#define TEST_RMFB		(1 << 13)
 
 #define EVENT_FLIP		(1 << 0)
 #define EVENT_VBLANK		(1 << 1)
@@ -396,10 +397,14 @@ static void check_state(struct test_output *o, struct event_state *es)
 	}
 
 	/* This bounding matches the one in DRM_IOCTL_WAIT_VBLANK. */
-	if (es->current_seq - (es->last_seq + es->seq_step) > 1UL << 23) {
-		fprintf(stderr, "unexpected %s seq %u, should be >= %u\n",
-			es->name, es->current_seq, es->last_seq + es->seq_step);
-		exit(10);
+	if (!(o->flags & (TEST_DPMS | TEST_MODESET))) {
+		/* check only valid if no modeset happens in between, that
+		 * increments by (1 << 23) on each step. */
+		if (es->current_seq - (es->last_seq + es->seq_step) > 1UL << 23) {
+			fprintf(stderr, "unexpected %s seq %u, should be >= %u\n",
+				es->name, es->current_seq, es->last_seq + es->seq_step);
+			exit(10);
+		}
 	}
 
 	if ((o->flags & TEST_CHECK_TS) && (!analog_tv_connector(o))) {
@@ -578,6 +583,9 @@ static unsigned int run_test_step(struct test_output *o)
 	if (do_flip && (o->flags & TEST_EBUSY))
 		assert(do_page_flip(o, new_fb_id) == -EBUSY);
 
+	if (do_flip && (o->flags & TEST_RMFB))
+		recreate_fb(o);
+
 	/* pan before the flip completes */
 	if (o->flags & TEST_PAN) {
 		int count = do_flip ?
@@ -597,7 +605,7 @@ static unsigned int run_test_step(struct test_output *o)
 	if (o->flags & TEST_DPMS)
 		do_or_die(set_dpms(o, DRM_MODE_DPMS_OFF));
 
-	if (o->flags & TEST_MODESET) {
+	if (o->flags & TEST_MODESET && !(o->flags & TEST_RMFB)) {
 		if (drmModeSetCrtc(drm_fd, o->crtc,
 				   0, /* no fb */
 				   0, 0,
@@ -1015,6 +1023,7 @@ int main(int argc, char **argv)
 		{ 15, TEST_FLIP | TEST_CHECK_TS | TEST_EBUSY , "plain-flip-ts-check" },
 		{ 15, TEST_FLIP | TEST_CHECK_TS | TEST_EBUSY | TEST_FB_RECREATE,
 			"plain-flip-fb-recreate" },
+		{ 15, TEST_FLIP | TEST_EBUSY | TEST_RMFB | TEST_MODESET , "flip-vs-rmfb" },
 		{ 30, TEST_FLIP | TEST_DPMS | TEST_EINVAL, "flip-vs-dpms" },
 		{ 30, TEST_FLIP | TEST_DPMS | TEST_WITH_DUMMY_LOAD, "delayed-flip-vs-dpms" },
 		{ 5,  TEST_FLIP | TEST_PAN, "flip-vs-panning" },
