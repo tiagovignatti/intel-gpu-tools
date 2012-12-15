@@ -110,6 +110,7 @@ unsigned int kmstest_create_fb(int fd, int width, int height, int bpp,
 			       void *func_arg);
 void kmstest_remove_fb(int fd, int fb_id);
 void kmstest_dump_mode(drmModeModeInfo *mode);
+int kmstest_get_pipe_from_crtc_id(int fd, int crtc_id);
 
 inline static void _do_or_die(const char *function, int line, int ret)
 {

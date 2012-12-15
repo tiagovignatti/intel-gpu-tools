@@ -916,3 +916,16 @@ void kmstest_dump_mode(drmModeModeInfo *mode)
 	fflush(stdout);
 }
 
+int kmstest_get_pipe_from_crtc_id(int fd, int crtc_id)
+{
+	struct drm_i915_get_pipe_from_crtc_id pfci;
+	int ret;
+
+	memset(&pfci, 0, sizeof(pfci));
+	pfci.crtc_id = crtc_id;
+	ret = drmIoctl(fd, DRM_IOCTL_I915_GET_PIPE_FROM_CRTC_ID, &pfci);
+	assert(ret == 0);
+
+	return pfci.pipe;
+}
+

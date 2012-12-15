@@ -938,19 +938,6 @@ static void run_test_on_crtc(struct test_output *o, int crtc, int duration)
 	drmModeFreeConnector(o->connector);
 }
 
-static int get_pipe_from_crtc_id(int crtc_id)
-{
-	struct drm_i915_get_pipe_from_crtc_id pfci;
-	int ret;
-
-	memset(&pfci, 0, sizeof(pfci));
-	pfci.crtc_id = crtc_id;
-	ret = drmIoctl(drm_fd, DRM_IOCTL_I915_GET_PIPE_FROM_CRTC_ID, &pfci);
-	assert(ret == 0);
-
-	return pfci.pipe;
-}
-
 static int run_test(int duration, int flags, const char *test_name)
 {
 	struct test_output o;
@@ -975,7 +962,7 @@ static int run_test(int duration, int flags, const char *test_name)
 			o.flip_state.name = "flip";
 			o.vblank_state.name = "vblank";
 			crtc = resources->crtcs[i];
-			o.pipe = get_pipe_from_crtc_id(crtc);
+			o.pipe = kmstest_get_pipe_from_crtc_id(drm_fd, crtc);
 
 			run_test_on_crtc(&o, crtc, duration);
 		}
