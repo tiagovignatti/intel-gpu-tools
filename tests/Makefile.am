@@ -7,10 +7,10 @@ noinst_PROGRAMS = \
 
 if HAVE_NOUVEAU
 NOUVEAU_TESTS_M = \
-	prime_nv_test
-NOUVEAU_TESTS = \
-	prime_nv_api  \
+	prime_nv_test \
 	prime_nv_pcopy
+NOUVEAU_TESTS = \
+	prime_nv_api
 endif
 
 TESTS_progs_M = \

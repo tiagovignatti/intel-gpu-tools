@@ -28,6 +28,7 @@
 #include "nouveau.h"
 #include "intel_gpu_tools.h"
 #include "intel_batchbuffer.h"
+#include "drmtest.h"
 
 static int intel_fd = -1, nouveau_fd = -1;
 static drm_intel_bufmgr *bufmgr;
@@ -1266,13 +1267,16 @@ int main(int argc, char **argv)
 {
 	int ret, failed = 0, run = 0;
 
+	drmtest_subtest_init(argc, argv);
+
 	ret = find_and_open_devices();
 	if (ret < 0)
 		return ret;
 
 	if (nouveau_fd == -1 || intel_fd == -1) {
 		fprintf(stderr,"failed to find intel and nouveau GPU\n");
-		return 77;
+		if (!drmtest_only_list_subtests())
+			return 77;
 	}
 
 	/* set up intel bufmgr */
@@ -1292,6 +1296,7 @@ int main(int argc, char **argv)
 	batch = intel_batchbuffer_alloc(bufmgr, devid);
 
 #define xtest(x, args...) do { \
+	if (!drmtest_run_subtest( #x )) break; \
 	ret = ((x)(args)); \
 	++run; \
 	if (ret) { \
