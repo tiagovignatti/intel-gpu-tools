@@ -167,7 +167,7 @@ int main(int argc, char **argv)
 	if (drmtest_run_subtest("bad-open"))
 		test_bad_open(fd);
 	if (drmtest_run_subtest("flink-lifetime"))
-		test_bad_open(fd);
+		test_flink_lifetime(fd);
 
 	return 0;
 }
