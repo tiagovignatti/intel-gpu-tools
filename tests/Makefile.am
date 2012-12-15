@@ -6,10 +6,11 @@ noinst_PROGRAMS = \
 	$(NULL)
 
 if HAVE_NOUVEAU
+NOUVEAU_TESTS_M = \
+	prime_nv_test
 NOUVEAU_TESTS = \
 	prime_nv_api  \
-	prime_nv_pcopy \
-	prime_nv_test
+	prime_nv_pcopy
 endif
 
 TESTS_progs_M = \
@@ -28,6 +29,7 @@ TESTS_progs_M = \
 	gem_set_tiling_vs_blt \
 	gem_tiled_partial_pwrite_pread \
 	flip_test \
+	$(NOUVEAU_TESTS_M) \
 	$(NULL)
 
 TESTS_progs = \

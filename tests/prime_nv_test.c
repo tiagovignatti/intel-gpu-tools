@@ -27,6 +27,7 @@
 #include "nouveau.h"
 #include "intel_gpu_tools.h"
 #include "intel_batchbuffer.h"
+#include "drmtest.h"
 
 int intel_fd = -1, nouveau_fd = -1;
 drm_intel_bufmgr *bufmgr;
@@ -267,8 +268,7 @@ static int test5(void)
 
 	ret = drm_intel_bo_map(test_intel_bo, 0);
 	if (ret != 0) {
-		/* failed to map the bo is expected */
-		ret = 0;
+		fprintf(stderr,"failed to map imported bo on intel side\n");
 		goto out;
 	}
 	if (!test_intel_bo->virtual) {
@@ -407,18 +407,17 @@ static int test7(void)
 	*ptr = 0xdeadbeef;
 
 	ret = do_read(intel_fd, test_intel_bo->handle, buf, 0, 256);
-	if (ret != -1) {
-		fprintf(stderr,"pread succeedded %d\n", ret);
+	if (ret) {
+		fprintf(stderr,"pread failed %d\n", errno);
 		goto out;
 	}
 	buf[0] = 0xabcdef55;
 
 	ret = do_write(intel_fd, test_intel_bo->handle, buf, 0, 4);
-	if (ret != -1) {
-		fprintf(stderr,"pwrite succeedded\n");
+	if (ret) {
+		fprintf(stderr,"pwrite failed %d\n", errno);
 		goto out;
 	}
-	ret = 0;
  out:
 	nouveau_bo_ref(NULL, &nvbo);
 	drm_intel_bo_unreference(test_intel_bo);
@@ -505,15 +504,18 @@ out:
 
 int main(int argc, char **argv)
 {
-	int ret;
+	int ret = 0;
 
 	ret = find_and_open_devices();
 	if (ret < 0)
 		return ret;
 
+	drmtest_subtest_init(argc, argv);
+
 	if (nouveau_fd == -1 || intel_fd == -1) {
 		fprintf(stderr,"failed to find intel and nouveau GPU\n");
-		return 77;
+		if (!drmtest_only_list_subtests())
+			return 77;
 	}
 
 	/* set up intel bufmgr */
@@ -541,37 +543,37 @@ int main(int argc, char **argv)
 	intel_batch = intel_batchbuffer_alloc(bufmgr, devid);
 
 	/* create an object on the i915 */
-	ret = test1();
-	if (ret)
-		fprintf(stderr,"prime_test: failed test 1\n");
+	if (drmtest_run_subtest("i915-nouveau-sharing"))
+		if (test1())
+			exit(1);
 
-	ret = test2();
-	if (ret)
-		fprintf(stderr,"prime_test: failed test 2\n");
+	if (drmtest_run_subtest("nouveau-i915-sharing"))
+		if (test2())
+			exit(1);
 
-	ret = test3();
-	if (ret)
-		fprintf(stderr,"prime_test: failed test 3\n");
+	if (drmtest_run_subtest("nouveau-write-i915-shmem-read"))
+		if (test3())
+			exit(1);
 
-	ret = test4();
-	if (ret)
-		fprintf(stderr,"prime_test: failed test 4\n");
+	if (drmtest_run_subtest("nouveau-write-i915-gtt-read"))
+		if (test4())
+			exit(1);
 
-	ret = test5();
-	if (ret)
-		fprintf(stderr,"prime_test: failed test 5\n");
+	if (drmtest_run_subtest("i915-import-shmem-mmap"))
+		if (test5())
+			exit(1);
 
-	ret = test6();
-	if (ret)
-		fprintf(stderr,"prime_test: failed test 6\n");
+	if (drmtest_run_subtest("i915-import-gtt-mmap"))
+		if (test6())
+			exit(1);
 
-	ret = test7();
-	if (ret)
-		fprintf(stderr,"prime_test: failed test 7\n");
+	if (drmtest_run_subtest("i915-import-pread-pwrite"))
+		if (test7())
+			exit(1);
 
-	ret = test8();
-	if (ret)
-		fprintf(stderr,"prime_test: failed test 8\n");
+	if (drmtest_run_subtest("i915-blt-fill-nouveau-read"))
+		if (test8())
+			exit(1);
 
 	intel_batchbuffer_free(intel_batch);
 
