@@ -40,6 +40,7 @@
 #include <sys/wait.h>
 #include <limits.h>
 #include <wordexp.h>
+#include <signal.h>
 
 #include "i915_drm.h"
 #include "intel_bufmgr.h"
