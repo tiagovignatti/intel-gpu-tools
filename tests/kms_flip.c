@@ -812,7 +812,6 @@ static unsigned int wait_for_events(struct test_output *o)
 		timeout.tv_sec *= 10;
 
 	FD_ZERO(&fds);
-	FD_SET(0, &fds);
 	FD_SET(drm_fd, &fds);
 	ret = select(drm_fd + 1, &fds, NULL, NULL, &timeout);
 
