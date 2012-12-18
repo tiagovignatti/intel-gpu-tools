@@ -180,7 +180,7 @@ gem_fence_thrash_LDADD = $(LDADD) -lpthread
 gem_threaded_access_tiled_LDADD = $(LDADD) -lpthread
 
 gem_wait_render_timeout_LDADD = $(LDADD) -lrt
-kms_flip = $(LDADD) -lrt
+kms_flip_LDADD = $(LDADD) -lrt
 
 gem_ctx_basic_LDADD = $(LDADD) -lpthread
 
