@@ -1,0 +1,8 @@
+#!/bin/bash
+
+whoami | grep root || ( echo ERROR: not running as root; exit 1 )
+
+SOURCE_DIR="$( dirname "${BASH_SOURCE[0]}" )"
+. $SOURCE_DIR/drm_lib.sh
+
+exit 0
