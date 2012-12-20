@@ -1330,6 +1330,8 @@ int main(int argc, char **argv)
 	close(intel_fd);
 	close(nouveau_fd);
 
-	printf("Tests: %u run, %u failed\n", run, failed);
+	if (!drmtest_only_list_subtests())
+		printf("Tests: %u run, %u failed\n", run, failed);
+
 	return failed;
 }
