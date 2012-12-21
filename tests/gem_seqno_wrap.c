@@ -27,7 +27,7 @@
 
 /*
  * This test runs blitcopy -> rendercopy with multiple buffers over wrap
- * boundary. Note: Driver can only handle UINT32_MAX/2-1 increments to seqno.
+ * boundary.
  */
 
 #include <stdlib.h>
@@ -48,11 +48,8 @@
 #include "intel_gpu_tools.h"
 #include "rendercopy.h"
 
-#define SAFETY_REGION 0x1f
-
 static int devid;
 static uint32_t last_seqno = 0;
-static uint32_t last_seqno_write = 0;
 
 static struct intel_batchbuffer *batch_blt;
 static struct intel_batchbuffer *batch_3d;
@@ -162,6 +159,8 @@ static void render_copyfunc(struct scratch_buf *src,
 			       "test is shallow!\n");
 			warned = 1;
 		}
+		assert(dst->bo);
+		assert(src->bo);
 		intel_copy_bo(batch_blt, dst->bo, src->bo, width, height);
 		intel_batchbuffer_flush(batch_blt);
 	}
@@ -181,14 +180,14 @@ static int run_sync_test(int num_buffers, bool verify)
 {
 	drm_intel_bufmgr *bufmgr;
 	int max;
-	drm_intel_bo *src[128], *dst1[128], *dst2[128];
+	drm_intel_bo **src, **dst1, **dst2;
 	int width = 128, height = 128;
 	int fd;
 	int i;
 	int r = -1;
 	int failed = 0;
 	unsigned int *p_dst1, *p_dst2;
-	struct scratch_buf s_src[128], s_dst[128];
+	struct scratch_buf *s_src, *s_dst;
 
 	fd = drm_open_any();
 	assert(fd >= 0);
@@ -208,6 +207,21 @@ static int run_sync_test(int num_buffers, bool verify)
 	batch_3d = intel_batchbuffer_alloc(bufmgr, intel_get_drm_devid(fd));
 	assert(batch_3d);
 
+	src = malloc(num_buffers * sizeof(**src));
+	assert(src);
+
+	dst1 = malloc(num_buffers * sizeof(**dst1));
+	assert(dst1);
+
+	dst2 = malloc(num_buffers * sizeof(**dst2));
+	assert(dst2);
+
+	s_src = malloc(num_buffers * sizeof(*s_src));
+	assert(s_src);
+
+	s_dst = malloc(num_buffers * sizeof(*s_dst));
+	assert(s_dst);
+
 	p_dst1 = malloc(num_buffers * sizeof(unsigned int));
 	if (p_dst1 == NULL)
 		return -ENOMEM;
@@ -219,8 +233,11 @@ static int run_sync_test(int num_buffers, bool verify)
 	for (i = 0; i < num_buffers; i++) {
 		p_dst1[i] = p_dst2[i] = i;
 		src[i] = create_bo(bufmgr, i, width, height);
+		assert(src[i]);
 		dst1[i] = create_bo(bufmgr, ~i, width, height);
+		assert(dst1[i]);
 		dst2[i] = create_bo(bufmgr, ~i, width, height);
+		assert(dst2[i]);
 		init_buffer(bufmgr, &s_src[i], src[i], width, height);
 		init_buffer(bufmgr, &s_dst[i], dst1[i], width, height);
 	}
@@ -243,7 +260,7 @@ static int run_sync_test(int num_buffers, bool verify)
 			if (r) {
 				printf("buffer %d differs, seqno_before_test 0x%x, "
 				       " approximated seqno on test fail 0x%x\n",
-				       i, last_seqno_write, last_seqno_write + i * 2);
+				       i, last_seqno, last_seqno + i * 2);
 				failed = -1;
 			}
 		}
@@ -261,6 +278,11 @@ static int run_sync_test(int num_buffers, bool verify)
 
 	free(p_dst1);
 	free(p_dst2);
+	free(s_dst);
+	free(s_src);
+	free(dst2);
+	free(dst1);
+	free(src);
 
 	gem_quiescent_gpu(fd);
 
@@ -323,7 +345,7 @@ static int run_cmd(char *s)
 				return -errno;
 			}
 
-			sleep(1);
+			sleep(3);
 		}
 
 		kill(pid, SIGKILL);
@@ -335,7 +357,7 @@ static int run_cmd(char *s)
 
 static const char *debug_fs_entry = "/sys/kernel/debug/dri/0/i915_next_seqno";
 
-static int read_seqno(uint32_t *seqno)
+static int __read_seqno(uint32_t *seqno)
 {
 	int fh;
 	char buf[32];
@@ -351,13 +373,12 @@ static int read_seqno(uint32_t *seqno)
 	}
 
 	r = read(fh, buf, sizeof(buf) - 1);
+	close(fh);
 	if (r < 0) {
 		perror("read");
-		close(fh);
 		return -errno;
 	}
 
-	close(fh);
 	buf[r] = 0;
 
 	p = strstr(buf, "0x");
@@ -373,9 +394,26 @@ static int read_seqno(uint32_t *seqno)
 	*seqno = tmp;
 
 	if (options.verbose)
-		printf("seqno read : 0x%x\n", *seqno);
+		printf("next_seqno: 0x%x\n", *seqno);
 
 	return 0;
+}
+
+static int read_seqno(void)
+{
+	uint32_t seqno = 0;
+	int r;
+	int wrap = 0;
+
+	r = __read_seqno(&seqno);
+	assert(r == 0);
+
+	if (last_seqno > seqno)
+		wrap++;
+
+	last_seqno = seqno;
+
+	return wrap;
 }
 
 static int write_seqno(uint32_t seqno)
@@ -383,6 +421,9 @@ static int write_seqno(uint32_t seqno)
 	int fh;
 	char buf[32];
 	int r;
+
+	if (options.dontwrap)
+		return 0;
 
 	fh = open(debug_fs_entry, O_RDWR);
 	if (fh == -1) {
@@ -393,17 +434,16 @@ static int write_seqno(uint32_t seqno)
 	assert(snprintf(buf, sizeof(buf), "0x%x", seqno) > 0);
 
 	r = write(fh, buf, strnlen(buf, sizeof(buf)));
+	close(fh);
 	if (r < 0)
 		return r;
 
 	assert(r == strnlen(buf, sizeof(buf)));
 
-	close(fh);
+	last_seqno = seqno;
 
 	if (options.verbose)
-		printf("seqno write: 0x%x\n", seqno);
-
-	last_seqno_write = seqno;
+		printf("next_seqno set to: 0x%x\n", seqno);
 
 	return 0;
 }
@@ -415,96 +455,72 @@ static uint32_t calc_prewrap_val(void)
 	if (options.random == 0)
 		return pval;
 
-	return random() % pval;
+	if (pval == 0)
+		return 0;
+
+	return (random() % pval);
 }
 
-static int seqno_near_boundary(uint32_t seqno)
-{
-	if (seqno > UINT32_MAX - options.prewrap_space ||
-	    seqno < options.prewrap_space)
-		return 1;
-
-	if (seqno < UINT32_MAX/2 + SAFETY_REGION &&
-	    seqno > UINT32_MAX/2 - SAFETY_REGION)
-		return 1;
-
-	return 0;
-}
-
-static int run_once(void)
+static int run_test(void)
 {
 	int r;
-	uint32_t seqno_before = 0;
-	uint32_t seqno_after = 0;
-	uint32_t seqno;
 
+	if (strnlen(options.cmd, sizeof(options.cmd)) > 0) {
+		r = run_cmd(options.cmd);
+	} else {
+		r = run_sync_test(options.buffers, true);
+	}
+
+	return r;
+}
+
+static void preset_run_once(void)
+{
+	assert(write_seqno(1) == 0);
+	assert(run_test() == 0);
+
+	assert(write_seqno(0x7fffffff) == 0);
+	assert(run_test() == 0);
+
+	assert(write_seqno(0xffffffff) == 0);
+	assert(run_test() == 0);
+
+	assert(write_seqno(0xfffffff0) == 0);
+	assert(run_test() == 0);
+}
+
+static void random_run_once(void)
+{
+	uint32_t val;
+
+	do {
+		val = random() % UINT32_MAX;
+		if (RAND_MAX < UINT32_MAX)
+			val += random();
+	} while (val == 0);
+
+	assert(write_seqno(val) == 0);
+	assert(run_test() == 0);
+}
+
+static void wrap_run_once(void)
+{
 	const uint32_t pw_val = calc_prewrap_val();
 
-	r = read_seqno(&seqno_before);
-	assert(r == 0);
+	assert(write_seqno(UINT32_MAX - pw_val) == 0);
 
-	seqno = last_seqno = seqno_before;
+	while(!read_seqno())
+		assert(run_test() == 0);
+}
 
-	/* Skip seqno write if close to boundary */
-	if (!seqno_near_boundary(seqno)) {
-		if (seqno > UINT32_MAX/2 + 1)
-			seqno = UINT32_MAX - pw_val;
-		else
-			seqno = UINT32_MAX/2 - SAFETY_REGION;
+static void background_run_once(void)
+{
+	const uint32_t pw_val = calc_prewrap_val();
 
-		if (!options.dontwrap) {
-			r = write_seqno(seqno);
-			if (r < 0) {
-				fprintf(stderr,
-					"write_seqno 0x%x returned %d\n",
-					seqno, r);
+	assert(write_seqno(UINT32_MAX - pw_val) == 0);
 
-				/* We might fail if we are at background and
-				 * some operations were done between seqno
-				 * read and this write
-				 */
-				if (!options.background)
-					return r;
-			}
-		}
-	}
-
-	if (!options.background) {
-		/* Only run tests if we are across the half way of seqno space.
-		 * If we are not, run something which just increments seqnos
-		 */
-		if (seqno >= UINT32_MAX/2 + 1) {
-			if (strnlen(options.cmd, sizeof(options.cmd)) > 0) {
-				r = run_cmd(options.cmd);
-			} else {
-				r = run_sync_test(options.buffers, true);
-			}
-		} else {
-			r = run_sync_test(options.buffers, false);
-		}
-
-		if (r != 0) {
-			fprintf(stderr, "test returned %d\n", r);
-			return -1;
-		}
-	} else {
-		/* Let's wait in background for seqno to increment */
-		sleep(2);
-	}
-
-	r = read_seqno(&seqno_after);
-	assert(r == 0);
-
-	if (seqno_before > seqno_after) {
-		if (options.verbose)
-			printf("before 0x%x, after 0x%x , diff %d\n",
-			       seqno_before, seqno_after,
-			       seqno_after - seqno_before);
-
-		return 1;
-	}
-
-	return 0;
+	while(!read_seqno())
+		sleep(3);
 }
 
 static void print_usage(const char *s)
@@ -545,8 +561,8 @@ static void parse_options(int argc, char **argv)
 	options.timeout = 20;
 	options.verbose = 0;
 	options.random = 1;
-	options.prewrap_space = 30;
-	options.buffers = 20;
+	options.prewrap_space = 21;
+	options.buffers = 10;
 
 	while((c = getopt_long(argc, argv, "c:n:bvt:dp:ri:",
 			       long_options, &option_index)) != -1) {
@@ -587,8 +603,6 @@ static void parse_options(int argc, char **argv)
 			break;
 		case 'p':
 			options.prewrap_space = atoi(optarg);
-			if (options.prewrap_space == 0)
-				options.prewrap_space = 1;
 			printf("prewrap set to %d (0x%x)\n",
 			       options.prewrap_space, UINT32_MAX -
 			       options.prewrap_space);
@@ -616,18 +630,15 @@ int main(int argc, char **argv)
 	srandom(time(NULL));
 
 	while(options.rounds == 0 || wcount < options.rounds) {
-		r = run_once();
-		if (r < 0) {
-			if (options.verbose) fprintf(stderr,
-						     "run once returned %d\n",
-						     r);
-			return r;
+		if (options.background) {
+			background_run_once();
+		} else {
+			preset_run_once();
+			random_run_once();
+			wrap_run_once();
 		}
 
-		if (options.dontwrap)
-			wcount++;
-		else
-			wcount += r;
+		wcount++;
 
 		if (options.verbose) {
 			printf("%s done: %d\n",
