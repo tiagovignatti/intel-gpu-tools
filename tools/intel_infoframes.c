@@ -833,7 +833,7 @@ static void change_spd_infoframe(Transcoder transcoder, char *commands)
 	val = INREG(reg);
 
 	while (1) {
-		rc = sscanf(current, "%31s%n", option, &read);
+		rc = sscanf(current, "%15s%n", option, &read);
 		current = &current[read];
 		if (rc == EOF) {
 			break;
