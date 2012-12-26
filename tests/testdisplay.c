@@ -72,7 +72,7 @@ int dump_info = 0, test_all_modes =0, test_preferred_mode = 0, force_mode = 0,
 int sleep_between_modes = 5;
 uint32_t depth = 24, stride, bpp;
 int qr_code = 0;
-int only_one_mode = 0, specified_mode_num = 0;
+int only_one_mode = 0, specified_mode_num = 0, specified_disp_id = 0;
 
 drmModeModeInfo force_timing;
 
@@ -598,6 +598,9 @@ int update_display(void)
 		/* Find any connected displays */
 		for (c = 0; c < resources->count_connectors; c++) {
 			connectors[c].id = resources->connectors[c];
+			if ( connectors[c].id != specified_disp_id )
+				continue;
+
 			set_mode(&connectors[c]);
 		}
 	}
@@ -618,7 +621,7 @@ static void __attribute__((noreturn)) usage(char *name)
 	fprintf(stderr, "\t-m\ttest the preferred mode\n");
 	fprintf(stderr, "\t-t\tuse a tiled framebuffer\n");
 	fprintf(stderr, "\t-r\tprint a QR code on the screen whose content is \"pass\" for the automatic test\n");
-	fprintf(stderr, "\t-o\t<number of the mode>\tonly test specified mode\n");
+	fprintf(stderr, "\t-o\t<id of the display>,<number of the mode>\tonly test specified mode on the specified display\n");
 	fprintf(stderr, "\t-f\t<clock MHz>,<hdisp>,<hsync-start>,<hsync-end>,<htotal>,\n");
 	fprintf(stderr, "\t\t<vdisp>,<vsync-start>,<vsync-end>,<vtotal>\n");
 	fprintf(stderr, "\t\ttest force mode\n");
@@ -715,7 +718,7 @@ int main(int argc, char **argv)
 			break;
 		case 'o':
 			only_one_mode = 1;
-			specified_mode_num = atoi(optarg);
+			sscanf(optarg, "%d,%d", &specified_disp_id, &specified_mode_num);
 			break;
 		default:
 			fprintf(stderr, "unknown option %c\n", c);
