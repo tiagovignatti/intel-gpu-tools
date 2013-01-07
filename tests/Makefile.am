@@ -43,6 +43,7 @@ TESTS_progs = \
 	gem_mmap \
 	gem_mmap_offset_exhaustion \
 	gem_hangcheck_forcewake \
+	gem_pin \
 	gem_pwrite \
 	gem_pread_after_blit \
 	gem_set_tiling_vs_gtt \
