@@ -598,7 +598,7 @@ int update_display(void)
 		/* Find any connected displays */
 		for (c = 0; c < resources->count_connectors; c++) {
 			connectors[c].id = resources->connectors[c];
-			if ( connectors[c].id != specified_disp_id )
+			if ( only_one_mode == 1 && connectors[c].id != specified_disp_id )
 				continue;
 
 			set_mode(&connectors[c]);
