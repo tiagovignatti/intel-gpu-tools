@@ -21,7 +21,7 @@
 
 ACLOCAL_AMFLAGS = ${ACLOCAL_FLAGS} -I m4
 
-SUBDIRS = lib man tools scripts benchmarks demos
+SUBDIRS = lib man tools scripts benchmarks demos assembler
 
 if BUILD_SHADER_DEBUGGER
 SUBDIRS += debugger

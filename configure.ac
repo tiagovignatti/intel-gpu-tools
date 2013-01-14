@@ -38,7 +38,12 @@ AM_INIT_AUTOMAKE([foreign dist-bzip2])
 AM_PATH_PYTHON([3],, [:])
 AM_MAINTAINER_MODE
 
+AC_PROG_CC
+AM_PROG_LEX
+AC_PROG_YACC
+
 # Checks for functions, headers, structures, etc.
+AC_HEADER_STDC
 AC_CHECK_HEADERS([termios.h])
 AC_CHECK_MEMBERS([struct sysinfo.totalram],[],[],[AC_INCLUDES_DEFAULT
 		  #include <sys/sysinfo.h>
@@ -55,6 +60,16 @@ m4_ifndef([XORG_MACROS_VERSION],
 	  [m4_fatal([must install xorg-macros 1.16 or later before running autoconf/autogen])])
 XORG_MACROS_VERSION(1.16)
 XORG_DEFAULT_OPTIONS
+
+# warning flags for the assembler. We can't quite use CWARNFLAGS for it yet as
+# it generates waaaay to many warnings.
+ASSEMBLER_WARN_CFLAGS=""
+if test "x$GCC" = "xyes"; then
+	ASSEMBLER_WARN_CFLAGS="-Wall -Wpointer-arith -Wstrict-prototypes \
+	-Wmissing-prototypes -Wmissing-declarations \
+	-Wnested-externs -fno-strict-aliasing"
+fi
+AC_SUBST(ASSEMBLER_WARN_CFLAGS)
 
 PKG_CHECK_MODULES(DRM, [libdrm_intel >= 2.4.38 libdrm])
 PKG_CHECK_MODULES(PCIACCESS, [pciaccess >= 0.10])
@@ -157,6 +172,10 @@ AC_CONFIG_FILES([
 		 tools/quick_dump/Makefile
 		 debugger/Makefile
 		 debugger/system_routine/Makefile
+		 assembler/Makefile
+		 assembler/doc/Makefile
+		 assembler/test/Makefile
+		 assembler/intel-gen4asm.pc
 		 ])
 AC_OUTPUT
 

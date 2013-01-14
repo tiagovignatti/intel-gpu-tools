@@ -1,13 +1,31 @@
-SUBDIRS = doc src test
+SUBDIRS = doc test
 
-EXTRA_DIST = \
-	AUTHORS \
-	COPYING \
-	INSTALL \
-	README \
-	TODO \
-	autogen.sh \
-	intel-gen4asm.pc.in
+bin_PROGRAMS = intel-gen4asm intel-gen4disasm
+
+AM_YFLAGS = -d --warnings=all
+AM_CFLAGS= $(ASSEMBLER_WARN_CFLAGS)
+
+LEX = flex -i
+BUILT_SOURCES = gram.h gram.c lex.c
+gram.h: gram.c
+
+intel_gen4asm_SOURCES =	\
+	brw_defines.h	\
+	brw_structs.h	\
+	gen4asm.h	\
+	gram.y		\
+	lex.l		\
+	main.c		\
+	$(NULL)
+
+intel_gen4disasm_SOURCES =  \
+	disasm.c disasm-main.c
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = intel-gen4asm.pc
+
+MAINTAINERCLEANFILES = $(BUILT_SOURCES)
+EXTRA_DIST = \
+	README \
+	TODO \
+	intel-gen4asm.pc.in

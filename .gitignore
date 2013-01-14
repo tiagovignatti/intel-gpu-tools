@@ -79,3 +79,9 @@ core
 *.swo
 *.swp
 cscope.*
+
+/assembler/gram.c
+/assembler/gram.h
+/assembler/intel-gen4asm
+/assembler/intel-gen4disasm
+/assembler/lex.c
