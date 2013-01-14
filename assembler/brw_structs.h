@@ -1043,21 +1043,25 @@ struct brw_instruction
 {
    struct 
    {
-      GLuint opcode:7;			/* 0x0000007f */
-      GLuint pad:1;			/* 0x00000080 */ /* reserved for Opcode */
-      GLuint access_mode:1;		/* 0x00000100 */
-      GLuint mask_control:1;		/* 0x00000200 */
-      GLuint dependency_control:2;	/* 0x00000c00 */
-      GLuint compression_control:2;	/* 0x00003000 */
-      GLuint thread_control:2;		/* 0x0000c000 */
-      GLuint predicate_control:4;	/* 0x000f0000 */
-      GLuint predicate_inverse:1;	/* 0x00100000 */
-      GLuint execution_size:3;		/* 0x00e00000 */
-      GLuint sfid_destreg__conditionalmod:4; /* sfid - send on GEN6+, destreg - send on Prev GEN6, conditionalmod - others */
-      GLuint acc_wr_control:1;          /* 0x10000000 */
-      GLuint pad0:1;                    /* 0x20000000 */
-      GLuint debug_control:1;		/* 0x40000000 */
-      GLuint saturate:1;		/* 0x80000000 */
+      GLuint opcode:7;
+      GLuint pad:1;
+      GLuint access_mode:1;
+      GLuint mask_control:1;
+      GLuint dependency_control:2;
+      GLuint compression_control:2; /* gen6: quater control */
+      GLuint thread_control:2;
+      GLuint predicate_control:4;
+      GLuint predicate_inverse:1;
+      GLuint execution_size:3;
+      /**
+       * Conditional Modifier for most instructions.  On Gen6+, this is also
+       * used for the SEND instruction's Message Target/SFID.
+       */
+      GLuint destreg__conditionalmod:4;
+      GLuint acc_wr_control:1;
+      GLuint cmpt_control:1;
+      GLuint debug_control:1;
+      GLuint saturate:1;
    } header;
 
    union {

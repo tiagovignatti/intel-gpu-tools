@@ -798,7 +798,7 @@ int disasm (FILE *file, struct brw_instruction *inst)
     if (inst->header.opcode != BRW_OPCODE_SEND &&
 	inst->header.opcode != BRW_OPCODE_SENDC)
 	err |= control (file, "conditional modifier", conditional_modifier,
-			inst->header.sfid_destreg__conditionalmod, NULL);
+			inst->header.destreg__conditionalmod, NULL);
 
     if (inst->header.opcode != BRW_OPCODE_NOP) {
 	string (file, "(");
@@ -808,7 +808,7 @@ int disasm (FILE *file, struct brw_instruction *inst)
 
     if (inst->header.opcode == BRW_OPCODE_SEND ||
 	inst->header.opcode == BRW_OPCODE_SENDC)
-	format (file, " %d", inst->header.sfid_destreg__conditionalmod);
+	format (file, " %d", inst->header.destreg__conditionalmod);
 
     if (opcode[inst->header.opcode].ndst > 0) {
 	pad (file, 16);
@@ -829,8 +829,8 @@ int disasm (FILE *file, struct brw_instruction *inst)
 	pad (file, 16);
 	space = 0;
 	err |= control (file, "target function", target_function,
-			inst->header.sfid_destreg__conditionalmod, &space);
-	switch (inst->header.sfid_destreg__conditionalmod) {
+			inst->header.destreg__conditionalmod, &space);
+	switch (inst->header.destreg__conditionalmod) {
 	case BRW_MESSAGE_TARGET_MATH:
 	    err |= control (file, "math function", math_function,
 			    inst->bits3.math.function, &space);

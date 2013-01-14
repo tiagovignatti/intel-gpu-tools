@@ -678,7 +678,7 @@ unaryinstruction:
 		{
 		  memset(&$$, 0, sizeof($$));
 		  $$.header.opcode = $2;
-		  $$.header.sfid_destreg__conditionalmod = $3.cond;
+		  $$.header.destreg__conditionalmod = $3.cond;
 		  $$.header.saturate = $4;
 		  $$.header.execution_size = $5;
 		  set_instruction_options(&$$, &$8);
@@ -715,7 +715,7 @@ binaryinstruction:
 		{
 		  memset(&$$, 0, sizeof($$));
 		  $$.header.opcode = $2;
-		  $$.header.sfid_destreg__conditionalmod = $3.cond;
+		  $$.header.destreg__conditionalmod = $3.cond;
 		  $$.header.saturate = $4;
 		  $$.header.execution_size = $5;
 		  set_instruction_options(&$$, &$9);
@@ -754,7 +754,7 @@ binaryaccinstruction:
 		{
 		  memset(&$$, 0, sizeof($$));
 		  $$.header.opcode = $2;
-		  $$.header.sfid_destreg__conditionalmod = $3.cond;
+		  $$.header.destreg__conditionalmod = $3.cond;
 		  $$.header.saturate = $4;
 		  $$.header.execution_size = $5;
 		  set_instruction_options(&$$, &$9);
@@ -801,7 +801,7 @@ trinaryinstruction:
 		  $$.bits1.three_src_gen6.flag_subreg_nr = $1.bits2.da1.flag_subreg_nr;
 
 		  $$.header.opcode = $2;
-		  $$.header.sfid_destreg__conditionalmod = $3.cond;
+		  $$.header.destreg__conditionalmod = $3.cond;
 		  $$.header.saturate = $4;
 		  $$.header.execution_size = $5;
 
@@ -839,7 +839,7 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
 		  memset(&$$, 0, sizeof($$));
 		  $$.header.opcode = $2;
 		  $$.header.execution_size = $3;
-		  $$.header.sfid_destreg__conditionalmod = $4; /* msg reg index */
+		  $$.header.destreg__conditionalmod = $4; /* msg reg index */
 		  set_instruction_predicate(&$$, &$1);
 		  if (set_instruction_dest(&$$, &$5) != 0)
 		    YYERROR;
@@ -869,9 +869,9 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
 
 		  if (IS_GENp(5)) {
                       if (IS_GENp(6)) {
-                          $$.header.sfid_destreg__conditionalmod = $7.bits2.send_gen5.sfid;
+                          $$.header.destreg__conditionalmod = $7.bits2.send_gen5.sfid;
                       } else {
-                          $$.header.sfid_destreg__conditionalmod = $4; /* msg reg index */
+                          $$.header.destreg__conditionalmod = $4; /* msg reg index */
                           $$.bits2.send_gen5.sfid = $7.bits2.send_gen5.sfid;
                           $$.bits2.send_gen5.end_of_thread = $12.bits3.generic_gen5.end_of_thread;
                       }
@@ -882,7 +882,7 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
                       $$.bits3.generic_gen5.end_of_thread =
                           $12.bits3.generic_gen5.end_of_thread;
 		  } else {
-                      $$.header.sfid_destreg__conditionalmod = $4; /* msg reg index */
+                      $$.header.destreg__conditionalmod = $4; /* msg reg index */
                       $$.bits3.generic = $7.bits3.generic;
                       $$.bits3.generic.msg_length = $9;
                       $$.bits3.generic.response_length = $11;
@@ -895,7 +895,7 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
 		  memset(&$$, 0, sizeof($$));
 		  $$.header.opcode = $2;
 		  $$.header.execution_size = $3;
-		  $$.header.sfid_destreg__conditionalmod = $5.reg_nr; /* msg reg index */
+		  $$.header.destreg__conditionalmod = $5.reg_nr; /* msg reg index */
 
 		  set_instruction_predicate(&$$, &$1);
 
@@ -918,7 +918,7 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
 		  memset(&$$, 0, sizeof($$));
 		  $$.header.opcode = $2;
 		  $$.header.execution_size = $3;
-		  $$.header.sfid_destreg__conditionalmod = $5.reg_nr; /* msg reg index */
+		  $$.header.destreg__conditionalmod = $5.reg_nr; /* msg reg index */
 
 		  set_instruction_predicate(&$$, &$1);
 		  if (set_instruction_dest(&$$, &$4) != 0)
@@ -948,7 +948,7 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
 		  memset(&$$, 0, sizeof($$));
 		  $$.header.opcode = $2;
 		  $$.header.execution_size = $3;
-                  $$.header.sfid_destreg__conditionalmod = ($6 & EX_DESC_SFID_MASK); /* SFID */
+                  $$.header.destreg__conditionalmod = ($6 & EX_DESC_SFID_MASK); /* SFID */
 		  set_instruction_predicate(&$$, &$1);
 
 		  if (set_instruction_dest(&$$, &$4) != 0)
@@ -994,7 +994,7 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
 		  memset(&$$, 0, sizeof($$));
 		  $$.header.opcode = $2;
 		  $$.header.execution_size = $3;
-                  $$.header.sfid_destreg__conditionalmod = ($6 & EX_DESC_SFID_MASK); /* SFID */
+                  $$.header.destreg__conditionalmod = ($6 & EX_DESC_SFID_MASK); /* SFID */
 		  set_instruction_predicate(&$$, &$1);
 
 		  if (set_instruction_dest(&$$, &$4) != 0)
@@ -1029,7 +1029,7 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
 		  memset(&$$, 0, sizeof($$));
 		  $$.header.opcode = $2;
 		  $$.header.execution_size = $3;
-		  $$.header.sfid_destreg__conditionalmod = $5.reg_nr; /* msg reg index */
+		  $$.header.destreg__conditionalmod = $5.reg_nr; /* msg reg index */
 
 		  set_instruction_predicate(&$$, &$1);
 		  if (set_instruction_dest(&$$, &$4) != 0)
@@ -1051,7 +1051,7 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
 		  memset(&$$, 0, sizeof($$));
 		  $$.header.opcode = $2;
 		  $$.header.execution_size = $3;
-		  $$.header.sfid_destreg__conditionalmod = $5.reg_nr; /* msg reg index */
+		  $$.header.destreg__conditionalmod = $5.reg_nr; /* msg reg index */
 
 		  set_instruction_predicate(&$$, &$1);
 
@@ -1100,7 +1100,7 @@ mathinstruction: predicate MATH_INST execsize dst src srcimm math_function insto
 		{
 		  memset(&$$, 0, sizeof($$));
 		  $$.header.opcode = $2;
-		  $$.header.sfid_destreg__conditionalmod = $7;
+		  $$.header.destreg__conditionalmod = $7;
 		  $$.header.execution_size = $3;
 		  set_instruction_options(&$$, &$8);
 		  set_instruction_predicate(&$$, &$1);
