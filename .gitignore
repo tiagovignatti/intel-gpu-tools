@@ -79,6 +79,7 @@ core
 *.swo
 *.swp
 cscope.*
+TAGS
 
 /assembler/gram.c
 /assembler/gram.h
