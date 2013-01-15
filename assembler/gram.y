@@ -1471,10 +1471,10 @@ msgtarget:	NULL_TOKEN
                             YYERROR;
                         }
 
-                        $$.bits3.dp_gen6.send_commit_msg = $11;
-                        $$.bits3.dp_gen6.binding_table_index = $9;
-                        $$.bits3.dp_gen6.msg_control = $7;
-                        $$.bits3.dp_gen6.msg_type = $5;
+                        $$.bits3.gen6_dp.send_commit_msg = $11;
+                        $$.bits3.gen6_dp.binding_table_index = $9;
+                        $$.bits3.gen6_dp.msg_control = $7;
+                        $$.bits3.gen6_dp.msg_type = $5;
                     } else if (!IS_GENp(5)) {
                         fprintf (stderr, "Gen6- doesn't support data port for sampler/render/constant/data cache\n");
                         YYERROR;

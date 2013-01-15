@@ -1513,18 +1513,28 @@ struct brw_instruction
            GLuint end_of_thread:1;
        } dp_write_gen6;
 
-       struct {
-           GLuint binding_table_index:8;
-           GLuint msg_control:5;
-           GLuint msg_type:4;    
-           GLuint send_commit_msg:1; /* ignore on read message */
-           GLuint pad0:1;
-           GLuint header_present:1;
-           GLuint response_length:5;
-           GLuint msg_length:4;
-           GLuint pad1:2;
-           GLuint end_of_thread:1;
-       } dp_gen6;
+      /**
+       * Message for the Sandybridge Render Cache Data Port.
+       *
+       * Most fields are defined in the Sandybridge PRM, Volume 4 Part 1,
+       * Section 3.9.2.1.1: Message Descriptor.
+       *
+       * "Slot Group Select" and "Last Render Target" are part of the
+       * 5-bit message control for Render Target Write messages.  See
+       * Section 3.9.9.2.1 of the same volume.
+       */
+      struct {
+	 GLuint binding_table_index:8;
+	 GLuint msg_control:5;
+	 GLuint msg_type:4;
+	 GLuint send_commit_msg:1;
+	 GLuint pad0:1;
+	 GLuint header_present:1;
+	 GLuint response_length:5;
+	 GLuint msg_length:4;
+	 GLuint pad1:2;
+	 GLuint end_of_thread:1;
+      } gen6_dp;
 
        struct {
            GLuint binding_table_index:8;
