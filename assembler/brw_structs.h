@@ -1368,7 +1368,7 @@ struct brw_instruction
       struct {
 	 GLuint binding_table_index:8;
 	 GLuint msg_control:3;
-	 GLuint pixel_scoreboard_clear:1;
+	 GLuint last_render_target:1;
 	 GLuint msg_type:3;    
 	 GLuint send_commit_msg:1;
 	 GLuint response_length:4;
@@ -1489,7 +1489,7 @@ struct brw_instruction
        struct {
            GLuint binding_table_index:8;
            GLuint msg_control:3;
-           GLuint pixel_scoreboard_clear:1;
+           GLuint last_render_target:1;
            GLuint msg_type:3;    
            GLuint send_commit_msg:1;
            GLuint pad0:3;

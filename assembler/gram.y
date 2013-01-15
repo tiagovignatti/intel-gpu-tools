@@ -1307,7 +1307,7 @@ msgtarget:	NULL_TOKEN
                           BRW_MESSAGE_TARGET_DATAPORT_WRITE;
                       $$.bits3.generic_gen5.header_present = 1;
                       $$.bits3.dp_write_gen5.binding_table_index = $3;
-                      $$.bits3.dp_write_gen5.pixel_scoreboard_clear = ($5 & 0x8) >> 3;
+                      $$.bits3.dp_write_gen5.last_render_target = ($5 & 0x8) >> 3;
                       $$.bits3.dp_write_gen5.msg_control = $5 & 0x7;
                       $$.bits3.dp_write_gen5.msg_type = $7;
                       $$.bits3.dp_write_gen5.send_commit_msg = $9;
@@ -1316,10 +1316,10 @@ msgtarget:	NULL_TOKEN
                           BRW_MESSAGE_TARGET_DATAPORT_WRITE;
                       $$.bits3.dp_write.binding_table_index = $3;
                       /* The msg control field of brw_struct.h is split into
-                       * msg control and pixel_scoreboard_clear, even though
-                       * pixel_scoreboard_clear isn't common to all write messages.
+                       * msg control and last_render_target, even though
+                       * last_render_target isn't common to all write messages.
                        */
-                      $$.bits3.dp_write.pixel_scoreboard_clear = ($5 & 0x8) >> 3;
+                      $$.bits3.dp_write.last_render_target = ($5 & 0x8) >> 3;
                       $$.bits3.dp_write.msg_control = $5 & 0x7;
                       $$.bits3.dp_write.msg_type = $7;
                       $$.bits3.dp_write.send_commit_msg = $9;
@@ -1348,7 +1348,7 @@ msgtarget:	NULL_TOKEN
                           BRW_MESSAGE_TARGET_DATAPORT_WRITE;
                       $$.bits3.generic_gen5.header_present = ($11 != 0);
                       $$.bits3.dp_write_gen5.binding_table_index = $3;
-                      $$.bits3.dp_write_gen5.pixel_scoreboard_clear = ($5 & 0x8) >> 3;
+                      $$.bits3.dp_write_gen5.last_render_target = ($5 & 0x8) >> 3;
                       $$.bits3.dp_write_gen5.msg_control = $5 & 0x7;
                       $$.bits3.dp_write_gen5.msg_type = $7;
                       $$.bits3.dp_write_gen5.send_commit_msg = $9;
@@ -1357,10 +1357,10 @@ msgtarget:	NULL_TOKEN
                           BRW_MESSAGE_TARGET_DATAPORT_WRITE;
                       $$.bits3.dp_write.binding_table_index = $3;
                       /* The msg control field of brw_struct.h is split into
-                       * msg control and pixel_scoreboard_clear, even though
-                       * pixel_scoreboard_clear isn't common to all write messages.
+                       * msg control and last_render_target, even though
+                       * last_render_target isn't common to all write messages.
                        */
-                      $$.bits3.dp_write.pixel_scoreboard_clear = ($5 & 0x8) >> 3;
+                      $$.bits3.dp_write.last_render_target = ($5 & 0x8) >> 3;
                       $$.bits3.dp_write.msg_control = $5 & 0x7;
                       $$.bits3.dp_write.msg_type = $7;
                       $$.bits3.dp_write.send_commit_msg = $9;
