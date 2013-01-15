@@ -1142,7 +1142,7 @@ struct brw_instruction
 	 GLuint dest_writemask:4;
 	 GLuint dest_subreg_nr:3;
 	 GLuint dest_reg_nr:8;
-      } three_src_gen6; /* Three-source-operator instructions for Gen6+ */
+      } da3src;
 
       struct
       {
@@ -1229,7 +1229,7 @@ struct brw_instruction
 	 GLuint src1_rep_ctrl:1;
 	 GLuint src1_swizzle:8;
 	 GLuint src1_subreg_nr_low:2; /* src1_subreg_nr spans on two DWORDs */
-      } three_src_gen6; /* Three-source-operator instructions for Gen6+ */
+      } da3src;
 
        struct 
        {
@@ -1315,7 +1315,7 @@ struct brw_instruction
 	 GLuint src2_subreg_nr:3;
 	 GLuint src2_reg_nr:8;
 	 GLuint pad1:2; /* reserved */
-      } three_src_gen6; /* Three-source-operator instructions for Gen6+ */
+      } da3src;
 
       struct
       {
