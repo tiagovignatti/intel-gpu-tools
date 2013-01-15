@@ -1469,17 +1469,22 @@ struct brw_instruction
            GLuint end_of_thread:1;
        } dp_read_gen5;
 
-       struct {
-           GLuint binding_table_index:8;
-           GLuint msg_control:5;  
-           GLuint msg_type:3;  
-           GLuint pad0:3;
-           GLuint header_present:1;
-           GLuint response_length:5;
-           GLuint msg_length:4;
-           GLuint pad1:2;
-           GLuint end_of_thread:1;
-       } dp_read_gen6;
+      /**
+       * Message for the Sandybridge Sampler Cache or Constant Cache Data Port.
+       *
+       * See the Sandybridge PRM, Volume 4 Part 1, Section 3.9.2.1.1.
+       **/
+      struct {
+	 GLuint binding_table_index:8;
+	 GLuint msg_control:5;
+	 GLuint msg_type:3;
+	 GLuint pad0:3;
+	 GLuint header_present:1;
+	 GLuint response_length:5;
+	 GLuint msg_length:4;
+	 GLuint pad1:2;
+	 GLuint end_of_thread:1;
+      } gen6_dp_sampler_const_cache;
 
        struct {
            GLuint binding_table_index:8;
