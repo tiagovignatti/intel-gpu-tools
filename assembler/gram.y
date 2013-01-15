@@ -1298,10 +1298,10 @@ msgtarget:	NULL_TOKEN
                        * message header
                        */
                       $$.bits3.generic_gen5.header_present = 1;
-                      $$.bits3.dp_write_gen6.binding_table_index = $3;
-                      $$.bits3.dp_write_gen6.msg_control = $5;
-                     $$.bits3.dp_write_gen6.msg_type = $7;
-                      $$.bits3.dp_write_gen6.send_commit_msg = $9;
+                      $$.bits3.gen6_dp.binding_table_index = $3;
+                      $$.bits3.gen6_dp.msg_control = $5;
+                     $$.bits3.gen6_dp.msg_type = $7;
+                      $$.bits3.gen6_dp.send_commit_msg = $9;
 		  } else if (IS_GENx(5)) {
                       $$.bits2.send_gen5.sfid =
                           BRW_MESSAGE_TARGET_DATAPORT_WRITE;
@@ -1339,10 +1339,10 @@ msgtarget:	NULL_TOKEN
                       $$.bits2.send_gen5.sfid =
                           BRW_MESSAGE_TARGET_DP_RC;
                       $$.bits3.generic_gen5.header_present = ($11 != 0);
-                      $$.bits3.dp_write_gen6.binding_table_index = $3;
-                      $$.bits3.dp_write_gen6.msg_control = $5;
-                     $$.bits3.dp_write_gen6.msg_type = $7;
-                      $$.bits3.dp_write_gen6.send_commit_msg = $9;
+                      $$.bits3.gen6_dp.binding_table_index = $3;
+                      $$.bits3.gen6_dp.msg_control = $5;
+                     $$.bits3.gen6_dp.msg_type = $7;
+                      $$.bits3.gen6_dp.send_commit_msg = $9;
 		  } else if (IS_GENx(5)) {
                       $$.bits2.send_gen5.sfid =
                           BRW_MESSAGE_TARGET_DATAPORT_WRITE;
