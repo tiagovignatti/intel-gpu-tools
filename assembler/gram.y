@@ -1253,9 +1253,9 @@ msgtarget:	NULL_TOKEN
                       $$.bits2.send_gen5.sfid = 
                           BRW_MESSAGE_TARGET_DP_SC;
                       $$.bits3.generic_gen5.header_present = 1;
-                      $$.bits3.dp_gen7.binding_table_index = $3;
-                      $$.bits3.dp_gen7.msg_control = $7;
-                      $$.bits3.dp_gen7.msg_type = $9;
+                      $$.bits3.gen7_dp.binding_table_index = $3;
+                      $$.bits3.gen7_dp.msg_control = $7;
+                      $$.bits3.gen7_dp.msg_type = $9;
 		  } else if (IS_GENx(6)) {
                       $$.bits2.send_gen5.sfid = 
                           BRW_MESSAGE_TARGET_DP_SC;
@@ -1287,9 +1287,9 @@ msgtarget:	NULL_TOKEN
                       $$.bits2.send_gen5.sfid =
                           BRW_MESSAGE_TARGET_DP_RC;
                       $$.bits3.generic_gen5.header_present = 1;
-                      $$.bits3.dp_gen7.binding_table_index = $3;
-                      $$.bits3.dp_gen7.msg_control = $5;
-                      $$.bits3.dp_gen7.msg_type = $7;
+                      $$.bits3.gen7_dp.binding_table_index = $3;
+                      $$.bits3.gen7_dp.msg_control = $5;
+                      $$.bits3.gen7_dp.msg_type = $7;
                   } else if (IS_GENx(6)) {
                       $$.bits2.send_gen5.sfid =
                           BRW_MESSAGE_TARGET_DP_RC;
@@ -1332,9 +1332,9 @@ msgtarget:	NULL_TOKEN
                       $$.bits2.send_gen5.sfid =
                           BRW_MESSAGE_TARGET_DP_RC;
                       $$.bits3.generic_gen5.header_present = ($11 != 0);
-                      $$.bits3.dp_gen7.binding_table_index = $3;
-                      $$.bits3.dp_gen7.msg_control = $5;
-                      $$.bits3.dp_gen7.msg_type = $7;
+                      $$.bits3.gen7_dp.binding_table_index = $3;
+                      $$.bits3.gen7_dp.msg_control = $5;
+                      $$.bits3.gen7_dp.msg_type = $7;
 		  } else if (IS_GENx(6)) {
                       $$.bits2.send_gen5.sfid =
                           BRW_MESSAGE_TARGET_DP_RC;
@@ -1459,10 +1459,10 @@ msgtarget:	NULL_TOKEN
                             YYERROR;
                         }
 
-                        $$.bits3.dp_gen7.category = $11;
-                        $$.bits3.dp_gen7.binding_table_index = $9;
-                        $$.bits3.dp_gen7.msg_control = $7;
-                        $$.bits3.dp_gen7.msg_type = $5;
+                        $$.bits3.gen7_dp.category = $11;
+                        $$.bits3.gen7_dp.binding_table_index = $9;
+                        $$.bits3.gen7_dp.msg_control = $7;
+                        $$.bits3.gen7_dp.msg_type = $5;
                     } else if (IS_GENx(6)) {
                         if ($3 != BRW_MESSAGE_TARGET_DP_SC &&
                             $3 != BRW_MESSAGE_TARGET_DP_RC &&

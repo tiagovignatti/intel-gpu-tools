@@ -1536,17 +1536,26 @@ struct brw_instruction
 	 GLuint end_of_thread:1;
       } gen6_dp;
 
-       struct {
-           GLuint binding_table_index:8;
-           GLuint msg_control:6;
-           GLuint msg_type:4;    
-           GLuint category:1;
-           GLuint header_present:1;
-           GLuint response_length:5;
-           GLuint msg_length:4;
-           GLuint pad1:2;
-           GLuint end_of_thread:1;
-       } dp_gen7;
+      /**
+       * Message for any of the Gen7 Data Port caches.
+       *
+       * Most fields are defined in BSpec volume 5c.2 Data Port / Messages /
+       * Data Port Messages / Message Descriptor.  Once again, "Slot Group
+       * Select" and "Last Render Target" are part of the 6-bit message
+       * control for Render Target Writes.
+       */
+      struct {
+	 GLuint binding_table_index:8;
+	 GLuint msg_control:6;
+	 GLuint msg_type:4;
+	 GLuint category:1;
+	 GLuint header_present:1;
+	 GLuint response_length:5;
+	 GLuint msg_length:4;
+	 GLuint pad2:2;
+	 GLuint end_of_thread:1;
+      } gen7_dp;
+      /** @} */
 
        struct {
            GLuint opcode:1;
