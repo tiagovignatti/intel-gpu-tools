@@ -424,8 +424,8 @@ int main(int argc, char **argv)
 
 	    if (inst->second_reloc_offset) {
 		// this is a branch instruction with two offset arguments
-		entry->instruction.bits3.branch_2_offset.JIP = jump_distance(inst->first_reloc_offset);
-		entry->instruction.bits3.branch_2_offset.UIP = jump_distance(inst->second_reloc_offset);
+		entry->instruction.bits3.break_cont.jip = jump_distance(inst->first_reloc_offset);
+		entry->instruction.bits3.break_cont.uip = jump_distance(inst->second_reloc_offset);
 	    } else if (inst->first_reloc_offset) {
 		// this is a branch instruction with one offset argument
 		int offset = inst->first_reloc_offset;
@@ -441,7 +441,7 @@ int main(int argc, char **argv)
 		if(!IS_GENp(6)) {
 		    entry->instruction.bits3.JIP = offset;
 		    if(entry->instruction.header.opcode == BRW_OPCODE_ELSE)
-			entry->instruction.bits3.branch_2_offset.UIP = 1; /* Set the istack pop count, which must always be 1. */
+			entry->instruction.bits3.break_cont.uip = 1; /* Set the istack pop count, which must always be 1. */
 		} else if(IS_GENx(6)) {
 		    /* TODO: endif JIP pos is not in Gen6 spec. may be bits1 */
 		    int opcode = entry->instruction.header.opcode;
@@ -457,7 +457,7 @@ int main(int argc, char **argv)
 		    if(opcode == BRW_OPCODE_JMPI)
 			entry->instruction.bits3.JIP = offset;
 		    else
-			entry->instruction.bits3.branch_2_offset.JIP = offset;
+			entry->instruction.bits3.break_cont.jip = offset;
 		}
 	    }
 	}

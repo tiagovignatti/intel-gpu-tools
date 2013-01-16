@@ -1324,11 +1324,21 @@ struct brw_instruction
 	 GLuint pad1:2; /* reserved */
       } da3src;
 
+      /* This is also used for gen7 IF/ELSE instructions */
       struct
       {
-	 GLint JIP:16; /* Gen7 bspec: both the JIP and UIP are signed 16-bit numbers */
-	 GLint UIP:16;
-      } branch_2_offset; /* for Gen6, Gen7 2-offsets branch; for Gen7 1-offset branch */
+	 /* Signed jump distance to the ip to jump to if all channels
+	  * are disabled after the break or continue.  It should point
+	  * to the end of the innermost control flow block, as that's
+	  * where some channel could get re-enabled.
+	  */
+	 int jip:16;
+
+	 /* Signed jump distance to the location to resume execution
+	  * of this channel if it's enabled for the break or continue.
+	  */
+	 int uip:16;
+      } break_cont;
 
       GLint JIP; /* used by Gen6 CALL instructions; Gen7 JMPI */
 
