@@ -448,7 +448,7 @@ int main(int argc, char **argv)
 		    if(opcode == BRW_OPCODE_CALL || opcode == BRW_OPCODE_JMPI)
 			entry->instruction.bits3.JIP = offset; // for CALL, JMPI
 		    else
-			entry->instruction.bits1.branch.JIP = offset; // for CASE,ELSE,FORK,IF,WHILE
+			entry->instruction.bits1.branch_gen6.jump_count = offset; // for CASE,ELSE,FORK,IF,WHILE
 		} else if(IS_GENp(7)) {
 		    int opcode = entry->instruction.header.opcode;
 		    /* Gen7 JMPI Restrictions in bspec:

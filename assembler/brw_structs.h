@@ -1125,6 +1125,18 @@ struct brw_instruction
 	 GLuint dest_address_mode:1;
       } ia16; /* indirect align16 */
 
+      struct {
+	 GLuint dest_reg_file:2;
+	 GLuint dest_reg_type:3;
+	 GLuint src0_reg_file:2;
+	 GLuint src0_reg_type:3;
+	 GLuint src1_reg_file:2;
+	 GLuint src1_reg_type:3;
+	 GLuint pad:1;
+
+	 GLint jump_count:16;
+      } branch_gen6;
+
       struct
       {
 	 GLuint dest_reg_file:1; /* used in Gen6, deleted in Gen7 */
@@ -1144,11 +1156,6 @@ struct brw_instruction
 	 GLuint dest_reg_nr:8;
       } da3src;
 
-      struct
-      {
-	 GLuint pad:16;
-	 GLint JIP:16;
-      } branch; /* conditional branch JIP for Gen6 only */
    } bits1;
 
 
