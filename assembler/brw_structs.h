@@ -1599,8 +1599,8 @@ struct brw_instruction
        } generic_gen5;
 
       GLuint ud;
-      GLint id;
-      GLfloat fd;
+      GLint d;
+      GLfloat f;
    } bits3;
 
    char *first_reloc_target, *second_reloc_target; // first for JIP, second for UIP
