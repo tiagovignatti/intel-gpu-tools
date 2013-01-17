@@ -1,5 +1,5 @@
 /*
- * Copyright © 2012 Intel Corporation
+ * Copyright © 2012,2013 Intel Corporation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -45,6 +45,7 @@
 
 #define LOCAL_I915_EXEC_HANDLE_LUT (1<<12)
 
+#define NORMAL 0
 #define USE_LUT 0x1
 #define BROKEN 0x2
 
@@ -88,22 +89,148 @@ static int exec(int fd, uint32_t handle, unsigned int flags)
 			&execbuf);
 }
 
+static int many_exec(int fd, uint32_t batch, int num_exec, int num_reloc, unsigned flags)
+{
+	struct drm_i915_gem_execbuffer2 execbuf;
+	struct drm_i915_gem_exec_object2 *gem_exec;
+	struct drm_i915_gem_relocation_entry *gem_reloc;
+	unsigned min_handle = 0, max_handle = ~0;
+	int ret, n;
+
+	gem_exec = calloc(num_exec+1, sizeof(*gem_exec));
+	gem_reloc = calloc(num_reloc, sizeof(*gem_reloc));
+	assert(gem_exec && gem_reloc);
+
+	for (n = 0; n < num_exec; n++) {
+		gem_exec[n].handle = gem_create(fd, 4096);
+		if (gem_exec[n].handle < min_handle)
+			min_handle = gem_exec[n].handle;
+		if (gem_exec[n].handle > max_handle)
+			max_handle = gem_exec[n].handle;
+		gem_exec[n].relocation_count = 0;
+		gem_exec[n].relocs_ptr = 0;
+		gem_exec[n].alignment = 0;
+		gem_exec[n].offset = 0;
+		gem_exec[n].flags = 0;
+		gem_exec[n].rsvd1 = 0;
+		gem_exec[n].rsvd2 = 0;
+	}
+
+	gem_exec[n].handle = batch;
+	gem_exec[n].relocation_count = num_reloc;
+	gem_exec[n].relocs_ptr = (uintptr_t) gem_reloc;
+
+	if (flags & USE_LUT) {
+		min_handle = 0;
+		max_handle = num_exec + 1;
+	}
+
+	for (n = 0; n < num_reloc; n++) {
+		unsigned target;
+
+		if (flags & BROKEN) {
+			target = rand();
+			if (target <= max_handle && target >= min_handle)
+				target = target & 1 ? min_handle - target : max_handle + target;
+		} else {
+			target = rand() % (num_exec + 1);
+			if ((flags & USE_LUT) == 0)
+				target = gem_exec[target].handle;
+		}
+
+		gem_reloc[n].offset = 1024;
+		gem_reloc[n].delta = 0;
+		gem_reloc[n].target_handle = target;
+		gem_reloc[n].read_domains = I915_GEM_DOMAIN_RENDER;
+		gem_reloc[n].write_domain = 0;
+		gem_reloc[n].presumed_offset = 0;
+	}
+
+	execbuf.buffers_ptr = (uintptr_t)gem_exec;
+	execbuf.buffer_count = num_exec + 1;
+	execbuf.batch_start_offset = 0;
+	execbuf.batch_len = 8;
+	execbuf.cliprects_ptr = 0;
+	execbuf.num_cliprects = 0;
+	execbuf.DR1 = 0;
+	execbuf.DR4 = 0;
+	execbuf.flags = flags & USE_LUT ? LOCAL_I915_EXEC_HANDLE_LUT : 0;
+	i915_execbuffer2_set_context_id(execbuf, 0);
+	execbuf.rsvd2 = 0;
+
+	ret = drmIoctl(fd,
+		       DRM_IOCTL_I915_GEM_EXECBUFFER2,
+		       &execbuf);
+
+	for (n = 0; n < num_exec; n++)
+		gem_close(fd, gem_exec[n].handle);
+
+	free(gem_exec);
+	free(gem_reloc);
+
+	return ret;
+}
+
+#define fail(x) assert(x == -1 && errno == ENOENT)
+
 int main(int argc, char **argv)
 {
 	uint32_t batch[2] = {MI_BATCH_BUFFER_END};
 	uint32_t handle;
-	int fd;
+	int fd, i;
 
 	fd = drm_open_any();
 
 	handle = gem_create(fd, 4096);
 	gem_write(fd, handle, 0, batch, sizeof(batch));
 
-	do_or_die(exec(fd, handle, 0));
+	do_or_die(exec(fd, handle, NORMAL));
 	do_or_die(exec(fd, handle, USE_LUT));
 
-	assert(exec(fd, handle, BROKEN) == -1 && errno == ENOENT);
-	assert(exec(fd, handle, USE_LUT | BROKEN) == -1 && errno == ENOENT);
+	fail(exec(fd, handle, BROKEN));
+	fail(exec(fd, handle, USE_LUT | BROKEN));
+
+	for (i = 2; i <= 65536; i *= 2) {
+		do_or_die(many_exec(fd, handle, i-1, i-1, NORMAL));
+		do_or_die(many_exec(fd, handle, i-1, i, NORMAL));
+		do_or_die(many_exec(fd, handle, i-1, i+1, NORMAL));
+		do_or_die(many_exec(fd, handle, i, i-1, NORMAL));
+		do_or_die(many_exec(fd, handle, i, i, NORMAL));
+		do_or_die(many_exec(fd, handle, i, i+1, NORMAL));
+		do_or_die(many_exec(fd, handle, i+1, i-1, NORMAL));
+		do_or_die(many_exec(fd, handle, i+1, i, NORMAL));
+		do_or_die(many_exec(fd, handle, i+1, i+1, NORMAL));
+
+		fail(many_exec(fd, handle, i-1, i-1, NORMAL | BROKEN));
+		fail(many_exec(fd, handle, i-1, i, NORMAL | BROKEN));
+		fail(many_exec(fd, handle, i-1, i+1, NORMAL | BROKEN));
+		fail(many_exec(fd, handle, i, i-1, NORMAL | BROKEN));
+		fail(many_exec(fd, handle, i, i, NORMAL | BROKEN));
+		fail(many_exec(fd, handle, i, i+1, NORMAL | BROKEN));
+		fail(many_exec(fd, handle, i+1, i-1, NORMAL | BROKEN));
+		fail(many_exec(fd, handle, i+1, i, NORMAL | BROKEN));
+		fail(many_exec(fd, handle, i+1, i+1, NORMAL | BROKEN));
+
+		do_or_die(many_exec(fd, handle, i-1, i-1, USE_LUT));
+		do_or_die(many_exec(fd, handle, i-1, i, USE_LUT));
+		do_or_die(many_exec(fd, handle, i-1, i+1, USE_LUT));
+		do_or_die(many_exec(fd, handle, i, i-1, USE_LUT));
+		do_or_die(many_exec(fd, handle, i, i, USE_LUT));
+		do_or_die(many_exec(fd, handle, i, i+1, USE_LUT));
+		do_or_die(many_exec(fd, handle, i+1, i-1, USE_LUT));
+		do_or_die(many_exec(fd, handle, i+1, i, USE_LUT));
+		do_or_die(many_exec(fd, handle, i+1, i+1, USE_LUT));
+
+		fail(many_exec(fd, handle, i-1, i-1, USE_LUT | BROKEN));
+		fail(many_exec(fd, handle, i-1, i, USE_LUT | BROKEN));
+		fail(many_exec(fd, handle, i-1, i+1, USE_LUT | BROKEN));
+		fail(many_exec(fd, handle, i, i-1, USE_LUT | BROKEN));
+		fail(many_exec(fd, handle, i, i, USE_LUT | BROKEN));
+		fail(many_exec(fd, handle, i, i+1, USE_LUT | BROKEN));
+		fail(many_exec(fd, handle, i+1, i-1, USE_LUT | BROKEN));
+		fail(many_exec(fd, handle, i+1, i, USE_LUT | BROKEN));
+		fail(many_exec(fd, handle, i+1, i+1, USE_LUT | BROKEN));
+	}
 
 	return 0;
 }
