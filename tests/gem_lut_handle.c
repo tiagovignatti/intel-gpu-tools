@@ -185,9 +185,12 @@ int main(int argc, char **argv)
 	gem_write(fd, handle, 0, batch, sizeof(batch));
 
 	do_or_die(exec(fd, handle, NORMAL));
-	do_or_die(exec(fd, handle, USE_LUT));
-
 	fail(exec(fd, handle, BROKEN));
+
+	if (exec(fd, handle, USE_LUT))
+		return 77;
+
+	do_or_die(exec(fd, handle, USE_LUT));
 	fail(exec(fd, handle, USE_LUT | BROKEN));
 
 	for (i = 2; i <= 65536; i *= 2) {

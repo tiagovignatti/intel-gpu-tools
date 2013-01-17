@@ -143,7 +143,8 @@ int main(int argc, char **argv)
 	gem_exec[n].handle =  gem_create(fd, 4096);
 	gem_write(fd, gem_exec[n].handle, 0, batch, sizeof(batch));
 
-	do_or_die(exec(fd, MAX_NUM_EXEC, 0, USE_LUT));
+	if (exec(fd, 1, 0, USE_LUT))
+		return 77;
 
 	for (p = pass; p->name != NULL; p++) {
 		for (n = 1; n <= MAX_NUM_EXEC; n *= 2) {
