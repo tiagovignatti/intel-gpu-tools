@@ -275,14 +275,14 @@ char *end_of_thread[2] = {
 };
 
 char *target_function[16] = {
-    [BRW_MESSAGE_TARGET_NULL] = "null",
-    [BRW_MESSAGE_TARGET_MATH] = "math",
-    [BRW_MESSAGE_TARGET_SAMPLER] = "sampler",
-    [BRW_MESSAGE_TARGET_GATEWAY] = "gateway",
-    [BRW_MESSAGE_TARGET_DATAPORT_READ] = "read",
-    [BRW_MESSAGE_TARGET_DATAPORT_WRITE] = "write",
-    [BRW_MESSAGE_TARGET_URB] = "urb",
-    [BRW_MESSAGE_TARGET_THREAD_SPAWNER] = "thread_spawner"
+    [BRW_SFID_NULL] = "null",
+    [BRW_SFID_MATH] = "math",
+    [BRW_SFID_SAMPLER] = "sampler",
+    [BRW_SFID_MESSAGE_GATEWAY] = "gateway",
+    [BRW_SFID_DATAPORT_READ] = "read",
+    [BRW_SFID_DATAPORT_WRITE] = "write",
+    [BRW_SFID_URB] = "urb",
+    [BRW_SFID_THREAD_SPAWNER] = "thread_spawner"
 };
 
 char *math_function[16] = {
@@ -831,7 +831,7 @@ int disasm (FILE *file, struct brw_instruction *inst)
 	err |= control (file, "target function", target_function,
 			inst->header.destreg__conditionalmod, &space);
 	switch (inst->header.destreg__conditionalmod) {
-	case BRW_MESSAGE_TARGET_MATH:
+	case BRW_SFID_MATH:
 	    err |= control (file, "math function", math_function,
 			    inst->bits3.math.function, &space);
 	    err |= control (file, "math saturate", math_saturate,
@@ -843,7 +843,7 @@ int disasm (FILE *file, struct brw_instruction *inst)
 	    err |= control (file, "math precision", math_precision,
 			    inst->bits3.math.precision, &space);
 	    break;
-	case BRW_MESSAGE_TARGET_SAMPLER:
+	case BRW_SFID_SAMPLER:
 	    format (file, " (%d, %d, ",
 		    inst->bits3.sampler.binding_table_index,
 		    inst->bits3.sampler.sampler);
@@ -851,7 +851,7 @@ int disasm (FILE *file, struct brw_instruction *inst)
 			    inst->bits3.sampler.return_format, NULL);
 	    string (file, ")");
 	    break;
-	case BRW_MESSAGE_TARGET_DATAPORT_WRITE:
+	case BRW_SFID_DATAPORT_WRITE:
 	    format (file, " (%d, %d, %d, %d)",
 		    inst->bits3.dp_write.binding_table_index,
 		    (inst->bits3.dp_write.last_render_target << 3) |
@@ -859,7 +859,7 @@ int disasm (FILE *file, struct brw_instruction *inst)
 		    inst->bits3.dp_write.msg_type,
 		    inst->bits3.dp_write.send_commit_msg);
 	    break;
-	case BRW_MESSAGE_TARGET_URB:
+	case BRW_SFID_URB:
 	    format (file, " %d", inst->bits3.urb.offset);
 	    space = 1;
 	    err |= control (file, "urb swizzle", urb_swizzle,
@@ -871,7 +871,7 @@ int disasm (FILE *file, struct brw_instruction *inst)
 	    err |= control (file, "urb complete", urb_complete,
 			    inst->bits3.urb.complete, &space);
 	    break;
-	case BRW_MESSAGE_TARGET_THREAD_SPAWNER:
+	case BRW_SFID_THREAD_SPAWNER:
 	    break;
 	default:
 	    format (file, "unsupported target %d", inst->bits3.generic.msg_target);

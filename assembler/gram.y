@@ -1168,29 +1168,29 @@ post_dst:	dst
 msgtarget:	NULL_TOKEN
 		{
 		  if (IS_GENp(5)) {
-                      $$.bits2.send_gen5.sfid= BRW_MESSAGE_TARGET_NULL;
+                      $$.bits2.send_gen5.sfid= BRW_SFID_NULL;
                       $$.bits3.generic_gen5.header_present = 0;  /* ??? */
 		  } else {
-                      $$.bits3.generic.msg_target = BRW_MESSAGE_TARGET_NULL;
+                      $$.bits3.generic.msg_target = BRW_SFID_NULL;
 		  }
 		}
 		| SAMPLER LPAREN INTEGER COMMA INTEGER COMMA
 		sampler_datatype RPAREN
 		{
 		  if (IS_GENp(7)) {
-                      $$.bits2.send_gen5.sfid = BRW_MESSAGE_TARGET_SAMPLER;
+                      $$.bits2.send_gen5.sfid = BRW_SFID_SAMPLER;
                       $$.bits3.generic_gen5.header_present = 1;   /* ??? */
                       $$.bits3.sampler_gen7.binding_table_index = $3;
                       $$.bits3.sampler_gen7.sampler = $5;
                       $$.bits3.sampler_gen7.simd_mode = 2; /* SIMD16, maybe we should add a new parameter */
 		  } else if (IS_GENp(5)) {
-                      $$.bits2.send_gen5.sfid = BRW_MESSAGE_TARGET_SAMPLER;
+                      $$.bits2.send_gen5.sfid = BRW_SFID_SAMPLER;
                       $$.bits3.generic_gen5.header_present = 1;   /* ??? */
                       $$.bits3.sampler_gen5.binding_table_index = $3;
                       $$.bits3.sampler_gen5.sampler = $5;
                       $$.bits3.sampler_gen5.simd_mode = 2; /* SIMD16, maybe we should add a new parameter */
 		  } else {
-                      $$.bits3.generic.msg_target = BRW_MESSAGE_TARGET_SAMPLER;	
+                      $$.bits3.generic.msg_target = BRW_SFID_SAMPLER;	
                       $$.bits3.sampler.binding_table_index = $3;
                       $$.bits3.sampler.sampler = $5;
                       switch ($7) {
@@ -1215,7 +1215,7 @@ msgtarget:	NULL_TOKEN
                       fprintf (stderr, "Gen6+ doesn't have math function\n");
                       YYERROR;
 		  } else if (IS_GENx(5)) {
-                      $$.bits2.send_gen5.sfid = BRW_MESSAGE_TARGET_MATH;
+                      $$.bits2.send_gen5.sfid = BRW_SFID_MATH;
                       $$.bits3.generic_gen5.header_present = 0;
                       $$.bits3.math_gen5.function = $2;
                       if ($3 == BRW_INSTRUCTION_SATURATE)
@@ -1226,7 +1226,7 @@ msgtarget:	NULL_TOKEN
                       $$.bits3.math_gen5.precision = BRW_MATH_PRECISION_FULL;
                       $$.bits3.math_gen5.data_type = $5;
 		  } else {
-                      $$.bits3.generic.msg_target = BRW_MESSAGE_TARGET_MATH;
+                      $$.bits3.generic.msg_target = BRW_SFID_MATH;
                       $$.bits3.math.function = $2;
                       if ($3 == BRW_INSTRUCTION_SATURATE)
                           $$.bits3.math.saturate = 1;
@@ -1240,10 +1240,10 @@ msgtarget:	NULL_TOKEN
 		| GATEWAY
 		{
 		  if (IS_GENp(5)) {
-                      $$.bits2.send_gen5.sfid = BRW_MESSAGE_TARGET_GATEWAY;
+                      $$.bits2.send_gen5.sfid = BRW_SFID_MESSAGE_GATEWAY;
                       $$.bits3.generic_gen5.header_present = 0;  /* ??? */
 		  } else {
-                      $$.bits3.generic.msg_target = BRW_MESSAGE_TARGET_GATEWAY;
+                      $$.bits3.generic.msg_target = BRW_SFID_MESSAGE_GATEWAY;
 		  }
 		}
 		| READ  LPAREN INTEGER COMMA INTEGER COMMA INTEGER COMMA
@@ -1251,21 +1251,21 @@ msgtarget:	NULL_TOKEN
 		{
 		  if (IS_GENx(7)) {
                       $$.bits2.send_gen5.sfid = 
-                          BRW_MESSAGE_TARGET_DP_SC;
+                          GEN6_SFID_DATAPORT_SAMPLER_CACHE;
                       $$.bits3.generic_gen5.header_present = 1;
                       $$.bits3.gen7_dp.binding_table_index = $3;
                       $$.bits3.gen7_dp.msg_control = $7;
                       $$.bits3.gen7_dp.msg_type = $9;
 		  } else if (IS_GENx(6)) {
                       $$.bits2.send_gen5.sfid = 
-                          BRW_MESSAGE_TARGET_DP_SC;
+                          GEN6_SFID_DATAPORT_SAMPLER_CACHE;
                       $$.bits3.generic_gen5.header_present = 1;
                       $$.bits3.gen6_dp_sampler_const_cache.binding_table_index = $3;
                       $$.bits3.gen6_dp_sampler_const_cache.msg_control = $7;
                       $$.bits3.gen6_dp_sampler_const_cache.msg_type = $9;
 		  } else if (IS_GENx(5)) {
                       $$.bits2.send_gen5.sfid = 
-                          BRW_MESSAGE_TARGET_DATAPORT_READ;
+                          BRW_SFID_DATAPORT_READ;
                       $$.bits3.generic_gen5.header_present = 1;
                       $$.bits3.dp_read_gen5.binding_table_index = $3;
                       $$.bits3.dp_read_gen5.target_cache = $5;
@@ -1273,7 +1273,7 @@ msgtarget:	NULL_TOKEN
                       $$.bits3.dp_read_gen5.msg_type = $9;
 		  } else {
                       $$.bits3.generic.msg_target =
-                          BRW_MESSAGE_TARGET_DATAPORT_READ;
+                          BRW_SFID_DATAPORT_READ;
                       $$.bits3.dp_read.binding_table_index = $3;
                       $$.bits3.dp_read.target_cache = $5;
                       $$.bits3.dp_read.msg_control = $7;
@@ -1284,15 +1284,13 @@ msgtarget:	NULL_TOKEN
 		INTEGER RPAREN
 		{
 		  if (IS_GENx(7)) {
-                      $$.bits2.send_gen5.sfid =
-                          BRW_MESSAGE_TARGET_DP_RC;
+                      $$.bits2.send_gen5.sfid = GEN6_SFID_DATAPORT_RENDER_CACHE;
                       $$.bits3.generic_gen5.header_present = 1;
                       $$.bits3.gen7_dp.binding_table_index = $3;
                       $$.bits3.gen7_dp.msg_control = $5;
                       $$.bits3.gen7_dp.msg_type = $7;
                   } else if (IS_GENx(6)) {
-                      $$.bits2.send_gen5.sfid =
-                          BRW_MESSAGE_TARGET_DP_RC;
+                      $$.bits2.send_gen5.sfid = GEN6_SFID_DATAPORT_RENDER_CACHE;
                       /* Sandybridge supports headerlesss message for render target write.
                        * Currently the GFX assembler doesn't support it. so the program must provide 
                        * message header
@@ -1304,7 +1302,7 @@ msgtarget:	NULL_TOKEN
                       $$.bits3.gen6_dp.send_commit_msg = $9;
 		  } else if (IS_GENx(5)) {
                       $$.bits2.send_gen5.sfid =
-                          BRW_MESSAGE_TARGET_DATAPORT_WRITE;
+                          BRW_SFID_DATAPORT_WRITE;
                       $$.bits3.generic_gen5.header_present = 1;
                       $$.bits3.dp_write_gen5.binding_table_index = $3;
                       $$.bits3.dp_write_gen5.last_render_target = ($5 & 0x8) >> 3;
@@ -1313,7 +1311,7 @@ msgtarget:	NULL_TOKEN
                       $$.bits3.dp_write_gen5.send_commit_msg = $9;
 		  } else {
                       $$.bits3.generic.msg_target =
-                          BRW_MESSAGE_TARGET_DATAPORT_WRITE;
+                          BRW_SFID_DATAPORT_WRITE;
                       $$.bits3.dp_write.binding_table_index = $3;
                       /* The msg control field of brw_struct.h is split into
                        * msg control and last_render_target, even though
@@ -1329,15 +1327,13 @@ msgtarget:	NULL_TOKEN
 		INTEGER COMMA INTEGER RPAREN
 		{
 		  if (IS_GENx(7)) {
-                      $$.bits2.send_gen5.sfid =
-                          BRW_MESSAGE_TARGET_DP_RC;
+                      $$.bits2.send_gen5.sfid = GEN6_SFID_DATAPORT_RENDER_CACHE;
                       $$.bits3.generic_gen5.header_present = ($11 != 0);
                       $$.bits3.gen7_dp.binding_table_index = $3;
                       $$.bits3.gen7_dp.msg_control = $5;
                       $$.bits3.gen7_dp.msg_type = $7;
 		  } else if (IS_GENx(6)) {
-                      $$.bits2.send_gen5.sfid =
-                          BRW_MESSAGE_TARGET_DP_RC;
+                      $$.bits2.send_gen5.sfid = GEN6_SFID_DATAPORT_RENDER_CACHE;
                       $$.bits3.generic_gen5.header_present = ($11 != 0);
                       $$.bits3.gen6_dp.binding_table_index = $3;
                       $$.bits3.gen6_dp.msg_control = $5;
@@ -1345,7 +1341,7 @@ msgtarget:	NULL_TOKEN
                       $$.bits3.gen6_dp.send_commit_msg = $9;
 		  } else if (IS_GENx(5)) {
                       $$.bits2.send_gen5.sfid =
-                          BRW_MESSAGE_TARGET_DATAPORT_WRITE;
+                          BRW_SFID_DATAPORT_WRITE;
                       $$.bits3.generic_gen5.header_present = ($11 != 0);
                       $$.bits3.dp_write_gen5.binding_table_index = $3;
                       $$.bits3.dp_write_gen5.last_render_target = ($5 & 0x8) >> 3;
@@ -1354,7 +1350,7 @@ msgtarget:	NULL_TOKEN
                       $$.bits3.dp_write_gen5.send_commit_msg = $9;
 		  } else {
                       $$.bits3.generic.msg_target =
-                          BRW_MESSAGE_TARGET_DATAPORT_WRITE;
+                          BRW_SFID_DATAPORT_WRITE;
                       $$.bits3.dp_write.binding_table_index = $3;
                       /* The msg control field of brw_struct.h is split into
                        * msg control and last_render_target, even though
@@ -1368,9 +1364,9 @@ msgtarget:	NULL_TOKEN
 		}
 		| URB INTEGER urb_swizzle urb_allocate urb_used urb_complete
 		{
-		  $$.bits3.generic.msg_target = BRW_MESSAGE_TARGET_URB;
+		  $$.bits3.generic.msg_target = BRW_SFID_URB;
 		  if (IS_GENp(5)) {
-                      $$.bits2.send_gen5.sfid = BRW_MESSAGE_TARGET_URB;
+                      $$.bits2.send_gen5.sfid = BRW_SFID_URB;
                       $$.bits3.generic_gen5.header_present = 1;
                       $$.bits3.urb_gen5.opcode = BRW_URB_OPCODE_WRITE;
                       $$.bits3.urb_gen5.offset = $2;
@@ -1380,7 +1376,7 @@ msgtarget:	NULL_TOKEN
                       $$.bits3.urb_gen5.used = $5;
                       $$.bits3.urb_gen5.complete = $6;
 		  } else {
-                      $$.bits3.generic.msg_target = BRW_MESSAGE_TARGET_URB;
+                      $$.bits3.generic.msg_target = BRW_SFID_URB;
                       $$.bits3.urb.opcode = BRW_URB_OPCODE_WRITE;
                       $$.bits3.urb.offset = $2;
                       $$.bits3.urb.swizzle_control = $3;
@@ -1394,17 +1390,17 @@ msgtarget:	NULL_TOKEN
                         INTEGER RPAREN
 		{
 		  $$.bits3.generic.msg_target =
-		    BRW_MESSAGE_TARGET_THREAD_SPAWNER;
+		    BRW_SFID_THREAD_SPAWNER;
 		  if (IS_GENp(5)) {
                       $$.bits2.send_gen5.sfid = 
-                          BRW_MESSAGE_TARGET_THREAD_SPAWNER;
+                          BRW_SFID_THREAD_SPAWNER;
                       $$.bits3.generic_gen5.header_present = 0;
                       $$.bits3.thread_spawner_gen5.opcode = $3;
                       $$.bits3.thread_spawner_gen5.requester_type  = $5;
                       $$.bits3.thread_spawner_gen5.resource_select = $7;
 		  } else {
                       $$.bits3.generic.msg_target =
-                          BRW_MESSAGE_TARGET_THREAD_SPAWNER;
+                          BRW_SFID_THREAD_SPAWNER;
                       $$.bits3.thread_spawner.opcode = $3;
                       $$.bits3.thread_spawner.requester_type  = $5;
                       $$.bits3.thread_spawner.resource_select = $7;
@@ -1412,12 +1408,10 @@ msgtarget:	NULL_TOKEN
 		}
 		| VME  LPAREN INTEGER COMMA INTEGER COMMA INTEGER COMMA INTEGER RPAREN
 		{
-		  $$.bits3.generic.msg_target =
-                      BRW_MESSAGE_TARGET_VME;
+		  $$.bits3.generic.msg_target = GEN6_SFID_VME;
 
 		  if (IS_GENp(6)) { 
-                      $$.bits2.send_gen5.sfid =
-                          BRW_MESSAGE_TARGET_VME;
+                      $$.bits2.send_gen5.sfid = GEN6_SFID_VME;
                       $$.bits3.vme_gen6.binding_table_index = $3;
                       $$.bits3.vme_gen6.search_path_index = $5;
                       $$.bits3.vme_gen6.lut_subindex = $7;
@@ -1434,11 +1428,9 @@ msgtarget:	NULL_TOKEN
                       fprintf (stderr, "Below Gen7.5 doesn't have CRE function\n");
                       YYERROR;
 		    }
-		   $$.bits3.generic.msg_target =
-                      BRW_MESSAGE_TARGET_CRE;
+		   $$.bits3.generic.msg_target = HSW_SFID_CRE;
 
-                   $$.bits2.send_gen5.sfid =
-                          BRW_MESSAGE_TARGET_CRE;
+                   $$.bits2.send_gen5.sfid = HSW_SFID_CRE;
                    $$.bits3.cre_gen75.binding_table_index = $3;
                    $$.bits3.cre_gen75.message_type = $5;
                    $$.bits3.generic_gen5.header_present = 1; 
@@ -1451,10 +1443,10 @@ msgtarget:	NULL_TOKEN
                     $$.bits3.generic_gen5.header_present = ($13 != 0);
 
                     if (IS_GENp(7)) {
-                        if ($3 != BRW_MESSAGE_TARGET_DP_SC &&
-                            $3 != BRW_MESSAGE_TARGET_DP_RC &&
-                            $3 != BRW_MESSAGE_TARGET_DP_CC &&
-                            $3 != BRW_MESSAGE_TARGET_DP_DC) {
+                        if ($3 != GEN6_SFID_DATAPORT_SAMPLER_CACHE &&
+                            $3 != GEN6_SFID_DATAPORT_RENDER_CACHE &&
+                            $3 != GEN6_SFID_DATAPORT_CONSTANT_CACHE &&
+                            $3 != GEN7_SFID_DATAPORT_DATA_CACHE) {
                             fprintf (stderr, "error: wrong cache type\n");
                             YYERROR;
                         }
@@ -1464,9 +1456,9 @@ msgtarget:	NULL_TOKEN
                         $$.bits3.gen7_dp.msg_control = $7;
                         $$.bits3.gen7_dp.msg_type = $5;
                     } else if (IS_GENx(6)) {
-                        if ($3 != BRW_MESSAGE_TARGET_DP_SC &&
-                            $3 != BRW_MESSAGE_TARGET_DP_RC &&
-                            $3 != BRW_MESSAGE_TARGET_DP_CC) {
+                        if ($3 != GEN6_SFID_DATAPORT_SAMPLER_CACHE &&
+                            $3 != GEN6_SFID_DATAPORT_RENDER_CACHE &&
+                            $3 != GEN6_SFID_DATAPORT_CONSTANT_CACHE) {
                             fprintf (stderr, "error: wrong cache type\n");
                             YYERROR;
                         }
