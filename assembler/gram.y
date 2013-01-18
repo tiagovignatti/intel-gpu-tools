@@ -2605,7 +2605,7 @@ instoption_list:instoption_list COMMA instoption
 		    $$.header.debug_control = BRW_DEBUG_BREAKPOINT;
 		    break;
 		  case ACCWRCTRL:
-		    $$.header.acc_wr_control = BRW_ACCWRCTRL_ACCWRCTRL;
+		    $$.header.acc_wr_control = BRW_ACCUMULATOR_WRITE_ENABLE;
 		  }
 		}
 		| instoption_list instoption
