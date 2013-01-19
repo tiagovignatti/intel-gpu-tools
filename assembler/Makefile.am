@@ -1,6 +1,21 @@
 SUBDIRS = doc test
 
+noinst_LTLIBRARIES = libbrw.la
+
 bin_PROGRAMS = intel-gen4asm intel-gen4disasm
+
+libbrw_la_SOURCES =	\
+	brw_compat.h	\
+	brw_context.c	\
+	brw_context.h	\
+	brw_disasm.c	\
+	brw_defines.h	\
+	brw_eu.h	\
+	brw_reg.h	\
+	brw_structs.h	\
+	ralloc.c	\
+	ralloc.h	\
+	$(NULL)
 
 AM_YFLAGS = -d --warnings=all
 AM_CFLAGS= $(ASSEMBLER_WARN_CFLAGS)
@@ -10,23 +25,16 @@ BUILT_SOURCES = gram.h gram.c lex.c
 gram.h: gram.c
 
 intel_gen4asm_SOURCES =	\
-	brw_compat.h	\
-	brw_context.c	\
-	brw_context.h	\
-	ralloc.c	\
-	ralloc.h	\
-	brw_defines.h	\
-	brw_eu.h	\
-	brw_reg.h	\
-	brw_structs.h	\
 	gen4asm.h	\
 	gram.y		\
 	lex.l		\
 	main.c		\
 	$(NULL)
 
-intel_gen4disasm_SOURCES =  \
-	brw_disasm.c disasm-main.c
+intel_gen4asm_LDADD = libbrw.la
+
+intel_gen4disasm_SOURCES =  disasm-main.c
+intel_gen4disasm_LDADD = libbrw.la
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = intel-gen4asm.pc
