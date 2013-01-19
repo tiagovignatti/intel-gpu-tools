@@ -58,6 +58,7 @@ extern "C" {
 #endif
 
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof(x[0]))
+#define Elements(x) ARRAY_SIZE(x)
 
 #ifdef __cplusplus
 } /* end of extern "C" */
