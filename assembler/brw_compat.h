@@ -57,6 +57,8 @@ extern "C" {
 #define PRINTFLIKE(f, a)
 #endif
 
+#define ARRAY_SIZE(x) (sizeof(x) / sizeof(x[0]))
+
 #ifdef __cplusplus
 } /* end of extern "C" */
 #endif

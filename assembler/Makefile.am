@@ -4,17 +4,18 @@ noinst_LTLIBRARIES = libbrw.la
 
 bin_PROGRAMS = intel-gen4asm intel-gen4disasm
 
-libbrw_la_SOURCES =	\
-	brw_compat.h	\
-	brw_context.c	\
-	brw_context.h	\
-	brw_disasm.c	\
-	brw_defines.h	\
-	brw_eu.h	\
-	brw_reg.h	\
-	brw_structs.h	\
-	ralloc.c	\
-	ralloc.h	\
+libbrw_la_SOURCES =		\
+	brw_compat.h		\
+	brw_context.c		\
+	brw_context.h		\
+	brw_disasm.c		\
+	brw_defines.h		\
+	brw_eu.h		\
+	brw_eu_compact.c	\
+	brw_reg.h		\
+	brw_structs.h		\
+	ralloc.c		\
+	ralloc.h		\
 	$(NULL)
 
 AM_YFLAGS = -d --warnings=all

@@ -36,6 +36,10 @@
 extern "C" {
 #endif
 
+#ifndef INTEL_DEBUG
+#define INTEL_DEBUG (0)
+#endif
+
 struct intel_context
 {
    int gen;
