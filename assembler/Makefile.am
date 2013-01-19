@@ -10,6 +10,9 @@ BUILT_SOURCES = gram.h gram.c lex.c
 gram.h: gram.c
 
 intel_gen4asm_SOURCES =	\
+	brw_compat.h	\
+	ralloc.c	\
+	ralloc.h	\
 	brw_defines.h	\
 	brw_eu.h	\
 	brw_reg.h	\
