@@ -11,6 +11,8 @@ gram.h: gram.c
 
 intel_gen4asm_SOURCES =	\
 	brw_compat.h	\
+	brw_context.c	\
+	brw_context.h	\
 	ralloc.c	\
 	ralloc.h	\
 	brw_defines.h	\
