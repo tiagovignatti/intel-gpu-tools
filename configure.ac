@@ -64,7 +64,7 @@ XORG_DEFAULT_OPTIONS
 # it generates waaaay to many warnings.
 ASSEMBLER_WARN_CFLAGS=""
 if test "x$GCC" = "xyes"; then
-	ASSEMBLER_WARN_CFLAGS="-Wall -Wpointer-arith -Wstrict-prototypes \
+	ASSEMBLER_WARN_CFLAGS="-Wall -Wstrict-prototypes \
 	-Wmissing-prototypes -Wmissing-declarations \
 	-Wnested-externs -fno-strict-aliasing"
 fi
