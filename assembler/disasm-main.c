@@ -27,6 +27,7 @@
 #include <unistd.h>
 
 #include "gen4asm.h"
+#include "brw_eu.h"
 
 static const struct option longopts[] = {
 	{ NULL, 0, NULL, 0 }
@@ -95,7 +96,10 @@ read_program_binary (FILE *input)
 
 static void usage(void)
 {
-    fprintf(stderr, "usage: intel-gen4disasm [-o outputfile] [-b] inputfile\n");
+    fprintf(stderr, "usage: intel-gen4disasm [options] inputfile\n");
+    fprintf(stderr, "\t-b, --binary                         C style binary output\n");
+    fprintf(stderr, "\t-o, --output {outputfile}            Specify output file\n");
+    fprintf(stderr, "\t-g, --gen <4|5|6|7>                  Specify GPU generation\n");
 }
 
 int main(int argc, char **argv)
@@ -107,9 +111,10 @@ int main(int argc, char **argv)
     char		*output_file = NULL;
     int			byte_array_input = 0;
     int			o;
+    int			gen = 4;
     struct brw_program_instruction  *inst;
 
-    while ((o = getopt_long(argc, argv, "o:b", longopts, NULL)) != -1) {
+    while ((o = getopt_long(argc, argv, "o:bg:", longopts, NULL)) != -1) {
 	switch (o) {
 	case 'o':
 	    if (strcmp(optarg, "-") != 0)
@@ -117,6 +122,15 @@ int main(int argc, char **argv)
 	    break;
 	case 'b':
 	    byte_array_input = 1;
+	    break;
+	case 'g':
+	    gen = strtol(optarg, NULL, 10);
+
+	    if (gen < 4 || gen > 7) {
+		    usage();
+		    exit(1);
+	    }
+
 	    break;
 	default:
 	    usage();
@@ -153,6 +167,6 @@ int main(int argc, char **argv)
     }
 	    
     for (inst = program->first; inst; inst = inst->next)
-	disasm (output, &inst->instruction);
+	brw_disasm (output, &inst->instruction, gen);
     exit (0);
 }

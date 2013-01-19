@@ -11,6 +11,8 @@ gram.h: gram.c
 
 intel_gen4asm_SOURCES =	\
 	brw_defines.h	\
+	brw_eu.h	\
+	brw_reg.h	\
 	brw_structs.h	\
 	gen4asm.h	\
 	gram.y		\
@@ -19,7 +21,7 @@ intel_gen4asm_SOURCES =	\
 	$(NULL)
 
 intel_gen4disasm_SOURCES =  \
-	disasm.c disasm-main.c
+	brw_disasm.c disasm-main.c
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = intel-gen4asm.pc

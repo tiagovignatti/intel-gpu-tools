@@ -197,6 +197,3 @@ int yylex_destroy(void);
 
 char *
 lex_text(void);
-
-int
-disasm (FILE *output, struct brw_instruction *inst);
