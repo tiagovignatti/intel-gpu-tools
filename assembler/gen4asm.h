@@ -26,6 +26,9 @@
  *
  */
 
+#ifndef __GEN4ASM_H__
+#define __GEN4ASM_H__
+
 #include <inttypes.h>
 
 typedef unsigned char GLubyte;
@@ -197,3 +200,5 @@ int yylex_destroy(void);
 
 char *
 lex_text(void);
+
+#endif /* __GEN4ASM_H__ */
