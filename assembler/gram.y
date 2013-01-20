@@ -1541,7 +1541,6 @@ dstoperand:	symbol_reg dstregion
 		  $$.address_subreg_nr = $1.address_subreg_nr;
 		  $$.indirect_offset = $1.indirect_offset;
 		  $$.horiz_stride = $2;
-		  $$.writemask_set = $3.writemask_set;
 		  $$.writemask = $3.writemask;
 		  $$.reg_type = $4.type;
 		}
@@ -2431,12 +2430,10 @@ chansel:	X | Y | Z | W
  */
 writemask:	/* empty */
 		{
-		  $$.writemask_set = 0;
 		  $$.writemask = BRW_WRITEMASK_XYZW;
 		}
 		| DOT writemask_x writemask_y writemask_z writemask_w
 		{
-		  $$.writemask_set = 1;
 		  $$.writemask = $2 | $3 | $4 | $5;
 		}
 ;
@@ -2843,7 +2840,8 @@ int set_instruction_dest(struct brw_instruction *instr,
 		instr->bits1.da1.dest_reg_nr = dest->reg_nr;
 		instr->bits1.da1.dest_horiz_stride = dest->horiz_stride;
 		instr->bits1.da1.dest_address_mode = dest->address_mode;
-		if (dest->writemask_set) {
+		if (dest->writemask != 0 &&
+		    dest->writemask != BRW_WRITEMASK_XYZW) {
 			fprintf(stderr, "error: write mask set in align1 "
 				"instruction\n");
 			return 1;
@@ -2863,7 +2861,8 @@ int set_instruction_dest(struct brw_instruction *instr,
 		instr->bits1.ia1.dest_horiz_stride = dest->horiz_stride;
 		instr->bits1.ia1.dest_indirect_offset = dest->indirect_offset;
 		instr->bits1.ia1.dest_address_mode = dest->address_mode;
-		if (dest->writemask_set) {
+		if (dest->writemask != 0 &&
+		    dest->writemask != BRW_WRITEMASK_XYZW) {
 			fprintf(stderr, "error: write mask set in align1 "
 				"instruction\n");
 			return 1;
@@ -3134,7 +3133,6 @@ void set_direct_dst_operand(struct dst_operand *dst, struct direct_reg *reg,
 	dst->subreg_nr = reg->subreg_nr;
 	dst->reg_type = type;
 	dst->horiz_stride = 1;
-	dst->writemask_set = 0;
 	dst->writemask = BRW_WRITEMASK_XYZW;
 }
 

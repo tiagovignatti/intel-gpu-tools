@@ -91,7 +91,6 @@ struct indirect_reg {
 struct dst_operand {
 	int reg_file, reg_nr, subreg_nr, reg_type;
 
-	int writemask_set;
 	int writemask;
 
 	int horiz_stride;
