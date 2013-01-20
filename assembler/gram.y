@@ -32,6 +32,7 @@
 #include <assert.h>
 #include "gen4asm.h"
 #include "brw_defines.h"
+#include "brw_reg.h"
 
 #define DEFAULT_EXECSIZE (ffs(program_defaults.execute_size) - 1)
 #define DEFAULT_DSTREGION -1
@@ -58,7 +59,7 @@ static struct dst_operand ip_dst =
     .reg_type = BRW_REGISTER_TYPE_UD,
     .address_mode = BRW_ADDRESS_DIRECT,
     .horiz_stride = 1,
-    .writemask = 0xF,
+    .writemask = BRW_WRITEMASK_XYZW,
 };
 static struct src_operand ip_src =
 {
@@ -2431,7 +2432,7 @@ chansel:	X | Y | Z | W
 writemask:	/* empty */
 		{
 		  $$.writemask_set = 0;
-		  $$.writemask = 0xf;
+		  $$.writemask = BRW_WRITEMASK_XYZW;
 		}
 		| DOT writemask_x writemask_y writemask_z writemask_w
 		{
@@ -3134,7 +3135,7 @@ void set_direct_dst_operand(struct dst_operand *dst, struct direct_reg *reg,
 	dst->reg_type = type;
 	dst->horiz_stride = 1;
 	dst->writemask_set = 0;
-	dst->writemask = 0xf;
+	dst->writemask = BRW_WRITEMASK_XYZW;
 }
 
 void set_direct_src_operand(struct src_operand *src, struct direct_reg *reg,
