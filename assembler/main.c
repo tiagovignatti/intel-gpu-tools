@@ -155,7 +155,7 @@ void insert_register(struct declared_register *reg)
     insert_hash_item(declared_register_table, reg->name, reg);
 }
 
-void add_label(struct brw_program_instruction *i)
+static void add_label(struct brw_program_instruction *i)
 {
     struct label_item **p = &label_table;
 
@@ -170,7 +170,7 @@ void add_label(struct brw_program_instruction *i)
 
 /* Some assembly code have duplicated labels.
    Start from start_addr. Search as a loop. Return the first label found. */
-int label_to_addr(char *name, int start_addr)
+static int label_to_addr(char *name, int start_addr)
 {
     /* return the first label just after start_addr, or the first label from the head */
     struct label_item *p;
