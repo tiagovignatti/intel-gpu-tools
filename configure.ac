@@ -81,6 +81,12 @@ if test x"$udev" = xyes; then
 fi
 PKG_CHECK_MODULES(GLIB, glib-2.0)
 
+# can we build the assembler?
+AS_IF([test x"$LEX" != "x:" -a x"$YACC" != xyacc],
+      [enable_assembler=yes],
+      [enable_assembler=no])
+AM_CONDITIONAL(BUILD_ASSEMBLER, [test "x$enable_assembler" = xyes])
+
 # -----------------------------------------------------------------------------
 #			Configuration options
 # -----------------------------------------------------------------------------
@@ -177,5 +183,14 @@ AC_CONFIG_FILES([
 		 assembler/intel-gen4asm.pc
 		 ])
 AC_OUTPUT
+
+# Print a summary of the compilation
+echo ""
+echo "Intel GPU tools"
+
+echo ""
+echo " • Tools:"
+echo "       Assembler: ${enable_assembler}"
+echo ""
 
 # vim: set ft=config ts=8 sw=8 tw=0 noet :
