@@ -167,6 +167,6 @@ int main(int argc, char **argv)
     }
 	    
     for (inst = program->first; inst; inst = inst->next)
-	brw_disasm (output, &inst->instruction, gen);
+	brw_disasm (output, &inst->instruction.gen, gen);
     exit (0);
 }

@@ -119,7 +119,8 @@ static void brw_program_add_instruction(struct brw_program *p,
     struct brw_program_instruction *list_entry;
 
     list_entry = calloc(sizeof(struct brw_program_instruction), 1);
-    list_entry->instruction = *instruction;
+    list_entry->type = GEN4ASM_INSTRUCTION_GEN;
+    list_entry->instruction.gen = *instruction;
     brw_program_append_entry(p, list_entry);
 }
 
@@ -128,8 +129,8 @@ static void brw_program_add_label(struct brw_program *p, const char *label)
     struct brw_program_instruction *list_entry;
 
     list_entry = calloc(sizeof(struct brw_program_instruction), 1);
-    list_entry->string = strdup(label);
-    list_entry->islabel = 1;
+    list_entry->type = GEN4ASM_INSTRUCTION_LABEL;
+    list_entry->instruction.label.name = strdup(label);
     brw_program_append_entry(p, list_entry);
 }
 

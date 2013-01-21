@@ -31,6 +31,7 @@
 #include <string.h>
 #include <getopt.h>
 #include <unistd.h>
+#include <assert.h>
 
 #include "gen4asm.h"
 
@@ -154,14 +155,17 @@ void insert_register(struct declared_register *reg)
     insert_hash_item(declared_register_table, reg->name, reg);
 }
 
-void add_label(char *name, int addr)
+void add_label(struct brw_program_instruction *i)
 {
     struct label_item **p = &label_table;
+
+    assert(is_label(i));
+
     while(*p)
         p = &((*p)->next);
     *p = calloc(1, sizeof(**p));
-    (*p)->name = name;
-    (*p)->addr = addr;
+    (*p)->name = label_name(i);
+    (*p)->addr = i->inst_offset;
 }
 
 /* Some assembly code have duplicated labels.
@@ -220,11 +224,14 @@ static int read_entry_file(char *fn)
 	return 0;
 }
 
-static int is_entry_point(char *s)
+static int is_entry_point(struct brw_program_instruction *i)
 {
 	struct entry_point_item *p;
+
+	assert(i->type == GEN4ASM_INSTRUCTION_LABEL);
+
 	for (p = entry_point_table; p; p = p->next) {
-	    if (strcmp(p->str, s) == 0)
+	    if (strcmp(p->str, i->instruction.label.name) == 0)
 		return 1;
 	}
 	return 0;
@@ -379,24 +386,24 @@ int main(int argc, char **argv)
 		entry != NULL; entry = entry->next) {
 	    entry->inst_offset = inst_offset;
 	    entry1 = entry->next;
-	    if (entry1 && entry1->islabel && is_entry_point(entry1->string)) {
+	    if (entry1 && is_label(entry1) && is_entry_point(entry1)) {
 		// insert NOP instructions until (inst_offset+1) % 4 == 0
 		while (((inst_offset+1) % 4) != 0) {
 		    tmp_entry = calloc(sizeof(*tmp_entry), 1);
-		    tmp_entry->instruction.header.opcode = BRW_OPCODE_NOP;
+		    tmp_entry->instruction.gen.header.opcode = BRW_OPCODE_NOP;
 		    entry->next = tmp_entry;
 		    tmp_entry->next = entry1;
 		    entry = tmp_entry;
 		    tmp_entry->inst_offset = ++inst_offset;
 		}
 	    }
-	    if (!entry->islabel)
+	    if (!is_label(entry))
               inst_offset++;
 	}
 
 	for (entry = compiled_program.first; entry; entry = entry->next)
-	    if (entry->islabel)
-		add_label(entry->string, entry->inst_offset);
+	    if (is_label(entry))
+		add_label(entry);
 
 	if (need_export) {
 		if (export_filename) {
@@ -406,15 +413,18 @@ int main(int argc, char **argv)
 		}
 		for (entry = compiled_program.first;
 			entry != NULL; entry = entry->next) {
-		    if (entry->islabel) 
+		    if (is_label(entry))
 			fprintf(export_file, "#define %s_IP %d\n",
-				entry->string, (IS_GENx(5) ? 2 : 1)*(entry->inst_offset));
+				label_name(entry), (IS_GENx(5) ? 2 : 1)*(entry->inst_offset));
 		}
 		fclose(export_file);
 	}
 
 	for (entry = compiled_program.first; entry; entry = entry->next) {
-	    struct brw_instruction *inst = & entry->instruction;
+	    struct brw_instruction *inst = & entry->instruction.gen;
+
+	    if (is_label(entry))
+		continue;
 
 	    if (inst->first_reloc_target)
 		inst->first_reloc_offset = label_to_addr(inst->first_reloc_target, entry->inst_offset) - entry->inst_offset;
@@ -424,14 +434,14 @@ int main(int argc, char **argv)
 
 	    if (inst->second_reloc_offset) {
 		// this is a branch instruction with two offset arguments
-		entry->instruction.bits3.break_cont.jip = jump_distance(inst->first_reloc_offset);
-		entry->instruction.bits3.break_cont.uip = jump_distance(inst->second_reloc_offset);
+		inst->bits3.break_cont.jip = jump_distance(inst->first_reloc_offset);
+		inst->bits3.break_cont.uip = jump_distance(inst->second_reloc_offset);
 	    } else if (inst->first_reloc_offset) {
 		// this is a branch instruction with one offset argument
 		int offset = inst->first_reloc_offset;
 		/* bspec: Unlike other flow control instructions, the offset used by JMPI is relative to the incremented instruction pointer rather than the IP value for the instruction itself. */
 		
-		int is_jmpi = entry->instruction.header.opcode == BRW_OPCODE_JMPI; // target relative to the post-incremented IP, so delta == 1 if JMPI
+		int is_jmpi = inst->header.opcode == BRW_OPCODE_JMPI; // target relative to the post-incremented IP, so delta == 1 if JMPI
 		if(is_jmpi)
 		    offset --;
 		offset = jump_distance(offset);
@@ -439,25 +449,25 @@ int main(int argc, char **argv)
 			offset = offset * 8;
 
 		if(!IS_GENp(6)) {
-		    entry->instruction.bits3.JIP = offset;
-		    if(entry->instruction.header.opcode == BRW_OPCODE_ELSE)
-			entry->instruction.bits3.break_cont.uip = 1; /* Set the istack pop count, which must always be 1. */
+		    inst->bits3.JIP = offset;
+		    if(inst->header.opcode == BRW_OPCODE_ELSE)
+			inst->bits3.break_cont.uip = 1; /* Set the istack pop count, which must always be 1. */
 		} else if(IS_GENx(6)) {
 		    /* TODO: endif JIP pos is not in Gen6 spec. may be bits1 */
-		    int opcode = entry->instruction.header.opcode;
+		    int opcode = inst->header.opcode;
 		    if(opcode == BRW_OPCODE_CALL || opcode == BRW_OPCODE_JMPI)
-			entry->instruction.bits3.JIP = offset; // for CALL, JMPI
+			inst->bits3.JIP = offset; // for CALL, JMPI
 		    else
-			entry->instruction.bits1.branch_gen6.jump_count = offset; // for CASE,ELSE,FORK,IF,WHILE
+			inst->bits1.branch_gen6.jump_count = offset; // for CASE,ELSE,FORK,IF,WHILE
 		} else if(IS_GENp(7)) {
-		    int opcode = entry->instruction.header.opcode;
+		    int opcode = inst->header.opcode;
 		    /* Gen7 JMPI Restrictions in bspec:
 		     * The JIP data type must be Signed DWord
 		     */
 		    if(opcode == BRW_OPCODE_JMPI)
-			entry->instruction.bits3.JIP = offset;
+			inst->bits3.JIP = offset;
 		    else
-			entry->instruction.bits3.break_cont.jip = offset;
+			inst->bits3.break_cont.jip = offset;
 		}
 	    }
 	}
@@ -469,10 +479,10 @@ int main(int argc, char **argv)
 		entry != NULL;
 		entry = entry1) {
 	    entry1 = entry->next;
-	    if (!entry->islabel)
-		print_instruction(output, &entry->instruction);
+	    if (!is_label(entry))
+		print_instruction(output, &entry->instruction.gen);
 	    else
-		free(entry->string);
+		free(entry->instruction.label.name);
 	    free(entry);
 	}
 	if (binary_like_output)

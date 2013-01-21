@@ -30,6 +30,8 @@
 #define __GEN4ASM_H__
 
 #include <inttypes.h>
+#include <stdbool.h>
+#include <assert.h>
 
 typedef unsigned char GLubyte;
 typedef short GLshort;
@@ -133,17 +135,39 @@ typedef struct {
     } u;
 } imm32_t;
 
+enum assembler_instruction_type {
+    GEN4ASM_INSTRUCTION_GEN,
+    GEN4ASM_INSTRUCTION_LABEL,
+};
+
+struct label_instruction {
+    char   *name;
+};
+
 /**
  * This structure is just the list container for instructions accumulated by
  * the parser and labels.
  */
 struct brw_program_instruction {
-	struct brw_instruction instruction;
-	struct brw_program_instruction *next;
-	GLuint islabel;
-	GLuint inst_offset;
-	char   *string;
+    enum assembler_instruction_type type;
+    unsigned inst_offset;
+    union {
+	struct brw_instruction gen;
+	struct label_instruction label;
+    } instruction;
+    struct brw_program_instruction *next;
 };
+
+static inline bool is_label(struct brw_program_instruction *instruction)
+{
+    return instruction->type == GEN4ASM_INSTRUCTION_LABEL;
+}
+
+static inline char *label_name(struct brw_program_instruction *i)
+{
+    assert(is_label(i));
+    return i->instruction.label.name;
+}
 
 /**
  * This structure is a list of instructions.  It is the final output of the
@@ -188,7 +212,7 @@ struct declared_register {
 };
 struct declared_register *find_register(char *name);
 void insert_register(struct declared_register *reg);
-void add_label(char *name, int addr);
+void add_label(struct brw_program_instruction *instruction);
 int label_to_addr(char *name, int start_addr);
 
 int yyparse(void);
