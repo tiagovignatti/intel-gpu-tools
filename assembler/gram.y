@@ -124,6 +124,17 @@ static void brw_program_add_instruction(struct brw_program *p,
     brw_program_append_entry(p, list_entry);
 }
 
+static void brw_program_add_relocatable(struct brw_program *p,
+					struct relocatable_instruction *reloc)
+{
+    struct brw_program_instruction *list_entry;
+
+    list_entry = calloc(sizeof(struct brw_program_instruction), 1);
+    list_entry->type = GEN4ASM_INSTRUCTION_GEN_RELOCATABLE;
+    list_entry->instruction.reloc = *reloc;
+    brw_program_append_entry(p, list_entry);
+}
+
 static void brw_program_add_label(struct brw_program *p, const char *label)
 {
     struct brw_program_instruction *list_entry;
@@ -143,6 +154,7 @@ static void brw_program_add_label(struct brw_program *p, const char *label)
 	int integer;
 	double number;
 	struct brw_instruction instruction;
+	struct relocatable_instruction relocatable;
 	struct brw_program program;
 	struct region region;
 	struct regtype regtype;
@@ -227,14 +239,14 @@ static void brw_program_add_label(struct brw_program *p, const char *label)
 %type <integer> simple_int
 %type <instruction> instruction unaryinstruction binaryinstruction
 %type <instruction> binaryaccinstruction trinaryinstruction sendinstruction
-%type <instruction> jumpinstruction
-%type <instruction> breakinstruction syncinstruction
+%type <instruction> syncinstruction
 %type <instruction> msgtarget
 %type <instruction> instoptions instoption_list predicate
 %type <instruction> mathinstruction
-%type <instruction> subroutineinstruction
-%type <instruction> multibranchinstruction
-%type <instruction> nopinstruction loopinstruction ifelseinstruction haltinstruction
+%type <instruction> nopinstruction
+%type <relocatable> relocatableinstruction breakinstruction
+%type <relocatable> ifelseinstruction loopinstruction haltinstruction
+%type <relocatable> multibranchinstruction subroutineinstruction jumpinstruction
 %type <string> label
 %type <program> instrseq
 %type <integer> instoption
@@ -390,6 +402,16 @@ instrseq:	instrseq pragma
 		  brw_program_init(&$$);
 		  brw_program_add_instruction(&$$, &$1);
 		}
+		| instrseq relocatableinstruction SEMICOLON
+		{
+		  brw_program_add_relocatable(&$1, &$2);
+		  $$ = $1;
+		}
+		| relocatableinstruction SEMICOLON
+		{
+		  brw_program_init(&$$);
+		  brw_program_add_relocatable(&$$, &$1);
+		}
 		| instrseq SEMICOLON
 		{
 		    $$ = $1;
@@ -422,16 +444,19 @@ instruction:	unaryinstruction
 		| binaryaccinstruction
 		| trinaryinstruction
 		| sendinstruction
-		| jumpinstruction
-		| ifelseinstruction
-		| breakinstruction
 		| syncinstruction
 		| mathinstruction
-		| subroutineinstruction
-		| multibranchinstruction
 		| nopinstruction
-		| haltinstruction
-		| loopinstruction
+;
+
+/* relocatableinstruction are instructions that needs a relocation pass */
+relocatableinstruction:	ifelseinstruction
+			| loopinstruction
+			| haltinstruction
+			| multibranchinstruction
+			| subroutineinstruction
+			| jumpinstruction
+			| breakinstruction
 ;
 
 ifelseinstruction: ENDIF
@@ -442,11 +467,11 @@ ifelseinstruction: ENDIF
 		    YYERROR;
 		  }
 		  memset(&$$, 0, sizeof($$));
-		  $$.header.opcode = $1;
-		  $$.header.thread_control |= BRW_THREAD_SWITCH;
-		  $$.bits1.da1.dest_horiz_stride = 1;
-		  $$.bits1.da1.src1_reg_file = BRW_ARCHITECTURE_REGISTER_FILE;
-		  $$.bits1.da1.src1_reg_type = BRW_REGISTER_TYPE_UD;
+		  $$.gen.header.opcode = $1;
+		  $$.gen.header.thread_control |= BRW_THREAD_SWITCH;
+		  $$.gen.bits1.da1.dest_horiz_stride = 1;
+		  $$.gen.bits1.da1.src1_reg_file = BRW_ARCHITECTURE_REGISTER_FILE;
+		  $$.gen.bits1.da1.src1_reg_type = BRW_REGISTER_TYPE_UD;
 		}
 		| ENDIF execsize relativelocation instoptions
 		{
@@ -457,8 +482,8 @@ ifelseinstruction: ENDIF
 		    YYERROR;
 		  }
 		  memset(&$$, 0, sizeof($$));
-		  $$.header.opcode = $1;
-		  $$.header.execution_size = $2;
+		  $$.gen.header.opcode = $1;
+		  $$.gen.header.execution_size = $2;
 		  $$.first_reloc_target = $3.reloc_target;
 		  $$.first_reloc_offset = $3.imm32;
 		}
@@ -470,18 +495,18 @@ ifelseinstruction: ENDIF
 		    $3.imm32 |= (1 << 16);
 
 		    memset(&$$, 0, sizeof($$));
-		    $$.header.opcode = $1;
-		    $$.header.execution_size = $2;
-		    $$.header.thread_control |= BRW_THREAD_SWITCH;
-		    set_instruction_dest(&$$, &ip_dst);
-		    set_instruction_src0(&$$, &ip_src);
-		    set_instruction_src1(&$$, &$3);
+		    $$.gen.header.opcode = $1;
+		    $$.gen.header.execution_size = $2;
+		    $$.gen.header.thread_control |= BRW_THREAD_SWITCH;
+		    set_instruction_dest(&$$.gen, &ip_dst);
+		    set_instruction_src0(&$$.gen, &ip_src);
+		    set_instruction_src1(&$$.gen, &$3);
 		    $$.first_reloc_target = $3.reloc_target;
 		    $$.first_reloc_offset = $3.imm32;
 		  } else if(IS_GENp(6)) {
 		    memset(&$$, 0, sizeof($$));
-		    $$.header.opcode = $1;
-		    $$.header.execution_size = $2;
+		    $$.gen.header.opcode = $1;
+		    $$.gen.header.execution_size = $2;
 		    $$.first_reloc_target = $3.reloc_target;
 		    $$.first_reloc_offset = $3.imm32;
 		  } else {
@@ -504,14 +529,14 @@ ifelseinstruction: ENDIF
 		    YYERROR;
 		  }
 		  memset(&$$, 0, sizeof($$));
-		  set_instruction_predicate(&$$, &$1);
-		  $$.header.opcode = $2;
-		  $$.header.execution_size = $3;
+		  set_instruction_predicate(&$$.gen, &$1);
+		  $$.gen.header.opcode = $2;
+		  $$.gen.header.execution_size = $3;
 		  if(!IS_GENp(6)) {
-		    $$.header.thread_control |= BRW_THREAD_SWITCH;
-		    set_instruction_dest(&$$, &ip_dst);
-		    set_instruction_src0(&$$, &ip_src);
-		    set_instruction_src1(&$$, &$4);
+		    $$.gen.header.thread_control |= BRW_THREAD_SWITCH;
+		    set_instruction_dest(&$$.gen, &ip_dst);
+		    set_instruction_src0(&$$.gen, &ip_src);
+		    set_instruction_src1(&$$.gen, &$4);
 		  }
 		  $$.first_reloc_target = $4.reloc_target;
 		  $$.first_reloc_offset = $4.imm32;
@@ -524,9 +549,9 @@ ifelseinstruction: ENDIF
 		    YYERROR;
 		  }
 		  memset(&$$, 0, sizeof($$));
-		  set_instruction_predicate(&$$, &$1);
-		  $$.header.opcode = $2;
-		  $$.header.execution_size = $3;
+		  set_instruction_predicate(&$$.gen, &$1);
+		  $$.gen.header.opcode = $2;
+		  $$.gen.header.execution_size = $3;
 		  $$.first_reloc_target = $4.reloc_target;
 		  $$.first_reloc_offset = $4.imm32;
 		  $$.second_reloc_target = $5.reloc_target;
@@ -542,14 +567,14 @@ loopinstruction: predicate WHILE execsize relativelocation instoptions
 		     * offset is the second source operand.  The offset is added
 		     * to the pre-incremented IP.
 		     */
-		    set_instruction_dest(&$$, &ip_dst);
+		    set_instruction_dest(&$$.gen, &ip_dst);
 		    memset(&$$, 0, sizeof($$));
-		    set_instruction_predicate(&$$, &$1);
-		    $$.header.opcode = $2;
-		    $$.header.execution_size = $3;
-		    $$.header.thread_control |= BRW_THREAD_SWITCH;
-		    set_instruction_src0(&$$, &ip_src);
-		    set_instruction_src1(&$$, &$4);
+		    set_instruction_predicate(&$$.gen, &$1);
+		    $$.gen.header.opcode = $2;
+		    $$.gen.header.execution_size = $3;
+		    $$.gen.header.thread_control |= BRW_THREAD_SWITCH;
+		    set_instruction_src0(&$$.gen, &ip_src);
+		    set_instruction_src1(&$$.gen, &$4);
 		    $$.first_reloc_target = $4.reloc_target;
 		    $$.first_reloc_offset = $4.imm32;
 		  } else if (IS_GENp(6)) {
@@ -557,9 +582,9 @@ loopinstruction: predicate WHILE execsize relativelocation instoptions
 		         dest must have the same element size as src0.
 		         dest horizontal stride must be 1. */
 		    memset(&$$, 0, sizeof($$));
-		    set_instruction_predicate(&$$, &$1);
-		    $$.header.opcode = $2;
-		    $$.header.execution_size = $3;
+		    set_instruction_predicate(&$$.gen, &$1);
+		    $$.gen.header.opcode = $2;
+		    $$.gen.header.execution_size = $3;
 		    $$.first_reloc_target = $4.reloc_target;
 		    $$.first_reloc_offset = $4.imm32;
 		  } else {
@@ -571,7 +596,7 @@ loopinstruction: predicate WHILE execsize relativelocation instoptions
 		{
 		  // deprecated
 		  memset(&$$, 0, sizeof($$));
-		  $$.header.opcode = $1;
+		  $$.gen.header.opcode = $1;
 		};
 
 haltinstruction: predicate HALT execsize relativelocation relativelocation instoptions
@@ -579,15 +604,15 @@ haltinstruction: predicate HALT execsize relativelocation relativelocation insto
 		  // for Gen6, Gen7
 		  /* Gen6, Gen7 bspec: dst and src0 must be the null reg. */
 		  memset(&$$, 0, sizeof($$));
-		  set_instruction_predicate(&$$, &$1);
-		  $$.header.opcode = $2;
-		  $$.header.execution_size = $3;
+		  set_instruction_predicate(&$$.gen, &$1);
+		  $$.gen.header.opcode = $2;
+		  $$.gen.header.execution_size = $3;
 		  $$.first_reloc_target = $4.reloc_target;
 		  $$.first_reloc_offset = $4.imm32;
 		  $$.second_reloc_target = $5.reloc_target;
 		  $$.second_reloc_offset = $5.imm32;
-		  set_instruction_dest(&$$, &dst_null_reg);
-		  set_instruction_src0(&$$, &src_null_reg);
+		  set_instruction_dest(&$$.gen, &dst_null_reg);
+		  set_instruction_src0(&$$.gen, &src_null_reg);
 		};
 
 multibranchinstruction:
@@ -595,28 +620,28 @@ multibranchinstruction:
 		{
 		  /* Gen7 bspec: dest must be null. use Switch option */
 		  memset(&$$, 0, sizeof($$));
-		  set_instruction_predicate(&$$, &$1);
-		  $$.header.opcode = $2;
-		  $$.header.execution_size = $3;
-		  $$.header.thread_control |= BRW_THREAD_SWITCH;
+		  set_instruction_predicate(&$$.gen, &$1);
+		  $$.gen.header.opcode = $2;
+		  $$.gen.header.execution_size = $3;
+		  $$.gen.header.thread_control |= BRW_THREAD_SWITCH;
 		  $$.first_reloc_target = $4.reloc_target;
 		  $$.first_reloc_offset = $4.imm32;
-		  set_instruction_dest(&$$, &dst_null_reg);
+		  set_instruction_dest(&$$.gen, &dst_null_reg);
 		}
 		| predicate BRC execsize relativelocation relativelocation instoptions
 		{
 		  /* Gen7 bspec: dest must be null. src0 must be null. use Switch option */
 		  memset(&$$, 0, sizeof($$));
-		  set_instruction_predicate(&$$, &$1);
-		  $$.header.opcode = $2;
-		  $$.header.execution_size = $3;
-		  $$.header.thread_control |= BRW_THREAD_SWITCH;
+		  set_instruction_predicate(&$$.gen, &$1);
+		  $$.gen.header.opcode = $2;
+		  $$.gen.header.execution_size = $3;
+		  $$.gen.header.thread_control |= BRW_THREAD_SWITCH;
 		  $$.first_reloc_target = $4.reloc_target;
 		  $$.first_reloc_offset = $4.imm32;
 		  $$.second_reloc_target = $5.reloc_target;
 		  $$.second_reloc_offset = $5.imm32;
-		  set_instruction_dest(&$$, &dst_null_reg);
-		  set_instruction_src0(&$$, &src_null_reg);
+		  set_instruction_dest(&$$.gen, &dst_null_reg);
+		  set_instruction_src0(&$$.gen, &src_null_reg);
 		}
 ;
 
@@ -638,12 +663,12 @@ subroutineinstruction:
 		       execution size must be 2.
 		   */
 		  memset(&$$, 0, sizeof($$));
-		  set_instruction_predicate(&$$, &$1);
-		  $$.header.opcode = $2;
-		  $$.header.execution_size = 1; /* execution size must be 2. Here 1 is encoded 2. */
+		  set_instruction_predicate(&$$.gen, &$1);
+		  $$.gen.header.opcode = $2;
+		  $$.gen.header.execution_size = 1; /* execution size must be 2. Here 1 is encoded 2. */
 
 		  $4.reg_type = BRW_REGISTER_TYPE_D; /* dest type should be DWORD */
-		  set_instruction_dest(&$$, &$4);
+		  set_instruction_dest(&$$.gen, &$4);
 
 		  struct src_operand src0;
 		  memset(&src0, 0, sizeof(src0));
@@ -652,7 +677,7 @@ subroutineinstruction:
 		  src0.horiz_stride = 1; /*encoded 1*/
 		  src0.width = 1; /*encoded 2*/
 		  src0.vert_stride = 2; /*encoded 2*/
-		  set_instruction_src0(&$$, &src0);
+		  set_instruction_src0(&$$.gen, &src0);
 
 		  $$.first_reloc_target = $5.reloc_target;
 		  $$.first_reloc_offset = $5.imm32;
@@ -666,15 +691,15 @@ subroutineinstruction:
 		       src0 region control must be <2,2,1> (not specified clearly. should be same as CALL)
 		   */
 		  memset(&$$, 0, sizeof($$));
-		  set_instruction_predicate(&$$, &$1);
-		  $$.header.opcode = $2;
-		  $$.header.execution_size = 1; /* execution size of RET should be 2 */
-		  set_instruction_dest(&$$, &dst_null_reg);
+		  set_instruction_predicate(&$$.gen, &$1);
+		  $$.gen.header.opcode = $2;
+		  $$.gen.header.execution_size = 1; /* execution size of RET should be 2 */
+		  set_instruction_dest(&$$.gen, &dst_null_reg);
 		  $5.reg_type = BRW_REGISTER_TYPE_D;
 		  $5.horiz_stride = 1; /*encoded 1*/
 		  $5.width = 1; /*encoded 2*/
 		  $5.vert_stride = 2; /*encoded 2*/
-		  set_instruction_src0(&$$, &$5);
+		  set_instruction_src0(&$$.gen, &$5);
 		}
 ;
 
@@ -1089,14 +1114,14 @@ jumpinstruction: predicate JMPI execsize relativelocation2
 		   * is the post-incremented IP plus the offset.
 		   */
 		  memset(&$$, 0, sizeof($$));
-		  $$.header.opcode = $2;
-		  $$.header.execution_size = ffs(1) - 1;
+		  $$.gen.header.opcode = $2;
+		  $$.gen.header.execution_size = ffs(1) - 1;
 		  if(advanced_flag)
-		  	$$.header.mask_control = BRW_MASK_DISABLE;
-		  set_instruction_predicate(&$$, &$1);
-		  set_instruction_dest(&$$, &ip_dst);
-		  set_instruction_src0(&$$, &ip_src);
-		  set_instruction_src1(&$$, &$4);
+			$$.gen.header.mask_control = BRW_MASK_DISABLE;
+		  set_instruction_predicate(&$$.gen, &$1);
+		  set_instruction_dest(&$$.gen, &ip_dst);
+		  set_instruction_src0(&$$.gen, &ip_src);
+		  set_instruction_src1(&$$.gen, &$4);
 		  $$.first_reloc_target = $4.reloc_target;
 		  $$.first_reloc_offset = $4.imm32;
 		}
@@ -1123,9 +1148,9 @@ breakinstruction: predicate breakop execsize relativelocation relativelocation i
 		{
 		  // for Gen6, Gen7
 		  memset(&$$, 0, sizeof($$));
-		  set_instruction_predicate(&$$, &$1);
-		  $$.header.opcode = $2;
-		  $$.header.execution_size = $3;
+		  set_instruction_predicate(&$$.gen, &$1);
+		  $$.gen.header.opcode = $2;
+		  $$.gen.header.execution_size = $3;
 		  $$.first_reloc_target = $4.reloc_target;
 		  $$.first_reloc_offset = $4.imm32;
 		  $$.second_reloc_target = $5.reloc_target;

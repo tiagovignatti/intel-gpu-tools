@@ -421,24 +421,25 @@ int main(int argc, char **argv)
 	}
 
 	for (entry = compiled_program.first; entry; entry = entry->next) {
-	    struct brw_instruction *inst = & entry->instruction.gen;
+	    struct relocatable_instruction *reloc = &entry->instruction.reloc;
+	    struct brw_instruction *inst = &reloc->gen;
 
-	    if (is_label(entry))
+	    if (!is_relocatable(entry))
 		continue;
 
-	    if (inst->first_reloc_target)
-		inst->first_reloc_offset = label_to_addr(inst->first_reloc_target, entry->inst_offset) - entry->inst_offset;
+	    if (reloc->first_reloc_target)
+		reloc->first_reloc_offset = label_to_addr(reloc->first_reloc_target, entry->inst_offset) - entry->inst_offset;
 
-	    if (inst->second_reloc_target)
-		inst->second_reloc_offset = label_to_addr(inst->second_reloc_target, entry->inst_offset) - entry->inst_offset;
+	    if (reloc->second_reloc_target)
+		reloc->second_reloc_offset = label_to_addr(reloc->second_reloc_target, entry->inst_offset) - entry->inst_offset;
 
-	    if (inst->second_reloc_offset) {
+	    if (reloc->second_reloc_offset) {
 		// this is a branch instruction with two offset arguments
-		inst->bits3.break_cont.jip = jump_distance(inst->first_reloc_offset);
-		inst->bits3.break_cont.uip = jump_distance(inst->second_reloc_offset);
-	    } else if (inst->first_reloc_offset) {
+		inst->bits3.break_cont.jip = jump_distance(reloc->first_reloc_offset);
+		inst->bits3.break_cont.uip = jump_distance(reloc->second_reloc_offset);
+	    } else if (reloc->first_reloc_offset) {
 		// this is a branch instruction with one offset argument
-		int offset = inst->first_reloc_offset;
+		int offset = reloc->first_reloc_offset;
 		/* bspec: Unlike other flow control instructions, the offset used by JMPI is relative to the incremented instruction pointer rather than the IP value for the instruction itself. */
 		
 		int is_jmpi = inst->header.opcode == BRW_OPCODE_JMPI; // target relative to the post-incremented IP, so delta == 1 if JMPI

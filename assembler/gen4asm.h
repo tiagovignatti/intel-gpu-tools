@@ -137,11 +137,18 @@ typedef struct {
 
 enum assembler_instruction_type {
     GEN4ASM_INSTRUCTION_GEN,
+    GEN4ASM_INSTRUCTION_GEN_RELOCATABLE,
     GEN4ASM_INSTRUCTION_LABEL,
 };
 
 struct label_instruction {
     char   *name;
+};
+
+struct relocatable_instruction {
+    struct brw_instruction gen;
+    char *first_reloc_target, *second_reloc_target; // JIP and UIP respectively
+    GLint first_reloc_offset, second_reloc_offset; // in number of instructions
 };
 
 /**
@@ -153,6 +160,7 @@ struct brw_program_instruction {
     unsigned inst_offset;
     union {
 	struct brw_instruction gen;
+	struct relocatable_instruction reloc;
 	struct label_instruction label;
     } instruction;
     struct brw_program_instruction *next;
@@ -167,6 +175,11 @@ static inline char *label_name(struct brw_program_instruction *i)
 {
     assert(is_label(i));
     return i->instruction.label.name;
+}
+
+static inline bool is_relocatable(struct brw_program_instruction *intruction)
+{
+    return intruction->type == GEN4ASM_INSTRUCTION_GEN_RELOCATABLE;
 }
 
 /**
