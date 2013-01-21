@@ -97,6 +97,42 @@ void set_direct_dst_operand(struct dst_operand *dst, struct direct_reg *reg,
 void set_direct_src_operand(struct src_operand *src, struct direct_reg *reg,
 			    int type);
 
+static void brw_program_init(struct brw_program *p)
+{
+   memset(p, 0, sizeof(struct brw_program));
+}
+
+static void brw_program_append_entry(struct brw_program *p,
+				     struct brw_program_instruction *entry)
+{
+    entry->next = NULL;
+    if (p->last)
+	p->last->next = entry;
+    else
+	p->first = entry;
+    p->last = entry;
+}
+
+static void brw_program_add_instruction(struct brw_program *p,
+					struct brw_instruction *instruction)
+{
+    struct brw_program_instruction *list_entry;
+
+    list_entry = calloc(sizeof(struct brw_program_instruction), 1);
+    list_entry->instruction = *instruction;
+    brw_program_append_entry(p, list_entry);
+}
+
+static void brw_program_add_label(struct brw_program *p, const char *label)
+{
+    struct brw_program_instruction *list_entry;
+
+    list_entry = calloc(sizeof(struct brw_program_instruction), 1);
+    list_entry->string = strdup(label);
+    list_entry->islabel = 1;
+    brw_program_append_entry(p, list_entry);
+}
+
 %}
 
 %start ROOT
@@ -345,59 +381,27 @@ instrseq:	instrseq pragma
 		}
 		| instrseq instruction SEMICOLON
 		{
-		  struct brw_program_instruction *list_entry =
-		    calloc(sizeof(struct brw_program_instruction), 1);
-		  list_entry->instruction = $2;
-		  list_entry->next = NULL;
-		  if ($1.last) {
-			$1.last->next = list_entry;
-		  } else {
-			$1.first = list_entry;
-		  }
-		  $1.last = list_entry;
+		  brw_program_add_instruction(&$1, &$2);
 		  $$ = $1;
 		}
 		| instruction SEMICOLON
 		{
-		  struct brw_program_instruction *list_entry =
-		    calloc(sizeof(struct brw_program_instruction), 1);
-		  list_entry->instruction = $1;
-
-		  list_entry->next = NULL;
-
-		  $$.first = list_entry;
-		  $$.last = list_entry;
+		  brw_program_init(&$$);
+		  brw_program_add_instruction(&$$, &$1);
 		}
-        | instrseq SEMICOLON
+		| instrseq SEMICOLON
 		{
 		    $$ = $1;
 		}
-        | instrseq label
+		| instrseq label
         	{
-          struct brw_program_instruction *list_entry =
-            calloc(sizeof(struct brw_program_instruction), 1);
-          list_entry->string = strdup($2);
-          list_entry->islabel = 1;
-		  list_entry->next = NULL;
-		  if ($1.last) {
-			$1.last->next = list_entry;
-		  } else {
-			$1.first = list_entry;
-		  }
-		  $1.last = list_entry;
+		  brw_program_add_label(&$1, $2);
 		  $$ = $1;
                 }
 		| label
 		{
-		  struct brw_program_instruction *list_entry =
-		    calloc(sizeof(struct brw_program_instruction), 1);
-                  list_entry->string = strdup($1);
-                  list_entry->islabel = 1;
-
-		  list_entry->next = NULL;
-
-		  $$.first = list_entry;
-		  $$.last = list_entry;
+		  brw_program_init(&$$);
+		  brw_program_add_label(&$$, $1);
 		}
 		| pragma
 		{
