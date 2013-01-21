@@ -2716,18 +2716,11 @@ static int get_subreg_address(GLuint regfile, GLuint type, GLuint subreg, GLuint
 {
     int unit_size = 1;
 
-    if (address_mode == BRW_ADDRESS_DIRECT) {
-        if (advanced_flag == 1) {
-            if ((regfile == BRW_GENERAL_REGISTER_FILE ||
-                 regfile == BRW_MESSAGE_REGISTER_FILE || 
-                 regfile == BRW_ARCHITECTURE_REGISTER_FILE)) {
-                
-                unit_size = get_type_size(type);
-            } 
-        }
-    } else {
-        unit_size = 1;
-    }
+    assert(address_mode == BRW_ADDRESS_DIRECT);
+    assert(regfile != BRW_IMMEDIATE_VALUE);
+
+    if (advanced_flag)
+	unit_size = get_type_size(type);
 
     return subreg * unit_size;
 }
