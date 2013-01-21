@@ -97,7 +97,6 @@ struct dst_operand {
 	int address_mode; /* 0 if direct, 1 if register-indirect */
 
 	/* Indirect addressing */
-	int address_subreg_nr;
 	int indirect_offset;
 };
 
@@ -114,7 +113,6 @@ struct src_operand {
 	int default_region;
 
 	int address_mode; /* 0 if direct, 1 if register-indirect */
-	int address_subreg_nr;
 	int indirect_offset; /* XXX */
 
 	int swizzle_set;
