@@ -55,6 +55,15 @@ extern long int gen_level;
 
 void yyerror (char *msg);
 
+#define STRUCT_SIZE_ASSERT(TYPE, SIZE) \
+typedef struct { \
+          char compile_time_assert_ ## TYPE ## _size[ \
+              (sizeof (struct TYPE) == (SIZE)) ? 1 : -1]; \
+        } _ ## TYPE ## SizeCheck
+
+/* ensure nobody changes the size of struct brw_instruction */
+STRUCT_SIZE_ASSERT(brw_instruction, 16);
+
 /**
  * This structure is the internal representation of directly-addressed
  * registers in the parser.
