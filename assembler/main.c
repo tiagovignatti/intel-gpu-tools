@@ -239,35 +239,35 @@ static void free_entry_point_table(struct entry_point_item *p) {
 }
 
 static void
-print_instruction(FILE *output, struct brw_program_instruction *entry)
+print_instruction(FILE *output, struct brw_instruction *instruction)
 {
 	if (binary_like_output) {
 		fprintf(output, "\t0x%02x, 0x%02x, 0x%02x, 0x%02x, "
 				"0x%02x, 0x%02x, 0x%02x, 0x%02x,\n"
 				"\t0x%02x, 0x%02x, 0x%02x, 0x%02x, "
 				"0x%02x, 0x%02x, 0x%02x, 0x%02x,\n",
-			((unsigned char *)(&entry->instruction))[0],
-			((unsigned char *)(&entry->instruction))[1],
-			((unsigned char *)(&entry->instruction))[2],
-			((unsigned char *)(&entry->instruction))[3],
-			((unsigned char *)(&entry->instruction))[4],
-			((unsigned char *)(&entry->instruction))[5],
-			((unsigned char *)(&entry->instruction))[6],
-			((unsigned char *)(&entry->instruction))[7],
-			((unsigned char *)(&entry->instruction))[8],
-			((unsigned char *)(&entry->instruction))[9],
-			((unsigned char *)(&entry->instruction))[10],
-			((unsigned char *)(&entry->instruction))[11],
-			((unsigned char *)(&entry->instruction))[12],
-			((unsigned char *)(&entry->instruction))[13],
-			((unsigned char *)(&entry->instruction))[14],
-			((unsigned char *)(&entry->instruction))[15]);
+			((unsigned char *)instruction)[0],
+			((unsigned char *)instruction)[1],
+			((unsigned char *)instruction)[2],
+			((unsigned char *)instruction)[3],
+			((unsigned char *)instruction)[4],
+			((unsigned char *)instruction)[5],
+			((unsigned char *)instruction)[6],
+			((unsigned char *)instruction)[7],
+			((unsigned char *)instruction)[8],
+			((unsigned char *)instruction)[9],
+			((unsigned char *)instruction)[10],
+			((unsigned char *)instruction)[11],
+			((unsigned char *)instruction)[12],
+			((unsigned char *)instruction)[13],
+			((unsigned char *)instruction)[14],
+			((unsigned char *)instruction)[15]);
 	} else {
 		fprintf(output, "   { 0x%08x, 0x%08x, 0x%08x, 0x%08x },\n",
-			((int *)(&entry->instruction))[0],
-			((int *)(&entry->instruction))[1],
-			((int *)(&entry->instruction))[2],
-			((int *)(&entry->instruction))[3]);
+			((int *)instruction)[0],
+			((int *)instruction)[1],
+			((int *)instruction)[2],
+			((int *)instruction)[3]);
 	}
 }
 int main(int argc, char **argv)
@@ -470,7 +470,7 @@ int main(int argc, char **argv)
 		entry = entry1) {
 	    entry1 = entry->next;
 	    if (!entry->islabel)
-		print_instruction(output, entry);
+		print_instruction(output, &entry->instruction);
 	    else
 		free(entry->string);
 	    free(entry);
