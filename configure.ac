@@ -150,6 +150,9 @@ if test "x$BUILD_SHADER_DEBUGGER" != xno; then
 fi
 
 AM_CONDITIONAL(BUILD_SHADER_DEBUGGER, [test "x$BUILD_SHADER_DEBUGGER" != xno])
+AS_IF([test "x$BUILD_SHADER_DEBUGGER" != no],
+      [enable_debugger=yes], [enable_debugger=no])
+
 # -----------------------------------------------------------------------------
 
 # To build multithread code, gcc uses -pthread, Solaris Studio cc uses -mt
@@ -191,6 +194,7 @@ echo "Intel GPU tools"
 echo ""
 echo " • Tools:"
 echo "       Assembler: ${enable_assembler}"
+echo "       Debugger: ${enable_debugger}"
 echo ""
 
 # vim: set ft=config ts=8 sw=8 tw=0 noet :
