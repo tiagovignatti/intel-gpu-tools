@@ -96,7 +96,6 @@ struct src_operand {
 	int address_mode; /* 0 if direct, 1 if register-indirect */
 	int indirect_offset; /* XXX */
 
-	int swizzle_set;
 	unsigned swizzle: 8;
 
 	uint32_t imm32; /* set if reg_file == BRW_IMMEDIATE_VALUE or it is expressing a branch offset */

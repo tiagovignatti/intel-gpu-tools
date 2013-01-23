@@ -1891,7 +1891,6 @@ directsrcoperand:	negate abs symbol_reg region regtype
 		  $$.default_region = $4.is_default;
 		  $$.negate = $1;
 		  $$.abs = $2;
-		  $$.swizzle_set = $6.swizzle_set;
 		  $$.swizzle = $6.swizzle;
 		}
 		| srcarchoperandex
@@ -1911,7 +1910,6 @@ indirectsrcoperand:
 		  $$.horiz_stride = $4.horiz_stride;
 		  $$.negate = $1;
 		  $$.abs = $2;
-		  $$.swizzle_set = $6.swizzle_set;
 		  $$.swizzle = $6.swizzle;
 		}
 ;
@@ -2389,17 +2387,14 @@ srcimmtype:	/* empty */
  */
 swizzle:	/* empty */
 		{
-		  $$.swizzle_set = 0;
 		  $$.swizzle = BRW_SWIZZLE_NOOP;
 		}
 		| DOT chansel
 		{
-		  $$.swizzle_set = 1;
 		  $$.swizzle = BRW_SWIZZLE4($2, $2, $2, $2);
 		}
 		| DOT chansel chansel chansel chansel
 		{
-		  $$.swizzle_set = 1;
 		  $$.swizzle = BRW_SWIZZLE4($2, $3, $4, $5);
 		}
 ;
@@ -2875,7 +2870,7 @@ int set_instruction_src0(struct brw_instruction *instr,
 		instr->bits2.da1.src0_negate = src->negate;
 		instr->bits2.da1.src0_abs = src->abs;
 		instr->bits2.da1.src0_address_mode = src->address_mode;
-		if (src->swizzle_set) {
+		if (src->swizzle && src->swizzle != BRW_SWIZZLE_NOOP) {
 			fprintf(stderr, "error: swizzle bits set in align1 "
 				"instruction\n");
 			return 1;
@@ -2902,7 +2897,7 @@ int set_instruction_src0(struct brw_instruction *instr,
 		instr->bits2.ia1.src0_horiz_stride = src->horiz_stride;
 		instr->bits2.ia1.src0_width = src->width;
 		instr->bits2.ia1.src0_vert_stride = src->vert_stride;
-		if (src->swizzle_set) {
+		if (src->swizzle && src->swizzle != BRW_SWIZZLE_NOOP) {
 			fprintf(stderr, "error: swizzle bits set in align1 "
 				"instruction\n");
 			return 1;
@@ -2953,7 +2948,7 @@ int set_instruction_src1(struct brw_instruction *instr,
 			return 1;
 		}
 		*/
-		if (src->swizzle_set) {
+		if (src->swizzle && src->swizzle != BRW_SWIZZLE_NOOP) {
 			fprintf(stderr, "error: swizzle bits set in align1 "
 				"instruction\n");
 			return 1;
@@ -2985,7 +2980,7 @@ int set_instruction_src1(struct brw_instruction *instr,
 		instr->bits3.ia1.src1_horiz_stride = src->horiz_stride;
 		instr->bits3.ia1.src1_width = src->width;
 		instr->bits3.ia1.src1_vert_stride = src->vert_stride;
-		if (src->swizzle_set) {
+		if (src->swizzle && src->swizzle != BRW_SWIZZLE_NOOP) {
 			fprintf(stderr, "error: swizzle bits set in align1 "
 				"instruction\n");
 			return 1;
@@ -3121,6 +3116,5 @@ void set_direct_src_operand(struct src_operand *src, struct brw_reg *reg,
 	src->horiz_stride = 0;
 	src->negate = 0;
 	src->abs = 0;
-	src->swizzle_set = 0;
 	src->swizzle = BRW_SWIZZLE_NOOP;
 }
