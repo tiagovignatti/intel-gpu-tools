@@ -37,15 +37,17 @@
 #define DEFAULT_EXECSIZE (ffs(program_defaults.execute_size) - 1)
 #define DEFAULT_DSTREGION -1
 
+#define SWIZZLE(reg) (reg.dw1.bits.swizzle)
+
 extern long int gen_level;
 extern int advanced_flag;
 extern int yylineno;
 extern int need_export;
 static struct src_operand src_null_reg =
 {
-    .reg_file = BRW_ARCHITECTURE_REGISTER_FILE,
-    .reg_nr = BRW_ARF_NULL,
-    .reg_type = BRW_REGISTER_TYPE_UD,
+    .reg.file = BRW_ARCHITECTURE_REGISTER_FILE,
+    .reg.nr = BRW_ARF_NULL,
+    .reg.type = BRW_REGISTER_TYPE_UD,
 };
 static struct brw_reg dst_null_reg =
 {
@@ -63,11 +65,11 @@ static struct brw_reg ip_dst =
 };
 static struct src_operand ip_src =
 {
-    .reg_file = BRW_ARCHITECTURE_REGISTER_FILE,
-    .reg_nr = BRW_ARF_IP,
-    .reg_type = BRW_REGISTER_TYPE_UD,
-    .address_mode = BRW_ADDRESS_DIRECT,
-    .swizzle = BRW_SWIZZLE_NOOP,
+    .reg.file = BRW_ARCHITECTURE_REGISTER_FILE,
+    .reg.nr = BRW_ARF_IP,
+    .reg.type = BRW_REGISTER_TYPE_UD,
+    .reg.address_mode = BRW_ADDRESS_DIRECT,
+    .reg.dw1.bits.swizzle = BRW_SWIZZLE_NOOP,
 };
 
 static int get_type_size(GLuint type);
@@ -680,11 +682,11 @@ subroutineinstruction:
 
 		  struct src_operand src0;
 		  memset(&src0, 0, sizeof(src0));
-		  src0.reg_type = BRW_REGISTER_TYPE_D; /* source type should be DWORD */
+		  src0.reg.type = BRW_REGISTER_TYPE_D; /* source type should be DWORD */
 		  /* source0 region control must be <2,2,1>. */
-		  src0.horiz_stride = 1; /*encoded 1*/
-		  src0.width = 1; /*encoded 2*/
-		  src0.vert_stride = 2; /*encoded 2*/
+		  src0.reg.hstride = 1; /*encoded 1*/
+		  src0.reg.width = 1; /*encoded 2*/
+		  src0.reg.vstride = 2; /*encoded 2*/
 		  set_instruction_src0(&$$.gen, &src0);
 
 		  $$.first_reloc_target = $5.reloc_target;
@@ -703,10 +705,10 @@ subroutineinstruction:
 		  $$.gen.header.opcode = $2;
 		  $$.gen.header.execution_size = 1; /* execution size of RET should be 2 */
 		  set_instruction_dest(&$$.gen, &dst_null_reg);
-		  $5.reg_type = BRW_REGISTER_TYPE_D;
-		  $5.horiz_stride = 1; /*encoded 1*/
-		  $5.width = 1; /*encoded 2*/
-		  $5.vert_stride = 2; /*encoded 2*/
+		  $5.reg.type = BRW_REGISTER_TYPE_D;
+		  $5.reg.hstride = 1; /*encoded 1*/
+		  $5.reg.width = 1; /*encoded 2*/
+		  $5.reg.vstride = 2; /*encoded 2*/
 		  set_instruction_src0(&$$.gen, &$5);
 		}
 ;
@@ -887,16 +889,16 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
                       struct src_operand src0;
 
                       memset(&src0, 0, sizeof(src0));
-                      src0.address_mode = BRW_ADDRESS_DIRECT;
+                      src0.reg.address_mode = BRW_ADDRESS_DIRECT;
 
                       if (IS_GENp(7))
-                          src0.reg_file = BRW_GENERAL_REGISTER_FILE;
+                          src0.reg.file = BRW_GENERAL_REGISTER_FILE;
                       else
-                          src0.reg_file = BRW_MESSAGE_REGISTER_FILE;
+                          src0.reg.file = BRW_MESSAGE_REGISTER_FILE;
 
-                      src0.reg_type = BRW_REGISTER_TYPE_D;
-                      src0.reg_nr = $4;
-                      src0.subreg_nr = 0;
+                      src0.reg.type = BRW_REGISTER_TYPE_D;
+                      src0.reg.nr = $4;
+                      src0.reg.subnr = 0;
                       set_instruction_src0(&$$, &src0);
 		  } else {
                       if (set_instruction_src0(&$$, &$6) != 0)
@@ -948,10 +950,10 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
 		  }
 		| predicate SEND execsize dst sendleadreg payload imm32reg instoptions
                 {
-		  if ($7.reg_type != BRW_REGISTER_TYPE_UD &&
-		  	  $7.reg_type != BRW_REGISTER_TYPE_D &&
-		  	  $7.reg_type != BRW_REGISTER_TYPE_V) {
-		    fprintf (stderr, "%d: non-int D/UD/V representation: %d,type=%d\n", yylineno, $7.imm32, $7.reg_type);
+		  if ($7.reg.type != BRW_REGISTER_TYPE_UD &&
+		      $7.reg.type != BRW_REGISTER_TYPE_D &&
+		      $7.reg.type != BRW_REGISTER_TYPE_V) {
+		    fprintf (stderr, "%d: non-int D/UD/V representation: %d,type=%d\n", yylineno, $7.imm32, $7.reg.type);
 			YYERROR;
 		  }
 		  memset(&$$, 0, sizeof($$));
@@ -965,7 +967,7 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
 		  if (set_instruction_src0(&$$, &$6) != 0)
 		    YYERROR;
 		  $$.bits1.da1.src1_reg_file = BRW_IMMEDIATE_VALUE;
-		  $$.bits1.da1.src1_reg_type = $7.reg_type;
+		  $$.bits1.da1.src1_reg_type = $7.reg.type;
 		  $$.bits3.ud = $7.imm32;
                 }
 		| predicate SEND execsize dst sendleadreg sndopr imm32reg instoptions
@@ -977,10 +979,10 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
                       YYERROR;
 		  }
 
-		  if ($7.reg_type != BRW_REGISTER_TYPE_UD &&
-                      $7.reg_type != BRW_REGISTER_TYPE_D &&
-                      $7.reg_type != BRW_REGISTER_TYPE_V) {
-                      fprintf (stderr, "%d: non-int D/UD/V representation: %d,type=%d\n", yylineno, $7.imm32, $7.reg_type);
+		  if ($7.reg.type != BRW_REGISTER_TYPE_UD &&
+                      $7.reg.type != BRW_REGISTER_TYPE_D &&
+                      $7.reg.type != BRW_REGISTER_TYPE_V) {
+                      fprintf (stderr, "%d: non-int D/UD/V representation: %d,type=%d\n", yylineno, $7.imm32, $7.reg.type);
                       YYERROR;
 		  }
 
@@ -994,22 +996,22 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
                       YYERROR;
 
                   memset(&src0, 0, sizeof(src0));
-                  src0.address_mode = BRW_ADDRESS_DIRECT;
+                  src0.reg.address_mode = BRW_ADDRESS_DIRECT;
 
                   if (IS_GENp(7)) {
-                      src0.reg_file = BRW_GENERAL_REGISTER_FILE;
-                      src0.reg_type = BRW_REGISTER_TYPE_UB;
+                      src0.reg.file = BRW_GENERAL_REGISTER_FILE;
+                      src0.reg.type = BRW_REGISTER_TYPE_UB;
                   } else {
-                      src0.reg_file = BRW_MESSAGE_REGISTER_FILE;
-                      src0.reg_type = BRW_REGISTER_TYPE_D;
+                      src0.reg.file = BRW_MESSAGE_REGISTER_FILE;
+                      src0.reg.type = BRW_REGISTER_TYPE_D;
                   }
 
-                  src0.reg_nr = $5.nr;
-                  src0.subreg_nr = 0;
+                  src0.reg.nr = $5.nr;
+                  src0.reg.subnr = 0;
                   set_instruction_src0(&$$, &src0);
 
 		  $$.bits1.da1.src1_reg_file = BRW_IMMEDIATE_VALUE;
-		  $$.bits1.da1.src1_reg_type = $7.reg_type;
+		  $$.bits1.da1.src1_reg_type = $7.reg.type;
                   $$.bits3.ud = $7.imm32;
                   $$.bits3.generic_gen5.end_of_thread = !!($6 & EX_DESC_EOT_MASK);
 		}
@@ -1022,10 +1024,10 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
                       YYERROR;
 		  }
 
-                  if ($7.reg_file != BRW_ARCHITECTURE_REGISTER_FILE ||
-                      ($7.reg_nr & 0xF0) != BRW_ARF_ADDRESS ||
-                      ($7.reg_nr & 0x0F) != 0 ||
-                      $7.subreg_nr != 0) {
+                  if ($7.reg.file != BRW_ARCHITECTURE_REGISTER_FILE ||
+                      ($7.reg.nr & 0xF0) != BRW_ARF_ADDRESS ||
+                      ($7.reg.nr & 0x0F) != 0 ||
+                      $7.reg.subnr != 0) {
                       fprintf (stderr, "%d: scalar register must be a0.0<0;1,0>:ud\n", yylineno);
                       YYERROR;
 		  }
@@ -1040,18 +1042,18 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
                       YYERROR;
 
                   memset(&src0, 0, sizeof(src0));
-                  src0.address_mode = BRW_ADDRESS_DIRECT;
+                  src0.reg.address_mode = BRW_ADDRESS_DIRECT;
 
                   if (IS_GENp(7)) {
-                      src0.reg_file = BRW_GENERAL_REGISTER_FILE;
-                      src0.reg_type = BRW_REGISTER_TYPE_UB;
+                      src0.reg.file = BRW_GENERAL_REGISTER_FILE;
+                      src0.reg.type = BRW_REGISTER_TYPE_UB;
                   } else {
-                      src0.reg_file = BRW_MESSAGE_REGISTER_FILE;
-                      src0.reg_type = BRW_REGISTER_TYPE_D;
+                      src0.reg.file = BRW_MESSAGE_REGISTER_FILE;
+                      src0.reg.type = BRW_REGISTER_TYPE_D;
                   }
 
-                  src0.reg_nr = $5.nr;
-                  src0.subreg_nr = 0;
+                  src0.reg.nr = $5.nr;
+                  src0.reg.subnr = 0;
                   set_instruction_src0(&$$, &src0);
 
                   set_instruction_src1(&$$, &$7);
@@ -1059,10 +1061,10 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
 		}
 		| predicate SEND execsize dst sendleadreg payload sndopr imm32reg instoptions
 		{
-		  if ($8.reg_type != BRW_REGISTER_TYPE_UD &&
-		  	  $8.reg_type != BRW_REGISTER_TYPE_D &&
-		  	  $8.reg_type != BRW_REGISTER_TYPE_V) {
-		    fprintf (stderr, "%d: non-int D/UD/V representation: %d,type=%d\n", yylineno, $8.imm32, $8.reg_type);
+		  if ($8.reg.type != BRW_REGISTER_TYPE_UD &&
+		      $8.reg.type != BRW_REGISTER_TYPE_D &&
+		      $8.reg.type != BRW_REGISTER_TYPE_V) {
+		    fprintf (stderr, "%d: non-int D/UD/V representation: %d,type=%d\n", yylineno, $8.imm32, $8.reg.type);
 			YYERROR;
 		  }
 		  memset(&$$, 0, sizeof($$));
@@ -1076,7 +1078,7 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
 		  if (set_instruction_src0(&$$, &$6) != 0)
 		    YYERROR;
 		  $$.bits1.da1.src1_reg_file = BRW_IMMEDIATE_VALUE;
-		  $$.bits1.da1.src1_reg_type = $8.reg_type;
+		  $$.bits1.da1.src1_reg_type = $8.reg.type;
 		  if (IS_GENx(5)) {
 		      $$.bits2.send_gen5.sfid = ($7 & EX_DESC_SFID_MASK);
 		      $$.bits3.ud = $8.imm32;
@@ -1756,8 +1758,8 @@ imm32reg:	imm32 srcimmtype
 		    YYERROR;
 		  }
 		  memset (&$$, '\0', sizeof ($$));
-		  $$.reg_file = BRW_IMMEDIATE_VALUE;
-		  $$.reg_type = $2;
+		  $$.reg.file = BRW_IMMEDIATE_VALUE;
+		  $$.reg.type = $2;
 		  $$.imm32 = d;
 		}
 ;
@@ -1766,9 +1768,9 @@ directsrcaccoperand:	directsrcoperand
 		| accreg region regtype
 		{
 		  set_direct_src_operand(&$$, &$1, $3.type);
-		  $$.vert_stride = $2.vert_stride;
-		  $$.width = $2.width;
-		  $$.horiz_stride = $2.horiz_stride;
+		  $$.reg.vstride = $2.vert_stride;
+		  $$.reg.width = $2.width;
+		  $$.reg.hstride = $2.horiz_stride;
 		  $$.default_region = $2.is_default;
 		}
 ;
@@ -1777,16 +1779,16 @@ directsrcaccoperand:	directsrcoperand
 srcarchoperandex: srcarchoperandex_typed region regtype
 		{
 		  memset (&$$, '\0', sizeof ($$));
-		  $$.reg_file = $1.file;
-		  $$.reg_type = $3.type;
-		  $$.subreg_nr = $1.subnr;
-		  $$.reg_nr = $1.nr;
-		  $$.vert_stride = $2.vert_stride;
-		  $$.width = $2.width;
-		  $$.horiz_stride = $2.horiz_stride;
+		  $$.reg.file = $1.file;
+		  $$.reg.type = $3.type;
+		  $$.reg.subnr = $1.subnr;
+		  $$.reg.nr = $1.nr;
+		  $$.reg.vstride = $2.vert_stride;
+		  $$.reg.width = $2.width;
+		  $$.reg.hstride = $2.horiz_stride;
 		  $$.default_region = $2.is_default;
-		  $$.negate = 0;
-		  $$.abs = 0;
+		  $$.reg.negate = 0;
+		  $$.reg.abs = 0;
 		}
 		| maskstackreg
 		{
@@ -1838,26 +1840,26 @@ src:		directsrcoperand | indirectsrcoperand
 directsrcoperand:	negate abs symbol_reg region regtype
 		{
 		  memset (&$$, '\0', sizeof ($$));
-		  $$.address_mode = BRW_ADDRESS_DIRECT;
-		  $$.reg_file = $3.reg.file;
-		  $$.reg_nr = $3.reg.nr;
-		  $$.subreg_nr = $3.reg.subnr;
+		  $$.reg.address_mode = BRW_ADDRESS_DIRECT;
+		  $$.reg.file = $3.reg.file;
+		  $$.reg.nr = $3.reg.nr;
+		  $$.reg.subnr = $3.reg.subnr;
 		  if ($5.is_default) {
-		    $$.reg_type = $3.type;
+		    $$.reg.type = $3.type;
 		  } else {
-		    $$.reg_type = $5.type;
+		    $$.reg.type = $5.type;
 		  }
 		  if ($4.is_default) {
-		    $$.vert_stride = $3.src_region.vert_stride;
-		    $$.width = $3.src_region.width;
-		    $$.horiz_stride = $3.src_region.horiz_stride;
+		    $$.reg.vstride = $3.src_region.vert_stride;
+		    $$.reg.width = $3.src_region.width;
+		    $$.reg.hstride = $3.src_region.horiz_stride;
 		  } else {
-		    $$.vert_stride = $4.vert_stride;
-		    $$.width = $4.width;
-		    $$.horiz_stride = $4.horiz_stride;
+		    $$.reg.vstride = $4.vert_stride;
+		    $$.reg.width = $4.width;
+		    $$.reg.hstride = $4.horiz_stride;
 		  }
-		  $$.negate = $1;
-		  $$.abs = $2;
+		  $$.reg.negate = $1;
+		  $$.reg.abs = $2;
 		} 
 		| statereg region regtype 
 		{
@@ -1867,31 +1869,31 @@ directsrcoperand:	negate abs symbol_reg region regtype
 		  }
 		  else{
 		    memset (&$$, '\0', sizeof ($$));
-		    $$.address_mode = BRW_ADDRESS_DIRECT;
-		    $$.reg_file = $1.file;
-		    $$.reg_nr = $1.nr;
-		    $$.subreg_nr = $1.subnr;
-		    $$.vert_stride = $2.vert_stride;
-		    $$.width = $2.width;
-		    $$.horiz_stride = $2.horiz_stride;
-		    $$.reg_type = $3.type;
+		    $$.reg.address_mode = BRW_ADDRESS_DIRECT;
+		    $$.reg.file = $1.file;
+		    $$.reg.nr = $1.nr;
+		    $$.reg.subnr = $1.subnr;
+		    $$.reg.vstride = $2.vert_stride;
+		    $$.reg.width = $2.width;
+		    $$.reg.hstride = $2.horiz_stride;
+		    $$.reg.type = $3.type;
 		  }
 		}
 		| negate abs directgenreg region regtype swizzle
 		{
 		  memset (&$$, '\0', sizeof ($$));
-		  $$.address_mode = BRW_ADDRESS_DIRECT;
-		  $$.reg_file = $3.file;
-		  $$.reg_nr = $3.nr;
-		  $$.subreg_nr = $3.subnr;
-		  $$.reg_type = $5.type;
-		  $$.vert_stride = $4.vert_stride;
-		  $$.width = $4.width;
-		  $$.horiz_stride = $4.horiz_stride;
+		  $$.reg.address_mode = BRW_ADDRESS_DIRECT;
+		  $$.reg.file = $3.file;
+		  $$.reg.nr = $3.nr;
+		  $$.reg.subnr = $3.subnr;
+		  $$.reg.type = $5.type;
+		  $$.reg.vstride = $4.vert_stride;
+		  $$.reg.width = $4.width;
+		  $$.reg.hstride = $4.horiz_stride;
 		  $$.default_region = $4.is_default;
-		  $$.negate = $1;
-		  $$.abs = $2;
-		  $$.swizzle = $6.swizzle;
+		  $$.reg.negate = $1;
+		  $$.reg.abs = $2;
+		  $$.reg.dw1.bits.swizzle = $6.reg.dw1.bits.swizzle;
 		}
 		| srcarchoperandex
 ;
@@ -1900,17 +1902,17 @@ indirectsrcoperand:
 		negate abs indirectgenreg indirectregion regtype swizzle
 		{
 		  memset (&$$, '\0', sizeof ($$));
-		  $$.address_mode = BRW_ADDRESS_REGISTER_INDIRECT_REGISTER;
-		  $$.reg_file = $3.file;
-		  $$.subreg_nr = $3.subnr;
-		  $$.indirect_offset = $3.dw1.bits.indirect_offset;
-		  $$.reg_type = $5.type;
-		  $$.vert_stride = $4.vert_stride;
-		  $$.width = $4.width;
-		  $$.horiz_stride = $4.horiz_stride;
-		  $$.negate = $1;
-		  $$.abs = $2;
-		  $$.swizzle = $6.swizzle;
+		  $$.reg.address_mode = BRW_ADDRESS_REGISTER_INDIRECT_REGISTER;
+		  $$.reg.file = $3.file;
+		  $$.reg.subnr = $3.subnr;
+		  $$.reg.dw1.bits.indirect_offset = $3.dw1.bits.indirect_offset;
+		  $$.reg.type = $5.type;
+		  $$.reg.vstride = $4.vert_stride;
+		  $$.reg.width = $4.width;
+		  $$.reg.hstride = $4.horiz_stride;
+		  $$.reg.negate = $1;
+		  $$.reg.abs = $2;
+		  $$.reg.dw1.bits.swizzle = $6.reg.dw1.bits.swizzle;
 		}
 ;
 
@@ -2223,15 +2225,15 @@ relativelocation:
 		  }
 
 		  memset (&$$, '\0', sizeof ($$));
-		  $$.reg_file = BRW_IMMEDIATE_VALUE;
-		  $$.reg_type = BRW_REGISTER_TYPE_D;
+		  $$.reg.file = BRW_IMMEDIATE_VALUE;
+		  $$.reg.type = BRW_REGISTER_TYPE_D;
 		  $$.imm32 = $1 & 0x0000ffff;
 		}
 		| STRING
 		{
 		  memset (&$$, '\0', sizeof ($$));
-		  $$.reg_file = BRW_IMMEDIATE_VALUE;
-		  $$.reg_type = BRW_REGISTER_TYPE_D;
+		  $$.reg.file = BRW_IMMEDIATE_VALUE;
+		  $$.reg.type = BRW_REGISTER_TYPE_D;
 		  $$.reloc_target = $1;
 		}
 ;
@@ -2240,48 +2242,48 @@ relativelocation2:
 		  STRING
 		{
 		  memset (&$$, '\0', sizeof ($$));
-		  $$.reg_file = BRW_IMMEDIATE_VALUE;
-		  $$.reg_type = BRW_REGISTER_TYPE_D;
+		  $$.reg.file = BRW_IMMEDIATE_VALUE;
+		  $$.reg.type = BRW_REGISTER_TYPE_D;
 		  $$.reloc_target = $1;
 		}
 		| exp
 		{
 		  memset (&$$, '\0', sizeof ($$));
-		  $$.reg_file = BRW_IMMEDIATE_VALUE;
-		  $$.reg_type = BRW_REGISTER_TYPE_D;
+		  $$.reg.file = BRW_IMMEDIATE_VALUE;
+		  $$.reg.type = BRW_REGISTER_TYPE_D;
 		  $$.imm32 = $1;
 		}
 		| directgenreg region regtype
 		{
 		  set_direct_src_operand(&$$, &$1, $3.type);
-		  $$.vert_stride = $2.vert_stride;
-		  $$.width = $2.width;
-		  $$.horiz_stride = $2.horiz_stride;
+		  $$.reg.vstride = $2.vert_stride;
+		  $$.reg.width = $2.width;
+		  $$.reg.hstride = $2.horiz_stride;
 		  $$.default_region = $2.is_default;
 		}
 		| symbol_reg_p
 		{
 		  memset (&$$, '\0', sizeof ($$));
-		  $$.address_mode = BRW_ADDRESS_DIRECT;
-		  $$.reg_file = $1.reg.file;
-		  $$.reg_nr = $1.reg.nr;
-		  $$.subreg_nr = $1.reg.subnr;
-		  $$.reg_type = $1.type;
-		  $$.vert_stride = $1.src_region.vert_stride;
-		  $$.width = $1.src_region.width;
-		  $$.horiz_stride = $1.src_region.horiz_stride;
+		  $$.reg.address_mode = BRW_ADDRESS_DIRECT;
+		  $$.reg.file = $1.reg.file;
+		  $$.reg.nr = $1.reg.nr;
+		  $$.reg.subnr = $1.reg.subnr;
+		  $$.reg.type = $1.type;
+		  $$.reg.vstride = $1.src_region.vert_stride;
+		  $$.reg.width = $1.src_region.width;
+		  $$.reg.hstride = $1.src_region.horiz_stride;
 		}
 		| indirectgenreg indirectregion regtype
 		{
 		  memset (&$$, '\0', sizeof ($$));
-		  $$.address_mode = BRW_ADDRESS_REGISTER_INDIRECT_REGISTER;
-		  $$.reg_file = $1.file;
-		  $$.subreg_nr = $1.subnr;
-		  $$.indirect_offset = $1.dw1.bits.indirect_offset;
-		  $$.reg_type = $3.type;
-		  $$.vert_stride = $2.vert_stride;
-		  $$.width = $2.width;
-		  $$.horiz_stride = $2.horiz_stride;
+		  $$.reg.address_mode = BRW_ADDRESS_REGISTER_INDIRECT_REGISTER;
+		  $$.reg.file = $1.file;
+		  $$.reg.subnr = $1.subnr;
+		  $$.reg.dw1.bits.indirect_offset = $1.dw1.bits.indirect_offset;
+		  $$.reg.type = $3.type;
+		  $$.reg.vstride = $2.vert_stride;
+		  $$.reg.width = $2.width;
+		  $$.reg.hstride = $2.horiz_stride;
 		}
 ;
 
@@ -2387,15 +2389,15 @@ srcimmtype:	/* empty */
  */
 swizzle:	/* empty */
 		{
-		  $$.swizzle = BRW_SWIZZLE_NOOP;
+		  $$.reg.dw1.bits.swizzle = BRW_SWIZZLE_NOOP;
 		}
 		| DOT chansel
 		{
-		  $$.swizzle = BRW_SWIZZLE4($2, $2, $2, $2);
+		  $$.reg.dw1.bits.swizzle = BRW_SWIZZLE4($2, $2, $2, $2);
 		}
 		| DOT chansel chansel chansel chansel
 		{
-		  $$.swizzle = BRW_SWIZZLE4($2, $3, $4, $5);
+		  $$.reg.dw1.bits.swizzle = BRW_SWIZZLE4($2, $3, $4, $5);
 		}
 ;
 
@@ -2732,13 +2734,13 @@ static void reset_instruction_src_region(struct brw_instruction *instr,
     if (!src->default_region)
         return;
 
-    if (src->reg_file == BRW_ARCHITECTURE_REGISTER_FILE && 
-        ((src->reg_nr & 0xF0) == BRW_ARF_ADDRESS)) {
-        src->vert_stride = ffs(0);
-        src->width = ffs(1) - 1;
-        src->horiz_stride = ffs(0);
-    } else if (src->reg_file == BRW_ARCHITECTURE_REGISTER_FILE &&
-               ((src->reg_nr & 0xF0) == BRW_ARF_ACCUMULATOR)) {
+    if (src->reg.file == BRW_ARCHITECTURE_REGISTER_FILE && 
+        ((src->reg.nr & 0xF0) == BRW_ARF_ADDRESS)) {
+        src->reg.vstride = ffs(0);
+        src->reg.width = ffs(1) - 1;
+        src->reg.hstride = ffs(0);
+    } else if (src->reg.file == BRW_ARCHITECTURE_REGISTER_FILE &&
+               ((src->reg.nr & 0xF0) == BRW_ARF_ACCUMULATOR)) {
         int horiz_stride = 1, width, vert_stride;
         if (instr->header.compression_control == BRW_COMPRESSION_COMPRESSED) {
             width = 16;
@@ -2750,15 +2752,15 @@ static void reset_instruction_src_region(struct brw_instruction *instr,
             width = (1 << instr->header.execution_size);
 
         vert_stride = horiz_stride * width;
-        src->vert_stride = ffs(vert_stride);
-        src->width = ffs(width) - 1;
-        src->horiz_stride = ffs(horiz_stride);
-    } else if ((src->reg_file == BRW_ARCHITECTURE_REGISTER_FILE) &&
-               (src->reg_nr == BRW_ARF_NULL) &&
+        src->reg.vstride = ffs(vert_stride);
+        src->reg.width = ffs(width) - 1;
+        src->reg.hstride = ffs(horiz_stride);
+    } else if ((src->reg.file == BRW_ARCHITECTURE_REGISTER_FILE) &&
+               (src->reg.nr == BRW_ARF_NULL) &&
                (instr->header.opcode == BRW_OPCODE_SEND)) {
-        src->vert_stride = ffs(8);
-        src->width = ffs(8) - 1;
-        src->horiz_stride = ffs(1);
+        src->reg.vstride = ffs(8);
+        src->reg.width = ffs(8) - 1;
+        src->reg.hstride = ffs(1);
     } else {
 
         int horiz_stride = 1, width, vert_stride;
@@ -2781,7 +2783,7 @@ static void reset_instruction_src_region(struct brw_instruction *instr,
                 width = (1 << instr->header.execution_size) / horiz_stride;
                 vert_stride = horiz_stride * width;
 
-                if (get_type_size(src->reg_type) * (width + src->subreg_nr) > 32) {
+                if (get_type_size(src->reg.type) * (width + src->reg.subnr) > 32) {
                     horiz_stride = 0;
                     width = 1;
                     vert_stride = 0;
@@ -2789,9 +2791,9 @@ static void reset_instruction_src_region(struct brw_instruction *instr,
             }
         }
 
-        src->vert_stride = ffs(vert_stride);
-        src->width = ffs(width) - 1;
-        src->horiz_stride = ffs(horiz_stride);
+        src->reg.vstride = ffs(vert_stride);
+        src->reg.width = ffs(width) - 1;
+        src->reg.hstride = ffs(horiz_stride);
     }
 }
 
@@ -2856,63 +2858,63 @@ int set_instruction_src0(struct brw_instruction *instr,
 	if (advanced_flag) {
 		reset_instruction_src_region(instr, src);
 	}
-	instr->bits1.da1.src0_reg_file = src->reg_file;
-	instr->bits1.da1.src0_reg_type = src->reg_type;
-	if (src->reg_file == BRW_IMMEDIATE_VALUE) {
+	instr->bits1.da1.src0_reg_file = src->reg.file;
+	instr->bits1.da1.src0_reg_type = src->reg.type;
+	if (src->reg.file == BRW_IMMEDIATE_VALUE) {
 		instr->bits3.ud = src->imm32;
-	} else if (src->address_mode == BRW_ADDRESS_DIRECT) {
+	} else if (src->reg.address_mode == BRW_ADDRESS_DIRECT) {
             if (instr->header.access_mode == BRW_ALIGN_1) {
-		instr->bits2.da1.src0_subreg_nr = get_subreg_address(src->reg_file, src->reg_type, src->subreg_nr, src->address_mode);
-		instr->bits2.da1.src0_reg_nr = src->reg_nr;
-		instr->bits2.da1.src0_vert_stride = src->vert_stride;
-		instr->bits2.da1.src0_width = src->width;
-		instr->bits2.da1.src0_horiz_stride = src->horiz_stride;
-		instr->bits2.da1.src0_negate = src->negate;
-		instr->bits2.da1.src0_abs = src->abs;
-		instr->bits2.da1.src0_address_mode = src->address_mode;
-		if (src->swizzle && src->swizzle != BRW_SWIZZLE_NOOP) {
+		instr->bits2.da1.src0_subreg_nr = get_subreg_address(src->reg.file, src->reg.type, src->reg.subnr, src->reg.address_mode);
+		instr->bits2.da1.src0_reg_nr = src->reg.nr;
+		instr->bits2.da1.src0_vert_stride = src->reg.vstride;
+		instr->bits2.da1.src0_width = src->reg.width;
+		instr->bits2.da1.src0_horiz_stride = src->reg.hstride;
+		instr->bits2.da1.src0_negate = src->reg.negate;
+		instr->bits2.da1.src0_abs = src->reg.abs;
+		instr->bits2.da1.src0_address_mode = src->reg.address_mode;
+		if (SWIZZLE(src->reg) && SWIZZLE(src->reg) != BRW_SWIZZLE_NOOP) {
 			fprintf(stderr, "error: swizzle bits set in align1 "
 				"instruction\n");
 			return 1;
 		}
             } else {
-		instr->bits2.da16.src0_subreg_nr = get_subreg_address(src->reg_file, src->reg_type, src->subreg_nr, src->address_mode);
-		instr->bits2.da16.src0_reg_nr = src->reg_nr;
-		instr->bits2.da16.src0_vert_stride = src->vert_stride;
-		instr->bits2.da16.src0_negate = src->negate;
-		instr->bits2.da16.src0_abs = src->abs;
-		instr->bits2.da16.src0_swz_x = BRW_GET_SWZ(src->swizzle, 0);
-		instr->bits2.da16.src0_swz_y = BRW_GET_SWZ(src->swizzle, 1);
-		instr->bits2.da16.src0_swz_z = BRW_GET_SWZ(src->swizzle, 2);
-		instr->bits2.da16.src0_swz_w = BRW_GET_SWZ(src->swizzle, 3);
-		instr->bits2.da16.src0_address_mode = src->address_mode;
+		instr->bits2.da16.src0_subreg_nr = get_subreg_address(src->reg.file, src->reg.type, src->reg.subnr, src->reg.address_mode);
+		instr->bits2.da16.src0_reg_nr = src->reg.nr;
+		instr->bits2.da16.src0_vert_stride = src->reg.vstride;
+		instr->bits2.da16.src0_negate = src->reg.negate;
+		instr->bits2.da16.src0_abs = src->reg.abs;
+		instr->bits2.da16.src0_swz_x = BRW_GET_SWZ(SWIZZLE(src->reg), 0);
+		instr->bits2.da16.src0_swz_y = BRW_GET_SWZ(SWIZZLE(src->reg), 1);
+		instr->bits2.da16.src0_swz_z = BRW_GET_SWZ(SWIZZLE(src->reg), 2);
+		instr->bits2.da16.src0_swz_w = BRW_GET_SWZ(SWIZZLE(src->reg), 3);
+		instr->bits2.da16.src0_address_mode = src->reg.address_mode;
             }
         } else {
             if (instr->header.access_mode == BRW_ALIGN_1) {
-		instr->bits2.ia1.src0_indirect_offset = src->indirect_offset;
-		instr->bits2.ia1.src0_subreg_nr = get_indirect_subreg_address(src->subreg_nr);
-		instr->bits2.ia1.src0_abs = src->abs;
-		instr->bits2.ia1.src0_negate = src->negate;
-		instr->bits2.ia1.src0_address_mode = src->address_mode;
-		instr->bits2.ia1.src0_horiz_stride = src->horiz_stride;
-		instr->bits2.ia1.src0_width = src->width;
-		instr->bits2.ia1.src0_vert_stride = src->vert_stride;
-		if (src->swizzle && src->swizzle != BRW_SWIZZLE_NOOP) {
+		instr->bits2.ia1.src0_indirect_offset = src->reg.dw1.bits.indirect_offset;
+		instr->bits2.ia1.src0_subreg_nr = get_indirect_subreg_address(src->reg.subnr);
+		instr->bits2.ia1.src0_abs = src->reg.abs;
+		instr->bits2.ia1.src0_negate = src->reg.negate;
+		instr->bits2.ia1.src0_address_mode = src->reg.address_mode;
+		instr->bits2.ia1.src0_horiz_stride = src->reg.hstride;
+		instr->bits2.ia1.src0_width = src->reg.width;
+		instr->bits2.ia1.src0_vert_stride = src->reg.vstride;
+		if (SWIZZLE(src->reg) && SWIZZLE(src->reg) != BRW_SWIZZLE_NOOP) {
 			fprintf(stderr, "error: swizzle bits set in align1 "
 				"instruction\n");
 			return 1;
 		}
             } else {
-		instr->bits2.ia16.src0_swz_x = BRW_GET_SWZ(src->swizzle, 0);
-		instr->bits2.ia16.src0_swz_y = BRW_GET_SWZ(src->swizzle, 1);
-		instr->bits2.ia16.src0_swz_z = BRW_GET_SWZ(src->swizzle, 2);
-		instr->bits2.ia16.src0_swz_w = BRW_GET_SWZ(src->swizzle, 3);
-		instr->bits2.ia16.src0_indirect_offset = (src->indirect_offset >> 4); /* half register aligned */
-		instr->bits2.ia16.src0_subreg_nr = get_indirect_subreg_address(src->subreg_nr);
-		instr->bits2.ia16.src0_abs = src->abs;
-		instr->bits2.ia16.src0_negate = src->negate;
-		instr->bits2.ia16.src0_address_mode = src->address_mode;
-		instr->bits2.ia16.src0_vert_stride = src->vert_stride;
+		instr->bits2.ia16.src0_swz_x = BRW_GET_SWZ(SWIZZLE(src->reg), 0);
+		instr->bits2.ia16.src0_swz_y = BRW_GET_SWZ(SWIZZLE(src->reg), 1);
+		instr->bits2.ia16.src0_swz_z = BRW_GET_SWZ(SWIZZLE(src->reg), 2);
+		instr->bits2.ia16.src0_swz_w = BRW_GET_SWZ(SWIZZLE(src->reg), 3);
+		instr->bits2.ia16.src0_indirect_offset = (src->reg.dw1.bits.indirect_offset >> 4); /* half register aligned */
+		instr->bits2.ia16.src0_subreg_nr = get_indirect_subreg_address(src->reg.subnr);
+		instr->bits2.ia16.src0_abs = src->reg.abs;
+		instr->bits2.ia16.src0_negate = src->reg.negate;
+		instr->bits2.ia16.src0_address_mode = src->reg.address_mode;
+		instr->bits2.ia16.src0_vert_stride = src->reg.vstride;
             }
         }
 
@@ -2927,20 +2929,20 @@ int set_instruction_src1(struct brw_instruction *instr,
 	if (advanced_flag) {
 		reset_instruction_src_region(instr, src);
 	}
-	instr->bits1.da1.src1_reg_file = src->reg_file;
-	instr->bits1.da1.src1_reg_type = src->reg_type;
-	if (src->reg_file == BRW_IMMEDIATE_VALUE) {
+	instr->bits1.da1.src1_reg_file = src->reg.file;
+	instr->bits1.da1.src1_reg_type = src->reg.type;
+	if (src->reg.file == BRW_IMMEDIATE_VALUE) {
 		instr->bits3.ud = src->imm32;
-	} else if (src->address_mode == BRW_ADDRESS_DIRECT) {
+	} else if (src->reg.address_mode == BRW_ADDRESS_DIRECT) {
             if (instr->header.access_mode == BRW_ALIGN_1) {
-		instr->bits3.da1.src1_subreg_nr = get_subreg_address(src->reg_file, src->reg_type, src->subreg_nr, src->address_mode);
-		instr->bits3.da1.src1_reg_nr = src->reg_nr;
-		instr->bits3.da1.src1_vert_stride = src->vert_stride;
-		instr->bits3.da1.src1_width = src->width;
-		instr->bits3.da1.src1_horiz_stride = src->horiz_stride;
-		instr->bits3.da1.src1_negate = src->negate;
-		instr->bits3.da1.src1_abs = src->abs;
-                instr->bits3.da1.src1_address_mode = src->address_mode;
+		instr->bits3.da1.src1_subreg_nr = get_subreg_address(src->reg.file, src->reg.type, src->reg.subnr, src->reg.address_mode);
+		instr->bits3.da1.src1_reg_nr = src->reg.nr;
+		instr->bits3.da1.src1_vert_stride = src->reg.vstride;
+		instr->bits3.da1.src1_width = src->reg.width;
+		instr->bits3.da1.src1_horiz_stride = src->reg.hstride;
+		instr->bits3.da1.src1_negate = src->reg.negate;
+		instr->bits3.da1.src1_abs = src->reg.abs;
+                instr->bits3.da1.src1_address_mode = src->reg.address_mode;
 		/* XXX why?
 		if (src->address_mode != BRW_ADDRESS_DIRECT) {
 			fprintf(stderr, "error: swizzle bits set in align1 "
@@ -2948,23 +2950,23 @@ int set_instruction_src1(struct brw_instruction *instr,
 			return 1;
 		}
 		*/
-		if (src->swizzle && src->swizzle != BRW_SWIZZLE_NOOP) {
+		if (SWIZZLE(src->reg) && SWIZZLE(src->reg) != BRW_SWIZZLE_NOOP) {
 			fprintf(stderr, "error: swizzle bits set in align1 "
 				"instruction\n");
 			return 1;
 		}
             } else {
-		instr->bits3.da16.src1_subreg_nr = get_subreg_address(src->reg_file, src->reg_type, src->subreg_nr, src->address_mode);
-		instr->bits3.da16.src1_reg_nr = src->reg_nr;
-		instr->bits3.da16.src1_vert_stride = src->vert_stride;
-		instr->bits3.da16.src1_negate = src->negate;
-		instr->bits3.da16.src1_abs = src->abs;
-		instr->bits3.da16.src1_swz_x = BRW_GET_SWZ(src->swizzle, 0);
-		instr->bits3.da16.src1_swz_y = BRW_GET_SWZ(src->swizzle, 1);
-		instr->bits3.da16.src1_swz_z = BRW_GET_SWZ(src->swizzle, 2);
-		instr->bits3.da16.src1_swz_w = BRW_GET_SWZ(src->swizzle, 3);
-                instr->bits3.da16.src1_address_mode = src->address_mode;
-		if (src->address_mode != BRW_ADDRESS_DIRECT) {
+		instr->bits3.da16.src1_subreg_nr = get_subreg_address(src->reg.file, src->reg.type, src->reg.subnr, src->reg.address_mode);
+		instr->bits3.da16.src1_reg_nr = src->reg.nr;
+		instr->bits3.da16.src1_vert_stride = src->reg.vstride;
+		instr->bits3.da16.src1_negate = src->reg.negate;
+		instr->bits3.da16.src1_abs = src->reg.abs;
+		instr->bits3.da16.src1_swz_x = BRW_GET_SWZ(SWIZZLE(src->reg), 0);
+		instr->bits3.da16.src1_swz_y = BRW_GET_SWZ(SWIZZLE(src->reg), 1);
+		instr->bits3.da16.src1_swz_z = BRW_GET_SWZ(SWIZZLE(src->reg), 2);
+		instr->bits3.da16.src1_swz_w = BRW_GET_SWZ(SWIZZLE(src->reg), 3);
+                instr->bits3.da16.src1_address_mode = src->reg.address_mode;
+		if (src->reg.address_mode != BRW_ADDRESS_DIRECT) {
 			fprintf(stderr, "error: swizzle bits set in align1 "
 				"instruction\n");
 			return 1;
@@ -2972,30 +2974,30 @@ int set_instruction_src1(struct brw_instruction *instr,
             }
 	} else {
             if (instr->header.access_mode == BRW_ALIGN_1) {
-		instr->bits3.ia1.src1_indirect_offset = src->indirect_offset;
-		instr->bits3.ia1.src1_subreg_nr = get_indirect_subreg_address(src->subreg_nr);
-		instr->bits3.ia1.src1_abs = src->abs;
-		instr->bits3.ia1.src1_negate = src->negate;
-		instr->bits3.ia1.src1_address_mode = src->address_mode;
-		instr->bits3.ia1.src1_horiz_stride = src->horiz_stride;
-		instr->bits3.ia1.src1_width = src->width;
-		instr->bits3.ia1.src1_vert_stride = src->vert_stride;
-		if (src->swizzle && src->swizzle != BRW_SWIZZLE_NOOP) {
+		instr->bits3.ia1.src1_indirect_offset = src->reg.dw1.bits.indirect_offset;
+		instr->bits3.ia1.src1_subreg_nr = get_indirect_subreg_address(src->reg.subnr);
+		instr->bits3.ia1.src1_abs = src->reg.abs;
+		instr->bits3.ia1.src1_negate = src->reg.negate;
+		instr->bits3.ia1.src1_address_mode = src->reg.address_mode;
+		instr->bits3.ia1.src1_horiz_stride = src->reg.hstride;
+		instr->bits3.ia1.src1_width = src->reg.width;
+		instr->bits3.ia1.src1_vert_stride = src->reg.vstride;
+		if (SWIZZLE(src->reg) && SWIZZLE(src->reg) != BRW_SWIZZLE_NOOP) {
 			fprintf(stderr, "error: swizzle bits set in align1 "
 				"instruction\n");
 			return 1;
 		}
             } else {
-		instr->bits3.ia16.src1_swz_x = BRW_GET_SWZ(src->swizzle, 0);
-		instr->bits3.ia16.src1_swz_y = BRW_GET_SWZ(src->swizzle, 1);
-		instr->bits3.ia16.src1_swz_z = BRW_GET_SWZ(src->swizzle, 2);
-		instr->bits3.ia16.src1_swz_w = BRW_GET_SWZ(src->swizzle, 3);
-		instr->bits3.ia16.src1_indirect_offset = (src->indirect_offset >> 4); /* half register aligned */
-		instr->bits3.ia16.src1_subreg_nr = get_indirect_subreg_address(src->subreg_nr);
-		instr->bits3.ia16.src1_abs = src->abs;
-		instr->bits3.ia16.src1_negate = src->negate;
-		instr->bits3.ia16.src1_address_mode = src->address_mode;
-		instr->bits3.ia16.src1_vert_stride = src->vert_stride;
+		instr->bits3.ia16.src1_swz_x = BRW_GET_SWZ(SWIZZLE(src->reg), 0);
+		instr->bits3.ia16.src1_swz_y = BRW_GET_SWZ(SWIZZLE(src->reg), 1);
+		instr->bits3.ia16.src1_swz_z = BRW_GET_SWZ(SWIZZLE(src->reg), 2);
+		instr->bits3.ia16.src1_swz_w = BRW_GET_SWZ(SWIZZLE(src->reg), 3);
+		instr->bits3.ia16.src1_indirect_offset = (src->reg.dw1.bits.indirect_offset >> 4); /* half register aligned */
+		instr->bits3.ia16.src1_subreg_nr = get_indirect_subreg_address(src->reg.subnr);
+		instr->bits3.ia16.src1_abs = src->reg.abs;
+		instr->bits3.ia16.src1_negate = src->reg.negate;
+		instr->bits3.ia16.src1_address_mode = src->reg.address_mode;
+		instr->bits3.ia16.src1_vert_stride = src->reg.vstride;
             }
         }
 
@@ -3040,9 +3042,9 @@ int set_instruction_src0_three_src(struct brw_instruction *instr,
 		reset_instruction_src_region(instr, src);
 	}
 	// TODO: supporting src0 swizzle, src0 modifier, src0 rep_ctrl
-	instr->bits1.da3src.src_reg_type = reg_type_2_to_3(src->reg_type);
-	instr->bits2.da3src.src0_subreg_nr = get_subreg_address(src->reg_file, src->reg_type, src->subreg_nr, src->address_mode) / 4; // in DWORD
-	instr->bits2.da3src.src0_reg_nr = src->reg_nr;
+	instr->bits1.da3src.src_reg_type = reg_type_2_to_3(src->reg.type);
+	instr->bits2.da3src.src0_subreg_nr = get_subreg_address(src->reg.file, src->reg.type, src->reg.subnr, src->reg.address_mode) / 4; // in DWORD
+	instr->bits2.da3src.src0_reg_nr = src->reg.nr;
 	return 0;
 }
 
@@ -3053,10 +3055,10 @@ int set_instruction_src1_three_src(struct brw_instruction *instr,
 		reset_instruction_src_region(instr, src);
 	}
 	// TODO: supporting src1 swizzle, src1 modifier, src1 rep_ctrl
-	int v = get_subreg_address(src->reg_file, src->reg_type, src->subreg_nr, src->address_mode) / 4; // in DWORD
+	int v = get_subreg_address(src->reg.file, src->reg.type, src->reg.subnr, src->reg.address_mode) / 4; // in DWORD
 	instr->bits2.da3src.src1_subreg_nr_low = v % 4; // lower 2 bits
 	instr->bits3.da3src.src1_subreg_nr_high = v / 4; // highest bit
-	instr->bits3.da3src.src1_reg_nr = src->reg_nr;
+	instr->bits3.da3src.src1_reg_nr = src->reg.nr;
 	return 0;
 }
 
@@ -3067,8 +3069,8 @@ int set_instruction_src2_three_src(struct brw_instruction *instr,
 		reset_instruction_src_region(instr, src);
 	}
 	// TODO: supporting src2 swizzle, src2 modifier, src2 rep_ctrl
-	instr->bits3.da3src.src2_subreg_nr = get_subreg_address(src->reg_file, src->reg_type, src->subreg_nr, src->address_mode) / 4; // in DWORD
-	instr->bits3.da3src.src2_reg_nr = src->reg_nr;
+	instr->bits3.da3src.src2_subreg_nr = get_subreg_address(src->reg.file, src->reg.type, src->reg.subnr, src->reg.address_mode) / 4; // in DWORD
+	instr->bits3.da3src.src2_reg_nr = src->reg.nr;
 	return 0;
 }
 
@@ -3106,15 +3108,15 @@ void set_direct_src_operand(struct src_operand *src, struct brw_reg *reg,
 			    int type)
 {
 	memset(src, 0, sizeof(*src));
-	src->address_mode = BRW_ADDRESS_DIRECT;
-	src->reg_file = reg->file;
-	src->reg_type = type;
-	src->subreg_nr = reg->subnr;
-	src->reg_nr = reg->nr;
-	src->vert_stride = 0;
-	src->width = 0;
-	src->horiz_stride = 0;
-	src->negate = 0;
-	src->abs = 0;
-	src->swizzle = BRW_SWIZZLE_NOOP;
+	src->reg.address_mode = BRW_ADDRESS_DIRECT;
+	src->reg.file = reg->file;
+	src->reg.type = type;
+	src->reg.subnr = reg->subnr;
+	src->reg.nr = reg->nr;
+	src->reg.vstride = 0;
+	src->reg.width = 0;
+	src->reg.hstride = 0;
+	src->reg.negate = 0;
+	src->reg.abs = 0;
+	SWIZZLE(src->reg) = BRW_SWIZZLE_NOOP;
 }

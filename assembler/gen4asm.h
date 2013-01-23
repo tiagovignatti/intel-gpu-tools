@@ -86,19 +86,9 @@ struct regtype {
  * parser.
  */
 struct src_operand {
-	int reg_file, reg_nr, subreg_nr, reg_type;
-
-	int abs, negate;
-
-	int horiz_stride, width, vert_stride;
+	struct brw_reg reg;
 	int default_region;
-
-	int address_mode; /* 0 if direct, 1 if register-indirect */
-	int indirect_offset; /* XXX */
-
-	unsigned swizzle: 8;
-
-	uint32_t imm32; /* set if reg_file == BRW_IMMEDIATE_VALUE or it is expressing a branch offset */
+	uint32_t imm32; /* set if reg.file == BRW_IMMEDIATE_VALUE or it is expressing a branch offset */
 	char *reloc_target; /* bspec: branching instructions JIP and UIP are source operands */
 } src_operand;
 
