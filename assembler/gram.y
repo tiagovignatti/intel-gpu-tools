@@ -353,9 +353,9 @@ declare_pragma:	DECLARE_PRAGMA STRING declare_base declare_elementsize declare_s
 			reg = calloc(sizeof(struct declared_register), 1);
 			reg->name = $2;
 		    }
-		    reg->base.reg_file = $3.reg_file;
-		    reg->base.reg_nr = $3.reg_nr;
-		    reg->base.subreg_nr = $3.subreg_nr;
+		    reg->reg.file = $3.reg_file;
+		    reg->reg.nr = $3.reg_nr;
+		    reg->reg.subnr = $3.subreg_nr;
 		    reg->element_size = $4;
 		    reg->src_region = $5;
 		    reg->dst_region = $6;
@@ -1548,9 +1548,9 @@ dst:		dstoperand | dstoperandex
 dstoperand:	symbol_reg dstregion
 		{
 		  memset (&$$, '\0', sizeof ($$));
-		  $$.reg_file = $1.base.reg_file;
-		  $$.reg_nr = $1.base.reg_nr;
-		  $$.subreg_nr = $1.base.subreg_nr;
+		  $$.reg_file = $1.reg.file;
+		  $$.reg_nr = $1.reg.nr;
+		  $$.subreg_nr = $1.reg.subnr;
 		  if ($2 == DEFAULT_DSTREGION) {
 		      $$.horiz_stride = $1.dst_region;
 		  } else {
@@ -1657,7 +1657,7 @@ symbol_reg_p: STRING LPAREN exp RPAREN
 		    }
 
 		    memcpy(&$$, dcl_reg, sizeof(*dcl_reg));
-		    $$.base.reg_nr += $3;
+		    $$.reg.nr += $3;
 		    free($1);
 		}
 		| STRING LPAREN exp COMMA exp RPAREN
@@ -1670,15 +1670,15 @@ symbol_reg_p: STRING LPAREN exp RPAREN
 		    }
 
 		    memcpy(&$$, dcl_reg, sizeof(*dcl_reg));
-		    $$.base.reg_nr += $3;
-		    $$.base.subreg_nr += $5;
+		    $$.reg.nr += $3;
 		    if(advanced_flag) {
-		        $$.base.reg_nr += $$.base.subreg_nr / (32 / get_type_size(dcl_reg->type));
-		        $$.base.subreg_nr = $$.base.subreg_nr % (32 / get_type_size(dcl_reg->type));
+			int size = get_type_size(dcl_reg->type);
+		        $$.reg.nr += ($$.reg.subnr + $5) / (32 / size);
+		        $$.reg.subnr = ($$.reg.subnr + $5) % (32 / size);
 		    } else {
-		        $$.base.reg_nr += $$.base.subreg_nr / 32;
-		        $$.base.subreg_nr = $$.base.subreg_nr % 32;
-			}
+		        $$.reg.nr += ($$.reg.subnr + $5) / 32;
+		        $$.reg.subnr = ($$.reg.subnr + $5) % 32;
+		    }
 		    free($1);
 		}
 ;
@@ -1857,9 +1857,9 @@ srcarchoperandex_typed: flagreg | addrreg | maskreg
 sendleadreg: symbol_reg
              {
 		  memset (&$$, '\0', sizeof ($$));
-		  $$.reg_file = $1.base.reg_file;
-		  $$.reg_nr = $1.base.reg_nr;
-		  $$.subreg_nr = $1.base.subreg_nr;
+		  $$.reg_file = $1.reg.file;
+		  $$.reg_nr = $1.reg.nr;
+		  $$.subreg_nr = $1.reg.subnr;
              }
              | directgenreg | directmsgreg
 ;
@@ -1871,9 +1871,9 @@ directsrcoperand:	negate abs symbol_reg region regtype
 		{
 		  memset (&$$, '\0', sizeof ($$));
 		  $$.address_mode = BRW_ADDRESS_DIRECT;
-		  $$.reg_file = $3.base.reg_file;
-		  $$.reg_nr = $3.base.reg_nr;
-		  $$.subreg_nr = $3.base.subreg_nr;
+		  $$.reg_file = $3.reg.file;
+		  $$.reg_nr = $3.reg.nr;
+		  $$.subreg_nr = $3.reg.subnr;
 		  if ($5.is_default) {
 		    $$.reg_type = $3.type;
 		  } else {
@@ -2303,9 +2303,9 @@ relativelocation2:
 		{
 		  memset (&$$, '\0', sizeof ($$));
 		  $$.address_mode = BRW_ADDRESS_DIRECT;
-		  $$.reg_file = $1.base.reg_file;
-		  $$.reg_nr = $1.base.reg_nr;
-		  $$.subreg_nr = $1.base.subreg_nr;
+		  $$.reg_file = $1.reg.file;
+		  $$.reg_nr = $1.reg.nr;
+		  $$.subreg_nr = $1.reg.subnr;
 		  $$.reg_type = $1.type;
 		  $$.vert_stride = $1.src_region.vert_stride;
 		  $$.width = $1.src_region.width;

@@ -33,6 +33,8 @@
 #include <stdbool.h>
 #include <assert.h>
 
+#include "brw_reg.h"
+
 typedef unsigned char GLubyte;
 typedef short GLshort;
 typedef unsigned int GLuint;
@@ -226,7 +228,7 @@ extern struct program_defaults program_defaults;
 
 struct declared_register {
     char *name;
-    struct direct_reg base;
+    struct brw_reg reg;
     int element_size;
     struct region src_region;
     int dst_region;
