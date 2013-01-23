@@ -158,8 +158,7 @@ static void brw_program_add_label(struct brw_program *p, const char *label)
 	struct brw_program program;
 	struct region region;
 	struct regtype regtype;
-	struct brw_reg direct_reg;
-	struct brw_reg indirect_reg;
+	struct brw_reg reg;
 	struct condition condition;
 	struct declared_register symbol_reg;
 	imm32_t imm32;
@@ -262,13 +261,13 @@ static void brw_program_add_label(struct brw_program *p, const char *label)
 %type <integer> predctrl predstate
 %type <region> region region_wh indirectregion declare_srcregion;
 %type <regtype> regtype
-%type <direct_reg> directgenreg directmsgreg addrreg accreg flagreg maskreg
-%type <direct_reg> maskstackreg notifyreg
-/* %type <direct_reg>  maskstackdepthreg */
-%type <direct_reg> statereg controlreg ipreg nullreg
-%type <direct_reg> dstoperandex_typed srcarchoperandex_typed
-%type <direct_reg> sendleadreg
-%type <indirect_reg> indirectgenreg indirectmsgreg addrparam
+%type <reg> directgenreg directmsgreg addrreg accreg flagreg maskreg
+%type <reg> maskstackreg notifyreg
+/* %type <reg>  maskstackdepthreg */
+%type <reg> statereg controlreg ipreg nullreg
+%type <reg> dstoperandex_typed srcarchoperandex_typed
+%type <reg> sendleadreg
+%type <reg> indirectgenreg indirectmsgreg addrparam
 %type <integer> mask_subreg maskstack_subreg 
 %type <integer> declare_elementsize declare_dstregion declare_type
 /* %type <intger> maskstackdepth_subreg */
@@ -1955,7 +1954,7 @@ indirectsrcoperand:
 ;
 
 /* 1.4.4: Address Registers */
-/* Returns a partially-completed indirect_reg consisting of the address
+/* Returns a partially-completed struct brw_reg consisting of the address
  * register fields for register-indirect access.
  */
 addrparam:	addrreg COMMA immaddroffset
