@@ -67,10 +67,7 @@ static struct src_operand ip_src =
     .reg_nr = BRW_ARF_IP,
     .reg_type = BRW_REGISTER_TYPE_UD,
     .address_mode = BRW_ADDRESS_DIRECT,
-    .swizzle_x = BRW_CHANNEL_X,
-    .swizzle_y = BRW_CHANNEL_Y,
-    .swizzle_z = BRW_CHANNEL_Z,
-    .swizzle_w = BRW_CHANNEL_W,
+    .swizzle = BRW_SWIZZLE_NOOP,
 };
 
 static int get_type_size(GLuint type);
@@ -1895,10 +1892,7 @@ directsrcoperand:	negate abs symbol_reg region regtype
 		  $$.negate = $1;
 		  $$.abs = $2;
 		  $$.swizzle_set = $6.swizzle_set;
-		  $$.swizzle_x = $6.swizzle_x;
-		  $$.swizzle_y = $6.swizzle_y;
-		  $$.swizzle_z = $6.swizzle_z;
-		  $$.swizzle_w = $6.swizzle_w;
+		  $$.swizzle = $6.swizzle;
 		}
 		| srcarchoperandex
 ;
@@ -1918,10 +1912,7 @@ indirectsrcoperand:
 		  $$.negate = $1;
 		  $$.abs = $2;
 		  $$.swizzle_set = $6.swizzle_set;
-		  $$.swizzle_x = $6.swizzle_x;
-		  $$.swizzle_y = $6.swizzle_y;
-		  $$.swizzle_z = $6.swizzle_z;
-		  $$.swizzle_w = $6.swizzle_w;
+		  $$.swizzle = $6.swizzle;
 		}
 ;
 
@@ -2399,26 +2390,17 @@ srcimmtype:	/* empty */
 swizzle:	/* empty */
 		{
 		  $$.swizzle_set = 0;
-		  $$.swizzle_x = BRW_CHANNEL_X;
-		  $$.swizzle_y = BRW_CHANNEL_Y;
-		  $$.swizzle_z = BRW_CHANNEL_Z;
-		  $$.swizzle_w = BRW_CHANNEL_W;
+		  $$.swizzle = BRW_SWIZZLE_NOOP;
 		}
 		| DOT chansel
 		{
 		  $$.swizzle_set = 1;
-		  $$.swizzle_x = $2;
-		  $$.swizzle_y = $2;
-		  $$.swizzle_z = $2;
-		  $$.swizzle_w = $2;
+		  $$.swizzle = BRW_SWIZZLE4($2, $2, $2, $2);
 		}
 		| DOT chansel chansel chansel chansel
 		{
 		  $$.swizzle_set = 1;
-		  $$.swizzle_x = $2;
-		  $$.swizzle_y = $3;
-		  $$.swizzle_z = $4;
-		  $$.swizzle_w = $5;
+		  $$.swizzle = BRW_SWIZZLE4($2, $3, $4, $5);
 		}
 ;
 
@@ -2904,10 +2886,10 @@ int set_instruction_src0(struct brw_instruction *instr,
 		instr->bits2.da16.src0_vert_stride = src->vert_stride;
 		instr->bits2.da16.src0_negate = src->negate;
 		instr->bits2.da16.src0_abs = src->abs;
-		instr->bits2.da16.src0_swz_x = src->swizzle_x;
-		instr->bits2.da16.src0_swz_y = src->swizzle_y;
-		instr->bits2.da16.src0_swz_z = src->swizzle_z;
-		instr->bits2.da16.src0_swz_w = src->swizzle_w;
+		instr->bits2.da16.src0_swz_x = BRW_GET_SWZ(src->swizzle, 0);
+		instr->bits2.da16.src0_swz_y = BRW_GET_SWZ(src->swizzle, 1);
+		instr->bits2.da16.src0_swz_z = BRW_GET_SWZ(src->swizzle, 2);
+		instr->bits2.da16.src0_swz_w = BRW_GET_SWZ(src->swizzle, 3);
 		instr->bits2.da16.src0_address_mode = src->address_mode;
             }
         } else {
@@ -2926,15 +2908,15 @@ int set_instruction_src0(struct brw_instruction *instr,
 			return 1;
 		}
             } else {
-		instr->bits2.ia16.src0_swz_x = src->swizzle_x;
-		instr->bits2.ia16.src0_swz_y = src->swizzle_y;
+		instr->bits2.ia16.src0_swz_x = BRW_GET_SWZ(src->swizzle, 0);
+		instr->bits2.ia16.src0_swz_y = BRW_GET_SWZ(src->swizzle, 1);
+		instr->bits2.ia16.src0_swz_z = BRW_GET_SWZ(src->swizzle, 2);
+		instr->bits2.ia16.src0_swz_w = BRW_GET_SWZ(src->swizzle, 3);
 		instr->bits2.ia16.src0_indirect_offset = (src->indirect_offset >> 4); /* half register aligned */
 		instr->bits2.ia16.src0_subreg_nr = get_indirect_subreg_address(src->subreg_nr);
 		instr->bits2.ia16.src0_abs = src->abs;
 		instr->bits2.ia16.src0_negate = src->negate;
 		instr->bits2.ia16.src0_address_mode = src->address_mode;
-		instr->bits2.ia16.src0_swz_z = src->swizzle_z;
-		instr->bits2.ia16.src0_swz_w = src->swizzle_w;
 		instr->bits2.ia16.src0_vert_stride = src->vert_stride;
             }
         }
@@ -2982,10 +2964,10 @@ int set_instruction_src1(struct brw_instruction *instr,
 		instr->bits3.da16.src1_vert_stride = src->vert_stride;
 		instr->bits3.da16.src1_negate = src->negate;
 		instr->bits3.da16.src1_abs = src->abs;
-		instr->bits3.da16.src1_swz_x = src->swizzle_x;
-		instr->bits3.da16.src1_swz_y = src->swizzle_y;
-		instr->bits3.da16.src1_swz_z = src->swizzle_z;
-		instr->bits3.da16.src1_swz_w = src->swizzle_w;
+		instr->bits3.da16.src1_swz_x = BRW_GET_SWZ(src->swizzle, 0);
+		instr->bits3.da16.src1_swz_y = BRW_GET_SWZ(src->swizzle, 1);
+		instr->bits3.da16.src1_swz_z = BRW_GET_SWZ(src->swizzle, 2);
+		instr->bits3.da16.src1_swz_w = BRW_GET_SWZ(src->swizzle, 3);
                 instr->bits3.da16.src1_address_mode = src->address_mode;
 		if (src->address_mode != BRW_ADDRESS_DIRECT) {
 			fprintf(stderr, "error: swizzle bits set in align1 "
@@ -3009,15 +2991,15 @@ int set_instruction_src1(struct brw_instruction *instr,
 			return 1;
 		}
             } else {
-		instr->bits3.ia16.src1_swz_x = src->swizzle_x;
-		instr->bits3.ia16.src1_swz_y = src->swizzle_y;
+		instr->bits3.ia16.src1_swz_x = BRW_GET_SWZ(src->swizzle, 0);
+		instr->bits3.ia16.src1_swz_y = BRW_GET_SWZ(src->swizzle, 1);
+		instr->bits3.ia16.src1_swz_z = BRW_GET_SWZ(src->swizzle, 2);
+		instr->bits3.ia16.src1_swz_w = BRW_GET_SWZ(src->swizzle, 3);
 		instr->bits3.ia16.src1_indirect_offset = (src->indirect_offset >> 4); /* half register aligned */
 		instr->bits3.ia16.src1_subreg_nr = get_indirect_subreg_address(src->subreg_nr);
 		instr->bits3.ia16.src1_abs = src->abs;
 		instr->bits3.ia16.src1_negate = src->negate;
 		instr->bits3.ia16.src1_address_mode = src->address_mode;
-		instr->bits3.ia16.src1_swz_z = src->swizzle_z;
-		instr->bits3.ia16.src1_swz_w = src->swizzle_w;
 		instr->bits3.ia16.src1_vert_stride = src->vert_stride;
             }
         }
@@ -3140,8 +3122,5 @@ void set_direct_src_operand(struct src_operand *src, struct brw_reg *reg,
 	src->negate = 0;
 	src->abs = 0;
 	src->swizzle_set = 0;
-	src->swizzle_x = BRW_CHANNEL_X;
-	src->swizzle_y = BRW_CHANNEL_Y;
-	src->swizzle_z = BRW_CHANNEL_Z;
-	src->swizzle_w = BRW_CHANNEL_W;
+	src->swizzle = BRW_SWIZZLE_NOOP;
 }
