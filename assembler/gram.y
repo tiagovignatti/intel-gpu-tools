@@ -92,9 +92,9 @@ void set_instruction_options(struct brw_instruction *instr,
 			     struct brw_instruction *options);
 void set_instruction_predicate(struct brw_instruction *instr,
 			       struct brw_instruction *predicate);
-void set_direct_dst_operand(struct dst_operand *dst, struct direct_reg *reg,
+void set_direct_dst_operand(struct dst_operand *dst, struct brw_reg *reg,
 			    int type);
-void set_direct_src_operand(struct src_operand *src, struct direct_reg *reg,
+void set_direct_src_operand(struct src_operand *src, struct brw_reg *reg,
 			    int type);
 
 static void brw_program_init(struct brw_program *p)
@@ -158,7 +158,7 @@ static void brw_program_add_label(struct brw_program *p, const char *label)
 	struct brw_program program;
 	struct region region;
 	struct regtype regtype;
-	struct direct_reg direct_reg;
+	struct brw_reg direct_reg;
 	struct indirect_reg indirect_reg;
 	struct condition condition;
 	struct declared_register symbol_reg;
@@ -263,7 +263,7 @@ static void brw_program_add_label(struct brw_program *p, const char *label)
 %type <region> region region_wh indirectregion declare_srcregion;
 %type <regtype> regtype
 %type <direct_reg> directgenreg directmsgreg addrreg accreg flagreg maskreg
-%type <direct_reg> maskstackreg notifyreg 
+%type <direct_reg> maskstackreg notifyreg
 /* %type <direct_reg>  maskstackdepthreg */
 %type <direct_reg> statereg controlreg ipreg nullreg
 %type <direct_reg> dstoperandex_typed srcarchoperandex_typed
@@ -926,7 +926,7 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
 		  memset(&$$, 0, sizeof($$));
 		  $$.header.opcode = $2;
 		  $$.header.execution_size = $3;
-		  $$.header.destreg__conditionalmod = $5.reg_nr; /* msg reg index */
+		  $$.header.destreg__conditionalmod = $5.nr; /* msg reg index */
 
 		  set_instruction_predicate(&$$, &$1);
 
@@ -949,7 +949,7 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
 		  memset(&$$, 0, sizeof($$));
 		  $$.header.opcode = $2;
 		  $$.header.execution_size = $3;
-		  $$.header.destreg__conditionalmod = $5.reg_nr; /* msg reg index */
+		  $$.header.destreg__conditionalmod = $5.nr; /* msg reg index */
 
 		  set_instruction_predicate(&$$, &$1);
 		  if (set_instruction_dest(&$$, &$4) != 0)
@@ -996,7 +996,7 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
                       src0.reg_type = BRW_REGISTER_TYPE_D;
                   }
 
-                  src0.reg_nr = $5.reg_nr;
+                  src0.reg_nr = $5.nr;
                   src0.subreg_nr = 0;
                   set_instruction_src0(&$$, &src0);
 
@@ -1042,7 +1042,7 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
                       src0.reg_type = BRW_REGISTER_TYPE_D;
                   }
 
-                  src0.reg_nr = $5.reg_nr;
+                  src0.reg_nr = $5.nr;
                   src0.subreg_nr = 0;
                   set_instruction_src0(&$$, &src0);
 
@@ -1060,7 +1060,7 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
 		  memset(&$$, 0, sizeof($$));
 		  $$.header.opcode = $2;
 		  $$.header.execution_size = $3;
-		  $$.header.destreg__conditionalmod = $5.reg_nr; /* msg reg index */
+		  $$.header.destreg__conditionalmod = $5.nr; /* msg reg index */
 
 		  set_instruction_predicate(&$$, &$1);
 		  if (set_instruction_dest(&$$, &$4) != 0)
@@ -1082,7 +1082,7 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
 		  memset(&$$, 0, sizeof($$));
 		  $$.header.opcode = $2;
 		  $$.header.execution_size = $3;
-		  $$.header.destreg__conditionalmod = $5.reg_nr; /* msg reg index */
+		  $$.header.destreg__conditionalmod = $5.nr; /* msg reg index */
 
 		  set_instruction_predicate(&$$, &$1);
 
@@ -1582,45 +1582,45 @@ dstoperand:	symbol_reg dstregion
 dstoperandex:	dstoperandex_typed dstregion regtype
 		{
 		  memset (&$$, '\0', sizeof ($$));
-		  $$.reg_file = $1.reg_file;
-		  $$.reg_nr = $1.reg_nr;
-		  $$.subreg_nr = $1.subreg_nr;
+		  $$.reg_file = $1.file;
+		  $$.reg_nr = $1.nr;
+		  $$.subreg_nr = $1.subnr;
 		  $$.horiz_stride = $2;
 		  $$.reg_type = $3.type;
 		}
 		| maskstackreg
 		{
 		  memset (&$$, '\0', sizeof ($$));
-		  $$.reg_file = $1.reg_file;
-		  $$.reg_nr = $1.reg_nr;
-		  $$.subreg_nr = $1.subreg_nr;
+		  $$.reg_file = $1.file;
+		  $$.reg_nr = $1.nr;
+		  $$.subreg_nr = $1.subnr;
 		  $$.horiz_stride = 1;
 		  $$.reg_type = BRW_REGISTER_TYPE_UW;
 		}
 		| controlreg
 		{
 		  memset (&$$, '\0', sizeof ($$));
-		  $$.reg_file = $1.reg_file;
-		  $$.reg_nr = $1.reg_nr;
-		  $$.subreg_nr = $1.subreg_nr;
+		  $$.reg_file = $1.file;
+		  $$.reg_nr = $1.nr;
+		  $$.subreg_nr = $1.subnr;
 		  $$.horiz_stride = 1;
 		  $$.reg_type = BRW_REGISTER_TYPE_UD;
 		}
 		| ipreg
 		{
 		  memset (&$$, '\0', sizeof ($$));
-		  $$.reg_file = $1.reg_file;
-		  $$.reg_nr = $1.reg_nr;
-		  $$.subreg_nr = $1.subreg_nr;
+		  $$.reg_file = $1.file;
+		  $$.reg_nr = $1.nr;
+		  $$.subreg_nr = $1.subnr;
 		  $$.horiz_stride = 1;
 		  $$.reg_type = BRW_REGISTER_TYPE_UD;
 		}
 		| nullreg dstregion regtype
 		{
 		  memset (&$$, '\0', sizeof ($$));
-		  $$.reg_file = $1.reg_file;
-		  $$.reg_nr = $1.reg_nr;
-		  $$.subreg_nr = $1.subreg_nr;
+		  $$.reg_file = $1.file;
+		  $$.reg_nr = $1.nr;
+		  $$.subreg_nr = $1.subnr;
 		  $$.horiz_stride = $2;
 		  $$.reg_type = $3.type;
 		}
@@ -1689,17 +1689,17 @@ dstreg:		directgenreg
 		{
 		  memset (&$$, '\0', sizeof ($$));
 		  $$.address_mode = BRW_ADDRESS_DIRECT;
-		  $$.reg_file = $1.reg_file;
-		  $$.reg_nr = $1.reg_nr;
-		  $$.subreg_nr = $1.subreg_nr;
+		  $$.reg_file = $1.file;
+		  $$.reg_nr = $1.nr;
+		  $$.subreg_nr = $1.subnr;
 		}
 		| directmsgreg
 		{
 		  memset (&$$, '\0', sizeof ($$));
 		  $$.address_mode = BRW_ADDRESS_DIRECT;
-		  $$.reg_file = $1.reg_file;
-		  $$.reg_nr = $1.reg_nr;
-		  $$.subreg_nr = $1.subreg_nr;
+		  $$.reg_file = $1.file;
+		  $$.reg_nr = $1.nr;
+		  $$.subreg_nr = $1.subnr;
 		}
 		| indirectgenreg
 		{
@@ -1809,10 +1809,10 @@ directsrcaccoperand:	directsrcoperand
 srcarchoperandex: srcarchoperandex_typed region regtype
 		{
 		  memset (&$$, '\0', sizeof ($$));
-		  $$.reg_file = $1.reg_file;
+		  $$.reg_file = $1.file;
 		  $$.reg_type = $3.type;
-		  $$.subreg_nr = $1.subreg_nr;
-		  $$.reg_nr = $1.reg_nr;
+		  $$.subreg_nr = $1.subnr;
+		  $$.reg_nr = $1.nr;
 		  $$.vert_stride = $2.vert_stride;
 		  $$.width = $2.width;
 		  $$.horiz_stride = $2.horiz_stride;
@@ -1857,9 +1857,9 @@ srcarchoperandex_typed: flagreg | addrreg | maskreg
 sendleadreg: symbol_reg
              {
 		  memset (&$$, '\0', sizeof ($$));
-		  $$.reg_file = $1.reg.file;
-		  $$.reg_nr = $1.reg.nr;
-		  $$.subreg_nr = $1.reg.subnr;
+		  $$.file = $1.reg.file;
+		  $$.nr = $1.reg.nr;
+		  $$.subnr = $1.reg.subnr;
              }
              | directgenreg | directmsgreg
 ;
@@ -1900,9 +1900,9 @@ directsrcoperand:	negate abs symbol_reg region regtype
 		  else{
 		    memset (&$$, '\0', sizeof ($$));
 		    $$.address_mode = BRW_ADDRESS_DIRECT;
-		    $$.reg_file = $1.reg_file;
-		    $$.reg_nr = $1.reg_nr;
-		    $$.subreg_nr = $1.subreg_nr;
+		    $$.reg_file = $1.file;
+		    $$.reg_nr = $1.nr;
+		    $$.subreg_nr = $1.subnr;
 		    $$.vert_stride = $2.vert_stride;
 		    $$.width = $2.width;
 		    $$.horiz_stride = $2.horiz_stride;
@@ -1913,9 +1913,9 @@ directsrcoperand:	negate abs symbol_reg region regtype
 		{
 		  memset (&$$, '\0', sizeof ($$));
 		  $$.address_mode = BRW_ADDRESS_DIRECT;
-		  $$.reg_file = $3.reg_file;
-		  $$.reg_nr = $3.reg_nr;
-		  $$.subreg_nr = $3.subreg_nr;
+		  $$.reg_file = $3.file;
+		  $$.reg_nr = $3.nr;
+		  $$.subreg_nr = $3.subnr;
 		  $$.reg_type = $5.type;
 		  $$.vert_stride = $4.vert_stride;
 		  $$.width = $4.width;
@@ -1966,13 +1966,13 @@ addrparam:	addrreg COMMA immaddroffset
 		    YYERROR;
 		  }
 		  memset (&$$, '\0', sizeof ($$));
-		  $$.address_subreg_nr = $1.subreg_nr;
+		  $$.address_subreg_nr = $1.subnr;
 		  $$.indirect_offset = $3;
 		}
 		| addrreg 
 		{
 		  memset (&$$, '\0', sizeof ($$));
-		  $$.address_subreg_nr = $1.subreg_nr;
+		  $$.address_subreg_nr = $1.subnr;
 		  $$.indirect_offset = 0;
 		}
 ;
@@ -2000,9 +2000,9 @@ subregnum:	DOT exp
 directgenreg:	GENREG subregnum
 		{
 		  memset (&$$, '\0', sizeof ($$));
-		  $$.reg_file = BRW_GENERAL_REGISTER_FILE;
-		  $$.reg_nr = $1;
-		  $$.subreg_nr = $2;
+		  $$.file = BRW_GENERAL_REGISTER_FILE;
+		  $$.nr = $1;
+		  $$.subnr = $2;
 		}
 ;
 
@@ -2018,9 +2018,9 @@ indirectgenreg: GENREGFILE LSQUARE addrparam RSQUARE
 directmsgreg:	MSGREG subregnum
 		{
 		  memset (&$$, '\0', sizeof ($$));
-		  $$.reg_file = BRW_MESSAGE_REGISTER_FILE;
-		  $$.reg_nr = $1;
-		  $$.subreg_nr = $2;
+		  $$.file = BRW_MESSAGE_REGISTER_FILE;
+		  $$.nr = $1;
+		  $$.subnr = $2;
 		}
 ;
 
@@ -2041,9 +2041,9 @@ addrreg:	ADDRESSREG subregnum
 		    YYERROR;
 		  }
 		  memset (&$$, '\0', sizeof ($$));
-		  $$.reg_file = BRW_ARCHITECTURE_REGISTER_FILE;
-		  $$.reg_nr = BRW_ARF_ADDRESS | $1;
-		  $$.subreg_nr = $2;
+		  $$.file = BRW_ARCHITECTURE_REGISTER_FILE;
+		  $$.nr = BRW_ARF_ADDRESS | $1;
+		  $$.subnr = $2;
 		}
 ;
 
@@ -2055,9 +2055,9 @@ accreg:		ACCREG subregnum
 		    YYERROR;
 		  }
 		  memset (&$$, '\0', sizeof ($$));
-		  $$.reg_file = BRW_ARCHITECTURE_REGISTER_FILE;
-		  $$.reg_nr = BRW_ARF_ACCUMULATOR | $1;
-		  $$.subreg_nr = $2;
+		  $$.file = BRW_ARCHITECTURE_REGISTER_FILE;
+		  $$.nr = BRW_ARF_ACCUMULATOR | $1;
+		  $$.subnr = $2;
 		}
 ;
 
@@ -2077,9 +2077,9 @@ flagreg:	FLAGREG subregnum
 		  }
 
 		  memset (&$$, '\0', sizeof ($$));
-		  $$.reg_file = BRW_ARCHITECTURE_REGISTER_FILE;
-		  $$.reg_nr = BRW_ARF_FLAG | $1;
-		  $$.subreg_nr = $2;
+		  $$.file = BRW_ARCHITECTURE_REGISTER_FILE;
+		  $$.nr = BRW_ARF_FLAG | $1;
+		  $$.subnr = $2;
 		}
 ;
 
@@ -2091,16 +2091,16 @@ maskreg:	MASKREG subregnum
 		    YYERROR;
 		  }
 		  memset (&$$, '\0', sizeof ($$));
-		  $$.reg_file = BRW_ARCHITECTURE_REGISTER_FILE;
-		  $$.reg_nr = BRW_ARF_MASK;
-		  $$.subreg_nr = $2;
+		  $$.file = BRW_ARCHITECTURE_REGISTER_FILE;
+		  $$.nr = BRW_ARF_MASK;
+		  $$.subnr = $2;
 		}
 		| mask_subreg
 		{
 		  memset (&$$, '\0', sizeof ($$));
-		  $$.reg_file = BRW_ARCHITECTURE_REGISTER_FILE;
-		  $$.reg_nr = BRW_ARF_MASK;
-		  $$.subreg_nr = $1;
+		  $$.file = BRW_ARCHITECTURE_REGISTER_FILE;
+		  $$.nr = BRW_ARF_MASK;
+		  $$.subnr = $1;
 		}
 ;
 
@@ -2115,16 +2115,16 @@ maskstackreg:	MASKSTACKREG subregnum
 		    YYERROR;
 		  }
 		  memset (&$$, '\0', sizeof ($$));
-		  $$.reg_file = BRW_ARCHITECTURE_REGISTER_FILE;
-		  $$.reg_nr = BRW_ARF_MASK_STACK;
-		  $$.subreg_nr = $2;
+		  $$.file = BRW_ARCHITECTURE_REGISTER_FILE;
+		  $$.nr = BRW_ARF_MASK_STACK;
+		  $$.subnr = $2;
 		}
 		| maskstack_subreg
 		{
 		  memset (&$$, '\0', sizeof ($$));
-		  $$.reg_file = BRW_ARCHITECTURE_REGISTER_FILE;
-		  $$.reg_nr = BRW_ARF_MASK_STACK;
-		  $$.subreg_nr = $1;
+		  $$.file = BRW_ARCHITECTURE_REGISTER_FILE;
+		  $$.nr = BRW_ARF_MASK_STACK;
+		  $$.subnr = $1;
 		}
 ;
 
@@ -2168,14 +2168,14 @@ notifyreg:	NOTIFYREG regtype
 		    YYERROR;
 		  }
 		  memset (&$$, '\0', sizeof ($$));
-		  $$.reg_file = BRW_ARCHITECTURE_REGISTER_FILE;
+		  $$.file = BRW_ARCHITECTURE_REGISTER_FILE;
 
                   if (IS_GENp(6)) {
-		    $$.reg_nr = BRW_ARF_NOTIFICATION_COUNT;
-                    $$.subreg_nr = $1;
+		    $$.nr = BRW_ARF_NOTIFICATION_COUNT;
+                    $$.subnr = $1;
                   } else {
-		    $$.reg_nr = BRW_ARF_NOTIFICATION_COUNT | $1;
-                    $$.subreg_nr = 0;
+		    $$.nr = BRW_ARF_NOTIFICATION_COUNT | $1;
+                    $$.subnr = 0;
                   }
 		}
 /*
@@ -2208,9 +2208,9 @@ statereg:	STATEREG subregnum
 		    YYERROR;
 		  }
 		  memset (&$$, '\0', sizeof ($$));
-		  $$.reg_file = BRW_ARCHITECTURE_REGISTER_FILE;
-		  $$.reg_nr = BRW_ARF_STATE | $1;
-		  $$.subreg_nr = $2;
+		  $$.file = BRW_ARCHITECTURE_REGISTER_FILE;
+		  $$.nr = BRW_ARF_STATE | $1;
+		  $$.subnr = $2;
 		}
 ;
 
@@ -2227,27 +2227,27 @@ controlreg:	CONTROLREG subregnum
 		    YYERROR;
 		  }
 		  memset (&$$, '\0', sizeof ($$));
-		  $$.reg_file = BRW_ARCHITECTURE_REGISTER_FILE;
-		  $$.reg_nr = BRW_ARF_CONTROL | $1;
-		  $$.subreg_nr = $2;
+		  $$.file = BRW_ARCHITECTURE_REGISTER_FILE;
+		  $$.nr = BRW_ARF_CONTROL | $1;
+		  $$.subnr = $2;
 		}
 ;
 
 ipreg:		IPREG regtype
 		{
 		  memset (&$$, '\0', sizeof ($$));
-		  $$.reg_file = BRW_ARCHITECTURE_REGISTER_FILE;
-		  $$.reg_nr = BRW_ARF_IP;
-		  $$.subreg_nr = 0;
+		  $$.file = BRW_ARCHITECTURE_REGISTER_FILE;
+		  $$.nr = BRW_ARF_IP;
+		  $$.subnr = 0;
 		}
 ;
 
 nullreg:	NULL_TOKEN
 		{
 		  memset (&$$, '\0', sizeof ($$));
-		  $$.reg_file = BRW_ARCHITECTURE_REGISTER_FILE;
-		  $$.reg_nr = BRW_ARF_NULL;
-		  $$.subreg_nr = 0;
+		  $$.file = BRW_ARCHITECTURE_REGISTER_FILE;
+		  $$.nr = BRW_ARF_NULL;
+		  $$.subnr = 0;
 		}
 ;
 
@@ -2504,8 +2504,8 @@ predicate:	/* empty */
 		   * set a predicate for one flag register and conditional
 		   * modification on the other flag register.
 		   */
-		  $$.bits2.da1.flag_reg_nr = ($3.reg_nr & 0xF);
-		  $$.bits2.da1.flag_subreg_nr = $3.subreg_nr;
+		  $$.bits2.da1.flag_reg_nr = ($3.nr & 0xF);
+		  $$.bits2.da1.flag_subreg_nr = $3.subnr;
 		  $$.header.predicate_inverse = $2;
 		}
 ;
@@ -2570,8 +2570,8 @@ conditionalmodifier: condition
 		| condition DOT flagreg
 		{
 		    $$.cond = $1;
-		    $$.flag_reg_nr = ($3.reg_nr & 0xF);
-		    $$.flag_subreg_nr = $3.subreg_nr;
+		    $$.flag_reg_nr = ($3.nr & 0xF);
+		    $$.flag_subreg_nr = $3.subnr;
 		}
 
 condition: /* empty */    { $$ = BRW_CONDITIONAL_NONE; }
@@ -3146,28 +3146,28 @@ void set_instruction_predicate(struct brw_instruction *instr,
 	instr->bits2.da1.flag_subreg_nr = predicate->bits2.da1.flag_subreg_nr;
 }
 
-void set_direct_dst_operand(struct dst_operand *dst, struct direct_reg *reg,
+void set_direct_dst_operand(struct dst_operand *dst, struct brw_reg *reg,
 			    int type)
 {
 	memset(dst, 0, sizeof(*dst));
 	dst->address_mode = BRW_ADDRESS_DIRECT;
-	dst->reg_file = reg->reg_file;
-	dst->reg_nr = reg->reg_nr;
-	dst->subreg_nr = reg->subreg_nr;
+	dst->reg_file = reg->file;
+	dst->reg_nr = reg->nr;
+	dst->subreg_nr = reg->subnr;
 	dst->reg_type = type;
 	dst->horiz_stride = 1;
 	dst->writemask = BRW_WRITEMASK_XYZW;
 }
 
-void set_direct_src_operand(struct src_operand *src, struct direct_reg *reg,
+void set_direct_src_operand(struct src_operand *src, struct brw_reg *reg,
 			    int type)
 {
 	memset(src, 0, sizeof(*src));
 	src->address_mode = BRW_ADDRESS_DIRECT;
-	src->reg_file = reg->reg_file;
+	src->reg_file = reg->file;
 	src->reg_type = type;
-	src->subreg_nr = reg->subreg_nr;
-	src->reg_nr = reg->reg_nr;
+	src->subreg_nr = reg->subnr;
+	src->reg_nr = reg->nr;
 	src->vert_stride = 0;
 	src->width = 0;
 	src->horiz_stride = 0;

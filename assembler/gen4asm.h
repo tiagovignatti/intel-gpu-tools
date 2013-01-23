@@ -66,14 +66,6 @@ typedef struct { \
 /* ensure nobody changes the size of struct brw_instruction */
 STRUCT_SIZE_ASSERT(brw_instruction, 16);
 
-/**
- * This structure is the internal representation of directly-addressed
- * registers in the parser.
- */
-struct direct_reg {
-	int reg_file, reg_nr, subreg_nr;
-};
-
 struct condition {
     	int cond;
 	int flag_reg_nr;
