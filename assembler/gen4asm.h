@@ -80,14 +80,6 @@ struct regtype {
     int type;
     int is_default;
 };
-/**
- * This structure is the internal representation of register-indirect addressed
- * registers in the parser.
- */
-
-struct indirect_reg {
-	int reg_file, address_subreg_nr, indirect_offset;
-};
 
 /**
  * This structure is the internal representation of destination operands in the

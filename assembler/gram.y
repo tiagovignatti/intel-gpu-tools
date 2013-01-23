@@ -159,7 +159,7 @@ static void brw_program_add_label(struct brw_program *p, const char *label)
 	struct region region;
 	struct regtype regtype;
 	struct brw_reg direct_reg;
-	struct indirect_reg indirect_reg;
+	struct brw_reg indirect_reg;
 	struct condition condition;
 	struct declared_register symbol_reg;
 	imm32_t imm32;
@@ -1705,17 +1705,17 @@ dstreg:		directgenreg
 		{
 		  memset (&$$, '\0', sizeof ($$));
 		  $$.address_mode = BRW_ADDRESS_REGISTER_INDIRECT_REGISTER;
-		  $$.reg_file = $1.reg_file;
-		  $$.subreg_nr = $1.address_subreg_nr;
-		  $$.indirect_offset = $1.indirect_offset;
+		  $$.reg_file = $1.file;
+		  $$.subreg_nr = $1.subnr;
+		  $$.indirect_offset = $1.dw1.bits.indirect_offset;
 		}
 		| indirectmsgreg
 		{
 		  memset (&$$, '\0', sizeof ($$));
 		  $$.address_mode = BRW_ADDRESS_REGISTER_INDIRECT_REGISTER;
-		  $$.reg_file = $1.reg_file;
-		  $$.subreg_nr = $1.address_subreg_nr;
-		  $$.indirect_offset = $1.indirect_offset;
+		  $$.reg_file = $1.file;
+		  $$.subreg_nr = $1.subnr;
+		  $$.indirect_offset = $1.dw1.bits.indirect_offset;
 		}
 ;
 
@@ -1937,9 +1937,9 @@ indirectsrcoperand:
 		{
 		  memset (&$$, '\0', sizeof ($$));
 		  $$.address_mode = BRW_ADDRESS_REGISTER_INDIRECT_REGISTER;
-		  $$.reg_file = $3.reg_file;
-		  $$.subreg_nr = $3.address_subreg_nr;
-		  $$.indirect_offset = $3.indirect_offset;
+		  $$.reg_file = $3.file;
+		  $$.subreg_nr = $3.subnr;
+		  $$.indirect_offset = $3.dw1.bits.indirect_offset;
 		  $$.reg_type = $5.type;
 		  $$.vert_stride = $4.vert_stride;
 		  $$.width = $4.width;
@@ -1966,14 +1966,14 @@ addrparam:	addrreg COMMA immaddroffset
 		    YYERROR;
 		  }
 		  memset (&$$, '\0', sizeof ($$));
-		  $$.address_subreg_nr = $1.subnr;
-		  $$.indirect_offset = $3;
+		  $$.subnr = $1.subnr;
+		  $$.dw1.bits.indirect_offset = $3;
 		}
 		| addrreg 
 		{
 		  memset (&$$, '\0', sizeof ($$));
-		  $$.address_subreg_nr = $1.subnr;
-		  $$.indirect_offset = 0;
+		  $$.subnr = $1.subnr;
+		  $$.dw1.bits.indirect_offset = 0;
 		}
 ;
 
@@ -2009,9 +2009,9 @@ directgenreg:	GENREG subregnum
 indirectgenreg: GENREGFILE LSQUARE addrparam RSQUARE
 		{
 		  memset (&$$, '\0', sizeof ($$));
-		  $$.reg_file = BRW_GENERAL_REGISTER_FILE;
-		  $$.address_subreg_nr = $3.address_subreg_nr;
-		  $$.indirect_offset = $3.indirect_offset;
+		  $$.file = BRW_GENERAL_REGISTER_FILE;
+		  $$.subnr = $3.subnr;
+		  $$.dw1.bits.indirect_offset = $3.dw1.bits.indirect_offset;
 		}
 ;
 
@@ -2027,9 +2027,9 @@ directmsgreg:	MSGREG subregnum
 indirectmsgreg: MSGREGFILE LSQUARE addrparam RSQUARE
 		{
 		  memset (&$$, '\0', sizeof ($$));
-		  $$.reg_file = BRW_MESSAGE_REGISTER_FILE;
-		  $$.address_subreg_nr = $3.address_subreg_nr;
-		  $$.indirect_offset = $3.indirect_offset;
+		  $$.file = BRW_MESSAGE_REGISTER_FILE;
+		  $$.subnr = $3.subnr;
+		  $$.dw1.bits.indirect_offset = $3.dw1.bits.indirect_offset;
 		}
 ;
 
@@ -2315,9 +2315,9 @@ relativelocation2:
 		{
 		  memset (&$$, '\0', sizeof ($$));
 		  $$.address_mode = BRW_ADDRESS_REGISTER_INDIRECT_REGISTER;
-		  $$.reg_file = $1.reg_file;
-		  $$.subreg_nr = $1.address_subreg_nr;
-		  $$.indirect_offset = $1.indirect_offset;
+		  $$.reg_file = $1.file;
+		  $$.subreg_nr = $1.subnr;
+		  $$.indirect_offset = $1.dw1.bits.indirect_offset;
 		  $$.reg_type = $3.type;
 		  $$.vert_stride = $2.vert_stride;
 		  $$.width = $2.width;
