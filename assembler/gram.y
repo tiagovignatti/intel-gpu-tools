@@ -47,19 +47,19 @@ static struct src_operand src_null_reg =
     .reg_nr = BRW_ARF_NULL,
     .reg_type = BRW_REGISTER_TYPE_UD,
 };
-static struct dst_operand dst_null_reg =
+static struct brw_reg dst_null_reg =
 {
-    .reg_file = BRW_ARCHITECTURE_REGISTER_FILE,
-    .reg_nr = BRW_ARF_NULL,
+    .file = BRW_ARCHITECTURE_REGISTER_FILE,
+    .nr = BRW_ARF_NULL,
 };
-static struct dst_operand ip_dst =
+static struct brw_reg ip_dst =
 {
-    .reg_file = BRW_ARCHITECTURE_REGISTER_FILE,
-    .reg_nr = BRW_ARF_IP,
-    .reg_type = BRW_REGISTER_TYPE_UD,
+    .file = BRW_ARCHITECTURE_REGISTER_FILE,
+    .nr = BRW_ARF_IP,
+    .type = BRW_REGISTER_TYPE_UD,
     .address_mode = BRW_ADDRESS_DIRECT,
-    .horiz_stride = 1,
-    .writemask = BRW_WRITEMASK_XYZW,
+    .hstride = 1,
+    .dw1.bits.writemask = BRW_WRITEMASK_XYZW,
 };
 static struct src_operand ip_src =
 {
@@ -75,13 +75,13 @@ static struct src_operand ip_src =
 
 static int get_type_size(GLuint type);
 int set_instruction_dest(struct brw_instruction *instr,
-			 struct dst_operand *dest);
+			 struct brw_reg *dest);
 int set_instruction_src0(struct brw_instruction *instr,
 			 struct src_operand *src);
 int set_instruction_src1(struct brw_instruction *instr,
 			 struct src_operand *src);
 int set_instruction_dest_three_src(struct brw_instruction *instr,
-                                   struct dst_operand *dest);
+                                   struct brw_reg *dest);
 int set_instruction_src0_three_src(struct brw_instruction *instr,
                                    struct src_operand *src);
 int set_instruction_src1_three_src(struct brw_instruction *instr,
@@ -92,7 +92,7 @@ void set_instruction_options(struct brw_instruction *instr,
 			     struct brw_instruction *options);
 void set_instruction_predicate(struct brw_instruction *instr,
 			       struct brw_instruction *predicate);
-void set_direct_dst_operand(struct dst_operand *dst, struct brw_reg *reg,
+void set_direct_dst_operand(struct brw_reg *dst, struct brw_reg *reg,
 			    int type);
 void set_direct_src_operand(struct src_operand *src, struct brw_reg *reg,
 			    int type);
@@ -145,6 +145,21 @@ static void brw_program_add_label(struct brw_program *p, const char *label)
     brw_program_append_entry(p, list_entry);
 }
 
+static int resolve_dst_region(struct declared_register *reference, int region)
+{
+    int resolved = region;
+
+    if (resolved == DEFAULT_DSTREGION) {
+	if (reference)
+	    resolved = reference->dst_region;
+        else
+            resolved = 1;
+    }
+
+    assert(resolved == 1 || resolved == 2 || resolved == 3);
+    return resolved;
+}
+
 %}
 
 %start ROOT
@@ -163,7 +178,6 @@ static void brw_program_add_label(struct brw_program *p, const char *label)
 	struct declared_register symbol_reg;
 	imm32_t imm32;
 
-	struct dst_operand dst_operand;
 	struct src_operand src_operand;
 }
 
@@ -273,8 +287,8 @@ static void brw_program_add_label(struct brw_program *p, const char *label)
 /* %type <intger> maskstackdepth_subreg */
 %type <symbol_reg> symbol_reg symbol_reg_p;
 %type <imm32> imm32
-%type <dst_operand> dst dstoperand dstoperandex dstreg post_dst writemask
-%type <dst_operand> declare_base
+%type <reg> dst dstoperand dstoperandex dstreg post_dst writemask
+%type <reg> declare_base
 %type <src_operand> directsrcoperand srcarchoperandex directsrcaccoperand
 %type <src_operand> indirectsrcoperand
 %type <src_operand> src srcimm imm32reg payload srcacc srcaccimm swizzle
@@ -352,9 +366,7 @@ declare_pragma:	DECLARE_PRAGMA STRING declare_base declare_elementsize declare_s
 			reg = calloc(sizeof(struct declared_register), 1);
 			reg->name = $2;
 		    }
-		    reg->reg.file = $3.reg_file;
-		    reg->reg.nr = $3.reg_nr;
-		    reg->reg.subnr = $3.subreg_nr;
+		    reg->reg = $3;
 		    reg->element_size = $4;
 		    reg->src_region = $5;
 		    reg->dst_region = $6;
@@ -666,7 +678,7 @@ subroutineinstruction:
 		  $$.gen.header.opcode = $2;
 		  $$.gen.header.execution_size = 1; /* execution size must be 2. Here 1 is encoded 2. */
 
-		  $4.reg_type = BRW_REGISTER_TYPE_D; /* dest type should be DWORD */
+		  $4.type = BRW_REGISTER_TYPE_D; /* dest type should be DWORD */
 		  set_instruction_dest(&$$.gen, &$4);
 
 		  struct src_operand src0;
@@ -1167,7 +1179,7 @@ maskpushop:	MSAVE | PUSH
 
 syncinstruction: predicate WAIT notifyreg
 		{
-		  struct dst_operand notify_dst;
+		  struct brw_reg notify_dst;
 		  struct src_operand notify_src;
 
 		  memset(&$$, 0, sizeof($$));
@@ -1546,32 +1558,19 @@ dst:		dstoperand | dstoperandex
 
 dstoperand:	symbol_reg dstregion
 		{
-		  memset (&$$, '\0', sizeof ($$));
-		  $$.reg_file = $1.reg.file;
-		  $$.reg_nr = $1.reg.nr;
-		  $$.subreg_nr = $1.reg.subnr;
-		  if ($2 == DEFAULT_DSTREGION) {
-		      $$.horiz_stride = $1.dst_region;
-		  } else {
-		      $$.horiz_stride = $2;
-		  }
-		  $$.reg_type = $1.type;
+		  $$ = $1.reg;
+	          $$.hstride = resolve_dst_region(&$1, $2);
+		  $$.type = $1.type;
 		}
 		| dstreg dstregion writemask regtype
 		{
 		  /* Returns an instruction with just the destination register
 		   * filled in.
 		   */
-		  memset (&$$, '\0', sizeof ($$));
-		  $$.reg_file = $1.reg_file;
-		  $$.reg_nr = $1.reg_nr;
-		  $$.subreg_nr = $1.subreg_nr;
-		  $$.address_mode = $1.address_mode;
-		  $$.subreg_nr = $1.subreg_nr;
-		  $$.indirect_offset = $1.indirect_offset;
-		  $$.horiz_stride = $2;
-		  $$.writemask = $3.writemask;
-		  $$.reg_type = $4.type;
+		  $$ = $1;
+	          $$.hstride = resolve_dst_region(NULL, $2);
+		  $$.dw1.bits.writemask = $3.dw1.bits.writemask;
+		  $$.type = $4.type;
 		}
 ;
 
@@ -1580,48 +1579,33 @@ dstoperand:	symbol_reg dstregion
  */
 dstoperandex:	dstoperandex_typed dstregion regtype
 		{
-		  memset (&$$, '\0', sizeof ($$));
-		  $$.reg_file = $1.file;
-		  $$.reg_nr = $1.nr;
-		  $$.subreg_nr = $1.subnr;
-		  $$.horiz_stride = $2;
-		  $$.reg_type = $3.type;
+		  $$ = $1;
+	          $$.hstride = resolve_dst_region(NULL, $2);
+		  $$.type = $3.type;
 		}
 		| maskstackreg
 		{
-		  memset (&$$, '\0', sizeof ($$));
-		  $$.reg_file = $1.file;
-		  $$.reg_nr = $1.nr;
-		  $$.subreg_nr = $1.subnr;
-		  $$.horiz_stride = 1;
-		  $$.reg_type = BRW_REGISTER_TYPE_UW;
+		  $$ = $1;
+		  $$.hstride = 1;
+		  $$.type = BRW_REGISTER_TYPE_UW;
 		}
 		| controlreg
 		{
-		  memset (&$$, '\0', sizeof ($$));
-		  $$.reg_file = $1.file;
-		  $$.reg_nr = $1.nr;
-		  $$.subreg_nr = $1.subnr;
-		  $$.horiz_stride = 1;
-		  $$.reg_type = BRW_REGISTER_TYPE_UD;
+		  $$ = $1;
+		  $$.hstride = 1;
+		  $$.type = BRW_REGISTER_TYPE_UD;
 		}
 		| ipreg
 		{
-		  memset (&$$, '\0', sizeof ($$));
-		  $$.reg_file = $1.file;
-		  $$.reg_nr = $1.nr;
-		  $$.subreg_nr = $1.subnr;
-		  $$.horiz_stride = 1;
-		  $$.reg_type = BRW_REGISTER_TYPE_UD;
+		  $$ = $1;
+		  $$.hstride = 1;
+		  $$.type = BRW_REGISTER_TYPE_UD;
 		}
 		| nullreg dstregion regtype
 		{
-		  memset (&$$, '\0', sizeof ($$));
-		  $$.reg_file = $1.file;
-		  $$.reg_nr = $1.nr;
-		  $$.subreg_nr = $1.subnr;
-		  $$.horiz_stride = $2;
-		  $$.reg_type = $3.type;
+		  $$ = $1;
+	          $$.hstride = resolve_dst_region(NULL, $2);
+		  $$.type = $3.type;
 		}
 ;
 
@@ -1686,35 +1670,23 @@ symbol_reg_p: STRING LPAREN exp RPAREN
  */
 dstreg:		directgenreg
 		{
-		  memset (&$$, '\0', sizeof ($$));
+		  $$ = $1;
 		  $$.address_mode = BRW_ADDRESS_DIRECT;
-		  $$.reg_file = $1.file;
-		  $$.reg_nr = $1.nr;
-		  $$.subreg_nr = $1.subnr;
 		}
 		| directmsgreg
 		{
-		  memset (&$$, '\0', sizeof ($$));
+		  $$ = $1;
 		  $$.address_mode = BRW_ADDRESS_DIRECT;
-		  $$.reg_file = $1.file;
-		  $$.reg_nr = $1.nr;
-		  $$.subreg_nr = $1.subnr;
 		}
 		| indirectgenreg
 		{
-		  memset (&$$, '\0', sizeof ($$));
+		  $$ = $1;
 		  $$.address_mode = BRW_ADDRESS_REGISTER_INDIRECT_REGISTER;
-		  $$.reg_file = $1.file;
-		  $$.subreg_nr = $1.subnr;
-		  $$.indirect_offset = $1.dw1.bits.indirect_offset;
 		}
 		| indirectmsgreg
 		{
-		  memset (&$$, '\0', sizeof ($$));
+		  $$ = $1;
 		  $$.address_mode = BRW_ADDRESS_REGISTER_INDIRECT_REGISTER;
-		  $$.reg_file = $1.file;
-		  $$.subreg_nr = $1.subnr;
-		  $$.indirect_offset = $1.dw1.bits.indirect_offset;
 		}
 ;
 
@@ -2454,16 +2426,16 @@ chansel:	X | Y | Z | W
 ;
 
 /* 1.4.9: Write mask */
-/* Returns a partially completed dst_operand, with just the writemask bits
+/* Returns a partially completed struct brw_reg, with just the writemask bits
  * filled out.
  */
 writemask:	/* empty */
 		{
-		  $$.writemask = BRW_WRITEMASK_XYZW;
+		  $$.dw1.bits.writemask = BRW_WRITEMASK_XYZW;
 		}
 		| DOT writemask_x writemask_y writemask_z writemask_w
 		{
-		  $$.writemask = $2 | $3 | $4 | $5;
+		  $$.dw1.bits.writemask = $2 | $3 | $4 | $5;
 		}
 ;
 
@@ -2850,52 +2822,50 @@ static void reset_instruction_src_region(struct brw_instruction *instr,
  * Fills in the destination register information in instr from the bits in dst.
  */
 int set_instruction_dest(struct brw_instruction *instr,
-			 struct dst_operand *dest)
+			 struct brw_reg *dest)
 {
-	if (dest->horiz_stride == DEFAULT_DSTREGION)
-		dest->horiz_stride = ffs(1);
 	if (dest->address_mode == BRW_ADDRESS_DIRECT &&
 	    instr->header.access_mode == BRW_ALIGN_1) {
-		instr->bits1.da1.dest_reg_file = dest->reg_file;
-		instr->bits1.da1.dest_reg_type = dest->reg_type;
-		instr->bits1.da1.dest_subreg_nr = get_subreg_address(dest->reg_file, dest->reg_type, dest->subreg_nr, dest->address_mode);
-		instr->bits1.da1.dest_reg_nr = dest->reg_nr;
-		instr->bits1.da1.dest_horiz_stride = dest->horiz_stride;
+		instr->bits1.da1.dest_reg_file = dest->file;
+		instr->bits1.da1.dest_reg_type = dest->type;
+		instr->bits1.da1.dest_subreg_nr = get_subreg_address(dest->file, dest->type, dest->subnr, dest->address_mode);
+		instr->bits1.da1.dest_reg_nr = dest->nr;
+		instr->bits1.da1.dest_horiz_stride = dest->hstride;
 		instr->bits1.da1.dest_address_mode = dest->address_mode;
-		if (dest->writemask != 0 &&
-		    dest->writemask != BRW_WRITEMASK_XYZW) {
+		if (dest->dw1.bits.writemask != 0 &&
+		    dest->dw1.bits.writemask != BRW_WRITEMASK_XYZW) {
 			fprintf(stderr, "error: write mask set in align1 "
 				"instruction\n");
 			return 1;
 		}
 	} else if (dest->address_mode == BRW_ADDRESS_DIRECT) {
-		instr->bits1.da16.dest_reg_file = dest->reg_file;
-		instr->bits1.da16.dest_reg_type = dest->reg_type;
-		instr->bits1.da16.dest_subreg_nr = get_subreg_address(dest->reg_file, dest->reg_type, dest->subreg_nr, dest->address_mode);
-		instr->bits1.da16.dest_reg_nr = dest->reg_nr;
+		instr->bits1.da16.dest_reg_file = dest->file;
+		instr->bits1.da16.dest_reg_type = dest->type;
+		instr->bits1.da16.dest_subreg_nr = get_subreg_address(dest->file, dest->type, dest->subnr, dest->address_mode);
+		instr->bits1.da16.dest_reg_nr = dest->nr;
 		instr->bits1.da16.dest_address_mode = dest->address_mode;
 		instr->bits1.da16.dest_horiz_stride = ffs(1);
-		instr->bits1.da16.dest_writemask = dest->writemask;
+		instr->bits1.da16.dest_writemask = dest->dw1.bits.writemask;
 	} else if (instr->header.access_mode == BRW_ALIGN_1) {
-		instr->bits1.ia1.dest_reg_file = dest->reg_file;
-		instr->bits1.ia1.dest_reg_type = dest->reg_type;
-		instr->bits1.ia1.dest_subreg_nr = dest->subreg_nr;
-		instr->bits1.ia1.dest_horiz_stride = dest->horiz_stride;
-		instr->bits1.ia1.dest_indirect_offset = dest->indirect_offset;
+		instr->bits1.ia1.dest_reg_file = dest->file;
+		instr->bits1.ia1.dest_reg_type = dest->type;
+		instr->bits1.ia1.dest_subreg_nr = dest->subnr;
+		instr->bits1.ia1.dest_horiz_stride = dest->hstride;
+		instr->bits1.ia1.dest_indirect_offset = dest->dw1.bits.indirect_offset;
 		instr->bits1.ia1.dest_address_mode = dest->address_mode;
-		if (dest->writemask != 0 &&
-		    dest->writemask != BRW_WRITEMASK_XYZW) {
+		if (dest->dw1.bits.writemask != 0 &&
+		    dest->dw1.bits.writemask != BRW_WRITEMASK_XYZW) {
 			fprintf(stderr, "error: write mask set in align1 "
 				"instruction\n");
 			return 1;
 		}
 	} else {
-		instr->bits1.ia16.dest_reg_file = dest->reg_file;
-		instr->bits1.ia16.dest_reg_type = dest->reg_type;
-		instr->bits1.ia16.dest_subreg_nr = get_indirect_subreg_address(dest->subreg_nr);
-		instr->bits1.ia16.dest_writemask = dest->writemask;
+		instr->bits1.ia16.dest_reg_file = dest->file;
+		instr->bits1.ia16.dest_reg_type = dest->type;
+		instr->bits1.ia16.dest_subreg_nr = get_indirect_subreg_address(dest->subnr);
+		instr->bits1.ia16.dest_writemask = dest->dw1.bits.writemask;
 		instr->bits1.ia16.dest_horiz_stride = ffs(1);
-		instr->bits1.ia16.dest_indirect_offset = (dest->indirect_offset >> 4); /* half register aligned */
+		instr->bits1.ia16.dest_indirect_offset = (dest->dw1.bits.indirect_offset >> 4); /* half register aligned */
 		instr->bits1.ia16.dest_address_mode = dest->address_mode;
 	}
 
@@ -3076,13 +3046,13 @@ static int reg_type_2_to_3(int reg_type)
 }
 
 int set_instruction_dest_three_src(struct brw_instruction *instr,
-                                   struct dst_operand *dest)
+                                   struct brw_reg *dest)
 {
-	instr->bits1.da3src.dest_reg_file = dest->reg_file;
-	instr->bits1.da3src.dest_reg_nr = dest->reg_nr;
-	instr->bits1.da3src.dest_subreg_nr = get_subreg_address(dest->reg_file, dest->reg_type, dest->subreg_nr, dest->address_mode) / 4; // in DWORD
-	instr->bits1.da3src.dest_writemask = dest->writemask;
-	instr->bits1.da3src.dest_reg_type = reg_type_2_to_3(dest->reg_type);
+	instr->bits1.da3src.dest_reg_file = dest->file;
+	instr->bits1.da3src.dest_reg_nr = dest->nr;
+	instr->bits1.da3src.dest_subreg_nr = get_subreg_address(dest->file, dest->type, dest->subnr, dest->address_mode) / 4; // in DWORD
+	instr->bits1.da3src.dest_writemask = dest->dw1.bits.writemask;
+	instr->bits1.da3src.dest_reg_type = reg_type_2_to_3(dest->type);
 	return 0;
 }
 
@@ -3145,17 +3115,14 @@ void set_instruction_predicate(struct brw_instruction *instr,
 	instr->bits2.da1.flag_subreg_nr = predicate->bits2.da1.flag_subreg_nr;
 }
 
-void set_direct_dst_operand(struct dst_operand *dst, struct brw_reg *reg,
+void set_direct_dst_operand(struct brw_reg *dst, struct brw_reg *reg,
 			    int type)
 {
-	memset(dst, 0, sizeof(*dst));
+	*dst = *reg;
 	dst->address_mode = BRW_ADDRESS_DIRECT;
-	dst->reg_file = reg->file;
-	dst->reg_nr = reg->nr;
-	dst->subreg_nr = reg->subnr;
-	dst->reg_type = type;
-	dst->horiz_stride = 1;
-	dst->writemask = BRW_WRITEMASK_XYZW;
+	dst->type = type;
+	dst->hstride = 1;
+	dst->dw1.bits.writemask = BRW_WRITEMASK_XYZW;
 }
 
 void set_direct_src_operand(struct src_operand *src, struct brw_reg *reg,
