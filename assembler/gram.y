@@ -32,8 +32,7 @@
 #include <stdbool.h>
 #include <assert.h>
 #include "gen4asm.h"
-#include "brw_defines.h"
-#include "brw_reg.h"
+#include "brw_eu.h"
 
 #define DEFAULT_EXECSIZE (ffs(program_defaults.execute_size) - 1)
 #define DEFAULT_DSTREGION -1
@@ -174,6 +173,52 @@ static bool validate_dst_reg(struct brw_instruction *insn, struct brw_reg *reg)
 
     return true;
 }
+
+static int get_subreg_address(GLuint regfile, GLuint type, GLuint subreg, GLuint address_mode)
+{
+    int unit_size = 1;
+
+    assert(address_mode == BRW_ADDRESS_DIRECT);
+    assert(regfile != BRW_IMMEDIATE_VALUE);
+
+    if (advanced_flag)
+	unit_size = get_type_size(type);
+
+    return subreg * unit_size;
+}
+
+/* only used in indirect address mode.
+ * input: sub-register number of an address register
+ * output: the value of AddrSubRegNum in the instruction binary code
+ *
+ * input  output(advanced_flag==0)  output(advanced_flag==1)
+ *  a0.0             0                         0
+ *  a0.1        invalid input                  1
+ *  a0.2             1                         2
+ *  a0.3        invalid input                  3
+ *  a0.4             2                         4
+ *  a0.5        invalid input                  5
+ *  a0.6             3                         6
+ *  a0.7        invalid input                  7
+ *  a0.8             4                  invalid input
+ *  a0.10            5                  invalid input
+ *  a0.12            6                  invalid input
+ *  a0.14            7                  invalid input
+ */
+static int get_indirect_subreg_address(GLuint subreg)
+{
+    return advanced_flag == 0 ? subreg / 2 : subreg;
+}
+
+static void resolve_subnr(struct brw_reg *reg)
+{
+   if (reg->address_mode == BRW_ADDRESS_DIRECT)
+	reg->subnr = get_subreg_address(reg->file, reg->type, reg->subnr,
+					reg->address_mode);
+   else
+        reg->subnr = get_indirect_subreg_address(reg->subnr);
+}
+
 
 %}
 
@@ -522,8 +567,8 @@ ifelseinstruction: ENDIF
 
 		    memset(&$$, 0, sizeof($$));
 		    $$.gen.header.opcode = $1;
-		    $$.gen.header.execution_size = $2;
 		    $$.gen.header.thread_control |= BRW_THREAD_SWITCH;
+		    ip_dst.width = $2;
 		    set_instruction_dest(&$$.gen, &ip_dst);
 		    set_instruction_src0(&$$.gen, &ip_src);
 		    set_instruction_src1(&$$.gen, &$3);
@@ -557,9 +602,9 @@ ifelseinstruction: ENDIF
 		  memset(&$$, 0, sizeof($$));
 		  set_instruction_predicate(&$$.gen, &$1);
 		  $$.gen.header.opcode = $2;
-		  $$.gen.header.execution_size = $3;
 		  if(!IS_GENp(6)) {
 		    $$.gen.header.thread_control |= BRW_THREAD_SWITCH;
+		    ip_dst.width = $3;
 		    set_instruction_dest(&$$.gen, &ip_dst);
 		    set_instruction_src0(&$$.gen, &ip_src);
 		    set_instruction_src1(&$$.gen, &$4);
@@ -593,11 +638,11 @@ loopinstruction: predicate WHILE execsize relativelocation instoptions
 		     * offset is the second source operand.  The offset is added
 		     * to the pre-incremented IP.
 		     */
+		    ip_dst.width = $3;
 		    set_instruction_dest(&$$.gen, &ip_dst);
 		    memset(&$$, 0, sizeof($$));
 		    set_instruction_predicate(&$$.gen, &$1);
 		    $$.gen.header.opcode = $2;
-		    $$.gen.header.execution_size = $3;
 		    $$.gen.header.thread_control |= BRW_THREAD_SWITCH;
 		    set_instruction_src0(&$$.gen, &ip_src);
 		    set_instruction_src1(&$$.gen, &$4);
@@ -632,11 +677,11 @@ haltinstruction: predicate HALT execsize relativelocation relativelocation insto
 		  memset(&$$, 0, sizeof($$));
 		  set_instruction_predicate(&$$.gen, &$1);
 		  $$.gen.header.opcode = $2;
-		  $$.gen.header.execution_size = $3;
 		  $$.first_reloc_target = $4.reloc_target;
 		  $$.first_reloc_offset = $4.imm32;
 		  $$.second_reloc_target = $5.reloc_target;
 		  $$.second_reloc_offset = $5.imm32;
+		  dst_null_reg.width = $3;
 		  set_instruction_dest(&$$.gen, &dst_null_reg);
 		  set_instruction_src0(&$$.gen, &src_null_reg);
 		};
@@ -648,10 +693,10 @@ multibranchinstruction:
 		  memset(&$$, 0, sizeof($$));
 		  set_instruction_predicate(&$$.gen, &$1);
 		  $$.gen.header.opcode = $2;
-		  $$.gen.header.execution_size = $3;
 		  $$.gen.header.thread_control |= BRW_THREAD_SWITCH;
 		  $$.first_reloc_target = $4.reloc_target;
 		  $$.first_reloc_offset = $4.imm32;
+		  dst_null_reg.width = $3;
 		  set_instruction_dest(&$$.gen, &dst_null_reg);
 		}
 		| predicate BRC execsize relativelocation relativelocation instoptions
@@ -660,12 +705,12 @@ multibranchinstruction:
 		  memset(&$$, 0, sizeof($$));
 		  set_instruction_predicate(&$$.gen, &$1);
 		  $$.gen.header.opcode = $2;
-		  $$.gen.header.execution_size = $3;
 		  $$.gen.header.thread_control |= BRW_THREAD_SWITCH;
 		  $$.first_reloc_target = $4.reloc_target;
 		  $$.first_reloc_offset = $4.imm32;
 		  $$.second_reloc_target = $5.reloc_target;
 		  $$.second_reloc_offset = $5.imm32;
+		  dst_null_reg.width = $3;
 		  set_instruction_dest(&$$.gen, &dst_null_reg);
 		  set_instruction_src0(&$$.gen, &src_null_reg);
 		}
@@ -691,9 +736,9 @@ subroutineinstruction:
 		  memset(&$$, 0, sizeof($$));
 		  set_instruction_predicate(&$$.gen, &$1);
 		  $$.gen.header.opcode = $2;
-		  $$.gen.header.execution_size = 1; /* execution size must be 2. Here 1 is encoded 2. */
 
 		  $4.type = BRW_REGISTER_TYPE_D; /* dest type should be DWORD */
+		  $4.width = 1; /* execution size must be 2. Here 1 is encoded 2. */
 		  set_instruction_dest(&$$.gen, &$4);
 
 		  struct src_operand src0;
@@ -719,7 +764,7 @@ subroutineinstruction:
 		  memset(&$$, 0, sizeof($$));
 		  set_instruction_predicate(&$$.gen, &$1);
 		  $$.gen.header.opcode = $2;
-		  $$.gen.header.execution_size = 1; /* execution size of RET should be 2 */
+		  dst_null_reg.width = 1; /* execution size of RET should be 2 */
 		  set_instruction_dest(&$$.gen, &dst_null_reg);
 		  $5.reg.type = BRW_REGISTER_TYPE_D;
 		  $5.reg.hstride = 1; /*encoded 1*/
@@ -737,7 +782,7 @@ unaryinstruction:
 		  $$.header.opcode = $2;
 		  $$.header.destreg__conditionalmod = $3.cond;
 		  $$.header.saturate = $4;
-		  $$.header.execution_size = $5;
+		  $6.width = $5;
 		  set_instruction_options(&$$, &$8);
 		  set_instruction_predicate(&$$, &$1);
 		  if (set_instruction_dest(&$$, &$6) != 0)
@@ -756,7 +801,7 @@ unaryinstruction:
 		  }
 
 		  if (!IS_GENp(6) && 
-				get_type_size($$.bits1.da1.dest_reg_type) * (1 << $$.header.execution_size) == 64)
+				get_type_size($$.bits1.da1.dest_reg_type) * (1 << $6.width) == 64)
 		    $$.header.compression_control = BRW_COMPRESSION_COMPRESSED;
 		}
 ;
@@ -774,9 +819,9 @@ binaryinstruction:
 		  $$.header.opcode = $2;
 		  $$.header.destreg__conditionalmod = $3.cond;
 		  $$.header.saturate = $4;
-		  $$.header.execution_size = $5;
 		  set_instruction_options(&$$, &$9);
 		  set_instruction_predicate(&$$, &$1);
+		  $6.width = $5;
 		  if (set_instruction_dest(&$$, &$6) != 0)
 		    YYERROR;
 		  if (set_instruction_src0(&$$, &$7) != 0)
@@ -795,7 +840,7 @@ binaryinstruction:
 		  }
 
 		  if (!IS_GENp(6) && 
-				get_type_size($$.bits1.da1.dest_reg_type) * (1 << $$.header.execution_size) == 64)
+				get_type_size($$.bits1.da1.dest_reg_type) * (1 << $6.width) == 64)
 		    $$.header.compression_control = BRW_COMPRESSION_COMPRESSED;
 		}
 ;
@@ -813,7 +858,7 @@ binaryaccinstruction:
 		  $$.header.opcode = $2;
 		  $$.header.destreg__conditionalmod = $3.cond;
 		  $$.header.saturate = $4;
-		  $$.header.execution_size = $5;
+		  $6.width = $5;
 		  set_instruction_options(&$$, &$9);
 		  set_instruction_predicate(&$$, &$1);
 		  if (set_instruction_dest(&$$, &$6) != 0)
@@ -834,7 +879,7 @@ binaryaccinstruction:
 		  }
 
 		  if (!IS_GENp(6) && 
-				get_type_size($$.bits1.da1.dest_reg_type) * (1 << $$.header.execution_size) == 64)
+				get_type_size($$.bits1.da1.dest_reg_type) * (1 << $6.width) == 64)
 		    $$.header.compression_control = BRW_COMPRESSION_COMPRESSED;
 		}
 ;
@@ -895,7 +940,7 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
 		   */
 		  memset(&$$, 0, sizeof($$));
 		  $$.header.opcode = $2;
-		  $$.header.execution_size = $3;
+		  $5.width = $3;
 		  $$.header.destreg__conditionalmod = $4; /* msg reg index */
 		  set_instruction_predicate(&$$, &$1);
 		  if (set_instruction_dest(&$$, &$5) != 0)
@@ -951,11 +996,11 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
 		{
 		  memset(&$$, 0, sizeof($$));
 		  $$.header.opcode = $2;
-		  $$.header.execution_size = $3;
 		  $$.header.destreg__conditionalmod = $5.nr; /* msg reg index */
 
 		  set_instruction_predicate(&$$, &$1);
 
+		  $4.width = $3;
 		  if (set_instruction_dest(&$$, &$4) != 0)
 		    YYERROR;
 		  if (set_instruction_src0(&$$, &$6) != 0)
@@ -963,6 +1008,7 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
 		  /* XXX is this correct? */
 		  if (set_instruction_src1(&$$, &$7) != 0)
 		    YYERROR;
+
 		  }
 		| predicate SEND execsize dst sendleadreg payload imm32reg instoptions
                 {
@@ -974,10 +1020,10 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
 		  }
 		  memset(&$$, 0, sizeof($$));
 		  $$.header.opcode = $2;
-		  $$.header.execution_size = $3;
 		  $$.header.destreg__conditionalmod = $5.nr; /* msg reg index */
 
 		  set_instruction_predicate(&$$, &$1);
+		  $4.width = $3;
 		  if (set_instruction_dest(&$$, &$4) != 0)
 		    YYERROR;
 		  if (set_instruction_src0(&$$, &$6) != 0)
@@ -1004,10 +1050,10 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
 
 		  memset(&$$, 0, sizeof($$));
 		  $$.header.opcode = $2;
-		  $$.header.execution_size = $3;
                   $$.header.destreg__conditionalmod = ($6 & EX_DESC_SFID_MASK); /* SFID */
 		  set_instruction_predicate(&$$, &$1);
 
+		  $4.width = $3;
 		  if (set_instruction_dest(&$$, &$4) != 0)
                       YYERROR;
 
@@ -1050,10 +1096,10 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
 
 		  memset(&$$, 0, sizeof($$));
 		  $$.header.opcode = $2;
-		  $$.header.execution_size = $3;
                   $$.header.destreg__conditionalmod = ($6 & EX_DESC_SFID_MASK); /* SFID */
 		  set_instruction_predicate(&$$, &$1);
 
+		  $4.width = $3;
 		  if (set_instruction_dest(&$$, &$4) != 0)
                       YYERROR;
 
@@ -1085,10 +1131,10 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
 		  }
 		  memset(&$$, 0, sizeof($$));
 		  $$.header.opcode = $2;
-		  $$.header.execution_size = $3;
 		  $$.header.destreg__conditionalmod = $5.nr; /* msg reg index */
 
 		  set_instruction_predicate(&$$, &$1);
+		  $4.width = $3;
 		  if (set_instruction_dest(&$$, &$4) != 0)
 		    YYERROR;
 		  if (set_instruction_src0(&$$, &$6) != 0)
@@ -1107,11 +1153,11 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
 		{
 		  memset(&$$, 0, sizeof($$));
 		  $$.header.opcode = $2;
-		  $$.header.execution_size = $3;
 		  $$.header.destreg__conditionalmod = $5.nr; /* msg reg index */
 
 		  set_instruction_predicate(&$$, &$1);
 
+		  $4.width = $3;
 		  if (set_instruction_dest(&$$, &$4) != 0)
 		    YYERROR;
 		  if (set_instruction_src0(&$$, &$6) != 0)
@@ -1141,10 +1187,10 @@ jumpinstruction: predicate JMPI execsize relativelocation2
 		   */
 		  memset(&$$, 0, sizeof($$));
 		  $$.gen.header.opcode = $2;
-		  $$.gen.header.execution_size = ffs(1) - 1;
 		  if(advanced_flag)
 			$$.gen.header.mask_control = BRW_MASK_DISABLE;
 		  set_instruction_predicate(&$$.gen, &$1);
+		  ip_dst.width = ffs(1) - 1;
 		  set_instruction_dest(&$$.gen, &ip_dst);
 		  set_instruction_src0(&$$.gen, &ip_src);
 		  set_instruction_src1(&$$.gen, &$4);
@@ -1158,9 +1204,9 @@ mathinstruction: predicate MATH_INST execsize dst src srcimm math_function insto
 		  memset(&$$, 0, sizeof($$));
 		  $$.header.opcode = $2;
 		  $$.header.destreg__conditionalmod = $7;
-		  $$.header.execution_size = $3;
 		  set_instruction_options(&$$, &$8);
 		  set_instruction_predicate(&$$, &$1);
+		  $4.width = $3;
 		  if (set_instruction_dest(&$$, &$4) != 0)
 		    YYERROR;
 		  if (set_instruction_src0(&$$, &$5) != 0)
@@ -1199,8 +1245,8 @@ syncinstruction: predicate WAIT notifyreg
 
 		  memset(&$$, 0, sizeof($$));
 		  $$.header.opcode = $2;
-		  $$.header.execution_size = ffs(1) - 1;
 		  set_direct_dst_operand(&notify_dst, &$3, BRW_REGISTER_TYPE_D);
+		  notify_dst.width = ffs(1) - 1;
 		  set_instruction_dest(&$$, &notify_dst);
 		  set_direct_src_operand(&notify_src, &$3, BRW_REGISTER_TYPE_D);
 		  set_instruction_src0(&$$, &notify_src);
@@ -2708,42 +2754,6 @@ static int get_type_size(GLuint type)
     return size;
 }
 
-static int get_subreg_address(GLuint regfile, GLuint type, GLuint subreg, GLuint address_mode)
-{
-    int unit_size = 1;
-
-    assert(address_mode == BRW_ADDRESS_DIRECT);
-    assert(regfile != BRW_IMMEDIATE_VALUE);
-
-    if (advanced_flag)
-	unit_size = get_type_size(type);
-
-    return subreg * unit_size;
-}
-
-/* only used in indirect address mode.
- * input: sub-register number of an address register
- * output: the value of AddrSubRegNum in the instruction binary code
- *
- * input  output(advanced_flag==0)  output(advanced_flag==1)
- *  a0.0             0                         0
- *  a0.1        invalid input                  1
- *  a0.2             1                         2
- *  a0.3        invalid input                  3
- *  a0.4             2                         4
- *  a0.5        invalid input                  5
- *  a0.6             3                         6
- *  a0.7        invalid input                  7
- *  a0.8             4                  invalid input
- *  a0.10            5                  invalid input
- *  a0.12            6                  invalid input
- *  a0.14            7                  invalid input
- */
-static int get_indirect_subreg_address(GLuint subreg)
-{
-    return advanced_flag == 0 ? subreg / 2 : subreg;
-}
-
 static void reset_instruction_src_region(struct brw_instruction *instr, 
                                          struct src_operand *src)
 {
@@ -2822,38 +2832,11 @@ int set_instruction_dest(struct brw_instruction *instr,
 	if (!validate_dst_reg(instr, dest))
 		return 1;
 
-	if (dest->address_mode == BRW_ADDRESS_DIRECT &&
-	    instr->header.access_mode == BRW_ALIGN_1) {
-		instr->bits1.da1.dest_reg_file = dest->file;
-		instr->bits1.da1.dest_reg_type = dest->type;
-		instr->bits1.da1.dest_subreg_nr = get_subreg_address(dest->file, dest->type, dest->subnr, dest->address_mode);
-		instr->bits1.da1.dest_reg_nr = dest->nr;
-		instr->bits1.da1.dest_horiz_stride = dest->hstride;
-		instr->bits1.da1.dest_address_mode = dest->address_mode;
-	} else if (dest->address_mode == BRW_ADDRESS_DIRECT) {
-		instr->bits1.da16.dest_reg_file = dest->file;
-		instr->bits1.da16.dest_reg_type = dest->type;
-		instr->bits1.da16.dest_subreg_nr = get_subreg_address(dest->file, dest->type, dest->subnr, dest->address_mode);
-		instr->bits1.da16.dest_reg_nr = dest->nr;
-		instr->bits1.da16.dest_address_mode = dest->address_mode;
-		instr->bits1.da16.dest_horiz_stride = ffs(1);
-		instr->bits1.da16.dest_writemask = dest->dw1.bits.writemask;
-	} else if (instr->header.access_mode == BRW_ALIGN_1) {
-		instr->bits1.ia1.dest_reg_file = dest->file;
-		instr->bits1.ia1.dest_reg_type = dest->type;
-		instr->bits1.ia1.dest_subreg_nr = dest->subnr;
-		instr->bits1.ia1.dest_horiz_stride = dest->hstride;
-		instr->bits1.ia1.dest_indirect_offset = dest->dw1.bits.indirect_offset;
-		instr->bits1.ia1.dest_address_mode = dest->address_mode;
-	} else {
-		instr->bits1.ia16.dest_reg_file = dest->file;
-		instr->bits1.ia16.dest_reg_type = dest->type;
-		instr->bits1.ia16.dest_subreg_nr = get_indirect_subreg_address(dest->subnr);
-		instr->bits1.ia16.dest_writemask = dest->dw1.bits.writemask;
-		instr->bits1.ia16.dest_horiz_stride = ffs(1);
-		instr->bits1.ia16.dest_indirect_offset = (dest->dw1.bits.indirect_offset >> 4); /* half register aligned */
-		instr->bits1.ia16.dest_address_mode = dest->address_mode;
-	}
+	/* the assembler support expressing subnr in bytes or in number of
+	 * elements. */
+	resolve_subnr(dest);
+
+	brw_set_dest(&genasm_compile, instr, *dest);
 
 	return 0;
 }

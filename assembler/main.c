@@ -33,7 +33,9 @@
 #include <unistd.h>
 #include <assert.h>
 
+#include "ralloc.h"
 #include "gen4asm.h"
+#include "brw_eu.h"
 
 extern FILE *yyin;
 
@@ -47,6 +49,9 @@ char *input_filename = "<stdin>";
 char *export_filename = NULL;
 
 const char const *binary_prepend = "static const char gen_eu_bytes[] = {\n";
+
+struct brw_context genasm_brw_context;
+struct brw_compile genasm_compile;
 
 struct brw_program compiled_program;
 struct program_defaults program_defaults = {.register_type = BRW_REGISTER_TYPE_F};
@@ -286,6 +291,8 @@ int main(int argc, char **argv)
 	struct brw_program_instruction *entry, *entry1, *tmp_entry;
 	int err, inst_offset;
 	char o;
+	void *mem_ctx;
+
 	while ((o = getopt_long(argc, argv, "e:l:o:g:ab", longopts, NULL)) != -1) {
 		switch (o) {
 		case 'o':
@@ -357,6 +364,10 @@ int main(int argc, char **argv)
 			exit(1);
 		}
 	}
+
+	brw_init_context(&genasm_brw_context, gen_level);
+	mem_ctx = ralloc_context(NULL);
+	brw_init_compile(&genasm_brw_context, &genasm_compile, mem_ctx);
 
 	err = yyparse();
 

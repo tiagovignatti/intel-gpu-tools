@@ -43,6 +43,9 @@ typedef float GLfloat;
 
 extern long int gen_level;
 
+extern struct brw_context genasm_context;
+extern struct brw_compile genasm_compile;
+
 /* Predicate for Gen X and above */
 #define IS_GENp(x) (gen_level >= (x)*10)
 
