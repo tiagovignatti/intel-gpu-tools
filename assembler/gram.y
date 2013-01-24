@@ -174,6 +174,21 @@ static bool validate_dst_reg(struct brw_instruction *insn, struct brw_reg *reg)
     return true;
 }
 
+static bool validate_src_reg(struct brw_instruction *insn, struct brw_reg reg)
+{
+    if (reg.file == BRW_IMMEDIATE_VALUE)
+	return true;
+
+    if (insn->header.access_mode == BRW_ALIGN_1 &&
+	SWIZZLE(reg) && SWIZZLE(reg) != BRW_SWIZZLE_NOOP)
+    {
+	fprintf(stderr, "error: swizzle bits set in align1 instruction\n");
+	return false;
+    }
+
+    return true;
+}
+
 static int get_subreg_address(GLuint regfile, GLuint type, GLuint subreg, GLuint address_mode)
 {
     int unit_size = 1;
@@ -2845,9 +2860,12 @@ int set_instruction_dest(struct brw_instruction *instr,
 int set_instruction_src0(struct brw_instruction *instr,
 			  struct src_operand *src)
 {
-	if (advanced_flag) {
+	if (advanced_flag)
 		reset_instruction_src_region(instr, src);
-	}
+
+	if (!validate_src_reg(instr, src->reg))
+		return 1;
+
 	instr->bits1.da1.src0_reg_file = src->reg.file;
 	instr->bits1.da1.src0_reg_type = src->reg.type;
 	if (src->reg.file == BRW_IMMEDIATE_VALUE) {
@@ -2862,11 +2880,6 @@ int set_instruction_src0(struct brw_instruction *instr,
 		instr->bits2.da1.src0_negate = src->reg.negate;
 		instr->bits2.da1.src0_abs = src->reg.abs;
 		instr->bits2.da1.src0_address_mode = src->reg.address_mode;
-		if (SWIZZLE(src->reg) && SWIZZLE(src->reg) != BRW_SWIZZLE_NOOP) {
-			fprintf(stderr, "error: swizzle bits set in align1 "
-				"instruction\n");
-			return 1;
-		}
             } else {
 		instr->bits2.da16.src0_subreg_nr = get_subreg_address(src->reg.file, src->reg.type, src->reg.subnr, src->reg.address_mode);
 		instr->bits2.da16.src0_reg_nr = src->reg.nr;
@@ -2889,11 +2902,6 @@ int set_instruction_src0(struct brw_instruction *instr,
 		instr->bits2.ia1.src0_horiz_stride = src->reg.hstride;
 		instr->bits2.ia1.src0_width = src->reg.width;
 		instr->bits2.ia1.src0_vert_stride = src->reg.vstride;
-		if (SWIZZLE(src->reg) && SWIZZLE(src->reg) != BRW_SWIZZLE_NOOP) {
-			fprintf(stderr, "error: swizzle bits set in align1 "
-				"instruction\n");
-			return 1;
-		}
             } else {
 		instr->bits2.ia16.src0_swz_x = BRW_GET_SWZ(SWIZZLE(src->reg), 0);
 		instr->bits2.ia16.src0_swz_y = BRW_GET_SWZ(SWIZZLE(src->reg), 1);
@@ -2916,9 +2924,12 @@ int set_instruction_src0(struct brw_instruction *instr,
 int set_instruction_src1(struct brw_instruction *instr,
 			  struct src_operand *src)
 {
-	if (advanced_flag) {
+	if (advanced_flag)
 		reset_instruction_src_region(instr, src);
-	}
+
+	if (!validate_src_reg(instr, src->reg))
+		return 1;
+
 	instr->bits1.da1.src1_reg_file = src->reg.file;
 	instr->bits1.da1.src1_reg_type = src->reg.type;
 	if (src->reg.file == BRW_IMMEDIATE_VALUE) {
@@ -2933,18 +2944,6 @@ int set_instruction_src1(struct brw_instruction *instr,
 		instr->bits3.da1.src1_negate = src->reg.negate;
 		instr->bits3.da1.src1_abs = src->reg.abs;
                 instr->bits3.da1.src1_address_mode = src->reg.address_mode;
-		/* XXX why?
-		if (src->address_mode != BRW_ADDRESS_DIRECT) {
-			fprintf(stderr, "error: swizzle bits set in align1 "
-				"instruction\n");
-			return 1;
-		}
-		*/
-		if (SWIZZLE(src->reg) && SWIZZLE(src->reg) != BRW_SWIZZLE_NOOP) {
-			fprintf(stderr, "error: swizzle bits set in align1 "
-				"instruction\n");
-			return 1;
-		}
             } else {
 		instr->bits3.da16.src1_subreg_nr = get_subreg_address(src->reg.file, src->reg.type, src->reg.subnr, src->reg.address_mode);
 		instr->bits3.da16.src1_reg_nr = src->reg.nr;
@@ -2956,11 +2955,6 @@ int set_instruction_src1(struct brw_instruction *instr,
 		instr->bits3.da16.src1_swz_z = BRW_GET_SWZ(SWIZZLE(src->reg), 2);
 		instr->bits3.da16.src1_swz_w = BRW_GET_SWZ(SWIZZLE(src->reg), 3);
                 instr->bits3.da16.src1_address_mode = src->reg.address_mode;
-		if (src->reg.address_mode != BRW_ADDRESS_DIRECT) {
-			fprintf(stderr, "error: swizzle bits set in align1 "
-				"instruction\n");
-			return 1;
-		}
             }
 	} else {
             if (instr->header.access_mode == BRW_ALIGN_1) {
@@ -2972,11 +2966,6 @@ int set_instruction_src1(struct brw_instruction *instr,
 		instr->bits3.ia1.src1_horiz_stride = src->reg.hstride;
 		instr->bits3.ia1.src1_width = src->reg.width;
 		instr->bits3.ia1.src1_vert_stride = src->reg.vstride;
-		if (SWIZZLE(src->reg) && SWIZZLE(src->reg) != BRW_SWIZZLE_NOOP) {
-			fprintf(stderr, "error: swizzle bits set in align1 "
-				"instruction\n");
-			return 1;
-		}
             } else {
 		instr->bits3.ia16.src1_swz_x = BRW_GET_SWZ(SWIZZLE(src->reg), 0);
 		instr->bits3.ia16.src1_swz_y = BRW_GET_SWZ(SWIZZLE(src->reg), 1);
