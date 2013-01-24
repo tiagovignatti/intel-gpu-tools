@@ -29,6 +29,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <assert.h>
 #include "gen4asm.h"
 #include "brw_defines.h"
@@ -157,6 +158,21 @@ static int resolve_dst_region(struct declared_register *reference, int region)
 
     assert(resolved == 1 || resolved == 2 || resolved == 3);
     return resolved;
+}
+
+static bool validate_dst_reg(struct brw_instruction *insn, struct brw_reg *reg)
+{
+
+    if (reg->address_mode == BRW_ADDRESS_DIRECT &&
+	insn->header.access_mode == BRW_ALIGN_1 &&
+	reg->dw1.bits.writemask != 0 &&
+	reg->dw1.bits.writemask != BRW_WRITEMASK_XYZW)
+    {
+	fprintf(stderr, "error: write mask set in align1 instruction\n");
+	return false;
+    }
+
+    return true;
 }
 
 %}
@@ -2803,6 +2819,9 @@ static void reset_instruction_src_region(struct brw_instruction *instr,
 int set_instruction_dest(struct brw_instruction *instr,
 			 struct brw_reg *dest)
 {
+	if (!validate_dst_reg(instr, dest))
+		return 1;
+
 	if (dest->address_mode == BRW_ADDRESS_DIRECT &&
 	    instr->header.access_mode == BRW_ALIGN_1) {
 		instr->bits1.da1.dest_reg_file = dest->file;
@@ -2811,12 +2830,6 @@ int set_instruction_dest(struct brw_instruction *instr,
 		instr->bits1.da1.dest_reg_nr = dest->nr;
 		instr->bits1.da1.dest_horiz_stride = dest->hstride;
 		instr->bits1.da1.dest_address_mode = dest->address_mode;
-		if (dest->dw1.bits.writemask != 0 &&
-		    dest->dw1.bits.writemask != BRW_WRITEMASK_XYZW) {
-			fprintf(stderr, "error: write mask set in align1 "
-				"instruction\n");
-			return 1;
-		}
 	} else if (dest->address_mode == BRW_ADDRESS_DIRECT) {
 		instr->bits1.da16.dest_reg_file = dest->file;
 		instr->bits1.da16.dest_reg_type = dest->type;
@@ -2832,12 +2845,6 @@ int set_instruction_dest(struct brw_instruction *instr,
 		instr->bits1.ia1.dest_horiz_stride = dest->hstride;
 		instr->bits1.ia1.dest_indirect_offset = dest->dw1.bits.indirect_offset;
 		instr->bits1.ia1.dest_address_mode = dest->address_mode;
-		if (dest->dw1.bits.writemask != 0 &&
-		    dest->dw1.bits.writemask != BRW_WRITEMASK_XYZW) {
-			fprintf(stderr, "error: write mask set in align1 "
-				"instruction\n");
-			return 1;
-		}
 	} else {
 		instr->bits1.ia16.dest_reg_file = dest->file;
 		instr->bits1.ia16.dest_reg_type = dest->type;
