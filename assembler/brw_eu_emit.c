@@ -240,7 +240,7 @@ brw_set_src0(struct brw_compile *p, struct brw_instruction *insn,
    struct brw_context *brw = p->brw;
    struct intel_context *intel = &brw->intel;
 
-   if (reg.type != BRW_ARCHITECTURE_REGISTER_FILE)
+   if (reg.file != BRW_ARCHITECTURE_REGISTER_FILE)
       assert(reg.nr < 128);
 
    gen7_convert_mrf_to_grf(p, &reg);
@@ -332,7 +332,7 @@ void brw_set_src1(struct brw_compile *p,
 {
    assert(reg.file != BRW_MESSAGE_REGISTER_FILE);
 
-   if (reg.type != BRW_ARCHITECTURE_REGISTER_FILE)
+   if (reg.file != BRW_ARCHITECTURE_REGISTER_FILE)
       assert(reg.nr < 128);
 
    gen7_convert_mrf_to_grf(p, &reg);
