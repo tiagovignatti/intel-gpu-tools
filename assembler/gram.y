@@ -1030,7 +1030,7 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
 		  if ($7.reg.type != BRW_REGISTER_TYPE_UD &&
 		      $7.reg.type != BRW_REGISTER_TYPE_D &&
 		      $7.reg.type != BRW_REGISTER_TYPE_V) {
-		    fprintf (stderr, "%d: non-int D/UD/V representation: %d,type=%d\n", yylineno, $7.imm32, $7.reg.type);
+		    fprintf (stderr, "%d: non-int D/UD/V representation: %d,type=%d\n", yylineno, $7.reg.dw1.ud, $7.reg.type);
 			YYERROR;
 		  }
 		  memset(&$$, 0, sizeof($$));
@@ -1045,7 +1045,7 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
 		    YYERROR;
 		  $$.bits1.da1.src1_reg_file = BRW_IMMEDIATE_VALUE;
 		  $$.bits1.da1.src1_reg_type = $7.reg.type;
-		  $$.bits3.ud = $7.imm32;
+		  $$.bits3.ud = $7.reg.dw1.ud;
                 }
 		| predicate SEND execsize dst sendleadreg sndopr imm32reg instoptions
 		{
@@ -1059,7 +1059,7 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
 		  if ($7.reg.type != BRW_REGISTER_TYPE_UD &&
                       $7.reg.type != BRW_REGISTER_TYPE_D &&
                       $7.reg.type != BRW_REGISTER_TYPE_V) {
-                      fprintf (stderr, "%d: non-int D/UD/V representation: %d,type=%d\n", yylineno, $7.imm32, $7.reg.type);
+                      fprintf (stderr, "%d: non-int D/UD/V representation: %d,type=%d\n", yylineno, $7.reg.dw1.ud, $7.reg.type);
                       YYERROR;
 		  }
 
@@ -1089,7 +1089,7 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
 
 		  $$.bits1.da1.src1_reg_file = BRW_IMMEDIATE_VALUE;
 		  $$.bits1.da1.src1_reg_type = $7.reg.type;
-                  $$.bits3.ud = $7.imm32;
+                  $$.bits3.ud = $7.reg.dw1.ud;
                   $$.bits3.generic_gen5.end_of_thread = !!($6 & EX_DESC_EOT_MASK);
 		}
 		| predicate SEND execsize dst sendleadreg sndopr directsrcoperand instoptions
@@ -1141,7 +1141,7 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
 		  if ($8.reg.type != BRW_REGISTER_TYPE_UD &&
 		      $8.reg.type != BRW_REGISTER_TYPE_D &&
 		      $8.reg.type != BRW_REGISTER_TYPE_V) {
-		    fprintf (stderr, "%d: non-int D/UD/V representation: %d,type=%d\n", yylineno, $8.imm32, $8.reg.type);
+		    fprintf (stderr, "%d: non-int D/UD/V representation: %d,type=%d\n", yylineno, $8.reg.dw1.ud, $8.reg.type);
 			YYERROR;
 		  }
 		  memset(&$$, 0, sizeof($$));
@@ -1158,11 +1158,11 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
 		  $$.bits1.da1.src1_reg_type = $8.reg.type;
 		  if (IS_GENx(5)) {
 		      $$.bits2.send_gen5.sfid = ($7 & EX_DESC_SFID_MASK);
-		      $$.bits3.ud = $8.imm32;
+		      $$.bits3.ud = $8.reg.dw1.ud;
 		      $$.bits3.generic_gen5.end_of_thread = !!($7 & EX_DESC_EOT_MASK);
 		  }
 		  else
-		      $$.bits3.ud = $8.imm32;
+		      $$.bits3.ud = $8.reg.dw1.ud;
 		}
 		| predicate SEND execsize dst sendleadreg payload exp directsrcoperand instoptions
 		{
@@ -1837,7 +1837,7 @@ imm32reg:	imm32 srcimmtype
 		  memset (&$$, '\0', sizeof ($$));
 		  $$.reg.file = BRW_IMMEDIATE_VALUE;
 		  $$.reg.type = $2;
-		  $$.imm32 = d;
+		  $$.reg.dw1.ud = d;
 		}
 ;
 
@@ -2869,7 +2869,7 @@ int set_instruction_src0(struct brw_instruction *instr,
 	instr->bits1.da1.src0_reg_file = src->reg.file;
 	instr->bits1.da1.src0_reg_type = src->reg.type;
 	if (src->reg.file == BRW_IMMEDIATE_VALUE) {
-		instr->bits3.ud = src->imm32;
+		instr->bits3.ud = src->reg.dw1.ud;
 	} else if (src->reg.address_mode == BRW_ADDRESS_DIRECT) {
             if (instr->header.access_mode == BRW_ALIGN_1) {
 		instr->bits2.da1.src0_subreg_nr = get_subreg_address(src->reg.file, src->reg.type, src->reg.subnr, src->reg.address_mode);
@@ -2933,7 +2933,7 @@ int set_instruction_src1(struct brw_instruction *instr,
 	instr->bits1.da1.src1_reg_file = src->reg.file;
 	instr->bits1.da1.src1_reg_type = src->reg.type;
 	if (src->reg.file == BRW_IMMEDIATE_VALUE) {
-		instr->bits3.ud = src->imm32;
+		instr->bits3.ud = src->reg.dw1.ud;
 	} else if (src->reg.address_mode == BRW_ADDRESS_DIRECT) {
             if (instr->header.access_mode == BRW_ALIGN_1) {
 		instr->bits3.da1.src1_subreg_nr = get_subreg_address(src->reg.file, src->reg.type, src->reg.subnr, src->reg.address_mode);

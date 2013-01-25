@@ -91,7 +91,7 @@ struct regtype {
 struct src_operand {
 	struct brw_reg reg;
 	int default_region;
-	uint32_t imm32; /* set if reg.file == BRW_IMMEDIATE_VALUE or it is expressing a branch offset */
+	uint32_t imm32; /* set if src_operand is expressing a branch offset */
 	char *reloc_target; /* bspec: branching instructions JIP and UIP are source operands */
 } src_operand;
 
