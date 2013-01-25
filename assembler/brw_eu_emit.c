@@ -163,7 +163,7 @@ validate_reg(struct brw_instruction *insn, struct brw_reg reg)
    int hstride_for_reg[] = {0, 1, 2, 4};
    int vstride_for_reg[] = {0, 1, 2, 4, 8, 16, 32, 64, 128, 256};
    int width_for_reg[] = {1, 2, 4, 8, 16};
-   int execsize_for_reg[] = {1, 2, 4, 8, 16};
+   int execsize_for_reg[] = {1, 2, 4, 8, 16, 32};
    int width, hstride, vstride, execsize;
 
    if (reg.file == BRW_IMMEDIATE_VALUE) {
