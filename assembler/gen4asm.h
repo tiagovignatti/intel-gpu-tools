@@ -43,6 +43,10 @@ typedef float GLfloat;
 
 extern long int gen_level;
 
+#define WARN_ALWAYS	(1 << 0)
+#define WARN_ALL	(1 << 31)
+extern unsigned int warning_flags;
+
 extern struct brw_context genasm_context;
 extern struct brw_compile genasm_compile;
 

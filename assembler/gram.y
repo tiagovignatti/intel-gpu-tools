@@ -130,7 +130,12 @@ static void message(enum message_level level, YYLTYPE *location,
     va_end(args);
 }
 
-#define warn(l, fmt, ...)	message(WARN, location, fmt, ## __VA_ARGS__)
+#define warn(flag, l, fmt, ...)					\
+    do {							\
+	if (warning_flags & WARN_ ## flag)			\
+	    message(WARN, location, fmt, ## __VA_ARGS__);	\
+    } while(0)
+
 #define error(l, fmt, ...)	message(ERROR, location, fmt, ## __VA_ARGS__)
 
 /* like strcmp, but handles NULL pointers */
@@ -255,6 +260,10 @@ static bool validate_src_reg(struct brw_instruction *insn,
 			     struct brw_reg reg,
 			     YYLTYPE *location)
 {
+    int hstride_for_reg[] = {0, 1, 2, 4};
+    int width_for_reg[] = {1, 2, 4, 8, 16};
+    int width, hstride;
+
     if (reg.file == BRW_IMMEDIATE_VALUE)
 	return true;
 
@@ -264,6 +273,24 @@ static bool validate_src_reg(struct brw_instruction *insn,
 	error(location, "swizzle bits set in align1 instruction\n");
 	return false;
     }
+
+    assert(reg.hstride >= 0 && reg.hstride < ARRAY_SIZE(hstride_for_reg));
+    hstride = hstride_for_reg[reg.hstride];
+
+    assert(reg.width >= 0 && reg.width < ARRAY_SIZE(width_for_reg));
+    width = width_for_reg[reg.width];
+
+    /* Register Region Restrictions */
+
+    /* D. If Width = 1, HorzStride must be 0 regardless of the values of
+     * ExecSize and VertStride.
+     *
+     * FIXME: In "advanced mode" hstride is set to 1, this is probably a bug
+     * to fix, but it changes the generated opcodes and thus needs validation.
+     */
+    if (width == 1 && hstride != 0)
+	warn(ALL, location, "region width is 1 but horizontal stride is %d "
+	     " (should be 0)\n", hstride);
 
     return true;
 }

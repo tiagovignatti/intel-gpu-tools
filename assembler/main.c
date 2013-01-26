@@ -43,6 +43,7 @@ extern int errors;
 
 long int gen_level = 40;
 int advanced_flag = 0; /* 0: in unit of byte, 1: in unit of data element size */
+unsigned int warning_flags = WARN_ALWAYS;
 int binary_like_output = 0; /* 0: default output style, 1: nice C-style output */
 int need_export = 0;
 char *input_filename = "<stdin>";
@@ -293,7 +294,7 @@ int main(int argc, char **argv)
 	char o;
 	void *mem_ctx;
 
-	while ((o = getopt_long(argc, argv, "e:l:o:g:ab", longopts, NULL)) != -1) {
+	while ((o = getopt_long(argc, argv, "e:l:o:g:abW", longopts, NULL)) != -1) {
 		switch (o) {
 		case 'o':
 			if (strcmp(optarg, "-") != 0)
@@ -342,6 +343,10 @@ int main(int argc, char **argv)
 		case 'l':
 			if (strcmp(optarg, "-") != 0)
 				entry_table_file = optarg;
+			break;
+
+		case 'W':
+			warning_flags |= WARN_ALL;
 			break;
 
 		default:
