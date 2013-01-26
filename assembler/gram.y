@@ -276,6 +276,7 @@ static void resolve_subnr(struct brw_reg *reg)
 
 
 %}
+%locations
 
 %start ROOT
 

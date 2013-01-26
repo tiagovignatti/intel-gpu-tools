@@ -9,6 +9,15 @@
 int saved_state = 0;
 extern char *input_filename;
 
+/* Locations */
+int yycolumn = 1;
+
+#define YY_USER_ACTION						\
+	yylloc.first_line = yylloc.last_line = yylineno;	\
+	yylloc.first_column = yycolumn;				\
+	yylloc.last_column = yycolumn+yyleng-1;			\
+	yycolumn += yyleng;
+
 %}
 %x BLOCK_COMMENT
 %x CHANNEL
@@ -16,11 +25,11 @@ extern char *input_filename;
 %x FILENAME
 
 %%
-\/\/.*[\r\n] { } /* eat up single-line comments */
-"\.kernel".*[\r\n] { }
-"\.end_kernel".*[\r\n] { }
-"\.code".*[\r\n] { }
-"\.end_code".*[\r\n] { }
+\/\/.*[\r\n] { yycolumn = 1; } /* eat up single-line comments */
+"\.kernel".*[\r\n] { yycolumn = 1; }
+"\.end_kernel".*[\r\n] { yycolumn = 1; }
+"\.code".*[\r\n] { yycolumn = 1; }
+"\.end_code".*[\r\n] { yycolumn = 1; }
 
  /* eat up multi-line comments, non-nesting. */
 \/\* {
@@ -33,6 +42,7 @@ extern char *input_filename;
 <BLOCK_COMMENT>. { }
 <BLOCK_COMMENT>[\r\n] { }
 "#line"" "* { 
+	yycolumn = 1;
 	saved_state = YYSTATE;
 	BEGIN(LINENUMBER);
 }
@@ -407,7 +417,9 @@ yylval.integer = BRW_CHANNEL_W;
 	return NUMBER;
 }
 
-[ \t\n]+ { } /* eat up whitespace */
+[ \t]+ { } /* eat up whitespace */
+
+\n { yycolumn = 1; }
 
 . {
 	fprintf(stderr, "%s: %d: %s at \"%s\"\n",
