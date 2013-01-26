@@ -261,8 +261,10 @@ static bool validate_src_reg(struct brw_instruction *insn,
 			     YYLTYPE *location)
 {
     int hstride_for_reg[] = {0, 1, 2, 4};
+    int vstride_for_reg[] = {0, 1, 2, 4, 8, 16, 32, 64, 128, 256};
     int width_for_reg[] = {1, 2, 4, 8, 16};
-    int width, hstride;
+    int execsize_for_reg[] = {1, 2, 4, 8, 16, 32};
+    int width, hstride, vstride, execsize;
 
     if (reg.file == BRW_IMMEDIATE_VALUE)
 	return true;
@@ -277,8 +279,19 @@ static bool validate_src_reg(struct brw_instruction *insn,
     assert(reg.hstride >= 0 && reg.hstride < ARRAY_SIZE(hstride_for_reg));
     hstride = hstride_for_reg[reg.hstride];
 
+    if (reg.vstride == 0xf) {
+	vstride = -1;
+    } else {
+	assert(reg.vstride >= 0 && reg.vstride < ARRAY_SIZE(vstride_for_reg));
+	vstride = vstride_for_reg[reg.vstride];
+    }
+
     assert(reg.width >= 0 && reg.width < ARRAY_SIZE(width_for_reg));
     width = width_for_reg[reg.width];
+
+    assert(insn->header.execution_size >= 0 &&
+	   insn->header.execution_size < ARRAY_SIZE(execsize_for_reg));
+    execsize = execsize_for_reg[insn->header.execution_size];
 
     /* Register Region Restrictions */
 
@@ -291,6 +304,17 @@ static bool validate_src_reg(struct brw_instruction *insn,
     if (width == 1 && hstride != 0)
 	warn(ALL, location, "region width is 1 but horizontal stride is %d "
 	     " (should be 0)\n", hstride);
+
+    /* E. If ExecSize = Width = 1, both VertStride and HorzStride must be 0.
+     * This defines a scalar. */
+    if (execsize == 1 && width == 1) {
+        if (hstride != 0)
+	    warn(ALL, location, "execution size and region width are 1 but "
+		 "horizontal stride is %d (should be 0)\n", hstride);
+        if (vstride != 0)
+	    warn(ALL, location, "execution size and region width are 1 but "
+		 "vertical stride is %d (should be 0)\n", vstride);
+    }
 
     return true;
 }
