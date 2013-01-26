@@ -96,6 +96,46 @@ void set_direct_dst_operand(struct brw_reg *dst, struct brw_reg *reg,
 void set_direct_src_operand(struct src_operand *src, struct brw_reg *reg,
 			    int type);
 
+/* like strcmp, but handles NULL pointers */
+static bool strcmp0(const char *s1, const char* s2)
+{
+    if (!s1)
+	return -(s1 != s2);
+    if (!s2)
+	return s1 != s2;
+    return strcmp (s1, s2);
+}
+
+static bool region_equal(struct region *r1, struct region *r2)
+{
+    return memcmp(r1, r2, sizeof(struct region)) == 0;
+}
+
+static bool reg_equal(struct brw_reg *r1, struct brw_reg *r2)
+{
+    return memcmp(r1, r2, sizeof(struct brw_reg)) == 0;
+}
+
+static bool declared_register_equal(struct declared_register *r1,
+				     struct declared_register *r2)
+{
+    if (strcmp0(r1->name, r2->name) != 0)
+	return false;
+
+    if (!reg_equal(&r1->reg, &r2->reg))
+	return false;
+
+    if (!region_equal(&r1->src_region, &r2->src_region))
+	return false;
+
+    if (r1->element_size != r2->element_size ||
+        r1->dst_region != r2->dst_region ||
+	r1->type != r2->type)
+	return false;
+
+    return true;
+}
+
 static void brw_program_init(struct brw_program *p)
 {
    memset(p, 0, sizeof(struct brw_program));
@@ -431,23 +471,27 @@ declare_type:	TYPE EQ regtype
 ;
 declare_pragma:	DECLARE_PRAGMA STRING declare_base declare_elementsize declare_srcregion declare_dstregion declare_type
 		{
-		    struct declared_register *reg;
-		    int defined;
-		    defined = (reg = find_register($2)) != NULL;
-		    if (defined) {
-			fprintf(stderr, "WARNING: %s already defined\n", $2);
+		    struct declared_register reg, *found, *new_reg;
+
+		    reg.name = $2;
+		    reg.reg = $3;
+		    reg.element_size = $4;
+		    reg.src_region = $5;
+		    reg.dst_region = $6;
+		    reg.type = $7;
+
+		    found = find_register($2);
+		    if (found) {
+		        if (!declared_register_equal(&reg, found)) {
+			    fprintf(stderr, "Error: %s already defined and "
+				    "definitions don't agree\n", $2);
+			    YYERROR;
+			}
 			free($2); // $2 has been malloc'ed by strdup
 		    } else {
-			reg = calloc(sizeof(struct declared_register), 1);
-			reg->name = $2;
-		    }
-		    reg->reg = $3;
-		    reg->element_size = $4;
-		    reg->src_region = $5;
-		    reg->dst_region = $6;
-		    reg->type = $7;
-		    if (!defined) {
-			insert_register(reg);
+			new_reg = malloc(sizeof(struct declared_register));
+			*new_reg = reg;
+			insert_register(new_reg);
 		    }
 		}
 ;
