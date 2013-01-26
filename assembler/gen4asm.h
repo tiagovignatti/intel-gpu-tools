@@ -69,6 +69,8 @@ typedef struct { \
 /* ensure nobody changes the size of struct brw_instruction */
 STRUCT_SIZE_ASSERT(brw_instruction, 16);
 
+#define ARRAY_SIZE(x) (sizeof(x) / sizeof(x[0]))
+
 struct condition {
     	int cond;
 	int flag_reg_nr;

@@ -30,6 +30,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <stdarg.h>
 #include <assert.h>
 #include "gen4asm.h"
 #include "brw_eu.h"
@@ -38,6 +39,15 @@
 #define DEFAULT_DSTREGION -1
 
 #define SWIZZLE(reg) (reg.dw1.bits.swizzle)
+
+#define YYLTYPE YYLTYPE
+typedef struct YYLTYPE
+{
+ int first_line;
+ int first_column;
+ int last_line;
+ int last_column;
+} YYLTYPE;
 
 extern long int gen_level;
 extern int advanced_flag;
@@ -76,9 +86,11 @@ static int get_type_size(GLuint type);
 int set_instruction_dest(struct brw_instruction *instr,
 			 struct brw_reg *dest);
 int set_instruction_src0(struct brw_instruction *instr,
-			 struct src_operand *src);
+			 struct src_operand *src,
+			 YYLTYPE *location);
 int set_instruction_src1(struct brw_instruction *instr,
-			 struct src_operand *src);
+			 struct src_operand *src,
+			 YYLTYPE *location);
 int set_instruction_dest_three_src(struct brw_instruction *instr,
                                    struct brw_reg *dest);
 int set_instruction_src0_three_src(struct brw_instruction *instr,
@@ -95,6 +107,31 @@ void set_direct_dst_operand(struct brw_reg *dst, struct brw_reg *reg,
 			    int type);
 void set_direct_src_operand(struct src_operand *src, struct brw_reg *reg,
 			    int type);
+
+enum message_level {
+    WARN,
+    ERROR,
+};
+
+static void message(enum message_level level, YYLTYPE *location,
+		    const char *fmt, ...)
+{
+    static const char *level_str[] = { "warning", "error" };
+    va_list args;
+
+    if (location)
+	fprintf(stderr, "%d:%d: %s: ", location->first_line,
+		location->first_column, level_str[level]);
+    else
+	fprintf(stderr, "%s: ", level_str[level]);
+
+    va_start(args, fmt);
+    vfprintf(stderr, fmt, args);
+    va_end(args);
+}
+
+#define warn(l, fmt, ...)	message(WARN, location, fmt, ## __VA_ARGS__)
+#define error(l, fmt, ...)	message(ERROR, location, fmt, ## __VA_ARGS__)
 
 /* like strcmp, but handles NULL pointers */
 static bool strcmp0(const char *s1, const char* s2)
@@ -214,7 +251,9 @@ static bool validate_dst_reg(struct brw_instruction *insn, struct brw_reg *reg)
     return true;
 }
 
-static bool validate_src_reg(struct brw_instruction *insn, struct brw_reg reg)
+static bool validate_src_reg(struct brw_instruction *insn,
+			     struct brw_reg reg,
+			     YYLTYPE *location)
 {
     if (reg.file == BRW_IMMEDIATE_VALUE)
 	return true;
@@ -222,7 +261,7 @@ static bool validate_src_reg(struct brw_instruction *insn, struct brw_reg reg)
     if (insn->header.access_mode == BRW_ALIGN_1 &&
 	SWIZZLE(reg) && SWIZZLE(reg) != BRW_SWIZZLE_NOOP)
     {
-	fprintf(stderr, "error: swizzle bits set in align1 instruction\n");
+	error(location, "swizzle bits set in align1 instruction\n");
 	return false;
     }
 
@@ -630,8 +669,8 @@ ifelseinstruction: ENDIF
 		    $$.gen.header.thread_control |= BRW_THREAD_SWITCH;
 		    ip_dst.width = $2;
 		    set_instruction_dest(&$$.gen, &ip_dst);
-		    set_instruction_src0(&$$.gen, &ip_src);
-		    set_instruction_src1(&$$.gen, &$3);
+		    set_instruction_src0(&$$.gen, &ip_src, NULL);
+		    set_instruction_src1(&$$.gen, &$3, NULL);
 		    $$.first_reloc_target = $3.reloc_target;
 		    $$.first_reloc_offset = $3.imm32;
 		  } else if(IS_GENp(6)) {
@@ -666,8 +705,8 @@ ifelseinstruction: ENDIF
 		    $$.gen.header.thread_control |= BRW_THREAD_SWITCH;
 		    ip_dst.width = $3;
 		    set_instruction_dest(&$$.gen, &ip_dst);
-		    set_instruction_src0(&$$.gen, &ip_src);
-		    set_instruction_src1(&$$.gen, &$4);
+		    set_instruction_src0(&$$.gen, &ip_src, NULL);
+		    set_instruction_src1(&$$.gen, &$4, NULL);
 		  }
 		  $$.first_reloc_target = $4.reloc_target;
 		  $$.first_reloc_offset = $4.imm32;
@@ -704,8 +743,8 @@ loopinstruction: predicate WHILE execsize relativelocation instoptions
 		    set_instruction_predicate(&$$.gen, &$1);
 		    $$.gen.header.opcode = $2;
 		    $$.gen.header.thread_control |= BRW_THREAD_SWITCH;
-		    set_instruction_src0(&$$.gen, &ip_src);
-		    set_instruction_src1(&$$.gen, &$4);
+		    set_instruction_src0(&$$.gen, &ip_src, NULL);
+		    set_instruction_src1(&$$.gen, &$4, NULL);
 		    $$.first_reloc_target = $4.reloc_target;
 		    $$.first_reloc_offset = $4.imm32;
 		  } else if (IS_GENp(6)) {
@@ -743,7 +782,7 @@ haltinstruction: predicate HALT execsize relativelocation relativelocation insto
 		  $$.second_reloc_offset = $5.imm32;
 		  dst_null_reg.width = $3;
 		  set_instruction_dest(&$$.gen, &dst_null_reg);
-		  set_instruction_src0(&$$.gen, &src_null_reg);
+		  set_instruction_src0(&$$.gen, &src_null_reg, NULL);
 		};
 
 multibranchinstruction:
@@ -772,7 +811,7 @@ multibranchinstruction:
 		  $$.second_reloc_offset = $5.imm32;
 		  dst_null_reg.width = $3;
 		  set_instruction_dest(&$$.gen, &dst_null_reg);
-		  set_instruction_src0(&$$.gen, &src_null_reg);
+		  set_instruction_src0(&$$.gen, &src_null_reg, NULL);
 		}
 ;
 
@@ -808,7 +847,7 @@ subroutineinstruction:
 		  src0.reg.hstride = 1; /*encoded 1*/
 		  src0.reg.width = 1; /*encoded 2*/
 		  src0.reg.vstride = 2; /*encoded 2*/
-		  set_instruction_src0(&$$.gen, &src0);
+		  set_instruction_src0(&$$.gen, &src0, NULL);
 
 		  $$.first_reloc_target = $5.reloc_target;
 		  $$.first_reloc_offset = $5.imm32;
@@ -830,7 +869,7 @@ subroutineinstruction:
 		  $5.reg.hstride = 1; /*encoded 1*/
 		  $5.reg.width = 1; /*encoded 2*/
 		  $5.reg.vstride = 2; /*encoded 2*/
-		  set_instruction_src0(&$$.gen, &$5);
+		  set_instruction_src0(&$$.gen, &$5, NULL);
 		}
 ;
 
@@ -847,7 +886,7 @@ unaryinstruction:
 		  set_instruction_predicate(&$$, &$1);
 		  if (set_instruction_dest(&$$, &$6) != 0)
 		    YYERROR;
-		  if (set_instruction_src0(&$$, &$7) != 0)
+		  if (set_instruction_src0(&$$, &$7, &@7) != 0)
 		    YYERROR;
 
 		  if ($3.flag_subreg_nr != -1) {
@@ -884,9 +923,9 @@ binaryinstruction:
 		  $6.width = $5;
 		  if (set_instruction_dest(&$$, &$6) != 0)
 		    YYERROR;
-		  if (set_instruction_src0(&$$, &$7) != 0)
+		  if (set_instruction_src0(&$$, &$7, &@7) != 0)
 		    YYERROR;
-		  if (set_instruction_src1(&$$, &$8) != 0)
+		  if (set_instruction_src1(&$$, &$8, &@8) != 0)
 		    YYERROR;
 
 		  if ($3.flag_subreg_nr != -1) {
@@ -923,9 +962,9 @@ binaryaccinstruction:
 		  set_instruction_predicate(&$$, &$1);
 		  if (set_instruction_dest(&$$, &$6) != 0)
 		    YYERROR;
-		  if (set_instruction_src0(&$$, &$7) != 0)
+		  if (set_instruction_src0(&$$, &$7, &@7) != 0)
 		    YYERROR;
-		  if (set_instruction_src1(&$$, &$8) != 0)
+		  if (set_instruction_src1(&$$, &$8, &@8) != 0)
 		    YYERROR;
 
 		  if ($3.flag_subreg_nr != -1) {
@@ -1020,9 +1059,9 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
                       src0.reg.type = BRW_REGISTER_TYPE_D;
                       src0.reg.nr = $4;
                       src0.reg.subnr = 0;
-                      set_instruction_src0(&$$, &src0);
+                      set_instruction_src0(&$$, &src0, NULL);
 		  } else {
-                      if (set_instruction_src0(&$$, &$6) != 0)
+                      if (set_instruction_src0(&$$, &$6, &@6) != 0)
                           YYERROR;
 		  }
 
@@ -1063,10 +1102,10 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
 		  $4.width = $3;
 		  if (set_instruction_dest(&$$, &$4) != 0)
 		    YYERROR;
-		  if (set_instruction_src0(&$$, &$6) != 0)
+		  if (set_instruction_src0(&$$, &$6, &@6) != 0)
 		    YYERROR;
 		  /* XXX is this correct? */
-		  if (set_instruction_src1(&$$, &$7) != 0)
+		  if (set_instruction_src1(&$$, &$7, &@7) != 0)
 		    YYERROR;
 
 		  }
@@ -1086,7 +1125,7 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
 		  $4.width = $3;
 		  if (set_instruction_dest(&$$, &$4) != 0)
 		    YYERROR;
-		  if (set_instruction_src0(&$$, &$6) != 0)
+		  if (set_instruction_src0(&$$, &$6, &@6) != 0)
 		    YYERROR;
 		  $$.bits1.da1.src1_reg_file = BRW_IMMEDIATE_VALUE;
 		  $$.bits1.da1.src1_reg_type = $7.reg.type;
@@ -1130,7 +1169,7 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
 
                   src0.reg.nr = $5.nr;
                   src0.reg.subnr = 0;
-                  set_instruction_src0(&$$, &src0);
+                  set_instruction_src0(&$$, &src0, NULL);
 
 		  $$.bits1.da1.src1_reg_file = BRW_IMMEDIATE_VALUE;
 		  $$.bits1.da1.src1_reg_type = $7.reg.type;
@@ -1176,9 +1215,9 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
 
                   src0.reg.nr = $5.nr;
                   src0.reg.subnr = 0;
-                  set_instruction_src0(&$$, &src0);
+                  set_instruction_src0(&$$, &src0, NULL);
 
-                  set_instruction_src1(&$$, &$7);
+                  set_instruction_src1(&$$, &$7, &@7);
                   $$.bits3.generic_gen5.end_of_thread = !!($6 & EX_DESC_EOT_MASK);
 		}
 		| predicate SEND execsize dst sendleadreg payload sndopr imm32reg instoptions
@@ -1197,7 +1236,7 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
 		  $4.width = $3;
 		  if (set_instruction_dest(&$$, &$4) != 0)
 		    YYERROR;
-		  if (set_instruction_src0(&$$, &$6) != 0)
+		  if (set_instruction_src0(&$$, &$6, &@6) != 0)
 		    YYERROR;
 		  $$.bits1.da1.src1_reg_file = BRW_IMMEDIATE_VALUE;
 		  $$.bits1.da1.src1_reg_type = $8.reg.type;
@@ -1220,10 +1259,10 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
 		  $4.width = $3;
 		  if (set_instruction_dest(&$$, &$4) != 0)
 		    YYERROR;
-		  if (set_instruction_src0(&$$, &$6) != 0)
+		  if (set_instruction_src0(&$$, &$6, &@6) != 0)
 		    YYERROR;
 		  /* XXX is this correct? */
-		  if (set_instruction_src1(&$$, &$8) != 0)
+		  if (set_instruction_src1(&$$, &$8, &@8) != 0)
 		    YYERROR;
 		  if (IS_GENx(5)) {
                       $$.bits2.send_gen5.sfid = $7;
@@ -1252,8 +1291,8 @@ jumpinstruction: predicate JMPI execsize relativelocation2
 		  set_instruction_predicate(&$$.gen, &$1);
 		  ip_dst.width = ffs(1) - 1;
 		  set_instruction_dest(&$$.gen, &ip_dst);
-		  set_instruction_src0(&$$.gen, &ip_src);
-		  set_instruction_src1(&$$.gen, &$4);
+		  set_instruction_src0(&$$.gen, &ip_src, NULL);
+		  set_instruction_src1(&$$.gen, &$4, NULL);
 		  $$.first_reloc_target = $4.reloc_target;
 		  $$.first_reloc_offset = $4.imm32;
 		}
@@ -1269,9 +1308,9 @@ mathinstruction: predicate MATH_INST execsize dst src srcimm math_function insto
 		  $4.width = $3;
 		  if (set_instruction_dest(&$$, &$4) != 0)
 		    YYERROR;
-		  if (set_instruction_src0(&$$, &$5) != 0)
+		  if (set_instruction_src0(&$$, &$5, &@5) != 0)
 		    YYERROR;
-		  if (set_instruction_src1(&$$, &$6) != 0)
+		  if (set_instruction_src1(&$$, &$6, &@6) != 0)
 		    YYERROR;
 		}
 ;
@@ -1309,8 +1348,8 @@ syncinstruction: predicate WAIT notifyreg
 		  notify_dst.width = ffs(1) - 1;
 		  set_instruction_dest(&$$, &notify_dst);
 		  set_direct_src_operand(&notify_src, &$3, BRW_REGISTER_TYPE_D);
-		  set_instruction_src0(&$$, &notify_src);
-		  set_instruction_src1(&$$, &src_null_reg);
+		  set_instruction_src0(&$$, &notify_src, NULL);
+		  set_instruction_src1(&$$, &src_null_reg, NULL);
 		}
 		
 ;
@@ -2903,12 +2942,13 @@ int set_instruction_dest(struct brw_instruction *instr,
 
 /* Sets the first source operand for the instruction.  Returns 0 on success. */
 int set_instruction_src0(struct brw_instruction *instr,
-			  struct src_operand *src)
+			 struct src_operand *src,
+			 YYLTYPE *location)
 {
 	if (advanced_flag)
 		reset_instruction_src_region(instr, src);
 
-	if (!validate_src_reg(instr, src->reg))
+	if (!validate_src_reg(instr, src->reg, location))
 		return 1;
 
 	instr->bits1.da1.src0_reg_file = src->reg.file;
@@ -2967,12 +3007,13 @@ int set_instruction_src0(struct brw_instruction *instr,
 /* Sets the second source operand for the instruction.  Returns 0 on success.
  */
 int set_instruction_src1(struct brw_instruction *instr,
-			  struct src_operand *src)
+			 struct src_operand *src,
+			 YYLTYPE *location)
 {
 	if (advanced_flag)
 		reset_instruction_src_region(instr, src);
 
-	if (!validate_src_reg(instr, src->reg))
+	if (!validate_src_reg(instr, src->reg, location))
 		return 1;
 
 	instr->bits1.da1.src1_reg_file = src->reg.file;
