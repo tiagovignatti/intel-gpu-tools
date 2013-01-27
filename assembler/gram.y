@@ -49,9 +49,6 @@ typedef struct YYLTYPE
  int last_column;
 } YYLTYPE;
 
-extern long int gen_level;
-extern int advanced_flag;
-extern int yylineno;
 extern int need_export;
 static struct src_operand src_null_reg =
 {
@@ -83,30 +80,30 @@ static struct src_operand ip_src =
 };
 
 static int get_type_size(GLuint type);
-int set_instruction_dest(struct brw_instruction *instr,
-			 struct brw_reg *dest);
-int set_instruction_src0(struct brw_instruction *instr,
-			 struct src_operand *src,
-			 YYLTYPE *location);
-int set_instruction_src1(struct brw_instruction *instr,
-			 struct src_operand *src,
-			 YYLTYPE *location);
-int set_instruction_dest_three_src(struct brw_instruction *instr,
-                                   struct brw_reg *dest);
-int set_instruction_src0_three_src(struct brw_instruction *instr,
-                                   struct src_operand *src);
-int set_instruction_src1_three_src(struct brw_instruction *instr,
-                                   struct src_operand *src);
-int set_instruction_src2_three_src(struct brw_instruction *instr,
-                                   struct src_operand *src);
-void set_instruction_options(struct brw_instruction *instr,
-			     struct brw_instruction *options);
-void set_instruction_predicate(struct brw_instruction *instr,
-			       struct brw_instruction *predicate);
-void set_direct_dst_operand(struct brw_reg *dst, struct brw_reg *reg,
-			    int type);
-void set_direct_src_operand(struct src_operand *src, struct brw_reg *reg,
-			    int type);
+static int set_instruction_dest(struct brw_instruction *instr,
+				struct brw_reg *dest);
+static int set_instruction_src0(struct brw_instruction *instr,
+				struct src_operand *src,
+				YYLTYPE *location);
+static int set_instruction_src1(struct brw_instruction *instr,
+				struct src_operand *src,
+				YYLTYPE *location);
+static int set_instruction_dest_three_src(struct brw_instruction *instr,
+					  struct brw_reg *dest);
+static int set_instruction_src0_three_src(struct brw_instruction *instr,
+					  struct src_operand *src);
+static int set_instruction_src1_three_src(struct brw_instruction *instr,
+					  struct src_operand *src);
+static int set_instruction_src2_three_src(struct brw_instruction *instr,
+					  struct src_operand *src);
+static void set_instruction_options(struct brw_instruction *instr,
+				    struct brw_instruction *options);
+static void set_instruction_predicate(struct brw_instruction *instr,
+				      struct brw_instruction *predicate);
+static void set_direct_dst_operand(struct brw_reg *dst, struct brw_reg *reg,
+				   int type);
+static void set_direct_src_operand(struct src_operand *src, struct brw_reg *reg,
+				   int type);
 
 enum message_level {
     WARN,
@@ -2826,9 +2823,6 @@ instoption:	ALIGN1 { $$ = ALIGN1; }
 
 %%
 extern int yylineno;
-extern char *input_filename;
-
-int errors;
 
 void yyerror (char *msg)
 {
@@ -2939,8 +2933,8 @@ static void reset_instruction_src_region(struct brw_instruction *instr,
 /**
  * Fills in the destination register information in instr from the bits in dst.
  */
-int set_instruction_dest(struct brw_instruction *instr,
-			 struct brw_reg *dest)
+static int set_instruction_dest(struct brw_instruction *instr,
+				struct brw_reg *dest)
 {
 	if (!validate_dst_reg(instr, dest))
 		return 1;
@@ -2955,9 +2949,9 @@ int set_instruction_dest(struct brw_instruction *instr,
 }
 
 /* Sets the first source operand for the instruction.  Returns 0 on success. */
-int set_instruction_src0(struct brw_instruction *instr,
-			 struct src_operand *src,
-			 YYLTYPE *location)
+static int set_instruction_src0(struct brw_instruction *instr,
+				struct src_operand *src,
+				YYLTYPE *location)
 {
 
 	if (advanced_flag)
@@ -2977,9 +2971,9 @@ int set_instruction_src0(struct brw_instruction *instr,
 
 /* Sets the second source operand for the instruction.  Returns 0 on success.
  */
-int set_instruction_src1(struct brw_instruction *instr,
-			 struct src_operand *src,
-			 YYLTYPE *location)
+static int set_instruction_src1(struct brw_instruction *instr,
+				struct src_operand *src,
+				YYLTYPE *location)
 {
 	if (advanced_flag)
 		reset_instruction_src_region(instr, src);
@@ -3060,8 +3054,8 @@ static int reg_type_2_to_3(int reg_type)
 	return r;
 }
 
-int set_instruction_dest_three_src(struct brw_instruction *instr,
-                                   struct brw_reg *dest)
+static int set_instruction_dest_three_src(struct brw_instruction *instr,
+					  struct brw_reg *dest)
 {
 	instr->bits1.da3src.dest_reg_file = dest->file;
 	instr->bits1.da3src.dest_reg_nr = dest->nr;
@@ -3071,8 +3065,8 @@ int set_instruction_dest_three_src(struct brw_instruction *instr,
 	return 0;
 }
 
-int set_instruction_src0_three_src(struct brw_instruction *instr,
-                                   struct src_operand *src)
+static int set_instruction_src0_three_src(struct brw_instruction *instr,
+					  struct src_operand *src)
 {
 	if (advanced_flag) {
 		reset_instruction_src_region(instr, src);
@@ -3084,8 +3078,8 @@ int set_instruction_src0_three_src(struct brw_instruction *instr,
 	return 0;
 }
 
-int set_instruction_src1_three_src(struct brw_instruction *instr,
-                                   struct src_operand *src)
+static int set_instruction_src1_three_src(struct brw_instruction *instr,
+					  struct src_operand *src)
 {
 	if (advanced_flag) {
 		reset_instruction_src_region(instr, src);
@@ -3098,8 +3092,8 @@ int set_instruction_src1_three_src(struct brw_instruction *instr,
 	return 0;
 }
 
-int set_instruction_src2_three_src(struct brw_instruction *instr,
-                                   struct src_operand *src)
+static int set_instruction_src2_three_src(struct brw_instruction *instr,
+					  struct src_operand *src)
 {
 	if (advanced_flag) {
 		reset_instruction_src_region(instr, src);
@@ -3110,8 +3104,8 @@ int set_instruction_src2_three_src(struct brw_instruction *instr,
 	return 0;
 }
 
-void set_instruction_options(struct brw_instruction *instr,
-			     struct brw_instruction *options)
+static void set_instruction_options(struct brw_instruction *instr,
+				    struct brw_instruction *options)
 {
 	/* XXX: more instr options */
 	instr->header.access_mode = options->header.access_mode;
@@ -3121,8 +3115,8 @@ void set_instruction_options(struct brw_instruction *instr,
 		options->header.compression_control;
 }
 
-void set_instruction_predicate(struct brw_instruction *instr,
-			       struct brw_instruction *predicate)
+static void set_instruction_predicate(struct brw_instruction *instr,
+				      struct brw_instruction *predicate)
 {
 	instr->header.predicate_control = predicate->header.predicate_control;
 	instr->header.predicate_inverse = predicate->header.predicate_inverse;
@@ -3130,8 +3124,8 @@ void set_instruction_predicate(struct brw_instruction *instr,
 	instr->bits2.da1.flag_subreg_nr = predicate->bits2.da1.flag_subreg_nr;
 }
 
-void set_direct_dst_operand(struct brw_reg *dst, struct brw_reg *reg,
-			    int type)
+static void set_direct_dst_operand(struct brw_reg *dst, struct brw_reg *reg,
+				   int type)
 {
 	*dst = *reg;
 	dst->address_mode = BRW_ADDRESS_DIRECT;
@@ -3140,8 +3134,8 @@ void set_direct_dst_operand(struct brw_reg *dst, struct brw_reg *reg,
 	dst->dw1.bits.writemask = BRW_WRITEMASK_XYZW;
 }
 
-void set_direct_src_operand(struct src_operand *src, struct brw_reg *reg,
-			    int type)
+static void set_direct_src_operand(struct src_operand *src, struct brw_reg *reg,
+				   int type)
 {
 	memset(src, 0, sizeof(*src));
 	src->reg.address_mode = BRW_ADDRESS_DIRECT;

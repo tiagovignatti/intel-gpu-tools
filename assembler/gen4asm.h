@@ -42,6 +42,8 @@ typedef int GLint;
 typedef float GLfloat;
 
 extern long int gen_level;
+extern int advanced_flag;
+extern int errors;
 
 #define WARN_ALWAYS	(1 << 0)
 #define WARN_ALL	(1 << 31)

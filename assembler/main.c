@@ -39,23 +39,23 @@
 
 extern FILE *yyin;
 
-extern int errors;
-
 long int gen_level = 40;
 int advanced_flag = 0; /* 0: in unit of byte, 1: in unit of data element size */
 unsigned int warning_flags = WARN_ALWAYS;
-int binary_like_output = 0; /* 0: default output style, 1: nice C-style output */
 int need_export = 0;
 char *input_filename = "<stdin>";
-char *export_filename = NULL;
-
-const char const *binary_prepend = "static const char gen_eu_bytes[] = {\n";
+int errors;
 
 struct brw_context genasm_brw_context;
 struct brw_compile genasm_compile;
 
 struct brw_program compiled_program;
 struct program_defaults program_defaults = {.register_type = BRW_REGISTER_TYPE_F};
+
+/* 0: default output style, 1: nice C-style output */
+static int binary_like_output = 0;
+static char *export_filename = NULL;
+static const char binary_prepend[] = "static const char gen_eu_bytes[] = {\n";
 
 #define HASH_SIZE 37
 
