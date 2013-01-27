@@ -120,10 +120,10 @@ static void message(enum message_level level, YYLTYPE *location,
     va_list args;
 
     if (location)
-	fprintf(stderr, "%d:%d: %s: ", location->first_line,
+	fprintf(stderr, "%s:%d:%d: %s: ", input_filename, location->first_line,
 		location->first_column, level_str[level]);
     else
-	fprintf(stderr, "%s: ", level_str[level]);
+	fprintf(stderr, "%s:%s: ", input_filename, level_str[level]);
 
     va_start(args, fmt);
     vfprintf(stderr, fmt, args);
