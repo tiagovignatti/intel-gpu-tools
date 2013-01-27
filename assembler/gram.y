@@ -295,6 +295,14 @@ static bool validate_src_reg(struct brw_instruction *insn,
 
     /* Register Region Restrictions */
 
+    /* B. If ExecSize = Width and HorzStride ≠ 0, VertStride must be set to
+     * Width * HorzStride. */
+    if (execsize == width && hstride != 0) {
+	if (vstride != -1 && vstride != width * hstride);
+	    warn(ALL, location, "execution size == width and hstride != 0 but "
+		 "vstride is not width * hstride\n");
+    }
+
     /* D. If Width = 1, HorzStride must be 0 regardless of the values of
      * ExecSize and VertStride.
      *
@@ -357,6 +365,9 @@ static int get_indirect_subreg_address(GLuint subreg)
 
 static void resolve_subnr(struct brw_reg *reg)
 {
+   if (reg->file == BRW_IMMEDIATE_VALUE)
+	return;
+
    if (reg->address_mode == BRW_ADDRESS_DIRECT)
 	reg->subnr = get_subreg_address(reg->file, reg->type, reg->subnr,
 					reg->address_mode);
@@ -2996,61 +3007,18 @@ int set_instruction_src0(struct brw_instruction *instr,
 			 struct src_operand *src,
 			 YYLTYPE *location)
 {
+
 	if (advanced_flag)
 		reset_instruction_src_region(instr, src);
 
 	if (!validate_src_reg(instr, src->reg, location))
 		return 1;
 
-	instr->bits1.da1.src0_reg_file = src->reg.file;
-	instr->bits1.da1.src0_reg_type = src->reg.type;
-	if (src->reg.file == BRW_IMMEDIATE_VALUE) {
-		instr->bits3.ud = src->reg.dw1.ud;
-	} else if (src->reg.address_mode == BRW_ADDRESS_DIRECT) {
-            if (instr->header.access_mode == BRW_ALIGN_1) {
-		instr->bits2.da1.src0_subreg_nr = get_subreg_address(src->reg.file, src->reg.type, src->reg.subnr, src->reg.address_mode);
-		instr->bits2.da1.src0_reg_nr = src->reg.nr;
-		instr->bits2.da1.src0_vert_stride = src->reg.vstride;
-		instr->bits2.da1.src0_width = src->reg.width;
-		instr->bits2.da1.src0_horiz_stride = src->reg.hstride;
-		instr->bits2.da1.src0_negate = src->reg.negate;
-		instr->bits2.da1.src0_abs = src->reg.abs;
-		instr->bits2.da1.src0_address_mode = src->reg.address_mode;
-            } else {
-		instr->bits2.da16.src0_subreg_nr = get_subreg_address(src->reg.file, src->reg.type, src->reg.subnr, src->reg.address_mode);
-		instr->bits2.da16.src0_reg_nr = src->reg.nr;
-		instr->bits2.da16.src0_vert_stride = src->reg.vstride;
-		instr->bits2.da16.src0_negate = src->reg.negate;
-		instr->bits2.da16.src0_abs = src->reg.abs;
-		instr->bits2.da16.src0_swz_x = BRW_GET_SWZ(SWIZZLE(src->reg), 0);
-		instr->bits2.da16.src0_swz_y = BRW_GET_SWZ(SWIZZLE(src->reg), 1);
-		instr->bits2.da16.src0_swz_z = BRW_GET_SWZ(SWIZZLE(src->reg), 2);
-		instr->bits2.da16.src0_swz_w = BRW_GET_SWZ(SWIZZLE(src->reg), 3);
-		instr->bits2.da16.src0_address_mode = src->reg.address_mode;
-            }
-        } else {
-            if (instr->header.access_mode == BRW_ALIGN_1) {
-		instr->bits2.ia1.src0_indirect_offset = src->reg.dw1.bits.indirect_offset;
-		instr->bits2.ia1.src0_subreg_nr = get_indirect_subreg_address(src->reg.subnr);
-		instr->bits2.ia1.src0_abs = src->reg.abs;
-		instr->bits2.ia1.src0_negate = src->reg.negate;
-		instr->bits2.ia1.src0_address_mode = src->reg.address_mode;
-		instr->bits2.ia1.src0_horiz_stride = src->reg.hstride;
-		instr->bits2.ia1.src0_width = src->reg.width;
-		instr->bits2.ia1.src0_vert_stride = src->reg.vstride;
-            } else {
-		instr->bits2.ia16.src0_swz_x = BRW_GET_SWZ(SWIZZLE(src->reg), 0);
-		instr->bits2.ia16.src0_swz_y = BRW_GET_SWZ(SWIZZLE(src->reg), 1);
-		instr->bits2.ia16.src0_swz_z = BRW_GET_SWZ(SWIZZLE(src->reg), 2);
-		instr->bits2.ia16.src0_swz_w = BRW_GET_SWZ(SWIZZLE(src->reg), 3);
-		instr->bits2.ia16.src0_indirect_offset = (src->reg.dw1.bits.indirect_offset >> 4); /* half register aligned */
-		instr->bits2.ia16.src0_subreg_nr = get_indirect_subreg_address(src->reg.subnr);
-		instr->bits2.ia16.src0_abs = src->reg.abs;
-		instr->bits2.ia16.src0_negate = src->reg.negate;
-		instr->bits2.ia16.src0_address_mode = src->reg.address_mode;
-		instr->bits2.ia16.src0_vert_stride = src->reg.vstride;
-            }
-        }
+	/* the assembler support expressing subnr in bytes or in number of
+	 * elements. */
+	resolve_subnr(&src->reg);
+
+	brw_set_src0(&genasm_compile, instr, src->reg);
 
 	return 0;
 }
