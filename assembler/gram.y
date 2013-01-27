@@ -133,10 +133,13 @@ static void message(enum message_level level, YYLTYPE *location,
 #define warn(flag, l, fmt, ...)					\
     do {							\
 	if (warning_flags & WARN_ ## flag)			\
-	    message(WARN, location, fmt, ## __VA_ARGS__);	\
+	    message(WARN, l, fmt, ## __VA_ARGS__);	\
     } while(0)
 
-#define error(l, fmt, ...)	message(ERROR, location, fmt, ## __VA_ARGS__)
+#define error(l, fmt, ...)			\
+    do {					\
+	message(ERROR, l, fmt, ## __VA_ARGS__);	\
+    } while(0)
 
 /* like strcmp, but handles NULL pointers */
 static bool strcmp0(const char *s1, const char* s2)
@@ -510,6 +513,18 @@ static void resolve_subnr(struct brw_reg *reg)
 %type <src_operand> indirectsrcoperand
 %type <src_operand> src srcimm imm32reg payload srcacc srcaccimm swizzle
 %type <src_operand> relativelocation relativelocation2
+
+%code {
+
+#undef error
+#define error(l, fmt, ...)			\
+    do {					\
+	message(ERROR, l, fmt, ## __VA_ARGS__);	\
+	YYERROR;				\
+    } while(0)
+
+}
+
 %%
 simple_int:     INTEGER { $$ = $1; }
 		| MINUS INTEGER { $$ = -$2;}
@@ -584,11 +599,9 @@ declare_pragma:	DECLARE_PRAGMA STRING declare_base declare_elementsize declare_s
 
 		    found = find_register($2);
 		    if (found) {
-		        if (!declared_register_equal(&reg, found)) {
-			    fprintf(stderr, "Error: %s already defined and "
-				    "definitions don't agree\n", $2);
-			    YYERROR;
-			}
+		        if (!declared_register_equal(&reg, found))
+			    error(&@1, "%s already defined and definitions "
+				  "don't agree\n", $2);
 			free($2); // $2 has been malloc'ed by strdup
 		    } else {
 			new_reg = malloc(sizeof(struct declared_register));
@@ -694,10 +707,8 @@ relocatableinstruction:	ifelseinstruction
 ifelseinstruction: ENDIF
 		{
 		  // for Gen4 
-		  if(IS_GENp(6)) { // For gen6+.
-		    fprintf(stderr, "ENDIF Syntax error: should be 'ENDIF execsize relativelocation'\n");
-		    YYERROR;
-		  }
+		  if(IS_GENp(6)) // For gen6+.
+		    error(&@1, "should be 'ENDIF execsize relativelocation'\n");
 		  memset(&$$, 0, sizeof($$));
 		  $$.gen.header.opcode = $1;
 		  $$.gen.header.thread_control |= BRW_THREAD_SWITCH;
@@ -709,10 +720,8 @@ ifelseinstruction: ENDIF
 		{
 		  // for Gen6+
 		  /* Gen6, Gen7 bspec: predication is prohibited */
-		  if(!IS_GENp(6)) { // for gen6-
-		    fprintf(stderr, "ENDIF Syntax error: should be 'ENDIF'\n");
-		    YYERROR;
-		  }
+		  if(!IS_GENp(6)) // for gen6-
+		    error(&@1, "ENDIF Syntax error: should be 'ENDIF'\n");
 		  memset(&$$, 0, sizeof($$));
 		  $$.gen.header.opcode = $1;
 		  $$.gen.header.execution_size = $2;
@@ -742,24 +751,19 @@ ifelseinstruction: ENDIF
 		    $$.first_reloc_target = $3.reloc_target;
 		    $$.first_reloc_offset = $3.imm32;
 		  } else {
-		    fprintf(stderr, "'ELSE' instruction is not implemented.\n");
-		    YYERROR;
+		    error(&@1, "'ELSE' instruction is not implemented.\n");
 		  }
 		}
 		| predicate IF execsize relativelocation
 		{
-		  /* for Gen4, Gen5 */
 		  /* The branch instructions require that the IP register
 		   * be the destination and first source operand, while the
 		   * offset is the second source operand.  The offset is added
 		   * to the pre-incremented IP.
 		   */
-		  /* for Gen6 */
-		  if(IS_GENp(7)) {
-			/* Error in Gen7+. */		   
-		    fprintf(stderr, "Syntax error: IF should be 'IF execsize JIP UIP'\n");
-		    YYERROR;
-		  }
+		  if(IS_GENp(7)) /* Error in Gen7+. */
+		    error(&@2, "IF should be 'IF execsize JIP UIP'\n");
+
 		  memset(&$$, 0, sizeof($$));
 		  set_instruction_predicate(&$$.gen, &$1);
 		  $$.gen.header.opcode = $2;
@@ -776,10 +780,9 @@ ifelseinstruction: ENDIF
 		| predicate IF execsize relativelocation relativelocation
 		{
 		  /* for Gen7+ */
-		  if(!IS_GENp(7)) {
-		    fprintf(stderr, "Syntax error: IF should be 'IF execsize relativelocation'\n");
-		    YYERROR;
-		  }
+		  if(!IS_GENp(7))
+		    error(&@2, "IF should be 'IF execsize relativelocation'\n");
+
 		  memset(&$$, 0, sizeof($$));
 		  set_instruction_predicate(&$$.gen, &$1);
 		  $$.gen.header.opcode = $2;
@@ -820,8 +823,7 @@ loopinstruction: predicate WHILE execsize relativelocation instoptions
 		    $$.first_reloc_target = $4.reloc_target;
 		    $$.first_reloc_offset = $4.imm32;
 		  } else {
-		    fprintf(stderr, "'WHILE' instruction is not implemented!\n");
-		    YYERROR;
+		    error(&@2, "'WHILE' instruction is not implemented!\n");
 		  }
 		}
 		| DO
@@ -955,7 +957,9 @@ unaryinstruction:
 		    if ($$.header.predicate_control != BRW_PREDICATE_NONE &&
                         ($1.bits2.da1.flag_reg_nr != $3.flag_reg_nr ||
                          $1.bits2.da1.flag_subreg_nr != $3.flag_subreg_nr))
-                        fprintf(stderr, "WARNING: must use the same flag register if both prediction and conditional modifier are enabled\n");
+                        warn(ALWAYS, &@3, "must use the same flag register if "
+			     "both prediction and conditional modifier are "
+			     "enabled\n");
 
 		    $$.bits2.da1.flag_reg_nr = $3.flag_reg_nr;
 		    $$.bits2.da1.flag_subreg_nr = $3.flag_subreg_nr;
@@ -994,7 +998,9 @@ binaryinstruction:
 		    if ($$.header.predicate_control != BRW_PREDICATE_NONE &&
                         ($1.bits2.da1.flag_reg_nr != $3.flag_reg_nr ||
                          $1.bits2.da1.flag_subreg_nr != $3.flag_subreg_nr))
-                        fprintf(stderr, "WARNING: must use the same flag register if both prediction and conditional modifier are enabled\n");
+                        warn(ALWAYS, &@3, "must use the same flag register if "
+			     "both prediction and conditional modifier are "
+			     "enabled\n");
 
 		    $$.bits2.da1.flag_reg_nr = $3.flag_reg_nr;
 		    $$.bits2.da1.flag_subreg_nr = $3.flag_subreg_nr;
@@ -1033,7 +1039,9 @@ binaryaccinstruction:
 		    if ($$.header.predicate_control != BRW_PREDICATE_NONE &&
                         ($1.bits2.da1.flag_reg_nr != $3.flag_reg_nr ||
                          $1.bits2.da1.flag_subreg_nr != $3.flag_subreg_nr))
-                        fprintf(stderr, "WARNING: must use the same flag register if both prediction and conditional modifier are enabled\n");
+                        warn(ALWAYS, &@3, "must use the same flag register if "
+			     "both prediction and conditional modifier are "
+			     "enabled\n");
 
 		    $$.bits2.da1.flag_reg_nr = $3.flag_reg_nr;
 		    $$.bits2.da1.flag_subreg_nr = $3.flag_subreg_nr;
@@ -1082,7 +1090,9 @@ trinaryinstruction:
 		    if ($$.header.predicate_control != BRW_PREDICATE_NONE &&
                         ($1.bits2.da1.flag_reg_nr != $3.flag_reg_nr ||
                          $1.bits2.da1.flag_subreg_nr != $3.flag_subreg_nr))
-                        fprintf(stderr, "WARNING: must use the same flag register if both prediction and conditional modifier are enabled\n");
+                        warn(ALWAYS, &@3, "must use the same flag register if "
+			     "both prediction and conditional modifier are "
+			     "enabled\n");
 		  }
 }
 ;
@@ -1176,8 +1186,8 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
 		  if ($7.reg.type != BRW_REGISTER_TYPE_UD &&
 		      $7.reg.type != BRW_REGISTER_TYPE_D &&
 		      $7.reg.type != BRW_REGISTER_TYPE_V) {
-		    fprintf (stderr, "%d: non-int D/UD/V representation: %d,type=%d\n", yylineno, $7.reg.dw1.ud, $7.reg.type);
-			YYERROR;
+		    error (&@7, "non-int D/UD/V representation: %d,"
+			   "type=%d\n", $7.reg.dw1.ud, $7.reg.type);
 		  }
 		  memset(&$$, 0, sizeof($$));
 		  $$.header.opcode = $2;
@@ -1197,16 +1207,14 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
 		{
 		  struct src_operand src0;
 
-		  if (!IS_GENp(6)) {
-                      fprintf(stderr, "error: the syntax of send instruction\n");
-                      YYERROR;
-		  }
+		  if (!IS_GENp(6))
+                      error(&@2, "the syntax of send instruction\n");
 
 		  if ($7.reg.type != BRW_REGISTER_TYPE_UD &&
                       $7.reg.type != BRW_REGISTER_TYPE_D &&
                       $7.reg.type != BRW_REGISTER_TYPE_V) {
-                      fprintf (stderr, "%d: non-int D/UD/V representation: %d,type=%d\n", yylineno, $7.reg.dw1.ud, $7.reg.type);
-                      YYERROR;
+                      error(&@7,"non-int D/UD/V representation: %d,"
+			    "type=%d\n", $7.reg.dw1.ud, $7.reg.type);
 		  }
 
 		  memset(&$$, 0, sizeof($$));
@@ -1242,17 +1250,14 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
 		{
 		  struct src_operand src0;
 
-		  if (!IS_GENp(6)) {
-                      fprintf(stderr, "error: the syntax of send instruction\n");
-                      YYERROR;
-		  }
+		  if (!IS_GENp(6))
+                      error(&@2, "the syntax of send instruction\n");
 
                   if ($7.reg.file != BRW_ARCHITECTURE_REGISTER_FILE ||
                       ($7.reg.nr & 0xF0) != BRW_ARF_ADDRESS ||
                       ($7.reg.nr & 0x0F) != 0 ||
                       $7.reg.subnr != 0) {
-                      fprintf (stderr, "%d: scalar register must be a0.0<0;1,0>:ud\n", yylineno);
-                      YYERROR;
+                      error (&@7, "scalar register must be a0.0<0;1,0>:ud\n");
 		  }
 
 		  memset(&$$, 0, sizeof($$));
@@ -1287,8 +1292,8 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
 		  if ($8.reg.type != BRW_REGISTER_TYPE_UD &&
 		      $8.reg.type != BRW_REGISTER_TYPE_D &&
 		      $8.reg.type != BRW_REGISTER_TYPE_V) {
-		    fprintf (stderr, "%d: non-int D/UD/V representation: %d,type=%d\n", yylineno, $8.reg.dw1.ud, $8.reg.type);
-			YYERROR;
+		    error(&@8, "non-int D/UD/V representation: %d,"
+			  "type=%d\n", $8.reg.dw1.ud, $8.reg.type);
 		  }
 		  memset(&$$, 0, sizeof($$));
 		  $$.header.opcode = $2;
@@ -1476,8 +1481,7 @@ msgtarget:	NULL_TOKEN
 		| MATH math_function saturate math_signed math_scalar
 		{
 		  if (IS_GENp(6)) {
-                      fprintf (stderr, "Gen6+ doesn't have math function\n");
-                      YYERROR;
+                      error (&@1, "Gen6+ doesn't have math function\n");
 		  } else if (IS_GENx(5)) {
                       $$.bits2.send_gen5.sfid = BRW_SFID_MATH;
                       $$.bits3.generic_gen5.header_present = 0;
@@ -1682,16 +1686,14 @@ msgtarget:	NULL_TOKEN
                       $$.bits3.vme_gen6.message_type = $9;
                       $$.bits3.generic_gen5.header_present = 1; 
 		  } else {
-                      fprintf (stderr, "Gen6- doesn't have vme function\n");
-                      YYERROR;
+                      error (&@1, "Gen6- doesn't have vme function\n");
 		  }    
 		} 
 		| CRE LPAREN INTEGER COMMA INTEGER RPAREN
 		{
-		   if (gen_level < 75) {
-                      fprintf (stderr, "Below Gen7.5 doesn't have CRE function\n");
-                      YYERROR;
-		    }
+		   if (gen_level < 75)
+                      error (&@1, "Below Gen7.5 doesn't have CRE function\n");
+
 		   $$.bits3.generic.msg_target = HSW_SFID_CRE;
 
                    $$.bits2.send_gen5.sfid = HSW_SFID_CRE;
@@ -1711,8 +1713,7 @@ msgtarget:	NULL_TOKEN
                             $3 != GEN6_SFID_DATAPORT_RENDER_CACHE &&
                             $3 != GEN6_SFID_DATAPORT_CONSTANT_CACHE &&
                             $3 != GEN7_SFID_DATAPORT_DATA_CACHE) {
-                            fprintf (stderr, "error: wrong cache type\n");
-                            YYERROR;
+                            error (&@3, "error: wrong cache type\n");
                         }
 
                         $$.bits3.gen7_dp.category = $11;
@@ -1723,8 +1724,7 @@ msgtarget:	NULL_TOKEN
                         if ($3 != GEN6_SFID_DATAPORT_SAMPLER_CACHE &&
                             $3 != GEN6_SFID_DATAPORT_RENDER_CACHE &&
                             $3 != GEN6_SFID_DATAPORT_CONSTANT_CACHE) {
-                            fprintf (stderr, "error: wrong cache type\n");
-                            YYERROR;
+                            error (&@3, "error: wrong cache type\n");
                         }
 
                         $$.bits3.gen6_dp.send_commit_msg = $11;
@@ -1732,8 +1732,7 @@ msgtarget:	NULL_TOKEN
                         $$.bits3.gen6_dp.msg_control = $7;
                         $$.bits3.gen6_dp.msg_type = $5;
                     } else if (!IS_GENp(5)) {
-                        fprintf (stderr, "Gen6- doesn't support data port for sampler/render/constant/data cache\n");
-                        YYERROR;
+                        error (&@1, "Gen6- doesn't support data port for sampler/render/constant/data cache\n");
                     }
 		} 
 ;
@@ -1838,10 +1837,8 @@ symbol_reg:	STRING %prec STR_SYMBOL_REG
 		{
 		    struct declared_register *dcl_reg = find_register($1);
 
-		    if (dcl_reg == NULL) {
-			fprintf(stderr, "can't find register %s\n", $1);
-			YYERROR;
-		    }
+		    if (dcl_reg == NULL)
+			error(&@1, "can't find register %s\n", $1);
 
 		    memcpy(&$$, dcl_reg, sizeof(*dcl_reg));
 		    free($1); // $1 has been malloc'ed by strdup
@@ -1856,10 +1853,8 @@ symbol_reg_p: STRING LPAREN exp RPAREN
 		{
 		    struct declared_register *dcl_reg = find_register($1);	
 
-		    if (dcl_reg == NULL) {
-			fprintf(stderr, "can't find register %s\n", $1);
-			YYERROR;
-		    }
+		    if (dcl_reg == NULL)
+			error(&@1, "can't find register %s\n", $1);
 
 		    memcpy(&$$, dcl_reg, sizeof(*dcl_reg));
 		    $$.reg.nr += $3;
@@ -1869,10 +1864,8 @@ symbol_reg_p: STRING LPAREN exp RPAREN
 		{
 		    struct declared_register *dcl_reg = find_register($1);	
 
-		    if (dcl_reg == NULL) {
-			fprintf(stderr, "can't find register %s\n", $1);
-			YYERROR;
-		    }
+		    if (dcl_reg == NULL)
+			error(&@1, "can't find register %s\n", $1);
 
 		    memcpy(&$$, dcl_reg, sizeof(*dcl_reg));
 		    $$.reg.nr += $3;
@@ -1940,8 +1933,7 @@ imm32reg:	imm32 srcimmtype
 		      d = $1.u.d;
 		      break;
 		    default:
-		      fprintf (stderr, "%d: non-int D/UD/V/VF representation: %d,type=%d\n", yylineno, $1.r, $2);
-		      YYERROR;
+		      error (&@2, "non-int D/UD/V/VF representation: %d,type=%d\n", $1.r, $2);
 		    }
 		    break;
 		  case BRW_REGISTER_TYPE_UW:
@@ -1951,8 +1943,7 @@ imm32reg:	imm32 srcimmtype
 		      d = $1.u.d;
 		      break;
 		    default:
-		      fprintf (stderr, "non-int W/UW representation\n");
-		      YYERROR;
+		      error (&@2, "non-int W/UW representation\n");
 		    }
 		    d &= 0xffff;
 		    d |= d << 16;
@@ -1966,8 +1957,7 @@ imm32reg:	imm32 srcimmtype
 		      intfloat.f = (float) $1.u.d;
 		      break;
 		    default:
-		      fprintf (stderr, "non-float F representation\n");
-		      YYERROR;
+		      error (&@2, "non-float F representation\n");
 		    }
 		    d = intfloat.i;
 		    break;
@@ -1977,8 +1967,7 @@ imm32reg:	imm32 srcimmtype
 		    YYERROR;
 #endif
 		  default:
-		    fprintf(stderr, "unknown immediate type %d\n", $2);
-		    YYERROR;
+		    error(&@2, "unknown immediate type %d\n", $2);
 		  }
 		  memset (&$$, '\0', sizeof ($$));
 		  $$.reg.file = BRW_IMMEDIATE_VALUE;
@@ -2145,11 +2134,8 @@ indirectsrcoperand:
  */
 addrparam:	addrreg COMMA immaddroffset
 		{
-		    if ($3 < -512 || $3 > 511) {
-		    fprintf(stderr, "Address immediate offset %d out of"
-			    "range %d\n", $3, yylineno);
-		    YYERROR;
-		  }
+		  if ($3 < -512 || $3 > 511)
+		    error(&@3, "Address immediate offset %d out of range\n", $3);
 		  memset (&$$, '\0', sizeof ($$));
 		  $$.subnr = $1.subnr;
 		  $$.dw1.bits.indirect_offset = $3;
@@ -2220,11 +2206,9 @@ indirectmsgreg: MSGREGFILE LSQUARE addrparam RSQUARE
 
 addrreg:	ADDRESSREG subregnum
 		{
-		  if ($1 != 0) {
-		    fprintf(stderr,
-			    "address register number %d out of range", $1);
-		    YYERROR;
-		  }
+		  if ($1 != 0)
+		    error(&@2, "address register number %d out of range", $1);
+
 		  memset (&$$, '\0', sizeof ($$));
 		  $$.file = BRW_ARCHITECTURE_REGISTER_FILE;
 		  $$.nr = BRW_ARF_ADDRESS | $1;
@@ -2234,11 +2218,8 @@ addrreg:	ADDRESSREG subregnum
 
 accreg:		ACCREG subregnum
 		{
-		  if ($1 > 1) {
-		    fprintf(stderr,
-			    "accumulator register number %d out of range", $1);
-		    YYERROR;
-		  }
+		  if ($1 > 1)
+		    error(&@1, "accumulator register number %d out of range", $1);
 		  memset (&$$, '\0', sizeof ($$));
 		  $$.file = BRW_ARCHITECTURE_REGISTER_FILE;
 		  $$.nr = BRW_ARF_ACCUMULATOR | $1;
@@ -2250,16 +2231,11 @@ flagreg:	FLAGREG subregnum
 		{
 		  if ((!IS_GENp(7) && $1) > 0 ||
 		      (IS_GENp(7) && $1 > 1)) {
-                    fprintf(stderr,
-			    "flag register number %d out of range\n", $1);
-		    YYERROR;
+                    error(&@2, "flag register number %d out of range\n", $1);
 		  }
 
-		  if ($2 > 1) {
-		    fprintf(stderr,
-			    "flag subregister number %d out of range\n", $1);
-		    YYERROR;
-		  }
+		  if ($2 > 1)
+		    error(&@2, "flag subregister number %d out of range\n", $1);
 
 		  memset (&$$, '\0', sizeof ($$));
 		  $$.file = BRW_ARCHITECTURE_REGISTER_FILE;
@@ -2270,11 +2246,9 @@ flagreg:	FLAGREG subregnum
 
 maskreg:	MASKREG subregnum
 		{
-		  if ($1 > 0) {
-		    fprintf(stderr,
-			    "mask register number %d out of range", $1);
-		    YYERROR;
-		  }
+		  if ($1 > 0)
+		    error(&@1, "mask register number %d out of range", $1);
+
 		  memset (&$$, '\0', sizeof ($$));
 		  $$.file = BRW_ARCHITECTURE_REGISTER_FILE;
 		  $$.nr = BRW_ARF_MASK;
@@ -2294,11 +2268,8 @@ mask_subreg:	AMASK | IMASK | LMASK | CMASK
 
 maskstackreg:	MASKSTACKREG subregnum
 		{
-		  if ($1 > 0) {
-		    fprintf(stderr,
-			    "mask stack register number %d out of range", $1);
-		    YYERROR;
-		  }
+		  if ($1 > 0)
+		    error(&@1, "mask stack register number %d out of range", $1);
 		  memset (&$$, '\0', sizeof ($$));
 		  $$.file = BRW_ARCHITECTURE_REGISTER_FILE;
 		  $$.nr = BRW_ARF_MASK_STACK;
@@ -2319,11 +2290,8 @@ maskstack_subreg: IMS | LMS
 /*
 maskstackdepthreg: MASKSTACKDEPTHREG subregnum
 		{
-		  if ($1 > 0) {
-		    fprintf(stderr,
-			    "mask stack register number %d out of range", $1);
-		    YYERROR;
-		  }
+		  if ($1 > 0)
+		    error(&@1, "mask stack register number %d out of range", $1);
 		  memset (&$$, '\0', sizeof ($$));
 		  $$.reg_file = BRW_ARCHITECTURE_REGISTER_FILE;
 		  $$.reg_nr = BRW_ARF_MASK_STACK_DEPTH;
@@ -2346,12 +2314,10 @@ notifyreg:	NOTIFYREG regtype
 		{
 		  int num_notifyreg = (IS_GENp(6)) ? 3 : 2;
 
-		  if ($1 > num_notifyreg) {
-		    fprintf(stderr,
-			    "notification register number %d out of range",
-			    $1);
-		    YYERROR;
-		  }
+		  if ($1 > num_notifyreg)
+		    error(&@1, "notification register number %d out of range",
+			  $1);
+
 		  memset (&$$, '\0', sizeof ($$));
 		  $$.file = BRW_ARCHITECTURE_REGISTER_FILE;
 
@@ -2382,16 +2348,12 @@ notifyreg:	NOTIFYREG regtype
 
 statereg:	STATEREG subregnum
 		{
-		  if ($1 > 0) {
-		    fprintf(stderr,
-			    "state register number %d out of range", $1);
-		    YYERROR;
-		  }
-		  if ($2 > 1) {
-		    fprintf(stderr,
-			    "state subregister number %d out of range", $1);
-		    YYERROR;
-		  }
+		  if ($1 > 0)
+		    error(&@1, "state register number %d out of range", $1);
+
+		  if ($2 > 1)
+		    error(&@2, "state subregister number %d out of range", $1);
+
 		  memset (&$$, '\0', sizeof ($$));
 		  $$.file = BRW_ARCHITECTURE_REGISTER_FILE;
 		  $$.nr = BRW_ARF_STATE | $1;
@@ -2401,16 +2363,11 @@ statereg:	STATEREG subregnum
 
 controlreg:	CONTROLREG subregnum
 		{
-		  if ($1 > 0) {
-		    fprintf(stderr,
-			    "control register number %d out of range", $1);
-		    YYERROR;
-		  }
-		  if ($2 > 2) {
-		    fprintf(stderr,
-			    "control subregister number %d out of range", $1);
-		    YYERROR;
-		  }
+		  if ($1 > 0)
+		    error(&@1, "control register number %d out of range", $1);
+
+		  if ($2 > 2)
+		    error(&@2, "control subregister number %d out of range", $1);
 		  memset (&$$, '\0', sizeof ($$));
 		  $$.file = BRW_ARCHITECTURE_REGISTER_FILE;
 		  $$.nr = BRW_ARF_CONTROL | $1;
@@ -2440,12 +2397,8 @@ nullreg:	NULL_TOKEN
 relativelocation:
 		simple_int
 		{
-		  if (($1 > 32767) || ($1 < -32768)) {
-		    fprintf(stderr,
-			    "error: relative offset %d out of range \n", 
-			    $1);
-		    YYERROR;
-		  }
+		  if (($1 > 32767) || ($1 < -32768))
+		    error(&@1, "error: relative offset %d out of range \n", $1);
 
 		  memset (&$$, '\0', sizeof ($$));
 		  $$.reg.file = BRW_IMMEDIATE_VALUE;
@@ -2520,9 +2473,9 @@ dstregion:	/* empty */
 		  /* Returns a value for a horiz_stride field of an
 		   * instruction.
 		   */
-		  if ($2 != 1 && $2 != 2 && $2 != 4) {
-		    fprintf(stderr, "Invalid horiz size %d\n", $2);
-		  }
+		  if ($2 != 1 && $2 != 2 && $2 != 4)
+		    error(&@2, "Invalid horiz size %d\n", $2);
+
 		  $$ = ffs($2);
 		}
 ;
@@ -2723,10 +2676,9 @@ execsize:	/* empty */ %prec EMPTEXECSIZE
 		   * instruction.
 		   */
 		  if ($2 != 1 && $2 != 2 && $2 != 4 && $2 != 8 && $2 != 16 &&
-		      $2 != 32) {
-		    fprintf(stderr, "Invalid execution size %d\n", $2);
-		    YYERROR;
-		  }
+		      $2 != 32)
+		    error(&@2, "Invalid execution size %d\n", $2);
+
 		  $$ = ffs($2) - 1;
 		}
 ;
