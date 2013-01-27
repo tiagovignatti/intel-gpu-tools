@@ -2226,7 +2226,7 @@ accreg:		ACCREG subregnum
 
 flagreg:	FLAGREG subregnum
 		{
-		  if ((!IS_GENp(7) && $1) > 0 ||
+		  if ((!IS_GENp(7) && $1 > 0) ||
 		      (IS_GENp(7) && $1 > 1)) {
                     error(&@2, "flag register number %d out of range\n", $1);
 		  }
