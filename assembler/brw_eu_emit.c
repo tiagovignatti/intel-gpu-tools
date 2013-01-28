@@ -351,6 +351,9 @@ void brw_set_src1(struct brw_compile *p,
 		  struct brw_instruction *insn,
 		  struct brw_reg reg)
 {
+   struct brw_context *brw = p->brw;
+   struct intel_context *intel = &brw->intel;
+
    assert(reg.file != BRW_MESSAGE_REGISTER_FILE);
 
    if (reg.file != BRW_ARCHITECTURE_REGISTER_FILE)
@@ -364,6 +367,7 @@ void brw_set_src1(struct brw_compile *p,
    insn->bits1.da1.src1_reg_type = reg.type;
    insn->bits3.da1.src1_abs = reg.abs;
    insn->bits3.da1.src1_negate = reg.negate;
+   insn->bits3.da1.src1_address_mode = reg.address_mode;
 
    /* Only src1 can be immediate in two-argument instructions.
     */
@@ -373,33 +377,44 @@ void brw_set_src1(struct brw_compile *p,
       insn->bits3.ud = reg.dw1.ud;
    }
    else {
-      /* This is a hardware restriction, which may or may not be lifted
-       * in the future:
-       */
-      assert (reg.address_mode == BRW_ADDRESS_DIRECT);
-      /* assert (reg.file == BRW_GENERAL_REGISTER_FILE); */
+      /* It's only BRW that does not support register-indirect addressing on
+       * src1 */
+      assert (intel->gen >= 4 || reg.address_mode == BRW_ADDRESS_DIRECT);
 
-      if (insn->header.access_mode == BRW_ALIGN_1) {
-	 insn->bits3.da1.src1_subreg_nr = reg.subnr;
-	 insn->bits3.da1.src1_reg_nr = reg.nr;
+      if (reg.address_mode == BRW_ADDRESS_DIRECT) {
+	 if (insn->header.access_mode == BRW_ALIGN_1) {
+	    insn->bits3.da1.src1_subreg_nr = reg.subnr;
+	    insn->bits3.da1.src1_reg_nr = reg.nr;
+	 }
+	 else {
+	    insn->bits3.da16.src1_subreg_nr = reg.subnr / 16;
+	    insn->bits3.da16.src1_reg_nr = reg.nr;
+	 }
       }
       else {
-	 insn->bits3.da16.src1_subreg_nr = reg.subnr / 16;
-	 insn->bits3.da16.src1_reg_nr = reg.nr;
+	 insn->bits3.ia1.src1_subreg_nr = reg.subnr;
+
+	 if (insn->header.access_mode == BRW_ALIGN_1)
+	    insn->bits3.ia1.src1_indirect_offset = reg.dw1.bits.indirect_offset;
+	 else
+	    insn->bits3.ia16.src1_indirect_offset = reg.dw1.bits.indirect_offset / 16;
       }
 
       if (insn->header.access_mode == BRW_ALIGN_1) {
+	 /* FIXME: While this is correct, if the assembler uses that code path
+	  * the opcode generated are different and thus needs a validation
+	  * pass.
 	 if (reg.width == BRW_WIDTH_1 && 
 	     insn->header.execution_size == BRW_EXECUTE_1) {
 	    insn->bits3.da1.src1_horiz_stride = BRW_HORIZONTAL_STRIDE_0;
 	    insn->bits3.da1.src1_width = BRW_WIDTH_1;
 	    insn->bits3.da1.src1_vert_stride = BRW_VERTICAL_STRIDE_0;
 	 }
-	 else {
+	 else { */
 	    insn->bits3.da1.src1_horiz_stride = reg.hstride;
 	    insn->bits3.da1.src1_width = reg.width;
 	    insn->bits3.da1.src1_vert_stride = reg.vstride;
-	 }
+     /* } */
       }
       else {
 	 insn->bits3.da16.src1_swz_x = BRW_GET_SWZ(reg.dw1.bits.swizzle, BRW_CHANNEL_X);
