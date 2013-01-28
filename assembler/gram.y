@@ -2981,55 +2981,11 @@ static int set_instruction_src1(struct brw_instruction *instr,
 	if (!validate_src_reg(instr, src->reg, location))
 		return 1;
 
-	instr->bits1.da1.src1_reg_file = src->reg.file;
-	instr->bits1.da1.src1_reg_type = src->reg.type;
-	if (src->reg.file == BRW_IMMEDIATE_VALUE) {
-		instr->bits3.ud = src->reg.dw1.ud;
-	} else if (src->reg.address_mode == BRW_ADDRESS_DIRECT) {
-            if (instr->header.access_mode == BRW_ALIGN_1) {
-		instr->bits3.da1.src1_subreg_nr = get_subreg_address(src->reg.file, src->reg.type, src->reg.subnr, src->reg.address_mode);
-		instr->bits3.da1.src1_reg_nr = src->reg.nr;
-		instr->bits3.da1.src1_vert_stride = src->reg.vstride;
-		instr->bits3.da1.src1_width = src->reg.width;
-		instr->bits3.da1.src1_horiz_stride = src->reg.hstride;
-		instr->bits3.da1.src1_negate = src->reg.negate;
-		instr->bits3.da1.src1_abs = src->reg.abs;
-                instr->bits3.da1.src1_address_mode = src->reg.address_mode;
-            } else {
-		instr->bits3.da16.src1_subreg_nr = get_subreg_address(src->reg.file, src->reg.type, src->reg.subnr, src->reg.address_mode);
-		instr->bits3.da16.src1_reg_nr = src->reg.nr;
-		instr->bits3.da16.src1_vert_stride = src->reg.vstride;
-		instr->bits3.da16.src1_negate = src->reg.negate;
-		instr->bits3.da16.src1_abs = src->reg.abs;
-		instr->bits3.da16.src1_swz_x = BRW_GET_SWZ(SWIZZLE(src->reg), 0);
-		instr->bits3.da16.src1_swz_y = BRW_GET_SWZ(SWIZZLE(src->reg), 1);
-		instr->bits3.da16.src1_swz_z = BRW_GET_SWZ(SWIZZLE(src->reg), 2);
-		instr->bits3.da16.src1_swz_w = BRW_GET_SWZ(SWIZZLE(src->reg), 3);
-                instr->bits3.da16.src1_address_mode = src->reg.address_mode;
-            }
-	} else {
-            if (instr->header.access_mode == BRW_ALIGN_1) {
-		instr->bits3.ia1.src1_indirect_offset = src->reg.dw1.bits.indirect_offset;
-		instr->bits3.ia1.src1_subreg_nr = get_indirect_subreg_address(src->reg.subnr);
-		instr->bits3.ia1.src1_abs = src->reg.abs;
-		instr->bits3.ia1.src1_negate = src->reg.negate;
-		instr->bits3.ia1.src1_address_mode = src->reg.address_mode;
-		instr->bits3.ia1.src1_horiz_stride = src->reg.hstride;
-		instr->bits3.ia1.src1_width = src->reg.width;
-		instr->bits3.ia1.src1_vert_stride = src->reg.vstride;
-            } else {
-		instr->bits3.ia16.src1_swz_x = BRW_GET_SWZ(SWIZZLE(src->reg), 0);
-		instr->bits3.ia16.src1_swz_y = BRW_GET_SWZ(SWIZZLE(src->reg), 1);
-		instr->bits3.ia16.src1_swz_z = BRW_GET_SWZ(SWIZZLE(src->reg), 2);
-		instr->bits3.ia16.src1_swz_w = BRW_GET_SWZ(SWIZZLE(src->reg), 3);
-		instr->bits3.ia16.src1_indirect_offset = (src->reg.dw1.bits.indirect_offset >> 4); /* half register aligned */
-		instr->bits3.ia16.src1_subreg_nr = get_indirect_subreg_address(src->reg.subnr);
-		instr->bits3.ia16.src1_abs = src->reg.abs;
-		instr->bits3.ia16.src1_negate = src->reg.negate;
-		instr->bits3.ia16.src1_address_mode = src->reg.address_mode;
-		instr->bits3.ia16.src1_vert_stride = src->reg.vstride;
-            }
-        }
+	/* the assembler support expressing subnr in bytes or in number of
+	 * elements. */
+	resolve_subnr(&src->reg);
+
+	brw_set_src1(&genasm_compile, instr, src->reg);
 
 	return 0;
 }
