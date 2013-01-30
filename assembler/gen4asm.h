@@ -85,6 +85,13 @@ struct condition {
 	int flag_subreg_nr;
 };
 
+struct predicate {
+    unsigned pred_control:4;
+    unsigned pred_inverse:1;
+    unsigned flag_reg_nr:1;
+    unsigned flag_subreg_nr:1;
+};
+
 struct region {
     int vert_stride, width, horiz_stride;
     int is_default;        
