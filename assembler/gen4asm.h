@@ -92,6 +92,18 @@ struct predicate {
     unsigned flag_subreg_nr:1;
 };
 
+struct options {
+    unsigned access_mode:1;
+    unsigned compression_control:2; /* gen6: quater control */
+    unsigned thread_control:2;
+    unsigned dependency_control:2;
+    unsigned mask_control:1;
+    unsigned debug_control:1;
+    unsigned acc_wr_control:1;
+
+    unsigned end_of_thread:1;
+};
+
 struct region {
     int vert_stride, width, horiz_stride;
     int is_default;        

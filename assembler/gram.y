@@ -99,7 +99,7 @@ static int set_instruction_src1_three_src(struct brw_program_instruction *instr,
 static int set_instruction_src2_three_src(struct brw_program_instruction *instr,
 					  struct src_operand *src);
 static void set_instruction_options(struct brw_program_instruction *instr,
-				    struct brw_program_instruction *options);
+				    struct options options);
 static void set_instruction_predicate(struct brw_program_instruction *instr,
 				      struct predicate *p);
 static void set_direct_dst_operand(struct brw_reg *dst, struct brw_reg *reg,
@@ -397,6 +397,7 @@ static void resolve_subnr(struct brw_reg *reg)
 	struct brw_reg reg;
 	struct condition condition;
 	struct predicate predicate;
+	struct options options;
 	struct declared_register symbol_reg;
 	imm32_t imm32;
 
@@ -476,7 +477,6 @@ static void resolve_subnr(struct brw_reg *reg)
 %type <instruction> binaryaccinstruction trinaryinstruction sendinstruction
 %type <instruction> syncinstruction
 %type <instruction> msgtarget
-%type <instruction> instoptions instoption_list
 %type <instruction> mathinstruction
 %type <instruction> nopinstruction
 %type <instruction> relocatableinstruction breakinstruction
@@ -489,6 +489,7 @@ static void resolve_subnr(struct brw_reg *reg)
 %type <integer> trinaryop
 %type <condition> conditionalmodifier 
 %type <predicate> predicate
+%type <options> instoptions instoption_list
 %type <integer> condition saturate negate abs chansel
 %type <integer> writemask_x writemask_y writemask_z writemask_w
 %type <integer> srcimmtype execsize dstregion immaddroffset
@@ -526,45 +527,45 @@ static void resolve_subnr(struct brw_reg *reg)
 	YYERROR;				\
     } while(0)
 
-static void add_option(struct brw_program_instruction *insn, int option)
+static void add_option(struct options *options, int option)
 {
     switch (option) {
     case ALIGN1:
-	GEN(insn)->header.access_mode = BRW_ALIGN_1;
+	options->access_mode = BRW_ALIGN_1;
 	break;
     case ALIGN16:
-	GEN(insn)->header.access_mode = BRW_ALIGN_16;
+	options->access_mode = BRW_ALIGN_16;
 	break;
     case SECHALF:
-	GEN(insn)->header.compression_control |= BRW_COMPRESSION_2NDHALF;
+	options->compression_control |= BRW_COMPRESSION_2NDHALF;
 	break;
     case COMPR:
 	if (!IS_GENp(6))
-	    GEN(insn)->header.compression_control |= BRW_COMPRESSION_COMPRESSED;
+	    options->compression_control |= BRW_COMPRESSION_COMPRESSED;
 	break;
     case SWITCH:
-	GEN(insn)->header.thread_control |= BRW_THREAD_SWITCH;
+	options->thread_control |= BRW_THREAD_SWITCH;
 	break;
     case ATOMIC:
-	GEN(insn)->header.thread_control |= BRW_THREAD_ATOMIC;
+	options->thread_control |= BRW_THREAD_ATOMIC;
 	break;
     case NODDCHK:
-	GEN(insn)->header.dependency_control |= BRW_DEPENDENCY_NOTCHECKED;
+	options->dependency_control |= BRW_DEPENDENCY_NOTCHECKED;
 	break;
     case NODDCLR:
-	GEN(insn)->header.dependency_control |= BRW_DEPENDENCY_NOTCLEARED;
+	options->dependency_control |= BRW_DEPENDENCY_NOTCLEARED;
 	break;
     case MASK_DISABLE:
-	GEN(insn)->header.mask_control = BRW_MASK_DISABLE;
+	options->mask_control = BRW_MASK_DISABLE;
 	break;
     case BREAKPOINT:
-	GEN(insn)->header.debug_control = BRW_DEBUG_BREAKPOINT;
+	options->debug_control = BRW_DEBUG_BREAKPOINT;
 	break;
     case ACCWRCTRL:
-	GEN(insn)->header.acc_wr_control = BRW_ACCUMULATOR_WRITE_ENABLE;
+	options->acc_wr_control = BRW_ACCUMULATOR_WRITE_ENABLE;
 	break;
     case EOT:
-	GEN(insn)->bits3.generic.end_of_thread = 1;
+	options->end_of_thread = 1;
 	break;
     }
 }
@@ -992,7 +993,7 @@ unaryinstruction:
 		  GEN(&$$)->header.destreg__conditionalmod = $3.cond;
 		  GEN(&$$)->header.saturate = $4;
 		  $6.width = $5;
-		  set_instruction_options(&$$, &$8);
+		  set_instruction_options(&$$, $8);
 		  set_instruction_predicate(&$$, &$1);
 		  if (set_instruction_dest(&$$, &$6) != 0)
 		    YYERROR;
@@ -1030,7 +1031,7 @@ binaryinstruction:
 		  GEN(&$$)->header.opcode = $2;
 		  GEN(&$$)->header.destreg__conditionalmod = $3.cond;
 		  GEN(&$$)->header.saturate = $4;
-		  set_instruction_options(&$$, &$9);
+		  set_instruction_options(&$$, $9);
 		  set_instruction_predicate(&$$, &$1);
 		  $6.width = $5;
 		  if (set_instruction_dest(&$$, &$6) != 0)
@@ -1072,7 +1073,7 @@ binaryaccinstruction:
 		  GEN(&$$)->header.destreg__conditionalmod = $3.cond;
 		  GEN(&$$)->header.saturate = $4;
 		  $6.width = $5;
-		  set_instruction_options(&$$, &$9);
+		  set_instruction_options(&$$, $9);
 		  set_instruction_predicate(&$$, &$1);
 		  if (set_instruction_dest(&$$, &$6) != 0)
 		    YYERROR;
@@ -1127,7 +1128,7 @@ trinaryinstruction:
 		    YYERROR;
 		  if (set_instruction_src2_three_src(&$$, &$9))
 		    YYERROR;
-		  set_instruction_options(&$$, &$10);
+		  set_instruction_options(&$$, $10);
 
 		  if ($3.flag_subreg_nr != -1) {
 		    if (GEN(&$$)->header.predicate_control != BRW_PREDICATE_NONE &&
@@ -1189,21 +1190,19 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
                       } else {
                           GEN(&$$)->header.destreg__conditionalmod = $4; /* msg reg index */
                           GEN(&$$)->bits2.send_gen5.sfid = GEN(&$7)->bits2.send_gen5.sfid;
-                          GEN(&$$)->bits2.send_gen5.end_of_thread = GEN(&$12)->bits3.generic_gen5.end_of_thread;
+                          GEN(&$$)->bits2.send_gen5.end_of_thread = $12.end_of_thread;
                       }
 
                       GEN(&$$)->bits3.generic_gen5 = GEN(&$7)->bits3.generic_gen5;
                       GEN(&$$)->bits3.generic_gen5.msg_length = $9;
                       GEN(&$$)->bits3.generic_gen5.response_length = $11;
-                      GEN(&$$)->bits3.generic_gen5.end_of_thread =
-                          GEN(&$12)->bits3.generic_gen5.end_of_thread;
+                      GEN(&$$)->bits3.generic_gen5.end_of_thread = $12.end_of_thread;
 		  } else {
                       GEN(&$$)->header.destreg__conditionalmod = $4; /* msg reg index */
                       GEN(&$$)->bits3.generic = GEN(&$7)->bits3.generic;
                       GEN(&$$)->bits3.generic.msg_length = $9;
                       GEN(&$$)->bits3.generic.response_length = $11;
-                      GEN(&$$)->bits3.generic.end_of_thread =
-                          GEN(&$12)->bits3.generic.end_of_thread;
+                      GEN(&$$)->bits3.generic.end_of_thread = $12.end_of_thread;
 		  }
 		}
 		| predicate SEND execsize dst sendleadreg payload directsrcoperand instoptions
@@ -1413,7 +1412,7 @@ mathinstruction: predicate MATH_INST execsize dst src srcimm math_function insto
 		  memset(&$$, 0, sizeof($$));
 		  GEN(&$$)->header.opcode = $2;
 		  GEN(&$$)->header.destreg__conditionalmod = $7;
-		  set_instruction_options(&$$, &$8);
+		  set_instruction_options(&$$, $8);
 		  set_instruction_predicate(&$$, &$1);
 		  $4.width = $3;
 		  if (set_instruction_dest(&$$, &$4) != 0)
@@ -3033,14 +3032,16 @@ static int set_instruction_src2_three_src(struct brw_program_instruction *instr,
 }
 
 static void set_instruction_options(struct brw_program_instruction *instr,
-				    struct brw_program_instruction *options)
+				    struct options options)
 {
-	/* XXX: more instr options */
-	GEN(instr)->header.access_mode = GEN(options)->header.access_mode;
-	GEN(instr)->header.mask_control = GEN(options)->header.mask_control;
-	GEN(instr)->header.dependency_control = GEN(options)->header.dependency_control;
-	GEN(instr)->header.compression_control =
-		GEN(options)->header.compression_control;
+	GEN(instr)->header.access_mode = options.access_mode;
+	GEN(instr)->header.compression_control = options.compression_control;
+	GEN(instr)->header.thread_control = options.thread_control;
+	GEN(instr)->header.dependency_control = options.dependency_control;
+	GEN(instr)->header.mask_control = options.mask_control;
+	GEN(instr)->header.debug_control = options.debug_control;
+	GEN(instr)->header.acc_wr_control = options.acc_wr_control;
+	GEN(instr)->bits3.generic.end_of_thread = options.end_of_thread;
 }
 
 static void set_instruction_predicate(struct brw_program_instruction *instr,
