@@ -82,6 +82,8 @@ static struct src_operand ip_src =
 };
 
 static int get_type_size(GLuint type);
+static void set_instruction_opcode(struct brw_program_instruction *instr,
+				   unsigned opcode);
 static int set_instruction_dest(struct brw_program_instruction *instr,
 				struct brw_reg *dest);
 static int set_instruction_src0(struct brw_program_instruction *instr,
@@ -757,7 +759,7 @@ ifelseinstruction: ENDIF
 		  if(IS_GENp(6)) // For gen6+.
 		    error(&@1, "should be 'ENDIF execsize relativelocation'\n");
 		  memset(&$$, 0, sizeof($$));
-		  GEN(&$$)->header.opcode = $1;
+		  set_instruction_opcode(&$$, $1);
 		  GEN(&$$)->header.thread_control |= BRW_THREAD_SWITCH;
 		  GEN(&$$)->bits1.da1.dest_horiz_stride = 1;
 		  GEN(&$$)->bits1.da1.src1_reg_file = BRW_ARCHITECTURE_REGISTER_FILE;
@@ -770,7 +772,7 @@ ifelseinstruction: ENDIF
 		  if(!IS_GENp(6)) // for gen6-
 		    error(&@1, "ENDIF Syntax error: should be 'ENDIF'\n");
 		  memset(&$$, 0, sizeof($$));
-		  GEN(&$$)->header.opcode = $1;
+		  set_instruction_opcode(&$$, $1);
 		  GEN(&$$)->header.execution_size = $2;
 		  $$.reloc.first_reloc_target = $3.reloc_target;
 		  $$.reloc.first_reloc_offset = $3.imm32;
@@ -783,7 +785,7 @@ ifelseinstruction: ENDIF
 		    $3.imm32 |= (1 << 16);
 
 		    memset(&$$, 0, sizeof($$));
-		    GEN(&$$)->header.opcode = $1;
+		    set_instruction_opcode(&$$, $1);
 		    GEN(&$$)->header.thread_control |= BRW_THREAD_SWITCH;
 		    ip_dst.width = $2;
 		    set_instruction_dest(&$$, &ip_dst);
@@ -793,7 +795,7 @@ ifelseinstruction: ENDIF
 		    $$.reloc.first_reloc_offset = $3.imm32;
 		  } else if(IS_GENp(6)) {
 		    memset(&$$, 0, sizeof($$));
-		    GEN(&$$)->header.opcode = $1;
+		    set_instruction_opcode(&$$, $1);
 		    GEN(&$$)->header.execution_size = $2;
 		    $$.reloc.first_reloc_target = $3.reloc_target;
 		    $$.reloc.first_reloc_offset = $3.imm32;
@@ -813,7 +815,7 @@ ifelseinstruction: ENDIF
 
 		  memset(&$$, 0, sizeof($$));
 		  set_instruction_predicate(&$$, &$1);
-		  GEN(&$$)->header.opcode = $2;
+		  set_instruction_opcode(&$$, $2);
 		  if(!IS_GENp(6)) {
 		    GEN(&$$)->header.thread_control |= BRW_THREAD_SWITCH;
 		    ip_dst.width = $3;
@@ -832,7 +834,7 @@ ifelseinstruction: ENDIF
 
 		  memset(&$$, 0, sizeof($$));
 		  set_instruction_predicate(&$$, &$1);
-		  GEN(&$$)->header.opcode = $2;
+		  set_instruction_opcode(&$$, $2);
 		  GEN(&$$)->header.execution_size = $3;
 		  $$.reloc.first_reloc_target = $4.reloc_target;
 		  $$.reloc.first_reloc_offset = $4.imm32;
@@ -853,7 +855,7 @@ loopinstruction: predicate WHILE execsize relativelocation instoptions
 		    set_instruction_dest(&$$, &ip_dst);
 		    memset(&$$, 0, sizeof($$));
 		    set_instruction_predicate(&$$, &$1);
-		    GEN(&$$)->header.opcode = $2;
+		    set_instruction_opcode(&$$, $2);
 		    GEN(&$$)->header.thread_control |= BRW_THREAD_SWITCH;
 		    set_instruction_src0(&$$, &ip_src, NULL);
 		    set_instruction_src1(&$$, &$4, NULL);
@@ -865,7 +867,7 @@ loopinstruction: predicate WHILE execsize relativelocation instoptions
 		         dest horizontal stride must be 1. */
 		    memset(&$$, 0, sizeof($$));
 		    set_instruction_predicate(&$$, &$1);
-		    GEN(&$$)->header.opcode = $2;
+		    set_instruction_opcode(&$$, $2);
 		    GEN(&$$)->header.execution_size = $3;
 		    $$.reloc.first_reloc_target = $4.reloc_target;
 		    $$.reloc.first_reloc_offset = $4.imm32;
@@ -877,7 +879,7 @@ loopinstruction: predicate WHILE execsize relativelocation instoptions
 		{
 		  // deprecated
 		  memset(&$$, 0, sizeof($$));
-		  GEN(&$$)->header.opcode = $1;
+		  set_instruction_opcode(&$$, $1);
 		};
 
 haltinstruction: predicate HALT execsize relativelocation relativelocation instoptions
@@ -886,7 +888,7 @@ haltinstruction: predicate HALT execsize relativelocation relativelocation insto
 		  /* Gen6, Gen7 bspec: dst and src0 must be the null reg. */
 		  memset(&$$, 0, sizeof($$));
 		  set_instruction_predicate(&$$, &$1);
-		  GEN(&$$)->header.opcode = $2;
+		  set_instruction_opcode(&$$, $2);
 		  $$.reloc.first_reloc_target = $4.reloc_target;
 		  $$.reloc.first_reloc_offset = $4.imm32;
 		  $$.reloc.second_reloc_target = $5.reloc_target;
@@ -902,7 +904,7 @@ multibranchinstruction:
 		  /* Gen7 bspec: dest must be null. use Switch option */
 		  memset(&$$, 0, sizeof($$));
 		  set_instruction_predicate(&$$, &$1);
-		  GEN(&$$)->header.opcode = $2;
+		  set_instruction_opcode(&$$, $2);
 		  GEN(&$$)->header.thread_control |= BRW_THREAD_SWITCH;
 		  $$.reloc.first_reloc_target = $4.reloc_target;
 		  $$.reloc.first_reloc_offset = $4.imm32;
@@ -914,7 +916,7 @@ multibranchinstruction:
 		  /* Gen7 bspec: dest must be null. src0 must be null. use Switch option */
 		  memset(&$$, 0, sizeof($$));
 		  set_instruction_predicate(&$$, &$1);
-		  GEN(&$$)->header.opcode = $2;
+		  set_instruction_opcode(&$$, $2);
 		  GEN(&$$)->header.thread_control |= BRW_THREAD_SWITCH;
 		  $$.reloc.first_reloc_target = $4.reloc_target;
 		  $$.reloc.first_reloc_offset = $4.imm32;
@@ -945,7 +947,7 @@ subroutineinstruction:
 		   */
 		  memset(&$$, 0, sizeof($$));
 		  set_instruction_predicate(&$$, &$1);
-		  GEN(&$$)->header.opcode = $2;
+		  set_instruction_opcode(&$$, $2);
 
 		  $4.type = BRW_REGISTER_TYPE_D; /* dest type should be DWORD */
 		  $4.width = 1; /* execution size must be 2. Here 1 is encoded 2. */
@@ -973,7 +975,7 @@ subroutineinstruction:
 		   */
 		  memset(&$$, 0, sizeof($$));
 		  set_instruction_predicate(&$$, &$1);
-		  GEN(&$$)->header.opcode = $2;
+		  set_instruction_opcode(&$$, $2);
 		  dst_null_reg.width = 1; /* execution size of RET should be 2 */
 		  set_instruction_dest(&$$, &dst_null_reg);
 		  $5.reg.type = BRW_REGISTER_TYPE_D;
@@ -989,7 +991,7 @@ unaryinstruction:
 		dst srcaccimm instoptions
 		{
 		  memset(&$$, 0, sizeof($$));
-		  GEN(&$$)->header.opcode = $2;
+		  set_instruction_opcode(&$$, $2);
 		  GEN(&$$)->header.destreg__conditionalmod = $3.cond;
 		  GEN(&$$)->header.saturate = $4;
 		  $6.width = $5;
@@ -1028,7 +1030,7 @@ binaryinstruction:
 		dst src srcimm instoptions
 		{
 		  memset(&$$, 0, sizeof($$));
-		  GEN(&$$)->header.opcode = $2;
+		  set_instruction_opcode(&$$, $2);
 		  GEN(&$$)->header.destreg__conditionalmod = $3.cond;
 		  GEN(&$$)->header.saturate = $4;
 		  set_instruction_options(&$$, $9);
@@ -1069,7 +1071,7 @@ binaryaccinstruction:
 		dst srcacc srcimm instoptions
 		{
 		  memset(&$$, 0, sizeof($$));
-		  GEN(&$$)->header.opcode = $2;
+		  set_instruction_opcode(&$$, $2);
 		  GEN(&$$)->header.destreg__conditionalmod = $3.cond;
 		  GEN(&$$)->header.saturate = $4;
 		  $6.width = $5;
@@ -1115,7 +1117,7 @@ trinaryinstruction:
 
 		  set_instruction_predicate(&$$, &$1);
 
-		  GEN(&$$)->header.opcode = $2;
+		  set_instruction_opcode(&$$, $2);
 		  GEN(&$$)->header.destreg__conditionalmod = $3.cond;
 		  GEN(&$$)->header.saturate = $4;
 		  GEN(&$$)->header.execution_size = $5;
@@ -1154,7 +1156,7 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
 		   * implicitly loaded if non-null.
 		   */
 		  memset(&$$, 0, sizeof($$));
-		  GEN(&$$)->header.opcode = $2;
+		  set_instruction_opcode(&$$, $2);
 		  $5.width = $3;
 		  GEN(&$$)->header.destreg__conditionalmod = $4; /* msg reg index */
 		  set_instruction_predicate(&$$, &$1);
@@ -1208,7 +1210,7 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
 		| predicate SEND execsize dst sendleadreg payload directsrcoperand instoptions
 		{
 		  memset(&$$, 0, sizeof($$));
-		  GEN(&$$)->header.opcode = $2;
+		  set_instruction_opcode(&$$, $2);
 		  GEN(&$$)->header.destreg__conditionalmod = $5.nr; /* msg reg index */
 
 		  set_instruction_predicate(&$$, &$1);
@@ -1232,7 +1234,7 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
 			   "type=%d\n", $7.reg.dw1.ud, $7.reg.type);
 		  }
 		  memset(&$$, 0, sizeof($$));
-		  GEN(&$$)->header.opcode = $2;
+		  set_instruction_opcode(&$$, $2);
 		  GEN(&$$)->header.destreg__conditionalmod = $5.nr; /* msg reg index */
 
 		  set_instruction_predicate(&$$, &$1);
@@ -1260,7 +1262,7 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
 		  }
 
 		  memset(&$$, 0, sizeof($$));
-		  GEN(&$$)->header.opcode = $2;
+		  set_instruction_opcode(&$$, $2);
                   GEN(&$$)->header.destreg__conditionalmod = ($6 & EX_DESC_SFID_MASK); /* SFID */
 		  set_instruction_predicate(&$$, &$1);
 
@@ -1303,7 +1305,7 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
 		  }
 
 		  memset(&$$, 0, sizeof($$));
-		  GEN(&$$)->header.opcode = $2;
+		  set_instruction_opcode(&$$, $2);
                   GEN(&$$)->header.destreg__conditionalmod = ($6 & EX_DESC_SFID_MASK); /* SFID */
 		  set_instruction_predicate(&$$, &$1);
 
@@ -1338,7 +1340,7 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
 			  "type=%d\n", $8.reg.dw1.ud, $8.reg.type);
 		  }
 		  memset(&$$, 0, sizeof($$));
-		  GEN(&$$)->header.opcode = $2;
+		  set_instruction_opcode(&$$, $2);
 		  GEN(&$$)->header.destreg__conditionalmod = $5.nr; /* msg reg index */
 
 		  set_instruction_predicate(&$$, &$1);
@@ -1360,7 +1362,7 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
 		| predicate SEND execsize dst sendleadreg payload exp directsrcoperand instoptions
 		{
 		  memset(&$$, 0, sizeof($$));
-		  GEN(&$$)->header.opcode = $2;
+		  set_instruction_opcode(&$$, $2);
 		  GEN(&$$)->header.destreg__conditionalmod = $5.nr; /* msg reg index */
 
 		  set_instruction_predicate(&$$, &$1);
@@ -1394,7 +1396,7 @@ jumpinstruction: predicate JMPI execsize relativelocation2
 		   * is the post-incremented IP plus the offset.
 		   */
 		  memset(&$$, 0, sizeof($$));
-		  GEN(&$$)->header.opcode = $2;
+		  set_instruction_opcode(&$$, $2);
 		  if(advanced_flag)
 			GEN(&$$)->header.mask_control = BRW_MASK_DISABLE;
 		  set_instruction_predicate(&$$, &$1);
@@ -1410,7 +1412,7 @@ jumpinstruction: predicate JMPI execsize relativelocation2
 mathinstruction: predicate MATH_INST execsize dst src srcimm math_function instoptions
 		{
 		  memset(&$$, 0, sizeof($$));
-		  GEN(&$$)->header.opcode = $2;
+		  set_instruction_opcode(&$$, $2);
 		  GEN(&$$)->header.destreg__conditionalmod = $7;
 		  set_instruction_options(&$$, $8);
 		  set_instruction_predicate(&$$, &$1);
@@ -1429,7 +1431,7 @@ breakinstruction: predicate breakop execsize relativelocation relativelocation i
 		  // for Gen6, Gen7
 		  memset(&$$, 0, sizeof($$));
 		  set_instruction_predicate(&$$, &$1);
-		  GEN(&$$)->header.opcode = $2;
+		  set_instruction_opcode(&$$, $2);
 		  GEN(&$$)->header.execution_size = $3;
 		  $$.reloc.first_reloc_target = $4.reloc_target;
 		  $$.reloc.first_reloc_offset = $4.imm32;
@@ -1452,7 +1454,7 @@ syncinstruction: predicate WAIT notifyreg
 		  struct src_operand notify_src;
 
 		  memset(&$$, 0, sizeof($$));
-		  GEN(&$$)->header.opcode = $2;
+		  set_instruction_opcode(&$$, $2);
 		  set_direct_dst_operand(&notify_dst, &$3, BRW_REGISTER_TYPE_D);
 		  notify_dst.width = ffs(1) - 1;
 		  set_instruction_dest(&$$, &notify_dst);
@@ -1466,7 +1468,7 @@ syncinstruction: predicate WAIT notifyreg
 nopinstruction: NOP
 		{
 		  memset(&$$, 0, sizeof($$));
-		  GEN(&$$)->header.opcode = $1;
+		  set_instruction_opcode(&$$, $1);
 		};
 
 /* XXX! */
@@ -1678,7 +1680,7 @@ msgtarget:	NULL_TOKEN
 		  if (IS_GENp(5)) {
                       GEN(&$$)->bits2.send_gen5.sfid = BRW_SFID_URB;
                       GEN(&$$)->bits3.generic_gen5.header_present = 1;
-                      GEN(&$$)->bits3.urb_gen5.opcode = BRW_URB_OPCODE_WRITE;
+		      set_instruction_opcode(&$$, BRW_URB_OPCODE_WRITE);
                       GEN(&$$)->bits3.urb_gen5.offset = $2;
                       GEN(&$$)->bits3.urb_gen5.swizzle_control = $3;
                       GEN(&$$)->bits3.urb_gen5.pad = 0;
@@ -1687,7 +1689,7 @@ msgtarget:	NULL_TOKEN
                       GEN(&$$)->bits3.urb_gen5.complete = $6;
 		  } else {
                       GEN(&$$)->bits3.generic.msg_target = BRW_SFID_URB;
-                      GEN(&$$)->bits3.urb.opcode = BRW_URB_OPCODE_WRITE;
+		      set_instruction_opcode(&$$, BRW_URB_OPCODE_WRITE);
                       GEN(&$$)->bits3.urb.offset = $2;
                       GEN(&$$)->bits3.urb.swizzle_control = $3;
                       GEN(&$$)->bits3.urb.pad = 0;
@@ -2899,6 +2901,12 @@ static void reset_instruction_src_region(struct brw_instruction *instr,
         src->reg.width = ffs(width) - 1;
         src->reg.hstride = ffs(horiz_stride);
     }
+}
+
+static void set_instruction_opcode(struct brw_program_instruction *instr,
+				  unsigned opcode)
+{
+  GEN(instr)->header.opcode = opcode;
 }
 
 /**
