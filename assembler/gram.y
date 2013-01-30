@@ -40,6 +40,8 @@
 
 #define SWIZZLE(reg) (reg.dw1.bits.swizzle)
 
+#define GEN(i)	(&(i)->insn.gen)
+
 #define YYLTYPE YYLTYPE
 typedef struct YYLTYPE
 {
@@ -80,26 +82,26 @@ static struct src_operand ip_src =
 };
 
 static int get_type_size(GLuint type);
-static int set_instruction_dest(struct brw_instruction *instr,
+static int set_instruction_dest(struct brw_program_instruction *instr,
 				struct brw_reg *dest);
-static int set_instruction_src0(struct brw_instruction *instr,
+static int set_instruction_src0(struct brw_program_instruction *instr,
 				struct src_operand *src,
 				YYLTYPE *location);
-static int set_instruction_src1(struct brw_instruction *instr,
+static int set_instruction_src1(struct brw_program_instruction *instr,
 				struct src_operand *src,
 				YYLTYPE *location);
-static int set_instruction_dest_three_src(struct brw_instruction *instr,
+static int set_instruction_dest_three_src(struct brw_program_instruction *instr,
 					  struct brw_reg *dest);
-static int set_instruction_src0_three_src(struct brw_instruction *instr,
+static int set_instruction_src0_three_src(struct brw_program_instruction *instr,
 					  struct src_operand *src);
-static int set_instruction_src1_three_src(struct brw_instruction *instr,
+static int set_instruction_src1_three_src(struct brw_program_instruction *instr,
 					  struct src_operand *src);
-static int set_instruction_src2_three_src(struct brw_instruction *instr,
+static int set_instruction_src2_three_src(struct brw_program_instruction *instr,
 					  struct src_operand *src);
-static void set_instruction_options(struct brw_instruction *instr,
-				    struct brw_instruction *options);
-static void set_instruction_predicate(struct brw_instruction *instr,
-				      struct brw_instruction *predicate);
+static void set_instruction_options(struct brw_program_instruction *instr,
+				    struct brw_program_instruction *options);
+static void set_instruction_predicate(struct brw_program_instruction *instr,
+				      struct brw_program_instruction *p);
 static void set_direct_dst_operand(struct brw_reg *dst, struct brw_reg *reg,
 				   int type);
 static void set_direct_src_operand(struct src_operand *src, struct brw_reg *reg,
@@ -194,25 +196,26 @@ static void brw_program_append_entry(struct brw_program *p,
     p->last = entry;
 }
 
-static void brw_program_add_instruction(struct brw_program *p,
-					struct brw_instruction *instruction)
+static void
+brw_program_add_instruction(struct brw_program *p,
+			    struct brw_program_instruction *instruction)
 {
     struct brw_program_instruction *list_entry;
 
     list_entry = calloc(sizeof(struct brw_program_instruction), 1);
     list_entry->type = GEN4ASM_INSTRUCTION_GEN;
-    list_entry->insn.gen = *instruction;
+    list_entry->insn.gen = instruction->insn.gen;
     brw_program_append_entry(p, list_entry);
 }
 
 static void brw_program_add_relocatable(struct brw_program *p,
-					struct relocatable_instruction *reloc)
+					struct brw_program_instruction *reloc)
 {
     struct brw_program_instruction *list_entry;
 
     list_entry = calloc(sizeof(struct brw_program_instruction), 1);
     list_entry->type = GEN4ASM_INSTRUCTION_GEN_RELOCATABLE;
-    list_entry->insn.reloc = *reloc;
+    list_entry->insn.reloc = reloc->insn.reloc;
     brw_program_append_entry(p, list_entry);
 }
 
@@ -385,8 +388,7 @@ static void resolve_subnr(struct brw_reg *reg)
 	char *string;
 	int integer;
 	double number;
-	struct brw_instruction instruction;
-	struct relocatable_instruction relocatable;
+	struct brw_program_instruction instruction;
 	struct brw_program program;
 	struct region region;
 	struct regtype regtype;
@@ -474,9 +476,9 @@ static void resolve_subnr(struct brw_reg *reg)
 %type <instruction> instoptions instoption_list predicate
 %type <instruction> mathinstruction
 %type <instruction> nopinstruction
-%type <relocatable> relocatableinstruction breakinstruction
-%type <relocatable> ifelseinstruction loopinstruction haltinstruction
-%type <relocatable> multibranchinstruction subroutineinstruction jumpinstruction
+%type <instruction> relocatableinstruction breakinstruction
+%type <instruction> ifelseinstruction loopinstruction haltinstruction
+%type <instruction> multibranchinstruction subroutineinstruction jumpinstruction
 %type <string> label
 %type <program> instrseq
 %type <integer> instoption
@@ -707,11 +709,11 @@ ifelseinstruction: ENDIF
 		  if(IS_GENp(6)) // For gen6+.
 		    error(&@1, "should be 'ENDIF execsize relativelocation'\n");
 		  memset(&$$, 0, sizeof($$));
-		  $$.gen.header.opcode = $1;
-		  $$.gen.header.thread_control |= BRW_THREAD_SWITCH;
-		  $$.gen.bits1.da1.dest_horiz_stride = 1;
-		  $$.gen.bits1.da1.src1_reg_file = BRW_ARCHITECTURE_REGISTER_FILE;
-		  $$.gen.bits1.da1.src1_reg_type = BRW_REGISTER_TYPE_UD;
+		  GEN(&$$)->header.opcode = $1;
+		  GEN(&$$)->header.thread_control |= BRW_THREAD_SWITCH;
+		  GEN(&$$)->bits1.da1.dest_horiz_stride = 1;
+		  GEN(&$$)->bits1.da1.src1_reg_file = BRW_ARCHITECTURE_REGISTER_FILE;
+		  GEN(&$$)->bits1.da1.src1_reg_type = BRW_REGISTER_TYPE_UD;
 		}
 		| ENDIF execsize relativelocation instoptions
 		{
@@ -720,10 +722,10 @@ ifelseinstruction: ENDIF
 		  if(!IS_GENp(6)) // for gen6-
 		    error(&@1, "ENDIF Syntax error: should be 'ENDIF'\n");
 		  memset(&$$, 0, sizeof($$));
-		  $$.gen.header.opcode = $1;
-		  $$.gen.header.execution_size = $2;
-		  $$.first_reloc_target = $3.reloc_target;
-		  $$.first_reloc_offset = $3.imm32;
+		  GEN(&$$)->header.opcode = $1;
+		  GEN(&$$)->header.execution_size = $2;
+		  $$.insn.reloc.first_reloc_target = $3.reloc_target;
+		  $$.insn.reloc.first_reloc_offset = $3.imm32;
 		}
 		| ELSE execsize relativelocation instoptions
 		{
@@ -733,20 +735,20 @@ ifelseinstruction: ENDIF
 		    $3.imm32 |= (1 << 16);
 
 		    memset(&$$, 0, sizeof($$));
-		    $$.gen.header.opcode = $1;
-		    $$.gen.header.thread_control |= BRW_THREAD_SWITCH;
+		    GEN(&$$)->header.opcode = $1;
+		    GEN(&$$)->header.thread_control |= BRW_THREAD_SWITCH;
 		    ip_dst.width = $2;
-		    set_instruction_dest(&$$.gen, &ip_dst);
-		    set_instruction_src0(&$$.gen, &ip_src, NULL);
-		    set_instruction_src1(&$$.gen, &$3, NULL);
-		    $$.first_reloc_target = $3.reloc_target;
-		    $$.first_reloc_offset = $3.imm32;
+		    set_instruction_dest(&$$, &ip_dst);
+		    set_instruction_src0(&$$, &ip_src, NULL);
+		    set_instruction_src1(&$$, &$3, NULL);
+		    $$.insn.reloc.first_reloc_target = $3.reloc_target;
+		    $$.insn.reloc.first_reloc_offset = $3.imm32;
 		  } else if(IS_GENp(6)) {
 		    memset(&$$, 0, sizeof($$));
-		    $$.gen.header.opcode = $1;
-		    $$.gen.header.execution_size = $2;
-		    $$.first_reloc_target = $3.reloc_target;
-		    $$.first_reloc_offset = $3.imm32;
+		    GEN(&$$)->header.opcode = $1;
+		    GEN(&$$)->header.execution_size = $2;
+		    $$.insn.reloc.first_reloc_target = $3.reloc_target;
+		    $$.insn.reloc.first_reloc_offset = $3.imm32;
 		  } else {
 		    error(&@1, "'ELSE' instruction is not implemented.\n");
 		  }
@@ -762,17 +764,17 @@ ifelseinstruction: ENDIF
 		    error(&@2, "IF should be 'IF execsize JIP UIP'\n");
 
 		  memset(&$$, 0, sizeof($$));
-		  set_instruction_predicate(&$$.gen, &$1);
-		  $$.gen.header.opcode = $2;
+		  set_instruction_predicate(&$$, &$1);
+		  GEN(&$$)->header.opcode = $2;
 		  if(!IS_GENp(6)) {
-		    $$.gen.header.thread_control |= BRW_THREAD_SWITCH;
+		    GEN(&$$)->header.thread_control |= BRW_THREAD_SWITCH;
 		    ip_dst.width = $3;
-		    set_instruction_dest(&$$.gen, &ip_dst);
-		    set_instruction_src0(&$$.gen, &ip_src, NULL);
-		    set_instruction_src1(&$$.gen, &$4, NULL);
+		    set_instruction_dest(&$$, &ip_dst);
+		    set_instruction_src0(&$$, &ip_src, NULL);
+		    set_instruction_src1(&$$, &$4, NULL);
 		  }
-		  $$.first_reloc_target = $4.reloc_target;
-		  $$.first_reloc_offset = $4.imm32;
+		  $$.insn.reloc.first_reloc_target = $4.reloc_target;
+		  $$.insn.reloc.first_reloc_offset = $4.imm32;
 		}
 		| predicate IF execsize relativelocation relativelocation
 		{
@@ -781,13 +783,13 @@ ifelseinstruction: ENDIF
 		    error(&@2, "IF should be 'IF execsize relativelocation'\n");
 
 		  memset(&$$, 0, sizeof($$));
-		  set_instruction_predicate(&$$.gen, &$1);
-		  $$.gen.header.opcode = $2;
-		  $$.gen.header.execution_size = $3;
-		  $$.first_reloc_target = $4.reloc_target;
-		  $$.first_reloc_offset = $4.imm32;
-		  $$.second_reloc_target = $5.reloc_target;
-		  $$.second_reloc_offset = $5.imm32;
+		  set_instruction_predicate(&$$, &$1);
+		  GEN(&$$)->header.opcode = $2;
+		  GEN(&$$)->header.execution_size = $3;
+		  $$.insn.reloc.first_reloc_target = $4.reloc_target;
+		  $$.insn.reloc.first_reloc_offset = $4.imm32;
+		  $$.insn.reloc.second_reloc_target = $5.reloc_target;
+		  $$.insn.reloc.second_reloc_offset = $5.imm32;
 		}
 ;
 
@@ -800,25 +802,25 @@ loopinstruction: predicate WHILE execsize relativelocation instoptions
 		     * to the pre-incremented IP.
 		     */
 		    ip_dst.width = $3;
-		    set_instruction_dest(&$$.gen, &ip_dst);
+		    set_instruction_dest(&$$, &ip_dst);
 		    memset(&$$, 0, sizeof($$));
-		    set_instruction_predicate(&$$.gen, &$1);
-		    $$.gen.header.opcode = $2;
-		    $$.gen.header.thread_control |= BRW_THREAD_SWITCH;
-		    set_instruction_src0(&$$.gen, &ip_src, NULL);
-		    set_instruction_src1(&$$.gen, &$4, NULL);
-		    $$.first_reloc_target = $4.reloc_target;
-		    $$.first_reloc_offset = $4.imm32;
+		    set_instruction_predicate(&$$, &$1);
+		    GEN(&$$)->header.opcode = $2;
+		    GEN(&$$)->header.thread_control |= BRW_THREAD_SWITCH;
+		    set_instruction_src0(&$$, &ip_src, NULL);
+		    set_instruction_src1(&$$, &$4, NULL);
+		    $$.insn.reloc.first_reloc_target = $4.reloc_target;
+		    $$.insn.reloc.first_reloc_offset = $4.imm32;
 		  } else if (IS_GENp(6)) {
 		    /* Gen6 spec:
 		         dest must have the same element size as src0.
 		         dest horizontal stride must be 1. */
 		    memset(&$$, 0, sizeof($$));
-		    set_instruction_predicate(&$$.gen, &$1);
-		    $$.gen.header.opcode = $2;
-		    $$.gen.header.execution_size = $3;
-		    $$.first_reloc_target = $4.reloc_target;
-		    $$.first_reloc_offset = $4.imm32;
+		    set_instruction_predicate(&$$, &$1);
+		    GEN(&$$)->header.opcode = $2;
+		    GEN(&$$)->header.execution_size = $3;
+		    $$.insn.reloc.first_reloc_target = $4.reloc_target;
+		    $$.insn.reloc.first_reloc_offset = $4.imm32;
 		  } else {
 		    error(&@2, "'WHILE' instruction is not implemented!\n");
 		  }
@@ -827,7 +829,7 @@ loopinstruction: predicate WHILE execsize relativelocation instoptions
 		{
 		  // deprecated
 		  memset(&$$, 0, sizeof($$));
-		  $$.gen.header.opcode = $1;
+		  GEN(&$$)->header.opcode = $1;
 		};
 
 haltinstruction: predicate HALT execsize relativelocation relativelocation instoptions
@@ -835,15 +837,15 @@ haltinstruction: predicate HALT execsize relativelocation relativelocation insto
 		  // for Gen6, Gen7
 		  /* Gen6, Gen7 bspec: dst and src0 must be the null reg. */
 		  memset(&$$, 0, sizeof($$));
-		  set_instruction_predicate(&$$.gen, &$1);
-		  $$.gen.header.opcode = $2;
-		  $$.first_reloc_target = $4.reloc_target;
-		  $$.first_reloc_offset = $4.imm32;
-		  $$.second_reloc_target = $5.reloc_target;
-		  $$.second_reloc_offset = $5.imm32;
+		  set_instruction_predicate(&$$, &$1);
+		  GEN(&$$)->header.opcode = $2;
+		  $$.insn.reloc.first_reloc_target = $4.reloc_target;
+		  $$.insn.reloc.first_reloc_offset = $4.imm32;
+		  $$.insn.reloc.second_reloc_target = $5.reloc_target;
+		  $$.insn.reloc.second_reloc_offset = $5.imm32;
 		  dst_null_reg.width = $3;
-		  set_instruction_dest(&$$.gen, &dst_null_reg);
-		  set_instruction_src0(&$$.gen, &src_null_reg, NULL);
+		  set_instruction_dest(&$$, &dst_null_reg);
+		  set_instruction_src0(&$$, &src_null_reg, NULL);
 		};
 
 multibranchinstruction:
@@ -851,28 +853,28 @@ multibranchinstruction:
 		{
 		  /* Gen7 bspec: dest must be null. use Switch option */
 		  memset(&$$, 0, sizeof($$));
-		  set_instruction_predicate(&$$.gen, &$1);
-		  $$.gen.header.opcode = $2;
-		  $$.gen.header.thread_control |= BRW_THREAD_SWITCH;
-		  $$.first_reloc_target = $4.reloc_target;
-		  $$.first_reloc_offset = $4.imm32;
+		  set_instruction_predicate(&$$, &$1);
+		  GEN(&$$)->header.opcode = $2;
+		  GEN(&$$)->header.thread_control |= BRW_THREAD_SWITCH;
+		  $$.insn.reloc.first_reloc_target = $4.reloc_target;
+		  $$.insn.reloc.first_reloc_offset = $4.imm32;
 		  dst_null_reg.width = $3;
-		  set_instruction_dest(&$$.gen, &dst_null_reg);
+		  set_instruction_dest(&$$, &dst_null_reg);
 		}
 		| predicate BRC execsize relativelocation relativelocation instoptions
 		{
 		  /* Gen7 bspec: dest must be null. src0 must be null. use Switch option */
 		  memset(&$$, 0, sizeof($$));
-		  set_instruction_predicate(&$$.gen, &$1);
-		  $$.gen.header.opcode = $2;
-		  $$.gen.header.thread_control |= BRW_THREAD_SWITCH;
-		  $$.first_reloc_target = $4.reloc_target;
-		  $$.first_reloc_offset = $4.imm32;
-		  $$.second_reloc_target = $5.reloc_target;
-		  $$.second_reloc_offset = $5.imm32;
+		  set_instruction_predicate(&$$, &$1);
+		  GEN(&$$)->header.opcode = $2;
+		  GEN(&$$)->header.thread_control |= BRW_THREAD_SWITCH;
+		  $$.insn.reloc.first_reloc_target = $4.reloc_target;
+		  $$.insn.reloc.first_reloc_offset = $4.imm32;
+		  $$.insn.reloc.second_reloc_target = $5.reloc_target;
+		  $$.insn.reloc.second_reloc_offset = $5.imm32;
 		  dst_null_reg.width = $3;
-		  set_instruction_dest(&$$.gen, &dst_null_reg);
-		  set_instruction_src0(&$$.gen, &src_null_reg, NULL);
+		  set_instruction_dest(&$$, &dst_null_reg);
+		  set_instruction_src0(&$$, &src_null_reg, NULL);
 		}
 ;
 
@@ -894,12 +896,12 @@ subroutineinstruction:
 		       execution size must be 2.
 		   */
 		  memset(&$$, 0, sizeof($$));
-		  set_instruction_predicate(&$$.gen, &$1);
-		  $$.gen.header.opcode = $2;
+		  set_instruction_predicate(&$$, &$1);
+		  GEN(&$$)->header.opcode = $2;
 
 		  $4.type = BRW_REGISTER_TYPE_D; /* dest type should be DWORD */
 		  $4.width = 1; /* execution size must be 2. Here 1 is encoded 2. */
-		  set_instruction_dest(&$$.gen, &$4);
+		  set_instruction_dest(&$$, &$4);
 
 		  struct src_operand src0;
 		  memset(&src0, 0, sizeof(src0));
@@ -908,10 +910,10 @@ subroutineinstruction:
 		  src0.reg.hstride = 1; /*encoded 1*/
 		  src0.reg.width = 1; /*encoded 2*/
 		  src0.reg.vstride = 2; /*encoded 2*/
-		  set_instruction_src0(&$$.gen, &src0, NULL);
+		  set_instruction_src0(&$$, &src0, NULL);
 
-		  $$.first_reloc_target = $5.reloc_target;
-		  $$.first_reloc_offset = $5.imm32;
+		  $$.insn.reloc.first_reloc_target = $5.reloc_target;
+		  $$.insn.reloc.first_reloc_offset = $5.imm32;
 		}
 		| predicate RET execsize dstoperandex src instoptions
 		{
@@ -922,15 +924,15 @@ subroutineinstruction:
 		       src0 region control must be <2,2,1> (not specified clearly. should be same as CALL)
 		   */
 		  memset(&$$, 0, sizeof($$));
-		  set_instruction_predicate(&$$.gen, &$1);
-		  $$.gen.header.opcode = $2;
+		  set_instruction_predicate(&$$, &$1);
+		  GEN(&$$)->header.opcode = $2;
 		  dst_null_reg.width = 1; /* execution size of RET should be 2 */
-		  set_instruction_dest(&$$.gen, &dst_null_reg);
+		  set_instruction_dest(&$$, &dst_null_reg);
 		  $5.reg.type = BRW_REGISTER_TYPE_D;
 		  $5.reg.hstride = 1; /*encoded 1*/
 		  $5.reg.width = 1; /*encoded 2*/
 		  $5.reg.vstride = 2; /*encoded 2*/
-		  set_instruction_src0(&$$.gen, &$5, NULL);
+		  set_instruction_src0(&$$, &$5, NULL);
 		}
 ;
 
@@ -939,9 +941,9 @@ unaryinstruction:
 		dst srcaccimm instoptions
 		{
 		  memset(&$$, 0, sizeof($$));
-		  $$.header.opcode = $2;
-		  $$.header.destreg__conditionalmod = $3.cond;
-		  $$.header.saturate = $4;
+		  GEN(&$$)->header.opcode = $2;
+		  GEN(&$$)->header.destreg__conditionalmod = $3.cond;
+		  GEN(&$$)->header.saturate = $4;
 		  $6.width = $5;
 		  set_instruction_options(&$$, &$8);
 		  set_instruction_predicate(&$$, &$1);
@@ -951,20 +953,20 @@ unaryinstruction:
 		    YYERROR;
 
 		  if ($3.flag_subreg_nr != -1) {
-		    if ($$.header.predicate_control != BRW_PREDICATE_NONE &&
-                        ($1.bits2.da1.flag_reg_nr != $3.flag_reg_nr ||
-                         $1.bits2.da1.flag_subreg_nr != $3.flag_subreg_nr))
+		    if (GEN(&$$)->header.predicate_control != BRW_PREDICATE_NONE &&
+                        (GEN(&$1)->bits2.da1.flag_reg_nr != $3.flag_reg_nr ||
+                         GEN(&$1)->bits2.da1.flag_subreg_nr != $3.flag_subreg_nr))
                         warn(ALWAYS, &@3, "must use the same flag register if "
 			     "both prediction and conditional modifier are "
 			     "enabled\n");
 
-		    $$.bits2.da1.flag_reg_nr = $3.flag_reg_nr;
-		    $$.bits2.da1.flag_subreg_nr = $3.flag_subreg_nr;
+		    GEN(&$$)->bits2.da1.flag_reg_nr = $3.flag_reg_nr;
+		    GEN(&$$)->bits2.da1.flag_subreg_nr = $3.flag_subreg_nr;
 		  }
 
 		  if (!IS_GENp(6) && 
-				get_type_size($$.bits1.da1.dest_reg_type) * (1 << $6.width) == 64)
-		    $$.header.compression_control = BRW_COMPRESSION_COMPRESSED;
+				get_type_size(GEN(&$$)->bits1.da1.dest_reg_type) * (1 << $6.width) == 64)
+		    GEN(&$$)->header.compression_control = BRW_COMPRESSION_COMPRESSED;
 		}
 ;
 
@@ -978,9 +980,9 @@ binaryinstruction:
 		dst src srcimm instoptions
 		{
 		  memset(&$$, 0, sizeof($$));
-		  $$.header.opcode = $2;
-		  $$.header.destreg__conditionalmod = $3.cond;
-		  $$.header.saturate = $4;
+		  GEN(&$$)->header.opcode = $2;
+		  GEN(&$$)->header.destreg__conditionalmod = $3.cond;
+		  GEN(&$$)->header.saturate = $4;
 		  set_instruction_options(&$$, &$9);
 		  set_instruction_predicate(&$$, &$1);
 		  $6.width = $5;
@@ -992,20 +994,20 @@ binaryinstruction:
 		    YYERROR;
 
 		  if ($3.flag_subreg_nr != -1) {
-		    if ($$.header.predicate_control != BRW_PREDICATE_NONE &&
-                        ($1.bits2.da1.flag_reg_nr != $3.flag_reg_nr ||
-                         $1.bits2.da1.flag_subreg_nr != $3.flag_subreg_nr))
+		    if (GEN(&$$)->header.predicate_control != BRW_PREDICATE_NONE &&
+                        (GEN(&$1)->bits2.da1.flag_reg_nr != $3.flag_reg_nr ||
+                         GEN(&$1)->bits2.da1.flag_subreg_nr != $3.flag_subreg_nr))
                         warn(ALWAYS, &@3, "must use the same flag register if "
 			     "both prediction and conditional modifier are "
 			     "enabled\n");
 
-		    $$.bits2.da1.flag_reg_nr = $3.flag_reg_nr;
-		    $$.bits2.da1.flag_subreg_nr = $3.flag_subreg_nr;
+		    GEN(&$$)->bits2.da1.flag_reg_nr = $3.flag_reg_nr;
+		    GEN(&$$)->bits2.da1.flag_subreg_nr = $3.flag_subreg_nr;
 		  }
 
 		  if (!IS_GENp(6) && 
-				get_type_size($$.bits1.da1.dest_reg_type) * (1 << $6.width) == 64)
-		    $$.header.compression_control = BRW_COMPRESSION_COMPRESSED;
+				get_type_size(GEN(&$$)->bits1.da1.dest_reg_type) * (1 << $6.width) == 64)
+		    GEN(&$$)->header.compression_control = BRW_COMPRESSION_COMPRESSED;
 		}
 ;
 
@@ -1019,9 +1021,9 @@ binaryaccinstruction:
 		dst srcacc srcimm instoptions
 		{
 		  memset(&$$, 0, sizeof($$));
-		  $$.header.opcode = $2;
-		  $$.header.destreg__conditionalmod = $3.cond;
-		  $$.header.saturate = $4;
+		  GEN(&$$)->header.opcode = $2;
+		  GEN(&$$)->header.destreg__conditionalmod = $3.cond;
+		  GEN(&$$)->header.saturate = $4;
 		  $6.width = $5;
 		  set_instruction_options(&$$, &$9);
 		  set_instruction_predicate(&$$, &$1);
@@ -1033,20 +1035,20 @@ binaryaccinstruction:
 		    YYERROR;
 
 		  if ($3.flag_subreg_nr != -1) {
-		    if ($$.header.predicate_control != BRW_PREDICATE_NONE &&
-                        ($1.bits2.da1.flag_reg_nr != $3.flag_reg_nr ||
-                         $1.bits2.da1.flag_subreg_nr != $3.flag_subreg_nr))
+		    if (GEN(&$$)->header.predicate_control != BRW_PREDICATE_NONE &&
+                        (GEN(&$1)->bits2.da1.flag_reg_nr != $3.flag_reg_nr ||
+                         GEN(&$1)->bits2.da1.flag_subreg_nr != $3.flag_subreg_nr))
                         warn(ALWAYS, &@3, "must use the same flag register if "
 			     "both prediction and conditional modifier are "
 			     "enabled\n");
 
-		    $$.bits2.da1.flag_reg_nr = $3.flag_reg_nr;
-		    $$.bits2.da1.flag_subreg_nr = $3.flag_subreg_nr;
+		    GEN(&$$)->bits2.da1.flag_reg_nr = $3.flag_reg_nr;
+		    GEN(&$$)->bits2.da1.flag_subreg_nr = $3.flag_subreg_nr;
 		  }
 
 		  if (!IS_GENp(6) && 
-				get_type_size($$.bits1.da1.dest_reg_type) * (1 << $6.width) == 64)
-		    $$.header.compression_control = BRW_COMPRESSION_COMPRESSED;
+				get_type_size(GEN(&$$)->bits1.da1.dest_reg_type) * (1 << $6.width) == 64)
+		    GEN(&$$)->header.compression_control = BRW_COMPRESSION_COMPRESSED;
 		}
 ;
 
@@ -1063,15 +1065,15 @@ trinaryinstruction:
 {
 		  memset(&$$, 0, sizeof($$));
 
-		  $$.header.predicate_control = $1.header.predicate_control;
-		  $$.header.predicate_inverse = $1.header.predicate_inverse;
-		  $$.bits1.da3src.flag_reg_nr = $1.bits2.da1.flag_reg_nr;
-		  $$.bits1.da3src.flag_subreg_nr = $1.bits2.da1.flag_subreg_nr;
+		  GEN(&$$)->header.predicate_control = GEN(&$1)->header.predicate_control;
+		  GEN(&$$)->header.predicate_inverse = GEN(&$1)->header.predicate_inverse;
+		  GEN(&$$)->bits1.da3src.flag_reg_nr = GEN(&$1)->bits2.da1.flag_reg_nr;
+		  GEN(&$$)->bits1.da3src.flag_subreg_nr = GEN(&$1)->bits2.da1.flag_subreg_nr;
 
-		  $$.header.opcode = $2;
-		  $$.header.destreg__conditionalmod = $3.cond;
-		  $$.header.saturate = $4;
-		  $$.header.execution_size = $5;
+		  GEN(&$$)->header.opcode = $2;
+		  GEN(&$$)->header.destreg__conditionalmod = $3.cond;
+		  GEN(&$$)->header.saturate = $4;
+		  GEN(&$$)->header.execution_size = $5;
 
 		  if (set_instruction_dest_three_src(&$$, &$6))
 		    YYERROR;
@@ -1084,9 +1086,9 @@ trinaryinstruction:
 		  set_instruction_options(&$$, &$10);
 
 		  if ($3.flag_subreg_nr != -1) {
-		    if ($$.header.predicate_control != BRW_PREDICATE_NONE &&
-                        ($1.bits2.da1.flag_reg_nr != $3.flag_reg_nr ||
-                         $1.bits2.da1.flag_subreg_nr != $3.flag_subreg_nr))
+		    if (GEN(&$$)->header.predicate_control != BRW_PREDICATE_NONE &&
+                        (GEN(&$1)->bits2.da1.flag_reg_nr != $3.flag_reg_nr ||
+                         GEN(&$1)->bits2.da1.flag_subreg_nr != $3.flag_subreg_nr))
                         warn(ALWAYS, &@3, "must use the same flag register if "
 			     "both prediction and conditional modifier are "
 			     "enabled\n");
@@ -1107,9 +1109,9 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
 		   * implicitly loaded if non-null.
 		   */
 		  memset(&$$, 0, sizeof($$));
-		  $$.header.opcode = $2;
+		  GEN(&$$)->header.opcode = $2;
 		  $5.width = $3;
-		  $$.header.destreg__conditionalmod = $4; /* msg reg index */
+		  GEN(&$$)->header.destreg__conditionalmod = $4; /* msg reg index */
 		  set_instruction_predicate(&$$, &$1);
 		  if (set_instruction_dest(&$$, &$5) != 0)
 		    YYERROR;
@@ -1134,37 +1136,37 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
                           YYERROR;
 		  }
 
-		  $$.bits1.da1.src1_reg_file = BRW_IMMEDIATE_VALUE;
-		  $$.bits1.da1.src1_reg_type = BRW_REGISTER_TYPE_D;
+		  GEN(&$$)->bits1.da1.src1_reg_file = BRW_IMMEDIATE_VALUE;
+		  GEN(&$$)->bits1.da1.src1_reg_type = BRW_REGISTER_TYPE_D;
 
 		  if (IS_GENp(5)) {
                       if (IS_GENp(6)) {
-                          $$.header.destreg__conditionalmod = $7.bits2.send_gen5.sfid;
+                          GEN(&$$)->header.destreg__conditionalmod = GEN(&$7)->bits2.send_gen5.sfid;
                       } else {
-                          $$.header.destreg__conditionalmod = $4; /* msg reg index */
-                          $$.bits2.send_gen5.sfid = $7.bits2.send_gen5.sfid;
-                          $$.bits2.send_gen5.end_of_thread = $12.bits3.generic_gen5.end_of_thread;
+                          GEN(&$$)->header.destreg__conditionalmod = $4; /* msg reg index */
+                          GEN(&$$)->bits2.send_gen5.sfid = GEN(&$7)->bits2.send_gen5.sfid;
+                          GEN(&$$)->bits2.send_gen5.end_of_thread = GEN(&$12)->bits3.generic_gen5.end_of_thread;
                       }
 
-                      $$.bits3.generic_gen5 = $7.bits3.generic_gen5;
-                      $$.bits3.generic_gen5.msg_length = $9;
-                      $$.bits3.generic_gen5.response_length = $11;
-                      $$.bits3.generic_gen5.end_of_thread =
-                          $12.bits3.generic_gen5.end_of_thread;
+                      GEN(&$$)->bits3.generic_gen5 = GEN(&$7)->bits3.generic_gen5;
+                      GEN(&$$)->bits3.generic_gen5.msg_length = $9;
+                      GEN(&$$)->bits3.generic_gen5.response_length = $11;
+                      GEN(&$$)->bits3.generic_gen5.end_of_thread =
+                          GEN(&$12)->bits3.generic_gen5.end_of_thread;
 		  } else {
-                      $$.header.destreg__conditionalmod = $4; /* msg reg index */
-                      $$.bits3.generic = $7.bits3.generic;
-                      $$.bits3.generic.msg_length = $9;
-                      $$.bits3.generic.response_length = $11;
-                      $$.bits3.generic.end_of_thread =
-                          $12.bits3.generic.end_of_thread;
+                      GEN(&$$)->header.destreg__conditionalmod = $4; /* msg reg index */
+                      GEN(&$$)->bits3.generic = GEN(&$7)->bits3.generic;
+                      GEN(&$$)->bits3.generic.msg_length = $9;
+                      GEN(&$$)->bits3.generic.response_length = $11;
+                      GEN(&$$)->bits3.generic.end_of_thread =
+                          GEN(&$12)->bits3.generic.end_of_thread;
 		  }
 		}
 		| predicate SEND execsize dst sendleadreg payload directsrcoperand instoptions
 		{
 		  memset(&$$, 0, sizeof($$));
-		  $$.header.opcode = $2;
-		  $$.header.destreg__conditionalmod = $5.nr; /* msg reg index */
+		  GEN(&$$)->header.opcode = $2;
+		  GEN(&$$)->header.destreg__conditionalmod = $5.nr; /* msg reg index */
 
 		  set_instruction_predicate(&$$, &$1);
 
@@ -1187,8 +1189,8 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
 			   "type=%d\n", $7.reg.dw1.ud, $7.reg.type);
 		  }
 		  memset(&$$, 0, sizeof($$));
-		  $$.header.opcode = $2;
-		  $$.header.destreg__conditionalmod = $5.nr; /* msg reg index */
+		  GEN(&$$)->header.opcode = $2;
+		  GEN(&$$)->header.destreg__conditionalmod = $5.nr; /* msg reg index */
 
 		  set_instruction_predicate(&$$, &$1);
 		  $4.width = $3;
@@ -1196,9 +1198,9 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
 		    YYERROR;
 		  if (set_instruction_src0(&$$, &$6, &@6) != 0)
 		    YYERROR;
-		  $$.bits1.da1.src1_reg_file = BRW_IMMEDIATE_VALUE;
-		  $$.bits1.da1.src1_reg_type = $7.reg.type;
-		  $$.bits3.ud = $7.reg.dw1.ud;
+		  GEN(&$$)->bits1.da1.src1_reg_file = BRW_IMMEDIATE_VALUE;
+		  GEN(&$$)->bits1.da1.src1_reg_type = $7.reg.type;
+		  GEN(&$$)->bits3.ud = $7.reg.dw1.ud;
                 }
 		| predicate SEND execsize dst sendleadreg sndopr imm32reg instoptions
 		{
@@ -1215,8 +1217,8 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
 		  }
 
 		  memset(&$$, 0, sizeof($$));
-		  $$.header.opcode = $2;
-                  $$.header.destreg__conditionalmod = ($6 & EX_DESC_SFID_MASK); /* SFID */
+		  GEN(&$$)->header.opcode = $2;
+                  GEN(&$$)->header.destreg__conditionalmod = ($6 & EX_DESC_SFID_MASK); /* SFID */
 		  set_instruction_predicate(&$$, &$1);
 
 		  $4.width = $3;
@@ -1238,10 +1240,10 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
                   src0.reg.subnr = 0;
                   set_instruction_src0(&$$, &src0, NULL);
 
-		  $$.bits1.da1.src1_reg_file = BRW_IMMEDIATE_VALUE;
-		  $$.bits1.da1.src1_reg_type = $7.reg.type;
-                  $$.bits3.ud = $7.reg.dw1.ud;
-                  $$.bits3.generic_gen5.end_of_thread = !!($6 & EX_DESC_EOT_MASK);
+		  GEN(&$$)->bits1.da1.src1_reg_file = BRW_IMMEDIATE_VALUE;
+		  GEN(&$$)->bits1.da1.src1_reg_type = $7.reg.type;
+                  GEN(&$$)->bits3.ud = $7.reg.dw1.ud;
+                  GEN(&$$)->bits3.generic_gen5.end_of_thread = !!($6 & EX_DESC_EOT_MASK);
 		}
 		| predicate SEND execsize dst sendleadreg sndopr directsrcoperand instoptions
 		{
@@ -1258,8 +1260,8 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
 		  }
 
 		  memset(&$$, 0, sizeof($$));
-		  $$.header.opcode = $2;
-                  $$.header.destreg__conditionalmod = ($6 & EX_DESC_SFID_MASK); /* SFID */
+		  GEN(&$$)->header.opcode = $2;
+                  GEN(&$$)->header.destreg__conditionalmod = ($6 & EX_DESC_SFID_MASK); /* SFID */
 		  set_instruction_predicate(&$$, &$1);
 
 		  $4.width = $3;
@@ -1282,7 +1284,7 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
                   set_instruction_src0(&$$, &src0, NULL);
 
                   set_instruction_src1(&$$, &$7, &@7);
-                  $$.bits3.generic_gen5.end_of_thread = !!($6 & EX_DESC_EOT_MASK);
+                  GEN(&$$)->bits3.generic_gen5.end_of_thread = !!($6 & EX_DESC_EOT_MASK);
 		}
 		| predicate SEND execsize dst sendleadreg payload sndopr imm32reg instoptions
 		{
@@ -1293,8 +1295,8 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
 			  "type=%d\n", $8.reg.dw1.ud, $8.reg.type);
 		  }
 		  memset(&$$, 0, sizeof($$));
-		  $$.header.opcode = $2;
-		  $$.header.destreg__conditionalmod = $5.nr; /* msg reg index */
+		  GEN(&$$)->header.opcode = $2;
+		  GEN(&$$)->header.destreg__conditionalmod = $5.nr; /* msg reg index */
 
 		  set_instruction_predicate(&$$, &$1);
 		  $4.width = $3;
@@ -1302,21 +1304,21 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
 		    YYERROR;
 		  if (set_instruction_src0(&$$, &$6, &@6) != 0)
 		    YYERROR;
-		  $$.bits1.da1.src1_reg_file = BRW_IMMEDIATE_VALUE;
-		  $$.bits1.da1.src1_reg_type = $8.reg.type;
+		  GEN(&$$)->bits1.da1.src1_reg_file = BRW_IMMEDIATE_VALUE;
+		  GEN(&$$)->bits1.da1.src1_reg_type = $8.reg.type;
 		  if (IS_GENx(5)) {
-		      $$.bits2.send_gen5.sfid = ($7 & EX_DESC_SFID_MASK);
-		      $$.bits3.ud = $8.reg.dw1.ud;
-		      $$.bits3.generic_gen5.end_of_thread = !!($7 & EX_DESC_EOT_MASK);
+		      GEN(&$$)->bits2.send_gen5.sfid = ($7 & EX_DESC_SFID_MASK);
+		      GEN(&$$)->bits3.ud = $8.reg.dw1.ud;
+		      GEN(&$$)->bits3.generic_gen5.end_of_thread = !!($7 & EX_DESC_EOT_MASK);
 		  }
 		  else
-		      $$.bits3.ud = $8.reg.dw1.ud;
+		      GEN(&$$)->bits3.ud = $8.reg.dw1.ud;
 		}
 		| predicate SEND execsize dst sendleadreg payload exp directsrcoperand instoptions
 		{
 		  memset(&$$, 0, sizeof($$));
-		  $$.header.opcode = $2;
-		  $$.header.destreg__conditionalmod = $5.nr; /* msg reg index */
+		  GEN(&$$)->header.opcode = $2;
+		  GEN(&$$)->header.destreg__conditionalmod = $5.nr; /* msg reg index */
 
 		  set_instruction_predicate(&$$, &$1);
 
@@ -1329,7 +1331,7 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
 		  if (set_instruction_src1(&$$, &$8, &@8) != 0)
 		    YYERROR;
 		  if (IS_GENx(5)) {
-                      $$.bits2.send_gen5.sfid = $7;
+                      GEN(&$$)->bits2.send_gen5.sfid = $7;
 		  }
 		}
 		
@@ -1349,24 +1351,24 @@ jumpinstruction: predicate JMPI execsize relativelocation2
 		   * is the post-incremented IP plus the offset.
 		   */
 		  memset(&$$, 0, sizeof($$));
-		  $$.gen.header.opcode = $2;
+		  GEN(&$$)->header.opcode = $2;
 		  if(advanced_flag)
-			$$.gen.header.mask_control = BRW_MASK_DISABLE;
-		  set_instruction_predicate(&$$.gen, &$1);
+			GEN(&$$)->header.mask_control = BRW_MASK_DISABLE;
+		  set_instruction_predicate(&$$, &$1);
 		  ip_dst.width = ffs(1) - 1;
-		  set_instruction_dest(&$$.gen, &ip_dst);
-		  set_instruction_src0(&$$.gen, &ip_src, NULL);
-		  set_instruction_src1(&$$.gen, &$4, NULL);
-		  $$.first_reloc_target = $4.reloc_target;
-		  $$.first_reloc_offset = $4.imm32;
+		  set_instruction_dest(&$$, &ip_dst);
+		  set_instruction_src0(&$$, &ip_src, NULL);
+		  set_instruction_src1(&$$, &$4, NULL);
+		  $$.insn.reloc.first_reloc_target = $4.reloc_target;
+		  $$.insn.reloc.first_reloc_offset = $4.imm32;
 		}
 ;
 
 mathinstruction: predicate MATH_INST execsize dst src srcimm math_function instoptions
 		{
 		  memset(&$$, 0, sizeof($$));
-		  $$.header.opcode = $2;
-		  $$.header.destreg__conditionalmod = $7;
+		  GEN(&$$)->header.opcode = $2;
+		  GEN(&$$)->header.destreg__conditionalmod = $7;
 		  set_instruction_options(&$$, &$8);
 		  set_instruction_predicate(&$$, &$1);
 		  $4.width = $3;
@@ -1383,13 +1385,13 @@ breakinstruction: predicate breakop execsize relativelocation relativelocation i
 		{
 		  // for Gen6, Gen7
 		  memset(&$$, 0, sizeof($$));
-		  set_instruction_predicate(&$$.gen, &$1);
-		  $$.gen.header.opcode = $2;
-		  $$.gen.header.execution_size = $3;
-		  $$.first_reloc_target = $4.reloc_target;
-		  $$.first_reloc_offset = $4.imm32;
-		  $$.second_reloc_target = $5.reloc_target;
-		  $$.second_reloc_offset = $5.imm32;
+		  set_instruction_predicate(&$$, &$1);
+		  GEN(&$$)->header.opcode = $2;
+		  GEN(&$$)->header.execution_size = $3;
+		  $$.insn.reloc.first_reloc_target = $4.reloc_target;
+		  $$.insn.reloc.first_reloc_offset = $4.imm32;
+		  $$.insn.reloc.second_reloc_target = $5.reloc_target;
+		  $$.insn.reloc.second_reloc_offset = $5.imm32;
 		}
 ;
 
@@ -1407,7 +1409,7 @@ syncinstruction: predicate WAIT notifyreg
 		  struct src_operand notify_src;
 
 		  memset(&$$, 0, sizeof($$));
-		  $$.header.opcode = $2;
+		  GEN(&$$)->header.opcode = $2;
 		  set_direct_dst_operand(&notify_dst, &$3, BRW_REGISTER_TYPE_D);
 		  notify_dst.width = ffs(1) - 1;
 		  set_instruction_dest(&$$, &notify_dst);
@@ -1421,7 +1423,7 @@ syncinstruction: predicate WAIT notifyreg
 nopinstruction: NOP
 		{
 		  memset(&$$, 0, sizeof($$));
-		  $$.header.opcode = $1;
+		  GEN(&$$)->header.opcode = $1;
 		};
 
 /* XXX! */
@@ -1434,42 +1436,42 @@ post_dst:	dst
 msgtarget:	NULL_TOKEN
 		{
 		  if (IS_GENp(5)) {
-                      $$.bits2.send_gen5.sfid= BRW_SFID_NULL;
-                      $$.bits3.generic_gen5.header_present = 0;  /* ??? */
+                      GEN(&$$)->bits2.send_gen5.sfid= BRW_SFID_NULL;
+                      GEN(&$$)->bits3.generic_gen5.header_present = 0;  /* ??? */
 		  } else {
-                      $$.bits3.generic.msg_target = BRW_SFID_NULL;
+                      GEN(&$$)->bits3.generic.msg_target = BRW_SFID_NULL;
 		  }
 		}
 		| SAMPLER LPAREN INTEGER COMMA INTEGER COMMA
 		sampler_datatype RPAREN
 		{
 		  if (IS_GENp(7)) {
-                      $$.bits2.send_gen5.sfid = BRW_SFID_SAMPLER;
-                      $$.bits3.generic_gen5.header_present = 1;   /* ??? */
-                      $$.bits3.sampler_gen7.binding_table_index = $3;
-                      $$.bits3.sampler_gen7.sampler = $5;
-                      $$.bits3.sampler_gen7.simd_mode = 2; /* SIMD16, maybe we should add a new parameter */
+                      GEN(&$$)->bits2.send_gen5.sfid = BRW_SFID_SAMPLER;
+                      GEN(&$$)->bits3.generic_gen5.header_present = 1;   /* ??? */
+                      GEN(&$$)->bits3.sampler_gen7.binding_table_index = $3;
+                      GEN(&$$)->bits3.sampler_gen7.sampler = $5;
+                      GEN(&$$)->bits3.sampler_gen7.simd_mode = 2; /* SIMD16, maybe we should add a new parameter */
 		  } else if (IS_GENp(5)) {
-                      $$.bits2.send_gen5.sfid = BRW_SFID_SAMPLER;
-                      $$.bits3.generic_gen5.header_present = 1;   /* ??? */
-                      $$.bits3.sampler_gen5.binding_table_index = $3;
-                      $$.bits3.sampler_gen5.sampler = $5;
-                      $$.bits3.sampler_gen5.simd_mode = 2; /* SIMD16, maybe we should add a new parameter */
+                      GEN(&$$)->bits2.send_gen5.sfid = BRW_SFID_SAMPLER;
+                      GEN(&$$)->bits3.generic_gen5.header_present = 1;   /* ??? */
+                      GEN(&$$)->bits3.sampler_gen5.binding_table_index = $3;
+                      GEN(&$$)->bits3.sampler_gen5.sampler = $5;
+                      GEN(&$$)->bits3.sampler_gen5.simd_mode = 2; /* SIMD16, maybe we should add a new parameter */
 		  } else {
-                      $$.bits3.generic.msg_target = BRW_SFID_SAMPLER;	
-                      $$.bits3.sampler.binding_table_index = $3;
-                      $$.bits3.sampler.sampler = $5;
+                      GEN(&$$)->bits3.generic.msg_target = BRW_SFID_SAMPLER;
+                      GEN(&$$)->bits3.sampler.binding_table_index = $3;
+                      GEN(&$$)->bits3.sampler.sampler = $5;
                       switch ($7) {
                       case TYPE_F:
-                          $$.bits3.sampler.return_format =
+                          GEN(&$$)->bits3.sampler.return_format =
                               BRW_SAMPLER_RETURN_FORMAT_FLOAT32;
                           break;
                       case TYPE_UD:
-                          $$.bits3.sampler.return_format =
+                          GEN(&$$)->bits3.sampler.return_format =
                               BRW_SAMPLER_RETURN_FORMAT_UINT32;
                           break;
                       case TYPE_D:
-                          $$.bits3.sampler.return_format =
+                          GEN(&$$)->bits3.sampler.return_format =
                               BRW_SAMPLER_RETURN_FORMAT_SINT32;
                           break;
                       }
@@ -1480,208 +1482,208 @@ msgtarget:	NULL_TOKEN
 		  if (IS_GENp(6)) {
                       error (&@1, "Gen6+ doesn't have math function\n");
 		  } else if (IS_GENx(5)) {
-                      $$.bits2.send_gen5.sfid = BRW_SFID_MATH;
-                      $$.bits3.generic_gen5.header_present = 0;
-                      $$.bits3.math_gen5.function = $2;
+                      GEN(&$$)->bits2.send_gen5.sfid = BRW_SFID_MATH;
+                      GEN(&$$)->bits3.generic_gen5.header_present = 0;
+                      GEN(&$$)->bits3.math_gen5.function = $2;
                       if ($3 == BRW_INSTRUCTION_SATURATE)
-                          $$.bits3.math_gen5.saturate = 1;
+                          GEN(&$$)->bits3.math_gen5.saturate = 1;
                       else
-                          $$.bits3.math_gen5.saturate = 0;
-                      $$.bits3.math_gen5.int_type = $4;
-                      $$.bits3.math_gen5.precision = BRW_MATH_PRECISION_FULL;
-                      $$.bits3.math_gen5.data_type = $5;
+                          GEN(&$$)->bits3.math_gen5.saturate = 0;
+                      GEN(&$$)->bits3.math_gen5.int_type = $4;
+                      GEN(&$$)->bits3.math_gen5.precision = BRW_MATH_PRECISION_FULL;
+                      GEN(&$$)->bits3.math_gen5.data_type = $5;
 		  } else {
-                      $$.bits3.generic.msg_target = BRW_SFID_MATH;
-                      $$.bits3.math.function = $2;
+                      GEN(&$$)->bits3.generic.msg_target = BRW_SFID_MATH;
+                      GEN(&$$)->bits3.math.function = $2;
                       if ($3 == BRW_INSTRUCTION_SATURATE)
-                          $$.bits3.math.saturate = 1;
+                          GEN(&$$)->bits3.math.saturate = 1;
                       else
-                          $$.bits3.math.saturate = 0;
-                      $$.bits3.math.int_type = $4;
-                      $$.bits3.math.precision = BRW_MATH_PRECISION_FULL;
-                      $$.bits3.math.data_type = $5;
+                          GEN(&$$)->bits3.math.saturate = 0;
+                      GEN(&$$)->bits3.math.int_type = $4;
+                      GEN(&$$)->bits3.math.precision = BRW_MATH_PRECISION_FULL;
+                      GEN(&$$)->bits3.math.data_type = $5;
 		  }
 		}
 		| GATEWAY
 		{
 		  if (IS_GENp(5)) {
-                      $$.bits2.send_gen5.sfid = BRW_SFID_MESSAGE_GATEWAY;
-                      $$.bits3.generic_gen5.header_present = 0;  /* ??? */
+                      GEN(&$$)->bits2.send_gen5.sfid = BRW_SFID_MESSAGE_GATEWAY;
+                      GEN(&$$)->bits3.generic_gen5.header_present = 0;  /* ??? */
 		  } else {
-                      $$.bits3.generic.msg_target = BRW_SFID_MESSAGE_GATEWAY;
+                      GEN(&$$)->bits3.generic.msg_target = BRW_SFID_MESSAGE_GATEWAY;
 		  }
 		}
 		| READ  LPAREN INTEGER COMMA INTEGER COMMA INTEGER COMMA
                 INTEGER RPAREN
 		{
 		  if (IS_GENx(7)) {
-                      $$.bits2.send_gen5.sfid = 
+                      GEN(&$$)->bits2.send_gen5.sfid =
                           GEN6_SFID_DATAPORT_SAMPLER_CACHE;
-                      $$.bits3.generic_gen5.header_present = 1;
-                      $$.bits3.gen7_dp.binding_table_index = $3;
-                      $$.bits3.gen7_dp.msg_control = $7;
-                      $$.bits3.gen7_dp.msg_type = $9;
+                      GEN(&$$)->bits3.generic_gen5.header_present = 1;
+                      GEN(&$$)->bits3.gen7_dp.binding_table_index = $3;
+                      GEN(&$$)->bits3.gen7_dp.msg_control = $7;
+                      GEN(&$$)->bits3.gen7_dp.msg_type = $9;
 		  } else if (IS_GENx(6)) {
-                      $$.bits2.send_gen5.sfid = 
+                      GEN(&$$)->bits2.send_gen5.sfid =
                           GEN6_SFID_DATAPORT_SAMPLER_CACHE;
-                      $$.bits3.generic_gen5.header_present = 1;
-                      $$.bits3.gen6_dp_sampler_const_cache.binding_table_index = $3;
-                      $$.bits3.gen6_dp_sampler_const_cache.msg_control = $7;
-                      $$.bits3.gen6_dp_sampler_const_cache.msg_type = $9;
+                      GEN(&$$)->bits3.generic_gen5.header_present = 1;
+                      GEN(&$$)->bits3.gen6_dp_sampler_const_cache.binding_table_index = $3;
+                      GEN(&$$)->bits3.gen6_dp_sampler_const_cache.msg_control = $7;
+                      GEN(&$$)->bits3.gen6_dp_sampler_const_cache.msg_type = $9;
 		  } else if (IS_GENx(5)) {
-                      $$.bits2.send_gen5.sfid = 
+                      GEN(&$$)->bits2.send_gen5.sfid =
                           BRW_SFID_DATAPORT_READ;
-                      $$.bits3.generic_gen5.header_present = 1;
-                      $$.bits3.dp_read_gen5.binding_table_index = $3;
-                      $$.bits3.dp_read_gen5.target_cache = $5;
-                      $$.bits3.dp_read_gen5.msg_control = $7;
-                      $$.bits3.dp_read_gen5.msg_type = $9;
+                      GEN(&$$)->bits3.generic_gen5.header_present = 1;
+                      GEN(&$$)->bits3.dp_read_gen5.binding_table_index = $3;
+                      GEN(&$$)->bits3.dp_read_gen5.target_cache = $5;
+                      GEN(&$$)->bits3.dp_read_gen5.msg_control = $7;
+                      GEN(&$$)->bits3.dp_read_gen5.msg_type = $9;
 		  } else {
-                      $$.bits3.generic.msg_target =
+                      GEN(&$$)->bits3.generic.msg_target =
                           BRW_SFID_DATAPORT_READ;
-                      $$.bits3.dp_read.binding_table_index = $3;
-                      $$.bits3.dp_read.target_cache = $5;
-                      $$.bits3.dp_read.msg_control = $7;
-                      $$.bits3.dp_read.msg_type = $9;
+                      GEN(&$$)->bits3.dp_read.binding_table_index = $3;
+                      GEN(&$$)->bits3.dp_read.target_cache = $5;
+                      GEN(&$$)->bits3.dp_read.msg_control = $7;
+                      GEN(&$$)->bits3.dp_read.msg_type = $9;
 		  }
 		}
 		| WRITE LPAREN INTEGER COMMA INTEGER COMMA INTEGER COMMA
 		INTEGER RPAREN
 		{
 		  if (IS_GENx(7)) {
-                      $$.bits2.send_gen5.sfid = GEN6_SFID_DATAPORT_RENDER_CACHE;
-                      $$.bits3.generic_gen5.header_present = 1;
-                      $$.bits3.gen7_dp.binding_table_index = $3;
-                      $$.bits3.gen7_dp.msg_control = $5;
-                      $$.bits3.gen7_dp.msg_type = $7;
+                      GEN(&$$)->bits2.send_gen5.sfid = GEN6_SFID_DATAPORT_RENDER_CACHE;
+                      GEN(&$$)->bits3.generic_gen5.header_present = 1;
+                      GEN(&$$)->bits3.gen7_dp.binding_table_index = $3;
+                      GEN(&$$)->bits3.gen7_dp.msg_control = $5;
+                      GEN(&$$)->bits3.gen7_dp.msg_type = $7;
                   } else if (IS_GENx(6)) {
-                      $$.bits2.send_gen5.sfid = GEN6_SFID_DATAPORT_RENDER_CACHE;
+                      GEN(&$$)->bits2.send_gen5.sfid = GEN6_SFID_DATAPORT_RENDER_CACHE;
                       /* Sandybridge supports headerlesss message for render target write.
                        * Currently the GFX assembler doesn't support it. so the program must provide 
                        * message header
                        */
-                      $$.bits3.generic_gen5.header_present = 1;
-                      $$.bits3.gen6_dp.binding_table_index = $3;
-                      $$.bits3.gen6_dp.msg_control = $5;
-                     $$.bits3.gen6_dp.msg_type = $7;
-                      $$.bits3.gen6_dp.send_commit_msg = $9;
+                      GEN(&$$)->bits3.generic_gen5.header_present = 1;
+                      GEN(&$$)->bits3.gen6_dp.binding_table_index = $3;
+                      GEN(&$$)->bits3.gen6_dp.msg_control = $5;
+                     GEN(&$$)->bits3.gen6_dp.msg_type = $7;
+                      GEN(&$$)->bits3.gen6_dp.send_commit_msg = $9;
 		  } else if (IS_GENx(5)) {
-                      $$.bits2.send_gen5.sfid =
+                      GEN(&$$)->bits2.send_gen5.sfid =
                           BRW_SFID_DATAPORT_WRITE;
-                      $$.bits3.generic_gen5.header_present = 1;
-                      $$.bits3.dp_write_gen5.binding_table_index = $3;
-                      $$.bits3.dp_write_gen5.last_render_target = ($5 & 0x8) >> 3;
-                      $$.bits3.dp_write_gen5.msg_control = $5 & 0x7;
-                      $$.bits3.dp_write_gen5.msg_type = $7;
-                      $$.bits3.dp_write_gen5.send_commit_msg = $9;
+                      GEN(&$$)->bits3.generic_gen5.header_present = 1;
+                      GEN(&$$)->bits3.dp_write_gen5.binding_table_index = $3;
+                      GEN(&$$)->bits3.dp_write_gen5.last_render_target = ($5 & 0x8) >> 3;
+                      GEN(&$$)->bits3.dp_write_gen5.msg_control = $5 & 0x7;
+                      GEN(&$$)->bits3.dp_write_gen5.msg_type = $7;
+                      GEN(&$$)->bits3.dp_write_gen5.send_commit_msg = $9;
 		  } else {
-                      $$.bits3.generic.msg_target =
+                      GEN(&$$)->bits3.generic.msg_target =
                           BRW_SFID_DATAPORT_WRITE;
-                      $$.bits3.dp_write.binding_table_index = $3;
+                      GEN(&$$)->bits3.dp_write.binding_table_index = $3;
                       /* The msg control field of brw_struct.h is split into
                        * msg control and last_render_target, even though
                        * last_render_target isn't common to all write messages.
                        */
-                      $$.bits3.dp_write.last_render_target = ($5 & 0x8) >> 3;
-                      $$.bits3.dp_write.msg_control = $5 & 0x7;
-                      $$.bits3.dp_write.msg_type = $7;
-                      $$.bits3.dp_write.send_commit_msg = $9;
+                      GEN(&$$)->bits3.dp_write.last_render_target = ($5 & 0x8) >> 3;
+                      GEN(&$$)->bits3.dp_write.msg_control = $5 & 0x7;
+                      GEN(&$$)->bits3.dp_write.msg_type = $7;
+                      GEN(&$$)->bits3.dp_write.send_commit_msg = $9;
 		  }
 		}
 		| WRITE LPAREN INTEGER COMMA INTEGER COMMA INTEGER COMMA
 		INTEGER COMMA INTEGER RPAREN
 		{
 		  if (IS_GENx(7)) {
-                      $$.bits2.send_gen5.sfid = GEN6_SFID_DATAPORT_RENDER_CACHE;
-                      $$.bits3.generic_gen5.header_present = ($11 != 0);
-                      $$.bits3.gen7_dp.binding_table_index = $3;
-                      $$.bits3.gen7_dp.msg_control = $5;
-                      $$.bits3.gen7_dp.msg_type = $7;
+                      GEN(&$$)->bits2.send_gen5.sfid = GEN6_SFID_DATAPORT_RENDER_CACHE;
+                      GEN(&$$)->bits3.generic_gen5.header_present = ($11 != 0);
+                      GEN(&$$)->bits3.gen7_dp.binding_table_index = $3;
+                      GEN(&$$)->bits3.gen7_dp.msg_control = $5;
+                      GEN(&$$)->bits3.gen7_dp.msg_type = $7;
 		  } else if (IS_GENx(6)) {
-                      $$.bits2.send_gen5.sfid = GEN6_SFID_DATAPORT_RENDER_CACHE;
-                      $$.bits3.generic_gen5.header_present = ($11 != 0);
-                      $$.bits3.gen6_dp.binding_table_index = $3;
-                      $$.bits3.gen6_dp.msg_control = $5;
-                     $$.bits3.gen6_dp.msg_type = $7;
-                      $$.bits3.gen6_dp.send_commit_msg = $9;
+                      GEN(&$$)->bits2.send_gen5.sfid = GEN6_SFID_DATAPORT_RENDER_CACHE;
+                      GEN(&$$)->bits3.generic_gen5.header_present = ($11 != 0);
+                      GEN(&$$)->bits3.gen6_dp.binding_table_index = $3;
+                      GEN(&$$)->bits3.gen6_dp.msg_control = $5;
+                     GEN(&$$)->bits3.gen6_dp.msg_type = $7;
+                      GEN(&$$)->bits3.gen6_dp.send_commit_msg = $9;
 		  } else if (IS_GENx(5)) {
-                      $$.bits2.send_gen5.sfid =
+                      GEN(&$$)->bits2.send_gen5.sfid =
                           BRW_SFID_DATAPORT_WRITE;
-                      $$.bits3.generic_gen5.header_present = ($11 != 0);
-                      $$.bits3.dp_write_gen5.binding_table_index = $3;
-                      $$.bits3.dp_write_gen5.last_render_target = ($5 & 0x8) >> 3;
-                      $$.bits3.dp_write_gen5.msg_control = $5 & 0x7;
-                      $$.bits3.dp_write_gen5.msg_type = $7;
-                      $$.bits3.dp_write_gen5.send_commit_msg = $9;
+                      GEN(&$$)->bits3.generic_gen5.header_present = ($11 != 0);
+                      GEN(&$$)->bits3.dp_write_gen5.binding_table_index = $3;
+                      GEN(&$$)->bits3.dp_write_gen5.last_render_target = ($5 & 0x8) >> 3;
+                      GEN(&$$)->bits3.dp_write_gen5.msg_control = $5 & 0x7;
+                      GEN(&$$)->bits3.dp_write_gen5.msg_type = $7;
+                      GEN(&$$)->bits3.dp_write_gen5.send_commit_msg = $9;
 		  } else {
-                      $$.bits3.generic.msg_target =
+                      GEN(&$$)->bits3.generic.msg_target =
                           BRW_SFID_DATAPORT_WRITE;
-                      $$.bits3.dp_write.binding_table_index = $3;
+                      GEN(&$$)->bits3.dp_write.binding_table_index = $3;
                       /* The msg control field of brw_struct.h is split into
                        * msg control and last_render_target, even though
                        * last_render_target isn't common to all write messages.
                        */
-                      $$.bits3.dp_write.last_render_target = ($5 & 0x8) >> 3;
-                      $$.bits3.dp_write.msg_control = $5 & 0x7;
-                      $$.bits3.dp_write.msg_type = $7;
-                      $$.bits3.dp_write.send_commit_msg = $9;
+                      GEN(&$$)->bits3.dp_write.last_render_target = ($5 & 0x8) >> 3;
+                      GEN(&$$)->bits3.dp_write.msg_control = $5 & 0x7;
+                      GEN(&$$)->bits3.dp_write.msg_type = $7;
+                      GEN(&$$)->bits3.dp_write.send_commit_msg = $9;
 		  }
 		}
 		| URB INTEGER urb_swizzle urb_allocate urb_used urb_complete
 		{
-		  $$.bits3.generic.msg_target = BRW_SFID_URB;
+		  GEN(&$$)->bits3.generic.msg_target = BRW_SFID_URB;
 		  if (IS_GENp(5)) {
-                      $$.bits2.send_gen5.sfid = BRW_SFID_URB;
-                      $$.bits3.generic_gen5.header_present = 1;
-                      $$.bits3.urb_gen5.opcode = BRW_URB_OPCODE_WRITE;
-                      $$.bits3.urb_gen5.offset = $2;
-                      $$.bits3.urb_gen5.swizzle_control = $3;
-                      $$.bits3.urb_gen5.pad = 0;
-                      $$.bits3.urb_gen5.allocate = $4;
-                      $$.bits3.urb_gen5.used = $5;
-                      $$.bits3.urb_gen5.complete = $6;
+                      GEN(&$$)->bits2.send_gen5.sfid = BRW_SFID_URB;
+                      GEN(&$$)->bits3.generic_gen5.header_present = 1;
+                      GEN(&$$)->bits3.urb_gen5.opcode = BRW_URB_OPCODE_WRITE;
+                      GEN(&$$)->bits3.urb_gen5.offset = $2;
+                      GEN(&$$)->bits3.urb_gen5.swizzle_control = $3;
+                      GEN(&$$)->bits3.urb_gen5.pad = 0;
+                      GEN(&$$)->bits3.urb_gen5.allocate = $4;
+                      GEN(&$$)->bits3.urb_gen5.used = $5;
+                      GEN(&$$)->bits3.urb_gen5.complete = $6;
 		  } else {
-                      $$.bits3.generic.msg_target = BRW_SFID_URB;
-                      $$.bits3.urb.opcode = BRW_URB_OPCODE_WRITE;
-                      $$.bits3.urb.offset = $2;
-                      $$.bits3.urb.swizzle_control = $3;
-                      $$.bits3.urb.pad = 0;
-                      $$.bits3.urb.allocate = $4;
-                      $$.bits3.urb.used = $5;
-                      $$.bits3.urb.complete = $6;
+                      GEN(&$$)->bits3.generic.msg_target = BRW_SFID_URB;
+                      GEN(&$$)->bits3.urb.opcode = BRW_URB_OPCODE_WRITE;
+                      GEN(&$$)->bits3.urb.offset = $2;
+                      GEN(&$$)->bits3.urb.swizzle_control = $3;
+                      GEN(&$$)->bits3.urb.pad = 0;
+                      GEN(&$$)->bits3.urb.allocate = $4;
+                      GEN(&$$)->bits3.urb.used = $5;
+                      GEN(&$$)->bits3.urb.complete = $6;
 		  }
 		}
 		| THREAD_SPAWNER  LPAREN INTEGER COMMA INTEGER COMMA
                         INTEGER RPAREN
 		{
-		  $$.bits3.generic.msg_target =
+		  GEN(&$$)->bits3.generic.msg_target =
 		    BRW_SFID_THREAD_SPAWNER;
 		  if (IS_GENp(5)) {
-                      $$.bits2.send_gen5.sfid = 
+                      GEN(&$$)->bits2.send_gen5.sfid =
                           BRW_SFID_THREAD_SPAWNER;
-                      $$.bits3.generic_gen5.header_present = 0;
-                      $$.bits3.thread_spawner_gen5.opcode = $3;
-                      $$.bits3.thread_spawner_gen5.requester_type  = $5;
-                      $$.bits3.thread_spawner_gen5.resource_select = $7;
+                      GEN(&$$)->bits3.generic_gen5.header_present = 0;
+                      GEN(&$$)->bits3.thread_spawner_gen5.opcode = $3;
+                      GEN(&$$)->bits3.thread_spawner_gen5.requester_type  = $5;
+                      GEN(&$$)->bits3.thread_spawner_gen5.resource_select = $7;
 		  } else {
-                      $$.bits3.generic.msg_target =
+                      GEN(&$$)->bits3.generic.msg_target =
                           BRW_SFID_THREAD_SPAWNER;
-                      $$.bits3.thread_spawner.opcode = $3;
-                      $$.bits3.thread_spawner.requester_type  = $5;
-                      $$.bits3.thread_spawner.resource_select = $7;
+                      GEN(&$$)->bits3.thread_spawner.opcode = $3;
+                      GEN(&$$)->bits3.thread_spawner.requester_type  = $5;
+                      GEN(&$$)->bits3.thread_spawner.resource_select = $7;
 		  }
 		}
 		| VME  LPAREN INTEGER COMMA INTEGER COMMA INTEGER COMMA INTEGER RPAREN
 		{
-		  $$.bits3.generic.msg_target = GEN6_SFID_VME;
+		  GEN(&$$)->bits3.generic.msg_target = GEN6_SFID_VME;
 
 		  if (IS_GENp(6)) { 
-                      $$.bits2.send_gen5.sfid = GEN6_SFID_VME;
-                      $$.bits3.vme_gen6.binding_table_index = $3;
-                      $$.bits3.vme_gen6.search_path_index = $5;
-                      $$.bits3.vme_gen6.lut_subindex = $7;
-                      $$.bits3.vme_gen6.message_type = $9;
-                      $$.bits3.generic_gen5.header_present = 1; 
+                      GEN(&$$)->bits2.send_gen5.sfid = GEN6_SFID_VME;
+                      GEN(&$$)->bits3.vme_gen6.binding_table_index = $3;
+                      GEN(&$$)->bits3.vme_gen6.search_path_index = $5;
+                      GEN(&$$)->bits3.vme_gen6.lut_subindex = $7;
+                      GEN(&$$)->bits3.vme_gen6.message_type = $9;
+                      GEN(&$$)->bits3.generic_gen5.header_present = 1;
 		  } else {
                       error (&@1, "Gen6- doesn't have vme function\n");
 		  }    
@@ -1691,19 +1693,19 @@ msgtarget:	NULL_TOKEN
 		   if (gen_level < 75)
                       error (&@1, "Below Gen7.5 doesn't have CRE function\n");
 
-		   $$.bits3.generic.msg_target = HSW_SFID_CRE;
+		   GEN(&$$)->bits3.generic.msg_target = HSW_SFID_CRE;
 
-                   $$.bits2.send_gen5.sfid = HSW_SFID_CRE;
-                   $$.bits3.cre_gen75.binding_table_index = $3;
-                   $$.bits3.cre_gen75.message_type = $5;
-                   $$.bits3.generic_gen5.header_present = 1; 
+                   GEN(&$$)->bits2.send_gen5.sfid = HSW_SFID_CRE;
+                   GEN(&$$)->bits3.cre_gen75.binding_table_index = $3;
+                   GEN(&$$)->bits3.cre_gen75.message_type = $5;
+                   GEN(&$$)->bits3.generic_gen5.header_present = 1;
 		}
 
 		| DATA_PORT LPAREN INTEGER COMMA INTEGER COMMA INTEGER COMMA 
                 INTEGER COMMA INTEGER COMMA INTEGER RPAREN
 		{
-                    $$.bits2.send_gen5.sfid = $3;
-                    $$.bits3.generic_gen5.header_present = ($13 != 0);
+                    GEN(&$$)->bits2.send_gen5.sfid = $3;
+                    GEN(&$$)->bits3.generic_gen5.header_present = ($13 != 0);
 
                     if (IS_GENp(7)) {
                         if ($3 != GEN6_SFID_DATAPORT_SAMPLER_CACHE &&
@@ -1713,10 +1715,10 @@ msgtarget:	NULL_TOKEN
                             error (&@3, "error: wrong cache type\n");
                         }
 
-                        $$.bits3.gen7_dp.category = $11;
-                        $$.bits3.gen7_dp.binding_table_index = $9;
-                        $$.bits3.gen7_dp.msg_control = $7;
-                        $$.bits3.gen7_dp.msg_type = $5;
+                        GEN(&$$)->bits3.gen7_dp.category = $11;
+                        GEN(&$$)->bits3.gen7_dp.binding_table_index = $9;
+                        GEN(&$$)->bits3.gen7_dp.msg_control = $7;
+                        GEN(&$$)->bits3.gen7_dp.msg_type = $5;
                     } else if (IS_GENx(6)) {
                         if ($3 != GEN6_SFID_DATAPORT_SAMPLER_CACHE &&
                             $3 != GEN6_SFID_DATAPORT_RENDER_CACHE &&
@@ -1724,10 +1726,10 @@ msgtarget:	NULL_TOKEN
                             error (&@3, "error: wrong cache type\n");
                         }
 
-                        $$.bits3.gen6_dp.send_commit_msg = $11;
-                        $$.bits3.gen6_dp.binding_table_index = $9;
-                        $$.bits3.gen6_dp.msg_control = $7;
-                        $$.bits3.gen6_dp.msg_type = $5;
+                        GEN(&$$)->bits3.gen6_dp.send_commit_msg = $11;
+                        GEN(&$$)->bits3.gen6_dp.binding_table_index = $9;
+                        GEN(&$$)->bits3.gen6_dp.msg_control = $7;
+                        GEN(&$$)->bits3.gen6_dp.msg_type = $5;
                     } else if (!IS_GENp(5)) {
                         error (&@1, "Gen6- doesn't support data port for sampler/render/constant/data cache\n");
                     }
@@ -2615,21 +2617,21 @@ imm32:		exp { $$.r = imm32_d; $$.u.d = $1; }
 /* 1.4.12: Predication and modifiers */
 predicate:	/* empty */
 		{
-		  $$.header.predicate_control = BRW_PREDICATE_NONE;
-		  $$.bits2.da1.flag_reg_nr = 0;
-		  $$.bits2.da1.flag_subreg_nr = 0;
-		  $$.header.predicate_inverse = 0;
+		  GEN(&$$)->header.predicate_control = BRW_PREDICATE_NONE;
+		  GEN(&$$)->bits2.da1.flag_reg_nr = 0;
+		  GEN(&$$)->bits2.da1.flag_subreg_nr = 0;
+		  GEN(&$$)->header.predicate_inverse = 0;
 		}
 		| LPAREN predstate flagreg predctrl RPAREN
 		{
-		  $$.header.predicate_control = $4;
+		  GEN(&$$)->header.predicate_control = $4;
 		  /* XXX: Should deal with erroring when the user tries to
 		   * set a predicate for one flag register and conditional
 		   * modification on the other flag register.
 		   */
-		  $$.bits2.da1.flag_reg_nr = ($3.nr & 0xF);
-		  $$.bits2.da1.flag_subreg_nr = $3.subnr;
-		  $$.header.predicate_inverse = $2;
+		  GEN(&$$)->bits2.da1.flag_reg_nr = ($3.nr & 0xF);
+		  GEN(&$$)->bits2.da1.flag_subreg_nr = $3.subnr;
+		  GEN(&$$)->header.predicate_inverse = $2;
 		}
 ;
 
@@ -2722,40 +2724,40 @@ instoption_list:instoption_list COMMA instoption
 		  $$ = $1;
 		  switch ($3) {
 		  case ALIGN1:
-		    $$.header.access_mode = BRW_ALIGN_1;
+		    GEN(&$$)->header.access_mode = BRW_ALIGN_1;
 		    break;
 		  case ALIGN16:
-		    $$.header.access_mode = BRW_ALIGN_16;
+		    GEN(&$$)->header.access_mode = BRW_ALIGN_16;
 		    break;
 		  case SECHALF:
-		    $$.header.compression_control |= BRW_COMPRESSION_2NDHALF;
+		    GEN(&$$)->header.compression_control |= BRW_COMPRESSION_2NDHALF;
 		    break;
 		  case COMPR:
 		    if (!IS_GENp(6)) {
-                        $$.header.compression_control |=
+                        GEN(&$$)->header.compression_control |=
                             BRW_COMPRESSION_COMPRESSED;
 		    }
 		    break;
 		  case SWITCH:
-		    $$.header.thread_control |= BRW_THREAD_SWITCH;
+		    GEN(&$$)->header.thread_control |= BRW_THREAD_SWITCH;
 		    break;
 		  case ATOMIC:
-		    $$.header.thread_control |= BRW_THREAD_ATOMIC;
+		    GEN(&$$)->header.thread_control |= BRW_THREAD_ATOMIC;
 		    break;
 		  case NODDCHK:
-		    $$.header.dependency_control |= BRW_DEPENDENCY_NOTCHECKED;
+		    GEN(&$$)->header.dependency_control |= BRW_DEPENDENCY_NOTCHECKED;
 		    break;
 		  case NODDCLR:
-		    $$.header.dependency_control |= BRW_DEPENDENCY_NOTCLEARED;
+		    GEN(&$$)->header.dependency_control |= BRW_DEPENDENCY_NOTCLEARED;
 		    break;
 		  case MASK_DISABLE:
-		    $$.header.mask_control = BRW_MASK_DISABLE;
+		    GEN(&$$)->header.mask_control = BRW_MASK_DISABLE;
 		    break;
 		  case BREAKPOINT:
-		    $$.header.debug_control = BRW_DEBUG_BREAKPOINT;
+		    GEN(&$$)->header.debug_control = BRW_DEBUG_BREAKPOINT;
 		    break;
 		  case ACCWRCTRL:
-		    $$.header.acc_wr_control = BRW_ACCUMULATOR_WRITE_ENABLE;
+		    GEN(&$$)->header.acc_wr_control = BRW_ACCUMULATOR_WRITE_ENABLE;
 		  }
 		}
 		| instoption_list instoption
@@ -2763,41 +2765,41 @@ instoption_list:instoption_list COMMA instoption
 		  $$ = $1;
 		  switch ($2) {
 		  case ALIGN1:
-		    $$.header.access_mode = BRW_ALIGN_1;
+		    GEN(&$$)->header.access_mode = BRW_ALIGN_1;
 		    break;
 		  case ALIGN16:
-		    $$.header.access_mode = BRW_ALIGN_16;
+		    GEN(&$$)->header.access_mode = BRW_ALIGN_16;
 		    break;
 		  case SECHALF:
-		    $$.header.compression_control |= BRW_COMPRESSION_2NDHALF;
+		    GEN(&$$)->header.compression_control |= BRW_COMPRESSION_2NDHALF;
 		    break;
 		  case COMPR:
 			if (!IS_GENp(6)) {
-		      $$.header.compression_control |=
+		      GEN(&$$)->header.compression_control |=
 		        BRW_COMPRESSION_COMPRESSED;
 			}
 		    break;
 		  case SWITCH:
-		    $$.header.thread_control |= BRW_THREAD_SWITCH;
+		    GEN(&$$)->header.thread_control |= BRW_THREAD_SWITCH;
 		    break;
 		  case ATOMIC:
-		    $$.header.thread_control |= BRW_THREAD_ATOMIC;
+		    GEN(&$$)->header.thread_control |= BRW_THREAD_ATOMIC;
 		    break;
 		  case NODDCHK:
-		    $$.header.dependency_control |= BRW_DEPENDENCY_NOTCHECKED;
+		    GEN(&$$)->header.dependency_control |= BRW_DEPENDENCY_NOTCHECKED;
 		    break;
 		  case NODDCLR:
-		    $$.header.dependency_control |= BRW_DEPENDENCY_NOTCLEARED;
+		    GEN(&$$)->header.dependency_control |= BRW_DEPENDENCY_NOTCLEARED;
 		    break;
 		  case MASK_DISABLE:
-		    $$.header.mask_control = BRW_MASK_DISABLE;
+		    GEN(&$$)->header.mask_control = BRW_MASK_DISABLE;
 		    break;
 		  case BREAKPOINT:
-		    $$.header.debug_control = BRW_DEBUG_BREAKPOINT;
+		    GEN(&$$)->header.debug_control = BRW_DEBUG_BREAKPOINT;
 		    break;
 		  case EOT:
 		    /* XXX: EOT shouldn't be an instoption, I don't think */
-		    $$.bits3.generic.end_of_thread = 1;
+		    GEN(&$$)->bits3.generic.end_of_thread = 1;
 		    break;
 		  }
 		}
@@ -2933,59 +2935,59 @@ static void reset_instruction_src_region(struct brw_instruction *instr,
 /**
  * Fills in the destination register information in instr from the bits in dst.
  */
-static int set_instruction_dest(struct brw_instruction *instr,
+static int set_instruction_dest(struct brw_program_instruction *instr,
 				struct brw_reg *dest)
 {
-	if (!validate_dst_reg(instr, dest))
+	if (!validate_dst_reg(GEN(instr), dest))
 		return 1;
 
 	/* the assembler support expressing subnr in bytes or in number of
 	 * elements. */
 	resolve_subnr(dest);
 
-	brw_set_dest(&genasm_compile, instr, *dest);
+	brw_set_dest(&genasm_compile, GEN(instr), *dest);
 
 	return 0;
 }
 
 /* Sets the first source operand for the instruction.  Returns 0 on success. */
-static int set_instruction_src0(struct brw_instruction *instr,
+static int set_instruction_src0(struct brw_program_instruction *instr,
 				struct src_operand *src,
 				YYLTYPE *location)
 {
 
 	if (advanced_flag)
-		reset_instruction_src_region(instr, src);
+		reset_instruction_src_region(GEN(instr), src);
 
-	if (!validate_src_reg(instr, src->reg, location))
+	if (!validate_src_reg(GEN(instr), src->reg, location))
 		return 1;
 
 	/* the assembler support expressing subnr in bytes or in number of
 	 * elements. */
 	resolve_subnr(&src->reg);
 
-	brw_set_src0(&genasm_compile, instr, src->reg);
+	brw_set_src0(&genasm_compile, GEN(instr), src->reg);
 
 	return 0;
 }
 
 /* Sets the second source operand for the instruction.  Returns 0 on success.
  */
-static int set_instruction_src1(struct brw_instruction *instr,
+static int set_instruction_src1(struct brw_program_instruction *instr,
 				struct src_operand *src,
 				YYLTYPE *location)
 {
 	if (advanced_flag)
-		reset_instruction_src_region(instr, src);
+		reset_instruction_src_region(GEN(instr), src);
 
-	if (!validate_src_reg(instr, src->reg, location))
+	if (!validate_src_reg(GEN(instr), src->reg, location))
 		return 1;
 
 	/* the assembler support expressing subnr in bytes or in number of
 	 * elements. */
 	resolve_subnr(&src->reg);
 
-	brw_set_src1(&genasm_compile, instr, src->reg);
+	brw_set_src1(&genasm_compile, GEN(instr), src->reg);
 
 	return 0;
 }
@@ -3010,74 +3012,74 @@ static int reg_type_2_to_3(int reg_type)
 	return r;
 }
 
-static int set_instruction_dest_three_src(struct brw_instruction *instr,
+static int set_instruction_dest_three_src(struct brw_program_instruction *instr,
 					  struct brw_reg *dest)
 {
-	instr->bits1.da3src.dest_reg_file = dest->file;
-	instr->bits1.da3src.dest_reg_nr = dest->nr;
-	instr->bits1.da3src.dest_subreg_nr = get_subreg_address(dest->file, dest->type, dest->subnr, dest->address_mode) / 4; // in DWORD
-	instr->bits1.da3src.dest_writemask = dest->dw1.bits.writemask;
-	instr->bits1.da3src.dest_reg_type = reg_type_2_to_3(dest->type);
+	GEN(instr)->bits1.da3src.dest_reg_file = dest->file;
+	GEN(instr)->bits1.da3src.dest_reg_nr = dest->nr;
+	GEN(instr)->bits1.da3src.dest_subreg_nr = get_subreg_address(dest->file, dest->type, dest->subnr, dest->address_mode) / 4; // in DWORD
+	GEN(instr)->bits1.da3src.dest_writemask = dest->dw1.bits.writemask;
+	GEN(instr)->bits1.da3src.dest_reg_type = reg_type_2_to_3(dest->type);
 	return 0;
 }
 
-static int set_instruction_src0_three_src(struct brw_instruction *instr,
+static int set_instruction_src0_three_src(struct brw_program_instruction *instr,
 					  struct src_operand *src)
 {
 	if (advanced_flag) {
-		reset_instruction_src_region(instr, src);
+		reset_instruction_src_region(GEN(instr), src);
 	}
 	// TODO: supporting src0 swizzle, src0 modifier, src0 rep_ctrl
-	instr->bits1.da3src.src_reg_type = reg_type_2_to_3(src->reg.type);
-	instr->bits2.da3src.src0_subreg_nr = get_subreg_address(src->reg.file, src->reg.type, src->reg.subnr, src->reg.address_mode) / 4; // in DWORD
-	instr->bits2.da3src.src0_reg_nr = src->reg.nr;
+	GEN(instr)->bits1.da3src.src_reg_type = reg_type_2_to_3(src->reg.type);
+	GEN(instr)->bits2.da3src.src0_subreg_nr = get_subreg_address(src->reg.file, src->reg.type, src->reg.subnr, src->reg.address_mode) / 4; // in DWORD
+	GEN(instr)->bits2.da3src.src0_reg_nr = src->reg.nr;
 	return 0;
 }
 
-static int set_instruction_src1_three_src(struct brw_instruction *instr,
+static int set_instruction_src1_three_src(struct brw_program_instruction *instr,
 					  struct src_operand *src)
 {
 	if (advanced_flag) {
-		reset_instruction_src_region(instr, src);
+		reset_instruction_src_region(GEN(instr), src);
 	}
 	// TODO: supporting src1 swizzle, src1 modifier, src1 rep_ctrl
 	int v = get_subreg_address(src->reg.file, src->reg.type, src->reg.subnr, src->reg.address_mode) / 4; // in DWORD
-	instr->bits2.da3src.src1_subreg_nr_low = v % 4; // lower 2 bits
-	instr->bits3.da3src.src1_subreg_nr_high = v / 4; // highest bit
-	instr->bits3.da3src.src1_reg_nr = src->reg.nr;
+	GEN(instr)->bits2.da3src.src1_subreg_nr_low = v % 4; // lower 2 bits
+	GEN(instr)->bits3.da3src.src1_subreg_nr_high = v / 4; // highest bit
+	GEN(instr)->bits3.da3src.src1_reg_nr = src->reg.nr;
 	return 0;
 }
 
-static int set_instruction_src2_three_src(struct brw_instruction *instr,
+static int set_instruction_src2_three_src(struct brw_program_instruction *instr,
 					  struct src_operand *src)
 {
 	if (advanced_flag) {
-		reset_instruction_src_region(instr, src);
+		reset_instruction_src_region(GEN(instr), src);
 	}
 	// TODO: supporting src2 swizzle, src2 modifier, src2 rep_ctrl
-	instr->bits3.da3src.src2_subreg_nr = get_subreg_address(src->reg.file, src->reg.type, src->reg.subnr, src->reg.address_mode) / 4; // in DWORD
-	instr->bits3.da3src.src2_reg_nr = src->reg.nr;
+	GEN(instr)->bits3.da3src.src2_subreg_nr = get_subreg_address(src->reg.file, src->reg.type, src->reg.subnr, src->reg.address_mode) / 4; // in DWORD
+	GEN(instr)->bits3.da3src.src2_reg_nr = src->reg.nr;
 	return 0;
 }
 
-static void set_instruction_options(struct brw_instruction *instr,
-				    struct brw_instruction *options)
+static void set_instruction_options(struct brw_program_instruction *instr,
+				    struct brw_program_instruction *options)
 {
 	/* XXX: more instr options */
-	instr->header.access_mode = options->header.access_mode;
-	instr->header.mask_control = options->header.mask_control;
-	instr->header.dependency_control = options->header.dependency_control;
-	instr->header.compression_control =
-		options->header.compression_control;
+	GEN(instr)->header.access_mode = GEN(options)->header.access_mode;
+	GEN(instr)->header.mask_control = GEN(options)->header.mask_control;
+	GEN(instr)->header.dependency_control = GEN(options)->header.dependency_control;
+	GEN(instr)->header.compression_control =
+		GEN(options)->header.compression_control;
 }
 
-static void set_instruction_predicate(struct brw_instruction *instr,
-				      struct brw_instruction *predicate)
+static void set_instruction_predicate(struct brw_program_instruction *instr,
+				      struct brw_program_instruction *p)
 {
-	instr->header.predicate_control = predicate->header.predicate_control;
-	instr->header.predicate_inverse = predicate->header.predicate_inverse;
-	instr->bits2.da1.flag_reg_nr = predicate->bits2.da1.flag_reg_nr;
-	instr->bits2.da1.flag_subreg_nr = predicate->bits2.da1.flag_subreg_nr;
+	GEN(instr)->header.predicate_control = GEN(p)->header.predicate_control;
+	GEN(instr)->header.predicate_inverse = GEN(p)->header.predicate_inverse;
+	GEN(instr)->bits2.da1.flag_reg_nr = GEN(p)->bits2.da1.flag_reg_nr;
+	GEN(instr)->bits2.da1.flag_subreg_nr = GEN(p)->bits2.da1.flag_subreg_nr;
 }
 
 static void set_direct_dst_operand(struct brw_reg *dst, struct brw_reg *reg,
