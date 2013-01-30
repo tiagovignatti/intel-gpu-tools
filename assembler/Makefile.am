@@ -18,6 +18,8 @@ libbrw_la_SOURCES =		\
 	brw_eu_util.c		\
 	brw_reg.h		\
 	brw_structs.h		\
+	gen8_instruction.h	\
+	gen8_instruction.c	\
 	ralloc.c		\
 	ralloc.h		\
 	$(NULL)

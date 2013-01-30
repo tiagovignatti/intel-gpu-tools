@@ -60,6 +60,8 @@ extern "C" {
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof(x[0]))
 #define Elements(x) ARRAY_SIZE(x)
 
+typedef union { float f; int i; unsigned u; } fi_type;
+
 #ifdef __cplusplus
 } /* end of extern "C" */
 #endif
