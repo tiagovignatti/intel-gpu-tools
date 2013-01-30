@@ -26,6 +26,7 @@
 #include <assert.h>
 #include <cairo.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <math.h>
 #include <stdint.h>
 #include <unistd.h>
@@ -55,6 +56,7 @@
 #define TEST_VBLANK_EXPIRED_SEQ	(1 << 11)
 #define TEST_FB_RECREATE	(1 << 12)
 #define TEST_RMFB		(1 << 13)
+#define TEST_HANG		(1 << 14)
 
 #define EVENT_FLIP		(1 << 0)
 #define EVENT_VBLANK		(1 << 1)
@@ -493,6 +495,75 @@ static void recreate_fb(struct test_output *o)
 	o->fb_info[o->current_fb_id].fb_id = new_fb_id;
 }
 
+static int exec_nop(int fd, uint32_t handle)
+{
+	struct drm_i915_gem_execbuffer2 execbuf;
+	struct drm_i915_gem_exec_object2 gem_exec[1];
+	uint32_t b[2] = {MI_BATCH_BUFFER_END};
+	int r;
+
+	gem_write(fd, handle, 0, b, sizeof(b));
+
+	gem_exec[0].handle = handle;
+	gem_exec[0].relocation_count = 0;
+	gem_exec[0].relocs_ptr = 0;
+	gem_exec[0].alignment = 0;
+	gem_exec[0].offset = 0;
+	gem_exec[0].flags = 0;
+	gem_exec[0].rsvd1 = 0;
+	gem_exec[0].rsvd2 = 0;
+
+	execbuf.buffers_ptr = (uintptr_t)gem_exec;
+	execbuf.buffer_count = 1;
+	execbuf.batch_start_offset = 0;
+	execbuf.batch_len = 8;
+	execbuf.cliprects_ptr = 0;
+	execbuf.num_cliprects = 0;
+	execbuf.DR1 = 0;
+	execbuf.DR4 = 0;
+	execbuf.flags =  I915_EXEC_RENDER;
+	i915_execbuffer2_set_context_id(execbuf, 0);
+	execbuf.rsvd2 = 0;
+
+	r = drmIoctl(fd,
+			DRM_IOCTL_I915_GEM_EXECBUFFER2,
+			&execbuf);
+	if (r)
+		fprintf(stderr, "failed to exec: %s\n",
+			strerror(errno));
+	return r;
+}
+
+static void hang_gpu(struct test_output *o)
+{
+	static const char dfs_base[] = "/sys/kernel/debug/dri";
+	static const char dfs_entry[] = "i915_ring_stop";
+	static const char data[] = "0xf";
+	char fname[FILENAME_MAX];
+	int card_index = drm_get_card(0);
+	int fd;
+	ssize_t r;
+
+	assert(card_index != -1);
+
+	snprintf(fname, FILENAME_MAX, "%s/%i/%s",
+		 dfs_base, card_index, dfs_entry);
+
+	fd = open(fname, O_WRONLY);
+	if (fd < 0) {
+		fprintf(stderr, "failed to open '%s': %s\n",
+			fname, strerror(errno));
+		return;
+	}
+
+	r = write(fd, data, sizeof data);
+	if (r < 0)
+		fprintf(stderr, "failed to write '%s': %s\n",
+			fname, strerror(errno));
+
+	close(fd);
+}
+
 /* Return mask of completed events. */
 static unsigned int run_test_step(struct test_output *o)
 {
@@ -504,6 +575,7 @@ static unsigned int run_test_step(struct test_output *o)
 	bool do_vblank;
 	struct vblank_reply vbl_reply;
 	unsigned int target_seq;
+	uint32_t handle;
 
 	target_seq = o->vblank_state.seq_step;
 	if (o->flags & TEST_VBLANK_ABSOLUTE)
@@ -566,8 +638,14 @@ static unsigned int run_test_step(struct test_output *o)
 
 	printf("."); fflush(stdout);
 
+	if (do_flip && (o->flags & TEST_HANG)) {
+		handle = gem_create(drm_fd, 4096);
+		hang_gpu(o);
+		exec_nop(drm_fd, handle);
+	}
+
 	if (do_flip)
-		do_or_die(do_page_flip(o, new_fb_id, true));
+		do_or_die(do_page_flip(o, new_fb_id, !(o->flags & TEST_HANG)));
 
 	if (do_vblank) {
 		do_or_die(do_wait_for_vblank(o, o->pipe, target_seq,
@@ -622,6 +700,11 @@ static unsigned int run_test_step(struct test_output *o)
 
 	if (do_flip && (o->flags & TEST_EINVAL))
 		assert(do_page_flip(o, new_fb_id, true) == expected_einval);
+
+	if (do_flip && (o->flags & TEST_HANG)) {
+		gem_sync(drm_fd, handle);
+		gem_close(drm_fd, handle);
+	}
 
 	return completed_events;
 }
@@ -922,7 +1005,7 @@ static void run_test_on_crtc(struct test_output *o, int crtc, int duration)
 
 	ellapsed = event_loop(o, duration);
 
-	if (o->flags & TEST_FLIP)
+	if (o->flags & TEST_FLIP && !(o->flags & TEST_HANG))
 		check_final_state(o, &o->flip_state, ellapsed);
 	if (o->flags & TEST_VBLANK)
 		check_final_state(o, &o->vblank_state, ellapsed);
@@ -1025,6 +1108,7 @@ int main(int argc, char **argv)
 					"flip-vs-wf_vblank" },
 		{ 15, TEST_FLIP | TEST_VBLANK | TEST_VBLANK_BLOCK |
 			TEST_CHECK_TS, "flip-vs-blocking-wf-vblank" },
+		{ 15, TEST_FLIP | TEST_MODESET | TEST_HANG , "flip-vs-modeset-vs-hang" },
 	};
 	int i;
 
