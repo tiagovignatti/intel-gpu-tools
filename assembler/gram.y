@@ -526,6 +526,49 @@ static void resolve_subnr(struct brw_reg *reg)
 	YYERROR;				\
     } while(0)
 
+static void add_option(struct brw_program_instruction *insn, int option)
+{
+    switch (option) {
+    case ALIGN1:
+	GEN(insn)->header.access_mode = BRW_ALIGN_1;
+	break;
+    case ALIGN16:
+	GEN(insn)->header.access_mode = BRW_ALIGN_16;
+	break;
+    case SECHALF:
+	GEN(insn)->header.compression_control |= BRW_COMPRESSION_2NDHALF;
+	break;
+    case COMPR:
+	if (!IS_GENp(6))
+	    GEN(insn)->header.compression_control |= BRW_COMPRESSION_COMPRESSED;
+	break;
+    case SWITCH:
+	GEN(insn)->header.thread_control |= BRW_THREAD_SWITCH;
+	break;
+    case ATOMIC:
+	GEN(insn)->header.thread_control |= BRW_THREAD_ATOMIC;
+	break;
+    case NODDCHK:
+	GEN(insn)->header.dependency_control |= BRW_DEPENDENCY_NOTCHECKED;
+	break;
+    case NODDCLR:
+	GEN(insn)->header.dependency_control |= BRW_DEPENDENCY_NOTCLEARED;
+	break;
+    case MASK_DISABLE:
+	GEN(insn)->header.mask_control = BRW_MASK_DISABLE;
+	break;
+    case BREAKPOINT:
+	GEN(insn)->header.debug_control = BRW_DEBUG_BREAKPOINT;
+	break;
+    case ACCWRCTRL:
+	GEN(insn)->header.acc_wr_control = BRW_ACCUMULATOR_WRITE_ENABLE;
+	break;
+    case EOT:
+	GEN(insn)->bits3.generic.end_of_thread = 1;
+	break;
+    }
+}
+
 }
 
 %%
@@ -2723,86 +2766,12 @@ instoptions:	/* empty */
 instoption_list:instoption_list COMMA instoption
 		{
 		  $$ = $1;
-		  switch ($3) {
-		  case ALIGN1:
-		    GEN(&$$)->header.access_mode = BRW_ALIGN_1;
-		    break;
-		  case ALIGN16:
-		    GEN(&$$)->header.access_mode = BRW_ALIGN_16;
-		    break;
-		  case SECHALF:
-		    GEN(&$$)->header.compression_control |= BRW_COMPRESSION_2NDHALF;
-		    break;
-		  case COMPR:
-		    if (!IS_GENp(6)) {
-                        GEN(&$$)->header.compression_control |=
-                            BRW_COMPRESSION_COMPRESSED;
-		    }
-		    break;
-		  case SWITCH:
-		    GEN(&$$)->header.thread_control |= BRW_THREAD_SWITCH;
-		    break;
-		  case ATOMIC:
-		    GEN(&$$)->header.thread_control |= BRW_THREAD_ATOMIC;
-		    break;
-		  case NODDCHK:
-		    GEN(&$$)->header.dependency_control |= BRW_DEPENDENCY_NOTCHECKED;
-		    break;
-		  case NODDCLR:
-		    GEN(&$$)->header.dependency_control |= BRW_DEPENDENCY_NOTCLEARED;
-		    break;
-		  case MASK_DISABLE:
-		    GEN(&$$)->header.mask_control = BRW_MASK_DISABLE;
-		    break;
-		  case BREAKPOINT:
-		    GEN(&$$)->header.debug_control = BRW_DEBUG_BREAKPOINT;
-		    break;
-		  case ACCWRCTRL:
-		    GEN(&$$)->header.acc_wr_control = BRW_ACCUMULATOR_WRITE_ENABLE;
-		  }
+		  add_option(&$$, $3);
 		}
 		| instoption_list instoption
 		{
 		  $$ = $1;
-		  switch ($2) {
-		  case ALIGN1:
-		    GEN(&$$)->header.access_mode = BRW_ALIGN_1;
-		    break;
-		  case ALIGN16:
-		    GEN(&$$)->header.access_mode = BRW_ALIGN_16;
-		    break;
-		  case SECHALF:
-		    GEN(&$$)->header.compression_control |= BRW_COMPRESSION_2NDHALF;
-		    break;
-		  case COMPR:
-			if (!IS_GENp(6)) {
-		      GEN(&$$)->header.compression_control |=
-		        BRW_COMPRESSION_COMPRESSED;
-			}
-		    break;
-		  case SWITCH:
-		    GEN(&$$)->header.thread_control |= BRW_THREAD_SWITCH;
-		    break;
-		  case ATOMIC:
-		    GEN(&$$)->header.thread_control |= BRW_THREAD_ATOMIC;
-		    break;
-		  case NODDCHK:
-		    GEN(&$$)->header.dependency_control |= BRW_DEPENDENCY_NOTCHECKED;
-		    break;
-		  case NODDCLR:
-		    GEN(&$$)->header.dependency_control |= BRW_DEPENDENCY_NOTCLEARED;
-		    break;
-		  case MASK_DISABLE:
-		    GEN(&$$)->header.mask_control = BRW_MASK_DISABLE;
-		    break;
-		  case BREAKPOINT:
-		    GEN(&$$)->header.debug_control = BRW_DEBUG_BREAKPOINT;
-		    break;
-		  case EOT:
-		    /* XXX: EOT shouldn't be an instoption, I don't think */
-		    GEN(&$$)->bits3.generic.end_of_thread = 1;
-		    break;
-		  }
+		  add_option(&$$, $2);
 		}
 		| /* empty, header defaults to zeroes. */
 		{
