@@ -208,14 +208,16 @@ brw_program_add_instruction(struct brw_program *p,
     brw_program_append_entry(p, list_entry);
 }
 
-static void brw_program_add_relocatable(struct brw_program *p,
-					struct brw_program_instruction *reloc)
+static void
+brw_program_add_relocatable(struct brw_program *p,
+			    struct brw_program_instruction *instruction)
 {
     struct brw_program_instruction *list_entry;
 
     list_entry = calloc(sizeof(struct brw_program_instruction), 1);
     list_entry->type = GEN4ASM_INSTRUCTION_GEN_RELOCATABLE;
-    list_entry->insn.reloc = reloc->insn.reloc;
+    list_entry->insn.gen = instruction->insn.gen;
+    list_entry->reloc = instruction->reloc;
     brw_program_append_entry(p, list_entry);
 }
 
@@ -724,8 +726,8 @@ ifelseinstruction: ENDIF
 		  memset(&$$, 0, sizeof($$));
 		  GEN(&$$)->header.opcode = $1;
 		  GEN(&$$)->header.execution_size = $2;
-		  $$.insn.reloc.first_reloc_target = $3.reloc_target;
-		  $$.insn.reloc.first_reloc_offset = $3.imm32;
+		  $$.reloc.first_reloc_target = $3.reloc_target;
+		  $$.reloc.first_reloc_offset = $3.imm32;
 		}
 		| ELSE execsize relativelocation instoptions
 		{
@@ -741,14 +743,14 @@ ifelseinstruction: ENDIF
 		    set_instruction_dest(&$$, &ip_dst);
 		    set_instruction_src0(&$$, &ip_src, NULL);
 		    set_instruction_src1(&$$, &$3, NULL);
-		    $$.insn.reloc.first_reloc_target = $3.reloc_target;
-		    $$.insn.reloc.first_reloc_offset = $3.imm32;
+		    $$.reloc.first_reloc_target = $3.reloc_target;
+		    $$.reloc.first_reloc_offset = $3.imm32;
 		  } else if(IS_GENp(6)) {
 		    memset(&$$, 0, sizeof($$));
 		    GEN(&$$)->header.opcode = $1;
 		    GEN(&$$)->header.execution_size = $2;
-		    $$.insn.reloc.first_reloc_target = $3.reloc_target;
-		    $$.insn.reloc.first_reloc_offset = $3.imm32;
+		    $$.reloc.first_reloc_target = $3.reloc_target;
+		    $$.reloc.first_reloc_offset = $3.imm32;
 		  } else {
 		    error(&@1, "'ELSE' instruction is not implemented.\n");
 		  }
@@ -773,8 +775,8 @@ ifelseinstruction: ENDIF
 		    set_instruction_src0(&$$, &ip_src, NULL);
 		    set_instruction_src1(&$$, &$4, NULL);
 		  }
-		  $$.insn.reloc.first_reloc_target = $4.reloc_target;
-		  $$.insn.reloc.first_reloc_offset = $4.imm32;
+		  $$.reloc.first_reloc_target = $4.reloc_target;
+		  $$.reloc.first_reloc_offset = $4.imm32;
 		}
 		| predicate IF execsize relativelocation relativelocation
 		{
@@ -786,10 +788,10 @@ ifelseinstruction: ENDIF
 		  set_instruction_predicate(&$$, &$1);
 		  GEN(&$$)->header.opcode = $2;
 		  GEN(&$$)->header.execution_size = $3;
-		  $$.insn.reloc.first_reloc_target = $4.reloc_target;
-		  $$.insn.reloc.first_reloc_offset = $4.imm32;
-		  $$.insn.reloc.second_reloc_target = $5.reloc_target;
-		  $$.insn.reloc.second_reloc_offset = $5.imm32;
+		  $$.reloc.first_reloc_target = $4.reloc_target;
+		  $$.reloc.first_reloc_offset = $4.imm32;
+		  $$.reloc.second_reloc_target = $5.reloc_target;
+		  $$.reloc.second_reloc_offset = $5.imm32;
 		}
 ;
 
@@ -809,8 +811,8 @@ loopinstruction: predicate WHILE execsize relativelocation instoptions
 		    GEN(&$$)->header.thread_control |= BRW_THREAD_SWITCH;
 		    set_instruction_src0(&$$, &ip_src, NULL);
 		    set_instruction_src1(&$$, &$4, NULL);
-		    $$.insn.reloc.first_reloc_target = $4.reloc_target;
-		    $$.insn.reloc.first_reloc_offset = $4.imm32;
+		    $$.reloc.first_reloc_target = $4.reloc_target;
+		    $$.reloc.first_reloc_offset = $4.imm32;
 		  } else if (IS_GENp(6)) {
 		    /* Gen6 spec:
 		         dest must have the same element size as src0.
@@ -819,8 +821,8 @@ loopinstruction: predicate WHILE execsize relativelocation instoptions
 		    set_instruction_predicate(&$$, &$1);
 		    GEN(&$$)->header.opcode = $2;
 		    GEN(&$$)->header.execution_size = $3;
-		    $$.insn.reloc.first_reloc_target = $4.reloc_target;
-		    $$.insn.reloc.first_reloc_offset = $4.imm32;
+		    $$.reloc.first_reloc_target = $4.reloc_target;
+		    $$.reloc.first_reloc_offset = $4.imm32;
 		  } else {
 		    error(&@2, "'WHILE' instruction is not implemented!\n");
 		  }
@@ -839,10 +841,10 @@ haltinstruction: predicate HALT execsize relativelocation relativelocation insto
 		  memset(&$$, 0, sizeof($$));
 		  set_instruction_predicate(&$$, &$1);
 		  GEN(&$$)->header.opcode = $2;
-		  $$.insn.reloc.first_reloc_target = $4.reloc_target;
-		  $$.insn.reloc.first_reloc_offset = $4.imm32;
-		  $$.insn.reloc.second_reloc_target = $5.reloc_target;
-		  $$.insn.reloc.second_reloc_offset = $5.imm32;
+		  $$.reloc.first_reloc_target = $4.reloc_target;
+		  $$.reloc.first_reloc_offset = $4.imm32;
+		  $$.reloc.second_reloc_target = $5.reloc_target;
+		  $$.reloc.second_reloc_offset = $5.imm32;
 		  dst_null_reg.width = $3;
 		  set_instruction_dest(&$$, &dst_null_reg);
 		  set_instruction_src0(&$$, &src_null_reg, NULL);
@@ -856,8 +858,8 @@ multibranchinstruction:
 		  set_instruction_predicate(&$$, &$1);
 		  GEN(&$$)->header.opcode = $2;
 		  GEN(&$$)->header.thread_control |= BRW_THREAD_SWITCH;
-		  $$.insn.reloc.first_reloc_target = $4.reloc_target;
-		  $$.insn.reloc.first_reloc_offset = $4.imm32;
+		  $$.reloc.first_reloc_target = $4.reloc_target;
+		  $$.reloc.first_reloc_offset = $4.imm32;
 		  dst_null_reg.width = $3;
 		  set_instruction_dest(&$$, &dst_null_reg);
 		}
@@ -868,10 +870,10 @@ multibranchinstruction:
 		  set_instruction_predicate(&$$, &$1);
 		  GEN(&$$)->header.opcode = $2;
 		  GEN(&$$)->header.thread_control |= BRW_THREAD_SWITCH;
-		  $$.insn.reloc.first_reloc_target = $4.reloc_target;
-		  $$.insn.reloc.first_reloc_offset = $4.imm32;
-		  $$.insn.reloc.second_reloc_target = $5.reloc_target;
-		  $$.insn.reloc.second_reloc_offset = $5.imm32;
+		  $$.reloc.first_reloc_target = $4.reloc_target;
+		  $$.reloc.first_reloc_offset = $4.imm32;
+		  $$.reloc.second_reloc_target = $5.reloc_target;
+		  $$.reloc.second_reloc_offset = $5.imm32;
 		  dst_null_reg.width = $3;
 		  set_instruction_dest(&$$, &dst_null_reg);
 		  set_instruction_src0(&$$, &src_null_reg, NULL);
@@ -912,8 +914,8 @@ subroutineinstruction:
 		  src0.reg.vstride = 2; /*encoded 2*/
 		  set_instruction_src0(&$$, &src0, NULL);
 
-		  $$.insn.reloc.first_reloc_target = $5.reloc_target;
-		  $$.insn.reloc.first_reloc_offset = $5.imm32;
+		  $$.reloc.first_reloc_target = $5.reloc_target;
+		  $$.reloc.first_reloc_offset = $5.imm32;
 		}
 		| predicate RET execsize dstoperandex src instoptions
 		{
@@ -1359,8 +1361,8 @@ jumpinstruction: predicate JMPI execsize relativelocation2
 		  set_instruction_dest(&$$, &ip_dst);
 		  set_instruction_src0(&$$, &ip_src, NULL);
 		  set_instruction_src1(&$$, &$4, NULL);
-		  $$.insn.reloc.first_reloc_target = $4.reloc_target;
-		  $$.insn.reloc.first_reloc_offset = $4.imm32;
+		  $$.reloc.first_reloc_target = $4.reloc_target;
+		  $$.reloc.first_reloc_offset = $4.imm32;
 		}
 ;
 
@@ -1388,10 +1390,10 @@ breakinstruction: predicate breakop execsize relativelocation relativelocation i
 		  set_instruction_predicate(&$$, &$1);
 		  GEN(&$$)->header.opcode = $2;
 		  GEN(&$$)->header.execution_size = $3;
-		  $$.insn.reloc.first_reloc_target = $4.reloc_target;
-		  $$.insn.reloc.first_reloc_offset = $4.imm32;
-		  $$.insn.reloc.second_reloc_target = $5.reloc_target;
-		  $$.insn.reloc.second_reloc_offset = $5.imm32;
+		  $$.reloc.first_reloc_target = $4.reloc_target;
+		  $$.reloc.first_reloc_offset = $4.imm32;
+		  $$.reloc.second_reloc_target = $5.reloc_target;
+		  $$.reloc.second_reloc_offset = $5.imm32;
 		}
 ;
 

@@ -437,8 +437,8 @@ int main(int argc, char **argv)
 	}
 
 	for (entry = compiled_program.first; entry; entry = entry->next) {
-	    struct relocatable_instruction *reloc = &entry->insn.reloc;
-	    struct brw_instruction *inst = &reloc->gen;
+	    struct relocation *reloc = &entry->reloc;
+	    struct brw_instruction *inst = &entry->insn.gen;
 
 	    if (!is_relocatable(entry))
 		continue;

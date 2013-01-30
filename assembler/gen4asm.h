@@ -126,8 +126,7 @@ struct label_instruction {
     char   *name;
 };
 
-struct relocatable_instruction {
-    struct brw_instruction gen;
+struct relocation {
     char *first_reloc_target, *second_reloc_target; // JIP and UIP respectively
     GLint first_reloc_offset, second_reloc_offset; // in number of instructions
 };
@@ -141,9 +140,9 @@ struct brw_program_instruction {
     unsigned inst_offset;
     union {
 	struct brw_instruction gen;
-	struct relocatable_instruction reloc;
 	struct label_instruction label;
     } insn;
+    struct relocation reloc;
     struct brw_program_instruction *next;
 };
 
