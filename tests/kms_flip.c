@@ -223,13 +223,13 @@ static void clear_flag(unsigned int *v, unsigned int flag)
 	*v &= ~flag;
 }
 
-static int do_page_flip(struct test_output *o, int fb_id)
+static int do_page_flip(struct test_output *o, int fb_id, bool event)
 {
 	int ret;
 
-	ret = drmModePageFlip(drm_fd, o->crtc, fb_id, DRM_MODE_PAGE_FLIP_EVENT,
-				o);
-	if (ret == 0)
+	ret = drmModePageFlip(drm_fd, o->crtc, fb_id, event ? DRM_MODE_PAGE_FLIP_EVENT : 0,
+				event ? o : NULL);
+	if (ret == 0 && event)
 		set_flag(&o->pending_events, EVENT_FLIP);
 
 	return ret;
@@ -544,7 +544,7 @@ static unsigned int run_test_step(struct test_output *o)
 	}
 
 	if (do_flip && (o->flags & TEST_EINVAL) && o->flip_state.count > 0)
-		assert(do_page_flip(o, new_fb_id) == expected_einval);
+		assert(do_page_flip(o, new_fb_id, true) == expected_einval);
 
 	if (do_vblank && (o->flags & TEST_EINVAL) && o->vblank_state.count > 0)
 		assert(do_wait_for_vblank(o, o->pipe, target_seq, &vbl_reply)
@@ -567,7 +567,7 @@ static unsigned int run_test_step(struct test_output *o)
 	printf("."); fflush(stdout);
 
 	if (do_flip)
-		do_or_die(do_page_flip(o, new_fb_id));
+		do_or_die(do_page_flip(o, new_fb_id, true));
 
 	if (do_vblank) {
 		do_or_die(do_wait_for_vblank(o, o->pipe, target_seq,
@@ -581,7 +581,7 @@ static unsigned int run_test_step(struct test_output *o)
 	}
 
 	if (do_flip && (o->flags & TEST_EBUSY))
-		assert(do_page_flip(o, new_fb_id) == -EBUSY);
+		assert(do_page_flip(o, new_fb_id, true) == -EBUSY);
 
 	if (do_flip && (o->flags & TEST_RMFB))
 		recreate_fb(o);
@@ -621,7 +621,7 @@ static unsigned int run_test_step(struct test_output *o)
 		       == -EINVAL);
 
 	if (do_flip && (o->flags & TEST_EINVAL))
-		assert(do_page_flip(o, new_fb_id) == expected_einval);
+		assert(do_page_flip(o, new_fb_id, true) == expected_einval);
 
 	return completed_events;
 }
@@ -907,7 +907,7 @@ static void run_test_on_crtc(struct test_output *o, int crtc, int duration)
 	if (o->flags & TEST_CHECK_TS)
 		sleep(1);
 
-	if (do_page_flip(o, o->fb_ids[1])) {
+	if (do_page_flip(o, o->fb_ids[1], true)) {
 		fprintf(stderr, "failed to page flip: %s\n", strerror(errno));
 		exit(4);
 	}
