@@ -237,7 +237,7 @@ static int is_entry_point(struct brw_program_instruction *i)
 	assert(i->type == GEN4ASM_INSTRUCTION_LABEL);
 
 	for (p = entry_point_table; p; p = p->next) {
-	    if (strcmp(p->str, i->instruction.label.name) == 0)
+	    if (strcmp(p->str, i->insn.label.name) == 0)
 		return 1;
 	}
 	return 0;
@@ -406,7 +406,7 @@ int main(int argc, char **argv)
 		// insert NOP instructions until (inst_offset+1) % 4 == 0
 		while (((inst_offset+1) % 4) != 0) {
 		    tmp_entry = calloc(sizeof(*tmp_entry), 1);
-		    tmp_entry->instruction.gen.header.opcode = BRW_OPCODE_NOP;
+		    tmp_entry->insn.gen.header.opcode = BRW_OPCODE_NOP;
 		    entry->next = tmp_entry;
 		    tmp_entry->next = entry1;
 		    entry = tmp_entry;
@@ -437,7 +437,7 @@ int main(int argc, char **argv)
 	}
 
 	for (entry = compiled_program.first; entry; entry = entry->next) {
-	    struct relocatable_instruction *reloc = &entry->instruction.reloc;
+	    struct relocatable_instruction *reloc = &entry->insn.reloc;
 	    struct brw_instruction *inst = &reloc->gen;
 
 	    if (!is_relocatable(entry))
@@ -497,9 +497,9 @@ int main(int argc, char **argv)
 		entry = entry1) {
 	    entry1 = entry->next;
 	    if (!is_label(entry))
-		print_instruction(output, &entry->instruction.gen);
+		print_instruction(output, &entry->insn.gen);
 	    else
-		free(entry->instruction.label.name);
+		free(entry->insn.label.name);
 	    free(entry);
 	}
 	if (binary_like_output)

@@ -51,7 +51,7 @@ read_program (FILE *input)
 		++n;
 		if (n == 4) {
 		    entry = malloc (sizeof (struct brw_program_instruction));
-		    memcpy (&entry->instruction, inst, 4 * sizeof (uint32_t));
+		    memcpy (&entry->insn, inst, 4 * sizeof (uint32_t));
 		    entry->next = NULL;
 		    *prev = entry;
 		    prev = &entry->next;
@@ -82,7 +82,7 @@ read_program_binary (FILE *input)
 		inst[n++] = (uint8_t)temp;
 		if (n == 16) {
 		    entry = malloc (sizeof (struct brw_program_instruction));
-		    memcpy (&entry->instruction, inst, 16 * sizeof (uint8_t));
+		    memcpy (&entry->insn, inst, 16 * sizeof (uint8_t));
 		    entry->next = NULL;
 		    *prev = entry;
 		    prev = &entry->next;
@@ -167,6 +167,6 @@ int main(int argc, char **argv)
     }
 	    
     for (inst = program->first; inst; inst = inst->next)
-	brw_disasm (output, &inst->instruction.gen, gen);
+	brw_disasm (output, &inst->insn.gen, gen);
     exit (0);
 }

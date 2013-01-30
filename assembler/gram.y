@@ -201,7 +201,7 @@ static void brw_program_add_instruction(struct brw_program *p,
 
     list_entry = calloc(sizeof(struct brw_program_instruction), 1);
     list_entry->type = GEN4ASM_INSTRUCTION_GEN;
-    list_entry->instruction.gen = *instruction;
+    list_entry->insn.gen = *instruction;
     brw_program_append_entry(p, list_entry);
 }
 
@@ -212,7 +212,7 @@ static void brw_program_add_relocatable(struct brw_program *p,
 
     list_entry = calloc(sizeof(struct brw_program_instruction), 1);
     list_entry->type = GEN4ASM_INSTRUCTION_GEN_RELOCATABLE;
-    list_entry->instruction.reloc = *reloc;
+    list_entry->insn.reloc = *reloc;
     brw_program_append_entry(p, list_entry);
 }
 
@@ -222,7 +222,7 @@ static void brw_program_add_label(struct brw_program *p, const char *label)
 
     list_entry = calloc(sizeof(struct brw_program_instruction), 1);
     list_entry->type = GEN4ASM_INSTRUCTION_LABEL;
-    list_entry->instruction.label.name = strdup(label);
+    list_entry->insn.label.name = strdup(label);
     brw_program_append_entry(p, list_entry);
 }
 

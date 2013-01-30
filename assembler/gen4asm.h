@@ -143,7 +143,7 @@ struct brw_program_instruction {
 	struct brw_instruction gen;
 	struct relocatable_instruction reloc;
 	struct label_instruction label;
-    } instruction;
+    } insn;
     struct brw_program_instruction *next;
 };
 
@@ -155,7 +155,7 @@ static inline bool is_label(struct brw_program_instruction *instruction)
 static inline char *label_name(struct brw_program_instruction *i)
 {
     assert(is_label(i));
-    return i->instruction.label.name;
+    return i->insn.label.name;
 }
 
 static inline bool is_relocatable(struct brw_program_instruction *intruction)
