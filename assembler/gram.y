@@ -1086,8 +1086,8 @@ trinaryinstruction:
 
 		  set_instruction_opcode(&$$, $2);
 		  set_instruction_saturate(&$$, $4);
-		  GEN(&$$)->header.execution_size = $5;
 
+		  $6.width = $5;
 		  if (set_instruction_dest_three_src(&$$, &$6))
 		    YYERROR;
 		  if (set_instruction_src0_three_src(&$$, &$7))
@@ -2916,74 +2916,51 @@ static int set_instruction_src1(struct brw_program_instruction *instr,
 	return 0;
 }
 
-/* convert 2-src reg type to 3-src reg type
- *
- * 2-src reg type:
- *  000=UD 001=D 010=UW 011=W 100=UB 101=B 110=DF 111=F
- *
- * 3-src reg type:
- *  00=F  01=D  10=UD  11=DF
- */
-static int reg_type_2_to_3(int reg_type)
-{
-	int r = 0;
-	switch(reg_type) {
-		case 7: r = 0; break;
-		case 1: r = 1; break;
-		case 0: r = 2; break;
-		// TODO: supporting DF
-	}
-	return r;
-}
-
 static int set_instruction_dest_three_src(struct brw_program_instruction *instr,
 					  struct brw_reg *dest)
 {
-	GEN(instr)->bits1.da3src.dest_reg_file = dest->file;
-	GEN(instr)->bits1.da3src.dest_reg_nr = dest->nr;
-	GEN(instr)->bits1.da3src.dest_subreg_nr = get_subreg_address(dest->file, dest->type, dest->subnr, dest->address_mode) / 4; // in DWORD
-	GEN(instr)->bits1.da3src.dest_writemask = dest->dw1.bits.writemask;
-	GEN(instr)->bits1.da3src.dest_reg_type = reg_type_2_to_3(dest->type);
-	return 0;
+    resolve_subnr(dest);
+    brw_set_3src_dest(&genasm_compile, GEN(instr), *dest);
+    return 0;
 }
 
 static int set_instruction_src0_three_src(struct brw_program_instruction *instr,
 					  struct src_operand *src)
 {
-	if (advanced_flag) {
-		reset_instruction_src_region(GEN(instr), src);
-	}
-	// TODO: supporting src0 swizzle, src0 modifier, src0 rep_ctrl
-	GEN(instr)->bits1.da3src.src_reg_type = reg_type_2_to_3(src->reg.type);
-	GEN(instr)->bits2.da3src.src0_subreg_nr = get_subreg_address(src->reg.file, src->reg.type, src->reg.subnr, src->reg.address_mode) / 4; // in DWORD
-	GEN(instr)->bits2.da3src.src0_reg_nr = src->reg.nr;
-	return 0;
+    if (advanced_flag)
+	reset_instruction_src_region(GEN(instr), src);
+
+    resolve_subnr(&src->reg);
+
+    // TODO: src0 modifier, src0 rep_ctrl
+    brw_set_3src_src0(&genasm_compile, GEN(instr), src->reg);
+    return 0;
 }
 
 static int set_instruction_src1_three_src(struct brw_program_instruction *instr,
 					  struct src_operand *src)
 {
-	if (advanced_flag) {
-		reset_instruction_src_region(GEN(instr), src);
-	}
-	// TODO: supporting src1 swizzle, src1 modifier, src1 rep_ctrl
-	int v = get_subreg_address(src->reg.file, src->reg.type, src->reg.subnr, src->reg.address_mode) / 4; // in DWORD
-	GEN(instr)->bits2.da3src.src1_subreg_nr_low = v % 4; // lower 2 bits
-	GEN(instr)->bits3.da3src.src1_subreg_nr_high = v / 4; // highest bit
-	GEN(instr)->bits3.da3src.src1_reg_nr = src->reg.nr;
-	return 0;
+    if (advanced_flag)
+	reset_instruction_src_region(GEN(instr), src);
+
+    resolve_subnr(&src->reg);
+
+    // TODO: src1 modifier, src1 rep_ctrl
+    brw_set_3src_src1(&genasm_compile, GEN(instr), src->reg);
+    return 0;
 }
 
 static int set_instruction_src2_three_src(struct brw_program_instruction *instr,
 					  struct src_operand *src)
 {
-	if (advanced_flag) {
-		reset_instruction_src_region(GEN(instr), src);
-	}
-	// TODO: supporting src2 swizzle, src2 modifier, src2 rep_ctrl
-	GEN(instr)->bits3.da3src.src2_subreg_nr = get_subreg_address(src->reg.file, src->reg.type, src->reg.subnr, src->reg.address_mode) / 4; // in DWORD
-	GEN(instr)->bits3.da3src.src2_reg_nr = src->reg.nr;
-	return 0;
+    if (advanced_flag)
+	reset_instruction_src_region(GEN(instr), src);
+
+    resolve_subnr(&src->reg);
+
+    // TODO: src2 modifier, src2 rep_ctrl
+    brw_set_3src_src2(&genasm_compile, GEN(instr), src->reg);
+    return 0;
 }
 
 static void set_instruction_saturate(struct brw_program_instruction *instr,
