@@ -28,6 +28,7 @@
 
 #include "gen4asm.h"
 #include "brw_eu.h"
+#include "gen8_instruction.h"
 
 static const struct option longopts[] = {
 	{ NULL, 0, NULL, 0 }
@@ -99,7 +100,7 @@ static void usage(void)
     fprintf(stderr, "usage: intel-gen4disasm [options] inputfile\n");
     fprintf(stderr, "\t-b, --binary                         C style binary output\n");
     fprintf(stderr, "\t-o, --output {outputfile}            Specify output file\n");
-    fprintf(stderr, "\t-g, --gen <4|5|6|7>                  Specify GPU generation\n");
+    fprintf(stderr, "\t-g, --gen <4|5|6|7|8>                Specify GPU generation\n");
 }
 
 int main(int argc, char **argv)
@@ -126,7 +127,7 @@ int main(int argc, char **argv)
 	case 'g':
 	    gen = strtol(optarg, NULL, 10);
 
-	    if (gen < 4 || gen > 7) {
+	    if (gen < 4 || gen > 8) {
 		    usage();
 		    exit(1);
 	    }
@@ -167,6 +168,10 @@ int main(int argc, char **argv)
     }
 
     for (inst = program->first; inst; inst = inst->next)
-	brw_disasm (output, &inst->insn.gen, gen);
+	if (gen >= 8)
+	    gen8_disassemble(output, &inst->insn.gen8, gen);
+	else
+	    brw_disasm (output, &inst->insn.gen, gen);
+
     exit (0);
 }
