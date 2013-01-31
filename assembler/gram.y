@@ -1161,10 +1161,21 @@ sendinstruction: predicate sendop execsize exp post_dst payload msgtarget
                           YYERROR;
 		  }
 
-		  GEN(&$$)->bits1.da1.src1_reg_file = BRW_IMMEDIATE_VALUE;
-		  GEN(&$$)->bits1.da1.src1_reg_type = BRW_REGISTER_TYPE_D;
+		  if (IS_GENp(8)) {
+		      gen8_set_src1_reg_file(GEN8(&$$), BRW_IMMEDIATE_VALUE);
+		      gen8_set_src1_reg_type(GEN8(&$$), BRW_REGISTER_TYPE_D);
+		  } else {
+		      GEN(&$$)->bits1.da1.src1_reg_file = BRW_IMMEDIATE_VALUE;
+		      GEN(&$$)->bits1.da1.src1_reg_type = BRW_REGISTER_TYPE_D;
+		  }
 
-		  if (IS_GENp(5)) {
+		  if (IS_GENp(8)) {
+		      GEN8(&$$)->data[3] = GEN8(&$7)->data[3];
+		      gen8_set_sfid(GEN8(&$$), gen8_sfid(GEN8(&$7)));
+		      gen8_set_mlen(GEN8(&$$), $9);
+		      gen8_set_rlen(GEN8(&$$), $11);
+		      gen8_set_eot(GEN8(&$$), $12.end_of_thread);
+		  } else if (IS_GENp(5)) {
                       if (IS_GENp(6)) {
                           GEN(&$$)->header.destreg__conditionalmod = GEN(&$7)->bits2.send_gen5.sfid;
                       } else {
@@ -1336,7 +1347,9 @@ sendinstruction: predicate sendop execsize exp post_dst payload msgtarget
 		  if (set_instruction_src1(&$$, &$8, &@8) != 0)
 		    YYERROR;
 
-		  if (IS_GENx(5)) {
+		  if (IS_GENp(8)) {
+		      gen8_set_eot(GEN8(&$$), !!($7 & EX_DESC_EOT_MASK));
+		  } else if (IS_GENx(5)) {
 		      GEN(&$$)->bits2.send_gen5.sfid = ($7 & EX_DESC_SFID_MASK);
 		      GEN(&$$)->bits3.generic_gen5.end_of_thread = !!($7 & EX_DESC_EOT_MASK);
 		  }
@@ -1465,7 +1478,10 @@ post_dst:	dst
 
 msgtarget:	NULL_TOKEN
 		{
-		  if (IS_GENp(5)) {
+		  if (IS_GENp(8)) {
+		      gen8_set_sfid(GEN8(&$$), BRW_SFID_NULL);
+		      gen8_set_header_present(GEN8(&$$), 0);
+		  } else if (IS_GENp(5)) {
                       GEN(&$$)->bits2.send_gen5.sfid= BRW_SFID_NULL;
                       GEN(&$$)->bits3.generic_gen5.header_present = 0;  /* ??? */
 		  } else {
@@ -1475,7 +1491,13 @@ msgtarget:	NULL_TOKEN
 		| SAMPLER LPAREN INTEGER COMMA INTEGER COMMA
 		sampler_datatype RPAREN
 		{
-		  if (IS_GENp(7)) {
+		  if (IS_GENp(8)) {
+		      gen8_set_sfid(GEN8(&$$), BRW_SFID_SAMPLER);
+		      gen8_set_header_present(GEN8(&$$), 1); /* ??? */
+		      gen8_set_binding_table_index(GEN8(&$$), $3);
+		      gen8_set_sampler(GEN8(&$$), $5);
+		      gen8_set_sampler_simd_mode(GEN8(&$$), 2); /* SIMD16 */
+		  } else if (IS_GENp(7)) {
                       GEN(&$$)->bits2.send_gen5.sfid = BRW_SFID_SAMPLER;
                       GEN(&$$)->bits3.generic_gen5.header_present = 1;   /* ??? */
                       GEN(&$$)->bits3.sampler_gen7.binding_table_index = $3;
