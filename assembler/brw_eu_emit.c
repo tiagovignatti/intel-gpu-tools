@@ -813,6 +813,21 @@ get_3src_subreg_nr(struct brw_reg reg)
    }
 }
 
+static int get_3src_type(int type)
+{
+   assert(type == BRW_REGISTER_TYPE_F ||
+	  type == BRW_REGISTER_TYPE_D ||
+	  type == BRW_REGISTER_TYPE_UD);
+
+   switch(type) {
+   case BRW_REGISTER_TYPE_F: return BRW_REGISTER_3SRC_TYPE_F;
+   case BRW_REGISTER_TYPE_D: return BRW_REGISTER_3SRC_TYPE_D;
+   case BRW_REGISTER_TYPE_UD: return BRW_REGISTER_3SRC_TYPE_UD;
+   }
+
+   return BRW_REGISTER_3SRC_TYPE_F;
+}
+
 void
 brw_set_3src_dest(struct brw_compile *p,
 		  struct brw_instruction *insn,
@@ -826,7 +841,7 @@ brw_set_3src_dest(struct brw_compile *p,
 	  dest.file == BRW_MESSAGE_REGISTER_FILE);
    assert(dest.nr < 128);
    assert(dest.address_mode == BRW_ADDRESS_DIRECT);
-   assert(dest.type == BRW_REGISTER_TYPE_F);
+   insn->bits1.da3src.dest_reg_type = get_3src_type(dest.type);
    insn->bits1.da3src.dest_reg_file = (dest.file == BRW_MESSAGE_REGISTER_FILE);
    insn->bits1.da3src.dest_reg_nr = dest.nr;
    insn->bits1.da3src.dest_subreg_nr = dest.subnr / 16;
@@ -842,7 +857,7 @@ brw_set_3src_src0(struct brw_compile *p,
    assert(src0.file == BRW_GENERAL_REGISTER_FILE);
    assert(src0.address_mode == BRW_ADDRESS_DIRECT);
    assert(src0.nr < 128);
-   assert(src0.type == BRW_REGISTER_TYPE_F);
+   insn->bits1.da3src.src_reg_type = get_3src_type(src0.type);
    insn->bits2.da3src.src0_swizzle = src0.dw1.bits.swizzle;
    insn->bits2.da3src.src0_subreg_nr = get_3src_subreg_nr(src0);
    insn->bits2.da3src.src0_reg_nr = src0.nr;
@@ -859,7 +874,7 @@ brw_set_3src_src1(struct brw_compile *p,
    assert(src1.file == BRW_GENERAL_REGISTER_FILE);
    assert(src1.address_mode == BRW_ADDRESS_DIRECT);
    assert(src1.nr < 128);
-   assert(src1.type == BRW_REGISTER_TYPE_F);
+   assert(src1.type == insn->bits1.da3src.src_reg_type);
    insn->bits2.da3src.src1_swizzle = src1.dw1.bits.swizzle;
    insn->bits2.da3src.src1_subreg_nr_low = get_3src_subreg_nr(src1) & 0x3;
    insn->bits3.da3src.src1_subreg_nr_high = get_3src_subreg_nr(src1) >> 2;
@@ -877,7 +892,7 @@ brw_set_3src_src2(struct brw_compile *p,
    assert(src2.file == BRW_GENERAL_REGISTER_FILE);
    assert(src2.address_mode == BRW_ADDRESS_DIRECT);
    assert(src2.nr < 128);
-   assert(src2.type == BRW_REGISTER_TYPE_F);
+   assert(src2.type == insn->bits1.da3src.src_reg_type);
    insn->bits3.da3src.src2_swizzle = src2.dw1.bits.swizzle;
    insn->bits3.da3src.src2_subreg_nr = get_3src_subreg_nr(src2);
    insn->bits3.da3src.src2_rep_ctrl = src2.vstride == BRW_VERTICAL_STRIDE_0;
