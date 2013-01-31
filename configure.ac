@@ -135,3 +135,5 @@ AC_CONFIG_FILES([
 		 debugger/system_routine/Makefile
 		 ])
 AC_OUTPUT
+
+# vim: set ft=config ts=8 sw=8 tw=0 noet :
