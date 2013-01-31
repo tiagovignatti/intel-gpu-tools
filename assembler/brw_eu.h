@@ -385,6 +385,23 @@ void brw_set_uip_jip(struct brw_compile *p);
 
 uint32_t brw_swap_cmod(uint32_t cmod);
 
+void
+brw_set_3src_dest(struct brw_compile *p,
+		  struct brw_instruction *insn,
+		  struct brw_reg dest);
+void
+brw_set_3src_src0(struct brw_compile *p,
+		  struct brw_instruction *insn,
+		  struct brw_reg src0);
+void
+brw_set_3src_src1(struct brw_compile *p,
+		  struct brw_instruction *insn,
+		  struct brw_reg src1);
+void
+brw_set_3src_src2(struct brw_compile *p,
+		  struct brw_instruction *insn,
+		  struct brw_reg src2);
+
 /* brw_eu_compact.c */
 void brw_init_compaction_tables(struct intel_context *intel);
 void brw_compact_instructions(struct brw_compile *p);

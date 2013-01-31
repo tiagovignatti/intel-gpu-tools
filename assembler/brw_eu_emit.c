@@ -813,15 +813,11 @@ get_3src_subreg_nr(struct brw_reg reg)
    }
 }
 
-static struct brw_instruction *brw_alu3(struct brw_compile *p,
-					GLuint opcode,
-					struct brw_reg dest,
-					struct brw_reg src0,
-					struct brw_reg src1,
-					struct brw_reg src2)
+void
+brw_set_3src_dest(struct brw_compile *p,
+		  struct brw_instruction *insn,
+		  struct brw_reg dest)
 {
-   struct brw_instruction *insn = next_insn(p, opcode);
-
    gen7_convert_mrf_to_grf(p, &dest);
 
    assert(insn->header.access_mode == BRW_ALIGN_16);
@@ -836,7 +832,13 @@ static struct brw_instruction *brw_alu3(struct brw_compile *p,
    insn->bits1.da3src.dest_subreg_nr = dest.subnr / 16;
    insn->bits1.da3src.dest_writemask = dest.dw1.bits.writemask;
    guess_execution_size(p, insn, dest);
+}
 
+void
+brw_set_3src_src0(struct brw_compile *p,
+		  struct brw_instruction *insn,
+		  struct brw_reg src0)
+{
    assert(src0.file == BRW_GENERAL_REGISTER_FILE);
    assert(src0.address_mode == BRW_ADDRESS_DIRECT);
    assert(src0.nr < 128);
@@ -847,7 +849,13 @@ static struct brw_instruction *brw_alu3(struct brw_compile *p,
    insn->bits1.da3src.src0_abs = src0.abs;
    insn->bits1.da3src.src0_negate = src0.negate;
    insn->bits2.da3src.src0_rep_ctrl = src0.vstride == BRW_VERTICAL_STRIDE_0;
+}
 
+void
+brw_set_3src_src1(struct brw_compile *p,
+		  struct brw_instruction *insn,
+		  struct brw_reg src1)
+{
    assert(src1.file == BRW_GENERAL_REGISTER_FILE);
    assert(src1.address_mode == BRW_ADDRESS_DIRECT);
    assert(src1.nr < 128);
@@ -859,7 +867,13 @@ static struct brw_instruction *brw_alu3(struct brw_compile *p,
    insn->bits3.da3src.src1_reg_nr = src1.nr;
    insn->bits1.da3src.src1_abs = src1.abs;
    insn->bits1.da3src.src1_negate = src1.negate;
+}
 
+void
+brw_set_3src_src2(struct brw_compile *p,
+		  struct brw_instruction *insn,
+		  struct brw_reg src2)
+{
    assert(src2.file == BRW_GENERAL_REGISTER_FILE);
    assert(src2.address_mode == BRW_ADDRESS_DIRECT);
    assert(src2.nr < 128);
@@ -870,7 +884,20 @@ static struct brw_instruction *brw_alu3(struct brw_compile *p,
    insn->bits3.da3src.src2_reg_nr = src2.nr;
    insn->bits1.da3src.src2_abs = src2.abs;
    insn->bits1.da3src.src2_negate = src2.negate;
+}
 
+static struct brw_instruction *brw_alu3(struct brw_compile *p,
+					GLuint opcode,
+					struct brw_reg dest,
+					struct brw_reg src0,
+					struct brw_reg src1,
+					struct brw_reg src2)
+{
+   struct brw_instruction *insn = next_insn(p, opcode);
+   brw_set_3src_dest(p, insn, dest);
+   brw_set_3src_src0(p, insn, src0);
+   brw_set_3src_src1(p, insn, src1);
+   brw_set_3src_src2(p, insn, src2);
    return insn;
 }
 
