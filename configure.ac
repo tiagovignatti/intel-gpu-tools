@@ -22,9 +22,9 @@
 
 AC_PREREQ([2.60])
 AC_INIT([intel-gpu-tools],
-        [1.3],
-        [https://bugs.freedesktop.org/enter_bug.cgi?product=xorg],
-        [intel-gpu-tools])
+	[1.3],
+	[https://bugs.freedesktop.org/enter_bug.cgi?product=xorg],
+	[intel-gpu-tools])
 
 AC_CONFIG_SRCDIR([Makefile.am])
 AC_CONFIG_HEADERS([config.h])
@@ -41,8 +41,8 @@ AM_MAINTAINER_MODE
 # Checks for functions, headers, structures, etc.
 AC_CHECK_HEADERS([termios.h])
 AC_CHECK_MEMBERS([struct sysinfo.totalram],[],[],[AC_INCLUDES_DEFAULT
-#include <sys/sysinfo.h>
-])
+		  #include <sys/sysinfo.h>
+		  ])
 AC_CHECK_FUNCS([swapctl])
 AC_CHECK_FUNCS([asprintf])
 
@@ -60,16 +60,14 @@ PKG_CHECK_MODULES(DRM, [libdrm_intel >= 2.4.38 libdrm])
 PKG_CHECK_MODULES(PCIACCESS, [pciaccess >= 0.10])
 
 # for dma-buf tests
-AC_ARG_ENABLE(nouveau,
-              AS_HELP_STRING([--disable-nouveau],
-              [Enable use of nouveau API for prime tests (default: enabled)]),
-              [NOUVEAU=$enableval], [NOUVEAU=yes])
+AC_ARG_ENABLE(nouveau, AS_HELP_STRING([--disable-nouveau],
+	      [Enable use of nouveau API for prime tests (default: enabled)]),
+	      [NOUVEAU=$enableval], [NOUVEAU=yes])
 if test "x$NOUVEAU" = xyes; then
-   PKG_CHECK_MODULES(DRM_NOUVEAU, [libdrm_nouveau >= 2.4.33])
-   AC_DEFINE(HAVE_NOUVEAU, 1, [Have nouveau support])
+	PKG_CHECK_MODULES(DRM_NOUVEAU, [libdrm_nouveau >= 2.4.33])
+	AC_DEFINE(HAVE_NOUVEAU, 1, [Have nouveau support])
 fi
 AM_CONDITIONAL(HAVE_NOUVEAU, [test "x$NOUVEAU" = xyes])
-
 
 # for testdisplay
 PKG_CHECK_MODULES(CAIRO, cairo)
@@ -84,37 +82,37 @@ PKG_CHECK_MODULES(GLIB, glib-2.0)
 # -----------------------------------------------------------------------------
 # Define a configure option for the shadder debugger
 AC_ARG_ENABLE(shader-debugger, AS_HELP_STRING([--enable-shader-debugger],
-    [Enable shader debugging support [autodetected]]),
-    [BUILD_SHADER_DEBUGGER="$enableval"], [BUILD_SHADER_DEBUGGER=auto])
+	      [Enable shader debugging support [autodetected]]),
+	      [BUILD_SHADER_DEBUGGER="$enableval"], [BUILD_SHADER_DEBUGGER=auto])
 
 # Shadder debugger depends on python3, intel-genasm and objcopy
 if test "x$BUILD_SHADER_DEBUGGER" != xno; then
-    # Check Python 3 is installed
-    if test "$PYTHON" = ":" ; then
-	if test "x$BUILD_SHADER_DEBUGGER" = xyes; then
-	    AC_MSG_ERROR([Shader debugger requested, python version 3 not found.])
-	else
-	    BUILD_SHADER_DEBUGGER=no
+	# Check Python 3 is installed
+	if test "$PYTHON" = ":" ; then
+		if test "x$BUILD_SHADER_DEBUGGER" = xyes; then
+			AC_MSG_ERROR([Shader debugger requested, python version 3 not found.])
+		else
+			BUILD_SHADER_DEBUGGER=no
+		fi
 	fi
-    fi
-    # Check for the Intel Chipset assembler compiler
-    AC_PATH_PROGS([GEN4ASM], intel-gen4asm)
-    if test -z "$GEN4ASM" ; then
-	if test "x$BUILD_SHADER_DEBUGGER" = xyes; then
-	    AC_MSG_ERROR([Shader debugger requested, but intel-gen4asm not found.])
-	else
-	    BUILD_SHADER_DEBUGGER=no
+	# Check for the Intel Chipset assembler compiler
+	AC_PATH_PROGS([GEN4ASM], intel-gen4asm)
+	if test -z "$GEN4ASM" ; then
+		if test "x$BUILD_SHADER_DEBUGGER" = xyes; then
+			AC_MSG_ERROR([Shader debugger requested, but intel-gen4asm not found.])
+		else
+			BUILD_SHADER_DEBUGGER=no
+		fi
 	fi
-    fi
-    # Check for the objcopy GNU binary utiliy command
-    AC_PATH_PROGS([OBJCOPY], objcopy)
-    if test -z "$OBJCOPY" ; then
-	if test "x$BUILD_SHADER_DEBUGGER" = xyes; then
-	    AC_MSG_ERROR([Shader debugger requested, but objcopy command not found.])
-	else
-	    BUILD_SHADER_DEBUGGER=no
+	# Check for the objcopy GNU binary utiliy command
+	AC_PATH_PROGS([OBJCOPY], objcopy)
+	if test -z "$OBJCOPY" ; then
+		if test "x$BUILD_SHADER_DEBUGGER" = xyes; then
+			AC_MSG_ERROR([Shader debugger requested, but objcopy command not found.])
+		else
+			BUILD_SHADER_DEBUGGER=no
+		fi
 	fi
-    fi
 fi
 
 AM_CONDITIONAL(BUILD_SHADER_DEBUGGER, [test "x$BUILD_SHADER_DEBUGGER" != xno])
@@ -125,15 +123,15 @@ XORG_TESTSET_CFLAG([THREAD_CFLAGS], [-pthread], [-mt])
 AC_SUBST([THREAD_CFLAGS])
 
 AC_CONFIG_FILES([
-	Makefile
-	benchmarks/Makefile
-	demos/Makefile
-	lib/Makefile
-	man/Makefile
-	scripts/Makefile
-	tests/Makefile
-	tools/Makefile
-	debugger/Makefile
-	debugger/system_routine/Makefile
-])
+		 Makefile
+		 benchmarks/Makefile
+		 demos/Makefile
+		 lib/Makefile
+		 man/Makefile
+		 scripts/Makefile
+		 tests/Makefile
+		 tools/Makefile
+		 debugger/Makefile
+		 debugger/system_routine/Makefile
+		 ])
 AC_OUTPUT
