@@ -33,6 +33,14 @@
 #ifndef BRW_STRUCTS_H
 #define BRW_STRUCTS_H
 
+#include <stdint.h>
+
+typedef unsigned char GLubyte;
+typedef short GLshort;
+typedef unsigned int GLuint;
+typedef int GLint;
+typedef float GLfloat;
+
 /* These seem to be passed around as function args, so it works out
  * better to keep them as #defines:
  */

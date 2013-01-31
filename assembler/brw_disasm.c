@@ -27,7 +27,6 @@
 #include <unistd.h>
 #include <stdarg.h>
 
-#include "gen4asm.h"
 #include "brw_eu.h"
 
 const struct opcode_desc opcode_descs[128] = {

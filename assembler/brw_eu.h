@@ -35,7 +35,6 @@
 
 #include <stdbool.h>
 #include <stdio.h>
-#include "gen4asm.h"
 #include "brw_context.h"
 #include "brw_structs.h"
 #include "brw_defines.h"
