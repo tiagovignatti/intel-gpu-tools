@@ -36,6 +36,7 @@
 #include "brw_reg.h"
 #include "brw_defines.h"
 #include "brw_structs.h"
+#include "gen8_instruction.h"
 
 extern long int gen_level;
 extern int advanced_flag;
@@ -131,6 +132,8 @@ typedef struct {
 enum assembler_instruction_type {
     GEN4ASM_INSTRUCTION_GEN,
     GEN4ASM_INSTRUCTION_GEN_RELOCATABLE,
+    GEN4ASM_INSTRUCTION_GEN8,
+    GEN4ASM_INSTRUCTION_GEN8_RELOCATABLE,
     GEN4ASM_INSTRUCTION_LABEL,
 };
 
@@ -152,6 +155,7 @@ struct brw_program_instruction {
     unsigned inst_offset;
     union {
 	struct brw_instruction gen;
+	struct gen8_instruction gen8;
 	struct label_instruction label;
     } insn;
     struct relocation reloc;

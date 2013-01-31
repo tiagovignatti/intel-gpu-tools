@@ -34,6 +34,7 @@
 #include <assert.h>
 #include "gen4asm.h"
 #include "brw_eu.h"
+#include "gen8_instruction.h"
 
 #define DEFAULT_EXECSIZE (ffs(program_defaults.execute_size) - 1)
 #define DEFAULT_DSTREGION -1
@@ -41,6 +42,7 @@
 #define SWIZZLE(reg) (reg.dw1.bits.swizzle)
 
 #define GEN(i)	(&(i)->insn.gen)
+#define GEN8(i)	(&(i)->insn.gen8)
 
 #define YYLTYPE YYLTYPE
 typedef struct YYLTYPE
@@ -2793,6 +2795,9 @@ static int get_type_size(unsigned type)
 static void reset_instruction_src_region(struct brw_instruction *instr, 
                                          struct src_operand *src)
 {
+    if (IS_GENp(8))
+	return;
+
     if (!src->default_region)
         return;
 
@@ -2862,7 +2867,10 @@ static void reset_instruction_src_region(struct brw_instruction *instr,
 static void set_instruction_opcode(struct brw_program_instruction *instr,
 				  unsigned opcode)
 {
-  GEN(instr)->header.opcode = opcode;
+    if (IS_GENp(8))
+	gen8_set_opcode(GEN8(instr), opcode);
+    else
+	GEN(instr)->header.opcode = opcode;
 }
 
 /**
@@ -2878,7 +2886,12 @@ static int set_instruction_dest(struct brw_program_instruction *instr,
 	 * elements. */
 	resolve_subnr(dest);
 
-	brw_set_dest(&genasm_compile, GEN(instr), *dest);
+	if (IS_GENp(8)) {
+		gen8_set_exec_size(GEN8(instr), dest->width);
+		gen8_set_dst(GEN8(instr), *dest);
+	} else {
+		brw_set_dest(&genasm_compile, GEN(instr), *dest);
+	}
 
 	return 0;
 }
@@ -2899,7 +2912,10 @@ static int set_instruction_src0(struct brw_program_instruction *instr,
 	 * elements. */
 	resolve_subnr(&src->reg);
 
-	brw_set_src0(&genasm_compile, GEN(instr), src->reg);
+	if (IS_GENp(8))
+		gen8_set_src0(GEN8(instr), src->reg);
+	else
+		brw_set_src0(&genasm_compile, GEN(instr), src->reg);
 
 	return 0;
 }
@@ -2920,7 +2936,10 @@ static int set_instruction_src1(struct brw_program_instruction *instr,
 	 * elements. */
 	resolve_subnr(&src->reg);
 
-	brw_set_src1(&genasm_compile, GEN(instr), src->reg);
+	if (IS_GENp(8))
+		gen8_set_src1(GEN8(instr), src->reg);
+	else
+		brw_set_src1(&genasm_compile, GEN(instr), src->reg);
 
 	return 0;
 }
@@ -2975,12 +2994,24 @@ static int set_instruction_src2_three_src(struct brw_program_instruction *instr,
 static void set_instruction_saturate(struct brw_program_instruction *instr,
 				     int saturate)
 {
-    GEN(instr)->header.saturate = saturate;
+    if (IS_GENp(8))
+	gen8_set_saturate(GEN8(instr), saturate);
+    else
+	GEN(instr)->header.saturate = saturate;
 }
 
 static void set_instruction_options(struct brw_program_instruction *instr,
 				    struct options options)
 {
+    if (IS_GENp(8)) {
+	gen8_set_access_mode(GEN8(instr), options.access_mode);
+	gen8_set_thread_control(GEN8(instr), options.thread_control);
+	gen8_set_dep_control(GEN8(instr), options.dependency_control);
+	gen8_set_mask_control(GEN8(instr), options.mask_control);
+	gen8_set_debug_control(GEN8(instr), options.debug_control);
+	gen8_set_acc_wr_control(GEN8(instr), options.acc_wr_control);
+	gen8_set_eot(GEN8(instr), options.end_of_thread);
+    } else {
 	GEN(instr)->header.access_mode = options.access_mode;
 	GEN(instr)->header.compression_control = options.compression_control;
 	GEN(instr)->header.thread_control = options.thread_control;
@@ -2989,15 +3020,23 @@ static void set_instruction_options(struct brw_program_instruction *instr,
 	GEN(instr)->header.debug_control = options.debug_control;
 	GEN(instr)->header.acc_wr_control = options.acc_wr_control;
 	GEN(instr)->bits3.generic.end_of_thread = options.end_of_thread;
+    }
 }
 
 static void set_instruction_predicate(struct brw_program_instruction *instr,
 				      struct predicate *p)
 {
+    if (IS_GENp(8)) {
+	gen8_set_pred_control(GEN8(instr), p->pred_control);
+	gen8_set_pred_inv(GEN8(instr), p->pred_inverse);
+	gen8_set_flag_reg_nr(GEN8(instr), p->flag_reg_nr);
+	gen8_set_flag_subreg_nr(GEN8(instr), p->flag_subreg_nr);
+    } else {
 	GEN(instr)->header.predicate_control = p->pred_control;
 	GEN(instr)->header.predicate_inverse = p->pred_inverse;
 	GEN(instr)->bits2.da1.flag_reg_nr = p->flag_reg_nr;
 	GEN(instr)->bits2.da1.flag_subreg_nr = p->flag_subreg_nr;
+    }
 }
 
 static void set_instruction_pred_cond(struct brw_program_instruction *instr,
@@ -3006,7 +3045,11 @@ static void set_instruction_pred_cond(struct brw_program_instruction *instr,
 				      YYLTYPE *location)
 {
     set_instruction_predicate(instr, p);
-    GEN(instr)->header.destreg__conditionalmod = c->cond;
+
+    if (IS_GENp(8))
+	gen8_set_cond_modifier(GEN8(instr), c->cond);
+    else
+	GEN(instr)->header.destreg__conditionalmod = c->cond;
 
     if (c->flag_subreg_nr == -1)
 	return;
@@ -3019,8 +3062,13 @@ static void set_instruction_pred_cond(struct brw_program_instruction *instr,
 	     "prediction and conditional modifier are enabled\n");
     }
 
-    GEN(instr)->bits2.da1.flag_reg_nr = c->flag_reg_nr;
-    GEN(instr)->bits2.da1.flag_subreg_nr = c->flag_subreg_nr;
+    if (IS_GENp(8)) {
+	gen8_set_flag_reg_nr(GEN8(instr), c->flag_reg_nr);
+	gen8_set_flag_subreg_nr(GEN8(instr), c->flag_subreg_nr);
+    } else {
+	GEN(instr)->bits2.da1.flag_reg_nr = c->flag_reg_nr;
+	GEN(instr)->bits2.da1.flag_subreg_nr = c->flag_subreg_nr;
+    }
 }
 
 static void set_direct_dst_operand(struct brw_reg *dst, struct brw_reg *reg,
