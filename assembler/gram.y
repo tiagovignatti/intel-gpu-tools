@@ -1200,9 +1200,8 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
 		    YYERROR;
 		  if (set_instruction_src0(&$$, &$6, &@6) != 0)
 		    YYERROR;
-		  GEN(&$$)->bits1.da1.src1_reg_file = BRW_IMMEDIATE_VALUE;
-		  GEN(&$$)->bits1.da1.src1_reg_type = $7.reg.type;
-		  GEN(&$$)->bits3.ud = $7.reg.dw1.ud;
+		  if (set_instruction_src1(&$$, &$7, &@7) != 0)
+		    YYERROR;
                 }
 		| predicate SEND execsize dst sendleadreg sndopr imm32reg instoptions
 		{
@@ -1241,10 +1240,8 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
                   src0.reg.nr = $5.nr;
                   src0.reg.subnr = 0;
                   set_instruction_src0(&$$, &src0, NULL);
+		  set_instruction_src1(&$$, &$7, NULL);
 
-		  GEN(&$$)->bits1.da1.src1_reg_file = BRW_IMMEDIATE_VALUE;
-		  GEN(&$$)->bits1.da1.src1_reg_type = $7.reg.type;
-                  GEN(&$$)->bits3.ud = $7.reg.dw1.ud;
                   GEN(&$$)->bits3.generic_gen5.end_of_thread = !!($6 & EX_DESC_EOT_MASK);
 		}
 		| predicate SEND execsize dst sendleadreg sndopr directsrcoperand instoptions
@@ -1306,15 +1303,13 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
 		    YYERROR;
 		  if (set_instruction_src0(&$$, &$6, &@6) != 0)
 		    YYERROR;
-		  GEN(&$$)->bits1.da1.src1_reg_file = BRW_IMMEDIATE_VALUE;
-		  GEN(&$$)->bits1.da1.src1_reg_type = $8.reg.type;
+		  if (set_instruction_src1(&$$, &$8, &@8) != 0)
+		    YYERROR;
+
 		  if (IS_GENx(5)) {
 		      GEN(&$$)->bits2.send_gen5.sfid = ($7 & EX_DESC_SFID_MASK);
-		      GEN(&$$)->bits3.ud = $8.reg.dw1.ud;
 		      GEN(&$$)->bits3.generic_gen5.end_of_thread = !!($7 & EX_DESC_EOT_MASK);
 		  }
-		  else
-		      GEN(&$$)->bits3.ud = $8.reg.dw1.ud;
 		}
 		| predicate SEND execsize dst sendleadreg payload exp directsrcoperand instoptions
 		{
