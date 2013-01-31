@@ -255,11 +255,27 @@ static int resolve_dst_region(struct declared_register *reference, int region)
     return resolved;
 }
 
-static bool validate_dst_reg(struct brw_instruction *insn, struct brw_reg *reg)
+static inline int access_mode(struct brw_program_instruction *insn)
+{
+    if (IS_GENp(8))
+	return gen8_access_mode(GEN8(insn));
+    else
+	return GEN(insn)->header.access_mode;
+}
+
+static inline int exec_size(struct brw_program_instruction *insn)
+{
+    if (IS_GENp(8))
+	return gen8_exec_size(GEN8(insn));
+    else
+	return GEN(insn)->header.execution_size;
+}
+
+static bool validate_dst_reg(struct brw_program_instruction *insn, struct brw_reg *reg)
 {
 
     if (reg->address_mode == BRW_ADDRESS_DIRECT &&
-	insn->header.access_mode == BRW_ALIGN_1 &&
+	access_mode(insn) == BRW_ALIGN_1 &&
 	reg->dw1.bits.writemask != 0 &&
 	reg->dw1.bits.writemask != BRW_WRITEMASK_XYZW)
     {
@@ -270,7 +286,7 @@ static bool validate_dst_reg(struct brw_instruction *insn, struct brw_reg *reg)
     return true;
 }
 
-static bool validate_src_reg(struct brw_instruction *insn,
+static bool validate_src_reg(struct brw_program_instruction *insn,
 			     struct brw_reg reg,
 			     YYLTYPE *location)
 {
@@ -283,7 +299,7 @@ static bool validate_src_reg(struct brw_instruction *insn,
     if (reg.file == BRW_IMMEDIATE_VALUE)
 	return true;
 
-    if (insn->header.access_mode == BRW_ALIGN_1 &&
+    if (access_mode(insn) == BRW_ALIGN_1 &&
 	SWIZZLE(reg) && SWIZZLE(reg) != BRW_SWIZZLE_NOOP)
     {
 	error(location, "swizzle bits set in align1 instruction\n");
@@ -303,9 +319,9 @@ static bool validate_src_reg(struct brw_instruction *insn,
     assert(reg.width >= 0 && reg.width < ARRAY_SIZE(width_for_reg));
     width = width_for_reg[reg.width];
 
-    assert(insn->header.execution_size >= 0 &&
-	   insn->header.execution_size < ARRAY_SIZE(execsize_for_reg));
-    execsize = execsize_for_reg[insn->header.execution_size];
+    assert(exec_size(insn) >= 0 &&
+	   exec_size(insn) < ARRAY_SIZE(execsize_for_reg));
+    execsize = execsize_for_reg[exec_size(insn)];
 
     /* Register Region Restrictions */
 
@@ -2879,7 +2895,7 @@ static void set_instruction_opcode(struct brw_program_instruction *instr,
 static int set_instruction_dest(struct brw_program_instruction *instr,
 				struct brw_reg *dest)
 {
-	if (!validate_dst_reg(GEN(instr), dest))
+	if (!validate_dst_reg(instr, dest))
 		return 1;
 
 	/* the assembler support expressing subnr in bytes or in number of
@@ -2905,7 +2921,7 @@ static int set_instruction_src0(struct brw_program_instruction *instr,
 	if (advanced_flag)
 		reset_instruction_src_region(GEN(instr), src);
 
-	if (!validate_src_reg(GEN(instr), src->reg, location))
+	if (!validate_src_reg(instr, src->reg, location))
 		return 1;
 
 	/* the assembler support expressing subnr in bytes or in number of
@@ -2929,7 +2945,7 @@ static int set_instruction_src1(struct brw_program_instruction *instr,
 	if (advanced_flag)
 		reset_instruction_src_region(GEN(instr), src);
 
-	if (!validate_src_reg(GEN(instr), src->reg, location))
+	if (!validate_src_reg(instr, src->reg, location))
 		return 1;
 
 	/* the assembler support expressing subnr in bytes or in number of
