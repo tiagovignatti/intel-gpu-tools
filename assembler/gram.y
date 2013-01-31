@@ -100,6 +100,8 @@ static int set_instruction_src1_three_src(struct brw_program_instruction *instr,
 					  struct src_operand *src);
 static int set_instruction_src2_three_src(struct brw_program_instruction *instr,
 					  struct src_operand *src);
+static void set_instruction_saturate(struct brw_program_instruction *instr,
+				     int saturate);
 static void set_instruction_options(struct brw_program_instruction *instr,
 				    struct options options);
 static void set_instruction_predicate(struct brw_program_instruction *instr,
@@ -996,7 +998,7 @@ unaryinstruction:
 		{
 		  memset(&$$, 0, sizeof($$));
 		  set_instruction_opcode(&$$, $2);
-		  GEN(&$$)->header.saturate = $4;
+		  set_instruction_saturate(&$$, $4);
 		  $6.width = $5;
 		  set_instruction_options(&$$, $8);
 		  set_instruction_pred_cond(&$$, &$1, &$3, &@3);
@@ -1022,7 +1024,7 @@ binaryinstruction:
 		{
 		  memset(&$$, 0, sizeof($$));
 		  set_instruction_opcode(&$$, $2);
-		  GEN(&$$)->header.saturate = $4;
+		  set_instruction_saturate(&$$, $4);
 		  set_instruction_options(&$$, $9);
 		  set_instruction_pred_cond(&$$, &$1, &$3, &@3);
 		  $6.width = $5;
@@ -1050,7 +1052,7 @@ binaryaccinstruction:
 		{
 		  memset(&$$, 0, sizeof($$));
 		  set_instruction_opcode(&$$, $2);
-		  GEN(&$$)->header.saturate = $4;
+		  set_instruction_saturate(&$$, $4);
 		  $6.width = $5;
 		  set_instruction_options(&$$, $9);
 		  set_instruction_pred_cond(&$$, &$1, &$3, &@3);
@@ -1083,7 +1085,7 @@ trinaryinstruction:
 		  set_instruction_pred_cond(&$$, &$1, &$3, &@3);
 
 		  set_instruction_opcode(&$$, $2);
-		  GEN(&$$)->header.saturate = $4;
+		  set_instruction_saturate(&$$, $4);
 		  GEN(&$$)->header.execution_size = $5;
 
 		  if (set_instruction_dest_three_src(&$$, &$6))
@@ -1485,20 +1487,14 @@ msgtarget:	NULL_TOKEN
                       GEN(&$$)->bits2.send_gen5.sfid = BRW_SFID_MATH;
                       GEN(&$$)->bits3.generic_gen5.header_present = 0;
                       GEN(&$$)->bits3.math_gen5.function = $2;
-                      if ($3 == BRW_INSTRUCTION_SATURATE)
-                          GEN(&$$)->bits3.math_gen5.saturate = 1;
-                      else
-                          GEN(&$$)->bits3.math_gen5.saturate = 0;
+		      set_instruction_saturate(&$$, $3);
                       GEN(&$$)->bits3.math_gen5.int_type = $4;
                       GEN(&$$)->bits3.math_gen5.precision = BRW_MATH_PRECISION_FULL;
                       GEN(&$$)->bits3.math_gen5.data_type = $5;
 		  } else {
                       GEN(&$$)->bits3.generic.msg_target = BRW_SFID_MATH;
                       GEN(&$$)->bits3.math.function = $2;
-                      if ($3 == BRW_INSTRUCTION_SATURATE)
-                          GEN(&$$)->bits3.math.saturate = 1;
-                      else
-                          GEN(&$$)->bits3.math.saturate = 0;
+		      set_instruction_saturate(&$$, $3);
                       GEN(&$$)->bits3.math.int_type = $4;
                       GEN(&$$)->bits3.math.precision = BRW_MATH_PRECISION_FULL;
                       GEN(&$$)->bits3.math.data_type = $5;
@@ -2988,6 +2984,12 @@ static int set_instruction_src2_three_src(struct brw_program_instruction *instr,
 	GEN(instr)->bits3.da3src.src2_subreg_nr = get_subreg_address(src->reg.file, src->reg.type, src->reg.subnr, src->reg.address_mode) / 4; // in DWORD
 	GEN(instr)->bits3.da3src.src2_reg_nr = src->reg.nr;
 	return 0;
+}
+
+static void set_instruction_saturate(struct brw_program_instruction *instr,
+				     int saturate)
+{
+    GEN(instr)->header.saturate = saturate;
 }
 
 static void set_instruction_options(struct brw_program_instruction *instr,
