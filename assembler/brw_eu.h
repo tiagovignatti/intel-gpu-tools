@@ -420,17 +420,6 @@ void brw_optimize(struct brw_compile *p);
 void brw_remove_duplicate_mrf_moves(struct brw_compile *p);
 void brw_remove_grf_to_mrf_moves(struct brw_compile *p);
 
-/* brw_disasm.c */
-struct opcode_desc {
-    char    *name;
-    int	    nsrc;
-    int	    ndst;
-};
-
-extern const struct opcode_desc opcode_descs[128];
-
-int brw_disasm (FILE *file, struct brw_instruction *inst, int gen);
-
 #ifdef __cplusplus
 }
 #endif

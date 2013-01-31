@@ -27,7 +27,8 @@
 #include <unistd.h>
 #include <stdarg.h>
 
-#include "brw_eu.h"
+#include "brw_context.h"
+#include "brw_defines.h"
 
 const struct opcode_desc opcode_descs[128] = {
     [BRW_OPCODE_MOV] = { .name = "mov", .nsrc = 1, .ndst = 1 },
@@ -99,7 +100,7 @@ static const char * const conditional_modifier[16] = {
     [BRW_CONDITIONAL_U] = ".u",
 };
 
-static const char * const negate_op[2] = {
+static const char * const negate[2] = {
     [0] = "",
     [1] = "-",
 };
@@ -602,7 +603,7 @@ static int src_da1 (FILE *file, GLuint type, GLuint _reg_file,
 		    GLuint reg_num, GLuint sub_reg_num, GLuint __abs, GLuint _negate)
 {
     int err = 0;
-    err |= control (file, "negate", negate_op, _negate, NULL);
+    err |= control (file, "negate", negate, _negate, NULL);
     err |= control (file, "abs", _abs, __abs, NULL);
 
     err |= reg (file, _reg_file, reg_num);
@@ -628,7 +629,7 @@ static int src_ia1 (FILE *file,
 		    GLuint _vert_stride)
 {
     int err = 0;
-    err |= control (file, "negate", negate_op, _negate, NULL);
+    err |= control (file, "negate", negate, _negate, NULL);
     err |= control (file, "abs", _abs, __abs, NULL);
 
     string (file, "g[a0");
@@ -656,7 +657,7 @@ static int src_da16 (FILE *file,
 		     GLuint swz_w)
 {
     int err = 0;
-    err |= control (file, "negate", negate_op, _negate, NULL);
+    err |= control (file, "negate", negate, _negate, NULL);
     err |= control (file, "abs", _abs, __abs, NULL);
 
     err |= reg (file, _reg_file, _reg_nr);
@@ -707,7 +708,7 @@ static int src0_3src (FILE *file, struct brw_instruction *inst)
     GLuint swz_z = (inst->bits2.da3src.src0_swizzle >> 4) & 0x3;
     GLuint swz_w = (inst->bits2.da3src.src0_swizzle >> 6) & 0x3;
 
-    err |= control (file, "negate", negate_op, inst->bits1.da3src.src0_negate, NULL);
+    err |= control (file, "negate", negate, inst->bits1.da3src.src0_negate, NULL);
     err |= control (file, "abs", _abs, inst->bits1.da3src.src0_abs, NULL);
 
     err |= reg (file, BRW_GENERAL_REGISTER_FILE, inst->bits2.da3src.src0_reg_nr);
@@ -757,7 +758,7 @@ static int src1_3src (FILE *file, struct brw_instruction *inst)
     GLuint src1_subreg_nr = (inst->bits2.da3src.src1_subreg_nr_low |
 			     (inst->bits3.da3src.src1_subreg_nr_high << 2));
 
-    err |= control (file, "negate", negate_op, inst->bits1.da3src.src1_negate,
+    err |= control (file, "negate", negate, inst->bits1.da3src.src1_negate,
 		    NULL);
     err |= control (file, "abs", _abs, inst->bits1.da3src.src1_abs, NULL);
 
@@ -808,7 +809,7 @@ static int src2_3src (FILE *file, struct brw_instruction *inst)
     GLuint swz_z = (inst->bits3.da3src.src2_swizzle >> 4) & 0x3;
     GLuint swz_w = (inst->bits3.da3src.src2_swizzle >> 6) & 0x3;
 
-    err |= control (file, "negate", negate_op, inst->bits1.da3src.src2_negate,
+    err |= control (file, "negate", negate, inst->bits1.da3src.src2_negate,
 		    NULL);
     err |= control (file, "abs", _abs, inst->bits1.da3src.src2_abs, NULL);
 

@@ -31,6 +31,9 @@
 #define __BRW_CONTEXT_H__
 
 #include <stdbool.h>
+#include <stdio.h>
+
+#include "brw_structs.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -56,6 +59,17 @@ struct brw_context
 
 bool
 brw_init_context(struct brw_context *brw, int gen);
+
+/* brw_disasm.c */
+struct opcode_desc {
+    char    *name;
+    int	    nsrc;
+    int	    ndst;
+};
+
+extern const struct opcode_desc opcode_descs[128];
+
+int brw_disasm (FILE *file, struct brw_instruction *inst, int gen);
 
 #ifdef __cplusplus
 } /* end of extern "C" */
