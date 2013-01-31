@@ -104,6 +104,10 @@ static void set_instruction_options(struct brw_program_instruction *instr,
 				    struct options options);
 static void set_instruction_predicate(struct brw_program_instruction *instr,
 				      struct predicate *p);
+static void set_instruction_pred_cond(struct brw_program_instruction *instr,
+				      struct predicate *p,
+				      struct condition *c,
+				      YYLTYPE *location);
 static void set_direct_dst_operand(struct brw_reg *dst, struct brw_reg *reg,
 				   int type);
 static void set_direct_src_operand(struct src_operand *src, struct brw_reg *reg,
@@ -992,27 +996,14 @@ unaryinstruction:
 		{
 		  memset(&$$, 0, sizeof($$));
 		  set_instruction_opcode(&$$, $2);
-		  GEN(&$$)->header.destreg__conditionalmod = $3.cond;
 		  GEN(&$$)->header.saturate = $4;
 		  $6.width = $5;
 		  set_instruction_options(&$$, $8);
-		  set_instruction_predicate(&$$, &$1);
+		  set_instruction_pred_cond(&$$, &$1, &$3, &@3);
 		  if (set_instruction_dest(&$$, &$6) != 0)
 		    YYERROR;
 		  if (set_instruction_src0(&$$, &$7, &@7) != 0)
 		    YYERROR;
-
-		  if ($3.flag_subreg_nr != -1) {
-		    if (GEN(&$$)->header.predicate_control != BRW_PREDICATE_NONE &&
-                        ($1.flag_reg_nr != $3.flag_reg_nr ||
-                         $1.flag_subreg_nr != $3.flag_subreg_nr))
-                        warn(ALWAYS, &@3, "must use the same flag register if "
-			     "both prediction and conditional modifier are "
-			     "enabled\n");
-
-		    GEN(&$$)->bits2.da1.flag_reg_nr = $3.flag_reg_nr;
-		    GEN(&$$)->bits2.da1.flag_subreg_nr = $3.flag_subreg_nr;
-		  }
 
 		  if (!IS_GENp(6) && 
 				get_type_size(GEN(&$$)->bits1.da1.dest_reg_type) * (1 << $6.width) == 64)
@@ -1031,10 +1022,9 @@ binaryinstruction:
 		{
 		  memset(&$$, 0, sizeof($$));
 		  set_instruction_opcode(&$$, $2);
-		  GEN(&$$)->header.destreg__conditionalmod = $3.cond;
 		  GEN(&$$)->header.saturate = $4;
 		  set_instruction_options(&$$, $9);
-		  set_instruction_predicate(&$$, &$1);
+		  set_instruction_pred_cond(&$$, &$1, &$3, &@3);
 		  $6.width = $5;
 		  if (set_instruction_dest(&$$, &$6) != 0)
 		    YYERROR;
@@ -1042,18 +1032,6 @@ binaryinstruction:
 		    YYERROR;
 		  if (set_instruction_src1(&$$, &$8, &@8) != 0)
 		    YYERROR;
-
-		  if ($3.flag_subreg_nr != -1) {
-		    if (GEN(&$$)->header.predicate_control != BRW_PREDICATE_NONE &&
-                        ($1.flag_reg_nr != $3.flag_reg_nr ||
-                         $1.flag_subreg_nr != $3.flag_subreg_nr))
-                        warn(ALWAYS, &@3, "must use the same flag register if "
-			     "both prediction and conditional modifier are "
-			     "enabled\n");
-
-		    GEN(&$$)->bits2.da1.flag_reg_nr = $3.flag_reg_nr;
-		    GEN(&$$)->bits2.da1.flag_subreg_nr = $3.flag_subreg_nr;
-		  }
 
 		  if (!IS_GENp(6) && 
 				get_type_size(GEN(&$$)->bits1.da1.dest_reg_type) * (1 << $6.width) == 64)
@@ -1072,29 +1050,16 @@ binaryaccinstruction:
 		{
 		  memset(&$$, 0, sizeof($$));
 		  set_instruction_opcode(&$$, $2);
-		  GEN(&$$)->header.destreg__conditionalmod = $3.cond;
 		  GEN(&$$)->header.saturate = $4;
 		  $6.width = $5;
 		  set_instruction_options(&$$, $9);
-		  set_instruction_predicate(&$$, &$1);
+		  set_instruction_pred_cond(&$$, &$1, &$3, &@3);
 		  if (set_instruction_dest(&$$, &$6) != 0)
 		    YYERROR;
 		  if (set_instruction_src0(&$$, &$7, &@7) != 0)
 		    YYERROR;
 		  if (set_instruction_src1(&$$, &$8, &@8) != 0)
 		    YYERROR;
-
-		  if ($3.flag_subreg_nr != -1) {
-		    if (GEN(&$$)->header.predicate_control != BRW_PREDICATE_NONE &&
-                        ($1.flag_reg_nr != $3.flag_reg_nr ||
-                         $1.flag_subreg_nr != $3.flag_subreg_nr))
-                        warn(ALWAYS, &@3, "must use the same flag register if "
-			     "both prediction and conditional modifier are "
-			     "enabled\n");
-
-		    GEN(&$$)->bits2.da1.flag_reg_nr = $3.flag_reg_nr;
-		    GEN(&$$)->bits2.da1.flag_subreg_nr = $3.flag_subreg_nr;
-		  }
 
 		  if (!IS_GENp(6) && 
 				get_type_size(GEN(&$$)->bits1.da1.dest_reg_type) * (1 << $6.width) == 64)
@@ -1115,10 +1080,9 @@ trinaryinstruction:
 {
 		  memset(&$$, 0, sizeof($$));
 
-		  set_instruction_predicate(&$$, &$1);
+		  set_instruction_pred_cond(&$$, &$1, &$3, &@3);
 
 		  set_instruction_opcode(&$$, $2);
-		  GEN(&$$)->header.destreg__conditionalmod = $3.cond;
 		  GEN(&$$)->header.saturate = $4;
 		  GEN(&$$)->header.execution_size = $5;
 
@@ -1131,15 +1095,6 @@ trinaryinstruction:
 		  if (set_instruction_src2_three_src(&$$, &$9))
 		    YYERROR;
 		  set_instruction_options(&$$, $10);
-
-		  if ($3.flag_subreg_nr != -1) {
-		    if (GEN(&$$)->header.predicate_control != BRW_PREDICATE_NONE &&
-                        ($1.flag_reg_nr != $3.flag_reg_nr ||
-                         $1.flag_subreg_nr != $3.flag_subreg_nr))
-                        warn(ALWAYS, &@3, "must use the same flag register if "
-			     "both prediction and conditional modifier are "
-			     "enabled\n");
-		  }
 }
 ;
 
@@ -2670,10 +2625,6 @@ predicate:	/* empty */
 		| LPAREN predstate flagreg predctrl RPAREN
 		{
 		  $$.pred_control = $4;
-		  /* XXX: Should deal with erroring when the user tries to
-		   * set a predicate for one flag register and conditional
-		   * modification on the other flag register.
-		   */
 		  $$.flag_reg_nr = $3.nr;
 		  $$.flag_subreg_nr = $3.subnr;
 		  $$.pred_inverse = $2;
@@ -3059,6 +3010,29 @@ static void set_instruction_predicate(struct brw_program_instruction *instr,
 	GEN(instr)->header.predicate_inverse = p->pred_inverse;
 	GEN(instr)->bits2.da1.flag_reg_nr = p->flag_reg_nr;
 	GEN(instr)->bits2.da1.flag_subreg_nr = p->flag_subreg_nr;
+}
+
+static void set_instruction_pred_cond(struct brw_program_instruction *instr,
+				      struct predicate *p,
+				      struct condition *c,
+				      YYLTYPE *location)
+{
+    set_instruction_predicate(instr, p);
+    GEN(instr)->header.destreg__conditionalmod = c->cond;
+
+    if (c->flag_subreg_nr == -1)
+	return;
+
+    if (p->pred_control != BRW_PREDICATE_NONE &&
+	(p->flag_reg_nr != c->flag_reg_nr ||
+	 p->flag_subreg_nr != c->flag_subreg_nr))
+    {
+	warn(ALWAYS, location, "must use the same flag register if both "
+	     "prediction and conditional modifier are enabled\n");
+    }
+
+    GEN(instr)->bits2.da1.flag_reg_nr = c->flag_reg_nr;
+    GEN(instr)->bits2.da1.flag_subreg_nr = c->flag_subreg_nr;
 }
 
 static void set_direct_dst_operand(struct brw_reg *dst, struct brw_reg *reg,
