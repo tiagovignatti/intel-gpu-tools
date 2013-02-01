@@ -106,7 +106,7 @@ struct options {
 
 struct region {
     int vert_stride, width, horiz_stride;
-    int is_default;        
+    int is_default;
 };
 struct regtype {
     int type;
@@ -114,7 +114,7 @@ struct regtype {
 };
 
 /**
- * This structure is the internal representation of source operands in the 
+ * This structure is the internal representation of source operands in the
  * parser.
  */
 struct src_operand {

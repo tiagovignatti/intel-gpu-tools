@@ -165,7 +165,7 @@ int main(int argc, char **argv)
 	    exit(1);
 	}
     }
-	    
+
     for (inst = program->first; inst; inst = inst->next)
 	brw_disasm (output, &inst->insn.gen, gen);
     exit (0);

@@ -457,7 +457,7 @@ int main(int argc, char **argv)
 		// this is a branch instruction with one offset argument
 		int offset = reloc->first_reloc_offset;
 		/* bspec: Unlike other flow control instructions, the offset used by JMPI is relative to the incremented instruction pointer rather than the IP value for the instruction itself. */
-		
+
 		int is_jmpi = inst->header.opcode == BRW_OPCODE_JMPI; // target relative to the post-incremented IP, so delta == 1 if JMPI
 		if(is_jmpi)
 		    offset --;
