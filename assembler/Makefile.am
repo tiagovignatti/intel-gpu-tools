@@ -13,7 +13,9 @@ libbrw_la_SOURCES =		\
 	brw_eu.h		\
 	brw_eu.c		\
 	brw_eu_compact.c	\
+	brw_eu_debug.c		\
 	brw_eu_emit.c		\
+	brw_eu_util.c		\
 	brw_reg.h		\
 	brw_structs.h		\
 	ralloc.c		\
