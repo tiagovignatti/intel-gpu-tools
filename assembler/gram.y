@@ -181,8 +181,7 @@ static bool declared_register_equal(struct declared_register *r1,
 	return false;
 
     if (r1->element_size != r2->element_size ||
-        r1->dst_region != r2->dst_region ||
-	r1->type != r2->type)
+        r1->dst_region != r2->dst_region)
 	return false;
 
     return true;
@@ -650,7 +649,7 @@ declare_pragma:	DECLARE_PRAGMA STRING declare_base declare_elementsize declare_s
 		    reg.element_size = $4;
 		    reg.src_region = $5;
 		    reg.dst_region = $6;
-		    reg.type = $7;
+		    reg.reg.type = $7;
 
 		    found = find_register($2);
 		    if (found) {
@@ -1771,7 +1770,6 @@ dstoperand:	symbol_reg dstregion
 		{
 		  $$ = $1.reg;
 	          $$.hstride = resolve_dst_region(&$1, $2);
-		  $$.type = $1.type;
 		}
 		| dstreg dstregion writemask regtype
 		{
@@ -1860,7 +1858,7 @@ symbol_reg_p: STRING LPAREN exp RPAREN
 		    memcpy(&$$, dcl_reg, sizeof(*dcl_reg));
 		    $$.reg.nr += $3;
 		    if(advanced_flag) {
-			int size = get_type_size(dcl_reg->type);
+			int size = get_type_size(dcl_reg->reg.type);
 		        $$.reg.nr += ($$.reg.subnr + $5) / (32 / size);
 		        $$.reg.subnr = ($$.reg.subnr + $5) % (32 / size);
 		    } else {
@@ -2047,7 +2045,7 @@ directsrcoperand:	negate abs symbol_reg region regtype
 		  $$.reg.nr = $3.reg.nr;
 		  $$.reg.subnr = $3.reg.subnr;
 		  if ($5.is_default) {
-		    $$.reg.type = $3.type;
+		    $$.reg.type = $3.reg.type;
 		  } else {
 		    $$.reg.type = $5.type;
 		  }
@@ -2434,7 +2432,7 @@ relativelocation2:
 		  $$.reg.file = $1.reg.file;
 		  $$.reg.nr = $1.reg.nr;
 		  $$.reg.subnr = $1.reg.subnr;
-		  $$.reg.type = $1.type;
+		  $$.reg.type = $1.reg.type;
 		  $$.reg.vstride = $1.src_region.vert_stride;
 		  $$.reg.width = $1.src_region.width;
 		  $$.reg.hstride = $1.src_region.horiz_stride;
