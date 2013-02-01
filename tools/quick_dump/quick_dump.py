@@ -5,6 +5,7 @@ import os
 import sys
 import ast
 import subprocess
+import chipset
 
 def parse_file(file):
 	for line in file:
@@ -18,6 +19,7 @@ def parse_file(file):
 
 parser = argparse.ArgumentParser(description='Dumb register dumper.')
 parser.add_argument('-b', '--baseless', action='store_true', default=False, help='baseless mode, ignore files starting with base_')
+parser.add_argument('-a', '--autodetect', action='store_true', default=False, help='autodetect chipset')
 parser.add_argument('profile', nargs='?', type=argparse.FileType('r'), default=None)
 args = parser.parse_args()
 
@@ -28,6 +30,19 @@ if args.baseless == False:
 			if name.startswith(("base_")):
 				file = open(name.rstrip(), 'r')
 				parse_file(file)
+
+if args.autodetect:
+	sysfs_file = open('/sys/class/drm/card0/device/device', 'r')
+	devid_str = sysfs_file.read()
+	devid = int(devid_str, 16)
+	if chipset.is_sandybridge(devid):
+		args.profile = open('sandybridge', 'r')
+	elif chipset.is_ivybridge(devid):
+		args.profile = open('ivybridge', 'r')
+	elif chipset.is_valleyview(devid):
+		args.profile = open('valleyview', 'r')
+	else:
+		print("Autodetect of %x " + devid + " failed")
 
 if args.profile == None:
 	sys.exit()
