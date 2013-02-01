@@ -50,6 +50,11 @@ AC_CHECK_FUNCS([asprintf])
 AC_DISABLE_STATIC
 AC_PROG_LIBTOOL
 
+# SWIG configuration
+AX_PKG_SWIG(2.0.0, [], [ AC_MSG_ERROR([SWIG 2.0.0 or higher is required to build..]) ])
+AX_PYTHON_DEVEL([>= '3.0'])
+AX_SWIG_PYTHON
+
 # Require X.Org macros 1.16 or later for XORG_TESTSET_CFLAG
 m4_ifndef([XORG_MACROS_VERSION],
 	  [m4_fatal([must install xorg-macros 1.16 or later before running autoconf/autogen])])
