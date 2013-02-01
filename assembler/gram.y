@@ -618,7 +618,7 @@ declare_srcregion: /* empty */
 		  /* XXX is this default correct?*/
 		  memset (&$$, '\0', sizeof ($$));
 		  $$.vert_stride = ffs(0);
-		  $$.width = ffs(1) - 1;
+		  $$.width = BRW_WIDTH_1;
 		  $$.horiz_stride = ffs(0);
 		}
 		| SRCREGION EQ region
@@ -955,7 +955,7 @@ subroutineinstruction:
 		  set_instruction_opcode(&$$, $2);
 
 		  $4.type = BRW_REGISTER_TYPE_D; /* dest type should be DWORD */
-		  $4.width = 1; /* execution size must be 2. Here 1 is encoded 2. */
+		  $4.width = BRW_WIDTH_2; /* execution size must be 2. */
 		  set_instruction_dest(&$$, &$4);
 
 		  struct src_operand src0;
@@ -963,7 +963,7 @@ subroutineinstruction:
 		  src0.reg.type = BRW_REGISTER_TYPE_D; /* source type should be DWORD */
 		  /* source0 region control must be <2,2,1>. */
 		  src0.reg.hstride = 1; /*encoded 1*/
-		  src0.reg.width = 1; /*encoded 2*/
+		  src0.reg.width = BRW_WIDTH_2;
 		  src0.reg.vstride = 2; /*encoded 2*/
 		  set_instruction_src0(&$$, &src0, NULL);
 
@@ -981,11 +981,11 @@ subroutineinstruction:
 		  memset(&$$, 0, sizeof($$));
 		  set_instruction_predicate(&$$, &$1);
 		  set_instruction_opcode(&$$, $2);
-		  dst_null_reg.width = 1; /* execution size of RET should be 2 */
+		  dst_null_reg.width = BRW_WIDTH_2; /* execution size of RET should be 2 */
 		  set_instruction_dest(&$$, &dst_null_reg);
 		  $5.reg.type = BRW_REGISTER_TYPE_D;
 		  $5.reg.hstride = 1; /*encoded 1*/
-		  $5.reg.width = 1; /*encoded 2*/
+		  $5.reg.width = BRW_WIDTH_2;
 		  $5.reg.vstride = 2; /*encoded 2*/
 		  set_instruction_src0(&$$, &$5, NULL);
 		}
@@ -1351,7 +1351,7 @@ jumpinstruction: predicate JMPI execsize relativelocation2
 		  if(advanced_flag)
 			GEN(&$$)->header.mask_control = BRW_MASK_DISABLE;
 		  set_instruction_predicate(&$$, &$1);
-		  ip_dst.width = ffs(1) - 1;
+		  ip_dst.width = BRW_WIDTH_1;
 		  set_instruction_dest(&$$, &ip_dst);
 		  set_instruction_src0(&$$, &ip_src, NULL);
 		  set_instruction_src1(&$$, &$4, NULL);
@@ -1407,7 +1407,7 @@ syncinstruction: predicate WAIT notifyreg
 		  memset(&$$, 0, sizeof($$));
 		  set_instruction_opcode(&$$, $2);
 		  set_direct_dst_operand(&notify_dst, &$3, BRW_REGISTER_TYPE_D);
-		  notify_dst.width = ffs(1) - 1;
+		  notify_dst.width = BRW_WIDTH_1;
 		  set_instruction_dest(&$$, &notify_dst);
 		  set_direct_src_operand(&notify_src, &$3, BRW_REGISTER_TYPE_D);
 		  set_instruction_src0(&$$, &notify_src, NULL);
@@ -2473,7 +2473,7 @@ region:		/* empty */
 		  /* XXX is this default value correct?*/
 		  memset (&$$, '\0', sizeof ($$));
 		  $$.vert_stride = ffs(0);
-		  $$.width = ffs(1) - 1;
+		  $$.width = BRW_WIDTH_1;
 		  $$.horiz_stride = ffs(0);
 		  $$.is_default = 1;
 		}
@@ -2482,7 +2482,7 @@ region:		/* empty */
 		  /* XXX is this default value correct for accreg?*/
 		  memset (&$$, '\0', sizeof ($$));
 		  $$.vert_stride = ffs($2);
-		  $$.width = ffs(1) - 1;
+		  $$.width = BRW_WIDTH_1;
 		  $$.horiz_stride = ffs(0);
 		}
 		|LANGLE exp COMMA exp COMMA exp RANGLE
@@ -2783,7 +2783,7 @@ static void reset_instruction_src_region(struct brw_instruction *instr,
     if (src->reg.file == BRW_ARCHITECTURE_REGISTER_FILE && 
         ((src->reg.nr & 0xF0) == BRW_ARF_ADDRESS)) {
         src->reg.vstride = ffs(0);
-        src->reg.width = ffs(1) - 1;
+        src->reg.width = BRW_WIDTH_1;
         src->reg.hstride = ffs(0);
     } else if (src->reg.file == BRW_ARCHITECTURE_REGISTER_FILE &&
                ((src->reg.nr & 0xF0) == BRW_ARF_ACCUMULATOR)) {
@@ -2805,7 +2805,7 @@ static void reset_instruction_src_region(struct brw_instruction *instr,
                (src->reg.nr == BRW_ARF_NULL) &&
                (instr->header.opcode == BRW_OPCODE_SEND)) {
         src->reg.vstride = ffs(8);
-        src->reg.width = ffs(8) - 1;
+        src->reg.width = BRW_WIDTH_8;
         src->reg.hstride = ffs(1);
     } else {
 
