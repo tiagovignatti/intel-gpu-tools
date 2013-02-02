@@ -32,9 +32,8 @@ if args.baseless == False:
 				parse_file(file)
 
 if args.autodetect:
-	sysfs_file = open('/sys/class/drm/card0/device/device', 'r')
-	devid_str = sysfs_file.read()
-	devid = int(devid_str, 16)
+	pci_dev = chipset.intel_get_pci_device()
+	devid = chipset.pcidev_to_devid(pci_dev)
 	if chipset.is_sandybridge(devid):
 		args.profile = open('sandybridge', 'r')
 	elif chipset.is_ivybridge(devid):
