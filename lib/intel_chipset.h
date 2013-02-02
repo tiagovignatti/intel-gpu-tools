@@ -123,6 +123,9 @@
 #define PCI_CHIP_HASWELL_CRW_S_GT2_PLUS 0x0D3A
 
 #define PCI_CHIP_VALLEYVIEW_PO		0x0f30 /* VLV PO board */
+#define PCI_CHIP_VALLEYVIEW_1		0x0f31
+#define PCI_CHIP_VALLEYVIEW_2		0x0f32
+#define PCI_CHIP_VALLEYVIEW_3		0x0f33
 
 #define IS_MOBILE(devid)	(devid == PCI_CHIP_I855_GM || \
 				 devid == PCI_CHIP_I915_GM || \
@@ -186,17 +189,20 @@
 				 devid == PCI_CHIP_SANDYBRIDGE_S)
 
 #define IS_GEN7(devid)          (IS_IVYBRIDGE(devid) || \
-                                 IS_HASWELL(devid))
+                                 IS_HASWELL(devid) || \
+				 IS_VALLEYVIEW(devid))
 
 #define IS_IVYBRIDGE(dev)	(dev == PCI_CHIP_IVYBRIDGE_GT1 || \
 				 dev == PCI_CHIP_IVYBRIDGE_GT2 || \
 				 dev == PCI_CHIP_IVYBRIDGE_M_GT1 || \
 				 dev == PCI_CHIP_IVYBRIDGE_M_GT2 || \
 				 dev == PCI_CHIP_IVYBRIDGE_S || \
-				 dev == PCI_CHIP_IVYBRIDGE_S_GT2 || \
-				 dev == PCI_CHIP_VALLEYVIEW_PO)
+				 dev == PCI_CHIP_IVYBRIDGE_S_GT2)
 
-#define IS_VALLEYVIEW(devid)	(devid == PCI_CHIP_VALLEYVIEW_PO)
+#define IS_VALLEYVIEW(devid)	(devid == PCI_CHIP_VALLEYVIEW_PO || \
+				 devid == PCI_CHIP_VALLEYVIEW_1 ||  \
+				 devid == PCI_CHIP_VALLEYVIEW_2 ||  \
+				 devid == PCI_CHIP_VALLEYVIEW_3)
 
 #define IS_HSW_GT1(devid)       (devid == PCI_CHIP_HASWELL_GT1 || \
 				 devid == PCI_CHIP_HASWELL_M_GT1 || \
