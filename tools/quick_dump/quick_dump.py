@@ -6,15 +6,13 @@ import sys
 import ast
 import subprocess
 import chipset
+import reg_access as reg
 
 def parse_file(file):
 	for line in file:
 		register = ast.literal_eval(line)
-		value = subprocess.check_output(["../intel_reg_read", register[1]])
-		value = value.decode('UTF-8') # convert the byte array to string
-		value = value.rstrip() #dump the newline
-		value = value.split(':') #output is 'addr : offset'
-		print(value[0], "(", register[0], ")", value[1])
+		val = reg.read(register[1])
+		print(register[1], "(", register[0], ")", hex(val))
 
 
 parser = argparse.ArgumentParser(description='Dumb register dumper.')
@@ -22,6 +20,9 @@ parser.add_argument('-b', '--baseless', action='store_true', default=False, help
 parser.add_argument('-a', '--autodetect', action='store_true', default=False, help='autodetect chipset')
 parser.add_argument('profile', nargs='?', type=argparse.FileType('r'), default=None)
 args = parser.parse_args()
+
+if reg.init() == False:
+	sys.exit()
 
 #parse anything named base_ these are assumed to apply for all gens.
 if args.baseless == False:
