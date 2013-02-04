@@ -34,6 +34,8 @@
 #include <assert.h>
 
 #include "brw_reg.h"
+#include "brw_defines.h"
+#include "brw_structs.h"
 
 extern long int gen_level;
 extern int advanced_flag;
@@ -56,9 +58,6 @@ extern struct brw_compile genasm_compile;
 
 /* Predicate to match Haswell processors */
 #define IS_HASWELL(x) (gen_level == 75)
-
-#include "brw_defines.h"
-#include "brw_structs.h"
 
 void yyerror (char *msg);
 
