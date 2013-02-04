@@ -522,7 +522,7 @@ static int dest (FILE *file, struct brw_instruction *inst)
 	    if (inst->bits1.da1.dest_subreg_nr)
 		format (file, ".%d", inst->bits1.da1.dest_subreg_nr /
 				     reg_type_size[inst->bits1.da1.dest_reg_type]);
-	    format (file, "<%d>", inst->bits1.da1.dest_horiz_stride);
+	    format (file, "<%s>", horiz_stride[inst->bits1.da1.dest_horiz_stride]);
 	    err |= control (file, "dest reg encoding", reg_encoding, inst->bits1.da1.dest_reg_type, NULL);
 	}
 	else
@@ -534,7 +534,7 @@ static int dest (FILE *file, struct brw_instruction *inst)
 	    if (inst->bits1.ia1.dest_indirect_offset)
 		format (file, " %d", inst->bits1.ia1.dest_indirect_offset);
 	    string (file, "]");
-	    format (file, "<%d>", inst->bits1.ia1.dest_horiz_stride);
+	    format (file, "<%s>", horiz_stride[inst->bits1.ia1.dest_horiz_stride]);
 	    err |= control (file, "dest reg encoding", reg_encoding, inst->bits1.ia1.dest_reg_type, NULL);
 	}
     }
