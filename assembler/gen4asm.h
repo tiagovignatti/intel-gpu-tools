@@ -35,12 +35,6 @@
 
 #include "brw_reg.h"
 
-typedef unsigned char GLubyte;
-typedef short GLshort;
-typedef unsigned int GLuint;
-typedef int GLint;
-typedef float GLfloat;
-
 extern long int gen_level;
 extern int advanced_flag;
 extern int errors;
@@ -147,7 +141,7 @@ struct label_instruction {
 
 struct relocation {
     char *first_reloc_target, *second_reloc_target; // JIP and UIP respectively
-    GLint first_reloc_offset, second_reloc_offset; // in number of instructions
+    int first_reloc_offset, second_reloc_offset; // in number of instructions
 };
 
 /**

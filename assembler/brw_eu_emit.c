@@ -62,7 +62,7 @@ static void guess_execution_size(struct brw_compile *p,
 void
 gen6_resolve_implied_move(struct brw_compile *p,
 			  struct brw_reg *src,
-			  GLuint msg_reg_nr)
+			  unsigned msg_reg_nr)
 {
    struct intel_context *intel = &p->brw->intel;
    if (intel->gen < 6)
@@ -478,10 +478,10 @@ brw_set_message_descriptor(struct brw_compile *p,
 
 static void brw_set_math_message( struct brw_compile *p,
 				  struct brw_instruction *insn,
-				  GLuint function,
-				  GLuint integer_type,
+				  unsigned function,
+				  unsigned integer_type,
 				  bool low_precision,
-				  GLuint dataType )
+				  unsigned dataType )
 {
    struct brw_context *brw = p->brw;
    struct intel_context *intel = &brw->intel;
@@ -536,7 +536,7 @@ static void brw_set_math_message( struct brw_compile *p,
 static void brw_set_ff_sync_message(struct brw_compile *p,
 				    struct brw_instruction *insn,
 				    bool allocate,
-				    GLuint response_length,
+				    unsigned response_length,
 				    bool end_of_thread)
 {
    brw_set_message_descriptor(p, insn, BRW_SFID_URB,
@@ -553,12 +553,12 @@ static void brw_set_urb_message( struct brw_compile *p,
 				 struct brw_instruction *insn,
 				 bool allocate,
 				 bool used,
-				 GLuint msg_length,
-				 GLuint response_length,
+				 unsigned msg_length,
+				 unsigned response_length,
 				 bool end_of_thread,
 				 bool complete,
-				 GLuint offset,
-				 GLuint swizzle_control )
+				 unsigned offset,
+				 unsigned swizzle_control )
 {
    struct brw_context *brw = p->brw;
    struct intel_context *intel = &brw->intel;
@@ -593,15 +593,15 @@ static void brw_set_urb_message( struct brw_compile *p,
 void
 brw_set_dp_write_message(struct brw_compile *p,
 			 struct brw_instruction *insn,
-			 GLuint binding_table_index,
-			 GLuint msg_control,
-			 GLuint msg_type,
-			 GLuint msg_length,
+			 unsigned binding_table_index,
+			 unsigned msg_control,
+			 unsigned msg_type,
+			 unsigned msg_length,
 			 bool header_present,
-			 GLuint last_render_target,
-			 GLuint response_length,
-			 GLuint end_of_thread,
-			 GLuint send_commit_msg)
+			 unsigned last_render_target,
+			 unsigned response_length,
+			 unsigned end_of_thread,
+			 unsigned send_commit_msg)
 {
    struct brw_context *brw = p->brw;
    struct intel_context *intel = &brw->intel;
@@ -652,13 +652,13 @@ brw_set_dp_write_message(struct brw_compile *p,
 void
 brw_set_dp_read_message(struct brw_compile *p,
 			struct brw_instruction *insn,
-			GLuint binding_table_index,
-			GLuint msg_control,
-			GLuint msg_type,
-			GLuint target_cache,
-			GLuint msg_length,
+			unsigned binding_table_index,
+			unsigned msg_control,
+			unsigned msg_type,
+			unsigned target_cache,
+			unsigned msg_length,
                         bool header_present,
-			GLuint response_length)
+			unsigned response_length)
 {
    struct brw_context *brw = p->brw;
    struct intel_context *intel = &brw->intel;
@@ -708,14 +708,14 @@ brw_set_dp_read_message(struct brw_compile *p,
 void
 brw_set_sampler_message(struct brw_compile *p,
                         struct brw_instruction *insn,
-                        GLuint binding_table_index,
-                        GLuint sampler,
-                        GLuint msg_type,
-                        GLuint response_length,
-                        GLuint msg_length,
-                        GLuint header_present,
-                        GLuint simd_mode,
-                        GLuint return_format)
+                        unsigned binding_table_index,
+                        unsigned sampler,
+                        unsigned msg_type,
+                        unsigned response_length,
+                        unsigned msg_length,
+                        unsigned header_present,
+                        unsigned simd_mode,
+                        unsigned return_format)
 {
    struct brw_context *brw = p->brw;
    struct intel_context *intel = &brw->intel;
@@ -748,7 +748,7 @@ brw_set_sampler_message(struct brw_compile *p,
 
 #define next_insn brw_next_insn
 struct brw_instruction *
-brw_next_insn(struct brw_compile *p, GLuint opcode)
+brw_next_insn(struct brw_compile *p, unsigned opcode)
 {
    struct brw_instruction *insn;
 
@@ -779,7 +779,7 @@ brw_next_insn(struct brw_compile *p, GLuint opcode)
 }
 
 static struct brw_instruction *brw_alu1( struct brw_compile *p,
-					 GLuint opcode,
+					 unsigned opcode,
 					 struct brw_reg dest,
 					 struct brw_reg src )
 {
@@ -790,7 +790,7 @@ static struct brw_instruction *brw_alu1( struct brw_compile *p,
 }
 
 static struct brw_instruction *brw_alu2(struct brw_compile *p,
-					GLuint opcode,
+					unsigned opcode,
 					struct brw_reg dest,
 					struct brw_reg src0,
 					struct brw_reg src1 )
@@ -902,7 +902,7 @@ brw_set_3src_src2(struct brw_compile *p,
 }
 
 static struct brw_instruction *brw_alu3(struct brw_compile *p,
-					GLuint opcode,
+					unsigned opcode,
 					struct brw_reg dest,
 					struct brw_reg src0,
 					struct brw_reg src1,
@@ -1170,7 +1170,7 @@ get_inner_do_insn(struct brw_compile *p)
  * popped off.  If the stack is now empty, normal execution resumes.
  */
 struct brw_instruction *
-brw_IF(struct brw_compile *p, GLuint execute_size)
+brw_IF(struct brw_compile *p, unsigned execute_size)
 {
    struct intel_context *intel = &p->brw->intel;
    struct brw_instruction *insn;
@@ -1572,7 +1572,7 @@ struct brw_instruction *gen6_HALT(struct brw_compile *p)
  * For gen6, there's no more mask stack, so no need for DO.  WHILE
  * just points back to the first instruction of the loop.
  */
-struct brw_instruction *brw_DO(struct brw_compile *p, GLuint execute_size)
+struct brw_instruction *brw_DO(struct brw_compile *p, unsigned execute_size)
 {
    struct intel_context *intel = &p->brw->intel;
 
@@ -1634,7 +1634,7 @@ struct brw_instruction *brw_WHILE(struct brw_compile *p)
 {
    struct intel_context *intel = &p->brw->intel;
    struct brw_instruction *insn, *do_insn;
-   GLuint br = 1;
+   unsigned br = 1;
 
    if (intel->gen >= 5)
       br = 2;
@@ -1701,7 +1701,7 @@ void brw_land_fwd_jump(struct brw_compile *p, int jmp_insn_idx)
 {
    struct intel_context *intel = &p->brw->intel;
    struct brw_instruction *jmp_insn = &p->store[jmp_insn_idx];
-   GLuint jmpi = 1;
+   unsigned jmpi = 1;
 
    if (intel->gen >= 5)
       jmpi = 2;
@@ -1720,7 +1720,7 @@ void brw_land_fwd_jump(struct brw_compile *p, int jmp_insn_idx)
  */
 void brw_CMP(struct brw_compile *p,
 	     struct brw_reg dest,
-	     GLuint conditional,
+	     unsigned conditional,
 	     struct brw_reg src0,
 	     struct brw_reg src1)
 {
@@ -1769,11 +1769,11 @@ void brw_WAIT (struct brw_compile *p)
  */
 void brw_math( struct brw_compile *p,
 	       struct brw_reg dest,
-	       GLuint function,
-	       GLuint msg_reg_nr,
+	       unsigned function,
+	       unsigned msg_reg_nr,
 	       struct brw_reg src,
-	       GLuint data_type,
-	       GLuint precision )
+	       unsigned data_type,
+	       unsigned precision )
 {
    struct intel_context *intel = &p->brw->intel;
 
@@ -1833,7 +1833,7 @@ void brw_math( struct brw_compile *p,
  */
 void brw_math2(struct brw_compile *p,
 	       struct brw_reg dest,
-	       GLuint function,
+	       unsigned function,
 	       struct brw_reg src0,
 	       struct brw_reg src1)
 {
@@ -1893,7 +1893,7 @@ void brw_math2(struct brw_compile *p,
 void brw_oword_block_write_scratch(struct brw_compile *p,
 				   struct brw_reg mrf,
 				   int num_regs,
-				   GLuint offset)
+				   unsigned offset)
 {
    struct intel_context *intel = &p->brw->intel;
    uint32_t msg_control, msg_type;
@@ -2005,7 +2005,7 @@ brw_oword_block_read_scratch(struct brw_compile *p,
 			     struct brw_reg dest,
 			     struct brw_reg mrf,
 			     int num_regs,
-			     GLuint offset)
+			     unsigned offset)
 {
    struct intel_context *intel = &p->brw->intel;
    uint32_t msg_control;
@@ -2130,18 +2130,18 @@ void brw_oword_block_read(struct brw_compile *p,
 
 void brw_fb_WRITE(struct brw_compile *p,
 		  int dispatch_width,
-                  GLuint msg_reg_nr,
+                  unsigned msg_reg_nr,
                   struct brw_reg src0,
-                  GLuint msg_control,
-                  GLuint binding_table_index,
-                  GLuint msg_length,
-                  GLuint response_length,
+                  unsigned msg_control,
+                  unsigned binding_table_index,
+                  unsigned msg_length,
+                  unsigned response_length,
                   bool eot,
                   bool header_present)
 {
    struct intel_context *intel = &p->brw->intel;
    struct brw_instruction *insn;
-   GLuint msg_type;
+   unsigned msg_type;
    struct brw_reg dest;
 
    if (dispatch_width == 16)
@@ -2192,17 +2192,17 @@ void brw_fb_WRITE(struct brw_compile *p,
  */
 void brw_SAMPLE(struct brw_compile *p,
 		struct brw_reg dest,
-		GLuint msg_reg_nr,
+		unsigned msg_reg_nr,
 		struct brw_reg src0,
-		GLuint binding_table_index,
-		GLuint sampler,
-		GLuint writemask,
-		GLuint msg_type,
-		GLuint response_length,
-		GLuint msg_length,
-		GLuint header_present,
-		GLuint simd_mode,
-		GLuint return_format)
+		unsigned binding_table_index,
+		unsigned sampler,
+		unsigned writemask,
+		unsigned msg_type,
+		unsigned response_length,
+		unsigned msg_length,
+		unsigned header_present,
+		unsigned simd_mode,
+		unsigned return_format)
 {
    struct intel_context *intel = &p->brw->intel;
    bool need_stall = 0;
@@ -2223,8 +2223,8 @@ void brw_SAMPLE(struct brw_compile *p,
     * needed.
     */
    if (writemask != BRW_WRITEMASK_XYZW) {
-      GLuint dst_offset = 0;
-      GLuint i, newmask = 0, len = 0;
+      unsigned dst_offset = 0;
+      unsigned i, newmask = 0, len = 0;
 
       for (i = 0; i < 4; i++) {
 	 if (writemask & (1<<i))
@@ -2320,16 +2320,16 @@ void brw_SAMPLE(struct brw_compile *p,
  */
 void brw_urb_WRITE(struct brw_compile *p,
 		   struct brw_reg dest,
-		   GLuint msg_reg_nr,
+		   unsigned msg_reg_nr,
 		   struct brw_reg src0,
 		   bool allocate,
 		   bool used,
-		   GLuint msg_length,
-		   GLuint response_length,
+		   unsigned msg_length,
+		   unsigned response_length,
 		   bool eot,
 		   bool writes_complete,
-		   GLuint offset,
-		   GLuint swizzle)
+		   unsigned offset,
+		   unsigned swizzle)
 {
    struct intel_context *intel = &p->brw->intel;
    struct brw_instruction *insn;
@@ -2509,10 +2509,10 @@ brw_set_uip_jip(struct brw_compile *p)
 
 void brw_ff_sync(struct brw_compile *p,
 		   struct brw_reg dest,
-		   GLuint msg_reg_nr,
+		   unsigned msg_reg_nr,
 		   struct brw_reg src0,
 		   bool allocate,
-		   GLuint response_length,
+		   unsigned response_length,
 		   bool eot)
 {
    struct intel_context *intel = &p->brw->intel;
@@ -2549,9 +2549,9 @@ void brw_ff_sync(struct brw_compile *p,
 void
 brw_svb_write(struct brw_compile *p,
               struct brw_reg dest,
-              GLuint msg_reg_nr,
+              unsigned msg_reg_nr,
               struct brw_reg src0,
-              GLuint binding_table_index,
+              unsigned binding_table_index,
               bool   send_commit_msg)
 {
    struct brw_instruction *insn;

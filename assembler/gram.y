@@ -81,7 +81,7 @@ static struct src_operand ip_src =
     .reg.dw1.bits.swizzle = BRW_SWIZZLE_NOOP,
 };
 
-static int get_type_size(GLuint type);
+static int get_type_size(unsigned type);
 static void set_instruction_opcode(struct brw_program_instruction *instr,
 				   unsigned opcode);
 static int set_instruction_dest(struct brw_program_instruction *instr,
@@ -339,7 +339,7 @@ static bool validate_src_reg(struct brw_instruction *insn,
     return true;
 }
 
-static int get_subreg_address(GLuint regfile, GLuint type, GLuint subreg, GLuint address_mode)
+static int get_subreg_address(unsigned regfile, unsigned type, unsigned subreg, unsigned address_mode)
 {
     int unit_size = 1;
 
@@ -370,7 +370,7 @@ static int get_subreg_address(GLuint regfile, GLuint type, GLuint subreg, GLuint
  *  a0.12            6                  invalid input
  *  a0.14            7                  invalid input
  */
-static int get_indirect_subreg_address(GLuint subreg)
+static int get_indirect_subreg_address(unsigned subreg)
 {
     return advanced_flag == 0 ? subreg / 2 : subreg;
 }
@@ -2744,7 +2744,7 @@ void yyerror (char *msg)
 	++errors;
 }
 
-static int get_type_size(GLuint type)
+static int get_type_size(unsigned type)
 {
     int size = 1;
 
