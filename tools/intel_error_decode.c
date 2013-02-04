@@ -365,6 +365,11 @@ read_data_file (FILE *file)
 	    matched = sscanf (line, "PCI ID: 0x%04x\n", &reg);
 	    if (matched == 0)
 		    matched = sscanf (line, " PCI ID: 0x%04x\n", &reg);
+	    if (matched == 0) {
+		    const char *pci_id_start = strstr (line, "PCI ID");
+		    if (pci_id_start)
+			    matched = sscanf (pci_id_start, "PCI ID: 0x%04x\n", &reg);
+	    }
 	    if (matched == 1) {
 		    devid = reg;
 		    printf("Detected GEN%i chipset\n",
