@@ -27,6 +27,7 @@
 #include <unistd.h>
 #include <stdarg.h>
 
+#include "brw_compat.h"
 #include "brw_context.h"
 #include "brw_defines.h"
 
@@ -400,6 +401,7 @@ static int string (FILE *file, const char *string)
     return 0;
 }
 
+static int format (FILE *f, const char *format, ...) PRINTFLIKE(2, 3);
 static int format (FILE *f, const char *format, ...)
 {
     char    buf[1024];
