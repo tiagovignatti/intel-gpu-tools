@@ -100,7 +100,7 @@ static void usage(void)
     fprintf(stderr, "usage: intel-gen4disasm [options] inputfile\n");
     fprintf(stderr, "\t-b, --binary                         C style binary output\n");
     fprintf(stderr, "\t-o, --output {outputfile}            Specify output file\n");
-    fprintf(stderr, "\t-g, --gen <4|5|6|7|8>                Specify GPU generation\n");
+    fprintf(stderr, "\t-g, --gen <4|5|6|7|8|9>              Specify GPU generation\n");
 }
 
 int main(int argc, char **argv)
@@ -127,7 +127,7 @@ int main(int argc, char **argv)
 	case 'g':
 	    gen = strtol(optarg, NULL, 10);
 
-	    if (gen < 4 || gen > 8) {
+	    if (gen < 4 || gen > 9) {
 		    usage();
 		    exit(1);
 	    }
