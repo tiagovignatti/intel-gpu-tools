@@ -122,6 +122,16 @@ AM_CONDITIONAL(BUILD_SHADER_DEBUGGER, [test "x$BUILD_SHADER_DEBUGGER" != xno])
 XORG_TESTSET_CFLAG([THREAD_CFLAGS], [-pthread], [-mt])
 AC_SUBST([THREAD_CFLAGS])
 
+AC_ARG_ENABLE(tests,
+	      AS_HELP_STRING([--disable-tests],
+	      [Disable tests build (default: enabled)]),
+	      [BUILD_TESTS=$enableval], [BUILD_TESTS="yes"])
+if test "x$BUILD_TESTS" = xyes; then
+	AC_DEFINE(BUILD_TESTS, 1, [Build tests])
+	AC_CONFIG_FILES([tests/Makefile])
+fi
+AM_CONDITIONAL(BUILD_TESTS, [test "x$BUILD_TESTS" = xyes])
+
 AC_CONFIG_FILES([
 		 Makefile
 		 benchmarks/Makefile
@@ -129,7 +139,6 @@ AC_CONFIG_FILES([
 		 lib/Makefile
 		 man/Makefile
 		 scripts/Makefile
-		 tests/Makefile
 		 tools/Makefile
 		 debugger/Makefile
 		 debugger/system_routine/Makefile

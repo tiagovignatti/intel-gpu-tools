@@ -21,10 +21,14 @@
 
 ACLOCAL_AMFLAGS = ${ACLOCAL_FLAGS}
 
-SUBDIRS = lib man tools scripts tests benchmarks demos
+SUBDIRS = lib man tools scripts benchmarks demos
 
 if BUILD_SHADER_DEBUGGER
 SUBDIRS += debugger
+endif
+
+if BUILD_TESTS
+SUBDIRS += tests
 endif
 
 test:
