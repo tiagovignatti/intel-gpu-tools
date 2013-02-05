@@ -271,6 +271,14 @@ static inline int exec_size(struct brw_program_instruction *insn)
 	return GEN(insn)->header.execution_size;
 }
 
+static void set_execsize(struct brw_program_instruction *insn, int execsize)
+{
+    if (IS_GENp(8))
+	gen8_set_exec_size(GEN8(insn), execsize);
+    else
+	GEN(insn)->header.execution_size = execsize;
+}
+
 static bool validate_dst_reg(struct brw_program_instruction *insn, struct brw_reg *reg)
 {
 
@@ -797,7 +805,7 @@ ifelseinstruction: ENDIF
 		    error(&@1, "ENDIF Syntax error: should be 'ENDIF'\n");
 		  memset(&$$, 0, sizeof($$));
 		  set_instruction_opcode(&$$, $1);
-		  GEN(&$$)->header.execution_size = $2;
+		  set_execsize(&$$, $2);
 		  $$.reloc.first_reloc_target = $3.reloc_target;
 		  $$.reloc.first_reloc_offset = $3.imm32;
 		}
@@ -820,7 +828,7 @@ ifelseinstruction: ENDIF
 		  } else if(IS_GENp(6)) {
 		    memset(&$$, 0, sizeof($$));
 		    set_instruction_opcode(&$$, $1);
-		    GEN(&$$)->header.execution_size = $2;
+		    set_execsize(&$$, $2);
 		    $$.reloc.first_reloc_target = $3.reloc_target;
 		    $$.reloc.first_reloc_offset = $3.imm32;
 		  } else {
@@ -859,7 +867,7 @@ ifelseinstruction: ENDIF
 		  memset(&$$, 0, sizeof($$));
 		  set_instruction_predicate(&$$, &$1);
 		  set_instruction_opcode(&$$, $2);
-		  GEN(&$$)->header.execution_size = $3;
+		  set_execsize(&$$, $3);
 		  $$.reloc.first_reloc_target = $4.reloc_target;
 		  $$.reloc.first_reloc_offset = $4.imm32;
 		  $$.reloc.second_reloc_target = $5.reloc_target;
@@ -892,7 +900,7 @@ loopinstruction: predicate WHILE execsize relativelocation instoptions
 		    memset(&$$, 0, sizeof($$));
 		    set_instruction_predicate(&$$, &$1);
 		    set_instruction_opcode(&$$, $2);
-		    GEN(&$$)->header.execution_size = $3;
+		    set_execsize(&$$, $3);
 		    $$.reloc.first_reloc_target = $4.reloc_target;
 		    $$.reloc.first_reloc_offset = $4.imm32;
 		  } else {
@@ -1430,7 +1438,7 @@ breakinstruction: predicate breakop execsize relativelocation relativelocation i
 		  memset(&$$, 0, sizeof($$));
 		  set_instruction_predicate(&$$, &$1);
 		  set_instruction_opcode(&$$, $2);
-		  GEN(&$$)->header.execution_size = $3;
+		  set_execsize(&$$, $3);
 		  $$.reloc.first_reloc_target = $4.reloc_target;
 		  $$.reloc.first_reloc_offset = $4.imm32;
 		  $$.reloc.second_reloc_target = $5.reloc_target;
