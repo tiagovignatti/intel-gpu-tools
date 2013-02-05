@@ -57,7 +57,7 @@ struct local_drm_i915_gem_context_destroy {
 };
 
 #define CONTEXT_CREATE_IOCTL DRM_IOWR(DRM_COMMAND_BASE + 0x2d, struct local_drm_i915_gem_context_create)
-#define CONTEXT_DESTROY_IOCTL DRM_IOWR(DRM_COMMAND_BASE + 0x23, struct local_drm_i915_gem_context_destroy)
+#define CONTEXT_DESTROY_IOCTL DRM_IOWR(DRM_COMMAND_BASE + 0x2e, struct local_drm_i915_gem_context_destroy)
 
 static uint32_t context_create(int fd)
 {
@@ -134,6 +134,8 @@ int main(int argc, char *argv[])
 	ctx_id = context_create(fd);
 	assert(exec(fd, handle, I915_EXEC_RENDER, ctx_id) == 0);
 	context_destroy(fd, ctx_id);
+
+	assert(exec(fd, handle, I915_EXEC_RENDER, ctx_id) < 0);
 
 	exit(EXIT_SUCCESS);
 }
