@@ -70,10 +70,10 @@ int main(int argc, char **argv)
 				break;
 		} else {
 			int offset;
-			if (IS_G4X(devid) || IS_GEN5(devid))
-				offset = MB(2);
-			else
+			if (IS_GEN4(devid))
 				offset = KB(512);
+			else
+				offset = MB(2);
 			if (pci_device_map_range(pci_dev,
 						 pci_dev->regions[0].base_addr + offset,
 						 offset,
