@@ -128,7 +128,6 @@ AC_ARG_ENABLE(tests,
 	      [BUILD_TESTS=$enableval], [BUILD_TESTS="yes"])
 if test "x$BUILD_TESTS" = xyes; then
 	AC_DEFINE(BUILD_TESTS, 1, [Build tests])
-	AC_CONFIG_FILES([tests/Makefile])
 fi
 AM_CONDITIONAL(BUILD_TESTS, [test "x$BUILD_TESTS" = xyes])
 
@@ -139,6 +138,7 @@ AC_CONFIG_FILES([
 		 lib/Makefile
 		 man/Makefile
 		 scripts/Makefile
+		 tests/Makefile
 		 tools/Makefile
 		 debugger/Makefile
 		 debugger/system_routine/Makefile

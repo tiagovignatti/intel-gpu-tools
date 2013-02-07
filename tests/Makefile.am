@@ -1,3 +1,4 @@
+if BUILD_TESTS
 noinst_PROGRAMS = \
 	gem_stress \
 	$(TESTS_progs) \
@@ -195,3 +196,4 @@ prime_nv_api_CFLAGS = $(AM_CFLAGS) $(DRM_NOUVEAU_CFLAGS)
 prime_nv_api_LDADD = $(LDADD) $(DRM_NOUVEAU_LIBS)
 prime_nv_pcopy_CFLAGS = $(AM_CFLAGS) $(DRM_NOUVEAU_CFLAGS)
 prime_nv_pcopy_LDADD = $(LDADD) $(DRM_NOUVEAU_LIBS)
+endif
