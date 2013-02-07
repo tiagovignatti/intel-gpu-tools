@@ -1,4 +1,6 @@
+if HAVE_DUMPER
 SUBDIRS = quick_dump
+endif
 
 bin_PROGRAMS = 				\
 	intel_disable_clock_gating 	\

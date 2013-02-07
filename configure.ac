@@ -50,11 +50,6 @@ AC_CHECK_FUNCS([asprintf])
 AC_DISABLE_STATIC
 AC_PROG_LIBTOOL
 
-# SWIG configuration
-AX_PKG_SWIG(2.0.0, [], [ AC_MSG_ERROR([SWIG 2.0.0 or higher is required to build..]) ])
-AX_PYTHON_DEVEL([>= '3.0'])
-AX_SWIG_PYTHON
-
 # Require X.Org macros 1.16 or later for XORG_TESTSET_CFLAG
 m4_ifndef([XORG_MACROS_VERSION],
 	  [m4_fatal([must install xorg-macros 1.16 or later before running autoconf/autogen])])
@@ -84,6 +79,20 @@ if test "x$NOUVEAU" = xyes; then
 	AC_DEFINE(HAVE_NOUVEAU, 1, [Have nouveau support])
 fi
 AM_CONDITIONAL(HAVE_NOUVEAU, [test "x$NOUVEAU" = xyes])
+
+#Configure options for the python quick-dumper
+AC_ARG_ENABLE(dumper,
+	      AS_HELP_STRING([--disable-dumper],
+			     [Disable the python based register dumper (default: enabled)]),
+			     DUMPER=$enableval], [DUMPER=yes])
+if test "x$DUMPER" == xyes; then
+	AC_DEFINE(HAVE_DUMPER, 1, [Have dumper support])
+	# SWIG configuration
+	AX_PKG_SWIG(2.0.0, [], [ AC_MSG_ERROR([SWIG 2.0.0 or higher is required to build..]) ])
+	AX_PYTHON_DEVEL([>= '3.0'])
+	AX_SWIG_PYTHON
+fi
+AM_CONDITIONAL(HAVE_DUMPER, [test "x$DUMPER" = xyes])
 
 # Define a configure option for the shadder debugger
 AC_ARG_ENABLE(shader-debugger, AS_HELP_STRING([--enable-shader-debugger],
