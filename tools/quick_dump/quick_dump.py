@@ -24,6 +24,9 @@ args = parser.parse_args()
 if reg.init() == False:
 	sys.exit()
 
+# Put us where the script is
+os.chdir(os.path.dirname(sys.argv[0]))
+
 #parse anything named base_ these are assumed to apply for all gens.
 if args.baseless == False:
 	for root, dirs, files in os.walk('.'):
