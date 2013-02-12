@@ -189,6 +189,10 @@ int main(int argc, char **argv)
 		count = atoi(argv[1]);
 	if (count == 0)
 		count = 3 * gem_aperture_size(fd) / (1024*1024) / 2;
+	else if (count < 2) {
+		fprintf(stderr, "count must be >= 2\n");
+		return 1;
+	}
 
 	if (count > intel_get_total_ram_mb() * 9 / 10) {
 		count = intel_get_total_ram_mb() * 9 / 10;

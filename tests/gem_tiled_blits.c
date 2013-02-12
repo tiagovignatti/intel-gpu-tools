@@ -132,6 +132,9 @@ int main(int argc, char **argv)
 	if (count == 0) {
 		count = 3 * gem_aperture_size(fd) / (1024*1024) / 2;
 		count += (count & 1) == 0;
+	} else if (count < 2) {
+		fprintf(stderr, "count must be >= 2\n");
+		return 1;
 	}
 
 	if (count > intel_get_total_ram_mb() * 9 / 10) {

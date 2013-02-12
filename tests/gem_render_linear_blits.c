@@ -85,6 +85,11 @@ int main(int argc, char **argv)
 		count = atoi(argv[1]);
 	if (count == 0)
 		count = 3 * gem_aperture_size(fd) / SIZE / 2;
+	else if (count < 2) {
+		fprintf(stderr, "count must be >= 2\n");
+		return 1;
+	}
+
 	printf("Using %d 1MiB buffers\n", count);
 
 	bo = malloc(sizeof(*bo)*count);
