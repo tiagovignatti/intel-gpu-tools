@@ -72,7 +72,7 @@ int dump_info = 0, test_all_modes =0, test_preferred_mode = 0, force_mode = 0,
 int sleep_between_modes = 5;
 uint32_t depth = 24, stride, bpp;
 int qr_code = 0;
-int only_one_mode = 0, specified_mode_num = 0, specified_disp_id = 0;
+int specified_mode_num = -1, specified_disp_id = -1;
 
 drmModeModeInfo force_timing;
 
@@ -278,7 +278,7 @@ static void connector_find_preferred_mode(struct connector *c)
 		}
 	}
 
-	if ( only_one_mode ){
+	if ( specified_mode_num != -1 ){
 		c->mode = connector->modes[specified_mode_num];
 		if (c->mode.type & DRM_MODE_TYPE_PREFERRED)
 			c->mode_valid = 1;
@@ -327,7 +327,7 @@ static void connector_find_preferred_mode(struct connector *c)
 	c->crtc = resources->crtcs[i];
 	c->pipe = i;
 
-	if(test_preferred_mode || force_mode || only_one_mode)
+	if(test_preferred_mode || force_mode || specified_mode_num != -1)
 		resources->crtcs[i] = 0;
 
 	c->connector = connector;
@@ -594,11 +594,11 @@ int update_display(void)
 		dump_crtcs_fd(drm_fd);
 	}
 
-	if (test_preferred_mode || test_all_modes || force_mode || only_one_mode) {
+	if (test_preferred_mode || test_all_modes || force_mode || specified_disp_id != -1) {
 		/* Find any connected displays */
 		for (c = 0; c < resources->count_connectors; c++) {
 			connectors[c].id = resources->connectors[c];
-			if ( only_one_mode == 1 && connectors[c].id != specified_disp_id )
+			if ( specified_disp_id != -1 && connectors[c].id != specified_disp_id )
 				continue;
 
 			set_mode(&connectors[c]);
@@ -717,7 +717,6 @@ int main(int argc, char **argv)
 			qr_code = 1;
 			break;
 		case 'o':
-			only_one_mode = 1;
 			sscanf(optarg, "%d,%d", &specified_disp_id, &specified_mode_num);
 			break;
 		default:
@@ -729,7 +728,7 @@ int main(int argc, char **argv)
 		}
 	}
 	if (!test_all_modes && !force_mode && !dump_info &&
-	    !test_preferred_mode && !only_one_mode)
+	    !test_preferred_mode && specified_mode_num == -1)
 		test_all_modes = 1;
 
 	drm_fd = drm_open_any();
