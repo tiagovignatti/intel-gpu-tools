@@ -1,5 +1,5 @@
 /*
- * Copyright © 2007, 2011 Intel Corporation
+ * Copyright © 2007, 2011, 2013 Intel Corporation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -37,6 +37,7 @@
 #include <pciaccess.h>
 #include <math.h>
 #include <getopt.h>
+#include <stdlib.h>
 
 #include "drmtest.h"
 #include "i915_drm.h"
@@ -571,6 +572,25 @@ bool drmtest_run_subtest(const char *subtest_name)
 bool drmtest_only_list_subtests(void)
 {
 	return list_subtests;
+}
+
+bool drmtest_run_quick(void)
+{
+	static int run_quick = -1;
+
+	if (run_quick == -1) {
+		char *igt_quick;
+
+		igt_quick = getenv("IGT_QUICK");
+		if (!igt_quick) {
+			run_quick = 0;
+			goto out;
+		}
+
+		run_quick = atoi(igt_quick);
+	}
+out:
+	return run_quick;
 }
 
 /* other helpers */
