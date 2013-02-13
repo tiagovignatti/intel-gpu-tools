@@ -63,7 +63,7 @@ store_dword_loop(int divider)
 	if (!has_ppgtt)
 		cmd |= MI_MEM_VIRTUAL;
 
-	for (i = 0; i < 0x100000; i++) {
+	for (i = 0; i < SLOW_QUICK(0x100000, 0x10); i++) {
 		BEGIN_BATCH(4);
 		OUT_BATCH(cmd);
 		OUT_BATCH(0); /* reserved */

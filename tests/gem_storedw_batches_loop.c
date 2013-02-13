@@ -60,7 +60,7 @@ store_dword_loop(int divider)
 	if (!has_ppgtt)
 		cmd |= MI_MEM_VIRTUAL;
 
-	for (i = 0; i < 0x80000; i++) {
+	for (i = 0; i < SLOW_QUICK(0x80000, 0x10); i++) {
 		cmd_bo = drm_intel_bo_alloc(bufmgr, "cmd bo", 4096, 4096);
 		if (!cmd_bo) {
 			fprintf(stderr, "failed to alloc cmd bo\n");
