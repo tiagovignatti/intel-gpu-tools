@@ -157,10 +157,28 @@ init_gen7_instdone(void)
 	gen6_instdone1_bit(1 << 1, "VF");
 }
 
+static void
+init_gen75_instdone(void)
+{
+	gen6_instdone1_bit(1 << 21, "CS");
+	gen6_instdone1_bit(1 << 20, "RS");
+	init_gen7_instdone();
+}
+
+static void
+init_gen8_instdone(void)
+{
+	gen6_instdone1_bit(1 << 23, "FBC");
+	gen6_instdone1_bit(1 << 22, "SDE");
+	init_gen75_instdone();
+}
+
 void
 init_instdone_definitions(uint32_t devid)
 {
-	if (IS_GEN7(devid)) {
+	if (IS_GEN8(devid)) {
+		init_gen8_instdone();
+	} else if (IS_GEN7(devid)) {
 		init_gen7_instdone();
 	} else if (IS_GEN6(devid)) {
 		/* Now called INSTDONE_1 in the docs. */
