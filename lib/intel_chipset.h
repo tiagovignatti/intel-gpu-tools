@@ -324,7 +324,8 @@
 				 IS_GEN4(devid) || \
 				 IS_GEN5(devid) || \
 				 IS_GEN6(devid) || \
-				 IS_GEN7(devid))
+				 IS_GEN7(devid) || \
+				 IS_GEN8(devid))
 
 #define IS_INTEL(devid)		(IS_GEN2(devid) || \
 				 IS_GEN3(devid) || \
