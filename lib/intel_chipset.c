@@ -172,6 +172,8 @@ int intel_gen(uint32_t devid)
 		return 7;
 	if (IS_GEN8(devid))
 		return 8;
+	if (IS_GEN9(devid))
+		return 9;
 
 	return -1;
 }
