@@ -59,6 +59,7 @@
 #define TEST_FB_RECREATE	(1 << 12)
 #define TEST_RMFB		(1 << 13)
 #define TEST_HANG		(1 << 14)
+#define TEST_NOEVENT		(1 << 15)
 
 #define EVENT_FLIP		(1 << 0)
 #define EVENT_VBLANK		(1 << 1)
@@ -647,7 +648,7 @@ static unsigned int run_test_step(struct test_output *o)
 	}
 
 	if (do_flip)
-		do_or_die(do_page_flip(o, new_fb_id, !(o->flags & TEST_HANG)));
+		do_or_die(do_page_flip(o, new_fb_id, !(o->flags & TEST_NOEVENT)));
 
 	if (do_vblank) {
 		do_or_die(do_wait_for_vblank(o, o->pipe, target_seq,
@@ -1007,7 +1008,7 @@ static void run_test_on_crtc(struct test_output *o, int crtc, int duration)
 
 	ellapsed = event_loop(o, duration);
 
-	if (o->flags & TEST_FLIP && !(o->flags & TEST_HANG))
+	if (o->flags & TEST_FLIP && !(o->flags & TEST_NOEVENT))
 		check_final_state(o, &o->flip_state, ellapsed);
 	if (o->flags & TEST_VBLANK)
 		check_final_state(o, &o->vblank_state, ellapsed);
@@ -1110,7 +1111,7 @@ int main(int argc, char **argv)
 					"flip-vs-wf_vblank" },
 		{ 15, TEST_FLIP | TEST_VBLANK | TEST_VBLANK_BLOCK |
 			TEST_CHECK_TS, "flip-vs-blocking-wf-vblank" },
-		{ 15, TEST_FLIP | TEST_MODESET | TEST_HANG , "flip-vs-modeset-vs-hang" },
+		{ 15, TEST_FLIP | TEST_MODESET | TEST_HANG | TEST_NOEVENT, "flip-vs-modeset-vs-hang" },
 	};
 	int i;
 
