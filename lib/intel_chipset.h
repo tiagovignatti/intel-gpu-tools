@@ -25,6 +25,9 @@
  *
  */
 
+#ifndef _INTEL_CHIPSET_H
+#define _INTEL_CHIPSET_H
+
 #define PCI_CHIP_I810			0x7121
 #define PCI_CHIP_I810_DC100		0x7123
 #define PCI_CHIP_I810_E			0x7125
@@ -274,3 +277,5 @@
 
 #define IS_CRESTLINE(devid)	((devid) == PCI_CHIP_I965_GM || \
 				 (devid) == PCI_CHIP_I965_GME)
+
+#endif /* _INTEL_CHIPSET_H */
