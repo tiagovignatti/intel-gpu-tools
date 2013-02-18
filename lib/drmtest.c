@@ -574,22 +574,24 @@ bool drmtest_only_list_subtests(void)
 	return list_subtests;
 }
 
+static bool env_set(const char *env_var)
+{
+	char *val;
+
+	val = getenv(env_var);
+	if (!val)
+		return false;
+
+	return atoi(val) != 0;
+}
+
 bool drmtest_run_quick(void)
 {
 	static int run_quick = -1;
 
-	if (run_quick == -1) {
-		char *igt_quick;
+	if (run_quick == -1)
+		run_quick = env_set("IGT_QUICK");
 
-		igt_quick = getenv("IGT_QUICK");
-		if (!igt_quick) {
-			run_quick = 0;
-			goto out;
-		}
-
-		run_quick = atoi(igt_quick);
-	}
-out:
 	return run_quick;
 }
 
