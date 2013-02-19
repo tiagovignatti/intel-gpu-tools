@@ -26,6 +26,7 @@ EXTRA_DIST =  \
 	      gen6_other.txt sandybridge \
 	      gen7_other.txt ivybridge \
 	      vlv_display.txt vlv_dpio.txt valleyview \
+	      gen8_interrupt.txt \
 	      quick_dump.py \
 	      reg_access.py \
 	      chipset.i chipset.py
