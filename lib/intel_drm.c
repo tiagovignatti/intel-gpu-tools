@@ -54,12 +54,18 @@ intel_get_drm_devid(int fd)
 	int ret;
 	struct drm_i915_getparam gp;
 	uint32_t devid;
+	char *override;
 
-	gp.param = I915_PARAM_CHIPSET_ID;
-	gp.value = (int *)&devid;
+	override = getenv("INTEL_DEVID_OVERRIDE");
+	if (override) {
+		devid = strtod(override, NULL);
+	} else {
+		gp.param = I915_PARAM_CHIPSET_ID;
+		gp.value = (int *)&devid;
 
-	ret = ioctl(fd, DRM_IOCTL_I915_GETPARAM, &gp, sizeof(gp));
-	assert(ret == 0);
+		ret = ioctl(fd, DRM_IOCTL_I915_GETPARAM, &gp, sizeof(gp));
+		assert(ret == 0);
+	}
 
 	return devid;
 }
