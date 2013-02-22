@@ -26,6 +26,7 @@ parser.add_argument('profile', nargs='?', type=argparse.FileType('r'), default=N
 args = parser.parse_args()
 
 if reg.init() == False:
+	print("Register initialization failed")
 	sys.exit()
 
 # Put us where the script is
