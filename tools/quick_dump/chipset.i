@@ -10,6 +10,7 @@ extern int is_valleyview(unsigned short pciid);
 extern struct pci_device *intel_get_pci_device();
 extern int intel_register_access_init(struct pci_device *pci_dev, int safe);
 extern uint32_t intel_register_read(uint32_t reg);
+extern uint32_t intel_register_write(uint32_t reg, uint32_t val);
 extern void intel_register_access_fini();
 extern unsigned short pcidev_to_devid(struct pci_device *pci_dev);
 %}
@@ -20,5 +21,6 @@ extern int is_valleyview(unsigned short pciid);
 extern struct pci_device *intel_get_pci_device();
 extern int intel_register_access_init(struct pci_device *pci_dev, int safe);
 extern uint32_t intel_register_read(uint32_t reg);
+extern uint32_t intel_register_write(uint32_t reg, uint32_t val);
 extern void intel_register_access_fini();
 extern unsigned short pcidev_to_devid(struct pci_device *pci_dev);

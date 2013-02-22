@@ -6,6 +6,9 @@ def read(reg):
 	val = chipset.intel_register_read(reg)
 	return val
 
+def write(reg, val):
+	chipset.intel_register_write(reg, val)
+
 def init():
 	pci_dev = chipset.intel_get_pci_device()
 	ret = chipset.intel_register_access_init(pci_dev, 0)
