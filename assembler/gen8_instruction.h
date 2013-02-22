@@ -199,6 +199,15 @@ F(dp_message_control,     109, 104)
 F(dp_binding_table_index, 103,  96)
 /** @} */
 
+/**
+ * Thread Spawn message function control bits:
+ *  @ {
+ */
+F(ts_resource_select,     100, 100)
+F(ts_request_type,         97,  97)
+F(ts_opcode,               96,  96)
+/** @} */
+
 #undef F
 
 /**

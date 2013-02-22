@@ -1749,21 +1749,29 @@ msgtarget:	NULL_TOKEN
 		| THREAD_SPAWNER  LPAREN INTEGER COMMA INTEGER COMMA
                         INTEGER RPAREN
 		{
-		  GEN(&$$)->bits3.generic.msg_target =
-		    BRW_SFID_THREAD_SPAWNER;
-		  if (IS_GENp(5)) {
-                      GEN(&$$)->bits2.send_gen5.sfid =
-                          BRW_SFID_THREAD_SPAWNER;
-                      GEN(&$$)->bits3.generic_gen5.header_present = 0;
-                      GEN(&$$)->bits3.thread_spawner_gen5.opcode = $3;
-                      GEN(&$$)->bits3.thread_spawner_gen5.requester_type  = $5;
-                      GEN(&$$)->bits3.thread_spawner_gen5.resource_select = $7;
+		  if (IS_GENp(8)) {
+                      gen8_set_sfid(GEN8(&$$), BRW_SFID_THREAD_SPAWNER);
+                      gen8_set_header_present(GEN8(&$$), 0); /* Must be 0 */
+                      gen8_set_ts_opcode(GEN8(&$$), $3);
+                      gen8_set_ts_request_type(GEN8(&$$), $5);
+                      gen8_set_ts_resource_select(GEN8(&$$), $7);
 		  } else {
                       GEN(&$$)->bits3.generic.msg_target =
                           BRW_SFID_THREAD_SPAWNER;
-                      GEN(&$$)->bits3.thread_spawner.opcode = $3;
-                      GEN(&$$)->bits3.thread_spawner.requester_type  = $5;
-                      GEN(&$$)->bits3.thread_spawner.resource_select = $7;
+                      if (IS_GENp(5)) {
+                          GEN(&$$)->bits2.send_gen5.sfid =
+                              BRW_SFID_THREAD_SPAWNER;
+                          GEN(&$$)->bits3.generic_gen5.header_present = 0;
+                          GEN(&$$)->bits3.thread_spawner_gen5.opcode = $3;
+                          GEN(&$$)->bits3.thread_spawner_gen5.requester_type  = $5;
+                          GEN(&$$)->bits3.thread_spawner_gen5.resource_select = $7;
+                      } else {
+                          GEN(&$$)->bits3.generic.msg_target =
+                              BRW_SFID_THREAD_SPAWNER;
+                          GEN(&$$)->bits3.thread_spawner.opcode = $3;
+                          GEN(&$$)->bits3.thread_spawner.requester_type  = $5;
+                          GEN(&$$)->bits3.thread_spawner.resource_select = $7;
+                      }
 		  }
 		}
 		| VME  LPAREN INTEGER COMMA INTEGER COMMA INTEGER COMMA INTEGER RPAREN
