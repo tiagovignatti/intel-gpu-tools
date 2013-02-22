@@ -940,7 +940,10 @@ multibranchinstruction:
 		  memset(&$$, 0, sizeof($$));
 		  set_instruction_predicate(&$$, &$1);
 		  set_instruction_opcode(&$$, $2);
-		  GEN(&$$)->header.thread_control |= BRW_THREAD_SWITCH;
+		  if (IS_GENp(8))
+                      gen8_set_thread_control(GEN8(&$$), gen8_thread_control(GEN8(&$$)) | BRW_THREAD_SWITCH);
+		  else
+                      GEN(&$$)->header.thread_control |= BRW_THREAD_SWITCH;
 		  $$.reloc.first_reloc_target = $4.reloc_target;
 		  $$.reloc.first_reloc_offset = $4.imm32;
 		  dst_null_reg.width = $3;
@@ -952,7 +955,10 @@ multibranchinstruction:
 		  memset(&$$, 0, sizeof($$));
 		  set_instruction_predicate(&$$, &$1);
 		  set_instruction_opcode(&$$, $2);
-		  GEN(&$$)->header.thread_control |= BRW_THREAD_SWITCH;
+		  if (IS_GENp(8))
+                      gen8_set_thread_control(GEN8(&$$), gen8_thread_control(GEN8(&$$)) | BRW_THREAD_SWITCH);
+		  else
+                      GEN(&$$)->header.thread_control |= BRW_THREAD_SWITCH;
 		  $$.reloc.first_reloc_target = $4.reloc_target;
 		  $$.reloc.first_reloc_offset = $4.imm32;
 		  $$.reloc.second_reloc_target = $5.reloc_target;
