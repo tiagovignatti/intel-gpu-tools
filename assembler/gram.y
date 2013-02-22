@@ -1274,7 +1274,6 @@ sendinstruction: predicate sendop execsize exp post_dst payload msgtarget
 
 		  memset(&$$, 0, sizeof($$));
 		  set_instruction_opcode(&$$, $2);
-                  GEN(&$$)->header.destreg__conditionalmod = ($6 & EX_DESC_SFID_MASK); /* SFID */
 		  set_instruction_predicate(&$$, &$1);
 
 		  $4.width = $3;
@@ -1297,7 +1296,13 @@ sendinstruction: predicate sendop execsize exp post_dst payload msgtarget
                   set_instruction_src0(&$$, &src0, NULL);
 		  set_instruction_src1(&$$, &$7, NULL);
 
-                  GEN(&$$)->bits3.generic_gen5.end_of_thread = !!($6 & EX_DESC_EOT_MASK);
+                  if (IS_GENp(8)) {
+                      gen8_set_sfid(GEN8(&$$), $6 & EX_DESC_SFID_MASK);
+                      gen8_set_eot(GEN8(&$$), !!($6 & EX_DESC_EOT_MASK));
+		  } else {
+                      GEN(&$$)->header.destreg__conditionalmod = ($6 & EX_DESC_SFID_MASK); /* SFID */
+                      GEN(&$$)->bits3.generic_gen5.end_of_thread = !!($6 & EX_DESC_EOT_MASK);
+                  }
 		}
 		| predicate sendop execsize dst sendleadreg sndopr directsrcoperand instoptions
 		{
@@ -1315,7 +1320,6 @@ sendinstruction: predicate sendop execsize exp post_dst payload msgtarget
 
 		  memset(&$$, 0, sizeof($$));
 		  set_instruction_opcode(&$$, $2);
-                  GEN(&$$)->header.destreg__conditionalmod = ($6 & EX_DESC_SFID_MASK); /* SFID */
 		  set_instruction_predicate(&$$, &$1);
 
 		  $4.width = $3;
@@ -1338,7 +1342,14 @@ sendinstruction: predicate sendop execsize exp post_dst payload msgtarget
                   set_instruction_src0(&$$, &src0, NULL);
 
                   set_instruction_src1(&$$, &$7, &@7);
-                  GEN(&$$)->bits3.generic_gen5.end_of_thread = !!($6 & EX_DESC_EOT_MASK);
+
+                  if (IS_GENp(8)) {
+                      gen8_set_sfid(GEN8(&$$), $6 & EX_DESC_SFID_MASK);
+                      gen8_set_eot(GEN8(&$$), !!($6 & EX_DESC_EOT_MASK));
+		  } else {
+                      GEN(&$$)->header.destreg__conditionalmod = ($6 & EX_DESC_SFID_MASK); /* SFID */
+                      GEN(&$$)->bits3.generic_gen5.end_of_thread = !!($6 & EX_DESC_EOT_MASK);
+                  }
 		}
 		| predicate sendop execsize dst sendleadreg payload sndopr imm32reg instoptions
 		{
