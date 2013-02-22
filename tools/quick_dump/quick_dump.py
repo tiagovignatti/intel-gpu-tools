@@ -9,10 +9,14 @@ import chipset
 import reg_access as reg
 
 def parse_file(file):
+	print('{0:^10s} | {1:^28s} | {2:^10s}'. format('offset', file.name, 'value'))
+	print('-' * 54)
 	for line in file:
 		register = ast.literal_eval(line)
 		val = reg.read(register[1])
-		print(register[1], "(", register[0], ")", hex(val))
+		intreg = int(register[1], 16)
+		print('{0:#010x} | {1:<28} | {2:#010x}'.format(intreg, register[0], val))
+	print('')
 
 
 parser = argparse.ArgumentParser(description='Dumb register dumper.')
