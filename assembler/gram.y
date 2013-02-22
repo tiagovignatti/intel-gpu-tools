@@ -1419,7 +1419,12 @@ mathinstruction: predicate MATH_INST execsize dst src srcimm math_function insto
 		{
 		  memset(&$$, 0, sizeof($$));
 		  set_instruction_opcode(&$$, $2);
-		  GEN(&$$)->header.destreg__conditionalmod = $7;
+
+		  if (IS_GENp(8))
+                      gen8_set_math_function(GEN8(&$$), $7);
+		  else
+                      GEN(&$$)->header.destreg__conditionalmod = $7;
+
 		  set_instruction_options(&$$, $8);
 		  set_instruction_predicate(&$$, &$1);
 		  $4.width = $3;
