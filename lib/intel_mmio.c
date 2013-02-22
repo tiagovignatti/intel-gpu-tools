@@ -230,6 +230,12 @@ intel_register_access_fini(void)
 	mmio_data.inited--;
 }
 
+int
+intel_register_access_needs_wake(void)
+{
+	return mmio_data.key == FAKEKEY;
+}
+
 uint32_t
 intel_register_read(uint32_t reg)
 {
