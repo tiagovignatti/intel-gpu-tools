@@ -1403,8 +1403,12 @@ jumpinstruction: predicate JMPI execsize relativelocation2
 		   */
 		  memset(&$$, 0, sizeof($$));
 		  set_instruction_opcode(&$$, $2);
-		  if(advanced_flag)
-			GEN(&$$)->header.mask_control = BRW_MASK_DISABLE;
+		  if(advanced_flag) {
+                      if (IS_GENp(8))
+                          gen8_set_mask_control(GEN8(&$$), BRW_MASK_DISABLE);
+                      else
+                          GEN(&$$)->header.mask_control = BRW_MASK_DISABLE;
+		  }
 		  set_instruction_predicate(&$$, &$1);
 		  ip_dst.width = BRW_WIDTH_1;
 		  set_instruction_dest(&$$, &ip_dst);
