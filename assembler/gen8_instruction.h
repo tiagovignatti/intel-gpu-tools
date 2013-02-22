@@ -208,6 +208,14 @@ F(ts_request_type,         97,  97)
 F(ts_opcode,               96,  96)
 /** @} */
 
+/**
+ * Video Motion Estimation message function control bits:
+ *  @ {
+ */
+F(vme_message_type,        110, 109)
+F(vme_binding_table_index, 103,  96)
+/** @} */
+
 #undef F
 
 /**

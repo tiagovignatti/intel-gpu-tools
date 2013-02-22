@@ -1778,7 +1778,12 @@ msgtarget:	NULL_TOKEN
 		{
 		  GEN(&$$)->bits3.generic.msg_target = GEN6_SFID_VME;
 
-		  if (IS_GENp(6)) { 
+		  if (IS_GENp(8)) {
+                      gen8_set_sfid(GEN8(&$$), GEN6_SFID_VME);
+                      gen8_set_header_present(GEN8(&$$), 1); /* Must be 1 */
+                      gen8_set_vme_binding_table_index(GEN8(&$$), $3);
+                      gen8_set_vme_message_type(GEN8(&$$), $9);
+		  } else if (IS_GENp(6)) {
                       GEN(&$$)->bits2.send_gen5.sfid = GEN6_SFID_VME;
                       GEN(&$$)->bits3.vme_gen6.binding_table_index = $3;
                       GEN(&$$)->bits3.vme_gen6.search_path_index = $5;
