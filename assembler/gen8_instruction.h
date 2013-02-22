@@ -216,6 +216,14 @@ F(vme_message_type,        110, 109)
 F(vme_binding_table_index, 103,  96)
 /** @} */
 
+/**
+ * Check & Refinement Engine message function control bits:
+ *  @ {
+ */
+F(cre_message_type,        110, 109)
+F(cre_binding_table_index, 103,  96)
+/** @} */
+
 #undef F
 
 /**

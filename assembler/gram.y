@@ -1796,15 +1796,22 @@ msgtarget:	NULL_TOKEN
 		} 
 		| CRE LPAREN INTEGER COMMA INTEGER RPAREN
 		{
-		   if (gen_level < 75)
-                      error (&@1, "Below Gen7.5 doesn't have CRE function\n");
+		  if (IS_GENp(8)) {
+                      gen8_set_sfid(GEN8(&$$), HSW_SFID_CRE);
+                      gen8_set_header_present(GEN8(&$$), 1); /* Must be 1 */
+                      gen8_set_cre_binding_table_index(GEN8(&$$), $3);
+                      gen8_set_cre_message_type(GEN8(&$$), $5);
+		  } else {
+                      if (gen_level < 75)
+                          error (&@1, "Below Gen7.5 doesn't have CRE function\n");
 
-		   GEN(&$$)->bits3.generic.msg_target = HSW_SFID_CRE;
+                      GEN(&$$)->bits3.generic.msg_target = HSW_SFID_CRE;
 
-                   GEN(&$$)->bits2.send_gen5.sfid = HSW_SFID_CRE;
-                   GEN(&$$)->bits3.cre_gen75.binding_table_index = $3;
-                   GEN(&$$)->bits3.cre_gen75.message_type = $5;
-                   GEN(&$$)->bits3.generic_gen5.header_present = 1;
+                      GEN(&$$)->bits2.send_gen5.sfid = HSW_SFID_CRE;
+                      GEN(&$$)->bits3.cre_gen75.binding_table_index = $3;
+                      GEN(&$$)->bits3.cre_gen75.message_type = $5;
+                      GEN(&$$)->bits3.generic_gen5.header_present = 1;
+		  }
 		}
 
 		| DATA_PORT LPAREN INTEGER COMMA INTEGER COMMA INTEGER COMMA 
