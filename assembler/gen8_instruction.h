@@ -188,6 +188,17 @@ F(sampler_msg_type,    112, 108)
 F(sampler,             107, 104)
 F(binding_table_index, 103,  96)
 /** @} */
+
+/**
+ * Data port message function control bits:
+ *  @ {
+ */
+F(dp_category,            114, 114)
+F(dp_message_type,        113, 110)
+F(dp_message_control,     109, 104)
+F(dp_binding_table_index, 103,  96)
+/** @} */
+
 #undef F
 
 /**

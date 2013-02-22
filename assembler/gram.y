@@ -1588,7 +1588,14 @@ msgtarget:	NULL_TOKEN
 		| READ  LPAREN INTEGER COMMA INTEGER COMMA INTEGER COMMA
                 INTEGER RPAREN
 		{
-		  if (IS_GENx(7)) {
+		  if (IS_GENp(8)) {
+                      gen8_set_sfid(GEN8(&$$), GEN6_SFID_DATAPORT_SAMPLER_CACHE);
+                      gen8_set_header_present(GEN8(&$$), 1);
+                      gen8_set_dp_binding_table_index(GEN8(&$$), $3);
+                      gen8_set_dp_message_control(GEN8(&$$), $7);
+                      gen8_set_dp_message_type(GEN8(&$$), $9);
+                      gen8_set_dp_category(GEN8(&$$), 0);
+		  } else if (IS_GENx(7)) {
                       GEN(&$$)->bits2.send_gen5.sfid =
                           GEN6_SFID_DATAPORT_SAMPLER_CACHE;
                       GEN(&$$)->bits3.generic_gen5.header_present = 1;
@@ -1622,7 +1629,14 @@ msgtarget:	NULL_TOKEN
 		| WRITE LPAREN INTEGER COMMA INTEGER COMMA INTEGER COMMA
 		INTEGER RPAREN
 		{
-		  if (IS_GENx(7)) {
+		  if (IS_GENp(8)) {
+                      gen8_set_sfid(GEN8(&$$), GEN6_SFID_DATAPORT_RENDER_CACHE);
+                      gen8_set_header_present(GEN8(&$$), 1);
+                      gen8_set_dp_binding_table_index(GEN8(&$$), $3);
+                      gen8_set_dp_message_control(GEN8(&$$), $5);
+                      gen8_set_dp_message_type(GEN8(&$$), $7);
+                      gen8_set_dp_category(GEN8(&$$), 0);
+		  } else if (IS_GENx(7)) {
                       GEN(&$$)->bits2.send_gen5.sfid = GEN6_SFID_DATAPORT_RENDER_CACHE;
                       GEN(&$$)->bits3.generic_gen5.header_present = 1;
                       GEN(&$$)->bits3.gen7_dp.binding_table_index = $3;
@@ -1665,7 +1679,14 @@ msgtarget:	NULL_TOKEN
 		| WRITE LPAREN INTEGER COMMA INTEGER COMMA INTEGER COMMA
 		INTEGER COMMA INTEGER RPAREN
 		{
-		  if (IS_GENx(7)) {
+		  if (IS_GENp(8)) {
+                      gen8_set_sfid(GEN8(&$$), GEN6_SFID_DATAPORT_RENDER_CACHE);
+                      gen8_set_header_present(GEN8(&$$), ($11 != 0));
+                      gen8_set_dp_binding_table_index(GEN8(&$$), $3);
+                      gen8_set_dp_message_control(GEN8(&$$), $5);
+                      gen8_set_dp_message_type(GEN8(&$$), $7);
+                      gen8_set_dp_category(GEN8(&$$), 0);
+		  } else if (IS_GENx(7)) {
                       GEN(&$$)->bits2.send_gen5.sfid = GEN6_SFID_DATAPORT_RENDER_CACHE;
                       GEN(&$$)->bits3.generic_gen5.header_present = ($11 != 0);
                       GEN(&$$)->bits3.gen7_dp.binding_table_index = $3;
@@ -1776,35 +1797,51 @@ msgtarget:	NULL_TOKEN
 		| DATA_PORT LPAREN INTEGER COMMA INTEGER COMMA INTEGER COMMA 
                 INTEGER COMMA INTEGER COMMA INTEGER RPAREN
 		{
-                    GEN(&$$)->bits2.send_gen5.sfid = $3;
-                    GEN(&$$)->bits3.generic_gen5.header_present = ($13 != 0);
+		  if (IS_GENp(8)) {
+                      if ($3 != GEN6_SFID_DATAPORT_SAMPLER_CACHE &&
+                          $3 != GEN6_SFID_DATAPORT_RENDER_CACHE &&
+                          $3 != GEN6_SFID_DATAPORT_CONSTANT_CACHE &&
+                          $3 != GEN7_SFID_DATAPORT_DATA_CACHE) {
+                          error (&@3, "error: wrong cache type\n");
+                      }
 
-                    if (IS_GENp(7)) {
-                        if ($3 != GEN6_SFID_DATAPORT_SAMPLER_CACHE &&
-                            $3 != GEN6_SFID_DATAPORT_RENDER_CACHE &&
-                            $3 != GEN6_SFID_DATAPORT_CONSTANT_CACHE &&
-                            $3 != GEN7_SFID_DATAPORT_DATA_CACHE) {
-                            error (&@3, "error: wrong cache type\n");
-                        }
+                      gen8_set_sfid(GEN8(&$$), $3);
+                      gen8_set_header_present(GEN8(&$$), ($13 != 0));
+                      gen8_set_dp_binding_table_index(GEN8(&$$), $9);
+                      gen8_set_dp_message_control(GEN8(&$$), $7);
+                      gen8_set_dp_message_type(GEN8(&$$), $5);
+                      gen8_set_dp_category(GEN8(&$$), $11);
+		  } else {
+                      GEN(&$$)->bits2.send_gen5.sfid = $3;
+                      GEN(&$$)->bits3.generic_gen5.header_present = ($13 != 0);
 
-                        GEN(&$$)->bits3.gen7_dp.category = $11;
-                        GEN(&$$)->bits3.gen7_dp.binding_table_index = $9;
-                        GEN(&$$)->bits3.gen7_dp.msg_control = $7;
-                        GEN(&$$)->bits3.gen7_dp.msg_type = $5;
-                    } else if (IS_GENx(6)) {
-                        if ($3 != GEN6_SFID_DATAPORT_SAMPLER_CACHE &&
-                            $3 != GEN6_SFID_DATAPORT_RENDER_CACHE &&
-                            $3 != GEN6_SFID_DATAPORT_CONSTANT_CACHE) {
-                            error (&@3, "error: wrong cache type\n");
-                        }
+                      if (IS_GENp(7)) {
+                          if ($3 != GEN6_SFID_DATAPORT_SAMPLER_CACHE &&
+                              $3 != GEN6_SFID_DATAPORT_RENDER_CACHE &&
+                              $3 != GEN6_SFID_DATAPORT_CONSTANT_CACHE &&
+                              $3 != GEN7_SFID_DATAPORT_DATA_CACHE) {
+                              error (&@3, "error: wrong cache type\n");
+                          }
 
-                        GEN(&$$)->bits3.gen6_dp.send_commit_msg = $11;
-                        GEN(&$$)->bits3.gen6_dp.binding_table_index = $9;
-                        GEN(&$$)->bits3.gen6_dp.msg_control = $7;
-                        GEN(&$$)->bits3.gen6_dp.msg_type = $5;
-                    } else if (!IS_GENp(5)) {
-                        error (&@1, "Gen6- doesn't support data port for sampler/render/constant/data cache\n");
-                    }
+                          GEN(&$$)->bits3.gen7_dp.category = $11;
+                          GEN(&$$)->bits3.gen7_dp.binding_table_index = $9;
+                          GEN(&$$)->bits3.gen7_dp.msg_control = $7;
+                          GEN(&$$)->bits3.gen7_dp.msg_type = $5;
+                      } else if (IS_GENx(6)) {
+                          if ($3 != GEN6_SFID_DATAPORT_SAMPLER_CACHE &&
+                              $3 != GEN6_SFID_DATAPORT_RENDER_CACHE &&
+                              $3 != GEN6_SFID_DATAPORT_CONSTANT_CACHE) {
+                              error (&@3, "error: wrong cache type\n");
+                          }
+
+                          GEN(&$$)->bits3.gen6_dp.send_commit_msg = $11;
+                          GEN(&$$)->bits3.gen6_dp.binding_table_index = $9;
+                          GEN(&$$)->bits3.gen6_dp.msg_control = $7;
+                          GEN(&$$)->bits3.gen6_dp.msg_type = $5;
+                      } else if (!IS_GENp(5)) {
+                          error (&@1, "Gen6- doesn't support data port for sampler/render/constant/data cache\n");
+                      }
+                  }
 		} 
 ;
 
