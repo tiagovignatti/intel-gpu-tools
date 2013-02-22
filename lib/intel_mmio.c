@@ -43,6 +43,8 @@
 
 #include "intel_gpu_tools.h"
 
+#define FAKEKEY 0x2468ace0
+
 void *mmio;
 
 static struct _mmio_data {
@@ -153,6 +155,22 @@ release_forcewake_lock(int fd)
 	close(fd);
 }
 
+/* Dumb check to see if i915 was loaded */
+static bool
+i915_loaded(void)
+{
+	struct stat sb;
+	int ret;
+
+	ret = stat("/sys/module/i915/", &sb);
+	if (ret) {
+		return false;
+	}
+
+	assert(S_ISDIR(sb.st_mode));
+	return true;
+}
+
 /*
  * Initialize register access library.
  *
@@ -190,10 +208,14 @@ intel_register_access_init(struct pci_device *pci_dev, int safe)
 		ret = find_debugfs_path("/debug/dri");
 		if (ret) {
 			fprintf(stderr, "Couldn't find path to dri/debugfs entry\n");
-			return ret;
+			if (i915_loaded()) {
+				fprintf(stderr, "i915 loaded; not proceeding.\n");
+				return ret;
+			}
 		}
-	}
-	mmio_data.key = get_forcewake_lock();
+		mmio_data.key = FAKEKEY;
+	} else
+		mmio_data.key = get_forcewake_lock();
 
 done:
 	mmio_data.inited++;
@@ -203,7 +225,7 @@ done:
 void
 intel_register_access_fini(void)
 {
-	if (mmio_data.key)
+	if (mmio_data.key && mmio_data.key != FAKEKEY)
 		release_forcewake_lock(mmio_data.key);
 	mmio_data.inited--;
 }
