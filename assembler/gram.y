@@ -117,6 +117,9 @@ static void set_direct_dst_operand(struct brw_reg *dst, struct brw_reg *reg,
 static void set_direct_src_operand(struct src_operand *src, struct brw_reg *reg,
 				   int type);
 
+void set_branch_two_offsets(struct brw_program_instruction *insn, int jip_offset, int uip_offset);
+void set_branch_one_offset(struct brw_program_instruction *insn, int jip_offset);
+
 enum message_level {
     WARN,
     ERROR,
@@ -3151,4 +3154,84 @@ static void set_direct_src_operand(struct src_operand *src, struct brw_reg *reg,
 	src->reg.negate = 0;
 	src->reg.abs = 0;
 	SWIZZLE(src->reg) = BRW_SWIZZLE_NOOP;
+}
+
+static inline int instruction_opcode(struct brw_program_instruction *insn)
+{
+    if (IS_GENp(8))
+	return gen8_opcode(GEN8(insn));
+    else
+	return GEN(insn)->header.opcode;
+}
+
+/*
+ * return the offset used in native flow control (branch) instructions
+ */
+static inline int branch_offset(struct brw_program_instruction *insn, int offset)
+{
+    /*
+     * bspec: Unlike other flow control instructions, the offset used by JMPI
+     * is relative to the incremented instruction pointer rather than the IP
+     * value for the instruction itself.
+     */
+    if (instruction_opcode(insn) == BRW_OPCODE_JMPI)
+        offset--;
+
+    /*
+     * Gen4- bspec: the jump distance is in number of sixteen-byte units
+     * Gen5+ bspec: the jump distance is in number of eight-byte units
+     * Gen7.5+: the offset is in unit of 8bits for JMPI, 64bits for other flow
+     * control instructions
+     */
+    if (gen_level >= 75 &&
+        (instruction_opcode(insn) == BRW_OPCODE_JMPI))
+        offset *= 16;
+    else if (gen_level >= 50)
+        offset *= 2;
+
+    return offset;
+}
+
+void set_branch_two_offsets(struct brw_program_instruction *insn, int jip_offset, int uip_offset)
+{
+    int jip = branch_offset(insn, jip_offset);
+    int uip = branch_offset(insn, uip_offset);
+
+    assert(instruction_opcode(insn) != BRW_OPCODE_JMPI);
+
+    if (IS_GENp(8)) {
+        gen8_set_jip(GEN8(insn), jip);
+	gen8_set_uip(GEN8(insn), uip);
+    } else {
+        GEN(insn)->bits3.break_cont.jip = jip;
+        GEN(insn)->bits3.break_cont.uip = uip;
+    }
+}
+
+void set_branch_one_offset(struct brw_program_instruction *insn, int jip_offset)
+{
+    int jip = branch_offset(insn, jip_offset);
+
+    if (IS_GENp(8)) {
+        gen8_set_jip(GEN8(insn), jip);
+    } else if (IS_GENx(7)) {
+        /* Gen7 JMPI Restrictions in bspec:
+         * The JIP data type must be Signed DWord
+         */
+        if (instruction_opcode(insn) == BRW_OPCODE_JMPI)
+            GEN(insn)->bits3.JIP = jip;
+        else
+            GEN(insn)->bits3.break_cont.jip = jip;
+    } else if (IS_GENx(6)) {
+        if ((instruction_opcode(insn) == BRW_OPCODE_CALL) ||
+            (instruction_opcode(insn) == BRW_OPCODE_JMPI))
+            GEN(insn)->bits3.JIP = jip;
+        else
+            GEN(insn)->bits1.branch_gen6.jump_count = jip; // for CASE,ELSE,FORK,IF,WHILE
+    } else {
+        GEN(insn)->bits3.JIP = jip;
+
+        if (instruction_opcode(insn) == BRW_OPCODE_ELSE)
+            GEN(insn)->bits3.break_cont.uip = 1; // Set the istack pop count, which must always be 1.
+    }
 }

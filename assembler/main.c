@@ -38,6 +38,8 @@
 #include "brw_eu.h"
 
 extern FILE *yyin;
+extern void set_branch_two_offsets(struct brw_program_instruction *insn, int jip_offset, int uip_offset);
+extern void set_branch_one_offset(struct brw_program_instruction *insn, int jip_offset);
 
 long int gen_level = 40;
 int advanced_flag = 0; /* 0: in unit of byte, 1: in unit of data element size */
@@ -85,16 +87,6 @@ static const struct option longopts[] = {
 	{"gen", required_argument, 0, 'g'},
 	{ NULL, 0, NULL, 0 }
 };
-
-// jump distance used in branch instructions as JIP or UIP
-static int jump_distance(int offset)
-{
-    // Gen4- bspec: the jump distance is in number of sixteen-byte units
-    // Gen5+ bspec: the jump distance is in number of eight-byte units
-    if(IS_GENp(5))
-        offset *= 2;
-    return offset;
-}
 
 static void usage(void)
 {
@@ -438,7 +430,6 @@ int main(int argc, char **argv)
 
 	for (entry = compiled_program.first; entry; entry = entry->next) {
 	    struct relocation *reloc = &entry->reloc;
-	    struct brw_instruction *inst = &entry->insn.gen;
 
 	    if (!is_relocatable(entry))
 		continue;
@@ -449,43 +440,10 @@ int main(int argc, char **argv)
 	    if (reloc->second_reloc_target)
 		reloc->second_reloc_offset = label_to_addr(reloc->second_reloc_target, entry->inst_offset) - entry->inst_offset;
 
-	    if (reloc->second_reloc_offset) {
-		// this is a branch instruction with two offset arguments
-		inst->bits3.break_cont.jip = jump_distance(reloc->first_reloc_offset);
-		inst->bits3.break_cont.uip = jump_distance(reloc->second_reloc_offset);
+	    if (reloc->second_reloc_offset) { // this is a branch instruction with two offset arguments
+                set_branch_two_offsets(entry, reloc->first_reloc_offset, reloc->second_reloc_offset);
 	    } else if (reloc->first_reloc_offset) {
-		// this is a branch instruction with one offset argument
-		int offset = reloc->first_reloc_offset;
-		/* bspec: Unlike other flow control instructions, the offset used by JMPI is relative to the incremented instruction pointer rather than the IP value for the instruction itself. */
-
-		int is_jmpi = inst->header.opcode == BRW_OPCODE_JMPI; // target relative to the post-incremented IP, so delta == 1 if JMPI
-		if(is_jmpi)
-		    offset --;
-		offset = jump_distance(offset);
-		if (is_jmpi && (gen_level == 75))
-			offset = offset * 8;
-
-		if(!IS_GENp(6)) {
-		    inst->bits3.JIP = offset;
-		    if(inst->header.opcode == BRW_OPCODE_ELSE)
-			inst->bits3.break_cont.uip = 1; /* Set the istack pop count, which must always be 1. */
-		} else if(IS_GENx(6)) {
-		    /* TODO: endif JIP pos is not in Gen6 spec. may be bits1 */
-		    int opcode = inst->header.opcode;
-		    if(opcode == BRW_OPCODE_CALL || opcode == BRW_OPCODE_JMPI)
-			inst->bits3.JIP = offset; // for CALL, JMPI
-		    else
-			inst->bits1.branch_gen6.jump_count = offset; // for CASE,ELSE,FORK,IF,WHILE
-		} else if(IS_GENp(7)) {
-		    int opcode = inst->header.opcode;
-		    /* Gen7 JMPI Restrictions in bspec:
-		     * The JIP data type must be Signed DWord
-		     */
-		    if(opcode == BRW_OPCODE_JMPI)
-			inst->bits3.JIP = offset;
-		    else
-			inst->bits3.break_cont.jip = offset;
-		}
+                set_branch_one_offset(entry, reloc->first_reloc_offset);
 	    }
 	}
 
