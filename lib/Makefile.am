@@ -29,6 +29,7 @@ libintel_tools_la_SOURCES = 	\
 	rendercopy_i830.c	\
 	gen6_render.h		\
 	gen7_render.h		\
+	gen8_render.h		\
 	rendercopy_gen6.c	\
 	rendercopy_gen7.c	\
 	rendercopy_gen8.c	\
