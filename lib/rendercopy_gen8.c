@@ -7,7 +7,13 @@
 #define VERTEX_SIZE (3*4)
 
 #if DEBUG_RENDERCPY
-static void dump_batch(struct intel_batchbuffer *batch)
+static void dump_batch(struct intel_batchbuffer *batch) {
+	int fd = open("/tmp/i965-batchbuffers.dump", O_WRONLY | O_CREAT,  0666);
+	if (fd != -1) {
+		write(fd, batch->buffer, 4096);
+		fd = close(fd);
+	}
+}
 #else
 #define dump_batch(x) do { } while(0)
 #endif
@@ -33,15 +39,15 @@ static const uint32_t ps_kernel[][4] = {
    { 0x05800031, 0x200022e0, 0x0e000e00, 0x90031000 },
 #else
    /* Write all -1 */
-   { 0x00600001, 0x2e000061, 0x00000000, 0x3f800000 },
-   { 0x00600001, 0x2e200061, 0x00000000, 0x3f800000 },
-   { 0x00600001, 0x2e400061, 0x00000000, 0x3f800000 },
-   { 0x00600001, 0x2e600061, 0x00000000, 0x3f800000 },
-   { 0x00600001, 0x2e800061, 0x00000000, 0x3f800000 },
-   { 0x00600001, 0x2ea00061, 0x00000000, 0x3f800000 },
-   { 0x00600001, 0x2ec00061, 0x00000000, 0x3f800000 },
-   { 0x00600001, 0x2ee00061, 0x00000000, 0x3f800000 },
-   { 0x05800031, 0x20001e3c, 0x00000e00, 0x90031000 },
+   { 0x00600001, 0x2e000608, 0x00000000, 0x3f800000 },
+   { 0x00600001, 0x2e200608, 0x00000000, 0x3f800000 },
+   { 0x00600001, 0x2e400608, 0x00000000, 0x3f800000 },
+   { 0x00600001, 0x2e600608, 0x00000000, 0x3f800000 },
+   { 0x00600001, 0x2e800608, 0x00000000, 0x3f800000 },
+   { 0x00600001, 0x2ea00608, 0x00000000, 0x3f800000 },
+   { 0x00600001, 0x2ec00608, 0x00000000, 0x3f800000 },
+   { 0x00600001, 0x2ee00608, 0x00000000, 0x3f800000 },
+   { 0x05800031, 0x200022e0, 0x0e000e00, 0x90031000 },
 #endif
 };
 
@@ -107,10 +113,12 @@ gen8_bind_buf(struct intel_batchbuffer *batch, struct scratch_buf *buf,
 		read_domain = I915_GEM_DOMAIN_SAMPLER;
 	}
 
-	ss = batch_alloc(batch, sizeof(*ss), 32);
+	ss = batch_alloc(batch, sizeof(*ss), 64);
 	ss->ss0.surface_type = GEN6_SURFACE_2D;
 	ss->ss0.surface_format = format;
 	ss->ss0.render_cache_read_write = 1;
+	ss->ss0.vertical_alignment = 1; /* align 4 */
+	ss->ss0.horizontal_alignment = 1; /* align 4 */
 	if (buf->tiling == I915_TILING_X)
 		ss->ss0.tiled_mode = 2;
 	else if (buf->tiling == I915_TILING_Y)
@@ -119,7 +127,7 @@ gen8_bind_buf(struct intel_batchbuffer *batch, struct scratch_buf *buf,
 	ss->ss8.base_addr = buf->bo->offset;
 
 	ret = drm_intel_bo_emit_reloc(batch->bo,
-				      batch_offset(batch, ss) + 4,
+				      batch_offset(batch, ss) + 8 * 4,
 				      buf->bo, 0,
 				      read_domain, write_domain);
 	assert(ret == 0);
@@ -128,7 +136,7 @@ gen8_bind_buf(struct intel_batchbuffer *batch, struct scratch_buf *buf,
 	ss->ss2.width  = buf_width(buf) - 1;
 	ss->ss3.pitch  = buf->stride - 1;
 
-	ss->ss7.shader_chanel_select_a = 4;
+	ss->ss7.shader_chanel_select_r = 4;
 	ss->ss7.shader_chanel_select_g = 5;
 	ss->ss7.shader_chanel_select_b = 6;
 	ss->ss7.shader_chanel_select_a = 7;
@@ -190,6 +198,7 @@ gen7_fill_vertex_buffer_data(struct intel_batchbuffer *batch,
 			     uint32_t width, uint32_t height) {
 	void *ret;
 
+	batch_align(batch, 8);
 	ret = batch->ptr;
 
 	emit_vertex_2s(batch, dst_x + width, dst_y + height);
@@ -272,14 +281,13 @@ gen6_emit_vertex_elements(struct intel_batchbuffer *batch) {
  */
 static void gen7_emit_vertex_buffer(struct intel_batchbuffer *batch,
 				    uint32_t offset) {
-	OUT_BATCH(GEN6_3DSTATE_VERTEX_BUFFERS | (4 * 1 - 1));
+	OUT_BATCH(GEN6_3DSTATE_VERTEX_BUFFERS | (1 + (4 * 1) - 2));
 	OUT_BATCH(0 << VB0_BUFFER_INDEX_SHIFT | /* VB 0th index */
-		  VB0_VERTEXDATA |
 		  GEN7_VB0_BUFFER_ADDR_MOD_EN | /* Address Modify Enable */
 		  VERTEX_SIZE << VB0_BUFFER_PITCH_SHIFT);
 	OUT_RELOC(batch->bo, I915_GEM_DOMAIN_VERTEX, 0, offset);
-	OUT_RELOC(batch->bo, I915_GEM_DOMAIN_VERTEX, 0, offset + (VERTEX_SIZE * 3) - 1);
 	OUT_BATCH(0);
+	OUT_BATCH(3 * VERTEX_SIZE);
 }
 
 static uint32_t
@@ -361,30 +369,47 @@ gen7_emit_push_constants(struct intel_batchbuffer *batch) {
 }
 
 static void
-gen7_emit_state_base_address(struct intel_batchbuffer *batch) {
-	OUT_BATCH(GEN6_STATE_BASE_ADDRESS | (10 - 2));
-	/* general (stateless) */
-	/* surface */
-	/* instruction */
-	/* indirect */
-	/* dynamic */
+gen8_emit_state_base_address(struct intel_batchbuffer *batch) {
+	OUT_BATCH(GEN6_STATE_BASE_ADDRESS | (16 - 2));
+
+	/* general */
 	OUT_BATCH(0 | BASE_ADDRESS_MODIFY);
+	OUT_BATCH(0);
+
+	/* stateless data port */
+	OUT_BATCH(0 | BASE_ADDRESS_MODIFY);
+
+	/* surface */
 	OUT_RELOC(batch->bo, I915_GEM_DOMAIN_SAMPLER, 0, BASE_ADDRESS_MODIFY);
+	OUT_BATCH(0);
+
+	/* dynamic */
 	OUT_RELOC(batch->bo, I915_GEM_DOMAIN_RENDER | I915_GEM_DOMAIN_INSTRUCTION,
 		  0, BASE_ADDRESS_MODIFY);
-	OUT_BATCH(0 | BASE_ADDRESS_MODIFY);
-	OUT_RELOC(batch->bo, I915_GEM_DOMAIN_INSTRUCTION, 0, BASE_ADDRESS_MODIFY);
+	OUT_BATCH(0);
 
-	OUT_BATCH(0 | BASE_ADDRESS_MODIFY);
-	OUT_BATCH(0xfffff000 | BASE_ADDRESS_MODIFY); // copied from mesa
-	OUT_BATCH(0 | BASE_ADDRESS_MODIFY);
-	OUT_BATCH(0 | BASE_ADDRESS_MODIFY);
+	/* indirect */
+	OUT_BATCH(0);
+	OUT_BATCH(0);
+
+	/* instruction */
+	OUT_RELOC(batch->bo, I915_GEM_DOMAIN_INSTRUCTION, 0, BASE_ADDRESS_MODIFY);
+	OUT_BATCH(0);
+
+	/* general state buffer size */
+	OUT_BATCH(0xfffff000 | 1);
+	/* dynamic state buffer size */
+	OUT_BATCH(1 << 12 | 1);
+	/* indirect object buffer size */
+	OUT_BATCH(0xfffff000 | 1);
+	/* intruction buffer size */
+	OUT_BATCH(1 << 12);
 }
 
 static void
 gen7_emit_urb(struct intel_batchbuffer *batch) {
 	/* XXX: Min valid values from mesa */
-	const int vs_entries = 32;
+	const int vs_entries = 64;
 	const int vs_size = 2;
 	const int vs_start = 2;
 
@@ -408,8 +433,8 @@ gen8_emit_cc(struct intel_batchbuffer *batch) {
 }
 
 static void
-gen7_emit_multisample(struct intel_batchbuffer *batch) {
-	OUT_BATCH(GEN6_3DSTATE_MULTISAMPLE | 2);
+gen8_emit_multisample(struct intel_batchbuffer *batch) {
+	OUT_BATCH(GEN8_3DSTATE_MULTISAMPLE | 2);
 	OUT_BATCH(0);
 	OUT_BATCH(0);
 	OUT_BATCH(0);
@@ -537,31 +562,32 @@ gen7_emit_clip(struct intel_batchbuffer *batch) {
 }
 
 static void
-gen7_emit_sf(struct intel_batchbuffer *batch) {
-	OUT_BATCH(GEN7_3DSTATE_SBE | (14 - 2));
-#ifdef GPU_HANG
-	OUT_BATCH(0 << 22 | 1 << 11 | 1 << 4);
-#else
-	OUT_BATCH(1 << 22 | 1 << 11 | 1 << 4);
-#endif
+gen8_emit_sf(struct intel_batchbuffer *batch)
+{
+	int i;
+
+	OUT_BATCH(GEN7_3DSTATE_SBE | (4 - 2));
+	OUT_BATCH(1 << GEN7_SBE_NUM_OUTPUTS_SHIFT |
+		  GEN8_SBE_FORCE_URB_ENTRY_READ_LENGTH |
+		  GEN8_SBE_FORCE_URB_ENTRY_READ_OFFSET |
+		  1 << GEN7_SBE_URB_ENTRY_READ_LENGTH_SHIFT |
+		  1 << GEN8_SBE_URB_ENTRY_READ_OFFSET_SHIFT);
 	OUT_BATCH(0);
 	OUT_BATCH(0);
+
+	OUT_BATCH(GEN8_3DSTATE_SBE_SWIZ | (11 - 2));
+	for (i = 0; i < 8; i++)
+		OUT_BATCH(0);
 	OUT_BATCH(0);
 	OUT_BATCH(0);
-	OUT_BATCH(0);
-	OUT_BATCH(0);
-	OUT_BATCH(0);
-	OUT_BATCH(0);
-	OUT_BATCH(0);
+
+	OUT_BATCH(GEN8_3DSTATE_RASTER | (5 - 2));
+	OUT_BATCH(GEN8_RASTER_FRONT_WINDING_CCW | GEN8_RASTER_CULL_NONE);
 	OUT_BATCH(0);
 	OUT_BATCH(0);
 	OUT_BATCH(0);
 
-	OUT_BATCH(GEN6_3DSTATE_SF | (7 - 2));
-	OUT_BATCH(0);
-	OUT_BATCH(GEN6_3DSTATE_SF_CULL_NONE);
-//	OUT_BATCH(2 << GEN6_3DSTATE_SF_TRIFAN_PROVOKE_SHIFT);
-	OUT_BATCH(0);
+	OUT_BATCH(GEN6_3DSTATE_SF | (4 - 2));
 	OUT_BATCH(0);
 	OUT_BATCH(0);
 	OUT_BATCH(0);
@@ -569,37 +595,46 @@ gen7_emit_sf(struct intel_batchbuffer *batch) {
 
 static void
 gen8_emit_ps(struct intel_batchbuffer *batch, uint32_t kernel) {
-	const int max_threads = 86;
+	const int max_threads = 63;
 
-	OUT_BATCH(GEN6_3DSTATE_WM | (3 - 2));
-	OUT_BATCH(GEN7_WM_DISPATCH_ENABLE |
-		  /* XXX: I don't understand the BARYCENTRIC stuff, but it
+	OUT_BATCH(GEN6_3DSTATE_WM | (2 - 2));
+	OUT_BATCH(/* XXX: I don't understand the BARYCENTRIC stuff, but it
 		   * appears we need it to put our setup data in the place we
 		   * expect (g6, see below) */
 		  GEN7_3DSTATE_PS_PERSPECTIVE_PIXEL_BARYCENTRIC);
+
+	OUT_BATCH(GEN6_3DSTATE_CONSTANT_PS | (11-2));
+	OUT_BATCH(0);
+	OUT_BATCH(0);
+	OUT_BATCH(0);
+	OUT_BATCH(0);
+	OUT_BATCH(0);
+	OUT_BATCH(0);
+	OUT_BATCH(0);
+	OUT_BATCH(0);
+	OUT_BATCH(0);
 	OUT_BATCH(0);
 
-	OUT_BATCH(GEN6_3DSTATE_CONSTANT_PS | (7-2));
-	OUT_BATCH(0);
-	OUT_BATCH(0);
-	OUT_BATCH(0);
-	OUT_BATCH(0);
-	OUT_BATCH(0);
-	OUT_BATCH(0);
-
-	OUT_BATCH(GEN7_3DSTATE_PS | (10-2));
+	OUT_BATCH(GEN7_3DSTATE_PS | (12-2));
 	OUT_BATCH(kernel);
 	OUT_BATCH(0); /* kernel hi */
 	OUT_BATCH(1 << GEN6_3DSTATE_WM_SAMPLER_COUNT_SHITF |
 		  2 << GEN6_3DSTATE_WM_BINDING_TABLE_ENTRY_COUNT_SHIFT);
 	OUT_BATCH(0); /* scratch space stuff */
 	OUT_BATCH(0); /* scratch hi */
-	OUT_BATCH((max_threads - 1) << GEN7_3DSTATE_WM_MAX_THREADS_SHIFT |
-		  GEN7_3DSTATE_PS_ATTRIBUTE_ENABLED |
+	OUT_BATCH((max_threads - 1) << GEN8_3DSTATE_PS_MAX_THREADS_SHIFT |
 		  GEN6_3DSTATE_WM_16_DISPATCH_ENABLE);
 	OUT_BATCH(6 << GEN6_3DSTATE_WM_DISPATCH_START_GRF_0_SHIFT);
 	OUT_BATCH(0); // kernel 1
 	OUT_BATCH(0); /* kernel 1 hi */
+	OUT_BATCH(0); // kernel 2
+	OUT_BATCH(0); /* kernel 2 hi */
+
+	OUT_BATCH(GEN8_3DSTATE_PS_BLEND | (2 - 2));
+	OUT_BATCH(GEN8_PS_BLEND_HAS_WRITEABLE_RT);
+
+	OUT_BATCH(GEN8_3DSTATE_PS_EXTRA | (2 - 2));
+	OUT_BATCH(GEN8_PSX_PIXEL_SHADER_VALID | GEN8_PSX_ATTRIBUTE_ENABLE);
 }
 
 static void
@@ -637,11 +672,21 @@ gen6_emit_drawing_rectangle(struct intel_batchbuffer *batch, struct scratch_buf 
 	OUT_BATCH(0);
 }
 
-/* Vertex elements MUST be defined before this according to spec */
-static void gen7_emit_primitive(struct intel_batchbuffer *batch, uint32_t offset)
+static void gen8_emit_vf_topology(struct intel_batchbuffer *batch)
 {
-	OUT_BATCH(GEN6_3DPRIMITIVE | (7-2));
+	OUT_BATCH(GEN8_3DSTATE_VF_TOPOLOGY);
 	OUT_BATCH(_3DPRIM_RECTLIST);
+}
+
+/* Vertex elements MUST be defined before this according to spec */
+static void gen8_emit_primitive(struct intel_batchbuffer *batch, uint32_t offset)
+{
+	OUT_BATCH(GEN8_3DSTATE_VF_INSTANCING | (3 - 2));
+	OUT_BATCH(0);
+	OUT_BATCH(0);
+
+	OUT_BATCH(GEN6_3DPRIMITIVE | (7-2));
+	OUT_BATCH(0);	/* gen8+ ignore the topology type field */
 	OUT_BATCH(3);	/* vertex count */
 	OUT_BATCH(0);	/*  We're specifying this instead with offset in GEN6_3DSTATE_VERTEX_BUFFERS */
 	OUT_BATCH(1);	/* single instance */
@@ -719,7 +764,7 @@ void gen8_render_copyfunc(struct intel_batchbuffer *batch,
 
 	gen7_emit_push_constants(batch);
 
-	gen7_emit_state_base_address(batch);
+	gen8_emit_state_base_address(batch);
 
 	OUT_BATCH(GEN7_3DSTATE_VIEWPORT_STATE_POINTERS_CC);
 	OUT_BATCH(viewport.cc_state);
@@ -730,7 +775,7 @@ void gen8_render_copyfunc(struct intel_batchbuffer *batch,
 
 	gen8_emit_cc(batch);
 
-	gen7_emit_multisample(batch);
+	gen8_emit_multisample(batch);
 
 	gen7_emit_null_state(batch);
 
@@ -740,7 +785,7 @@ void gen8_render_copyfunc(struct intel_batchbuffer *batch,
 
 	gen7_emit_clip(batch);
 
-	gen7_emit_sf(batch);
+	gen8_emit_sf(batch);
 
 	OUT_BATCH(GEN7_3DSTATE_BINDING_TABLE_POINTERS_PS);
 	OUT_BATCH(ps_binding_table);
@@ -762,7 +807,8 @@ void gen8_render_copyfunc(struct intel_batchbuffer *batch,
 	gen7_emit_vertex_buffer(batch, vertex_buffer);
 	gen6_emit_vertex_elements(batch);
 
-	gen7_emit_primitive(batch, vertex_buffer);
+	gen8_emit_vf_topology(batch);
+	gen8_emit_primitive(batch, vertex_buffer);
 
 	OUT_BATCH(MI_BATCH_BUFFER_END);
 
@@ -774,13 +820,3 @@ void gen8_render_copyfunc(struct intel_batchbuffer *batch,
 	gen6_render_flush(batch, batch_end);
 	intel_batchbuffer_reset(batch);
 }
-
-#if DEBUG_RENDERCPY
-static void dump_batch(struct intel_batchbuffer *batch) {
-	int fd = open("/tmp/i965-batchbuffers.dump", O_WRONLY | O_CREAT,  0666);
-	if (fd != -1) {
-		write(fd, batch->buffer, 4096);
-		fd = close(fd);
-	}
-}
-#endif
