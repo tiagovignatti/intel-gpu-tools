@@ -19,7 +19,7 @@
 #include "intel_batchbuffer.h"
 #include "intel_io.h"
 #include "rendercopy.h"
-#include "gen8_render.h"
+#include "gen9_render.h"
 #include "intel_reg.h"
 #include "igt_aux.h"
 
@@ -821,6 +821,9 @@ static void gen8_emit_vf_topology(struct intel_batchbuffer *batch)
 /* Vertex elements MUST be defined before this according to spec */
 static void gen8_emit_primitive(struct intel_batchbuffer *batch, uint32_t offset)
 {
+	OUT_BATCH(GEN7_3DSTATE_VF | (2 - 2));
+	OUT_BATCH(0);
+
 	OUT_BATCH(GEN8_3DSTATE_VF_INSTANCING | (3 - 2));
 	OUT_BATCH(0);
 	OUT_BATCH(0);
