@@ -1216,6 +1216,16 @@ void igt_skip_on_simulation(void)
 	igt_require(!igt_run_in_simulation());
 }
 
+bool drmtest_dump_aub(void)
+{
+	static int dump_aub = -1;
+
+	if (dump_aub == -1)
+		dump_aub = env_set("IGT_DUMP_AUB", false);
+
+	return dump_aub;
+}
+
 /* other helpers */
 void igt_exchange_int(void *array, unsigned i, unsigned j)
 {

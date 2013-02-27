@@ -304,6 +304,8 @@ bool igt_run_in_simulation(void);
  */
 void igt_skip_on_simulation(void);
 
+bool drmtest_dump_aub(void);
+
 /* helpers based upon the libdrm buffer manager */
 void igt_init_aperture_trashers(drm_intel_bufmgr *bufmgr);
 void igt_trash_aperture(void);
