@@ -92,13 +92,17 @@ uint64_t intel_get_total_swap_mb(void);
 void intel_map_file(char *);
 
 enum pch_type {
+	PCH_NONE,
 	PCH_IBX,
 	PCH_CPT,
+	PCH_LPT,
 };
 
 extern enum pch_type pch;
 void intel_check_pch(void);
 
+#define HAS_IBX (pch == PCH_IBX)
 #define HAS_CPT (pch == PCH_CPT)
+#define HAS_LPT (pch == PCH_LPT)
 
 #endif /* INTEL_GPU_TOOLS_H */

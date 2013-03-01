@@ -100,9 +100,24 @@ intel_check_pch(void)
 	if (pch_dev == NULL)
 		return;
 
-	if (pch_dev->vendor_id == 0x8086 &&
-	    (((pch_dev->device_id & 0xff00) == 0x1c00) ||
-	     (pch_dev->device_id & 0xff00) == 0x1e00))
+	if (pch_dev->vendor_id != 0x8086)
+		return;
+
+	switch (pch_dev->device_id & 0xff00) {
+	case 0x3b00:
+		pch = PCH_IBX;
+		break;
+	case 0x1c00:
+	case 0x1e00:
 		pch = PCH_CPT;
+		break;
+	case 0x8c00:
+	case 0x9c00:
+		pch = PCH_LPT;
+		break;
+	default:
+		pch = PCH_NONE;
+		return;
+	}
 }
 
