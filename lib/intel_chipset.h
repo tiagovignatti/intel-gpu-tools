@@ -261,7 +261,7 @@
 
 #define HAS_PCH_SPLIT(devid)	(IS_GEN5(devid) || \
 				 IS_GEN6(devid) || \
-				 IS_GEN7(devid))
+				 IS_IVYBRIDGE(devid) || IS_HASWELL(devid))
 
 #define HAS_BLT_RING(devid)	(IS_GEN6(devid) || \
 				 IS_GEN7(devid))
