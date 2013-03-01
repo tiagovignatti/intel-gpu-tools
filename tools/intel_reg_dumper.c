@@ -1571,6 +1571,218 @@ DEBUGSTRING(ilk_debug_pp_control)
 		 (val & (1 << 0)) ? "on" : "off");
 }
 
+DEBUGSTRING(hsw_debug_port_clk_sel)
+{
+	const char *clock;
+
+	switch ((val >> 29 ) & 7) {
+	case 0:
+		clock = "LCPLL 2700";
+		break;
+	case 1:
+		clock = "LCPLL 1350";
+		break;
+	case 2:
+		clock = "LCPLL 810";
+		break;
+	case 3:
+		clock = "SPLL";
+		break;
+	case 4:
+		clock = "WRPLL 1";
+		break;
+	case 5:
+		clock = "WRPLL 2";
+		break;
+	case 6:
+		clock = "Reserved";
+		break;
+	case 7:
+		clock = "None";
+		break;
+	}
+
+	snprintf(result, len, "%s", clock);
+}
+
+DEBUGSTRING(hsw_debug_pipe_clk_sel)
+{
+	const char *clock;
+
+	switch ((val >> 29) & 7) {
+	case 0:
+		clock = "None";
+		break;
+	case 2:
+		clock = "DDIB";
+		break;
+	case 3:
+		clock = "DDIC";
+		break;
+	case 4:
+		clock = "DDID";
+		break;
+	case 5:
+		clock = "DDIE";
+		break;
+	default:
+		clock = "Reserved";
+		break;
+	}
+
+	snprintf(result, len, "%s", clock);
+}
+
+DEBUGSTRING(hsw_debug_ddi_buf_ctl)
+{
+	const char *enable, *reversal, *width, *detected;
+
+	enable = (val & (1<<31)) ? "enabled" : "disabled";
+	reversal = (val & (1<<16)) ? "reversed" : "not reversed";
+
+	switch ((val >> 1) & 7) {
+	case 0:
+		width = "x1";
+		break;
+	case 1:
+		width = "x2";
+		break;
+	case 3:
+		width = "x4";
+		break;
+	default:
+		width = "reserved";
+		break;
+	}
+
+	detected = (val & 1) ? "detected" : "not detected";
+
+	snprintf(result, len, "%s %s %s %s", enable, reversal, width, detected);
+}
+
+DEBUGSTRING(hsw_debug_sfuse_strap)
+{
+	const char *display, *crt, *lane_reversal, *portb, *portc, *portd;
+
+	display = (val & (1<<7)) ? "disabled" : "enabled";
+	crt = (val & (1<<6)) ? "yes" : "no";
+	lane_reversal = (val & (1<<4)) ? "yes" : "no";
+	portb = (val & (1<<2)) ? "yes" : "no";
+	portc = (val & (1<<1)) ? "yes" : "no";
+	portd = (val & (1<<0)) ? "yes" : "no";
+
+	snprintf(result, len, "display %s, crt %s, lane reversal %s, "
+		 "port b %s, port c %s, port d %s", display, crt, lane_reversal,
+		 portb, portc, portd);
+}
+
+DEBUGSTRING(hsw_debug_pipe_ddi_func_ctl)
+{
+	const char *enable, *port, *mode, *bpc, *vsync, *hsync, *edp_input;
+	const char *width;
+
+	enable = (val & (1<<31)) ? "enabled" : "disabled";
+
+	switch ((val >> 28) & 7) {
+	case 0:
+		port = "no port";
+		break;
+	case 1:
+		port = "DDIB";
+		break;
+	case 2:
+		port = "DDIC";
+		break;
+	case 3:
+		port = "DDID";
+		break;
+	case 4:
+		port = "DDIE";
+		break;
+	default:
+		port = "port reserved";
+		break;
+	}
+
+	switch ((val >> 24) & 7) {
+	case 0:
+		mode = "HDMI";
+		break;
+	case 1:
+		mode = "DVI";
+		break;
+	case 2:
+		mode = "DP SST";
+		break;
+	case 3:
+		mode = "DP MST";
+		break;
+	case 4:
+		mode = "FDI";
+		break;
+	case 5:
+		mode = "mode reserved";
+		break;
+	}
+
+	switch ((val >> 20) & 7) {
+	case 0:
+		bpc = "8 bpc";
+		break;
+	case 1:
+		bpc = "10 bpc";
+		break;
+	case 2:
+		bpc = "6 bpc";
+		break;
+	case 3:
+		bpc = "12 bpc";
+		break;
+	default:
+		bpc = "bpc reserved";
+		break;
+	}
+
+	hsync = (val & (1<<16)) ? "+HSync" : "-HSync";
+	vsync = (val & (1<<17)) ? "+VSync" : "-VSync";
+
+	switch ((val >> 12) & 7) {
+	case 0:
+		edp_input = "EDP A ON";
+		break;
+	case 4:
+		edp_input = "EDP A ONOFF";
+		break;
+	case 5:
+		edp_input = "EDP B ONOFF";
+		break;
+	case 6:
+		edp_input = "EDP C ONOFF";
+		break;
+	default:
+		edp_input = "EDP input reserved";
+		break;
+	}
+
+	switch ((val >> 1) & 7) {
+	case 0:
+		width = "x1";
+		break;
+	case 1:
+		width = "x2";
+		break;
+	case 3:
+		width = "x4";
+		break;
+	default:
+		width = "reserved width";
+		break;
+	}
+
+	snprintf(result, len, "%s, %s, %s, %s, %s, %s, %s, %s", enable,
+		 port, mode, bpc, vsync, hsync, edp_input, width);
+}
+
 static struct reg_debug ironlake_debug_regs[] = {
 	DEFINEREG(PGETBL_CTL),
 	DEFINEREG(GEN6_INSTDONE_1),
@@ -1846,10 +2058,10 @@ static struct reg_debug haswell_debug_regs[] = {
 	DEFINEREG(HSW_PWR_WELL_CTL6),
 
 	/* DDI pipe function */
-	DEFINEREG(PIPE_DDI_FUNC_CTL_A),
-	DEFINEREG(PIPE_DDI_FUNC_CTL_B),
-	DEFINEREG(PIPE_DDI_FUNC_CTL_C),
-	DEFINEREG(PIPE_DDI_FUNC_CTL_EDP),
+	DEFINEREG2(PIPE_DDI_FUNC_CTL_A, hsw_debug_pipe_ddi_func_ctl),
+	DEFINEREG2(PIPE_DDI_FUNC_CTL_B, hsw_debug_pipe_ddi_func_ctl),
+	DEFINEREG2(PIPE_DDI_FUNC_CTL_C, hsw_debug_pipe_ddi_func_ctl),
+	DEFINEREG2(PIPE_DDI_FUNC_CTL_EDP, hsw_debug_pipe_ddi_func_ctl),
 
 	/* DP transport control */
 	DEFINEREG(DP_TP_CTL_A),
@@ -1865,11 +2077,11 @@ static struct reg_debug haswell_debug_regs[] = {
 	DEFINEREG(DP_TP_STATUS_E),
 
 	/* DDI buffer control */
-	DEFINEREG(DDI_BUF_CTL_A),
-	DEFINEREG(DDI_BUF_CTL_B),
-	DEFINEREG(DDI_BUF_CTL_C),
-	DEFINEREG(DDI_BUF_CTL_D),
-	DEFINEREG(DDI_BUF_CTL_E),
+	DEFINEREG2(DDI_BUF_CTL_A, hsw_debug_ddi_buf_ctl),
+	DEFINEREG2(DDI_BUF_CTL_B, hsw_debug_ddi_buf_ctl),
+	DEFINEREG2(DDI_BUF_CTL_C, hsw_debug_ddi_buf_ctl),
+	DEFINEREG2(DDI_BUF_CTL_D, hsw_debug_ddi_buf_ctl),
+	DEFINEREG2(DDI_BUF_CTL_E, hsw_debug_ddi_buf_ctl),
 
 	/* Clocks */
 	DEFINEREG(SPLL_CTL),
@@ -1878,16 +2090,16 @@ static struct reg_debug haswell_debug_regs[] = {
 	DEFINEREG(WRPLL_CTL2),
 
 	/* DDI port clock control */
-	DEFINEREG(PORT_CLK_SEL_A),
-	DEFINEREG(PORT_CLK_SEL_B),
-	DEFINEREG(PORT_CLK_SEL_C),
-	DEFINEREG(PORT_CLK_SEL_D),
-	DEFINEREG(PORT_CLK_SEL_E),
+	DEFINEREG2(PORT_CLK_SEL_A, hsw_debug_port_clk_sel),
+	DEFINEREG2(PORT_CLK_SEL_B, hsw_debug_port_clk_sel),
+	DEFINEREG2(PORT_CLK_SEL_C, hsw_debug_port_clk_sel),
+	DEFINEREG2(PORT_CLK_SEL_D, hsw_debug_port_clk_sel),
+	DEFINEREG2(PORT_CLK_SEL_E, hsw_debug_port_clk_sel),
 
 	/* Pipe clock control */
-	DEFINEREG(PIPE_CLK_SEL_A),
-	DEFINEREG(PIPE_CLK_SEL_B),
-	DEFINEREG(PIPE_CLK_SEL_C),
+	DEFINEREG2(PIPE_CLK_SEL_A, hsw_debug_pipe_clk_sel),
+	DEFINEREG2(PIPE_CLK_SEL_B, hsw_debug_pipe_clk_sel),
+	DEFINEREG2(PIPE_CLK_SEL_C, hsw_debug_pipe_clk_sel),
 
 	/* Pipe line time */
 	DEFINEREG(PIPE_WM_LINETIME_A),
@@ -1895,7 +2107,7 @@ static struct reg_debug haswell_debug_regs[] = {
 	DEFINEREG(PIPE_WM_LINETIME_C),
 
 	/* Fuses */
-	DEFINEREG(SFUSE_STRAP),
+	DEFINEREG2(SFUSE_STRAP, hsw_debug_sfuse_strap),
 
 	/* Pipe A */
 	DEFINEREG2(PIPEASRC, i830_debug_yxminus1),
