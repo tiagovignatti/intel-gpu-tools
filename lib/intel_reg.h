@@ -3752,6 +3752,18 @@ typedef enum {
 #define  LCPLL_CD2X_CLOCK_DISABLE	(1<<23)
 
 /* Pipe WM_LINETIME - watermark line time */
+#define WM_PIPE_A			0x45100
+#define WM_PIPE_B			0x45104
+#define WM_PIPE_C			0x45200
+#define WM_LP1				0x45108
+#define WM_LP2				0x4510C
+#define WM_LP3				0x45110
+#define WM_LP1_SPR			0x45120
+#define WM_LP2_SPR			0x45124
+#define WM_LP3_SPR			0x45128
+#define WM_MISC				0x45260
+#define WM_SR_CNT			0x45264
+#define WM_DBG				0x45270
 #define PIPE_WM_LINETIME_A		0x45270
 #define PIPE_WM_LINETIME_B		0x45274
 #define PIPE_WM_LINETIME_C		0x45278

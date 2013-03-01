@@ -1783,6 +1783,18 @@ DEBUGSTRING(hsw_debug_pipe_ddi_func_ctl)
 		 port, mode, bpc, vsync, hsync, edp_input, width);
 }
 
+DEBUGSTRING(hsw_debug_wm_pipe)
+{
+	uint32_t primary, sprite, cursor;
+
+	primary = (val >> 16) & 0x7F;
+	sprite = (val >> 8) & 0x7F;
+	cursor = val & 0x3F;
+
+	snprintf(result, len, "primary %d, sprite %d, pipe %d", primary,
+		 sprite, cursor);
+}
+
 static struct reg_debug ironlake_debug_regs[] = {
 	DEFINEREG(PGETBL_CTL),
 	DEFINEREG(GEN6_INSTDONE_1),
@@ -2101,10 +2113,22 @@ static struct reg_debug haswell_debug_regs[] = {
 	DEFINEREG2(PIPE_CLK_SEL_B, hsw_debug_pipe_clk_sel),
 	DEFINEREG2(PIPE_CLK_SEL_C, hsw_debug_pipe_clk_sel),
 
-	/* Pipe line time */
+	/* Watermarks */
+	DEFINEREG2(WM_PIPE_A, hsw_debug_wm_pipe),
+	DEFINEREG2(WM_PIPE_B, hsw_debug_wm_pipe),
+	DEFINEREG2(WM_PIPE_C, hsw_debug_wm_pipe),
+	DEFINEREG(WM_LP1),
+	DEFINEREG(WM_LP2),
+	DEFINEREG(WM_LP3),
+	DEFINEREG(WM_LP1_SPR),
+	DEFINEREG(WM_LP2_SPR),
+	DEFINEREG(WM_LP3_SPR),
+	DEFINEREG(WM_MISC),
+	DEFINEREG(WM_SR_CNT),
 	DEFINEREG(PIPE_WM_LINETIME_A),
 	DEFINEREG(PIPE_WM_LINETIME_B),
 	DEFINEREG(PIPE_WM_LINETIME_C),
+	DEFINEREG(WM_DBG),
 
 	/* Fuses */
 	DEFINEREG2(SFUSE_STRAP, hsw_debug_sfuse_strap),
