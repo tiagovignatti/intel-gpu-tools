@@ -2326,8 +2326,12 @@ int main(int argc, char** argv)
 		if (devid) {
 			if (IS_GEN5(devid))
 				pch = PCH_IBX;
-			else
+			else if (IS_GEN6(devid) || IS_IVYBRIDGE(devid))
 				pch = PCH_CPT;
+			else if (IS_HASWELL(devid))
+				pch = PCH_LPT;
+			else
+				pch = PCH_NONE;
 		} else {
 			printf("Dumping from file without -d argument. "
 			       "Assuming Ironlake machine.\n");
