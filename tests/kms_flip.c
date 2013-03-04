@@ -60,6 +60,7 @@
 #define TEST_RMFB		(1 << 13)
 #define TEST_HANG		(1 << 14)
 #define TEST_NOEVENT		(1 << 15)
+#define TEST_FB_BAD_TILING	(1 << 16)
 
 #define EVENT_FLIP		(1 << 0)
 #define EVENT_VBLANK		(1 << 1)
@@ -121,9 +122,9 @@ struct test_output {
 	unsigned int current_fb_id;
 	unsigned int fb_width;
 	unsigned int fb_height;
-	unsigned int fb_ids[2];
+	unsigned int fb_ids[3];
 	int bpp, depth;
-	struct kmstest_fb fb_info[2];
+	struct kmstest_fb fb_info[3];
 
 	struct event_state flip_state;
 	struct event_state vblank_state;
@@ -498,6 +499,20 @@ static void recreate_fb(struct test_output *o)
 	o->fb_info[o->current_fb_id].fb_id = new_fb_id;
 }
 
+static void set_y_tiling(struct test_output *o, int fb_idx)
+{
+	drmModeFBPtr r;
+	struct kmstest_fb *fb_info = &o->fb_info[fb_idx];
+
+	/* Call rmfb/getfb/addfb to ensure those don't introduce stalls */
+	r = drmModeGetFB(drm_fd, fb_info->fb_id);
+	assert(r);
+	gem_set_tiling(drm_fd, r->handle, I915_TILING_Y, fb_info->stride);
+	gem_close(drm_fd, r->handle);
+	drmFree(r);
+}
+
+
 static int exec_nop(int fd, uint32_t handle)
 {
 	struct drm_i915_gem_execbuffer2 execbuf;
@@ -602,6 +617,9 @@ static unsigned int run_test_step(struct test_output *o)
 		recreate_fb(o);
 	new_fb_id = o->fb_ids[o->current_fb_id];
 
+	if (o->flags & TEST_FB_BAD_TILING)
+		new_fb_id = o->fb_ids[2];
+
 	if ((o->flags & TEST_VBLANK_EXPIRED_SEQ) &&
 	    !(o->pending_events & EVENT_VBLANK) && o->flip_state.count > 0) {
 		struct vblank_reply reply;
@@ -620,6 +638,9 @@ static unsigned int run_test_step(struct test_output *o)
 
 	if (do_flip && (o->flags & TEST_EINVAL) && o->flip_state.count > 0)
 		assert(do_page_flip(o, new_fb_id, true) == expected_einval);
+
+	if (o->flags & TEST_FB_BAD_TILING)
+		new_fb_id = o->fb_ids[o->current_fb_id];
 
 	if (do_vblank && (o->flags & TEST_EINVAL) && o->vblank_state.count > 0)
 		assert(do_wait_for_vblank(o, o->pipe, target_seq, &vbl_reply)
@@ -701,7 +722,7 @@ static unsigned int run_test_step(struct test_output *o)
 		assert(do_wait_for_vblank(o, o->pipe, target_seq, &vbl_reply)
 		       == -EINVAL);
 
-	if (do_flip && (o->flags & TEST_EINVAL))
+	if (do_flip && (o->flags & TEST_EINVAL) && !(o->flags & TEST_FB_BAD_TILING))
 		assert(do_page_flip(o, new_fb_id, true) == expected_einval);
 
 	if (do_flip && (o->flags & TEST_HANG)) {
@@ -973,11 +994,16 @@ static void run_test_on_crtc(struct test_output *o, int crtc, int duration)
 	o->fb_ids[1] = kmstest_create_fb(drm_fd, o->fb_width, o->fb_height,
 					 o->bpp, o->depth, false, &o->fb_info[1],
 					 paint_flip_mode, (void *)true);
+	o->fb_ids[2] = kmstest_create_fb(drm_fd, o->fb_width, o->fb_height,
+					 o->bpp, o->depth, true, &o->fb_info[2],
+					 paint_flip_mode, (void *)true);
 
-	if (!o->fb_ids[0] || !o->fb_ids[1]) {
+	if (!o->fb_ids[0] || !o->fb_ids[1] || !o->fb_ids[2]) {
 		fprintf(stderr, "failed to create fbs\n");
 		exit(3);
 	}
+
+	set_y_tiling(o, 2);
 
 	kmstest_dump_mode(&o->mode);
 	if (drmModeSetCrtc(drm_fd, o->crtc, o->fb_ids[0], 0, 0,
@@ -1016,6 +1042,7 @@ static void run_test_on_crtc(struct test_output *o, int crtc, int duration)
 	fprintf(stdout, "\n%s on crtc %d, connector %d: PASSED\n\n",
 		o->test_name, crtc, o->id);
 
+	kmstest_remove_fb(drm_fd, o->fb_ids[2]);
 	kmstest_remove_fb(drm_fd, o->fb_ids[1]);
 	kmstest_remove_fb(drm_fd, o->fb_ids[0]);
 
@@ -1113,6 +1140,7 @@ int main(int argc, char **argv)
 			TEST_CHECK_TS, "flip-vs-blocking-wf-vblank" },
 		{ 15, TEST_FLIP | TEST_MODESET | TEST_HANG | TEST_NOEVENT, "flip-vs-modeset-vs-hang" },
 		{ 15, TEST_FLIP | TEST_PAN | TEST_HANG, "flip-vs-panning-vs-hang" },
+		{ 1, TEST_FLIP | TEST_EINVAL | TEST_FB_BAD_TILING, "flip-vs-bad-tiling" },
 	};
 	int i;
 
