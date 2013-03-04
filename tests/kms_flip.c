@@ -491,8 +491,8 @@ static void recreate_fb(struct test_output *o)
 			       o->bpp, fb_info->stride,
 			       r->handle, &new_fb_id));
 
-	drmFree(r);
 	gem_close(drm_fd, r->handle);
+	drmFree(r);
 	do_or_die(drmModeRmFB(drm_fd, fb_info->fb_id));
 
 	o->fb_ids[o->current_fb_id] = new_fb_id;
