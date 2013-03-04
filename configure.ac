@@ -150,7 +150,7 @@ if test "x$BUILD_SHADER_DEBUGGER" != xno; then
 fi
 
 AM_CONDITIONAL(BUILD_SHADER_DEBUGGER, [test "x$BUILD_SHADER_DEBUGGER" != xno])
-AS_IF([test "x$BUILD_SHADER_DEBUGGER" != no],
+AS_IF([test "x$BUILD_SHADER_DEBUGGER" != xno],
       [enable_debugger=yes], [enable_debugger=no])
 
 # -----------------------------------------------------------------------------
