@@ -45,6 +45,7 @@ gem_pipe_control_store_loop
 gem_pread_after_blit
 gem_pwrite
 gem_readwrite
+gem_reloc_overflow
 gem_reloc_vs_gpu
 gem_reg_read
 gem_render_linear_blits

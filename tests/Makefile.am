@@ -84,6 +84,7 @@ TESTS_progs = \
 	gem_pipe_control_store_loop \
 	gem_unfence_active_buffers \
 	gem_unref_active_buffers \
+	gem_reloc_overflow \
 	gem_reloc_vs_gpu \
 	drm_vma_limiter \
 	drm_vma_limiter_cpu \
