@@ -530,6 +530,8 @@ void drmtest_subtest_init(int argc, char **argv)
 
 	/* supress getopt errors about unknown options */
 	opterr = 0;
+	/* restrict the option parsing to long option names to avoid collisions
+	 * with options the test declares */
 	while((c = getopt_long(argc, argv, "",
 			       long_options, &option_index)) != -1) {
 		switch(c) {
