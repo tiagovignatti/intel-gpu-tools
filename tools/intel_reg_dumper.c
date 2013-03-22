@@ -1795,6 +1795,19 @@ DEBUGSTRING(hsw_debug_wm_pipe)
 		 sprite, cursor);
 }
 
+DEBUGSTRING(hsw_debug_sinterrupt)
+{
+	int portd, portc, portb, crt;
+
+	portd = (val >> 23) & 1;
+	portc = (val >> 22) & 1;
+	portb = (val >> 21) & 1;
+	crt = (val >> 19) & 1;
+
+	snprintf(result, len, "port d:%d, port c:%d, port b:%d, crt:%d",
+		 portd, portc, portb, crt);
+}
+
 static struct reg_debug ironlake_debug_regs[] = {
 	DEFINEREG(PGETBL_CTL),
 	DEFINEREG(GEN6_INSTDONE_1),
@@ -2252,6 +2265,8 @@ static struct reg_debug haswell_debug_regs[] = {
 	DEFINEREG(PCH_PP_DIVISOR),
 
 	DEFINEREG(PIXCLK_GATE),
+
+	DEFINEREG2(SDEISR, hsw_debug_sinterrupt),
 
 	DEFINEREG(RC6_RESIDENCY_TIME),
 };
