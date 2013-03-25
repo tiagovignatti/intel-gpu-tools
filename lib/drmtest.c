@@ -699,14 +699,14 @@ static bool env_set(const char *env_var)
 	return atoi(val) != 0;
 }
 
-bool drmtest_run_quick(void)
+bool drmtest_run_in_simulation(void)
 {
-	static int run_quick = -1;
+	static int simulation = -1;
 
-	if (run_quick == -1)
-		run_quick = env_set("IGT_QUICK");
+	if (simulation == -1)
+		simulation = env_set("INTEL_SIMULATION");
 
-	return run_quick;
+	return simulation;
 }
 
 /* other helpers */

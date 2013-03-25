@@ -93,8 +93,8 @@ void drmtest_subtest_init(int argc, char **argv);
 bool drmtest_run_subtest(const char *subtest_name);
 bool drmtest_only_list_subtests(void);
 
-bool drmtest_run_quick(void);
-#define SLOW_QUICK(slow,quick) (drmtest_run_quick() ? (quick) : (slow))
+bool drmtest_run_in_simulation(void);
+#define SLOW_QUICK(slow,quick) (drmtest_run_in_simulation() ? (quick) : (slow))
 
 /* helpers based upon the libdrm buffer manager */
 void drmtest_init_aperture_trashers(drm_intel_bufmgr *bufmgr);
