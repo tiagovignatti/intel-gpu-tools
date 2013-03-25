@@ -150,6 +150,9 @@ static void run_test(int count)
 	for (i = 0; i < count; i++)
 		check_bo(bo[i], bo_start_val[i]);
 
+	if (drmtest_run_in_simulation())
+		return;
+
 	printf("Cyclic blits, backward...\n");
 	for (i = 0; i < count * 4; i++) {
 		int src = (i+1) % count;
@@ -192,6 +195,8 @@ int main(int argc, char **argv)
 	fd = drm_open_any();
 
 	if (!drmtest_only_list_subtests()) {
+		if (drmtest_run_in_simulation())
+			count = 2;
 		if (argc > 1)
 			count = atoi(argv[1]);
 		if (count == 0) {

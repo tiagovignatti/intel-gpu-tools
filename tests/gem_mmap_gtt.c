@@ -40,7 +40,7 @@
 #include "i915_drm.h"
 #include "drmtest.h"
 
-#define OBJECT_SIZE (16*1024*1024)
+static int OBJECT_SIZE = 16*1024*1024;
 
 static void set_domain(int fd, uint32_t handle)
 {
@@ -147,6 +147,9 @@ test_read(int fd)
 int main(int argc, char **argv)
 {
 	int fd;
+
+	if (drmtest_run_in_simulation())
+		OBJECT_SIZE = 1 * 1024 * 1024;
 
 	drmtest_subtest_init(argc, argv);
 

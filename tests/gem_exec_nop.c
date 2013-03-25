@@ -96,7 +96,7 @@ static void loop(int fd, uint32_t handle, unsigned ring_id, const char *ring_nam
 
 	skipped_all = false;
 
-	for (count = 1; count <= 1<<17; count <<= 1) {
+	for (count = 1; count <= SLOW_QUICK(1<<17, 1<<4); count <<= 1) {
 		struct timeval start, end;
 
 		gettimeofday(&start, NULL);

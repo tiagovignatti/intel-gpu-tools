@@ -143,6 +143,11 @@ int main(int argc, char *argv[])
 	fd = drm_open_any();
 	devid = intel_get_drm_devid(fd);
 
+	if (drmtest_run_in_simulation()) {
+		num_contexts = 2;
+		iter = 4;
+	}
+
 	parse(argc, argv);
 
 	threads = calloc(num_contexts, sizeof(*threads));

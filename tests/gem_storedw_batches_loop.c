@@ -60,7 +60,7 @@ store_dword_loop(int divider)
 	if (!has_ppgtt)
 		cmd |= MI_MEM_VIRTUAL;
 
-	for (i = 0; i < SLOW_QUICK(0x80000, 0x10); i++) {
+	for (i = 0; i < SLOW_QUICK(0x80000, 4); i++) {
 		cmd_bo = drm_intel_bo_alloc(bufmgr, "cmd bo", 4096, 4096);
 		if (!cmd_bo) {
 			fprintf(stderr, "failed to alloc cmd bo\n");
@@ -172,8 +172,10 @@ int main(int argc, char **argv)
 
 	store_dword_loop(1);
 	store_dword_loop(2);
-	store_dword_loop(3);
-	store_dword_loop(5);
+	if (!drmtest_run_in_simulation()) {
+		store_dword_loop(3);
+		store_dword_loop(5);
+	}
 
 	drm_intel_bo_unreference(target_bo);
 	drm_intel_bufmgr_destroy(bufmgr);

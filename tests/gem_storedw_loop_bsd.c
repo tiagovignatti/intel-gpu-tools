@@ -156,8 +156,10 @@ int main(int argc, char **argv)
 
 	store_dword_loop(1);
 	store_dword_loop(2);
-	store_dword_loop(3);
-	store_dword_loop(5);
+	if (!drmtest_run_in_simulation()) {
+		store_dword_loop(3);
+		store_dword_loop(5);
+	}
 
 	drm_intel_bo_unreference(target_buffer);
 	intel_batchbuffer_free(batch);

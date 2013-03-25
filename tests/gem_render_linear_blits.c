@@ -81,8 +81,11 @@ int main(int argc, char **argv)
 	batch = intel_batchbuffer_alloc(bufmgr, intel_get_drm_devid(fd));
 
 	count = 0;
+	if (drmtest_run_in_simulation())
+		count = 2;
 	if (argc > 1)
 		count = atoi(argv[1]);
+
 	if (count == 0)
 		count = 3 * gem_aperture_size(fd) / SIZE / 2;
 	else if (count < 2) {
@@ -126,6 +129,9 @@ int main(int argc, char **argv)
 	}
 	for (i = 0; i < count; i++)
 		check_bo(fd, bo[i]->handle, start_val[i]);
+
+	if (drmtest_run_in_simulation())
+		return 0;
 
 	printf("Cyclic blits, backward...\n");
 	for (i = 0; i < count * 4; i++) {

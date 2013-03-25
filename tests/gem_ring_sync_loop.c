@@ -63,7 +63,7 @@ store_dword_loop(int fd)
 
 	srandom(0xdeadbeef);
 
-	for (i = 0; i < 0x100000; i++) {
+	for (i = 0; i < SLOW_QUICK(0x100000, 10); i++) {
 		int ring = random() % num_rings + 1;
 
 		if (ring == I915_EXEC_RENDER) {

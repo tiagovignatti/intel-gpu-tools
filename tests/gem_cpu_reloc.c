@@ -153,6 +153,9 @@ int main(int argc, char **argv)
 	}
 
 	count = aper_size / 4096 * 2;
+	if (drmtest_run_in_simulation())
+		count = 10;
+
 	handles = malloc (count * sizeof(uint32_t));
 	assert(handles);
 

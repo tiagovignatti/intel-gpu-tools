@@ -70,7 +70,7 @@ store_pipe_control_loop(void)
 	uint32_t *buf;
 	drm_intel_bo *target_bo;
 
-	for (i = 0; i < 0x10000; i++) {
+	for (i = 0; i < SLOW_QUICK(0x10000, 4); i++) {
 		/* we want to check tlb consistency of the pipe_control target,
 		 * so get a new buffer every time around */
 		target_bo = drm_intel_bo_alloc(bufmgr, "target bo", 4096, 4096);
