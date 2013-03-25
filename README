@@ -27,17 +27,17 @@ tests/
 	Run this tests with "make test" as root from this directory. Note that
 	no other drm clients (X server) may run.
 
-	"make test" only runs a default of test usefull for regression testing.
-	Other tests not run are:
+	"make test" only runs a default set of tests and is useful for
+	regression testing. Other tests not run are:
 	- tests that might hang the gpu, see HANG in Makefile.am
 	- gem_stress, a stress test suite. Look at the source for all the
 	  various options.
 	- testdisplay is only run in the default mode. testdisplay has tons of
-	  options to test different kms functionality, again read the source of
+	  options to test different kms functionality, again read the source for
 	  the details.
 
 	The more comfortable way to run tests is with piglit. First grab piglit
-	from
+	from:
 
 	git://anongit.freedesktop.org/piglit
 
