@@ -143,7 +143,7 @@ TESTS = \
 	$(NULL)
 
 test:
-	@whoami | grep root || ( echo ERROR: not running as root; exit 1 )
+	@whoami | grep -q root || ( echo ERROR: not running as root; exit 1 )
 	@./check_drm_clients
 	@make TESTS="${kernel_tests}" check
 
