@@ -22,6 +22,7 @@ TESTS_progs_M = \
 	gem_dummy_reloc_loop \
 	gem_exec_bad_domains \
 	gem_exec_nop \
+	gem_fence_thrash \
 	gem_flink \
 	gem_gtt_concurrent_blit \
 	gem_mmap_gtt \
@@ -62,7 +63,6 @@ TESTS_progs = \
 	gem_tiled_fence_blits \
 	gem_largeobject \
 	gem_bad_length \
-	gem_fence_thrash \
 	gem_fenced_exec_thrash \
 	gem_gtt_speed \
 	gem_gtt_cpu_tlb \
