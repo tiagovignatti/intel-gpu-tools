@@ -55,15 +55,21 @@
  * when copying between two buffers and thus constantly swapping fences.
  */
 
+struct test {
+	int fd;
+	int tiling;
+	int num_surfaces;
+};
+
 static void *
-bo_create (int fd)
+bo_create (int fd, int tiling)
 {
 	void *ptr;
 	int handle;
 
 	handle = gem_create(fd, OBJECT_SIZE);
 
-	gem_set_tiling(fd, handle, I915_TILING_X, 1024);
+	gem_set_tiling(fd, handle, tiling, 1024);
 
 	ptr = gem_mmap(fd, handle, OBJECT_SIZE, PROT_READ | PROT_WRITE);
 
@@ -76,12 +82,13 @@ bo_create (int fd)
 static void *
 bo_copy (void *_arg)
 {
-	int fd = *(int *)_arg;
+	struct test *t = (struct test *)_arg;
+	int fd = t->fd;
 	int n;
 	char *a, *b;
 
-	a = bo_create (fd);
-	b = bo_create (fd);
+	a = bo_create (fd, t->tiling);
+	b = bo_create (fd, t->tiling);
 
 	for (n = 0; n < 1000; n++) {
 		memcpy (a, b, OBJECT_SIZE);
@@ -91,31 +98,131 @@ bo_copy (void *_arg)
 	return NULL;
 }
 
-int
-main(int argc, char **argv)
+static void
+_bo_write_verify(struct test *t)
 {
-	drm_i915_getparam_t gp;
-	pthread_t threads[32];
-	int n, num_fences;
-	int fd, ret;
+	int fd = t->fd;
+	int i, k;
+	volatile uint32_t **s;
+	uint32_t v;
+	unsigned int dwords = OBJECT_SIZE >> 2;
+	const char *tile_str[] = { "none", "x", "y" };
 
-	fd = drm_open_any();
+	assert (t->tiling >= 0 && t->tiling <= I915_TILING_Y);
+	assert (t->num_surfaces > 0);
+
+	s = calloc(sizeof(**s), t->num_surfaces);
+
+	for (k = 0; k < t->num_surfaces; k++) {
+		s[k] = bo_create(fd, t->tiling);
+	}
+
+	for (k = 0; k < t->num_surfaces; k++) {
+		volatile uint32_t *a = s[k];
+
+		for (i = 0; i < dwords; i++) {
+			a[i] = i;
+			v = a[i];
+			if (v != i) {
+				printf("tiling %s: write failed at %d (%x)\n",
+				       tile_str[t->tiling], i, v);
+				_exit(-1);
+			}
+		}
+
+		for (i = 0; i < dwords; i++) {
+			v = a[i];
+			if (v != i) {
+				printf("tiling %s: verify failed at %d (%x)\n",
+				       tile_str[t->tiling], i, v);
+				exit(-2);
+			}
+		}
+	}
+
+	free(s);
+}
+
+static void *
+bo_write_verify(void *_arg)
+{
+	struct test *t = (struct test *)_arg;
+	int i;
+
+	for (i = 0; i < 10; i++)
+		_bo_write_verify(t);
+
+	return 0;
+}
+
+static int run_test(int threads_per_fence, void *f, int tiling,
+		    int surfaces_per_thread)
+{
+	struct test t;
+	drm_i915_getparam_t gp;
+	pthread_t *threads;
+	int n, num_fences, num_threads;
+	int ret;
+
+	t.fd = drm_open_any();
+	t.tiling = tiling;
+	t.num_surfaces = surfaces_per_thread;
 
 	gp.param = I915_PARAM_NUM_FENCES_AVAIL;
 	gp.value = &num_fences;
-	ret = ioctl(fd, DRM_IOCTL_I915_GETPARAM, &gp);
+	ret = ioctl(t.fd, DRM_IOCTL_I915_GETPARAM, &gp);
 	assert (ret == 0);
 
-	printf ("creating %d threads\n", num_fences);
-	assert (num_fences < sizeof (threads) / sizeof (threads[0]));
+	num_threads = threads_per_fence * num_fences;
 
-	for (n = 0; n < num_fences; n++)
-		pthread_create (&threads[n], NULL, bo_copy, &fd);
+	printf("%s: threads %d, fences %d, tiling %d, surfaces per thread %d\n",
+	       f == bo_copy ? "copy" : "write-verify", num_threads,
+	       num_fences, tiling, surfaces_per_thread);
 
-	for (n = 0; n < num_fences; n++)
-		pthread_join (threads[n], NULL);
+	if (threads_per_fence) {
+		threads = calloc(sizeof(*threads), num_threads);
+		assert  (threads != NULL);
 
-	close(fd);
+		for (n = 0; n < num_threads; n++)
+			pthread_create (&threads[n], NULL, f, &t);
+
+		for (n = 0; n < num_threads; n++)
+			pthread_join (threads[n], NULL);
+	} else {
+		void *(*func)(void *) = f;
+		assert(func(&t) == (void *)0);
+	}
+
+	close(t.fd);
+
+	return 0;
+}
+
+int
+main(int argc, char **argv)
+{
+	drmtest_subtest_init(argc, argv);
+
+	if (drmtest_run_subtest("bo-write-verify-none"))
+		assert (run_test(0, bo_write_verify, I915_TILING_NONE, 80) == 0);
+
+	if (drmtest_run_subtest("bo-write-verify-x"))
+		assert (run_test(0, bo_write_verify, I915_TILING_X, 80) == 0);
+
+	if (drmtest_run_subtest("bo-write-verify-y"))
+		assert (run_test(0, bo_write_verify, I915_TILING_Y, 80) == 0);
+
+	if (drmtest_run_subtest("bo-write-verify-threaded-none"))
+		assert (run_test(5, bo_write_verify, I915_TILING_NONE, 2) == 0);
+
+	if (drmtest_run_subtest("bo-write-verify-threaded-x"))
+		assert (run_test(5, bo_write_verify, I915_TILING_X, 2) == 0);
+
+	if (drmtest_run_subtest("bo-write-verify-threaded-y"))
+		assert (run_test(5, bo_write_verify, I915_TILING_Y, 2) == 0);
+
+	if (drmtest_run_subtest("bo-copy"))
+		assert(run_test(1, bo_copy, I915_TILING_X, 1) == 0);
 
 	return 0;
 }
