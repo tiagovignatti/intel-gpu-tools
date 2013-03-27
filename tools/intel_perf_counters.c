@@ -37,9 +37,9 @@
 #include "intel_bufmgr.h"
 #include "intel_batchbuffer.h"
 
-#define COUNTER_COUNT 29
+#define GEN5_COUNTER_COUNT 29
 
-const char *counter_name[COUNTER_COUNT] = {
+const char *gen5_counter_names[GEN5_COUNTER_COUNT] = {
 	"cycles the CS unit is starved",
 	"cycles the CS unit is stalled",
 	"cycles the VF unit is starved",
@@ -72,13 +72,13 @@ const char *counter_name[COUNTER_COUNT] = {
 };
 
 int have_totals = 0;
-uint32_t totals[COUNTER_COUNT];
-uint32_t last_counter[COUNTER_COUNT];
+uint32_t *totals;
+uint32_t *last_counter;
 static drm_intel_bufmgr *bufmgr;
 struct intel_batchbuffer *batch;
 
 /* DW0 */
-#define MI_REPORT_PERF_COUNT ((0x26 << 23) | (3 - 2))
+#define GEN5_MI_REPORT_PERF_COUNT ((0x26 << 23) | (3 - 2))
 #define MI_COUNTER_SET_0	(0 << 6)
 #define MI_COUNTER_SET_1	(1 << 6)
 /* DW1 */
@@ -86,7 +86,7 @@ struct intel_batchbuffer *batch;
 /* DW2: report ID */
 
 static void
-get_counters(void)
+gen5_get_counters(void)
 {
 	int i;
 	drm_intel_bo *stats_bo;
@@ -95,13 +95,13 @@ get_counters(void)
 	stats_bo = drm_intel_bo_alloc(bufmgr, "stats", 4096, 4096);
 
 	BEGIN_BATCH(6);
-	OUT_BATCH(MI_REPORT_PERF_COUNT | MI_COUNTER_SET_0);
+	OUT_BATCH(GEN5_MI_REPORT_PERF_COUNT | MI_COUNTER_SET_0);
 	OUT_RELOC(stats_bo,
 		  I915_GEM_DOMAIN_INSTRUCTION, I915_GEM_DOMAIN_INSTRUCTION,
 		  0);
 	OUT_BATCH(0);
 
-	OUT_BATCH(MI_REPORT_PERF_COUNT | MI_COUNTER_SET_1);
+	OUT_BATCH(GEN5_MI_REPORT_PERF_COUNT | MI_COUNTER_SET_1);
 	OUT_RELOC(stats_bo,
 		  I915_GEM_DOMAIN_INSTRUCTION, I915_GEM_DOMAIN_INSTRUCTION,
 		  64);
@@ -115,7 +115,7 @@ get_counters(void)
 	stats_result = stats_bo->virtual;
 	/* skip REPORT_ID, TIMESTAMP */
 	stats_result += 3;
-	for (i = 0 ; i < COUNTER_COUNT; i++) {
+	for (i = 0 ; i < GEN5_COUNTER_COUNT; i++) {
 		totals[i] += stats_result[i] - last_counter[i];
 		last_counter[i] = stats_result[i];
 	}
@@ -131,6 +131,9 @@ int
 main(int argc, char **argv)
 {
 	uint32_t devid;
+	int counter_count;
+	const char **counter_name;
+	void (*get_counters)(void);
 	int i;
 	char clear_screen[] = {0x1b, '[', 'H',
 			       0x1b, '[', 'J',
@@ -145,10 +148,16 @@ main(int argc, char **argv)
 	drm_intel_bufmgr_gem_enable_reuse(bufmgr);
 	batch = intel_batchbuffer_alloc(bufmgr, devid);
 
-	if (!IS_GEN5(devid)) {
-		printf("This tool is only for Ironlake.\n");
+	if (IS_GEN5(devid)) {
+		counter_name = gen5_counter_names;
+		counter_count = GEN5_COUNTER_COUNT;
+		get_counters = gen5_get_counters;
+	} else {
+		printf("This tool is not yet supported on your platform.\n");
 		abort();
 	}
+	totals = calloc(counter_count, sizeof(uint32_t));
+	last_counter = calloc(counter_count, sizeof(uint32_t));
 
 	for (;;) {
 		for (l = 0; l < STATS_CHECK_FREQUENCY; l++) {
@@ -156,7 +165,7 @@ main(int argc, char **argv)
 
 			if (l % (STATS_CHECK_FREQUENCY / STATS_REPORT_FREQUENCY) == 0) {
 				if (have_totals) {
-					for (i = 0; i < COUNTER_COUNT; i++) {
+					for (i = 0; i < counter_count; i++) {
 						printf("%s: %u\n", counter_name[i],
 						       totals[i]);
 						totals[i] = 0;
@@ -170,6 +179,9 @@ main(int argc, char **argv)
 			usleep(1000000 / STATS_CHECK_FREQUENCY);
 		}
 	}
+
+	free(totals);
+	free(last_counter);
 
 	return 0;
 }
