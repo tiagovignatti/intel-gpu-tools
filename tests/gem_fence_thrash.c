@@ -72,6 +72,7 @@ bo_create (int fd, int tiling)
 	gem_set_tiling(fd, handle, tiling, 1024);
 
 	ptr = gem_mmap(fd, handle, OBJECT_SIZE, PROT_READ | PROT_WRITE);
+	assert(ptr);
 
 	/* XXX: mmap_gtt pulls the bo into the GTT read domain. */
 	gem_sync(fd, handle);
@@ -111,11 +112,11 @@ _bo_write_verify(struct test *t)
 	assert (t->tiling >= 0 && t->tiling <= I915_TILING_Y);
 	assert (t->num_surfaces > 0);
 
-	s = calloc(sizeof(**s), t->num_surfaces);
+	s = calloc(sizeof(*s), t->num_surfaces);
+	assert(s);
 
-	for (k = 0; k < t->num_surfaces; k++) {
+	for (k = 0; k < t->num_surfaces; k++)
 		s[k] = bo_create(fd, t->tiling);
-	}
 
 	for (k = 0; k < t->num_surfaces; k++) {
 		volatile uint32_t *a = s[k];
