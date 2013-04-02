@@ -173,13 +173,15 @@ intel_register_access_init(struct pci_device *pci_dev, int safe)
 	if (mmio_data.inited)
 		return -1;
 
+	if (intel_gen(pci_dev->device_id) >= 6)
+		goto done;
+
 	mmio_data.safe = safe != 0 ? true : false;
 	mmio_data.i915_devid = pci_dev->device_id;
-	if (mmio_data.safe)
+	if (mmio_data.safe && intel_gen(pci_dev->device_id) >= 4)
 		mmio_data.map = intel_get_register_map(mmio_data.i915_devid);
 
-	if (!(IS_GEN6(pci_dev->device_id) ||
-	      IS_GEN7(pci_dev->device_id)))
+	if (intel_gen(pci_dev->device_id) >= 6)
 		goto done;
 
 	/* Find where the forcewake lock is */
