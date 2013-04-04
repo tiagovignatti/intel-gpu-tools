@@ -3475,11 +3475,17 @@ typedef enum {
 #define HDMID	0xe1160
 #define PCH_LVDS		0xe1180
 
+/* Since IVB, the old _CTL2 is now _CTL and the old _CTL is now _DATA. */
 #define BLC_PWM_CPU_CTL2        0x48250
+#define BLC_PWM2_CPU_CTL2       0x48350
 #define  PWM_ENABLE             (1 << 31)
 #define  PWM_PIPE_A             (0 << 29)
 #define  PWM_PIPE_B             (1 << 29)
 #define BLC_PWM_CPU_CTL         0x48254
+#define BLC_PWM2_CPU_CTL        0x48354
+#define BLC_MISC_CTL            0x48360
+
+#define UTIL_PIN_CTL            0x48400
 
 #define BLC_PWM_PCH_CTL1        0xc8250
 #define  PWM_PCH_ENABLE         (1 << 31)

@@ -1808,6 +1808,141 @@ DEBUGSTRING(hsw_debug_sinterrupt)
 		 portd, portc, portb, crt);
 }
 
+DEBUGSTRING(ilk_debug_blc_pwm_cpu_ctl2)
+{
+	int enable, blinking, granularity;
+	const char *pipe;
+
+	enable = (val >> 31) & 1;
+
+	if (IS_GEN5(devid) || IS_GEN6(devid)) {
+		pipe = ((val >> 29) & 1) ? "B" : "A";
+	} else {
+		switch ((val >> 29) & 3) {
+		case 0:
+			pipe = "A";
+			break;
+		case 1:
+			pipe = "B";
+			break;
+		case 2:
+			pipe = "C";
+			break;
+		case 3:
+			if (IS_IVYBRIDGE(devid))
+				pipe = "reserved";
+			else
+				pipe = "EDP";
+			break;
+		}
+	}
+
+	if (IS_GEN5(devid) || IS_GEN6(devid) || IS_IVYBRIDGE(devid)) {
+		snprintf(result, len, "enable %d, pipe %s", enable, pipe);
+	} else {
+		blinking = (val >> 28) & 1;
+		granularity = ((val >> 27) & 1) ? 8 : 128;
+
+		snprintf(result, len, "enable %d, pipe %s, blinking %d, "
+			 "granularity %d", enable, pipe, blinking,
+			 granularity);
+	}
+}
+
+DEBUGSTRING(ilk_debug_blc_pwm_cpu_ctl)
+{
+	int cycle, freq;
+
+	cycle = (val & 0xFFFF);
+
+	if (IS_GEN5(devid) || IS_GEN6(devid) || IS_IVYBRIDGE(devid)) {
+		snprintf(result, len, "cycle %d", cycle);
+	} else {
+		freq = (val >> 16) & 0xFFFF;
+
+		snprintf(result, len, "cycle %d, freq %d", cycle, freq);
+	}
+}
+
+DEBUGSTRING(ibx_debug_blc_pwm_ctl1)
+{
+	int enable, override, inverted_polarity;
+
+	enable = (val >> 31) & 1;
+	override = (val >> 30) & 1;
+	inverted_polarity = (val >> 29) & 1;
+
+	snprintf(result, len, "enable %d, override %d, inverted polarity %d",
+		 enable, override, inverted_polarity);
+}
+
+DEBUGSTRING(ibx_debug_blc_pwm_ctl2)
+{
+	int freq, cycle;
+
+	freq = (val >> 16) & 0xFFFF;
+	cycle = val & 0xFFFF;
+
+	snprintf(result, len, "freq %d, cycle %d", freq, cycle);
+}
+
+DEBUGSTRING(hsw_debug_blc_misc_ctl)
+{
+	const char *sel;
+
+	sel = (val & 1) ? "PWM1-CPU PWM2-PCH" : "PWM1-PCH PWM2-CPU";
+
+	snprintf(result, len, "%s", sel);
+}
+
+DEBUGSTRING(hsw_debug_util_pin_ctl)
+{
+	int enable, data, inverted_polarity;
+	const char *transcoder, *mode;
+
+	enable = (val >> 31) & 1;
+
+	switch ((val >> 29) & 3) {
+	case 0:
+		transcoder = "A";
+		break;
+	case 1:
+		transcoder = "B";
+		break;
+	case 2:
+		transcoder = "C";
+		break;
+	case 3:
+		transcoder = "EDP";
+		break;
+	}
+
+	switch ((val >> 24) & 0xF) {
+	case 0:
+		mode = "data";
+		break;
+	case 1:
+		mode = "PWM";
+		break;
+	case 4:
+		mode = "Vblank";
+		break;
+	case 5:
+		mode = "Vsync";
+		break;
+	default:
+		mode = "reserved";
+		break;
+	}
+
+	data = (val >> 23) & 1;
+	inverted_polarity = (val >> 22) & 1;
+
+	snprintf(result, len, "enable %d, transcoder %s, mode %s, data %d "
+		 "inverted polarity %d", enable, transcoder, mode, data,
+		 inverted_polarity);
+}
+
 static struct reg_debug ironlake_debug_regs[] = {
 	DEFINEREG(PGETBL_CTL),
 	DEFINEREG(GEN6_INSTDONE_1),
@@ -2055,10 +2190,10 @@ static struct reg_debug ironlake_debug_regs[] = {
 	DEFINEREG2(TRANS_DP_CTL_B, snb_debug_trans_dp_ctl),
 	DEFINEREG2(TRANS_DP_CTL_C, snb_debug_trans_dp_ctl),
 
-	DEFINEREG(BLC_PWM_CPU_CTL2),
-	DEFINEREG(BLC_PWM_CPU_CTL),
-	DEFINEREG(BLC_PWM_PCH_CTL1),
-	DEFINEREG(BLC_PWM_PCH_CTL2),
+	DEFINEREG2(BLC_PWM_CPU_CTL2, ilk_debug_blc_pwm_cpu_ctl2),
+	DEFINEREG2(BLC_PWM_CPU_CTL, ilk_debug_blc_pwm_cpu_ctl),
+	DEFINEREG2(BLC_PWM_PCH_CTL1, ibx_debug_blc_pwm_ctl1),
+	DEFINEREG2(BLC_PWM_PCH_CTL2, ibx_debug_blc_pwm_ctl2),
 
 	DEFINEREG2(PCH_PP_STATUS, i830_debug_pp_status),
 	DEFINEREG2(PCH_PP_CONTROL, ilk_debug_pp_control),
@@ -2253,10 +2388,15 @@ static struct reg_debug haswell_debug_regs[] = {
 	DEFINEREG(FDI_RXA_IIR),
 	DEFINEREG(FDI_RXA_IMR),
 
-	DEFINEREG(BLC_PWM_CPU_CTL2),
-	DEFINEREG(BLC_PWM_CPU_CTL),
-	DEFINEREG(BLC_PWM_PCH_CTL1),
-	DEFINEREG(BLC_PWM_PCH_CTL2),
+	DEFINEREG2(BLC_PWM_CPU_CTL2, ilk_debug_blc_pwm_cpu_ctl2),
+	DEFINEREG2(BLC_PWM_CPU_CTL, ilk_debug_blc_pwm_cpu_ctl),
+	DEFINEREG2(BLC_PWM2_CPU_CTL2, ilk_debug_blc_pwm_cpu_ctl2),
+	DEFINEREG2(BLC_PWM2_CPU_CTL, ilk_debug_blc_pwm_cpu_ctl),
+	DEFINEREG2(BLC_MISC_CTL, hsw_debug_blc_misc_ctl),
+	DEFINEREG2(BLC_PWM_PCH_CTL1, ibx_debug_blc_pwm_ctl1),
+	DEFINEREG2(BLC_PWM_PCH_CTL2, ibx_debug_blc_pwm_ctl2),
+
+	DEFINEREG2(UTIL_PIN_CTL, hsw_debug_util_pin_ctl),
 
 	DEFINEREG2(PCH_PP_STATUS, i830_debug_pp_status),
 	DEFINEREG2(PCH_PP_CONTROL, ilk_debug_pp_control),
