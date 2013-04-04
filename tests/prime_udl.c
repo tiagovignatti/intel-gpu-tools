@@ -156,7 +156,7 @@ int main(int argc, char **argv)
 
 	if (udl_fd == -1 && intel_fd == -1) {
 		fprintf(stderr,"failed to find intel and udl GPU\n");
-		return -1;
+		return 77;
 	}
 
 	/* set up intel bufmgr */
@@ -169,8 +169,10 @@ int main(int argc, char **argv)
 
 	/* create an object on the i915 */
 	ret = test1();
-	if (ret)
+	if (ret) {
 		fprintf(stderr,"prime_test: failed test 1\n");
+		return -1;
+	}
 
 	ret = test2();
 	if (ret)
