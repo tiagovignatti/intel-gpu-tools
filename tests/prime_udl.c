@@ -154,7 +154,7 @@ int main(int argc, char **argv)
 	if (ret < 0)
 		return ret;
 
-	if (udl_fd == -1 && intel_fd == -1) {
+	if (udl_fd == -1 || intel_fd == -1) {
 		fprintf(stderr,"failed to find intel and udl GPU\n");
 		return 77;
 	}
