@@ -552,6 +552,62 @@ static int exec_nop(int fd, uint32_t handle)
 	return r;
 }
 
+static void eat_error_state(struct test_output *o)
+{
+	static const char dfs_base[] = "/sys/kernel/debug/dri";
+	static const char dfs_entry_error[] = "i915_error_state";
+	static const char dfs_entry_stop[] = "i915_ring_stop";
+	static const char data[] = "";
+	static char tmp[128];
+	char fname[FILENAME_MAX];
+	int card_index = drm_get_card(0);
+	int fd;
+	ssize_t r;
+
+	assert(card_index != -1);
+
+	/* clear the error state */
+	snprintf(fname, FILENAME_MAX, "%s/%i/%s",
+		 dfs_base, card_index, dfs_entry_error);
+
+	fd = open(fname, O_WRONLY);
+	if (fd < 0) {
+		fprintf(stderr, "failed to open '%s': %s\n",
+			fname, strerror(errno));
+		return;
+	}
+
+	r = write(fd, data, sizeof data);
+	if (r < 0)
+		fprintf(stderr, "failed to write '%s': %s\n",
+			fname, strerror(errno));
+	close(fd);
+
+	/* and check whether stop_rings is not reset, i.e. the hang has indeed
+	 * happened */
+	snprintf(fname, FILENAME_MAX, "%s/%i/%s",
+		 dfs_base, card_index, dfs_entry_stop);
+
+	fd = open(fname, O_RDONLY);
+	if (fd < 0) {
+		fprintf(stderr, "failed to open '%s': %s\n",
+			fname, strerror(errno));
+		return;
+	}
+
+	r = read(fd, tmp, sizeof tmp);
+	if (r < 0)
+		fprintf(stderr, "failed to read '%s': %s\n",
+			fname, strerror(errno));
+
+	if (atoi(tmp) != 0) {
+		fprintf(stderr, "no gpu hang detected, stop_rings is still %s\n", tmp);
+		exit(20);
+	}
+
+	close(fd);
+}
+
 static void hang_gpu(struct test_output *o)
 {
 	static const char dfs_base[] = "/sys/kernel/debug/dri";
@@ -728,6 +784,7 @@ static unsigned int run_test_step(struct test_output *o)
 	if (do_flip && (o->flags & TEST_HANG)) {
 		gem_sync(drm_fd, handle);
 		gem_close(drm_fd, handle);
+		eat_error_state(o);
 	}
 
 	return completed_events;
