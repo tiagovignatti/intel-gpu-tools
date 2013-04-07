@@ -510,7 +510,7 @@ void drmtest_stop_signal_helper(void)
 		kill(signal_helper, SIGQUIT);
 
 	if (sig_stat)
-		fprintf(stderr, "signal handler called %llu times\n", sig_stat);
+		fprintf(stdout, "signal handler called %llu times\n", sig_stat);
 
 	signal_helper = -1;
 }
