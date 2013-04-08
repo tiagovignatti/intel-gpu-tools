@@ -39,6 +39,7 @@
 #   Copyright (c) 2009 Andrew Collier
 #   Copyright (c) 2009 Matteo Settenvini <matteo@member.fsf.org>
 #   Copyright (c) 2009 Horst Knorr <hk_classes@knoda.org>
+#   Copyright (c) 2013 Daniel Mullner <muellner@math.stanford.edu>
 #
 #   This program is free software: you can redistribute it and/or modify it
 #   under the terms of the GNU General Public License as published by the
@@ -66,7 +67,7 @@
 #   modified version of the Autoconf Macro, you may extend this special
 #   exception to the GPL to apply to your modified version as well.
 
-#serial 12
+#serial 15
 
 AU_ALIAS([AC_PYTHON_DEVEL], [AX_PYTHON_DEVEL])
 AC_DEFUN([AX_PYTHON_DEVEL],[
@@ -153,8 +154,14 @@ $ac_distutils_result])
 	if test -z "$PYTHON_CPPFLAGS"; then
 		python_path=`$PYTHON -c "import distutils.sysconfig; \
 			print (distutils.sysconfig.get_python_inc ());"`
+		plat_python_path=`$PYTHON -c "import distutils.sysconfig; \
+			print (distutils.sysconfig.get_python_inc (plat_specific=1));"`
 		if test -n "${python_path}"; then
-			python_path="-I$python_path"
+			if test "${plat_python_path}" != "${python_path}"; then
+				python_path="-I$python_path -I$plat_python_path"
+			else
+				python_path="-I$python_path"
+			fi
 		fi
 		PYTHON_CPPFLAGS=$python_path
 	fi
@@ -201,34 +208,22 @@ if e is not None:
 	print (e)
 EOD`
 
-		# Before checking for libpythonX.Y, we need to know
-		# the extension the OS we're on uses for libraries
-		# (we take the first one, if there's more than one fix me!):
-		ac_python_soext=`$PYTHON -c \
-		  "import distutils.sysconfig; \
-		  print (distutils.sysconfig.get_config_var('SO'))"`
-
 		# Now, for the library:
-		ac_python_soname=`$PYTHON -c \
-		  "import distutils.sysconfig; \
-		  print (distutils.sysconfig.get_config_var('LDLIBRARY'))"`
+		ac_python_library=`cat<<EOD | $PYTHON -
 
-		# Strip away extension from the end to canonicalize its name:
-		ac_python_library=`echo "$ac_python_soname" | sed "s/${ac_python_soext}$//"`
-		# If that did not work, try to strip the ending ".so".
-		# This is needed for Arch Linux, where $ac_python_soname is
-		# "libpython3.3m.so" but $ac_python_soext is ".cpython-33m.so".
-		if test x"$ac_python_library" == x"$ac_python_soname"
-		then
-			ac_python_library=`echo "$ac_python_soname" | sed "s/\.so$//"`
-		fi
+import distutils.sysconfig
+c = distutils.sysconfig.get_config_vars()
+if 'LDVERSION' in c:
+	print ('python'+c[['LDVERSION']])
+else:
+	print ('python'+c[['VERSION']])
+EOD`
 
 		# This small piece shamelessly adapted from PostgreSQL python macro;
 		# credits goes to momjian, I think. I'd like to put the right name
 		# in the credits, if someone can point me in the right direction... ?
 		#
-		if test -n "$ac_python_libdir" -a -n "$ac_python_library" \
-			-a x"$ac_python_library" != x"$ac_python_soname"
+		if test -n "$ac_python_libdir" -a -n "$ac_python_library"
 		then
 			# use the official shared library
 			ac_python_library=`echo "$ac_python_library" | sed "s/^lib//"`
