@@ -69,6 +69,12 @@ bo_create (int fd, int tiling)
 
 	handle = gem_create(fd, OBJECT_SIZE);
 
+	/* dirty cpu caches a bit ... */
+	ptr = gem_mmap__cpu(fd, handle, OBJECT_SIZE, PROT_READ | PROT_WRITE);
+	assert(ptr);
+	memset(ptr, 0, OBJECT_SIZE);
+	munmap(ptr, OBJECT_SIZE);
+
 	gem_set_tiling(fd, handle, tiling, 1024);
 
 	ptr = gem_mmap(fd, handle, OBJECT_SIZE, PROT_READ | PROT_WRITE);
@@ -104,7 +110,7 @@ _bo_write_verify(struct test *t)
 {
 	int fd = t->fd;
 	int i, k;
-	volatile uint32_t **s;
+	uint32_t **s;
 	uint32_t v;
 	unsigned int dwords = OBJECT_SIZE >> 2;
 	const char *tile_str[] = { "none", "x", "y" };
@@ -140,6 +146,9 @@ _bo_write_verify(struct test *t)
 			}
 		}
 	}
+
+	for (k = 0; k < t->num_surfaces; k++)
+		munmap(s[k], OBJECT_SIZE);
 
 	free(s);
 }
@@ -216,11 +225,19 @@ main(int argc, char **argv)
 	if (drmtest_run_subtest("bo-write-verify-threaded-none"))
 		assert (run_test(5, bo_write_verify, I915_TILING_NONE, 2) == 0);
 
-	if (drmtest_run_subtest("bo-write-verify-threaded-x"))
+	if (drmtest_run_subtest("bo-write-verify-threaded-x")) {
+		assert (run_test(2, bo_write_verify, I915_TILING_X, 2) == 0);
 		assert (run_test(5, bo_write_verify, I915_TILING_X, 2) == 0);
+		assert (run_test(10, bo_write_verify, I915_TILING_X, 2) == 0);
+		assert (run_test(20, bo_write_verify, I915_TILING_X, 2) == 0);
+	}
 
-	if (drmtest_run_subtest("bo-write-verify-threaded-y"))
+	if (drmtest_run_subtest("bo-write-verify-threaded-y")) {
+		assert (run_test(2, bo_write_verify, I915_TILING_Y, 2) == 0);
 		assert (run_test(5, bo_write_verify, I915_TILING_Y, 2) == 0);
+		assert (run_test(10, bo_write_verify, I915_TILING_Y, 2) == 0);
+		assert (run_test(20, bo_write_verify, I915_TILING_Y, 2) == 0);
+	}
 
 	if (drmtest_run_subtest("bo-copy"))
 		assert(run_test(1, bo_copy, I915_TILING_X, 1) == 0);
