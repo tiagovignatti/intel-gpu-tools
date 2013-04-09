@@ -605,13 +605,9 @@ static void copy_tiles(unsigned *permutation)
 
 static int get_num_fences(void)
 {
-	drm_i915_getparam_t gp;
-	int ret, val;
+	int val;
 
-	gp.param = I915_PARAM_NUM_FENCES_AVAIL;
-	gp.value = &val;
-	ret = drmIoctl(drm_fd, DRM_IOCTL_I915_GETPARAM, &gp);
-	assert (ret == 0);
+	val = gem_available_fences(drm_fd);
 
 	printf ("total %d fences\n", val);
 	assert(val > 4);

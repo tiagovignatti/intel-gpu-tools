@@ -169,19 +169,15 @@ static int run_test(int threads_per_fence, void *f, int tiling,
 		    int surfaces_per_thread)
 {
 	struct test t;
-	drm_i915_getparam_t gp;
 	pthread_t *threads;
 	int n, num_fences, num_threads;
-	int ret;
 
 	t.fd = drm_open_any();
 	t.tiling = tiling;
 	t.num_surfaces = surfaces_per_thread;
 
-	gp.param = I915_PARAM_NUM_FENCES_AVAIL;
-	gp.value = &num_fences;
-	ret = ioctl(t.fd, DRM_IOCTL_I915_GETPARAM, &gp);
-	assert (ret == 0);
+	num_fences = gem_available_fences(t.fd);
+	assert (num_fences > 0);
 
 	num_threads = threads_per_fence * num_fences;
 

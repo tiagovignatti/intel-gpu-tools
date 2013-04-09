@@ -88,13 +88,9 @@ batch_create (int fd)
 
 static int get_num_fences(int fd)
 {
-	drm_i915_getparam_t gp;
-	int ret, val;
+	int val;
 
-	gp.param = I915_PARAM_NUM_FENCES_AVAIL;
-	gp.value = &val;
-	ret = drmIoctl(fd, DRM_IOCTL_I915_GETPARAM, &gp);
-	assert (ret == 0);
+	val = gem_available_fences(fd);
 
 	printf ("total %d fences\n", val);
 	assert(val > 4);
