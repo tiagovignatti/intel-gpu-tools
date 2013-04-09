@@ -878,6 +878,7 @@ enum brw_message_target {
 
    GEN7_SFID_DATAPORT_DATA_CACHE     = 10,
 
+   HSW_SFID_DATAPORT_DATA_CACHE1     = 0x0c,
    HSW_SFID_CRE                      = 0x0d,
 };
 

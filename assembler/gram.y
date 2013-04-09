@@ -1842,7 +1842,8 @@ msgtarget:	NULL_TOKEN
                       if ($3 != GEN6_SFID_DATAPORT_SAMPLER_CACHE &&
                           $3 != GEN6_SFID_DATAPORT_RENDER_CACHE &&
                           $3 != GEN6_SFID_DATAPORT_CONSTANT_CACHE &&
-                          $3 != GEN7_SFID_DATAPORT_DATA_CACHE) {
+                          $3 != GEN7_SFID_DATAPORT_DATA_CACHE &&
+                          $3 != HSW_SFID_DATAPORT_DATA_CACHE1) {
                           error (&@3, "error: wrong cache type\n");
                       }
 
