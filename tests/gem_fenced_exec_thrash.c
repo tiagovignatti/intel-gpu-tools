@@ -45,7 +45,7 @@
 
 #define BATCH_SIZE 4096
 
-#define MAX_FENCES 16
+#define MAX_FENCES 32
 
 #define MI_BATCH_BUFFER_END	(0xA<<23)
 
