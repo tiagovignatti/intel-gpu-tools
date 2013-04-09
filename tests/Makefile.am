@@ -99,6 +99,7 @@ TESTS_progs = \
 	gem_ctx_bad_exec \
 	gem_ctx_basic \
 	gem_reg_read \
+	gem_tiling_max_stride \
 	$(NOUVEAU_TESTS) \
 	prime_self_import \
 	prime_udl \
