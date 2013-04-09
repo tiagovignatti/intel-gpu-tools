@@ -294,6 +294,12 @@ static bool validate_dst_reg(struct brw_program_instruction *insn, struct brw_re
 	return false;
     }
 
+    if (reg->address_mode == BRW_ADDRESS_REGISTER_INDIRECT_REGISTER &&
+	access_mode(insn) == BRW_ALIGN_16) {
+	fprintf(stderr, "error: indirect Dst addr mode in align16 instruction\n");
+	return false;
+    }
+
     return true;
 }
 
@@ -314,6 +320,12 @@ static bool validate_src_reg(struct brw_program_instruction *insn,
 	SWIZZLE(reg) && SWIZZLE(reg) != BRW_SWIZZLE_NOOP)
     {
 	error(location, "swizzle bits set in align1 instruction\n");
+	return false;
+    }
+
+    if (reg.address_mode == BRW_ADDRESS_REGISTER_INDIRECT_REGISTER &&
+	access_mode(insn) == BRW_ALIGN_16) {
+	fprintf(stderr, "error: indirect Source addr mode in align16 instruction\n");
 	return false;
     }
 

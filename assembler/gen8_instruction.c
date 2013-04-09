@@ -47,23 +47,38 @@ gen8_set_dst(struct gen8_instruction *inst, struct brw_reg reg)
    gen8_set_dst_reg_file(inst, reg.file);
    gen8_set_dst_reg_type(inst, reg.type);
 
-   assert(reg.address_mode == BRW_ADDRESS_DIRECT);
+   if (reg.address_mode == BRW_ADDRESS_DIRECT) {
+      gen8_set_dst_da_reg_nr(inst, reg.nr);
 
-   gen8_set_dst_da_reg_nr(inst, reg.nr);
+      if (gen8_access_mode(inst) == BRW_ALIGN_1) {
+         /* Set Dst.SubRegNum[4:0] */
+         gen8_set_dst_da1_subreg_nr(inst, reg.subnr);
 
-   if (gen8_access_mode(inst) == BRW_ALIGN_1) {
-      /* Set Dst.SubRegNum[4:0] */
-      gen8_set_dst_da1_subreg_nr(inst, reg.subnr);
+         /* Set Dst.HorzStride */
+         if (reg.hstride == BRW_HORIZONTAL_STRIDE_0)
+            reg.hstride = BRW_HORIZONTAL_STRIDE_1;
+         gen8_set_dst_da1_hstride(inst, reg.hstride);
+      } else {
+         /* Align16 SubRegNum only has a single bit (bit 4; bits 3:0 MBZ). */
+         assert(reg.subnr == 0 || reg.subnr == 16);
+         gen8_set_dst_da16_subreg_nr(inst, reg.subnr >> 4);
+         gen8_set_da16_writemask(inst, reg.dw1.bits.writemask);
+      }
+   } else {
+      /* Indirect mode */
+      assert (gen8_access_mode(inst) == BRW_ALIGN_1);
 
+      gen8_set_dst_addr_mode(inst, BRW_ADDRESS_REGISTER_INDIRECT_REGISTER);
       /* Set Dst.HorzStride */
       if (reg.hstride == BRW_HORIZONTAL_STRIDE_0)
          reg.hstride = BRW_HORIZONTAL_STRIDE_1;
       gen8_set_dst_da1_hstride(inst, reg.hstride);
-   } else {
-      /* Align16 SubRegNum only has a single bit (bit 4; bits 3:0 MBZ). */
-      assert(reg.subnr == 0 || reg.subnr == 16);
-      gen8_set_dst_da16_subreg_nr(inst, reg.subnr >> 4);
-      gen8_set_da16_writemask(inst, reg.dw1.bits.writemask);
+      gen8_set_dst_ida1_sub_nr(inst, reg.subnr);
+      gen8_set_dst_ida1_imm8(inst, (reg.dw1.bits.indirect_offset & IMM8_MASK));
+      if ((reg.dw1.bits.indirect_offset & IMM9_MASK) == IMM9_MASK)
+         gen8_set_dst_ida1_imm9(inst, 1);
+      else
+         gen8_set_dst_ida1_imm9(inst, 0);
    }
 
    /* Generators should set a default exec_size of either 8 (SIMD4x2 or SIMD8)
@@ -160,7 +175,6 @@ gen8_set_src0(struct gen8_instruction *inst, struct brw_reg reg)
    gen8_set_src0_abs(inst, reg.abs);
    gen8_set_src0_negate(inst, reg.negate);
 
-   assert(reg.address_mode == BRW_ADDRESS_DIRECT);
 
    if (reg.file == BRW_IMMEDIATE_VALUE) {
       inst->data[3] = reg.dw1.ud;
@@ -168,7 +182,7 @@ gen8_set_src0(struct gen8_instruction *inst, struct brw_reg reg)
       /* Required to set some fields in src1 as well: */
       gen8_set_src1_reg_file(inst, 0); /* arf */
       gen8_set_src1_reg_type(inst, reg.type);
-   } else {
+   } else if (reg.address_mode == BRW_ADDRESS_DIRECT) {
       gen8_set_src0_da_reg_nr(inst, reg.nr);
 
       if (gen8_access_mode(inst) == BRW_ALIGN_1) {
@@ -211,6 +225,25 @@ gen8_set_src0(struct gen8_instruction *inst, struct brw_reg reg)
          else
             gen8_set_src0_vert_stride(inst, reg.vstride);
       }
+   } else if (reg.address_mode == BRW_ADDRESS_REGISTER_INDIRECT_REGISTER) {
+      assert (gen8_access_mode(inst) == BRW_ALIGN_1);
+      if (reg.width == BRW_WIDTH_1 &&
+         gen8_exec_size(inst) == BRW_EXECUTE_1) {
+         gen8_set_src0_da1_hstride(inst, BRW_HORIZONTAL_STRIDE_0);
+         gen8_set_src0_vert_stride(inst, BRW_VERTICAL_STRIDE_0);
+      } else {
+         gen8_set_src0_da1_hstride(inst, reg.hstride);
+         gen8_set_src0_vert_stride(inst, reg.vstride);
+      }
+
+      gen8_set_src0_da1_width(inst, reg.width);
+      gen8_set_src0_ida1_sub_nr(inst, reg.subnr);
+      gen8_set_src0_addr_mode(inst, BRW_ADDRESS_REGISTER_INDIRECT_REGISTER);
+      gen8_set_src0_ida1_imm8(inst, (reg.dw1.bits.indirect_offset & IMM8_MASK));
+      if ((reg.dw1.bits.indirect_offset & IMM9_MASK) == IMM9_MASK)
+         gen8_set_src0_ida1_imm9(inst, 1);
+      else
+         gen8_set_src0_ida1_imm9(inst, 0);
    }
 }
 
@@ -236,11 +269,9 @@ gen8_set_src1(struct gen8_instruction *inst, struct brw_reg reg)
    /* Only src1 can be an immediate in two-argument instructions. */
    assert(gen8_src0_reg_file(inst) != BRW_IMMEDIATE_VALUE);
 
-   assert(reg.address_mode == BRW_ADDRESS_DIRECT);
-
    if (reg.file == BRW_IMMEDIATE_VALUE) {
       inst->data[3] = reg.dw1.ud;
-   } else {
+   } else if (reg.address_mode == BRW_ADDRESS_DIRECT) {
       gen8_set_src1_da_reg_nr(inst, reg.nr);
 
       if (gen8_access_mode(inst) == BRW_ALIGN_1) {
@@ -282,6 +313,25 @@ gen8_set_src1(struct gen8_instruction *inst, struct brw_reg reg)
          else
             gen8_set_src1_vert_stride(inst, reg.vstride);
       }
+   } else if (reg.address_mode == BRW_ADDRESS_REGISTER_INDIRECT_REGISTER) {
+      assert (gen8_access_mode(inst) == BRW_ALIGN_1);
+      if (reg.width == BRW_WIDTH_1 &&
+         gen8_exec_size(inst) == BRW_EXECUTE_1) {
+         gen8_set_src1_da1_hstride(inst, BRW_HORIZONTAL_STRIDE_0);
+         gen8_set_src1_vert_stride(inst, BRW_VERTICAL_STRIDE_0);
+      } else {
+         gen8_set_src1_da1_hstride(inst, reg.hstride);
+         gen8_set_src1_vert_stride(inst, reg.vstride);
+      }
+
+      gen8_set_src1_da1_width(inst, reg.width);
+      gen8_set_src1_ida1_sub_nr(inst, reg.subnr);
+      gen8_set_src1_addr_mode(inst, BRW_ADDRESS_REGISTER_INDIRECT_REGISTER);
+      gen8_set_src1_ida1_imm8(inst, (reg.dw1.bits.indirect_offset & IMM8_MASK));
+      if ((reg.dw1.bits.indirect_offset & IMM9_MASK) == IMM9_MASK)
+         gen8_set_src1_ida1_imm9(inst, 1);
+      else
+         gen8_set_src1_ida1_imm9(inst, 0);
    }
 }
 

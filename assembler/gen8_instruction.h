@@ -224,7 +224,31 @@ F(cre_message_type,        110, 109)
 F(cre_binding_table_index, 103,  96)
 /** @} */
 
+/* Addr Mode */
+
+F(dst_addr_mode,	  63, 63)
+F(src0_addr_mode,	  79, 79)
+F(src1_addr_mode,	  111, 111)
+
+/* Indirect access mode for Align1. */
+F(dst_ida1_sub_nr,        60,  57)
+F(src0_ida1_sub_nr,       76,  73)
+F(src1_ida1_sub_nr,      108, 105)
+
+/* Imm[8:0] of Immediate addr offset under Indirect mode */
+F(dst_ida1_imm8,         56,  48)
+F(src0_ida1_imm8,        72,  64)
+F(src1_ida1_imm8,        104,  96)
+
+/* Imm Bit9 of Immediate addr offset under Indirect mode */
+F(dst_ida1_imm9,         47,  47)
+F(src0_ida1_imm9,        95,  95)
+F(src1_ida1_imm9,        121, 121)
+
 #undef F
+
+#define IMM8_MASK	0x1FF
+#define IMM9_MASK	0x200
 
 /**
 * Flow control instruction bits:
