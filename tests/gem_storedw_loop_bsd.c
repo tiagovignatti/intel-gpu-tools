@@ -51,26 +51,42 @@ static int has_ppgtt = 0;
  */
 
 static void
-store_dword_loop(int divider)
+emit_store_dword_imm(int devid, drm_intel_bo *dest, uint32_t val)
 {
-	int cmd, i, val = 0;
-	uint32_t *buf;
-
-	printf("running storedw loop on bsd with stall every %i batch\n", divider);
-
+	int cmd;
 	cmd = MI_STORE_DWORD_IMM;
 	if (!has_ppgtt)
 		cmd |= MI_MEM_VIRTUAL;
 
-	for (i = 0; i < SLOW_QUICK(0x100000, 0x10); i++) {
+	if (intel_gen(devid) >= 8) {
+		BEGIN_BATCH(4);
+		OUT_BATCH(cmd);
+		OUT_RELOC(dest, I915_GEM_DOMAIN_INSTRUCTION,
+			  I915_GEM_DOMAIN_INSTRUCTION, 0);
+		OUT_BATCH(0);
+		OUT_BATCH(val);
+		ADVANCE_BATCH();
+	} else {
 		BEGIN_BATCH(4);
 		OUT_BATCH(cmd);
 		OUT_BATCH(0); /* reserved */
-		OUT_RELOC(target_buffer, I915_GEM_DOMAIN_INSTRUCTION,
+		OUT_RELOC(dest, I915_GEM_DOMAIN_INSTRUCTION,
 			  I915_GEM_DOMAIN_INSTRUCTION, 0);
 		OUT_BATCH(val);
 		ADVANCE_BATCH();
+	}
+}
 
+static void
+store_dword_loop(int devid, int divider)
+{
+	int i, val = 0;
+	uint32_t *buf;
+
+	printf("running storedw loop on render with stall every %i batch\n", divider);
+
+	for (i = 0; i < SLOW_QUICK(0x100000, 0x10); i++) {
+		emit_store_dword_imm(devid, target_buffer, val);
 		intel_batchbuffer_flush_on_ring(batch, I915_EXEC_BSD);
 
 		if (i % divider != 0)
@@ -127,11 +143,11 @@ int main(int argc, char **argv)
 	target_buffer = drm_intel_bo_alloc(bufmgr, "target bo", 4096, 4096);
 	igt_assert(target_buffer);
 
-	store_dword_loop(1);
-	store_dword_loop(2);
+	store_dword_loop(devid, 1);
+	store_dword_loop(devid, 2);
 	if (!igt_run_in_simulation()) {
-		store_dword_loop(3);
-		store_dword_loop(5);
+		store_dword_loop(devid, 3);
+		store_dword_loop(devid, 5);
 	}
 
 	drm_intel_bo_unreference(target_buffer);
