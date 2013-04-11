@@ -38,6 +38,7 @@
 #include <i915_drm.h>
 
 #include "drmtest.h"
+#include "intel_gpu_tools.h"
 
 #define WIDTH 1024
 #define HEIGHT 1024
@@ -46,8 +47,6 @@
 #define BATCH_SIZE 4096
 
 #define MAX_FENCES 32
-
-#define MI_BATCH_BUFFER_END	(0xA<<23)
 
 /*
  * Testcase: execbuf fence accounting
@@ -95,7 +94,7 @@ static int get_num_fences(int fd)
 	printf ("total %d fences\n", val);
 	assert(val > 4);
 
-	return val - 2;
+	return val;
 }
 
 static void fill_reloc(struct drm_i915_gem_relocation_entry *reloc, uint32_t handle)
@@ -106,23 +105,19 @@ static void fill_reloc(struct drm_i915_gem_relocation_entry *reloc, uint32_t han
 	reloc->write_domain = 0;
 }
 
-int
-main(int argc, char **argv)
+static void run_test(int fd, int num_fences, int expected_errno)
 {
 	struct drm_i915_gem_execbuffer2 execbuf[2];
-	struct drm_i915_gem_exec_object2 exec[2][2*MAX_FENCES+1];
-	struct drm_i915_gem_relocation_entry reloc[2*MAX_FENCES];
+	struct drm_i915_gem_exec_object2 exec[2][2*MAX_FENCES+3];
+	struct drm_i915_gem_relocation_entry reloc[2*MAX_FENCES+2];
 
-	int fd = drm_open_any();
-	int i, n, num_fences;
+	int i, n;
 	int loop = 1000;
 
 	memset(execbuf, 0, sizeof(execbuf));
 	memset(exec, 0, sizeof(exec));
 	memset(reloc, 0, sizeof(reloc));
 
-	num_fences = get_num_fences(fd) & ~1;
-	assert(num_fences <= MAX_FENCES);
 	for (n = 0; n < 2*num_fences; n++) {
 		uint32_t handle = tiled_bo_create(fd);
 		exec[1][2*num_fences - n-1].handle = exec[0][n].handle = handle;
@@ -148,13 +143,30 @@ main(int argc, char **argv)
 		ret = drmIoctl(fd,
 			       DRM_IOCTL_I915_GEM_EXECBUFFER2,
 			       &execbuf[0]);
-		assert(ret == 0);
+		assert(expected_errno ?
+		       ret < 0 && errno == expected_errno :
+		       ret == 0);
 
 		ret = drmIoctl(fd,
 			       DRM_IOCTL_I915_GEM_EXECBUFFER2,
 			       &execbuf[1]);
-		assert(ret == 0);
+		assert(expected_errno ?
+		       ret < 0 && errno == expected_errno :
+		       ret == 0);
 	} while (--loop);
+}
+
+int
+main(int argc, char **argv)
+{
+	int fd = drm_open_any();
+	int num_fences = get_num_fences(fd);
+	uint32_t devid = intel_get_drm_devid(fd);
+
+	assert(num_fences <= MAX_FENCES);
+
+	run_test(fd, num_fences - 2, 0);
+	run_test(fd, num_fences + 1, intel_gen(devid) >= 4 ? 0 : EDEADLK);
 
 	close(fd);
 
