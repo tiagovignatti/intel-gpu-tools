@@ -438,6 +438,7 @@ static int write_seqno(uint32_t seqno)
 	int fh;
 	char buf[32];
 	int r;
+	uint32_t rb;
 
 	if (options.dontwrap)
 		return 0;
@@ -456,6 +457,15 @@ static int write_seqno(uint32_t seqno)
 
 	if (options.verbose)
 		printf("next_seqno set to: 0x%x\n", seqno);
+
+	r = __read_seqno(&rb);
+	if (r < 0)
+		return r;
+
+	if (rb != seqno) {
+		printf("seqno readback differs rb:0x%x vs w:0x%x\n", rb, seqno);
+		return -1;
+	}
 
 	return 0;
 }
