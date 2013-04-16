@@ -3798,4 +3798,20 @@ typedef enum {
 #define DPIO_DATA			0x2104
 #define DPIO_REG			0x2108
 
+/* VLV IOSF access */
+#define VLV_IOSF_DOORBELL_REQ			0x182100
+#define   IOSF_DEVFN_SHIFT			24
+#define   IOSF_OPCODE_SHIFT			16
+#define   IOSF_PORT_SHIFT			8
+#define   IOSF_BYTE_ENABLES_SHIFT		4
+#define   IOSF_BAR_SHIFT			1
+#define   IOSF_SB_BUSY				(1<<0)
+#define   IOSF_PORT_PUNIT			0x4
+#define   IOSF_PORT_NC				0x11
+#define VLV_IOSF_DATA				0x182104
+#define VLV_IOSF_ADDR				0x182108
+
+#define PUNIT_OPCODE_REG_READ			6
+#define PUNIT_OPCODE_REG_WRITE			7
+
 #endif /* _I810_REG_H */

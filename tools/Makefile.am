@@ -22,7 +22,9 @@ bin_PROGRAMS = 				\
 	intel_forcewaked		\
 	intel_dpio_read			\
 	intel_dpio_write		\
-	intel_l3_parity
+	intel_l3_parity			\
+	intel_punit_read		\
+	intel_nc_read
 
 noinst_PROGRAMS = 			\
 	intel_dump_decode 		\
