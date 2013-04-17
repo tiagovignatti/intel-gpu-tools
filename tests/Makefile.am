@@ -32,6 +32,7 @@ TESTS_progs_M = \
 	gem_tiled_partial_pwrite_pread \
 	$(NOUVEAU_TESTS_M) \
 	kms_flip \
+	prime_self_import \
 	$(NULL)
 
 TESTS_progs = \
@@ -101,7 +102,6 @@ TESTS_progs = \
 	gem_reg_read \
 	gem_tiling_max_stride \
 	$(NOUVEAU_TESTS) \
-	prime_self_import \
 	prime_udl \
 	$(NULL)
 

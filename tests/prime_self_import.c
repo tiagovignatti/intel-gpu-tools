@@ -48,11 +48,14 @@
 
 #define BO_SIZE (16*1024)
 
+#define ARRAY_SIZE(x)	(sizeof(x) / sizeof((x)[0]))
+
+static char counter;
+
 static void
 check_bo(int fd1, uint32_t handle1, int fd2, uint32_t handle2)
 {
 	char *ptr1, *ptr2;
-	static char counter = 0;
 	int i;
 
 	ptr1 = gem_mmap(fd1, handle1, BO_SIZE, PROT_READ | PROT_WRITE);
@@ -75,7 +78,68 @@ check_bo(int fd1, uint32_t handle1, int fd2, uint32_t handle2)
 	munmap(ptr2, BO_SIZE);
 }
 
-int main(int argc, char **argv)
+static void test_with_fd_dup(void)
+{
+	int fd1, fd2;
+	uint32_t handle, handle_import;
+	int dma_buf_fd1, dma_buf_fd2;
+
+	counter = 0;
+
+	fd1 = drm_open_any();
+	fd2 = drm_open_any();
+
+	handle = gem_create(fd1, BO_SIZE);
+
+	dma_buf_fd1 = prime_handle_to_fd(fd1, handle);
+	gem_close(fd1, handle);
+
+	dma_buf_fd2 = dup(dma_buf_fd1);
+	close(dma_buf_fd1);
+	handle_import = prime_fd_to_handle(fd2, dma_buf_fd2);
+	check_bo(fd2, handle_import, fd2, handle_import);
+
+	close(dma_buf_fd2);
+	check_bo(fd2, handle_import, fd2, handle_import);
+
+	close(fd1);
+	close(fd2);
+}
+
+static void test_with_two_bos(void)
+{
+	int fd1, fd2;
+	uint32_t handle1, handle2, handle_import;
+	int dma_buf_fd;
+
+	counter = 0;
+
+	fd1 = drm_open_any();
+	fd2 = drm_open_any();
+
+	handle1 = gem_create(fd1, BO_SIZE);
+	handle2 = gem_create(fd1, BO_SIZE);
+
+	dma_buf_fd = prime_handle_to_fd(fd1, handle1);
+	handle_import = prime_fd_to_handle(fd2, dma_buf_fd);
+
+	close(dma_buf_fd);
+	gem_close(fd1, handle1);
+
+	dma_buf_fd = prime_handle_to_fd(fd1, handle2);
+	handle_import = prime_fd_to_handle(fd2, dma_buf_fd);
+	check_bo(fd1, handle2, fd2, handle_import);
+
+	gem_close(fd1, handle2);
+	close(dma_buf_fd);
+
+	check_bo(fd2, handle_import, fd2, handle_import);
+
+	close(fd1);
+	close(fd2);
+}
+
+static void test_with_one_bo(void)
 {
 	int fd1, fd2;
 	uint32_t handle, handle_import1, handle_import2, handle_selfimport;
@@ -118,6 +182,26 @@ int main(int argc, char **argv)
 	/* Completely rip out exporting fd. */
 	close(fd1);
 	check_bo(fd2, handle_import1, fd2, handle_import1);
+}
+
+int main(int argc, char **argv)
+{
+	struct {
+		const char *name;
+		void (*fn)(void);
+	} tests[] = {
+		{ "with_one_bo", test_with_one_bo },
+		{ "with_two_bos", test_with_two_bos },
+		{ "with_fd_dup", test_with_fd_dup },
+	};
+	int i;
+
+	drmtest_subtest_init(argc, argv);
+
+	for (i = 0; i < ARRAY_SIZE(tests); i++) {
+		if (drmtest_run_subtest(tests[i].name))
+			tests[i].fn();
+	}
 
 	return 0;
 }
