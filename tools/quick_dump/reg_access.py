@@ -27,6 +27,12 @@ def get_wake():
 	mt_forcewake_get()
 	vlv_forcewake_get()
 
+def dpio_read(reg):
+	reg = int(reg, 16)
+	val = chipset.intel_dpio_reg_read(reg)
+	return val
+
+
 def init():
 	pci_dev = chipset.intel_get_pci_device()
 	ret = chipset.intel_register_access_init(pci_dev, 0)

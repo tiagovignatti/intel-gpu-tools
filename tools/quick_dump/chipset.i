@@ -14,6 +14,7 @@ extern uint32_t intel_register_write(uint32_t reg, uint32_t val);
 extern void intel_register_access_fini();
 extern int intel_register_access_needs_wake();
 extern unsigned short pcidev_to_devid(struct pci_device *pci_dev);
+extern uint32_t intel_dpio_reg_read(uint32_t reg);
 %}
 
 extern int is_sandybridge(unsigned short pciid);
@@ -26,3 +27,4 @@ extern uint32_t intel_register_write(uint32_t reg, uint32_t val);
 extern void intel_register_access_fini();
 extern int intel_register_access_needs_wake();
 extern unsigned short pcidev_to_devid(struct pci_device *pci_dev);
+extern uint32_t intel_dpio_reg_read(uint32_t reg);
