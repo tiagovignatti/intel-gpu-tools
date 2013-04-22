@@ -1,4 +1,3 @@
-/* -*- c-basic-offset: 4 -*- */
 /*
  * Copyright © 2007 Intel Corporation
  * Copyright © 2009 Intel Corporation
@@ -57,30 +56,30 @@
 #include "instdone.h"
 
 static void
-print_instdone (uint32_t devid, unsigned int instdone, unsigned int instdone1)
+print_instdone(uint32_t devid, unsigned int instdone, unsigned int instdone1)
 {
-    int i;
-    static int once;
+	int i;
+	static int once;
 
-    if (!once) {
-	init_instdone_definitions(devid);
-	once = 1;
-    }
-
-    for (i = 0; i < num_instdone_bits; i++) {
-	int busy = 0;
-
-	if (instdone_bits[i].reg == INST_DONE_1) {
-	    if (!(instdone1 & instdone_bits[i].bit))
-		busy = 1;
-	} else {
-	    if (!(instdone & instdone_bits[i].bit))
-		busy = 1;
+	if (!once) {
+		init_instdone_definitions(devid);
+		once = 1;
 	}
 
-	if (busy)
-	    printf("    busy: %s\n", instdone_bits[i].name);
-    }
+	for (i = 0; i < num_instdone_bits; i++) {
+		int busy = 0;
+
+		if (instdone_bits[i].reg == INST_DONE_1) {
+			if (!(instdone1 & instdone_bits[i].bit))
+				busy = 1;
+		} else {
+			if (!(instdone & instdone_bits[i].bit))
+				busy = 1;
+		}
+
+		if (busy)
+			printf("    busy: %s\n", instdone_bits[i].name);
+	}
 }
 
 static void
@@ -105,7 +104,7 @@ print_i830_pgtbl_err(unsigned int reg)
 	}
 
 	if (str)
-		printf ("    source = %s\n", str);
+		printf("    source = %s\n", str);
 
 	switch(reg & 0x7) {
 	case 0x0: str  = "Invalid GTT"; break;
@@ -117,85 +116,85 @@ print_i830_pgtbl_err(unsigned int reg)
 	case 0x6: str = "Invalid Tiling"; break;
 	case 0x7: str = "Host to CAM"; break;
 	}
-	printf ("    error = %s\n", str);
+	printf("    error = %s\n", str);
 }
 
 static void
 print_i915_pgtbl_err(unsigned int reg)
 {
 	if (reg & (1 << 29))
-		printf ("    Cursor A: Invalid GTT PTE\n");
+		printf("    Cursor A: Invalid GTT PTE\n");
 	if (reg & (1 << 28))
-		printf ("    Cursor B: Invalid GTT PTE\n");
+		printf("    Cursor B: Invalid GTT PTE\n");
 	if (reg & (1 << 27))
-		printf ("    MT: Invalid tiling\n");
+		printf("    MT: Invalid tiling\n");
 	if (reg & (1 << 26))
-		printf ("    MT: Invalid GTT PTE\n");
+		printf("    MT: Invalid GTT PTE\n");
 	if (reg & (1 << 25))
-		printf ("    LC: Invalid tiling\n");
+		printf("    LC: Invalid tiling\n");
 	if (reg & (1 << 24))
-		printf ("    LC: Invalid GTT PTE\n");
+		printf("    LC: Invalid GTT PTE\n");
 	if (reg & (1 << 23))
-		printf ("    BIN VertexData: Invalid GTT PTE\n");
+		printf("    BIN VertexData: Invalid GTT PTE\n");
 	if (reg & (1 << 22))
-		printf ("    BIN Instruction: Invalid GTT PTE\n");
+		printf("    BIN Instruction: Invalid GTT PTE\n");
 	if (reg & (1 << 21))
-		printf ("    CS VertexData: Invalid GTT PTE\n");
+		printf("    CS VertexData: Invalid GTT PTE\n");
 	if (reg & (1 << 20))
-		printf ("    CS Instruction: Invalid GTT PTE\n");
+		printf("    CS Instruction: Invalid GTT PTE\n");
 	if (reg & (1 << 19))
-		printf ("    CS: Invalid GTT\n");
+		printf("    CS: Invalid GTT\n");
 	if (reg & (1 << 18))
-		printf ("    Overlay: Invalid tiling\n");
+		printf("    Overlay: Invalid tiling\n");
 	if (reg & (1 << 16))
-		printf ("    Overlay: Invalid GTT PTE\n");
+		printf("    Overlay: Invalid GTT PTE\n");
 	if (reg & (1 << 14))
-		printf ("    Display C: Invalid tiling\n");
+		printf("    Display C: Invalid tiling\n");
 	if (reg & (1 << 12))
-		printf ("    Display C: Invalid GTT PTE\n");
+		printf("    Display C: Invalid GTT PTE\n");
 	if (reg & (1 << 10))
-		printf ("    Display B: Invalid tiling\n");
+		printf("    Display B: Invalid tiling\n");
 	if (reg & (1 << 8))
-		printf ("    Display B: Invalid GTT PTE\n");
+		printf("    Display B: Invalid GTT PTE\n");
 	if (reg & (1 << 6))
-		printf ("    Display A: Invalid tiling\n");
+		printf("    Display A: Invalid tiling\n");
 	if (reg & (1 << 4))
-		printf ("    Display A: Invalid GTT PTE\n");
+		printf("    Display A: Invalid GTT PTE\n");
 	if (reg & (1 << 1))
-		printf ("    Host Invalid PTE data\n");
+		printf("    Host Invalid PTE data\n");
 	if (reg & (1 << 0))
-		printf ("    Host Invalid GTT PTE\n");
+		printf("    Host Invalid GTT PTE\n");
 }
 
 static void
 print_i965_pgtbl_err(unsigned int reg)
 {
 	if (reg & (1 << 26))
-		printf ("    Invalid Sampler Cache GTT entry\n");
+		printf("    Invalid Sampler Cache GTT entry\n");
 	if (reg & (1 << 24))
-		printf ("    Invalid Render Cache GTT entry\n");
+		printf("    Invalid Render Cache GTT entry\n");
 	if (reg & (1 << 23))
-		printf ("    Invalid Instruction/State Cache GTT entry\n");
+		printf("    Invalid Instruction/State Cache GTT entry\n");
 	if (reg & (1 << 22))
-		printf ("    There is no ROC, this cannot occur!\n");
+		printf("    There is no ROC, this cannot occur!\n");
 	if (reg & (1 << 21))
-		printf ("    Invalid GTT entry during Vertex Fetch\n");
+		printf("    Invalid GTT entry during Vertex Fetch\n");
 	if (reg & (1 << 20))
-		printf ("    Invalid GTT entry during Command Fetch\n");
+		printf("    Invalid GTT entry during Command Fetch\n");
 	if (reg & (1 << 19))
-		printf ("    Invalid GTT entry during CS\n");
+		printf("    Invalid GTT entry during CS\n");
 	if (reg & (1 << 18))
-		printf ("    Invalid GTT entry during Cursor Fetch\n");
+		printf("    Invalid GTT entry during Cursor Fetch\n");
 	if (reg & (1 << 17))
-		printf ("    Invalid GTT entry during Overlay Fetch\n");
+		printf("    Invalid GTT entry during Overlay Fetch\n");
 	if (reg & (1 << 8))
-		printf ("    Invalid GTT entry during Display B Fetch\n");
+		printf("    Invalid GTT entry during Display B Fetch\n");
 	if (reg & (1 << 4))
-		printf ("    Invalid GTT entry during Display A Fetch\n");
+		printf("    Invalid GTT entry during Display A Fetch\n");
 	if (reg & (1 << 1))
-		printf ("    Valid PTE references illegal memory\n");
+		printf("    Valid PTE references illegal memory\n");
 	if (reg & (1 << 0))
-		printf ("    Invalid GTT entry during fetch for host\n");
+		printf("    Invalid GTT entry during fetch for host\n");
 }
 
 static void
@@ -214,22 +213,22 @@ static void
 print_snb_fence(unsigned int devid, uint64_t fence)
 {
 	printf("    %svalid, %c-tiled, pitch: %i, start: 0x%08x, size: %u\n",
-		fence & 1 ? "" : "in",
-		fence & (1<<1) ? 'y' : 'x',
-		(int)(((fence>>32)&0xfff)+1)*128,
-		(uint32_t)fence & 0xfffff000,
-		(uint32_t)(((fence>>32)&0xfffff000) - (fence&0xfffff000) + 4096));
+			fence & 1 ? "" : "in",
+			fence & (1<<1) ? 'y' : 'x',
+			(int)(((fence>>32)&0xfff)+1)*128,
+			(uint32_t)fence & 0xfffff000,
+			(uint32_t)(((fence>>32)&0xfffff000) - (fence&0xfffff000) + 4096));
 }
 
 static void
 print_i965_fence(unsigned int devid, uint64_t fence)
 {
 	printf("    %svalid, %c-tiled, pitch: %i, start: 0x%08x, size: %u\n",
-		fence & 1 ? "" : "in",
-		fence & (1<<1) ? 'y' : 'x',
-		(int)(((fence>>2)&0x1ff)+1)*128,
-		(uint32_t)fence & 0xfffff000,
-		(uint32_t)(((fence>>32)&0xfffff000) - (fence&0xfffff000) + 4096));
+			fence & 1 ? "" : "in",
+			fence & (1<<1) ? 'y' : 'x',
+			(int)(((fence>>2)&0x1ff)+1)*128,
+			(uint32_t)fence & 0xfffff000,
+			(uint32_t)(((fence>>32)&0xfffff000) - (fence&0xfffff000) + 4096));
 }
 
 static void
@@ -242,22 +241,22 @@ print_i915_fence(unsigned int devid, uint64_t fence)
 		tile_width = 512;
 
 	printf("    %svalid, %c-tiled, pitch: %i, start: 0x%08x, size: %i\n",
-		fence & 1 ? "" : "in",
-		fence & 12 ? 'y' : 'x',
-		(1<<((fence>>4)&0xf))*tile_width,
-		(uint32_t)fence & 0xff00000,
-		1<<(20 + ((fence>>8)&0xf)));
+			fence & 1 ? "" : "in",
+			fence & 12 ? 'y' : 'x',
+			(1<<((fence>>4)&0xf))*tile_width,
+			(uint32_t)fence & 0xff00000,
+			1<<(20 + ((fence>>8)&0xf)));
 }
 
 static void
 print_i830_fence(unsigned int devid, uint64_t fence)
 {
 	printf("    %svalid, %c-tiled, pitch: %i, start: 0x%08x, size: %i\n",
-		fence & 1 ? "" : "in",
-		fence & 12 ? 'y' : 'x',
-		(1<<((fence>>4)&0xf))*128,
-		(uint32_t)fence & 0x7f80000,
-		1<<(19 + ((fence>>8)&0xf)));
+			fence & 1 ? "" : "in",
+			fence & 12 ? 'y' : 'x',
+			(1<<((fence>>4)&0xf))*128,
+			(uint32_t)fence & 0x7f80000,
+			1<<(19 + ((fence>>8)&0xf)));
 }
 
 static void
@@ -275,252 +274,254 @@ print_fence(unsigned int devid, uint64_t fence)
 }
 
 static void
-read_data_file (FILE *file)
+read_data_file(FILE *file)
 {
-    struct drm_intel_decode *decode_ctx = NULL;
-    uint32_t devid = PCI_CHIP_I855_GM;
-    uint32_t *data = NULL;
-    long long unsigned fence;
-    int data_size = 0, count = 0, line_number = 0, matched;
-    char *line = NULL;
-    size_t line_size;
-    uint32_t offset, value;
-    uint32_t gtt_offset = 0, new_gtt_offset;
-    const char *buffer_type[2] = {  "ringbuffer", "batchbuffer" };
-    char *ring_name = NULL;
-    int is_batch = 1;
+	struct drm_intel_decode *decode_ctx = NULL;
+	uint32_t devid = PCI_CHIP_I855_GM;
+	uint32_t *data = NULL;
+	long long unsigned fence;
+	int data_size = 0, count = 0, line_number = 0, matched;
+	char *line = NULL;
+	size_t line_size;
+	uint32_t offset, value;
+	uint32_t gtt_offset = 0, new_gtt_offset;
+	const char *buffer_type[2] = {  "ringbuffer", "batchbuffer" };
+	char *ring_name = NULL;
+	int is_batch = 1;
 
-    while (getline (&line, &line_size, file) > 0) {
-	char *dashes;
-	line_number++;
+	while (getline(&line, &line_size, file) > 0) {
+		char *dashes;
+		line_number++;
 
-	dashes = strstr(line, "---");
-	if (dashes) {
-		char *new_ring_name = malloc(dashes - line);
-		strncpy(new_ring_name, line, dashes - line);
-		new_ring_name[dashes - line - 1] = '\0';
+		dashes = strstr(line, "---");
+		if (dashes) {
+			char *new_ring_name = malloc(dashes - line);
+			strncpy(new_ring_name, line, dashes - line);
+			new_ring_name[dashes - line - 1] = '\0';
 
-		matched = sscanf (dashes, "--- gtt_offset = 0x%08x\n",
-				  &new_gtt_offset);
-		if (matched == 1) {
+			matched = sscanf(dashes, "--- gtt_offset = 0x%08x\n",
+					&new_gtt_offset);
+			if (matched == 1) {
+				if (count) {
+					printf("%s (%s) at 0x%08x:\n",
+							buffer_type[is_batch],
+							ring_name,
+							gtt_offset);
+					drm_intel_decode_set_batch_pointer(decode_ctx,
+							data, gtt_offset,
+							count);
+					drm_intel_decode(decode_ctx);
+					count = 0;
+				}
+				gtt_offset = new_gtt_offset;
+				is_batch = 1;
+				free(ring_name);
+				ring_name = new_ring_name;
+				continue;
+			}
+
+			matched = sscanf(dashes, "--- ringbuffer = 0x%08x\n",
+					&new_gtt_offset);
+			if (matched == 1) {
+				if (count) {
+					printf("%s (%s) at 0x%08x:\n",
+							buffer_type[is_batch],
+							ring_name,
+							gtt_offset);
+					drm_intel_decode_set_batch_pointer(decode_ctx,
+							data, gtt_offset,
+							count);
+					drm_intel_decode(decode_ctx);
+					count = 0;
+				}
+				gtt_offset = new_gtt_offset;
+				is_batch = 0;
+				free(ring_name);
+				ring_name = new_ring_name;
+				continue;
+			}
+		}
+
+		matched = sscanf(line, "%08x : %08x", &offset, &value);
+		if (matched != 2) {
+			unsigned int reg;
+
+			/* display reg section is after the ringbuffers, don't mix them */
 			if (count) {
 				printf("%s (%s) at 0x%08x:\n",
-				       buffer_type[is_batch],
-				       ring_name,
-				       gtt_offset);
+						buffer_type[is_batch],
+						ring_name,
+						gtt_offset);
 				drm_intel_decode_set_batch_pointer(decode_ctx,
-								   data, gtt_offset,
-								   count);
+						data, gtt_offset,
+						count);
 				drm_intel_decode(decode_ctx);
 				count = 0;
 			}
-			gtt_offset = new_gtt_offset;
-			is_batch = 1;
-			free(ring_name);
-			ring_name = new_ring_name;
-			continue;
-		}
 
-		matched = sscanf (dashes, "--- ringbuffer = 0x%08x\n",
-				  &new_gtt_offset);
-		if (matched == 1) {
-			if (count) {
-				printf("%s (%s) at 0x%08x:\n",
-				       buffer_type[is_batch],
-				       ring_name,
-				       gtt_offset);
-				drm_intel_decode_set_batch_pointer(decode_ctx,
-								   data, gtt_offset,
-								   count);
-				drm_intel_decode(decode_ctx);
-				count = 0;
+			printf("%s", line);
+
+			matched = sscanf(line, "PCI ID: 0x%04x\n", &reg);
+			if (matched == 0)
+				matched = sscanf(line, " PCI ID: 0x%04x\n", &reg);
+			if (matched == 0) {
+				const char *pci_id_start = strstr(line, "PCI ID");
+				if (pci_id_start)
+					matched = sscanf(pci_id_start, "PCI ID: 0x%04x\n", &reg);
 			}
-			gtt_offset = new_gtt_offset;
-			is_batch = 0;
-			free(ring_name);
-			ring_name = new_ring_name;
+			if (matched == 1) {
+				devid = reg;
+				printf("Detected GEN%i chipset\n",
+						intel_gen(devid));
+
+				decode_ctx = drm_intel_decode_context_alloc(devid);
+			}
+
+			matched = sscanf(line, "  ACTHD: 0x%08x\n", &reg);
+			if (matched == 1)
+				drm_intel_decode_set_head_tail(decode_ctx, reg, 0xffffffff);
+
+			matched = sscanf(line, "  PGTBL_ER: 0x%08x\n", &reg);
+			if (matched == 1 && reg)
+				print_pgtbl_err(reg, devid);
+
+			matched = sscanf(line, "  INSTDONE: 0x%08x\n", &reg);
+			if (matched == 1)
+				print_instdone(devid, reg, -1);
+
+			matched = sscanf(line, "  INSTDONE1: 0x%08x\n", &reg);
+			if (matched == 1)
+				print_instdone(devid, -1, reg);
+
+			matched = sscanf(line, "  fence[%i] = %Lx\n", &reg, &fence);
+			if (matched == 2)
+				print_fence(devid, fence);
+
 			continue;
 		}
+
+		count++;
+
+		if (count > data_size) {
+			data_size = data_size ? data_size * 2 : 1024;
+			data = realloc(data, data_size * sizeof (uint32_t));
+			if (data == NULL) {
+				fprintf(stderr, "Out of memory.\n");
+				exit(1);
+			}
+		}
+
+		data[count-1] = value;
 	}
 
-	matched = sscanf (line, "%08x : %08x", &offset, &value);
-	if (matched != 2) {
-	    unsigned int reg;
-
-	    /* display reg section is after the ringbuffers, don't mix them */
-	    if (count) {
-		    printf("%s (%s) at 0x%08x:\n",
-			   buffer_type[is_batch],
-			   ring_name,
-			   gtt_offset);
-		    drm_intel_decode_set_batch_pointer(decode_ctx,
-						       data, gtt_offset,
-						       count);
-		    drm_intel_decode(decode_ctx);
-		    count = 0;
-	    }
-
-	    printf("%s", line);
-
-	    matched = sscanf (line, "PCI ID: 0x%04x\n", &reg);
-	    if (matched == 0)
-		    matched = sscanf (line, " PCI ID: 0x%04x\n", &reg);
-	    if (matched == 0) {
-		    const char *pci_id_start = strstr (line, "PCI ID");
-		    if (pci_id_start)
-			    matched = sscanf (pci_id_start, "PCI ID: 0x%04x\n", &reg);
-	    }
-	    if (matched == 1) {
-		    devid = reg;
-		    printf("Detected GEN%i chipset\n",
-			   intel_gen(devid));
-
-		    decode_ctx = drm_intel_decode_context_alloc(devid);
-	    }
-
-	    matched = sscanf (line, "  ACTHD: 0x%08x\n", &reg);
-	    if (matched == 1)
-		    drm_intel_decode_set_head_tail(decode_ctx, reg, 0xffffffff);
-
-	    matched = sscanf (line, "  PGTBL_ER: 0x%08x\n", &reg);
-	    if (matched == 1 && reg)
-		    print_pgtbl_err(reg, devid);
-
-	    matched = sscanf (line, "  INSTDONE: 0x%08x\n", &reg);
-	    if (matched == 1)
-		print_instdone (devid, reg, -1);
-
-	    matched = sscanf (line, "  INSTDONE1: 0x%08x\n", &reg);
-	    if (matched == 1)
-		print_instdone (devid, -1, reg);
-
-	    matched = sscanf (line, "  fence[%i] = %Lx\n", &reg, &fence); 
-	    if (matched == 2)
-		print_fence (devid, fence);
-
-	    continue;
+	if (count) {
+		printf("%s (%s) at 0x%08x:\n",
+				buffer_type[is_batch],
+				ring_name,
+				gtt_offset);
+		drm_intel_decode_set_batch_pointer(decode_ctx,
+				data, gtt_offset,
+				count);
+		drm_intel_decode(decode_ctx);
 	}
 
-	count++;
-
-	if (count > data_size) {
-	    data_size = data_size ? data_size * 2 : 1024;
-	    data = realloc (data, data_size * sizeof (uint32_t));
-	    if (data == NULL) {
-		fprintf (stderr, "Out of memory.\n");
-		exit (1);
-	    }
-	}
-
-	data[count-1] = value;
-    }
-
-    if (count) {
-	printf("%s (%s) at 0x%08x:\n",
-	       buffer_type[is_batch],
-	       ring_name,
-	       gtt_offset);
-	drm_intel_decode_set_batch_pointer(decode_ctx,
-					   data, gtt_offset,
-					   count);
-	drm_intel_decode(decode_ctx);
-    }
-
-    free (data);
-    free (line);
-    free (ring_name);
+	free(data);
+	free(line);
+	free(ring_name);
 }
 
 int
-main (int argc, char *argv[])
+main(int argc, char *argv[])
 {
-    FILE *file;
-    const char *path;
-    char *filename = NULL;
-    struct stat st;
-    int error;
+	FILE *file;
+	const char *path;
+	char *filename = NULL;
+	struct stat st;
+	int error;
 
-    if (argc > 2) {
-	fprintf (stderr,
-		 "intel_gpu_decode: Parse an Intel GPU i915_error_state\n"
-		 "Usage:\n"
-		 "\t%s [<file>]\n"
-		 "\n"
-		 "With no arguments, debugfs-dri-directory is probed for in "
-		 "/debug and \n"
-		 "/sys/kernel/debug.  Otherwise, it may be "
-		 "specified.  If a file is given,\n"
-		 "it is parsed as an GPU dump in the format of "
-		 "/debug/dri/0/i915_error_state.\n",
-		 argv[0]);
-	return 1;
-    }
+	if (argc > 2) {
+		fprintf(stderr,
+				"intel_gpu_decode: Parse an Intel GPU i915_error_state\n"
+				"Usage:\n"
+				"\t%s [<file>]\n"
+				"\n"
+				"With no arguments, debugfs-dri-directory is probed for in "
+				"/debug and \n"
+				"/sys/kernel/debug.  Otherwise, it may be "
+				"specified.  If a file is given,\n"
+				"it is parsed as an GPU dump in the format of "
+				"/debug/dri/0/i915_error_state.\n",
+				argv[0]);
+		return 1;
+	}
 
-    if (argc == 1) {
-	if (isatty(0)) {
-	    path = "/debug/dri";
-	    error = stat (path, &st);
-	    if (error != 0) {
-		path = "/sys/kernel/debug/dri";
-		error = stat (path, &st);
-		if (error != 0) {
-		    errx(1,
-			 "Couldn't find i915 debugfs directory.\n\n"
-			 "Is debugfs mounted? You might try mounting it with a command such as:\n\n"
-			 "\tsudo mount -t debugfs debugfs /sys/kernel/debug\n");
+	if (argc == 1) {
+		if (isatty(0)) {
+			path = "/debug/dri";
+			error = stat(path, &st);
+			if (error != 0) {
+				path = "/sys/kernel/debug/dri";
+				error = stat(path, &st);
+				if (error != 0) {
+					errx(1,
+					       "Couldn't find i915 debugfs directory.\n\n"
+					       "Is debugfs mounted? You might try mounting it with a command such as:\n\n"
+					       "\tsudo mount -t debugfs debugfs /sys/kernel/debug\n");
+				}
+			}
+		} else {
+			read_data_file(stdin);
+			exit(0);
 		}
-	    }
 	} else {
-	    read_data_file(stdin);
-	    exit(0);
+		path = argv[1];
+		error = stat(path, &st);
+		if (error != 0) {
+			fprintf(stderr, "Error opening %s: %s\n",
+					path, strerror(errno));
+			exit(1);
+		}
 	}
-    } else {
-	path = argv[1];
-	error = stat (path, &st);
-	if (error != 0) {
-	    fprintf (stderr, "Error opening %s: %s\n",
-		     path, strerror (errno));
-	    exit (1);
-	}
-    }
 
-    if (S_ISDIR (st.st_mode)) {
-	int ret;
+	if (S_ISDIR(st.st_mode)) {
+		int ret;
 
-	ret = asprintf (&filename, "%s/i915_error_state", path);
-	assert(ret > 0);
-	file = fopen(filename, "r");
-	if (!file) {
-	    int minor;
-	    for (minor = 0; minor < 64; minor++) {
-		free(filename);
-		ret = asprintf(&filename, "%s/%d/i915_error_state", path, minor);
+		ret = asprintf(&filename, "%s/i915_error_state", path);
 		assert(ret > 0);
-
 		file = fopen(filename, "r");
-		if (file)
-		    break;
-	    }
-	}
-	if (!file) {
-	    fprintf (stderr, "Failed to find i915_error_state beneath %s\n",
-		     path);
-	    exit (1);
-	}
-    } else {
-	file = fopen(path, "r");
-	if (!file) {
-	    fprintf (stderr, "Failed to open %s: %s\n",
-		     path, strerror (errno));
-	    exit (1);
-	}
-    }
+		if (!file) {
+			int minor;
+			for (minor = 0; minor < 64; minor++) {
+				free(filename);
+				ret = asprintf(&filename, "%s/%d/i915_error_state", path, minor);
+				assert(ret > 0);
 
-    read_data_file (file);
-    fclose (file);
+				file = fopen(filename, "r");
+				if (file)
+					break;
+			}
+		}
+		if (!file) {
+			fprintf(stderr, "Failed to find i915_error_state beneath %s\n",
+					path);
+			exit (1);
+		}
+	} else {
+		file = fopen(path, "r");
+		if (!file) {
+			fprintf(stderr, "Failed to open %s: %s\n",
+					path, strerror(errno));
+			exit (1);
+		}
+	}
 
-    if (filename != path)
-	free (filename);
+	read_data_file(file);
+	fclose(file);
 
-    return 0;
+	if (filename != path)
+		free(filename);
+
+	return 0;
 }
+
+/* vim: set ts=8 sw=8 tw=0 noet :*/
