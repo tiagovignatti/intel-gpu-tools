@@ -55,6 +55,13 @@
 #include "intel_gpu_tools.h"
 #include "instdone.h"
 
+static uint32_t
+print_head(unsigned int reg)
+{
+	printf("    head = 0x%08x, wraps = %d\n", reg & (0x7ffff<<2), reg >> 21);
+	return reg & (0x7ffff<<2);
+}
+
 static void
 print_instdone(uint32_t devid, unsigned int instdone, unsigned int instdone1)
 {
@@ -273,6 +280,20 @@ print_fence(unsigned int devid, uint64_t fence)
 	}
 }
 
+#define MAX_RINGS 10 /* I really hope this never... */
+uint32_t head[MAX_RINGS];
+int head_ndx = 0;
+int num_rings = -1;
+static void print_batch(int is_batch, const char *ring_name, uint32_t gtt_offset)
+{
+	const char *buffer_type[2] = {  "ringbuffer", "batchbuffer" };
+	if (is_batch) {
+		printf("%s (%s) at 0x%08x\n", buffer_type[is_batch], ring_name, gtt_offset);
+	} else {
+		printf("%s (%s) at 0x%08x; HEAD points to: 0x%08x\n", buffer_type[is_batch], ring_name, gtt_offset, head[head_ndx++ % num_rings] + gtt_offset);
+	}
+}
+
 static void
 read_data_file(FILE *file)
 {
@@ -285,7 +306,6 @@ read_data_file(FILE *file)
 	size_t line_size;
 	uint32_t offset, value;
 	uint32_t gtt_offset = 0, new_gtt_offset;
-	const char *buffer_type[2] = {  "ringbuffer", "batchbuffer" };
 	char *ring_name = NULL;
 	int is_batch = 1;
 
@@ -299,14 +319,14 @@ read_data_file(FILE *file)
 			strncpy(new_ring_name, line, dashes - line);
 			new_ring_name[dashes - line - 1] = '\0';
 
+			if (num_rings == -1)
+				num_rings = head_ndx;
+
 			matched = sscanf(dashes, "--- gtt_offset = 0x%08x\n",
 					&new_gtt_offset);
 			if (matched == 1) {
 				if (count) {
-					printf("%s (%s) at 0x%08x:\n",
-							buffer_type[is_batch],
-							ring_name,
-							gtt_offset);
+					print_batch(is_batch, ring_name, gtt_offset);
 					drm_intel_decode_set_batch_pointer(decode_ctx,
 							data, gtt_offset,
 							count);
@@ -324,10 +344,7 @@ read_data_file(FILE *file)
 					&new_gtt_offset);
 			if (matched == 1) {
 				if (count) {
-					printf("%s (%s) at 0x%08x:\n",
-							buffer_type[is_batch],
-							ring_name,
-							gtt_offset);
+					print_batch(is_batch, ring_name, gtt_offset);
 					drm_intel_decode_set_batch_pointer(decode_ctx,
 							data, gtt_offset,
 							count);
@@ -348,10 +365,7 @@ read_data_file(FILE *file)
 
 			/* display reg section is after the ringbuffers, don't mix them */
 			if (count) {
-				printf("%s (%s) at 0x%08x:\n",
-						buffer_type[is_batch],
-						ring_name,
-						gtt_offset);
+				print_batch(is_batch, ring_name, gtt_offset);
 				drm_intel_decode_set_batch_pointer(decode_ctx,
 						data, gtt_offset,
 						count);
@@ -375,6 +389,11 @@ read_data_file(FILE *file)
 						intel_gen(devid));
 
 				decode_ctx = drm_intel_decode_context_alloc(devid);
+			}
+
+			matched = sscanf(line, "  HEAD: 0x%08x\n", &reg);
+			if (matched == 1) {
+				head[head_ndx++] = print_head(reg);
 			}
 
 			matched = sscanf(line, "  ACTHD: 0x%08x\n", &reg);
@@ -415,10 +434,7 @@ read_data_file(FILE *file)
 	}
 
 	if (count) {
-		printf("%s (%s) at 0x%08x:\n",
-				buffer_type[is_batch],
-				ring_name,
-				gtt_offset);
+		print_batch(is_batch, ring_name, gtt_offset);
 		drm_intel_decode_set_batch_pointer(decode_ctx,
 				data, gtt_offset,
 				count);
