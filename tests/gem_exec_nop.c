@@ -43,6 +43,7 @@
 #include "drmtest.h"
 #include "intel_gpu_tools.h"
 
+#define LOCAL_I915_EXEC_VEBOX (4<<0)
 bool skipped_all = true;
 
 static double elapsed(const struct timeval *start,
@@ -134,6 +135,9 @@ int main(int argc, char **argv)
 		if (HAS_BLT_RING(devid))
 			loop(fd, handle, I915_EXEC_BLT, "blt");
 
+	if (drmtest_run_subtest("vebox"))
+		if (gem_has_vebox(fd))
+			loop(fd, handle, LOCAL_I915_EXEC_VEBOX, "vebox");
 
 	gem_close(fd, handle);
 
