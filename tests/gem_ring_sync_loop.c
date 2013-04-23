@@ -68,7 +68,7 @@ get_num_rings(int fd)
 	gp.param = I915_PARAM_HAS_BSD;
 	ret = drmIoctl(fd, DRM_IOCTL_I915_GETPARAM, &gp);
 
-	if ((ret == 0) & (*gp.value > 0))
+	if ((ret == 0) && (*gp.value > 0))
 		num_rings++;
 	else
 		goto skip;
@@ -76,7 +76,7 @@ get_num_rings(int fd)
 	gp.param = I915_PARAM_HAS_BLT;
 	ret = drmIoctl(fd, DRM_IOCTL_I915_GETPARAM, &gp);
 
-	if ((ret == 0) & (*gp.value > 0))
+	if ((ret == 0) && (*gp.value > 0))
 		num_rings++;
 	else
 		goto skip;
