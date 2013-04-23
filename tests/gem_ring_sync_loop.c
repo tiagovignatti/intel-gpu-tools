@@ -55,15 +55,46 @@ static drm_intel_bo *target_buffer;
 #define MI_COND_BATCH_BUFFER_END	(0x36<<23 | 1)
 #define MI_DO_COMPARE			(1<<21)
 
+static int
+get_num_rings(int fd)
+{
+	int num_rings = 1;	/* render ring is always available */
+	drm_i915_getparam_t gp;
+	int ret, tmp;
+
+	memset(&gp, 0, sizeof(gp));
+	gp.value = &tmp;
+
+	gp.param = I915_PARAM_HAS_BSD;
+	ret = drmIoctl(fd, DRM_IOCTL_I915_GETPARAM, &gp);
+	
+	if ((ret == 0) & (*gp.value > 0))
+		num_rings++;
+	else
+		goto skip;
+	
+	gp.param = I915_PARAM_HAS_BLT;
+	ret = drmIoctl(fd, DRM_IOCTL_I915_GETPARAM, &gp);
+
+	if ((ret == 0) & (*gp.value > 0))
+		num_rings++;
+	else
+		goto skip;
+
+skip:	
+	return num_rings;
+}
+
 static void
-store_dword_loop(void)
+store_dword_loop(int fd)
 {
 	int i;
+	int num_rings = get_num_rings(fd);
 
 	srandom(0xdeadbeef);
 
 	for (i = 0; i < 0x100000; i++) {
-		int ring = random() % 3 + 1;
+		int ring = random() % num_rings + 1;
 
 		if (ring == I915_EXEC_RENDER) {
 			BEGIN_BATCH(4);
@@ -127,7 +158,7 @@ int main(int argc, char **argv)
 		exit(-1);
 	}
 
-	store_dword_loop();
+	store_dword_loop(fd);
 
 	drm_intel_bo_unreference(target_buffer);
 	intel_batchbuffer_free(batch);
