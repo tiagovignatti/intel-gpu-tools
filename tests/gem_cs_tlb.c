@@ -53,6 +53,7 @@
 #include "drmtest.h"
 #include "intel_gpu_tools.h"
 
+#define LOCAL_I915_EXEC_VEBOX (4<<0)
 #define BATCH_SIZE (1024*1024)
 bool skipped_all = true;
 
@@ -172,6 +173,10 @@ int main(int argc, char **argv)
 	if (drmtest_run_subtest("blt"))
 		if (HAS_BLT_RING(devid))
 			run_on_ring(fd, I915_EXEC_BLT, "blt");
+
+	if (drmtest_run_subtest("vebox"))
+		if (gem_has_vebox(fd))
+			run_on_ring(fd, LOCAL_I915_EXEC_VEBOX, "vebox");
 
 	close(fd);
 
