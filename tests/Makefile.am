@@ -79,6 +79,7 @@ TESTS_progs = \
 	gem_storedw_loop_render \
 	gem_storedw_loop_blt \
 	gem_storedw_loop_bsd \
+	gem_storedw_loop_vebox \
 	gem_storedw_batches_loop \
 	gem_double_irq_loop \
 	gem_ring_sync_loop \

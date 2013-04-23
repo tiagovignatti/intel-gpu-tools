@@ -278,4 +278,6 @@
 #define IS_CRESTLINE(devid)	((devid) == PCI_CHIP_I965_GM || \
 				 (devid) == PCI_CHIP_I965_GME)
 
+#define HAS_VEBOX_RING(devid)   (IS_HASWELL(devid))
+
 #endif /* _INTEL_CHIPSET_H */
