@@ -53,7 +53,7 @@ static int has_ppgtt = 0;
  */
 
 static void
-store_dword_loop(void)
+store_dword_loop(int divider)
 {
 	int cmd, i, val = 0;
 	uint32_t *buf;
@@ -62,7 +62,7 @@ store_dword_loop(void)
 	if (!has_ppgtt)
 		cmd |= MI_MEM_VIRTUAL;
 
-	for (i = 0; i < 0x100000; i++) {
+	for (i = 0; i < SLOW_QUICK(0x100000, 0x10); i++) {
 		BEGIN_BATCH(4);
 		OUT_BATCH(cmd);
 		OUT_BATCH(0); /* reserved */
@@ -72,6 +72,9 @@ store_dword_loop(void)
 		ADVANCE_BATCH();
 
 		intel_batchbuffer_flush_on_ring(batch, LOCAL_I915_EXEC_VEBOX);
+
+		if (i % divider != 0)
+			goto cont;
 
 		drm_intel_bo_map(target_buffer, 0);
 
@@ -85,6 +88,7 @@ store_dword_loop(void)
 
 		drm_intel_bo_unmap(target_buffer);
 
+cont:
 		val++;
 	}
 
@@ -141,7 +145,10 @@ int main(int argc, char **argv)
 		exit(-1);
 	}
 
-	store_dword_loop();
+	store_dword_loop(1);
+	store_dword_loop(2);
+	store_dword_loop(3);
+	store_dword_loop(5);
 
 	drm_intel_bo_unreference(target_buffer);
 	intel_batchbuffer_free(batch);
