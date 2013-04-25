@@ -69,7 +69,8 @@ int intel_punit_read(uint8_t addr, uint32_t *val)
 	return vlv_punit_rw(IOSF_PORT_PUNIT, PUNIT_OPCODE_REG_READ, addr, val);
 }
 
-int intel_punit_write(uint8_t addr, uint32_t val)
+static int intel_punit_write(uint8_t addr, uint32_t val) __attribute__ ((unused));
+static int intel_punit_write(uint8_t addr, uint32_t val)
 {
 	return vlv_punit_rw(IOSF_PORT_PUNIT, PUNIT_OPCODE_REG_WRITE, addr, &val);
 }
@@ -79,7 +80,8 @@ int intel_nc_read(uint8_t addr, uint32_t *val)
 	return vlv_punit_rw(IOSF_PORT_NC, PUNIT_OPCODE_REG_READ, addr, val);
 }
 
-int intel_nc_write(uint8_t addr, uint32_t val)
+static int intel_nc_write(uint8_t addr, uint32_t val) __attribute__ ((unused));
+static int intel_nc_write(uint8_t addr, uint32_t val)
 {
 	return vlv_punit_rw(IOSF_PORT_NC, PUNIT_OPCODE_REG_WRITE, addr, &val);
 }

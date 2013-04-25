@@ -221,19 +221,18 @@ done:
 	mmio_data.inited++;
 	return 0;
 }
+static int
+intel_register_access_needs_wake(void)
+{
+	return mmio_data.key != FAKEKEY;
+}
 
 void
 intel_register_access_fini(void)
 {
-	if (mmio_data.key && mmio_data.key != FAKEKEY)
+	if (mmio_data.key && intel_register_access_needs_wake())
 		release_forcewake_lock(mmio_data.key);
 	mmio_data.inited--;
-}
-
-int
-intel_register_access_needs_wake(void)
-{
-	return mmio_data.key == FAKEKEY;
 }
 
 uint32_t
