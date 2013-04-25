@@ -50,7 +50,9 @@ uint32_t intel_dpio_reg_read(uint32_t reg);
 void intel_dpio_reg_write(uint32_t reg, uint32_t val);
 
 int intel_punit_read(uint8_t addr, uint32_t *val);
+int intel_punit_write(uint8_t addr, uint32_t val);
 int intel_nc_read(uint8_t addr, uint32_t *val);
+int intel_nc_write(uint8_t addr, uint32_t val);
 
 #define INTEL_RANGE_RSVD	(0<<0) /*  Shouldn't be read or written */
 #define INTEL_RANGE_READ	(1<<0)

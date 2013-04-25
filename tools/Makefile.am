@@ -24,6 +24,8 @@ bin_PROGRAMS = 				\
 	intel_dpio_write		\
 	intel_l3_parity			\
 	intel_punit_read		\
+	intel_punit_write		\
+	intel_nc_write			\
 	intel_nc_read
 
 noinst_PROGRAMS = 			\
