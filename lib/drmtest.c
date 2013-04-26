@@ -270,6 +270,21 @@ void gem_set_tiling(int fd, uint32_t handle, int tiling, int stride)
 	assert(st.tiling_mode == tiling);
 }
 
+#define LOCAL_I915_PARAM_HAS_VEBOX 22
+int gem_has_vebox(int fd)
+{
+	struct drm_i915_getparam gp;
+	int val;
+
+	gp.param = LOCAL_I915_PARAM_HAS_VEBOX;
+	gp.value = &val;
+
+	if (ioctl(fd, DRM_IOCTL_I915_GETPARAM, &gp, sizeof(gp)))
+		return 0;
+
+	return val != 0;
+}
+
 struct local_drm_i915_gem_cacheing {
 	uint32_t handle;
 	uint32_t cacheing;

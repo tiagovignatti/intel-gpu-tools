@@ -55,7 +55,6 @@ static drm_intel_bo *target_buffer;
 #define MI_COND_BATCH_BUFFER_END	(0x36<<23 | 1)
 #define MI_DO_COMPARE			(1<<21)
 
-#define LOCAL_I915_PARAM_HAS_VEBOX  22
 static int
 get_num_rings(int fd)
 {
@@ -82,10 +81,7 @@ get_num_rings(int fd)
 	else
 		goto skip;
 
-	gp.param = LOCAL_I915_PARAM_HAS_VEBOX;
-	ret = drmIoctl(fd, DRM_IOCTL_I915_GETPARAM, &gp);
-
-	if ((ret == 0) & (*gp.value > 0))
+	if (gem_has_vebox(fd))
 		num_rings++;
 	else
 		goto skip;

@@ -46,7 +46,6 @@
 static drm_intel_bufmgr *bufmgr;
 struct intel_batchbuffer *batch;
 static drm_intel_bo *target_buffer;
-static int has_ppgtt = 0;
 
 /*
  * Testcase: Basic vebox MI check using MI_STORE_DATA_IMM
@@ -59,8 +58,6 @@ store_dword_loop(int divider)
 	uint32_t *buf;
 
 	cmd = MI_STORE_DWORD_IMM;
-	if (!has_ppgtt)
-		cmd |= MI_MEM_VIRTUAL;
 
 	for (i = 0; i < SLOW_QUICK(0x100000, 0x10); i++) {
 		BEGIN_BATCH(4);
@@ -103,28 +100,12 @@ cont:
 int main(int argc, char **argv)
 {
 	int fd;
-	int devid;
-
-	if (argc != 1) {
-		fprintf(stderr, "usage: %s\n", argv[0]);
-		exit(-1);
-	}
 
 	fd = drm_open_any();
-	devid = intel_get_drm_devid(fd);
-
-	if (!HAS_VEBOX_RING(devid)) {
-		fprintf(stderr, "Doesn't have vebox ring\n");
-		return 77;
-	}
-
-	has_ppgtt = gem_uses_aliasing_ppgtt(fd);
 
 	/* This only works with ppgtt */
-	if (!has_ppgtt) {
-		fprintf(stderr, "no ppgtt detected, which is required\n");
+	if (!gem_has_vebox(fd) || !gem_uses_aliasing_ppgtt(fd))
 		return 77;
-	}
 
 	bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
 	if (!bufmgr) {
@@ -133,7 +114,7 @@ int main(int argc, char **argv)
 	}
 	drm_intel_bufmgr_gem_enable_reuse(bufmgr);
 
-	batch = intel_batchbuffer_alloc(bufmgr, devid);
+	batch = intel_batchbuffer_alloc(bufmgr, intel_get_drm_devid(fd));
 	if (!batch) {
 		fprintf(stderr, "failed to create batch buffer\n");
 		exit(-1);

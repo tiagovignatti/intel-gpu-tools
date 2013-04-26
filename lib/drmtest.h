@@ -47,6 +47,7 @@ int drm_open_any_master(void);
 void gem_quiescent_gpu(int fd);
 
 /* ioctl wrappers and similar stuff for bare metal testing */
+int gem_has_vebox(int fd);
 void gem_set_tiling(int fd, uint32_t handle, int tiling, int stride);
 int gem_has_cacheing(int fd);
 void gem_set_cacheing(int fd, uint32_t handle, int cacheing);
