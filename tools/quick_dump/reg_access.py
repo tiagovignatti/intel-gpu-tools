@@ -40,7 +40,7 @@ def init():
 		print("Register access init failed");
 		return False
 
-	if chipset.intel_register_access_needs_wake():
+	if chipset.intel_register_access_needs_fakewake():
 		print("Forcing forcewake. Don't expect your system to work after this.")
 		get_wake()
 

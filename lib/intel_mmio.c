@@ -227,6 +227,11 @@ intel_register_access_needs_wake(void)
 	return mmio_data.key != FAKEKEY;
 }
 
+int intel_register_access_needs_fakewake(void)
+{
+	return mmio_data.key == FAKEKEY;
+}
+
 void
 intel_register_access_fini(void)
 {
