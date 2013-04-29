@@ -91,6 +91,8 @@ int main(int argc, char **argv)
 	uint32_t *src, dst;
 	int fd, count;
 
+	drmtest_skip_on_simulation();
+
 	if (argc > 1)
 		object_size = atoi(argv[1]);
 	if (object_size == 0)

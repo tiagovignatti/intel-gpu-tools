@@ -56,6 +56,8 @@ int main(int argc, char **argv)
 {
 	int fd, i;
 
+	drmtest_skip_on_simulation();
+
 	fd = drm_open_any();
 
 	bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);

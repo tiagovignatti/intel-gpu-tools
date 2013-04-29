@@ -533,6 +533,8 @@ int main(int argc, char **argv)
 	GMainLoop *mainloop;
 	float force_clock;
 
+	drmtest_skip_on_simulation();
+
 	enter_exec_path( argv );
 
 	opterr = 0;

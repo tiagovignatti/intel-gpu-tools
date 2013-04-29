@@ -225,6 +225,7 @@ int main(int argc, char **argv)
 	int i;
 
 	drmtest_subtest_init(argc, argv);
+	drmtest_skip_on_simulation();
 
 	if (!drmtest_only_list_subtests()) {
 		drm_fd = drm_open_any();

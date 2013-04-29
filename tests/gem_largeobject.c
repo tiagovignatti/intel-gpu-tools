@@ -87,6 +87,8 @@ int main(int argc, char **argv)
 {
 	int fd;
 
+	drmtest_skip_on_simulation();
+
 	fd = drm_open_any();
 
 	test_large_object(fd);

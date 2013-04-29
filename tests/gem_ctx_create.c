@@ -42,6 +42,8 @@ int main(int argc, char *argv[])
 	int ret, fd;
 	struct local_drm_i915_gem_context_create create;
 
+	drmtest_skip_on_simulation();
+
 	create.ctx_id = rand();
 	create.pad = rand();
 

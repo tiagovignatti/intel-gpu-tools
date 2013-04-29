@@ -56,6 +56,8 @@ int main(int argc, char **argv)
 	int i;
 	uint32_t handle;
 
+	drmtest_skip_on_simulation();
+
 	fd = drm_open_any();
 
 	for (i = 0; i < OBJECT_SIZE/4; i++)

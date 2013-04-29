@@ -647,6 +647,8 @@ int main(int argc, char **argv)
 	int wcount = 0;
 	int r = -1;
 
+	drmtest_skip_on_simulation();
+
 	parse_options(argc, argv);
 
 	card_index = drm_get_card(0);

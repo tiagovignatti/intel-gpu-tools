@@ -240,6 +240,8 @@ int main(int argc, char **argv)
 {
 	int fd, count = 0;
 
+	drmtest_skip_on_simulation();
+
 	drmtest_subtest_init(argc, argv);
 
 	fd = drm_open_any();

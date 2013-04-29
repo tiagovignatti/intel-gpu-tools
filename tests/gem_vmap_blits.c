@@ -262,6 +262,8 @@ int main(int argc, char **argv)
 	uint32_t start = 0;
 	int i, fd, count;
 
+	drmtest_skip_on_simulation();
+
 	fd = drm_open_any();
 
 	if (!has_vmap(fd)) {

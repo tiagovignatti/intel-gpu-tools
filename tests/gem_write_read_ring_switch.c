@@ -174,6 +174,7 @@ int main(int argc, char **argv)
 	int i;
 
 	drmtest_subtest_init(argc, argv);
+	drmtest_skip_on_simulation();
 
 	fd = drm_open_any();
 

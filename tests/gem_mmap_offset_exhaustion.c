@@ -83,6 +83,8 @@ int main(int argc, char **argv)
 {
 	int fd, i;
 
+	drmtest_skip_on_simulation();
+
 	fd = drm_open_any();
 
 	/* we have 32bit of address space, so try to fit one MB more

@@ -124,6 +124,8 @@ int main(int argc, char **argv)
 {
 	int fd;
 
+	drmtest_skip_on_simulation();
+
 	fd = drm_open_any();
 
 	create0(fd);

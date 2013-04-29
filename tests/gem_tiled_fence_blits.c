@@ -108,6 +108,8 @@ int main(int argc, char **argv)
 	uint32_t start = 0;
 	int fd, i, count;
 
+	drmtest_skip_on_simulation();
+
 	fd = drm_open_any();
 	count = 3 * gem_aperture_size(fd) / (1024*1024) / 2;
 	if (count > intel_get_total_ram_mb() * 9 / 10) {

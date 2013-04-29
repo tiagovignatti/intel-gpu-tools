@@ -71,6 +71,8 @@ int main(int argc, char **argv)
 	uint32_t start = 0;
 	int i, j, fd, count;
 
+	drmtest_skip_on_simulation();
+
 	fd = drm_open_any();
 
 	render_copy = get_render_copyfunc(intel_get_drm_devid(fd));

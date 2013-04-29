@@ -37,3 +37,10 @@ if [ -d /sys/class/drm ] ; then
     fi
 fi
 # sysfs may not exist as the 'error' is a new interface in 3.11
+
+function drmtest_skip_on_simulation()
+{
+	[ -n "$INTEL_SIMULATION" ] && exit 77
+}
+
+drmtest_skip_on_simulation

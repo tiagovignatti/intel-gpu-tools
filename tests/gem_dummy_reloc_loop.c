@@ -131,6 +131,7 @@ int main(int argc, char **argv)
 	int num_rings;
 
 	drmtest_subtest_init(argc, argv);
+	drmtest_skip_on_simulation();
 
 	fd = drm_open_any();
 	devid = intel_get_drm_devid(fd);

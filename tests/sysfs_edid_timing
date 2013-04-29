@@ -5,6 +5,8 @@
 # we sometimes take a *really* long time. So let's just check for some reasonable timing here
 #
 
+[ -n "$INTEL_SIMULATION" ] && exit 77
+
 TIME1=$(date +%s%N)
 cat $(find /sys/devices/|grep drm | grep /status) > /dev/null
 TIME2=$(date +%s%N)

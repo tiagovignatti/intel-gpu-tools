@@ -208,6 +208,7 @@ int
 main(int argc, char **argv)
 {
 	drmtest_subtest_init(argc, argv);
+	drmtest_skip_on_simulation();
 
 	if (drmtest_run_subtest("bo-write-verify-none"))
 		assert (run_test(0, bo_write_verify, I915_TILING_NONE, 80) == 0);

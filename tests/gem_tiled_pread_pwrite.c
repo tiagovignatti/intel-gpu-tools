@@ -123,6 +123,7 @@ main(int argc, char **argv)
 	uint32_t handle, handle_target;
 	int count;
 	
+	drmtest_skip_on_simulation();
 
 	fd = drm_open_any();
 	count = intel_get_total_ram_mb() * 9 / 10;

@@ -127,6 +127,8 @@ int main(int argc, char **argv)
 		{ .name = NULL },
 	}, *p;
 
+	drmtest_skip_on_simulation();
+
 	fd = drm_open_any();
 
 	for (n = 0; n < MAX_NUM_EXEC; n++) {

@@ -203,6 +203,8 @@ int main(int argc, char **argv)
 	uint32_t *handle, *offset;
 	int fd, i;
 
+	drmtest_skip_on_simulation();
+
 	fd = drm_open_any();
 
 	if (!test_can_pin(fd))

@@ -29,6 +29,7 @@
 #include "intel_bufmgr.h"
 #include "intel_gpu_tools.h"
 #include "intel_batchbuffer.h"
+#include "drmtest.h"
 
 int intel_fd = -1, udl_fd = -1;
 drm_intel_bufmgr *bufmgr;
@@ -149,6 +150,8 @@ out:
 int main(int argc, char **argv)
 {
 	int ret;
+
+	drmtest_skip_on_simulation();
 
 	ret = find_and_open_devices();
 	if (ret < 0)

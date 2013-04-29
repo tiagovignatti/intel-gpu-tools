@@ -258,6 +258,7 @@ int main(int argc, char **argv)
 	srandom(0xdeadbeef);
 
 	drmtest_subtest_init(argc, argv);
+	drmtest_skip_on_simulation();
 
 	fd = drm_open_any();
 

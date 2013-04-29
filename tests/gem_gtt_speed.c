@@ -61,6 +61,8 @@ int main(int argc, char **argv)
 	int loop, i, tiling;
 	int fd;
 
+	drmtest_skip_on_simulation();
+
 	if (argc > 1)
 		size = atoi(argv[1]);
 	if (size == 0) {

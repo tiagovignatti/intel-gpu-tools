@@ -183,6 +183,8 @@ int main(int argc, char **argv)
 	uint32_t handle;
 	int fd, i;
 
+	drmtest_skip_on_simulation();
+
 	fd = drm_open_any();
 
 	handle = gem_create(fd, 4096);

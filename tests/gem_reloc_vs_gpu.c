@@ -148,6 +148,8 @@ int main(int argc, char **argv)
 	int fd, i, ring;
 	uint32_t test;
 
+	drmtest_skip_on_simulation();
+
 	memset(blob, 'A', sizeof(blob));
 
 	fd = drm_open_any();

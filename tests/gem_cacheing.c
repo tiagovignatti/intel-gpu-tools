@@ -113,6 +113,7 @@ int main(int argc, char **argv)
 	bool skipped_all = true;
 
 	drmtest_subtest_init(argc, argv);
+	drmtest_skip_on_simulation();
 
 	srandom(0xdeadbeef);
 

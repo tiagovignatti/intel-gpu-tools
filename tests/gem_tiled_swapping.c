@@ -101,6 +101,8 @@ main(int argc, char **argv)
 	int count;
 	current_tiling_mode = I915_TILING_X;
 
+	drmtest_skip_on_simulation();
+
 	fd = drm_open_any();
 	/* need slightly more than total ram */
 	count = intel_get_total_ram_mb() * 11 / 10;

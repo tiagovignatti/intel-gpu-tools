@@ -134,6 +134,8 @@ main(int argc, char **argv)
 	uint32_t handle;
 	uint32_t devid;
 
+	drmtest_skip_on_simulation();
+
 	fd = drm_open_any();
 
 	handle = create_bo(fd);

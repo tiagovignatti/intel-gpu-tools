@@ -277,6 +277,7 @@ int main(int argc, char **argv)
 	uint32_t tiling_mode = I915_TILING_X;
 
 	drmtest_subtest_init(argc, argv);
+	drmtest_skip_on_simulation();
 
 	srandom(0xdeadbeef);
 

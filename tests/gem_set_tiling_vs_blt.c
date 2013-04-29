@@ -234,6 +234,7 @@ int main(int argc, char **argv)
 	uint32_t tiling, tiling_after;
 
 	drmtest_subtest_init(argc, argv);
+	drmtest_skip_on_simulation();
 
 	for (i = 0; i < 1024*256; i++)
 		data[i] = i;

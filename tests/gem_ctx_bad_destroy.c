@@ -80,6 +80,8 @@ int main(int argc, char *argv[])
 	uint32_t ctx_id;
 	int ret, fd;
 
+	drmtest_skip_on_simulation();
+
 	fd = drm_open_any();
 
 	ctx_id = context_create(fd);

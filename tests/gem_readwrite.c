@@ -82,6 +82,8 @@ int main(int argc, char **argv)
 	int ret;
 	int handle;
 
+	drmtest_skip_on_simulation();
+
 	fd = drm_open_any();
 
 	handle = gem_create(fd, OBJECT_SIZE);

@@ -108,6 +108,8 @@ int main(int argc, char **argv)
 	uint32_t reloc_ofs;
 	unsigned batch_size;
 
+	drmtest_skip_on_simulation();
+
 	fd = drm_open_any();
 
 	for (batch_size = BATCH_SIZE/4; batch_size <= BATCH_SIZE; batch_size += 4096) {

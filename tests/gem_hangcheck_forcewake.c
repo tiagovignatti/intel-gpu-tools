@@ -65,6 +65,8 @@ int main(int argc, char **argv)
 	unsigned long pitch, act_size;
 	int fd, i, devid;
 
+	drmtest_skip_on_simulation();
+
 	memset(blob, 'A', sizeof(blob));
 
 	fd = drm_open_any();

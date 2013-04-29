@@ -159,9 +159,15 @@ static void run_test(int fd, int num_fences, int expected_errno)
 int
 main(int argc, char **argv)
 {
-	int fd = drm_open_any();
-	int num_fences = get_num_fences(fd);
-	uint32_t devid = intel_get_drm_devid(fd);
+	int fd;
+	int num_fences;
+	uint32_t devid;
+
+	drmtest_skip_on_simulation();
+
+	fd = drm_open_any();
+	num_fences = get_num_fences(fd);
+	devid = intel_get_drm_devid(fd);
 
 	assert(num_fences <= MAX_FENCES);
 
