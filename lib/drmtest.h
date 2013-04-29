@@ -95,6 +95,7 @@ bool drmtest_only_list_subtests(void);
 
 bool drmtest_run_in_simulation(void);
 #define SLOW_QUICK(slow,quick) (drmtest_run_in_simulation() ? (quick) : (slow))
+void drmtest_skip_on_simulation(void);
 
 /* helpers based upon the libdrm buffer manager */
 void drmtest_init_aperture_trashers(drm_intel_bufmgr *bufmgr);

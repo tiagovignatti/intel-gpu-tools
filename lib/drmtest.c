@@ -39,6 +39,7 @@
 #include <getopt.h>
 #include <stdlib.h>
 #include <linux/kd.h>
+#include <unistd.h>
 #include "drm_fourcc.h"
 
 #include "drmtest.h"
@@ -707,6 +708,17 @@ bool drmtest_run_in_simulation(void)
 		simulation = env_set("INTEL_SIMULATION");
 
 	return simulation;
+}
+
+/* Skip the test when running on simulation (and that's relevant only when
+ * we're not in the mode where we list the subtests) */
+void drmtest_skip_on_simulation(void)
+{
+	if (drmtest_only_list_subtests())
+		return;
+
+	if (drmtest_run_in_simulation())
+		exit(77);
 }
 
 /* other helpers */
