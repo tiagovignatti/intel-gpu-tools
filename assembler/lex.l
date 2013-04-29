@@ -129,6 +129,7 @@ yylval.integer = BRW_CHANNEL_W;
 "subb" { yylval.integer = BRW_OPCODE_SUBB; return SUBB; }
 
 "send" { yylval.integer = BRW_OPCODE_SEND; return SEND; }
+"sendc" { yylval.integer = BRW_OPCODE_SENDC; return SENDC; }
 "nop" { yylval.integer = BRW_OPCODE_NOP; return NOP; }
 "jmpi" { yylval.integer = BRW_OPCODE_JMPI; return JMPI; }
 "if" { yylval.integer = BRW_OPCODE_IF; return IF; }

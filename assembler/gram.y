@@ -440,7 +440,7 @@ static void resolve_subnr(struct brw_reg *reg)
 %token <integer> MUL MAC MACH LINE SAD2 SADA2 DP4 DPH DP3 DP2
 %token <integer> AVG ADD SEL AND OR XOR SHR SHL ASR CMP CMPN PLN
 %token <integer> ADDC BFI1 BFREV CBIT F16TO32 F32TO16 FBH FBL
-%token <integer> SEND NOP JMPI IF IFF WHILE ELSE BREAK CONT HALT MSAVE
+%token <integer> SEND SENDC NOP JMPI IF IFF WHILE ELSE BREAK CONT HALT MSAVE
 %token <integer> PUSH MREST POP WAIT DO ENDIF ILLEGAL
 %token <integer> MATH_INST
 %token <integer> MAD LRP BFE BFI2 SUBB
@@ -494,6 +494,7 @@ static void resolve_subnr(struct brw_reg *reg)
 %type <integer> instoption
 %type <integer> unaryop binaryop binaryaccop breakop
 %type <integer> trinaryop
+%type <integer> sendop
 %type <condition> conditionalmodifier 
 %type <predicate> predicate
 %type <options> instoptions instoption_list
@@ -1099,7 +1100,10 @@ trinaryinstruction:
 }
 ;
 
-sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
+sendop:		SEND | SENDC
+;
+
+sendinstruction: predicate sendop execsize exp post_dst payload msgtarget
 		MSGLEN exp RETURNLEN exp instoptions
 		{
 		  /* Send instructions are messy.  The first argument is the
@@ -1163,7 +1167,7 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
                       GEN(&$$)->bits3.generic.end_of_thread = $12.end_of_thread;
 		  }
 		}
-		| predicate SEND execsize dst sendleadreg payload directsrcoperand instoptions
+		| predicate sendop execsize dst sendleadreg payload directsrcoperand instoptions
 		{
 		  memset(&$$, 0, sizeof($$));
 		  set_instruction_opcode(&$$, $2);
@@ -1181,7 +1185,7 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
 		    YYERROR;
 
 		  }
-		| predicate SEND execsize dst sendleadreg payload imm32reg instoptions
+		| predicate sendop execsize dst sendleadreg payload imm32reg instoptions
                 {
 		  if ($7.reg.type != BRW_REGISTER_TYPE_UD &&
 		      $7.reg.type != BRW_REGISTER_TYPE_D &&
@@ -1202,7 +1206,7 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
 		  if (set_instruction_src1(&$$, &$7, &@7) != 0)
 		    YYERROR;
                 }
-		| predicate SEND execsize dst sendleadreg sndopr imm32reg instoptions
+		| predicate sendop execsize dst sendleadreg sndopr imm32reg instoptions
 		{
 		  struct src_operand src0;
 
@@ -1243,7 +1247,7 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
 
                   GEN(&$$)->bits3.generic_gen5.end_of_thread = !!($6 & EX_DESC_EOT_MASK);
 		}
-		| predicate SEND execsize dst sendleadreg sndopr directsrcoperand instoptions
+		| predicate sendop execsize dst sendleadreg sndopr directsrcoperand instoptions
 		{
 		  struct src_operand src0;
 
@@ -1284,7 +1288,7 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
                   set_instruction_src1(&$$, &$7, &@7);
                   GEN(&$$)->bits3.generic_gen5.end_of_thread = !!($6 & EX_DESC_EOT_MASK);
 		}
-		| predicate SEND execsize dst sendleadreg payload sndopr imm32reg instoptions
+		| predicate sendop execsize dst sendleadreg payload sndopr imm32reg instoptions
 		{
 		  if ($8.reg.type != BRW_REGISTER_TYPE_UD &&
 		      $8.reg.type != BRW_REGISTER_TYPE_D &&
@@ -1310,7 +1314,7 @@ sendinstruction: predicate SEND execsize exp post_dst payload msgtarget
 		      GEN(&$$)->bits3.generic_gen5.end_of_thread = !!($7 & EX_DESC_EOT_MASK);
 		  }
 		}
-		| predicate SEND execsize dst sendleadreg payload exp directsrcoperand instoptions
+		| predicate sendop execsize dst sendleadreg payload exp directsrcoperand instoptions
 		{
 		  memset(&$$, 0, sizeof($$));
 		  set_instruction_opcode(&$$, $2);
