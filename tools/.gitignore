@@ -16,7 +16,12 @@ intel_gtt
 intel_infoframes
 intel_l3_parity
 intel_lid
+intel_nc_read
+intel_nc_write
 intel_panel_fitter
+intel_perf_counters
+intel_punit_read
+intel_punit_write
 intel_reg_checker
 intel_reg_dumper
 intel_reg_read
