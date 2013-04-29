@@ -1721,6 +1721,7 @@ DEBUGSTRING(hsw_debug_pipe_ddi_func_ctl)
 		mode = "FDI";
 		break;
 	case 5:
+	default:
 		mode = "mode reserved";
 		break;
 	}
