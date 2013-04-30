@@ -1,6 +1,7 @@
 if BUILD_TESTS
 noinst_PROGRAMS = \
 	gem_stress \
+	ddi_compute_wrpll \
 	$(TESTS_progs) \
 	$(TESTS_progs_M) \
 	$(HANG) \
