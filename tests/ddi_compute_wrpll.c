@@ -12,14 +12,6 @@
 #define P_MAX 64
 #define P_INC 2
 
-#define R2_MIN 5
-#define R2_MAX 256
-#define R2_INC 1
-
-#define N2_MIN 5
-#define N2_MAX 256
-#define N2_INC 1
-
 /* Constraints for PLL good behavior */
 #define REF_MIN 48
 #define REF_MAX 400
@@ -189,33 +181,36 @@ wrpll_compute_rnp(int clock /* in Hz */,
 	}
 
 	/*
-	 * Ref * 2000 = LC_FREQ_2K / R, where Ref is the actual reference input
-	 * seen by the WR PLL. In particular:
-	 *   REF_MIN <= LC_FREQ_2K / (R * 2000) and
-	 *   REF_MAX >= LC_FREQ_2K / (R * 2000).
-	 * Eliminating fractions gives:
-	 *   2000 * REF_MAX * R >= LC_FREQ_2K >= 2000 * R * REF_MIN, R2 = 2*R
+	 * Ref = LC_FREQ / R, where Ref is the actual reference input seen by
+	 * the WR PLL.
+	 *
+	 * We want R so that REF_MIN <= Ref <= REF_MAX.
+	 * Injecting R2 = 2 * R gives:
+	 *   REF_MAX * r2 > LC_FREQ * 2 and
+	 *   REF_MIN * r2 < LC_FREQ * 2
+	 *
+	 * Which means the desired boundaries for r2 are:
+	 *  LC_FREQ * 2 / REF_MAX < r2 < LC_FREQ * 2 / REF_MIN
+	 *
 	 */
-	for (r2 = R2_MIN; r2 <= R2_MAX; r2 += R2_INC) {
-		if (1000 * REF_MAX * r2 < LC_FREQ_2K)
-			continue;
-
-		if (1000 * REF_MIN * r2 > LC_FREQ_2K)
-			continue;
+        for (r2 = LC_FREQ * 2 / REF_MAX + 1;
+	     r2 <= LC_FREQ * 2 / REF_MIN;
+	     r2++) {
 
 		/*
-		 * VCO is N * Ref, that is: VCO = N * LC_FREQ_2K / (R * 2000).
+		 * VCO = N * Ref, that is: VCO = N * LC_FREQ / R
 		 *
-		 * Once again, VCO_MAX >= N * LC_FREQ_2K / (R * 2000) >= VCO_MIN,
-		 * or: VCO_MAX * R * 2000 >= N * LC_FREQ_2K >= VCO_MIN * R * 2000,
-		 * where R2=2*R and N2=2*N
+		 * Once again we want VCO_MIN <= VCO <= VCO_MAX.
+		 * Injecting R2 = 2 * R and N2 = 2 * N, we get:
+		 *   VCO_MAX * r2 > n2 * LC_FREQ and
+		 *   VCO_MIN * r2 < n2 * LC_FREQ)
+		 *
+		 * Which means the desired boundaries for n2 are:
+		 * VCO_MIN * r2 / LC_FREQ < n2 < VCO_MAX * r2 / LC_FREQ
 		 */
-		for (n2 = N2_MIN; n2 <= N2_MAX; n2 += N2_INC) {
-			if (VCO_MAX * r2 * 2000 < n2 * LC_FREQ_2K)
-				continue;
-
-			if (VCO_MIN * r2 * 2000 > n2 * LC_FREQ_2K)
-				continue;
+		for (n2 = VCO_MIN * r2 / LC_FREQ + 1;
+		     n2 <= VCO_MAX * r2 / LC_FREQ;
+		     n2++) {
 
 			for (p = P_MIN; p <= P_MAX; p += P_INC)
 				wrpll_update_rnp(freq2k, budget,
