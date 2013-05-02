@@ -102,7 +102,7 @@ static void wrpll_update_rnp(uint64_t freq2k, unsigned budget,
 			     unsigned r2, unsigned n2, unsigned p,
 			     struct wrpll_rnp *best)
 {
-	uint64_t a, b, c, d;
+	uint64_t a, b, c, d, diff, diff_best;
 
 	/* No best (r,n,p) yet */
 	if (best->p == 0) {
@@ -128,16 +128,15 @@ static void wrpll_update_rnp(uint64_t freq2k, unsigned budget,
 	 */
 	a = freq2k * budget * p * r2;
 	b = freq2k * budget * best->p * best->r2;
-	c = 1e6 * ABS_DIFF((freq2k * p * r2), (LC_FREQ_2K * n2));
-	d = 1e6 * ABS_DIFF((freq2k * best->p * best->r2),
-			   (LC_FREQ_2K * best->n2));
+	diff = ABS_DIFF((freq2k * p * r2), (LC_FREQ_2K * n2));
+	diff_best = ABS_DIFF((freq2k * best->p * best->r2),
+			     (LC_FREQ_2K * best->n2));
+	c = 1e6 * diff;
+	d = 1e6 * diff_best;
 
 	if (a < c && b < d) {
 		/* If both are above the budget, pick the closer */
-		if (best->p * best->r2 * ABS_DIFF((freq2k * p * r2),
-						  (LC_FREQ_2K * n2)) <
-		    p * r2 * ABS_DIFF((freq2k * best->p * best->r2),
-				      (LC_FREQ_2K * best->n2))) {
+		if (best->p * best->r2 * diff < p * r2 * diff_best) {
 			best->p = p;
 			best->n2 = n2;
 			best->r2 = r2;
