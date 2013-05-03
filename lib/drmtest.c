@@ -270,19 +270,64 @@ void gem_set_tiling(int fd, uint32_t handle, int tiling, int stride)
 	assert(st.tiling_mode == tiling);
 }
 
-#define LOCAL_I915_PARAM_HAS_VEBOX 22
-int gem_has_vebox(int fd)
+bool gem_has_enable_ring(int fd,int param)
 {
-	struct drm_i915_getparam gp;
-	int val;
+	drm_i915_getparam_t gp;
+	int ret, tmp;
+	memset(&gp, 0, sizeof(gp));
 
-	gp.param = LOCAL_I915_PARAM_HAS_VEBOX;
-	gp.value = &val;
+	gp.value = &tmp;
+	gp.param = param;
 
-	if (ioctl(fd, DRM_IOCTL_I915_GETPARAM, &gp, sizeof(gp)))
-		return 0;
+	ret = drmIoctl(fd, DRM_IOCTL_I915_GETPARAM, &gp);
 
-	return val != 0;
+	if ((ret == 0) && (*gp.value > 0))
+		return true;
+	else
+		return false;
+}
+
+bool gem_has_bsd(int fd)
+{
+
+	return gem_has_enable_ring(fd,I915_PARAM_HAS_BSD);
+}
+
+bool gem_has_blt(int fd)
+{
+
+	return gem_has_enable_ring(fd,I915_PARAM_HAS_BLT);
+}
+
+#define LOCAL_I915_PARAM_HAS_VEBOX 22
+bool gem_has_vebox(int fd)
+{
+
+	return gem_has_enable_ring(fd,LOCAL_I915_PARAM_HAS_VEBOX);
+}
+
+int gem_get_num_rings(int fd)
+{
+	int num_rings = 1;	/* render ring is always available */
+
+	if (gem_has_bsd(fd))
+		num_rings++;
+	else
+		goto skip;
+
+	if (gem_has_blt(fd))
+		num_rings++;
+	else
+		goto skip;
+
+	if (gem_has_vebox(fd))
+		num_rings++;
+	else
+		goto skip;
+
+
+skip:
+	return num_rings;
 }
 
 struct local_drm_i915_gem_cacheing {
