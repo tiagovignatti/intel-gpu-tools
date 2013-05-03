@@ -42,6 +42,8 @@
 #include "intel_gpu_tools.h"
 #include "i830_reg.h"
 
+#define LOCAL_I915_EXEC_VEBOX (4<<0)
+
 static drm_intel_bufmgr *bufmgr;
 struct intel_batchbuffer *batch;
 static drm_intel_bo *target_buffer;
@@ -88,14 +90,14 @@ dummy_reloc_loop(int ring)
 }
 
 static void
-dummy_reloc_loop_random_ring(void)
+dummy_reloc_loop_random_ring(int num_rings)
 {
 	int i;
 
 	srandom(0xdeadbeef);
 
 	for (i = 0; i < 0x100000; i++) {
-		int ring = random() % 3 + 1;
+		int ring = random() % num_rings + 1;
 
 		if (ring == I915_EXEC_RENDER) {
 			BEGIN_BATCH(4);
@@ -126,11 +128,13 @@ int main(int argc, char **argv)
 {
 	int fd;
 	int devid;
+	int num_rings;
 
 	drmtest_subtest_init(argc, argv);
 
 	fd = drm_open_any();
 	devid = intel_get_drm_devid(fd);
+	num_rings = gem_get_num_rings(fd);
 	if (!HAS_BLT_RING(devid)) {
 		fprintf(stderr, "not (yet) implemented for pre-snb\n");
 		return 77;
@@ -179,11 +183,20 @@ int main(int argc, char **argv)
 		}
 	}
 
+	if (drmtest_run_subtest("vebox")) {
+		if (gem_has_vebox(fd)) {
+			sleep(2);
+			printf("running dummy loop on vebox\n");
+			dummy_reloc_loop(LOCAL_I915_EXEC_VEBOX);
+			printf("dummy loop run on vebox completed\n");
+		}
+	}
+
 	if (drmtest_run_subtest("mixed")) {
-		if (HAS_BLT_RING(devid) && HAS_BSD_RING(devid)) {
+		if (num_rings > 1) {
 			sleep(2);
 			printf("running dummy loop on random rings\n");
-			dummy_reloc_loop_random_ring();
+			dummy_reloc_loop_random_ring(num_rings);
 			printf("dummy loop run on random rings completed\n");
 		}
 	}
