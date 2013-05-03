@@ -1,0 +1,107 @@
+#!/usr/bin/env python
+
+import os,sys
+import optparse
+import subprocess
+import re
+import operator
+
+# map of Workaround names -> (list of platforms)
+workarounds = {}
+verbose = False
+
+def find_nth(haystack, needle, n):
+	start = haystack.find(needle)
+	while start >= 0 and n > 1:
+		start = haystack.find(needle, start + len(needle))
+		n -= 1
+	return start
+
+valid_platforms = ('ctg', 'elk', 'ilk', 'snb', 'ivb', 'vlv', 'hsw')
+def parse_platforms(p):
+	l =  p.split(',')
+	for p in l:
+		if p not in valid_platforms:
+			sys.stdout.write("unknown platform %s\n" % p)
+	return l
+
+wa_re = re.compile('(?P<name>Wa[A-Z0-9][a-zA-Z0-9_]+):(?P<platforms>[a-z,]+)')
+waname_re = re.compile('(?P<name>Wa[A-Z0-9][a-zA-Z0-9_]+)')
+def parse(me):
+	for line in me.splitlines():
+		match = wa_re.search(line)
+		if not match:
+			if not verbose:
+				continue
+
+			# Those lines come from a git grep that looks for Wa
+			# names, so if we don't match wa_re here it's because
+			# no platform has been specified
+			name = waname_re.search(line).group('name')
+			path = line[:find_nth(line, ':', 2)]
+			sys.stdout.write("%s: no platform for %s\n"
+					 % (path, name))
+			continue
+
+		wa_name = match.group('name')
+		platforms = match.group('platforms')
+
+		if wa_name in workarounds:
+			workarounds[wa_name] += parse_platforms(platforms)
+		else:
+			workarounds[wa_name] = parse_platforms(platforms)
+
+
+def execute(cmd):
+	p = subprocess.Popen(cmd, stdout=subprocess.PIPE,
+			     stderr=subprocess.PIPE)
+	out, err = p.communicate()
+	return out, err
+
+def parse_options(args):
+	usage = "Usage: list-workarounds [options] path-to-kernel"
+	parser = optparse.OptionParser(usage, version=1.0)
+
+	parser.add_option("-v", "--verbose", action="store_true",
+			  dest="verbose", default=False,
+			  help="be more verbose")
+
+	parser.add_option("-p", "--platform", dest="platform", default=None,
+			  help="List workarounds for the specified platform")
+
+	(options, args) = parser.parse_args()
+
+	return (options, args)
+
+if __name__ == '__main__':
+	(options, args) = parse_options(sys.argv[1:])
+	verbose = options.verbose
+
+	if not len(args):
+		sys.stderr.write("error: A path to a kernel tree is required\n")
+		sys.exit(1)
+
+	kernel_path = args[0]
+	kconfig = os.path.join(kernel_path, 'Kconfig')
+	if not os.path.isfile(kconfig):
+		sys.stderr.write("error: %s does not point to a kernel tree \n"
+				 % kernel_path)
+		sys.exit(1)
+
+	i915_dir = os.path.join(kernel_path, 'drivers', 'gpu', 'drm', 'i915')
+	olddir = os.getcwd()
+	os.chdir(kernel_path)
+	work_arounds, err = execute(['git', 'grep', '-n',
+				     '-e', 'Wa[A-Z0-9][a-zA-Z0-9_]\+',
+				     i915_dir])
+	os.chdir(olddir)
+	if err:
+		print(err)
+		sys.exit(1)
+
+	parse(work_arounds)
+	for wa in sorted(workarounds.iterkeys()):
+		if not options.platform:
+			print("%s: %s" % (wa, ', '.join(workarounds[wa])))
+		elif options.platform in workarounds[wa]:
+			print(wa)
