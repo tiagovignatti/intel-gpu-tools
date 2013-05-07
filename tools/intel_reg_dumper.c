@@ -1796,6 +1796,21 @@ DEBUGSTRING(hsw_debug_wm_pipe)
 		 sprite, cursor);
 }
 
+DEBUGSTRING(hsw_debug_lp_wm)
+{
+	const char *enable;
+	uint32_t latency, fbc, pri, cur;
+
+	enable = (val & 31) ? "enabled" : "disabled";
+	latency = (val >> 24) & 0x7F;
+	fbc = (val >> 20) & 0xF;
+	pri = (val >> 8) & 0x3FF;
+	cur = val & 0xFF;
+
+	snprintf(result, len, "%s, latency %d, fbc %d, pri %d, cur %d",
+		 enable, latency, fbc, pri, cur);
+}
+
 DEBUGSTRING(hsw_debug_sinterrupt)
 {
 	int portd, portc, portb, crt;
@@ -2266,9 +2281,9 @@ static struct reg_debug haswell_debug_regs[] = {
 	DEFINEREG2(WM_PIPE_A, hsw_debug_wm_pipe),
 	DEFINEREG2(WM_PIPE_B, hsw_debug_wm_pipe),
 	DEFINEREG2(WM_PIPE_C, hsw_debug_wm_pipe),
-	DEFINEREG(WM_LP1),
-	DEFINEREG(WM_LP2),
-	DEFINEREG(WM_LP3),
+	DEFINEREG2(WM_LP1, hsw_debug_lp_wm),
+	DEFINEREG2(WM_LP2, hsw_debug_lp_wm),
+	DEFINEREG2(WM_LP3, hsw_debug_lp_wm),
 	DEFINEREG(WM_LP1_SPR),
 	DEFINEREG(WM_LP2_SPR),
 	DEFINEREG(WM_LP3_SPR),
