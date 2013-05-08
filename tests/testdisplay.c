@@ -735,6 +735,8 @@ int main(int argc, char **argv)
 
 	drm_fd = drm_open_any();
 
+	do_or_die(drmtest_set_vt_graphics_mode());
+
 	mainloop = g_main_loop_new(NULL, FALSE);
 	if (!mainloop) {
 		fprintf(stderr, "failed to create glib mainloop\n");
