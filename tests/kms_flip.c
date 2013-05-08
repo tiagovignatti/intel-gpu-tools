@@ -36,6 +36,7 @@
 #include <sys/time.h>
 #include <sys/mman.h>
 #include <sys/ioctl.h>
+#include <linux/kd.h>
 
 #include "i915_drm.h"
 #include "drmtest.h"
@@ -1205,8 +1206,10 @@ int main(int argc, char **argv)
 
 	drm_fd = drm_open_any();
 
-	if (!drmtest_only_list_subtests())
+	if (!drmtest_only_list_subtests()) {
+		do_or_die(drmtest_set_vt_graphics_mode());
 		get_timestamp_format();
+	}
 
 	bufmgr = drm_intel_bufmgr_gem_init(drm_fd, 4096);
 	devid = intel_get_drm_devid(drm_fd);
