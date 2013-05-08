@@ -38,6 +38,7 @@
 #include <math.h>
 #include <getopt.h>
 #include <stdlib.h>
+#include <linux/kd.h>
 
 #include "drmtest.h"
 #include "i915_drm.h"
@@ -1011,5 +1012,203 @@ int kmstest_get_pipe_from_crtc_id(int fd, int crtc_id)
 	assert(ret == 0);
 
 	return pfci.pipe;
+}
+
+#define MAX_SIGNALS		32
+#define MAX_EXIT_HANDLERS	5
+
+static struct {
+	sighandler_t handler;
+	bool installed;
+} orig_sig[MAX_SIGNALS];
+
+typedef void (*drmtest_exit_handler_t)(int sig);
+static drmtest_exit_handler_t exit_handler_fn[MAX_EXIT_HANDLERS];
+static int exit_handler_count;
+static bool exit_handler_disabled;
+static sigset_t saved_sig_mask;
+static const int handled_signals[] =
+	{ SIGINT, SIGHUP, SIGTERM, SIGQUIT, SIGPIPE, SIGABRT };
+
+static int install_sig_handler(int sig_num, sighandler_t handler)
+{
+	orig_sig[sig_num].handler = signal(sig_num, handler);
+
+	if (orig_sig[sig_num].handler == SIG_ERR)
+		return -1;
+
+	orig_sig[sig_num].installed = true;
+
+	return 0;
+}
+
+static void restore_sig_handler(int sig_num)
+{
+	if (orig_sig[sig_num].installed)
+		signal(sig_num, orig_sig[sig_num].handler);
+}
+
+static void restore_all_sig_handler(void)
+{
+	int i;
+
+	for (i = 0; i < ARRAY_SIZE(orig_sig); i++)
+		restore_sig_handler(i);
+}
+
+static void call_exit_handlers(int sig)
+{
+	int i;
+
+	if (!exit_handler_count) {
+		fprintf(stderr, "no exit handlers?\n");
+		return;
+	}
+
+	for (i = 0; i < exit_handler_count; i++)
+		exit_handler_fn[i](sig);
+}
+
+static void drmtest_atexit_handler(void)
+{
+	restore_all_sig_handler();
+
+	if (!exit_handler_disabled)
+		call_exit_handlers(0);
+}
+
+static void drmtest_sig_handler(int sig)
+{
+	restore_all_sig_handler();
+
+	/*
+	 * exit_handler_disabled is always false here, since when we set it
+	 * we also block signals.
+	 */
+	call_exit_handlers(sig);
+
+	raise(sig);
+}
+
+/*
+ * Set a handler that will be called either when the process calls exit() or
+ * returns from the main function, or one of the signals in 'handled_signals'
+ * is raised. MAX_EXIT_HANDLERS handlers can be installed, each of which will
+ * be called only once, even if a subsequent signal is raised. If the exit
+ * handlers are called due to a signal, the signal will be re-raised with the
+ * original signal disposition after all handlers returned.
+ *
+ * The handler will be passed the signal number if called due to a signal, or
+ * 0 otherwise.
+ */
+static int drmtest_install_exit_handler(drmtest_exit_handler_t fn)
+{
+	int i;
+
+	if (exit_handler_count == MAX_EXIT_HANDLERS)
+		return -1;
+
+	exit_handler_fn[exit_handler_count] = fn;
+	exit_handler_count++;
+
+	for (i = 0; i < ARRAY_SIZE(handled_signals); i++) {
+		if (install_sig_handler(handled_signals[i],
+					drmtest_sig_handler))
+			goto err;
+	}
+
+	if (atexit(drmtest_atexit_handler))
+		goto err;
+
+	return 0;
+err:
+	restore_all_sig_handler();
+	exit_handler_count--;
+
+	return -1;
+}
+
+static void drmtest_disable_exit_handler(void)
+{
+	sigset_t set;
+	int i;
+
+	if (exit_handler_disabled)
+		return;
+
+	sigemptyset(&set);
+	for (i = 0; i < ARRAY_SIZE(handled_signals); i++)
+		sigaddset(&set, handled_signals[i]);
+
+	if (sigprocmask(SIG_BLOCK, &set, &saved_sig_mask)) {
+		perror("sigprocmask");
+		return;
+	}
+
+	exit_handler_disabled = true;
+}
+
+static void drmtest_enable_exit_handler(void)
+{
+	if (!exit_handler_disabled)
+		return;
+
+	if (sigprocmask(SIG_SETMASK, &saved_sig_mask, NULL)) {
+		perror("sigprocmask");
+		return;
+	}
+
+	exit_handler_disabled = false;
+}
+
+static signed long set_vt_mode(unsigned long mode)
+{
+	int fd;
+	unsigned long prev_mode;
+
+	fd = open("/dev/tty0", O_RDONLY);
+	if (fd < 0)
+		return -errno;
+
+	prev_mode = 0;
+	if (drmIoctl(fd, KDGETMODE, &prev_mode))
+		goto err;
+	if (drmIoctl(fd, KDSETMODE, (void *)mode))
+		goto err;
+
+	close(fd);
+
+	return prev_mode;
+err:
+	close(fd);
+
+	return -errno;
+}
+
+static unsigned long orig_vt_mode = -1UL;
+
+static void restore_vt_mode_at_exit(int sig)
+{
+	if (orig_vt_mode != -1UL)
+		set_vt_mode(orig_vt_mode);
+}
+
+/*
+ * Set the VT to graphics mode and install an exit handler to restore the
+ * original mode.
+ */
+
+int drmtest_set_vt_graphics_mode(void)
+{
+	if (drmtest_install_exit_handler(restore_vt_mode_at_exit))
+		return -1;
+
+	drmtest_disable_exit_handler();
+	orig_vt_mode = set_vt_mode(KD_GRAPHICS);
+	if (orig_vt_mode < 0)
+		orig_vt_mode = -1UL;
+	drmtest_enable_exit_handler();
+
+	return orig_vt_mode < 0 ? -1 : 0;
 }
 

@@ -131,3 +131,5 @@ inline static void _do_or_die(const char *function, int line, int ret)
 }
 #define do_or_die(x) _do_or_die(__FUNCTION__, __LINE__, x)
 #define do_ioctl(fd, ptr, sz) do_or_die(drmIoctl((fd), (ptr), (sz)))
+
+int drmtest_set_vt_graphics_mode(void);
