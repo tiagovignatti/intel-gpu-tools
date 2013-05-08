@@ -649,7 +649,7 @@ static unsigned int run_test_step(struct test_output *o)
 	bool do_vblank;
 	struct vblank_reply vbl_reply;
 	unsigned int target_seq;
-	uint32_t handle;
+	uint32_t handle = 0;	/* Suppress GCC warning */
 
 	target_seq = o->vblank_state.seq_step;
 	if (o->flags & TEST_VBLANK_ABSOLUTE)
