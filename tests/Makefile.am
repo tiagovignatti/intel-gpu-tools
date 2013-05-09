@@ -112,7 +112,7 @@ TESTS_scripts_M = \
 	$(NULL)
 
 TESTS_scripts = \
-	test_rte_check
+	test_rte_check \
 	debugfs_reader \
 	debugfs_emon_crash \
 	sysfs_l3_parity \
