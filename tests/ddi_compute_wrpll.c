@@ -131,8 +131,8 @@ static void wrpll_update_rnp(uint64_t freq2k, unsigned budget,
 	diff = ABS_DIFF((freq2k * p * r2), (LC_FREQ_2K * n2));
 	diff_best = ABS_DIFF((freq2k * best->p * best->r2),
 			     (LC_FREQ_2K * best->n2));
-	c = 1e6 * diff;
-	d = 1e6 * diff_best;
+	c = 1000000 * diff;
+	d = 1000000 * diff_best;
 
 	if (a < c && b < d) {
 		/* If both are above the budget, pick the closer */
