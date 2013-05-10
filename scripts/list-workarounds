@@ -47,7 +47,10 @@ def parse(me):
 		platforms = match.group('platforms')
 
 		if wa_name in workarounds:
-			workarounds[wa_name] += parse_platforms(platforms)
+			platforms = parse_platforms(platforms)
+			for p in platforms:
+				if not p in workarounds[wa_name]:
+					workarounds[wa_name].append(p)
 		else:
 			workarounds[wa_name] = parse_platforms(platforms)
 
