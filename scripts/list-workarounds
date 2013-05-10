@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import os,sys
 import optparse
@@ -29,7 +29,7 @@ wa_re = re.compile('(?P<name>Wa[A-Z0-9][a-zA-Z0-9_]+):(?P<platforms>[a-z,]+)')
 waname_re = re.compile('(?P<name>Wa[A-Z0-9][a-zA-Z0-9_]+)')
 def parse(me):
 	for line in me.splitlines():
-		match = wa_re.search(line)
+		match = wa_re.search(str(line))
 		if not match:
 			if not verbose:
 				continue
@@ -103,7 +103,7 @@ if __name__ == '__main__':
 		sys.exit(1)
 
 	parse(work_arounds)
-	for wa in sorted(workarounds.iterkeys()):
+	for wa in sorted(workarounds.keys()):
 		if not options.platform:
 			print("%s: %s" % (wa, ', '.join(workarounds[wa])))
 		elif options.platform in workarounds[wa]:
