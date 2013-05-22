@@ -78,6 +78,8 @@ uint32_t devid;
 int test_time = 3;
 static bool monotonic_timestamp;
 
+static drmModeConnector *last_connector;
+
 uint32_t *fb_ptr;
 
 struct type_name {
@@ -190,14 +192,14 @@ static void emit_dummy_load(struct test_output *o)
 	drm_intel_bo_unreference(target_bo);
 }
 
-static int set_dpms(struct test_output *o, int mode)
+static int set_connector_dpms(drmModeConnector *connector, int mode)
 {
 	int i, dpms = 0;
 
-	for (i = 0; i < o->connector->count_props; i++) {
+	for (i = 0; i < connector->count_props; i++) {
 		struct drm_mode_get_property prop;
 
-		prop.prop_id = o->connector->props[i];
+		prop.prop_id = connector->props[i];
 		prop.count_values = 0;
 		prop.count_enum_blobs = 0;
 		if (drmIoctl(drm_fd, DRM_IOCTL_MODE_GETPROPERTY, &prop))
@@ -210,12 +212,19 @@ static int set_dpms(struct test_output *o, int mode)
 		break;
 	}
 	if (!dpms) {
-		fprintf(stderr, "DPMS property not found on %d\n", o->id);
+		fprintf(stderr, "DPMS property not found on %d\n",
+			connector->connector_id);
 		errno = ENOENT;
 		return -1;
 	}
 
-	return drmModeConnectorSetProperty(drm_fd, o->id, dpms, mode);
+	return drmModeConnectorSetProperty(drm_fd, connector->connector_id,
+					   dpms, mode);
+}
+
+static int set_dpms(struct test_output *o, int mode)
+{
+	return set_connector_dpms(o->connector, mode);
 }
 
 static void set_flag(unsigned int *v, unsigned int flag)
@@ -1037,6 +1046,8 @@ static void run_test_on_crtc(struct test_output *o, int crtc, int duration)
 	if (!o->mode_valid)
 		return;
 
+	last_connector = o->connector;
+
 	fprintf(stdout, "Beginning %s on crtc %d, connector %d\n",
 		o->test_name, crtc, o->id);
 
@@ -1104,6 +1115,8 @@ static void run_test_on_crtc(struct test_output *o, int crtc, int duration)
 	kmstest_remove_fb(drm_fd, o->fb_ids[1]);
 	kmstest_remove_fb(drm_fd, o->fb_ids[0]);
 
+	last_connector = NULL;
+
 	drmModeFreeEncoder(o->encoder);
 	drmModeFreeConnector(o->connector);
 }
@@ -1152,6 +1165,12 @@ static void get_timestamp_format(void)
 	monotonic_timestamp = ret == 0 && cap_mono == 1;
 	printf("Using %s timestamps\n",
 		monotonic_timestamp ? "monotonic" : "real");
+}
+
+static void kms_flip_exit_handler(int sig)
+{
+	if (last_connector)
+		set_connector_dpms(last_connector, DRM_MODE_DPMS_ON);
 }
 
 int main(int argc, char **argv)
@@ -1208,6 +1227,7 @@ int main(int argc, char **argv)
 
 	if (!drmtest_only_list_subtests()) {
 		do_or_die(drmtest_set_vt_graphics_mode());
+		do_or_die(drmtest_install_exit_handler(kms_flip_exit_handler));
 		get_timestamp_format();
 	}
 
