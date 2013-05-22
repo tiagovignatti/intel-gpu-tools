@@ -1065,7 +1065,7 @@ static void call_exit_handlers(int sig)
 		return;
 	}
 
-	for (i = 0; i < exit_handler_count; i++)
+	for (i = exit_handler_count - 1; i >= 0; i--)
 		exit_handler_fn[i](sig);
 }
 
@@ -1110,6 +1110,9 @@ static int drmtest_install_exit_handler(drmtest_exit_handler_t fn)
 
 	exit_handler_fn[exit_handler_count] = fn;
 	exit_handler_count++;
+
+	if (exit_handler_count > 1)
+		return 0;
 
 	for (i = 0; i < ARRAY_SIZE(handled_signals); i++) {
 		if (install_sig_handler(handled_signals[i],
