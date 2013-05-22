@@ -49,6 +49,8 @@ if args.autodetect:
 		args.profile = open('ivybridge', 'r')
 	elif chipset.is_valleyview(devid):
 		args.profile = open('valleyview', 'r')
+	elif chipset.is_haswell(devid):
+		args.profile = open('haswell', 'r')
 	else:
 		print("Autodetect of %x " + devid + " failed")
 
