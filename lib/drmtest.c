@@ -1022,7 +1022,6 @@ static struct {
 	bool installed;
 } orig_sig[MAX_SIGNALS];
 
-typedef void (*drmtest_exit_handler_t)(int sig);
 static drmtest_exit_handler_t exit_handler_fn[MAX_EXIT_HANDLERS];
 static int exit_handler_count;
 static bool exit_handler_disabled;
@@ -1101,7 +1100,7 @@ static void drmtest_sig_handler(int sig)
  * The handler will be passed the signal number if called due to a signal, or
  * 0 otherwise.
  */
-static int drmtest_install_exit_handler(drmtest_exit_handler_t fn)
+int drmtest_install_exit_handler(drmtest_exit_handler_t fn)
 {
 	int i;
 
@@ -1131,7 +1130,7 @@ err:
 	return -1;
 }
 
-static void drmtest_disable_exit_handler(void)
+void drmtest_disable_exit_handler(void)
 {
 	sigset_t set;
 	int i;
@@ -1151,7 +1150,7 @@ static void drmtest_disable_exit_handler(void)
 	exit_handler_disabled = true;
 }
 
-static void drmtest_enable_exit_handler(void)
+void drmtest_enable_exit_handler(void)
 {
 	if (!exit_handler_disabled)
 		return;
