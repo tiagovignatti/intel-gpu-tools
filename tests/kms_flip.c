@@ -62,6 +62,8 @@
 #define TEST_HANG		(1 << 14)
 #define TEST_NOEVENT		(1 << 15)
 #define TEST_FB_BAD_TILING	(1 << 16)
+#define TEST_SINGLE_BUFFER	(1 << 17)
+#define TEST_DPMS_OFF		(1 << 18)
 
 #define EVENT_FLIP		(1 << 0)
 #define EVENT_VBLANK		(1 << 1)
@@ -678,7 +680,9 @@ static unsigned int run_test_step(struct test_output *o)
 		emit_dummy_load(o);
 
 
-	o->current_fb_id = !o->current_fb_id;
+	if (!(o->flags & TEST_SINGLE_BUFFER))
+		o->current_fb_id = !o->current_fb_id;
+
 	if (o->flags & TEST_FB_RECREATE)
 		recreate_fb(o);
 	new_fb_id = o->fb_ids[o->current_fb_id];
@@ -711,6 +715,9 @@ static unsigned int run_test_step(struct test_output *o)
 	if (do_vblank && (o->flags & TEST_EINVAL) && o->vblank_state.count > 0)
 		assert(do_wait_for_vblank(o, o->pipe, target_seq, &vbl_reply)
 		       == -EINVAL);
+
+	if (o->flags & TEST_DPMS_OFF)
+		do_or_die(set_dpms(o, DRM_MODE_DPMS_OFF));
 
 	if (o->flags & TEST_MODESET) {
 		if (drmModeSetCrtc(drm_fd, o->crtc,
@@ -1218,6 +1225,11 @@ int main(int argc, char **argv)
 		{ 15, TEST_FLIP | TEST_MODESET | TEST_HANG | TEST_NOEVENT, "flip-vs-modeset-vs-hang" },
 		{ 15, TEST_FLIP | TEST_PAN | TEST_HANG, "flip-vs-panning-vs-hang" },
 		{ 1, TEST_FLIP | TEST_EINVAL | TEST_FB_BAD_TILING, "flip-vs-bad-tiling" },
+
+		{ 1, TEST_DPMS_OFF | TEST_MODESET | TEST_FLIP,
+					"flip-vs-dpms-off-vs-modeset" },
+		{ 1, TEST_DPMS_OFF | TEST_MODESET | TEST_FLIP | TEST_SINGLE_BUFFER,
+					"single-buffer-flip-vs-dpms-off-vs-modeset" },
 	};
 	int i;
 
