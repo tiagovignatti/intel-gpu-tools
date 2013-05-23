@@ -191,18 +191,15 @@ intel_register_access_init(struct pci_device *pci_dev, int safe)
 	if (mmio_data.inited)
 		return -1;
 
-	if (intel_gen(pci_dev->device_id) >= 6)
-		goto done;
 
-	mmio_data.safe = safe != 0 ? true : false;
+	mmio_data.safe = (safe != 0  && pci_dev->device_id >= 4) ? true : false;
 	mmio_data.i915_devid = pci_dev->device_id;
-	if (mmio_data.safe && intel_gen(pci_dev->device_id) >= 4)
+	if (mmio_data.safe)
 		mmio_data.map = intel_get_register_map(mmio_data.i915_devid);
 
-	if (intel_gen(pci_dev->device_id) >= 6)
-		goto done;
-
-	/* Find where the forcewake lock is */
+	/* Find where the forcewake lock is. Forcewake doesn't exist
+	 * gen < 6, but the debugfs should do the right things for us.
+	 */
 	ret = find_debugfs_path("/sys/kernel/debug/dri");
 	if (ret) {
 		ret = find_debugfs_path("/debug/dri");
