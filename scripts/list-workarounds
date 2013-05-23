@@ -91,7 +91,7 @@ if __name__ == '__main__':
 				 % kernel_path)
 		sys.exit(1)
 
-	i915_dir = os.path.join(kernel_path, 'drivers', 'gpu', 'drm', 'i915')
+	i915_dir = os.path.join('drivers', 'gpu', 'drm', 'i915')
 	olddir = os.getcwd()
 	os.chdir(kernel_path)
 	work_arounds, err = execute(['git', 'grep', '-n',
