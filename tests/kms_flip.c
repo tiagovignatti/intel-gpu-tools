@@ -844,10 +844,13 @@ static void connector_find_preferred_mode(uint32_t connector_id, int crtc_idx,
 	o->mode_valid = 1;
 }
 
-static void
-paint_flip_mode(cairo_t *cr, int width, int height, void *priv)
+static void paint_flip_mode(struct kmstest_fb *fb, bool odd_frame)
 {
-	bool odd_frame = (bool) priv;
+	cairo_t *cr = kmstest_get_cairo_ctx(drm_fd, fb);
+	int width = fb->width;
+	int height = fb->height;
+
+	kmstest_paint_test_pattern(cr, width, height);
 
 	if (odd_frame)
 		cairo_rectangle(cr, width/4, height/2, width/4, height/8);
@@ -856,6 +859,8 @@ paint_flip_mode(cairo_t *cr, int width, int height, void *priv)
 
 	cairo_set_source_rgb(cr, 1, 1, 1);
 	cairo_fill(cr);
+
+	assert(!cairo_status(cr));
 }
 
 static int
@@ -991,19 +996,20 @@ static void run_test_on_crtc(struct test_output *o, int crtc_idx, int duration)
 		o->fb_width *= 2;
 
 	o->fb_ids[0] = kmstest_create_fb(drm_fd, o->fb_width, o->fb_height,
-					 o->bpp, o->depth, false, &o->fb_info[0],
-					 paint_flip_mode, (void *)false);
+					 o->bpp, o->depth, false, &o->fb_info[0]);
 	o->fb_ids[1] = kmstest_create_fb(drm_fd, o->fb_width, o->fb_height,
-					 o->bpp, o->depth, false, &o->fb_info[1],
-					 paint_flip_mode, (void *)true);
+					 o->bpp, o->depth, false, &o->fb_info[1]);
 	o->fb_ids[2] = kmstest_create_fb(drm_fd, o->fb_width, o->fb_height,
-					 o->bpp, o->depth, true, &o->fb_info[2],
-					 paint_flip_mode, (void *)true);
+					 o->bpp, o->depth, true, &o->fb_info[2]);
 
 	if (!o->fb_ids[0] || !o->fb_ids[1] || !o->fb_ids[2]) {
 		fprintf(stderr, "failed to create fbs\n");
 		exit(3);
 	}
+
+	paint_flip_mode(&o->fb_info[0], false);
+	paint_flip_mode(&o->fb_info[1], true);
+	paint_flip_mode(&o->fb_info[2], true);
 
 	set_y_tiling(o, 2);
 
@@ -1044,9 +1050,9 @@ static void run_test_on_crtc(struct test_output *o, int crtc_idx, int duration)
 	fprintf(stdout, "\n%s on crtc %d, connector %d: PASSED\n\n",
 		o->test_name, o->crtc, o->id);
 
-	kmstest_remove_fb(drm_fd, o->fb_ids[2]);
-	kmstest_remove_fb(drm_fd, o->fb_ids[1]);
-	kmstest_remove_fb(drm_fd, o->fb_ids[0]);
+	kmstest_remove_fb(drm_fd, &o->fb_info[2]);
+	kmstest_remove_fb(drm_fd, &o->fb_info[1]);
+	kmstest_remove_fb(drm_fd, &o->fb_info[0]);
 
 	last_connector = NULL;
 

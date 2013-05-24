@@ -39,6 +39,7 @@
 #include <getopt.h>
 #include <stdlib.h>
 #include <linux/kd.h>
+#include <drm/drm_fourcc.h>
 
 #include "drmtest.h"
 #include "i915_drm.h"
@@ -788,16 +789,14 @@ void drmtest_cleanup_aperture_trashers(void)
 }
 
 /* helpers to create nice-looking framebuffers */
-static cairo_surface_t *
-paint_allocate_surface(int fd, int width, int height, int depth, int bpp,
-		       bool tiled,
-		       struct kmstest_fb *fb_info)
+static int create_bo_for_fb(int fd, int width, int height, int bpp,
+			    bool tiled, uint32_t *gem_handle_ret,
+			    unsigned *size_ret, unsigned *stride_ret)
 {
-	cairo_format_t format;
 	struct drm_i915_gem_set_tiling set_tiling;
+	uint32_t gem_handle;
 	int size;
 	unsigned stride;
-	uint32_t *fb_ptr;
 
 	if (tiled) {
 		int v;
@@ -823,49 +822,24 @@ paint_allocate_surface(int fd, int width, int height, int depth, int bpp,
 		size = stride * height;
 	}
 
-	switch (depth) {
-	case 16:
-		format = CAIRO_FORMAT_RGB16_565;
-		break;
-	case 24:
-		format = CAIRO_FORMAT_RGB24;
-		break;
-#if 0
-	case 30:
-		format = CAIRO_FORMAT_RGB30;
-		break;
-#endif
-	case 32:
-		format = CAIRO_FORMAT_ARGB32;
-		break;
-	default:
-		fprintf(stderr, "bad depth %d\n", depth);
-		return NULL;
-	}
-
-	assert (bpp >= depth);
-
-	fb_info->gem_handle = gem_create(fd, size);
+	gem_handle = gem_create(fd, size);
 
 	if (tiled) {
-		set_tiling.handle = fb_info->gem_handle;
+		set_tiling.handle = gem_handle;
 		set_tiling.tiling_mode = I915_TILING_X;
 		set_tiling.stride = stride;
 		if (ioctl(fd, DRM_IOCTL_I915_GEM_SET_TILING, &set_tiling)) {
 			fprintf(stderr, "set tiling failed: %s (stride=%d, size=%d)\n",
 				strerror(errno), stride, size);
-			return NULL;
+			return -1;
 		}
 	}
 
-	fb_ptr = gem_mmap(fd, fb_info->gem_handle, size, PROT_READ | PROT_WRITE);
+	*stride_ret = stride;
+	*size_ret = size;
+	*gem_handle_ret = gem_handle;
 
-	fb_info->stride = stride;
-	fb_info->size = size;
-
-	return cairo_image_surface_create_for_data((unsigned char *)fb_ptr,
-						   format, width, height,
-						   stride);
+	return 0;
 }
 
 static void
@@ -981,23 +955,8 @@ paint_marker(cairo_t *cr, int x, int y)
 	kmstest_cairo_printf_line(cr, align, 0, "(%d, %d)", x, y);
 }
 
-unsigned int kmstest_create_fb(int fd, int width, int height, int bpp,
-			       int depth, bool tiled,
-			       struct kmstest_fb *fb_info,
-			       kmstest_paint_func paint_func,
-			       void *func_arg)
+void kmstest_paint_test_pattern(cairo_t *cr, int width, int height)
 {
-	cairo_surface_t *surface;
-	cairo_status_t status;
-	cairo_t *cr;
-	unsigned int fb_id;
-
-	surface = paint_allocate_surface(fd, width, height, depth, bpp,
-					 tiled, fb_info);
-	assert(surface);
-
-	cr = cairo_create(surface);
-
 	paint_test_patterns(cr, width, height);
 
 	cairo_set_line_cap(cr, CAIRO_LINE_CAP_SQUARE);
@@ -1008,27 +967,112 @@ unsigned int kmstest_create_fb(int fd, int width, int height, int bpp,
 	paint_marker(cr, 0, height);
 	paint_marker(cr, width, height);
 
-	if (paint_func)
-		paint_func(cr, width, height, func_arg);
-
-	status = cairo_status(cr);
-	assert(!status);
-	cairo_destroy(cr);
-
-	do_or_die(drmModeAddFB(fd, width, height, depth, bpp,
-			       fb_info->stride,
-			       fb_info->gem_handle, &fb_id));
-
-	cairo_surface_destroy(surface);
-
-	fb_info->fb_id = fb_id;
-
-	return fb_id;
+	assert(!cairo_status(cr));
 }
 
-void kmstest_remove_fb(int fd, int fb_id)
+#define DF(did, cid, _bpp, _depth)	\
+	{ DRM_FORMAT_##did, CAIRO_FORMAT_##cid, # did, _bpp, _depth }
+static struct format_desc_struct {
+	uint32_t drm_id;
+	cairo_format_t cairo_id;
+	const char *name;
+	int bpp;
+	int depth;
+} format_desc[] = {
+	DF(RGB565,	RGB16_565,	16, 16),
+	DF(RGB888,	INVALID,	24, 24),
+	DF(XRGB8888,	RGB24,		32, 24),
+	DF(XRGB2101010,	RGB30,		32, 30),
+	DF(ARGB8888,	ARGB32,		32, 32),
+};
+#undef DF
+
+#define for_each_format(f)	\
+	for (f = format_desc; f - format_desc < ARRAY_SIZE(format_desc); f++)
+
+static uint32_t bpp_depth_to_drm_format(int bpp, int depth)
 {
-	do_or_die(drmModeRmFB(fd, fb_id));
+	struct format_desc_struct *f;
+
+	for_each_format(f)
+		if (f->bpp == bpp && f->depth == depth)
+			return f->drm_id;
+
+	abort();
+}
+
+/* Return fb_id on success, 0 on error */
+unsigned int kmstest_create_fb(int fd, int width, int height, int bpp,
+			       int depth, bool tiled, struct kmstest_fb *fb)
+{
+	memset(fb, 0, sizeof(*fb));
+
+	if (create_bo_for_fb(fd, width, height, bpp, tiled, &fb->gem_handle,
+			       &fb->size, &fb->stride) < 0)
+		return 0;
+
+	if (drmModeAddFB(fd, width, height, depth, bpp, fb->stride,
+			       fb->gem_handle, &fb->fb_id) < 0) {
+		gem_close(fd, fb->gem_handle);
+
+		return 0;
+	}
+
+	fb->width = width;
+	fb->height = height;
+	fb->drm_format = bpp_depth_to_drm_format(bpp, depth);
+
+	return fb->fb_id;
+}
+
+static cairo_format_t drm_format_to_cairo(uint32_t drm_format)
+{
+	struct format_desc_struct *f;
+
+	for_each_format(f)
+		if (f->drm_id == drm_format)
+			return f->cairo_id;
+
+	abort();
+}
+
+static cairo_t *create_cairo_ctx(int fd, struct kmstest_fb *fb)
+{
+	cairo_t *cr;
+	cairo_surface_t *surface;
+	cairo_format_t cformat;
+	void *fb_ptr;
+
+	cformat = drm_format_to_cairo(fb->drm_format);
+	fb_ptr = gem_mmap(fd, fb->gem_handle, fb->size, PROT_READ | PROT_WRITE);
+	surface = cairo_image_surface_create_for_data((unsigned char *)fb_ptr,
+						   cformat, fb->width,
+						   fb->height, fb->stride);
+	assert(surface);
+	cr = cairo_create(surface);
+	cairo_surface_destroy(surface);
+
+	return cr;
+}
+
+cairo_t *kmstest_get_cairo_ctx(int fd, struct kmstest_fb *fb)
+{
+
+	if (!fb->cairo_ctx)
+		fb->cairo_ctx = create_cairo_ctx(fd, fb);
+
+	gem_set_domain(fd, fb->gem_handle, I915_GEM_DOMAIN_CPU,
+		       I915_GEM_DOMAIN_CPU);
+
+	return fb->cairo_ctx;
+}
+
+void kmstest_remove_fb(int fd, struct kmstest_fb *fb)
+{
+	if (fb->cairo_ctx)
+		cairo_destroy(fb->cairo_ctx);
+	do_or_die(drmModeRmFB(fd, fb->fb_id));
+	gem_close(fd, fb->gem_handle);
 }
 
 struct type_name {

@@ -258,14 +258,17 @@ static void paint_image(cairo_t *cr, const char *file)
 	cairo_surface_destroy(image);
 }
 
-static void
-paint_output_info(cairo_t *cr, int l_width, int l_height, void *priv)
+static void paint_output_info(struct connector *c, struct kmstest_fb *fb)
 {
-	struct connector *c = priv;
+	cairo_t *cr = kmstest_get_cairo_ctx(drm_fd, fb);
+	int l_width = fb->width;
+	int l_height = fb->height;
 	double str_width;
 	double x, y, top_y;
 	double max_width;
 	int i;
+
+	kmstest_paint_test_pattern(cr, l_width, l_height);
 
 	cairo_select_font_face(cr, "Helvetica",
 			       CAIRO_FONT_SLANT_NORMAL,
@@ -308,6 +311,8 @@ paint_output_info(cairo_t *cr, int l_width, int l_height, void *priv)
 
 	if (qr_code)
 		paint_image(cr, "./pass.png");
+
+	assert(!cairo_status(cr));
 }
 
 static void sighandler(int signo)
@@ -362,8 +367,8 @@ set_mode(struct connector *c)
 		height = c->mode.vdisplay;
 
 		fb_id = kmstest_create_fb(drm_fd, width, height, bpp, depth,
-					  enable_tiling, &fb_info,
-					  paint_output_info, c);
+					  enable_tiling, &fb_info);
+		paint_output_info(c, &fb_info);
 
 		fb_ptr = gem_mmap(drm_fd, fb_info.gem_handle,
 				  fb_info.size, PROT_READ | PROT_WRITE);

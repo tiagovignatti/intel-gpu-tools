@@ -119,8 +119,13 @@ void kmstest_free_connector_config(struct kmstest_connector_config *config);
 struct kmstest_fb {
 	uint32_t fb_id;
 	uint32_t gem_handle;
+	uint32_t drm_format;
+	int width;
+	int height;
+	int depth;
 	unsigned stride;
 	unsigned size;
+	cairo_t *cairo_ctx;
 };
 
 enum kmstest_text_align {
@@ -136,14 +141,12 @@ int kmstest_cairo_printf_line(cairo_t *cr, enum kmstest_text_align align,
 			       double yspacing, const char *fmt, ...)
 			       __attribute__((format (printf, 4, 5)));
 
-typedef void (*kmstest_paint_func)(cairo_t *cr, int width, int height, void *priv);
-
 unsigned int kmstest_create_fb(int fd, int width, int height, int bpp,
 			       int depth, bool tiled,
-			       struct kmstest_fb *fb_info,
-			       kmstest_paint_func paint_func,
-			       void *func_arg);
-void kmstest_remove_fb(int fd, int fb_id);
+			       struct kmstest_fb *fb_info);
+void kmstest_remove_fb(int fd, struct kmstest_fb *fb_info);
+cairo_t *kmstest_get_cairo_ctx(int fd, struct kmstest_fb *fb);
+void kmstest_paint_test_pattern(cairo_t *cr, int width, int height);
 void kmstest_dump_mode(drmModeModeInfo *mode);
 int kmstest_get_pipe_from_crtc_id(int fd, int crtc_id);
 const char *kmstest_encoder_type_str(int type);
