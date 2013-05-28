@@ -109,6 +109,7 @@ int gem_available_fences(int fd)
 }
 
 
+#define LOCAL_I915_EXEC_VEBOX	(4 << 0)
 /* Ensure the gpu is idle by launching a nop execbuf and stalling for it. */
 void gem_quiescent_gpu(int fd)
 {
@@ -142,6 +143,21 @@ void gem_quiescent_gpu(int fd)
 	execbuf.rsvd2 = 0;
 
 	do_ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf);
+
+	if (gem_has_blt(fd)) {
+		execbuf.flags = I915_EXEC_BLT;
+		do_ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf);
+	}
+
+	if (gem_has_bsd(fd)) {
+		execbuf.flags = I915_EXEC_BSD;
+		do_ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf);
+	}
+
+	if (gem_has_vebox(fd)) {
+		execbuf.flags = LOCAL_I915_EXEC_VEBOX;
+		do_ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf);
+	}
 
 	gem_sync(fd, handle);
 }
