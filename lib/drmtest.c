@@ -228,7 +228,7 @@ int drm_get_card(int master)
 }
 
 /** Open the first DRM device we can find, searching up to 16 device nodes */
-int drm_open_any(void)
+static int __drm_open_any(void)
 {
 	char *name;
 	int ret, fd;
@@ -244,6 +244,31 @@ int drm_open_any(void)
 		fprintf(stderr, "failed to open any drm device. retry as root?\n");
 
 	assert(is_intel(fd));
+
+	return fd;
+}
+
+static void quiescent_gpu_at_exit(int sig)
+{
+	int fd;
+
+	fd = __drm_open_any();
+	if (fd >= 0) {
+		gem_quiescent_gpu(fd);
+		close(fd);
+	}
+}
+
+int drm_open_any(void)
+{
+	static int open_count;
+	int fd = __drm_open_any();
+
+	if (fd < 0 || __sync_fetch_and_add(&open_count, 1))
+		return fd;
+
+	gem_quiescent_gpu(fd);
+	drmtest_install_exit_handler(quiescent_gpu_at_exit);
 
 	return fd;
 }
