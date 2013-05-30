@@ -825,97 +825,23 @@ static void update_all_state(struct test_output *o,
 		update_state(&o->vblank_state);
 }
 
-static void connector_find_preferred_mode(struct test_output *o, int crtc_id)
+static void connector_find_preferred_mode(uint32_t connector_id, int crtc_idx,
+					  struct test_output *o)
 {
-	drmModeConnector *connector;
-	drmModeEncoder *encoder = NULL;
-	int i, j;
+	struct kmstest_connector_config config;
 
-	/* First, find the connector & mode */
-	o->mode_valid = 0;
-	o->crtc = 0;
-	connector = drmModeGetConnector(drm_fd, o->id);
-	assert(connector);
-
-	if (connector->connection != DRM_MODE_CONNECTED) {
-		drmModeFreeConnector(connector);
-		return;
-	}
-
-	if (!connector->count_modes) {
-		fprintf(stderr, "connector %d has no modes\n", o->id);
-		drmModeFreeConnector(connector);
-		return;
-	}
-
-	if (connector->connector_id != o->id) {
-		fprintf(stderr, "connector id doesn't match (%d != %d)\n",
-			connector->connector_id, o->id);
-		drmModeFreeConnector(connector);
-		return;
-	}
-
-	for (j = 0; j < connector->count_modes; j++) {
-		o->mode = connector->modes[j];
-		if (o->mode.type & DRM_MODE_TYPE_PREFERRED) {
-			o->mode_valid = 1;
-			break;
-		}
-	}
-
-	if (!o->mode_valid) {
-		if (connector->count_modes > 0) {
-			/* use the first mode as test mode */
-			o->mode = connector->modes[0];
-			o->mode_valid = 1;
-		}
-		else {
-			fprintf(stderr, "failed to find any modes on connector %d\n",
-				o->id);
-			return;
-		}
-	}
-
-	/* Now get the encoder */
-	for (i = 0; i < connector->count_encoders; i++) {
-		encoder = drmModeGetEncoder(drm_fd, connector->encoders[i]);
-
-		if (!encoder) {
-			fprintf(stderr, "could not get encoder %i: %s\n",
-				resources->encoders[i], strerror(errno));
-			drmModeFreeEncoder(encoder);
-			continue;
-		}
-
-		break;
-	}
-
-	o->encoder = encoder;
-
-	if (i == resources->count_encoders) {
-		fprintf(stderr, "failed to find encoder\n");
+	if (kmstest_get_connector_config(drm_fd, connector_id, 1 << crtc_idx,
+					 &config) < 0) {
 		o->mode_valid = 0;
 		return;
 	}
 
-	/* Find first CRTC not in use */
-	for (i = 0; i < resources->count_crtcs; i++) {
-		if (resources->crtcs[i] != crtc_id)
-			continue;
-		if (resources->crtcs[i] &&
-		    (o->encoder->possible_crtcs & (1<<i))) {
-			o->crtc = resources->crtcs[i];
-			break;
-		}
-	}
-
-	if (!o->crtc) {
-		fprintf(stderr, "could not find requested crtc %d\n", crtc_id);
-		o->mode_valid = 0;
-		return;
-	}
-
-	o->connector = connector;
+	o->connector = config.connector;
+	o->encoder = config.encoder;
+	o->crtc = config.crtc->crtc_id;
+	o->pipe = config.pipe;
+	o->mode = config.default_mode;
+	o->mode_valid = 1;
 }
 
 static void
@@ -1042,21 +968,21 @@ static unsigned event_loop(struct test_output *o, unsigned duration_sec)
 	return end - start;
 }
 
-static void run_test_on_crtc(struct test_output *o, int crtc, int duration)
+static void run_test_on_crtc(struct test_output *o, int crtc_idx, int duration)
 {
 	unsigned ellapsed;
 
 	o->bpp = 32;
 	o->depth = 24;
 
-	connector_find_preferred_mode(o, crtc);
+	connector_find_preferred_mode(o->id, crtc_idx, o);
 	if (!o->mode_valid)
 		return;
 
 	last_connector = o->connector;
 
 	fprintf(stdout, "Beginning %s on crtc %d, connector %d\n",
-		o->test_name, crtc, o->id);
+		o->test_name, o->crtc, o->id);
 
 	o->fb_width = o->mode.hdisplay;
 	o->fb_height = o->mode.vdisplay;
@@ -1116,7 +1042,7 @@ static void run_test_on_crtc(struct test_output *o, int crtc, int duration)
 		check_final_state(o, &o->vblank_state, ellapsed);
 
 	fprintf(stdout, "\n%s on crtc %d, connector %d: PASSED\n\n",
-		o->test_name, crtc, o->id);
+		o->test_name, o->crtc, o->id);
 
 	kmstest_remove_fb(drm_fd, o->fb_ids[2]);
 	kmstest_remove_fb(drm_fd, o->fb_ids[1]);
@@ -1131,7 +1057,8 @@ static void run_test_on_crtc(struct test_output *o, int crtc, int duration)
 static int run_test(int duration, int flags, const char *test_name)
 {
 	struct test_output o;
-	int c, i;
+	int c;
+	int crtc_idx;
 
 	resources = drmModeGetResources(drm_fd);
 	if (!resources) {
@@ -1142,19 +1069,15 @@ static int run_test(int duration, int flags, const char *test_name)
 
 	/* Find any connected displays */
 	for (c = 0; c < resources->count_connectors; c++) {
-		for (i = 0; i < resources->count_crtcs; i++) {
-			int crtc;
-
+		for (crtc_idx = 0; crtc_idx < resources->count_crtcs; crtc_idx++) {
 			memset(&o, 0, sizeof(o));
 			o.test_name = test_name;
 			o.id = resources->connectors[c];
 			o.flags = flags;
 			o.flip_state.name = "flip";
 			o.vblank_state.name = "vblank";
-			crtc = resources->crtcs[i];
-			o.pipe = kmstest_get_pipe_from_crtc_id(drm_fd, crtc);
 
-			run_test_on_crtc(&o, crtc, duration);
+			run_test_on_crtc(&o, crtc_idx, duration);
 		}
 	}
 

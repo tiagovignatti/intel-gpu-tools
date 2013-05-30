@@ -1317,3 +1317,137 @@ int drmtest_set_vt_graphics_mode(void)
 	return orig_vt_mode < 0 ? -1 : 0;
 }
 
+static int get_connector_default_mode(int drm_fd, drmModeConnector *connector,
+				      drmModeModeInfo *mode)
+{
+	drmModeRes *resources;
+	int i;
+
+	resources = drmModeGetResources(drm_fd);
+	if (!resources) {
+		perror("drmModeGetResources failed");
+
+		return -1;
+	}
+
+	if (!connector->count_modes) {
+		fprintf(stderr, "no modes for connector %d\n",
+			connector->connector_id);
+		drmModeFreeResources(resources);
+
+		return -1;
+	}
+
+	for (i = 0; i < connector->count_modes; i++) {
+		if (i == 0 ||
+		    connector->modes[i].type & DRM_MODE_TYPE_PREFERRED) {
+			*mode = connector->modes[i];
+			if (mode->type & DRM_MODE_TYPE_PREFERRED)
+				break;
+		}
+	}
+
+	drmModeFreeResources(resources);
+
+	return 0;
+}
+
+int kmstest_get_connector_config(int drm_fd, uint32_t connector_id,
+				 unsigned long crtc_idx_mask,
+				 struct kmstest_connector_config *config)
+{
+	drmModeRes *resources;
+	drmModeConnector *connector;
+	drmModeEncoder *encoder;
+	int i, j;
+
+	resources = drmModeGetResources(drm_fd);
+	if (!resources) {
+		perror("drmModeGetResources failed");
+		goto err1;
+	}
+
+	/* First, find the connector & mode */
+	connector = drmModeGetConnector(drm_fd, connector_id);
+	if (!connector)
+		goto err2;
+
+	if (connector->connection != DRM_MODE_CONNECTED)
+		goto err3;
+
+	if (!connector->count_modes) {
+		fprintf(stderr, "connector %d has no modes\n", connector_id);
+		goto err3;
+	}
+
+	if (connector->connector_id != connector_id) {
+		fprintf(stderr, "connector id doesn't match (%d != %d)\n",
+			connector->connector_id, connector_id);
+		goto err3;
+	}
+
+	/*
+	 * Find given CRTC if crtc_id != 0 or else the first CRTC not in use.
+	 * In both cases find the first compatible encoder and skip the CRTC
+	 * if there is non such.
+	 */
+	encoder = NULL;		/* suppress GCC warning */
+	for (i = 0; i < resources->count_crtcs; i++) {
+		if (!resources->crtcs[i] || !(crtc_idx_mask & (1 << i)))
+			continue;
+
+		/* Now get a compatible encoder */
+		for (j = 0; j < connector->count_encoders; j++) {
+			encoder = drmModeGetEncoder(drm_fd,
+						    connector->encoders[j]);
+
+			if (!encoder) {
+				fprintf(stderr, "could not get encoder %d: %s\n",
+					resources->encoders[j], strerror(errno));
+
+				continue;
+			}
+
+			if (encoder->possible_crtcs & (1 << i))
+				goto found;
+
+			drmModeFreeEncoder(encoder);
+		}
+	}
+
+	fprintf(stderr,
+		"no crtc with a compatible encoder (crtc_idx_mask %08lx)\n",
+		crtc_idx_mask);
+	goto err3;
+
+found:
+	if (get_connector_default_mode(drm_fd, connector,
+				       &config->default_mode) < 0)
+		goto err4;
+
+	config->connector = connector;
+	config->encoder = encoder;
+	config->crtc = drmModeGetCrtc(drm_fd, resources->crtcs[i]);
+	config->crtc_idx = i;
+	config->pipe = kmstest_get_pipe_from_crtc_id(drm_fd,
+						     config->crtc->crtc_id);
+
+	drmModeFreeResources(resources);
+
+	return 0;
+err4:
+	drmModeFreeEncoder(encoder);
+err3:
+	drmModeFreeConnector(connector);
+err2:
+	drmModeFreeResources(resources);
+err1:
+	return -1;
+}
+
+void kmstest_free_connector_config(struct kmstest_connector_config *config)
+{
+	drmModeFreeCrtc(config->crtc);
+	drmModeFreeEncoder(config->encoder);
+	drmModeFreeConnector(config->connector);
+}

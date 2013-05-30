@@ -102,6 +102,7 @@ struct connector {
 	drmModeEncoder *encoder;
 	drmModeConnector *connector;
 	int crtc;
+	int crtc_idx;
 	int pipe;
 };
 
@@ -185,101 +186,31 @@ static void dump_crtcs_fd(int drmfd)
 	drmModeFreeResources(mode_resources);
 }
 
-static void connector_find_preferred_mode(struct connector *c)
+static void connector_find_preferred_mode(uint32_t connector_id,
+					  unsigned long crtc_idx_mask,
+					  int mode_num, struct connector *c)
 {
-	drmModeConnector *connector;
-	drmModeEncoder *encoder = NULL;
-	int i, j;
+	struct kmstest_connector_config config;
 
-	/* First, find the connector & mode */
-	c->mode_valid = 0;
-	connector = drmModeGetConnector(drm_fd, c->id);
-	if (!connector) {
-		fprintf(stderr, "could not get connector %d: %s\n",
-			c->id, strerror(errno));
-		drmModeFreeConnector(connector);
-		return;
-	}
-
-	if (connector->connection != DRM_MODE_CONNECTED) {
-		drmModeFreeConnector(connector);
-		return;
-	}
-
-	if (!connector->count_modes) {
-		fprintf(stderr, "connector %d has no modes\n", c->id);
-		drmModeFreeConnector(connector);
-		return;
-	}
-
-	if (connector->connector_id != c->id) {
-		fprintf(stderr, "connector id doesn't match (%d != %d)\n",
-			connector->connector_id, c->id);
-		drmModeFreeConnector(connector);
-		return;
-	}
-
-	for (j = 0; j < connector->count_modes; j++) {
-		c->mode = connector->modes[j];
-		if (c->mode.type & DRM_MODE_TYPE_PREFERRED) {
-			c->mode_valid = 1;
-			break;
-		}
-	}
-
-	if ( specified_mode_num != -1 ){
-		c->mode = connector->modes[specified_mode_num];
-		if (c->mode.type & DRM_MODE_TYPE_PREFERRED)
-			c->mode_valid = 1;
-	}
-
-	if (!c->mode_valid) {
-		if (connector->count_modes > 0) {
-			/* use the first mode as test mode */
-			c->mode = connector->modes[0];
-			c->mode_valid = 1;
-		}
-		else {
-			fprintf(stderr, "failed to find any modes on connector %d\n",
-				c->id);
-			return;
-		}
-	}
-
-	/* Now get the encoder */
-	for (i = 0; i < connector->count_encoders; i++) {
-		encoder = drmModeGetEncoder(drm_fd, connector->encoders[i]);
-
-		if (!encoder) {
-			fprintf(stderr, "could not get encoder %i: %s\n",
-				resources->encoders[i], strerror(errno));
-			drmModeFreeEncoder(encoder);
-			continue;
-		}
-
-		break;
-	}
-
-	c->encoder = encoder;
-
-	if (i == resources->count_encoders) {
-		fprintf(stderr, "failed to find encoder\n");
+	if (kmstest_get_connector_config(drm_fd, connector_id, crtc_idx_mask,
+					 &config) < 0) {
 		c->mode_valid = 0;
 		return;
 	}
 
-	/* Find first CRTC not in use */
-	for (i = 0; i < resources->count_crtcs; i++) {
-		if (resources->crtcs[i] && (c->encoder->possible_crtcs & (1<<i)))
-			break;
+	c->connector = config.connector;
+	c->encoder = config.encoder;
+	c->crtc = config.crtc->crtc_id;
+	c->crtc_idx = config.crtc_idx;
+	c->pipe = config.pipe;
+
+	if (mode_num != -1) {
+		assert(mode_num < config.connector->count_modes);
+		c->mode = config.connector->modes[mode_num];
+	} else {
+		c->mode = config.default_mode;
 	}
-	c->crtc = resources->crtcs[i];
-	c->pipe = i;
-
-	if(test_preferred_mode || force_mode || specified_mode_num != -1)
-		resources->crtcs[i] = 0;
-
-	c->connector = connector;
+	c->mode_valid = 1;
 }
 
 static void
@@ -409,10 +340,6 @@ set_mode(struct connector *c)
 	else if (depth > 16 && depth <= 32)
 		bpp = 32;
 
-	connector_find_preferred_mode(c);
-	if (!c->mode_valid)
-		return;
-
 	test_mode_num = 1;
 	if (force_mode){
 		memcpy( &c->mode, &force_timing, sizeof(force_timing));
@@ -506,13 +433,30 @@ int update_display(void)
 	}
 
 	if (test_preferred_mode || test_all_modes || force_mode || specified_disp_id != -1) {
+		unsigned long crtc_idx_mask = -1UL;
+
 		/* Find any connected displays */
 		for (c = 0; c < resources->count_connectors; c++) {
-			connectors[c].id = resources->connectors[c];
-			if ( specified_disp_id != -1 && connectors[c].id != specified_disp_id )
+			struct connector *connector = &connectors[c];
+
+			connector->id = resources->connectors[c];
+			if (specified_disp_id != -1 &&
+			    connector->id != specified_disp_id)
 				continue;
 
-			set_mode(&connectors[c]);
+			connector_find_preferred_mode(connector->id,
+						      crtc_idx_mask,
+						      specified_mode_num,
+						      connector);
+			if (!connector->mode_valid)
+				continue;
+
+			set_mode(connector);
+
+			if (test_preferred_mode || force_mode ||
+			    specified_mode_num != -1)
+				crtc_idx_mask &= ~(1 << connector->crtc_idx);
+
 		}
 	}
 	drmModeFreeResources(resources);

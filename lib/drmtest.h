@@ -101,6 +101,20 @@ void drmtest_init_aperture_trashers(drm_intel_bufmgr *bufmgr);
 void drmtest_trash_aperture(void);
 void drmtest_cleanup_aperture_trashers(void);
 
+struct kmstest_connector_config {
+	drmModeCrtc *crtc;
+	drmModeConnector *connector;
+	drmModeEncoder *encoder;
+	drmModeModeInfo default_mode;
+	int crtc_idx;
+	int pipe;
+};
+
+int kmstest_get_connector_config(int drm_fd, uint32_t connector_id,
+				 unsigned long crtc_idx_mask,
+				 struct kmstest_connector_config *config);
+void kmstest_free_connector_config(struct kmstest_connector_config *config);
+
 /* helpers to create nice-looking framebuffers */
 struct kmstest_fb {
 	uint32_t fb_id;
