@@ -109,6 +109,19 @@ struct kmstest_fb {
 	unsigned size;
 };
 
+enum kmstest_text_align {
+	align_left,
+	align_bottom	= align_left,
+	align_right	= 0x01,
+	align_top	= 0x02,
+	align_vcenter	= 0x04,
+	align_hcenter	= 0x08,
+};
+
+int kmstest_cairo_printf_line(cairo_t *cr, enum kmstest_text_align align,
+			       double yspacing, const char *fmt, ...)
+			       __attribute__((format (printf, 4, 5)));
+
 typedef void (*kmstest_paint_func)(cairo_t *cr, int width, int height, void *priv);
 
 unsigned int kmstest_create_fb(int fd, int width, int height, int bpp,

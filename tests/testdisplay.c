@@ -331,86 +331,48 @@ static void
 paint_output_info(cairo_t *cr, int l_width, int l_height, void *priv)
 {
 	struct connector *c = priv;
-	cairo_text_extents_t name_extents, mode_extents;
-	char name_buf[128], mode_buf[128];
-	int i, x, y, modes_x, modes_y;
+	double str_width;
+	double x, y, top_y;
+	double max_width;
+	int i;
 
-	/* Get text extents for each string */
-	snprintf(name_buf, sizeof name_buf, "%s",
-		 kmstest_connector_type_str(c->connector->connector_type));
-	cairo_set_font_size(cr, 48);
 	cairo_select_font_face(cr, "Helvetica",
 			       CAIRO_FONT_SLANT_NORMAL,
 			       CAIRO_FONT_WEIGHT_NORMAL);
-	cairo_text_extents(cr, name_buf, &name_extents);
+	cairo_move_to(cr, l_width / 2, l_height / 2);
 
-	snprintf(mode_buf, sizeof mode_buf, "%s @ %dHz on %s encoder",
-		 c->mode.name, c->mode.vrefresh,
-		 kmstest_encoder_type_str(c->encoder->encoder_type));
-	cairo_set_font_size(cr, 36);
-	cairo_text_extents(cr, mode_buf, &mode_extents);
-
-	/* Paint output name */
-	x = l_width / 2;
-	x -= name_extents.width / 2;
-	y = l_height / 2;
-	y -= (name_extents.height / 2) - (mode_extents.height / 2) - 10;
+	/* Print connector and mode name */
 	cairo_set_font_size(cr, 48);
-	cairo_move_to(cr, x, y);
-	cairo_text_path(cr, name_buf);
-	cairo_set_source_rgb(cr, 0, 0, 0);
-	cairo_stroke_preserve(cr);
-	cairo_set_source_rgb(cr, 1, 1, 1);
-	cairo_fill(cr);
+	kmstest_cairo_printf_line(cr, align_hcenter, 10, "%s",
+		 kmstest_connector_type_str(c->connector->connector_type));
 
-	/* Paint mode name */
-	x = l_width / 2;
-	x -= mode_extents.width / 2;
-	modes_x = x;
-	y = l_height / 2;
-	y += (mode_extents.height / 2) + (name_extents.height / 2) + 10;
 	cairo_set_font_size(cr, 36);
-	cairo_move_to(cr, x, y);
-	cairo_text_path(cr, mode_buf);
-	cairo_set_source_rgb(cr, 0, 0, 0);
-	cairo_stroke_preserve(cr);
-	cairo_set_source_rgb(cr, 1, 1, 1);
-	cairo_fill(cr);
+	str_width = kmstest_cairo_printf_line(cr, align_hcenter, 10,
+		"%s @ %dHz on %s encoder", c->mode.name, c->mode.vrefresh,
+		kmstest_encoder_type_str(c->encoder->encoder_type));
+
+	cairo_rel_move_to(cr, -str_width / 2, 0);
 
 	/* List available modes */
-	snprintf(mode_buf, sizeof mode_buf, "Available modes:");
 	cairo_set_font_size(cr, 18);
-	cairo_text_extents(cr, mode_buf, &mode_extents);
-	x = modes_x;
-	modes_x = x + mode_extents.width;
-	y += mode_extents.height + 10;
-	modes_y = y;
-	cairo_move_to(cr, x, y);
-	cairo_text_path(cr, mode_buf);
-	cairo_set_source_rgb(cr, 0, 0, 0);
-	cairo_stroke_preserve(cr);
-	cairo_set_source_rgb(cr, 1, 1, 1);
-	cairo_fill(cr);
+	str_width = kmstest_cairo_printf_line(cr, align_left, 10,
+					      "Available modes:");
+	cairo_rel_move_to(cr, str_width, 0);
+	cairo_get_current_point(cr, &x, &top_y);
 
+	max_width = 0;
 	for (i = 0; i < c->connector->count_modes; i++) {
-		snprintf(mode_buf, sizeof mode_buf, "%s @ %dHz",
-			 c->connector->modes[i].name,
-			 c->connector->modes[i].vrefresh);
-		cairo_set_font_size(cr, 18);
-		cairo_text_extents(cr, mode_buf, &mode_extents);
-		x = modes_x - mode_extents.width; /* right justify modes */
-		y += mode_extents.height + 10;
-		if (y + mode_extents.height >= height) {
-			y = modes_y + mode_extents.height + 10;
-			modes_x += mode_extents.width + 10;
-			x = modes_x - mode_extents.width;
+		cairo_get_current_point(cr, &x, &y);
+		if (y >= l_height) {
+			x += max_width + 10;
+			max_width = 0;
+			cairo_move_to(cr, x, top_y);
 		}
-		cairo_move_to(cr, x, y);
-		cairo_text_path(cr, mode_buf);
-		cairo_set_source_rgb(cr, 0, 0, 0);
-		cairo_stroke_preserve(cr);
-		cairo_set_source_rgb(cr, 1, 1, 1);
-		cairo_fill(cr);
+		str_width = kmstest_cairo_printf_line(cr, align_right, 10,
+			"%s @ %dHz", c->connector->modes[i].name,
+			 c->connector->modes[i].vrefresh);
+		if (str_width > max_width)
+			max_width = str_width;
 	}
 
 	if (qr_code)

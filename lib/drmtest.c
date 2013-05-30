@@ -907,6 +907,50 @@ paint_test_patterns(cairo_t *cr, int width, int height)
 	paint_color_gradient(cr, x, y, gr_width, gr_height, 1, 1, 1);
 }
 
+int kmstest_cairo_printf_line(cairo_t *cr, enum kmstest_text_align align,
+				double yspacing, const char *fmt, ...)
+{
+	double x, y, xofs, yofs;
+	cairo_text_extents_t extents;
+	char *text;
+	va_list ap;
+	int ret;
+
+	va_start(ap, fmt);
+	ret = vasprintf(&text, fmt, ap);
+	assert(ret >= 0);
+	va_end(ap);
+
+	cairo_text_extents(cr, text, &extents);
+
+	xofs = yofs = 0;
+	if (align & align_right)
+		xofs = -extents.width;
+	else if (align & align_hcenter)
+		xofs = -extents.width / 2;
+
+	if (align & align_top)
+		yofs = extents.height;
+	else if (align & align_vcenter)
+		yofs = extents.height / 2;
+
+	cairo_get_current_point(cr, &x, &y);
+	if (xofs || yofs)
+		cairo_rel_move_to(cr, xofs, yofs);
+
+	cairo_text_path(cr, text);
+	cairo_set_source_rgb(cr, 0, 0, 0);
+	cairo_stroke_preserve(cr);
+	cairo_set_source_rgb(cr, 1, 1, 1);
+	cairo_fill(cr);
+
+	cairo_move_to(cr, x, y + extents.height + yspacing);
+
+	free(text);
+
+	return extents.width;
+}
+
 enum corner {
 	topleft,
 	topright,
