@@ -842,8 +842,8 @@ static int create_bo_for_fb(int fd, int width, int height, int bpp,
 	return 0;
 }
 
-static void
-paint_color_gradient(cairo_t *cr, int x, int y, int w, int h,
+void
+kmstest_paint_color_gradient(cairo_t *cr, int x, int y, int w, int h,
 		     int r, int g, int b)
 {
 	cairo_pattern_t *pat;
@@ -869,16 +869,16 @@ paint_test_patterns(cairo_t *cr, int width, int height)
 	gr_height = height * 0.08;
 	x = (width / 2) - (gr_width / 2);
 
-	paint_color_gradient(cr, x, y, gr_width, gr_height, 1, 0, 0);
+	kmstest_paint_color_gradient(cr, x, y, gr_width, gr_height, 1, 0, 0);
 
 	y += gr_height;
-	paint_color_gradient(cr, x, y, gr_width, gr_height, 0, 1, 0);
+	kmstest_paint_color_gradient(cr, x, y, gr_width, gr_height, 0, 1, 0);
 
 	y += gr_height;
-	paint_color_gradient(cr, x, y, gr_width, gr_height, 0, 0, 1);
+	kmstest_paint_color_gradient(cr, x, y, gr_width, gr_height, 0, 0, 1);
 
 	y += gr_height;
-	paint_color_gradient(cr, x, y, gr_width, gr_height, 1, 1, 1);
+	kmstest_paint_color_gradient(cr, x, y, gr_width, gr_height, 1, 1, 1);
 }
 
 int kmstest_cairo_printf_line(cairo_t *cr, enum kmstest_text_align align,
@@ -1025,6 +1025,55 @@ unsigned int kmstest_create_fb(int fd, int width, int height, int bpp,
 	return fb->fb_id;
 }
 
+static uint32_t drm_format_to_bpp(uint32_t drm_format)
+{
+	struct format_desc_struct *f;
+
+	for_each_format(f)
+		if (f->drm_id == drm_format)
+			return f->bpp;
+
+	abort();
+}
+
+unsigned int kmstest_create_fb2(int fd, int width, int height, uint32_t format,
+			        bool tiled, struct kmstest_fb *fb)
+{
+	uint32_t handles[4];
+	uint32_t pitches[4];
+	uint32_t offsets[4];
+	uint32_t fb_id;
+	int bpp;
+	int ret;
+
+	memset(fb, 0, sizeof(*fb));
+
+	bpp = drm_format_to_bpp(format);
+	ret = create_bo_for_fb(fd, width, height, bpp, tiled, &fb->gem_handle,
+			      &fb->size, &fb->stride);
+	if (ret < 0)
+		return ret;
+
+	memset(handles, 0, sizeof(handles));
+	handles[0] = fb->gem_handle;
+	memset(pitches, 0, sizeof(pitches));
+	pitches[0] = fb->stride;
+	memset(offsets, 0, sizeof(offsets));
+	if (drmModeAddFB2(fd, width, height, format, handles, pitches,
+			  offsets, &fb_id, 0) < 0) {
+		gem_close(fd, fb->gem_handle);
+
+		return 0;
+	}
+
+	fb->width = width;
+	fb->height = height;
+	fb->drm_format = format;
+	fb->fb_id = fb_id;
+
+	return fb_id;
+}
+
 static cairo_format_t drm_format_to_cairo(uint32_t drm_format)
 {
 	struct format_desc_struct *f;
@@ -1073,6 +1122,46 @@ void kmstest_remove_fb(int fd, struct kmstest_fb *fb)
 		cairo_destroy(fb->cairo_ctx);
 	do_or_die(drmModeRmFB(fd, fb->fb_id));
 	gem_close(fd, fb->gem_handle);
+}
+
+const char *kmstest_format_str(uint32_t drm_format)
+{
+	struct format_desc_struct *f;
+
+	for_each_format(f)
+		if (f->drm_id == drm_format)
+			return f->name;
+
+	return "invalid";
+}
+
+const char *kmstest_pipe_str(int pipe)
+{
+	const char *str[] = { "A", "B", "C" };
+
+	if (pipe > 2)
+		return "invalid";
+
+	return str[pipe];
+}
+
+void kmstest_get_all_formats(const uint32_t **formats, int *format_count)
+{
+	static uint32_t *drm_formats;
+
+	if (!drm_formats) {
+		struct format_desc_struct *f;
+		uint32_t *format;
+
+		drm_formats = calloc(ARRAY_SIZE(format_desc),
+				     sizeof(*drm_formats));
+		format = &drm_formats[0];
+		for_each_format(f)
+			*format++ = f->drm_id;
+	}
+
+	*formats = drm_formats;
+	*format_count = ARRAY_SIZE(format_desc);
 }
 
 struct type_name {

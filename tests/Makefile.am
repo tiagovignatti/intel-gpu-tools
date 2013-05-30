@@ -33,6 +33,7 @@ TESTS_progs_M = \
 	gem_tiled_partial_pwrite_pread \
 	$(NOUVEAU_TESTS_M) \
 	kms_flip \
+	kms_render \
 	prime_self_import \
 	$(NULL)
 

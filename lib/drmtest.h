@@ -144,11 +144,18 @@ int kmstest_cairo_printf_line(cairo_t *cr, enum kmstest_text_align align,
 unsigned int kmstest_create_fb(int fd, int width, int height, int bpp,
 			       int depth, bool tiled,
 			       struct kmstest_fb *fb_info);
+unsigned int kmstest_create_fb2(int fd, int width, int height, uint32_t format,
+			        bool tiled, struct kmstest_fb *fb);
 void kmstest_remove_fb(int fd, struct kmstest_fb *fb_info);
 cairo_t *kmstest_get_cairo_ctx(int fd, struct kmstest_fb *fb);
+void kmstest_paint_color_gradient(cairo_t *cr, int x, int y, int w, int h,
+				  int r, int g, int b);
 void kmstest_paint_test_pattern(cairo_t *cr, int width, int height);
 void kmstest_dump_mode(drmModeModeInfo *mode);
 int kmstest_get_pipe_from_crtc_id(int fd, int crtc_id);
+const char *kmstest_format_str(uint32_t drm_format);
+const char *kmstest_pipe_str(int pipe);
+void kmstest_get_all_formats(const uint32_t **formats, int *format_count);
 const char *kmstest_encoder_type_str(int type);
 const char *kmstest_connector_status_str(int type);
 const char *kmstest_connector_type_str(int type);
