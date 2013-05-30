@@ -119,6 +119,9 @@ unsigned int kmstest_create_fb(int fd, int width, int height, int bpp,
 void kmstest_remove_fb(int fd, int fb_id);
 void kmstest_dump_mode(drmModeModeInfo *mode);
 int kmstest_get_pipe_from_crtc_id(int fd, int crtc_id);
+const char *kmstest_encoder_type_str(int type);
+const char *kmstest_connector_status_str(int type);
+const char *kmstest_connector_type_str(int type);
 
 inline static void _do_or_die(const char *function, int line, int ret)
 {

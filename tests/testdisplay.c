@@ -88,59 +88,6 @@ uint32_t *fb_ptr;
 
 #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
 
-struct type_name {
-	int type;
-	const char *name;
-};
-
-#define type_name_fn(res) \
-static const char * res##_str(int type) {			\
-	unsigned int i;					\
-	for (i = 0; i < ARRAY_SIZE(res##_names); i++) { \
-		if (res##_names[i].type == type)	\
-			return res##_names[i].name;	\
-	}						\
-	return "(invalid)";				\
-}
-
-struct type_name encoder_type_names[] = {
-	{ DRM_MODE_ENCODER_NONE, "none" },
-	{ DRM_MODE_ENCODER_DAC, "DAC" },
-	{ DRM_MODE_ENCODER_TMDS, "TMDS" },
-	{ DRM_MODE_ENCODER_LVDS, "LVDS" },
-	{ DRM_MODE_ENCODER_TVDAC, "TVDAC" },
-};
-
-type_name_fn(encoder_type)
-
-struct type_name connector_status_names[] = {
-	{ DRM_MODE_CONNECTED, "connected" },
-	{ DRM_MODE_DISCONNECTED, "disconnected" },
-	{ DRM_MODE_UNKNOWNCONNECTION, "unknown" },
-};
-
-type_name_fn(connector_status)
-
-struct type_name connector_type_names[] = {
-	{ DRM_MODE_CONNECTOR_Unknown, "unknown" },
-	{ DRM_MODE_CONNECTOR_VGA, "VGA" },
-	{ DRM_MODE_CONNECTOR_DVII, "DVI-I" },
-	{ DRM_MODE_CONNECTOR_DVID, "DVI-D" },
-	{ DRM_MODE_CONNECTOR_DVIA, "DVI-A" },
-	{ DRM_MODE_CONNECTOR_Composite, "composite" },
-	{ DRM_MODE_CONNECTOR_SVIDEO, "s-video" },
-	{ DRM_MODE_CONNECTOR_LVDS, "LVDS" },
-	{ DRM_MODE_CONNECTOR_Component, "component" },
-	{ DRM_MODE_CONNECTOR_9PinDIN, "9-pin DIN" },
-	{ DRM_MODE_CONNECTOR_DisplayPort, "DisplayPort" },
-	{ DRM_MODE_CONNECTOR_HDMIA, "HDMI-A" },
-	{ DRM_MODE_CONNECTOR_HDMIB, "HDMI-B" },
-	{ DRM_MODE_CONNECTOR_TV, "TV" },
-	{ DRM_MODE_CONNECTOR_eDP, "Embedded DisplayPort" },
-};
-
-type_name_fn(connector_type)
-
 /*
  * Mode setting with the kernel interfaces is a bit of a chore.
  * First you have to find the connector in question and make sure the
@@ -185,8 +132,8 @@ static void dump_connectors_fd(int drmfd)
 		printf("%d\t%d\t%s\t%s\t%dx%d\t\t%d\n",
 		       connector->connector_id,
 		       connector->encoder_id,
-		       connector_status_str(connector->connection),
-		       connector_type_str(connector->connector_type),
+		       kmstest_connector_status_str(connector->connection),
+		       kmstest_connector_type_str(connector->connector_type),
 		       connector->mmWidth, connector->mmHeight,
 		       connector->count_modes);
 
@@ -390,7 +337,7 @@ paint_output_info(cairo_t *cr, int l_width, int l_height, void *priv)
 
 	/* Get text extents for each string */
 	snprintf(name_buf, sizeof name_buf, "%s",
-		 connector_type_str(c->connector->connector_type));
+		 kmstest_connector_type_str(c->connector->connector_type));
 	cairo_set_font_size(cr, 48);
 	cairo_select_font_face(cr, "Helvetica",
 			       CAIRO_FONT_SLANT_NORMAL,
@@ -399,7 +346,7 @@ paint_output_info(cairo_t *cr, int l_width, int l_height, void *priv)
 
 	snprintf(mode_buf, sizeof mode_buf, "%s @ %dHz on %s encoder",
 		 c->mode.name, c->mode.vrefresh,
-		 encoder_type_str(c->encoder->encoder_type));
+		 kmstest_encoder_type_str(c->encoder->encoder_type));
 	cairo_set_font_size(cr, 36);
 	cairo_text_extents(cr, mode_buf, &mode_extents);
 
