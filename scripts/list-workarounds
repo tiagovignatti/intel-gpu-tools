@@ -17,7 +17,7 @@ def find_nth(haystack, needle, n):
 		n -= 1
 	return start
 
-valid_platforms = ('ctg', 'elk', 'ilk', 'snb', 'ivb', 'vlv', 'hsw')
+valid_platforms = ('ctg', 'elk', 'ilk', 'snb', 'ivb', 'vlv', 'hsw', 'bdw')
 def parse_platforms(p):
 	l =  p.split(',')
 	for p in l:
