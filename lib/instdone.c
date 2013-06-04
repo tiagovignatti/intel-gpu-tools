@@ -239,7 +239,7 @@
 # define G4X_VS0_DONE			(1 << 1)
 # define G4X_VF_DONE			(1 << 0)
 
-/* GEN6_INSTDONE_2 */
+/* INSTDONE_1 */
 # define GEN6_GAM_DONE			(1 << 31)
 # define GEN6_CS_DONE			(1 << 30)
 # define GEN6_WMBE_DONE			(1 << 29)
@@ -307,13 +307,13 @@ gen4_instdone1_bit(uint32_t bit, const char *name)
 static void
 gen6_instdone1_bit(uint32_t bit, const char *name)
 {
-	add_instdone_bit(GEN6_INSTDONE_1, bit, name);
+	add_instdone_bit(INSTDONE_I965, bit, name);
 }
 
 static void
 gen6_instdone2_bit(uint32_t bit, const char *name)
 {
-	add_instdone_bit(GEN6_INSTDONE_2, bit, name);
+	add_instdone_bit(INSTDONE_1, bit, name);
 }
 
 static void

@@ -2003,8 +2003,8 @@ static struct reg_debug gen6_fences[] = {
 
 static struct reg_debug ironlake_debug_regs[] = {
 	DEFINEREG(PGETBL_CTL),
-	DEFINEREG(GEN6_INSTDONE_1),
-	DEFINEREG(GEN6_INSTDONE_2),
+	DEFINEREG(INSTDONE_I965),
+	DEFINEREG(INSTDONE_1),
 	DEFINEREG2(CPU_VGACNTRL, i830_debug_vgacntrl),
 	DEFINEREG(DIGITAL_PORT_HOTPLUG_CNTRL),
 
