@@ -37,6 +37,7 @@ int num_instdone_bits = 0;
 static void
 add_instdone_bit(uint32_t reg, uint32_t bit, const char *name)
 {
+	assert(num_instdone_bits < MAX_INSTDONE_BITS);
 	instdone_bits[num_instdone_bits].reg = reg;
 	instdone_bits[num_instdone_bits].bit = bit;
 	instdone_bits[num_instdone_bits].name = name;
