@@ -370,7 +370,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #define IPEIR                  0x2088
 #define IPEHR                  0x208C
 
-#define INST_DONE                0x2090
+#define INSTDONE                0x2090
 # define IDCT_DONE			(1 << 30)
 # define IQ_DONE			(1 << 29)
 # define PR_DONE			(1 << 28)
@@ -434,7 +434,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #define INST_PS                  0x20c4
 #define IPEIR_I965                  0x2064 /* i965 */
 #define IPEHR_I965                  0x2068 /* i965 */
-#define INST_DONE_I965              0x206c
+#define INSTDONE_I965              0x206c
 # define I965_ROW_0_EU_0_DONE		(1 << 31)
 # define I965_ROW_0_EU_1_DONE		(1 << 30)
 # define I965_ROW_0_EU_2_DONE		(1 << 29)
@@ -541,7 +541,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 #define DMA_FADD_P             0x2078
 #define DMA_FADD_S               0x20d4
-#define INST_DONE_1              0x207c
+#define INSTDONE_1              0x207c
 # define I965_GW_CS_DONE_CR		(1 << 19)
 # define I965_SVSM_CS_DONE_CR		(1 << 18)
 # define I965_SVDW_CS_DONE_CR		(1 << 17)

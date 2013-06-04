@@ -144,7 +144,7 @@ update_idle_bit(struct top_bit *top_bit)
 {
 	uint32_t reg_val;
 
-	if (top_bit->bit->reg == INST_DONE_1)
+	if (top_bit->bit->reg == INSTDONE_1)
 		reg_val = instdone1;
 	else
 		reg_val = instdone;
@@ -559,10 +559,10 @@ int main(int argc, char **argv)
 			long long interval;
 			ti = gettime();
 			if (IS_965(devid)) {
-				instdone = INREG(INST_DONE_I965);
-				instdone1 = INREG(INST_DONE_1);
+				instdone = INREG(INSTDONE_I965);
+				instdone1 = INREG(INSTDONE_1);
 			} else
-				instdone = INREG(INST_DONE);
+				instdone = INREG(INSTDONE);
 
 			for (j = 0; j < num_instdone_bits; j++)
 				update_idle_bit(&top_bits[j]);

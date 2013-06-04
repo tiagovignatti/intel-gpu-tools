@@ -102,7 +102,7 @@ print_instdone(uint32_t devid, unsigned int instdone, unsigned int instdone1)
 	for (i = 0; i < num_instdone_bits; i++) {
 		int busy = 0;
 
-		if (instdone_bits[i].reg == INST_DONE_1) {
+		if (instdone_bits[i].reg == INSTDONE_1) {
 			if (!(instdone1 & instdone_bits[i].bit))
 				busy = 1;
 		} else {

@@ -46,19 +46,19 @@ add_instdone_bit(uint32_t reg, uint32_t bit, const char *name)
 static void
 gen3_instdone_bit(uint32_t bit, const char *name)
 {
-	add_instdone_bit(INST_DONE, bit, name);
+	add_instdone_bit(INSTDONE, bit, name);
 }
 
 static void
 gen4_instdone_bit(uint32_t bit, const char *name)
 {
-	add_instdone_bit(INST_DONE_I965, bit, name);
+	add_instdone_bit(INSTDONE_I965, bit, name);
 }
 
 static void
 gen4_instdone1_bit(uint32_t bit, const char *name)
 {
-	add_instdone_bit(INST_DONE_1, bit, name);
+	add_instdone_bit(INSTDONE_1, bit, name);
 }
 
 static void
