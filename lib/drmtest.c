@@ -951,45 +951,11 @@ int kmstest_cairo_printf_line(cairo_t *cr, enum kmstest_text_align align,
 	return extents.width;
 }
 
-enum corner {
-	topleft,
-	topright,
-	bottomleft,
-	bottomright,
-};
-
 static void
-paint_marker(cairo_t *cr, int x, int y, char *str, enum corner text_location)
+paint_marker(cairo_t *cr, int x, int y)
 {
-	cairo_text_extents_t extents;
+	enum kmstest_text_align align;
 	int xoff, yoff;
-
-	cairo_set_font_size(cr, 18);
-	cairo_text_extents(cr, str, &extents);
-
-	switch (text_location) {
-	case topleft:
-		xoff = -20;
-		xoff -= extents.width;
-		yoff = -20;
-		break;
-	case topright:
-		xoff = 20;
-		yoff = -20;
-		break;
-	case bottomleft:
-		xoff = -20;
-		xoff -= extents.width;
-		yoff = 20;
-		break;
-	case bottomright:
-		xoff = 20;
-		yoff = 20;
-		break;
-	default:
-		xoff = 0;
-		yoff = 0;
-	}
 
 	cairo_move_to(cr, x, y - 20);
 	cairo_line_to(cr, x, y + 20);
@@ -1004,12 +970,15 @@ paint_marker(cairo_t *cr, int x, int y, char *str, enum corner text_location)
 	cairo_set_line_width(cr, 2);
 	cairo_stroke(cr);
 
+	xoff = x ? -20 : 20;
+	align = x ? align_right : align_left;
+
+	yoff = y ? -20 : 20;
+	align |= y ? align_bottom : align_top;
+
 	cairo_move_to(cr, x + xoff, y + yoff);
-	cairo_text_path(cr, str);
-	cairo_set_source_rgb(cr, 0, 0, 0);
-	cairo_stroke_preserve(cr);
-	cairo_set_source_rgb(cr, 1, 1, 1);
-	cairo_fill(cr);
+	cairo_set_font_size(cr, 18);
+	kmstest_cairo_printf_line(cr, align, 0, "(%d, %d)", x, y);
 }
 
 unsigned int kmstest_create_fb(int fd, int width, int height, int bpp,
@@ -1021,7 +990,6 @@ unsigned int kmstest_create_fb(int fd, int width, int height, int bpp,
 	cairo_surface_t *surface;
 	cairo_status_t status;
 	cairo_t *cr;
-	char buf[128];
 	unsigned int fb_id;
 
 	surface = paint_allocate_surface(fd, width, height, depth, bpp,
@@ -1035,14 +1003,10 @@ unsigned int kmstest_create_fb(int fd, int width, int height, int bpp,
 	cairo_set_line_cap(cr, CAIRO_LINE_CAP_SQUARE);
 
 	/* Paint corner markers */
-	snprintf(buf, sizeof buf, "(%d, %d)", 0, 0);
-	paint_marker(cr, 0, 0, buf, bottomright);
-	snprintf(buf, sizeof buf, "(%d, %d)", width, 0);
-	paint_marker(cr, width, 0, buf, bottomleft);
-	snprintf(buf, sizeof buf, "(%d, %d)", 0, height);
-	paint_marker(cr, 0, height, buf, topright);
-	snprintf(buf, sizeof buf, "(%d, %d)", width, height);
-	paint_marker(cr, width, height, buf, topleft);
+	paint_marker(cr, 0, 0);
+	paint_marker(cr, width, 0);
+	paint_marker(cr, 0, height);
+	paint_marker(cr, width, height);
 
 	if (paint_func)
 		paint_func(cr, width, height, func_arg);
