@@ -171,7 +171,9 @@ static int many_exec(int fd, uint32_t batch, int num_exec, int num_reloc, unsign
 	return ret;
 }
 
-#define fail(x) assert(x == -1 && errno == ENOENT)
+#define _fail(x) ((x) == -1 && errno == ENOENT)
+#define fail(x) assert(_fail(x))
+#define pass(x) assert(!_fail(x))
 
 int main(int argc, char **argv)
 {
@@ -194,15 +196,15 @@ int main(int argc, char **argv)
 	fail(exec(fd, handle, USE_LUT | BROKEN));
 
 	for (i = 2; i <= 65536; i *= 2) {
-		do_or_die(many_exec(fd, handle, i-1, i-1, NORMAL));
-		do_or_die(many_exec(fd, handle, i-1, i, NORMAL));
-		do_or_die(many_exec(fd, handle, i-1, i+1, NORMAL));
-		do_or_die(many_exec(fd, handle, i, i-1, NORMAL));
-		do_or_die(many_exec(fd, handle, i, i, NORMAL));
-		do_or_die(many_exec(fd, handle, i, i+1, NORMAL));
-		do_or_die(many_exec(fd, handle, i+1, i-1, NORMAL));
-		do_or_die(many_exec(fd, handle, i+1, i, NORMAL));
-		do_or_die(many_exec(fd, handle, i+1, i+1, NORMAL));
+		pass(many_exec(fd, handle, i-1, i-1, NORMAL));
+		pass(many_exec(fd, handle, i-1, i, NORMAL));
+		pass(many_exec(fd, handle, i-1, i+1, NORMAL));
+		pass(many_exec(fd, handle, i, i-1, NORMAL));
+		pass(many_exec(fd, handle, i, i, NORMAL));
+		pass(many_exec(fd, handle, i, i+1, NORMAL));
+		pass(many_exec(fd, handle, i+1, i-1, NORMAL));
+		pass(many_exec(fd, handle, i+1, i, NORMAL));
+		pass(many_exec(fd, handle, i+1, i+1, NORMAL));
 
 		fail(many_exec(fd, handle, i-1, i-1, NORMAL | BROKEN));
 		fail(many_exec(fd, handle, i-1, i, NORMAL | BROKEN));
@@ -214,15 +216,15 @@ int main(int argc, char **argv)
 		fail(many_exec(fd, handle, i+1, i, NORMAL | BROKEN));
 		fail(many_exec(fd, handle, i+1, i+1, NORMAL | BROKEN));
 
-		do_or_die(many_exec(fd, handle, i-1, i-1, USE_LUT));
-		do_or_die(many_exec(fd, handle, i-1, i, USE_LUT));
-		do_or_die(many_exec(fd, handle, i-1, i+1, USE_LUT));
-		do_or_die(many_exec(fd, handle, i, i-1, USE_LUT));
-		do_or_die(many_exec(fd, handle, i, i, USE_LUT));
-		do_or_die(many_exec(fd, handle, i, i+1, USE_LUT));
-		do_or_die(many_exec(fd, handle, i+1, i-1, USE_LUT));
-		do_or_die(many_exec(fd, handle, i+1, i, USE_LUT));
-		do_or_die(many_exec(fd, handle, i+1, i+1, USE_LUT));
+		pass(many_exec(fd, handle, i-1, i-1, USE_LUT));
+		pass(many_exec(fd, handle, i-1, i, USE_LUT));
+		pass(many_exec(fd, handle, i-1, i+1, USE_LUT));
+		pass(many_exec(fd, handle, i, i-1, USE_LUT));
+		pass(many_exec(fd, handle, i, i, USE_LUT));
+		pass(many_exec(fd, handle, i, i+1, USE_LUT));
+		pass(many_exec(fd, handle, i+1, i-1, USE_LUT));
+		pass(many_exec(fd, handle, i+1, i, USE_LUT));
+		pass(many_exec(fd, handle, i+1, i+1, USE_LUT));
 
 		fail(many_exec(fd, handle, i-1, i-1, USE_LUT | BROKEN));
 		fail(many_exec(fd, handle, i-1, i, USE_LUT | BROKEN));
