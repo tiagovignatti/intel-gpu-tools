@@ -25,8 +25,8 @@ def parse_platforms(p):
 			sys.stdout.write("unknown platform %s\n" % p)
 	return l
 
-wa_re = re.compile('(?P<name>Wa[A-Z0-9][a-zA-Z0-9_]+):(?P<platforms>[a-z,]+)')
-waname_re = re.compile('(?P<name>Wa[A-Z0-9][a-zA-Z0-9_]+)')
+wa_re = re.compile('(?P<name>W[aA][A-Z0-9][a-zA-Z0-9_]+):(?P<platforms>[a-z,]+)')
+waname_re = re.compile('(?P<name>W[aA][A-Z0-9][a-zA-Z0-9_]+)')
 def parse(me):
 	for line in me.splitlines():
 		match = wa_re.search(str(line))
@@ -95,7 +95,7 @@ if __name__ == '__main__':
 	olddir = os.getcwd()
 	os.chdir(kernel_path)
 	work_arounds, err = execute(['git', 'grep', '-n',
-				     '-e', 'Wa[A-Z0-9][a-zA-Z0-9_]\+',
+				     '-e', 'W[aA][A-Z0-9][a-zA-Z0-9_]\+',
 				     i915_dir])
 	os.chdir(olddir)
 	if err:
