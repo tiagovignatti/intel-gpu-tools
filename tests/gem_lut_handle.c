@@ -94,7 +94,7 @@ static int many_exec(int fd, uint32_t batch, int num_exec, int num_reloc, unsign
 	struct drm_i915_gem_execbuffer2 execbuf;
 	struct drm_i915_gem_exec_object2 *gem_exec;
 	struct drm_i915_gem_relocation_entry *gem_reloc;
-	unsigned min_handle = 0, max_handle = ~0;
+	unsigned max_handle = batch;
 	int ret, n;
 
 	gem_exec = calloc(num_exec+1, sizeof(*gem_exec));
@@ -103,8 +103,6 @@ static int many_exec(int fd, uint32_t batch, int num_exec, int num_reloc, unsign
 
 	for (n = 0; n < num_exec; n++) {
 		gem_exec[n].handle = gem_create(fd, 4096);
-		if (gem_exec[n].handle < min_handle)
-			min_handle = gem_exec[n].handle;
 		if (gem_exec[n].handle > max_handle)
 			max_handle = gem_exec[n].handle;
 		gem_exec[n].relocation_count = 0;
@@ -120,18 +118,17 @@ static int many_exec(int fd, uint32_t batch, int num_exec, int num_reloc, unsign
 	gem_exec[n].relocation_count = num_reloc;
 	gem_exec[n].relocs_ptr = (uintptr_t) gem_reloc;
 
-	if (flags & USE_LUT) {
-		min_handle = 0;
+	if (flags & USE_LUT)
 		max_handle = num_exec + 1;
-	}
+	max_handle++;
 
 	for (n = 0; n < num_reloc; n++) {
 		unsigned target;
 
 		if (flags & BROKEN) {
 			target = rand();
-			if (target <= max_handle && target >= min_handle)
-				target = target & 1 ? min_handle - target : max_handle + target;
+			if (target <= max_handle)
+				target = target & 1 ? -target : max_handle + target;
 		} else {
 			target = rand() % (num_exec + 1);
 			if ((flags & USE_LUT) == 0)
