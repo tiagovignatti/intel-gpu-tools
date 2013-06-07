@@ -39,7 +39,7 @@
 #include <getopt.h>
 #include <stdlib.h>
 #include <linux/kd.h>
-#include <drm/drm_fourcc.h>
+#include "drm_fourcc.h"
 
 #include "drmtest.h"
 #include "i915_drm.h"
