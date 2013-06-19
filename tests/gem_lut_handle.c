@@ -169,8 +169,15 @@ static int many_exec(int fd, uint32_t batch, int num_exec, int num_reloc, unsign
 }
 
 #define _fail(x) ((x) == -1 && errno == ENOENT)
-#define fail(x) assert(_fail(x))
-#define pass(x) assert(!_fail(x))
+#define ASSERT(x) do {						\
+	if (!(x)) {						\
+		fprintf(stderr, "%s:%d failed, errno=%d\n",	\
+			__FUNCTION__, __LINE__, errno);		\
+		abort();					\
+	}							\
+} while (0)
+#define fail(x) ASSERT(_fail(x))
+#define pass(x) ASSERT(!_fail(x))
 
 int main(int argc, char **argv)
 {
