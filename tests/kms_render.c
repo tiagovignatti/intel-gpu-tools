@@ -124,9 +124,10 @@ static int test_format(const char *test_name,
 	if (!kmstest_create_fb2(drm_fd, width, height, format, false, &fb[1]))
 		goto err2;
 
-	do_or_die(drmModeSetCrtc(drm_fd, cconf->crtc->crtc_id, fb[0].fb_id,
+	if (drmModeSetCrtc(drm_fd, cconf->crtc->crtc_id, fb[0].fb_id,
 				 0, 0, &cconf->connector->connector_id, 1,
-				 mode));
+				 mode))
+		goto err2;
 	do_or_die(drmModePageFlip(drm_fd, cconf->crtc->crtc_id, fb[0].fb_id,
 				  0, NULL));
 	sleep(2);
@@ -152,8 +153,10 @@ static int test_format(const char *test_name,
 err2:
 	kmstest_remove_fb(drm_fd, &fb[0]);
 err1:
-	fprintf(stderr, "skip testing unsupported format %s\n",
-		kmstest_format_str(format));
+	printf("Test %s with %s on %s: SKIPPED\n",
+		test_name, mode_format_str, cconf_str);
+	free(mode_format_str);
+	free(cconf_str);
 
 	return -1;
 }
