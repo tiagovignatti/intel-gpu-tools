@@ -123,12 +123,10 @@ static int many_exec(int fd, uint32_t batch, int num_exec, int num_reloc, unsign
 	max_handle++;
 
 	for (n = 0; n < num_reloc; n++) {
-		unsigned target;
+		uint32_t target;
 
 		if (flags & BROKEN) {
-			target = rand();
-			if (target <= max_handle)
-				target = target & 1 ? -target : max_handle + target;
+			target = -(rand() % 4096);
 		} else {
 			target = rand() % (num_exec + 1);
 			if ((flags & USE_LUT) == 0)
