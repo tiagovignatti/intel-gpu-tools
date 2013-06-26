@@ -1,5 +1,12 @@
 #!/usr/bin/env python3
 
+# register definition format:
+# ('register name', 'register offset', 'register type')
+#
+# register types:
+#  '' - normal register
+#  'DPIO' - DPIO register
+
 import argparse
 import os
 import sys
