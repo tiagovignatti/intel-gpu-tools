@@ -11,7 +11,7 @@ SOURCE_DIR="$( dirname "${BASH_SOURCE[0]}" )"
 
 oldpath=`pwd`
 
-cd $i915_path
+cd $i915_dfs_path
 
 if [ ! -f i915_ring_stop ] ; then
 	echo "kernel doesn't support ring stopping"

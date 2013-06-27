@@ -6,5 +6,5 @@ SOURCE_DIR="$( dirname "${BASH_SOURCE[0]}" )"
 # Testcase: wedge the hw to check the error_state reading
 # 
 # Unfortunately wedged is permanent, so this test is not run by default
-echo 1 > ${i915_path}/i915_wedged
-cat $i915_path/i915_error_state > /dev/null 2>&1
+echo 1 > ${i915_dfs_path}/i915_wedged
+cat $i915_dfs_path/i915_error_state > /dev/null 2>&1

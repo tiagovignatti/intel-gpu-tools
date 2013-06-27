@@ -4,6 +4,6 @@ SOURCE_DIR="$( dirname "${BASH_SOURCE[0]}" )"
 . $SOURCE_DIR/drm_lib.sh
 
 # read everything we can
-cat $i915_path/* > /dev/null 2>&1 
+cat $i915_dfs_path/* > /dev/null 2>&1
 
 exit 0

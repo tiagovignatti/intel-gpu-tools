@@ -8,7 +8,7 @@ SOURCE_DIR="$( dirname "${BASH_SOURCE[0]}" )"
 . $SOURCE_DIR/drm_lib.sh
 
 for z in $(seq 1 1000); do
-	cat $i915_path/i915_emon_status > /dev/null 2&>1
+	cat $i915_dfs_path/i915_emon_status > /dev/null 2&>1
 done
 
 # If we got here, we haven't crashed
