@@ -126,7 +126,7 @@ static int many_exec(int fd, uint32_t batch, int num_exec, int num_reloc, unsign
 		uint32_t target;
 
 		if (flags & BROKEN) {
-			target = -(rand() % 4096);
+			target = -(rand() % 4096) - 1;
 		} else {
 			target = rand() % (num_exec + 1);
 			if ((flags & USE_LUT) == 0)
@@ -198,6 +198,10 @@ int main(int argc, char **argv)
 	fail(exec(fd, handle, USE_LUT | BROKEN));
 
 	for (i = 2; i <= 65536; i *= 2) {
+		if (many_exec(fd, handle, i+1, i+1, NORMAL) == -1 &&
+		    errno == ENOSPC)
+			break;
+
 		pass(many_exec(fd, handle, i-1, i-1, NORMAL));
 		pass(many_exec(fd, handle, i-1, i, NORMAL));
 		pass(many_exec(fd, handle, i-1, i+1, NORMAL));
