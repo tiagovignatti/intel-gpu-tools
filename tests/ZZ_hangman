@@ -18,25 +18,49 @@ if [ ! -f i915_ring_stop ] ; then
 	exit 77
 fi
 
-if cat i915_error_state | grep -v "no error state collected" > /dev/null ; then
-	echo "gpu hang dectected"
-	exit 1
-fi
+function check_iface {
+    estate_fname=$1
+    mandatory=$2
 
-# stop rings
-echo 0xf > i915_ring_stop
-echo "rings stopped"
+    echo checking ${estate_fname}
 
-(cd $oldpath; $SOURCE_DIR/gem_exec_big) > /dev/null
+    if [ ! -f $estate_fname ] ; then
+	if [  $mandatory != 0 ] ; then
+	    echo "'${estate_fname}' not found";
+	    exit 1;
+	else
+	    echo "${estate_fname} not mandatory";
+	    return;
+	fi
+    fi
 
-if cat i915_error_state | grep -v "no error state collected" > /dev/null ; then
-	echo "gpu hang correctly dectected"
-else
-	echo "gpu hang not dectected"
+    if cat $estate_fname | grep -v "no error state collected" > /dev/null ; then
+	echo "gpu hang detected"
 	exit 2
-fi
+    fi
+
+    echo 0xf > i915_ring_stop
+    echo "rings stopped"
+
+    (cd $oldpath; $SOURCE_DIR/gem_exec_big) > /dev/null
+
+    if cat $estate_fname | grep -v "no error state collected" > /dev/null ; then
+	echo "gpu hang correctly detected"
+    else
+	echo "gpu hang not detected"
+	exit 3
+    fi
 
 # clear error state
-echo > i915_error_state
+    echo > $estate_fname
+
+    if cat $estate_fname | grep -v "no error state collected" > /dev/null ; then
+	echo "gpu hang still present"
+	exit 4
+    fi
+}
+
+check_iface $i915_dfs_path/i915_error_state 1
+check_iface $i915_sfs_path/error 0
 
 exit 0
