@@ -121,6 +121,8 @@ main(int argc, char **argv)
 			set_bo(src[i], i, width, height);
 			set_bo(dst[i], i, width, height);
 		}
+		for (i = 0; i < num_buffers; i++)
+			intel_copy_bo(batch, dst[i], src[i], width, height);
 		for (i = num_buffers; i--; )
 			set_bo(src[i], 0xdeadbeef, width, height);
 		for (i = 0; i < num_buffers; i++)
