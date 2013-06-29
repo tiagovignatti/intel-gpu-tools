@@ -83,7 +83,7 @@ create_bo(drm_intel_bufmgr *bufmgr, uint32_t val, int width, int height)
 	/* gtt map doesn't have a write parameter, so just keep the mapping
 	 * around (to avoid the set_domain with the gtt write domain set) and
 	 * manually tell the kernel when we start access the gtt. */
-	drm_intel_gem_bo_map_gtt(bo);
+	do_or_die(drm_intel_gem_bo_map_gtt(bo));
 
 	set_bo(bo, val, width, height);
 
@@ -98,8 +98,7 @@ main(int argc, char **argv)
 	int num_buffers = 128, max;
 	drm_intel_bo *src[128], *dst[128], *dummy = NULL;
 	int width = 512, height = 512;
-	int fd;
-	int i;
+	int fd, loop, i;
 
 	drmtest_subtest_init(argc, argv);
 
@@ -122,36 +121,44 @@ main(int argc, char **argv)
 	}
 
 	/* try to overwrite the source values */
+	drmtest_fork_signal_helper();
 	if (drmtest_run_subtest("overwrite-source")) {
-		for (i = 0; i < num_buffers; i++)
-			intel_copy_bo(batch, dst[i], src[i], width, height);
-		for (i = num_buffers; i--; )
-			set_bo(src[i], 0xdeadbeef, width, height);
-		for (i = 0; i < num_buffers; i++)
-			cmp_bo(dst[i], i, width, height);
+		for (loop = 0; loop < 10; loop++) {
+			for (i = 0; i < num_buffers; i++)
+				intel_copy_bo(batch, dst[i], src[i], width, height);
+			for (i = num_buffers; i--; )
+				set_bo(src[i], 0xdeadbeef, width, height);
+			for (i = 0; i < num_buffers; i++)
+				cmp_bo(dst[i], i, width, height);
+		}
 	}
 
 	/* try to read the results before the copy completes */
 	if (drmtest_run_subtest("early-read")) {
-		for (i = num_buffers; i--; )
-			set_bo(src[i], 0xdeadbeef, width, height);
-		for (i = 0; i < num_buffers; i++)
-			intel_copy_bo(batch, dst[i], src[i], width, height);
-		for (i = num_buffers; i--; )
-			cmp_bo(dst[i], 0xdeadbeef, width, height);
+		for (loop = 0; loop < 10; loop++) {
+			for (i = num_buffers; i--; )
+				set_bo(src[i], 0xdeadbeef, width, height);
+			for (i = 0; i < num_buffers; i++)
+				intel_copy_bo(batch, dst[i], src[i], width, height);
+			for (i = num_buffers; i--; )
+				cmp_bo(dst[i], 0xdeadbeef, width, height);
+		}
 	}
 
 	/* and finally try to trick the kernel into loosing the pending write */
 	if (drmtest_run_subtest("gpu-read-after-write")) {
-		for (i = num_buffers; i--; )
-			set_bo(src[i], 0xabcdabcd, width, height);
-		for (i = 0; i < num_buffers; i++)
-			intel_copy_bo(batch, dst[i], src[i], width, height);
-		for (i = num_buffers; i--; )
-			intel_copy_bo(batch, dummy, dst[i], width, height);
-		for (i = num_buffers; i--; )
-			cmp_bo(dst[i], 0xabcdabcd, width, height);
+		for (loop = 0; loop < 10; loop++) {
+			for (i = num_buffers; i--; )
+				set_bo(src[i], 0xabcdabcd, width, height);
+			for (i = 0; i < num_buffers; i++)
+				intel_copy_bo(batch, dst[i], src[i], width, height);
+			for (i = num_buffers; i--; )
+				intel_copy_bo(batch, dummy, dst[i], width, height);
+			for (i = num_buffers; i--; )
+				cmp_bo(dst[i], 0xabcdabcd, width, height);
+		}
 	}
+	drmtest_stop_signal_helper();
 
 	return 0;
 }
