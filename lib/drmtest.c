@@ -596,9 +596,12 @@ static void sig_handler(int i)
 void drmtest_fork_signal_helper(void)
 {
 	pid_t pid;
+	sighandler_t oldsig;
 
 	signal(SIGUSR1, sig_handler);
+	oldsig = signal(SIGQUIT, SIG_DFL);
 	pid = fork();
+	signal(SIGQUIT, oldsig);
 	if (pid == 0) {
 		signal_helper_process(getppid());
 		return;
