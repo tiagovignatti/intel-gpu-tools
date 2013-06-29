@@ -153,7 +153,7 @@ main(int argc, char **argv)
 
 	/* try to overwrite the source values */
 	if (drmtest_run_subtest("overwrite-source-interruptible")) {
-		for (loop = 0; loop < 1; loop++) {
+		for (loop = 0; loop < 10; loop++) {
 			gem_quiescent_gpu(fd);
 			for (i = 0; i < num_buffers; i++) {
 				set_bo(src[i], i, width, height);
