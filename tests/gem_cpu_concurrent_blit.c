@@ -82,8 +82,6 @@ create_bo(drm_intel_bufmgr *bufmgr, uint32_t val, int width, int height)
 	bo = drm_intel_bo_alloc(bufmgr, "bo", 4*width*height, 0);
 	assert(bo);
 
-	set_bo(bo, val, width, height);
-
 	return bo;
 }
 
@@ -119,8 +117,10 @@ main(int argc, char **argv)
 
 	/* try to overwrite the source values */
 	if (drmtest_run_subtest("overwrite-source")) {
-		for (i = 0; i < num_buffers; i++)
-			intel_copy_bo(batch, dst[i], src[i], width, height);
+		for (i = 0; i < num_buffers; i++) {
+			set_bo(src[i], i, width, height);
+			set_bo(dst[i], i, width, height);
+		}
 		for (i = num_buffers; i--; )
 			set_bo(src[i], 0xdeadbeef, width, height);
 		for (i = 0; i < num_buffers; i++)
@@ -153,8 +153,12 @@ main(int argc, char **argv)
 
 	/* try to overwrite the source values */
 	if (drmtest_run_subtest("overwrite-source-interruptible")) {
-		for (loop = 0; loop < 10; loop++) {
+		for (loop = 0; loop < 1; loop++) {
 			gem_quiescent_gpu(fd);
+			for (i = 0; i < num_buffers; i++) {
+				set_bo(src[i], i, width, height);
+				set_bo(dst[i], i, width, height);
+			}
 			for (i = 0; i < num_buffers; i++)
 				intel_copy_bo(batch, dst[i], src[i], width, height);
 			for (i = num_buffers; i--; )

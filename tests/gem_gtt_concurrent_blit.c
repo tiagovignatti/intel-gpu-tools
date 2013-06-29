@@ -85,8 +85,6 @@ create_bo(drm_intel_bufmgr *bufmgr, uint32_t val, int width, int height)
 	 * manually tell the kernel when we start access the gtt. */
 	do_or_die(drm_intel_gem_bo_map_gtt(bo));
 
-	set_bo(bo, val, width, height);
-
 	return bo;
 }
 
@@ -122,6 +120,10 @@ main(int argc, char **argv)
 
 	/* try to overwrite the source values */
 	if (drmtest_run_subtest("overwrite-source")) {
+		for (i = 0; i < num_buffers; i++) {
+			set_bo(src[i], i, width, height);
+			set_bo(dst[i], i, width, height);
+		}
 		for (i = 0; i < num_buffers; i++)
 			intel_copy_bo(batch, dst[i], src[i], width, height);
 		for (i = num_buffers; i--; )
@@ -158,6 +160,10 @@ main(int argc, char **argv)
 	if (drmtest_run_subtest("overwrite-source-interruptible")) {
 		for (loop = 0; loop < 10; loop++) {
 			gem_quiescent_gpu(fd);
+			for (i = 0; i < num_buffers; i++) {
+				set_bo(src[i], i, width, height);
+				set_bo(dst[i], i, width, height);
+			}
 			for (i = 0; i < num_buffers; i++)
 				intel_copy_bo(batch, dst[i], src[i], width, height);
 			for (i = num_buffers; i--; )
