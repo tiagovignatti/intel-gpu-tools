@@ -198,7 +198,7 @@ main(int argc, char **argv)
 		}
 	}
 
-	drmtest_fork_signal_helper();
+	drmtest_stop_signal_helper();
 
 	return 0;
 }
