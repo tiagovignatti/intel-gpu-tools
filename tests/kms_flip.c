@@ -925,7 +925,9 @@ static unsigned int wait_for_events(struct test_output *o)
 
 	FD_ZERO(&fds);
 	FD_SET(drm_fd, &fds);
-	ret = select(drm_fd + 1, &fds, NULL, NULL, &timeout);
+	do {
+		ret = select(drm_fd + 1, &fds, NULL, NULL, &timeout);
+	} while (ret < 0 && errno == EINTR);
 
 	if (ret <= 0) {
 		fprintf(stderr, "select timed out or error (ret %d)\n",
@@ -1188,6 +1190,17 @@ int main(int argc, char **argv)
 			run_test(tests[i].duration, tests[i].flags, tests[i].name);
 		}
 	}
+
+	drmtest_fork_signal_helper();
+	for (i = 0; i < sizeof(tests) / sizeof (tests[0]); i++) {
+		char name[160];
+		snprintf(name, sizeof(name), "%s-interruptible", tests[i].name);
+		if (drmtest_run_subtest(name)) {
+			printf("running testcase: %s\n", name);
+			run_test(tests[i].duration, tests[i].flags, name);
+		}
+	}
+	drmtest_stop_signal_helper();
 
 	close(drm_fd);
 
