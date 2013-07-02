@@ -42,6 +42,6 @@ for dir in `ls $sysfs_path` ; do
 done
 
 if [ $i915_sfs_path = "x" ] ; then
-    die " i915 sysfs path not found."
+    echo " i915 sysfs path not found."
 fi
 
