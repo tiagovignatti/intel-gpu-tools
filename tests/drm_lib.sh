@@ -35,7 +35,7 @@ fi
 
 i915_sfs_path=x
 for dir in `ls $sysfs_path` ; do
-    if [ -f $sysfs_path/$dir/error_state ] ; then
+    if [ -f $sysfs_path/$dir/error ] ; then
 	i915_sfs_path=$sysfs_path/$dir
 	break
     fi
