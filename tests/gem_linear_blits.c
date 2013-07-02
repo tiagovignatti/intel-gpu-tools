@@ -176,30 +176,11 @@ check_bo(int fd, uint32_t handle, uint32_t val)
 	}
 }
 
-int main(int argc, char **argv)
+static void run_test(int fd, int count)
 {
 	uint32_t *handle, *start_val;
 	uint32_t start = 0;
-	int i, fd, count;
-
-	fd = drm_open_any();
-
-	count = 0;
-	if (argc > 1)
-		count = atoi(argv[1]);
-	if (count == 0)
-		count = 3 * gem_aperture_size(fd) / (1024*1024) / 2;
-	else if (count < 2) {
-		fprintf(stderr, "count must be >= 2\n");
-		return 1;
-	}
-
-	if (count > intel_get_total_ram_mb() * 9 / 10) {
-		count = intel_get_total_ram_mb() * 9 / 10;
-		printf("not enough RAM to run test, reducing buffer count\n");
-	}
-
-	printf("Using %d 1MiB buffers\n", count);
+	int i;
 
 	handle = malloc(sizeof(uint32_t)*count*2);
 	start_val = handle + count;
@@ -247,8 +228,43 @@ int main(int argc, char **argv)
 		copy(fd, handle[dst], handle[src]);
 		start_val[dst] = start_val[src];
 	}
-	for (i = 0; i < count; i++)
+	for (i = 0; i < count; i++) {
 		check_bo(fd, handle[i], start_val[i]);
+		gem_close(fd, handle[i]);
+	}
+
+	free(handle);
+}
+
+int main(int argc, char **argv)
+{
+	int fd, count;
+
+	fd = drm_open_any();
+
+	count = 0;
+	if (argc > 1)
+		count = atoi(argv[1]);
+	if (count == 0)
+		count = 3 * gem_aperture_size(fd) / (1024*1024) / 2;
+	else if (count < 2) {
+		fprintf(stderr, "count must be >= 2\n");
+		return 1;
+	}
+
+	if (count > intel_get_total_ram_mb() * 9 / 10) {
+		count = intel_get_total_ram_mb() * 9 / 10;
+		printf("not enough RAM to run test, reducing buffer count\n");
+	}
+
+	printf("Using %d 1MiB buffers\n", count);
+
+	run_test(fd, count);
+
+	/* and repeat under the rude interrupter */
+	drmtest_fork_signal_helper();
+	run_test(fd, count);
+	drmtest_stop_signal_helper();
 
 	return 0;
 }
