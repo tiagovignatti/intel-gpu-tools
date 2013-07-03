@@ -241,10 +241,10 @@ static int __drm_open_any(void)
 	fd = open(name, O_RDWR);
 	free(name);
 
-	if (fd == -1)
-		fprintf(stderr, "failed to open any drm device. retry as root?\n");
-
-	assert(is_intel(fd));
+	if (!is_intel(fd)) {
+		close(fd);
+		fd = -1;
+	}
 
 	return fd;
 }
@@ -265,7 +265,12 @@ int drm_open_any(void)
 	static int open_count;
 	int fd = __drm_open_any();
 
-	if (fd < 0 || __sync_fetch_and_add(&open_count, 1))
+	if (fd < -1) {
+		fprintf(stderr, "failed to open any drm device. retry as root?\n");
+		return fd;
+	}
+
+	if (__sync_fetch_and_add(&open_count, 1))
 		return fd;
 
 	gem_quiescent_gpu(fd);
