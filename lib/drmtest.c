@@ -266,7 +266,8 @@ int drm_open_any(void)
 	int fd = __drm_open_any();
 
 	if (fd < -1) {
-		fprintf(stderr, "failed to open any drm device. retry as root?\n");
+		fprintf(stderr, "Failed to open any drm device.%s\n",
+			geteuid() ? "Retry as root?" : "");
 		return fd;
 	}
 
