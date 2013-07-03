@@ -33,15 +33,11 @@ if [ -d /sys/class/drm ] ; then
     sysfs_path=/sys/class/drm
 fi
 
-i915_sfs_path=x
+i915_sfs_path=
 for dir in `ls $sysfs_path` ; do
     if [ -f $sysfs_path/$dir/error ] ; then
 	i915_sfs_path=$sysfs_path/$dir
 	break
     fi
 done
-
-if [ $i915_sfs_path = "x" ] ; then
-    echo " i915 sysfs path not found."
-fi
-
+# sysfs may not exist as the 'error' is a new interface in 3.11

@@ -19,22 +19,26 @@ if [ ! -f i915_ring_stop ] ; then
 fi
 
 function check_iface {
-    estate_fname=$1
-    mandatory=$2
+    dir="$1"
+    file="$2"
+    mandatory="$3"
 
-    echo checking ${estate_fname}
+    [ -z "$dir" ] && return
 
-    if [ ! -f $estate_fname ] ; then
+    path="$dir/$file"
+    echo checking ${path}
+
+    if [ ! -f "$path" ] ; then
 	if [  $mandatory != 0 ] ; then
-	    echo "'${estate_fname}' not found";
+	    echo "'${path}' not found";
 	    exit 1;
 	else
-	    echo "${estate_fname} not mandatory";
+	    echo "${path} not mandatory";
 	    return;
 	fi
     fi
 
-    if cat $estate_fname | grep -v "no error state collected" > /dev/null ; then
+    if cat "$path" | grep -v "no error state collected" > /dev/null ; then
 	echo "gpu hang detected"
 	exit 2
     fi
@@ -44,7 +48,7 @@ function check_iface {
 
     (cd $oldpath; $SOURCE_DIR/gem_exec_big) > /dev/null
 
-    if cat $estate_fname | grep -v "no error state collected" > /dev/null ; then
+    if cat "$path" | grep -v "no error state collected" > /dev/null ; then
 	echo "gpu hang correctly detected"
     else
 	echo "gpu hang not detected"
@@ -52,15 +56,15 @@ function check_iface {
     fi
 
 # clear error state
-    echo > $estate_fname
+    echo > "$path"
 
-    if cat $estate_fname | grep -v "no error state collected" > /dev/null ; then
+    if cat "$path" | grep -v "no error state collected" > /dev/null ; then
 	echo "gpu hang still present"
 	exit 4
     fi
 }
 
-check_iface $i915_dfs_path/i915_error_state 1
-check_iface $i915_sfs_path/error 0
+check_iface "$i915_dfs_path" i915_error_state 1
+check_iface "$i915_sfs_path" error 0
 
 exit 0
