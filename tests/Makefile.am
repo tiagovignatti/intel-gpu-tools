@@ -26,10 +26,12 @@ TESTS_progs_M = \
 	gem_fence_thrash \
 	gem_flink \
 	gem_gtt_concurrent_blit \
+	gem_linear_blits \
 	gem_mmap_gtt \
 	gem_partial_pwrite_pread \
 	gem_ringfill \
 	gem_set_tiling_vs_blt \
+	gem_tiled_blits \
 	gem_tiled_partial_pwrite_pread \
 	$(NOUVEAU_TESTS_M) \
 	kms_flip \
@@ -58,11 +60,9 @@ TESTS_progs = \
 	gem_tiled_pread \
 	gem_tiled_pread_pwrite \
 	gem_tiled_swapping \
-	gem_linear_blits \
 	gem_vmap_blits \
 	gem_threaded_access_tiled \
 	gem_seqno_wrap \
-	gem_tiled_blits \
 	gem_tiled_fence_blits \
 	gem_largeobject \
 	gem_bad_length \

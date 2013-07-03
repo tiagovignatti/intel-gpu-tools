@@ -238,33 +238,38 @@ static void run_test(int fd, int count)
 
 int main(int argc, char **argv)
 {
-	int fd, count;
+	int fd, count = 0;
+
+	drmtest_subtest_init(argc, argv);
 
 	fd = drm_open_any();
 
-	count = 0;
-	if (argc > 1)
-		count = atoi(argv[1]);
-	if (count == 0)
-		count = 3 * gem_aperture_size(fd) / (1024*1024) / 2;
-	else if (count < 2) {
-		fprintf(stderr, "count must be >= 2\n");
-		return 1;
+	if (!drmtest_only_list_subtests()) {
+		if (argc > 1)
+			count = atoi(argv[1]);
+		if (count == 0)
+			count = 3 * gem_aperture_size(fd) / (1024*1024) / 2;
+		else if (count < 2) {
+			fprintf(stderr, "count must be >= 2\n");
+			return 1;
+		}
+
+		if (count > intel_get_total_ram_mb() * 9 / 10) {
+			count = intel_get_total_ram_mb() * 9 / 10;
+			printf("not enough RAM to run test, reducing buffer count\n");
+		}
+
+		printf("Using %d 1MiB buffers\n", count);
 	}
 
-	if (count > intel_get_total_ram_mb() * 9 / 10) {
-		count = intel_get_total_ram_mb() * 9 / 10;
-		printf("not enough RAM to run test, reducing buffer count\n");
+	if (drmtest_run_subtest("normal"))
+		run_test(fd, count);
+
+	if (drmtest_run_subtest("interrutible")) {
+		drmtest_fork_signal_helper();
+		run_test(fd, count);
+		drmtest_stop_signal_helper();
 	}
-
-	printf("Using %d 1MiB buffers\n", count);
-
-	run_test(fd, count);
-
-	/* and repeat under the rude interrupter */
-	drmtest_fork_signal_helper();
-	run_test(fd, count);
-	drmtest_stop_signal_helper();
 
 	return 0;
 }

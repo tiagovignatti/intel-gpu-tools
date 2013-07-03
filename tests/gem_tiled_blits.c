@@ -185,39 +185,44 @@ static void run_test(int count)
 
 int main(int argc, char **argv)
 {
-	int fd, count;
+	int fd, count = 0;
+
+	drmtest_subtest_init(argc, argv);
 
 	fd = drm_open_any();
 
-	count = 0;
-	if (argc > 1)
-		count = atoi(argv[1]);
-	if (count == 0) {
-		count = 3 * gem_aperture_size(fd) / (1024*1024) / 2;
-		count += (count & 1) == 0;
-	} else if (count < 2) {
-		fprintf(stderr, "count must be >= 2\n");
-		return 1;
-	}
+	if (!drmtest_only_list_subtests()) {
+		if (argc > 1)
+			count = atoi(argv[1]);
+		if (count == 0) {
+			count = 3 * gem_aperture_size(fd) / (1024*1024) / 2;
+			count += (count & 1) == 0;
+		} else if (count < 2) {
+			fprintf(stderr, "count must be >= 2\n");
+			return 1;
+		}
 
-	if (count > intel_get_total_ram_mb() * 9 / 10) {
-		count = intel_get_total_ram_mb() * 9 / 10;
-		printf("not enough RAM to run test, reducing buffer count\n");
-	}
+		if (count > intel_get_total_ram_mb() * 9 / 10) {
+			count = intel_get_total_ram_mb() * 9 / 10;
+			printf("not enough RAM to run test, reducing buffer count\n");
+		}
 
-	printf("Using %d 1MiB buffers\n", count);
+		printf("Using %d 1MiB buffers\n", count);
+	}
 
 	bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
 	drm_intel_bufmgr_gem_enable_reuse(bufmgr);
 	drm_intel_bufmgr_gem_set_vma_cache_size(bufmgr, 32);
 	batch = intel_batchbuffer_alloc(bufmgr, intel_get_drm_devid(fd));
 
-	run_test(count);
+	if (drmtest_run_subtest("normal"))
+		run_test(count);
 
-	/* and again whilst being rudely interrupted */
-	drmtest_fork_signal_helper();
-	run_test(count);
-	drmtest_stop_signal_helper();
+	if (drmtest_run_subtest("interrutible")) {
+		drmtest_fork_signal_helper();
+		run_test(count);
+		drmtest_stop_signal_helper();
+	}
 
 	intel_batchbuffer_free(batch);
 	drm_intel_bufmgr_destroy(bufmgr);
