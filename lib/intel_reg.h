@@ -3769,7 +3769,7 @@ typedef enum {
 #define WM_LP3_SPR			0x45128
 #define WM_MISC				0x45260
 #define WM_SR_CNT			0x45264
-#define WM_DBG				0x45270
+#define WM_DBG				0x45280
 #define PIPE_WM_LINETIME_A		0x45270
 #define PIPE_WM_LINETIME_B		0x45274
 #define PIPE_WM_LINETIME_C		0x45278
