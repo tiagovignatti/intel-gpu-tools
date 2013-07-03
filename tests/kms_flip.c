@@ -1195,6 +1195,13 @@ int main(int argc, char **argv)
 	for (i = 0; i < sizeof(tests) / sizeof (tests[0]); i++) {
 		char name[160];
 		snprintf(name, sizeof(name), "%s-interruptible", tests[i].name);
+
+		/* relative blocking vblank waits that get constantly interrupt
+		 * take forver. So don't do them. */
+		if ((tests[i].flags & TEST_VBLANK_BLOCK) &&
+		    !(tests[i].flags & TEST_VBLANK_ABSOLUTE))
+			continue;
+
 		if (drmtest_run_subtest(name)) {
 			printf("running testcase: %s\n", name);
 			run_test(tests[i].duration, tests[i].flags, name);
