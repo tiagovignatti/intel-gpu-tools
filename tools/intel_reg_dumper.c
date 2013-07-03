@@ -2798,6 +2798,43 @@ intel_dump_other_regs(void)
 	}
 }
 
+/*
+ * This program reads a lot of display registers. If we don't turn on the power
+ * well, dmesg will get flooded with tons of messages about unclaimed registers.
+ * So here we enable the "Debug" power well register and then restore its state
+ * later. It's impossible to guarantee that other things won't mess with the
+ * debug register between our put and get calls, but at least we're trying our
+ * best to keep things working fine, and it's the debug register anyway.
+ */
+static uint32_t power_well_get(void)
+{
+	uint32_t ret;
+	int i;
+
+	if (!IS_HASWELL(devid))
+		return 0;
+
+	ret = INREG(HSW_PWR_WELL_CTL4) & HSW_PWR_WELL_ENABLE;
+
+	OUTREG(HSW_PWR_WELL_CTL4, HSW_PWR_WELL_ENABLE);
+
+	for (i = 0; i < 20; i++) {
+		if (INREG(HSW_PWR_WELL_CTL4) & HSW_PWR_WELL_STATE)
+			break;
+		usleep(1000);
+	}
+
+	return ret;
+}
+
+static void power_well_put(uint32_t power_well)
+{
+	if (!IS_HASWELL(devid))
+		return;
+
+	OUTREG(HSW_PWR_WELL_CTL4, power_well);
+}
+
 static void print_usage(void)
 {
 	printf("Usage: intel_reg_dumper [options] [file]\n"
@@ -2813,7 +2850,7 @@ int main(int argc, char** argv)
 	struct pci_device *pci_dev;
 	int opt, n_args;
 	char *file = NULL, *reg_name = NULL;
-	uint32_t reg_val;
+	uint32_t reg_val, power_well;
 
 	while ((opt = getopt(argc, argv, "d:h")) != -1) {
 		switch (opt) {
@@ -2874,6 +2911,8 @@ int main(int argc, char** argv)
 			intel_check_pch();
 	}
 
+	power_well = power_well_get();
+
 	if (IS_HASWELL(devid)) {
 		intel_dump_regs(haswell_debug_regs);
 	} else if (IS_GEN5(devid) || IS_GEN6(devid) || IS_IVYBRIDGE(devid)) {
@@ -2889,6 +2928,8 @@ int main(int argc, char** argv)
 
 	if (IS_GEN6(devid) || IS_GEN7(devid))
 		intel_dump_regs(gen6_rp_debug_regs);
+
+	power_well_put(power_well);
 
 	intel_register_access_fini();
 	return 0;
