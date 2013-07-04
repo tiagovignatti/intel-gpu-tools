@@ -218,7 +218,7 @@ int main(int argc, char **argv)
 	if (drmtest_run_subtest("normal"))
 		run_test(count);
 
-	if (drmtest_run_subtest("interrutible")) {
+	if (drmtest_run_subtest("interruptible")) {
 		drmtest_fork_signal_helper();
 		run_test(count);
 		drmtest_stop_signal_helper();
