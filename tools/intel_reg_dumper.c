@@ -1959,6 +1959,45 @@ DEBUGSTRING(hsw_debug_util_pin_ctl)
 		 inverted_polarity);
 }
 
+static struct reg_debug gen6_fences[] = {
+#define DEFINEFENCE_SNB(i) \
+	{ FENCE_REG_SANDYBRIDGE_0 + (i) * 8, "FENCE START "#i, NULL, 0 }, \
+	{ FENCE_REG_SANDYBRIDGE_0 + (i) * 8 + 4, "FENCE START "#i, NULL, 0 }
+	DEFINEFENCE_SNB(0),
+	DEFINEFENCE_SNB(1),
+	DEFINEFENCE_SNB(2),
+	DEFINEFENCE_SNB(3),
+	DEFINEFENCE_SNB(4),
+	DEFINEFENCE_SNB(5),
+	DEFINEFENCE_SNB(6),
+	DEFINEFENCE_SNB(7),
+	DEFINEFENCE_SNB(8),
+	DEFINEFENCE_SNB(9),
+	DEFINEFENCE_SNB(10),
+	DEFINEFENCE_SNB(11),
+	DEFINEFENCE_SNB(12),
+	DEFINEFENCE_SNB(13),
+	DEFINEFENCE_SNB(14),
+	DEFINEFENCE_SNB(15),
+	DEFINEFENCE_SNB(16),
+	DEFINEFENCE_SNB(17),
+	DEFINEFENCE_SNB(18),
+	DEFINEFENCE_SNB(19),
+	DEFINEFENCE_SNB(20),
+	DEFINEFENCE_SNB(20),
+	DEFINEFENCE_SNB(21),
+	DEFINEFENCE_SNB(22),
+	DEFINEFENCE_SNB(23),
+	DEFINEFENCE_SNB(24),
+	DEFINEFENCE_SNB(25),
+	DEFINEFENCE_SNB(26),
+	DEFINEFENCE_SNB(27),
+	DEFINEFENCE_SNB(28),
+	DEFINEFENCE_SNB(29),
+	DEFINEFENCE_SNB(30),
+	DEFINEFENCE_SNB(31),
+};
+
 static struct reg_debug ironlake_debug_regs[] = {
 	DEFINEREG(PGETBL_CTL),
 	DEFINEREG(GEN6_INSTDONE_1),
@@ -2518,7 +2557,8 @@ static struct {
 	DECLARE_REGS("i945GM", i945gm_mi_regs),
 	DECLARE_REGS("Gen2",   intel_debug_regs),
 	DECLARE_REGS("Gen6",   gen6_rp_debug_regs),
-	DECLARE_REGS("Gen7.5", haswell_debug_regs)
+	DECLARE_REGS("Gen7.5", haswell_debug_regs),
+	DECLARE_REGS("Gen6+", gen6_fences),
 };
 #undef DECLARE_REGS
 
@@ -2926,8 +2966,10 @@ int main(int argc, char** argv)
 		intel_dump_other_regs();
 	}
 
-	if (IS_GEN6(devid) || IS_GEN7(devid))
+	if (IS_GEN6(devid) || IS_GEN7(devid)) {
+		intel_dump_regs(gen6_fences);
 		intel_dump_regs(gen6_rp_debug_regs);
+	}
 
 	power_well_put(power_well);
 

@@ -800,6 +800,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #define FENCE_PITCH_64	    0x00000060
 #define FENCE_VALID         0x00000001
 
+#define FENCE_REG_SANDYBRIDGE_0		0x100000
 
 /* Registers to control page table, p274
  */
