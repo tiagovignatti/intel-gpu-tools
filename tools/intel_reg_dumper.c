@@ -1962,7 +1962,7 @@ DEBUGSTRING(hsw_debug_util_pin_ctl)
 static struct reg_debug gen6_fences[] = {
 #define DEFINEFENCE_SNB(i) \
 	{ FENCE_REG_SANDYBRIDGE_0 + (i) * 8, "FENCE START "#i, NULL, 0 }, \
-	{ FENCE_REG_SANDYBRIDGE_0 + (i) * 8 + 4, "FENCE START "#i, NULL, 0 }
+	{ FENCE_REG_SANDYBRIDGE_0 + (i) * 8 + 4, "FENCE END "#i, NULL, 0 }
 	DEFINEFENCE_SNB(0),
 	DEFINEFENCE_SNB(1),
 	DEFINEFENCE_SNB(2),
