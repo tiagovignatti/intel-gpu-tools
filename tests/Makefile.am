@@ -33,6 +33,7 @@ TESTS_progs_M = \
 	gem_set_tiling_vs_blt \
 	gem_tiled_blits \
 	gem_tiled_partial_pwrite_pread \
+	gem_write_read_ring_switch \
 	$(NOUVEAU_TESTS_M) \
 	kms_flip \
 	kms_render \

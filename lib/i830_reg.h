@@ -43,6 +43,9 @@
 /* broadwater flush bits */
 #define BRW_MI_GLOBAL_SNAPSHOT_RESET   (1 << 3)
 
+#define MI_COND_BATCH_BUFFER_END	(0x36<<23 | 1)
+#define MI_DO_COMPARE			(1<<21)
+
 #define MI_BATCH_BUFFER_END	(0xA << 23)
 
 /* Noop */
