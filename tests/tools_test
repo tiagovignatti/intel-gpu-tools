@@ -1,0 +1,18 @@
+#!/bin/bash
+# Test some of the most critical tools we have accidentally broken before.
+# TODO: Possibly make tests parse output
+
+whoami | grep -q root || ( echo ERROR: not running as root; exit 1 )
+
+SOURCE_DIR="$( dirname "${BASH_SOURCE[0]}" )"
+. $SOURCE_DIR/drm_lib.sh
+
+# ARB_MODE has existed for many gens
+do_or_die "$SOURCE_DIR/../tools/intel_reg_read 0x4030"
+
+do_or_die "$SOURCE_DIR/../tools/intel_reg_dumper"
+
+# TODO: Add more tests
+
+exit 0
+

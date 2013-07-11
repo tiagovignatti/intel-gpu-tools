@@ -4,6 +4,10 @@ die() {
 	exit 1
 }
 
+do_or_die() {
+	$@ > /dev/null 2>&1 || (echo "FAIL: $@ ($?)" && exit -1)
+}
+
 if [ -d /debug/dri ] ; then
 	debugfs_path=/debug/dri
 fi

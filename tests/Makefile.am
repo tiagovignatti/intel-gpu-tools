@@ -115,6 +115,7 @@ TESTS_scripts_M = \
 
 TESTS_scripts = \
 	test_rte_check \
+	tools_test \
 	debugfs_reader \
 	debugfs_emon_crash \
 	sysfs_l3_parity \
