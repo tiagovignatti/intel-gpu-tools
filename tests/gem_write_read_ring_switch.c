@@ -177,6 +177,10 @@ int main(int argc, char **argv)
 
 	fd = drm_open_any();
 
+	/* Test requires MI_FLUSH_DW and MI_COND_BATCH_BUFFER_END */
+	if (intel_gen(intel_get_drm_devid(fd)) < 6)
+		return 77;
+
 	bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
 	if (!bufmgr) {
 		fprintf(stderr, "failed to init libdrm\n");
