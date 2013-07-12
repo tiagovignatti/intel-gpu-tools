@@ -62,6 +62,31 @@ print_head(unsigned int reg)
 	return reg & (0x7ffff<<2);
 }
 
+static uint32_t
+print_ctl(unsigned int reg)
+{
+	uint32_t ring_length = 	(((reg & (0x1ff << 12)) >> 12) + 1) * 4096;
+
+#define BIT_STR(reg, x, on, off) ((1 << (x)) & reg) ? on : off
+
+	printf("    len=%d%s%s%s\n", ring_length,
+	       BIT_STR(reg, 0, ", enabled", ", disabled"),
+	       BIT_STR(reg, 10, ", semaphore wait ", ""),
+	       BIT_STR(reg, 11, ", rb wait ", "")
+		);
+#undef BIT_STR
+	return ring_length;
+}
+
+static void
+print_acthd(unsigned int reg, unsigned int ring_length)
+{
+	if ((reg & (0x7ffff << 2)) < ring_length)
+		printf("    at ring: 0x%08x\n", reg & (0x7ffff << 2));
+	else
+		printf("    at batch: 0x%08x\n", reg);
+}
+
 static void
 print_instdone(uint32_t devid, unsigned int instdone, unsigned int instdone1)
 {
@@ -304,7 +329,7 @@ read_data_file(FILE *file)
 	int data_size = 0, count = 0, line_number = 0, matched;
 	char *line = NULL;
 	size_t line_size;
-	uint32_t offset, value;
+	uint32_t offset, value, ring_length = 0;
 	uint32_t gtt_offset = 0, new_gtt_offset;
 	char *ring_name = NULL;
 	int is_batch = 1;
@@ -391,14 +416,20 @@ read_data_file(FILE *file)
 				decode_ctx = drm_intel_decode_context_alloc(devid);
 			}
 
+			matched = sscanf(line, "  CTL: 0x%08x\n", &reg);
+			if (matched == 1)
+				ring_length = print_ctl(reg);
+
 			matched = sscanf(line, "  HEAD: 0x%08x\n", &reg);
 			if (matched == 1) {
 				head[head_ndx++] = print_head(reg);
 			}
 
 			matched = sscanf(line, "  ACTHD: 0x%08x\n", &reg);
-			if (matched == 1)
+			if (matched == 1) {
+				print_acthd(reg, ring_length);
 				drm_intel_decode_set_head_tail(decode_ctx, reg, 0xffffffff);
+			}
 
 			matched = sscanf(line, "  PGTBL_ER: 0x%08x\n", &reg);
 			if (matched == 1 && reg)
