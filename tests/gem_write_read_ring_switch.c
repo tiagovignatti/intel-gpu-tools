@@ -147,14 +147,35 @@ static void run_test(int ring, const char *testname)
 	drm_intel_bo_unreference(target_bo);
 }
 
+static int has_ring(int ring)
+{
+	switch (ring) {
+	case I915_EXEC_RENDER: /* test only makes sense with separate blitter */
+		return HAS_BLT_RING(intel_get_drm_devid(fd));
+	case I915_EXEC_BSD:
+		return HAS_BSD_RING(intel_get_drm_devid(fd));
+	case LOCAL_I915_EXEC_VEBOX:
+		return gem_has_vebox(fd);
+	default:
+		return 0;
+	}
+}
+
 int main(int argc, char **argv)
 {
-	uint32_t devid;
+	static const struct {
+		const char *name;
+		int ring;
+	} tests[] = {
+		{ "blt2render", I915_EXEC_RENDER },
+		{ "blt2bsd", I915_EXEC_BSD },
+		{ "blt2vebox", LOCAL_I915_EXEC_VEBOX },
+	};
+	int i;
 
 	drmtest_subtest_init(argc, argv);
 
 	fd = drm_open_any();
-	devid = intel_get_drm_devid(fd);
 
 	bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
 	if (!bufmgr) {
@@ -179,18 +200,20 @@ int main(int argc, char **argv)
 		exit(-1);
 	}
 
-	/* test only makes sense with separate blitter */
-	if (drmtest_run_subtest("blt2render"))
-		if (HAS_BLT_RING(devid))
-			run_test(I915_EXEC_RENDER, "blt2render");
+	for (i = 0; i < ARRAY_SIZE(tests); i++) {
+		if (has_ring(tests[i].ring) &&
+		    drmtest_run_subtest(tests[i].name))
+			run_test(tests[i].ring, tests[i].name);
+	}
 
-	if (drmtest_run_subtest("blt2bsd"))
-		if (HAS_BSD_RING(devid))
-			run_test(I915_EXEC_BSD, "blt2bsd");
-
-	if (drmtest_run_subtest("blt2vebox"))
-		if (gem_has_vebox(fd))
-			run_test(LOCAL_I915_EXEC_VEBOX, "blt2vebox");
+	drmtest_fork_signal_helper();
+	for (i = 0; i < ARRAY_SIZE(tests); i++) {
+		char name[180];
+		snprintf(name, sizeof(name), "%s-interruptible", tests[i].name);
+		if (has_ring(tests[i].ring) && drmtest_run_subtest(name))
+			run_test(tests[i].ring, name);
+	}
+	drmtest_stop_signal_helper();
 
 	drm_intel_bufmgr_destroy(bufmgr);
 
