@@ -74,7 +74,7 @@ static int find_and_open_devices(void)
 	return 0;
 }
 
-static int test1(void)
+static int test_i915_nv_import_twice(void)
 {
 	int ret;
 	drm_intel_bo *test_intel_bo;
@@ -104,7 +104,7 @@ out:
 }
 
 
-static int test2(void)
+static int test_i915_nv_import_vs_close(void)
 {
 	int ret;
 	drm_intel_bo *test_intel_bo;
@@ -136,7 +136,7 @@ out:
 
 
 /* import handle twice on one driver */
-static int test3(void)
+static int test_i915_nv_double_import(void)
 {
 	int ret;
 	drm_intel_bo *test_intel_bo;
@@ -171,7 +171,7 @@ out:
 
 /* export handle twice from one driver - import twice
    see if we get same object */
-static int test4(void)
+static int test_i915_nv_double_export(void)
 {
 	int ret;
 	drm_intel_bo *test_intel_bo;
@@ -204,7 +204,7 @@ out:
 
 /* export handle from intel driver - reimport to intel driver
    see if you get same object */
-static int test5(void)
+static int test_i915_self_import(void)
 {
 	int ret;
 	drm_intel_bo *test_intel_bo, *test_intel_bo2;
@@ -231,7 +231,7 @@ out:
 }
 
 /* nouveau export reimport test */
-static int test6(void)
+static int test_nv_self_import(void)
 {
 	int ret;
 	int prime_fd;
@@ -259,7 +259,7 @@ static int test6(void)
 
 /* export handle from intel driver - reimport to another intel driver bufmgr
    see if you get same object */
-static int test7(void)
+static int test_i915_self_import_to_different_fd(void)
 {
 	int ret;
 	drm_intel_bo *test_intel_bo, *test_intel_bo2;
@@ -285,7 +285,7 @@ out:
 }
 
 /* nouveau export reimport to other driver test */
-static int test8(void)
+static int test_nv_self_import_to_different_fd(void)
 {
 	int ret;
 	int prime_fd;
@@ -368,38 +368,20 @@ int main(int argc, char **argv)
 	devid = intel_get_drm_devid(intel_fd);
 	intel_batch = intel_batchbuffer_alloc(bufmgr, devid);
 
-	if (drmtest_run_subtest("test1"))
-		if (test1())
+#define xtest(name) \
+	if (drmtest_run_subtest(#name)) \
+		if (test_##name()) \
 			exit(2);
 
-	if (drmtest_run_subtest("test2"))
-		if (test2())
-			exit(2);
-
-	if (drmtest_run_subtest("test3"))
-		if (test3())
-			exit(2);
-
-	if (drmtest_run_subtest("test4"))
-		if (test4())
-			exit(2);
-
-	if (drmtest_run_subtest("test5"))
-		if (test5())
-			exit(2);
-
-	if (drmtest_run_subtest("test6"))
-		if (test6())
-			exit(2);
-
-	if (drmtest_run_subtest("test7"))
-		if (test7())
-			exit(2);
-
-	if (drmtest_run_subtest("test8"))
-		if (test8())
-			exit(2);
-
+	xtest(i915_nv_import_twice);
+	xtest(i915_nv_import_vs_close);
+	xtest(i915_nv_double_import);
+	xtest(i915_nv_double_export);
+	xtest(i915_self_import);
+	xtest(nv_self_import);
+	xtest(i915_self_import_to_different_fd);
+	xtest(nv_self_import_to_different_fd);
+	
 	intel_batchbuffer_free(intel_batch);
 
 	nouveau_device_del(&ndev);
