@@ -18,6 +18,7 @@
 #include "nouveau.h"
 #include "intel_gpu_tools.h"
 #include "intel_batchbuffer.h"
+#include "drmtest.h"
 
 #define BO_SIZE (256*1024)
 
@@ -316,13 +317,16 @@ int main(int argc, char **argv)
 {
 	int ret;
 
+	drmtest_subtest_init(argc, argv);
+
 	ret = find_and_open_devices();
 	if (ret < 0)
 		return ret;
 
 	if (nouveau_fd == -1 || intel_fd == -1 || nouveau_fd2 == -1 || intel_fd2 == -1) {
 		fprintf(stderr,"failed to find intel and nouveau GPU\n");
-		return 77;
+		if (!drmtest_only_list_subtests())
+			return 77;
 	}
 
 	/* set up intel bufmgr */
@@ -341,7 +345,7 @@ int main(int argc, char **argv)
 	ret = nouveau_device_wrap(nouveau_fd, 0, &ndev);
 	if (ret < 0) {
 		fprintf(stderr,"failed to wrap nouveau device\n");
-		return 77;
+		return -1;
 	}
 
 	ret = nouveau_client_new(ndev, &nclient);
@@ -354,7 +358,7 @@ int main(int argc, char **argv)
 	ret = nouveau_device_wrap(nouveau_fd2, 0, &ndev2);
 	if (ret < 0) {
 		fprintf(stderr,"failed to wrap nouveau device\n");
-		return 77;
+		return -1;
 	}
 
 	ret = nouveau_client_new(ndev2, &nclient2);
@@ -367,37 +371,37 @@ int main(int argc, char **argv)
 	devid = intel_get_drm_devid(intel_fd);
 	intel_batch = intel_batchbuffer_alloc(bufmgr, devid);
 
-	ret = test1();
-	if (ret)
-		fprintf(stderr,"prime_test: failed test 1\n");
+	if (drmtest_run_subtest("test1"))
+		if (test1())
+			exit(2);
 
-	ret = test2();
-	if (ret)
-		fprintf(stderr,"prime_test: failed test 2\n");
+	if (drmtest_run_subtest("test2"))
+		if (test2())
+			exit(2);
 
-	ret = test3();
-	if (ret)
-		fprintf(stderr,"prime_test: failed test 3\n");
+	if (drmtest_run_subtest("test3"))
+		if (test3())
+			exit(2);
 
-	ret = test4();
-	if (ret)
-		fprintf(stderr,"prime_test: failed test 4\n");
+	if (drmtest_run_subtest("test4"))
+		if (test4())
+			exit(2);
 
-	ret = test5();
-	if (ret)
-		fprintf(stderr,"prime_test: failed test 5\n");
+	if (drmtest_run_subtest("test5"))
+		if (test5())
+			exit(2);
 
-	ret = test6();
-	if (ret)
-		fprintf(stderr,"prime_test: failed test 6\n");
+	if (drmtest_run_subtest("test6"))
+		if (test6())
+			exit(2);
 
-	ret = test7();
-	if (ret)
-		fprintf(stderr,"prime_test: failed test 7\n");
+	if (drmtest_run_subtest("test7"))
+		if (test7())
+			exit(2);
 
-	ret = test8();
-	if (ret)
-		fprintf(stderr,"prime_test: failed test 8\n");
+	if (drmtest_run_subtest("test8"))
+		if (test8())
+			exit(2);
 
 	intel_batchbuffer_free(intel_batch);
 

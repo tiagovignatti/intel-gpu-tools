@@ -10,9 +10,9 @@ noinst_PROGRAMS = \
 if HAVE_NOUVEAU
 NOUVEAU_TESTS_M = \
 	prime_nv_test \
-	prime_nv_pcopy
-NOUVEAU_TESTS = \
-	prime_nv_api
+	prime_nv_pcopy \
+	prime_nv_api \
+	$(NULL)
 endif
 
 TESTS_progs_M = \
@@ -105,7 +105,6 @@ TESTS_progs = \
 	gem_ctx_basic \
 	gem_reg_read \
 	gem_tiling_max_stride \
-	$(NOUVEAU_TESTS) \
 	prime_udl \
 	$(NULL)
 
