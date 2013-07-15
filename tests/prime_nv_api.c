@@ -104,6 +104,206 @@ out:
 }
 
 
+static int test_i915_nv_import_twice_check_flink_name(void)
+{
+	int ret;
+	drm_intel_bo *test_intel_bo;
+	int prime_fd;
+	struct nouveau_bo *nvbo = NULL, *nvbo2 = NULL;
+	uint32_t flink_name1, flink_name2;
+
+	test_intel_bo = drm_intel_bo_alloc(bufmgr, "test bo", BO_SIZE, 4096);
+
+	ret = drm_intel_bo_gem_export_to_prime(test_intel_bo, &prime_fd);
+	if (ret)
+		goto out;
+
+	ret = nouveau_bo_prime_handle_ref(ndev, prime_fd, &nvbo);
+	if (ret < 0) {
+		close(prime_fd);
+		goto out;
+	}
+	ret = nouveau_bo_prime_handle_ref(ndev2, prime_fd, &nvbo2);
+	close(prime_fd);
+	if (ret < 0)
+		goto out;
+
+	ret = nouveau_bo_name_get(nvbo, &flink_name1);
+	if (ret < 0)
+		goto out;
+	ret = nouveau_bo_name_get(nvbo2, &flink_name2);
+	if (ret < 0)
+		goto out;
+
+	if (flink_name1 != flink_name2) {
+		fprintf(stderr, "flink names don't match\n");
+		ret = -1;
+	}
+
+out:
+	nouveau_bo_ref(NULL, &nvbo2);
+	nouveau_bo_ref(NULL, &nvbo);
+	drm_intel_bo_unreference(test_intel_bo);
+	return ret;
+}
+
+
+static int test_i915_nv_reimport_twice_check_flink_name(void)
+{
+	int ret;
+	drm_intel_bo *test_intel_bo;
+	int prime_fd;
+	struct nouveau_bo *nvbo = NULL, *nvbo2 = NULL;
+	uint32_t flink_name1, flink_name2;
+
+	test_intel_bo = drm_intel_bo_alloc(bufmgr, "test bo", BO_SIZE, 4096);
+
+	ret = drm_intel_bo_gem_export_to_prime(test_intel_bo, &prime_fd);
+	if (ret)
+		goto out;
+
+	ret = nouveau_bo_prime_handle_ref(ndev, prime_fd, &nvbo);
+	if (ret < 0) {
+		close(prime_fd);
+		goto out;
+	}
+
+	/* create a new dma-buf */
+	close(prime_fd);
+	ret = drm_intel_bo_gem_export_to_prime(test_intel_bo, &prime_fd);
+	if (ret)
+		goto out;
+
+	ret = nouveau_bo_prime_handle_ref(ndev2, prime_fd, &nvbo2);
+	if (ret < 0)
+		goto out;
+	close(prime_fd);
+
+	ret = nouveau_bo_name_get(nvbo, &flink_name1);
+	if (ret < 0)
+		goto out;
+	ret = nouveau_bo_name_get(nvbo2, &flink_name2);
+	if (ret < 0)
+		goto out;
+
+	if (flink_name1 != flink_name2) {
+		fprintf(stderr, "flink names don't match\n");
+		ret = -1;
+	}
+
+out:
+	nouveau_bo_ref(NULL, &nvbo2);
+	nouveau_bo_ref(NULL, &nvbo);
+	drm_intel_bo_unreference(test_intel_bo);
+	return ret;
+}
+
+
+static int test_nv_i915_import_twice_check_flink_name(void)
+{
+	int ret;
+	drm_intel_bo *intel_bo = NULL, *intel_bo2 = NULL;
+	int prime_fd;
+	struct nouveau_bo *nvbo = NULL;
+	uint32_t flink_name1, flink_name2;
+
+	ret = nouveau_bo_new(ndev, NOUVEAU_BO_GART | NOUVEAU_BO_MAP,
+			     0, BO_SIZE, NULL, &nvbo);
+	if (ret < 0)
+		return ret;
+
+	ret = nouveau_bo_set_prime(nvbo, &prime_fd);
+	if (ret < 0)
+		return ret;
+
+	intel_bo = drm_intel_bo_gem_create_from_prime(bufmgr, prime_fd, BO_SIZE);
+	if (!intel_bo) {
+		ret = -1;
+		goto out;
+	}
+
+	intel_bo2 = drm_intel_bo_gem_create_from_prime(bufmgr2, prime_fd, BO_SIZE);
+	if (!intel_bo2) {
+		ret = -1;
+		goto out;
+	}
+	close(prime_fd);
+
+	ret = drm_intel_bo_flink(intel_bo, &flink_name1);
+	if (ret < 0)
+		goto out;
+	ret = drm_intel_bo_flink(intel_bo2, &flink_name2);
+	if (ret < 0)
+		goto out;
+
+	if (flink_name1 != flink_name2) {
+		fprintf(stderr, "flink names don't match\n");
+		ret = -1;
+	}
+
+out:
+	nouveau_bo_ref(NULL, &nvbo);
+	drm_intel_bo_unreference(intel_bo);
+	drm_intel_bo_unreference(intel_bo2);
+	return ret;
+}
+
+
+static int test_nv_i915_reimport_twice_check_flink_name(void)
+{
+	int ret;
+	drm_intel_bo *intel_bo = NULL, *intel_bo2 = NULL;
+	int prime_fd;
+	struct nouveau_bo *nvbo = NULL;
+	uint32_t flink_name1, flink_name2;
+
+	ret = nouveau_bo_new(ndev, NOUVEAU_BO_GART | NOUVEAU_BO_MAP,
+			     0, BO_SIZE, NULL, &nvbo);
+	if (ret < 0)
+		return ret;
+
+	ret = nouveau_bo_set_prime(nvbo, &prime_fd);
+	if (ret < 0)
+		return ret;
+
+	intel_bo = drm_intel_bo_gem_create_from_prime(bufmgr, prime_fd, BO_SIZE);
+	if (!intel_bo) {
+		ret = -1;
+		goto out;
+	}
+	close(prime_fd);
+	ret = nouveau_bo_set_prime(nvbo, &prime_fd);
+	if (ret < 0)
+		goto out;
+
+
+	intel_bo2 = drm_intel_bo_gem_create_from_prime(bufmgr2, prime_fd, BO_SIZE);
+	if (!intel_bo2) {
+		ret = -1;
+		goto out;
+	}
+	close(prime_fd);
+
+	ret = drm_intel_bo_flink(intel_bo, &flink_name1);
+	if (ret < 0)
+		goto out;
+	ret = drm_intel_bo_flink(intel_bo2, &flink_name2);
+	if (ret < 0)
+		goto out;
+
+	if (flink_name1 != flink_name2) {
+		fprintf(stderr, "flink names don't match\n");
+		ret = -1;
+	}
+
+out:
+	nouveau_bo_ref(NULL, &nvbo);
+	drm_intel_bo_unreference(intel_bo);
+	drm_intel_bo_unreference(intel_bo2);
+	return ret;
+}
+
+
 static int test_i915_nv_import_vs_close(void)
 {
 	int ret;
@@ -374,6 +574,10 @@ int main(int argc, char **argv)
 			exit(2);
 
 	xtest(i915_nv_import_twice);
+	xtest(i915_nv_import_twice_check_flink_name);
+	xtest(i915_nv_reimport_twice_check_flink_name);
+	xtest(nv_i915_import_twice_check_flink_name);
+	xtest(nv_i915_reimport_twice_check_flink_name);
 	xtest(i915_nv_import_vs_close);
 	xtest(i915_nv_double_import);
 	xtest(i915_nv_double_export);
