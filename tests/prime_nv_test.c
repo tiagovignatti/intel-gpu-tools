@@ -343,37 +343,6 @@ static int test_i915_import_gtt_mmap(void)
 	return ret;
 }
 
-static int do_read(int fd, int handle, void *buf, int offset, int size)
-{
-        struct drm_i915_gem_pread intel_pread;
-
-        /* Ensure that we don't have any convenient data in buf in case
-         * we fail.
-         */
-        memset(buf, 0xd0, size);
-
-        memset(&intel_pread, 0, sizeof(intel_pread));
-        intel_pread.handle = handle;
-        intel_pread.data_ptr = (uintptr_t)buf;
-        intel_pread.size = size;
-        intel_pread.offset = offset;
-
-        return ioctl(fd, DRM_IOCTL_I915_GEM_PREAD, &intel_pread);
-}
-
-static int do_write(int fd, int handle, void *buf, int offset, int size)
-{
-        struct drm_i915_gem_pwrite intel_pwrite;
-
-        memset(&intel_pwrite, 0, sizeof(intel_pwrite));
-        intel_pwrite.handle = handle;
-        intel_pwrite.data_ptr = (uintptr_t)buf;
-        intel_pwrite.size = size;
-        intel_pwrite.offset = offset;
-
-        return ioctl(fd, DRM_IOCTL_I915_GEM_PWRITE, &intel_pwrite);
-}
-
 /* test 7 - import from nouveau into intel, test pread/pwrite fail */
 static int test_i915_import_pread_pwrite(void)
 {
@@ -406,18 +375,10 @@ static int test_i915_import_pread_pwrite(void)
 	ptr = nvbo->map;
 	*ptr = 0xdeadbeef;
 
-	ret = do_read(intel_fd, test_intel_bo->handle, buf, 0, 256);
-	if (ret) {
-		fprintf(stderr,"pread failed %d\n", errno);
-		goto out;
-	}
+	gem_read(intel_fd, test_intel_bo->handle, 0, buf, 256);
 	buf[0] = 0xabcdef55;
 
-	ret = do_write(intel_fd, test_intel_bo->handle, buf, 0, 4);
-	if (ret) {
-		fprintf(stderr,"pwrite failed %d\n", errno);
-		goto out;
-	}
+	gem_write(intel_fd, test_intel_bo->handle, 0, buf, 4);
  out:
 	nouveau_bo_ref(NULL, &nvbo);
 	drm_intel_bo_unreference(test_intel_bo);
