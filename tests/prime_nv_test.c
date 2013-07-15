@@ -84,7 +84,7 @@ static int find_and_open_devices(void)
  * close prime_fd,
  *  unref buffers
  */
-static int test1(void)
+static int test_i915_nv_sharing(void)
 {
 	int ret;
 	drm_intel_bo *test_intel_bo;
@@ -113,7 +113,7 @@ static int test1(void)
  * close prime_fd,
  *  unref buffers
  */
-static int test2(void)
+static int test_nv_i915_sharing(void)
 {
 	int ret;
 	drm_intel_bo *test_intel_bo;
@@ -142,7 +142,7 @@ static int test2(void)
  * allocate intel, give to nouveau, map on nouveau
  * write 0xdeadbeef, non-gtt map on intel, read
  */
-static int test3(void)
+static int test_nv_write_i915_cpu_mmap_read(void)
 {
 	int ret;
 	drm_intel_bo *test_intel_bo;
@@ -191,7 +191,7 @@ free_intel:
  * allocate intel, give to nouveau, map on nouveau
  * write 0xdeadbeef, gtt map on intel, read
  */
-static int test4(void)
+static int test_nv_write_i915_gtt_mmap_read(void)
 {
 	int ret;
 	drm_intel_bo *test_intel_bo;
@@ -236,7 +236,7 @@ out:
 /* test drm_intel_bo_map doesn't work properly,
    this tries to map the backing shmem fd, which doesn't exist
    for these objects */
-static int test5(void)
+static int test_i915_import_cpu_mmap(void)
 {
 	int ret;
 	drm_intel_bo *test_intel_bo;
@@ -290,7 +290,7 @@ static int test5(void)
 /* test drm_intel_bo_map_gtt works properly,
    this tries to map the backing shmem fd, which doesn't exist
    for these objects */
-static int test6(void)
+static int test_i915_import_gtt_mmap(void)
 {
 	int ret;
 	drm_intel_bo *test_intel_bo;
@@ -375,7 +375,7 @@ static int do_write(int fd, int handle, void *buf, int offset, int size)
 }
 
 /* test 7 - import from nouveau into intel, test pread/pwrite fail */
-static int test7(void)
+static int test_i915_import_pread_pwrite(void)
 {
 	int ret;
 	drm_intel_bo *test_intel_bo;
@@ -456,7 +456,7 @@ create_bo(drm_intel_bufmgr *ibufmgr, uint32_t val, int width, int height)
 
 /* use intel hw to fill the BO with a blit from another BO,
    then readback from the nouveau bo, check value is correct */
-static int test8(void)
+static int test_i915_blt_fill_nv_read(void)
 {
 	int ret;
 	drm_intel_bo *test_intel_bo, *src_bo;
@@ -542,38 +542,19 @@ int main(int argc, char **argv)
 	devid = intel_get_drm_devid(intel_fd);
 	intel_batch = intel_batchbuffer_alloc(bufmgr, devid);
 
-	/* create an object on the i915 */
-	if (drmtest_run_subtest("i915-nouveau-sharing"))
-		if (test1())
-			exit(1);
+#define xtest(name) \
+	if (drmtest_run_subtest(#name)) \
+		if (test_##name()) \
+			exit(2);
 
-	if (drmtest_run_subtest("nouveau-i915-sharing"))
-		if (test2())
-			exit(1);
-
-	if (drmtest_run_subtest("nouveau-write-i915-shmem-read"))
-		if (test3())
-			exit(1);
-
-	if (drmtest_run_subtest("nouveau-write-i915-gtt-read"))
-		if (test4())
-			exit(1);
-
-	if (drmtest_run_subtest("i915-import-shmem-mmap"))
-		if (test5())
-			exit(1);
-
-	if (drmtest_run_subtest("i915-import-gtt-mmap"))
-		if (test6())
-			exit(1);
-
-	if (drmtest_run_subtest("i915-import-pread-pwrite"))
-		if (test7())
-			exit(1);
-
-	if (drmtest_run_subtest("i915-blt-fill-nouveau-read"))
-		if (test8())
-			exit(1);
+	xtest(i915_nv_sharing);
+	xtest(nv_i915_sharing);
+	xtest(nv_write_i915_cpu_mmap_read);
+	xtest(nv_write_i915_gtt_mmap_read);
+	xtest(i915_import_cpu_mmap);
+	xtest(i915_import_gtt_mmap);
+	xtest(i915_import_pread_pwrite);
+	xtest(i915_blt_fill_nv_read);
 
 	intel_batchbuffer_free(intel_batch);
 
