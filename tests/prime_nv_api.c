@@ -96,9 +96,6 @@ static int test1(void)
 	close(prime_fd);
 	if (ret < 0)
 		goto out;
-
-	if (nvbo->handle != nvbo2->handle)
-		ret = -1;
 out:
 	nouveau_bo_ref(NULL, &nvbo2);
 	nouveau_bo_ref(NULL, &nvbo);
