@@ -1897,7 +1897,10 @@ static void dump_hdmi_fifo_status(void)
 	printf("AUD_HDMI_FIFO_STATUS  Conv_3_CDCLK/DOTCLK_FIFO_Underrun\t%lu\n", BIT(dword, 31));
 }
 
-static void dump_hsw(void)
+/* Dump audio registers for Haswell and its successors (eg. Broadwell).
+ * Their register layout are same in the north display engine.
+ */
+static void dump_hsw_plus(void)
 {
 	uint32_t dword;
 
@@ -2046,12 +2049,12 @@ int main(int argc, char **argv)
 	else
 		intel_get_mmio(pci_dev);
 
-	if (IS_GEN6(devid) || IS_GEN7(devid) || getenv("HAS_PCH_SPLIT")) {
-		if (IS_HASWELL(devid)) {
-			printf("Haswell audio registers:\n\n");
-			dump_hsw();
-			return 0;
-		}
+	if (IS_BROADWELL(devid) || IS_HASWELL(devid)) {
+		printf("%s audio registers:\n\n",
+			IS_BROADWELL(devid) ? "Broadwell" : "Haswell");
+		dump_hsw_plus();
+	} else if (IS_GEN6(devid) || IS_GEN7(devid)
+		|| getenv("HAS_PCH_SPLIT")) {
 		printf("%s audio registers:\n\n",
 				IS_GEN6(devid) ? "SandyBridge" : "IvyBridge");
 		intel_check_pch();
