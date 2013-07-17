@@ -74,7 +74,7 @@ PKG_CHECK_MODULES(DRM, [libdrm_intel >= 2.4.38 libdrm])
 PKG_CHECK_MODULES(PCIACCESS, [pciaccess >= 0.10])
 
 # for testdisplay
-PKG_CHECK_MODULES(CAIRO, cairo)
+PKG_CHECK_MODULES(CAIRO, [cairo >= 1.12.0])
 PKG_CHECK_MODULES(LIBUDEV, [libudev], [udev=yes], [udev=no])
 if test x"$udev" = xyes; then
 	AC_DEFINE(HAVE_UDEV,1,[Enable udev-based monitor hotplug detection])
