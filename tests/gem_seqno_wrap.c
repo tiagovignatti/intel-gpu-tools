@@ -577,7 +577,7 @@ static void parse_options(int argc, char **argv)
 	};
 
 	strcpy(options.cmd, "");
-	options.rounds = 50;
+	options.rounds = SLOW_QUICK(50, 2);
 	options.background = 0;
 	options.dontwrap = 0;
 	options.timeout = 20;
@@ -646,8 +646,6 @@ int main(int argc, char **argv)
 {
 	int wcount = 0;
 	int r = -1;
-
-	drmtest_skip_on_simulation();
 
 	parse_options(argc, argv);
 
