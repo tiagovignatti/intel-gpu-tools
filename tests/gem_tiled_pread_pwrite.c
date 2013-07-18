@@ -123,10 +123,8 @@ main(int argc, char **argv)
 	uint32_t handle, handle_target;
 	int count;
 	
-	drmtest_skip_on_simulation();
-
 	fd = drm_open_any();
-	count = intel_get_total_ram_mb() * 9 / 10;
+	count = SLOW_QUICK(intel_get_total_ram_mb() * 9 / 10, 8) ;
 
 	for (i = 0; i < count/2; i++) {
 		current_tiling_mode = I915_TILING_X;
