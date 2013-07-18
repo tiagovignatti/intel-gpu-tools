@@ -183,8 +183,6 @@ int main(int argc, char **argv)
 	uint32_t handle;
 	int fd, i;
 
-	drmtest_skip_on_simulation();
-
 	fd = drm_open_any();
 
 	handle = gem_create(fd, 4096);
@@ -199,7 +197,7 @@ int main(int argc, char **argv)
 	do_or_die(exec(fd, handle, USE_LUT));
 	fail(exec(fd, handle, USE_LUT | BROKEN));
 
-	for (i = 2; i <= 65536; i *= 2) {
+	for (i = 2; i <= SLOW_QUICK(65536, 8); i *= 2) {
 		if (many_exec(fd, handle, i+1, i+1, NORMAL) == -1 &&
 		    errno == ENOSPC)
 			break;
