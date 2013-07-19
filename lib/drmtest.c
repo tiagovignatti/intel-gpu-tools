@@ -1605,3 +1605,53 @@ void kmstest_free_connector_config(struct kmstest_connector_config *config)
 	drmModeFreeEncoder(config->encoder);
 	drmModeFreeConnector(config->connector);
 }
+
+#define PREFAULT_DEBUGFS "/sys/module/i915/parameters/prefault_disable"
+static int drmtest_prefault_control(bool enable)
+{
+	char *name = PREFAULT_DEBUGFS;
+	int fd;
+	char buf[2] = {'Y', 'N'};
+	int index;
+	int result = 0;
+
+	fd = open(name, O_RDWR);
+	if (fd == -1) {
+		fprintf(stderr, "Couldn't open prefault_debugfs.%s\n",
+				strerror(errno));
+		return -1;
+	}
+
+	if (enable)
+		index = 1;
+	else
+		index = 0;
+
+	if (write(fd, &buf[index], 1) != 1) {
+		fprintf(stderr, "write prefault_debugfs error.%s\n",
+				strerror(errno));
+		result = -1;
+	}
+
+	close(fd);
+
+	return result;
+}
+
+static void enable_prefault_at_exit(int sig)
+{
+	drmtest_enable_prefault();
+}
+
+int drmtest_disable_prefault(void)
+{
+	drmtest_install_exit_handler(enable_prefault_at_exit);
+
+	return drmtest_prefault_control(false);
+}
+
+int drmtest_enable_prefault(void)
+{
+	return drmtest_prefault_control(true);
+}
+

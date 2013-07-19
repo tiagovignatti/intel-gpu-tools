@@ -180,3 +180,6 @@ void drmtest_enable_exit_handler(void);
 void drmtest_disable_exit_handler(void);
 
 int drmtest_set_vt_graphics_mode(void);
+
+int drmtest_disable_prefault(void);
+int drmtest_enable_prefault(void);
