@@ -192,9 +192,14 @@ echo ""
 echo "Intel GPU tools"
 
 echo ""
+echo " • Tests:"
+echo "       Build tests        : ${BUILD_TESTS}"
+echo "       Compile prime tests: ${NOUVEAU}"
+echo ""
 echo " • Tools:"
-echo "       Assembler: ${enable_assembler}"
-echo "       Debugger: ${enable_debugger}"
+echo "       Assembler          : ${enable_assembler}"
+echo "       Debugger           : ${enable_debugger}"
+echo "       Python dumper      : ${DUMPER}"
 echo ""
 
 # vim: set ft=config ts=8 sw=8 tw=0 noet :
