@@ -26,7 +26,8 @@ fi
 
 # read everything we can
 if [ `cat $i915_dfs_path/clients | wc -l` -gt "2" ] ; then
-	die "ERROR: other drm clients running"
+	[ -n "$DRM_LIB_ALLOW_NO_MASTER" ] || \
+		die "ERROR: other drm clients running"
 fi
 
 i915_sfs_path=
