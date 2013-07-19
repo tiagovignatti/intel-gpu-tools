@@ -89,10 +89,13 @@ void drmtest_permute_array(void *array, unsigned size,
 						 unsigned i,
 						 unsigned j));
 void drmtest_progress(const char *header, uint64_t i, uint64_t total);
+
+/* subtest infrastructure */
 void drmtest_subtest_init(int argc, char **argv);
 bool drmtest_run_subtest(const char *subtest_name);
 bool drmtest_only_list_subtests(void);
 
+/* helpers to automatically reduce test runtime in simulation */
 bool drmtest_run_in_simulation(void);
 #define SLOW_QUICK(slow,quick) (drmtest_run_in_simulation() ? (quick) : (slow))
 void drmtest_skip_on_simulation(void);
@@ -175,11 +178,14 @@ inline static void _do_or_die(const char *function, int line, int ret)
 
 typedef void (*drmtest_exit_handler_t)(int sig);
 
+/* reliable atexit helpers, also work when killed by a signal (if possible) */
 int drmtest_install_exit_handler(drmtest_exit_handler_t fn);
 void drmtest_enable_exit_handler(void);
 void drmtest_disable_exit_handler(void);
 
+/* set vt into graphics mode, required to prevent fbcon from interfering */
 int drmtest_set_vt_graphics_mode(void);
 
+/* prefault disabling, needs the corresponding debugfs interface */
 int drmtest_disable_prefault(void);
 int drmtest_enable_prefault(void);
