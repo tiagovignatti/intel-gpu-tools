@@ -220,7 +220,15 @@ static void run(int object_size)
 
 int main(int argc, char **argv)
 {
-	run(OBJECT_SIZE);
+	drmtest_subtest_init(argc, argv);
+
+	if (drmtest_run_subtest("normal"))
+		run(OBJECT_SIZE);
+	if (drmtest_run_subtest("no-prefault")) {
+		drmtest_disable_prefault();
+		run(OBJECT_SIZE);
+		drmtest_enable_prefault();
+	}
 
 	return 0;
 }

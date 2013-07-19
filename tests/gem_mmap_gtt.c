@@ -144,6 +144,15 @@ test_read(int fd)
 	munmap(dst, OBJECT_SIZE);
 }
 
+static void
+run_without_prefault(int fd,
+			void (*func)(int fd))
+{
+	drmtest_disable_prefault();
+	func(fd);
+	drmtest_enable_prefault();
+}
+
 int main(int argc, char **argv)
 {
 	int fd;
@@ -163,6 +172,12 @@ int main(int argc, char **argv)
 		test_write(fd);
 	if (drmtest_run_subtest("write-gtt"))
 		test_write_gtt(fd);
+	if (drmtest_run_subtest("read-no-prefault"))
+		run_without_prefault(fd, test_read);
+	if (drmtest_run_subtest("write-no-prefault"))
+		run_without_prefault(fd, test_write);
+	if (drmtest_run_subtest("write-gtt-no-prefault"))
+		run_without_prefault(fd, test_write_gtt);
 
 	close(fd);
 
