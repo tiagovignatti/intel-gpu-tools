@@ -21,7 +21,7 @@ sr.c: sr.asm
 	$(GEN4ASM) $(GEN4ASM_FLAGS) sr.asm -o $@
 sr.o : sr.c
 	$(CC) -c -o $@ sr.c
-sr : sr.o
+sr$(EXEEXT) : sr.o
 	$(OBJCOPY) -O binary -K gen_eu_bytes sr.o $@
 
 # Test.g4a is the simplest possible system routine we can run on the GPU
@@ -35,7 +35,7 @@ tiny.c: tiny.asm
 	$(GEN4ASM) $(GEN4ASM_FLAGS) tiny.asm -o $@
 tiny.o : tiny.c
 	$(CC) -c -o $@ tiny.c
-tiny : tiny.o
+tiny$(EXEEXT) : tiny.o
 	$(OBJCOPY) -O binary -K gen_eu_bytes tiny.o $@
 
 CLEANFILES = evict.h sr.cpp sr.asm sr.c tiny.cpp tiny.asm tiny.c
