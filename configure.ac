@@ -61,7 +61,7 @@ XORG_MACROS_VERSION(1.16)
 XORG_DEFAULT_OPTIONS
 
 # warning flags for the assembler. We can't quite use CWARNFLAGS for it yet as
-# it generates waaaay to many warnings.
+# it generates waaaay too many warnings.
 ASSEMBLER_WARN_CFLAGS=""
 if test "x$GCC" = "xyes"; then
 	ASSEMBLER_WARN_CFLAGS="-Wall -Wstrict-prototypes \
