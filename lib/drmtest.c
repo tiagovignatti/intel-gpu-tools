@@ -1609,7 +1609,7 @@ void kmstest_free_connector_config(struct kmstest_connector_config *config)
 #define PREFAULT_DEBUGFS "/sys/module/i915/parameters/prefault_disable"
 static int drmtest_prefault_control(bool enable)
 {
-	char *name = PREFAULT_DEBUGFS;
+	const char *name = PREFAULT_DEBUGFS;
 	int fd;
 	char buf[2] = {'Y', 'N'};
 	int index;
