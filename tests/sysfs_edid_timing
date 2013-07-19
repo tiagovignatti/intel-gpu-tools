@@ -5,7 +5,10 @@
 # we sometimes take a *really* long time. So let's just check for some reasonable timing here
 #
 
-[ -n "$INTEL_SIMULATION" ] && exit 77
+DRM_LIB_ALLOW_NO_MASTER=1
+
+SOURCE_DIR="$( dirname "${BASH_SOURCE[0]}" )"
+. $SOURCE_DIR/drm_lib.sh
 
 TIME1=$(date +%s%N)
 cat $(find /sys/devices/|grep drm | grep /status) > /dev/null
