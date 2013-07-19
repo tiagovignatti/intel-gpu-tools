@@ -689,13 +689,13 @@ bool drmtest_only_list_subtests(void)
 	return list_subtests;
 }
 
-static bool env_set(const char *env_var)
+static bool env_set(const char *env_var, bool default_value)
 {
 	char *val;
 
 	val = getenv(env_var);
 	if (!val)
-		return false;
+		return default_value;
 
 	return atoi(val) != 0;
 }
@@ -705,7 +705,7 @@ bool drmtest_run_in_simulation(void)
 	static int simulation = -1;
 
 	if (simulation == -1)
-		simulation = env_set("INTEL_SIMULATION");
+		simulation = env_set("INTEL_SIMULATION", false);
 
 	return simulation;
 }
