@@ -104,7 +104,7 @@ AM_CONDITIONAL(HAVE_NOUVEAU, [test "x$NOUVEAU" = xyes])
 AC_ARG_ENABLE(dumper,
 	      AS_HELP_STRING([--disable-dumper],
 			     [Disable the python based register dumper (default: enabled)]),
-			     DUMPER=$enableval], [DUMPER=yes])
+			     [DUMPER=$enableval], [DUMPER=yes])
 if test "x$DUMPER" == xyes; then
 	AC_DEFINE(HAVE_DUMPER, 1, [Have dumper support])
 	# SWIG configuration
