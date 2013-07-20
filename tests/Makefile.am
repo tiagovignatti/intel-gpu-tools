@@ -29,6 +29,7 @@ TESTS_progs_M = \
 	gem_linear_blits \
 	gem_mmap_gtt \
 	gem_partial_pwrite_pread \
+	gem_pread_after_blit \
 	gem_ringfill \
 	gem_set_tiling_vs_blt \
 	gem_tiled_blits \
@@ -55,7 +56,6 @@ TESTS_progs = \
 	gem_hangcheck_forcewake \
 	gem_pin \
 	gem_pwrite \
-	gem_pread_after_blit \
 	gem_set_tiling_vs_gtt \
 	gem_set_tiling_vs_pwrite \
 	gem_tiled_pread \

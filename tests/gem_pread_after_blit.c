@@ -124,13 +124,52 @@ verify_small_read(drm_intel_bo *bo, uint32_t val)
 	}
 }
 
+static void do_test(drm_intel_bo *src[2],
+		    const uint32_t start[2],
+		    drm_intel_bo *tmp[2],
+		    int loop)
+{
+	do {
+		/* First, do a full-buffer read after blitting */
+		intel_copy_bo(batch, tmp[0], src[0], width, height);
+		verify_large_read(tmp[0], start[0]);
+		intel_copy_bo(batch, tmp[0], src[1], width, height);
+		verify_large_read(tmp[0], start[1]);
+
+		intel_copy_bo(batch, tmp[0], src[0], width, height);
+		verify_small_read(tmp[0], start[0]);
+		intel_copy_bo(batch, tmp[0], src[1], width, height);
+		verify_small_read(tmp[0], start[1]);
+
+		intel_copy_bo(batch, tmp[0], src[0], width, height);
+		verify_large_read(tmp[0], start[0]);
+
+		intel_copy_bo(batch, tmp[0], src[0], width, height);
+		intel_copy_bo(batch, tmp[1], src[1], width, height);
+		verify_large_read(tmp[0], start[0]);
+		verify_large_read(tmp[1], start[1]);
+
+		intel_copy_bo(batch, tmp[0], src[0], width, height);
+		intel_copy_bo(batch, tmp[1], src[1], width, height);
+		verify_large_read(tmp[1], start[1]);
+		verify_large_read(tmp[0], start[0]);
+
+		intel_copy_bo(batch, tmp[1], src[0], width, height);
+		intel_copy_bo(batch, tmp[0], src[1], width, height);
+		verify_large_read(tmp[0], start[1]);
+		verify_large_read(tmp[1], start[0]);
+	} while (--loop);
+}
+
 int
 main(int argc, char **argv)
 {
+	const uint32_t start[2] = {0, 1024 * 1024 / 4};
+	drm_intel_bo *src[2], *dst[2];
 	int fd;
-	drm_intel_bo *src1, *src2, *bo;
-	uint32_t start1 = 0;
-	uint32_t start2 = 1024 * 1024 / 4;
+
+	drmtest_subtest_init(argc, argv);
+	drmtest_skip_on_simulation();
 
 	fd = drm_open_any();
 
@@ -138,33 +177,25 @@ main(int argc, char **argv)
 	drm_intel_bufmgr_gem_enable_reuse(bufmgr);
 	batch = intel_batchbuffer_alloc(bufmgr, intel_get_drm_devid(fd));
 
-	src1 = create_bo(start1);
-	src2 = create_bo(start2);
+	src[0] = create_bo(start[0]);
+	src[1] = create_bo(start[1]);
 
-	bo = drm_intel_bo_alloc(bufmgr, "dst bo", size, 4096);
+	dst[0] = drm_intel_bo_alloc(bufmgr, "dst bo", size, 4096);
+	dst[1] = drm_intel_bo_alloc(bufmgr, "dst bo", size, 4096);
 
-	/* First, do a full-buffer read after blitting */
-	printf("Large read after blit 1\n");
-	intel_copy_bo(batch, bo, src1, width, height);
-	verify_large_read(bo, start1);
-	printf("Large read after blit 2\n");
-	intel_copy_bo(batch, bo, src2, width, height);
-	verify_large_read(bo, start2);
+	if (drmtest_run_subtest("normal"))
+		do_test(src, start, dst, 1);
 
-	printf("Small reads after blit 1\n");
-	intel_copy_bo(batch, bo, src1, width, height);
-	verify_small_read(bo, start1);
-	printf("Small reads after blit 2\n");
-	intel_copy_bo(batch, bo, src2, width, height);
-	verify_small_read(bo, start2);
+	if (drmtest_run_subtest("interruptible")) {
+		drmtest_fork_signal_helper();
+		do_test(src, start, dst, 100);
+		drmtest_stop_signal_helper();
+	}
 
-	printf("Large read after blit 3\n");
-	intel_copy_bo(batch, bo, src1, width, height);
-	verify_large_read(bo, start1);
-
-	drm_intel_bo_unreference(src1);
-	drm_intel_bo_unreference(src2);
-	drm_intel_bo_unreference(bo);
+	drm_intel_bo_unreference(src[0]);
+	drm_intel_bo_unreference(src[1]);
+	drm_intel_bo_unreference(dst[0]);
+	drm_intel_bo_unreference(dst[1]);
 
 	intel_batchbuffer_free(batch);
 	drm_intel_bufmgr_destroy(bufmgr);
