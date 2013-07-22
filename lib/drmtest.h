@@ -189,3 +189,6 @@ int drmtest_set_vt_graphics_mode(void);
 /* prefault disabling, needs the corresponding debugfs interface */
 int drmtest_disable_prefault(void);
 int drmtest_enable_prefault(void);
+
+/* suspend and auto-resume system */
+void drmtest_system_suspend_autoresume(void);

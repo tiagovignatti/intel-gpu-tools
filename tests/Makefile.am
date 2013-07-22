@@ -32,6 +32,7 @@ TESTS_progs_M = \
 	gem_pread_after_blit \
 	gem_ringfill \
 	gem_set_tiling_vs_blt \
+	gem_suspend \
 	gem_tiled_blits \
 	gem_tiled_partial_pwrite_pread \
 	gem_write_read_ring_switch \

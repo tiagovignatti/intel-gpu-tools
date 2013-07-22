@@ -1655,3 +1655,10 @@ int drmtest_enable_prefault(void)
 	return drmtest_prefault_control(true);
 }
 
+void drmtest_system_suspend_autoresume(void)
+{
+	int ret;
+
+	ret = system("rtcwake -s 30 -m mem");
+	assert(ret == 0);
+}
