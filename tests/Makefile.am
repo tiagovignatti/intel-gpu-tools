@@ -9,9 +9,9 @@ noinst_PROGRAMS = \
 
 if HAVE_NOUVEAU
 NOUVEAU_TESTS_M = \
-	prime_nv_test \
-	prime_nv_pcopy \
 	prime_nv_api \
+	prime_nv_pcopy \
+	prime_nv_test \
 	$(NULL)
 endif
 
@@ -36,77 +36,77 @@ TESTS_progs_M = \
 	gem_tiled_blits \
 	gem_tiled_partial_pwrite_pread \
 	gem_write_read_ring_switch \
-	$(NOUVEAU_TESTS_M) \
 	kms_flip \
 	kms_render \
+	$(NOUVEAU_TESTS_M) \
 	prime_self_import \
 	$(NULL)
 
 TESTS_progs = \
-	getversion \
-	getclient \
-	getstats \
+	drm_vma_limiter \
+	drm_vma_limiter_cached \
+	drm_vma_limiter_cpu \
+	drm_vma_limiter_gtt \
+	gem_bad_length \
+	gem_cpu_reloc \
+	gem_cs_prefetch \
+	gem_ctx_bad_destroy \
+	gem_ctx_bad_exec \
+	gem_ctx_basic \
+	gem_ctx_create \
+	gem_ctx_exec \
+	gem_double_irq_loop \
 	gem_exec_big \
 	gem_exec_blt \
 	gem_exec_faulting_reloc \
-	gem_readwrite \
-	gem_lut_handle \
 	gem_exec_lut_handle \
+	gem_fenced_exec_thrash \
+	gem_gtt_cpu_tlb \
+	gem_gtt_speed \
+	gem_hangcheck_forcewake \
+	gem_largeobject \
+	gem_lut_handle \
 	gem_mmap \
 	gem_mmap_offset_exhaustion \
-	gem_hangcheck_forcewake \
 	gem_pin \
+	gem_pipe_control_store_loop \
 	gem_pwrite \
+	gem_readwrite \
+	gem_reg_read \
+	gem_reloc_overflow \
+	gem_reloc_vs_gpu \
+	gem_render_linear_blits \
+	gem_render_tiled_blits \
+	gem_ring_sync_loop \
+	gem_seqno_wrap \
 	gem_set_tiling_vs_gtt \
 	gem_set_tiling_vs_pwrite \
+	gem_storedw_batches_loop \
+	gem_storedw_loop_blt \
+	gem_storedw_loop_bsd \
+	gem_storedw_loop_render \
+	gem_storedw_loop_vebox \
+	gem_threaded_access_tiled \
+	gem_tiled_fence_blits \
 	gem_tiled_pread \
 	gem_tiled_pread_pwrite \
 	gem_tiled_swapping \
-	gem_vmap_blits \
-	gem_threaded_access_tiled \
-	gem_seqno_wrap \
-	gem_tiled_fence_blits \
-	gem_largeobject \
-	gem_bad_length \
-	gem_fenced_exec_thrash \
-	gem_gtt_speed \
-	gem_gtt_cpu_tlb \
-	gem_cs_prefetch \
-	gem_cpu_reloc \
-	gen3_render_linear_blits \
-	gen3_render_tiledx_blits \
-	gen3_render_tiledy_blits \
-	gen3_render_mixed_blits \
-	gen3_mixed_blits \
-	gem_render_linear_blits \
-	gem_render_tiled_blits \
-	gem_storedw_loop_render \
-	gem_storedw_loop_blt \
-	gem_storedw_loop_bsd \
-	gem_storedw_loop_vebox \
-	gem_storedw_batches_loop \
-	gem_double_irq_loop \
-	gem_ring_sync_loop \
-	gem_pipe_control_store_loop \
+	gem_tiling_max_stride \
 	gem_unfence_active_buffers \
 	gem_unref_active_buffers \
-	gem_reloc_overflow \
-	gem_reloc_vs_gpu \
-	drm_vma_limiter \
-	drm_vma_limiter_cpu \
-	drm_vma_limiter_gtt \
-	drm_vma_limiter_cached \
+	gem_vmap_blits \
+	gem_wait_render_timeout \
+	gen3_mixed_blits \
+	gen3_render_linear_blits \
+	gen3_render_mixed_blits \
+	gen3_render_tiledx_blits \
+	gen3_render_tiledy_blits \
+	getclient \
+	getstats \
+	getversion \
+	prime_udl \
 	sysfs_rc6_residency \
 	sysfs_rps \
-	gem_wait_render_timeout \
-	gem_ctx_create \
-	gem_ctx_bad_destroy \
-	gem_ctx_exec \
-	gem_ctx_bad_exec \
-	gem_ctx_basic \
-	gem_reg_read \
-	gem_tiling_max_stride \
-	prime_udl \
 	$(NULL)
 
 # IMPORTANT: The ZZ_ tests need to be run last!
@@ -115,13 +115,13 @@ TESTS_scripts_M = \
 	$(NULL)
 
 TESTS_scripts = \
+	debugfs_emon_crash \
+	debugfs_reader \
+	module_reload \
+	sysfs_edid_timing \
+	sysfs_l3_parity \
 	test_rte_check \
 	tools_test \
-	debugfs_reader \
-	debugfs_emon_crash \
-	sysfs_l3_parity \
-	sysfs_edid_timing \
-	module_reload \
 	ZZ_hangman \
 	$(NULL)
 

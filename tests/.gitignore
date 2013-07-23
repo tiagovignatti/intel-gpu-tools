@@ -1,3 +1,4 @@
+# Please keep sorted alphabetically
 ddi_compute_wrpll
 drm_vma_limiter
 drm_vma_limiter_cached
@@ -26,8 +27,8 @@ gem_exec_blt
 gem_exec_faulting_reloc
 gem_exec_lut_handle
 gem_exec_nop
-gem_fence_thrash
 gem_fenced_exec_thrash
+gem_fence_thrash
 gem_flink
 gem_gtt_concurrent_blit
 gem_gtt_cpu_tlb
@@ -52,8 +53,8 @@ gem_reloc_overflow
 gem_reloc_vs_gpu
 gem_render_linear_blits
 gem_render_tiled_blits
-gem_ring_sync_loop
 gem_ringfill
+gem_ring_sync_loop
 gem_seqno_wrap
 gem_set_tiling_vs_blt
 gem_set_tiling_vs_gtt
@@ -96,4 +97,3 @@ prime_udl
 sysfs_rc6_residency
 sysfs_rps
 testdisplay
-# Please keep sorted alphabetically
