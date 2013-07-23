@@ -432,6 +432,31 @@ int gem_get_cacheing(int fd, uint32_t handle)
 	return arg.cacheing;
 }
 
+uint32_t gem_open(int fd, uint32_t name)
+{
+	struct drm_gem_open open_struct;
+	int ret;
+
+	open_struct.name = name;
+	ret = ioctl(fd, DRM_IOCTL_GEM_OPEN, &open_struct);
+	assert(ret == 0);
+	assert(open_struct.handle != 0);
+
+	return open_struct.handle;
+}
+
+uint32_t gem_flink(int fd, uint32_t handle)
+{
+	struct drm_gem_flink flink;
+	int ret;
+
+	flink.handle = handle;
+	ret = ioctl(fd, DRM_IOCTL_GEM_FLINK, &flink);
+	assert(ret == 0);
+
+	return flink.name;
+}
+
 void gem_close(int fd, uint32_t handle)
 {
 	struct drm_gem_close close_bo;

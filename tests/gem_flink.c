@@ -43,7 +43,7 @@ test_flink(int fd)
 {
 	struct drm_i915_gem_create create;
 	struct drm_gem_flink flink;
-	struct drm_gem_open gem_open;
+	struct drm_gem_open open_struct;
 	int ret;
 
 	printf("Testing flink and open.\n");
@@ -57,10 +57,10 @@ test_flink(int fd)
 	ret = ioctl(fd, DRM_IOCTL_GEM_FLINK, &flink);
 	assert(ret == 0);
 
-	gem_open.name = flink.name;
-	ret = ioctl(fd, DRM_IOCTL_GEM_OPEN, &gem_open);
+	open_struct.name = flink.name;
+	ret = ioctl(fd, DRM_IOCTL_GEM_OPEN, &open_struct);
 	assert(ret == 0);
-	assert(gem_open.handle != 0);
+	assert(open_struct.handle != 0);
 }
 
 static void
@@ -104,13 +104,13 @@ test_bad_flink(int fd)
 static void
 test_bad_open(int fd)
 {
-	struct drm_gem_open gem_open;
+	struct drm_gem_open open_struct;
 	int ret;
 
 	printf("Testing error return on bad open ioctl.\n");
 
-	gem_open.name = 0x10101010;
-	ret = ioctl(fd, DRM_IOCTL_GEM_OPEN, &gem_open);
+	open_struct.name = 0x10101010;
+	ret = ioctl(fd, DRM_IOCTL_GEM_OPEN, &open_struct);
 
 	assert(ret == -1 && errno == ENOENT);
 }
@@ -120,7 +120,7 @@ test_flink_lifetime(int fd)
 {
 	struct drm_i915_gem_create create;
 	struct drm_gem_flink flink;
-	struct drm_gem_open gem_open;
+	struct drm_gem_open open_struct;
 	int ret, fd2;
 
 	printf("Testing flink lifetime.\n");
@@ -136,18 +136,18 @@ test_flink_lifetime(int fd)
 	ret = ioctl(fd2, DRM_IOCTL_GEM_FLINK, &flink);
 	assert(ret == 0);
 
-	gem_open.name = flink.name;
-	ret = ioctl(fd, DRM_IOCTL_GEM_OPEN, &gem_open);
+	open_struct.name = flink.name;
+	ret = ioctl(fd, DRM_IOCTL_GEM_OPEN, &open_struct);
 	assert(ret == 0);
-	assert(gem_open.handle != 0);
+	assert(open_struct.handle != 0);
 
 	close(fd2);
 	fd2 = drm_open_any();
 
-	gem_open.name = flink.name;
-	ret = ioctl(fd2, DRM_IOCTL_GEM_OPEN, &gem_open);
+	open_struct.name = flink.name;
+	ret = ioctl(fd2, DRM_IOCTL_GEM_OPEN, &open_struct);
 	assert(ret == 0);
-	assert(gem_open.handle != 0);
+	assert(open_struct.handle != 0);
 }
 
 int main(int argc, char **argv)

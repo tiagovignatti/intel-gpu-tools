@@ -56,6 +56,8 @@ int gem_get_num_rings(int fd);
 int gem_has_cacheing(int fd);
 void gem_set_cacheing(int fd, uint32_t handle, int cacheing);
 int gem_get_cacheing(int fd, uint32_t handle);
+uint32_t gem_flink(int fd, uint32_t handle);
+uint32_t gem_open(int fd, uint32_t name);
 void gem_close(int fd, uint32_t handle);
 void gem_write(int fd, uint32_t handle, uint32_t offset,  const void *buf, uint32_t size);
 void gem_read(int fd, uint32_t handle, uint32_t offset, void *buf, uint32_t size);
