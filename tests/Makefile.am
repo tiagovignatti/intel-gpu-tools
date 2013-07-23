@@ -61,6 +61,7 @@ TESTS_progs = \
 	gem_exec_faulting_reloc \
 	gem_exec_lut_handle \
 	gem_fenced_exec_thrash \
+	gem_flink_race \
 	gem_gtt_cpu_tlb \
 	gem_gtt_speed \
 	gem_hangcheck_forcewake \
@@ -190,6 +191,7 @@ AM_CFLAGS += $(CAIRO_CFLAGS) $(LIBUDEV_CFLAGS) $(GLIB_CFLAGS)
 
 gem_fence_thrash_CFLAGS = $(AM_CFLAGS) $(THREAD_CFLAGS)
 gem_fence_thrash_LDADD = $(LDADD) -lpthread
+gem_flink_race_LDADD = $(LDADD) -lpthread
 gem_threaded_access_tiled_LDADD = $(LDADD) -lpthread
 
 gem_wait_render_timeout_LDADD = $(LDADD) -lrt

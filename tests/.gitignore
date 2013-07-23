@@ -30,6 +30,7 @@ gem_exec_nop
 gem_fenced_exec_thrash
 gem_fence_thrash
 gem_flink
+gem_flink_race
 gem_gtt_concurrent_blit
 gem_gtt_cpu_tlb
 gem_gtt_speed
