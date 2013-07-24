@@ -61,8 +61,6 @@ static void *thread_fn(void *p)
 			gem_close(fd, open_struct.handle);
 	}
 
-	printf("meh\n");
-
 	return (void *)0;
 }
 
