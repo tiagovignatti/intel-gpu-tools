@@ -61,6 +61,8 @@ static void *thread_fn(void *p)
 		ret = ioctl(fd, DRM_IOCTL_GEM_OPEN, &open_struct);
 		if (ret == 0)
 			gem_close(fd, open_struct.handle);
+		else
+			assert(errno == ENOENT);
 	}
 
 	return (void *)0;
