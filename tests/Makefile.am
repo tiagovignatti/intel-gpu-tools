@@ -25,6 +25,7 @@ TESTS_progs_M = \
 	gem_exec_nop \
 	gem_fence_thrash \
 	gem_flink \
+	gem_flink_race \
 	gem_gtt_concurrent_blit \
 	gem_linear_blits \
 	gem_mmap_gtt \
@@ -61,7 +62,6 @@ TESTS_progs = \
 	gem_exec_faulting_reloc \
 	gem_exec_lut_handle \
 	gem_fenced_exec_thrash \
-	gem_flink_race \
 	gem_gtt_cpu_tlb \
 	gem_gtt_speed \
 	gem_hangcheck_forcewake \

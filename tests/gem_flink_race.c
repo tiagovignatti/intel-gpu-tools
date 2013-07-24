@@ -24,6 +24,7 @@
  *    Daniel Vetter <daniel.vetter@ffwll.ch>
  */
 
+#define _GNU_SOURCE
 #include <sys/ioctl.h>
 #include <stdlib.h>
 #include <string.h>
@@ -47,7 +48,26 @@
 volatile int pls_die = 0;
 int fd;
 
-static void *thread_fn(void *p)
+static int get_object_count(void)
+{
+	FILE *file;
+	int ret, scanned;
+	int device = drm_get_card(0);
+	char *path;
+
+	ret = asprintf(&path, "/sys/kernel/debug/dri/%d/i915_gem_objects", device);
+	assert(ret != -1);
+
+	file = fopen(path, "r");
+
+	scanned = fscanf(file, "%i objects,", &ret);
+	assert(scanned == 1);
+
+	return ret;
+}
+
+
+static void *thread_fn_flink_name(void *p)
 {
 	struct drm_gem_open open_struct;
 	int ret;
@@ -57,23 +77,24 @@ static void *thread_fn(void *p)
 
 		open_struct.name = 1;
 		ret = ioctl(fd, DRM_IOCTL_GEM_OPEN, &open_struct);
-		if (ret == 0)
+		if (ret == 0) {
+			uint32_t name = gem_flink(fd, open_struct.handle);
+
+			assert(name == 1);
+
 			gem_close(fd, open_struct.handle);
-		else
+		} else
 			assert(errno == ENOENT);
 	}
 
 	return (void *)0;
 }
 
-int main(int argc, char **argv)
+static void test_flink_name(void)
 {
-	int num_threads;
 	pthread_t *threads;
-	int r, i;
+	int r, i, num_threads;
 	void *status;
-
-	drmtest_skip_on_simulation();
 
 	num_threads = sysconf(_SC_NPROCESSORS_ONLN) - 1;
 	if (!num_threads)
@@ -85,7 +106,8 @@ int main(int argc, char **argv)
 	assert(fd >= 0);
 
 	for (i = 0; i < num_threads; i++) {
-		r = pthread_create(&threads[i], NULL, thread_fn, NULL);
+		r = pthread_create(&threads[i], NULL,
+				   thread_fn_flink_name, NULL);
 		assert(r == 0);
 	}
 
@@ -110,6 +132,84 @@ int main(int argc, char **argv)
 	assert(fd >= 0);
 
 	close(fd);
+}
+
+static void *thread_fn_flink_close(void *p)
+{
+	struct drm_gem_flink flink;
+	struct drm_gem_close close_bo;
+	uint32_t handle;
+
+	while (!pls_die) {
+		/* We want to race gem close against flink on handle one.*/
+		handle = gem_create(fd, 4096);
+		if (handle != 1)
+			gem_close(fd, handle);
+
+		/* raw ioctl since we expect this to fail */
+		flink.handle = 1;
+		ioctl(fd, DRM_IOCTL_GEM_FLINK, &flink);
+
+		close_bo.handle = 1;
+		ioctl(fd, DRM_IOCTL_GEM_CLOSE, &close_bo);
+	}
+
+	return (void *)0;
+}
+
+static void test_flink_close(void)
+{
+	pthread_t *threads;
+	int r, i, num_threads;
+	int obj_count = get_object_count();
+	void *status;
+
+	num_threads = sysconf(_SC_NPROCESSORS_ONLN) - 1;
+	if (!num_threads)
+		num_threads = 1;
+
+	threads = calloc(num_threads, sizeof(pthread_t));
+
+	fd = drm_open_any();
+	assert(fd >= 0);
+
+	for (i = 0; i < num_threads; i++) {
+		r = pthread_create(&threads[i], NULL,
+				   thread_fn_flink_close, NULL);
+		assert(r == 0);
+	}
+
+	sleep(5);
+
+	pls_die = 1;
+
+	for (i = 0;  i < num_threads; i++) {
+		pthread_join(threads[i], &status);
+		assert(status == 0);
+	}
+
+	fd = drm_open_any();
+	assert(fd >= 0);
+
+	close(fd);
+
+	obj_count = get_object_count() - obj_count;
+
+	printf("leaked %i objects\n", obj_count);
+	assert(obj_count == 0);
+}
+
+int main(int argc, char **argv)
+{
+	drmtest_skip_on_simulation();
+
+	drmtest_subtest_init(argc, argv);
+
+	if (drmtest_run_subtest("flink_name"))
+		test_flink_name();
+
+	if (drmtest_run_subtest("flink_close"))
+		test_flink_close();
 
 	return 0;
 }
