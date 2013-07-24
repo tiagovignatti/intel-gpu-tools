@@ -24,7 +24,6 @@
  *    Daniel Vetter <daniel.vetter@ffwll.ch>
  */
 
-#define _GNU_SOURCE
 #include <sys/ioctl.h>
 #include <stdlib.h>
 #include <string.h>
@@ -32,7 +31,6 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <pthread.h>
-#include <stdio.h>
 
 #include "drmtest.h"
 #include "i915_drm.h"
@@ -68,34 +66,14 @@ static void *thread_fn(void *p)
 	return (void *)0;
 }
 
-static int get_object_count(const char *path)
-{
-	FILE *file;
-	int ret, scanned;
-	file = fopen(path, "r");
-
-	scanned = fscanf(file, "%i objects,", &ret);
-	assert(scanned == 1);
-
-	return ret;
-}
-
 int main(int argc, char **argv)
 {
 	int num_threads;
 	pthread_t *threads;
 	int r, i;
 	void *status;
-	int device = drm_get_card(0);
-	int old_object_count, new_object_count;
-	char *path;
 
 	drmtest_skip_on_simulation();
-
-	r = asprintf(&path, "/sys/kernel/debug/dri/%d/i915_gem_objects", device);
-	assert(r != -1);
-
-	old_object_count = get_object_count(path);
 
 	num_threads = sysconf(_SC_NPROCESSORS_ONLN) - 1;
 	if (!num_threads)
@@ -133,9 +111,5 @@ int main(int argc, char **argv)
 
 	close(fd);
 
-	new_object_count = get_object_count(path);
-
-	printf("leaked %d objects\n", new_object_count - old_object_count);
-
-	return new_object_count - old_object_count > 0 ? 1 : 0;
+	return 0;
 }
