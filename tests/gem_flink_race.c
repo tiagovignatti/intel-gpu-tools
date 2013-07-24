@@ -164,9 +164,7 @@ static void test_flink_close(void)
 	int obj_count = get_object_count();
 	void *status;
 
-	num_threads = sysconf(_SC_NPROCESSORS_ONLN) - 1;
-	if (!num_threads)
-		num_threads = 1;
+	num_threads = sysconf(_SC_NPROCESSORS_ONLN);
 
 	threads = calloc(num_threads, sizeof(pthread_t));
 
