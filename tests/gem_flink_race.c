@@ -60,7 +60,7 @@ static int get_object_count(void)
 
 	file = fopen(path, "r");
 
-	scanned = fscanf(file, "%i objects,", &ret);
+	scanned = fscanf(file, "%i objects", &ret);
 	assert(scanned == 1);
 
 	return ret;
