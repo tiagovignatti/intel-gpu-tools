@@ -1,5 +1,5 @@
 /*
- * Copyright © 2012 Intel Corporation
+ * Copyright © 2012-2013 Intel Corporation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -31,6 +31,7 @@
  * ... but with different fds, i.e. the wayland usecase.
  */
 
+#define _GNU_SOURCE
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -42,6 +43,8 @@
 #include <sys/stat.h>
 #include <sys/mman.h>
 #include <sys/ioctl.h>
+#include <pthread.h>
+
 #include "drm.h"
 #include "i915_drm.h"
 #include "drmtest.h"
@@ -51,6 +54,7 @@
 #define ARRAY_SIZE(x)	(sizeof(x) / sizeof((x)[0]))
 
 static char counter;
+volatile int pls_die = 0;
 
 static void
 check_bo(int fd1, uint32_t handle1, int fd2, uint32_t handle2)
@@ -184,6 +188,159 @@ static void test_with_one_bo(void)
 	check_bo(fd2, handle_import1, fd2, handle_import1);
 }
 
+static int get_object_count(void)
+{
+	FILE *file;
+	int ret, scanned;
+	int device = drm_get_card(0);
+	char *path;
+
+	ret = asprintf(&path, "/sys/kernel/debug/dri/%d/i915_gem_objects", device);
+	assert(ret != -1);
+
+	file = fopen(path, "r");
+
+	scanned = fscanf(file, "%i objects", &ret);
+	assert(scanned == 1);
+
+	return ret;
+}
+
+static void *thread_fn_reimport_vs_close(void *p)
+{
+	struct drm_gem_close close_bo;
+	int *fds = p;
+	int fd = fds[0];
+	int dma_buf_fd = fds[1];
+	uint32_t handle;
+
+	while (!pls_die) {
+		handle = prime_fd_to_handle(fd, dma_buf_fd);
+
+		close_bo.handle = handle;
+		ioctl(fd, DRM_IOCTL_GEM_CLOSE, &close_bo);
+	}
+
+	return (void *)0;
+}
+
+static void test_reimport_close_race(void)
+{
+	pthread_t *threads;
+	int r, i, num_threads;
+	int fds[2];
+	int obj_count = get_object_count();
+	void *status;
+	uint32_t handle;
+
+	num_threads = sysconf(_SC_NPROCESSORS_ONLN);
+
+	threads = calloc(num_threads, sizeof(pthread_t));
+
+	fds[0] = drm_open_any();
+	assert(fds[0] >= 0);
+
+	handle = gem_create(fds[0], BO_SIZE);
+
+	fds[1] = prime_handle_to_fd(fds[0], handle);
+
+	for (i = 0; i < num_threads; i++) {
+		r = pthread_create(&threads[i], NULL,
+				   thread_fn_reimport_vs_close,
+				   (void *)(uintptr_t)fds);
+		assert(r == 0);
+	}
+
+	sleep(5);
+
+	pls_die = 1;
+
+	for (i = 0;  i < num_threads; i++) {
+		pthread_join(threads[i], &status);
+		assert(status == 0);
+	}
+
+	close(fds[0]);
+	close(fds[1]);
+
+	obj_count = get_object_count() - obj_count;
+
+	printf("leaked %i objects\n", obj_count);
+	assert(obj_count == 0);
+}
+
+static void *thread_fn_export_vs_close(void *p)
+{
+	struct drm_prime_handle prime_h2f;
+	struct drm_gem_close close_bo;
+	int fd = (uintptr_t)p;
+	uint32_t handle;
+
+	while (!pls_die) {
+		/* We want to race gem close against flink on handle one.*/
+		handle = gem_create(fd, 4096);
+		if (handle != 1)
+			gem_close(fd, handle);
+
+		/* raw ioctl since we expect this to fail */
+
+		/* WTF: for gem_flink_race I've unconditionally used handle == 1
+		 * here, but with prime it seems to help a _lot_ to use
+		 * something more random. */
+		prime_h2f.handle = 1;
+		prime_h2f.flags = DRM_CLOEXEC;
+		prime_h2f.fd = -1;
+
+		ioctl(fd, DRM_IOCTL_PRIME_HANDLE_TO_FD, &prime_h2f);
+
+		close_bo.handle = 1;
+		ioctl(fd, DRM_IOCTL_GEM_CLOSE, &close_bo);
+
+		close(prime_h2f.fd);
+	}
+
+	return (void *)0;
+}
+
+static void test_export_close_race(void)
+{
+	pthread_t *threads;
+	int r, i, num_threads;
+	int fd;
+	int obj_count = get_object_count();
+	void *status;
+
+	num_threads = sysconf(_SC_NPROCESSORS_ONLN);
+
+	threads = calloc(num_threads, sizeof(pthread_t));
+
+	fd = drm_open_any();
+	assert(fd >= 0);
+
+	for (i = 0; i < num_threads; i++) {
+		r = pthread_create(&threads[i], NULL,
+				   thread_fn_export_vs_close,
+				   (void *)(uintptr_t)fd);
+		assert(r == 0);
+	}
+
+	sleep(5);
+
+	pls_die = 1;
+
+	for (i = 0;  i < num_threads; i++) {
+		pthread_join(threads[i], &status);
+		assert(status == 0);
+	}
+
+	close(fd);
+
+	obj_count = get_object_count() - obj_count;
+
+	printf("leaked %i objects\n", obj_count);
+	assert(obj_count == 0);
+}
+
 int main(int argc, char **argv)
 {
 	struct {
@@ -193,6 +350,8 @@ int main(int argc, char **argv)
 		{ "with_one_bo", test_with_one_bo },
 		{ "with_two_bos", test_with_two_bos },
 		{ "with_fd_dup", test_with_fd_dup },
+		{ "export-vs-gem_close-race", test_export_close_race },
+		{ "reimport-vs-gem_close-race", test_reimport_close_race },
 	};
 	int i;
 

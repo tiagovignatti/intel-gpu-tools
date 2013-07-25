@@ -195,6 +195,7 @@ gem_fence_thrash_CFLAGS = $(AM_CFLAGS) $(THREAD_CFLAGS)
 gem_fence_thrash_LDADD = $(LDADD) -lpthread
 gem_flink_race_LDADD = $(LDADD) -lpthread
 gem_threaded_access_tiled_LDADD = $(LDADD) -lpthread
+prime_self_import_LDADD = $(LDADD) -lpthread
 
 gem_wait_render_timeout_LDADD = $(LDADD) -lrt
 kms_flip_LDADD = $(LDADD) -lrt
