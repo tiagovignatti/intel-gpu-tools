@@ -128,9 +128,6 @@ static void test_flink_name(void)
 		assert(status == 0);
 	}
 
-	fd = drm_open_any();
-	assert(fd >= 0);
-
 	close(fd);
 }
 
@@ -185,9 +182,6 @@ static void test_flink_close(void)
 		pthread_join(threads[i], &status);
 		assert(status == 0);
 	}
-
-	fd = drm_open_any();
-	assert(fd >= 0);
 
 	close(fd);
 
