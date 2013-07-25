@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 # This check the time we take to read the content of all the possible connectors.
 # Without the edid -ENXIO patch (http://permalink.gmane.org/gmane.comp.video.dri.devel/62083),
