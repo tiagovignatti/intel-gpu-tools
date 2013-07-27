@@ -191,8 +191,8 @@ intel_register_access_init(struct pci_device *pci_dev, int safe)
 	if (mmio_data.inited)
 		return -1;
 
-
-	mmio_data.safe = (safe != 0  && pci_dev->device_id >= 4) ? true : false;
+	mmio_data.safe = (safe != 0 &&
+			intel_gen(pci_dev->device_id) >= 4) ? true : false;
 	mmio_data.i915_devid = pci_dev->device_id;
 	if (mmio_data.safe)
 		mmio_data.map = intel_get_register_map(mmio_data.i915_devid);
