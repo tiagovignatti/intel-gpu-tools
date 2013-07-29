@@ -31,6 +31,7 @@
 #include <unistd.h>
 #include <sys/time.h>
 
+#include "drm_fourcc.h"
 #include "drmtest.h"
 #include "testdisplay.h"
 #include "intel_bufmgr.h"
@@ -75,7 +76,12 @@ static void gpu_blit(struct kmstest_fb *dst_fb, struct kmstest_fb *src_fb)
 {
 	drm_intel_bo *dst_bo;
 	drm_intel_bo *src_bo;
+	int bpp;
 
+	assert(dst_fb->drm_format == src_fb->drm_format);
+	assert(src_fb->drm_format == DRM_FORMAT_RGB565 ||
+	       drm_format_to_bpp(src_fb->drm_format) != 16);
+	bpp = drm_format_to_bpp(src_fb->drm_format);
 	dst_bo = gem_handle_to_libdrm_bo(bufmgr, drm_fd, "destination",
 					 dst_fb->gem_handle);
 	assert(dst_bo);
@@ -83,7 +89,10 @@ static void gpu_blit(struct kmstest_fb *dst_fb, struct kmstest_fb *src_fb)
 					 src_fb->gem_handle);
 	assert(src_bo);
 
-	intel_copy_bo(batch, dst_bo, src_bo, src_fb->width, src_fb->height);
+	intel_blt_copy(batch,
+		       src_bo, 0, 0, src_fb->width * bpp / 8,
+		       dst_bo, 0, 0, dst_fb->width * bpp / 8,
+		       src_fb->width, src_fb->height, bpp);
 	intel_batchbuffer_flush(batch);
 	gem_quiescent_gpu(drm_fd);
 
