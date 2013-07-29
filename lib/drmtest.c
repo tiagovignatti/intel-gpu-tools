@@ -1071,7 +1071,7 @@ unsigned int kmstest_create_fb(int fd, int width, int height, int bpp,
 	return fb->fb_id;
 }
 
-static uint32_t drm_format_to_bpp(uint32_t drm_format)
+uint32_t drm_format_to_bpp(uint32_t drm_format)
 {
 	struct format_desc_struct *f;
 

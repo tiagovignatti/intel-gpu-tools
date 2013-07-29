@@ -166,6 +166,8 @@ const char *kmstest_encoder_type_str(int type);
 const char *kmstest_connector_status_str(int type);
 const char *kmstest_connector_type_str(int type);
 
+uint32_t drm_format_to_bpp(uint32_t drm_format);
+
 inline static void _do_or_die(const char *function, int line, int ret)
 {
 	if (ret == 0)
