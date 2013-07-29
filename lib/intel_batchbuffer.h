@@ -96,6 +96,11 @@ intel_batchbuffer_require_space(struct intel_batchbuffer *batch,
 #define ADVANCE_BATCH() do {						\
 } while(0)
 
+void
+intel_blt_copy(struct intel_batchbuffer *batch,
+	      drm_intel_bo *src_bo, int src_x1, int src_y1, int src_pitch,
+	      drm_intel_bo *dst_bo, int dst_x1, int dst_y1, int dst_pitch,
+	      int width, int height, int bpp);
 void intel_copy_bo(struct intel_batchbuffer *batch,
 		   drm_intel_bo *dst_bo, drm_intel_bo *src_bo,
 		   int width, int height);

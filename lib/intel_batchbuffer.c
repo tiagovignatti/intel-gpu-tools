@@ -191,44 +191,78 @@ intel_batchbuffer_data(struct intel_batchbuffer *batch,
 }
 
 void
-intel_copy_bo(struct intel_batchbuffer *batch,
-	      drm_intel_bo *dst_bo, drm_intel_bo *src_bo,
-	      int width, int height)
+intel_blt_copy(struct intel_batchbuffer *batch,
+	      drm_intel_bo *src_bo, int src_x1, int src_y1, int src_pitch,
+	      drm_intel_bo *dst_bo, int dst_x1, int dst_y1, int dst_pitch,
+	      int width, int height, int bpp)
 {
 	uint32_t src_tiling, dst_tiling, swizzle;
-	uint32_t src_pitch, dst_pitch;
 	uint32_t cmd_bits = 0;
+	uint32_t br13_bits;
 
 	drm_intel_bo_get_tiling(src_bo, &src_tiling, &swizzle);
 	drm_intel_bo_get_tiling(dst_bo, &dst_tiling, &swizzle);
 
-	src_pitch = width * 4;
+	src_pitch = src_pitch;
 	if (IS_965(batch->devid) && src_tiling != I915_TILING_NONE) {
 		src_pitch /= 4;
 		cmd_bits |= XY_SRC_COPY_BLT_SRC_TILED;
 	}
 
-	dst_pitch = width * 4;
+	dst_pitch = dst_pitch;
 	if (IS_965(batch->devid) && dst_tiling != I915_TILING_NONE) {
 		dst_pitch /= 4;
 		cmd_bits |= XY_SRC_COPY_BLT_DST_TILED;
 	}
 
+	br13_bits = 0;
+	switch (bpp) {
+	case 8:
+		break;
+	case 16:		/* supporting only RGB565, not ARGB1555 */
+		br13_bits |= 1 << 24;
+		break;
+	case 32:
+		br13_bits |= 3 << 24;
+		cmd_bits |= XY_SRC_COPY_BLT_WRITE_ALPHA |
+			    XY_SRC_COPY_BLT_WRITE_RGB;
+		break;
+	default:
+		abort();
+	}
+
+#define CHECK_RANGE(x)	((x) >= 0 && (x) < (1 << 15))
+	assert(CHECK_RANGE(src_x1) && CHECK_RANGE(src_y1) &&
+	       CHECK_RANGE(dst_x1) && CHECK_RANGE(dst_y1) &&
+	       CHECK_RANGE(width) && CHECK_RANGE(height) &&
+	       CHECK_RANGE(src_x1 + width) && CHECK_RANGE(src_y1 + height) &&
+	       CHECK_RANGE(dst_x1 + width) && CHECK_RANGE(dst_y1 + height) &&
+	       CHECK_RANGE(src_pitch) && CHECK_RANGE(dst_pitch));
+#undef CHECK_RANGE
+
 	BEGIN_BATCH(8);
-	OUT_BATCH(XY_SRC_COPY_BLT_CMD |
-		  XY_SRC_COPY_BLT_WRITE_ALPHA |
-		  XY_SRC_COPY_BLT_WRITE_RGB |
-		  cmd_bits);
-	OUT_BATCH((3 << 24) | /* 32 bits */
+	OUT_BATCH(XY_SRC_COPY_BLT_CMD | cmd_bits);
+	OUT_BATCH((br13_bits) |
 		  (0xcc << 16) | /* copy ROP */
 		  dst_pitch);
-	OUT_BATCH(0); /* dst x1,y1 */
-	OUT_BATCH((height << 16) | width); /* dst x2,y2 */
+	OUT_BATCH((dst_y1 << 16) | dst_x1); /* dst x1,y1 */
+	OUT_BATCH(((dst_y1 + height) << 16) | (dst_x1 + width)); /* dst x2,y2 */
 	OUT_RELOC(dst_bo, I915_GEM_DOMAIN_RENDER, I915_GEM_DOMAIN_RENDER, 0);
-	OUT_BATCH(0); /* src x1,y1 */
+	OUT_BATCH((src_y1 << 16) | src_x1); /* src x1,y1 */
 	OUT_BATCH(src_pitch);
 	OUT_RELOC(src_bo, I915_GEM_DOMAIN_RENDER, 0, 0);
 	ADVANCE_BATCH();
 
 	intel_batchbuffer_flush(batch);
+}
+
+void
+intel_copy_bo(struct intel_batchbuffer *batch,
+	      drm_intel_bo *dst_bo, drm_intel_bo *src_bo,
+	      int width, int height)
+{
+	intel_blt_copy(batch,
+		       src_bo, 0, 0, width * 4,
+		       dst_bo, 0, 0, width * 4,
+		       width, height, 32);
 }
