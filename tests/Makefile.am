@@ -43,6 +43,7 @@ TESTS_progs_M = \
 	gem_write_read_ring_switch \
 	kms_flip \
 	kms_render \
+	kms_setmode \
 	$(NOUVEAU_TESTS_M) \
 	prime_self_import \
 	$(NULL)
