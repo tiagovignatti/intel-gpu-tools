@@ -240,6 +240,8 @@ struct kmstest_connector_config {
 	int pipe;
 };
 
+int kmstest_get_connector_default_mode(int drm_fd, drmModeConnector *connector,
+				      drmModeModeInfo *mode);
 int kmstest_get_connector_config(int drm_fd, uint32_t connector_id,
 				 unsigned long crtc_idx_mask,
 				 struct kmstest_connector_config *config);

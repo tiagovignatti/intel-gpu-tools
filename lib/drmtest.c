@@ -1633,7 +1633,7 @@ int igt_set_vt_graphics_mode(void)
 	return orig_vt_mode < 0 ? -1 : 0;
 }
 
-static int get_connector_default_mode(int drm_fd, drmModeConnector *connector,
+int kmstest_get_connector_default_mode(int drm_fd, drmModeConnector *connector,
 				      drmModeModeInfo *mode)
 {
 	drmModeRes *resources;
@@ -1737,7 +1737,7 @@ int kmstest_get_connector_config(int drm_fd, uint32_t connector_id,
 	goto err3;
 
 found:
-	if (get_connector_default_mode(drm_fd, connector,
+	if (kmstest_get_connector_default_mode(drm_fd, connector,
 				       &config->default_mode) < 0)
 		goto err4;
 
