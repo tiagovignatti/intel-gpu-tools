@@ -1446,7 +1446,7 @@ static int exit_handler_count;
 static bool exit_handler_disabled;
 static sigset_t saved_sig_mask;
 static const int handled_signals[] =
-	{ SIGINT, SIGHUP, SIGTERM, SIGQUIT, SIGPIPE, SIGABRT };
+	{ SIGINT, SIGHUP, SIGTERM, SIGQUIT, SIGPIPE, SIGABRT, SIGSEGV };
 
 static int install_sig_handler(int sig_num, sighandler_t handler)
 {
