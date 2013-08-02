@@ -101,6 +101,13 @@ void igt_progress(const char *header, uint64_t i, uint64_t total);
 /* subtest infrastructure */
 jmp_buf igt_subtest_jmpbuf;
 void igt_subtest_init(int argc, char **argv);
+typedef int (*igt_opt_handler_t)(int opt, int opt_index);
+struct option;
+int igt_subtest_init_parse_opts(int argc, char **argv,
+				const char *extra_short_opts,
+				struct option *extra_long_opts,
+				const char *help_str,
+				igt_opt_handler_t opt_handler);
 bool __igt_run_subtest(const char *subtest_name);
 /**
  * igt_subtest/_f - Denote a subtest code block

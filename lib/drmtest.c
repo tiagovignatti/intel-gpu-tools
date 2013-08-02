@@ -670,7 +670,22 @@ void __igt_fixture_end(void)
 	longjmp(igt_subtest_jmpbuf, 1);
 }
 
-void igt_subtest_init(int argc, char **argv)
+static void print_usage(const char *command_str, const char *help_str,
+			bool output_on_stderr)
+{
+	FILE *f = output_on_stderr ? stderr : stdout;
+
+	fprintf(f, "Usage: %s [OPTIONS]\n"
+		   "  --list-subtests\n"
+		   "  --run-subtest <pattern>\n"
+		   "%s\n", command_str, help_str);
+}
+
+int igt_subtest_init_parse_opts(int argc, char **argv,
+				const char *extra_short_opts,
+				struct option *extra_long_opts,
+				const char *help_str,
+				igt_opt_handler_t extra_opt_handler)
 {
 	int c, option_index = 0;
 	static struct option long_options[] = {
@@ -678,26 +693,84 @@ void igt_subtest_init(int argc, char **argv)
 		{"run-subtest", 1, 0, 'r'},
 		{NULL, 0, 0, 0,}
 	};
+	struct option help_opt =
+		{"help", 0, 0, 'h'};
+	const char *command_str;
+	char *short_opts;
+	struct option *combined_opts;
+	int extra_opt_count;
+	int all_opt_count;
+	int ret = 0;
 
 	test_with_subtests = true;
 
-	/* supress getopt errors about unknown options */
-	opterr = 0;
-	/* restrict the option parsing to long option names to avoid collisions
-	 * with options the test declares */
-	while((c = getopt_long(argc, argv, "",
-			       long_options, &option_index)) != -1) {
+	command_str = argv[0];
+	if (strrchr(command_str, '/'))
+		command_str = strrchr(command_str, '/') + 1;
+
+	/* First calculate space for all passed-in extra long options */
+	all_opt_count = 0;
+	while (extra_long_opts && extra_long_opts[all_opt_count].name)
+		all_opt_count++;
+	extra_opt_count = all_opt_count;
+
+	/* Add space for a long help option for any passed-in help string */
+	if (help_str)
+		all_opt_count++;
+	/* Add space for the subtest long options (and the final NULL entry) */
+	all_opt_count += ARRAY_SIZE(long_options);
+
+	combined_opts = malloc(all_opt_count * sizeof(*combined_opts));
+	memcpy(combined_opts, extra_long_opts,
+	       extra_opt_count * sizeof(*combined_opts));
+
+	if (help_str) {
+		combined_opts[extra_opt_count] = help_opt;
+		extra_opt_count++;
+	}
+	/* Copy the subtest long options (and the final NULL entry) */
+	memcpy(&combined_opts[extra_opt_count], long_options,
+		ARRAY_SIZE(long_options) * sizeof(*combined_opts));
+
+	ret = asprintf(&short_opts, "%s%s",
+		       extra_short_opts ? extra_short_opts : "",
+		       help_str ? "h" : "");
+	assert(ret >= 0);
+
+	while ((c = getopt_long(argc, argv, short_opts, combined_opts,
+			       &option_index)) != -1) {
 		switch(c) {
 		case 'l':
-			list_subtests = true;
-			goto out;
+			if (!run_single_subtest)
+				list_subtests = true;
+			break;
 		case 'r':
-			run_single_subtest = strdup(optarg);
+			if (!list_subtests)
+				run_single_subtest = strdup(optarg);
+			break;
+		case '?':
+		case 'h':
+			print_usage(command_str, help_str, c == '?');
+			ret = c == '?' ? -2 : -1;
 			goto out;
+		default:
+			ret = extra_opt_handler(c, option_index);
+			if (ret)
+				goto out;
 		}
 	}
 
 out:
+	return ret;
+}
+
+void igt_subtest_init(int argc, char **argv)
+{
+	/* supress getopt errors about unknown options */
+	opterr = 0;
+
+	(void)igt_subtest_init_parse_opts(argc, argv, NULL, NULL, NULL, NULL);
+
 	/* reset opt parsing */
 	optind = 1;
 }
