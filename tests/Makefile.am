@@ -31,6 +31,7 @@ TESTS_progs_M = \
 	gem_mmap_gtt \
 	gem_partial_pwrite_pread \
 	gem_pread_after_blit \
+	gem_prw_concurrent_blit \
 	gem_ringfill \
 	gem_set_tiling_vs_blt \
 	gem_suspend \
