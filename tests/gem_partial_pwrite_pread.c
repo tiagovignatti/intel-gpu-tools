@@ -253,6 +253,26 @@ static void test_partial_read_writes(void)
 	}
 }
 
+static void do_tests(int cache_level, const char *suffix)
+{
+	char name[80];
+
+	if (cache_level != -1)
+		gem_set_cacheing(fd, scratch_bo->handle, cache_level);
+
+	snprintf(name, sizeof(name), "reads%s", suffix);
+	if (drmtest_run_subtest(name))
+		test_partial_reads();
+
+	snprintf(name, sizeof(name), "writes%s", suffix);
+	if (drmtest_run_subtest(name))
+		test_partial_writes();
+
+	snprintf(name, sizeof(name), "writes-after-reads%s", suffix);
+	if (drmtest_run_subtest(name))
+		test_partial_read_writes();
+}
+
 int main(int argc, char **argv)
 {
 	srandom(0xdeadbeef);
@@ -274,14 +294,11 @@ int main(int argc, char **argv)
 	drmtest_init_aperture_trashers(bufmgr);
 	mappable_gtt_limit = gem_mappable_aperture_size();
 
-	if (drmtest_run_subtest("reads"))
-		test_partial_reads();
+	do_tests(-1, "");
 
-	if (drmtest_run_subtest("writes"))
-		test_partial_writes();
-
-	if (drmtest_run_subtest("writes-after-reads"))
-		test_partial_read_writes();
+	/* Repeat the tests using different levels of snooping */
+	do_tests(0, "-uncached");
+	do_tests(1, "-snoop");
 
 	drmtest_cleanup_aperture_trashers();
 	drm_intel_bufmgr_destroy(bufmgr);
