@@ -73,6 +73,7 @@ TESTS_progs = \
 	gem_pipe_control_store_loop \
 	gem_pread \
 	gem_pwrite \
+	gem_pwrite_pread \
 	gem_readwrite \
 	gem_reg_read \
 	gem_reloc_overflow \
