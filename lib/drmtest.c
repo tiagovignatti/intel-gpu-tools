@@ -650,6 +650,7 @@ void drmtest_stop_signal_helper(void)
 	if (sig_stat)
 		fprintf(stdout, "signal handler called %llu times\n", sig_stat);
 
+	sig_stat = 0;
 	signal_helper = -1;
 }
 
