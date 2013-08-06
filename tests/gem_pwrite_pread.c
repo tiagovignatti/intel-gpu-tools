@@ -93,7 +93,112 @@ static void copy(int fd, uint32_t src, uint32_t dst, void *buf, int len, int loo
 	gem_close(fd, exec[2].handle);
 }
 
-static void test(int fd, uint32_t src, uint32_t dst, uint32_t *buf, int len)
+static void as_gtt_mmap(int fd, uint32_t src, uint32_t dst, void *buf, int len, int loops)
+{
+	struct drm_i915_gem_relocation_entry reloc[] = {
+		{ dst, 0, 4*sizeof(uint32_t), 0, I915_GEM_DOMAIN_RENDER, I915_GEM_DOMAIN_RENDER },
+		{ src, 0, 7*sizeof(uint32_t), 0, I915_GEM_DOMAIN_RENDER, 0 },
+	};
+	struct drm_i915_gem_exec_object2 exec[] = {
+		{ src },
+		{ dst },
+		{ gem_create(fd, 4096), 2, (uintptr_t)reloc }
+	};
+	uint32_t batch[] = {
+		COPY_BLT_CMD | BLT_WRITE_ALPHA | BLT_WRITE_RGB,
+		0xcc << 16 | 1 << 25 | 1 << 24 | len,
+		0,
+		1 << 16 | (len / 4),
+		0, /* dst */
+		0,
+		len,
+		0, /* src */
+		MI_BATCH_BUFFER_END,
+		0
+	};
+	struct drm_i915_gem_execbuffer2 execbuf = {
+		(uintptr_t)exec, 3,
+		0, sizeof(batch),
+		0, 0, 0, 0,
+		HAS_BLT_RING(intel_get_drm_devid(fd)) ? I915_EXEC_BLT : 0,
+	};
+	uint32_t *src_ptr, *dst_ptr;
+
+	gem_write(fd, exec[2].handle, 0, batch, sizeof(batch));
+
+	src_ptr = gem_mmap__gtt(fd, src, OBJECT_SIZE, PROT_WRITE);
+	dst_ptr = gem_mmap__gtt(fd, dst, OBJECT_SIZE, PROT_READ);
+
+	while (loops--) {
+		gem_set_domain(fd, src,
+			       I915_GEM_DOMAIN_GTT, I915_GEM_DOMAIN_GTT);
+		memcpy(src_ptr, buf, len);
+
+		do_or_die(drmIoctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf));
+		gem_set_domain(fd, dst,
+			       I915_GEM_DOMAIN_GTT, 0);
+		memcpy(buf, dst_ptr, len);
+	}
+
+	munmap(dst_ptr, len);
+	munmap(src_ptr, len);
+	gem_close(fd, exec[2].handle);
+}
+
+
+static void as_cpu_mmap(int fd, uint32_t src, uint32_t dst, void *buf, int len, int loops)
+{
+	struct drm_i915_gem_relocation_entry reloc[] = {
+		{ dst, 0, 4*sizeof(uint32_t), 0, I915_GEM_DOMAIN_RENDER, I915_GEM_DOMAIN_RENDER },
+		{ src, 0, 7*sizeof(uint32_t), 0, I915_GEM_DOMAIN_RENDER, 0 },
+	};
+	struct drm_i915_gem_exec_object2 exec[] = {
+		{ src },
+		{ dst },
+		{ gem_create(fd, 4096), 2, (uintptr_t)reloc }
+	};
+	uint32_t batch[] = {
+		COPY_BLT_CMD | BLT_WRITE_ALPHA | BLT_WRITE_RGB,
+		0xcc << 16 | 1 << 25 | 1 << 24 | len,
+		0,
+		1 << 16 | (len / 4),
+		0, /* dst */
+		0,
+		len,
+		0, /* src */
+		MI_BATCH_BUFFER_END,
+		0
+	};
+	struct drm_i915_gem_execbuffer2 execbuf = {
+		(uintptr_t)exec, 3,
+		0, sizeof(batch),
+		0, 0, 0, 0,
+		HAS_BLT_RING(intel_get_drm_devid(fd)) ? I915_EXEC_BLT : 0,
+	};
+	uint32_t *src_ptr, *dst_ptr;
+
+	gem_write(fd, exec[2].handle, 0, batch, sizeof(batch));
+
+	src_ptr = gem_mmap__cpu(fd, src, OBJECT_SIZE, PROT_WRITE);
+	dst_ptr = gem_mmap__cpu(fd, dst, OBJECT_SIZE, PROT_READ);
+
+	while (loops--) {
+		gem_set_domain(fd, src,
+			       I915_GEM_DOMAIN_CPU, I915_GEM_DOMAIN_CPU);
+		memcpy(src_ptr, buf, len);
+
+		do_or_die(drmIoctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf));
+		gem_set_domain(fd, dst,
+			       I915_GEM_DOMAIN_CPU, 0);
+		memcpy(buf, dst_ptr, len);
+	}
+
+	munmap(dst_ptr, len);
+	munmap(src_ptr, len);
+	gem_close(fd, exec[2].handle);
+}
+
+static void test_copy(int fd, uint32_t src, uint32_t dst, uint32_t *buf, int len)
 {
 	struct drm_i915_gem_relocation_entry reloc[] = {
 		{ dst, 0, 4*sizeof(uint32_t), 0, I915_GEM_DOMAIN_RENDER, I915_GEM_DOMAIN_RENDER },
@@ -139,6 +244,110 @@ static void test(int fd, uint32_t src, uint32_t dst, uint32_t *buf, int len)
 
 	for (i = 0; i < len/4; i++)
 		assert(buf[i] == i);
+}
+
+static void test_as_gtt_mmap(int fd, uint32_t src, uint32_t dst, int len)
+{
+	struct drm_i915_gem_relocation_entry reloc[] = {
+		{ dst, 0, 4*sizeof(uint32_t), 0, I915_GEM_DOMAIN_RENDER, I915_GEM_DOMAIN_RENDER },
+		{ src, 0, 7*sizeof(uint32_t), 0, I915_GEM_DOMAIN_RENDER, 0 },
+	};
+	struct drm_i915_gem_exec_object2 exec[] = {
+		{ src },
+		{ dst },
+		{ gem_create(fd, 4096), 2, (uintptr_t)reloc }
+	};
+	uint32_t batch[] = {
+		COPY_BLT_CMD | BLT_WRITE_ALPHA | BLT_WRITE_RGB,
+		0xcc << 16 | 1 << 25 | 1 << 24 | len,
+		0,
+		1 << 16 | (len / 4),
+		0, /* dst */
+		0,
+		len,
+		0, /* src */
+		MI_BATCH_BUFFER_END,
+		0
+	};
+	struct drm_i915_gem_execbuffer2 execbuf = {
+		(uintptr_t)exec, 3,
+		0, sizeof(batch),
+		0, 0, 0, 0,
+		HAS_BLT_RING(intel_get_drm_devid(fd)) ? I915_EXEC_BLT : 0,
+	};
+	uint32_t *src_ptr, *dst_ptr;
+	int i;
+
+	gem_write(fd, exec[2].handle, 0, batch, sizeof(batch));
+
+	src_ptr = gem_mmap__gtt(fd, src, OBJECT_SIZE, PROT_WRITE);
+	dst_ptr = gem_mmap__gtt(fd, dst, OBJECT_SIZE, PROT_READ);
+
+	gem_set_domain(fd, src, I915_GEM_DOMAIN_GTT, I915_GEM_DOMAIN_GTT);
+	for (i = 0; i < len/4; i++)
+		src_ptr[i] = i;
+
+	do_or_die(drmIoctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf));
+	gem_close(fd, exec[2].handle);
+
+	gem_set_domain(fd, dst, I915_GEM_DOMAIN_GTT, 0);
+	for (i = 0; i < len/4; i++)
+		assert(dst_ptr[i] == i);
+
+	munmap(dst_ptr, len);
+	munmap(src_ptr, len);
+}
+
+static void test_as_cpu_mmap(int fd, uint32_t src, uint32_t dst, int len)
+{
+	struct drm_i915_gem_relocation_entry reloc[] = {
+		{ dst, 0, 4*sizeof(uint32_t), 0, I915_GEM_DOMAIN_RENDER, I915_GEM_DOMAIN_RENDER },
+		{ src, 0, 7*sizeof(uint32_t), 0, I915_GEM_DOMAIN_RENDER, 0 },
+	};
+	struct drm_i915_gem_exec_object2 exec[] = {
+		{ src },
+		{ dst },
+		{ gem_create(fd, 4096), 2, (uintptr_t)reloc }
+	};
+	uint32_t batch[] = {
+		COPY_BLT_CMD | BLT_WRITE_ALPHA | BLT_WRITE_RGB,
+		0xcc << 16 | 1 << 25 | 1 << 24 | len,
+		0,
+		1 << 16 | (len / 4),
+		0, /* dst */
+		0,
+		len,
+		0, /* src */
+		MI_BATCH_BUFFER_END,
+		0
+	};
+	struct drm_i915_gem_execbuffer2 execbuf = {
+		(uintptr_t)exec, 3,
+		0, sizeof(batch),
+		0, 0, 0, 0,
+		HAS_BLT_RING(intel_get_drm_devid(fd)) ? I915_EXEC_BLT : 0,
+	};
+	uint32_t *src_ptr, *dst_ptr;
+	int i;
+
+	gem_write(fd, exec[2].handle, 0, batch, sizeof(batch));
+
+	src_ptr = gem_mmap__cpu(fd, src, OBJECT_SIZE, PROT_WRITE);
+	dst_ptr = gem_mmap__cpu(fd, dst, OBJECT_SIZE, PROT_READ);
+
+	gem_set_domain(fd, src, I915_GEM_DOMAIN_CPU, I915_GEM_DOMAIN_CPU);
+	for (i = 0; i < len/4; i++)
+		src_ptr[i] = i;
+
+	do_or_die(drmIoctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf));
+	gem_close(fd, exec[2].handle);
+
+	gem_set_domain(fd, dst, I915_GEM_DOMAIN_CPU, 0);
+	for (i = 0; i < len/4; i++)
+		assert(dst_ptr[i] == i);
+
+	munmap(dst_ptr, len);
+	munmap(src_ptr, len);
 }
 
 static double elapsed(const struct timeval *start,
@@ -190,7 +399,7 @@ int main(int argc, char **argv)
 
 	gem_set_cacheing(fd, src, 0);
 	gem_set_cacheing(fd, dst, 0);
-	test(fd, src, dst, tmp, object_size);
+	test_copy(fd, src, dst, tmp, object_size);
 	for (count = 1; count <= 1<<17; count <<= 1) {
 		struct timeval start, end;
 
@@ -204,9 +413,23 @@ int main(int argc, char **argv)
 		fflush(stdout);
 	}
 
+	test_as_gtt_mmap(fd, src, dst, object_size);
+	for (count = 1; count <= 1<<17; count <<= 1) {
+		struct timeval start, end;
+
+		gettimeofday(&start, NULL);
+		as_gtt_mmap(fd, src, dst, tmp, object_size, count);
+		gettimeofday(&end, NULL);
+		printf("** mmap uncached copy %d bytes x %6d:	%7.3fµs, %s\n",
+		       object_size, count,
+		       elapsed(&start, &end, count),
+		       bytes_per_sec((char *)buf, object_size/elapsed(&start, &end, count)*1e6));
+		fflush(stdout);
+	}
+
 	gem_set_cacheing(fd, src, 1);
 	gem_set_cacheing(fd, dst, 1);
-	test(fd, src, dst, tmp, object_size);
+	test_copy(fd, src, dst, tmp, object_size);
 	for (count = 1; count <= 1<<17; count <<= 1) {
 		struct timeval start, end;
 
@@ -214,6 +437,20 @@ int main(int argc, char **argv)
 		copy(fd, src, dst, tmp, object_size, count);
 		gettimeofday(&end, NULL);
 		printf("Time to snooped copy %d bytes x %6d:	%7.3fµs, %s\n",
+		       object_size, count,
+		       elapsed(&start, &end, count),
+		       bytes_per_sec((char *)buf, object_size/elapsed(&start, &end, count)*1e6));
+		fflush(stdout);
+	}
+
+	test_as_cpu_mmap(fd, src, dst, object_size);
+	for (count = 1; count <= 1<<17; count <<= 1) {
+		struct timeval start, end;
+
+		gettimeofday(&start, NULL);
+		as_cpu_mmap(fd, src, dst, tmp, object_size, count);
+		gettimeofday(&end, NULL);
+		printf("** mmap snooped copy %d bytes x %6d:	%7.3fµs, %s\n",
 		       object_size, count,
 		       elapsed(&start, &end, count),
 		       bytes_per_sec((char *)buf, object_size/elapsed(&start, &end, count)*1e6));
