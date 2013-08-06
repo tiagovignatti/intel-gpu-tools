@@ -71,6 +71,7 @@ TESTS_progs = \
 	gem_mmap_offset_exhaustion \
 	gem_pin \
 	gem_pipe_control_store_loop \
+	gem_pread \
 	gem_pwrite \
 	gem_readwrite \
 	gem_reg_read \
