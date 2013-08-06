@@ -124,11 +124,17 @@ verify_small_read(drm_intel_bo *bo, uint32_t val)
 	}
 }
 
-static void do_test(drm_intel_bo *src[2],
+static void do_test(int fd, int cache_level,
+		    drm_intel_bo *src[2],
 		    const uint32_t start[2],
 		    drm_intel_bo *tmp[2],
 		    int loop)
 {
+	if (cache_level != -1) {
+		gem_set_cacheing(fd, tmp[0]->handle, cache_level);
+		gem_set_cacheing(fd, tmp[1]->handle, cache_level);
+	}
+
 	do {
 		/* First, do a full-buffer read after blitting */
 		intel_copy_bo(batch, tmp[0], src[0], width, height);
@@ -184,14 +190,31 @@ main(int argc, char **argv)
 	dst[1] = drm_intel_bo_alloc(bufmgr, "dst bo", size, 4096);
 
 	if (drmtest_run_subtest("normal"))
-		do_test(src, start, dst, 1);
+		do_test(fd, -1, src, start, dst, 1);
 
 	if (drmtest_run_subtest("interruptible")) {
 		drmtest_fork_signal_helper();
-		do_test(src, start, dst, 100);
+		do_test(fd, -1, src, start, dst, 100);
 		drmtest_stop_signal_helper();
 	}
 
+	if (drmtest_run_subtest("normal-uncached"))
+		do_test(fd, 0, src, start, dst, 1);
+
+	if (drmtest_run_subtest("interruptible-uncached")) {
+		drmtest_fork_signal_helper();
+		do_test(fd, 0, src, start, dst, 100);
+		drmtest_stop_signal_helper();
+	}
+
+	if (drmtest_run_subtest("normal-snoop"))
+		do_test(fd, 1, src, start, dst, 1);
+
+	if (drmtest_run_subtest("interruptible-snoop")) {
+		drmtest_fork_signal_helper();
+		do_test(fd, 1, src, start, dst, 100);
+		drmtest_stop_signal_helper();
+	}
 	drm_intel_bo_unreference(src[0]);
 	drm_intel_bo_unreference(src[1]);
 	drm_intel_bo_unreference(dst[0]);
