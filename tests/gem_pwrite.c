@@ -103,18 +103,35 @@ int main(int argc, char **argv)
 
 	dst = gem_create(fd, object_size);
 	src = malloc(object_size);
+
+	gem_set_cacheing(fd, dst, 0);
 	for (count = 1; count <= 1<<17; count <<= 1) {
 		struct timeval start, end;
 
 		gettimeofday(&start, NULL);
 		do_gem_write(fd, dst, src, object_size, count);
 		gettimeofday(&end, NULL);
-		printf("Time to pwrite %d bytes x %6d:	%7.3fµs, %s\n",
+		printf("Time to uncached pwrite %d bytes x %6d:	%7.3fµs, %s\n",
 		       object_size, count,
 		       elapsed(&start, &end, count),
 		       bytes_per_sec((char *)buf, object_size/elapsed(&start, &end, count)*1e6));
 		fflush(stdout);
 	}
+
+	gem_set_cacheing(fd, dst, 1);
+	for (count = 1; count <= 1<<17; count <<= 1) {
+		struct timeval start, end;
+
+		gettimeofday(&start, NULL);
+		do_gem_write(fd, dst, src, object_size, count);
+		gettimeofday(&end, NULL);
+		printf("Time to snooped pwrite %d bytes x %6d:	%7.3fµs, %s\n",
+		       object_size, count,
+		       elapsed(&start, &end, count),
+		       bytes_per_sec((char *)buf, object_size/elapsed(&start, &end, count)*1e6));
+		fflush(stdout);
+	}
+
 	free(src);
 	gem_close(fd, dst);
 
