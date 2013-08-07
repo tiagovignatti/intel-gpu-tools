@@ -504,17 +504,21 @@ main(int argc, char *argv[])
 
 	if (argc == 1) {
 		if (isatty(0)) {
-			path = "/debug/dri";
+			path = "/sys/class/drm/card0/error";
 			error = stat(path, &st);
+			if (error != 0) {
+				path = "/debug/dri";
+				error = stat(path, &st);
+			}
 			if (error != 0) {
 				path = "/sys/kernel/debug/dri";
 				error = stat(path, &st);
-				if (error != 0) {
-					errx(1,
-					       "Couldn't find i915 debugfs directory.\n\n"
-					       "Is debugfs mounted? You might try mounting it with a command such as:\n\n"
-					       "\tsudo mount -t debugfs debugfs /sys/kernel/debug\n");
-				}
+			}
+			if (error != 0) {
+				errx(1,
+				     "Couldn't find i915 debugfs directory.\n\n"
+				     "Is debugfs mounted? You might try mounting it with a command such as:\n\n"
+				     "\tsudo mount -t debugfs debugfs /sys/kernel/debug\n");
 			}
 		} else {
 			read_data_file(stdin);
