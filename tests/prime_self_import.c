@@ -304,7 +304,7 @@ static void *thread_fn_export_vs_close(void *p)
 	uint32_t handle;
 
 	while (!pls_die) {
-		/* We want to race gem close against flink on handle one.*/
+		/* We want to race gem close against prime export on handle one.*/
 		handle = gem_create(fd, 4096);
 		if (handle != 1)
 			gem_close(fd, handle);
