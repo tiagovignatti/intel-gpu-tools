@@ -143,6 +143,31 @@ static void test_with_two_bos(void)
 	close(fd2);
 }
 
+static void test_with_one_bo_two_files(void)
+{
+	int fd1, fd2;
+	uint32_t handle_import, handle_open, handle_orig, flink_name;
+	int dma_buf_fd;
+
+	fd1 = drm_open_any();
+	fd2 = drm_open_any();
+
+	handle_orig = gem_create(fd1, BO_SIZE);
+
+	flink_name = gem_flink(fd1, handle_orig);
+	handle_open = gem_open(fd2, flink_name);
+
+	dma_buf_fd = prime_handle_to_fd(fd2, handle_open);
+	handle_import = prime_fd_to_handle(fd1, dma_buf_fd);
+
+	/* dma-buf selfimporting an flink bo should give the same handle */
+	assert(handle_import == handle_open);
+
+	close(fd1);
+	close(fd2);
+	close(dma_buf_fd);
+}
+
 static void test_with_one_bo(void)
 {
 	int fd1, fd2;
@@ -348,6 +373,7 @@ int main(int argc, char **argv)
 		void (*fn)(void);
 	} tests[] = {
 		{ "with_one_bo", test_with_one_bo },
+		{ "with_one_bo_two_files", test_with_one_bo_two_files },
 		{ "with_two_bos", test_with_two_bos },
 		{ "with_fd_dup", test_with_fd_dup },
 		{ "export-vs-gem_close-race", test_export_close_race },
