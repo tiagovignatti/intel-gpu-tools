@@ -32,6 +32,7 @@ TESTS_progs_M = \
 	gem_partial_pwrite_pread \
 	gem_pread_after_blit \
 	gem_prw_concurrent_blit \
+	gem_pwrite_pread \
 	gem_ringfill \
 	gem_set_tiling_vs_blt \
 	gem_suspend \
@@ -74,7 +75,6 @@ TESTS_progs = \
 	gem_pipe_control_store_loop \
 	gem_pread \
 	gem_pwrite \
-	gem_pwrite_pread \
 	gem_readwrite \
 	gem_reg_read \
 	gem_reloc_overflow \
