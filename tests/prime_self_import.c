@@ -147,25 +147,27 @@ static void test_with_one_bo_two_files(void)
 {
 	int fd1, fd2;
 	uint32_t handle_import, handle_open, handle_orig, flink_name;
-	int dma_buf_fd;
+	int dma_buf_fd1, dma_buf_fd2;
 
 	fd1 = drm_open_any();
 	fd2 = drm_open_any();
 
 	handle_orig = gem_create(fd1, BO_SIZE);
+	dma_buf_fd1 = prime_handle_to_fd(fd1, handle_orig);
 
 	flink_name = gem_flink(fd1, handle_orig);
 	handle_open = gem_open(fd2, flink_name);
 
-	dma_buf_fd = prime_handle_to_fd(fd2, handle_open);
-	handle_import = prime_fd_to_handle(fd1, dma_buf_fd);
+	dma_buf_fd2 = prime_handle_to_fd(fd2, handle_open);
+	handle_import = prime_fd_to_handle(fd2, dma_buf_fd2);
 
 	/* dma-buf selfimporting an flink bo should give the same handle */
 	assert(handle_import == handle_open);
 
 	close(fd1);
 	close(fd2);
-	close(dma_buf_fd);
+	close(dma_buf_fd1);
+	close(dma_buf_fd2);
 }
 
 static void test_with_one_bo(void)
