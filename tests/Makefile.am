@@ -48,6 +48,7 @@ TESTS_progs_M = \
 	$(NULL)
 
 TESTS_progs = \
+	drm_get_client_auth \
 	drm_vma_limiter \
 	drm_vma_limiter_cached \
 	drm_vma_limiter_cpu \
