@@ -257,8 +257,17 @@ static void do_tests(int cache_level, const char *suffix)
 {
 	char name[80];
 
-	if (cache_level != -1)
-		gem_set_cacheing(fd, scratch_bo->handle, cache_level);
+	if (cache_level != -1) {
+		switch (gem_set_cacheing(fd, scratch_bo->handle, cache_level)) {
+		case 0: break;
+		case -EINVAL:
+		case -ENOTTY:
+			return;
+		default:
+			assert(0);
+			return;
+		}
+	}
 
 	snprintf(name, sizeof(name), "reads%s", suffix);
 	if (drmtest_run_subtest(name))
@@ -299,6 +308,7 @@ int main(int argc, char **argv)
 	/* Repeat the tests using different levels of snooping */
 	do_tests(0, "-uncached");
 	do_tests(1, "-snoop");
+	do_tests(2, "-display");
 
 	drmtest_cleanup_aperture_trashers();
 	drm_intel_bufmgr_destroy(bufmgr);

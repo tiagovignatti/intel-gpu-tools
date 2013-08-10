@@ -131,8 +131,9 @@ static void do_test(int fd, int cache_level,
 		    int loop)
 {
 	if (cache_level != -1) {
-		gem_set_cacheing(fd, tmp[0]->handle, cache_level);
-		gem_set_cacheing(fd, tmp[1]->handle, cache_level);
+		if (gem_set_cacheing(fd, tmp[0]->handle, cache_level) ||
+		    gem_set_cacheing(fd, tmp[1]->handle, cache_level))
+			return;
 	}
 
 	do {
@@ -213,6 +214,15 @@ main(int argc, char **argv)
 	if (drmtest_run_subtest("interruptible-snoop")) {
 		drmtest_fork_signal_helper();
 		do_test(fd, 1, src, start, dst, 100);
+		drmtest_stop_signal_helper();
+	}
+
+	if (drmtest_run_subtest("normal-display"))
+		do_test(fd, 2, src, start, dst, 1);
+
+	if (drmtest_run_subtest("interruptible-display")) {
+		drmtest_fork_signal_helper();
+		do_test(fd, 2, src, start, dst, 100);
 		drmtest_stop_signal_helper();
 	}
 	drm_intel_bo_unreference(src[0]);

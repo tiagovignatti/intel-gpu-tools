@@ -408,7 +408,7 @@ int gem_has_cacheing(int fd)
 	return ret == 0;
 }
 
-void gem_set_cacheing(int fd, uint32_t handle, int cacheing)
+int gem_set_cacheing(int fd, uint32_t handle, int cacheing)
 {
 	struct local_drm_i915_gem_cacheing arg;
 	int ret;
@@ -416,7 +416,7 @@ void gem_set_cacheing(int fd, uint32_t handle, int cacheing)
 	arg.handle = handle;
 	arg.cacheing = cacheing;
 	ret = ioctl(fd, LOCAL_DRM_IOCTL_I915_GEM_SET_CACHEING, &arg);
-	assert(ret == 0);
+	return ret == 0 ? 0 : -errno;
 }
 
 int gem_get_cacheing(int fd, uint32_t handle)

@@ -398,75 +398,114 @@ int main(int argc, char **argv)
 	src = gem_create(fd, object_size);
 	tmp = malloc(object_size);
 
-	gem_set_cacheing(fd, src, 0);
-	gem_set_cacheing(fd, dst, 0);
-	if (drmtest_run_subtest("uncached-copy-correctness"))
-		test_copy(fd, src, dst, tmp, object_size);
-	if (drmtest_run_subtest("uncached-copy-performance")) {
-		for (count = 1; count <= 1<<17; count <<= 1) {
-			struct timeval start, end;
+	if (gem_set_cacheing(fd, src, 0) == 0 &&
+	    gem_set_cacheing(fd, dst, 0) == 0) {
+		if (drmtest_run_subtest("uncached-copy-correctness"))
+			test_copy(fd, src, dst, tmp, object_size);
+		if (drmtest_run_subtest("uncached-copy-performance")) {
+			for (count = 1; count <= 1<<17; count <<= 1) {
+				struct timeval start, end;
 
-			gettimeofday(&start, NULL);
-			copy(fd, src, dst, tmp, object_size, count);
-			gettimeofday(&end, NULL);
-			printf("Time to uncached copy %d bytes x %6d:	%7.3fµs, %s\n",
-			       object_size, count,
-			       elapsed(&start, &end, count),
-			       bytes_per_sec((char *)buf, object_size/elapsed(&start, &end, count)*1e6));
-			fflush(stdout);
+				gettimeofday(&start, NULL);
+				copy(fd, src, dst, tmp, object_size, count);
+				gettimeofday(&end, NULL);
+				printf("Time to uncached copy %d bytes x %6d:	%7.3fµs, %s\n",
+				       object_size, count,
+				       elapsed(&start, &end, count),
+				       bytes_per_sec((char *)buf, object_size/elapsed(&start, &end, count)*1e6));
+				fflush(stdout);
+			}
+		}
+
+		if (drmtest_run_subtest("uncached-pwrite-blt-gtt_mmap-correctness"))
+			test_as_gtt_mmap(fd, src, dst, object_size);
+		if (drmtest_run_subtest("uncached-pwrite-blt-gtt_mmap-performance")) {
+			for (count = 1; count <= 1<<17; count <<= 1) {
+				struct timeval start, end;
+
+				gettimeofday(&start, NULL);
+				as_gtt_mmap(fd, src, dst, tmp, object_size, count);
+				gettimeofday(&end, NULL);
+				printf("** mmap uncached copy %d bytes x %6d:	%7.3fµs, %s\n",
+				       object_size, count,
+				       elapsed(&start, &end, count),
+				       bytes_per_sec((char *)buf, object_size/elapsed(&start, &end, count)*1e6));
+				fflush(stdout);
+			}
 		}
 	}
 
-	if (drmtest_run_subtest("uncached-pwrite-blt-gtt_mmap-correctness"))
-		test_as_gtt_mmap(fd, src, dst, object_size);
-	if (drmtest_run_subtest("uncached-pwrite-blt-gtt_mmap-performance")) {
-		for (count = 1; count <= 1<<17; count <<= 1) {
-			struct timeval start, end;
+	if (gem_set_cacheing(fd, src, 1) == 0 &&
+	    gem_set_cacheing(fd, dst, 1) == 0) {
+		if (drmtest_run_subtest("snooped-copy-correctness"))
+			test_copy(fd, src, dst, tmp, object_size);
+		if (drmtest_run_subtest("snooped-copy-performance")) {
+			for (count = 1; count <= 1<<17; count <<= 1) {
+				struct timeval start, end;
 
-			gettimeofday(&start, NULL);
-			as_gtt_mmap(fd, src, dst, tmp, object_size, count);
-			gettimeofday(&end, NULL);
-			printf("** mmap uncached copy %d bytes x %6d:	%7.3fµs, %s\n",
-			       object_size, count,
-			       elapsed(&start, &end, count),
-			       bytes_per_sec((char *)buf, object_size/elapsed(&start, &end, count)*1e6));
-			fflush(stdout);
+				gettimeofday(&start, NULL);
+				copy(fd, src, dst, tmp, object_size, count);
+				gettimeofday(&end, NULL);
+				printf("Time to snooped copy %d bytes x %6d:	%7.3fµs, %s\n",
+				       object_size, count,
+				       elapsed(&start, &end, count),
+				       bytes_per_sec((char *)buf, object_size/elapsed(&start, &end, count)*1e6));
+				fflush(stdout);
+			}
+		}
+
+		if (drmtest_run_subtest("snooped-pwrite-blt-cpu_mmap-correctness"))
+			test_as_cpu_mmap(fd, src, dst, object_size);
+		if (drmtest_run_subtest("snooped-pwrite-blt-cpu_mmap-performance")) {
+			for (count = 1; count <= 1<<17; count <<= 1) {
+				struct timeval start, end;
+
+				gettimeofday(&start, NULL);
+				as_cpu_mmap(fd, src, dst, tmp, object_size, count);
+				gettimeofday(&end, NULL);
+				printf("** mmap snooped copy %d bytes x %6d:	%7.3fµs, %s\n",
+				       object_size, count,
+				       elapsed(&start, &end, count),
+				       bytes_per_sec((char *)buf, object_size/elapsed(&start, &end, count)*1e6));
+				fflush(stdout);
+			}
 		}
 	}
 
-	gem_set_cacheing(fd, src, 1);
-	gem_set_cacheing(fd, dst, 1);
-	if (drmtest_run_subtest("snooped-copy-correctness"))
-		test_copy(fd, src, dst, tmp, object_size);
-	if (drmtest_run_subtest("snooped-copy-performance")) {
-		for (count = 1; count <= 1<<17; count <<= 1) {
-			struct timeval start, end;
+	if (gem_set_cacheing(fd, src, 2) == 0 &&
+	    gem_set_cacheing(fd, dst, 2) == 0) {
+		if (drmtest_run_subtest("display-copy-correctness"))
+			test_copy(fd, src, dst, tmp, object_size);
+		if (drmtest_run_subtest("display-copy-performance")) {
+			for (count = 1; count <= 1<<17; count <<= 1) {
+				struct timeval start, end;
 
-			gettimeofday(&start, NULL);
-			copy(fd, src, dst, tmp, object_size, count);
-			gettimeofday(&end, NULL);
-			printf("Time to snooped copy %d bytes x %6d:	%7.3fµs, %s\n",
-			       object_size, count,
-			       elapsed(&start, &end, count),
-			       bytes_per_sec((char *)buf, object_size/elapsed(&start, &end, count)*1e6));
-			fflush(stdout);
+				gettimeofday(&start, NULL);
+				copy(fd, src, dst, tmp, object_size, count);
+				gettimeofday(&end, NULL);
+				printf("Time to display copy %d bytes x %6d:	%7.3fµs, %s\n",
+				       object_size, count,
+				       elapsed(&start, &end, count),
+				       bytes_per_sec((char *)buf, object_size/elapsed(&start, &end, count)*1e6));
+				fflush(stdout);
+			}
 		}
-	}
 
-	if (drmtest_run_subtest("snooped-pwrite-blt-cpu_mmap-correctness"))
-		test_as_cpu_mmap(fd, src, dst, object_size);
-	if (drmtest_run_subtest("snooped-pwrite-blt-cpu_mmap-performance")) {
-		for (count = 1; count <= 1<<17; count <<= 1) {
-			struct timeval start, end;
+		if (drmtest_run_subtest("display-pwrite-blt-gtt_mmap-correctness"))
+			test_as_gtt_mmap(fd, src, dst, object_size);
+		if (drmtest_run_subtest("display-pwrite-blt-gtt_mmap-performance")) {
+			for (count = 1; count <= 1<<17; count <<= 1) {
+				struct timeval start, end;
 
-			gettimeofday(&start, NULL);
-			as_cpu_mmap(fd, src, dst, tmp, object_size, count);
-			gettimeofday(&end, NULL);
-			printf("** mmap snooped copy %d bytes x %6d:	%7.3fµs, %s\n",
-			       object_size, count,
-			       elapsed(&start, &end, count),
-			       bytes_per_sec((char *)buf, object_size/elapsed(&start, &end, count)*1e6));
-			fflush(stdout);
+				gettimeofday(&start, NULL);
+				as_gtt_mmap(fd, src, dst, tmp, object_size, count);
+				gettimeofday(&end, NULL);
+				printf("** mmap display copy %d bytes x %6d:	%7.3fµs, %s\n",
+				       object_size, count,
+				       elapsed(&start, &end, count),
+				       bytes_per_sec((char *)buf, object_size/elapsed(&start, &end, count)*1e6));
+				fflush(stdout);
+			}
 		}
 	}
 

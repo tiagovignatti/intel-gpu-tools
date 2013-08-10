@@ -90,6 +90,15 @@ int main(int argc, char **argv)
 	uint32_t buf[20];
 	uint32_t *src, dst;
 	int fd, count;
+	const struct {
+		int level;
+		const char *name;
+	} cache[] = {
+		{ 0, "uncached" },
+		{ 1, "snoop" },
+		{ 2, "display" },
+		{ -1 },
+	}, *c;
 
 	drmtest_skip_on_simulation();
 
@@ -104,32 +113,35 @@ int main(int argc, char **argv)
 	dst = gem_create(fd, object_size);
 	src = malloc(object_size);
 
-	gem_set_cacheing(fd, dst, 0);
 	for (count = 1; count <= 1<<17; count <<= 1) {
 		struct timeval start, end;
 
 		gettimeofday(&start, NULL);
 		do_gem_write(fd, dst, src, object_size, count);
 		gettimeofday(&end, NULL);
-		printf("Time to uncached pwrite %d bytes x %6d:	%7.3fµs, %s\n",
+		printf("Time to pwrite %d bytes x %6d:	%7.3fµs, %s\n",
 		       object_size, count,
 		       elapsed(&start, &end, count),
 		       bytes_per_sec((char *)buf, object_size/elapsed(&start, &end, count)*1e6));
 		fflush(stdout);
 	}
 
-	gem_set_cacheing(fd, dst, 1);
-	for (count = 1; count <= 1<<17; count <<= 1) {
-		struct timeval start, end;
+	for (c = cache; c->level != -1; c++) {
+		if (gem_set_cacheing(fd, dst, c->level))
+			continue;
 
-		gettimeofday(&start, NULL);
-		do_gem_write(fd, dst, src, object_size, count);
-		gettimeofday(&end, NULL);
-		printf("Time to snooped pwrite %d bytes x %6d:	%7.3fµs, %s\n",
-		       object_size, count,
-		       elapsed(&start, &end, count),
-		       bytes_per_sec((char *)buf, object_size/elapsed(&start, &end, count)*1e6));
-		fflush(stdout);
+		for (count = 1; count <= 1<<17; count <<= 1) {
+			struct timeval start, end;
+
+			gettimeofday(&start, NULL);
+			do_gem_write(fd, dst, src, object_size, count);
+			gettimeofday(&end, NULL);
+			printf("Time to %s pwrite %d bytes x %6d:	%7.3fµs, %s\n",
+			       c->level, object_size, count,
+			       elapsed(&start, &end, count),
+			       bytes_per_sec((char *)buf, object_size/elapsed(&start, &end, count)*1e6));
+			fflush(stdout);
+			}
 	}
 
 	free(src);
