@@ -184,8 +184,13 @@ typedef union {
 		uint8_t Rsvd0        :5;
 		uint8_t video_format :3;
 
-		uint8_t Rsvd1         :4;
-		uint8_t s3d_structure :4;
+		union {
+			uint8_t vic;
+			struct {
+				uint8_t Rsvd1         :4;
+				uint8_t s3d_structure :4;
+			} s3d;
+		} pb5;
 
 		uint8_t Rsvd2        :4;
 		uint8_t s3d_ext_data :4;
@@ -467,13 +472,26 @@ static const char *s3d_structure_to_string(int format)
 
 static void dump_vendor_hdmi(DipInfoFrame *frame)
 {
+	int vic_present = frame->vendor.video_format & 0x1;
 	int s3d_present = frame->vendor.video_format & 0x2;
 
 	printf("- video format: 0x%03x %s\n", frame->vendor.video_format,
 	       s3d_present ? "(3D)" : "");
-	if (s3d_present)
+
+	if (vic_present && s3d_present) {
+		printf("Error: HDMI VIC and S3D bits set. Only one of those "
+		       " at a time is valid\n");
+		return;
+	}
+
+	if (vic_present)
+		printf("- HDMI VIC: %d\n", frame->vendor.pb5.vic);
+	else if (s3d_present) {
+		int s3d_structure = frame->vendor.pb5.s3d.s3d_structure;
+
 		printf("- 3D Format: %s\n",
-		       s3d_structure_to_string(frame->vendor.s3d_structure));
+		       s3d_structure_to_string(s3d_structure));
+	}
 }
 
 static void dump_vendor_info(Transcoder transcoder)
