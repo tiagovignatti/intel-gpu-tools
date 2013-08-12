@@ -118,7 +118,7 @@ blt_bo_fill(drm_intel_bo *tmp_bo, drm_intel_bo *bo, int val)
 
 	if (bo->offset < mappable_gtt_limit &&
 	    (IS_G33(devid) || intel_gen(devid) >= 4))
-		drmtest_trash_aperture();
+		igt_trash_aperture();
 
 	copy_bo(tmp_bo, 0, bo, 1);
 }
@@ -151,7 +151,7 @@ static void test_partial_reads(void)
 			}
 		}
 
-		drmtest_progress("partial reads test: ", i, ROUNDS);
+		igt_progress("partial reads test: ", i, ROUNDS);
 	}
 }
 
@@ -200,7 +200,7 @@ static void test_partial_writes(void)
 		}
 		drm_intel_gem_bo_unmap_gtt(staging_bo);
 
-		drmtest_progress("partial writes test: ", i, ROUNDS);
+		igt_progress("partial writes test: ", i, ROUNDS);
 	}
 }
 
@@ -268,7 +268,7 @@ static void test_partial_read_writes(void)
 		}
 		drm_intel_gem_bo_unmap_gtt(staging_bo);
 
-		drmtest_progress("partial read/writes test: ", i, ROUNDS);
+		igt_progress("partial read/writes test: ", i, ROUNDS);
 	}
 }
 
@@ -276,8 +276,8 @@ int main(int argc, char **argv)
 {
 	uint32_t tiling_mode = I915_TILING_X;
 
-	drmtest_subtest_init(argc, argv);
-	drmtest_skip_on_simulation();
+	igt_subtest_init(argc, argv);
+	igt_skip_on_simulation();
 
 	srandom(0xdeadbeef);
 
@@ -300,19 +300,19 @@ int main(int argc, char **argv)
 						    &tiling_mode,
 						    &scratch_pitch, 0);
 
-	drmtest_init_aperture_trashers(bufmgr);
+	igt_init_aperture_trashers(bufmgr);
 	mappable_gtt_limit = gem_mappable_aperture_size();
 
-	drmtest_subtest("reads")
+	igt_subtest("reads")
 		test_partial_reads();
 
-	drmtest_subtest("writes")
+	igt_subtest("writes")
 		test_partial_writes();
 
-	drmtest_subtest("writes-after-reads")
+	igt_subtest("writes-after-reads")
 		test_partial_read_writes();
 
-	drmtest_cleanup_aperture_trashers();
+	igt_cleanup_aperture_trashers();
 	drm_intel_bufmgr_destroy(bufmgr);
 
 	close(fd);

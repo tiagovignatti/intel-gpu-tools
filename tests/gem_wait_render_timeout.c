@@ -122,7 +122,7 @@ int main(int argc, char **argv)
 	bool done = false;
 	int i, iter = 1;
 
-	drmtest_skip_on_simulation();
+	igt_skip_on_simulation();
 
 	fd = drm_open_any();
 
@@ -171,7 +171,7 @@ int main(int argc, char **argv)
 	printf("%d iters is enough work\n", iter);
 	gem_quiescent_gpu(fd);
 	if (do_signals)
-		drmtest_fork_signal_helper();
+		igt_fork_signal_helper();
 
 	/* We should be able to do half as much work in the same amount of time,
 	 * but because we might schedule almost twice as much as required, we
@@ -220,7 +220,7 @@ int main(int argc, char **argv)
 
 
 	if (do_signals)
-		drmtest_stop_signal_helper();
+		igt_stop_signal_helper();
 	drm_intel_bo_unreference(dst2);
 	drm_intel_bo_unreference(dst);
 	intel_batchbuffer_free(batch);

@@ -95,7 +95,7 @@ int main(int argc, char **argv)
 	unsigned long pitch = 0;
 	int r;
 
-	drmtest_skip_on_simulation();
+	igt_skip_on_simulation();
 
 	fd = drm_open_any();
 	assert(fd >= 0);

@@ -130,8 +130,8 @@ int main(int argc, char **argv)
 	int devid;
 	int num_rings;
 
-	drmtest_subtest_init(argc, argv);
-	drmtest_skip_on_simulation();
+	igt_subtest_init(argc, argv);
+	igt_skip_on_simulation();
 
 	fd = drm_open_any();
 	devid = intel_get_drm_devid(fd);
@@ -160,13 +160,13 @@ int main(int argc, char **argv)
 		exit(-1);
 	}
 
-	drmtest_subtest("render") {
+	igt_subtest("render") {
 		printf("running dummy loop on render\n");
 		dummy_reloc_loop(I915_EXEC_RENDER);
 		printf("dummy loop run on render completed\n");
 	}
 
-	drmtest_subtest("bsd") {
+	igt_subtest("bsd") {
 		if (gem_check_bsd(fd)) {
 			sleep(2);
 			printf("running dummy loop on bsd\n");
@@ -175,7 +175,7 @@ int main(int argc, char **argv)
 		}
 	}
 
-	drmtest_subtest("blt") {
+	igt_subtest("blt") {
 		if (gem_check_blt(fd)) {
 			sleep(2);
 			printf("running dummy loop on blt\n");
@@ -184,7 +184,7 @@ int main(int argc, char **argv)
 		}
 	}
 
-	drmtest_subtest("vebox") {
+	igt_subtest("vebox") {
 		if (gem_check_vebox(fd)) {
 			sleep(2);
 			printf("running dummy loop on vebox\n");
@@ -193,7 +193,7 @@ int main(int argc, char **argv)
 		}
 	}
 
-	drmtest_subtest("mixed") {
+	igt_subtest("mixed") {
 		if (num_rings > 1) {
 			sleep(2);
 			printf("running dummy loop on random rings\n");
@@ -208,5 +208,5 @@ int main(int argc, char **argv)
 
 	close(fd);
 
-	return drmtest_retval();
+	return igt_retval();
 }

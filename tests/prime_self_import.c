@@ -381,10 +381,10 @@ int main(int argc, char **argv)
 	};
 	int i;
 
-	drmtest_subtest_init(argc, argv);
+	igt_subtest_init(argc, argv);
 
 	for (i = 0; i < ARRAY_SIZE(tests); i++) {
-		drmtest_subtest(tests[i].name)
+		igt_subtest(tests[i].name)
 			tests[i].fn();
 	}
 

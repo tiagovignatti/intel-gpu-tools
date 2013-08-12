@@ -93,8 +93,8 @@ int main(int argc, char **argv)
 		{ -1 },
 	}, *c;
 
-	drmtest_subtest_init(argc, argv);
-	drmtest_skip_on_simulation();
+	igt_subtest_init(argc, argv);
+	igt_skip_on_simulation();
 
 	if (argc > 1 && atoi(argv[1]))
 		object_size = atoi(argv[1]);
@@ -107,7 +107,7 @@ int main(int argc, char **argv)
 	dst = gem_create(fd, object_size);
 	src = malloc(object_size);
 
-	drmtest_subtest("normal") {
+	igt_subtest("normal") {
 		for (count = 1; count <= 1<<17; count <<= 1) {
 			struct timeval start, end;
 
@@ -123,7 +123,7 @@ int main(int argc, char **argv)
 	}
 
 	for (c = cache; c->level != -1; c++) {
-		drmtest_subtest(c->name) {
+		igt_subtest(c->name) {
 			gem_set_caching(fd, dst, c->level);
 
 			for (count = 1; count <= 1<<17; count <<= 1) {
@@ -146,5 +146,5 @@ int main(int argc, char **argv)
 
 	close(fd);
 
-	return drmtest_retval();
+	return igt_retval();
 }

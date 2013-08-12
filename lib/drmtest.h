@@ -86,36 +86,36 @@ int prime_handle_to_fd(int fd, uint32_t handle);
 uint32_t prime_fd_to_handle(int fd, int dma_buf_fd);
 
 /* generally useful helpers */
-void drmtest_fork_signal_helper(void);
-void drmtest_stop_signal_helper(void);
-void drmtest_exchange_int(void *array, unsigned i, unsigned j);
-void drmtest_permute_array(void *array, unsigned size,
+void igt_fork_signal_helper(void);
+void igt_stop_signal_helper(void);
+void igt_exchange_int(void *array, unsigned i, unsigned j);
+void igt_permute_array(void *array, unsigned size,
 			   void (*exchange_func)(void *array,
 						 unsigned i,
 						 unsigned j));
-void drmtest_progress(const char *header, uint64_t i, uint64_t total);
+void igt_progress(const char *header, uint64_t i, uint64_t total);
 
 /* subtest infrastructure */
-jmp_buf drmtest_subtest_jmpbuf;
-void drmtest_subtest_init(int argc, char **argv);
-bool __drmtest_run_subtest(const char *subtest_name);
-#define drmtest_subtest(name) for (; __drmtest_run_subtest((name)) && \
-				   (setjmp(drmtest_subtest_jmpbuf) == 0); \
-				   drmtest_success())
-bool drmtest_only_list_subtests(void);
-void drmtest_skip(void);
-void drmtest_success(void);
-void drmtest_fail(int exitcode) __attribute__((noreturn));
-int drmtest_retval(void);
+jmp_buf igt_subtest_jmpbuf;
+void igt_subtest_init(int argc, char **argv);
+bool __igt_run_subtest(const char *subtest_name);
+#define igt_subtest(name) for (; __igt_run_subtest((name)) && \
+				   (setjmp(igt_subtest_jmpbuf) == 0); \
+				   igt_success())
+bool igt_only_list_subtests(void);
+void igt_skip(void);
+void igt_success(void);
+void igt_fail(int exitcode) __attribute__((noreturn));
+int igt_retval(void);
 
-/* check functions which auto-skip tests by calling drmtest_skip() */
+/* check functions which auto-skip tests by calling igt_skip() */
 void gem_check_caching(int fd);
 static inline bool gem_check_vebox(int fd)
 {
 	if (gem_has_vebox(fd))
 		return true;
 
-	drmtest_skip();
+	igt_skip();
 	return false;
 }
 
@@ -124,7 +124,7 @@ static inline bool gem_check_bsd(int fd)
 	if (HAS_BSD_RING(intel_get_drm_devid(fd)))
 		return true;
 
-	drmtest_skip();
+	igt_skip();
 	return false;
 }
 
@@ -133,19 +133,19 @@ static inline bool gem_check_blt(int fd)
 	if (HAS_BLT_RING(intel_get_drm_devid(fd)))
 		return true;
 
-	drmtest_skip();
+	igt_skip();
 	return false;
 }
 
 /* helpers to automatically reduce test runtime in simulation */
-bool drmtest_run_in_simulation(void);
-#define SLOW_QUICK(slow,quick) (drmtest_run_in_simulation() ? (quick) : (slow))
-void drmtest_skip_on_simulation(void);
+bool igt_run_in_simulation(void);
+#define SLOW_QUICK(slow,quick) (igt_run_in_simulation() ? (quick) : (slow))
+void igt_skip_on_simulation(void);
 
 /* helpers based upon the libdrm buffer manager */
-void drmtest_init_aperture_trashers(drm_intel_bufmgr *bufmgr);
-void drmtest_trash_aperture(void);
-void drmtest_cleanup_aperture_trashers(void);
+void igt_init_aperture_trashers(drm_intel_bufmgr *bufmgr);
+void igt_trash_aperture(void);
+void igt_cleanup_aperture_trashers(void);
 
 struct kmstest_connector_config {
 	drmModeCrtc *crtc;
@@ -220,19 +220,19 @@ inline static void _do_or_die(const char *function, int line, int ret)
 #define do_or_die(x) _do_or_die(__FUNCTION__, __LINE__, x)
 #define do_ioctl(fd, ptr, sz) do_or_die(drmIoctl((fd), (ptr), (sz)))
 
-typedef void (*drmtest_exit_handler_t)(int sig);
+typedef void (*igt_exit_handler_t)(int sig);
 
 /* reliable atexit helpers, also work when killed by a signal (if possible) */
-int drmtest_install_exit_handler(drmtest_exit_handler_t fn);
-void drmtest_enable_exit_handler(void);
-void drmtest_disable_exit_handler(void);
+int igt_install_exit_handler(igt_exit_handler_t fn);
+void igt_enable_exit_handler(void);
+void igt_disable_exit_handler(void);
 
 /* set vt into graphics mode, required to prevent fbcon from interfering */
-int drmtest_set_vt_graphics_mode(void);
+int igt_set_vt_graphics_mode(void);
 
 /* prefault disabling, needs the corresponding debugfs interface */
-int drmtest_disable_prefault(void);
-int drmtest_enable_prefault(void);
+int igt_disable_prefault(void);
+int igt_enable_prefault(void);
 
 /* suspend and auto-resume system */
-void drmtest_system_suspend_autoresume(void);
+void igt_system_suspend_autoresume(void);

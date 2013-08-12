@@ -176,8 +176,8 @@ main(int argc, char **argv)
 	drm_intel_bo *src[2], *dst[2];
 	int fd;
 
-	drmtest_subtest_init(argc, argv);
-	drmtest_skip_on_simulation();
+	igt_subtest_init(argc, argv);
+	igt_skip_on_simulation();
 
 	fd = drm_open_any();
 
@@ -191,40 +191,40 @@ main(int argc, char **argv)
 	dst[0] = drm_intel_bo_alloc(bufmgr, "dst bo", size, 4096);
 	dst[1] = drm_intel_bo_alloc(bufmgr, "dst bo", size, 4096);
 
-	drmtest_subtest("normal")
+	igt_subtest("normal")
 		do_test(fd, -1, src, start, dst, 1);
 
-	drmtest_subtest("interruptible") {
-		drmtest_fork_signal_helper();
+	igt_subtest("interruptible") {
+		igt_fork_signal_helper();
 		do_test(fd, -1, src, start, dst, 100);
-		drmtest_stop_signal_helper();
+		igt_stop_signal_helper();
 	}
 
-	drmtest_subtest("normal-uncached")
+	igt_subtest("normal-uncached")
 		do_test(fd, 0, src, start, dst, 1);
 
-	drmtest_subtest("interruptible-uncached") {
-		drmtest_fork_signal_helper();
+	igt_subtest("interruptible-uncached") {
+		igt_fork_signal_helper();
 		do_test(fd, 0, src, start, dst, 100);
-		drmtest_stop_signal_helper();
+		igt_stop_signal_helper();
 	}
 
-	drmtest_subtest("normal-snoop")
+	igt_subtest("normal-snoop")
 		do_test(fd, 1, src, start, dst, 1);
 
-	drmtest_subtest("interruptible-snoop") {
-		drmtest_fork_signal_helper();
+	igt_subtest("interruptible-snoop") {
+		igt_fork_signal_helper();
 		do_test(fd, 1, src, start, dst, 100);
-		drmtest_stop_signal_helper();
+		igt_stop_signal_helper();
 	}
 
-	drmtest_subtest("normal-display")
+	igt_subtest("normal-display")
 		do_test(fd, 2, src, start, dst, 1);
 
-	drmtest_subtest("interruptible-display") {
-		drmtest_fork_signal_helper();
+	igt_subtest("interruptible-display") {
+		igt_fork_signal_helper();
 		do_test(fd, 2, src, start, dst, 100);
-		drmtest_stop_signal_helper();
+		igt_stop_signal_helper();
 	}
 	drm_intel_bo_unreference(src[0]);
 	drm_intel_bo_unreference(src[1]);
@@ -236,5 +236,5 @@ main(int argc, char **argv)
 
 	close(fd);
 
-	return drmtest_retval();
+	return igt_retval();
 }

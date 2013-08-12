@@ -70,7 +70,7 @@ int main(int argc, char **argv)
 	drm_intel_bo *busy_bo, *test_bo;
 	uint32_t tiling = I915_TILING_X;
 
-	drmtest_skip_on_simulation();
+	igt_skip_on_simulation();
 
 	for (i = 0; i < 1024*256; i++)
 		data[i] = i;

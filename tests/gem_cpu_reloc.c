@@ -153,7 +153,7 @@ int main(int argc, char **argv)
 	}
 
 	count = aper_size / 4096 * 2;
-	if (drmtest_run_in_simulation())
+	if (igt_run_in_simulation())
 		count = 10;
 
 	handles = malloc (count * sizeof(uint32_t));
@@ -177,7 +177,7 @@ int main(int argc, char **argv)
 		exec(fd, bad);
 		gem_close(fd, bad);
 
-		drmtest_progress("gem_cpu_reloc: ", i, 2*count);
+		igt_progress("gem_cpu_reloc: ", i, 2*count);
 	}
 
 	/* And again in reverse to try and catch the relocation code out */
@@ -192,7 +192,7 @@ int main(int argc, char **argv)
 		exec(fd, bad);
 		gem_close(fd, bad);
 
-		drmtest_progress("gem_cpu_reloc: ", count+i, 3*count);
+		igt_progress("gem_cpu_reloc: ", count+i, 3*count);
 	}
 
 	/* Third time lucky? */
@@ -209,7 +209,7 @@ int main(int argc, char **argv)
 		exec(fd, bad);
 		gem_close(fd, bad);
 
-		drmtest_progress("gem_cpu_reloc: ", 2*count+i, 3*count);
+		igt_progress("gem_cpu_reloc: ", 2*count+i, 3*count);
 	}
 
 	printf("Test suceeded, cleanup up - this might take a while.\n");

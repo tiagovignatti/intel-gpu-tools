@@ -80,15 +80,15 @@ int main(int argc, char **argv)
 {
 	int fd;
 
-	drmtest_subtest_init(argc, argv);
+	igt_subtest_init(argc, argv);
 
 	fd = drm_open_any();
 
-	drmtest_subtest("bad-close")
+	igt_subtest("bad-close")
 		test_bad_close(fd);
-	drmtest_subtest("create-close")
+	igt_subtest("create-close")
 		test_create_close(fd);
-	drmtest_subtest("create-fd-close")
+	igt_subtest("create-fd-close")
 		test_create_fd_close(fd);
 
 	return 0;

@@ -240,13 +240,13 @@ int main(int argc, char **argv)
 {
 	int fd, count = 0;
 
-	drmtest_skip_on_simulation();
+	igt_skip_on_simulation();
 
-	drmtest_subtest_init(argc, argv);
+	igt_subtest_init(argc, argv);
 
 	fd = drm_open_any();
 
-	if (!drmtest_only_list_subtests()) {
+	if (!igt_only_list_subtests()) {
 		if (argc > 1)
 			count = atoi(argv[1]);
 		if (count == 0)
@@ -264,13 +264,13 @@ int main(int argc, char **argv)
 		printf("Using %d 1MiB buffers\n", count);
 	}
 
-	drmtest_subtest("normal")
+	igt_subtest("normal")
 		run_test(fd, count);
 
-	drmtest_subtest("interruptible") {
-		drmtest_fork_signal_helper();
+	igt_subtest("interruptible") {
+		igt_fork_signal_helper();
 		run_test(fd, count);
-		drmtest_stop_signal_helper();
+		igt_stop_signal_helper();
 	}
 
 	return 0;

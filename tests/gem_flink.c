@@ -154,19 +154,19 @@ int main(int argc, char **argv)
 {
 	int fd;
 
-	drmtest_subtest_init(argc, argv);
+	igt_subtest_init(argc, argv);
 
 	fd = drm_open_any();
 
-	drmtest_subtest("basic")
+	igt_subtest("basic")
 		test_flink(fd);
-	drmtest_subtest("double-flink")
+	igt_subtest("double-flink")
 		test_double_flink(fd);
-	drmtest_subtest("bad-flink")
+	igt_subtest("bad-flink")
 		test_bad_flink(fd);
-	drmtest_subtest("bad-open")
+	igt_subtest("bad-open")
 		test_bad_open(fd);
-	drmtest_subtest("flink-lifetime")
+	igt_subtest("flink-lifetime")
 		test_flink_lifetime(fd);
 
 	return 0;

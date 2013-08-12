@@ -173,8 +173,8 @@ int main(int argc, char **argv)
 	};
 	int i;
 
-	drmtest_subtest_init(argc, argv);
-	drmtest_skip_on_simulation();
+	igt_subtest_init(argc, argv);
+	igt_skip_on_simulation();
 
 	fd = drm_open_any();
 
@@ -206,20 +206,20 @@ int main(int argc, char **argv)
 	}
 
 	for (i = 0; i < ARRAY_SIZE(tests); i++) {
-		drmtest_subtest(tests[i].name) {
+		igt_subtest(tests[i].name) {
 			if (has_ring(tests[i].ring))
 				run_test(tests[i].ring, tests[i].name);
 		}
 	}
 
-	drmtest_fork_signal_helper();
+	igt_fork_signal_helper();
 	for (i = 0; i < ARRAY_SIZE(tests); i++) {
 		char name[180];
 		snprintf(name, sizeof(name), "%s-interruptible", tests[i].name);
-		drmtest_subtest(name)
+		igt_subtest(name)
 			run_test(tests[i].ring, name);
 	}
-	drmtest_stop_signal_helper();
+	igt_stop_signal_helper();
 
 	drm_intel_bufmgr_destroy(bufmgr);
 

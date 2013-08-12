@@ -163,7 +163,7 @@ main(int argc, char **argv)
 	int num_fences;
 	uint32_t devid;
 
-	drmtest_skip_on_simulation();
+	igt_skip_on_simulation();
 
 	fd = drm_open_any();
 	num_fences = get_num_fences(fd);

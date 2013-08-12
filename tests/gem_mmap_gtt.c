@@ -148,35 +148,35 @@ static void
 run_without_prefault(int fd,
 			void (*func)(int fd))
 {
-	drmtest_disable_prefault();
+	igt_disable_prefault();
 	func(fd);
-	drmtest_enable_prefault();
+	igt_enable_prefault();
 }
 
 int main(int argc, char **argv)
 {
 	int fd;
 
-	if (drmtest_run_in_simulation())
+	if (igt_run_in_simulation())
 		OBJECT_SIZE = 1 * 1024 * 1024;
 
-	drmtest_subtest_init(argc, argv);
+	igt_subtest_init(argc, argv);
 
 	fd = drm_open_any();
 
-	drmtest_subtest("copy")
+	igt_subtest("copy")
 		test_copy(fd);
-	drmtest_subtest("read")
+	igt_subtest("read")
 		test_read(fd);
-	drmtest_subtest("write")
+	igt_subtest("write")
 		test_write(fd);
-	drmtest_subtest("write-gtt")
+	igt_subtest("write-gtt")
 		test_write_gtt(fd);
-	drmtest_subtest("read-no-prefault")
+	igt_subtest("read-no-prefault")
 		run_without_prefault(fd, test_read);
-	drmtest_subtest("write-no-prefault")
+	igt_subtest("write-no-prefault")
 		run_without_prefault(fd, test_write);
-	drmtest_subtest("write-gtt-no-prefault")
+	igt_subtest("write-gtt-no-prefault")
 		run_without_prefault(fd, test_write_gtt);
 
 	close(fd);

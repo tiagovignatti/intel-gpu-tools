@@ -531,7 +531,7 @@ int main(int argc, char **argv)
 	GMainLoop *mainloop;
 	float force_clock;
 
-	drmtest_skip_on_simulation();
+	igt_skip_on_simulation();
 
 	enter_exec_path( argv );
 
@@ -593,7 +593,7 @@ int main(int argc, char **argv)
 
 	drm_fd = drm_open_any();
 
-	do_or_die(drmtest_set_vt_graphics_mode());
+	do_or_die(igt_set_vt_graphics_mode());
 
 	mainloop = g_main_loop_new(NULL, FALSE);
 	if (!mainloop) {

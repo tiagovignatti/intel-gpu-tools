@@ -101,7 +101,7 @@ main(int argc, char **argv)
 	int count;
 	current_tiling_mode = I915_TILING_X;
 
-	drmtest_skip_on_simulation();
+	igt_skip_on_simulation();
 
 	fd = drm_open_any();
 	/* need slightly more than total ram */
@@ -133,8 +133,8 @@ main(int argc, char **argv)
 	for (i = 0; i < count; i++)
 		idx_arr[i] = i;
 
-	drmtest_permute_array(idx_arr, count,
-			      drmtest_exchange_int);
+	igt_permute_array(idx_arr, count,
+			      igt_exchange_int);
 
 	for (i = 0; i < count/2; i++) {
 		/* Check the target bo's contents. */

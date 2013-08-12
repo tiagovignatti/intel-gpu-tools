@@ -133,7 +133,7 @@ int main(int argc, char *argv[])
 	struct junk *junk = stuff;
 	int fd, ret;
 
-	drmtest_skip_on_simulation();
+	igt_skip_on_simulation();
 
 	if (argc > 1)
 		verbose++;

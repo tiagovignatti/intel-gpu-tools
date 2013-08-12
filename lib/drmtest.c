@@ -277,7 +277,7 @@ int drm_open_any(void)
 		return fd;
 
 	gem_quiescent_gpu(fd);
-	drmtest_install_exit_handler(quiescent_gpu_at_exit);
+	igt_install_exit_handler(quiescent_gpu_at_exit);
 
 	return fd;
 }
@@ -406,9 +406,9 @@ void gem_check_caching(int fd)
 	gem_close(fd, arg.handle);
 
 	if (ret != 0) {
-		if (!drmtest_only_list_subtests())
+		if (!igt_only_list_subtests())
 			printf("no set_caching support detected\n");
-		drmtest_skip();
+		igt_skip();
 	}
 }
 
@@ -422,7 +422,7 @@ void gem_set_caching(int fd, uint32_t handle, int caching)
 	ret = ioctl(fd, LOCAL_DRM_IOCTL_I915_GEM_SET_CACHEING, &arg);
 
 	if (ret != 0 && (errno == ENOTTY || errno == EINVAL))
-		drmtest_skip();
+		igt_skip();
 	else
 		assert(ret == 0);
 }
@@ -635,15 +635,15 @@ static void sig_handler(int i)
 
 static void signal_helper_exit_handler(int sig)
 {
-	drmtest_stop_signal_helper();
+	igt_stop_signal_helper();
 }
 
-void drmtest_fork_signal_helper(void)
+void igt_fork_signal_helper(void)
 {
 	pid_t pid;
 	sighandler_t oldsig;
 
-	drmtest_install_exit_handler(signal_helper_exit_handler);
+	igt_install_exit_handler(signal_helper_exit_handler);
 
 	signal(SIGUSR1, sig_handler);
 	oldsig = signal(SIGQUIT, SIG_DFL);
@@ -657,7 +657,7 @@ void drmtest_fork_signal_helper(void)
 	signal_helper = pid;
 }
 
-void drmtest_stop_signal_helper(void)
+void igt_stop_signal_helper(void)
 {
 	int exitcode;
 
@@ -680,7 +680,7 @@ static bool in_subtest = false;
 static bool test_with_subtests = false;
 static bool skip_subtests_henceforth = false;
 
-void drmtest_subtest_init(int argc, char **argv)
+void igt_subtest_init(int argc, char **argv)
 {
 	int c, option_index = 0;
 	static struct option long_options[] = {
@@ -714,10 +714,10 @@ out:
 
 /*
  * Note: Testcases which use these helpers MUST NOT output anything to stdout
- * outside of places protected by drmtest_run_subtest checks - the piglit
+ * outside of places protected by igt_run_subtest checks - the piglit
  * runner adds every line to the subtest list.
  */
-bool __drmtest_run_subtest(const char *subtest_name)
+bool __igt_run_subtest(const char *subtest_name)
 {
 	assert(in_subtest == false);
 
@@ -739,7 +739,7 @@ bool __drmtest_run_subtest(const char *subtest_name)
 	}
 }
 
-bool drmtest_only_list_subtests(void)
+bool igt_only_list_subtests(void)
 {
 	return list_subtests;
 }
@@ -747,16 +747,16 @@ bool drmtest_only_list_subtests(void)
 static bool skipped_one = false;
 static bool succeeded_one = false;
 static bool failed_one = false;
-static int drmtest_exitcode;
+static int igt_exitcode;
 
 static void exit_subtest(void) __attribute__((noreturn));
 static void exit_subtest(void)
 {
 	in_subtest = false;
-	longjmp(drmtest_subtest_jmpbuf, 1);
+	longjmp(igt_subtest_jmpbuf, 1);
 }
 
-void drmtest_skip(void)
+void igt_skip(void)
 {
 	skipped_one = true;
 	if (in_subtest)
@@ -767,19 +767,19 @@ void drmtest_skip(void)
 		exit(77);
 }
 
-void drmtest_success(void)
+void igt_success(void)
 {
 	succeeded_one = true;
 	if (in_subtest)
 		exit_subtest();
 }
 
-void drmtest_fail(int exitcode)
+void igt_fail(int exitcode)
 {
 	assert(exitcode != 0 && exitcode != 77);
 
 	if (!failed_one)
-		drmtest_exitcode = exitcode;
+		igt_exitcode = exitcode;
 
 	failed_one = true;
 
@@ -791,16 +791,16 @@ void drmtest_fail(int exitcode)
 	}
 }
 
-int drmtest_retval(void)
+int igt_retval(void)
 {
-	if (drmtest_only_list_subtests())
+	if (igt_only_list_subtests())
 		return 0;
 
 	/* Calling this without calling one of the above is a failure */
 	assert(skipped_one || succeeded_one || failed_one);
 
 	if (failed_one)
-		return drmtest_exitcode;
+		return igt_exitcode;
 	else if (succeeded_one)
 		return 0;
 	else
@@ -818,7 +818,7 @@ static bool env_set(const char *env_var, bool default_value)
 	return atoi(val) != 0;
 }
 
-bool drmtest_run_in_simulation(void)
+bool igt_run_in_simulation(void)
 {
 	static int simulation = -1;
 
@@ -830,17 +830,17 @@ bool drmtest_run_in_simulation(void)
 
 /* Skip the test when running on simulation (and that's relevant only when
  * we're not in the mode where we list the subtests) */
-void drmtest_skip_on_simulation(void)
+void igt_skip_on_simulation(void)
 {
-	if (drmtest_only_list_subtests())
+	if (igt_only_list_subtests())
 		return;
 
-	if (drmtest_run_in_simulation())
+	if (igt_run_in_simulation())
 		exit(77);
 }
 
 /* other helpers */
-void drmtest_exchange_int(void *array, unsigned i, unsigned j)
+void igt_exchange_int(void *array, unsigned i, unsigned j)
 {
 	int *int_arr, tmp;
 	int_arr = array;
@@ -850,7 +850,7 @@ void drmtest_exchange_int(void *array, unsigned i, unsigned j)
 	int_arr[j] = tmp;
 }
 
-void drmtest_permute_array(void *array, unsigned size,
+void igt_permute_array(void *array, unsigned size,
 			   void (*exchange_func)(void *array,
 						 unsigned i,
 						 unsigned j))
@@ -865,7 +865,7 @@ void drmtest_permute_array(void *array, unsigned size,
 	}
 }
 
-void drmtest_progress(const char *header, uint64_t i, uint64_t total)
+void igt_progress(const char *header, uint64_t i, uint64_t total)
 {
 	int divider = 200;
 
@@ -891,7 +891,7 @@ void drmtest_progress(const char *header, uint64_t i, uint64_t total)
 drm_intel_bo **trash_bos;
 int num_trash_bos;
 
-void drmtest_init_aperture_trashers(drm_intel_bufmgr *bufmgr)
+void igt_init_aperture_trashers(drm_intel_bufmgr *bufmgr)
 {
 	int i;
 
@@ -904,7 +904,7 @@ void drmtest_init_aperture_trashers(drm_intel_bufmgr *bufmgr)
 		trash_bos[i] = drm_intel_bo_alloc(bufmgr, "trash bo", 1024*1024, 4096);
 }
 
-void drmtest_trash_aperture(void)
+void igt_trash_aperture(void)
 {
 	int i;
 	uint8_t *gtt_ptr;
@@ -917,7 +917,7 @@ void drmtest_trash_aperture(void)
 	}
 }
 
-void drmtest_cleanup_aperture_trashers(void)
+void igt_cleanup_aperture_trashers(void)
 {
 	int i;
 
@@ -1397,7 +1397,7 @@ static struct {
 	bool installed;
 } orig_sig[MAX_SIGNALS];
 
-static drmtest_exit_handler_t exit_handler_fn[MAX_EXIT_HANDLERS];
+static igt_exit_handler_t exit_handler_fn[MAX_EXIT_HANDLERS];
 static int exit_handler_count;
 static bool exit_handler_disabled;
 static sigset_t saved_sig_mask;
@@ -1443,7 +1443,7 @@ static void call_exit_handlers(int sig)
 		exit_handler_fn[i](sig);
 }
 
-static void drmtest_atexit_handler(void)
+static void igt_atexit_handler(void)
 {
 	restore_all_sig_handler();
 
@@ -1451,7 +1451,7 @@ static void drmtest_atexit_handler(void)
 		call_exit_handlers(0);
 }
 
-static void drmtest_sig_handler(int sig)
+static void igt_sig_handler(int sig)
 {
 	restore_all_sig_handler();
 
@@ -1475,7 +1475,7 @@ static void drmtest_sig_handler(int sig)
  * The handler will be passed the signal number if called due to a signal, or
  * 0 otherwise.
  */
-int drmtest_install_exit_handler(drmtest_exit_handler_t fn)
+int igt_install_exit_handler(igt_exit_handler_t fn)
 {
 	int i;
 
@@ -1490,11 +1490,11 @@ int drmtest_install_exit_handler(drmtest_exit_handler_t fn)
 
 	for (i = 0; i < ARRAY_SIZE(handled_signals); i++) {
 		if (install_sig_handler(handled_signals[i],
-					drmtest_sig_handler))
+					igt_sig_handler))
 			goto err;
 	}
 
-	if (atexit(drmtest_atexit_handler))
+	if (atexit(igt_atexit_handler))
 		goto err;
 
 	return 0;
@@ -1505,7 +1505,7 @@ err:
 	return -1;
 }
 
-void drmtest_disable_exit_handler(void)
+void igt_disable_exit_handler(void)
 {
 	sigset_t set;
 	int i;
@@ -1525,7 +1525,7 @@ void drmtest_disable_exit_handler(void)
 	exit_handler_disabled = true;
 }
 
-void drmtest_enable_exit_handler(void)
+void igt_enable_exit_handler(void)
 {
 	if (!exit_handler_disabled)
 		return;
@@ -1575,16 +1575,16 @@ static void restore_vt_mode_at_exit(int sig)
  * original mode.
  */
 
-int drmtest_set_vt_graphics_mode(void)
+int igt_set_vt_graphics_mode(void)
 {
-	if (drmtest_install_exit_handler(restore_vt_mode_at_exit))
+	if (igt_install_exit_handler(restore_vt_mode_at_exit))
 		return -1;
 
-	drmtest_disable_exit_handler();
+	igt_disable_exit_handler();
 	orig_vt_mode = set_vt_mode(KD_GRAPHICS);
 	if (orig_vt_mode < 0)
 		orig_vt_mode = -1UL;
-	drmtest_enable_exit_handler();
+	igt_enable_exit_handler();
 
 	return orig_vt_mode < 0 ? -1 : 0;
 }
@@ -1725,7 +1725,7 @@ void kmstest_free_connector_config(struct kmstest_connector_config *config)
 }
 
 #define PREFAULT_DEBUGFS "/sys/module/i915/parameters/prefault_disable"
-static int drmtest_prefault_control(bool enable)
+static int igt_prefault_control(bool enable)
 {
 	const char *name = PREFAULT_DEBUGFS;
 	int fd;
@@ -1758,22 +1758,22 @@ static int drmtest_prefault_control(bool enable)
 
 static void enable_prefault_at_exit(int sig)
 {
-	drmtest_enable_prefault();
+	igt_enable_prefault();
 }
 
-int drmtest_disable_prefault(void)
+int igt_disable_prefault(void)
 {
-	drmtest_install_exit_handler(enable_prefault_at_exit);
+	igt_install_exit_handler(enable_prefault_at_exit);
 
-	return drmtest_prefault_control(false);
+	return igt_prefault_control(false);
 }
 
-int drmtest_enable_prefault(void)
+int igt_enable_prefault(void)
 {
-	return drmtest_prefault_control(true);
+	return igt_prefault_control(true);
 }
 
-void drmtest_system_suspend_autoresume(void)
+void igt_system_suspend_autoresume(void)
 {
 	int ret;
 

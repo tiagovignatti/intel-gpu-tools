@@ -1170,14 +1170,14 @@ int main(int argc, char **argv)
 	};
 	int i;
 
-	drmtest_subtest_init(argc, argv);
-	drmtest_skip_on_simulation();
+	igt_subtest_init(argc, argv);
+	igt_skip_on_simulation();
 
 	drm_fd = drm_open_any();
 
-	if (!drmtest_only_list_subtests()) {
-		do_or_die(drmtest_set_vt_graphics_mode());
-		do_or_die(drmtest_install_exit_handler(kms_flip_exit_handler));
+	if (!igt_only_list_subtests()) {
+		do_or_die(igt_set_vt_graphics_mode());
+		do_or_die(igt_install_exit_handler(kms_flip_exit_handler));
 		get_timestamp_format();
 	}
 
@@ -1186,13 +1186,13 @@ int main(int argc, char **argv)
 	batch = intel_batchbuffer_alloc(bufmgr, devid);
 
 	for (i = 0; i < sizeof(tests) / sizeof (tests[0]); i++) {
-		drmtest_subtest(tests[i].name) {
+		igt_subtest(tests[i].name) {
 			printf("running testcase: %s\n", tests[i].name);
 			run_test(tests[i].duration, tests[i].flags, tests[i].name);
 		}
 	}
 
-	drmtest_fork_signal_helper();
+	igt_fork_signal_helper();
 	for (i = 0; i < sizeof(tests) / sizeof (tests[0]); i++) {
 		char name[160];
 		snprintf(name, sizeof(name), "%s-interruptible", tests[i].name);
@@ -1203,12 +1203,12 @@ int main(int argc, char **argv)
 		    !(tests[i].flags & TEST_VBLANK_ABSOLUTE))
 			continue;
 
-		drmtest_subtest(name) {
+		igt_subtest(name) {
 			printf("running testcase: %s\n", name);
 			run_test(tests[i].duration, tests[i].flags, name);
 		}
 	}
-	drmtest_stop_signal_helper();
+	igt_stop_signal_helper();
 
 	close(drm_fd);
 

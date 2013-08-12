@@ -77,7 +77,7 @@ main(int argc, char **argv)
 
 	uint32_t *ptr;
 
-	drmtest_skip_on_simulation();
+	igt_skip_on_simulation();
 
 	fd = drm_open_any();
 

@@ -193,14 +193,14 @@ static void test_flink_close(void)
 
 int main(int argc, char **argv)
 {
-	drmtest_skip_on_simulation();
+	igt_skip_on_simulation();
 
-	drmtest_subtest_init(argc, argv);
+	igt_subtest_init(argc, argv);
 
-	drmtest_subtest("flink_name")
+	igt_subtest("flink_name")
 		test_flink_name();
 
-	drmtest_subtest("flink_close")
+	igt_subtest("flink_close")
 		test_flink_close();
 
 	return 0;

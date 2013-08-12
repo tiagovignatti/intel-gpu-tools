@@ -1267,7 +1267,7 @@ int main(int argc, char **argv)
 {
 	int ret, failed = 0, run = 0;
 
-	drmtest_subtest_init(argc, argv);
+	igt_subtest_init(argc, argv);
 
 	ret = find_and_open_devices();
 	if (ret < 0)
@@ -1275,7 +1275,7 @@ int main(int argc, char **argv)
 
 	if (nouveau_fd == -1 || intel_fd == -1) {
 		fprintf(stderr,"failed to find intel and nouveau GPU\n");
-		if (!drmtest_only_list_subtests())
+		if (!igt_only_list_subtests())
 			return 77;
 	}
 
@@ -1296,7 +1296,7 @@ int main(int argc, char **argv)
 	batch = intel_batchbuffer_alloc(bufmgr, devid);
 
 #define xtest(x, args...) \
-	drmtest_subtest( #x ) { \
+	igt_subtest( #x ) { \
 		ret = ((x)(args)); \
 		++run; \
 		if (ret) { \
@@ -1331,7 +1331,7 @@ int main(int argc, char **argv)
 	close(intel_fd);
 	close(nouveau_fd);
 
-	if (!drmtest_only_list_subtests())
+	if (!igt_only_list_subtests())
 		printf("Tests: %u run, %u failed\n", run, failed);
 
 	return failed;

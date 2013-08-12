@@ -63,7 +63,7 @@ int main(int argc, char *argv[])
 	FILE *file;
 	int diff;
 
-	drmtest_skip_on_simulation();
+	igt_skip_on_simulation();
 
 	/* Use drm_open_any to verify device existence */
 	fd = drm_open_any();

@@ -96,7 +96,7 @@ int main(int argc, char **argv)
 	int count;
 	drm_intel_bo *sample_batch_bo;
 
-	drmtest_skip_on_simulation();
+	igt_skip_on_simulation();
 
 	fd = drm_open_any();
 
@@ -162,7 +162,7 @@ int main(int argc, char **argv)
 
 		// leak buffers
 		//drm_intel_bo_unreference(batch_bo);
-		drmtest_progress("gem_cs_prefetch: ", i, count);
+		igt_progress("gem_cs_prefetch: ", i, count);
 	}
 
 	printf("Test suceeded, cleanup up - this might take a while.\n");

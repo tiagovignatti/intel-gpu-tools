@@ -112,25 +112,25 @@ int main(int argc, char **argv)
 	uint32_t handle;
 	int fd;
 
-	drmtest_subtest_init(argc, argv);
+	igt_subtest_init(argc, argv);
 
 	fd = drm_open_any();
 
 	handle = gem_create(fd, 4096);
 	gem_write(fd, handle, 0, batch, sizeof(batch));
 
-	drmtest_subtest("render")
+	igt_subtest("render")
 		loop(fd, handle, I915_EXEC_RENDER, "render");
 
-	drmtest_subtest("bsd")
+	igt_subtest("bsd")
 		if (gem_check_blt(fd))
 			loop(fd, handle, I915_EXEC_BSD, "bsd");
 
-	drmtest_subtest("blt")
+	igt_subtest("blt")
 		if (gem_check_blt(fd))
 			loop(fd, handle, I915_EXEC_BLT, "blt");
 
-	drmtest_subtest("vebox")
+	igt_subtest("vebox")
 		if (gem_check_vebox(fd))
 			loop(fd, handle, LOCAL_I915_EXEC_VEBOX, "vebox");
 
@@ -138,5 +138,5 @@ int main(int argc, char **argv)
 
 	close(fd);
 
-	return drmtest_retval();
+	return igt_retval();
 }

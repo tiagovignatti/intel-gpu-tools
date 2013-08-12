@@ -203,7 +203,7 @@ int main(int argc, char **argv)
 	uint32_t *handle, *offset;
 	int fd, i;
 
-	drmtest_skip_on_simulation();
+	igt_skip_on_simulation();
 
 	fd = drm_open_any();
 
@@ -214,7 +214,7 @@ int main(int argc, char **argv)
 	offset = malloc(sizeof(uint32_t)*100);
 
 	/* Race creation/use against interrupts */
-	drmtest_fork_signal_helper();
+	igt_fork_signal_helper();
 	gettimeofday(&start, NULL);
 	do {
 		for (i = 0; i < 100; i++) {
@@ -242,7 +242,7 @@ int main(int argc, char **argv)
 			gem_close(fd, handle[i]);
 		gettimeofday(&now, NULL);
 	} while ((now.tv_sec - start.tv_sec)*1000 + (now.tv_usec - start.tv_usec) / 1000 < 10000);
-	drmtest_stop_signal_helper();
+	igt_stop_signal_helper();
 
 	return 0;
 }

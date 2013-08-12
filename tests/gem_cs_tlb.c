@@ -110,7 +110,7 @@ static void run_on_ring(int fd, unsigned ring_id, const char *ring_name)
 	gtt_offset = 0;
 
 	for (split = 0; split < BATCH_SIZE/8 - 1; split += 2) {
-		drmtest_progress(buf, split, BATCH_SIZE/8 - 1);
+		igt_progress(buf, split, BATCH_SIZE/8 - 1);
 
 		handle_new = gem_create(fd, BATCH_SIZE);
 		batch_ptr = gem_mmap__cpu(fd, handle_new, BATCH_SIZE,
@@ -148,34 +148,34 @@ int main(int argc, char **argv)
 {
 	int fd;
 
-	drmtest_subtest_init(argc, argv);
-	drmtest_skip_on_simulation();
+	igt_subtest_init(argc, argv);
+	igt_skip_on_simulation();
 
 	fd = drm_open_any();
 
-	if (!drmtest_only_list_subtests()) {
+	if (!igt_only_list_subtests()) {
 		/* This test is very sensitive to residual gtt_mm noise from previous
 		 * tests. Try to quiet thing down first. */
 		gem_quiescent_gpu(fd);
 		sleep(5); /* needs more serious ducttape */
 	}
 
-	drmtest_subtest("render")
+	igt_subtest("render")
 		run_on_ring(fd, I915_EXEC_RENDER, "render");
 
-	drmtest_subtest("bsd")
+	igt_subtest("bsd")
 		if (gem_check_bsd(fd))
 			run_on_ring(fd, I915_EXEC_BSD, "bsd");
 
-	drmtest_subtest("blt")
+	igt_subtest("blt")
 		if (gem_check_blt(fd))
 			run_on_ring(fd, I915_EXEC_BLT, "blt");
 
-	drmtest_subtest("vebox")
+	igt_subtest("vebox")
 		if (gem_check_vebox(fd))
 			run_on_ring(fd, LOCAL_I915_EXEC_VEBOX, "vebox");
 
 	close(fd);
 
-	return drmtest_retval();
+	return igt_retval();
 }

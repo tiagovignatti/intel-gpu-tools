@@ -98,7 +98,7 @@ int main(int argc, char **argv)
 	int fd;
 	int devid;
 
-	drmtest_skip_on_simulation();
+	igt_skip_on_simulation();
 
 	if (argc != 1) {
 		fprintf(stderr, "usage: %s\n", argv[0]);

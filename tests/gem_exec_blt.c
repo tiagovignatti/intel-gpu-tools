@@ -250,7 +250,7 @@ int main(int argc, char **argv)
 {
 	int i;
 
-	drmtest_skip_on_simulation();
+	igt_skip_on_simulation();
 
 	if (argc > 1) {
 		for (i = 1; i < argc; i++) {

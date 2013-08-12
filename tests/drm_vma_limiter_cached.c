@@ -61,7 +61,7 @@ int main(int argc, char **argv)
 	char *ptr;
 	drm_intel_bo *load_bo;
 
-	drmtest_skip_on_simulation();
+	igt_skip_on_simulation();
 
 	fd = drm_open_any();
 

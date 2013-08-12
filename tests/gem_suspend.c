@@ -78,7 +78,7 @@ test_fence_restore(int fd, bool tiled2untiled)
 	else
 		gem_set_tiling(fd, handle_tiled, I915_TILING_X, 2048);
 
-	drmtest_system_suspend_autoresume();
+	igt_system_suspend_autoresume();
 
 	printf("checking the first canary object\n");
 	for (i = 0; i < OBJECT_SIZE/sizeof(uint32_t); i++)
@@ -101,14 +101,14 @@ int main(int argc, char **argv)
 {
 	int fd;
 
-	drmtest_subtest_init(argc, argv);
+	igt_subtest_init(argc, argv);
 
 	fd = drm_open_any();
 
-	drmtest_subtest("fence-restore-tiled2untiled")
+	igt_subtest("fence-restore-tiled2untiled")
 		test_fence_restore(fd, true);
 
-	drmtest_subtest("fence-restore-untiled")
+	igt_subtest("fence-restore-untiled")
 		test_fence_restore(fd, false);
 
 	close(fd);

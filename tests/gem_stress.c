@@ -498,7 +498,7 @@ static void init_set(unsigned set)
 	long int r;
 	int i;
 
-	drmtest_permute_array(buffers[set], num_buffers, exchange_buf);
+	igt_permute_array(buffers[set], num_buffers, exchange_buf);
 
 	if (current_set == 1 && options.gpu_busy_load == 0) {
 		gpu_busy_load++;
@@ -871,7 +871,7 @@ int main(int argc, char **argv)
 
 	/* start our little helper early before too may allocations occur */
 	if (options.use_signal_helper)
-		drmtest_fork_signal_helper();
+		igt_fork_signal_helper();
 
 	init();
 
@@ -898,7 +898,7 @@ int main(int argc, char **argv)
 
 		for (j = 0; j < num_total_tiles; j++)
 			current_permutation[j] = j;
-		drmtest_permute_array(current_permutation, num_total_tiles, exchange_uint);
+		igt_permute_array(current_permutation, num_total_tiles, exchange_uint);
 
 		copy_tiles(current_permutation);
 
@@ -921,7 +921,7 @@ int main(int argc, char **argv)
 
 	close(drm_fd);
 
-	drmtest_stop_signal_helper();
+	igt_stop_signal_helper();
 
 	return 0;
 }

@@ -233,8 +233,8 @@ int main(int argc, char **argv)
 	int i, fd;
 	uint32_t tiling, tiling_after;
 
-	drmtest_subtest_init(argc, argv);
-	drmtest_skip_on_simulation();
+	igt_subtest_init(argc, argv);
+	igt_skip_on_simulation();
 
 	for (i = 0; i < 1024*256; i++)
 		data[i] = i;
@@ -246,7 +246,7 @@ int main(int argc, char **argv)
 	devid = intel_get_drm_devid(fd);
 	batch = intel_batchbuffer_alloc(bufmgr, devid);
 
-	drmtest_subtest("untiled-to-tiled") {
+	igt_subtest("untiled-to-tiled") {
 		printf("testing untiled->tiled transisition:\n");
 		tiling = I915_TILING_NONE;
 		tiling_after = I915_TILING_X;
@@ -255,7 +255,7 @@ int main(int argc, char **argv)
 		assert(tiling_after == I915_TILING_X);
 	}
 
-	drmtest_subtest("tiled-to-untiled") {
+	igt_subtest("tiled-to-untiled") {
 		printf("testing tiled->untiled transisition:\n");
 		tiling = I915_TILING_X;
 		tiling_after = I915_TILING_NONE;
@@ -264,7 +264,7 @@ int main(int argc, char **argv)
 		assert(tiling_after == I915_TILING_NONE);
 	}
 
-	drmtest_subtest("tiled-to-tiled") {
+	igt_subtest("tiled-to-tiled") {
 		printf("testing tiled->tiled transisition:\n");
 		tiling = I915_TILING_X;
 		tiling_after = I915_TILING_X;

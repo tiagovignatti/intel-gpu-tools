@@ -150,7 +150,7 @@ static void run_test(int count)
 	for (i = 0; i < count; i++)
 		check_bo(bo[i], bo_start_val[i]);
 
-	if (drmtest_run_in_simulation())
+	if (igt_run_in_simulation())
 		return;
 
 	printf("Cyclic blits, backward...\n");
@@ -190,12 +190,12 @@ int main(int argc, char **argv)
 {
 	int fd, count = 0;
 
-	drmtest_subtest_init(argc, argv);
+	igt_subtest_init(argc, argv);
 
 	fd = drm_open_any();
 
-	if (!drmtest_only_list_subtests()) {
-		if (drmtest_run_in_simulation())
+	if (!igt_only_list_subtests()) {
+		if (igt_run_in_simulation())
 			count = 2;
 		if (argc > 1)
 			count = atoi(argv[1]);
@@ -220,13 +220,13 @@ int main(int argc, char **argv)
 	drm_intel_bufmgr_gem_set_vma_cache_size(bufmgr, 32);
 	batch = intel_batchbuffer_alloc(bufmgr, intel_get_drm_devid(fd));
 
-	drmtest_subtest("normal")
+	igt_subtest("normal")
 		run_test(count);
 
-	drmtest_subtest("interruptible") {
-		drmtest_fork_signal_helper();
+	igt_subtest("interruptible") {
+		igt_fork_signal_helper();
 		run_test(count);
-		drmtest_stop_signal_helper();
+		igt_stop_signal_helper();
 	}
 
 	intel_batchbuffer_free(batch);

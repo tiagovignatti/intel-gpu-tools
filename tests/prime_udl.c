@@ -151,7 +151,7 @@ int main(int argc, char **argv)
 {
 	int ret;
 
-	drmtest_skip_on_simulation();
+	igt_skip_on_simulation();
 
 	ret = find_and_open_devices();
 	if (ret < 0)

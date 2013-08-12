@@ -157,7 +157,7 @@ static int check_ring(drm_intel_bufmgr *bufmgr,
 		int x = i % width;
 		int y = i / width;
 
-		drmtest_progress(output, i, width*height);
+		igt_progress(output, i, width*height);
 
 		assert(y < height);
 
@@ -205,8 +205,8 @@ int main(int argc, char **argv)
 	render_copyfunc_t copy;
 	int fd, fails = 0;
 
-	drmtest_subtest_init(argc, argv);
-	drmtest_skip_on_simulation();
+	igt_subtest_init(argc, argv);
+	igt_skip_on_simulation();
 
 	fd = drm_open_any();
 
@@ -214,7 +214,7 @@ int main(int argc, char **argv)
 	drm_intel_bufmgr_gem_enable_reuse(bufmgr);
 	batch = intel_batchbuffer_alloc(bufmgr, intel_get_drm_devid(fd));
 
-	drmtest_subtest("blitter")
+	igt_subtest("blitter")
 		fails += check_ring(bufmgr, batch, "blt", blt_copy);
 
 	/* Strictly only required on architectures with a separate BLT ring,
@@ -222,7 +222,7 @@ int main(int argc, char **argv)
 	 */
 	copy = get_render_copyfunc(batch->devid);
 
-	drmtest_subtest("render") {
+	igt_subtest("render") {
 		if (copy)
 			fails += check_ring(bufmgr, batch, "render", copy);
 	}

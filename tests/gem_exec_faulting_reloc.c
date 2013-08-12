@@ -220,14 +220,14 @@ static void run(int object_size)
 
 int main(int argc, char **argv)
 {
-	drmtest_subtest_init(argc, argv);
+	igt_subtest_init(argc, argv);
 
-	drmtest_subtest("normal")
+	igt_subtest("normal")
 		run(OBJECT_SIZE);
-	drmtest_subtest("no-prefault") {
-		drmtest_disable_prefault();
+	igt_subtest("no-prefault") {
+		igt_disable_prefault();
 		run(OBJECT_SIZE);
-		drmtest_enable_prefault();
+		igt_enable_prefault();
 	}
 
 	return 0;

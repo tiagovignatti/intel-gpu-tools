@@ -95,8 +95,8 @@ main(int argc, char **argv)
 	int width = 512, height = 512;
 	int i, loop, fd;
 
-	drmtest_subtest_init(argc, argv);
-	drmtest_skip_on_simulation();
+	igt_subtest_init(argc, argv);
+	igt_skip_on_simulation();
 
 	fd = drm_open_any();
 
@@ -108,7 +108,7 @@ main(int argc, char **argv)
 	drm_intel_bufmgr_gem_enable_reuse(bufmgr);
 	batch = intel_batchbuffer_alloc(bufmgr, intel_get_drm_devid(fd));
 
-	if (!drmtest_only_list_subtests()) {
+	if (!igt_only_list_subtests()) {
 		for (i = 0; i < num_buffers; i++) {
 			src[i] = create_bo(bufmgr, i, width, height);
 			dst[i] = create_bo(bufmgr, ~i, width, height);
@@ -117,7 +117,7 @@ main(int argc, char **argv)
 	}
 
 	/* try to overwrite the source values */
-	drmtest_subtest("overwrite-source") {
+	igt_subtest("overwrite-source") {
 		for (i = 0; i < num_buffers; i++) {
 			set_bo(src[i], i, width, height);
 			set_bo(dst[i], i, width, height);
@@ -131,7 +131,7 @@ main(int argc, char **argv)
 	}
 
 	/* try to read the results before the copy completes */
-	drmtest_subtest("early-read") {
+	igt_subtest("early-read") {
 		for (i = num_buffers; i--; )
 			set_bo(src[i], 0xdeadbeef, width, height);
 		for (i = 0; i < num_buffers; i++)
@@ -141,7 +141,7 @@ main(int argc, char **argv)
 	}
 
 	/* and finally try to trick the kernel into loosing the pending write */
-	drmtest_subtest("gpu-read-after-write") {
+	igt_subtest("gpu-read-after-write") {
 		for (i = num_buffers; i--; )
 			set_bo(src[i], 0xabcdabcd, width, height);
 		for (i = 0; i < num_buffers; i++)
@@ -152,10 +152,10 @@ main(int argc, char **argv)
 			cmp_bo(dst[i], 0xabcdabcd, width, height);
 	}
 
-	drmtest_fork_signal_helper();
+	igt_fork_signal_helper();
 
 	/* try to overwrite the source values */
-	drmtest_subtest("overwrite-source-interruptible") {
+	igt_subtest("overwrite-source-interruptible") {
 		for (loop = 0; loop < 10; loop++) {
 			gem_quiescent_gpu(fd);
 			for (i = 0; i < num_buffers; i++) {
@@ -172,7 +172,7 @@ main(int argc, char **argv)
 	}
 
 	/* try to read the results before the copy completes */
-	drmtest_subtest("early-read-interruptible") {
+	igt_subtest("early-read-interruptible") {
 		for (loop = 0; loop < 10; loop++) {
 			gem_quiescent_gpu(fd);
 			for (i = num_buffers; i--; )
@@ -185,7 +185,7 @@ main(int argc, char **argv)
 	}
 
 	/* and finally try to trick the kernel into loosing the pending write */
-	drmtest_subtest("gpu-read-after-write-interruptible") {
+	igt_subtest("gpu-read-after-write-interruptible") {
 		for (loop = 0; loop < 10; loop++) {
 			gem_quiescent_gpu(fd);
 			for (i = num_buffers; i--; )
@@ -199,7 +199,7 @@ main(int argc, char **argv)
 		}
 	}
 
-	drmtest_stop_signal_helper();
+	igt_stop_signal_helper();
 
 	return 0;
 }

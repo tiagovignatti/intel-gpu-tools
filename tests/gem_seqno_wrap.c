@@ -243,8 +243,8 @@ static int run_sync_test(int num_buffers, bool verify)
 		init_buffer(bufmgr, &s_dst[i], dst1[i], width, height);
 	}
 
-	drmtest_permute_array(p_dst1, num_buffers, exchange_uint);
-	drmtest_permute_array(p_dst2, num_buffers, exchange_uint);
+	igt_permute_array(p_dst1, num_buffers, exchange_uint);
+	igt_permute_array(p_dst2, num_buffers, exchange_uint);
 
 	for (i = 0; i < num_buffers; i++)
 		render_copyfunc(&s_src[i], &s_dst[p_dst1[i]], width, height);

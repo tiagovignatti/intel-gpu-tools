@@ -233,25 +233,25 @@ int main(int argc, char **argv)
 	};
 	int i;
 
-	drmtest_subtest_init(argc, argv);
-	drmtest_skip_on_simulation();
+	igt_subtest_init(argc, argv);
+	igt_skip_on_simulation();
 
-	if (!drmtest_only_list_subtests()) {
+	if (!igt_only_list_subtests()) {
 		drm_fd = drm_open_any();
 
 		bufmgr = drm_intel_bufmgr_gem_init(drm_fd, 4096);
 		devid = intel_get_drm_devid(drm_fd);
 		batch = intel_batchbuffer_alloc(bufmgr, devid);
 
-		do_or_die(drmtest_set_vt_graphics_mode());
+		do_or_die(igt_set_vt_graphics_mode());
 	}
 
 	for (i = 0; i < ARRAY_SIZE(tests); i++) {
-		drmtest_subtest(tests[i].name)
+		igt_subtest(tests[i].name)
 			run_test(tests[i].name, tests[i].flags);
 	}
 
-	if (!drmtest_only_list_subtests())
+	if (!igt_only_list_subtests())
 		close(drm_fd);
 
 	return 0;
