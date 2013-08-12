@@ -110,7 +110,6 @@ int main(int argc, char **argv)
 	int i, j;
 	uint8_t *cpu_ptr;
 	uint8_t *gtt_ptr;
-	bool skipped_all = true;
 
 	drmtest_subtest_init(argc, argv);
 	drmtest_skip_on_simulation();
@@ -145,9 +144,11 @@ int main(int argc, char **argv)
 	drmtest_init_aperture_trashers(bufmgr);
 	mappable_gtt_limit = gem_mappable_aperture_size();
 
-	if (drmtest_run_subtest("reads") && (flags & TEST_READ)) {
+	drmtest_subtest_block("reads") {
+		if (!(flags & TEST_READ))
+			drmtest_skip();
+
 		printf("checking partial reads\n");
-		skipped_all = false;
 
 		for (i = 0; i < ROUNDS; i++) {
 			uint8_t val0 = i;
@@ -173,9 +174,11 @@ int main(int argc, char **argv)
 		}
 	}
 
-	if (drmtest_run_subtest("writes") && (flags & TEST_WRITE)) {
+	drmtest_subtest_block("writes") {
+		if (!(flags & TEST_WRITE))
+			drmtest_skip();
+
 		printf("checking partial writes\n");
-		skipped_all = false;
 
 		for (i = 0; i < ROUNDS; i++) {
 			uint8_t val0 = i, val1;
@@ -223,9 +226,11 @@ int main(int argc, char **argv)
 		}
 	}
 
-	if (drmtest_run_subtest("read-writes") && (flags & TEST_BOTH) == TEST_BOTH) {
+	drmtest_subtest_block("read-writes") {
+		if (!((flags & TEST_BOTH) == TEST_BOTH))
+			drmtest_skip();
+
 		printf("checking partial writes after partial reads\n");
-		skipped_all = false;
 
 		for (i = 0; i < ROUNDS; i++) {
 			uint8_t val0 = i, val1, val2;
@@ -299,5 +304,5 @@ int main(int argc, char **argv)
 
 	close(fd);
 
-	return skipped_all ? 77 : 0;
+	return drmtest_retval();
 }
