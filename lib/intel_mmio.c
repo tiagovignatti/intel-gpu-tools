@@ -214,7 +214,6 @@ intel_register_access_init(struct pci_device *pci_dev, int safe)
 	} else
 		mmio_data.key = get_forcewake_lock();
 
-done:
 	mmio_data.inited++;
 	return 0;
 }
