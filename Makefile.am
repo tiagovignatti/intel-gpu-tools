@@ -35,9 +35,6 @@ if BUILD_TESTS
 SUBDIRS += tests
 endif
 
-test:
-	${MAKE} -C tests test
-
 MAINTAINERCLEANFILES = ChangeLog INSTALL
 
 .PHONY: ChangeLog INSTALL

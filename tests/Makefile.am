@@ -150,11 +150,6 @@ kernel_tests = \
 TESTS = \
 	$(NULL)
 
-test:
-	@whoami | grep -q root || ( echo ERROR: not running as root; exit 1 )
-	@./check_drm_clients
-	@make TESTS="${kernel_tests}" check
-
 list-single-tests:
 	@echo TESTLIST
 	@echo ${single_kernel_tests}
