@@ -127,7 +127,7 @@ int main(int argc, char **argv)
 	}
 
 	for (c = cache; c->level != -1; c++) {
-		if (gem_set_cacheing(fd, dst, c->level))
+		if (gem_set_caching(fd, dst, c->level))
 			continue;
 
 		for (count = 1; count <= 1<<17; count <<= 1) {

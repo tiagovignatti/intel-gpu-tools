@@ -258,7 +258,7 @@ static void do_tests(int cache_level, const char *suffix)
 	char name[80];
 
 	if (cache_level != -1) {
-		switch (gem_set_cacheing(fd, scratch_bo->handle, cache_level)) {
+		switch (gem_set_caching(fd, scratch_bo->handle, cache_level)) {
 		case 0: break;
 		case -EINVAL:
 		case -ENOTTY:

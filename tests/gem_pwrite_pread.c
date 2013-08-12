@@ -398,8 +398,8 @@ int main(int argc, char **argv)
 	src = gem_create(fd, object_size);
 	tmp = malloc(object_size);
 
-	if (gem_set_cacheing(fd, src, 0) == 0 &&
-	    gem_set_cacheing(fd, dst, 0) == 0) {
+	if (gem_set_caching(fd, src, 0) == 0 &&
+	    gem_set_caching(fd, dst, 0) == 0) {
 		if (drmtest_run_subtest("uncached-copy-correctness"))
 			test_copy(fd, src, dst, tmp, object_size);
 		if (drmtest_run_subtest("uncached-copy-performance")) {
@@ -435,8 +435,8 @@ int main(int argc, char **argv)
 		}
 	}
 
-	if (gem_set_cacheing(fd, src, 1) == 0 &&
-	    gem_set_cacheing(fd, dst, 1) == 0) {
+	if (gem_set_caching(fd, src, 1) == 0 &&
+	    gem_set_caching(fd, dst, 1) == 0) {
 		if (drmtest_run_subtest("snooped-copy-correctness"))
 			test_copy(fd, src, dst, tmp, object_size);
 		if (drmtest_run_subtest("snooped-copy-performance")) {
@@ -472,8 +472,8 @@ int main(int argc, char **argv)
 		}
 	}
 
-	if (gem_set_cacheing(fd, src, 2) == 0 &&
-	    gem_set_cacheing(fd, dst, 2) == 0) {
+	if (gem_set_caching(fd, src, 2) == 0 &&
+	    gem_set_caching(fd, dst, 2) == 0) {
 		if (drmtest_run_subtest("display-copy-correctness"))
 			test_copy(fd, src, dst, tmp, object_size);
 		if (drmtest_run_subtest("display-copy-performance")) {

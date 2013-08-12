@@ -380,56 +380,56 @@ skip:
 	return num_rings;
 }
 
-struct local_drm_i915_gem_cacheing {
+struct local_drm_i915_gem_caching {
 	uint32_t handle;
-	uint32_t cacheing;
+	uint32_t caching;
 };
 
 #define LOCAL_DRM_I915_GEM_SET_CACHEING    0x2f
 #define LOCAL_DRM_I915_GEM_GET_CACHEING    0x30
 #define LOCAL_DRM_IOCTL_I915_GEM_SET_CACHEING \
-	DRM_IOW(DRM_COMMAND_BASE + LOCAL_DRM_I915_GEM_SET_CACHEING, struct local_drm_i915_gem_cacheing)
+	DRM_IOW(DRM_COMMAND_BASE + LOCAL_DRM_I915_GEM_SET_CACHEING, struct local_drm_i915_gem_caching)
 #define LOCAL_DRM_IOCTL_I915_GEM_GET_CACHEING \
-	DRM_IOWR(DRM_COMMAND_BASE + LOCAL_DRM_I915_GEM_GET_CACHEING, struct local_drm_i915_gem_cacheing)
+	DRM_IOWR(DRM_COMMAND_BASE + LOCAL_DRM_I915_GEM_GET_CACHEING, struct local_drm_i915_gem_caching)
 
-int gem_has_cacheing(int fd)
+int gem_has_caching(int fd)
 {
-	struct local_drm_i915_gem_cacheing arg;
+	struct local_drm_i915_gem_caching arg;
 	int ret;
 
 	arg.handle = gem_create(fd, 4096);
 	if (arg.handle == 0)
 		return 0;
 
-	arg.cacheing = 0;
+	arg.caching = 0;
 	ret = ioctl(fd, LOCAL_DRM_IOCTL_I915_GEM_SET_CACHEING, &arg);
 	gem_close(fd, arg.handle);
 
 	return ret == 0;
 }
 
-int gem_set_cacheing(int fd, uint32_t handle, int cacheing)
+int gem_set_caching(int fd, uint32_t handle, int caching)
 {
-	struct local_drm_i915_gem_cacheing arg;
+	struct local_drm_i915_gem_caching arg;
 	int ret;
 
 	arg.handle = handle;
-	arg.cacheing = cacheing;
+	arg.caching = caching;
 	ret = ioctl(fd, LOCAL_DRM_IOCTL_I915_GEM_SET_CACHEING, &arg);
 	return ret == 0 ? 0 : -errno;
 }
 
-int gem_get_cacheing(int fd, uint32_t handle)
+uint32_t gem_get_caching(int fd, uint32_t handle)
 {
-	struct local_drm_i915_gem_cacheing arg;
+	struct local_drm_i915_gem_caching arg;
 	int ret;
 
 	arg.handle = handle;
-	arg.cacheing = 0;
+	arg.caching = 0;
 	ret = ioctl(fd, LOCAL_DRM_IOCTL_I915_GEM_GET_CACHEING, &arg);
 	assert(ret == 0);
 
-	return arg.cacheing;
+	return arg.caching;
 }
 
 uint32_t gem_open(int fd, uint32_t name)

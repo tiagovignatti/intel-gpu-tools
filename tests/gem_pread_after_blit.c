@@ -131,8 +131,8 @@ static void do_test(int fd, int cache_level,
 		    int loop)
 {
 	if (cache_level != -1) {
-		if (gem_set_cacheing(fd, tmp[0]->handle, cache_level) ||
-		    gem_set_cacheing(fd, tmp[1]->handle, cache_level))
+		if (gem_set_caching(fd, tmp[0]->handle, cache_level) ||
+		    gem_set_caching(fd, tmp[1]->handle, cache_level))
 			return;
 	}
 

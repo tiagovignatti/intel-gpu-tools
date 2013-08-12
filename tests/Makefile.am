@@ -17,7 +17,7 @@ endif
 
 TESTS_progs_M = \
 	gem_basic \
-	gem_cacheing \
+	gem_caching \
 	gem_cpu_concurrent_blit \
 	gem_cs_tlb \
 	gem_dummy_reloc_loop \

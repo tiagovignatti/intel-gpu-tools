@@ -119,7 +119,7 @@ int main(int argc, char **argv)
 
 	fd = drm_open_any();
 
-	if (!gem_has_cacheing(fd)) {
+	if (!gem_has_caching(fd)) {
 		printf("no set_caching support detected\n");
 		return 77;
 	}
@@ -138,7 +138,7 @@ int main(int argc, char **argv)
 
 	/* overallocate the buffers we're actually using because */
 	scratch_bo = drm_intel_bo_alloc(bufmgr, "scratch bo", BO_SIZE, 4096);
-	gem_set_cacheing(fd, scratch_bo->handle, 1);
+	gem_set_caching(fd, scratch_bo->handle, 1);
 
 	staging_bo = drm_intel_bo_alloc(bufmgr, "staging bo", BO_SIZE, 4096);
 
