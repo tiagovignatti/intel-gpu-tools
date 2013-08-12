@@ -32,6 +32,7 @@
 #include <errno.h>
 #include <stdbool.h>
 #include <cairo.h>
+#include <setjmp.h>
 
 #include "xf86drm.h"
 #include "xf86drmMode.h"
@@ -93,10 +94,17 @@ void drmtest_permute_array(void *array, unsigned size,
 void drmtest_progress(const char *header, uint64_t i, uint64_t total);
 
 /* subtest infrastructure */
+jmp_buf drmtest_subtest_jmpbuf;
 void drmtest_subtest_init(int argc, char **argv);
 bool drmtest_run_subtest(const char *subtest_name);
-#define drmtest_subtest_block(name) if (drmtest_run_subtest((name)))
+#define drmtest_subtest_block(name) for (; drmtest_run_subtest((name)) && \
+					 (setjmp(drmtest_subtest_jmpbuf) == 0); \
+					 drmtest_success())
 bool drmtest_only_list_subtests(void);
+void drmtest_skip(void);
+void drmtest_success(void);
+void drmtest_fail(int exitcode) __attribute__((noreturn));
+int drmtest_retval(void);
 
 /* helpers to automatically reduce test runtime in simulation */
 bool drmtest_run_in_simulation(void);

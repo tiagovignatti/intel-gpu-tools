@@ -657,6 +657,9 @@ void drmtest_stop_signal_helper(void)
 /* subtests helpers */
 static bool list_subtests = false;
 static char *run_single_subtest = NULL;
+static bool in_subtest = false;
+static bool test_with_subtests = false;
+static bool skip_subtests_henceforth = false;
 
 void drmtest_subtest_init(int argc, char **argv)
 {
@@ -666,6 +669,8 @@ void drmtest_subtest_init(int argc, char **argv)
 		{"run-subtest", 1, 0, 'r'},
 		{NULL, 0, 0, 0,}
 	};
+
+	test_with_subtests = true;
 
 	/* supress getopt errors about unknown options */
 	opterr = 0;
@@ -695,16 +700,21 @@ out:
  */
 bool drmtest_run_subtest(const char *subtest_name)
 {
+	assert(in_subtest == false);
+
 	if (list_subtests) {
 		printf("%s\n", subtest_name);
 		return false;
 	}
 
+	if (skip_subtests_henceforth)
+		return false;
+
 	if (!run_single_subtest) {
-		return true;
+		return in_subtest = true;
 	} else {
 		if (strcmp(subtest_name, run_single_subtest) == 0)
-			return true;
+			return in_subtest = true;
 
 		return false;
 	}
@@ -713,6 +723,69 @@ bool drmtest_run_subtest(const char *subtest_name)
 bool drmtest_only_list_subtests(void)
 {
 	return list_subtests;
+}
+
+static bool skipped_one = false;
+static bool succeeded_one = false;
+static bool failed_one = false;
+static int drmtest_exitcode;
+
+static void exit_subtest(void) __attribute__((noreturn));
+static void exit_subtest(void)
+{
+	in_subtest = false;
+	longjmp(drmtest_subtest_jmpbuf, 1);
+}
+
+void drmtest_skip(void)
+{
+	skipped_one = true;
+	if (in_subtest)
+		exit_subtest();
+	else if (test_with_subtests)
+		skip_subtests_henceforth = true;
+	else
+		exit(77);
+}
+
+void drmtest_success(void)
+{
+	succeeded_one = true;
+	if (in_subtest)
+		exit_subtest();
+}
+
+void drmtest_fail(int exitcode)
+{
+	assert(exitcode != 0 && exitcode != 77);
+
+	if (!failed_one)
+		drmtest_exitcode = exitcode;
+
+	failed_one = true;
+
+	if (in_subtest)
+		exit_subtest();
+	else {
+		assert(!test_with_subtests);
+		exit(exitcode);
+	}
+}
+
+int drmtest_retval(void)
+{
+	if (drmtest_only_list_subtests())
+		return 0;
+
+	/* Calling this without calling one of the above is a failure */
+	assert(skipped_one || succeeded_one || failed_one);
+
+	if (failed_one)
+		return drmtest_exitcode;
+	else if (succeeded_one)
+		return 0;
+	else
+		return 77;
 }
 
 static bool env_set(const char *env_var, bool default_value)
