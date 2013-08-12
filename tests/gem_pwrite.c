@@ -137,11 +137,11 @@ int main(int argc, char **argv)
 			do_gem_write(fd, dst, src, object_size, count);
 			gettimeofday(&end, NULL);
 			printf("Time to %s pwrite %d bytes x %6d:	%7.3fµs, %s\n",
-			       c->level, object_size, count,
+			       c->name, object_size, count,
 			       elapsed(&start, &end, count),
 			       bytes_per_sec((char *)buf, object_size/elapsed(&start, &end, count)*1e6));
 			fflush(stdout);
-			}
+		}
 	}
 
 	free(src);
