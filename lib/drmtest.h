@@ -106,7 +106,7 @@ bool igt_only_list_subtests(void);
 void igt_skip(void);
 void igt_success(void);
 void igt_fail(int exitcode) __attribute__((noreturn));
-int igt_retval(void);
+void igt_exit(void);
 
 /* check functions which auto-skip tests by calling igt_skip() */
 void gem_check_caching(int fd);

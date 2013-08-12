@@ -791,7 +791,7 @@ void igt_fail(int exitcode)
 	}
 }
 
-int igt_retval(void)
+void igt_exit(void)
 {
 	if (igt_only_list_subtests())
 		return 0;
@@ -800,11 +800,11 @@ int igt_retval(void)
 	assert(skipped_one || succeeded_one || failed_one);
 
 	if (failed_one)
-		return igt_exitcode;
+		exit(igt_exitcode);
 	else if (succeeded_one)
-		return 0;
+		exit(0);
 	else
-		return 77;
+		exit(77);
 }
 
 static bool env_set(const char *env_var, bool default_value)
