@@ -625,10 +625,17 @@ static void sig_handler(int i)
 	sig_stat++;
 }
 
+static void signal_helper_exit_handler(int sig)
+{
+	drmtest_stop_signal_helper();
+}
+
 void drmtest_fork_signal_helper(void)
 {
 	pid_t pid;
 	sighandler_t oldsig;
+
+	drmtest_install_exit_handler(signal_helper_exit_handler);
 
 	signal(SIGUSR1, sig_handler);
 	oldsig = signal(SIGQUIT, SIG_DFL);
@@ -644,8 +651,12 @@ void drmtest_fork_signal_helper(void)
 
 void drmtest_stop_signal_helper(void)
 {
-	if (signal_helper != -1)
+	int exitcode;
+
+	if (signal_helper != -1) {
 		kill(signal_helper, SIGQUIT);
+		wait(&exitcode);
+	}
 
 	if (sig_stat)
 		fprintf(stdout, "signal handler called %llu times\n", sig_stat);
