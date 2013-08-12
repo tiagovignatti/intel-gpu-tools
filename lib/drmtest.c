@@ -717,7 +717,7 @@ out:
  * outside of places protected by drmtest_run_subtest checks - the piglit
  * runner adds every line to the subtest list.
  */
-bool drmtest_run_subtest(const char *subtest_name)
+bool __drmtest_run_subtest(const char *subtest_name)
 {
 	assert(in_subtest == false);
 
