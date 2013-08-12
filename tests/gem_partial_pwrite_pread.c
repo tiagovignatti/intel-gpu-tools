@@ -257,17 +257,8 @@ static void do_tests(int cache_level, const char *suffix)
 {
 	char name[80];
 
-	if (cache_level != -1) {
-		switch (gem_set_caching(fd, scratch_bo->handle, cache_level)) {
-		case 0: break;
-		case -EINVAL:
-		case -ENOTTY:
-			return;
-		default:
-			assert(0);
-			return;
-		}
-	}
+	if (cache_level != -1)
+		gem_set_caching(fd, scratch_bo->handle, cache_level);
 
 	snprintf(name, sizeof(name), "reads%s", suffix);
 	drmtest_subtest_block(name)
@@ -315,5 +306,5 @@ int main(int argc, char **argv)
 
 	close(fd);
 
-	return 0;
+	return drmtest_retval();
 }

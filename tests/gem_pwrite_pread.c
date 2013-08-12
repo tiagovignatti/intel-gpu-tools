@@ -398,114 +398,114 @@ int main(int argc, char **argv)
 	src = gem_create(fd, object_size);
 	tmp = malloc(object_size);
 
-	if (gem_set_caching(fd, src, 0) == 0 &&
-	    gem_set_caching(fd, dst, 0) == 0) {
-		drmtest_subtest_block("uncached-copy-correctness")
-			test_copy(fd, src, dst, tmp, object_size);
-		drmtest_subtest_block("uncached-copy-performance") {
-			for (count = 1; count <= 1<<17; count <<= 1) {
-				struct timeval start, end;
+	gem_set_caching(fd, src, 0);
+	gem_set_caching(fd, dst, 0);
 
-				gettimeofday(&start, NULL);
-				copy(fd, src, dst, tmp, object_size, count);
-				gettimeofday(&end, NULL);
-				printf("Time to uncached copy %d bytes x %6d:	%7.3fµs, %s\n",
-				       object_size, count,
-				       elapsed(&start, &end, count),
-				       bytes_per_sec((char *)buf, object_size/elapsed(&start, &end, count)*1e6));
-				fflush(stdout);
-			}
-		}
+	drmtest_subtest_block("uncached-copy-correctness")
+		test_copy(fd, src, dst, tmp, object_size);
+	drmtest_subtest_block("uncached-copy-performance") {
+		for (count = 1; count <= 1<<17; count <<= 1) {
+			struct timeval start, end;
 
-		drmtest_subtest_block("uncached-pwrite-blt-gtt_mmap-correctness")
-			test_as_gtt_mmap(fd, src, dst, object_size);
-		drmtest_subtest_block("uncached-pwrite-blt-gtt_mmap-performance") {
-			for (count = 1; count <= 1<<17; count <<= 1) {
-				struct timeval start, end;
-
-				gettimeofday(&start, NULL);
-				as_gtt_mmap(fd, src, dst, tmp, object_size, count);
-				gettimeofday(&end, NULL);
-				printf("** mmap uncached copy %d bytes x %6d:	%7.3fµs, %s\n",
-				       object_size, count,
-				       elapsed(&start, &end, count),
-				       bytes_per_sec((char *)buf, object_size/elapsed(&start, &end, count)*1e6));
-				fflush(stdout);
-			}
+			gettimeofday(&start, NULL);
+			copy(fd, src, dst, tmp, object_size, count);
+			gettimeofday(&end, NULL);
+			printf("Time to uncached copy %d bytes x %6d:	%7.3fµs, %s\n",
+			       object_size, count,
+			       elapsed(&start, &end, count),
+			       bytes_per_sec((char *)buf, object_size/elapsed(&start, &end, count)*1e6));
+			fflush(stdout);
 		}
 	}
 
-	if (gem_set_caching(fd, src, 1) == 0 &&
-	    gem_set_caching(fd, dst, 1) == 0) {
-		drmtest_subtest_block("snooped-copy-correctness")
-			test_copy(fd, src, dst, tmp, object_size);
-		drmtest_subtest_block("snooped-copy-performance") {
-			for (count = 1; count <= 1<<17; count <<= 1) {
-				struct timeval start, end;
+	drmtest_subtest_block("uncached-pwrite-blt-gtt_mmap-correctness")
+		test_as_gtt_mmap(fd, src, dst, object_size);
+	drmtest_subtest_block("uncached-pwrite-blt-gtt_mmap-performance") {
+		for (count = 1; count <= 1<<17; count <<= 1) {
+			struct timeval start, end;
 
-				gettimeofday(&start, NULL);
-				copy(fd, src, dst, tmp, object_size, count);
-				gettimeofday(&end, NULL);
-				printf("Time to snooped copy %d bytes x %6d:	%7.3fµs, %s\n",
-				       object_size, count,
-				       elapsed(&start, &end, count),
-				       bytes_per_sec((char *)buf, object_size/elapsed(&start, &end, count)*1e6));
-				fflush(stdout);
-			}
-		}
-
-		drmtest_subtest_block("snooped-pwrite-blt-cpu_mmap-correctness")
-			test_as_cpu_mmap(fd, src, dst, object_size);
-		drmtest_subtest_block("snooped-pwrite-blt-cpu_mmap-performance") {
-			for (count = 1; count <= 1<<17; count <<= 1) {
-				struct timeval start, end;
-
-				gettimeofday(&start, NULL);
-				as_cpu_mmap(fd, src, dst, tmp, object_size, count);
-				gettimeofday(&end, NULL);
-				printf("** mmap snooped copy %d bytes x %6d:	%7.3fµs, %s\n",
-				       object_size, count,
-				       elapsed(&start, &end, count),
-				       bytes_per_sec((char *)buf, object_size/elapsed(&start, &end, count)*1e6));
-				fflush(stdout);
-			}
+			gettimeofday(&start, NULL);
+			as_gtt_mmap(fd, src, dst, tmp, object_size, count);
+			gettimeofday(&end, NULL);
+			printf("** mmap uncached copy %d bytes x %6d:	%7.3fµs, %s\n",
+			       object_size, count,
+			       elapsed(&start, &end, count),
+			       bytes_per_sec((char *)buf, object_size/elapsed(&start, &end, count)*1e6));
+			fflush(stdout);
 		}
 	}
 
-	if (gem_set_caching(fd, src, 2) == 0 &&
-	    gem_set_caching(fd, dst, 2) == 0) {
-		drmtest_subtest_block("display-copy-correctness")
-			test_copy(fd, src, dst, tmp, object_size);
-		drmtest_subtest_block("display-copy-performance") {
-			for (count = 1; count <= 1<<17; count <<= 1) {
-				struct timeval start, end;
+	gem_set_caching(fd, src, 1);
+	gem_set_caching(fd, dst, 1);
 
-				gettimeofday(&start, NULL);
-				copy(fd, src, dst, tmp, object_size, count);
-				gettimeofday(&end, NULL);
-				printf("Time to display copy %d bytes x %6d:	%7.3fµs, %s\n",
-				       object_size, count,
-				       elapsed(&start, &end, count),
-				       bytes_per_sec((char *)buf, object_size/elapsed(&start, &end, count)*1e6));
-				fflush(stdout);
-			}
+	drmtest_subtest_block("snooped-copy-correctness")
+		test_copy(fd, src, dst, tmp, object_size);
+	drmtest_subtest_block("snooped-copy-performance") {
+		for (count = 1; count <= 1<<17; count <<= 1) {
+			struct timeval start, end;
+
+			gettimeofday(&start, NULL);
+			copy(fd, src, dst, tmp, object_size, count);
+			gettimeofday(&end, NULL);
+			printf("Time to snooped copy %d bytes x %6d:	%7.3fµs, %s\n",
+			       object_size, count,
+			       elapsed(&start, &end, count),
+			       bytes_per_sec((char *)buf, object_size/elapsed(&start, &end, count)*1e6));
+			fflush(stdout);
 		}
+	}
 
-		drmtest_subtest_block("display-pwrite-blt-gtt_mmap-correctness")
-			test_as_gtt_mmap(fd, src, dst, object_size);
-		drmtest_subtest_block("display-pwrite-blt-gtt_mmap-performance") {
-			for (count = 1; count <= 1<<17; count <<= 1) {
-				struct timeval start, end;
+	drmtest_subtest_block("snooped-pwrite-blt-cpu_mmap-correctness")
+		test_as_cpu_mmap(fd, src, dst, object_size);
+	drmtest_subtest_block("snooped-pwrite-blt-cpu_mmap-performance") {
+		for (count = 1; count <= 1<<17; count <<= 1) {
+			struct timeval start, end;
 
-				gettimeofday(&start, NULL);
-				as_gtt_mmap(fd, src, dst, tmp, object_size, count);
-				gettimeofday(&end, NULL);
-				printf("** mmap display copy %d bytes x %6d:	%7.3fµs, %s\n",
-				       object_size, count,
-				       elapsed(&start, &end, count),
-				       bytes_per_sec((char *)buf, object_size/elapsed(&start, &end, count)*1e6));
-				fflush(stdout);
-			}
+			gettimeofday(&start, NULL);
+			as_cpu_mmap(fd, src, dst, tmp, object_size, count);
+			gettimeofday(&end, NULL);
+			printf("** mmap snooped copy %d bytes x %6d:	%7.3fµs, %s\n",
+			       object_size, count,
+			       elapsed(&start, &end, count),
+			       bytes_per_sec((char *)buf, object_size/elapsed(&start, &end, count)*1e6));
+			fflush(stdout);
+		}
+	}
+
+	gem_set_caching(fd, src, 2);
+	gem_set_caching(fd, dst, 2);
+
+	drmtest_subtest_block("display-copy-correctness")
+		test_copy(fd, src, dst, tmp, object_size);
+	drmtest_subtest_block("display-copy-performance") {
+		for (count = 1; count <= 1<<17; count <<= 1) {
+			struct timeval start, end;
+
+			gettimeofday(&start, NULL);
+			copy(fd, src, dst, tmp, object_size, count);
+			gettimeofday(&end, NULL);
+			printf("Time to display copy %d bytes x %6d:	%7.3fµs, %s\n",
+			       object_size, count,
+			       elapsed(&start, &end, count),
+			       bytes_per_sec((char *)buf, object_size/elapsed(&start, &end, count)*1e6));
+			fflush(stdout);
+		}
+	}
+
+	drmtest_subtest_block("display-pwrite-blt-gtt_mmap-correctness")
+		test_as_gtt_mmap(fd, src, dst, object_size);
+	drmtest_subtest_block("display-pwrite-blt-gtt_mmap-performance") {
+		for (count = 1; count <= 1<<17; count <<= 1) {
+			struct timeval start, end;
+
+			gettimeofday(&start, NULL);
+			as_gtt_mmap(fd, src, dst, tmp, object_size, count);
+			gettimeofday(&end, NULL);
+			printf("** mmap display copy %d bytes x %6d:	%7.3fµs, %s\n",
+			       object_size, count,
+			       elapsed(&start, &end, count),
+			       bytes_per_sec((char *)buf, object_size/elapsed(&start, &end, count)*1e6));
+			fflush(stdout);
 		}
 	}
 
@@ -515,5 +515,5 @@ int main(int argc, char **argv)
 
 	close(fd);
 
-	return 0;
+	return drmtest_retval();
 }

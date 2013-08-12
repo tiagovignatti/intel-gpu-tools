@@ -118,10 +118,7 @@ int main(int argc, char **argv)
 
 	fd = drm_open_any();
 
-	if (!gem_has_caching(fd)) {
-		printf("no set_caching support detected\n");
-		return 77;
-	}
+	gem_check_caching(fd);
 
 	devid = intel_get_drm_devid(fd);
 	if (IS_GEN2(devid)) /* chipset only handles cached -> uncached */

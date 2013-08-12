@@ -40,6 +40,7 @@
 #include <stdlib.h>
 #include <linux/kd.h>
 #include <unistd.h>
+#include <sys/wait.h>
 #include "drm_fourcc.h"
 
 #include "drmtest.h"
@@ -392,23 +393,26 @@ struct local_drm_i915_gem_caching {
 #define LOCAL_DRM_IOCTL_I915_GEM_GET_CACHEING \
 	DRM_IOWR(DRM_COMMAND_BASE + LOCAL_DRM_I915_GEM_GET_CACHEING, struct local_drm_i915_gem_caching)
 
-int gem_has_caching(int fd)
+void gem_check_caching(int fd)
 {
 	struct local_drm_i915_gem_caching arg;
 	int ret;
 
 	arg.handle = gem_create(fd, 4096);
-	if (arg.handle == 0)
-		return 0;
+	assert(arg.handle != 0);
 
 	arg.caching = 0;
 	ret = ioctl(fd, LOCAL_DRM_IOCTL_I915_GEM_SET_CACHEING, &arg);
 	gem_close(fd, arg.handle);
 
-	return ret == 0;
+	if (ret != 0) {
+		if (!drmtest_only_list_subtests())
+			printf("no set_caching support detected\n");
+		drmtest_skip();
+	}
 }
 
-int gem_set_caching(int fd, uint32_t handle, int caching)
+void gem_set_caching(int fd, uint32_t handle, int caching)
 {
 	struct local_drm_i915_gem_caching arg;
 	int ret;
@@ -416,7 +420,11 @@ int gem_set_caching(int fd, uint32_t handle, int caching)
 	arg.handle = handle;
 	arg.caching = caching;
 	ret = ioctl(fd, LOCAL_DRM_IOCTL_I915_GEM_SET_CACHEING, &arg);
-	return ret == 0 ? 0 : -errno;
+
+	if (ret != 0 && (errno == ENOTTY || errno == EINVAL))
+		drmtest_skip();
+	else
+		assert(ret == 0);
 }
 
 uint32_t gem_get_caching(int fd, uint32_t handle)

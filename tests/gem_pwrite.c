@@ -102,7 +102,10 @@ int main(int argc, char **argv)
 
 	drmtest_skip_on_simulation();
 
-	if (argc > 1)
+	drmtest_subtest_init(argc, argv);
+	drmtest_skip_on_simulation();
+
+	if (argc > 1 && atoi(argv[1]))
 		object_size = atoi(argv[1]);
 	if (object_size == 0)
 		object_size = OBJECT_SIZE;
@@ -113,34 +116,37 @@ int main(int argc, char **argv)
 	dst = gem_create(fd, object_size);
 	src = malloc(object_size);
 
-	for (count = 1; count <= 1<<17; count <<= 1) {
-		struct timeval start, end;
-
-		gettimeofday(&start, NULL);
-		do_gem_write(fd, dst, src, object_size, count);
-		gettimeofday(&end, NULL);
-		printf("Time to pwrite %d bytes x %6d:	%7.3fµs, %s\n",
-		       object_size, count,
-		       elapsed(&start, &end, count),
-		       bytes_per_sec((char *)buf, object_size/elapsed(&start, &end, count)*1e6));
-		fflush(stdout);
-	}
-
-	for (c = cache; c->level != -1; c++) {
-		if (gem_set_caching(fd, dst, c->level))
-			continue;
-
+	drmtest_subtest_block("normal") {
 		for (count = 1; count <= 1<<17; count <<= 1) {
 			struct timeval start, end;
 
 			gettimeofday(&start, NULL);
 			do_gem_write(fd, dst, src, object_size, count);
 			gettimeofday(&end, NULL);
-			printf("Time to %s pwrite %d bytes x %6d:	%7.3fµs, %s\n",
-			       c->name, object_size, count,
+			printf("Time to pwrite %d bytes x %6d:	%7.3fµs, %s\n",
+			       object_size, count,
 			       elapsed(&start, &end, count),
 			       bytes_per_sec((char *)buf, object_size/elapsed(&start, &end, count)*1e6));
 			fflush(stdout);
+		}
+	}
+
+	for (c = cache; c->level != -1; c++) {
+		drmtest_subtest_block(c->name) {
+			gem_set_caching(fd, dst, c->level);
+
+			for (count = 1; count <= 1<<17; count <<= 1) {
+				struct timeval start, end;
+
+				gettimeofday(&start, NULL);
+				do_gem_write(fd, dst, src, object_size, count);
+				gettimeofday(&end, NULL);
+				printf("Time to %s pwrite %d bytes x %6d:	%7.3fµs, %s\n",
+				       c->name, object_size, count,
+				       elapsed(&start, &end, count),
+				       bytes_per_sec((char *)buf, object_size/elapsed(&start, &end, count)*1e6));
+				fflush(stdout);
+			}
 		}
 	}
 
@@ -149,5 +155,5 @@ int main(int argc, char **argv)
 
 	close(fd);
 
-	return 0;
+	return drmtest_retval();
 }

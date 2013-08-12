@@ -131,10 +131,11 @@ static void do_test(int fd, int cache_level,
 		    int loop)
 {
 	if (cache_level != -1) {
-		if (gem_set_caching(fd, tmp[0]->handle, cache_level) ||
-		    gem_set_caching(fd, tmp[1]->handle, cache_level))
-			return;
+		gem_set_caching(fd, tmp[0]->handle, cache_level);
+		gem_set_caching(fd, tmp[1]->handle, cache_level);
 	}
+
+	printf("meh");
 
 	do {
 		/* First, do a full-buffer read after blitting */
@@ -235,5 +236,5 @@ main(int argc, char **argv)
 
 	close(fd);
 
-	return 0;
+	return drmtest_retval();
 }
