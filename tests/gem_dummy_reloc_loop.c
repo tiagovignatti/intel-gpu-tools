@@ -160,13 +160,13 @@ int main(int argc, char **argv)
 		exit(-1);
 	}
 
-	drmtest_subtest_block("render") {
+	drmtest_subtest("render") {
 		printf("running dummy loop on render\n");
 		dummy_reloc_loop(I915_EXEC_RENDER);
 		printf("dummy loop run on render completed\n");
 	}
 
-	drmtest_subtest_block("bsd") {
+	drmtest_subtest("bsd") {
 		if (gem_check_bsd(fd)) {
 			sleep(2);
 			printf("running dummy loop on bsd\n");
@@ -175,7 +175,7 @@ int main(int argc, char **argv)
 		}
 	}
 
-	drmtest_subtest_block("blt") {
+	drmtest_subtest("blt") {
 		if (gem_check_blt(fd)) {
 			sleep(2);
 			printf("running dummy loop on blt\n");
@@ -184,7 +184,7 @@ int main(int argc, char **argv)
 		}
 	}
 
-	drmtest_subtest_block("vebox") {
+	drmtest_subtest("vebox") {
 		if (gem_check_vebox(fd)) {
 			sleep(2);
 			printf("running dummy loop on vebox\n");
@@ -193,7 +193,7 @@ int main(int argc, char **argv)
 		}
 	}
 
-	drmtest_subtest_block("mixed") {
+	drmtest_subtest("mixed") {
 		if (num_rings > 1) {
 			sleep(2);
 			printf("running dummy loop on random rings\n");

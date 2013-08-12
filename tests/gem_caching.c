@@ -141,7 +141,7 @@ int main(int argc, char **argv)
 	drmtest_init_aperture_trashers(bufmgr);
 	mappable_gtt_limit = gem_mappable_aperture_size();
 
-	drmtest_subtest_block("reads") {
+	drmtest_subtest("reads") {
 		if (!(flags & TEST_READ))
 			drmtest_skip();
 
@@ -171,7 +171,7 @@ int main(int argc, char **argv)
 		}
 	}
 
-	drmtest_subtest_block("writes") {
+	drmtest_subtest("writes") {
 		if (!(flags & TEST_WRITE))
 			drmtest_skip();
 
@@ -223,7 +223,7 @@ int main(int argc, char **argv)
 		}
 	}
 
-	drmtest_subtest_block("read-writes") {
+	drmtest_subtest("read-writes") {
 		if (!((flags & TEST_BOTH) == TEST_BOTH))
 			drmtest_skip();
 

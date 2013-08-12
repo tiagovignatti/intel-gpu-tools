@@ -1296,7 +1296,7 @@ int main(int argc, char **argv)
 	batch = intel_batchbuffer_alloc(bufmgr, devid);
 
 #define xtest(x, args...) \
-	drmtest_subtest_block( #x ) { \
+	drmtest_subtest( #x ) { \
 		ret = ((x)(args)); \
 		++run; \
 		if (ret) { \

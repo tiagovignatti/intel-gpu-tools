@@ -222,9 +222,9 @@ int main(int argc, char **argv)
 {
 	drmtest_subtest_init(argc, argv);
 
-	drmtest_subtest_block("normal")
+	drmtest_subtest("normal")
 		run(OBJECT_SIZE);
-	drmtest_subtest_block("no-prefault") {
+	drmtest_subtest("no-prefault") {
 		drmtest_disable_prefault();
 		run(OBJECT_SIZE);
 		drmtest_enable_prefault();

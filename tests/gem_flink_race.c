@@ -197,10 +197,10 @@ int main(int argc, char **argv)
 
 	drmtest_subtest_init(argc, argv);
 
-	drmtest_subtest_block("flink_name")
+	drmtest_subtest("flink_name")
 		test_flink_name();
 
-	drmtest_subtest_block("flink_close")
+	drmtest_subtest("flink_close")
 		test_flink_close();
 
 	return 0;

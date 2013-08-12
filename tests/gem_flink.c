@@ -158,15 +158,15 @@ int main(int argc, char **argv)
 
 	fd = drm_open_any();
 
-	drmtest_subtest_block("basic")
+	drmtest_subtest("basic")
 		test_flink(fd);
-	drmtest_subtest_block("double-flink")
+	drmtest_subtest("double-flink")
 		test_double_flink(fd);
-	drmtest_subtest_block("bad-flink")
+	drmtest_subtest("bad-flink")
 		test_bad_flink(fd);
-	drmtest_subtest_block("bad-open")
+	drmtest_subtest("bad-open")
 		test_bad_open(fd);
-	drmtest_subtest_block("flink-lifetime")
+	drmtest_subtest("flink-lifetime")
 		test_flink_lifetime(fd);
 
 	return 0;

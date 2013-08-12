@@ -107,7 +107,7 @@ int main(int argc, char **argv)
 	dst = gem_create(fd, object_size);
 	src = malloc(object_size);
 
-	drmtest_subtest_block("normal") {
+	drmtest_subtest("normal") {
 		for (count = 1; count <= 1<<17; count <<= 1) {
 			struct timeval start, end;
 
@@ -123,7 +123,7 @@ int main(int argc, char **argv)
 	}
 
 	for (c = cache; c->level != -1; c++) {
-		drmtest_subtest_block(c->name) {
+		drmtest_subtest(c->name) {
 			gem_set_caching(fd, dst, c->level);
 
 			for (count = 1; count <= 1<<17; count <<= 1) {

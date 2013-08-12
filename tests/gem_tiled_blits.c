@@ -220,10 +220,10 @@ int main(int argc, char **argv)
 	drm_intel_bufmgr_gem_set_vma_cache_size(bufmgr, 32);
 	batch = intel_batchbuffer_alloc(bufmgr, intel_get_drm_devid(fd));
 
-	drmtest_subtest_block("normal")
+	drmtest_subtest("normal")
 		run_test(count);
 
-	drmtest_subtest_block("interruptible") {
+	drmtest_subtest("interruptible") {
 		drmtest_fork_signal_helper();
 		run_test(count);
 		drmtest_stop_signal_helper();

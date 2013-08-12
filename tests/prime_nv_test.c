@@ -504,7 +504,7 @@ int main(int argc, char **argv)
 	intel_batch = intel_batchbuffer_alloc(bufmgr, devid);
 
 #define xtest(name) \
-	drmtest_subtest_block(#name) \
+	drmtest_subtest(#name) \
 		if (test_##name()) \
 			exit(2);
 

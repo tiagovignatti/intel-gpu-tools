@@ -119,18 +119,18 @@ int main(int argc, char **argv)
 	handle = gem_create(fd, 4096);
 	gem_write(fd, handle, 0, batch, sizeof(batch));
 
-	drmtest_subtest_block("render")
+	drmtest_subtest("render")
 		loop(fd, handle, I915_EXEC_RENDER, "render");
 
-	drmtest_subtest_block("bsd")
+	drmtest_subtest("bsd")
 		if (gem_check_blt(fd))
 			loop(fd, handle, I915_EXEC_BSD, "bsd");
 
-	drmtest_subtest_block("blt")
+	drmtest_subtest("blt")
 		if (gem_check_blt(fd))
 			loop(fd, handle, I915_EXEC_BLT, "blt");
 
-	drmtest_subtest_block("vebox")
+	drmtest_subtest("vebox")
 		if (gem_check_vebox(fd))
 			loop(fd, handle, LOCAL_I915_EXEC_VEBOX, "vebox");
 

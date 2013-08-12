@@ -99,9 +99,9 @@ void drmtest_progress(const char *header, uint64_t i, uint64_t total);
 jmp_buf drmtest_subtest_jmpbuf;
 void drmtest_subtest_init(int argc, char **argv);
 bool __drmtest_run_subtest(const char *subtest_name);
-#define drmtest_subtest_block(name) for (; __drmtest_run_subtest((name)) && \
-					 (setjmp(drmtest_subtest_jmpbuf) == 0); \
-					 drmtest_success())
+#define drmtest_subtest(name) for (; __drmtest_run_subtest((name)) && \
+				   (setjmp(drmtest_subtest_jmpbuf) == 0); \
+				   drmtest_success())
 bool drmtest_only_list_subtests(void);
 void drmtest_skip(void);
 void drmtest_success(void);

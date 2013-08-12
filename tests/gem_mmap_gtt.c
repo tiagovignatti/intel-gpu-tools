@@ -164,19 +164,19 @@ int main(int argc, char **argv)
 
 	fd = drm_open_any();
 
-	drmtest_subtest_block("copy")
+	drmtest_subtest("copy")
 		test_copy(fd);
-	drmtest_subtest_block("read")
+	drmtest_subtest("read")
 		test_read(fd);
-	drmtest_subtest_block("write")
+	drmtest_subtest("write")
 		test_write(fd);
-	drmtest_subtest_block("write-gtt")
+	drmtest_subtest("write-gtt")
 		test_write_gtt(fd);
-	drmtest_subtest_block("read-no-prefault")
+	drmtest_subtest("read-no-prefault")
 		run_without_prefault(fd, test_read);
-	drmtest_subtest_block("write-no-prefault")
+	drmtest_subtest("write-no-prefault")
 		run_without_prefault(fd, test_write);
-	drmtest_subtest_block("write-gtt-no-prefault")
+	drmtest_subtest("write-gtt-no-prefault")
 		run_without_prefault(fd, test_write_gtt);
 
 	close(fd);

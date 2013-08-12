@@ -384,7 +384,7 @@ int main(int argc, char **argv)
 	drmtest_subtest_init(argc, argv);
 
 	for (i = 0; i < ARRAY_SIZE(tests); i++) {
-		drmtest_subtest_block(tests[i].name)
+		drmtest_subtest(tests[i].name)
 			tests[i].fn();
 	}
 

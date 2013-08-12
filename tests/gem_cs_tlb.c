@@ -160,18 +160,18 @@ int main(int argc, char **argv)
 		sleep(5); /* needs more serious ducttape */
 	}
 
-	drmtest_subtest_block("render")
+	drmtest_subtest("render")
 		run_on_ring(fd, I915_EXEC_RENDER, "render");
 
-	drmtest_subtest_block("bsd")
+	drmtest_subtest("bsd")
 		if (gem_check_bsd(fd))
 			run_on_ring(fd, I915_EXEC_BSD, "bsd");
 
-	drmtest_subtest_block("blt")
+	drmtest_subtest("blt")
 		if (gem_check_blt(fd))
 			run_on_ring(fd, I915_EXEC_BLT, "blt");
 
-	drmtest_subtest_block("vebox")
+	drmtest_subtest("vebox")
 		if (gem_check_vebox(fd))
 			run_on_ring(fd, LOCAL_I915_EXEC_VEBOX, "vebox");
 

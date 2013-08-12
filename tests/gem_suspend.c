@@ -105,10 +105,10 @@ int main(int argc, char **argv)
 
 	fd = drm_open_any();
 
-	drmtest_subtest_block("fence-restore-tiled2untiled")
+	drmtest_subtest("fence-restore-tiled2untiled")
 		test_fence_restore(fd, true);
 
-	drmtest_subtest_block("fence-restore-untiled")
+	drmtest_subtest("fence-restore-untiled")
 		test_fence_restore(fd, false);
 
 	close(fd);

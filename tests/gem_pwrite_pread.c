@@ -401,9 +401,9 @@ int main(int argc, char **argv)
 	gem_set_caching(fd, src, 0);
 	gem_set_caching(fd, dst, 0);
 
-	drmtest_subtest_block("uncached-copy-correctness")
+	drmtest_subtest("uncached-copy-correctness")
 		test_copy(fd, src, dst, tmp, object_size);
-	drmtest_subtest_block("uncached-copy-performance") {
+	drmtest_subtest("uncached-copy-performance") {
 		for (count = 1; count <= 1<<17; count <<= 1) {
 			struct timeval start, end;
 
@@ -418,9 +418,9 @@ int main(int argc, char **argv)
 		}
 	}
 
-	drmtest_subtest_block("uncached-pwrite-blt-gtt_mmap-correctness")
+	drmtest_subtest("uncached-pwrite-blt-gtt_mmap-correctness")
 		test_as_gtt_mmap(fd, src, dst, object_size);
-	drmtest_subtest_block("uncached-pwrite-blt-gtt_mmap-performance") {
+	drmtest_subtest("uncached-pwrite-blt-gtt_mmap-performance") {
 		for (count = 1; count <= 1<<17; count <<= 1) {
 			struct timeval start, end;
 
@@ -438,9 +438,9 @@ int main(int argc, char **argv)
 	gem_set_caching(fd, src, 1);
 	gem_set_caching(fd, dst, 1);
 
-	drmtest_subtest_block("snooped-copy-correctness")
+	drmtest_subtest("snooped-copy-correctness")
 		test_copy(fd, src, dst, tmp, object_size);
-	drmtest_subtest_block("snooped-copy-performance") {
+	drmtest_subtest("snooped-copy-performance") {
 		for (count = 1; count <= 1<<17; count <<= 1) {
 			struct timeval start, end;
 
@@ -455,9 +455,9 @@ int main(int argc, char **argv)
 		}
 	}
 
-	drmtest_subtest_block("snooped-pwrite-blt-cpu_mmap-correctness")
+	drmtest_subtest("snooped-pwrite-blt-cpu_mmap-correctness")
 		test_as_cpu_mmap(fd, src, dst, object_size);
-	drmtest_subtest_block("snooped-pwrite-blt-cpu_mmap-performance") {
+	drmtest_subtest("snooped-pwrite-blt-cpu_mmap-performance") {
 		for (count = 1; count <= 1<<17; count <<= 1) {
 			struct timeval start, end;
 
@@ -475,9 +475,9 @@ int main(int argc, char **argv)
 	gem_set_caching(fd, src, 2);
 	gem_set_caching(fd, dst, 2);
 
-	drmtest_subtest_block("display-copy-correctness")
+	drmtest_subtest("display-copy-correctness")
 		test_copy(fd, src, dst, tmp, object_size);
-	drmtest_subtest_block("display-copy-performance") {
+	drmtest_subtest("display-copy-performance") {
 		for (count = 1; count <= 1<<17; count <<= 1) {
 			struct timeval start, end;
 
@@ -492,9 +492,9 @@ int main(int argc, char **argv)
 		}
 	}
 
-	drmtest_subtest_block("display-pwrite-blt-gtt_mmap-correctness")
+	drmtest_subtest("display-pwrite-blt-gtt_mmap-correctness")
 		test_as_gtt_mmap(fd, src, dst, object_size);
-	drmtest_subtest_block("display-pwrite-blt-gtt_mmap-performance") {
+	drmtest_subtest("display-pwrite-blt-gtt_mmap-performance") {
 		for (count = 1; count <= 1<<17; count <<= 1) {
 			struct timeval start, end;
 
