@@ -51,8 +51,6 @@
 #include "drm_fourcc.h"
 #endif
 
-#define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
-
 /*
  * Mode setting with the kernel interfaces is a bit of a chore.
  * First you have to find the connector in question and make sure the

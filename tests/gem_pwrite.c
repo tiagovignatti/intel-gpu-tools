@@ -49,7 +49,6 @@
 #define BLT_WRITE_RGB		(1<<20)
 #define BLT_SRC_TILED		(1<<15)
 #define BLT_DST_TILED		(1<<11)
-#define MI_BATCH_BUFFER_END	(0xA<<23)
 
 static void do_gem_write(int fd, uint32_t handle, void *buf, int len, int loops)
 {

@@ -37,6 +37,8 @@
 #include "xf86drm.h"
 #include "xf86drmMode.h"
 #include "intel_batchbuffer.h"
+#include "intel_chipset.h"
+#include "intel_gpu_tools.h"
 
 drm_intel_bo * gem_handle_to_libdrm_bo(drm_intel_bufmgr *bufmgr, int fd,
 				       const char *name, uint32_t handle);
@@ -54,7 +56,7 @@ bool gem_has_bsd(int fd);
 bool gem_has_blt(int fd);
 bool gem_has_vebox(int fd);
 int gem_get_num_rings(int fd);
-void gem_check_caching(int fd);
+
 void gem_set_caching(int fd, uint32_t handle, int caching);
 uint32_t gem_get_caching(int fd, uint32_t handle);
 uint32_t gem_flink(int fd, uint32_t handle);
@@ -105,6 +107,35 @@ void drmtest_skip(void);
 void drmtest_success(void);
 void drmtest_fail(int exitcode) __attribute__((noreturn));
 int drmtest_retval(void);
+
+/* check functions which auto-skip tests by calling drmtest_skip() */
+void gem_check_caching(int fd);
+static inline bool gem_check_vebox(int fd)
+{
+	if (gem_has_vebox(fd))
+		return true;
+
+	drmtest_skip();
+	return false;
+}
+
+static inline bool gem_check_bsd(int fd)
+{
+	if (HAS_BSD_RING(intel_get_drm_devid(fd)))
+		return true;
+
+	drmtest_skip();
+	return false;
+}
+
+static inline bool gem_check_blt(int fd)
+{
+	if (HAS_BLT_RING(intel_get_drm_devid(fd)))
+		return true;
+
+	drmtest_skip();
+	return false;
+}
 
 /* helpers to automatically reduce test runtime in simulation */
 bool drmtest_run_in_simulation(void);

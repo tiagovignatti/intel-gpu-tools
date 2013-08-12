@@ -44,7 +44,6 @@
 #include "intel_gpu_tools.h"
 
 #define LOCAL_I915_EXEC_VEBOX (4<<0)
-bool skipped_all = true;
 
 static double elapsed(const struct timeval *start,
 		      const struct timeval *end,
@@ -94,8 +93,6 @@ static void loop(int fd, uint32_t handle, unsigned ring_id, const char *ring_nam
 {
 	int count;
 
-	skipped_all = false;
-
 	for (count = 1; count <= SLOW_QUICK(1<<17, 1<<4); count <<= 1) {
 		struct timeval start, end;
 
@@ -113,13 +110,11 @@ int main(int argc, char **argv)
 {
 	uint32_t batch[2] = {MI_BATCH_BUFFER_END};
 	uint32_t handle;
-	uint32_t devid;
 	int fd;
 
 	drmtest_subtest_init(argc, argv);
 
 	fd = drm_open_any();
-	devid = intel_get_drm_devid(fd);
 
 	handle = gem_create(fd, 4096);
 	gem_write(fd, handle, 0, batch, sizeof(batch));
@@ -128,20 +123,20 @@ int main(int argc, char **argv)
 		loop(fd, handle, I915_EXEC_RENDER, "render");
 
 	drmtest_subtest_block("bsd")
-		if (HAS_BSD_RING(devid))
+		if (gem_check_blt(fd))
 			loop(fd, handle, I915_EXEC_BSD, "bsd");
 
 	drmtest_subtest_block("blt")
-		if (HAS_BLT_RING(devid))
+		if (gem_check_blt(fd))
 			loop(fd, handle, I915_EXEC_BLT, "blt");
 
 	drmtest_subtest_block("vebox")
-		if (gem_has_vebox(fd))
+		if (gem_check_vebox(fd))
 			loop(fd, handle, LOCAL_I915_EXEC_VEBOX, "vebox");
 
 	gem_close(fd, handle);
 
 	close(fd);
 
-	return skipped_all ? 77 : 0;
+	return drmtest_retval();
 }

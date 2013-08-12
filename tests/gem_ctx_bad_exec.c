@@ -104,7 +104,6 @@ static int exec(int fd, uint32_t handle, int ring, int ctx_id)
 	return ret;
 }
 
-#define MI_BATCH_BUFFER_END	(0xA<<23)
 int main(int argc, char *argv[])
 {
 	uint32_t handle;

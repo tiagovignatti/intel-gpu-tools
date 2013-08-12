@@ -151,11 +151,11 @@ static int has_ring(int ring)
 {
 	switch (ring) {
 	case I915_EXEC_RENDER: /* test only makes sense with separate blitter */
-		return HAS_BLT_RING(intel_get_drm_devid(fd));
+		return gem_check_blt(fd);
 	case I915_EXEC_BSD:
-		return HAS_BSD_RING(intel_get_drm_devid(fd));
+		return gem_check_bsd(fd);
 	case LOCAL_I915_EXEC_VEBOX:
-		return gem_has_vebox(fd);
+		return gem_check_vebox(fd);
 	default:
 		return 0;
 	}

@@ -167,7 +167,7 @@ int main(int argc, char **argv)
 	}
 
 	drmtest_subtest_block("bsd") {
-		if (HAS_BSD_RING(devid)) {
+		if (gem_check_bsd(fd)) {
 			sleep(2);
 			printf("running dummy loop on bsd\n");
 			dummy_reloc_loop(I915_EXEC_BSD);
@@ -176,7 +176,7 @@ int main(int argc, char **argv)
 	}
 
 	drmtest_subtest_block("blt") {
-		if (HAS_BLT_RING(devid)) {
+		if (gem_check_blt(fd)) {
 			sleep(2);
 			printf("running dummy loop on blt\n");
 			dummy_reloc_loop(I915_EXEC_BLT);
@@ -185,7 +185,7 @@ int main(int argc, char **argv)
 	}
 
 	drmtest_subtest_block("vebox") {
-		if (gem_has_vebox(fd)) {
+		if (gem_check_vebox(fd)) {
 			sleep(2);
 			printf("running dummy loop on vebox\n");
 			dummy_reloc_loop(LOCAL_I915_EXEC_VEBOX);
@@ -208,5 +208,5 @@ int main(int argc, char **argv)
 
 	close(fd);
 
-	return 0;
+	return drmtest_retval();
 }

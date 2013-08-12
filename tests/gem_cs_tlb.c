@@ -55,7 +55,6 @@
 
 #define LOCAL_I915_EXEC_VEBOX (4<<0)
 #define BATCH_SIZE (1024*1024)
-bool skipped_all = true;
 
 static int exec(int fd, uint32_t handle, int split,
 		uint64_t *gtt_ofs, unsigned ring_id)
@@ -104,7 +103,6 @@ static void run_on_ring(int fd, unsigned ring_id, const char *ring_name)
 	int i;
 
 	sprintf(buf, "testing %s cs tlb coherency: ", ring_name);
-	skipped_all = false;
 
 	/* Shut up gcc, too stupid. */
 	batch_ptr_old = NULL;
@@ -149,13 +147,11 @@ static void run_on_ring(int fd, unsigned ring_id, const char *ring_name)
 int main(int argc, char **argv)
 {
 	int fd;
-	uint32_t devid;
 
 	drmtest_subtest_init(argc, argv);
 	drmtest_skip_on_simulation();
 
 	fd = drm_open_any();
-	devid = intel_get_drm_devid(fd);
 
 	if (!drmtest_only_list_subtests()) {
 		/* This test is very sensitive to residual gtt_mm noise from previous
@@ -168,18 +164,18 @@ int main(int argc, char **argv)
 		run_on_ring(fd, I915_EXEC_RENDER, "render");
 
 	drmtest_subtest_block("bsd")
-		if (HAS_BSD_RING(devid))
+		if (gem_check_bsd(fd))
 			run_on_ring(fd, I915_EXEC_BSD, "bsd");
 
 	drmtest_subtest_block("blt")
-		if (HAS_BLT_RING(devid))
+		if (gem_check_blt(fd))
 			run_on_ring(fd, I915_EXEC_BLT, "blt");
 
 	drmtest_subtest_block("vebox")
-		if (gem_has_vebox(fd))
+		if (gem_check_vebox(fd))
 			run_on_ring(fd, LOCAL_I915_EXEC_VEBOX, "vebox");
 
 	close(fd);
 
-	return skipped_all ? 77 : 0;
+	return drmtest_retval();
 }

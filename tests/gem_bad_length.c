@@ -40,8 +40,6 @@
 #include "i915_drm.h"
 #include "drmtest.h"
 
-#define MI_BATCH_BUFFER_END	(0xA<<23)
-
 /*
  * Testcase: Minmal bo_create and batchbuffer exec
  *

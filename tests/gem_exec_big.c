@@ -49,7 +49,6 @@
 #include "i915_drm.h"
 #include "drmtest.h"
 
-#define MI_BATCH_BUFFER_END	(0xA<<23)
 #define BATCH_SIZE		(1024*1024)
 
 static int exec(int fd, uint32_t handle, uint32_t reloc_ofs)

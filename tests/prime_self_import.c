@@ -51,8 +51,6 @@
 
 #define BO_SIZE (16*1024)
 
-#define ARRAY_SIZE(x)	(sizeof(x) / sizeof((x)[0]))
-
 static char counter;
 volatile int pls_die = 0;
 
