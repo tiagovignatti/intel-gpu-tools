@@ -246,7 +246,7 @@ int main(int argc, char **argv)
 	devid = intel_get_drm_devid(fd);
 	batch = intel_batchbuffer_alloc(bufmgr, devid);
 
-	if (drmtest_run_subtest("untiled-to-tiled")) {
+	drmtest_subtest_block("untiled-to-tiled") {
 		printf("testing untiled->tiled transisition:\n");
 		tiling = I915_TILING_NONE;
 		tiling_after = I915_TILING_X;
@@ -255,7 +255,7 @@ int main(int argc, char **argv)
 		assert(tiling_after == I915_TILING_X);
 	}
 
-	if (drmtest_run_subtest("tiled-to-untiled")) {
+	drmtest_subtest_block("tiled-to-untiled") {
 		printf("testing tiled->untiled transisition:\n");
 		tiling = I915_TILING_X;
 		tiling_after = I915_TILING_NONE;
@@ -264,7 +264,7 @@ int main(int argc, char **argv)
 		assert(tiling_after == I915_TILING_NONE);
 	}
 
-	if (drmtest_run_subtest("tiled-to-tiled")) {
+	drmtest_subtest_block("tiled-to-tiled") {
 		printf("testing tiled->tiled transisition:\n");
 		tiling = I915_TILING_X;
 		tiling_after = I915_TILING_X;

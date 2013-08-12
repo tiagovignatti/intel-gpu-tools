@@ -164,18 +164,18 @@ int main(int argc, char **argv)
 		sleep(5); /* needs more serious ducttape */
 	}
 
-	if (drmtest_run_subtest("render"))
+	drmtest_subtest_block("render")
 		run_on_ring(fd, I915_EXEC_RENDER, "render");
 
-	if (drmtest_run_subtest("bsd"))
+	drmtest_subtest_block("bsd")
 		if (HAS_BSD_RING(devid))
 			run_on_ring(fd, I915_EXEC_BSD, "bsd");
 
-	if (drmtest_run_subtest("blt"))
+	drmtest_subtest_block("blt")
 		if (HAS_BLT_RING(devid))
 			run_on_ring(fd, I915_EXEC_BLT, "blt");
 
-	if (drmtest_run_subtest("vebox"))
+	drmtest_subtest_block("vebox")
 		if (gem_has_vebox(fd))
 			run_on_ring(fd, LOCAL_I915_EXEC_VEBOX, "vebox");
 

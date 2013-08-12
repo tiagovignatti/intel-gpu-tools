@@ -303,13 +303,13 @@ int main(int argc, char **argv)
 	drmtest_init_aperture_trashers(bufmgr);
 	mappable_gtt_limit = gem_mappable_aperture_size();
 
-	if (drmtest_run_subtest("reads"))
+	drmtest_subtest_block("reads")
 		test_partial_reads();
 
-	if (drmtest_run_subtest("writes"))
+	drmtest_subtest_block("writes")
 		test_partial_writes();
 
-	if (drmtest_run_subtest("writes-after-reads"))
+	drmtest_subtest_block("writes-after-reads")
 		test_partial_read_writes();
 
 	drmtest_cleanup_aperture_trashers();

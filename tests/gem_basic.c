@@ -84,11 +84,11 @@ int main(int argc, char **argv)
 
 	fd = drm_open_any();
 
-	if (drmtest_run_subtest("bad-close"))
+	drmtest_subtest_block("bad-close")
 		test_bad_close(fd);
-	if (drmtest_run_subtest("create-close"))
+	drmtest_subtest_block("create-close")
 		test_create_close(fd);
-	if (drmtest_run_subtest("create-fd-close"))
+	drmtest_subtest_block("create-fd-close")
 		test_create_fd_close(fd);
 
 	return 0;

@@ -270,15 +270,15 @@ static void do_tests(int cache_level, const char *suffix)
 	}
 
 	snprintf(name, sizeof(name), "reads%s", suffix);
-	if (drmtest_run_subtest(name))
+	drmtest_subtest_block(name)
 		test_partial_reads();
 
 	snprintf(name, sizeof(name), "writes%s", suffix);
-	if (drmtest_run_subtest(name))
+	drmtest_subtest_block(name)
 		test_partial_writes();
 
 	snprintf(name, sizeof(name), "writes-after-reads%s", suffix);
-	if (drmtest_run_subtest(name))
+	drmtest_subtest_block(name)
 		test_partial_read_writes();
 }
 

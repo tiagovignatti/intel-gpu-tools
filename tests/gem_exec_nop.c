@@ -124,18 +124,18 @@ int main(int argc, char **argv)
 	handle = gem_create(fd, 4096);
 	gem_write(fd, handle, 0, batch, sizeof(batch));
 
-	if (drmtest_run_subtest("render"))
+	drmtest_subtest_block("render")
 		loop(fd, handle, I915_EXEC_RENDER, "render");
 
-	if (drmtest_run_subtest("bsd"))
+	drmtest_subtest_block("bsd")
 		if (HAS_BSD_RING(devid))
 			loop(fd, handle, I915_EXEC_BSD, "bsd");
 
-	if (drmtest_run_subtest("blt"))
+	drmtest_subtest_block("blt")
 		if (HAS_BLT_RING(devid))
 			loop(fd, handle, I915_EXEC_BLT, "blt");
 
-	if (drmtest_run_subtest("vebox"))
+	drmtest_subtest_block("vebox")
 		if (gem_has_vebox(fd))
 			loop(fd, handle, LOCAL_I915_EXEC_VEBOX, "vebox");
 

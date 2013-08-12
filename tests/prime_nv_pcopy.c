@@ -1295,14 +1295,15 @@ int main(int argc, char **argv)
 	devid = intel_get_drm_devid(intel_fd);
 	batch = intel_batchbuffer_alloc(bufmgr, devid);
 
-#define xtest(x, args...) do { \
-	if (!drmtest_run_subtest( #x )) break; \
-	ret = ((x)(args)); \
-	++run; \
-	if (ret) { \
-		++failed; \
-		fprintf(stderr, "prime_pcopy: failed " #x "\n"); } \
-	} while (0)
+#define xtest(x, args...) \
+	drmtest_subtest_block( #x ) { \
+		ret = ((x)(args)); \
+		++run; \
+		if (ret) { \
+			++failed; \
+			fprintf(stderr, "prime_pcopy: failed " #x "\n"); \
+		} \
+	}
 
 	xtest(test1_macro);
 	xtest(test1_micro);

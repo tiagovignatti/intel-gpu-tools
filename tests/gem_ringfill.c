@@ -214,7 +214,7 @@ int main(int argc, char **argv)
 	drm_intel_bufmgr_gem_enable_reuse(bufmgr);
 	batch = intel_batchbuffer_alloc(bufmgr, intel_get_drm_devid(fd));
 
-	if (drmtest_run_subtest("blitter"))
+	drmtest_subtest_block("blitter")
 		fails += check_ring(bufmgr, batch, "blt", blt_copy);
 
 	/* Strictly only required on architectures with a separate BLT ring,
@@ -222,8 +222,10 @@ int main(int argc, char **argv)
 	 */
 	copy = get_render_copyfunc(batch->devid);
 
-	if (drmtest_run_subtest("render") && copy)
-		fails += check_ring(bufmgr, batch, "render", copy);
+	drmtest_subtest_block("render") {
+		if (copy)
+			fails += check_ring(bufmgr, batch, "render", copy);
+	}
 
 	intel_batchbuffer_free(batch);
 	drm_intel_bufmgr_destroy(bufmgr);

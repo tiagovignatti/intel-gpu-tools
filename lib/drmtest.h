@@ -95,6 +95,7 @@ void drmtest_progress(const char *header, uint64_t i, uint64_t total);
 /* subtest infrastructure */
 void drmtest_subtest_init(int argc, char **argv);
 bool drmtest_run_subtest(const char *subtest_name);
+#define drmtest_subtest_block(name) if (drmtest_run_subtest((name)))
 bool drmtest_only_list_subtests(void);
 
 /* helpers to automatically reduce test runtime in simulation */

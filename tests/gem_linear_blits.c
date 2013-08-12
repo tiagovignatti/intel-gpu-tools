@@ -264,10 +264,10 @@ int main(int argc, char **argv)
 		printf("Using %d 1MiB buffers\n", count);
 	}
 
-	if (drmtest_run_subtest("normal"))
+	drmtest_subtest_block("normal")
 		run_test(fd, count);
 
-	if (drmtest_run_subtest("interruptible")) {
+	drmtest_subtest_block("interruptible") {
 		drmtest_fork_signal_helper();
 		run_test(fd, count);
 		drmtest_stop_signal_helper();

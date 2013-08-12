@@ -1186,7 +1186,7 @@ int main(int argc, char **argv)
 	batch = intel_batchbuffer_alloc(bufmgr, devid);
 
 	for (i = 0; i < sizeof(tests) / sizeof (tests[0]); i++) {
-		if (drmtest_run_subtest(tests[i].name)) {
+		drmtest_subtest_block(tests[i].name) {
 			printf("running testcase: %s\n", tests[i].name);
 			run_test(tests[i].duration, tests[i].flags, tests[i].name);
 		}
@@ -1203,7 +1203,7 @@ int main(int argc, char **argv)
 		    !(tests[i].flags & TEST_VBLANK_ABSOLUTE))
 			continue;
 
-		if (drmtest_run_subtest(name)) {
+		drmtest_subtest_block(name) {
 			printf("running testcase: %s\n", name);
 			run_test(tests[i].duration, tests[i].flags, name);
 		}

@@ -400,9 +400,9 @@ int main(int argc, char **argv)
 
 	if (gem_set_caching(fd, src, 0) == 0 &&
 	    gem_set_caching(fd, dst, 0) == 0) {
-		if (drmtest_run_subtest("uncached-copy-correctness"))
+		drmtest_subtest_block("uncached-copy-correctness")
 			test_copy(fd, src, dst, tmp, object_size);
-		if (drmtest_run_subtest("uncached-copy-performance")) {
+		drmtest_subtest_block("uncached-copy-performance") {
 			for (count = 1; count <= 1<<17; count <<= 1) {
 				struct timeval start, end;
 
@@ -417,9 +417,9 @@ int main(int argc, char **argv)
 			}
 		}
 
-		if (drmtest_run_subtest("uncached-pwrite-blt-gtt_mmap-correctness"))
+		drmtest_subtest_block("uncached-pwrite-blt-gtt_mmap-correctness")
 			test_as_gtt_mmap(fd, src, dst, object_size);
-		if (drmtest_run_subtest("uncached-pwrite-blt-gtt_mmap-performance")) {
+		drmtest_subtest_block("uncached-pwrite-blt-gtt_mmap-performance") {
 			for (count = 1; count <= 1<<17; count <<= 1) {
 				struct timeval start, end;
 
@@ -437,9 +437,9 @@ int main(int argc, char **argv)
 
 	if (gem_set_caching(fd, src, 1) == 0 &&
 	    gem_set_caching(fd, dst, 1) == 0) {
-		if (drmtest_run_subtest("snooped-copy-correctness"))
+		drmtest_subtest_block("snooped-copy-correctness")
 			test_copy(fd, src, dst, tmp, object_size);
-		if (drmtest_run_subtest("snooped-copy-performance")) {
+		drmtest_subtest_block("snooped-copy-performance") {
 			for (count = 1; count <= 1<<17; count <<= 1) {
 				struct timeval start, end;
 
@@ -454,9 +454,9 @@ int main(int argc, char **argv)
 			}
 		}
 
-		if (drmtest_run_subtest("snooped-pwrite-blt-cpu_mmap-correctness"))
+		drmtest_subtest_block("snooped-pwrite-blt-cpu_mmap-correctness")
 			test_as_cpu_mmap(fd, src, dst, object_size);
-		if (drmtest_run_subtest("snooped-pwrite-blt-cpu_mmap-performance")) {
+		drmtest_subtest_block("snooped-pwrite-blt-cpu_mmap-performance") {
 			for (count = 1; count <= 1<<17; count <<= 1) {
 				struct timeval start, end;
 
@@ -474,9 +474,9 @@ int main(int argc, char **argv)
 
 	if (gem_set_caching(fd, src, 2) == 0 &&
 	    gem_set_caching(fd, dst, 2) == 0) {
-		if (drmtest_run_subtest("display-copy-correctness"))
+		drmtest_subtest_block("display-copy-correctness")
 			test_copy(fd, src, dst, tmp, object_size);
-		if (drmtest_run_subtest("display-copy-performance")) {
+		drmtest_subtest_block("display-copy-performance") {
 			for (count = 1; count <= 1<<17; count <<= 1) {
 				struct timeval start, end;
 
@@ -491,9 +491,9 @@ int main(int argc, char **argv)
 			}
 		}
 
-		if (drmtest_run_subtest("display-pwrite-blt-gtt_mmap-correctness"))
+		drmtest_subtest_block("display-pwrite-blt-gtt_mmap-correctness")
 			test_as_gtt_mmap(fd, src, dst, object_size);
-		if (drmtest_run_subtest("display-pwrite-blt-gtt_mmap-performance")) {
+		drmtest_subtest_block("display-pwrite-blt-gtt_mmap-performance") {
 			for (count = 1; count <= 1<<17; count <<= 1) {
 				struct timeval start, end;
 

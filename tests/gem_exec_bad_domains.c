@@ -166,7 +166,7 @@ int main(int argc, char **argv)
 
 	tmp = drm_intel_bo_alloc(bufmgr, "tmp", 128 * 128, 4096);
 
-	if (drmtest_run_subtest("cpu-domain")) {
+	drmtest_subtest_block("cpu-domain") {
 		BEGIN_BATCH(2);
 		OUT_BATCH(0);
 		OUT_RELOC(tmp, I915_GEM_DOMAIN_CPU, 0, 0);
@@ -188,7 +188,7 @@ int main(int argc, char **argv)
 		}
 	}
 
-	if (drmtest_run_subtest("gtt-domain")) {
+	drmtest_subtest_block("gtt-domain") {
 		BEGIN_BATCH(2);
 		OUT_BATCH(0);
 		OUT_RELOC(tmp, I915_GEM_DOMAIN_GTT, 0, 0);
@@ -212,7 +212,7 @@ int main(int argc, char **argv)
 
 #if 0 /* kernel checks have been eased, doesn't reject conflicting write domains
 	 any more */
-	if (drmtest_run_subtest("conflicting-write-domain")) {
+	drmtest_subtest_block("conflicting-write-domain") {
 		BEGIN_BATCH(4);
 		OUT_BATCH(0);
 		OUT_RELOC(tmp, I915_GEM_DOMAIN_RENDER,
@@ -229,10 +229,10 @@ int main(int argc, char **argv)
 	}
 #endif
 
-	if (drmtest_run_subtest("double-write-domain"))
+	drmtest_subtest_block("double-write-domain")
 		multi_write_domain(fd);
 
-	if (drmtest_run_subtest("invalid-gpu-domain")) {
+	drmtest_subtest_block("invalid-gpu-domain") {
 		BEGIN_BATCH(2);
 		OUT_BATCH(0);
 		OUT_RELOC(tmp, ~(I915_GEM_GPU_DOMAINS | I915_GEM_DOMAIN_GTT | I915_GEM_DOMAIN_CPU),

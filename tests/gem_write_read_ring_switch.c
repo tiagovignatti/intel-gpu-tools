@@ -206,16 +206,17 @@ int main(int argc, char **argv)
 	}
 
 	for (i = 0; i < ARRAY_SIZE(tests); i++) {
-		if (has_ring(tests[i].ring) &&
-		    drmtest_run_subtest(tests[i].name))
-			run_test(tests[i].ring, tests[i].name);
+		drmtest_subtest_block(tests[i].name) {
+			if (has_ring(tests[i].ring))
+				run_test(tests[i].ring, tests[i].name);
+		}
 	}
 
 	drmtest_fork_signal_helper();
 	for (i = 0; i < ARRAY_SIZE(tests); i++) {
 		char name[180];
 		snprintf(name, sizeof(name), "%s-interruptible", tests[i].name);
-		if (has_ring(tests[i].ring) && drmtest_run_subtest(name))
+		drmtest_subtest_block(name)
 			run_test(tests[i].ring, name);
 	}
 	drmtest_stop_signal_helper();

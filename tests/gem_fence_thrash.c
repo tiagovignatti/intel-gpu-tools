@@ -210,33 +210,33 @@ main(int argc, char **argv)
 	drmtest_subtest_init(argc, argv);
 	drmtest_skip_on_simulation();
 
-	if (drmtest_run_subtest("bo-write-verify-none"))
+	drmtest_subtest_block("bo-write-verify-none")
 		assert (run_test(0, bo_write_verify, I915_TILING_NONE, 80) == 0);
 
-	if (drmtest_run_subtest("bo-write-verify-x"))
+	drmtest_subtest_block("bo-write-verify-x")
 		assert (run_test(0, bo_write_verify, I915_TILING_X, 80) == 0);
 
-	if (drmtest_run_subtest("bo-write-verify-y"))
+	drmtest_subtest_block("bo-write-verify-y")
 		assert (run_test(0, bo_write_verify, I915_TILING_Y, 80) == 0);
 
-	if (drmtest_run_subtest("bo-write-verify-threaded-none"))
+	drmtest_subtest_block("bo-write-verify-threaded-none")
 		assert (run_test(5, bo_write_verify, I915_TILING_NONE, 2) == 0);
 
-	if (drmtest_run_subtest("bo-write-verify-threaded-x")) {
+	drmtest_subtest_block("bo-write-verify-threaded-x") {
 		assert (run_test(2, bo_write_verify, I915_TILING_X, 2) == 0);
 		assert (run_test(5, bo_write_verify, I915_TILING_X, 2) == 0);
 		assert (run_test(10, bo_write_verify, I915_TILING_X, 2) == 0);
 		assert (run_test(20, bo_write_verify, I915_TILING_X, 2) == 0);
 	}
 
-	if (drmtest_run_subtest("bo-write-verify-threaded-y")) {
+	drmtest_subtest_block("bo-write-verify-threaded-y") {
 		assert (run_test(2, bo_write_verify, I915_TILING_Y, 2) == 0);
 		assert (run_test(5, bo_write_verify, I915_TILING_Y, 2) == 0);
 		assert (run_test(10, bo_write_verify, I915_TILING_Y, 2) == 0);
 		assert (run_test(20, bo_write_verify, I915_TILING_Y, 2) == 0);
 	}
 
-	if (drmtest_run_subtest("bo-copy"))
+	drmtest_subtest_block("bo-copy")
 		assert(run_test(1, bo_copy, I915_TILING_X, 1) == 0);
 
 	return 0;
