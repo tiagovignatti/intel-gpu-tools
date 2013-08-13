@@ -637,6 +637,9 @@ void igt_fork_signal_helper(void)
 	pid_t pid;
 	sighandler_t oldsig;
 
+	if (igt_only_list_subtests())
+		return;
+
 	igt_install_exit_handler(signal_helper_exit_handler);
 
 	signal(SIGUSR1, sig_handler);
@@ -658,7 +661,8 @@ void igt_stop_signal_helper(void)
 	if (signal_helper != -1) {
 		kill(signal_helper, SIGQUIT);
 		wait(&exitcode);
-	}
+	} else
+		return;
 
 	if (sig_stat)
 		fprintf(stdout, "signal handler called %llu times\n", sig_stat);
