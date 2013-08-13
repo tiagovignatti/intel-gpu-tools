@@ -111,13 +111,13 @@ int main(int argc, char *argv[])
 
 	if (diff > (SLEEP_DURATION + RC6_FUDGE)) {
 		fprintf(stderr, "Diff was too high. That is unpossible\n");
-		exit(EXIT_FAILURE);
+		igt_fail(1);
 	}
 	if (diff < (SLEEP_DURATION - RC6_FUDGE)) {
 		fprintf(stderr, "GPU was not in RC6 long enough. Check that "
 				"the GPU is as idle as possible (ie. no X, "
 				"running and running no other tests)\n");
-		exit(EXIT_FAILURE);
+		igt_fail(1);
 	}
 
 	exit(EXIT_SUCCESS);

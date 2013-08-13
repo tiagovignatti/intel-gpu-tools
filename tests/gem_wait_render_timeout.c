@@ -185,7 +185,7 @@ int main(int argc, char **argv)
 	ret = gem_bo_wait_timeout(fd, dst2->handle, &timeout);
 	if (ret) {
 		fprintf(stderr, "Timed wait failed %s\n", strerror(errno));
-		exit(EXIT_FAILURE);
+		igt_fail(1);
 	}
 	igt_assert(gem_bo_busy(fd, dst2->handle) == false);
 	igt_assert(timeout != 0);

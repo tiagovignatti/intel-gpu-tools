@@ -56,7 +56,7 @@ int main(int argc, char *argv[])
 		exit(77);
 	} else if (ret != 0) {
 		fprintf(stderr, "%s\n", strerror(errno));
-		exit(EXIT_FAILURE);
+		igt_fail(1);
 	}
 	igt_assert(create.ctx_id != 0);
 

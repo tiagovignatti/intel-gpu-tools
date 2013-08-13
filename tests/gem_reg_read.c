@@ -42,11 +42,11 @@ static void handle_bad(int ret, int expected, const char *desc)
 	if (ret != 0 && errno != expected) {
 		fprintf(stderr, "%s - errno was %d, but should have been %d\n",
 				desc, errno, expected);
-		exit(EXIT_FAILURE);
+		igt_fail(1);
 	} else if (ret == 0) {
 		fprintf(stderr, "%s - Command succeeded, but should have failed\n",
 			desc);
-		exit(EXIT_FAILURE);
+		igt_fail(1);
 	}
 }
 
@@ -57,7 +57,7 @@ static uint64_t timer_query(int fd)
 	reg_read.offset = 0x2358;
 	if (drmIoctl(fd, REG_READ_IOCTL, &reg_read)) {
 		perror("positive test case failed: ");
-		exit(EXIT_FAILURE);
+		igt_fail(1);
 	}
 
 	return reg_read.val;
@@ -78,7 +78,7 @@ int main(int argc, char *argv[])
 	sleep(1);
 	if (timer_query(fd) == reg_read.val) {
 		fprintf(stderr, "Timer isn't moving, probably busted\n");
-		exit(EXIT_FAILURE);
+		igt_fail(1);
 	}
 
 	/* bad reg */
