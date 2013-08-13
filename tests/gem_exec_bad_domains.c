@@ -146,7 +146,7 @@ static void multi_write_domain(int fd)
 
 	if (ret == 0 || errno != EINVAL) {
 		fprintf(stderr, "multiple write domains not rejected\n");
-		exit(1);
+		igt_fail(1);
 	}
 }
 
@@ -173,7 +173,7 @@ int main(int argc, char **argv)
 		ret = run_batch();
 		if (ret != -EINVAL) {
 			fprintf(stderr, "(cpu, 0) reloc not rejected\n");
-			exit(1);
+			igt_fail(1);
 		}
 
 		BEGIN_BATCH(2);
@@ -183,7 +183,7 @@ int main(int argc, char **argv)
 		ret = run_batch();
 		if (ret != -EINVAL) {
 			fprintf(stderr, "(cpu, cpu) reloc not rejected\n");
-			exit(1);
+			igt_fail(1);
 		}
 	}
 
@@ -195,7 +195,7 @@ int main(int argc, char **argv)
 		ret = run_batch();
 		if (ret != -EINVAL) {
 			fprintf(stderr, "(gtt, 0) reloc not rejected\n");
-			exit(1);
+			igt_fail(1);
 		}
 
 		BEGIN_BATCH(2);
@@ -205,7 +205,7 @@ int main(int argc, char **argv)
 		ret = run_batch();
 		if (ret != -EINVAL) {
 			fprintf(stderr, "(gtt, gtt) reloc not rejected\n");
-			exit(1);
+			igt_fail(1);
 		}
 	}
 
@@ -223,7 +223,7 @@ int main(int argc, char **argv)
 		ret = run_batch();
 		if (ret != -EINVAL) {
 			fprintf(stderr, "conflicting write domains not rejected\n");
-			exit(1);
+			igt_fail(1);
 		}
 	}
 #endif
@@ -240,7 +240,7 @@ int main(int argc, char **argv)
 		ret = run_batch();
 		if (ret != -EINVAL) {
 			fprintf(stderr, "invalid gpu read domains not rejected\n");
-			exit(1);
+			igt_fail(1);
 		}
 
 		BEGIN_BATCH(2);
@@ -251,7 +251,7 @@ int main(int argc, char **argv)
 		ret = run_batch();
 		if (ret != -EINVAL) {
 			fprintf(stderr, "invalid gpu domain not rejected\n");
-			exit(1);
+			igt_fail(1);
 		}
 	}
 

@@ -397,7 +397,7 @@ static void check_state(struct test_output *o, struct event_state *es)
 	    (diff.tv_sec > 0 || (diff.tv_sec == 0 && diff.tv_usec > 2000))) {
 		fprintf(stderr, "%s ts delayed for too long: %is, %iusec\n",
 			es->name, (int)diff.tv_sec, (int)diff.tv_usec);
-		exit(5);
+		igt_fail(5);
 	}
 
 	if (es->count == 0)
@@ -410,7 +410,7 @@ static void check_state(struct test_output *o, struct event_state *es)
 		timersub(&es->current_ts, &es->last_received_ts, &diff);
 		fprintf(stderr, "timerdiff %is, %ius\n",
 			(int) diff.tv_sec, (int) diff.tv_usec);
-		exit(6);
+		igt_fail(6);
 	}
 
 	/* This bounding matches the one in DRM_IOCTL_WAIT_VBLANK. */
@@ -420,7 +420,7 @@ static void check_state(struct test_output *o, struct event_state *es)
 		if (es->current_seq - (es->last_seq + es->seq_step) > 1UL << 23) {
 			fprintf(stderr, "unexpected %s seq %u, should be >= %u\n",
 				es->name, es->current_seq, es->last_seq + es->seq_step);
-			exit(10);
+			igt_fail(10);
 		}
 	}
 
@@ -432,14 +432,14 @@ static void check_state(struct test_output *o, struct event_state *es)
 			fprintf(stderr, "inter-%s ts jitter: %is, %ius\n",
 				es->name,
 				(int) diff.tv_sec, (int) diff.tv_usec);
-			exit(9);
+			igt_fail(9);
 		}
 
 		if (es->current_seq != es->last_seq + es->seq_step) {
 			fprintf(stderr, "unexpected %s seq %u, expected %u\n",
 					es->name, es->current_seq,
 					es->last_seq + es->seq_step);
-			exit(9);
+			igt_fail(9);
 		}
 	}
 }
@@ -467,7 +467,7 @@ static void check_state_correlation(struct test_output *o,
 		fprintf(stderr,
 			"timestamp mismatch between %s and %s (diff %.4f sec)\n",
 			es1->name, es2->name, usec_diff / 1000 / 1000);
-		exit(14);
+		igt_fail(14);
 	}
 }
 
@@ -613,7 +613,7 @@ static void eat_error_state(struct test_output *o)
 
 	if (atoi(tmp) != 0) {
 		fprintf(stderr, "no gpu hang detected, stop_rings is still %s\n", tmp);
-		exit(20);
+		igt_fail(20);
 	}
 
 	close(fd);
@@ -725,7 +725,7 @@ static unsigned int run_test_step(struct test_output *o)
 				   &o->id, 1, &o->mode)) {
 			fprintf(stderr, "failed to restore output mode: %s\n",
 				strerror(errno));
-			exit(7);
+			igt_fail(7);
 		}
 	}
 
@@ -772,7 +772,7 @@ static unsigned int run_test_step(struct test_output *o)
 			fprintf(stderr, "failed to pan (%dx%d@%dHz): %s\n",
 				o->fb_width, o->fb_height,
 				o->mode.vrefresh, strerror(errno));
-			exit(7);
+			igt_fail(7);
 		}
 	}
 
@@ -786,7 +786,7 @@ static unsigned int run_test_step(struct test_output *o)
 				   NULL, 0, NULL)) {
 			fprintf(stderr, "failed to disable output: %s\n",
 				strerror(errno));
-			exit(7);
+			igt_fail(7);
 		}
 	}
 
@@ -879,7 +879,7 @@ static void check_final_state(struct test_output *o, struct event_state *es,
 {
 	if (es->count == 0) {
 		fprintf(stderr, "no %s event received\n", es->name);
-		exit(12);
+		igt_fail(12);
 	}
 
 	/* Verify we drop no frames, but only if it's not a TV encoder, since
@@ -893,7 +893,7 @@ static void check_final_state(struct test_output *o, struct event_state *es,
 		if (count < expected * 99/100) {
 			fprintf(stderr, "dropped frames, expected %d, counted %d, encoder type %d\n",
 				expected, count, o->encoder->encoder_type);
-			exit(3);
+			igt_fail(3);
 		}
 	}
 }
@@ -931,10 +931,10 @@ static unsigned int wait_for_events(struct test_output *o)
 	if (ret <= 0) {
 		fprintf(stderr, "select timed out or error (ret %d)\n",
 				ret);
-		exit(1);
+		igt_fail(1);
 	} else if (FD_ISSET(0, &fds)) {
 		fprintf(stderr, "no fds active, breaking\n");
-		exit(2);
+		igt_fail(2);
 	}
 
 	do_or_die(drmHandleEvent(drm_fd, &evctx));
@@ -1005,7 +1005,7 @@ static void run_test_on_crtc(struct test_output *o, int crtc_idx, int duration)
 
 	if (!o->fb_ids[0] || !o->fb_ids[1] || !o->fb_ids[2]) {
 		fprintf(stderr, "failed to create fbs\n");
-		exit(3);
+		igt_fail(3);
 	}
 
 	paint_flip_mode(&o->fb_info[0], false);
@@ -1035,7 +1035,7 @@ static void run_test_on_crtc(struct test_output *o, int crtc_idx, int duration)
 
 	if (do_page_flip(o, o->fb_ids[1], true)) {
 		fprintf(stderr, "failed to page flip: %s\n", strerror(errno));
-		exit(4);
+		igt_fail(4);
 	}
 	wait_for_events(o);
 
@@ -1077,7 +1077,7 @@ static int run_test(int duration, int flags, const char *test_name)
 	if (!resources) {
 		fprintf(stderr, "drmModeGetResources failed: %s\n",
 			strerror(errno));
-		exit(5);
+		igt_fail(5);
 	}
 
 	/* Find any connected displays */

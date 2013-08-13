@@ -66,7 +66,7 @@ test_large_object(int fd)
 	if (ret) {
 		fprintf(stderr, "object creation failed: %s\n",
 			strerror(errno));
-		exit(ret);
+		igt_fail(ret);
 	}
 
 	pin.handle = create.handle;
@@ -74,7 +74,7 @@ test_large_object(int fd)
 	if (ret) {
 		fprintf(stderr, "pin failed: %s\n",
 			strerror(errno));
-		exit(ret);
+		igt_fail(ret);
 	}
 
 	gem_write(fd, create.handle, 0, data, obj_size);

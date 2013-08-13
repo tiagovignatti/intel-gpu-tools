@@ -75,7 +75,7 @@ store_pipe_control_loop(void)
 		target_bo = drm_intel_bo_alloc(bufmgr, "target bo", 4096, 4096);
 		if (!target_bo) {
 			fprintf(stderr, "failed to alloc target buffer\n");
-			exit(-1);
+			igt_fail(-1);
 		}
 
 		/* gem_storedw_batches_loop.c is a bit overenthusiastic with
@@ -122,7 +122,7 @@ store_pipe_control_loop(void)
 			fprintf(stderr,
 				"value mismatch: cur 0x%08x, stored 0x%08x\n",
 				buf[0], val);
-			exit(-1);
+			igt_fail(-1);
 		}
 		buf[0] = 0; /* let batch write it again */
 		drm_intel_bo_unmap(target_bo);
@@ -141,7 +141,7 @@ int main(int argc, char **argv)
 
 	if (argc != 1) {
 		fprintf(stderr, "usage: %s\n", argv[0]);
-		exit(-1);
+		igt_fail(-1);
 	}
 
 	fd = drm_open_any();
@@ -150,7 +150,7 @@ int main(int argc, char **argv)
 	bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
 	if (!bufmgr) {
 		fprintf(stderr, "failed to init libdrm\n");
-		exit(-1);
+		igt_fail(-1);
 	}
 
 	if (IS_GEN2(devid) || IS_GEN3(devid)) {
@@ -169,7 +169,7 @@ int main(int argc, char **argv)
 	batch = intel_batchbuffer_alloc(bufmgr, devid);
 	if (!batch) {
 		fprintf(stderr, "failed to create batch buffer\n");
-		exit(-1);
+		igt_fail(-1);
 	}
 
 	store_pipe_control_loop();

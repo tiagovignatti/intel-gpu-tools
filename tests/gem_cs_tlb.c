@@ -125,7 +125,7 @@ static void run_on_ring(int fd, unsigned ring_id, const char *ring_name)
 		}
 
 		if (exec(fd, handle_new, split, &gtt_offset_new, 0))
-			exit(1);
+			igt_fail(1);
 
 		if (split > 0) {
 			/* Check that we've managed to collide in the tlb. */

@@ -116,7 +116,7 @@ int main(int argc, char **argv)
 
 		for (reloc_ofs = 4096; reloc_ofs < batch_size; reloc_ofs += 4096)
 			if (exec(fd, handle, reloc_ofs))
-				exit(1);
+				igt_fail(1);
 	}
 
 	gem_close(fd, handle);

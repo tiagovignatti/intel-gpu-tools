@@ -143,7 +143,7 @@ main(int argc, char **argv)
 			if (data[j] != j) {
 				fprintf(stderr, "mismatch at %i: %i\n",
 						j, data[j]);
-				exit(1);
+				igt_fail(1);
 			}
 		munmap(data, LINEAR_DWORDS);
 	}

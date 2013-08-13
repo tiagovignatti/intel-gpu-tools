@@ -62,7 +62,7 @@ int main(int argc, char **argv)
 	bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
 	if (!bufmgr) {
 		fprintf(stderr, "failed to init libdrm\n");
-		exit(-1);
+		igt_fail(-1);
 	}
 	/* don't enable buffer reuse!! */
 	//drm_intel_bufmgr_gem_enable_reuse(bufmgr);
@@ -76,7 +76,7 @@ int main(int argc, char **argv)
 		load_bo = drm_intel_bo_alloc(bufmgr, "target bo", 1024*4096, 4096);
 		if (!load_bo) {
 			fprintf(stderr, "failed to alloc target buffer\n");
-			exit(-1);
+			igt_fail(-1);
 		}
 
 		BEGIN_BATCH(8);

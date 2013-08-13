@@ -132,7 +132,7 @@ _bo_write_verify(struct test *t)
 			if (v != i) {
 				printf("tiling %s: write failed at %d (%x)\n",
 				       tile_str[t->tiling], i, v);
-				_exit(-1);
+				igt_fail(-1);
 			}
 		}
 
@@ -141,7 +141,7 @@ _bo_write_verify(struct test *t)
 			if (v != i) {
 				printf("tiling %s: verify failed at %d (%x)\n",
 				       tile_str[t->tiling], i, v);
-				exit(-2);
+				igt_fail(-2);
 			}
 		}
 	}

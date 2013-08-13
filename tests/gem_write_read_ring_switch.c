@@ -69,7 +69,7 @@ static void run_test(int ring, const char *testname)
 	target_bo = drm_intel_bo_alloc(bufmgr, "target bo", 4096, 4096);
 	if (!target_bo) {
 		fprintf(stderr, "failed to alloc target buffer\n");
-		exit(-1);
+		igt_fail(-1);
 	}
 
 	/* Need to map first so that we can do our own domain mangement with
@@ -184,7 +184,7 @@ int main(int argc, char **argv)
 	bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
 	if (!bufmgr) {
 		fprintf(stderr, "failed to init libdrm\n");
-		exit(-1);
+		igt_fail(-1);
 	}
 	/* don't enable buffer reuse!! */
 	//drm_intel_bufmgr_gem_enable_reuse(bufmgr);
@@ -195,13 +195,13 @@ int main(int argc, char **argv)
 	dummy_bo = drm_intel_bo_alloc(bufmgr, "dummy bo", 4096, 4096);
 	if (!dummy_bo) {
 		fprintf(stderr, "failed to alloc dummy buffer\n");
-		exit(-1);
+		igt_fail(-1);
 	}
 
 	load_bo = drm_intel_bo_alloc(bufmgr, "load bo", 1024*4096, 4096);
 	if (!load_bo) {
 		fprintf(stderr, "failed to alloc load buffer\n");
-		exit(-1);
+		igt_fail(-1);
 	}
 
 	for (i = 0; i < ARRAY_SIZE(tests); i++) {

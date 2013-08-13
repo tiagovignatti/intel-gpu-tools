@@ -506,7 +506,7 @@ int main(int argc, char **argv)
 #define xtest(name) \
 	igt_subtest(#name) \
 		if (test_##name()) \
-			exit(2);
+			igt_fail(2);
 
 	xtest(i915_nv_sharing);
 	xtest(nv_i915_sharing);

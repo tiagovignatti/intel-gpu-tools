@@ -79,7 +79,7 @@ store_dword_loop(int divider)
 			fprintf(stderr,
 				"value mismatch: cur 0x%08x, stored 0x%08x\n",
 				buf[0], val);
-			exit(-1);
+			igt_fail(-1);
 		}
 
 		drm_intel_bo_unmap(target_buffer);
@@ -109,20 +109,20 @@ int main(int argc, char **argv)
 	bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
 	if (!bufmgr) {
 		fprintf(stderr, "failed to init libdrm\n");
-		exit(-1);
+		igt_fail(-1);
 	}
 	drm_intel_bufmgr_gem_enable_reuse(bufmgr);
 
 	batch = intel_batchbuffer_alloc(bufmgr, intel_get_drm_devid(fd));
 	if (!batch) {
 		fprintf(stderr, "failed to create batch buffer\n");
-		exit(-1);
+		igt_fail(-1);
 	}
 
 	target_buffer = drm_intel_bo_alloc(bufmgr, "target bo", 4096, 4096);
 	if (!target_buffer) {
 		fprintf(stderr, "failed to alloc target buffer\n");
-		exit(-1);
+		igt_fail(-1);
 	}
 
 	store_dword_loop(1);

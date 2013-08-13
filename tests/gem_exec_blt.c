@@ -231,7 +231,7 @@ static void run(int object_size)
 
 		gettimeofday(&start, NULL);
 		if (gem_exec(fd, &execbuf, count))
-			exit(1);
+			igt_fail(1);
 		gem_sync(fd, handle);
 		gettimeofday(&end, NULL);
 		printf("Time to blt %d bytes x %6d:	%7.3fµs, %s\n",

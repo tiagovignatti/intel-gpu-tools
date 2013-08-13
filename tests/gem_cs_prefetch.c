@@ -102,7 +102,7 @@ int main(int argc, char **argv)
 	bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
 	if (!bufmgr) {
 		fprintf(stderr, "failed to init libdrm\n");
-		exit(-1);
+		igt_fail(-1);
 	}
 
 	drm_intel_bufmgr_gem_enable_reuse(bufmgr);

@@ -123,7 +123,7 @@ static void test_partial_reads(void)
 			if (tmp[j] != val) {
 				printf("mismatch at %i, got: %i, expected: %i\n",
 				       j, tmp[j], val);
-				exit(1);
+				igt_fail(1);
 			}
 		}
 
@@ -159,21 +159,21 @@ static void test_partial_writes(void)
 			if (gtt_ptr[j] != val) {
 				printf("mismatch at %i, got: %i, expected: %i\n",
 				       j, tmp[j], val);
-				exit(1);
+				igt_fail(1);
 			}
 		}
 		for (; j < start + len; j++) {
 			if (gtt_ptr[j] != tmp[0]) {
 				printf("mismatch at %i, got: %i, expected: %i\n",
 				       j, tmp[j], i);
-				exit(1);
+				igt_fail(1);
 			}
 		}
 		for (; j < BO_SIZE; j++) {
 			if (gtt_ptr[j] != val) {
 				printf("mismatch at %i, got: %i, expected: %i\n",
 				       j, tmp[j], val);
-				exit(1);
+				igt_fail(1);
 			}
 		}
 		drm_intel_gem_bo_unmap_gtt(staging_bo);
@@ -204,7 +204,7 @@ static void test_partial_read_writes(void)
 			if (tmp[j] != val) {
 				printf("mismatch in read at %i, got: %i, expected: %i\n",
 				       j, tmp[j], val);
-				exit(1);
+				igt_fail(1);
 			}
 		}
 
@@ -229,21 +229,21 @@ static void test_partial_read_writes(void)
 			if (gtt_ptr[j] != val) {
 				printf("mismatch at %i, got: %i, expected: %i\n",
 				       j, tmp[j], val);
-				exit(1);
+				igt_fail(1);
 			}
 		}
 		for (; j < start + len; j++) {
 			if (gtt_ptr[j] != tmp[0]) {
 				printf("mismatch at %i, got: %i, expected: %i\n",
 				       j, tmp[j], tmp[0]);
-				exit(1);
+				igt_fail(1);
 			}
 		}
 		for (; j < BO_SIZE; j++) {
 			if (gtt_ptr[j] != val) {
 				printf("mismatch at %i, got: %i, expected: %i\n",
 				       j, tmp[j], val);
-				exit(1);
+				igt_fail(1);
 			}
 		}
 		drm_intel_gem_bo_unmap_gtt(staging_bo);

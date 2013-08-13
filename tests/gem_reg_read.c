@@ -71,8 +71,11 @@ int main(int argc, char *argv[])
 	fd = drm_open_any();
 
 	reg_read.offset = 0x2358;
-	if (drmIoctl(fd, REG_READ_IOCTL, &reg_read))
-		exit(errno == EINVAL ? 77 : EXIT_FAILURE);
+	if (drmIoctl(fd, REG_READ_IOCTL, &reg_read)) {
+		if (errno == EINVAL)
+			igt_skip();
+		igt_fail(1);
+	}
 
 	reg_read.val = timer_query(fd);
 	sleep(1);

@@ -190,7 +190,7 @@ int main(int argc, char **argv)
 		drm_intel_bo_get_subdata(pc_target_bo[i], 0, 4, &test);
 		if (test != 0xdeadbeef) {
 			fprintf(stderr, "mismatch in buffer %i: 0x%08x instead of 0xdeadbeef\n", i, test);
-			exit(1);
+			igt_fail(1);
 		}
 		drm_intel_bo_unreference(pc_target_bo[i]);
 	}

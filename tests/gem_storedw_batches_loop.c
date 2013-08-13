@@ -63,7 +63,7 @@ store_dword_loop(int divider)
 		cmd_bo = drm_intel_bo_alloc(bufmgr, "cmd bo", 4096, 4096);
 		if (!cmd_bo) {
 			fprintf(stderr, "failed to alloc cmd bo\n");
-			exit(-1);
+			igt_fail(-1);
 		}
 
 		drm_intel_bo_map(cmd_bo, 1);
@@ -77,7 +77,7 @@ store_dword_loop(int divider)
 		ret = drm_intel_bo_references(cmd_bo, target_bo);
 		if (ret) {
 			fprintf(stderr, "failed to link cmd & target bos\n");
-			exit(-1);
+			igt_fail(-1);
 		}
 
 		ret = drm_intel_bo_emit_reloc(cmd_bo, 8, target_bo, 0,
@@ -85,7 +85,7 @@ store_dword_loop(int divider)
 					      I915_GEM_DOMAIN_INSTRUCTION);
 		if (ret) {
 			fprintf(stderr, "failed to emit reloc\n");
-			exit(-1);
+			igt_fail(-1);
 		}
 
 		buf[4] = MI_BATCH_BUFFER_END;
@@ -96,13 +96,13 @@ store_dword_loop(int divider)
 		ret = drm_intel_bo_references(cmd_bo, target_bo);
 		if (ret != 1) {
 			fprintf(stderr, "bad bo reference count: %d\n", ret);
-			exit(-1);
+			igt_fail(-1);
 		}
 
 		ret = drm_intel_bo_exec(cmd_bo, 6 * 4, NULL, 0, 0);
 		if (ret) {
 			fprintf(stderr, "bo exec failed: %d\n", ret);
-			exit(-1);
+			igt_fail(-1);
 		}
 
 		if (i % divider != 0)
@@ -117,7 +117,7 @@ store_dword_loop(int divider)
 			fprintf(stderr,
 				"value mismatch: cur 0x%08x, stored 0x%08x\n",
 				buf[0], 0x42000000 | val);
-			exit(-1);
+			igt_fail(-1);
 		}
 		buf[0] = 0; /* let batch write it again */
 		drm_intel_bo_unmap(target_bo);
@@ -140,7 +140,7 @@ int main(int argc, char **argv)
 
 	if (argc != 1) {
 		fprintf(stderr, "usage: %s\n", argv[0]);
-		exit(-1);
+		igt_fail(-1);
 	}
 
 	fd = drm_open_any();
@@ -159,14 +159,14 @@ int main(int argc, char **argv)
 	bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
 	if (!bufmgr) {
 		fprintf(stderr, "failed to init libdrm\n");
-		exit(-1);
+		igt_fail(-1);
 	}
 //	drm_intel_bufmgr_gem_enable_reuse(bufmgr);
 
 	target_bo = drm_intel_bo_alloc(bufmgr, "target bo", 4096, 4096);
 	if (!target_bo) {
 		fprintf(stderr, "failed to alloc target buffer\n");
-		exit(-1);
+		igt_fail(-1);
 	}
 
 	store_dword_loop(1);

@@ -209,7 +209,7 @@ static void cpucpy2d(uint32_t *src, unsigned src_stride, unsigned src_x, unsigne
 			    printf("mismatch at tile %i pos %i, read %i, expected %i, diff %i\n",
 				    logical_tile_no, i*options.tile_size + j, tmp, expect, (int) tmp - expect);
 			    if (options.trace_tile >= 0 && options.fail)
-				    exit(1);
+				    igt_fail(1);
 			    failed++;
 			}
 			/* when not aborting, correct any errors */
@@ -217,7 +217,7 @@ static void cpucpy2d(uint32_t *src, unsigned src_stride, unsigned src_x, unsigne
 		}
 	}
 	if (failed && options.fail)
-		exit(1);
+		igt_fail(1);
 
 	if (failed > stats.max_failed_reads)
 		stats.max_failed_reads = failed;

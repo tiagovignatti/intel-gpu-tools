@@ -162,7 +162,7 @@ int main(int argc, char *argv[])
 		ret = pthread_join(threads[i], &retval);
 		thread_status = *(int *)retval;
 		if (!ret && thread_status)
-			exit(thread_status);
+			igt_fail(thread_status);
 	}
 
 	free(returns);

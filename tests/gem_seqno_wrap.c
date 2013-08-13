@@ -556,7 +556,7 @@ static void print_usage(const char *s)
 	printf("    -p --prewrap=n        set seqno to WRAP - n for each testrun\n");
 	printf("    -r --norandom         dont randomize prewrap space\n");
 	printf("    -i --buffers          number of buffers to copy\n");
-	exit(-1);
+	igt_fail(-1);
 }
 
 static void parse_options(int argc, char **argv)
