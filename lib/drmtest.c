@@ -794,7 +794,7 @@ void igt_fail(int exitcode)
 void igt_exit(void)
 {
 	if (igt_only_list_subtests())
-		return 0;
+		return;
 
 	/* Calling this without calling one of the above is a failure */
 	assert(skipped_one || succeeded_one || failed_one);
