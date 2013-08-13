@@ -66,16 +66,14 @@ static uint64_t timer_query(int fd)
 int main(int argc, char *argv[])
 {
 	struct local_drm_i915_reg_read reg_read;
-	int fd;
+	int fd, ret;
 
 	fd = drm_open_any();
 
 	reg_read.offset = 0x2358;
-	if (drmIoctl(fd, REG_READ_IOCTL, &reg_read)) {
-		if (errno == EINVAL)
-			igt_skip();
-		igt_fail(1);
-	}
+	ret = drmIoctl(fd, REG_READ_IOCTL, &reg_read);
+	igt_assert(ret == 0 || errno == EINVAL);
+	igt_require(ret == 0);
 
 	reg_read.val = timer_query(fd);
 	sleep(1);

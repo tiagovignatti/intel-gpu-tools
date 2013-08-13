@@ -92,6 +92,8 @@ static void loop(int fd, uint32_t handle, unsigned ring_id, const char *ring_nam
 {
 	int count;
 
+	gem_require_ring(fd, ring_id);
+
 	for (count = 1; count <= SLOW_QUICK(1<<17, 1<<4); count <<= 1) {
 		struct timeval start, end;
 
@@ -103,8 +105,8 @@ static void loop(int fd, uint32_t handle, unsigned ring_id, const char *ring_nam
 		       count, elapsed(&start, &end, count), ring_name);
 		fflush(stdout);
 	}
-
 }
+
 int main(int argc, char **argv)
 {
 	uint32_t batch[2] = {MI_BATCH_BUFFER_END};
@@ -122,16 +124,13 @@ int main(int argc, char **argv)
 		loop(fd, handle, I915_EXEC_RENDER, "render");
 
 	igt_subtest("bsd")
-		if (gem_check_blt(fd))
-			loop(fd, handle, I915_EXEC_BSD, "bsd");
+		loop(fd, handle, I915_EXEC_BSD, "bsd");
 
 	igt_subtest("blt")
-		if (gem_check_blt(fd))
-			loop(fd, handle, I915_EXEC_BLT, "blt");
+		loop(fd, handle, I915_EXEC_BLT, "blt");
 
 	igt_subtest("vebox")
-		if (gem_check_vebox(fd))
-			loop(fd, handle, LOCAL_I915_EXEC_VEBOX, "vebox");
+		loop(fd, handle, LOCAL_I915_EXEC_VEBOX, "vebox");
 
 	gem_close(fd, handle);
 

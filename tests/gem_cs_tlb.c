@@ -101,6 +101,8 @@ static void run_on_ring(int fd, unsigned ring_id, const char *ring_name)
 	char buf[100];
 	int i;
 
+	gem_require_ring(fd, ring_id);
+
 	sprintf(buf, "testing %s cs tlb coherency: ", ring_name);
 
 	/* Shut up gcc, too stupid. */
@@ -163,16 +165,13 @@ int main(int argc, char **argv)
 		run_on_ring(fd, I915_EXEC_RENDER, "render");
 
 	igt_subtest("bsd")
-		if (gem_check_bsd(fd))
-			run_on_ring(fd, I915_EXEC_BSD, "bsd");
+		run_on_ring(fd, I915_EXEC_BSD, "bsd");
 
 	igt_subtest("blt")
-		if (gem_check_blt(fd))
-			run_on_ring(fd, I915_EXEC_BLT, "blt");
+		run_on_ring(fd, I915_EXEC_BLT, "blt");
 
 	igt_subtest("vebox")
-		if (gem_check_vebox(fd))
-			run_on_ring(fd, LOCAL_I915_EXEC_VEBOX, "vebox");
+		run_on_ring(fd, LOCAL_I915_EXEC_VEBOX, "vebox");
 
 	close(fd);
 

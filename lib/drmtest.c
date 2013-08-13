@@ -393,7 +393,7 @@ struct local_drm_i915_gem_caching {
 #define LOCAL_DRM_IOCTL_I915_GEM_GET_CACHEING \
 	DRM_IOWR(DRM_COMMAND_BASE + LOCAL_DRM_I915_GEM_GET_CACHEING, struct local_drm_i915_gem_caching)
 
-void gem_check_caching(int fd)
+void gem_require_caching(int fd)
 {
 	struct local_drm_i915_gem_caching arg;
 	int ret;
@@ -405,11 +405,7 @@ void gem_check_caching(int fd)
 	ret = ioctl(fd, LOCAL_DRM_IOCTL_I915_GEM_SET_CACHEING, &arg);
 	gem_close(fd, arg.handle);
 
-	if (ret != 0) {
-		if (!igt_only_list_subtests())
-			printf("no set_caching support detected\n");
-		igt_skip();
-	}
+	igt_require(ret == 0);
 }
 
 void gem_set_caching(int fd, uint32_t handle, int caching)
@@ -421,10 +417,8 @@ void gem_set_caching(int fd, uint32_t handle, int caching)
 	arg.caching = caching;
 	ret = ioctl(fd, LOCAL_DRM_IOCTL_I915_GEM_SET_CACHEING, &arg);
 
-	if (ret != 0 && (errno == ENOTTY || errno == EINVAL))
-		igt_skip();
-	else
-		igt_assert(ret == 0);
+	igt_assert(ret == 0 || (errno == ENOTTY || errno == EINVAL));
+	igt_require(ret == 0);
 }
 
 uint32_t gem_get_caching(int fd, uint32_t handle)
@@ -770,6 +764,15 @@ void igt_skip(void)
 		exit(77);
 }
 
+void __igt_skip_check(const char *file, const int line,
+		      const char *func, const char *check)
+{
+	printf("Test requirement not met in function %s, file %s:%i:\n"
+	       "Test requirement: (%s)\n",
+	       func, file, line, check);
+	igt_skip();
+}
+
 void igt_success(void)
 {
 	succeeded_one = true;
@@ -847,8 +850,7 @@ void igt_skip_on_simulation(void)
 	if (igt_only_list_subtests())
 		return;
 
-	if (igt_run_in_simulation())
-		igt_skip();
+	igt_require(!igt_run_in_simulation());
 }
 
 /* other helpers */

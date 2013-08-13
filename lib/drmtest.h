@@ -36,6 +36,7 @@
 
 #include "xf86drm.h"
 #include "xf86drmMode.h"
+#include "i915_drm.h"
 #include "intel_batchbuffer.h"
 #include "intel_chipset.h"
 #include "intel_gpu_tools.h"
@@ -104,41 +105,48 @@ bool __igt_run_subtest(const char *subtest_name);
 				   igt_success())
 bool igt_only_list_subtests(void);
 void igt_skip(void);
+void __igt_skip_check(const char *file, const int line,
+		      const char *func, const char *check);
 void igt_success(void);
 void igt_fail(int exitcode) __attribute__((noreturn));
 void __igt_fail_assert(int exitcode, const char *file,
 		       const int line, const char *func, const char *assertion)
 	__attribute__((noreturn));
 void igt_exit(void);
+/**
+ * igt_assert - fails (sub-)test if a condition is not met
+ *
+ * Should be used everywhere where a test checks results.
+ */
 #define igt_assert(expr) do { if (!(expr)) __igt_fail_assert(99, __FILE__, __LINE__, __func__, #expr ); } while (0)
+/**
+ * igt_require - skip a (sub-)test if a condition is not met
+ *
+ * This is useful to streamline the skip logic since it allows for a more flat
+ * code control flow.
+ */
+#define igt_require(expr) do { if (!(expr)) __igt_skip_check(__FILE__, __LINE__, __func__, #expr ); } while (0)
 
 /* check functions which auto-skip tests by calling igt_skip() */
-void gem_check_caching(int fd);
-static inline bool gem_check_vebox(int fd)
+void gem_require_caching(int fd);
+static inline void gem_require_ring(int fd, int ring_id)
 {
-	if (gem_has_vebox(fd))
-		return true;
-
-	igt_skip();
-	return false;
-}
-
-static inline bool gem_check_bsd(int fd)
-{
-	if (HAS_BSD_RING(intel_get_drm_devid(fd)))
-		return true;
-
-	igt_skip();
-	return false;
-}
-
-static inline bool gem_check_blt(int fd)
-{
-	if (HAS_BLT_RING(intel_get_drm_devid(fd)))
-		return true;
-
-	igt_skip();
-	return false;
+	switch (ring_id) {
+	case I915_EXEC_RENDER:
+		return;
+	case I915_EXEC_BLT:
+		igt_require(HAS_BLT_RING(intel_get_drm_devid(fd)));
+		return;
+	case I915_EXEC_BSD:
+		igt_require(HAS_BSD_RING(intel_get_drm_devid(fd)));
+		return;
+	case I915_EXEC_VEBOX:
+		igt_require(gem_has_vebox(fd));
+		return;
+	default:
+		assert(0);
+		return;
+	}
 }
 
 /* helpers to automatically reduce test runtime in simulation */

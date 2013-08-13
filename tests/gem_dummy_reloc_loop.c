@@ -166,30 +166,27 @@ int main(int argc, char **argv)
 	}
 
 	igt_subtest("bsd") {
-		if (gem_check_bsd(fd)) {
-			sleep(2);
-			printf("running dummy loop on bsd\n");
-			dummy_reloc_loop(I915_EXEC_BSD);
-			printf("dummy loop run on bsd completed\n");
-		}
+		gem_require_ring(fd, I915_EXEC_BSD);
+		sleep(2);
+		printf("running dummy loop on bsd\n");
+		dummy_reloc_loop(I915_EXEC_BSD);
+		printf("dummy loop run on bsd completed\n");
 	}
 
 	igt_subtest("blt") {
-		if (gem_check_blt(fd)) {
-			sleep(2);
-			printf("running dummy loop on blt\n");
-			dummy_reloc_loop(I915_EXEC_BLT);
-			printf("dummy loop run on blt completed\n");
-		}
+		gem_require_ring(fd, I915_EXEC_BLT);
+		sleep(2);
+		printf("running dummy loop on blt\n");
+		dummy_reloc_loop(I915_EXEC_BLT);
+		printf("dummy loop run on blt completed\n");
 	}
 
 	igt_subtest("vebox") {
-		if (gem_check_vebox(fd)) {
-			sleep(2);
-			printf("running dummy loop on vebox\n");
-			dummy_reloc_loop(LOCAL_I915_EXEC_VEBOX);
-			printf("dummy loop run on vebox completed\n");
-		}
+		gem_require_ring(fd, I915_EXEC_VEBOX);
+		sleep(2);
+		printf("running dummy loop on vebox\n");
+		dummy_reloc_loop(LOCAL_I915_EXEC_VEBOX);
+		printf("dummy loop run on vebox completed\n");
 	}
 
 	igt_subtest("mixed") {

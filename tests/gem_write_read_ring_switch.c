@@ -146,20 +146,6 @@ static void run_test(int ring, const char *testname)
 	drm_intel_bo_unreference(target_bo);
 }
 
-static int has_ring(int ring)
-{
-	switch (ring) {
-	case I915_EXEC_RENDER: /* test only makes sense with separate blitter */
-		return gem_check_blt(fd);
-	case I915_EXEC_BSD:
-		return gem_check_bsd(fd);
-	case LOCAL_I915_EXEC_VEBOX:
-		return gem_check_vebox(fd);
-	default:
-		return 0;
-	}
-}
-
 int main(int argc, char **argv)
 {
 	static const struct {
@@ -206,8 +192,11 @@ int main(int argc, char **argv)
 
 	for (i = 0; i < ARRAY_SIZE(tests); i++) {
 		igt_subtest(tests[i].name) {
-			if (has_ring(tests[i].ring))
-				run_test(tests[i].ring, tests[i].name);
+			gem_require_ring(fd, tests[i].ring);
+			/* Testing render only makes sense with separate blt. */
+			if (tests[i].ring == I915_EXEC_RENDER)
+				gem_require_ring(fd, I915_EXEC_BLT);
+			run_test(tests[i].ring, tests[i].name);
 		}
 	}
 
