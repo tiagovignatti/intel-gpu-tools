@@ -130,7 +130,7 @@ static void parse(int argc, char *argv[])
 		case 'h':
 		case '?':
 		default:
-			exit(EXIT_SUCCESS);
+			igt_success();
 			break;
 		}
 	}
@@ -169,5 +169,5 @@ int main(int argc, char *argv[])
 	free(threads);
 	close(fd);
 
-	exit(EXIT_SUCCESS);
+	igt_success();
 }

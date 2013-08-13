@@ -62,5 +62,5 @@ int main(int argc, char *argv[])
 
 	close(fd);
 
-	exit(EXIT_SUCCESS);
+	igt_success();
 }

@@ -192,5 +192,5 @@ int main(int argc, char *argv[])
 	writeval(stuff[MIN].filp, origmin);
 	writeval(stuff[MAX].filp, origmax);
 
-	exit(EXIT_SUCCESS);
+	igt_success();
 }

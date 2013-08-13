@@ -87,5 +87,5 @@ int main(int argc, char *argv[])
 		   EINVAL, "bad register");
 
 	close(fd);
-	exit(EXIT_SUCCESS);
+	igt_success();
 }

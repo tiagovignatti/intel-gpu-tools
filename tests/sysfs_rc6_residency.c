@@ -84,7 +84,7 @@ int main(int argc, char *argv[])
 
 	/* claim success if no rc6 enabled. */
 	if (readit(path) == 0)
-		exit(EXIT_SUCCESS);
+		igt_success();
 
 	ret = asprintf(&path, "/sys/class/drm/card%d/power/rc6_residency_ms", device);
 	igt_assert(ret != -1);
@@ -120,5 +120,5 @@ int main(int argc, char *argv[])
 		igt_fail(1);
 	}
 
-	exit(EXIT_SUCCESS);
+	igt_success();
 }

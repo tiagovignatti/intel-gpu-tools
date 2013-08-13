@@ -138,5 +138,5 @@ int main(int argc, char *argv[])
 
 	igt_assert(exec(fd, handle, I915_EXEC_RENDER, ctx_id) < 0);
 
-	exit(EXIT_SUCCESS);
+	igt_success();
 }
