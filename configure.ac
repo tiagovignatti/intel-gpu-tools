@@ -70,7 +70,7 @@ if test "x$GCC" = "xyes"; then
 fi
 AC_SUBST(ASSEMBLER_WARN_CFLAGS)
 
-PKG_CHECK_MODULES(DRM, [libdrm_intel >= 2.4.38 libdrm])
+PKG_CHECK_MODULES(DRM, [libdrm_intel >= 2.4.45 libdrm])
 PKG_CHECK_MODULES(PCIACCESS, [pciaccess >= 0.10])
 
 # for testdisplay
