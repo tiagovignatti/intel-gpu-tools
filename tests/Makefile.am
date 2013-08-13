@@ -36,6 +36,7 @@ TESTS_progs_M = \
 	gem_prw_concurrent_blit \
 	gem_pwrite \
 	gem_pwrite_pread \
+	gem_readwrite \
 	gem_ringfill \
 	gem_set_tiling_vs_blt \
 	gem_suspend \
@@ -76,7 +77,6 @@ TESTS_progs = \
 	gem_mmap_offset_exhaustion \
 	gem_pin \
 	gem_pipe_control_store_loop \
-	gem_readwrite \
 	gem_reg_read \
 	gem_reloc_overflow \
 	gem_reloc_vs_gpu \
