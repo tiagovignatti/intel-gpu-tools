@@ -240,6 +240,16 @@ static const char * const n_index_value[] = {
 	[1] = "DisplayPort",
 };
 
+static const char * const immed_result_valid[] = {
+	[0] = "No immediate response is available",
+	[1] = "Immediate response is available",
+};
+
+static const char * const immed_cmd_busy[] = {
+	[0] = "Can accept an immediate command",
+	[1] = "Immediate command is available",
+};
+
 static void do_self_tests(void)
 {
 	if (BIT(1, 0) != 1)
@@ -1552,6 +1562,11 @@ static void dump_cpt(void)
 #define AUD_PIN_ELD_CP_VLD	0x650C0
 #define AUD_HDMI_FIFO_STATUS	0x650D4
 
+/* Audio debug registers */
+#define AUD_ICOI		0x65f00
+#define AUD_IRII		0x65f04
+#define AUD_ICS			0x65f08
+
 /* Video DIP Control */
 #define VIDEO_DIP_CTL_A		0x60200
 #define VIDEO_DIP_CTL_B		0x61200
@@ -1972,6 +1987,11 @@ static void dump_hsw_plus(void)
 	dump_reg(AUD_PIN_ELD_CP_VLD,	"Audio pin ELD valid and CP ready status");
 	dump_reg(AUD_HDMI_FIFO_STATUS,	"Audio HDMI FIFO Status");
 
+	/* Audio debug registers */
+	dump_reg(AUD_ICOI,	"Audio Immediate Command Output Interface");
+	dump_reg(AUD_IRII,	"Audio Immediate Response Input Interface");
+	dump_reg(AUD_ICS,	"Audio Immediate Command Status");
+
 	printf("\nDetails:\n\n");
 
 	dump_ddi_buf_ctl(PORT_A);
@@ -2033,6 +2053,13 @@ static void dump_hsw_plus(void)
 
 	dump_aud_eld_cp_vld();
 	dump_hdmi_fifo_status();
+
+    printf("\nDetails:\n\n");
+
+	printf("IRV [%1lx] %s\t", BIT(dword, 1),
+		OPNAME(immed_result_valid, BIT(dword, 1)));
+	printf("ICB [%1lx] %s\n", BIT(dword, 1),
+		OPNAME(immed_cmd_busy, BIT(dword, 0)));
 }
 
 int main(int argc, char **argv)
