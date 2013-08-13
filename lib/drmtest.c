@@ -676,7 +676,7 @@ void igt_stop_signal_helper(void)
 /* subtests helpers */
 static bool list_subtests = false;
 static char *run_single_subtest = NULL;
-static bool in_subtest = false;
+static const char *in_subtest = NULL;
 static bool test_with_subtests = false;
 static bool skip_subtests_henceforth = false;
 
@@ -719,21 +719,23 @@ out:
  */
 bool __igt_run_subtest(const char *subtest_name)
 {
-	assert(in_subtest == false);
+	assert(!in_subtest);
 
 	if (list_subtests) {
 		printf("%s\n", subtest_name);
 		return false;
 	}
 
-	if (skip_subtests_henceforth)
+	if (skip_subtests_henceforth) {
+		printf("Subtest %s: SKIP\n", in_subtest);
 		return false;
+	}
 
 	if (!run_single_subtest) {
-		return in_subtest = true;
+		return (in_subtest = subtest_name);
 	} else {
 		if (strcmp(subtest_name, run_single_subtest) == 0)
-			return in_subtest = true;
+			return (in_subtest = subtest_name);
 
 		return false;
 	}
@@ -749,18 +751,19 @@ static bool succeeded_one = false;
 static bool failed_one = false;
 static int igt_exitcode;
 
-static void exit_subtest(void) __attribute__((noreturn));
-static void exit_subtest(void)
+static void exit_subtest(const char *) __attribute__((noreturn));
+static void exit_subtest(const char *result)
 {
-	in_subtest = false;
+	printf("Subtest %s: %s\n", in_subtest, result);
+	in_subtest = NULL;
 	longjmp(igt_subtest_jmpbuf, 1);
 }
 
 void igt_skip(void)
 {
 	skipped_one = true;
-	if (in_subtest)
-		exit_subtest();
+		if (in_subtest)
+		exit_subtest("SKIP");
 	else if (test_with_subtests)
 		skip_subtests_henceforth = true;
 	else
@@ -771,7 +774,7 @@ void igt_success(void)
 {
 	succeeded_one = true;
 	if (in_subtest)
-		exit_subtest();
+		exit_subtest("SUCCESS");
 }
 
 void igt_fail(int exitcode)
@@ -784,11 +787,20 @@ void igt_fail(int exitcode)
 	failed_one = true;
 
 	if (in_subtest)
-		exit_subtest();
+		exit_subtest("FAIL");
 	else {
 		assert(!test_with_subtests);
 		exit(exitcode);
 	}
+}
+
+void __igt_fail_assert(int exitcode, const char *file,
+		       const int line, const char *func, const char *assertion)
+{
+	printf("Test assertion failure function %s, file %s:%i:\n"
+	       "Failed assertion: %s\n",
+	       func, file, line, assertion);
+	igt_fail(exitcode);
 }
 
 void igt_exit(void)
@@ -836,7 +848,7 @@ void igt_skip_on_simulation(void)
 		return;
 
 	if (igt_run_in_simulation())
-		exit(77);
+		igt_skip();
 }
 
 /* other helpers */

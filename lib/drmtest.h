@@ -106,7 +106,11 @@ bool igt_only_list_subtests(void);
 void igt_skip(void);
 void igt_success(void);
 void igt_fail(int exitcode) __attribute__((noreturn));
+void __igt_fail_assert(int exitcode, const char *file,
+		       const int line, const char *func, const char *assertion)
+	__attribute__((noreturn));
 void igt_exit(void);
+#define igt_assert(expr) do { if (!(expr)) __igt_fail_assert(99, __FILE__, __LINE__, __func__, #expr ); } while (0)
 
 /* check functions which auto-skip tests by calling igt_skip() */
 void gem_check_caching(int fd);
