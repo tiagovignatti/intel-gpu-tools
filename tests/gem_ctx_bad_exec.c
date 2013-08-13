@@ -111,6 +111,7 @@ int main(int argc, char *argv[])
 	int fd;
 
 	igt_skip_on_simulation();
+	igt_subtest_init(argc, argv);
 
 	fd = drm_open_any();
 
@@ -118,9 +119,12 @@ int main(int argc, char *argv[])
 
 	handle = gem_create(fd, 4096);
 	gem_write(fd, handle, 0, batch, sizeof(batch));
-	igt_assert(exec(fd, handle, I915_EXEC_RENDER, ctx_id) == 0);
-	igt_assert(exec(fd, handle, I915_EXEC_BSD, ctx_id) != 0);
-	igt_assert(exec(fd, handle, I915_EXEC_BLT, ctx_id) != 0);
+	igt_subtest("render")
+		igt_assert(exec(fd, handle, I915_EXEC_RENDER, ctx_id) == 0);
+	igt_subtest("bsd")
+		igt_assert(exec(fd, handle, I915_EXEC_BSD, ctx_id) != 0);
+	igt_subtest("blt")
+		igt_assert(exec(fd, handle, I915_EXEC_BLT, ctx_id) != 0);
 
 	exit(EXIT_SUCCESS);
 }

@@ -20,6 +20,7 @@ TESTS_progs_M = \
 	gem_caching \
 	gem_cpu_concurrent_blit \
 	gem_cs_tlb \
+	gem_ctx_bad_exec \
 	gem_dummy_reloc_loop \
 	gem_exec_bad_domains \
 	gem_exec_nop \
@@ -57,7 +58,6 @@ TESTS_progs = \
 	gem_cpu_reloc \
 	gem_cs_prefetch \
 	gem_ctx_bad_destroy \
-	gem_ctx_bad_exec \
 	gem_ctx_basic \
 	gem_ctx_create \
 	gem_ctx_exec \
