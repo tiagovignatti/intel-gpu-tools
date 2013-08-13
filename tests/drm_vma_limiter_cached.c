@@ -27,7 +27,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <assert.h>
 #include <fcntl.h>
 #include <inttypes.h>
 #include <errno.h>
@@ -70,7 +69,7 @@ int main(int argc, char **argv)
 	batch = intel_batchbuffer_alloc(bufmgr, intel_get_drm_devid(fd));
 
 	load_bo = drm_intel_bo_alloc(bufmgr, "target bo", 1024*4096, 4096);
-	assert(load_bo);
+	igt_assert(load_bo);
 
 	drm_intel_bufmgr_gem_set_vma_cache_size(bufmgr, 500);
 
@@ -104,11 +103,11 @@ int main(int argc, char **argv)
 
 		for (j = 0; j < GROUP_SZ; j++, i++) {
 			bo[j] = drm_intel_bo_alloc(bufmgr, "mmap bo", 4096, 4096);
-			assert(bo[j]);
+			igt_assert(bo[j]);
 
 			drm_intel_gem_bo_map_gtt(bo[j]);
 			ptr = bo[j]->virtual;
-			assert(ptr);
+			igt_assert(ptr);
 			*ptr = 'c';
 			drm_intel_gem_bo_unmap_gtt(bo[j]);
 

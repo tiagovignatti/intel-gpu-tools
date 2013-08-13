@@ -29,7 +29,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <assert.h>
 #include <fcntl.h>
 #include <inttypes.h>
 #include <errno.h>
@@ -69,7 +68,7 @@ int main(int argc, char **argv)
 
 	handle = gem_create(fd, OBJECT_SIZE);
 	ptr = gem_mmap(fd, handle, OBJECT_SIZE, PROT_READ | PROT_WRITE);
-	assert(ptr);
+	igt_assert(ptr);
 
 	/* gtt coherency is done with set_domain in libdrm, don't break that */
 	gem_set_domain(fd, handle, I915_GEM_DOMAIN_GTT, I915_GEM_DOMAIN_GTT);
@@ -86,7 +85,7 @@ int main(int argc, char **argv)
 	for (i = 0; i < OBJECT_SIZE/4; i++)
 		if (ptr[i] != data[i])
 			tiling_changed = true;
-	assert(tiling_changed);
+	igt_assert(tiling_changed);
 
 	gem_set_domain(fd, handle, I915_GEM_DOMAIN_GTT, I915_GEM_DOMAIN_GTT);
 	for (i = 0; i < OBJECT_SIZE/4; i++)
@@ -111,7 +110,7 @@ int main(int argc, char **argv)
 			       i, row, half, ofs);
 			printf("read: 0x%08x, expected: 0x%08x\n",
 			       ptr[i], val);
-			assert(0);
+			igt_assert(0);
 		}
 
 	}
@@ -129,7 +128,7 @@ int main(int argc, char **argv)
 	for (i = 0; i < OBJECT_SIZE/4; i++)
 		if (ptr[i] != data[i])
 			tiling_changed = true;
-	assert(tiling_changed);
+	igt_assert(tiling_changed);
 
 	munmap(ptr, OBJECT_SIZE);
 

@@ -31,7 +31,6 @@
 #include <sys/ioctl.h>
 #include <stdio.h>
 #include <string.h>
-#include <assert.h>
 #include <fcntl.h>
 #include <inttypes.h>
 #include <drm.h>
@@ -92,7 +91,7 @@ static int get_num_fences(int fd)
 	val = gem_available_fences(fd);
 
 	printf ("total %d fences\n", val);
-	assert(val > 4);
+	igt_assert(val > 4);
 
 	return val;
 }
@@ -143,14 +142,14 @@ static void run_test(int fd, int num_fences, int expected_errno)
 		ret = drmIoctl(fd,
 			       DRM_IOCTL_I915_GEM_EXECBUFFER2,
 			       &execbuf[0]);
-		assert(expected_errno ?
+		igt_assert(expected_errno ?
 		       ret < 0 && errno == expected_errno :
 		       ret == 0);
 
 		ret = drmIoctl(fd,
 			       DRM_IOCTL_I915_GEM_EXECBUFFER2,
 			       &execbuf[1]);
-		assert(expected_errno ?
+		igt_assert(expected_errno ?
 		       ret < 0 && errno == expected_errno :
 		       ret == 0);
 	} while (--loop);
@@ -169,7 +168,7 @@ main(int argc, char **argv)
 	num_fences = get_num_fences(fd);
 	devid = intel_get_drm_devid(fd);
 
-	assert(num_fences <= MAX_FENCES);
+	igt_assert(num_fences <= MAX_FENCES);
 
 	run_test(fd, num_fences - 2, 0);
 	run_test(fd, num_fences + 1, intel_gen(devid) >= 4 ? 0 : EDEADLK);

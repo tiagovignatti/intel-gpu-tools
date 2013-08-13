@@ -29,7 +29,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <assert.h>
 #include <fcntl.h>
 #include <inttypes.h>
 #include <errno.h>
@@ -55,7 +54,7 @@ static uint32_t do_gem_create(int fd, int size, int *retval)
 	create.handle = 0;
 	create.size = (size + 4095) & -4096;
 	ret = drmIoctl(fd, DRM_IOCTL_I915_GEM_CREATE, &create);
-	assert(retval || ret == 0);
+	igt_assert(retval || ret == 0);
 	if (retval)
 		*retval = errno;
 
@@ -74,7 +73,7 @@ static void create0(int fd)
 	int retval = 0;
 	printf("trying to create a zero-length gem object\n");
 	do_gem_create(fd, 0, &retval);
-	assert(retval == EINVAL);
+	igt_assert(retval == EINVAL);
 }
 
 #if 0

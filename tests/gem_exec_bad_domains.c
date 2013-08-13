@@ -28,7 +28,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <assert.h>
 #include <fcntl.h>
 #include <inttypes.h>
 #include <errno.h>
@@ -72,7 +71,7 @@ run_batch(void)
 	used = batch->ptr - batch->buffer;
 
 	ret = drm_intel_bo_subdata(batch->bo, 0, used, batch->buffer);
-	assert(ret == 0);
+	igt_assert(ret == 0);
 
 	batch->ptr = NULL;
 

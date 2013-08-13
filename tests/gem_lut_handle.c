@@ -30,7 +30,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <assert.h>
 #include <fcntl.h>
 #include <inttypes.h>
 #include <errno.h>
@@ -98,7 +97,7 @@ static int many_exec(int fd, uint32_t batch, int num_exec, int num_reloc, unsign
 
 	gem_exec = calloc(num_exec+1, sizeof(*gem_exec));
 	gem_reloc = calloc(num_reloc, sizeof(*gem_reloc));
-	assert(gem_exec && gem_reloc);
+	igt_assert(gem_exec && gem_reloc);
 
 	for (n = 0; n < num_exec; n++) {
 		gem_exec[n].handle = gem_create(fd, 4096);

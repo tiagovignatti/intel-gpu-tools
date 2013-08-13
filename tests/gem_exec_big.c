@@ -37,7 +37,6 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
-#include <assert.h>
 #include <fcntl.h>
 #include <inttypes.h>
 #include <errno.h>
@@ -94,7 +93,7 @@ static int exec(int fd, uint32_t handle, uint32_t reloc_ofs)
 
 	gem_read(fd, handle, reloc_ofs, &tmp, 4);
 
-	assert(tmp == gem_reloc[0].presumed_offset);
+	igt_assert(tmp == gem_reloc[0].presumed_offset);
 
 	return ret;
 }

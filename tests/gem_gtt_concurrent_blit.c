@@ -35,7 +35,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <assert.h>
 #include <fcntl.h>
 #include <inttypes.h>
 #include <errno.h>
@@ -69,7 +68,7 @@ cmp_bo(drm_intel_bo *bo, uint32_t val, int width, int height)
 	drm_intel_gem_bo_start_gtt_access(bo, false);
 	vaddr = bo->virtual;
 	while (size--)
-		assert(*vaddr++ == val);
+		igt_assert(*vaddr++ == val);
 }
 
 static drm_intel_bo *
@@ -78,7 +77,7 @@ create_bo(drm_intel_bufmgr *bufmgr, uint32_t val, int width, int height)
 	drm_intel_bo *bo;
 
 	bo = drm_intel_bo_alloc(bufmgr, "bo", 4*width*height, 0);
-	assert(bo);
+	igt_assert(bo);
 
 	/* gtt map doesn't have a write parameter, so just keep the mapping
 	 * around (to avoid the set_domain with the gtt write domain set) and

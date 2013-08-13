@@ -28,7 +28,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <assert.h>
 #include <fcntl.h>
 #include <inttypes.h>
 #include <errno.h>
@@ -292,8 +291,8 @@ int main(int argc, char **argv)
 	scratch_bo = drm_intel_bo_alloc_tiled(bufmgr, "scratch bo", 1024,
 					      BO_SIZE/4096, 4,
 					      &tiling_mode, &scratch_pitch, 0);
-	assert(tiling_mode == I915_TILING_X);
-	assert(scratch_pitch == 4096);
+	igt_assert(tiling_mode == I915_TILING_X);
+	igt_assert(scratch_pitch == 4096);
 	staging_bo = drm_intel_bo_alloc(bufmgr, "staging bo", BO_SIZE, 4096);
 	tiled_staging_bo = drm_intel_bo_alloc_tiled(bufmgr, "scratch bo", 1024,
 						    BO_SIZE/4096, 4,

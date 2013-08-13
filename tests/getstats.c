@@ -43,7 +43,7 @@ int main(int argc, char **argv)
 	fd = drm_open_any();
 
 	ret = ioctl(fd, DRM_IOCTL_GET_STATS, &stats);
-	assert(ret == 0);
+	igt_assert(ret == 0);
 
 	close(fd);
 	return 0;

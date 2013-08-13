@@ -45,7 +45,7 @@ int main(int argc, char **argv)
 	 */
 	client.idx = 0;
 	ret = ioctl(fd, DRM_IOCTL_GET_CLIENT, &client);
-	assert(ret == 0);
+	igt_assert(ret == 0);
 
 	/* Look for some absurd client index and make sure it's invalid.
 	 * The DRM drivers currently always return data, so the user has
@@ -54,7 +54,7 @@ int main(int argc, char **argv)
 	 */
 	client.idx = 0x7fffffff;
 	ret = ioctl(fd, DRM_IOCTL_GET_CLIENT, &client);
-	assert(ret == -1 && errno == EINVAL);
+	igt_assert(ret == -1 && errno == EINVAL);
 
 	close(fd);
 	return 0;

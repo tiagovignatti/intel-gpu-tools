@@ -29,7 +29,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <assert.h>
 #include <fcntl.h>
 #include <inttypes.h>
 #include <errno.h>
@@ -53,7 +52,7 @@ mmap_bo(int fd, uint32_t handle)
 	void *ptr;
 
 	ptr = gem_mmap(fd, handle, OBJECT_SIZE, PROT_READ | PROT_WRITE);
-	assert(ptr != MAP_FAILED);
+	igt_assert(ptr != MAP_FAILED);
 
 	return ptr;
 }

@@ -44,7 +44,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <assert.h>
 #include <fcntl.h>
 #include <inttypes.h>
 #include <errno.h>
@@ -71,7 +70,7 @@ create_bo(uint32_t start_val)
 
 	bo = drm_intel_bo_alloc(bufmgr, "tiled bo", 1024 * 1024, 4096);
 	do_or_die(drm_intel_bo_set_tiling(bo, &tiling, width * 4));
-	assert(tiling == I915_TILING_X);
+	igt_assert(tiling == I915_TILING_X);
 
 	linear_bo = drm_intel_bo_alloc(bufmgr, "linear src", 1024 * 1024, 4096);
 

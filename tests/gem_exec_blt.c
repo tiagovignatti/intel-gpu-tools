@@ -30,7 +30,6 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
-#include <assert.h>
 #include <fcntl.h>
 #include <inttypes.h>
 #include <errno.h>
@@ -61,7 +60,7 @@ static int gem_linear_blt(uint32_t *batch,
 	uint32_t *b = batch;
 	int height = length / (16 * 1024);
 
-	assert(height <= 1<<16);
+	igt_assert(height <= 1<<16);
 
 	if (height) {
 		b[0] = COPY_BLT_CMD | BLT_WRITE_ALPHA | BLT_WRITE_RGB;

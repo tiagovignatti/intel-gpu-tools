@@ -33,7 +33,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <assert.h>
 #include <fcntl.h>
 #include <inttypes.h>
 #include <errno.h>
@@ -92,7 +91,7 @@ main(int argc, char **argv)
 
 	/* stirr up the page allocator a bit. */
 	ptr = malloc(OBJ_SIZE);
-	assert(ptr);
+	igt_assert(ptr);
 	memset(ptr, 0x1, OBJ_SIZE);
 
 	handle = create_bo(fd);
@@ -102,7 +101,7 @@ main(int argc, char **argv)
 	 */
 	gem_read(fd, handle, 0, ptr, OBJ_SIZE);
 	for (i = 0; i < OBJ_SIZE/4; i++)
-		assert(ptr[i] == i);
+		igt_assert(ptr[i] == i);
 
 	close(fd);
 

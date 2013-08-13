@@ -31,7 +31,6 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
-#include <assert.h>
 #include <fcntl.h>
 #include <inttypes.h>
 #include <errno.h>
@@ -75,7 +74,7 @@ int main(int argc, char **argv)
 	fd = drm_open_any();
 
 	handle = gem_create(fd, size);
-	assert(handle);
+	igt_assert(handle);
 
 	for (tiling = I915_TILING_NONE; tiling <= I915_TILING_Y; tiling++) {
 		if (tiling != I915_TILING_NONE) {

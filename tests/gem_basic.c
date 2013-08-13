@@ -29,7 +29,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <assert.h>
 #include <fcntl.h>
 #include <inttypes.h>
 #include <errno.h>
@@ -50,7 +49,7 @@ test_bad_close(int fd)
 	close_bo.handle = 0x10101010;
 	ret = ioctl(fd, DRM_IOCTL_GEM_CLOSE, &close_bo);
 
-	assert(ret == -1 && errno == EINVAL);
+	igt_assert(ret == -1 && errno == EINVAL);
 }
 
 static void

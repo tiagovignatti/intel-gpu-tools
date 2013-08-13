@@ -48,7 +48,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <assert.h>
 #include <fcntl.h>
 #include <inttypes.h>
 #include <errno.h>
@@ -157,7 +156,7 @@ int main(int argc, char **argv)
 		count = 10;
 
 	handles = malloc (count * sizeof(uint32_t));
-	assert(handles);
+	igt_assert(handles);
 
 	noop = gem_create(fd, 4096);
 	gem_write(fd, noop, 0, end, sizeof(end));

@@ -30,7 +30,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <assert.h>
 #include <fcntl.h>
 #include <inttypes.h>
 #include <errno.h>
@@ -81,7 +80,7 @@ static void exec(int fd, uint32_t handle, uint32_t offset)
 	execbuf.rsvd2 = 0;
 
 	do_or_die(drmIoctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf));
-	assert(gem_exec[0].offset == offset);
+	igt_assert(gem_exec[0].offset == offset);
 }
 
 static int gem_linear_blt(uint32_t *batch,
@@ -222,15 +221,15 @@ int main(int argc, char **argv)
 				/* pin anidle bo */
 				handle[i] = gem_create(fd, 4096);
 				offset[i] = gem_pin(fd, handle[i], 0);
-				assert(offset[i]);
+				igt_assert(offset[i]);
 				gem_write(fd, handle[i], 0, batch, sizeof(batch));
 			} else {
 				/* try to pin an anidle bo */
 				handle[i] = gem_create(fd, 4096);
 				make_busy(fd, handle[i]);
 				offset[i] = gem_pin(fd, handle[i], 256*1024);
-				assert(offset[i]);
-				assert((offset[i] & (256*1024-1)) == 0);
+				igt_assert(offset[i]);
+				igt_assert((offset[i] & (256*1024-1)) == 0);
 				gem_write(fd, handle[i], 0, batch, sizeof(batch));
 			}
 		}

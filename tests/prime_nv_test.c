@@ -58,7 +58,7 @@ static int find_and_open_devices(void)
 			break;
 
 		ret = fgets(vendor_id, 8, fl);
-		assert(ret);
+		igt_assert(ret);
 		fclose(fl);
 
 		venid = strtoul(vendor_id, NULL, 16);
@@ -403,7 +403,7 @@ create_bo(drm_intel_bufmgr *ibufmgr, uint32_t val, int width, int height)
         drm_intel_bo *bo;
 
         bo = drm_intel_bo_alloc(ibufmgr, "bo", 4*width*height, 0);
-        assert(bo);
+        igt_assert(bo);
 
         /* gtt map doesn't have a write parameter, so just keep the mapping
          * around (to avoid the set_domain with the gtt write domain set) and

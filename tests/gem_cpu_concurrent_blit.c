@@ -35,7 +35,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <assert.h>
 #include <fcntl.h>
 #include <inttypes.h>
 #include <errno.h>
@@ -70,7 +69,7 @@ cmp_bo(drm_intel_bo *bo, uint32_t val, int width, int height)
 	do_or_die(drm_intel_bo_map(bo, false));
 	vaddr = bo->virtual;
 	while (size--)
-		assert(*vaddr++ == val);
+		igt_assert(*vaddr++ == val);
 	drm_intel_bo_unmap(bo);
 }
 
@@ -80,7 +79,7 @@ create_bo(drm_intel_bufmgr *bufmgr, uint32_t val, int width, int height)
 	drm_intel_bo *bo;
 
 	bo = drm_intel_bo_alloc(bufmgr, "bo", 4*width*height, 0);
-	assert(bo);
+	igt_assert(bo);
 
 	return bo;
 }

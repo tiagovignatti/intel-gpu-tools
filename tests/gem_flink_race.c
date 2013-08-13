@@ -28,7 +28,6 @@
 #include <sys/ioctl.h>
 #include <stdlib.h>
 #include <string.h>
-#include <assert.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <pthread.h>
@@ -56,12 +55,12 @@ static int get_object_count(void)
 	char *path;
 
 	ret = asprintf(&path, "/sys/kernel/debug/dri/%d/i915_gem_objects", device);
-	assert(ret != -1);
+	igt_assert(ret != -1);
 
 	file = fopen(path, "r");
 
 	scanned = fscanf(file, "%i objects", &ret);
-	assert(scanned == 1);
+	igt_assert(scanned == 1);
 
 	return ret;
 }
@@ -80,11 +79,11 @@ static void *thread_fn_flink_name(void *p)
 		if (ret == 0) {
 			uint32_t name = gem_flink(fd, open_struct.handle);
 
-			assert(name == 1);
+			igt_assert(name == 1);
 
 			gem_close(fd, open_struct.handle);
 		} else
-			assert(errno == ENOENT);
+			igt_assert(errno == ENOENT);
 	}
 
 	return (void *)0;
@@ -103,12 +102,12 @@ static void test_flink_name(void)
 	threads = calloc(num_threads, sizeof(pthread_t));
 
 	fd = drm_open_any();
-	assert(fd >= 0);
+	igt_assert(fd >= 0);
 
 	for (i = 0; i < num_threads; i++) {
 		r = pthread_create(&threads[i], NULL,
 				   thread_fn_flink_name, NULL);
-		assert(r == 0);
+		igt_assert(r == 0);
 	}
 
 	for (i = 0; i < 1000000; i++) {
@@ -125,7 +124,7 @@ static void test_flink_name(void)
 
 	for (i = 0;  i < num_threads; i++) {
 		pthread_join(threads[i], &status);
-		assert(status == 0);
+		igt_assert(status == 0);
 	}
 
 	close(fd);
@@ -166,12 +165,12 @@ static void test_flink_close(void)
 	threads = calloc(num_threads, sizeof(pthread_t));
 
 	fd = drm_open_any();
-	assert(fd >= 0);
+	igt_assert(fd >= 0);
 
 	for (i = 0; i < num_threads; i++) {
 		r = pthread_create(&threads[i], NULL,
 				   thread_fn_flink_close, NULL);
-		assert(r == 0);
+		igt_assert(r == 0);
 	}
 
 	sleep(5);
@@ -180,7 +179,7 @@ static void test_flink_close(void)
 
 	for (i = 0;  i < num_threads; i++) {
 		pthread_join(threads[i], &status);
-		assert(status == 0);
+		igt_assert(status == 0);
 	}
 
 	close(fd);
@@ -188,7 +187,7 @@ static void test_flink_close(void)
 	obj_count = get_object_count() - obj_count;
 
 	printf("leaked %i objects\n", obj_count);
-	assert(obj_count == 0);
+	igt_assert(obj_count == 0);
 }
 
 int main(int argc, char **argv)

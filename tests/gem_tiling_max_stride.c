@@ -29,7 +29,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <assert.h>
 #include <fcntl.h>
 #include <inttypes.h>
 #include <errno.h>
@@ -55,7 +54,7 @@ static void do_test_invalid_tiling(int fd, uint32_t handle, int tiling, int stri
 
 		ret = ioctl(fd, DRM_IOCTL_I915_GEM_SET_TILING, &st);
 	} while (ret == -1 && (errno == EINTR || errno == EAGAIN));
-	assert(ret == -1 && errno == EINVAL);
+	igt_assert(ret == -1 && errno == EINVAL);
 }
 
 static void test_invalid_tiling(int fd, uint32_t handle, int stride)
@@ -100,7 +99,7 @@ int main(int argc, char *argv[])
 	size = stride * tile_height;
 
 	data = malloc(size);
-	assert(data);
+	igt_assert(data);
 
 	/* Fill each line with the line number */
 	for (y = 0; y < tile_height; y++) {
@@ -111,7 +110,7 @@ int main(int argc, char *argv[])
 	handle = gem_create(fd, size);
 
 	ptr = gem_mmap(fd, handle, size, PROT_READ | PROT_WRITE);
-	assert(ptr);
+	igt_assert(ptr);
 
 	test_invalid_tiling(fd, handle, 0);
 	test_invalid_tiling(fd, handle, 64);
@@ -139,7 +138,7 @@ int main(int argc, char *argv[])
 	for (i = 0; i < size / 4; ) {
 		for (y = 0; y < tile_height; y++) {
 			for (x = 0; x < tile_width / 4; x++) {
-				assert(y == data[i]);
+				igt_assert(y == data[i]);
 				i++;
 			}
 		}

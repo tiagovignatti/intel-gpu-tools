@@ -27,7 +27,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <assert.h>
 #include <fcntl.h>
 #include <inttypes.h>
 #include <errno.h>
@@ -74,11 +73,11 @@ int main(int argc, char **argv)
 
 	for (i = 0; i < BO_ARRAY_SIZE; i++) {
 		bos[i] = drm_intel_bo_alloc(bufmgr, "mmap bo", 4096, 4096);
-		assert(bos[i]);
+		igt_assert(bos[i]);
 
 		drm_intel_gem_bo_map_gtt(bos[i]);
 		ptr = bos[i]->virtual;
-		assert(ptr);
+		igt_assert(ptr);
 		*ptr = 'c';
 		drm_intel_gem_bo_unmap_gtt(bos[i]);
 	}
@@ -86,11 +85,11 @@ int main(int argc, char **argv)
 	/* and recheck whether a second map of the same still works */
 	for (i = 0; i < BO_ARRAY_SIZE; i++) {
 		bos[i] = drm_intel_bo_alloc(bufmgr, "mmap bo", 4096, 4096);
-		assert(bos[i]);
+		igt_assert(bos[i]);
 
 		drm_intel_gem_bo_map_gtt(bos[i]);
 		ptr = bos[i]->virtual;
-		assert(*ptr = 'c');
+		igt_assert(*ptr = 'c');
 		drm_intel_gem_bo_unmap_gtt(bos[i]);
 	}
 

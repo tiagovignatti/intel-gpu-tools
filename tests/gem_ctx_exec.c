@@ -34,7 +34,6 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
-#include <assert.h>
 #include <fcntl.h>
 #include <inttypes.h>
 #include <errno.h>
@@ -130,14 +129,14 @@ int main(int argc, char *argv[])
 	handle = gem_create(fd, 4096);
 
 	gem_write(fd, handle, 0, batch, sizeof(batch));
-	assert(exec(fd, handle, I915_EXEC_RENDER, ctx_id) == 0);
+	igt_assert(exec(fd, handle, I915_EXEC_RENDER, ctx_id) == 0);
 	context_destroy(fd, ctx_id);
 
 	ctx_id = context_create(fd);
-	assert(exec(fd, handle, I915_EXEC_RENDER, ctx_id) == 0);
+	igt_assert(exec(fd, handle, I915_EXEC_RENDER, ctx_id) == 0);
 	context_destroy(fd, ctx_id);
 
-	assert(exec(fd, handle, I915_EXEC_RENDER, ctx_id) < 0);
+	igt_assert(exec(fd, handle, I915_EXEC_RENDER, ctx_id) < 0);
 
 	exit(EXIT_SUCCESS);
 }

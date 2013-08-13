@@ -35,7 +35,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <assert.h>
 #include <fcntl.h>
 #include <inttypes.h>
 #include <errno.h>
@@ -159,7 +158,7 @@ static int check_ring(drm_intel_bufmgr *bufmgr,
 
 		igt_progress(output, i, width*height);
 
-		assert(y < height);
+		igt_assert(y < height);
 
 		/* Dummy load to fill the ring */
 		copy(batch, &src, 0, 0, width, height, &tmp, 0, 0);

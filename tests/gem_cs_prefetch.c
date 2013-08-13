@@ -38,7 +38,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <assert.h>
 #include <fcntl.h>
 #include <inttypes.h>
 #include <errno.h>
@@ -85,7 +84,7 @@ static void exec(int fd, uint32_t handle)
 		       DRM_IOCTL_I915_GEM_EXECBUFFER2,
 		       &execbuf);
 	gem_sync(fd, handle);
-	assert(ret == 0);
+	igt_assert(ret == 0);
 }
 
 int main(int argc, char **argv)
@@ -119,20 +118,20 @@ int main(int argc, char **argv)
 	count = aper_size / 4096;
 
 	batch = intel_batchbuffer_alloc(bufmgr, intel_get_drm_devid(fd));
-	assert(batch);
+	igt_assert(batch);
 
 	sample_batch_bo = drm_intel_bo_alloc(bufmgr, "", 4096, 4096);
-	assert(sample_batch_bo);
+	igt_assert(sample_batch_bo);
 	ret = drm_intel_bo_subdata(sample_batch_bo, 4096-sizeof(batch_end),
 				   sizeof(batch_end), batch_end);
-	assert(ret == 0);
+	igt_assert(ret == 0);
 
 	/* fill the entire gart with batches and run them */
 	for (i = 0; i < count; i++) {
 		drm_intel_bo *batch_bo;
 
 		batch_bo = drm_intel_bo_alloc(bufmgr, "", 4096, 4096);
-		assert(batch_bo);
+		igt_assert(batch_bo);
 
 		/* copy the sample batch with the gpu to the new one, so that we
 		 * also test the unmappable part of the gtt. */

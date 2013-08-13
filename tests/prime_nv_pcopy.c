@@ -356,8 +356,8 @@ static int swtile_y(uint8_t *out, const uint8_t *in, int w, int h)
 {
 	uint32_t x, y, dx, dy;
 	uint8_t *endptr = out + w * h;
-	assert(!(w % 128));
-	assert(!(h % 32));
+	igt_assert(!(w % 128));
+	igt_assert(!(h % 32));
 
 	for (y = 0; y < h; y += 32) {
 		for (x = 0; x < w; x += 128, out += TILE_SIZE) {
@@ -365,8 +365,8 @@ static int swtile_y(uint8_t *out, const uint8_t *in, int w, int h)
 				for (dy = 0; dy < 32; ++dy) {
 					uint32_t out_ofs = (dx * 32 + dy) * 16;
 					uint32_t in_ofs = (y + dy) * w + (x + 16 * dx);
-					assert(out_ofs < TILE_SIZE);
-					assert(in_ofs < w*h);
+					igt_assert(out_ofs < TILE_SIZE);
+					igt_assert(in_ofs < w*h);
 
 					// To do the Y tiling quirk:
 					// out_ofs = out_ofs ^ (((out_ofs >> 9) & 1) << 6);
@@ -375,7 +375,7 @@ static int swtile_y(uint8_t *out, const uint8_t *in, int w, int h)
 			}
 		}
 	}
-	assert(out == endptr);
+	igt_assert(out == endptr);
 	return 0;
 }
 
@@ -383,21 +383,21 @@ static int swtile_x(uint8_t *out, const uint8_t *in, int w, int h)
 {
 	uint32_t x, y, dy;
 	uint8_t *endptr = out + w * h;
-	assert(!(w % 512));
-	assert(!(h % 8));
+	igt_assert(!(w % 512));
+	igt_assert(!(h % 8));
 
 	for (y = 0; y < h; y += 8) {
 		for (x = 0; x < w; x += 512, out += TILE_SIZE) {
 			for (dy = 0; dy < 8; ++dy) {
 				uint32_t out_ofs = 512 * dy;
 				uint32_t in_ofs = (y + dy) * w + x;
-				assert(out_ofs < TILE_SIZE);
-				assert(in_ofs < w*h);
+				igt_assert(out_ofs < TILE_SIZE);
+				igt_assert(in_ofs < w*h);
 				memcpy(&out[out_ofs], &in[in_ofs], 512);
 			}
 		}
 	}
-	assert(out == endptr);
+	igt_assert(out == endptr);
 	return 0;
 }
 

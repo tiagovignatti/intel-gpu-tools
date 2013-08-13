@@ -35,7 +35,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <assert.h>
 #include <fcntl.h>
 #include <inttypes.h>
 #include <errno.h>
@@ -69,7 +68,7 @@ int main(int argc, char **argv)
 	//drm_intel_bufmgr_gem_enable_reuse(bufmgr);
 
 	batch = intel_batchbuffer_alloc(bufmgr, intel_get_drm_devid(fd));
-	assert(batch);
+	igt_assert(batch);
 
 	/* put some load onto the gpu to keep the light buffers active for long
 	 * enough */

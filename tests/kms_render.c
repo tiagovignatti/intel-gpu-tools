@@ -24,7 +24,6 @@
 #include "config.h"
 #endif
 
-#include <assert.h>
 #include <cairo.h>
 #include <errno.h>
 #include <stdint.h>
@@ -78,16 +77,16 @@ static void gpu_blit(struct kmstest_fb *dst_fb, struct kmstest_fb *src_fb)
 	drm_intel_bo *src_bo;
 	int bpp;
 
-	assert(dst_fb->drm_format == src_fb->drm_format);
-	assert(src_fb->drm_format == DRM_FORMAT_RGB565 ||
+	igt_assert(dst_fb->drm_format == src_fb->drm_format);
+	igt_assert(src_fb->drm_format == DRM_FORMAT_RGB565 ||
 	       drm_format_to_bpp(src_fb->drm_format) != 16);
 	bpp = drm_format_to_bpp(src_fb->drm_format);
 	dst_bo = gem_handle_to_libdrm_bo(bufmgr, drm_fd, "destination",
 					 dst_fb->gem_handle);
-	assert(dst_bo);
+	igt_assert(dst_bo);
 	src_bo = gem_handle_to_libdrm_bo(bufmgr, drm_fd, "source",
 					 src_fb->gem_handle);
-	assert(src_bo);
+	igt_assert(src_bo);
 
 	intel_blt_copy(batch,
 		       src_bo, 0, 0, src_fb->width * bpp / 8,
@@ -114,12 +113,12 @@ static int test_format(const char *test_name,
 
 	ret = asprintf(&mode_format_str, "%s @ %dHz / %s",
 		 mode->name, mode->vrefresh, kmstest_format_str(format));
-	assert(ret > 0);
+	igt_assert(ret > 0);
 	ret = asprintf(&cconf_str, "pipe %s, encoder %s, connector %s",
 		       kmstest_pipe_str(cconf->pipe),
 		       kmstest_encoder_type_str(cconf->encoder->encoder_type),
 		       kmstest_connector_type_str(cconf->connector->connector_type));
-	assert(ret > 0);
+	igt_assert(ret > 0);
 
 	printf("Beginning test %s with %s on %s\n",
 		test_name, mode_format_str, cconf_str);
@@ -194,7 +193,7 @@ static int run_test(const char *test_name, enum test_flags flags)
 	int i;
 
 	resources = drmModeGetResources(drm_fd);
-	assert(resources);
+	igt_assert(resources);
 
 	/* Find any connected displays */
 	for (i = 0; i < resources->count_connectors; i++) {

@@ -37,7 +37,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <assert.h>
 # include <sys/syscall.h>
 
 #include "drm.h"
@@ -79,7 +78,7 @@ int main(int argc, char **argv)
 
 	/* root (which we run igt as) should always be authenticated */
 	auth = check_auth(fd);
-	assert(auth);
+	igt_assert(auth);
 
 	return 0;
 }

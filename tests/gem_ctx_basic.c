@@ -50,7 +50,7 @@ static void init_buffer(drm_intel_bufmgr *bufmgr,
 {
 	buf->bo = drm_intel_bo_alloc(bufmgr, "", size, 4096);
 	buf->size = size;
-	assert(buf->bo);
+	igt_assert(buf->bo);
 	buf->tiling = I915_TILING_NONE;
 	buf->stride = 4096;
 }
@@ -70,7 +70,7 @@ static void *work(void *arg)
 	else
 		td_fd = fd;
 
-	assert(td_fd >= 0);
+	igt_assert(td_fd >= 0);
 
 	bufmgr = drm_intel_bufmgr_gem_init(td_fd, 4096);
 	batch = intel_batchbuffer_alloc(bufmgr, devid);
@@ -89,12 +89,12 @@ static void *work(void *arg)
 
 
 		if (uncontexted) {
-			assert(rendercopy);
+			igt_assert(rendercopy);
 			rendercopy(batch, &src, 0, 0, 0, 0, &dst, 0, 0);
 		} else {
 			int ret;
 			ret = drm_intel_bo_subdata(batch->bo, 0, 4096, batch->buffer);
-			assert(ret == 0);
+			igt_assert(ret == 0);
 			intel_batchbuffer_flush_with_context(batch, context);
 		}
 	}

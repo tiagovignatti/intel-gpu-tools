@@ -39,7 +39,7 @@ static int origmin, origmax;
 	if (!(COND)) { \
 		writeval(stuff[MIN].filp, origmin); \
 		writeval(stuff[MAX].filp, origmax); \
-		assert(0); \
+		igt_assert(0); \
 	} \
 } while (0);
 
@@ -69,7 +69,7 @@ static int readval(FILE *filp)
 	fflush(filp);
 	rewind(filp);
 	scanned = fscanf(filp, "%d", &val);
-	assert(scanned == 1);
+	igt_assert(scanned == 1);
 
 	return val;
 }
@@ -83,7 +83,7 @@ static int do_writeval(FILE *filp, int val, int lerrno)
 	rewind(filp);
 	ret = fprintf(filp, "%d", val);
 	if (ret && lerrno)
-		assert(errno = lerrno);
+		igt_assert(errno = lerrno);
 	fflush(filp);
 	return ret;
 }
@@ -146,14 +146,14 @@ int main(int argc, char *argv[])
 		int val = -1;
 		char *path;
 		ret = asprintf(&path, sysfs_base_path, device, junk->name);
-		assert(ret != -1);
+		igt_assert(ret != -1);
 		junk->filp = fopen(path, junk->mode);
 		if (junk->filp == NULL) {
 			printf("Kernel is too old. GTFO\n");
 			exit(77);
 		}
 		val = readval(junk->filp);
-		assert(val >= 0);
+		igt_assert(val >= 0);
 		junk++;
 	} while(junk->name != NULL);
 

@@ -25,7 +25,6 @@
 #include "config.h"
 #endif
 
-#include <assert.h>
 #include <cairo.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -156,9 +155,9 @@ static void emit_dummy_load(struct test_output *o)
 	limit = intel_gen(devid) < 6 ? 500 : 5000;
 
 	dummy_bo = drm_intel_bo_alloc(bufmgr, "dummy_bo", fb_info->size, 4096);
-	assert(dummy_bo);
+	igt_assert(dummy_bo);
 	target_bo = gem_handle_to_libdrm_bo(bufmgr, drm_fd, "imported", fb_info->gem_handle);
-	assert(target_bo);
+	igt_assert(target_bo);
 
 	for (i = 0; i < limit; i++) {
 		BEGIN_BATCH(8);
@@ -231,13 +230,13 @@ static int set_dpms(struct test_output *o, int mode)
 
 static void set_flag(unsigned int *v, unsigned int flag)
 {
-	assert(!(*v & flag));
+	igt_assert(!(*v & flag));
 	*v |= flag;
 }
 
 static void clear_flag(unsigned int *v, unsigned int flag)
 {
-	assert(*v & flag);
+	igt_assert(*v & flag);
 	*v &= ~flag;
 }
 
@@ -270,7 +269,7 @@ static int __wait_for_vblank(unsigned int flags, int crtc_idx,
 	memset(&wait_vbl, 0, sizeof(wait_vbl));
 
 	crtc_idx_mask = crtc_idx << DRM_VBLANK_HIGH_CRTC_SHIFT;
-	assert(!(crtc_idx_mask & ~DRM_VBLANK_HIGH_CRTC_MASK));
+	igt_assert(!(crtc_idx_mask & ~DRM_VBLANK_HIGH_CRTC_MASK));
 
 	wait_vbl.request.type = crtc_idx_mask;
 	if (flags & TEST_VBLANK_ABSOLUTE)
@@ -497,7 +496,7 @@ static void recreate_fb(struct test_output *o)
 
 	/* Call rmfb/getfb/addfb to ensure those don't introduce stalls */
 	r = drmModeGetFB(drm_fd, fb_info->fb_id);
-	assert(r);
+	igt_assert(r);
 
 	do_or_die(drmModeAddFB(drm_fd, o->fb_width, o->fb_height, o->depth,
 			       o->bpp, fb_info->stride,
@@ -518,7 +517,7 @@ static void set_y_tiling(struct test_output *o, int fb_idx)
 
 	/* Call rmfb/getfb/addfb to ensure those don't introduce stalls */
 	r = drmModeGetFB(drm_fd, fb_info->fb_id);
-	assert(r);
+	igt_assert(r);
 	gem_set_tiling(drm_fd, r->handle, I915_TILING_Y, fb_info->stride);
 	gem_close(drm_fd, r->handle);
 	drmFree(r);
@@ -576,7 +575,7 @@ static void eat_error_state(struct test_output *o)
 	int fd;
 	ssize_t r;
 
-	assert(card_index != -1);
+	igt_assert(card_index != -1);
 
 	/* clear the error state */
 	snprintf(fname, FILENAME_MAX, "%s/%i/%s",
@@ -630,7 +629,7 @@ static void hang_gpu(struct test_output *o)
 	int fd;
 	ssize_t r;
 
-	assert(card_index != -1);
+	igt_assert(card_index != -1);
 
 	snprintf(fname, FILENAME_MAX, "%s/%i/%s",
 		 dfs_base, card_index, dfs_entry);
@@ -701,19 +700,19 @@ static unsigned int run_test_step(struct test_output *o)
 		do_or_die(__wait_for_vblank(TEST_VBLANK_ABSOLUTE |
 					    TEST_VBLANK_BLOCK, o->pipe, exp_seq,
 					    0, &reply));
-		assert(gettime_us() - start < 500);
-		assert(reply.sequence == exp_seq);
-		assert(timercmp(&reply.ts, &o->flip_state.last_ts, ==));
+		igt_assert(gettime_us() - start < 500);
+		igt_assert(reply.sequence == exp_seq);
+		igt_assert(timercmp(&reply.ts, &o->flip_state.last_ts, ==));
 	}
 
 	if (do_flip && (o->flags & TEST_EINVAL) && o->flip_state.count > 0)
-		assert(do_page_flip(o, new_fb_id, true) == expected_einval);
+		igt_assert(do_page_flip(o, new_fb_id, true) == expected_einval);
 
 	if (o->flags & TEST_FB_BAD_TILING)
 		new_fb_id = o->fb_ids[o->current_fb_id];
 
 	if (do_vblank && (o->flags & TEST_EINVAL) && o->vblank_state.count > 0)
-		assert(do_wait_for_vblank(o, o->pipe, target_seq, &vbl_reply)
+		igt_assert(do_wait_for_vblank(o, o->pipe, target_seq, &vbl_reply)
 		       == -EINVAL);
 
 	if (o->flags & TEST_DPMS_OFF)
@@ -756,7 +755,7 @@ static unsigned int run_test_step(struct test_output *o)
 	}
 
 	if (do_flip && (o->flags & TEST_EBUSY))
-		assert(do_page_flip(o, new_fb_id, true) == -EBUSY);
+		igt_assert(do_page_flip(o, new_fb_id, true) == -EBUSY);
 
 	if (do_flip && (o->flags & TEST_RMFB))
 		recreate_fb(o);
@@ -792,11 +791,11 @@ static unsigned int run_test_step(struct test_output *o)
 	}
 
 	if (do_vblank && (o->flags & TEST_EINVAL) && o->vblank_state.count > 0)
-		assert(do_wait_for_vblank(o, o->pipe, target_seq, &vbl_reply)
+		igt_assert(do_wait_for_vblank(o, o->pipe, target_seq, &vbl_reply)
 		       == -EINVAL);
 
 	if (do_flip && (o->flags & TEST_EINVAL) && !(o->flags & TEST_FB_BAD_TILING))
-		assert(do_page_flip(o, new_fb_id, true) == expected_einval);
+		igt_assert(do_page_flip(o, new_fb_id, true) == expected_einval);
 
 	if (do_flip && (o->flags & TEST_HANG)) {
 		gem_sync(drm_fd, handle);
@@ -860,7 +859,7 @@ static void paint_flip_mode(struct kmstest_fb *fb, bool odd_frame)
 	cairo_set_source_rgb(cr, 1, 1, 1);
 	cairo_fill(cr);
 
-	assert(!cairo_status(cr));
+	igt_assert(!cairo_status(cr));
 }
 
 static int
@@ -912,7 +911,7 @@ static unsigned int wait_for_events(struct test_output *o)
 	int ret;
 
 	event_mask = o->pending_events;
-	assert(event_mask);
+	igt_assert(event_mask);
 
 	memset(&evctx, 0, sizeof evctx);
 	evctx.version = DRM_EVENT_CONTEXT_VERSION;
@@ -941,7 +940,7 @@ static unsigned int wait_for_events(struct test_output *o)
 	do_or_die(drmHandleEvent(drm_fd, &evctx));
 
 	event_mask ^= o->pending_events;
-	assert(event_mask);
+	igt_assert(event_mask);
 
 	return event_mask;
 }
@@ -1028,7 +1027,7 @@ static void run_test_on_crtc(struct test_output *o, int crtc_idx, int duration)
 		}
 		goto out;
 	}
-	assert(fb_is_bound(o, o->fb_ids[0]));
+	igt_assert(fb_is_bound(o, o->fb_ids[0]));
 
 	/* quiescent the hw a bit so ensure we don't miss a single frame */
 	if (o->flags & TEST_CHECK_TS)
@@ -1105,7 +1104,7 @@ static void get_timestamp_format(void)
 	int ret;
 
 	ret = drmGetCap(drm_fd, DRM_CAP_TIMESTAMP_MONOTONIC, &cap_mono);
-	assert(ret == 0 || errno == EINVAL);
+	igt_assert(ret == 0 || errno == EINVAL);
 	monotonic_timestamp = ret == 0 && cap_mono == 1;
 	printf("Using %s timestamps\n",
 		monotonic_timestamp ? "monotonic" : "real");

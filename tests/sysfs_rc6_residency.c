@@ -47,7 +47,7 @@ static unsigned int readit(const char *path)
 		abort();
 	}
 	scanned = fscanf(file, "%u", &ret);
-	assert(scanned == 1);
+	igt_assert(scanned == 1);
 
 	fclose(file);
 
@@ -70,7 +70,7 @@ int main(int argc, char *argv[])
 	close(fd);
 
 	ret = asprintf(&path, "/sys/class/drm/card%d/power/rc6_enable", device);
-	assert(ret != -1);
+	igt_assert(ret != -1);
 
 	/* For some reason my ivb isn't idle even after syncing up with the gpu.
 	 * Let's add a sleept just to make it happy. */
@@ -87,11 +87,11 @@ int main(int argc, char *argv[])
 		exit(EXIT_SUCCESS);
 
 	ret = asprintf(&path, "/sys/class/drm/card%d/power/rc6_residency_ms", device);
-	assert(ret != -1);
+	igt_assert(ret != -1);
 	ret = asprintf(&pathp, "/sys/class/drm/card%d/power/rc6p_residency_ms", device);
-	assert(ret != -1);
+	igt_assert(ret != -1);
 	ret = asprintf(&pathpp, "/sys/class/drm/card%d/power/rc6pp_residency_ms", device);
-	assert(ret != -1);
+	igt_assert(ret != -1);
 
 	value1 = readit(path);
 	value1p = readit(pathp);

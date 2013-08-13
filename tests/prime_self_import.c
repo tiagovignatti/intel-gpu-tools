@@ -36,7 +36,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <assert.h>
 #include <fcntl.h>
 #include <inttypes.h>
 #include <errno.h>
@@ -63,18 +62,18 @@ check_bo(int fd1, uint32_t handle1, int fd2, uint32_t handle2)
 	ptr1 = gem_mmap(fd1, handle1, BO_SIZE, PROT_READ | PROT_WRITE);
 	ptr2 = gem_mmap(fd2, handle2, BO_SIZE, PROT_READ | PROT_WRITE);
 
-	assert(ptr1);
+	igt_assert(ptr1);
 
 	/* check whether it's still our old object first. */
 	for (i = 0; i < BO_SIZE; i++) {
-		assert(ptr1[i] == counter);
-		assert(ptr2[i] == counter);
+		igt_assert(ptr1[i] == counter);
+		igt_assert(ptr2[i] == counter);
 	}
 
 	counter++;
 
 	memset(ptr1, counter, BO_SIZE);
-	assert(memcmp(ptr1, ptr2, BO_SIZE) == 0);
+	igt_assert(memcmp(ptr1, ptr2, BO_SIZE) == 0);
 
 	munmap(ptr1, BO_SIZE);
 	munmap(ptr2, BO_SIZE);
@@ -160,7 +159,7 @@ static void test_with_one_bo_two_files(void)
 	handle_import = prime_fd_to_handle(fd2, dma_buf_fd2);
 
 	/* dma-buf selfimporting an flink bo should give the same handle */
-	assert(handle_import == handle_open);
+	igt_assert(handle_import == handle_open);
 
 	close(fd1);
 	close(fd2);
@@ -187,11 +186,11 @@ static void test_with_one_bo(void)
 	/* reimport should give us the same handle so that userspace can check
 	 * whether it has that bo already somewhere. */
 	handle_import2 = prime_fd_to_handle(fd2, dma_buf_fd);
-	assert(handle_import1 == handle_import2);
+	igt_assert(handle_import1 == handle_import2);
 
 	/* Same for re-importing on the exporting fd. */
 	handle_selfimport = prime_fd_to_handle(fd1, dma_buf_fd);
-	assert(handle == handle_selfimport);
+	igt_assert(handle == handle_selfimport);
 
 	/* close dma_buf, check whether nothing disappears. */
 	close(dma_buf_fd);
@@ -221,12 +220,12 @@ static int get_object_count(void)
 	char *path;
 
 	ret = asprintf(&path, "/sys/kernel/debug/dri/%d/i915_gem_objects", device);
-	assert(ret != -1);
+	igt_assert(ret != -1);
 
 	file = fopen(path, "r");
 
 	scanned = fscanf(file, "%i objects", &ret);
-	assert(scanned == 1);
+	igt_assert(scanned == 1);
 
 	return ret;
 }
@@ -263,7 +262,7 @@ static void test_reimport_close_race(void)
 	threads = calloc(num_threads, sizeof(pthread_t));
 
 	fds[0] = drm_open_any();
-	assert(fds[0] >= 0);
+	igt_assert(fds[0] >= 0);
 
 	handle = gem_create(fds[0], BO_SIZE);
 
@@ -273,7 +272,7 @@ static void test_reimport_close_race(void)
 		r = pthread_create(&threads[i], NULL,
 				   thread_fn_reimport_vs_close,
 				   (void *)(uintptr_t)fds);
-		assert(r == 0);
+		igt_assert(r == 0);
 	}
 
 	sleep(5);
@@ -282,7 +281,7 @@ static void test_reimport_close_race(void)
 
 	for (i = 0;  i < num_threads; i++) {
 		pthread_join(threads[i], &status);
-		assert(status == 0);
+		igt_assert(status == 0);
 	}
 
 	close(fds[0]);
@@ -291,7 +290,7 @@ static void test_reimport_close_race(void)
 	obj_count = get_object_count() - obj_count;
 
 	printf("leaked %i objects\n", obj_count);
-	assert(obj_count == 0);
+	igt_assert(obj_count == 0);
 }
 
 static void *thread_fn_export_vs_close(void *p)
@@ -340,13 +339,13 @@ static void test_export_close_race(void)
 	threads = calloc(num_threads, sizeof(pthread_t));
 
 	fd = drm_open_any();
-	assert(fd >= 0);
+	igt_assert(fd >= 0);
 
 	for (i = 0; i < num_threads; i++) {
 		r = pthread_create(&threads[i], NULL,
 				   thread_fn_export_vs_close,
 				   (void *)(uintptr_t)fd);
-		assert(r == 0);
+		igt_assert(r == 0);
 	}
 
 	sleep(5);
@@ -355,7 +354,7 @@ static void test_export_close_race(void)
 
 	for (i = 0;  i < num_threads; i++) {
 		pthread_join(threads[i], &status);
-		assert(status == 0);
+		igt_assert(status == 0);
 	}
 
 	close(fd);
@@ -363,7 +362,7 @@ static void test_export_close_race(void)
 	obj_count = get_object_count() - obj_count;
 
 	printf("leaked %i objects\n", obj_count);
-	assert(obj_count == 0);
+	igt_assert(obj_count == 0);
 }
 
 int main(int argc, char **argv)

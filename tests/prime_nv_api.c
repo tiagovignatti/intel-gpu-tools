@@ -50,7 +50,7 @@ static int find_and_open_devices(void)
 			break;
 
 		ret = fgets(vendor_id, 8, fl);
-		assert(ret);
+		igt_assert(ret);
 		fclose(fl);
 
 		venid = strtoul(vendor_id, NULL, 16);

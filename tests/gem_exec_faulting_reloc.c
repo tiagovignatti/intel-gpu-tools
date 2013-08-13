@@ -30,7 +30,6 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
-#include <assert.h>
 #include <fcntl.h>
 #include <inttypes.h>
 #include <errno.h>
@@ -66,7 +65,7 @@ static int gem_linear_blt(uint32_t *batch,
 	uint32_t *b = batch;
 	int height = length / (16 * 1024);
 
-	assert(height <= 1<<16);
+	igt_assert(height <= 1<<16);
 
 	if (height) {
 		b[0] = COPY_BLT_CMD | BLT_WRITE_ALPHA | BLT_WRITE_RGB;
@@ -138,7 +137,7 @@ static void gem_exec(int fd, struct drm_i915_gem_execbuffer2 *execbuf)
 	ret = drmIoctl(fd,
 		       DRM_IOCTL_I915_GEM_EXECBUFFER2,
 		       execbuf);
-	assert(ret == 0);
+	igt_assert(ret == 0);
 }
 
 static void run(int object_size)
@@ -182,7 +181,7 @@ static void run(int object_size)
 	gem_write(fd, handle_relocs, 0, reloc, sizeof(reloc));
 	gtt_relocs = gem_mmap(fd, handle_relocs, 4096,
 			      PROT_READ | PROT_WRITE);
-	assert(gtt_relocs);
+	igt_assert(gtt_relocs);
 
 	exec[2].handle = handle;
 	exec[2].relocation_count = len > 40 ? 4 : 2;

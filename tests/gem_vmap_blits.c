@@ -38,7 +38,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <assert.h>
 #include <fcntl.h>
 #include <inttypes.h>
 #include <errno.h>
@@ -98,7 +97,7 @@ gem_read(int fd, uint32_t handle, int offset, int size, void *buf)
 	pread.size = size;
 	pread.data_ptr = (uintptr_t)buf;
 	ret = drmIoctl(fd, DRM_IOCTL_I915_GEM_PREAD, &pread);
-	assert(ret == 0);
+	igt_assert(ret == 0);
 }
 
 static void
@@ -184,7 +183,7 @@ copy(int fd, uint32_t dst, uint32_t src)
 		drmCommandNone(fd, DRM_I915_GEM_THROTTLE);
 		ret = drmIoctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &exec);
 	}
-	assert(ret == 0);
+	igt_assert(ret == 0);
 
 	gem_close(fd, handle);
 }

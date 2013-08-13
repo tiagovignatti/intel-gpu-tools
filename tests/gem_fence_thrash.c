@@ -34,7 +34,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <assert.h>
 #include <fcntl.h>
 #include <inttypes.h>
 #include <errno.h>
@@ -71,14 +70,14 @@ bo_create (int fd, int tiling)
 
 	/* dirty cpu caches a bit ... */
 	ptr = gem_mmap__cpu(fd, handle, OBJECT_SIZE, PROT_READ | PROT_WRITE);
-	assert(ptr);
+	igt_assert(ptr);
 	memset(ptr, 0, OBJECT_SIZE);
 	munmap(ptr, OBJECT_SIZE);
 
 	gem_set_tiling(fd, handle, tiling, 1024);
 
 	ptr = gem_mmap(fd, handle, OBJECT_SIZE, PROT_READ | PROT_WRITE);
-	assert(ptr);
+	igt_assert(ptr);
 
 	/* XXX: mmap_gtt pulls the bo into the GTT read domain. */
 	gem_sync(fd, handle);
@@ -119,7 +118,7 @@ _bo_write_verify(struct test *t)
 	assert (t->num_surfaces > 0);
 
 	s = calloc(sizeof(*s), t->num_surfaces);
-	assert(s);
+	igt_assert(s);
 
 	for (k = 0; k < t->num_surfaces; k++)
 		s[k] = bo_create(fd, t->tiling);
@@ -196,7 +195,7 @@ static int run_test(int threads_per_fence, void *f, int tiling,
 			pthread_join (threads[n], NULL);
 	} else {
 		void *(*func)(void *) = f;
-		assert(func(&t) == (void *)0);
+		igt_assert(func(&t) == (void *)0);
 	}
 
 	close(t.fd);
@@ -237,7 +236,7 @@ main(int argc, char **argv)
 	}
 
 	igt_subtest("bo-copy")
-		assert(run_test(1, bo_copy, I915_TILING_X, 1) == 0);
+		igt_assert(run_test(1, bo_copy, I915_TILING_X, 1) == 0);
 
 	return 0;
 }

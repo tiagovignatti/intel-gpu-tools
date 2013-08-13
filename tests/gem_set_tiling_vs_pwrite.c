@@ -29,7 +29,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <assert.h>
 #include <fcntl.h>
 #include <inttypes.h>
 #include <errno.h>
@@ -65,7 +64,7 @@ int main(int argc, char **argv)
 
 	handle = gem_create(fd, OBJECT_SIZE);
 	ptr = gem_mmap(fd, handle, OBJECT_SIZE, PROT_READ | PROT_WRITE);
-	assert(ptr);
+	igt_assert(ptr);
 
 	gem_set_tiling(fd, handle, I915_TILING_X, TEST_STRIDE);
 
@@ -78,7 +77,7 @@ int main(int argc, char **argv)
 	memset(data, 0, OBJECT_SIZE);
 	gem_read(fd, handle, 0, data, OBJECT_SIZE);
 	for (i = 0; i < OBJECT_SIZE/4; i++)
-		assert(i == data[i]);
+		igt_assert(i == data[i]);
 
 	/* touch it before changing the tiling, so that the fence sticks around */
 	gem_set_domain(fd, handle, I915_GEM_DOMAIN_GTT, I915_GEM_DOMAIN_GTT);
@@ -91,7 +90,7 @@ int main(int argc, char **argv)
 	memset(data, 0, OBJECT_SIZE);
 	gem_read(fd, handle, 0, data, OBJECT_SIZE);
 	for (i = 0; i < OBJECT_SIZE/4; i++)
-		assert(i == data[i]);
+		igt_assert(i == data[i]);
 
 	munmap(ptr, OBJECT_SIZE);
 

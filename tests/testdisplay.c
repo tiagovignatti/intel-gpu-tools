@@ -49,7 +49,6 @@
 #include "config.h"
 #endif
 
-#include <assert.h>
 #include <cairo.h>
 #include <errno.h>
 #include <math.h>
@@ -203,7 +202,7 @@ static void connector_find_preferred_mode(uint32_t connector_id,
 	c->pipe = config.pipe;
 
 	if (mode_num != -1) {
-		assert(mode_num < config.connector->count_modes);
+		igt_assert(mode_num < config.connector->count_modes);
 		c->mode = config.connector->modes[mode_num];
 	} else {
 		c->mode = config.default_mode;
@@ -310,7 +309,7 @@ static void paint_output_info(struct connector *c, struct kmstest_fb *fb)
 	if (qr_code)
 		paint_image(cr, "./pass.png");
 
-	assert(!cairo_status(cr));
+	igt_assert(!cairo_status(cr));
 }
 
 static void sighandler(int signo)
@@ -370,7 +369,7 @@ set_mode(struct connector *c)
 
 		fb_ptr = gem_mmap(drm_fd, fb_info.gem_handle,
 				  fb_info.size, PROT_READ | PROT_WRITE);
-		assert(fb_ptr);
+		igt_assert(fb_ptr);
 		paint_color_key(&fb_info);
 
 		gem_close(drm_fd, fb_info.gem_handle);
@@ -519,7 +518,7 @@ static void enter_exec_path( char **argv )
 		*(pos+1) = '\0';
 
 	ret = chdir(exec_path);
-	assert(ret == 0);
+	igt_assert(ret == 0);
 	free(exec_path);
 }
 

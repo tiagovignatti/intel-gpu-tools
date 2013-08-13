@@ -26,7 +26,6 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include <assert.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <pthread.h>
@@ -76,12 +75,12 @@ static int copy_tile_threaded(drm_intel_bo *bo)
 	for (i = 0; i < NUM_THREADS; i++) {
 		tctx[i].bo = bo;
 		r = pthread_create(&thr[i], NULL, copy_fn, (void *)&tctx[i]);
-		assert(r == 0);
+		igt_assert(r == 0);
 	}
 
 	for (i = 0;  i < NUM_THREADS; i++) {
 		pthread_join(thr[i], &status);
-		assert(status == 0);
+		igt_assert(status == 0);
 	}
 
 	return 0;
@@ -98,23 +97,23 @@ int main(int argc, char **argv)
 	igt_skip_on_simulation();
 
 	fd = drm_open_any();
-	assert(fd >= 0);
+	igt_assert(fd >= 0);
 
 	bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
-	assert(bufmgr);
+	igt_assert(bufmgr);
 
 	bo = drm_intel_bo_alloc_tiled(bufmgr, "mmap bo", WIDTH, HEIGHT, 1,
 				      &tiling_mode, &pitch, 0);
-	assert(bo);
+	igt_assert(bo);
 
 	r = drm_intel_gem_bo_map_gtt(bo);
-	assert(!r);
+	igt_assert(!r);
 
 	r = copy_tile_threaded(bo);
-	assert(!r);
+	igt_assert(!r);
 
 	r = drm_intel_gem_bo_unmap_gtt(bo);
-	assert(!r);
+	igt_assert(!r);
 
 	drm_intel_bo_unreference(bo);
 	drm_intel_bufmgr_destroy(bufmgr);

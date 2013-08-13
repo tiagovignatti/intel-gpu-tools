@@ -47,7 +47,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <assert.h>
 #include <fcntl.h>
 #include <inttypes.h>
 #include <errno.h>
@@ -107,10 +106,10 @@ main(int argc, char **argv)
 	/* need slightly more than total ram */
 	count = intel_get_total_ram_mb() * 11 / 10;
 	bo_handles = calloc(count, sizeof(uint32_t));
-	assert(bo_handles);
+	igt_assert(bo_handles);
 
 	idx_arr = calloc(count, sizeof(int));
-	assert(idx_arr);
+	igt_assert(idx_arr);
 
 	if (intel_get_total_swap_mb() == 0) {
 		printf("no swap detected\n");

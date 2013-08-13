@@ -40,7 +40,6 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
-#include <assert.h>
 #include <fcntl.h>
 #include <inttypes.h>
 #include <errno.h>
@@ -130,7 +129,7 @@ static void run_on_ring(int fd, unsigned ring_id, const char *ring_name)
 
 		if (split > 0) {
 			/* Check that we've managed to collide in the tlb. */
-			assert(gtt_offset == gtt_offset_new);
+			igt_assert(gtt_offset == gtt_offset_new);
 
 			/* We hang onto the storage of the old batch by keeping
 			 * the cpu mmap around. */

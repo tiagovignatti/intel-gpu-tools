@@ -29,7 +29,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <assert.h>
 #include <fcntl.h>
 #include <inttypes.h>
 #include <errno.h>
@@ -57,19 +56,19 @@ test_fence_restore(int fd, bool tiled2untiled)
 
 	/* Access the buffer objects in the order we want to have the laid out. */
 	ptr1 = gem_mmap(fd, handle1, OBJECT_SIZE, PROT_READ | PROT_WRITE);
-	assert(ptr1 != MAP_FAILED);
+	igt_assert(ptr1 != MAP_FAILED);
 	for (i = 0; i < OBJECT_SIZE/sizeof(uint32_t); i++)
 		ptr1[i] = i;
 
 	ptr_tiled = gem_mmap(fd, handle_tiled, OBJECT_SIZE, PROT_READ | PROT_WRITE);
-	assert(ptr_tiled != MAP_FAILED);
+	igt_assert(ptr_tiled != MAP_FAILED);
 	if (tiled2untiled)
 		gem_set_tiling(fd, handle_tiled, I915_TILING_X, 2048);
 	for (i = 0; i < OBJECT_SIZE/sizeof(uint32_t); i++)
 		ptr_tiled[i] = i;
 
 	ptr2 = gem_mmap(fd, handle2, OBJECT_SIZE, PROT_READ | PROT_WRITE);
-	assert(ptr2 != MAP_FAILED);
+	igt_assert(ptr2 != MAP_FAILED);
 	for (i = 0; i < OBJECT_SIZE/sizeof(uint32_t); i++)
 		ptr2[i] = i;
 
@@ -82,11 +81,11 @@ test_fence_restore(int fd, bool tiled2untiled)
 
 	printf("checking the first canary object\n");
 	for (i = 0; i < OBJECT_SIZE/sizeof(uint32_t); i++)
-		assert(ptr1[i] == i);
+		igt_assert(ptr1[i] == i);
 
 	printf("checking the second canary object\n");
 	for (i = 0; i < OBJECT_SIZE/sizeof(uint32_t); i++)
-		assert(ptr2[i] == i);
+		igt_assert(ptr2[i] == i);
 
 	gem_close(fd, handle1);
 	gem_close(fd, handle2);

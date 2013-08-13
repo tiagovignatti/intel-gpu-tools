@@ -47,7 +47,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <assert.h>
 #include <fcntl.h>
 #include <inttypes.h>
 #include <errno.h>
@@ -121,7 +120,7 @@ static void do_test(uint32_t tiling, unsigned stride,
 	test_bo = drm_intel_bo_alloc(bufmgr, "tiled busy bo", TEST_SIZE, 4096);
 	test_bo_handle = test_bo->handle;
 	ret = drm_intel_bo_set_tiling(test_bo, &tiling_after, stride_after);
-	assert(ret == 0);
+	igt_assert(ret == 0);
 	drm_intel_gem_bo_map_gtt(test_bo);
 	ptr = test_bo->virtual;
 	*ptr = 0;
@@ -140,7 +139,7 @@ static void do_test(uint32_t tiling, unsigned stride,
 	test_bo_handle = test_bo->handle;
 	/* ensure we have the right tiling before we start. */
 	ret = drm_intel_bo_set_tiling(test_bo, &tiling, stride);
-	assert(ret == 0);
+	igt_assert(ret == 0);
 
 	if (tiling == I915_TILING_NONE) {
 		drm_intel_bo_subdata(test_bo, 0, TEST_SIZE, data);
@@ -182,7 +181,7 @@ static void do_test(uint32_t tiling, unsigned stride,
 	if (test_bo_handle != test_bo->handle)
 		fprintf(stderr, "libdrm reuse trick failed\n");
 	ret = drm_intel_bo_set_tiling(test_bo, &tiling_after, stride_after);
-	assert(ret == 0);
+	igt_assert(ret == 0);
 
 	/* Note: We don't care about gen4+ here because the blitter doesn't use
 	 * fences there. So not setting tiling flags on the tiled buffer is ok.
@@ -210,7 +209,7 @@ static void do_test(uint32_t tiling, unsigned stride,
 	memset(data, 0, TEST_SIZE);
 	drm_intel_bo_get_subdata(target_bo, 0, TEST_SIZE, data);
 	for (i = 0; i < TEST_SIZE/4; i++)
-		assert(data[i] == i);
+		igt_assert(data[i] == i);
 
 	/* check whether tiling on the test_bo actually changed. */
 	drm_intel_gem_bo_map_gtt(test_bo);
@@ -220,7 +219,7 @@ static void do_test(uint32_t tiling, unsigned stride,
 			tiling_changed = true;
 	ptr = NULL;
 	drm_intel_gem_bo_unmap_gtt(test_bo);
-	assert(tiling_changed);
+	igt_assert(tiling_changed);
 
 	drm_intel_bo_unreference(test_bo);
 	drm_intel_bo_unreference(target_bo);
@@ -251,8 +250,8 @@ int main(int argc, char **argv)
 		tiling = I915_TILING_NONE;
 		tiling_after = I915_TILING_X;
 		do_test(tiling, TEST_STRIDE, tiling_after, TEST_STRIDE);
-		assert(tiling == I915_TILING_NONE);
-		assert(tiling_after == I915_TILING_X);
+		igt_assert(tiling == I915_TILING_NONE);
+		igt_assert(tiling_after == I915_TILING_X);
 	}
 
 	igt_subtest("tiled-to-untiled") {
@@ -260,8 +259,8 @@ int main(int argc, char **argv)
 		tiling = I915_TILING_X;
 		tiling_after = I915_TILING_NONE;
 		do_test(tiling, TEST_STRIDE, tiling_after, TEST_STRIDE);
-		assert(tiling == I915_TILING_X);
-		assert(tiling_after == I915_TILING_NONE);
+		igt_assert(tiling == I915_TILING_X);
+		igt_assert(tiling_after == I915_TILING_NONE);
 	}
 
 	igt_subtest("tiled-to-tiled") {
@@ -269,8 +268,8 @@ int main(int argc, char **argv)
 		tiling = I915_TILING_X;
 		tiling_after = I915_TILING_X;
 		do_test(tiling, TEST_STRIDE/2, tiling_after, TEST_STRIDE);
-		assert(tiling == I915_TILING_X);
-		assert(tiling_after == I915_TILING_X);
+		igt_assert(tiling == I915_TILING_X);
+		igt_assert(tiling_after == I915_TILING_X);
 	}
 
 	return 0;

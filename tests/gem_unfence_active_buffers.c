@@ -41,7 +41,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <assert.h>
 #include <fcntl.h>
 #include <inttypes.h>
 #include <errno.h>
@@ -118,7 +117,7 @@ int main(int argc, char **argv)
 		test_bo = drm_intel_bo_alloc(bufmgr, "test_bo",
 					     TEST_SIZE, 4096);
 		ret = drm_intel_bo_set_tiling(test_bo, &tiling, TEST_STRIDE);
-		assert(ret == 0);
+		igt_assert(ret == 0);
 
 		drm_intel_bo_disable_reuse(test_bo);
 

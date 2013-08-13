@@ -33,7 +33,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include <assert.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/types.h>
@@ -77,7 +76,7 @@ static void init_buffer(drm_intel_bufmgr *bufmgr,
 	/* buf->bo = drm_intel_bo_alloc(bufmgr, "", size, 4096); */
 	buf->bo = bo;
 	buf->size = width * height * 4;
-	assert(buf->bo);
+	igt_assert(buf->bo);
 	buf->tiling = I915_TILING_NONE;
 	buf->data = buf->cpu_mapping = NULL;
 	buf->num_tiles = width * height * 4;
@@ -121,7 +120,7 @@ create_bo(drm_intel_bufmgr *bufmgr, uint32_t val, int width, int height)
 	drm_intel_bo *bo;
 
 	bo = drm_intel_bo_alloc(bufmgr, "bo", width * height * 4, 0);
-	assert(bo);
+	igt_assert(bo);
 
 	/* gtt map doesn't have a write parameter, so just keep the mapping
 	 * around (to avoid the set_domain with the gtt write domain set) and
@@ -160,8 +159,8 @@ static void render_copyfunc(struct scratch_buf *src,
 			       "test is shallow!\n");
 			warned = 1;
 		}
-		assert(dst->bo);
-		assert(src->bo);
+		igt_assert(dst->bo);
+		igt_assert(src->bo);
 		intel_copy_bo(batch_blt, dst->bo, src->bo, width, height);
 		intel_batchbuffer_flush(batch_blt);
 	}
@@ -191,7 +190,7 @@ static int run_sync_test(int num_buffers, bool verify)
 	struct scratch_buf *s_src, *s_dst;
 
 	fd = drm_open_any();
-	assert(fd >= 0);
+	igt_assert(fd >= 0);
 
 	gem_quiescent_gpu(fd);
 
@@ -204,24 +203,24 @@ static int run_sync_test(int num_buffers, bool verify)
 	bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
 	drm_intel_bufmgr_gem_enable_reuse(bufmgr);
 	batch_blt = intel_batchbuffer_alloc(bufmgr, intel_get_drm_devid(fd));
-	assert(batch_blt);
+	igt_assert(batch_blt);
 	batch_3d = intel_batchbuffer_alloc(bufmgr, intel_get_drm_devid(fd));
-	assert(batch_3d);
+	igt_assert(batch_3d);
 
 	src = malloc(num_buffers * sizeof(**src));
-	assert(src);
+	igt_assert(src);
 
 	dst1 = malloc(num_buffers * sizeof(**dst1));
-	assert(dst1);
+	igt_assert(dst1);
 
 	dst2 = malloc(num_buffers * sizeof(**dst2));
-	assert(dst2);
+	igt_assert(dst2);
 
 	s_src = malloc(num_buffers * sizeof(*s_src));
-	assert(s_src);
+	igt_assert(s_src);
 
 	s_dst = malloc(num_buffers * sizeof(*s_dst));
-	assert(s_dst);
+	igt_assert(s_dst);
 
 	p_dst1 = malloc(num_buffers * sizeof(unsigned int));
 	if (p_dst1 == NULL)
@@ -234,11 +233,11 @@ static int run_sync_test(int num_buffers, bool verify)
 	for (i = 0; i < num_buffers; i++) {
 		p_dst1[i] = p_dst2[i] = i;
 		src[i] = create_bo(bufmgr, i, width, height);
-		assert(src[i]);
+		igt_assert(src[i]);
 		dst1[i] = create_bo(bufmgr, ~i, width, height);
-		assert(dst1[i]);
+		igt_assert(dst1[i]);
 		dst2[i] = create_bo(bufmgr, ~i, width, height);
-		assert(dst2[i]);
+		igt_assert(dst2[i]);
 		init_buffer(bufmgr, &s_src[i], src[i], width, height);
 		init_buffer(bufmgr, &s_dst[i], dst1[i], width, height);
 	}
@@ -317,7 +316,7 @@ static int run_cmd(char *s)
 		if (getcwd(path, PATH_MAX) == NULL)
 			perror("getcwd");
 
-		assert(snprintf(full_path, PATH_MAX, "%s/%s", path, wexp.we_wordv[0]) > 0);
+		igt_assert(snprintf(full_path, PATH_MAX, "%s/%s", path, wexp.we_wordv[0]) > 0);
 
 		/* if (!options.verbose) {
 			close(STDOUT_FILENO);
@@ -423,7 +422,7 @@ static int read_seqno(void)
 	int wrap = 0;
 
 	r = __read_seqno(&seqno);
-	assert(r == 0);
+	igt_assert(r == 0);
 
 	if (last_seqno > seqno)
 		wrap++;
@@ -444,14 +443,14 @@ static int write_seqno(uint32_t seqno)
 		return 0;
 
 	fh = dfs_open(O_RDWR);
-	assert(snprintf(buf, sizeof(buf), "0x%x", seqno) > 0);
+	igt_assert(snprintf(buf, sizeof(buf), "0x%x", seqno) > 0);
 
 	r = write(fh, buf, strnlen(buf, sizeof(buf)));
 	close(fh);
 	if (r < 0)
 		return r;
 
-	assert(r == strnlen(buf, sizeof(buf)));
+	igt_assert(r == strnlen(buf, sizeof(buf)));
 
 	last_seqno = seqno;
 
@@ -498,17 +497,17 @@ static int run_test(void)
 
 static void preset_run_once(void)
 {
-	assert(write_seqno(1) == 0);
-	assert(run_test() == 0);
+	igt_assert(write_seqno(1) == 0);
+	igt_assert(run_test() == 0);
 
-	assert(write_seqno(0x7fffffff) == 0);
-	assert(run_test() == 0);
+	igt_assert(write_seqno(0x7fffffff) == 0);
+	igt_assert(run_test() == 0);
 
-	assert(write_seqno(0xffffffff) == 0);
-	assert(run_test() == 0);
+	igt_assert(write_seqno(0xffffffff) == 0);
+	igt_assert(run_test() == 0);
 
-	assert(write_seqno(0xfffffff0) == 0);
-	assert(run_test() == 0);
+	igt_assert(write_seqno(0xfffffff0) == 0);
+	igt_assert(run_test() == 0);
 }
 
 static void random_run_once(void)
@@ -521,25 +520,25 @@ static void random_run_once(void)
 			val += random();
 	} while (val == 0);
 
-	assert(write_seqno(val) == 0);
-	assert(run_test() == 0);
+	igt_assert(write_seqno(val) == 0);
+	igt_assert(run_test() == 0);
 }
 
 static void wrap_run_once(void)
 {
 	const uint32_t pw_val = calc_prewrap_val();
 
-	assert(write_seqno(UINT32_MAX - pw_val) == 0);
+	igt_assert(write_seqno(UINT32_MAX - pw_val) == 0);
 
 	while(!read_seqno())
-		assert(run_test() == 0);
+		igt_assert(run_test() == 0);
 }
 
 static void background_run_once(void)
 {
 	const uint32_t pw_val = calc_prewrap_val();
 
-	assert(write_seqno(UINT32_MAX - pw_val) == 0);
+	igt_assert(write_seqno(UINT32_MAX - pw_val) == 0);
 
 	while(!read_seqno())
 		sleep(3);
@@ -650,7 +649,7 @@ int main(int argc, char **argv)
 	parse_options(argc, argv);
 
 	card_index = drm_get_card(0);
-	assert(card_index != -1);
+	igt_assert(card_index != -1);
 
 	srandom(time(NULL));
 

@@ -36,7 +36,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <assert.h>
 #include <fcntl.h>
 #include <inttypes.h>
 #include <errno.h>
@@ -242,11 +241,11 @@ copy(int fd, uint32_t dst, uint32_t src)
 	if ((b - batch) & 1)
 		*b++ = 0;
 
-	assert(b - batch <= 1024);
+	igt_assert(b - batch <= 1024);
 	handle = gem_create(fd, 4096);
 	gem_write(fd, handle, 0, batch, (b-batch)*sizeof(batch[0]));
 
-	assert(r-reloc == 2);
+	igt_assert(r-reloc == 2);
 
 	obj[0].handle = dst;
 	obj[0].relocation_count = 0;
@@ -290,7 +289,7 @@ copy(int fd, uint32_t dst, uint32_t src)
 		drmCommandNone(fd, DRM_I915_GEM_THROTTLE);
 		ret = drmIoctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &exec);
 	}
-	assert(ret == 0);
+	igt_assert(ret == 0);
 
 	gem_close(fd, handle);
 }
@@ -307,7 +306,7 @@ create_bo(int fd, uint32_t val)
 
 	/* Fill the BO with dwords starting at val */
 	v = gem_mmap(fd, handle, WIDTH*HEIGHT*4, PROT_READ | PROT_WRITE);
-	assert(v);
+	igt_assert(v);
 	for (i = 0; i < WIDTH*HEIGHT; i++)
 		v[i] = val++;
 	munmap(v, WIDTH*HEIGHT*4);
@@ -322,7 +321,7 @@ check_bo(int fd, uint32_t handle, uint32_t val)
 	int i;
 
 	v = gem_mmap(fd, handle, WIDTH*HEIGHT*4, PROT_READ);
-	assert(v);
+	igt_assert(v);
 	for (i = 0; i < WIDTH*HEIGHT; i++) {
 		if (v[i] != val) {
 			fprintf(stderr, "Expected 0x%08x, found 0x%08x "

@@ -28,7 +28,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <assert.h>
 #include <fcntl.h>
 #include <inttypes.h>
 #include <errno.h>
@@ -77,7 +76,7 @@ static void run_test(int ring, const char *testname)
 	 * set_domain. */
 	drm_intel_bo_map(target_bo, 0);
 	ptr = target_bo->virtual;
-	assert(*ptr == 0);
+	igt_assert(*ptr == 0);
 
 	/* put some load onto the gpu to keep the light buffers active for long
 	 * enough */
@@ -141,7 +140,7 @@ static void run_test(int ring, const char *testname)
 	intel_batchbuffer_flush_on_ring(batch, ring);
 
 	gem_set_domain(fd, target_bo->handle, I915_GEM_DOMAIN_GTT, 0);
-	assert(*ptr == COLOR);
+	igt_assert(*ptr == COLOR);
 	drm_intel_bo_unmap(target_bo);
 
 	drm_intel_bo_unreference(target_bo);
@@ -191,7 +190,7 @@ int main(int argc, char **argv)
 	//drm_intel_bufmgr_gem_enable_reuse(bufmgr);
 
 	batch = intel_batchbuffer_alloc(bufmgr, intel_get_drm_devid(fd));
-	assert(batch);
+	igt_assert(batch);
 
 	dummy_bo = drm_intel_bo_alloc(bufmgr, "dummy bo", 4096, 4096);
 	if (!dummy_bo) {

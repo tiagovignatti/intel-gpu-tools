@@ -38,7 +38,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <assert.h>
 #include <fcntl.h>
 #include <inttypes.h>
 #include <errno.h>
@@ -71,7 +70,7 @@ gem_get_tiling(int fd, uint32_t handle, uint32_t *tiling, uint32_t *swizzle)
 	get_tiling.handle = handle;
 
 	ret = drmIoctl(fd, DRM_IOCTL_I915_GEM_GET_TILING, &get_tiling);
-	assert(ret == 0);
+	igt_assert(ret == 0);
 
 	*tiling = get_tiling.tiling_mode;
 	*swizzle = get_tiling.swizzle_mode;

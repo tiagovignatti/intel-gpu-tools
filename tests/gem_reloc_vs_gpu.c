@@ -28,7 +28,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <assert.h>
 #include <fcntl.h>
 #include <inttypes.h>
 #include <errno.h>
@@ -93,7 +92,7 @@ static void create_special_bo(void)
 		BATCH(CMD_POLY_STIPPLE_OFFSET << 16);
 		BATCH(0);
 	}
-	assert(len % 2 == 0);
+	igt_assert(len % 2 == 0);
 	BATCH(MI_NOOP);
 	BATCH(MI_BATCH_BUFFER_END);
 
@@ -176,7 +175,7 @@ int main(int argc, char **argv)
 	for (i = 0; i < NUM_TARGET_BOS; i++) {
 		pc_target_bo[i] = drm_intel_bo_alloc(bufmgr, "special batch", 4096, 4096);
 		emit_dummy_load(pitch);
-		assert(pc_target_bo[i]->offset == 0);
+		igt_assert(pc_target_bo[i]->offset == 0);
 		drm_intel_bo_emit_reloc(special_bo, special_reloc_ofs,
 					pc_target_bo[i],
 					0,

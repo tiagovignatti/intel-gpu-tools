@@ -29,7 +29,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <assert.h>
 #include <fcntl.h>
 #include <inttypes.h>
 #include <errno.h>
@@ -64,7 +63,7 @@ create_and_map_bo(int fd)
 
 	if (!ptr) {
 		fprintf(stderr, "mmap failed\n");
-		assert(ptr);
+		igt_assert(ptr);
 	}
 
 	/* touch it to force it into the gtt */

@@ -89,7 +89,7 @@ int main(int argc, char *argv[])
 	destroy.ctx_id = ctx_id;
 	/* Make sure a proper destroy works first */
 	ret = drmIoctl(fd, CONTEXT_DESTROY_IOCTL, &destroy);
-	assert(ret == 0);
+	igt_assert(ret == 0);
 
 	/* try double destroy */
 	ret = drmIoctl(fd, CONTEXT_DESTROY_IOCTL, &destroy);

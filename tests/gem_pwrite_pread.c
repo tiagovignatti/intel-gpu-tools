@@ -30,7 +30,6 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
-#include <assert.h>
 #include <fcntl.h>
 #include <inttypes.h>
 #include <errno.h>
@@ -243,7 +242,7 @@ static void test_copy(int fd, uint32_t src, uint32_t dst, uint32_t *buf, int len
 	gem_close(fd, exec[2].handle);
 
 	for (i = 0; i < len/4; i++)
-		assert(buf[i] == i);
+		igt_assert(buf[i] == i);
 }
 
 static void test_as_gtt_mmap(int fd, uint32_t src, uint32_t dst, int len)
@@ -292,7 +291,7 @@ static void test_as_gtt_mmap(int fd, uint32_t src, uint32_t dst, int len)
 
 	gem_set_domain(fd, dst, I915_GEM_DOMAIN_GTT, 0);
 	for (i = 0; i < len/4; i++)
-		assert(dst_ptr[i] == i);
+		igt_assert(dst_ptr[i] == i);
 
 	munmap(dst_ptr, len);
 	munmap(src_ptr, len);
@@ -344,7 +343,7 @@ static void test_as_cpu_mmap(int fd, uint32_t src, uint32_t dst, int len)
 
 	gem_set_domain(fd, dst, I915_GEM_DOMAIN_CPU, 0);
 	for (i = 0; i < len/4; i++)
-		assert(dst_ptr[i] == i);
+		igt_assert(dst_ptr[i] == i);
 
 	munmap(dst_ptr, len);
 	munmap(src_ptr, len);

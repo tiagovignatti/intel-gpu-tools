@@ -28,7 +28,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <assert.h>
 #include <fcntl.h>
 #include <inttypes.h>
 #include <errno.h>
@@ -51,16 +50,16 @@ test_flink(int fd)
 	memset(&create, 0, sizeof(create));
 	create.size = 16 * 1024;
 	ret = ioctl(fd, DRM_IOCTL_I915_GEM_CREATE, &create);
-	assert(ret == 0);
+	igt_assert(ret == 0);
 
 	flink.handle = create.handle;
 	ret = ioctl(fd, DRM_IOCTL_GEM_FLINK, &flink);
-	assert(ret == 0);
+	igt_assert(ret == 0);
 
 	open_struct.name = flink.name;
 	ret = ioctl(fd, DRM_IOCTL_GEM_OPEN, &open_struct);
-	assert(ret == 0);
-	assert(open_struct.handle != 0);
+	igt_assert(ret == 0);
+	igt_assert(open_struct.handle != 0);
 }
 
 static void
@@ -76,16 +75,16 @@ test_double_flink(int fd)
 	memset(&create, 0, sizeof(create));
 	create.size = 16 * 1024;
 	ret = ioctl(fd, DRM_IOCTL_I915_GEM_CREATE, &create);
-	assert(ret == 0);
+	igt_assert(ret == 0);
 
 	flink.handle = create.handle;
 	ret = ioctl(fd, DRM_IOCTL_GEM_FLINK, &flink);
-	assert(ret == 0);
+	igt_assert(ret == 0);
 
 	flink2.handle = create.handle;
 	ret = ioctl(fd, DRM_IOCTL_GEM_FLINK, &flink2);
-	assert(ret == 0);
-	assert(flink2.name == flink.name);
+	igt_assert(ret == 0);
+	igt_assert(flink2.name == flink.name);
 }
 
 static void
@@ -98,7 +97,7 @@ test_bad_flink(int fd)
 
 	flink.handle = 0x10101010;
 	ret = ioctl(fd, DRM_IOCTL_GEM_FLINK, &flink);
-	assert(ret == -1 && errno == ENOENT);
+	igt_assert(ret == -1 && errno == ENOENT);
 }
 
 static void
@@ -112,7 +111,7 @@ test_bad_open(int fd)
 	open_struct.name = 0x10101010;
 	ret = ioctl(fd, DRM_IOCTL_GEM_OPEN, &open_struct);
 
-	assert(ret == -1 && errno == ENOENT);
+	igt_assert(ret == -1 && errno == ENOENT);
 }
 
 static void
@@ -130,24 +129,24 @@ test_flink_lifetime(int fd)
 	memset(&create, 0, sizeof(create));
 	create.size = 16 * 1024;
 	ret = ioctl(fd2, DRM_IOCTL_I915_GEM_CREATE, &create);
-	assert(ret == 0);
+	igt_assert(ret == 0);
 
 	flink.handle = create.handle;
 	ret = ioctl(fd2, DRM_IOCTL_GEM_FLINK, &flink);
-	assert(ret == 0);
+	igt_assert(ret == 0);
 
 	open_struct.name = flink.name;
 	ret = ioctl(fd, DRM_IOCTL_GEM_OPEN, &open_struct);
-	assert(ret == 0);
-	assert(open_struct.handle != 0);
+	igt_assert(ret == 0);
+	igt_assert(open_struct.handle != 0);
 
 	close(fd2);
 	fd2 = drm_open_any();
 
 	open_struct.name = flink.name;
 	ret = ioctl(fd2, DRM_IOCTL_GEM_OPEN, &open_struct);
-	assert(ret == 0);
-	assert(open_struct.handle != 0);
+	igt_assert(ret == 0);
+	igt_assert(open_struct.handle != 0);
 }
 
 int main(int argc, char **argv)
