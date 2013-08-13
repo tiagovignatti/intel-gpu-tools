@@ -79,7 +79,7 @@ int main(int argc, char *argv[])
 	file = fopen(path, "r");
 	if (!file) {
 		printf("kernel too old or rc6 not supported on this platform.\n");
-		exit(77);
+		igt_skip();
 	}
 
 	/* claim success if no rc6 enabled. */

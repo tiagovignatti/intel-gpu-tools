@@ -150,7 +150,7 @@ int main(int argc, char *argv[])
 		junk->filp = fopen(path, junk->mode);
 		if (junk->filp == NULL) {
 			printf("Kernel is too old. GTFO\n");
-			exit(77);
+			igt_skip();
 		}
 		val = readval(junk->filp);
 		igt_assert(val >= 0);

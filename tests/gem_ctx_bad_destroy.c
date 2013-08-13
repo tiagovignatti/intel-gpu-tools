@@ -54,7 +54,7 @@ static uint32_t context_create(int fd)
 
 	ret = drmIoctl(fd, CONTEXT_CREATE_IOCTL, &create);
 	if (ret == -1 && (errno == ENODEV || errno == EINVAL))
-		exit(77);
+		igt_skip();
 	else if (ret)
 		abort();
 

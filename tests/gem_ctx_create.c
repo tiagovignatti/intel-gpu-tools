@@ -53,7 +53,7 @@ int main(int argc, char *argv[])
 	if (ret != 0 && (errno == ENODEV || errno == EINVAL)) {
 		printf("Kernel is too old, or contexts not supported: %s\n",
 			strerror(errno));
-		exit(77);
+		igt_skip();
 	} else if (ret != 0) {
 		fprintf(stderr, "%s\n", strerror(errno));
 		igt_fail(1);
