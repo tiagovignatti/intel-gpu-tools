@@ -1655,6 +1655,9 @@ static void dump_cpt(void)
 #define AUD_ICS			0x65f08
 #define AUD_CHICKENBIT_REG	0x65f10
 #define AUD_DP_DIP_STATUS	0x65f20
+#define AUD_TCA_M_CTS		0x65f44
+#define AUD_TCB_M_CTS		0x65f54
+#define AUD_TCC_M_CTS		0x65f64
 
 /* Video DIP Control */
 #define VIDEO_DIP_CTL_A		0x60200
@@ -2101,6 +2104,9 @@ static void dump_hsw_plus(void)
 	dump_reg(AUD_ICS,	"Audio Immediate Command Status");
 	dump_reg(AUD_CHICKENBIT_REG,	"Audio Chicken Bit Register");
 	dump_reg(AUD_DP_DIP_STATUS, "Audio DP and DIP FIFO Debug Status");
+	dump_reg(AUD_TCA_M_CTS, "Audio M CTS Read Back Transcoder A");
+	dump_reg(AUD_TCB_M_CTS, "Audio M CTS Read Back Transcoder B");
+	dump_reg(AUD_TCC_M_CTS, "Audio M CTS Read Back Transcoder C");
 
 	printf("\nDetails:\n\n");
 
