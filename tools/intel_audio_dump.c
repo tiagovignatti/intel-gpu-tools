@@ -315,6 +315,28 @@ static const char * const en_mmio_program[] = {
 	[1] = "Programming by MMIO debug registers",
 };
 
+static const char * const audio_dp_dip_status[] = {
+	[0] = "audfc dp fifo full",
+	[1] = "audfc dp fifo empty",
+	[2] = "audfc dp fifo overrun",
+	[3] = "audfc dip fifo full",
+	[4] = "audfc dp fifo empty cd",
+	[5] = "audfb dp fifo full",
+	[6] = "audfb dp fifo empty",
+	[7] = "audfb dp fifo overrun",
+	[8] = "audfb dip fifo full",
+	[9] = "audfb dp fifo empty cd",
+	[10] = "audfa dp fifo full",
+	[11] = "audfa dp fifo empty",
+	[12] = "audfa dp fifo overrun",
+	[13] = "audfa dip fifo full",
+	[14] = "audfa dp fifo empty cd",
+	[15] = "Pipe c audio overflow",
+	[16] = "Pipe b audio overflow",
+	[17] = "Pipe a audio overflow",
+	[31] = 0,
+};
+
 static void do_self_tests(void)
 {
 	if (BIT(1, 0) != 1)
@@ -1632,6 +1654,7 @@ static void dump_cpt(void)
 #define AUD_IRII		0x65f04
 #define AUD_ICS			0x65f08
 #define AUD_CHICKENBIT_REG	0x65f10
+#define AUD_DP_DIP_STATUS	0x65f20
 
 /* Video DIP Control */
 #define VIDEO_DIP_CTL_A		0x60200
@@ -2002,6 +2025,7 @@ static void parse_bdw_audio_chicken_bit_reg(uint32_t dword)
 static void dump_hsw_plus(void)
 {
 	uint32_t dword;
+	int i;
 
 	/* HSW DDI Buffer */
 	dump_reg(DDI_BUF_CTL_A,		"DDI Buffer Controler A");
@@ -2076,6 +2100,7 @@ static void dump_hsw_plus(void)
 	dump_reg(AUD_IRII,	"Audio Immediate Response Input Interface");
 	dump_reg(AUD_ICS,	"Audio Immediate Command Status");
 	dump_reg(AUD_CHICKENBIT_REG,	"Audio Chicken Bit Register");
+	dump_reg(AUD_DP_DIP_STATUS, "Audio DP and DIP FIFO Debug Status");
 
 	printf("\nDetails:\n\n");
 
@@ -2151,6 +2176,12 @@ static void dump_hsw_plus(void)
 	if (IS_BROADWELL(devid))
 		parse_bdw_audio_chicken_bit_reg(dword);
 
+	dword = INREG(AUD_DP_DIP_STATUS);
+	printf("AUD_DP_DIP_STATUS Audio DP & DIP FIFO Status: %08x\n\t", dword);
+	for (i = 31; i >= 0; i--)
+		if (BIT(dword, i))
+			printf("%s\n\t", audio_dp_dip_status[i]);
+	printf("\n");
 }
 
 int main(int argc, char **argv)
