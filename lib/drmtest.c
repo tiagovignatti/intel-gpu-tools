@@ -60,10 +60,10 @@ gem_handle_to_libdrm_bo(drm_intel_bufmgr *bufmgr, int fd, const char *name, uint
 
 	flink.handle = handle;
 	ret = ioctl(fd, DRM_IOCTL_GEM_FLINK, &flink);
-	assert(ret == 0);
+	igt_assert(ret == 0);
 
 	bo = drm_intel_bo_gem_create_from_name(bufmgr, name, flink.name);
-	assert(bo);
+	igt_assert(bo);
 
 	return bo;
 }
@@ -173,7 +173,7 @@ static bool is_master(int fd)
 	/* Check that we're the only opener and authed. */
 	client.idx = 0;
 	ret = ioctl(fd, DRM_IOCTL_GET_CLIENT, &client);
-	assert (ret == 0);
+	igt_assert (ret == 0);
 	if (!client.auth) {
 		return 0;
 	}
@@ -299,7 +299,7 @@ int drm_open_any_master(void)
 	if (fd == -1)
 		fprintf(stderr, "Couldn't find an un-controlled DRM device\n");
 
-	assert(is_intel(fd));
+	igt_assert(is_intel(fd));
 
 	return fd;
 }
@@ -317,8 +317,8 @@ void gem_set_tiling(int fd, uint32_t handle, int tiling, int stride)
 
 		ret = ioctl(fd, DRM_IOCTL_I915_GEM_SET_TILING, &st);
 	} while (ret == -1 && (errno == EINTR || errno == EAGAIN));
-	assert(ret == 0);
-	assert(st.tiling_mode == tiling);
+	igt_assert(ret == 0);
+	igt_assert(st.tiling_mode == tiling);
 }
 
 bool gem_has_enable_ring(int fd,int param)
@@ -399,7 +399,7 @@ void gem_check_caching(int fd)
 	int ret;
 
 	arg.handle = gem_create(fd, 4096);
-	assert(arg.handle != 0);
+	igt_assert(arg.handle != 0);
 
 	arg.caching = 0;
 	ret = ioctl(fd, LOCAL_DRM_IOCTL_I915_GEM_SET_CACHEING, &arg);
@@ -424,7 +424,7 @@ void gem_set_caching(int fd, uint32_t handle, int caching)
 	if (ret != 0 && (errno == ENOTTY || errno == EINVAL))
 		igt_skip();
 	else
-		assert(ret == 0);
+		igt_assert(ret == 0);
 }
 
 uint32_t gem_get_caching(int fd, uint32_t handle)
@@ -435,7 +435,7 @@ uint32_t gem_get_caching(int fd, uint32_t handle)
 	arg.handle = handle;
 	arg.caching = 0;
 	ret = ioctl(fd, LOCAL_DRM_IOCTL_I915_GEM_GET_CACHEING, &arg);
-	assert(ret == 0);
+	igt_assert(ret == 0);
 
 	return arg.caching;
 }
@@ -447,8 +447,8 @@ uint32_t gem_open(int fd, uint32_t name)
 
 	open_struct.name = name;
 	ret = ioctl(fd, DRM_IOCTL_GEM_OPEN, &open_struct);
-	assert(ret == 0);
-	assert(open_struct.handle != 0);
+	igt_assert(ret == 0);
+	igt_assert(open_struct.handle != 0);
 
 	return open_struct.handle;
 }
@@ -460,7 +460,7 @@ uint32_t gem_flink(int fd, uint32_t handle)
 
 	flink.handle = handle;
 	ret = ioctl(fd, DRM_IOCTL_GEM_FLINK, &flink);
-	assert(ret == 0);
+	igt_assert(ret == 0);
 
 	return flink.name;
 }
@@ -519,7 +519,7 @@ uint32_t gem_create(int fd, int size)
 	create.handle = 0;
 	create.size = size;
 	do_ioctl(fd, DRM_IOCTL_I915_GEM_CREATE, &create);
-	assert(create.handle);
+	igt_assert(create.handle);
 
 	return create.handle;
 }
@@ -1396,7 +1396,7 @@ int kmstest_get_pipe_from_crtc_id(int fd, int crtc_id)
 	memset(&pfci, 0, sizeof(pfci));
 	pfci.crtc_id = crtc_id;
 	ret = drmIoctl(fd, DRM_IOCTL_I915_GET_PIPE_FROM_CRTC_ID, &pfci);
-	assert(ret == 0);
+	igt_assert(ret == 0);
 
 	return pfci.pipe;
 }
@@ -1790,5 +1790,5 @@ void igt_system_suspend_autoresume(void)
 	int ret;
 
 	ret = system("rtcwake -s 30 -m mem");
-	assert(ret == 0);
+	igt_assert(ret == 0);
 }
