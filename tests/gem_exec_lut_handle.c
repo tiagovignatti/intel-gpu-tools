@@ -148,27 +148,56 @@ int main(int argc, char **argv)
 
 	for (p = pass; p->name != NULL; p++) {
 		for (n = 1; n <= MAX_NUM_EXEC; n *= 2) {
-			for (m = 1; m <= MAX_NUM_RELOC; m *= 2) {
+			double elapsed[16][2];
+			double s_x, s_y, s_xx, s_xy;
+			double A, B;
+			int i, j;
+
+			for (i = 0, m = 1; m <= MAX_NUM_RELOC; m *= 2, i++) {
 				struct timeval start, end;
-				double elapsed[2];
 
 				gettimeofday(&start, NULL);
 				for (count = 0; count < 1000; count++)
 					do_or_die(exec(fd, n, m, 0 | p->flags));
 				gettimeofday(&end, NULL);
 				gem_sync(fd, gem_exec[MAX_NUM_EXEC].handle);
-				elapsed[0] = ELAPSED(&start, &end) / 1000.;
+				elapsed[i][0] = ELAPSED(&start, &end);
 
 				gettimeofday(&start, NULL);
 				for (count = 0; count < 1000; count++)
 					do_or_die(exec(fd, n, m, USE_LUT | p->flags));
 				gettimeofday(&end, NULL);
 				gem_sync(fd, gem_exec[MAX_NUM_EXEC].handle);
-				elapsed[1] = ELAPSED(&start, &end) / 1000.;
-
-				printf("%s: buffer_count=%d, reloc_count=%d: old=%f us, lut=%f us\n",
-				       p->name, n, m, elapsed[0], elapsed[1]);
+				elapsed[i][1] = ELAPSED(&start, &end);
 			}
+
+			printf("%s: buffers=%4d:", p->name, n);
+
+			s_x = s_y = s_xx = s_xy = 0;
+			for (j = 0; j < i; j++) {
+				int k = 1 << j;
+				s_x += k;
+				s_y += elapsed[j][0];
+				s_xx += k * k;
+				s_xy += k * elapsed[j][0];
+			}
+			B = (s_xy - s_x * s_y / j) / (s_xx - s_x * s_x / j);
+			A = s_y / j - B * s_x / j;
+			printf(" old=%7.0f + %.1f*reloc,", A, B);
+
+			s_x = s_y = s_xx = s_xy = 0;
+			for (j = 0; j < i; j++) {
+				int k = 1 << j;
+				s_x += k;
+				s_y += elapsed[j][1];
+				s_xx += k * k;
+				s_xy += k * elapsed[j][1];
+			}
+			B = (s_xy - s_x * s_y / j) / (s_xx - s_x * s_x / j);
+			A = s_y / j - B * s_x / j;
+			printf(" lut=%7.0f + %.1f*reloc (ns)", A, B);
+
+			printf("\n");
 		}
 	}
 
