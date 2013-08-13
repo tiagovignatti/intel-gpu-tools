@@ -250,6 +250,71 @@ static const char * const immed_cmd_busy[] = {
 	[1] = "Immediate command is available",
 };
 
+static const char * const vanilla_dp12_en[] = {
+	[0] = "DP 1.2 features are disabled",
+	[1] = "DP 1.2 features are enabled",
+};
+
+static const char * const vanilla_3_widgets_en[] = {
+	[0] = "2nd & 3rd pin/convertor widgets are disabled",
+	[1] = "All three pin/convertor widgets are enabled",
+};
+
+static const char * const block_audio[] = {
+	[0] = "Allow audio data to reach the port",
+	[1] = "Block audio data from reaching the port",
+};
+
+static const char * const dis_eld_valid_pulse_trans[] = {
+	[0] = "Enable ELD valid pulse transition when unsol is disabled",
+	[1] = "Disable ELD valid pulse transition when unsol is disabled",
+};
+
+static const char * const dis_pd_pulse_trans[] = {
+	[0] = "Enable Presense Detect pulse transition when unsol is disabled",
+	[1] = "Disable Presense Detect pulse transition when unsol is disabled",
+};
+
+static const char * const dis_ts_delta_err[] = {
+	[0] = "Enable timestamp delta error for 32/44 KHz",
+	[1] = "Disable timestamp delta error for 32/44 KHz",
+};
+
+static const char * const dis_ts_fix_dp_hbr[] = {
+	[0] = "Enable timestamp fix for DP HBR",
+	[1] = "Disable timestamp fix for DP HBR",
+};
+
+static const char * const pattern_gen_8_ch_en[] = {
+	[0] = "Disable 8-channel pattern generator",
+	[1] = "Enable 8-channel pattern generator",
+};
+
+static const char * const pattern_gen_2_ch_en[] = {
+	[0] = "Disable 2-channel pattern generator",
+	[1] = "Enable 2-channel pattern generator",
+};
+
+static const char * const fabric_32_44_dis[] = {
+	[0] = "Allow sample fabrication for 32/44 KHz",
+	[1] = "Disable sample fabrication for 32/44 KHz",
+};
+
+static const char * const epss_dis[] = {
+	[0] = "Allow audio EPSS",
+	[1] = "Disable audio EPSS",
+};
+
+static const char * const ts_test_mode[] = {
+	[0] = "Default time stamp mode",
+	[1] = "Audio time stamp test mode for audio only feature",
+};
+
+static const char * const en_mmio_program[] = {
+	[0] = "Programming by HD-Audio Azalia",
+	[1] = "Programming by MMIO debug registers",
+};
+
 static void do_self_tests(void)
 {
 	if (BIT(1, 0) != 1)
@@ -1566,6 +1631,7 @@ static void dump_cpt(void)
 #define AUD_ICOI		0x65f00
 #define AUD_IRII		0x65f04
 #define AUD_ICS			0x65f08
+#define AUD_CHICKENBIT_REG	0x65f10
 
 /* Video DIP Control */
 #define VIDEO_DIP_CTL_A		0x60200
@@ -1912,6 +1978,24 @@ static void dump_hdmi_fifo_status(void)
 	printf("AUD_HDMI_FIFO_STATUS  Conv_3_CDCLK/DOTCLK_FIFO_Underrun\t%lu\n", BIT(dword, 31));
 }
 
+static void parse_bdw_audio_chicken_bit_reg(uint32_t dword)
+{
+	printf("\t");
+	printf("%s\n\t", OPNAME(vanilla_dp12_en, BIT(dword, 31)));
+	printf("%s\n\t", OPNAME(vanilla_3_widgets_en, BIT(dword, 30)));
+	printf("%s\n\t", OPNAME(block_audio, BIT(dword, 10)));
+	printf("%s\n\t", OPNAME(dis_eld_valid_pulse_trans, BIT(dword, 9)));
+	printf("%s\n\t", OPNAME(dis_pd_pulse_trans, BIT(dword, 8)));
+	printf("%s\n\t", OPNAME(dis_ts_delta_err, BIT(dword, 7)));
+	printf("%s\n\t", OPNAME(dis_ts_fix_dp_hbr, BIT(dword, 6)));
+	printf("%s\n\t", OPNAME(pattern_gen_8_ch_en, BIT(dword, 5)));
+	printf("%s\n\t", OPNAME(pattern_gen_2_ch_en, BIT(dword, 4)));
+	printf("%s\n\t", OPNAME(fabric_32_44_dis, BIT(dword, 3)));
+	printf("%s\n\t", OPNAME(epss_dis, BIT(dword, 2)));
+	printf("%s\n\t", OPNAME(ts_test_mode, BIT(dword, 1)));
+	printf("%s\n", OPNAME(en_mmio_program, BIT(dword, 0)));
+}
+
 /* Dump audio registers for Haswell and its successors (eg. Broadwell).
  * Their register layout are same in the north display engine.
  */
@@ -1991,6 +2075,7 @@ static void dump_hsw_plus(void)
 	dump_reg(AUD_ICOI,	"Audio Immediate Command Output Interface");
 	dump_reg(AUD_IRII,	"Audio Immediate Response Input Interface");
 	dump_reg(AUD_ICS,	"Audio Immediate Command Status");
+	dump_reg(AUD_CHICKENBIT_REG,	"Audio Chicken Bit Register");
 
 	printf("\nDetails:\n\n");
 
@@ -2060,6 +2145,12 @@ static void dump_hsw_plus(void)
 		OPNAME(immed_result_valid, BIT(dword, 1)));
 	printf("ICB [%1lx] %s\n", BIT(dword, 1),
 		OPNAME(immed_cmd_busy, BIT(dword, 0)));
+
+	dword = INREG(AUD_CHICKENBIT_REG);
+	printf("AUD_CHICKENBIT_REG Audio Chicken Bits: %08x\n", dword);
+	if (IS_BROADWELL(devid))
+		parse_bdw_audio_chicken_bit_reg(dword);
+
 }
 
 int main(int argc, char **argv)
