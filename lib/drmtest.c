@@ -771,9 +771,11 @@ void igt_skip(void)
 void __igt_skip_check(const char *file, const int line,
 		      const char *func, const char *check)
 {
-	printf("Test requirement not met in function %s, file %s:%i:\n"
-	       "Test requirement: (%s)\n",
-	       func, file, line, check);
+	if (!igt_only_list_subtests()) {
+		printf("Test requirement not met in function %s, file %s:%i:\n"
+		       "Test requirement: (%s)\n",
+		       func, file, line, check);
+	}
 	igt_skip();
 }
 
