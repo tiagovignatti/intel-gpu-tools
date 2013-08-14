@@ -1169,6 +1169,9 @@ sendinstruction: predicate sendop execsize exp post_dst payload msgtarget
 		}
 		| predicate sendop execsize dst sendleadreg payload directsrcoperand instoptions
 		{
+		  if (IS_GENp(6))
+                      error(&@2, "the syntax of send instruction\n");
+
 		  memset(&$$, 0, sizeof($$));
 		  set_instruction_opcode(&$$, $2);
 		  GEN(&$$)->header.destreg__conditionalmod = $5.nr; /* msg reg index */
@@ -1187,6 +1190,9 @@ sendinstruction: predicate sendop execsize exp post_dst payload msgtarget
 		  }
 		| predicate sendop execsize dst sendleadreg payload imm32reg instoptions
                 {
+		  if (IS_GENp(6))
+                      error(&@2, "the syntax of send instruction\n");
+
 		  if ($7.reg.type != BRW_REGISTER_TYPE_UD &&
 		      $7.reg.type != BRW_REGISTER_TYPE_D &&
 		      $7.reg.type != BRW_REGISTER_TYPE_V) {
@@ -1290,6 +1296,9 @@ sendinstruction: predicate sendop execsize exp post_dst payload msgtarget
 		}
 		| predicate sendop execsize dst sendleadreg payload sndopr imm32reg instoptions
 		{
+		  if (IS_GENp(6))
+                      error(&@2, "the syntax of send instruction\n");
+
 		  if ($8.reg.type != BRW_REGISTER_TYPE_UD &&
 		      $8.reg.type != BRW_REGISTER_TYPE_D &&
 		      $8.reg.type != BRW_REGISTER_TYPE_V) {
@@ -1316,6 +1325,9 @@ sendinstruction: predicate sendop execsize exp post_dst payload msgtarget
 		}
 		| predicate sendop execsize dst sendleadreg payload exp directsrcoperand instoptions
 		{
+		  if (IS_GENp(6))
+                      error(&@2, "the syntax of send instruction\n");
+
 		  memset(&$$, 0, sizeof($$));
 		  set_instruction_opcode(&$$, $2);
 		  GEN(&$$)->header.destreg__conditionalmod = $5.nr; /* msg reg index */
