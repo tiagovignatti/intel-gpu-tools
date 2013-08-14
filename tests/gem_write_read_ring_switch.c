@@ -161,33 +161,25 @@ int main(int argc, char **argv)
 	igt_subtest_init(argc, argv);
 	igt_skip_on_simulation();
 
-	fd = drm_open_any();
+	igt_fixture {
+		fd = drm_open_any();
 
-	/* Test requires MI_FLUSH_DW and MI_COND_BATCH_BUFFER_END */
-	if (intel_gen(intel_get_drm_devid(fd)) < 6)
-		return 77;
+		/* Test requires MI_FLUSH_DW and MI_COND_BATCH_BUFFER_END */
+		igt_require(intel_gen(intel_get_drm_devid(fd)) >= 6);
 
-	bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
-	if (!bufmgr) {
-		fprintf(stderr, "failed to init libdrm\n");
-		igt_fail(-1);
-	}
-	/* don't enable buffer reuse!! */
-	//drm_intel_bufmgr_gem_enable_reuse(bufmgr);
+		bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
+		igt_assert(bufmgr);
+		/* don't enable buffer reuse!! */
+		//drm_intel_bufmgr_gem_enable_reuse(bufmgr);
 
-	batch = intel_batchbuffer_alloc(bufmgr, intel_get_drm_devid(fd));
-	igt_assert(batch);
+		batch = intel_batchbuffer_alloc(bufmgr, intel_get_drm_devid(fd));
+		igt_assert(batch);
 
-	dummy_bo = drm_intel_bo_alloc(bufmgr, "dummy bo", 4096, 4096);
-	if (!dummy_bo) {
-		fprintf(stderr, "failed to alloc dummy buffer\n");
-		igt_fail(-1);
-	}
+		dummy_bo = drm_intel_bo_alloc(bufmgr, "dummy bo", 4096, 4096);
+		igt_assert(dummy_bo);
 
-	load_bo = drm_intel_bo_alloc(bufmgr, "load bo", 1024*4096, 4096);
-	if (!load_bo) {
-		fprintf(stderr, "failed to alloc load buffer\n");
-		igt_fail(-1);
+		load_bo = drm_intel_bo_alloc(bufmgr, "load bo", 1024*4096, 4096);
+		igt_assert(load_bo);
 	}
 
 	for (i = 0; i < ARRAY_SIZE(tests); i++) {
@@ -202,9 +194,11 @@ int main(int argc, char **argv)
 	}
 	igt_stop_signal_helper();
 
-	drm_intel_bufmgr_destroy(bufmgr);
+	igt_fixture {
+		drm_intel_bufmgr_destroy(bufmgr);
 
-	close(fd);
+		close(fd);
+	}
 
 	igt_exit();
 }

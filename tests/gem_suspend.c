@@ -96,13 +96,14 @@ test_fence_restore(int fd, bool tiled2untiled)
 	munmap(ptr_tiled, OBJECT_SIZE);
 }
 
+int fd;
+
 int main(int argc, char **argv)
 {
-	int fd;
-
 	igt_subtest_init(argc, argv);
 
-	fd = drm_open_any();
+	igt_fixture
+		fd = drm_open_any();
 
 	igt_subtest("fence-restore-tiled2untiled")
 		test_fence_restore(fd, true);
@@ -110,7 +111,8 @@ int main(int argc, char **argv)
 	igt_subtest("fence-restore-untiled")
 		test_fence_restore(fd, false);
 
-	close(fd);
+	igt_fixture
+		close(fd);
 
 	igt_exit();
 }

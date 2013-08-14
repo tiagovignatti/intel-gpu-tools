@@ -152,16 +152,17 @@ run_without_prefault(int fd,
 	igt_enable_prefault();
 }
 
+int fd;
+
 int main(int argc, char **argv)
 {
-	int fd;
-
 	if (igt_run_in_simulation())
 		OBJECT_SIZE = 1 * 1024 * 1024;
 
 	igt_subtest_init(argc, argv);
 
-	fd = drm_open_any();
+	igt_fixture
+		fd = drm_open_any();
 
 	igt_subtest("copy")
 		test_copy(fd);
@@ -178,7 +179,8 @@ int main(int argc, char **argv)
 	igt_subtest("write-gtt-no-prefault")
 		run_without_prefault(fd, test_write_gtt);
 
-	close(fd);
+	igt_fixture
+		close(fd);
 
 	igt_exit();
 }

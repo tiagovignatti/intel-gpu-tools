@@ -149,13 +149,14 @@ test_flink_lifetime(int fd)
 	igt_assert(open_struct.handle != 0);
 }
 
+int fd;
+
 int main(int argc, char **argv)
 {
-	int fd;
-
 	igt_subtest_init(argc, argv);
 
-	fd = drm_open_any();
+	igt_fixture
+		fd = drm_open_any();
 
 	igt_subtest("basic")
 		test_flink(fd);

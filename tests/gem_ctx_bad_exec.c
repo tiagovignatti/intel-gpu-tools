@@ -103,22 +103,25 @@ static int exec(int fd, uint32_t handle, int ring, int ctx_id)
 	return ret;
 }
 
+uint32_t handle;
+uint32_t batch[2] = {MI_BATCH_BUFFER_END};
+uint32_t ctx_id;
+int fd;
+
 int main(int argc, char *argv[])
 {
-	uint32_t handle;
-	uint32_t batch[2] = {MI_BATCH_BUFFER_END};
-	uint32_t ctx_id;
-	int fd;
-
 	igt_skip_on_simulation();
 	igt_subtest_init(argc, argv);
 
-	fd = drm_open_any();
+	igt_fixture {
+		fd = drm_open_any();
 
-	ctx_id = context_create(fd);
+		ctx_id = context_create(fd);
 
-	handle = gem_create(fd, 4096);
-	gem_write(fd, handle, 0, batch, sizeof(batch));
+		handle = gem_create(fd, 4096);
+		gem_write(fd, handle, 0, batch, sizeof(batch));
+	}
+
 	igt_subtest("render")
 		igt_assert(exec(fd, handle, I915_EXEC_RENDER, ctx_id) == 0);
 	igt_subtest("bsd")

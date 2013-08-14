@@ -113,32 +113,34 @@ int main(int argc, char **argv)
 	igt_subtest_init(argc, argv);
 	igt_skip_on_simulation();
 
-	srandom(0xdeadbeef);
+	igt_fixture {
+		srandom(0xdeadbeef);
 
-	fd = drm_open_any();
+		fd = drm_open_any();
 
-	gem_require_caching(fd);
+		gem_require_caching(fd);
 
-	devid = intel_get_drm_devid(fd);
-	if (IS_GEN2(devid)) /* chipset only handles cached -> uncached */
-		flags &= ~TEST_READ;
-	if (IS_BROADWATER(devid) || IS_CRESTLINE(devid)) {
-		/* chipset is completely fubar */
-		printf("coherency broken on i965g/gm\n");
-		flags = 0;
+		devid = intel_get_drm_devid(fd);
+		if (IS_GEN2(devid)) /* chipset only handles cached -> uncached */
+			flags &= ~TEST_READ;
+		if (IS_BROADWATER(devid) || IS_CRESTLINE(devid)) {
+			/* chipset is completely fubar */
+			printf("coherency broken on i965g/gm\n");
+			flags = 0;
+		}
+
+		bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
+		batch = intel_batchbuffer_alloc(bufmgr, devid);
+
+		/* overallocate the buffers we're actually using because */
+		scratch_bo = drm_intel_bo_alloc(bufmgr, "scratch bo", BO_SIZE, 4096);
+		gem_set_caching(fd, scratch_bo->handle, 1);
+
+		staging_bo = drm_intel_bo_alloc(bufmgr, "staging bo", BO_SIZE, 4096);
+
+		igt_init_aperture_trashers(bufmgr);
+		mappable_gtt_limit = gem_mappable_aperture_size();
 	}
-
-	bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
-	batch = intel_batchbuffer_alloc(bufmgr, devid);
-
-	/* overallocate the buffers we're actually using because */
-	scratch_bo = drm_intel_bo_alloc(bufmgr, "scratch bo", BO_SIZE, 4096);
-	gem_set_caching(fd, scratch_bo->handle, 1);
-
-	staging_bo = drm_intel_bo_alloc(bufmgr, "staging bo", BO_SIZE, 4096);
-
-	igt_init_aperture_trashers(bufmgr);
-	mappable_gtt_limit = gem_mappable_aperture_size();
 
 	igt_subtest("reads") {
 		if (!(flags & TEST_READ))
@@ -295,10 +297,12 @@ int main(int argc, char **argv)
 		}
 	}
 
-	igt_cleanup_aperture_trashers();
-	drm_intel_bufmgr_destroy(bufmgr);
+	igt_fixture {
+		igt_cleanup_aperture_trashers();
+		drm_intel_bufmgr_destroy(bufmgr);
 
-	close(fd);
+		close(fd);
+	}
 
 	igt_exit();
 }

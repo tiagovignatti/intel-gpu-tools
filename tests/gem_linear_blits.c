@@ -237,15 +237,15 @@ static void run_test(int fd, int count)
 
 int main(int argc, char **argv)
 {
-	int fd, count = 0;
+	int fd = 0, count = 0;
 
 	igt_skip_on_simulation();
 
 	igt_subtest_init(argc, argv);
 
-	fd = drm_open_any();
+	igt_fixture {
+		fd = drm_open_any();
 
-	if (!igt_only_list_subtests()) {
 		if (argc > 1)
 			count = atoi(argv[1]);
 		if (count == 0)

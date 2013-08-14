@@ -185,15 +185,17 @@ static void run_test(int count)
 	free(bo);
 }
 
+int fd;
+
 int main(int argc, char **argv)
 {
-	int fd, count = 0;
+	int count = 0;
 
 	igt_subtest_init(argc, argv);
 
-	fd = drm_open_any();
+	igt_fixture {
+		fd = drm_open_any();
 
-	if (!igt_only_list_subtests()) {
 		if (igt_run_in_simulation())
 			count = 2;
 		if (argc > 1)
@@ -212,12 +214,12 @@ int main(int argc, char **argv)
 		}
 
 		printf("Using %d 1MiB buffers\n", count);
-	}
 
-	bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
-	drm_intel_bufmgr_gem_enable_reuse(bufmgr);
-	drm_intel_bufmgr_gem_set_vma_cache_size(bufmgr, 32);
-	batch = intel_batchbuffer_alloc(bufmgr, intel_get_drm_devid(fd));
+		bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
+		drm_intel_bufmgr_gem_enable_reuse(bufmgr);
+		drm_intel_bufmgr_gem_set_vma_cache_size(bufmgr, 32);
+		batch = intel_batchbuffer_alloc(bufmgr, intel_get_drm_devid(fd));
+	}
 
 	igt_subtest("normal")
 		run_test(count);
@@ -228,10 +230,12 @@ int main(int argc, char **argv)
 		igt_stop_signal_helper();
 	}
 
-	intel_batchbuffer_free(batch);
-	drm_intel_bufmgr_destroy(bufmgr);
+	igt_fixture {
+		intel_batchbuffer_free(batch);
+		drm_intel_bufmgr_destroy(bufmgr);
 
-	close(fd);
+		close(fd);
+	}
 
 	igt_exit();
 }

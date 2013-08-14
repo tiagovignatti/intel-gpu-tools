@@ -227,23 +227,27 @@ static void do_test(uint32_t tiling, unsigned stride,
 	printf("done\n");
 }
 
+int fd;
+
 int main(int argc, char **argv)
 {
-	int i, fd;
+	int i;
 	uint32_t tiling, tiling_after;
 
 	igt_subtest_init(argc, argv);
 	igt_skip_on_simulation();
 
-	for (i = 0; i < 1024*256; i++)
-		data[i] = i;
+	igt_fixture {
+		for (i = 0; i < 1024*256; i++)
+			data[i] = i;
 
-	fd = drm_open_any();
+		fd = drm_open_any();
 
-	bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
-	drm_intel_bufmgr_gem_enable_reuse(bufmgr);
-	devid = intel_get_drm_devid(fd);
-	batch = intel_batchbuffer_alloc(bufmgr, devid);
+		bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
+		drm_intel_bufmgr_gem_enable_reuse(bufmgr);
+		devid = intel_get_drm_devid(fd);
+		batch = intel_batchbuffer_alloc(bufmgr, devid);
+	}
 
 	igt_subtest("untiled-to-tiled") {
 		printf("testing untiled->tiled transisition:\n");

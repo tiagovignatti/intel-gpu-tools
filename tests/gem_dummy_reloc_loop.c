@@ -123,40 +123,32 @@ dummy_reloc_loop_random_ring(int num_rings)
 	}
 }
 
+int fd;
+int devid;
+int num_rings;
+
 int main(int argc, char **argv)
 {
-	int fd;
-	int devid;
-	int num_rings;
 
 	igt_subtest_init(argc, argv);
 	igt_skip_on_simulation();
 
-	fd = drm_open_any();
-	devid = intel_get_drm_devid(fd);
-	num_rings = gem_get_num_rings(fd);
-	if (!HAS_BLT_RING(devid)) {
-		fprintf(stderr, "not (yet) implemented for pre-snb\n");
-		igt_skip();
-	}
+	igt_fixture {
+		fd = drm_open_any();
+		devid = intel_get_drm_devid(fd);
+		num_rings = gem_get_num_rings(fd);
+		/* Not yet implemented on pre-snb. */
+		igt_require(!HAS_BLT_RING(devid));
 
-	bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
-	if (!bufmgr) {
-		fprintf(stderr, "failed to init libdrm\n");
-		igt_fail(-1);
-	}
-	drm_intel_bufmgr_gem_enable_reuse(bufmgr);
+		bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
+		igt_assert(bufmgr);
+		drm_intel_bufmgr_gem_enable_reuse(bufmgr);
 
-	batch = intel_batchbuffer_alloc(bufmgr, devid);
-	if (!batch) {
-		fprintf(stderr, "failed to create batch buffer\n");
-		igt_fail(-1);
-	}
+		batch = intel_batchbuffer_alloc(bufmgr, devid);
+		igt_assert(batch);
 
-	target_buffer = drm_intel_bo_alloc(bufmgr, "target bo", 4096, 4096);
-	if (!target_buffer) {
-		fprintf(stderr, "failed to alloc target buffer\n");
-		igt_fail(-1);
+		target_buffer = drm_intel_bo_alloc(bufmgr, "target bo", 4096, 4096);
+		igt_assert(target_buffer);
 	}
 
 	igt_subtest("render") {
@@ -198,11 +190,13 @@ int main(int argc, char **argv)
 		}
 	}
 
-	drm_intel_bo_unreference(target_buffer);
-	intel_batchbuffer_free(batch);
-	drm_intel_bufmgr_destroy(bufmgr);
+	igt_fixture {
+		drm_intel_bo_unreference(target_buffer);
+		intel_batchbuffer_free(batch);
+		drm_intel_bufmgr_destroy(bufmgr);
 
-	close(fd);
+		close(fd);
+	}
 
 	igt_exit();
 }

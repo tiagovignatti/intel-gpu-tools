@@ -512,61 +512,40 @@ static int test_nv_self_import_to_different_fd(void)
 
 int main(int argc, char **argv)
 {
-	int ret;
-
 	igt_subtest_init(argc, argv);
 
-	ret = find_and_open_devices();
-	if (ret < 0)
-		return ret;
+	igt_fixture {
+		igt_assert(find_and_open_devices() == 0);
 
-	if (nouveau_fd == -1 || intel_fd == -1 || nouveau_fd2 == -1 || intel_fd2 == -1) {
-		fprintf(stderr,"failed to find intel and nouveau GPU\n");
-		if (!igt_only_list_subtests())
-			return 77;
+		igt_require(nouveau_fd != -1);
+		igt_require(nouveau_fd2 != -1);
+		igt_require(intel_fd != -1);
+		igt_require(intel_fd2 != -1);
+
+		/* set up intel bufmgr */
+		bufmgr = drm_intel_bufmgr_gem_init(intel_fd, 4096);
+		igt_assert(bufmgr);
+		/* Do not enable reuse, we share (almost) all buffers. */
+		//drm_intel_bufmgr_gem_enable_reuse(bufmgr);
+
+		bufmgr2 = drm_intel_bufmgr_gem_init(intel_fd2, 4096);
+		igt_assert(!bufmgr2);
+		drm_intel_bufmgr_gem_enable_reuse(bufmgr2);
+
+		/* set up nouveau bufmgr */
+		igt_assert(nouveau_device_wrap(nouveau_fd, 0, &ndev) >= 0);
+		igt_assert(nouveau_client_new(ndev, &nclient) >= 0);
+
+		/* set up nouveau bufmgr */
+		igt_assert(nouveau_device_wrap(nouveau_fd2, 0, &ndev2) >= 0);
+
+		igt_assert(nouveau_client_new(ndev2, &nclient2) >= 0);;
+
+		/* set up an intel batch buffer */
+		devid = intel_get_drm_devid(intel_fd);
+		intel_batch = intel_batchbuffer_alloc(bufmgr, devid);
+		igt_assert(intel_batch);
 	}
-
-	/* set up intel bufmgr */
-	bufmgr = drm_intel_bufmgr_gem_init(intel_fd, 4096);
-	if (!bufmgr)
-		return -1;
-	/* Do not enable reuse, we share (almost) all buffers. */
-	//drm_intel_bufmgr_gem_enable_reuse(bufmgr);
-
-	bufmgr2 = drm_intel_bufmgr_gem_init(intel_fd2, 4096);
-	if (!bufmgr2)
-		return -1;
-	drm_intel_bufmgr_gem_enable_reuse(bufmgr2);
-
-	/* set up nouveau bufmgr */
-	ret = nouveau_device_wrap(nouveau_fd, 0, &ndev);
-	if (ret < 0) {
-		fprintf(stderr,"failed to wrap nouveau device\n");
-		return -1;
-	}
-
-	ret = nouveau_client_new(ndev, &nclient);
-	if (ret < 0) {
-		fprintf(stderr,"failed to setup nouveau client\n");
-		return -1;
-	}
-
-	/* set up nouveau bufmgr */
-	ret = nouveau_device_wrap(nouveau_fd2, 0, &ndev2);
-	if (ret < 0) {
-		fprintf(stderr,"failed to wrap nouveau device\n");
-		return -1;
-	}
-
-	ret = nouveau_client_new(ndev2, &nclient2);
-	if (ret < 0) {
-		fprintf(stderr,"failed to setup nouveau client\n");
-		return -1;
-	}
-
-	/* set up an intel batch buffer */
-	devid = intel_get_drm_devid(intel_fd);
-	intel_batch = intel_batchbuffer_alloc(bufmgr, devid);
 
 #define xtest(name) \
 	igt_subtest(#name) \
@@ -586,13 +565,15 @@ int main(int argc, char **argv)
 	xtest(i915_self_import_to_different_fd);
 	xtest(nv_self_import_to_different_fd);
 	
-	intel_batchbuffer_free(intel_batch);
+	igt_fixture {
+		intel_batchbuffer_free(intel_batch);
 
-	nouveau_device_del(&ndev);
-	drm_intel_bufmgr_destroy(bufmgr);
+		nouveau_device_del(&ndev);
+		drm_intel_bufmgr_destroy(bufmgr);
 
-	close(intel_fd);
-	close(nouveau_fd);
+		close(intel_fd);
+		close(nouveau_fd);
+	}
 
 	igt_exit();
 }

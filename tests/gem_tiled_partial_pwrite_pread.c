@@ -280,27 +280,29 @@ int main(int argc, char **argv)
 
 	srandom(0xdeadbeef);
 
-	fd = drm_open_any();
+	igt_fixture {
+		fd = drm_open_any();
 
-	bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
-	//drm_intel_bufmgr_gem_enable_reuse(bufmgr);
-	devid = intel_get_drm_devid(fd);
-	batch = intel_batchbuffer_alloc(bufmgr, devid);
+		bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
+		//drm_intel_bufmgr_gem_enable_reuse(bufmgr);
+		devid = intel_get_drm_devid(fd);
+		batch = intel_batchbuffer_alloc(bufmgr, devid);
 
-	/* overallocate the buffers we're actually using because */
-	scratch_bo = drm_intel_bo_alloc_tiled(bufmgr, "scratch bo", 1024,
-					      BO_SIZE/4096, 4,
-					      &tiling_mode, &scratch_pitch, 0);
-	igt_assert(tiling_mode == I915_TILING_X);
-	igt_assert(scratch_pitch == 4096);
-	staging_bo = drm_intel_bo_alloc(bufmgr, "staging bo", BO_SIZE, 4096);
-	tiled_staging_bo = drm_intel_bo_alloc_tiled(bufmgr, "scratch bo", 1024,
-						    BO_SIZE/4096, 4,
-						    &tiling_mode,
-						    &scratch_pitch, 0);
+		/* overallocate the buffers we're actually using because */
+		scratch_bo = drm_intel_bo_alloc_tiled(bufmgr, "scratch bo", 1024,
+						      BO_SIZE/4096, 4,
+						      &tiling_mode, &scratch_pitch, 0);
+		igt_assert(tiling_mode == I915_TILING_X);
+		igt_assert(scratch_pitch == 4096);
+		staging_bo = drm_intel_bo_alloc(bufmgr, "staging bo", BO_SIZE, 4096);
+		tiled_staging_bo = drm_intel_bo_alloc_tiled(bufmgr, "scratch bo", 1024,
+							    BO_SIZE/4096, 4,
+							    &tiling_mode,
+							    &scratch_pitch, 0);
 
-	igt_init_aperture_trashers(bufmgr);
-	mappable_gtt_limit = gem_mappable_aperture_size();
+		igt_init_aperture_trashers(bufmgr);
+		mappable_gtt_limit = gem_mappable_aperture_size();
+	}
 
 	igt_subtest("reads")
 		test_partial_reads();
@@ -311,10 +313,12 @@ int main(int argc, char **argv)
 	igt_subtest("writes-after-reads")
 		test_partial_read_writes();
 
-	igt_cleanup_aperture_trashers();
-	drm_intel_bufmgr_destroy(bufmgr);
+	igt_fixture {
+		igt_cleanup_aperture_trashers();
+		drm_intel_bufmgr_destroy(bufmgr);
 
-	close(fd);
+		close(fd);
+	}
 
 	igt_exit();
 }

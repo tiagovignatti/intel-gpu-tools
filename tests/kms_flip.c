@@ -1172,21 +1172,20 @@ int main(int argc, char **argv)
 	igt_subtest_init(argc, argv);
 	igt_skip_on_simulation();
 
-	drm_fd = drm_open_any();
+	igt_fixture {
+		drm_fd = drm_open_any();
 
-	if (!igt_only_list_subtests()) {
 		do_or_die(igt_set_vt_graphics_mode());
 		do_or_die(igt_install_exit_handler(kms_flip_exit_handler));
 		get_timestamp_format();
-	}
 
-	bufmgr = drm_intel_bufmgr_gem_init(drm_fd, 4096);
-	devid = intel_get_drm_devid(drm_fd);
-	batch = intel_batchbuffer_alloc(bufmgr, devid);
+		bufmgr = drm_intel_bufmgr_gem_init(drm_fd, 4096);
+		devid = intel_get_drm_devid(drm_fd);
+		batch = intel_batchbuffer_alloc(bufmgr, devid);
+	}
 
 	for (i = 0; i < sizeof(tests) / sizeof (tests[0]); i++) {
 		igt_subtest(tests[i].name) {
-			printf("running testcase: %s\n", tests[i].name);
 			run_test(tests[i].duration, tests[i].flags, tests[i].name);
 		}
 	}
@@ -1209,7 +1208,8 @@ int main(int argc, char **argv)
 	}
 	igt_stop_signal_helper();
 
-	close(drm_fd);
+	igt_fixture
+		close(drm_fd);
 
 	igt_exit();
 }

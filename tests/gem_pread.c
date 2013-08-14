@@ -76,12 +76,13 @@ static const char *bytes_per_sec(char *buf, double v)
 }
 
 
+uint32_t *src, dst;
+int fd, count;
+
 int main(int argc, char **argv)
 {
 	int object_size = 0;
 	uint32_t buf[20];
-	uint32_t *src, dst;
-	int fd, count;
 	const struct {
 		int level;
 		const char *name;
@@ -101,10 +102,12 @@ int main(int argc, char **argv)
 		object_size = OBJECT_SIZE;
 	object_size = (object_size + 3) & -4;
 
-	fd = drm_open_any();
+	igt_fixture {
+		fd = drm_open_any();
 
-	dst = gem_create(fd, object_size);
-	src = malloc(object_size);
+		dst = gem_create(fd, object_size);
+		src = malloc(object_size);
+	}
 
 	igt_subtest("normal") {
 		for (count = 1; count <= 1<<17; count <<= 1) {
@@ -140,10 +143,12 @@ int main(int argc, char **argv)
 		}
 	}
 
-	free(src);
-	gem_close(fd, dst);
+	igt_fixture {
+		free(src);
+		gem_close(fd, dst);
 
-	close(fd);
+		close(fd);
+	}
 
 	igt_exit();
 }

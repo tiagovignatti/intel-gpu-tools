@@ -235,7 +235,7 @@ int main(int argc, char **argv)
 	igt_subtest_init(argc, argv);
 	igt_skip_on_simulation();
 
-	if (!igt_only_list_subtests()) {
+	igt_fixture {
 		drm_fd = drm_open_any();
 
 		bufmgr = drm_intel_bufmgr_gem_init(drm_fd, 4096);
@@ -250,7 +250,7 @@ int main(int argc, char **argv)
 			run_test(tests[i].name, tests[i].flags);
 	}
 
-	if (!igt_only_list_subtests())
+	igt_fixture
 		close(drm_fd);
 
 	igt_exit();

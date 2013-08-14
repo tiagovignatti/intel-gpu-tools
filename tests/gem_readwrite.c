@@ -73,20 +73,23 @@ do_write(int fd, int handle, void *buf, int offset, int size)
 	return ioctl(fd, DRM_IOCTL_I915_GEM_PWRITE, &gem_pwrite);
 }
 
+int fd;
+uint32_t handle;
+
 int main(int argc, char **argv)
 {
-	int fd;
 	uint8_t expected[OBJECT_SIZE];
 	uint8_t buf[OBJECT_SIZE];
 	int ret;
-	int handle;
 
 	igt_skip_on_simulation();
 	igt_subtest_init(argc, argv);
 
-	fd = drm_open_any();
+	igt_fixture {
+		fd = drm_open_any();
 
-	handle = gem_create(fd, OBJECT_SIZE);
+		handle = gem_create(fd, OBJECT_SIZE);
+	}
 
 	igt_subtest("new-obj") {
 		printf("Testing contents of newly created object.\n");
@@ -140,7 +143,8 @@ int main(int argc, char **argv)
 		igt_assert(ret == -1 && errno == ENOENT);
 	}
 
-	close(fd);
+	igt_fixture
+		close(fd);
 
 	igt_exit();
 }

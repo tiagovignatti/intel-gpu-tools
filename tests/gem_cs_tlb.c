@@ -145,16 +145,17 @@ static void run_on_ring(int fd, unsigned ring_id, const char *ring_name)
 
 }
 
+int fd;
+
 int main(int argc, char **argv)
 {
-	int fd;
 
 	igt_subtest_init(argc, argv);
 	igt_skip_on_simulation();
 
-	fd = drm_open_any();
+	igt_fixture {
+		fd = drm_open_any();
 
-	if (!igt_only_list_subtests()) {
 		/* This test is very sensitive to residual gtt_mm noise from previous
 		 * tests. Try to quiet thing down first. */
 		gem_quiescent_gpu(fd);
@@ -173,7 +174,8 @@ int main(int argc, char **argv)
 	igt_subtest("vebox")
 		run_on_ring(fd, LOCAL_I915_EXEC_VEBOX, "vebox");
 
-	close(fd);
+	igt_fixture
+		close(fd);
 
 	igt_exit();
 }

@@ -107,18 +107,20 @@ static void loop(int fd, uint32_t handle, unsigned ring_id, const char *ring_nam
 	}
 }
 
+uint32_t batch[2] = {MI_BATCH_BUFFER_END};
+uint32_t handle;
+int fd;
+
 int main(int argc, char **argv)
 {
-	uint32_t batch[2] = {MI_BATCH_BUFFER_END};
-	uint32_t handle;
-	int fd;
-
 	igt_subtest_init(argc, argv);
 
-	fd = drm_open_any();
+	igt_fixture {
+		fd = drm_open_any();
 
-	handle = gem_create(fd, 4096);
-	gem_write(fd, handle, 0, batch, sizeof(batch));
+		handle = gem_create(fd, 4096);
+		gem_write(fd, handle, 0, batch, sizeof(batch));
+	}
 
 	igt_subtest("render")
 		loop(fd, handle, I915_EXEC_RENDER, "render");
@@ -132,9 +134,11 @@ int main(int argc, char **argv)
 	igt_subtest("vebox")
 		loop(fd, handle, LOCAL_I915_EXEC_VEBOX, "vebox");
 
-	gem_close(fd, handle);
+	igt_fixture {
+		gem_close(fd, handle);
 
-	close(fd);
+		close(fd);
+	}
 
 	igt_exit();
 }

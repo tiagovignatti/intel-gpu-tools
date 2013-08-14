@@ -254,8 +254,10 @@ static void test_partial_read_writes(void)
 
 static void do_tests(int cache_level, const char *suffix)
 {
-	if (cache_level != -1)
-		gem_set_caching(fd, scratch_bo->handle, cache_level);
+	igt_fixture {
+		if (cache_level != -1)
+			gem_set_caching(fd, scratch_bo->handle, cache_level);
+	}
 
 	igt_subtest_f("reads%s", suffix)
 		test_partial_reads();
@@ -274,19 +276,21 @@ int main(int argc, char **argv)
 	igt_subtest_init(argc, argv);
 	igt_skip_on_simulation();
 
-	fd = drm_open_any();
+	igt_fixture {
+		fd = drm_open_any();
 
-	bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
-	//drm_intel_bufmgr_gem_enable_reuse(bufmgr);
-	devid = intel_get_drm_devid(fd);
-	batch = intel_batchbuffer_alloc(bufmgr, devid);
+		bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
+		//drm_intel_bufmgr_gem_enable_reuse(bufmgr);
+		devid = intel_get_drm_devid(fd);
+		batch = intel_batchbuffer_alloc(bufmgr, devid);
 
-	/* overallocate the buffers we're actually using because */
-	scratch_bo = drm_intel_bo_alloc(bufmgr, "scratch bo", BO_SIZE, 4096);
-	staging_bo = drm_intel_bo_alloc(bufmgr, "staging bo", BO_SIZE, 4096);
+		/* overallocate the buffers we're actually using because */
+		scratch_bo = drm_intel_bo_alloc(bufmgr, "scratch bo", BO_SIZE, 4096);
+		staging_bo = drm_intel_bo_alloc(bufmgr, "staging bo", BO_SIZE, 4096);
 
-	igt_init_aperture_trashers(bufmgr);
-	mappable_gtt_limit = gem_mappable_aperture_size();
+		igt_init_aperture_trashers(bufmgr);
+		mappable_gtt_limit = gem_mappable_aperture_size();
+	}
 
 	do_tests(-1, "");
 
@@ -295,10 +299,12 @@ int main(int argc, char **argv)
 	do_tests(1, "-snoop");
 	do_tests(2, "-display");
 
-	igt_cleanup_aperture_trashers();
-	drm_intel_bufmgr_destroy(bufmgr);
+	igt_fixture {
+		igt_cleanup_aperture_trashers();
+		drm_intel_bufmgr_destroy(bufmgr);
 
-	close(fd);
+		close(fd);
+	}
 
 	igt_exit();
 }

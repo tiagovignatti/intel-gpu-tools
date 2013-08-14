@@ -375,12 +375,14 @@ static const char *bytes_per_sec(char *buf, double v)
 	return buf;
 }
 
+uint32_t *tmp, src, dst;
+int fd;
+
 int main(int argc, char **argv)
 {
 	int object_size = 0;
 	uint32_t buf[20];
-	uint32_t *tmp, src, dst;
-	int fd, count;
+	int count;
 
 	igt_subtest_init(argc, argv);
 	igt_skip_on_simulation();
@@ -391,14 +393,16 @@ int main(int argc, char **argv)
 		object_size = OBJECT_SIZE;
 	object_size = (object_size + 3) & -4;
 
-	fd = drm_open_any();
+	igt_fixture {
+		fd = drm_open_any();
 
-	dst = gem_create(fd, object_size);
-	src = gem_create(fd, object_size);
-	tmp = malloc(object_size);
+		dst = gem_create(fd, object_size);
+		src = gem_create(fd, object_size);
+		tmp = malloc(object_size);
 
-	gem_set_caching(fd, src, 0);
-	gem_set_caching(fd, dst, 0);
+		gem_set_caching(fd, src, 0);
+		gem_set_caching(fd, dst, 0);
+	}
 
 	igt_subtest("uncached-copy-correctness")
 		test_copy(fd, src, dst, tmp, object_size);
@@ -434,8 +438,10 @@ int main(int argc, char **argv)
 		}
 	}
 
-	gem_set_caching(fd, src, 1);
-	gem_set_caching(fd, dst, 1);
+	igt_fixture {
+		gem_set_caching(fd, src, 1);
+		gem_set_caching(fd, dst, 1);
+	}
 
 	igt_subtest("snooped-copy-correctness")
 		test_copy(fd, src, dst, tmp, object_size);
@@ -471,8 +477,10 @@ int main(int argc, char **argv)
 		}
 	}
 
-	gem_set_caching(fd, src, 2);
-	gem_set_caching(fd, dst, 2);
+	igt_fixture {
+		gem_set_caching(fd, src, 2);
+		gem_set_caching(fd, dst, 2);
+	}
 
 	igt_subtest("display-copy-correctness")
 		test_copy(fd, src, dst, tmp, object_size);
@@ -508,11 +516,13 @@ int main(int argc, char **argv)
 		}
 	}
 
-	free(tmp);
-	gem_close(fd, src);
-	gem_close(fd, dst);
+	igt_fixture {
+		free(tmp);
+		gem_close(fd, src);
+		gem_close(fd, dst);
 
-	close(fd);
+		close(fd);
+	}
 
 	igt_exit();
 }

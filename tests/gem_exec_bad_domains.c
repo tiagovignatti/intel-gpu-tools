@@ -150,41 +150,35 @@ static void multi_write_domain(int fd)
 	}
 }
 
+int fd;
+drm_intel_bo *tmp;
+
 int main(int argc, char **argv)
 {
-	int fd, ret;
-	drm_intel_bo *tmp;
-
 	igt_subtest_init(argc, argv);
 
-	fd = drm_open_any();
+	igt_fixture {
+		fd = drm_open_any();
 
-	bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
-	drm_intel_bufmgr_gem_enable_reuse(bufmgr);
-	batch = intel_batchbuffer_alloc(bufmgr, intel_get_drm_devid(fd));
+		bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
+		drm_intel_bufmgr_gem_enable_reuse(bufmgr);
+		batch = intel_batchbuffer_alloc(bufmgr, intel_get_drm_devid(fd));
 
-	tmp = drm_intel_bo_alloc(bufmgr, "tmp", 128 * 128, 4096);
+		tmp = drm_intel_bo_alloc(bufmgr, "tmp", 128 * 128, 4096);
+	}
 
 	igt_subtest("cpu-domain") {
 		BEGIN_BATCH(2);
 		OUT_BATCH(0);
 		OUT_RELOC(tmp, I915_GEM_DOMAIN_CPU, 0, 0);
 		ADVANCE_BATCH();
-		ret = run_batch();
-		if (ret != -EINVAL) {
-			fprintf(stderr, "(cpu, 0) reloc not rejected\n");
-			igt_fail(1);
-		}
+		igt_assert(run_batch() == -EINVAL);
 
 		BEGIN_BATCH(2);
 		OUT_BATCH(0);
 		OUT_RELOC(tmp, I915_GEM_DOMAIN_CPU, I915_GEM_DOMAIN_CPU, 0);
 		ADVANCE_BATCH();
-		ret = run_batch();
-		if (ret != -EINVAL) {
-			fprintf(stderr, "(cpu, cpu) reloc not rejected\n");
-			igt_fail(1);
-		}
+		igt_assert(run_batch() == -EINVAL);
 	}
 
 	igt_subtest("gtt-domain") {
@@ -192,21 +186,13 @@ int main(int argc, char **argv)
 		OUT_BATCH(0);
 		OUT_RELOC(tmp, I915_GEM_DOMAIN_GTT, 0, 0);
 		ADVANCE_BATCH();
-		ret = run_batch();
-		if (ret != -EINVAL) {
-			fprintf(stderr, "(gtt, 0) reloc not rejected\n");
-			igt_fail(1);
-		}
+		igt_assert(run_batch() == -EINVAL);
 
 		BEGIN_BATCH(2);
 		OUT_BATCH(0);
 		OUT_RELOC(tmp, I915_GEM_DOMAIN_GTT, I915_GEM_DOMAIN_GTT, 0);
 		ADVANCE_BATCH();
-		ret = run_batch();
-		if (ret != -EINVAL) {
-			fprintf(stderr, "(gtt, gtt) reloc not rejected\n");
-			igt_fail(1);
-		}
+		igt_assert(run_batch() == -EINVAL);
 	}
 
 #if 0 /* kernel checks have been eased, doesn't reject conflicting write domains
@@ -220,11 +206,7 @@ int main(int argc, char **argv)
 		OUT_RELOC(tmp, I915_GEM_DOMAIN_INSTRUCTION,
 			  I915_GEM_DOMAIN_INSTRUCTION, 0);
 		ADVANCE_BATCH();
-		ret = run_batch();
-		if (ret != -EINVAL) {
-			fprintf(stderr, "conflicting write domains not rejected\n");
-			igt_fail(1);
-		}
+		igt_assert(run_batch() == -EINVAL);
 	}
 #endif
 
@@ -237,28 +219,22 @@ int main(int argc, char **argv)
 		OUT_RELOC(tmp, ~(I915_GEM_GPU_DOMAINS | I915_GEM_DOMAIN_GTT | I915_GEM_DOMAIN_CPU),
 			  0, 0);
 		ADVANCE_BATCH();
-		ret = run_batch();
-		if (ret != -EINVAL) {
-			fprintf(stderr, "invalid gpu read domains not rejected\n");
-			igt_fail(1);
-		}
+		igt_assert(run_batch() == -EINVAL);
 
 		BEGIN_BATCH(2);
 		OUT_BATCH(0);
 		OUT_RELOC(tmp, I915_GEM_DOMAIN_GTT << 1,
 			  I915_GEM_DOMAIN_GTT << 1, 0);
 		ADVANCE_BATCH();
-		ret = run_batch();
-		if (ret != -EINVAL) {
-			fprintf(stderr, "invalid gpu domain not rejected\n");
-			igt_fail(1);
-		}
+		igt_assert(run_batch() == -EINVAL);
 	}
 
-	intel_batchbuffer_free(batch);
-	drm_intel_bufmgr_destroy(bufmgr);
+	igt_fixture {
+		intel_batchbuffer_free(batch);
+		drm_intel_bufmgr_destroy(bufmgr);
 
-	close(fd);
+		close(fd);
+	}
 
 	igt_exit();
 }

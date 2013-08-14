@@ -168,27 +168,30 @@ static void do_test(int fd, int cache_level,
 	} while (--loop);
 }
 
+drm_intel_bo *src[2], *dst[2];
+int fd;
+
 int
 main(int argc, char **argv)
 {
 	const uint32_t start[2] = {0, 1024 * 1024 / 4};
-	drm_intel_bo *src[2], *dst[2];
-	int fd;
 
 	igt_subtest_init(argc, argv);
 	igt_skip_on_simulation();
 
-	fd = drm_open_any();
+	igt_fixture {
+		fd = drm_open_any();
 
-	bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
-	drm_intel_bufmgr_gem_enable_reuse(bufmgr);
-	batch = intel_batchbuffer_alloc(bufmgr, intel_get_drm_devid(fd));
+		bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
+		drm_intel_bufmgr_gem_enable_reuse(bufmgr);
+		batch = intel_batchbuffer_alloc(bufmgr, intel_get_drm_devid(fd));
 
-	src[0] = create_bo(start[0]);
-	src[1] = create_bo(start[1]);
+		src[0] = create_bo(start[0]);
+		src[1] = create_bo(start[1]);
 
-	dst[0] = drm_intel_bo_alloc(bufmgr, "dst bo", size, 4096);
-	dst[1] = drm_intel_bo_alloc(bufmgr, "dst bo", size, 4096);
+		dst[0] = drm_intel_bo_alloc(bufmgr, "dst bo", size, 4096);
+		dst[1] = drm_intel_bo_alloc(bufmgr, "dst bo", size, 4096);
+	}
 
 	igt_subtest("normal")
 		do_test(fd, -1, src, start, dst, 1);
@@ -225,13 +228,16 @@ main(int argc, char **argv)
 		do_test(fd, 2, src, start, dst, 100);
 		igt_stop_signal_helper();
 	}
-	drm_intel_bo_unreference(src[0]);
-	drm_intel_bo_unreference(src[1]);
-	drm_intel_bo_unreference(dst[0]);
-	drm_intel_bo_unreference(dst[1]);
 
-	intel_batchbuffer_free(batch);
-	drm_intel_bufmgr_destroy(bufmgr);
+	igt_fixture {
+		drm_intel_bo_unreference(src[0]);
+		drm_intel_bo_unreference(src[1]);
+		drm_intel_bo_unreference(dst[0]);
+		drm_intel_bo_unreference(dst[1]);
+
+		intel_batchbuffer_free(batch);
+		drm_intel_bufmgr_destroy(bufmgr);
+	}
 
 	close(fd);
 

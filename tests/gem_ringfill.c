@@ -195,38 +195,45 @@ static void blt_copy(struct intel_batchbuffer *batch,
 	intel_batchbuffer_flush(batch);
 }
 
+drm_intel_bufmgr *bufmgr;
+struct intel_batchbuffer *batch;
+render_copyfunc_t copy;
+int fd;
+
 int main(int argc, char **argv)
 {
-	drm_intel_bufmgr *bufmgr;
-	struct intel_batchbuffer *batch;
-	render_copyfunc_t copy;
-	int fd;
 
 	igt_subtest_init(argc, argv);
 	igt_skip_on_simulation();
 
-	fd = drm_open_any();
+	igt_fixture {
+		fd = drm_open_any();
 
-	bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
-	drm_intel_bufmgr_gem_enable_reuse(bufmgr);
-	batch = intel_batchbuffer_alloc(bufmgr, intel_get_drm_devid(fd));
+		bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
+		drm_intel_bufmgr_gem_enable_reuse(bufmgr);
+		batch = intel_batchbuffer_alloc(bufmgr, intel_get_drm_devid(fd));
+	}
 
 	igt_subtest("blitter")
 		check_ring(bufmgr, batch, "blt", blt_copy);
 
-	/* Strictly only required on architectures with a separate BLT ring,
-	 * but lets stress everybody.
-	 */
-	copy = get_render_copyfunc(batch->devid);
-	igt_require(copy);
+	igt_fixture {
+		/* Strictly only required on architectures with a separate BLT ring,
+		 * but lets stress everybody.
+		 */
+		copy = get_render_copyfunc(batch->devid);
+		igt_require(copy);
+	}
 
 	igt_subtest("render")
 		check_ring(bufmgr, batch, "render", copy);
 
-	intel_batchbuffer_free(batch);
-	drm_intel_bufmgr_destroy(bufmgr);
+	igt_fixture {
+		intel_batchbuffer_free(batch);
+		drm_intel_bufmgr_destroy(bufmgr);
 
-	close(fd);
+		close(fd);
+	}
 
 	igt_exit();
 }
