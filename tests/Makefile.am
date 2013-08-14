@@ -18,7 +18,7 @@ endif
 TESTS_progs_M = \
 	gem_basic \
 	gem_caching \
-	gem_cpu_concurrent_blit \
+	gem_concurrent_blit \
 	gem_cs_tlb \
 	gem_ctx_bad_exec \
 	gem_dummy_reloc_loop \
@@ -27,13 +27,11 @@ TESTS_progs_M = \
 	gem_fence_thrash \
 	gem_flink \
 	gem_flink_race \
-	gem_gtt_concurrent_blit \
 	gem_linear_blits \
 	gem_mmap_gtt \
 	gem_partial_pwrite_pread \
 	gem_pread \
 	gem_pread_after_blit \
-	gem_prw_concurrent_blit \
 	gem_pwrite \
 	gem_pwrite_pread \
 	gem_readwrite \

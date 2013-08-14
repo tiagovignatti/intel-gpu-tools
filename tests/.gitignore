@@ -11,7 +11,7 @@ gem_bad_blit
 gem_bad_length
 gem_basic
 gem_caching
-gem_cpu_concurrent_blit
+gem_concurrent_blit
 gem_cpu_reloc
 gem_cs_prefetch
 gem_cs_tlb
@@ -32,7 +32,6 @@ gem_fenced_exec_thrash
 gem_fence_thrash
 gem_flink
 gem_flink_race
-gem_gtt_concurrent_blit
 gem_gtt_cpu_tlb
 gem_gtt_speed
 gem_hang
@@ -49,7 +48,6 @@ gem_pin
 gem_pipe_control_store_loop
 gem_pread
 gem_pread_after_blit
-gem_prw_concurrent_blit
 gem_pwrite
 gem_pwrite_pread
 gem_readwrite
