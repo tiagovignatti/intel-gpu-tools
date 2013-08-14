@@ -40,6 +40,7 @@
 #include <errno.h>
 #include <sys/stat.h>
 #include <sys/time.h>
+#include <sys/wait.h>
 #include "drm.h"
 #include "i915_drm.h"
 #include "drmtest.h"
@@ -92,7 +93,8 @@ main(int argc, char **argv)
 	int num_buffers = 128, max;
 	drm_intel_bo *src[128], *dst[128], *dummy = NULL;
 	int width = 512, height = 512;
-	int i, loop, fd;
+	int i, loop, fd, nc;
+	pid_t children[16];
 
 	igt_subtest_init(argc, argv);
 	igt_skip_on_simulation();
@@ -195,6 +197,121 @@ main(int argc, char **argv)
 				intel_copy_bo(batch, dummy, dst[i], width, height);
 			for (i = num_buffers; i--; )
 				cmp_bo(dst[i], 0xabcdabcd, width, height);
+		}
+	}
+
+	/* try to overwrite the source values */
+	igt_subtest("overwrite-source-forked") {
+		for (nc = 0; nc < ARRAY_SIZE(children); nc++) {
+			switch ((children[nc] = fork())) {
+			case -1: igt_assert(0);
+			default: break;
+			case 0:
+				 /* recreate process local variables */
+				 bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
+				 drm_intel_bufmgr_gem_enable_reuse(bufmgr);
+				 batch = intel_batchbuffer_alloc(bufmgr, intel_get_drm_devid(fd));
+				 for (i = 0; i < num_buffers; i++) {
+					 src[i] = create_bo(bufmgr, i, width, height);
+					 dst[i] = create_bo(bufmgr, ~i, width, height);
+				 }
+				 for (loop = 0; loop < 10; loop++) {
+					 gem_quiescent_gpu(fd);
+					 for (i = 0; i < num_buffers; i++) {
+						 set_bo(src[i], i, width, height);
+						 set_bo(dst[i], i, width, height);
+					 }
+					 for (i = 0; i < num_buffers; i++)
+						 intel_copy_bo(batch, dst[i], src[i], width, height);
+					 for (i = num_buffers; i--; )
+						 set_bo(src[i], 0xdeadbeef, width, height);
+					 for (i = 0; i < num_buffers; i++)
+						 cmp_bo(dst[i], i, width, height);
+				 }
+				 exit(0);
+			}
+		}
+		for (nc = 0; nc < ARRAY_SIZE(children); nc++) {
+			int status = -1;
+			while (waitpid(children[nc], &status, 0) == -1 &&
+			       errno == -EINTR)
+				;
+			igt_assert(status == 0);
+		}
+	}
+
+	/* try to read the results before the copy completes */
+	igt_subtest("early-read-forked") {
+		for (nc = 0; nc < ARRAY_SIZE(children); nc++) {
+			switch ((children[nc] = fork())) {
+			case -1: igt_assert(0);
+			default: break;
+			case 0:
+				 /* recreate process local variables */
+				 bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
+				 drm_intel_bufmgr_gem_enable_reuse(bufmgr);
+				 batch = intel_batchbuffer_alloc(bufmgr, intel_get_drm_devid(fd));
+				 for (i = 0; i < num_buffers; i++) {
+					 src[i] = create_bo(bufmgr, i, width, height);
+					 dst[i] = create_bo(bufmgr, ~i, width, height);
+				 }
+				 for (loop = 0; loop < 10; loop++) {
+					 gem_quiescent_gpu(fd);
+					 for (i = num_buffers; i--; )
+						 set_bo(src[i], 0xdeadbeef, width, height);
+					 for (i = 0; i < num_buffers; i++)
+						 intel_copy_bo(batch, dst[i], src[i], width, height);
+					 for (i = num_buffers; i--; )
+						 cmp_bo(dst[i], 0xdeadbeef, width, height);
+				 }
+				 exit(0);
+			}
+		}
+		for (nc = 0; nc < ARRAY_SIZE(children); nc++) {
+			int status = -1;
+			while (waitpid(children[nc], &status, 0) == -1 &&
+			       errno == -EINTR)
+				;
+			igt_assert(status == 0);
+		}
+	}
+
+	/* and finally try to trick the kernel into loosing the pending write */
+	igt_subtest("gpu-read-after-write-forked") {
+		for (nc = 0; nc < ARRAY_SIZE(children); nc++) {
+			switch ((children[nc] = fork())) {
+			case -1: igt_assert(0);
+			default: break;
+			case 0:
+				 /* recreate process local variables */
+				 bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
+				 drm_intel_bufmgr_gem_enable_reuse(bufmgr);
+				 batch = intel_batchbuffer_alloc(bufmgr, intel_get_drm_devid(fd));
+				 for (i = 0; i < num_buffers; i++) {
+					 src[i] = create_bo(bufmgr, i, width, height);
+					 dst[i] = create_bo(bufmgr, ~i, width, height);
+				 }
+				 dummy = create_bo(bufmgr, 0, width, height);
+				 for (loop = 0; loop < 10; loop++) {
+					 gem_quiescent_gpu(fd);
+					 for (i = num_buffers; i--; )
+						 set_bo(src[i], 0xabcdabcd, width, height);
+					 for (i = 0; i < num_buffers; i++)
+						 intel_copy_bo(batch, dst[i], src[i], width, height);
+					 for (i = num_buffers; i--; )
+						 intel_copy_bo(batch, dummy, dst[i], width, height);
+					 for (i = num_buffers; i--; )
+						 cmp_bo(dst[i], 0xabcdabcd, width, height);
+				 }
+				 exit(0);
+			}
+		}
+		for (nc = 0; nc < ARRAY_SIZE(children); nc++) {
+			int status = -1;
+			while (waitpid(children[nc], &status, 0) == -1 &&
+			       errno == -EINTR)
+				;
+			igt_assert(status == 0);
 		}
 	}
 
