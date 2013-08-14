@@ -529,7 +529,7 @@ int main(int argc, char **argv)
 		//drm_intel_bufmgr_gem_enable_reuse(bufmgr);
 
 		bufmgr2 = drm_intel_bufmgr_gem_init(intel_fd2, 4096);
-		igt_assert(!bufmgr2);
+		igt_assert(bufmgr2);
 		drm_intel_bufmgr_gem_enable_reuse(bufmgr2);
 
 		/* set up nouveau bufmgr */
