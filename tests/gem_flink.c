@@ -168,5 +168,5 @@ int main(int argc, char **argv)
 	igt_subtest("flink-lifetime")
 		test_flink_lifetime(fd);
 
-	return 0;
+	igt_exit();
 }

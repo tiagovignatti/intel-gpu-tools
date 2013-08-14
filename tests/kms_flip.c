@@ -1211,5 +1211,5 @@ int main(int argc, char **argv)
 
 	close(drm_fd);
 
-	return 0;
+	igt_exit();
 }

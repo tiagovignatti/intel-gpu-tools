@@ -505,8 +505,7 @@ int main(int argc, char **argv)
 
 #define xtest(name) \
 	igt_subtest(#name) \
-		if (test_##name()) \
-			igt_fail(2);
+		igt_assert(test_##name() == 0);
 
 	xtest(i915_nv_sharing);
 	xtest(nv_i915_sharing);
@@ -525,5 +524,5 @@ int main(int argc, char **argv)
 	close(intel_fd);
 	close(nouveau_fd);
 
-	return ret;
+	igt_exit();
 }

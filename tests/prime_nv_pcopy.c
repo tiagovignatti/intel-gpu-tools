@@ -1265,7 +1265,7 @@ out:
 
 int main(int argc, char **argv)
 {
-	int ret, failed = 0, run = 0;
+	int ret;
 
 	igt_subtest_init(argc, argv);
 
@@ -1296,14 +1296,8 @@ int main(int argc, char **argv)
 	batch = intel_batchbuffer_alloc(bufmgr, devid);
 
 #define xtest(x, args...) \
-	igt_subtest( #x ) { \
-		ret = ((x)(args)); \
-		++run; \
-		if (ret) { \
-			++failed; \
-			fprintf(stderr, "prime_pcopy: failed " #x "\n"); \
-		} \
-	}
+	igt_subtest( #x ) \
+		igt_assert(((x)(args)) == 0); \
 
 	xtest(test1_macro);
 	xtest(test1_micro);
@@ -1331,8 +1325,5 @@ int main(int argc, char **argv)
 	close(intel_fd);
 	close(nouveau_fd);
 
-	if (!igt_only_list_subtests())
-		printf("Tests: %u run, %u failed\n", run, failed);
-
-	return failed;
+	igt_exit();
 }

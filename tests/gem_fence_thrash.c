@@ -238,5 +238,5 @@ main(int argc, char **argv)
 	igt_subtest("bo-copy")
 		igt_assert(run_test(1, bo_copy, I915_TILING_X, 1) == 0);
 
-	return 0;
+	igt_exit();
 }

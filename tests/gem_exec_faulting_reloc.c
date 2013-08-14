@@ -229,5 +229,5 @@ int main(int argc, char **argv)
 		igt_enable_prefault();
 	}
 
-	return 0;
+	igt_exit();
 }

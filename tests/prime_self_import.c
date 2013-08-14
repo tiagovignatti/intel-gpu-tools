@@ -387,5 +387,5 @@ int main(int argc, char **argv)
 			tests[i].fn();
 	}
 
-	return 0;
+	igt_exit();
 }

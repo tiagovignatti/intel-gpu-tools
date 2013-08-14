@@ -366,5 +366,5 @@ main(int argc, char **argv)
 	for (i = 0; i < ARRAY_SIZE(access_modes); i++)
 		run_modes(&access_modes[i]);
 
-	return 0;
+	igt_exit();
 }

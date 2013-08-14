@@ -253,5 +253,5 @@ int main(int argc, char **argv)
 	if (!igt_only_list_subtests())
 		close(drm_fd);
 
-	return 0;
+	igt_exit();
 }

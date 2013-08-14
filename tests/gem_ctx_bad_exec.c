@@ -126,5 +126,5 @@ int main(int argc, char *argv[])
 	igt_subtest("blt")
 		igt_assert(exec(fd, handle, I915_EXEC_BLT, ctx_id) != 0);
 
-	igt_success();
+	igt_exit();
 }

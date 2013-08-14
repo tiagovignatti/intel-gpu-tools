@@ -272,5 +272,5 @@ int main(int argc, char **argv)
 		igt_assert(tiling_after == I915_TILING_X);
 	}
 
-	return 0;
+	igt_exit();
 }

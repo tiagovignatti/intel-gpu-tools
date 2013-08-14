@@ -90,5 +90,5 @@ int main(int argc, char **argv)
 	igt_subtest("create-fd-close")
 		test_create_fd_close(fd);
 
-	return 0;
+	igt_exit();
 }

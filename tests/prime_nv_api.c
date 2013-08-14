@@ -594,5 +594,5 @@ int main(int argc, char **argv)
 	close(intel_fd);
 	close(nouveau_fd);
 
-	return ret;
+	igt_exit();
 }

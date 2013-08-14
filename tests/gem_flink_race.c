@@ -202,5 +202,5 @@ int main(int argc, char **argv)
 	igt_subtest("flink_close")
 		test_flink_close();
 
-	return 0;
+	igt_exit();
 }
