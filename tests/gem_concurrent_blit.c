@@ -318,7 +318,7 @@ run_modes(struct access_mode *mode)
 
 	drm_intel_bo *src[128], *dst[128], *dummy = NULL;
 
-	if (!igt_only_list_subtests()) {
+	igt_fixture {
 		for (i = 0; i < num_buffers; i++) {
 			src[i] = mode->create_bo(bufmgr, i, width, height);
 			dst[i] = mode->create_bo(bufmgr, ~i, width, height);
@@ -336,7 +336,7 @@ run_modes(struct access_mode *mode)
 
 	igt_stop_signal_helper();
 
-	if (!igt_only_list_subtests()) {
+	igt_fixture {
 		for (i = 0; i < num_buffers; i++) {
 			drm_intel_bo_unreference(src[i]);
 			drm_intel_bo_unreference(dst[i]);
@@ -353,15 +353,17 @@ main(int argc, char **argv)
 	igt_subtest_init(argc, argv);
 	igt_skip_on_simulation();
 
-	fd = drm_open_any();
+	igt_fixture {
+		fd = drm_open_any();
 
-	max = gem_aperture_size (fd) / (1024 * 1024) / 2;
-	if (num_buffers > max)
-		num_buffers = max;
+		max = gem_aperture_size (fd) / (1024 * 1024) / 2;
+		if (num_buffers > max)
+			num_buffers = max;
 
-	bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
-	drm_intel_bufmgr_gem_enable_reuse(bufmgr);
-	batch = intel_batchbuffer_alloc(bufmgr, intel_get_drm_devid(fd));
+		bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
+		drm_intel_bufmgr_gem_enable_reuse(bufmgr);
+		batch = intel_batchbuffer_alloc(bufmgr, intel_get_drm_devid(fd));
+	}
 
 	for (i = 0; i < ARRAY_SIZE(access_modes); i++)
 		run_modes(&access_modes[i]);

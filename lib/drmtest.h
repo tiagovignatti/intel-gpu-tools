@@ -174,6 +174,8 @@ void igt_exit(void) __attribute__((noreturn));
  */
 #define igt_require(expr) do { if (!(expr)) __igt_skip_check(__FILE__, __LINE__, __func__, #expr ); } while (0)
 
+#define igt_fixture if (!igt_only_list_subtests())
+
 /* check functions which auto-skip tests by calling igt_skip() */
 void gem_require_caching(int fd);
 static inline void gem_require_ring(int fd, int ring_id)
