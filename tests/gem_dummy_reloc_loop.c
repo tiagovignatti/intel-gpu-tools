@@ -137,7 +137,7 @@ int main(int argc, char **argv)
 	num_rings = gem_get_num_rings(fd);
 	if (!HAS_BLT_RING(devid)) {
 		fprintf(stderr, "not (yet) implemented for pre-snb\n");
-		return 77;
+		igt_skip();
 	}
 
 	bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
