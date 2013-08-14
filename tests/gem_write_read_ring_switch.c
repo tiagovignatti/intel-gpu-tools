@@ -42,7 +42,6 @@
 #include "i830_reg.h"
 
 #define LOCAL_I915_EXEC_VEBOX (4<<0)
-bool skipped_all = true;
 
 static drm_intel_bufmgr *bufmgr;
 struct intel_batchbuffer *batch;
@@ -62,7 +61,10 @@ static void run_test(int ring, const char *testname)
 	uint32_t *ptr;
 	int i;
 
-	skipped_all = false;
+	gem_require_ring(fd, ring);
+	/* Testing render only makes sense with separate blt. */
+	if (ring == I915_EXEC_RENDER)
+		gem_require_ring(fd, I915_EXEC_BLT);
 
 	printf("running subtest %s\n", testname);
 
@@ -191,26 +193,16 @@ int main(int argc, char **argv)
 	}
 
 	for (i = 0; i < ARRAY_SIZE(tests); i++) {
-		igt_subtest(tests[i].name) {
-			gem_require_ring(fd, tests[i].ring);
-			/* Testing render only makes sense with separate blt. */
-			if (tests[i].ring == I915_EXEC_RENDER)
-				gem_require_ring(fd, I915_EXEC_BLT);
+		igt_subtest(tests[i].name)
 			run_test(tests[i].ring, tests[i].name);
-		}
 	}
 
 	igt_fork_signal_helper();
 	for (i = 0; i < ARRAY_SIZE(tests); i++) {
 		char name[180];
 		snprintf(name, sizeof(name), "%s-interruptible", tests[i].name);
-		igt_subtest(name) {
-			gem_require_ring(fd, tests[i].ring);
-			/* Testing render only makes sense with separate blt. */
-			if (tests[i].ring == I915_EXEC_RENDER)
-				gem_require_ring(fd, I915_EXEC_BLT);
+		igt_subtest(name)
 			run_test(tests[i].ring, name);
-		}
 	}
 	igt_stop_signal_helper();
 
@@ -218,5 +210,5 @@ int main(int argc, char **argv)
 
 	close(fd);
 
-	return skipped_all ? 77 : 0;
+	igt_exit();
 }
