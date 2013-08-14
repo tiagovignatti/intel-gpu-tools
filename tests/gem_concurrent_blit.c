@@ -293,19 +293,8 @@ run_modes(struct access_mode *mode)
 					 src[i] = mode->create_bo(bufmgr, i, width, height);
 					 dst[i] = mode->create_bo(bufmgr, ~i, width, height);
 				 }
-				 for (loop = 0; loop < 10; loop++) {
-					 gem_quiescent_gpu(fd);
-					 for (i = 0; i < num_buffers; i++) {
-						 mode->set_bo(src[i], i, width, height);
-						 mode->set_bo(dst[i], i, width, height);
-					 }
-					 for (i = 0; i < num_buffers; i++)
-						 intel_copy_bo(batch, dst[i], src[i], width, height);
-					 for (i = num_buffers; i--; )
-						 mode->set_bo(src[i], 0xdeadbeef, width, height);
-					 for (i = 0; i < num_buffers; i++)
-						 mode->cmp_bo(dst[i], i, width, height);
-				 }
+				 for (loop = 0; loop < 10; loop++)
+					 do_overwrite_source(mode, src, dst, dummy);
 				 exit(0);
 			}
 		}
@@ -333,15 +322,8 @@ run_modes(struct access_mode *mode)
 					 src[i] = mode->create_bo(bufmgr, i, width, height);
 					 dst[i] = mode->create_bo(bufmgr, ~i, width, height);
 				 }
-				 for (loop = 0; loop < 10; loop++) {
-					 gem_quiescent_gpu(fd);
-					 for (i = num_buffers; i--; )
-						 mode->set_bo(src[i], 0xdeadbeef, width, height);
-					 for (i = 0; i < num_buffers; i++)
-						 intel_copy_bo(batch, dst[i], src[i], width, height);
-					 for (i = num_buffers; i--; )
-						 mode->cmp_bo(dst[i], 0xdeadbeef, width, height);
-				 }
+				 for (loop = 0; loop < 10; loop++)
+					 do_early_read(mode, src, dst, dummy);
 				 exit(0);
 			}
 		}
@@ -370,17 +352,8 @@ run_modes(struct access_mode *mode)
 					 dst[i] = mode->create_bo(bufmgr, ~i, width, height);
 				 }
 				 dummy = mode->create_bo(bufmgr, 0, width, height);
-				 for (loop = 0; loop < 10; loop++) {
-					 gem_quiescent_gpu(fd);
-					 for (i = num_buffers; i--; )
-						 mode->set_bo(src[i], 0xabcdabcd, width, height);
-					 for (i = 0; i < num_buffers; i++)
-						 intel_copy_bo(batch, dst[i], src[i], width, height);
-					 for (i = num_buffers; i--; )
-						 intel_copy_bo(batch, dummy, dst[i], width, height);
-					 for (i = num_buffers; i--; )
-						 mode->cmp_bo(dst[i], 0xabcdabcd, width, height);
-				 }
+				 for (loop = 0; loop < 10; loop++)
+					 do_gpu_read_after_write(mode, src, dst, dummy);
 				 exit(0);
 			}
 		}
