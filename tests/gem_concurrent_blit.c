@@ -174,11 +174,91 @@ struct access_mode access_modes[] = {
 int num_buffers = 128, fd;
 drm_intel_bufmgr *bufmgr;
 struct intel_batchbuffer *batch;
+int width = 512, height = 512;
+
+static void do_overwrite_source(struct access_mode *mode,
+				drm_intel_bo **src, drm_intel_bo **dst,
+				drm_intel_bo *dummy)
+{
+	int i;
+
+	gem_quiescent_gpu(fd);
+	for (i = 0; i < num_buffers; i++) {
+		mode->set_bo(src[i], i, width, height);
+		mode->set_bo(dst[i], i, width, height);
+	}
+	for (i = 0; i < num_buffers; i++)
+		intel_copy_bo(batch, dst[i], src[i], width, height);
+	for (i = num_buffers; i--; )
+		mode->set_bo(src[i], 0xdeadbeef, width, height);
+	for (i = 0; i < num_buffers; i++)
+		mode->cmp_bo(dst[i], i, width, height);
+}
+
+static void do_early_read(struct access_mode *mode,
+			  drm_intel_bo **src, drm_intel_bo **dst,
+			  drm_intel_bo *dummy)
+{
+	int i;
+
+	gem_quiescent_gpu(fd);
+	for (i = num_buffers; i--; )
+		mode->set_bo(src[i], 0xdeadbeef, width, height);
+	for (i = 0; i < num_buffers; i++)
+		intel_copy_bo(batch, dst[i], src[i], width, height);
+	for (i = num_buffers; i--; )
+		mode->cmp_bo(dst[i], 0xdeadbeef, width, height);
+}
+
+static void do_gpu_read_after_write(struct access_mode *mode,
+				    drm_intel_bo **src, drm_intel_bo **dst,
+				    drm_intel_bo *dummy)
+{
+	int i;
+
+	gem_quiescent_gpu(fd);
+	for (i = num_buffers; i--; )
+		mode->set_bo(src[i], 0xabcdabcd, width, height);
+	for (i = 0; i < num_buffers; i++)
+		intel_copy_bo(batch, dst[i], src[i], width, height);
+	for (i = num_buffers; i--; )
+		intel_copy_bo(batch, dummy, dst[i], width, height);
+	for (i = num_buffers; i--; )
+		mode->cmp_bo(dst[i], 0xabcdabcd, width, height);
+}
+
+
+static void
+run_basic_modes(struct access_mode *mode,
+		drm_intel_bo **src, drm_intel_bo **dst,
+		drm_intel_bo *dummy, bool interruptible)
+{
+	int loop_max, loop;
+
+	loop_max = interruptible ? 10 : 1;
+
+	/* try to overwrite the source values */
+	igt_subtest_f("%s-overwrite-source%s", mode->name,
+		      interruptible ? "-interruptible" : "")
+		for (loop = 0; loop < loop_max; loop++)
+			do_overwrite_source(mode, src, dst, dummy);
+
+	/* try to read the results before the copy completes */
+	igt_subtest_f("%s-early-read%s", mode->name,
+		      interruptible ? "-interruptible" : "")
+		for (loop = 0; loop < loop_max; loop++)
+			do_early_read(mode, src, dst, dummy);
+
+	/* and finally try to trick the kernel into loosing the pending write */
+	igt_subtest_f("%s-gpu-read-after-write%s", mode->name,
+		      interruptible ? "-interruptible" : "")
+		for (loop = 0; loop < loop_max; loop++)
+			do_gpu_read_after_write(mode, src, dst, dummy);
+}
 
 static void
 run_modes(struct access_mode *mode)
 {
-	int width = 512, height = 512;
 	int loop, i, nc;
 	pid_t children[16];
 
@@ -192,88 +272,11 @@ run_modes(struct access_mode *mode)
 		dummy = mode->create_bo(bufmgr, 0, width, height);
 	}
 
-	/* try to overwrite the source values */
-	igt_subtest_f("%s-overwrite-source", mode->name) {
-		for (i = 0; i < num_buffers; i++) {
-			mode->set_bo(src[i], i, width, height);
-			mode->set_bo(dst[i], i, width, height);
-		}
-		for (i = 0; i < num_buffers; i++)
-			intel_copy_bo(batch, dst[i], src[i], width, height);
-		for (i = num_buffers; i--; )
-			mode->set_bo(src[i], 0xdeadbeef, width, height);
-		for (i = 0; i < num_buffers; i++)
-			mode->cmp_bo(dst[i], i, width, height);
-	}
-
-	/* try to read the results before the copy completes */
-	igt_subtest_f("%s-early-read", mode->name) {
-		for (i = num_buffers; i--; )
-			mode->set_bo(src[i], 0xdeadbeef, width, height);
-		for (i = 0; i < num_buffers; i++)
-			intel_copy_bo(batch, dst[i], src[i], width, height);
-		for (i = num_buffers; i--; )
-			mode->cmp_bo(dst[i], 0xdeadbeef, width, height);
-	}
-
-	/* and finally try to trick the kernel into loosing the pending write */
-	igt_subtest_f("%s-gpu-read-after-write", mode->name) {
-		for (i = num_buffers; i--; )
-			mode->set_bo(src[i], 0xabcdabcd, width, height);
-		for (i = 0; i < num_buffers; i++)
-			intel_copy_bo(batch, dst[i], src[i], width, height);
-		for (i = num_buffers; i--; )
-			intel_copy_bo(batch, dummy, dst[i], width, height);
-		for (i = num_buffers; i--; )
-			mode->cmp_bo(dst[i], 0xabcdabcd, width, height);
-	}
+	run_basic_modes(mode, src, dst, dummy, false);
 
 	igt_fork_signal_helper();
 
-	/* try to read the results before the copy completes */
-	igt_subtest_f("%s-overwrite-source-interruptible", mode->name) {
-		for (loop = 0; loop < 10; loop++) {
-			gem_quiescent_gpu(fd);
-			for (i = 0; i < num_buffers; i++) {
-				mode->set_bo(src[i], i, width, height);
-				mode->set_bo(dst[i], i, width, height);
-			}
-			for (i = 0; i < num_buffers; i++)
-				intel_copy_bo(batch, dst[i], src[i], width, height);
-			for (i = num_buffers; i--; )
-				mode->set_bo(src[i], 0xdeadbeef, width, height);
-			for (i = 0; i < num_buffers; i++)
-				mode->cmp_bo(dst[i], i, width, height);
-		}
-	}
-
-	/* try to read the results before the copy completes */
-	igt_subtest_f("%s-early-read-interruptible", mode->name) {
-		for (loop = 0; loop < 10; loop++) {
-			gem_quiescent_gpu(fd);
-			for (i = num_buffers; i--; )
-				mode->set_bo(src[i], 0xdeadbeef, width, height);
-			for (i = 0; i < num_buffers; i++)
-				intel_copy_bo(batch, dst[i], src[i], width, height);
-			for (i = num_buffers; i--; )
-				mode->cmp_bo(dst[i], 0xdeadbeef, width, height);
-		}
-	}
-
-	/* and finally try to trick the kernel into loosing the pending write */
-	igt_subtest_f("%s-gpu-read-after-write-interruptible", mode->name) {
-		for (loop = 0; loop < 10; loop++) {
-			gem_quiescent_gpu(fd);
-			for (i = num_buffers; i--; )
-				mode->set_bo(src[i], 0xabcdabcd, width, height);
-			for (i = 0; i < num_buffers; i++)
-				intel_copy_bo(batch, dst[i], src[i], width, height);
-			for (i = num_buffers; i--; )
-				intel_copy_bo(batch, dummy, dst[i], width, height);
-			for (i = num_buffers; i--; )
-				mode->cmp_bo(dst[i], 0xabcdabcd, width, height);
-		}
-	}
+	run_basic_modes(mode, src, dst, dummy, true);
 
 	/* try to read the results before the copy completes */
 	igt_subtest_f("%s-overwrite-source-forked", mode->name) {
