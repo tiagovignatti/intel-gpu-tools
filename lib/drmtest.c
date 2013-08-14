@@ -725,7 +725,7 @@ bool __igt_run_subtest(const char *subtest_name)
 	}
 
 	if (skip_subtests_henceforth) {
-		printf("Subtest %s: SKIP\n", in_subtest);
+		printf("Subtest %s: SKIP\n", subtest_name);
 		return false;
 	}
 
