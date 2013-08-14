@@ -175,6 +175,14 @@ void igt_exit(void) __attribute__((noreturn));
  */
 #define igt_require(expr) do { if (!(expr)) __igt_skip_check(__FILE__, __LINE__, __func__, #expr ); } while (0)
 
+/**
+ * igt_fixture - annote global test fixture code
+ * 
+ * Testcase with subtests often need to set up a bunch of global state as the
+ * common test fixture. To avoid such code interferring with the subtest
+ * enumeration (e.g. when enumerating on systemes without an intel gpu) such
+ * blocks should be annotated with igt_fixture.
+ */
 #define igt_fixture if (!igt_only_list_subtests())
 
 /* check functions which auto-skip tests by calling igt_skip() */
