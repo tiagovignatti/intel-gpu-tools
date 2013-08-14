@@ -56,7 +56,7 @@ int fd;
  */
 
 #define COLOR 0xffffffff
-static void run_test(int ring, const char *testname)
+static void run_test(int ring)
 {
 	uint32_t *ptr;
 	int i;
@@ -65,8 +65,6 @@ static void run_test(int ring, const char *testname)
 	/* Testing render only makes sense with separate blt. */
 	if (ring == I915_EXEC_RENDER)
 		gem_require_ring(fd, I915_EXEC_BLT);
-
-	printf("running subtest %s\n", testname);
 
 	target_bo = drm_intel_bo_alloc(bufmgr, "target bo", 4096, 4096);
 	if (!target_bo) {
@@ -194,15 +192,13 @@ int main(int argc, char **argv)
 
 	for (i = 0; i < ARRAY_SIZE(tests); i++) {
 		igt_subtest(tests[i].name)
-			run_test(tests[i].ring, tests[i].name);
+			run_test(tests[i].ring);
 	}
 
 	igt_fork_signal_helper();
 	for (i = 0; i < ARRAY_SIZE(tests); i++) {
-		char name[180];
-		snprintf(name, sizeof(name), "%s-interruptible", tests[i].name);
-		igt_subtest(name)
-			run_test(tests[i].ring, name);
+		igt_subtest_f("%s-interruptible", tests[i].name)
+			run_test(tests[i].ring);
 	}
 	igt_stop_signal_helper();
 

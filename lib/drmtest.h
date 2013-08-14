@@ -100,6 +100,17 @@ void igt_progress(const char *header, uint64_t i, uint64_t total);
 jmp_buf igt_subtest_jmpbuf;
 void igt_subtest_init(int argc, char **argv);
 bool __igt_run_subtest(const char *subtest_name);
+#define igt_tokencat2(x, y) x ## y
+#define igt_tokencat(x, y) igt_tokencat2(x, y)
+#define __igt_subtest_f(tmp, format, args...) \
+	for (char tmp [256]; \
+	     snprintf( tmp , sizeof( tmp ), \
+		      format, args), \
+	     __igt_run_subtest( tmp ) && \
+	     (setjmp(igt_subtest_jmpbuf) == 0); \
+	     igt_success())
+#define igt_subtest_f(f, a...) \
+	__igt_subtest_f(igt_tokencat(__tmpchar, __LINE__), f, a)
 #define igt_subtest(name) for (; __igt_run_subtest((name)) && \
 				   (setjmp(igt_subtest_jmpbuf) == 0); \
 				   igt_success())

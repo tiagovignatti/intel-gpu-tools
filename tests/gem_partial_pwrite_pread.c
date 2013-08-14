@@ -254,21 +254,16 @@ static void test_partial_read_writes(void)
 
 static void do_tests(int cache_level, const char *suffix)
 {
-	char name[80];
-
 	if (cache_level != -1)
 		gem_set_caching(fd, scratch_bo->handle, cache_level);
 
-	snprintf(name, sizeof(name), "reads%s", suffix);
-	igt_subtest(name)
+	igt_subtest_f("reads%s", suffix)
 		test_partial_reads();
 
-	snprintf(name, sizeof(name), "writes%s", suffix);
-	igt_subtest(name)
+	igt_subtest_f("write%s", suffix)
 		test_partial_writes();
 
-	snprintf(name, sizeof(name), "writes-after-reads%s", suffix);
-	igt_subtest(name)
+	igt_subtest_f("writes-after-reads%s", suffix)
 		test_partial_read_writes();
 }
 
