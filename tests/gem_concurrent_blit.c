@@ -227,40 +227,94 @@ static void do_gpu_read_after_write(struct access_mode *mode,
 		mode->cmp_bo(dst[i], 0xabcdabcd, width, height);
 }
 
+typedef void (*do_test)(struct access_mode *mode,
+			drm_intel_bo **src, drm_intel_bo **dst,
+			drm_intel_bo *dummy);
+
+typedef void (*run_wrap)(struct access_mode *mode,
+			 drm_intel_bo **src, drm_intel_bo **dst,
+			 drm_intel_bo *dummy,
+			 do_test do_test_func);
+
+static void run_single(struct access_mode *mode,
+		       drm_intel_bo **src, drm_intel_bo **dst,
+		       drm_intel_bo *dummy,
+		       do_test do_test_func)
+{
+	do_test_func(mode, src, dst, dummy);
+}
+
+
+static void run_looped(struct access_mode *mode,
+		       drm_intel_bo **src, drm_intel_bo **dst,
+		       drm_intel_bo *dummy,
+		       do_test do_test_func)
+{
+	int loop;
+
+	for (loop = 0; loop < 10; loop++)
+		do_test_func(mode, src, dst, dummy);
+}
+
+static void run_forked(struct access_mode *mode,
+		       drm_intel_bo **src, drm_intel_bo **dst,
+		       drm_intel_bo *dummy,
+		       do_test do_test_func)
+{
+	int loop, i, nc;
+	pid_t children[16];
+
+	for (nc = 0; nc < ARRAY_SIZE(children); nc++) {
+		switch ((children[nc] = fork())) {
+		case -1: igt_assert(0);
+		default: break;
+		case 0:
+			 /* recreate process local variables */
+			 bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
+			 drm_intel_bufmgr_gem_enable_reuse(bufmgr);
+			 batch = intel_batchbuffer_alloc(bufmgr, intel_get_drm_devid(fd));
+			 for (i = 0; i < num_buffers; i++) {
+				 src[i] = mode->create_bo(bufmgr, i, width, height);
+				 dst[i] = mode->create_bo(bufmgr, ~i, width, height);
+			 }
+			 dummy = mode->create_bo(bufmgr, 0, width, height);
+			 for (loop = 0; loop < 10; loop++)
+				 do_test_func(mode, src, dst, dummy);
+			 exit(0);
+		}
+	}
+	for (nc = 0; nc < ARRAY_SIZE(children); nc++) {
+		int status = -1;
+		while (waitpid(children[nc], &status, 0) == -1 &&
+		       errno == -EINTR)
+			;
+		igt_assert(status == 0);
+	}
+}
 
 static void
 run_basic_modes(struct access_mode *mode,
 		drm_intel_bo **src, drm_intel_bo **dst,
-		drm_intel_bo *dummy, bool interruptible)
+		drm_intel_bo *dummy, const char *suffix,
+		run_wrap run_wrap_func)
 {
-	int loop_max, loop;
-
-	loop_max = interruptible ? 10 : 1;
-
 	/* try to overwrite the source values */
-	igt_subtest_f("%s-overwrite-source%s", mode->name,
-		      interruptible ? "-interruptible" : "")
-		for (loop = 0; loop < loop_max; loop++)
-			do_overwrite_source(mode, src, dst, dummy);
+	igt_subtest_f("%s-overwrite-source%s", mode->name, suffix)
+		run_wrap_func(mode, src, dst, dummy, do_overwrite_source);
 
 	/* try to read the results before the copy completes */
-	igt_subtest_f("%s-early-read%s", mode->name,
-		      interruptible ? "-interruptible" : "")
-		for (loop = 0; loop < loop_max; loop++)
-			do_early_read(mode, src, dst, dummy);
+	igt_subtest_f("%s-early-read%s", mode->name, suffix)
+		run_wrap_func(mode, src, dst, dummy, do_early_read);
 
 	/* and finally try to trick the kernel into loosing the pending write */
-	igt_subtest_f("%s-gpu-read-after-write%s", mode->name,
-		      interruptible ? "-interruptible" : "")
-		for (loop = 0; loop < loop_max; loop++)
-			do_gpu_read_after_write(mode, src, dst, dummy);
+	igt_subtest_f("%s-gpu-read-after-write%s", mode->name, suffix)
+		run_wrap_func(mode, src, dst, dummy, do_gpu_read_after_write);
 }
 
 static void
 run_modes(struct access_mode *mode)
 {
-	int loop, i, nc;
-	pid_t children[16];
+	int i;
 
 	drm_intel_bo *src[128], *dst[128], *dummy = NULL;
 
@@ -272,99 +326,13 @@ run_modes(struct access_mode *mode)
 		dummy = mode->create_bo(bufmgr, 0, width, height);
 	}
 
-	run_basic_modes(mode, src, dst, dummy, false);
+	run_basic_modes(mode, src, dst, dummy, "", run_single);
 
 	igt_fork_signal_helper();
 
-	run_basic_modes(mode, src, dst, dummy, true);
+	run_basic_modes(mode, src, dst, dummy, "-interruptible", run_looped);
 
-	/* try to read the results before the copy completes */
-	igt_subtest_f("%s-overwrite-source-forked", mode->name) {
-		for (nc = 0; nc < ARRAY_SIZE(children); nc++) {
-			switch ((children[nc] = fork())) {
-			case -1: igt_assert(0);
-			default: break;
-			case 0:
-				 /* recreate process local variables */
-				 bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
-				 drm_intel_bufmgr_gem_enable_reuse(bufmgr);
-				 batch = intel_batchbuffer_alloc(bufmgr, intel_get_drm_devid(fd));
-				 for (i = 0; i < num_buffers; i++) {
-					 src[i] = mode->create_bo(bufmgr, i, width, height);
-					 dst[i] = mode->create_bo(bufmgr, ~i, width, height);
-				 }
-				 for (loop = 0; loop < 10; loop++)
-					 do_overwrite_source(mode, src, dst, dummy);
-				 exit(0);
-			}
-		}
-		for (nc = 0; nc < ARRAY_SIZE(children); nc++) {
-			int status = -1;
-			while (waitpid(children[nc], &status, 0) == -1 &&
-			       errno == -EINTR)
-				;
-			igt_assert(status == 0);
-		}
-	}
-
-	/* try to read the results before the copy completes */
-	igt_subtest_f("%s-early-read-forked", mode->name) {
-		for (nc = 0; nc < ARRAY_SIZE(children); nc++) {
-			switch ((children[nc] = fork())) {
-			case -1: igt_assert(0);
-			default: break;
-			case 0:
-				 /* recreate process local variables */
-				 bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
-				 drm_intel_bufmgr_gem_enable_reuse(bufmgr);
-				 batch = intel_batchbuffer_alloc(bufmgr, intel_get_drm_devid(fd));
-				 for (i = 0; i < num_buffers; i++) {
-					 src[i] = mode->create_bo(bufmgr, i, width, height);
-					 dst[i] = mode->create_bo(bufmgr, ~i, width, height);
-				 }
-				 for (loop = 0; loop < 10; loop++)
-					 do_early_read(mode, src, dst, dummy);
-				 exit(0);
-			}
-		}
-		for (nc = 0; nc < ARRAY_SIZE(children); nc++) {
-			int status = -1;
-			while (waitpid(children[nc], &status, 0) == -1 &&
-			       errno == -EINTR)
-				;
-			igt_assert(status == 0);
-		}
-	}
-
-	/* and finally try to trick the kernel into loosing the pending write */
-	igt_subtest_f("%s-gpu-read-after-write-forked", mode->name) {
-		for (nc = 0; nc < ARRAY_SIZE(children); nc++) {
-			switch ((children[nc] = fork())) {
-			case -1: igt_assert(0);
-			default: break;
-			case 0:
-				 /* recreate process local variables */
-				 bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
-				 drm_intel_bufmgr_gem_enable_reuse(bufmgr);
-				 batch = intel_batchbuffer_alloc(bufmgr, intel_get_drm_devid(fd));
-				 for (i = 0; i < num_buffers; i++) {
-					 src[i] = mode->create_bo(bufmgr, i, width, height);
-					 dst[i] = mode->create_bo(bufmgr, ~i, width, height);
-				 }
-				 dummy = mode->create_bo(bufmgr, 0, width, height);
-				 for (loop = 0; loop < 10; loop++)
-					 do_gpu_read_after_write(mode, src, dst, dummy);
-				 exit(0);
-			}
-		}
-		for (nc = 0; nc < ARRAY_SIZE(children); nc++) {
-			int status = -1;
-			while (waitpid(children[nc], &status, 0) == -1 &&
-			       errno == -EINTR)
-				;
-			igt_assert(status == 0);
-		}
-	}
+	run_basic_modes(mode, src, dst, dummy, "-forked", run_forked);
 
 	igt_stop_signal_helper();
 
