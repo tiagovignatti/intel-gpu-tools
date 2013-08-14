@@ -739,6 +739,11 @@ bool __igt_run_subtest(const char *subtest_name)
 	}
 }
 
+const char *igt_subtest_name(void)
+{
+	return in_subtest;
+}
+
 bool igt_only_list_subtests(void)
 {
 	return list_subtests;

@@ -121,6 +121,7 @@ bool __igt_run_subtest(const char *subtest_name);
 #define igt_subtest(name) for (; __igt_run_subtest((name)) && \
 				   (setjmp(igt_subtest_jmpbuf) == 0); \
 				   igt_success())
+const char *igt_subtest_name(void);
 bool igt_only_list_subtests(void);
 /**
  * igt_skip - subtest aware test skipping

@@ -114,7 +114,6 @@ struct event_state {
 };
 
 struct test_output {
-	const char *test_name;
 	uint32_t id;
 	int mode_valid;
 	drmModeModeInfo mode;
@@ -988,7 +987,7 @@ static void run_test_on_crtc(struct test_output *o, int crtc_idx, int duration)
 	last_connector = o->connector;
 
 	fprintf(stdout, "Beginning %s on crtc %d, connector %d\n",
-		o->test_name, o->crtc, o->id);
+		igt_subtest_name(), o->crtc, o->id);
 
 	o->fb_width = o->mode.hdisplay;
 	o->fb_height = o->mode.vdisplay;
@@ -1054,7 +1053,7 @@ static void run_test_on_crtc(struct test_output *o, int crtc_idx, int duration)
 		check_final_state(o, &o->vblank_state, ellapsed);
 
 	fprintf(stdout, "\n%s on crtc %d, connector %d: PASSED\n\n",
-		o->test_name, o->crtc, o->id);
+		igt_subtest_name(), o->crtc, o->id);
 
 out:
 	kmstest_remove_fb(drm_fd, &o->fb_info[2]);
@@ -1067,7 +1066,7 @@ out:
 	drmModeFreeConnector(o->connector);
 }
 
-static int run_test(int duration, int flags, const char *test_name)
+static int run_test(int duration, int flags)
 {
 	struct test_output o;
 	int c;
@@ -1084,7 +1083,6 @@ static int run_test(int duration, int flags, const char *test_name)
 	for (c = 0; c < resources->count_connectors; c++) {
 		for (crtc_idx = 0; crtc_idx < resources->count_crtcs; crtc_idx++) {
 			memset(&o, 0, sizeof(o));
-			o.test_name = test_name;
 			o.id = resources->connectors[c];
 			o.flags = flags;
 			o.flip_state.name = "flip";
@@ -1185,26 +1183,20 @@ int main(int argc, char **argv)
 	}
 
 	for (i = 0; i < sizeof(tests) / sizeof (tests[0]); i++) {
-		igt_subtest(tests[i].name) {
-			run_test(tests[i].duration, tests[i].flags, tests[i].name);
-		}
+		igt_subtest(tests[i].name)
+			run_test(tests[i].duration, tests[i].flags);
 	}
 
 	igt_fork_signal_helper();
 	for (i = 0; i < sizeof(tests) / sizeof (tests[0]); i++) {
-		char name[160];
-		snprintf(name, sizeof(name), "%s-interruptible", tests[i].name);
-
 		/* relative blocking vblank waits that get constantly interrupt
 		 * take forver. So don't do them. */
 		if ((tests[i].flags & TEST_VBLANK_BLOCK) &&
 		    !(tests[i].flags & TEST_VBLANK_ABSOLUTE))
 			continue;
 
-		igt_subtest(name) {
-			printf("running testcase: %s\n", name);
-			run_test(tests[i].duration, tests[i].flags, name);
-		}
+		igt_subtest_f( "%s-interruptible", tests[i].name)
+			run_test(tests[i].duration, tests[i].flags);
 	}
 	igt_stop_signal_helper();
 
