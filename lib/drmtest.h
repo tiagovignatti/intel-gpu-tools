@@ -100,6 +100,13 @@ void igt_progress(const char *header, uint64_t i, uint64_t total);
 jmp_buf igt_subtest_jmpbuf;
 void igt_subtest_init(int argc, char **argv);
 bool __igt_run_subtest(const char *subtest_name);
+/**
+ * igt_subtest/_f - Denote a subtest code block
+ *
+ * Magic control flow which denotes a subtest code block. Within that codeblock
+ * igt_skip|success will only bail out of the subtest. The _f variant accepts a
+ * printf format string, which is useful for constructing combinatorial tests.
+ */
 #define igt_tokencat2(x, y) x ## y
 #define igt_tokencat(x, y) igt_tokencat2(x, y)
 #define __igt_subtest_f(tmp, format, args...) \
@@ -115,15 +122,44 @@ bool __igt_run_subtest(const char *subtest_name);
 				   (setjmp(igt_subtest_jmpbuf) == 0); \
 				   igt_success())
 bool igt_only_list_subtests(void);
+/**
+ * igt_skip - subtest aware test skipping
+ *
+ * For tests with subtests this will either bail out of the current subtest or
+ * mark all subsequent subtests as SKIP (in case some global setup code failed).
+ *
+ * For normal tests without subtest it will directly exit.
+ */
 void igt_skip(void);
 void __igt_skip_check(const char *file, const int line,
 		      const char *func, const char *check);
+/**
+ * igt_success - complete a (subtest) as successfull
+ *
+ * This bails out of a subtests and marks it as successful. For global tests it
+ * it won't bail out of anything.
+ */
 void igt_success(void);
+/**
+ * igt_fail - fail a testcase
+ *
+ * For subtest it just bails out of the subtest, when run in global context it
+ * will exit. Note that it won't attempt to keep on running further tests,
+ * presuming that some mandatory setup failed.
+ */
 void igt_fail(int exitcode) __attribute__((noreturn));
 void __igt_fail_assert(int exitcode, const char *file,
 		       const int line, const char *func, const char *assertion)
 	__attribute__((noreturn));
-void igt_exit(void);
+/**
+ * igt_exit - exit() for igts
+ *
+ * This will exit the test with the right exit code when subtests have been
+ * skipped. For normal tests it exits with a successful exit code, presuming
+ * everything has worked out. For subtests it also checks that at least one
+ * subtest has been run (save when only listing subtests.
+ */
+void igt_exit(void) __attribute__((noreturn));
 /**
  * igt_assert - fails (sub-)test if a condition is not met
  *
@@ -163,6 +199,15 @@ static inline void gem_require_ring(int fd, int ring_id)
 /* helpers to automatically reduce test runtime in simulation */
 bool igt_run_in_simulation(void);
 #define SLOW_QUICK(slow,quick) (igt_run_in_simulation() ? (quick) : (slow))
+/**
+ * igt_skip_on_simulation - skip tests when INTEL_SIMULATION env war is set
+ *
+ * Skip the test when running on simulation (and that's relevant only when
+ * we're not in the mode where we list the subtests).
+ *
+ * This function is subtest aware (since it uses igt_skip) and so can be used to
+ * skip specific subtests or all subsequent subtests.
+ */
 void igt_skip_on_simulation(void);
 
 /* helpers based upon the libdrm buffer manager */

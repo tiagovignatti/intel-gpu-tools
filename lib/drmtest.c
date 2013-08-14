@@ -815,7 +815,10 @@ void __igt_fail_assert(int exitcode, const char *file,
 void igt_exit(void)
 {
 	if (igt_only_list_subtests())
-		return;
+		exit(0);
+
+	if (!test_with_subtests)
+		exit(0);
 
 	/* Calling this without calling one of the above is a failure */
 	assert(skipped_one || succeeded_one || failed_one);
@@ -849,8 +852,15 @@ bool igt_run_in_simulation(void)
 	return simulation;
 }
 
-/* Skip the test when running on simulation (and that's relevant only when
- * we're not in the mode where we list the subtests) */
+/**
+ * igt_skip_on_simulation - skip tests when INTEL_SIMULATION env war is set
+ *
+ * Skip the test when running on simulation (and that's relevant only when
+ * we're not in the mode where we list the subtests).
+ *
+ * This function is subtest aware (since it uses igt_skip) and so can be used to
+ * skip specific subtests or all subsequent subtests.
+ */
 void igt_skip_on_simulation(void)
 {
 	if (igt_only_list_subtests())
