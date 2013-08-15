@@ -40,7 +40,6 @@ int iter = 10000;
 
 /* globals */
 pthread_t *threads;
-int *returns;
 int devid;
 int fd;
 
@@ -75,11 +74,7 @@ static void *work(void *arg)
 	bufmgr = drm_intel_bufmgr_gem_init(td_fd, 4096);
 	batch = intel_batchbuffer_alloc(bufmgr, devid);
 	context = drm_intel_gem_context_create(bufmgr);
-
-	if (!context) {
-		returns[thread_id] = 77;
-		goto out;
-	}
+	igt_require(context);
 
 	for (i = 0; i < iter; i++) {
 		struct scratch_buf src, dst;
@@ -107,7 +102,7 @@ out:
 	if (multiple_fds)
 		close(td_fd);
 
-	pthread_exit(&returns[thread_id]);
+	pthread_exit(NULL);
 }
 
 static void parse(int argc, char *argv[])
@@ -151,7 +146,6 @@ int main(int argc, char *argv[])
 	parse(argc, argv);
 
 	threads = calloc(num_contexts, sizeof(*threads));
-	returns = calloc(num_contexts, sizeof(*returns));
 
 	for (i = 0; i < num_contexts; i++)
 		pthread_create(&threads[i], NULL, work, &i);
@@ -159,13 +153,9 @@ int main(int argc, char *argv[])
 	for (i = 0; i < num_contexts; i++) {
 		int thread_status, ret;
 		void *retval;
-		ret = pthread_join(threads[i], &retval);
-		thread_status = *(int *)retval;
-		if (!ret && thread_status)
-			igt_fail(thread_status);
+		igt_assert(pthread_join(threads[i], &retval) == 0);
 	}
 
-	free(returns);
 	free(threads);
 	close(fd);
 
