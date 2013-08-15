@@ -287,17 +287,8 @@ const char *kmstest_connector_type_str(int type);
 
 uint32_t drm_format_to_bpp(uint32_t drm_format);
 
-inline static void _do_or_die(const char *function, int line, int ret)
-{
-	if (ret == 0)
-		return;
-
-	fprintf(stderr, "%s:%d failed, ret=%d, errno=%d\n",
-		function, line, ret, errno);
-	abort();
-}
-#define do_or_die(x) _do_or_die(__FUNCTION__, __LINE__, x)
-#define do_ioctl(fd, ptr, sz) do_or_die(drmIoctl((fd), (ptr), (sz)))
+#define do_or_die(x) igt_assert((x) == 0)
+#define do_ioctl(fd, ptr, sz) igt_assert(drmIoctl((fd), (ptr), (sz)) == 0)
 
 typedef void (*igt_exit_handler_t)(int sig);
 
