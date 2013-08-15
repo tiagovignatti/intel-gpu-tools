@@ -9,6 +9,7 @@ bin_PROGRAMS = 				\
 	intel_bios_dumper 		\
 	intel_bios_reader 		\
 	intel_error_decode 		\
+	intel_framebuffer_dump 		\
 	intel_gpu_top 			\
 	intel_gpu_time 			\
 	intel_gtt 			\
