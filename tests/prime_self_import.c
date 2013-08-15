@@ -365,6 +365,62 @@ static void test_export_close_race(void)
 	igt_assert(obj_count == 0);
 }
 
+static void test_llseek_size(void)
+{
+	int fd, i;
+	uint32_t handle;
+	int dma_buf_fd;
+
+	counter = 0;
+
+	fd = drm_open_any();
+
+
+	for (i = 0; i < 10; i++) {
+		int bufsz = 4096 << i;
+
+		handle = gem_create(fd, bufsz);
+		dma_buf_fd = prime_handle_to_fd(fd, handle);
+
+		gem_close(fd, handle);
+
+		igt_assert(prime_get_size(dma_buf_fd) == bufsz);
+
+		close(dma_buf_fd);
+	}
+
+	close(fd);
+}
+
+static void test_llseek_bad(void)
+{
+	int fd;
+	uint32_t handle;
+	int dma_buf_fd;
+
+	counter = 0;
+
+	fd = drm_open_any();
+
+
+	handle = gem_create(fd, BO_SIZE);
+	dma_buf_fd = prime_handle_to_fd(fd, handle);
+
+	gem_close(fd, handle);
+
+	igt_require(lseek(dma_buf_fd, 0, SEEK_END) >= 0);
+
+	igt_assert(lseek(dma_buf_fd, -1, SEEK_END) == -1 && errno == EINVAL);
+	igt_assert(lseek(dma_buf_fd, 1, SEEK_SET) == -1 && errno == EINVAL);
+	igt_assert(lseek(dma_buf_fd, BO_SIZE, SEEK_SET) == -1 && errno == EINVAL);
+	igt_assert(lseek(dma_buf_fd, BO_SIZE + 1, SEEK_SET) == -1 && errno == EINVAL);
+	igt_assert(lseek(dma_buf_fd, BO_SIZE - 1, SEEK_SET) == -1 && errno == EINVAL);
+
+	close(dma_buf_fd);
+
+	close(fd);
+}
+
 int main(int argc, char **argv)
 {
 	struct {
@@ -377,6 +433,8 @@ int main(int argc, char **argv)
 		{ "with_fd_dup", test_with_fd_dup },
 		{ "export-vs-gem_close-race", test_export_close_race },
 		{ "reimport-vs-gem_close-race", test_reimport_close_race },
+		{ "llseek-size", test_llseek_size },
+		{ "llseek-bad", test_llseek_bad },
 	};
 	int i;
 

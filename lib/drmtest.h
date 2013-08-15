@@ -85,6 +85,7 @@ int gem_available_fences(int fd);
 /* prime */
 int prime_handle_to_fd(int fd, uint32_t handle);
 uint32_t prime_fd_to_handle(int fd, int dma_buf_fd);
+off_t prime_get_size(int dma_buf_fd);
 
 /* generally useful helpers */
 void igt_fork_signal_helper(void);

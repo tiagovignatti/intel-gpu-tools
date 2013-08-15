@@ -609,6 +609,16 @@ uint32_t prime_fd_to_handle(int fd, int dma_buf_fd)
 	return args.handle;
 }
 
+off_t prime_get_size(int dma_buf_fd)
+{
+	off_t ret;
+	ret = lseek(dma_buf_fd, 0, SEEK_END);
+	igt_assert(ret >= 0 || errno == ESPIPE);
+	igt_require(ret >= 0);
+
+	return ret;
+}
+
 /* signal interrupt helpers */
 static pid_t signal_helper = -1;
 long long int sig_stat;
