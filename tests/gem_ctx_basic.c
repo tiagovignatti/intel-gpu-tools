@@ -60,7 +60,6 @@ static void *work(void *arg)
 	render_copyfunc_t rendercopy = get_render_copyfunc(devid);
 	drm_intel_context *context;
 	drm_intel_bufmgr *bufmgr;
-	int thread_id = *(int *)arg;
 	int td_fd;
 	int i;
 
@@ -94,7 +93,6 @@ static void *work(void *arg)
 		}
 	}
 
-out:
 	drm_intel_gem_context_destroy(context);
 	intel_batchbuffer_free(batch);
 	drm_intel_bufmgr_destroy(bufmgr);
@@ -151,7 +149,6 @@ int main(int argc, char *argv[])
 		pthread_create(&threads[i], NULL, work, &i);
 
 	for (i = 0; i < num_contexts; i++) {
-		int thread_status, ret;
 		void *retval;
 		igt_assert(pthread_join(threads[i], &retval) == 0);
 	}
