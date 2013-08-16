@@ -1364,9 +1364,7 @@ sendinstruction: predicate sendop execsize exp post_dst payload msgtarget
 		  if (set_instruction_src1(&$$, &$8, &@8) != 0)
 		    YYERROR;
 
-		  if (IS_GENp(8)) {
-		      gen8_set_eot(GEN8(&$$), !!($7 & EX_DESC_EOT_MASK));
-		  } else if (IS_GENx(5)) {
+		  if (IS_GENx(5)) {
 		      GEN(&$$)->bits2.send_gen5.sfid = ($7 & EX_DESC_SFID_MASK);
 		      GEN(&$$)->bits3.generic_gen5.end_of_thread = !!($7 & EX_DESC_EOT_MASK);
 		  }
