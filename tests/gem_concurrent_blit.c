@@ -171,7 +171,8 @@ struct access_mode access_modes[] = {
 		.create_bo = gtt_create_bo, .name = "gtt" },
 };
 
-int num_buffers = 128, fd;
+#define MAX_NUM_BUFFERS 1024
+int num_buffers = MAX_NUM_BUFFERS, fd;
 drm_intel_bufmgr *bufmgr;
 struct intel_batchbuffer *batch;
 int width = 512, height = 512;
@@ -245,15 +246,19 @@ static void run_single(struct access_mode *mode,
 }
 
 
-static void run_looped(struct access_mode *mode,
-		       drm_intel_bo **src, drm_intel_bo **dst,
-		       drm_intel_bo *dummy,
-		       do_test do_test_func)
+static void run_interruptible(struct access_mode *mode,
+			      drm_intel_bo **src, drm_intel_bo **dst,
+			      drm_intel_bo *dummy,
+			      do_test do_test_func)
 {
 	int loop;
 
+	igt_fork_signal_helper();
+
 	for (loop = 0; loop < 10; loop++)
 		do_test_func(mode, src, dst, dummy);
+
+	igt_stop_signal_helper();
 }
 
 static void run_forked(struct access_mode *mode,
@@ -261,8 +266,14 @@ static void run_forked(struct access_mode *mode,
 		       drm_intel_bo *dummy,
 		       do_test do_test_func)
 {
+	const int old_num_buffers = num_buffers;
 	int loop, i, nc;
 	pid_t children[16];
+
+	num_buffers /= ARRAY_SIZE(children);
+	num_buffers += 2;
+
+	igt_fork_signal_helper();
 
 	for (nc = 0; nc < ARRAY_SIZE(children); nc++) {
 		switch ((children[nc] = fork())) {
@@ -290,6 +301,10 @@ static void run_forked(struct access_mode *mode,
 			;
 		igt_assert(status == 0);
 	}
+
+	igt_stop_signal_helper();
+
+	num_buffers = old_num_buffers;
 }
 
 static void
@@ -314,12 +329,10 @@ run_basic_modes(struct access_mode *mode,
 static void
 run_modes(struct access_mode *mode)
 {
-	int i;
-
-	drm_intel_bo *src[128], *dst[128], *dummy = NULL;
+	drm_intel_bo *src[MAX_NUM_BUFFERS], *dst[MAX_NUM_BUFFERS], *dummy = NULL;
 
 	igt_fixture {
-		for (i = 0; i < num_buffers; i++) {
+		for (int i = 0; i < num_buffers; i++) {
 			src[i] = mode->create_bo(bufmgr, i, width, height);
 			dst[i] = mode->create_bo(bufmgr, ~i, width, height);
 		}
@@ -327,22 +340,17 @@ run_modes(struct access_mode *mode)
 	}
 
 	run_basic_modes(mode, src, dst, dummy, "", run_single);
-
-	igt_fork_signal_helper();
-
-	run_basic_modes(mode, src, dst, dummy, "-interruptible", run_looped);
-
-	run_basic_modes(mode, src, dst, dummy, "-forked", run_forked);
-
-	igt_stop_signal_helper();
+	run_basic_modes(mode, src, dst, dummy, "-interruptible", run_interruptible);
 
 	igt_fixture {
-		for (i = 0; i < num_buffers; i++) {
+		for (int i = 0; i < num_buffers; i++) {
 			drm_intel_bo_unreference(src[i]);
 			drm_intel_bo_unreference(dst[i]);
 		}
 		drm_intel_bo_unreference(dummy);
 	}
+
+	run_basic_modes(mode, src, dst, dummy, "-forked", run_forked);
 }
 
 int
