@@ -1,0 +1,8 @@
+('AUD_ICOI', '0x00065f00', '')
+('AUD_IRII', '0x00065f04', '')
+('AUD_ICS', '0x00065f08', '')
+('AUD_CHICKENBIT_REG', '0x00065f10', '')
+('AUD_DP_DIP_STATUS', '0x00065f20', '')
+('AUD_TCA_M_CTS', '0x00065f44', '')
+('AUD_TCB_M_CTS', '0x00065f54', '')
+('AUD_TCC_M_CTS', '0x00065f64', '')
