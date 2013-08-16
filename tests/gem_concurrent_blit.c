@@ -267,7 +267,6 @@ static void run_forked(struct access_mode *mode,
 		       do_test do_test_func)
 {
 	const int old_num_buffers = num_buffers;
-	int loop, i, nc;
 	pid_t children[16];
 
 	num_buffers /= ARRAY_SIZE(children);
@@ -275,7 +274,7 @@ static void run_forked(struct access_mode *mode,
 
 	igt_fork_signal_helper();
 
-	for (nc = 0; nc < ARRAY_SIZE(children); nc++) {
+	for (int nc = 0; nc < ARRAY_SIZE(children); nc++) {
 		switch ((children[nc] = fork())) {
 		case -1: igt_assert(0);
 		default: break;
@@ -284,17 +283,23 @@ static void run_forked(struct access_mode *mode,
 			 bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
 			 drm_intel_bufmgr_gem_enable_reuse(bufmgr);
 			 batch = intel_batchbuffer_alloc(bufmgr, intel_get_drm_devid(fd));
-			 for (i = 0; i < num_buffers; i++) {
+			 for (int i = 0; i < num_buffers; i++) {
 				 src[i] = mode->create_bo(bufmgr, i, width, height);
 				 dst[i] = mode->create_bo(bufmgr, ~i, width, height);
 			 }
 			 dummy = mode->create_bo(bufmgr, 0, width, height);
-			 for (loop = 0; loop < 10; loop++)
+			 for (int loop = 0; loop < 10; loop++)
 				 do_test_func(mode, src, dst, dummy);
+			 /* as we borrow the fd, we need to reap our bo */
+			 for (int i = 0; i < num_buffers; i++) {
+				 drm_intel_bo_unreference(src[i]);
+				 drm_intel_bo_unreference(dst[i]);
+			 }
+			 drm_intel_bo_unreference(dummy);
 			 exit(0);
 		}
 	}
-	for (nc = 0; nc < ARRAY_SIZE(children); nc++) {
+	for (int nc = 0; nc < ARRAY_SIZE(children); nc++) {
 		int status = -1;
 		while (waitpid(children[nc], &status, 0) == -1 &&
 		       errno == -EINTR)
