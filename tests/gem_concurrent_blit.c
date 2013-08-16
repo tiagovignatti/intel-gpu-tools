@@ -296,6 +296,8 @@ static void run_forked(struct access_mode *mode,
 				 drm_intel_bo_unreference(dst[i]);
 			 }
 			 drm_intel_bo_unreference(dummy);
+			 intel_batchbuffer_free(batch);
+			 drm_intel_bufmgr_destroy(bufmgr);
 			 exit(0);
 		}
 	}
@@ -337,6 +339,10 @@ run_modes(struct access_mode *mode)
 	drm_intel_bo *src[MAX_NUM_BUFFERS], *dst[MAX_NUM_BUFFERS], *dummy = NULL;
 
 	igt_fixture {
+		bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
+		drm_intel_bufmgr_gem_enable_reuse(bufmgr);
+		batch = intel_batchbuffer_alloc(bufmgr, intel_get_drm_devid(fd));
+
 		for (int i = 0; i < num_buffers; i++) {
 			src[i] = mode->create_bo(bufmgr, i, width, height);
 			dst[i] = mode->create_bo(bufmgr, ~i, width, height);
@@ -353,6 +359,8 @@ run_modes(struct access_mode *mode)
 			drm_intel_bo_unreference(dst[i]);
 		}
 		drm_intel_bo_unreference(dummy);
+		intel_batchbuffer_free(batch);
+		drm_intel_bufmgr_destroy(bufmgr);
 	}
 
 	run_basic_modes(mode, src, dst, dummy, "-forked", run_forked);
@@ -372,10 +380,6 @@ main(int argc, char **argv)
 		max = gem_aperture_size (fd) / (1024 * 1024) / 2;
 		if (num_buffers > max)
 			num_buffers = max;
-
-		bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
-		drm_intel_bufmgr_gem_enable_reuse(bufmgr);
-		batch = intel_batchbuffer_alloc(bufmgr, intel_get_drm_devid(fd));
 	}
 
 	for (i = 0; i < ARRAY_SIZE(access_modes); i++)
