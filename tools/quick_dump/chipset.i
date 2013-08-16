@@ -7,6 +7,7 @@
 extern int is_sandybridge(unsigned short pciid);
 extern int is_ivybridge(unsigned short pciid);
 extern int is_valleyview(unsigned short pciid);
+extern int is_haswell(unsigned short pciid);
 extern struct pci_device *intel_get_pci_device();
 extern int intel_register_access_init(struct pci_device *pci_dev, int safe);
 extern uint32_t intel_register_read(uint32_t reg);
@@ -20,6 +21,7 @@ extern uint32_t intel_dpio_reg_read(uint32_t reg);
 extern int is_sandybridge(unsigned short pciid);
 extern int is_ivybridge(unsigned short pciid);
 extern int is_valleyview(unsigned short pciid);
+extern int is_haswell(unsigned short pciid);
 extern struct pci_device *intel_get_pci_device();
 extern int intel_register_access_init(struct pci_device *pci_dev, int safe);
 extern uint32_t intel_register_read(uint32_t reg);
