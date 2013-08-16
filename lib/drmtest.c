@@ -674,8 +674,10 @@ void igt_stop_signal_helper(void)
 	} else
 		return;
 
+#if 0
 	if (sig_stat)
 		fprintf(stdout, "signal handler called %llu times\n", sig_stat);
+#endif
 
 	sig_stat = 0;
 	signal_helper = -1;
