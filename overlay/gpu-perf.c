@@ -231,6 +231,7 @@ static int busy_start(struct gpu_perf *gp, const void *event)
 	if (busy == NULL)
 		return 0;
 
+	busy->ring = sample->raw[1];
 	busy->seqno = sample->raw[2];
 	busy->time = sample->time;
 	busy->comm = comm;
@@ -246,6 +247,9 @@ static int busy_end(struct gpu_perf *gp, const void *event)
 	struct gpu_perf_time *busy, **prev;
 
 	for (prev = &gp->busy; (busy = *prev) != NULL; prev = &busy->next) {
+		if (busy->ring != sample->raw[1])
+			continue;
+
 		if (busy->seqno != sample->raw[2])
 			continue;
 
@@ -279,7 +283,8 @@ static int wait_begin(struct gpu_perf *gp, const void *event)
 		return 0;
 
 	wait->comm = comm;
-	wait->seqno = sample->raw[3];
+	wait->ring = sample->raw[1];
+	wait->seqno = sample->raw[2];
 	wait->time = sample->time;
 	wait->next = gp->wait;
 	gp->wait = wait;
@@ -293,7 +298,10 @@ static int wait_end(struct gpu_perf *gp, const void *event)
 	struct gpu_perf_time *wait, **prev;
 
 	for (prev = &gp->wait; (wait = *prev) != NULL; prev = &wait->next) {
-		if (wait->seqno != sample->raw[3])
+		if (wait->ring != sample->raw[1])
+			continue;
+
+		if (wait->seqno != sample->raw[2])
 			continue;
 
 		wait->comm->wait_time += sample->time - wait->time;

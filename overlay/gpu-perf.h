@@ -25,6 +25,7 @@ struct gpu_perf {
 	struct gpu_perf_time {
 		struct gpu_perf_time *next;
 		struct gpu_perf_comm *comm;
+		int ring;
 		uint32_t seqno;
 		uint64_t time;
 	} *wait, *busy;
