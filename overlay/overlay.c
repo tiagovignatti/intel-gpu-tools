@@ -11,6 +11,7 @@
 
 #include "overlay.h"
 #include "gpu-top.h"
+#include "gpu-perf.h"
 #include "gem-objects.h"
 #include "chart.h"
 
@@ -140,6 +141,33 @@ static void show_gpu_top(cairo_t *cr, struct overlay_gpu_top *gt)
 	}
 }
 
+struct overlay_gpu_perf {
+	struct gpu_perf gpu_perf;
+};
+
+static void init_gpu_perf(struct overlay_gpu_perf *gp,
+			 cairo_surface_t *surface)
+{
+	gpu_perf_init(&gp->gpu_perf, 0);
+}
+
+static void show_gpu_perf(cairo_t *cr, struct overlay_gpu_perf *gp)
+{
+	char buf[1024];
+	int y;
+
+	gpu_perf_update(&gp->gpu_perf);
+
+	y = 130;
+
+	sprintf(buf, "Flips: %d", gp->gpu_perf.flip_complete);
+	cairo_move_to(cr, 12, y);
+	cairo_show_text(cr, buf);
+	y += 14;
+
+	gp->gpu_perf.flip_complete = 0;
+}
+
 static void show_gem_objects(cairo_t *cr)
 {
 	char gem_objects[1024], *s, *t, *end;
@@ -149,7 +177,7 @@ static void show_gem_objects(cairo_t *cr)
 	if (len <= 0)
 		return;
 
-	y = 130;
+	y = 150;
 
 	s = gem_objects;
 	end = s + len - 1;
@@ -171,6 +199,7 @@ int main(int argc, char **argv)
 {
 	cairo_surface_t *surface;
 	struct overlay_gpu_top gpu_top;
+	struct overlay_gpu_perf gpu_perf;
 	int i = 0;
 
 	if (argc > 1) {
@@ -183,6 +212,7 @@ int main(int argc, char **argv)
 		return ENOMEM;
 
 	init_gpu_top(&gpu_top, surface);
+	init_gpu_perf(&gpu_perf, surface);
 
 	while (1) {
 		cairo_t *cr;
@@ -207,6 +237,7 @@ int main(int argc, char **argv)
 		}
 
 		show_gpu_top(cr, &gpu_top);
+		show_gpu_perf(cr, &gpu_perf);
 		show_gem_objects(cr);
 
 		cairo_destroy(cr);

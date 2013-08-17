@@ -16,6 +16,7 @@ intel_gpu_overlay_SOURCES = \
 	gem-objects.c \
 	gpu-top.h \
 	gpu-top.c \
+	gpu-perf.c \
 	igfx.h \
 	igfx.c \
 	x11/dri2.c \
