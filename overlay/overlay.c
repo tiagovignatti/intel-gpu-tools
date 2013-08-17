@@ -286,6 +286,27 @@ static void show_gpu_perf(struct overlay_context *ctx, struct overlay_gpu_perf *
 			}
 			comm->wait_time = 0;
 		}
+		if (comm->busy_time) {
+			buf[0] = '\0';
+			if (comm->busy_time > 1000*1000) {
+				sprintf(buf, "%s %.1f ms busy",
+					need_comma ? "," : "",
+					comm->busy_time / (1000*1000.));
+			} else if (comm->busy_time > 100) {
+				sprintf(buf, "%s %.1f us busy",
+					need_comma ? "," : "",
+					comm->busy_time / 1000.);
+			} else {
+				sprintf(buf, "%s %.0f ns busy",
+					need_comma ? "," : "",
+					(double)comm->busy_time);
+			}
+			if (buf[0] != '\0') {
+				cairo_show_text(ctx->cr, buf);
+				need_comma = true;
+			}
+			comm->busy_time = 0;
+		}
 		y += 14;
 
 		memset(comm->nr_requests, 0, sizeof(comm->nr_requests));

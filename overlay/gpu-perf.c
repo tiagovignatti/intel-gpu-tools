@@ -154,7 +154,7 @@ err:
 	return EINVAL;
 }
 
-static char *get_comm(pid_t pid, char *comm, int len)
+static int get_comm(pid_t pid, char *comm, int len)
 {
 	char filename[1024];
 	int fd;
@@ -168,15 +168,19 @@ static char *get_comm(pid_t pid, char *comm, int len)
 		if (len >= 0)
 			comm[len-1] = '\0';
 		close(fd);
-	}
+	} else
+		len = -1;
 
-	return comm;
+	return len;
 }
 
 static struct gpu_perf_comm *
 lookup_comm(struct gpu_perf *gp, pid_t pid)
 {
 	struct gpu_perf_comm *comm;
+
+	if (pid == 0)
+		return NULL;
 
 	for (comm = gp->comm; comm != NULL; comm = comm->next) {
 		if (comm->pid == pid)
@@ -187,10 +191,14 @@ lookup_comm(struct gpu_perf *gp, pid_t pid)
 		if (comm == NULL)
 			return NULL;
 
+		if (get_comm(pid, comm->name, sizeof(comm->name)) < 0) {
+			free(comm);
+			return NULL;
+		}
+
+		comm->pid = pid;
 		comm->next = gp->comm;
 		gp->comm = comm;
-		get_comm(pid, comm->name, sizeof(comm->name));
-		comm->pid = pid;
 	}
 
 	return comm;
@@ -209,13 +217,44 @@ static int request_add(struct gpu_perf *gp, const void *event)
 	return 1;
 }
 
-static int seqno_start(struct gpu_perf *gp, const void *event)
+static int busy_start(struct gpu_perf *gp, const void *event)
 {
+	const struct sample_event *sample = event;
+	struct gpu_perf_comm *comm;
+	struct gpu_perf_time *busy;
+
+	comm = lookup_comm(gp, sample->pid);
+	if (comm == NULL)
+		return 0;
+
+	busy = malloc(sizeof(*busy));
+	if (busy == NULL)
+		return 0;
+
+	busy->seqno = sample->raw[2];
+	busy->time = sample->time;
+	busy->comm = comm;
+	busy->next = gp->busy;
+	gp->busy = busy;
+
 	return 0;
 }
 
-static int seqno_end(struct gpu_perf *gp, const void *event)
+static int busy_end(struct gpu_perf *gp, const void *event)
 {
+	const struct sample_event *sample = event;
+	struct gpu_perf_time *busy, **prev;
+
+	for (prev = &gp->busy; (busy = *prev) != NULL; prev = &busy->next) {
+		if (busy->seqno != sample->raw[2])
+			continue;
+
+		busy->comm->busy_time += sample->time - busy->time;
+		*prev = busy->next;
+		free(busy);
+		return 1;
+	}
+
 	return 0;
 }
 
@@ -229,7 +268,7 @@ static int wait_begin(struct gpu_perf *gp, const void *event)
 {
 	const struct sample_event *sample = event;
 	struct gpu_perf_comm *comm;
-	struct gpu_perf_wait *wait;
+	struct gpu_perf_time *wait;
 
 	comm = lookup_comm(gp, sample->pid);
 	if (comm == NULL)
@@ -239,10 +278,11 @@ static int wait_begin(struct gpu_perf *gp, const void *event)
 	if (wait == NULL)
 		return 0;
 
+	wait->comm = comm;
 	wait->seqno = sample->raw[3];
 	wait->time = sample->time;
-	wait->next = comm->wait;
-	comm->wait = wait;
+	wait->next = gp->wait;
+	gp->wait = wait;
 
 	return 0;
 }
@@ -250,18 +290,13 @@ static int wait_begin(struct gpu_perf *gp, const void *event)
 static int wait_end(struct gpu_perf *gp, const void *event)
 {
 	const struct sample_event *sample = event;
-	struct gpu_perf_comm *comm;
-	struct gpu_perf_wait *wait, **prev;
+	struct gpu_perf_time *wait, **prev;
 
-	comm = lookup_comm(gp, sample->pid);
-	if (comm == NULL)
-		return 0;
-
-	for (prev = &comm->wait; (wait = *prev) != NULL; prev = &wait->next) {
+	for (prev = &gp->wait; (wait = *prev) != NULL; prev = &wait->next) {
 		if (wait->seqno != sample->raw[3])
 			continue;
 
-		comm->wait_time += sample->time - wait->time;
+		wait->comm->wait_time += sample->time - wait->time;
 		*prev = wait->next;
 		free(wait);
 		return 1;
@@ -277,8 +312,8 @@ void gpu_perf_init(struct gpu_perf *gp, unsigned flags)
 	gp->page_size = getpagesize();
 
 	perf_tracepoint_open(gp, "i915", "i915_gem_request_add", request_add);
-	if (perf_tracepoint_open(gp, "i915", "i915_gem_ring_complete", seqno_end) == 0)
-		perf_tracepoint_open(gp, "i915", "i915_gem_ring_dispatch", seqno_start);
+	if (perf_tracepoint_open(gp, "i915", "i915_gem_ring_complete", busy_end) == 0)
+		perf_tracepoint_open(gp, "i915", "i915_gem_ring_dispatch", busy_start);
 	if (perf_tracepoint_open(gp, "i915", "i915_gem_request_wait_begin", wait_begin) == 0)
 		perf_tracepoint_open(gp, "i915", "i915_gem_request_wait_end", wait_end);
 	perf_tracepoint_open(gp, "i915", "i915_flip_complete", flip_complete);
