@@ -92,8 +92,6 @@ static int perf_tracepoint_open(struct gpu_perf *gp,
 	attr.read_format = PERF_FORMAT_ID;
 
 	attr.exclude_guest = 1;
-	attr.mmap = gp->nr_events == 0;
-	attr.comm = gp->nr_events == 0;
 
 	n = gp->nr_cpus * (gp->nr_events+1);
 	fd = realloc(gp->fd, n*sizeof(int));
