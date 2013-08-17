@@ -53,7 +53,8 @@ static void overlay_hide(cairo_surface_t *surface)
 
 struct overlay_gpu_top {
 	struct gpu_top gpu_top;
-	struct chart chart[MAX_RINGS];
+	struct chart busy[MAX_RINGS];
+	struct chart wait[MAX_RINGS];
 };
 
 static void init_gpu_top(struct overlay_gpu_top *gt,
@@ -70,16 +71,31 @@ static void init_gpu_top(struct overlay_gpu_top *gt,
 	gpu_top_init(&gt->gpu_top);
 
 	for (n = 0; n < gt->gpu_top.num_rings; n++) {
-		chart_init(&gt->chart[n],
+		chart_init(&gt->busy[n],
 			   gt->gpu_top.ring[n].name,
 			   120);
-		chart_set_position(&gt->chart[n], 12, 12);
-		chart_set_size(&gt->chart[n],
+		chart_set_position(&gt->busy[n], 12, 12);
+		chart_set_size(&gt->busy[n],
 			       cairo_image_surface_get_width(surface)-24,
 			       100);
-		chart_set_rgba(&gt->chart[n],
-			       rgba[n][0], rgba[n][1], rgba[n][2], rgba[n][3]);
-		chart_set_range(&gt->chart[n], 0, 100);
+		chart_set_stroke_rgba(&gt->busy[n],
+				    rgba[n][0], rgba[n][1], rgba[n][2], rgba[n][3]);
+		chart_set_mode(&gt->busy[n], CHART_STROKE);
+		chart_set_range(&gt->busy[n], 0, 100);
+	}
+
+	for (n = 0; n < gt->gpu_top.num_rings; n++) {
+		chart_init(&gt->wait[n],
+			   gt->gpu_top.ring[n].name,
+			   120);
+		chart_set_position(&gt->wait[n], 12, 12);
+		chart_set_size(&gt->wait[n],
+			       cairo_image_surface_get_width(surface)-24,
+			       100);
+		chart_set_fill_rgba(&gt->wait[n],
+				    rgba[n][0], rgba[n][1], rgba[n][2], rgba[n][3] * 0.70);
+		chart_set_mode(&gt->wait[n], CHART_FILL);
+		chart_set_range(&gt->wait[n], 0, 100);
 	}
 }
 
@@ -90,9 +106,15 @@ static void show_gpu_top(cairo_t *cr, struct overlay_gpu_top *gt)
 	update = gpu_top_update(&gt->gpu_top);
 	for (n = 0; n < gt->gpu_top.num_rings; n++) {
 		if (update)
-			chart_add_sample(&gt->chart[n],
+			chart_add_sample(&gt->wait[n],
+					 gt->gpu_top.ring[n].u.u.wait + gt->gpu_top.ring[n].u.u.sema);
+		chart_draw(&gt->wait[n], cr);
+	}
+	for (n = 0; n < gt->gpu_top.num_rings; n++) {
+		if (update)
+			chart_add_sample(&gt->busy[n],
 					 gt->gpu_top.ring[n].u.u.busy);
-		chart_draw(&gt->chart[n], cr);
+		chart_draw(&gt->busy[n], cr);
 	}
 
 	cairo_set_source_rgb(cr, 1, 1, 1);

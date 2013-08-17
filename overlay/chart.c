@@ -20,12 +20,25 @@ int chart_init(struct chart *chart, const char *name, int num_samples)
 	return 0;
 }
 
-void chart_set_rgba(struct chart *chart, float red, float green, float blue, float alpha)
+void chart_set_mode(struct chart *chart, enum chart_mode mode)
 {
-	chart->rgb[0] = red;
-	chart->rgb[1] = green;
-	chart->rgb[2] = blue;
-	chart->rgb[3] = alpha;
+	chart->mode = mode;
+}
+
+void chart_set_stroke_rgba(struct chart *chart, float red, float green, float blue, float alpha)
+{
+	chart->stroke_rgb[0] = red;
+	chart->stroke_rgb[1] = green;
+	chart->stroke_rgb[2] = blue;
+	chart->stroke_rgb[3] = alpha;
+}
+
+void chart_set_fill_rgba(struct chart *chart, float red, float green, float blue, float alpha)
+{
+	chart->fill_rgb[0] = red;
+	chart->fill_rgb[1] = green;
+	chart->fill_rgb[2] = blue;
+	chart->fill_rgb[3] = alpha;
 }
 
 void chart_set_position(struct chart *chart, int x, int y)
@@ -119,17 +132,36 @@ void chart_draw(struct chart *chart, cairo_t *cr)
 	cairo_translate(cr, x, -chart->range[0]);
 
 	cairo_new_path(cr);
+	if (chart->mode != CHART_STROKE)
+		cairo_move_to(cr, 0, 0);
 	for (n = 0; n < max; n++) {
 		cairo_curve_to(cr,
 			       n-2/3., value_at(chart, i + n -1) + gradient_at(chart, i + n - 1)/3.,
 			       n-1/3., value_at(chart, i + n) - gradient_at(chart, i + n)/3.,
 			       n, value_at(chart, i + n));
 	}
+	if (chart->mode != CHART_STROKE)
+		cairo_line_to(cr, max, 0);
 
 	cairo_identity_matrix(cr);
-	cairo_set_line_width(cr, 1);
-	cairo_set_source_rgba(cr, chart->rgb[0], chart->rgb[1], chart->rgb[2], chart->rgb[3]);
-	cairo_stroke(cr);
-
+	cairo_set_line_width(cr, 2);
+	switch (chart->mode) {
+	case CHART_STROKE:
+		cairo_set_source_rgba(cr, chart->stroke_rgb[0], chart->stroke_rgb[1], chart->stroke_rgb[2], chart->stroke_rgb[3]);
+		cairo_stroke(cr);
+		break;
+	case CHART_FILL:
+		cairo_set_source_rgba(cr, chart->fill_rgb[0], chart->fill_rgb[1], chart->fill_rgb[2], chart->fill_rgb[3]);
+		cairo_fill(cr);
+		break;
+	case CHART_FILL_STROKE:
+		cairo_set_antialias(cr, CAIRO_ANTIALIAS_NONE);
+		cairo_set_source_rgba(cr, chart->fill_rgb[0], chart->fill_rgb[1], chart->fill_rgb[2], chart->fill_rgb[3]);
+		cairo_fill_preserve(cr);
+		cairo_set_antialias(cr, CAIRO_ANTIALIAS_DEFAULT);
+		cairo_set_source_rgba(cr, chart->stroke_rgb[0], chart->stroke_rgb[1], chart->stroke_rgb[2], chart->stroke_rgb[3]);
+		cairo_stroke(cr);
+		break;
+	}
 	cairo_restore(cr);
 }
