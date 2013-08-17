@@ -30,6 +30,8 @@ struct sample_event {
 	uint64_t time;
 	uint64_t id;
 	uint32_t raw_size;
+	uint32_t raw_hdr0;
+	uint32_t raw_hdr1;
 	uint32_t raw[0];
 };
 
@@ -117,7 +119,6 @@ static int perf_tracepoint_open(struct gpu_perf *gp,
 
 		if (gp->nr_events)
 			ioctl(fd[n], PERF_EVENT_IOC_SET_OUTPUT, gp->fd[n]);
-
 	}
 
 	gp->nr_events++;
@@ -149,8 +150,53 @@ err:
 	return EINVAL;
 }
 
+static char *get_comm(pid_t pid, char *comm, int len)
+{
+	char filename[1024];
+	int fd;
+
+	*comm = '\0';
+	snprintf(filename, sizeof(filename), "/proc/%d/comm", pid);
+
+	fd = open(filename, 0);
+	if (fd >= 0) {
+		len = read(fd, comm, len-1);
+		if (len >= 0)
+			comm[len-1] = '\0';
+		close(fd);
+	}
+
+	return comm;
+}
+
+static int request_add(struct gpu_perf *gp, const void *event)
+{
+	const struct sample_event *sample = event;
+	struct gpu_perf_comm *comm;
+
+	for (comm = gp->comm; comm != NULL; comm = comm->next) {
+		if (comm->pid == sample->pid)
+			break;
+	}
+	if (comm == NULL) {
+		comm = malloc(sizeof(*comm));
+		if (comm == NULL)
+			return 0;
+
+		comm->next = gp->comm;
+		gp->comm = comm;
+		get_comm(sample->pid, comm->name, sizeof(comm->name));
+		comm->pid = sample->pid;
+		memset(comm->nr_requests, 0, sizeof(comm->nr_requests));
+	}
+
+	comm->nr_requests[sample->raw[1]]++;
+	return 1;
+}
+
 static int seqno_start(struct gpu_perf *gp, const void *event)
 {
+	printf ("seqno_start\n");
 	return 0;
 }
 
@@ -171,9 +217,9 @@ void gpu_perf_init(struct gpu_perf *gp, unsigned flags)
 	gp->nr_cpus = sysconf(_SC_NPROCESSORS_ONLN);
 	gp->page_size = getpagesize();
 
+	perf_tracepoint_open(gp, "i915", "i915_gem_request_add", request_add);
 	if (perf_tracepoint_open(gp, "i915", "i915_gem_ring_complete", seqno_end) == 0)
 		perf_tracepoint_open(gp, "i915", "i915_gem_ring_dispatch", seqno_start);
-
 	perf_tracepoint_open(gp, "i915", "i915_flip_complete", flip_complete);
 
 	if (gp->nr_events == 0)
@@ -218,13 +264,18 @@ int gpu_perf_update(struct gpu_perf *gp)
 		struct perf_event_mmap_page *mmap = gp->map[n];
 		const uint8_t *data;
 		uint64_t head, tail;
+		int wrap = 0;
 
 		tail = mmap->data_tail;
 		head = mmap->data_head;
 		rmb();
 
-		if (head < tail)
+		if (head < tail) {
+			wrap = 1;
+			tail &= mask;
+			head &= mask;
 			head += size;
+		}
 
 		data = (uint8_t *)mmap + gp->page_size;
 		while (head - tail >= sizeof (struct perf_event_header)) {
@@ -259,7 +310,9 @@ int gpu_perf_update(struct gpu_perf *gp)
 			tail += header->size;
 		}
 
-		mmap->data_tail = tail & mask;
+		if (wrap)
+			tail &= mask;
+		mmap->data_tail = tail;
 	}
 
 	free(buffer);

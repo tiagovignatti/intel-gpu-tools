@@ -12,6 +12,12 @@ struct gpu_perf {
 	} *sample;
 
 	int flip_complete;
+	struct gpu_perf_comm {
+		struct gpu_perf_comm *next;
+		char name[256];
+		pid_t pid;
+		int nr_requests[4];
+	} *comm;
 };
 
 void gpu_perf_init(struct gpu_perf *gp, unsigned flags);
