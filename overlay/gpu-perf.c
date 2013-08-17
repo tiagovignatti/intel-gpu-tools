@@ -226,7 +226,7 @@ int gpu_perf_update(struct gpu_perf *gp)
 		rmb();
 
 		if (head < tail)
-			tail = head; /* XXX */
+			head += size;
 
 		data = (uint8_t *)mmap + gp->page_size;
 		while (head - tail >= sizeof (struct perf_event_header)) {
@@ -262,7 +262,7 @@ int gpu_perf_update(struct gpu_perf *gp)
 			tail += header->size;
 		}
 
-		mmap->data_tail = tail;
+		mmap->data_tail = tail & mask;
 	}
 
 	free(buffer);
