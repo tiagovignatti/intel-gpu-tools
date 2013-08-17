@@ -1,0 +1,8 @@
+This is a simple overlay showing current GPU activity. An asynchronous
+overlay is used, rendered by the CPU to avoid introducing any extra work
+on the GPU that we wish to monitor.
+
+The x11-overlay backend requires xf86-video-intel 2.21.15 or later, with
+SNA enabled.
+
+As it requires access to debug information, it needs to be run as root.

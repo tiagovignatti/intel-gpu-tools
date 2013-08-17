@@ -72,6 +72,9 @@ AC_SUBST(ASSEMBLER_WARN_CFLAGS)
 
 PKG_CHECK_MODULES(DRM, [libdrm_intel >= 2.4.45 libdrm])
 PKG_CHECK_MODULES(PCIACCESS, [pciaccess >= 0.10])
+PKG_CHECK_MODULES(OVERLAY, [xv x11 xext], enable_overlay=yes, enable_overlay=no)
+
+AM_CONDITIONAL(BUILD_OVERLAY, [test "x$enable_overlay" = xyes])
 
 # for testdisplay
 PKG_CHECK_MODULES(CAIRO, [cairo >= 1.12.0])
@@ -184,6 +187,7 @@ AC_CONFIG_FILES([
 		 assembler/doc/Makefile
 		 assembler/test/Makefile
 		 assembler/intel-gen4asm.pc
+		 overlay/Makefile
 		 ])
 AC_OUTPUT
 
@@ -200,6 +204,7 @@ echo " • Tools:"
 echo "       Assembler          : ${enable_assembler}"
 echo "       Debugger           : ${enable_debugger}"
 echo "       Python dumper      : ${DUMPER}"
+echo "       Overlay            : ${enable_overlay}"
 echo ""
 
 # vim: set ft=config ts=8 sw=8 tw=0 noet :
