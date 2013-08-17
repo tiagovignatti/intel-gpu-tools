@@ -229,12 +229,21 @@ static int wait_begin(struct gpu_perf *gp, const void *event)
 {
 	const struct sample_event *sample = event;
 	struct gpu_perf_comm *comm;
+	struct gpu_perf_wait *wait;
 
 	comm = lookup_comm(gp, sample->pid);
 	if (comm == NULL)
 		return 0;
 
-	comm->wait_begin = sample->time;
+	wait = malloc(sizeof(*wait));
+	if (wait == NULL)
+		return 0;
+
+	wait->seqno = sample->raw[3];
+	wait->time = sample->time;
+	wait->next = comm->wait;
+	comm->wait = wait;
+
 	return 0;
 }
 
@@ -242,12 +251,22 @@ static int wait_end(struct gpu_perf *gp, const void *event)
 {
 	const struct sample_event *sample = event;
 	struct gpu_perf_comm *comm;
+	struct gpu_perf_wait *wait, **prev;
 
 	comm = lookup_comm(gp, sample->pid);
 	if (comm == NULL)
 		return 0;
 
-	comm->wait_time += sample->time - comm->wait_begin;
+	for (prev = &comm->wait; (wait = *prev) != NULL; prev = &wait->next) {
+		if (wait->seqno != sample->raw[3])
+			continue;
+
+		comm->wait_time += sample->time - wait->time;
+		*prev = wait->next;
+		free(wait);
+		return 1;
+	}
+
 	return 0;
 }
 

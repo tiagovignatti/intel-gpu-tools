@@ -14,6 +14,11 @@ struct gpu_perf {
 	int flip_complete;
 	struct gpu_perf_comm {
 		struct gpu_perf_comm *next;
+		struct gpu_perf_wait {
+			struct gpu_perf_wait *next;
+			uint32_t seqno;
+			uint64_t time;
+		} *wait;
 		char name[256];
 		pid_t pid;
 		int nr_requests[4];
