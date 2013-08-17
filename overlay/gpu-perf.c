@@ -74,7 +74,7 @@ static uint64_t tracepoint_id(const char *sys, const char *name)
 
 static int perf_tracepoint_open(struct gpu_perf *gp,
 				const char *sys, const char *name,
-				int (*func)(struct gpu_perf *, void *))
+				int (*func)(struct gpu_perf *, const void *))
 {
 	struct perf_event_attr attr;
 	struct gpu_perf_sample *sample;
@@ -151,17 +151,17 @@ err:
 	return EINVAL;
 }
 
-static int seqno_start(struct gpu_perf *gp, void *event)
+static int seqno_start(struct gpu_perf *gp, const void *event)
 {
 	return 0;
 }
 
-static int seqno_end(struct gpu_perf *gp, void *event)
+static int seqno_end(struct gpu_perf *gp, const void *event)
 {
 	return 0;
 }
 
-static int flip_complete(struct gpu_perf *gp, void *event)
+static int flip_complete(struct gpu_perf *gp, const void *event)
 {
 	gp->flip_complete++;
 	return 1;
@@ -186,9 +186,9 @@ void gpu_perf_init(struct gpu_perf *gp, unsigned flags)
 }
 
 static int process_sample(struct gpu_perf *gp,
-			  struct perf_event_header *header)
+			  const struct perf_event_header *header)
 {
-	struct sample_event *sample = (struct sample_event *)header;
+	const struct sample_event *sample = (const struct sample_event *)header;
 	int n, update = 0;
 
 	/* hash me! */
@@ -218,7 +218,7 @@ int gpu_perf_update(struct gpu_perf *gp)
 
 	for (n = 0; n < gp->nr_cpus; n++) {
 		struct perf_event_mmap_page *mmap = gp->map[n];
-		uint8_t *data;
+		const uint8_t *data;
 		uint64_t head, tail;
 
 		tail = mmap->data_tail;
@@ -230,14 +230,14 @@ int gpu_perf_update(struct gpu_perf *gp)
 
 		data = (uint8_t *)mmap + gp->page_size;
 		while (head - tail >= sizeof (struct perf_event_header)) {
-			struct perf_event_header *header;
+			const struct perf_event_header *header;
 
-			header = (struct perf_event_header *)(data + (tail & mask));
+			header = (const struct perf_event_header *)(data + (tail & mask));
 			if (header->size > head - tail)
 				break;
 
-			if (data + (tail & mask) + header->size > data + size) {
-				int before, after;
+			if ((const uint8_t *)header + header->size > data + size) {
+				int before;
 
 				if (header->size > buffer_size) {
 					uint8_t *b = realloc(buffer, header->size);
@@ -248,11 +248,10 @@ int gpu_perf_update(struct gpu_perf *gp)
 					buffer_size = header->size;
 				}
 
-				after = (tail & mask) + header->size - size;
-				before = header->size - after;
+				before = data + size - (const uint8_t *)header;
 
-				memcpy(buffer, data + (tail & mask), before);
-				memcpy(buffer + before, data, after);
+				memcpy(buffer, header, before);
+				memcpy(buffer + before, data, header->size - before);
 
 				header = (struct perf_event_header *)buffer;
 			}

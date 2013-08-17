@@ -8,7 +8,7 @@ struct gpu_perf {
 	void **map;
 	struct gpu_perf_sample {
 		uint64_t id;
-		int (*func)(struct gpu_perf *, void *);
+		int (*func)(struct gpu_perf *, const void *);
 	} *sample;
 
 	int flip_complete;
