@@ -67,9 +67,9 @@ static void init_gpu_top(struct overlay_gpu_top *gt,
 			 cairo_surface_t *surface)
 {
 	const double rgba[][4] = {
-		{ 1, 0, 0, 1 },
-		{ 0, 1, 0, 1 },
-		{ 0, 0, 1, 1 },
+		{ 1, 0.25, 0.25, 1 },
+		{ 0.25, 1, 0.25, 1 },
+		{ 0.25, 0.25, 1, 1 },
 		{ 1, 1, 1, 1 },
 	};
 	int n;
@@ -127,6 +127,7 @@ static void show_gpu_top(struct overlay_context *ctx, struct overlay_gpu_top *gt
 
 	y = 12;
 	for (n = 0; n < gt->gpu_top.num_rings; n++) {
+		struct chart *c =&gt->busy[n];
 		char txt[160];
 		int len;
 
@@ -140,6 +141,11 @@ static void show_gpu_top(struct overlay_context *ctx, struct overlay_gpu_top *gt
 			len += sprintf(txt + len, ", %d%% sema",
 				       gt->gpu_top.ring[n].u.u.sema);
 
+		cairo_set_source_rgba(ctx->cr,
+				      c->stroke_rgb[0],
+				      c->stroke_rgb[1],
+				      c->stroke_rgb[2],
+				      c->stroke_rgb[3]);
 		cairo_move_to(ctx->cr, 12, y);
 		cairo_show_text(ctx->cr, txt);
 		y += 14;
@@ -179,12 +185,20 @@ static char *get_comm(pid_t pid, char *comm, int len)
 
 static void show_gpu_perf(struct overlay_context *ctx, struct overlay_gpu_perf *gp)
 {
+	static int last_color;
+	const double rgba[][4] = {
+		{ 1, 0.25, 0.25, 1 },
+		{ 0.25, 1, 0.25, 1 },
+		{ 0.25, 0.25, 1, 1 },
+		{ 1, 1, 1, 1 },
+	};
 	struct gpu_perf_comm *comm, **prev;
 	const char *ring_name[] = {
 		"render",
 		"video",
 		"blt",
 	};
+	double range[2];
 	char buf[1024];
 	int y, n;
 
@@ -192,7 +206,53 @@ static void show_gpu_perf(struct overlay_context *ctx, struct overlay_gpu_perf *
 
 	y = ctx->last_y + 18;
 
+	for (comm = gp->gpu_perf.comm; comm; comm = comm->next) {
+		int total;
+
+		if (comm->user_data == NULL) {
+			comm->user_data = malloc(sizeof(struct chart));
+			if (comm->user_data == NULL)
+				continue;
+
+			chart_init(comm->user_data, comm->name, 120);
+			chart_set_position(comm->user_data, 12, y);
+			chart_set_size(comm->user_data,
+				       cairo_image_surface_get_width(cairo_get_target(ctx->cr))-24,
+				       100);
+			chart_set_mode(comm->user_data, CHART_STROKE);
+			chart_set_stroke_rgba(comm->user_data,
+					      rgba[last_color][0],
+					      rgba[last_color][1],
+					      rgba[last_color][2],
+					      rgba[last_color][3]);
+			last_color++;
+			chart_set_stroke_width(comm->user_data, 1);
+		}
+
+		total = 0;
+		for (n = 0; n < 3; n++)
+			total += comm->nr_requests[n];
+		chart_add_sample(comm->user_data, total);
+	}
+
+	range[0] = range[1] = 0;
+	for (comm = gp->gpu_perf.comm; comm; comm = comm->next)
+		chart_get_range(comm->user_data, range);
+	for (comm = gp->gpu_perf.comm; comm; comm = comm->next) {
+		chart_set_range(comm->user_data, range[0], range[1]);
+		chart_draw(comm->user_data, ctx->cr);
+	}
+
 	for (prev = &gp->gpu_perf.comm; (comm = *prev) != NULL; ) {
+		if (comm->user_data) {
+			struct chart *c = comm->user_data;
+			cairo_set_source_rgba(ctx->cr,
+					      c->stroke_rgb[0],
+					      c->stroke_rgb[1],
+					      c->stroke_rgb[2],
+					      c->stroke_rgb[3]);
+		} else
+			cairo_set_source_rgba(ctx->cr, 1, 1, 1, 1);
 		cairo_move_to(ctx->cr, 12, y);
 		sprintf(buf, "%s:", comm->name);
 		cairo_show_text(ctx->cr, buf);
@@ -207,6 +267,10 @@ static void show_gpu_perf(struct overlay_context *ctx, struct overlay_gpu_perf *
 		memset(comm->nr_requests, 0, sizeof(comm->nr_requests));
 		if (strcmp(comm->name, get_comm(comm->pid, buf, sizeof(buf)))) {
 			*prev = comm->next;
+			if (comm->user_data) {
+				chart_fini(comm->user_data);
+				free(comm->user_data);
+			}
 			free(comm);
 		} else
 			prev = &comm->next;
@@ -214,11 +278,12 @@ static void show_gpu_perf(struct overlay_context *ctx, struct overlay_gpu_perf *
 
 	sprintf(buf, "Flips: %d", gp->gpu_perf.flip_complete);
 	gp->gpu_perf.flip_complete = 0;
+	cairo_set_source_rgba(ctx->cr, 1, 1, 1, 1);
 	cairo_move_to(ctx->cr, 12, y);
 	cairo_show_text(ctx->cr, buf);
 	y += 14;
 
-	ctx->last_y = y;
+	ctx->last_y += 118;
 }
 
 static void show_gem_objects(struct overlay_context *ctx)

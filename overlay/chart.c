@@ -17,12 +17,18 @@ int chart_init(struct chart *chart, const char *name, int num_samples)
 
 	chart->num_samples = num_samples;
 	chart->range_automatic = 1;
+	chart->stroke_width = 2;
 	return 0;
 }
 
 void chart_set_mode(struct chart *chart, enum chart_mode mode)
 {
 	chart->mode = mode;
+}
+
+void chart_set_stroke_width(struct chart *chart, float width)
+{
+	chart->stroke_width = width;
 }
 
 void chart_set_stroke_rgba(struct chart *chart, float red, float green, float blue, float alpha)
@@ -58,6 +64,19 @@ void chart_set_range(struct chart *chart, double min, double max)
 	chart->range[0] = min;
 	chart->range[1] = max;
 	chart->range_automatic = 0;
+}
+
+void chart_get_range(struct chart *chart, double *range)
+{
+	int n, max = chart->current_sample;
+	if (max > chart->num_samples)
+		max = chart->num_samples;
+	for (n = 0; n < max; n++) {
+		if (chart->samples[n] < range[0])
+			range[0] = chart->samples[n];
+		else if (chart->samples[n] > range[1])
+			range[1] = chart->samples[n];
+	}
 }
 
 void chart_add_sample(struct chart *chart, double value)
@@ -144,7 +163,7 @@ void chart_draw(struct chart *chart, cairo_t *cr)
 		cairo_line_to(cr, max, 0);
 
 	cairo_identity_matrix(cr);
-	cairo_set_line_width(cr, 2);
+	cairo_set_line_width(cr, chart->stroke_width);
 	switch (chart->mode) {
 	case CHART_STROKE:
 		cairo_set_source_rgba(cr, chart->stroke_rgb[0], chart->stroke_rgb[1], chart->stroke_rgb[2], chart->stroke_rgb[3]);
@@ -164,4 +183,9 @@ void chart_draw(struct chart *chart, cairo_t *cr)
 		break;
 	}
 	cairo_restore(cr);
+}
+
+void chart_fini(struct chart *chart)
+{
+	free(chart->samples);
 }

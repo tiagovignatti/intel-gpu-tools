@@ -17,6 +17,7 @@ struct gpu_perf {
 		char name[256];
 		pid_t pid;
 		int nr_requests[4];
+		void *user_data;
 	} *comm;
 };
 
