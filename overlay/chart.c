@@ -138,7 +138,7 @@ void chart_draw(struct chart *chart, cairo_t *cr)
 
 	cairo_translate(cr, chart->x, chart->y + chart->h);
 	cairo_scale(cr,
-		    chart->w / (double)chart->num_samples,
+		    chart->w / (double)(chart->num_samples-1),
 		    -chart->h / (chart->range[1] - chart->range[0]));
 
 	x = 0;
@@ -162,7 +162,7 @@ void chart_draw(struct chart *chart, cairo_t *cr)
 			       n, value_at(chart, i + n));
 	}
 	if (chart->mode != CHART_STROKE)
-		cairo_line_to(cr, max, 0);
+		cairo_line_to(cr, n-1, 0);
 
 	cairo_identity_matrix(cr);
 	cairo_set_line_width(cr, chart->stroke_width);
