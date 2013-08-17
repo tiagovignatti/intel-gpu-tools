@@ -113,12 +113,10 @@ static int perf_tracepoint_open(struct gpu_perf *gp,
 			return errno;
 
 		/* read back the event to establish id->tracepoint */
-		read(fd[n], track, sizeof(track));
+		if (read(fd[n], track, sizeof(track)) < 0)
+			return errno;
 		sample[n].id = track[1];
 		sample[n].func = func;
-
-		if (gp->nr_events)
-			ioctl(fd[n], PERF_EVENT_IOC_SET_OUTPUT, gp->fd[n]);
 	}
 
 	gp->nr_events++;
@@ -128,23 +126,29 @@ static int perf_tracepoint_open(struct gpu_perf *gp,
 static int perf_mmap(struct gpu_perf *gp)
 {
 	int size = (1 + N_PAGES) * gp->page_size;
-	int n;
+	int *fd, i, j;
 
 	gp->map = malloc(sizeof(void *)*gp->nr_cpus);
 	if (gp->map == NULL)
 		return ENOMEM;
 
-	for (n = 0; n < gp->nr_cpus; n++) {
-		gp->map[n] = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, gp->fd[n], 0);
-		if (gp->map[n] == (void *)-1)
+	fd = gp->fd;
+	for (j = 0; j < gp->nr_cpus; j++) {
+		gp->map[j] = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, *fd++, 0);
+		if (gp->map[j] == (void *)-1)
 			goto err;
+	}
+
+	for (i = 1; i < gp->nr_events; i++) {
+		for (j = 0; j < gp->nr_cpus; j++)
+			ioctl(*fd++, PERF_EVENT_IOC_SET_OUTPUT, gp->fd[j]);
 	}
 
 	return 0;
 
 err:
-	while (--n > 0)
-		munmap(gp->map[n], size);
+	while (--j > 0)
+		munmap(gp->map[j], size);
 	free(gp->map);
 	gp->map = NULL;
 	return EINVAL;
@@ -207,7 +211,6 @@ static int request_add(struct gpu_perf *gp, const void *event)
 
 static int seqno_start(struct gpu_perf *gp, const void *event)
 {
-	printf ("seqno_start\n");
 	return 0;
 }
 
