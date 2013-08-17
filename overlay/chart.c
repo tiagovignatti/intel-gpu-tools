@@ -83,9 +83,11 @@ void chart_add_sample(struct chart *chart, double value)
 {
 	int pos;
 
-	pos = chart->current_sample % chart->num_samples;
+	if (chart->num_samples == 0)
+		return;
+
+	pos = chart->current_sample++ % chart->num_samples;
 	chart->samples[pos] = value;
-	chart->current_sample++;
 }
 
 static void chart_update_range(struct chart *chart)

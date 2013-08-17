@@ -18,6 +18,9 @@ struct gpu_perf {
 		pid_t pid;
 		int nr_requests[4];
 		void *user_data;
+
+		uint64_t wait_begin;
+		uint64_t wait_time;
 	} *comm;
 };
 

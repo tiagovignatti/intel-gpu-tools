@@ -244,6 +244,8 @@ static void show_gpu_perf(struct overlay_context *ctx, struct overlay_gpu_perf *
 	}
 
 	for (prev = &gp->gpu_perf.comm; (comm = *prev) != NULL; ) {
+		int need_comma = 0;
+
 		if (comm->user_data) {
 			struct chart *c = comm->user_data;
 			cairo_set_source_rgba(ctx->cr,
@@ -259,8 +261,19 @@ static void show_gpu_perf(struct overlay_context *ctx, struct overlay_gpu_perf *
 		for (n = 0; n < 3; n++) {
 			if (comm->nr_requests[n] == 0)
 				continue;
-			sprintf(buf, " %d %s", comm->nr_requests[n], ring_name[n]);
+			sprintf(buf, "%s %d %s", need_comma ? "," : "", comm->nr_requests[n], ring_name[n]);
 			cairo_show_text(ctx->cr, buf);
+			need_comma = true;
+		}
+		if (comm->wait_time) {
+			if (comm->wait_time > 100) {
+				sprintf(buf, "%s %.1f us waiting",
+					need_comma ? "," : "",
+					comm->wait_time / 1000.);
+				cairo_show_text(ctx->cr, buf);
+				need_comma = true;
+			}
+			comm->wait_time = 0;
 		}
 		y += 14;
 

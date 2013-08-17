@@ -169,26 +169,37 @@ static char *get_comm(pid_t pid, char *comm, int len)
 	return comm;
 }
 
+static struct gpu_perf_comm *
+lookup_comm(struct gpu_perf *gp, pid_t pid)
+{
+	struct gpu_perf_comm *comm;
+
+	for (comm = gp->comm; comm != NULL; comm = comm->next) {
+		if (comm->pid == pid)
+			break;
+	}
+	if (comm == NULL) {
+		comm = calloc(1, sizeof(*comm));
+		if (comm == NULL)
+			return NULL;
+
+		comm->next = gp->comm;
+		gp->comm = comm;
+		get_comm(pid, comm->name, sizeof(comm->name));
+		comm->pid = pid;
+	}
+
+	return comm;
+}
+
 static int request_add(struct gpu_perf *gp, const void *event)
 {
 	const struct sample_event *sample = event;
 	struct gpu_perf_comm *comm;
 
-	for (comm = gp->comm; comm != NULL; comm = comm->next) {
-		if (comm->pid == sample->pid)
-			break;
-	}
-	if (comm == NULL) {
-		comm = malloc(sizeof(*comm));
-		if (comm == NULL)
-			return 0;
-
-		comm->next = gp->comm;
-		gp->comm = comm;
-		get_comm(sample->pid, comm->name, sizeof(comm->name));
-		comm->pid = sample->pid;
-		memset(comm->nr_requests, 0, sizeof(comm->nr_requests));
-	}
+	comm = lookup_comm(gp, sample->pid);
+	if (comm == NULL)
+		return 0;
 
 	comm->nr_requests[sample->raw[1]]++;
 	return 1;
@@ -211,6 +222,32 @@ static int flip_complete(struct gpu_perf *gp, const void *event)
 	return 1;
 }
 
+static int wait_begin(struct gpu_perf *gp, const void *event)
+{
+	const struct sample_event *sample = event;
+	struct gpu_perf_comm *comm;
+
+	comm = lookup_comm(gp, sample->pid);
+	if (comm == NULL)
+		return 0;
+
+	comm->wait_begin = sample->time;
+	return 0;
+}
+
+static int wait_end(struct gpu_perf *gp, const void *event)
+{
+	const struct sample_event *sample = event;
+	struct gpu_perf_comm *comm;
+
+	comm = lookup_comm(gp, sample->pid);
+	if (comm == NULL)
+		return 0;
+
+	comm->wait_time += sample->time - comm->wait_begin;
+	return 0;
+}
+
 void gpu_perf_init(struct gpu_perf *gp, unsigned flags)
 {
 	memset(gp, 0, sizeof(*gp));
@@ -220,6 +257,8 @@ void gpu_perf_init(struct gpu_perf *gp, unsigned flags)
 	perf_tracepoint_open(gp, "i915", "i915_gem_request_add", request_add);
 	if (perf_tracepoint_open(gp, "i915", "i915_gem_ring_complete", seqno_end) == 0)
 		perf_tracepoint_open(gp, "i915", "i915_gem_ring_dispatch", seqno_start);
+	if (perf_tracepoint_open(gp, "i915", "i915_gem_request_wait_begin", wait_begin) == 0)
+		perf_tracepoint_open(gp, "i915", "i915_gem_request_wait_end", wait_end);
 	perf_tracepoint_open(gp, "i915", "i915_flip_complete", flip_complete);
 
 	if (gp->nr_events == 0)
