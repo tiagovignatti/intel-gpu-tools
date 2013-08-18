@@ -1,3 +1,7 @@
+#ifdef HAVE_CONFIG_H
+#include"config.h"
+#endif
+
 #include <cairo.h>
 
 enum position {
@@ -33,5 +37,16 @@ struct overlay {
 
 extern const cairo_user_data_key_t overlay_key;
 
+#ifdef HAVE_OVERLAY_XVLIB
 cairo_surface_t *x11_overlay_create(enum position pos, int *width, int *height);
 void x11_overlay_stop(void);
+#else
+static inline cairo_surface_t *x11_overlay_create(enum position pos, int *width, int *height) { return NULL; }
+static inline void x11_overlay_stop(void) { }
+#endif
+
+#ifdef HAVE_OVERLAY_XLIB
+cairo_surface_t *x11_window_create(enum position pos, int *width, int *height);
+#else
+static inline cairo_surface_t *x11_window_create(enum position pos, int *width, int *height) { return NULL; }
+#endif

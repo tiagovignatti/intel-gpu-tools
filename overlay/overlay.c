@@ -23,6 +23,8 @@ static void overlay_show(cairo_surface_t *surface)
 {
 	struct overlay *overlay;
 
+	cairo_surface_flush(surface);
+
 	overlay = cairo_surface_get_user_data(surface, &overlay_key);
 	if (overlay == NULL)
 		return;
@@ -510,6 +512,8 @@ int main(int argc, char **argv)
 	ctx.width = 640;
 	ctx.height = 236;
 	ctx.surface = x11_overlay_create(POS_TOP_RIGHT, &ctx.width, &ctx.height);
+	if (ctx.surface == NULL)
+		ctx.surface = x11_window_create(POS_TOP_RIGHT, &ctx.width, &ctx.height);
 	if (ctx.surface == NULL)
 		return ENOMEM;
 

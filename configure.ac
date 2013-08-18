@@ -72,9 +72,18 @@ AC_SUBST(ASSEMBLER_WARN_CFLAGS)
 
 PKG_CHECK_MODULES(DRM, [libdrm_intel >= 2.4.45 libdrm])
 PKG_CHECK_MODULES(PCIACCESS, [pciaccess >= 0.10])
-PKG_CHECK_MODULES(OVERLAY, [xv x11 xext], enable_overlay=yes, enable_overlay=no)
+PKG_CHECK_MODULES(OVERLAY_XVLIB, [xv x11 xext], enable_overlay_xvlib=yes, enable_overlay_xvlib=no)
+PKG_CHECK_MODULES(OVERLAY_XLIB, [cairo-xlib], enable_overlay_xlib=yes, enable_overlay_xlib=no)
 
-AM_CONDITIONAL(BUILD_OVERLAY, [test "x$enable_overlay" = xyes])
+AM_CONDITIONAL(BUILD_OVERLAY_XVLIB, [test "x$enable_overlay_xvlib" = xyes])
+AM_CONDITIONAL(BUILD_OVERLAY_XLIB, [test "x$enable_overlay_xlib" = xyes])
+AM_CONDITIONAL(BUILD_OVERLAY, [test "x$enable_overlay_xlib" = xyes -o "x$enable_overlay_xvlib"])
+if test x$enable_overlay_xvlib = xyes; then
+	AC_DEFINE(HAVE_OVERLAY_XVLIB, 1, [Enable XV backend])
+fi
+if test x$enable_overlay_xlib = xyes; then
+	AC_DEFINE(HAVE_OVERLAY_XLIB, 1, [Enable X backend])
+fi
 
 # for testdisplay
 PKG_CHECK_MODULES(CAIRO, [cairo >= 1.12.0])
