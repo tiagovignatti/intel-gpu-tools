@@ -435,33 +435,76 @@ static void show_gpu_freq(struct overlay_context *ctx, struct overlay_gpu_freq *
 	ctx->last_y += 112;
 }
 
-static void show_gem_objects(struct overlay_context *ctx)
-{
-	char gem_objects[1024], *s, *t, *end;
-	int len, y;
+struct overlay_gem_objects {
+	struct gem_objects gem_objects;
+	struct chart aperture;
+	struct chart gtt;
+	int error;
+};
 
-	len = gem_objects_update(gem_objects, sizeof(gem_objects));
-	if (len <= 0)
+static void init_gem_objects(struct overlay_gem_objects *go,
+			 cairo_surface_t *surface)
+{
+	go->error = gem_objects_init(&go->gem_objects);
+	if (go->error)
 		return;
 
-	y = ctx->last_y + 18;
+	chart_init(&go->aperture, "aperture", 120);
+	chart_set_size(&go->aperture,
+		       cairo_image_surface_get_width(surface)-24,
+		       100);
+	chart_set_stroke_rgba(&go->aperture, 0.75, 0.25, 0.50, 1.);
+	chart_set_mode(&go->aperture, CHART_STROKE);
+	chart_set_range(&go->aperture, 0, go->gem_objects.max_gtt);
 
-	s = gem_objects;
-	end = s + len - 1;
-	while (s < end) {
-		t = strchr(s, '\n');
-		if (t == NULL)
-			t = end;
-		*t = '\0';
+	chart_init(&go->gtt, "gtt", 120);
+	chart_set_size(&go->gtt,
+		       cairo_image_surface_get_width(surface)-24,
+		       100);
+	chart_set_fill_rgba(&go->gtt, 0.25, 0.75, 0.50, 1.);
+	chart_set_mode(&go->gtt, CHART_FILL);
+	chart_set_range(&go->gtt, 0, go->gem_objects.max_gtt);
+}
 
+static void show_gem_objects(struct overlay_context *ctx, struct overlay_gem_objects *go)
+{
+	struct gem_objects_comm *comm;
+	char buf[160];
+	int y;
+
+	if (go->error == 0)
+		go->error = gem_objects_update(&go->gem_objects);
+	if (go->error)
+		return;
+
+	chart_add_sample(&go->gtt, go->gem_objects.total_gtt);
+	chart_add_sample(&go->aperture, go->gem_objects.total_aperture);
+
+	y = ctx->last_y + 6;
+
+	chart_set_position(&go->gtt, 12, y);
+	chart_set_position(&go->aperture, 12, y);
+
+	chart_draw(&go->gtt, ctx->cr);
+	chart_draw(&go->aperture, ctx->cr);
+
+	sprintf(buf, "Total: %ld bytes, %d objects",
+		go->gem_objects.total_bytes, go->gem_objects.total_count);
+	cairo_set_source_rgba(ctx->cr, 1, 1, 1, 1);
+	cairo_move_to(ctx->cr, 12, y);
+	cairo_show_text(ctx->cr, buf);
+	y += 14;
+
+	for (comm = go->gem_objects.comm; comm; comm = comm->next) {
+		sprintf(buf, "    %s: %ld bytes, %d objects",
+			comm->name, comm->bytes, comm->count);
+		cairo_set_source_rgba(ctx->cr, 1, 1, 1, 1);
 		cairo_move_to(ctx->cr, 12, y);
-		cairo_show_text(ctx->cr, s);
+		cairo_show_text(ctx->cr, buf);
 		y += 14;
-
-		s = t+1;
 	}
 
-	ctx->last_y = y;
+	ctx->last_y += 112;
 }
 
 int main(int argc, char **argv)
@@ -470,6 +513,7 @@ int main(int argc, char **argv)
 	struct overlay_gpu_top gpu_top;
 	struct overlay_gpu_perf gpu_perf;
 	struct overlay_gpu_freq gpu_freq;
+	struct overlay_gem_objects gem_objects;
 	int i = 0;
 
 	if (argc > 1) {
@@ -484,6 +528,7 @@ int main(int argc, char **argv)
 	init_gpu_top(&gpu_top, surface);
 	init_gpu_perf(&gpu_perf, surface);
 	init_gpu_freq(&gpu_freq, surface);
+	init_gem_objects(&gem_objects, surface);
 
 	while (1) {
 		struct overlay_context ctx;
@@ -511,7 +556,7 @@ int main(int argc, char **argv)
 		show_gpu_top(&ctx, &gpu_top);
 		show_gpu_perf(&ctx, &gpu_perf);
 		show_gpu_freq(&ctx, &gpu_freq);
-		show_gem_objects(&ctx);
+		show_gem_objects(&ctx, &gem_objects);
 
 		cairo_destroy(ctx.cr);
 
