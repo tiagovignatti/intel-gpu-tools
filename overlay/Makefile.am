@@ -19,6 +19,8 @@ intel_gpu_overlay_SOURCES = \
 	gpu-top.h \
 	gpu-top.c \
 	gpu-perf.c \
+	gpu-freq.h \
+	gpu-freq.c \
 	igfx.h \
 	igfx.c \
 	x11/dri2.c \

@@ -134,6 +134,9 @@ void chart_draw(struct chart *chart, cairo_t *cr)
 	if (chart->range_automatic)
 		chart_update_range(chart);
 
+	if (chart->range[1] <= chart->range[0])
+		return;
+
 	cairo_save(cr);
 
 	cairo_translate(cr, chart->x, chart->y + chart->h);

@@ -11,9 +11,10 @@
 
 #include "overlay.h"
 #include "cpu-top.h"
+#include "gem-objects.h"
+#include "gpu-freq.h"
 #include "gpu-top.h"
 #include "gpu-perf.h"
-#include "gem-objects.h"
 #include "chart.h"
 
 const cairo_user_data_key_t overlay_key;
@@ -369,6 +370,71 @@ static void show_gpu_perf(struct overlay_context *ctx, struct overlay_gpu_perf *
 	ctx->last_y += 118;
 }
 
+struct overlay_gpu_freq {
+	struct gpu_freq gpu_freq;
+	struct chart current;
+	struct chart request;
+	int error;
+};
+
+static void init_gpu_freq(struct overlay_gpu_freq *gf,
+			 cairo_surface_t *surface)
+{
+	gf->error = gpu_freq_init(&gf->gpu_freq);
+	if (gf->error)
+		return;
+
+	chart_init(&gf->current, "current", 120);
+	chart_set_size(&gf->current,
+		       cairo_image_surface_get_width(surface)-24,
+		       100);
+	chart_set_stroke_rgba(&gf->current, 0.75, 0.25, 0.50, 1.);
+	chart_set_mode(&gf->current, CHART_STROKE);
+	chart_set_range(&gf->current, 0, gf->gpu_freq.max);
+
+	chart_init(&gf->request, "request", 120);
+	chart_set_size(&gf->request,
+		       cairo_image_surface_get_width(surface)-24,
+		       100);
+	chart_set_fill_rgba(&gf->request, 0.25, 0.75, 0.50, 1.);
+	chart_set_mode(&gf->request, CHART_FILL);
+	chart_set_range(&gf->request, 0, gf->gpu_freq.max);
+}
+
+static void show_gpu_freq(struct overlay_context *ctx, struct overlay_gpu_freq *gf)
+{
+	char buf[160];
+	int y, len;
+
+	if (gf->error == 0)
+		gf->error = gpu_freq_update(&gf->gpu_freq);
+	if (gf->error)
+		return;
+
+	if (gf->gpu_freq.current)
+		chart_add_sample(&gf->current, gf->gpu_freq.current);
+	if (gf->gpu_freq.request)
+		chart_add_sample(&gf->request, gf->gpu_freq.request);
+
+	y = ctx->last_y + 6;
+
+	chart_set_position(&gf->current, 12, y);
+	chart_set_position(&gf->request, 12, y);
+
+	chart_draw(&gf->request, ctx->cr);
+	chart_draw(&gf->current, ctx->cr);
+
+	len = sprintf(buf, "Frequency: %dMHz", gf->gpu_freq.current);
+	if (gf->gpu_freq.request)
+		sprintf(buf + len, " (requested %dMHz)", gf->gpu_freq.request);
+	cairo_set_source_rgba(ctx->cr, 1, 1, 1, 1);
+	cairo_move_to(ctx->cr, 12, y);
+	cairo_show_text(ctx->cr, buf);
+	y += 14;
+
+	ctx->last_y += 112;
+}
+
 static void show_gem_objects(struct overlay_context *ctx)
 {
 	char gem_objects[1024], *s, *t, *end;
@@ -403,6 +469,7 @@ int main(int argc, char **argv)
 	cairo_surface_t *surface;
 	struct overlay_gpu_top gpu_top;
 	struct overlay_gpu_perf gpu_perf;
+	struct overlay_gpu_freq gpu_freq;
 	int i = 0;
 
 	if (argc > 1) {
@@ -416,6 +483,7 @@ int main(int argc, char **argv)
 
 	init_gpu_top(&gpu_top, surface);
 	init_gpu_perf(&gpu_perf, surface);
+	init_gpu_freq(&gpu_freq, surface);
 
 	while (1) {
 		struct overlay_context ctx;
@@ -442,6 +510,7 @@ int main(int argc, char **argv)
 
 		show_gpu_top(&ctx, &gpu_top);
 		show_gpu_perf(&ctx, &gpu_perf);
+		show_gpu_freq(&ctx, &gpu_freq);
 		show_gem_objects(&ctx);
 
 		cairo_destroy(ctx.cr);
