@@ -1,5 +1,6 @@
 struct gpu_freq {
-	int rpn, rp1, rp0, max;
+	int min, max;
+	int rpn, rp1, rp0;
 	int request;
 	int current;
 };

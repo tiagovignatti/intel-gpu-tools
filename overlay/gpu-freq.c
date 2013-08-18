@@ -43,6 +43,7 @@ int gpu_freq_init(struct gpu_freq *gf)
 	if (s == NULL)
 		return EIO;
 	sscanf(s, "Max overclocked frequency: %dMHz", &gf->max);
+	gf->min = gf->rpn;
 
 	return 0;
 }

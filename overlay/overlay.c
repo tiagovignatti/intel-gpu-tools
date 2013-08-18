@@ -432,6 +432,11 @@ static void show_gpu_freq(struct overlay_context *ctx, struct overlay_gpu_freq *
 	cairo_show_text(ctx->cr, buf);
 	y += 14;
 
+	sprintf(buf, "min: %dMHz, max: %dMHz", gf->gpu_freq.min, gf->gpu_freq.max);
+	cairo_move_to(ctx->cr, 12, y);
+	cairo_show_text(ctx->cr, buf);
+	y += 14;
+
 	ctx->last_y += 112;
 }
 
