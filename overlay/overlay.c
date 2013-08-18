@@ -321,8 +321,23 @@ static void show_gpu_perf(struct overlay_context *ctx, struct overlay_gpu_perf *
 			prev = &comm->next;
 	}
 
-	sprintf(buf, "Flips: %d", gp->gpu_perf.flip_complete);
-	gp->gpu_perf.flip_complete = 0;
+	{
+		int has_flips = 0, len;
+		for (n = 0; n < 4; n++) {
+			if (gp->gpu_perf.flip_complete[n])
+				has_flips = n + 1;
+		}
+		if (has_flips) {
+			len = sprintf(buf, "Flips:");
+			for (n = 0; n < has_flips; n++)
+				len += sprintf(buf + len, "%s %d",
+					       n ? "," : "",
+					       gp->gpu_perf.flip_complete[n]);
+		} else {
+			sprintf(buf, "Flips: 0");
+		}
+		memset(gp->gpu_perf.flip_complete, 0, sizeof(gp->gpu_perf.flip_complete));
+	}
 	cairo_set_source_rgba(ctx->cr, 1, 1, 1, 1);
 	cairo_move_to(ctx->cr, 12, y);
 	cairo_show_text(ctx->cr, buf);

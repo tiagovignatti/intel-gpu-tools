@@ -264,7 +264,9 @@ static int busy_end(struct gpu_perf *gp, const void *event)
 
 static int flip_complete(struct gpu_perf *gp, const void *event)
 {
-	gp->flip_complete++;
+	const struct sample_event *sample = event;
+
+	gp->flip_complete[sample->raw[0]]++;
 	return 1;
 }
 

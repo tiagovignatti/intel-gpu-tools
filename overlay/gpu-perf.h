@@ -11,7 +11,7 @@ struct gpu_perf {
 		int (*func)(struct gpu_perf *, const void *);
 	} *sample;
 
-	int flip_complete;
+	int flip_complete[4];
 	struct gpu_perf_comm {
 		struct gpu_perf_comm *next;
 		char name[256];
