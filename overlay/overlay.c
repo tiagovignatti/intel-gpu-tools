@@ -391,6 +391,7 @@ static void init_gpu_freq(struct overlay_context *ctx,
 	chart_set_size(&gf->current, ctx->width/2 - 18, ctx->height/2 - 18);
 	chart_set_stroke_rgba(&gf->current, 0.75, 0.25, 0.50, 1.);
 	chart_set_mode(&gf->current, CHART_STROKE);
+	chart_set_smooth(&gf->current, CHART_LINE);
 	chart_set_range(&gf->current, 0, gf->gpu_freq.max);
 
 	chart_init(&gf->request, "request", 120);
@@ -398,6 +399,7 @@ static void init_gpu_freq(struct overlay_context *ctx,
 	chart_set_size(&gf->request, ctx->width/2 - 18, ctx->height/2 - 18);
 	chart_set_fill_rgba(&gf->request, 0.25, 0.75, 0.50, 1.);
 	chart_set_mode(&gf->request, CHART_FILL);
+	chart_set_smooth(&gf->request, CHART_LINE);
 	chart_set_range(&gf->request, 0, gf->gpu_freq.max);
 }
 

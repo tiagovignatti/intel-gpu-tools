@@ -18,12 +18,18 @@ int chart_init(struct chart *chart, const char *name, int num_samples)
 	chart->num_samples = num_samples;
 	chart->range_automatic = 1;
 	chart->stroke_width = 2;
+	chart->smooth = CHART_CURVE;
 	return 0;
 }
 
 void chart_set_mode(struct chart *chart, enum chart_mode mode)
 {
 	chart->mode = mode;
+}
+
+void chart_set_smooth(struct chart *chart, enum chart_smooth smooth)
+{
+	chart->smooth = smooth;
 }
 
 void chart_set_stroke_width(struct chart *chart, float width)
@@ -159,10 +165,18 @@ void chart_draw(struct chart *chart, cairo_t *cr)
 	if (chart->mode != CHART_STROKE)
 		cairo_move_to(cr, 0, 0);
 	for (n = 0; n < max; n++) {
-		cairo_curve_to(cr,
-			       n-2/3., value_at(chart, i + n -1) + gradient_at(chart, i + n - 1)/3.,
-			       n-1/3., value_at(chart, i + n) - gradient_at(chart, i + n)/3.,
-			       n, value_at(chart, i + n));
+		switch (chart->smooth) {
+		case CHART_LINE:
+			cairo_line_to(cr,
+				      n, value_at(chart, i + n));
+			break;
+		case CHART_CURVE:
+			cairo_curve_to(cr,
+				       n-2/3., value_at(chart, i + n -1) + gradient_at(chart, i + n - 1)/3.,
+				       n-1/3., value_at(chart, i + n) - gradient_at(chart, i + n)/3.,
+				       n, value_at(chart, i + n));
+			break;
+		}
 	}
 	if (chart->mode != CHART_STROKE)
 		cairo_line_to(cr, n-1, 0);

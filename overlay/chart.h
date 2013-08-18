@@ -9,6 +9,10 @@ struct chart {
 		CHART_FILL,
 		CHART_FILL_STROKE,
 	} mode;
+	enum chart_smooth {
+		CHART_LINE = 0,
+		CHART_CURVE,
+	} smooth;
 	float fill_rgb[4];
 	float stroke_rgb[4];
 	double stroke_width;
@@ -18,6 +22,7 @@ struct chart {
 
 int chart_init(struct chart *chart, const char *name, int num_samples);
 void chart_set_mode(struct chart *chart, enum chart_mode mode);
+void chart_set_smooth(struct chart *chart, enum chart_smooth smooth);
 void chart_set_fill_rgba(struct chart *chart, float red, float green, float blue, float alpha);
 void chart_set_stroke_width(struct chart *chart, float width);
 void chart_set_stroke_rgba(struct chart *chart, float red, float green, float blue, float alpha);
