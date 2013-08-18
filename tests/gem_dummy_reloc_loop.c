@@ -138,7 +138,7 @@ int main(int argc, char **argv)
 		devid = intel_get_drm_devid(fd);
 		num_rings = gem_get_num_rings(fd);
 		/* Not yet implemented on pre-snb. */
-		igt_require(!HAS_BLT_RING(devid));
+		igt_require(HAS_BLT_RING(devid));
 
 		bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
 		igt_assert(bufmgr);
