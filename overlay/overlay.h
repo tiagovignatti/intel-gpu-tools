@@ -33,5 +33,5 @@ struct overlay {
 
 extern const cairo_user_data_key_t overlay_key;
 
-cairo_surface_t *x11_overlay_create(enum position pos, int max_width, int max_height);
+cairo_surface_t *x11_overlay_create(enum position pos, int *width, int *height);
 void x11_overlay_stop(void);

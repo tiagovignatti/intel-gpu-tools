@@ -118,7 +118,7 @@ static void x11_overlay_destroy(void *data)
 }
 
 cairo_surface_t *
-x11_overlay_create(enum position position, int max_width, int max_height)
+x11_overlay_create(enum position position, int *width, int *height)
 {
 	Display *dpy;
 	Screen *scr;
@@ -171,23 +171,29 @@ x11_overlay_create(enum position position, int max_width, int max_height)
 
 	XSetErrorHandler(noop);
 
-	w = scr->width;
-	switch (position & 7) {
-	default:
-	case 0:
-	case 2: w >>= 1; break;
-	}
-	if (max_width > 0 && w > max_width)
-		w = max_width;
+	if (*width == -1) {
+		w = scr->width;
+		switch (position & 7) {
+		default:
+		case 0:
+		case 2: w >>= 1; break;
+		}
+	} else if (*width > scr->width) {
+		w = scr->width;
+	} else
+		w = *width;
 
-	h = scr->height;
-	switch ((position >> 4) & 7) {
-	default:
-	case 0:
-	case 2: h >>= 1; break;
-	}
-	if (max_height > 0 && h > max_height)
-		h = max_height;
+	if (*height == -1) {
+		h = scr->height;
+		switch ((position >> 4) & 7) {
+		default:
+		case 0:
+		case 2: h >>= 1; break;
+		}
+	} else if (*height > scr->height)
+		h = scr->height;
+	else
+		h = *height;
 
 	image = XvCreateImage(dpy, port, FOURCC_RGB565, NULL, w, h);
 	if (image == NULL)
@@ -301,6 +307,9 @@ x11_overlay_create(enum position position, int max_width, int max_height)
 	XvSetPortAttribute(dpy, port, XInternAtom(dpy, "XV_ALWAYS_ON_TOP", True), 1);
 
 	close(fd);
+
+	*width = image->width;
+	*height = image->height;
 	return surface;
 
 err_surface:
