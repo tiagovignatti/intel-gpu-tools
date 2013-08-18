@@ -397,7 +397,7 @@ static void init_gpu_freq(struct overlay_context *ctx,
 	chart_init(&gf->request, "request", 120);
 	chart_set_position(&gf->request, 12, ctx->height/2 + 6);
 	chart_set_size(&gf->request, ctx->width/2 - 18, ctx->height/2 - 18);
-	chart_set_fill_rgba(&gf->request, 0.25, 0.75, 0.50, 1.);
+	chart_set_fill_rgba(&gf->request, 0.25, 0.25, 0.50, 1.);
 	chart_set_mode(&gf->request, CHART_FILL);
 	chart_set_smooth(&gf->request, CHART_LINE);
 	chart_set_range(&gf->request, 0, gf->gpu_freq.max);
@@ -453,7 +453,7 @@ static void init_gem_objects(struct overlay_context *ctx,
 	chart_init(&go->gtt, "gtt", 120);
 	chart_set_position(&go->gtt, ctx->width/2+6, ctx->height/2 + 6);
 	chart_set_size(&go->gtt, ctx->width/2 - 18, ctx->height/2 - 18);
-	chart_set_fill_rgba(&go->gtt, 0.25, 0.75, 0.50, 1.);
+	chart_set_fill_rgba(&go->gtt, 0.25, 0.5, 0.5, 1.);
 	chart_set_mode(&go->gtt, CHART_FILL);
 	chart_set_range(&go->gtt, 0, go->gem_objects.max_gtt);
 }
