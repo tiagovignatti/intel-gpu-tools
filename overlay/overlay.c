@@ -488,16 +488,19 @@ static void show_gem_objects(struct overlay_context *ctx, struct overlay_gem_obj
 	chart_draw(&go->gtt, ctx->cr);
 	chart_draw(&go->aperture, ctx->cr);
 
-	sprintf(buf, "Total: %ld bytes, %d objects",
-		go->gem_objects.total_bytes, go->gem_objects.total_count);
+	sprintf(buf, "Total: %ldMB, %d objects",
+		go->gem_objects.total_bytes >> 20, go->gem_objects.total_count);
 	cairo_set_source_rgba(ctx->cr, 1, 1, 1, 1);
 	cairo_move_to(ctx->cr, 12, y);
 	cairo_show_text(ctx->cr, buf);
 	y += 14;
 
 	for (comm = go->gem_objects.comm; comm; comm = comm->next) {
-		sprintf(buf, "    %s: %ld bytes, %d objects",
-			comm->name, comm->bytes, comm->count);
+		if ((comm->bytes >> 20) == 0)
+			break;
+
+		sprintf(buf, "    %s: %ldMB, %d objects",
+			comm->name, comm->bytes >> 20, comm->count);
 		cairo_set_source_rgba(ctx->cr, 1, 1, 1, 1);
 		cairo_move_to(ctx->cr, 12, y);
 		cairo_show_text(ctx->cr, buf);
