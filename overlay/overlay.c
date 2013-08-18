@@ -10,6 +10,7 @@
 #include <errno.h>
 
 #include "overlay.h"
+#include "cpu-top.h"
 #include "gpu-top.h"
 #include "gpu-perf.h"
 #include "gem-objects.h"
@@ -59,8 +60,10 @@ struct overlay_context {
 
 struct overlay_gpu_top {
 	struct gpu_top gpu_top;
+	struct cpu_top cpu_top;
 	struct chart busy[MAX_RINGS];
 	struct chart wait[MAX_RINGS];
+	struct chart cpu;
 };
 
 static void init_gpu_top(struct overlay_gpu_top *gt,
@@ -75,6 +78,16 @@ static void init_gpu_top(struct overlay_gpu_top *gt,
 	int n;
 
 	gpu_top_init(&gt->gpu_top);
+	memset(&gt->cpu, 0, sizeof(gt->cpu));
+
+	chart_init(&gt->cpu, "CPU", 120);
+	chart_set_position(&gt->cpu, 12, 12);
+	chart_set_size(&gt->cpu,
+		       cairo_image_surface_get_width(surface)-24,
+		       100);
+	chart_set_stroke_rgba(&gt->cpu, 0.75, 0.25, 0.75, 1.);
+	chart_set_mode(&gt->cpu, CHART_STROKE);
+	chart_set_range(&gt->cpu, 0, 100);
 
 	for (n = 0; n < gt->gpu_top.num_rings; n++) {
 		chart_init(&gt->busy[n],
@@ -107,9 +120,15 @@ static void init_gpu_top(struct overlay_gpu_top *gt,
 
 static void show_gpu_top(struct overlay_context *ctx, struct overlay_gpu_top *gt)
 {
-	int y, n, update;
+	int y, n, update, len;
+	char txt[160];
 
 	update = gpu_top_update(&gt->gpu_top);
+
+	if (update && cpu_top_update(&gt->cpu_top) == 0)
+		chart_add_sample(&gt->cpu, gt->cpu_top.busy);
+	chart_draw(&gt->cpu, ctx->cr);
+
 	for (n = 0; n < gt->gpu_top.num_rings; n++) {
 		if (update)
 			chart_add_sample(&gt->wait[n],
@@ -126,10 +145,14 @@ static void show_gpu_top(struct overlay_context *ctx, struct overlay_gpu_top *gt
 	cairo_set_source_rgb(ctx->cr, 1, 1, 1);
 
 	y = 12;
+	cairo_set_source_rgba(ctx->cr, 0.75, 0.25, 0.75, 1.);
+	cairo_move_to(ctx->cr, 12, y);
+	sprintf(txt, "CPU: %d%% busy", gt->cpu_top.busy);
+	cairo_show_text(ctx->cr, txt);
+	y += 14;
+
 	for (n = 0; n < gt->gpu_top.num_rings; n++) {
 		struct chart *c =&gt->busy[n];
-		char txt[160];
-		int len;
 
 		len = sprintf(txt, "%s: %d%% busy",
 			      gt->gpu_top.ring[n].name,

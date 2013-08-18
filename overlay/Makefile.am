@@ -12,6 +12,8 @@ intel_gpu_overlay_SOURCES = \
 	overlay.c \
 	chart.h \
 	chart.c \
+	cpu-top.h \
+	cpu-top.c \
 	gem-objects.h \
 	gem-objects.c \
 	gpu-top.h \
