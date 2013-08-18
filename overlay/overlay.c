@@ -486,7 +486,7 @@ static void show_gem_objects(struct overlay_context *ctx, struct overlay_gem_obj
 		if ((comm->bytes >> 20) == 0)
 			break;
 
-		sprintf(buf, "    %s: %ldMB, %d objects",
+		sprintf(buf, "    %s %ldMB, %d objects",
 			comm->name, comm->bytes >> 20, comm->count);
 		cairo_set_source_rgba(ctx->cr, 1, 1, 1, 1);
 		cairo_move_to(ctx->cr, x, y);
