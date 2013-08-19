@@ -263,7 +263,7 @@ static void show_gpu_perf(struct overlay_context *ctx, struct overlay_gpu_perf *
 					      rgba[last_color][1],
 					      rgba[last_color][2],
 					      rgba[last_color][3]);
-			last_color++;
+			last_color = (last_color + 1) % 4;
 			chart_set_stroke_width(comm->user_data, 1);
 		}
 
