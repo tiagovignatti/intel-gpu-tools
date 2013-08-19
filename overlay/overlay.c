@@ -165,7 +165,7 @@ static void show_gpu_top(struct overlay_context *ctx, struct overlay_gpu_top *gt
 
 	cairo_set_source_rgb(ctx->cr, 1, 1, 1);
 
-	y = 12;
+	y = 12 + 12 - 2;
 	cairo_set_source_rgba(ctx->cr, 0.75, 0.25, 0.75, 1.);
 	cairo_move_to(ctx->cr, 12, y);
 	sprintf(txt, "CPU: %d%% busy", gt->cpu_top.busy);
@@ -242,7 +242,7 @@ static void show_gpu_perf(struct overlay_context *ctx, struct overlay_gpu_perf *
 
 	gpu_perf_update(&gp->gpu_perf);
 
-	y = 12;
+	y = 12 + 12 - 2;
 	x = ctx->width/2 + 12;
 
 	for (comm = gp->gpu_perf.comm; comm; comm = comm->next) {
@@ -423,7 +423,7 @@ static void show_gpu_freq(struct overlay_context *ctx, struct overlay_gpu_freq *
 	chart_draw(&gf->request, ctx->cr);
 	chart_draw(&gf->current, ctx->cr);
 
-	y = ctx->height/2 + 6;
+	y = ctx->height/2 + 6 + 12 - 2;
 	len = sprintf(buf, "Frequency: %dMHz", gf->gpu_freq.current);
 	if (gf->gpu_freq.request)
 		sprintf(buf + len, " (requested %dMHz)", gf->gpu_freq.request);
@@ -477,7 +477,7 @@ static void show_gem_objects(struct overlay_context *ctx, struct overlay_gem_obj
 	chart_draw(&go->gtt, ctx->cr);
 	chart_draw(&go->aperture, ctx->cr);
 
-	y = ctx->height/2 + 6;
+	y = ctx->height/2 + 6 + 12 - 2;
 	x = ctx->width/2 + 12;
 	sprintf(buf, "Total: %ldMB, %d objects",
 		go->gem_objects.total_bytes >> 20, go->gem_objects.total_count);
