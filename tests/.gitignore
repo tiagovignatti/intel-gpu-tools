@@ -94,6 +94,7 @@ getversion
 kms_flip
 kms_render
 kms_setmode
+pc8
 prime_nv_api
 prime_nv_pcopy
 prime_nv_test

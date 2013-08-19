@@ -45,6 +45,7 @@ TESTS_progs_M = \
 	kms_render \
 	kms_setmode \
 	$(NOUVEAU_TESTS_M) \
+	pc8 \
 	prime_self_import \
 	$(NULL)
 
