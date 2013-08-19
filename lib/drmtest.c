@@ -267,11 +267,7 @@ int drm_open_any(void)
 	static int open_count;
 	int fd = __drm_open_any();
 
-	if (fd < -1) {
-		fprintf(stderr, "Failed to open any drm device.%s\n",
-			geteuid() ? "Retry as root?" : "");
-		return fd;
-	}
+	igt_require(fd >= 0);
 
 	if (__sync_fetch_and_add(&open_count, 1))
 		return fd;
