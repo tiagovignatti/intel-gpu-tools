@@ -129,7 +129,7 @@ static void dumpit(void)
 
 int main(int argc, char *argv[])
 {
-	const int device = drm_get_card(0);
+	const int device = drm_get_card();
 	struct junk *junk = stuff;
 	int fd, ret;
 

@@ -216,7 +216,7 @@ static int get_object_count(void)
 {
 	FILE *file;
 	int ret, scanned;
-	int device = drm_get_card(0);
+	int device = drm_get_card();
 	char *path;
 
 	ret = asprintf(&path, "/sys/kernel/debug/dri/%d/i915_gem_objects", device);

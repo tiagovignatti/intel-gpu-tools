@@ -570,7 +570,7 @@ static void eat_error_state(struct test_output *o)
 	static const char data[] = "";
 	static char tmp[128];
 	char fname[FILENAME_MAX];
-	int card_index = drm_get_card(0);
+	int card_index = drm_get_card();
 	int fd;
 	ssize_t r;
 
@@ -624,7 +624,7 @@ static void hang_gpu(struct test_output *o)
 	static const char dfs_entry[] = "i915_ring_stop";
 	static const char data[] = "0xf";
 	char fname[FILENAME_MAX];
-	int card_index = drm_get_card(0);
+	int card_index = drm_get_card();
 	int fd;
 	ssize_t r;
 

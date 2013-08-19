@@ -108,7 +108,7 @@ static int do_parse(int argc, char *argv[])
 
 int main(int argc, char *argv[])
 {
-	const int device = drm_get_card(0);
+	const int device = drm_get_card();
 	char *path;
 	unsigned int devid;
 	int drm_fd, fd, ret;

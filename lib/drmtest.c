@@ -165,26 +165,6 @@ void gem_quiescent_gpu(int fd)
 	gem_sync(fd, handle);
 }
 
-static bool is_master(int fd)
-{
-	drm_client_t client;
-	int ret;
-
-	/* Check that we're the only opener and authed. */
-	client.idx = 0;
-	ret = ioctl(fd, DRM_IOCTL_GET_CLIENT, &client);
-	igt_assert (ret == 0);
-	if (!client.auth) {
-		return 0;
-	}
-	client.idx = 1;
-	ret = ioctl(fd, DRM_IOCTL_GET_CLIENT, &client);
-	if (ret != -1 || errno != EINVAL) {
-		return 0;
-	}
-	return 1;
-}
-
 /**
  * drm_get_card() - get an intel card number for use in /dev or /sys
  *
@@ -192,7 +172,7 @@ static bool is_master(int fd)
  *
  * returns -1 on error
  */
-int drm_get_card(int master)
+int drm_get_card(void)
 {
 	char *name;
 	int i, fd;
@@ -209,17 +189,7 @@ int drm_get_card(int master)
 		if (fd == -1)
 			continue;
 
-		if (is_intel(fd) && master == 0) {
-			close(fd);
-			break;
-		}
-
-		if (master == 1 && is_master(fd)) {
-			close(fd);
-			break;
-		}
-
-		if (master == -1 && !is_master(fd)) {
+		if (is_intel(fd)) {
 			close(fd);
 			break;
 		}
@@ -236,7 +206,7 @@ static int __drm_open_any(void)
 	char *name;
 	int ret, fd;
 
-	ret = asprintf(&name, "/dev/dri/card%d", drm_get_card(0));
+	ret = asprintf(&name, "/dev/dri/card%d", drm_get_card());
 	if (ret == -1)
 		return -1;
 
@@ -274,28 +244,6 @@ int drm_open_any(void)
 
 	gem_quiescent_gpu(fd);
 	igt_install_exit_handler(quiescent_gpu_at_exit);
-
-	return fd;
-}
-
-/**
- * Open the first DRM device we can find where we end up being the master.
- */
-int drm_open_any_master(void)
-{
-	char *name;
-	int ret, fd;
-
-	ret = asprintf(&name, "/dev/dri/card%d", drm_get_card(1));
-	if (ret == -1)
-		return -1;
-
-	fd = open(name, O_RDWR);
-	free(name);
-	if (fd == -1)
-		fprintf(stderr, "Couldn't find an un-controlled DRM device\n");
-
-	igt_assert(is_intel(fd));
 
 	return fd;
 }

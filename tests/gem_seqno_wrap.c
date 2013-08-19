@@ -648,7 +648,7 @@ int main(int argc, char **argv)
 
 	parse_options(argc, argv);
 
-	card_index = drm_get_card(0);
+	card_index = drm_get_card();
 	igt_assert(card_index != -1);
 
 	srandom(time(NULL));

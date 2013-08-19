@@ -56,7 +56,7 @@ static unsigned int readit(const char *path)
 
 int main(int argc, char *argv[])
 {
-	const int device = drm_get_card(0);
+	const int device = drm_get_card();
 	char *path, *pathp, *pathpp;
 	int fd, ret;
 	unsigned int value1, value1p, value1pp, value2, value2p, value2pp;
