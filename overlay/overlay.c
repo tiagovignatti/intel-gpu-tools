@@ -10,12 +10,13 @@
 #include <errno.h>
 
 #include "overlay.h"
+#include "chart.h"
 #include "cpu-top.h"
+#include "debugfs.h"
 #include "gem-objects.h"
 #include "gpu-freq.h"
 #include "gpu-top.h"
 #include "gpu-perf.h"
-#include "chart.h"
 
 const cairo_user_data_key_t overlay_key;
 
