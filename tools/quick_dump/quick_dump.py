@@ -62,7 +62,7 @@ if args.autodetect:
 	elif chipset.is_haswell(devid):
 		args.profile = open('haswell', 'r')
 	else:
-		print("Autodetect of %x " + devid + " failed")
+		print("Autodetect of devid " + hex(devid) + " failed")
 
 if args.profile == None:
 	sys.exit()
