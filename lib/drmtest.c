@@ -691,7 +691,9 @@ static char *run_single_subtest = NULL;
 static const char *in_subtest = NULL;
 static bool in_fixture = false;
 static bool test_with_subtests = false;
-static bool skip_subtests_henceforth = false;
+static enum {
+	CONT = 0, SKIP, FAIL
+} skip_subtests_henceforth = CONT;
 
 bool __igt_fixture(void)
 {
@@ -759,7 +761,9 @@ bool __igt_run_subtest(const char *subtest_name)
 	}
 
 	if (skip_subtests_henceforth) {
-		printf("Subtest %s: SKIP\n", subtest_name);
+		printf("Subtest %s: %s\n", subtest_name,
+		       skip_subtests_henceforth == SKIP ?
+		       "SKIP" : "FAIL");
 		return false;
 	}
 
@@ -803,7 +807,7 @@ void igt_skip(void)
 	if (in_subtest) {
 		exit_subtest("SKIP");
 	} else if (test_with_subtests) {
-		skip_subtests_henceforth = true;
+		skip_subtests_henceforth = SKIP;
 		if (in_fixture)
 			__igt_fixture_end();
 	} else {
@@ -841,7 +845,13 @@ void igt_fail(int exitcode)
 	if (in_subtest)
 		exit_subtest("FAIL");
 	else {
-		assert(!test_with_subtests);
+		assert(!test_with_subtests || in_fixture);
+
+		if (in_fixture) {
+			skip_subtests_henceforth = FAIL;
+			__igt_fixture_end();
+		}
+
 		exit(exitcode);
 	}
 }
