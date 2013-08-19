@@ -148,10 +148,7 @@ int main(int argc, char *argv[])
 		ret = asprintf(&path, sysfs_base_path, device, junk->name);
 		igt_assert(ret != -1);
 		junk->filp = fopen(path, junk->mode);
-		if (junk->filp == NULL) {
-			printf("Kernel is too old. GTFO\n");
-			igt_skip();
-		}
+		igt_require(junk->filp == NULL);
 		val = readval(junk->filp);
 		igt_assert(val >= 0);
 		junk++;

@@ -143,8 +143,7 @@ int main(int argc, char **argv)
 	}
 
 	igt_subtest("reads") {
-		if (!(flags & TEST_READ))
-			igt_skip();
+		igt_require(flags & TEST_READ);
 
 		printf("checking partial reads\n");
 
@@ -173,8 +172,7 @@ int main(int argc, char **argv)
 	}
 
 	igt_subtest("writes") {
-		if (!(flags & TEST_WRITE))
-			igt_skip();
+		igt_require(flags & TEST_WRITE);
 
 		printf("checking partial writes\n");
 
@@ -225,8 +223,7 @@ int main(int argc, char **argv)
 	}
 
 	igt_subtest("read-writes") {
-		if (!((flags & TEST_BOTH) == TEST_BOTH))
-			igt_skip();
+		igt_require((flags & TEST_BOTH) == TEST_BOTH);
 
 		printf("checking partial writes after partial reads\n");
 

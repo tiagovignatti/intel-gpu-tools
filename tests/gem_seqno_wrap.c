@@ -367,12 +367,7 @@ static int dfs_open(int mode)
 		 dfs_base, card_index, dfs_entry);
 
 	fh = open(fname, mode);
-	if (fh == -1) {
-		fprintf(stderr,
-			"error %d opening '%s/%d/%s'. too old kernel?\n",
-			errno, dfs_base, card_index, dfs_entry);
-		igt_skip();
-	}
+	igt_require(fh >= 0);
 
 	return fh;
 }
