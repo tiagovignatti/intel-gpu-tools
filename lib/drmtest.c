@@ -526,6 +526,18 @@ int gem_madvise(int fd, uint32_t handle, int state)
 	return madv.retained;
 }
 
+uint32_t gem_context_create(int fd)
+{
+	struct drm_i915_gem_context_create create;
+	int ret;
+
+	ret = drmIoctl(fd, DRM_IOCTL_I915_GEM_CONTEXT_CREATE, &create);
+	igt_require(ret == 0 || (errno == ENODEV || errno == EINVAL));
+	igt_assert(ret == 0);
+
+	return create.ctx_id;
+}
+
 /* prime */
 int prime_handle_to_fd(int fd, uint32_t handle)
 {

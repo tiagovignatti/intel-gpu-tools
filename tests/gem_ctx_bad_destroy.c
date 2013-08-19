@@ -34,32 +34,12 @@
 #include "i915_drm.h"
 #include "drmtest.h"
 
-struct local_drm_i915_context_create {
-	__u32 ctx_id;
-	__u32 pad;
-};
-
 struct local_drm_i915_context_destroy {
 	__u32 ctx_id;
 	__u32 pad;
 };
 
-#define CONTEXT_CREATE_IOCTL DRM_IOWR(DRM_COMMAND_BASE + 0x2d, struct local_drm_i915_context_create)
 #define CONTEXT_DESTROY_IOCTL DRM_IOWR(DRM_COMMAND_BASE + 0x2e, struct local_drm_i915_context_destroy)
-
-static uint32_t context_create(int fd)
-{
-	struct local_drm_i915_context_create create;
-	int ret;
-
-	ret = drmIoctl(fd, CONTEXT_CREATE_IOCTL, &create);
-	if (ret == -1 && (errno == ENODEV || errno == EINVAL))
-		igt_skip();
-	else if (ret)
-		abort();
-
-	return create.ctx_id;
-}
 
 static void handle_bad(int ret, int lerrno, int expected, const char *desc)
 {
@@ -84,7 +64,7 @@ int main(int argc, char *argv[])
 
 	fd = drm_open_any();
 
-	ctx_id = context_create(fd);
+	ctx_id = gem_context_create(fd);
 
 	destroy.ctx_id = ctx_id;
 	/* Make sure a proper destroy works first */

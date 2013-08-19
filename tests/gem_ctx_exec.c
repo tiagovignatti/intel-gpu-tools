@@ -45,32 +45,12 @@
 #include "i915_drm.h"
 #include "drmtest.h"
 
-struct local_drm_i915_gem_context_create {
-	__u32 ctx_id;
-	__u32 pad;
-};
-
 struct local_drm_i915_gem_context_destroy {
 	__u32 ctx_id;
 	__u32 pad;
 };
 
-#define CONTEXT_CREATE_IOCTL DRM_IOWR(DRM_COMMAND_BASE + 0x2d, struct local_drm_i915_gem_context_create)
 #define CONTEXT_DESTROY_IOCTL DRM_IOWR(DRM_COMMAND_BASE + 0x2e, struct local_drm_i915_gem_context_destroy)
-
-static uint32_t context_create(int fd)
-{
-	struct local_drm_i915_gem_context_create create;
-	int ret;
-
-	ret = drmIoctl(fd, CONTEXT_CREATE_IOCTL, &create);
-	if (ret == -1 && (errno == ENODEV || errno == EINVAL))
-		igt_skip();
-	else if (ret)
-		abort();
-
-	return create.ctx_id;
-}
 
 static void context_destroy(int fd, uint32_t ctx_id)
 {
@@ -125,14 +105,14 @@ int main(int argc, char *argv[])
 
 	fd = drm_open_any();
 
-	ctx_id = context_create(fd);
+	ctx_id = gem_context_create(fd);
 	handle = gem_create(fd, 4096);
 
 	gem_write(fd, handle, 0, batch, sizeof(batch));
 	igt_assert(exec(fd, handle, I915_EXEC_RENDER, ctx_id) == 0);
 	context_destroy(fd, ctx_id);
 
-	ctx_id = context_create(fd);
+	ctx_id = gem_context_create(fd);
 	igt_assert(exec(fd, handle, I915_EXEC_RENDER, ctx_id) == 0);
 	context_destroy(fd, ctx_id);
 

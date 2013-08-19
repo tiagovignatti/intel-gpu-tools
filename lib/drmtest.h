@@ -77,6 +77,8 @@ uint64_t gem_aperture_size(int fd);
 uint64_t gem_mappable_aperture_size(void);
 int gem_madvise(int fd, uint32_t handle, int state);
 
+uint32_t gem_context_create(int fd);
+
 /* feature test helpers */
 bool gem_uses_aliasing_ppgtt(int fd);
 int gem_available_fences(int fd);
