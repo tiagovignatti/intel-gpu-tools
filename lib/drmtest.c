@@ -620,6 +620,8 @@ off_t prime_get_size(int dma_buf_fd)
 }
 
 /* signal interrupt helpers */
+static bool igt_only_list_subtests(void);
+
 static pid_t signal_helper = -1;
 long long int sig_stat;
 static void __attribute__((noreturn)) signal_helper_process(pid_t pid)
@@ -687,8 +689,27 @@ void igt_stop_signal_helper(void)
 static bool list_subtests = false;
 static char *run_single_subtest = NULL;
 static const char *in_subtest = NULL;
+static bool in_fixture = false;
 static bool test_with_subtests = false;
 static bool skip_subtests_henceforth = false;
+
+bool __igt_fixture(void)
+{
+	if (igt_only_list_subtests())
+		return false;
+
+	if (skip_subtests_henceforth)
+		return false;
+
+	in_fixture = true;
+	return true;
+}
+
+void __igt_fixture_end(void)
+{
+	in_fixture = false;
+	longjmp(igt_subtest_jmpbuf, 1);
+}
 
 void igt_subtest_init(int argc, char **argv)
 {
@@ -730,6 +751,7 @@ out:
 bool __igt_run_subtest(const char *subtest_name)
 {
 	assert(!in_subtest);
+	assert(!in_fixture);
 
 	if (list_subtests) {
 		printf("%s\n", subtest_name);
@@ -756,7 +778,7 @@ const char *igt_subtest_name(void)
 	return in_subtest;
 }
 
-bool igt_only_list_subtests(void)
+static bool igt_only_list_subtests(void)
 {
 	return list_subtests;
 }
@@ -777,12 +799,16 @@ static void exit_subtest(const char *result)
 void igt_skip(void)
 {
 	skipped_one = true;
-		if (in_subtest)
+
+	if (in_subtest) {
 		exit_subtest("SKIP");
-	else if (test_with_subtests)
+	} else if (test_with_subtests) {
 		skip_subtests_henceforth = true;
-	else
+		if (in_fixture)
+			__igt_fixture_end();
+	} else {
 		exit(77);
+	}
 }
 
 void __igt_skip_check(const char *file, const int line,
