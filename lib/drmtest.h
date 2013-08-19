@@ -210,9 +210,11 @@ static inline void gem_require_ring(int fd, int ring_id)
 	case I915_EXEC_BSD:
 		igt_require(HAS_BSD_RING(intel_get_drm_devid(fd)));
 		return;
+#ifdef I915_EXEC_VEBOX
 	case I915_EXEC_VEBOX:
 		igt_require(gem_has_vebox(fd));
 		return;
+#endif
 	default:
 		assert(0);
 		return;

@@ -173,6 +173,7 @@ int main(int argc, char **argv)
 		printf("dummy loop run on blt completed\n");
 	}
 
+#ifdef I915_EXEC_VEBOX
 	igt_subtest("vebox") {
 		gem_require_ring(fd, I915_EXEC_VEBOX);
 		sleep(2);
@@ -180,6 +181,7 @@ int main(int argc, char **argv)
 		dummy_reloc_loop(LOCAL_I915_EXEC_VEBOX);
 		printf("dummy loop run on vebox completed\n");
 	}
+#endif
 
 	igt_subtest("mixed") {
 		if (num_rings > 1) {

@@ -517,6 +517,8 @@ int main(int argc, char **argv)
 	if (ctx.surface == NULL)
 		return ENOMEM;
 
+	debugfs_init();
+
 	init_gpu_top(&ctx, &ctx.gpu_top);
 	init_gpu_perf(&ctx, &ctx.gpu_perf);
 	init_gpu_freq(&ctx, &ctx.gpu_freq);

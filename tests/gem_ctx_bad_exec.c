@@ -106,8 +106,10 @@ int main(int argc, char *argv[])
 		igt_assert(exec(fd, handle, I915_EXEC_BSD, ctx_id) != 0);
 	igt_subtest("blt")
 		igt_assert(exec(fd, handle, I915_EXEC_BLT, ctx_id) != 0);
+#ifdef I915_EXEC_VEBOX
 	igt_subtest("vebox")
 		igt_assert(exec(fd, handle, I915_EXEC_VEBOX, ctx_id) != 0);
+#endif
 
 	igt_exit();
 }
