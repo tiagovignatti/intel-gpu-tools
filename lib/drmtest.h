@@ -132,7 +132,7 @@ const char *igt_subtest_name(void);
  *
  * For normal tests without subtest it will directly exit.
  */
-void igt_skip(void);
+__attribute__((format(printf, 1, 2))) void igt_skip(const char *f, ...);
 void __igt_skip_check(const char *file, const int line,
 		      const char *func, const char *check);
 /**

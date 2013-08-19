@@ -51,9 +51,8 @@ int main(int argc, char *argv[])
 
 	ret = drmIoctl(fd, CONTEXT_CREATE_IOCTL, &create);
 	if (ret != 0 && (errno == ENODEV || errno == EINVAL)) {
-		printf("Kernel is too old, or contexts not supported: %s\n",
-			strerror(errno));
-		igt_skip();
+		igt_skip("Kernel is too old, or contexts not supported: %s\n",
+			 strerror(errno));
 	} else if (ret != 0) {
 		fprintf(stderr, "%s\n", strerror(errno));
 		igt_fail(1);

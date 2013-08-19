@@ -628,8 +628,6 @@ static void hang_gpu(struct test_output *o)
 	int fd;
 	ssize_t r;
 
-	igt_assert(card_index != -1);
-
 	snprintf(fname, FILENAME_MAX, "%s/%i/%s",
 		 dfs_base, card_index, dfs_entry);
 

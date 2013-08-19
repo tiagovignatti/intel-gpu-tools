@@ -181,23 +181,24 @@ int drm_get_card(void)
 		int ret;
 
 		ret = asprintf(&name, "/dev/dri/card%u", i);
-		if (ret == -1)
-			return -1;
+		igt_assert(ret != -1);
+
 		fd = open(name, O_RDWR);
 		free(name);
 
 		if (fd == -1)
 			continue;
 
-		if (is_intel(fd)) {
-			close(fd);
-			break;
-		}
+		if (!is_intel(fd))
+			continue;
 
 		close(fd);
+		return i;
 	}
 
-	return i;
+	igt_skip("No intel gpu found\n");
+
+	return -1;
 }
 
 /** Open the first DRM device we can find, searching up to 16 device nodes */
@@ -756,9 +757,16 @@ static void exit_subtest(const char *result)
 	longjmp(igt_subtest_jmpbuf, 1);
 }
 
-void igt_skip(void)
+void igt_skip(const char *f, ...)
 {
+	va_list args;
 	skipped_one = true;
+
+	if (!igt_only_list_subtests()) {
+		va_start(args, f);
+		vprintf(f, args);
+		va_end(args);
+	}
 
 	if (in_subtest) {
 		exit_subtest("SKIP");
@@ -774,12 +782,9 @@ void igt_skip(void)
 void __igt_skip_check(const char *file, const int line,
 		      const char *func, const char *check)
 {
-	if (!igt_only_list_subtests()) {
-		printf("Test requirement not met in function %s, file %s:%i:\n"
-		       "Test requirement: (%s)\n",
-		       func, file, line, check);
-	}
-	igt_skip();
+	igt_skip("Test requirement not met in function %s, file %s:%i:\n"
+		 "Test requirement: (%s)\n",
+		 func, file, line, check);
 }
 
 void igt_success(void)
