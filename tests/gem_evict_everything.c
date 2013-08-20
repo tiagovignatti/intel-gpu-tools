@@ -57,7 +57,7 @@ copy(int fd, uint32_t dst, uint32_t src, uint32_t *all_bo, int n_bo, int error)
 	struct drm_i915_gem_exec_object2 *obj;
 	struct drm_i915_gem_execbuffer2 exec;
 	uint32_t handle;
-	int n;
+	int n, ret;
 
 	batch[0] = (XY_SRC_COPY_BLT_CMD |
 		    XY_SRC_COPY_BLT_WRITE_ALPHA |
@@ -109,7 +109,10 @@ copy(int fd, uint32_t dst, uint32_t src, uint32_t *all_bo, int n_bo, int error)
 	i915_execbuffer2_set_context_id(exec, 0);
 	exec.rsvd2 = 0;
 
-	igt_assert(drmIoctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &exec) == error);
+	ret = drmIoctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &exec);
+	if (ret)
+		ret = errno;
+	igt_assert(ret == error);
 
 	gem_close(fd, handle);
 }
