@@ -333,11 +333,11 @@ run_basic_modes(struct access_mode *mode,
 		run_wrap_func(mode, src, dst, dummy, do_gpu_read_after_write);
 }
 
+drm_intel_bo *src[MAX_NUM_BUFFERS], *dst[MAX_NUM_BUFFERS], *dummy = NULL;
+
 static void
 run_modes(struct access_mode *mode)
 {
-	drm_intel_bo *src[MAX_NUM_BUFFERS], *dst[MAX_NUM_BUFFERS], *dummy = NULL;
-
 	igt_fixture {
 		bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
 		drm_intel_bufmgr_gem_enable_reuse(bufmgr);
