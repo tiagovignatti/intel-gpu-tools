@@ -493,7 +493,7 @@ static void dump_vendor_hdmi(DipInfoFrame *frame)
 		       s3d_structure_to_string(s3d_structure));
 
 		/* Side-by-side (half) */
-		if (s3d_structure == 8)
+		if (s3d_structure >= 8)
 			printf("- 3D Ext Data 0x%x\n",
 			       frame->vendor.s3d_ext_data);
 	}
