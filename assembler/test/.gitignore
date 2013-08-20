@@ -1,4 +1,6 @@
 *.out
+*.log
+*.trs
 mov
 frc
 rndd
@@ -19,3 +21,4 @@ halt
 wait
 endif
 immediate
+declare
