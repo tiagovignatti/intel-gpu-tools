@@ -781,9 +781,8 @@ int main(int argc, char *argv[])
 	/* Skip instead of failing in case the machine is not prepared to reach
 	 * PC8+. We don't want bug reports from cases where the machine is just
 	 * not properly configured. */
-	printf("Checking if the environment is properly configured.\n");
-	if (!setup_environment())
-		return 77;
+	igt_fixture
+		igt_require(setup_environment());
 
 	igt_subtest("drm-resources-equal")
 		drm_resources_equal_subtest();
@@ -793,12 +792,13 @@ int main(int argc, char *argv[])
 		i2c_subtest();
 	igt_subtest("stress-test")
 		stress_test();
-	if (do_register_compare)
-		igt_subtest("register-compare")
-			register_compare_subtest();
+	igt_subtest("register-compare") {
+		igt_require(do_register_compare);
+		register_compare_subtest();
+	}
 
-	teardown_environment();
+	igt_fixture
+		teardown_environment();
 
-	printf("Done!\n");
-	return 0;
+	igt_exit();
 }
