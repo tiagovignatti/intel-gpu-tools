@@ -17,6 +17,7 @@
 #include "gpu-freq.h"
 #include "gpu-top.h"
 #include "gpu-perf.h"
+#include "rc6.h"
 
 const cairo_user_data_key_t overlay_key;
 
@@ -71,6 +72,7 @@ struct overlay_gpu_perf {
 
 struct overlay_gpu_freq {
 	struct gpu_freq gpu_freq;
+	struct rc6 rc6;
 	struct chart current;
 	struct chart request;
 	int error;
@@ -213,7 +215,7 @@ static char *get_comm(pid_t pid, char *comm, int len)
 
 	fd = open(filename, 0);
 	if (fd >= 0) {
-		len = read(fd, comm, len-1);
+		len = read(fd, comm, len);
 		if (len >= 0)
 			comm[len-1] = '\0';
 		close(fd);
@@ -389,6 +391,8 @@ static void init_gpu_freq(struct overlay_context *ctx,
 	if (gf->error)
 		return;
 
+	rc6_init(&gf->rc6);
+
 	chart_init(&gf->current, "current", 120);
 	chart_set_position(&gf->current, 12, ctx->height/2 + 6);
 	chart_set_size(&gf->current, ctx->width/2 - 18, ctx->height/2 - 18);
@@ -437,6 +441,18 @@ static void show_gpu_freq(struct overlay_context *ctx, struct overlay_gpu_freq *
 	cairo_move_to(ctx->cr, 12, y);
 	cairo_show_text(ctx->cr, buf);
 	y += 14;
+
+	if (rc6_update(&gf->rc6) == 0) {
+		sprintf(buf, "RC6: %d%%", gf->rc6.rc6_combined);
+		cairo_move_to(ctx->cr, 12, y);
+		cairo_show_text(ctx->cr, buf);
+		if (gf->rc6.rc6_combined) {
+			sprintf(buf, " [rc6=%d%%, rc6p=%d%%, rc6pp=%d%%]",
+				gf->rc6.rc6, gf->rc6.rc6p, gf->rc6.rc6pp);
+			cairo_show_text(ctx->cr, buf);
+		}
+		y += 14;
+	}
 }
 
 static void init_gem_objects(struct overlay_context *ctx,
