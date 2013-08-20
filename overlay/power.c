@@ -75,7 +75,7 @@ int power_update(struct power *power)
 		return EAGAIN;
 
 	d_time = s->timestamp - d->timestamp;
-	if (d_time < 1200) { /* HW sample rate seems to be stable ~1Hz */
+	if (d_time < 900) { /* HW sample rate seems to be stable ~1Hz */
 		power->count--;
 		return power->count <= 1 ? EAGAIN : 0;
 	}
