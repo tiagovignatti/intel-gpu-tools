@@ -50,7 +50,7 @@ static uint64_t clock_ms_to_u64(void)
 	if (clock_gettime(CLOCK_MONOTONIC, &tv) < 0)
 		return 0;
 
-	return (uint64_t)tv.tv_sec * 1000 + tv.tv_nsec / 10000000;
+	return (uint64_t)tv.tv_sec * 1000 + tv.tv_nsec / 1000000;
 }
 
 int rc6_update(struct rc6 *rc6)
