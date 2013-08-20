@@ -63,11 +63,12 @@ int rc6_update(struct rc6 *rc6)
 	if (rc6->error)
 		return rc6->error;
 
-	if (stat("/sys/class/drm/card0/power", &st) < 0)
-		return rc6->error = errno;
-
 	if (stat("/sys/class/drm/card0/power/rc6_residency_ms", &st) < 0)
-		return ENOENT;
+		return rc6->error = ENOENT;
+
+	rc6->enabled = file_to_u64("/sys/class/drm/card0/power/rc6_enable");
+	if (rc6->enabled == 0)
+		return EAGAIN;
 
 	s->rc6_residency = file_to_u64("/sys/class/drm/card0/power/rc6_residency_ms");
 	s->rc6p_residency = file_to_u64("/sys/class/drm/card0/power/rc6p_residency_ms");

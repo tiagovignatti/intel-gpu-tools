@@ -20,6 +20,8 @@
 #include "power.h"
 #include "rc6.h"
 
+#define is_power_of_two(x)  (((x) & ((x)-1)) == 0)
+
 const cairo_user_data_key_t overlay_key;
 
 static void overlay_show(cairo_surface_t *surface)
@@ -417,7 +419,6 @@ static void init_gpu_freq(struct overlay_context *ctx,
 	}
 
 	rc6_init(&gf->rc6);
-
 }
 
 static void show_gpu_freq(struct overlay_context *ctx, struct overlay_gpu_freq *gf)
@@ -454,9 +455,25 @@ static void show_gpu_freq(struct overlay_context *ctx, struct overlay_gpu_freq *
 		sprintf(buf, "RC6: %d%%", gf->rc6.rc6_combined);
 		cairo_move_to(ctx->cr, 12, y);
 		cairo_show_text(ctx->cr, buf);
-		if (gf->rc6.rc6_combined) {
-			sprintf(buf, " [rc6=%d%%, rc6p=%d%%, rc6pp=%d%%]",
-				gf->rc6.rc6, gf->rc6.rc6p, gf->rc6.rc6pp);
+		if (gf->rc6.rc6_combined && !is_power_of_two(gf->rc6.enabled)) {
+			len = 0;
+			sprintf(buf, " (");
+			if (gf->rc6.enabled & 1) {
+				if (len)
+					len += sprintf(buf + 3 + len, ", ");
+				len += sprintf(buf + 3 + len, "rc6=%d%%", gf->rc6.rc6);
+			}
+			if (gf->rc6.enabled & 2) {
+				if (len)
+					len += sprintf(buf + 3 + len, ", ");
+				len += sprintf(buf + 3 + len, "rc6p=%d%%", gf->rc6.rc6p);
+			}
+			if (gf->rc6.enabled & 4) {
+				if (len)
+					len += sprintf(buf + 3 + len, ", ");
+				len += sprintf(buf + 3 + len, "rc6pp=%d%%", gf->rc6.rc6pp);
+			}
+			sprintf(buf + 3 + len, ")");
 			cairo_show_text(ctx->cr, buf);
 		}
 		y += 14;

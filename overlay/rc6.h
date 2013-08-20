@@ -11,6 +11,8 @@ struct rc6 {
 	int count;
 	int error;
 
+	unsigned enabled;
+
 	uint8_t rc6;
 	uint8_t rc6p;
 	uint8_t rc6pp;
