@@ -9,6 +9,7 @@ intel_dpio_write
 intel_dump_decode
 intel_error_decode
 intel_forcewaked
+intel_framebuffer_dump
 intel_gpu_dump
 intel_gpu_time
 intel_gpu_top
