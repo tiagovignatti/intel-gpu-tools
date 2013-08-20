@@ -15,7 +15,7 @@ I915ChipsetPython_la_SOURCES = chipset_wrap_python.c intel_chipset.c \
 			       $(top_srcdir)/lib/intel_dpio.c
 
 chipset_wrap_python.c chipset.py: chipset.i
-	$(SWIG) $(AX_SWIG_PYTHON_OPT) -I/usr/include -I$(top_srcdir)/lib -o $@ $<
+	$(AM_V_GEN)$(SWIG) $(AX_SWIG_PYTHON_OPT) -I/usr/include -I$(top_srcdir)/lib -o $@ $<
 
 all-local: I915ChipsetPython.la
 	$(LN_S) -f .libs/I915ChipsetPython.so _chipset.so
