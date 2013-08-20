@@ -213,7 +213,7 @@ echo " • Tools:"
 echo "       Assembler          : ${enable_assembler}"
 echo "       Debugger           : ${enable_debugger}"
 echo "       Python dumper      : ${DUMPER}"
-echo "       Overlay            : ${enable_overlay}"
+echo "       Overlay            : X: ${enable_overlay_xlib}, Xv: ${enable_overlay_xvlib}"
 echo ""
 
 # vim: set ft=config ts=8 sw=8 tw=0 noet :
