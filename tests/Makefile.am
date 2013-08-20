@@ -62,6 +62,7 @@ TESTS_progs = \
 	gem_ctx_create \
 	gem_ctx_exec \
 	gem_double_irq_loop \
+	gem_evict_everything \
 	gem_exec_big \
 	gem_exec_blt \
 	gem_exec_faulting_reloc \
