@@ -1170,7 +1170,7 @@ sendinstruction: predicate sendop execsize exp post_dst payload msgtarget
 		| predicate sendop execsize dst sendleadreg payload directsrcoperand instoptions
 		{
 		  if (IS_GENp(6))
-                      error(&@2, "the syntax of send instruction\n");
+                      error(&@2, "invalid syntax for send on gen6+\n");
 
 		  memset(&$$, 0, sizeof($$));
 		  set_instruction_opcode(&$$, $2);
@@ -1191,7 +1191,7 @@ sendinstruction: predicate sendop execsize exp post_dst payload msgtarget
 		| predicate sendop execsize dst sendleadreg payload imm32reg instoptions
                 {
 		  if (IS_GENp(6))
-                      error(&@2, "the syntax of send instruction\n");
+                      error(&@2, "invalid syntax for send on gen6+\n");
 
 		  if ($7.reg.type != BRW_REGISTER_TYPE_UD &&
 		      $7.reg.type != BRW_REGISTER_TYPE_D &&
@@ -1217,7 +1217,7 @@ sendinstruction: predicate sendop execsize exp post_dst payload msgtarget
 		  struct src_operand src0;
 
 		  if (!IS_GENp(6))
-                      error(&@2, "the syntax of send instruction\n");
+                      error(&@2, "invalid syntax for send on gen6+\n");
 
 		  if ($7.reg.type != BRW_REGISTER_TYPE_UD &&
                       $7.reg.type != BRW_REGISTER_TYPE_D &&
@@ -1258,7 +1258,7 @@ sendinstruction: predicate sendop execsize exp post_dst payload msgtarget
 		  struct src_operand src0;
 
 		  if (!IS_GENp(6))
-                      error(&@2, "the syntax of send instruction\n");
+                      error(&@2, "invalid syntax for send on gen6+\n");
 
                   if ($7.reg.file != BRW_ARCHITECTURE_REGISTER_FILE ||
                       ($7.reg.nr & 0xF0) != BRW_ARF_ADDRESS ||
@@ -1297,7 +1297,7 @@ sendinstruction: predicate sendop execsize exp post_dst payload msgtarget
 		| predicate sendop execsize dst sendleadreg payload sndopr imm32reg instoptions
 		{
 		  if (IS_GENp(6))
-                      error(&@2, "the syntax of send instruction\n");
+                      error(&@2, "invalid syntax for send on gen6+\n");
 
 		  if ($8.reg.type != BRW_REGISTER_TYPE_UD &&
 		      $8.reg.type != BRW_REGISTER_TYPE_D &&
@@ -1326,7 +1326,7 @@ sendinstruction: predicate sendop execsize exp post_dst payload msgtarget
 		| predicate sendop execsize dst sendleadreg payload exp directsrcoperand instoptions
 		{
 		  if (IS_GENp(6))
-                      error(&@2, "the syntax of send instruction\n");
+                      error(&@2, "invalid syntax for send on gen6+\n");
 
 		  memset(&$$, 0, sizeof($$));
 		  set_instruction_opcode(&$$, $2);
