@@ -108,6 +108,8 @@ static void chart_update_range(struct chart *chart)
 		else if (chart->samples[n] > chart->range[1])
 			chart->range[1] = chart->samples[n];
 	}
+	if (strcmp(chart->name, "power") == 0)
+	printf ("chart_update_range [%f, %f]\n", chart->range[0], chart->range[1]);
 }
 
 static double value_at(struct chart *chart, int n)

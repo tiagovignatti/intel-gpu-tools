@@ -3,6 +3,7 @@ struct gpu_freq {
 	int rpn, rp1, rp0;
 	int request;
 	int current;
+	int error;
 };
 
 int gpu_freq_init(struct gpu_freq *gf);

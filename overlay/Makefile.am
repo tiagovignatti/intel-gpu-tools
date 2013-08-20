@@ -25,6 +25,8 @@ intel_gpu_overlay_SOURCES = \
 	gpu-freq.c \
 	igfx.h \
 	igfx.c \
+	power.h \
+	power.c \
 	rc6.h \
 	rc6.c \
 	$(NULL)

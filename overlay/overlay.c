@@ -17,6 +17,7 @@
 #include "gpu-freq.h"
 #include "gpu-top.h"
 #include "gpu-perf.h"
+#include "power.h"
 #include "rc6.h"
 
 const cairo_user_data_key_t overlay_key;
@@ -73,9 +74,11 @@ struct overlay_gpu_perf {
 struct overlay_gpu_freq {
 	struct gpu_freq gpu_freq;
 	struct rc6 rc6;
+	struct power power;
 	struct chart current;
 	struct chart request;
-	int error;
+	struct chart power_chart;
+	double power_range[2];
 };
 
 struct overlay_gem_objects {
@@ -387,27 +390,34 @@ static void show_gpu_perf(struct overlay_context *ctx, struct overlay_gpu_perf *
 static void init_gpu_freq(struct overlay_context *ctx,
 			  struct overlay_gpu_freq *gf)
 {
-	gf->error = gpu_freq_init(&gf->gpu_freq);
-	if (gf->error)
-		return;
+	if (gpu_freq_init(&gf->gpu_freq) == 0) {
+		chart_init(&gf->current, "current", 120);
+		chart_set_position(&gf->current, 12, ctx->height/2 + 6);
+		chart_set_size(&gf->current, ctx->width/2 - 18, ctx->height/2 - 18);
+		chart_set_stroke_rgba(&gf->current, 0.75, 0.25, 0.50, 1.);
+		chart_set_mode(&gf->current, CHART_STROKE);
+		chart_set_smooth(&gf->current, CHART_LINE);
+		chart_set_range(&gf->current, 0, gf->gpu_freq.max);
+
+		chart_init(&gf->request, "request", 120);
+		chart_set_position(&gf->request, 12, ctx->height/2 + 6);
+		chart_set_size(&gf->request, ctx->width/2 - 18, ctx->height/2 - 18);
+		chart_set_fill_rgba(&gf->request, 0.25, 0.25, 0.50, 1.);
+		chart_set_mode(&gf->request, CHART_FILL);
+		chart_set_smooth(&gf->request, CHART_LINE);
+		chart_set_range(&gf->request, 0, gf->gpu_freq.max);
+	}
+
+	if (power_init(&gf->power) == 0) {
+		chart_init(&gf->power_chart, "power", 120);
+		chart_set_position(&gf->power_chart, 12, ctx->height/2 + 6);
+		chart_set_size(&gf->power_chart, ctx->width/2 - 18, ctx->height/2 - 18);
+		chart_set_stroke_rgba(&gf->power_chart, 0.45, 0.55, 0.45, 1.);
+		memset(gf->power_range, 0, sizeof(gf->power_range));
+	}
 
 	rc6_init(&gf->rc6);
 
-	chart_init(&gf->current, "current", 120);
-	chart_set_position(&gf->current, 12, ctx->height/2 + 6);
-	chart_set_size(&gf->current, ctx->width/2 - 18, ctx->height/2 - 18);
-	chart_set_stroke_rgba(&gf->current, 0.75, 0.25, 0.50, 1.);
-	chart_set_mode(&gf->current, CHART_STROKE);
-	chart_set_smooth(&gf->current, CHART_LINE);
-	chart_set_range(&gf->current, 0, gf->gpu_freq.max);
-
-	chart_init(&gf->request, "request", 120);
-	chart_set_position(&gf->request, 12, ctx->height/2 + 6);
-	chart_set_size(&gf->request, ctx->width/2 - 18, ctx->height/2 - 18);
-	chart_set_fill_rgba(&gf->request, 0.25, 0.25, 0.50, 1.);
-	chart_set_mode(&gf->request, CHART_FILL);
-	chart_set_smooth(&gf->request, CHART_LINE);
-	chart_set_range(&gf->request, 0, gf->gpu_freq.max);
 }
 
 static void show_gpu_freq(struct overlay_context *ctx, struct overlay_gpu_freq *gf)
@@ -415,32 +425,30 @@ static void show_gpu_freq(struct overlay_context *ctx, struct overlay_gpu_freq *
 	char buf[160];
 	int y, len;
 
-	if (gf->error == 0)
-		gf->error = gpu_freq_update(&gf->gpu_freq);
-	if (gf->error)
-		return;
-
-	if (gf->gpu_freq.current)
-		chart_add_sample(&gf->current, gf->gpu_freq.current);
-	if (gf->gpu_freq.request)
-		chart_add_sample(&gf->request, gf->gpu_freq.request);
-
-	chart_draw(&gf->request, ctx->cr);
-	chart_draw(&gf->current, ctx->cr);
-
 	y = ctx->height/2 + 6 + 12 - 2;
-	len = sprintf(buf, "Frequency: %dMHz", gf->gpu_freq.current);
-	if (gf->gpu_freq.request)
-		sprintf(buf + len, " (requested %dMHz)", gf->gpu_freq.request);
-	cairo_set_source_rgba(ctx->cr, 1, 1, 1, 1);
-	cairo_move_to(ctx->cr, 12, y);
-	cairo_show_text(ctx->cr, buf);
-	y += 14;
 
-	sprintf(buf, "min: %dMHz, max: %dMHz", gf->gpu_freq.min, gf->gpu_freq.max);
-	cairo_move_to(ctx->cr, 12, y);
-	cairo_show_text(ctx->cr, buf);
-	y += 14;
+	if (gpu_freq_update(&gf->gpu_freq) == 0) {
+		if (gf->gpu_freq.current)
+			chart_add_sample(&gf->current, gf->gpu_freq.current);
+		if (gf->gpu_freq.request)
+			chart_add_sample(&gf->request, gf->gpu_freq.request);
+
+		chart_draw(&gf->request, ctx->cr);
+		chart_draw(&gf->current, ctx->cr);
+
+		len = sprintf(buf, "Frequency: %dMHz", gf->gpu_freq.current);
+		if (gf->gpu_freq.request)
+			sprintf(buf + len, " (requested %dMHz)", gf->gpu_freq.request);
+		cairo_set_source_rgba(ctx->cr, 1, 1, 1, 1);
+		cairo_move_to(ctx->cr, 12, y);
+		cairo_show_text(ctx->cr, buf);
+		y += 14;
+
+		sprintf(buf, "min: %dMHz, max: %dMHz", gf->gpu_freq.min, gf->gpu_freq.max);
+		cairo_move_to(ctx->cr, 12, y);
+		cairo_show_text(ctx->cr, buf);
+		y += 14;
+	}
 
 	if (rc6_update(&gf->rc6) == 0) {
 		sprintf(buf, "RC6: %d%%", gf->rc6.rc6_combined);
@@ -451,6 +459,21 @@ static void show_gpu_freq(struct overlay_context *ctx, struct overlay_gpu_freq *
 				gf->rc6.rc6, gf->rc6.rc6p, gf->rc6.rc6pp);
 			cairo_show_text(ctx->cr, buf);
 		}
+		y += 14;
+	}
+
+	if (power_update(&gf->power) == 0) {
+		chart_add_sample(&gf->power_chart, gf->power.power_mW);
+		if (gf->power.new_sample) {
+			chart_get_range(&gf->power_chart, gf->power_range);
+			chart_set_range(&gf->power_chart, gf->power_range[0], gf->power_range[1]);
+			gf->power.new_sample = 0;
+		}
+		chart_draw(&gf->power_chart, ctx->cr);
+
+		sprintf(buf, "Power: %llumW", (long long unsigned)gf->power.power_mW);
+		cairo_move_to(ctx->cr, 12, y);
+		cairo_show_text(ctx->cr, buf);
 		y += 14;
 	}
 }
