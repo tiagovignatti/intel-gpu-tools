@@ -8,6 +8,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <signal.h>
 
 #include "overlay.h"
 #include "chart.h"
@@ -556,6 +557,13 @@ static void show_gem_objects(struct overlay_context *ctx, struct overlay_gem_obj
 	}
 }
 
+static int take_snapshot;
+
+static void signal_snapshot(int sig)
+{
+	take_snapshot = sig;
+}
+
 int main(int argc, char **argv)
 {
 	struct overlay_context ctx;
@@ -565,6 +573,8 @@ int main(int argc, char **argv)
 		x11_overlay_stop();
 		return 0;
 	}
+
+	signal(SIGUSR1, signal_snapshot);
 
 	ctx.width = 640;
 	ctx.height = 236;
@@ -609,6 +619,13 @@ int main(int argc, char **argv)
 		cairo_destroy(ctx.cr);
 
 		overlay_show(ctx.surface);
+
+		if (take_snapshot) {
+			char buf[80];
+			sprintf(buf, "overlay-snapshot-%d.png", i-1);
+			cairo_surface_write_to_png(ctx.surface, buf);
+			take_snapshot = 0;
+		}
 	}
 
 	return 0;
