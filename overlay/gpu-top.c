@@ -72,10 +72,12 @@ static uint64_t i915_type_id(void)
 	int fd, n;
 
 	fd = open("/sys/bus/event_source/devices/i915/type", 0);
-	if (fd < 0)
-		return 0;
-	n = read(fd, buf, sizeof(buf)-1);
-	close(fd);
+	if (fd < 0) {
+		n = -1;
+	} else {
+		n = read(fd, buf, sizeof(buf)-1);
+		close(fd);
+	}
 	if (n < 0)
 		return 0;
 
@@ -310,7 +312,7 @@ int gpu_top_update(struct gpu_top *gt)
 		struct gpu_top_stat *s = &gt->stat[gt->count++&1];
 		struct gpu_top_stat *d = &gt->stat[gt->count&1];
 		uint64_t *sample, d_time;
-		int n;
+		int n, m;
 
 		len = read(gt->fd, data, sizeof(data));
 		if (len < 0)
@@ -319,12 +321,12 @@ int gpu_top_update(struct gpu_top *gt)
 		sample = (uint64_t *)data + 1;
 
 		s->time = *sample++;
-		for (n = 0; n < gt->num_rings; n++) {
-			s->busy[n] = sample[n];
+		for (n = m = 0; n < gt->num_rings; n++) {
+			s->busy[n] = sample[m++];
 			if (gt->have_wait)
-				s->wait[n] = sample[n];
+				s->wait[n] = sample[m++];
 			if (gt->have_sema)
-				s->sema[n] = sample[n];
+				s->sema[n] = sample[m++];
 		}
 
 		if (gt->count == 1)
