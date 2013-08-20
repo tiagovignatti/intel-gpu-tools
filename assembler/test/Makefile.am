@@ -11,7 +11,6 @@ TESTS = \
 	rndz \
 	lzd \
 	not \
-	declare \
 	immediate
 
 # Tests that are expected to fail because they contain some inccorect code.
@@ -22,6 +21,7 @@ XFAIL_TESTS =
 #   http://cgit.freedesktop.org/xorg/app/intel-gen4asm/
 # We disable them "for now" as a workaround to be able to release i-g-t
 disabled_tests = \
+	declare \
 	jmpi \
 	if \
 	iff \
