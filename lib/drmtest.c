@@ -894,12 +894,23 @@ void igt_fail(int exitcode)
 	}
 }
 
+static bool run_under_gdb(void)
+{
+	char buf[1024];
+
+	sprintf(buf, "/proc/%d/exe", getppid());
+	return (readlink (buf, buf, sizeof (buf)) != -1 &&
+		strncmp (basename (buf), "gdb", 3) == 0);
+}
+
 void __igt_fail_assert(int exitcode, const char *file,
 		       const int line, const char *func, const char *assertion)
 {
 	printf("Test assertion failure function %s, file %s:%i:\n"
 	       "Failed assertion: %s\n",
 	       func, file, line, assertion);
+	if (run_under_gdb())
+		abort();
 	igt_fail(exitcode);
 }
 
