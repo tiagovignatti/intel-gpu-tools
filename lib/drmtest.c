@@ -533,7 +533,7 @@ uint32_t gem_context_create(int fd)
 	int ret;
 
 	ret = drmIoctl(fd, DRM_IOCTL_I915_GEM_CONTEXT_CREATE, &create);
-	igt_require(ret == 0 || (errno == ENODEV || errno == EINVAL));
+	igt_require(ret == 0 || (errno != ENODEV && errno != EINVAL));
 	igt_assert(ret == 0);
 
 	return create.ctx_id;
