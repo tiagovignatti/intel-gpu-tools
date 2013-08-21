@@ -155,14 +155,14 @@ struct mmio_ring {
 
 static uint32_t mmio_ring_read(struct mmio_ring *ring, uint32_t reg)
 {
-	return igfx_read(ring->mmio, reg);
+	return igfx_read(ring->mmio, ring->base + reg);
 }
 
 static void mmio_ring_init(struct mmio_ring *ring, void *mmio)
 {
 	uint32_t ctl;
 
-	ring->mmio = (char *)mmio + ring->base;
+	ring->mmio = mmio;
 
 	ctl = mmio_ring_read(ring, RING_CTL);
 	if ((ctl & 1) == 0)
@@ -255,12 +255,15 @@ static void mmio_init(struct gpu_top *gt)
 	}
 
 	mmio = igfx_get_mmio(igfx);
+	if (mmio == NULL)
+		exit(127);
 
 	mmio_ring_init(&render_ring, mmio);
 	if (info->gen >= 060) {
-		mmio_ring_init(&bsd6_ring, mmio);
+		bsd_ring = bsd6_ring;
 		mmio_ring_init(&blt_ring, mmio);
-	} else if (info->gen >= 040) {
+	}
+	if (info->gen >= 040) {
 		mmio_ring_init(&bsd_ring, mmio);
 	}
 
@@ -269,20 +272,17 @@ static void mmio_init(struct gpu_top *gt)
 
 		mmio_ring_reset(&render_ring);
 		mmio_ring_reset(&bsd_ring);
-		mmio_ring_reset(&bsd6_ring);
 		mmio_ring_reset(&blt_ring);
 
 		for (i = 0; i < 1000; i++) {
 			mmio_ring_sample(&render_ring);
 			mmio_ring_sample(&bsd_ring);
-			mmio_ring_sample(&bsd6_ring);
 			mmio_ring_sample(&blt_ring);
 			usleep(1000);
 		}
 
 		mmio_ring_emit(&render_ring, 1000, payload);
 		mmio_ring_emit(&bsd_ring, 1000, payload);
-		mmio_ring_emit(&bsd6_ring, 1000, payload);
 		mmio_ring_emit(&blt_ring, 1000, payload);
 
 		write(fd[1], payload, sizeof(payload));
