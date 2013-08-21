@@ -180,6 +180,11 @@ static void show_gpu_top(struct overlay_context *ctx, struct overlay_gpu_top *gt
 
 	update = gpu_top_update(&gt->gpu_top);
 
+	cairo_rectangle(ctx->cr, 12-.5, 12-.5, ctx->width/2-18+1, ctx->height/2-18+1);
+	cairo_set_source_rgb(ctx->cr, .15, .15, .15);
+	cairo_set_line_width(ctx->cr, 1);
+	cairo_stroke(ctx->cr);
+
 	if (update && cpu_top_update(&gt->cpu_top) == 0)
 		chart_add_sample(&gt->cpu, gt->cpu_top.busy);
 	chart_draw(&gt->cpu, ctx->cr);
@@ -287,7 +292,12 @@ static void show_gpu_perf(struct overlay_context *ctx, struct overlay_gpu_perf *
 	gpu_perf_update(&gp->gpu_perf);
 
 	y = 12 + 12 - 2;
-	x = ctx->width/2 + 12;
+	x = ctx->width/2 + 6;
+
+	cairo_rectangle(ctx->cr, ctx->width/2+6-.5, 12-.5, ctx->width/2-18+1, ctx->height/2-18+1);
+	cairo_set_source_rgb(ctx->cr, .15, .15, .15);
+	cairo_set_line_width(ctx->cr, 1);
+	cairo_stroke(ctx->cr);
 
 	for (comm = gp->gpu_perf.comm; comm; comm = comm->next) {
 		int total;
@@ -480,6 +490,11 @@ static void show_gpu_freq(struct overlay_context *ctx, struct overlay_gpu_freq *
 	int has_power = power_update(&gf->power) == 0;
 	cairo_pattern_t *linear;
 
+	cairo_rectangle(ctx->cr, 12-.5, ctx->height/2+6-.5, ctx->width/2-18+1, ctx->height/2-18+1);
+	cairo_set_source_rgb(ctx->cr, .15, .15, .15);
+	cairo_set_line_width(ctx->cr, 1);
+	cairo_stroke(ctx->cr);
+
 	if (has_freq) {
 		if (gf->gpu_freq.current)
 			chart_add_sample(&gf->current, gf->gpu_freq.current);
@@ -611,6 +626,11 @@ static void show_gem_objects(struct overlay_context *ctx, struct overlay_gem_obj
 	if (go->error)
 		return;
 
+	cairo_rectangle(ctx->cr, ctx->width/2+6-.5, ctx->height/2+6-.5, ctx->width/2-18+1, ctx->height/2-18+1);
+	cairo_set_source_rgb(ctx->cr, .15, .15, .15);
+	cairo_set_line_width(ctx->cr, 1);
+	cairo_stroke(ctx->cr);
+
 	chart_add_sample(&go->gtt, go->gem_objects.total_gtt);
 	chart_add_sample(&go->aperture, go->gem_objects.total_aperture);
 
@@ -618,8 +638,8 @@ static void show_gem_objects(struct overlay_context *ctx, struct overlay_gem_obj
 	chart_draw(&go->aperture, ctx->cr);
 
 
-	y = ctx->height/2 + 6 - 2;
-	x = ctx->width/2 + 12;
+	y = ctx->height/2 + 6 + 12 - 2;
+	x = ctx->width/2 + 6;
 
 	y2 = y1 = y;
 	y2 += 14;
