@@ -171,8 +171,15 @@ HANG = \
 	gem_non_secure_batch \
 	$(NULL)
 
+scripts = \
+	check_drm_clients \
+	ddx_intel_after_fbdev \
+	debugfs_wedged \
+	drm_lib.sh \
+	$(NULL)
+
 EXTRA_PROGRAMS = $(TESTS_progs) $(TESTS_progs_M) $(HANG)
-EXTRA_DIST = $(TESTS_scripts) $(TESTS_scripts_M) drm_lib.sh check_drm_clients debugfs_wedged
+EXTRA_DIST = $(TESTS_scripts) $(TESTS_scripts_M) $(scripts)
 CLEANFILES = $(EXTRA_PROGRAMS)
 
 AM_CFLAGS = $(DRM_CFLAGS) $(CWARNFLAGS) \

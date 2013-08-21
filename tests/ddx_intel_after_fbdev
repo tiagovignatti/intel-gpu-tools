@@ -1,0 +1,73 @@
+#!/bin/bash
+#
+# Testcase: Load Intel DDX after fbdev was loaded
+#
+
+whoami | grep -q root || {
+	echo "ERROR: not running as root"
+	exit 1
+}
+
+# no other X session should be running
+find /tmp/ -name .X*lock 2>/dev/null | grep -q X && {
+	echo "ERROR: X session already running"
+	exit 1
+}
+
+TMPDIR=$(mktemp -d /tmp/igt.XXXX) || {
+	echo "ERROR: Failed to create temp dir"
+	exit 1
+}
+
+cat > $TMPDIR/xorg.conf.fbdev << EOF
+Section "Device"
+	Driver		"fbdev"
+	Identifier 	"Device[fbdev]"
+EndSection
+EOF
+
+cat > $TMPDIR/xorg.conf.intel << EOF
+Section "Device"
+	Driver		"intel"
+	Identifier 	"Device[intel]"
+EndSection
+EOF
+
+# log before fbdev
+dmesg -c > $TMPDIR/dmesg.1.before.fbdev
+cp /var/log/Xorg.0.log $TMPDIR/Xorg.0.log.1.before.fbdev
+
+# run fbdev
+xinit -- /usr/bin/X -config $TMPDIR/xorg.conf.fbdev & 
+sleep 5
+if [ -f `which intel_reg_dumper` ]; then
+`which intel_reg_dumper` > $TMPDIR/intel_reg_dumped.1.fbdev
+fi
+killall X
+
+# log after fbdev & before intel
+dmesg -c > $TMPDIR/dmesg.2.after.fbdev.before.intel
+cp /var/log/Xorg.0.log $TMPDIR/Xorg.0.log.2.after.fbdev.before.intel
+
+sleep 5
+
+# run intel
+xinit -- /usr/bin/X -config $TMPDIR/xorg.conf.intel & 
+sleep 5 
+if [ -f `which intel_reg_dumper` ]; then
+`which intel_reg_dumper` > $TMPDIR/intel_reg_dumped.2.intel
+fi
+killall X
+
+# log after intel
+dmesg -c > $TMPDIR/dmesg.3.after.intel
+cp /var/log/Xorg.0.log $TMPDIR/Xorg.0.log.3.after.intel
+
+cp $0 $TMPDIR/
+
+tar czf $TMPDIR.tar.gz $TMPDIR/*
+if [ -f $TMPDIR.tar.gz ]; then
+	echo $TMPDIR.tar.gz contains this script, all configs and logs generated on this tests
+fi
+
+exit 0
