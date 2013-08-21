@@ -96,9 +96,6 @@ static int perf_i915_open(int config, int group)
 		return -ENOENT;
 	attr.config = config;
 
-	attr.freq = 1;
-	attr.sample_freq = 1000;
-
 	attr.read_format = PERF_FORMAT_TOTAL_TIME_ENABLED;
 	if (group == -1)
 		attr.read_format |= PERF_FORMAT_GROUP;
