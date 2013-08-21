@@ -138,7 +138,7 @@ static void chart_update_range(struct chart *chart)
 
 static double value_at(struct chart *chart, int n)
 {
-	if (n <= chart->current_sample - chart->num_samples)
+	if (n < chart->current_sample - chart->num_samples)
 		n = chart->current_sample;
 	else if (n >= chart->current_sample)
 		n = chart->current_sample - 1;
