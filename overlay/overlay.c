@@ -105,7 +105,7 @@ struct overlay_gpu_freq {
 	struct chart current;
 	struct chart request;
 	struct chart power_chart;
-	double power_range[2];
+	double power_max;
 };
 
 struct overlay_gem_objects {
@@ -174,7 +174,8 @@ static void init_gpu_top(struct overlay_context *ctx,
 
 static void show_gpu_top(struct overlay_context *ctx, struct overlay_gpu_top *gt)
 {
-	int y, n, update, len;
+	int y, y1, y2, n, update, len;
+	cairo_pattern_t *linear;
 	char txt[160];
 
 	update = gpu_top_update(&gt->gpu_top);
@@ -196,7 +197,16 @@ static void show_gpu_top(struct overlay_context *ctx, struct overlay_gpu_top *gt
 		chart_draw(&gt->busy[n], ctx->cr);
 	}
 
-	cairo_set_source_rgb(ctx->cr, 1, 1, 1);
+	y1 = 12 - 2;
+	y2 = y1 + (gt->gpu_top.num_rings+1) * 14 + 4;
+
+	cairo_rectangle(ctx->cr, 12, y1, ctx->width/2-18, y2-y1);
+	linear = cairo_pattern_create_linear(12, 0, 12+ctx->width/2-18, 0);
+	cairo_pattern_add_color_stop_rgba(linear, 0, 0, 0, 0, .5);
+	cairo_pattern_add_color_stop_rgba(linear, 1, 0, 0, 0, .0);
+	cairo_set_source(ctx->cr, linear);
+	cairo_pattern_destroy(linear);
+	cairo_fill(ctx->cr);
 
 	y = 12 + 12 - 2;
 	cairo_set_source_rgba(ctx->cr, 0.75, 0.25, 0.75, 1.);
@@ -271,7 +281,8 @@ static void show_gpu_perf(struct overlay_context *ctx, struct overlay_gpu_perf *
 	};
 	double range[2];
 	char buf[1024];
-	int x, y, n;
+	cairo_pattern_t *linear;
+	int x, y, y1, y2, n;
 
 	gpu_perf_update(&gp->gpu_perf);
 
@@ -308,10 +319,23 @@ static void show_gpu_perf(struct overlay_context *ctx, struct overlay_gpu_perf *
 	range[0] = range[1] = 0;
 	for (comm = gp->gpu_perf.comm; comm; comm = comm->next)
 		chart_get_range(comm->user_data, range);
+
+	y2 = y1 = y;
 	for (comm = gp->gpu_perf.comm; comm; comm = comm->next) {
 		chart_set_range(comm->user_data, range[0], range[1]);
 		chart_draw(comm->user_data, ctx->cr);
+		y2 += 14;
 	}
+	y1 += -12 - 2;
+	y2 += 14 - 14 + 4;
+
+	cairo_rectangle(ctx->cr, x, y1, ctx->width/2-18, y2-y1);
+	linear = cairo_pattern_create_linear(x, 0, x + ctx->width/2-18, 0);
+	cairo_pattern_add_color_stop_rgba(linear, 0, 0, 0, 0, .5);
+	cairo_pattern_add_color_stop_rgba(linear, 1, 0, 0, 0, .0);
+	cairo_set_source(ctx->cr, linear);
+	cairo_pattern_destroy(linear);
+	cairo_fill(ctx->cr);
 
 	for (prev = &gp->gpu_perf.comm; (comm = *prev) != NULL; ) {
 		int need_comma = 0;
@@ -440,7 +464,7 @@ static void init_gpu_freq(struct overlay_context *ctx,
 		chart_set_position(&gf->power_chart, 12, ctx->height/2 + 6);
 		chart_set_size(&gf->power_chart, ctx->width/2 - 18, ctx->height/2 - 18);
 		chart_set_stroke_rgba(&gf->power_chart, 0.45, 0.55, 0.45, 1.);
-		memset(gf->power_range, 0, sizeof(gf->power_range));
+		gf->power_max = 0;
 	}
 
 	rc6_init(&gf->rc6);
@@ -449,11 +473,14 @@ static void init_gpu_freq(struct overlay_context *ctx,
 static void show_gpu_freq(struct overlay_context *ctx, struct overlay_gpu_freq *gf)
 {
 	char buf[160];
-	int y, len;
+	int y1, y2, y, len;
 
-	y = ctx->height/2 + 6 + 12 - 2;
+	int has_freq = gpu_freq_update(&gf->gpu_freq) == 0;
+	int has_rc6 = rc6_update(&gf->rc6) == 0;
+	int has_power = power_update(&gf->power) == 0;
+	cairo_pattern_t *linear;
 
-	if (gpu_freq_update(&gf->gpu_freq) == 0) {
+	if (has_freq) {
 		if (gf->gpu_freq.current)
 			chart_add_sample(&gf->current, gf->gpu_freq.current);
 		if (gf->gpu_freq.request)
@@ -461,7 +488,44 @@ static void show_gpu_freq(struct overlay_context *ctx, struct overlay_gpu_freq *
 
 		chart_draw(&gf->request, ctx->cr);
 		chart_draw(&gf->current, ctx->cr);
+	}
 
+	if (has_power) {
+		chart_add_sample(&gf->power_chart, gf->power.power_mW);
+		if (gf->power.new_sample) {
+			if (gf->power.power_mW > gf->power_max)
+				gf->power_max = gf->power.power_mW;
+			chart_set_range(&gf->power_chart, 0, gf->power_max);
+			gf->power.new_sample = 0;
+		}
+		chart_draw(&gf->power_chart, ctx->cr);
+	}
+
+	y = ctx->height/2 + 6 + 12 - 2;
+
+	y1 = y2 = y;
+	if (has_freq) {
+		y2 += 14;
+		y2 += 14;
+	}
+	if (has_rc6) {
+		y2 += 14;
+	}
+	if (has_power) {
+		y2 += 14;
+	}
+	y1 += -12 - 2;
+	y2 += -14 + 4;
+
+	cairo_rectangle(ctx->cr, 12, y1, ctx->width/2-18, y2-y1);
+	linear = cairo_pattern_create_linear(12, 0, 12+ctx->width/2-18, 0);
+	cairo_pattern_add_color_stop_rgba(linear, 0, 0, 0, 0, .5);
+	cairo_pattern_add_color_stop_rgba(linear, 1, 0, 0, 0, .0);
+	cairo_set_source(ctx->cr, linear);
+	cairo_pattern_destroy(linear);
+	cairo_fill(ctx->cr);
+
+	if (has_freq) {
 		len = sprintf(buf, "Frequency: %dMHz", gf->gpu_freq.current);
 		if (gf->gpu_freq.request)
 			sprintf(buf + len, " (requested %dMHz)", gf->gpu_freq.request);
@@ -476,7 +540,7 @@ static void show_gpu_freq(struct overlay_context *ctx, struct overlay_gpu_freq *
 		y += 14;
 	}
 
-	if (rc6_update(&gf->rc6) == 0) {
+	if (has_rc6) {
 		sprintf(buf, "RC6: %d%%", gf->rc6.rc6_combined);
 		cairo_move_to(ctx->cr, 12, y);
 		cairo_show_text(ctx->cr, buf);
@@ -505,15 +569,7 @@ static void show_gpu_freq(struct overlay_context *ctx, struct overlay_gpu_freq *
 		y += 14;
 	}
 
-	if (power_update(&gf->power) == 0) {
-		chart_add_sample(&gf->power_chart, gf->power.power_mW);
-		if (gf->power.new_sample) {
-			chart_get_range(&gf->power_chart, gf->power_range);
-			chart_set_range(&gf->power_chart, gf->power_range[0], gf->power_range[1]);
-			gf->power.new_sample = 0;
-		}
-		chart_draw(&gf->power_chart, ctx->cr);
-
+	if (has_power) {
 		sprintf(buf, "Power: %llumW", (long long unsigned)gf->power.power_mW);
 		cairo_move_to(ctx->cr, 12, y);
 		cairo_show_text(ctx->cr, buf);
@@ -547,7 +603,8 @@ static void show_gem_objects(struct overlay_context *ctx, struct overlay_gem_obj
 {
 	struct gem_objects_comm *comm;
 	char buf[160];
-	int x, y;
+	cairo_pattern_t *linear;
+	int x, y, y1, y2;
 
 	if (go->error == 0)
 		go->error = gem_objects_update(&go->gem_objects);
@@ -560,8 +617,28 @@ static void show_gem_objects(struct overlay_context *ctx, struct overlay_gem_obj
 	chart_draw(&go->gtt, ctx->cr);
 	chart_draw(&go->aperture, ctx->cr);
 
-	y = ctx->height/2 + 6 + 12 - 2;
+
+	y = ctx->height/2 + 6 - 2;
 	x = ctx->width/2 + 12;
+
+	y2 = y1 = y;
+	y2 += 14;
+	for (comm = go->gem_objects.comm; comm; comm = comm->next) {
+		if ((comm->bytes >> 20) == 0)
+			break;
+		y2 += 14;
+	}
+	y1 += -12 - 2;
+	y2 += -14 + 4;
+
+	cairo_rectangle(ctx->cr, x, y1, ctx->width/2-18, y2-y1);
+	linear = cairo_pattern_create_linear(x, 0, x+ctx->width/2-18, 0);
+	cairo_pattern_add_color_stop_rgba(linear, 0, 0, 0, 0, .5);
+	cairo_pattern_add_color_stop_rgba(linear, 1, 0, 0, 0, .0);
+	cairo_set_source(ctx->cr, linear);
+	cairo_pattern_destroy(linear);
+	cairo_fill(ctx->cr);
+
 	sprintf(buf, "Total: %ldMB, %d objects",
 		go->gem_objects.total_bytes >> 20, go->gem_objects.total_count);
 	cairo_set_source_rgba(ctx->cr, 1, 1, 1, 1);
