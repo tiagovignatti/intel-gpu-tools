@@ -301,8 +301,10 @@ void gpu_perf_init(struct gpu_perf *gp, unsigned flags)
 		perf_tracepoint_open(gp, "i915", "i915_gem_request_wait_end", wait_end);
 	perf_tracepoint_open(gp, "i915", "i915_flip_complete", flip_complete);
 
-	if (gp->nr_events == 0)
+	if (gp->nr_events == 0) {
+		gp->error = "i915.ko tracepoints not available";
 		return;
+	}
 
 	if (perf_mmap(gp))
 		return;

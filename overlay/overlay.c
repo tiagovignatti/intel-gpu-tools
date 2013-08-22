@@ -289,15 +289,26 @@ static void show_gpu_perf(struct overlay_context *ctx, struct overlay_gpu_perf *
 	cairo_pattern_t *linear;
 	int x, y, y1, y2, n;
 
+	cairo_rectangle(ctx->cr, ctx->width/2+6-.5, 12-.5, ctx->width/2-18+1, ctx->height/2-18+1);
+	cairo_set_source_rgb(ctx->cr, .15, .15, .15);
+	cairo_set_line_width(ctx->cr, 1);
+	cairo_stroke(ctx->cr);
+
+	if (gp->gpu_perf.error) {
+		cairo_text_extents_t extents;
+		cairo_text_extents(ctx->cr, gp->gpu_perf.error, &extents);
+		cairo_move_to(ctx->cr,
+			      ctx->width/2+6 + (ctx->width/2-18 - extents.width)/2.,
+			      12 + (ctx->height/2-18 + extents.height)/2.);
+		cairo_show_text(ctx->cr, gp->gpu_perf.error);
+		return;
+	}
+
 	gpu_perf_update(&gp->gpu_perf);
 
 	y = 12 + 12 - 2;
 	x = ctx->width/2 + 6;
 
-	cairo_rectangle(ctx->cr, ctx->width/2+6-.5, 12-.5, ctx->width/2-18+1, ctx->height/2-18+1);
-	cairo_set_source_rgb(ctx->cr, .15, .15, .15);
-	cairo_set_line_width(ctx->cr, 1);
-	cairo_stroke(ctx->cr);
 
 	for (comm = gp->gpu_perf.comm; comm; comm = comm->next) {
 		int total;
@@ -494,6 +505,17 @@ static void show_gpu_freq(struct overlay_context *ctx, struct overlay_gpu_freq *
 	cairo_set_source_rgb(ctx->cr, .15, .15, .15);
 	cairo_set_line_width(ctx->cr, 1);
 	cairo_stroke(ctx->cr);
+
+	if (gf->gpu_freq.error) {
+		const char *txt = "GPU frequency not found in debugfs";
+		cairo_text_extents_t extents;
+		cairo_text_extents(ctx->cr, txt, &extents);
+		cairo_move_to(ctx->cr,
+			      12 + (ctx->width/2-18 - extents.width)/2.,
+			      ctx->height/2+6 + (ctx->height/2-18 + extents.height)/2.);
+		cairo_show_text(ctx->cr, txt);
+		return;
+	}
 
 	if (has_freq) {
 		if (gf->gpu_freq.current)

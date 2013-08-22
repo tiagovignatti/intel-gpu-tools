@@ -30,6 +30,7 @@
 #define MAX_RINGS 4
 
 struct gpu_perf {
+	const char *error;
 	int page_size;
 	int nr_cpus;
 	int nr_events;
