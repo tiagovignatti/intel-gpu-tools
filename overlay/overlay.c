@@ -769,22 +769,23 @@ int main(int argc, char **argv)
 		cairo_paint(ctx.cr);
 		cairo_set_operator(ctx.cr, CAIRO_OPERATOR_OVER);
 
-		{
-			char buf[80];
-			cairo_text_extents_t extents;
-			sprintf(buf, "%d", i++);
-			cairo_set_source_rgb(ctx.cr, .5, .5, .5);
-			cairo_text_extents(ctx.cr, buf, &extents);
-			cairo_move_to(ctx.cr,
-				      ctx.width-extents.width-6,
-				      6+extents.height);
-			cairo_show_text(ctx.cr, buf);
-		}
-
 		show_gpu_top(&ctx, &ctx.gpu_top);
 		show_gpu_perf(&ctx, &ctx.gpu_perf);
 		show_gpu_freq(&ctx, &ctx.gpu_freq);
 		show_gem_objects(&ctx, &ctx.gem_objects);
+
+		{
+			char buf[80];
+			cairo_text_extents_t extents;
+			gethostname(buf, sizeof(buf));
+			cairo_set_source_rgb(ctx.cr, .5, .5, .5);
+			cairo_set_font_size(ctx.cr, 10);
+			cairo_text_extents(ctx.cr, buf, &extents);
+			cairo_move_to(ctx.cr,
+				      (ctx.width-extents.width)/2.,
+				      1+extents.height);
+			cairo_show_text(ctx.cr, buf);
+		}
 
 		cairo_destroy(ctx.cr);
 
