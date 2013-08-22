@@ -27,6 +27,8 @@
 
 #include <stdint.h>
 
+#define MAX_RINGS 4
+
 struct gpu_perf {
 	int page_size;
 	int nr_cpus;
@@ -52,10 +54,9 @@ struct gpu_perf {
 	struct gpu_perf_time {
 		struct gpu_perf_time *next;
 		struct gpu_perf_comm *comm;
-		int ring;
 		uint32_t seqno;
 		uint64_t time;
-	} *wait, *busy;
+	} *wait[MAX_RINGS];
 };
 
 void gpu_perf_init(struct gpu_perf *gp, unsigned flags);
