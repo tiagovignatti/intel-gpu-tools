@@ -39,6 +39,7 @@
 #include <xf86drm.h>
 #include <drm.h>
 #include <fcntl.h>
+#include <unistd.h>
 
 #include "dri2.h"
 
@@ -160,10 +161,14 @@ int dri2_open(Display *dpy)
 		return -1;
 
 	if (drmIoctl(fd, DRM_IOCTL_GET_MAGIC, &auth))
-		return -1;
+		goto err_fd;
 
 	if (!DRI2Authenticate(dpy, DefaultRootWindow(dpy), auth.magic))
-		return -1;
+		goto err_fd;
 
 	return fd;
+
+err_fd:
+	close(fd);
+	return -1;
 }
