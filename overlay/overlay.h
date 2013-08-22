@@ -64,18 +64,40 @@ struct overlay {
 
 extern const cairo_user_data_key_t overlay_key;
 
+struct config {
+	struct config_section {
+		struct config_section *next;
+		struct config_value {
+			struct config_value *next;
+			char *name;
+			char *value;
+		} *values;
+		char name[0];
+	} *sections;
+};
+
+void config_init(struct config *config);
+void config_parse_string(struct config *config, const char *str);
+void config_set_value(struct config *config,
+		      const char *section,
+		      const char *name,
+		      const char *value);
+const char *config_get_value(struct config *config,
+			     const char *section,
+			     const char *name);
+
 #ifdef HAVE_OVERLAY_XVLIB
-cairo_surface_t *x11_overlay_create(enum position pos, int *width, int *height);
+cairo_surface_t *x11_overlay_create(struct config *config, int *width, int *height);
 void x11_overlay_stop(void);
 #else
-static inline cairo_surface_t *x11_overlay_create(enum position pos, int *width, int *height) { return NULL; }
+static inline cairo_surface_t *x11_overlay_create(struct config *config, int *width, int *height) { return NULL; }
 static inline void x11_overlay_stop(void) { }
 #endif
 
 #ifdef HAVE_OVERLAY_XLIB
-cairo_surface_t *x11_window_create(enum position pos, int *width, int *height);
+cairo_surface_t *x11_window_create(struct config *config, int *width, int *height);
 #else
-static inline cairo_surface_t *x11_window_create(enum position pos, int *width, int *height) { return NULL; }
+static inline cairo_surface_t *x11_window_create(struct config *config, int *width, int *height) { return NULL; }
 #endif
 
 #endif /* OVERLAY_H */

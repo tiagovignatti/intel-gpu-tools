@@ -33,9 +33,11 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <signal.h>
+#include <getopt.h>
 
 #include "overlay.h"
 #include "chart.h"
+#include "config.h"
 #include "cpu-top.h"
 #include "debugfs.h"
 #include "gem-objects.h"
@@ -710,23 +712,48 @@ static void signal_snapshot(int sig)
 
 int main(int argc, char **argv)
 {
+	static struct option long_options[] = {
+		{"config", 1, 0, 'c'},
+		{"geometry", 1, 0, 'G'},
+		{"position", 1, 0, 'P'},
+		{NULL, 0, 0, 0,}
+	};
 	struct overlay_context ctx;
-	int i = 0;
+	struct config config;
+	int index;
+	int i;
 
-	if (argc > 1) {
+	config_init(&config);
+
+	opterr = 0;
+	while ((i = getopt_long(argc, argv, "c:", long_options, &index)) != -1) {
+		switch (i) {
+		case 'c':
+			config_parse_string(&config, optarg);
+			break;
+		case 'G':
+			config_set_value(&config, "window", "geometry", optarg);
+			break;
+		case 'P':
+			config_set_value(&config, "window", "position", optarg);
+			break;
+		}
+	}
+
+	if (argc > optind) {
 		x11_overlay_stop();
 		return 0;
 	}
 
-	signal(SIGUSR1, signal_snapshot);
-
 	ctx.width = 640;
 	ctx.height = 236;
-	ctx.surface = x11_overlay_create(POS_TOP_RIGHT, &ctx.width, &ctx.height);
+	ctx.surface = x11_overlay_create(&config, &ctx.width, &ctx.height);
 	if (ctx.surface == NULL)
-		ctx.surface = x11_window_create(POS_TOP_RIGHT, &ctx.width, &ctx.height);
+		ctx.surface = x11_window_create(&config, &ctx.width, &ctx.height);
 	if (ctx.surface == NULL)
 		return ENOMEM;
+
+	signal(SIGUSR1, signal_snapshot);
 
 	debugfs_init();
 
@@ -735,6 +762,7 @@ int main(int argc, char **argv)
 	init_gpu_freq(&ctx, &ctx.gpu_freq);
 	init_gem_objects(&ctx, &ctx.gem_objects);
 
+	i = 0;
 	while (1) {
 		usleep(500*1000);
 

@@ -38,6 +38,7 @@
 #include <i915_drm.h>
 #include "../overlay.h"
 #include "dri2.h"
+#include "position.h"
 #include "rgb2yuv.h"
 
 #ifndef ALIGN
@@ -142,7 +143,7 @@ static void x11_overlay_destroy(void *data)
 }
 
 cairo_surface_t *
-x11_overlay_create(enum position position, int *width, int *height)
+x11_overlay_create(struct config *config, int *width, int *height)
 {
 	Display *dpy;
 	Screen *scr;
@@ -152,11 +153,12 @@ x11_overlay_create(enum position position, int *width, int *height)
 	struct drm_i915_gem_mmap_gtt map;
 	struct x11_overlay *priv;
 	unsigned int count, i, j;
-	int fd, w, h;
+	int fd, x, y, w, h;
 	XvAdaptorInfo *info;
 	XvImage *image;
 	XvPortID port = -1;
 	void *ptr, *mem;
+	enum position position;
 
 	dpy = XOpenDisplay(NULL);
 	if (dpy == NULL)
@@ -195,29 +197,7 @@ x11_overlay_create(enum position position, int *width, int *height)
 
 	XSetErrorHandler(noop);
 
-	if (*width == -1) {
-		w = scr->width;
-		switch (position & 7) {
-		default:
-		case 0:
-		case 2: w >>= 1; break;
-		}
-	} else if (*width > scr->width) {
-		w = scr->width;
-	} else
-		w = *width;
-
-	if (*height == -1) {
-		h = scr->height;
-		switch ((position >> 4) & 7) {
-		default:
-		case 0:
-		case 2: h >>= 1; break;
-		}
-	} else if (*height > scr->height)
-		h = scr->height;
-	else
-		h = *height;
+	position = x11_position(scr, *width, *height, config, &x, &y, &w, &h);
 
 	image = XvCreateImage(dpy, port, FOURCC_RGB565, NULL, w, h);
 	if (image == NULL)
@@ -308,18 +288,22 @@ x11_overlay_create(enum position position, int *width, int *height)
 	priv->name = flink.name;
 	priv->visible = false;
 
-	switch (position & 7) {
-	default:
-	case 0: priv->x = 0; break;
-	case 1: priv->x = (scr->width - image->width)/2; break;
-	case 2: priv->x = scr->width - image->width; break;
-	}
+	priv->x = x;
+	priv->y = y;
+	if (position != POS_UNSET) {
+		switch (position & 7) {
+		default:
+		case 0: priv->x = 0; break;
+		case 1: priv->x = (scr->width - image->width)/2; break;
+		case 2: priv->x = scr->width - image->width; break;
+		}
 
-	switch ((position >> 4) & 7) {
-	default:
-	case 0: priv->y = 0; break;
-	case 1: priv->y = (scr->height - image->height)/2; break;
-	case 2: priv->y = scr->height - image->height; break;
+		switch ((position >> 4) & 7) {
+		default:
+		case 0: priv->y = 0; break;
+		case 1: priv->y = (scr->height - image->height)/2; break;
+		case 2: priv->y = scr->height - image->height; break;
+		}
 	}
 
 

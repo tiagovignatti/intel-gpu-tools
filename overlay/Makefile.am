@@ -8,10 +8,9 @@ LDADD = $(DRM_LIBS) $(PCIACCESS_LIBS) $(CAIRO_LIBS) $(OVERLAY_LIBS)
 
 intel_gpu_overlay_SOURCES = \
 	i915_pciids.h \
-	overlay.h \
-	overlay.c \
 	chart.h \
 	chart.c \
+	config.c \
 	cpu-top.h \
 	cpu-top.c \
 	debugfs.h \
@@ -26,6 +25,8 @@ intel_gpu_overlay_SOURCES = \
 	gpu-freq.c \
 	igfx.h \
 	igfx.c \
+	overlay.h \
+	overlay.c \
 	power.h \
 	power.c \
 	rc6.h \
@@ -33,6 +34,7 @@ intel_gpu_overlay_SOURCES = \
 	$(NULL)
 
 if BUILD_OVERLAY_XLIB
+both_x11_sources = x11/position.c x11/position.h
 AM_CFLAGS += $(OVERLAY_XLIB_CFLAGS)
 LDADD += $(OVERLAY_XLIB_LIBS)
 intel_gpu_overlay_SOURCES += \
@@ -41,6 +43,7 @@ intel_gpu_overlay_SOURCES += \
 endif
 
 if BUILD_OVERLAY_XVLIB
+both_x11_sources = x11/x11-position.c
 AM_CFLAGS += $(OVERLAY_XVLIB_CFLAGS)
 LDADD += $(OVERLAY_XVLIB_LIBS)
 intel_gpu_overlay_SOURCES += \
@@ -51,5 +54,7 @@ intel_gpu_overlay_SOURCES += \
 	x11/x11-overlay.c \
 	$(NULL)
 endif
+
+intel_gpu_overlay_SOURCES += $(both_x11_sources)
 
 EXTRA_DIST=README

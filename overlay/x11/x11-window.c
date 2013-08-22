@@ -32,6 +32,7 @@
 #include <unistd.h>
 
 #include "../overlay.h"
+#include "position.h"
 
 struct x11_window {
 	struct overlay base;
@@ -109,7 +110,7 @@ static void x11_window_destroy(void *data)
 }
 
 cairo_surface_t *
-x11_window_create(enum position position, int *width, int *height)
+x11_window_create(struct config *config, int *width, int *height)
 {
 	Display *dpy;
 	Screen *scr;
@@ -129,43 +130,7 @@ x11_window_create(enum position position, int *width, int *height)
 
 	XSetErrorHandler(noop);
 
-	if (*width == -1) {
-		w = scr->width;
-		switch (position & 7) {
-		default:
-		case 0:
-		case 2: w >>= 1; break;
-		}
-	} else if (*width > scr->width) {
-		w = scr->width;
-	} else
-		w = *width;
-
-	if (*height == -1) {
-		h = scr->height;
-		switch ((position >> 4) & 7) {
-		default:
-		case 0:
-		case 2: h >>= 1; break;
-		}
-	} else if (*height > scr->height)
-		h = scr->height;
-	else
-		h = *height;
-
-	switch (position & 7) {
-	default:
-	case 0: x = 0; break;
-	case 1: x = (scr->width - w)/2; break;
-	case 2: x = scr->width - w; break;
-	}
-
-	switch ((position >> 4) & 7) {
-	default:
-	case 0: y = 0; break;
-	case 1: y = (scr->height - h)/2; break;
-	case 2: y = scr->height - h; break;
-	}
+	x11_position(scr, *width, *height, config, &x, &y, &w, &h);
 
 	attr.override_redirect = True;
 	win = XCreateWindow(dpy, DefaultRootWindow(dpy),
