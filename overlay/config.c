@@ -55,9 +55,14 @@ static const char *trim_whitespace(const char *s, const char *end)
 	return end + 1;
 }
 
-static const char *skip_past_newline(const char *s, const char *end)
+static int is_eol(int c)
 {
-	while (s < end && *s++ != '\n')
+	return c == '\n' || c == '\r';
+}
+
+static const char *skip_past_eol(const char *s, const char *end)
+{
+	while (s < end && !is_eol(*s++))
 		;
 
 	return s;
@@ -74,7 +79,7 @@ static const char *find(const char *s, const char *end, int c)
 		s++;
 	}
 
-	return s;
+	return c == '\n' ? s : s < end ? s : NULL;
 }
 
 static int parse(const char *buf, int len,
@@ -87,10 +92,10 @@ static int parse(const char *buf, int len,
 	char section[128] = DEFAULT_SECTION, name[128], value[128];
 	const char *buf_end = buf + len;
 	const char *end;
-	int line = 0;
+	int has_section = 0;
+	int line;
 
-	for (line = 0 ; ++line; buf = skip_past_newline(buf, buf_end)) {
-		++line;
+	for (line = 0 ; ++line; buf = skip_past_eol(buf, buf_end)) {
 		buf = skip_whitespace(buf, buf_end);
 		if (buf >= buf_end)
 			break;
@@ -99,6 +104,9 @@ static int parse(const char *buf, int len,
 			/* comment */
 		} else if (*buf == '[') { /* new section */
 			end = find(++buf, buf_end, ']');
+			if (end == NULL)
+				return line;
+
 			end = trim_whitespace(buf, end);
 			if (end <= buf)
 				continue;
@@ -109,6 +117,7 @@ static int parse(const char *buf, int len,
 
 			memcpy(section, buf, len);
 			section[len] = '\0';
+			has_section = 1;
 		} else { /* name = value */
 			const char *sep;
 			int has_value = 1;
@@ -143,7 +152,21 @@ static int parse(const char *buf, int len,
 				memcpy(value, buf, len);
 				value[len] = '\0';
 			} else
-				value[0] = '\0';
+				*value = '\0';
+
+			if (!has_section) {
+				char *dot;
+
+				dot = strchr(name, '.');
+				if (dot && dot[1]) {
+					*dot = '\0';
+
+					if (!func(name, dot+1, value, data))
+						return line;
+
+					continue;
+				}
+			}
 
 			if (!func(section, name, value, data))
 				return line;
@@ -186,18 +209,14 @@ static int add_value(const char *section,
 	}
 	{
 		int name_len = strlen(name) + 1;
-		int value_len = *value ? strlen(value) + 1 : 0;
+		int value_len = strlen(value) + 1;
 
 		v = malloc(sizeof(*v) + name_len + value_len);
 		if (v == NULL)
 			return 0;
 
 		v->name = memcpy(v+1, name, name_len);
-
-		if (*value)
-			v->value = memcpy(v->name + name_len, value, value_len);
-		else
-			v->value = NULL;
+		v->value = memcpy(v->name + name_len, value, value_len);
 
 		v->next = s->values;
 		s->values = v;
