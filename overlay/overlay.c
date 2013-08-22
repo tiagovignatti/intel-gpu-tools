@@ -55,8 +55,6 @@ static void overlay_show(cairo_surface_t *surface)
 {
 	struct overlay *overlay;
 
-	cairo_surface_flush(surface);
-
 	overlay = cairo_surface_get_user_data(surface, &overlay_key);
 	if (overlay == NULL)
 		return;

@@ -36,6 +36,7 @@
 
 struct x11_window {
 	struct overlay base;
+	cairo_surface_t *front;
 	Display *dpy;
 	Window win;
 	int width, height;
@@ -55,6 +56,15 @@ static int noop(Display *dpy, XErrorEvent *event)
 static void x11_window_show(struct overlay *overlay)
 {
 	struct x11_window *priv = to_x11_window(overlay);
+	cairo_t *cr;
+
+	cr = cairo_create(priv->front);
+	cairo_set_operator(cr, CAIRO_OPERATOR_SOURCE);
+	cairo_set_source_surface(cr, priv->base.surface, 0, 0);
+	cairo_paint(cr);
+	cairo_destroy(cr);
+
+	cairo_surface_flush(priv->front);
 
 	if (!priv->visible) {
 		XMapWindow(priv->dpy, priv->win);
@@ -104,9 +114,22 @@ static void x11_window_hide(struct overlay *overlay)
 static void x11_window_destroy(void *data)
 {
 	struct x11_window *priv = data;
+	cairo_surface_destroy(priv->front);
 	XDestroyWindow(priv->dpy, priv->win);
 	XCloseDisplay(priv->dpy);
 	free(priv);
+}
+
+static int prefer_image(struct config *config)
+{
+	const char *v = config_get_value(config, "x11", "prefer-image");
+
+	if (v == NULL)
+		return 0;
+	if (*v == '\0')
+		return 1;
+
+	return atoi(v);
 }
 
 cairo_surface_t *
@@ -148,24 +171,33 @@ x11_window_create(struct config *config, int *width, int *height)
 	if (priv == NULL)
 		goto err_surface;
 
-	priv->base.surface = surface;
+	if (prefer_image(config))
+		priv->base.surface = cairo_image_surface_create(CAIRO_FORMAT_RGB24, w, h);
+	else
+		priv->base.surface = cairo_surface_create_similar(surface, CAIRO_CONTENT_COLOR, w, h);
+	if (cairo_surface_status(priv->base.surface))
+		goto err_priv;
+
 	priv->base.show = x11_window_show;
 	priv->base.position = x11_window_position;
 	priv->base.hide = x11_window_hide;
 
 	priv->dpy = dpy;
 	priv->win = win;
+	priv->front = surface;
 	priv->visible = false;
 
 	priv->width = w;
 	priv->height = h;
 
-	cairo_surface_set_user_data(surface, &overlay_key, priv, x11_window_destroy);
+	cairo_surface_set_user_data(priv->base.surface, &overlay_key, priv, x11_window_destroy);
 
 	*width = w;
 	*height = h;
-	return surface;
+	return priv->base.surface;
 
+err_priv:
+	free(priv);
 err_surface:
 	cairo_surface_destroy(surface);
 err_win:
