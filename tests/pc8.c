@@ -578,7 +578,7 @@ static int count_i2c_valid_edids(void)
 
 	closedir(dir);
 
-	return 0;
+	return ret;
 }
 
 /* We run this test when all outputs are turned off. When eDP panels are turned
