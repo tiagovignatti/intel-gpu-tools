@@ -517,17 +517,6 @@ static int count_drm_valid_edids(struct mode_set_data *data)
 	return ret;
 }
 
-static int count_drm_edp_outputs(struct mode_set_data *data)
-{
-	int i, ret = 0;
-
-	for (i = 0; i < data->res->count_connectors; i++)
-		if (data->connectors[i]->connector_type ==
-		    DRM_MODE_CONNECTOR_eDP)
-			ret++;
-	return ret;
-}
-
 static bool i2c_edid_is_valid(int fd)
 {
 	int rc;
@@ -581,16 +570,12 @@ static int count_i2c_valid_edids(void)
 	return ret;
 }
 
-/* We run this test when all outputs are turned off. When eDP panels are turned
- * off, I2C doesn't work on them and we get a nice dmesg backtrace. So count how
- * many eDP panels we have and subtract them. */
 static bool test_i2c(struct mode_set_data *data)
 {
 	int i2c_edids = count_i2c_valid_edids();
 	int drm_edids = count_drm_valid_edids(data);
-	int edps = count_drm_edp_outputs(data);
 
-	return i2c_edids + edps == drm_edids;
+	return i2c_edids == drm_edids;
 }
 
 static bool setup_environment(void)
