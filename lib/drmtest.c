@@ -1475,6 +1475,34 @@ void kmstest_paint_test_pattern(cairo_t *cr, int width, int height)
 	assert(!cairo_status(cr));
 }
 
+void kmstest_paint_image(cairo_t *cr, const char *filename,
+			 int dst_x, int dst_y, int dst_width, int dst_height)
+{
+	cairo_surface_t *image;
+	int img_width, img_height;
+	double scale_x, scale_y;
+
+	image = cairo_image_surface_create_from_png(filename);
+	assert(cairo_surface_status(image) == CAIRO_STATUS_SUCCESS);
+
+	img_width = cairo_image_surface_get_width(image);
+	img_height = cairo_image_surface_get_height(image);
+
+	scale_x = (double)dst_width / img_width;
+	scale_y = (double)dst_height / img_height;
+
+	cairo_save(cr);
+
+	cairo_translate(cr, dst_x, dst_y);
+	cairo_scale(cr, scale_x, scale_y);
+	cairo_set_source_surface(cr, image, 0, 0);
+	cairo_paint(cr);
+
+	cairo_surface_destroy(image);
+
+	cairo_restore(cr);
+}
+
 #define DF(did, cid, _bpp, _depth)	\
 	{ DRM_FORMAT_##did, CAIRO_FORMAT_##cid, # did, _bpp, _depth }
 static struct format_desc_struct {
