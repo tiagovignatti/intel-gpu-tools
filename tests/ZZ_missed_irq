@@ -1,0 +1,70 @@
+#!/bin/bash
+#
+# Testcase: Simulate missed breadcrumb interrupts
+#
+
+SOURCE_DIR="$( dirname "${BASH_SOURCE[0]}" )"
+test $SOURCE_DIR = . && SOURCE_DIR="`pwd`"
+. $SOURCE_DIR/drm_lib.sh
+cd $i915_dfs_path
+
+echo $SOURCE_DIR
+
+function check_for_missed_irq {
+	if test `cat i915_ring_missed_irq` = 0x00000000; then
+		echo "missed interrupts undetected"
+		exit 1
+	fi
+}
+
+function check_for_hang {
+	if cat i915_error_state | grep -v "no error state collected" > /dev/null ; then
+		echo "gpu hang reported"
+		exit 2
+	fi
+}
+
+if [ ! -f i915_ring_missed_irq ] ; then
+	echo "kernel doesn't support interrupt masking"
+	exit 77
+fi
+
+# clear error state first
+echo > i915_error_state
+check_for_hang
+
+echo 0xf > i915_ring_test_irq
+echo "Interrupts masked"
+if test `cat i915_ring_test_irq` != 0x0000000f; then
+	echo "Failed to set interrupt mask"
+	exit 3
+fi
+
+$SOURCE_DIR/gem_exec_big > /dev/null
+
+check_for_missed_irq
+check_for_hang
+
+$SOURCE_DIR/gem_exec_big > /dev/null
+
+check_for_hang
+
+echo 0 > i915_ring_test_irq
+echo "Interrupts unmasked"
+if test `cat i915_ring_test_irq` != 0x00000000; then
+	echo "Failed to clear interrupt mask"
+	exit 3
+fi
+
+$SOURCE_DIR/gem_exec_big > /dev/null
+
+check_for_hang
+
+echo 0 > i915_ring_missed_irq
+echo "Cleared missed interrupts"
+if test `cat i915_ring_missed_irq` != 0x00000000; then
+	echo "Failed to clear missed interrupts"
+	exit 3
+fi
+
+exit 0

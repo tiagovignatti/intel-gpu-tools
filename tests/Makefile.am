@@ -132,6 +132,7 @@ TESTS_scripts = \
 	test_rte_check \
 	tools_test \
 	ZZ_hangman \
+	ZZ_missed_irq \
 	$(NULL)
 
 # This target contains testcases which support automagic subtest enumeration
