@@ -22,6 +22,8 @@ TESTS_progs_M = \
 	gem_cs_tlb \
 	gem_ctx_bad_exec \
 	gem_dummy_reloc_loop \
+	gem_evict_alignment \
+	gem_evict_everything \
 	gem_exec_bad_domains \
 	gem_exec_nop \
 	gem_fence_thrash \
@@ -63,8 +65,6 @@ TESTS_progs = \
 	gem_ctx_create \
 	gem_ctx_exec \
 	gem_double_irq_loop \
-	gem_evict_alignment \
-	gem_evict_everything \
 	gem_exec_big \
 	gem_exec_blt \
 	gem_exec_faulting_reloc \

@@ -175,22 +175,47 @@ static void major_evictions(int fd, int size, int count)
 	free(bo);
 }
 
+int fd;
+
 int main(int argc, char **argv)
 {
-	int fd, size, count;
+	int size, count;
+
+	igt_subtest_init(argc, argv);
 
 	igt_skip_on_simulation();
 
-	fd = drm_open_any();
+	igt_fixture
+		fd = drm_open_any();
 
-	size = 1024 * 1024;
-	count = 3*gem_aperture_size(fd) / size / 4;
-	minor_evictions(fd, size, count);
+	igt_subtest("minor-normal") {
+		size = 1024 * 1024;
+		count = 3*gem_aperture_size(fd) / size / 4;
+		minor_evictions(fd, size, count);
+	}
 
-	size = 3*gem_aperture_size(fd) / 4;
-	count = 4;
-	major_evictions(fd, size, count);
+	igt_subtest("major-normal") {
+		size = 3*gem_aperture_size(fd) / 4;
+		count = 4;
+		major_evictions(fd, size, count);
+	}
 
-	close(fd);
-	return 0;
+	igt_fork_signal_helper();
+	igt_subtest("minor-interruptible") {
+		size = 1024 * 1024;
+		count = 3*gem_aperture_size(fd) / size / 4;
+		minor_evictions(fd, size, count);
+	}
+
+	igt_subtest("major-interruptible") {
+		size = 3*gem_aperture_size(fd) / 4;
+		count = 4;
+		major_evictions(fd, size, count);
+	}
+	igt_stop_signal_helper();
+
+	igt_fixture
+		close(fd);
+
+	igt_exit();
 }
