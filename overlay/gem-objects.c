@@ -30,6 +30,7 @@
 #include <string.h>
 
 #include "gem-objects.h"
+#include "debugfs.h"
 
 /* /sys/kernel/debug/dri/0/i915_gem_objects:
  *	46 objects, 20107264 bytes
@@ -52,7 +53,8 @@ int gem_objects_init(struct gem_objects *obj)
 
 	memset(obj, 0, sizeof(*obj));
 
-	fd = open("/sys/kernel/debug/dri/0/i915_gem_objects", 0);
+	sprintf(buf, "%s/i915_gem_objects", debugfs_path);
+	fd = open(buf, 0);
 	if (fd < 0)
 		return errno;
 	len = read(fd, buf, sizeof(buf)-1);
@@ -97,7 +99,8 @@ int gem_objects_update(struct gem_objects *obj)
 	freed = obj->comm;
 	obj->comm = NULL;
 
-	fd = open("/sys/kernel/debug/dri/0/i915_gem_objects", 0);
+	sprintf(buf, "%s/i915_gem_objects", debugfs_path);
+	fd = open(buf, 0);
 	if (fd < 0) {
 		ret = errno;
 		goto done;

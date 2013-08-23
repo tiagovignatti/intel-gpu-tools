@@ -31,6 +31,7 @@
 #include <errno.h>
 
 #include "power.h"
+#include "debugfs.h"
 
 /* XXX Is this exposed through RAPL? */
 
@@ -41,7 +42,8 @@ int power_init(struct power *power)
 
 	memset(power, 0, sizeof(*power));
 
-	fd = open("/sys/kernel/debug/dri/0/i915_energy_uJ", 0);
+	sprintf(buf, "%s/i915_energy_uJ", debugfs_path);
+	fd = open(buf, 0);
 	if (fd < 0)
 		return power->error = errno;
 
@@ -54,12 +56,13 @@ int power_init(struct power *power)
 	return 0;
 }
 
-static uint64_t file_to_u64(const char *path)
+static uint64_t file_to_u64(const char *name)
 {
 	char buf[4096];
 	int fd, len;
 
-	fd = open(path, 0);
+	sprintf(buf, "%s/i915_energy_uJ", name);
+	fd = open(buf, 0);
 	if (fd < 0)
 		return 0;
 
@@ -93,7 +96,7 @@ int power_update(struct power *power)
 	if (power->error)
 		return power->error;
 
-	s->energy = file_to_u64("/sys/kernel/debug/dri/0/i915_energy_uJ");
+	s->energy = file_to_u64("i915_energy_uJ");
 	s->timestamp = clock_ms_to_u64();
 	if (power->count == 1)
 		return EAGAIN;

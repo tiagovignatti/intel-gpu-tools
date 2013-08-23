@@ -36,6 +36,7 @@
 #include <errno.h>
 
 #include "gpu-perf.h"
+#include "debugfs.h"
 
 #if defined(__i386__)
 #define rmb()           asm volatile("lock; addl $0,0(%%esp)" ::: "memory")
@@ -45,7 +46,6 @@
 #define rmb()           asm volatile("lfence" ::: "memory")
 #endif
 
-#define TRACING_EVENT_PATH "/sys/kernel/debug/tracing/events"
 #define N_PAGES 32
 
 struct sample_event {
@@ -85,7 +85,7 @@ static uint64_t tracepoint_id(const char *sys, const char *name)
 	char buf[1024];
 	int fd, n;
 
-	snprintf(buf, sizeof(buf), "%s/%s/%s/id", TRACING_EVENT_PATH, sys, name);
+	snprintf(buf, sizeof(buf), "%s/tracing/events/%s/%s/id", debugfs_path, sys, name);
 	fd = open(buf, 0);
 	if (fd < 0)
 		return 0;

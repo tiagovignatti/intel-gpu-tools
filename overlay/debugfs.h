@@ -25,6 +25,7 @@
 #ifndef DEBUGFS_H
 #define DEBUGFS_H
 
+extern char debugfs_path[128];
 int debugfs_init(void);
 
 #endif /* DEBUGFS_H */

@@ -25,15 +25,25 @@
 #include <sys/stat.h>
 #include <sys/mount.h>
 #include <errno.h>
+#include <stdio.h>
 
 #include "debugfs.h"
 
+char debugfs_path[128];
+
 int debugfs_init(void)
 {
+	const char *path = "/sys/kernel/debug";
 	struct stat st;
+	int n;
+
+	if (stat("/debug/dri", &st) == 0) {
+		path = "/debug/dri";
+		goto find_minor;
+	}
 
 	if (stat("/sys/kernel/debug/dri", &st) == 0)
-		return 0;
+		goto find_minor;
 
 	if (stat("/sys/kernel/debug", &st))
 		return errno;
@@ -41,5 +51,16 @@ int debugfs_init(void)
 	if (mount("debug", "/sys/kernel/debug", "debugfs", 0, 0))
 		return errno;
 
-	return 0;
+find_minor:
+	for (n = 0; n < 16; n++) {
+		int len = sprintf(debugfs_path, "%s/dri/%d", path, n);
+		sprintf(debugfs_path + len, "/i915_error_state");
+		if (stat(debugfs_path, &st) == 0) {
+			debugfs_path[len] = '\0';
+			return 0;
+		}
+	}
+
+	debugfs_path[0] = '\0';
+	return ENOENT;
 }

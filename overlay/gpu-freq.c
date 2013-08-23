@@ -29,6 +29,7 @@
 #include <stdio.h>
 
 #include "gpu-freq.h"
+#include "debugfs.h"
 
 int gpu_freq_init(struct gpu_freq *gf)
 {
@@ -37,7 +38,8 @@ int gpu_freq_init(struct gpu_freq *gf)
 
 	memset(gf, 0, sizeof(*gf));
 
-	fd = open("/sys/kernel/debug/dri/0/i915_cur_delayinfo", 0);
+	sprintf(buf, "%s/i915_cur_delayinfo", debugfs_path);
+	fd = open(buf, 0);
 	if (fd < 0)
 		return gf->error = errno;
 
@@ -83,7 +85,8 @@ int gpu_freq_update(struct gpu_freq *gf)
 	if (gf->error)
 		return gf->error;
 
-	fd = open("/sys/kernel/debug/dri/0/i915_cur_delayinfo", 0);
+	sprintf(buf, "%s/i915_cur_delayinfo", debugfs_path);
+	fd = open(buf, 0);
 	if (fd < 0)
 		return gf->error = errno;
 
