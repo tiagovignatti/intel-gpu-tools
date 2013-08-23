@@ -53,6 +53,10 @@ int power_init(struct power *power)
 	if (len < 0)
 		return power->error = errno;
 
+	buf[len] = '\0';
+	if (strtoull(buf, 0, 0) == 0)
+		return power->error = EINVAL;
+
 	return 0;
 }
 
@@ -61,7 +65,7 @@ static uint64_t file_to_u64(const char *name)
 	char buf[4096];
 	int fd, len;
 
-	sprintf(buf, "%s/i915_energy_uJ", name);
+	sprintf(buf, "%s/%s", debugfs_dri_path, name);
 	fd = open(buf, 0);
 	if (fd < 0)
 		return 0;
