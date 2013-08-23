@@ -148,7 +148,8 @@ int main(int argc, char *argv[])
 		ret = asprintf(&path, sysfs_base_path, device, junk->name);
 		igt_assert(ret != -1);
 		junk->filp = fopen(path, junk->mode);
-		igt_require(junk->filp == NULL);
+		igt_require(junk->filp);
+
 		val = readval(junk->filp);
 		igt_assert(val >= 0);
 		junk++;
