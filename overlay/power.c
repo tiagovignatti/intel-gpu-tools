@@ -42,7 +42,7 @@ int power_init(struct power *power)
 
 	memset(power, 0, sizeof(*power));
 
-	sprintf(buf, "%s/i915_energy_uJ", debugfs_path);
+	sprintf(buf, "%s/i915_energy_uJ", debugfs_dri_path);
 	fd = open(buf, 0);
 	if (fd < 0)
 		return power->error = errno;

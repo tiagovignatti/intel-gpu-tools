@@ -26,10 +26,12 @@
 #include <sys/mount.h>
 #include <errno.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "debugfs.h"
 
 char debugfs_path[128];
+char debugfs_dri_path[128];
 
 int debugfs_init(void)
 {
@@ -52,15 +54,16 @@ int debugfs_init(void)
 		return errno;
 
 find_minor:
+	strcpy(debugfs_path, path);
 	for (n = 0; n < 16; n++) {
-		int len = sprintf(debugfs_path, "%s/dri/%d", path, n);
-		sprintf(debugfs_path + len, "/i915_error_state");
-		if (stat(debugfs_path, &st) == 0) {
-			debugfs_path[len] = '\0';
+		int len = sprintf(debugfs_dri_path, "%s/dri/%d", path, n);
+		sprintf(debugfs_dri_path + len, "/i915_error_state");
+		if (stat(debugfs_dri_path, &st) == 0) {
+			debugfs_dri_path[len] = '\0';
 			return 0;
 		}
 	}
 
-	debugfs_path[0] = '\0';
+	debugfs_dri_path[0] = '\0';
 	return ENOENT;
 }

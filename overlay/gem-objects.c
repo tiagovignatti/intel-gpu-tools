@@ -53,7 +53,7 @@ int gem_objects_init(struct gem_objects *obj)
 
 	memset(obj, 0, sizeof(*obj));
 
-	sprintf(buf, "%s/i915_gem_objects", debugfs_path);
+	sprintf(buf, "%s/i915_gem_objects", debugfs_dri_path);
 	fd = open(buf, 0);
 	if (fd < 0)
 		return errno;
@@ -99,7 +99,7 @@ int gem_objects_update(struct gem_objects *obj)
 	freed = obj->comm;
 	obj->comm = NULL;
 
-	sprintf(buf, "%s/i915_gem_objects", debugfs_path);
+	sprintf(buf, "%s/i915_gem_objects", debugfs_dri_path);
 	fd = open(buf, 0);
 	if (fd < 0) {
 		ret = errno;
