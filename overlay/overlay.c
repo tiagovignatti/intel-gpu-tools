@@ -708,6 +708,21 @@ static void signal_snapshot(int sig)
 	take_snapshot = sig;
 }
 
+static int get_sample_period(struct config *config)
+{
+	const char *value;
+
+	value = config_get_value(config, "sampling", "period");
+	if (value && atoi(value) > 0)
+		return atoi(value);
+
+	value = config_get_value(config, "sampling", "frequency");
+	if (value && atoi(value) > 0)
+		return 1000000 / atoi(value);
+
+	return 500000;
+}
+
 int main(int argc, char **argv)
 {
 	static struct option long_options[] = {
@@ -718,7 +733,7 @@ int main(int argc, char **argv)
 	};
 	struct overlay_context ctx;
 	struct config config;
-	int index;
+	int index, sample_period;
 	int i;
 
 	config_init(&config);
@@ -760,10 +775,10 @@ int main(int argc, char **argv)
 	init_gpu_freq(&ctx, &ctx.gpu_freq);
 	init_gem_objects(&ctx, &ctx.gem_objects);
 
+	sample_period = get_sample_period(&config);
+
 	i = 0;
 	while (1) {
-		usleep(500*1000);
-
 		ctx.cr = cairo_create(ctx.surface);
 		cairo_set_operator(ctx.cr, CAIRO_OPERATOR_CLEAR);
 		cairo_paint(ctx.cr);
@@ -797,6 +812,8 @@ int main(int argc, char **argv)
 			cairo_surface_write_to_png(ctx.surface, buf);
 			take_snapshot = 0;
 		}
+
+		usleep(sample_period);
 	}
 
 	return 0;
