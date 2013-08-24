@@ -187,7 +187,6 @@ static void show_gpu_top(struct overlay_context *ctx, struct overlay_gpu_top *gt
 
 	if (update && cpu_top_update(&gt->cpu_top) == 0)
 		chart_add_sample(&gt->cpu, gt->cpu_top.busy);
-	chart_draw(&gt->cpu, ctx->cr);
 
 	for (n = 0; n < gt->gpu_top.num_rings; n++) {
 		if (update)
@@ -201,6 +200,7 @@ static void show_gpu_top(struct overlay_context *ctx, struct overlay_gpu_top *gt
 					 gt->gpu_top.ring[n].u.u.busy);
 		chart_draw(&gt->busy[n], ctx->cr);
 	}
+	chart_draw(&gt->cpu, ctx->cr);
 
 	y1 = 12 - 2;
 	y2 = y1 + (gt->gpu_top.num_rings+1) * 14 + 4;
