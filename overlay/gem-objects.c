@@ -119,11 +119,11 @@ int gem_objects_update(struct gem_objects *obj)
 
 	b = buf;
 
-	sscanf(b, "%d objects, %ld bytes",
+	sscanf(b, "%lu objects, %lu bytes",
 	       &obj->total_count, &obj->total_bytes);
 
 	b = strchr(b, '\n');
-	sscanf(b, "%*d [%*d] objects, %ld [%ld] bytes in gtt",
+	sscanf(b, "%*d [%*d] objects, %lu [%lu] bytes in gtt",
 	       &obj->total_gtt, &obj->total_aperture);
 
 	ret = 0;
@@ -144,7 +144,7 @@ int gem_objects_update(struct gem_objects *obj)
 			break;
 
 		/* Xorg: 35 objects, 16347136 bytes (0 active, 12103680 inactive, 0 unbound) */
-		sscanf(++b, "%256s %u objects, %lu bytes",
+		sscanf(++b, "%256s %lu objects, %lu bytes",
 		       comm->name, &comm->count, &comm->bytes);
 
 		insert_sorted(obj, comm);
