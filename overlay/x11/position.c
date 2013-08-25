@@ -80,12 +80,13 @@ x11_position(Screen *scr, int width, int height,
 	geometry = config_get_value(config, "window", "geometry");
 	if (geometry) {
 		sscanf(geometry, "%dx%d+%d+%d", w, h, x, y);
-		if (*w < width)
-			*w = width;
-		if (*h < height)
-			*h = height;
+		if (*w < width/2)
+			*w = width/2;
+		if (*h < height/2)
+			*h = height/2;
 	} else {
 		position = get_position(config);
+
 		if (position != POS_UNSET) {
 			if (width == -1) {
 				*w = scr->width;
@@ -94,10 +95,7 @@ x11_position(Screen *scr, int width, int height,
 				case 0:
 				case 2: *w >>= 1; break;
 				}
-			} else if (width > scr->width) {
-				*w = scr->width;
-			} else
-				*w = width;
+			}
 
 			if (height == -1) {
 				*h = scr->height;
@@ -106,11 +104,41 @@ x11_position(Screen *scr, int width, int height,
 				case 0:
 				case 2: *h >>= 1; break;
 				}
-			} else if (height > scr->height)
-				*h = scr->height;
-			else
-				*h = height;
+			}
+		}
 
+		geometry = config_get_value(config, "window", "size");
+		if (geometry) {
+			int size_w, size_h;
+			float scale_x, scale_y;
+
+			if (sscanf(geometry, "%dx%d", &size_w, &size_h) == 2) {
+				*w = size_w;
+				*h = size_h;
+			} else if (sscanf(geometry, "%f%%x%f%%", &scale_x, &scale_y) == 2) {
+				if (*w != -1)
+					*w = (*w * scale_x) / 100.;
+				if (*h != -1)
+					*h = (*h * scale_y) / 100.;
+			} else if (sscanf(geometry, "%f%%", &scale_x) == 1) {
+				if (*w != -1)
+					*w = (*w * scale_x) / 100.;
+				if (*h != -1)
+					*h = (*h * scale_x) / 100.;
+			}
+			if ((unsigned)*w < width/2)
+				*w = width/2;
+			if ((unsigned)*h < height/2)
+				*h = height/2;
+		}
+
+		if ((unsigned)*w > scr->width)
+			*w = scr->width;
+
+		if ((unsigned)*h > scr->height)
+			*h = scr->height;
+
+		if (position != POS_UNSET) {
 			switch (position & 7) {
 			default:
 			case 0: *x = 0; break;

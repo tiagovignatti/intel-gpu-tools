@@ -740,6 +740,7 @@ int main(int argc, char **argv)
 		{"config", 1, 0, 'c'},
 		{"geometry", 1, 0, 'G'},
 		{"position", 1, 0, 'P'},
+		{"size", 1, 0, 'S'},
 		{NULL, 0, 0, 0,}
 	};
 	struct overlay_context ctx;
@@ -751,7 +752,7 @@ int main(int argc, char **argv)
 	config_init(&config);
 
 	opterr = 0;
-	while ((i = getopt_long(argc, argv, "c:f", long_options, &index)) != -1) {
+	while ((i = getopt_long(argc, argv, "c:f:", long_options, &index)) != -1) {
 		switch (i) {
 		case 'c':
 			config_parse_string(&config, optarg);
@@ -761,6 +762,9 @@ int main(int argc, char **argv)
 			break;
 		case 'P':
 			config_set_value(&config, "window", "position", optarg);
+			break;
+		case 'S':
+			config_set_value(&config, "window", "size", optarg);
 			break;
 		case 'f':
 			daemonize = 0;
