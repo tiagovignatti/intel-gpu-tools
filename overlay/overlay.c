@@ -760,9 +760,13 @@ int main(int argc, char **argv)
 
 	ctx.width = 640;
 	ctx.height = 236;
-	ctx.surface = x11_overlay_create(&config, &ctx.width, &ctx.height);
+	ctx.surface = NULL;
+	if (ctx.surface == NULL)
+		ctx.surface = x11_overlay_create(&config, &ctx.width, &ctx.height);
 	if (ctx.surface == NULL)
 		ctx.surface = x11_window_create(&config, &ctx.width, &ctx.height);
+	if (ctx.surface == NULL)
+		ctx.surface = kms_overlay_create(&config, &ctx.width, &ctx.height);
 	if (ctx.surface == NULL)
 		return ENOMEM;
 

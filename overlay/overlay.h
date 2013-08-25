@@ -100,4 +100,6 @@ cairo_surface_t *x11_window_create(struct config *config, int *width, int *heigh
 static inline cairo_surface_t *x11_window_create(struct config *config, int *width, int *height) { return NULL; }
 #endif
 
+cairo_surface_t *kms_overlay_create(struct config *config, int *width, int *height);
+
 #endif /* OVERLAY_H */

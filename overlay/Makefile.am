@@ -55,6 +55,10 @@ intel_gpu_overlay_SOURCES += \
 	$(NULL)
 endif
 
+intel_gpu_overlay_SOURCES += \
+	kms/kms-overlay.c \
+	$(NULL)
+
 intel_gpu_overlay_SOURCES += $(both_x11_sources)
 
 EXTRA_DIST=README
