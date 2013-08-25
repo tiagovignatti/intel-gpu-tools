@@ -734,12 +734,13 @@ int main(int argc, char **argv)
 	struct overlay_context ctx;
 	struct config config;
 	int index, sample_period;
+	int daemonize = 1;
 	int i;
 
 	config_init(&config);
 
 	opterr = 0;
-	while ((i = getopt_long(argc, argv, "c:", long_options, &index)) != -1) {
+	while ((i = getopt_long(argc, argv, "c:f", long_options, &index)) != -1) {
 		switch (i) {
 		case 'c':
 			config_parse_string(&config, optarg);
@@ -749,6 +750,9 @@ int main(int argc, char **argv)
 			break;
 		case 'P':
 			config_set_value(&config, "window", "position", optarg);
+			break;
+		case 'f':
+			daemonize = 0;
 			break;
 		}
 	}
@@ -769,6 +773,9 @@ int main(int argc, char **argv)
 		ctx.surface = kms_overlay_create(&config, &ctx.width, &ctx.height);
 	if (ctx.surface == NULL)
 		return ENOMEM;
+
+	if (daemonize && daemon(0, 0))
+		return EINVAL;
 
 	signal(SIGUSR1, signal_snapshot);
 
