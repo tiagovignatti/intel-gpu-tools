@@ -40,6 +40,7 @@
 #include "config.h"
 #include "cpu-top.h"
 #include "debugfs.h"
+#include "gem-interrupts.h"
 #include "gem-objects.h"
 #include "gpu-freq.h"
 #include "gpu-top.h"
@@ -101,6 +102,7 @@ struct overlay_gpu_perf {
 struct overlay_gpu_freq {
 	struct gpu_freq gpu_freq;
 	struct rc6 rc6;
+	struct gem_interrupts irqs;
 	struct power power;
 	struct chart current;
 	struct chart request;
@@ -489,6 +491,7 @@ static void init_gpu_freq(struct overlay_context *ctx,
 	}
 
 	rc6_init(&gf->rc6);
+	gem_interrupts_init(&gf->irqs);
 }
 
 static void show_gpu_freq(struct overlay_context *ctx, struct overlay_gpu_freq *gf)
@@ -499,6 +502,7 @@ static void show_gpu_freq(struct overlay_context *ctx, struct overlay_gpu_freq *
 	int has_freq = gpu_freq_update(&gf->gpu_freq) == 0;
 	int has_rc6 = rc6_update(&gf->rc6) == 0;
 	int has_power = power_update(&gf->power) == 0;
+	int has_irqs = gem_interrupts_update(&gf->irqs) == 0;
 	cairo_pattern_t *linear;
 
 	cairo_rectangle(ctx->cr, 12-.5, ctx->height/2+6-.5, ctx->width/2-18+1, ctx->height/2-18+1);
@@ -545,12 +549,12 @@ static void show_gpu_freq(struct overlay_context *ctx, struct overlay_gpu_freq *
 		y2 += 14;
 		y2 += 14;
 	}
-	if (has_rc6) {
+	if (has_rc6)
 		y2 += 14;
-	}
-	if (has_power) {
+	if (has_power)
 		y2 += 14;
-	}
+	if (has_irqs)
+		y2 += 14;
 	y1 += -12 - 2;
 	y2 += -14 + 4;
 
@@ -608,6 +612,13 @@ static void show_gpu_freq(struct overlay_context *ctx, struct overlay_gpu_freq *
 
 	if (has_power) {
 		sprintf(buf, "Power: %llumW", (long long unsigned)gf->power.power_mW);
+		cairo_move_to(ctx->cr, 12, y);
+		cairo_show_text(ctx->cr, buf);
+		y += 14;
+	}
+
+	if (has_irqs) {
+		sprintf(buf, "Interrupts: %llu", (long long unsigned)gf->irqs.delta);
 		cairo_move_to(ctx->cr, 12, y);
 		cairo_show_text(ctx->cr, buf);
 		y += 14;
