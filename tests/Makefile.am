@@ -30,6 +30,7 @@ TESTS_progs_M = \
 	gem_flink \
 	gem_flink_race \
 	gem_linear_blits \
+	gem_mmap \
 	gem_mmap_gtt \
 	gem_partial_pwrite_pread \
 	gem_pread \
@@ -75,7 +76,6 @@ TESTS_progs = \
 	gem_hangcheck_forcewake \
 	gem_largeobject \
 	gem_lut_handle \
-	gem_mmap \
 	gem_mmap_offset_exhaustion \
 	gem_pin \
 	gem_pipe_control_store_loop \

@@ -40,56 +40,63 @@
 #include "drmtest.h"
 
 #define OBJECT_SIZE 16384
+int fd;
+int handle;
 
 int main(int argc, char **argv)
 {
-	int fd;
 	struct drm_i915_gem_mmap arg;
 	uint8_t expected[OBJECT_SIZE];
 	uint8_t buf[OBJECT_SIZE];
 	uint8_t *addr;
 	int ret;
-	int handle;
 
-	fd = drm_open_any();
+	igt_subtest_init(argc, argv);
 
-	memset(&arg, 0, sizeof(arg));
-	arg.handle = 0x10101010;
-	arg.offset = 0;
-	arg.size = 4096;
-	printf("Testing mmaping of bad object.\n");
-	ret = ioctl(fd, DRM_IOCTL_I915_GEM_MMAP, &arg);
-	igt_assert(ret == -1 && errno == ENOENT);
+	igt_fixture
+		fd = drm_open_any();
 
-	handle = gem_create(fd, OBJECT_SIZE);
+	igt_subtest("bad-object") {
+		memset(&arg, 0, sizeof(arg));
+		arg.handle = 0x10101010;
+		arg.offset = 0;
+		arg.size = 4096;
+		ret = ioctl(fd, DRM_IOCTL_I915_GEM_MMAP, &arg);
+		igt_assert(ret == -1 && errno == ENOENT);
+	}
 
-	printf("Testing mmaping of newly created object.\n");
-	arg.handle = handle;
-	arg.offset = 0;
-	arg.size = OBJECT_SIZE;
-	ret = ioctl(fd, DRM_IOCTL_I915_GEM_MMAP, &arg);
-	igt_assert(ret == 0);
-	addr = (uint8_t *)(uintptr_t)arg.addr_ptr;
+	igt_fixture
+		handle = gem_create(fd, OBJECT_SIZE);
 
-	printf("Testing contents of newly created object.\n");
-	memset(expected, 0, sizeof(expected));
-	igt_assert(memcmp(addr, expected, sizeof(expected)) == 0);
+	igt_subtest("new-object") {
+		arg.handle = handle;
+		arg.offset = 0;
+		arg.size = OBJECT_SIZE;
+		ret = ioctl(fd, DRM_IOCTL_I915_GEM_MMAP, &arg);
+		igt_assert(ret == 0);
+		addr = (uint8_t *)(uintptr_t)arg.addr_ptr;
 
-	printf("Testing coherency of writes and mmap reads.\n");
-	memset(buf, 0, sizeof(buf));
-	memset(buf + 1024, 0x01, 1024);
-	memset(expected + 1024, 0x01, 1024);
-	gem_write(fd, handle, 0, buf, OBJECT_SIZE);
-	igt_assert(memcmp(buf, addr, sizeof(buf)) == 0);
+		printf("Testing contents of newly created object.\n");
+		memset(expected, 0, sizeof(expected));
+		igt_assert(memcmp(addr, expected, sizeof(expected)) == 0);
 
-	printf("Testing that mapping stays after close\n");
-	gem_close(fd, handle);
-	igt_assert(memcmp(buf, addr, sizeof(buf)) == 0);
+		printf("Testing coherency of writes and mmap reads.\n");
+		memset(buf, 0, sizeof(buf));
+		memset(buf + 1024, 0x01, 1024);
+		memset(expected + 1024, 0x01, 1024);
+		gem_write(fd, handle, 0, buf, OBJECT_SIZE);
+		igt_assert(memcmp(buf, addr, sizeof(buf)) == 0);
 
-	printf("Testing unmapping\n");
-	munmap(addr, OBJECT_SIZE);
+		printf("Testing that mapping stays after close\n");
+		gem_close(fd, handle);
+		igt_assert(memcmp(buf, addr, sizeof(buf)) == 0);
 
-	close(fd);
+		printf("Testing unmapping\n");
+		munmap(addr, OBJECT_SIZE);
+	}
+
+	igt_fixture
+		close(fd);
 
 	return 0;
 }
