@@ -25,6 +25,7 @@
  *
  */
 
+#define _GNU_SOURCE
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -70,6 +71,43 @@ create_pointer(int fd)
 	gem_close(fd, handle);
 
 	return ptr;
+}
+
+static void
+test_access(int fd)
+{
+	uint32_t handle, flink, handle2;
+	struct drm_i915_gem_mmap_gtt mmap_arg;
+	int fd2;
+
+	handle = gem_create(fd, OBJECT_SIZE);
+	igt_assert(handle);
+
+	fd2 = drm_open_any();
+
+	/* Check that fd1 can mmap. */
+	mmap_arg.handle = handle;
+	igt_assert(drmIoctl(fd,
+			    DRM_IOCTL_I915_GEM_MMAP_GTT,
+			    &mmap_arg) == 0);
+
+	igt_assert(mmap64(0, OBJECT_SIZE, PROT_READ | PROT_WRITE,
+			  MAP_SHARED, fd, mmap_arg.offset));
+
+	/* Check that the same offset on the other fd doesn't work. */
+	igt_assert(!mmap64(0, OBJECT_SIZE, PROT_READ | PROT_WRITE,
+			   MAP_SHARED, fd2, mmap_arg.offset) &&
+		   errno == EACCES);
+
+	flink = gem_flink(fd, handle);
+	igt_assert(flink);
+	handle2 = gem_open(fd2, flink);
+	igt_assert(handle2);
+
+	/* Recheck that it works after flink. */
+	/* Check that the same offset on the other fd doesn't work. */
+	igt_assert(mmap64(0, OBJECT_SIZE, PROT_READ | PROT_WRITE,
+			  MAP_SHARED, fd2, mmap_arg.offset));
 }
 
 static void
@@ -164,6 +202,8 @@ int main(int argc, char **argv)
 	igt_fixture
 		fd = drm_open_any();
 
+	igt_subtest("access")
+		test_access(fd);
 	igt_subtest("copy")
 		test_copy(fd);
 	igt_subtest("read")
