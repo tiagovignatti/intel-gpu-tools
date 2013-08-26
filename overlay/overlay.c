@@ -282,9 +282,9 @@ static void show_gpu_perf(struct overlay_context *ctx, struct overlay_gpu_perf *
 	};
 	struct gpu_perf_comm *comm, **prev;
 	const char *ring_name[] = {
-		"render",
-		"video",
-		"blt",
+		"R",
+		"V",
+		"B",
 	};
 	double range[2];
 	char buf[1024];
@@ -361,7 +361,42 @@ static void show_gpu_perf(struct overlay_context *ctx, struct overlay_gpu_perf *
 	cairo_fill(ctx->cr);
 
 	for (prev = &gp->gpu_perf.comm; (comm = *prev) != NULL; ) {
-		int need_comma = 0;
+		int need_comma = 0, len;
+
+		if (comm->name[0] == '\0')
+			goto skip_comm;
+
+		len = sprintf(buf, "%s:", comm->name);
+		for (n = 0; n < 3; n++) {
+			if (comm->nr_requests[n] == 0)
+				continue;
+			len += sprintf(buf + len, "%s %d%s", need_comma ? "," : "", comm->nr_requests[n], ring_name[n]);
+			need_comma = true;
+		}
+		if (comm->wait_time) {
+			if (comm->wait_time > 1000*1000) {
+				len += sprintf(buf + len, "%s %.1fms waits",
+					       need_comma ? "," : "",
+					       comm->wait_time / (1000*1000.));
+			} else if (comm->wait_time > 100) {
+				len += sprintf(buf + len, "%s %.1fus waits",
+					       need_comma ? "," : "",
+					       comm->wait_time / 1000.);
+			} else {
+				len += sprintf(buf, "%s %.0fns waits",
+					       need_comma ? "," : "",
+					       (double)comm->wait_time);
+			}
+			need_comma = true;
+			comm->wait_time = 0;
+		}
+		if (comm->nr_sema) {
+			len += sprintf(buf + len, "%s %d syncs",
+				       need_comma ? "," : "",
+				       comm->nr_sema);
+			need_comma = true;
+			comm->nr_sema = 0;
+		}
 
 		if (comm->user_data) {
 			struct chart *c = comm->user_data;
@@ -373,59 +408,10 @@ static void show_gpu_perf(struct overlay_context *ctx, struct overlay_gpu_perf *
 		} else
 			cairo_set_source_rgba(ctx->cr, 1, 1, 1, 1);
 		cairo_move_to(ctx->cr, x, y);
-		sprintf(buf, "%s:", comm->name);
 		cairo_show_text(ctx->cr, buf);
-		for (n = 0; n < 3; n++) {
-			if (comm->nr_requests[n] == 0)
-				continue;
-			sprintf(buf, "%s %d %s", need_comma ? "," : "", comm->nr_requests[n], ring_name[n]);
-			cairo_show_text(ctx->cr, buf);
-			need_comma = true;
-		}
-		if (comm->wait_time) {
-			buf[0] = '\0';
-			if (comm->wait_time > 1000*1000) {
-				sprintf(buf, "%s %.1f ms waiting",
-					need_comma ? "," : "",
-					comm->wait_time / (1000*1000.));
-			} else if (comm->wait_time > 100) {
-				sprintf(buf, "%s %.1f us waiting",
-					need_comma ? "," : "",
-					comm->wait_time / 1000.);
-			} else {
-				sprintf(buf, "%s %.0f ns waiting",
-					need_comma ? "," : "",
-					(double)comm->wait_time);
-			}
-			if (buf[0] != '\0') {
-				cairo_show_text(ctx->cr, buf);
-				need_comma = true;
-			}
-			comm->wait_time = 0;
-		}
-		if (comm->busy_time) {
-			buf[0] = '\0';
-			if (comm->busy_time > 1000*1000) {
-				sprintf(buf, "%s %.1f ms busy",
-					need_comma ? "," : "",
-					comm->busy_time / (1000*1000.));
-			} else if (comm->busy_time > 100) {
-				sprintf(buf, "%s %.1f us busy",
-					need_comma ? "," : "",
-					comm->busy_time / 1000.);
-			} else {
-				sprintf(buf, "%s %.0f ns busy",
-					need_comma ? "," : "",
-					(double)comm->busy_time);
-			}
-			if (buf[0] != '\0') {
-				cairo_show_text(ctx->cr, buf);
-				need_comma = true;
-			}
-			comm->busy_time = 0;
-		}
 		y += 14;
 
+skip_comm:
 		memset(comm->nr_requests, 0, sizeof(comm->nr_requests));
 		if (strcmp(comm->name, get_comm(comm->pid, buf, sizeof(buf)))) {
 			*prev = comm->next;

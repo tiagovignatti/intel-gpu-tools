@@ -249,6 +249,19 @@ static int flip_complete(struct gpu_perf *gp, const void *event)
 	return 1;
 }
 
+static int ring_sync(struct gpu_perf *gp, const void *event)
+{
+	const struct sample_event *sample = event;
+	struct gpu_perf_comm *comm;
+
+	comm = lookup_comm(gp, sample->pid);
+	if (comm == NULL)
+		return 0;
+
+	comm->nr_sema++;
+	return 1;
+}
+
 static int wait_begin(struct gpu_perf *gp, const void *event)
 {
 	const struct sample_event *sample = event;
@@ -300,6 +313,7 @@ void gpu_perf_init(struct gpu_perf *gp, unsigned flags)
 	if (perf_tracepoint_open(gp, "i915", "i915_gem_request_wait_begin", wait_begin) == 0)
 		perf_tracepoint_open(gp, "i915", "i915_gem_request_wait_end", wait_end);
 	perf_tracepoint_open(gp, "i915", "i915_flip_complete", flip_complete);
+	perf_tracepoint_open(gp, "i915", "i915_gem_ring_sync_to", ring_sync);
 
 	if (gp->nr_events == 0) {
 		gp->error = "i915.ko tracepoints not available";

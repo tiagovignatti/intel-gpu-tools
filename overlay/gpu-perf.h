@@ -50,7 +50,7 @@ struct gpu_perf {
 		void *user_data;
 
 		uint64_t wait_time;
-		uint64_t busy_time;
+		uint32_t nr_sema;
 	} *comm;
 	struct gpu_perf_time {
 		struct gpu_perf_time *next;
