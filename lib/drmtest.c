@@ -654,8 +654,6 @@ static enum {
 
 bool __igt_fixture(void)
 {
-	assert(!in_fixture);
-
 	if (igt_only_list_subtests())
 		return false;
 
@@ -673,8 +671,6 @@ void __igt_fixture_complete(void)
 
 void __igt_fixture_end(void)
 {
-	assert(in_fixture);
-
 	in_fixture = false;
 	longjmp(igt_subtest_jmpbuf, 1);
 }
