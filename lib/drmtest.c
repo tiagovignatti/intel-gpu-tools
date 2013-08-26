@@ -666,6 +666,11 @@ bool __igt_fixture(void)
 	return true;
 }
 
+void __igt_fixture_complete(void)
+{
+	in_fixture = false;
+}
+
 void __igt_fixture_end(void)
 {
 	assert(in_fixture);

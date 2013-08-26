@@ -184,6 +184,7 @@ void igt_exit(void) __attribute__((noreturn));
 #define igt_require(expr) do { if (!(expr)) __igt_skip_check(__FILE__, __LINE__, __func__, #expr ); } while (0)
 
 bool __igt_fixture(void);
+void __igt_fixture_complete(void);
 void __igt_fixture_end(void) __attribute__((noreturn));
 /**
  * igt_fixture - annote global test fixture code
@@ -193,9 +194,12 @@ void __igt_fixture_end(void) __attribute__((noreturn));
  * enumeration (e.g. when enumerating on systemes without an intel gpu) such
  * blocks should be annotated with igt_fixture.
  */
-#define igt_fixture for (; __igt_fixture() && \
+#define igt_fixture for (int igt_tokencat(__tmpint,__LINE__) = 0; \
+			 igt_tokencat(__tmpint,__LINE__) < 1 && \
+			 __igt_fixture() && \
 			 (setjmp(igt_subtest_jmpbuf) == 0); \
-			 __igt_fixture_end())
+			 igt_tokencat(__tmpint,__LINE__) ++, \
+			 __igt_fixture_complete())
 
 /* check functions which auto-skip tests by calling igt_skip() */
 void gem_require_caching(int fd);
