@@ -50,6 +50,10 @@
 
 #define is_power_of_two(x)  (((x) & ((x)-1)) == 0)
 
+#define PAD 10
+#define HALF_PAD 5
+#define SIZE_PAD (PAD + HALF_PAD)
+
 const cairo_user_data_key_t overlay_key;
 
 static void overlay_show(cairo_surface_t *surface)
@@ -143,8 +147,8 @@ static void init_gpu_top(struct overlay_context *ctx,
 	memset(&gt->cpu, 0, sizeof(gt->cpu));
 
 	chart_init(&gt->cpu, "CPU", 120);
-	chart_set_position(&gt->cpu, 12, 12);
-	chart_set_size(&gt->cpu, ctx->width/2 - 18, ctx->height/2 - 18);
+	chart_set_position(&gt->cpu, PAD, PAD);
+	chart_set_size(&gt->cpu, ctx->width/2 - SIZE_PAD, ctx->height/2 - SIZE_PAD);
 	chart_set_stroke_rgba(&gt->cpu, 0.75, 0.25, 0.75, 1.);
 	chart_set_mode(&gt->cpu, CHART_STROKE);
 	chart_set_range(&gt->cpu, 0, 100);
@@ -153,8 +157,8 @@ static void init_gpu_top(struct overlay_context *ctx,
 		chart_init(&gt->busy[n],
 			   gt->gpu_top.ring[n].name,
 			   120);
-		chart_set_position(&gt->busy[n], 12, 12);
-		chart_set_size(&gt->busy[n], ctx->width/2 - 18, ctx->height/2 - 18);
+		chart_set_position(&gt->busy[n], PAD, PAD);
+		chart_set_size(&gt->busy[n], ctx->width/2 - SIZE_PAD, ctx->height/2 - SIZE_PAD);
 		chart_set_stroke_rgba(&gt->busy[n],
 				    rgba[n][0], rgba[n][1], rgba[n][2], rgba[n][3]);
 		chart_set_mode(&gt->busy[n], CHART_STROKE);
@@ -165,8 +169,8 @@ static void init_gpu_top(struct overlay_context *ctx,
 		chart_init(&gt->wait[n],
 			   gt->gpu_top.ring[n].name,
 			   120);
-		chart_set_position(&gt->wait[n], 12, 12);
-		chart_set_size(&gt->wait[n], ctx->width/2 - 18, ctx->height/2 - 18);
+		chart_set_position(&gt->wait[n], PAD, PAD);
+		chart_set_size(&gt->wait[n], ctx->width/2 - SIZE_PAD, ctx->height/2 - SIZE_PAD);
 		chart_set_fill_rgba(&gt->wait[n],
 				    rgba[n][0], rgba[n][1], rgba[n][2], rgba[n][3] * 0.70);
 		chart_set_mode(&gt->wait[n], CHART_FILL);
@@ -182,7 +186,7 @@ static void show_gpu_top(struct overlay_context *ctx, struct overlay_gpu_top *gt
 
 	update = gpu_top_update(&gt->gpu_top);
 
-	cairo_rectangle(ctx->cr, 12-.5, 12-.5, ctx->width/2-18+1, ctx->height/2-18+1);
+	cairo_rectangle(ctx->cr, PAD-.5, PAD-.5, ctx->width/2-SIZE_PAD+1, ctx->height/2-SIZE_PAD+1);
 	cairo_set_source_rgb(ctx->cr, .15, .15, .15);
 	cairo_set_line_width(ctx->cr, 1);
 	cairo_stroke(ctx->cr);
@@ -204,20 +208,20 @@ static void show_gpu_top(struct overlay_context *ctx, struct overlay_gpu_top *gt
 	}
 	chart_draw(&gt->cpu, ctx->cr);
 
-	y1 = 12 - 2;
+	y1 = PAD - 2;
 	y2 = y1 + (gt->gpu_top.num_rings+1) * 14 + 4;
 
-	cairo_rectangle(ctx->cr, 12, y1, ctx->width/2-18, y2-y1);
-	linear = cairo_pattern_create_linear(12, 0, 12+ctx->width/2-18, 0);
+	cairo_rectangle(ctx->cr, PAD, y1, ctx->width/2-SIZE_PAD, y2-y1);
+	linear = cairo_pattern_create_linear(PAD, 0, PAD+ctx->width/2-SIZE_PAD, 0);
 	cairo_pattern_add_color_stop_rgba(linear, 0, 0, 0, 0, .5);
 	cairo_pattern_add_color_stop_rgba(linear, 1, 0, 0, 0, .0);
 	cairo_set_source(ctx->cr, linear);
 	cairo_pattern_destroy(linear);
 	cairo_fill(ctx->cr);
 
-	y = 12 + 12 - 2;
+	y = PAD + 12 - 2;
 	cairo_set_source_rgba(ctx->cr, 0.75, 0.25, 0.75, 1.);
-	cairo_move_to(ctx->cr, 12, y);
+	cairo_move_to(ctx->cr, PAD, y);
 	sprintf(txt, "CPU: %d%% busy", gt->cpu_top.busy);
 	cairo_show_text(ctx->cr, txt);
 	y += 14;
@@ -240,7 +244,7 @@ static void show_gpu_top(struct overlay_context *ctx, struct overlay_gpu_top *gt
 				      c->stroke_rgb[1],
 				      c->stroke_rgb[2],
 				      c->stroke_rgb[3]);
-		cairo_move_to(ctx->cr, 12, y);
+		cairo_move_to(ctx->cr, PAD, y);
 		cairo_show_text(ctx->cr, txt);
 		y += 14;
 	}
@@ -291,7 +295,7 @@ static void show_gpu_perf(struct overlay_context *ctx, struct overlay_gpu_perf *
 	cairo_pattern_t *linear;
 	int x, y, y1, y2, n;
 
-	cairo_rectangle(ctx->cr, ctx->width/2+6-.5, 12-.5, ctx->width/2-18+1, ctx->height/2-18+1);
+	cairo_rectangle(ctx->cr, ctx->width/2+HALF_PAD-.5, PAD-.5, ctx->width/2-SIZE_PAD+1, ctx->height/2-SIZE_PAD+1);
 	cairo_set_source_rgb(ctx->cr, .15, .15, .15);
 	cairo_set_line_width(ctx->cr, 1);
 	cairo_stroke(ctx->cr);
@@ -300,16 +304,16 @@ static void show_gpu_perf(struct overlay_context *ctx, struct overlay_gpu_perf *
 		cairo_text_extents_t extents;
 		cairo_text_extents(ctx->cr, gp->gpu_perf.error, &extents);
 		cairo_move_to(ctx->cr,
-			      ctx->width/2+6 + (ctx->width/2-18 - extents.width)/2.,
-			      12 + (ctx->height/2-18 + extents.height)/2.);
+			      ctx->width/2+HALF_PAD + (ctx->width/2-SIZE_PAD - extents.width)/2.,
+			      PAD + (ctx->height/2-SIZE_PAD + extents.height)/2.);
 		cairo_show_text(ctx->cr, gp->gpu_perf.error);
 		return;
 	}
 
 	gpu_perf_update(&gp->gpu_perf);
 
-	y = 12 + 12 - 2;
-	x = ctx->width/2 + 6;
+	y = PAD + 12 - 2;
+	x = ctx->width/2 + HALF_PAD;
 
 
 	for (comm = gp->gpu_perf.comm; comm; comm = comm->next) {
@@ -321,8 +325,8 @@ static void show_gpu_perf(struct overlay_context *ctx, struct overlay_gpu_perf *
 				continue;
 
 			chart_init(comm->user_data, comm->name, 120);
-			chart_set_position(comm->user_data, ctx->width/2+6, 12);
-			chart_set_size(comm->user_data, ctx->width/2-18, ctx->height/2 - 18);
+			chart_set_position(comm->user_data, ctx->width/2+HALF_PAD, PAD);
+			chart_set_size(comm->user_data, ctx->width/2-SIZE_PAD, ctx->height/2 - SIZE_PAD);
 			chart_set_mode(comm->user_data, CHART_STROKE);
 			chart_set_stroke_rgba(comm->user_data,
 					      rgba[last_color][0],
@@ -352,8 +356,8 @@ static void show_gpu_perf(struct overlay_context *ctx, struct overlay_gpu_perf *
 	y1 += -12 - 2;
 	y2 += 14 - 14 + 4;
 
-	cairo_rectangle(ctx->cr, x, y1, ctx->width/2-18, y2-y1);
-	linear = cairo_pattern_create_linear(x, 0, x + ctx->width/2-18, 0);
+	cairo_rectangle(ctx->cr, x, y1, ctx->width/2-SIZE_PAD, y2-y1);
+	linear = cairo_pattern_create_linear(x, 0, x + ctx->width/2-SIZE_PAD, 0);
 	cairo_pattern_add_color_stop_rgba(linear, 0, 0, 0, 0, .5);
 	cairo_pattern_add_color_stop_rgba(linear, 1, 0, 0, 0, .0);
 	cairo_set_source(ctx->cr, linear);
@@ -452,16 +456,16 @@ static void init_gpu_freq(struct overlay_context *ctx,
 {
 	if (gpu_freq_init(&gf->gpu_freq) == 0) {
 		chart_init(&gf->current, "current", 120);
-		chart_set_position(&gf->current, 12, ctx->height/2 + 6);
-		chart_set_size(&gf->current, ctx->width/2 - 18, ctx->height/2 - 18);
+		chart_set_position(&gf->current, PAD, ctx->height/2 + HALF_PAD);
+		chart_set_size(&gf->current, ctx->width/2 - SIZE_PAD, ctx->height/2 - SIZE_PAD);
 		chart_set_stroke_rgba(&gf->current, 0.75, 0.25, 0.50, 1.);
 		chart_set_mode(&gf->current, CHART_STROKE);
 		chart_set_smooth(&gf->current, CHART_LINE);
 		chart_set_range(&gf->current, 0, gf->gpu_freq.max);
 
 		chart_init(&gf->request, "request", 120);
-		chart_set_position(&gf->request, 12, ctx->height/2 + 6);
-		chart_set_size(&gf->request, ctx->width/2 - 18, ctx->height/2 - 18);
+		chart_set_position(&gf->request, PAD, ctx->height/2 + HALF_PAD);
+		chart_set_size(&gf->request, ctx->width/2 - SIZE_PAD, ctx->height/2 - SIZE_PAD);
 		chart_set_fill_rgba(&gf->request, 0.25, 0.25, 0.50, 1.);
 		chart_set_mode(&gf->request, CHART_FILL);
 		chart_set_smooth(&gf->request, CHART_LINE);
@@ -470,8 +474,8 @@ static void init_gpu_freq(struct overlay_context *ctx,
 
 	if (power_init(&gf->power) == 0) {
 		chart_init(&gf->power_chart, "power", 120);
-		chart_set_position(&gf->power_chart, 12, ctx->height/2 + 6);
-		chart_set_size(&gf->power_chart, ctx->width/2 - 18, ctx->height/2 - 18);
+		chart_set_position(&gf->power_chart, PAD, ctx->height/2 + HALF_PAD);
+		chart_set_size(&gf->power_chart, ctx->width/2 - SIZE_PAD, ctx->height/2 - SIZE_PAD);
 		chart_set_stroke_rgba(&gf->power_chart, 0.45, 0.55, 0.45, 1.);
 		gf->power_max = 0;
 	}
@@ -491,7 +495,7 @@ static void show_gpu_freq(struct overlay_context *ctx, struct overlay_gpu_freq *
 	int has_irqs = gem_interrupts_update(&gf->irqs) == 0;
 	cairo_pattern_t *linear;
 
-	cairo_rectangle(ctx->cr, 12-.5, ctx->height/2+6-.5, ctx->width/2-18+1, ctx->height/2-18+1);
+	cairo_rectangle(ctx->cr, PAD-.5, ctx->height/2+HALF_PAD-.5, ctx->width/2-SIZE_PAD+1, ctx->height/2-SIZE_PAD+1);
 	cairo_set_source_rgb(ctx->cr, .15, .15, .15);
 	cairo_set_line_width(ctx->cr, 1);
 	cairo_stroke(ctx->cr);
@@ -501,8 +505,8 @@ static void show_gpu_freq(struct overlay_context *ctx, struct overlay_gpu_freq *
 		cairo_text_extents_t extents;
 		cairo_text_extents(ctx->cr, txt, &extents);
 		cairo_move_to(ctx->cr,
-			      12 + (ctx->width/2-18 - extents.width)/2.,
-			      ctx->height/2+6 + (ctx->height/2-18 + extents.height)/2.);
+			      PAD + (ctx->width/2-SIZE_PAD - extents.width)/2.,
+			      ctx->height/2+HALF_PAD + (ctx->height/2-SIZE_PAD + extents.height)/2.);
 		cairo_show_text(ctx->cr, txt);
 		return;
 	}
@@ -528,7 +532,7 @@ static void show_gpu_freq(struct overlay_context *ctx, struct overlay_gpu_freq *
 		chart_draw(&gf->power_chart, ctx->cr);
 	}
 
-	y = ctx->height/2 + 6 + 12 - 2;
+	y = ctx->height/2 + HALF_PAD + 12 - 2;
 
 	y1 = y2 = y;
 	if (has_freq) {
@@ -544,8 +548,8 @@ static void show_gpu_freq(struct overlay_context *ctx, struct overlay_gpu_freq *
 	y1 += -12 - 2;
 	y2 += -14 + 4;
 
-	cairo_rectangle(ctx->cr, 12, y1, ctx->width/2-18, y2-y1);
-	linear = cairo_pattern_create_linear(12, 0, 12+ctx->width/2-18, 0);
+	cairo_rectangle(ctx->cr, PAD, y1, ctx->width/2-SIZE_PAD, y2-y1);
+	linear = cairo_pattern_create_linear(PAD, 0, PAD+ctx->width/2-SIZE_PAD, 0);
 	cairo_pattern_add_color_stop_rgba(linear, 0, 0, 0, 0, .5);
 	cairo_pattern_add_color_stop_rgba(linear, 1, 0, 0, 0, .0);
 	cairo_set_source(ctx->cr, linear);
@@ -557,19 +561,19 @@ static void show_gpu_freq(struct overlay_context *ctx, struct overlay_gpu_freq *
 		if (gf->gpu_freq.request)
 			sprintf(buf + len, " (requested %dMHz)", gf->gpu_freq.request);
 		cairo_set_source_rgba(ctx->cr, 1, 1, 1, 1);
-		cairo_move_to(ctx->cr, 12, y);
+		cairo_move_to(ctx->cr, PAD, y);
 		cairo_show_text(ctx->cr, buf);
 		y += 14;
 
 		sprintf(buf, "min: %dMHz, max: %dMHz", gf->gpu_freq.min, gf->gpu_freq.max);
-		cairo_move_to(ctx->cr, 12, y);
+		cairo_move_to(ctx->cr, PAD, y);
 		cairo_show_text(ctx->cr, buf);
 		y += 14;
 	}
 
 	if (has_rc6) {
 		sprintf(buf, "RC6: %d%%", gf->rc6.rc6_combined);
-		cairo_move_to(ctx->cr, 12, y);
+		cairo_move_to(ctx->cr, PAD, y);
 		cairo_show_text(ctx->cr, buf);
 		if (gf->rc6.rc6_combined && !is_power_of_two(gf->rc6.enabled)) {
 			char *txt;
@@ -598,14 +602,14 @@ static void show_gpu_freq(struct overlay_context *ctx, struct overlay_gpu_freq *
 
 	if (has_power) {
 		sprintf(buf, "Power: %llumW", (long long unsigned)gf->power.power_mW);
-		cairo_move_to(ctx->cr, 12, y);
+		cairo_move_to(ctx->cr, PAD, y);
 		cairo_show_text(ctx->cr, buf);
 		y += 14;
 	}
 
 	if (has_irqs) {
 		sprintf(buf, "Interrupts: %llu", (long long unsigned)gf->irqs.delta);
-		cairo_move_to(ctx->cr, 12, y);
+		cairo_move_to(ctx->cr, PAD, y);
 		cairo_show_text(ctx->cr, buf);
 		y += 14;
 	}
@@ -619,15 +623,15 @@ static void init_gem_objects(struct overlay_context *ctx,
 		return;
 
 	chart_init(&go->aperture, "aperture", 120);
-	chart_set_position(&go->aperture, ctx->width/2+6, ctx->height/2 + 6);
-	chart_set_size(&go->aperture, ctx->width/2 - 18, ctx->height/2 - 18);
+	chart_set_position(&go->aperture, ctx->width/2+HALF_PAD, ctx->height/2 + HALF_PAD);
+	chart_set_size(&go->aperture, ctx->width/2 - SIZE_PAD, ctx->height/2 - SIZE_PAD);
 	chart_set_stroke_rgba(&go->aperture, 0.75, 0.25, 0.50, 1.);
 	chart_set_mode(&go->aperture, CHART_STROKE);
 	chart_set_range(&go->aperture, 0, go->gem_objects.max_gtt);
 
 	chart_init(&go->gtt, "gtt", 120);
-	chart_set_position(&go->gtt, ctx->width/2+6, ctx->height/2 + 6);
-	chart_set_size(&go->gtt, ctx->width/2 - 18, ctx->height/2 - 18);
+	chart_set_position(&go->gtt, ctx->width/2+HALF_PAD, ctx->height/2 + HALF_PAD);
+	chart_set_size(&go->gtt, ctx->width/2 - SIZE_PAD, ctx->height/2 - SIZE_PAD);
 	chart_set_fill_rgba(&go->gtt, 0.25, 0.5, 0.5, 1.);
 	chart_set_mode(&go->gtt, CHART_FILL);
 	chart_set_range(&go->gtt, 0, go->gem_objects.max_gtt);
@@ -645,7 +649,7 @@ static void show_gem_objects(struct overlay_context *ctx, struct overlay_gem_obj
 	if (go->error)
 		return;
 
-	cairo_rectangle(ctx->cr, ctx->width/2+6-.5, ctx->height/2+6-.5, ctx->width/2-18+1, ctx->height/2-18+1);
+	cairo_rectangle(ctx->cr, ctx->width/2+HALF_PAD-.5, ctx->height/2+HALF_PAD-.5, ctx->width/2-SIZE_PAD+1, ctx->height/2-SIZE_PAD+1);
 	cairo_set_source_rgb(ctx->cr, .15, .15, .15);
 	cairo_set_line_width(ctx->cr, 1);
 	cairo_stroke(ctx->cr);
@@ -657,8 +661,8 @@ static void show_gem_objects(struct overlay_context *ctx, struct overlay_gem_obj
 	chart_draw(&go->aperture, ctx->cr);
 
 
-	y = ctx->height/2 + 6 + 12 - 2;
-	x = ctx->width/2 + 6;
+	y = ctx->height/2 + HALF_PAD + 12 - 2;
+	x = ctx->width/2 + HALF_PAD;
 
 	y2 = y1 = y;
 	y2 += 14;
@@ -670,8 +674,8 @@ static void show_gem_objects(struct overlay_context *ctx, struct overlay_gem_obj
 	y1 += -12 - 2;
 	y2 += -14 + 4;
 
-	cairo_rectangle(ctx->cr, x, y1, ctx->width/2-18, y2-y1);
-	linear = cairo_pattern_create_linear(x, 0, x+ctx->width/2-18, 0);
+	cairo_rectangle(ctx->cr, x, y1, ctx->width/2-SIZE_PAD, y2-y1);
+	linear = cairo_pattern_create_linear(x, 0, x+ctx->width/2-SIZE_PAD, 0);
 	cairo_pattern_add_color_stop_rgba(linear, 0, 0, 0, 0, .5);
 	cairo_pattern_add_color_stop_rgba(linear, 1, 0, 0, 0, .0);
 	cairo_set_source(ctx->cr, linear);
@@ -806,7 +810,7 @@ int main(int argc, char **argv)
 			cairo_text_extents_t extents;
 			gethostname(buf, sizeof(buf));
 			cairo_set_source_rgb(ctx.cr, .5, .5, .5);
-			cairo_set_font_size(ctx.cr, 10);
+			cairo_set_font_size(ctx.cr, PAD-2);
 			cairo_text_extents(ctx.cr, buf, &extents);
 			cairo_move_to(ctx.cr,
 				      (ctx.width-extents.width)/2.,
