@@ -21,6 +21,11 @@ int is_haswell(unsigned short pciid)
 	return IS_HASWELL(pciid);
 }
 
+int is_broadwell(unsigned short pciid)
+{
+	return IS_BROADWELL(pciid);
+}
+
 /* Simple helper because I couldn't make this work in the script */
 unsigned short pcidev_to_devid(struct pci_device *pdev)
 {

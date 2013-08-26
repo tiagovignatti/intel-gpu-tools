@@ -61,6 +61,8 @@ if args.autodetect:
 		args.profile = open('valleyview', 'r')
 	elif chipset.is_haswell(devid):
 		args.profile = open('haswell', 'r')
+	elif chipset.is_broadwell(devid):
+		args.profile = open('broadwell', 'r')
 	else:
 		print("Autodetect of devid " + hex(devid) + " failed")
 
