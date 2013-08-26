@@ -701,7 +701,8 @@ int main(int argc, char **argv)
 
 	igt_fixture {
 		drm_fd = drm_open_any();
-		do_or_die(igt_set_vt_graphics_mode());
+		if (!dry_run)
+			do_or_die(igt_set_vt_graphics_mode());
 
 		drm_resources = drmModeGetResources(drm_fd);
 		assert(drm_resources);

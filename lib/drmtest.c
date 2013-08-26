@@ -744,12 +744,12 @@ int igt_subtest_init_parse_opts(int argc, char **argv,
 			break;
 		case 'h':
 			print_usage(command_str, help_str, false);
-			ret = -2;
+			ret = -1;
 			goto out;
 		case '?':
 			if (opterr) {
 				print_usage(command_str, help_str, true);
-				ret = -1;
+				ret = -2;
 				goto out;
 			}
 			/*
@@ -779,7 +779,7 @@ void igt_subtest_init(int argc, char **argv)
 	ret = igt_subtest_init_parse_opts(argc, argv, NULL, NULL, NULL, NULL);
 	if (ret < 0)
 		/* exit with no error for -h/--help */
-		exit(ret == -2 ? 0 : ret);
+		exit(ret == -1 ? 0 : ret);
 
 	/* reset opt parsing */
 	optind = 1;
