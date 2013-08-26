@@ -681,8 +681,9 @@ static void print_usage(const char *command_str, const char *help_str,
 
 	fprintf(f, "Usage: %s [OPTIONS]\n"
 		   "  --list-subtests\n"
-		   "  --run-subtest <pattern>\n"
-		   "%s\n", command_str, help_str);
+		   "  --run-subtest <pattern>\n", command_str);
+	if (help_str)
+		fprintf(f, "%s\n", help_str);
 }
 
 int igt_subtest_init_parse_opts(int argc, char **argv,
@@ -695,10 +696,8 @@ int igt_subtest_init_parse_opts(int argc, char **argv,
 	static struct option long_options[] = {
 		{"list-subtests", 0, 0, 'l'},
 		{"run-subtest", 1, 0, 'r'},
-		{NULL, 0, 0, 0,}
+		{"help", 0, 0, 'h'},
 	};
-	struct option help_opt =
-		{"help", 0, 0, 'h'};
 	const char *command_str;
 	char *short_opts;
 	struct option *combined_opts;
@@ -718,27 +717,18 @@ int igt_subtest_init_parse_opts(int argc, char **argv,
 		all_opt_count++;
 	extra_opt_count = all_opt_count;
 
-	/* Add space for a long help option for any passed-in help string */
-	if (help_str)
-		all_opt_count++;
-	/* Add space for the subtest long options (and the final NULL entry) */
 	all_opt_count += ARRAY_SIZE(long_options);
 
 	combined_opts = malloc(all_opt_count * sizeof(*combined_opts));
 	memcpy(combined_opts, extra_long_opts,
 	       extra_opt_count * sizeof(*combined_opts));
 
-	if (help_str) {
-		combined_opts[extra_opt_count] = help_opt;
-		extra_opt_count++;
-	}
 	/* Copy the subtest long options (and the final NULL entry) */
 	memcpy(&combined_opts[extra_opt_count], long_options,
 		ARRAY_SIZE(long_options) * sizeof(*combined_opts));
 
-	ret = asprintf(&short_opts, "%s%s",
-		       extra_short_opts ? extra_short_opts : "",
-		       help_str ? "h" : "");
+	ret = asprintf(&short_opts, "%sh",
+		       extra_short_opts ? extra_short_opts : "");
 	assert(ret >= 0);
 
 	while ((c = getopt_long(argc, argv, short_opts, combined_opts,
@@ -752,11 +742,22 @@ int igt_subtest_init_parse_opts(int argc, char **argv,
 			if (!list_subtests)
 				run_single_subtest = strdup(optarg);
 			break;
-		case '?':
 		case 'h':
-			print_usage(command_str, help_str, c == '?');
-			ret = c == '?' ? -2 : -1;
+			print_usage(command_str, help_str, false);
+			ret = -2;
 			goto out;
+		case '?':
+			if (opterr) {
+				print_usage(command_str, help_str, true);
+				ret = -1;
+				goto out;
+			}
+			/*
+			 * Just ignore the error, since the unknown argument
+			 * can be something the caller understands and will
+			 * parse by doing a second getopt scanning.
+			 */
+			break;
 		default:
 			ret = extra_opt_handler(c, option_index);
 			if (ret)
@@ -770,10 +771,15 @@ out:
 
 void igt_subtest_init(int argc, char **argv)
 {
+	int ret;
+
 	/* supress getopt errors about unknown options */
 	opterr = 0;
 
-	(void)igt_subtest_init_parse_opts(argc, argv, NULL, NULL, NULL, NULL);
+	ret = igt_subtest_init_parse_opts(argc, argv, NULL, NULL, NULL, NULL);
+	if (ret < 0)
+		/* exit with no error for -h/--help */
+		exit(ret == -2 ? 0 : ret);
 
 	/* reset opt parsing */
 	optind = 1;
