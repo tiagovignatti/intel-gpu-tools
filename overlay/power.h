@@ -33,6 +33,7 @@ struct power {
 		uint64_t timestamp;
 	} stat[2];
 
+	int fd;
 	int error;
 	int count;
 	int new_sample;

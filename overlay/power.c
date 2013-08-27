@@ -22,6 +22,7 @@
  *
  */
 
+#include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -30,10 +31,26 @@
 #include <time.h>
 #include <errno.h>
 
+#include "perf.h"
 #include "power.h"
 #include "debugfs.h"
 
 /* XXX Is this exposed through RAPL? */
+
+static int perf_open(void)
+{
+	struct perf_event_attr attr;
+
+	memset(&attr, 0, sizeof (attr));
+
+	attr.type = i915_type_id();
+	if (attr.type == 0)
+		return -ENOENT;
+	attr.config = I915_PERF_ENERGY;
+
+	attr.read_format = PERF_FORMAT_TOTAL_TIME_ENABLED;
+	return perf_event_open(&attr, -1, 0, -1, 0);
+}
 
 int power_init(struct power *power)
 {
@@ -41,6 +58,10 @@ int power_init(struct power *power)
 	int fd, len;
 
 	memset(power, 0, sizeof(*power));
+
+	power->fd = perf_open();
+	if (power->fd != -1)
+		return 0;
 
 	sprintf(buf, "%s/i915_energy_uJ", debugfs_dri_path);
 	fd = open(buf, 0);
@@ -100,17 +121,25 @@ int power_update(struct power *power)
 	if (power->error)
 		return power->error;
 
-	s->energy = file_to_u64("i915_energy_uJ");
-	s->timestamp = clock_ms_to_u64();
+	if (power->fd != -1) {
+		uint64_t data[2];
+		int len;
+
+		len = read(power->fd, data, sizeof(data));
+		if (len < 0)
+			return power->error = errno;
+
+		s->energy = data[0];
+		s->timestamp = data[1] / (1000*1000);
+	} else {
+		s->energy = file_to_u64("i915_energy_uJ");
+		s->timestamp = clock_ms_to_u64();
+	}
+
 	if (power->count == 1)
 		return EAGAIN;
 
 	d_time = s->timestamp - d->timestamp;
-	if (d_time < 900) { /* HW sample rate seems to be stable ~1Hz */
-		power->count--;
-		return power->count <= 1 ? EAGAIN : 0;
-	}
-
 	power->power_mW = (s->energy - d->energy) / d_time;
 	power->new_sample = 1;
 	return 0;

@@ -24,7 +24,6 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include <linux/perf_event.h>
 #include <sys/types.h>
 #include <sys/mman.h>
 #include <sys/ioctl.h>
@@ -35,6 +34,7 @@
 #include <fcntl.h>
 #include <errno.h>
 
+#include "perf.h"
 #include "gpu-perf.h"
 #include "debugfs.h"
 
@@ -58,27 +58,6 @@ struct sample_event {
 	uint32_t raw_hdr1;
 	uint32_t raw[0];
 };
-
-static int
-perf_event_open(struct perf_event_attr *attr,
-		pid_t pid,
-		int cpu,
-		int group_fd,
-		unsigned long flags)
-{
-#ifndef __NR_perf_event_open
-#if defined(__i386__)
-#define __NR_perf_event_open 336
-#elif defined(__x86_64__)
-#define __NR_perf_event_open 298
-#else
-#define __NR_perf_event_open 0
-#endif
-#endif
-
-    attr->size = sizeof(*attr);
-    return syscall(__NR_perf_event_open, attr, pid, cpu, group_fd, flags);
-}
 
 static uint64_t tracepoint_id(const char *sys, const char *name)
 {

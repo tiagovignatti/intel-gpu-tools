@@ -22,7 +22,6 @@
  *
  */
 
-#include <linux/perf_event.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -31,6 +30,7 @@
 #include <fcntl.h>
 #include <errno.h>
 
+#include "perf.h"
 #include "igfx.h"
 #include "gpu-top.h"
 
@@ -45,45 +45,6 @@
 #define I915_PERF_RING_BUSY(n) (__I915_PERF_RING(n) + 0)
 #define I915_PERF_RING_WAIT(n) (__I915_PERF_RING(n) + 1)
 #define I915_PERF_RING_SEMA(n) (__I915_PERF_RING(n) + 2)
-
-static int
-perf_event_open(struct perf_event_attr *attr,
-		pid_t pid,
-		int cpu,
-		int group_fd,
-		unsigned long flags)
-{
-#ifndef __NR_perf_event_open
-#if defined(__i386__)
-#define __NR_perf_event_open 336
-#elif defined(__x86_64__)
-#define __NR_perf_event_open 298
-#else
-#define __NR_perf_event_open 0
-#endif
-#endif
-    attr->size = sizeof(*attr);
-    return syscall(__NR_perf_event_open, attr, pid, cpu, group_fd, flags);
-}
-
-static uint64_t i915_type_id(void)
-{
-	char buf[1024];
-	int fd, n;
-
-	fd = open("/sys/bus/event_source/devices/i915/type", 0);
-	if (fd < 0) {
-		n = -1;
-	} else {
-		n = read(fd, buf, sizeof(buf)-1);
-		close(fd);
-	}
-	if (n < 0)
-		return 0;
-
-	buf[n] = '\0';
-	return strtoull(buf, 0, 0);
-}
 
 static int perf_i915_open(int config, int group)
 {
@@ -106,9 +67,9 @@ static int perf_i915_open(int config, int group)
 static int perf_init(struct gpu_top *gt)
 {
 	const char *names[] = {
-		"render",
-		"bitstream",
-		"bliter",
+		"RCS",
+		"VCS",
+		"BCS",
 		NULL,
 	};
 	int n;

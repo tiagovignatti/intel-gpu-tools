@@ -29,6 +29,8 @@ intel_gpu_overlay_SOURCES = \
 	igfx.c \
 	overlay.h \
 	overlay.c \
+	perf.h \
+	perf.c \
 	power.h \
 	power.c \
 	rc6.h \
