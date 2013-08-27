@@ -536,8 +536,8 @@ static void show_gpu_freq(struct overlay_context *ctx, struct overlay_gpu_freq *
 
 	y1 = y2 = y;
 	if (has_freq) {
-		y2 += 14;
-		y2 += 10;
+		y2 += 12;
+		y2 += 12;
 	}
 	if (has_rc6)
 		y2 += 14;
@@ -565,16 +565,16 @@ static void show_gpu_freq(struct overlay_context *ctx, struct overlay_gpu_freq *
 			sprintf(buf + len, " (requested %dMHz)", gf->gpu_freq.request);
 		cairo_move_to(ctx->cr, PAD, y);
 		cairo_show_text(ctx->cr, buf);
-		y += 14;
+		y += 12;
 
 		cairo_text_extents(ctx->cr, "Frequency: ", &extents);
 
-		cairo_set_font_size(ctx->cr, 10);
+		cairo_set_font_size(ctx->cr, 8);
 		sprintf(buf, " min: %dMHz, max: %dMHz", gf->gpu_freq.min, gf->gpu_freq.max);
 		cairo_set_source_rgba(ctx->cr, .8, .8, .8, 1);
 		cairo_move_to(ctx->cr, PAD + extents.width, y);
 		cairo_show_text(ctx->cr, buf);
-		cairo_set_font_size(ctx->cr, 12);
+		cairo_set_font_size(ctx->cr, 10);
 		y += 12;
 	}
 
@@ -701,10 +701,10 @@ static void show_gem_objects(struct overlay_context *ctx, struct overlay_gem_obj
 	cairo_set_source_rgba(ctx->cr, 1, 1, 1, 1);
 	cairo_move_to(ctx->cr, x, y);
 	cairo_show_text(ctx->cr, buf);
-	y += 14;
+	y += 12;
 
 	cairo_set_source_rgba(ctx->cr, .8, .8, .8, 1);
-	cairo_set_font_size(ctx->cr, 10);
+	cairo_set_font_size(ctx->cr, 8);
 	for (comm = go->gem_objects.comm; comm; comm = comm->next) {
 		if ((comm->bytes >> 20) == 0)
 			break;
