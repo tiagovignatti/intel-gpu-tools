@@ -292,11 +292,19 @@ int gpu_top_update(struct gpu_top *gt)
 
 		d_time = s->time - d->time;
 		for (n = 0; n < gt->num_rings; n++) {
-			gt->ring[n].u.u.busy = 100 * (s->busy[n] - d->busy[n]) / d_time;
+			gt->ring[n].u.u.busy = (100 * (s->busy[n] - d->busy[n]) + d_time/2) / d_time;
 			if (gt->have_wait)
-				gt->ring[n].u.u.wait = 100 * (s->wait[n] - d->wait[n]) / d_time;
+				gt->ring[n].u.u.wait = (100 * (s->wait[n] - d->wait[n]) + d_time/2) / d_time;
 			if (gt->have_sema)
-				gt->ring[n].u.u.sema = 100 * (s->sema[n] - d->sema[n]) / d_time;
+				gt->ring[n].u.u.sema = (100 * (s->sema[n] - d->sema[n]) + d_time/2) / d_time;
+
+			/* in case of rounding + sampling errors, fudge */
+			if (gt->ring[n].u.u.busy > 100)
+				gt->ring[n].u.u.busy = 100;
+			if (gt->ring[n].u.u.wait > 100)
+				gt->ring[n].u.u.wait = 100;
+			if (gt->ring[n].u.u.sema > 100)
+				gt->ring[n].u.u.sema = 100;
 		}
 
 		update = 1;
