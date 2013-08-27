@@ -30,6 +30,38 @@
 
 #include "gpu-freq.h"
 #include "debugfs.h"
+#include "perf.h"
+
+static int perf_i915_open(int config, int group)
+{
+	struct perf_event_attr attr;
+
+	memset(&attr, 0, sizeof (attr));
+
+	attr.type = i915_type_id();
+	if (attr.type == 0)
+		return -ENOENT;
+	attr.config = config;
+
+	attr.read_format = PERF_FORMAT_TOTAL_TIME_ENABLED;
+	if (group == -1)
+		attr.read_format |= PERF_FORMAT_GROUP;
+
+	return perf_event_open(&attr, -1, 0, group, 0);
+}
+
+static int perf_open(void)
+{
+	int fd;
+
+	fd = perf_i915_open(I915_PERF_ACTUAL_FREQUENCY, -1);
+	if (perf_i915_open(I915_PERF_REQUESTED_FREQUENCY, fd) < 0) {
+		close(fd);
+		fd = -1;
+	}
+
+	return fd;
+}
 
 int gpu_freq_init(struct gpu_freq *gf)
 {
@@ -37,6 +69,8 @@ int gpu_freq_init(struct gpu_freq *gf)
 	int fd, len = -1;
 
 	memset(gf, 0, sizeof(*gf));
+
+	gf->fd = perf_open();
 
 	sprintf(buf, "%s/i915_cur_delayinfo", debugfs_dri_path);
 	fd = open(buf, 0);
@@ -79,31 +113,58 @@ err:
 
 int gpu_freq_update(struct gpu_freq *gf)
 {
-	char buf[4096], *s;
-	int fd, len = -1;
-
 	if (gf->error)
 		return gf->error;
 
-	sprintf(buf, "%s/i915_cur_delayinfo", debugfs_dri_path);
-	fd = open(buf, 0);
-	if (fd < 0)
-		return gf->error = errno;
+	if (gf->fd < 0) {
+		char buf[4096], *s;
+		int fd, len = -1;
 
-	len = read(fd, buf, sizeof(buf)-1);
-	close(fd);
-	if (len < 0)
-		return gf->error = EIO;
+		sprintf(buf, "%s/i915_cur_delayinfo", debugfs_dri_path);
+		fd = open(buf, 0);
+		if (fd < 0)
+			return gf->error = errno;
 
-	buf[len] = '\0';
+		len = read(fd, buf, sizeof(buf)-1);
+		close(fd);
+		if (len < 0)
+			return gf->error = EIO;
 
-	s = strstr(buf, "RPNSWREQ:");
-	if (s)
-		sscanf(s, "RPNSWREQ: %dMHz", &gf->request);
+		buf[len] = '\0';
 
-	s = strstr(buf, "CAGF:");
-	if (s)
-		sscanf(s, "CAGF: %dMHz", &gf->current);
+		s = strstr(buf, "RPNSWREQ:");
+		if (s)
+			sscanf(s, "RPNSWREQ: %dMHz", &gf->request);
+
+		s = strstr(buf, "CAGF:");
+		if (s)
+			sscanf(s, "CAGF: %dMHz", &gf->current);
+	} else {
+		struct gpu_freq_stat *s = &gf->stat[gf->count++&1];
+		struct gpu_freq_stat *d = &gf->stat[gf->count&1];
+		uint64_t data[4], d_time;
+		int len;
+
+		len = read(gf->fd, data, sizeof(data));
+		if (len < 0)
+			return gf->error = errno;
+
+		s->timestamp = data[1];
+		s->act = data[2];
+		s->req = data[3];
+
+		if (gf->count == 1)
+			return EAGAIN;
+
+		d_time = s->timestamp - d->timestamp;
+		if (d_time == 0) {
+			gf->count--;
+			return EAGAIN;
+		}
+
+		gf->current = (s->act - d->act) / d_time;
+		gf->request = (s->req - d->req) / d_time;
+	}
 
 	return 0;
 }

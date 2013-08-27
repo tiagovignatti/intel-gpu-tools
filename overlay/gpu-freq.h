@@ -25,7 +25,15 @@
 #ifndef GPU_FREQ_H
 #define GPU_FREQ_H
 
+#include <stdint.h>
+
 struct gpu_freq {
+	struct gpu_freq_stat {
+		uint64_t act, req;
+		uint64_t timestamp;
+	} stat[2];
+	int fd;
+	int count;
 	int min, max;
 	int rpn, rp1, rp0;
 	int request;
