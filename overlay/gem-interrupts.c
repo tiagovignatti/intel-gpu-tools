@@ -32,50 +32,82 @@
 
 #include "gem-interrupts.h"
 #include "debugfs.h"
+#include "perf.h"
 
-int gem_interrupts_init(struct gem_interrupts *irqs)
+static int perf_open(void)
+{
+	struct perf_event_attr attr;
+
+	memset(&attr, 0, sizeof (attr));
+
+	attr.type = i915_type_id();
+	if (attr.type == 0)
+		return -ENOENT;
+	attr.config = I915_PERF_INTERRUPTS;
+
+	return perf_event_open(&attr, -1, 0, -1, 0);
+}
+
+static int debugfs_open(void)
 {
 	char buf[1024];
 	struct stat st;
 
-
-	memset(irqs, 0, sizeof(*irqs));
-
 	sprintf(buf, "%s/i915_gem_interrupt", debugfs_dri_path);
 	if (stat(buf, &st))
-		return irqs->error = errno;
+		return errno;
 
 	return 0;
 }
 
+int gem_interrupts_init(struct gem_interrupts *irqs)
+{
+	memset(irqs, 0, sizeof(*irqs));
+
+	irqs->fd = perf_open();
+	if (irqs->fd < 0)
+		irqs->error = debugfs_open();
+
+	return irqs->error;
+}
+
 int gem_interrupts_update(struct gem_interrupts *irqs)
 {
-	char buf[8192], *b;
-	int fd, len;
+	uint64_t val;
+	int update;
 
 	if (irqs->error)
 		return irqs->error;
 
-	sprintf(buf, "%s/i915_gem_interrupt", debugfs_dri_path);
-	fd = open(buf, 0);
-	if (fd < 0)
-		return irqs->error = errno;
-	len = read(fd, buf, sizeof(buf)-1);
-	close(fd);
+	if (irqs->fd < 0) {
+		char buf[8192], *b;
+		int fd, len;
 
-	if (len < 0)
-		return irqs->error = errno;
+		sprintf(buf, "%s/i915_gem_interrupt", debugfs_dri_path);
+		fd = open(buf, 0);
+		if (fd < 0)
+			return irqs->error = errno;
+		len = read(fd, buf, sizeof(buf)-1);
+		close(fd);
 
-	buf[len] = '\0';
+		if (len < 0)
+			return irqs->error = errno;
 
-	b = strstr(buf, "Interrupts received:");
-	if (b == NULL)
-		return irqs->error = ENOENT;
+		buf[len] = '\0';
 
-	fd = irqs->last_count == 0;
+		b = strstr(buf, "Interrupts received:");
+		if (b == NULL)
+			return irqs->error = ENOENT;
+
+		val = strtoull(b + sizeof("Interrupts received:"), 0, 0);
+	} else {
+		if (read(irqs->fd, &val, sizeof(val)) < 0)
+			return irqs->error = errno;
+	}
+
+	update = irqs->last_count == 0;
 	irqs->last_count = irqs->count;
-	irqs->count = strtoull(b + sizeof("Interrupts received:"), 0, 0);
+	irqs->count = val;
 	irqs->delta = irqs->count - irqs->last_count;
-
-	return fd ? EAGAIN : 0;
+	return update ? EAGAIN : 0;
 }

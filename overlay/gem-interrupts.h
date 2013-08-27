@@ -30,6 +30,7 @@
 struct gem_interrupts {
 	long unsigned last_count, count, delta;
 	int error;
+	int fd;
 };
 
 int gem_interrupts_init(struct gem_interrupts *irqs);
