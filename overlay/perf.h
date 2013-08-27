@@ -35,6 +35,10 @@
 #define I915_PERF_ENERGY 34
 #define I915_PERF_INTERRUPTS 35
 
+#define I915_PERF_RC6_RESIDENCY		40
+#define I915_PERF_RC6p_RESIDENCY	41
+#define I915_PERF_RC6pp_RESIDENCY	42
+
 static inline int
 perf_event_open(struct perf_event_attr *attr,
 		pid_t pid,

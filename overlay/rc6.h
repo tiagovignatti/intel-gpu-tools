@@ -35,10 +35,11 @@ struct rc6 {
 		uint64_t timestamp;
 	} stat[2];
 
+	int fd;
 	int count;
 	int error;
 
-	unsigned enabled;
+	unsigned flags;
 
 	uint8_t rc6;
 	uint8_t rc6p;

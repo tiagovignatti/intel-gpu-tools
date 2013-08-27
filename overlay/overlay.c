@@ -582,28 +582,31 @@ static void show_gpu_freq(struct overlay_context *ctx, struct overlay_gpu_freq *
 		len = sprintf(buf, "RC6: %d%%", gf->rc6.rc6_combined);
 		cairo_set_source_rgba(ctx->cr, 1, 1, 1, 1);
 		cairo_move_to(ctx->cr, PAD, y);
-		if (gf->rc6.rc6_combined && !is_power_of_two(gf->rc6.enabled)) {
+		if (gf->rc6.rc6_combined) {
 			int need_comma = 0;
+			int rewind = len;
 			len += sprintf(buf + len, " (");
-			if (gf->rc6.enabled & 1) {
+			if (gf->rc6.rc6) {
 				len += sprintf(buf + len, "%src6=%d%%",
 					       need_comma ? ", " : "",
 					       gf->rc6.rc6);
-				need_comma = 1;
+				need_comma++;
 			}
-			if (gf->rc6.enabled & 2) {
+			if (gf->rc6.rc6p) {
 				len += sprintf(buf + len, "%src6p=%d%%",
 					       need_comma ? ", " : "",
 					       gf->rc6.rc6p);
-				need_comma = 1;
+				need_comma++;
 			}
-			if (gf->rc6.enabled & 4) {
+			if (gf->rc6.rc6pp) {
 				len += sprintf(buf + len, "%src6pp=%d%%",
 					       need_comma ? ", " : "",
 					       gf->rc6.rc6pp);
-				need_comma = 1;
+				need_comma++;
 			}
 			sprintf(buf + len, ")");
+			if (need_comma <= 1)
+				buf[rewind] = '\0';
 		}
 		cairo_show_text(ctx->cr, buf);
 		y += 14;
