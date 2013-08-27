@@ -222,7 +222,9 @@ static void show_gpu_top(struct overlay_context *ctx, struct overlay_gpu_top *gt
 	y = PAD + 12 - 2;
 	cairo_set_source_rgba(ctx->cr, 0.75, 0.25, 0.75, 1.);
 	cairo_move_to(ctx->cr, PAD, y);
-	sprintf(txt, "CPU: %3d%% busy", gt->cpu_top.busy * gt->cpu_top.nr_cpu);
+	len = sprintf(txt, "CPU: %3d%% busy", gt->cpu_top.busy * gt->cpu_top.nr_cpu);
+	if (gt->cpu_top.nr_cpu)
+		sprintf(txt + len, " (%d cores)", gt->cpu_top.nr_cpu);
 	cairo_show_text(ctx->cr, txt);
 	y += 14;
 
