@@ -222,14 +222,14 @@ static void show_gpu_top(struct overlay_context *ctx, struct overlay_gpu_top *gt
 	y = PAD + 12 - 2;
 	cairo_set_source_rgba(ctx->cr, 0.75, 0.25, 0.75, 1.);
 	cairo_move_to(ctx->cr, PAD, y);
-	sprintf(txt, "CPU: %d%% busy", gt->cpu_top.busy);
+	sprintf(txt, "CPU: %3d%% busy", gt->cpu_top.busy);
 	cairo_show_text(ctx->cr, txt);
 	y += 14;
 
 	for (n = 0; n < gt->gpu_top.num_rings; n++) {
 		struct chart *c =&gt->busy[n];
 
-		len = sprintf(txt, "%s: %d%% busy",
+		len = sprintf(txt, "%s: %3d%% busy",
 			      gt->gpu_top.ring[n].name,
 			      gt->gpu_top.ring[n].u.u.busy);
 		if (gt->gpu_top.ring[n].u.u.wait)
@@ -537,7 +537,7 @@ static void show_gpu_freq(struct overlay_context *ctx, struct overlay_gpu_freq *
 	y1 = y2 = y;
 	if (has_freq) {
 		y2 += 14;
-		y2 += 14;
+		y2 += 10;
 	}
 	if (has_rc6)
 		y2 += 14;
@@ -557,46 +557,55 @@ static void show_gpu_freq(struct overlay_context *ctx, struct overlay_gpu_freq *
 	cairo_fill(ctx->cr);
 
 	if (has_freq) {
+		cairo_text_extents_t extents;
+
 		len = sprintf(buf, "Frequency: %dMHz", gf->gpu_freq.current);
 		if (gf->gpu_freq.request)
-			sprintf(buf + len, " (requested %dMHz)", gf->gpu_freq.request);
 		cairo_set_source_rgba(ctx->cr, 1, 1, 1, 1);
+			sprintf(buf + len, " (requested %dMHz)", gf->gpu_freq.request);
 		cairo_move_to(ctx->cr, PAD, y);
 		cairo_show_text(ctx->cr, buf);
 		y += 14;
 
-		sprintf(buf, "min: %dMHz, max: %dMHz", gf->gpu_freq.min, gf->gpu_freq.max);
-		cairo_move_to(ctx->cr, PAD, y);
+		cairo_text_extents(ctx->cr, "Frequency: ", &extents);
+
+		cairo_set_font_size(ctx->cr, 10);
+		sprintf(buf, " min: %dMHz, max: %dMHz", gf->gpu_freq.min, gf->gpu_freq.max);
+		cairo_set_source_rgba(ctx->cr, .8, .8, .8, 1);
+		cairo_move_to(ctx->cr, PAD + extents.width, y);
 		cairo_show_text(ctx->cr, buf);
-		y += 14;
+		cairo_set_font_size(ctx->cr, 12);
+		y += 12;
 	}
 
 	if (has_rc6) {
-		sprintf(buf, "RC6: %d%%", gf->rc6.rc6_combined);
+		len = sprintf(buf, "RC6: %d%%", gf->rc6.rc6_combined);
+		cairo_set_source_rgba(ctx->cr, 1, 1, 1, 1);
 		cairo_move_to(ctx->cr, PAD, y);
-		cairo_show_text(ctx->cr, buf);
 		if (gf->rc6.rc6_combined && !is_power_of_two(gf->rc6.enabled)) {
-			char *txt;
-			len = 0;
-			txt = buf + sprintf(buf, " (");
+			int need_comma = 0;
+			len += sprintf(buf + len, " (");
 			if (gf->rc6.enabled & 1) {
-				if (len)
-					len += sprintf(txt + len, ", ");
-				len += sprintf(txt + len, "rc6=%d%%", gf->rc6.rc6);
+				len += sprintf(buf + len, "%src6=%d%%",
+					       need_comma ? ", " : "",
+					       gf->rc6.rc6);
+				need_comma = 1;
 			}
 			if (gf->rc6.enabled & 2) {
-				if (len)
-					len += sprintf(txt + len, ", ");
-				len += sprintf(txt + len, "rc6p=%d%%", gf->rc6.rc6p);
+				len += sprintf(buf + len, "%src6p=%d%%",
+					       need_comma ? ", " : "",
+					       gf->rc6.rc6p);
+				need_comma = 1;
 			}
 			if (gf->rc6.enabled & 4) {
-				if (len)
-					len += sprintf(txt + len, ", ");
-				len += sprintf(txt + len, "rc6pp=%d%%", gf->rc6.rc6pp);
+				len += sprintf(buf + len, "%src6pp=%d%%",
+					       need_comma ? ", " : "",
+					       gf->rc6.rc6pp);
+				need_comma = 1;
 			}
-			sprintf(txt + len, ")");
-			cairo_show_text(ctx->cr, buf);
+			sprintf(buf + len, ")");
 		}
+		cairo_show_text(ctx->cr, buf);
 		y += 14;
 	}
 
@@ -669,10 +678,10 @@ static void show_gem_objects(struct overlay_context *ctx, struct overlay_gem_obj
 	for (comm = go->gem_objects.comm; comm; comm = comm->next) {
 		if ((comm->bytes >> 20) == 0)
 			break;
-		y2 += 14;
+		y2 += 12;
 	}
 	y1 += -12 - 2;
-	y2 += -14 + 4;
+	y2 += -12 + 4;
 
 	cairo_rectangle(ctx->cr, x, y1, ctx->width/2-SIZE_PAD, y2-y1);
 	linear = cairo_pattern_create_linear(x, 0, x+ctx->width/2-SIZE_PAD, 0);
@@ -690,6 +699,7 @@ static void show_gem_objects(struct overlay_context *ctx, struct overlay_gem_obj
 	y += 14;
 
 	cairo_set_source_rgba(ctx->cr, .8, .8, .8, 1);
+	cairo_set_font_size(ctx->cr, 10);
 	for (comm = go->gem_objects.comm; comm; comm = comm->next) {
 		if ((comm->bytes >> 20) == 0)
 			break;
@@ -698,7 +708,7 @@ static void show_gem_objects(struct overlay_context *ctx, struct overlay_gem_obj
 			comm->name, comm->bytes >> 20, comm->count);
 		cairo_move_to(ctx->cr, x, y);
 		cairo_show_text(ctx->cr, buf);
-		y += 14;
+		y += 12;
 	}
 }
 
