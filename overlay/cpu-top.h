@@ -30,6 +30,7 @@
 struct cpu_top {
 	uint8_t busy;
 	int nr_cpu;
+	int nr_running;
 
 	int count;
 	struct cpu_stat {

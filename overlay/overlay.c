@@ -183,6 +183,8 @@ static void show_gpu_top(struct overlay_context *ctx, struct overlay_gpu_top *gt
 	int y, y1, y2, n, update, len;
 	cairo_pattern_t *linear;
 	char txt[160];
+	int rewind;
+	int do_rewind;
 
 	update = gpu_top_update(&gt->gpu_top);
 
@@ -222,9 +224,20 @@ static void show_gpu_top(struct overlay_context *ctx, struct overlay_gpu_top *gt
 	y = PAD + 12 - 2;
 	cairo_set_source_rgba(ctx->cr, 0.75, 0.25, 0.75, 1.);
 	cairo_move_to(ctx->cr, PAD, y);
-	len = sprintf(txt, "CPU: %3d%% busy", gt->cpu_top.busy * gt->cpu_top.nr_cpu);
-	if (gt->cpu_top.nr_cpu)
-		sprintf(txt + len, " (%d cores)", gt->cpu_top.nr_cpu);
+	rewind = len = sprintf(txt, "CPU: %3d%% busy", gt->cpu_top.busy * gt->cpu_top.nr_cpu);
+	do_rewind = 1;
+	len += sprintf(txt + len, " (");
+	if (gt->cpu_top.nr_cpu > 1) {
+		len += sprintf(txt + len, "%s%d cores", do_rewind ? "" : ", ", gt->cpu_top.nr_cpu);
+		do_rewind = 0;
+	}
+	if (gt->cpu_top.nr_running) {
+		len += sprintf(txt + len, "%s%d processes", do_rewind ? "" : ", ", gt->cpu_top.nr_running);
+		do_rewind = 0;
+	}
+	sprintf(txt + len, ")");
+	if (do_rewind)
+		txt[rewind] = '\0';
 	cairo_show_text(ctx->cr, txt);
 	y += 14;
 

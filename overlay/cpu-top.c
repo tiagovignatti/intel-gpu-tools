@@ -23,6 +23,7 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <string.h>
@@ -44,7 +45,7 @@ int cpu_top_update(struct cpu_top *cpu)
 	struct cpu_stat *s = &cpu->stat[cpu->count++&1];
 	struct cpu_stat *d = &cpu->stat[cpu->count&1];
 	uint64_t d_total, d_idle;
-	char buf[4096];
+	char buf[4096], *b;
 	int fd, len = -1;
 
 	fd = open("/proc/stat", 0);
@@ -65,6 +66,10 @@ int cpu_top_update(struct cpu_top *cpu)
 	sscanf(buf, "cpu %llu %llu %llu %llu",
 	       &s->user, &s->nice, &s->sys, &s->idle);
 #endif
+
+	b = strstr(buf, "procs_running");
+	if (b)
+		cpu->nr_running = atoi(b+sizeof("procs_running")) - 1;
 
 	s->total = s->user + s->nice + s->sys + s->idle;
 	if (cpu->count == 1)
