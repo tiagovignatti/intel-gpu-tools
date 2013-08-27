@@ -74,33 +74,6 @@ static void x11_window_show(struct overlay *overlay)
 	XFlush(priv->dpy);
 }
 
-static void x11_window_position(struct overlay *overlay,
-				enum position p)
-{
-	struct x11_window *priv = to_x11_window(overlay);
-	Screen *scr = ScreenOfDisplay(priv->dpy, DefaultScreen(priv->dpy));
-	int x, y;
-
-	switch (p & 7) {
-	default:
-	case 0: x = 0; break;
-	case 1: x = (scr->width - priv->width)/2; break;
-	case 2: x = scr->width - priv->width; break;
-	}
-
-	switch ((p >> 4) & 7) {
-	default:
-	case 0: y = 0; break;
-	case 1: y = (scr->height - priv->height)/2; break;
-	case 2: y = scr->height - priv->height; break;
-	}
-
-	if (priv->visible) {
-		XMoveWindow(priv->dpy, priv->win, x, y);
-		XFlush(priv->dpy);
-	}
-}
-
 static void x11_window_hide(struct overlay *overlay)
 {
 	struct x11_window *priv = to_x11_window(overlay);
@@ -136,7 +109,6 @@ cairo_surface_t *
 x11_window_create(struct config *config, int *width, int *height)
 {
 	Display *dpy;
-	Screen *scr;
 	Window win;
 	int screen;
 	cairo_surface_t *surface;
@@ -149,11 +121,10 @@ x11_window_create(struct config *config, int *width, int *height)
 		return NULL;
 
 	screen = DefaultScreen(dpy);
-	scr = XScreenOfDisplay(dpy, screen);
 
 	XSetErrorHandler(noop);
 
-	x11_position(scr, *width, *height, config, &x, &y, &w, &h);
+	x11_position(dpy, *width, *height, config, &x, &y, &w, &h);
 
 	attr.override_redirect = True;
 	win = XCreateWindow(dpy, DefaultRootWindow(dpy),
@@ -179,7 +150,6 @@ x11_window_create(struct config *config, int *width, int *height)
 		goto err_priv;
 
 	priv->base.show = x11_window_show;
-	priv->base.position = x11_window_position;
 	priv->base.hide = x11_window_hide;
 
 	priv->dpy = dpy;

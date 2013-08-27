@@ -84,6 +84,7 @@ fi
 if test x$enable_overlay_xlib = xyes; then
 	AC_DEFINE(HAVE_OVERLAY_XLIB, 1, [Enable X backend])
 fi
+PKG_CHECK_MODULES(XRANDR, xrandr >= 1.3, AC_DEFINE(HAVE_XRANDR, 1, [Have libXrandr]), [have_xrandr=no])
 
 # for testdisplay
 PKG_CHECK_MODULES(CAIRO, [cairo >= 1.12.0])

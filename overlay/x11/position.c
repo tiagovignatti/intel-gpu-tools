@@ -22,9 +22,17 @@
  *
  */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include <X11/Xlib.h>
+#ifdef HAVE_XRANDR
+#include <X11/extensions/Xrandr.h>
+#endif
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "position.h"
 #include "../overlay.h"
@@ -65,8 +73,47 @@ static enum position get_position(struct config *config)
 	return POS_UNSET;
 }
 
+static void screen_size(Display *dpy, struct config *config,
+			int *scr_x, int *scr_y, int *scr_width, int *scr_height)
+{
+	const char *crtc;
+	Screen *scr;
+
+#ifdef HAVE_XRANDR
+	crtc = config_get_value(config, "x11", "crtc");
+	if (crtc) {
+		XRRScreenResources *res;
+		int i = atoi(crtc);
+		int ok = 0;
+
+		res = XRRGetScreenResourcesCurrent(dpy, DefaultRootWindow(dpy));
+		if (res) {
+			if (i < res->ncrtc) {
+				XRRCrtcInfo *info = XRRGetCrtcInfo (dpy, res, res->crtcs[i]);
+				if (info) {
+					*scr_x = info->x;
+					*scr_y = info->y;
+					*scr_width = info->width;
+					*scr_height = info->height;
+					ok = 1;
+					XRRFreeCrtcInfo(info);
+				}
+			}
+			XRRFreeScreenResources(res);
+		}
+		if (ok)
+			return;
+	}
+#endif
+
+	scr = ScreenOfDisplay(dpy, DefaultScreen(dpy));
+	*scr_x = *scr_y = 0;
+	*scr_width = scr->width;
+	*scr_height = scr->height;
+}
+
 enum position
-x11_position(Screen *scr, int width, int height,
+x11_position(Display *dpy, int width, int height,
 	     struct config *config,
 	     int *x, int *y, int *w, int *h)
 {
@@ -85,11 +132,14 @@ x11_position(Screen *scr, int width, int height,
 		if (*h < height/2)
 			*h = height/2;
 	} else {
+		int scr_x, scr_y, scr_width, scr_height;
+
+		screen_size(dpy, config, &scr_x, &scr_y, &scr_width, &scr_height);
 		position = get_position(config);
 
 		if (position != POS_UNSET) {
 			if (width == -1) {
-				*w = scr->width;
+				*w = scr_width;
 				switch (position & 7) {
 				default:
 				case 0:
@@ -98,7 +148,7 @@ x11_position(Screen *scr, int width, int height,
 			}
 
 			if (height == -1) {
-				*h = scr->height;
+				*h = scr_height;
 				switch ((position >> 4) & 7) {
 				default:
 				case 0:
@@ -132,27 +182,30 @@ x11_position(Screen *scr, int width, int height,
 				*h = height/2;
 		}
 
-		if ((unsigned)*w > scr->width)
-			*w = scr->width;
+		if ((unsigned)*w > scr_width)
+			*w = scr_width;
 
-		if ((unsigned)*h > scr->height)
-			*h = scr->height;
+		if ((unsigned)*h > scr_height)
+			*h = scr_height;
 
 		if (position != POS_UNSET) {
 			switch (position & 7) {
 			default:
 			case 0: *x = 0; break;
-			case 1: *x = (scr->width - *w)/2; break;
-			case 2: *x = scr->width - *w; break;
+			case 1: *x = (scr_width - *w)/2; break;
+			case 2: *x = scr_width - *w; break;
 			}
 
 			switch ((position >> 4) & 7) {
 			default:
 			case 0: *y = 0; break;
-			case 1: *y = (scr->height - *h)/2; break;
-			case 2: *y = scr->height - *h; break;
+			case 1: *y = (scr_height - *h)/2; break;
+			case 2: *y = scr_height - *h; break;
 			}
 		}
+
+		*x += scr_x;
+		*y += scr_y;
 	}
 
 	return position;

@@ -58,7 +58,6 @@ enum position {
 struct overlay {
 	cairo_surface_t *surface;
 	void (*show)(struct overlay *);
-	void (*position)(struct overlay *, enum position);
 	void (*hide)(struct overlay *);
 };
 

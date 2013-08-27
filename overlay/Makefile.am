@@ -39,8 +39,8 @@ intel_gpu_overlay_SOURCES = \
 
 if BUILD_OVERLAY_XLIB
 both_x11_sources = x11/position.c x11/position.h
-AM_CFLAGS += $(OVERLAY_XLIB_CFLAGS)
-LDADD += $(OVERLAY_XLIB_LIBS)
+AM_CFLAGS += $(OVERLAY_XLIB_CFLAGS) $(XRANDR_CFLAGS)
+LDADD += $(OVERLAY_XLIB_LIBS) $(XRANDR_LIBS)
 intel_gpu_overlay_SOURCES += \
 	x11/x11-window.c \
 	$(NULL)
@@ -48,8 +48,8 @@ endif
 
 if BUILD_OVERLAY_XVLIB
 both_x11_sources = x11/x11-position.c
-AM_CFLAGS += $(OVERLAY_XVLIB_CFLAGS)
-LDADD += $(OVERLAY_XVLIB_LIBS)
+AM_CFLAGS += $(OVERLAY_XVLIB_CFLAGS) $(XRANDR_CFLAGS)
+LDADD += $(OVERLAY_XVLIB_LIBS) $(XRANDR_LIBS)
 intel_gpu_overlay_SOURCES += \
 	x11/dri2.c \
 	x11/dri2.h \

@@ -31,7 +31,7 @@ struct config;
 enum position;
 
 enum position
-x11_position(Screen *scr, int width, int height,
+x11_position(Display *dpy, int width, int height,
 	     struct config *config,
 	     int *x, int *y, int *w, int *h);
 

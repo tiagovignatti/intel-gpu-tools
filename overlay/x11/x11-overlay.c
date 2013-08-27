@@ -92,37 +92,6 @@ static void x11_overlay_show(struct overlay *overlay)
 	}
 }
 
-static void x11_overlay_position(struct overlay *overlay,
-				 enum position p)
-{
-	struct x11_overlay *priv = to_x11_overlay(overlay);
-	Screen *scr = ScreenOfDisplay(priv->dpy, DefaultScreen(priv->dpy));
-
-	switch (p & 7) {
-	default:
-	case 0: priv->x = 0; break;
-	case 1: priv->x = (scr->width - priv->image->width)/2; break;
-	case 2: priv->x = scr->width - priv->image->width; break;
-	}
-
-	switch ((p >> 4) & 7) {
-	default:
-	case 0: priv->y = 0; break;
-	case 1: priv->y = (scr->height - priv->image->height)/2; break;
-	case 2: priv->y = scr->height - priv->image->height; break;
-	}
-
-	if (priv->visible) {
-		XvPutImage(priv->dpy, priv->port, DefaultRootWindow(priv->dpy),
-			   priv->gc, priv->image,
-			   0, 0,
-			   priv->image->width, priv->image->height,
-			   priv->x, priv->y,
-			   priv->image->width, priv->image->height);
-		XFlush(priv->dpy);
-	}
-}
-
 static void x11_overlay_hide(struct overlay *overlay)
 {
 	struct x11_overlay *priv = to_x11_overlay(overlay);
@@ -197,7 +166,7 @@ x11_overlay_create(struct config *config, int *width, int *height)
 
 	XSetErrorHandler(noop);
 
-	position = x11_position(scr, *width, *height, config, &x, &y, &w, &h);
+	position = x11_position(dpy, *width, *height, config, &x, &y, &w, &h);
 
 	image = XvCreateImage(dpy, port, FOURCC_RGB565, NULL, w, h);
 	if (image == NULL)
@@ -276,7 +245,6 @@ x11_overlay_create(struct config *config, int *width, int *height)
 
 	priv->base.surface = surface;
 	priv->base.show = x11_overlay_show;
-	priv->base.position = x11_overlay_position;
 	priv->base.hide = x11_overlay_hide;
 
 	priv->dpy = dpy;

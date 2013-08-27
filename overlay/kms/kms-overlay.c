@@ -124,11 +124,6 @@ static void kms_overlay_show(struct overlay *overlay)
 	}
 }
 
-static void kms_overlay_position(struct overlay *overlay,
-				 enum position p)
-{
-}
-
 static void kms_overlay_hide(struct overlay *overlay)
 {
 	struct kms_overlay *priv = to_kms_overlay(overlay);
@@ -309,7 +304,6 @@ kms_overlay_create(struct config *config, int *width, int *height)
 		goto err_mem;
 
 	priv->base.show = kms_overlay_show;
-	priv->base.position = kms_overlay_position;
 	priv->base.hide = kms_overlay_hide;
 
 	priv->visible = false;
