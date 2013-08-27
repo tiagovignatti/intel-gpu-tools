@@ -611,6 +611,7 @@ static void show_gpu_freq(struct overlay_context *ctx, struct overlay_gpu_freq *
 
 	if (has_power) {
 		sprintf(buf, "Power: %llumW", (long long unsigned)gf->power.power_mW);
+		cairo_set_source_rgba(ctx->cr, 1, 1, 1, 1);
 		cairo_move_to(ctx->cr, PAD, y);
 		cairo_show_text(ctx->cr, buf);
 		y += 14;
@@ -618,6 +619,7 @@ static void show_gpu_freq(struct overlay_context *ctx, struct overlay_gpu_freq *
 
 	if (has_irqs) {
 		sprintf(buf, "Interrupts: %llu", (long long unsigned)gf->irqs.delta);
+		cairo_set_source_rgba(ctx->cr, 1, 1, 1, 1);
 		cairo_move_to(ctx->cr, PAD, y);
 		cairo_show_text(ctx->cr, buf);
 		y += 14;
