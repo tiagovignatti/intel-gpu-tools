@@ -29,6 +29,7 @@
 
 struct cpu_top {
 	uint8_t busy;
+	int nr_cpu;
 
 	int count;
 	struct cpu_stat {
@@ -37,6 +38,7 @@ struct cpu_top {
 	} stat[2];
 };
 
+int cpu_top_init(struct cpu_top *cpu);
 int cpu_top_update(struct cpu_top *cpu);
 
 #endif /* CPU_TOP_H */

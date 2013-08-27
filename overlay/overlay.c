@@ -143,8 +143,8 @@ static void init_gpu_top(struct overlay_context *ctx,
 	};
 	int n;
 
+	cpu_top_init(&gt->cpu_top);
 	gpu_top_init(&gt->gpu_top);
-	memset(&gt->cpu, 0, sizeof(gt->cpu));
 
 	chart_init(&gt->cpu, "CPU", 120);
 	chart_set_position(&gt->cpu, PAD, PAD);
@@ -222,7 +222,7 @@ static void show_gpu_top(struct overlay_context *ctx, struct overlay_gpu_top *gt
 	y = PAD + 12 - 2;
 	cairo_set_source_rgba(ctx->cr, 0.75, 0.25, 0.75, 1.);
 	cairo_move_to(ctx->cr, PAD, y);
-	sprintf(txt, "CPU: %3d%% busy", gt->cpu_top.busy);
+	sprintf(txt, "CPU: %3d%% busy", gt->cpu_top.busy * gt->cpu_top.nr_cpu);
 	cairo_show_text(ctx->cr, txt);
 	y += 14;
 

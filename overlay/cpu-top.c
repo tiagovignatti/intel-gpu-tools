@@ -25,9 +25,19 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <string.h>
 #include <errno.h>
 
 #include "cpu-top.h"
+
+int cpu_top_init(struct cpu_top *cpu)
+{
+	memset(cpu, 0, sizeof(*cpu));
+
+	cpu->nr_cpu = sysconf(_SC_NPROCESSORS_ONLN);
+
+	return 0;
+}
 
 int cpu_top_update(struct cpu_top *cpu)
 {
