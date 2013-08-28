@@ -34,6 +34,7 @@
 #include <errno.h>
 #include <signal.h>
 #include <getopt.h>
+#include <time.h>
 
 #include "overlay.h"
 #include "chart.h"
@@ -754,6 +755,13 @@ static int get_sample_period(struct config *config)
 	return 500000;
 }
 
+static void overlay_snapshot(struct overlay_context *ctx)
+{
+	char buf[1024];
+	sprintf(buf, "/tmp/overlay-snapshot-%ld.png", (long)time(NULL));
+	cairo_surface_write_to_png(ctx->surface, buf);
+}
+
 int main(int argc, char **argv)
 {
 	static struct option long_options[] = {
@@ -853,9 +861,7 @@ int main(int argc, char **argv)
 		overlay_show(ctx.surface);
 
 		if (take_snapshot) {
-			char buf[80];
-			sprintf(buf, "overlay-snapshot-%d.png", i-1);
-			cairo_surface_write_to_png(ctx.surface, buf);
+			overlay_snapshot(&ctx);
 			take_snapshot = 0;
 		}
 
