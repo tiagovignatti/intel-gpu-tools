@@ -774,13 +774,13 @@ int main(int argc, char **argv)
 	struct overlay_context ctx;
 	struct config config;
 	int index, sample_period;
-	int daemonize = 1;
+	int daemonize = 1, renice = 0;
 	int i;
 
 	config_init(&config);
 
 	opterr = 0;
-	while ((i = getopt_long(argc, argv, "c:f", long_options, &index)) != -1) {
+	while ((i = getopt_long(argc, argv, "c:fn?", long_options, &index)) != -1) {
 		switch (i) {
 		case 'c':
 			config_parse_string(&config, optarg);
@@ -796,6 +796,11 @@ int main(int argc, char **argv)
 			break;
 		case 'f':
 			daemonize = 0;
+			break;
+		case 'n':
+			renice = -20;
+			if (optarg)
+				renice = atoi(optarg);
 			break;
 		}
 	}
@@ -819,6 +824,9 @@ int main(int argc, char **argv)
 
 	if (daemonize && daemon(0, 0))
 		return EINVAL;
+
+	if (renice)
+		nice(renice);
 
 	signal(SIGUSR1, signal_snapshot);
 
