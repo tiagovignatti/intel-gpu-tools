@@ -911,6 +911,69 @@ static void connector_find_preferred_mode(uint32_t connector_id, int crtc_idx,
 
 }
 
+static bool mode_compatible(const drmModeModeInfo *a, const drmModeModeInfo *b)
+{
+	int d_refresh;
+
+	if (a->hdisplay != b->hdisplay)
+		return false;
+
+	if (a->vdisplay != b->vdisplay)
+		return false;
+
+	d_refresh = a->vrefresh - b->vrefresh;
+	if (d_refresh < -1 || d_refresh > 1)
+		return false;
+
+	return true;
+}
+
+static void connector_find_compatible_mode(int crtc_idx0, int crtc_idx1,
+					   struct test_output *o)
+{
+	struct kmstest_connector_config config[2];
+	drmModeModeInfo *mode[2];
+	int n, m;
+
+	if (kmstest_get_connector_config(drm_fd, o->_connector[0],
+					 1 << crtc_idx0, &config[0]) < 0)
+		return;
+
+	if (kmstest_get_connector_config(drm_fd, o->_connector[1],
+					 1 << crtc_idx1, &config[1]) < 0)
+		return;
+
+	mode[0] = &config[0].default_mode;
+	mode[1] = &config[1].default_mode;
+	if (!mode_compatible(mode[0], mode[1])) {
+		for (n = 0; n < config[0].connector->count_modes; n++) {
+			mode[0] = &config[0].connector->modes[n];
+			for (m = 0; m < config[1].connector->count_modes; m++) {
+				mode[1] = &config[1].connector->modes[m];
+				if (mode_compatible(mode[0], mode[1]))
+					goto found;
+			}
+		}
+		return;
+	}
+
+found:
+	o->pipe = config[0].pipe;
+	o->fb_width = mode[0]->hdisplay;
+	o->fb_height = mode[0]->vdisplay;
+	o->mode_valid = 1;
+
+	o->kconnector[0] = config[0].connector;
+	o->kencoder[0] = config[0].encoder;
+	o->_crtc[0] = config[0].crtc->crtc_id;
+	o->kmode[0] = *mode[0];
+
+	o->kconnector[1] = config[1].connector;
+	o->kencoder[1] = config[1].encoder;
+	o->_crtc[1] = config[1].crtc->crtc_id;
+	o->kmode[1] = *mode[1];
+}
+
 static void paint_flip_mode(struct kmstest_fb *fb, bool odd_frame)
 {
 	cairo_t *cr = kmstest_get_cairo_ctx(drm_fd, fb);
@@ -950,7 +1013,7 @@ fb_is_bound(struct test_output *o, int fb)
 }
 
 static void check_final_state(struct test_output *o, struct event_state *es,
-			      unsigned int ellapsed)
+			      unsigned int elapsed)
 {
 	if (es->count == 0) {
 		fprintf(stderr, "no %s event received\n", es->name);
@@ -964,7 +1027,7 @@ static void check_final_state(struct test_output *o, struct event_state *es,
 		int count = es->count;
 
 		count *= es->seq_step;
-		expected = ellapsed * o->kmode[0].vrefresh / (1000 * 1000);
+		expected = elapsed * o->kmode[0].vrefresh / (1000 * 1000);
 		if (count < expected * 99/100) {
 			fprintf(stderr, "dropped frames, expected %d, counted %d, encoder type %d\n",
 				expected, count, o->kencoder[0]->encoder_type);
@@ -1020,7 +1083,7 @@ static unsigned int wait_for_events(struct test_output *o)
 	return event_mask;
 }
 
-/* Returned the ellapsed time in us */
+/* Returned the elapsed time in us */
 static unsigned event_loop(struct test_output *o, unsigned duration_sec)
 {
 	unsigned long start, end;
@@ -1051,7 +1114,7 @@ static unsigned event_loop(struct test_output *o, unsigned duration_sec)
 
 static void run_test_on_crtc(struct test_output *o, int crtc_idx, int duration)
 {
-	unsigned ellapsed;
+	unsigned elapsed;
 
 	o->bpp = 32;
 	o->depth = 24;
@@ -1117,12 +1180,12 @@ static void run_test_on_crtc(struct test_output *o, int crtc_idx, int duration)
 	else
 		o->vblank_state.seq_step = 1;
 
-	ellapsed = event_loop(o, duration);
+	elapsed = event_loop(o, duration);
 
 	if (o->flags & TEST_FLIP && !(o->flags & TEST_NOEVENT))
-		check_final_state(o, &o->flip_state, ellapsed);
+		check_final_state(o, &o->flip_state, elapsed);
 	if (o->flags & TEST_VBLANK)
-		check_final_state(o, &o->vblank_state, ellapsed);
+		check_final_state(o, &o->vblank_state, elapsed);
 
 	fprintf(stdout, "\n%s on crtc %d, connector %d: PASSED\n\n",
 		igt_subtest_name(), o->_crtc[0], o->_connector[0]);
@@ -1138,11 +1201,103 @@ out:
 	drmModeFreeConnector(o->kconnector[0]);
 }
 
+static void run_test_on_crtc_pair(struct test_output *o, int crtc_idx0, int crtc_idx1, int duration)
+{
+	unsigned elapsed;
+	int i;
+
+	o->bpp = 32;
+	o->depth = 24;
+
+	connector_find_compatible_mode(crtc_idx0, crtc_idx1, o);
+	if (!o->mode_valid)
+		return;
+
+	last_connector = o->kconnector[0];
+
+	fprintf(stdout, "Beginning %s on crtc %d:%d, connector %d:%d\n",
+		igt_subtest_name(), o->_crtc[0], o->_crtc[1], o->_connector[0], o->_connector[1]);
+
+	if (o->flags & TEST_PAN)
+		o->fb_width *= 2;
+
+	o->fb_ids[0] = kmstest_create_fb(drm_fd, o->fb_width, o->fb_height,
+					 o->bpp, o->depth, false, &o->fb_info[0]);
+	o->fb_ids[1] = kmstest_create_fb(drm_fd, o->fb_width, o->fb_height,
+					 o->bpp, o->depth, false, &o->fb_info[1]);
+	o->fb_ids[2] = kmstest_create_fb(drm_fd, o->fb_width, o->fb_height,
+					 o->bpp, o->depth, true, &o->fb_info[2]);
+
+	if (!o->fb_ids[0] || !o->fb_ids[1] || !o->fb_ids[2]) {
+		fprintf(stderr, "failed to create fbs\n");
+		igt_fail(3);
+	}
+
+	paint_flip_mode(&o->fb_info[0], false);
+	paint_flip_mode(&o->fb_info[1], true);
+	paint_flip_mode(&o->fb_info[2], true);
+
+	set_y_tiling(o, 2);
+
+	kmstest_dump_mode(&o->kmode[0]);
+	kmstest_dump_mode(&o->kmode[1]);
+	if (set_mode(o, o->fb_ids[0], 0, 0)) {
+		/* We may fail to apply the mode if there are hidden
+		 * constraints, such as bandwidth on the third pipe.
+		 */
+		if (0) {
+			fprintf(stderr, "failed to set mode (%dx%d@%dHz): %s\n",
+				o->fb_width, o->fb_height, o->kmode[0].vrefresh,
+				strerror(errno));
+		}
+		goto out;
+	}
+	igt_assert(fb_is_bound(o, o->fb_ids[0]));
+
+	/* quiescent the hw a bit so ensure we don't miss a single frame */
+	if (o->flags & TEST_CHECK_TS)
+		sleep(1);
+
+	if (do_page_flip(o, o->fb_ids[1], true)) {
+		fprintf(stderr, "failed to page flip: %s\n", strerror(errno));
+		igt_fail(4);
+	}
+	wait_for_events(o);
+
+	o->current_fb_id = 1;
+	o->flip_state.seq_step = 1;
+	if (o->flags & TEST_VBLANK_ABSOLUTE)
+		o->vblank_state.seq_step = 5;
+	else
+		o->vblank_state.seq_step = 1;
+
+	elapsed = event_loop(o, duration);
+
+	if (o->flags & TEST_FLIP && !(o->flags & TEST_NOEVENT))
+		check_final_state(o, &o->flip_state, elapsed);
+	if (o->flags & TEST_VBLANK)
+		check_final_state(o, &o->vblank_state, elapsed);
+
+	fprintf(stdout, "\n%s on crtc %d:%d, connector %d:%d: PASSED\n\n",
+		igt_subtest_name(), o->_crtc[0], o->_crtc[1], o->_connector[0], o->_connector[1]);
+
+out:
+	kmstest_remove_fb(drm_fd, &o->fb_info[2]);
+	kmstest_remove_fb(drm_fd, &o->fb_info[1]);
+	kmstest_remove_fb(drm_fd, &o->fb_info[0]);
+
+	last_connector = NULL;
+
+	for (i = 0; i < o->count; i++) {
+		drmModeFreeEncoder(o->kencoder[i]);
+		drmModeFreeConnector(o->kconnector[i]);
+	}
+}
+
 static int run_test(int duration, int flags)
 {
 	struct test_output o;
-	int c;
-	int crtc_idx;
+	int i, n;
 
 	resources = drmModeGetResources(drm_fd);
 	if (!resources) {
@@ -1152,16 +1307,51 @@ static int run_test(int duration, int flags)
 	}
 
 	/* Find any connected displays */
-	for (c = 0; c < resources->count_connectors; c++) {
-		for (crtc_idx = 0; crtc_idx < resources->count_crtcs; crtc_idx++) {
+	for (i = 0; i < resources->count_connectors; i++) {
+		for (n = 0; n < resources->count_crtcs; n++) {
 			memset(&o, 0, sizeof(o));
 			o.count = 1;
-			o._connector[0] = resources->connectors[c];
+			o._connector[0] = resources->connectors[i];
 			o.flags = flags;
 			o.flip_state.name = "flip";
 			o.vblank_state.name = "vblank";
 
-			run_test_on_crtc(&o, crtc_idx, duration);
+			run_test_on_crtc(&o, n, duration);
+		}
+	}
+
+	drmModeFreeResources(resources);
+	return 1;
+}
+
+static int run_pair(int duration, int flags)
+{
+	struct test_output o;
+	int i, j, m, n;
+
+	resources = drmModeGetResources(drm_fd);
+	if (!resources) {
+		fprintf(stderr, "drmModeGetResources failed: %s\n",
+			strerror(errno));
+		igt_fail(5);
+	}
+
+	/* Find a pair of connected displays */
+	for (i = 0; i < resources->count_connectors; i++) {
+		for (n = 0; n < resources->count_crtcs; n++) {
+			for (j = i + 1; j < resources->count_connectors; j++) {
+				for (m = n + 1; m < resources->count_crtcs; m++) {
+					memset(&o, 0, sizeof(o));
+					o.count = 2;
+					o._connector[0] = resources->connectors[i];
+					o._connector[1] = resources->connectors[j];
+					o.flags = flags;
+					o.flip_state.name = "flip";
+					o.vblank_state.name = "vblank";
+
+					run_test_on_crtc_pair(&o, n, m, duration);
+				}
+			}
 		}
 	}
 
@@ -1265,6 +1455,9 @@ int main(int argc, char **argv)
 	for (i = 0; i < sizeof(tests) / sizeof (tests[0]); i++) {
 		igt_subtest(tests[i].name)
 			run_test(tests[i].duration, tests[i].flags);
+
+		igt_subtest_f( "2x-%s", tests[i].name)
+			run_pair(tests[i].duration, tests[i].flags);
 	}
 
 	igt_fork_signal_helper();
@@ -1277,6 +1470,9 @@ int main(int argc, char **argv)
 
 		igt_subtest_f( "%s-interruptible", tests[i].name)
 			run_test(tests[i].duration, tests[i].flags);
+
+		igt_subtest_f( "2x-%s-interruptible", tests[i].name)
+			run_pair(tests[i].duration, tests[i].flags);
 	}
 	igt_stop_signal_helper();
 
