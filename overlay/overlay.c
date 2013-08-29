@@ -55,6 +55,8 @@
 #define HALF_PAD 5
 #define SIZE_PAD (PAD + HALF_PAD)
 
+#define IDLE_TIME 30
+
 const cairo_user_data_key_t overlay_key;
 
 static void overlay_show(cairo_surface_t *surface)
@@ -344,7 +346,7 @@ static void show_gpu_perf(struct overlay_context *ctx, struct overlay_gpu_perf *
 		return;
 	}
 
-	if (gp->gpu_perf.comm == NULL) {
+	if (gp->gpu_perf.comm == NULL && (has_ctx|has_flips) == 0) {
 		cairo_text_extents_t extents;
 		cairo_text_extents(ctx->cr, gp->gpu_perf.error, &extents);
 		cairo_move_to(ctx->cr,
@@ -465,7 +467,7 @@ static void show_gpu_perf(struct overlay_context *ctx, struct overlay_gpu_perf *
 
 skip_comm:
 		memset(comm->nr_requests, 0, sizeof(comm->nr_requests));
-		if (comm->show < ctx->time - 10 ||
+		if (comm->show < ctx->time - IDLE_TIME ||
 		    strcmp(comm->name, get_comm(comm->pid, buf, sizeof(buf)))) {
 			*prev = comm->next;
 			if (comm->user_data) {
@@ -492,7 +494,7 @@ skip_comm:
 		y += 14;
 	} else if (gp->show_flips) {
 		cairo_show_text(ctx->cr, "Flips: 0");
-		if (ctx->time - gp->show_flips > 10)
+		if (ctx->time - gp->show_flips > IDLE_TIME)
 			gp->show_flips = 0;
 		y += 14;
 	}
@@ -514,7 +516,7 @@ skip_comm:
 	} else if (gp->show_ctx) {
 		cairo_show_text(ctx->cr, "Contexts: 0");
 		y += 14;
-		if (ctx->time - gp->show_ctx > 10)
+		if (ctx->time - gp->show_ctx > IDLE_TIME)
 			gp->show_ctx = 0;
 	}
 }
