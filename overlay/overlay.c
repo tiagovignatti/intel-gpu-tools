@@ -344,6 +344,16 @@ static void show_gpu_perf(struct overlay_context *ctx, struct overlay_gpu_perf *
 		return;
 	}
 
+	if (gp->gpu_perf.comm == NULL) {
+		cairo_text_extents_t extents;
+		cairo_text_extents(ctx->cr, gp->gpu_perf.error, &extents);
+		cairo_move_to(ctx->cr,
+			      ctx->width/2+HALF_PAD + (ctx->width/2-SIZE_PAD - extents.width)/2.,
+			      PAD + (ctx->height/2-SIZE_PAD + extents.height)/2.);
+		cairo_show_text(ctx->cr, "idle");
+		return;
+	}
+
 	y = PAD + 12 - 2;
 	x = ctx->width/2 + HALF_PAD;
 
@@ -411,6 +421,7 @@ static void show_gpu_perf(struct overlay_context *ctx, struct overlay_gpu_perf *
 				continue;
 			len += sprintf(buf + len, "%s %d%s", need_comma ? "," : "", comm->nr_requests[n], ring_name[n]);
 			need_comma = true;
+			comm->show = ctx->time;
 		}
 		if (comm->wait_time) {
 			if (comm->wait_time > 1000*1000) {
@@ -428,6 +439,7 @@ static void show_gpu_perf(struct overlay_context *ctx, struct overlay_gpu_perf *
 			}
 			need_comma = true;
 			comm->wait_time = 0;
+			comm->show = ctx->time;
 		}
 		if (comm->nr_sema) {
 			len += sprintf(buf + len, "%s %d syncs",
@@ -435,6 +447,7 @@ static void show_gpu_perf(struct overlay_context *ctx, struct overlay_gpu_perf *
 				       comm->nr_sema);
 			need_comma = true;
 			comm->nr_sema = 0;
+			comm->show = ctx->time;
 		}
 
 		if (comm->user_data) {
@@ -452,7 +465,8 @@ static void show_gpu_perf(struct overlay_context *ctx, struct overlay_gpu_perf *
 
 skip_comm:
 		memset(comm->nr_requests, 0, sizeof(comm->nr_requests));
-		if (strcmp(comm->name, get_comm(comm->pid, buf, sizeof(buf)))) {
+		if (comm->show < ctx->time - 10 ||
+		    strcmp(comm->name, get_comm(comm->pid, buf, sizeof(buf)))) {
 			*prev = comm->next;
 			if (comm->user_data) {
 				chart_fini(comm->user_data);

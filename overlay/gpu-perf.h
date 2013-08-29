@@ -53,6 +53,8 @@ struct gpu_perf {
 
 		uint64_t wait_time;
 		uint32_t nr_sema;
+
+		time_t show;
 	} *comm;
 	struct gpu_perf_time {
 		struct gpu_perf_time *next;
