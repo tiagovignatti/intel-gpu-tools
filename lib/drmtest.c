@@ -1003,7 +1003,12 @@ void igt_waitchildren(void)
 		if (status != 0) {
 			if (WIFEXITED(status))
 				igt_fail(WEXITSTATUS(status));
-			else
+			else if (WIFSIGNALED(status)) {
+				printf("child %i died with signal %i, %s\n",
+				       nc, WTERMSIG(status),
+				       strsignal(WTERMSIG(status)));
+				igt_fail(99);
+			} else
 				abort();
 		}
 	}
