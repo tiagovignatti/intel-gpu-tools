@@ -132,6 +132,7 @@ struct test_output {
 	struct event_state flip_state;
 	struct event_state vblank_state;
 	unsigned int pending_events;
+	int flip_count;
 };
 
 
@@ -301,12 +302,15 @@ static int do_page_flip(struct test_output *o, int fb_id, bool event)
 {
 	int n, ret = 0;
 
-	for (n = 0; n < o->count; n++) {
-		ret = drmModePageFlip(drm_fd, o->_crtc[n], fb_id, event ? DRM_MODE_PAGE_FLIP_EVENT : 0,
-				      event ? o : NULL);
-		if (ret == 0 && event)
-			set_flag(&o->pending_events, EVENT_FLIP);
-	}
+	o->flip_count = 0;
+
+	for (n = 0; ret == 0 && n < o->count; n++)
+		ret = drmModePageFlip(drm_fd, o->_crtc[n], fb_id,
+				      event ? DRM_MODE_PAGE_FLIP_EVENT : 0,
+				      event ? (void *)((unsigned long)o | (n==0)) : NULL);
+
+	if (ret == 0 && event)
+		set_flag(&o->pending_events, EVENT_FLIP);
 
 	return ret;
 }
@@ -401,10 +405,13 @@ static void event_handler(struct event_state *es, unsigned int frame,
 static void page_flip_handler(int fd, unsigned int frame, unsigned int sec,
 			      unsigned int usec, void *data)
 {
-	struct test_output *o = data;
+	int primary = (unsigned long)data & 1;
+	struct test_output *o = (void *)((unsigned long)data & ~ 1);
 
-	clear_flag(&o->pending_events, EVENT_FLIP);
-	event_handler(&o->flip_state, frame, sec, usec);
+	if (++o->flip_count == o->count)
+		clear_flag(&o->pending_events, EVENT_FLIP);
+	if (primary)
+		event_handler(&o->flip_state, frame, sec, usec);
 }
 
 static double frame_time(struct test_output *o)
@@ -1063,19 +1070,21 @@ static unsigned int wait_for_events(struct test_output *o)
 	FD_ZERO(&fds);
 	FD_SET(drm_fd, &fds);
 	do {
-		ret = select(drm_fd + 1, &fds, NULL, NULL, &timeout);
-	} while (ret < 0 && errno == EINTR);
+		do {
+			ret = select(drm_fd + 1, &fds, NULL, NULL, &timeout);
+		} while (ret < 0 && errno == EINTR);
 
-	if (ret <= 0) {
-		fprintf(stderr, "select timed out or error (ret %d)\n",
+		if (ret <= 0) {
+			fprintf(stderr, "select timed out or error (ret %d)\n",
 				ret);
-		igt_fail(1);
-	} else if (FD_ISSET(0, &fds)) {
-		fprintf(stderr, "no fds active, breaking\n");
-		igt_fail(2);
-	}
+			igt_fail(1);
+		} else if (FD_ISSET(0, &fds)) {
+			fprintf(stderr, "no fds active, breaking\n");
+			igt_fail(2);
+		}
 
-	do_or_die(drmHandleEvent(drm_fd, &evctx));
+		do_or_die(drmHandleEvent(drm_fd, &evctx));
+	} while (o->pending_events);
 
 	event_mask ^= o->pending_events;
 	igt_assert(event_mask);
