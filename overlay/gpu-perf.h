@@ -41,7 +41,9 @@ struct gpu_perf {
 		int (*func)(struct gpu_perf *, const void *);
 	} *sample;
 
-	int flip_complete[4];
+	unsigned flip_complete[MAX_RINGS];
+	unsigned ctx_switch[MAX_RINGS];
+
 	struct gpu_perf_comm {
 		struct gpu_perf_comm *next;
 		char name[256];

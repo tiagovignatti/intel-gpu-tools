@@ -40,10 +40,12 @@
 
 #if defined(__i386__)
 #define rmb()           asm volatile("lock; addl $0,0(%%esp)" ::: "memory")
+#define wmb()           asm volatile("lock; addl $0,0(%%esp)" ::: "memory")
 #endif
 
 #if defined(__x86_64__)
 #define rmb()           asm volatile("lfence" ::: "memory")
+#define wmb()           asm volatile("sfence" ::: "memory")
 #endif
 
 #define N_PAGES 32
@@ -228,6 +230,14 @@ static int flip_complete(struct gpu_perf *gp, const void *event)
 	return 1;
 }
 
+static int ctx_switch(struct gpu_perf *gp, const void *event)
+{
+	const struct sample_event *sample = event;
+
+	gp->ctx_switch[sample->raw[1]]++;
+	return 1;
+}
+
 static int ring_sync(struct gpu_perf *gp, const void *event)
 {
 	const struct sample_event *sample = event;
@@ -293,6 +303,7 @@ void gpu_perf_init(struct gpu_perf *gp, unsigned flags)
 		perf_tracepoint_open(gp, "i915", "i915_gem_request_wait_end", wait_end);
 	perf_tracepoint_open(gp, "i915", "i915_flip_complete", flip_complete);
 	perf_tracepoint_open(gp, "i915", "i915_gem_ring_sync_to", ring_sync);
+	perf_tracepoint_open(gp, "i915", "i915_gem_ring_switch_context", ctx_switch);
 
 	if (gp->nr_events == 0) {
 		gp->error = "i915.ko tracepoints not available";
@@ -303,20 +314,19 @@ void gpu_perf_init(struct gpu_perf *gp, unsigned flags)
 		return;
 }
 
-static int process_sample(struct gpu_perf *gp,
+static int process_sample(struct gpu_perf *gp, int cpu,
 			  const struct perf_event_header *header)
 {
 	const struct sample_event *sample = (const struct sample_event *)header;
 	int n, update = 0;
 
 	/* hash me! */
-	for (n = 0; n < gp->nr_cpus * gp->nr_events; n++) {
-		if (gp->sample[n].id != sample->id)
+	for (n = 0; n < gp->nr_events; n++) {
+		int m = n * gp->nr_cpus + cpu;
+		if (gp->sample[m].id != sample->id)
 			continue;
 
-		update = 1;
-		if (gp->sample[n].func)
-			update = gp->sample[n].func(gp, sample);
+		update = gp->sample[m].func(gp, sample);
 		break;
 	}
 
@@ -380,13 +390,14 @@ int gpu_perf_update(struct gpu_perf *gp)
 			}
 
 			if (header->type == PERF_RECORD_SAMPLE)
-				update += process_sample(gp, header);
+				update += process_sample(gp, n, header);
 			tail += header->size;
 		}
 
 		if (wrap)
 			tail &= mask;
 		mmap->data_tail = tail;
+		wmb();
 	}
 
 	free(buffer);
