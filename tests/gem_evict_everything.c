@@ -115,6 +115,7 @@ copy(int fd, uint32_t dst, uint32_t src, uint32_t *all_bo, int n_bo, int error)
 	igt_assert(ret == error);
 
 	gem_close(fd, handle);
+	free(obj);
 }
 
 static void minor_evictions(int fd, int size, int count)
