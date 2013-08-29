@@ -204,6 +204,20 @@ void __igt_fixture_end(void) __attribute__((noreturn));
 			 igt_tokencat(__tmpint,__LINE__) ++, \
 			 __igt_fixture_complete())
 
+bool __igt_fork(void);
+/**
+ * igt_fork - fork parallel test threads with fork()
+ * @child: name of the int variable with the child number
+ * @num_children: number of children to fork
+ *
+ * Joining all test threads should be done with igt_waitchildren to ensure that
+ * the exit codes of all children are properly reflected in the test status.
+ */
+#define igt_fork(child, num_children) \
+	for (int child = 0; child < (num_children); child++) \
+		for (; __igt_fork(); exit(0))
+void igt_waitchildren(void);
+
 /* check functions which auto-skip tests by calling igt_skip() */
 void gem_require_caching(int fd);
 static inline void gem_require_ring(int fd, int ring_id)

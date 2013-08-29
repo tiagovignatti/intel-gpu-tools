@@ -652,6 +652,12 @@ static enum {
 	CONT = 0, SKIP, FAIL
 } skip_subtests_henceforth = CONT;
 
+/* fork support state */
+pid_t *test_children;
+int num_test_children;
+int test_children_sz;
+bool test_child;
+
 bool __igt_fixture(void)
 {
 	assert(!in_fixture);
@@ -852,6 +858,8 @@ void igt_skip(const char *f, ...)
 	va_list args;
 	skipped_one = true;
 
+	assert(!test_child);
+
 	if (!igt_only_list_subtests()) {
 		va_start(args, f);
 		vprintf(f, args);
@@ -892,6 +900,10 @@ void igt_fail(int exitcode)
 		igt_exitcode = exitcode;
 
 	failed_one = true;
+
+	/* Silent exit, parent will do the yelling. */
+	if (test_child)
+		exit(exitcode);
 
 	if (in_subtest)
 		exit_subtest("FAIL");
@@ -944,6 +956,59 @@ void igt_exit(void)
 		exit(0);
 	else
 		exit(77);
+}
+
+bool __igt_fork(void)
+{
+	assert(!test_with_subtests || in_subtest);
+
+	if (num_test_children >= test_children_sz) {
+		if (!test_children_sz)
+			test_children_sz = 4;
+		else
+			test_children_sz *= 2;
+
+		test_children = realloc(test_children,
+					sizeof(pid_t)*test_children_sz);
+		igt_assert(test_children);
+	}
+
+	switch (test_children[num_test_children++] = fork()) {
+	case -1:
+		igt_assert(0);
+	case 0:
+		test_child = true;
+		return true;
+	default:
+		return false;
+	}
+
+}
+
+/**
+ * igt_waitchildren - wait for all children forked with igt_fork
+ *
+ * The magic here is that exit codes from children will be correctly propagated
+ */
+void igt_waitchildren(void)
+{
+	assert(!test_child);
+
+	for (int nc = 0; nc < num_test_children; nc++) {
+		int status = -1;
+		while (waitpid(test_children[nc], &status, 0) == -1 &&
+		       errno == -EINTR)
+			;
+
+		if (status != 0) {
+			if (WIFEXITED(status))
+				igt_fail(WEXITSTATUS(status));
+			else
+				abort();
+		}
+	}
+
+	num_test_children = 0;
 }
 
 static bool env_set(const char *env_var, bool default_value)
