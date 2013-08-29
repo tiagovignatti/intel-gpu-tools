@@ -111,22 +111,12 @@ main(int argc, char **argv)
 	idx_arr = calloc(count, sizeof(int));
 	igt_assert(idx_arr);
 
-	if (intel_get_total_swap_mb() == 0) {
-		printf("no swap detected\n");
-		return 77;
-	}
-
-	if (intel_get_total_ram_mb() / 4 > intel_get_total_swap_mb()) {
-		printf("not enough swap detected\n");
-		return 77;
-	}
+	igt_require(intel_get_total_ram_mb() / 4 < intel_get_total_swap_mb());
 
 	for (i = 0; i < count; i++) {
 		bo_handles[i] = create_bo_and_fill(fd);
-		if (bo_handles[i] == 0) {
-			printf("insufficient address space\n");
-			return 77;
-		}
+		/* Not enough mmap address space possible. */
+		igt_require(bo_handles[i] == 0);
 	}
 
 	for (i = 0; i < count; i++)
