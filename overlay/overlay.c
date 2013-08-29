@@ -103,6 +103,7 @@ struct overlay_gpu_top {
 struct overlay_gpu_perf {
 	struct gpu_perf gpu_perf;
 	time_t show_ctx;
+	time_t show_flips;
 };
 
 struct overlay_gpu_freq {
@@ -275,6 +276,7 @@ static void init_gpu_perf(struct overlay_context *ctx,
 	gpu_perf_init(&gp->gpu_perf, 0);
 
 	gp->show_ctx = 0;
+	gp->show_flips = 0;
 }
 
 static char *get_comm(pid_t pid, char *comm, int len)
@@ -316,14 +318,15 @@ static void show_gpu_perf(struct overlay_context *ctx, struct overlay_gpu_perf *
 	cairo_pattern_t *linear;
 	int x, y, y1, y2, n;
 	int has_ctx = 0;
+	int has_flips = 0;
 
 	gpu_perf_update(&gp->gpu_perf);
 
-	for (n = 4; n > 0; n--) {
-		if (gp->gpu_perf.ctx_switch[n-1]) {
-			has_ctx = n;
-			break;
-		}
+	for (n = 0; n < 4; n++) {
+		if (gp->gpu_perf.ctx_switch[n])
+			has_ctx = n + 1;
+		if (gp->gpu_perf.flip_complete[n])
+			has_flips = n + 1;
 	}
 
 	cairo_rectangle(ctx->cr, ctx->width/2+HALF_PAD-.5, PAD-.5, ctx->width/2-SIZE_PAD+1, ctx->height/2-SIZE_PAD+1);
@@ -381,10 +384,12 @@ static void show_gpu_perf(struct overlay_context *ctx, struct overlay_gpu_perf *
 		chart_draw(comm->user_data, ctx->cr);
 		y2 += 14;
 	}
+	if (has_flips || gp->show_flips)
+		y2 += 14;
 	if (has_ctx || gp->show_ctx)
 		y2 += 14;
 	y1 += -12 - 2;
-	y2 += 14 - 14 + 4;
+	y2 += -14 + 4;
 
 	cairo_rectangle(ctx->cr, x, y1, ctx->width/2-SIZE_PAD, y2-y1);
 	linear = cairo_pattern_create_linear(x, 0, x + ctx->width/2-SIZE_PAD, 0);
@@ -458,27 +463,25 @@ skip_comm:
 			prev = &comm->next;
 	}
 
-	{
-		int has_flips = 0, len;
-		for (n = 0; n < 4; n++) {
-			if (gp->gpu_perf.flip_complete[n])
-				has_flips = n + 1;
-		}
-		if (has_flips) {
-			len = sprintf(buf, "Flips:");
-			for (n = 0; n < has_flips; n++)
-				len += sprintf(buf + len, "%s %d",
-					       n ? "," : "",
-					       gp->gpu_perf.flip_complete[n]);
-		} else {
-			sprintf(buf, "Flips: 0");
-		}
-		memset(gp->gpu_perf.flip_complete, 0, sizeof(gp->gpu_perf.flip_complete));
-	}
 	cairo_set_source_rgba(ctx->cr, 1, 1, 1, 1);
 	cairo_move_to(ctx->cr, x, y);
-	cairo_show_text(ctx->cr, buf);
-	y += 14;
+	if (has_flips) {
+		int len = sprintf(buf, "Flips:");
+		for (n = 0; n < has_flips; n++)
+			len += sprintf(buf + len, "%s %d",
+				       n ? "," : "",
+				       gp->gpu_perf.flip_complete[n]);
+		memset(gp->gpu_perf.flip_complete, 0, sizeof(gp->gpu_perf.flip_complete));
+		gp->show_flips = ctx->time;
+
+		cairo_show_text(ctx->cr, buf);
+		y += 14;
+	} else if (gp->show_flips) {
+		cairo_show_text(ctx->cr, "Flips: 0");
+		if (ctx->time - gp->show_flips > 10)
+			gp->show_flips = 0;
+		y += 14;
+	}
 
 	cairo_set_source_rgba(ctx->cr, 1, 1, 1, 1);
 	cairo_move_to(ctx->cr, x, y);
