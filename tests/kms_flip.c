@@ -961,7 +961,9 @@ static void connector_find_compatible_mode(int crtc_idx0, int crtc_idx1,
 					goto found;
 			}
 		}
-		return;
+
+		/* hope for the best! */
+		mode[1] = mode[0] = &config[0].default_mode;
 	}
 
 found:
@@ -1462,8 +1464,10 @@ int main(int argc, char **argv)
 	}
 
 	for (i = 0; i < sizeof(tests) / sizeof (tests[0]); i++) {
+#if 0
 		igt_subtest(tests[i].name)
 			run_test(tests[i].duration, tests[i].flags);
+#endif
 
 		igt_subtest_f( "2x-%s", tests[i].name)
 			run_pair(tests[i].duration, tests[i].flags);
