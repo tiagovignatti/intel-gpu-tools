@@ -718,9 +718,17 @@ static int set_mode(struct test_output *o, int fb, int x, int y)
 	int n;
 
 	for (n = 0; n < o->count; n++) {
-		if (drmModeSetCrtc(drm_fd, o->_crtc[n], fb,
-				   x, y, &o->_connector[n], 1, &o->kmode[n]))
-			return -1;
+		if (fb == 0) {
+			if (drmModeSetCrtc(drm_fd, o->_crtc[n],
+					   0, 0, 0,
+					   0, 0, 0))
+				return -1;
+		} else {
+			if (drmModeSetCrtc(drm_fd, o->_crtc[n],
+					   fb, x, y,
+					   &o->_connector[n], 1, &o->kmode[n]))
+				return -1;
+		}
 	}
 
 	return 0;
