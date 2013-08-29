@@ -40,29 +40,28 @@
 #include "i915_drm.h"
 #include "drmtest.h"
 #include "testdisplay.h"
-#include "intel_bufmgr.h"
-#include "intel_batchbuffer.h"
-#include "intel_gpu_tools.h"
+#include "rendercopy.h"
 
 #define TEST_DPMS		(1 << 0)
-#define TEST_WITH_DUMMY_LOAD	(1 << 1)
-#define TEST_PAN		(1 << 2)
-#define TEST_MODESET		(1 << 3)
-#define TEST_CHECK_TS		(1 << 4)
-#define TEST_EBUSY		(1 << 5)
-#define TEST_EINVAL		(1 << 6)
-#define TEST_FLIP		(1 << 7)
-#define TEST_VBLANK		(1 << 8)
-#define TEST_VBLANK_BLOCK	(1 << 9)
-#define TEST_VBLANK_ABSOLUTE	(1 << 10)
-#define TEST_VBLANK_EXPIRED_SEQ	(1 << 11)
-#define TEST_FB_RECREATE	(1 << 12)
-#define TEST_RMFB		(1 << 13)
-#define TEST_HANG		(1 << 14)
-#define TEST_NOEVENT		(1 << 15)
-#define TEST_FB_BAD_TILING	(1 << 16)
-#define TEST_SINGLE_BUFFER	(1 << 17)
-#define TEST_DPMS_OFF		(1 << 18)
+#define TEST_WITH_DUMMY_BCS	(1 << 1)
+#define TEST_WITH_DUMMY_RCS	(1 << 2)
+#define TEST_PAN		(1 << 3)
+#define TEST_MODESET		(1 << 4)
+#define TEST_CHECK_TS		(1 << 5)
+#define TEST_EBUSY		(1 << 6)
+#define TEST_EINVAL		(1 << 7)
+#define TEST_FLIP		(1 << 8)
+#define TEST_VBLANK		(1 << 9)
+#define TEST_VBLANK_BLOCK	(1 << 10)
+#define TEST_VBLANK_ABSOLUTE	(1 << 11)
+#define TEST_VBLANK_EXPIRED_SEQ	(1 << 12)
+#define TEST_FB_RECREATE	(1 << 13)
+#define TEST_RMFB		(1 << 14)
+#define TEST_HANG		(1 << 15)
+#define TEST_NOEVENT		(1 << 16)
+#define TEST_FB_BAD_TILING	(1 << 17)
+#define TEST_SINGLE_BUFFER	(1 << 18)
+#define TEST_DPMS_OFF		(1 << 19)
 
 #define EVENT_FLIP		(1 << 0)
 #define EVENT_VBLANK		(1 << 1)
@@ -144,7 +143,7 @@ static unsigned long gettime_us(void)
 	return ts.tv_sec * 1000000 + ts.tv_nsec / 1000;
 }
 
-static void emit_dummy_load(struct test_output *o)
+static void emit_dummy_load__bcs(struct test_output *o)
 {
 	int i, limit;
 	drm_intel_bo *dummy_bo, *target_bo, *tmp_bo;
@@ -190,6 +189,56 @@ static void emit_dummy_load(struct test_output *o)
 
 	drm_intel_bo_unreference(dummy_bo);
 	drm_intel_bo_unreference(target_bo);
+}
+
+static void emit_dummy_load__rcs(struct test_output *o)
+{
+	const struct kmstest_fb *fb_info = &o->fb_info[o->current_fb_id];
+	render_copyfunc_t copyfunc;
+	struct scratch_buf sb[2], *src, *dst;
+	int i, limit;
+
+	copyfunc = get_render_copyfunc(devid);
+	if (copyfunc == NULL)
+		return emit_dummy_load__bcs(o);
+
+	limit = intel_gen(devid) < 6 ? 500 : 5000;
+
+	sb[0].bo = drm_intel_bo_alloc(bufmgr, "dummy_bo", fb_info->size, 4096);
+	igt_assert(sb[0].bo);
+	sb[0].size = sb[0].bo->size;
+	sb[0].tiling = I915_TILING_NONE;
+	sb[0].data = NULL;
+	sb[0].num_tiles = sb[0].bo->size;
+	sb[0].stride = 4 * o->mode.hdisplay;
+
+	sb[1].bo = gem_handle_to_libdrm_bo(bufmgr, drm_fd, "imported", fb_info->gem_handle);
+	igt_assert(sb[1].bo);
+	sb[1].size = sb[1].bo->size;
+	sb[1].tiling = fb_info->tiling;
+	sb[1].data = NULL;
+	sb[1].num_tiles = sb[1].bo->size;
+	sb[1].stride = fb_info->stride;
+
+	src = &sb[0];
+	dst = &sb[1];
+
+	for (i = 0; i < limit; i++) {
+		struct scratch_buf *tmp;
+
+		copyfunc(batch,
+			 src, 0, 0,
+			 o->mode.hdisplay, o->mode.vdisplay,
+			 dst, 0, 0);
+
+		tmp = src;
+		src = dst;
+		dst = tmp;
+	}
+	intel_batchbuffer_flush(batch);
+
+	drm_intel_bo_unreference(sb[0].bo);
+	drm_intel_bo_unreference(sb[1].bo);
 }
 
 static int set_connector_dpms(drmModeConnector *connector, int mode)
@@ -672,9 +721,11 @@ static unsigned int run_test_step(struct test_output *o)
 	do_vblank = (o->flags & TEST_VBLANK) &&
 		    !(o->pending_events & EVENT_VBLANK);
 
-	if (o->flags & TEST_WITH_DUMMY_LOAD)
-		emit_dummy_load(o);
+	if (o->flags & TEST_WITH_DUMMY_BCS)
+		emit_dummy_load__bcs(o);
 
+	if (o->flags & TEST_WITH_DUMMY_RCS)
+		emit_dummy_load__rcs(o);
 
 	if (!(o->flags & TEST_SINGLE_BUFFER))
 		o->current_fb_id = !o->current_fb_id;
@@ -916,7 +967,7 @@ static unsigned int wait_for_events(struct test_output *o)
 	evctx.page_flip_handler = page_flip_handler;
 
 	/* make timeout lax with the dummy load */
-	if (o->flags & TEST_WITH_DUMMY_LOAD)
+	if (o->flags & (TEST_WITH_DUMMY_BCS | TEST_WITH_DUMMY_RCS))
 		timeout.tv_sec *= 10;
 
 	FD_ZERO(&fds);
@@ -1128,11 +1179,15 @@ int main(int argc, char **argv)
 		{ 5,  TEST_VBLANK | TEST_VBLANK_BLOCK | TEST_VBLANK_ABSOLUTE,
 					"blocking-absolute-wf_vblank" },
 		{ 30,  TEST_VBLANK | TEST_DPMS | TEST_EINVAL, "wf_vblank-vs-dpms" },
-		{ 30,  TEST_VBLANK | TEST_DPMS | TEST_WITH_DUMMY_LOAD,
-					"delayed-wf_vblank-vs-dpms" },
+		{ 30,  TEST_VBLANK | TEST_DPMS | TEST_WITH_DUMMY_BCS,
+					"bcs-wf_vblank-vs-dpms" },
+		{ 30,  TEST_VBLANK | TEST_DPMS | TEST_WITH_DUMMY_RCS,
+					"rcs-wf_vblank-vs-dpms" },
 		{ 30,  TEST_VBLANK | TEST_MODESET | TEST_EINVAL, "wf_vblank-vs-modeset" },
-		{ 30,  TEST_VBLANK | TEST_MODESET | TEST_WITH_DUMMY_LOAD,
-					"delayed-wf_vblank-vs-modeset" },
+		{ 30,  TEST_VBLANK | TEST_MODESET | TEST_WITH_DUMMY_BCS,
+					"bcs-wf_vblank-vs-modeset" },
+		{ 30,  TEST_VBLANK | TEST_MODESET | TEST_WITH_DUMMY_RCS,
+					"rcs-wf_vblank-vs-modeset" },
 
 		{ 15, TEST_FLIP | TEST_EBUSY , "plain-flip" },
 		{ 15, TEST_FLIP | TEST_CHECK_TS | TEST_EBUSY , "plain-flip-ts-check" },
@@ -1140,11 +1195,14 @@ int main(int argc, char **argv)
 			"plain-flip-fb-recreate" },
 		{ 15, TEST_FLIP | TEST_EBUSY | TEST_RMFB | TEST_MODESET , "flip-vs-rmfb" },
 		{ 30, TEST_FLIP | TEST_DPMS | TEST_EINVAL, "flip-vs-dpms" },
-		{ 30, TEST_FLIP | TEST_DPMS | TEST_WITH_DUMMY_LOAD, "delayed-flip-vs-dpms" },
+		{ 30, TEST_FLIP | TEST_DPMS | TEST_WITH_DUMMY_BCS, "bcs-flip-vs-dpms" },
+		{ 30, TEST_FLIP | TEST_DPMS | TEST_WITH_DUMMY_RCS, "rcs-flip-vs-dpms" },
 		{ 5,  TEST_FLIP | TEST_PAN, "flip-vs-panning" },
-		{ 30, TEST_FLIP | TEST_PAN | TEST_WITH_DUMMY_LOAD, "delayed-flip-vs-panning" },
+		{ 30, TEST_FLIP | TEST_PAN | TEST_WITH_DUMMY_BCS, "bcs-flip-vs-panning" },
+		{ 30, TEST_FLIP | TEST_PAN | TEST_WITH_DUMMY_RCS, "rcs-flip-vs-panning" },
 		{ 30, TEST_FLIP | TEST_MODESET | TEST_EINVAL, "flip-vs-modeset" },
-		{ 30, TEST_FLIP | TEST_MODESET | TEST_WITH_DUMMY_LOAD, "delayed-flip-vs-modeset" },
+		{ 30, TEST_FLIP | TEST_MODESET | TEST_WITH_DUMMY_BCS, "bcs-flip-vs-modeset" },
+		{ 30, TEST_FLIP | TEST_MODESET | TEST_WITH_DUMMY_RCS, "rcs-flip-vs-modeset" },
 		{ 5,  TEST_FLIP | TEST_VBLANK_EXPIRED_SEQ,
 					"flip-vs-expired-vblank" },
 

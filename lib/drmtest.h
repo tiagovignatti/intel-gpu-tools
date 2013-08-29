@@ -25,6 +25,9 @@
  *
  */
 
+#ifndef DRMTEST_H
+#define DRMTEST_H
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -269,6 +272,7 @@ struct kmstest_fb {
 	int height;
 	int depth;
 	unsigned stride;
+	unsigned tiling;
 	unsigned size;
 	cairo_t *cairo_ctx;
 };
@@ -326,3 +330,5 @@ int igt_enable_prefault(void);
 
 /* suspend and auto-resume system */
 void igt_system_suspend_autoresume(void);
+
+#endif /* DRMTEST_H */

@@ -1304,6 +1304,7 @@ unsigned int kmstest_create_fb(int fd, int width, int height, int bpp,
 
 	fb->width = width;
 	fb->height = height;
+	fb->tiling = tiled;
 	fb->drm_format = bpp_depth_to_drm_format(bpp, depth);
 
 	return fb->fb_id;
@@ -1352,6 +1353,7 @@ unsigned int kmstest_create_fb2(int fd, int width, int height, uint32_t format,
 
 	fb->width = width;
 	fb->height = height;
+	fb->tiling = tiled;
 	fb->drm_format = format;
 	fb->fb_id = fb_id;
 
