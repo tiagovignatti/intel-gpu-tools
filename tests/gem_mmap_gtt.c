@@ -95,8 +95,8 @@ test_access(int fd)
 			  MAP_SHARED, fd, mmap_arg.offset));
 
 	/* Check that the same offset on the other fd doesn't work. */
-	igt_assert(!mmap64(0, OBJECT_SIZE, PROT_READ | PROT_WRITE,
-			   MAP_SHARED, fd2, mmap_arg.offset));
+	igt_assert(mmap64(0, OBJECT_SIZE, PROT_READ | PROT_WRITE,
+			  MAP_SHARED, fd2, mmap_arg.offset) == MAP_FAILED);
 	igt_assert(errno == EACCES);
 
 	flink = gem_flink(fd, handle);
