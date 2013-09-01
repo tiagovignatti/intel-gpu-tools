@@ -71,6 +71,25 @@ static uint64_t get_phys(uint32_t pt_offset)
 	return (phys | pae) & ~0xfff;
 }
 
+static void pte_dump(int size, uint32_t offset) {
+	int start;
+	/* Want to print 4 ptes at a time (4b PTE assumed). */
+	if (size % 16)
+		size = (size + 16) & ~0xffff;
+
+
+	printf("GTT offset |                 PTEs\n");
+	printf("--------------------------------------------------------\n");
+	for (start = 0; start < size; start += KB(16)) {
+		printf("  0x%06x | 0x%08x 0x%08x 0x%08x 0x%08x\n",
+				start,
+				INGTT(start + 0x0),
+				INGTT(start + 0x1000),
+				INGTT(start + 0x2000),
+				INGTT(start + 0x3000));
+	}
+}
+
 int main(int argc, char **argv)
 {
 	struct pci_device *pci_dev;
@@ -118,6 +137,10 @@ int main(int argc, char **argv)
 	}
 
 	aper_size = pci_dev->regions[2].size;
+	if (argc > 1 && !strncmp("-d", argv[1], 2)) {
+		pte_dump(aper_size, 0);
+		return 0;
+	}
 
 	for (start = 0; start < aper_size; start += KB(4)) {
 		uint64_t start_phys = get_phys(start);
