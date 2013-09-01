@@ -51,7 +51,7 @@
 #include "intel_gpu_tools.h"
 
 #if !defined(I915_PARAM_HAS_VMAP)
-#warning No vmap support in drm, skipping
+#pragma message("No vmap support in drm, skipping")
 int main(int argc, char **argv)
 {
 	fprintf(stderr, "No vmap support in drm.\n");
