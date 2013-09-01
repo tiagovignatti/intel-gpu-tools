@@ -1573,7 +1573,7 @@ DEBUGSTRING(ilk_debug_pp_control)
 
 DEBUGSTRING(hsw_debug_port_clk_sel)
 {
-	const char *clock;
+	const char *clock = NULL;
 
 	switch ((val >> 29 ) & 7) {
 	case 0:
