@@ -25,6 +25,8 @@
  *
  */
 
+#define __STDC_FORMAT_MACROS
+#include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -37,18 +39,42 @@
 #define KB(x) ((x) * 1024)
 #define MB(x) ((x) * 1024 * 1024)
 unsigned char *gtt;
+uint32_t devid;
 
 #define INGTT(offset) (*(volatile uint32_t *)(gtt + (offset) / (KB(4) / 4)))
 static uint64_t get_phys(uint32_t pt_offset)
 {
-	return INGTT(pt_offset);
+	uint64_t pae = 0;
+	uint64_t phys = INGTT(pt_offset);
+
+	if (intel_gen(devid) < 4 && !IS_G33(devid))
+		return phys & ~0xfff;
+
+	switch (intel_gen(devid)) {
+		case 3:
+		case 4:
+		case 5:
+			pae = (phys & 0xf0) << 28;
+			break;
+		case 6:
+		case 7:
+			if (IS_HASWELL(devid))
+				pae = (phys & 0x7f0) << 28;
+			else
+				pae = (phys & 0xff0) << 28;
+			break;
+		default:
+			fprintf(stderr, "Unsupported platform\n");
+			exit(-1);
+	}
+
+	return (phys | pae) & ~0xfff;
 }
 
 int main(int argc, char **argv)
 {
 	struct pci_device *pci_dev;
 	int start, aper_size;
-	uint32_t devid;
 	int flag[] = {
 		PCI_DEV_MAP_FLAG_WRITE_COMBINE,
 		PCI_DEV_MAP_FLAG_WRITABLE,
@@ -94,14 +120,14 @@ int main(int argc, char **argv)
 	aper_size = pci_dev->regions[2].size;
 
 	for (start = 0; start < aper_size; start += KB(4)) {
-		uint32_t start_phys = INGTT(start);
+		uint64_t start_phys = get_phys(start);
 		uint32_t end;
 		int constant_length = 0;
 		int linear_length = 0;
 
 		/* Check if it's a linear sequence */
 		for (end = start + KB(4); end < aper_size; end += KB(4)) {
-			uint32_t end_phys = INGTT(end);
+			uint64_t end_phys = get_phys(end);
 			if (end_phys == start_phys + (end - start))
 				linear_length++;
 			else
@@ -109,7 +135,7 @@ int main(int argc, char **argv)
 		}
 		if (linear_length > 0) {
 			printf("0x%08x - 0x%08x: linear from "
-			       "0x%08x to 0x%08x\n",
+			       "0x%" PRIx64 " to 0x%" PRIx64 "\n",
 			       start, end - KB(4),
 			       start_phys, start_phys + (end - start) - KB(4));
 			start = end - KB(4);
@@ -118,20 +144,20 @@ int main(int argc, char **argv)
 
 		/* Check if it's a constant sequence */
 		for (end = start + KB(4); end < aper_size; end += KB(4)) {
-			uint32_t end_phys = INGTT(end);
+			uint64_t end_phys = get_phys(end);
 			if (end_phys == start_phys)
 				constant_length++;
 			else
 				break;
 		}
 		if (constant_length > 0) {
-			printf("0x%08x - 0x%08x: constant 0x%08x\n",
+			printf("0x%08x - 0x%08x: constant 0x%" PRIx64 "\n",
 			       start, end - KB(4), start_phys);
 			start = end - KB(4);
 			continue;
 		}
 
-		printf("0x%08x: 0x%08x\n", start, start_phys);
+		printf("0x%08x: 0x%" PRIx64 "\n", start, start_phys);
 	}
 
 	return 0;
