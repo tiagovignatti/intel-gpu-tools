@@ -1001,15 +1001,19 @@ void igt_waitchildren(void)
 			;
 
 		if (status != 0) {
-			if (WIFEXITED(status))
+			if (WIFEXITED(status)) {
+				printf("child %i failed with exit status %i\n",
+				       nc, WEXITSTATUS(status));
 				igt_fail(WEXITSTATUS(status));
-			else if (WIFSIGNALED(status)) {
+			} else if (WIFSIGNALED(status)) {
 				printf("child %i died with signal %i, %s\n",
 				       nc, WTERMSIG(status),
 				       strsignal(WTERMSIG(status)));
 				igt_fail(99);
-			} else
+			} else {
+				printf("Unhandled failure in child %i\n", nc);
 				abort();
+			}
 		}
 	}
 
