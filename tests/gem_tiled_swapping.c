@@ -116,7 +116,7 @@ main(int argc, char **argv)
 	for (i = 0; i < count; i++) {
 		bo_handles[i] = create_bo_and_fill(fd);
 		/* Not enough mmap address space possible. */
-		igt_require(bo_handles[i] == 0);
+		igt_require(bo_handles[i]);
 	}
 
 	for (i = 0; i < count; i++)
