@@ -848,12 +848,12 @@ static unsigned int run_test_step(struct test_output *o)
 	if (o->flags & TEST_PAN) {
 		int count = do_flip ?
 			o->flip_state.count : o->vblank_state.count;
-		int x_ofs = count * 10 > o->fb_width ?  o->fb_width : count * 10;
+		int x_ofs = count * 10 > o->fb_width - o->kmode[0].hdisplay ? o->fb_width - o->kmode[0].hdisplay : count * 10;
 
 		if (set_mode(o, o->fb_ids[o->current_fb_id], x_ofs, 0)){
-			fprintf(stderr, "failed to pan (%dx%d@%dHz): %s\n",
-				o->fb_width, o->fb_height,
-				o->kmode[0].vrefresh, strerror(errno));
+			fprintf(stderr, "failed to pan (%dx%d@%dHz)+%d: %s\n",
+				o->kmode[0].hdisplay, o->kmode[0].vdisplay, o->kmode[0].vrefresh,
+				x_ofs, strerror(errno));
 			igt_fail(7);
 		}
 	}
@@ -923,7 +923,6 @@ static void connector_find_preferred_mode(uint32_t connector_id, int crtc_idx,
 
 	o->fb_width = o->kmode[0].hdisplay;
 	o->fb_height = o->kmode[0].vdisplay;
-
 }
 
 static bool mode_compatible(const drmModeModeInfo *a, const drmModeModeInfo *b)
@@ -1148,7 +1147,7 @@ static void run_test_on_crtc(struct test_output *o, int crtc_idx, int duration)
 		igt_subtest_name(), o->_crtc[0], o->_connector[0]);
 
 	if (o->flags & TEST_PAN)
-		o->fb_width *= 2;
+		o->fb_width <<= 1;
 
 	o->fb_ids[0] = kmstest_create_fb(drm_fd, o->fb_width, o->fb_height,
 					 o->bpp, o->depth, false, &o->fb_info[0]);
@@ -1156,7 +1155,6 @@ static void run_test_on_crtc(struct test_output *o, int crtc_idx, int duration)
 					 o->bpp, o->depth, false, &o->fb_info[1]);
 	o->fb_ids[2] = kmstest_create_fb(drm_fd, o->fb_width, o->fb_height,
 					 o->bpp, o->depth, true, &o->fb_info[2]);
-
 	if (!o->fb_ids[0] || !o->fb_ids[1] || !o->fb_ids[2]) {
 		fprintf(stderr, "failed to create fbs\n");
 		igt_fail(3);
@@ -1175,7 +1173,7 @@ static void run_test_on_crtc(struct test_output *o, int crtc_idx, int duration)
 		 */
 		if (0) {
 			fprintf(stderr, "failed to set mode (%dx%d@%dHz): %s\n",
-				o->fb_width, o->fb_height, o->kmode[0].vrefresh,
+				o->kmode[0].hdisplay, o->kmode[0].vdisplay, o->kmode[0].vrefresh,
 				strerror(errno));
 		}
 		goto out;
@@ -1246,7 +1244,6 @@ static void run_test_on_crtc_pair(struct test_output *o, int crtc_idx0, int crtc
 					 o->bpp, o->depth, false, &o->fb_info[1]);
 	o->fb_ids[2] = kmstest_create_fb(drm_fd, o->fb_width, o->fb_height,
 					 o->bpp, o->depth, true, &o->fb_info[2]);
-
 	if (!o->fb_ids[0] || !o->fb_ids[1] || !o->fb_ids[2]) {
 		fprintf(stderr, "failed to create fbs\n");
 		igt_fail(3);
@@ -1266,7 +1263,7 @@ static void run_test_on_crtc_pair(struct test_output *o, int crtc_idx0, int crtc
 		 */
 		if (0) {
 			fprintf(stderr, "failed to set mode (%dx%d@%dHz): %s\n",
-				o->fb_width, o->fb_height, o->kmode[0].vrefresh,
+				o->kmode[0].hdisplay, o->kmode[0].vdisplay, o->kmode[0].vrefresh,
 				strerror(errno));
 		}
 		goto out;
