@@ -274,8 +274,6 @@ static void run_forked(struct access_mode *mode,
 	igt_fork_signal_helper();
 
 	igt_fork(child, 16) {
-		igt_fail(6);
-
 		/* recreate process local variables */
 		bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
 		drm_intel_bufmgr_gem_enable_reuse(bufmgr);
