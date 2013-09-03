@@ -463,6 +463,16 @@ uint32_t gem_create(int fd, int size)
 	return create.handle;
 }
 
+void gem_execbuf(int fd, struct drm_i915_gem_execbuffer2 *execbuf)
+{
+	int ret;
+
+	ret = drmIoctl(fd,
+		       DRM_IOCTL_I915_GEM_EXECBUFFER2,
+		       execbuf);
+	igt_assert(ret == 0);
+}
+
 void *gem_mmap__gtt(int fd, uint32_t handle, int size, int prot)
 {
 	struct drm_i915_gem_mmap_gtt mmap_arg;

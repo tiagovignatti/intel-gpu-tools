@@ -130,16 +130,6 @@ static int gem_linear_blt(uint32_t *batch,
 	return (b+2 - batch) * sizeof(uint32_t);
 }
 
-static void gem_exec(int fd, struct drm_i915_gem_execbuffer2 *execbuf)
-{
-	int ret;
-
-	ret = drmIoctl(fd,
-		       DRM_IOCTL_I915_GEM_EXECBUFFER2,
-		       execbuf);
-	igt_assert(ret == 0);
-}
-
 static void run(int object_size)
 {
 	struct drm_i915_gem_execbuffer2 execbuf;
@@ -209,7 +199,7 @@ static void run(int object_size)
 	i915_execbuffer2_set_context_id(execbuf, 0);
 	execbuf.rsvd2 = 0;
 
-	gem_exec(fd, &execbuf);
+	gem_execbuf(fd, &execbuf);
 	gem_sync(fd, handle);
 
 	gem_close(fd, handle);
