@@ -36,7 +36,6 @@
 #include <malloc.h>
 #include <limits.h>
 #include <sys/ioctl.h>
-#include <sys/mman.h>
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/types.h>

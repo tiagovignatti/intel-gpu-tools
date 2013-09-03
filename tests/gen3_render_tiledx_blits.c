@@ -41,7 +41,6 @@
 #include <errno.h>
 #include <sys/stat.h>
 #include <sys/time.h>
-#include <sys/mman.h>
 #include <sys/ioctl.h>
 #include "drm.h"
 #include "i915_drm.h"

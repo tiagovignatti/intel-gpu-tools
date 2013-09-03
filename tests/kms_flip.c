@@ -33,7 +33,6 @@
 #include <unistd.h>
 #include <sys/poll.h>
 #include <sys/time.h>
-#include <sys/mman.h>
 #include <sys/ioctl.h>
 #include <linux/kd.h>
 

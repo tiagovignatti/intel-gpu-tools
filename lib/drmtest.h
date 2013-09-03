@@ -36,6 +36,7 @@
 #include <stdbool.h>
 #include <cairo.h>
 #include <setjmp.h>
+#include <sys/mman.h>
 
 #include "xf86drm.h"
 #include "xf86drmMode.h"
