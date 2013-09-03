@@ -338,7 +338,8 @@ static void
 set_mode(struct connector *c)
 {
 	unsigned int fb_id = 0;
-	int j, test_mode_num;
+	struct kmstest_fb fb_info[2] = { };
+	int j, test_mode_num, current_fb = 0, old_fb = -1;
 
 	test_mode_num = 1;
 	if (force_mode){
@@ -350,7 +351,6 @@ set_mode(struct connector *c)
 		test_mode_num = c->connector->count_modes;
 
 	for (j = 0; j < test_mode_num; j++) {
-		struct kmstest_fb fb_info;
 
 		if (test_all_modes)
 			c->mode = c->connector->modes[j];
@@ -362,11 +362,9 @@ set_mode(struct connector *c)
 		height = c->mode.vdisplay;
 
 		fb_id = kmstest_create_fb(drm_fd, width, height, bpp, depth,
-					  enable_tiling, &fb_info);
-		paint_output_info(c, &fb_info);
-		paint_color_key(&fb_info);
-
-		gem_close(drm_fd, fb_info.gem_handle);
+					  enable_tiling, &fb_info[current_fb]);
+		paint_output_info(c, &fb_info[current_fb]);
+		paint_color_key(&fb_info[current_fb]);
 
 		fprintf(stdout, "CRTS(%u):[%d]",c->crtc, j);
 		kmstest_dump_mode(&c->mode);
@@ -378,6 +376,11 @@ set_mode(struct connector *c)
 			continue;
 		}
 
+		if (old_fb != -1)
+			kmstest_remove_fb(drm_fd, &fb_info[old_fb]);
+		old_fb = current_fb;
+		current_fb = 1 - current_fb;
+
 		if (sleep_between_modes && test_all_modes && !qr_code)
 			sleep(sleep_between_modes);
 
@@ -385,13 +388,10 @@ set_mode(struct connector *c)
 			set_single();
 			pause();
 		}
-
 	}
 
-	if(test_all_modes){
-		drmModeRmFB(drm_fd,fb_id);
-		drmModeSetCrtc(drm_fd, c->crtc, fb_id, 0, 0,  &c->id, 1, 0);
-	}
+	if (test_all_modes)
+		kmstest_remove_fb(drm_fd, &fb_info[old_fb]);
 
 	drmModeFreeEncoder(c->encoder);
 	drmModeFreeConnector(c->connector);
