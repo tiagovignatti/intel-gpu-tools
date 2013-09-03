@@ -334,13 +334,6 @@ set_mode(struct connector *c)
 	unsigned int fb_id = 0;
 	int j, test_mode_num;
 
-	if (depth <= 8)
-		bpp = 8;
-	else if (depth > 8 && depth <= 16)
-		bpp = 16;
-	else if (depth > 16 && depth <= 32)
-		bpp = 32;
-
 	test_mode_num = 1;
 	if (force_mode){
 		memcpy( &c->mode, &force_timing, sizeof(force_timing));
@@ -585,6 +578,14 @@ int main(int argc, char **argv)
 			break;
 		}
 	}
+
+	if (depth <= 8)
+		bpp = 8;
+	else if (depth <= 16)
+		bpp = 16;
+	else if (depth <= 32)
+		bpp = 32;
+
 	if (!test_all_modes && !force_mode && !dump_info &&
 	    !test_preferred_mode && specified_mode_num == -1)
 		test_all_modes = 1;
