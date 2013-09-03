@@ -139,25 +139,12 @@ static void emit_dummy_load(int pitch)
 	intel_batchbuffer_flush(batch);
 }
 
-#define MAX_BLT_SIZE 128
-int main(int argc, char **argv)
+static void do_test(int fd)
 {
 	uint32_t tiling_mode = I915_TILING_X;
 	unsigned long pitch, act_size;
-	int fd, i, ring;
 	uint32_t test;
-
-	igt_skip_on_simulation();
-
-	memset(blob, 'A', sizeof(blob));
-
-	fd = drm_open_any();
-
-	bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
-	/* disable reuse, otherwise the test fails */
-	//drm_intel_bufmgr_gem_enable_reuse(bufmgr);
-	devid = intel_get_drm_devid(fd);
-	batch = intel_batchbuffer_alloc(bufmgr, devid);
+	int i, ring;
 
 	act_size = 2048;
 	dummy_bo = drm_intel_bo_alloc_tiled(bufmgr, "tiled dummy_bo", act_size, act_size,
@@ -198,10 +185,46 @@ int main(int argc, char **argv)
 	drm_intel_gem_bo_map_gtt(dummy_bo);
 	drm_intel_gem_bo_unmap_gtt(dummy_bo);
 
-	intel_batchbuffer_free(batch);
-	drm_intel_bufmgr_destroy(bufmgr);
+	drm_intel_bo_unreference(special_bo);
+	drm_intel_bo_unreference(dummy_bo);
 
-	close(fd);
+
+}
+
+int fd;
+
+#define MAX_BLT_SIZE 128
+int main(int argc, char **argv)
+{
+	igt_subtest_init(argc, argv);
+	igt_skip_on_simulation();
+
+	memset(blob, 'A', sizeof(blob));
+
+	igt_fixture {
+		fd = drm_open_any();
+
+		bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
+		/* disable reuse, otherwise the test fails */
+		//drm_intel_bufmgr_gem_enable_reuse(bufmgr);
+		devid = intel_get_drm_devid(fd);
+		batch = intel_batchbuffer_alloc(bufmgr, devid);
+	}
+
+	igt_subtest("normal")
+		do_test(fd);
+
+	igt_fork_signal_helper();
+	igt_subtest("interruptible")
+		do_test(fd);
+	igt_stop_signal_helper();
+
+	igt_fixture {
+		intel_batchbuffer_free(batch);
+		drm_intel_bufmgr_destroy(bufmgr);
+
+		close(fd);
+	}
 
 	return 0;
 }

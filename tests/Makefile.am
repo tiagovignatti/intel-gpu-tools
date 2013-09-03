@@ -38,6 +38,7 @@ TESTS_progs_M = \
 	gem_pwrite \
 	gem_pwrite_pread \
 	gem_readwrite \
+	gem_reloc_vs_gpu \
 	gem_ringfill \
 	gem_set_tiling_vs_blt \
 	gem_suspend \
@@ -81,7 +82,6 @@ TESTS_progs = \
 	gem_pipe_control_store_loop \
 	gem_reg_read \
 	gem_reloc_overflow \
-	gem_reloc_vs_gpu \
 	gem_render_linear_blits \
 	gem_render_tiled_blits \
 	gem_ring_sync_loop \
