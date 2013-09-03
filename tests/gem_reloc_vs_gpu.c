@@ -139,12 +139,97 @@ static void emit_dummy_load(int pitch)
 	intel_batchbuffer_flush(batch);
 }
 
-static void do_test(int fd)
+static void faulting_reloc_and_emit(int fd, drm_intel_bo *target_bo)
+{
+	struct drm_i915_gem_execbuffer2 execbuf;
+	struct drm_i915_gem_exec_object2 exec[2];
+	struct drm_i915_gem_relocation_entry reloc[1];
+	uint32_t handle_relocs;
+	void *gtt_relocs;
+	int ring;
+
+	if (intel_gen(devid) >= 6)
+		ring = I915_EXEC_BLT;
+	else
+		ring = 0;
+
+	exec[0].handle = target_bo->handle;
+	exec[0].relocation_count = 0;
+	exec[0].relocs_ptr = 0;
+	exec[0].alignment = 0;
+	exec[0].offset = 0;
+	exec[0].flags = 0;
+	exec[0].rsvd1 = 0;
+	exec[0].rsvd2 = 0;
+
+	reloc[0].offset = special_reloc_ofs;
+	reloc[0].delta = 0;
+	reloc[0].target_handle = target_bo->handle;
+	reloc[0].read_domains = I915_GEM_DOMAIN_RENDER;
+	reloc[0].write_domain = I915_GEM_DOMAIN_RENDER;
+	reloc[0].presumed_offset = 0;
+
+	handle_relocs = gem_create(fd, 4096);
+	gem_write(fd, handle_relocs, 0, reloc, sizeof(reloc));
+	gtt_relocs = gem_mmap(fd, handle_relocs, 4096,
+			      PROT_READ | PROT_WRITE);
+	igt_assert(gtt_relocs);
+
+	exec[1].handle = special_bo->handle;
+	exec[1].relocation_count = 1;
+	/* A newly mmap gtt bo will fault on first access. */
+	exec[1].relocs_ptr = (uintptr_t)gtt_relocs;
+	exec[1].alignment = 0;
+	exec[1].offset = 0;
+	exec[1].flags = 0;
+	exec[1].rsvd1 = 0;
+	exec[1].rsvd2 = 0;
+
+	execbuf.buffers_ptr = (uintptr_t)exec;
+	execbuf.buffer_count = 2;
+	execbuf.batch_start_offset = 0;
+	execbuf.batch_len = special_batch_len;
+	execbuf.cliprects_ptr = 0;
+	execbuf.num_cliprects = 0;
+	execbuf.DR1 = 0;
+	execbuf.DR4 = 0;
+	execbuf.flags = ring;
+	i915_execbuffer2_set_context_id(execbuf, 0);
+	execbuf.rsvd2 = 0;
+
+	gem_execbuf(fd, &execbuf);
+
+	gem_close(fd, handle_relocs);
+}
+
+static void reloc_and_emit(int fd, drm_intel_bo *target_bo)
+{
+	int ring;
+
+	if (intel_gen(devid) >= 6)
+		ring = I915_EXEC_BLT;
+	else
+		ring = 0;
+
+	drm_intel_bo_emit_reloc(special_bo, special_reloc_ofs,
+				target_bo,
+				0,
+				I915_GEM_DOMAIN_RENDER,
+				I915_GEM_DOMAIN_RENDER);
+	drm_intel_bo_mrb_exec(special_bo, special_batch_len, NULL,
+			      0, 0, ring);
+
+}
+
+static void do_test(int fd, bool faulting_reloc)
 {
 	uint32_t tiling_mode = I915_TILING_X;
 	unsigned long pitch, act_size;
 	uint32_t test;
-	int i, ring;
+	int i;
+
+	if (faulting_reloc)
+		igt_disable_prefault();
 
 	act_size = 2048;
 	dummy_bo = drm_intel_bo_alloc_tiled(bufmgr, "tiled dummy_bo", act_size, act_size,
@@ -154,22 +239,15 @@ static void do_test(int fd)
 
 	create_special_bo();
 
-	if (intel_gen(devid) >= 6)
-		ring = I915_EXEC_BLT;
-	else
-		ring = 0;
-
 	for (i = 0; i < NUM_TARGET_BOS; i++) {
 		pc_target_bo[i] = drm_intel_bo_alloc(bufmgr, "special batch", 4096, 4096);
 		emit_dummy_load(pitch);
 		igt_assert(pc_target_bo[i]->offset == 0);
-		drm_intel_bo_emit_reloc(special_bo, special_reloc_ofs,
-					pc_target_bo[i],
-					0,
-					I915_GEM_DOMAIN_RENDER,
-					I915_GEM_DOMAIN_RENDER);
-		drm_intel_bo_mrb_exec(special_bo, special_batch_len, NULL,
-				      0, 0, ring);
+
+		if (faulting_reloc)
+			faulting_reloc_and_emit(fd, pc_target_bo[i]);
+		else
+			reloc_and_emit(fd, pc_target_bo[i]);
 	}
 
 	/* Only check at the end to avoid unnecessary synchronous behaviour. */
@@ -188,7 +266,8 @@ static void do_test(int fd)
 	drm_intel_bo_unreference(special_bo);
 	drm_intel_bo_unreference(dummy_bo);
 
-
+	if (faulting_reloc)
+		igt_enable_prefault();
 }
 
 int fd;
@@ -212,11 +291,17 @@ int main(int argc, char **argv)
 	}
 
 	igt_subtest("normal")
-		do_test(fd);
+		do_test(fd, false);
+
+	igt_subtest("faulting-reloc")
+		do_test(fd, true);
 
 	igt_fork_signal_helper();
 	igt_subtest("interruptible")
-		do_test(fd);
+		do_test(fd, false);
+
+	igt_subtest("faulting-reloc-interruptible")
+		do_test(fd, true);
 	igt_stop_signal_helper();
 
 	igt_fixture {
