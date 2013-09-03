@@ -270,6 +270,35 @@ static void do_test(int fd, bool faulting_reloc)
 		igt_enable_prefault();
 }
 
+#define INTERRUPT	(1 << 0)
+#define FAULTING	(1 << 1)
+#define THRASH		(1 << 2)
+#define ALL_FLAGS	(INTERRUPT | FAULTING | THRASH)
+static void do_forked_test(int fd, unsigned flags)
+{
+	int num_threads = sysconf(_SC_NPROCESSORS_ONLN);
+
+	if (flags & THRASH) {
+
+	}
+
+	igt_fork(i, num_threads * 4) {
+		/* re-create process local data */
+		bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
+		batch = intel_batchbuffer_alloc(bufmgr, devid);
+
+		if (flags & INTERRUPT)
+			igt_fork_signal_helper();
+
+		do_test(fd, flags & FAULTING);
+
+		if (flags & INTERRUPT)
+			igt_stop_signal_helper();
+	}
+
+	igt_waitchildren();
+}
+
 int fd;
 
 #define MAX_BLT_SIZE 128
@@ -303,6 +332,14 @@ int main(int argc, char **argv)
 	igt_subtest("faulting-reloc-interruptible")
 		do_test(fd, true);
 	igt_stop_signal_helper();
+
+	for (unsigned flags = 0; flags <= ALL_FLAGS; flags++) {
+		igt_subtest_f("forked%s%s%s",
+			      flags & INTERRUPT ? "-interruptible" : "",
+			      flags & FAULTING ? "-faulting-reloc" : "",
+			      flags & THRASH ? "-thrashing" : "")
+			do_forked_test(fd, flags);
+	}
 
 	igt_fixture {
 		intel_batchbuffer_free(batch);
