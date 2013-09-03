@@ -25,6 +25,7 @@
  *
  */
 
+#define _GNU_SOURCE
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -33,6 +34,8 @@
 #include <errno.h>
 #include <sys/stat.h>
 #include <sys/time.h>
+#include <signal.h>
+#include <sys/wait.h>
 #include "drm.h"
 #include "i915_drm.h"
 #include "drmtest.h"
@@ -273,13 +276,35 @@ static void do_test(int fd, bool faulting_reloc)
 #define INTERRUPT	(1 << 0)
 #define FAULTING	(1 << 1)
 #define THRASH		(1 << 2)
-#define ALL_FLAGS	(INTERRUPT | FAULTING | THRASH)
+#define THRASH_INACTIVE	(1 << 3)
+#define ALL_FLAGS	(INTERRUPT | FAULTING | THRASH | THRASH_INACTIVE)
 static void do_forked_test(int fd, unsigned flags)
 {
 	int num_threads = sysconf(_SC_NPROCESSORS_ONLN);
+	pid_t pid = -1;
 
-	if (flags & THRASH) {
+	if (flags & (THRASH | THRASH_INACTIVE)) {
+		sighandler_t oldsig;
+		char fname[FILENAME_MAX];
+		int drop_caches_fd;
+		const char *data = THRASH_INACTIVE ? "0xf" : "0x7";
 
+		snprintf(fname, FILENAME_MAX, "%s/%i/%s",
+			 "/sys/kernel/debug/dri", drm_get_card(),
+			 "i915_gem_drop_caches");
+
+		drop_caches_fd = open(fname, O_WRONLY);
+		igt_require(drop_caches_fd >= 0);
+
+		oldsig = signal(SIGQUIT, SIG_DFL);
+		pid = fork();
+		signal(SIGQUIT, oldsig);
+		if (pid == 0) {
+			while (1) {
+				usleep(1000);
+				igt_assert(write(drop_caches_fd, data, strlen(data) + 1) == strlen(data) + 1);
+			}
+		}
 	}
 
 	igt_fork(i, num_threads * 4) {
@@ -297,6 +322,13 @@ static void do_forked_test(int fd, unsigned flags)
 	}
 
 	igt_waitchildren();
+
+	if (pid != -1) {
+		int exitcode;
+
+		kill(pid, SIGQUIT);
+		wait(&exitcode);
+	}
 }
 
 int fd;
@@ -334,10 +366,14 @@ int main(int argc, char **argv)
 	igt_stop_signal_helper();
 
 	for (unsigned flags = 0; flags <= ALL_FLAGS; flags++) {
-		igt_subtest_f("forked%s%s%s",
+		if ((flags & THRASH) && (flags & THRASH_INACTIVE))
+			continue;
+
+		igt_subtest_f("forked%s%s%s%s",
 			      flags & INTERRUPT ? "-interruptible" : "",
 			      flags & FAULTING ? "-faulting-reloc" : "",
-			      flags & THRASH ? "-thrashing" : "")
+			      flags & THRASH ? "-thrashing" : "",
+			      flags & THRASH ? "-thrash-inactive" : "")
 			do_forked_test(fd, flags);
 	}
 
