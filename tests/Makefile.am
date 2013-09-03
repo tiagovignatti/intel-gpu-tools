@@ -33,6 +33,7 @@ TESTS_progs_M = \
 	gem_mmap \
 	gem_mmap_gtt \
 	gem_partial_pwrite_pread \
+	gem_persistent_relocs \
 	gem_pread \
 	gem_pread_after_blit \
 	gem_pwrite \

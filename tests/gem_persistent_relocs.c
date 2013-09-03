@@ -1,5 +1,5 @@
 /*
- * Copyright © 2011,2013 Intel Corporation
+ * Copyright © 2013 Intel Corporation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -44,7 +44,7 @@
 #include "intel_gpu_tools.h"
 
 /*
- * Testcase: Kernel relocations vs. gpu races
+ * Testcase: Persistent relocations as used by uxa/libva
  *
  */
 
@@ -55,9 +55,12 @@ uint32_t blob[2048*2048];
 #define NUM_TARGET_BOS 16
 drm_intel_bo *pc_target_bo[NUM_TARGET_BOS];
 drm_intel_bo *dummy_bo;
-drm_intel_bo *special_bo;
+drm_intel_bo *special_bos[NUM_TARGET_BOS];
+uint32_t relocs_bo_handle[NUM_TARGET_BOS];
+void *gtt_relocs_ptr[NUM_TARGET_BOS];
 uint32_t devid;
 int special_reloc_ofs;
+int special_line_ofs;
 int special_batch_len;
 
 #define GFX_OP_PIPE_CONTROL	((0x3<<29)|(0x3<<27)|(0x2<<24)|2)
@@ -71,18 +74,21 @@ int special_batch_len;
 #define   PIPE_CONTROL_CS_STALL	(1<<20)
 #define   PIPE_CONTROL_GLOBAL_GTT (1<<2) /* in addr dword */
 
-static void create_special_bo(void)
+int small_pitch = 64;
+
+static drm_intel_bo *create_special_bo(void)
 {
+	drm_intel_bo *bo;
 	uint32_t data[1024];
 	int len = 0;
-	int small_pitch = 64;
 #define BATCH(dw) data[len++] = (dw);
 
 	memset(data, 0, 4096);
-	special_bo = drm_intel_bo_alloc(bufmgr, "special batch", 4096, 4096);
+	bo = drm_intel_bo_alloc(bufmgr, "special batch", 4096, 4096);
 
 	BATCH(XY_COLOR_BLT_CMD | COLOR_BLT_WRITE_ALPHA | XY_COLOR_BLT_WRITE_RGB);
 	BATCH((3 << 24) | (0xf0 << 16) | small_pitch);
+	special_line_ofs = 4*len;
 	BATCH(0);
 	BATCH(1 << 16 | 1);
 	special_reloc_ofs = 4*len;
@@ -99,8 +105,10 @@ static void create_special_bo(void)
 	BATCH(MI_NOOP);
 	BATCH(MI_BATCH_BUFFER_END);
 
-	drm_intel_bo_subdata(special_bo, 0, 4096, data);
+	drm_intel_bo_subdata(bo, 0, 4096, data);
 	special_batch_len = len*4;
+
+	return bo;
 }
 
 static void emit_dummy_load(int pitch)
@@ -142,13 +150,11 @@ static void emit_dummy_load(int pitch)
 	intel_batchbuffer_flush(batch);
 }
 
-static void faulting_reloc_and_emit(int fd, drm_intel_bo *target_bo)
+static void faulting_reloc_and_emit(int fd, drm_intel_bo *target_bo,
+				    void *gtt_relocs, drm_intel_bo *special_bo)
 {
 	struct drm_i915_gem_execbuffer2 execbuf;
 	struct drm_i915_gem_exec_object2 exec[2];
-	struct drm_i915_gem_relocation_entry reloc[1];
-	uint32_t handle_relocs;
-	void *gtt_relocs;
 	int ring;
 
 	if (intel_gen(devid) >= 6)
@@ -164,19 +170,6 @@ static void faulting_reloc_and_emit(int fd, drm_intel_bo *target_bo)
 	exec[0].flags = 0;
 	exec[0].rsvd1 = 0;
 	exec[0].rsvd2 = 0;
-
-	reloc[0].offset = special_reloc_ofs;
-	reloc[0].delta = 0;
-	reloc[0].target_handle = target_bo->handle;
-	reloc[0].read_domains = I915_GEM_DOMAIN_RENDER;
-	reloc[0].write_domain = I915_GEM_DOMAIN_RENDER;
-	reloc[0].presumed_offset = 0;
-
-	handle_relocs = gem_create(fd, 4096);
-	gem_write(fd, handle_relocs, 0, reloc, sizeof(reloc));
-	gtt_relocs = gem_mmap(fd, handle_relocs, 4096,
-			      PROT_READ | PROT_WRITE);
-	igt_assert(gtt_relocs);
 
 	exec[1].handle = special_bo->handle;
 	exec[1].relocation_count = 1;
@@ -201,27 +194,6 @@ static void faulting_reloc_and_emit(int fd, drm_intel_bo *target_bo)
 	execbuf.rsvd2 = 0;
 
 	gem_execbuf(fd, &execbuf);
-
-	gem_close(fd, handle_relocs);
-}
-
-static void reloc_and_emit(int fd, drm_intel_bo *target_bo)
-{
-	int ring;
-
-	if (intel_gen(devid) >= 6)
-		ring = I915_EXEC_BLT;
-	else
-		ring = 0;
-
-	drm_intel_bo_emit_reloc(special_bo, special_reloc_ofs,
-				target_bo,
-				0,
-				I915_GEM_DOMAIN_RENDER,
-				I915_GEM_DOMAIN_RENDER);
-	drm_intel_bo_mrb_exec(special_bo, special_batch_len, NULL,
-			      0, 0, ring);
-
 }
 
 static void do_test(int fd, bool faulting_reloc)
@@ -229,7 +201,7 @@ static void do_test(int fd, bool faulting_reloc)
 	uint32_t tiling_mode = I915_TILING_X;
 	unsigned long pitch, act_size;
 	uint32_t test;
-	int i;
+	int i, repeat;
 
 	if (faulting_reloc)
 		igt_disable_prefault();
@@ -240,33 +212,64 @@ static void do_test(int fd, bool faulting_reloc)
 
 	drm_intel_bo_subdata(dummy_bo, 0, act_size*act_size*4, blob);
 
-	create_special_bo();
-
 	for (i = 0; i < NUM_TARGET_BOS; i++) {
+		struct drm_i915_gem_relocation_entry reloc[1];
+
+		special_bos[i] = create_special_bo();
 		pc_target_bo[i] = drm_intel_bo_alloc(bufmgr, "special batch", 4096, 4096);
-		emit_dummy_load(pitch);
 		igt_assert(pc_target_bo[i]->offset == 0);
 
-		if (faulting_reloc)
-			faulting_reloc_and_emit(fd, pc_target_bo[i]);
-		else
-			reloc_and_emit(fd, pc_target_bo[i]);
+		reloc[0].offset = special_reloc_ofs;
+		reloc[0].delta = 0;
+		reloc[0].target_handle = pc_target_bo[i]->handle;
+		reloc[0].read_domains = I915_GEM_DOMAIN_RENDER;
+		reloc[0].write_domain = I915_GEM_DOMAIN_RENDER;
+		reloc[0].presumed_offset = 0;
+
+		relocs_bo_handle[i] = gem_create(fd, 4096);
+		gem_write(fd, relocs_bo_handle[i], 0, reloc, sizeof(reloc));
+		gtt_relocs_ptr[i] = gem_mmap(fd, relocs_bo_handle[i], 4096,
+				      PROT_READ | PROT_WRITE);
+		igt_assert(gtt_relocs_ptr[i]);
+
 	}
 
-	/* Only check at the end to avoid unnecessary synchronous behaviour. */
+	for (repeat = 0; repeat < 4096/small_pitch; repeat++) {
+		for (i = 0; i < NUM_TARGET_BOS; i++) {
+			uint32_t data[2] = {
+				(repeat << 16) | 0,
+				((repeat + 1) << 16) | 1
+			};
+
+			drm_intel_bo_subdata(special_bos[i], special_line_ofs, 8, &data);
+
+			emit_dummy_load(pitch);
+			faulting_reloc_and_emit(fd, pc_target_bo[i],
+						gtt_relocs_ptr[i],
+						special_bos[i]);
+		}
+	}
+
+	/* Only check at the end to avoid unnecessarily synchronous behaviour. */
 	for (i = 0; i < NUM_TARGET_BOS; i++) {
-		drm_intel_bo_get_subdata(pc_target_bo[i], 0, 4, &test);
-		if (test != 0xdeadbeef) {
-			fprintf(stderr, "mismatch in buffer %i: 0x%08x instead of 0xdeadbeef\n", i, test);
-			igt_fail(1);
+		for (repeat = 0; repeat < 4096/small_pitch; repeat++) {
+			drm_intel_bo_get_subdata(pc_target_bo[i],
+						 repeat*small_pitch, 4, &test);
+			if (test != 0xdeadbeef) {
+				fprintf(stderr, "mismatch in buffer %i: 0x%08x instead of 0xdeadbeef at offset %i\n",
+					i, test, repeat*small_pitch);
+				igt_fail(1);
+			}
 		}
 		drm_intel_bo_unreference(pc_target_bo[i]);
+		drm_intel_bo_unreference(special_bos[i]);
+		gem_close(fd, relocs_bo_handle[i]);
+		munmap(gtt_relocs_ptr[i], 4096);
 	}
 
 	drm_intel_gem_bo_map_gtt(dummy_bo);
 	drm_intel_gem_bo_unmap_gtt(dummy_bo);
 
-	drm_intel_bo_unreference(special_bo);
 	drm_intel_bo_unreference(dummy_bo);
 
 	if (faulting_reloc)
@@ -307,7 +310,7 @@ static void do_forked_test(int fd, unsigned flags)
 		}
 	}
 
-	igt_fork(i, num_threads * 4) {
+	igt_fork(i, num_threads) {
 		/* re-create process local data */
 		bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
 		batch = intel_batchbuffer_alloc(bufmgr, devid);
@@ -354,15 +357,9 @@ int main(int argc, char **argv)
 	igt_subtest("normal")
 		do_test(fd, false);
 
-	igt_subtest("faulting-reloc")
-		do_test(fd, true);
-
 	igt_fork_signal_helper();
 	igt_subtest("interruptible")
 		do_test(fd, false);
-
-	igt_subtest("faulting-reloc-interruptible")
-		do_test(fd, true);
 	igt_stop_signal_helper();
 
 	for (unsigned flags = 0; flags <= ALL_FLAGS; flags++) {
