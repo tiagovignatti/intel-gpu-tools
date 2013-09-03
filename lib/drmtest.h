@@ -341,8 +341,8 @@ void igt_disable_exit_handler(void);
 int igt_set_vt_graphics_mode(void);
 
 /* prefault disabling, needs the corresponding debugfs interface */
-int igt_disable_prefault(void);
-int igt_enable_prefault(void);
+void igt_disable_prefault(void);
+void igt_enable_prefault(void);
 
 /* suspend and auto-resume system */
 void igt_system_suspend_autoresume(void);

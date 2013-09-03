@@ -1956,7 +1956,7 @@ void kmstest_free_connector_config(struct kmstest_connector_config *config)
 }
 
 #define PREFAULT_DEBUGFS "/sys/module/i915/parameters/prefault_disable"
-static int igt_prefault_control(bool enable)
+static void igt_prefault_control(bool enable)
 {
 	const char *name = PREFAULT_DEBUGFS;
 	int fd;
@@ -1965,26 +1965,16 @@ static int igt_prefault_control(bool enable)
 	int result = 0;
 
 	fd = open(name, O_RDWR);
-	if (fd == -1) {
-		fprintf(stderr, "Couldn't open prefault_debugfs.%s\n",
-				strerror(errno));
-		return -1;
-	}
+	igt_require(fd >= 0);
 
 	if (enable)
 		index = 1;
 	else
 		index = 0;
 
-	if (write(fd, &buf[index], 1) != 1) {
-		fprintf(stderr, "write prefault_debugfs error.%s\n",
-				strerror(errno));
-		result = -1;
-	}
+	igt_assert(write(fd, &buf[index], 1) == 1);
 
 	close(fd);
-
-	return result;
 }
 
 static void enable_prefault_at_exit(int sig)
@@ -1992,14 +1982,14 @@ static void enable_prefault_at_exit(int sig)
 	igt_enable_prefault();
 }
 
-int igt_disable_prefault(void)
+void igt_disable_prefault(void)
 {
 	igt_install_exit_handler(enable_prefault_at_exit);
 
-	return igt_prefault_control(false);
+	igt_prefault_control(false);
 }
 
-int igt_enable_prefault(void)
+void igt_enable_prefault(void)
 {
 	return igt_prefault_control(true);
 }
