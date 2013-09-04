@@ -195,8 +195,6 @@ int main(int argc, char **argv)
 		igt_assert(run_batch() == -EINVAL);
 	}
 
-#if 0 /* kernel checks have been eased, doesn't reject conflicting write domains
-	 any more */
 	igt_subtest("conflicting-write-domain") {
 		BEGIN_BATCH(4);
 		OUT_BATCH(0);
@@ -206,9 +204,8 @@ int main(int argc, char **argv)
 		OUT_RELOC(tmp, I915_GEM_DOMAIN_INSTRUCTION,
 			  I915_GEM_DOMAIN_INSTRUCTION, 0);
 		ADVANCE_BATCH();
-		igt_assert(run_batch() == -EINVAL);
+		igt_assert(run_batch() == 0);
 	}
-#endif
 
 	igt_subtest("double-write-domain")
 		multi_write_domain(fd);
