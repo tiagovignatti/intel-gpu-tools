@@ -82,7 +82,6 @@ unsigned int plane_crtc_id;
 unsigned int plane_id;
 int plane_width, plane_height;
 static const uint32_t SPRITE_COLOR_KEY = 0x00aaaaaa;
-uint32_t *fb_ptr;
 
 /*
  * Mode setting with the kernel interfaces is a bit of a chore.
@@ -213,6 +212,11 @@ static void
 paint_color_key(struct kmstest_fb *fb_info)
 {
 	int i, j;
+	uint32_t *fb_ptr;
+
+	fb_ptr = gem_mmap(drm_fd, fb_info->gem_handle,
+			  fb_info->size, PROT_READ | PROT_WRITE);
+	igt_assert(fb_ptr);
 
 	for (i = crtc_y; i < crtc_y + crtc_h; i++)
 		for (j = crtc_x; j < crtc_x + crtc_w; j++) {
@@ -221,6 +225,8 @@ paint_color_key(struct kmstest_fb *fb_info)
 			offset = (i * fb_info->stride / 4) + j;
 			fb_ptr[offset] = SPRITE_COLOR_KEY;
 		}
+
+	munmap(fb_ptr, fb_info->size);
 }
 
 static void paint_image(cairo_t *cr, const char *file)
@@ -358,10 +364,6 @@ set_mode(struct connector *c)
 		fb_id = kmstest_create_fb(drm_fd, width, height, bpp, depth,
 					  enable_tiling, &fb_info);
 		paint_output_info(c, &fb_info);
-
-		fb_ptr = gem_mmap(drm_fd, fb_info.gem_handle,
-				  fb_info.size, PROT_READ | PROT_WRITE);
-		igt_assert(fb_ptr);
 		paint_color_key(&fb_info);
 
 		gem_close(drm_fd, fb_info.gem_handle);
