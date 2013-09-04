@@ -1,5 +1,6 @@
 /*
  * Copyright © 2013 Google
+ * Copyright © 2013 Intel Corporation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -22,6 +23,7 @@
  *
  * Authors:
  *    Kees Cook <keescook@chromium.org>
+ *    Daniel Vetter <daniel.vetter@ffwll.ch>
  *
  */
 
@@ -55,6 +57,102 @@ struct drm_i915_gem_exec_object2 *execobjs;
 struct drm_i915_gem_execbuffer2 execbuf = { 0 };
 struct drm_i915_gem_relocation_entry *reloc;
 
+uint32_t handle;
+uint32_t batch_handle;
+
+
+static void source_offset_tests(void)
+{
+	struct drm_i915_gem_relocation_entry single_reloc;
+
+	igt_fixture {
+		handle = gem_create(fd, 4096);
+
+		execobjs[1].handle = batch_handle;
+		execobjs[1].relocation_count = 0;
+		execobjs[1].relocs_ptr = 0;
+
+		execobjs[0].handle = handle;
+		execobjs[0].relocation_count = 1;
+		execobjs[0].relocs_ptr = (uintptr_t) &single_reloc;
+		execbuf.buffer_count = 2;
+	}
+
+	igt_subtest("source-offset-end") {
+		single_reloc.offset = 4096 - 4;
+		single_reloc.delta = 0;
+		single_reloc.target_handle = handle;
+		single_reloc.read_domains = I915_GEM_DOMAIN_RENDER;
+		single_reloc.write_domain = I915_GEM_DOMAIN_RENDER;
+		single_reloc.presumed_offset = 0;
+
+		igt_assert(ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf) == 0);
+	}
+
+	igt_subtest("source-offset-big") {
+		single_reloc.offset = 4096;
+		single_reloc.delta = 0;
+		single_reloc.target_handle = handle;
+		single_reloc.read_domains = I915_GEM_DOMAIN_RENDER;
+		single_reloc.write_domain = I915_GEM_DOMAIN_RENDER;
+		single_reloc.presumed_offset = 0;
+
+		igt_assert(ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf) != 0);
+		igt_assert(errno == EINVAL);
+	}
+
+	igt_subtest("source-offset-negative") {
+		single_reloc.offset = (int64_t) -4;
+		single_reloc.delta = 0;
+		single_reloc.target_handle = handle;
+		single_reloc.read_domains = I915_GEM_DOMAIN_RENDER;
+		single_reloc.write_domain = I915_GEM_DOMAIN_RENDER;
+		single_reloc.presumed_offset = 0;
+
+		igt_assert(ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf) != 0);
+		igt_assert(errno == EINVAL);
+	}
+
+	igt_subtest("source-offset-unaligned") {
+		single_reloc.offset = 1;
+		single_reloc.delta = 0;
+		single_reloc.target_handle = handle;
+		single_reloc.read_domains = I915_GEM_DOMAIN_RENDER;
+		single_reloc.write_domain = I915_GEM_DOMAIN_RENDER;
+		single_reloc.presumed_offset = 0;
+
+		igt_assert(ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf) != 0);
+		igt_assert(errno == EINVAL);
+	}
+
+	igt_fixture {
+		execobjs[0].handle = batch_handle;
+		execobjs[0].relocation_count = 0;
+		execobjs[0].relocs_ptr = 0;
+
+		execbuf.buffer_count = 1;
+	}
+
+	igt_subtest("batch-start-unaligend") {
+		execbuf.batch_start_offset = 1;
+		execbuf.batch_len = 8;
+
+		igt_assert(ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf) != 0);
+		igt_assert(errno == EINVAL);
+	}
+
+	igt_subtest("batch-end-unaligend") {
+		execbuf.batch_start_offset = 0;
+		execbuf.batch_len = 7;
+
+		igt_assert(ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf) != 0);
+		igt_assert(errno == EINVAL);
+	}
+
+	igt_fixture
+		gem_close(fd, handle);
+}
+
 int main(int argc, char *argv[])
 {
 	int i;
@@ -64,6 +162,9 @@ int main(int argc, char *argv[])
 	igt_subtest_init(argc, argv);
 
 	igt_fixture {
+		int ring;
+		uint32_t batch_data [2] = { MI_NOOP, MI_BATCH_BUFFER_END };
+
 		fd = drm_open_any();
 
 		/* Create giant reloc buffer area. */
@@ -76,18 +177,30 @@ int main(int argc, char *argv[])
 
 		/* Allocate the handles we'll need to wrap. */
 		handles = calloc(num, sizeof(*handles));
-		for (i = 0; i < num; i++) {
-			struct drm_i915_gem_create create_args = { 0 };
+		for (i = 0; i < num; i++)
+			handles[i] = gem_create(fd, 4096);
 
-			create_args.size = 0x1000;
-			igt_assert(ioctl(fd, DRM_IOCTL_I915_GEM_CREATE, &create_args) == 0);
-
-			handles[i] = create_args.handle;
-		}
+		if (intel_gen(intel_get_drm_devid(fd)) >= 6)
+			ring = I915_EXEC_BLT;
+		else
+			ring = 0;
 
 		/* Create relocation objects. */
 		execobjs = calloc(num, sizeof(*execobjs));
 		execbuf.buffers_ptr = (uintptr_t)execobjs;
+		execbuf.batch_start_offset = 0;
+		execbuf.batch_len = 8;
+		execbuf.cliprects_ptr = 0;
+		execbuf.num_cliprects = 0;
+		execbuf.DR1 = 0;
+		execbuf.DR4 = 0;
+		execbuf.flags = ring;
+		i915_execbuffer2_set_context_id(execbuf, 0);
+		execbuf.rsvd2 = 0;
+
+		batch_handle = gem_create(fd, 4096);
+
+		gem_write(fd, batch_handle, 0, batch_data, sizeof(batch_data));
 	}
 
 	igt_subtest("invalid-address") {
@@ -138,8 +251,12 @@ int main(int argc, char *argv[])
 		igt_assert(errno == EINVAL);
 	}
 
-	igt_fixture
+	source_offset_tests();
+
+	igt_fixture {
+		gem_close(fd, batch_handle);
 		close(fd);
+	}
 
 	igt_exit();
 }
