@@ -63,7 +63,7 @@ uint32_t devid;
 
 /* Like the store dword test, but we create new command buffers each time */
 static void
-store_pipe_control_loop(void)
+store_pipe_control_loop(bool preuse_buffer)
 {
 	int i, val = 0;
 	uint32_t *buf;
@@ -77,6 +77,29 @@ store_pipe_control_loop(void)
 			fprintf(stderr, "failed to alloc target buffer\n");
 			igt_fail(-1);
 		}
+
+		if (preuse_buffer) {
+			BEGIN_BATCH(6);
+			OUT_BATCH(XY_COLOR_BLT_CMD | COLOR_BLT_WRITE_ALPHA | XY_COLOR_BLT_WRITE_RGB);
+			OUT_BATCH((3 << 24) | (0xf0 << 16) | 64);
+			OUT_BATCH(0);
+			OUT_BATCH(1 << 16 | 1);
+
+			/*
+			 * IMPORTANT: We need to preuse the buffer in a
+			 * different domain than what the pipe control write
+			 * (and kernel wa) uses!
+			 */
+			OUT_RELOC(target_bo,
+			     I915_GEM_DOMAIN_RENDER, I915_GEM_DOMAIN_RENDER,
+			     0);
+			OUT_BATCH(0xdeadbeef);
+			ADVANCE_BATCH();
+
+			intel_batchbuffer_flush(batch);
+			igt_assert(target_bo->offset != 0);
+		} else
+			igt_assert(target_bo->offset == 0);
 
 		/* gem_storedw_batches_loop.c is a bit overenthusiastic with
 		 * creating new batchbuffers - with buffer reuse disabled, the
@@ -118,66 +141,54 @@ store_pipe_control_loop(void)
 		drm_intel_bo_map(target_bo, 1);
 
 		buf = target_bo->virtual;
-		if (buf[0] != val) {
-			fprintf(stderr,
-				"value mismatch: cur 0x%08x, stored 0x%08x\n",
-				buf[0], val);
-			igt_fail(-1);
-		}
-		buf[0] = 0; /* let batch write it again */
-		drm_intel_bo_unmap(target_bo);
+		igt_assert(buf[0] == val);
 
+		drm_intel_bo_unmap(target_bo);
+		/* Make doublesure that this buffer won't get reused. */
+		drm_intel_bo_disable_reuse(target_bo);
 		drm_intel_bo_unreference(target_bo);
 
 		val++;
 	}
-
-	printf("completed %d writes successfully\n", i);
 }
+
+int fd;
 
 int main(int argc, char **argv)
 {
-	int fd;
+	igt_subtest_init(argc, argv);
 
-	if (argc != 1) {
-		fprintf(stderr, "usage: %s\n", argv[0]);
-		igt_fail(-1);
+	igt_fixture {
+		fd = drm_open_any();
+		devid = intel_get_drm_devid(fd);
+
+		bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
+		igt_assert(bufmgr);
+
+		igt_skip_on(IS_GEN2(devid) || IS_GEN3(devid));
+		igt_skip_on(devid == PCI_CHIP_I965_G); /* has totally broken pipe control */
+
+		/* IMPORTANT: No call to
+		 * drm_intel_bufmgr_gem_enable_reuse(bufmgr);
+		 * here because we wan't to have fresh buffers (to trash the tlb)
+		 * every time! */
+
+		batch = intel_batchbuffer_alloc(bufmgr, devid);
+		igt_assert(batch);
 	}
 
-	fd = drm_open_any();
-	devid = intel_get_drm_devid(fd);
+	igt_subtest("fresh-buffer")
+		store_pipe_control_loop(false);
 
-	bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
-	if (!bufmgr) {
-		fprintf(stderr, "failed to init libdrm\n");
-		igt_fail(-1);
+	igt_subtest("reused-buffer")
+		store_pipe_control_loop(true);
+
+	igt_fixture {
+		intel_batchbuffer_free(batch);
+		drm_intel_bufmgr_destroy(bufmgr);
+
+		close(fd);
 	}
 
-	if (IS_GEN2(devid) || IS_GEN3(devid)) {
-		fprintf(stderr, "no pipe_control on gen2/3\n");
-		return 77;
-	}
-	if (devid == PCI_CHIP_I965_G) {
-		fprintf(stderr, "pipe_control totally broken on i965\n");
-		return 77;
-	}
-	/* IMPORTANT: No call to
-	 * drm_intel_bufmgr_gem_enable_reuse(bufmgr);
-	 * here because we wan't to have fresh buffers (to trash the tlb)
-	 * every time! */
-
-	batch = intel_batchbuffer_alloc(bufmgr, devid);
-	if (!batch) {
-		fprintf(stderr, "failed to create batch buffer\n");
-		igt_fail(-1);
-	}
-
-	store_pipe_control_loop();
-
-	intel_batchbuffer_free(batch);
-	drm_intel_bufmgr_destroy(bufmgr);
-
-	close(fd);
-
-	return 0;
+	igt_exit();
 }
