@@ -457,6 +457,8 @@ int update_display(void)
 
 		}
 	}
+
+	free(connectors);
 	drmModeFreeResources(resources);
 	return 1;
 }
