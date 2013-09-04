@@ -203,13 +203,11 @@ intel_blt_copy(struct intel_batchbuffer *batch,
 	drm_intel_bo_get_tiling(src_bo, &src_tiling, &swizzle);
 	drm_intel_bo_get_tiling(dst_bo, &dst_tiling, &swizzle);
 
-	src_pitch = src_pitch;
 	if (IS_965(batch->devid) && src_tiling != I915_TILING_NONE) {
 		src_pitch /= 4;
 		cmd_bits |= XY_SRC_COPY_BLT_SRC_TILED;
 	}
 
-	dst_pitch = dst_pitch;
 	if (IS_965(batch->devid) && dst_tiling != I915_TILING_NONE) {
 		dst_pitch /= 4;
 		cmd_bits |= XY_SRC_COPY_BLT_DST_TILED;
