@@ -87,8 +87,9 @@ flush_on_ring_common(struct intel_batchbuffer *batch, int ring)
 		/* emit gen5 w/a without batch space checks - we reserve that
 		 * already. */
 		*(uint32_t *) (batch->ptr) = CMD_POLY_STIPPLE_OFFSET << 16;
+		batch->ptr += 4;
 		*(uint32_t *) (batch->ptr) = 0;
-		batch->ptr += 8;
+		batch->ptr += 4;
 	}
 
 	/* Round batchbuffer usage to 2 DWORDs. */
