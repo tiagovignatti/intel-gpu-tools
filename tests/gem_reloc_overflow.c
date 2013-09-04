@@ -48,105 +48,98 @@
  * Testcase: Kernel relocation overflows are caught.
  */
 
+int fd, entries, num;
+size_t reloc_size;
+uint32_t *handles;
+struct drm_i915_gem_exec_object2 *execobjs;
+struct drm_i915_gem_execbuffer2 execbuf = { 0 };
+struct drm_i915_gem_relocation_entry *reloc;
+
 int main(int argc, char *argv[])
 {
-	int fd, i, entries, num;
-	size_t reloc_size;
+	int i;
 	size_t total_actual = 0;
 	unsigned int total_unsigned = 0;
 	int total_signed = 0;
-	uint32_t *handles;
-	struct drm_i915_gem_relocation_entry *reloc;
-	struct drm_i915_gem_exec_object2 *execobjs;
-	struct drm_i915_gem_execbuffer2 execbuf = { 0 };
+	igt_subtest_init(argc, argv);
 
-	fd = drm_open_any();
+	igt_fixture {
+		fd = drm_open_any();
 
-	/* Create giant reloc buffer area. */
-	num = 257;
-	entries = ((1ULL << 32) / (num - 1));
-	reloc_size = entries * sizeof(struct drm_i915_gem_relocation_entry);
-	reloc = mmap(NULL, reloc_size, PROT_READ | PROT_WRITE,
-		     MAP_PRIVATE | MAP_ANON, -1, 0);
-	if (reloc == MAP_FAILED) {
-		perror("mmap");
-		return errno;
-	}
+		/* Create giant reloc buffer area. */
+		num = 257;
+		entries = ((1ULL << 32) / (num - 1));
+		reloc_size = entries * sizeof(struct drm_i915_gem_relocation_entry);
+		reloc = mmap(NULL, reloc_size, PROT_READ | PROT_WRITE,
+			     MAP_PRIVATE | MAP_ANON, -1, 0);
+		igt_assert(reloc != MAP_FAILED);
 
-	/* Allocate the handles we'll need to wrap. */
-	handles = calloc(num, sizeof(*handles));
-	for (i = 0; i < num; i++) {
-		struct drm_i915_gem_create create_args = { 0 };
-		create_args.size = 0x1000;
-		if (ioctl(fd, DRM_IOCTL_I915_GEM_CREATE, &create_args)) {
-			perror("DRM_IOCTL_I915_GEM_CREATE");
-			return errno;
-		}
-		handles[i] = create_args.handle;
-	}
+		/* Allocate the handles we'll need to wrap. */
+		handles = calloc(num, sizeof(*handles));
+		for (i = 0; i < num; i++) {
+			struct drm_i915_gem_create create_args = { 0 };
 
-	/* Create relocation objects. */
-	execobjs = calloc(num, sizeof(*execobjs));
-	execbuf.buffers_ptr = (uintptr_t)execobjs;
+			create_args.size = 0x1000;
+			igt_assert(ioctl(fd, DRM_IOCTL_I915_GEM_CREATE, &create_args) == 0);
 
-	/* Attempt unmapped single entry. */
-	execobjs[0].relocation_count = 1;
-	execobjs[0].relocs_ptr = 0;
-	execbuf.buffer_count = 1;
-
-	errno = 0;
-	ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf);
-	if (errno != EFAULT) {
-		perror("DRM_IOCTL_I915_GEM_EXECBUFFER2, invalid address");
-		abort();
-	}
-
-	/* Attempt single overflowed entry. */
-	execobjs[0].relocation_count = (1 << 31);
-	execobjs[0].relocs_ptr = (uintptr_t)reloc;
-	execbuf.buffer_count = 1;
-
-	errno = 0;
-	ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf);
-	if (errno != EINVAL) {
-		perror("DRM_IOCTL_I915_GEM_EXECBUFFER2, single overflow");
-		abort();
-	}
-
-	/* Attempt wrapped overflow entries. */
-	for (i = 0; i < num; i++) {
-		struct drm_i915_gem_exec_object2 *obj = &execobjs[i];
-		obj->handle = handles[i];
-
-		if (i == num - 1) {
-			/* Wraps to 1 on last count. */
-			obj->relocation_count = 1 - total_unsigned;
-			obj->relocs_ptr = (uintptr_t)reloc;
-		} else {
-			obj->relocation_count = entries;
-			obj->relocs_ptr = (uintptr_t)reloc;
+			handles[i] = create_args.handle;
 		}
 
-		total_unsigned += obj->relocation_count;
-		total_signed += obj->relocation_count;
-		total_actual += obj->relocation_count;
-	}
-	execbuf.buffer_count = num;
-
-	errno = 0;
-	ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf);
-	if (errno != EINVAL) {
-		/* ENOENT means we're subject to wrapping overflow since
-		 * processing has continued into validating buffer contents.
-		 */
-		perror("DRM_IOCTL_I915_GEM_EXECBUFFER2, wrap overflow");
-		abort();
+		/* Create relocation objects. */
+		execobjs = calloc(num, sizeof(*execobjs));
+		execbuf.buffers_ptr = (uintptr_t)execobjs;
 	}
 
-	if (close(fd)) {
-		perror("close");
-		return errno;
+	igt_subtest("invalid-address") {
+		/* Attempt unmapped single entry. */
+		execobjs[0].relocation_count = 1;
+		execobjs[0].relocs_ptr = 0;
+		execbuf.buffer_count = 1;
+
+		errno = 0;
+		ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf);
+		igt_assert(errno == EFAULT);
 	}
 
-	return 0;
+	igt_subtest("single-overflow") {
+		/* Attempt single overflowed entry. */
+		execobjs[0].relocation_count = (1 << 31);
+		execobjs[0].relocs_ptr = (uintptr_t)reloc;
+		execbuf.buffer_count = 1;
+
+		errno = 0;
+		ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf);
+		igt_assert(errno == EINVAL);
+	}
+
+	igt_subtest("wrapped-overflow") {
+		/* Attempt wrapped overflow entries. */
+		for (i = 0; i < num; i++) {
+			struct drm_i915_gem_exec_object2 *obj = &execobjs[i];
+			obj->handle = handles[i];
+
+			if (i == num - 1) {
+				/* Wraps to 1 on last count. */
+				obj->relocation_count = 1 - total_unsigned;
+				obj->relocs_ptr = (uintptr_t)reloc;
+			} else {
+				obj->relocation_count = entries;
+				obj->relocs_ptr = (uintptr_t)reloc;
+			}
+
+			total_unsigned += obj->relocation_count;
+			total_signed += obj->relocation_count;
+			total_actual += obj->relocation_count;
+		}
+		execbuf.buffer_count = num;
+
+		errno = 0;
+		ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf);
+		igt_assert(errno == EINVAL);
+	}
+
+	igt_fixture
+		close(fd);
+
+	igt_exit();
 }

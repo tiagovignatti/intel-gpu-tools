@@ -195,6 +195,8 @@ int main(int argc, char **argv)
 		igt_assert(run_batch() == -EINVAL);
 	}
 
+	/* Note: Older kernels disallow this. Punt on the skip check though
+	 * since this is too old. */
 	igt_subtest("conflicting-write-domain") {
 		BEGIN_BATCH(4);
 		OUT_BATCH(0);
