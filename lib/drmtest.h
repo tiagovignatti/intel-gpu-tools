@@ -186,7 +186,8 @@ void igt_exit(void) __attribute__((noreturn));
  * This is useful to streamline the skip logic since it allows for a more flat
  * code control flow.
  */
-#define igt_require(expr) do { if (!(expr)) __igt_skip_check(__FILE__, __LINE__, __func__, #expr ); } while (0)
+#define igt_require(expr) igt_skip_on(!(expr))
+#define igt_skip_on(expr) do { if ((expr)) __igt_skip_check(__FILE__, __LINE__, __func__, #expr ); } while (0)
 
 bool __igt_fixture(void);
 void __igt_fixture_complete(void);
