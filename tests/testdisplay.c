@@ -366,7 +366,7 @@ set_mode(struct connector *c)
 		paint_output_info(c, &fb_info[current_fb]);
 		paint_color_key(&fb_info[current_fb]);
 
-		fprintf(stdout, "CRTS(%u):[%d]",c->crtc, j);
+		fprintf(stdout, "CRTC(%u):[%d]",c->crtc, j);
 		kmstest_dump_mode(&c->mode);
 		if (drmModeSetCrtc(drm_fd, c->crtc, fb_id, 0, 0,
 				   &c->id, 1, &c->mode)) {
