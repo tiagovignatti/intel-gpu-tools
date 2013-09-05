@@ -53,6 +53,7 @@
 #include <errno.h>
 #include <math.h>
 #include <stdint.h>
+#include <stdbool.h>
 #include <unistd.h>
 #include <sys/poll.h>
 #include <sys/time.h>
@@ -67,8 +68,8 @@
 
 drmModeRes *resources;
 int drm_fd, modes;
-int dump_info = 0, test_all_modes =0, test_preferred_mode = 0, force_mode = 0,
-	test_plane, enable_tiling;
+int test_all_modes = 0, test_preferred_mode = 0, force_mode = 0, test_plane,
+    enable_tiling;
 int sleep_between_modes = 5;
 uint32_t depth = 24, stride, bpp;
 int qr_code = 0;
@@ -179,6 +180,12 @@ static void dump_crtcs_fd(int drmfd)
 	printf("\n");
 
 	drmModeFreeResources(mode_resources);
+}
+
+static void dump_info(void)
+{
+	dump_connectors_fd(drm_fd);
+	dump_crtcs_fd(drm_fd);
 }
 
 static void connector_find_preferred_mode(uint32_t connector_id,
@@ -423,11 +430,6 @@ int update_display(void)
 	if (!connectors)
 		return 0;
 
-	if (dump_info) {
-		dump_connectors_fd(drm_fd);
-		dump_crtcs_fd(drm_fd);
-	}
-
 	if (test_preferred_mode || test_all_modes || force_mode || specified_disp_id != -1) {
 		unsigned long crtc_idx_mask = -1UL;
 
@@ -523,6 +525,7 @@ int main(int argc, char **argv)
 	GIOChannel *stdinchannel;
 	GMainLoop *mainloop;
 	float force_clock;
+	bool opt_dump_info = false;
 
 	igt_skip_on_simulation();
 
@@ -532,7 +535,7 @@ int main(int argc, char **argv)
 	while ((c = getopt(argc, argv, optstr)) != -1) {
 		switch (c) {
 		case 'i':
-			dump_info = 1;
+			opt_dump_info = true;
 			break;
 		case 'a':
 			test_all_modes = 1;
@@ -588,11 +591,16 @@ int main(int argc, char **argv)
 	else if (depth <= 32)
 		bpp = 32;
 
-	if (!test_all_modes && !force_mode && !dump_info &&
-	    !test_preferred_mode && specified_mode_num == -1)
+	if (!test_all_modes && !force_mode && !test_preferred_mode &&
+	    specified_mode_num == -1)
 		test_all_modes = 1;
 
 	drm_fd = drm_open_any();
+
+	if (opt_dump_info) {
+		dump_info();
+		goto out_close;
+	}
 
 	do_or_die(igt_set_vt_graphics_mode());
 
@@ -628,7 +636,7 @@ int main(int argc, char **argv)
 		goto out_stdio;
 	}
 
-	if (dump_info || test_all_modes)
+	if (test_all_modes)
 		goto out_stdio;
 
 	g_main_loop_run(mainloop);
