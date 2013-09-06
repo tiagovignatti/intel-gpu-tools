@@ -1620,9 +1620,8 @@ static cairo_format_t drm_format_to_cairo(uint32_t drm_format)
 	abort();
 }
 
-static cairo_t *create_cairo_ctx(int fd, struct kmstest_fb *fb)
+static cairo_surface_t *create_image_surface(int fd, struct kmstest_fb *fb)
 {
-	cairo_t *cr;
 	cairo_surface_t *surface;
 	cairo_format_t cformat;
 	void *fb_ptr;
@@ -1633,6 +1632,16 @@ static cairo_t *create_cairo_ctx(int fd, struct kmstest_fb *fb)
 						   cformat, fb->width,
 						   fb->height, fb->stride);
 	assert(surface);
+
+	return surface;
+}
+
+static cairo_t *create_cairo_ctx(int fd, struct kmstest_fb *fb)
+{
+	cairo_t *cr;
+	cairo_surface_t *surface;
+
+	surface = create_image_surface(fd, fb);
 	cr = cairo_create(surface);
 	cairo_surface_destroy(surface);
 
