@@ -194,7 +194,10 @@ CLEANFILES = $(EXTRA_PROGRAMS)
 
 AM_CFLAGS = $(DRM_CFLAGS) $(CWARNFLAGS) \
 	-I$(srcdir)/.. \
-	-I$(srcdir)/../lib
+	-I$(srcdir)/../lib \
+	-DIGT_DATADIR=\""$(abs_srcdir)"\" \
+	$(NULL)
+
 LDADD = ../lib/libintel_tools.la $(PCIACCESS_LIBS) $(DRM_LIBS) 
 
 testdisplay_SOURCES = \

@@ -319,7 +319,7 @@ static void paint_output_info(struct connector *c, struct kmstest_fb *fb)
 	}
 
 	if (qr_code)
-		paint_image(cr, "./pass.png");
+		paint_image(cr, IGT_DATADIR"/pass.png");
 
 	igt_assert(!cairo_status(cr));
 }
