@@ -185,7 +185,7 @@ scripts = \
 	drm_lib.sh \
 	$(NULL)
 
-IMAGES = pass.png
+IMAGES = pass.png 1080p-left.png 1080-right.png
 
 EXTRA_PROGRAMS = $(TESTS_progs) $(TESTS_progs_M) $(HANG) $(TESTS_testsuite)
 EXTRA_DIST = $(TESTS_scripts) $(TESTS_scripts_M) $(scripts) $(IMAGES)
