@@ -116,15 +116,14 @@ int main(int argc, char *argv[])
 	drm_fd = drm_open_any();
 	devid = intel_get_drm_devid(drm_fd);
 
+	if (intel_gen(devid) < 7 || IS_VALLEYVIEW(devid))
+		exit(EXIT_SUCCESS);
+
 	ret = asprintf(&path, "/sys/class/drm/card%d/l3_parity", device);
 	assert(ret != -1);
 
 	fd = open(path, O_RDWR);
-	if (fd == -1 && IS_IVYBRIDGE(devid)) {
-		perror("Opening sysfs");
-		exit(EXIT_FAILURE);
-	} else if (fd == -1)
-		exit(EXIT_SUCCESS);
+	assert(fd != -1);
 
 	ret = read(fd, l3log, NUM_REGS * sizeof(uint32_t));
 	if (ret == -1) {
