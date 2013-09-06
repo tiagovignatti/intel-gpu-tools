@@ -1648,6 +1648,17 @@ static cairo_t *create_cairo_ctx(int fd, struct kmstest_fb *fb)
 	return cr;
 }
 
+void kmstest_write_fb(int fd, struct kmstest_fb *fb, const char *filename)
+{
+	cairo_surface_t *surface;
+	cairo_status_t status;
+
+	surface = create_image_surface(fd, fb);
+	status = cairo_surface_write_to_png(surface, filename);
+	assert(status == CAIRO_STATUS_SUCCESS);
+	cairo_surface_destroy(surface);
+}
+
 cairo_t *kmstest_get_cairo_ctx(int fd, struct kmstest_fb *fb)
 {
 

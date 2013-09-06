@@ -357,6 +357,7 @@ void kmstest_paint_color_gradient(cairo_t *cr, int x, int y, int w, int h,
 void kmstest_paint_test_pattern(cairo_t *cr, int width, int height);
 void kmstest_paint_image(cairo_t *cr, const char *filename,
 			 int dst_x, int dst_y, int dst_width, int dst_height);
+void kmstest_write_fb(int fd, struct kmstest_fb *fb, const char *filename);
 void kmstest_dump_mode(drmModeModeInfo *mode);
 int kmstest_get_pipe_from_crtc_id(int fd, int crtc_id);
 const char *kmstest_format_str(uint32_t drm_format);
