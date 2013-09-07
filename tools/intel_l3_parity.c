@@ -33,12 +33,14 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <getopt.h>
 #include "intel_chipset.h"
 #include "intel_gpu_tools.h"
 #include "drmtest.h"
 
 #define NUM_BANKS 4
 #define NUM_SUBBANKS 8
+#define MAX_ROW (1<<12)
 #define NUM_REGS (NUM_BANKS * NUM_SUBBANKS)
 
 struct __attribute__ ((__packed__)) l3_log_register {
@@ -93,17 +95,34 @@ static int disable_rbs(int row, int bank, int sbank)
 	return 0;
 }
 
-static int do_parse(int argc, char *argv[])
+static void enables_rbs(int row, int bank, int sbank)
 {
-	int row, bank, sbank, i, ret;
+	struct l3_log_register *reg = &l3log[bank][sbank];
 
-	for (i = 1; i < argc; i++) {
-		ret = sscanf(argv[i], "%d,%d,%d", &row, &bank, &sbank);
-		if (ret != 3)
-			return i;
-		assert(disable_rbs(row, bank, sbank) == 0);
-	}
-	return 0;
+	if (!reg->row0_enable && !reg->row1_enable)
+		return;
+
+	if (reg->row1_enable && reg->row1 == row)
+		reg->row1_enable = 0;
+	else if (reg->row0_enable && reg->row0 == row)
+		reg->row0_enable = 0;
+}
+
+static void usage(const char *name)
+{
+	printf("usage: %s [OPTIONS] [ACTION]\n"
+		"Operate on the i915 L3 GPU cache (should be run as root)\n\n"
+		" OPTIONS:\n"
+		"  -r, --row=[row]			The row to act upon (default 0)\n"
+		"  -b, --bank=[bank]			The bank to act upon (default 0)\n"
+		"  -s, --subbank=[subbank]		The subbank to act upon (default 0)\n"
+		" ACTIONS (only 1 may be specified at a time):\n"
+		"  -h, --help				Display this help\n"
+		"  -l, --list				List the current L3 logs\n"
+		"  -a, --clear-all			Clear all disabled rows\n"
+		"  -e, --enable				Enable row, bank, subbank (undo -d)\n"
+		"  -d, --disable=<row,bank,subbank>	Disable row, bank, subbank (inline arguments are deprecated. Please use -r, -b, -s instead\n",
+		name);
 }
 
 int main(int argc, char *argv[])
@@ -111,7 +130,9 @@ int main(int argc, char *argv[])
 	const int device = drm_get_card();
 	char *path;
 	unsigned int devid;
+	int row = 0, bank = 0, sbank = 0;
 	int drm_fd, fd, ret;
+	int action = '0';
 
 	drm_fd = drm_open_any();
 	devid = intel_get_drm_devid(drm_fd);
@@ -133,17 +154,80 @@ int main(int argc, char *argv[])
 
 	assert(lseek(fd, 0, SEEK_SET) == 0);
 
-	if (argc == 1) {
-		dumpit();
-		exit(EXIT_SUCCESS);
-	} else if (!strncmp("-c", argv[1], 2)) {
-		memset(l3log, 0, sizeof(l3log));
-	} else {
-		ret = do_parse(argc, argv);
-		if (ret != 0) {
-			fprintf(stderr, "Malformed command line at %s\n", argv[ret]);
-			exit(EXIT_FAILURE);
+	while (1) {
+		int c, option_index = 0;
+		static struct option long_options[] = {
+			{ "help", no_argument, 0, 'h' },
+			{ "list", no_argument, 0, 'l' },
+			{ "clear-all", no_argument, 0, 'a' },
+			{ "enable", no_argument, 0, 'e' },
+			{ "disable", optional_argument, 0, 'd' },
+			{ "row", required_argument, 0, 'r' },
+			{ "bank", required_argument, 0, 'b' },
+			{ "subbank", required_argument, 0, 's' },
+			{0, 0, 0, 0}
+		};
+
+		c = getopt_long(argc, argv, "hr:b:s:aled::", long_options,
+				&option_index);
+		if (c == -1)
+			break;
+
+		switch (c) {
+			case '?':
+			case 'h':
+				usage(argv[0]);
+				exit(EXIT_SUCCESS);
+			case 'r':
+				row = atoi(optarg);
+				if (row >= MAX_ROW)
+					exit(EXIT_FAILURE);
+				break;
+			case 'b':
+				bank = atoi(optarg);
+				if (bank >= NUM_BANKS)
+					exit(EXIT_FAILURE);
+				break;
+			case 's':
+				sbank = atoi(optarg);
+				if (sbank >= NUM_SUBBANKS)
+					exit(EXIT_FAILURE);
+				break;
+			case 'd':
+				if (optarg) {
+					ret = sscanf(optarg, "%d,%d,%d", &row, &bank, &sbank);
+					if (ret != 3)
+						exit(EXIT_FAILURE);
+				}
+			case 'a':
+			case 'l':
+			case 'e':
+				if (action != '0') {
+					fprintf(stderr, "Only one action may be specified\n");
+					exit(EXIT_FAILURE);
+				}
+				action = c;
+				break;
+			default:
+				abort();
 		}
+	}
+
+	switch (action) {
+		case 'l':
+			dumpit();
+			exit(EXIT_SUCCESS);
+		case 'a':
+			memset(l3log, 0, sizeof(l3log));
+			break;
+		case 'e':
+			enables_rbs(row, bank, sbank);
+			break;
+		case 'd':
+			assert(disable_rbs(row, bank, sbank) == 0);
+			break;
+		default:
+			abort();
 	}
 
 	ret = write(fd, l3log, NUM_REGS * sizeof(uint32_t));
