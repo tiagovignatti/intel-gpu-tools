@@ -38,9 +38,19 @@
 #include "intel_gpu_tools.h"
 #include "drmtest.h"
 
-#define NUM_BANKS 4
+static unsigned int devid;
+/* L3 size is always a function of banks. The number of banks cannot be
+ * determined by number of slices however */
+#define MAX_BANKS 4
+#define NUM_BANKS \
+	((devid == PCI_CHIP_IVYBRIDGE_GT1 || devid == PCI_CHIP_IVYBRIDGE_M_GT1) ? 2 : 4)
 #define NUM_SUBBANKS 8
+#define BYTES_PER_BANK (128 << 10)
+/* Each row addresses [up to] 4b. This multiplied by the number of subbanks
+ * will give the L3 size per bank.
+ * TODO: Row size is fixed on IVB, and variable on HSW.*/
 #define MAX_ROW (1<<12)
+#define L3_SIZE ((MAX_ROW * 4) * NUM_SUBBANKS *  NUM_BANKS)
 #define NUM_REGS (NUM_BANKS * NUM_SUBBANKS)
 
 struct __attribute__ ((__packed__)) l3_log_register {
@@ -50,7 +60,7 @@ struct __attribute__ ((__packed__)) l3_log_register {
 	uint32_t row1_enable	: 1;
 	uint32_t rsvd1		: 4;
 	uint32_t row1		: 11;
-} l3log[NUM_BANKS][NUM_SUBBANKS];
+} l3log[MAX_BANKS][NUM_SUBBANKS];
 
 static void dumpit(void)
 {
@@ -118,6 +128,7 @@ static void usage(const char *name)
 		"  -s, --subbank=[subbank]		The subbank to act upon (default 0)\n"
 		" ACTIONS (only 1 may be specified at a time):\n"
 		"  -h, --help				Display this help\n"
+		"  -H, --hw-info				Display the current L3 properties\n"
 		"  -l, --list				List the current L3 logs\n"
 		"  -a, --clear-all			Clear all disabled rows\n"
 		"  -e, --enable				Enable row, bank, subbank (undo -d)\n"
@@ -129,7 +140,6 @@ int main(int argc, char *argv[])
 {
 	const int device = drm_get_card();
 	char *path;
-	unsigned int devid;
 	int row = 0, bank = 0, sbank = 0;
 	int drm_fd, fd, ret;
 	int action = '0';
@@ -162,13 +172,14 @@ int main(int argc, char *argv[])
 			{ "clear-all", no_argument, 0, 'a' },
 			{ "enable", no_argument, 0, 'e' },
 			{ "disable", optional_argument, 0, 'd' },
+			{ "hw-info", no_argument, 0, 'H' },
 			{ "row", required_argument, 0, 'r' },
 			{ "bank", required_argument, 0, 'b' },
 			{ "subbank", required_argument, 0, 's' },
 			{0, 0, 0, 0}
 		};
 
-		c = getopt_long(argc, argv, "hr:b:s:aled::", long_options,
+		c = getopt_long(argc, argv, "hHr:b:s:aled::", long_options,
 				&option_index);
 		if (c == -1)
 			break;
@@ -177,6 +188,11 @@ int main(int argc, char *argv[])
 			case '?':
 			case 'h':
 				usage(argv[0]);
+				exit(EXIT_SUCCESS);
+			case 'H':
+				printf("Number of banks: %d\n", NUM_BANKS);
+				printf("Subbanks per bank: %d\n", NUM_SUBBANKS);
+				printf("L3 size: %dK\n", L3_SIZE >> 10);
 				exit(EXIT_SUCCESS);
 			case 'r':
 				row = atoi(optarg);
