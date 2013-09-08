@@ -41,19 +41,28 @@
 static unsigned int devid;
 /* L3 size is always a function of banks. The number of banks cannot be
  * determined by number of slices however */
-#define MAX_BANKS 4
-#define NUM_BANKS \
-	((devid == PCI_CHIP_IVYBRIDGE_GT1 || devid == PCI_CHIP_IVYBRIDGE_M_GT1) ? 2 : 4)
+static inline int num_banks(void) {
+	if (IS_HSW_GT3(devid))
+		return 8; /* 4 per each slice */
+	else if (IS_HSW_GT1(devid) ||
+			devid == PCI_CHIP_IVYBRIDGE_GT1 ||
+			devid == PCI_CHIP_IVYBRIDGE_M_GT1)
+		return 2;
+	else
+		return 4;
+}
 #define NUM_SUBBANKS 8
 #define BYTES_PER_BANK (128 << 10)
 /* Each row addresses [up to] 4b. This multiplied by the number of subbanks
  * will give the L3 size per bank.
  * TODO: Row size is fixed on IVB, and variable on HSW.*/
 #define MAX_ROW (1<<12)
-#define L3_SIZE ((MAX_ROW * 4) * NUM_SUBBANKS *  NUM_BANKS)
-#define NUM_REGS (NUM_BANKS * NUM_SUBBANKS)
-#define MAX_SLICES 1
-#define REAL_MAX_SLICES 1
+#define MAX_BANKS_PER_SLICE 4
+#define NUM_REGS (MAX_BANKS_PER_SLICE * NUM_SUBBANKS)
+#define MAX_SLICES (IS_HSW_GT3(devid) ? 2 : 1)
+#define REAL_MAX_SLICES 2
+/* TODO support SLM config */
+#define L3_SIZE ((MAX_ROW * 4) * NUM_SUBBANKS *  num_banks())
 
 struct __attribute__ ((__packed__)) l3_log_register {
 	uint32_t row0_enable	: 1;
@@ -62,7 +71,7 @@ struct __attribute__ ((__packed__)) l3_log_register {
 	uint32_t row1_enable	: 1;
 	uint32_t rsvd1		: 4;
 	uint32_t row1		: 11;
-} l3logs[REAL_MAX_SLICES][MAX_BANKS][NUM_SUBBANKS];
+} l3logs[REAL_MAX_SLICES][MAX_BANKS_PER_SLICE][NUM_SUBBANKS];
 
 static int which_slice = -1;
 #define for_each_slice(__i) \
@@ -74,16 +83,16 @@ static void dumpit(int slice)
 {
 	int i, j;
 
-	for (i = 0; i < NUM_BANKS; i++) {
+	for (i = 0; i < MAX_BANKS_PER_SLICE; i++) {
 		for (j = 0; j < NUM_SUBBANKS; j++) {
 			struct l3_log_register *reg = &l3logs[slice][i][j];
 
 			if (reg->row0_enable)
-				printf("Row %d, Bank %d, Subbank %d is disabled\n",
-				       reg->row0, i, j);
+				printf("Slice %d, Row %d, Bank %d, Subbank %d is disabled\n",
+				       slice, reg->row0, i, j);
 			if (reg->row1_enable)
-				printf("Row %d, Bank %d, Subbank %d is disabled\n",
-				       reg->row1, i, j);
+				printf("Slice %d, Row %d, Bank %d, Subbank %d is disabled\n",
+				       slice, reg->row1, i, j);
 		}
 	}
 }
@@ -160,6 +169,8 @@ int main(int argc, char *argv[])
 
 	ret = asprintf(&path[0], "/sys/class/drm/card%d/l3_parity", device);
 	assert(ret != -1);
+	ret = asprintf(&path[1], "/sys/class/drm/card%d/l3_parity_slice_1", device);
+	assert(ret != -1);
 
 	for_each_slice(i) {
 		fd[i] = open(path[i], O_RDWR);
@@ -201,9 +212,9 @@ int main(int argc, char *argv[])
 				exit(EXIT_SUCCESS);
 			case 'H':
 				printf("Number of slices: %d\n", MAX_SLICES);
-				printf("Number of banks: %d\n", NUM_BANKS);
+				printf("Number of banks: %d\n", num_banks());
 				printf("Subbanks per bank: %d\n", NUM_SUBBANKS);
-				printf("L3 size: %dK\n", L3_SIZE >> 10);
+				printf("Max L3 size: %dK\n", L3_SIZE >> 10);
 				exit(EXIT_SUCCESS);
 			case 'r':
 				row = atoi(optarg);
@@ -212,7 +223,7 @@ int main(int argc, char *argv[])
 				break;
 			case 'b':
 				bank = atoi(optarg);
-				if (bank >= NUM_BANKS)
+				if (bank >= num_banks() || bank >= MAX_BANKS_PER_SLICE)
 					exit(EXIT_FAILURE);
 				break;
 			case 's':
@@ -222,7 +233,7 @@ int main(int argc, char *argv[])
 				break;
 			case 'w':
 				which_slice = atoi(optarg);
-				if (which_slice > 1)
+				if (which_slice >= MAX_SLICES)
 					exit(EXIT_FAILURE);
 				break;
 			case 'd':
