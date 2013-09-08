@@ -589,6 +589,8 @@ off_t prime_get_size(int dma_buf_fd)
 /* signal interrupt helpers */
 static bool igt_only_list_subtests(void);
 
+static int exit_handler_count;
+
 static pid_t signal_helper = -1;
 long long int sig_stat;
 static void __attribute__((noreturn)) signal_helper_process(pid_t pid)
@@ -624,11 +626,13 @@ void igt_fork_signal_helper(void)
 	signal(SIGUSR1, sig_handler);
 	oldsig = signal(SIGQUIT, SIG_DFL);
 	pid = fork();
-	signal(SIGQUIT, oldsig);
 	if (pid == 0) {
+		exit_handler_count = 0;
+
 		signal_helper_process(getppid());
 		return;
 	}
+	signal(SIGQUIT, oldsig);
 
 	signal_helper = pid;
 }
@@ -640,6 +644,8 @@ void igt_stop_signal_helper(void)
 	if (signal_helper != -1) {
 		kill(signal_helper, SIGQUIT);
 		wait(&exitcode);
+
+		signal_helper = -1;
 	} else
 		return;
 
@@ -988,6 +994,8 @@ bool __igt_fork(void)
 		igt_assert(0);
 	case 0:
 		test_child = true;
+		exit_handler_count = 0;
+
 		return true;
 	default:
 		return false;
@@ -1629,7 +1637,6 @@ static struct {
 } orig_sig[MAX_SIGNALS];
 
 static igt_exit_handler_t exit_handler_fn[MAX_EXIT_HANDLERS];
-static int exit_handler_count;
 static bool exit_handler_disabled;
 static sigset_t saved_sig_mask;
 static const int handled_signals[] =
@@ -1672,6 +1679,9 @@ static void call_exit_handlers(int sig)
 
 	for (i = exit_handler_count - 1; i >= 0; i--)
 		exit_handler_fn[i](sig);
+
+	/* ensure we don't get called twice */
+	exit_handler_count = 0;
 }
 
 static void igt_atexit_handler(void)
@@ -1709,6 +1719,10 @@ static void igt_sig_handler(int sig)
 int igt_install_exit_handler(igt_exit_handler_t fn)
 {
 	int i;
+
+	for (i = 0; i < exit_handler_count; i++)
+		if (exit_handler_fn[i] == fn)
+			return 0;
 
 	if (exit_handler_count == MAX_EXIT_HANDLERS)
 		return -1;
