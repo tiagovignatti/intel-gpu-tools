@@ -1976,7 +1976,6 @@ static void igt_prefault_control(bool enable)
 	int fd;
 	char buf[2] = {'Y', 'N'};
 	int index;
-	int result = 0;
 
 	fd = open(name, O_RDWR);
 	igt_require(fd >= 0);
