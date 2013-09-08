@@ -52,6 +52,8 @@ static unsigned int devid;
 #define MAX_ROW (1<<12)
 #define L3_SIZE ((MAX_ROW * 4) * NUM_SUBBANKS *  NUM_BANKS)
 #define NUM_REGS (NUM_BANKS * NUM_SUBBANKS)
+#define MAX_SLICES 1
+#define REAL_MAX_SLICES 1
 
 struct __attribute__ ((__packed__)) l3_log_register {
 	uint32_t row0_enable	: 1;
@@ -60,15 +62,21 @@ struct __attribute__ ((__packed__)) l3_log_register {
 	uint32_t row1_enable	: 1;
 	uint32_t rsvd1		: 4;
 	uint32_t row1		: 11;
-} l3log[MAX_BANKS][NUM_SUBBANKS];
+} l3logs[REAL_MAX_SLICES][MAX_BANKS][NUM_SUBBANKS];
 
-static void dumpit(void)
+static int which_slice = -1;
+#define for_each_slice(__i) \
+	for ((__i) = (which_slice == -1) ? 0 : which_slice; \
+			(__i) < ((which_slice == -1) ? MAX_SLICES : (which_slice + 1)); \
+			(__i)++)
+
+static void dumpit(int slice)
 {
 	int i, j;
 
 	for (i = 0; i < NUM_BANKS; i++) {
 		for (j = 0; j < NUM_SUBBANKS; j++) {
-			struct l3_log_register *reg = &l3log[i][j];
+			struct l3_log_register *reg = &l3logs[slice][i][j];
 
 			if (reg->row0_enable)
 				printf("Row %d, Bank %d, Subbank %d is disabled\n",
@@ -80,9 +88,9 @@ static void dumpit(void)
 	}
 }
 
-static int disable_rbs(int row, int bank, int sbank)
+static int disable_rbs(int row, int bank, int sbank, int slice)
 {
-	struct l3_log_register *reg = &l3log[bank][sbank];
+	struct l3_log_register *reg = &l3logs[slice][bank][sbank];
 
 	// can't map more than 2 rows
 	if (reg->row0_enable && reg->row1_enable)
@@ -105,9 +113,9 @@ static int disable_rbs(int row, int bank, int sbank)
 	return 0;
 }
 
-static void enables_rbs(int row, int bank, int sbank)
+static void enables_rbs(int row, int bank, int sbank, int slice)
 {
-	struct l3_log_register *reg = &l3log[bank][sbank];
+	struct l3_log_register *reg = &l3logs[slice][bank][sbank];
 
 	if (!reg->row0_enable && !reg->row1_enable)
 		return;
@@ -126,6 +134,7 @@ static void usage(const char *name)
 		"  -r, --row=[row]			The row to act upon (default 0)\n"
 		"  -b, --bank=[bank]			The bank to act upon (default 0)\n"
 		"  -s, --subbank=[subbank]		The subbank to act upon (default 0)\n"
+		"  -w, --slice=[slice]			Which slice to act on (default: -1 [all])"
 		" ACTIONS (only 1 may be specified at a time):\n"
 		"  -h, --help				Display this help\n"
 		"  -H, --hw-info				Display the current L3 properties\n"
@@ -139,30 +148,30 @@ static void usage(const char *name)
 int main(int argc, char *argv[])
 {
 	const int device = drm_get_card();
-	char *path;
+	char *path[REAL_MAX_SLICES];
 	int row = 0, bank = 0, sbank = 0;
-	int drm_fd, fd, ret;
+	int fd[REAL_MAX_SLICES] = {0}, ret, i;
 	int action = '0';
-
-	drm_fd = drm_open_any();
+	int drm_fd = drm_open_any();
 	devid = intel_get_drm_devid(drm_fd);
 
 	if (intel_gen(devid) < 7 || IS_VALLEYVIEW(devid))
 		exit(EXIT_SUCCESS);
 
-	ret = asprintf(&path, "/sys/class/drm/card%d/l3_parity", device);
+	ret = asprintf(&path[0], "/sys/class/drm/card%d/l3_parity", device);
 	assert(ret != -1);
 
-	fd = open(path, O_RDWR);
-	assert(fd != -1);
-
-	ret = read(fd, l3log, NUM_REGS * sizeof(uint32_t));
-	if (ret == -1) {
-		perror("Reading sysfs");
-		exit(EXIT_FAILURE);
+	for_each_slice(i) {
+		fd[i] = open(path[i], O_RDWR);
+		assert(fd[i]);
+		ret = read(fd[i], l3logs[i], NUM_REGS * sizeof(uint32_t));
+		if (ret == -1) {
+			perror("Reading sysfs");
+			exit(EXIT_FAILURE);
+		}
+		assert(lseek(fd[i], 0, SEEK_SET) == 0);
 	}
 
-	assert(lseek(fd, 0, SEEK_SET) == 0);
 
 	while (1) {
 		int c, option_index = 0;
@@ -176,10 +185,11 @@ int main(int argc, char *argv[])
 			{ "row", required_argument, 0, 'r' },
 			{ "bank", required_argument, 0, 'b' },
 			{ "subbank", required_argument, 0, 's' },
+			{ "slice", required_argument, 0, 'w' },
 			{0, 0, 0, 0}
 		};
 
-		c = getopt_long(argc, argv, "hHr:b:s:aled::", long_options,
+		c = getopt_long(argc, argv, "hHr:b:s:w:aled::", long_options,
 				&option_index);
 		if (c == -1)
 			break;
@@ -190,6 +200,7 @@ int main(int argc, char *argv[])
 				usage(argv[0]);
 				exit(EXIT_SUCCESS);
 			case 'H':
+				printf("Number of slices: %d\n", MAX_SLICES);
 				printf("Number of banks: %d\n", NUM_BANKS);
 				printf("Subbanks per bank: %d\n", NUM_SUBBANKS);
 				printf("L3 size: %dK\n", L3_SIZE >> 10);
@@ -207,6 +218,11 @@ int main(int argc, char *argv[])
 			case 's':
 				sbank = atoi(optarg);
 				if (sbank >= NUM_SUBBANKS)
+					exit(EXIT_FAILURE);
+				break;
+			case 'w':
+				which_slice = atoi(optarg);
+				if (which_slice > 1)
 					exit(EXIT_FAILURE);
 				break;
 			case 'd':
@@ -229,30 +245,38 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	switch (action) {
-		case 'l':
-			dumpit();
-			exit(EXIT_SUCCESS);
-		case 'a':
-			memset(l3log, 0, sizeof(l3log));
-			break;
-		case 'e':
-			enables_rbs(row, bank, sbank);
-			break;
-		case 'd':
-			assert(disable_rbs(row, bank, sbank) == 0);
-			break;
-		default:
-			abort();
+	/* Per slice operations */
+	for_each_slice(i) {
+		switch (action) {
+			case 'l':
+				dumpit(i);
+				break;
+			case 'a':
+				memset(l3logs[i], 0, NUM_REGS * sizeof(struct l3_log_register));
+				break;
+			case 'e':
+				enables_rbs(row, bank, sbank, i);
+				break;
+			case 'd':
+				assert(disable_rbs(row, bank, sbank, i) == 0);
+				break;
+			default:
+				abort();
+		}
 	}
 
-	ret = write(fd, l3log, NUM_REGS * sizeof(uint32_t));
-	if (ret == -1) {
-		perror("Writing sysfs");
-		exit(EXIT_FAILURE);
+	if (action == 'l')
+		exit(EXIT_SUCCESS);
+
+	for_each_slice(i) {
+		ret = write(fd[i], l3logs[i], NUM_REGS * sizeof(uint32_t));
+		if (ret == -1) {
+			perror("Writing sysfs");
+			exit(EXIT_FAILURE);
+		}
+		close(fd[i]);
 	}
 
-	close(fd);
 
 	exit(EXIT_SUCCESS);
 }
