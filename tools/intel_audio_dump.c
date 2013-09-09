@@ -58,7 +58,7 @@ static uint32_t devid;
 	} while (0)
 
 
-static const char *pixel_clock[] = {
+static const char * const pixel_clock[] = {
 	[0] = "25.2 / 1.001 MHz",
 	[1] = "25.2 MHz",
 	[2] = "27 MHz",
@@ -72,14 +72,14 @@ static const char *pixel_clock[] = {
 	[10] = "Reserved",
 };
 
-static const char *power_state[] = {
+static const char * const power_state[] = {
 	[0] = "D0",
 	[1] = "D1",
 	[2] = "D2",
 	[3] = "D3",
 };
 
-static const char *stream_type[] = {
+static const char * const stream_type[] = {
 	[0] = "default samples",
 	[1] = "one bit stream",
 	[2] = "DST stream",
@@ -87,19 +87,29 @@ static const char *stream_type[] = {
 	[4] = "Reserved",
 };
 
-static const char *dip_port[] = {
+static const char * const dip_port[] = {
 	[0] = "Reserved",
 	[1] = "Digital Port B",
 	[2] = "Digital Port C",
 	[3] = "Digital Port D",
 };
 
-static const char *dip_type[] = {
+static const char * const dip_type[] = {
 	[0] = "Audio DIP Disabled",
 	[1] = "Audio DIP Enabled",
 };
 
-static const char *dip_index[] = {
+static const char * const dip_gen1_state[] = {
+	[0] = "Generic 1 (ACP) DIP Disabled",
+	[1] = "Generic 1 (ACP) DIP Enabled",
+};
+
+static const char * const dip_gen2_state[] = {
+	[0] = "Generic 2 DIP Disabled",
+	[1] = "Generic 2 DIP Enabled",
+};
+
+static const char * const dip_index[] = {
 	[0] = "Audio DIP",
 	[1] = "ACP DIP",
 	[2] = "ISRC1 DIP",
@@ -107,28 +117,28 @@ static const char *dip_index[] = {
 	[4] = "Reserved",
 };
 
-static const char *dip_trans[] = {
+static const char * const dip_trans[] = {
 	[0] = "disabled",
 	[1] = "reserved",
 	[2] = "send once",
 	[3] = "best effort",
 };
 
-static const char *video_dip_index[] = {
+static const char * const video_dip_index[] = {
 	[0] = "AVI DIP",
 	[1] = "Vendor-specific DIP",
 	[2] = "Gamut Metadata DIP",
 	[3] = "Source Product Description DIP",
 };
 
-static const char *video_dip_trans[] = {
+static const char * const video_dip_trans[] = {
 	[0] = "send once",
 	[1] = "send every vsync",
 	[2] = "send at least every other vsync",
 	[3] = "reserved",
 };
 
-static const char *trans_to_port_sel[] = {
+static const char * const trans_to_port_sel[] = {
 	[0] = "no port",
 	[1] = "Digital Port B",
 	[2] = "Digital Port C",
@@ -139,7 +149,7 @@ static const char *trans_to_port_sel[] = {
 	[7] = "reserved",
 };
 
-static const char *ddi_mode[] = {
+static const char * const ddi_mode[] = {
 	[0] = "HDMI mode",
 	[1] = "DVI mode",
 	[2] = "DP SST mode",
@@ -150,14 +160,25 @@ static const char *ddi_mode[] = {
 	[7] = "reserved",
 };
 
-static const char *transcoder_select[] = {
+static const char * const bits_per_color[] = {
+	[0] = "8 bpc",
+	[1] = "10 bpc",
+	[2] = "6 bpc",
+	[3] = "12 bpc",
+	[4] = "reserved",
+	[5] = "reserved",
+	[6] = "reserved",
+	[7] = "reserved",
+};
+
+static const char * const transcoder_select[] = {
 	[0] = "Transcoder A",
 	[1] = "Transcoder B",
 	[2] = "Transcoder C",
 	[3] = "reserved",
 };
 
-static const char *dp_port_width[] = {
+static const char * const dp_port_width[] = {
 	[0] = "x1 mode",
 	[1] = "x2 mode",
 	[2] = "reserved",
@@ -168,7 +189,37 @@ static const char *dp_port_width[] = {
 	[7] = "reserved",
 };
 
-static const char *bits_per_sample[] = {
+static const char * const sample_base_rate[] = {
+	[0] = "48 kHz",
+	[1] = "44.1 kHz",
+};
+
+static const char * const sample_base_rate_mult[] = {
+	[0] = "x1 (48 kHz, 44.1 kHz or less)",
+	[1] = "x2 (96 kHz, 88.2 kHz, 32 kHz)",
+	[2] = "x3 (144 kHz)",
+	[3] = "x4 (192 kHz, 176.4 kHz)",
+	[4] = "Reserved",
+};
+
+static const char * const sample_base_rate_divisor[] = {
+	[0] = "Divided by 1 (48 kHz, 44.1 kHz)",
+	[1] = "Divided by 2 (24 kHz, 22.05 kHz)",
+	[2] = "Divided by 3 (16 kHz, 32 kHz)",
+	[3] = "Divided by 4 (11.025 kHz)",
+	[4] = "Divided by 5 (9.6 kHz)",
+	[5] = "Divided by 6 (8 kHz)",
+	[6] = "Divided by 7",
+	[7] = "Divided by 8 (6 kHz)",
+};
+
+static const char * const connect_list_form[] = {
+	[0] = "Short Form",
+	[1] = "Long Form",
+};
+
+
+static const char * const bits_per_sample[] = {
 	[0] = "reserved",
 	[1] = "16 bits",
 	[2] = "24 bits",
@@ -177,14 +228,14 @@ static const char *bits_per_sample[] = {
 	[5] = "reserved",
 };
 
-static const char *sdvo_hdmi_encoding[] = {
+static const char * const sdvo_hdmi_encoding[] = {
 	[0] = "SDVO",
 	[1] = "reserved",
 	[2] = "TMDS",
 	[3] = "reserved",
 };
 
-static const char *n_index_value[] = {
+static const char * const n_index_value[] = {
 	[0] = "HDMI",
 	[1] = "DisplayPort",
 };
@@ -1383,6 +1434,7 @@ static void dump_cpt(void)
 #undef AUD_OUT_STR_DESC_A
 #undef AUD_OUT_CH_STR
 #undef AUD_PINW_CONNLNG_LIST
+#undef AUD_PINW_CONNLNG_SEL
 #undef AUD_CNTL_ST_A
 #undef AUD_HDMIW_STATUS
 #undef AUD_CONFIG_B
@@ -1464,41 +1516,41 @@ static void dump_cpt(void)
 #define PIPE_CONF_EDP		0x7F008
 
 /* Audio registers */
-#define AUD_CONFIG_A          0x65000
-#define AUD_MISC_CTRL_A       0x65010
-#define AUD_VID_DID           0x65020
-#define AUD_RID               0x65024
-#define AUD_CTS_ENABLE_A      0x65028
-#define AUD_PWRST             0x6504C
-#define AUD_HDMIW_HDMIEDID_A  0x65050
-#define AUD_HDMIW_INFOFR_A    0x65054
-#define AUD_PORT_EN_HD_CFG    0x6507C
-#define AUD_OUT_DIG_CNVT_A    0x65080
-#define AUD_OUT_STR_DESC_A    0x65084
-#define AUD_OUT_CHAN_MAP      0x65088
-#define AUD_PINW_CONNLNG_LIST_A 0x650A8
-#define AUD_PINW_CONNLNG_LIST_B 0x651A8
-#define AUD_PINW_CONNLNG_LIST_C 0x652A8
+#define AUD_TCA_CONFIG		0x65000
+#define AUD_TCB_CONFIG		0x65100
+#define AUD_TCC_CONFIG		0x65200
+#define AUD_C1_MISC_CTRL	0x65010
+#define AUD_C2_MISC_CTRL	0x65110
+#define AUD_C3_MISC_CTRL	0x65210
+#define AUD_VID_DID		0x65020
+#define AUD_RID			0x65024
+#define AUD_TCA_M_CTS_ENABLE	0x65028
+#define AUD_TCB_M_CTS_ENABLE	0x65128
+#define AUD_TCC_M_CTS_ENABLE	0x65228
+#define AUD_PWRST		0x6504C
+#define AUD_TCA_EDID_DATA	0x65050
+#define AUD_TCB_EDID_DATA	0x65150
+#define AUD_TCC_EDID_DATA	0x65250
+#define AUD_TCA_INFOFR		0x65054
+#define AUD_TCB_INFOFR		0x65154
+#define AUD_TCC_INFOFR		0x65254
+#define AUD_PIPE_CONV_CFG	0x6507C
+#define AUD_C1_DIG_CNVT		0x65080
+#define AUD_C2_DIG_CNVT		0x65180
+#define AUD_C3_DIG_CNVT		0x65280
+#define AUD_C1_STR_DESC		0x65084
+#define AUD_C2_STR_DESC		0x65184
+#define AUD_C3_STR_DESC		0x65284
+#define AUD_OUT_CHAN_MAP	0x65088
+#define AUD_TCA_PIN_PIPE_CONN_ENTRY_LNGTH	0x650A8
+#define AUD_TCB_PIN_PIPE_CONN_ENTRY_LNGTH	0x651A8
+#define AUD_TCC_PIN_PIPE_CONN_ENTRY_LNGTH	0x652A8
 #define AUD_PIPE_CONN_SEL_CTRL	0x650AC
-#define AUD_PIN_ELD_CP_VLD    0x650C0
-#define AUD_HDMIW_STATUS      0x650D4
-#define AUD_CONFIG_B          0x65100
-#define AUD_MISC_CTRL_B       0x65110
-#define AUD_CTS_ENABLE_B      0x65128
-#define AUD_HDMIW_HDMIEDID_B  0x65150
-#define AUD_HDMIW_INFOFR_B    0x65154
-#define AUD_OUT_DIG_CNVT_B    0x65180
-#define AUD_OUT_STR_DESC_B    0x65184
-#define AUD_CONFIG_C          0x65200
-#define AUD_MISC_CTRL_C       0x65210
-#define AUD_CTS_ENABLE_C      0x65228
-#define AUD_HDMIW_HDMIEDID_C  0x65250
-#define AUD_HDMIW_INFOFR_C    0x65254
-#define AUD_OUT_DIG_CNVT_C    0x65280
-#define AUD_OUT_STR_DESC_C    0x65284
-#define AUD_DIP_ELD_CTRL_ST_A	0x650b4
-#define AUD_DIP_ELD_CTRL_ST_B	0x651b4
-#define AUD_DIP_ELD_CTRL_ST_C	0x652b4
+#define AUD_TCA_DIP_ELD_CTRL_ST	0x650b4
+#define AUD_TCB_DIP_ELD_CTRL_ST	0x651b4
+#define AUD_TCC_DIP_ELD_CTRL_ST	0x652b4
+#define AUD_PIN_ELD_CP_VLD	0x650C0
+#define AUD_HDMI_FIFO_STATUS	0x650D4
 
 /* Video DIP Control */
 #define VIDEO_DIP_CTL_A		0x60200
@@ -1511,11 +1563,343 @@ static void dump_cpt(void)
 
 #define AUD_DP_DIP_STATUS	0x65f20
 
+#define MAX_PREFIX_SIZE		128
+
+#undef TRANSCODER_A
+#undef TRANSCODER_B
+#undef TRANSCODER_C
+enum {
+	TRANSCODER_A = 0,
+	TRANSCODER_B,
+	TRANSCODER_C,
+};
+
+enum {
+	PIPE_A = 0,
+	PIPE_B,
+	PIPE_C,
+};
+
+enum {
+	PORT_A = 0,
+	PORT_B,
+	PORT_C,
+	PORT_D,
+	PORT_E,
+};
+
+enum {
+	CONVERTER_1 = 0,
+	CONVERTER_2,
+	CONVERTER_3,
+};
+
+static void dump_ddi_buf_ctl(int port)
+{
+	uint32_t dword;
+
+	dword = INREG(DDI_BUF_CTL_A + (port - PORT_A) * 0x100);
+	printf("DDI %c Buffer control\n", 'A' + port - PORT_A);
+	printf("\tDP port width\t\t\t\t\t[0x%lx] %s\n", BITS(dword, 3, 1),
+		OPNAME(dp_port_width, BITS(dword, 3, 1)));
+	printf("\tDDI Buffer Enable\t\t\t\t%ld\n", BIT(dword, 31));
+}
+
+static void dump_ddi_func_ctl(int pipe)
+{
+	uint32_t dword;
+
+	dword = INREG(PIPE_DDI_FUNC_CTL_A + (pipe - PIPE_A) * 0x1000);
+	printf("Pipe %c DDI Function Control\n", 'A' + pipe - PIPE_A);
+	printf("\tBITS per color\t\t\t\t\t[0x%lx] %s\n", BITS(dword, 22, 20),
+		OPNAME(bits_per_color, BITS(dword, 22, 20)));
+	printf("\tPIPE DDI Mode\t\t\t\t\t[0x%lx] %s\n", BITS(dword, 26, 24),
+		OPNAME(ddi_mode, BITS(dword, 26, 24)));
+	printf("\tPIPE DDI selection\t\t\t\t[0x%lx] %s\n", BITS(dword, 30, 28),
+		OPNAME(trans_to_port_sel, BITS(dword, 30, 28)));
+	printf("\tPIPE DDI Function Enable\t\t\t[0x%lx]\n", BIT(dword, 31));
+}
+
+static void dump_aud_transcoder_config(int transcoder)
+{
+	uint32_t dword;
+	char prefix[MAX_PREFIX_SIZE];
+
+	dword = INREG(AUD_TCA_CONFIG + (transcoder - TRANSCODER_A) * 0x100);
+	sprintf(prefix, "AUD_TC%c_CONFIG", 'A' + transcoder - TRANSCODER_A);
+
+	printf("%s  Disable_NCTS\t\t\t\t%lu\n", prefix, BIT(dword, 3));
+	printf("%s  Lower_N_value\t\t\t\t0x%03lx\n", prefix, BITS(dword, 15, 4));
+	printf("%s  Pixel_Clock_HDMI\t\t\t[0x%lx] %s\n", prefix, BITS(dword, 19, 16),
+		OPNAME(pixel_clock, BITS(dword, 19, 16)));
+	printf("%s  Upper_N_value\t\t\t\t0x%02lx\n", prefix, BITS(dword, 27, 20));
+	printf("%s  N_programming_enable\t\t\t%lu\n", prefix, BIT(dword, 28));
+	printf("%s  N_index_value\t\t\t\t[0x%lx] %s\n", prefix, BIT(dword, 29),
+		OPNAME(n_index_value, BIT(dword, 29)));
+}
+
+static void dump_aud_misc_control(int converter)
+{
+	uint32_t dword;
+	char prefix[MAX_PREFIX_SIZE];
+
+	dword = INREG(AUD_C1_MISC_CTRL + (converter - CONVERTER_1) * 0x100);
+	sprintf(prefix, "AUD_C%c_MISC_CTRL", '1' + converter - CONVERTER_1);
+
+	printf("%s   Pro_Allowed\t\t\t\t%lu\n", prefix, BIT(dword, 1));
+	printf("%s   Sample_Fabrication_EN_bit\t\t%lu\n", prefix, BIT(dword, 2));
+	printf("%s   Output_Delay\t\t\t\t%lu\n", prefix, BITS(dword, 7, 4));
+	printf("%s   Sample_present_Disable\t\t%lu\n", prefix, BIT(dword, 8));
+}
+
+static void dump_aud_vendor_device_id(void)
+{
+	uint32_t dword;
+
+	dword = INREG(AUD_VID_DID);
+	printf("AUD_VID_DID device id\t\t\t\t\t0x%lx\n", BITS(dword, 15, 0));
+	printf("AUD_VID_DID vendor id\t\t\t\t\t0x%lx\n", BITS(dword, 31, 16));
+}
+
+static void dump_aud_revision_id(void)
+{
+	uint32_t dword;
+
+	dword = INREG(AUD_RID);
+	printf("AUD_RID Stepping_Id\t\t\t\t\t0x%lx\n",    BITS(dword, 7, 0));
+	printf("AUD_RID Revision_Id\t\t\t\t\t0x%lx\n",    BITS(dword, 15, 8));
+	printf("AUD_RID Minor_Revision\t\t\t\t\t0x%lx\n", BITS(dword, 19, 16));
+	printf("AUD_RID Major_Revision\t\t\t\t\t0x%lx\n", BITS(dword, 23, 20));
+}
+
+static void dump_aud_m_cts_enable(int transcoder)
+{
+	uint32_t dword;
+	char prefix[MAX_PREFIX_SIZE];
+
+	dword = INREG(AUD_TCA_M_CTS_ENABLE  + (transcoder - TRANSCODER_A) * 0x100);
+	sprintf(prefix, "AUD_TC%c_M_CTS_ENABLE", 'A' + transcoder - TRANSCODER_A);
+
+	printf("%s  CTS_programming\t\t\t%#lx\n", prefix, BITS(dword, 19, 0));
+	printf("%s  Enable_CTS_or_M_programming\t%lu\n", prefix, BIT(dword, 20));
+	printf("%s  CTS_M value Index\t\t\t%s\n", prefix, BIT(dword, 21) ? "CTS" : "M");
+}
+
+static void dump_aud_power_state(void)
+{
+	uint32_t dword;
+
+	dword = INREG(AUD_PWRST);
+	printf("AUD_PWRST  PinB_Widget_Power_State_Set              \t%s\n", power_state[BITS(dword,  1,  0)]);
+	printf("AUD_PWRST  PinB_Widget_Power_State_Current          \t%s\n", power_state[BITS(dword,  3,  2)]);
+	printf("AUD_PWRST  PinC_Widget_Power_State_Set              \t%s\n", power_state[BITS(dword,  5,  4)]);
+	printf("AUD_PWRST  PinC_Widget_Power_State_Current          \t%s\n", power_state[BITS(dword,  7,  6)]);
+	printf("AUD_PWRST  PinD_Widget_Power_State_Set              \t%s\n", power_state[BITS(dword,  9,  8)]);
+	printf("AUD_PWRST  PinD_Widget_Power_State_Current          \t%s\n", power_state[BITS(dword, 11, 10)]);
+	printf("AUD_PWRST  Convertor1_Widget_Power_State_Requsted   \t%s\n", power_state[BITS(dword, 13, 12)]);
+	printf("AUD_PWRST  Convertor1_Widget_Power_State_Current    \t%s\n", power_state[BITS(dword, 15, 14)]);
+	printf("AUD_PWRST  Convertor2_Widget_Power_State_Requested  \t%s\n", power_state[BITS(dword, 17, 16)]);
+	printf("AUD_PWRST  Convertor2_Widget_Power_State_Current    \t%s\n", power_state[BITS(dword, 19, 18)]);
+	printf("AUD_PWRST  Convertor3_Widget_Power_State_Requested  \t%s\n", power_state[BITS(dword, 21, 20)]);
+	printf("AUD_PWRST  Convertor3_Widget_Power_State_Current    \t%s\n", power_state[BITS(dword, 23, 22)]);
+	printf("AUD_PWRST  Func_Grp_Dev_PwrSt_Set                   \t%s\n", power_state[BITS(dword, 25, 24)]);
+	printf("AUD_PWRST  Func_Grp_Dev_PwrSt_Curr                  \t%s\n", power_state[BITS(dword, 27, 26)]);
+}
+
+static void dump_aud_edid_data(int transcoder)
+{
+	uint32_t dword;
+	int i;
+	int offset = (transcoder - TRANSCODER_A) * 0x100;
+
+	printf("AUD_TC%c_EDID_DATA ELD:\n\t",  'A' + transcoder - TRANSCODER_A);
+	dword = INREG(AUD_TCA_DIP_ELD_CTRL_ST + offset);
+	dword &= ~BITMASK(9, 5);
+	OUTREG(AUD_TCA_DIP_ELD_CTRL_ST + offset, dword);
+	for (i = 0; i < BITS(dword, 14, 10) / 4; i++)
+		printf("%08x ", htonl(INREG(AUD_TCA_EDID_DATA + offset)));
+	printf("\n");
+}
+
+static void dump_aud_infoframe(int transcoder)
+{
+	uint32_t dword;
+	int i;
+	int offset = (transcoder - TRANSCODER_A) * 0x100;
+
+	printf("AUD_TC%c_INFOFR audio Infoframe:\n\t",  'A' + transcoder - TRANSCODER_A);
+	dword = INREG(AUD_TCA_DIP_ELD_CTRL_ST + offset);
+	dword &= ~BITMASK(20, 18);
+	dword &= ~BITMASK(3, 0);
+	OUTREG(AUD_TCA_DIP_ELD_CTRL_ST + offset, dword);
+	for (i = 0; i < 8; i++)
+		printf("%08x ", htonl(INREG(AUD_TCA_INFOFR + offset)));
+	printf("\n");
+}
+
+static void dump_aud_pipe_conv_cfg(void)
+{
+	uint32_t dword;
+
+	dword = INREG(AUD_PIPE_CONV_CFG);
+	printf("AUD_PIPE_CONV_CFG  Convertor_1_Digen\t\t\t%lu\n", BIT(dword, 0));
+	printf("AUD_PIPE_CONV_CFG  Convertor_2_Digen\t\t\t%lu\n", BIT(dword, 1));
+	printf("AUD_PIPE_CONV_CFG  Convertor_3_Digen\t\t\t%lu\n", BIT(dword, 2));
+	printf("AUD_PIPE_CONV_CFG  Convertor_1_Stream_ID\t\t%lu\n", BITS(dword,  7, 4));
+	printf("AUD_PIPE_CONV_CFG  Convertor_2_Stream_ID\t\t%lu\n", BITS(dword, 11, 8));
+	printf("AUD_PIPE_CONV_CFG  Convertor_3_Stream_ID\t\t%lu\n", BITS(dword, 15, 12));
+	printf("AUD_PIPE_CONV_CFG  Port_B_Out_Enable\t\t\t%lu\n", BIT(dword, 16));
+	printf("AUD_PIPE_CONV_CFG  Port_C_Out_Enable\t\t\t%lu\n", BIT(dword, 17));
+	printf("AUD_PIPE_CONV_CFG  Port_D_Out_Enable\t\t\t%lu\n", BIT(dword, 18));
+	printf("AUD_PIPE_CONV_CFG  Port_B_Amp_Mute_Status\t\t%lu\n", BIT(dword, 20));
+	printf("AUD_PIPE_CONV_CFG  Port_C_Amp_Mute_Status\t\t%lu\n", BIT(dword, 21));
+	printf("AUD_PIPE_CONV_CFG  Port_D_Amp_Mute_Status\t\t%lu\n", BIT(dword, 22));
+}
+
+static void dump_aud_dig_cnvt(int converter)
+{
+	uint32_t dword;
+	char prefix[MAX_PREFIX_SIZE];
+
+	dword = INREG(AUD_C1_DIG_CNVT + (converter - CONVERTER_1) * 0x100);
+	sprintf(prefix, "AUD_C%c_DIG_CNVT", '1' + converter - CONVERTER_1);
+
+	printf("%s  V\t\t\t\t\t%lu\n",		prefix, BIT(dword, 1));
+	printf("%s  VCFG\t\t\t\t\t%lu\n",	prefix, BIT(dword, 2));
+	printf("%s  PRE\t\t\t\t\t%lu\n",	prefix, BIT(dword, 3));
+	printf("%s  Copy\t\t\t\t\t%lu\n",	prefix, BIT(dword, 4));
+	printf("%s  NonAudio\t\t\t\t%lu\n",	prefix, BIT(dword, 5));
+	printf("%s  PRO\t\t\t\t\t%lu\n",	prefix, BIT(dword, 6));
+	printf("%s  Level\t\t\t\t\t%lu\n",	prefix, BIT(dword, 7));
+	printf("%s  Category_Code\t\t\t\t%lu\n", prefix, BITS(dword, 14, 8));
+	printf("%s  Lowest_Channel_Number\t\t\t%lu\n", prefix, BITS(dword, 19, 16));
+	printf("%s  Stream_ID\t\t\t\t%lu\n", prefix, BITS(dword, 23, 20));
+}
+
+static void dump_aud_str_desc(int converter)
+{
+	uint32_t dword;
+	char prefix[MAX_PREFIX_SIZE];
+	uint32_t rate;
+
+	dword = INREG(AUD_C1_STR_DESC + (converter - CONVERTER_1) * 0x100);
+	sprintf(prefix, "AUD_C%c_STR_DESC", '1' + converter - CONVERTER_1);
+
+	printf("%s  Number_of_Channels_in_a_Stream\t\t%lu\n", prefix, 1 + BITS(dword, 3, 0));
+	printf("%s  Bits_per_Sample\t\t\t[%#lx] %s\n",  prefix, BITS(dword, 6, 4),
+		OPNAME(bits_per_sample, BITS(dword, 6, 4)));
+
+	printf("%s  Sample_Base_Rate_Divisor\t\t[%#lx] %s\n",  prefix, BITS(dword, 10, 8),
+		OPNAME(sample_base_rate_divisor, BITS(dword, 10, 8)));
+	printf("%s  Sample_Base_Rate_Mult\t\t\t[%#lx] %s\n",  prefix, BITS(dword, 13, 11),
+		OPNAME(sample_base_rate_mult, BITS(dword, 13, 11)));
+	printf("%s  Sample_Base_Rate\t\t\t[%#lx] %s\t",  prefix, BIT(dword, 14),
+		OPNAME(sample_base_rate, BIT(dword, 14)));
+	rate = (BIT(dword, 14) ? 44100 : 48000) * (BITS(dword, 13, 11) + 1)
+		/(BITS(dword, 10, 8) + 1);
+	printf("=> Sample Rate %d Hz\n", rate);
+
+	printf("%s  Convertor_Channel_Count\t\t%lu\n", prefix, BITS(dword, 20, 16) + 1);
+}
+
+static void dump_aud_out_chan_map(void)
+{
+	uint32_t dword;
+	int i;
+
+	printf("AUD_OUT_CHAN_MAP  Converter_Channel_MAP	PORTB	PORTC	PORTD\n");
+	for (i = 0; i < 8; i++) {
+		OUTREG(AUD_OUT_CHAN_MAP, i | (i << 8) | (i << 16));
+		dword = INREG(AUD_OUT_CHAN_MAP);
+		printf("\t\t\t\t%lu\t%lu\t%lu\t%lu\n",
+				1 + BITS(dword,  3,  0),
+				1 + BITS(dword,  7,  4),
+				1 + BITS(dword, 15, 12),
+				1 + BITS(dword, 23, 20));
+	}
+}
+
+static void dump_aud_connect_list_entry_length(int transcoder)
+{
+	uint32_t dword;
+	char prefix[MAX_PREFIX_SIZE];
+
+	dword = INREG(AUD_TCA_PIN_PIPE_CONN_ENTRY_LNGTH + (transcoder - TRANSCODER_A) * 0x100);
+	sprintf(prefix, "AUD_TC%c_PIN_PIPE_CONN_ENTRY_LNGTH", 'A' + transcoder - TRANSCODER_A);
+
+	printf("%s  Connect_List_Length\t%lu\n", prefix, BITS(dword, 6, 0));
+	printf("%s  Form \t\t[%#lx] %s\n", prefix, BIT(dword, 7),
+		OPNAME(connect_list_form, BIT(dword, 7)));
+	printf("%s  Connect_List_Entry\t%lu\n", prefix, BITS(dword, 15, 8));
+}
+
+static void dump_aud_connect_select_ctrl(void)
+{
+	uint32_t dword;
+
+	dword = INREG(AUD_PIPE_CONN_SEL_CTRL);
+	printf("AUD_PIPE_CONN_SEL_CTRL  Connection_select_Port_B\t%#lx\n", BITS(dword,  7,  0));
+	printf("AUD_PIPE_CONN_SEL_CTRL  Connection_select_Port_C\t%#lx\n", BITS(dword, 15,  8));
+	printf("AUD_PIPE_CONN_SEL_CTRL  Connection_select_Port_D\t%#lx\n", BITS(dword, 23, 16));
+}
+
+static void dump_aud_dip_eld_ctrl_st(int transcoder)
+{
+	uint32_t dword;
+	int offset = (transcoder - TRANSCODER_A) * 0x100;
+
+	dword = INREG(AUD_TCA_DIP_ELD_CTRL_ST + offset);
+	printf("Audio DIP and ELD control state for Transcoder %c\n",  'A' + transcoder - TRANSCODER_A);
+
+	printf("\tELD_ACK\t\t\t\t\t\t%lu\n", BIT(dword, 4));
+	printf("\tELD_buffer_size\t\t\t\t\t%lu\n", BITS(dword, 14, 10));
+	printf("\tDIP_transmission_frequency\t\t\t[0x%lx] %s\n", BITS(dword, 17, 16),
+		dip_trans[BITS(dword, 17, 16)]);
+	printf("\tDIP Buffer Index \t\t\t\t[0x%lx] %s\n", BITS(dword, 20, 18),
+		dip_index[BITS(dword, 20, 18)]);
+	printf("\tAudio DIP type enable status\t\t\t[0x%04lx] %s, %s, %s\n", BITS(dword, 24, 21),
+		dip_type[BIT(dword, 21)], dip_gen1_state[BIT(dword, 22)],  dip_gen2_state[BIT(dword, 23)]);
+	printf("\tAudio DIP port select\t\t\t\t[0x%lx] %s\n", BITS(dword, 30, 29),
+		dip_port[BITS(dword, 30, 29)]);
+	printf("\n");
+}
+
+static void dump_aud_eld_cp_vld(void)
+{
+	uint32_t dword;
+
+	dword = INREG(AUD_PIN_ELD_CP_VLD);
+	printf("AUD_PIN_ELD_CP_VLD  Transcoder_A ELD_valid\t\t%lu\n",	BIT(dword, 0));
+	printf("AUD_PIN_ELD_CP_VLD  Transcoder_A CP_Ready \t\t%lu\n",	BIT(dword, 1));
+	printf("AUD_PIN_ELD_CP_VLD  Transcoder_A Out_enable\t\t%lu\n",	BIT(dword, 2));
+	printf("AUD_PIN_ELD_CP_VLD  Transcoder_A Inactive\t\t%lu\n",	BIT(dword, 3));
+	printf("AUD_PIN_ELD_CP_VLD  Transcoder_B ELD_valid\t\t%lu\n",	BIT(dword, 4));
+	printf("AUD_PIN_ELD_CP_VLD  Transcoder_B CP_Ready\t\t%lu\n",	BIT(dword, 5));
+	printf("AUD_PIN_ELD_CP_VLD  Transcoder_B OUT_enable\t\t%lu\n",	BIT(dword, 6));
+	printf("AUD_PIN_ELD_CP_VLD  Transcoder_B Inactive\t\t%lu\n",    BIT(dword, 7));
+	printf("AUD_PIN_ELD_CP_VLD  Transcoder_C ELD_valid\t\t%lu\n",	BIT(dword, 8));
+	printf("AUD_PIN_ELD_CP_VLD  Transcoder_C CP_Ready\t\t%lu\n",	BIT(dword, 9));
+	printf("AUD_PIN_ELD_CP_VLD  Transcoder_C OUT_enable\t\t%lu\n",	BIT(dword, 10));
+	printf("AUD_PIN_ELD_CP_VLD  Transcoder_C Inactive\t\t%lu\n",    BIT(dword, 11));
+}
+
+static void dump_hdmi_fifo_status(void)
+{
+	uint32_t dword;
+
+	dword = INREG(AUD_HDMI_FIFO_STATUS);
+	printf("AUD_HDMI_FIFO_STATUS  Function_Reset\t\t\t%lu\n",                BIT(dword, 24));
+	printf("AUD_HDMI_FIFO_STATUS  Conv_1_CDCLK/DOTCLK_FIFO_Overrun\t%lu\n",  BIT(dword, 26));
+	printf("AUD_HDMI_FIFO_STATUS  Conv_1_CDCLK/DOTCLK_FIFO_Underrun\t%lu\n", BIT(dword, 27));
+	printf("AUD_HDMI_FIFO_STATUS  Conv_2_CDCLK/DOTCLK_FIFO_Overrun\t%lu\n",  BIT(dword, 28));
+	printf("AUD_HDMI_FIFO_STATUS  Conv_2_CDCLK/DOTCLK_FIFO_Underrun\t%lu\n", BIT(dword, 29));
+	printf("AUD_HDMI_FIFO_STATUS  Conv_3_CDCLK/DOTCLK_FIFO_Overrun\t%lu\n",  BIT(dword, 30));
+	printf("AUD_HDMI_FIFO_STATUS  Conv_3_CDCLK/DOTCLK_FIFO_Underrun\t%lu\n", BIT(dword, 31));
+}
 
 static void dump_hsw(void)
 {
 	uint32_t dword;
-	int i;
 
 	/* HSW DDI Buffer */
 	dump_reg(DDI_BUF_CTL_A,		"DDI Buffer Controler A");
@@ -1549,378 +1933,103 @@ static void dump_hsw(void)
 	dump_reg(DP_TP_ST_E,		"DisplayPort Transport E Status");
 
 	/* HSW North Display Audio */
-	dump_reg(AUD_CONFIG_A,		"Audio Configuration - Transcoder A");
-	dump_reg(AUD_CONFIG_B,		"Audio Configuration - Transcoder B");
-	dump_reg(AUD_CONFIG_C,		"Audio Configuration - Transcoder C");
-	dump_reg(AUD_MISC_CTRL_A,		"Audio MISC Control for Transcoder A");
-	dump_reg(AUD_MISC_CTRL_B,		"Audio MISC Control for Transcoder B");
-	dump_reg(AUD_MISC_CTRL_C,		"Audio MISC Control for Transcoder C");
+	dump_reg(AUD_TCA_CONFIG,	"Audio Configuration - Transcoder A");
+	dump_reg(AUD_TCB_CONFIG,	"Audio Configuration - Transcoder B");
+	dump_reg(AUD_TCC_CONFIG,	"Audio Configuration - Transcoder C");
+	dump_reg(AUD_C1_MISC_CTRL,	"Audio Converter 1 MISC Control");
+	dump_reg(AUD_C2_MISC_CTRL,	"Audio Converter 2 MISC Control");
+	dump_reg(AUD_C3_MISC_CTRL,	"Audio Converter 3 MISC Control");
 	dump_reg(AUD_VID_DID,		"Audio Vendor ID / Device ID");
-	dump_reg(AUD_RID,			"Audio Revision ID");
-	dump_reg(AUD_CTS_ENABLE_A,		"Audio CTS Programming Enable - Transcoder A");
-	dump_reg(AUD_CTS_ENABLE_B,		"Audio CTS Programming Enable - Transcoder B");
-	dump_reg(AUD_CTS_ENABLE_C,		"Audio CTS Programming Enable - Transcoder C");
+	dump_reg(AUD_RID,		"Audio Revision ID");
+	dump_reg(AUD_TCA_M_CTS_ENABLE,	"Audio M & CTS Programming Enable - Transcoder A");
+	dump_reg(AUD_TCB_M_CTS_ENABLE,	"Audio M & CTS Programming Enable - Transcoder B");
+	dump_reg(AUD_TCC_M_CTS_ENABLE,	"Audio M & CTS Programming Enable - Transcoder C");
 	dump_reg(AUD_PWRST,			"Audio Power State (Function Group, Convertor, Pin Widget)");
-	dump_reg(AUD_HDMIW_HDMIEDID_A,	"HDMI Data EDID Block - Transcoder A");
-	dump_reg(AUD_HDMIW_HDMIEDID_B,	"HDMI Data EDID Block - Transcoder B");
-	dump_reg(AUD_HDMIW_HDMIEDID_C,	"HDMI Data EDID Block - Transcoder C");
-	dump_reg(AUD_HDMIW_INFOFR_A,	"Audio Widget Data Island Packet - Transcoder A");
-	dump_reg(AUD_HDMIW_INFOFR_B,	"Audio Widget Data Island Packet - Transcoder B");
-	dump_reg(AUD_HDMIW_INFOFR_C,	"Audio Widget Data Island Packet - Transcoder C");
-
-	dump_reg(AUD_PORT_EN_HD_CFG,	"Audio Pipe and Convert Configs");
-	dump_reg(AUD_OUT_DIG_CNVT_A,	"Audio Digital Converter - Conv A");
-	dump_reg(AUD_OUT_DIG_CNVT_B,	"Audio Digital Converter - Conv B");
-	dump_reg(AUD_OUT_DIG_CNVT_C,	"Audio Digital Converter - Conv C");
+	dump_reg(AUD_TCA_EDID_DATA,	"Audio EDID Data Block - Transcoder A");
+	dump_reg(AUD_TCB_EDID_DATA,	"Audio EDID Data Block - Transcoder B");
+	dump_reg(AUD_TCC_EDID_DATA,	"Audio EDID Data Block - Transcoder C");
+	dump_reg(AUD_TCA_INFOFR,	"Audio Widget Data Island Packet - Transcoder A");
+	dump_reg(AUD_TCB_INFOFR,	"Audio Widget Data Island Packet - Transcoder B");
+	dump_reg(AUD_TCC_INFOFR,	"Audio Widget Data Island Packet - Transcoder C");
+	dump_reg(AUD_PIPE_CONV_CFG,	"Audio Pipe and Converter Configs");
+	dump_reg(AUD_C1_DIG_CNVT,	"Audio Digital Converter - Converter 1");
+	dump_reg(AUD_C2_DIG_CNVT,	"Audio Digital Converter - Converter 2");
+	dump_reg(AUD_C3_DIG_CNVT,	"Audio Digital Converter - Converter 3");
+	dump_reg(AUD_C1_STR_DESC,	"Audio Stream Descriptor Format - Converter 1");
+	dump_reg(AUD_C2_STR_DESC,	"Audio Stream Descriptor Format - Converter 2");
+	dump_reg(AUD_C3_STR_DESC,	"Audio Stream Descriptor Format - Converter 3");
 	dump_reg(AUD_OUT_CHAN_MAP,		"Audio Output Channel Mapping");
-	dump_reg(AUD_OUT_STR_DESC_A,	"Audio Stream Descriptor Format - Conv A");
-	dump_reg(AUD_OUT_STR_DESC_B,	"Audio Stream Descriptor Format - Conv B");
-	dump_reg(AUD_OUT_STR_DESC_C,	"Audio Stream Descriptor Format - Conv C");
-	dump_reg(AUD_PINW_CONNLNG_LIST_A,	"Audio Connection List entry and Length - Transcoder A");
-	dump_reg(AUD_PINW_CONNLNG_LIST_B,	"Audio Connection List entry and Length - Transcoder B");
-	dump_reg(AUD_PINW_CONNLNG_LIST_C,	"Audio Connection List entry and Length - Transcoder C");
+	dump_reg(AUD_TCA_PIN_PIPE_CONN_ENTRY_LNGTH,	"Audio Connection List entry and Length - Transcoder A");
+	dump_reg(AUD_TCB_PIN_PIPE_CONN_ENTRY_LNGTH,	"Audio Connection List entry and Length - Transcoder B");
+	dump_reg(AUD_TCC_PIN_PIPE_CONN_ENTRY_LNGTH,	"Audio Connection List entry and Length - Transcoder C");
 	dump_reg(AUD_PIPE_CONN_SEL_CTRL,	"Audio Pipe Connection Select Control");
-	dump_reg(AUD_DIP_ELD_CTRL_ST_A,	"Audio DIP and ELD control state - Transcoder A");
-	dump_reg(AUD_DIP_ELD_CTRL_ST_B,	"Audio DIP and ELD control state - Transcoder B");
-	dump_reg(AUD_DIP_ELD_CTRL_ST_C,	"Audio DIP and ELD control state - Transcoder C");
-	dump_reg(AUD_PIN_ELD_CP_VLD,	"audio pin eld valid status");
-	dump_reg(AUD_HDMIW_STATUS,		"Audio HDMI FIFO Status");
+	dump_reg(AUD_TCA_DIP_ELD_CTRL_ST,	"Audio DIP and ELD control state - Transcoder A");
+	dump_reg(AUD_TCB_DIP_ELD_CTRL_ST,	"Audio DIP and ELD control state - Transcoder B");
+	dump_reg(AUD_TCC_DIP_ELD_CTRL_ST,	"Audio DIP and ELD control state - Transcoder C");
+	dump_reg(AUD_PIN_ELD_CP_VLD,	"Audio pin ELD valid and CP ready status");
+	dump_reg(AUD_HDMI_FIFO_STATUS,	"Audio HDMI FIFO Status");
 
 	printf("\nDetails:\n\n");
 
-	dword = INREG(AUD_VID_DID);
-	printf("AUD_VID_DID vendor id\t\t\t\t\t0x%x\n", dword >> 16);
-	printf("AUD_VID_DID device id\t\t\t\t\t0x%x\n", dword & 0xffff);
+	dump_ddi_buf_ctl(PORT_A);
+	dump_ddi_buf_ctl(PORT_B);
+	dump_ddi_buf_ctl(PORT_C);
+	dump_ddi_buf_ctl(PORT_D);
+	dump_ddi_buf_ctl(PORT_E);
 
-	dword = INREG(AUD_RID);
-	printf("AUD_RID Major_Revision\t\t\t\t\t0x%lx\n", BITS(dword, 23, 20));
-	printf("AUD_RID Minor_Revision\t\t\t\t\t0x%lx\n", BITS(dword, 19, 16));
-	printf("AUD_RID Revision_Id\t\t\t\t\t0x%lx\n",    BITS(dword, 15, 8));
-	printf("AUD_RID Stepping_Id\t\t\t\t\t0x%lx\n",    BITS(dword, 7, 0));
+	dump_ddi_func_ctl(PIPE_A);
+	dump_ddi_func_ctl(PIPE_B);
+	dump_ddi_func_ctl(PIPE_C);
 
-	dword = INREG(AUD_DIP_ELD_CTRL_ST_A);
-	printf("Audio DIP and ELD control state for TranscoderA\n");
-	printf("Audio DIP port select\t\t\t\t\t[0x%lx] %s\n",
-			BITS(dword, 30, 29), dip_port[BITS(dword, 30, 29)]);
+	/* audio configuration - details */
+	dump_aud_transcoder_config(TRANSCODER_A);
+	dump_aud_transcoder_config(TRANSCODER_B);
+	dump_aud_transcoder_config(TRANSCODER_C);
 
-	printf("Audio DIP type enable status\t\t\t\t[0x%lx] %s\n",
-			BITS(dword, 24, 21), dip_type[BIT(dword, 21)]);
+	dump_aud_misc_control(CONVERTER_1);
+	dump_aud_misc_control(CONVERTER_2);
+	dump_aud_misc_control(CONVERTER_3);
 
-	printf("DIP Buffer Index \t\t\t\t\t[0x%lx] %s\n",
-			BITS(dword, 20, 18), dip_index[BITS(dword, 20, 18)]);
-	printf("DIP_transmission_frequency\t\t\t\t[0x%lx] %s\n",
-			BITS(dword, 17, 16), dip_trans[BITS(dword, 17, 16)]);
-	printf("ELD_ACK\t\t\t\t\t\t\t%lu\n", BIT(dword, 4));
-	printf("ELD_buffer_size\t\t\t\t\t\t%lu\n", BITS(dword, 14, 10));
+	dump_aud_vendor_device_id();
+	dump_aud_revision_id();
 
-	dword = INREG(AUD_DIP_ELD_CTRL_ST_B);
-	printf("Audio DIP and ELD control state for TranscoderB\n");
-	printf("Audio DIP port select\t\t\t\t\t[0x%lx] %s\n",
-			BITS(dword, 30, 29), dip_port[BITS(dword, 30, 29)]);
+	dump_aud_m_cts_enable(TRANSCODER_A);
+	dump_aud_m_cts_enable(TRANSCODER_B);
+	dump_aud_m_cts_enable(TRANSCODER_C);
 
-	printf("Audio DIP type enable status\t\t\t\t[0x%lx] %s\n",
-			BITS(dword, 24, 21), dip_type[BIT(dword, 21)]);
+	dump_aud_power_state();
 
-	printf("DIP Buffer Index \t\t\t\t\t[0x%lx] %s\n",
-			BITS(dword, 20, 18), dip_index[BITS(dword, 20, 18)]);
-	printf("DIP_transmission_frequency\t\t\t\t[0x%lx] %s\n",
-			BITS(dword, 17, 16), dip_trans[BITS(dword, 17, 16)]);
-	printf("ELD_ACK\t\t\t\t\t\t\t%lu\n", BIT(dword, 4));
-	printf("ELD_buffer_size\t\t\t\t\t\t%lu\n", BITS(dword, 14, 10));
+	dump_aud_edid_data(TRANSCODER_A);
+	dump_aud_edid_data(TRANSCODER_B);
+	dump_aud_edid_data(TRANSCODER_C);
 
-	dword = INREG(AUD_DIP_ELD_CTRL_ST_C);
-	printf("Audio DIP and ELD control state for TranscoderC\n");
-	printf("Audio DIP port select\t\t\t\t\t[0x%lx] %s\n",
-			BITS(dword, 30, 29), dip_port[BITS(dword, 30, 29)]);
+	dump_aud_infoframe(TRANSCODER_A);
+	dump_aud_infoframe(TRANSCODER_B);
+	dump_aud_infoframe(TRANSCODER_C);
 
-	printf("Audio DIP type enable status\t\t\t\t[0x%lx] %s\n",
-			BITS(dword, 24, 21), dip_type[BIT(dword, 21)]);
+	dump_aud_pipe_conv_cfg();
 
-	printf("DIP Buffer Index \t\t\t\t\t[0x%lx] %s\n",
-			BITS(dword, 20, 18), dip_index[BITS(dword, 20, 18)]);
-	printf("DIP_transmission_frequency\t\t\t\t[0x%lx] %s\n",
-			BITS(dword, 17, 16), dip_trans[BITS(dword, 17, 16)]);
-	printf("ELD_ACK\t\t\t\t\t\t\t%lu\n", BIT(dword, 4));
-	printf("ELD_buffer_size\t\t\t\t\t\t%lu\n", BITS(dword, 14, 10));
+	dump_aud_dig_cnvt(CONVERTER_1);
+	dump_aud_dig_cnvt(CONVERTER_2);
+	dump_aud_dig_cnvt(CONVERTER_3);
 
-	dword = INREG(DDI_BUF_CTL_A);
-	printf("DDI A Buffer control\n");
-	printf("DDI Buffer Enable\t\t\t\t\t%ld\n", BIT(dword, 31));
-	printf("DP port width\t\t\t\t\t\t[0x%lx] %s\n",
-			BITS(dword, 3, 1), dp_port_width[BITS(dword, 3, 1)]);
-	dword = INREG(DDI_BUF_CTL_B);
-	printf("DDI B Buffer control\n");
-	printf("DDI Buffer Enable\t\t\t\t\t%ld\n", BIT(dword, 31));
-	printf("DP port width\t\t\t\t\t\t[0x%lx] %s\n",
-			BITS(dword, 3, 1), dp_port_width[BITS(dword, 3, 1)]);
-	dword = INREG(DDI_BUF_CTL_C);
-	printf("DDI C Buffer control\n");
-	printf("DDI Buffer Enable\t\t\t\t\t%ld\n", BIT(dword, 31));
-	printf("DP port width\t\t\t\t\t\t[0x%lx] %s\n",
-			BITS(dword, 3, 1), dp_port_width[BITS(dword, 3, 1)]);
-	dword = INREG(DDI_BUF_CTL_D);
-	printf("DDI D Buffer control\n");
-	printf("DDI Buffer Enable\t\t\t\t\t%ld\n", BIT(dword, 31));
-	printf("DP port width\t\t\t\t\t\t[0x%lx] %s\n",
-			BITS(dword, 3, 1), dp_port_width[BITS(dword, 3, 1)]);
-	dword = INREG(DDI_BUF_CTL_E);
-	printf("DDI E Buffer control\n");
-	printf("DDI Buffer Enable\t\t\t\t\t%ld\n", BIT(dword, 31));
-	printf("DP port width\t\t\t\t\t\t[0x%lx] %s\n",
-			BITS(dword, 3, 1), dp_port_width[BITS(dword, 3, 1)]);
+	dump_aud_str_desc(CONVERTER_1);
+	dump_aud_str_desc(CONVERTER_2);
+	dump_aud_str_desc(CONVERTER_3);
 
-	dword = INREG(PIPE_DDI_FUNC_CTL_A);
-	printf("Pipe A DDI Function Control\n");
-	printf("PIPE DDI Function Enable\t\t\t\t[0x%lx]\n", BIT(dword, 31));
-	printf("PIPE DDI selection\t\t\t\t\t[0x%lx] %s\n", BITS(dword, 30, 28),
-			trans_to_port_sel[BITS(dword, 30, 28)]);
-	printf("PIPE DDI Mode\t\t\t\t\t\t[0x%lx] %s\n", BITS(dword, 26, 24), ddi_mode[BITS(dword, 26, 24)]);
-	printf("BITS per color\t\t\t\t\t\t[0x%lx]\n", BITS(dword, 22, 20));
+	dump_aud_out_chan_map();
 
-	dword = INREG(PIPE_DDI_FUNC_CTL_B);
-	printf("Pipe B DDI Function Control\n");
-	printf("PIPE DDI Function Enable\t\t\t\t[0x%lx]\n", BIT(dword, 31));
-	printf("PIPE DDI selection\t\t\t\t\t[0x%lx] %s\n", BITS(dword, 30, 28),
-			trans_to_port_sel[BITS(dword, 30, 28)]);
-	printf("PIPE DDI Mode \t\t\t\t\t\t[0x%lx] %s\n", BITS(dword, 26, 24), ddi_mode[BITS(dword, 26, 24)]);
-	printf("BITS per color\t\t\t\t\t\t[0x%lx]\n", BITS(dword, 22, 20));
+	dump_aud_connect_list_entry_length(TRANSCODER_A);
+	dump_aud_connect_list_entry_length(TRANSCODER_B);
+	dump_aud_connect_list_entry_length(TRANSCODER_C);
+	dump_aud_connect_select_ctrl();
 
-	dword = INREG(PIPE_DDI_FUNC_CTL_C);
-	printf("Pipe C DDI Function Control\n");
-	printf("PIPE DDI Function Enable\t\t\t\t[0x%lx]\n", BIT(dword, 31));
-	printf("PIPE DDI selection\t\t\t\t\t[0x%lx] %s\n", BITS(dword, 30, 28),
-			trans_to_port_sel[BITS(dword, 30, 28)]);
-	printf("PIPE DDI Mode \t\t\t\t\t\t[0x%lx] %s\n", BITS(dword, 26, 24), ddi_mode[BITS(dword, 26, 24)]);
-	printf("BITS per color\t\t\t\t\t\t[0x%lx]\n", BITS(dword, 22, 20));
+	dump_aud_dip_eld_ctrl_st(TRANSCODER_A);
+	dump_aud_dip_eld_ctrl_st(TRANSCODER_B);
+	dump_aud_dip_eld_ctrl_st(TRANSCODER_C);
 
-	dword = INREG(AUD_CONFIG_A);
-	printf("AUD_CONFIG_A  N_index_value\t\t\t\t[0x%lx] %s\n", BIT(dword, 29),
-			n_index_value[BIT(dword, 29)]);
-	printf("AUD_CONFIG_A  N_programming_enable\t\t\t%lu\n", BIT(dword, 28));
-	printf("AUD_CONFIG_A  Upper_N_value\t\t\t\t0x%02lx\n", BITS(dword, 27, 20));
-	printf("AUD_CONFIG_A  Lower_N_value\t\t\t\t0x%03lx\n", BITS(dword, 15, 4));
-	printf("AUD_CONFIG_A  Pixel_Clock_HDMI\t\t\t\t[0x%lx] %s\n", BITS(dword, 19, 16),
-			OPNAME(pixel_clock, BITS(dword, 19, 16)));
-	printf("AUD_CONFIG_A  Disable_NCTS\t\t\t\t%lu\n", BIT(dword, 3));
-	dword = INREG(AUD_CONFIG_B);
-	printf("AUD_CONFIG_B  N_index_value\t\t\t\t[0x%lx] %s\n", BIT(dword, 29),
-			n_index_value[BIT(dword, 29)]);
-	printf("AUD_CONFIG_B  N_programming_enable\t\t\t%lu\n", BIT(dword, 28));
-	printf("AUD_CONFIG_B  Upper_N_value\t\t\t\t0x%02lx\n", BITS(dword, 27, 20));
-	printf("AUD_CONFIG_B  Lower_N_value\t\t\t\t0x%03lx\n", BITS(dword, 15, 4));
-	printf("AUD_CONFIG_B  Pixel_Clock_HDMI\t\t\t\t[0x%lx] %s\n", BITS(dword, 19, 16),
-			OPNAME(pixel_clock, BITS(dword, 19, 16)));
-	printf("AUD_CONFIG_B  Disable_NCTS\t\t\t\t%lu\n", BIT(dword, 3));
-	dword = INREG(AUD_CONFIG_C);
-	printf("AUD_CONFIG_C  N_index_value\t\t\t\t[0x%lx] %s\n", BIT(dword, 29),
-			n_index_value[BIT(dword, 29)]);
-	printf("AUD_CONFIG_C  N_programming_enable\t\t\t%lu\n", BIT(dword, 28));
-	printf("AUD_CONFIG_C  Upper_N_value\t\t\t\t0x%02lx\n", BITS(dword, 27, 20));
-	printf("AUD_CONFIG_C  Lower_N_value\t\t\t\t0x%03lx\n", BITS(dword, 15, 4));
-	printf("AUD_CONFIG_C  Pixel_Clock_HDMI\t\t\t\t[0x%lx] %s\n", BITS(dword, 19, 16),
-			OPNAME(pixel_clock, BITS(dword, 19, 16)));
-	printf("AUD_CONFIG_C  Disable_NCTS\t\t\t\t%lu\n", BIT(dword, 3));
-
-	dword = INREG(AUD_CTS_ENABLE_A);
-	printf("AUD_CTS_ENABLE_A  Enable_CTS_or_M_programming\t\t%lu\n", BIT(dword, 20));
-	printf("AUD_CTS_ENABLE_A  CTS_M value Index\t\t\t%s\n", BIT(dword, 21) ? "CTS" : "M");
-	printf("AUD_CTS_ENABLE_A  CTS_programming\t\t\t%#lx\n", BITS(dword, 19, 0));
-	dword = INREG(AUD_CTS_ENABLE_B);
-	printf("AUD_CTS_ENABLE_B  Enable_CTS_or_M_programming\t\t%lu\n", BIT(dword, 20));
-	printf("AUD_CTS_ENABLE_B  CTS_M value Index\t\t\t%s\n", BIT(dword, 21) ? "CTS" : "M");
-	printf("AUD_CTS_ENABLE_B  CTS_programming\t\t\t%#lx\n", BITS(dword, 19, 0));
-	dword = INREG(AUD_CTS_ENABLE_C);
-	printf("AUD_CTS_ENABLE_C  Enable_CTS_or_M_programming\t\t%lu\n", BIT(dword, 20));
-	printf("AUD_CTS_ENABLE_C  CTS_M value Index\t\t\t%s\n", BIT(dword, 21) ? "CTS" : "M");
-	printf("AUD_CTS_ENABLE_C  CTS_programming\t\t\t%#lx\n", BITS(dword, 19, 0));
-
-	dword = INREG(AUD_MISC_CTRL_A);
-	printf("AUD_MISC_CTRL_A  Sample_Fabrication_EN_bit\t\t%lu\n",	BIT(dword, 2));
-	printf("AUD_MISC_CTRL_A  Sample_present_Disable\t\t\t%lu\n",	BIT(dword, 8));
-	printf("AUD_MISC_CTRL_A  Output_Delay\t\t\t\t%lu\n",		BITS(dword, 7, 4));
-	printf("AUD_MISC_CTRL_A  Pro_Allowed\t\t\t\t%lu\n",			BIT(dword, 1));
-	dword = INREG(AUD_MISC_CTRL_B);
-	printf("AUD_MISC_CTRL_B  Sample_Fabrication_EN_bit\t\t%lu\n",	BIT(dword, 2));
-	printf("AUD_MISC_CTRL_B  Sample_present_Disable\t\t\t%lu\n",	BIT(dword, 8));
-	printf("AUD_MISC_CTRL_B  Output_Delay\t\t\t\t%lu\n",		BITS(dword, 7, 4));
-	printf("AUD_MISC_CTRL_B  Pro_Allowed\t\t\t\t%lu\n",			BIT(dword, 1));
-	dword = INREG(AUD_MISC_CTRL_C);
-	printf("AUD_MISC_CTRL_C  Sample_Fabrication_EN_bit\t\t%lu\n",	BIT(dword, 2));
-	printf("AUD_MISC_CTRL_C  Sample_present_Disable\t\t\t%lu\n",	BIT(dword, 8));
-	printf("AUD_MISC_CTRL_C  Output_Delay\t\t\t\t%lu\n",		BITS(dword, 7, 4));
-	printf("AUD_MISC_CTRL_C  Pro_Allowed\t\t\t\t%lu\n",			BIT(dword, 1));
-
-	dword = INREG(AUD_PWRST);
-	printf("AUD_PWRST  Func_Grp_Dev_PwrSt_Curr                  \t%s\n", power_state[BITS(dword, 27, 26)]);
-	printf("AUD_PWRST  Func_Grp_Dev_PwrSt_Set                   \t%s\n", power_state[BITS(dword, 25, 24)]);
-	printf("AUD_PWRST  ConvertorA_Widget_Power_State_Current    \t%s\n", power_state[BITS(dword, 15, 14)]);
-	printf("AUD_PWRST  ConvertorA_Widget_Power_State_Requsted   \t%s\n", power_state[BITS(dword, 13, 12)]);
-	printf("AUD_PWRST  ConvertorB_Widget_Power_State_Current    \t%s\n", power_state[BITS(dword, 19, 18)]);
-	printf("AUD_PWRST  ConvertorB_Widget_Power_State_Requested  \t%s\n", power_state[BITS(dword, 17, 16)]);
-	printf("AUD_PWRST  ConvC_Widget_PwrSt_Curr                  \t%s\n", power_state[BITS(dword, 23, 22)]);
-	printf("AUD_PWRST  ConvC_Widget_PwrSt_Req                   \t%s\n", power_state[BITS(dword, 21, 20)]);
-	printf("AUD_PWRST  PinB_Widget_Power_State_Current          \t%s\n", power_state[BITS(dword,  3,  2)]);
-	printf("AUD_PWRST  PinB_Widget_Power_State_Set              \t%s\n", power_state[BITS(dword,  1,  0)]);
-	printf("AUD_PWRST  PinC_Widget_Power_State_Current          \t%s\n", power_state[BITS(dword,  7,  6)]);
-	printf("AUD_PWRST  PinC_Widget_Power_State_Set              \t%s\n", power_state[BITS(dword,  5,  4)]);
-	printf("AUD_PWRST  PinD_Widget_Power_State_Current          \t%s\n", power_state[BITS(dword, 11, 10)]);
-	printf("AUD_PWRST  PinD_Widget_Power_State_Set              \t%s\n", power_state[BITS(dword,  9,  8)]);
-
-	dword = INREG(AUD_PORT_EN_HD_CFG);
-	printf("AUD_PORT_EN_HD_CFG  Convertor_A_Digen\t\t\t%lu\n",	BIT(dword, 0));
-	printf("AUD_PORT_EN_HD_CFG  Convertor_B_Digen\t\t\t%lu\n",	BIT(dword, 1));
-	printf("AUD_PORT_EN_HD_CFG  Convertor_C_Digen\t\t\t%lu\n",	BIT(dword, 2));
-	printf("AUD_PORT_EN_HD_CFG  ConvertorA_Stream_ID\t\t%lu\n",	BITS(dword,  7, 4));
-	printf("AUD_PORT_EN_HD_CFG  ConvertorB_Stream_ID\t\t%lu\n",	BITS(dword, 11, 8));
-	printf("AUD_PORT_EN_HD_CFG  ConvertorC_Stream_ID\t\t%lu\n",	BITS(dword, 15, 12));
-	printf("AUD_PORT_EN_HD_CFG  Port_B_Out_Enable\t\t\t%lu\n",	BIT(dword, 16));
-	printf("AUD_PORT_EN_HD_CFG  Port_C_Out_Enable\t\t\t%lu\n",	BIT(dword, 17));
-	printf("AUD_PORT_EN_HD_CFG  Port_D_Out_Enable\t\t\t%lu\n",	BIT(dword, 18));
-	printf("AUD_PORT_EN_HD_CFG  Port_B_Amp_Mute_Status\t\t%lu\n", BIT(dword, 20));
-	printf("AUD_PORT_EN_HD_CFG  Port_C_Amp_Mute_Status\t\t%lu\n", BIT(dword, 21));
-	printf("AUD_PORT_EN_HD_CFG  Port_D_Amp_Mute_Status\t\t%lu\n", BIT(dword, 22));
-
-	dword = INREG(AUD_OUT_DIG_CNVT_A);
-	printf("AUD_OUT_DIG_CNVT_A  V\t\t\t\t\t%lu\n",		BIT(dword, 1));
-	printf("AUD_OUT_DIG_CNVT_A  VCFG\t\t\t\t%lu\n",		BIT(dword, 2));
-	printf("AUD_OUT_DIG_CNVT_A  PRE\t\t\t\t\t%lu\n",		BIT(dword, 3));
-	printf("AUD_OUT_DIG_CNVT_A  Copy\t\t\t\t%lu\n",		BIT(dword, 4));
-	printf("AUD_OUT_DIG_CNVT_A  NonAudio\t\t\t\t%lu\n",		BIT(dword, 5));
-	printf("AUD_OUT_DIG_CNVT_A  PRO\t\t\t\t\t%lu\n",		BIT(dword, 6));
-	printf("AUD_OUT_DIG_CNVT_A  Level\t\t\t\t%lu\n",		BIT(dword, 7));
-	printf("AUD_OUT_DIG_CNVT_A  Category_Code\t\t\t%lu\n",	BITS(dword, 14, 8));
-	printf("AUD_OUT_DIG_CNVT_A  Lowest_Channel_Number\t\t%lu\n", BITS(dword, 19, 16));
-	printf("AUD_OUT_DIG_CNVT_A  Stream_ID\t\t\t\t%lu\n",	BITS(dword, 23, 20));
-
-	dword = INREG(AUD_OUT_DIG_CNVT_B);
-	printf("AUD_OUT_DIG_CNVT_B  V\t\t\t\t\t%lu\n",		BIT(dword, 1));
-	printf("AUD_OUT_DIG_CNVT_B  VCFG\t\t\t\t%lu\n",		BIT(dword, 2));
-	printf("AUD_OUT_DIG_CNVT_B  PRE\t\t\t\t\t%lu\n",		BIT(dword, 3));
-	printf("AUD_OUT_DIG_CNVT_B  Copy\t\t\t\t%lu\n",		BIT(dword, 4));
-	printf("AUD_OUT_DIG_CNVT_B  NonAudio\t\t\t\t%lu\n",		BIT(dword, 5));
-	printf("AUD_OUT_DIG_CNVT_B  PRO\t\t\t\t\t%lu\n",		BIT(dword, 6));
-	printf("AUD_OUT_DIG_CNVT_B  Level\t\t\t\t%lu\n",		BIT(dword, 7));
-	printf("AUD_OUT_DIG_CNVT_B  Category_Code\t\t\t%lu\n",	BITS(dword, 14, 8));
-	printf("AUD_OUT_DIG_CNVT_B  Lowest_Channel_Number\t\t%lu\n", BITS(dword, 19, 16));
-	printf("AUD_OUT_DIG_CNVT_B  Stream_ID\t\t\t\t%lu\n",	BITS(dword, 23, 20));
-
-	dword = INREG(AUD_OUT_DIG_CNVT_C);
-	printf("AUD_OUT_DIG_CNVT_C  V\t\t\t\t\t%lu\n",		BIT(dword, 1));
-	printf("AUD_OUT_DIG_CNVT_C  VCFG\t\t\t\t%lu\n",		BIT(dword, 2));
-	printf("AUD_OUT_DIG_CNVT_C  PRE\t\t\t\t\t%lu\n",		BIT(dword, 3));
-	printf("AUD_OUT_DIG_CNVT_C  Copy\t\t\t\t%lu\n",		BIT(dword, 4));
-	printf("AUD_OUT_DIG_CNVT_C  NonAudio\t\t\t\t%lu\n",		BIT(dword, 5));
-	printf("AUD_OUT_DIG_CNVT_C  PRO\t\t\t\t\t%lu\n",		BIT(dword, 6));
-	printf("AUD_OUT_DIG_CNVT_C  Level\t\t\t\t%lu\n",		BIT(dword, 7));
-	printf("AUD_OUT_DIG_CNVT_C  Category_Code\t\t\t%lu\n",	BITS(dword, 14, 8));
-	printf("AUD_OUT_DIG_CNVT_C  Lowest_Channel_Number\t\t%lu\n", BITS(dword, 19, 16));
-	printf("AUD_OUT_DIG_CNVT_C  Stream_ID\t\t\t\t%lu\n",	BITS(dword, 23, 20));
-
-	printf("AUD_OUT_CHAN_MAP  Converter_Channel_MAP	PORTB	PORTC	PORTD\n");
-	for (i = 0; i < 8; i++) {
-		OUTREG(AUD_OUT_CHAN_MAP, i | (i << 8) | (i << 16));
-		dword = INREG(AUD_OUT_CHAN_MAP);
-		printf("\t\t\t\t%lu\t%lu\t%lu\t%lu\n",
-				1 + BITS(dword,  3,  0),
-				1 + BITS(dword,  7,  4),
-				1 + BITS(dword, 15, 12),
-				1 + BITS(dword, 23, 20));
-	}
-
-	dword = INREG(AUD_OUT_STR_DESC_A);
-	printf("AUD_OUT_STR_DESC_A  Convertor_Channel_Count\t\t%lu\n", BITS(dword, 20, 16) + 1);
-	printf("AUD_OUT_STR_DESC_A  Bits_per_Sample\t\t\t[%#lx] %s\n",
-			BITS(dword, 6, 4), OPNAME(bits_per_sample, BITS(dword, 6, 4)));
-	printf("AUD_OUT_STR_DESC_A  Number_of_Channels_in_a_Stream\t%lu\n", 1 + BITS(dword, 3, 0));
-
-	dword = INREG(AUD_OUT_STR_DESC_B);
-	printf("AUD_OUT_STR_DESC_B  Convertor_Channel_Count\t\t%lu\n", BITS(dword, 20, 16) + 1);
-	printf("AUD_OUT_STR_DESC_B  Bits_per_Sample\t\t\t[%#lx] %s\n",
-			BITS(dword, 6, 4), OPNAME(bits_per_sample, BITS(dword, 6, 4)));
-	printf("AUD_OUT_STR_DESC_B  Number_of_Channels_in_a_Stream\t%lu\n", 1 + BITS(dword, 3, 0));
-
-	dword = INREG(AUD_OUT_STR_DESC_C);
-	printf("AUD_OUT_STR_DESC_C  Convertor_Channel_Count\t\t%lu\n", BITS(dword, 20, 16) + 1);
-	printf("AUD_OUT_STR_DESC_C  Bits_per_Sample\t\t\t[%#lx] %s\n",
-			BITS(dword, 6, 4), OPNAME(bits_per_sample, BITS(dword, 6, 4)));
-	printf("AUD_OUT_STR_DESC_C  Number_of_Channels_in_a_Stream\t%lu\n", 1 + BITS(dword, 3, 0));
-
-	dword = INREG(AUD_PINW_CONNLNG_SEL);
-	printf("AUD_PINW_CONNLNG_SEL  Connection_select_Control_B\t%#lx\n", BITS(dword,  7,  0));
-	printf("AUD_PINW_CONNLNG_SEL  Connection_select_Control_C\t%#lx\n", BITS(dword, 15,  8));
-	printf("AUD_PINW_CONNLNG_SEL  Connection_select_Control_D\t%#lx\n", BITS(dword, 23, 16));
-
-	dword = INREG(AUD_PIN_ELD_CP_VLD);
-	printf("AUD_CNTRL_ST2  CP_ReadyB\t\t\t\t%lu\n",	BIT(dword, 1));
-	printf("AUD_CNTRL_ST2  ELD_validB\t\t\t\t%lu\n",	BIT(dword, 0));
-	printf("AUD_CNTRL_ST2  OUT_enableB\t\t\t\t%lu\n",	BIT(dword, 2));
-	printf("AUD_CNTRL_ST2  CP_ReadyC\t\t\t\t%lu\n",	BIT(dword, 5));
-	printf("AUD_CNTRL_ST2  ELD_validC\t\t\t\t%lu\n",	BIT(dword, 4));
-	printf("AUD_CNTRL_ST2  OUT_enableC\t\t\t\t%lu\n",	BIT(dword, 6));
-	printf("AUD_CNTRL_ST2  CP_ReadyD\t\t\t\t%lu\n",	BIT(dword, 9));
-	printf("AUD_CNTRL_ST2  ELD_validD\t\t\t\t%lu\n",	BIT(dword, 8));
-	printf("AUD_CNTRL_ST2  OUT_enableD\t\t\t\t%lu\n",	BIT(dword, 10));
-
-	dword = INREG(AUD_HDMIW_STATUS);
-	printf("AUD_HDMIW_STATUS  Conv_A_CDCLK/DOTCLK_FIFO_Underrun\t%lu\n", BIT(dword, 27));
-	printf("AUD_HDMIW_STATUS  Conv_A_CDCLK/DOTCLK_FIFO_Overrun\t%lu\n",  BIT(dword, 26));
-	printf("AUD_HDMIW_STATUS  Conv_B_CDCLK/DOTCLK_FIFO_Underrun\t%lu\n", BIT(dword, 29));
-	printf("AUD_HDMIW_STATUS  Conv_B_CDCLK/DOTCLK_FIFO_Overrun\t%lu\n",  BIT(dword, 28));
-	printf("AUD_HDMIW_STATUS  Conv_C_CDCLK/DOTCLK_FIFO_Underrun\t%lu\n", BIT(dword, 31));
-	printf("AUD_HDMIW_STATUS  Conv_C_CDCLK/DOTCLK_FIFO_Overrun\t%lu\n",  BIT(dword, 30));
-	printf("AUD_HDMIW_STATUS  BCLK/CDCLK_FIFO_Overrun\t\t%lu\n",	 BIT(dword, 25));
-	printf("AUD_HDMIW_STATUS  Function_Reset\t\t\t%lu\n",		 BIT(dword, 24));
-
-	printf("AUD_HDMIW_HDMIEDID_A HDMI ELD:\n\t");
-	dword = INREG(AUD_DIP_ELD_CTRL_ST_A);
-	dword &= ~BITMASK(9, 5);
-	OUTREG(AUD_DIP_ELD_CTRL_ST_A, dword);
-	for (i = 0; i < BITS(dword, 14, 10) / 4; i++)
-		printf("%08x ", htonl(INREG(AUD_HDMIW_HDMIEDID_A)));
-	printf("\n");
-
-	printf("AUD_HDMIW_HDMIEDID_B HDMI ELD:\n\t");
-	dword = INREG(AUD_DIP_ELD_CTRL_ST_B);
-	dword &= ~BITMASK(9, 5);
-	OUTREG(AUD_DIP_ELD_CTRL_ST_B, dword);
-	for (i = 0; i < BITS(dword, 14, 10) / 4; i++)
-		printf("%08x ", htonl(INREG(AUD_HDMIW_HDMIEDID_B)));
-	printf("\n");
-
-	printf("AUD_HDMIW_HDMIEDID_C HDMI ELD:\n\t");
-	dword = INREG(AUD_DIP_ELD_CTRL_ST_C);
-	dword &= ~BITMASK(9, 5);
-	OUTREG(AUD_DIP_ELD_CTRL_ST_C, dword);
-	for (i = 0; i < BITS(dword, 14, 10) / 4; i++)
-		printf("%08x ", htonl(INREG(AUD_HDMIW_HDMIEDID_C)));
-	printf("\n");
-
-	printf("AUD_HDMIW_INFOFR_A HDMI audio Infoframe:\n\t");
-	dword = INREG(AUD_DIP_ELD_CTRL_ST_A);
-	dword &= ~BITMASK(20, 18);
-	dword &= ~BITMASK(3, 0);
-	OUTREG(AUD_DIP_ELD_CTRL_ST_A, dword);
-	for (i = 0; i < 8; i++)
-		printf("%08x ", htonl(INREG(AUD_HDMIW_INFOFR_A)));
-	printf("\n");
-
-	printf("AUD_HDMIW_INFOFR_B HDMI audio Infoframe:\n\t");
-	dword = INREG(AUD_DIP_ELD_CTRL_ST_B);
-	dword &= ~BITMASK(20, 18);
-	dword &= ~BITMASK(3, 0);
-	OUTREG(AUD_DIP_ELD_CTRL_ST_B, dword);
-	for (i = 0; i < 8; i++)
-		printf("%08x ", htonl(INREG(AUD_HDMIW_INFOFR_B)));
-	printf("\n");
-
-	printf("AUD_HDMIW_INFOFR_C HDMI audio Infoframe:\n\t");
-	dword = INREG(AUD_DIP_ELD_CTRL_ST_C);
-	dword &= ~BITMASK(20, 18);
-	dword &= ~BITMASK(3, 0);
-	OUTREG(AUD_DIP_ELD_CTRL_ST_C, dword);
-	for (i = 0; i < 8; i++)
-		printf("%08x ", htonl(INREG(AUD_HDMIW_INFOFR_C)));
-	printf("\n");
+	dump_aud_eld_cp_vld();
+	dump_hdmi_fifo_status();
 }
 
 int main(int argc, char **argv)
