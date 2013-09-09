@@ -1425,11 +1425,6 @@ static void dump_cpt(void)
 #define DP_TP_ST_D          0x64344
 #define DP_TP_ST_E          0x64444
 
-/* Transcoder configuration */
-#define TRANS_CONF_A	    0xF0008
-#define TRANS_CONF_B	    0xF1008
-#define TRANS_CONF_C	    0xF2008
-
 /* DDI Buffer Control */
 #define DDI_BUF_CTL_A	      0x64000
 #define DDI_BUF_CTL_B	      0x64100
@@ -1552,11 +1547,6 @@ static void dump_hsw(void)
     dump_reg(DP_TP_ST_C,		"DisplayPort Transport C Status");
     dump_reg(DP_TP_ST_D,		"DisplayPort Transport D Status");
     dump_reg(DP_TP_ST_E,		"DisplayPort Transport E Status");
-
-    /* HSW Transcoder A configuration */
-    dump_reg(TRANS_CONF_A,		"Transcoder A Configuration");
-    dump_reg(TRANS_CONF_B,		"Transcoder B Configuration");
-    dump_reg(TRANS_CONF_C,		"Transcoder C Configuration");
 
     /* HSW North Display Audio */
     dump_reg(AUD_CONFIG_A,		"Audio Configuration - Transcoder A");
