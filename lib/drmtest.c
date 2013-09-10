@@ -967,8 +967,11 @@ static void fork_helper_exit_handler(int sig)
 
 			kill(pid, SIGQUIT);
 			waitpid(pid, &status, 0);
+			helper_process_count--;
 		}
 	}
+
+	assert(helper_process_count == 0);
 }
 
 bool __igt_fork_helper(struct igt_helper_process *proc)
