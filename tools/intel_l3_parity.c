@@ -58,12 +58,12 @@ static void dumpit(void)
 		for (j = 0; j < NUM_SUBBANKS; j++) {
 			struct l3_log_register *reg = &l3log[i][j];
 
-		if (reg->row0_enable)
-			printf("Row %d, Bank %d, Subbank %d is disabled\n",
-			       reg->row0, i, j);
-		if (reg->row1_enable)
-			printf("Row %d, Bank %d, Subbank %d is disabled\n",
-			       reg->row1, i, j);
+			if (reg->row0_enable)
+				printf("Row %d, Bank %d, Subbank %d is disabled\n",
+				       reg->row0, i, j);
+			if (reg->row1_enable)
+				printf("Row %d, Bank %d, Subbank %d is disabled\n",
+				       reg->row1, i, j);
 		}
 	}
 }
