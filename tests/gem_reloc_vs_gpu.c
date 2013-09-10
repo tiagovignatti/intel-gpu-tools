@@ -281,10 +281,9 @@ static void do_test(int fd, bool faulting_reloc)
 static void do_forked_test(int fd, unsigned flags)
 {
 	int num_threads = sysconf(_SC_NPROCESSORS_ONLN);
-	pid_t pid = -1;
+	struct igt_helper_process thrasher;
 
 	if (flags & (THRASH | THRASH_INACTIVE)) {
-		sighandler_t oldsig;
 		char fname[FILENAME_MAX];
 		int drop_caches_fd;
 		const char *data = THRASH_INACTIVE ? "0xf" : "0x7";
@@ -296,10 +295,7 @@ static void do_forked_test(int fd, unsigned flags)
 		drop_caches_fd = open(fname, O_WRONLY);
 		igt_require(drop_caches_fd >= 0);
 
-		oldsig = signal(SIGQUIT, SIG_DFL);
-		pid = fork();
-		signal(SIGQUIT, oldsig);
-		if (pid == 0) {
+		igt_fork_helper(&thrasher) {
 			while (1) {
 				usleep(1000);
 				igt_assert(write(drop_caches_fd, data, strlen(data) + 1) == strlen(data) + 1);
@@ -322,13 +318,8 @@ static void do_forked_test(int fd, unsigned flags)
 	}
 
 	igt_waitchildren();
-
-	if (pid != -1) {
-		int exitcode;
-
-		kill(pid, SIGQUIT);
-		wait(&exitcode);
-	}
+	if (flags & (THRASH | THRASH_INACTIVE))
+		igt_stop_helper(&thrasher);
 }
 
 int fd;
