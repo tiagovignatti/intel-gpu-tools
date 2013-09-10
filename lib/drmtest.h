@@ -224,6 +224,7 @@ void igt_waitchildren(void);
 struct igt_helper_process {
 	bool running;
 	pid_t pid;
+	int id;
 };
 bool __igt_fork_helper(struct igt_helper_process *proc);
 void igt_stop_helper(struct igt_helper_process *proc);

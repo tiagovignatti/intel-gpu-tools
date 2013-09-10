@@ -608,19 +608,12 @@ static void sig_handler(int i)
 	sig_stat++;
 }
 
-static void signal_helper_exit_handler(int sig)
-{
-	igt_stop_signal_helper();
-}
-
 void igt_fork_signal_helper(void)
 {
-
 	if (igt_only_list_subtests())
 		return;
 
 	signal(SIGUSR1, sig_handler);
-	igt_install_exit_handler(signal_helper_exit_handler);
 
 	igt_fork_helper(&signal_helper) {
 		signal_helper_process(getppid());
@@ -951,13 +944,46 @@ void igt_exit(void)
 }
 
 static int helper_process_count;
+#define NUM_HELPER_PROCS 4
+static pid_t helper_process_pids[NUM_HELPER_PROCS] =
+{ -1, -1, -1, -1};
+
+static void reset_helper_process_list(void)
+{
+	for (int i = 0; i < NUM_HELPER_PROCS; i++)
+		helper_process_pids[i] = -1;
+	helper_process_count = 0;
+}
+
+static void fork_helper_exit_handler(int sig)
+{
+	for (int i = 0; i < NUM_HELPER_PROCS; i++) {
+		pid_t pid = helper_process_pids[i];
+		int status;
+
+		if (pid != -1) {
+			/* Someone forgot to fill up the array? */
+			assert(pid != 0);
+
+			kill(pid, SIGQUIT);
+			waitpid(pid, &status, 0);
+		}
+	}
+}
 
 bool __igt_fork_helper(struct igt_helper_process *proc)
 {
 	pid_t pid;
 	sighandler_t oldsig;
+	int id;
 
 	assert(!proc->running);
+	assert(helper_process_count < NUM_HELPER_PROCS);
+
+	for (id = 0; helper_process_pids[id] != -1; id++)
+		;
+
+	igt_install_exit_handler(fork_helper_exit_handler);
 
 	oldsig = signal(SIGQUIT, SIG_DFL);
 	switch (pid = fork()) {
@@ -965,12 +991,15 @@ bool __igt_fork_helper(struct igt_helper_process *proc)
 		igt_assert(0);
 	case 0:
 		exit_handler_count = 0;
+		reset_helper_process_list();
 
 		return true;
 	default:
 		signal(SIGQUIT, oldsig);
 		proc->running = true;
 		proc->pid = pid;
+		proc->id = id;
+		helper_process_pids[id] = pid;
 		helper_process_count++;
 
 		return false;
@@ -994,6 +1023,7 @@ void igt_stop_helper(struct igt_helper_process *proc)
 
 	proc->running = false;
 
+	helper_process_pids[proc->id] = -1;
 	helper_process_count--;
 }
 
@@ -1018,6 +1048,7 @@ bool __igt_fork(void)
 	case 0:
 		test_child = true;
 		exit_handler_count = 0;
+		reset_helper_process_list();
 
 		return true;
 	default:
@@ -1714,7 +1745,7 @@ static void igt_atexit_handler(void)
 		call_exit_handlers(0);
 }
 
-static void igt_sig_handler(int sig)
+static void fatal_sig_handler(int sig)
 {
 	restore_all_sig_handler();
 
@@ -1757,7 +1788,7 @@ int igt_install_exit_handler(igt_exit_handler_t fn)
 
 	for (i = 0; i < ARRAY_SIZE(handled_signals); i++) {
 		if (install_sig_handler(handled_signals[i],
-					igt_sig_handler))
+					fatal_sig_handler))
 			goto err;
 	}
 
