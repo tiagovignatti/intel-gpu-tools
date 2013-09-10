@@ -221,6 +221,15 @@ bool __igt_fork(void);
 		for (; __igt_fork(); exit(0))
 void igt_waitchildren(void);
 
+struct igt_helper_process {
+	bool running;
+	pid_t pid;
+};
+bool __igt_fork_helper(struct igt_helper_process *proc);
+void igt_stop_helper(struct igt_helper_process *proc);
+#define igt_fork_helper(proc) \
+	for (; __igt_fork_helper(proc); exit(0))
+
 /* check functions which auto-skip tests by calling igt_skip() */
 void gem_require_caching(int fd);
 static inline void gem_require_ring(int fd, int ring_id)

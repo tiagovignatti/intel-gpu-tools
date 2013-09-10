@@ -591,7 +591,7 @@ static bool igt_only_list_subtests(void);
 
 static int exit_handler_count;
 
-static pid_t signal_helper = -1;
+static struct igt_helper_process signal_helper;
 long long int sig_stat;
 static void __attribute__((noreturn)) signal_helper_process(pid_t pid)
 {
@@ -615,47 +615,23 @@ static void signal_helper_exit_handler(int sig)
 
 void igt_fork_signal_helper(void)
 {
-	pid_t pid;
-	sighandler_t oldsig;
 
 	if (igt_only_list_subtests())
 		return;
 
+	signal(SIGUSR1, sig_handler);
 	igt_install_exit_handler(signal_helper_exit_handler);
 
-	signal(SIGUSR1, sig_handler);
-	oldsig = signal(SIGQUIT, SIG_DFL);
-	pid = fork();
-	if (pid == 0) {
-		exit_handler_count = 0;
-
+	igt_fork_helper(&signal_helper) {
 		signal_helper_process(getppid());
-		return;
 	}
-	signal(SIGQUIT, oldsig);
-
-	signal_helper = pid;
 }
 
 void igt_stop_signal_helper(void)
 {
-	int exitcode;
-
-	if (signal_helper != -1) {
-		kill(signal_helper, SIGQUIT);
-		wait(&exitcode);
-
-		signal_helper = -1;
-	} else
-		return;
-
-#if 0
-	if (sig_stat)
-		fprintf(stdout, "signal handler called %llu times\n", sig_stat);
-#endif
+	igt_stop_helper(&signal_helper);
 
 	sig_stat = 0;
-	signal_helper = -1;
 }
 
 /* subtests helpers */
@@ -972,6 +948,53 @@ void igt_exit(void)
 		exit(0);
 	else
 		exit(77);
+}
+
+static int helper_process_count;
+
+bool __igt_fork_helper(struct igt_helper_process *proc)
+{
+	pid_t pid;
+	sighandler_t oldsig;
+
+	assert(!proc->running);
+
+	oldsig = signal(SIGQUIT, SIG_DFL);
+	switch (pid = fork()) {
+	case -1:
+		igt_assert(0);
+	case 0:
+		exit_handler_count = 0;
+
+		return true;
+	default:
+		signal(SIGQUIT, oldsig);
+		proc->running = true;
+		proc->pid = pid;
+		helper_process_count++;
+
+		return false;
+	}
+
+}
+
+/**
+ * igt_waitchildren - wait for all children forked with igt_fork
+ *
+ * The magic here is that exit codes from children will be correctly propagated
+ */
+void igt_stop_helper(struct igt_helper_process *proc)
+{
+	int status;
+
+	assert(proc->running);
+
+	kill(proc->pid, SIGQUIT);
+	waitpid(proc->pid, &status, 0);
+
+	proc->running = false;
+
+	helper_process_count--;
 }
 
 bool __igt_fork(void)
@@ -1673,7 +1696,6 @@ static void call_exit_handlers(int sig)
 	int i;
 
 	if (!exit_handler_count) {
-		fprintf(stderr, "no exit handlers?\n");
 		return;
 	}
 
