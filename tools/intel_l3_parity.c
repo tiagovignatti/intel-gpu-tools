@@ -79,6 +79,20 @@ static int which_slice = -1;
 			(__i) < ((which_slice == -1) ? MAX_SLICES : (which_slice + 1)); \
 			(__i)++)
 
+static void decode_dft(uint32_t dft)
+{
+	if (IS_IVYBRIDGE(devid) || !(dft & 1)) {
+		printf("Error injection disabled\n");
+		return;
+	}
+	printf("Error injection enabled\n");
+	printf("  Hang = %s\n", (dft >> 28) & 0x1 ? "yes" : "no");
+	printf("  Row = %d\n", (dft >> 7) & 0x7ff);
+	printf("  Bank = %d\n", (dft >> 2) & 0x3);
+	printf("  Subbank = %d\n", (dft >> 4) & 0x7);
+	printf("  Slice = %d\n", (dft >> 1) & 0x1);
+}
+
 static void dumpit(int slice)
 {
 	int i, j;
@@ -150,7 +164,9 @@ static void usage(const char *name)
 		"  -l, --list				List the current L3 logs\n"
 		"  -a, --clear-all			Clear all disabled rows\n"
 		"  -e, --enable				Enable row, bank, subbank (undo -d)\n"
-		"  -d, --disable=<row,bank,subbank>	Disable row, bank, subbank (inline arguments are deprecated. Please use -r, -b, -s instead\n",
+		"  -d, --disable=<row,bank,subbank>	Disable row, bank, subbank (inline arguments are deprecated. Please use -r, -b, -s instead\n"
+		"  -i, --inject				[HSW only] Cause hardware to inject a row errors\n"
+		"  -u, --uninject			[HSW only] Turn off hardware error injectection (undo -i)\n",
 		name);
 }
 
@@ -158,6 +174,7 @@ int main(int argc, char *argv[])
 {
 	const int device = drm_get_card();
 	char *path[REAL_MAX_SLICES];
+	uint32_t dft;
 	int row = 0, bank = 0, sbank = 0;
 	int fd[REAL_MAX_SLICES] = {0}, ret, i;
 	int action = '0';
@@ -166,6 +183,8 @@ int main(int argc, char *argv[])
 
 	if (intel_gen(devid) < 7 || IS_VALLEYVIEW(devid))
 		exit(EXIT_SUCCESS);
+
+	assert(intel_register_access_init(intel_get_pci_device(), 0) == 0);
 
 	ret = asprintf(&path[0], "/sys/class/drm/card%d/l3_parity", device);
 	assert(ret != -1);
@@ -183,6 +202,7 @@ int main(int argc, char *argv[])
 		assert(lseek(fd[i], 0, SEEK_SET) == 0);
 	}
 
+	dft = intel_register_read(0xb038);
 
 	while (1) {
 		int c, option_index = 0;
@@ -192,6 +212,8 @@ int main(int argc, char *argv[])
 			{ "clear-all", no_argument, 0, 'a' },
 			{ "enable", no_argument, 0, 'e' },
 			{ "disable", optional_argument, 0, 'd' },
+			{ "inject", no_argument, 0, 'i' },
+			{ "uninject", no_argument, 0, 'u' },
 			{ "hw-info", no_argument, 0, 'H' },
 			{ "row", required_argument, 0, 'r' },
 			{ "bank", required_argument, 0, 'b' },
@@ -200,7 +222,7 @@ int main(int argc, char *argv[])
 			{0, 0, 0, 0}
 		};
 
-		c = getopt_long(argc, argv, "hHr:b:s:w:aled::", long_options,
+		c = getopt_long(argc, argv, "hHr:b:s:w:aled::iu", long_options,
 				&option_index);
 		if (c == -1)
 			break;
@@ -215,6 +237,7 @@ int main(int argc, char *argv[])
 				printf("Number of banks: %d\n", num_banks());
 				printf("Subbanks per bank: %d\n", NUM_SUBBANKS);
 				printf("Max L3 size: %dK\n", L3_SIZE >> 10);
+				printf("Has error injection: %s\n", IS_HASWELL(devid) ? "yes" : "no");
 				exit(EXIT_SUCCESS);
 			case 'r':
 				row = atoi(optarg);
@@ -236,6 +259,12 @@ int main(int argc, char *argv[])
 				if (which_slice >= MAX_SLICES)
 					exit(EXIT_FAILURE);
 				break;
+			case 'i':
+			case 'u':
+				if (!IS_HASWELL(devid)) {
+					fprintf(stderr, "Error injection supported on HSW+ only\n");
+					exit(EXIT_FAILURE);
+				}
 			case 'd':
 				if (optarg) {
 					ret = sscanf(optarg, "%d,%d,%d", &row, &bank, &sbank);
@@ -256,6 +285,23 @@ int main(int argc, char *argv[])
 		}
 	}
 
+	if (action == 'i') {
+		if (((dft >> 1) & 1) != which_slice) {
+			fprintf(stderr, "DFT register already has slice %d enabled, and we don't support multiple slices. Try modifying -w; but sometimes the register sticks in the wrong way\n", (dft >> 1) & 1);
+			exit(EXIT_FAILURE);
+		}
+
+		if (which_slice == -1) {
+			fprintf(stderr, "Cannot inject errors to multiple slices (modify -w)\n");
+			exit(EXIT_FAILURE);
+		}
+		if (dft & 1 && ((dft >> 1) && 1) == which_slice)
+			printf("warning: overwriting existing injections. This is very dangerous.\n");
+	}
+
+	if (action == 'l')
+		decode_dft(dft);
+
 	/* Per slice operations */
 	for_each_slice(i) {
 		switch (action) {
@@ -271,11 +317,30 @@ int main(int argc, char *argv[])
 			case 'd':
 				assert(disable_rbs(row, bank, sbank, i) == 0);
 				break;
+			case 'i':
+				if (bank == 3) {
+					fprintf(stderr, "The hardware does not support error inject on bank 3.\n");
+					exit(EXIT_FAILURE);
+				}
+				dft |= row << 7;
+				dft |= sbank << 4;
+				dft |= bank << 2;
+				assert(i < 2);
+				dft |= i << 1; /* slice */
+				dft |= 1 << 0; /* enable */
+				intel_register_write(0xb038, dft);
+				break;
+			case 'u':
+				intel_register_write(0xb038, dft & ~(1<<0));
+				break;
+			case 'L':
+				break;
 			default:
 				abort();
 		}
 	}
 
+	intel_register_access_fini();
 	if (action == 'l')
 		exit(EXIT_SUCCESS);
 

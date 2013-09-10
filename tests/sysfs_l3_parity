@@ -21,7 +21,7 @@ fi
 $SOURCE_DIR/../tools/intel_l3_parity -r 0 -b 0 -s 0 -e
 
 #Check that we can clear remaps
-if [ `$SOURCE_DIR/../tools/intel_l3_parity -l | wc -c` != "0" ] ; then
+if [ `$SOURCE_DIR/../tools/intel_l3_parity -l | wc -l` != 1 ] ; then
 	echo "Fail 2"
 	exit 1
 fi
