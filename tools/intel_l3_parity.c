@@ -37,6 +37,14 @@
 #include "intel_chipset.h"
 #include "intel_gpu_tools.h"
 #include "drmtest.h"
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+#if HAVE_UDEV
+#include <libudev.h>
+#include <syslog.h>
+#endif
+#include "intel_l3_parity.h"
 
 static unsigned int devid;
 /* L3 size is always a function of banks. The number of banks cannot be
@@ -157,7 +165,8 @@ static void usage(const char *name)
 		"  -r, --row=[row]			The row to act upon (default 0)\n"
 		"  -b, --bank=[bank]			The bank to act upon (default 0)\n"
 		"  -s, --subbank=[subbank]		The subbank to act upon (default 0)\n"
-		"  -w, --slice=[slice]			Which slice to act on (default: -1 [all])"
+		"  -w, --slice=[slice]			Which slice to act on (default: -1 [all])\n"
+		"    , --daemon				Run the listener (-L) as a daemon\n"
 		" ACTIONS (only 1 may be specified at a time):\n"
 		"  -h, --help				Display this help\n"
 		"  -H, --hw-info				Display the current L3 properties\n"
@@ -166,7 +175,8 @@ static void usage(const char *name)
 		"  -e, --enable				Enable row, bank, subbank (undo -d)\n"
 		"  -d, --disable=<row,bank,subbank>	Disable row, bank, subbank (inline arguments are deprecated. Please use -r, -b, -s instead\n"
 		"  -i, --inject				[HSW only] Cause hardware to inject a row errors\n"
-		"  -u, --uninject			[HSW only] Turn off hardware error injectection (undo -i)\n",
+		"  -u, --uninject			[HSW only] Turn off hardware error injectection (undo -i)\n"
+		"  -L, --listen				Listen for uevent errors\n",
 		name);
 }
 
@@ -179,6 +189,7 @@ int main(int argc, char *argv[])
 	int fd[REAL_MAX_SLICES] = {0}, ret, i;
 	int action = '0';
 	int drm_fd = drm_open_any();
+	int daemonize = 0;
 	devid = intel_get_drm_devid(drm_fd);
 
 	if (intel_gen(devid) < 7 || IS_VALLEYVIEW(devid))
@@ -202,11 +213,18 @@ int main(int argc, char *argv[])
 		assert(lseek(fd[i], 0, SEEK_SET) == 0);
 	}
 
+	/* NB: It is potentially unsafe to read this register if the kernel is
+	 * actively using this register range, or we're running multiple
+	 * instances of this tool. Since neither of those cases should occur
+	 * (and the tool should be root only) we can safely ignore this for
+	 * now. Just be aware of this if for some reason a hang is reported
+	 * when using this tool.
+	 */
 	dft = intel_register_read(0xb038);
 
 	while (1) {
 		int c, option_index = 0;
-		static struct option long_options[] = {
+		struct option long_options[] = {
 			{ "help", no_argument, 0, 'h' },
 			{ "list", no_argument, 0, 'l' },
 			{ "clear-all", no_argument, 0, 'a' },
@@ -215,17 +233,22 @@ int main(int argc, char *argv[])
 			{ "inject", no_argument, 0, 'i' },
 			{ "uninject", no_argument, 0, 'u' },
 			{ "hw-info", no_argument, 0, 'H' },
+			{ "listen", no_argument, 0, 'L' },
 			{ "row", required_argument, 0, 'r' },
 			{ "bank", required_argument, 0, 'b' },
 			{ "subbank", required_argument, 0, 's' },
 			{ "slice", required_argument, 0, 'w' },
+			{ "daemon", no_argument, &daemonize, 1 },
 			{0, 0, 0, 0}
 		};
 
-		c = getopt_long(argc, argv, "hHr:b:s:w:aled::iu", long_options,
+		c = getopt_long(argc, argv, "hHr:b:s:w:aled::iuL", long_options,
 				&option_index);
 		if (c == -1)
 			break;
+
+		if (c == 0)
+			continue;
 
 		switch (c) {
 			case '?':
@@ -274,6 +297,7 @@ int main(int argc, char *argv[])
 			case 'a':
 			case 'l':
 			case 'e':
+			case 'L':
 				if (action != '0') {
 					fprintf(stderr, "Only one action may be specified\n");
 					exit(EXIT_FAILURE);
@@ -297,6 +321,20 @@ int main(int argc, char *argv[])
 		}
 		if (dft & 1 && ((dft >> 1) && 1) == which_slice)
 			printf("warning: overwriting existing injections. This is very dangerous.\n");
+	}
+
+	/* Daemon doesn't work like the other commands */
+	if (action == 'L') {
+		struct l3_parity par;
+		struct l3_location loc;
+		if (daemonize) {
+			assert(daemon(0, 0) == 0);
+			openlog(argv[0], LOG_CONS | LOG_PID, LOG_USER);
+		}
+		memset(&par, 0, sizeof(par));
+		assert(l3_uevent_setup(&par) == 0);
+		assert(l3_listen(&par, daemonize == 1, &loc) == 0);
+		exit(EXIT_SUCCESS);
 	}
 
 	if (action == 'l')
