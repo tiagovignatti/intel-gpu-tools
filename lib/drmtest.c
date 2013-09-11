@@ -2040,7 +2040,7 @@ static void igt_prefault_control(bool enable)
 	else
 		index = 0;
 
-	igt_assert(write(fd, &buf[index], 1) == 1);
+	igt_require(write(fd, &buf[index], 1) == 1);
 
 	close(fd);
 }
@@ -2059,7 +2059,7 @@ void igt_disable_prefault(void)
 
 void igt_enable_prefault(void)
 {
-	return igt_prefault_control(true);
+	igt_prefault_control(true);
 }
 
 void igt_system_suspend_autoresume(void)
