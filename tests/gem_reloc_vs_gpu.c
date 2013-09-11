@@ -281,7 +281,7 @@ static void do_test(int fd, bool faulting_reloc)
 static void do_forked_test(int fd, unsigned flags)
 {
 	int num_threads = sysconf(_SC_NPROCESSORS_ONLN);
-	struct igt_helper_process thrasher;
+	struct igt_helper_process thrasher = {};
 
 	if (flags & (THRASH | THRASH_INACTIVE)) {
 		char fname[FILENAME_MAX];
@@ -364,7 +364,7 @@ int main(int argc, char **argv)
 			      flags & INTERRUPT ? "-interruptible" : "",
 			      flags & FAULTING ? "-faulting-reloc" : "",
 			      flags & THRASH ? "-thrashing" : "",
-			      flags & THRASH ? "-thrash-inactive" : "")
+			      flags & THRASH_INACTIVE ? "-thrash-inactive" : "")
 			do_forked_test(fd, flags);
 	}
 
