@@ -1734,8 +1734,8 @@ static int install_sig_handler(int sig_num, sighandler_t handler)
 
 static void restore_sig_handler(int sig_num)
 {
-	if (orig_sig[sig_num].installed)
-		signal(sig_num, orig_sig[sig_num].handler);
+	/* Just restore the default so that we properly fall over. */
+	signal(sig_num, SIG_DFL);
 }
 
 static void restore_all_sig_handler(void)
