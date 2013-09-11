@@ -1700,7 +1700,7 @@ static igt_exit_handler_t exit_handler_fn[MAX_EXIT_HANDLERS];
 static bool exit_handler_disabled;
 static sigset_t saved_sig_mask;
 static const int handled_signals[] =
-	{ SIGINT, SIGHUP, SIGTERM, SIGQUIT, SIGPIPE, SIGABRT, SIGSEGV };
+	{ SIGINT, SIGHUP, SIGTERM, SIGQUIT, SIGPIPE, SIGABRT, SIGSEGV, SIGBUS };
 
 static int install_sig_handler(int sig_num, sighandler_t handler)
 {
