@@ -1035,6 +1035,7 @@ void igt_stop_helper(struct igt_helper_process *proc)
 bool __igt_fork(void)
 {
 	assert(!test_with_subtests || in_subtest);
+	assert(!test_child);
 
 	if (num_test_children >= test_children_sz) {
 		if (!test_children_sz)
