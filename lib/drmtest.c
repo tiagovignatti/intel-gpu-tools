@@ -944,20 +944,19 @@ void igt_exit(void)
 }
 
 static int helper_process_count;
-#define NUM_HELPER_PROCS 4
-static pid_t helper_process_pids[NUM_HELPER_PROCS] =
+static pid_t helper_process_pids[] =
 { -1, -1, -1, -1};
 
 static void reset_helper_process_list(void)
 {
-	for (int i = 0; i < NUM_HELPER_PROCS; i++)
+	for (int i = 0; i < ARRAY_SIZE(helper_process_pids); i++)
 		helper_process_pids[i] = -1;
 	helper_process_count = 0;
 }
 
 static void fork_helper_exit_handler(int sig)
 {
-	for (int i = 0; i < NUM_HELPER_PROCS; i++) {
+	for (int i = 0; i < ARRAY_SIZE(helper_process_pids); i++) {
 		pid_t pid = helper_process_pids[i];
 		int status;
 
@@ -981,7 +980,7 @@ bool __igt_fork_helper(struct igt_helper_process *proc)
 	int id;
 
 	assert(!proc->running);
-	assert(helper_process_count < NUM_HELPER_PROCS);
+	assert(helper_process_count < ARRAY_SIZE(helper_process_pids));
 
 	for (id = 0; helper_process_pids[id] != -1; id++)
 		;
