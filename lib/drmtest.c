@@ -992,7 +992,6 @@ bool __igt_fork_helper(struct igt_helper_process *proc)
 
 	igt_install_exit_handler(fork_helper_exit_handler);
 
-	oldsig = signal(SIGQUIT, SIG_DFL);
 	switch (pid = fork()) {
 	case -1:
 		igt_assert(0);
@@ -1002,7 +1001,6 @@ bool __igt_fork_helper(struct igt_helper_process *proc)
 
 		return true;
 	default:
-		signal(SIGQUIT, oldsig);
 		proc->running = true;
 		proc->pid = pid;
 		proc->id = id;
