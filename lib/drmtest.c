@@ -622,6 +622,9 @@ void igt_fork_signal_helper(void)
 
 void igt_stop_signal_helper(void)
 {
+	if (igt_only_list_subtests())
+		return;
+
 	igt_stop_helper(&signal_helper);
 
 	sig_stat = 0;
