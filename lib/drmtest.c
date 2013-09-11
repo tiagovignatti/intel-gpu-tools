@@ -967,8 +967,10 @@ static void fork_helper_exit_handler(int sig)
 			/* Someone forgot to fill up the array? */
 			assert(pid != 0);
 
-			kill(pid, SIGQUIT);
-			waitpid(pid, &status, 0);
+			assert(kill(pid, SIGQUIT) == 0);
+			while (waitpid(pid, &status, 0) == -1 &&
+			       errno == -EINTR)
+				;
 			helper_process_count--;
 		}
 	}
@@ -1023,7 +1025,7 @@ void igt_stop_helper(struct igt_helper_process *proc)
 
 	assert(proc->running);
 
-	kill(proc->pid, SIGQUIT);
+	assert(kill(proc->pid, SIGQUIT) == 0);
 	waitpid(proc->pid, &status, 0);
 
 	proc->running = false;
@@ -1032,10 +1034,28 @@ void igt_stop_helper(struct igt_helper_process *proc)
 	helper_process_count--;
 }
 
+static void children_exit_handler(int sig)
+{
+	assert(!test_child);
+
+	for (int nc = 0; nc < num_test_children; nc++) {
+		int status = -1;
+		assert(kill(test_children[nc], SIGQUIT) == 0);
+
+		while (waitpid(test_children[nc], &status, 0) == -1 &&
+		       errno == -EINTR)
+			;
+	}
+
+	num_test_children = 0;
+}
+
 bool __igt_fork(void)
 {
 	assert(!test_with_subtests || in_subtest);
 	assert(!test_child);
+
+	igt_install_exit_handler(children_exit_handler);
 
 	if (num_test_children >= test_children_sz) {
 		if (!test_children_sz)
