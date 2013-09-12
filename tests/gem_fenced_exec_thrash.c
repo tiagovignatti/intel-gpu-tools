@@ -143,26 +143,35 @@ static void run_test(int fd, int num_fences, int expected_errno)
 	} while (--loop);
 }
 
+int fd;
+int num_fences;
+uint32_t devid;
+
 int
 main(int argc, char **argv)
 {
-	int fd;
-	int num_fences;
-	uint32_t devid;
+	igt_subtest_init(argc, argv);
 
 	igt_skip_on_simulation();
 
-	fd = drm_open_any();
-	num_fences = gem_available_fences(fd);
-	igt_assert(num_fences > 4);
-	devid = intel_get_drm_devid(fd);
+	igt_fixture {
+		fd = drm_open_any();
+		num_fences = gem_available_fences(fd);
+		igt_assert(num_fences > 4);
+		devid = intel_get_drm_devid(fd);
 
-	igt_assert(num_fences <= MAX_FENCES);
+		igt_assert(num_fences <= MAX_FENCES);
+	}
 
-	run_test(fd, num_fences - 2, 0);
-	run_test(fd, num_fences + 1, intel_gen(devid) >= 4 ? 0 : EDEADLK);
+	igt_subtest("2-spare-fences")
+		run_test(fd, num_fences - 2, 0);
+	igt_subtest("no-spare-fences")
+		run_test(fd, num_fences, 0);
+	igt_subtest("too-many-fences")
+		run_test(fd, num_fences + 1, intel_gen(devid) >= 4 ? 0 : EDEADLK);
 
-	close(fd);
+	igt_fixture
+		close(fd);
 
-	return 0;
+	igt_exit();
 }

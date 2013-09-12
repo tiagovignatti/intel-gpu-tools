@@ -27,6 +27,7 @@ TESTS_progs_M = \
 	gem_evict_everything \
 	gem_exec_bad_domains \
 	gem_exec_nop \
+	gem_fenced_exec_thrash \
 	gem_fence_thrash \
 	gem_flink \
 	gem_flink_race \
@@ -74,7 +75,6 @@ TESTS_progs = \
 	gem_exec_blt \
 	gem_exec_faulting_reloc \
 	gem_exec_lut_handle \
-	gem_fenced_exec_thrash \
 	gem_gtt_cpu_tlb \
 	gem_gtt_speed \
 	gem_hangcheck_forcewake \
