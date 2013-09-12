@@ -2087,6 +2087,11 @@ void igt_system_suspend_autoresume(void)
 {
 	int ret;
 
+	/* FIXME: Simulation doesn't like suspend/resume, and not even a lighter
+	 * approach using /sys/power/pm_test to just test our driver's callbacks
+	 * seems to fare better. We need to investigate what's going on. */
+	igt_skip_on_simulation();
+
 	ret = system("rtcwake -s 30 -m mem");
 	igt_assert(ret == 0);
 }
