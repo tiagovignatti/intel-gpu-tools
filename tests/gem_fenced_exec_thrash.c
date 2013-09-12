@@ -59,6 +59,57 @@
  * each command.
  */
 
+static drm_intel_bufmgr *bufmgr;
+struct intel_batchbuffer *batch;
+uint32_t devid;
+
+static void emit_dummy_load(void)
+{
+	int i;
+	uint32_t tile_flags = 0;
+	uint32_t tiling_mode = I915_TILING_X;
+	unsigned long pitch;
+	drm_intel_bo *dummy_bo;
+
+	dummy_bo = drm_intel_bo_alloc_tiled(bufmgr, "tiled dummy_bo", 2048, 2048,
+				      4, &tiling_mode, &pitch, 0);
+
+	if (IS_965(devid)) {
+		pitch /= 4;
+		tile_flags = XY_SRC_COPY_BLT_SRC_TILED |
+			XY_SRC_COPY_BLT_DST_TILED;
+	}
+
+	for (i = 0; i < 5; i++) {
+		BEGIN_BATCH(8);
+		OUT_BATCH(XY_SRC_COPY_BLT_CMD |
+			  XY_SRC_COPY_BLT_WRITE_ALPHA |
+			  XY_SRC_COPY_BLT_WRITE_RGB |
+			  tile_flags);
+		OUT_BATCH((3 << 24) | /* 32 bits */
+			  (0xcc << 16) | /* copy ROP */
+			  pitch);
+		OUT_BATCH(0 << 16 | 1024);
+		OUT_BATCH((2048) << 16 | (2048));
+		OUT_RELOC_FENCED(dummy_bo, I915_GEM_DOMAIN_RENDER, I915_GEM_DOMAIN_RENDER, 0);
+		OUT_BATCH(0 << 16 | 0);
+		OUT_BATCH(pitch);
+		OUT_RELOC_FENCED(dummy_bo, I915_GEM_DOMAIN_RENDER, 0, 0);
+		ADVANCE_BATCH();
+
+		if (IS_GEN6(devid) || IS_GEN7(devid)) {
+			BEGIN_BATCH(3);
+			OUT_BATCH(XY_SETUP_CLIP_BLT_CMD);
+			OUT_BATCH(0);
+			OUT_BATCH(0);
+			ADVANCE_BATCH();
+		}
+	}
+	intel_batchbuffer_flush(batch);
+
+	drm_intel_bo_unreference(dummy_bo);
+}
+
 static uint32_t
 tiled_bo_create (int fd)
 {
@@ -92,7 +143,11 @@ static void fill_reloc(struct drm_i915_gem_relocation_entry *reloc, uint32_t han
 	reloc->write_domain = 0;
 }
 
-static void run_test(int fd, int num_fences, int expected_errno)
+#define BUSY_LOAD (1 << 0)
+#define INTERRUPTIBLE (1 << 1)
+
+static void run_test(int fd, int num_fences, int expected_errno,
+		     unsigned flags)
 {
 	struct drm_i915_gem_execbuffer2 execbuf[2];
 	struct drm_i915_gem_exec_object2 exec[2][2*MAX_FENCES+3];
@@ -100,6 +155,17 @@ static void run_test(int fd, int num_fences, int expected_errno)
 
 	int i, n;
 	int loop = 1000;
+
+	if (flags & BUSY_LOAD) {
+		bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
+		batch = intel_batchbuffer_alloc(bufmgr, devid);
+
+		/* Takes forever otherwise. */
+		loop = 50;
+	}
+
+	if (flags & INTERRUPTIBLE)
+		igt_fork_signal_helper();
 
 	memset(execbuf, 0, sizeof(execbuf));
 	memset(exec, 0, sizeof(exec));
@@ -127,6 +193,9 @@ static void run_test(int fd, int num_fences, int expected_errno)
 	do {
 		int ret;
 
+		if (flags & BUSY_LOAD)
+			emit_dummy_load();
+
 		ret = drmIoctl(fd,
 			       DRM_IOCTL_I915_GEM_EXECBUFFER2,
 			       &execbuf[0]);
@@ -141,11 +210,13 @@ static void run_test(int fd, int num_fences, int expected_errno)
 		       ret < 0 && errno == expected_errno :
 		       ret == 0);
 	} while (--loop);
+
+	if (flags & INTERRUPTIBLE)
+		igt_stop_signal_helper();
 }
 
 int fd;
 int num_fences;
-uint32_t devid;
 
 int
 main(int argc, char **argv)
@@ -164,11 +235,15 @@ main(int argc, char **argv)
 	}
 
 	igt_subtest("2-spare-fences")
-		run_test(fd, num_fences - 2, 0);
-	igt_subtest("no-spare-fences")
-		run_test(fd, num_fences, 0);
+		run_test(fd, num_fences - 2, 0, 0);
+	for (unsigned flags = 0; flags < 4; flags++) {
+		igt_subtest_f("no-spare-fences%s%s",
+			      flags & BUSY_LOAD ? "-busy" : "",
+			      flags & INTERRUPTIBLE ? "-interruptible" : "")
+			run_test(fd, num_fences, 0, flags);
+	}
 	igt_subtest("too-many-fences")
-		run_test(fd, num_fences + 1, intel_gen(devid) >= 4 ? 0 : EDEADLK);
+		run_test(fd, num_fences + 1, intel_gen(devid) >= 4 ? 0 : EDEADLK, 0);
 
 	igt_fixture
 		close(fd);
