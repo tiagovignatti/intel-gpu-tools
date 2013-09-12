@@ -84,18 +84,6 @@ batch_create (int fd)
 	return batch_handle;
 }
 
-static int get_num_fences(int fd)
-{
-	int val;
-
-	val = gem_available_fences(fd);
-
-	printf ("total %d fences\n", val);
-	igt_assert(val > 4);
-
-	return val;
-}
-
 static void fill_reloc(struct drm_i915_gem_relocation_entry *reloc, uint32_t handle)
 {
 	reloc->offset = 2 * sizeof(uint32_t);
@@ -165,7 +153,8 @@ main(int argc, char **argv)
 	igt_skip_on_simulation();
 
 	fd = drm_open_any();
-	num_fences = get_num_fences(fd);
+	num_fences = gem_available_fences(fd);
+	igt_assert(num_fences > 4);
 	devid = intel_get_drm_devid(fd);
 
 	igt_assert(num_fences <= MAX_FENCES);

@@ -603,18 +603,6 @@ static void copy_tiles(unsigned *permutation)
 	intel_batchbuffer_flush(batch);
 }
 
-static int get_num_fences(void)
-{
-	int val;
-
-	val = gem_available_fences(drm_fd);
-
-	printf ("total %d fences\n", val);
-	igt_assert(val > 4);
-
-	return val - 2;
-}
-
 static void sanitize_tiles_per_buf(void)
 {
 	if (options.tiles_per_buf > options.scratch_buf_size / TILE_BYTES(options.tile_size))
@@ -795,7 +783,8 @@ static void init(void)
 	bufmgr = drm_intel_bufmgr_gem_init(drm_fd, 4096);
 	drm_intel_bufmgr_gem_enable_reuse(bufmgr);
 	drm_intel_bufmgr_gem_enable_fenced_relocs(bufmgr);
-	num_fences = get_num_fences();
+	num_fences = gem_available_fences(drm_fd);
+	igt_assert(num_fences > 4);
 	batch = intel_batchbuffer_alloc(bufmgr, devid);
 
 	busy_bo = drm_intel_bo_alloc(bufmgr, "tiled bo", BUSY_BUF_SIZE, 4096);
