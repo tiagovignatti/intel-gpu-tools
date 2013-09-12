@@ -675,6 +675,14 @@ void __igt_fixture_end(void)
 	longjmp(igt_subtest_jmpbuf, 1);
 }
 
+bool igt_exit_called;
+static void check_igt_exit(int sig)
+{
+	/* When not killed by a signal check that igt_exit() has been properly
+	 * called. */
+	assert(sig != 0 || igt_exit_called);
+}
+
 static void print_usage(const char *command_str, const char *help_str,
 			bool output_on_stderr)
 {
@@ -738,6 +746,8 @@ int igt_subtest_init_parse_opts(int argc, char **argv,
 		case 'l':
 			if (!run_single_subtest)
 				list_subtests = true;
+			else
+				igt_install_exit_handler(check_igt_exit);
 			break;
 		case 'r':
 			if (!list_subtests)
@@ -937,6 +947,7 @@ void igt_exit(void)
 
 	/* Calling this without calling one of the above is a failure */
 	assert(skipped_one || succeeded_one || failed_one);
+	igt_exit_called = true;
 
 	if (failed_one)
 		exit(igt_exitcode);
