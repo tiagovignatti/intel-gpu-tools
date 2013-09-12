@@ -981,7 +981,6 @@ static void fork_helper_exit_handler(int sig)
 bool __igt_fork_helper(struct igt_helper_process *proc)
 {
 	pid_t pid;
-	sighandler_t oldsig;
 	int id;
 
 	assert(!proc->running);
