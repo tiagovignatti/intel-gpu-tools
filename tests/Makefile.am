@@ -5,6 +5,7 @@ noinst_PROGRAMS = \
 	$(TESTS_progs) \
 	$(TESTS_progs_M) \
 	$(HANG) \
+	$(TESTS_testsuite)
 	$(NULL)
 
 if HAVE_NOUVEAU
@@ -151,7 +152,12 @@ kernel_tests = \
 	$(multi_kernel_tests) \
 	$(NULL)
 
+TESTS_testsuite = \
+	igt_fork_helper \
+	$(NULL)
+
 TESTS = \
+	$(TESTS_testsuite) \
 	$(NULL)
 
 list-single-tests:
@@ -179,7 +185,7 @@ scripts = \
 	drm_lib.sh \
 	$(NULL)
 
-EXTRA_PROGRAMS = $(TESTS_progs) $(TESTS_progs_M) $(HANG)
+EXTRA_PROGRAMS = $(TESTS_progs) $(TESTS_progs_M) $(HANG) $(TESTS_testsuite)
 EXTRA_DIST = $(TESTS_scripts) $(TESTS_scripts_M) $(scripts)
 CLEANFILES = $(EXTRA_PROGRAMS)
 
