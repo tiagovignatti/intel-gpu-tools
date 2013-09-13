@@ -2,7 +2,7 @@
 .ds q \N'34'
 .TH intel_lid __appmansuffix__ __xorgversion__
 .SH NAME
-intel_ \- Polls the values of different reports about laptop lid state.
+intel_lid \- Polls the values of different reports about laptop lid state.
 .SH SYNOPSIS
 .B intel_lid
 .SH DESCRIPTION
