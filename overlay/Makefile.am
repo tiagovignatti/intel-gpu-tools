@@ -47,7 +47,7 @@ intel_gpu_overlay_SOURCES += \
 endif
 
 if BUILD_OVERLAY_XVLIB
-both_x11_sources = x11/x11-position.c
+both_x11_sources = x11/position.c
 AM_CFLAGS += $(OVERLAY_XVLIB_CFLAGS) $(XRANDR_CFLAGS)
 LDADD += $(OVERLAY_XVLIB_LIBS) $(XRANDR_LIBS)
 intel_gpu_overlay_SOURCES += \
