@@ -1,3 +1,30 @@
+Release 1.4
+-----------
+
+- Integration of the gen4+ assembler (Damien).
+
+- Start of a new performance analysis tool from Chris Wilson with front-ends for
+  both X11 and plain kms. This uses the perf subsystem and the gpu performance
+  counter kernel patches from Chris.
+
+- New register dumper quick_dump from Ben, with lots of work from Damien. This
+  will superseed intel_reg_dumper for newer platforms (which aren't yet
+  released) since it will allow us to automatically generate register dumps from
+  the internal xml register specifications.
+
+- Tools to access the pletoria of new indirect register access functions on
+  newer platforms.
+
+- Framebuffer contents dumper to debug some of the nastier corruption issues.
+  The advantage here is that this bypasses any userspace drivers and so avoids
+  that the corruptions get magically fixed when taking an X screenshot.
+
+- Tons of new testcases. Including subtests we're not at roughly 450 tests!
+
+- Improvements to the test framework infrastructure. See
+  http://blog.ffwll.ch/2013/08/recent-drmi915-testsuite-improvements.html
+  for an overview.
+
 Release 1.3 (2013-08-07)
 ------------------------
 
