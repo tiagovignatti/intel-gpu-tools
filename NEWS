@@ -1,0 +1,32 @@
+Release 1.3 (2013-08-07)
+------------------------
+
+- massive improvements to the testsuite
+- dpf tool for handling l3 remapping on gen7 (Ben)
+- robustify against wc gtt mappings (Chris)
+- improvements to the reg_dumper and register read/write tools
+- haswell support
+
+Release 1.2 (2012-02-09)
+------------------------
+
+- intel_audio_dump improvements (Wu Fengguang)
+- buildsystem improvements (Gaetan Nadon)
+- solaris support (Alan Coopersmith)
+- massive refactoring of testcases and rendercpy extraction
+- new tests
+- fixed up intel_reg_read/write for platforms needing forcewake (needs a
+  kernel patch which from 3.3 to work on ivb - Ben Widawsky)
+
+Release 1.1 (2011-12-23)
+------------------------
+
+Improved testsuite, usable for kernel regression testing!
+
+Release 1.0 (2009-04-27)
+------------------------
+
+Initial release:
+- miscellaneous userland tools that don't really fit into the 2D driver tree
+- standalone regression tests for the DRM (make check)
+- microbenchmarks of the DRM for kernel performance regression testing
