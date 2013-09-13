@@ -8,7 +8,7 @@ Release 1.4
   counter kernel patches from Chris.
 
 - New register dumper quick_dump from Ben, with lots of work from Damien. This
-  will superseed intel_reg_dumper for newer platforms (which aren't yet
+  will superseed intel_reg_dumper for newer platforms (which are not yet
   released) since it will allow us to automatically generate register dumps from
   the internal xml register specifications.
 
@@ -19,7 +19,7 @@ Release 1.4
   The advantage here is that this bypasses any userspace drivers and so avoids
   that the corruptions get magically fixed when taking an X screenshot.
 
-- Tons of new testcases. Including subtests we're not at roughly 450 tests!
+- Tons of new testcases. Including subtests we are now at roughly 450 tests!
 
 - Improvements to the test framework infrastructure. See
   http://blog.ffwll.ch/2013/08/recent-drmi915-testsuite-improvements.html
