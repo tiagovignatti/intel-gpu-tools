@@ -122,7 +122,7 @@ static void emit_dummy_load(int pitch)
 			XY_SRC_COPY_BLT_DST_TILED;
 	}
 
-	for (i = 0; i < 10; i++) {
+	for (i = 0; i < 5; i++) {
 		BEGIN_BATCH(8);
 		OUT_BATCH(XY_SRC_COPY_BLT_CMD |
 			  XY_SRC_COPY_BLT_WRITE_ALPHA |
@@ -234,7 +234,8 @@ static void do_test(int fd, bool faulting_reloc)
 
 	}
 
-	for (repeat = 0; repeat < 4096/small_pitch; repeat++) {
+	/* repeat must be smaller than 4096/small_pitch */
+	for (repeat = 0; repeat < 8; repeat++) {
 		for (i = 0; i < NUM_TARGET_BOS; i++) {
 			uint32_t data[2] = {
 				(repeat << 16) | 0,
@@ -252,7 +253,8 @@ static void do_test(int fd, bool faulting_reloc)
 
 	/* Only check at the end to avoid unnecessarily synchronous behaviour. */
 	for (i = 0; i < NUM_TARGET_BOS; i++) {
-		for (repeat = 0; repeat < 4096/small_pitch; repeat++) {
+		/* repeat must be smaller than 4096/small_pitch */
+		for (repeat = 0; repeat < 8; repeat++) {
 			drm_intel_bo_get_subdata(pc_target_bo[i],
 						 repeat*small_pitch, 4, &test);
 			if (test != 0xdeadbeef) {
