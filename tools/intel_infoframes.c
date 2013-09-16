@@ -433,7 +433,7 @@ static void dump_avi_info(Transcoder transcoder)
 	       frame.avi.R, frame.avi.M, frame.avi.C);
 	printf("- SC: %x, Q: %x, EC: %x, ITC: %x\n",
 	       frame.avi.SC, frame.avi.Q, frame.avi.EC, frame.avi.ITC);
-	printf("- VIC: %x, Rsvd1: %x\n", frame.avi.VIC, frame.avi.Rsvd1);
+	printf("- VIC: %d, Rsvd1: %x\n", frame.avi.VIC, frame.avi.Rsvd1);
 	printf("- PR: %x, Rsvd2: %x\n", frame.avi.PR, frame.avi.Rsvd2);
 	printf("- top: %x, bottom: %x, left: %x, right: %x\n",
 	       frame.avi.top, frame.avi.bottom, frame.avi.left,
