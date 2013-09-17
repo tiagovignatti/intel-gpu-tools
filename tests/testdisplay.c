@@ -410,31 +410,6 @@ set_mode(struct connector *c)
 	drmModeFreeConnector(c->connector);
 }
 
-static void adjust_stereo_timings(drmModeModeInfo *mode)
-{
-	unsigned int layout = mode->flags & DRMTEST_MODE_FLAG_3D_MASK;
-	uint16_t vdisplay, vactive_space;
-
-	switch (layout) {
-	case DRM_MODE_FLAG_3D_TOP_AND_BOTTOM:
-	case DRM_MODE_FLAG_3D_SIDE_BY_SIDE_HALF:
-		return;
-	case DRM_MODE_FLAG_3D_FRAME_PACKING:
-		vactive_space = mode->vtotal - mode->vdisplay;
-		vdisplay = mode->vdisplay;
-
-		mode->vdisplay += vdisplay + vactive_space;
-		mode->vsync_start += vdisplay + vactive_space;
-		mode->vsync_end += vdisplay + vactive_space;
-		mode->vtotal += vdisplay + vactive_space;
-		mode->clock = (mode->vtotal * mode->htotal * mode->vrefresh) /
-			      1000;
-		return;
-	default:
-		assert(0);
-	}
-}
-
 struct box {
 	int x, y, width, height;
 };
@@ -559,7 +534,6 @@ static void do_set_stereo_mode(struct connector *c)
 	struct kmstest_fb fb_info;
 
 	fb_id = create_stereo_fb(&c->mode, &fb_info);
-	adjust_stereo_timings(&c->mode);
 
 	if (drmModeSetCrtc(drm_fd, c->crtc, fb_id, 0, 0,
 			   &c->id, 1, &c->mode)) {
