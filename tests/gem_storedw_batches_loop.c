@@ -45,9 +45,11 @@ static drm_intel_bufmgr *bufmgr;
 static drm_intel_bo *target_bo;
 static int has_ppgtt = 0;
 
+#define SECURE_DISPATCH (1<<0)
+
 /* Like the store dword test, but we create new command buffers each time */
 static void
-store_dword_loop(int divider)
+store_dword_loop(int divider, unsigned flags)
 {
 	int cmd, i, val = 0, ret;
 	uint32_t *buf;
@@ -66,6 +68,9 @@ store_dword_loop(int divider)
 			igt_fail(-1);
 		}
 
+		/* Upload through cpu mmaps to make sure we don't have a gtt
+		 * mapping which could paper over secure batch submission
+		 * failing to bind that. */
 		drm_intel_bo_map(cmd_bo, 1);
 		buf = cmd_bo->virtual;
 
@@ -99,7 +104,10 @@ store_dword_loop(int divider)
 			igt_fail(-1);
 		}
 
-		ret = drm_intel_bo_exec(cmd_bo, 6 * 4, NULL, 0, 0);
+#define LOCAL_I915_EXEC_SECURE (1<<9)
+		ret = drm_intel_bo_mrb_exec(cmd_bo, 6 * 4, NULL, 0, 0,
+					    I915_EXEC_BLT |
+					    (flags & SECURE_DISPATCH ? LOCAL_I915_EXEC_SECURE : 0));
 		if (ret) {
 			fprintf(stderr, "bo exec failed: %d\n", ret);
 			igt_fail(-1);
@@ -131,55 +139,58 @@ cont:
 	printf("completed %d writes successfully\n", i);
 }
 
+int fd;
+int devid;
+
 int main(int argc, char **argv)
 {
-	int fd;
-	int devid;
-
+	igt_subtest_init(argc, argv);
 	igt_skip_on_simulation();
 
-	if (argc != 1) {
-		fprintf(stderr, "usage: %s\n", argv[0]);
-		igt_fail(-1);
+	igt_fixture {
+		fd = drm_open_any();
+		devid = intel_get_drm_devid(fd);
+
+		has_ppgtt = gem_uses_aliasing_ppgtt(fd);
+
+		/* storedw needs gtt address on gen4+/g33 and snoopable memory.
+		 * Strictly speaking we could implement this now ... */
+		igt_require(intel_gen(devid) >= 6);
+
+		bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
+		if (!bufmgr) {
+			fprintf(stderr, "failed to init libdrm\n");
+			igt_fail(-1);
+		}
+		//	drm_intel_bufmgr_gem_enable_reuse(bufmgr);
+
+		target_bo = drm_intel_bo_alloc(bufmgr, "target bo", 4096, 4096);
+		if (!target_bo) {
+			fprintf(stderr, "failed to alloc target buffer\n");
+			igt_fail(-1);
+		}
 	}
 
-	fd = drm_open_any();
-	devid = intel_get_drm_devid(fd);
-
-	has_ppgtt = gem_uses_aliasing_ppgtt(fd);
-
-	if (IS_GEN2(devid) || IS_GEN3(devid) || IS_GEN4(devid) || IS_GEN5(devid)) {
-
-		fprintf(stderr, "MI_STORE_DATA can only use GTT address on gen4+/g33 and"
-			"needs snoopable mem on pre-gen6\n");
-		return 77;
+	igt_subtest("normal") {
+		store_dword_loop(1, 0);
+		store_dword_loop(2, 0);
+		store_dword_loop(3, 0);
+		store_dword_loop(5, 0);
 	}
 
-
-	bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
-	if (!bufmgr) {
-		fprintf(stderr, "failed to init libdrm\n");
-		igt_fail(-1);
-	}
-//	drm_intel_bufmgr_gem_enable_reuse(bufmgr);
-
-	target_bo = drm_intel_bo_alloc(bufmgr, "target bo", 4096, 4096);
-	if (!target_bo) {
-		fprintf(stderr, "failed to alloc target buffer\n");
-		igt_fail(-1);
+	igt_subtest("secure-dispatch") {
+		store_dword_loop(1, SECURE_DISPATCH);
+		store_dword_loop(2, SECURE_DISPATCH);
+		store_dword_loop(3, SECURE_DISPATCH);
+		store_dword_loop(5, SECURE_DISPATCH);
 	}
 
-	store_dword_loop(1);
-	store_dword_loop(2);
-	if (!igt_run_in_simulation()) {
-		store_dword_loop(3);
-		store_dword_loop(5);
+	igt_fixture {
+		drm_intel_bo_unreference(target_bo);
+		drm_intel_bufmgr_destroy(bufmgr);
+
+		close(fd);
 	}
-
-	drm_intel_bo_unreference(target_bo);
-	drm_intel_bufmgr_destroy(bufmgr);
-
-	close(fd);
 
 	return 0;
 }

@@ -45,6 +45,7 @@ TESTS_progs_M = \
 	gem_reloc_vs_gpu \
 	gem_ringfill \
 	gem_set_tiling_vs_blt \
+	gem_storedw_batches_loop \
 	gem_suspend \
 	gem_tiled_blits \
 	gem_tiled_partial_pwrite_pread \
@@ -90,7 +91,6 @@ TESTS_progs = \
 	gem_seqno_wrap \
 	gem_set_tiling_vs_gtt \
 	gem_set_tiling_vs_pwrite \
-	gem_storedw_batches_loop \
 	gem_storedw_loop_blt \
 	gem_storedw_loop_bsd \
 	gem_storedw_loop_render \
