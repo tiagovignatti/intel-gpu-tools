@@ -51,7 +51,7 @@ static int has_ppgtt = 0;
 static void
 store_dword_loop(int divider, unsigned flags)
 {
-	int cmd, i, val = 0, ret;
+	int cmd, i, val = 0;
 	uint32_t *buf;
 	drm_intel_bo *cmd_bo;
 
@@ -63,10 +63,7 @@ store_dword_loop(int divider, unsigned flags)
 
 	for (i = 0; i < SLOW_QUICK(0x80000, 4); i++) {
 		cmd_bo = drm_intel_bo_alloc(bufmgr, "cmd bo", 4096, 4096);
-		if (!cmd_bo) {
-			fprintf(stderr, "failed to alloc cmd bo\n");
-			igt_fail(-1);
-		}
+		igt_assert(cmd_bo);
 
 		/* Upload through cpu mmaps to make sure we don't have a gtt
 		 * mapping which could paper over secure batch submission
@@ -79,39 +76,24 @@ store_dword_loop(int divider, unsigned flags)
 		buf[2] = target_bo->offset;
 		buf[3] = 0x42000000 + val;
 
-		ret = drm_intel_bo_references(cmd_bo, target_bo);
-		if (ret) {
-			fprintf(stderr, "failed to link cmd & target bos\n");
-			igt_fail(-1);
-		}
+		igt_assert(drm_intel_bo_references(cmd_bo, target_bo) == 0);
 
-		ret = drm_intel_bo_emit_reloc(cmd_bo, 8, target_bo, 0,
+		igt_assert(drm_intel_bo_emit_reloc(cmd_bo, 8, target_bo, 0,
 					      I915_GEM_DOMAIN_INSTRUCTION,
-					      I915_GEM_DOMAIN_INSTRUCTION);
-		if (ret) {
-			fprintf(stderr, "failed to emit reloc\n");
-			igt_fail(-1);
-		}
+					      I915_GEM_DOMAIN_INSTRUCTION) == 0);
 
 		buf[4] = MI_BATCH_BUFFER_END;
 		buf[5] = MI_BATCH_BUFFER_END;
 
 		drm_intel_bo_unmap(cmd_bo);
 
-		ret = drm_intel_bo_references(cmd_bo, target_bo);
-		if (ret != 1) {
-			fprintf(stderr, "bad bo reference count: %d\n", ret);
-			igt_fail(-1);
-		}
+		igt_assert(drm_intel_bo_references(cmd_bo, target_bo) == 1);
 
 #define LOCAL_I915_EXEC_SECURE (1<<9)
-		ret = drm_intel_bo_mrb_exec(cmd_bo, 6 * 4, NULL, 0, 0,
+		igt_assert(drm_intel_bo_mrb_exec(cmd_bo, 6 * 4, NULL, 0, 0,
 					    I915_EXEC_BLT |
-					    (flags & SECURE_DISPATCH ? LOCAL_I915_EXEC_SECURE : 0));
-		if (ret) {
-			fprintf(stderr, "bo exec failed: %d\n", ret);
-			igt_fail(-1);
-		}
+					    (flags & SECURE_DISPATCH ? LOCAL_I915_EXEC_SECURE : 0))
+			   == 0);
 
 		if (i % divider != 0)
 			goto cont;
@@ -158,17 +140,12 @@ int main(int argc, char **argv)
 		igt_require(intel_gen(devid) >= 6);
 
 		bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
-		if (!bufmgr) {
-			fprintf(stderr, "failed to init libdrm\n");
-			igt_fail(-1);
-		}
+		igt_assert(bufmgr);
+
 		//	drm_intel_bufmgr_gem_enable_reuse(bufmgr);
 
 		target_bo = drm_intel_bo_alloc(bufmgr, "target bo", 4096, 4096);
-		if (!target_bo) {
-			fprintf(stderr, "failed to alloc target buffer\n");
-			igt_fail(-1);
-		}
+		igt_assert(target_bo);
 	}
 
 	igt_subtest("normal") {
