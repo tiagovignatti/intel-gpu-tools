@@ -882,18 +882,14 @@ void __igt_skip_check(const char *file, const int line,
 	va_list args;
 
 	if (f) {
-		char buf[4096];
-		int length;
+		static char *buf;
 
-		/*
-		 * Important: va_list argument lists can't be used twice, so we
-		 * can't first do an vsnprintf call to size the temporary
-		 * storage correctly. Pick the easy solution with a static
-		 * buffer and an asssert.
-		 */
+		/* igt_skip never returns, so try to not leak too badly. */
+		if (buf)
+			free(buf);
+
 		va_start(args, f);
-		length = vsnprintf(buf, sizeof(buf), f, args);
-		assert(length < sizeof(buf) - 1);
+		vasprintf(&buf, f, args);
 		va_end(args);
 
 		igt_skip("Test requirement not met in function %s, file %s:%i:\n"
