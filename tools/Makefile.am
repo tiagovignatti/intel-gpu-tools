@@ -28,7 +28,9 @@ bin_PROGRAMS = 				\
 	intel_punit_read		\
 	intel_punit_write		\
 	intel_nc_write			\
-	intel_nc_read
+	intel_nc_read			\
+	intel_vga_read			\
+	intel_vga_write
 
 noinst_PROGRAMS = 			\
 	intel_dump_decode 		\
