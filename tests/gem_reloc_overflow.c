@@ -149,8 +149,13 @@ static void source_offset_tests(void)
 		igt_assert(errno == EINVAL);
 	}
 
-	igt_fixture
+	igt_fixture {
+		/* Undo damage for next tests. */
+		execbuf.batch_start_offset = 0;
+		execbuf.batch_len = 8;
+
 		gem_close(fd, handle);
+	}
 }
 
 static void reloc_tests(void)
@@ -198,6 +203,46 @@ static void reloc_tests(void)
 			total_unsigned += obj->relocation_count;
 		}
 		execbuf.buffer_count = num;
+
+		errno = 0;
+		ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf);
+		igt_assert(errno == EINVAL);
+	}
+}
+
+static void buffer_count_tests(void)
+{
+	igt_subtest("buffercount-overflow") {
+		for (int i = 0; i < num; i++) {
+			execobjs[i].relocation_count = 0;
+			execobjs[i].relocs_ptr = 0;
+			execobjs[i].handle = handles[i];
+		}
+
+		execobjs[0].relocation_count = 0;
+		execobjs[0].relocs_ptr = 0;
+		/* We only have num buffers actually, but the overflow will make
+		 * sure we blow up the kernel before we blow up userspace. */
+		execbuf.buffer_count = num;
+
+		/* Put a real batch at the end. */
+		execobjs[num - 1].handle = batch_handle;
+
+		/* Make sure the basic thing would work first ... */
+		errno = 0;
+		ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf);
+		igt_assert(errno == 0);
+
+		/* ... then be evil: Overflow of the pointer table (which has a
+		 * bit of lead datastructures, so no + 1 needed to overflow). */
+		execbuf.buffer_count = INT_MAX / sizeof(void *);
+
+		errno = 0;
+		ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf);
+		igt_assert(errno == EINVAL);
+
+		/* ... then be evil: Copying/allocating the array. */
+		execbuf.buffer_count = UINT_MAX / sizeof(execobjs[0]) + 1;
 
 		errno = 0;
 		ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf);
@@ -254,6 +299,8 @@ int main(int argc, char *argv[])
 	reloc_tests();
 
 	source_offset_tests();
+
+	buffer_count_tests();
 
 	igt_fixture {
 		gem_close(fd, batch_handle);
