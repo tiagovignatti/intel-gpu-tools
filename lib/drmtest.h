@@ -123,15 +123,15 @@ bool __igt_run_subtest(const char *subtest_name);
  */
 #define igt_tokencat2(x, y) x ## y
 #define igt_tokencat(x, y) igt_tokencat2(x, y)
-#define __igt_subtest_f(tmp, format, args...) \
+#define __igt_subtest_f(tmp, format...) \
 	for (char tmp [256]; \
 	     snprintf( tmp , sizeof( tmp ), \
-		      format, args), \
+		      format), \
 	     __igt_run_subtest( tmp ) && \
 	     (setjmp(igt_subtest_jmpbuf) == 0); \
 	     igt_success())
-#define igt_subtest_f(f, a...) \
-	__igt_subtest_f(igt_tokencat(__tmpchar, __LINE__), f, a)
+#define igt_subtest_f(f...) \
+	__igt_subtest_f(igt_tokencat(__tmpchar, __LINE__), f)
 #define igt_subtest(name) for (; __igt_run_subtest((name)) && \
 				   (setjmp(igt_subtest_jmpbuf) == 0); \
 				   igt_success())
@@ -145,8 +145,10 @@ const char *igt_subtest_name(void);
  * For normal tests without subtest it will directly exit.
  */
 __attribute__((format(printf, 1, 2))) void igt_skip(const char *f, ...);
+__attribute__((format(printf, 5, 6)))
 void __igt_skip_check(const char *file, const int line,
-		      const char *func, const char *check);
+		      const char *func, const char *check,
+		      const char *format, ...);
 /**
  * igt_success - complete a (subtest) as successfull
  *
@@ -162,8 +164,10 @@ void igt_success(void);
  * presuming that some mandatory setup failed.
  */
 void igt_fail(int exitcode) __attribute__((noreturn));
+__attribute__((format(printf, 6, 7)))
 void __igt_fail_assert(int exitcode, const char *file,
-		       const int line, const char *func, const char *assertion)
+		       const int line, const char *func, const char *assertion,
+		       const char *format, ...)
 	__attribute__((noreturn));
 /**
  * igt_exit - exit() for igts
@@ -179,7 +183,14 @@ void igt_exit(void) __attribute__((noreturn));
  *
  * Should be used everywhere where a test checks results.
  */
-#define igt_assert(expr) do { if (!(expr)) __igt_fail_assert(99, __FILE__, __LINE__, __func__, #expr ); } while (0)
+#define igt_assert(expr) \
+	do { if (!(expr)) \
+		__igt_fail_assert(99, __FILE__, __LINE__, __func__, #expr , NULL); \
+	} while (0)
+#define igt_assert_f(expr, f...) \
+	do { if (!(expr)) \
+		__igt_fail_assert(99, __FILE__, __LINE__, __func__, #expr , f); \
+	} while (0)
 /**
  * igt_require - skip a (sub-)test if a condition is not met
  *
@@ -187,7 +198,15 @@ void igt_exit(void) __attribute__((noreturn));
  * code control flow.
  */
 #define igt_require(expr) igt_skip_on(!(expr))
-#define igt_skip_on(expr) do { if ((expr)) __igt_skip_check(__FILE__, __LINE__, __func__, #expr ); } while (0)
+#define igt_skip_on(expr) \
+	do { if ((expr)) \
+		__igt_skip_check(__FILE__, __LINE__, __func__, #expr , NULL); \
+	} while (0)
+#define igt_require_f(expr, f...) igt_skip_on_f(!(expr), f)
+#define igt_skip_on_f(expr, f...) \
+	do { if ((expr)) \
+		__igt_skip_check(__FILE__, __LINE__, __func__, #expr , f); \
+	} while (0)
 
 bool __igt_fixture(void);
 void __igt_fixture_complete(void);

@@ -876,11 +876,34 @@ void igt_skip(const char *f, ...)
 }
 
 void __igt_skip_check(const char *file, const int line,
-		      const char *func, const char *check)
+		      const char *func, const char *check,
+		      const char *f, ...)
 {
-	igt_skip("Test requirement not met in function %s, file %s:%i:\n"
-		 "Test requirement: (%s)\n",
-		 func, file, line, check);
+	va_list args;
+
+	if (f) {
+		char buf[4096];
+		int length;
+
+		/*
+		 * Important: va_list argument lists can't be used twice, so we
+		 * can't first do an vsnprintf call to size the temporary
+		 * storage correctly. Pick the easy solution with a static
+		 * buffer and an asssert.
+		 */
+		va_start(args, f);
+		length = vsnprintf(buf, sizeof(buf), f, args);
+		assert(length < sizeof(buf) - 1);
+		va_end(args);
+
+		igt_skip("Test requirement not met in function %s, file %s:%i:\n"
+			 "Test requirement: (%s)\n%s",
+			 func, file, line, check, buf);
+	} else {
+		igt_skip("Test requirement not met in function %s, file %s:%i:\n"
+			 "Test requirement: (%s)\n",
+			 func, file, line, check);
+	}
 }
 
 void igt_success(void)
@@ -927,11 +950,21 @@ static bool run_under_gdb(void)
 }
 
 void __igt_fail_assert(int exitcode, const char *file,
-		       const int line, const char *func, const char *assertion)
+		       const int line, const char *func, const char *assertion,
+		       const char *f, ...)
 {
+	va_list args;
+
 	printf("Test assertion failure function %s, file %s:%i:\n"
 	       "Failed assertion: %s\n",
 	       func, file, line, assertion);
+
+	if (f) {
+		va_start(args, f);
+		vprintf(f, args);
+		va_end(args);
+	}
+
 	if (run_under_gdb())
 		abort();
 	igt_fail(exitcode);

@@ -103,12 +103,10 @@ store_dword_loop(int divider, unsigned flags)
 		drm_intel_bo_map(target_bo, 1);
 
 		buf = target_bo->virtual;
-		if (buf[0] != (0x42000000 | val)) {
-			fprintf(stderr,
-				"value mismatch: cur 0x%08x, stored 0x%08x\n",
-				buf[0], 0x42000000 | val);
-			igt_fail(-1);
-		}
+		igt_assert_f(buf[0] != (0x42000000 | val),
+			     "value mismatch: cur 0x%08x, stored 0x%08x\n",
+			     buf[0], 0x42000000 | val);
+
 		buf[0] = 0; /* let batch write it again */
 		drm_intel_bo_unmap(target_bo);
 
