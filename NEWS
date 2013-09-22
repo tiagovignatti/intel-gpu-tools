@@ -1,5 +1,15 @@
+Release 1.5
+------------------------
+
+- Some polishing of the test infrastructure, for details see:
+
+  http://blog.ffwll.ch/2013/09/more-drmi915-testsuite-infrastructure.html
+
+- Haswell support for the DPF tool (tools/intel_l3_parity) and other
+  improvements (Ben).
+
 Release 1.4 (2013-09-16)
------------
+------------------------
 
 - Integration of the gen4+ assembler (Damien).
 
