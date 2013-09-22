@@ -816,6 +816,17 @@ static void overlay_snapshot(struct overlay_context *ctx)
 	cairo_surface_write_to_png(ctx->surface, buf);
 }
 
+static void usage(const char *progname)
+{
+	printf("intel-gpu-overlay -- realtime display of GPU statistics\n");
+	printf("Usage: %s [options]\n", progname);
+	printf("\t--config|-c <string> | <filename>\t\t\tSpecify an ini-style configuration string or file\n");
+	printf("\t--geometry|-G <width>x<height>+<x-offset>+<y-offset>\tExact window placement and size\n");
+	printf("\t--position|-P (top|middle|bottom)-(left|centre|right)\tPlace the window in a particular corner\n");
+	printf("\t--size|-S <width>x<height> | <scale>%%\t\t\tWindow size\n");
+	printf("\t--help|-h\t\t\t\t\t\tThis help message\n");
+}
+
 int main(int argc, char **argv)
 {
 	static struct option long_options[] = {
@@ -823,6 +834,7 @@ int main(int argc, char **argv)
 		{"geometry", 1, 0, 'G'},
 		{"position", 1, 0, 'P'},
 		{"size", 1, 0, 'S'},
+		{"help", 0, 0, 'h'},
 		{NULL, 0, 0, 0,}
 	};
 	struct overlay_context ctx;
@@ -834,7 +846,7 @@ int main(int argc, char **argv)
 	config_init(&config);
 
 	opterr = 0;
-	while ((i = getopt_long(argc, argv, "c:fn?", long_options, &index)) != -1) {
+	while ((i = getopt_long(argc, argv, "c:fhn?", long_options, &index)) != -1) {
 		switch (i) {
 		case 'c':
 			config_parse_string(&config, optarg);
@@ -856,6 +868,9 @@ int main(int argc, char **argv)
 			if (optarg)
 				renice = atoi(optarg);
 			break;
+		case 'h':
+			usage(argv[0]);
+			return 0;
 		}
 	}
 
