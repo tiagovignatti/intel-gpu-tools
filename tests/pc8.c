@@ -103,13 +103,13 @@ static bool supports_pc8_plus_residencies(void)
 	uint64_t val;
 
 	rc = pread(msr_fd, &val, sizeof(uint64_t), MSR_PC8_RES);
-	if (!rc == sizeof(val))
+	if (rc != sizeof(val))
 		return false;
 	rc = pread(msr_fd, &val, sizeof(uint64_t), MSR_PC9_RES);
-	if (!rc == sizeof(val))
+	if (rc != sizeof(val))
 		return false;
 	rc = pread(msr_fd, &val, sizeof(uint64_t), MSR_PC10_RES);
-	if (!rc == sizeof(val))
+	if (rc != sizeof(val))
 		return false;
 
 	return true;
