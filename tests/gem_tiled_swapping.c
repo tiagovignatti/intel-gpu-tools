@@ -129,11 +129,9 @@ main(int argc, char **argv)
 		data = gem_mmap(fd, bo_handles[idx_arr[i]],
 				LINEAR_DWORDS, PROT_READ | PROT_WRITE);
 		for (j = 0; j < WIDTH*HEIGHT; j++)
-			if (data[j] != j) {
-				fprintf(stderr, "mismatch at %i: %i\n",
-						j, data[j]);
-				igt_fail(1);
-			}
+			igt_assert_f(data[j] == j,
+				     "mismatch at %i: %i\n",
+				     j, data[j]);
 		munmap(data, LINEAR_DWORDS);
 	}
 

@@ -99,11 +99,6 @@ int main(int argc, char **argv)
 
 	igt_skip_on_simulation();
 
-	if (argc != 1) {
-		fprintf(stderr, "usage: %s\n", argv[0]);
-		igt_fail(-1);
-	}
-
 	fd = drm_open_any();
 	devid = intel_get_drm_devid(fd);
 	if (!HAS_BLT_RING(devid)) {
@@ -112,29 +107,17 @@ int main(int argc, char **argv)
 	}
 
 	bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
-	if (!bufmgr) {
-		fprintf(stderr, "failed to init libdrm\n");
-		igt_fail(-1);
-	}
+	igt_assert(bufmgr);
 	drm_intel_bufmgr_gem_enable_reuse(bufmgr);
 
 	batch = intel_batchbuffer_alloc(bufmgr, devid);
-	if (!batch) {
-		fprintf(stderr, "failed to create batch buffer\n");
-		igt_fail(-1);
-	}
+	igt_assert(batch);
 
 	target_buffer = drm_intel_bo_alloc(bufmgr, "target bo", 4096, 4096);
-	if (!target_buffer) {
-		fprintf(stderr, "failed to alloc target buffer\n");
-		igt_fail(-1);
-	}
+	igt_assert(target_buffer);
 
 	blt_bo = drm_intel_bo_alloc(bufmgr, "target bo", 4*4096*4096, 4096);
-	if (!blt_bo) {
-		fprintf(stderr, "failed to alloc blt buffer\n");
-		igt_fail(-1);
-	}
+	igt_assert(blt_bo);
 
 	dummy_reloc_loop();
 

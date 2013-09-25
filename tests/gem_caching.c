@@ -159,11 +159,9 @@ int main(int argc, char **argv)
 			drm_intel_bo_map(scratch_bo, false);
 			cpu_ptr = scratch_bo->virtual;
 			for (j = 0; j < len; j++) {
-				if (cpu_ptr[j] != val0) {
-					printf("mismatch at %i, got: %i, expected: %i\n",
-					       j, cpu_ptr[j], val0);
-					igt_fail(1);
-				}
+				igt_assert_f(cpu_ptr[j] == val0,
+					     "mismatch at %i, got: %i, expected: %i\n",
+					     j, cpu_ptr[j], val0);
 			}
 			drm_intel_bo_unmap(scratch_bo);
 
@@ -196,25 +194,19 @@ int main(int argc, char **argv)
 			gtt_ptr = staging_bo->virtual;
 
 			for (j = 0; j < start; j++) {
-				if (gtt_ptr[j] != val0) {
-					printf("mismatch at %i, partial=[%d+%d] got: %i, expected: %i\n",
-					       j, start, len, gtt_ptr[j], val0);
-					igt_fail(1);
-				}
+				igt_assert_f(gtt_ptr[j] == val0,
+					     "mismatch at %i, partial=[%d+%d] got: %i, expected: %i\n",
+					     j, start, len, gtt_ptr[j], val0);
 			}
 			for (; j < start + len; j++) {
-				if (gtt_ptr[j] != val1) {
-					printf("mismatch at %i, partial=[%d+%d] got: %i, expected: %i\n",
-					       j, start, len, gtt_ptr[j], val1);
-					igt_fail(1);
-				}
+				igt_assert_f(gtt_ptr[j] == val1,
+					     "mismatch at %i, partial=[%d+%d] got: %i, expected: %i\n",
+					     j, start, len, gtt_ptr[j], val1);
 			}
 			for (; j < BO_SIZE; j++) {
-				if (gtt_ptr[j] != val0) {
-					printf("mismatch at %i, partial=[%d+%d] got: %i, expected: %i\n",
-					       j, start, len, gtt_ptr[j], val0);
-					igt_fail(1);
-				}
+				igt_assert_f(gtt_ptr[j] == val0,
+					     "mismatch at %i, partial=[%d+%d] got: %i, expected: %i\n",
+					     j, start, len, gtt_ptr[j], val0);
 			}
 			drm_intel_gem_bo_unmap_gtt(staging_bo);
 
@@ -240,11 +232,9 @@ int main(int argc, char **argv)
 			do_or_die(drm_intel_bo_map(scratch_bo, false));
 			cpu_ptr = scratch_bo->virtual;
 			for (j = 0; j < len; j++) {
-				if (cpu_ptr[j] != val0) {
-					printf("mismatch in read at %i, got: %i, expected: %i\n",
-					       j, cpu_ptr[j], val0);
-					igt_fail(1);
-				}
+				igt_assert_f(cpu_ptr[j] == val0,
+					     "mismatch in read at %i, got: %i, expected: %i\n",
+					     j, cpu_ptr[j], val0);
 			}
 			drm_intel_bo_unmap(scratch_bo);
 
@@ -267,25 +257,19 @@ int main(int argc, char **argv)
 			gtt_ptr = staging_bo->virtual;
 
 			for (j = 0; j < start; j++) {
-				if (gtt_ptr[j] != val1) {
-					printf("mismatch at %i, partial=[%d+%d] got: %i, expected: %i\n",
-					       j, start, len, gtt_ptr[j], val1);
-					igt_fail(1);
-				}
+				igt_assert_f(gtt_ptr[j] == val1,
+					     "mismatch at %i, partial=[%d+%d] got: %i, expected: %i\n",
+					     j, start, len, gtt_ptr[j], val1);
 			}
 			for (; j < start + len; j++) {
-				if (gtt_ptr[j] != val2) {
-					printf("mismatch at %i, partial=[%d+%d] got: %i, expected: %i\n",
-					       j, start, len, gtt_ptr[j], val2);
-					igt_fail(1);
-				}
+				igt_assert_f(gtt_ptr[j] == val2,
+					     "mismatch at %i, partial=[%d+%d] got: %i, expected: %i\n",
+					     j, start, len, gtt_ptr[j], val2);
 			}
 			for (; j < BO_SIZE; j++) {
-				if (gtt_ptr[j] != val1) {
-					printf("mismatch at %i, partial=[%d+%d] got: %i, expected: %i\n",
-					       j, start, len, gtt_ptr[j], val1);
-					igt_fail(1);
-				}
+				igt_assert_f(gtt_ptr[j] == val1,
+					     "mismatch at %i, partial=[%d+%d] got: %i, expected: %i\n",
+					     j, start, len, gtt_ptr[j], val1);
 			}
 			drm_intel_gem_bo_unmap_gtt(staging_bo);
 			drm_intel_bo_unmap(scratch_bo);

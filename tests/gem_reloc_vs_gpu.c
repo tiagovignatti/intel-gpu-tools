@@ -256,10 +256,8 @@ static void do_test(int fd, bool faulting_reloc)
 	/* Only check at the end to avoid unnecessary synchronous behaviour. */
 	for (i = 0; i < NUM_TARGET_BOS; i++) {
 		drm_intel_bo_get_subdata(pc_target_bo[i], 0, 4, &test);
-		if (test != 0xdeadbeef) {
-			fprintf(stderr, "mismatch in buffer %i: 0x%08x instead of 0xdeadbeef\n", i, test);
-			igt_fail(1);
-		}
+		igt_assert_f(test == 0xdeadbeef,
+			     "mismatch in buffer %i: 0x%08x instead of 0xdeadbeef\n", i, test);
 		drm_intel_bo_unreference(pc_target_bo[i]);
 	}
 

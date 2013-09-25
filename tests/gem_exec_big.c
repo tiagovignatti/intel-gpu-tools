@@ -114,8 +114,7 @@ int main(int argc, char **argv)
 		gem_write(fd, handle, 0, batch, sizeof(batch));
 
 		for (reloc_ofs = 4096; reloc_ofs < batch_size; reloc_ofs += 4096)
-			if (exec(fd, handle, reloc_ofs))
-				igt_fail(1);
+			igt_assert(exec(fd, handle, reloc_ofs) == 0);
 	}
 
 	gem_close(fd, handle);

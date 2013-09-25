@@ -67,10 +67,7 @@ static void run_test(int ring)
 		gem_require_ring(fd, I915_EXEC_BLT);
 
 	target_bo = drm_intel_bo_alloc(bufmgr, "target bo", 4096, 4096);
-	if (!target_bo) {
-		fprintf(stderr, "failed to alloc target buffer\n");
-		igt_fail(-1);
-	}
+	igt_assert(target_bo);
 
 	/* Need to map first so that we can do our own domain mangement with
 	 * set_domain. */

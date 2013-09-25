@@ -257,11 +257,9 @@ static void do_test(int fd, bool faulting_reloc)
 		for (repeat = 0; repeat < 8; repeat++) {
 			drm_intel_bo_get_subdata(pc_target_bo[i],
 						 repeat*small_pitch, 4, &test);
-			if (test != 0xdeadbeef) {
-				fprintf(stderr, "mismatch in buffer %i: 0x%08x instead of 0xdeadbeef at offset %i\n",
-					i, test, repeat*small_pitch);
-				igt_fail(1);
-			}
+			igt_assert_f(test == 0xdeadbeef,
+				     "mismatch in buffer %i: 0x%08x instead of 0xdeadbeef at offset %i\n",
+				     i, test, repeat*small_pitch);
 		}
 		drm_intel_bo_unreference(pc_target_bo[i]);
 		drm_intel_bo_unreference(special_bos[i]);

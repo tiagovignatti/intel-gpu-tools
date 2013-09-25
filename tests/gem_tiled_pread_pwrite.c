@@ -138,11 +138,9 @@ main(int argc, char **argv)
 		/* Check the target bo's contents. */
 		data = gem_mmap(fd, handle_target, sizeof(linear), PROT_READ | PROT_WRITE);
 		for (j = 0; j < WIDTH*HEIGHT; j++)
-			if (data[j] != j) {
-				fprintf(stderr, "mismatch at %i: %i\n",
-						j, data[j]);
-				igt_fail(1);
-			}
+			igt_assert_f(data[j] == j,
+				     "mismatch at %i: %i\n",
+				     j, data[j]);
 		munmap(data, sizeof(linear));
 
 		/* Leak both bos so that we use all of system mem! */

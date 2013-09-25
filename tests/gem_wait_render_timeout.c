@@ -182,11 +182,7 @@ int main(int argc, char **argv)
 	intel_batchbuffer_flush(batch);
 	igt_assert(gem_bo_busy(fd, dst2->handle) == true);
 
-	ret = gem_bo_wait_timeout(fd, dst2->handle, &timeout);
-	if (ret) {
-		fprintf(stderr, "Timed wait failed %s\n", strerror(errno));
-		igt_fail(1);
-	}
+	igt_assert(gem_bo_wait_timeout(fd, dst2->handle, &timeout) == 0);
 	igt_assert(gem_bo_busy(fd, dst2->handle) == false);
 	igt_assert(timeout != 0);
 	if (timeout ==  (ENOUGH_WORK_IN_SECONDS * NSEC_PER_SEC))

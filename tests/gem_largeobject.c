@@ -48,7 +48,6 @@ test_large_object(int fd)
 	struct drm_i915_gem_create create;
 	struct drm_i915_gem_pin pin;
 	uint32_t obj_size;
-	int ret;
 
 	memset(&create, 0, sizeof(create));
 	memset(&pin, 0, sizeof(pin));
@@ -62,20 +61,10 @@ test_large_object(int fd)
 	create.size = obj_size;
 	printf("obj size %i\n", obj_size);
 
-	ret = ioctl(fd, DRM_IOCTL_I915_GEM_CREATE, &create);
-	if (ret) {
-		fprintf(stderr, "object creation failed: %s\n",
-			strerror(errno));
-		igt_fail(ret);
-	}
+	igt_assert(ioctl(fd, DRM_IOCTL_I915_GEM_CREATE, &create) == 0);
 
 	pin.handle = create.handle;
-	ret = ioctl(fd, DRM_IOCTL_I915_GEM_PIN, &pin);
-	if (ret) {
-		fprintf(stderr, "pin failed: %s\n",
-			strerror(errno));
-		igt_fail(ret);
-	}
+	igt_assert(ioctl(fd, DRM_IOCTL_I915_GEM_PIN, &pin) == 0);
 
 	gem_write(fd, create.handle, 0, data, obj_size);
 

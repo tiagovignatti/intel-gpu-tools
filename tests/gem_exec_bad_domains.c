@@ -144,10 +144,7 @@ static void multi_write_domain(int fd)
 	gem_close(fd, handle);
 	gem_close(fd, handle_target);
 
-	if (ret == 0 || errno != EINVAL) {
-		fprintf(stderr, "multiple write domains not rejected\n");
-		igt_fail(1);
-	}
+	igt_assert(ret != 0 && errno == EINVAL);
 }
 
 int fd;

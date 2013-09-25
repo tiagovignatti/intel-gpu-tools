@@ -73,10 +73,7 @@ store_pipe_control_loop(bool preuse_buffer)
 		/* we want to check tlb consistency of the pipe_control target,
 		 * so get a new buffer every time around */
 		target_bo = drm_intel_bo_alloc(bufmgr, "target bo", 4096, 4096);
-		if (!target_bo) {
-			fprintf(stderr, "failed to alloc target buffer\n");
-			igt_fail(-1);
-		}
+		igt_assert(target_bo);
 
 		if (preuse_buffer) {
 			BEGIN_BATCH(6);

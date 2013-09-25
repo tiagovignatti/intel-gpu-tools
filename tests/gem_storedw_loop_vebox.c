@@ -102,28 +102,18 @@ int main(int argc, char **argv)
 
 	fd = drm_open_any();
 
-	/* This only works with ppgtt */
-	if (!gem_has_vebox(fd) || !gem_uses_aliasing_ppgtt(fd))
-		return 77;
+	igt_require(gem_has_vebox(fd));
+	igt_require(gem_uses_aliasing_ppgtt(fd));
 
 	bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
-	if (!bufmgr) {
-		fprintf(stderr, "failed to init libdrm\n");
-		igt_fail(-1);
-	}
+	igt_assert(bufmgr);
 	drm_intel_bufmgr_gem_enable_reuse(bufmgr);
 
 	batch = intel_batchbuffer_alloc(bufmgr, intel_get_drm_devid(fd));
-	if (!batch) {
-		fprintf(stderr, "failed to create batch buffer\n");
-		igt_fail(-1);
-	}
+	igt_require(batch);
 
 	target_buffer = drm_intel_bo_alloc(bufmgr, "target bo", 4096, 4096);
-	if (!target_buffer) {
-		fprintf(stderr, "failed to alloc target buffer\n");
-		igt_fail(-1);
-	}
+	igt_require(target_buffer);
 
 	store_dword_loop(1);
 	store_dword_loop(2);

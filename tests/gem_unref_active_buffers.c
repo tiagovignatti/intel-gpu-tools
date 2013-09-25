@@ -60,10 +60,7 @@ int main(int argc, char **argv)
 	fd = drm_open_any();
 
 	bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
-	if (!bufmgr) {
-		fprintf(stderr, "failed to init libdrm\n");
-		igt_fail(-1);
-	}
+	igt_assert(bufmgr);
 	/* don't enable buffer reuse!! */
 	//drm_intel_bufmgr_gem_enable_reuse(bufmgr);
 
@@ -74,10 +71,7 @@ int main(int argc, char **argv)
 	 * enough */
 	for (i = 0; i < 1000; i++) {
 		load_bo = drm_intel_bo_alloc(bufmgr, "target bo", 1024*4096, 4096);
-		if (!load_bo) {
-			fprintf(stderr, "failed to alloc target buffer\n");
-			igt_fail(-1);
-		}
+		igt_assert(load_bo);
 
 		BEGIN_BATCH(8);
 		OUT_BATCH(XY_SRC_COPY_BLT_CMD |

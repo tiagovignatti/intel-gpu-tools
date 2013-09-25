@@ -143,11 +143,9 @@ static void test_partial_reads(void)
 
 		drm_intel_bo_get_subdata(scratch_bo, start, len, tmp);
 		for (j = 0; j < len; j++) {
-			if (tmp[j] != val) {
-				printf("mismatch at %i, got: %i, expected: %i\n",
-				       start + j, tmp[j], val);
-				igt_fail(1);
-			}
+			igt_assert_f(tmp[j] == val,
+				     "mismatch at %i, got: %i, expected: %i\n",
+				     start + j, tmp[j], val);
 		}
 
 		igt_progress("partial reads test: ", i, ROUNDS);
@@ -177,25 +175,19 @@ static void test_partial_writes(void)
 					 compare_tmp);
 
 		for (j = 0; j < start; j++) {
-			if (compare_tmp[j] != val) {
-				printf("amismatch at %i, got: %i, expected: %i\n",
-				       j, tmp[j], val);
-				igt_fail(1);
-			}
+			igt_assert_f(compare_tmp[j] == val,
+				     "mismatch at %i, got: %i, expected: %i\n",
+				     j, tmp[j], val);
 		}
 		for (; j < start + len; j++) {
-			if (compare_tmp[j] != tmp[0]) {
-				printf("bmismatch at %i, got: %i, expected: %i\n",
-				       j, tmp[j], i);
-				igt_fail(1);
-			}
+			igt_assert_f(compare_tmp[j] == tmp[0],
+				     "mismatch at %i, got: %i, expected: %i\n",
+				     j, tmp[j], i);
 		}
 		for (; j < BO_SIZE; j++) {
-			if (compare_tmp[j] != val) {
-				printf("cmismatch at %i, got: %i, expected: %i\n",
-				       j, tmp[j], val);
-				igt_fail(1);
-			}
+			igt_assert_f(compare_tmp[j] == val,
+				     "mismatch at %i, got: %i, expected: %i\n",
+				     j, tmp[j], val);
 		}
 		drm_intel_gem_bo_unmap_gtt(staging_bo);
 
@@ -220,11 +212,9 @@ static void test_partial_read_writes(void)
 
 		drm_intel_bo_get_subdata(scratch_bo, start, len, tmp);
 		for (j = 0; j < len; j++) {
-			if (tmp[j] != val) {
-				printf("mismatch in read at %i, got: %i, expected: %i\n",
-				       start + j, tmp[j], val);
-				igt_fail(1);
-			}
+			igt_assert_f(tmp[j] == val,
+				     "mismatch in read at %i, got: %i, expected: %i\n",
+				     start + j, tmp[j], val);
 		}
 
 		/* Change contents through gtt to make the pread cachelines
@@ -245,25 +235,19 @@ static void test_partial_read_writes(void)
 					 compare_tmp);
 
 		for (j = 0; j < start; j++) {
-			if (compare_tmp[j] != val) {
-				printf("mismatch at %i, got: %i, expected: %i\n",
-				       j, tmp[j], val);
-				igt_fail(1);
-			}
+			igt_assert_f(compare_tmp[j] == val,
+				     "mismatch at %i, got: %i, expected: %i\n",
+				     j, tmp[j], val);
 		}
 		for (; j < start + len; j++) {
-			if (compare_tmp[j] != tmp[0]) {
-				printf("mismatch at %i, got: %i, expected: %i\n",
-				       j, tmp[j], tmp[0]);
-				igt_fail(1);
-			}
+			igt_assert_f(compare_tmp[j] == tmp[0],
+				     "mismatch at %i, got: %i, expected: %i\n",
+				     j, tmp[j], tmp[0]);
 		}
 		for (; j < BO_SIZE; j++) {
-			if (compare_tmp[j] != val) {
-				printf("mismatch at %i, got: %i, expected: %i\n",
-				       j, tmp[j], val);
-				igt_fail(1);
-			}
+			igt_assert_f(compare_tmp[j] == val,
+				     "mismatch at %i, got: %i, expected: %i\n",
+				     j, tmp[j], val);
 		}
 		drm_intel_gem_bo_unmap_gtt(staging_bo);
 

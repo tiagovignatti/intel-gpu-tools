@@ -128,20 +128,16 @@ _bo_write_verify(struct test *t)
 		for (i = 0; i < dwords; i++) {
 			a[i] = i;
 			v = a[i];
-			if (v != i) {
-				printf("tiling %s: write failed at %d (%x)\n",
-				       tile_str[t->tiling], i, v);
-				igt_fail(-1);
-			}
+			igt_assert_f(v == i,
+				     "tiling %s: write failed at %d (%x)\n",
+				     tile_str[t->tiling], i, v);
 		}
 
 		for (i = 0; i < dwords; i++) {
 			v = a[i];
-			if (v != i) {
-				printf("tiling %s: verify failed at %d (%x)\n",
-				       tile_str[t->tiling], i, v);
-				igt_fail(-2);
-			}
+			igt_assert_f(v == i,
+				     "tiling %s: verify failed at %d (%x)\n",
+				     tile_str[t->tiling], i, v);
 		}
 	}
 

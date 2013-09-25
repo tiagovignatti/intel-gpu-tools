@@ -79,12 +79,9 @@ store_dword_loop(int divider)
 		drm_intel_bo_map(target_buffer, 0);
 
 		buf = target_buffer->virtual;
-		if (buf[0] != val) {
-			fprintf(stderr,
-				"value mismatch: cur 0x%08x, stored 0x%08x\n",
-				buf[0], val);
-			igt_fail(-1);
-		}
+		igt_assert_f(buf[0] == val,
+			     "value mismatch: cur 0x%08x, stored 0x%08x\n",
+			     buf[0], val);
 
 		drm_intel_bo_unmap(target_buffer);
 
@@ -105,53 +102,30 @@ int main(int argc, char **argv)
 	int fd;
 	int devid;
 
-	if (argc != 1) {
-		fprintf(stderr, "usage: %s\n", argv[0]);
-		igt_fail(-1);
-	}
-
 	fd = drm_open_any();
 	devid = intel_get_drm_devid(fd);
 
 	has_ppgtt = gem_uses_aliasing_ppgtt(fd);
 
-	if (IS_GEN2(devid) || IS_GEN3(devid) || IS_GEN4(devid) || IS_GEN5(devid)) {
+	igt_skip_on_f(intel_gen(devid) < 6,
+		      "MI_STORE_DATA can only use GTT address on gen4+/g33 and "
+		      "needs snoopable mem on pre-gen6\n");
 
-		fprintf(stderr, "MI_STORE_DATA can only use GTT address on gen4+/g33 and "
-			"needs snoopable mem on pre-gen6\n");
-		return 77;
-	}
-
-	if (IS_GEN6(devid)) {
-
-		fprintf(stderr, "MI_STORE_DATA broken on gen6 bsd\n");
-		return 77;
-	}
+	igt_skip_on_f(intel_gen(devid) == 6,
+		      "MI_STORE_DATA broken on gen6 bsd\n");
 
 	/* This only works with ppgtt */
-	if (!has_ppgtt) {
-		fprintf(stderr, "no ppgtt detected, which is required\n");
-		return 77;
-	}
+	igt_require(has_ppgtt);
 
 	bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
-	if (!bufmgr) {
-		fprintf(stderr, "failed to init libdrm\n");
-		igt_fail(-1);
-	}
+	igt_assert(bufmgr);
 	drm_intel_bufmgr_gem_enable_reuse(bufmgr);
 
 	batch = intel_batchbuffer_alloc(bufmgr, devid);
-	if (!batch) {
-		fprintf(stderr, "failed to create batch buffer\n");
-		igt_fail(-1);
-	}
+	igt_assert(batch);
 
 	target_buffer = drm_intel_bo_alloc(bufmgr, "target bo", 4096, 4096);
-	if (!target_buffer) {
-		fprintf(stderr, "failed to alloc target buffer\n");
-		igt_fail(-1);
-	}
+	igt_assert(target_buffer);
 
 	store_dword_loop(1);
 	store_dword_loop(2);
