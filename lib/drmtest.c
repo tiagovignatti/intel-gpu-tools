@@ -1784,7 +1784,7 @@ type_name_fn(connector_type)
 
 void kmstest_dump_mode(drmModeModeInfo *mode)
 {
-	bool stereo_3d = mode->flags & DRMTEST_MODE_FLAG_3D_MASK;
+	bool stereo_3d = mode->flags & DRM_MODE_FLAG_3D_MASK;
 	char flags_str[32];
 
 #define PRINT_S(name) "%s"

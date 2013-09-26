@@ -366,7 +366,8 @@ set_mode(struct connector *c)
 			c->mode = c->connector->modes[j];
 
 		/* set_mode() only tests 2D modes */
-		c->mode.flags &= ~DRMTEST_MODE_FLAG_3D_MASK;
+		if (c->mode.flags & DRM_MODE_FLAG_3D_MASK)
+			continue;
 
 		if (!c->mode_valid)
 			continue;
@@ -436,7 +437,7 @@ static void box_print(const char * prefix, struct box *box)
 static void stereo_fb_layout_from_mode(struct stereo_fb_layout *layout,
 				       drmModeModeInfo *mode)
 {
-	unsigned int format = mode->flags & DRMTEST_MODE_FLAG_3D_MASK;
+	unsigned int format = mode->flags & DRM_MODE_FLAG_3D_MASK;
 	const int hdisplay = mode->hdisplay, vdisplay = mode->vdisplay;
 	int middle;
 
@@ -479,7 +480,7 @@ static void stereo_fb_layout_from_mode(struct stereo_fb_layout *layout,
 
 static const char *stereo_mode_str(drmModeModeInfo *mode)
 {
-	unsigned int layout = mode->flags & DRMTEST_MODE_FLAG_3D_MASK;
+	unsigned int layout = mode->flags & DRM_MODE_FLAG_3D_MASK;
 
 	switch (layout) {
 	case DRM_MODE_FLAG_3D_TOP_AND_BOTTOM:
@@ -554,7 +555,7 @@ set_stereo_mode(struct connector *c)
 		if (!c->mode_valid)
 			continue;
 
-		if (!(c->mode.flags & DRMTEST_MODE_FLAG_3D_MASK))
+		if (!(c->mode.flags & DRM_MODE_FLAG_3D_MASK))
 			continue;
 
 		do_set_stereo_mode(c);
