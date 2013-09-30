@@ -428,12 +428,6 @@ static void box_init(struct box *box, int x, int y, int bwidth, int bheight)
 	box->height = bheight;
 }
 
-static void box_print(const char * prefix, struct box *box)
-{
-	printf("%s: %d, %d, %d, %d\n", prefix,
-			box->x, box->y, box->width, box->height);
-}
-
 static void stereo_fb_layout_from_mode(struct stereo_fb_layout *layout,
 				       drmModeModeInfo *mode)
 {
@@ -501,8 +495,6 @@ static uint32_t create_stereo_fb(drmModeModeInfo *mode, struct kmstest_fb *fb)
 	uint32_t fb_id;
 
 	stereo_fb_layout_from_mode(&layout, mode);
-	box_print("left: ", &layout.left);
-	box_print("right: ", &layout.right);
 	fb_id = kmstest_create_fb(drm_fd, layout.fb_width, layout.fb_height,
 				  bpp, depth, enable_tiling, fb);
 	cr = kmstest_get_cairo_ctx(drm_fd, fb);
