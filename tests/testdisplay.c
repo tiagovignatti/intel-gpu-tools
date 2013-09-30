@@ -557,6 +557,8 @@ set_stereo_mode(struct connector *c)
 		if (!(c->mode.flags & DRM_MODE_FLAG_3D_MASK))
 			continue;
 
+		fprintf(stdout, "CRTC(%u): [%d]", c->crtc, i);
+		kmstest_dump_mode(&c->mode);
 		do_set_stereo_mode(c);
 
 		if (qr_code) {
