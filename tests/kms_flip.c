@@ -1170,11 +1170,7 @@ static void run_test_on_crtc(struct test_output *o, int crtc_idx, int duration)
 		/* We may fail to apply the mode if there are hidden
 		 * constraints, such as bandwidth on the third pipe.
 		 */
-		if (0) {
-			fprintf(stderr, "failed to set mode (%dx%d@%dHz): %s\n",
-				o->kmode[0].hdisplay, o->kmode[0].vdisplay, o->kmode[0].vrefresh,
-				strerror(errno));
-		}
+		igt_assert_f(crtc_idx < 2, "set_mode may only fail on the 3rd pipe\n");
 		goto out;
 	}
 	igt_assert(fb_is_bound(o, o->fb_ids[0]));
