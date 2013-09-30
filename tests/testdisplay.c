@@ -552,12 +552,6 @@ set_stereo_mode(struct connector *c)
 
 		do_set_stereo_mode(c);
 
-		/*
-		 * The mode may have been adjusted for this format,
-		 * reset it to its origin timings
-		 */
-		c->mode = c->connector->modes[i];
-
 		if (qr_code) {
 			set_single();
 			pause();
