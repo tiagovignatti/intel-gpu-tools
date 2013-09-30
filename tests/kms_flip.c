@@ -1101,7 +1101,7 @@ static unsigned int wait_for_events(struct test_output *o)
 }
 
 /* Returned the elapsed time in us */
-static unsigned event_loop(struct test_output *o, unsigned duration_sec)
+static unsigned event_loop(struct test_output *o, unsigned duration_ms)
 {
 	unsigned long start, end;
 
@@ -1116,7 +1116,7 @@ static unsigned event_loop(struct test_output *o, unsigned duration_sec)
 		check_all_state(o, completed_events);
 		update_all_state(o, completed_events);
 
-		if ((gettime_us() - start) / 1000000 >= duration_sec)
+		if ((gettime_us() - start) / 1000 >= duration_ms)
 			break;
 	}
 
@@ -1129,12 +1129,9 @@ static unsigned event_loop(struct test_output *o, unsigned duration_sec)
 	return end - start;
 }
 
-static void run_test_on_crtc(struct test_output *o, int crtc_idx, int duration)
+static void run_test_on_crtc(struct test_output *o, int crtc_idx, int duration_ms)
 {
 	unsigned elapsed;
-
-	o->bpp = 32;
-	o->depth = 24;
 
 	connector_find_preferred_mode(o->_connector[0], crtc_idx, o);
 	if (!o->mode_valid)
@@ -1154,10 +1151,9 @@ static void run_test_on_crtc(struct test_output *o, int crtc_idx, int duration)
 					 o->bpp, o->depth, false, &o->fb_info[1]);
 	o->fb_ids[2] = kmstest_create_fb(drm_fd, o->fb_width, o->fb_height,
 					 o->bpp, o->depth, true, &o->fb_info[2]);
-	if (!o->fb_ids[0] || !o->fb_ids[1] || !o->fb_ids[2]) {
-		fprintf(stderr, "failed to create fbs\n");
-		igt_fail(3);
-	}
+	igt_assert(o->fb_ids[0]);
+	igt_assert(o->fb_ids[1]);
+	igt_assert(o->fb_ids[2]);
 
 	paint_flip_mode(&o->fb_info[0], false);
 	paint_flip_mode(&o->fb_info[1], true);
@@ -1192,7 +1188,7 @@ static void run_test_on_crtc(struct test_output *o, int crtc_idx, int duration)
 	else
 		o->vblank_state.seq_step = 1;
 
-	elapsed = event_loop(o, duration);
+	elapsed = event_loop(o, duration_ms);
 
 	if (o->flags & TEST_FLIP && !(o->flags & TEST_NOEVENT))
 		check_final_state(o, &o->flip_state, elapsed);
@@ -1213,13 +1209,11 @@ out:
 	drmModeFreeConnector(o->kconnector[0]);
 }
 
-static void run_test_on_crtc_pair(struct test_output *o, int crtc_idx0, int crtc_idx1, int duration)
+static void run_test_on_crtc_pair(struct test_output *o,
+				  int crtc_idx0, int crtc_idx1, int duration_ms)
 {
 	unsigned elapsed;
 	int i;
-
-	o->bpp = 32;
-	o->depth = 24;
 
 	connector_find_compatible_mode(crtc_idx0, crtc_idx1, o);
 	if (!o->mode_valid)
@@ -1239,10 +1233,9 @@ static void run_test_on_crtc_pair(struct test_output *o, int crtc_idx0, int crtc
 					 o->bpp, o->depth, false, &o->fb_info[1]);
 	o->fb_ids[2] = kmstest_create_fb(drm_fd, o->fb_width, o->fb_height,
 					 o->bpp, o->depth, true, &o->fb_info[2]);
-	if (!o->fb_ids[0] || !o->fb_ids[1] || !o->fb_ids[2]) {
-		fprintf(stderr, "failed to create fbs\n");
-		igt_fail(3);
-	}
+	igt_assert(o->fb_ids[0]);
+	igt_assert(o->fb_ids[1]);
+	igt_assert(o->fb_ids[2]);
 
 	paint_flip_mode(&o->fb_info[0], false);
 	paint_flip_mode(&o->fb_info[1], true);
@@ -1282,7 +1275,7 @@ static void run_test_on_crtc_pair(struct test_output *o, int crtc_idx0, int crtc
 	else
 		o->vblank_state.seq_step = 1;
 
-	elapsed = event_loop(o, duration);
+	elapsed = event_loop(o, duration_ms);
 
 	if (o->flags & TEST_FLIP && !(o->flags & TEST_NOEVENT))
 		check_final_state(o, &o->flip_state, elapsed);
@@ -1308,14 +1301,33 @@ out:
 static int run_test(int duration, int flags)
 {
 	struct test_output o;
-	int i, n;
+	int i, n, modes = 0;
 
 	resources = drmModeGetResources(drm_fd);
-	if (!resources) {
-		fprintf(stderr, "drmModeGetResources failed: %s\n",
-			strerror(errno));
-		igt_fail(5);
+	igt_assert(resources);
+
+	/* Count output configurations to scale test runtime. */
+	for (i = 0; i < resources->count_connectors; i++) {
+		for (n = 0; n < resources->count_crtcs; n++) {
+			memset(&o, 0, sizeof(o));
+			o.count = 1;
+			o._connector[0] = resources->connectors[i];
+			o.flags = flags;
+			o.flip_state.name = "flip";
+			o.vblank_state.name = "vblank";
+			o.bpp = 32;
+			o.depth = 24;
+
+			connector_find_preferred_mode(o._connector[0], n, &o);
+			if (o.mode_valid)
+				modes++;
+
+		}
 	}
+
+	igt_assert(modes);
+	duration = duration * 1000 / modes;
+	duration = duration < 500 ? 500 : duration;
 
 	/* Find any connected displays */
 	for (i = 0; i < resources->count_connectors; i++) {
@@ -1326,6 +1338,8 @@ static int run_test(int duration, int flags)
 			o.flags = flags;
 			o.flip_state.name = "flip";
 			o.vblank_state.name = "vblank";
+			o.bpp = 32;
+			o.depth = 24;
 
 			run_test_on_crtc(&o, n, duration);
 		}
@@ -1338,14 +1352,10 @@ static int run_test(int duration, int flags)
 static int run_pair(int duration, int flags)
 {
 	struct test_output o;
-	int i, j, m, n;
+	int i, j, m, n, modes = 0;
 
 	resources = drmModeGetResources(drm_fd);
-	if (!resources) {
-		fprintf(stderr, "drmModeGetResources failed: %s\n",
-			strerror(errno));
-		igt_fail(5);
-	}
+	igt_assert(resources);
 
 	/* Find a pair of connected displays */
 	for (i = 0; i < resources->count_connectors; i++) {
@@ -1359,6 +1369,36 @@ static int run_pair(int duration, int flags)
 					o.flags = flags;
 					o.flip_state.name = "flip";
 					o.vblank_state.name = "vblank";
+					o.bpp = 32;
+					o.depth = 24;
+
+					connector_find_compatible_mode(n, m, &o);
+					if (o.mode_valid)
+						modes++;
+
+				}
+			}
+		}
+	}
+
+	igt_assert(modes);
+	duration = duration * 1000 / modes;
+	duration = duration < 500 ? 500 : duration;
+
+	/* Find a pair of connected displays */
+	for (i = 0; i < resources->count_connectors; i++) {
+		for (n = 0; n < resources->count_crtcs; n++) {
+			for (j = i + 1; j < resources->count_connectors; j++) {
+				for (m = n + 1; m < resources->count_crtcs; m++) {
+					memset(&o, 0, sizeof(o));
+					o.count = 2;
+					o._connector[0] = resources->connectors[i];
+					o._connector[1] = resources->connectors[j];
+					o.flags = flags;
+					o.flip_state.name = "flip";
+					o.vblank_state.name = "vblank";
+					o.bpp = 32;
+					o.depth = 24;
 
 					run_test_on_crtc_pair(&o, n, m, duration);
 				}
@@ -1395,50 +1435,50 @@ int main(int argc, char **argv)
 		int flags;
 		const char *name;
 	} tests[] = {
-		{ 15, TEST_VBLANK, "wf_vblank" },
-		{ 15, TEST_VBLANK | TEST_CHECK_TS, "wf_vblank-ts-check" },
-		{ 15, TEST_VBLANK | TEST_VBLANK_BLOCK | TEST_CHECK_TS,
+		{ 30, TEST_VBLANK, "wf_vblank" },
+		{ 30, TEST_VBLANK | TEST_CHECK_TS, "wf_vblank-ts-check" },
+		{ 30, TEST_VBLANK | TEST_VBLANK_BLOCK | TEST_CHECK_TS,
 					"blocking-wf_vblank" },
-		{ 5,  TEST_VBLANK | TEST_VBLANK_ABSOLUTE,
+		{ 30,  TEST_VBLANK | TEST_VBLANK_ABSOLUTE,
 					"absolute-wf_vblank" },
-		{ 5,  TEST_VBLANK | TEST_VBLANK_BLOCK | TEST_VBLANK_ABSOLUTE,
+		{ 30,  TEST_VBLANK | TEST_VBLANK_BLOCK | TEST_VBLANK_ABSOLUTE,
 					"blocking-absolute-wf_vblank" },
-		{ 30,  TEST_VBLANK | TEST_DPMS | TEST_EINVAL, "wf_vblank-vs-dpms" },
-		{ 30,  TEST_VBLANK | TEST_DPMS | TEST_WITH_DUMMY_BCS,
+		{ 60,  TEST_VBLANK | TEST_DPMS | TEST_EINVAL, "wf_vblank-vs-dpms" },
+		{ 60,  TEST_VBLANK | TEST_DPMS | TEST_WITH_DUMMY_BCS,
 					"bcs-wf_vblank-vs-dpms" },
-		{ 30,  TEST_VBLANK | TEST_DPMS | TEST_WITH_DUMMY_RCS,
+		{ 60,  TEST_VBLANK | TEST_DPMS | TEST_WITH_DUMMY_RCS,
 					"rcs-wf_vblank-vs-dpms" },
-		{ 30,  TEST_VBLANK | TEST_MODESET | TEST_EINVAL, "wf_vblank-vs-modeset" },
-		{ 30,  TEST_VBLANK | TEST_MODESET | TEST_WITH_DUMMY_BCS,
+		{ 60,  TEST_VBLANK | TEST_MODESET | TEST_EINVAL, "wf_vblank-vs-modeset" },
+		{ 60,  TEST_VBLANK | TEST_MODESET | TEST_WITH_DUMMY_BCS,
 					"bcs-wf_vblank-vs-modeset" },
-		{ 30,  TEST_VBLANK | TEST_MODESET | TEST_WITH_DUMMY_RCS,
+		{ 60,  TEST_VBLANK | TEST_MODESET | TEST_WITH_DUMMY_RCS,
 					"rcs-wf_vblank-vs-modeset" },
 
-		{ 15, TEST_FLIP | TEST_EBUSY , "plain-flip" },
-		{ 15, TEST_FLIP | TEST_CHECK_TS | TEST_EBUSY , "plain-flip-ts-check" },
-		{ 15, TEST_FLIP | TEST_CHECK_TS | TEST_EBUSY | TEST_FB_RECREATE,
+		{ 30, TEST_FLIP | TEST_EBUSY , "plain-flip" },
+		{ 30, TEST_FLIP | TEST_CHECK_TS | TEST_EBUSY , "plain-flip-ts-check" },
+		{ 30, TEST_FLIP | TEST_CHECK_TS | TEST_EBUSY | TEST_FB_RECREATE,
 			"plain-flip-fb-recreate" },
-		{ 15, TEST_FLIP | TEST_EBUSY | TEST_RMFB | TEST_MODESET , "flip-vs-rmfb" },
-		{ 30, TEST_FLIP | TEST_DPMS | TEST_EINVAL, "flip-vs-dpms" },
-		{ 30, TEST_FLIP | TEST_DPMS | TEST_WITH_DUMMY_BCS, "bcs-flip-vs-dpms" },
-		{ 30, TEST_FLIP | TEST_DPMS | TEST_WITH_DUMMY_RCS, "rcs-flip-vs-dpms" },
-		{ 5,  TEST_FLIP | TEST_PAN, "flip-vs-panning" },
-		{ 30, TEST_FLIP | TEST_PAN | TEST_WITH_DUMMY_BCS, "bcs-flip-vs-panning" },
-		{ 30, TEST_FLIP | TEST_PAN | TEST_WITH_DUMMY_RCS, "rcs-flip-vs-panning" },
-		{ 30, TEST_FLIP | TEST_MODESET | TEST_EINVAL, "flip-vs-modeset" },
-		{ 30, TEST_FLIP | TEST_MODESET | TEST_WITH_DUMMY_BCS, "bcs-flip-vs-modeset" },
-		{ 30, TEST_FLIP | TEST_MODESET | TEST_WITH_DUMMY_RCS, "rcs-flip-vs-modeset" },
-		{ 5,  TEST_FLIP | TEST_VBLANK_EXPIRED_SEQ,
+		{ 30, TEST_FLIP | TEST_EBUSY | TEST_RMFB | TEST_MODESET , "flip-vs-rmfb" },
+		{ 60, TEST_FLIP | TEST_DPMS | TEST_EINVAL, "flip-vs-dpms" },
+		{ 60, TEST_FLIP | TEST_DPMS | TEST_WITH_DUMMY_BCS, "bcs-flip-vs-dpms" },
+		{ 60, TEST_FLIP | TEST_DPMS | TEST_WITH_DUMMY_RCS, "rcs-flip-vs-dpms" },
+		{ 30,  TEST_FLIP | TEST_PAN, "flip-vs-panning" },
+		{ 60, TEST_FLIP | TEST_PAN | TEST_WITH_DUMMY_BCS, "bcs-flip-vs-panning" },
+		{ 60, TEST_FLIP | TEST_PAN | TEST_WITH_DUMMY_RCS, "rcs-flip-vs-panning" },
+		{ 60, TEST_FLIP | TEST_MODESET | TEST_EINVAL, "flip-vs-modeset" },
+		{ 60, TEST_FLIP | TEST_MODESET | TEST_WITH_DUMMY_BCS, "bcs-flip-vs-modeset" },
+		{ 60, TEST_FLIP | TEST_MODESET | TEST_WITH_DUMMY_RCS, "rcs-flip-vs-modeset" },
+		{ 30,  TEST_FLIP | TEST_VBLANK_EXPIRED_SEQ,
 					"flip-vs-expired-vblank" },
 
-		{ 15, TEST_FLIP | TEST_VBLANK | TEST_VBLANK_ABSOLUTE |
+		{ 30, TEST_FLIP | TEST_VBLANK | TEST_VBLANK_ABSOLUTE |
 		      TEST_CHECK_TS, "flip-vs-absolute-wf_vblank" },
-		{ 15, TEST_FLIP | TEST_VBLANK | TEST_CHECK_TS,
+		{ 30, TEST_FLIP | TEST_VBLANK | TEST_CHECK_TS,
 					"flip-vs-wf_vblank" },
-		{ 15, TEST_FLIP | TEST_VBLANK | TEST_VBLANK_BLOCK |
+		{ 30, TEST_FLIP | TEST_VBLANK | TEST_VBLANK_BLOCK |
 			TEST_CHECK_TS, "flip-vs-blocking-wf-vblank" },
-		{ 15, TEST_FLIP | TEST_MODESET | TEST_HANG | TEST_NOEVENT, "flip-vs-modeset-vs-hang" },
-		{ 15, TEST_FLIP | TEST_PAN | TEST_HANG, "flip-vs-panning-vs-hang" },
+		{ 30, TEST_FLIP | TEST_MODESET | TEST_HANG | TEST_NOEVENT, "flip-vs-modeset-vs-hang" },
+		{ 30, TEST_FLIP | TEST_PAN | TEST_HANG, "flip-vs-panning-vs-hang" },
 		{ 1, TEST_FLIP | TEST_EINVAL | TEST_FB_BAD_TILING, "flip-vs-bad-tiling" },
 
 		{ 1, TEST_DPMS_OFF | TEST_MODESET | TEST_FLIP,
