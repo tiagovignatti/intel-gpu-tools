@@ -628,6 +628,9 @@ int update_display(void)
 			struct connector *connector = &connectors[c];
 
 			connector->id = resources->connectors[c];
+			if (specified_disp_id != -1 &&
+			    connector->id != specified_disp_id)
+				continue;
 
 			connector_find_preferred_mode(connector->id,
 						      -1UL,
