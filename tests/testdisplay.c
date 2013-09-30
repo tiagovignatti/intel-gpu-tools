@@ -539,10 +539,17 @@ static void do_set_stereo_mode(struct connector *c)
 static void
 set_stereo_mode(struct connector *c)
 {
-	int i;
+	int i, n;
 
-	for (i = 0; i < c->connector->count_modes; i++) {
-		c->mode = c->connector->modes[i];
+
+	if (specified_mode_num != -1)
+		n = 1;
+	else
+		n = c->connector->count_modes;
+
+	for (i = 0; i < n; i++) {
+		if (specified_mode_num == -1)
+			c->mode = c->connector->modes[i];
 
 		if (!c->mode_valid)
 			continue;
@@ -589,7 +596,8 @@ int update_display(void)
 	if (!connectors)
 		return 0;
 
-	if (test_preferred_mode || test_all_modes || force_mode || specified_disp_id != -1) {
+	if (test_preferred_mode || test_all_modes ||
+	    force_mode || specified_disp_id != -1) {
 		unsigned long crtc_idx_mask = -1UL;
 
 		/* Find any connected displays */
