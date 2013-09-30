@@ -160,7 +160,7 @@ static void forked_evictions(int fd, int size, int count,
 	for (n = 0; n < bo_count; n++)
 		bo[n] = gem_create(fd, size);
 
-	igt_fork(i, min(count, num_threads * 4)) {
+	igt_fork(i, min(count, min(num_threads * 5, 12))) {
 		int realfd = fd;
 		int num_passes = flags & SWAPPING ? 10 : 100;
 
