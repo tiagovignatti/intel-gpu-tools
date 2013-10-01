@@ -120,6 +120,7 @@ TESTS_progs = \
 	gen3_render_tiledx_blits \
 	gen3_render_tiledy_blits \
 	prime_udl \
+	pm_psr \
 	pm_rc6_residency \
 	pm_rps \
 	$(NULL)
