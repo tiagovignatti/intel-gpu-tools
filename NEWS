@@ -8,6 +8,8 @@ Release 1.5
 - Haswell support for the DPF tool (tools/intel_l3_parity) and other
   improvements (Ben).
 
+- Stereo/3D support in testdisplay (Damien).
+
 Release 1.4 (2013-09-16)
 ------------------------
 
