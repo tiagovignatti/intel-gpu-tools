@@ -61,6 +61,8 @@
 #define TEST_FB_BAD_TILING	(1 << 17)
 #define TEST_SINGLE_BUFFER	(1 << 18)
 #define TEST_DPMS_OFF		(1 << 19)
+#define TEST_NO_2X_OUTPUT	(1 << 20)
+#define TEST_DPMS_OFF_OTHERS	(1 << 21)
 
 #define EVENT_FLIP		(1 << 0)
 #define EVENT_VBLANK		(1 << 1)
@@ -270,6 +272,29 @@ static int set_connector_dpms(drmModeConnector *connector, int mode)
 
 	return drmModeConnectorSetProperty(drm_fd, connector->connector_id,
 					   dpms, mode);
+}
+
+static void dpms_off_other_outputs(struct test_output *o)
+{
+	int i, n;
+	drmModeConnector *connector;
+	uint32_t connector_id;
+
+	for (i = 0; i < resources->count_connectors; i++) {
+		connector_id = resources->connectors[i];
+
+		for (n = 0; n < o->count; n++) {
+			if (connector_id == o->kconnector[n]->connector_id)
+				goto next;
+		}
+
+		connector = drmModeGetConnector(drm_fd, connector_id);
+
+		do_or_die(set_connector_dpms(connector,  DRM_MODE_DPMS_ON));
+		do_or_die(set_connector_dpms(connector,  DRM_MODE_DPMS_OFF));
+next:
+		;
+	}
 }
 
 static int set_dpms(struct test_output *o, int mode)
@@ -758,6 +783,9 @@ static unsigned int run_test_step(struct test_output *o)
 	do_flip = (o->flags & TEST_FLIP) && !(o->pending_events & EVENT_FLIP);
 	do_vblank = (o->flags & TEST_VBLANK) &&
 		    !(o->pending_events & EVENT_VBLANK);
+
+	if (o->flags & TEST_DPMS_OFF_OTHERS)
+		dpms_off_other_outputs(o);
 
 	if (o->flags & TEST_WITH_DUMMY_BCS)
 		emit_dummy_load__bcs(o);
@@ -1485,6 +1513,7 @@ int main(int argc, char **argv)
 					"flip-vs-dpms-off-vs-modeset" },
 		{ 1, TEST_DPMS_OFF | TEST_MODESET | TEST_FLIP | TEST_SINGLE_BUFFER,
 					"single-buffer-flip-vs-dpms-off-vs-modeset" },
+		{ 30, TEST_FLIP | TEST_NO_2X_OUTPUT | TEST_DPMS_OFF_OTHERS , "dpms-off-confusion" },
 	};
 	int i;
 
@@ -1507,6 +1536,9 @@ int main(int argc, char **argv)
 		igt_subtest(tests[i].name)
 			run_test(tests[i].duration, tests[i].flags);
 
+		if (tests[i].flags & TEST_NO_2X_OUTPUT)
+			continue;
+
 		igt_subtest_f( "2x-%s", tests[i].name)
 			run_pair(tests[i].duration, tests[i].flags);
 	}
@@ -1521,6 +1553,9 @@ int main(int argc, char **argv)
 
 		igt_subtest_f( "%s-interruptible", tests[i].name)
 			run_test(tests[i].duration, tests[i].flags);
+
+		if (tests[i].flags & TEST_NO_2X_OUTPUT)
+			continue;
 
 		igt_subtest_f( "2x-%s-interruptible", tests[i].name)
 			run_pair(tests[i].duration, tests[i].flags);
