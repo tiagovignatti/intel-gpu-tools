@@ -244,9 +244,10 @@ static void emit_dummy_load__rcs(struct test_output *o)
 	drm_intel_bo_unreference(sb[1].bo);
 }
 
-static int set_connector_dpms(drmModeConnector *connector, int mode)
+static void set_connector_dpms(drmModeConnector *connector, int mode)
 {
 	int i, dpms = 0;
+	bool found_it = false;
 
 	for (i = 0; i < connector->count_props; i++) {
 		struct drm_mode_get_property prop;
@@ -261,17 +262,14 @@ static int set_connector_dpms(drmModeConnector *connector, int mode)
 			continue;
 
 		dpms = prop.prop_id;
+		found_it = true;
 		break;
 	}
-	if (!dpms) {
-		fprintf(stderr, "DPMS property not found on %d\n",
-			connector->connector_id);
-		errno = ENOENT;
-		return -1;
-	}
+	igt_assert_f(found_it, "DPMS property not found on %d\n",
+		     connector->connector_id);
 
-	return drmModeConnectorSetProperty(drm_fd, connector->connector_id,
-					   dpms, mode);
+	igt_assert(drmModeConnectorSetProperty(drm_fd, connector->connector_id,
+					       dpms, mode) == 0);
 }
 
 static void dpms_off_other_outputs(struct test_output *o)
@@ -290,24 +288,17 @@ static void dpms_off_other_outputs(struct test_output *o)
 
 		connector = drmModeGetConnector(drm_fd, connector_id);
 
-		do_or_die(set_connector_dpms(connector,  DRM_MODE_DPMS_ON));
-		do_or_die(set_connector_dpms(connector,  DRM_MODE_DPMS_OFF));
+		set_connector_dpms(connector,  DRM_MODE_DPMS_ON);
+		set_connector_dpms(connector,  DRM_MODE_DPMS_OFF);
 next:
 		;
 	}
 }
 
-static int set_dpms(struct test_output *o, int mode)
+static void set_dpms(struct test_output *o, int mode)
 {
-	int n;
-
-	for (n = 0; n < o->count; n++) {
-		int ret = set_connector_dpms(o->kconnector[n], mode);
-		if (ret)
-			return ret;
-	}
-
-	return 0;
+	for (int n = 0; n < o->count; n++)
+		set_connector_dpms(o->kconnector[n], mode);
 }
 
 static void set_flag(unsigned int *v, unsigned int flag)
@@ -830,7 +821,7 @@ static unsigned int run_test_step(struct test_output *o)
 		       == -EINVAL);
 
 	if (o->flags & TEST_DPMS_OFF)
-		do_or_die(set_dpms(o, DRM_MODE_DPMS_OFF));
+		set_dpms(o, DRM_MODE_DPMS_OFF);
 
 	if (o->flags & TEST_MODESET) {
 		if (set_mode(o, o->fb_ids[o->current_fb_id], 0, 0)) {
@@ -841,7 +832,7 @@ static unsigned int run_test_step(struct test_output *o)
 	}
 
 	if (o->flags & TEST_DPMS)
-		do_or_die(set_dpms(o, DRM_MODE_DPMS_ON));
+		set_dpms(o, DRM_MODE_DPMS_ON);
 
 	printf("."); fflush(stdout);
 
@@ -886,7 +877,7 @@ static unsigned int run_test_step(struct test_output *o)
 	}
 
 	if (o->flags & TEST_DPMS)
-		do_or_die(set_dpms(o, DRM_MODE_DPMS_OFF));
+		set_dpms(o, DRM_MODE_DPMS_OFF);
 
 	if (o->flags & TEST_MODESET && !(o->flags & TEST_RMFB)) {
 		if (set_mode(o, 0 /* no fb */, 0, 0)) {
