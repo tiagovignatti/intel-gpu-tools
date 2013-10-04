@@ -580,10 +580,6 @@ static bool test_i2c(struct mode_set_data *data)
 
 static bool setup_environment(void)
 {
-	int i2c_dev_files;
-	DIR *dev_dir;
-	struct dirent *dirent;
-
 	drm_fd = drm_open_any();
 	if (drm_fd <= 0)
 		return false;
@@ -600,23 +596,6 @@ static bool setup_environment(void)
 	msr_fd = open("/dev/cpu/0/msr", O_RDONLY);
 	if (msr_fd == -1) {
 		printf("Can't open /dev/cpu/0/msr.\n");
-		return false;
-	}
-
-	/* Make sure the /dev/i2c-* files exist. */
-	dev_dir = opendir("/dev");
-	if (!dev_dir) {
-		printf("Can't open /dev.\n");
-		return false;
-	}
-	i2c_dev_files = 0;
-	while ((dirent = readdir(dev_dir))) {
-		if (strncmp(dirent->d_name, "i2c-", 4) == 0)
-			i2c_dev_files++;
-	}
-	closedir(dev_dir);
-	if (!i2c_dev_files) {
-		printf("No /dev/i2c-* files.\n");
 		return false;
 	}
 
@@ -701,7 +680,19 @@ static void batch_subtest(void)
 /* Try to use raw I2C, which also needs interrupts. */
 static void i2c_subtest(void)
 {
-	printf("Testing raw i2c protocol calls.\n");
+	int i2c_dev_files = 0;
+	DIR *dev_dir;
+	struct dirent *dirent;
+
+	/* Make sure the /dev/i2c-* files exist. */
+	dev_dir = opendir("/dev");
+	igt_assert(dev_dir);
+	while ((dirent = readdir(dev_dir))) {
+		if (strncmp(dirent->d_name, "i2c-", 4) == 0)
+			i2c_dev_files++;
+	}
+	closedir(dev_dir);
+	igt_require(i2c_dev_files);
 
 	enable_one_screen(&ms_data);
 	igt_assert(pc8_plus_disabled());
