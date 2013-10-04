@@ -10,6 +10,8 @@ Release 1.5
 
 - Stereo/3D support in testdisplay (Damien).
 
+- Support for gen7 gpu perf counters in tools/intel_perf_counters (Kenneth).
+
 Release 1.4 (2013-09-16)
 ------------------------
 
