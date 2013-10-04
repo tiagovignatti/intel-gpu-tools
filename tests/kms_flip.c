@@ -602,12 +602,11 @@ static void set_y_tiling(struct test_output *o, int fb_idx)
 }
 
 
-static int exec_nop(int fd, uint32_t handle)
+static void exec_nop(int fd, uint32_t handle)
 {
 	struct drm_i915_gem_execbuffer2 execbuf;
 	struct drm_i915_gem_exec_object2 gem_exec[1];
 	uint32_t b[2] = {MI_BATCH_BUFFER_END};
-	int r;
 
 	gem_write(fd, handle, 0, b, sizeof(b));
 
@@ -632,13 +631,9 @@ static int exec_nop(int fd, uint32_t handle)
 	i915_execbuffer2_set_context_id(execbuf, 0);
 	execbuf.rsvd2 = 0;
 
-	r = drmIoctl(fd,
-			DRM_IOCTL_I915_GEM_EXECBUFFER2,
-			&execbuf);
-	if (r)
-		fprintf(stderr, "failed to exec: %s\n",
-			strerror(errno));
-	return r;
+	igt_assert(drmIoctl(fd,
+			    DRM_IOCTL_I915_GEM_EXECBUFFER2,
+			    &execbuf) == 0);
 }
 
 static void eat_error_state(struct test_output *o)
@@ -651,7 +646,6 @@ static void eat_error_state(struct test_output *o)
 	char fname[FILENAME_MAX];
 	int card_index = drm_get_card();
 	int fd;
-	ssize_t r;
 
 	igt_assert(card_index != -1);
 
@@ -660,16 +654,9 @@ static void eat_error_state(struct test_output *o)
 		 dfs_base, card_index, dfs_entry_error);
 
 	fd = open(fname, O_WRONLY);
-	if (fd < 0) {
-		fprintf(stderr, "failed to open '%s': %s\n",
-			fname, strerror(errno));
-		return;
-	}
+	igt_assert(fd >= 0);
 
-	r = write(fd, data, sizeof data);
-	if (r < 0)
-		fprintf(stderr, "failed to write '%s': %s\n",
-			fname, strerror(errno));
+	igt_assert(write(fd, data, sizeof(data)) == sizeof(data));
 	close(fd);
 
 	/* and check whether stop_rings is not reset, i.e. the hang has indeed
@@ -678,21 +665,12 @@ static void eat_error_state(struct test_output *o)
 		 dfs_base, card_index, dfs_entry_stop);
 
 	fd = open(fname, O_RDONLY);
-	if (fd < 0) {
-		fprintf(stderr, "failed to open '%s': %s\n",
-			fname, strerror(errno));
-		return;
-	}
+	igt_assert(fd >= 0);
 
-	r = read(fd, tmp, sizeof tmp);
-	if (r < 0)
-		fprintf(stderr, "failed to read '%s': %s\n",
-			fname, strerror(errno));
+	igt_assert(read(fd, tmp, sizeof tmp) > 0);
 
-	if (atoi(tmp) != 0) {
-		fprintf(stderr, "no gpu hang detected, stop_rings is still %s\n", tmp);
-		igt_fail(20);
-	}
+	igt_assert_f(atoi(tmp) == 0,
+		     "no gpu hang detected, stop_rings is still %s\n", tmp);
 
 	close(fd);
 }
@@ -705,22 +683,14 @@ static void hang_gpu(struct test_output *o)
 	char fname[FILENAME_MAX];
 	int card_index = drm_get_card();
 	int fd;
-	ssize_t r;
 
 	snprintf(fname, FILENAME_MAX, "%s/%i/%s",
 		 dfs_base, card_index, dfs_entry);
 
 	fd = open(fname, O_WRONLY);
-	if (fd < 0) {
-		fprintf(stderr, "failed to open '%s': %s\n",
-			fname, strerror(errno));
-		return;
-	}
+	igt_assert(fd >= 0);
 
-	r = write(fd, data, sizeof data);
-	if (r < 0)
-		fprintf(stderr, "failed to write '%s': %s\n",
-			fname, strerror(errno));
+	igt_assert(write(fd, data, sizeof(data)) == sizeof(data));
 
 	close(fd);
 }
@@ -820,13 +790,8 @@ static unsigned int run_test_step(struct test_output *o)
 	if (o->flags & TEST_DPMS_OFF)
 		set_dpms(o, DRM_MODE_DPMS_OFF);
 
-	if (o->flags & TEST_MODESET) {
-		if (set_mode(o, o->fb_ids[o->current_fb_id], 0, 0)) {
-			fprintf(stderr, "failed to restore output mode: %s\n",
-				strerror(errno));
-			igt_fail(7);
-		}
-	}
+	if (o->flags & TEST_MODESET)
+		igt_assert(set_mode(o, o->fb_ids[o->current_fb_id], 0, 0) == 0);
 
 	if (o->flags & TEST_DPMS)
 		set_dpms(o, DRM_MODE_DPMS_ON);
@@ -865,28 +830,23 @@ static unsigned int run_test_step(struct test_output *o)
 			o->flip_state.count : o->vblank_state.count;
 		int x_ofs = count * 10 > o->fb_width - o->kmode[0].hdisplay ? o->fb_width - o->kmode[0].hdisplay : count * 10;
 
-		if (set_mode(o, o->fb_ids[o->current_fb_id], x_ofs, 0)){
-			fprintf(stderr, "failed to pan (%dx%d@%dHz)+%d: %s\n",
-				o->kmode[0].hdisplay, o->kmode[0].vdisplay, o->kmode[0].vrefresh,
-				x_ofs, strerror(errno));
-			igt_fail(7);
-		}
+		igt_assert_f(set_mode(o, o->fb_ids[o->current_fb_id], x_ofs, 0) == 0,
+			     "failed to pan (%dx%d@%dHz)+%d: %s\n",
+			     o->kmode[0].hdisplay, o->kmode[0].vdisplay, o->kmode[0].vrefresh,
+			     x_ofs, strerror(errno));
 	}
 
 	if (o->flags & TEST_DPMS)
 		set_dpms(o, DRM_MODE_DPMS_OFF);
 
-	if (o->flags & TEST_MODESET && !(o->flags & TEST_RMFB)) {
-		if (set_mode(o, 0 /* no fb */, 0, 0)) {
-			fprintf(stderr, "failed to disable output: %s\n",
-				strerror(errno));
-			igt_fail(7);
-		}
-	}
+	if (o->flags & TEST_MODESET && !(o->flags & TEST_RMFB))
+		igt_assert_f(set_mode(o, 0 /* no fb */, 0, 0),
+			     "failed to disable output: %s\n",
+			     strerror(errno));
 
 	if (do_vblank && (o->flags & TEST_EINVAL) && o->vblank_state.count > 0)
 		igt_assert(do_wait_for_vblank(o, o->pipe, target_seq, &vbl_reply)
-		       == -EINVAL);
+			   == -EINVAL);
 
 	if (do_flip && (o->flags & TEST_EINVAL) && !(o->flags & TEST_FB_BAD_TILING))
 		igt_assert(do_page_flip(o, new_fb_id, true) == expected_einval);
@@ -1046,10 +1006,8 @@ fb_is_bound(struct test_output *o, int fb)
 static void check_final_state(struct test_output *o, struct event_state *es,
 			      unsigned int elapsed)
 {
-	if (es->count == 0) {
-		fprintf(stderr, "no %s event received\n", es->name);
-		igt_fail(12);
-	}
+	igt_assert_f(es->count > 0,
+		     "no %s event received\n", es->name);
 
 	/* Verify we drop no frames, but only if it's not a TV encoder, since
 	 * those use some funny fake timings behind userspace's back. */
@@ -1096,14 +1054,10 @@ static unsigned int wait_for_events(struct test_output *o)
 			ret = select(drm_fd + 1, &fds, NULL, NULL, &timeout);
 		} while (ret < 0 && errno == EINTR);
 
-		if (ret <= 0) {
-			fprintf(stderr, "select timed out or error (ret %d)\n",
-				ret);
-			igt_fail(1);
-		} else if (FD_ISSET(0, &fds)) {
-			fprintf(stderr, "no fds active, breaking\n");
-			igt_fail(2);
-		}
+		igt_assert_f(ret > 0,
+			     "select timed out or error (ret %d)\n", ret);
+		igt_assert_f(!FD_ISSET(0, &fds),
+			     "no fds active, breaking\n");
 
 		do_or_die(drmHandleEvent(drm_fd, &evctx));
 	} while (o->pending_events);
@@ -1189,10 +1143,7 @@ static void run_test_on_crtc(struct test_output *o, int crtc_idx, int duration_m
 	if (o->flags & TEST_CHECK_TS)
 		sleep(1);
 
-	if (do_page_flip(o, o->fb_ids[1], true)) {
-		fprintf(stderr, "failed to page flip: %s\n", strerror(errno));
-		igt_fail(4);
-	}
+	igt_assert(do_page_flip(o, o->fb_ids[1], true) == 0);
 	wait_for_events(o);
 
 	o->current_fb_id = 1;
@@ -1276,10 +1227,7 @@ static void run_test_on_crtc_pair(struct test_output *o,
 	if (o->flags & TEST_CHECK_TS)
 		sleep(1);
 
-	if (do_page_flip(o, o->fb_ids[1], true)) {
-		fprintf(stderr, "failed to page flip: %s\n", strerror(errno));
-		igt_fail(4);
-	}
+	igt_assert(do_page_flip(o, o->fb_ids[1], true) == 0);
 	wait_for_events(o);
 
 	o->current_fb_id = 1;
