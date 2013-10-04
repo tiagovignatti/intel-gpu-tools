@@ -544,12 +544,9 @@ static void check_state_correlation(struct test_output *o,
 	ftime = frame_time(o);
 	usec_diff -= seq_diff * ftime;
 
-	if (fabs(usec_diff) / ftime > 0.005) {
-		fprintf(stderr,
-			"timestamp mismatch between %s and %s (diff %.4f sec)\n",
-			es1->name, es2->name, usec_diff / 1000 / 1000);
-		igt_fail(14);
-	}
+	igt_assert_f(fabs(usec_diff) / ftime <= 0.005,
+		     "timestamp mismatch between %s and %s (diff %.4f sec)\n",
+		     es1->name, es2->name, usec_diff / 1000 / 1000);
 }
 
 static void check_all_state(struct test_output *o,
@@ -1062,11 +1059,9 @@ static void check_final_state(struct test_output *o, struct event_state *es,
 
 		count *= es->seq_step;
 		expected = elapsed * o->kmode[0].vrefresh / (1000 * 1000);
-		if (count < expected * 99/100) {
-			fprintf(stderr, "dropped frames, expected %d, counted %d, encoder type %d\n",
-				expected, count, o->kencoder[0]->encoder_type);
-			igt_fail(3);
-		}
+		igt_assert_f(count >= expected * 99/100 && count <= expected * 101/100,
+			     "dropped frames, expected %d, counted %d, encoder type %d\n",
+			     expected, count, o->kencoder[0]->encoder_type);
 	}
 }
 
