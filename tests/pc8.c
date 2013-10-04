@@ -578,49 +578,33 @@ static bool test_i2c(struct mode_set_data *data)
 	return i2c_edids == drm_edids;
 }
 
-static bool setup_environment(void)
+static void setup_environment(void)
 {
 	drm_fd = drm_open_any();
-	if (drm_fd <= 0)
-		return false;
+	igt_assert(drm_fd >= 0);
 
 	init_mode_set_data(&ms_data);
 
 	/* Only Haswell supports the PC8 feature. */
-	if (!IS_HASWELL(ms_data.devid)) {
-		printf("PC8+ feature only supported on Haswell.\n");
-		return false;
-	}
+	igt_require(IS_HASWELL(ms_data.devid));
 
 	/* Make sure our Kernel supports MSR and the module is loaded. */
 	msr_fd = open("/dev/cpu/0/msr", O_RDONLY);
-	if (msr_fd == -1) {
-		printf("Can't open /dev/cpu/0/msr.\n");
-		return false;
-	}
+	igt_assert(msr_fd >= 0);
 
 	/* Non-ULT machines don't support PC8+. */
-	if (!supports_pc8_plus_residencies()) {
-		printf("Machine doesn't support PC8+ residencies.\n");
-		return false;
-	}
+	igt_require(supports_pc8_plus_residencies());
+}
 
+static void basic_subtest(void)
+{
 	/* Make sure PC8+ residencies move! */
 	disable_all_screens(&ms_data);
-	if (!pc8_plus_enabled()) {
-		printf("Machine is not reaching PC8+ states, please check its "
-		       "configuration.\n");
-		return false;
-	}
+	igt_assert(pc8_plus_enabled());
 
 	/* Make sure PC8+ residencies stop! */
 	enable_one_screen(&ms_data);
-	if (!pc8_plus_disabled()) {
-		printf("PC8+ residency didn't stop with screen enabled.\n");
-		return false;
-	}
-
-	return true;
+	igt_assert(pc8_plus_disabled());
 }
 
 static void teardown_environment(void)
@@ -758,8 +742,10 @@ int main(int argc, char *argv[])
 	 * PC8+. We don't want bug reports from cases where the machine is just
 	 * not properly configured. */
 	igt_fixture
-		igt_require(setup_environment());
+		setup_environment();
 
+	igt_subtest("basic")
+		basic_subtest();
 	igt_subtest("drm-resources-equal")
 		drm_resources_equal_subtest();
 	igt_subtest("batch")
