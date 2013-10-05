@@ -80,9 +80,11 @@ AM_CONDITIONAL(BUILD_OVERLAY_XLIB, [test "x$enable_overlay_xlib" = xyes])
 AM_CONDITIONAL(BUILD_OVERLAY, [test "x$enable_overlay_xlib" = xyes -o "x$enable_overlay_xvlib"])
 if test x$enable_overlay_xvlib = xyes; then
 	AC_DEFINE(HAVE_OVERLAY_XVLIB, 1, [Enable XV backend])
+	PKG_CHECK_MODULES(DRI2PROTO, [dri2proto >= 2.6])
 fi
 if test x$enable_overlay_xlib = xyes; then
 	AC_DEFINE(HAVE_OVERLAY_XLIB, 1, [Enable X backend])
+	PKG_CHECK_MODULES(DRI2PROTO, [dri2proto >= 2.6])
 fi
 PKG_CHECK_MODULES(XRANDR, xrandr >= 1.3, AC_DEFINE(HAVE_XRANDR, 1, [Have libXrandr]), [have_xrandr=no])
 
