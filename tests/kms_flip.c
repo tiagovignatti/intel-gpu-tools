@@ -1343,7 +1343,9 @@ static int run_pair(int duration, int flags)
 		}
 	}
 
-	igt_assert(modes);
+	/* If we have fewer than 2 connected outputs then we won't have any
+	 * configuration at all. So skip in that case. */
+	igt_require(modes);
 	duration = duration * 1000 / modes;
 	duration = duration < 500 ? 500 : duration;
 
