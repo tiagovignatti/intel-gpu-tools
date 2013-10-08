@@ -835,6 +835,7 @@ int main(int argc, char **argv)
 	int vbt_off, bdb_off, i;
 	const char *filename = "bios";
 	struct stat finfo;
+	int size;
 	struct bdb_block *block;
 	char signature[17];
 	char *devid_string;
@@ -860,12 +861,13 @@ int main(int argc, char **argv)
 		       strerror(errno));
 		return 1;
 	}
+	size = finfo.st_size;
 
-	if (finfo.st_size == 0) {
+	if (size == 0) {
 		int len = 0, ret;
-		finfo.st_size = 8192;
-		VBIOS = malloc (finfo.st_size);
-		while ((ret = read(fd, VBIOS + len, finfo.st_size - len))) {
+		size = 8192;
+		VBIOS = malloc (size);
+		while ((ret = read(fd, VBIOS + len, size - len))) {
 			if (ret < 0) {
 				printf("failed to read \"%s\": %s\n", filename,
 				       strerror(errno));
@@ -873,13 +875,13 @@ int main(int argc, char **argv)
 			}
 
 			len += ret;
-			if (len == finfo.st_size) {
-				finfo.st_size *= 2;
-				VBIOS = realloc(VBIOS, finfo.st_size);
+			if (len == size) {
+				size *= 2;
+				VBIOS = realloc(VBIOS, size);
 			}
 		}
 	} else {
-		VBIOS = mmap(NULL, finfo.st_size, PROT_READ, MAP_SHARED, fd, 0);
+		VBIOS = mmap(NULL, size, PROT_READ, MAP_SHARED, fd, 0);
 		if (VBIOS == MAP_FAILED) {
 			printf("failed to map \"%s\": %s\n", filename, strerror(errno));
 			return 1;
@@ -887,7 +889,7 @@ int main(int argc, char **argv)
 	}
 
 	/* Scour memory looking for the VBT signature */
-	for (i = 0; i + 4 < finfo.st_size; i++) {
+	for (i = 0; i + 4 < size; i++) {
 		if (!memcmp(VBIOS + i, "$VBT", 4)) {
 			vbt_off = i;
 			vbt = (struct vbt_header *)(VBIOS + i);
@@ -903,7 +905,7 @@ int main(int argc, char **argv)
 	printf("VBT vers: %d.%d\n", vbt->version / 100, vbt->version % 100);
 
 	bdb_off = vbt_off + vbt->bdb_offset;
-	if (bdb_off >= finfo.st_size - sizeof(struct bdb_header)) {
+	if (bdb_off >= size - sizeof(struct bdb_header)) {
 		printf("Invalid VBT found, BDB points beyond end of data block\n");
 		return 1;
 	}
@@ -916,7 +918,7 @@ int main(int argc, char **argv)
 
 	printf("Available sections: ");
 	for (i = 0; i < 256; i++) {
-		block = find_section(i, finfo.st_size);
+		block = find_section(i, size);
 		if (!block)
 			continue;
 		printf("%d ", i);
@@ -929,19 +931,19 @@ int main(int argc, char **argv)
 	if (devid == -1)
 	    printf("Warning: could not find PCI device ID!\n");
 
-	dump_general_features(finfo.st_size);
-	dump_general_definitions(finfo.st_size);
-	dump_child_devices(finfo.st_size);
-	dump_lvds_options(finfo.st_size);
-	dump_lvds_data(finfo.st_size);
-	dump_lvds_ptr_data(finfo.st_size);
-	dump_backlight_info(finfo.st_size);
+	dump_general_features(size);
+	dump_general_definitions(size);
+	dump_child_devices(size);
+	dump_lvds_options(size);
+	dump_lvds_data(size);
+	dump_lvds_ptr_data(size);
+	dump_backlight_info(size);
 
-	dump_sdvo_lvds_options(finfo.st_size);
-	dump_sdvo_panel_dtds(finfo.st_size);
+	dump_sdvo_lvds_options(size);
+	dump_sdvo_panel_dtds(size);
 
-	dump_driver_feature(finfo.st_size);
-	dump_edp(finfo.st_size);
+	dump_driver_feature(size);
+	dump_edp(size);
 
 	return 0;
 }
