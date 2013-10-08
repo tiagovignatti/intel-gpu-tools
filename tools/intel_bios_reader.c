@@ -800,13 +800,16 @@ static void dump_section(int section_id, int size)
 {
 	struct dumper *dumper = NULL;
 	const struct bdb_block *block;
+	static int done[256];
 	int i;
 
-	block = find_section(section_id, size);
-	if (!block) {
-		printf("No section %d\n", section_id);
+	if (done[section_id])
 		return;
-	}
+	done[section_id] = 1;
+
+	block = find_section(section_id, size);
+	if (!block)
+		return;
 
 	for (i = 0; i < ARRAY_SIZE(dumpers); i++) {
 		if (block->id == dumpers[i].id) {
@@ -943,6 +946,9 @@ int main(int argc, char **argv)
 
 	dump_section(BDB_DRIVER_FEATURES, size);
 	dump_section(BDB_EDP, size);
+
+	for (i = 0; i < 256; i++)
+		dump_section(i, size);
 
 	return 0;
 }
