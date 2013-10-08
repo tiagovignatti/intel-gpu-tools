@@ -258,8 +258,18 @@ static void decode_asle(const void *buffer)
 	printf("\tcblv:\t0x%08x\n", asle->cblv);
 
 	printf("\tbclm:\n");
-	for (i = 0; i < ARRAY_SIZE(asle->bclm); i++)
-		printf("\t\tbclm[%d]:\t0x%04x\n", i, asle->bclm[i]);
+	for (i = 0; i < ARRAY_SIZE(asle->bclm); i++) {
+		int valid = asle->bclm[i] & (1 << 15);
+		int percentage = (asle->bclm[i] & 0x7f00) >> 8;
+		int duty_cycle = asle->bclm[i] & 0xff;
+
+		printf("\t\tbclm[%d]:\t0x%04x", i, asle->bclm[i]);
+		if (valid)
+			printf(" (%3d%% -> 0x%02x)\n", percentage, duty_cycle);
+		else
+			printf("\n");
+
+	}
 
 	printf("\tcpfm:\t0x%08x\n", asle->cpfm);
 	printf("\tepfm:\t0x%08x\n", asle->epfm);
