@@ -82,20 +82,18 @@ copy_bo(drm_intel_bo *src, int src_tiled,
 		cmd_bits |= XY_SRC_COPY_BLT_SRC_TILED;
 	}
 
-	BEGIN_BATCH(8);
-	OUT_BATCH(XY_SRC_COPY_BLT_CMD |
-		  XY_SRC_COPY_BLT_WRITE_ALPHA |
-		  XY_SRC_COPY_BLT_WRITE_RGB |
-		  cmd_bits);
+	BLIT_COPY_BATCH_START(devid, cmd_bits);
 	OUT_BATCH((3 << 24) | /* 32 bits */
 		  (0xcc << 16) | /* copy ROP */
 		  dst_pitch);
 	OUT_BATCH(0 << 16 | 0);
 	OUT_BATCH(BO_SIZE/scratch_pitch << 16 | 1024);
 	OUT_RELOC_FENCED(dst, I915_GEM_DOMAIN_RENDER, I915_GEM_DOMAIN_RENDER, 0);
+	BLIT_RELOC_UDW(devid);
 	OUT_BATCH(0 << 16 | 0);
 	OUT_BATCH(src_pitch);
 	OUT_RELOC_FENCED(src, I915_GEM_DOMAIN_RENDER, 0, 0);
+	BLIT_RELOC_UDW(devid);
 	ADVANCE_BATCH();
 
 	intel_batchbuffer_flush(batch);

@@ -96,6 +96,28 @@ intel_batchbuffer_require_space(struct intel_batchbuffer *batch,
 #define ADVANCE_BATCH() do {						\
 } while(0)
 
+#define BLIT_COPY_BATCH_START(devid, flags) do { \
+	if (intel_gen(devid) >= 8) { \
+		BEGIN_BATCH(10); \
+		OUT_BATCH(XY_SRC_COPY_BLT_CMD | \
+				XY_SRC_COPY_BLT_WRITE_ALPHA | \
+				XY_SRC_COPY_BLT_WRITE_RGB | \
+				flags | 8); \
+	} else { \
+		BEGIN_BATCH(8); \
+		OUT_BATCH(XY_SRC_COPY_BLT_CMD | \
+				XY_SRC_COPY_BLT_WRITE_ALPHA | \
+				XY_SRC_COPY_BLT_WRITE_RGB | \
+				flags | 6); \
+	} \
+} while(0)
+
+#define BLIT_RELOC_UDW(devid) do { \
+	if (intel_gen(devid) >= 8) { \
+		OUT_BATCH(0); \
+	} \
+} while(0)
+
 void
 intel_blt_copy(struct intel_batchbuffer *batch,
 	      drm_intel_bo *src_bo, int src_x1, int src_y1, int src_pitch,

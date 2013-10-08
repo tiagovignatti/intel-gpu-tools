@@ -177,19 +177,18 @@ static void blt_copy(struct intel_batchbuffer *batch,
 		     unsigned w, unsigned h,
 		     struct scratch_buf *dst, unsigned dst_x, unsigned dst_y)
 {
-	BEGIN_BATCH(8);
-	OUT_BATCH(XY_SRC_COPY_BLT_CMD |
-		  XY_SRC_COPY_BLT_WRITE_ALPHA |
-		  XY_SRC_COPY_BLT_WRITE_RGB);
+	BLIT_COPY_BATCH_START(batch->devid, 0);
 	OUT_BATCH((3 << 24) | /* 32 bits */
 		  (0xcc << 16) | /* copy ROP */
 		  dst->stride);
 	OUT_BATCH((dst_y << 16) | dst_x); /* dst x1,y1 */
 	OUT_BATCH(((dst_y + h) << 16) | (dst_x + w)); /* dst x2,y2 */
 	OUT_RELOC(dst->bo, I915_GEM_DOMAIN_RENDER, I915_GEM_DOMAIN_RENDER, 0);
+	BLIT_RELOC_UDW(batch->devid);
 	OUT_BATCH((src_y << 16) | src_x); /* src x1,y1 */
 	OUT_BATCH(src->stride);
 	OUT_RELOC(src->bo, I915_GEM_DOMAIN_RENDER, 0, 0);
+	BLIT_RELOC_UDW(batch->devid);
 	ADVANCE_BATCH();
 
 	intel_batchbuffer_flush(batch);

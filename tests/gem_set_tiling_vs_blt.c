@@ -85,19 +85,18 @@ static void do_test(uint32_t tiling, unsigned stride,
 	busy_bo = drm_intel_bo_alloc(bufmgr, "busy bo bo", 16*1024*1024, 4096);
 
 	for (i = 0; i < 250; i++) {
-		BEGIN_BATCH(8);
-		OUT_BATCH(XY_SRC_COPY_BLT_CMD |
-			  XY_SRC_COPY_BLT_WRITE_ALPHA |
-			  XY_SRC_COPY_BLT_WRITE_RGB);
+		BLIT_COPY_BATCH_START(devid, 0);
 		OUT_BATCH((3 << 24) | /* 32 bits */
 			  (0xcc << 16) | /* copy ROP */
 			  2*1024*4);
 		OUT_BATCH(0 << 16 | 1024);
 		OUT_BATCH((2048) << 16 | (2048));
 		OUT_RELOC_FENCED(busy_bo, I915_GEM_DOMAIN_RENDER, I915_GEM_DOMAIN_RENDER, 0);
+		BLIT_RELOC_UDW(devid);
 		OUT_BATCH(0 << 16 | 0);
 		OUT_BATCH(2*1024*4);
 		OUT_RELOC_FENCED(busy_bo, I915_GEM_DOMAIN_RENDER, 0, 0);
+		BLIT_RELOC_UDW(devid);
 		ADVANCE_BATCH();
 
 		if (IS_GEN6(devid) || IS_GEN7(devid)) {
@@ -158,20 +157,18 @@ static void do_test(uint32_t tiling, unsigned stride,
 		blt_bits = XY_SRC_COPY_BLT_SRC_TILED;
 	}
 
-	BEGIN_BATCH(8);
-	OUT_BATCH(XY_SRC_COPY_BLT_CMD |
-		  XY_SRC_COPY_BLT_WRITE_ALPHA |
-		  blt_bits |
-		  XY_SRC_COPY_BLT_WRITE_RGB);
+	BLIT_COPY_BATCH_START(devid, blt_bits);
 	OUT_BATCH((3 << 24) | /* 32 bits */
 		  (0xcc << 16) | /* copy ROP */
 		  stride);
 	OUT_BATCH(0 << 16 | 0);
 	OUT_BATCH((TEST_HEIGHT(stride)) << 16 | (TEST_WIDTH(stride)));
 	OUT_RELOC_FENCED(target_bo, I915_GEM_DOMAIN_RENDER, I915_GEM_DOMAIN_RENDER, 0);
+	BLIT_RELOC_UDW(devid);
 	OUT_BATCH(0 << 16 | 0);
 	OUT_BATCH(blt_stride);
 	OUT_RELOC_FENCED(test_bo, I915_GEM_DOMAIN_RENDER, 0, 0);
+	BLIT_RELOC_UDW(devid);
 	ADVANCE_BATCH();
 	intel_batchbuffer_flush(batch);
 
@@ -186,19 +183,18 @@ static void do_test(uint32_t tiling, unsigned stride,
 	/* Note: We don't care about gen4+ here because the blitter doesn't use
 	 * fences there. So not setting tiling flags on the tiled buffer is ok.
 	 */
-	BEGIN_BATCH(8);
-	OUT_BATCH(XY_SRC_COPY_BLT_CMD |
-		  XY_SRC_COPY_BLT_WRITE_ALPHA |
-		  XY_SRC_COPY_BLT_WRITE_RGB);
+	BLIT_COPY_BATCH_START(devid, 0);
 	OUT_BATCH((3 << 24) | /* 32 bits */
 		  (0xcc << 16) | /* copy ROP */
 		  stride_after);
 	OUT_BATCH(0 << 16 | 0);
 	OUT_BATCH((1) << 16 | (1));
 	OUT_RELOC_FENCED(test_bo, I915_GEM_DOMAIN_RENDER, I915_GEM_DOMAIN_RENDER, 0);
+	BLIT_RELOC_UDW(devid);
 	OUT_BATCH(0 << 16 | 0);
 	OUT_BATCH(stride_after);
 	OUT_RELOC_FENCED(test_bo, I915_GEM_DOMAIN_RENDER, 0, 0);
+	BLIT_RELOC_UDW(devid);
 	ADVANCE_BATCH();
 	intel_batchbuffer_flush(batch);
 

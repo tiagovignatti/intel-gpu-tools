@@ -239,17 +239,18 @@ intel_blt_copy(struct intel_batchbuffer *batch,
 	       CHECK_RANGE(src_pitch) && CHECK_RANGE(dst_pitch));
 #undef CHECK_RANGE
 
-	BEGIN_BATCH(8);
-	OUT_BATCH(XY_SRC_COPY_BLT_CMD | cmd_bits);
+	BLIT_COPY_BATCH_START(batch->devid, cmd_bits);
 	OUT_BATCH((br13_bits) |
 		  (0xcc << 16) | /* copy ROP */
 		  dst_pitch);
 	OUT_BATCH((dst_y1 << 16) | dst_x1); /* dst x1,y1 */
 	OUT_BATCH(((dst_y1 + height) << 16) | (dst_x1 + width)); /* dst x2,y2 */
 	OUT_RELOC(dst_bo, I915_GEM_DOMAIN_RENDER, I915_GEM_DOMAIN_RENDER, 0);
+	BLIT_RELOC_UDW(batch->devid);
 	OUT_BATCH((src_y1 << 16) | src_x1); /* src x1,y1 */
 	OUT_BATCH(src_pitch);
 	OUT_RELOC(src_bo, I915_GEM_DOMAIN_RENDER, 0, 0);
+	BLIT_RELOC_UDW(batch->devid);
 	ADVANCE_BATCH();
 
 	intel_batchbuffer_flush(batch);

@@ -87,21 +87,20 @@ int main(int argc, char **argv)
 		pitch /= 4;
 
 	for (i = 0; i < 10000; i++) {
-		BEGIN_BATCH(8);
-		OUT_BATCH(XY_SRC_COPY_BLT_CMD |
-			  XY_SRC_COPY_BLT_WRITE_ALPHA |
-			  XY_SRC_COPY_BLT_WRITE_RGB |
-			  XY_SRC_COPY_BLT_SRC_TILED |
-			  XY_SRC_COPY_BLT_DST_TILED);
+		BLIT_COPY_BATCH_START(devid,
+				XY_SRC_COPY_BLT_SRC_TILED |
+				XY_SRC_COPY_BLT_DST_TILED);
 		OUT_BATCH((3 << 24) | /* 32 bits */
 			  (0xcc << 16) | /* copy ROP */
 			  pitch);
 		OUT_BATCH(0 << 16 | 1024);
 		OUT_BATCH((2048) << 16 | (2048));
 		OUT_RELOC_FENCED(bo, I915_GEM_DOMAIN_RENDER, I915_GEM_DOMAIN_RENDER, 0);
+		BLIT_RELOC_UDW(devid);
 		OUT_BATCH(0 << 16 | 0);
 		OUT_BATCH(pitch);
 		OUT_RELOC_FENCED(bo, I915_GEM_DOMAIN_RENDER, 0, 0);
+		BLIT_RELOC_UDW(devid);
 		ADVANCE_BATCH();
 
 		if (IS_GEN6(devid) || IS_GEN7(devid)) {

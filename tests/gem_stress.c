@@ -141,20 +141,18 @@ static void emit_blt(drm_intel_bo *src_bo, uint32_t src_tiling, unsigned src_pit
 	}
 
 	/* copy lower half to upper half */
-	BEGIN_BATCH(8);
-	OUT_BATCH(XY_SRC_COPY_BLT_CMD |
-		  XY_SRC_COPY_BLT_WRITE_ALPHA |
-		  XY_SRC_COPY_BLT_WRITE_RGB |
-		  cmd_bits);
+	BLIT_COPY_BATCH_START(devid, cmd_bits);
 	OUT_BATCH((3 << 24) | /* 32 bits */
 		  (0xcc << 16) | /* copy ROP */
 		  dst_pitch);
 	OUT_BATCH(dst_y << 16 | dst_x);
 	OUT_BATCH((dst_y+h) << 16 | (dst_x+w));
 	OUT_RELOC_FENCED(dst_bo, I915_GEM_DOMAIN_RENDER, I915_GEM_DOMAIN_RENDER, 0);
+	BLIT_RELOC_UDW(devid);
 	OUT_BATCH(src_y << 16 | src_x);
 	OUT_BATCH(src_pitch);
 	OUT_RELOC_FENCED(src_bo, I915_GEM_DOMAIN_RENDER, 0, 0);
+	BLIT_RELOC_UDW(devid);
 	ADVANCE_BATCH();
 
 	if (IS_GEN6(devid) || IS_GEN7(devid)) {

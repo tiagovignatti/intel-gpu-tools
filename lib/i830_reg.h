@@ -80,7 +80,7 @@
 
 #define XY_SETUP_CLIP_BLT_CMD		((2<<29)|(3<<22)|1)
 
-#define XY_SRC_COPY_BLT_CMD		((2<<29)|(0x53<<22)|6)
+#define XY_SRC_COPY_BLT_CMD		((2<<29)|(0x53<<22))
 #define XY_SRC_COPY_BLT_WRITE_ALPHA	(1<<21)
 #define XY_SRC_COPY_BLT_WRITE_RGB	(1<<20)
 #define XY_SRC_COPY_BLT_SRC_TILED	(1<<15)

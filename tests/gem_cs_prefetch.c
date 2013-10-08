@@ -132,7 +132,7 @@ int main(int argc, char **argv)
 
 		/* copy the sample batch with the gpu to the new one, so that we
 		 * also test the unmappable part of the gtt. */
-		BEGIN_BATCH(8);
+		BLIT_COPY_BATCH_START(batch->devid, 0);
 		OUT_BATCH(XY_SRC_COPY_BLT_CMD |
 			  XY_SRC_COPY_BLT_WRITE_ALPHA |
 			  XY_SRC_COPY_BLT_WRITE_RGB);
@@ -142,9 +142,11 @@ int main(int argc, char **argv)
 		OUT_BATCH(0); /* dst y1,x1 */
 		OUT_BATCH((1 << 16) | 1024);
 		OUT_RELOC(batch_bo, I915_GEM_DOMAIN_RENDER, I915_GEM_DOMAIN_RENDER, 0);
+		BLIT_RELOC_UDW(batch->devid);
 		OUT_BATCH((0 << 16) | 0); /* src x1, y1 */
 		OUT_BATCH(4096);
 		OUT_RELOC(sample_batch_bo, I915_GEM_DOMAIN_RENDER, 0, 0);
+		BLIT_RELOC_UDW(batch->devid);
 		ADVANCE_BATCH();
 
 		intel_batchbuffer_flush(batch);

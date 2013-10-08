@@ -78,19 +78,18 @@ static void run_test(int ring)
 	/* put some load onto the gpu to keep the light buffers active for long
 	 * enough */
 	for (i = 0; i < 1000; i++) {
-		BEGIN_BATCH(8);
-		OUT_BATCH(XY_SRC_COPY_BLT_CMD |
-			  XY_SRC_COPY_BLT_WRITE_ALPHA |
-			  XY_SRC_COPY_BLT_WRITE_RGB);
+		BLIT_COPY_BATCH_START(batch->devid, 0);
 		OUT_BATCH((3 << 24) | /* 32 bits */
 			  (0xcc << 16) | /* copy ROP */
 			  4096);
 		OUT_BATCH(0); /* dst x1,y1 */
 		OUT_BATCH((1024 << 16) | 512);
 		OUT_RELOC(load_bo, I915_GEM_DOMAIN_RENDER, I915_GEM_DOMAIN_RENDER, 0);
+		BLIT_RELOC_UDW(batch->devid);
 		OUT_BATCH((0 << 16) | 512); /* src x1, y1 */
 		OUT_BATCH(4096);
 		OUT_RELOC(load_bo, I915_GEM_DOMAIN_RENDER, 0, 0);
+		BLIT_RELOC_UDW(batch->devid);
 		ADVANCE_BATCH();
 	}
 

@@ -85,19 +85,18 @@ int main(int argc, char **argv)
 	busy_bo = drm_intel_bo_alloc(bufmgr, "busy bo bo", 16*1024*1024, 4096);
 
 	for (i = 0; i < 250; i++) {
-		BEGIN_BATCH(8);
-		OUT_BATCH(XY_SRC_COPY_BLT_CMD |
-			  XY_SRC_COPY_BLT_WRITE_ALPHA |
-			  XY_SRC_COPY_BLT_WRITE_RGB);
+		BLIT_COPY_BATCH_START(devid, 0);
 		OUT_BATCH((3 << 24) | /* 32 bits */
 			  (0xcc << 16) | /* copy ROP */
 			  2*1024*4);
 		OUT_BATCH(0 << 16 | 1024);
 		OUT_BATCH((2048) << 16 | (2048));
 		OUT_RELOC_FENCED(busy_bo, I915_GEM_DOMAIN_RENDER, I915_GEM_DOMAIN_RENDER, 0);
+		BLIT_RELOC_UDW(devid);
 		OUT_BATCH(0 << 16 | 0);
 		OUT_BATCH(2*1024*4);
 		OUT_RELOC_FENCED(busy_bo, I915_GEM_DOMAIN_RENDER, 0, 0);
+		BLIT_RELOC_UDW(devid);
 		ADVANCE_BATCH();
 
 		if (IS_GEN6(devid) || IS_GEN7(devid)) {
@@ -121,19 +120,18 @@ int main(int argc, char **argv)
 
 		drm_intel_bo_disable_reuse(test_bo);
 
-		BEGIN_BATCH(8);
-		OUT_BATCH(XY_SRC_COPY_BLT_CMD |
-			  XY_SRC_COPY_BLT_WRITE_ALPHA |
-			  XY_SRC_COPY_BLT_WRITE_RGB);
+		BLIT_COPY_BATCH_START(devid, 0);
 		OUT_BATCH((3 << 24) | /* 32 bits */
 			  (0xcc << 16) | /* copy ROP */
 			  TEST_STRIDE);
 		OUT_BATCH(0 << 16 | 0);
 		OUT_BATCH((1) << 16 | (1));
 		OUT_RELOC_FENCED(test_bo, I915_GEM_DOMAIN_RENDER, I915_GEM_DOMAIN_RENDER, 0);
+		BLIT_RELOC_UDW(devid);
 		OUT_BATCH(0 << 16 | 0);
 		OUT_BATCH(TEST_STRIDE);
 		OUT_RELOC_FENCED(test_bo, I915_GEM_DOMAIN_RENDER, 0, 0);
+		BLIT_RELOC_UDW(devid);
 		ADVANCE_BATCH();
 		intel_batchbuffer_flush(batch);
 		printf("test bo offset: %#lx\n", test_bo->offset);
@@ -143,19 +141,18 @@ int main(int argc, char **argv)
 
 	/* launch a few batchs to ensure the damaged slab objects get reused. */
 	for (i = 0; i < 10; i++) {
-		BEGIN_BATCH(8);
-		OUT_BATCH(XY_SRC_COPY_BLT_CMD |
-			  XY_SRC_COPY_BLT_WRITE_ALPHA |
-			  XY_SRC_COPY_BLT_WRITE_RGB);
+		BLIT_COPY_BATCH_START(devid, 0);
 		OUT_BATCH((3 << 24) | /* 32 bits */
 			  (0xcc << 16) | /* copy ROP */
 			  2*1024*4);
 		OUT_BATCH(0 << 16 | 1024);
 		OUT_BATCH((1) << 16 | (1));
 		OUT_RELOC_FENCED(busy_bo, I915_GEM_DOMAIN_RENDER, I915_GEM_DOMAIN_RENDER, 0);
+		BLIT_RELOC_UDW(devid);
 		OUT_BATCH(0 << 16 | 0);
 		OUT_BATCH(2*1024*4);
 		OUT_RELOC_FENCED(busy_bo, I915_GEM_DOMAIN_RENDER, 0, 0);
+		BLIT_RELOC_UDW(devid);
 		ADVANCE_BATCH();
 
 		if (IS_GEN6(devid) || IS_GEN7(devid)) {
