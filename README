@@ -96,3 +96,15 @@ debugger/
 	initiating connections with debug clients..
 
 	The debugger must be run as root: "sudo debugger/eudb"
+
+DEPENDENCIES
+	This is a non-exchaustive list of package dependencies required for
+	building everything:
+
+	libpciaccess-dev
+	libdrm-dev
+	xutils-dev
+	libcairo2-dev
+	swig2.0
+	libpython3.3-dev
+	x11proto-dri2-dev
