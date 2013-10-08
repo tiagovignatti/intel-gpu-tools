@@ -11,6 +11,8 @@ libintel_tools_la_SOURCES = 	\
 	i830_reg.h		\
 	i915_3d.h		\
 	i915_reg.h		\
+	igt_debugfs.c		\
+	igt_debugfs.h		\
 	instdone.c		\
 	instdone.h		\
 	intel_batchbuffer.c	\
