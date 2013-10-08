@@ -13,6 +13,7 @@ bin_PROGRAMS = 				\
 	intel_gpu_top 			\
 	intel_gpu_time 			\
 	intel_gtt 			\
+	intel_opregion_decode		\
 	intel_perf_counters		\
 	intel_stepping 			\
 	intel_reg_checker 		\
