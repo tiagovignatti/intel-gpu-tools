@@ -61,22 +61,22 @@ copy(int fd, uint32_t dst, uint32_t src)
 	struct drm_i915_gem_exec_object2 obj[3];
 	struct drm_i915_gem_execbuffer2 exec;
 	uint32_t handle;
-	int ret;
+	int ret, i=0;
 
-	batch[0] = XY_SRC_COPY_BLT_CMD |
+	batch[i++] = XY_SRC_COPY_BLT_CMD |
 		  XY_SRC_COPY_BLT_WRITE_ALPHA |
 		  XY_SRC_COPY_BLT_WRITE_RGB;
-	batch[1] = (3 << 24) | /* 32 bits */
+	batch[i++] = (3 << 24) | /* 32 bits */
 		  (0xcc << 16) | /* copy ROP */
 		  WIDTH*4;
-	batch[2] = 0; /* dst x1,y1 */
-	batch[3] = (HEIGHT << 16) | WIDTH; /* dst x2,y2 */
-	batch[4] = 0; /* dst reloc */
-	batch[5] = 0; /* src x1,y1 */
-	batch[6] = WIDTH*4;
-	batch[7] = 0; /* src reloc */
-	batch[8] = MI_BATCH_BUFFER_END;
-	batch[9] = MI_NOOP;
+	batch[i++] = 0; /* dst x1,y1 */
+	batch[i++] = (HEIGHT << 16) | WIDTH; /* dst x2,y2 */
+	batch[i++] = 0; /* dst reloc */
+	batch[i++] = 0; /* src x1,y1 */
+	batch[i++] = WIDTH*4;
+	batch[i++] = 0; /* src reloc */
+	batch[i++] = MI_BATCH_BUFFER_END;
+	batch[i++] = MI_NOOP;
 
 	handle = gem_create(fd, 4096);
 	gem_write(fd, handle, 0, batch, sizeof(batch));
@@ -124,7 +124,7 @@ copy(int fd, uint32_t dst, uint32_t src)
 	exec.buffers_ptr = (uintptr_t)obj;
 	exec.buffer_count = 3;
 	exec.batch_start_offset = 0;
-	exec.batch_len = sizeof(batch);
+	exec.batch_len = i * 4;
 	exec.DR1 = exec.DR4 = 0;
 	exec.num_cliprects = 0;
 	exec.cliprects_ptr = 0;
