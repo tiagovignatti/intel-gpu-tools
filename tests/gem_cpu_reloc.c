@@ -76,6 +76,8 @@ static void copy(int fd, uint32_t batch, uint32_t src, uint32_t dst)
 	gem_reloc[0].presumed_offset = 0;
 
 	gem_reloc[1].offset = 7 * sizeof(uint32_t);
+	if (intel_get_drm_devid(fd) >= 8)
+		 gem_reloc[1].offset += sizeof(uint32_t);
 	gem_reloc[1].delta = 0;
 	gem_reloc[1].target_handle = src;
 	gem_reloc[1].read_domains = I915_GEM_DOMAIN_RENDER;
@@ -114,23 +116,46 @@ static void exec(int fd, uint32_t handle)
 	do_or_die(drmIoctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf));
 }
 
+uint32_t gen6_batch[] = {
+	(XY_SRC_COPY_BLT_CMD | 6 |
+	 XY_SRC_COPY_BLT_WRITE_ALPHA |
+	 XY_SRC_COPY_BLT_WRITE_RGB),
+	(3 << 24 | /* 32 bits */
+	 0xcc << 16 | /* copy ROP */
+	 4096),
+	0 << 16 | 0, /* dst x1, y1 */
+	1 << 16 | 2,
+	0, /* dst relocation */
+	0 << 16 | 0, /* src x1, y1 */
+	4096,
+	0, /* src relocation */
+	MI_BATCH_BUFFER_END,
+};
+
+uint32_t gen8_batch[] = {
+	(XY_SRC_COPY_BLT_CMD | 8 |
+	 XY_SRC_COPY_BLT_WRITE_ALPHA |
+	 XY_SRC_COPY_BLT_WRITE_RGB),
+	(3 << 24 | /* 32 bits */
+	 0xcc << 16 | /* copy ROP */
+	 4096),
+	0 << 16 | 0, /* dst x1, y1 */
+	1 << 16 | 2,
+	0, /* dst relocation */
+	0, /* FIXME */
+	0 << 16 | 0, /* src x1, y1 */
+	4096,
+	0, /* src relocation */
+	0, /* FIXME */
+	MI_BATCH_BUFFER_END,
+};
+
+uint32_t *batch = gen6_batch;
+uint32_t batch_size = sizeof(gen6_batch);
+
 int main(int argc, char **argv)
 {
-	const uint32_t batch[] = {
-		(XY_SRC_COPY_BLT_CMD |
-		 XY_SRC_COPY_BLT_WRITE_ALPHA |
-		 XY_SRC_COPY_BLT_WRITE_RGB),
-		(3 << 24 | /* 32 bits */
-		 0xcc << 16 | /* copy ROP */
-		 4096),
-		0 << 16 | 0, /* dst x1, y1 */
-		1 << 16 | 2,
-		0, /* dst relocation */
-		0 << 16 | 0, /* src x1, y1 */
-		4096,
-		0, /* src relocation */
-		MI_BATCH_BUFFER_END,
-	};
+
 	const uint32_t hang[] = {-1, -1, -1, -1};
 	const uint32_t end[] = {MI_BATCH_BUFFER_END, 0};
 	uint64_t aper_size;
@@ -144,6 +169,11 @@ int main(int argc, char **argv)
 	use_blt = 0;
 	if (intel_gen(noop) >= 6)
 		use_blt = I915_EXEC_BLT;
+
+	if (intel_gen(noop) >= 8) {
+		batch = gen8_batch;
+		batch_size += 2 * 4;
+	}
 
 	aper_size = gem_mappable_aperture_size();
 	if (intel_get_total_ram_mb() < aper_size / (1024*1024) * 2) {
@@ -166,7 +196,7 @@ int main(int argc, char **argv)
 		uint32_t bad;
 
 		handles[i] = gem_create(fd, 4096);
-		gem_write(fd, handles[i], 0, batch, sizeof(batch));
+		gem_write(fd, handles[i], 0, batch, batch_size);
 
 		bad = gem_create(fd, 4096);
 		gem_write(fd, bad, 0, hang, sizeof(hang));
