@@ -42,18 +42,7 @@
 
 static void do_test_invalid_tiling(int fd, uint32_t handle, int tiling, int stride)
 {
-	struct drm_i915_gem_set_tiling st;
-	int ret;
-
-	memset(&st, 0, sizeof(st));
-	do {
-		st.handle = handle;
-		st.tiling_mode = tiling;
-		st.stride = tiling ? stride : 0;
-
-		ret = ioctl(fd, DRM_IOCTL_I915_GEM_SET_TILING, &st);
-	} while (ret == -1 && (errno == EINTR || errno == EAGAIN));
-	igt_assert(ret == -1 && errno == EINVAL);
+	igt_assert(__gem_set_tiling(fd, handle, tiling, tiling ? stride : 0) == -EINVAL);
 }
 
 static void test_invalid_tiling(int fd, uint32_t handle, int stride)

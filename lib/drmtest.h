@@ -55,6 +55,7 @@ void gem_quiescent_gpu(int fd);
 
 /* ioctl wrappers and similar stuff for bare metal testing */
 void gem_set_tiling(int fd, uint32_t handle, int tiling, int stride);
+int __gem_set_tiling(int fd, uint32_t handle, int tiling, int stride);
 bool gem_has_enable_ring(int fd,int param);
 bool gem_has_bsd(int fd);
 bool gem_has_blt(int fd);

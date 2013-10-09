@@ -320,7 +320,6 @@ static int prepare_primary_surface(int fd, int prim_width, int prim_height,
 {
 	uint32_t                        bytes_per_pixel = sizeof(uint32_t);
 	uint32_t                        *prim_fb_ptr;
-	struct drm_i915_gem_set_tiling  set_tiling;
 
 	if (bytes_per_pixel != sizeof(uint32_t)) {
 		printf("Bad bytes_per_pixel for primary surface: %d\n",
@@ -354,16 +353,8 @@ static int prepare_primary_surface(int fd, int prim_width, int prim_height,
 
 	*prim_handle = gem_create(fd, *prim_size);
 
-	if (tiled) {
-		set_tiling.handle = *prim_handle;
-		set_tiling.tiling_mode = I915_TILING_X;
-		set_tiling.stride = *prim_stride;
-		if (ioctl(fd, DRM_IOCTL_I915_GEM_SET_TILING, &set_tiling)) {
-			printf("Set tiling failed: %s (stride=%d, size=%d)\n",
-				strerror(errno), *prim_stride, *prim_size);
-			return -1;
-		}
-	}
+	if (tiled)
+		gem_set_tiling(fd, *prim_handle, I915_TILING_X, *prim_stride);
 
 	prim_fb_ptr = gem_mmap(fd, *prim_handle, *prim_size, PROT_READ | PROT_WRITE);
 
@@ -421,7 +412,6 @@ static int prepare_sprite_surfaces(int fd, int sprite_width, int sprite_height,
 {
 	uint32_t                        bytes_per_pixel = sizeof(uint32_t);
 	uint32_t                        *sprite_fb_ptr;
-	struct drm_i915_gem_set_tiling  set_tiling;
 	int                             i;
 
 	if (bytes_per_pixel != sizeof(uint32_t)) {
@@ -457,16 +447,8 @@ static int prepare_sprite_surfaces(int fd, int sprite_width, int sprite_height,
 		// Create the sprite surface
 		sprite_handles[i] = gem_create(fd, *sprite_size);
 
-		if (tiled) {
-			set_tiling.handle = sprite_handles[i];
-			set_tiling.tiling_mode = I915_TILING_X;
-			set_tiling.stride = *sprite_stride;
-			if (ioctl(fd, DRM_IOCTL_I915_GEM_SET_TILING, &set_tiling)) {
-				printf("Set tiling failed: %s (stride=%d, size=%d)\n",
-						strerror(errno), *sprite_stride, *sprite_size);
-				return -1;
-			}
-		}
+		if (tiled)
+			gem_set_tiling(fd, sprite_handles[i], I915_TILING_X, *sprite_stride);
 
 		// Get pointer to the surface
 		sprite_fb_ptr = gem_mmap(fd,

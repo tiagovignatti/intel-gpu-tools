@@ -249,7 +249,7 @@ int drm_open_any(void)
 	return fd;
 }
 
-void gem_set_tiling(int fd, uint32_t handle, int tiling, int stride)
+int __gem_set_tiling(int fd, uint32_t handle, int tiling, int stride)
 {
 	struct drm_i915_gem_set_tiling st;
 	int ret;
@@ -262,8 +262,16 @@ void gem_set_tiling(int fd, uint32_t handle, int tiling, int stride)
 
 		ret = ioctl(fd, DRM_IOCTL_I915_GEM_SET_TILING, &st);
 	} while (ret == -1 && (errno == EINTR || errno == EAGAIN));
-	igt_assert(ret == 0);
+	if (ret != 0)
+		return -errno;
+
 	igt_assert(st.tiling_mode == tiling);
+	return 0;
+}
+
+void gem_set_tiling(int fd, uint32_t handle, int tiling, int stride)
+{
+	igt_assert(__gem_set_tiling(fd, handle, tiling, stride) == 0);
 }
 
 bool gem_has_enable_ring(int fd,int param)
@@ -1298,7 +1306,6 @@ static int create_bo_for_fb(int fd, int width, int height, int bpp,
 			    bool tiled, uint32_t *gem_handle_ret,
 			    unsigned *size_ret, unsigned *stride_ret)
 {
-	struct drm_i915_gem_set_tiling set_tiling;
 	uint32_t gem_handle;
 	int size;
 	unsigned stride;
@@ -1329,16 +1336,8 @@ static int create_bo_for_fb(int fd, int width, int height, int bpp,
 
 	gem_handle = gem_create(fd, size);
 
-	if (tiled) {
-		set_tiling.handle = gem_handle;
-		set_tiling.tiling_mode = I915_TILING_X;
-		set_tiling.stride = stride;
-		if (ioctl(fd, DRM_IOCTL_I915_GEM_SET_TILING, &set_tiling)) {
-			fprintf(stderr, "set tiling failed: %s (stride=%d, size=%d)\n",
-				strerror(errno), stride, size);
-			return -1;
-		}
-	}
+	if (tiled)
+		gem_set_tiling(fd, gem_handle, I915_TILING_X, stride);
 
 	*stride_ret = stride;
 	*size_ret = size;
