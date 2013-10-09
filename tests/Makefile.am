@@ -50,6 +50,7 @@ TESTS_progs_M = \
 	gem_tiled_blits \
 	gem_tiled_partial_pwrite_pread \
 	gem_write_read_ring_switch \
+	kms_addfb \
 	kms_flip \
 	kms_render \
 	kms_setmode \

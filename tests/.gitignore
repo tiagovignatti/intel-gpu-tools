@@ -94,6 +94,7 @@ getclient
 getstats
 getversion
 igt_fork_helper
+kms_addfb
 kms_flip
 kms_render
 kms_setmode
