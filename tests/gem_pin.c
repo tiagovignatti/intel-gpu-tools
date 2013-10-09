@@ -83,7 +83,8 @@ static void exec(int fd, uint32_t handle, uint32_t offset)
 	igt_assert(gem_exec[0].offset == offset);
 }
 
-static int gem_linear_blt(uint32_t *batch,
+static int gem_linear_blt(int fd,
+			  uint32_t *batch,
 			  uint32_t src,
 			  uint32_t dst,
 			  uint32_t length,
@@ -103,6 +104,8 @@ static int gem_linear_blt(uint32_t *batch,
 	reloc->write_domain = I915_GEM_DOMAIN_RENDER;
 	reloc->presumed_offset = 0;
 	reloc++;
+	if (intel_gen(intel_get_drm_devid(fd)) >= 8)
+		*b++ = 0; /* FIXME */
 
 	*b++ = 0;
 	*b++ = 4*1024;
@@ -114,6 +117,8 @@ static int gem_linear_blt(uint32_t *batch,
 	reloc->write_domain = 0;
 	reloc->presumed_offset = 0;
 	reloc++;
+	if (intel_gen(intel_get_drm_devid(fd)) >= 8)
+		*b++ = 0; /* FIXME */
 
 	*b++ = MI_BATCH_BUFFER_END;
 	*b++ = 0;
@@ -153,7 +158,7 @@ static void make_busy(int fd, uint32_t handle)
 	execbuf.buffers_ptr = (uintptr_t)obj;
 	execbuf.buffer_count = 2;
 	execbuf.batch_start_offset = 0;
-	execbuf.batch_len = gem_linear_blt(batch, tmp, tmp, 1024*1024,reloc);
+	execbuf.batch_len = gem_linear_blt(fd, batch, tmp, tmp, 1024*1024,reloc);
 	execbuf.cliprects_ptr = 0;
 	execbuf.num_cliprects = 0;
 	execbuf.DR1 = 0;
