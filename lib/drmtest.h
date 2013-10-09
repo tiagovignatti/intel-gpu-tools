@@ -193,6 +193,20 @@ void igt_exit(void) __attribute__((noreturn));
 		__igt_fail_assert(99, __FILE__, __LINE__, __func__, #expr , f); \
 	} while (0)
 /**
+ * igt_assert_cmptint
+ *
+ * Like igt_assert(), but displays the values being compared on failure.
+ */
+#define igt_assert_cmpint(n1, cmp, n2) \
+	do { \
+		int __n1 = (n1), __n2 = (n2); \
+		if (__n1 cmp __n2) ; else \
+		__igt_fail_assert(99, __FILE__, __LINE__, __func__, \
+				  #n1 " " #cmp " " #n2, \
+				  "error: %d %s %d\n", __n1, #cmp, __n2); \
+	} while (0)
+
+/**
  * igt_require - skip a (sub-)test if a condition is not met
  *
  * This is useful to streamline the skip logic since it allows for a more flat
