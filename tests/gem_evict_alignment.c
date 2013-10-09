@@ -51,7 +51,7 @@
 static void
 copy(int fd, uint32_t dst, uint32_t src, uint32_t *all_bo, int n_bo, int alignment, int error)
 {
-	uint32_t batch[10];
+	uint32_t batch[12];
 	struct drm_i915_gem_relocation_entry reloc[2];
 	struct drm_i915_gem_exec_object2 *obj;
 	struct drm_i915_gem_execbuffer2 exec;
@@ -67,9 +67,13 @@ copy(int fd, uint32_t dst, uint32_t src, uint32_t *all_bo, int n_bo, int alignme
 	batch[i++] = 0; /* dst x1,y1 */
 	batch[i++] = (HEIGHT << 16) | WIDTH; /* dst x2,y2 */
 	batch[i++] = 0; /* dst reloc */
+	if (intel_gen(intel_get_drm_devid(fd)) >= 8)
+		batch[i++] = 0; /* FIXME */
 	batch[i++] = 0; /* src x1,y1 */
 	batch[i++] = WIDTH*4;
 	batch[i++] = 0; /* src reloc */
+	if (intel_gen(intel_get_drm_devid(fd)) >= 8)
+		batch[i++] = 0; /* FIXME */
 	batch[i++] = MI_BATCH_BUFFER_END;
 	batch[i++] = MI_NOOP;
 
@@ -102,7 +106,7 @@ copy(int fd, uint32_t dst, uint32_t src, uint32_t *all_bo, int n_bo, int alignme
 	exec.buffers_ptr = (uintptr_t)obj;
 	exec.buffer_count = n_bo + 1;
 	exec.batch_start_offset = 0;
-	exec.batch_len = sizeof(batch);
+	exec.batch_len = i * 4;
 	exec.DR1 = exec.DR4 = 0;
 	exec.num_cliprects = 0;
 	exec.cliprects_ptr = 0;
