@@ -50,7 +50,8 @@
 #define BLT_SRC_TILED		(1<<15)
 #define BLT_DST_TILED		(1<<11)
 
-static int gem_linear_blt(uint32_t *batch,
+static int gem_linear_blt(int fd,
+			  uint32_t *batch,
 			  uint32_t src,
 			  uint32_t dst,
 			  uint32_t length,
@@ -75,6 +76,8 @@ static int gem_linear_blt(uint32_t *batch,
 		reloc->write_domain = I915_GEM_DOMAIN_RENDER;
 		reloc->presumed_offset = 0;
 		reloc++;
+		if (intel_gen(intel_get_drm_devid(fd)) >= 8)
+			b[i++] = 0; /* FIXME */
 
 		b[i++] = 0;
 		b[i++] = 16*1024;
@@ -86,6 +89,8 @@ static int gem_linear_blt(uint32_t *batch,
 		reloc->write_domain = 0;
 		reloc->presumed_offset = 0;
 		reloc++;
+		if (intel_gen(intel_get_drm_devid(fd)) >= 8)
+			b[i++] = 0; /* FIXME */
 
 		b += i;
 		length -= height * 16*1024;
@@ -105,6 +110,8 @@ static int gem_linear_blt(uint32_t *batch,
 		reloc->write_domain = I915_GEM_DOMAIN_RENDER;
 		reloc->presumed_offset = 0;
 		reloc++;
+		if (intel_gen(intel_get_drm_devid(fd)) >= 8)
+			b[i++] = 0; /* FIXME */
 
 		b[i++] = height << 16;
 		b[i++] = 16*1024;
@@ -116,6 +123,8 @@ static int gem_linear_blt(uint32_t *batch,
 		reloc->write_domain = 0;
 		reloc->presumed_offset = 0;
 		reloc++;
+		if (intel_gen(intel_get_drm_devid(fd)) >= 8)
+			b[i++] = 0; /* FIXME */
 
 		b += i;
 	}
@@ -168,7 +177,7 @@ static void run(int object_size)
 	src = gem_create(fd, object_size);
 	dst = gem_create(fd, object_size);
 
-	len = gem_linear_blt(buf, src, dst, object_size, reloc);
+	len = gem_linear_blt(fd, buf, src, dst, object_size, reloc);
 	gem_write(fd, handle, 0, buf, len);
 
 	exec[0].handle = src;
