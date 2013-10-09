@@ -51,8 +51,30 @@
 #define BLT_SRC_TILED		(1<<15)
 #define BLT_DST_TILED		(1<<11)
 
+static inline void build_batch(uint32_t *batch, int len, uint32_t *batch_len)
+{
+	unsigned int i = 0;
+
+	batch[i++] = COPY_BLT_CMD | BLT_WRITE_ALPHA | BLT_WRITE_RGB;
+	batch[i++] = 0xcc << 16 | 1 << 25 | 1 << 24 | len;
+	batch[i++] = 0;
+	batch[i++] = 1 << 16 | (len / 4);
+	batch[i++] = 0; /* dst */
+	batch[i++] = 0;
+	batch[i++] = len;
+	batch[i++] = 0; /* src */
+	batch[i++] = MI_BATCH_BUFFER_END;
+	batch[i++] = 0;
+
+	*batch_len = i * 4;
+}
+
+#define GPP_BATCH_SIZE (10 * 4)
+
 static void copy(int fd, uint32_t src, uint32_t dst, void *buf, int len, int loops)
 {
+	uint32_t batch[GPP_BATCH_SIZE] = {0};
+
 	struct drm_i915_gem_relocation_entry reloc[] = {
 		{ dst, 0, 4*sizeof(uint32_t), 0, I915_GEM_DOMAIN_RENDER, I915_GEM_DOMAIN_RENDER },
 		{ src, 0, 7*sizeof(uint32_t), 0, I915_GEM_DOMAIN_RENDER, 0 },
@@ -62,24 +84,15 @@ static void copy(int fd, uint32_t src, uint32_t dst, void *buf, int len, int loo
 		{ dst },
 		{ gem_create(fd, 4096), 2, (uintptr_t)reloc }
 	};
-	uint32_t batch[] = {
-		COPY_BLT_CMD | BLT_WRITE_ALPHA | BLT_WRITE_RGB,
-		0xcc << 16 | 1 << 25 | 1 << 24 | len,
-		0,
-		1 << 16 | (len / 4),
-		0, /* dst */
-		0,
-		len,
-		0, /* src */
-		MI_BATCH_BUFFER_END,
-		0
-	};
 	struct drm_i915_gem_execbuffer2 execbuf = {
 		(uintptr_t)exec, 3,
-		0, sizeof(batch),
+		0, 0,
 		0, 0, 0, 0,
 		HAS_BLT_RING(intel_get_drm_devid(fd)) ? I915_EXEC_BLT : 0,
 	};
+
+	build_batch(batch, len, &execbuf.batch_len);
+
 	gem_write(fd, exec[2].handle, 0, batch, execbuf.batch_len);
 
 	while (loops--) {
@@ -93,6 +106,8 @@ static void copy(int fd, uint32_t src, uint32_t dst, void *buf, int len, int loo
 
 static void as_gtt_mmap(int fd, uint32_t src, uint32_t dst, void *buf, int len, int loops)
 {
+	uint32_t batch[GPP_BATCH_SIZE] = {0};
+
 	struct drm_i915_gem_relocation_entry reloc[] = {
 		{ dst, 0, 4*sizeof(uint32_t), 0, I915_GEM_DOMAIN_RENDER, I915_GEM_DOMAIN_RENDER },
 		{ src, 0, 7*sizeof(uint32_t), 0, I915_GEM_DOMAIN_RENDER, 0 },
@@ -102,25 +117,15 @@ static void as_gtt_mmap(int fd, uint32_t src, uint32_t dst, void *buf, int len, 
 		{ dst },
 		{ gem_create(fd, 4096), 2, (uintptr_t)reloc }
 	};
-	uint32_t batch[] = {
-		COPY_BLT_CMD | BLT_WRITE_ALPHA | BLT_WRITE_RGB,
-		0xcc << 16 | 1 << 25 | 1 << 24 | len,
-		0,
-		1 << 16 | (len / 4),
-		0, /* dst */
-		0,
-		len,
-		0, /* src */
-		MI_BATCH_BUFFER_END,
-		0
-	};
 	struct drm_i915_gem_execbuffer2 execbuf = {
 		(uintptr_t)exec, 3,
-		0, sizeof(batch),
+		0, GPP_BATCH_SIZE,
 		0, 0, 0, 0,
 		HAS_BLT_RING(intel_get_drm_devid(fd)) ? I915_EXEC_BLT : 0,
 	};
 	uint32_t *src_ptr, *dst_ptr;
+
+	build_batch(batch, len, &execbuf.batch_len);
 
 	gem_write(fd, exec[2].handle, 0, batch, execbuf.batch_len);
 
@@ -146,6 +151,8 @@ static void as_gtt_mmap(int fd, uint32_t src, uint32_t dst, void *buf, int len, 
 
 static void as_cpu_mmap(int fd, uint32_t src, uint32_t dst, void *buf, int len, int loops)
 {
+	uint32_t batch[GPP_BATCH_SIZE] = {0};
+
 	struct drm_i915_gem_relocation_entry reloc[] = {
 		{ dst, 0, 4*sizeof(uint32_t), 0, I915_GEM_DOMAIN_RENDER, I915_GEM_DOMAIN_RENDER },
 		{ src, 0, 7*sizeof(uint32_t), 0, I915_GEM_DOMAIN_RENDER, 0 },
@@ -155,25 +162,15 @@ static void as_cpu_mmap(int fd, uint32_t src, uint32_t dst, void *buf, int len, 
 		{ dst },
 		{ gem_create(fd, 4096), 2, (uintptr_t)reloc }
 	};
-	uint32_t batch[] = {
-		COPY_BLT_CMD | BLT_WRITE_ALPHA | BLT_WRITE_RGB,
-		0xcc << 16 | 1 << 25 | 1 << 24 | len,
-		0,
-		1 << 16 | (len / 4),
-		0, /* dst */
-		0,
-		len,
-		0, /* src */
-		MI_BATCH_BUFFER_END,
-		0
-	};
 	struct drm_i915_gem_execbuffer2 execbuf = {
 		(uintptr_t)exec, 3,
-		0, sizeof(batch),
+		0, GPP_BATCH_SIZE,
 		0, 0, 0, 0,
 		HAS_BLT_RING(intel_get_drm_devid(fd)) ? I915_EXEC_BLT : 0,
 	};
 	uint32_t *src_ptr, *dst_ptr;
+
+	build_batch(batch, len, &execbuf.batch_len);
 
 	gem_write(fd, exec[2].handle, 0, batch, execbuf.batch_len);
 
@@ -198,6 +195,8 @@ static void as_cpu_mmap(int fd, uint32_t src, uint32_t dst, void *buf, int len, 
 
 static void test_copy(int fd, uint32_t src, uint32_t dst, uint32_t *buf, int len)
 {
+	uint32_t batch[GPP_BATCH_SIZE] = {0};
+
 	struct drm_i915_gem_relocation_entry reloc[] = {
 		{ dst, 0, 4*sizeof(uint32_t), 0, I915_GEM_DOMAIN_RENDER, I915_GEM_DOMAIN_RENDER },
 		{ src, 0, 7*sizeof(uint32_t), 0, I915_GEM_DOMAIN_RENDER, 0 },
@@ -207,25 +206,15 @@ static void test_copy(int fd, uint32_t src, uint32_t dst, uint32_t *buf, int len
 		{ dst },
 		{ gem_create(fd, 4096), 2, (uintptr_t)reloc }
 	};
-	uint32_t batch[] = {
-		COPY_BLT_CMD | BLT_WRITE_ALPHA | BLT_WRITE_RGB,
-		0xcc << 16 | 1 << 25 | 1 << 24 | len,
-		0,
-		1 << 16 | (len / 4),
-		0, /* dst */
-		0,
-		len,
-		0, /* src */
-		MI_BATCH_BUFFER_END,
-		0
-	};
 	struct drm_i915_gem_execbuffer2 execbuf = {
 		(uintptr_t)exec, 3,
-		0, sizeof(batch),
+		0, GPP_BATCH_SIZE,
 		0, 0, 0, 0,
 		HAS_BLT_RING(intel_get_drm_devid(fd)) ? I915_EXEC_BLT : 0,
 	};
 	int i;
+
+	build_batch(batch, len, &execbuf.batch_len);
 
 	gem_write(fd, exec[2].handle, 0, batch, execbuf.batch_len);
 
@@ -246,6 +235,8 @@ static void test_copy(int fd, uint32_t src, uint32_t dst, uint32_t *buf, int len
 
 static void test_as_gtt_mmap(int fd, uint32_t src, uint32_t dst, int len)
 {
+	uint32_t batch[GPP_BATCH_SIZE] = {0};
+
 	struct drm_i915_gem_relocation_entry reloc[] = {
 		{ dst, 0, 4*sizeof(uint32_t), 0, I915_GEM_DOMAIN_RENDER, I915_GEM_DOMAIN_RENDER },
 		{ src, 0, 7*sizeof(uint32_t), 0, I915_GEM_DOMAIN_RENDER, 0 },
@@ -255,26 +246,16 @@ static void test_as_gtt_mmap(int fd, uint32_t src, uint32_t dst, int len)
 		{ dst },
 		{ gem_create(fd, 4096), 2, (uintptr_t)reloc }
 	};
-	uint32_t batch[] = {
-		COPY_BLT_CMD | BLT_WRITE_ALPHA | BLT_WRITE_RGB,
-		0xcc << 16 | 1 << 25 | 1 << 24 | len,
-		0,
-		1 << 16 | (len / 4),
-		0, /* dst */
-		0,
-		len,
-		0, /* src */
-		MI_BATCH_BUFFER_END,
-		0
-	};
 	struct drm_i915_gem_execbuffer2 execbuf = {
 		(uintptr_t)exec, 3,
-		0, sizeof(batch),
+		0, GPP_BATCH_SIZE,
 		0, 0, 0, 0,
 		HAS_BLT_RING(intel_get_drm_devid(fd)) ? I915_EXEC_BLT : 0,
 	};
 	uint32_t *src_ptr, *dst_ptr;
 	int i;
+
+	build_batch(batch, len, &execbuf.batch_len);
 
 	gem_write(fd, exec[2].handle, 0, batch, execbuf.batch_len);
 
@@ -298,6 +279,8 @@ static void test_as_gtt_mmap(int fd, uint32_t src, uint32_t dst, int len)
 
 static void test_as_cpu_mmap(int fd, uint32_t src, uint32_t dst, int len)
 {
+	uint32_t batch[GPP_BATCH_SIZE] = {0};
+
 	struct drm_i915_gem_relocation_entry reloc[] = {
 		{ dst, 0, 4*sizeof(uint32_t), 0, I915_GEM_DOMAIN_RENDER, I915_GEM_DOMAIN_RENDER },
 		{ src, 0, 7*sizeof(uint32_t), 0, I915_GEM_DOMAIN_RENDER, 0 },
@@ -307,26 +290,16 @@ static void test_as_cpu_mmap(int fd, uint32_t src, uint32_t dst, int len)
 		{ dst },
 		{ gem_create(fd, 4096), 2, (uintptr_t)reloc }
 	};
-	uint32_t batch[] = {
-		COPY_BLT_CMD | BLT_WRITE_ALPHA | BLT_WRITE_RGB,
-		0xcc << 16 | 1 << 25 | 1 << 24 | len,
-		0,
-		1 << 16 | (len / 4),
-		0, /* dst */
-		0,
-		len,
-		0, /* src */
-		MI_BATCH_BUFFER_END,
-		0
-	};
 	struct drm_i915_gem_execbuffer2 execbuf = {
 		(uintptr_t)exec, 3,
-		0, sizeof(batch),
+		0, GPP_BATCH_SIZE,
 		0, 0, 0, 0,
 		HAS_BLT_RING(intel_get_drm_devid(fd)) ? I915_EXEC_BLT : 0,
 	};
 	uint32_t *src_ptr, *dst_ptr;
 	int i;
+
+	build_batch(batch, len, &execbuf.batch_len);
 
 	gem_write(fd, exec[2].handle, 0, batch, execbuf.batch_len);
 
