@@ -62,16 +62,20 @@ static inline void build_batch(uint32_t *batch, int len, uint32_t *batch_len)
 	batch[i++] = 0;
 	batch[i++] = 1 << 16 | (len / 4);
 	batch[i++] = 0; /* dst */
+	if (intel_gen(devid) >= 8)
+		batch[i++] = 0; /* FIXME */
 	batch[i++] = 0;
 	batch[i++] = len;
 	batch[i++] = 0; /* src */
+	if (intel_gen(devid) >= 8)
+		batch[i++] = 0; /* FIXME */
 	batch[i++] = MI_BATCH_BUFFER_END;
 	batch[i++] = 0;
 
 	*batch_len = i * 4;
 }
 
-#define GPP_BATCH_SIZE (10 * 4)
+#define GPP_BATCH_SIZE (12 * 4)
 
 static void copy(int fd, uint32_t src, uint32_t dst, void *buf, int len, int loops)
 {
