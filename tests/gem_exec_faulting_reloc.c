@@ -55,6 +55,8 @@
 #define BLT_SRC_TILED		(1<<15)
 #define BLT_DST_TILED		(1<<11)
 
+uint32_t devid;
+
 static int gem_linear_blt(uint32_t *batch,
 			  uint32_t src,
 			  uint32_t dst,
@@ -81,9 +83,14 @@ static int gem_linear_blt(uint32_t *batch,
 		reloc->presumed_offset = 0;
 		reloc++;
 
+		if (intel_gen(devid) >= 8)
+			b[i++] = 0; /* FIXME: use real high dword */
+
 		b[i++] = 0;
 		b[i++] = 16*1024;
 		b[i++] = 0;
+		if (intel_gen(devid) >= 8)
+			b[i++] = 0; /* FIXME: use real high dword */
 		reloc->offset = (b-batch+7) * sizeof(uint32_t);
 		reloc->delta = 0;
 		reloc->target_handle = src;
@@ -92,7 +99,10 @@ static int gem_linear_blt(uint32_t *batch,
 		reloc->presumed_offset = 0;
 		reloc++;
 
-		b += 8;
+		if (intel_gen(devid) >= 8)
+			b += 10;
+		else
+			b += 8;
 		length -= height * 16*1024;
 	}
 	
@@ -110,10 +120,14 @@ static int gem_linear_blt(uint32_t *batch,
 		reloc->write_domain = I915_GEM_DOMAIN_RENDER;
 		reloc->presumed_offset = 0;
 		reloc++;
+		if (intel_gen(devid) >= 8)
+			b[i++] = 0; /* FIXME: use real high dword */
 
 		b[i++] = height << 16;
 		b[i++] = 16*1024;
 		b[i++] = 0;
+		if (intel_gen(devid) >= 8)
+			b[i++] = 0; /* FIXME: use real high dword */
 		reloc->offset = (b-batch+7) * sizeof(uint32_t);
 		reloc->delta = 0;
 		reloc->target_handle = src;
@@ -122,7 +136,10 @@ static int gem_linear_blt(uint32_t *batch,
 		reloc->presumed_offset = 0;
 		reloc++;
 
-		b += 8;
+		if (intel_gen(devid) >= 8)
+			b += 10;
+		else
+			b += 8;
 	}
 
 	b[0] = MI_BATCH_BUFFER_END;
@@ -143,6 +160,7 @@ static void run(int object_size)
 	int ring;
 
 	fd = drm_open_any();
+	devid = intel_get_drm_devid(fd);
 	handle = gem_create(fd, 4096);
 	src = gem_create(fd, object_size);
 	dst = gem_create(fd, object_size);
@@ -185,7 +203,7 @@ static void run(int object_size)
 	exec[2].rsvd2 = 0;
 
 	ring = 0;
-	if (HAS_BLT_RING(intel_get_drm_devid(fd)))
+	if (HAS_BLT_RING(devid))
 		ring = I915_EXEC_BLT;
 
 	execbuf.buffers_ptr = (uintptr_t)exec;
