@@ -51,6 +51,8 @@
 #define BLT_SRC_TILED		(1<<15)
 #define BLT_DST_TILED		(1<<11)
 
+uint32_t devid;
+
 static inline void build_batch(uint32_t *batch, int len, uint32_t *batch_len)
 {
 	unsigned int i = 0;
@@ -88,7 +90,7 @@ static void copy(int fd, uint32_t src, uint32_t dst, void *buf, int len, int loo
 		(uintptr_t)exec, 3,
 		0, 0,
 		0, 0, 0, 0,
-		HAS_BLT_RING(intel_get_drm_devid(fd)) ? I915_EXEC_BLT : 0,
+		HAS_BLT_RING(devid) ? I915_EXEC_BLT : 0,
 	};
 
 	build_batch(batch, len, &execbuf.batch_len);
@@ -121,7 +123,7 @@ static void as_gtt_mmap(int fd, uint32_t src, uint32_t dst, void *buf, int len, 
 		(uintptr_t)exec, 3,
 		0, GPP_BATCH_SIZE,
 		0, 0, 0, 0,
-		HAS_BLT_RING(intel_get_drm_devid(fd)) ? I915_EXEC_BLT : 0,
+		HAS_BLT_RING(devid) ? I915_EXEC_BLT : 0,
 	};
 	uint32_t *src_ptr, *dst_ptr;
 
@@ -166,7 +168,7 @@ static void as_cpu_mmap(int fd, uint32_t src, uint32_t dst, void *buf, int len, 
 		(uintptr_t)exec, 3,
 		0, GPP_BATCH_SIZE,
 		0, 0, 0, 0,
-		HAS_BLT_RING(intel_get_drm_devid(fd)) ? I915_EXEC_BLT : 0,
+		HAS_BLT_RING(devid) ? I915_EXEC_BLT : 0,
 	};
 	uint32_t *src_ptr, *dst_ptr;
 
@@ -210,7 +212,7 @@ static void test_copy(int fd, uint32_t src, uint32_t dst, uint32_t *buf, int len
 		(uintptr_t)exec, 3,
 		0, GPP_BATCH_SIZE,
 		0, 0, 0, 0,
-		HAS_BLT_RING(intel_get_drm_devid(fd)) ? I915_EXEC_BLT : 0,
+		HAS_BLT_RING(devid) ? I915_EXEC_BLT : 0,
 	};
 	int i;
 
@@ -250,7 +252,7 @@ static void test_as_gtt_mmap(int fd, uint32_t src, uint32_t dst, int len)
 		(uintptr_t)exec, 3,
 		0, GPP_BATCH_SIZE,
 		0, 0, 0, 0,
-		HAS_BLT_RING(intel_get_drm_devid(fd)) ? I915_EXEC_BLT : 0,
+		HAS_BLT_RING(devid) ? I915_EXEC_BLT : 0,
 	};
 	uint32_t *src_ptr, *dst_ptr;
 	int i;
@@ -294,7 +296,7 @@ static void test_as_cpu_mmap(int fd, uint32_t src, uint32_t dst, int len)
 		(uintptr_t)exec, 3,
 		0, GPP_BATCH_SIZE,
 		0, 0, 0, 0,
-		HAS_BLT_RING(intel_get_drm_devid(fd)) ? I915_EXEC_BLT : 0,
+		HAS_BLT_RING(devid) ? I915_EXEC_BLT : 0,
 	};
 	uint32_t *src_ptr, *dst_ptr;
 	int i;
@@ -375,6 +377,8 @@ int main(int argc, char **argv)
 		gem_set_caching(fd, src, 0);
 		gem_set_caching(fd, dst, 0);
 	}
+
+	devid = intel_get_drm_devid(fd);
 
 	igt_subtest("uncached-copy-correctness")
 		test_copy(fd, src, dst, tmp, object_size);
