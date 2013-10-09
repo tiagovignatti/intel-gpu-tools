@@ -359,6 +359,8 @@ unsigned int kmstest_create_fb2(int fd, int width, int height, uint32_t format,
 			        bool tiled, struct kmstest_fb *fb);
 void kmstest_remove_fb(int fd, struct kmstest_fb *fb_info);
 cairo_t *kmstest_get_cairo_ctx(int fd, struct kmstest_fb *fb);
+void kmstest_paint_color(cairo_t *cr, int x, int y, int w, int h,
+			 double r, double g, double b);
 void kmstest_paint_color_gradient(cairo_t *cr, int x, int y, int w, int h,
 				  int r, int g, int b);
 void kmstest_paint_test_pattern(cairo_t *cr, int width, int height);

@@ -1347,6 +1347,14 @@ static int create_bo_for_fb(int fd, int width, int height, int bpp,
 	return 0;
 }
 
+void kmstest_paint_color(cairo_t *cr, int x, int y, int w, int h,
+			 double r, double g, double b)
+{
+	cairo_rectangle(cr, x, y, w, h);
+	cairo_set_source_rgb(cr, r, g, b);
+	cairo_fill(cr);
+}
+
 void
 kmstest_paint_color_gradient(cairo_t *cr, int x, int y, int w, int h,
 		     int r, int g, int b)
