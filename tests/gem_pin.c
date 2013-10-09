@@ -91,12 +91,12 @@ static int gem_linear_blt(uint32_t *batch,
 {
 	uint32_t *b = batch;
 
-	b[0] = COPY_BLT_CMD | BLT_WRITE_ALPHA | BLT_WRITE_RGB;
-	b[1] = 0x66 << 16 | 1 << 25 | 1 << 24 | (4*1024);
-	b[2] = 0;
-	b[3] = (length / (4*1024)) << 16 | 1024;
-	b[4] = 0;
-	reloc->offset = (b-batch+4) * sizeof(uint32_t);
+	*b++ = COPY_BLT_CMD | BLT_WRITE_ALPHA | BLT_WRITE_RGB;
+	*b++ = 0x66 << 16 | 1 << 25 | 1 << 24 | (4*1024);
+	*b++ = 0;
+	*b++ = (length / (4*1024)) << 16 | 1024;
+	*b++ = 0;
+	reloc->offset = (b-batch-1) * sizeof(uint32_t);
 	reloc->delta = 0;
 	reloc->target_handle = dst;
 	reloc->read_domains = I915_GEM_DOMAIN_RENDER;
@@ -104,10 +104,10 @@ static int gem_linear_blt(uint32_t *batch,
 	reloc->presumed_offset = 0;
 	reloc++;
 
-	b[5] = 0;
-	b[6] = 4*1024;
-	b[7] = 0;
-	reloc->offset = (b-batch+7) * sizeof(uint32_t);
+	*b++ = 0;
+	*b++ = 4*1024;
+	*b++ = 0;
+	reloc->offset = (b-batch-1) * sizeof(uint32_t);
 	reloc->delta = 0;
 	reloc->target_handle = src;
 	reloc->read_domains = I915_GEM_DOMAIN_RENDER;
@@ -115,12 +115,10 @@ static int gem_linear_blt(uint32_t *batch,
 	reloc->presumed_offset = 0;
 	reloc++;
 
-	b += 8;
+	*b++ = MI_BATCH_BUFFER_END;
+	*b++ = 0;
 
-	b[0] = MI_BATCH_BUFFER_END;
-	b[1] = 0;
-
-	return (b+2 - batch) * sizeof(uint32_t);
+	return (b - batch) * sizeof(uint32_t);
 }
 
 static void make_busy(int fd, uint32_t handle)
