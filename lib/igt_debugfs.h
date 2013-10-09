@@ -25,6 +25,8 @@
 #ifndef __IGT_DEBUGFS_H__
 #define __IGT_DEBUGFS_H__
 
+#include <stdio.h>
+
 typedef struct {
 	char root[128];
 	char dri_path[128];
@@ -32,5 +34,7 @@ typedef struct {
 
 int igt_debugfs_init(igt_debugfs_t *debugfs);
 int igt_debugfs_open(igt_debugfs_t *debugfs, const char *filename);
+FILE *igt_debugfs_fopen(igt_debugfs_t *debugfs, const char *filename,
+			const char *mode);
 
 #endif /* __IGT_DEBUGFS_H__ */

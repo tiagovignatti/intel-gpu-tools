@@ -73,3 +73,12 @@ int igt_debugfs_open(igt_debugfs_t *debugfs, const char *filename)
 	sprintf(buf, "%s/%s", debugfs->dri_path, filename);
 	return open(buf, O_RDONLY);
 }
+
+FILE *igt_debugfs_fopen(igt_debugfs_t *debugfs, const char *filename,
+			const char *mode)
+{
+	char buf[1024];
+
+	sprintf(buf, "%s/%s", debugfs->dri_path, filename);
+	return fopen(buf, mode);
+}
