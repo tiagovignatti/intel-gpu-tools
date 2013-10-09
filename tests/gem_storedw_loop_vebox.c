@@ -56,14 +56,18 @@ store_dword_loop(int divider)
 	int cmd, i, val = 0;
 	uint32_t *buf;
 
+	printf("running storedw loop on blt with stall every %i batch\n", divider);
+
 	cmd = MI_STORE_DWORD_IMM;
 
 	for (i = 0; i < SLOW_QUICK(0x100000, 0x10); i++) {
 		BEGIN_BATCH(4);
 		OUT_BATCH(cmd);
-		OUT_BATCH(0); /* reserved */
+		if (intel_gen(batch->devid) < 8)
+			OUT_BATCH(0); /* reserved */
 		OUT_RELOC(target_buffer, I915_GEM_DOMAIN_INSTRUCTION,
 			  I915_GEM_DOMAIN_INSTRUCTION, 0);
+		BLIT_RELOC_UDW(batch->devid);
 		OUT_BATCH(val);
 		ADVANCE_BATCH();
 
@@ -117,8 +121,10 @@ int main(int argc, char **argv)
 
 	store_dword_loop(1);
 	store_dword_loop(2);
-	store_dword_loop(3);
-	store_dword_loop(5);
+	if (!igt_run_in_simulation()) {
+		store_dword_loop(3);
+		store_dword_loop(5);
+	}
 
 	drm_intel_bo_unreference(target_buffer);
 	intel_batchbuffer_free(batch);
