@@ -80,7 +80,7 @@ static void copy(int fd, uint32_t src, uint32_t dst, void *buf, int len, int loo
 		0, 0, 0, 0,
 		HAS_BLT_RING(intel_get_drm_devid(fd)) ? I915_EXEC_BLT : 0,
 	};
-	gem_write(fd, exec[2].handle, 0, batch, sizeof(batch));
+	gem_write(fd, exec[2].handle, 0, batch, execbuf.batch_len);
 
 	while (loops--) {
 		gem_write(fd, src, 0, buf, len);
@@ -122,7 +122,7 @@ static void as_gtt_mmap(int fd, uint32_t src, uint32_t dst, void *buf, int len, 
 	};
 	uint32_t *src_ptr, *dst_ptr;
 
-	gem_write(fd, exec[2].handle, 0, batch, sizeof(batch));
+	gem_write(fd, exec[2].handle, 0, batch, execbuf.batch_len);
 
 	src_ptr = gem_mmap__gtt(fd, src, OBJECT_SIZE, PROT_WRITE);
 	dst_ptr = gem_mmap__gtt(fd, dst, OBJECT_SIZE, PROT_READ);
@@ -175,7 +175,7 @@ static void as_cpu_mmap(int fd, uint32_t src, uint32_t dst, void *buf, int len, 
 	};
 	uint32_t *src_ptr, *dst_ptr;
 
-	gem_write(fd, exec[2].handle, 0, batch, sizeof(batch));
+	gem_write(fd, exec[2].handle, 0, batch, execbuf.batch_len);
 
 	src_ptr = gem_mmap__cpu(fd, src, OBJECT_SIZE, PROT_WRITE);
 	dst_ptr = gem_mmap__cpu(fd, dst, OBJECT_SIZE, PROT_READ);
@@ -227,7 +227,7 @@ static void test_copy(int fd, uint32_t src, uint32_t dst, uint32_t *buf, int len
 	};
 	int i;
 
-	gem_write(fd, exec[2].handle, 0, batch, sizeof(batch));
+	gem_write(fd, exec[2].handle, 0, batch, execbuf.batch_len);
 
 	for (i = 0; i < len/4; i++)
 		buf[i] = i;
@@ -276,7 +276,7 @@ static void test_as_gtt_mmap(int fd, uint32_t src, uint32_t dst, int len)
 	uint32_t *src_ptr, *dst_ptr;
 	int i;
 
-	gem_write(fd, exec[2].handle, 0, batch, sizeof(batch));
+	gem_write(fd, exec[2].handle, 0, batch, execbuf.batch_len);
 
 	src_ptr = gem_mmap__gtt(fd, src, OBJECT_SIZE, PROT_WRITE);
 	dst_ptr = gem_mmap__gtt(fd, dst, OBJECT_SIZE, PROT_READ);
@@ -328,7 +328,7 @@ static void test_as_cpu_mmap(int fd, uint32_t src, uint32_t dst, int len)
 	uint32_t *src_ptr, *dst_ptr;
 	int i;
 
-	gem_write(fd, exec[2].handle, 0, batch, sizeof(batch));
+	gem_write(fd, exec[2].handle, 0, batch, execbuf.batch_len);
 
 	src_ptr = gem_mmap__cpu(fd, src, OBJECT_SIZE, PROT_WRITE);
 	dst_ptr = gem_mmap__cpu(fd, dst, OBJECT_SIZE, PROT_READ);
