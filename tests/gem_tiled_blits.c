@@ -150,6 +150,8 @@ static void run_test(int count)
 		check_bo(bo[i], bo_start_val[i]);
 
 	if (igt_run_in_simulation()) {
+		for (i = 0; i < count; i++)
+			drm_intel_bo_unreference(bo[i]);
 		free(bo_start_val);
 		free(bo);
 		return;
