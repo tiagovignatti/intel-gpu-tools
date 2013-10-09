@@ -28,7 +28,10 @@
 #include <stdio.h>
 #include <string.h>
 #include <fcntl.h>
+#include <unistd.h>
 
+#include "drmtest.h"
+#include "igt_display.h"
 #include "igt_debugfs.h"
 
 int igt_debugfs_init(igt_debugfs_t *debugfs)
@@ -81,4 +84,200 @@ FILE *igt_debugfs_fopen(igt_debugfs_t *debugfs, const char *filename,
 
 	sprintf(buf, "%s/%s", debugfs->dri_path, filename);
 	return fopen(buf, mode);
+}
+
+/*
+ * Pipe CRC
+ */
+
+bool igt_crc_is_null(igt_crc_t *crc)
+{
+	int i;
+
+	for (i = 0; i < crc->n_words; i++)
+		if (crc->crc[i])
+			return false;
+
+	return true;
+}
+
+bool igt_crc_equal(igt_crc_t *a, igt_crc_t *b)
+{
+	int i;
+
+	if (a->n_words != b->n_words)
+		return false;
+
+	for (i = 0; i < a->n_words; i++)
+		if (a->crc[i] != b->crc[i])
+			return false;
+
+	return true;
+}
+
+char *igt_crc_to_string(igt_crc_t *crc)
+{
+	char buf[128];
+
+	if (crc->n_words == 5)
+		sprintf(buf, "%08x %08x %08x %08x %08x", crc->crc[0],
+			crc->crc[1], crc->crc[2], crc->crc[3], crc->crc[4]);
+	else
+		igt_assert(0);
+
+	return strdup(buf);
+}
+
+/* (6 fields, 8 chars each, space separated (5) + '\n') */
+#define PIPE_CRC_LINE_LEN       (6 * 8 + 5 + 1)
+/* account for \'0' */
+#define PIPE_CRC_BUFFER_LEN     (PIPE_CRC_LINE_LEN + 1)
+
+struct _igt_pipe_crc {
+	int drm_fd;
+
+	int ctl_fd;
+	int crc_fd;
+	int line_len;
+	int buffer_len;
+
+	enum pipe pipe;
+	enum intel_pipe_crc_source source;
+};
+
+igt_pipe_crc_t *
+igt_pipe_crc_new(igt_debugfs_t *debugfs, int drm_fd, enum pipe pipe,
+		 enum intel_pipe_crc_source source)
+{
+	igt_pipe_crc_t *pipe_crc;
+	char buf[128];
+
+	pipe_crc = calloc(1, sizeof(struct _igt_pipe_crc));
+
+	pipe_crc->ctl_fd = igt_debugfs_open(debugfs,
+					    "i915_display_crc_ctl", O_WRONLY);
+	igt_assert(pipe_crc->crc_fd != -1);
+
+	sprintf(buf, "i915_pipe_%c_crc", pipe_name(pipe));
+	pipe_crc->crc_fd = igt_debugfs_open(debugfs, buf, O_RDONLY);
+	igt_assert(pipe_crc->crc_fd != -1);
+
+	pipe_crc->line_len = PIPE_CRC_LINE_LEN;
+	pipe_crc->buffer_len = PIPE_CRC_BUFFER_LEN;
+	pipe_crc->drm_fd = drm_fd;
+	pipe_crc->pipe = pipe;
+	pipe_crc->source = source;
+
+	return pipe_crc;
+}
+
+static void igt_pipe_crc_pipe_off(int fd, enum pipe pipe)
+{
+	char buf[32];
+
+	sprintf(buf, "pipe %c none", pipe_name(pipe));
+	write(fd, buf, strlen(buf));
+}
+
+/*
+ * Turn off everything
+ */
+void igt_pipe_crc_reset(void)
+{
+	igt_debugfs_t debugfs;
+	int fd;
+
+	igt_debugfs_init(&debugfs);
+	fd = igt_debugfs_open(&debugfs, "i915_display_crc_ctl", O_WRONLY);
+
+	igt_pipe_crc_pipe_off(fd, PIPE_A);
+	igt_pipe_crc_pipe_off(fd, PIPE_B);
+	igt_pipe_crc_pipe_off(fd, PIPE_C);
+}
+
+void igt_pipe_crc_free(igt_pipe_crc_t *pipe_crc)
+{
+	close(pipe_crc->ctl_fd);
+	close(pipe_crc->crc_fd);
+	free(pipe_crc);
+}
+
+static const char *pipe_crc_sources[] = {
+        "none",
+        "plane1",
+        "plane2",
+        "pf",
+};
+
+static const char *pipe_crc_source_name(enum intel_pipe_crc_source source)
+{
+        return pipe_crc_sources[source];
+}
+
+void igt_pipe_crc_start(igt_pipe_crc_t *pipe_crc)
+{
+	char buf[64];
+	igt_crc_t *crcs = NULL;
+
+	igt_wait_for_vblank(pipe_crc->drm_fd, pipe_crc->pipe);
+
+	sprintf(buf, "pipe %c %s", pipe_name(pipe_crc->pipe),
+		pipe_crc_source_name(pipe_crc->source));
+	write(pipe_crc->ctl_fd, buf, strlen(buf));
+
+	/*
+	 * For some no yet identified reason, the first CRC is bonkers. So
+	 * let's just wait for the next vblank and read out the buggy result.
+	 */
+	igt_pipe_crc_get_crcs(pipe_crc, 1, &crcs);
+	free(crcs);
+}
+
+void igt_pipe_crc_stop(igt_pipe_crc_t *pipe_crc)
+{
+	char buf[32];
+
+	sprintf(buf, "pipe %c none", pipe_name(pipe_crc->pipe));
+	write(pipe_crc->ctl_fd, buf, strlen(buf));
+}
+
+static bool pipe_crc_init_from_string(igt_crc_t *crc, const char *line)
+{
+	int n;
+
+	crc->n_words = 5;
+	n = sscanf(line, "%8u %8x %8x %8x %8x %8x", &crc->frame, &crc->crc[0],
+		   &crc->crc[1], &crc->crc[2], &crc->crc[3], &crc->crc[4]);
+	return n == 6;
+}
+
+/*
+ * Read @n_crcs from the @pipe_crc. This function blocks until @n_crcs are
+ * retrieved.
+ */
+void
+igt_pipe_crc_get_crcs(igt_pipe_crc_t *pipe_crc, int n_crcs,
+		      igt_crc_t **out_crcs)
+{
+	ssize_t bytes_read;
+	igt_crc_t *crcs;
+	char buf[pipe_crc->buffer_len];
+	int n = 0;
+
+	crcs = calloc(n_crcs, sizeof(igt_crc_t));
+
+	do {
+		igt_crc_t *crc = &crcs[n];
+
+		bytes_read = read(pipe_crc->crc_fd, &buf, pipe_crc->line_len);
+		igt_assert_cmpint(bytes_read, ==, pipe_crc->line_len);
+		buf[bytes_read] = '\0';
+
+		if (!pipe_crc_init_from_string(crc, buf))
+			continue;
+
+		n++;
+	} while (n < n_crcs);
+
+	*out_crcs = crcs;
 }

@@ -17,6 +17,7 @@ NOUVEAU_TESTS_M = \
 endif
 
 TESTS_progs_M = \
+	debugfs_pipe_crc \
 	gem_basic \
 	gem_caching \
 	gem_concurrent_blit \

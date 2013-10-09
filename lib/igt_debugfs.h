@@ -25,7 +25,11 @@
 #ifndef __IGT_DEBUGFS_H__
 #define __IGT_DEBUGFS_H__
 
+#include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
+
+#include "igt_display.h"
 
 typedef struct {
 	char root[128];
@@ -36,5 +40,38 @@ int igt_debugfs_init(igt_debugfs_t *debugfs);
 int igt_debugfs_open(igt_debugfs_t *debugfs, const char *filename, int mode);
 FILE *igt_debugfs_fopen(igt_debugfs_t *debugfs, const char *filename,
 			const char *mode);
+
+/*
+ * Pipe CRC
+ */
+
+enum intel_pipe_crc_source {
+        INTEL_PIPE_CRC_SOURCE_NONE,
+        INTEL_PIPE_CRC_SOURCE_PLANE1,
+        INTEL_PIPE_CRC_SOURCE_PLANE2,
+        INTEL_PIPE_CRC_SOURCE_PF,
+        INTEL_PIPE_CRC_SOURCE_MAX,
+};
+
+typedef struct _igt_pipe_crc igt_pipe_crc_t;
+typedef struct {
+	uint32_t frame;
+	int n_words;
+	uint32_t crc[5];
+} igt_crc_t;
+
+bool igt_crc_is_null(igt_crc_t *crc);
+bool igt_crc_equal(igt_crc_t *a, igt_crc_t *b);
+char *igt_crc_to_string(igt_crc_t *crc);
+
+igt_pipe_crc_t *
+igt_pipe_crc_new(igt_debugfs_t *debugfs, int drm_fd, enum pipe pipe,
+		 enum intel_pipe_crc_source source);
+void igt_pipe_crc_reset(void);
+void igt_pipe_crc_free(igt_pipe_crc_t *pipe_crc);
+void igt_pipe_crc_start(igt_pipe_crc_t *pipe_crc);
+void igt_pipe_crc_stop(igt_pipe_crc_t *pipe_crc);
+void igt_pipe_crc_get_crcs(igt_pipe_crc_t *pipe_crc, int n_crcs,
+			   igt_crc_t **out_crcs);
 
 #endif /* __IGT_DEBUGFS_H__ */
