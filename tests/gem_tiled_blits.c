@@ -149,8 +149,11 @@ static void run_test(int count)
 	for (i = 0; i < count; i++)
 		check_bo(bo[i], bo_start_val[i]);
 
-	if (igt_run_in_simulation())
+	if (igt_run_in_simulation()) {
+		free(bo_start_val);
+		free(bo);
 		return;
+	}
 
 	printf("Cyclic blits, backward...\n");
 	for (i = 0; i < count * 4; i++) {
@@ -182,6 +185,7 @@ static void run_test(int count)
 		drm_intel_bo_unreference(bo[i]);
 	}
 
+	free(bo_start_val);
 	free(bo);
 }
 
