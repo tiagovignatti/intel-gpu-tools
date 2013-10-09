@@ -66,12 +66,12 @@ find_minor:
 	return ENOENT;
 }
 
-int igt_debugfs_open(igt_debugfs_t *debugfs, const char *filename)
+int igt_debugfs_open(igt_debugfs_t *debugfs, const char *filename, int mode)
 {
 	char buf[1024];
 
 	sprintf(buf, "%s/%s", debugfs->dri_path, filename);
-	return open(buf, O_RDONLY);
+	return open(buf, mode);
 }
 
 FILE *igt_debugfs_fopen(igt_debugfs_t *debugfs, const char *filename,
