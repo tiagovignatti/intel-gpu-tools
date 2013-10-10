@@ -723,7 +723,6 @@ int main(int argc, char **argv)
 
 	enter_exec_path( argv );
 
-	opterr = 0;
 	while ((c = getopt(argc, argv, optstr)) != -1) {
 		switch (c) {
 		case '3':
@@ -771,7 +770,6 @@ int main(int argc, char **argv)
 			sscanf(optarg, "%d,%d", &specified_disp_id, &specified_mode_num);
 			break;
 		default:
-			fprintf(stderr, "unknown option %c\n", c);
 			/* fall through */
 		case 'h':
 			usage(argv[0]);
