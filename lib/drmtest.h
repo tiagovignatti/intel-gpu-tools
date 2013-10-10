@@ -243,6 +243,7 @@ void igt_waitchildren(void);
 
 struct igt_helper_process {
 	bool running;
+	bool use_SIGKILL;
 	pid_t pid;
 	int id;
 };

@@ -95,6 +95,56 @@ test_fence_restore(int fd, bool tiled2untiled)
 	munmap(ptr_tiled, OBJECT_SIZE);
 }
 
+static void
+test_debugfs_reader(void)
+{
+	struct igt_helper_process reader = {};
+	reader.use_SIGKILL = true;
+
+	igt_fork_helper(&reader) {
+		static const char dfs_base[] = "/sys/kernel/debug/dri";
+		static char tmp[1024];
+
+		snprintf(tmp, sizeof(tmp) - 1,
+			 "while true; do find %s/%i/ -type f | xargs cat &> /dev/null; done",
+			 dfs_base, drm_get_card());
+		assert(execl("/bin/sh", "sh", "-c", tmp, (char *) NULL) != -1);
+	}
+
+	sleep(1);
+
+	igt_system_suspend_autoresume();
+
+	sleep(1);
+
+	igt_stop_helper(&reader);
+}
+
+static void
+test_sysfs_reader(void)
+{
+	struct igt_helper_process reader = {};
+	reader.use_SIGKILL = true;
+
+	igt_fork_helper(&reader) {
+		static const char dfs_base[] = "/sys/class/drm/card";
+		static char tmp[1024];
+
+		snprintf(tmp, sizeof(tmp) - 1,
+			 "while true; do find %s%i*/ -type f | xargs cat &> /dev/null; done",
+			 dfs_base, drm_get_card());
+		assert(execl("/bin/sh", "sh", "-c", tmp, (char *) NULL) != -1);
+	}
+
+	sleep(1);
+
+	igt_system_suspend_autoresume();
+
+	sleep(1);
+
+	igt_stop_helper(&reader);
+}
+
 int fd;
 
 int main(int argc, char **argv)
@@ -109,6 +159,12 @@ int main(int argc, char **argv)
 
 	igt_subtest("fence-restore-untiled")
 		test_fence_restore(fd, false);
+
+	igt_subtest("debugfs-reader")
+		test_debugfs_reader();
+
+	igt_subtest("sysfs-reader")
+		test_sysfs_reader();
 
 	igt_fixture
 		close(fd);

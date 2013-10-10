@@ -1080,7 +1080,8 @@ void igt_stop_helper(struct igt_helper_process *proc)
 
 	assert(proc->running);
 
-	assert(kill(proc->pid, SIGQUIT) == 0);
+	assert(kill(proc->pid,
+		    proc->use_SIGKILL ? SIGKILL : SIGQUIT) == 0);
 	while (waitpid(proc->pid, &status, 0) == -1 &&
 	       errno == -EINTR)
 		;
