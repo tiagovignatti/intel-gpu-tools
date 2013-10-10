@@ -40,3 +40,5 @@ echo 1 > /sys/class/vtconsole/vtcon1/bind
 
 # try to run something
 $SOURCE_DIR/gem_exec_nop > /dev/null && echo "module successfully loaded again"
+
+exit $exitcode
