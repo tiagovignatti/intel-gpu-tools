@@ -13,6 +13,7 @@ libintel_tools_la_SOURCES = 	\
 	i915_reg.h		\
 	igt_debugfs.c		\
 	igt_debugfs.h		\
+	igt_display.c		\
 	igt_display.h		\
 	instdone.c		\
 	instdone.h		\

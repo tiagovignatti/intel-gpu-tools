@@ -22,36 +22,20 @@
  *
  */
 
-#ifndef __IGT_DISPLAY_H__
-#define __IGT_DISPLAY_H__
+#include <string.h>
 
-enum pipe {
-        PIPE_A = 0,
-        PIPE_B,
-        PIPE_C,
-        I915_MAX_PIPES
-};
-#define pipe_name(p) ((p) + 'A')
+#include "drmtest.h"
+#include "igt_display.h"
 
-enum plane {
-        PLANE_A = 0,
-        PLANE_B,
-        PLANE_C,
-};
-#define plane_name(p) ((p) + 'A')
+void igt_wait_for_vblank(int drm_fd, enum pipe pipe)
+{
+	drmVBlank wait_vbl;
 
-#define sprite_name(p, s) ((p) * dev_priv->num_plane + (s) + 'A')
+	memset(&wait_vbl, 0, sizeof(wait_vbl));
 
-enum port {
-        PORT_A = 0,
-        PORT_B,
-        PORT_C,
-        PORT_D,
-        PORT_E,
-        I915_MAX_PORTS
-};
-#define port_name(p) ((p) + 'A')
+	wait_vbl.request.type = pipe << DRM_VBLANK_HIGH_CRTC_SHIFT |
+				DRM_VBLANK_RELATIVE;
+	wait_vbl.request.sequence = 1;
 
-void igt_wait_for_vblank(int drm_fd, enum pipe pipe);
-
-#endif /* __IGT_DISPLAY_H__ */
+	igt_assert(drmWaitVBlank(drm_fd, &wait_vbl) == 0);
+}
