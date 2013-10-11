@@ -107,8 +107,11 @@ AM_CONDITIONAL(BUILD_ASSEMBLER, [test "x$enable_assembler" = xyes])
 # -----------------------------------------------------------------------------
 # for dma-buf tests
 AC_ARG_ENABLE(nouveau, AS_HELP_STRING([--disable-nouveau],
-	      [Enable use of nouveau API for prime tests (default: enabled)]),
-	      [NOUVEAU=$enableval], [NOUVEAU=yes])
+	      [Enable use of nouveau API for prime tests (default: auto)]),
+	      [NOUVEAU=$enableval], [NOUVEAU=auto])
+if test "x$NOUVEAU" = xauto; then
+	PKG_CHECK_EXISTS([libdrm_nouveau >= 2.4.33], [NOUVEAU=yes], [NOUVEAU=no])
+fi
 if test "x$NOUVEAU" = xyes; then
 	PKG_CHECK_MODULES(DRM_NOUVEAU, [libdrm_nouveau >= 2.4.33])
 	AC_DEFINE(HAVE_NOUVEAU, 1, [Have nouveau support])
