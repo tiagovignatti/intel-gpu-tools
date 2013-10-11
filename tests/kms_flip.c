@@ -841,7 +841,7 @@ static unsigned int run_test_step(struct test_output *o)
 		set_dpms(o, DRM_MODE_DPMS_OFF);
 
 	if (o->flags & TEST_MODESET && !(o->flags & TEST_RMFB))
-		igt_assert_f(set_mode(o, 0 /* no fb */, 0, 0),
+		igt_assert_f(set_mode(o, 0 /* no fb */, 0, 0) == 0,
 			     "failed to disable output: %s\n",
 			     strerror(errno));
 
