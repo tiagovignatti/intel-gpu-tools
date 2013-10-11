@@ -596,7 +596,8 @@ static void set_y_tiling(struct test_output *o, int fb_idx)
 	/* Call rmfb/getfb/addfb to ensure those don't introduce stalls */
 	r = drmModeGetFB(drm_fd, fb_info->fb_id);
 	igt_assert(r);
-	gem_set_tiling(drm_fd, r->handle, I915_TILING_Y, fb_info->stride);
+	/* Newer kernels don't allow such shenagians any more, so skip the test. */
+	igt_require(__gem_set_tiling(drm_fd, r->handle, I915_TILING_Y, fb_info->stride) == 0);
 	gem_close(drm_fd, r->handle);
 	drmFree(r);
 }
@@ -1127,7 +1128,8 @@ static void run_test_on_crtc(struct test_output *o, int crtc_idx, int duration_m
 	paint_flip_mode(&o->fb_info[1], true);
 	paint_flip_mode(&o->fb_info[2], true);
 
-	set_y_tiling(o, 2);
+	if (o->flags & TEST_FB_BAD_TILING)
+		set_y_tiling(o, 2);
 
 	kmstest_dump_mode(&o->kmode[0]);
 	if (set_mode(o, o->fb_ids[0], 0, 0)) {
@@ -1206,7 +1208,8 @@ static void run_test_on_crtc_pair(struct test_output *o,
 	paint_flip_mode(&o->fb_info[1], true);
 	paint_flip_mode(&o->fb_info[2], true);
 
-	set_y_tiling(o, 2);
+	if (o->flags & TEST_FB_BAD_TILING)
+		set_y_tiling(o, 2);
 
 	kmstest_dump_mode(&o->kmode[0]);
 	kmstest_dump_mode(&o->kmode[1]);
