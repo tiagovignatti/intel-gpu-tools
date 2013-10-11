@@ -1388,8 +1388,10 @@ static void get_timestamp_format(void)
 
 static void kms_flip_exit_handler(int sig)
 {
-	if (last_connector)
-		set_connector_dpms(last_connector, DRM_MODE_DPMS_ON);
+	igt_fixture {
+		if (last_connector)
+			set_connector_dpms(last_connector, DRM_MODE_DPMS_ON);
+	}
 }
 
 int main(int argc, char **argv)
