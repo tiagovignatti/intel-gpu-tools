@@ -586,25 +586,31 @@ static void setup_environment(void)
 	init_mode_set_data(&ms_data);
 
 	/* Only Haswell supports the PC8 feature. */
-	igt_require(IS_HASWELL(ms_data.devid));
+	igt_require_f(IS_HASWELL(ms_data.devid),
+		      "PC8+ feature only supported on Haswell.\n");
 
 	/* Make sure our Kernel supports MSR and the module is loaded. */
 	msr_fd = open("/dev/cpu/0/msr", O_RDONLY);
-	igt_assert(msr_fd >= 0);
+	igt_assert_f(msr_fd >= 0,
+		     "Can't open /dev/cpu/0/msr.\n");
 
 	/* Non-ULT machines don't support PC8+. */
-	igt_require(supports_pc8_plus_residencies());
+	igt_require_f(supports_pc8_plus_residencies(),
+		      "Machine doesn't support PC8+ residencies.\n");
 }
 
 static void basic_subtest(void)
 {
 	/* Make sure PC8+ residencies move! */
 	disable_all_screens(&ms_data);
-	igt_assert(pc8_plus_enabled());
+	igt_assert_f(pc8_plus_enabled(),
+		     "Machine is not reaching PC8+ states, please check its "
+		     "configuration.\n");
 
 	/* Make sure PC8+ residencies stop! */
 	enable_one_screen(&ms_data);
-	igt_assert(pc8_plus_disabled());
+	igt_assert_f(pc8_plus_disabled(),
+		     "PC8+ residency didn't stop with screen enabled.\n");
 }
 
 static void teardown_environment(void)
