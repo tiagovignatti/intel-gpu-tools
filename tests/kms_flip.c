@@ -63,6 +63,7 @@
 #define TEST_DPMS_OFF		(1 << 19)
 #define TEST_NO_2X_OUTPUT	(1 << 20)
 #define TEST_DPMS_OFF_OTHERS	(1 << 21)
+#define TEST_ENOENT		(1 << 22)
 
 #define EVENT_FLIP		(1 << 0)
 #define EVENT_VBLANK		(1 << 1)
@@ -317,7 +318,7 @@ static void clear_flag(unsigned int *v, unsigned int flag)
 	*v &= ~flag;
 }
 
-static int do_page_flip(struct test_output *o, int fb_id, bool event)
+static int do_page_flip(struct test_output *o, uint32_t fb_id, bool event)
 {
 	int n, ret = 0;
 
@@ -706,21 +707,23 @@ static void hang_gpu(struct test_output *o)
 	close(fd);
 }
 
-static int set_mode(struct test_output *o, int fb, int x, int y)
+static int set_mode(struct test_output *o, uint32_t fb, int x, int y)
 {
 	int n;
 
 	for (n = 0; n < o->count; n++) {
 		if (fb == 0) {
-			if (drmModeSetCrtc(drm_fd, o->_crtc[n],
-					   0, 0, 0,
-					   0, 0, 0))
-				return -1;
+			int ret = drmModeSetCrtc(drm_fd, o->_crtc[n],
+						 0, 0, 0,
+						 0, 0, 0);
+			if (ret)
+				return ret;
 		} else {
-			if (drmModeSetCrtc(drm_fd, o->_crtc[n],
-					   fb, x, y,
-					   &o->_connector[n], 1, &o->kmode[n]))
-				return -1;
+			int ret = drmModeSetCrtc(drm_fd, o->_crtc[n],
+						 fb, x, y,
+						 &o->_connector[n], 1, &o->kmode[n]);
+			if (ret)
+				return ret;
 		}
 	}
 
@@ -787,6 +790,12 @@ static unsigned int run_test_step(struct test_output *o)
 		igt_assert(gettime_us() - start < 500);
 		igt_assert(reply.sequence == exp_seq);
 		igt_assert(timercmp(&reply.ts, &o->flip_state.last_ts, ==));
+	}
+
+	if (o->flags & TEST_ENOENT) {
+		/* hope that fb 0xfffffff0 does not exist */
+		igt_assert(do_page_flip(o, 0xfffffff0, false) == -ENOENT);
+		igt_assert(set_mode(o, 0xfffffff0, 0, 0) == -ENOENT);
 	}
 
 	if (do_flip && (o->flags & TEST_EINVAL) && o->flip_state.count > 0)
@@ -1474,6 +1483,7 @@ int main(int argc, char **argv)
 		{ 1, TEST_DPMS_OFF | TEST_MODESET | TEST_FLIP | TEST_SINGLE_BUFFER,
 					"single-buffer-flip-vs-dpms-off-vs-modeset" },
 		{ 30, TEST_FLIP | TEST_NO_2X_OUTPUT | TEST_DPMS_OFF_OTHERS , "dpms-off-confusion" },
+		{ 0, TEST_ENOENT | TEST_NOEVENT, "nonexisting-fb" },
 	};
 	int i;
 
