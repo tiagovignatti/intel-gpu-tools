@@ -199,6 +199,10 @@ int main(int argc, char **argv)
 	igt_subtest_init(argc, argv);
 
 	igt_fixture {
+		size_t written;
+		int ret;
+		const char *cmd = "pipe A none";
+
 		data.drm_fd = drm_open_any();
 		do_or_die(igt_set_vt_graphics_mode());
 		do_or_die(igt_install_exit_handler(exit_handler));
@@ -208,8 +212,12 @@ int main(int argc, char **argv)
 		igt_debugfs_init(&data.debugfs);
 		data.ctl = igt_debugfs_fopen(&data.debugfs,
 					     "i915_display_crc_ctl", "r+");
-		if (!data.ctl)
-			igt_skip("No display_crc_ctl found, kernel too old\n");
+		igt_require_f(data.ctl,
+			      "No display_crc_ctl found, kernel too old\n");
+		written = fwrite(cmd, 1, strlen(cmd), data.ctl);
+		ret = fflush(data.ctl);
+		igt_require_f((written == strlen(cmd) && ret == 0) || errno != ENODEV,
+			      "CRCs not supported on this platform\n");
 	}
 
 	igt_subtest("bad-pipe")
