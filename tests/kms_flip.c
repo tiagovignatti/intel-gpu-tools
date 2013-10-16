@@ -547,7 +547,7 @@ static void page_flip_handler(int fd, unsigned int frame, unsigned int sec,
 
 static double frame_time(struct test_output *o)
 {
-	return 1000.0 * 1000.0 / o->kmode[0].vrefresh;
+	return 1000.0 * o->kmode[0].htotal * o->kmode[0].vtotal / o->kmode[0].clock;
 }
 
 static void *vblank_wait_thread_func(void *data)
@@ -1209,7 +1209,7 @@ static void check_final_state(struct test_output *o, struct event_state *es,
 		int count = es->count;
 
 		count *= o->seq_step;
-		expected = elapsed * o->kmode[0].vrefresh / (1000 * 1000);
+		expected = elapsed / frame_time(o);
 		igt_assert_f(count >= expected * 99/100 && count <= expected * 101/100,
 			     "dropped frames, expected %d, counted %d, encoder type %d\n",
 			     expected, count, o->kencoder[0]->encoder_type);
