@@ -1085,6 +1085,7 @@ void igt_stop_helper(struct igt_helper_process *proc)
 	while (waitpid(proc->pid, &status, 0) == -1 &&
 	       errno == -EINTR)
 		;
+	igt_assert(WIFSIGNALED(status) && WTERMSIG(status) == SIGQUIT);
 
 	proc->running = false;
 
