@@ -207,6 +207,11 @@ static const char *pipe_crc_sources[] = {
         "plane1",
         "plane2",
         "pf",
+	"pipe",
+	"TV",
+	"DP-B",
+	"DP-C",
+	"DP-D"
 };
 
 static const char *pipe_crc_source_name(enum intel_pipe_crc_source source)
@@ -214,7 +219,7 @@ static const char *pipe_crc_source_name(enum intel_pipe_crc_source source)
         return pipe_crc_sources[source];
 }
 
-void igt_pipe_crc_start(igt_pipe_crc_t *pipe_crc)
+bool igt_pipe_crc_start(igt_pipe_crc_t *pipe_crc)
 {
 	char buf[64];
 	igt_crc_t *crcs = NULL;
@@ -223,7 +228,10 @@ void igt_pipe_crc_start(igt_pipe_crc_t *pipe_crc)
 
 	sprintf(buf, "pipe %c %s", pipe_name(pipe_crc->pipe),
 		pipe_crc_source_name(pipe_crc->source));
+	errno = 0;
 	write(pipe_crc->ctl_fd, buf, strlen(buf));
+	if (errno != 0)
+		return false;
 
 	/*
 	 * For some no yet identified reason, the first CRC is bonkers. So
@@ -231,6 +239,8 @@ void igt_pipe_crc_start(igt_pipe_crc_t *pipe_crc)
 	 */
 	igt_pipe_crc_get_crcs(pipe_crc, 1, &crcs);
 	free(crcs);
+
+	return true;
 }
 
 void igt_pipe_crc_stop(igt_pipe_crc_t *pipe_crc)

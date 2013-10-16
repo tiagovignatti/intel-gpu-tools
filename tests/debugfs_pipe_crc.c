@@ -172,7 +172,13 @@ static void test_read_crc(data_t *data)
 
 	connector_set_mode(data, connector, &connector->config.default_mode);
 
-	igt_pipe_crc_start(pipe_crc);
+	if (!igt_pipe_crc_start(pipe_crc)) {
+		igt_pipe_crc_free(pipe_crc);
+		pipe_crc = igt_pipe_crc_new(&data->debugfs, data->drm_fd,
+					    connector->config.pipe,
+					    INTEL_PIPE_CRC_SOURCE_PIPE);
+		igt_assert(igt_pipe_crc_start(pipe_crc));
+	}
 
 	/* wait for 3 vblanks and the corresponding 3 CRCs */
 	igt_pipe_crc_get_crcs(pipe_crc, 3, &crcs);

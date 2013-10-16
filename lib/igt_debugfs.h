@@ -50,6 +50,11 @@ enum intel_pipe_crc_source {
         INTEL_PIPE_CRC_SOURCE_PLANE1,
         INTEL_PIPE_CRC_SOURCE_PLANE2,
         INTEL_PIPE_CRC_SOURCE_PF,
+        INTEL_PIPE_CRC_SOURCE_PIPE,
+        INTEL_PIPE_CRC_SOURCE_TV,
+        INTEL_PIPE_CRC_SOURCE_DP_B,
+        INTEL_PIPE_CRC_SOURCE_DP_C,
+        INTEL_PIPE_CRC_SOURCE_DP_D,
         INTEL_PIPE_CRC_SOURCE_MAX,
 };
 
@@ -69,7 +74,7 @@ igt_pipe_crc_new(igt_debugfs_t *debugfs, int drm_fd, enum pipe pipe,
 		 enum intel_pipe_crc_source source);
 void igt_pipe_crc_reset(void);
 void igt_pipe_crc_free(igt_pipe_crc_t *pipe_crc);
-void igt_pipe_crc_start(igt_pipe_crc_t *pipe_crc);
+bool igt_pipe_crc_start(igt_pipe_crc_t *pipe_crc);
 void igt_pipe_crc_stop(igt_pipe_crc_t *pipe_crc);
 void igt_pipe_crc_get_crcs(igt_pipe_crc_t *pipe_crc, int n_crcs,
 			   igt_crc_t **out_crcs);
