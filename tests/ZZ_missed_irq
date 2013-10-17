@@ -4,8 +4,10 @@
 #
 
 SOURCE_DIR="$( dirname "${BASH_SOURCE[0]}" )"
-test $SOURCE_DIR = . && SOURCE_DIR="`pwd`"
 . $SOURCE_DIR/drm_lib.sh
+
+oldpath=`pwd`
+
 cd $i915_dfs_path
 
 echo $SOURCE_DIR
@@ -40,12 +42,12 @@ if test `cat i915_ring_test_irq` != 0x0000000f; then
 	exit 3
 fi
 
-$SOURCE_DIR/gem_exec_big > /dev/null
+(cd $oldpath; $SOURCE_DIR/gem_exec_big) > /dev/null
 
 check_for_missed_irq
 check_for_hang
 
-$SOURCE_DIR/gem_exec_big > /dev/null
+(cd $oldpath; $SOURCE_DIR/gem_exec_big) > /dev/null
 
 check_for_hang
 
@@ -56,7 +58,7 @@ if test `cat i915_ring_test_irq` != 0x00000000; then
 	exit 3
 fi
 
-$SOURCE_DIR/gem_exec_big > /dev/null
+(cd $oldpath; $SOURCE_DIR/gem_exec_big) > /dev/null
 
 check_for_hang
 
