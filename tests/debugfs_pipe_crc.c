@@ -34,7 +34,6 @@
 
 typedef struct {
 	struct kmstest_connector_config config;
-	drmModeModeInfo mode;
 	struct kmstest_fb fb;
 	bool valid;
 } connector_t;
@@ -191,6 +190,7 @@ static void test_read_crc(data_t *data)
 
 	free(crcs);
 	igt_pipe_crc_free(pipe_crc);
+	kmstest_remove_fb(data->drm_fd, &connector->fb);
 }
 
 static void exit_handler(int sig)
