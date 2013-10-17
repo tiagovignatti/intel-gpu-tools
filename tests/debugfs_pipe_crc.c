@@ -146,59 +146,55 @@ static void display_fini(data_t *data)
 	drmModeFreeResources(data->resources);
 }
 
-static connector_t *
-display_find_first_valid_connector(data_t *data,
-				   uint32_t crtc_id_mask)
-{
-	int i;
-
-	connectors_init(data, crtc_id_mask);
-
-	for (i = 0;  i < data->n_connectors; i++) {
-		connector_t *connector = &data->connectors[i];
-
-		if (connector->valid)
-			return connector;
-	}
-
-	return NULL;
-}
-
 static void test_read_crc(data_t *data, int pipe)
 {
 	connector_t *connector;
 	igt_pipe_crc_t *pipe_crc;
 	igt_crc_t *crcs = NULL;
+	int valid_connectors = 0, i;
 
-	connector = display_find_first_valid_connector(data, 1 << pipe);
-	igt_require_f(connector, "No connector found for pipe %i\n", pipe);
+	connectors_init(data, 1 << pipe);
 
-	pipe_crc = igt_pipe_crc_new(&data->debugfs, data->drm_fd,
-				    connector->config.pipe,
-				    INTEL_PIPE_CRC_SOURCE_PLANE1);
+	for (i = 0;  i < data->n_connectors; i++) {
+		connector = &data->connectors[i];
 
-	connector_set_mode(data, connector, &connector->config.default_mode);
+		if (!connector->valid)
+			continue;
+		valid_connectors++;
 
-	if (!igt_pipe_crc_start(pipe_crc)) {
-		igt_pipe_crc_free(pipe_crc);
+		fprintf(stdout, "%s: Testing connector %u\n",
+			igt_subtest_name(), connector->config.connector->connector_id);
+
 		pipe_crc = igt_pipe_crc_new(&data->debugfs, data->drm_fd,
 					    connector->config.pipe,
-					    INTEL_PIPE_CRC_SOURCE_PIPE);
-		igt_assert(igt_pipe_crc_start(pipe_crc));
+					    INTEL_PIPE_CRC_SOURCE_PLANE1);
+
+		connector_set_mode(data, connector, &connector->config.default_mode);
+
+		if (!igt_pipe_crc_start(pipe_crc)) {
+			igt_pipe_crc_free(pipe_crc);
+			pipe_crc = igt_pipe_crc_new(&data->debugfs, data->drm_fd,
+						    connector->config.pipe,
+						    INTEL_PIPE_CRC_SOURCE_PIPE);
+			igt_assert(igt_pipe_crc_start(pipe_crc));
+		}
+
+		/* wait for 3 vblanks and the corresponding 3 CRCs */
+		igt_pipe_crc_get_crcs(pipe_crc, 3, &crcs);
+
+		igt_pipe_crc_stop(pipe_crc);
+
+		/* and ensure that they'are all equal, we haven't changed the fb */
+		igt_assert(igt_crc_equal(&crcs[0], &crcs[1]));
+		igt_assert(igt_crc_equal(&crcs[1], &crcs[2]));
+
+		free(crcs);
+		igt_pipe_crc_free(pipe_crc);
+		kmstest_remove_fb(data->drm_fd, &connector->fb);
 	}
 
-	/* wait for 3 vblanks and the corresponding 3 CRCs */
-	igt_pipe_crc_get_crcs(pipe_crc, 3, &crcs);
+	igt_require_f(valid_connectors, "No connector found for pipe %i\n", pipe);
 
-	igt_pipe_crc_stop(pipe_crc);
-
-	/* and ensure that they'are all equal, we haven't changed the fb */
-	igt_assert(igt_crc_equal(&crcs[0], &crcs[1]));
-	igt_assert(igt_crc_equal(&crcs[1], &crcs[2]));
-
-	free(crcs);
-	igt_pipe_crc_free(pipe_crc);
-	kmstest_remove_fb(data->drm_fd, &connector->fb);
 }
 
 static void exit_handler(int sig)
