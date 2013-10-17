@@ -58,14 +58,17 @@ static void test_bad_command(data_t *data, const char *cmd)
 	igt_assert_cmpint(errno, ==, EINVAL);
 }
 
-static void connector_init(data_t *data, connector_t *connector, uint32_t id)
+static void connector_init(data_t *data, connector_t *connector,
+			   uint32_t id, uint32_t crtc_id_mask)
 {
 	int ret;
 
-	ret = kmstest_get_connector_config(data->drm_fd, id, -1UL,
+	ret = kmstest_get_connector_config(data->drm_fd, id, crtc_id_mask,
 					   &connector->config);
 	if (ret == 0)
 		connector->valid = true;
+	else
+		connector->valid = false;
 
 }
 
@@ -113,19 +116,22 @@ connector_set_mode(data_t *data, connector_t *connector, drmModeModeInfo *mode)
 
 static void display_init(data_t *data)
 {
-	int i;
-
 	data->resources = drmModeGetResources(data->drm_fd);
 	igt_assert(data->resources);
 
 	data->n_connectors = data->resources->count_connectors;
 	data->connectors = calloc(data->n_connectors, sizeof(connector_t));
 	igt_assert(data->connectors);
+}
+
+static void connectors_init(data_t *data, uint32_t crtc_id_mask)
+{
+	int i;
 
 	for (i = 0; i < data->n_connectors; i++) {
 		uint32_t id = data->resources->connectors[i];
 
-		connector_init(data, &data->connectors[i], id);
+		connector_init(data, &data->connectors[i], id, crtc_id_mask);
 	}
 }
 
@@ -141,9 +147,12 @@ static void display_fini(data_t *data)
 }
 
 static connector_t *
-display_find_first_valid_connector(data_t *data)
+display_find_first_valid_connector(data_t *data,
+				   uint32_t crtc_id_mask)
 {
 	int i;
+
+	connectors_init(data, crtc_id_mask);
 
 	for (i = 0;  i < data->n_connectors; i++) {
 		connector_t *connector = &data->connectors[i];
@@ -155,15 +164,14 @@ display_find_first_valid_connector(data_t *data)
 	return NULL;
 }
 
-static void test_read_crc(data_t *data)
+static void test_read_crc(data_t *data, int pipe)
 {
 	connector_t *connector;
 	igt_pipe_crc_t *pipe_crc;
 	igt_crc_t *crcs = NULL;
 
-	connector = display_find_first_valid_connector(data);
-	if (!connector)
-		igt_skip("Could not find a valid connector \n");
+	connector = display_find_first_valid_connector(data, 1 << pipe);
+	igt_require_f(connector, "No connector found for pipe %i\n", pipe);
 
 	pipe_crc = igt_pipe_crc_new(&data->debugfs, data->drm_fd,
 				    connector->config.pipe,
@@ -238,8 +246,14 @@ int main(int argc, char **argv)
 	igt_subtest("bad-nb-words-3")
 		test_bad_command(&data, "pipe A none option");
 
-	igt_subtest("read-crc")
-		test_read_crc(&data);
+	igt_subtest("read-crc-pipe-A")
+		test_read_crc(&data, 0);
+
+	igt_subtest("read-crc-pipe-B")
+		test_read_crc(&data, 1);
+
+	igt_subtest("read-crc-pipe-C")
+		test_read_crc(&data, 2);
 
 	igt_fixture {
 		igt_pipe_crc_reset();
