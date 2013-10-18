@@ -1367,6 +1367,14 @@ void kmstest_paint_color(cairo_t *cr, int x, int y, int w, int h,
 	cairo_fill(cr);
 }
 
+void kmstest_paint_color_alpha(cairo_t *cr, int x, int y, int w, int h,
+			       double r, double g, double b, double a)
+{
+	cairo_rectangle(cr, x, y, w, h);
+	cairo_set_source_rgba(cr, r, g, b, a);
+	cairo_fill(cr);
+}
+
 void
 kmstest_paint_color_gradient(cairo_t *cr, int x, int y, int w, int h,
 		     int r, int g, int b)
