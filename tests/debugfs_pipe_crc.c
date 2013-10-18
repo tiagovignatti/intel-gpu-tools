@@ -146,7 +146,9 @@ static void display_fini(data_t *data)
 	drmModeFreeResources(data->resources);
 }
 
-static void test_read_crc(data_t *data, int pipe)
+#define TEST_SEQUENCE (1<<0)
+
+static void test_read_crc(data_t *data, int pipe, unsigned flags)
 {
 	connector_t *connector;
 	igt_pipe_crc_t *pipe_crc;
@@ -192,6 +194,11 @@ static void test_read_crc(data_t *data, int pipe)
 		/* and ensure that they'are all equal, we haven't changed the fb */
 		igt_assert(igt_crc_equal(&crcs[0], &crcs[1]));
 		igt_assert(igt_crc_equal(&crcs[1], &crcs[2]));
+
+		if (flags & TEST_SEQUENCE) {
+			igt_assert(crcs[0].frame + 1 == crcs[1].frame);
+			igt_assert(crcs[1].frame + 1 == crcs[2].frame);
+		}
 
 		free(crcs);
 		igt_pipe_crc_free(pipe_crc);
@@ -247,14 +254,13 @@ int main(int argc, char **argv)
 	igt_subtest("bad-nb-words-3")
 		test_bad_command(&data, "pipe A none option");
 
-	igt_subtest("read-crc-pipe-A")
-		test_read_crc(&data, 0);
+	for (int i = 0; i < 3; i++) {
+		igt_subtest_f("read-crc-pipe-%c", 'A'+i)
+			test_read_crc(&data, i, 0);
 
-	igt_subtest("read-crc-pipe-B")
-		test_read_crc(&data, 1);
-
-	igt_subtest("read-crc-pipe-C")
-		test_read_crc(&data, 2);
+		igt_subtest_f("read-crc-pipe-%c-frame-sequence", 'A'+i)
+			test_read_crc(&data, i, TEST_SEQUENCE);
+	}
 
 	igt_fixture {
 		igt_pipe_crc_reset();
