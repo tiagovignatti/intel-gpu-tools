@@ -224,8 +224,6 @@ bool igt_pipe_crc_start(igt_pipe_crc_t *pipe_crc)
 	char buf[64];
 	igt_crc_t *crcs = NULL;
 
-	igt_wait_for_vblank(pipe_crc->drm_fd, pipe_crc->pipe);
-
 	sprintf(buf, "pipe %c %s", pipe_name(pipe_crc->pipe),
 		pipe_crc_source_name(pipe_crc->source));
 	errno = 0;
