@@ -184,6 +184,11 @@ static void test_read_crc(data_t *data, int pipe)
 
 		igt_pipe_crc_stop(pipe_crc);
 
+		/* ensure the CRCs are not all 0s */
+		igt_assert(!igt_crc_is_null(&crcs[0]));
+		igt_assert(!igt_crc_is_null(&crcs[1]));
+		igt_assert(!igt_crc_is_null(&crcs[2]));
+
 		/* and ensure that they'are all equal, we haven't changed the fb */
 		igt_assert(igt_crc_equal(&crcs[0], &crcs[1]));
 		igt_assert(igt_crc_equal(&crcs[1], &crcs[2]));
