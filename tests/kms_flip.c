@@ -562,7 +562,8 @@ static void check_all_state(struct test_output *o,
 	if (vblank)
 		check_state(o, &o->vblank_state);
 
-	if (flip && vblank)
+	/* FIXME: Correlation check is broken. */
+	if (flip && vblank && 0)
 		check_state_correlation(o, &o->flip_state, &o->vblank_state);
 }
 
