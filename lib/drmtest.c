@@ -2156,9 +2156,6 @@ int kmstest_get_connector_config(int drm_fd, uint32_t connector_id,
 		}
 	}
 
-	fprintf(stderr,
-		"no crtc with a compatible encoder (crtc_idx_mask %08lx)\n",
-		crtc_idx_mask);
 	goto err3;
 
 found:
