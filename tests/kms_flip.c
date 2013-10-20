@@ -1057,7 +1057,7 @@ static unsigned int wait_for_events(struct test_output *o)
 
 	/* make timeout lax with the dummy load */
 	if (o->flags & (TEST_WITH_DUMMY_BCS | TEST_WITH_DUMMY_RCS))
-		timeout.tv_sec *= 10;
+		timeout.tv_sec *= 60;
 
 	FD_ZERO(&fds);
 	FD_SET(drm_fd, &fds);
