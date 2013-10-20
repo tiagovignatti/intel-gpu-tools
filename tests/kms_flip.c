@@ -71,6 +71,8 @@
 #define DRM_CAP_TIMESTAMP_MONOTONIC 6
 #endif
 
+#define max(a, b) ((a) > (b) ? (a) : (b))
+
 drmModeRes *resources;
 int drm_fd;
 static drm_intel_bufmgr *bufmgr;
@@ -132,6 +134,8 @@ struct test_output {
 
 	struct event_state flip_state;
 	struct event_state vblank_state;
+	/* Overall step between each round */
+	int seq_step;
 	unsigned int pending_events;
 	int flip_count;
 };
@@ -503,16 +507,16 @@ static void check_state(struct test_output *o, struct event_state *es)
 	if (!(o->flags & (TEST_DPMS | TEST_MODESET))) {
 		/* check only valid if no modeset happens in between, that
 		 * increments by (1 << 23) on each step. */
-		if (es->current_seq - (es->last_seq + es->seq_step) > 1UL << 23) {
+		if (es->current_seq - (es->last_seq + o->seq_step) > 1UL << 23) {
 			fprintf(stderr, "unexpected %s seq %u, should be >= %u\n",
-				es->name, es->current_seq, es->last_seq + es->seq_step);
+				es->name, es->current_seq, es->last_seq + o->seq_step);
 			igt_fail(10);
 		}
 	}
 
 	if ((o->flags & TEST_CHECK_TS) && (!analog_tv_connector(o))) {
 		timersub(&es->current_ts, &es->last_ts, &diff);
-		usec_interflip = (double)es->seq_step * frame_time(o);
+		usec_interflip = (double)o->seq_step * frame_time(o);
 		if (fabs((((double) diff.tv_usec) - usec_interflip) /
 		    usec_interflip) > 0.005) {
 			fprintf(stderr, "inter-%s ts jitter: %is, %ius\n",
@@ -521,10 +525,10 @@ static void check_state(struct test_output *o, struct event_state *es)
 			igt_fail(9);
 		}
 
-		if (es->current_seq != es->last_seq + es->seq_step) {
+		if (es->current_seq != es->last_seq + o->seq_step) {
 			fprintf(stderr, "unexpected %s seq %u, expected %u\n",
 					es->name, es->current_seq,
-					es->last_seq + es->seq_step);
+					es->last_seq + o->seq_step);
 			igt_fail(9);
 		}
 	}
@@ -1023,7 +1027,7 @@ static void check_final_state(struct test_output *o, struct event_state *es,
 		int expected;
 		int count = es->count;
 
-		count *= es->seq_step;
+		count *= o->seq_step;
 		expected = elapsed * o->kmode[0].vrefresh / (1000 * 1000);
 		igt_assert_f(count >= expected * 99/100 && count <= expected * 101/100,
 			     "dropped frames, expected %d, counted %d, encoder type %d\n",
@@ -1158,11 +1162,17 @@ static void run_test_on_crtc(struct test_output *o, int crtc_idx, int duration_m
 	wait_for_events(o);
 
 	o->current_fb_id = 1;
-	o->flip_state.seq_step = 1;
-	if (o->flags & TEST_VBLANK_ABSOLUTE)
-		o->vblank_state.seq_step = 5;
+	if (o->flags & TEST_FLIP)
+		o->flip_state.seq_step = 1;
 	else
-		o->vblank_state.seq_step = 1;
+		o->flip_state.seq_step = 0;
+	if (o->flags & TEST_VBLANK)
+		o->vblank_state.seq_step = 10;
+	else
+		o->vblank_state.seq_step = 0;
+
+	/* We run the vblank and flip actions in parallel by default. */
+	o->seq_step = max(o->vblank_state.seq_step, o->flip_state.seq_step);
 
 	elapsed = event_loop(o, duration_ms);
 
