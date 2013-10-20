@@ -376,8 +376,13 @@ static int do_wait_for_vblank(struct test_output *o, int pipe_id,
 			      int target_seq, struct vblank_reply *reply)
 {
 	int ret;
+	unsigned flags = o->flags;
 
-	ret = __wait_for_vblank(o->flags, pipe_id, target_seq, (unsigned long)o,
+	/* Absolute waits only works once we have a frame counter. */
+	if (!(o->vblank_state.count > 0))
+		flags &= ~TEST_VBLANK_ABSOLUTE;
+
+	ret = __wait_for_vblank(flags, pipe_id, target_seq, (unsigned long)o,
 				reply);
 	if (ret == 0 && !(o->flags & TEST_VBLANK_BLOCK))
 		set_flag(&o->pending_events, EVENT_VBLANK);
@@ -732,7 +737,8 @@ static unsigned int run_test_step(struct test_output *o)
 	uint32_t handle = 0;	/* Suppress GCC warning */
 
 	target_seq = o->vblank_state.seq_step;
-	if (o->flags & TEST_VBLANK_ABSOLUTE)
+	/* Absolute waits only works once we have a frame counter. */
+	if (o->flags & TEST_VBLANK_ABSOLUTE && o->vblank_state.count > 0)
 		target_seq += o->vblank_state.last_seq;
 
 	/*
@@ -1056,6 +1062,8 @@ static unsigned int wait_for_events(struct test_output *o)
 			ret = select(drm_fd + 1, &fds, NULL, NULL, &timeout);
 		} while (ret < 0 && errno == EINTR);
 
+		igt_assert_f(ret >= 0,
+			     "select error (errno %i)\n", errno);
 		igt_assert_f(ret > 0,
 			     "select timed out or error (ret %d)\n", ret);
 		igt_assert_f(!FD_ISSET(0, &fds),
