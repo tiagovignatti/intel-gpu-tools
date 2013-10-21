@@ -1801,7 +1801,7 @@ DEBUGSTRING(hsw_debug_lp_wm)
 	const char *enable;
 	uint32_t latency, fbc, pri, cur;
 
-	enable = (val & 31) ? "enabled" : "disabled";
+	enable = ((val >> 31) & 1) ? "enabled" : "disabled";
 	latency = (val >> 24) & 0x7F;
 	fbc = (val >> 20) & 0xF;
 	pri = (val >> 8) & 0x3FF;
