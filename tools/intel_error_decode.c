@@ -274,7 +274,7 @@ print_i915_fence(unsigned int devid, uint64_t fence)
 
 	printf("    %svalid, %c-tiled, pitch: %i, start: 0x%08x, size: %i\n",
 			fence & 1 ? "" : "in",
-			fence & 12 ? 'y' : 'x',
+			fence & (1<<12) ? 'y' : 'x',
 			(1<<((fence>>4)&0xf))*tile_width,
 			(uint32_t)fence & 0xff00000,
 			1<<(20 + ((fence>>8)&0xf)));
@@ -285,7 +285,7 @@ print_i830_fence(unsigned int devid, uint64_t fence)
 {
 	printf("    %svalid, %c-tiled, pitch: %i, start: 0x%08x, size: %i\n",
 			fence & 1 ? "" : "in",
-			fence & 12 ? 'y' : 'x',
+			fence & (1<<12) ? 'y' : 'x',
 			(1<<((fence>>4)&0xf))*128,
 			(uint32_t)fence & 0x7f80000,
 			1<<(19 + ((fence>>8)&0xf)));
