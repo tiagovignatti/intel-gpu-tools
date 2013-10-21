@@ -19,6 +19,7 @@ intel_l3_parity
 intel_lid
 intel_nc_read
 intel_nc_write
+intel_opregion_decode
 intel_panel_fitter
 intel_perf_counters
 intel_punit_read
