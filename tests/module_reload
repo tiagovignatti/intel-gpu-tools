@@ -18,6 +18,10 @@ if ! echo 0 > /sys/class/vtconsole/vtcon1/bind ; then
 	exit 77
 fi
 
+# The sound driver uses our power well
+pkill alsactl
+rmmod snd_hda_intel &> /dev/null
+
 #ignore errors in ips - gen5 only
 rmmod intel_ips &> /dev/null
 rmmod i915
@@ -37,6 +41,8 @@ fi
 
 modprobe i915
 echo 1 > /sys/class/vtconsole/vtcon1/bind
+
+modprobe snd_hda_intel
 
 # try to run something
 $SOURCE_DIR/gem_exec_nop > /dev/null && echo "module successfully loaded again"
