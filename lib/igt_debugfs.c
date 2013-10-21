@@ -197,6 +197,9 @@ void igt_pipe_crc_reset(void)
 
 void igt_pipe_crc_free(igt_pipe_crc_t *pipe_crc)
 {
+	if (!pipe_crc)
+		return;
+
 	close(pipe_crc->ctl_fd);
 	close(pipe_crc->crc_fd);
 	free(pipe_crc);
