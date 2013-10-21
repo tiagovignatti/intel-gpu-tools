@@ -145,6 +145,37 @@ struct _igt_pipe_crc {
 	enum intel_pipe_crc_source source;
 };
 
+static const char *pipe_crc_sources[] = {
+	"none",
+	"plane1",
+	"plane2",
+	"pf",
+	"pipe",
+	"TV",
+	"DP-B",
+	"DP-C",
+	"DP-D"
+};
+
+static const char *pipe_crc_source_name(enum intel_pipe_crc_source source)
+{
+        return pipe_crc_sources[source];
+}
+
+static bool igt_pipe_crc_do_start(igt_pipe_crc_t *pipe_crc)
+{
+	char buf[64];
+
+	sprintf(buf, "pipe %c %s", pipe_name(pipe_crc->pipe),
+		pipe_crc_source_name(pipe_crc->source));
+	errno = 0;
+	write(pipe_crc->ctl_fd, buf, strlen(buf));
+	if (errno != 0)
+		return false;
+
+	return true;
+}
+
 igt_pipe_crc_t *
 igt_pipe_crc_new(igt_debugfs_t *debugfs, int drm_fd, enum pipe pipe,
 		 enum intel_pipe_crc_source source)
@@ -167,6 +198,14 @@ igt_pipe_crc_new(igt_debugfs_t *debugfs, int drm_fd, enum pipe pipe,
 	pipe_crc->drm_fd = drm_fd;
 	pipe_crc->pipe = pipe;
 	pipe_crc->source = source;
+
+	/* make sure this source is actually supported */
+	if (!igt_pipe_crc_do_start(pipe_crc)) {
+		igt_pipe_crc_free(pipe_crc);
+		return NULL;
+	}
+
+	igt_pipe_crc_stop(pipe_crc);
 
 	return pipe_crc;
 }
@@ -205,33 +244,11 @@ void igt_pipe_crc_free(igt_pipe_crc_t *pipe_crc)
 	free(pipe_crc);
 }
 
-static const char *pipe_crc_sources[] = {
-        "none",
-        "plane1",
-        "plane2",
-        "pf",
-	"pipe",
-	"TV",
-	"DP-B",
-	"DP-C",
-	"DP-D"
-};
-
-static const char *pipe_crc_source_name(enum intel_pipe_crc_source source)
-{
-        return pipe_crc_sources[source];
-}
-
 bool igt_pipe_crc_start(igt_pipe_crc_t *pipe_crc)
 {
-	char buf[64];
 	igt_crc_t *crcs = NULL;
 
-	sprintf(buf, "pipe %c %s", pipe_name(pipe_crc->pipe),
-		pipe_crc_source_name(pipe_crc->source));
-	errno = 0;
-	write(pipe_crc->ctl_fd, buf, strlen(buf));
-	if (errno != 0)
+	if (!igt_pipe_crc_do_start(pipe_crc))
 		return false;
 
 	/*

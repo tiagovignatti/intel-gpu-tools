@@ -173,7 +173,7 @@ static void test_read_crc(data_t *data, int pipe, unsigned flags)
 
 		connector_set_mode(data, connector, &connector->config.default_mode);
 
-		if (!igt_pipe_crc_start(pipe_crc)) {
+		if (!pipe_crc || !igt_pipe_crc_start(pipe_crc)) {
 			igt_pipe_crc_free(pipe_crc);
 			pipe_crc = igt_pipe_crc_new(&data->debugfs, data->drm_fd,
 						    connector->config.pipe,
