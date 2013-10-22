@@ -54,4 +54,5 @@ intel_bios_reader_SOURCES =	\
 
 intel_l3_parity_SOURCES =	\
 	intel_l3_parity.c	\
+	intel_l3_parity.h	\
 	intel_l3_udev_listener.c
