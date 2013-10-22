@@ -90,11 +90,6 @@ int main(int argc, char **argv)
 	if (argc > 1)
 		count = atoi(argv[1]);
 
-	if (drmtest_dump_aub()) {
-		count = 2;
-		drm_intel_bufmgr_gem_set_aub_filename(bufmgr, "rendercopy.aub");
-		drm_intel_bufmgr_gem_set_aub_dump(bufmgr, true);
-	}
 	if (count == 0)
 		count = 3 * gem_aperture_size(fd) / SIZE / 2;
 	else if (count < 2) {
@@ -135,17 +130,6 @@ int main(int argc, char **argv)
 
 		render_copy(batch, &src, 0, 0, WIDTH, HEIGHT, &dst, 0, 0);
 		start_val[(i + 1) % count] = start_val[i % count];
-
-		/* We're not really here for the test, we just want to dump a
-		 * trace of a call to render_copy() */
-		if (drmtest_dump_aub()) {
-			drm_intel_gem_bo_aub_dump_bmp(dst.bo,
-				0, 0, WIDTH, HEIGHT,
-				AUB_DUMP_BMP_FORMAT_ARGB_8888,
-				STRIDE, 0);
-			drm_intel_bufmgr_gem_set_aub_dump(bufmgr, false);
-			return 0;
-		}
 	}
 	for (i = 0; i < count; i++)
 		check_bo(fd, bo[i]->handle, start_val[i]);
