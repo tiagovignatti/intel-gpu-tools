@@ -32,6 +32,7 @@ libintel_tools_la_SOURCES = 	\
 	rendercopy_gen6.c	\
 	rendercopy_gen7.c	\
 	rendercopy.h		\
+	rendercopy.c		\
 	intel_reg_map.c		\
 	intel_dpio.c		\
 	intel_iosf.c		\
