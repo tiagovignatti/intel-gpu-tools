@@ -30,6 +30,7 @@
  */
 
 #include <stdbool.h>
+#include <unistd.h>
 
 #include "rendercopy.h"
 
@@ -88,7 +89,18 @@ int main(int argc, char **argv)
 	struct intel_batchbuffer *batch = NULL;
 	struct scratch_buf src, dst;
 	render_copyfunc_t render_copy = NULL;
+	int opt;
 	int opt_dump_png = false;
+
+	while ((opt = getopt(argc, argv, "d")) != -1) {
+		switch (opt) {
+		case 'd':
+			opt_dump_png = true;
+			break;
+		default:
+			break;
+		}
+	}
 
 	igt_fixture {
 		data.drm_fd = drm_open_any();
@@ -111,8 +123,10 @@ int main(int argc, char **argv)
 	scratch_buf_check(&data, &src, WIDTH / 2, HEIGHT / 2, SRC_COLOR);
 	scratch_buf_check(&data, &dst, WIDTH / 2, HEIGHT / 2, DST_COLOR);
 
-	scratch_buf_write_to_png(&src, "source.png");
-	scratch_buf_write_to_png(&dst, "destination.png");
+	if (opt_dump_png) {
+		scratch_buf_write_to_png(&src, "source.png");
+		scratch_buf_write_to_png(&dst, "destination.png");
+	}
 
 	render_copy(batch,
 		    &src, 0, 0, WIDTH, HEIGHT,
@@ -121,7 +135,8 @@ int main(int argc, char **argv)
 	scratch_buf_check(&data, &dst, 10, 10, DST_COLOR);
 	scratch_buf_check(&data, &dst, WIDTH - 10, HEIGHT - 10, SRC_COLOR);
 
-	scratch_buf_write_to_png(&dst, "result.png");
+	if (opt_dump_png)
+		scratch_buf_write_to_png(&dst, "result.png");
 
 	return 0;
 }
