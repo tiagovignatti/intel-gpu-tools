@@ -91,6 +91,7 @@ int main(int argc, char **argv)
 	render_copyfunc_t render_copy = NULL;
 	int opt;
 	int opt_dump_png = false;
+	int opt_dump_aub = drmtest_dump_aub();
 
 	while ((opt = getopt(argc, argv, "d")) != -1) {
 		switch (opt) {
@@ -128,15 +129,29 @@ int main(int argc, char **argv)
 		scratch_buf_write_to_png(&dst, "destination.png");
 	}
 
+	if (opt_dump_aub) {
+		drm_intel_bufmgr_gem_set_aub_filename(data.bufmgr,
+						      "rendercopy.aub");
+		drm_intel_bufmgr_gem_set_aub_dump(data.bufmgr, true);
+	}
+
 	render_copy(batch,
 		    &src, 0, 0, WIDTH, HEIGHT,
 		    &dst, WIDTH / 2, HEIGHT / 2);
 
-	scratch_buf_check(&data, &dst, 10, 10, DST_COLOR);
-	scratch_buf_check(&data, &dst, WIDTH - 10, HEIGHT - 10, SRC_COLOR);
-
 	if (opt_dump_png)
 		scratch_buf_write_to_png(&dst, "result.png");
+
+	if (opt_dump_aub) {
+		drm_intel_gem_bo_aub_dump_bmp(dst.bo,
+			0, 0, WIDTH, HEIGHT,
+			AUB_DUMP_BMP_FORMAT_ARGB_8888,
+			STRIDE, 0);
+		drm_intel_bufmgr_gem_set_aub_dump(data.bufmgr, false);
+	} else {
+		scratch_buf_check(&data, &dst, 10, 10, DST_COLOR);
+		scratch_buf_check(&data, &dst, WIDTH - 10, HEIGHT - 10, SRC_COLOR);
+	}
 
 	return 0;
 }
