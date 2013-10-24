@@ -222,11 +222,51 @@ static int __drm_open_any(void)
 	return fd;
 }
 
+static int __drm_open_any_render(void)
+{
+	char *name;
+	int i, fd;
+
+	for (i = 128; i < (128 + 16); i++) {
+		int ret;
+
+		ret = asprintf(&name, "/dev/dri/renderD%u", i);
+		igt_assert(ret != -1);
+
+		fd = open(name, O_RDWR);
+		free(name);
+
+		if (fd == -1)
+			continue;
+
+		if (!is_intel(fd)) {
+			close(fd);
+			fd = -1;
+			continue;
+		}
+
+		return fd;
+	}
+
+	return fd;
+}
+
 static void quiescent_gpu_at_exit(int sig)
 {
 	int fd;
 
 	fd = __drm_open_any();
+	if (fd >= 0) {
+		gem_quiescent_gpu(fd);
+		close(fd);
+	}
+}
+
+static void quiescent_gpu_at_exit_render(int sig)
+{
+	int fd;
+
+	fd = __drm_open_any_render();
 	if (fd >= 0) {
 		gem_quiescent_gpu(fd);
 		close(fd);
@@ -245,6 +285,24 @@ int drm_open_any(void)
 
 	gem_quiescent_gpu(fd);
 	igt_install_exit_handler(quiescent_gpu_at_exit);
+
+	return fd;
+}
+
+int drm_open_any_render(void)
+{
+	static int open_count;
+	int fd = __drm_open_any_render();
+
+	/* no render nodes, fallback to drm_open_any() */
+	if (fd == -1)
+		return drm_open_any();
+
+	if (__sync_fetch_and_add(&open_count, 1))
+		return fd;
+
+	gem_quiescent_gpu(fd);
+	igt_install_exit_handler(quiescent_gpu_at_exit_render);
 
 	return fd;
 }

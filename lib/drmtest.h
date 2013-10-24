@@ -50,6 +50,7 @@ drm_intel_bo * gem_handle_to_libdrm_bo(drm_intel_bufmgr *bufmgr, int fd,
 
 int drm_get_card(void);
 int drm_open_any(void);
+int drm_open_any_render(void);
 
 void gem_quiescent_gpu(int fd);
 
