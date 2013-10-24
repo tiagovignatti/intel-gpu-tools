@@ -187,8 +187,10 @@ int drm_get_card(void)
 		if (fd == -1)
 			continue;
 
-		if (!is_intel(fd))
+		if (!is_intel(fd)) {
+			close(fd);
 			continue;
+		}
 
 		close(fd);
 		return i;
