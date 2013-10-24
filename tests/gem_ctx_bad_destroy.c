@@ -62,7 +62,7 @@ int main(int argc, char *argv[])
 
 	igt_skip_on_simulation();
 
-	fd = drm_open_any();
+	fd = drm_open_any_render();
 
 	ctx_id = gem_context_create(fd);
 

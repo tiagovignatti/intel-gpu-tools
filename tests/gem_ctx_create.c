@@ -47,7 +47,7 @@ int main(int argc, char *argv[])
 	create.ctx_id = rand();
 	create.pad = rand();
 
-	fd = drm_open_any();
+	fd = drm_open_any_render();
 
 	ret = drmIoctl(fd, CONTEXT_CREATE_IOCTL, &create);
 	if (ret != 0 && (errno == ENODEV || errno == EINVAL)) {

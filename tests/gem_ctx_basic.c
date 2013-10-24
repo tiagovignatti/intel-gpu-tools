@@ -64,7 +64,7 @@ static void *work(void *arg)
 	int i;
 
 	if (multiple_fds)
-		td_fd = fd = drm_open_any();
+		td_fd = fd = drm_open_any_render();
 	else
 		td_fd = fd;
 
@@ -133,7 +133,7 @@ int main(int argc, char *argv[])
 {
 	int i;
 
-	fd = drm_open_any();
+	fd = drm_open_any_render();
 	devid = intel_get_drm_devid(fd);
 
 	if (igt_run_in_simulation()) {

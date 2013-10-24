@@ -91,7 +91,7 @@ int main(int argc, char *argv[])
 	igt_subtest_init(argc, argv);
 
 	igt_fixture {
-		fd = drm_open_any();
+		fd = drm_open_any_render();
 
 		ctx_id = gem_context_create(fd);
 
