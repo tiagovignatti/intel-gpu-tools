@@ -168,8 +168,6 @@ void gem_quiescent_gpu(int fd)
 /**
  * drm_get_card() - get an intel card number for use in /dev or /sys
  *
- * @master: -1 not a master, 0 don't care, 1 is the master
- *
  * returns -1 on error
  */
 int drm_get_card(void)
