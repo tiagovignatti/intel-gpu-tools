@@ -104,7 +104,7 @@ int main(int argc, char **argv)
 	}
 
 	igt_fixture {
-		data.drm_fd = drm_open_any();
+		data.drm_fd = drm_open_any_render();
 		data.devid = intel_get_drm_devid(data.drm_fd);
 
 		data.bufmgr = drm_intel_bufmgr_gem_init(data.drm_fd, 4096);
