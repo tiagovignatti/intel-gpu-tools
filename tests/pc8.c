@@ -53,6 +53,12 @@
 #define MAX_ENCODERS	32
 #define MAX_CRTCS	16
 
+enum screen_type {
+	SCREEN_TYPE_LPSP,
+	SCREEN_TYPE_NON_LPSP,
+	SCREEN_TYPE_ANY,
+};
+
 int drm_fd, msr_fd;
 struct mode_set_data ms_data;
 
@@ -188,7 +194,8 @@ static uint32_t create_fb(struct mode_set_data *data, int width, int height)
 	return buffer_id;
 }
 
-static void enable_one_screen(struct mode_set_data *data)
+static bool enable_one_screen_with_type(struct mode_set_data *data,
+					enum screen_type type)
 {
 	uint32_t crtc_id = 0, buffer_id = 0, connector_id = 0;
 	drmModeModeInfoPtr mode = NULL;
@@ -197,12 +204,23 @@ static void enable_one_screen(struct mode_set_data *data)
 	for (i = 0; i < data->res->count_connectors; i++) {
 		drmModeConnectorPtr c = data->connectors[i];
 
+		if (type == SCREEN_TYPE_LPSP &&
+		    c->connector_type != DRM_MODE_CONNECTOR_eDP)
+			continue;
+
+		if (type == SCREEN_TYPE_NON_LPSP &&
+		    c->connector_type == DRM_MODE_CONNECTOR_eDP)
+			continue;
+
 		if (c->connection == DRM_MODE_CONNECTED && c->count_modes) {
 			connector_id = c->connector_id;
 			mode = &c->modes[0];
 			break;
 		}
 	}
+
+	if (connector_id == 0)
+		return false;
 
 	crtc_id = data->res->crtcs[0];
 	buffer_id = create_fb(data, mode->hdisplay, mode->vdisplay);
@@ -215,6 +233,13 @@ static void enable_one_screen(struct mode_set_data *data)
 	rc = drmModeSetCrtc(drm_fd, crtc_id, buffer_id, 0, 0, &connector_id,
 			    1, mode);
 	igt_assert(rc == 0);
+
+	return true;
+}
+
+static void enable_one_screen(struct mode_set_data *data)
+{
+	igt_assert(enable_one_screen_with_type(data, SCREEN_TYPE_ANY));
 }
 
 static drmModePropertyBlobPtr get_connector_edid(drmModeConnectorPtr connector,
@@ -613,6 +638,25 @@ static void basic_subtest(void)
 		     "PC8+ residency didn't stop with screen enabled.\n");
 }
 
+static void modeset_subtest(bool lpsp, bool stress)
+{
+	int i, rounds;
+	enum screen_type type;
+
+	rounds = stress ? 50 : 1;
+	type = lpsp ? SCREEN_TYPE_LPSP : SCREEN_TYPE_NON_LPSP;
+
+	for (i = 0; i < rounds; i++) {
+		disable_all_screens(&ms_data);
+		igt_assert(pc8_plus_enabled());
+
+		/* If we skip this line it's because the type of screen we want
+		 * is not connected. */
+		igt_require(enable_one_screen_with_type(&ms_data, type));
+		igt_assert(pc8_plus_disabled());
+	}
+}
+
 static void teardown_environment(void)
 {
 	fini_mode_set_data(&ms_data);
@@ -754,12 +798,18 @@ int main(int argc, char *argv[])
 		basic_subtest();
 	igt_subtest("drm-resources-equal")
 		drm_resources_equal_subtest();
+	igt_subtest("modeset-lpsp")
+		modeset_subtest(true, false);
+	igt_subtest("modeset-non-lpsp")
+		modeset_subtest(false, false);
 	igt_subtest("batch")
 		batch_subtest();
 	igt_subtest("i2c")
 		i2c_subtest();
 	igt_subtest("stress-test")
 		stress_test();
+	igt_subtest("modeset-non-lpsp-stress")
+		modeset_subtest(false, true);
 	igt_subtest("register-compare") {
 		igt_require(do_register_compare);
 		register_compare_subtest();
