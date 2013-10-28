@@ -68,6 +68,7 @@ TESTS_progs = \
 	drm_vma_limiter_cpu \
 	drm_vma_limiter_gtt \
 	gem_bad_length \
+	gem_close_race \
 	gem_cpu_reloc \
 	gem_cs_prefetch \
 	gem_ctx_bad_destroy \
