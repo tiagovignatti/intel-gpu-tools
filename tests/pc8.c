@@ -638,7 +638,7 @@ static void basic_subtest(void)
 		     "PC8+ residency didn't stop with screen enabled.\n");
 }
 
-static void modeset_subtest(bool lpsp, bool stress)
+static void modeset_subtest(bool lpsp, bool stress, bool wait_for_residency)
 {
 	int i, rounds;
 	enum screen_type type;
@@ -648,12 +648,14 @@ static void modeset_subtest(bool lpsp, bool stress)
 
 	for (i = 0; i < rounds; i++) {
 		disable_all_screens(&ms_data);
-		igt_assert(pc8_plus_enabled());
+		if (wait_for_residency)
+			igt_assert(pc8_plus_enabled());
 
 		/* If we skip this line it's because the type of screen we want
 		 * is not connected. */
 		igt_require(enable_one_screen_with_type(&ms_data, type));
-		igt_assert(pc8_plus_disabled());
+		if (wait_for_residency)
+			igt_assert(pc8_plus_disabled());
 	}
 }
 
@@ -799,9 +801,9 @@ int main(int argc, char *argv[])
 	igt_subtest("drm-resources-equal")
 		drm_resources_equal_subtest();
 	igt_subtest("modeset-lpsp")
-		modeset_subtest(true, false);
+		modeset_subtest(true, false, true);
 	igt_subtest("modeset-non-lpsp")
-		modeset_subtest(false, false);
+		modeset_subtest(false, false, true);
 	igt_subtest("batch")
 		batch_subtest();
 	igt_subtest("i2c")
@@ -809,7 +811,11 @@ int main(int argc, char *argv[])
 	igt_subtest("stress-test")
 		stress_test();
 	igt_subtest("modeset-non-lpsp-stress")
-		modeset_subtest(false, true);
+		modeset_subtest(false, true, true);
+	igt_subtest("modeset-lpsp-stress-no-wait")
+		modeset_subtest(true, true, false);
+	igt_subtest("modeset-non-lpsp-stress-no-wait")
+		modeset_subtest(false, true, false);
 	igt_subtest("register-compare") {
 		igt_require(do_register_compare);
 		register_compare_subtest();
