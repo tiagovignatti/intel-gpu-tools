@@ -59,6 +59,11 @@ enum screen_type {
 	SCREEN_TYPE_ANY,
 };
 
+enum residency_wait {
+	WAIT,
+	DONT_WAIT,
+};
+
 int drm_fd, msr_fd;
 struct mode_set_data ms_data;
 
@@ -638,23 +643,20 @@ static void basic_subtest(void)
 		     "PC8+ residency didn't stop with screen enabled.\n");
 }
 
-static void modeset_subtest(bool lpsp, bool stress, bool wait_for_residency)
+static void modeset_subtest(enum screen_type type, int rounds,
+			    enum residency_wait wait)
 {
-	int i, rounds;
-	enum screen_type type;
-
-	rounds = stress ? 50 : 1;
-	type = lpsp ? SCREEN_TYPE_LPSP : SCREEN_TYPE_NON_LPSP;
+	int i;
 
 	for (i = 0; i < rounds; i++) {
 		disable_all_screens(&ms_data);
-		if (wait_for_residency)
+		if (wait == WAIT)
 			igt_assert(pc8_plus_enabled());
 
 		/* If we skip this line it's because the type of screen we want
 		 * is not connected. */
 		igt_require(enable_one_screen_with_type(&ms_data, type));
-		if (wait_for_residency)
+		if (wait == WAIT)
 			igt_assert(pc8_plus_disabled());
 	}
 }
@@ -801,9 +803,9 @@ int main(int argc, char *argv[])
 	igt_subtest("drm-resources-equal")
 		drm_resources_equal_subtest();
 	igt_subtest("modeset-lpsp")
-		modeset_subtest(true, false, true);
+		modeset_subtest(SCREEN_TYPE_LPSP, 1, WAIT);
 	igt_subtest("modeset-non-lpsp")
-		modeset_subtest(false, false, true);
+		modeset_subtest(SCREEN_TYPE_NON_LPSP, 1, WAIT);
 	igt_subtest("batch")
 		batch_subtest();
 	igt_subtest("i2c")
@@ -811,11 +813,11 @@ int main(int argc, char *argv[])
 	igt_subtest("stress-test")
 		stress_test();
 	igt_subtest("modeset-non-lpsp-stress")
-		modeset_subtest(false, true, true);
+		modeset_subtest(SCREEN_TYPE_NON_LPSP, 50, WAIT);
 	igt_subtest("modeset-lpsp-stress-no-wait")
-		modeset_subtest(true, true, false);
+		modeset_subtest(SCREEN_TYPE_LPSP, 50, DONT_WAIT);
 	igt_subtest("modeset-non-lpsp-stress-no-wait")
-		modeset_subtest(false, true, false);
+		modeset_subtest(SCREEN_TYPE_NON_LPSP, 50, DONT_WAIT);
 	igt_subtest("register-compare") {
 		igt_require(do_register_compare);
 		register_compare_subtest();
