@@ -97,5 +97,5 @@ int main(int argc, char **argv)
 	igt_fixture
 		close(fd);
 
-	return 0;
+	igt_exit();
 }
