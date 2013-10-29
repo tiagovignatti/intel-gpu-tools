@@ -46,13 +46,14 @@
 #define BLT_WRITE_ALPHA		(1<<21)
 #define BLT_WRITE_RGB		(1<<20)
 
+static char device[80];
+
 static void selfcopy(int fd, uint32_t handle)
 {
 	struct drm_i915_gem_relocation_entry reloc[2];
 	struct drm_i915_gem_exec_object2 gem_exec[2];
 	struct drm_i915_gem_execbuffer2 execbuf;
 	uint32_t buf[10];
-	uint32_t batch;
 
 	memset(reloc, 0, sizeof(reloc));
 	memset(gem_exec, 0, sizeof(gem_exec));
@@ -64,49 +65,36 @@ static void selfcopy(int fd, uint32_t handle)
 	buf[3] = 1024 << 16 | 1024;
 	buf[4] = 0;
 	reloc[0].offset = 4 * sizeof(uint32_t);
-	reloc[0].delta = 0;
 	reloc[0].target_handle = handle;
 	reloc[0].read_domains = I915_GEM_DOMAIN_RENDER;
 	reloc[0].write_domain = I915_GEM_DOMAIN_RENDER;
-	reloc[0].presumed_offset = 0;
 
 	buf[5] = 0;
 	buf[6] = 4*1024;
 	buf[7] = 0;
 	reloc[1].offset = 7 * sizeof(uint32_t);
-	reloc[1].delta = 0;
 	reloc[1].target_handle = handle;
 	reloc[1].read_domains = I915_GEM_DOMAIN_RENDER;
 	reloc[1].write_domain = 0;
-	reloc[1].presumed_offset = 0;
 
 	buf[8] = MI_BATCH_BUFFER_END;
 	buf[9] = 0;
 
 	gem_exec[0].handle = handle;
 
-	batch = gem_create(fd, 4096);
-
-	gem_write(fd, batch, 0, buf, sizeof(buf));
-	gem_exec[1].handle = batch;
+	gem_exec[1].handle = gem_create(fd, 4096);
 	gem_exec[1].relocation_count = 2;
 	gem_exec[1].relocs_ptr = (uintptr_t)reloc;
 
-	execbuf.buffers_ptr = (uintptr_t)&gem_exec;
+	gem_write(fd, gem_exec[1].handle, 0, buf, sizeof(buf));
+
+	execbuf.buffers_ptr = (uintptr_t)gem_exec;
 	execbuf.buffer_count = 2;
 	execbuf.batch_len = sizeof(buf);
 	if (HAS_BLT_RING(intel_get_drm_devid(fd)))
 		execbuf.flags |= I915_EXEC_BLT;
 
 	gem_execbuf(fd, &execbuf);
-}
-
-static int open_drm(void)
-{
-	char name[80];
-
-	sprintf(name, "/dev/dri/card%d", drm_get_card());
-	return open(name, O_RDWR);
 }
 
 static uint32_t load(int fd)
@@ -123,10 +111,10 @@ static uint32_t load(int fd)
 
 static void run(int child)
 {
-	int fd;
 	uint32_t handle;
+	int fd;
 
-	fd = open_drm();
+	fd = open(device, O_RDWR);
 	igt_assert(fd != -1);
 
 	handle = load(fd);
@@ -139,10 +127,13 @@ int main(int argc, char *argv[])
 	igt_skip_on_simulation();
 	igt_subtest_init(argc, argv);
 
-	igt_subtest("gem-close-race")
+	sprintf(device, "/dev/dri/card%d", drm_get_card());
+
+	igt_subtest("gem-close-race") {
 		igt_fork(child, 100)
 			run(child);
+		igt_waitchildren();
+	}
 
-	igt_waitchildren();
 	igt_exit();
 }
