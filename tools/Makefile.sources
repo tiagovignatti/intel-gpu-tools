@@ -12,6 +12,7 @@ bin_PROGRAMS = 				\
 	intel_iosf_sb_write		\
 	intel_opregion_decode		\
 	intel_perf_counters		\
+	intel_display_poller		\
 	intel_stepping 			\
 	intel_reg_checker 		\
 	intel_reg_dumper 		\
