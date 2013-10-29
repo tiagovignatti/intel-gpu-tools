@@ -676,8 +676,6 @@ static void drm_resources_equal_subtest(void)
 {
 	struct compare_data pre_pc8, during_pc8, post_pc8;
 
-	printf("Checking the if the DRM resources match.\n");
-
 	enable_one_screen(&ms_data);
 	igt_assert(pc8_plus_disabled());
 	get_drm_info(&pre_pc8);
@@ -704,8 +702,6 @@ static void drm_resources_equal_subtest(void)
 /* Make sure interrupts are working. */
 static void batch_subtest(void)
 {
-	printf("Testing batchbuffers.\n");
-
 	enable_one_screen(&ms_data);
 	igt_assert(pc8_plus_disabled());
 
@@ -748,8 +744,6 @@ static void stress_test(void)
 {
 	int i;
 
-	printf("Stress testing.\n");
-
 	for (i = 0; i < 100; i++) {
 		disable_all_screens(&ms_data);
 		igt_assert(pc8_plus_enabled());
@@ -763,8 +757,6 @@ static void stress_test(void)
 static void register_compare_subtest(void)
 {
 	struct compare_registers pre_pc8, post_pc8;
-
-	printf("Testing register compare.\n");
 
 	enable_one_screen(&ms_data);
 	igt_assert(pc8_plus_disabled());
