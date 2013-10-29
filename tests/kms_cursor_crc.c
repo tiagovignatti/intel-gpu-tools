@@ -386,5 +386,5 @@ int main(int argc, char **argv)
 		fclose(data.ctl);
 	}
 
-	return 0;
+	igt_exit();
 }
