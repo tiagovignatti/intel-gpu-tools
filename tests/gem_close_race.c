@@ -54,6 +54,7 @@ static void selfcopy(int fd, uint32_t handle)
 	struct drm_i915_gem_exec_object2 gem_exec[2];
 	struct drm_i915_gem_execbuffer2 execbuf;
 	uint32_t buf[10];
+	int loop;
 
 	memset(reloc, 0, sizeof(reloc));
 	memset(gem_exec, 0, sizeof(gem_exec));
@@ -62,14 +63,14 @@ static void selfcopy(int fd, uint32_t handle)
 	buf[0] = COPY_BLT_CMD | BLT_WRITE_ALPHA | BLT_WRITE_RGB;
 	buf[1] = 0xcc << 16 | 1 << 25 | 1 << 24 | (4*1024);
 	buf[2] = 0;
-	buf[3] = 1024 << 16 | 1024;
+	buf[3] = 512 << 16 | 1024;
 	buf[4] = 0;
 	reloc[0].offset = 4 * sizeof(uint32_t);
 	reloc[0].target_handle = handle;
 	reloc[0].read_domains = I915_GEM_DOMAIN_RENDER;
 	reloc[0].write_domain = I915_GEM_DOMAIN_RENDER;
 
-	buf[5] = 0;
+	buf[5] = 512 << 16;
 	buf[6] = 4*1024;
 	buf[7] = 0;
 	reloc[1].offset = 7 * sizeof(uint32_t);
@@ -94,7 +95,8 @@ static void selfcopy(int fd, uint32_t handle)
 	if (HAS_BLT_RING(intel_get_drm_devid(fd)))
 		execbuf.flags |= I915_EXEC_BLT;
 
-	gem_execbuf(fd, &execbuf);
+	for (loop = 30; loop--; )
+		gem_execbuf(fd, &execbuf);
 }
 
 static uint32_t load(int fd)
@@ -118,7 +120,7 @@ static void run(int child)
 	igt_assert(fd != -1);
 
 	handle = load(fd);
-	if (child & 1)
+	if ((child & 63) == 63)
 		gem_read(fd, handle, 0, &handle, sizeof(handle));
 }
 
@@ -130,7 +132,7 @@ int main(int argc, char *argv[])
 	sprintf(device, "/dev/dri/card%d", drm_get_card());
 
 	igt_subtest("gem-close-race") {
-		igt_fork(child, 100)
+		igt_fork(child, 2000)
 			run(child);
 		igt_waitchildren();
 	}
