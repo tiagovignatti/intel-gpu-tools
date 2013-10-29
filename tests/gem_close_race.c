@@ -25,6 +25,7 @@
  *
  */
 
+#include <pthread.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -47,14 +48,16 @@
 #define BLT_WRITE_RGB		(1<<20)
 
 static char device[80];
+static uint32_t devid;
 
-static void selfcopy(int fd, uint32_t handle)
+static void selfcopy(int fd, uint32_t handle, int loops)
 {
 	struct drm_i915_gem_relocation_entry reloc[2];
 	struct drm_i915_gem_exec_object2 gem_exec[2];
 	struct drm_i915_gem_execbuffer2 execbuf;
+	struct drm_i915_gem_pwrite gem_pwrite;
+	struct drm_i915_gem_create create;
 	uint32_t buf[10];
-	int loop;
 
 	memset(reloc, 0, sizeof(reloc));
 	memset(gem_exec, 0, sizeof(gem_exec));
@@ -83,20 +86,29 @@ static void selfcopy(int fd, uint32_t handle)
 
 	gem_exec[0].handle = handle;
 
-	gem_exec[1].handle = gem_create(fd, 4096);
+	create.handle = 0;
+	create.size = 4096;
+	drmIoctl(fd, DRM_IOCTL_I915_GEM_CREATE, &create);
+	gem_exec[1].handle = create.handle;
 	gem_exec[1].relocation_count = 2;
 	gem_exec[1].relocs_ptr = (uintptr_t)reloc;
-
-	gem_write(fd, gem_exec[1].handle, 0, buf, sizeof(buf));
 
 	execbuf.buffers_ptr = (uintptr_t)gem_exec;
 	execbuf.buffer_count = 2;
 	execbuf.batch_len = sizeof(buf);
-	if (HAS_BLT_RING(intel_get_drm_devid(fd)))
+	if (HAS_BLT_RING(devid))
 		execbuf.flags |= I915_EXEC_BLT;
 
-	for (loop = 30; loop--; )
-		gem_execbuf(fd, &execbuf);
+	gem_pwrite.handle = gem_exec[1].handle;
+	gem_pwrite.offset = 0;
+	gem_pwrite.size = sizeof(buf);
+	gem_pwrite.data_ptr = (uintptr_t)buf;
+	if (drmIoctl(fd, DRM_IOCTL_I915_GEM_PWRITE, &gem_pwrite) == 0) {
+		while (loops--)
+			drmIoctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf);
+	}
+
+	drmIoctl(fd, DRM_IOCTL_GEM_CLOSE, &create.handle);
 }
 
 static uint32_t load(int fd)
@@ -107,7 +119,7 @@ static uint32_t load(int fd)
 	if (handle == 0)
 		return 0;
 
-	selfcopy(fd, handle);
+	selfcopy(fd, handle, 30);
 	return handle;
 }
 
@@ -124,17 +136,132 @@ static void run(int child)
 		gem_read(fd, handle, 0, &handle, sizeof(handle));
 }
 
+#define NUM_FD 32000
+
+struct thread {
+	pthread_mutex_t mutex;
+	int fds[NUM_FD];
+	int done;
+};
+
+static void *thread_run(void *_data)
+{
+	struct thread *t = _data;
+
+	pthread_mutex_lock(&t->mutex);
+	while (!t->done) {
+		pthread_mutex_unlock(&t->mutex);
+
+		for (int n = 0; n < NUM_FD; n++) {
+			struct drm_i915_gem_create create;
+
+			create.handle = 0;
+			create.size = OBJECT_SIZE;
+			drmIoctl(t->fds[n], DRM_IOCTL_I915_GEM_CREATE, &create);
+			if (create.handle == 0)
+				continue;
+
+			selfcopy(t->fds[n], create.handle, 10);
+
+			drmIoctl(t->fds[n], DRM_IOCTL_GEM_CLOSE, &create.handle);
+		}
+
+		pthread_mutex_lock(&t->mutex);
+	}
+	pthread_mutex_unlock(&t->mutex);
+
+	return 0;
+}
+
+static void *thread_busy(void *_data)
+{
+	struct thread *t = _data;
+	int n;
+
+	pthread_mutex_lock(&t->mutex);
+	while (!t->done) {
+		struct drm_i915_gem_create create;
+		struct drm_i915_gem_busy busy;
+
+		pthread_mutex_unlock(&t->mutex);
+
+		n  = rand() % NUM_FD;
+
+		create.handle = 0;
+		create.size = OBJECT_SIZE;
+		drmIoctl(t->fds[n], DRM_IOCTL_I915_GEM_CREATE, &create);
+		if (create.handle == 0)
+			continue;
+
+		selfcopy(t->fds[n], create.handle, 1);
+
+		busy.handle = create.handle;
+		drmIoctl(t->fds[n], DRM_IOCTL_I915_GEM_BUSY, &busy);
+
+		drmIoctl(t->fds[n], DRM_IOCTL_GEM_CLOSE, &create.handle);
+
+		usleep(10*1000);
+
+		pthread_mutex_lock(&t->mutex);
+	}
+	pthread_mutex_unlock(&t->mutex);
+
+	return 0;
+}
+
 int main(int argc, char *argv[])
 {
 	igt_skip_on_simulation();
 	igt_subtest_init(argc, argv);
 
 	sprintf(device, "/dev/dri/card%d", drm_get_card());
+	{
+		int fd = open(device, O_RDWR);
+		igt_assert(fd != -1);
+		devid = intel_get_drm_devid(fd);
+		close(fd);
+	}
 
-	igt_subtest("gem-close-race") {
+	igt_subtest("process-exit") {
 		igt_fork(child, 2000)
 			run(child);
 		igt_waitchildren();
+	}
+
+	igt_subtest("gem-close-race") {
+		pthread_t thread[2];
+		struct thread *data = calloc(1, sizeof(struct thread));
+		int n;
+
+		igt_assert(data);
+
+		pthread_mutex_init(&data->mutex, NULL);
+		for (n = 0; n < NUM_FD; n++)
+			data->fds[n] = open(device, O_RDWR);
+
+		pthread_create(&thread[0], NULL, thread_run, data);
+		pthread_create(&thread[1], NULL, thread_busy, data);
+
+		for (n = 0; n < 1000*NUM_FD; n++) {
+			int i = rand() % NUM_FD;
+			if (data->fds[i] == -1) {
+				data->fds[i] = open(device, O_RDWR);
+			} else{
+				close(data->fds[i]);
+				data->fds[i] = -1;
+			}
+		}
+
+		pthread_mutex_lock(&data->mutex);
+		data->done = 1;
+		pthread_mutex_unlock(&data->mutex);
+
+		pthread_join(thread[1], NULL);
+		pthread_join(thread[0], NULL);
+
+		for (n = 0; n < NUM_FD; n++)
+			close(data->fds[n]);
+		free(data);
 	}
 
 	igt_exit();
