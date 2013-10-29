@@ -812,8 +812,6 @@ int igt_subtest_init_parse_opts(int argc, char **argv,
 		case 'l':
 			if (!run_single_subtest)
 				list_subtests = true;
-			else
-				igt_install_exit_handler(check_igt_exit);
 			break;
 		case 'r':
 			if (!list_subtests)
@@ -841,6 +839,8 @@ int igt_subtest_init_parse_opts(int argc, char **argv,
 				goto out;
 		}
 	}
+
+	igt_install_exit_handler(check_igt_exit);
 
 out:
 	return ret;
