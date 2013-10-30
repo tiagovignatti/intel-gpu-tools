@@ -216,6 +216,7 @@ TESTS_progs += testdisplay
 LDADD += $(CAIRO_LIBS) $(LIBUDEV_LIBS) $(GLIB_LIBS)
 AM_CFLAGS += $(CAIRO_CFLAGS) $(LIBUDEV_CFLAGS) $(GLIB_CFLAGS)
 
+gem_close_race_LDADD = $(LDADD) -lpthread
 gem_fence_thrash_CFLAGS = $(AM_CFLAGS) $(THREAD_CFLAGS)
 gem_fence_thrash_LDADD = $(LDADD) -lpthread
 gem_flink_race_LDADD = $(LDADD) -lpthread
