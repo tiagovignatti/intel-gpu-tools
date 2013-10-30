@@ -151,6 +151,8 @@ int main(int argc, char **argv)
 {
 	igt_subtest_init(argc, argv);
 
+	igt_skip_on_simulation();
+
 	igt_fixture
 		fd = drm_open_any();
 
