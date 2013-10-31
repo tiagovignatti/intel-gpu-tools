@@ -162,18 +162,20 @@ static void test_read_crc(data_t *data, int pipe, unsigned flags)
 
 		if (!connector->valid)
 			continue;
-		valid_connectors++;
 
 		fprintf(stdout, "%s: Testing connector %u\n",
 			igt_subtest_name(), connector->config.connector->connector_id);
+
+		connector_set_mode(data, connector, &connector->config.default_mode);
 
 		pipe_crc = igt_pipe_crc_new(&data->debugfs, data->drm_fd,
 					    connector->config.pipe,
 					    INTEL_PIPE_CRC_SOURCE_AUTO);
 
-		connector_set_mode(data, connector, &connector->config.default_mode);
+		if (!pipe_crc)
+			continue;
+		valid_connectors++;
 
-		igt_require(pipe_crc);
 		igt_assert(igt_pipe_crc_start(pipe_crc));
 
 		/* wait for 3 vblanks and the corresponding 3 CRCs */
