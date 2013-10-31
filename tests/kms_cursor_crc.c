@@ -116,25 +116,14 @@ static igt_pipe_crc_t *create_crc(data_t *data, int crtc_idx)
 
 static void display_init(data_t *data)
 {
-	int i;
-
 	data->resources = drmModeGetResources(data->drm_fd);
 	igt_assert(data->resources);
 
 	data->pipe_crc = calloc(data->resources->count_crtcs, sizeof(data->pipe_crc[0]));
-	for (i = 0; i < data->resources->count_crtcs; i++) {
-		data->pipe_crc[i] = create_crc(data, i);
-		igt_require_f(data->pipe_crc[i],
-			      "pipe/pf crc not supported\n");
-	}
 }
 
 static void display_fini(data_t *data)
 {
-	int i;
-
-	for (i = 0; i < data->resources->count_crtcs; i++)
-		igt_pipe_crc_free(data->pipe_crc[i]);
 	free(data->pipe_crc);
 
 	drmModeFreeResources(data->resources);
@@ -236,7 +225,7 @@ static bool prepare_crtc(test_data_t *test_data, uint32_t connector_id)
 	connector_t connector;
 	igt_crc_t *crcs = NULL;
 	data_t *data = test_data->data;
-	igt_pipe_crc_t *pipe_crc = data->pipe_crc[test_data->crtc_idx];
+	igt_pipe_crc_t *pipe_crc;
 	int ret;
 
 	ret = kmstest_get_connector_config(data->drm_fd,
@@ -247,6 +236,15 @@ static bool prepare_crtc(test_data_t *test_data, uint32_t connector_id)
 		return false;
 
 	connector_set_mode(data, &connector, &connector.config.default_mode);
+
+	pipe_crc = create_crc(data, test_data->crtc_idx);
+	if (!pipe_crc) {
+		printf("auto crc not supported on this connector with crtc %i\n",
+		       test_data->crtc_idx);
+		return false;
+	}
+
+	data->pipe_crc[test_data->crtc_idx] = pipe_crc;
 
 	/* x/y position where the cursor is still fully visible */
 	test_data->left = 0;
@@ -276,6 +274,7 @@ static void run_test(data_t *data, enum cursor_type cursor_type, bool onscreen)
 		.data = data,
 	};
 	int i, n;
+	int valid_tests = 0;
 
 	for (i = 0; i < data->resources->count_connectors; i++) {
 		uint32_t connector_id = data->resources->connectors[i];
@@ -287,6 +286,8 @@ static void run_test(data_t *data, enum cursor_type cursor_type, bool onscreen)
 			if (!prepare_crtc(&test_data, connector_id))
 				continue;
 
+			valid_tests++;
+
 			fprintf(stdout, "Beginning %s on crtc %d, connector %d\n",
 				igt_subtest_name(), test_data.crtc_id, connector_id);
 
@@ -295,8 +296,12 @@ static void run_test(data_t *data, enum cursor_type cursor_type, bool onscreen)
 
 			fprintf(stdout, "\n%s on crtc %d, connector %d: PASSED\n\n",
 				igt_subtest_name(), test_data.crtc_id, connector_id);
+
+			igt_pipe_crc_free(data->pipe_crc[test_data.crtc_idx]);
 		}
 	}
+
+	igt_require_f(valid_tests, "no valid crtc/connector combinations found\n");
 }
 
 static void exit_handler(int sig)
