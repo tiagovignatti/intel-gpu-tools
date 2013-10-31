@@ -177,12 +177,42 @@ static bool igt_pipe_crc_do_start(igt_pipe_crc_t *pipe_crc)
 	return true;
 }
 
+static void igt_pipe_crc_pipe_off(int fd, enum pipe pipe)
+{
+	char buf[32];
+
+	sprintf(buf, "pipe %c none", pipe_name(pipe));
+	write(fd, buf, strlen(buf));
+}
+
+static void igt_pipe_crc_reset(void)
+{
+	igt_debugfs_t debugfs;
+	int fd;
+
+	igt_debugfs_init(&debugfs);
+	fd = igt_debugfs_open(&debugfs, "i915_display_crc_ctl", O_WRONLY);
+
+	igt_pipe_crc_pipe_off(fd, PIPE_A);
+	igt_pipe_crc_pipe_off(fd, PIPE_B);
+	igt_pipe_crc_pipe_off(fd, PIPE_C);
+
+	close(fd);
+}
+
+static void pipe_crc_exit_handler(int sig)
+{
+	igt_pipe_crc_reset();
+}
+
 igt_pipe_crc_t *
 igt_pipe_crc_new(igt_debugfs_t *debugfs, int drm_fd, enum pipe pipe,
 		 enum intel_pipe_crc_source source)
 {
 	igt_pipe_crc_t *pipe_crc;
 	char buf[128];
+
+	do_or_die(igt_install_exit_handler(pipe_crc_exit_handler));
 
 	pipe_crc = calloc(1, sizeof(struct _igt_pipe_crc));
 
@@ -209,32 +239,6 @@ igt_pipe_crc_new(igt_debugfs_t *debugfs, int drm_fd, enum pipe pipe,
 	igt_pipe_crc_stop(pipe_crc);
 
 	return pipe_crc;
-}
-
-static void igt_pipe_crc_pipe_off(int fd, enum pipe pipe)
-{
-	char buf[32];
-
-	sprintf(buf, "pipe %c none", pipe_name(pipe));
-	write(fd, buf, strlen(buf));
-}
-
-/*
- * Turn off everything
- */
-void igt_pipe_crc_reset(void)
-{
-	igt_debugfs_t debugfs;
-	int fd;
-
-	igt_debugfs_init(&debugfs);
-	fd = igt_debugfs_open(&debugfs, "i915_display_crc_ctl", O_WRONLY);
-
-	igt_pipe_crc_pipe_off(fd, PIPE_A);
-	igt_pipe_crc_pipe_off(fd, PIPE_B);
-	igt_pipe_crc_pipe_off(fd, PIPE_C);
-
-	close(fd);
 }
 
 void igt_pipe_crc_free(igt_pipe_crc_t *pipe_crc)

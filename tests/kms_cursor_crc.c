@@ -304,11 +304,6 @@ static void run_test(data_t *data, enum cursor_type cursor_type, bool onscreen)
 	igt_require_f(valid_tests, "no valid crtc/connector combinations found\n");
 }
 
-static void exit_handler(int sig)
-{
-	igt_pipe_crc_reset();
-}
-
 static void create_cursor_fb(data_t *data,
 			     enum cursor_type cursor_type,
 			     double r, double g, double b, double a)
@@ -340,7 +335,6 @@ int main(int argc, char **argv)
 
 		data.drm_fd = drm_open_any();
 		do_or_die(igt_set_vt_graphics_mode());
-		do_or_die(igt_install_exit_handler(exit_handler));
 
 		igt_debugfs_init(&data.debugfs);
 		data.ctl = igt_debugfs_fopen(&data.debugfs,
@@ -378,7 +372,6 @@ int main(int argc, char **argv)
 		run_test(&data, BLACK_INVISIBLE, false);
 
 	igt_fixture {
-		igt_pipe_crc_reset();
 		display_fini(&data);
 		fclose(data.ctl);
 	}

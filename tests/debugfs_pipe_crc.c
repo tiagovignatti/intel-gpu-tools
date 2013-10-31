@@ -206,11 +206,6 @@ static void test_read_crc(data_t *data, int pipe, unsigned flags)
 
 }
 
-static void exit_handler(int sig)
-{
-	igt_pipe_crc_reset();
-}
-
 int main(int argc, char **argv)
 {
 	data_t data = {0, };
@@ -226,7 +221,6 @@ int main(int argc, char **argv)
 
 		data.drm_fd = drm_open_any();
 		do_or_die(igt_set_vt_graphics_mode());
-		do_or_die(igt_install_exit_handler(exit_handler));
 
 		display_init(&data);
 
@@ -262,7 +256,6 @@ int main(int argc, char **argv)
 	}
 
 	igt_fixture {
-		igt_pipe_crc_reset();
 		display_fini(&data);
 		fclose(data.ctl);
 	}
