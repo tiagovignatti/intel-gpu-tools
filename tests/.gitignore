@@ -113,4 +113,5 @@ prime_self_import
 prime_udl
 sysfs_rc6_residency
 sysfs_rps
+template
 testdisplay

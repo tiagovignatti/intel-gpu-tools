@@ -59,6 +59,7 @@ TESTS_progs_M = \
 	$(NOUVEAU_TESTS_M) \
 	pc8 \
 	prime_self_import \
+	template \
 	$(NULL)
 
 TESTS_progs = \
