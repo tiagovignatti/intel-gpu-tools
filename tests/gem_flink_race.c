@@ -190,17 +190,13 @@ static void test_flink_close(void)
 	igt_assert(obj_count == 0);
 }
 
-int main(int argc, char **argv)
+igt_main
 {
 	igt_skip_on_simulation();
-
-	igt_subtest_init(argc, argv);
 
 	igt_subtest("flink_name")
 		test_flink_name();
 
 	igt_subtest("flink_close")
 		test_flink_close();
-
-	igt_exit();
 }

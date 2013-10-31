@@ -138,6 +138,16 @@ bool __igt_run_subtest(const char *subtest_name);
 				   (setjmp(igt_subtest_jmpbuf) == 0); \
 				   igt_success())
 const char *igt_subtest_name(void);
+#define igt_main \
+	static void igt_tokencat(__real_main, __LINE__)(void); \
+	int main(int argc, char **argv) { \
+		igt_subtest_init(argc, argv); \
+		igt_tokencat(__real_main, __LINE__)(); \
+		igt_exit(); \
+	} \
+	static void igt_tokencat(__real_main, __LINE__)(void) \
+
+
 /**
  * igt_skip - subtest aware test skipping
  *

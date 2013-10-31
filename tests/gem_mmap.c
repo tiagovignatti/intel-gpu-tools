@@ -42,15 +42,13 @@
 int fd;
 int handle;
 
-int main(int argc, char **argv)
+igt_main
 {
 	struct drm_i915_gem_mmap arg;
 	uint8_t expected[OBJECT_SIZE];
 	uint8_t buf[OBJECT_SIZE];
 	uint8_t *addr;
 	int ret;
-
-	igt_subtest_init(argc, argv);
 
 	igt_fixture
 		fd = drm_open_any();
@@ -96,6 +94,4 @@ int main(int argc, char **argv)
 
 	igt_fixture
 		close(fd);
-
-	igt_exit();
 }

@@ -221,7 +221,7 @@ static int run_test(const char *test_name, enum test_flags flags)
 	return 1;
 }
 
-int main(int argc, char **argv)
+igt_main
 {
 	struct {
 		enum test_flags flags;
@@ -232,7 +232,6 @@ int main(int argc, char **argv)
 	};
 	int i;
 
-	igt_subtest_init(argc, argv);
 	igt_skip_on_simulation();
 
 	igt_fixture {
@@ -252,6 +251,4 @@ int main(int argc, char **argv)
 
 	igt_fixture
 		close(drm_fd);
-
-	igt_exit();
 }

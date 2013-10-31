@@ -85,10 +85,9 @@ uint32_t batch[2] = {MI_BATCH_BUFFER_END};
 uint32_t ctx_id;
 int fd;
 
-int main(int argc, char *argv[])
+igt_main
 {
 	igt_skip_on_simulation();
-	igt_subtest_init(argc, argv);
 
 	igt_fixture {
 		fd = drm_open_any_render();
@@ -110,6 +109,4 @@ int main(int argc, char *argv[])
 	igt_subtest("vebox")
 		igt_assert(exec(fd, handle, I915_EXEC_VEBOX, ctx_id) != 0);
 #endif
-
-	igt_exit();
 }

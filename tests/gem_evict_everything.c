@@ -296,13 +296,11 @@ static void major_evictions(int fd, int size, int count)
 	free(bo);
 }
 
-int main(int argc, char **argv)
+igt_main
 {
 	int size, count, fd;
 	size = count = 0;
 	fd = -1;
-
-	igt_subtest_init(argc, argv);
 
 	igt_skip_on_simulation();
 
@@ -359,6 +357,4 @@ int main(int argc, char **argv)
 	igt_fixture {
 		close(fd);
 	}
-
-	igt_exit();
 }

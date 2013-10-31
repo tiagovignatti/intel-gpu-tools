@@ -103,14 +103,13 @@ blt_bo_fill(drm_intel_bo *tmp_bo, drm_intel_bo *bo, uint8_t val)
 #define TEST_READ 0x1
 #define TEST_WRITE 0x2
 #define TEST_BOTH (TEST_READ | TEST_WRITE)
-int main(int argc, char **argv)
+igt_main
 {
 	unsigned flags = TEST_BOTH;
 	int i, j;
 	uint8_t *cpu_ptr;
 	uint8_t *gtt_ptr;
 
-	igt_subtest_init(argc, argv);
 	igt_skip_on_simulation();
 
 	igt_fixture {
@@ -284,6 +283,4 @@ int main(int argc, char **argv)
 
 		close(fd);
 	}
-
-	igt_exit();
 }

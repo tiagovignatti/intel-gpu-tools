@@ -250,10 +250,8 @@ static void buffer_count_tests(void)
 	}
 }
 
-int main(int argc, char *argv[])
+igt_main
 {
-	igt_subtest_init(argc, argv);
-
 	igt_fixture {
 		int ring;
 		uint32_t batch_data [2] = { MI_NOOP, MI_BATCH_BUFFER_END };
@@ -306,6 +304,4 @@ int main(int argc, char *argv[])
 		gem_close(fd, batch_handle);
 		close(fd);
 	}
-
-	igt_exit();
 }

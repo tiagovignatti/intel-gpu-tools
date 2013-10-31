@@ -171,12 +171,10 @@ static void do_test(int fd, int cache_level,
 drm_intel_bo *src[2], *dst[2];
 int fd;
 
-int
-main(int argc, char **argv)
+igt_main
 {
 	const uint32_t start[2] = {0, 1024 * 1024 / 4};
 
-	igt_subtest_init(argc, argv);
 	igt_skip_on_simulation();
 
 	igt_fixture {
@@ -240,6 +238,4 @@ main(int argc, char **argv)
 	}
 
 	close(fd);
-
-	igt_exit();
 }

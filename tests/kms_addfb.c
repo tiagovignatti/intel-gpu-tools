@@ -215,10 +215,8 @@ static void size_tests(int fd)
 
 int fd;
 
-int main(int argc, char **argv)
+igt_main
 {
-	igt_subtest_init(argc, argv);
-
 	igt_fixture
 		fd = drm_open_any();
 
@@ -228,6 +226,4 @@ int main(int argc, char **argv)
 
 	igt_fixture
 		close(fd);
-
-	igt_exit();
 }

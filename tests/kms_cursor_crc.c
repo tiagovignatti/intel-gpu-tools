@@ -321,11 +321,10 @@ static void create_cursor_fb(data_t *data,
 	igt_assert(cairo_status(cr) == 0);
 }
 
-int main(int argc, char **argv)
+igt_main
 {
 	data_t data = {};
 
-	igt_subtest_init(argc, argv);
 	igt_skip_on_simulation();
 
 	igt_fixture {
@@ -377,6 +376,4 @@ int main(int argc, char **argv)
 		display_fini(&data);
 		fclose(data.ctl);
 	}
-
-	igt_exit();
 }

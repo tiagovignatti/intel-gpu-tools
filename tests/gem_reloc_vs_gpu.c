@@ -323,9 +323,8 @@ static void do_forked_test(int fd, unsigned flags)
 int fd;
 
 #define MAX_BLT_SIZE 128
-int main(int argc, char **argv)
+igt_main
 {
-	igt_subtest_init(argc, argv);
 	igt_skip_on_simulation();
 
 	memset(blob, 'A', sizeof(blob));
@@ -372,6 +371,4 @@ int main(int argc, char **argv)
 
 		close(fd);
 	}
-
-	igt_exit();
 }

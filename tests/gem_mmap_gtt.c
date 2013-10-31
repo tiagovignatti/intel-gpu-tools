@@ -191,12 +191,10 @@ run_without_prefault(int fd,
 
 int fd;
 
-int main(int argc, char **argv)
+igt_main
 {
 	if (igt_run_in_simulation())
 		OBJECT_SIZE = 1 * 1024 * 1024;
-
-	igt_subtest_init(argc, argv);
 
 	igt_fixture
 		fd = drm_open_any();
@@ -220,6 +218,4 @@ int main(int argc, char **argv)
 
 	igt_fixture
 		close(fd);
-
-	igt_exit();
 }

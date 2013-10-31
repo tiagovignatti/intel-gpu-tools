@@ -209,10 +209,9 @@ static void *thread_busy(void *_data)
 	return 0;
 }
 
-int main(int argc, char *argv[])
+igt_main
 {
 	igt_skip_on_simulation();
-	igt_subtest_init(argc, argv);
 
 	sprintf(device, "/dev/dri/card%d", drm_get_card());
 	{
@@ -263,6 +262,4 @@ int main(int argc, char *argv[])
 			close(data->fds[n]);
 		free(data);
 	}
-
-	igt_exit();
 }

@@ -218,11 +218,8 @@ static void run_test(int fd, int num_fences, int expected_errno,
 int fd;
 int num_fences;
 
-int
-main(int argc, char **argv)
+igt_main
 {
-	igt_subtest_init(argc, argv);
-
 	igt_skip_on_simulation();
 
 	igt_fixture {
@@ -247,6 +244,4 @@ main(int argc, char **argv)
 
 	igt_fixture
 		close(fd);
-
-	igt_exit();
 }

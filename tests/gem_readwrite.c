@@ -76,14 +76,13 @@ do_write(int fd, int handle, void *buf, int offset, int size)
 int fd;
 uint32_t handle;
 
-int main(int argc, char **argv)
+igt_main
 {
 	uint8_t expected[OBJECT_SIZE];
 	uint8_t buf[OBJECT_SIZE];
 	int ret;
 
 	igt_skip_on_simulation();
-	igt_subtest_init(argc, argv);
 
 	igt_fixture {
 		fd = drm_open_any();
@@ -145,6 +144,4 @@ int main(int argc, char **argv)
 
 	igt_fixture
 		close(fd);
-
-	igt_exit();
 }

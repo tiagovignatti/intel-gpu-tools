@@ -198,10 +198,8 @@ static int run_test(int threads_per_fence, void *f, int tiling,
 	return 0;
 }
 
-int
-main(int argc, char **argv)
+igt_main
 {
-	igt_subtest_init(argc, argv);
 	igt_skip_on_simulation();
 
 	igt_subtest("bo-write-verify-none")
@@ -232,6 +230,4 @@ main(int argc, char **argv)
 
 	igt_subtest("bo-copy")
 		igt_assert(run_test(1, bo_copy, I915_TILING_X, 1) == 0);
-
-	igt_exit();
 }

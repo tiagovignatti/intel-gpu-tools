@@ -143,7 +143,7 @@ static void run_test(int ring)
 	drm_intel_bo_unreference(target_bo);
 }
 
-int main(int argc, char **argv)
+igt_main
 {
 	static const struct {
 		const char *name;
@@ -155,7 +155,6 @@ int main(int argc, char **argv)
 	};
 	int i;
 
-	igt_subtest_init(argc, argv);
 	igt_skip_on_simulation();
 
 	igt_fixture {
@@ -196,6 +195,4 @@ int main(int argc, char **argv)
 
 		close(fd);
 	}
-
-	igt_exit();
 }

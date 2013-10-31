@@ -1263,10 +1263,8 @@ out:
 	return ret;
 }
 
-int main(int argc, char **argv)
+igt_main
 {
-	igt_subtest_init(argc, argv);
-
 	igt_fixture {
 		igt_assert(find_and_open_devices() == 0);
 
@@ -1318,6 +1316,4 @@ int main(int argc, char **argv)
 		close(intel_fd);
 		close(nouveau_fd);
 	}
-
-	igt_exit();
 }

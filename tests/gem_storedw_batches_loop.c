@@ -122,9 +122,8 @@ cont:
 int fd;
 int devid;
 
-int main(int argc, char **argv)
+igt_main
 {
-	igt_subtest_init(argc, argv);
 	igt_skip_on_simulation();
 
 	igt_fixture {
@@ -166,6 +165,4 @@ int main(int argc, char **argv)
 
 		close(fd);
 	}
-
-	igt_exit();
 }

@@ -229,12 +229,11 @@ static void do_test(uint32_t tiling, unsigned stride,
 
 int fd;
 
-int main(int argc, char **argv)
+igt_main
 {
 	int i;
 	uint32_t tiling, tiling_after;
 
-	igt_subtest_init(argc, argv);
 	igt_skip_on_simulation();
 
 	igt_fixture {
@@ -275,6 +274,4 @@ int main(int argc, char **argv)
 		igt_assert(tiling == I915_TILING_X);
 		igt_assert(tiling_after == I915_TILING_X);
 	}
-
-	igt_exit();
 }

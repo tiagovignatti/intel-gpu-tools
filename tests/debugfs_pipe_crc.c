@@ -206,11 +206,9 @@ static void test_read_crc(data_t *data, int pipe, unsigned flags)
 
 }
 
-int main(int argc, char **argv)
+igt_main
 {
 	data_t data = {0, };
-
-	igt_subtest_init(argc, argv);
 
 	igt_skip_on_simulation();
 
@@ -261,6 +259,4 @@ int main(int argc, char **argv)
 		display_fini(&data);
 		fclose(data.ctl);
 	}
-
-	igt_exit();
 }

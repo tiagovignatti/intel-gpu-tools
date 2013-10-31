@@ -77,10 +77,8 @@ test_create_fd_close(int fd)
 
 int fd;
 
-int main(int argc, char **argv)
+igt_main
 {
-	igt_subtest_init(argc, argv);
-
 	igt_fixture
 		fd = drm_open_any();
 
@@ -90,6 +88,4 @@ int main(int argc, char **argv)
 		test_create_close(fd);
 	igt_subtest("create-fd-close")
 		test_create_fd_close(fd);
-
-	igt_exit();
 }

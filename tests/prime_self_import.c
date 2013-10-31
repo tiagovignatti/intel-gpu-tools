@@ -420,7 +420,7 @@ static void test_llseek_bad(void)
 	close(fd);
 }
 
-int main(int argc, char **argv)
+igt_main
 {
 	struct {
 		const char *name;
@@ -437,12 +437,8 @@ int main(int argc, char **argv)
 	};
 	int i;
 
-	igt_subtest_init(argc, argv);
-
 	for (i = 0; i < ARRAY_SIZE(tests); i++) {
 		igt_subtest(tests[i].name)
 			tests[i].fn();
 	}
-
-	igt_exit();
 }

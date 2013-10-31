@@ -151,10 +151,8 @@ store_pipe_control_loop(bool preuse_buffer)
 
 int fd;
 
-int main(int argc, char **argv)
+igt_main
 {
-	igt_subtest_init(argc, argv);
-
 	igt_fixture {
 		fd = drm_open_any();
 		devid = intel_get_drm_devid(fd);
@@ -186,6 +184,4 @@ int main(int argc, char **argv)
 
 		close(fd);
 	}
-
-	igt_exit();
 }

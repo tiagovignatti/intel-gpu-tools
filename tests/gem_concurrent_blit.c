@@ -354,12 +354,10 @@ run_modes(struct access_mode *mode)
 	run_basic_modes(mode, src, dst, dummy, "-forked", run_forked);
 }
 
-int
-main(int argc, char **argv)
+igt_main
 {
 	int max, i;
 
-	igt_subtest_init(argc, argv);
 	igt_skip_on_simulation();
 
 	igt_fixture {
@@ -372,6 +370,4 @@ main(int argc, char **argv)
 
 	for (i = 0; i < ARRAY_SIZE(access_modes); i++)
 		run_modes(&access_modes[i]);
-
-	igt_exit();
 }

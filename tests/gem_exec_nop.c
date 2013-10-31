@@ -109,10 +109,8 @@ uint32_t batch[2] = {MI_BATCH_BUFFER_END};
 uint32_t handle;
 int fd;
 
-int main(int argc, char **argv)
+igt_main
 {
-	igt_subtest_init(argc, argv);
-
 	igt_fixture {
 		fd = drm_open_any();
 
@@ -137,6 +135,4 @@ int main(int argc, char **argv)
 
 		close(fd);
 	}
-
-	igt_exit();
 }

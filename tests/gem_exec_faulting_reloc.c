@@ -208,10 +208,8 @@ static void run(int object_size)
 	close(fd);
 }
 
-int main(int argc, char **argv)
+igt_main
 {
-	igt_subtest_init(argc, argv);
-
 	igt_subtest("normal")
 		run(OBJECT_SIZE);
 	igt_subtest("no-prefault") {
@@ -219,6 +217,4 @@ int main(int argc, char **argv)
 		run(OBJECT_SIZE);
 		igt_enable_prefault();
 	}
-
-	igt_exit();
 }

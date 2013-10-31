@@ -151,10 +151,8 @@ test_flink_lifetime(int fd)
 
 int fd;
 
-int main(int argc, char **argv)
+igt_main
 {
-	igt_subtest_init(argc, argv);
-
 	igt_fixture
 		fd = drm_open_any();
 
@@ -168,6 +166,4 @@ int main(int argc, char **argv)
 		test_bad_open(fd);
 	igt_subtest("flink-lifetime")
 		test_flink_lifetime(fd);
-
-	igt_exit();
 }
