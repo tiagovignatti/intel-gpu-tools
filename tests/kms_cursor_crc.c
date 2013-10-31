@@ -110,16 +110,8 @@ static igt_pipe_crc_t *create_crc(data_t *data, int crtc_idx)
 	igt_pipe_crc_t *crc;
 
 	crc = igt_pipe_crc_new(&data->debugfs, data->drm_fd, crtc_idx,
-			       INTEL_PIPE_CRC_SOURCE_PF);
-	if (crc)
-		return crc;
-
-	crc = igt_pipe_crc_new(&data->debugfs, data->drm_fd, crtc_idx,
-			       INTEL_PIPE_CRC_SOURCE_PIPE);
-	if (crc)
-		return crc;
-
-	return NULL;
+			       INTEL_PIPE_CRC_SOURCE_AUTO);
+	return crc;
 }
 
 static void display_init(data_t *data)

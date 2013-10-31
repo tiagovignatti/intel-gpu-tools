@@ -154,7 +154,8 @@ static const char *pipe_crc_sources[] = {
 	"TV",
 	"DP-B",
 	"DP-C",
-	"DP-D"
+	"DP-D",
+	"auto"
 };
 
 static const char *pipe_crc_source_name(enum intel_pipe_crc_source source)

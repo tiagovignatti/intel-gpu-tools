@@ -55,6 +55,7 @@ enum intel_pipe_crc_source {
         INTEL_PIPE_CRC_SOURCE_DP_B,
         INTEL_PIPE_CRC_SOURCE_DP_C,
         INTEL_PIPE_CRC_SOURCE_DP_D,
+        INTEL_PIPE_CRC_SOURCE_AUTO,
         INTEL_PIPE_CRC_SOURCE_MAX,
 };
 
