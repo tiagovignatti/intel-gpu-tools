@@ -292,7 +292,7 @@ static void init_mode_set_data(struct mode_set_data *data)
 	data->bufmgr = drm_intel_bufmgr_gem_init(drm_fd, 4096);
 	data->devid = intel_get_drm_devid(drm_fd);
 
-	do_or_die(igt_set_vt_graphics_mode());
+	igt_set_vt_graphics_mode();
 	drm_intel_bufmgr_gem_enable_reuse(data->bufmgr);
 }
 

@@ -334,7 +334,9 @@ int main(int argc, char **argv)
 		const char *cmd = "pipe A none";
 
 		data.drm_fd = drm_open_any();
-		do_or_die(igt_set_vt_graphics_mode());
+		igt_require(data.drm_fd >= 0);
+
+		igt_set_vt_graphics_mode();
 
 		igt_debugfs_init(&data.debugfs);
 		data.ctl = igt_debugfs_fopen(&data.debugfs,

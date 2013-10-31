@@ -394,7 +394,7 @@ void igt_enable_exit_handler(void);
 void igt_disable_exit_handler(void);
 
 /* set vt into graphics mode, required to prevent fbcon from interfering */
-int igt_set_vt_graphics_mode(void);
+void igt_set_vt_graphics_mode(void);
 
 /* prefault disabling, needs the corresponding debugfs interface */
 void igt_disable_prefault(void);

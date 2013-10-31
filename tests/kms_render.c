@@ -242,7 +242,7 @@ int main(int argc, char **argv)
 		devid = intel_get_drm_devid(drm_fd);
 		batch = intel_batchbuffer_alloc(bufmgr, devid);
 
-		do_or_die(igt_set_vt_graphics_mode());
+		igt_set_vt_graphics_mode();
 	}
 
 	for (i = 0; i < ARRAY_SIZE(tests); i++) {

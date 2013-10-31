@@ -2111,10 +2111,9 @@ static void restore_vt_mode_at_exit(int sig)
  * original mode.
  */
 
-int igt_set_vt_graphics_mode(void)
+void igt_set_vt_graphics_mode(void)
 {
-	if (igt_install_exit_handler(restore_vt_mode_at_exit))
-		return -1;
+	do_or_die(igt_install_exit_handler(restore_vt_mode_at_exit));
 
 	igt_disable_exit_handler();
 	orig_vt_mode = set_vt_mode(KD_GRAPHICS);
@@ -2122,7 +2121,7 @@ int igt_set_vt_graphics_mode(void)
 		orig_vt_mode = -1UL;
 	igt_enable_exit_handler();
 
-	return orig_vt_mode < 0 ? -1 : 0;
+	igt_assert(orig_vt_mode >= 0);
 }
 
 int kmstest_get_connector_default_mode(int drm_fd, drmModeConnector *connector,

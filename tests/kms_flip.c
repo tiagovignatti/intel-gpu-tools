@@ -1493,7 +1493,7 @@ int main(int argc, char **argv)
 	igt_fixture {
 		drm_fd = drm_open_any();
 
-		do_or_die(igt_set_vt_graphics_mode());
+		igt_set_vt_graphics_mode();
 		do_or_die(igt_install_exit_handler(kms_flip_exit_handler));
 		get_timestamp_format();
 
