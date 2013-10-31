@@ -212,7 +212,7 @@ igt_pipe_crc_new(igt_debugfs_t *debugfs, int drm_fd, enum pipe pipe,
 	igt_pipe_crc_t *pipe_crc;
 	char buf[128];
 
-	do_or_die(igt_install_exit_handler(pipe_crc_exit_handler));
+	igt_install_exit_handler(pipe_crc_exit_handler);
 
 	pipe_crc = calloc(1, sizeof(struct _igt_pipe_crc));
 

@@ -1494,7 +1494,7 @@ int main(int argc, char **argv)
 		drm_fd = drm_open_any();
 
 		igt_set_vt_graphics_mode();
-		do_or_die(igt_install_exit_handler(kms_flip_exit_handler));
+		igt_install_exit_handler(kms_flip_exit_handler);
 		get_timestamp_format();
 
 		bufmgr = drm_intel_bufmgr_gem_init(drm_fd, 4096);

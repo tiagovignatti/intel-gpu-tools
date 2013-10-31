@@ -2007,22 +2007,21 @@ static void fatal_sig_handler(int sig)
  * The handler will be passed the signal number if called due to a signal, or
  * 0 otherwise.
  */
-int igt_install_exit_handler(igt_exit_handler_t fn)
+void igt_install_exit_handler(igt_exit_handler_t fn)
 {
 	int i;
 
 	for (i = 0; i < exit_handler_count; i++)
 		if (exit_handler_fn[i] == fn)
-			return 0;
+			return;
 
-	if (exit_handler_count == MAX_EXIT_HANDLERS)
-		return -1;
+	igt_assert(exit_handler_count < MAX_EXIT_HANDLERS);
 
 	exit_handler_fn[exit_handler_count] = fn;
 	exit_handler_count++;
 
 	if (exit_handler_count > 1)
-		return 0;
+		return;
 
 	for (i = 0; i < ARRAY_SIZE(handled_signals); i++) {
 		if (install_sig_handler(handled_signals[i],
@@ -2033,12 +2032,12 @@ int igt_install_exit_handler(igt_exit_handler_t fn)
 	if (atexit(igt_atexit_handler))
 		goto err;
 
-	return 0;
+	return;
 err:
 	restore_all_sig_handler();
 	exit_handler_count--;
 
-	return -1;
+	igt_assert_f(0, "failed to install the signal handler\n");
 }
 
 void igt_disable_exit_handler(void)
@@ -2113,7 +2112,7 @@ static void restore_vt_mode_at_exit(int sig)
 
 void igt_set_vt_graphics_mode(void)
 {
-	do_or_die(igt_install_exit_handler(restore_vt_mode_at_exit));
+	igt_install_exit_handler(restore_vt_mode_at_exit);
 
 	igt_disable_exit_handler();
 	orig_vt_mode = set_vt_mode(KD_GRAPHICS);

@@ -389,7 +389,7 @@ uint32_t drm_format_to_bpp(uint32_t drm_format);
 typedef void (*igt_exit_handler_t)(int sig);
 
 /* reliable atexit helpers, also work when killed by a signal (if possible) */
-int igt_install_exit_handler(igt_exit_handler_t fn);
+void igt_install_exit_handler(igt_exit_handler_t fn);
 void igt_enable_exit_handler(void);
 void igt_disable_exit_handler(void);
 
