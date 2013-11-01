@@ -160,6 +160,7 @@ kernel_tests = \
 
 TESTS_testsuite = \
 	igt_fork_helper \
+	igt_list_only \
 	$(NULL)
 
 TESTS = \

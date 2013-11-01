@@ -1034,6 +1034,8 @@ void __igt_fail_assert(int exitcode, const char *file,
 
 void igt_exit(void)
 {
+	igt_exit_called = true;
+
 	if (igt_only_list_subtests())
 		exit(0);
 
@@ -1042,7 +1044,6 @@ void igt_exit(void)
 
 	/* Calling this without calling one of the above is a failure */
 	assert(skipped_one || succeeded_one || failed_one);
-	igt_exit_called = true;
 
 	if (failed_one)
 		exit(igt_exitcode);
