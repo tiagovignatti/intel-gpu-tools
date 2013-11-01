@@ -170,6 +170,8 @@ TESTS = \
 	$(TESTS_testsuite) \
 	$(NULL)
 
+# Test that exercise specific asserts in the test framework library and are
+# hence expected to fail.
 XFAIL_TESTS = \
 	igt_no_exit \
 	igt_no_exit_list_only \
