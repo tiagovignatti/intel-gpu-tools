@@ -232,6 +232,8 @@ void igt_pipe_crc_reset(void)
 	igt_pipe_crc_pipe_off(fd, PIPE_A);
 	igt_pipe_crc_pipe_off(fd, PIPE_B);
 	igt_pipe_crc_pipe_off(fd, PIPE_C);
+
+	close(fd);
 }
 
 void igt_pipe_crc_free(igt_pipe_crc_t *pipe_crc)
