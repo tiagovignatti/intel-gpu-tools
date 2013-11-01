@@ -159,12 +159,19 @@ kernel_tests = \
 	$(NULL)
 
 TESTS_testsuite = \
+	igt_no_exit \
+	igt_no_exit_list_only \
 	igt_fork_helper \
 	igt_list_only \
 	$(NULL)
 
 TESTS = \
 	$(TESTS_testsuite) \
+	$(NULL)
+
+XFAIL_TESTS = \
+	igt_no_exit \
+	igt_no_exit_list_only \
 	$(NULL)
 
 list-single-tests:

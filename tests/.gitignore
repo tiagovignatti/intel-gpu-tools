@@ -98,6 +98,8 @@ getstats
 getversion
 igt_fork_helper
 igt_list_only
+igt_no_exit
+igt_no_exit_list_only
 kms_addfb
 kms_cursor_crc
 kms_flip
