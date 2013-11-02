@@ -63,6 +63,9 @@ TESTS_progs_M = \
 	$(NULL)
 
 TESTS_progs = \
+	core_getclient \
+	core_getstats \
+	core_getversion \
 	drm_get_client_auth \
 	drm_vma_limiter \
 	drm_vma_limiter_cached \
@@ -116,9 +119,6 @@ TESTS_progs = \
 	gen3_render_mixed_blits \
 	gen3_render_tiledx_blits \
 	gen3_render_tiledy_blits \
-	getclient \
-	getstats \
-	getversion \
 	prime_udl \
 	pm_rc6_residency \
 	pm_rps \
