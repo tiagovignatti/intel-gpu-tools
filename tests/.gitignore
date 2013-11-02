@@ -1,6 +1,7 @@
 # Please keep sorted alphabetically
 ddi_compute_wrpll
 debugfs_pipe_crc
+drv_suspend
 drm_get_client_auth
 drm_vma_limiter
 drm_vma_limiter_cached
@@ -74,7 +75,6 @@ gem_storedw_loop_bsd
 gem_storedw_loop_render
 gem_storedw_loop_vebox
 gem_stress
-gem_suspend
 gem_threaded_access_tiled
 gem_tiled_blits
 gem_tiled_fence_blits

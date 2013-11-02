@@ -17,6 +17,8 @@ gem_: Used for all kinds of GEM tests.
 prime_: Used for buffer sharing tests, both for self-importing (used by
 dri3/wayland) and actual multi-gpu tests.
 
+drv_: Tests for overall driver behaviour like module reload, s/r, debugfs files.
+
 gen3_: Used by Chris' gen3 specific tiling/fencing tests. Generally tests that
 only run on some platforms don't have a specific prefix but just skip on
 platforms where the test doesn't apply.

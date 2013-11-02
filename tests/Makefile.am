@@ -18,6 +18,7 @@ endif
 
 TESTS_progs_M = \
 	debugfs_pipe_crc \
+	drv_suspend \
 	gem_basic \
 	gem_caching \
 	gem_concurrent_blit \
@@ -47,7 +48,6 @@ TESTS_progs_M = \
 	gem_ringfill \
 	gem_set_tiling_vs_blt \
 	gem_storedw_batches_loop \
-	gem_suspend \
 	gem_tiled_blits \
 	gem_tiled_partial_pwrite_pread \
 	gem_write_read_ring_switch \
@@ -131,14 +131,14 @@ TESTS_scripts_M = \
 
 TESTS_scripts = \
 	debugfs_emon_crash \
-	debugfs_reader \
-	module_reload \
+	drv_debugfs_reader \
+	drv_hangman \
+	drv_missed_irq_hang \
+	drv_module_reload \
 	sysfs_edid_timing \
 	sysfs_l3_parity \
 	test_rte_check \
 	tools_test \
-	ZZ_hangman \
-	ZZ_missed_irq \
 	$(NULL)
 
 # This target contains testcases which support automagic subtest enumeration
