@@ -57,7 +57,7 @@ TESTS_progs_M = \
 	kms_render \
 	kms_setmode \
 	$(NOUVEAU_TESTS_M) \
-	pc8 \
+	pm_pc8 \
 	prime_self_import \
 	template \
 	$(NULL)
@@ -120,8 +120,8 @@ TESTS_progs = \
 	getstats \
 	getversion \
 	prime_udl \
-	sysfs_rc6_residency \
-	sysfs_rps \
+	pm_rc6_residency \
+	pm_rps \
 	$(NULL)
 
 # IMPORTANT: The ZZ_ tests need to be run last!

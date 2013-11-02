@@ -19,6 +19,9 @@ dri3/wayland) and actual multi-gpu tests.
 
 drv_: Tests for overall driver behaviour like module reload, s/r, debugfs files.
 
+pm_: Tests for power management features like runtime PM, tuning knobs in sysfs
+and also performance tuning features.
+
 gen3_: Used by Chris' gen3 specific tiling/fencing tests. Generally tests that
 only run on some platforms don't have a specific prefix but just skip on
 platforms where the test doesn't apply.

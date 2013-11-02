@@ -106,13 +106,13 @@ kms_cursor_crc
 kms_flip
 kms_render
 kms_setmode
-pc8
+pm_pc8
+pm_rc6_residency
+pm_rps
 prime_nv_api
 prime_nv_pcopy
 prime_nv_test
 prime_self_import
 prime_udl
-sysfs_rc6_residency
-sysfs_rps
 template
 testdisplay
