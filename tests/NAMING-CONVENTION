@@ -1,0 +1,56 @@
+Naming Convention of i-g-t Tests and Subtests
+=============================================
+
+To facilitate easy test selection with piglit we need a somewhat consistent
+naming scheme for tests and subtests.
+
+Test Prefixes
+-------------
+
+kms_: Used for modesetting tests.
+
+drm_: Tests for libdrm behaviour, currently just testing the buffer cache
+reaping.
+
+gem_: Used for all kinds of GEM tests.
+
+prime_: Used for buffer sharing tests, both for self-importing (used by
+dri3/wayland) and actual multi-gpu tests.
+
+gen3_: Used by Chris' gen3 specific tiling/fencing tests. Generally tests that
+only run on some platforms don't have a specific prefix but just skip on
+platforms where the test doesn't apply.
+
+debugfs_/sysfs_: Mostly for tests that use sysfs/debugfs but tend to tests all
+sorts of things. Please consider using a more appropriate prefix from above if
+the main point isn't to test sysfs/debugfs, but a driver subsystem/feature.
+
+igt_: Testcase which test the i-g-t infrastructure itself and which are all run
+through "make check" while building i-g-t.
+
+(Sub-)Test patterns
+-------------------
+
+Much more powerful for filtering sets of tests are patterns anywhere in either
+the test or subtest name.
+
+hang: Tests that provoke gpu hangs
+
+swap: Tests that force their full working sets through swap. Dreadfully slow on
+machines with spinning rust and tons of memory.
+
+thrash: Tests that tend to have really slow forward progress due to
+gtt/memory/.. thrashing. Mostly used to stress-test error-handling corner-cases.
+
+crc: Tests that use the display CRC infrastructure to check the results.
+
+tiled/tiling: Tests that exercise behaviour on tiled buffers.
+
+normal/uncached/snooped: Usual 3 variants for tests that use different coherency
+modes for the buffer objects they're using.
+
+rte: _R_un_t_ime _e_nviroment checks. For testcases which will fail if the
+machine isn't configured properly there should be a first subtest to just check
+for that.
+
+ctx: Tests that exercise the hw context support.

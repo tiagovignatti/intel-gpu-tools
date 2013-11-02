@@ -62,6 +62,9 @@ tests/
 	  options to test different kms functionality, again read the source for
 	  the details.
 
+	When creating new tests or subtests please read and follow
+	tests/NAMING-CONVENTION.
+
 lib/
 	Common helper functions and headers used by the other tools.
 

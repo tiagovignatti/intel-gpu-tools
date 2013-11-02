@@ -790,7 +790,7 @@ int main(int argc, char *argv[])
 	igt_fixture
 		setup_environment();
 
-	igt_subtest("basic")
+	igt_subtest("rte")
 		basic_subtest();
 	igt_subtest("drm-resources-equal")
 		drm_resources_equal_subtest();
