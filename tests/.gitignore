@@ -1,6 +1,8 @@
 # Please keep sorted alphabetically
+core_getclient
+core_getstats
+core_getversion
 ddi_compute_wrpll
-debugfs_pipe_crc
 drv_suspend
 drm_get_client_auth
 drm_vma_limiter
@@ -93,9 +95,6 @@ gen3_render_linear_blits
 gen3_render_mixed_blits
 gen3_render_tiledx_blits
 gen3_render_tiledy_blits
-getclient
-getstats
-getversion
 igt_fork_helper
 igt_list_only
 igt_no_exit
@@ -104,6 +103,7 @@ igt_no_subtest
 kms_addfb
 kms_cursor_crc
 kms_flip
+kms_pipe_crc_basic
 kms_render
 kms_setmode
 pm_pc8

@@ -17,7 +17,6 @@ NOUVEAU_TESTS_M = \
 endif
 
 TESTS_progs_M = \
-	debugfs_pipe_crc \
 	drv_suspend \
 	gem_basic \
 	gem_caching \
@@ -54,6 +53,7 @@ TESTS_progs_M = \
 	kms_addfb \
 	kms_cursor_crc \
 	kms_flip \
+	kms_pipe_crc_basic \
 	kms_render \
 	kms_setmode \
 	$(NOUVEAU_TESTS_M) \
@@ -135,7 +135,7 @@ TESTS_scripts = \
 	drv_hangman \
 	drv_missed_irq_hang \
 	drv_module_reload \
-	sysfs_edid_timing \
+	kms_sysfs_edid_timing \
 	sysfs_l3_parity \
 	test_rte_check \
 	tools_test \
