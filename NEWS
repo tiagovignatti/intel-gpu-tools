@@ -12,6 +12,21 @@ Release 1.5
 
 - Support for gen7 gpu perf counters in tools/intel_perf_counters (Kenneth).
 
+- Improvements to the VBT decoder (Jani).
+
+- New tool to read legacy VGA registers (Ville).
+
+- New helpers in the test library to help deal with debugfs files and the new
+  display pipe CRC support (Damien).
+
+- Introduction of a proper naming convention for all the testcases, see
+  tests/NAMING-CONVENTION.
+
+- As usual tons of new testcases and improvements and bugfixes to existing ones.
+
+- The testsuite framework itself has gained some regression tests which can be
+  run at compile-time with "make check".
+
 Release 1.4 (2013-09-16)
 ------------------------
 
