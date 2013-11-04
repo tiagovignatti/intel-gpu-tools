@@ -92,6 +92,6 @@ void igt_pipe_crc_get_crcs(igt_pipe_crc_t *pipe_crc, int n_crcs,
 		  DROP_RETIRE | \
 		  DROP_ACTIVE)
 
-int igt_drop_caches_set(uint64_t val);
+void igt_drop_caches_set(uint64_t val);
 
 #endif /* __IGT_DEBUGFS_H__ */
