@@ -316,3 +316,31 @@ igt_pipe_crc_get_crcs(igt_pipe_crc_t *pipe_crc, int n_crcs,
 
 	*out_crcs = crcs;
 }
+
+/*
+ * Drop caches
+ */
+
+int igt_drop_caches_set(uint64_t val)
+{
+	igt_debugfs_t debugfs;
+	int fd;
+	char data[19];
+	size_t nbytes;
+	int ret = -1;
+
+	sprintf(data, "0x%" PRIx64, val);
+
+	igt_debugfs_init(&debugfs);
+	fd = igt_debugfs_open(&debugfs, "i915_gem_drop_caches", O_WRONLY);
+
+	if (fd >= 0)
+	{
+		nbytes = write(fd, data, strlen(data) + 1);
+		if (nbytes == strlen(data) + 1)
+			ret = 0;
+		close(fd);
+	}
+
+	return ret;
+}

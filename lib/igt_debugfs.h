@@ -79,4 +79,19 @@ void igt_pipe_crc_stop(igt_pipe_crc_t *pipe_crc);
 void igt_pipe_crc_get_crcs(igt_pipe_crc_t *pipe_crc, int n_crcs,
 			   igt_crc_t **out_crcs);
 
+/*
+ * Drop caches
+ */
+
+#define DROP_UNBOUND 0x1
+#define DROP_BOUND 0x2
+#define DROP_RETIRE 0x4
+#define DROP_ACTIVE 0x8
+#define DROP_ALL (DROP_UNBOUND | \
+		  DROP_BOUND | \
+		  DROP_RETIRE | \
+		  DROP_ACTIVE)
+
+int igt_drop_caches_set(uint64_t val);
+
 #endif /* __IGT_DEBUGFS_H__ */

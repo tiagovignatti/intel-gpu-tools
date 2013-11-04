@@ -42,6 +42,7 @@
 #include "intel_bufmgr.h"
 #include "intel_batchbuffer.h"
 #include "intel_gpu_tools.h"
+#include "igt_debugfs.h"
 
 /*
  * Testcase: Kernel relocations vs. gpu races
@@ -282,21 +283,13 @@ static void do_forked_test(int fd, unsigned flags)
 	struct igt_helper_process thrasher = {};
 
 	if (flags & (THRASH | THRASH_INACTIVE)) {
-		char fname[FILENAME_MAX];
-		int drop_caches_fd;
-		const char *data = (flags & THRASH_INACTIVE) ? "0x7" : "0xf";
-
-		snprintf(fname, FILENAME_MAX, "%s/%i/%s",
-			 "/sys/kernel/debug/dri", drm_get_card(),
-			 "i915_gem_drop_caches");
-
-		drop_caches_fd = open(fname, O_WRONLY);
-		igt_require(drop_caches_fd >= 0);
+		uint64_t val = (flags & THRASH_INACTIVE) ?
+				(DROP_RETIRE | DROP_BOUND | DROP_UNBOUND) : DROP_ALL;
 
 		igt_fork_helper(&thrasher) {
 			while (1) {
 				usleep(1000);
-				igt_assert(write(drop_caches_fd, data, strlen(data) + 1) == strlen(data) + 1);
+				do_or_die(igt_drop_caches_set(val));
 			}
 		}
 	}
