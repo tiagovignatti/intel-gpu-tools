@@ -289,7 +289,7 @@ static void do_forked_test(int fd, unsigned flags)
 	if (flags & (THRASH | THRASH_INACTIVE)) {
 		char fname[FILENAME_MAX];
 		int drop_caches_fd;
-		const char *data = THRASH_INACTIVE ? "0xf" : "0x7";
+		const char *data = (flags & THRASH_INACTIVE) ? "0x7" : "0xf";
 
 		snprintf(fname, FILENAME_MAX, "%s/%i/%s",
 			 "/sys/kernel/debug/dri", drm_get_card(),
