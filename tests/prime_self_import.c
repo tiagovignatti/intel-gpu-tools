@@ -46,6 +46,7 @@
 #include "drm.h"
 #include "i915_drm.h"
 #include "drmtest.h"
+#include "igt_debugfs.h"
 
 #define BO_SIZE (16*1024)
 
@@ -218,6 +219,8 @@ static int get_object_count(void)
 	int device = drm_get_card();
 	char *path;
 
+	igt_drop_caches_set(DROP_RETIRE);
+
 	ret = asprintf(&path, "/sys/kernel/debug/dri/%d/i915_gem_objects", device);
 	igt_assert(ret != -1);
 
@@ -252,9 +255,11 @@ static void test_reimport_close_race(void)
 	pthread_t *threads;
 	int r, i, num_threads;
 	int fds[2];
-	int obj_count = get_object_count();
+	int obj_count;
 	void *status;
 	uint32_t handle;
+
+	obj_count = get_object_count();
 
 	num_threads = sysconf(_SC_NPROCESSORS_ONLN);
 
@@ -330,8 +335,10 @@ static void test_export_close_race(void)
 	pthread_t *threads;
 	int r, i, num_threads;
 	int fd;
-	int obj_count = get_object_count();
+	int obj_count;
 	void *status;
+
+	obj_count = get_object_count();
 
 	num_threads = sysconf(_SC_NPROCESSORS_ONLN);
 
