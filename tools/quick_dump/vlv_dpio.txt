@@ -1,3 +1,4 @@
+('DPIO_CTL', '0x182110', '')
 ('DPIO_TX3_SWING_CTL4_A', '0x690', 'DPIO')
 ('DPIO_TX3_SWING_CTL4_B', '0x2a90', 'DPIO')
 ('DPIO_DIV_A', '0x800c', 'DPIO')
