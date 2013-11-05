@@ -47,6 +47,7 @@
 #include "i915_drm.h"
 #include "intel_chipset.h"
 #include "intel_gpu_tools.h"
+#include "igt_debugfs.h"
 
 /* This file contains a bunch of wrapper functions to directly use gem ioctls.
  * Mostly useful to write kernel tests. */
@@ -163,6 +164,7 @@ void gem_quiescent_gpu(int fd)
 	}
 
 	gem_sync(fd, handle);
+	igt_drop_caches_set(DROP_RETIRE);
 }
 
 /**
