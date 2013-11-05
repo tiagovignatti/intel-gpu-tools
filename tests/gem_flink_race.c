@@ -35,6 +35,7 @@
 #include "drmtest.h"
 #include "i915_drm.h"
 #include "intel_bufmgr.h"
+#include "igt_debugfs.h"
 
 /* Testcase: check for flink/open vs. gem close races
  *
@@ -53,6 +54,8 @@ static int get_object_count(void)
 	int ret, scanned;
 	int device = drm_get_card();
 	char *path;
+
+	igt_drop_caches_set(DROP_RETIRE);
 
 	ret = asprintf(&path, "/sys/kernel/debug/dri/%d/i915_gem_objects", device);
 	igt_assert(ret != -1);
@@ -157,8 +160,10 @@ static void test_flink_close(void)
 {
 	pthread_t *threads;
 	int r, i, num_threads;
-	int obj_count = get_object_count();
+	int obj_count;
 	void *status;
+
+	obj_count = get_object_count();
 
 	num_threads = sysconf(_SC_NPROCESSORS_ONLN);
 
