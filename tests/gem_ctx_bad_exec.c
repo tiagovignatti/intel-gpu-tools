@@ -101,12 +101,12 @@ igt_main
 	igt_subtest("render")
 		igt_assert(exec(fd, handle, I915_EXEC_RENDER, ctx_id) == 0);
 	igt_subtest("bsd")
-		igt_assert(exec(fd, handle, I915_EXEC_BSD, ctx_id) != 0);
+		igt_assert(exec(fd, handle, I915_EXEC_BSD, ctx_id) != 0 && errno == ENOENT);
 	igt_subtest("blt")
-		igt_assert(exec(fd, handle, I915_EXEC_BLT, ctx_id) != 0);
+		igt_assert(exec(fd, handle, I915_EXEC_BLT, ctx_id) != 0 && errno == ENOENT);
 #ifdef I915_EXEC_VEBOX
 	igt_require(gem_has_vebox(fd));
 	igt_subtest("vebox")
-		igt_assert(exec(fd, handle, I915_EXEC_VEBOX, ctx_id) != 0);
+		igt_assert(exec(fd, handle, I915_EXEC_VEBOX, ctx_id) != 0 && errno == ENOENT);
 #endif
 }
