@@ -27,6 +27,9 @@ Release 1.5
 - The testsuite framework itself has gained some regression tests which can be
   run at compile-time with "make check".
 
+- New helpers for the drop_cache kernel interface and use drop_caches(RETIRE) to
+  really make sure the gpu is idle in testcases (Oscar Mateo).
+
 Release 1.4 (2013-09-16)
 ------------------------
 
