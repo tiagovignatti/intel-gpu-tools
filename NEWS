@@ -35,7 +35,7 @@ Release 1.5 (2013-11-06)
 - New helpers for the drop_cache kernel interface and use drop_caches(RETIRE) to
   really make sure the gpu is idle in testcases (Oscar Mateo).
 
--Release 1.4 (2013-09-16)
+Release 1.4 (2013-09-16)
 ------------------------
 
 - Integration of the gen4+ assembler (Damien).
