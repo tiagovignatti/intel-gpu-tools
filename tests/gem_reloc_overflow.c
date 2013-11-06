@@ -24,6 +24,7 @@
  * Authors:
  *    Kees Cook <keescook@chromium.org>
  *    Daniel Vetter <daniel.vetter@ffwll.ch>
+ *    Rafael Barbalho <rafael.barbalho@intel.com>
  *
  */
 
@@ -60,13 +61,14 @@ struct drm_i915_gem_relocation_entry *reloc;
 uint32_t handle;
 uint32_t batch_handle;
 
-
-static void source_offset_tests(void)
+static void source_offset_tests(int devid, bool reloc_gtt)
 {
 	struct drm_i915_gem_relocation_entry single_reloc;
+	char *dst_gtt;
+	char *relocation_type;
 
 	igt_fixture {
-		handle = gem_create(fd, 4096);
+		handle = gem_create(fd, 8192);
 
 		execobjs[1].handle = batch_handle;
 		execobjs[1].relocation_count = 0;
@@ -76,21 +78,70 @@ static void source_offset_tests(void)
 		execobjs[0].relocation_count = 1;
 		execobjs[0].relocs_ptr = (uintptr_t) &single_reloc;
 		execbuf.buffer_count = 2;
+
+		if (reloc_gtt) {
+			dst_gtt = gem_mmap(fd, handle, 8192, PROT_READ | PROT_WRITE);
+			igt_assert(dst_gtt != MAP_FAILED);
+			gem_set_domain(fd, handle, I915_GEM_DOMAIN_GTT, I915_GEM_DOMAIN_GTT);
+			memset(dst_gtt, 0, 8192);
+			munmap(dst_gtt, 8192);
+			relocation_type = "reloc-gtt";
+		} else {
+			relocation_type = "reloc-cpu";
+		}
 	}
 
-	igt_subtest("source-offset-end") {
-		single_reloc.offset = 4096 - 4;
-		single_reloc.delta = 0;
-		single_reloc.target_handle = handle;
-		single_reloc.read_domains = I915_GEM_DOMAIN_RENDER;
-		single_reloc.write_domain = I915_GEM_DOMAIN_RENDER;
-		single_reloc.presumed_offset = 0;
+	if (intel_gen(devid) >= 8) {
+		igt_subtest_f("source-offset-page-stradle-gen8+-%s", relocation_type) {
+			single_reloc.offset = 4096 - 4;
+			single_reloc.delta = 0;
+			single_reloc.target_handle = handle;
+			single_reloc.read_domains = I915_GEM_DOMAIN_RENDER;
+			single_reloc.write_domain = I915_GEM_DOMAIN_RENDER;
+			single_reloc.presumed_offset = 0;
 
-		igt_assert(ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf) == 0);
+			igt_assert(ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf) == 0);
+			single_reloc.delta = 1024;
+			igt_assert(ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf) == 0);
+		}
+
+		igt_subtest_f("source-offset-end-gen8+-%s", relocation_type) {
+			single_reloc.offset = 8192 - 8;
+			single_reloc.delta = 0;
+			single_reloc.target_handle = handle;
+			single_reloc.read_domains = I915_GEM_DOMAIN_RENDER;
+			single_reloc.write_domain = I915_GEM_DOMAIN_RENDER;
+			single_reloc.presumed_offset = 0;
+
+			igt_assert(ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf) == 0);
+		}
+
+		igt_subtest_f("source-offset-overflow-gen8+-%s", relocation_type) {
+			single_reloc.offset = 8192 - 4;
+			single_reloc.delta = 0;
+			single_reloc.target_handle = handle;
+			single_reloc.read_domains = I915_GEM_DOMAIN_RENDER;
+			single_reloc.write_domain = I915_GEM_DOMAIN_RENDER;
+			single_reloc.presumed_offset = 0;
+
+			igt_assert(ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf) != 0);
+			igt_assert(errno == EINVAL);
+		}
+	} else {
+		igt_subtest_f("source-offset-end-%s", relocation_type) {
+			single_reloc.offset = 8192 - 4;
+			single_reloc.delta = 0;
+			single_reloc.target_handle = handle;
+			single_reloc.read_domains = I915_GEM_DOMAIN_RENDER;
+			single_reloc.write_domain = I915_GEM_DOMAIN_RENDER;
+			single_reloc.presumed_offset = 0;
+
+			igt_assert(ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf) == 0);
+		}
 	}
 
-	igt_subtest("source-offset-big") {
-		single_reloc.offset = 4096;
+	igt_subtest_f("source-offset-big-%s", relocation_type) {
+		single_reloc.offset = 8192;
 		single_reloc.delta = 0;
 		single_reloc.target_handle = handle;
 		single_reloc.read_domains = I915_GEM_DOMAIN_RENDER;
@@ -101,7 +152,7 @@ static void source_offset_tests(void)
 		igt_assert(errno == EINVAL);
 	}
 
-	igt_subtest("source-offset-negative") {
+	igt_subtest_f("source-offset-negative-%s", relocation_type) {
 		single_reloc.offset = (int64_t) -4;
 		single_reloc.delta = 0;
 		single_reloc.target_handle = handle;
@@ -113,7 +164,7 @@ static void source_offset_tests(void)
 		igt_assert(errno == EINVAL);
 	}
 
-	igt_subtest("source-offset-unaligned") {
+	igt_subtest_f("source-offset-unaligned-%s", relocation_type) {
 		single_reloc.offset = 1;
 		single_reloc.delta = 0;
 		single_reloc.target_handle = handle;
@@ -126,34 +177,6 @@ static void source_offset_tests(void)
 	}
 
 	igt_fixture {
-		execobjs[0].handle = batch_handle;
-		execobjs[0].relocation_count = 0;
-		execobjs[0].relocs_ptr = 0;
-
-		execbuf.buffer_count = 1;
-	}
-
-	igt_subtest("batch-start-unaligend") {
-		execbuf.batch_start_offset = 1;
-		execbuf.batch_len = 8;
-
-		igt_assert(ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf) != 0);
-		igt_assert(errno == EINVAL);
-	}
-
-	igt_subtest("batch-end-unaligend") {
-		execbuf.batch_start_offset = 0;
-		execbuf.batch_len = 7;
-
-		igt_assert(ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf) != 0);
-		igt_assert(errno == EINVAL);
-	}
-
-	igt_fixture {
-		/* Undo damage for next tests. */
-		execbuf.batch_start_offset = 0;
-		execbuf.batch_len = 8;
-
 		gem_close(fd, handle);
 	}
 }
@@ -183,6 +206,36 @@ static void reloc_tests(void)
 		errno = 0;
 		ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf);
 		igt_assert(errno == EINVAL);
+	}
+
+	igt_fixture {
+		execobjs[0].handle = batch_handle;
+		execobjs[0].relocation_count = 0;
+		execobjs[0].relocs_ptr = 0;
+
+		execbuf.buffer_count = 1;
+	}
+
+	igt_subtest("batch-start-unaligned") {
+		execbuf.batch_start_offset = 1;
+		execbuf.batch_len = 8;
+
+		igt_assert(ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf) != 0);
+		igt_assert(errno == EINVAL);
+	}
+
+	igt_subtest("batch-end-unaligned") {
+		execbuf.batch_start_offset = 0;
+		execbuf.batch_len = 7;
+
+		igt_assert(ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf) != 0);
+		igt_assert(errno == EINVAL);
+	}
+
+	igt_fixture {
+		/* Undo damage for next tests. */
+		execbuf.batch_start_offset = 0;
+		execbuf.batch_len = 8;
 	}
 
 	igt_subtest("wrapped-overflow") {
@@ -252,11 +305,15 @@ static void buffer_count_tests(void)
 
 igt_main
 {
+	int devid = 0;
+
 	igt_fixture {
 		int ring;
 		uint32_t batch_data [2] = { MI_NOOP, MI_BATCH_BUFFER_END };
 
 		fd = drm_open_any();
+
+		devid = intel_get_drm_devid(fd);
 
 		/* Create giant reloc buffer area. */
 		num = 257;
@@ -271,7 +328,7 @@ igt_main
 		for (int i = 0; i < num; i++)
 			handles[i] = gem_create(fd, 4096);
 
-		if (intel_gen(intel_get_drm_devid(fd)) >= 6)
+		if (intel_gen(devid) >= 6)
 			ring = I915_EXEC_BLT;
 		else
 			ring = 0;
@@ -296,7 +353,8 @@ igt_main
 
 	reloc_tests();
 
-	source_offset_tests();
+	source_offset_tests(devid, false);
+	source_offset_tests(devid, true);
 
 	buffer_count_tests();
 
