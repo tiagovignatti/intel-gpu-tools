@@ -64,8 +64,8 @@ uint32_t batch_handle;
 static void source_offset_tests(int devid, bool reloc_gtt)
 {
 	struct drm_i915_gem_relocation_entry single_reloc;
-	char *dst_gtt;
-	char *relocation_type;
+	void *dst_gtt;
+	const char *relocation_type = "";
 
 	igt_fixture {
 		handle = gem_create(fd, 8192);
@@ -214,6 +214,12 @@ static void reloc_tests(void)
 		execobjs[0].relocs_ptr = 0;
 
 		execbuf.buffer_count = 1;
+
+		/* Make sure the batch would succeed except for the thing we're
+		 * testing. */
+		execbuf.batch_start_offset = 0;
+		execbuf.batch_len = 8;
+		igt_assert(ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf) == 0);
 	}
 
 	igt_subtest("batch-start-unaligned") {
