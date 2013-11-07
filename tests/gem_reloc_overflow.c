@@ -65,7 +65,12 @@ static void source_offset_tests(int devid, bool reloc_gtt)
 {
 	struct drm_i915_gem_relocation_entry single_reloc;
 	void *dst_gtt;
-	const char *relocation_type = "";
+	const char *relocation_type;
+
+	if (reloc_gtt)
+		relocation_type = "reloc-gtt";
+	else
+		relocation_type = "reloc-cpu";
 
 	igt_fixture {
 		handle = gem_create(fd, 8192);
@@ -91,53 +96,57 @@ static void source_offset_tests(int devid, bool reloc_gtt)
 		}
 	}
 
-	if (intel_gen(devid) >= 8) {
-		igt_subtest_f("source-offset-page-stradle-gen8+-%s", relocation_type) {
-			single_reloc.offset = 4096 - 4;
-			single_reloc.delta = 0;
-			single_reloc.target_handle = handle;
-			single_reloc.read_domains = I915_GEM_DOMAIN_RENDER;
-			single_reloc.write_domain = I915_GEM_DOMAIN_RENDER;
-			single_reloc.presumed_offset = 0;
+	/* Special tests for 64b relocs. */
+	igt_subtest_f("source-offset-page-stradle-gen8-%s", relocation_type) {
+		igt_require(intel_gen(devid) >= 8);
+		single_reloc.offset = 4096 - 4;
+		single_reloc.delta = 0;
+		single_reloc.target_handle = handle;
+		single_reloc.read_domains = I915_GEM_DOMAIN_RENDER;
+		single_reloc.write_domain = I915_GEM_DOMAIN_RENDER;
+		single_reloc.presumed_offset = 0;
 
-			igt_assert(ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf) == 0);
-			single_reloc.delta = 1024;
-			igt_assert(ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf) == 0);
-		}
+		igt_assert(ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf) == 0);
+		single_reloc.delta = 1024;
+		igt_assert(ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf) == 0);
+	}
 
-		igt_subtest_f("source-offset-end-gen8+-%s", relocation_type) {
-			single_reloc.offset = 8192 - 8;
-			single_reloc.delta = 0;
-			single_reloc.target_handle = handle;
-			single_reloc.read_domains = I915_GEM_DOMAIN_RENDER;
-			single_reloc.write_domain = I915_GEM_DOMAIN_RENDER;
-			single_reloc.presumed_offset = 0;
+	igt_subtest_f("source-offset-end-gen8-%s", relocation_type) {
+		igt_require(intel_gen(devid) >= 8);
+		single_reloc.offset = 8192 - 8;
+		single_reloc.delta = 0;
+		single_reloc.target_handle = handle;
+		single_reloc.read_domains = I915_GEM_DOMAIN_RENDER;
+		single_reloc.write_domain = I915_GEM_DOMAIN_RENDER;
+		single_reloc.presumed_offset = 0;
 
-			igt_assert(ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf) == 0);
-		}
+		igt_assert(ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf) == 0);
+	}
 
-		igt_subtest_f("source-offset-overflow-gen8+-%s", relocation_type) {
-			single_reloc.offset = 8192 - 4;
-			single_reloc.delta = 0;
-			single_reloc.target_handle = handle;
-			single_reloc.read_domains = I915_GEM_DOMAIN_RENDER;
-			single_reloc.write_domain = I915_GEM_DOMAIN_RENDER;
-			single_reloc.presumed_offset = 0;
+	igt_subtest_f("source-offset-overflow-gen8-%s", relocation_type) {
+		igt_require(intel_gen(devid) >= 8);
+		single_reloc.offset = 8192 - 4;
+		single_reloc.delta = 0;
+		single_reloc.target_handle = handle;
+		single_reloc.read_domains = I915_GEM_DOMAIN_RENDER;
+		single_reloc.write_domain = I915_GEM_DOMAIN_RENDER;
+		single_reloc.presumed_offset = 0;
 
-			igt_assert(ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf) != 0);
-			igt_assert(errno == EINVAL);
-		}
-	} else {
-		igt_subtest_f("source-offset-end-%s", relocation_type) {
-			single_reloc.offset = 8192 - 4;
-			single_reloc.delta = 0;
-			single_reloc.target_handle = handle;
-			single_reloc.read_domains = I915_GEM_DOMAIN_RENDER;
-			single_reloc.write_domain = I915_GEM_DOMAIN_RENDER;
-			single_reloc.presumed_offset = 0;
+		igt_assert(ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf) != 0);
+		igt_assert(errno == EINVAL);
+	}
 
-			igt_assert(ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf) == 0);
-		}
+	/* Tests for old 4byte relocs on pre-gen8. */
+	igt_subtest_f("source-offset-end-%s", relocation_type) {
+		igt_require(intel_gen(devid) < 8);
+		single_reloc.offset = 8192 - 4;
+		single_reloc.delta = 0;
+		single_reloc.target_handle = handle;
+		single_reloc.read_domains = I915_GEM_DOMAIN_RENDER;
+		single_reloc.write_domain = I915_GEM_DOMAIN_RENDER;
+		single_reloc.presumed_offset = 0;
+
+		igt_assert(ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf) == 0);
 	}
 
 	igt_subtest_f("source-offset-big-%s", relocation_type) {
