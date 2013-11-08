@@ -1188,16 +1188,19 @@ int main(int argc, char *argv[])
 	igt_fixture
 		setup_environment();
 
+	/* Essential things */
 	igt_subtest("rte")
 		basic_subtest();
 	igt_subtest("drm-resources-equal")
 		drm_resources_equal_subtest();
+
+	/* Basic modeset */
 	igt_subtest("modeset-lpsp")
 		modeset_subtest(SCREEN_TYPE_LPSP, 1, WAIT);
 	igt_subtest("modeset-non-lpsp")
 		modeset_subtest(SCREEN_TYPE_NON_LPSP, 1, WAIT);
-	igt_subtest("i2c")
-		i2c_subtest();
+
+	/* GEM */
 	igt_subtest("gem-mmap-cpu")
 		gem_mmap_subtest(false);
 	igt_subtest("gem-mmap-gtt")
@@ -1206,12 +1209,18 @@ int main(int argc, char *argv[])
 		gem_pread_subtest();
 	igt_subtest("gem-execbuf")
 		gem_execbuf_subtest();
+
+	/* Misc */
+	igt_subtest("i2c")
+		i2c_subtest();
 	igt_subtest("debugfs-read")
 		debugfs_read_subtest();
 	igt_subtest("debugfs-forcewake-user")
 		debugfs_forcewake_user_subtest();
 	igt_subtest("sysfs-read")
 		sysfs_read_subtest();
+
+	/* Modeset stress */
 	igt_subtest("modeset-lpsp-stress")
 		modeset_subtest(SCREEN_TYPE_LPSP, 50, WAIT);
 	igt_subtest("modeset-non-lpsp-stress")
@@ -1220,8 +1229,12 @@ int main(int argc, char *argv[])
 		modeset_subtest(SCREEN_TYPE_LPSP, 50, DONT_WAIT);
 	igt_subtest("modeset-non-lpsp-stress-no-wait")
 		modeset_subtest(SCREEN_TYPE_NON_LPSP, 50, DONT_WAIT);
+
+	/* GEM stress */
 	igt_subtest("gem-execbuf-stress")
 		gem_execbuf_stress_subtest();
+
+	/* Optional */
 	igt_subtest("register-compare") {
 		igt_require(do_register_compare);
 		register_compare_subtest();
