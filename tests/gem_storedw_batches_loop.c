@@ -60,8 +60,12 @@ store_dword_loop(int divider, unsigned flags)
 	cmd = MI_STORE_DWORD_IMM;
 	if (!has_ppgtt)
 		cmd |= MI_MEM_VIRTUAL;
+	if (intel_gen(drm_intel_bufmgr_gem_get_devid(bufmgr) >= 8))
+		cmd |= 1;
 
 	for (i = 0; i < SLOW_QUICK(0x80000, 4); i++) {
+		int j = 0;
+		int cmd_address_offset = 8;
 		cmd_bo = drm_intel_bo_alloc(bufmgr, "cmd bo", 4096, 4096);
 		igt_assert(cmd_bo);
 
@@ -71,26 +75,28 @@ store_dword_loop(int divider, unsigned flags)
 		drm_intel_bo_map(cmd_bo, 1);
 		buf = cmd_bo->virtual;
 
-		buf[0] = cmd;
-		buf[1] = 0;
-		buf[2] = target_bo->offset;
-		buf[3] = 0x42000000 + val;
+		buf[j++] = cmd;
+		if (intel_gen(drm_intel_bufmgr_gem_get_devid(bufmgr) >= 8)) {
+			buf[j++] = target_bo->offset;
+			cmd_address_offset = 4;
+		}
+		buf[j++] = 0;
+		buf[j++] = 0x42000000 + val;
 
 		igt_assert(drm_intel_bo_references(cmd_bo, target_bo) == 0);
 
-		igt_assert(drm_intel_bo_emit_reloc(cmd_bo, 8, target_bo, 0,
+		igt_assert(drm_intel_bo_emit_reloc(cmd_bo, cmd_address_offset, target_bo, 0,
 					      I915_GEM_DOMAIN_INSTRUCTION,
 					      I915_GEM_DOMAIN_INSTRUCTION) == 0);
-
-		buf[4] = MI_BATCH_BUFFER_END;
-		buf[5] = MI_BATCH_BUFFER_END;
+		buf[j++] = MI_BATCH_BUFFER_END;
+		buf[j++] = MI_BATCH_BUFFER_END;
 
 		drm_intel_bo_unmap(cmd_bo);
 
 		igt_assert(drm_intel_bo_references(cmd_bo, target_bo) == 1);
 
 #define LOCAL_I915_EXEC_SECURE (1<<9)
-		igt_assert(drm_intel_bo_mrb_exec(cmd_bo, 6 * 4, NULL, 0, 0,
+		igt_assert(drm_intel_bo_mrb_exec(cmd_bo, j * 4, NULL, 0, 0,
 					    I915_EXEC_BLT |
 					    (flags & SECURE_DISPATCH ? LOCAL_I915_EXEC_SECURE : 0))
 			   == 0);
