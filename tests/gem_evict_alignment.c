@@ -190,6 +190,9 @@ igt_main
 	igt_fixture
 		fd = drm_open_any();
 
+	igt_skip_on_f(intel_gen(intel_get_drm_devid(fd)) > 7,
+		      "BLIT commands not yet updated\n");
+
 	igt_subtest("minor-normal") {
 		size = 1024 * 1024;
 		count = 3*gem_aperture_size(fd) / size / 4;
