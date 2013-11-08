@@ -73,7 +73,6 @@ struct mode_set_data {
 	drmModeConnectorPtr connectors[MAX_CONNECTORS];
 	drmModePropertyBlobPtr edids[MAX_CONNECTORS];
 
-	drm_intel_bufmgr *bufmgr;
 	uint32_t devid;
 };
 
@@ -289,18 +288,14 @@ static void init_mode_set_data(struct mode_set_data *data)
 		data->edids[i] = get_connector_edid(data->connectors[i], i);
 	}
 
-	data->bufmgr = drm_intel_bufmgr_gem_init(drm_fd, 4096);
 	data->devid = intel_get_drm_devid(drm_fd);
 
 	igt_set_vt_graphics_mode();
-	drm_intel_bufmgr_gem_enable_reuse(data->bufmgr);
 }
 
 static void fini_mode_set_data(struct mode_set_data *data)
 {
 	int i;
-
-	drm_intel_bufmgr_destroy(data->bufmgr);
 
 	for (i = 0; i < data->res->count_connectors; i++) {
 		drmModeFreeConnector(data->connectors[i]);
@@ -488,45 +483,6 @@ static void assert_drm_infos_equal(struct compare_data *d1,
 		assert_drm_crtcs_equal(d1->crtcs[i], d2->crtcs[i]);
 }
 
-static void blt_color_fill(struct intel_batchbuffer *batch,
-			   drm_intel_bo *buf,
-			   const unsigned int pages)
-{
-	const unsigned short height = pages/4;
-	const unsigned short width = 4096;
-
-	BEGIN_BATCH(5);
-	OUT_BATCH(COLOR_BLT_CMD | COLOR_BLT_WRITE_ALPHA | COLOR_BLT_WRITE_RGB);
-	OUT_BATCH((3 << 24) | /* 32 Bit Color */
-		  0xF0 | /* Raster OP copy background register */
-		  0); /* Dest pitch is 0 */
-	OUT_BATCH(width << 16 | height);
-	OUT_RELOC(buf, I915_GEM_DOMAIN_RENDER, I915_GEM_DOMAIN_RENDER, 0);
-	OUT_BATCH(rand()); /* random pattern */
-	ADVANCE_BATCH();
-}
-
-static void test_batch(struct mode_set_data *data)
-{
-	struct intel_batchbuffer *batch;
-	int64_t timeout_ns = 1000 * 1000 * 1000 * 2;
-	drm_intel_bo *dst;
-	int i, rc;
-
-	dst = drm_intel_bo_alloc(data->bufmgr, "dst", (8 << 20), 4096);
-
-	batch = intel_batchbuffer_alloc(data->bufmgr,
-					intel_get_drm_devid(drm_fd));
-
-	for (i = 0; i < 1000; i++)
-		blt_color_fill(batch, dst, ((8 << 20) >> 12));
-
-	rc = drm_intel_gem_bo_wait(dst, timeout_ns);
-	igt_assert(!rc);
-
-	intel_batchbuffer_free(batch);
-}
-
 /* We could check the checksum too, but just the header is probably enough. */
 static bool edid_is_valid(const unsigned char *edid)
 {
@@ -699,18 +655,6 @@ static void drm_resources_equal_subtest(void)
 	free_drm_info(&post_pc8);
 }
 
-/* Make sure interrupts are working. */
-static void batch_subtest(void)
-{
-	enable_one_screen(&ms_data);
-	igt_assert(pc8_plus_disabled());
-
-	disable_all_screens(&ms_data);
-	igt_assert(pc8_plus_enabled());
-	test_batch(&ms_data);
-	igt_assert(pc8_plus_enabled());
-}
-
 static void i2c_subtest_check_environment(void)
 {
 	int i2c_dev_files = 0;
@@ -742,19 +686,6 @@ static void i2c_subtest(void)
 	igt_assert(pc8_plus_enabled());
 
 	enable_one_screen(&ms_data);
-}
-
-/* Make us enter/leave PC8+ many times. */
-static void stress_test(void)
-{
-	int i;
-
-	for (i = 0; i < 100; i++) {
-		disable_all_screens(&ms_data);
-		igt_assert(pc8_plus_enabled());
-		test_batch(&ms_data);
-		igt_assert(pc8_plus_enabled());
-	}
 }
 
 /* Just reading/writing registers from outside the Kernel is not really a safe
@@ -918,8 +849,6 @@ int main(int argc, char *argv[])
 		modeset_subtest(SCREEN_TYPE_LPSP, 1, WAIT);
 	igt_subtest("modeset-non-lpsp")
 		modeset_subtest(SCREEN_TYPE_NON_LPSP, 1, WAIT);
-	igt_subtest("batch")
-		batch_subtest();
 	igt_subtest("i2c")
 		i2c_subtest();
 	igt_subtest("debugfs-read")
@@ -928,8 +857,6 @@ int main(int argc, char *argv[])
 		debugfs_forcewake_user_subtest();
 	igt_subtest("sysfs-read")
 		sysfs_read_subtest();
-	igt_subtest("stress-test")
-		stress_test();
 	igt_subtest("modeset-lpsp-stress")
 		modeset_subtest(SCREEN_TYPE_LPSP, 50, WAIT);
 	igt_subtest("modeset-non-lpsp-stress")
