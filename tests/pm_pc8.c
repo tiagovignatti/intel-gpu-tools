@@ -809,6 +809,8 @@ int main(int argc, char *argv[])
 		i2c_subtest();
 	igt_subtest("stress-test")
 		stress_test();
+	igt_subtest("modeset-lpsp-stress")
+		modeset_subtest(SCREEN_TYPE_LPSP, 50, WAIT);
 	igt_subtest("modeset-non-lpsp-stress")
 		modeset_subtest(SCREEN_TYPE_NON_LPSP, 50, WAIT);
 	igt_subtest("modeset-lpsp-stress-no-wait")
