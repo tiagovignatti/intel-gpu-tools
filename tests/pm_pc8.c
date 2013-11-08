@@ -780,6 +780,121 @@ static void register_compare_subtest(void)
 	compare_registers(&pre_pc8, &post_pc8);
 }
 
+static void read_full_file(const char *name)
+{
+	int rc, fd;
+	char buf[128];
+
+	igt_assert_f(pc8_plus_enabled(), "File: %s\n", name);
+
+	fd = open(name, O_RDONLY);
+	if (fd < 0)
+		return;
+
+	do {
+		rc = read(fd, buf, ARRAY_SIZE(buf));
+	} while (rc == ARRAY_SIZE(buf));
+
+	rc = close(fd);
+	igt_assert(rc == 0);
+
+	igt_assert_f(pc8_plus_enabled(), "File: %s\n", name);
+}
+
+static void read_files_from_dir(const char *name, int level)
+{
+	DIR *dir;
+	struct dirent *dirent;
+	char *full_name;
+	int rc;
+
+	dir = opendir(name);
+	igt_assert(dir);
+
+	full_name = malloc(PATH_MAX);
+
+	igt_assert(level < 128);
+
+	while ((dirent = readdir(dir))) {
+		struct stat stat_buf;
+
+		if (strcmp(dirent->d_name, ".") == 0)
+			continue;
+		if (strcmp(dirent->d_name, "..") == 0)
+			continue;
+
+		snprintf(full_name, PATH_MAX, "%s/%s", name, dirent->d_name);
+
+		rc = lstat(full_name, &stat_buf);
+		igt_assert(rc == 0);
+
+		if (S_ISDIR(stat_buf.st_mode))
+			read_files_from_dir(full_name, level + 1);
+
+		if (S_ISREG(stat_buf.st_mode))
+			read_full_file(full_name);
+	}
+
+	free(full_name);
+	closedir(dir);
+}
+
+/* This test will probably pass, with a small chance of hanging the machine in
+ * case of bugs. Many of the bugs exercised by this patch just result in dmesg
+ * errors, so a "pass" here should be confirmed by a check on dmesg. */
+static void debugfs_read_subtest(void)
+{
+	const char *path = "/sys/kernel/debug/dri/0";
+	DIR *dir;
+
+	dir = opendir(path);
+	igt_require_f(dir, "Can't open the debugfs directory\n");
+	closedir(dir);
+
+	disable_all_screens(&ms_data);
+	igt_assert(pc8_plus_enabled());
+
+	read_files_from_dir(path, 0);
+}
+
+/* Read the comment on debugfs_read_subtest(). */
+static void sysfs_read_subtest(void)
+{
+	const char *path = "/sys/devices/pci0000:00/0000:00:02.0";
+	DIR *dir;
+
+	dir = opendir(path);
+	igt_require_f(dir, "Can't open the sysfs directory\n");
+	closedir(dir);
+
+	disable_all_screens(&ms_data);
+	igt_assert(pc8_plus_enabled());
+
+	read_files_from_dir(path, 0);
+}
+
+/* Make sure we don't suspend when we have the i915_forcewake_user file open. */
+static void debugfs_forcewake_user_subtest(void)
+{
+	int fd, rc;
+
+	igt_require(!(IS_GEN2(ms_data.devid) || IS_GEN3(ms_data.devid) ||
+		      IS_GEN4(ms_data.devid) || IS_GEN5(ms_data.devid)));
+
+	disable_all_screens(&ms_data);
+	igt_assert(pc8_plus_enabled());
+
+	fd = open("/sys/kernel/debug/dri/0/i915_forcewake_user", O_RDONLY);
+	igt_require(fd);
+
+	igt_assert(pc8_plus_disabled());
+
+	rc = close(fd);
+	igt_assert(rc == 0);
+
+	igt_assert(pc8_plus_enabled());
+}
+
 int main(int argc, char *argv[])
 {
 	bool do_register_compare = false;
@@ -807,6 +922,12 @@ int main(int argc, char *argv[])
 		batch_subtest();
 	igt_subtest("i2c")
 		i2c_subtest();
+	igt_subtest("debugfs-read")
+		debugfs_read_subtest();
+	igt_subtest("debugfs-forcewake-user")
+		debugfs_forcewake_user_subtest();
+	igt_subtest("sysfs-read")
+		sysfs_read_subtest();
 	igt_subtest("stress-test")
 		stress_test();
 	igt_subtest("modeset-lpsp-stress")
