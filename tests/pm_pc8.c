@@ -600,12 +600,12 @@ static int count_i2c_valid_edids(void)
 	return ret;
 }
 
-static bool test_i2c(struct mode_set_data *data)
+static void test_i2c(struct mode_set_data *data)
 {
 	int i2c_edids = count_i2c_valid_edids();
 	int drm_edids = count_drm_valid_edids(data);
 
-	return i2c_edids == drm_edids;
+	igt_assert(i2c_edids == drm_edids);
 }
 
 static void setup_environment(void)
@@ -733,7 +733,7 @@ static void i2c_subtest(void)
 
 	disable_all_screens(&ms_data);
 	igt_assert(pc8_plus_enabled());
-	igt_assert(test_i2c(&ms_data));
+	test_i2c(&ms_data);
 	igt_assert(pc8_plus_enabled());
 
 	enable_one_screen(&ms_data);
