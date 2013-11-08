@@ -711,8 +711,7 @@ static void batch_subtest(void)
 	igt_assert(pc8_plus_enabled());
 }
 
-/* Try to use raw I2C, which also needs interrupts. */
-static void i2c_subtest(void)
+static void i2c_subtest_check_environment(void)
 {
 	int i2c_dev_files = 0;
 	DIR *dev_dir;
@@ -727,6 +726,12 @@ static void i2c_subtest(void)
 	}
 	closedir(dev_dir);
 	igt_require(i2c_dev_files);
+}
+
+/* Try to use raw I2C, which also needs interrupts. */
+static void i2c_subtest(void)
+{
+	i2c_subtest_check_environment();
 
 	enable_one_screen(&ms_data);
 	igt_assert(pc8_plus_disabled());
