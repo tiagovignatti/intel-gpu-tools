@@ -67,12 +67,12 @@ copy(int fd, uint32_t dst, uint32_t src, uint32_t *all_bo, int n_bo, int error)
 	batch[i++] = 0; /* dst x1,y1 */
 	batch[i++] = (HEIGHT << 16) | WIDTH; /* dst x2,y2 */
 	batch[i++] = 0; /* dst reloc */
-	if (intel_get_drm_devid(fd) >= 8)
+	if (intel_gen(intel_get_drm_devid(fd)) >= 8)
 		batch[i++] = 0; /* FIXME */
 	batch[i++] = 0; /* src x1,y1 */
 	batch[i++] = WIDTH*4;
 	batch[i++] = 0; /* src reloc */
-	if (intel_get_drm_devid(fd) >= 8)
+	if (intel_gen(intel_get_drm_devid(fd)) >= 8)
 		batch[i++] = 0; /* FIXME */
 	batch[i++] = MI_BATCH_BUFFER_END;
 	batch[i++] = MI_NOOP;
@@ -90,6 +90,8 @@ copy(int fd, uint32_t dst, uint32_t src, uint32_t *all_bo, int n_bo, int error)
 	reloc[1].target_handle = src;
 	reloc[1].delta = 0;
 	reloc[1].offset = 7 * sizeof(batch[0]);
+	if (intel_gen(intel_get_drm_devid(fd)) >= 8)
+		reloc[1].offset += sizeof(batch[0]);
 	reloc[1].presumed_offset = 0;
 	reloc[1].read_domains = I915_GEM_DOMAIN_RENDER;
 	reloc[1].write_domain = 0;
