@@ -34,6 +34,7 @@
 #include <fcntl.h>
 #include <dirent.h>
 #include <sys/ioctl.h>
+#include <sys/mman.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <linux/i2c.h>
@@ -826,6 +827,352 @@ static void debugfs_forcewake_user_subtest(void)
 	igt_assert(pc8_plus_enabled());
 }
 
+static void gem_mmap_subtest(bool gtt_mmap)
+{
+	int i;
+	uint32_t handle;
+	int buf_size = 8192;
+	uint8_t *gem_buf;
+
+	/* Create, map and set data while the device is active. */
+	enable_one_screen(&ms_data);
+	igt_assert(pc8_plus_disabled());
+
+	handle = gem_create(drm_fd, buf_size);
+
+	if (gtt_mmap)
+		gem_buf = gem_mmap__gtt(drm_fd, handle, buf_size,
+					PROT_READ | PROT_WRITE);
+	else
+		gem_buf = gem_mmap__cpu(drm_fd, handle, buf_size, 0);
+
+
+	for (i = 0; i < buf_size; i++)
+		gem_buf[i] = i & 0xFF;
+
+	for (i = 0; i < buf_size; i++)
+		igt_assert(gem_buf[i] == (i & 0xFF));
+
+	/* Now suspend, read and modify. */
+	disable_all_screens(&ms_data);
+	igt_assert(pc8_plus_enabled());
+
+	for (i = 0; i < buf_size; i++)
+		igt_assert(gem_buf[i] == (i & 0xFF));
+	igt_assert(pc8_plus_enabled());
+
+	for (i = 0; i < buf_size; i++)
+		gem_buf[i] = (~i & 0xFF);
+	igt_assert(pc8_plus_enabled());
+
+	/* Now resume and see if it's still there. */
+	enable_one_screen(&ms_data);
+	igt_assert(pc8_plus_disabled());
+	for (i = 0; i < buf_size; i++)
+		igt_assert(gem_buf[i] == (~i & 0xFF));
+
+	igt_assert(munmap(gem_buf, buf_size) == 0);
+
+	/* Now the opposite: suspend, and try to create the mmap while
+	 * suspended. */
+	disable_all_screens(&ms_data);
+	igt_assert(pc8_plus_enabled());
+
+	if (gtt_mmap)
+		gem_buf = gem_mmap__gtt(drm_fd, handle, buf_size,
+					PROT_READ | PROT_WRITE);
+	else
+		gem_buf = gem_mmap__cpu(drm_fd, handle, buf_size, 0);
+
+	igt_assert(pc8_plus_enabled());
+
+	for (i = 0; i < buf_size; i++)
+		gem_buf[i] = i & 0xFF;
+
+	for (i = 0; i < buf_size; i++)
+		igt_assert(gem_buf[i] == (i & 0xFF));
+
+	igt_assert(pc8_plus_enabled());
+
+	/* Resume and check if it's still there. */
+	enable_one_screen(&ms_data);
+	igt_assert(pc8_plus_disabled());
+	for (i = 0; i < buf_size; i++)
+		igt_assert(gem_buf[i] == (i & 0xFF));
+
+	igt_assert(munmap(gem_buf, buf_size) == 0);
+	gem_close(drm_fd, handle);
+}
+
+static void gem_pread_subtest(void)
+{
+	int i;
+	uint32_t handle;
+	int buf_size = 8192;
+	uint8_t *cpu_buf, *read_buf;
+
+	cpu_buf = malloc(buf_size);
+	read_buf = malloc(buf_size);
+	igt_assert(cpu_buf);
+	igt_assert(read_buf);
+	memset(cpu_buf, 0, buf_size);
+	memset(read_buf, 0, buf_size);
+
+	/* Create and set data while the device is active. */
+	enable_one_screen(&ms_data);
+	igt_assert(pc8_plus_disabled());
+
+	handle = gem_create(drm_fd, buf_size);
+
+	for (i = 0; i < buf_size; i++)
+		cpu_buf[i] = i & 0xFF;
+
+	gem_write(drm_fd, handle, 0, cpu_buf, buf_size);
+
+	gem_read(drm_fd, handle, 0, read_buf, buf_size);
+
+	for (i = 0; i < buf_size; i++)
+		igt_assert(cpu_buf[i] == read_buf[i]);
+
+	/* Now suspend, read and modify. */
+	disable_all_screens(&ms_data);
+	igt_assert(pc8_plus_enabled());
+
+	memset(read_buf, 0, buf_size);
+	gem_read(drm_fd, handle, 0, read_buf, buf_size);
+
+	for (i = 0; i < buf_size; i++)
+		igt_assert(cpu_buf[i] == read_buf[i]);
+	igt_assert(pc8_plus_enabled());
+
+	for (i = 0; i < buf_size; i++)
+		cpu_buf[i] = (~i & 0xFF);
+	gem_write(drm_fd, handle, 0, cpu_buf, buf_size);
+	igt_assert(pc8_plus_enabled());
+
+	/* Now resume and see if it's still there. */
+	enable_one_screen(&ms_data);
+	igt_assert(pc8_plus_disabled());
+
+	memset(read_buf, 0, buf_size);
+	gem_read(drm_fd, handle, 0, read_buf, buf_size);
+
+	for (i = 0; i < buf_size; i++)
+		igt_assert(cpu_buf[i] == read_buf[i]);
+
+	gem_close(drm_fd, handle);
+
+	free(cpu_buf);
+	free(read_buf);
+}
+
+/* Paints a square of color $color, size $width x $height, at position $x x $y
+ * of $dst_handle, which contains pitch $pitch. */
+static void submit_blt_cmd(uint32_t dst_handle, uint32_t x, uint32_t y,
+			   uint32_t width, uint32_t height, uint32_t pitch,
+			   uint32_t color, uint32_t *presumed_dst_offset)
+{
+	int i, reloc_pos;
+	int bpp = 4;
+	uint32_t batch_handle;
+	int batch_size = 8 * sizeof(uint32_t);
+	uint32_t batch_buf[batch_size];
+	uint32_t offset_in_dst = (pitch * y) + (x * bpp);
+	struct drm_i915_gem_execbuffer2 execbuf = {};
+	struct drm_i915_gem_exec_object2 objs[2] = {{}, {}};
+	struct drm_i915_gem_relocation_entry relocs[1] = {{}};
+	struct drm_i915_gem_wait gem_wait;
+
+	i = 0;
+
+	batch_buf[i++] = COLOR_BLT_CMD | COLOR_BLT_WRITE_ALPHA |
+			 COLOR_BLT_WRITE_RGB;
+	batch_buf[i++] = (3 << 24) | (0xF0 << 16) | pitch;
+	batch_buf[i++] = (height << 16) | width * bpp;
+	reloc_pos = i;
+	batch_buf[i++] = *presumed_dst_offset + offset_in_dst;
+	batch_buf[i++] = color;
+
+	batch_buf[i++] = MI_NOOP;
+	batch_buf[i++] = MI_BATCH_BUFFER_END;
+	batch_buf[i++] = MI_NOOP;
+
+	igt_assert(i * sizeof(uint32_t) == batch_size);
+
+	batch_handle = gem_create(drm_fd, batch_size);
+	gem_write(drm_fd, batch_handle, 0, batch_buf, batch_size);
+
+	relocs[0].target_handle = dst_handle;
+	relocs[0].delta = offset_in_dst;
+	relocs[0].offset = reloc_pos * sizeof(uint32_t);
+	relocs[0].presumed_offset = *presumed_dst_offset;
+	relocs[0].read_domains = 0;
+	relocs[0].write_domain = I915_GEM_DOMAIN_RENDER;
+
+	objs[0].handle = dst_handle;
+	objs[0].alignment = 64;
+
+	objs[1].handle = batch_handle;
+	objs[1].relocation_count = 1;
+	objs[1].relocs_ptr = (uint64_t) relocs;
+
+	execbuf.buffers_ptr = (uint64_t) objs;
+	execbuf.buffer_count = 2;
+	execbuf.batch_len = batch_size;
+	execbuf.flags = I915_EXEC_BLT;
+	i915_execbuffer2_set_context_id(execbuf, 0);
+
+	do_ioctl(drm_fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf);
+
+	*presumed_dst_offset = relocs[0].presumed_offset;
+
+	gem_wait.flags = 0;
+	gem_wait.timeout_ns = 10000000000LL; /* 10s */
+
+	gem_wait.bo_handle = batch_handle;
+	do_ioctl(drm_fd, DRM_IOCTL_I915_GEM_WAIT, &gem_wait);
+
+	gem_wait.bo_handle = dst_handle;
+	do_ioctl(drm_fd, DRM_IOCTL_I915_GEM_WAIT, &gem_wait);
+
+	gem_close(drm_fd, batch_handle);
+}
+
+/* Make sure we can submit a batch buffer and verify its result. */
+static void gem_execbuf_subtest(void)
+{
+	int x, y;
+	uint32_t handle;
+	int bpp = 4;
+	int pitch = 128 * bpp;
+	int dst_size = 128 * 128 * bpp; /* 128x128 square */
+	uint32_t *cpu_buf;
+	uint32_t presumed_offset = 0;
+	int sq_x = 5, sq_y = 10, sq_w = 15, sq_h = 20;
+	uint32_t color;
+
+	/* Create and set data while the device is active. */
+	enable_one_screen(&ms_data);
+	igt_assert(pc8_plus_disabled());
+
+	handle = gem_create(drm_fd, dst_size);
+
+	cpu_buf = malloc(dst_size);
+	igt_assert(cpu_buf);
+	memset(cpu_buf, 0, dst_size);
+	gem_write(drm_fd, handle, 0, cpu_buf, dst_size);
+
+	/* Now suspend and try it. */
+	disable_all_screens(&ms_data);
+	igt_assert(pc8_plus_enabled());
+
+	color = 0x12345678;
+	submit_blt_cmd(handle, sq_x, sq_y, sq_w, sq_h, pitch, color,
+		       &presumed_offset);
+	igt_assert(pc8_plus_enabled());
+
+	gem_read(drm_fd, handle, 0, cpu_buf, dst_size);
+	igt_assert(pc8_plus_enabled());
+	for (y = 0; y < 128; y++) {
+		for (x = 0; x < 128; x++) {
+			uint32_t px = cpu_buf[y * 128 + x];
+
+			if (y >= sq_y && y < (sq_y + sq_h) &&
+			    x >= sq_x && x < (sq_x + sq_w))
+				igt_assert(px == color);
+			else
+				igt_assert(px == 0);
+		}
+	}
+
+	/* Now resume and check for it again. */
+	enable_one_screen(&ms_data);
+	igt_assert(pc8_plus_disabled());
+
+	memset(cpu_buf, 0, dst_size);
+	gem_read(drm_fd, handle, 0, cpu_buf, dst_size);
+	for (y = 0; y < 128; y++) {
+		for (x = 0; x < 128; x++) {
+			uint32_t px = cpu_buf[y * 128 + x];
+
+			if (y >= sq_y && y < (sq_y + sq_h) &&
+			    x >= sq_x && x < (sq_x + sq_w))
+				igt_assert(px == color);
+			else
+				igt_assert(px == 0);
+		}
+	}
+
+	/* Now we'll do the opposite: do the blt while active, then read while
+	 * suspended. We use the same spot, but a different color. As a bonus,
+	 * we're testing the presumed_offset from the previous command. */
+	color = 0x87654321;
+	submit_blt_cmd(handle, sq_x, sq_y, sq_w, sq_h, pitch, color,
+		       &presumed_offset);
+
+	disable_all_screens(&ms_data);
+	igt_assert(pc8_plus_enabled());
+
+	memset(cpu_buf, 0, dst_size);
+	gem_read(drm_fd, handle, 0, cpu_buf, dst_size);
+	for (y = 0; y < 128; y++) {
+		for (x = 0; x < 128; x++) {
+			uint32_t px = cpu_buf[y * 128 + x];
+
+			if (y >= sq_y && y < (sq_y + sq_h) &&
+			    x >= sq_x && x < (sq_x + sq_w))
+				igt_assert(px == color);
+			else
+				igt_assert(px == 0);
+		}
+	}
+
+	gem_close(drm_fd, handle);
+
+	free(cpu_buf);
+}
+
+/* Assuming execbuf already works, let's see what happens when we force many
+ * suspend/resume cycles with commands. */
+static void gem_execbuf_stress_subtest(void)
+{
+	int i;
+	int max = 50;
+	int batch_size = 4 * sizeof(uint32_t);
+	uint32_t batch_buf[batch_size];
+	uint32_t handle;
+	struct drm_i915_gem_execbuffer2 execbuf = {};
+	struct drm_i915_gem_exec_object2 objs[1] = {{}};
+
+	i = 0;
+	batch_buf[i++] = MI_NOOP;
+	batch_buf[i++] = MI_NOOP;
+	batch_buf[i++] = MI_BATCH_BUFFER_END;
+	batch_buf[i++] = MI_NOOP;
+	igt_assert(i * sizeof(uint32_t) == batch_size);
+
+	disable_all_screens(&ms_data);
+	igt_assert(pc8_plus_enabled());
+
+	handle = gem_create(drm_fd, batch_size);
+	gem_write(drm_fd, handle, 0, batch_buf, batch_size);
+
+	objs[0].handle = handle;
+
+	execbuf.buffers_ptr = (uint64_t) objs;
+	execbuf.buffer_count = 1;
+	execbuf.batch_len = batch_size;
+	execbuf.flags = I915_EXEC_RENDER;
+	i915_execbuffer2_set_context_id(execbuf, 0);
+
+	for (i = 0; i < max; i++) {
+		do_ioctl(drm_fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf);
+		igt_assert(pc8_plus_enabled());
+	}
+
+	gem_close(drm_fd, handle);
+}
+
 int main(int argc, char *argv[])
 {
 	bool do_register_compare = false;
@@ -851,6 +1198,14 @@ int main(int argc, char *argv[])
 		modeset_subtest(SCREEN_TYPE_NON_LPSP, 1, WAIT);
 	igt_subtest("i2c")
 		i2c_subtest();
+	igt_subtest("gem-mmap-cpu")
+		gem_mmap_subtest(false);
+	igt_subtest("gem-mmap-gtt")
+		gem_mmap_subtest(true);
+	igt_subtest("gem-pread")
+		gem_pread_subtest();
+	igt_subtest("gem-execbuf")
+		gem_execbuf_subtest();
 	igt_subtest("debugfs-read")
 		debugfs_read_subtest();
 	igt_subtest("debugfs-forcewake-user")
@@ -865,6 +1220,8 @@ int main(int argc, char *argv[])
 		modeset_subtest(SCREEN_TYPE_LPSP, 50, DONT_WAIT);
 	igt_subtest("modeset-non-lpsp-stress-no-wait")
 		modeset_subtest(SCREEN_TYPE_NON_LPSP, 50, DONT_WAIT);
+	igt_subtest("gem-execbuf-stress")
+		gem_execbuf_stress_subtest();
 	igt_subtest("register-compare") {
 		igt_require(do_register_compare);
 		register_compare_subtest();
