@@ -629,6 +629,13 @@ static void setup_environment(void)
 		      "Machine doesn't support PC8+ residencies.\n");
 }
 
+static void teardown_environment(void)
+{
+	fini_mode_set_data(&ms_data);
+	drmClose(drm_fd);
+	close(msr_fd);
+}
+
 static void basic_subtest(void)
 {
 	/* Make sure PC8+ residencies move! */
@@ -659,13 +666,6 @@ static void modeset_subtest(enum screen_type type, int rounds,
 		if (wait == WAIT)
 			igt_assert(pc8_plus_disabled());
 	}
-}
-
-static void teardown_environment(void)
-{
-	fini_mode_set_data(&ms_data);
-	drmClose(drm_fd);
-	close(msr_fd);
 }
 
 /* Test of the DRM resources reported by the IOCTLs are still the same. This
