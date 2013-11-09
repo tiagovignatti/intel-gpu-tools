@@ -49,6 +49,7 @@ TESTS_progs_M = \
 	gem_write_read_ring_switch \
 	kms_addfb \
 	kms_cursor_crc \
+	kms_fbc_crc \
 	kms_flip \
 	kms_pipe_crc_basic \
 	kms_render \
