@@ -60,12 +60,12 @@ store_dword_loop(int divider, unsigned flags)
 	cmd = MI_STORE_DWORD_IMM;
 	if (!has_ppgtt)
 		cmd |= MI_MEM_VIRTUAL;
-	if (intel_gen(drm_intel_bufmgr_gem_get_devid(bufmgr) >= 8))
-		cmd |= 1;
+	if (intel_gen(drm_intel_bufmgr_gem_get_devid(bufmgr)) >= 8)
+		((uint8_t *)&cmd)[0] = 1;
 
 	for (i = 0; i < SLOW_QUICK(0x80000, 4); i++) {
 		int j = 0;
-		int cmd_address_offset = 8;
+		int cmd_address_offset;
 		cmd_bo = drm_intel_bo_alloc(bufmgr, "cmd bo", 4096, 4096);
 		igt_assert(cmd_bo);
 
@@ -76,11 +76,14 @@ store_dword_loop(int divider, unsigned flags)
 		buf = cmd_bo->virtual;
 
 		buf[j++] = cmd;
-		if (intel_gen(drm_intel_bufmgr_gem_get_devid(bufmgr) >= 8)) {
+		if (intel_gen(drm_intel_bufmgr_gem_get_devid(bufmgr)) >= 8) {
 			buf[j++] = target_bo->offset;
-			cmd_address_offset = 4;
+		} else {
+			buf[j++] = 0;
+			buf[j++] = target_bo->offset;
 		}
-		buf[j++] = 0;
+		cmd_address_offset = (j -1) * 4;
+		assert(j > 0);
 		buf[j++] = 0x42000000 + val;
 
 		igt_assert(drm_intel_bo_references(cmd_bo, target_bo) == 0);
