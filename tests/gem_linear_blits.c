@@ -66,6 +66,11 @@ copy(int fd, uint32_t dst, uint32_t src)
 	batch[i++] = XY_SRC_COPY_BLT_CMD |
 		  XY_SRC_COPY_BLT_WRITE_ALPHA |
 		  XY_SRC_COPY_BLT_WRITE_RGB;
+	if (intel_gen(intel_get_drm_devid(fd)) >= 8)
+		batch[i - 1] |= 8;
+	else
+		batch[i - 1] |= 6;
+
 	batch[i++] = (3 << 24) | /* 32 bits */
 		  (0xcc << 16) | /* copy ROP */
 		  WIDTH*4;
@@ -95,6 +100,8 @@ copy(int fd, uint32_t dst, uint32_t src)
 	reloc[1].target_handle = src;
 	reloc[1].delta = 0;
 	reloc[1].offset = 7 * sizeof(batch[0]);
+	if (intel_gen(intel_get_drm_devid(fd)) >= 8)
+		reloc[1].offset += sizeof(batch[0]);
 	reloc[1].presumed_offset = 0;
 	reloc[1].read_domains = I915_GEM_DOMAIN_RENDER;;
 	reloc[1].write_domain = 0;
