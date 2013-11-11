@@ -204,6 +204,16 @@ int drm_get_card(void)
 	return -1;
 }
 
+static void oom_adjust_for_doom(void)
+{
+	int fd;
+	const char always_kill[] = "1000";
+
+	fd = open("/proc/self/oom_score_adj", O_WRONLY);
+	igt_assert(fd != -1);
+	igt_assert(write(fd, always_kill, sizeof(always_kill)) == sizeof(always_kill));
+}
+
 /** Open the first DRM device we can find, searching up to 16 device nodes */
 static int __drm_open_any(void)
 {
@@ -221,6 +231,8 @@ static int __drm_open_any(void)
 		close(fd);
 		fd = -1;
 	}
+
+	oom_adjust_for_doom();
 
 	return fd;
 }
@@ -250,6 +262,8 @@ static int __drm_open_any_render(void)
 
 		return fd;
 	}
+
+	oom_adjust_for_doom();
 
 	return fd;
 }
@@ -844,6 +858,7 @@ int igt_subtest_init_parse_opts(int argc, char **argv,
 	}
 
 	igt_install_exit_handler(check_igt_exit);
+	oom_adjust_for_doom();
 
 out:
 	return ret;
@@ -1115,6 +1130,7 @@ bool __igt_fork_helper(struct igt_helper_process *proc)
 	case 0:
 		exit_handler_count = 0;
 		reset_helper_process_list();
+		oom_adjust_for_doom();
 
 		return true;
 	default:
@@ -1197,6 +1213,7 @@ bool __igt_fork(void)
 		test_child = true;
 		exit_handler_count = 0;
 		reset_helper_process_list();
+		oom_adjust_for_doom();
 
 		return true;
 	default:
