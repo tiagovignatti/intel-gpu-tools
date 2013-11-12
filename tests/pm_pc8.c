@@ -55,6 +55,15 @@
 #define MAX_ENCODERS	32
 #define MAX_CRTCS	16
 
+#define POWER_DIR "/sys/devices/pci0000:00/0000:00:02.0/power"
+
+enum runtime_pm_status {
+	RUNTIME_PM_STATUS_ACTIVE,
+	RUNTIME_PM_STATUS_SUSPENDED,
+	RUNTIME_PM_STATUS_SUSPENDING,
+	RUNTIME_PM_STATUS_UNKNOWN,
+};
+
 enum screen_type {
 	SCREEN_TYPE_LPSP,
 	SCREEN_TYPE_NON_LPSP,
@@ -66,7 +75,8 @@ enum residency_wait {
 	DONT_WAIT,
 };
 
-int drm_fd, msr_fd;
+int drm_fd, msr_fd, pm_status_fd;
+bool has_runtime_pm, has_pc8;
 struct mode_set_data ms_data;
 
 /* Stuff used when creating FBs and mode setting. */
@@ -174,6 +184,58 @@ static bool pc8_plus_enabled(void)
 static bool pc8_plus_disabled(void)
 {
 	return !pc8_plus_residency_changed(5);
+}
+
+static enum runtime_pm_status get_runtime_pm_status(void)
+{
+	ssize_t n_read;
+	char buf[32];
+
+	lseek(pm_status_fd, 0, SEEK_SET);
+	n_read = read(pm_status_fd, buf, ARRAY_SIZE(buf));
+	igt_assert(n_read >= 0);
+	buf[n_read] = '\0';
+
+	if (strncmp(buf, "suspended\n", n_read) == 0)
+		return RUNTIME_PM_STATUS_SUSPENDED;
+	else if (strncmp(buf, "active\n", n_read) == 0)
+		return RUNTIME_PM_STATUS_ACTIVE;
+	else if (strncmp(buf, "suspending\n", n_read) == 0)
+		return RUNTIME_PM_STATUS_SUSPENDING;
+
+	igt_assert_f(false, "Unknown status %s\n", buf);
+	return RUNTIME_PM_STATUS_UNKNOWN;
+}
+
+static bool wait_for_pm_status(enum runtime_pm_status status)
+{
+	int i;
+	int hundred_ms = 100 * 1000, ten_s = 10 * 1000 * 1000;
+
+	for (i = 0; i < ten_s; i += hundred_ms) {
+		if (get_runtime_pm_status() == status)
+			return true;
+
+		usleep(hundred_ms);
+	}
+
+	return false;
+}
+
+static bool wait_for_suspended(void)
+{
+	if (has_pc8 && !has_runtime_pm)
+		return pc8_plus_enabled();
+	else
+		return wait_for_pm_status(RUNTIME_PM_STATUS_SUSPENDED);
+}
+
+static bool wait_for_active(void)
+{
+	if (has_pc8 && !has_runtime_pm)
+		return pc8_plus_disabled();
+	else
+		return wait_for_pm_status(RUNTIME_PM_STATUS_ACTIVE);
 }
 
 static void disable_all_screens(struct mode_set_data *data)
@@ -566,16 +628,55 @@ static void test_i2c(struct mode_set_data *data)
 	igt_assert(i2c_edids == drm_edids);
 }
 
-static void setup_environment(void)
+static void setup_runtime_pm(void)
 {
-	drm_fd = drm_open_any();
-	igt_assert(drm_fd >= 0);
+	int fd;
+	ssize_t size;
+	char buf[6];
 
-	init_mode_set_data(&ms_data);
+	/* Our implementation uses autosuspend. Try to set it to 0ms so the test
+	 * suite goes faster and we have a higher probability of triggering race
+	 * conditions. */
+	fd = open(POWER_DIR "/autosuspend_delay_ms", O_WRONLY);
+	igt_assert_f(fd >= 0,
+		     "Can't open " POWER_DIR "/autosuspend_delay_ms\n");
+
+	/* If we fail to write to the file, it means this system doesn't support
+	 * runtime PM. */
+	size = write(fd, "0\n", 2);
+	has_runtime_pm = (size == 2);
+
+	close(fd);
+
+	if (!has_runtime_pm)
+		return;
+
+	/* We know we support runtime PM, let's try to enable it now. */
+	fd = open(POWER_DIR "/control", O_RDWR);
+	igt_assert_f(fd >= 0, "Can't open " POWER_DIR "/control\n");
+
+	size = write(fd, "auto\n", 5);
+	igt_assert(size == 5);
+
+	lseek(fd, 0, SEEK_SET);
+	size = read(fd, buf, ARRAY_SIZE(buf));
+	igt_assert(size == 5);
+	igt_assert(strncmp(buf, "auto\n", 5) == 0);
+
+	close(fd);
+
+	pm_status_fd = open(POWER_DIR "/runtime_status", O_RDONLY);
+	igt_assert_f(pm_status_fd >= 0,
+		     "Can't open " POWER_DIR "/runtime_status\n");
+}
+
+static void setup_pc8(void)
+{
+	has_pc8 = false;
 
 	/* Only Haswell supports the PC8 feature. */
-	igt_require_f(IS_HASWELL(ms_data.devid),
-		      "PC8+ feature only supported on Haswell.\n");
+	if (!IS_HASWELL(ms_data.devid))
+		return;
 
 	/* Make sure our Kernel supports MSR and the module is loaded. */
 	msr_fd = open("/dev/cpu/0/msr", O_RDONLY);
@@ -583,8 +684,26 @@ static void setup_environment(void)
 		     "Can't open /dev/cpu/0/msr.\n");
 
 	/* Non-ULT machines don't support PC8+. */
-	igt_require_f(supports_pc8_plus_residencies(),
-		      "Machine doesn't support PC8+ residencies.\n");
+	if (!supports_pc8_plus_residencies())
+		return;
+
+	has_pc8 = true;
+}
+
+static void setup_environment(void)
+{
+	drm_fd = drm_open_any();
+	igt_assert(drm_fd >= 0);
+
+	init_mode_set_data(&ms_data);
+
+	setup_runtime_pm();
+	setup_pc8();
+
+	printf("Runtime PM support: %d\n", has_runtime_pm);
+	printf("PC8 residency support: %d\n", has_pc8);
+
+	igt_require(has_runtime_pm || has_pc8);
 }
 
 static void teardown_environment(void)
@@ -592,6 +711,8 @@ static void teardown_environment(void)
 	fini_mode_set_data(&ms_data);
 	drmClose(drm_fd);
 	close(msr_fd);
+	if (has_runtime_pm)
+		close(pm_status_fd);
 }
 
 static void basic_subtest(void)
@@ -616,13 +737,13 @@ static void modeset_subtest(enum screen_type type, int rounds,
 	for (i = 0; i < rounds; i++) {
 		disable_all_screens(&ms_data);
 		if (wait == WAIT)
-			igt_assert(pc8_plus_enabled());
+			igt_assert(wait_for_suspended());
 
 		/* If we skip this line it's because the type of screen we want
 		 * is not connected. */
 		igt_require(enable_one_screen_with_type(&ms_data, type));
 		if (wait == WAIT)
-			igt_assert(pc8_plus_disabled());
+			igt_assert(wait_for_active());
 	}
 }
 
@@ -635,19 +756,19 @@ static void drm_resources_equal_subtest(void)
 	struct compare_data pre_pc8, during_pc8, post_pc8;
 
 	enable_one_screen(&ms_data);
-	igt_assert(pc8_plus_disabled());
+	igt_assert(wait_for_active());
 	get_drm_info(&pre_pc8);
-	igt_assert(pc8_plus_disabled());
+	igt_assert(wait_for_active());
 
 	disable_all_screens(&ms_data);
-	igt_assert(pc8_plus_enabled());
+	igt_assert(wait_for_suspended());
 	get_drm_info(&during_pc8);
-	igt_assert(pc8_plus_enabled());
+	igt_assert(wait_for_suspended());
 
 	enable_one_screen(&ms_data);
-	igt_assert(pc8_plus_disabled());
+	igt_assert(wait_for_active());
 	get_drm_info(&post_pc8);
-	igt_assert(pc8_plus_disabled());
+	igt_assert(wait_for_active());
 
 	assert_drm_infos_equal(&pre_pc8, &during_pc8);
 	assert_drm_infos_equal(&pre_pc8, &post_pc8);
@@ -680,12 +801,12 @@ static void i2c_subtest(void)
 	i2c_subtest_check_environment();
 
 	enable_one_screen(&ms_data);
-	igt_assert(pc8_plus_disabled());
+	igt_assert(wait_for_active());
 
 	disable_all_screens(&ms_data);
-	igt_assert(pc8_plus_enabled());
+	igt_assert(wait_for_suspended());
 	test_i2c(&ms_data);
-	igt_assert(pc8_plus_enabled());
+	igt_assert(wait_for_suspended());
 
 	enable_one_screen(&ms_data);
 }
@@ -697,18 +818,18 @@ static void register_compare_subtest(void)
 	struct compare_registers pre_pc8, post_pc8;
 
 	enable_one_screen(&ms_data);
-	igt_assert(pc8_plus_disabled());
+	igt_assert(wait_for_active());
 	get_registers(&pre_pc8);
-	igt_assert(pc8_plus_disabled());
+	igt_assert(wait_for_active());
 
 	disable_all_screens(&ms_data);
-	igt_assert(pc8_plus_enabled());
+	igt_assert(wait_for_suspended());
 	enable_one_screen(&ms_data);
-	igt_assert(pc8_plus_disabled());
+	igt_assert(wait_for_active());
 	/* Wait for the registers to be restored. */
 	sleep(1);
 	get_registers(&post_pc8);
-	igt_assert(pc8_plus_disabled());
+	igt_assert(wait_for_active());
 
 	compare_registers(&pre_pc8, &post_pc8);
 }
@@ -718,7 +839,7 @@ static void read_full_file(const char *name)
 	int rc, fd;
 	char buf[128];
 
-	igt_assert_f(pc8_plus_enabled(), "File: %s\n", name);
+	igt_assert_f(wait_for_suspended(), "File: %s\n", name);
 
 	fd = open(name, O_RDONLY);
 	if (fd < 0)
@@ -731,7 +852,7 @@ static void read_full_file(const char *name)
 	rc = close(fd);
 	igt_assert(rc == 0);
 
-	igt_assert_f(pc8_plus_enabled(), "File: %s\n", name);
+	igt_assert_f(wait_for_suspended(), "File: %s\n", name);
 }
 
 static void read_files_from_dir(const char *name, int level)
@@ -785,7 +906,7 @@ static void debugfs_read_subtest(void)
 	closedir(dir);
 
 	disable_all_screens(&ms_data);
-	igt_assert(pc8_plus_enabled());
+	igt_assert(wait_for_suspended());
 
 	read_files_from_dir(path, 0);
 }
@@ -801,7 +922,7 @@ static void sysfs_read_subtest(void)
 	closedir(dir);
 
 	disable_all_screens(&ms_data);
-	igt_assert(pc8_plus_enabled());
+	igt_assert(wait_for_suspended());
 
 	read_files_from_dir(path, 0);
 }
@@ -815,17 +936,19 @@ static void debugfs_forcewake_user_subtest(void)
 		      IS_GEN4(ms_data.devid) || IS_GEN5(ms_data.devid)));
 
 	disable_all_screens(&ms_data);
-	igt_assert(pc8_plus_enabled());
+	igt_assert(wait_for_suspended());
 
 	fd = open("/sys/kernel/debug/dri/0/i915_forcewake_user", O_RDONLY);
 	igt_require(fd);
 
-	igt_assert(pc8_plus_disabled());
+	igt_assert(wait_for_active());
+	sleep(10);
+	igt_assert(wait_for_active());
 
 	rc = close(fd);
 	igt_assert(rc == 0);
 
-	igt_assert(pc8_plus_enabled());
+	igt_assert(wait_for_suspended());
 }
 
 static void gem_mmap_subtest(bool gtt_mmap)
@@ -837,7 +960,7 @@ static void gem_mmap_subtest(bool gtt_mmap)
 
 	/* Create, map and set data while the device is active. */
 	enable_one_screen(&ms_data);
-	igt_assert(pc8_plus_disabled());
+	igt_assert(wait_for_active());
 
 	handle = gem_create(drm_fd, buf_size);
 
@@ -856,19 +979,19 @@ static void gem_mmap_subtest(bool gtt_mmap)
 
 	/* Now suspend, read and modify. */
 	disable_all_screens(&ms_data);
-	igt_assert(pc8_plus_enabled());
+	igt_assert(wait_for_suspended());
 
 	for (i = 0; i < buf_size; i++)
 		igt_assert(gem_buf[i] == (i & 0xFF));
-	igt_assert(pc8_plus_enabled());
+	igt_assert(wait_for_suspended());
 
 	for (i = 0; i < buf_size; i++)
 		gem_buf[i] = (~i & 0xFF);
-	igt_assert(pc8_plus_enabled());
+	igt_assert(wait_for_suspended());
 
 	/* Now resume and see if it's still there. */
 	enable_one_screen(&ms_data);
-	igt_assert(pc8_plus_disabled());
+	igt_assert(wait_for_active());
 	for (i = 0; i < buf_size; i++)
 		igt_assert(gem_buf[i] == (~i & 0xFF));
 
@@ -877,7 +1000,7 @@ static void gem_mmap_subtest(bool gtt_mmap)
 	/* Now the opposite: suspend, and try to create the mmap while
 	 * suspended. */
 	disable_all_screens(&ms_data);
-	igt_assert(pc8_plus_enabled());
+	igt_assert(wait_for_suspended());
 
 	if (gtt_mmap)
 		gem_buf = gem_mmap__gtt(drm_fd, handle, buf_size,
@@ -885,7 +1008,7 @@ static void gem_mmap_subtest(bool gtt_mmap)
 	else
 		gem_buf = gem_mmap__cpu(drm_fd, handle, buf_size, 0);
 
-	igt_assert(pc8_plus_enabled());
+	igt_assert(wait_for_suspended());
 
 	for (i = 0; i < buf_size; i++)
 		gem_buf[i] = i & 0xFF;
@@ -893,11 +1016,11 @@ static void gem_mmap_subtest(bool gtt_mmap)
 	for (i = 0; i < buf_size; i++)
 		igt_assert(gem_buf[i] == (i & 0xFF));
 
-	igt_assert(pc8_plus_enabled());
+	igt_assert(wait_for_suspended());
 
 	/* Resume and check if it's still there. */
 	enable_one_screen(&ms_data);
-	igt_assert(pc8_plus_disabled());
+	igt_assert(wait_for_active());
 	for (i = 0; i < buf_size; i++)
 		igt_assert(gem_buf[i] == (i & 0xFF));
 
@@ -921,7 +1044,7 @@ static void gem_pread_subtest(void)
 
 	/* Create and set data while the device is active. */
 	enable_one_screen(&ms_data);
-	igt_assert(pc8_plus_disabled());
+	igt_assert(wait_for_active());
 
 	handle = gem_create(drm_fd, buf_size);
 
@@ -937,23 +1060,23 @@ static void gem_pread_subtest(void)
 
 	/* Now suspend, read and modify. */
 	disable_all_screens(&ms_data);
-	igt_assert(pc8_plus_enabled());
+	igt_assert(wait_for_suspended());
 
 	memset(read_buf, 0, buf_size);
 	gem_read(drm_fd, handle, 0, read_buf, buf_size);
 
 	for (i = 0; i < buf_size; i++)
 		igt_assert(cpu_buf[i] == read_buf[i]);
-	igt_assert(pc8_plus_enabled());
+	igt_assert(wait_for_suspended());
 
 	for (i = 0; i < buf_size; i++)
 		cpu_buf[i] = (~i & 0xFF);
 	gem_write(drm_fd, handle, 0, cpu_buf, buf_size);
-	igt_assert(pc8_plus_enabled());
+	igt_assert(wait_for_suspended());
 
 	/* Now resume and see if it's still there. */
 	enable_one_screen(&ms_data);
-	igt_assert(pc8_plus_disabled());
+	igt_assert(wait_for_active());
 
 	memset(read_buf, 0, buf_size);
 	gem_read(drm_fd, handle, 0, read_buf, buf_size);
@@ -1054,7 +1177,7 @@ static void gem_execbuf_subtest(void)
 
 	/* Create and set data while the device is active. */
 	enable_one_screen(&ms_data);
-	igt_assert(pc8_plus_disabled());
+	igt_assert(wait_for_active());
 
 	handle = gem_create(drm_fd, dst_size);
 
@@ -1065,15 +1188,15 @@ static void gem_execbuf_subtest(void)
 
 	/* Now suspend and try it. */
 	disable_all_screens(&ms_data);
-	igt_assert(pc8_plus_enabled());
+	igt_assert(wait_for_suspended());
 
 	color = 0x12345678;
 	submit_blt_cmd(handle, sq_x, sq_y, sq_w, sq_h, pitch, color,
 		       &presumed_offset);
-	igt_assert(pc8_plus_enabled());
+	igt_assert(wait_for_suspended());
 
 	gem_read(drm_fd, handle, 0, cpu_buf, dst_size);
-	igt_assert(pc8_plus_enabled());
+	igt_assert(wait_for_suspended());
 	for (y = 0; y < 128; y++) {
 		for (x = 0; x < 128; x++) {
 			uint32_t px = cpu_buf[y * 128 + x];
@@ -1088,7 +1211,7 @@ static void gem_execbuf_subtest(void)
 
 	/* Now resume and check for it again. */
 	enable_one_screen(&ms_data);
-	igt_assert(pc8_plus_disabled());
+	igt_assert(wait_for_active());
 
 	memset(cpu_buf, 0, dst_size);
 	gem_read(drm_fd, handle, 0, cpu_buf, dst_size);
@@ -1112,7 +1235,7 @@ static void gem_execbuf_subtest(void)
 		       &presumed_offset);
 
 	disable_all_screens(&ms_data);
-	igt_assert(pc8_plus_enabled());
+	igt_assert(wait_for_suspended());
 
 	memset(cpu_buf, 0, dst_size);
 	gem_read(drm_fd, handle, 0, cpu_buf, dst_size);
@@ -1153,7 +1276,7 @@ static void gem_execbuf_stress_subtest(void)
 	igt_assert(i * sizeof(uint32_t) == batch_size);
 
 	disable_all_screens(&ms_data);
-	igt_assert(pc8_plus_enabled());
+	igt_assert(wait_for_suspended());
 
 	handle = gem_create(drm_fd, batch_size);
 	gem_write(drm_fd, handle, 0, batch_buf, batch_size);
@@ -1168,7 +1291,7 @@ static void gem_execbuf_stress_subtest(void)
 
 	for (i = 0; i < max; i++) {
 		do_ioctl(drm_fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf);
-		igt_assert(pc8_plus_enabled());
+		igt_assert(wait_for_suspended());
 	}
 
 	gem_close(drm_fd, handle);
