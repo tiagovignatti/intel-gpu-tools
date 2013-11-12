@@ -89,6 +89,4 @@ void gen2_render_copyfunc(struct intel_batchbuffer *batch,
 			  unsigned width, unsigned height,
 			  struct scratch_buf *dst, unsigned dst_x, unsigned dst_y);
 
-void scratch_buf_write_to_png(struct scratch_buf *buf, const char *filename);
-
 #endif /* RENDERCOPY_H */

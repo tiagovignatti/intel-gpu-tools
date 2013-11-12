@@ -31,6 +31,7 @@
 
 #include <stdbool.h>
 #include <unistd.h>
+#include <cairo.h>
 
 #include "rendercopy.h"
 
@@ -48,6 +49,26 @@ typedef struct {
 	drm_intel_bufmgr *bufmgr;
 	uint32_t linear[WIDTH * HEIGHT];
 } data_t;
+
+static void scratch_buf_write_to_png(struct scratch_buf *buf, const char *filename)
+{
+	cairo_surface_t *surface;
+	cairo_status_t ret;
+
+	drm_intel_bo_map(buf->bo, 0);
+	surface = cairo_image_surface_create_for_data(buf->bo->virtual,
+						      CAIRO_FORMAT_RGB24,
+						      buf_width(buf),
+						      buf_height(buf),
+						      buf->stride);
+	ret = cairo_surface_write_to_png(surface, filename);
+	if (ret != CAIRO_STATUS_SUCCESS) {
+		fprintf(stderr, "%s: %s\n", __func__,
+			cairo_status_to_string(ret));
+	}
+	cairo_surface_destroy(surface);
+	drm_intel_bo_unmap(buf->bo);
+}
 
 static void scratch_buf_init(data_t *data, struct scratch_buf *buf,
 			     int width, int height, int stride, uint32_t color)
