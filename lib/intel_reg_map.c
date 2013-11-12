@@ -1,5 +1,5 @@
 /*
- * Copyright © 2011 Intel Corporation
+ * Copyright Â© 2011 Intel Corporation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -151,7 +151,7 @@ intel_get_register_map(uint32_t devid)
 }
 
 struct intel_register_range *
-intel_get_register_range(struct intel_register_map map, uint32_t offset, int mode)
+intel_get_register_range(struct intel_register_map map, uint32_t offset, uint32_t mode)
 {
 	struct intel_register_range *range = map.map;
 	uint32_t align = map.alignment_mask;

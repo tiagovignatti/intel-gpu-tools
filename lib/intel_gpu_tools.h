@@ -74,7 +74,7 @@ struct intel_register_map {
 	uint32_t alignment_mask;
 };
 struct intel_register_map intel_get_register_map(uint32_t devid);
-struct intel_register_range *intel_get_register_range(struct intel_register_map map, uint32_t offset, int mode);
+struct intel_register_range *intel_get_register_range(struct intel_register_map map, uint32_t offset, uint32_t mode);
 
 
 static inline uint32_t

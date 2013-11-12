@@ -306,7 +306,7 @@ int drm_open_any_render(void)
 	return fd;
 }
 
-int __gem_set_tiling(int fd, uint32_t handle, int tiling, int stride)
+int __gem_set_tiling(int fd, uint32_t handle, uint32_t tiling, uint32_t stride)
 {
 	struct drm_i915_gem_set_tiling st;
 	int ret;
@@ -326,7 +326,7 @@ int __gem_set_tiling(int fd, uint32_t handle, int tiling, int stride)
 	return 0;
 }
 
-void gem_set_tiling(int fd, uint32_t handle, int tiling, int stride)
+void gem_set_tiling(int fd, uint32_t handle, uint32_t tiling, uint32_t stride)
 {
 	igt_assert(__gem_set_tiling(fd, handle, tiling, stride) == 0);
 }
@@ -654,7 +654,7 @@ off_t prime_get_size(int dma_buf_fd)
 /* signal interrupt helpers */
 static bool igt_only_list_subtests(void);
 
-static int exit_handler_count;
+static unsigned int exit_handler_count;
 
 static struct igt_helper_process signal_helper;
 long long int sig_stat;

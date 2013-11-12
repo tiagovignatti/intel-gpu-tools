@@ -47,7 +47,7 @@ void intel_batchbuffer_emit_reloc(struct intel_batchbuffer *batch,
  * work...
  */
 #pragma GCC diagnostic ignored "-Winline"
-static inline int
+static inline unsigned int
 intel_batchbuffer_space(struct intel_batchbuffer *batch)
 {
 	return (BATCH_SZ - BATCH_RESERVED) - (batch->ptr - batch->buffer);
