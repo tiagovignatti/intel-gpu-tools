@@ -45,6 +45,7 @@
 
 #include "i915_drm.h"
 #include "drmtest.h"
+#include "igt_kms.h"
 
 #if defined(DRM_IOCTL_MODE_ADDFB2) && defined(DRM_I915_SET_SPRITE_COLORKEY)
 #define TEST_PLANES 1

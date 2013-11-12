@@ -31,6 +31,7 @@
 
 #include "drmtest.h"
 #include "igt_debugfs.h"
+#include "igt_kms.h"
 
 typedef struct {
 	struct kmstest_connector_config config;

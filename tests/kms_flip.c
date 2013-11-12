@@ -40,6 +40,7 @@
 #include "drmtest.h"
 #include "testdisplay.h"
 #include "rendercopy.h"
+#include "igt_kms.h"
 
 #define TEST_DPMS		(1 << 0)
 #define TEST_WITH_DUMMY_BCS	(1 << 1)

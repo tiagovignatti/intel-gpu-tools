@@ -45,6 +45,7 @@
 #include "intel_batchbuffer.h"
 #include "intel_gpu_tools.h"
 #include "i915_drm.h"
+#include "igt_kms.h"
 
 #define MSR_PC8_RES	0x630
 #define MSR_PC9_RES	0x631

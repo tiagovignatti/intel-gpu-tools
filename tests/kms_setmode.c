@@ -38,6 +38,7 @@
 #include "intel_bufmgr.h"
 #include "intel_batchbuffer.h"
 #include "intel_gpu_tools.h"
+#include "igt_kms.h"
 
 #define MAX_CONNECTORS  10
 #define MAX_CRTCS       3

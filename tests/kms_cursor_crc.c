@@ -33,6 +33,7 @@
 
 #include "drmtest.h"
 #include "igt_debugfs.h"
+#include "igt_kms.h"
 
 enum cursor_type {
 	WHITE_VISIBLE,

@@ -65,6 +65,7 @@
 #include "i915_drm.h"
 #include "drmtest.h"
 #include "testdisplay.h"
+#include "igt_kms.h"
 
 #include <stdlib.h>
 #include <signal.h>

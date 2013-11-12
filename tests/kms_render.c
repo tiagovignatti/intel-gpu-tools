@@ -36,6 +36,7 @@
 #include "intel_bufmgr.h"
 #include "intel_batchbuffer.h"
 #include "intel_gpu_tools.h"
+#include "igt_kms.h"
 
 drmModeRes *resources;
 int drm_fd;
