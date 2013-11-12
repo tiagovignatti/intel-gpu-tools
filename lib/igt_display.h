@@ -33,6 +33,10 @@ enum pipe {
 };
 #define pipe_name(p) ((p) + 'A')
 
+/* FIXME: i915_drm.h on Android pollutes the general namespace. */
+#undef PLANE_A
+#undef PLANE_B
+
 enum plane {
         PLANE_A = 0,
         PLANE_B,
