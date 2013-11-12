@@ -87,20 +87,6 @@ static void gem_vmap_sync(int fd, uint32_t handle)
 }
 
 static void
-gem_read(int fd, uint32_t handle, int offset, int size, void *buf)
-{
-	struct drm_i915_gem_pread pread;
-	int ret;
-
-	pread.handle = handle;
-	pread.offset = offset;
-	pread.size = size;
-	pread.data_ptr = (uintptr_t)buf;
-	ret = drmIoctl(fd, DRM_IOCTL_I915_GEM_PREAD, &pread);
-	igt_assert(ret == 0);
-}
-
-static void
 copy(int fd, uint32_t dst, uint32_t src)
 {
 	uint32_t batch[10];
