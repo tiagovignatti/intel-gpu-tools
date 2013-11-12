@@ -26,7 +26,11 @@
  *
  */
 
+#ifndef ANDROID
 #define _GNU_SOURCE
+#else
+#include <libgen.h>
+#endif
 #include <stdio.h>
 #include <fcntl.h>
 #include <sys/stat.h>
@@ -1007,7 +1011,7 @@ static bool run_under_gdb(void)
 
 	sprintf(buf, "/proc/%d/exe", getppid());
 	return (readlink (buf, buf, sizeof (buf)) != -1 &&
-		strncmp (basename (buf), "gdb", 3) == 0);
+		strncmp(basename(buf), "gdb", 3) == 0);
 }
 
 void __igt_fail_assert(int exitcode, const char *file,
