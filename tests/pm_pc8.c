@@ -64,18 +64,23 @@ enum runtime_pm_status {
 	RUNTIME_PM_STATUS_UNKNOWN,
 };
 
+enum pc8_status {
+	PC8_ENABLED,
+	PC8_DISABLED
+};
+
 enum screen_type {
 	SCREEN_TYPE_LPSP,
 	SCREEN_TYPE_NON_LPSP,
 	SCREEN_TYPE_ANY,
 };
 
-enum residency_wait {
-	WAIT,
-	DONT_WAIT,
-};
+/* Wait flags */
+#define DONT_WAIT	0
+#define WAIT_STATUS	1
+#define WAIT_PC8_RES	2
 
-int drm_fd, msr_fd, pm_status_fd;
+int drm_fd, msr_fd, pm_status_fd, pc8_status_fd;
 bool has_runtime_pm, has_pc8;
 struct mode_set_data ms_data;
 
@@ -170,20 +175,35 @@ static bool pc8_plus_residency_changed(unsigned int timeout_sec)
 	return false;
 }
 
-/* Checks not only if PC8+ is allowed, but also if we're reaching it.
- * We call this when we expect this function to return quickly since PC8 is
- * actually enabled, so the 30s timeout we use shouldn't matter. */
-static bool pc8_plus_enabled(void)
+static enum pc8_status get_pc8_status(void)
 {
-	return pc8_plus_residency_changed(30);
+	ssize_t n_read;
+	char buf[150]; /* The whole file has less than 100 chars. */
+
+	lseek(pc8_status_fd, 0, SEEK_SET);
+	n_read = read(pc8_status_fd, buf, ARRAY_SIZE(buf));
+	igt_assert(n_read >= 0);
+	buf[n_read] = '\0';
+
+	if (strstr(buf, "\nEnabled: yes\n"))
+		return PC8_ENABLED;
+	else
+		return PC8_DISABLED;
 }
 
-/* We call this when we expect PC8+ to be actually disabled, so we should not
- * return until the 5s timeout expires. In other words: in the "happy case",
- * every time we call this function the program will take 5s more to finish. */
-static bool pc8_plus_disabled(void)
+static bool wait_for_pc8_status(enum pc8_status status)
 {
-	return !pc8_plus_residency_changed(5);
+	int i;
+	int hundred_ms = 100 * 1000, ten_s = 10 * 1000 * 1000;
+
+	for (i = 0; i < ten_s; i += hundred_ms) {
+		if (get_pc8_status() == status)
+			return true;
+
+		usleep(hundred_ms);
+	}
+
+	return false;
 }
 
 static enum runtime_pm_status get_runtime_pm_status(void)
@@ -225,7 +245,7 @@ static bool wait_for_pm_status(enum runtime_pm_status status)
 static bool wait_for_suspended(void)
 {
 	if (has_pc8 && !has_runtime_pm)
-		return pc8_plus_enabled();
+		return wait_for_pc8_status(PC8_ENABLED);
 	else
 		return wait_for_pm_status(RUNTIME_PM_STATUS_SUSPENDED);
 }
@@ -233,7 +253,7 @@ static bool wait_for_suspended(void)
 static bool wait_for_active(void)
 {
 	if (has_pc8 && !has_runtime_pm)
-		return pc8_plus_disabled();
+		return wait_for_pc8_status(PC8_DISABLED);
 	else
 		return wait_for_pm_status(RUNTIME_PM_STATUS_ACTIVE);
 }
@@ -687,6 +707,11 @@ static void setup_pc8(void)
 	if (!supports_pc8_plus_residencies())
 		return;
 
+	pc8_status_fd = open("/sys/kernel/debug/dri/0/i915_pc8_status",
+			     O_RDONLY);
+	igt_assert_f(pc8_status_fd >= 0,
+		     "Can't open /sys/kernel/debug/dri/0/i915_pc8_status");
+
 	has_pc8 = true;
 }
 
@@ -713,37 +738,56 @@ static void teardown_environment(void)
 	close(msr_fd);
 	if (has_runtime_pm)
 		close(pm_status_fd);
+	if (has_pc8)
+		close(pc8_status_fd);
 }
 
 static void basic_subtest(void)
 {
+	disable_all_screens(&ms_data);
+	igt_assert(wait_for_suspended());
+
+	enable_one_screen(&ms_data);
+	igt_assert(wait_for_active());
+}
+
+static void pc8_residency_subtest(void)
+{
+	igt_require(has_pc8);
+
 	/* Make sure PC8+ residencies move! */
 	disable_all_screens(&ms_data);
-	igt_assert_f(pc8_plus_enabled(),
+	igt_assert_f(pc8_plus_residency_changed(120),
 		     "Machine is not reaching PC8+ states, please check its "
 		     "configuration.\n");
 
 	/* Make sure PC8+ residencies stop! */
 	enable_one_screen(&ms_data);
-	igt_assert_f(pc8_plus_disabled(),
+	igt_assert_f(!pc8_plus_residency_changed(10),
 		     "PC8+ residency didn't stop with screen enabled.\n");
 }
 
-static void modeset_subtest(enum screen_type type, int rounds,
-			    enum residency_wait wait)
+static void modeset_subtest(enum screen_type type, int rounds, int wait_flags)
 {
 	int i;
 
+	if (wait_flags & WAIT_PC8_RES)
+		igt_require(has_pc8);
+
 	for (i = 0; i < rounds; i++) {
 		disable_all_screens(&ms_data);
-		if (wait == WAIT)
+		if (wait_flags & WAIT_STATUS)
 			igt_assert(wait_for_suspended());
+		if (wait_flags & WAIT_PC8_RES)
+			igt_assert(pc8_plus_residency_changed(120));
 
 		/* If we skip this line it's because the type of screen we want
 		 * is not connected. */
 		igt_require(enable_one_screen_with_type(&ms_data, type));
-		if (wait == WAIT)
+		if (wait_flags & WAIT_STATUS)
 			igt_assert(wait_for_active());
+		if (wait_flags & WAIT_PC8_RES)
+			igt_assert(!pc8_plus_residency_changed(5));
 	}
 }
 
@@ -1320,9 +1364,9 @@ int main(int argc, char *argv[])
 
 	/* Basic modeset */
 	igt_subtest("modeset-lpsp")
-		modeset_subtest(SCREEN_TYPE_LPSP, 1, WAIT);
+		modeset_subtest(SCREEN_TYPE_LPSP, 1, WAIT_STATUS);
 	igt_subtest("modeset-non-lpsp")
-		modeset_subtest(SCREEN_TYPE_NON_LPSP, 1, WAIT);
+		modeset_subtest(SCREEN_TYPE_NON_LPSP, 1, WAIT_STATUS);
 
 	/* GEM */
 	igt_subtest("gem-mmap-cpu")
@@ -1337,6 +1381,8 @@ int main(int argc, char *argv[])
 	/* Misc */
 	igt_subtest("i2c")
 		i2c_subtest();
+	igt_subtest("pc8-residency")
+		pc8_residency_subtest();
 	igt_subtest("debugfs-read")
 		debugfs_read_subtest();
 	igt_subtest("debugfs-forcewake-user")
@@ -1346,13 +1392,15 @@ int main(int argc, char *argv[])
 
 	/* Modeset stress */
 	igt_subtest("modeset-lpsp-stress")
-		modeset_subtest(SCREEN_TYPE_LPSP, 50, WAIT);
+		modeset_subtest(SCREEN_TYPE_LPSP, 50, WAIT_STATUS);
 	igt_subtest("modeset-non-lpsp-stress")
-		modeset_subtest(SCREEN_TYPE_NON_LPSP, 50, WAIT);
+		modeset_subtest(SCREEN_TYPE_NON_LPSP, 50, WAIT_STATUS);
 	igt_subtest("modeset-lpsp-stress-no-wait")
 		modeset_subtest(SCREEN_TYPE_LPSP, 50, DONT_WAIT);
 	igt_subtest("modeset-non-lpsp-stress-no-wait")
 		modeset_subtest(SCREEN_TYPE_NON_LPSP, 50, DONT_WAIT);
+	igt_subtest("modeset-pc8-residency-stress")
+		modeset_subtest(SCREEN_TYPE_ANY, 50, WAIT_PC8_RES);
 
 	/* GEM stress */
 	igt_subtest("gem-execbuf-stress")
