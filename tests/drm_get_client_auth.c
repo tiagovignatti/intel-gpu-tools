@@ -47,9 +47,13 @@
 static bool
 is_local_tid(pid_t tid)
 {
-    /* On Linux systems, drmGetClient() would return the thread ID
-       instead of the actual process ID */
-    return syscall(SYS_gettid) == tid;
+#ifndef ANDROID
+	/* On Linux systems, drmGetClient() would return the thread ID
+	   instead of the actual process ID */
+	return syscall(SYS_gettid) == tid;
+#else
+	return gettid() == tid;
+#endif
 }
 
 
