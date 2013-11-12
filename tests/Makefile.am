@@ -1,5 +1,9 @@
 include Makefile.sources
 
+if HAVE_NOUVEAU
+    TESTS_progs_M += $(NOUVEAU_TESTS_M)
+endif
+
 if BUILD_TESTS
 list-single-tests:
 	@echo TESTLIST

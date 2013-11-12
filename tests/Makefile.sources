@@ -7,13 +7,11 @@ noinst_PROGRAMS = \
 	$(TESTS_testsuite) \
 	$(NULL)
 
-if HAVE_NOUVEAU
 NOUVEAU_TESTS_M = \
 	prime_nv_api \
 	prime_nv_pcopy \
 	prime_nv_test \
 	$(NULL)
-endif
 
 TESTS_progs_M = \
 	drv_suspend \
@@ -55,7 +53,6 @@ TESTS_progs_M = \
 	kms_pipe_crc_basic \
 	kms_render \
 	kms_setmode \
-	$(NOUVEAU_TESTS_M) \
 	pm_pc8 \
 	prime_self_import \
 	template \
