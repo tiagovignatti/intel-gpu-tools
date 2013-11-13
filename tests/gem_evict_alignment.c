@@ -60,7 +60,9 @@ copy(int fd, uint32_t dst, uint32_t src, uint32_t *all_bo, int n_bo, int alignme
 
 	batch[i++] = (XY_SRC_COPY_BLT_CMD |
 		    XY_SRC_COPY_BLT_WRITE_ALPHA |
-		    XY_SRC_COPY_BLT_WRITE_RGB);
+		    XY_SRC_COPY_BLT_WRITE_RGB | 6);
+	if (intel_gen(intel_get_drm_devid(fd)) >= 8)
+		batch[i - 1] += 2;
 	batch[i++] = (3 << 24) | /* 32 bits */
 		  (0xcc << 16) | /* copy ROP */
 		  WIDTH*4;
