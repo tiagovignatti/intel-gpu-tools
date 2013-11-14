@@ -1231,10 +1231,9 @@ static void gem_execbuf_subtest(void)
 
 /* Assuming execbuf already works, let's see what happens when we force many
  * suspend/resume cycles with commands. */
-static void gem_execbuf_stress_subtest(int wait_flags)
+static void gem_execbuf_stress_subtest(int rounds, int wait_flags)
 {
 	int i;
-	int max = 50;
 	int batch_size = 4 * sizeof(uint32_t);
 	uint32_t batch_buf[batch_size];
 	uint32_t handle;
@@ -1265,7 +1264,7 @@ static void gem_execbuf_stress_subtest(int wait_flags)
 	execbuf.flags = I915_EXEC_RENDER;
 	i915_execbuffer2_set_context_id(execbuf, 0);
 
-	for (i = 0; i < max; i++) {
+	for (i = 0; i < rounds; i++) {
 		do_ioctl(drm_fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf);
 
 		if (wait_flags & WAIT_STATUS)
@@ -1281,7 +1280,15 @@ static void gem_execbuf_stress_subtest(int wait_flags)
 
 int main(int argc, char *argv[])
 {
+	int rounds = 50;
+
 	igt_subtest_init(argc, argv);
+
+	/* The --quick option makes the stress tests not so stressful. Useful
+	 * when you're developing and just want to make a quick test to make
+	 * sure you didn't break everything. */
+	if (argc > 1 && strcmp(argv[1], "--quick") == 0)
+		rounds = 10;
 
 	/* Skip instead of failing in case the machine is not prepared to reach
 	 * PC8+. We don't want bug reports from cases where the machine is just
@@ -1325,25 +1332,26 @@ int main(int argc, char *argv[])
 
 	/* Modeset stress */
 	igt_subtest("modeset-lpsp-stress")
-		modeset_subtest(SCREEN_TYPE_LPSP, 50, WAIT_STATUS);
+		modeset_subtest(SCREEN_TYPE_LPSP, rounds, WAIT_STATUS);
 	igt_subtest("modeset-non-lpsp-stress")
-		modeset_subtest(SCREEN_TYPE_NON_LPSP, 50, WAIT_STATUS);
+		modeset_subtest(SCREEN_TYPE_NON_LPSP, rounds, WAIT_STATUS);
 	igt_subtest("modeset-lpsp-stress-no-wait")
-		modeset_subtest(SCREEN_TYPE_LPSP, 50, DONT_WAIT);
+		modeset_subtest(SCREEN_TYPE_LPSP, rounds, DONT_WAIT);
 	igt_subtest("modeset-non-lpsp-stress-no-wait")
-		modeset_subtest(SCREEN_TYPE_NON_LPSP, 50, DONT_WAIT);
+		modeset_subtest(SCREEN_TYPE_NON_LPSP, rounds, DONT_WAIT);
 	igt_subtest("modeset-pc8-residency-stress")
-		modeset_subtest(SCREEN_TYPE_ANY, 50, WAIT_PC8_RES);
+		modeset_subtest(SCREEN_TYPE_ANY, rounds, WAIT_PC8_RES);
 	igt_subtest("modeset-stress-extra-wait")
-		modeset_subtest(SCREEN_TYPE_ANY, 50, WAIT_STATUS | WAIT_EXTRA);
+		modeset_subtest(SCREEN_TYPE_ANY, rounds,
+				WAIT_STATUS | WAIT_EXTRA);
 
 	/* GEM stress */
 	igt_subtest("gem-execbuf-stress")
-		gem_execbuf_stress_subtest(WAIT_STATUS);
+		gem_execbuf_stress_subtest(rounds, WAIT_STATUS);
 	igt_subtest("gem-execbuf-stress")
-		gem_execbuf_stress_subtest(WAIT_PC8_RES);
+		gem_execbuf_stress_subtest(rounds, WAIT_PC8_RES);
 	igt_subtest("gem-execbuf-stress")
-		gem_execbuf_stress_subtest(WAIT_STATUS | WAIT_EXTRA);
+		gem_execbuf_stress_subtest(rounds, WAIT_STATUS | WAIT_EXTRA);
 
 	igt_fixture
 		teardown_environment();
