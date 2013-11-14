@@ -5,6 +5,11 @@ Release 1.6 (2014-XX-YY)
 
 - Updated (now working again!) Android support from Oscar Mateo.
 
+- Test coverage through i-g-t is now officially an integral part of any drm/i915
+  feature work and also for bugfixes. For more details see:
+
+  http://blog.ffwll.ch/2013/11/testing-requirements-for-drmi915.html
+
 Release 1.5 (2013-11-06)
 ------------------------
 
