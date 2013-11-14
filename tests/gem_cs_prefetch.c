@@ -133,9 +133,6 @@ int main(int argc, char **argv)
 		/* copy the sample batch with the gpu to the new one, so that we
 		 * also test the unmappable part of the gtt. */
 		BLIT_COPY_BATCH_START(batch->devid, 0);
-		OUT_BATCH(XY_SRC_COPY_BLT_CMD |
-			  XY_SRC_COPY_BLT_WRITE_ALPHA |
-			  XY_SRC_COPY_BLT_WRITE_RGB);
 		OUT_BATCH((3 << 24) | /* 32 bits */
 			  (0xcc << 16) | /* copy ROP */
 			  4096);
