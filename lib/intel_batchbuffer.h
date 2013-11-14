@@ -102,13 +102,13 @@ intel_batchbuffer_require_space(struct intel_batchbuffer *batch,
 		OUT_BATCH(XY_SRC_COPY_BLT_CMD | \
 				XY_SRC_COPY_BLT_WRITE_ALPHA | \
 				XY_SRC_COPY_BLT_WRITE_RGB | \
-				flags | 8); \
+				(flags) | 8); \
 	} else { \
 		BEGIN_BATCH(8); \
 		OUT_BATCH(XY_SRC_COPY_BLT_CMD | \
 				XY_SRC_COPY_BLT_WRITE_ALPHA | \
 				XY_SRC_COPY_BLT_WRITE_RGB | \
-				flags | 6); \
+				(flags) | 6); \
 	} \
 } while(0)
 

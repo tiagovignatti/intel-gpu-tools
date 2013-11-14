@@ -334,7 +334,7 @@ static void blt_copy(int fd, uint32_t dst, uint32_t src)
 
 	*b++ = (XY_SRC_COPY_BLT_CMD |
 		XY_SRC_COPY_BLT_WRITE_ALPHA |
-		XY_SRC_COPY_BLT_WRITE_RGB);
+		XY_SRC_COPY_BLT_WRITE_RGB | 6);
 	*b++ = 3 << 24 | 0xcc << 16 | WIDTH * 4;
 	*b++ = 0;
 	*b++ = HEIGHT << 16 | WIDTH;

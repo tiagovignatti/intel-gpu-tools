@@ -98,7 +98,7 @@ copy(int fd, uint32_t dst, uint32_t src)
 
 	batch[0] = XY_SRC_COPY_BLT_CMD |
 		  XY_SRC_COPY_BLT_WRITE_ALPHA |
-		  XY_SRC_COPY_BLT_WRITE_RGB;
+		  XY_SRC_COPY_BLT_WRITE_RGB | 6;
 	batch[1] = (3 << 24) | /* 32 bits */
 		  (0xcc << 16) | /* copy ROP */
 		  WIDTH*4;

@@ -155,7 +155,6 @@ uint32_t batch_size = sizeof(gen6_batch);
 
 int main(int argc, char **argv)
 {
-
 	const uint32_t hang[] = {-1, -1, -1, -1};
 	const uint32_t end[] = {MI_BATCH_BUFFER_END, 0};
 	uint64_t aper_size;
