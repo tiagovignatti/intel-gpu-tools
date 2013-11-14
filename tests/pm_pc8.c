@@ -797,29 +797,29 @@ static void modeset_subtest(enum screen_type type, int rounds, int wait_flags)
  * connected. */
 static void drm_resources_equal_subtest(void)
 {
-	struct compare_data pre_pc8, during_pc8, post_pc8;
+	struct compare_data pre_suspend, during_suspend, post_suspend;
 
 	enable_one_screen(&ms_data);
 	igt_assert(wait_for_active());
-	get_drm_info(&pre_pc8);
+	get_drm_info(&pre_suspend);
 	igt_assert(wait_for_active());
 
 	disable_all_screens(&ms_data);
 	igt_assert(wait_for_suspended());
-	get_drm_info(&during_pc8);
+	get_drm_info(&during_suspend);
 	igt_assert(wait_for_suspended());
 
 	enable_one_screen(&ms_data);
 	igt_assert(wait_for_active());
-	get_drm_info(&post_pc8);
+	get_drm_info(&post_suspend);
 	igt_assert(wait_for_active());
 
-	assert_drm_infos_equal(&pre_pc8, &during_pc8);
-	assert_drm_infos_equal(&pre_pc8, &post_pc8);
+	assert_drm_infos_equal(&pre_suspend, &during_suspend);
+	assert_drm_infos_equal(&pre_suspend, &post_suspend);
 
-	free_drm_info(&pre_pc8);
-	free_drm_info(&during_pc8);
-	free_drm_info(&post_pc8);
+	free_drm_info(&pre_suspend);
+	free_drm_info(&during_suspend);
+	free_drm_info(&post_suspend);
 }
 
 static void i2c_subtest_check_environment(void)
@@ -859,11 +859,11 @@ static void i2c_subtest(void)
  * thing to do on Haswell, so don't do this test on the default case. */
 static void register_compare_subtest(void)
 {
-	struct compare_registers pre_pc8, post_pc8;
+	struct compare_registers pre_suspend, post_suspend;
 
 	enable_one_screen(&ms_data);
 	igt_assert(wait_for_active());
-	get_registers(&pre_pc8);
+	get_registers(&pre_suspend);
 	igt_assert(wait_for_active());
 
 	disable_all_screens(&ms_data);
@@ -872,10 +872,10 @@ static void register_compare_subtest(void)
 	igt_assert(wait_for_active());
 	/* Wait for the registers to be restored. */
 	sleep(1);
-	get_registers(&post_pc8);
+	get_registers(&post_suspend);
 	igt_assert(wait_for_active());
 
-	compare_registers(&pre_pc8, &post_pc8);
+	compare_registers(&pre_suspend, &post_suspend);
 }
 
 static void read_full_file(const char *name)
