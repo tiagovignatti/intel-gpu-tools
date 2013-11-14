@@ -985,9 +985,13 @@ static void debugfs_forcewake_user_subtest(void)
 	fd = open("/sys/kernel/debug/dri/0/i915_forcewake_user", O_RDONLY);
 	igt_require(fd);
 
-	igt_assert(wait_for_active());
-	sleep(10);
-	igt_assert(wait_for_active());
+	if (has_runtime_pm) {
+		igt_assert(wait_for_active());
+		sleep(10);
+		igt_assert(wait_for_active());
+	} else {
+		igt_assert(wait_for_suspended());
+	}
 
 	rc = close(fd);
 	igt_assert(rc == 0);
