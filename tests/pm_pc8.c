@@ -79,6 +79,7 @@ enum screen_type {
 #define DONT_WAIT	0
 #define WAIT_STATUS	1
 #define WAIT_PC8_RES	2
+#define WAIT_EXTRA	4
 
 int drm_fd, msr_fd, pm_status_fd, pc8_status_fd;
 bool has_runtime_pm, has_pc8;
@@ -723,6 +724,8 @@ static void modeset_subtest(enum screen_type type, int rounds, int wait_flags)
 			igt_assert(wait_for_suspended());
 		if (wait_flags & WAIT_PC8_RES)
 			igt_assert(pc8_plus_residency_changed(120));
+		if (wait_flags & WAIT_EXTRA)
+			sleep(5);
 
 		/* If we skip this line it's because the type of screen we want
 		 * is not connected. */
@@ -731,6 +734,8 @@ static void modeset_subtest(enum screen_type type, int rounds, int wait_flags)
 			igt_assert(wait_for_active());
 		if (wait_flags & WAIT_PC8_RES)
 			igt_assert(!pc8_plus_residency_changed(5));
+		if (wait_flags & WAIT_EXTRA)
+			sleep(5);
 	}
 }
 
@@ -1226,7 +1231,7 @@ static void gem_execbuf_subtest(void)
 
 /* Assuming execbuf already works, let's see what happens when we force many
  * suspend/resume cycles with commands. */
-static void gem_execbuf_stress_subtest(void)
+static void gem_execbuf_stress_subtest(int wait_flags)
 {
 	int i;
 	int max = 50;
@@ -1235,6 +1240,9 @@ static void gem_execbuf_stress_subtest(void)
 	uint32_t handle;
 	struct drm_i915_gem_execbuffer2 execbuf = {};
 	struct drm_i915_gem_exec_object2 objs[1] = {{}};
+
+	if (wait_flags & WAIT_PC8_RES)
+		igt_require(has_pc8);
 
 	i = 0;
 	batch_buf[i++] = MI_NOOP;
@@ -1259,7 +1267,13 @@ static void gem_execbuf_stress_subtest(void)
 
 	for (i = 0; i < max; i++) {
 		do_ioctl(drm_fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf);
-		igt_assert(wait_for_suspended());
+
+		if (wait_flags & WAIT_STATUS)
+			igt_assert(wait_for_suspended());
+		if (wait_flags & WAIT_PC8_RES)
+			igt_assert(pc8_plus_residency_changed(120));
+		if (wait_flags & WAIT_EXTRA)
+			sleep(5);
 	}
 
 	gem_close(drm_fd, handle);
@@ -1320,10 +1334,16 @@ int main(int argc, char *argv[])
 		modeset_subtest(SCREEN_TYPE_NON_LPSP, 50, DONT_WAIT);
 	igt_subtest("modeset-pc8-residency-stress")
 		modeset_subtest(SCREEN_TYPE_ANY, 50, WAIT_PC8_RES);
+	igt_subtest("modeset-stress-extra-wait")
+		modeset_subtest(SCREEN_TYPE_ANY, 50, WAIT_STATUS | WAIT_EXTRA);
 
 	/* GEM stress */
 	igt_subtest("gem-execbuf-stress")
-		gem_execbuf_stress_subtest();
+		gem_execbuf_stress_subtest(WAIT_STATUS);
+	igt_subtest("gem-execbuf-stress")
+		gem_execbuf_stress_subtest(WAIT_PC8_RES);
+	igt_subtest("gem-execbuf-stress")
+		gem_execbuf_stress_subtest(WAIT_STATUS | WAIT_EXTRA);
 
 	igt_fixture
 		teardown_environment();
