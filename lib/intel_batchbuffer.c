@@ -239,7 +239,9 @@ intel_blt_copy(struct intel_batchbuffer *batch,
 	       CHECK_RANGE(src_pitch) && CHECK_RANGE(dst_pitch));
 #undef CHECK_RANGE
 
-	BLIT_COPY_BATCH_START(batch->devid, cmd_bits);
+	BEGIN_BATCH(intel_gen(batch->devid) >= 8 ? 10 : 8);
+	OUT_BATCH(XY_SRC_COPY_BLT_CMD | cmd_bits |
+		  (intel_gen(batch->devid) >= 8 ? 8 : 6));
 	OUT_BATCH((br13_bits) |
 		  (0xcc << 16) | /* copy ROP */
 		  dst_pitch);
