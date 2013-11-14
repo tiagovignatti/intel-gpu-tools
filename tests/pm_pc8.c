@@ -1015,9 +1015,9 @@ static void submit_blt_cmd(uint32_t dst_handle, uint32_t x, uint32_t y,
 
 	objs[1].handle = batch_handle;
 	objs[1].relocation_count = 1;
-	objs[1].relocs_ptr = (uint64_t) relocs;
+	objs[1].relocs_ptr = (uintptr_t)relocs;
 
-	execbuf.buffers_ptr = (uint64_t) objs;
+	execbuf.buffers_ptr = (uintptr_t)objs;
 	execbuf.buffer_count = 2;
 	execbuf.batch_len = batch_size;
 	execbuf.flags = I915_EXEC_BLT;
@@ -1160,7 +1160,7 @@ static void gem_execbuf_stress_subtest(void)
 
 	objs[0].handle = handle;
 
-	execbuf.buffers_ptr = (uint64_t) objs;
+	execbuf.buffers_ptr = (uintptr_t)objs;
 	execbuf.buffer_count = 1;
 	execbuf.batch_len = batch_size;
 	execbuf.flags = I915_EXEC_RENDER;
