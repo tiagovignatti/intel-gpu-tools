@@ -102,27 +102,6 @@ struct compare_data {
 	drmModePropertyBlobPtr edids[MAX_CONNECTORS];
 };
 
-struct compare_registers {
-	/* We know these are lost */
-	uint32_t arb_mode;
-	uint32_t tilectl;
-
-	/* Stuff touched at init_clock_gating, so we can make sure we
-	 * don't need to call it when reiniting. */
-	uint32_t gen6_ucgctl2;
-	uint32_t gen7_l3cntlreg1;
-	uint32_t transa_chicken1;
-
-	uint32_t deier;
-	uint32_t gtier;
-
-	uint32_t ddi_buf_trans_a_1;
-	uint32_t ddi_buf_trans_b_5;
-	uint32_t ddi_buf_trans_c_10;
-	uint32_t ddi_buf_trans_d_15;
-	uint32_t ddi_buf_trans_e_20;
-};
-
 /* If the read fails, then the machine doesn't support PC8+ residencies. */
 static bool supports_pc8_plus_residencies(void)
 {
@@ -411,24 +390,6 @@ static void get_drm_info(struct compare_data *data)
 		data->crtcs[i] = drmModeGetCrtc(drm_fd, data->res->crtcs[i]);
 }
 
-static void get_registers(struct compare_registers *data)
-{
-	intel_register_access_init(intel_get_pci_device(), 0);
-	data->arb_mode = INREG(0x4030);
-	data->tilectl = INREG(0x101000);
-	data->gen6_ucgctl2 = INREG(0x9404);
-	data->gen7_l3cntlreg1 = INREG(0xB0C1);
-	data->transa_chicken1 = INREG(0xF0060);
-	data->deier = INREG(0x4400C);
-	data->gtier = INREG(0x4401C);
-	data->ddi_buf_trans_a_1 = INREG(0x64E00);
-	data->ddi_buf_trans_b_5 = INREG(0x64E70);
-	data->ddi_buf_trans_c_10 = INREG(0x64EE0);
-	data->ddi_buf_trans_d_15 = INREG(0x64F58);
-	data->ddi_buf_trans_e_20 = INREG(0x64FCC);
-	intel_register_access_fini();
-}
-
 static void free_drm_info(struct compare_data *data)
 {
 	int i;
@@ -527,24 +488,6 @@ static void assert_drm_edids_equal(drmModePropertyBlobPtr e1,
 	COMPARE(e1, e2, length);
 
 	igt_assert(memcmp(e1->data, e2->data, e1->length) == 0);
-}
-
-static void compare_registers(struct compare_registers *d1,
-			      struct compare_registers *d2)
-{
-	COMPARE(d1, d2, gen6_ucgctl2);
-	COMPARE(d1, d2, gen7_l3cntlreg1);
-	COMPARE(d1, d2, transa_chicken1);
-	COMPARE(d1, d2, arb_mode);
-	COMPARE(d1, d2, tilectl);
-	COMPARE(d1, d2, arb_mode);
-	COMPARE(d1, d2, tilectl);
-	COMPARE(d1, d2, gtier);
-	COMPARE(d1, d2, ddi_buf_trans_a_1);
-	COMPARE(d1, d2, ddi_buf_trans_b_5);
-	COMPARE(d1, d2, ddi_buf_trans_c_10);
-	COMPARE(d1, d2, ddi_buf_trans_d_15);
-	COMPARE(d1, d2, ddi_buf_trans_e_20);
 }
 
 static void assert_drm_infos_equal(struct compare_data *d1,
@@ -853,29 +796,6 @@ static void i2c_subtest(void)
 	igt_assert(wait_for_suspended());
 
 	enable_one_screen(&ms_data);
-}
-
-/* Just reading/writing registers from outside the Kernel is not really a safe
- * thing to do on Haswell, so don't do this test on the default case. */
-static void register_compare_subtest(void)
-{
-	struct compare_registers pre_suspend, post_suspend;
-
-	enable_one_screen(&ms_data);
-	igt_assert(wait_for_active());
-	get_registers(&pre_suspend);
-	igt_assert(wait_for_active());
-
-	disable_all_screens(&ms_data);
-	igt_assert(wait_for_suspended());
-	enable_one_screen(&ms_data);
-	igt_assert(wait_for_active());
-	/* Wait for the registers to be restored. */
-	sleep(1);
-	get_registers(&post_suspend);
-	igt_assert(wait_for_active());
-
-	compare_registers(&pre_suspend, &post_suspend);
 }
 
 static void read_full_file(const char *name)
@@ -1347,11 +1267,6 @@ static void gem_execbuf_stress_subtest(void)
 
 int main(int argc, char *argv[])
 {
-	bool do_register_compare = false;
-
-	if (argc > 1 && strcmp(argv[1], "--do-register-compare") == 0)
-		do_register_compare = true;
-
 	igt_subtest_init(argc, argv);
 
 	/* Skip instead of failing in case the machine is not prepared to reach
@@ -1409,12 +1324,6 @@ int main(int argc, char *argv[])
 	/* GEM stress */
 	igt_subtest("gem-execbuf-stress")
 		gem_execbuf_stress_subtest();
-
-	/* Optional */
-	igt_subtest("register-compare") {
-		igt_require(do_register_compare);
-		register_compare_subtest();
-	}
 
 	igt_fixture
 		teardown_environment();
