@@ -717,7 +717,7 @@ static void test_params(void)
 }
 
 
-int main(int argc, char **argv)
+igt_main
 {
 	struct local_drm_i915_gem_context_create create;
 	uint32_t devid;
@@ -726,13 +726,11 @@ int main(int argc, char **argv)
 
 	igt_skip_on_simulation();
 
-	igt_subtest_init(argc, argv);
-
 	igt_fixture {
 		fd = drm_open_any();
 		devid = intel_get_drm_devid(fd);
-		if (intel_gen(devid) < 4)
-			igt_skip("Architecture %d too old\n", intel_gen(devid));
+		igt_require_f(intel_gen(devid) >= 4,
+			      "Architecture %d too old\n", intel_gen(devid));
 
 		ret = drmIoctl(fd, CONTEXT_CREATE_IOCTL, &create);
 		if (ret != 0 && (errno == ENODEV || errno == EINVAL))
@@ -765,6 +763,4 @@ int main(int argc, char **argv)
 
 	igt_subtest("params")
 		test_params();
-
-	igt_exit();
 }
