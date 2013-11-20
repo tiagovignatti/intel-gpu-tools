@@ -2449,6 +2449,9 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 # define VBLANK_INT_STATUS	(1 << 1)
 # define OREG_UPDATE_STATUS	(1 << 0)
 				 
+#define FW_BLC		0x020d8
+#define FW_BLC2		0x020dc
+#define FW_BLC_SELF	0x020e0 /* 915+ only */
 
 #define DSPARB			0x70030
 #define   DSPARB_CSTART_SHIFT	7
