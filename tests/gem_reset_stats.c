@@ -202,8 +202,12 @@ static int inject_hang(int fd, int ctx)
 	uint64_t gtt_off;
 	uint32_t *buf;
 	int roff, i;
+	unsigned cmd_len = 2;
 
 	srandom(time(NULL));
+
+	if (intel_gen(intel_get_drm_devid(fd)) >= 8)
+		cmd_len = 3;
 
 	buf = malloc(BUFSIZE);
 	igt_assert(buf != NULL);
@@ -240,9 +244,11 @@ static int inject_hang(int fd, int ctx)
 	for (i = 0; i < ITEMS; i++)
 		buf[i] = MI_NOOP;
 
-	roff = random() % (ITEMS - 2);
-	buf[roff] = MI_BATCH_BUFFER_START;
-	buf[roff + 1] = gtt_off + (roff << 2);
+	roff = random() % (ITEMS - cmd_len);
+	buf[roff] = MI_BATCH_BUFFER_START | (cmd_len - 2);
+	buf[roff + 1] = (gtt_off & 0xfffffffc) + (roff << 2);
+	if (cmd_len == 3)
+		buf[roff + 2] = gtt_off & 0xffffffff00000000ull;
 
 #ifdef VERBOSE
 	printf("loop injected at 0x%lx (off 0x%x, bo_start 0x%lx, bo_end 0x%lx)\n",
