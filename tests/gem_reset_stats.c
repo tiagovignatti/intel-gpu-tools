@@ -733,9 +733,9 @@ igt_main
 			      "Architecture %d too old\n", intel_gen(devid));
 
 		ret = drmIoctl(fd, CONTEXT_CREATE_IOCTL, &create);
-		if (ret != 0 && (errno == ENODEV || errno == EINVAL))
-			igt_skip("Kernel is too old, or contexts not supported: %s\n",
-				 strerror(errno));
+		igt_skip_on_f(ret != 0 && (errno == ENODEV || errno == EINVAL),
+			      "Kernel is too old, or contexts not supported: %s\n",
+			      strerror(errno));
 
 		close(fd);
 	}
