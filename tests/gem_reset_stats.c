@@ -42,6 +42,7 @@
 #include "intel_batchbuffer.h"
 #include "intel_gpu_tools.h"
 #include "rendercopy.h"
+#include "igt_debugfs.h"
 
 #define RS_NO_ERROR      0
 #define RS_BATCH_ACTIVE  (1 << 0)
@@ -72,6 +73,8 @@ struct local_drm_i915_gem_context_destroy {
 #define CONTEXT_CREATE_IOCTL DRM_IOWR(DRM_COMMAND_BASE + 0x2d, struct local_drm_i915_gem_context_create)
 #define CONTEXT_DESTROY_IOCTL DRM_IOWR(DRM_COMMAND_BASE + 0x2e, struct local_drm_i915_gem_context_destroy)
 #define GET_RESET_STATS_IOCTL DRM_IOWR(DRM_COMMAND_BASE + 0x32, struct local_drm_i915_reset_stats)
+
+static igt_debugfs_t dfs;
 
 static uint32_t context_create(int fd)
 {
@@ -192,6 +195,17 @@ static int exec_valid(int fd, int ctx)
 	return exec.handle;
 }
 
+static void stop_rings(void)
+{
+	int fd;
+
+	fd = igt_debugfs_open(&dfs, "i915_ring_stop", O_WRONLY);
+	igt_assert(fd >= 0);
+
+	igt_assert(write(fd, "0xff", 4) == 4);
+	close(fd);
+}
+
 #define BUFSIZE (4 * 1024)
 #define ITEMS   (BUFSIZE >> 2)
 
@@ -283,6 +297,8 @@ static int inject_hang(int fd, int ctx)
 	igt_assert(gtt_off == exec.offset);
 
 	free(buf);
+
+	stop_rings();
 
 	return exec.handle;
 }
@@ -742,6 +758,8 @@ igt_main
 		igt_skip_on_f(ret != 0 && (errno == ENODEV || errno == EINVAL),
 			      "Kernel is too old, or contexts not supported: %s\n",
 			      strerror(errno));
+
+		assert(igt_debugfs_init(&dfs) == 0);
 
 		close(fd);
 	}
