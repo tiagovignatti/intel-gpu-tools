@@ -637,6 +637,17 @@ static void test_close_pending(void)
 	close(fd);
 }
 
+static void drop_root(void)
+{
+	igt_assert(getuid() == 0);
+
+	igt_assert(setgid(2) == 0);
+	igt_assert(setuid(2) == 0);
+
+	igt_assert(getgid() == 2);
+	igt_assert(getuid() == 2);
+}
+
 static void __test_count(const bool create_ctx)
 {
 	int fd, h, ctx;
@@ -661,8 +672,20 @@ static void __test_count(const bool create_ctx)
 	assert_reset_status(fd, ctx, RS_BATCH_ACTIVE);
 	c2 = get_reset_count(fd, ctx);
 	igt_assert(c2 >= 0);
-
 	igt_assert(c2 == (c1 + 1));
+
+	igt_fork(child, 1) {
+		drop_root();
+
+		c2 = get_reset_count(fd, ctx);
+
+		if (ctx == 0)
+			igt_assert(c2 == -EPERM);
+		else
+			igt_assert(c2 == 0);
+	}
+
+	igt_waitchildren();
 
 	gem_close(fd, h);
 
@@ -710,14 +733,48 @@ static int _test_params(int fd, int ctx, uint32_t flags, uint32_t pad)
 	return 0;
 }
 
-static void test_param_ctx(int fd, int ctx)
+typedef enum { root = 0, user } cap_t;
+
+static void test_param_ctx(const int fd, const int ctx, const cap_t cap)
 {
 	const uint32_t bad = rand() + 1;
 
-	igt_assert(_test_params(fd, ctx, 0, 0) == 0);
+	if (ctx == 0) {
+		if (cap == root)
+			igt_assert(_test_params(fd, ctx, 0, 0) == 0);
+		else
+			igt_assert(_test_params(fd, ctx, 0, 0) == -EPERM);
+	}
+
 	igt_assert(_test_params(fd, ctx, 0, bad) == -EINVAL);
 	igt_assert(_test_params(fd, ctx, bad, 0) == -EINVAL);
 	igt_assert(_test_params(fd, ctx, bad, bad) == -EINVAL);
+}
+
+static void check_params(const int fd, const int ctx, cap_t cap)
+{
+	igt_assert(ioctl(fd, GET_RESET_STATS_IOCTL, 0) == -1);
+	igt_assert(_test_params(fd, 0xbadbad, 0, 0) == -ENOENT);
+
+	test_param_ctx(fd, 0, cap);
+	test_param_ctx(fd, ctx, cap);
+}
+
+static void _test_param(const int fd, const int ctx)
+{
+	check_params(fd, ctx, root);
+
+	igt_fork(child, 1) {
+		check_params(fd, ctx, root);
+
+		drop_root();
+
+		check_params(fd, ctx, user);
+	}
+
+	check_params(fd, ctx, root);
+
+	igt_waitchildren();
 }
 
 static void test_params(void)
@@ -728,12 +785,7 @@ static void test_params(void)
 	igt_assert(fd >= 0);
 	ctx = context_create(fd);
 
-	igt_assert(ioctl(fd, GET_RESET_STATS_IOCTL, 0) == -1);
-
-	igt_assert(_test_params(fd, 0xbadbad, 0, 0) == -ENOENT);
-
-	test_param_ctx(fd, 0);
-	test_param_ctx(fd, ctx);
+	_test_param(fd, ctx);
 
 	close(fd);
 }
