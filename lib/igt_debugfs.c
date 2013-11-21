@@ -218,7 +218,7 @@ igt_pipe_crc_new(igt_debugfs_t *debugfs, int drm_fd, enum pipe pipe,
 
 	pipe_crc->ctl_fd = igt_debugfs_open(debugfs,
 					    "i915_display_crc_ctl", O_WRONLY);
-	igt_assert(pipe_crc->crc_fd != -1);
+	igt_assert(pipe_crc->ctl_fd != -1);
 
 	sprintf(buf, "i915_pipe_%c_crc", pipe_name(pipe));
 	pipe_crc->crc_fd = igt_debugfs_open(debugfs, buf, O_RDONLY);
