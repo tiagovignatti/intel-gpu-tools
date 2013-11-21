@@ -1348,9 +1348,9 @@ int main(int argc, char *argv[])
 	/* GEM stress */
 	igt_subtest("gem-execbuf-stress")
 		gem_execbuf_stress_subtest(rounds, WAIT_STATUS);
-	igt_subtest("gem-execbuf-stress")
+	igt_subtest("gem-execbuf-stress-pc8")
 		gem_execbuf_stress_subtest(rounds, WAIT_PC8_RES);
-	igt_subtest("gem-execbuf-stress")
+	igt_subtest("gem-execbuf-stress-extra-wait")
 		gem_execbuf_stress_subtest(rounds, WAIT_STATUS | WAIT_EXTRA);
 
 	igt_fixture
