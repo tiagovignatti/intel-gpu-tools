@@ -84,6 +84,7 @@ enum screen_type {
 int drm_fd, msr_fd, pm_status_fd, pc8_status_fd;
 bool has_runtime_pm, has_pc8;
 struct mode_set_data ms_data;
+struct scanout_fb *fbs = NULL;
 
 /* Stuff used when creating FBs and mode setting. */
 struct mode_set_data {
@@ -101,6 +102,15 @@ struct compare_data {
 	drmModeConnectorPtr connectors[MAX_CONNECTORS];
 	drmModeCrtcPtr crtcs[MAX_CRTCS];
 	drmModePropertyBlobPtr edids[MAX_CONNECTORS];
+};
+
+/* During the stress tests we want to be as fast as possible, so use pre-created
+ * FBs instead of creating them again and again. */
+struct scanout_fb {
+	uint32_t handle;
+	int width;
+	int height;
+	struct scanout_fb *next;
 };
 
 /* If the read fails, then the machine doesn't support PC8+ residencies. */
@@ -249,17 +259,46 @@ static void disable_all_screens(struct mode_set_data *data)
 	}
 }
 
-static uint32_t create_fb(struct mode_set_data *data, int width, int height)
+static struct scanout_fb *create_fb(struct mode_set_data *data, int width,
+				    int height)
 {
+	struct scanout_fb *fb_info;
 	struct kmstest_fb fb;
 	cairo_t *cr;
-	uint32_t buffer_id;
 
-	buffer_id = kmstest_create_fb(drm_fd, width, height, 32, 24, false,
-				      &fb);
+	fb_info = malloc(sizeof(struct scanout_fb));
+	igt_assert(fb_info);
+
+	fb_info->handle = kmstest_create_fb(drm_fd, width, height, 32, 24,
+					    false, &fb);
+	fb_info->width = width;
+	fb_info->height = height;
+	fb_info->next = NULL;
+
 	cr = kmstest_get_cairo_ctx(drm_fd, &fb);
 	kmstest_paint_test_pattern(cr, width, height);
-	return buffer_id;
+	return fb_info;
+}
+
+static uint32_t get_fb(struct mode_set_data *data, int width, int height)
+{
+	struct scanout_fb *fb;
+
+	if (!fbs) {
+		fbs = create_fb(data, width, height);
+		return fbs->handle;
+	}
+
+	for (fb = fbs; fb != NULL; fb = fb->next) {
+		if (fb->width == width && fb->height == height)
+			return fb->handle;
+
+		if (!fb->next) {
+			fb->next = create_fb(data, width, height);
+			return fb->next->handle;
+		}
+	}
+	igt_assert(false);
 }
 
 static bool enable_one_screen_with_type(struct mode_set_data *data,
@@ -291,7 +330,7 @@ static bool enable_one_screen_with_type(struct mode_set_data *data,
 		return false;
 
 	crtc_id = data->res->crtcs[0];
-	buffer_id = create_fb(data, mode->hdisplay, mode->vdisplay);
+	buffer_id = get_fb(data, mode->hdisplay, mode->vdisplay);
 
 	igt_assert(crtc_id);
 	igt_assert(buffer_id);
@@ -724,6 +763,15 @@ static void setup_environment(void)
 
 static void teardown_environment(void)
 {
+	struct scanout_fb *fb, *fb_next;
+
+	fb = fbs;
+	while (fb) {
+		fb_next = fb->next;
+		free(fb);
+		fb = fb_next;
+	}
+
 	fini_mode_set_data(&ms_data);
 	drmClose(drm_fd);
 	close(msr_fd);
