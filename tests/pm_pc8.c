@@ -659,12 +659,59 @@ static void setup_pc8(void)
 	has_pc8 = true;
 }
 
+/* If we want to actually reach PC8+ states, we need to properly configure all
+ * the devices on the system to allow this. This function will try to setup the
+ * things we know we need, but won't scream in case anything fails: we don't
+ * know which devices are present on your machine, so we can't really expect
+ * anything, just try to help with the more common problems. */
+static void setup_non_graphics_runtime_pm(void)
+{
+	int fd, i;
+	char *file_name;
+
+	/* Disk runtime PM policies. */
+	file_name = malloc(PATH_MAX);
+	for (i = 0; ; i++) {
+
+		snprintf(file_name, PATH_MAX,
+			 "/sys/class/scsi_host/host%d/link_power_management_policy",
+			 i);
+
+		fd = open(file_name, O_WRONLY);
+		if (fd < 0)
+			break;
+
+		write(fd, "min_power\n", 10);
+		close(fd);
+	}
+	free(file_name);
+
+	/* Audio runtime PM policies. */
+	fd = open("/sys/module/snd_hda_intel/parameters/power_save", O_WRONLY);
+	if (fd >= 0) {
+		write(fd, "1\n", 2);
+		close(fd);
+	}
+	fd = open("/sys/bus/pci/devices/0000:00:03.0/power/control", O_WRONLY);
+	if (fd >= 0) {
+		write(fd, "auto\n", 5);
+		close(fd);
+	}
+
+	/* For some yet unknown reason, it takes some time for the machine to
+	 * reach PC8+ residencies after we do this. I don't really know how much
+	 * we should wait, but this value seems to be working for me. */
+	sleep(10);
+}
+
 static void setup_environment(void)
 {
 	drm_fd = drm_open_any();
 	igt_assert(drm_fd >= 0);
 
 	init_mode_set_data(&ms_data);
+
+	setup_non_graphics_runtime_pm();
 
 	setup_runtime_pm();
 	setup_pc8();
