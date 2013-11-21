@@ -234,7 +234,7 @@ static void emit_dummy_load__rcs(struct test_output *o)
 	for (i = 0; i < limit; i++) {
 		struct scratch_buf *tmp;
 
-		copyfunc(batch,
+		copyfunc(batch, NULL,
 			 src, 0, 0,
 			 o->fb_width, o->fb_height,
 			 dst, 0, 0);

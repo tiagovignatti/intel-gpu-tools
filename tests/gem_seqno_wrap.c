@@ -148,7 +148,7 @@ static void render_copyfunc(struct scratch_buf *src,
 	static int warned = 0;
 
 	if (rendercopy) {
-		rendercopy(batch_3d,
+		rendercopy(batch_3d, NULL,
 			   src, src_x, src_y,
 			   width, height,
 			   dst, dst_x, dst_y);

@@ -52,14 +52,15 @@ batch_copy(struct intel_batchbuffer *batch, const void *ptr, uint32_t size, uint
 }
 
 static void
-gen7_render_flush(struct intel_batchbuffer *batch, uint32_t batch_end)
+gen7_render_flush(struct intel_batchbuffer *batch,
+		  drm_intel_context *context, uint32_t batch_end)
 {
 	int ret;
 
 	ret = drm_intel_bo_subdata(batch->bo, 0, 4096, batch->buffer);
 	if (ret == 0)
-		ret = drm_intel_bo_mrb_exec(batch->bo, batch_end,
-					    NULL, 0, 0, 0);
+		ret = drm_intel_gem_bo_context_exec(batch->bo, context,
+						    batch_end, 0);
 	assert(ret == 0);
 }
 
@@ -513,13 +514,14 @@ gen7_emit_null_depth_buffer(struct intel_batchbuffer *batch)
 
 #define BATCH_STATE_SPLIT 2048
 void gen7_render_copyfunc(struct intel_batchbuffer *batch,
+			  drm_intel_context *context,
 			  struct scratch_buf *src, unsigned src_x, unsigned src_y,
 			  unsigned width, unsigned height,
 			  struct scratch_buf *dst, unsigned dst_x, unsigned dst_y)
 {
 	uint32_t batch_end;
 
-	intel_batchbuffer_flush(batch);
+	intel_batchbuffer_flush_with_context(batch, context);
 
 	batch->state = &batch->buffer[BATCH_STATE_SPLIT];
 
@@ -563,6 +565,6 @@ void gen7_render_copyfunc(struct intel_batchbuffer *batch,
 	batch_end = ALIGN(batch_end, 8);
 	assert(batch_end < BATCH_STATE_SPLIT);
 
-	gen7_render_flush(batch, batch_end);
+	gen7_render_flush(batch, context, batch_end);
 	intel_batchbuffer_reset(batch);
 }

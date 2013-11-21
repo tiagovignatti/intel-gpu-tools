@@ -130,7 +130,7 @@ int main(int argc, char **argv)
 		int src = i % count;
 		int dst = (i + 1) % count;
 
-		render_copy(batch, buf+src, 0, 0, WIDTH, HEIGHT, buf+dst, 0, 0);
+		render_copy(batch, NULL, buf+src, 0, 0, WIDTH, HEIGHT, buf+dst, 0, 0);
 		start_val[dst] = start_val[src];
 	}
 	for (i = 0; i < count; i++)
@@ -141,7 +141,7 @@ int main(int argc, char **argv)
 		int src = (i + 1) % count;
 		int dst = i % count;
 
-		render_copy(batch, buf+src, 0, 0, WIDTH, HEIGHT, buf+dst, 0, 0);
+		render_copy(batch, NULL, buf+src, 0, 0, WIDTH, HEIGHT, buf+dst, 0, 0);
 		start_val[dst] = start_val[src];
 	}
 	for (i = 0; i < count; i++)
@@ -155,7 +155,7 @@ int main(int argc, char **argv)
 		if (src == dst)
 			continue;
 
-		render_copy(batch, buf+src, 0, 0, WIDTH, HEIGHT, buf+dst, 0, 0);
+		render_copy(batch, NULL, buf+src, 0, 0, WIDTH, HEIGHT, buf+dst, 0, 0);
 		start_val[dst] = start_val[src];
 	}
 	for (i = 0; i < count; i++)

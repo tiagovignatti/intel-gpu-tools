@@ -84,7 +84,7 @@ static void *work(void *arg)
 
 		if (uncontexted) {
 			igt_assert(rendercopy);
-			rendercopy(batch, &src, 0, 0, 0, 0, &dst, 0, 0);
+			rendercopy(batch, NULL, &src, 0, 0, 0, 0, &dst, 0, 0);
 		} else {
 			int ret;
 			ret = drm_intel_bo_subdata(batch->bo, 0, 4096, batch->buffer);

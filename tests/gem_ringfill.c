@@ -159,9 +159,9 @@ static int check_ring(drm_intel_bufmgr *bufmgr,
 		igt_assert(y < height);
 
 		/* Dummy load to fill the ring */
-		copy(batch, &src, 0, 0, width, height, &tmp, 0, 0);
+		copy(batch, NULL, &src, 0, 0, width, height, &tmp, 0, 0);
 		/* And copy the src into dst, pixel by pixel */
-		copy(batch, &src, x, y, 1, 1, &dst, x, y);
+		copy(batch, NULL, &src, x, y, 1, 1, &dst, x, y);
 	}
 
 	/* verify */
@@ -173,6 +173,7 @@ static int check_ring(drm_intel_bufmgr *bufmgr,
 }
 
 static void blt_copy(struct intel_batchbuffer *batch,
+		     drm_intel_context *context,
 		     struct scratch_buf *src, unsigned src_x, unsigned src_y,
 		     unsigned w, unsigned h,
 		     struct scratch_buf *dst, unsigned dst_x, unsigned dst_y)

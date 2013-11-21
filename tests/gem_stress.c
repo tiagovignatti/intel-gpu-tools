@@ -328,7 +328,7 @@ static void render_copyfunc(struct scratch_buf *src, unsigned src_x, unsigned sr
 		keep_gpu_busy();
 
 	if (rendercopy)
-		rendercopy(batch, src, src_x, src_y,
+		rendercopy(batch, NULL, src, src_x, src_y,
 		     options.tile_size, options.tile_size,
 		     dst, dst_x, dst_y);
 	else

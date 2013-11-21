@@ -78,14 +78,15 @@ batch_copy(struct intel_batchbuffer *batch, const void *ptr, uint32_t size, uint
 }
 
 static void
-gen6_render_flush(struct intel_batchbuffer *batch, uint32_t batch_end)
+gen6_render_flush(struct intel_batchbuffer *batch,
+		  drm_intel_context *context, uint32_t batch_end)
 {
 	int ret;
 
 	ret = drm_intel_bo_subdata(batch->bo, 0, 4096, batch->buffer);
 	if (ret == 0)
-		ret = drm_intel_bo_mrb_exec(batch->bo, batch_end,
-					    NULL, 0, 0, 0);
+		ret = drm_intel_gem_bo_context_exec(batch->bo, context,
+						    batch_end, 0);
 	assert(ret == 0);
 }
 
@@ -529,6 +530,7 @@ static uint32_t gen6_emit_primitive(struct intel_batchbuffer *batch)
 }
 
 void gen6_render_copyfunc(struct intel_batchbuffer *batch,
+			  drm_intel_context *context,
 			  struct scratch_buf *src, unsigned src_x, unsigned src_y,
 			  unsigned width, unsigned height,
 			  struct scratch_buf *dst, unsigned dst_x, unsigned dst_y)
@@ -537,7 +539,7 @@ void gen6_render_copyfunc(struct intel_batchbuffer *batch,
 	uint32_t cc_vp, cc_blend, offset;
 	uint32_t batch_end;
 
-	intel_batchbuffer_flush(batch);
+	intel_batchbuffer_flush_with_context(batch, context);
 
 	batch->ptr = batch->buffer + 1024;
 	batch_alloc(batch, 64, 64);
@@ -594,6 +596,6 @@ void gen6_render_copyfunc(struct intel_batchbuffer *batch,
 	emit_vertex_normalized(batch, src_x, buf_width(src));
 	emit_vertex_normalized(batch, src_y, buf_height(src));
 
-	gen6_render_flush(batch, batch_end);
+	gen6_render_flush(batch, context, batch_end);
 	intel_batchbuffer_reset(batch);
 }

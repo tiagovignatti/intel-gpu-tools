@@ -128,7 +128,7 @@ int main(int argc, char **argv)
 		dst.tiling = I915_TILING_NONE;
 		dst.size = SIZE;
 
-		render_copy(batch, &src, 0, 0, WIDTH, HEIGHT, &dst, 0, 0);
+		render_copy(batch, NULL, &src, 0, 0, WIDTH, HEIGHT, &dst, 0, 0);
 		start_val[(i + 1) % count] = start_val[i % count];
 	}
 	for (i = 0; i < count; i++)
@@ -151,7 +151,7 @@ int main(int argc, char **argv)
 		dst.tiling = I915_TILING_NONE;
 		dst.size = SIZE;
 
-		render_copy(batch, &src, 0, 0, WIDTH, HEIGHT, &dst, 0, 0);
+		render_copy(batch, NULL, &src, 0, 0, WIDTH, HEIGHT, &dst, 0, 0);
 		start_val[i % count] = start_val[(i + 1) % count];
 	}
 	for (i = 0; i < count; i++)
@@ -176,7 +176,7 @@ int main(int argc, char **argv)
 		dst.tiling = I915_TILING_NONE;
 		dst.size = SIZE;
 
-		render_copy(batch, &src, 0, 0, WIDTH, HEIGHT, &dst, 0, 0);
+		render_copy(batch, NULL, &src, 0, 0, WIDTH, HEIGHT, &dst, 0, 0);
 		start_val[d] = start_val[s];
 	}
 	for (i = 0; i < count; i++)

@@ -156,7 +156,7 @@ int main(int argc, char **argv)
 		drm_intel_bufmgr_gem_set_aub_dump(data.bufmgr, true);
 	}
 
-	render_copy(batch,
+	render_copy(batch, NULL,
 		    &src, 0, 0, WIDTH, HEIGHT,
 		    &dst, WIDTH / 2, HEIGHT / 2);
 
