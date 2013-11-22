@@ -168,7 +168,7 @@ main (int argc, char *argv[])
 		{"binary", 0, 0, 'b'}
 	};
 
-	while((c = getopt_long(argc, argv, "ab",
+	while((c = getopt_long(argc, argv, "ad:b",
 			       long_options, &option_index)) != -1) {
 		switch(c) {
 		case 'd':
