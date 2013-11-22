@@ -238,6 +238,9 @@ static bool prepare_crtc(test_data_t *test_data, uint32_t connector_id)
 
 	connector_set_mode(data, &connector, &connector.config.default_mode);
 
+	igt_pipe_crc_free(data->pipe_crc[test_data->crtc_idx]);
+	data->pipe_crc[test_data->crtc_idx] = NULL;
+
 	pipe_crc = create_crc(data, test_data->crtc_idx);
 	if (!pipe_crc) {
 		printf("auto crc not supported on this connector with crtc %i\n",
@@ -299,6 +302,7 @@ static void run_test(data_t *data, enum cursor_type cursor_type, bool onscreen)
 				igt_subtest_name(), test_data.crtc_id, connector_id);
 
 			igt_pipe_crc_free(data->pipe_crc[test_data.crtc_idx]);
+			data->pipe_crc[test_data.crtc_idx] = NULL;
 		}
 	}
 
