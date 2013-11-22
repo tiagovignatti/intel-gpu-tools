@@ -784,7 +784,9 @@ gen8_emit_depth(struct intel_batchbuffer *batch) {
 	OUT_BATCH(0);
 	OUT_BATCH(0);
 
-	OUT_BATCH(GEN7_3DSTATE_HIER_DEPTH_BUFFER | (3-2));
+	OUT_BATCH(GEN7_3DSTATE_HIER_DEPTH_BUFFER | (5 - 2));
+	OUT_BATCH(0);
+	OUT_BATCH(0);
 	OUT_BATCH(0);
 	OUT_BATCH(0);
 
