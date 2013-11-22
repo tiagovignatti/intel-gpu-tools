@@ -557,9 +557,7 @@ gen8_emit_cc(struct intel_batchbuffer *batch) {
 
 static void
 gen8_emit_multisample(struct intel_batchbuffer *batch) {
-	OUT_BATCH(GEN8_3DSTATE_MULTISAMPLE | 2);
-	OUT_BATCH(0);
-	OUT_BATCH(0);
+	OUT_BATCH(GEN8_3DSTATE_MULTISAMPLE);
 	OUT_BATCH(0);
 
 	OUT_BATCH(GEN6_3DSTATE_SAMPLE_MASK);
@@ -567,14 +565,18 @@ gen8_emit_multisample(struct intel_batchbuffer *batch) {
 }
 
 static void
-gen7_emit_vs(struct intel_batchbuffer *batch) {
+gen8_emit_vs(struct intel_batchbuffer *batch) {
 	OUT_BATCH(GEN7_3DSTATE_BINDING_TABLE_POINTERS_VS);
 	OUT_BATCH(0);
 
 	OUT_BATCH(GEN7_3DSTATE_SAMPLER_STATE_POINTERS_VS);
 	OUT_BATCH(0);
 
-	OUT_BATCH(GEN6_3DSTATE_CONSTANT_VS | (7-2));
+	OUT_BATCH(GEN6_3DSTATE_CONSTANT_VS | (11 - 2));
+	OUT_BATCH(0);
+	OUT_BATCH(0);
+	OUT_BATCH(0);
+	OUT_BATCH(0);
 	OUT_BATCH(0);
 	OUT_BATCH(0);
 	OUT_BATCH(0);
@@ -591,8 +593,12 @@ gen7_emit_vs(struct intel_batchbuffer *batch) {
 }
 
 static void
-gen7_emit_hs(struct intel_batchbuffer *batch) {
-	OUT_BATCH(GEN7_3DSTATE_CONSTANT_HS | (7-2));
+gen8_emit_hs(struct intel_batchbuffer *batch) {
+	OUT_BATCH(GEN7_3DSTATE_CONSTANT_HS | (11 - 2));
+	OUT_BATCH(0);
+	OUT_BATCH(0);
+	OUT_BATCH(0);
+	OUT_BATCH(0);
 	OUT_BATCH(0);
 	OUT_BATCH(0);
 	OUT_BATCH(0);
@@ -616,8 +622,12 @@ gen7_emit_hs(struct intel_batchbuffer *batch) {
 }
 
 static void
-gen7_emit_gs(struct intel_batchbuffer *batch) {
-	OUT_BATCH(GEN7_3DSTATE_CONSTANT_GS | (7-2));
+gen8_emit_gs(struct intel_batchbuffer *batch) {
+	OUT_BATCH(GEN7_3DSTATE_CONSTANT_GS | (11 - 2));
+	OUT_BATCH(0);
+	OUT_BATCH(0);
+	OUT_BATCH(0);
+	OUT_BATCH(0);
 	OUT_BATCH(0);
 	OUT_BATCH(0);
 	OUT_BATCH(0);
@@ -641,8 +651,12 @@ gen7_emit_gs(struct intel_batchbuffer *batch) {
 }
 
 static void
-gen7_emit_ds(struct intel_batchbuffer *batch) {
-	OUT_BATCH(GEN7_3DSTATE_CONSTANT_DS | (7-2));
+gen8_emit_ds(struct intel_batchbuffer *batch) {
+	OUT_BATCH(GEN7_3DSTATE_CONSTANT_DS | (11 - 2));
+	OUT_BATCH(0);
+	OUT_BATCH(0);
+	OUT_BATCH(0);
+	OUT_BATCH(0);
 	OUT_BATCH(0);
 	OUT_BATCH(0);
 	OUT_BATCH(0);
@@ -665,15 +679,15 @@ gen7_emit_ds(struct intel_batchbuffer *batch) {
 }
 
 static void
-gen7_emit_null_state(struct intel_batchbuffer *batch) {
-	gen7_emit_hs(batch);
+gen8_emit_null_state(struct intel_batchbuffer *batch) {
+	gen8_emit_hs(batch);
 	OUT_BATCH(GEN7_3DSTATE_TE | (4-2));
 	OUT_BATCH(0);
 	OUT_BATCH(0);
 	OUT_BATCH(0);
-	gen7_emit_gs(batch);
-	gen7_emit_ds(batch);
-	gen7_emit_vs(batch);
+	gen8_emit_gs(batch);
+	gen8_emit_ds(batch);
+	gen8_emit_vs(batch);
 }
 
 static void
@@ -907,7 +921,7 @@ void gen8_render_copyfunc(struct intel_batchbuffer *batch,
 
 	gen8_emit_multisample(batch);
 
-	gen7_emit_null_state(batch);
+	gen8_emit_null_state(batch);
 
 	OUT_BATCH(GEN7_3DSTATE_STREAMOUT | 1);
 	OUT_BATCH(0);
