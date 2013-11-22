@@ -632,6 +632,16 @@ uint32_t gem_context_create(int fd)
 	return create.ctx_id;
 }
 
+void gem_sw_finish(int fd, uint32_t handle)
+{
+	struct drm_i915_gem_sw_finish finish;
+
+	finish.handle = handle;
+
+	do_ioctl(fd, DRM_IOCTL_I915_GEM_SW_FINISH, &finish);
+}
+
+
 /* prime */
 int prime_handle_to_fd(int fd, uint32_t handle)
 {
