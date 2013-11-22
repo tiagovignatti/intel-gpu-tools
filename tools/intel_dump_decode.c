@@ -158,6 +158,7 @@ int
 main (int argc, char *argv[])
 {
 	uint32_t devid = 0xa011;
+	char *devid_str = NULL;
 	int i, c;
 	int option_index = 0;
 	int binary = -1;
@@ -168,11 +169,13 @@ main (int argc, char *argv[])
 		{"binary", 0, 0, 'b'}
 	};
 
+	devid_str = getenv("INTEL_DEVID_OVERRIDE");
+
 	while((c = getopt_long(argc, argv, "ad:b",
 			       long_options, &option_index)) != -1) {
 		switch(c) {
 		case 'd':
-			devid = strtoul(optarg, NULL, 0);
+			devid_str = optarg;
 			break;
 		case 'b':
 			binary = 1;
@@ -185,6 +188,9 @@ main (int argc, char *argv[])
 			break;
 		}
 	}
+
+	if (devid_str)
+		devid = strtoul(devid_str, NULL, 0);
 
 	ctx = drm_intel_decode_context_alloc(devid);
 
