@@ -471,8 +471,9 @@ gen6_create_scissor_rect(struct intel_batchbuffer *batch)
 }
 
 static void
-gen6_emit_sip(struct intel_batchbuffer *batch) {
-	OUT_BATCH(GEN6_STATE_SIP | 0);
+gen8_emit_sip(struct intel_batchbuffer *batch) {
+	OUT_BATCH(GEN6_STATE_SIP | (3 - 2));
+	OUT_BATCH(0);
 	OUT_BATCH(0);
 }
 
@@ -889,7 +890,7 @@ void gen8_render_copyfunc(struct intel_batchbuffer *batch,
 	 * order */
 	OUT_BATCH(GEN6_PIPELINE_SELECT | PIPELINE_SELECT_3D);
 
-	gen6_emit_sip(batch);
+	gen8_emit_sip(batch);
 
 	gen7_emit_push_constants(batch);
 
