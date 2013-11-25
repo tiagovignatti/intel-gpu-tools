@@ -641,6 +641,16 @@ void gem_sw_finish(int fd, uint32_t handle)
 	do_ioctl(fd, DRM_IOCTL_I915_GEM_SW_FINISH, &finish);
 }
 
+bool gem_bo_busy(int fd, uint32_t handle)
+{
+	struct drm_i915_gem_busy busy;
+
+	busy.handle = handle;
+
+	do_ioctl(fd, DRM_IOCTL_I915_GEM_BUSY, &busy);
+
+	return !!busy.busy;
+}
 
 /* prime */
 int prime_handle_to_fd(int fd, uint32_t handle)

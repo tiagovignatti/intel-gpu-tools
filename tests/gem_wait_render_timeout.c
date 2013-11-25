@@ -80,17 +80,6 @@ gem_bo_wait_timeout(int fd, uint32_t handle, uint64_t *timeout_ns)
 	return ret ? -errno : 0;
 }
 
-static bool
-gem_bo_busy(int fd, uint32_t handle)
-{
-	struct drm_i915_gem_busy busy;
-
-	busy.handle = handle;
-	do_or_die(drmIoctl(fd, DRM_IOCTL_I915_GEM_BUSY, &busy));
-
-	return !!busy.busy;
-}
-
 static void blt_color_fill(struct intel_batchbuffer *batch,
 			   drm_intel_bo *buf,
 			   const unsigned int pages)

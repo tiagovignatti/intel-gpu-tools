@@ -87,6 +87,8 @@ uint32_t gem_context_create(int fd);
 
 void gem_sw_finish(int fd, uint32_t handle);
 
+bool gem_bo_busy(int fd, uint32_t handle);
+
 /* feature test helpers */
 bool gem_uses_aliasing_ppgtt(int fd);
 int gem_available_fences(int fd);
