@@ -61,6 +61,7 @@ enum runtime_pm_status {
 	RUNTIME_PM_STATUS_ACTIVE,
 	RUNTIME_PM_STATUS_SUSPENDED,
 	RUNTIME_PM_STATUS_SUSPENDING,
+	RUNTIME_PM_STATUS_RESUMING,
 	RUNTIME_PM_STATUS_UNKNOWN,
 };
 
@@ -212,6 +213,8 @@ static enum runtime_pm_status get_runtime_pm_status(void)
 		return RUNTIME_PM_STATUS_ACTIVE;
 	else if (strncmp(buf, "suspending\n", n_read) == 0)
 		return RUNTIME_PM_STATUS_SUSPENDING;
+	else if (strncmp(buf, "resuming\n", n_read) == 0)
+		return RUNTIME_PM_STATUS_RESUMING;
 
 	igt_assert_f(false, "Unknown status %s\n", buf);
 	return RUNTIME_PM_STATUS_UNKNOWN;
