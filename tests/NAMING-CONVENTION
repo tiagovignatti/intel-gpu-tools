@@ -65,3 +65,5 @@ ctx: Tests that exercise the hw context support.
 render/blt/bsd/vebox: Tests which apply to individual rings should use these
 suffixes. They're a bit inconsistent and historically grown, but they new Bspec
 names (RCS, BCS, VCS and VECS) aren't really clearer.
+
+exec: Tests that exercise the execbuf code in various ways.
