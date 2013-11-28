@@ -249,7 +249,6 @@ static bool fbc_enabled(data_t *data)
 
 static void test_crc(data_t *data, enum test_mode mode)
 {
-	static const unsigned char buf[1] = { 0xcc };
 	igt_pipe_crc_t *pipe_crc = data->pipe_crc[data->crtc_idx];
 	igt_crc_t *crcs = NULL;
 	uint32_t handle = data->handle[0];
