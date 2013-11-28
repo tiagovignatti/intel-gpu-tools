@@ -103,6 +103,7 @@ igt_no_exit_list_only
 igt_no_subtest
 kms_addfb
 kms_cursor_crc
+kms_fbc_crc
 kms_flip
 kms_pipe_crc_basic
 kms_render
