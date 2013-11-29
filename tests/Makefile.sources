@@ -87,6 +87,7 @@ TESTS_progs = \
 	gem_largeobject \
 	gem_lut_handle \
 	gem_mmap_offset_exhaustion \
+	gem_media_fill \
 	gem_pin \
 	gem_pipe_control_store_loop \
 	gem_reg_read \
