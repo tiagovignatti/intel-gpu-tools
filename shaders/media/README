@@ -1,0 +1,5 @@
+These files are here for reference only.
+
+Commands used to generate the shader on gen8
+$> m4 media_fill.gxa > media_fill.gxm
+$> intel-gen4asm -g 8 -o <output> media_fill.gxm

@@ -1,0 +1,44 @@
+/*
+ * Registers
+ * g0 -- header
+ * g1 -- constant
+ * g2 -- inline data
+ * g3 -- reserved
+ * g4-g12 payload for write message
+ */
+define(`ORIG',          `g2.0<2,2,1>UD')
+define(`COLOR',         `g1.0')
+define(`COLORUB',       `COLOR<0,1,0>UB')
+define(`COLORUD',       `COLOR<0,1,0>UD')
+
+mov(4)  COLOR<1>UB      COLORUB         {align1};
+
+/* WRITE */
+mov(8)  g4.0<1>UD       g0.0<8,8,1>UD   {align1};
+mov(2)  g4.0<1>UD       ORIG            {align1};
+mov(1)  g4.8<1>UD       0x000f000fUD    {align1};
+
+mov(16) g5.0<1>UD       COLORUD         {align1 compr};
+mov(16) g7.0<1>UD       COLORUD         {align1 compr};
+mov(16) g9.0<1>UD       COLORUD         {align1 compr};
+mov(16) g11.0<1>UD      COLORUD         {align1 compr};
+
+/*
+ * comment out the following instruction on Gen7
+ * write(0, 0, 10, 12)
+ *   10: media_block_write
+ *   12: data cache data port 1
+ */
+send(16) 4 acc0<1>UW null write(0, 0, 10, 12) mlen 9 rlen 0 {align1};
+
+/*
+ * uncomment the following instruction on Gen7
+ * write(0, 0, 10, 0)
+ *   10: media_block_write
+ *    0: reander cache data port
+ */
+/* send(16) 4 acc0<1>UW null write(0, 0, 10, 0) mlen 9 rlen 0 {align1}; */
+
+/* EOT */
+mov(8)  g112.0<1>UD       g0.0<8,8,1>UD   {align1};
+send(16) 112 null<1>UW null thread_spawner(0, 0, 1) mlen 1 rlen 0 {align1 EOT};
