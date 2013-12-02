@@ -47,4 +47,11 @@ typedef void (*media_fillfunc_t)(struct intel_batchbuffer *batch,
 
 media_fillfunc_t get_media_fillfunc(int devid);
 
+void
+gen8_media_fillfunc(struct intel_batchbuffer *batch,
+		struct scratch_buf *dst,
+		unsigned x, unsigned y,
+		unsigned width, unsigned height,
+		uint8_t color);
+
 #endif /* RENDE_MEDIA_FILL_H */
