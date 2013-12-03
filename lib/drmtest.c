@@ -43,6 +43,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/wait.h>
+#include <sys/types.h>
+#include <sys/syscall.h>
 
 #include "drmtest.h"
 #include "i915_drm.h"
@@ -1479,6 +1481,8 @@ static void igt_atexit_handler(void)
 
 static void fatal_sig_handler(int sig)
 {
+	pid_t pid, tid;
+
 	restore_all_sig_handler();
 
 	/*
@@ -1487,7 +1491,11 @@ static void fatal_sig_handler(int sig)
 	 */
 	call_exit_handlers(sig);
 
-	raise(sig);
+	/* Workaround cached PID and TID races on glibc and Bionic libc. */
+	pid = syscall(SYS_getpid);
+	tid = syscall(SYS_gettid);
+
+	syscall(SYS_tgkill, pid, tid, sig);
 }
 
 /*
