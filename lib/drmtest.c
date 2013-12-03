@@ -1114,7 +1114,7 @@ static void fork_helper_exit_handler(int sig)
 
 			assert(kill(pid, SIGQUIT) == 0);
 			while (waitpid(pid, &status, 0) == -1 &&
-			       errno == -EINTR)
+			       errno == EINTR)
 				;
 			helper_process_count--;
 		}
@@ -1181,7 +1181,7 @@ void igt_stop_helper(struct igt_helper_process *proc)
 	assert(kill(proc->pid,
 		    proc->use_SIGKILL ? SIGKILL : SIGQUIT) == 0);
 	while (waitpid(proc->pid, &status, 0) == -1 &&
-	       errno == -EINTR)
+	       errno == EINTR)
 		;
 	igt_assert(WIFSIGNALED(status) &&
 		   WTERMSIG(status) == (proc->use_SIGKILL ? SIGKILL : SIGQUIT));
@@ -1201,7 +1201,7 @@ static void children_exit_handler(int sig)
 		assert(kill(test_children[nc], SIGQUIT) == 0);
 
 		while (waitpid(test_children[nc], &status, 0) == -1 &&
-		       errno == -EINTR)
+		       errno == EINTR)
 			;
 	}
 
@@ -1254,7 +1254,7 @@ void igt_waitchildren(void)
 	for (int nc = 0; nc < num_test_children; nc++) {
 		int status = -1;
 		while (waitpid(test_children[nc], &status, 0) == -1 &&
-		       errno == -EINTR)
+		       errno == EINTR)
 			;
 
 		if (status != 0) {
