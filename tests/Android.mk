@@ -65,6 +65,7 @@ skip_tests_list := \
     kms_cursor_crc \
     kms_flip \
     kms_pipe_crc_basic \
+    kms_fbc_crc \
     kms_render \
     kms_setmode \
     pm_pc8 \
