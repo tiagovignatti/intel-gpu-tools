@@ -1129,7 +1129,6 @@ static void fork_helper_exit_handler(int sig)
 bool __igt_fork_helper(struct igt_helper_process *proc)
 {
 	pid_t pid;
-	sighandler_t oldsig;
 	int id;
 
 	assert(!proc->running);
@@ -1140,13 +1139,6 @@ bool __igt_fork_helper(struct igt_helper_process *proc)
 
 	igt_install_exit_handler(fork_helper_exit_handler);
 
-	/*
-	 * XXX: There's a race between fork and the subsequent kill in
-	 * igt_stop_signal_helper if we don't ovewrite the SIGQUIT handler. Note
-	 * that inserting sufficient amounts of printf or other delays makes
-	 * this unnecessary.
-	 */
-	oldsig = signal(SIGQUIT, SIG_DFL);
 	switch (pid = fork()) {
 	case -1:
 		igt_assert(0);
@@ -1157,8 +1149,6 @@ bool __igt_fork_helper(struct igt_helper_process *proc)
 
 		return true;
 	default:
-		signal(SIGQUIT, oldsig);
-
 		proc->running = true;
 		proc->pid = pid;
 		proc->id = id;
