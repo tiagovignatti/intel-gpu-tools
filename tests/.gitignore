@@ -109,6 +109,7 @@ kms_flip
 kms_pipe_crc_basic
 kms_render
 kms_setmode
+pm_lpsp
 pm_pc8
 pm_psr
 pm_rc6_residency

@@ -56,6 +56,7 @@ TESTS_progs_M = \
 	kms_pipe_crc_basic \
 	kms_render \
 	kms_setmode \
+	pm_lpsp \
 	pm_pc8 \
 	prime_self_import \
 	template \
