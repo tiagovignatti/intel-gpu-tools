@@ -275,6 +275,7 @@ static void setup_crtcs(drmModeRes *resources, struct connector_config *cconf,
 	int crtc_count;
 	bool config_valid;
 	int i;
+	int encoder_usage_count[resources->count_encoders];
 
 	i = 0;
 	crtc_count = 0;
@@ -336,6 +337,20 @@ static void setup_crtcs(drmModeRes *resources, struct connector_config *cconf,
 		crtc_count++;
 		crtc++;
 	}
+
+	memset(encoder_usage_count, 0, sizeof(encoder_usage_count));
+	for (i = 0; i < connector_count; i++) {
+		drmModeConnector *connector = cconf[i].connector;
+		drmModeEncoder *encoder;
+
+		igt_assert(connector->count_encoders == 1);
+		encoder = drmModeGetEncoder(drm_fd, connector->encoders[0]);
+		encoder_usage_count[get_encoder_idx(resources, encoder)]++;
+		drmModeFreeEncoder(encoder);
+	}
+	for (i = 0; i < resources->count_encoders; i++)
+		if (encoder_usage_count[i] > 1)
+			config_valid = false;
 
 	*crtc_count_ret = crtc_count;
 	*config_valid_ret = config_valid;
