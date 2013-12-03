@@ -1106,13 +1106,14 @@ static void fork_helper_exit_handler(int sig)
 {
 	for (int i = 0; i < ARRAY_SIZE(helper_process_pids); i++) {
 		pid_t pid = helper_process_pids[i];
-		int status;
+		int status, ret;
 
 		if (pid != -1) {
 			/* Someone forgot to fill up the array? */
 			assert(pid != 0);
 
-			assert(kill(pid, SIGQUIT) == 0);
+			ret = kill(pid, SIGQUIT);
+			assert(ret == 0);
 			while (waitpid(pid, &status, 0) == -1 &&
 			       errno == EINTR)
 				;
@@ -1174,12 +1175,13 @@ bool __igt_fork_helper(struct igt_helper_process *proc)
  */
 void igt_stop_helper(struct igt_helper_process *proc)
 {
-	int status;
+	int status, ret;
 
 	assert(proc->running);
 
-	assert(kill(proc->pid,
-		    proc->use_SIGKILL ? SIGKILL : SIGQUIT) == 0);
+	ret = kill(proc->pid,
+		   proc->use_SIGKILL ? SIGKILL : SIGQUIT);
+	assert(ret == 0);
 	while (waitpid(proc->pid, &status, 0) == -1 &&
 	       errno == EINTR)
 		;
@@ -1194,11 +1196,14 @@ void igt_stop_helper(struct igt_helper_process *proc)
 
 static void children_exit_handler(int sig)
 {
+	int ret;
+
 	assert(!test_child);
 
 	for (int nc = 0; nc < num_test_children; nc++) {
 		int status = -1;
-		assert(kill(test_children[nc], SIGQUIT) == 0);
+		ret = kill(test_children[nc], SIGQUIT);
+		assert(ret == 0);
 
 		while (waitpid(test_children[nc], &status, 0) == -1 &&
 		       errno == EINTR)
