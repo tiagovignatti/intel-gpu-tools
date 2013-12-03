@@ -366,6 +366,10 @@ igt_main
 		max = gem_aperture_size (fd) / (1024 * 1024) / 2;
 		if (num_buffers > max)
 			num_buffers = max;
+
+		max = intel_get_total_ram_mb() * 3 / 4;
+		if (num_buffers > max)
+			num_buffers = max;
 	}
 
 	for (i = 0; i < ARRAY_SIZE(access_modes); i++)
