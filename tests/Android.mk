@@ -40,7 +40,7 @@ define add_test
        $(LIBPCIACCESS_PATH)/include
 
     LOCAL_CFLAGS += -DHAVE_STRUCT_SYSINFO_TOTALRAM
-    LOCAL_CFLAGS += -DANDROID
+    LOCAL_CFLAGS += -DANDROID -UNDEBUG -include "check-ndebug.h"
     LOCAL_CFLAGS += -std=c99
     # FIXME: drop once Bionic correctly annotates "noreturn" on pthread_exit
     LOCAL_CFLAGS += -Wno-error=return-type

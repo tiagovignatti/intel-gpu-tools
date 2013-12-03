@@ -23,6 +23,7 @@ CLEANFILES = $(EXTRA_PROGRAMS)
 AM_CFLAGS = $(DRM_CFLAGS) $(CWARNFLAGS) \
 	-I$(srcdir)/.. \
 	-I$(srcdir)/../lib \
+	-include "check-ndebug.h" \
 	-DIGT_DATADIR=\""$(abs_srcdir)"\" \
 	$(NULL)
 
