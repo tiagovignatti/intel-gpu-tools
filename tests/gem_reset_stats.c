@@ -25,6 +25,7 @@
  *
  */
 
+#define _GNU_SOURCE
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -36,6 +37,7 @@
 #include <sys/ioctl.h>
 #include <sys/mman.h>
 #include <time.h>
+#include <signal.h>
 
 #include "i915_drm.h"
 #include "intel_bufmgr.h"
@@ -637,6 +639,63 @@ static void test_close_pending(void)
 	close(fd);
 }
 
+static void test_close_pending_fork(void)
+{
+	int pid;
+	int fd, h;
+
+	fd = drm_open_any();
+	igt_assert(fd >= 0);
+
+	assert_reset_status(fd, 0, RS_NO_ERROR);
+
+	h = inject_hang(fd, 0);
+	igt_assert(h >= 0);
+
+	sleep(1);
+
+	/* Avoid helpers as we need to kill the child
+	 * without any extra signal handling on behalf of
+	 * lib/drmtest.c
+	 */
+	pid = fork();
+	if (pid == 0) {
+		/* Not first drm_open_any() so we need to do
+		 * gem_quiescent_gpu() explicitly, as it is the
+		 * key component to trigger the oops
+		 */
+		const int fd2 = drm_open_any();
+		igt_assert(fd2 >= 0);
+
+		/* This adds same batch on each ring */
+		gem_quiescent_gpu(fd2);
+
+		close(fd2);
+		return;
+	} else {
+		igt_assert(pid > 0);
+		sleep(1);
+
+		/* Kill the child to reduce refcounts on
+		   batch_objs */
+		kill(pid, SIGKILL);
+	}
+
+	gem_close(fd, h);
+	close(fd);
+
+	/* Then we just wait on hang to happen */
+	fd = drm_open_any();
+	igt_assert(fd >= 0);
+
+	h = exec_valid(fd, 0);
+	igt_assert(h >= 0);
+
+	gem_sync(fd, h);
+	gem_close(fd, h);
+	close(fd);
+}
+
 static void drop_root(void)
 {
 	igt_assert(getuid() == 0);
@@ -836,6 +895,9 @@ igt_main
 
 	igt_subtest("close-pending")
 		test_close_pending();
+
+	igt_subtest("close-pending-fork")
+		test_close_pending_fork();
 
 	igt_subtest("params")
 		test_params();
