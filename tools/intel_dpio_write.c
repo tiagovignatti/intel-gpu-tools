@@ -57,7 +57,7 @@ int main(int argc, char** argv)
 
 	intel_register_access_init(dev, 0);
 
-	intel_dpio_reg_write(reg, val);
+	intel_dpio_reg_write(reg, val, 0);
 
 	intel_register_access_fini();
 

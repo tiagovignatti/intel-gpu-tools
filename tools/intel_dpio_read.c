@@ -56,7 +56,7 @@ int main(int argc, char** argv)
 
 	intel_register_access_init(dev, 0);
 
-	val = intel_dpio_reg_read(reg);
+	val = intel_dpio_reg_read(reg, 0);
 
 	printf("Read DPIO register: 0x%x - Value : 0x%x\n", reg, val);
 

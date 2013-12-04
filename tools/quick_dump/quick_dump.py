@@ -21,7 +21,7 @@ def parse_file(file):
 	for line in file:
 		register = ast.literal_eval(line)
 		if register[2] == 'DPIO':
-			val = reg.dpio_read(register[1])
+			val = reg.dpio_read(register[1], 0)
 		else:
 			val = reg.read(register[1])
 		intreg = int(register[1], 16)

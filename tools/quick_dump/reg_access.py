@@ -27,9 +27,11 @@ def get_wake():
 	mt_forcewake_get()
 	vlv_forcewake_get()
 
-def dpio_read(reg):
+def dpio_read(reg, phy):
 	reg = int(reg, 16)
-	val = chipset.intel_dpio_reg_read(reg)
+	phy = int(phy)
+
+	val = chipset.intel_dpio_reg_read(reg, phy)
 	return val
 
 

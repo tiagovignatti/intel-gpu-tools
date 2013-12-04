@@ -50,12 +50,23 @@ static void intel_display_reg_write(uint32_t reg, uint32_t val)
 	*ptr = val;
 }
 
+static int get_dpio_port(int phy) {
+
+	struct pci_device *dev = intel_get_pci_device();
+	int dpio_port;
+
+	if (IS_VALLEYVIEW(dev->device_id))
+		dpio_port = DPIO_PORTID;
+
+	return dpio_port;
+}
+
 /*
  * In SoCs like Valleyview some of the PLL & Lane control registers
  * can be accessed only through IO side band fabric called DPIO
  */
 uint32_t
-intel_dpio_reg_read(uint32_t reg)
+intel_dpio_reg_read(uint32_t reg, int phy)
 {
 	/* Check whether the side band fabric is ready to accept commands */
 	do {
@@ -64,7 +75,7 @@ intel_dpio_reg_read(uint32_t reg)
 
 	intel_display_reg_write(DPIO_REG, reg);
 	intel_display_reg_write(DPIO_PKT, DPIO_RID |
-						DPIO_OP_READ | DPIO_PORTID | DPIO_BYTE);
+				DPIO_OP_READ | get_dpio_port(phy) | DPIO_BYTE);
 	do {
 		usleep(1);
 	} while (intel_display_reg_read(DPIO_PKT) & DPIO_BUSY);
@@ -77,7 +88,7 @@ intel_dpio_reg_read(uint32_t reg)
  * can be accessed only through IO side band fabric called DPIO
  */
 void
-intel_dpio_reg_write(uint32_t reg, uint32_t val)
+intel_dpio_reg_write(uint32_t reg, uint32_t val, int phy)
 {
 	/* Check whether the side band fabric is ready to accept commands */
 	do {
@@ -87,7 +98,7 @@ intel_dpio_reg_write(uint32_t reg, uint32_t val)
 	intel_display_reg_write(DPIO_DATA, val);
 	intel_display_reg_write(DPIO_REG, reg);
 	intel_display_reg_write(DPIO_PKT, DPIO_RID |
-						DPIO_OP_WRITE | DPIO_PORTID | DPIO_BYTE);
+				DPIO_OP_WRITE | get_dpio_port(phy) | DPIO_BYTE);
 	do {
 		usleep(1);
 	} while (intel_display_reg_read(DPIO_PKT) & DPIO_BUSY);

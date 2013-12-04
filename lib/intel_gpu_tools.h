@@ -48,8 +48,8 @@ void intel_register_write(uint32_t reg, uint32_t val);
 int intel_register_access_needs_fakewake(void);
 
 /* Following functions are relevant only for SoCs like Valleyview */
-uint32_t intel_dpio_reg_read(uint32_t reg);
-void intel_dpio_reg_write(uint32_t reg, uint32_t val);
+uint32_t intel_dpio_reg_read(uint32_t reg, int phy);
+void intel_dpio_reg_write(uint32_t reg, uint32_t val, int phy);
 
 int intel_punit_read(uint8_t addr, uint32_t *val);
 int intel_punit_write(uint8_t addr, uint32_t val);
