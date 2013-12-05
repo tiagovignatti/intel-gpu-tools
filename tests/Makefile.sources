@@ -63,7 +63,7 @@ TESTS_progs = \
 	core_getclient \
 	core_getstats \
 	core_getversion \
-	drm_get_client_auth \
+	core_get_client_auth \
 	drm_vma_limiter \
 	drm_vma_limiter_cached \
 	drm_vma_limiter_cpu \

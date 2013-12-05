@@ -1,14 +1,14 @@
 # Please keep sorted alphabetically
 core_getclient
+core_get_client_auth
 core_getstats
 core_getversion
 ddi_compute_wrpll
-drv_suspend
-drm_get_client_auth
 drm_vma_limiter
 drm_vma_limiter_cached
 drm_vma_limiter_cpu
 drm_vma_limiter_gtt
+drv_suspend
 gem_bad_address
 gem_bad_batch
 gem_bad_blit
