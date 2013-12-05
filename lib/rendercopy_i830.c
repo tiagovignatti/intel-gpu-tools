@@ -241,8 +241,10 @@ render_copyfunc_t get_render_copyfunc(int devid)
 		copy = gen6_render_copyfunc;
 	else if (IS_GEN7(devid))
 		copy = gen7_render_copyfunc;
-	else if (IS_GEN8(devid))
-		copy = gen8_render_copyfunc;
+	else if (IS_GEN8(devid)) {
+		fprintf(stderr, "Temporarily disabled\n");
+		//copy = gen8_render_copyfunc;
+	}
 
 	return copy;
 }
