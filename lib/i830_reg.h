@@ -73,7 +73,6 @@
 #define COLOR_BLT_WRITE_ALPHA	(1<<21)
 #define COLOR_BLT_WRITE_RGB	(1<<20)
 
-#define XY_COLOR_BLT_CMD		((2<<29)|(0x50<<22)|(0x4))
 #define XY_COLOR_BLT_WRITE_ALPHA	(1<<21)
 #define XY_COLOR_BLT_WRITE_RGB		(1<<20)
 #define XY_COLOR_BLT_TILED		(1<<11)
