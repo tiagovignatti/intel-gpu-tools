@@ -93,16 +93,14 @@ static void run_test(int ring)
 		ADVANCE_BATCH();
 	}
 
-	BEGIN_BATCH(6);
-	OUT_BATCH(XY_COLOR_BLT_CMD |
-		  XY_COLOR_BLT_WRITE_ALPHA |
-		  XY_COLOR_BLT_WRITE_RGB);
+	COLOR_BLIT_COPY_BATCH_START(batch->devid, 0);
 	OUT_BATCH((3 << 24) | /* 32 bits */
 		  (0xff << 16) |
 		  128);
 	OUT_BATCH(0); /* dst x1,y1 */
 	OUT_BATCH((1 << 16) | 1);
 	OUT_RELOC(target_bo, I915_GEM_DOMAIN_RENDER, I915_GEM_DOMAIN_RENDER, 0);
+	BLIT_RELOC_UDW(batch->devid);
 	OUT_BATCH(COLOR);
 	ADVANCE_BATCH();
 
