@@ -112,6 +112,21 @@ intel_batchbuffer_require_space(struct intel_batchbuffer *batch,
 	} \
 } while(0)
 
+#define COLOR_BLIT_COPY_BATCH_START(devid, flags) do { \
+	if (intel_gen(devid) >= 8) { \
+		BEGIN_BATCH(8); \
+		OUT_BATCH(MI_NOOP); \
+		OUT_BATCH(XY_COLOR_BLT_CMD_NOLEN | 0x5 | \
+				COLOR_BLT_WRITE_ALPHA | \
+				XY_COLOR_BLT_WRITE_RGB); \
+	} else { \
+		BEGIN_BATCH(6); \
+		OUT_BATCH(XY_COLOR_BLT_CMD_NOLEN | 0x4 | \
+				COLOR_BLT_WRITE_ALPHA | \
+				XY_COLOR_BLT_WRITE_RGB); \
+	} \
+} while(0)
+
 #define BLIT_RELOC_UDW(devid) do { \
 	if (intel_gen(devid) >= 8) { \
 		OUT_BATCH(0); \
