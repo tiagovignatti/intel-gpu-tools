@@ -79,6 +79,7 @@ void *gem_mmap__gtt(int fd, uint32_t handle, int size, int prot);
 void *gem_mmap__cpu(int fd, uint32_t handle, int size, int prot);
 #define gem_mmap gem_mmap__gtt
 
+uint64_t gem_available_aperture_size(int fd);
 uint64_t gem_aperture_size(int fd);
 uint64_t gem_mappable_aperture_size(void);
 int gem_madvise(int fd, uint32_t handle, int state);
