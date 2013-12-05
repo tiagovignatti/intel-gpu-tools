@@ -73,16 +73,28 @@ static bool check_auth(int fd)
 	return is_authenticated;
 }
 
-int main(int argc, char **argv)
+
+igt_main
 {
-	int fd;
-	bool auth;
-
-	fd = drm_open_any();
-
 	/* root (which we run igt as) should always be authenticated */
-	auth = check_auth(fd);
-	igt_assert(auth);
+	igt_subtest("simple") {
+		int fd = drm_open_any();
 
-	return 0;
+		igt_assert(check_auth(fd) == true);
+
+		close(fd);
+	}
+
+	igt_subtest("master-drop") {
+		int fd = drm_open_any();
+		int fd2 = drm_open_any();
+
+		igt_assert(check_auth(fd2) == true);
+
+		close(fd);
+
+		igt_assert(check_auth(fd2) == true);
+
+		close(fd2);
+	}
 }

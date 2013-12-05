@@ -14,6 +14,7 @@ NOUVEAU_TESTS_M = \
 	$(NULL)
 
 TESTS_progs_M = \
+	core_get_client_auth \
 	drv_suspend \
 	gem_basic \
 	gem_caching \
@@ -63,7 +64,6 @@ TESTS_progs = \
 	core_getclient \
 	core_getstats \
 	core_getversion \
-	core_get_client_auth \
 	drm_vma_limiter \
 	drm_vma_limiter_cached \
 	drm_vma_limiter_cpu \
