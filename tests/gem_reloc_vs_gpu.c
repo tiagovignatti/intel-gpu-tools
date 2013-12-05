@@ -61,17 +61,6 @@ uint32_t devid;
 int special_reloc_ofs;
 int special_batch_len;
 
-#define GFX_OP_PIPE_CONTROL	((0x3<<29)|(0x3<<27)|(0x2<<24)|2)
-#define   PIPE_CONTROL_WRITE_IMMEDIATE	(1<<14)
-#define   PIPE_CONTROL_WRITE_TIMESTAMP	(3<<14)
-#define   PIPE_CONTROL_DEPTH_STALL (1<<13)
-#define   PIPE_CONTROL_WC_FLUSH	(1<<12)
-#define   PIPE_CONTROL_IS_FLUSH	(1<<11) /* MBZ on Ironlake */
-#define   PIPE_CONTROL_TC_FLUSH (1<<10) /* GM45+ only */
-#define   PIPE_CONTROL_STALL_AT_SCOREBOARD (1<<1)
-#define   PIPE_CONTROL_CS_STALL	(1<<20)
-#define   PIPE_CONTROL_GLOBAL_GTT (1<<2) /* in addr dword */
-
 static void create_special_bo(void)
 {
 	uint32_t data[1024];
@@ -82,12 +71,22 @@ static void create_special_bo(void)
 	memset(data, 0, 4096);
 	special_bo = drm_intel_bo_alloc(bufmgr, "special batch", 4096, 4096);
 
-	BATCH(XY_COLOR_BLT_CMD | COLOR_BLT_WRITE_ALPHA | XY_COLOR_BLT_WRITE_RGB);
+	if (intel_gen(devid) >= 8) {
+		BATCH(MI_NOOP);
+		BATCH(XY_COLOR_BLT_CMD_NOLEN | 5 |
+				COLOR_BLT_WRITE_ALPHA | XY_COLOR_BLT_WRITE_RGB);
+	} else {
+		BATCH(XY_COLOR_BLT_CMD_NOLEN | 4 |
+				COLOR_BLT_WRITE_ALPHA | XY_COLOR_BLT_WRITE_RGB);
+	}
+
 	BATCH((3 << 24) | (0xf0 << 16) | small_pitch);
 	BATCH(0);
 	BATCH(1 << 16 | 1);
 	special_reloc_ofs = 4*len;
 	BATCH(0);
+	if (intel_gen(devid) >= 8)
+		BATCH(0);
 	BATCH(0xdeadbeef);
 
 #define CMD_POLY_STIPPLE_OFFSET       0x7906
@@ -130,7 +129,7 @@ static void emit_dummy_load(int pitch)
 		BLIT_RELOC_UDW(devid);
 		ADVANCE_BATCH();
 
-		if (IS_GEN6(devid) || IS_GEN7(devid)) {
+		if (intel_gen(devid) >= 6) {
 			BEGIN_BATCH(3);
 			OUT_BATCH(XY_SETUP_CLIP_BLT_CMD);
 			OUT_BATCH(0);
