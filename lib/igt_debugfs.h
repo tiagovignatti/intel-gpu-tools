@@ -70,6 +70,7 @@ bool igt_crc_is_null(igt_crc_t *crc);
 bool igt_crc_equal(igt_crc_t *a, igt_crc_t *b);
 char *igt_crc_to_string(igt_crc_t *crc);
 
+void igt_pipe_crc_check(igt_debugfs_t *debugfs);
 igt_pipe_crc_t *
 igt_pipe_crc_new(igt_debugfs_t *debugfs, int drm_fd, enum pipe pipe,
 		 enum intel_pipe_crc_source source);

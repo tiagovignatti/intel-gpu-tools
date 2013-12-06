@@ -205,6 +205,24 @@ static void pipe_crc_exit_handler(int sig)
 	igt_pipe_crc_reset();
 }
 
+void igt_pipe_crc_check(igt_debugfs_t *debugfs)
+{
+	const char *cmd = "pipe A none";
+	FILE *ctl;
+	size_t written;
+	int ret;
+
+	ctl = igt_debugfs_fopen(debugfs, "i915_display_crc_ctl", "r+");
+	igt_require_f(ctl,
+		      "No display_crc_ctl found, kernel too old\n");
+	written = fwrite(cmd, 1, strlen(cmd), ctl);
+	ret = fflush(ctl);
+	igt_require_f((written == strlen(cmd) && ret == 0) || errno != ENODEV,
+		      "CRCs not supported on this platform\n");
+
+	fclose(ctl);
+}
+
 igt_pipe_crc_t *
 igt_pipe_crc_new(igt_debugfs_t *debugfs, int drm_fd, enum pipe pipe,
 		 enum intel_pipe_crc_source source)

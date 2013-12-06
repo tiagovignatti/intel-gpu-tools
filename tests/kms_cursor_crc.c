@@ -53,7 +53,6 @@ typedef struct {
 	int drm_fd;
 	igt_debugfs_t debugfs;
 	drmModeRes *resources;
-	FILE *ctl;
 	uint32_t fb_id[NUM_CURSOR_TYPES];
 	struct kmstest_fb fb[NUM_CURSOR_TYPES];
 	igt_pipe_crc_t **pipe_crc;
@@ -333,23 +332,12 @@ igt_main
 	igt_skip_on_simulation();
 
 	igt_fixture {
-		size_t written;
-		int ret;
-		const char *cmd = "pipe A none";
-
 		data.drm_fd = drm_open_any();
 
 		igt_set_vt_graphics_mode();
 
 		igt_debugfs_init(&data.debugfs);
-		data.ctl = igt_debugfs_fopen(&data.debugfs,
-					     "i915_display_crc_ctl", "r+");
-		igt_require_f(data.ctl,
-			      "No display_crc_ctl found, kernel too old\n");
-		written = fwrite(cmd, 1, strlen(cmd), data.ctl);
-		ret = fflush(data.ctl);
-		igt_require_f((written == strlen(cmd) && ret == 0) || errno != ENODEV,
-			      "CRCs not supported on this platform\n");
+		igt_pipe_crc_check(&data.debugfs);
 
 		display_init(&data);
 
@@ -376,8 +364,6 @@ igt_main
 	igt_subtest("cursor-black-invisible-offscreen")
 		run_test(&data, BLACK_INVISIBLE, false);
 
-	igt_fixture {
+	igt_fixture
 		display_fini(&data);
-		fclose(data.ctl);
-	}
 }

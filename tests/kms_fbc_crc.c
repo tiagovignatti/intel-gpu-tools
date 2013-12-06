@@ -60,7 +60,6 @@ typedef struct {
 	int drm_fd;
 	igt_debugfs_t debugfs;
 	drmModeRes *resources;
-	FILE *ctl;
 	igt_crc_t ref_crc[2];
 	igt_pipe_crc_t **pipe_crc;
 	drm_intel_bufmgr *bufmgr;
@@ -485,9 +484,6 @@ igt_main
 	igt_skip_on_simulation();
 
 	igt_fixture {
-		size_t written;
-		int ret;
-		const char *cmd = "pipe A none";
 		char buf[64];
 		FILE *status;
 
@@ -497,14 +493,7 @@ igt_main
 		data.devid = intel_get_drm_devid(data.drm_fd);
 
 		igt_debugfs_init(&data.debugfs);
-		data.ctl = igt_debugfs_fopen(&data.debugfs,
-					     "i915_display_crc_ctl", "r+");
-		igt_require_f(data.ctl,
-			      "No display_crc_ctl found, kernel too old\n");
-		written = fwrite(cmd, 1, strlen(cmd), data.ctl);
-		ret = fflush(data.ctl);
-		igt_require_f((written == strlen(cmd) && ret == 0) || errno != ENODEV,
-			      "CRCs not supported on this platform\n");
+		igt_pipe_crc_check(&data.debugfs);
 
 		status = igt_debugfs_fopen(&data.debugfs, "i915_fbc_status", "r");
 		igt_require_f(status, "No i915_fbc_status found\n");
@@ -532,6 +521,5 @@ igt_main
 	igt_fixture {
 		drm_intel_bufmgr_destroy(data.bufmgr);
 		display_fini(&data);
-		fclose(data.ctl);
 	}
 }

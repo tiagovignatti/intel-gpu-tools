@@ -45,18 +45,21 @@ typedef struct {
 	drmModeRes *resources;
 	int n_connectors;
 	connector_t *connectors;
-	FILE *ctl;
 } data_t;
 
 static void test_bad_command(data_t *data, const char *cmd)
 {
+	FILE *ctl;
 	size_t written;
 
-	written = fwrite(cmd, 1, strlen(cmd), data->ctl);
-	fflush(data->ctl);
+	ctl = igt_debugfs_fopen(&data->debugfs, "i915_display_crc_ctl", "r+");
+	written = fwrite(cmd, 1, strlen(cmd), ctl);
+	fflush(ctl);
 	igt_assert_cmpint(written, ==, (strlen(cmd)));
-	igt_assert(ferror(data->ctl));
+	igt_assert(ferror(ctl));
 	igt_assert_cmpint(errno, ==, EINVAL);
+
+	fclose(ctl);
 }
 
 static void connector_init(data_t *data, connector_t *connector,
@@ -214,10 +217,6 @@ igt_main
 	igt_skip_on_simulation();
 
 	igt_fixture {
-		size_t written;
-		int ret;
-		const char *cmd = "pipe A none";
-
 		data.drm_fd = drm_open_any();
 
 		igt_set_vt_graphics_mode();
@@ -225,14 +224,7 @@ igt_main
 		display_init(&data);
 
 		igt_debugfs_init(&data.debugfs);
-		data.ctl = igt_debugfs_fopen(&data.debugfs,
-					     "i915_display_crc_ctl", "r+");
-		igt_require_f(data.ctl,
-			      "No display_crc_ctl found, kernel too old\n");
-		written = fwrite(cmd, 1, strlen(cmd), data.ctl);
-		ret = fflush(data.ctl);
-		igt_require_f((written == strlen(cmd) && ret == 0) || errno != ENODEV,
-			      "CRCs not supported on this platform\n");
+		igt_pipe_crc_check(&data.debugfs);
 	}
 
 	igt_subtest("bad-pipe")
@@ -257,6 +249,5 @@ igt_main
 
 	igt_fixture {
 		display_fini(&data);
-		fclose(data.ctl);
 	}
 }
