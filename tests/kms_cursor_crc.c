@@ -338,7 +338,6 @@ igt_main
 		const char *cmd = "pipe A none";
 
 		data.drm_fd = drm_open_any();
-		igt_require(data.drm_fd >= 0);
 
 		igt_set_vt_graphics_mode();
 
