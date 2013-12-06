@@ -50,6 +50,8 @@ intel_batchbuffer_reset(struct intel_batchbuffer *batch)
 	batch->bo = drm_intel_bo_alloc(batch->bufmgr, "batchbuffer",
 				       BATCH_SZ, 4096);
 
+	memset(batch->buffer, 0, sizeof(batch->buffer));
+
 	batch->ptr = batch->buffer;
 }
 
