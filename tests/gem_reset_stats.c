@@ -660,9 +660,14 @@ static void test_close_pending_fork(void)
 	 */
 	pid = fork();
 	if (pid == 0) {
-		/* Not first drm_open_any() so we need to do
+		/*
+		 * Not first drm_open_any() so we need to do
 		 * gem_quiescent_gpu() explicitly, as it is the
 		 * key component to trigger the oops
+		 *
+		 * The crucial component is that we schedule the same noop batch
+		 * on each ring. If gem_quiescent_gpu ever changes that we need
+		 * to update this testcase.
 		 */
 		const int fd2 = drm_open_any();
 		igt_assert(fd2 >= 0);
