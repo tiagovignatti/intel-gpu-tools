@@ -32,7 +32,6 @@
 
 #include <stdbool.h>
 #include <unistd.h>
-#include <cairo.h>
 
 #include "media_fill.h"
 
