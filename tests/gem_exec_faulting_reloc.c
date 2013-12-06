@@ -49,7 +49,7 @@
 
 #define OBJECT_SIZE 16384
 
-#define COPY_BLT_CMD		(2<<29|0x53<<22|0x6)
+#define COPY_BLT_CMD_NOLEN	(2<<29|0x53<<22)
 #define BLT_WRITE_ALPHA		(1<<21)
 #define BLT_WRITE_RGB		(1<<20)
 #define BLT_SRC_TILED		(1<<15)
@@ -70,7 +70,11 @@ static int gem_linear_blt(uint32_t *batch,
 
 	if (height) {
 		int i = 0;
-		b[i++] = COPY_BLT_CMD | BLT_WRITE_ALPHA | BLT_WRITE_RGB;
+		b[i++] = COPY_BLT_CMD_NOLEN | BLT_WRITE_ALPHA | BLT_WRITE_RGB;
+		if (intel_gen(devid) >= 8)
+			b[i-1] |= 8;
+		else
+			b[i-1] |= 6;
 		b[i++] = 0xcc << 16 | 1 << 25 | 1 << 24 | (16*1024);
 		b[i++] = 0;
 		b[i++] = height << 16 | (4*1024);
@@ -89,9 +93,11 @@ static int gem_linear_blt(uint32_t *batch,
 		b[i++] = 0;
 		b[i++] = 16*1024;
 		b[i++] = 0;
-		if (intel_gen(devid) >= 8)
-			b[i++] = 0; /* FIXME: use real high dword */
 		reloc->offset = (b-batch+7) * sizeof(uint32_t);
+		if (intel_gen(devid) >= 8) {
+			reloc->offset += sizeof(uint32_t);
+			b[i++] = 0; /* FIXME: use real high dword */
+		}
 		reloc->delta = 0;
 		reloc->target_handle = src;
 		reloc->read_domains = I915_GEM_DOMAIN_RENDER;
@@ -108,7 +114,11 @@ static int gem_linear_blt(uint32_t *batch,
 	
 	if (length) {
 		int i = 0;
-		b[i++] = COPY_BLT_CMD | BLT_WRITE_ALPHA | BLT_WRITE_RGB;
+		b[i++] = COPY_BLT_CMD_NOLEN | BLT_WRITE_ALPHA | BLT_WRITE_RGB;
+		if (intel_gen(devid) >= 8)
+			b[i-1] |= 8;
+		else
+			b[i-1] |= 6;
 		b[i++] = 0xcc << 16 | 1 << 25 | 1 << 24 | (16*1024);
 		b[i++] = height << 16;
 		b[i++] = (1+height) << 16 | (length / 4);
@@ -126,9 +136,11 @@ static int gem_linear_blt(uint32_t *batch,
 		b[i++] = height << 16;
 		b[i++] = 16*1024;
 		b[i++] = 0;
-		if (intel_gen(devid) >= 8)
-			b[i++] = 0; /* FIXME: use real high dword */
 		reloc->offset = (b-batch+7) * sizeof(uint32_t);
+		if (intel_gen(devid) >= 8) {
+			reloc->offset += sizeof(uint32_t);
+			b[i++] = 0; /* FIXME: use real high dword */
+		}
 		reloc->delta = 0;
 		reloc->target_handle = src;
 		reloc->read_domains = I915_GEM_DOMAIN_RENDER;
@@ -153,7 +165,7 @@ static void run(int object_size)
 	struct drm_i915_gem_execbuffer2 execbuf;
 	struct drm_i915_gem_exec_object2 exec[3];
 	struct drm_i915_gem_relocation_entry reloc[4];
-	uint32_t buf[20];
+	uint32_t buf[40];
 	uint32_t handle, handle_relocs, src, dst;
 	void *gtt_relocs;
 	int fd, len;
@@ -193,7 +205,10 @@ static void run(int object_size)
 	igt_assert(gtt_relocs);
 
 	exec[2].handle = handle;
-	exec[2].relocation_count = len > 40 ? 4 : 2;
+	if (intel_gen(devid) >= 8)
+		exec[2].relocation_count = len > 56 ? 4 : 2;
+	else
+		exec[2].relocation_count = len > 40 ? 4 : 2;
 	/* A newly mmap gtt bo will fault on first access. */
 	exec[2].relocs_ptr = (uintptr_t)gtt_relocs;
 	exec[2].alignment = 0;
