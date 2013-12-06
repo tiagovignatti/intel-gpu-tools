@@ -180,7 +180,7 @@ static void test_read_crc(data_t *data, int pipe, unsigned flags)
 			continue;
 		valid_connectors++;
 
-		igt_assert(igt_pipe_crc_start(pipe_crc));
+		igt_pipe_crc_start(pipe_crc);
 
 		/* wait for 3 vblanks and the corresponding 3 CRCs */
 		igt_pipe_crc_get_crcs(pipe_crc, 3, &crcs);

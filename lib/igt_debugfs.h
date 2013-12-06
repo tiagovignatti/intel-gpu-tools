@@ -75,7 +75,7 @@ igt_pipe_crc_t *
 igt_pipe_crc_new(igt_debugfs_t *debugfs, int drm_fd, enum pipe pipe,
 		 enum intel_pipe_crc_source source);
 void igt_pipe_crc_free(igt_pipe_crc_t *pipe_crc);
-bool igt_pipe_crc_start(igt_pipe_crc_t *pipe_crc);
+void igt_pipe_crc_start(igt_pipe_crc_t *pipe_crc);
 void igt_pipe_crc_stop(igt_pipe_crc_t *pipe_crc);
 void igt_pipe_crc_get_crcs(igt_pipe_crc_t *pipe_crc, int n_crcs,
 			   igt_crc_t **out_crcs);

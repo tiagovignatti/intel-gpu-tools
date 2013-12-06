@@ -269,12 +269,11 @@ void igt_pipe_crc_free(igt_pipe_crc_t *pipe_crc)
 	free(pipe_crc);
 }
 
-bool igt_pipe_crc_start(igt_pipe_crc_t *pipe_crc)
+void igt_pipe_crc_start(igt_pipe_crc_t *pipe_crc)
 {
 	igt_crc_t *crcs = NULL;
 
-	if (!igt_pipe_crc_do_start(pipe_crc))
-		return false;
+	igt_assert(igt_pipe_crc_do_start(pipe_crc));
 
 	/*
 	 * For some no yet identified reason, the first CRC is bonkers. So
@@ -282,8 +281,6 @@ bool igt_pipe_crc_start(igt_pipe_crc_t *pipe_crc)
 	 */
 	igt_pipe_crc_get_crcs(pipe_crc, 1, &crcs);
 	free(crcs);
-
-	return true;
 }
 
 void igt_pipe_crc_stop(igt_pipe_crc_t *pipe_crc)
