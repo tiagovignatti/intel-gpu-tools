@@ -46,6 +46,7 @@ gem_hangcheck_forcewake
 gem_largeobject
 gem_linear_blits
 gem_lut_handle
+gem_media_fill
 gem_mmap
 gem_mmap_gtt
 gem_mmap_offset_exhaustion
