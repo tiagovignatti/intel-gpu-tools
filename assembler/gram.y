@@ -1651,7 +1651,20 @@ msgtarget:	NULL_TOKEN
 		INTEGER RPAREN
 		{
 		  if (IS_GENp(8)) {
-                      gen8_set_sfid(GEN8(&$$), GEN6_SFID_DATAPORT_RENDER_CACHE);
+                      if ($9 != 0 &&
+			  $9 != GEN6_SFID_DATAPORT_SAMPLER_CACHE &&
+			  $9 != GEN6_SFID_DATAPORT_RENDER_CACHE &&
+			  $9 != GEN6_SFID_DATAPORT_CONSTANT_CACHE &&
+			  $9 != GEN7_SFID_DATAPORT_DATA_CACHE &&
+			  $9 != HSW_SFID_DATAPORT_DATA_CACHE1) {
+			  error (&@9, "error: wrong cache type\n");
+		      }
+
+		      if ($9 == 0)
+			  gen8_set_sfid(GEN8(&$$), GEN6_SFID_DATAPORT_RENDER_CACHE);
+		      else
+			  gen8_set_sfid(GEN8(&$$), $9);
+
                       gen8_set_header_present(GEN8(&$$), 1);
                       gen8_set_dp_binding_table_index(GEN8(&$$), $3);
                       gen8_set_dp_message_control(GEN8(&$$), $5);
@@ -1701,7 +1714,20 @@ msgtarget:	NULL_TOKEN
 		INTEGER COMMA INTEGER RPAREN
 		{
 		  if (IS_GENp(8)) {
-                      gen8_set_sfid(GEN8(&$$), GEN6_SFID_DATAPORT_RENDER_CACHE);
+                      if ($9 != 0 &&
+			  $9 != GEN6_SFID_DATAPORT_SAMPLER_CACHE &&
+			  $9 != GEN6_SFID_DATAPORT_RENDER_CACHE &&
+			  $9 != GEN6_SFID_DATAPORT_CONSTANT_CACHE &&
+			  $9 != GEN7_SFID_DATAPORT_DATA_CACHE &&
+			  $9 != HSW_SFID_DATAPORT_DATA_CACHE1) {
+			  error (&@9, "error: wrong cache type\n");
+		      }
+
+		      if ($9 == 0)
+			  gen8_set_sfid(GEN8(&$$), GEN6_SFID_DATAPORT_RENDER_CACHE);
+		      else
+			  gen8_set_sfid(GEN8(&$$), $9);
+
                       gen8_set_header_present(GEN8(&$$), ($11 != 0));
                       gen8_set_dp_binding_table_index(GEN8(&$$), $3);
                       gen8_set_dp_message_control(GEN8(&$$), $5);
