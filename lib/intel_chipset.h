@@ -189,6 +189,22 @@ void intel_check_pch(void);
 #define PCI_CHIP_CHERRYVIEW_2		0x22b2
 #define PCI_CHIP_CHERRYVIEW_3		0x22b3
 
+#define PCI_CHIP_SKYLAKE_ULT_GT2	0x1916
+#define PCI_CHIP_SKYLAKE_ULT_GT1	0x1906
+#define PCI_CHIP_SKYLAKE_ULT_GT3	0x1926
+#define PCI_CHIP_SKYLAKE_ULT_GT2F	0x1921
+#define PCI_CHIP_SKYLAKE_ULX_GT1	0x190E
+#define PCI_CHIP_SKYLAKE_ULX_GT2	0x191E
+#define PCI_CHIP_SKYLAKE_DT_GT2		0x1912
+#define PCI_CHIP_SKYLAKE_DT_GT1		0x1902
+#define PCI_CHIP_SKYLAKE_HALO_GT2	0x191B
+#define PCI_CHIP_SKYLAKE_HALO_GT3	0x192B
+#define PCI_CHIP_SKYLAKE_HALO_GT1 	0x190B
+#define PCI_CHIP_SKYLAKE_SRV_GT2	0x191A
+#define PCI_CHIP_SKYLAKE_SRV_GT3	0x192A
+#define PCI_CHIP_SKYLAKE_SRV_GT1	0x190A
+#define PCI_CHIP_SKYLAKE_WKS_GT2 	0x191D
+
 #endif /* __GTK_DOC_IGNORE__ */
 
 #define IS_MOBILE(devid)	((devid) == PCI_CHIP_I855_GM || \
@@ -350,18 +366,44 @@ void intel_check_pch(void);
 #define IS_GEN8(devid)		(IS_BROADWELL(devid) || \
 				 IS_CHERRYVIEW(devid))
 
+#define IS_SKL_GT1(devid)	((devid) == PCI_CHIP_SKYLAKE_ULT_GT1	|| \
+				 (devid) == PCI_CHIP_SKYLAKE_ULX_GT1	|| \
+				 (devid) == PCI_CHIP_SKYLAKE_DT_GT1	|| \
+				 (devid) == PCI_CHIP_SKYLAKE_HALO_GT1	|| \
+				 (devid) == PCI_CHIP_SKYLAKE_SRV_GT1)
+
+#define IS_SKL_GT2(devid)	((devid) == PCI_CHIP_SKYLAKE_ULT_GT2	|| \
+				 (devid) == PCI_CHIP_SKYLAKE_ULT_GT2F	|| \
+				 (devid) == PCI_CHIP_SKYLAKE_ULX_GT2	|| \
+				 (devid) == PCI_CHIP_SKYLAKE_DT_GT2	|| \
+				 (devid) == PCI_CHIP_SKYLAKE_HALO_GT2	|| \
+				 (devid) == PCI_CHIP_SKYLAKE_SRV_GT2	|| \
+				 (devid) == PCI_CHIP_SKYLAKE_WKS_GT2)
+
+#define IS_SKL_GT3(devid)	((devid) == PCI_CHIP_SKYLAKE_ULT_GT3	|| \
+				 (devid) == PCI_CHIP_SKYLAKE_HALO_GT3	|| \
+				 (devid) == PCI_CHIP_SKYLAKE_SRV_GT3)
+
+#define IS_SKYLAKE(devid)	(IS_SKL_GT1(devid) || \
+				 IS_SKL_GT2(devid) || \
+				 IS_SKL_GT3(devid))
+
+#define IS_GEN9(devid)		IS_SKYLAKE(devid)
+
 #define IS_965(devid)		(IS_GEN4(devid) || \
 				 IS_GEN5(devid) || \
 				 IS_GEN6(devid) || \
 				 IS_GEN7(devid) || \
-				 IS_GEN8(devid))
+				 IS_GEN8(devid) || \
+				 IS_GEN9(devid))
 
 #define IS_9XX(devid)		(IS_GEN3(devid) || \
 				 IS_GEN4(devid) || \
 				 IS_GEN5(devid) || \
 				 IS_GEN6(devid) || \
 				 IS_GEN7(devid) || \
-				 IS_GEN8(devid))
+				 IS_GEN8(devid) || \
+				 IS_GEN9(devid))
 
 #define IS_INTEL(devid)		(IS_GEN2(devid) || \
 				 IS_GEN3(devid) || \
@@ -369,21 +411,25 @@ void intel_check_pch(void);
 				 IS_GEN5(devid) || \
 				 IS_GEN6(devid) || \
 				 IS_GEN7(devid) || \
-				 IS_GEN8(devid))
+				 IS_GEN8(devid) || \
+				 IS_GEN9(devid))
 
 #define HAS_PCH_SPLIT(devid)	(IS_GEN5(devid) || \
 				 IS_GEN6(devid) || \
 				 IS_IVYBRIDGE(devid) || IS_HASWELL(devid) || \
-				 IS_GEN8(devid))
+				 IS_GEN8(devid) || \
+				 IS_GEN9(devid))
 
 #define HAS_BLT_RING(devid)	(IS_GEN6(devid) || \
 				 IS_GEN7(devid) || \
-				 IS_GEN8(devid))
+				 IS_GEN8(devid) || \
+				 IS_GEN9(devid))
 
 #define HAS_BSD_RING(devid)	(IS_GEN5(devid) || \
 				 IS_GEN6(devid) || \
 				 IS_GEN7(devid) || \
-				 IS_GEN8(devid))
+				 IS_GEN8(devid) || \
+				 IS_GEN9(devid))
 
 #define IS_BROADWATER(devid)	((devid) == PCI_CHIP_I946_GZ || \
 				 (devid) == PCI_CHIP_I965_G_1 || \
