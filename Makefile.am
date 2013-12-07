@@ -1,5 +1,5 @@
 # Copyright © 2005 Adam Jackson.
-# Copyright © 2009 Intel Corporation
+# Copyright © 2009,2013 Intel Corporation
 #
 #  Permission is hereby granted, free of charge, to any person obtaining a
 #  copy of this software and associated documentation files (the "Software"),
@@ -36,6 +36,29 @@ SUBDIRS += tests
 endif
 
 MAINTAINERCLEANFILES = ChangeLog INSTALL
+
+.PHONY: version.h.tmp
+version.h.tmp:
+	@touch $@
+	@if test -d .git; then \
+		if which git > /dev/null; then git log -n 1 --oneline | \
+			sed 's/^\([^ ]*\) .*/#define IGT_GIT_SHA1 "g\1"/' \
+			>> $@ ; \
+		fi \
+	else \
+		echo '#define IGT_GIT_SHA1 "NOT-GIT"' >> $@ ; \
+	fi
+
+version.h: version.h.tmp
+	@echo "updating version.h"
+	@if ! cmp -s version.h.tmp version.h; then \
+		mv version.h.tmp version.h ;\
+	else \
+		rm version.h.tmp ;\
+	fi
+
+BUILT_SOURCES = version.h
+CLEANFILES = version.h version.h.tmp
 
 .PHONY: ChangeLog INSTALL
 

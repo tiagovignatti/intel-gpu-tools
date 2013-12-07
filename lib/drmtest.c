@@ -51,6 +51,8 @@
 #include "intel_chipset.h"
 #include "intel_gpu_tools.h"
 #include "igt_debugfs.h"
+#include "../version.h"
+#include "config.h"
 
 /* This file contains a bunch of wrapper functions to directly use gem ioctls.
  * Mostly useful to write kernel tests. */
@@ -798,6 +800,15 @@ static void check_igt_exit(int sig)
 	assert(sig != 0 || igt_exit_called);
 }
 
+
+static void print_version(void)
+{
+	if (list_subtests)
+		return;
+
+	fprintf(stdout, "IGT-Version: %s-%s\n", PACKAGE_VERSION, IGT_GIT_SHA1);
+}
+
 static void print_usage(const char *command_str, const char *help_str,
 			bool output_on_stderr)
 {
@@ -893,6 +904,8 @@ int igt_subtest_init_parse_opts(int argc, char **argv,
 	oom_adjust_for_doom();
 
 out:
+	print_version();
+
 	return ret;
 }
 
