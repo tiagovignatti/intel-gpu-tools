@@ -1262,11 +1262,17 @@ static void run_test_on_crtc_pair(struct test_output *o,
 	wait_for_events(o);
 
 	o->current_fb_id = 1;
-	o->flip_state.seq_step = 1;
-	if (o->flags & TEST_VBLANK_ABSOLUTE)
-		o->vblank_state.seq_step = 5;
+	if (o->flags & TEST_FLIP)
+		o->flip_state.seq_step = 1;
 	else
-		o->vblank_state.seq_step = 1;
+		o->flip_state.seq_step = 0;
+	if (o->flags & TEST_VBLANK)
+		o->vblank_state.seq_step = 10;
+	else
+		o->vblank_state.seq_step = 0;
+
+	/* We run the vblank and flip actions in parallel by default. */
+	o->seq_step = max(o->vblank_state.seq_step, o->flip_state.seq_step);
 
 	elapsed = event_loop(o, duration_ms);
 
