@@ -45,6 +45,7 @@
 #include <sys/wait.h>
 #include <sys/types.h>
 #include <sys/syscall.h>
+#include <sys/utsname.h>
 
 #include "drmtest.h"
 #include "i915_drm.h"
@@ -803,11 +804,16 @@ static void check_igt_exit(int sig)
 
 static void print_version(void)
 {
+	struct utsname uts;
+
 	if (list_subtests)
 		return;
 
-	fprintf(stdout, "IGT-Version: %s-%s (%s)\n", PACKAGE_VERSION,
-		IGT_GIT_SHA1, TARGET_CPU_PLATFORM);
+	uname(&uts);
+
+	fprintf(stdout, "IGT-Version: %s-%s (%s) (%s: %s %s)\n", PACKAGE_VERSION,
+		IGT_GIT_SHA1, TARGET_CPU_PLATFORM,
+		uts.sysname, uts.release, uts.machine);
 }
 
 static void print_usage(const char *command_str, const char *help_str,
