@@ -1009,12 +1009,14 @@ void __igt_skip_check(const char *file, const int line,
 		va_end(args);
 
 		igt_skip("Test requirement not met in function %s, file %s:%i:\n"
+			 "Last errno: %i, %s\n"
 			 "Test requirement: (%s)\n%s",
-			 func, file, line, check, buf);
+			 func, file, line, errno, strerror(errno), check, buf);
 	} else {
 		igt_skip("Test requirement not met in function %s, file %s:%i:\n"
+			 "Last errno: %i, %s\n"
 			 "Test requirement: (%s)\n",
-			 func, file, line, check);
+			 func, file, line, errno, strerror(errno), check);
 	}
 }
 
@@ -1068,8 +1070,9 @@ void __igt_fail_assert(int exitcode, const char *file,
 	va_list args;
 
 	printf("Test assertion failure function %s, file %s:%i:\n"
+	       "Last errno: %i, %s\n"
 	       "Failed assertion: %s\n",
-	       func, file, line, assertion);
+	       func, file, line, errno, strerror(errno), assertion);
 
 	if (f) {
 		va_start(args, f);
