@@ -116,7 +116,7 @@ static void exec0(int fd)
 }
 #endif
 
-int main(int argc, char **argv)
+igt_simple_main
 {
 	int fd;
 
@@ -129,6 +129,4 @@ int main(int argc, char **argv)
 	//exec0(fd);
 
 	close(fd);
-
-	return 0;
 }

@@ -54,7 +54,7 @@ static unsigned int readit(const char *path)
 	return ret;
 }
 
-int main(int argc, char *argv[])
+igt_simple_main
 {
 	const int device = drm_get_card();
 	char *path, *pathp, *pathpp;
@@ -116,6 +116,4 @@ int main(int argc, char *argv[])
 				"running and running no other tests)\n");
 		igt_fail(1);
 	}
-
-	igt_success();
 }

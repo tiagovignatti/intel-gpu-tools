@@ -133,6 +133,8 @@ int main(int argc, char *argv[])
 {
 	int i;
 
+	igt_simple_init();
+
 	fd = drm_open_any_render();
 	devid = intel_get_drm_devid(fd);
 
@@ -156,5 +158,5 @@ int main(int argc, char *argv[])
 	free(threads);
 	close(fd);
 
-	igt_success();
+	return 0;
 }

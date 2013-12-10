@@ -113,7 +113,7 @@ cont:
 	drm_intel_bo_unmap(target_buffer);
 }
 
-int main(int argc, char **argv)
+igt_simple_main
 {
 	int fd;
 	int devid;
@@ -155,6 +155,4 @@ int main(int argc, char **argv)
 	drm_intel_bufmgr_destroy(bufmgr);
 
 	close(fd);
-
-	return 0;
 }

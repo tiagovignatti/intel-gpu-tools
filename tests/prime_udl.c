@@ -147,20 +147,14 @@ out:
 	return ret;
 }
 
-int main(int argc, char **argv)
+igt_simple_main
 {
-	int ret;
-
 	igt_skip_on_simulation();
 
-	ret = find_and_open_devices();
-	if (ret < 0)
-		return ret;
+	igt_assert(find_and_open_devices() >= 0);
 
-	if (udl_fd == -1 || intel_fd == -1) {
-		printf("failed to find intel and udl GPU\n");
-		return 77;
-	}
+	igt_skip_on(udl_fd == -1);
+	igt_skip_on(intel_fd == -1);
 
 	/* set up intel bufmgr */
 	bufmgr = drm_intel_bufmgr_gem_init(intel_fd, 4096);
@@ -171,15 +165,9 @@ int main(int argc, char **argv)
 	intel_batch = intel_batchbuffer_alloc(bufmgr, devid);
 
 	/* create an object on the i915 */
-	ret = test1();
-	if (ret) {
-		fprintf(stderr,"prime_test: failed test 1\n");
-		return -1;
-	}
+	igt_assert(test1() == 0);
 
-	ret = test2();
-	if (ret)
-		fprintf(stderr,"prime_test: failed test 2 %d\n", ret);
+	igt_assert(test2() == 0);
 
 	intel_batchbuffer_free(intel_batch);
 
@@ -187,6 +175,4 @@ int main(int argc, char **argv)
 
 	close(intel_fd);
 	close(udl_fd);
-
-	return ret;
 }

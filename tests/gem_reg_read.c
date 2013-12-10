@@ -63,7 +63,7 @@ static uint64_t timer_query(int fd)
 	return reg_read.val;
 }
 
-int main(int argc, char *argv[])
+igt_simple_main
 {
 	struct local_drm_i915_reg_read reg_read;
 	int fd, ret;
@@ -88,5 +88,4 @@ int main(int argc, char *argv[])
 		   EINVAL, "bad register");
 
 	close(fd);
-	igt_success();
 }

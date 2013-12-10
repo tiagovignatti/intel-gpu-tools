@@ -87,7 +87,7 @@ static void exec(int fd, uint32_t handle)
 	igt_assert(ret == 0);
 }
 
-int main(int argc, char **argv)
+igt_simple_main
 {
 	uint32_t batch_end[4] = {MI_BATCH_BUFFER_END, 0, 0, 0};
 	int fd, i, ret;
@@ -164,6 +164,4 @@ int main(int argc, char **argv)
 	drm_intel_bufmgr_destroy(bufmgr);
 
 	close(fd);
-
-	return 0;
 }

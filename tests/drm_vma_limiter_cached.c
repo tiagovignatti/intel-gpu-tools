@@ -53,7 +53,7 @@ struct intel_batchbuffer *batch;
 
 /* we do both cpu and gtt maps, so only need half of 64k to exhaust */
 
-int main(int argc, char **argv)
+igt_simple_main
 {
 	int fd;
 	int i;
@@ -131,6 +131,4 @@ int main(int argc, char **argv)
 	drm_intel_bufmgr_destroy(bufmgr);
 
 	close(fd);
-
-	return 0;
 }

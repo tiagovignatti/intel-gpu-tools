@@ -55,7 +55,7 @@ struct intel_batchbuffer *batch;
 #define BO_ARRAY_SIZE 68000
 drm_intel_bo *bos[BO_ARRAY_SIZE];
 
-int main(int argc, char **argv)
+igt_simple_main
 {
 	int fd;
 	int i;
@@ -97,6 +97,4 @@ int main(int argc, char **argv)
 	drm_intel_bufmgr_destroy(bufmgr);
 
 	close(fd);
-
-	return 0;
 }

@@ -641,6 +641,8 @@ int main(int argc, char **argv)
 	int wcount = 0;
 	int r = -1;
 
+	igt_simple_init();
+
 	parse_options(argc, argv);
 
 	card_index = drm_get_card();

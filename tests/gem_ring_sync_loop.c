@@ -90,17 +90,14 @@ store_dword_loop(int fd)
 	drm_intel_bo_unmap(target_buffer);
 }
 
-int main(int argc, char **argv)
+igt_simple_main
 {
 	int fd;
 	int devid;
 
 	fd = drm_open_any();
 	devid = intel_get_drm_devid(fd);
-	if (!HAS_BLT_RING(devid)) {
-		fprintf(stderr, "inter ring check needs gen6+\n");
-		return 77;
-	}
+	gem_require_ring(fd, I915_EXEC_BLT);
 
 
 	bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
@@ -120,6 +117,4 @@ int main(int argc, char **argv)
 	drm_intel_bufmgr_destroy(bufmgr);
 
 	close(fd);
-
-	return 0;
 }

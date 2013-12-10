@@ -153,7 +153,7 @@ uint32_t gen8_batch[] = {
 uint32_t *batch = gen6_batch;
 uint32_t batch_size = sizeof(gen6_batch);
 
-int main(int argc, char **argv)
+igt_simple_main
 {
 	const uint32_t hang[] = {-1, -1, -1, -1};
 	const uint32_t end[] = {MI_BATCH_BUFFER_END, 0};
@@ -175,10 +175,8 @@ int main(int argc, char **argv)
 	}
 
 	aper_size = gem_mappable_aperture_size();
-	if (intel_get_total_ram_mb() < aper_size / (1024*1024) * 2) {
-		fprintf(stderr, "not enough mem to run test\n");
-		return 77;
-	}
+	igt_skip_on_f(intel_get_total_ram_mb() < aper_size / (1024*1024) * 2,
+		      "not enough mem to run test\n");
 
 	count = aper_size / 4096 * 2;
 	if (igt_run_in_simulation())
@@ -242,6 +240,4 @@ int main(int argc, char **argv)
 
 	printf("Test suceeded, cleanup up - this might take a while.\n");
 	close(fd);
-
-	return 0;
 }

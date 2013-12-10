@@ -78,7 +78,7 @@ static int get_perf(const char *path)
 	return perf;
 }
 
-int main(int argc, char *argv[])
+igt_simple_main
 {
 	int ret, perf1, perf2;
 	int device = drm_get_card();
@@ -97,6 +97,4 @@ int main(int argc, char *argv[])
 	    fprintf(stderr, "Unable to enter PSR state again\n");
 	    igt_fail(1);
 	}
-
-	igt_success();
 }

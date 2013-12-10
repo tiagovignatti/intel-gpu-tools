@@ -247,6 +247,8 @@ int main(int argc, char **argv)
 	uint32_t start = 0;
 	int i, fd, count;
 
+	igt_simple_init();
+
 	igt_skip_on_simulation();
 
 	fd = drm_open_any();

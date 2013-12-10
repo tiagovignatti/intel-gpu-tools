@@ -198,7 +198,7 @@ static uint32_t gem_pin(int fd, int handle, int alignment)
 	return pin.offset;
 }
 
-int main(int argc, char **argv)
+igt_simple_main
 {
 	const uint32_t batch[2] = {MI_BATCH_BUFFER_END};
 	struct timeval start, now;
@@ -245,6 +245,4 @@ int main(int argc, char **argv)
 		gettimeofday(&now, NULL);
 	} while ((now.tv_sec - start.tv_sec)*1000 + (now.tv_usec - start.tv_usec) / 1000 < 10000);
 	igt_stop_signal_helper();
-
-	return 0;
 }

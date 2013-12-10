@@ -111,7 +111,7 @@ static int exec(int fd, int num_exec, int num_relocs, unsigned flags)
 }
 
 #define ELAPSED(a,b) (1e6*((b)->tv_sec - (a)->tv_sec) + ((b)->tv_usec - (a)->tv_usec))
-int main(int argc, char **argv)
+igt_simple_main
 {
 	uint32_t batch[2] = {MI_BATCH_BUFFER_END};
 	int fd, n, m, count;
@@ -200,6 +200,4 @@ int main(int argc, char **argv)
 			printf("\n");
 		}
 	}
-
-	return 0;
 }

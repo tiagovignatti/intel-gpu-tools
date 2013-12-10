@@ -86,7 +86,7 @@ static int copy_tile_threaded(drm_intel_bo *bo)
 	return 0;
 }
 
-int main(int argc, char **argv)
+igt_simple_main
 {
 	int fd;
 	drm_intel_bo *bo;
@@ -119,6 +119,4 @@ int main(int argc, char **argv)
 	drm_intel_bufmgr_destroy(bufmgr);
 
 	close(fd);
-
-	return 0;
 }

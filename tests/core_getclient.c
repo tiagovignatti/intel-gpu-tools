@@ -32,7 +32,7 @@
 /**
  * Checks DRM_IOCTL_GET_CLIENT.
  */
-int main(int argc, char **argv)
+igt_simple_main
 {
 	int fd, ret;
 	drm_client_t client;
@@ -57,5 +57,4 @@ int main(int argc, char **argv)
 	igt_assert(ret == -1 && errno == EINVAL);
 
 	close(fd);
-	return 0;
 }

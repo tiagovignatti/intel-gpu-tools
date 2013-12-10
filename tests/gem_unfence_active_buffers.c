@@ -63,7 +63,7 @@ uint32_t devid;
 
 uint32_t data[TEST_SIZE/4];
 
-int main(int argc, char **argv)
+igt_simple_main
 {
 	int i, ret, fd, num_fences;
 	drm_intel_bo *busy_bo, *test_bo;
@@ -164,6 +164,4 @@ int main(int argc, char **argv)
 		}
 	}
 	intel_batchbuffer_flush(batch);
-
-	return 0;
 }

@@ -127,16 +127,13 @@ static void dumpit(void)
 }
 
 
-int main(int argc, char *argv[])
+igt_simple_main
 {
 	const int device = drm_get_card();
 	struct junk *junk = stuff;
 	int fd, ret;
 
 	igt_skip_on_simulation();
-
-	if (argc > 1)
-		verbose++;
 
 	/* Use drm_open_any to verify device existence */
 	fd = drm_open_any();
@@ -189,6 +186,4 @@ int main(int argc, char *argv[])
 
 	writeval(stuff[MIN].filp, origmin);
 	writeval(stuff[MAX].filp, origmax);
-
-	igt_success();
 }

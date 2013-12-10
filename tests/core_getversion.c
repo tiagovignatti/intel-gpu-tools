@@ -32,7 +32,7 @@
 /**
  * Checks DRM_IOCTL_GET_VERSION and libdrm's drmGetVersion() interface to it.
  */
-int main(int argc, char **argv)
+igt_simple_main
 {
 	int fd;
 	drmVersionPtr v;
@@ -45,5 +45,4 @@ int main(int argc, char **argv)
 	igt_assert(v->version_major >= 1);
 	drmFree(v);
 	close(fd);
-	return 0;
 }

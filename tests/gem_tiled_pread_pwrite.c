@@ -111,8 +111,7 @@ create_bo(int fd)
 	return handle;
 }
 
-int
-main(int argc, char **argv)
+igt_simple_main
 {
 	int fd;
 	uint32_t *data;
@@ -151,6 +150,4 @@ main(int argc, char **argv)
 	}
 
 	close(fd);
-
-	return 0;
 }

@@ -100,7 +100,7 @@ check_bo(int fd, drm_intel_bo *bo, uint32_t start_val)
 	}
 }
 
-int main(int argc, char **argv)
+igt_simple_main
 {
 	drm_intel_bo *bo[4096];
 	uint32_t bo_start_val[4096];
@@ -170,6 +170,4 @@ int main(int argc, char **argv)
 	drm_intel_bufmgr_destroy(bufmgr);
 
 	close(fd);
-
-	return 0;
 }

@@ -46,7 +46,7 @@
  * Testcase: Check set_tiling vs gtt mmap coherency
  */
 
-int main(int argc, char **argv)
+igt_simple_main
 {
 	int fd;
 	uint32_t *ptr;
@@ -132,6 +132,4 @@ int main(int argc, char **argv)
 	munmap(ptr, OBJECT_SIZE);
 
 	close(fd);
-
-	return 0;
 }

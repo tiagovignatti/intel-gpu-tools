@@ -51,7 +51,7 @@ static drm_intel_bufmgr *bufmgr;
 struct intel_batchbuffer *batch;
 static drm_intel_bo *load_bo;
 
-int main(int argc, char **argv)
+igt_simple_main
 {
 	int fd, i;
 
@@ -96,6 +96,4 @@ int main(int argc, char **argv)
 	drm_intel_bufmgr_destroy(bufmgr);
 
 	close(fd);
-
-	return 0;
 }

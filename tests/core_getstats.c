@@ -35,7 +35,7 @@
  * I don't care too much about the actual contents, just that the kernel
  * doesn't crash.
  */
-int main(int argc, char **argv)
+igt_simple_main
 {
 	int fd, ret;
 	drm_stats_t stats;
@@ -46,5 +46,4 @@ int main(int argc, char **argv)
 	igt_assert(ret == 0);
 
 	close(fd);
-	return 0;
 }

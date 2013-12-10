@@ -175,7 +175,7 @@ static int many_exec(int fd, uint32_t batch, int num_exec, int num_reloc, unsign
 #define fail(x) ASSERT(_fail(x))
 #define pass(x) ASSERT(!_fail(x))
 
-int main(int argc, char **argv)
+igt_simple_main
 {
 	uint32_t batch[2] = {MI_BATCH_BUFFER_END};
 	uint32_t handle;
@@ -240,6 +240,4 @@ int main(int argc, char **argv)
 		fail(many_exec(fd, handle, i+1, i, USE_LUT | BROKEN));
 		fail(many_exec(fd, handle, i+1, i+1, USE_LUT | BROKEN));
 	}
-
-	return 0;
 }

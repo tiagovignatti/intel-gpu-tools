@@ -90,8 +90,7 @@ create_bo_and_fill(int fd)
 uint32_t *bo_handles;
 int *idx_arr;
 
-int
-main(int argc, char **argv)
+igt_simple_main
 {
 	int fd;
 	uint32_t *data;
@@ -136,6 +135,4 @@ main(int argc, char **argv)
 	}
 
 	close(fd);
-
-	return 0;
 }

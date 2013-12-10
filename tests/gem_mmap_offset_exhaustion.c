@@ -77,7 +77,7 @@ create_and_map_bo(int fd)
 	gem_madvise(fd, handle, I915_MADV_DONTNEED);
 }
 
-int main(int argc, char **argv)
+igt_simple_main
 {
 	int fd, i;
 
@@ -91,6 +91,4 @@ int main(int argc, char **argv)
 		create_and_map_bo(fd);
 
 	close(fd);
-
-	return 0;
 }

@@ -123,8 +123,7 @@ calculate_expected(int offset)
 	return (base_y + tile_y) * WIDTH + base_x + tile_x;
 }
 
-int
-main(int argc, char **argv)
+igt_simple_main
 {
 	int fd;
 	int i, iter = 100;
@@ -230,6 +229,4 @@ main(int argc, char **argv)
 	}
 
 	close(fd);
-
-	return 0;
 }

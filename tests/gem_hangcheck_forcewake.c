@@ -57,7 +57,7 @@ struct intel_batchbuffer *batch;
 uint32_t blob[2048*2048];
 
 #define MAX_BLT_SIZE 128
-int main(int argc, char **argv)
+igt_simple_main
 {
 	drm_intel_bo *bo = NULL;
 	uint32_t tiling_mode = I915_TILING_X;
@@ -122,6 +122,4 @@ int main(int argc, char **argv)
 	drm_intel_bufmgr_destroy(bufmgr);
 
 	close(fd);
-
-	return 0;
 }

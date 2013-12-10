@@ -71,7 +71,7 @@ test_large_object(int fd)
 	/* kernel should clean this up for us */
 }
 
-int main(int argc, char **argv)
+igt_simple_main
 {
 	int fd;
 
@@ -80,6 +80,4 @@ int main(int argc, char **argv)
 	fd = drm_open_any();
 
 	test_large_object(fd);
-
-	return 0;
 }

@@ -54,7 +54,7 @@ static void handle_bad(int ret, int lerrno, int expected, const char *desc)
 	}
 }
 
-int main(int argc, char *argv[])
+igt_simple_main
 {
 	struct local_drm_i915_context_destroy destroy;
 	uint32_t ctx_id;
@@ -86,6 +86,4 @@ int main(int argc, char *argv[])
 	handle_bad(ret, errno, ENOENT, "default destroy");
 
 	close(fd);
-
-	igt_success();
 }

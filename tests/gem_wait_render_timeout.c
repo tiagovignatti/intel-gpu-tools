@@ -100,7 +100,7 @@ static void blt_color_fill(struct intel_batchbuffer *batch,
 	ADVANCE_BATCH();
 }
 
-int main(int argc, char **argv)
+igt_simple_main
 {
 	drm_intel_bufmgr *bufmgr;
 	struct intel_batchbuffer *batch;
@@ -122,10 +122,8 @@ int main(int argc, char **argv)
 	dst = drm_intel_bo_alloc(bufmgr, "dst", BUF_SIZE, 4096);
 	dst2 = drm_intel_bo_alloc(bufmgr, "dst2", BUF_SIZE, 4096);
 
-	if (gem_bo_wait_timeout(fd, dst->handle, &timeout) == -EINVAL) {
-		printf("kernel doesn't support wait_timeout, skipping test\n");
-		return 77;
-	}
+	igt_skip_on_f(gem_bo_wait_timeout(fd, dst->handle, &timeout) == -EINVAL,
+		      "kernel doesn't support wait_timeout, skipping test\n");
 	timeout = ENOUGH_WORK_IN_SECONDS * NSEC_PER_SEC;
 
 	/* Figure out a rough number of fills required to consume 1 second of
@@ -212,6 +210,4 @@ int main(int argc, char **argv)
 	drm_intel_bufmgr_destroy(bufmgr);
 
 	close(fd);
-
-	return 0;
 }

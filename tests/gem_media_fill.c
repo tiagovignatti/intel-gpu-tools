@@ -84,7 +84,7 @@ scratch_buf_check(data_t *data, struct scratch_buf *buf, int x, int y,
 	}
 }
 
-int main(int argc, char **argv)
+igt_simple_main
 {
 	data_t data = {0, };
 	struct intel_batchbuffer *batch = NULL;
@@ -92,21 +92,19 @@ int main(int argc, char **argv)
 	media_fillfunc_t media_fill = NULL;
 	int i, j;
 
-	igt_fixture {
-		data.drm_fd = drm_open_any_render();
-		data.devid = intel_get_drm_devid(data.drm_fd);
+	data.drm_fd = drm_open_any_render();
+	data.devid = intel_get_drm_devid(data.drm_fd);
 
-		data.bufmgr = drm_intel_bufmgr_gem_init(data.drm_fd, 4096);
-		igt_assert(data.bufmgr);
+	data.bufmgr = drm_intel_bufmgr_gem_init(data.drm_fd, 4096);
+	igt_assert(data.bufmgr);
 
-		media_fill = get_media_fillfunc(data.devid);
+	media_fill = get_media_fillfunc(data.devid);
 
-		igt_require_f(media_fill,
-			"no media-fill function\n");
+	igt_require_f(media_fill,
+		"no media-fill function\n");
 
-		batch = intel_batchbuffer_alloc(data.bufmgr, data.devid);
-		igt_assert(batch);
-	}
+	batch = intel_batchbuffer_alloc(data.bufmgr, data.devid);
+	igt_assert(batch);
 
 	scratch_buf_init(&data, &dst, WIDTH, HEIGHT, STRIDE, COLOR_C4);
 

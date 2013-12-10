@@ -66,8 +66,7 @@ create_bo(int fd)
 	return handle;
 }
 
-int
-main(int argc, char **argv)
+igt_simple_main
 {
 	int fd;
 	int i;
@@ -103,6 +102,4 @@ main(int argc, char **argv)
 		igt_assert(ptr[i] == i);
 
 	close(fd);
-
-	return 0;
 }

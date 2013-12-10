@@ -37,7 +37,7 @@ struct local_drm_i915_gem_context_create {
 
 #define CONTEXT_CREATE_IOCTL DRM_IOWR(DRM_COMMAND_BASE + 0x2d, struct local_drm_i915_gem_context_create)
 
-int main(int argc, char *argv[])
+igt_simple_main
 {
 	int ret, fd;
 	struct local_drm_i915_gem_context_create create;
@@ -60,6 +60,4 @@ int main(int argc, char *argv[])
 	igt_assert(create.ctx_id != 0);
 
 	close(fd);
-
-	igt_success();
 }

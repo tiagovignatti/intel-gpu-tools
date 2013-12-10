@@ -114,6 +114,8 @@ int main(int argc, char **argv)
 	int opt_dump_png = false;
 	int opt_dump_aub = drmtest_dump_aub();
 
+	igt_simple_init();
+
 	while ((opt = getopt(argc, argv, "d")) != -1) {
 		switch (opt) {
 		case 'd':

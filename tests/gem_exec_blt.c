@@ -246,6 +246,8 @@ int main(int argc, char **argv)
 {
 	int i;
 
+	igt_simple_init();
+
 	igt_skip_on_simulation();
 
 	if (argc > 1) {

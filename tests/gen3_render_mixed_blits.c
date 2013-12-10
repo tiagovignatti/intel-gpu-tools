@@ -352,6 +352,8 @@ int main(int argc, char **argv)
 	uint32_t start = 0;
 	int i, fd, count;
 
+	igt_simple_init();
+
 	fd = drm_open_any();
 
 	if (!IS_GEN3(intel_get_drm_devid(fd))) {
