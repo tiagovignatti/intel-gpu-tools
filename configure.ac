@@ -33,6 +33,7 @@ AC_CONFIG_AUX_DIR([build-aux])
 AC_USE_SYSTEM_EXTENSIONS
 AC_SYS_LARGEFILE
 AC_GNU_SOURCE
+AC_CANONICAL_HOST
 
 AM_INIT_AUTOMAKE([foreign dist-bzip2])
 AM_PATH_PYTHON([3],, [:])
@@ -185,6 +186,7 @@ if test "x$BUILD_TESTS" = xyes; then
 	AC_DEFINE(BUILD_TESTS, 1, [Build tests])
 fi
 AM_CONDITIONAL(BUILD_TESTS, [test "x$BUILD_TESTS" = xyes])
+AC_DEFINE_UNQUOTED(TARGET_CPU_PLATFORM, ["$host_cpu"], [Target platform])
 
 AC_CONFIG_FILES([
 		 Makefile

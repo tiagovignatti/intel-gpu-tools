@@ -806,7 +806,8 @@ static void print_version(void)
 	if (list_subtests)
 		return;
 
-	fprintf(stdout, "IGT-Version: %s-%s\n", PACKAGE_VERSION, IGT_GIT_SHA1);
+	fprintf(stdout, "IGT-Version: %s-%s (%s)\n", PACKAGE_VERSION,
+		IGT_GIT_SHA1, TARGET_CPU_PLATFORM);
 }
 
 static void print_usage(const char *command_str, const char *help_str,
