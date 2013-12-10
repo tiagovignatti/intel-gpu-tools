@@ -1538,8 +1538,10 @@ int main(int argc, char **argv)
 	}
 	igt_stop_signal_helper();
 
-	igt_fixture
-		close(drm_fd);
+	/*
+	 * Let drm_fd leak, since it's needed by the dpms restore
+	 * exit_handler and igt_exit() won't return.
+	 */
 
 	igt_exit();
 }
