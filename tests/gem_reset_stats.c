@@ -639,7 +639,67 @@ static void test_close_pending(void)
 	close(fd);
 }
 
-static void test_close_pending_fork(void)
+#define LOCAL_I915_EXEC_VEBOX	(4 << 0)
+
+static const struct target_ring {
+	uint32_t exec;
+	bool (*avail)(int);
+} rings[] = {
+	{ 0, 0 },
+	{ I915_EXEC_BLT, gem_has_blt },
+	{ I915_EXEC_BSD, gem_has_bsd },
+	{ LOCAL_I915_EXEC_VEBOX, gem_has_vebox },
+};
+
+#define NUM_RINGS (sizeof(rings)/sizeof(struct target_ring))
+
+static void exec_noop_on_each_ring(int fd, const bool reverse)
+{
+	uint32_t batch[2] = {MI_BATCH_BUFFER_END, 0};
+	uint32_t handle;
+	struct drm_i915_gem_execbuffer2 execbuf;
+	struct drm_i915_gem_exec_object2 exec[1];
+
+	handle = gem_create(fd, 4096);
+	gem_write(fd, handle, 0, batch, sizeof(batch));
+
+	exec[0].handle = handle;
+	exec[0].relocation_count = 0;
+	exec[0].relocs_ptr = 0;
+	exec[0].alignment = 0;
+	exec[0].offset = 0;
+	exec[0].flags = 0;
+	exec[0].rsvd1 = 0;
+	exec[0].rsvd2 = 0;
+
+	execbuf.buffers_ptr = (uintptr_t)exec;
+	execbuf.buffer_count = 1;
+	execbuf.batch_start_offset = 0;
+	execbuf.batch_len = 8;
+	execbuf.cliprects_ptr = 0;
+	execbuf.num_cliprects = 0;
+	execbuf.DR1 = 0;
+	execbuf.DR4 = 0;
+	execbuf.flags = 0;
+	i915_execbuffer2_set_context_id(execbuf, 0);
+	execbuf.rsvd2 = 0;
+
+	for (unsigned i = 0; i < NUM_RINGS; i++) {
+		const struct target_ring *ring;
+
+		ring = reverse ? &rings[NUM_RINGS - 1 - i] : &rings[i];
+
+		if (!ring->avail || (ring->avail && ring->avail(fd))) {
+			execbuf.flags = ring->exec;
+			do_ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf);
+		}
+	}
+
+	gem_sync(fd, handle);
+	gem_close(fd, handle);
+}
+
+static void test_close_pending_fork(const bool reverse)
 {
 	int pid;
 	int fd, h;
@@ -660,20 +720,14 @@ static void test_close_pending_fork(void)
 	 */
 	pid = fork();
 	if (pid == 0) {
-		/*
-		 * Not first drm_open_any() so we need to do
-		 * gem_quiescent_gpu() explicitly, as it is the
-		 * key component to trigger the oops
-		 *
-		 * The crucial component is that we schedule the same noop batch
-		 * on each ring. If gem_quiescent_gpu ever changes that we need
-		 * to update this testcase.
-		 */
 		const int fd2 = drm_open_any();
 		igt_assert(fd2 >= 0);
 
-		/* This adds same batch on each ring */
-		gem_quiescent_gpu(fd2);
+		/* The crucial component is that we schedule the same noop batch
+		 * on each ring. This exercises batch_obj reference counting,
+		 * when gpu is reset and ring lists are cleared.
+		 */
+		exec_noop_on_each_ring(fd2, reverse);
 
 		close(fd2);
 		return;
@@ -901,8 +955,10 @@ igt_main
 	igt_subtest("close-pending")
 		test_close_pending();
 
-	igt_subtest("close-pending-fork")
-		test_close_pending_fork();
+	igt_subtest("close-pending-fork") {
+		test_close_pending_fork(true);
+		test_close_pending_fork(false);
+	}
 
 	igt_subtest("params")
 		test_params();
