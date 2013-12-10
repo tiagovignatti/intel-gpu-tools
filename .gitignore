@@ -81,3 +81,5 @@ core
 cscope.*
 TAGS
 build-aux/
+
+version.h
