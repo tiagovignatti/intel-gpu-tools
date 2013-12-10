@@ -109,6 +109,17 @@ void igt_permute_array(void *array, unsigned size,
 						 unsigned j));
 void igt_progress(const char *header, uint64_t i, uint64_t total);
 
+/* init for simple tests without subtests */
+void igt_simple_init(void);
+#define igt_simple_main \
+	static void igt_tokencat(__real_main, __LINE__)(void); \
+	int main(int argc, char **argv) { \
+		igt_simple_init(); \
+		igt_tokencat(__real_main, __LINE__)(); \
+		exit(0); \
+	} \
+	static void igt_tokencat(__real_main, __LINE__)(void) \
+
 /* subtest infrastructure */
 jmp_buf igt_subtest_jmpbuf;
 void igt_subtest_init(int argc, char **argv);

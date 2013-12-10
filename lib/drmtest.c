@@ -932,6 +932,11 @@ void igt_subtest_init(int argc, char **argv)
 	optind = 1;
 }
 
+void igt_simple_init(void)
+{
+	print_version();
+}
+
 /*
  * Note: Testcases which use these helpers MUST NOT output anything to stdout
  * outside of places protected by igt_run_subtest checks - the piglit

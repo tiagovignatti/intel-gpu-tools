@@ -97,7 +97,7 @@ static int exec(int fd, uint32_t handle, uint32_t reloc_ofs)
 	return ret;
 }
 
-int main(int argc, char **argv)
+igt_simple_main
 {
 	uint32_t batch[2] = {MI_BATCH_BUFFER_END};
 	uint32_t handle;
@@ -120,6 +120,4 @@ int main(int argc, char **argv)
 	gem_close(fd, handle);
 
 	close(fd);
-
-	return 0;
 }
