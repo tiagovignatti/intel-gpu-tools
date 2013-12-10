@@ -18,6 +18,7 @@ TESTS_progs_M = \
 	drv_suspend \
 	gem_basic \
 	gem_caching \
+	gem_close_race \
 	gem_concurrent_blit \
 	gem_cs_tlb \
 	gem_ctx_bad_exec \
@@ -26,6 +27,7 @@ TESTS_progs_M = \
 	gem_evict_alignment \
 	gem_evict_everything \
 	gem_exec_bad_domains \
+	gem_exec_faulting_reloc \
 	gem_exec_nop \
 	gem_fenced_exec_thrash \
 	gem_fence_thrash \
@@ -36,6 +38,7 @@ TESTS_progs_M = \
 	gem_mmap_gtt \
 	gem_partial_pwrite_pread \
 	gem_persistent_relocs \
+	gem_pipe_control_store_loop \
 	gem_pread \
 	gem_pread_after_blit \
 	gem_pwrite \
@@ -71,7 +74,6 @@ TESTS_progs = \
 	drm_vma_limiter_cpu \
 	drm_vma_limiter_gtt \
 	gem_bad_length \
-	gem_close_race \
 	gem_cpu_reloc \
 	gem_cs_prefetch \
 	gem_ctx_bad_destroy \
@@ -80,7 +82,6 @@ TESTS_progs = \
 	gem_double_irq_loop \
 	gem_exec_big \
 	gem_exec_blt \
-	gem_exec_faulting_reloc \
 	gem_exec_lut_handle \
 	gem_gtt_cpu_tlb \
 	gem_gtt_speed \
@@ -90,7 +91,6 @@ TESTS_progs = \
 	gem_mmap_offset_exhaustion \
 	gem_media_fill \
 	gem_pin \
-	gem_pipe_control_store_loop \
 	gem_reg_read \
 	gem_render_copy \
 	gem_render_linear_blits \
