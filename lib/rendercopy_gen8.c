@@ -584,7 +584,10 @@ gen8_emit_vs(struct intel_batchbuffer *batch) {
 	OUT_BATCH(0);
 	OUT_BATCH(0);
 
-	OUT_BATCH(GEN6_3DSTATE_VS | (6-2));
+	OUT_BATCH(GEN6_3DSTATE_VS | (9-2));
+	OUT_BATCH(0);
+	OUT_BATCH(0);
+	OUT_BATCH(0);
 	OUT_BATCH(0);
 	OUT_BATCH(0);
 	OUT_BATCH(0);
@@ -606,7 +609,9 @@ gen8_emit_hs(struct intel_batchbuffer *batch) {
 	OUT_BATCH(0);
 	OUT_BATCH(0);
 
-	OUT_BATCH(GEN7_3DSTATE_HS | (7-2));
+	OUT_BATCH(GEN7_3DSTATE_HS | (9-2));
+	OUT_BATCH(0);
+	OUT_BATCH(0);
 	OUT_BATCH(0);
 	OUT_BATCH(0);
 	OUT_BATCH(0);
@@ -635,7 +640,10 @@ gen8_emit_gs(struct intel_batchbuffer *batch) {
 	OUT_BATCH(0);
 	OUT_BATCH(0);
 
-	OUT_BATCH(GEN7_3DSTATE_GS | (7-2));
+	OUT_BATCH(GEN7_3DSTATE_GS | (10-2));
+	OUT_BATCH(0);
+	OUT_BATCH(0);
+	OUT_BATCH(0);
 	OUT_BATCH(0);
 	OUT_BATCH(0);
 	OUT_BATCH(0);
@@ -664,7 +672,10 @@ gen8_emit_ds(struct intel_batchbuffer *batch) {
 	OUT_BATCH(0);
 	OUT_BATCH(0);
 
-	OUT_BATCH(GEN7_3DSTATE_DS | (6-2));
+	OUT_BATCH(GEN7_3DSTATE_DS | (9-2));
+	OUT_BATCH(0);
+	OUT_BATCH(0);
+	OUT_BATCH(0);
 	OUT_BATCH(0);
 	OUT_BATCH(0);
 	OUT_BATCH(0);
@@ -786,7 +797,8 @@ gen8_emit_ps(struct intel_batchbuffer *batch, uint32_t kernel) {
 
 static void
 gen8_emit_depth(struct intel_batchbuffer *batch) {
-	OUT_BATCH(GEN7_3DSTATE_DEPTH_BUFFER | (7-2));
+	OUT_BATCH(GEN7_3DSTATE_DEPTH_BUFFER | (8-2));
+	OUT_BATCH(0);
 	OUT_BATCH(0);
 	OUT_BATCH(0);
 	OUT_BATCH(0);
@@ -937,7 +949,9 @@ void gen8_render_copyfunc(struct intel_batchbuffer *batch,
 
 	gen8_emit_null_state(batch);
 
-	OUT_BATCH(GEN7_3DSTATE_STREAMOUT | 1);
+	OUT_BATCH(GEN7_3DSTATE_STREAMOUT | (5-2));
+	OUT_BATCH(0);
+	OUT_BATCH(0);
 	OUT_BATCH(0);
 	OUT_BATCH(0);
 
