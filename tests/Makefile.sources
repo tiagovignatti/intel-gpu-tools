@@ -145,11 +145,18 @@ TESTS_scripts = \
 # This target contains testcases which support automagic subtest enumeration
 # from the piglit testrunner with --list-subtests and running individual
 # subtests with --run-subtest <testname>
+#
+# Your testcase should probably use an igt_main and igt_fixture and should have
+# a pile of igt_subtest blocks.
 multi_kernel_tests = \
 	$(TESTS_progs_M) \
 	$(TESTS_scripts_M) \
 	$(NULL)
 
+# This target is for simple testcase which don't expose any subtest.
+#
+# Your testcase should probably use igt_simple_main, but none of the other magic
+# blocks like igt_fixture or igt_subtest.
 single_kernel_tests = \
 	$(TESTS_progs) \
 	$(TESTS_scripts) \
