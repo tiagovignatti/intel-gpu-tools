@@ -46,6 +46,7 @@ TESTS_progs_M = \
 	gem_readwrite \
 	gem_reloc_overflow \
 	gem_reloc_vs_gpu \
+	gem_reset_stats \
 	gem_ringfill \
 	gem_set_tiling_vs_blt \
 	gem_storedw_batches_loop \
@@ -179,13 +180,14 @@ XFAIL_TESTS = \
 	igt_no_subtest \
 	$(NULL)
 
+# IMPORTANT: These tests here are all disabled because the result in sometime
+# unrecoverable gpu hangs. Don't put real testcases here.
 HANG = \
 	gem_bad_batch \
 	gem_hang \
 	gem_bad_blit \
 	gem_bad_address \
 	gem_non_secure_batch \
-	gem_reset_stats \
 	$(NULL)
 
 scripts = \
