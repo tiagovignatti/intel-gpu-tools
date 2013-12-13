@@ -136,7 +136,7 @@ static void run(int child)
 		gem_read(fd, handle, 0, &handle, sizeof(handle));
 }
 
-#define NUM_FD 32000
+#define NUM_FD 768
 
 struct thread {
 	pthread_mutex_t mutex;
@@ -222,7 +222,7 @@ igt_main
 	}
 
 	igt_subtest("process-exit") {
-		igt_fork(child, 2000)
+		igt_fork(child, NUM_FD)
 			run(child);
 		igt_waitchildren();
 	}
