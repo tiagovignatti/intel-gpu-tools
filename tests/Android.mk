@@ -23,6 +23,33 @@ skip_lib_list := \
 lib_list := $(filter-out $(skip_lib_list),$(libintel_tools_la_SOURCES))
 LIB_SOURCES := $(addprefix lib/,$(lib_list))
 
+.PHONY: version.h.tmp
+
+$(LOCAL_PATH)/version.h.tmp:
+	@touch $@
+	@if test -d .git; then \
+		if which git > /dev/null; then git log -n 1 --oneline | \
+		        sed 's/^\([^ ]*\) .*/#define IGT_GIT_SHA1 "g\1"/' \
+		        >> $@ ; \
+		fi \
+	else \
+		echo '#define IGT_GIT_SHA1 "NOT-GIT"' >> $@ ; \
+	fi
+
+$(LOCAL_PATH)/version.h: $(LOCAL_PATH)/version.h.tmp
+	@echo "updating version.h"
+	@if ! cmp -s $(LOCAL_PATH)/version.h.tmp $(LOCAL_PATH)/version.h; then \
+		mv $(LOCAL_PATH)/version.h.tmp $(LOCAL_PATH)/version.h ; \
+	else \
+		rm $(LOCAL_PATH)/version.h.tmp ; \
+	fi
+
+# FIXME: autogenerate this info #
+$(LOCAL_PATH)/config.h:
+	@echo "updating config.h"
+	echo '#define PACKAGE_VERSION "1.5"' >> $@ ; \
+	echo '#define TARGET_CPU_PLATFORM "android-ia"' >> $@ ;
+
 #================#
 
 define add_test
@@ -31,7 +58,10 @@ define add_test
     LOCAL_SRC_FILES :=          \
        tests/$1.c               \
        $(LIB_SOURCES)
-       
+
+    LOCAL_GENERATED_SOURCES :=       \
+       $(LOCAL_PATH)/version.h       \
+       $(LOCAL_PATH)/config.h
 
     LOCAL_C_INCLUDES +=              \
        $(LOCAL_PATH)/lib             \
@@ -70,7 +100,8 @@ skip_tests_list := \
     kms_setmode \
     pm_pc8 \
     gem_seqno_wrap \
-    gem_render_copy
+    gem_render_copy \
+    pm_lpsp
 
 tests_list := $(filter-out $(skip_tests_list),$(TESTS_progs) $(TESTS_progs_M) $(HANG) $(TESTS_testsuite))
 
