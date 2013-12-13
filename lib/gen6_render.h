@@ -1,6 +1,8 @@
 #ifndef GEN6_RENDER_H
 #define GEN6_RENDER_H
 
+#include <stdint.h>
+
 #define GEN6_3D(Pipeline,Opcode,Subopcode) ((3 << 29) | \
 					   ((Pipeline) << 27) | \
 					   ((Opcode) << 24) | \
