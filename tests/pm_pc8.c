@@ -751,6 +751,9 @@ static void setup_environment(void)
 	drm_fd = drm_open_any();
 	igt_assert(drm_fd >= 0);
 
+	igt_require_f(drmSetMaster(drm_fd) == 0, "Can't become DRM master, "
+		      "please check if no other DRM client is running.\n");
+
 	init_mode_set_data(&ms_data);
 
 	setup_non_graphics_runtime_pm();
