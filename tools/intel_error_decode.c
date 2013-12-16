@@ -39,6 +39,7 @@
  */
 
 #define _GNU_SOURCE
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -319,6 +320,19 @@ static void print_batch(int is_batch, const char *ring_name, uint32_t gtt_offset
 	}
 }
 
+static void decode(struct drm_intel_decode *ctx, bool is_batch,
+		   const char *ring_name, uint32_t gtt_offset, uint32_t *data,
+		   int *count)
+{
+	if (!*count)
+		return;
+
+	print_batch(is_batch, ring_name, gtt_offset);
+	drm_intel_decode_set_batch_pointer(ctx, data, gtt_offset, *count);
+	drm_intel_decode(ctx);
+	*count = 0;
+}
+
 static void
 read_data_file(FILE *file)
 {
@@ -350,14 +364,8 @@ read_data_file(FILE *file)
 			matched = sscanf(dashes, "--- gtt_offset = 0x%08x\n",
 					&new_gtt_offset);
 			if (matched == 1) {
-				if (count) {
-					print_batch(is_batch, ring_name, gtt_offset);
-					drm_intel_decode_set_batch_pointer(decode_ctx,
-							data, gtt_offset,
-							count);
-					drm_intel_decode(decode_ctx);
-					count = 0;
-				}
+				decode(decode_ctx, is_batch, ring_name,
+				       gtt_offset, data, &count);
 				gtt_offset = new_gtt_offset;
 				is_batch = 1;
 				free(ring_name);
@@ -368,14 +376,8 @@ read_data_file(FILE *file)
 			matched = sscanf(dashes, "--- ringbuffer = 0x%08x\n",
 					&new_gtt_offset);
 			if (matched == 1) {
-				if (count) {
-					print_batch(is_batch, ring_name, gtt_offset);
-					drm_intel_decode_set_batch_pointer(decode_ctx,
-							data, gtt_offset,
-							count);
-					drm_intel_decode(decode_ctx);
-					count = 0;
-				}
+				decode(decode_ctx, is_batch, ring_name,
+				       gtt_offset, data, &count);
 				gtt_offset = new_gtt_offset;
 				is_batch = 0;
 				free(ring_name);
@@ -389,14 +391,8 @@ read_data_file(FILE *file)
 			unsigned int reg;
 
 			/* display reg section is after the ringbuffers, don't mix them */
-			if (count) {
-				print_batch(is_batch, ring_name, gtt_offset);
-				drm_intel_decode_set_batch_pointer(decode_ctx,
-						data, gtt_offset,
-						count);
-				drm_intel_decode(decode_ctx);
-				count = 0;
-			}
+			decode(decode_ctx, is_batch, ring_name, gtt_offset,
+			       data, &count);
 
 			printf("%s", line);
 
@@ -464,13 +460,7 @@ read_data_file(FILE *file)
 		data[count-1] = value;
 	}
 
-	if (count) {
-		print_batch(is_batch, ring_name, gtt_offset);
-		drm_intel_decode_set_batch_pointer(decode_ctx,
-				data, gtt_offset,
-				count);
-		drm_intel_decode(decode_ctx);
-	}
+	decode(decode_ctx, is_batch, ring_name, gtt_offset, data, &count);
 
 	free(data);
 	free(line);
