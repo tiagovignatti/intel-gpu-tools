@@ -42,11 +42,11 @@ tests/
 
 	To avoid some hassles with piglit's use of Waffle just disable it. Run
 
-	piglit-soruces $ cmake -D PIGLIT_USE_WAFFLE=OFF .
+	piglit-sources $ cmake -D PIGLIT_USE_WAFFLE=OFF .
 
 	With
 
-	piglit-soruces $ ccmake .
+	piglit-sources $ ccmake .
 
 	you can check your configuration with a curses interface, too.
 
