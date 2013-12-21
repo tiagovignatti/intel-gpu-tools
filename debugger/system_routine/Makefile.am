@@ -3,6 +3,7 @@ noinst_PROGRAMS = eviction_macro sr tiny
 nodist_sr_SOURCES = sr.c
 nodist_tiny_SOURCES = tiny.c
 
+GEN4ASM = $(top_builddir)/assembler/intel-gen4asm
 GEN4ASM_FLAGS = -g6 -a -b
 ASM_CPPFLAGS = 				\
 	-x assembler-with-cpp 		\
