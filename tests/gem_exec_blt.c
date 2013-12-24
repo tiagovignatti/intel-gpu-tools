@@ -65,6 +65,8 @@ static int gem_linear_blt(int fd,
 	if (height) {
 		int i = 0;
 		b[i++] = COPY_BLT_CMD | BLT_WRITE_ALPHA | BLT_WRITE_RGB;
+		if (intel_gen(intel_get_drm_devid(fd)) >= 8)
+			b[i-1]+=2;
 		b[i++] = 0xcc << 16 | 1 << 25 | 1 << 24 | (16*1024);
 		b[i++] = 0;
 		b[i++] = height << 16 | (4*1024);
@@ -83,6 +85,8 @@ static int gem_linear_blt(int fd,
 		b[i++] = 16*1024;
 		b[i++] = 0;
 		reloc->offset = (b-batch+7) * sizeof(uint32_t);
+		if (intel_gen(intel_get_drm_devid(fd)) >= 8)
+			reloc->offset += sizeof(uint32_t);
 		reloc->delta = 0;
 		reloc->target_handle = src;
 		reloc->read_domains = I915_GEM_DOMAIN_RENDER;
@@ -99,6 +103,8 @@ static int gem_linear_blt(int fd,
 	if (length) {
 		int i = 0;
 		b[i++] = COPY_BLT_CMD | BLT_WRITE_ALPHA | BLT_WRITE_RGB;
+		if (intel_gen(intel_get_drm_devid(fd)) >= 8)
+			b[i-1]+=2;
 		b[i++] = 0xcc << 16 | 1 << 25 | 1 << 24 | (16*1024);
 		b[i++] = height << 16;
 		b[i++] = (1+height) << 16 | (length / 4);
@@ -117,6 +123,8 @@ static int gem_linear_blt(int fd,
 		b[i++] = 16*1024;
 		b[i++] = 0;
 		reloc->offset = (b-batch+7) * sizeof(uint32_t);
+		if (intel_gen(intel_get_drm_devid(fd)) >= 8)
+			reloc->offset += sizeof(uint32_t);
 		reloc->delta = 0;
 		reloc->target_handle = src;
 		reloc->read_domains = I915_GEM_DOMAIN_RENDER;
@@ -199,7 +207,10 @@ static void run(int object_size)
 	exec[1].rsvd2 = 0;
 
 	exec[2].handle = handle;
-	exec[2].relocation_count = len > 40 ? 4 : 2;
+	if (intel_gen(intel_get_drm_devid(fd)) >= 8)
+		exec[2].relocation_count = len > 56 ? 4 : 2;
+	else
+		exec[2].relocation_count = len > 40 ? 4 : 2;
 	exec[2].relocs_ptr = (uintptr_t)reloc;
 	exec[2].alignment = 0;
 	exec[2].offset = 0;
