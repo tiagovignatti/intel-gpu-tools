@@ -1130,6 +1130,16 @@ static unsigned event_loop(struct test_output *o, unsigned duration_ms)
 	return end - start;
 }
 
+static void free_test_output(struct test_output *o)
+{
+	int i;
+
+	for (i = 0; i < o->count; i++) {
+		drmModeFreeEncoder(o->kencoder[i]);
+		drmModeFreeConnector(o->kconnector[i]);
+	}
+}
+
 static void run_test_on_crtc_set(struct test_output *o, int *crtc_idxs,
 				 int crtc_count, int duration_ms)
 {
@@ -1232,10 +1242,7 @@ out:
 
 	last_connector = NULL;
 
-	for (i = 0; i < o->count; i++) {
-		drmModeFreeEncoder(o->kencoder[i]);
-		drmModeFreeConnector(o->kconnector[i]);
-	}
+	free_test_output(o);
 }
 
 static int run_test(int duration, int flags)
@@ -1262,6 +1269,7 @@ static int run_test(int duration, int flags)
 			if (o.mode_valid)
 				modes++;
 
+			free_test_output(&o);
 		}
 	}
 
@@ -1319,6 +1327,7 @@ static int run_pair(int duration, int flags)
 					if (o.mode_valid)
 						modes++;
 
+					free_test_output(&o);
 				}
 			}
 		}
