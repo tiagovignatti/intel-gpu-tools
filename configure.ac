@@ -140,7 +140,6 @@ AC_ARG_ENABLE(shader-debugger, AS_HELP_STRING([--enable-shader-debugger],
 
 # Shader debugger depends on python3, intel-genasm and objcopy
 if test "x$BUILD_SHADER_DEBUGGER" != xno; then
-	GEN4ASM = assembler/intel-gen4asm
 	# Check that the assembler is built
 	if test "$enable_assembler" = xno; then
 		AC_MSG_ERROR([Shader debugger requested, but assembler not build not found.])
