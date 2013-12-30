@@ -921,6 +921,8 @@ static void connector_find_preferred_mode(uint32_t connector_id, int crtc_idx,
 
 	o->fb_width = o->kmode[0].hdisplay;
 	o->fb_height = o->kmode[0].vdisplay;
+
+	drmModeFreeCrtc(config.crtc);
 }
 
 static bool mode_compatible(const drmModeModeInfo *a, const drmModeModeInfo *b)
@@ -986,6 +988,9 @@ found:
 	o->kencoder[1] = config[1].encoder;
 	o->_crtc[1] = config[1].crtc->crtc_id;
 	o->kmode[1] = *mode[1];
+
+	drmModeFreeCrtc(config[0].crtc);
+	drmModeFreeCrtc(config[1].crtc);
 }
 
 static void paint_flip_mode(struct kmstest_fb *fb, bool odd_frame)
