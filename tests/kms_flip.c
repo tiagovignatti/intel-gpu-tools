@@ -295,6 +295,8 @@ static void dpms_off_other_outputs(struct test_output *o)
 
 		set_connector_dpms(connector,  DRM_MODE_DPMS_ON);
 		set_connector_dpms(connector,  DRM_MODE_DPMS_OFF);
+
+		drmModeFreeConnector(connector);
 next:
 		;
 	}
