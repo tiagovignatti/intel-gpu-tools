@@ -911,6 +911,8 @@ int igt_subtest_init_parse_opts(int argc, char **argv,
 	oom_adjust_for_doom();
 
 out:
+	free(short_opts);
+	free(combined_opts);
 	print_version();
 
 	return ret;
