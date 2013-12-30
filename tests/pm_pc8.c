@@ -280,6 +280,8 @@ static struct scanout_fb *create_fb(struct mode_set_data *data, int width,
 
 	cr = kmstest_get_cairo_ctx(drm_fd, &fb);
 	kmstest_paint_test_pattern(cr, width, height);
+	cairo_destroy(cr);
+
 	return fb_info;
 }
 

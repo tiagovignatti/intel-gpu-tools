@@ -55,8 +55,6 @@ static int paint_fb(struct kmstest_fb *fb, const char *test_name,
 	cairo_t *cr;
 
 	cr = kmstest_get_cairo_ctx(drm_fd, fb);
-	if (!cr)
-		return -1;
 
 	kmstest_paint_color_gradient(cr, 0, 0, fb->width, fb->height, 1, 1, 1);
 	kmstest_paint_test_pattern(cr, fb->width, fb->height);
@@ -68,6 +66,8 @@ static int paint_fb(struct kmstest_fb *fb, const char *test_name,
 	kmstest_cairo_printf_line(cr, align_hcenter, 10, "%s", test_name);
 	kmstest_cairo_printf_line(cr, align_hcenter, 10, "%s", mode_format_str);
 	kmstest_cairo_printf_line(cr, align_hcenter, 10, "%s", cconf_str);
+
+	cairo_destroy(cr);
 
 	return 0;
 }

@@ -151,8 +151,6 @@ static int paint_fb(struct kmstest_fb *fb, const char *test_name,
 	int i;
 
 	cr = kmstest_get_cairo_ctx(drm_fd, fb);
-	if (!cr)
-		return -1;
 
 	kmstest_paint_test_pattern(cr, fb->width, fb->height);
 
@@ -175,6 +173,8 @@ static int paint_fb(struct kmstest_fb *fb, const char *test_name,
 		kmstest_cairo_printf_line(cr, align_left, 20, "%s",
 					  crtc_str[i]);
 	}
+
+	cairo_destroy(cr);
 
 	return 0;
 }

@@ -97,6 +97,8 @@ static uint32_t create_fb(int drm_fd, int width, int height)
 				      &fb);
 	cr = kmstest_get_cairo_ctx(drm_fd, &fb);
 	kmstest_paint_test_pattern(cr, width, height);
+	cairo_destroy(cr);
+
 	return buffer_id;
 }
 

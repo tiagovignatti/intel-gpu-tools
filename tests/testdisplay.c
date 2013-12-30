@@ -507,6 +507,8 @@ static uint32_t create_stereo_fb(drmModeModeInfo *mode, struct kmstest_fb *fb)
 			    layout.right.x, layout.right.y,
 			    layout.right.width, layout.right.height);
 
+	cairo_destroy(cr);
+
 	{
 		char buffer[64];
 

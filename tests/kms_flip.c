@@ -1003,6 +1003,7 @@ static void paint_flip_mode(struct kmstest_fb *fb, bool odd_frame)
 	cairo_fill(cr);
 
 	igt_assert(!cairo_status(cr));
+	cairo_destroy(cr);
 }
 
 static int

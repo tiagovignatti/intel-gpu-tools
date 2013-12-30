@@ -100,6 +100,7 @@ connector_set_mode(data_t *data, connector_t *connector, drmModeModeInfo *mode)
 	kmstest_paint_color(cr, 0, 0, mode->hdisplay, mode->vdisplay,
 			    0.0, 1.0, 0.0);
 	igt_assert(cairo_status(cr) == 0);
+	cairo_destroy(cr);
 
 #if 0
 	fprintf(stdout, "Using pipe %c, %dx%d\n", pipe_name(config->pipe),

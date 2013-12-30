@@ -54,7 +54,7 @@ struct kmstest_fb {
 	unsigned stride;
 	unsigned tiling;
 	unsigned size;
-	cairo_t *cairo_ctx;
+	cairo_surface_t *cairo_surface;
 };
 
 enum kmstest_text_align {
@@ -77,6 +77,7 @@ unsigned int kmstest_create_fb2(int fd, int width, int height, uint32_t format,
 			        bool tiled, struct kmstest_fb *fb);
 void kmstest_remove_fb(int fd, struct kmstest_fb *fb_info);
 cairo_t *kmstest_get_cairo_ctx(int fd, struct kmstest_fb *fb);
+cairo_surface_t *kmstest_get_cairo_surface(int fd, struct kmstest_fb *fb);
 void kmstest_paint_color(cairo_t *cr, int x, int y, int w, int h,
 			 double r, double g, double b);
 void kmstest_paint_color_alpha(cairo_t *cr, int x, int y, int w, int h,

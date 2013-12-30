@@ -105,6 +105,7 @@ static uint32_t create_fb(data_t *data,
 	cr = kmstest_get_cairo_ctx(data->drm_fd, fb);
 	kmstest_paint_color(cr, 0, 0, w, h, r, g, b);
 	igt_assert(cairo_status(cr) == 0);
+	cairo_destroy(cr);
 
 	return fb_id;
 }

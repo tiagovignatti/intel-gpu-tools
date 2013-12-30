@@ -368,30 +368,42 @@ static cairo_format_t drm_format_to_cairo(uint32_t drm_format)
 	abort();
 }
 
-static cairo_surface_t *create_image_surface(int fd, struct kmstest_fb *fb)
+static void __kmstest_destroy_cairo_surface(void *arg)
 {
-	cairo_surface_t *surface;
-	cairo_format_t cformat;
-	void *fb_ptr;
-
-	cformat = drm_format_to_cairo(fb->drm_format);
-	fb_ptr = gem_mmap(fd, fb->gem_handle, fb->size, PROT_READ | PROT_WRITE);
-	surface = cairo_image_surface_create_for_data((unsigned char *)fb_ptr,
-						   cformat, fb->width,
-						   fb->height, fb->stride);
-	assert(surface);
-
-	return surface;
+	struct kmstest_fb *fb = arg;
+	munmap(cairo_image_surface_get_data(fb->cairo_surface), fb->size);
 }
 
-static cairo_t *create_cairo_ctx(int fd, struct kmstest_fb *fb)
+cairo_surface_t *kmstest_get_cairo_surface(int fd, struct kmstest_fb *fb)
 {
-	cairo_t *cr;
-	cairo_surface_t *surface;
+	if (fb->cairo_surface == NULL) {
+		fb->cairo_surface =
+			cairo_image_surface_create_for_data(gem_mmap(fd, fb->gem_handle, fb->size, PROT_READ | PROT_WRITE),
+							    drm_format_to_cairo(fb->drm_format),
+							    fb->width, fb->height, fb->stride);
 
-	surface = create_image_surface(fd, fb);
+		cairo_surface_set_user_data(fb->cairo_surface,
+					    (cairo_user_data_key_t *)kmstest_get_cairo_surface,
+					    fb, __kmstest_destroy_cairo_surface);
+	}
+
+	gem_set_domain(fd, fb->gem_handle,
+		       I915_GEM_DOMAIN_CPU, I915_GEM_DOMAIN_CPU);
+
+	igt_assert(cairo_surface_status(fb->cairo_surface) == CAIRO_STATUS_SUCCESS);
+	return cairo_surface_reference(fb->cairo_surface);
+}
+
+cairo_t *kmstest_get_cairo_ctx(int fd, struct kmstest_fb *fb)
+{
+	cairo_surface_t *surface;
+	cairo_t *cr;
+
+	surface = kmstest_get_cairo_surface(fd, fb);
 	cr = cairo_create(surface);
 	cairo_surface_destroy(surface);
+
+	igt_assert(cairo_status(cr) == CAIRO_STATUS_SUCCESS);
 
 	return cr;
 }
@@ -401,28 +413,16 @@ void kmstest_write_fb(int fd, struct kmstest_fb *fb, const char *filename)
 	cairo_surface_t *surface;
 	cairo_status_t status;
 
-	surface = create_image_surface(fd, fb);
+	surface = kmstest_get_cairo_surface(fd, fb);
 	status = cairo_surface_write_to_png(surface, filename);
-	assert(status == CAIRO_STATUS_SUCCESS);
 	cairo_surface_destroy(surface);
-}
 
-cairo_t *kmstest_get_cairo_ctx(int fd, struct kmstest_fb *fb)
-{
-
-	if (!fb->cairo_ctx)
-		fb->cairo_ctx = create_cairo_ctx(fd, fb);
-
-	gem_set_domain(fd, fb->gem_handle, I915_GEM_DOMAIN_CPU,
-		       I915_GEM_DOMAIN_CPU);
-
-	return fb->cairo_ctx;
+	igt_assert(status == CAIRO_STATUS_SUCCESS);
 }
 
 void kmstest_remove_fb(int fd, struct kmstest_fb *fb)
 {
-	if (fb->cairo_ctx)
-		cairo_destroy(fb->cairo_ctx);
+	cairo_surface_destroy(fb->cairo_surface);
 	do_or_die(drmModeRmFB(fd, fb->fb_id));
 	gem_close(fd, fb->gem_handle);
 }
