@@ -954,8 +954,10 @@ static void connector_find_compatible_mode(int crtc_idx0, int crtc_idx1,
 		return;
 
 	if (kmstest_get_connector_config(drm_fd, o->_connector[1],
-					 1 << crtc_idx1, &config[1]) < 0)
+					 1 << crtc_idx1, &config[1]) < 0) {
+		kmstest_free_connector_config(&config[0]);
 		return;
+	}
 
 	mode[0] = &config[0].default_mode;
 	mode[1] = &config[1].default_mode;
