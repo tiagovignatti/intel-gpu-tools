@@ -142,6 +142,7 @@ AC_ARG_ENABLE(shader-debugger, AS_HELP_STRING([--enable-shader-debugger],
 if test "x$BUILD_SHADER_DEBUGGER" != xno; then
 	# Check that the assembler is built
 	if test "x$enable_assembler" = xno; then
+		BUILD_SHADER_DEBUGGER=no
 		if test "x$BUILD_SHADER_DEBUGGER" = xyes; then
 			AC_MSG_ERROR([Shader debugger requested, but assembler not enabled.])
 		fi
@@ -170,8 +171,6 @@ fi
 AM_CONDITIONAL(BUILD_SHADER_DEBUGGER, [test "x$BUILD_SHADER_DEBUGGER" != xno])
 AS_IF([test "x$BUILD_SHADER_DEBUGGER" != xno],
       [enable_debugger=yes], [enable_debugger=no])
-AS_IF([test "x$enable_assembler" = xno],
-      [enable_debugger=no], 1)
 
 # -----------------------------------------------------------------------------
 
