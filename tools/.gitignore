@@ -3,7 +3,6 @@ intel_audio_dump
 intel_backlight
 intel_bios_dumper
 intel_bios_reader
-intel_disable_clock_gating
 intel_dpio_read
 intel_dpio_write
 intel_dump_decode
