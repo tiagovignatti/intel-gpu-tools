@@ -10,6 +10,11 @@ Release 1.6 (2014-XX-YY)
 
   http://blog.ffwll.ch/2013/11/testing-requirements-for-drmi915.html
 
+- Fix the gen4asm build depency handling, now that the assembler is included in
+  i-g-t (Ben).
+
+- Improve the cairo object lifetime management of the kmstest helpers (Chris).
+
 Release 1.5 (2013-11-06)
 ------------------------
 
