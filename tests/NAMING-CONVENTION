@@ -53,7 +53,7 @@ crc: Tests that use the display CRC infrastructure to check the results.
 
 tiled/tiling: Tests that exercise behaviour on tiled buffers.
 
-normal/uncached/snooped: Usual 3 variants for tests that use different coherency
+normal/uncached/snoop: Usual 3 variants for tests that use different coherency
 modes for the buffer objects they're using.
 
 rte: _R_un_t_ime _e_nviroment checks. For testcases which will fail if the
