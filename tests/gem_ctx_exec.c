@@ -101,7 +101,8 @@ static void big_exec(int fd, uint32_t handle, int ring)
 	int num_buffers = gem_available_aperture_size(fd) / 4096;
 	int i;
 
-	igt_require(intel_get_total_ram_mb() * 2 * 1024 > num_buffers * 4);
+	/* Make sure we only fill half of RAM with gem objects. */
+	igt_require(intel_get_total_ram_mb() * 1024 / 2 > num_buffers * 4);
 
 	gem_exec = calloc(num_buffers + 1, sizeof(*gem_exec));
 	igt_assert(gem_exec);
