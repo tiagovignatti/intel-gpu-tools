@@ -79,11 +79,18 @@ static int do_writeval(FILE *filp, int val, int lerrno)
 	int ret;
 	rewind(filp);
 	ret = fprintf(filp, "%d", val);
-	if (ret && lerrno)
-		igt_assert(errno = lerrno);
+	if (lerrno) {
+		/* Expecting specific error */
+		igt_assert(ret == EOF && errno == lerrno);
+	} else {
+		/* Expecting no error */
+		igt_assert(ret != EOF);
+	}
+
 	return ret;
 }
 #define writeval(filp, val) do_writeval(filp, val, 0)
+#define writeval_inval(filp, val) do_writeval(filp, val, EINVAL)
 
 #define fcur (readval(stuff[CUR].filp))
 #define fmin (readval(stuff[MIN].filp))
@@ -170,16 +177,16 @@ igt_simple_main
 	checkit();
 
 	/* And some errors */
-	writeval(stuff[MIN].filp, frpn - 1);
-	writeval(stuff[MAX].filp, frp0 + 1000);
+	writeval_inval(stuff[MIN].filp, frpn - 1);
+	writeval_inval(stuff[MAX].filp, frp0 + 1000);
 	checkit();
 
-	writeval(stuff[MIN].filp, fmax + 1000);
-	writeval(stuff[MAX].filp, fmin - 1);
+	writeval_inval(stuff[MIN].filp, fmax + 1000);
+	writeval_inval(stuff[MAX].filp, fmin - 1);
 	checkit();
 
-	do_writeval(stuff[MIN].filp, 0x11111110, EINVAL);
-	do_writeval(stuff[MAX].filp, 0, EINVAL);
+	writeval_inval(stuff[MIN].filp, 0x11111110);
+	writeval_inval(stuff[MAX].filp, 0);
 
 	writeval(stuff[MIN].filp, origmin);
 	writeval(stuff[MAX].filp, origmax);
