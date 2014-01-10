@@ -78,6 +78,41 @@ struct local_drm_i915_gem_context_destroy {
 
 static igt_debugfs_t dfs;
 
+#define LOCAL_I915_EXEC_VEBOX	(4 << 0)
+
+struct target_ring;
+
+static bool gem_has_render(int fd)
+{
+	return true;
+}
+
+static bool has_context(const struct target_ring *ring);
+
+static const struct target_ring {
+	uint32_t exec;
+	bool (*present)(int fd);
+	bool (*contexts)(const struct target_ring *ring);
+	const char *name;
+} rings[] = {
+	{ I915_EXEC_RENDER, gem_has_render, has_context, "render" },
+	{ I915_EXEC_BLT, gem_has_blt, has_context, "blt" },
+	{ I915_EXEC_BSD, gem_has_bsd, has_context, "bsd" },
+	{ LOCAL_I915_EXEC_VEBOX, gem_has_vebox, has_context, "vebox" },
+};
+
+static bool has_context(const struct target_ring *ring)
+{
+	if(ring->exec == I915_EXEC_RENDER)
+		return true;
+
+	return false;
+}
+
+#define NUM_RINGS (sizeof(rings)/sizeof(struct target_ring))
+
+static const struct target_ring *current_ring;
+
 static uint32_t context_create(int fd)
 {
 	struct local_drm_i915_gem_context_create create;
@@ -160,7 +195,7 @@ static int gem_exec(int fd, struct drm_i915_gem_execbuffer2 *execbuf)
 	return 0;
 }
 
-static int exec_valid(int fd, int ctx)
+static int exec_valid_ring(int fd, int ctx, int ring)
 {
 	struct drm_i915_gem_execbuffer2 execbuf;
 	struct drm_i915_gem_exec_object2 exec;
@@ -186,7 +221,7 @@ static int exec_valid(int fd, int ctx)
 	execbuf.num_cliprects = 0;
 	execbuf.DR1 = 0;
 	execbuf.DR4 = 0;
-	execbuf.flags = 0;
+	execbuf.flags = ring;
 	i915_execbuffer2_set_context_id(execbuf, ctx);
 	execbuf.rsvd2 = 0;
 
@@ -195,6 +230,11 @@ static int exec_valid(int fd, int ctx)
 		return ret;
 
 	return exec.handle;
+}
+
+static int exec_valid(int fd, int ctx)
+{
+	return exec_valid_ring(fd, ctx, current_ring->exec);
 }
 
 static void stop_rings(void)
@@ -211,7 +251,7 @@ static void stop_rings(void)
 #define BUFSIZE (4 * 1024)
 #define ITEMS   (BUFSIZE >> 2)
 
-static int inject_hang(int fd, int ctx)
+static int inject_hang_ring(int fd, int ctx, int ring)
 {
 	struct drm_i915_gem_execbuffer2 execbuf;
 	struct drm_i915_gem_exec_object2 exec;
@@ -249,7 +289,7 @@ static int inject_hang(int fd, int ctx)
 	execbuf.num_cliprects = 0;
 	execbuf.DR1 = 0;
 	execbuf.DR4 = 0;
-	execbuf.flags = 0;
+	execbuf.flags = ring;
 	i915_execbuffer2_set_context_id(execbuf, ctx);
 	execbuf.rsvd2 = 0;
 
@@ -290,7 +330,7 @@ static int inject_hang(int fd, int ctx)
 	execbuf.num_cliprects = 0;
 	execbuf.DR1 = 0;
 	execbuf.DR4 = 0;
-	execbuf.flags = 0;
+	execbuf.flags = ring;
 	i915_execbuffer2_set_context_id(execbuf, ctx);
 	execbuf.rsvd2 = 0;
 
@@ -303,6 +343,11 @@ static int inject_hang(int fd, int ctx)
 	stop_rings();
 
 	return exec.handle;
+}
+
+static int inject_hang(int fd, int ctx)
+{
+	return inject_hang_ring(fd, ctx, current_ring->exec);
 }
 
 static int _assert_reset_status(int fd, int ctx, int status)
@@ -727,20 +772,6 @@ static void test_close_pending(void)
 	close(fd);
 }
 
-#define LOCAL_I915_EXEC_VEBOX	(4 << 0)
-
-static const struct target_ring {
-	uint32_t exec;
-	bool (*avail)(int);
-} rings[] = {
-	{ 0, 0 },
-	{ I915_EXEC_BLT, gem_has_blt },
-	{ I915_EXEC_BSD, gem_has_bsd },
-	{ LOCAL_I915_EXEC_VEBOX, gem_has_vebox },
-};
-
-#define NUM_RINGS (sizeof(rings)/sizeof(struct target_ring))
-
 static void exec_noop_on_each_ring(int fd, const bool reverse)
 {
 	uint32_t batch[2] = {MI_BATCH_BUFFER_END, 0};
@@ -777,7 +808,7 @@ static void exec_noop_on_each_ring(int fd, const bool reverse)
 
 		ring = reverse ? &rings[NUM_RINGS - 1 - i] : &rings[i];
 
-		if (!ring->avail || (ring->avail && ring->avail(fd))) {
+		if (ring->present(fd)) {
 			execbuf.flags = ring->exec;
 			do_ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf);
 		}
@@ -980,17 +1011,19 @@ static void test_params(void)
 	close(fd);
 }
 
+#define RING_HAS_CONTEXTS current_ring->contexts(current_ring)
+#define RUN_CTX_TEST(...) do { igt_skip_on(RING_HAS_CONTEXTS == false); __VA_ARGS__; } while (0)
 
 igt_main
 {
 	struct local_drm_i915_gem_context_create create;
 	uint32_t devid;
-	int fd;
 	int ret;
 
 	igt_skip_on_simulation();
 
 	igt_fixture {
+		int fd;
 		fd = drm_open_any();
 		devid = intel_get_drm_devid(fd);
 		igt_require_f(intel_gen(devid) >= 4,
@@ -1009,35 +1042,50 @@ igt_main
 	igt_subtest("params")
 		test_params();
 
-	igt_subtest("reset-stats")
-		test_rs(4, 1, 0);
+	for (int i = 0; i < NUM_RINGS; i++) {
+		const char *name;
+		int fd;
 
-	igt_subtest("reset-stats-ctx")
-		test_rs_ctx(4, 4, 1, 2);
+		current_ring = &rings[i];
+		name = current_ring->name;
 
-	igt_subtest("ban")
-		test_ban();
+		fd = drm_open_any();
+		gem_require_ring(fd, current_ring->exec);
 
-	igt_subtest("ban-ctx")
-		test_ban_ctx();
+		igt_subtest_f("reset-stats-%s", name)
+			test_rs(4, 1, 0);
 
-	igt_subtest("unrelated-ctx")
-		test_unrelated_ctx();
+		igt_subtest_f("reset-stats-ctx-%s", name)
+			RUN_CTX_TEST(test_rs_ctx(4, 4, 1, 2));
 
-	igt_subtest("reset-count")
-		test_reset_count(false);
+		igt_subtest_f("ban-%s", name)
+			test_ban();
 
-	igt_subtest("reset-count-ctx")
-		test_reset_count(true);
+		igt_subtest_f("ban-ctx-%s", name)
+			RUN_CTX_TEST(test_ban_ctx());
 
-	igt_subtest("close-pending")
-		test_close_pending();
+		igt_subtest_f("reset-count-%s", name)
+			test_reset_count(false);
 
-	igt_subtest("close-pending-ctx")
-		test_close_pending_ctx();
+		igt_subtest_f("reset-count-ctx-%s", name)
+			RUN_CTX_TEST(test_reset_count(true));
 
-	igt_subtest("close-pending-fork") {
-		test_close_pending_fork(true);
-		test_close_pending_fork(false);
+		igt_subtest_f("unrelated-ctx-%s", name)
+			RUN_CTX_TEST(test_unrelated_ctx());
+
+		igt_subtest_f("close-pending-%s", name) {
+			test_close_pending();
+			gem_quiescent_gpu(fd);
+		}
+
+		igt_subtest_f("close-pending-ctx-%s", name) {
+			RUN_CTX_TEST(test_close_pending_ctx());
+			gem_quiescent_gpu(fd);
+		}
+
+		igt_subtest_f("close-pending-fork-%s", name) {
+			test_close_pending_fork(true);
+			test_close_pending_fork(false);
+		}
 	}
 }
