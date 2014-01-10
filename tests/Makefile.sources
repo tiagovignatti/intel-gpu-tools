@@ -85,6 +85,7 @@ TESTS_progs = \
 	gem_exec_blt \
 	gem_exec_lut_handle \
 	gem_gtt_cpu_tlb \
+	gem_gtt_hog \
 	gem_gtt_speed \
 	gem_hangcheck_forcewake \
 	gem_largeobject \
