@@ -36,14 +36,6 @@
 static bool verbose = false;
 static int origmin, origmax;
 
-#define restore_assert(COND) do { \
-	if (!(COND)) { \
-		writeval(stuff[MIN].filp, origmin); \
-		writeval(stuff[MAX].filp, origmax); \
-		igt_assert(0); \
-	} \
-} while (0);
-
 static const char sysfs_base_path[] = "/sys/class/drm/card%d/gt_%s_freq_mhz";
 enum {
 	CUR,
@@ -112,15 +104,15 @@ static void setfreq(int val)
 
 static void checkit(void)
 {
-	restore_assert(fmin <= fmax);
-	restore_assert(fcur <= fmax);
-	restore_assert(fmin <= fcur);
-	restore_assert(frpn <= fmin);
-	restore_assert(fmax <= frp0);
-	restore_assert(frp1 <= frp0);
-	restore_assert(frpn <= frp1);
-	restore_assert(frp0 != 0);
-	restore_assert(frp1 != 0);
+	igt_assert(fmin <= fmax);
+	igt_assert(fcur <= fmax);
+	igt_assert(fmin <= fcur);
+	igt_assert(frpn <= fmin);
+	igt_assert(fmax <= frp0);
+	igt_assert(frp1 <= frp0);
+	igt_assert(frpn <= frp1);
+	igt_assert(frp0 != 0);
+	igt_assert(frp1 != 0);
 }
 
 static void dumpit(void)
@@ -134,6 +126,16 @@ static void dumpit(void)
 	printf("\n");
 }
 
+static void pm_rps_exit_handler(int sig)
+{
+	if (origmin > fmax) {
+		writeval(stuff[MAX].filp, origmax);
+		writeval(stuff[MIN].filp, origmin);
+	} else {
+		writeval(stuff[MIN].filp, origmin);
+		writeval(stuff[MAX].filp, origmax);
+	}
+}
 
 igt_simple_main
 {
@@ -164,6 +166,8 @@ igt_simple_main
 	origmin = fmin;
 	origmax = fmax;
 
+	igt_install_exit_handler(pm_rps_exit_handler);
+
 	if (verbose)
 		printf("Original min = %d\nOriginal max = %d\n", origmin, origmax);
 
@@ -174,11 +178,11 @@ igt_simple_main
 	setfreq(origmin);
 	if (verbose)
 		dumpit();
-	restore_assert(fcur == fmin);
+	igt_assert(fcur == fmin);
 	setfreq(origmax);
 	if (verbose)
 		dumpit();
-	restore_assert(fcur == fmax);
+	igt_assert(fcur == fmax);
 	checkit();
 
 	/* And some errors */
