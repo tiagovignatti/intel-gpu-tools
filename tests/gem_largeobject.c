@@ -48,6 +48,7 @@ test_large_object(int fd)
 	struct drm_i915_gem_create create;
 	struct drm_i915_gem_pin pin;
 	uint32_t obj_size;
+	char *ptr;
 
 	memset(&create, 0, sizeof(create));
 	memset(&pin, 0, sizeof(pin));
@@ -63,8 +64,9 @@ test_large_object(int fd)
 
 	igt_assert(ioctl(fd, DRM_IOCTL_I915_GEM_CREATE, &create) == 0);
 
-	pin.handle = create.handle;
-	igt_assert(ioctl(fd, DRM_IOCTL_I915_GEM_PIN, &pin) == 0);
+	/* prefault */
+	ptr = gem_mmap__gtt(fd, create.handle, obj_size, PROT_WRITE | PROT_READ);
+	*ptr = 0;
 
 	gem_write(fd, create.handle, 0, data, obj_size);
 
