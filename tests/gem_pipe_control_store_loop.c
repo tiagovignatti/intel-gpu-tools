@@ -94,9 +94,7 @@ store_pipe_control_loop(bool preuse_buffer)
 			ADVANCE_BATCH();
 
 			intel_batchbuffer_flush(batch);
-			igt_assert(target_bo->offset != 0);
-		} else
-			igt_assert(target_bo->offset == 0);
+		}
 
 		/* gem_storedw_batches_loop.c is a bit overenthusiastic with
 		 * creating new batchbuffers - with buffer reuse disabled, the
