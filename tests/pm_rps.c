@@ -22,6 +22,7 @@
  *
  * Authors:
  *    Ben Widawsky <ben@bwidawsk.net>
+ *    Jeff McGee <jeff.mcgee@intel.com>
  *
  */
 
@@ -66,7 +67,6 @@ static int readval(FILE *filp)
 	int val;
 	int scanned;
 
-	fflush(filp);
 	rewind(filp);
 	scanned = fscanf(filp, "%d", &val);
 	igt_assert(scanned == 1);
@@ -76,15 +76,11 @@ static int readval(FILE *filp)
 
 static int do_writeval(FILE *filp, int val, int lerrno)
 {
-	/* Must write twice to sysfs since the first one simply calculates the size and won't return the error */
 	int ret;
-	rewind(filp);
-	ret = fprintf(filp, "%d", val);
 	rewind(filp);
 	ret = fprintf(filp, "%d", val);
 	if (ret && lerrno)
 		igt_assert(errno = lerrno);
-	fflush(filp);
 	return ret;
 }
 #define writeval(filp, val) do_writeval(filp, val, 0)
@@ -146,6 +142,7 @@ igt_simple_main
 		igt_assert(ret != -1);
 		junk->filp = fopen(path, junk->mode);
 		igt_require(junk->filp);
+		setbuf(junk->filp, NULL);
 
 		val = readval(junk->filp);
 		igt_assert(val >= 0);
