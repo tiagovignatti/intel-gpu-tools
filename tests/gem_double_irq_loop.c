@@ -100,10 +100,8 @@ igt_simple_main
 
 	fd = drm_open_any();
 	devid = intel_get_drm_devid(fd);
-	if (!HAS_BLT_RING(devid)) {
-		fprintf(stderr, "not (yet) implemented for pre-snb\n");
-		return 77;
-	}
+	igt_require_f(HAS_BLT_RING(devid),
+		      "not (yet) implemented for pre-snb\n");
 
 	bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
 	igt_assert(bufmgr);

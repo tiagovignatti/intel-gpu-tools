@@ -209,8 +209,7 @@ igt_simple_main
 
 	fd = drm_open_any();
 
-	if (!test_can_pin(fd))
-		return 77;
+	igt_require(test_can_pin(fd));
 
 	handle = malloc(sizeof(uint32_t)*100);
 	offset = malloc(sizeof(uint32_t)*100);

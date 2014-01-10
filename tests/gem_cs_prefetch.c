@@ -107,10 +107,8 @@ igt_simple_main
 	aper_size = gem_aperture_size(fd);
 
 	/* presume a big per-bo overhead */
-	if (intel_get_total_ram_mb() < (aper_size / (1024*1024)) * 3 / 2) {
-		fprintf(stderr, "not enough mem to run test\n");
-		return 77;
-	}
+	igt_skip_on_f(intel_get_total_ram_mb() < (aper_size / (1024*1024)) * 3 / 2,
+		      "not enough mem to run test\n");
 
 	count = aper_size / 4096;
 

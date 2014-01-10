@@ -189,8 +189,7 @@ igt_simple_main
 	do_or_die(exec(fd, handle, NORMAL));
 	fail(exec(fd, handle, BROKEN));
 
-	if (exec(fd, handle, USE_LUT))
-		return 77;
+	igt_skip_on(exec(fd, handle, USE_LUT));
 
 	do_or_die(exec(fd, handle, USE_LUT));
 	fail(exec(fd, handle, USE_LUT | BROKEN));

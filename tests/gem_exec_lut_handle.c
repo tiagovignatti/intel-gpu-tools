@@ -143,8 +143,7 @@ igt_simple_main
 	gem_exec[n].handle =  gem_create(fd, 4096);
 	gem_write(fd, gem_exec[n].handle, 0, batch, sizeof(batch));
 
-	if (exec(fd, 1, 0, USE_LUT))
-		return 77;
+	igt_skip_on(exec(fd, 1, 0, USE_LUT));
 
 	for (p = pass; p->name != NULL; p++) {
 		for (n = 1; n <= MAX_NUM_EXEC; n *= 2) {
