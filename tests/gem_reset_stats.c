@@ -462,6 +462,94 @@ static void test_rs_ctx(int num_fds, int num_ctx, int hang_index,
 static void test_ban(void)
 {
 	int h1,h2,h3,h4,h5,h6,h7;
+	int fd_bad, fd_good;
+	int retry = 10;
+	int active_count = 0, pending_count = 0;
+	struct local_drm_i915_reset_stats rs_bad, rs_good;
+
+	fd_bad = drm_open_any();
+	igt_assert(fd_bad >= 0);
+
+	fd_good = drm_open_any();
+	igt_assert(fd_good >= 0);
+
+	assert_reset_status(fd_bad, 0, RS_NO_ERROR);
+	assert_reset_status(fd_good, 0, RS_NO_ERROR);
+
+	h1 = exec_valid(fd_bad, 0);
+	igt_assert(h1 >= 0);
+	h5 = exec_valid(fd_good, 0);
+	igt_assert(h5 >= 0);
+
+	assert_reset_status(fd_bad, 0, RS_NO_ERROR);
+	assert_reset_status(fd_good, 0, RS_NO_ERROR);
+
+	h2 = inject_hang(fd_bad, 0);
+	igt_assert(h2 >= 0);
+	active_count++;
+	/* Second hang will be pending for this */
+	pending_count++;
+
+	h6 = exec_valid(fd_good, 0);
+	h7 = exec_valid(fd_good, 0);
+
+        while (retry--) {
+                h3 = inject_hang(fd_bad, 0);
+                igt_assert(h3 >= 0);
+                gem_sync(fd_bad, h3);
+		active_count++;
+		/* This second hand will count as pending */
+                assert_reset_status(fd_bad, 0, RS_BATCH_ACTIVE);
+
+                h4 = exec_valid(fd_bad, 0);
+                if (h4 == -EIO) {
+                        gem_close(fd_bad, h3);
+                        break;
+                }
+
+                /* Should not happen often but sometimes hang is declared too slow
+                 * due to our way of faking hang using loop */
+
+                igt_assert(h4 >= 0);
+                gem_close(fd_bad, h3);
+                gem_close(fd_bad, h4);
+
+                printf("retrying for ban (%d)\n", retry);
+        }
+
+	igt_assert(h4 == -EIO);
+	assert_reset_status(fd_bad, 0, RS_BATCH_ACTIVE);
+
+	gem_sync(fd_good, h7);
+	assert_reset_status(fd_good, 0, RS_BATCH_PENDING);
+
+	igt_assert(gem_reset_stats(fd_good, 0, &rs_good) == 0);
+	igt_assert(gem_reset_stats(fd_bad, 0, &rs_bad) == 0);
+
+	igt_assert(rs_bad.batch_active == active_count);
+	igt_assert(rs_bad.batch_pending == pending_count);
+	igt_assert(rs_good.batch_active == 0);
+	igt_assert(rs_good.batch_pending == 2);
+
+	gem_close(fd_bad, h1);
+	gem_close(fd_bad, h2);
+	gem_close(fd_good, h6);
+	gem_close(fd_good, h7);
+
+	h1 = exec_valid(fd_good, 0);
+	igt_assert(h1 >= 0);
+	gem_close(fd_good, h1);
+
+	close(fd_bad);
+	close(fd_good);
+
+	igt_assert(gem_reset_status(fd_bad, 0) < 0);
+	igt_assert(gem_reset_status(fd_good, 0) < 0);
+}
+
+static void test_ban_ctx(void)
+{
+	int h1,h2,h3,h4,h5,h6,h7;
 	int ctx_good, ctx_bad;
 	int fd;
 	int retry = 10;
@@ -554,7 +642,7 @@ static void test_ban(void)
 	close(fd);
 }
 
-static void test_nonrelated_hang(void)
+static void test_unrelated_ctx(void)
 {
 	int h1,h2;
 	int fd1,fd2;
@@ -603,7 +691,7 @@ static int get_reset_count(int fd, int ctx)
 	return rs.reset_count;
 }
 
-static void test_double_destroy_pending(void)
+static void test_close_pending_ctx(void)
 {
 	int fd, h;
 	uint32_t ctx;
@@ -766,7 +854,7 @@ static void drop_root(void)
 	igt_assert(getuid() == 2);
 }
 
-static void __test_count(const bool create_ctx)
+static void test_reset_count(const bool create_ctx)
 {
 	int fd, h, ctx;
 	long c1, c2;
@@ -811,22 +899,6 @@ static void __test_count(const bool create_ctx)
 		context_destroy(fd, ctx);
 
 	close(fd);
-}
-
-static void test_count(void)
-{
-	return __test_count(false);
-}
-
-static void test_count_context(void)
-{
-	return __test_count(true);
-}
-
-static void test_global_reset_count(void)
-{
-	test_count();
-	test_count_context();
 }
 
 static int _test_params(int fd, int ctx, uint32_t flags, uint32_t pad)
@@ -934,32 +1006,38 @@ igt_main
 		close(fd);
 	}
 
-	igt_subtest("basic-reset-status")
+	igt_subtest("params")
+		test_params();
+
+	igt_subtest("reset-stats")
 		test_rs(4, 1, 0);
 
-	igt_subtest("context-reset-status")
+	igt_subtest("reset-stats-ctx")
 		test_rs_ctx(4, 4, 1, 2);
 
 	igt_subtest("ban")
 		test_ban();
 
-	igt_subtest("ctx-unrelated")
-		test_nonrelated_hang();
+	igt_subtest("ban-ctx")
+		test_ban_ctx();
 
-	igt_subtest("global-count")
-		test_global_reset_count();
+	igt_subtest("unrelated-ctx")
+		test_unrelated_ctx();
 
-	igt_subtest("double-destroy-pending")
-		test_double_destroy_pending();
+	igt_subtest("reset-count")
+		test_reset_count(false);
+
+	igt_subtest("reset-count-ctx")
+		test_reset_count(true);
 
 	igt_subtest("close-pending")
 		test_close_pending();
+
+	igt_subtest("close-pending-ctx")
+		test_close_pending_ctx();
 
 	igt_subtest("close-pending-fork") {
 		test_close_pending_fork(true);
 		test_close_pending_fork(false);
 	}
-
-	igt_subtest("params")
-		test_params();
 }
