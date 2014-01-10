@@ -101,8 +101,13 @@ static int do_writeval(FILE *filp, int val, int lerrno)
 
 static void setfreq(int val)
 {
-	writeval(stuff[MIN].filp, val);
-	writeval(stuff[MAX].filp, val);
+	if (val > fmax) {
+		writeval(stuff[MAX].filp, val);
+		writeval(stuff[MIN].filp, val);
+	} else {
+		writeval(stuff[MIN].filp, val);
+		writeval(stuff[MAX].filp, val);
+	}
 }
 
 static void checkit(void)
@@ -166,11 +171,11 @@ igt_simple_main
 		dumpit();
 
 	checkit();
-	setfreq(fmin);
+	setfreq(origmin);
 	if (verbose)
 		dumpit();
 	restore_assert(fcur == fmin);
-	setfreq(fmax);
+	setfreq(origmax);
 	if (verbose)
 		dumpit();
 	restore_assert(fcur == fmax);
