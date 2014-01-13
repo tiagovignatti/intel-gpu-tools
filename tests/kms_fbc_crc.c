@@ -27,8 +27,6 @@
 #include <stdio.h>
 #include <string.h>
 
-#include <glib.h>
-
 #include "drm_fourcc.h"
 
 #include "drmtest.h"

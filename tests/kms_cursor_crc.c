@@ -23,11 +23,10 @@
  */
 
 #include <errno.h>
+#include <limits.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
-
-#include <glib.h>
 
 #include "drm_fourcc.h"
 
