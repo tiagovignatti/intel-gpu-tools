@@ -22,6 +22,7 @@ skip_lib_list := \
 
 lib_list := $(filter-out $(skip_lib_list),$(libintel_tools_la_SOURCES))
 LIB_SOURCES := $(addprefix lib/,$(lib_list))
+GPU_TOOLS_PATH := $(LOCAL_PATH)
 
 .PHONY: version.h.tmp
 
@@ -38,10 +39,10 @@ $(LOCAL_PATH)/version.h.tmp:
 
 $(LOCAL_PATH)/version.h: $(LOCAL_PATH)/version.h.tmp
 	@echo "updating version.h"
-	@if ! cmp -s $(LOCAL_PATH)/version.h.tmp $(LOCAL_PATH)/version.h; then \
-		mv $(LOCAL_PATH)/version.h.tmp $(LOCAL_PATH)/version.h ; \
+	@if ! cmp -s $(GPU_TOOLS_PATH)/version.h.tmp $(GPU_TOOLS_PATH)/version.h; then \
+		mv $(GPU_TOOLS_PATH)/version.h.tmp $(GPU_TOOLS_PATH)/version.h ; \
 	else \
-		rm $(LOCAL_PATH)/version.h.tmp ; \
+		rm $(GPU_TOOLS_PATH)/version.h.tmp ; \
 	fi
 
 # FIXME: autogenerate this info #
