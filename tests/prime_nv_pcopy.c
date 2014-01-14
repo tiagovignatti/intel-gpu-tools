@@ -870,6 +870,7 @@ static int check1_swizzle(uint32_t *p, uint32_t pitch, uint32_t lines,
 	return 0;
 }
 
+#if 0 /* nv can't deswizzle into all possible versions of Intel BO objects ... */
 /* Create a new bo, set tiling to y, and see if macro swizzling is done correctl */
 static int test1_swizzle(void)
 {
@@ -952,6 +953,7 @@ out:
 	drm_intel_bo_unreference(test_intel_bo);
 	return ret;
 }
+#endif
 
 /* test 2, see if we can copy from linear to intel X format safely
  * Seems nvidia lacks a method to do it, so just keep this test
@@ -1291,7 +1293,7 @@ igt_main
 
 	xtest(test1_macro);
 	xtest(test1_micro);
-	xtest(test1_swizzle);
+	//xtest(test1_swizzle);
 	xtest(test2);
 	xtest(test3_1);
 	xtest(test3_2);
