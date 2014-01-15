@@ -141,7 +141,7 @@ static void run(int child)
 	munmap(ptr, size);
 
 	igt_assert(x == canary);
-	igt_exit();
+	exit(0);
 }
 
 int main(int argc, char **argv)
