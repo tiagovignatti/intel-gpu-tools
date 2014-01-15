@@ -144,13 +144,12 @@ static void run(int child)
 	exit(0);
 }
 
-int main(int argc, char **argv)
+igt_simple_main
 {
 	struct timeval start, end;
 	pid_t children[64];
 	int n;
 
-	igt_simple_init();
 	igt_skip_on_simulation();
 
 	gettimeofday(&start, NULL);
@@ -172,6 +171,4 @@ int main(int argc, char **argv)
 	gettimeofday(&end, NULL);
 	printf("Time to execute %lu children:		%7.3fms\n",
 	       ARRAY_SIZE(children), elapsed(&start, &end) / 1000);
-
-	return 0;
 }
