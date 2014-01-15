@@ -818,6 +818,7 @@ out:
 	return ret;
 }
 
+#if 0 /* nv can't deswizzle into all possible versions of Intel BO objects ... */
 static int check1_swizzle(uint32_t *p, uint32_t pitch, uint32_t lines,
 			  uint32_t dst_x, uint32_t dst_y, uint32_t w, uint32_t h)
 {
@@ -870,7 +871,6 @@ static int check1_swizzle(uint32_t *p, uint32_t pitch, uint32_t lines,
 	return 0;
 }
 
-#if 0 /* nv can't deswizzle into all possible versions of Intel BO objects ... */
 /* Create a new bo, set tiling to y, and see if macro swizzling is done correctl */
 static int test1_swizzle(void)
 {
