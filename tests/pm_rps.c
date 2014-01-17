@@ -31,6 +31,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <getopt.h>
 #include "drmtest.h"
 
 static bool verbose = false;
@@ -130,6 +131,8 @@ static void dumpit(void)
 
 	printf("\n");
 }
+#define dump() if (verbose) dumpit()
+#define log(...) if (verbose) printf(__VA_ARGS__)
 
 static void pm_rps_exit_handler(int sig)
 {
@@ -142,8 +145,40 @@ static void pm_rps_exit_handler(int sig)
 	}
 }
 
-igt_main
+static int opt_handler(int opt, int opt_index)
 {
+	switch (opt) {
+	case 'v':
+		verbose = true;
+		break;
+	default:
+		assert(0);
+	}
+
+	return 0;
+}
+
+/* Mod of igt_subtest_init that adds our extra options */
+void subtest_init(int argc, char **argv)
+{
+	struct option long_opts[] = {
+		{"verbose", 0, 0, 'v'}
+	};
+	const char *help_str = "  -v, --verbose";
+	int ret;
+
+	ret = igt_subtest_init_parse_opts(argc, argv, "v", long_opts,
+					  help_str, opt_handler);
+
+	if (ret < 0)
+		/* exit with no error for -h/--help */
+		exit(ret == -1 ? 0 : ret);
+}
+
+int main(int argc, char **argv)
+{
+	subtest_init(argc, argv);
+
 	igt_skip_on_simulation();
 
 	igt_fixture {
@@ -176,21 +211,16 @@ igt_main
 	}
 
 	igt_subtest("min-max-config-at-idle") {
-		if (verbose)
-			printf("Original min = %d\nOriginal max = %d\n",
-			        origmin, origmax);
+		log("Original min = %d\nOriginal max = %d\n", origmin, origmax);
 
-		if (verbose)
-			dumpit();
+		dump();
 
 		checkit();
 		setfreq(origmin);
-		if (verbose)
-			dumpit();
+		dump();
 		igt_assert(fcur == fmin);
 		setfreq(origmax);
-		if (verbose)
-			dumpit();
+		dump();
 		igt_assert(fcur == fmax);
 		checkit();
 
@@ -209,4 +239,6 @@ igt_main
 		writeval(stuff[MIN].filp, origmin);
 		writeval(stuff[MAX].filp, origmax);
 	}
+
+	igt_exit();
 }
