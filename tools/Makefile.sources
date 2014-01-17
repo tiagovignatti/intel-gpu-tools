@@ -25,9 +25,7 @@ bin_PROGRAMS = 				\
 	intel_nc_write			\
 	intel_nc_read			\
 	intel_vga_read			\
-	intel_vga_write
-
-noinst_PROGRAMS = 			\
+	intel_vga_write			\
 	intel_dump_decode 		\
 	intel_infoframes		\
 	intel_lid			\
