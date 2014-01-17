@@ -68,15 +68,20 @@ static int readval(FILE *filp)
 
 static int do_writeval(FILE *filp, int val, int lerrno)
 {
-	int ret;
+	int ret, orig;
+
+	orig = readval(filp);
 	rewind(filp);
 	ret = fprintf(filp, "%d", val);
+
 	if (lerrno) {
 		/* Expecting specific error */
 		igt_assert(ret == EOF && errno == lerrno);
+		igt_assert(readval(filp) == orig);
 	} else {
 		/* Expecting no error */
 		igt_assert(ret != EOF);
+		igt_assert(readval(filp) == val);
 	}
 
 	return ret;
