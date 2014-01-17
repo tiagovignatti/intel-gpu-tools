@@ -142,66 +142,71 @@ static void pm_rps_exit_handler(int sig)
 	}
 }
 
-igt_simple_main
+igt_main
 {
-	const int device = drm_get_card();
-	struct junk *junk = stuff;
-	int fd, ret;
-
 	igt_skip_on_simulation();
 
-	/* Use drm_open_any to verify device existence */
-	fd = drm_open_any();
-	close(fd);
+	igt_fixture {
+		const int device = drm_get_card();
+		struct junk *junk = stuff;
+		int fd, ret;
 
-	do {
-		int val = -1;
-		char *path;
-		ret = asprintf(&path, sysfs_base_path, device, junk->name);
-		igt_assert(ret != -1);
-		junk->filp = fopen(path, junk->mode);
-		igt_require(junk->filp);
-		setbuf(junk->filp, NULL);
+		/* Use drm_open_any to verify device existence */
+		fd = drm_open_any();
+		close(fd);
 
-		val = readval(junk->filp);
-		igt_assert(val >= 0);
-		junk++;
-	} while(junk->name != NULL);
+		do {
+			int val = -1;
+			char *path;
+			ret = asprintf(&path, sysfs_base_path, device, junk->name);
+			igt_assert(ret != -1);
+			junk->filp = fopen(path, junk->mode);
+			igt_require(junk->filp);
+			setbuf(junk->filp, NULL);
 
-	origmin = fmin;
-	origmax = fmax;
+			val = readval(junk->filp);
+			igt_assert(val >= 0);
+			junk++;
+		} while(junk->name != NULL);
 
-	igt_install_exit_handler(pm_rps_exit_handler);
+		origmin = fmin;
+		origmax = fmax;
 
-	if (verbose)
-		printf("Original min = %d\nOriginal max = %d\n", origmin, origmax);
+		igt_install_exit_handler(pm_rps_exit_handler);
+	}
 
-	if (verbose)
-		dumpit();
+	igt_subtest("min-max-config-at-idle") {
+		if (verbose)
+			printf("Original min = %d\nOriginal max = %d\n",
+			        origmin, origmax);
 
-	checkit();
-	setfreq(origmin);
-	if (verbose)
-		dumpit();
-	igt_assert(fcur == fmin);
-	setfreq(origmax);
-	if (verbose)
-		dumpit();
-	igt_assert(fcur == fmax);
-	checkit();
+		if (verbose)
+			dumpit();
 
-	/* And some errors */
-	writeval_inval(stuff[MIN].filp, frpn - 1);
-	writeval_inval(stuff[MAX].filp, frp0 + 1000);
-	checkit();
+		checkit();
+		setfreq(origmin);
+		if (verbose)
+			dumpit();
+		igt_assert(fcur == fmin);
+		setfreq(origmax);
+		if (verbose)
+			dumpit();
+		igt_assert(fcur == fmax);
+		checkit();
 
-	writeval_inval(stuff[MIN].filp, fmax + 1000);
-	writeval_inval(stuff[MAX].filp, fmin - 1);
-	checkit();
+		/* And some errors */
+		writeval_inval(stuff[MIN].filp, frpn - 1);
+		writeval_inval(stuff[MAX].filp, frp0 + 1000);
+		checkit();
 
-	writeval_inval(stuff[MIN].filp, 0x11111110);
-	writeval_inval(stuff[MAX].filp, 0);
+		writeval_inval(stuff[MIN].filp, fmax + 1000);
+		writeval_inval(stuff[MAX].filp, fmin - 1);
+		checkit();
 
-	writeval(stuff[MIN].filp, origmin);
-	writeval(stuff[MAX].filp, origmax);
+		writeval_inval(stuff[MIN].filp, 0x11111110);
+		writeval_inval(stuff[MAX].filp, 0);
+
+		writeval(stuff[MIN].filp, origmin);
+		writeval(stuff[MAX].filp, origmax);
+	}
 }
