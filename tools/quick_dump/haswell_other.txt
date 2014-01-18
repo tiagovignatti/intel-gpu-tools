@@ -5,3 +5,15 @@
 ('HSW_PWR_WELL_DEBUG', '0x0004540c', '')
 ('HSW_PWR_WELL_CTL5', '0x00045410', '')
 ('HSW_PWR_WELL_CTL6', '0x00045414', '')
+
+# Watermarks
+('WM_PIPE_A', '0x45100', '')
+('WM_LINETIME_A', '0x45270', '')
+('WM_PIPE_B', '0x45104', '')
+('WM_LINETIME_B', '0x45274', '')
+('WM_PIPE_C', '0x45200', '')
+('WM_LINETIME_C', '0x45278', '')
+('WM_LP_1', '0x45108', '')
+('WM_LP_2', '0x4510c', '')
+('WM_LP_SPR_1', '0x45120', '')
+('WM_LP_SPR', '0x45124', '')
