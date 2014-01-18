@@ -81,5 +81,5 @@ core
 cscope.*
 TAGS
 build-aux/
-
+__pycache__
 version.h
