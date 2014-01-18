@@ -17,10 +17,24 @@ import subprocess
 import chipset
 import reg_access as reg
 
+# Ignore lines which are considered comments
+def ignore_line(line):
+    if not line.strip():
+        return True
+    if len(line) > 1:
+        if line[1] == '/' and line[0] == '/':
+            return True
+    if len(line) > 0:
+        if line[0] == '#' or line[0] == ';':
+            return True
+    return False
+
 def parse_file(file):
     print('{0:^10s} | {1:^28s} | {2:^10s}'. format('offset', file.name, 'value'))
     print('-' * 54)
     for line in file:
+        if ignore_line(line):
+            continue
         register = ast.literal_eval(line)
         if register[2] == 'DPIO':
             val = reg.dpio_read(register[1], 0)
