@@ -540,6 +540,21 @@ void gem_sync(int fd, uint32_t handle)
 	gem_set_domain(fd, handle, I915_GEM_DOMAIN_GTT, I915_GEM_DOMAIN_GTT);
 }
 
+uint32_t __gem_create(int fd, int size)
+{
+	struct drm_i915_gem_create create;
+	int ret;
+
+	create.handle = 0;
+	create.size = size;
+	ret = drmIoctl(fd, DRM_IOCTL_I915_GEM_CREATE, &create);
+
+	if (ret < 0)
+		return 0;
+	else
+		return create.handle;
+}
+
 uint32_t gem_create(int fd, int size)
 {
 	struct drm_i915_gem_create create;
