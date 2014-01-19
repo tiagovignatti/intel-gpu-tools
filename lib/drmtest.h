@@ -357,4 +357,7 @@ void igt_enable_prefault(void);
 /* suspend and auto-resume system */
 void igt_system_suspend_autoresume(void);
 
+/* dropping priviledges */
+void igt_drop_root(void);
+
 #endif /* DRMTEST_H */

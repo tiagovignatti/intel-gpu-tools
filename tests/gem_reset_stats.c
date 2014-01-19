@@ -874,17 +874,6 @@ static void test_close_pending_fork(const bool reverse)
 	close(fd);
 }
 
-static void drop_root(void)
-{
-	igt_assert(getuid() == 0);
-
-	igt_assert(setgid(2) == 0);
-	igt_assert(setuid(2) == 0);
-
-	igt_assert(getgid() == 2);
-	igt_assert(getuid() == 2);
-}
-
 static void test_reset_count(const bool create_ctx)
 {
 	int fd, h, ctx;
@@ -912,7 +901,7 @@ static void test_reset_count(const bool create_ctx)
 	igt_assert(c2 == (c1 + 1));
 
 	igt_fork(child, 1) {
-		drop_root();
+		igt_drop_root();
 
 		c2 = get_reset_count(fd, ctx);
 
@@ -988,7 +977,7 @@ static void _test_param(const int fd, const int ctx)
 	igt_fork(child, 1) {
 		check_params(fd, ctx, root);
 
-		drop_root();
+		igt_drop_root();
 
 		check_params(fd, ctx, user);
 	}

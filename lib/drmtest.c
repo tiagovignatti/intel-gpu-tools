@@ -1659,3 +1659,14 @@ void igt_system_suspend_autoresume(void)
 	ret = system("rtcwake -s 30 -m mem");
 	igt_assert(ret == 0);
 }
+
+void igt_drop_root(void)
+{
+	igt_assert(getuid() == 0);
+
+	igt_assert(setgid(2) == 0);
+	igt_assert(setuid(2) == 0);
+
+	igt_assert(getgid() == 2);
+	igt_assert(getuid() == 2);
+}
