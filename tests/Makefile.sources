@@ -62,6 +62,7 @@ TESTS_progs_M = \
 	kms_setmode \
 	pm_lpsp \
 	pm_pc8 \
+	pm_rps \
 	prime_self_import \
 	template \
 	$(NULL)
@@ -122,7 +123,6 @@ TESTS_progs = \
 	gen3_render_tiledy_blits \
 	pm_psr \
 	pm_rc6_residency \
-	pm_rps \
 	prime_udl \
 	$(NULL)
 
