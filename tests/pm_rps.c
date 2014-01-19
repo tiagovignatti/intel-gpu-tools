@@ -159,7 +159,7 @@ static int opt_handler(int opt, int opt_index)
 }
 
 /* Mod of igt_subtest_init that adds our extra options */
-void subtest_init(int argc, char **argv)
+static void subtest_init(int argc, char **argv)
 {
 	struct option long_opts[] = {
 		{"verbose", 0, 0, 'v'}
