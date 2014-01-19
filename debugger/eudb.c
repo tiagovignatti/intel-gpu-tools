@@ -418,7 +418,7 @@ static int
 wait_for_scratch_bo(void) {
 	struct sockaddr_un addr;
 	uint32_t version;
-	int fd, ret, handle = -1;
+	int fd, ret, dh_handle = -1;
 
 	assert(sizeof(version) == sizeof(dh.version));
 
@@ -478,7 +478,7 @@ wait_for_scratch_bo(void) {
 			perror("write ack");
 			goto loop_out;
 		}
-		handle = dh.flink_handle;
+		dh_handle = dh.flink_handle;
 		if (debug > 0) {
 			printf("Handshake completed successfully\n"
 				"\tprotocol version = %d\n"
@@ -494,7 +494,7 @@ wait_for_scratch_bo(void) {
 
 done:
 	close(fd);
-	return handle;
+	return dh_handle;
 }
 
 static void
@@ -552,7 +552,7 @@ int main(int argc, char* argv[]) {
 	 * non-blocking versions of the functions.
 	 */
 	if (!clear_waits) {
-		int handle;
+		int dh_handle;
 		drm_fd = drm_open_any();
 		bufmgr = drm_intel_bufmgr_gem_init(drm_fd, 4096);
 
@@ -560,13 +560,13 @@ int main(int argc, char* argv[]) {
 
 		/* We are probably root, make files world friendly */
 		umask(0);
-		handle = wait_for_scratch_bo();
-		if (handle == -1) {
+		dh_handle = wait_for_scratch_bo();
+		if (dh_handle == -1) {
 			printf("No handle from mesa, please enter manually: ");
-			if (fscanf(stdin, "%1d", &handle) == 0)
+			if (fscanf(stdin, "%1d", &dh_handle) == 0)
 				exit(1);
 		}
-		scratch_bo = intel_bo_gem_create_from_name(bufmgr, "scratch", handle);
+		scratch_bo = intel_bo_gem_create_from_name(bufmgr, "scratch", dh_handle);
 		if (scratch_bo == NULL) {
 			fprintf(stderr, "Couldn't flink buffer\n");
 			abort();
