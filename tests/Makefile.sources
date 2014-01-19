@@ -85,6 +85,7 @@ TESTS_progs = \
 	gem_exec_big \
 	gem_exec_blt \
 	gem_exec_lut_handle \
+	gem_fd_exhaustion \
 	gem_gtt_cpu_tlb \
 	gem_gtt_hog \
 	gem_gtt_speed \
