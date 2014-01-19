@@ -57,27 +57,35 @@ igt_simple_main
 
 	igt_assert(open("/dev/null", O_RDONLY) >= 0);
 
-	for (i = 0; ; i++) {
-		int tmp_fd = open("/dev/null", O_RDONLY);
-		uint32_t handle;
+	igt_fork(n, 1) {
+		igt_drop_root();
 
-		if (tmp_fd >= 0 && i < FD_ARR_SZ)
-			fd_arr[i] = tmp_fd;
+		for (i = 0; ; i++) {
+			int tmp_fd = open("/dev/null", O_RDONLY);
+			uint32_t handle;
 
-		handle = gem_create(fd, 4096);
-		if (handle)
-			gem_close(fd, handle);
+			if (tmp_fd >= 0 && i < FD_ARR_SZ)
+				fd_arr[i] = tmp_fd;
+
+			handle = __gem_create(fd, 4096);
+			if (handle)
+				gem_close(fd, handle);
 
 
-		if (!handle || tmp_fd < 0) {
-			printf("fd exhaustion after %i rounds.\n", i);
-			break;
+			if (tmp_fd < 0) {
+				/* Ensure we actually hit the failure path ... */
+				igt_assert(handle == 0);
+				printf("fd exhaustion after %i rounds.\n", i);
+				break;
+			}
 		}
+
+		/* The child will free all the fds when exiting, so no need to
+		 * clean up to mess to ensure that the parent can at least run
+		 * the exit handlers. */
 	}
 
-	/* free a few fd so that the exit handlers can at least run. */
-	for (i = 0; i < FD_ARR_SZ; i++)
-		close(fd_arr[i]);
+	igt_waitchildren();
 
 	close(fd);
 }
