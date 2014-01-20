@@ -65,6 +65,7 @@
 #define TEST_NO_2X_OUTPUT	(1 << 20)
 #define TEST_DPMS_OFF_OTHERS	(1 << 21)
 #define TEST_ENOENT		(1 << 22)
+#define TEST_FENCE_STRESS	(1 << 23)
 
 #define EVENT_FLIP		(1 << 0)
 #define EVENT_VBLANK		(1 << 1)
@@ -197,6 +198,48 @@ static void emit_dummy_load__bcs(struct test_output *o)
 
 	drm_intel_bo_unreference(dummy_bo);
 	drm_intel_bo_unreference(target_bo);
+}
+
+static void emit_fence_stress(struct test_output *o)
+{
+	const int num_fences = gem_available_fences(drm_fd);
+	struct kmstest_fb *fb_info = &o->fb_info[o->current_fb_id];
+	struct drm_i915_gem_execbuffer2 execbuf;
+	struct drm_i915_gem_exec_object2 *exec;
+	uint32_t buf[2] = { MI_BATCH_BUFFER_END, 0 };
+	drm_intel_bo **bo;
+	int i;
+
+	bo = calloc(sizeof(*bo), num_fences);
+	exec = calloc(sizeof(*exec), num_fences+1);
+	for (i = 0; i < num_fences - 1; i++) {
+		uint32_t tiling = I915_TILING_X;
+		unsigned long pitch = 0;
+		bo[i] = drm_intel_bo_alloc_tiled(bufmgr,
+						 "tiled bo", 1024, 1024, 4,
+						 &tiling, &pitch, 0);
+		exec[i].handle = bo[i]->handle;
+		exec[i].flags = EXEC_OBJECT_NEEDS_FENCE;
+	}
+	exec[i].handle = fb_info->gem_handle;
+	exec[i].flags = EXEC_OBJECT_NEEDS_FENCE;
+	exec[++i].handle = gem_create(drm_fd, 4096);
+	gem_write(drm_fd, exec[i].handle, 0, buf, sizeof(buf));
+
+	memset(&execbuf, 0, sizeof(execbuf));
+	execbuf.buffers_ptr = (uintptr_t)exec;
+	execbuf.buffer_count = i + 1;
+	execbuf.batch_len = sizeof(buf);
+	if (HAS_BLT_RING(intel_get_drm_devid(drm_fd)))
+		execbuf.flags = I915_EXEC_BLT;
+
+	gem_execbuf(drm_fd, &execbuf);
+
+	gem_close(drm_fd, exec[i].handle);
+	for (i = 0; i < num_fences - 1; i++)
+		drm_intel_bo_unreference(bo[i]);
+	free(bo);
+	free(exec);
 }
 
 static void emit_dummy_load__rcs(struct test_output *o)
@@ -830,6 +873,9 @@ static unsigned int run_test_step(struct test_output *o)
 	if (do_flip)
 		do_or_die(do_page_flip(o, new_fb_id, !(o->flags & TEST_NOEVENT)));
 
+	if (o->flags & TEST_FENCE_STRESS)
+		emit_fence_stress(o);
+
 	if (do_vblank) {
 		do_or_die(do_wait_for_vblank(o, o->pipe, target_seq,
 					     &vbl_reply));
@@ -1145,6 +1191,7 @@ static void run_test_on_crtc_set(struct test_output *o, int *crtc_idxs,
 {
 	char test_name[128];
 	unsigned elapsed;
+	bool tiled;
 	int i;
 
 	switch (crtc_count) {
@@ -1176,10 +1223,14 @@ static void run_test_on_crtc_set(struct test_output *o, int *crtc_idxs,
 	if (o->flags & TEST_PAN)
 		o->fb_width *= 2;
 
+	tiled = false;
+	if (o->flags & TEST_FENCE_STRESS)
+		tiled = true;
+
 	o->fb_ids[0] = kmstest_create_fb(drm_fd, o->fb_width, o->fb_height,
-					 o->bpp, o->depth, false, &o->fb_info[0]);
+					 o->bpp, o->depth, tiled, &o->fb_info[0]);
 	o->fb_ids[1] = kmstest_create_fb(drm_fd, o->fb_width, o->fb_height,
-					 o->bpp, o->depth, false, &o->fb_info[1]);
+					 o->bpp, o->depth, tiled, &o->fb_info[1]);
 	o->fb_ids[2] = kmstest_create_fb(drm_fd, o->fb_width, o->fb_height,
 					 o->bpp, o->depth, true, &o->fb_info[2]);
 	igt_assert(o->fb_ids[0]);
@@ -1417,6 +1468,7 @@ int main(int argc, char **argv)
 					"rcs-wf_vblank-vs-modeset" },
 
 		{ 30, TEST_FLIP | TEST_EBUSY , "plain-flip" },
+		{ 30, TEST_FLIP | TEST_FENCE_STRESS , "flip-vs-fences" },
 		{ 30, TEST_FLIP | TEST_CHECK_TS | TEST_EBUSY , "plain-flip-ts-check" },
 		{ 30, TEST_FLIP | TEST_CHECK_TS | TEST_EBUSY | TEST_FB_RECREATE,
 			"plain-flip-fb-recreate" },
