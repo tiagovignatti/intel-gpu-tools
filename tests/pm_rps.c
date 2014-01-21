@@ -128,8 +128,9 @@ static void dumpit(const int *freqs)
 {
 	int i;
 
+	printf("gt freq (MHz):");
 	for (i = 0; i < NUMFREQ; i++)
-		printf("gt frequency %s (MHz):  %d\n", stuff[i].name, freqs[i]);
+		printf("  %s=%d", stuff[i].name, freqs[i]);
 
 	printf("\n");
 }
@@ -140,67 +141,67 @@ static void min_max_config(void (*check)(void))
 {
 	int fmid = (origfreqs[RPn] + origfreqs[RP0]) / 2;
 
-	log("Check original min and max...\n");
+	log("\nCheck original min and max...\n");
 	check();
 
-	log("Set min=RPn and max=RP0...\n");
+	log("\nSet min=RPn and max=RP0...\n");
 	writeval(stuff[MIN].filp, origfreqs[RPn]);
 	writeval(stuff[MAX].filp, origfreqs[RP0]);
 	check();
 
-	log("Increase min to midpoint...\n");
+	log("\nIncrease min to midpoint...\n");
 	writeval(stuff[MIN].filp, fmid);
 	check();
 
-	log("Increase min to RP0...\n");
+	log("\nIncrease min to RP0...\n");
 	writeval(stuff[MIN].filp, origfreqs[RP0]);
 	check();
 
-	log("Increase min above RP0 (invalid)...\n");
+	log("\nIncrease min above RP0 (invalid)...\n");
 	writeval_inval(stuff[MIN].filp, origfreqs[RP0] + 1000);
 	check();
 
-	log("Decrease max to RPn (invalid)...\n");
+	log("\nDecrease max to RPn (invalid)...\n");
 	writeval_inval(stuff[MAX].filp, origfreqs[RPn]);
 	check();
 
-	log("Decrease min to midpoint...\n");
+	log("\nDecrease min to midpoint...\n");
 	writeval(stuff[MIN].filp, fmid);
 	check();
 
-	log("Decrease min to RPn...\n");
+	log("\nDecrease min to RPn...\n");
 	writeval(stuff[MIN].filp, origfreqs[RPn]);
 	check();
 
-	log("Decrease min below RPn (invalid)...\n");
+	log("\nDecrease min below RPn (invalid)...\n");
 	writeval_inval(stuff[MIN].filp, 0);
 	check();
 
-	log("Decrease max to midpoint...\n");
+	log("\nDecrease max to midpoint...\n");
 	writeval(stuff[MAX].filp, fmid);
 	check();
 
-	log("Decrease max to RPn...\n");
+	log("\nDecrease max to RPn...\n");
 	writeval(stuff[MAX].filp, origfreqs[RPn]);
 	check();
 
-	log("Decrease max below RPn (invalid)...\n");
+	log("\nDecrease max below RPn (invalid)...\n");
 	writeval_inval(stuff[MAX].filp, 0);
 	check();
 
-	log("Increase min to RP0 (invalid)...\n");
+	log("\nIncrease min to RP0 (invalid)...\n");
 	writeval_inval(stuff[MIN].filp, origfreqs[RP0]);
 	check();
 
-	log("Increase max to midpoint...\n");
+	log("\nIncrease max to midpoint...\n");
 	writeval(stuff[MAX].filp, fmid);
 	check();
 
-	log("Increase max to RP0...\n");
+	log("\nIncrease max to RP0...\n");
 	writeval(stuff[MAX].filp, origfreqs[RP0]);
 	check();
 
-	log("Increase max above RP0 (invalid)...\n");
+	log("\nIncrease max above RP0 (invalid)...\n");
 	writeval_inval(stuff[MAX].filp, origfreqs[RP0] + 1000);
 	check();
 }
