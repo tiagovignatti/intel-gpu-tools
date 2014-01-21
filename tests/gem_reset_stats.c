@@ -237,19 +237,36 @@ static int exec_valid(int fd, int ctx)
 	return exec_valid_ring(fd, ctx, current_ring->exec);
 }
 
-static void stop_rings(void)
+static void stop_rings(const int mask)
 {
 	int fd;
+	char buf[80];
 
+	igt_assert((mask & ~((1 << NUM_RINGS) - 1)) == 0);
+	igt_assert(snprintf(buf, sizeof(buf), "0x%02x", mask) == 4);
 	fd = igt_debugfs_open(&dfs, "i915_ring_stop", O_WRONLY);
 	igt_assert(fd >= 0);
 
-	igt_assert(write(fd, "0xff", 4) == 4);
+	igt_assert(write(fd, buf, 4) == 4);
 	close(fd);
 }
 
 #define BUFSIZE (4 * 1024)
 #define ITEMS   (BUFSIZE >> 2)
+
+static int ring_to_mask(int ring)
+{
+	for (unsigned i = 0; i < NUM_RINGS; i++) {
+		const struct target_ring *r = &rings[i];
+
+		if (r->exec == ring)
+			return (1 << i);
+	}
+
+	igt_assert(0);
+
+	return -1;
+}
 
 static int inject_hang_ring(int fd, int ctx, int ring)
 {
@@ -340,7 +357,7 @@ static int inject_hang_ring(int fd, int ctx, int ring)
 
 	free(buf);
 
-	stop_rings();
+	stop_rings(ring_to_mask(ring));
 
 	return exec.handle;
 }
