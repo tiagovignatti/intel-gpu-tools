@@ -134,6 +134,81 @@ static void dumpit(void)
 #define dump() if (verbose) dumpit()
 #define log(...) if (verbose) printf(__VA_ARGS__)
 
+static void min_max_config(void (*check)(void))
+{
+	int fmid = (frpn + frp0) / 2;
+
+	log("Check original min and max...\n");
+	check();
+
+	log("Set min=RPn and max=RP0...\n");
+	writeval(stuff[MIN].filp, frpn);
+	writeval(stuff[MAX].filp, frp0);
+	check();
+
+	log("Increase min to midpoint...\n");
+	writeval(stuff[MIN].filp, fmid);
+	check();
+
+	log("Increase min to RP0...\n");
+	writeval(stuff[MIN].filp, frp0);
+	check();
+
+	log("Increase min above RP0 (invalid)...\n");
+	writeval_inval(stuff[MIN].filp, frp0 + 1000);
+	check();
+
+	log("Decrease max to RPn (invalid)...\n");
+	writeval_inval(stuff[MAX].filp, frpn);
+	check();
+
+	log("Decrease min to midpoint...\n");
+	writeval(stuff[MIN].filp, fmid);
+	check();
+
+	log("Decrease min to RPn...\n");
+	writeval(stuff[MIN].filp, frpn);
+	check();
+
+	log("Decrease min below RPn (invalid)...\n");
+	writeval_inval(stuff[MIN].filp, 0);
+	check();
+
+	log("Decrease max to midpoint...\n");
+	writeval(stuff[MAX].filp, fmid);
+	check();
+
+	log("Decrease max to RPn...\n");
+	writeval(stuff[MAX].filp, frpn);
+	check();
+
+	log("Decrease max below RPn (invalid)...\n");
+	writeval_inval(stuff[MAX].filp, 0);
+	check();
+
+	log("Increase min to RP0 (invalid)...\n");
+	writeval_inval(stuff[MIN].filp, frp0);
+	check();
+
+	log("Increase max to midpoint...\n");
+	writeval(stuff[MAX].filp, fmid);
+	check();
+
+	log("Increase max to RP0...\n");
+	writeval(stuff[MAX].filp, frp0);
+	check();
+
+	log("Increase max above RP0 (invalid)...\n");
+	writeval_inval(stuff[MAX].filp, frp0 + 1000);
+	check();
+}
+
+static void idle_check(void)
+{
+	dump();
+	checkit();
+}
+
 static void pm_rps_exit_handler(int sig)
 {
 	if (origmin > fmax) {
@@ -210,35 +285,8 @@ int main(int argc, char **argv)
 		igt_install_exit_handler(pm_rps_exit_handler);
 	}
 
-	igt_subtest("min-max-config-at-idle") {
-		log("Original min = %d\nOriginal max = %d\n", origmin, origmax);
-
-		dump();
-
-		checkit();
-		setfreq(origmin);
-		dump();
-		igt_assert(fcur == fmin);
-		setfreq(origmax);
-		dump();
-		igt_assert(fcur == fmax);
-		checkit();
-
-		/* And some errors */
-		writeval_inval(stuff[MIN].filp, frpn - 1);
-		writeval_inval(stuff[MAX].filp, frp0 + 1000);
-		checkit();
-
-		writeval_inval(stuff[MIN].filp, fmax + 1000);
-		writeval_inval(stuff[MAX].filp, fmin - 1);
-		checkit();
-
-		writeval_inval(stuff[MIN].filp, 0x11111110);
-		writeval_inval(stuff[MAX].filp, 0);
-
-		writeval(stuff[MIN].filp, origmin);
-		writeval(stuff[MAX].filp, origmax);
-	}
+	igt_subtest("min-max-config-at-idle")
+		min_max_config(idle_check);
 
 	igt_exit();
 }
