@@ -35,7 +35,6 @@
 #include "drmtest.h"
 
 static bool verbose = false;
-static int origmin, origmax;
 
 static const char sysfs_base_path[] = "/sys/class/drm/card%d/gt_%s_freq_mhz";
 enum {
@@ -44,8 +43,11 @@ enum {
 	MAX,
 	RP0,
 	RP1,
-	RPn
+	RPn,
+	NUMFREQ
 };
+
+static int origfreqs[NUMFREQ];
 
 struct junk {
 	const char *name;
@@ -65,6 +67,14 @@ static int readval(FILE *filp)
 	igt_assert(scanned == 1);
 
 	return val;
+}
+
+static void read_freqs(int *freqs)
+{
+	int i;
+
+	for (i = 0; i < NUMFREQ; i++)
+		freqs[i] = readval(stuff[i].filp);
 }
 
 static int do_writeval(FILE *filp, int val, int lerrno)
@@ -90,16 +100,9 @@ static int do_writeval(FILE *filp, int val, int lerrno)
 #define writeval(filp, val) do_writeval(filp, val, 0)
 #define writeval_inval(filp, val) do_writeval(filp, val, EINVAL)
 
-#define fcur (readval(stuff[CUR].filp))
-#define fmin (readval(stuff[MIN].filp))
-#define fmax (readval(stuff[MAX].filp))
-#define frp0 (readval(stuff[RP0].filp))
-#define frp1 (readval(stuff[RP1].filp))
-#define frpn (readval(stuff[RPn].filp))
-
 static void setfreq(int val)
 {
-	if (val > fmax) {
+	if (val > readval(stuff[MAX].filp)) {
 		writeval(stuff[MAX].filp, val);
 		writeval(stuff[MIN].filp, val);
 	} else {
@@ -108,42 +111,41 @@ static void setfreq(int val)
 	}
 }
 
-static void checkit(void)
+static void checkit(const int *freqs)
 {
-	igt_assert(fmin <= fmax);
-	igt_assert(fcur <= fmax);
-	igt_assert(fmin <= fcur);
-	igt_assert(frpn <= fmin);
-	igt_assert(fmax <= frp0);
-	igt_assert(frp1 <= frp0);
-	igt_assert(frpn <= frp1);
-	igt_assert(frp0 != 0);
-	igt_assert(frp1 != 0);
+	igt_assert(freqs[MIN] <= freqs[MAX]);
+	igt_assert(freqs[CUR] <= freqs[MAX]);
+	igt_assert(freqs[MIN] <= freqs[CUR]);
+	igt_assert(freqs[RPn] <= freqs[MIN]);
+	igt_assert(freqs[MAX] <= freqs[RP0]);
+	igt_assert(freqs[RP1] <= freqs[RP0]);
+	igt_assert(freqs[RPn] <= freqs[RP1]);
+	igt_assert(freqs[RP0] != 0);
+	igt_assert(freqs[RP1] != 0);
 }
 
-static void dumpit(void)
+static void dumpit(const int *freqs)
 {
-	struct junk *junk = stuff;
-	do {
-		printf("gt frequency %s (MHz):  %d\n", junk->name, readval(junk->filp));
-		junk++;
-	} while(junk->name != NULL);
+	int i;
+
+	for (i = 0; i < NUMFREQ; i++)
+		printf("gt frequency %s (MHz):  %d\n", stuff[i].name, freqs[i]);
 
 	printf("\n");
 }
-#define dump() if (verbose) dumpit()
+#define dump(x) if (verbose) dumpit(x)
 #define log(...) if (verbose) printf(__VA_ARGS__)
 
 static void min_max_config(void (*check)(void))
 {
-	int fmid = (frpn + frp0) / 2;
+	int fmid = (origfreqs[RPn] + origfreqs[RP0]) / 2;
 
 	log("Check original min and max...\n");
 	check();
 
 	log("Set min=RPn and max=RP0...\n");
-	writeval(stuff[MIN].filp, frpn);
-	writeval(stuff[MAX].filp, frp0);
+	writeval(stuff[MIN].filp, origfreqs[RPn]);
+	writeval(stuff[MAX].filp, origfreqs[RP0]);
 	check();
 
 	log("Increase min to midpoint...\n");
@@ -151,15 +153,15 @@ static void min_max_config(void (*check)(void))
 	check();
 
 	log("Increase min to RP0...\n");
-	writeval(stuff[MIN].filp, frp0);
+	writeval(stuff[MIN].filp, origfreqs[RP0]);
 	check();
 
 	log("Increase min above RP0 (invalid)...\n");
-	writeval_inval(stuff[MIN].filp, frp0 + 1000);
+	writeval_inval(stuff[MIN].filp, origfreqs[RP0] + 1000);
 	check();
 
 	log("Decrease max to RPn (invalid)...\n");
-	writeval_inval(stuff[MAX].filp, frpn);
+	writeval_inval(stuff[MAX].filp, origfreqs[RPn]);
 	check();
 
 	log("Decrease min to midpoint...\n");
@@ -167,7 +169,7 @@ static void min_max_config(void (*check)(void))
 	check();
 
 	log("Decrease min to RPn...\n");
-	writeval(stuff[MIN].filp, frpn);
+	writeval(stuff[MIN].filp, origfreqs[RPn]);
 	check();
 
 	log("Decrease min below RPn (invalid)...\n");
@@ -179,7 +181,7 @@ static void min_max_config(void (*check)(void))
 	check();
 
 	log("Decrease max to RPn...\n");
-	writeval(stuff[MAX].filp, frpn);
+	writeval(stuff[MAX].filp, origfreqs[RPn]);
 	check();
 
 	log("Decrease max below RPn (invalid)...\n");
@@ -187,7 +189,7 @@ static void min_max_config(void (*check)(void))
 	check();
 
 	log("Increase min to RP0 (invalid)...\n");
-	writeval_inval(stuff[MIN].filp, frp0);
+	writeval_inval(stuff[MIN].filp, origfreqs[RP0]);
 	check();
 
 	log("Increase max to midpoint...\n");
@@ -195,28 +197,31 @@ static void min_max_config(void (*check)(void))
 	check();
 
 	log("Increase max to RP0...\n");
-	writeval(stuff[MAX].filp, frp0);
+	writeval(stuff[MAX].filp, origfreqs[RP0]);
 	check();
 
 	log("Increase max above RP0 (invalid)...\n");
-	writeval_inval(stuff[MAX].filp, frp0 + 1000);
+	writeval_inval(stuff[MAX].filp, origfreqs[RP0] + 1000);
 	check();
 }
 
 static void idle_check(void)
 {
-	dump();
-	checkit();
+	int freqs[NUMFREQ];
+
+	read_freqs(freqs);
+	dump(freqs);
+	checkit(freqs);
 }
 
 static void pm_rps_exit_handler(int sig)
 {
-	if (origmin > fmax) {
-		writeval(stuff[MAX].filp, origmax);
-		writeval(stuff[MIN].filp, origmin);
+	if (origfreqs[MIN] > readval(stuff[MAX].filp)) {
+		writeval(stuff[MAX].filp, origfreqs[MAX]);
+		writeval(stuff[MIN].filp, origfreqs[MIN]);
 	} else {
-		writeval(stuff[MIN].filp, origmin);
-		writeval(stuff[MAX].filp, origmax);
+		writeval(stuff[MIN].filp, origfreqs[MIN]);
+		writeval(stuff[MAX].filp, origfreqs[MAX]);
 	}
 }
 
@@ -279,8 +284,7 @@ int main(int argc, char **argv)
 			junk++;
 		} while(junk->name != NULL);
 
-		origmin = fmin;
-		origmax = fmax;
+		read_freqs(origfreqs);
 
 		igt_install_exit_handler(pm_rps_exit_handler);
 	}
