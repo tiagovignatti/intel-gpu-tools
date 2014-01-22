@@ -545,7 +545,7 @@ gen8_emit_state_base_address(struct intel_batchbuffer *batch) {
 	/* indirect object buffer size */
 	OUT_BATCH(0xfffff000 | 1);
 	/* intruction buffer size */
-	OUT_BATCH(1 << 12);
+	OUT_BATCH(1 << 12 | 1);
 }
 
 static void
