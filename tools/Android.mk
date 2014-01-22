@@ -65,6 +65,6 @@ skip_tools_list := \
     intel_vga_read \
     intel_vga_write
 
-tools_list := $(filter-out $(skip_tools_list),$(bin_PROGRAMS) $(noinst_PROGRAMS))
+tools_list := $(filter-out $(skip_tools_list),$(bin_PROGRAMS))
 
 $(foreach item,$(tools_list),$(eval $(call add_tool,$(item))))
