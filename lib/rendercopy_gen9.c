@@ -715,8 +715,19 @@ gen9_emit_ds(struct intel_batchbuffer *batch) {
 	OUT_BATCH(0);
 }
 
+
+static void
+gen8_emit_wm_hz_op(struct intel_batchbuffer *batch) {
+	OUT_BATCH(GEN8_3DSTATE_WM_HZ_OP | (5-2));
+	OUT_BATCH(0);
+	OUT_BATCH(0);
+	OUT_BATCH(0);
+	OUT_BATCH(0);
+}
+
 static void
 gen8_emit_null_state(struct intel_batchbuffer *batch) {
+	gen8_emit_wm_hz_op(batch);
 	gen8_emit_hs(batch);
 	OUT_BATCH(GEN7_3DSTATE_TE | (4-2));
 	OUT_BATCH(0);
