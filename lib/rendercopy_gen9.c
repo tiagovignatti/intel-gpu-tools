@@ -683,7 +683,7 @@ gen8_emit_gs(struct intel_batchbuffer *batch) {
 }
 
 static void
-gen8_emit_ds(struct intel_batchbuffer *batch) {
+gen9_emit_ds(struct intel_batchbuffer *batch) {
 	OUT_BATCH(GEN7_3DSTATE_CONSTANT_DS | (11-2));
 	OUT_BATCH(0);
 	OUT_BATCH(0);
@@ -696,7 +696,9 @@ gen8_emit_ds(struct intel_batchbuffer *batch) {
 	OUT_BATCH(0);
 	OUT_BATCH(0);
 
-	OUT_BATCH(GEN7_3DSTATE_DS | (9-2));
+	OUT_BATCH(GEN7_3DSTATE_DS | (11-2));
+	OUT_BATCH(0);
+	OUT_BATCH(0);
 	OUT_BATCH(0);
 	OUT_BATCH(0);
 	OUT_BATCH(0);
@@ -721,7 +723,7 @@ gen8_emit_null_state(struct intel_batchbuffer *batch) {
 	OUT_BATCH(0);
 	OUT_BATCH(0);
 	gen8_emit_gs(batch);
-	gen8_emit_ds(batch);
+	gen9_emit_ds(batch);
 	gen8_emit_vs(batch);
 }
 
