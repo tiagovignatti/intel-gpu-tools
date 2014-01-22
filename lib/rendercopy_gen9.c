@@ -511,8 +511,8 @@ gen7_emit_push_constants(struct intel_batchbuffer *batch) {
 }
 
 static void
-gen8_emit_state_base_address(struct intel_batchbuffer *batch) {
-	OUT_BATCH(GEN6_STATE_BASE_ADDRESS | (16 - 2));
+gen9_emit_state_base_address(struct intel_batchbuffer *batch) {
+	OUT_BATCH(GEN6_STATE_BASE_ADDRESS | (19 - 2));
 
 	/* general */
 	OUT_BATCH(0 | BASE_ADDRESS_MODIFY);
@@ -546,6 +546,11 @@ gen8_emit_state_base_address(struct intel_batchbuffer *batch) {
 	OUT_BATCH(0xfffff000 | 1);
 	/* intruction buffer size */
 	OUT_BATCH(1 << 12 | 1);
+
+	/* Bindless surface state base address */
+	OUT_BATCH(0 | BASE_ADDRESS_MODIFY);
+	OUT_BATCH(0);
+	OUT_BATCH(0xfffff000);
 }
 
 static void
@@ -948,7 +953,7 @@ void gen9_render_copyfunc(struct intel_batchbuffer *batch,
 
 	gen7_emit_push_constants(batch);
 
-	gen8_emit_state_base_address(batch);
+	gen9_emit_state_base_address(batch);
 
 	OUT_BATCH(GEN7_3DSTATE_VIEWPORT_STATE_POINTERS_CC);
 	OUT_BATCH(viewport.cc_state);
