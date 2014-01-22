@@ -56,6 +56,7 @@
 #include "intel_io.h"
 #include "instdone.h"
 #include "intel_reg.h"
+#include "drmtest.h"
 
 static uint32_t
 print_head(unsigned int reg)

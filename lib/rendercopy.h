@@ -24,6 +24,7 @@ static inline void emit_vertex_normalized(struct intel_batchbuffer *batch,
 }
 
 void gen9_render_copyfunc(struct intel_batchbuffer *batch,
+			  drm_intel_context *context,
 			  struct igt_buf *src, unsigned src_x, unsigned src_y,
 			  unsigned width, unsigned height,
 			  struct igt_buf *dst, unsigned dst_x, unsigned dst_y);
