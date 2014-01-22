@@ -960,7 +960,8 @@ void gen9_render_copyfunc(struct intel_batchbuffer *batch,
 
 	/* Start emitting the commands. The order roughly follows the mesa blorp
 	 * order */
-	OUT_BATCH(GEN6_PIPELINE_SELECT | PIPELINE_SELECT_3D);
+	OUT_BATCH(GEN6_PIPELINE_SELECT | PIPELINE_SELECT_3D |
+				GEN9_PIPELINE_SELECTION_MASK);
 
 	gen8_emit_sip(batch);
 
