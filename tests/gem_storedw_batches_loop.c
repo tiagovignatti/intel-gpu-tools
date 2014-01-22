@@ -74,12 +74,13 @@ store_dword_loop(int divider, unsigned flags)
 		buf = cmd_bo->virtual;
 
 		buf[j++] = cmd;
-		cmd_address_offset = j * 4;
 		if (intel_gen(drm_intel_bufmgr_gem_get_devid(bufmgr)) >= 8) {
+			cmd_address_offset = j * 4;
 			buf[j++] = target_bo->offset;
 			buf[j++] = 0;
 		} else {
 			buf[j++] = 0;
+			cmd_address_offset = j * 4;
 			buf[j++] = target_bo->offset;
 		}
 		assert(j > 0);
