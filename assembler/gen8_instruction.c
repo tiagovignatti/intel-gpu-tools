@@ -423,3 +423,23 @@ gen8_set_dp_message(struct gen8_instruction *inst,
    gen8_set_function_control(inst,
          binding_table_index | msg_type << 14 | msg_control << 8);
 }
+
+
+void
+gen9_set_send_extdesc(struct gen8_instruction *inst,
+		     unsigned int value)
+{
+   unsigned int extdesc;
+
+   extdesc = (value >> 16) & 0x0f;
+   gen8_set_bits(inst, 67, 64, extdesc);
+
+   extdesc = (value >> 20) & 0x0f;
+   gen8_set_bits(inst, 83, 80, extdesc);
+
+   extdesc = (value >> 24) & 0x0f;
+   gen8_set_bits(inst, 88, 85, extdesc);
+
+   extdesc = (value >> 28) & 0x0f;
+   gen8_set_bits(inst, 94, 91, extdesc);
+}

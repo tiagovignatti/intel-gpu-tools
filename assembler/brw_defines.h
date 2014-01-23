@@ -1647,4 +1647,6 @@ enum brw_wm_barycentric_interp_mode {
 #define EX_DESC_SFID_MASK 0xF
 #define EX_DESC_EOT_MASK  0x20
 
+#define EX_DESC_FUNC_MASK 0xFFFFFFC0
+
 #endif

@@ -357,4 +357,6 @@ gen8_set_bits(struct gen8_instruction *insn,
    insn->data[word] = (insn->data[word] & ~mask) | ((value << low) & mask);
 }
 
+void gen9_set_send_extdesc(struct gen8_instruction *insn, unsigned int value);
+
 #endif

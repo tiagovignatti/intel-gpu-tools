@@ -1190,7 +1190,11 @@ sendinstruction: predicate sendop execsize exp post_dst payload msgtarget
                           YYERROR;
 		  }
 
-		  if (IS_GENp(8)) {
+		  if (IS_GENp(9)) {
+		      gen8_set_src1_reg_file(GEN8(&$$), BRW_IMMEDIATE_VALUE);
+		      gen8_set_src1_reg_type(GEN8(&$$), BRW_REGISTER_TYPE_D);
+		      gen9_set_send_extdesc(GEN8(&$$), 0);
+		  } else if (IS_GENp(8)) {
 		      gen8_set_src1_reg_file(GEN8(&$$), BRW_IMMEDIATE_VALUE);
 		      gen8_set_src1_reg_type(GEN8(&$$), BRW_REGISTER_TYPE_D);
 		  } else {
@@ -1308,7 +1312,11 @@ sendinstruction: predicate sendop execsize exp post_dst payload msgtarget
                   set_instruction_src0(&$$, &src0, NULL);
 		  set_instruction_src1(&$$, &$7, NULL);
 
-                  if (IS_GENp(8)) {
+                  if (IS_GENp(9)) {
+                      gen8_set_sfid(GEN8(&$$), $6 & EX_DESC_SFID_MASK);
+                      gen8_set_eot(GEN8(&$$), !!($6 & EX_DESC_EOT_MASK));
+                      gen9_set_send_extdesc(GEN8(&$$), $6 & EX_DESC_FUNC_MASK);
+                  } else if (IS_GENp(8)) {
                       gen8_set_sfid(GEN8(&$$), $6 & EX_DESC_SFID_MASK);
                       gen8_set_eot(GEN8(&$$), !!($6 & EX_DESC_EOT_MASK));
 		  } else {
@@ -1356,6 +1364,10 @@ sendinstruction: predicate sendop execsize exp post_dst payload msgtarget
                   set_instruction_src1(&$$, &$7, &@7);
 
                   if (IS_GENp(8)) {
+                      gen8_set_sfid(GEN8(&$$), $6 & EX_DESC_SFID_MASK);
+                      gen8_set_eot(GEN8(&$$), !!($6 & EX_DESC_EOT_MASK));
+                      gen9_set_send_extdesc(GEN8(&$$), $6 & EX_DESC_FUNC_MASK);
+		  } else if (IS_GENp(8)) {
                       gen8_set_sfid(GEN8(&$$), $6 & EX_DESC_SFID_MASK);
                       gen8_set_eot(GEN8(&$$), !!($6 & EX_DESC_EOT_MASK));
 		  } else {
