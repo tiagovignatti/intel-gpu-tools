@@ -309,15 +309,14 @@ print_fence(unsigned int devid, uint64_t fence)
 #define MAX_RINGS 10 /* I really hope this never... */
 uint32_t head[MAX_RINGS];
 int head_ndx = 0;
-int num_rings = -1;
+int num_rings = 0;
 static void print_batch(int is_batch, const char *ring_name, uint32_t gtt_offset)
 {
 	const char *buffer_type[2] = {  "ringbuffer", "batchbuffer" };
-	if (is_batch) {
+	if (is_batch || !num_rings)
 		printf("%s (%s) at 0x%08x\n", buffer_type[is_batch], ring_name, gtt_offset);
-	} else {
+	else
 		printf("%s (%s) at 0x%08x; HEAD points to: 0x%08x\n", buffer_type[is_batch], ring_name, gtt_offset, head[head_ndx++ % num_rings] + gtt_offset);
-	}
 }
 
 static void decode(struct drm_intel_decode *ctx, bool is_batch,
@@ -418,7 +417,7 @@ read_data_file(FILE *file)
 
 			matched = sscanf(line, "  HEAD: 0x%08x\n", &reg);
 			if (matched == 1) {
-				head[head_ndx++] = print_head(reg);
+				head[num_rings++] = print_head(reg);
 			}
 
 			matched = sscanf(line, "  ACTHD: 0x%08x\n", &reg);
