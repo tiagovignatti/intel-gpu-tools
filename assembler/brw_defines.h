@@ -880,6 +880,13 @@ enum brw_message_target {
 
    HSW_SFID_DATAPORT_DATA_CACHE1     = 0x0c,
    HSW_SFID_CRE                      = 0x0d,
+
+   /* There is no Sampler data port cache(0x04) on SKL and it is used
+    * as the extension of DP_DC0/DP_DC1.
+    */
+   SKL_SFID_DATAPORT_DATA_CACHE2     = 0x4,
+   /* Data Read only Data port cache */
+   SKL_SFID_DATAPORT_DCR0            = 0x9,
 };
 
 #define BRW_SAMPLER_RETURN_FORMAT_FLOAT32     0
