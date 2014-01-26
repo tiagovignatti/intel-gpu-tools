@@ -54,27 +54,42 @@
 static void
 prw_set_bo(drm_intel_bo *bo, uint32_t val, int width, int height)
 {
-	int size = width * height;
-	uint32_t *vaddr, *tmp;
+	int size = width * height, i;
+	uint32_t *tmp;
 
-	vaddr = tmp = malloc(size*4);
-	while (size--)
-		*vaddr++ = val;
-	drm_intel_bo_subdata(bo, 0, width*height*4, tmp);
-	free(tmp);
+	tmp = malloc(4*size);
+	if (tmp) {
+		for (i = 0; i < size; i++)
+			tmp[i] = val;
+		drm_intel_bo_subdata(bo, 0, 4*size, tmp);
+		free(tmp);
+	} else {
+		for (i = 0; i < size; i++)
+			drm_intel_bo_subdata(bo, 4*i, 4, &val);
+	}
 }
 
 static void
 prw_cmp_bo(drm_intel_bo *bo, uint32_t val, int width, int height)
 {
-	int size = width * height;
-	uint32_t *vaddr, *tmp;
+	int size = width * height, i;
+	uint32_t *tmp;
 
-	vaddr = tmp = malloc(size*4);
-	drm_intel_bo_get_subdata(bo, 0, size*4, tmp);
-	while (size--)
-		igt_assert(*vaddr++ == val);
-	free(tmp);
+	tmp = malloc(4*size);
+	if (tmp) {
+		memset(tmp, 0, 4*size);
+		do_or_die(drm_intel_bo_get_subdata(bo, 0, 4*size, tmp));
+		for (i = 0; i < size; i++)
+			igt_assert(tmp[i] == val);
+		free(tmp);
+	} else {
+		uint32_t t;
+		for (i = 0; i < size; i++) {
+			t = 0;
+			do_or_die(drm_intel_bo_get_subdata(bo, 4*i, 4, &t));
+			igt_assert(t == val);
+		}
+	}
 }
 
 static drm_intel_bo *
@@ -370,6 +385,8 @@ igt_main
 		max = intel_get_total_ram_mb() * 3 / 4;
 		if (num_buffers > max)
 			num_buffers = max;
+		num_buffers /= 2;
+		printf("using 2x%d buffers, each 1MiB\n", num_buffers);
 	}
 
 	for (i = 0; i < ARRAY_SIZE(access_modes); i++)
