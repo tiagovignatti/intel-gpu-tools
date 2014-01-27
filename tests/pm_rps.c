@@ -290,7 +290,7 @@ int main(int argc, char **argv)
 		igt_install_exit_handler(pm_rps_exit_handler);
 	}
 
-	igt_subtest("min-max-config-at-idle")
+	igt_subtest("basic-api")
 		min_max_config(idle_check);
 
 	igt_exit();
