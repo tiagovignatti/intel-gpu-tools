@@ -34,17 +34,10 @@
 #include "igt_kms.h"
 
 typedef struct {
-	struct kmstest_connector_config config;
-	struct kmstest_fb fb;
-	bool valid;
-} connector_t;
-
-typedef struct {
 	int drm_fd;
 	igt_debugfs_t debugfs;
-	drmModeRes *resources;
-	int n_connectors;
-	connector_t *connectors;
+	igt_display_t display;
+	struct kmstest_fb fb;
 } data_t;
 
 static void test_bad_command(data_t *data, const char *cmd)
@@ -62,120 +55,58 @@ static void test_bad_command(data_t *data, const char *cmd)
 	fclose(ctl);
 }
 
-static void connector_init(data_t *data, connector_t *connector,
-			   uint32_t id, uint32_t crtc_id_mask)
+static void create_fb_for_mode(data_t *data, drmModeModeInfo *mode)
 {
-	int ret;
-
-	ret = kmstest_get_connector_config(data->drm_fd, id, crtc_id_mask,
-					   &connector->config);
-	if (ret == 0)
-		connector->valid = true;
-	else
-		connector->valid = false;
-
-}
-
-static void connector_fini(connector_t *connector)
-{
-	kmstest_free_connector_config(&connector->config);
-}
-
-static bool
-connector_set_mode(data_t *data, connector_t *connector, drmModeModeInfo *mode)
-{
-	struct kmstest_connector_config *config = &connector->config;
 	unsigned int fb_id;
 	cairo_t *cr;
-	int ret;
 
 	fb_id = kmstest_create_fb(data->drm_fd,
 				  mode->hdisplay, mode->vdisplay,
 				  32 /* bpp */, 24 /* depth */,
 				  false /* tiling */,
-				  &connector->fb);
+				  &data->fb);
 	igt_assert(fb_id);
 
-	cr = kmstest_get_cairo_ctx(data->drm_fd, &connector->fb);
+	cr = kmstest_get_cairo_ctx(data->drm_fd, &data->fb);
 	kmstest_paint_color(cr, 0, 0, mode->hdisplay, mode->vdisplay,
 			    0.0, 1.0, 0.0);
 	igt_assert(cairo_status(cr) == 0);
 	cairo_destroy(cr);
-
-#if 0
-	fprintf(stdout, "Using pipe %c, %dx%d\n", pipe_name(config->pipe),
-		mode->hdisplay, mode->vdisplay);
-#endif
-
-	ret = drmModeSetCrtc(data->drm_fd,
-			     config->crtc->crtc_id,
-			     connector->fb.fb_id,
-			     0, 0, /* x, y */
-			     &config->connector->connector_id,
-			     1,
-			     mode);
-	igt_assert(ret == 0);
-
-	return 0;
-}
-
-static void display_init(data_t *data)
-{
-	data->resources = drmModeGetResources(data->drm_fd);
-	igt_assert(data->resources);
-
-	data->n_connectors = data->resources->count_connectors;
-	data->connectors = calloc(data->n_connectors, sizeof(connector_t));
-	igt_assert(data->connectors);
-}
-
-static void connectors_init(data_t *data, uint32_t crtc_id_mask)
-{
-	int i;
-
-	for (i = 0; i < data->n_connectors; i++) {
-		uint32_t id = data->resources->connectors[i];
-
-		connector_init(data, &data->connectors[i], id, crtc_id_mask);
-	}
-}
-
-static void display_fini(data_t *data)
-{
-	int i;
-
-	for (i = 0; i < data->n_connectors; i++)
-		connector_fini(&data->connectors[i]);
-	free(data->connectors);
-
-	drmModeFreeResources(data->resources);
 }
 
 #define TEST_SEQUENCE (1<<0)
 
 static void test_read_crc(data_t *data, int pipe, unsigned flags)
 {
-	connector_t *connector;
+	igt_display_t *display = &data->display;
 	igt_pipe_crc_t *pipe_crc;
 	igt_crc_t *crcs = NULL;
 	int valid_connectors = 0, i;
 
-	connectors_init(data, 1 << pipe);
+	for (i = 0;  i < display->n_outputs; i++) {
+		igt_output_t *output = &display->outputs[i];
+		igt_plane_t *primary;
+		drmModeModeInfo *mode;
 
-	for (i = 0;  i < data->n_connectors; i++) {
-		connector = &data->connectors[i];
-
-		if (!connector->valid)
+		if (!output->valid)
 			continue;
 
-		fprintf(stdout, "%s: Testing connector %u\n",
-			igt_subtest_name(), connector->config.connector->connector_id);
+		igt_output_set_pipe(output, pipe);
 
-		connector_set_mode(data, connector, &connector->config.default_mode);
+		fprintf(stdout, "%s: Testing connector %s using pipe %c\n",
+			igt_subtest_name(), igt_output_name(output),
+			pipe_name(pipe));
+
+		mode = igt_output_get_mode(output);
+		create_fb_for_mode(data, mode);
+
+		primary = igt_ouput_get_plane(output, 0);
+		igt_plane_set_fb(primary, &data->fb);
+
+		igt_display_commit(display);
 
 		pipe_crc = igt_pipe_crc_new(&data->debugfs, data->drm_fd,
-					    connector->config.pipe,
-					    INTEL_PIPE_CRC_SOURCE_AUTO);
+					    pipe, INTEL_PIPE_CRC_SOURCE_AUTO);
 
 		if (!pipe_crc)
 			continue;
@@ -204,7 +135,8 @@ static void test_read_crc(data_t *data, int pipe, unsigned flags)
 
 		free(crcs);
 		igt_pipe_crc_free(pipe_crc);
-		kmstest_remove_fb(data->drm_fd, &connector->fb);
+		kmstest_remove_fb(data->drm_fd, &data->fb);
+		igt_plane_set_fb(primary, NULL);
 	}
 
 	igt_require_f(valid_connectors, "No connector found for pipe %i\n", pipe);
@@ -222,10 +154,10 @@ igt_main
 
 		igt_set_vt_graphics_mode();
 
-		display_init(&data);
-
 		igt_debugfs_init(&data.debugfs);
 		igt_pipe_crc_check(&data.debugfs);
+
+		igt_display_init(&data.display, data.drm_fd);
 	}
 
 	igt_subtest("bad-pipe")
@@ -249,6 +181,6 @@ igt_main
 	}
 
 	igt_fixture {
-		display_fini(&data);
+		igt_display_fini(&data.display);
 	}
 }
