@@ -1,3 +1,6 @@
+- Allow register access to succeed if i915 is loaded but debugfs isn't found
+  (i.e. nomodeset is used)
+
 Release 1.6 (2014-XX-YY)
 ------------------------
 
