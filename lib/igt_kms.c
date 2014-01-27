@@ -24,6 +24,7 @@
 
 #define _GNU_SOURCE
 #include <stdio.h>
+#include <stdarg.h>
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <string.h>
@@ -764,3 +765,366 @@ void kmstest_free_connector_config(struct kmstest_connector_config *config)
 	drmModeFreeConnector(config->connector);
 }
 
+/*
+ * A small modeset API
+ */
+
+#define LOG_SPACES		"    "
+#define LOG_N_SPACES		(sizeof(LOG_SPACES) - 1)
+
+#define LOG_INDENT(d, section)				\
+	do {						\
+		igt_display_log(d, "%s {\n", section);	\
+		igt_display_log_shift(d, 1);		\
+	} while (0)
+#define LOG_UNINDENT(d)					\
+	do {						\
+		igt_display_log_shift(d, -1);		\
+		igt_display_log(d, "}\n");		\
+	} while (0)
+#define LOG(d, fmt, ...)	igt_display_log(d, fmt, ## __VA_ARGS__)
+
+static int  __attribute__((format(printf, 2, 3)))
+igt_display_log(igt_display_t *display, const char *fmt, ...)
+{
+	va_list args;
+	int n, i;
+
+	if (!display->verbose)
+		return 0;
+
+	va_start(args, fmt);
+	n = printf("display: ");
+	for (i = 0; i < display->log_shift; i++)
+		n += printf("%s", LOG_SPACES);
+	n += vprintf(fmt, args);
+	va_end(args);
+
+	return n;
+}
+
+static void igt_display_log_shift(igt_display_t *display, int shift)
+{
+	display->log_shift += shift;
+	igt_assert(display->log_shift >= 0);
+}
+
+static void igt_output_refresh(igt_output_t *output)
+{
+	igt_display_t *display = output->display;
+	int ret;
+	unsigned long crtc_idx_mask;
+
+	/* we mask out the pipes already in use */
+	crtc_idx_mask = output->pending_crtc_idx_mask & ~display->pipes_in_use;
+
+	if (output->valid)
+		kmstest_free_connector_config(&output->config);
+	ret = kmstest_get_connector_config(display->drm_fd,
+					   output->id,
+					   crtc_idx_mask,
+					   &output->config);
+	if (ret == 0)
+		output->valid = true;
+	else
+		output->valid = false;
+
+	if (!output->valid)
+		return;
+
+	if (!output->name) {
+		drmModeConnector *c = output->config.connector;
+
+		asprintf(&output->name, "%s-%d",
+			 kmstest_connector_type_str(c->connector_type),
+			 c->connector_type_id);
+	}
+
+	LOG(display, "%s: Selecting pipe %c\n", output->name,
+	    pipe_name(output->config.pipe));
+
+	display->pipes_in_use |= 1 << output->config.pipe;
+}
+
+void igt_display_init(igt_display_t *display, int drm_fd)
+{
+	drmModeRes *resources;
+	bool verbose;
+	int i;
+
+	/*
+	 * It's valid to set verbose before the init so we can get debugging
+	 * output for the init() itself.
+	 */
+	verbose = display->verbose;
+	memset(display, 0, sizeof(igt_display_t));
+	display->verbose = verbose;
+
+	LOG_INDENT(display, "init");
+
+	display->drm_fd = drm_fd;
+
+	resources = drmModeGetResources(display->drm_fd);
+	igt_assert(resources);
+
+	/*
+	 * We cache the number of pipes, that number is a physical limit of the
+	 * hardware and cannot change of time (for now, at least).
+	 */
+	display->n_pipes = resources->count_crtcs;
+
+	for (i = 0; i < display->n_pipes; i++) {
+		igt_pipe_t *pipe = &display->pipes[i];
+		igt_plane_t *plane;
+
+		pipe->display = display;
+		pipe->pipe = i;
+		pipe->n_planes = 1;
+
+		/* primary plane */
+		plane = &pipe->planes[0];
+		plane->pipe = pipe;
+		plane->index = 0;
+		plane->is_primary = true;
+	}
+
+	/*
+	 * The number of connectors is set, so we just initialize the outputs
+	 * array in _init(). This may change when we need dynamic connectors
+	 * (say DisplayPort MST).
+	 */
+	display->n_outputs = resources->count_connectors;
+	display->outputs = calloc(display->n_outputs, sizeof(igt_output_t));
+	igt_assert(display->outputs);
+
+	for (i = 0; i < display->n_outputs; i++) {
+		igt_output_t *output = &display->outputs[i];
+
+		/*
+		 * We're free to select any pipe to drive that output until
+		 * a constraint is set with igt_output_set_pipe().
+		 */
+		output->pending_crtc_idx_mask = -1UL;
+		output->id = resources->connectors[i];
+		output->display = display;
+
+		igt_output_refresh(output);
+	}
+
+	drmModeFreeResources(resources);
+
+	LOG_UNINDENT(display);
+}
+
+void igt_display_set_verbose(igt_display_t *display, bool verbose)
+{
+	display->verbose = verbose;
+}
+
+static void igt_output_fini(igt_output_t *output)
+{
+	if (output->valid)
+		kmstest_free_connector_config(&output->config);
+	free(output->name);
+}
+
+void igt_display_fini(igt_display_t *display)
+{
+	int i;
+
+	for (i = 0; i < display->n_outputs; i++)
+		igt_output_fini(&display->outputs[i]);
+	free(display->outputs);
+	display->outputs = NULL;
+}
+
+static void igt_display_refresh(igt_display_t *display)
+{
+	int i;
+
+	display->pipes_in_use = 0;
+
+	/*
+	 * The pipe allocation has to be done in two phases:
+	 *   - first, try to satisfy the outputs where a pipe has been specified
+	 *   - then, allocate the outputs with PIPE_ANY
+	 */
+	for (i = 0; i < display->n_outputs; i++) {
+		igt_output_t *output = &display->outputs[i];
+
+		if (output->pending_crtc_idx_mask == -1UL)
+			continue;
+
+		igt_output_refresh(output);
+	}
+	for (i = 0; i < display->n_outputs; i++) {
+		igt_output_t *output = &display->outputs[i];
+
+		if (output->pending_crtc_idx_mask != -1UL)
+			continue;
+
+		igt_output_refresh(output);
+	}
+}
+
+static igt_pipe_t *igt_output_get_driving_pipe(igt_output_t *output)
+{
+	igt_display_t *display = output->display;
+	enum pipe pipe;
+
+	if (output->pending_crtc_idx_mask == -1UL) {
+		/*
+		 * The user hasn't specified a pipe to use, take the one
+		 * configured by the last refresh()
+		 */
+		pipe = output->config.pipe;
+	} else {
+		/*
+		 * Otherwise, return the pending pipe (ie the pipe that should
+		 * drive this output after the commit()
+		 */
+		pipe = ffs(output->pending_crtc_idx_mask) - 1;
+	}
+
+	igt_assert(pipe >= 0 && pipe < display->n_pipes);
+
+	return &display->pipes[pipe];
+}
+
+static uint32_t igt_plane_get_fd_id(igt_plane_t *plane)
+{
+	if (plane->fb)
+		return plane->fb->fb_id;
+	else
+		return 0;
+}
+
+static int igt_output_commit(igt_output_t *output)
+{
+	igt_display_t *display = output->display;
+	igt_pipe_t *pipe;
+
+	pipe = igt_output_get_driving_pipe(output);
+	if (pipe->need_set_crtc) {
+		igt_plane_t *primary = &pipe->planes[0];
+		drmModeModeInfo *mode;
+		uint32_t fb_id, crtc_id;
+		int ret;
+
+		crtc_id = output->config.crtc->crtc_id;
+		fb_id = igt_plane_get_fd_id(primary);
+		if (fb_id)
+			mode = igt_output_get_mode(output);
+		else
+			mode = NULL;
+
+		if (fb_id) {
+			LOG(display,
+			    "%s: SetCrtc pipe %c, fb %u, panning (%d, %d), "
+			    "mode %dx%d\n",
+			    igt_output_name(output),
+			    pipe_name(output->config.pipe),
+			    fb_id,
+			    0, 0,
+			    mode->hdisplay, mode->vdisplay);
+
+			ret = drmModeSetCrtc(display->drm_fd,
+					     crtc_id,
+					     fb_id,
+					     0, 0, /* x, y */
+					     &output->id,
+					     1,
+					     mode);
+		} else {
+			LOG(display,
+			    "%s: SetCrtc pipe %c, fb %u\n",
+			    igt_output_name(output),
+			    pipe_name(output->config.pipe),
+			    fb_id);
+
+			ret = drmModeSetCrtc(display->drm_fd,
+					     crtc_id,
+					     fb_id,
+					     0, 0, /* x, y */
+					     NULL, /* connectors */
+					     0,    /* n_connectors */
+					     NULL  /* mode */);
+		}
+
+		igt_assert(ret == 0);
+
+		pipe->need_set_crtc = false;
+	}
+
+	return 0;
+}
+
+int igt_display_commit(igt_display_t *display)
+{
+	int i;
+
+	LOG_INDENT(display, "commit");
+
+	igt_display_refresh(display);
+
+	for (i = 0; i < display->n_outputs; i++) {
+		igt_output_t *output = &display->outputs[i];
+
+		if (!output->valid)
+			continue;
+
+		igt_output_commit(output);
+	}
+
+	LOG_UNINDENT(display);
+
+	return 0;
+}
+
+const char *igt_output_name(igt_output_t *output)
+{
+	return output->name;
+}
+
+drmModeModeInfo *igt_output_get_mode(igt_output_t *output)
+{
+	return &output->config.default_mode;
+}
+
+void igt_output_set_pipe(igt_output_t *output, enum pipe pipe)
+{
+	igt_display_t *display = output->display;
+
+	LOG(display, "%s: set_pipe(%c)\n", igt_output_name(output),
+	    pipe_name(pipe));
+
+	output->pending_crtc_idx_mask = 1 << pipe;
+}
+
+static igt_plane_t *igt_pipe_get_plane(igt_pipe_t *pipe, int index)
+{
+	igt_assert(index >= 0 && index < pipe->n_planes);
+	return &pipe->planes[index];
+}
+
+igt_plane_t *igt_ouput_get_plane(igt_output_t *output, int index)
+{
+	igt_pipe_t *pipe;
+
+	pipe = igt_output_get_driving_pipe(output);
+	return igt_pipe_get_plane(pipe, 0);
+}
+
+void igt_plane_set_fb(igt_plane_t *plane, struct kmstest_fb *fb)
+{
+	igt_pipe_t *pipe = plane->pipe;
+	igt_display_t *display = pipe->display;
+
+	LOG(display, "%c.%d: plane_set_fb(%p)\n", pipe_name(pipe->pipe),
+	    plane->index, fb);
+
+	plane->fb = fb;
+
+	if (plane->is_primary)
+		pipe->need_set_crtc = true;
+}

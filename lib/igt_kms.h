@@ -25,7 +25,11 @@
 #ifndef __IGT_KMS_H__
 #define __IGT_KMS_H__
 
+#include <stdbool.h>
+
 #include <cairo.h>
+
+#include <igt_display.h>
 
 struct kmstest_connector_config {
 	drmModeCrtc *crtc;
@@ -98,6 +102,61 @@ const char *kmstest_connector_status_str(int type);
 const char *kmstest_connector_type_str(int type);
 
 uint32_t drm_format_to_bpp(uint32_t drm_format);
+
+/*
+ * A small modeset API
+ */
+
+typedef struct igt_display igt_display_t;
+typedef struct igt_pipe igt_pipe_t;
+
+typedef struct {
+	igt_pipe_t *pipe;
+	int index;
+	unsigned int is_primary : 1;
+	struct kmstest_fb *fb;
+} igt_plane_t;
+
+struct igt_pipe {
+	igt_display_t *display;
+	enum pipe pipe;
+	unsigned int need_set_crtc : 1;
+#define IGT_MAX_PLANES	4
+	int n_planes;
+	igt_plane_t planes[IGT_MAX_PLANES];
+};
+
+typedef struct {
+	igt_display_t *display;
+	uint32_t id;					/* KMS id */
+	struct kmstest_connector_config config;
+	char *name;
+	bool valid;
+	unsigned long pending_crtc_idx_mask;
+} igt_output_t;
+
+struct igt_display {
+	int drm_fd;
+	unsigned int verbose : 1;
+	int log_shift;
+	int n_pipes;
+	int n_outputs;
+	unsigned long pipes_in_use;
+	igt_output_t *outputs;
+	igt_pipe_t pipes[I915_MAX_PIPES];
+};
+
+void igt_display_init(igt_display_t *display, int drm_fd);
+void igt_display_fini(igt_display_t *display);
+int  igt_display_commit(igt_display_t *display);
+void igt_display_set_verbose(igt_display_t *display, bool verbose);
+
+const char *igt_output_name(igt_output_t *output);
+drmModeModeInfo *igt_output_get_mode(igt_output_t *output);
+void igt_output_set_pipe(igt_output_t *output, enum pipe pipe);
+igt_plane_t *igt_ouput_get_plane(igt_output_t *output, int index);
+
+void igt_plane_set_fb(igt_plane_t *plane, struct kmstest_fb *fb);
 
 #endif /* __IGT_KMS_H__ */
 
