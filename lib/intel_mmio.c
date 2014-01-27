@@ -205,10 +205,7 @@ intel_register_access_init(struct pci_device *pci_dev, int safe)
 		ret = find_debugfs_path("/debug/dri");
 		if (ret) {
 			fprintf(stderr, "Couldn't find path to dri/debugfs entry\n");
-			if (i915_loaded()) {
-				fprintf(stderr, "i915 loaded; not proceeding.\n");
-				return ret;
-			}
+			fprintf(stderr, "warning: forcewake will not be handled\n");
 		}
 		mmio_data.key = FAKEKEY;
 	} else
