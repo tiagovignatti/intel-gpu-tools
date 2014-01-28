@@ -7,10 +7,9 @@
 
 #define TIMEOUT_US 500000
 
-static int vlv_sideband_rw(uint32_t port, uint8_t opcode, uint8_t addr,
+static int vlv_sideband_rw(uint32_t port, uint8_t opcode, uint32_t addr,
 			   uint32_t *val)
 {
-	volatile uint32_t *ptr;
 	int timeout = 0;
 	uint32_t cmd, devfn, be, bar;
 	int is_read = (opcode == PUNIT_OPCODE_REG_READ ||
@@ -24,43 +23,33 @@ static int vlv_sideband_rw(uint32_t port, uint8_t opcode, uint8_t addr,
 		(port << IOSF_PORT_SHIFT) | (be << IOSF_BYTE_ENABLES_SHIFT) |
 		(bar << IOSF_BAR_SHIFT);
 
-	ptr = (volatile uint32_t*)((volatile char*)mmio +
-				   VLV_IOSF_DOORBELL_REQ);
-
-	if (*ptr & IOSF_SB_BUSY) {
+	if (intel_register_read(VLV_IOSF_DOORBELL_REQ) & IOSF_SB_BUSY) {
 		fprintf(stderr, "warning: pcode (%s) mailbox access failed\n",
 			is_read ? "read" : "write");
 		return -EAGAIN;
 	}
 
-	ptr = (volatile uint32_t*)((volatile char*)mmio + VLV_IOSF_ADDR);
-	*ptr = addr;
-	if (!is_read) {
-		ptr = (volatile uint32_t*)((volatile char*)mmio +
-					   VLV_IOSF_DATA);
-		*ptr = *val;
-	}
-	ptr = (volatile uint32_t*)((volatile char*)mmio +
-				   VLV_IOSF_DOORBELL_REQ);
-	*ptr = cmd;
+	intel_register_write(VLV_IOSF_ADDR, addr);
+	if (!is_read)
+		intel_register_write(VLV_IOSF_DATA, *val);
+
+	intel_register_write(VLV_IOSF_DOORBELL_REQ, cmd);
+
 	do {
 		usleep(1);
 		timeout++;
-	} while ((*ptr & IOSF_SB_BUSY) && timeout < TIMEOUT_US);
+	} while (intel_register_read(VLV_IOSF_DOORBELL_REQ) & IOSF_SB_BUSY &&
+		 timeout < TIMEOUT_US);
 
 	if (timeout >= TIMEOUT_US) {
 		fprintf(stderr, "timeout waiting for pcode %s (%d) to finish\n",
-			opcode == PUNIT_OPCODE_REG_READ ? "read" : "write",
-			addr);
+			is_read ? "read" : "write", addr);
 		return -ETIMEDOUT;
 	}
 
-	if (is_read) {
-		ptr = (volatile uint32_t*)((volatile char*)mmio +
-					   VLV_IOSF_DATA);
-		*val = *ptr;
-	}
-	*ptr = 0;
+	if (is_read)
+		*val = intel_register_read(VLV_IOSF_DATA);
+	intel_register_write(VLV_IOSF_DATA, 0);
 
 	return 0;
 }
