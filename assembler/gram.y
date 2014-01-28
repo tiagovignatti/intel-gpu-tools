@@ -1652,9 +1652,7 @@ msgtarget:	NULL_TOKEN
 		{
 		  if (IS_GENp(8)) {
                       if ($9 != 0 &&
-			  $9 != GEN6_SFID_DATAPORT_SAMPLER_CACHE &&
 			  $9 != GEN6_SFID_DATAPORT_RENDER_CACHE &&
-			  $9 != GEN6_SFID_DATAPORT_CONSTANT_CACHE &&
 			  $9 != GEN7_SFID_DATAPORT_DATA_CACHE &&
 			  $9 != HSW_SFID_DATAPORT_DATA_CACHE1) {
 			  error (&@9, "error: wrong cache type\n");
@@ -1715,9 +1713,7 @@ msgtarget:	NULL_TOKEN
 		{
 		  if (IS_GENp(8)) {
                       if ($9 != 0 &&
-			  $9 != GEN6_SFID_DATAPORT_SAMPLER_CACHE &&
 			  $9 != GEN6_SFID_DATAPORT_RENDER_CACHE &&
-			  $9 != GEN6_SFID_DATAPORT_CONSTANT_CACHE &&
 			  $9 != GEN7_SFID_DATAPORT_DATA_CACHE &&
 			  $9 != HSW_SFID_DATAPORT_DATA_CACHE1) {
 			  error (&@9, "error: wrong cache type\n");
