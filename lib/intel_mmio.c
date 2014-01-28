@@ -155,22 +155,6 @@ release_forcewake_lock(int fd)
 	close(fd);
 }
 
-/* Dumb check to see if i915 was loaded */
-static bool
-i915_loaded(void)
-{
-	struct stat sb;
-	int ret;
-
-	ret = stat("/sys/module/i915/", &sb);
-	if (ret) {
-		return false;
-	}
-
-	assert(S_ISDIR(sb.st_mode));
-	return true;
-}
-
 /*
  * Initialize register access library.
  *
