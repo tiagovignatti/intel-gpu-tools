@@ -7,12 +7,14 @@
 
 #define TIMEOUT_US 500000
 
-static int vlv_punit_rw(uint32_t port, uint8_t opcode, uint8_t addr,
-			uint32_t *val)
+static int vlv_sideband_rw(uint32_t port, uint8_t opcode, uint8_t addr,
+			   uint32_t *val)
 {
 	volatile uint32_t *ptr;
 	int timeout = 0;
 	uint32_t cmd, devfn, be, bar;
+	int is_read = (opcode == PUNIT_OPCODE_REG_READ ||
+		       opcode == DPIO_OPCODE_REG_READ);
 
 	bar = 0;
 	be = 0xf;
@@ -27,14 +29,13 @@ static int vlv_punit_rw(uint32_t port, uint8_t opcode, uint8_t addr,
 
 	if (*ptr & IOSF_SB_BUSY) {
 		fprintf(stderr, "warning: pcode (%s) mailbox access failed\n",
-			opcode == PUNIT_OPCODE_REG_READ ?
-			"read" : "write");
+			is_read ? "read" : "write");
 		return -EAGAIN;
 	}
 
 	ptr = (volatile uint32_t*)((volatile char*)mmio + VLV_IOSF_ADDR);
 	*ptr = addr;
-	if (opcode == PUNIT_OPCODE_REG_WRITE) {
+	if (!is_read) {
 		ptr = (volatile uint32_t*)((volatile char*)mmio +
 					   VLV_IOSF_DATA);
 		*ptr = *val;
@@ -54,7 +55,7 @@ static int vlv_punit_rw(uint32_t port, uint8_t opcode, uint8_t addr,
 		return -ETIMEDOUT;
 	}
 
-	if (opcode == PUNIT_OPCODE_REG_READ) {
+	if (is_read) {
 		ptr = (volatile uint32_t*)((volatile char*)mmio +
 					   VLV_IOSF_DATA);
 		*val = *ptr;
@@ -66,20 +67,33 @@ static int vlv_punit_rw(uint32_t port, uint8_t opcode, uint8_t addr,
 
 int intel_punit_read(uint8_t addr, uint32_t *val)
 {
-	return vlv_punit_rw(IOSF_PORT_PUNIT, PUNIT_OPCODE_REG_READ, addr, val);
+	return vlv_sideband_rw(IOSF_PORT_PUNIT, PUNIT_OPCODE_REG_READ, addr, val);
 }
 
 int intel_punit_write(uint8_t addr, uint32_t val)
 {
-	return vlv_punit_rw(IOSF_PORT_PUNIT, PUNIT_OPCODE_REG_WRITE, addr, &val);
+	return vlv_sideband_rw(IOSF_PORT_PUNIT, PUNIT_OPCODE_REG_WRITE, addr, &val);
 }
 
 int intel_nc_read(uint8_t addr, uint32_t *val)
 {
-	return vlv_punit_rw(IOSF_PORT_NC, PUNIT_OPCODE_REG_READ, addr, val);
+	return vlv_sideband_rw(IOSF_PORT_NC, PUNIT_OPCODE_REG_READ, addr, val);
 }
 
 int intel_nc_write(uint8_t addr, uint32_t val)
 {
-	return vlv_punit_rw(IOSF_PORT_NC, PUNIT_OPCODE_REG_WRITE, addr, &val);
+	return vlv_sideband_rw(IOSF_PORT_NC, PUNIT_OPCODE_REG_WRITE, addr, &val);
+}
+
+uint32_t intel_dpio_reg_read(uint32_t reg, int phy)
+{
+	uint32_t val;
+
+	vlv_sideband_rw(IOSF_PORT_DPIO, DPIO_OPCODE_REG_READ, reg, &val);
+	return val;
+}
+
+void intel_dpio_reg_write(uint32_t reg, uint32_t val, int phy)
+{
+	vlv_sideband_rw(IOSF_PORT_DPIO, DPIO_OPCODE_REG_WRITE, reg, &val);
 }

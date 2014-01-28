@@ -35,7 +35,6 @@ libintel_tools_la_SOURCES = 	\
 	rendercopy_gen8.c	\
 	rendercopy.h		\
 	intel_reg_map.c		\
-	intel_dpio.c		\
 	intel_iosf.c		\
 	igt_kms.c \
 	igt_kms.h \

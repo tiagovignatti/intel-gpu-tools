@@ -3552,32 +3552,32 @@ typedef enum {
 #define  SFUSE_STRAP_DDID_DETECTED	(1<<0)
 
 /* Valleyview related items */
+#define VLV_DISPLAY_BASE       0x180000
 
-/* Valleyview DPIO registers */
-#define VLV_DISPLAY_BASE	0x180000
-#define DPIO_PKT			0x2100
-#define  DPIO_RID			(0 << 24)
-#define  DPIO_OP_WRITE		(1 << 16)
-#define  DPIO_OP_READ		(0 << 16)
-#define  DPIO_PORTID		(0x12 << 8)
-#define  DPIO_BYTE			(0xf << 4)
-#define  DPIO_BUSY			(1 << 0)
-#define DPIO_DATA			0x2104
-#define DPIO_REG			0x2108
-
-/* VLV IOSF access */
-#define VLV_IOSF_DOORBELL_REQ			0x182100
+/*
+ * IOSF sideband
+ */
+#define VLV_IOSF_DOORBELL_REQ			(VLV_DISPLAY_BASE + 0x2100)
 #define   IOSF_DEVFN_SHIFT			24
 #define   IOSF_OPCODE_SHIFT			16
 #define   IOSF_PORT_SHIFT			8
 #define   IOSF_BYTE_ENABLES_SHIFT		4
 #define   IOSF_BAR_SHIFT			1
 #define   IOSF_SB_BUSY				(1<<0)
+#define   IOSF_PORT_BUNIT			0x3
 #define   IOSF_PORT_PUNIT			0x4
 #define   IOSF_PORT_NC				0x11
-#define VLV_IOSF_DATA				0x182104
-#define VLV_IOSF_ADDR				0x182108
+#define   IOSF_PORT_DPIO			0x12
+#define   IOSF_PORT_GPIO_NC			0x13
+#define   IOSF_PORT_CCK				0x14
+#define   IOSF_PORT_CCU				0xA9
+#define   IOSF_PORT_GPS_CORE			0x48
+#define   IOSF_PORT_FLISDSI			0x1B
+#define VLV_IOSF_DATA				(VLV_DISPLAY_BASE + 0x2104)
+#define VLV_IOSF_ADDR				(VLV_DISPLAY_BASE + 0x2108)
 
+#define DPIO_OPCODE_REG_READ			0
+#define DPIO_OPCODE_REG_WRITE			1
 #define PUNIT_OPCODE_REG_READ			6
 #define PUNIT_OPCODE_REG_WRITE			7
 
