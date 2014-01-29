@@ -93,8 +93,54 @@ static int exec_batch_patched(int fd, uint32_t cmd_bo, uint32_t *cmds,
 	return 1;
 }
 
+static int exec_batch(int fd, uint32_t cmd_bo, uint32_t *cmds,
+		      int size, int ring, int expected_ret)
+{
+	struct drm_i915_gem_execbuffer2 execbuf;
+	struct drm_i915_gem_exec_object2 objs[1];
+	int ret;
+
+	gem_write(fd, cmd_bo, 0, cmds, size);
+
+	objs[0].handle = cmd_bo;
+	objs[0].relocation_count = 0;
+	objs[0].relocs_ptr = 0;
+	objs[0].alignment = 0;
+	objs[0].offset = 0;
+	objs[0].flags = 0;
+	objs[0].rsvd1 = 0;
+	objs[0].rsvd2 = 0;
+
+	execbuf.buffers_ptr = (uintptr_t)objs;
+	execbuf.buffer_count = 1;
+	execbuf.batch_start_offset = 0;
+	execbuf.batch_len = size;
+	execbuf.cliprects_ptr = 0;
+	execbuf.num_cliprects = 0;
+	execbuf.DR1 = 0;
+	execbuf.DR4 = 0;
+	execbuf.flags = ring;
+	i915_execbuffer2_set_context_id(execbuf, 0);
+	execbuf.rsvd2 = 0;
+
+	ret = drmIoctl(fd,
+		       DRM_IOCTL_I915_GEM_EXECBUFFER2,
+		       &execbuf);
+	if (ret == 0)
+		igt_assert(expected_ret == 0);
+	else
+		igt_assert(-errno == expected_ret);
+
+	gem_sync(fd, cmd_bo);
+
+	return 1;
+}
+
 uint32_t handle;
 int fd;
+
+#define MI_ARB_ON_OFF (0x8 << 23)
+#define MI_DISPLAY_FLIP ((0x14 << 23) | 1)
 
 #define GFX_OP_PIPE_CONTROL	((0x3<<29)|(0x3<<27)|(0x2<<24)|2)
 #define   PIPE_CONTROL_QW_WRITE	(1<<14)
@@ -130,6 +176,41 @@ igt_main
 					   pc, sizeof(pc),
 					   8, // patch offset,
 					   0x12000000));
+	}
+
+	igt_subtest("basic-rejected") {
+		uint32_t arb_on_off[] = {
+			MI_ARB_ON_OFF,
+			MI_BATCH_BUFFER_END,
+		};
+		uint32_t display_flip[] = {
+			MI_DISPLAY_FLIP,
+			0, 0, 0,
+			MI_BATCH_BUFFER_END,
+			0
+		};
+		igt_assert(
+			   exec_batch(fd, handle,
+				      arb_on_off, sizeof(arb_on_off),
+				      I915_EXEC_RENDER,
+				      -EINVAL));
+		igt_assert(
+			   exec_batch(fd, handle,
+				      arb_on_off, sizeof(arb_on_off),
+				      I915_EXEC_BSD,
+				      -EINVAL));
+		if (gem_has_vebox(fd)) {
+			igt_assert(
+				   exec_batch(fd, handle,
+					      arb_on_off, sizeof(arb_on_off),
+					      I915_EXEC_VEBOX,
+					      -EINVAL));
+		}
+		igt_assert(
+			   exec_batch(fd, handle,
+				      display_flip, sizeof(display_flip),
+				      I915_EXEC_BLT,
+				      -EINVAL));
 	}
 
 	igt_fixture {
