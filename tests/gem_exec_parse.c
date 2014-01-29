@@ -257,6 +257,15 @@ igt_main
 				      -EINVAL));
 	}
 
+	igt_subtest("batch-without-end") {
+		uint32_t noop[1024] = { 0 };
+		igt_assert(
+			   exec_batch(fd, handle,
+				      noop, sizeof(noop),
+				      I915_EXEC_RENDER,
+				      -EINVAL));
+	}
+
 	igt_fixture {
 		gem_close(fd, handle);
 
