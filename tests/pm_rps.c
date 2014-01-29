@@ -204,15 +204,41 @@ static void min_max_config(void (*check)(void))
 	log("\nIncrease max above RP0 (invalid)...\n");
 	writeval_inval(stuff[MAX].filp, origfreqs[RP0] + 1000);
 	check();
+
+	writeval(stuff[MIN].filp, origfreqs[MIN]);
+	writeval(stuff[MAX].filp, origfreqs[MAX]);
 }
 
-static void idle_check(void)
+static void basic_check(void)
 {
 	int freqs[NUMFREQ];
 
 	read_freqs(freqs);
 	dump(freqs);
 	checkit(freqs);
+}
+
+#define IDLE_WAIT_TIMESTEP_MSEC 100
+#define IDLE_WAIT_TIMEOUT_MSEC 3000
+static void idle_check(void)
+{
+	int freqs[NUMFREQ];
+	int wait = 0;
+
+	/* Monitor frequencies until cur settles down to min, which should
+	 * happen within the allotted time */
+	do {
+		read_freqs(freqs);
+		dump(freqs);
+		checkit(freqs);
+		if (freqs[CUR] == freqs[MIN])
+			break;
+		usleep(1000 * IDLE_WAIT_TIMESTEP_MSEC);
+		wait += IDLE_WAIT_TIMESTEP_MSEC;
+	} while (wait < IDLE_WAIT_TIMEOUT_MSEC);
+
+	igt_assert(freqs[CUR] == freqs[MIN]);
+	log("Required %d msec to reach cur=min\n", wait);
 }
 
 static void pm_rps_exit_handler(int sig)
@@ -291,6 +317,9 @@ int main(int argc, char **argv)
 	}
 
 	igt_subtest("basic-api")
+		min_max_config(basic_check);
+
+	igt_subtest("min-max-config-idle")
 		min_max_config(idle_check);
 
 	igt_exit();
