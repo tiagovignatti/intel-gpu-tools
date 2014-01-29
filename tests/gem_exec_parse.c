@@ -145,6 +145,7 @@ int fd;
 
 #define GFX_OP_PIPE_CONTROL	((0x3<<29)|(0x3<<27)|(0x2<<24)|2)
 #define   PIPE_CONTROL_QW_WRITE	(1<<14)
+#define   PIPE_CONTROL_LRI_POST_OP (1<<23)
 
 igt_main
 {
@@ -237,6 +238,23 @@ igt_main
 				      lri_ok, sizeof(lri_ok),
 				      I915_EXEC_RENDER,
 				      0));
+	}
+
+	igt_subtest("bitmasks") {
+		uint32_t pc[] = {
+			GFX_OP_PIPE_CONTROL,
+			(PIPE_CONTROL_QW_WRITE |
+			 PIPE_CONTROL_LRI_POST_OP),
+			0, // To be patched
+			0x12000000,
+			0,
+			MI_BATCH_BUFFER_END,
+		};
+		igt_assert(
+			   exec_batch(fd, handle,
+				      pc, sizeof(pc),
+				      I915_EXEC_RENDER,
+				      -EINVAL));
 	}
 
 	igt_fixture {
