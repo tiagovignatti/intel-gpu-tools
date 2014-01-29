@@ -1246,6 +1246,23 @@ void igt_stop_helper(struct igt_helper_process *proc)
 	helper_process_count--;
 }
 
+void igt_wait_helper(struct igt_helper_process *proc)
+{
+	int status;
+
+	assert(proc->running);
+
+	while (waitpid(proc->pid, &status, 0) == -1 &&
+	       errno == EINTR)
+		;
+	igt_assert(WIFEXITED(status) && WEXITSTATUS(status) == 0);
+
+	proc->running = false;
+
+	helper_process_pids[proc->id] = -1;
+	helper_process_count--;
+}
+
 static void children_exit_handler(int sig)
 {
 	int ret;
