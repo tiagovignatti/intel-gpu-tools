@@ -371,6 +371,29 @@ static void idle_check(void)
 	log("Required %d msec to reach cur=min\n", wait);
 }
 
+#define LOADED_WAIT_TIMESTEP_MSEC 100
+#define LOADED_WAIT_TIMEOUT_MSEC 3000
+static void loaded_check(void)
+{
+	int freqs[NUMFREQ];
+	int wait = 0;
+
+	/* Monitor frequencies until cur increases to max, which should
+	 * happen within the allotted time */
+	do {
+		read_freqs(freqs);
+		dump(freqs);
+		checkit(freqs);
+		if (freqs[CUR] == freqs[MAX])
+			break;
+		usleep(1000 * LOADED_WAIT_TIMESTEP_MSEC);
+		wait += LOADED_WAIT_TIMESTEP_MSEC;
+	} while (wait < LOADED_WAIT_TIMEOUT_MSEC);
+
+	igt_assert(freqs[CUR] == freqs[MAX]);
+	log("Required %d msec to reach cur=max\n", wait);
+}
+
 static void pm_rps_exit_handler(int sig)
 {
 	if (origfreqs[MIN] > readval(stuff[MAX].filp)) {
@@ -455,6 +478,12 @@ int main(int argc, char **argv)
 
 	igt_subtest("min-max-config-idle")
 		min_max_config(idle_check);
+
+	igt_subtest("min-max-config-loaded") {
+		load_helper_run();
+		min_max_config(loaded_check);
+		load_helper_stop();
+	}
 
 	igt_exit();
 }
