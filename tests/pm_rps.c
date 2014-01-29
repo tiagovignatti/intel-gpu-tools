@@ -33,8 +33,13 @@
 #include <unistd.h>
 #include <getopt.h>
 #include "drmtest.h"
+#include "intel_gpu_tools.h"
+#include "intel_bufmgr.h"
+#include "intel_batchbuffer.h"
 
 static bool verbose = false;
+
+static int drm_fd;
 
 static const char sysfs_base_path[] = "/sys/class/drm/card%d/gt_%s_freq_mhz";
 enum {
@@ -136,6 +141,131 @@ static void dumpit(const int *freqs)
 }
 #define dump(x) if (verbose) dumpit(x)
 #define log(...) if (verbose) printf(__VA_ARGS__)
+
+static struct load_helper {
+	int devid;
+	int has_ppgtt;
+	drm_intel_bufmgr *bufmgr;
+	struct intel_batchbuffer *batch;
+	drm_intel_bo *target_buffer;
+	bool ready;
+	bool exit;
+	struct igt_helper_process igt_proc;
+} lh;
+
+static void load_helper_signal_handler(int sig)
+{
+	lh.exit = true;
+}
+
+static void emit_store_dword_imm(uint32_t val)
+{
+	int cmd;
+	struct intel_batchbuffer *batch = lh.batch;
+
+	cmd = MI_STORE_DWORD_IMM;
+	if (!lh.has_ppgtt)
+		cmd |= MI_MEM_VIRTUAL;
+
+	if (intel_gen(lh.devid) >= 8) {
+		BEGIN_BATCH(4);
+		OUT_BATCH(cmd);
+		OUT_RELOC(lh.target_buffer, I915_GEM_DOMAIN_INSTRUCTION,
+			  I915_GEM_DOMAIN_INSTRUCTION, 0);
+		OUT_BATCH(0);
+		OUT_BATCH(val);
+		ADVANCE_BATCH();
+	} else {
+		BEGIN_BATCH(4);
+		OUT_BATCH(cmd);
+		OUT_BATCH(0); /* reserved */
+		OUT_RELOC(lh.target_buffer, I915_GEM_DOMAIN_INSTRUCTION,
+			  I915_GEM_DOMAIN_INSTRUCTION, 0);
+		OUT_BATCH(val);
+		ADVANCE_BATCH();
+	}
+}
+
+static void load_helper_run(void)
+{
+	assert(!lh.igt_proc.running);
+
+	igt_require(lh.ready == true);
+
+	igt_fork_helper(&lh.igt_proc) {
+		uint32_t val = 0;
+
+		signal(SIGUSR1, load_helper_signal_handler);
+
+		while (!lh.exit) {
+			emit_store_dword_imm(val);
+			intel_batchbuffer_flush_on_ring(lh.batch, 0);
+			val++;
+		}
+
+		log("load helper sent %u dword writes\n", val);
+	}
+}
+
+static void load_helper_stop(void)
+{
+	assert(lh.igt_proc.running);
+	kill(lh.igt_proc.pid, SIGUSR1);
+	igt_wait_helper(&lh.igt_proc);
+}
+
+/* The load helper resource is used by only some subtests. We attempt to
+ * initialize in igt_fixture but do our igt_require check only if a
+ * subtest attempts to run it */
+static void load_helper_init(void)
+{
+	lh.devid = intel_get_drm_devid(drm_fd);
+	lh.has_ppgtt = gem_uses_aliasing_ppgtt(drm_fd);
+
+	/* MI_STORE_DATA can only use GTT address on gen4+/g33 and needs
+	 * snoopable mem on pre-gen6. */
+	if (intel_gen(lh.devid) < 6) {
+		log("load helper init failed: pre-gen6 not supported\n");
+		return;
+	}
+
+	lh.bufmgr = drm_intel_bufmgr_gem_init(drm_fd, 4096);
+	if (!lh.bufmgr) {
+		log("load helper init failed: buffer manager init\n");
+		return;
+	}
+	drm_intel_bufmgr_gem_enable_reuse(lh.bufmgr);
+
+	lh.batch = intel_batchbuffer_alloc(lh.bufmgr, lh.devid);
+	if (!lh.batch) {
+		log("load helper init failed: batch buffer alloc\n");
+		return;
+	}
+
+	lh.target_buffer = drm_intel_bo_alloc(lh.bufmgr, "target bo",
+					      4096, 4096);
+	if (!lh.target_buffer) {
+		log("load helper init failed: target buffer alloc\n");
+		return;
+	}
+
+	lh.ready = true;
+}
+
+static void load_helper_deinit(void)
+{
+	if (lh.igt_proc.running)
+		load_helper_stop();
+
+	if (lh.target_buffer)
+		drm_intel_bo_unreference(lh.target_buffer);
+
+	if (lh.batch)
+		intel_batchbuffer_free(lh.batch);
+
+	if (lh.bufmgr)
+		drm_intel_bufmgr_destroy(lh.bufmgr);
+}
 
 static void min_max_config(void (*check)(void))
 {
@@ -250,6 +380,9 @@ static void pm_rps_exit_handler(int sig)
 		writeval(stuff[MIN].filp, origfreqs[MIN]);
 		writeval(stuff[MAX].filp, origfreqs[MAX]);
 	}
+
+	load_helper_deinit();
+	close(drm_fd);
 }
 
 static int opt_handler(int opt, int opt_index)
@@ -291,11 +424,10 @@ int main(int argc, char **argv)
 	igt_fixture {
 		const int device = drm_get_card();
 		struct junk *junk = stuff;
-		int fd, ret;
+		int ret;
 
 		/* Use drm_open_any to verify device existence */
-		fd = drm_open_any();
-		close(fd);
+		drm_fd = drm_open_any();
 
 		do {
 			int val = -1;
@@ -314,6 +446,8 @@ int main(int argc, char **argv)
 		read_freqs(origfreqs);
 
 		igt_install_exit_handler(pm_rps_exit_handler);
+
+		load_helper_init();
 	}
 
 	igt_subtest("basic-api")
