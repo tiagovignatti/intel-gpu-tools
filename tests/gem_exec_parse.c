@@ -136,6 +136,60 @@ static int exec_batch(int fd, uint32_t cmd_bo, uint32_t *cmds,
 	return 1;
 }
 
+static int exec_split_batch(int fd, uint32_t *cmds,
+			    int size, int ring, int expected_ret)
+{
+	struct drm_i915_gem_execbuffer2 execbuf;
+	struct drm_i915_gem_exec_object2 objs[1];
+	uint32_t cmd_bo;
+	uint32_t noop[1024] = { 0 };
+	int ret;
+
+	// Allocate and fill a 2-page batch with noops
+	cmd_bo = gem_create(fd, 4096 * 2);
+	gem_write(fd, cmd_bo, 0, noop, sizeof(noop));
+	gem_write(fd, cmd_bo, 4096, noop, sizeof(noop));
+
+	// Write the provided commands such that the first dword
+	// of the command buffer is the last dword of the first
+	// page (i.e. the command is split across the two pages).
+	gem_write(fd, cmd_bo, 4096-sizeof(uint32_t), cmds, size);
+
+	objs[0].handle = cmd_bo;
+	objs[0].relocation_count = 0;
+	objs[0].relocs_ptr = 0;
+	objs[0].alignment = 0;
+	objs[0].offset = 0;
+	objs[0].flags = 0;
+	objs[0].rsvd1 = 0;
+	objs[0].rsvd2 = 0;
+
+	execbuf.buffers_ptr = (uintptr_t)objs;
+	execbuf.buffer_count = 1;
+	execbuf.batch_start_offset = 0;
+	execbuf.batch_len = size;
+	execbuf.cliprects_ptr = 0;
+	execbuf.num_cliprects = 0;
+	execbuf.DR1 = 0;
+	execbuf.DR4 = 0;
+	execbuf.flags = ring;
+	i915_execbuffer2_set_context_id(execbuf, 0);
+	execbuf.rsvd2 = 0;
+
+	ret = drmIoctl(fd,
+		       DRM_IOCTL_I915_GEM_EXECBUFFER2,
+		       &execbuf);
+	if (ret == 0)
+		igt_assert(expected_ret == 0);
+	else
+		igt_assert(-errno == expected_ret);
+
+	gem_sync(fd, cmd_bo);
+	gem_close(fd, cmd_bo);
+
+	return 1;
+}
+
 uint32_t handle;
 int fd;
 
@@ -264,6 +318,20 @@ igt_main
 				      noop, sizeof(noop),
 				      I915_EXEC_RENDER,
 				      -EINVAL));
+	}
+
+	igt_subtest("cmd-crossing-page") {
+		uint32_t lri_ok[] = {
+			MI_LOAD_REGISTER_IMM,
+			0x5280, // allowed register address (SO_WRITE_OFFSET[0])
+			0x1,
+			MI_BATCH_BUFFER_END,
+		};
+		igt_assert(
+			   exec_split_batch(fd,
+					    lri_ok, sizeof(lri_ok),
+					    I915_EXEC_RENDER,
+					    0));
 	}
 
 	igt_fixture {
