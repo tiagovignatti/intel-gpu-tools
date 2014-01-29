@@ -35,6 +35,7 @@ gem_exec_blt
 gem_exec_faulting_reloc
 gem_exec_lut_handle
 gem_exec_nop
+gem_exec_parse
 gem_fd_exhaustion
 gem_fenced_exec_thrash
 gem_fence_thrash
