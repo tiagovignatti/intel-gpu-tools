@@ -141,6 +141,7 @@ int fd;
 
 #define MI_ARB_ON_OFF (0x8 << 23)
 #define MI_DISPLAY_FLIP ((0x14 << 23) | 1)
+#define MI_LOAD_REGISTER_IMM ((0x22 << 23) | 1)
 
 #define GFX_OP_PIPE_CONTROL	((0x3<<29)|(0x3<<27)|(0x2<<24)|2)
 #define   PIPE_CONTROL_QW_WRITE	(1<<14)
@@ -211,6 +212,31 @@ igt_main
 				      display_flip, sizeof(display_flip),
 				      I915_EXEC_BLT,
 				      -EINVAL));
+	}
+
+	igt_subtest("registers") {
+		uint32_t lri_bad[] = {
+			MI_LOAD_REGISTER_IMM,
+			0, // disallowed register address
+			0x12000000,
+			MI_BATCH_BUFFER_END,
+		};
+		uint32_t lri_ok[] = {
+			MI_LOAD_REGISTER_IMM,
+			0x5280, // allowed register address (SO_WRITE_OFFSET[0])
+			0x1,
+			MI_BATCH_BUFFER_END,
+		};
+		igt_assert(
+			   exec_batch(fd, handle,
+				      lri_bad, sizeof(lri_bad),
+				      I915_EXEC_RENDER,
+				      -EINVAL));
+		igt_assert(
+			   exec_batch(fd, handle,
+				      lri_ok, sizeof(lri_ok),
+				      I915_EXEC_RENDER,
+				      0));
 	}
 
 	igt_fixture {
