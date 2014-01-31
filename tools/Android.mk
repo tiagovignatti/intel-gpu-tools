@@ -1,24 +1,13 @@
-include $(LOCAL_PATH)/tools/Makefile.sources
-include $(LOCAL_PATH)/lib/Makefile.sources
+LOCAL_PATH := $(call my-dir)
 
-skip_lib_list := \
-    igt_kms.c \
-    igt_kms.h
-
-lib_list := $(filter-out $(skip_lib_list),$(libintel_tools_la_SOURCES))
-LIB_SOURCES := $(addprefix lib/,$(lib_list))
+include $(LOCAL_PATH)/Makefile.sources
 
 #================#
 
 define add_tool
     include $(CLEAR_VARS)
 
-    LOCAL_SRC_FILES :=          \
-       tools/$1.c               \
-       $(LIB_SOURCES)
-
-    LOCAL_C_INCLUDES +=              \
-       $(LOCAL_PATH)/lib
+    LOCAL_SRC_FILES := $1.c
 
     LOCAL_CFLAGS += -DHAVE_TERMIOS_H
     LOCAL_CFLAGS += -DHAVE_STRUCT_SYSINFO_TOTALRAM
@@ -31,6 +20,8 @@ define add_tool
 
     LOCAL_MODULE := $1
     LOCAL_MODULE_TAGS := optional
+
+    LOCAL_STATIC_LIBRARIES := libintel_gpu_tools
 
     LOCAL_SHARED_LIBRARIES := libpciaccess  \
                               libdrm        \

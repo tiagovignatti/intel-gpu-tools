@@ -1,56 +1,13 @@
-include $(LOCAL_PATH)/tests/Makefile.sources
-include $(LOCAL_PATH)/lib/Makefile.sources
+LOCAL_PATH := $(call my-dir)
 
-skip_lib_list := \
-    igt_kms.c \
-    igt_kms.h
-
-lib_list := $(filter-out $(skip_lib_list),$(libintel_tools_la_SOURCES))
-LIB_SOURCES := $(addprefix lib/,$(lib_list))
-GPU_TOOLS_PATH := $(LOCAL_PATH)
-
-.PHONY: version.h.tmp
-
-$(LOCAL_PATH)/version.h.tmp:
-	@touch $@
-	@if test -d .git; then \
-		if which git > /dev/null; then git log -n 1 --oneline | \
-		        sed 's/^\([^ ]*\) .*/#define IGT_GIT_SHA1 "g\1"/' \
-		        >> $@ ; \
-		fi \
-	else \
-		echo '#define IGT_GIT_SHA1 "NOT-GIT"' >> $@ ; \
-	fi
-
-$(LOCAL_PATH)/version.h: $(LOCAL_PATH)/version.h.tmp
-	@echo "updating version.h"
-	@if ! cmp -s $(GPU_TOOLS_PATH)/version.h.tmp $(GPU_TOOLS_PATH)/version.h; then \
-		mv $(GPU_TOOLS_PATH)/version.h.tmp $(GPU_TOOLS_PATH)/version.h ; \
-	else \
-		rm $(GPU_TOOLS_PATH)/version.h.tmp ; \
-	fi
-
-# FIXME: autogenerate this info #
-$(LOCAL_PATH)/config.h:
-	@echo "updating config.h"
-	echo '#define PACKAGE_VERSION "1.5"' >> $@ ; \
-	echo '#define TARGET_CPU_PLATFORM "android-ia"' >> $@ ;
+include $(LOCAL_PATH)/Makefile.sources
 
 #================#
 
 define add_test
     include $(CLEAR_VARS)
 
-    LOCAL_SRC_FILES :=          \
-       tests/$1.c               \
-       $(LIB_SOURCES)
-
-    LOCAL_GENERATED_SOURCES :=       \
-       $(LOCAL_PATH)/version.h       \
-       $(LOCAL_PATH)/config.h
-
-    LOCAL_C_INCLUDES +=              \
-       $(LOCAL_PATH)/lib
+    LOCAL_SRC_FILES := $1.c
 
     LOCAL_CFLAGS += -DHAVE_STRUCT_SYSINFO_TOTALRAM
     LOCAL_CFLAGS += -DANDROID -UNDEBUG -include "check-ndebug.h"
@@ -62,6 +19,8 @@ define add_test
 
     LOCAL_MODULE := $1
     LOCAL_MODULE_TAGS := optional
+
+    LOCAL_STATIC_LIBRARIES := libintel_gpu_tools
 
     LOCAL_SHARED_LIBRARIES := libpciaccess  \
                               libdrm        \
