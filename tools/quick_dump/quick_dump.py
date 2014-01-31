@@ -44,47 +44,60 @@ def parse_file(file):
         print('{0:#010x} | {1:<28} | {2:#010x}'.format(intreg, register[0], val))
     print('')
 
-
-parser = argparse.ArgumentParser(description='Dumb register dumper.')
-parser.add_argument('-b', '--baseless', action='store_true', default=False, help='baseless mode, ignore files starting with base_')
-parser.add_argument('-a', '--autodetect', action='store_true', default=False, help='autodetect chipset')
-parser.add_argument('profile', nargs='?', type=argparse.FileType('r'), default=None)
-args = parser.parse_args()
-
-if reg.init() == False:
-    print("Register initialization failed")
-    sys.exit()
-
-# Put us where the script is
-os.chdir(os.path.dirname(sys.argv[0]))
-
-#parse anything named base_ these are assumed to apply for all gens.
-if args.baseless == False:
+def walk_base_files():
     for root, dirs, files in os.walk('.'):
         for name in files:
             if name.startswith(("base_")):
                 file = open(name.rstrip(), 'r')
                 parse_file(file)
 
-if args.autodetect:
+def autodetect_chipset():
     pci_dev = chipset.intel_get_pci_device()
     devid = chipset.pcidev_to_devid(pci_dev)
     if chipset.is_sandybridge(devid):
-        args.profile = open('sandybridge', 'r')
+        return open('sandybridge', 'r')
     elif chipset.is_ivybridge(devid):
-        args.profile = open('ivybridge', 'r')
+        return open('ivybridge', 'r')
     elif chipset.is_valleyview(devid):
-        args.profile = open('valleyview', 'r')
+        return open('valleyview', 'r')
     elif chipset.is_haswell(devid):
-        args.profile = open('haswell', 'r')
+        return open('haswell', 'r')
     elif chipset.is_broadwell(devid):
-        args.profile = open('broadwell', 'r')
+        return open('broadwell', 'r')
     else:
         print("Autodetect of devid " + hex(devid) + " failed")
+        return None
 
-if args.profile == None:
-    sys.exit()
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='Dumb register dumper.')
+    parser.add_argument('-b', '--baseless',
+            action='store_true', default=False,
+            help='baseless mode, ignore files starting with base_')
+    parser.add_argument('-a', '--autodetect',
+            action='store_true', default=False,
+            help='autodetect chipset')
+    parser.add_argument('profile', nargs='?',
+            type=argparse.FileType('r'), default=None)
 
-for extra in args.profile:
-    extra_file = open(extra.rstrip(), 'r')
-    parse_file(extra_file)
+    args = parser.parse_args()
+
+    if reg.init() == False:
+        print("Register initialization failed")
+        sys.exit()
+
+    # Put us where the script is
+    os.chdir(os.path.dirname(sys.argv[0]))
+
+    #parse anything named base_ these are assumed to apply for all gens.
+    if args.baseless == False:
+        walk_base_files()
+
+    if args.autodetect:
+        args.profile = autodetect_chipset()
+
+    if args.profile == None:
+        sys.exit()
+
+    for extra in args.profile:
+        extra_file = open(extra.rstrip(), 'r')
+        parse_file(extra_file)
