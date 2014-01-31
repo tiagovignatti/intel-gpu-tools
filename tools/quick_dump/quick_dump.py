@@ -76,6 +76,8 @@ if __name__ == "__main__":
     parser.add_argument('-a', '--autodetect',
             action='store_true', default=False,
             help='autodetect chipset')
+    parser.add_argument('-f', '--file',
+            type=argparse.FileType('r'), default=None)
     parser.add_argument('profile', nargs='?',
             type=argparse.FileType('r'), default=None)
 
@@ -87,6 +89,11 @@ if __name__ == "__main__":
 
     # Put us where the script is
     os.chdir(os.path.dirname(sys.argv[0]))
+
+    # specifying a file trumps all other things
+    if args.file != None:
+        parse_file(args.file)
+        sys.exit()
 
     #parse anything named base_ these are assumed to apply for all gens.
     if args.baseless == False:
