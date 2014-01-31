@@ -1,21 +1,6 @@
 include $(LOCAL_PATH)/tools/Makefile.sources
 include $(LOCAL_PATH)/lib/Makefile.sources
 
-LIBPCIACCESS_PATH := $(firstword $(wildcard  \
-   $(TOP)/external/PRIVATE/libpciaccess      \
-   $(TOP)/hardware/intel/libpciaccess        \
-   $(TOP)/external/libpciaccess))
-ifeq ($(LIBPCIACCESS_PATH),)
-   $(error "Unable to find libpciaccess!")
-endif
-
-LIBDRM_PATH := $(firstword $(wildcard  \
-   $(TOP)/external/PRIVATE/drm         \
-   $(TOP)/external/drm))
-ifeq ($(LIBDRM_PATH),)
-   $(error "Unable to find libdrm!")
-endif
-
 skip_lib_list := \
     igt_kms.c \
     igt_kms.h
@@ -33,10 +18,7 @@ define add_tool
        $(LIB_SOURCES)
 
     LOCAL_C_INCLUDES +=              \
-       $(LOCAL_PATH)/lib             \
-       $(LIBDRM_PATH)/include/drm    \
-       $(LIBDRM_PATH)/intel          \
-       $(LIBPCIACCESS_PATH)/include
+       $(LOCAL_PATH)/lib
 
     LOCAL_CFLAGS += -DHAVE_TERMIOS_H
     LOCAL_CFLAGS += -DHAVE_STRUCT_SYSINFO_TOTALRAM
