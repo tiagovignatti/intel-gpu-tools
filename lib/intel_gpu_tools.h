@@ -35,6 +35,17 @@
 #include "intel_chipset.h"
 #include "intel_reg.h"
 
+#ifdef ANDROID
+#ifndef HAVE_MMAP64
+extern void*  __mmap2(void *, size_t, int, int, int, off_t);
+static inline void *mmap64(void *addr, size_t length, int prot, int flags,
+        int fd, off64_t offset)
+{
+    return __mmap2(addr, length, prot, flags, fd, offset >> 12);
+}
+#endif
+#endif
+
 #define ARRAY_SIZE(arr) (sizeof(arr)/sizeof(arr[0]))
 
 extern void *mmio;
