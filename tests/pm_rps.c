@@ -32,10 +32,12 @@
 #include <string.h>
 #include <unistd.h>
 #include <getopt.h>
+#include <fcntl.h>
 #include "drmtest.h"
 #include "intel_gpu_tools.h"
 #include "intel_bufmgr.h"
 #include "intel_batchbuffer.h"
+#include "igt_debugfs.h"
 
 static bool verbose = false;
 
@@ -61,6 +63,8 @@ struct junk {
 } stuff[] = {
 	{ "cur", "r", NULL }, { "min", "rb+", NULL }, { "max", "rb+", NULL }, { "RP0", "r", NULL }, { "RP1", "r", NULL }, { "RPn", "r", NULL }, { NULL, NULL, NULL }
 };
+
+static igt_debugfs_t dfs;
 
 static int readval(FILE *filp)
 {
@@ -267,6 +271,37 @@ static void load_helper_deinit(void)
 		drm_intel_bufmgr_destroy(lh.bufmgr);
 }
 
+static void stop_rings(void)
+{
+	int fd;
+	static const char data[] = "0xf";
+
+	fd = igt_debugfs_open(&dfs, "i915_ring_stop", O_WRONLY);
+	igt_assert(fd >= 0);
+
+	log("injecting ring stop\n");
+	igt_assert(write(fd, data, sizeof(data)) == sizeof(data));
+
+	close(fd);
+}
+
+static bool rings_stopped(void)
+{
+	int fd;
+	static char buf[128];
+	unsigned long long val;
+
+	fd = igt_debugfs_open(&dfs, "i915_ring_stop", O_RDONLY);
+	igt_assert(fd >= 0);
+
+	igt_assert(read(fd, buf, sizeof(buf)) > 0);
+	close(fd);
+
+	sscanf(buf, "%llx", &val);
+
+	return (bool)val;
+}
+
 static void min_max_config(void (*check)(void))
 {
 	int fmid = (origfreqs[RPn] + origfreqs[RP0]) / 2;
@@ -471,6 +506,8 @@ int main(int argc, char **argv)
 		igt_install_exit_handler(pm_rps_exit_handler);
 
 		load_helper_init();
+
+		igt_debugfs_init(&dfs);
 	}
 
 	igt_subtest("basic-api")
