@@ -133,6 +133,16 @@ static void checkit(const int *freqs)
 	igt_assert(freqs[RP1] != 0);
 }
 
+static void matchit(const int *freqs1, const int *freqs2)
+{
+	igt_assert(freqs1[CUR] == freqs2[CUR]);
+	igt_assert(freqs1[MIN] == freqs2[MIN]);
+	igt_assert(freqs1[MAX] == freqs2[MAX]);
+	igt_assert(freqs1[RP0] == freqs2[RP0]);
+	igt_assert(freqs1[RP1] == freqs2[RP1]);
+	igt_assert(freqs1[RPn] == freqs2[RPn]);
+}
+
 static void dumpit(const int *freqs)
 {
 	int i;
@@ -462,6 +472,55 @@ static void loaded_check(void)
 	log("Required %d msec to reach cur=max\n", wait);
 }
 
+#define STABILIZE_WAIT_TIMESTEP_MSEC 100
+#define STABILIZE_WAIT_TIMEOUT_MSEC 2000
+static void stabilize_check(int *freqs)
+{
+	int wait = 0;
+
+	do {
+		read_freqs(freqs);
+		dump(freqs);
+		usleep(1000 * STABILIZE_WAIT_TIMESTEP_MSEC);
+		wait += STABILIZE_WAIT_TIMESTEP_MSEC;
+	} while (wait < STABILIZE_WAIT_TIMEOUT_MSEC);
+
+	log("Waited %d msec to stabilize cur\n", wait);
+}
+
+static void reset(void)
+{
+	int pre_freqs[NUMFREQ];
+	int post_freqs[NUMFREQ];
+
+	log("Apply low load...\n");
+	load_helper_run(LOW);
+	stabilize_check(pre_freqs);
+
+	log("Stop rings...\n");
+	stop_rings();
+	while (rings_stopped())
+		usleep(1000 * 100);
+	log("Ring stop cleared\n");
+
+	log("Apply high load...\n");
+	load_helper_set_load(HIGH);
+	loaded_check();
+
+	log("Apply low load...\n");
+	load_helper_set_load(LOW);
+	stabilize_check(post_freqs);
+	matchit(pre_freqs, post_freqs);
+
+	log("Apply high load...\n");
+	load_helper_set_load(HIGH);
+	loaded_check();
+
+	log("Removing load...\n");
+	load_helper_stop();
+	idle_check();
+}
+
 static void pm_rps_exit_handler(int sig)
 {
 	if (origfreqs[MIN] > readval(stuff[MAX].filp)) {
@@ -554,6 +613,9 @@ int main(int argc, char **argv)
 		min_max_config(loaded_check);
 		load_helper_stop();
 	}
+
+	igt_subtest("reset")
+		reset();
 
 	igt_exit();
 }
