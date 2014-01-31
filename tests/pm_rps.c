@@ -146,6 +146,11 @@ static void dumpit(const int *freqs)
 #define dump(x) if (verbose) dumpit(x)
 #define log(...) if (verbose) printf(__VA_ARGS__)
 
+enum load {
+	LOW,
+	HIGH
+};
+
 static struct load_helper {
 	int devid;
 	int has_ppgtt;
@@ -153,13 +158,17 @@ static struct load_helper {
 	struct intel_batchbuffer *batch;
 	drm_intel_bo *target_buffer;
 	bool ready;
+	enum load load;
 	bool exit;
 	struct igt_helper_process igt_proc;
 } lh;
 
 static void load_helper_signal_handler(int sig)
 {
-	lh.exit = true;
+	if (sig == SIGUSR2)
+		lh.load = lh.load == LOW ? HIGH : LOW;
+	else
+		lh.exit = true;
 }
 
 static void emit_store_dword_imm(uint32_t val)
@@ -190,21 +199,30 @@ static void emit_store_dword_imm(uint32_t val)
 	}
 }
 
-static void load_helper_run(void)
+#define LOAD_HELPER_PAUSE_USEC 500
+static void load_helper_run(enum load load)
 {
 	assert(!lh.igt_proc.running);
 
 	igt_require(lh.ready == true);
 
+	lh.load = load;
+
 	igt_fork_helper(&lh.igt_proc) {
 		uint32_t val = 0;
 
 		signal(SIGUSR1, load_helper_signal_handler);
+		signal(SIGUSR2, load_helper_signal_handler);
 
 		while (!lh.exit) {
 			emit_store_dword_imm(val);
 			intel_batchbuffer_flush_on_ring(lh.batch, 0);
 			val++;
+
+			/* Lower the load by pausing after every submitted
+			 * write. */
+			if (lh.load == LOW)
+				usleep(LOAD_HELPER_PAUSE_USEC);
 		}
 
 		/* Map buffer to stall for write completion */
@@ -213,6 +231,17 @@ static void load_helper_run(void)
 
 		log("load helper sent %u dword writes\n", val);
 	}
+}
+
+static void load_helper_set_load(enum load load)
+{
+	assert(lh.igt_proc.running);
+
+	if (lh.load == load)
+		return;
+
+	lh.load = load;
+	kill(lh.igt_proc.pid, SIGUSR2);
 }
 
 static void load_helper_stop(void)
@@ -521,7 +550,7 @@ int main(int argc, char **argv)
 		min_max_config(idle_check);
 
 	igt_subtest("min-max-config-loaded") {
-		load_helper_run();
+		load_helper_run(HIGH);
 		min_max_config(loaded_check);
 		load_helper_stop();
 	}
