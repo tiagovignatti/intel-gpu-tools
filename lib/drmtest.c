@@ -1038,6 +1038,7 @@ void __igt_skip_check(const char *file, const int line,
 		      const char *f, ...)
 {
 	va_list args;
+	int err = errno;
 
 	if (f) {
 		static char *buf;
@@ -1053,12 +1054,12 @@ void __igt_skip_check(const char *file, const int line,
 		igt_skip("Test requirement not met in function %s, file %s:%i:\n"
 			 "Last errno: %i, %s\n"
 			 "Test requirement: (%s)\n%s",
-			 func, file, line, errno, strerror(errno), check, buf);
+			 func, file, line, err, strerror(err), check, buf);
 	} else {
 		igt_skip("Test requirement not met in function %s, file %s:%i:\n"
 			 "Last errno: %i, %s\n"
 			 "Test requirement: (%s)\n",
-			 func, file, line, errno, strerror(errno), check);
+			 func, file, line, err, strerror(err), check);
 	}
 }
 
@@ -1110,11 +1111,12 @@ void __igt_fail_assert(int exitcode, const char *file,
 		       const char *f, ...)
 {
 	va_list args;
+	int err = errno;
 
 	printf("Test assertion failure function %s, file %s:%i:\n"
 	       "Last errno: %i, %s\n"
 	       "Failed assertion: %s\n",
-	       func, file, line, errno, strerror(errno), assertion);
+	       func, file, line, err, strerror(err), assertion);
 
 	if (f) {
 		va_start(args, f);
