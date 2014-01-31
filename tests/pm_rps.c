@@ -207,6 +207,10 @@ static void load_helper_run(void)
 			val++;
 		}
 
+		/* Map buffer to stall for write completion */
+		drm_intel_bo_map(lh.target_buffer, 0);
+		drm_intel_bo_unmap(lh.target_buffer);
+
 		log("load helper sent %u dword writes\n", val);
 	}
 }
