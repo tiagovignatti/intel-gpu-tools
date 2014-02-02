@@ -765,6 +765,20 @@ void kmstest_free_connector_config(struct kmstest_connector_config *config)
 	drmModeFreeConnector(config->connector);
 }
 
+const char *plane_name(enum igt_plane p)
+{
+	static const char *names[] = {
+		[IGT_PLANE_1] = "plane1",
+		[IGT_PLANE_2] = "plane2",
+		[IGT_PLANE_3] = "plane3",
+		[IGT_PLANE_CURSOR] = "cursor",
+	};
+
+	igt_assert(p < ARRAY_SIZE(names) && names[p]);
+
+	return names[p];
+}
+
 /*
  * A small modeset API
  */
@@ -1107,12 +1121,12 @@ static igt_plane_t *igt_pipe_get_plane(igt_pipe_t *pipe, int index)
 	return &pipe->planes[index];
 }
 
-igt_plane_t *igt_ouput_get_plane(igt_output_t *output, int index)
+igt_plane_t *igt_ouput_get_plane(igt_output_t *output, enum igt_plane plane)
 {
 	igt_pipe_t *pipe;
 
 	pipe = igt_output_get_driving_pipe(output);
-	return igt_pipe_get_plane(pipe, 0);
+	return igt_pipe_get_plane(pipe, plane);
 }
 
 void igt_plane_set_fb(igt_plane_t *plane, struct kmstest_fb *fb)

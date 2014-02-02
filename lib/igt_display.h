@@ -33,16 +33,16 @@ enum pipe {
 };
 #define pipe_name(p) ((p) + 'A')
 
-/* FIXME: i915_drm.h on Android pollutes the general namespace. */
-#undef PLANE_A
-#undef PLANE_B
-
-enum plane {
-        PLANE_A = 0,
-        PLANE_B,
-        PLANE_C,
+/* We namespace this enum to not conflict with the Android i915_drm.h */
+enum igt_plane {
+        IGT_PLANE_1 = 0,
+        IGT_PLANE_PRIMARY = IGT_PLANE_1,
+        IGT_PLANE_2,
+        IGT_PLANE_3,
+        IGT_PLANE_CURSOR,
 };
-#define plane_name(p) ((p) + 'A')
+
+const char *plane_name(enum igt_plane p);
 
 #define sprite_name(p, s) ((p) * dev_priv->num_plane + (s) + 'A')
 

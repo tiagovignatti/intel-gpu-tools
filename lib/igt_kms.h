@@ -154,7 +154,7 @@ void igt_display_set_verbose(igt_display_t *display, bool verbose);
 const char *igt_output_name(igt_output_t *output);
 drmModeModeInfo *igt_output_get_mode(igt_output_t *output);
 void igt_output_set_pipe(igt_output_t *output, enum pipe pipe);
-igt_plane_t *igt_ouput_get_plane(igt_output_t *output, int index);
+igt_plane_t *igt_ouput_get_plane(igt_output_t *output, enum igt_plane plane);
 
 void igt_plane_set_fb(igt_plane_t *plane, struct kmstest_fb *fb);
 
