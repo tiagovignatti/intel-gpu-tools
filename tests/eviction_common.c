@@ -65,6 +65,13 @@ static int minor_evictions(int fd, struct igt_eviction_test_ops *ops,
 	uint32_t *bo, *sel;
 	int n, m, pass, fail;
 
+	/* Make sure nr_surfaces is not divisible by seven
+	 * to avoid duplicates in the selection loop below.
+	 */
+	nr_surfaces /= 7;
+	nr_surfaces *= 7;
+	nr_surfaces += 3;
+
 	igt_require((uint64_t)nr_surfaces * surface_size / (1024 * 1024)
 			< intel_get_total_ram_mb() * 9 / 10);
 
