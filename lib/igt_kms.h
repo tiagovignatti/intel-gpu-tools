@@ -158,5 +158,9 @@ igt_plane_t *igt_ouput_get_plane(igt_output_t *output, enum igt_plane plane);
 
 void igt_plane_set_fb(igt_plane_t *plane, struct kmstest_fb *fb);
 
+#define for_each_connected_output(display, output)		\
+	for (int i__ = 0;  i__ < (display)->n_outputs; i__++)	\
+		if ((output = &(display)->outputs[i__]), output->valid)
+
 #endif /* __IGT_KMS_H__ */
 
