@@ -935,6 +935,11 @@ void igt_display_set_verbose(igt_display_t *display, bool verbose)
 	display->verbose = verbose;
 }
 
+int igt_display_get_n_pipes(igt_display_t *display)
+{
+	return display->n_pipes;
+}
+
 static void igt_output_fini(igt_output_t *output)
 {
 	if (output->valid)
