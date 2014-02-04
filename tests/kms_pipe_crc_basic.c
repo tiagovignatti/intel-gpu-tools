@@ -81,15 +81,12 @@ static void test_read_crc(data_t *data, int pipe, unsigned flags)
 	igt_display_t *display = &data->display;
 	igt_pipe_crc_t *pipe_crc;
 	igt_crc_t *crcs = NULL;
-	int valid_connectors = 0, i;
+	int valid_connectors = 0;
+	igt_output_t *output;
 
-	for (i = 0;  i < display->n_outputs; i++) {
-		igt_output_t *output = &display->outputs[i];
+	for_each_connected_output(display, output) {
 		igt_plane_t *primary;
 		drmModeModeInfo *mode;
-
-		if (!output->valid)
-			continue;
 
 		igt_output_set_pipe(output, pipe);
 
