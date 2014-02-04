@@ -16,15 +16,15 @@ list-multi-tests:
 	@echo END TESTLIST
 
 EXTRA_PROGRAMS = $(TESTS_progs) $(TESTS_progs_M) $(HANG) $(TESTS_testsuite)
-EXTRA_DIST = $(TESTS_scripts) $(TESTS_scripts_M) $(scripts) $(IMAGES)
+EXTRA_DIST = $(TESTS_scripts) $(TESTS_scripts_M) $(scripts) $(IMAGES) $(common_files)
 
 CLEANFILES = $(EXTRA_PROGRAMS)
 
 AM_CFLAGS = $(DRM_CFLAGS) $(CWARNFLAGS) \
 	-I$(srcdir)/.. \
 	-I$(srcdir)/../lib \
-	-include "check-ndebug.h" \
-	-include "$(srcdir)/version.h" \
+	-include "$(srcdir)/../lib/check-ndebug.h" \
+	-include "$(srcdir)/../version.h" \
 	-DIGT_DATADIR=\""$(abs_srcdir)"\" \
 	$(NULL)
 
