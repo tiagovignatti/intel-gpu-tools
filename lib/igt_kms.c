@@ -1056,10 +1056,9 @@ static int igt_output_commit(igt_output_t *output)
 					     mode);
 		} else {
 			LOG(display,
-			    "%s: SetCrtc pipe %c, fb %u\n",
+			    "%s: SetCrtc pipe %c, disabling\n",
 			    igt_output_name(output),
-			    pipe_name(output->config.pipe),
-			    fb_id);
+			    pipe_name(output->config.pipe));
 
 			ret = drmModeSetCrtc(display->drm_fd,
 					     crtc_id,
