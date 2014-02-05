@@ -864,6 +864,7 @@ void igt_display_init(igt_display_t *display, int drm_fd)
 {
 	drmModeRes *resources;
 	bool verbose;
+	char *env;
 	int i;
 
 	/*
@@ -873,6 +874,11 @@ void igt_display_init(igt_display_t *display, int drm_fd)
 	verbose = display->verbose;
 	memset(display, 0, sizeof(igt_display_t));
 	display->verbose = verbose;
+
+	/* allow a verbose override from an env variable */
+	env = getenv("IGT_DISPLAY_VERBOSE");
+	if (env)
+		display->verbose = atoi(env) != 0;
 
 	LOG_INDENT(display, "init");
 
