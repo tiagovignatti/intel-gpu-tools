@@ -890,16 +890,29 @@ void igt_display_init(igt_display_t *display, int drm_fd)
 	for (i = 0; i < display->n_pipes; i++) {
 		igt_pipe_t *pipe = &display->pipes[i];
 		igt_plane_t *plane;
+		int p;
 
 		pipe->display = display;
 		pipe->pipe = i;
-		pipe->n_planes = 1;
 
 		/* primary plane */
-		plane = &pipe->planes[0];
+		p = IGT_PLANE_PRIMARY;
+		plane = &pipe->planes[p];
 		plane->pipe = pipe;
-		plane->index = 0;
+		plane->index = p;
 		plane->is_primary = true;
+
+		/* cursor plane */
+		p++;
+		plane = &pipe->planes[p];
+		plane->pipe = pipe;
+		plane->index = p;
+		plane->is_cursor = true;
+
+		pipe->n_planes = ++p;
+
+		/* make sure we don't overflow the plane array */
+		igt_assert(pipe->n_planes <= IGT_MAX_PLANES);
 	}
 
 	/*
@@ -1010,6 +1023,22 @@ static igt_pipe_t *igt_output_get_driving_pipe(igt_output_t *output)
 	return &display->pipes[pipe];
 }
 
+static igt_plane_t *igt_pipe_get_plane(igt_pipe_t *pipe, enum igt_plane plane)
+{
+	int idx;
+
+	/* Cursor plane is always the upper plane */
+	if (plane == IGT_PLANE_CURSOR)
+		idx = pipe->n_planes - 1;
+	else {
+		igt_assert_f(plane >= 0 && plane < (pipe->n_planes - 1),
+			     "plane=%d\n", plane);
+		idx = plane;
+	}
+
+	return &pipe->planes[idx];
+}
+
 static uint32_t igt_plane_get_fd_id(igt_plane_t *plane)
 {
 	if (plane->fb)
@@ -1018,10 +1047,53 @@ static uint32_t igt_plane_get_fd_id(igt_plane_t *plane)
 		return 0;
 }
 
+static uint32_t igt_plane_get_fb_gem_handle(igt_plane_t *plane)
+{
+	if (plane->fb)
+		return plane->fb->gem_handle;
+	else
+		return 0;
+}
+
+static int igt_cursor_commit(igt_plane_t *plane, igt_output_t *output)
+{
+	igt_display_t *display = output->display;
+	uint32_t crtc_id = output->config.crtc->crtc_id;
+	int ret;
+
+	if (plane->position_changed) {
+		int x = plane->crtc_x;
+		int y = plane->crtc_y;
+
+		LOG(display,
+		    "%s: MoveCursor pipe %c, (%d, %d)\n",
+		    igt_output_name(output),
+		    pipe_name(output->config.pipe),
+		    x, y);
+
+		ret = drmModeMoveCursor(display->drm_fd, crtc_id, x, y);
+
+		igt_assert(ret == 0);
+
+		plane->position_changed = false;
+	}
+
+	return 0;
+}
+
+static int igt_plane_commit(igt_plane_t *plane, igt_output_t *output)
+{
+	if (plane->is_cursor)
+		igt_cursor_commit(plane, output);
+
+	return 0;
+}
+
 static int igt_output_commit(igt_output_t *output)
 {
 	igt_display_t *display = output->display;
 	igt_pipe_t *pipe;
+	int i;
 
 	pipe = igt_output_get_driving_pipe(output);
 	if (pipe->need_set_crtc) {
@@ -1074,6 +1146,48 @@ static int igt_output_commit(igt_output_t *output)
 		pipe->need_set_crtc = false;
 	}
 
+	if (pipe->need_set_cursor) {
+		igt_plane_t *cursor;
+		uint32_t gem_handle, crtc_id;
+		int ret;
+
+		cursor = igt_pipe_get_plane(pipe, IGT_PLANE_CURSOR);
+		crtc_id = output->config.crtc->crtc_id;
+		gem_handle = igt_plane_get_fb_gem_handle(cursor);
+
+		if (gem_handle) {
+			LOG(display,
+			    "%s: SetCursor pipe %c, fb %u %dx%d\n",
+			    igt_output_name(output),
+			    pipe_name(output->config.pipe),
+			    gem_handle,
+			    cursor->fb->width, cursor->fb->height);
+
+			ret = drmModeSetCursor(display->drm_fd, crtc_id,
+					       gem_handle,
+					       cursor->fb->width,
+					       cursor->fb->height);
+		} else {
+			LOG(display,
+			    "%s: SetCursor pipe %c, disabling\n",
+			    igt_output_name(output),
+			    pipe_name(output->config.pipe));
+
+			ret = drmModeSetCursor(display->drm_fd, crtc_id,
+					       0, 0, 0);
+		}
+
+		igt_assert(ret == 0);
+
+		pipe->need_set_cursor = false;
+	}
+
+	for (i = 0; i < pipe->n_planes; i++) {
+		igt_plane_t *plane = &pipe->planes[i];
+
+		igt_plane_commit(plane, output);
+	}
+
 	return 0;
 }
 
@@ -1119,12 +1233,6 @@ void igt_output_set_pipe(igt_output_t *output, enum pipe pipe)
 	output->pending_crtc_idx_mask = 1 << pipe;
 }
 
-static igt_plane_t *igt_pipe_get_plane(igt_pipe_t *pipe, int index)
-{
-	igt_assert(index >= 0 && index < pipe->n_planes);
-	return &pipe->planes[index];
-}
-
 igt_plane_t *igt_ouput_get_plane(igt_output_t *output, enum igt_plane plane)
 {
 	igt_pipe_t *pipe;
@@ -1145,4 +1253,26 @@ void igt_plane_set_fb(igt_plane_t *plane, struct kmstest_fb *fb)
 
 	if (plane->is_primary)
 		pipe->need_set_crtc = true;
+	else if (plane->is_cursor)
+		pipe->need_set_cursor = true;
+}
+
+void igt_plane_set_position(igt_plane_t *plane, int x, int y)
+{
+	igt_pipe_t *pipe = plane->pipe;
+	igt_display_t *display = pipe->display;
+
+	/*
+	 * XXX: Some platforms don't need the primary plane to cover the
+	 * whole pipe. Of course this test becomes wrong when we support that.
+	 */
+	igt_assert(!plane->is_primary || (x == 0 && y == 0));
+
+	LOG(display, "%c.%d: plane_set_position(%d,%d)\n",
+	    pipe_name(pipe->pipe), plane->index, x, y);
+
+	plane->crtc_x = x;
+	plane->crtc_y = y;
+
+	plane->position_changed = true;
 }

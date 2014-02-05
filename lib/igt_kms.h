@@ -109,18 +109,24 @@ uint32_t drm_format_to_bpp(uint32_t drm_format);
 
 typedef struct igt_display igt_display_t;
 typedef struct igt_pipe igt_pipe_t;
+typedef uint32_t igt_fixed_t;			/* 16.16 fixed point */
 
 typedef struct {
 	igt_pipe_t *pipe;
 	int index;
-	unsigned int is_primary : 1;
+	unsigned int is_primary       : 1;
+	unsigned int is_cursor        : 1;
+	unsigned int position_changed : 1;
 	struct kmstest_fb *fb;
+	/* position within pipe_src_w x pipe_src_h */
+	int crtc_x, crtc_y;
 } igt_plane_t;
 
 struct igt_pipe {
 	igt_display_t *display;
 	enum pipe pipe;
-	unsigned int need_set_crtc : 1;
+	unsigned int need_set_crtc   : 1;
+	unsigned int need_set_cursor : 1;
 #define IGT_MAX_PLANES	4
 	int n_planes;
 	igt_plane_t planes[IGT_MAX_PLANES];
@@ -158,10 +164,13 @@ void igt_output_set_pipe(igt_output_t *output, enum pipe pipe);
 igt_plane_t *igt_ouput_get_plane(igt_output_t *output, enum igt_plane plane);
 
 void igt_plane_set_fb(igt_plane_t *plane, struct kmstest_fb *fb);
+void igt_plane_set_position(igt_plane_t *plane, int x, int y);
 
 #define for_each_connected_output(display, output)		\
 	for (int i__ = 0;  i__ < (display)->n_outputs; i__++)	\
 		if ((output = &(display)->outputs[i__]), output->valid)
+
+#define IGT_FIXED(i,f)	((i) << 16 | (f))
 
 #endif /* __IGT_KMS_H__ */
 
