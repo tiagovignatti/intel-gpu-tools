@@ -43,101 +43,66 @@ enum cursor_type {
 };
 
 typedef struct {
-	struct kmstest_connector_config config;
-	drmModeModeInfo mode;
-	struct kmstest_fb fb;
-} connector_t;
-
-typedef struct {
 	int drm_fd;
 	igt_debugfs_t debugfs;
-	drmModeRes *resources;
+	igt_display_t display;
+	struct kmstest_fb primary_fb;
 	struct kmstest_fb fb[NUM_CURSOR_TYPES];
 	igt_pipe_crc_t **pipe_crc;
 } data_t;
 
 typedef struct {
 	data_t *data;
-	uint32_t crtc_id;
-	int crtc_idx;
+	igt_output_t *output;
+	enum pipe pipe;
 	igt_crc_t ref_crc;
 	bool crc_must_match;
 	int left, right, top, bottom;
 } test_data_t;
 
 
-static bool
-connector_set_mode(data_t *data, connector_t *connector, drmModeModeInfo *mode)
+static void create_fb_for_mode(data_t *data, drmModeModeInfo *mode)
 {
-	struct kmstest_connector_config *config = &connector->config;
 	unsigned int fb_id;
 	cairo_t *cr;
-	int ret;
 
 	fb_id = kmstest_create_fb2(data->drm_fd,
 				   mode->hdisplay, mode->vdisplay,
 				   DRM_FORMAT_XRGB8888,
-				   false, &connector->fb);
+				   false, &data->primary_fb);
 	igt_assert(fb_id);
 
 	/* black */
-	cr = kmstest_get_cairo_ctx(data->drm_fd, &connector->fb);
+	cr = kmstest_get_cairo_ctx(data->drm_fd, &data->primary_fb);
 	kmstest_paint_color(cr, 0, 0, mode->hdisplay, mode->vdisplay,
 			    0.0, 0.0, 0.0);
 	igt_assert(cairo_status(cr) == 0);
 	cairo_destroy(cr);
-
-#if 0
-	fprintf(stdout, "Using pipe %c, %dx%d\n", pipe_name(config->pipe),
-		mode->hdisplay, mode->vdisplay);
-#endif
-
-	ret = drmModeSetCrtc(data->drm_fd,
-			     config->crtc->crtc_id,
-			     connector->fb.fb_id,
-			     0, 0, /* x, y */
-			     &config->connector->connector_id,
-			     1,
-			     mode);
-	igt_assert(ret == 0);
-
-	return 0;
 }
 
-static igt_pipe_crc_t *create_crc(data_t *data, int crtc_idx)
+static igt_pipe_crc_t *create_crc(data_t *data, enum pipe pipe)
 {
 	igt_pipe_crc_t *crc;
 
-	crc = igt_pipe_crc_new(&data->debugfs, data->drm_fd, crtc_idx,
+	crc = igt_pipe_crc_new(&data->debugfs, data->drm_fd, pipe,
 			       INTEL_PIPE_CRC_SOURCE_AUTO);
 	return crc;
-}
-
-static void display_init(data_t *data)
-{
-	data->resources = drmModeGetResources(data->drm_fd);
-	igt_assert(data->resources);
-
-	data->pipe_crc = calloc(data->resources->count_crtcs, sizeof(data->pipe_crc[0]));
-}
-
-static void display_fini(data_t *data)
-{
-	free(data->pipe_crc);
-
-	drmModeFreeResources(data->resources);
 }
 
 static void do_single_test(test_data_t *test_data, int x, int y)
 {
 	data_t *data = test_data->data;
-	igt_pipe_crc_t *pipe_crc = data->pipe_crc[test_data->crtc_idx];
+	igt_display_t *display = &data->display;
+	igt_pipe_crc_t *pipe_crc = data->pipe_crc[test_data->pipe];
 	igt_crc_t *crcs = NULL;
+	igt_plane_t *cursor;
 
 	printf("."); fflush(stdout);
 
-	igt_assert(drmModeMoveCursor(data->drm_fd, test_data->crtc_id, x, y) == 0);
-	igt_wait_for_vblank(data->drm_fd, test_data->crtc_idx);
+	cursor = igt_ouput_get_plane(test_data->output, IGT_PLANE_CURSOR);
+	igt_plane_set_position(cursor, x, y);
+	igt_display_commit(display);
+	igt_wait_for_vblank(data->drm_fd, test_data->pipe);
 
 	igt_pipe_crc_start(pipe_crc);
 	igt_pipe_crc_get_crcs(pipe_crc, 1, &crcs);
@@ -158,18 +123,39 @@ static void do_test(test_data_t *test_data,
 	do_single_test(test_data, left, bottom);
 }
 
+static void cursor_enable(test_data_t *test_data, enum cursor_type cursor_type)
+{
+	data_t *data = test_data->data;
+	igt_display_t *display = &data->display;
+	igt_output_t *output = test_data->output;
+	igt_plane_t *cursor;
+
+	cursor = igt_ouput_get_plane(output, IGT_PLANE_CURSOR);
+	igt_plane_set_fb(cursor, &data->fb[cursor_type]);
+	igt_display_commit(display);
+}
+
+static void cursor_disable(test_data_t *test_data)
+{
+	data_t *data = test_data->data;
+	igt_display_t *display = &data->display;
+	igt_output_t *output = test_data->output;
+	igt_plane_t *cursor;
+
+	cursor = igt_ouput_get_plane(output, IGT_PLANE_CURSOR);
+	igt_plane_set_fb(cursor, NULL);
+	igt_display_commit(display);
+}
+
 static void test_crc(test_data_t *test_data, enum cursor_type cursor_type,
 		     bool onscreen)
 {
-	data_t *data = test_data->data;
 	int left = test_data->left;
 	int right = test_data->right;
 	int top = test_data->top;
 	int bottom = test_data->bottom;
 
-	/* enable cursor */
-	igt_assert(drmModeSetCursor(data->drm_fd, test_data->crtc_id,
-				    data->fb[cursor_type].gem_handle, 64, 64) == 0);
+	cursor_enable(test_data, cursor_type);
 
 	if (onscreen) {
 		/* cursor onscreen, crc should match, except when white visible cursor is used */
@@ -215,48 +201,52 @@ static void test_crc(test_data_t *test_data, enum cursor_type cursor_type,
 		do_test(test_data, INT_MIN, INT_MAX, INT_MIN, INT_MAX);
 	}
 
-	/* disable cursor again */
-	igt_assert(drmModeSetCursor(data->drm_fd, test_data->crtc_id, 0, 0, 0) == 0);
+	cursor_disable(test_data);
 }
 
-static bool prepare_crtc(test_data_t *test_data, uint32_t connector_id)
+static bool prepare_crtc(test_data_t *test_data, igt_output_t *output)
 {
-	connector_t connector;
+	drmModeModeInfo *mode;
 	igt_crc_t *crcs = NULL;
 	data_t *data = test_data->data;
+	igt_display_t *display = &data->display;
 	igt_pipe_crc_t *pipe_crc;
-	int ret;
+	igt_plane_t *primary;
 
-	ret = kmstest_get_connector_config(data->drm_fd,
-					   connector_id,
-					   1 << test_data->crtc_idx,
-					   &connector.config);
-	if (ret)
-		return false;
+	/* select the pipe we want to use */
+	igt_output_set_pipe(output, test_data->pipe);
 
-	connector_set_mode(data, &connector, &connector.config.default_mode);
+	/* create and set the primary plane fb */
+	mode = igt_output_get_mode(output);
+	create_fb_for_mode(data, mode);
 
-	igt_pipe_crc_free(data->pipe_crc[test_data->crtc_idx]);
-	data->pipe_crc[test_data->crtc_idx] = NULL;
+	primary = igt_ouput_get_plane(output, IGT_PLANE_PRIMARY);
+	igt_plane_set_fb(primary, &data->primary_fb);
 
-	pipe_crc = create_crc(data, test_data->crtc_idx);
+	igt_display_commit(display);
+
+	/* create the pipe_crc object for this pipe */
+	igt_pipe_crc_free(data->pipe_crc[test_data->pipe]);
+	data->pipe_crc[test_data->pipe] = NULL;
+
+	pipe_crc = create_crc(data, test_data->pipe);
 	if (!pipe_crc) {
-		printf("auto crc not supported on this connector with crtc %i\n",
-		       test_data->crtc_idx);
+		printf("auto crc not supported on this connector with pipe %i\n",
+		       test_data->pipe);
 		return false;
 	}
 
-	data->pipe_crc[test_data->crtc_idx] = pipe_crc;
+	data->pipe_crc[test_data->pipe] = pipe_crc;
 
 	/* x/y position where the cursor is still fully visible */
 	test_data->left = 0;
-	test_data->right = connector.config.default_mode.hdisplay - 64;
+	test_data->right = mode->hdisplay - 64;
 	test_data->top = 0;
-	test_data->bottom = connector.config.default_mode.vdisplay - 64;
+	test_data->bottom = mode->vdisplay - 64;
 
 	/* make sure cursor is disabled */
-	igt_assert(drmModeSetCursor(data->drm_fd, test_data->crtc_id, 0, 0, 0) == 0);
-	igt_wait_for_vblank(data->drm_fd, test_data->crtc_idx);
+	cursor_disable(test_data);
+	igt_wait_for_vblank(data->drm_fd, test_data->pipe);
 
 	/* get reference crc w/o cursor */
 	igt_pipe_crc_start(pipe_crc);
@@ -265,42 +255,59 @@ static bool prepare_crtc(test_data_t *test_data, uint32_t connector_id)
 	igt_pipe_crc_stop(pipe_crc);
 	free(crcs);
 
-	kmstest_free_connector_config(&connector.config);
-
 	return true;
+}
+
+static void cleanup_crtc(test_data_t *test_data, igt_output_t *output)
+{
+	data_t *data = test_data->data;
+	igt_plane_t *primary;
+
+	igt_pipe_crc_free(data->pipe_crc[test_data->pipe]);
+	data->pipe_crc[test_data->pipe] = NULL;
+
+	kmstest_remove_fb(data->drm_fd, &data->primary_fb);
+
+	primary = igt_ouput_get_plane(output, IGT_PLANE_PRIMARY);
+	igt_plane_set_fb(primary, NULL);
+
+	igt_output_set_pipe(output, PIPE_ANY);
 }
 
 static void run_test(data_t *data, enum cursor_type cursor_type, bool onscreen)
 {
+	igt_display_t *display = &data->display;
+	igt_output_t *output;
+	enum pipe p;
 	test_data_t test_data = {
 		.data = data,
 	};
-	int i, n;
 	int valid_tests = 0;
 
-	for (i = 0; i < data->resources->count_connectors; i++) {
-		uint32_t connector_id = data->resources->connectors[i];
 
-		for (n = 0; n < data->resources->count_crtcs; n++) {
-			test_data.crtc_idx = n;
-			test_data.crtc_id = data->resources->crtcs[n];
+	for_each_connected_output(display, output) {
+		test_data.output = output;
+		for (p = 0; p < igt_display_get_n_pipes(display); p++) {
+			test_data.pipe = p;
 
-			if (!prepare_crtc(&test_data, connector_id))
+			if (!prepare_crtc(&test_data, output))
 				continue;
 
 			valid_tests++;
 
-			fprintf(stdout, "Beginning %s on crtc %d, connector %d\n",
-				igt_subtest_name(), test_data.crtc_id, connector_id);
+			fprintf(stdout, "Beginning %s on pipe %c, connector %s\n",
+				igt_subtest_name(), pipe_name(test_data.pipe),
+				igt_output_name(output));
 
 			test_crc(&test_data, cursor_type, onscreen);
 
 
-			fprintf(stdout, "\n%s on crtc %d, connector %d: PASSED\n\n",
-				igt_subtest_name(), test_data.crtc_id, connector_id);
+			fprintf(stdout, "\n%s on pipe %c, connector %s: PASSED\n\n",
+				igt_subtest_name(), pipe_name(test_data.pipe),
+				igt_output_name(output));
 
-			igt_pipe_crc_free(data->pipe_crc[test_data.crtc_idx]);
-			data->pipe_crc[test_data.crtc_idx] = NULL;
+			/* cleanup what prepare_crtc() has done */
+			cleanup_crtc(&test_data, output);
 		}
 	}
 
@@ -339,7 +346,9 @@ igt_main
 		igt_debugfs_init(&data.debugfs);
 		igt_pipe_crc_check(&data.debugfs);
 
-		display_init(&data);
+		igt_display_init(&data.display, data.drm_fd);
+		data.pipe_crc = calloc(igt_display_get_n_pipes(&data.display),
+				       sizeof(data.pipe_crc[0]));
 
 		create_cursor_fb(&data, WHITE_VISIBLE, 1.0, 1.0, 1.0, 1.0);
 		create_cursor_fb(&data, WHITE_INVISIBLE, 1.0, 1.0, 1.0, 0.0);
@@ -364,6 +373,8 @@ igt_main
 	igt_subtest("cursor-black-invisible-offscreen")
 		run_test(&data, BLACK_INVISIBLE, false);
 
-	igt_fixture
-		display_fini(&data);
+	igt_fixture {
+		free(data.pipe_crc);
+		igt_display_fini(&data.display);
+	}
 }
