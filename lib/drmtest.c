@@ -274,26 +274,27 @@ static int __drm_open_any_render(void)
 	return fd;
 }
 
+static int at_exit_drm_fd = -1;
+static int at_exit_drm_render_fd = -1;
+
 static void quiescent_gpu_at_exit(int sig)
 {
-	int fd;
+	if (at_exit_drm_fd < 0)
+		return;
 
-	fd = __drm_open_any();
-	if (fd >= 0) {
-		gem_quiescent_gpu(fd);
-		close(fd);
-	}
+	gem_quiescent_gpu(at_exit_drm_fd);
+	close(at_exit_drm_fd);
+	at_exit_drm_fd = -1;
 }
 
 static void quiescent_gpu_at_exit_render(int sig)
 {
-	int fd;
+	if (at_exit_drm_render_fd < 0)
+		return;
 
-	fd = __drm_open_any_render();
-	if (fd >= 0) {
-		gem_quiescent_gpu(fd);
-		close(fd);
-	}
+	gem_quiescent_gpu(at_exit_drm_render_fd);
+	close(at_exit_drm_render_fd);
+	at_exit_drm_render_fd = -1;
 }
 
 int drm_open_any(void)
@@ -307,6 +308,7 @@ int drm_open_any(void)
 		return fd;
 
 	gem_quiescent_gpu(fd);
+	at_exit_drm_fd = dup(fd);
 	igt_install_exit_handler(quiescent_gpu_at_exit);
 
 	return fd;
@@ -324,6 +326,7 @@ int drm_open_any_render(void)
 	if (__sync_fetch_and_add(&open_count, 1))
 		return fd;
 
+	at_exit_drm_render_fd = dup(fd);
 	gem_quiescent_gpu(fd);
 	igt_install_exit_handler(quiescent_gpu_at_exit_render);
 
