@@ -52,7 +52,6 @@ typedef struct {
 	int drm_fd;
 	igt_debugfs_t debugfs;
 	drmModeRes *resources;
-	uint32_t fb_id[NUM_CURSOR_TYPES];
 	struct kmstest_fb fb[NUM_CURSOR_TYPES];
 	igt_pipe_crc_t **pipe_crc;
 } data_t;
@@ -313,11 +312,12 @@ static void create_cursor_fb(data_t *data,
 			     double r, double g, double b, double a)
 {
 	cairo_t *cr;
+	uint32_t fb_id[NUM_CURSOR_TYPES];
 
-	data->fb_id[cursor_type] = kmstest_create_fb2(data->drm_fd, 64, 64,
-						      DRM_FORMAT_ARGB8888, false,
-						      &data->fb[cursor_type]);
-	igt_assert(data->fb_id[cursor_type]);
+	fb_id[cursor_type] = kmstest_create_fb2(data->drm_fd, 64, 64,
+						DRM_FORMAT_ARGB8888, false,
+						&data->fb[cursor_type]);
+	igt_assert(fb_id[cursor_type]);
 
 	cr = kmstest_get_cairo_ctx(data->drm_fd,
 				   &data->fb[cursor_type]);
