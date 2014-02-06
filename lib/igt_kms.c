@@ -978,9 +978,33 @@ void igt_display_fini(igt_display_t *display)
 
 static void igt_display_refresh(igt_display_t *display)
 {
-	int i;
+	int i, j;
 
 	display->pipes_in_use = 0;
+
+       /* Check that two outputs aren't trying to use the same pipe */
+        for (i = 0; i < display->n_outputs; i++) {
+                igt_output_t *a = &display->outputs[i];
+
+                if (a->pending_crtc_idx_mask == -1UL)
+                        continue;
+
+                for (j = 0; j < display->n_outputs; j++) {
+                        igt_output_t *b = &display->outputs[j];
+
+                        if (i == j)
+                                continue;
+
+                        if (b->pending_crtc_idx_mask == -1UL)
+                                continue;
+
+                        igt_assert_f(a->pending_crtc_idx_mask !=
+                                     b->pending_crtc_idx_mask,
+                                     "%s and %s are both trying to use pipe %c\n",
+                                     igt_output_name(a), igt_output_name(b),
+                                     pipe_name(ffs(a->pending_crtc_idx_mask) - 1));
+                }
+        }
 
 	/*
 	 * The pipe allocation has to be done in two phases:
