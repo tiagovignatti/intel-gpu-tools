@@ -863,6 +863,7 @@ static void igt_output_refresh(igt_output_t *output)
 void igt_display_init(igt_display_t *display, int drm_fd)
 {
 	drmModeRes *resources;
+	drmModePlaneRes *plane_resources;
 	bool verbose;
 	char *env;
 	int i;
@@ -893,10 +894,13 @@ void igt_display_init(igt_display_t *display, int drm_fd)
 	 */
 	display->n_pipes = resources->count_crtcs;
 
+	plane_resources = drmModeGetPlaneResources(display->drm_fd);
+	igt_assert(plane_resources);
+
 	for (i = 0; i < display->n_pipes; i++) {
 		igt_pipe_t *pipe = &display->pipes[i];
 		igt_plane_t *plane;
-		int p;
+		int p, j;
 
 		pipe->display = display;
 		pipe->pipe = i;
@@ -907,6 +911,26 @@ void igt_display_init(igt_display_t *display, int drm_fd)
 		plane->pipe = pipe;
 		plane->index = p;
 		plane->is_primary = true;
+
+		/* add the planes that can be used with that pipe */
+		for (j = 0; j < plane_resources->count_planes; j++) {
+			drmModePlane *drm_plane;
+
+			drm_plane = drmModeGetPlane(display->drm_fd,
+						    plane_resources->planes[j]);
+			igt_assert(drm_plane);
+
+			if (!(drm_plane->possible_crtcs & (1 << i))) {
+				drmModeFreePlane(drm_plane);
+				continue;
+			}
+
+			p++;
+			plane = &pipe->planes[p];
+			plane->pipe = pipe;
+			plane->index = p;
+			plane->drm_plane = drm_plane;
+		}
 
 		/* cursor plane */
 		p++;
@@ -944,6 +968,7 @@ void igt_display_init(igt_display_t *display, int drm_fd)
 		igt_output_refresh(output);
 	}
 
+	drmModeFreePlaneResources(plane_resources);
 	drmModeFreeResources(resources);
 
 	LOG_UNINDENT(display);
@@ -959,6 +984,20 @@ int igt_display_get_n_pipes(igt_display_t *display)
 	return display->n_pipes;
 }
 
+static void igt_pipe_fini(igt_pipe_t *pipe)
+{
+	int i;
+
+	for (i = 0; i < pipe->n_planes; i++) {
+		igt_plane_t *plane = &pipe->planes[i];
+
+		if (plane->drm_plane) {
+			drmModeFreePlane(plane->drm_plane);
+			plane->drm_plane = NULL;
+		}
+	}
+}
+
 static void igt_output_fini(igt_output_t *output)
 {
 	if (output->valid)
@@ -969,6 +1008,9 @@ static void igt_output_fini(igt_output_t *output)
 void igt_display_fini(igt_display_t *display)
 {
 	int i;
+
+	for (i = 0; i < display->n_pipes; i++)
+		igt_pipe_fini(&display->pipes[i]);
 
 	for (i = 0; i < display->n_outputs; i++)
 		igt_output_fini(&display->outputs[i]);
@@ -1111,10 +1153,76 @@ static int igt_cursor_commit(igt_plane_t *plane, igt_output_t *output)
 	return 0;
 }
 
+static int igt_drm_plane_commit(igt_plane_t *plane, igt_output_t *output)
+{
+	igt_display_t *display = output->display;
+	uint32_t fb_id, crtc_id;
+	int ret;
+
+	fb_id = igt_plane_get_fd_id(plane);
+	crtc_id = output->config.crtc->crtc_id;
+
+	if (plane->fb_changed && fb_id == 0) {
+		LOG(display,
+		    "%s: SetPlane pipe %c, plane %d, disabling\n",
+		    igt_output_name(output),
+		    pipe_name(output->config.pipe),
+		    plane->index);
+
+		ret = drmModeSetPlane(display->drm_fd,
+				      plane->drm_plane->plane_id,
+				      crtc_id,
+				      fb_id,
+				      0,    /* flags */
+				      0, 0, /* crtc_x, crtc_y */
+				      0, 0, /* crtc_w, crtc_h */
+				      IGT_FIXED(0,0), /* src_x */
+				      IGT_FIXED(0,0), /* src_y */
+				      IGT_FIXED(0,0), /* src_w */
+				      IGT_FIXED(0,0) /* src_h */);
+
+		igt_assert(ret == 0);
+
+		plane->fb_changed = false;
+	} else if (plane->fb_changed || plane->position_changed) {
+		LOG(display,
+		    "%s: SetPlane %c.%d, fb %u, position (%d, %d)\n",
+		    igt_output_name(output),
+		    pipe_name(output->config.pipe),
+		    plane->index,
+		    fb_id,
+		    plane->crtc_x, plane->crtc_y);
+
+		ret = drmModeSetPlane(display->drm_fd,
+				      plane->drm_plane->plane_id,
+				      crtc_id,
+				      fb_id,
+				      0,    /* flags */
+				      plane->crtc_x, plane->crtc_y,
+				      plane->fb->width, plane->fb->height,
+				      IGT_FIXED(0,0), /* src_x */
+				      IGT_FIXED(0,0), /* src_y */
+				      IGT_FIXED(plane->fb->width,0), /* src_w */
+				      IGT_FIXED(plane->fb->height,0) /* src_h */);
+
+		igt_assert(ret == 0);
+
+		plane->fb_changed = false;
+		plane->position_changed = false;
+	}
+
+	return 0;
+}
+
 static int igt_plane_commit(igt_plane_t *plane, igt_output_t *output)
 {
-	if (plane->is_cursor)
+	if (plane->is_cursor) {
 		igt_cursor_commit(plane, output);
+	} else if (plane->is_primary) {
+		/* state updated by SetCrtc */
+	} else {
+		igt_drm_plane_commit(plane, output);
+	}
 
 	return 0;
 }
@@ -1174,6 +1282,7 @@ static int igt_output_commit(igt_output_t *output)
 		igt_assert(ret == 0);
 
 		pipe->need_set_crtc = false;
+		primary->fb_changed = false;
 	}
 
 	if (pipe->need_set_cursor) {
@@ -1210,6 +1319,7 @@ static int igt_output_commit(igt_output_t *output)
 		igt_assert(ret == 0);
 
 		pipe->need_set_cursor = false;
+		cursor->fb_changed = false;
 	}
 
 	for (i = 0; i < pipe->n_planes; i++) {
@@ -1289,6 +1399,8 @@ void igt_plane_set_fb(igt_plane_t *plane, struct kmstest_fb *fb)
 		pipe->need_set_crtc = true;
 	else if (plane->is_cursor)
 		pipe->need_set_cursor = true;
+
+	plane->fb_changed = true;
 }
 
 void igt_plane_set_position(igt_plane_t *plane, int x, int y)

@@ -116,7 +116,13 @@ typedef struct {
 	int index;
 	unsigned int is_primary       : 1;
 	unsigned int is_cursor        : 1;
+	unsigned int fb_changed       : 1;
 	unsigned int position_changed : 1;
+	/*
+	 * drm_plane can be NULL for primary and cursor planes (when not
+	 * using the atomic modeset API)
+	 */
+	drmModePlane *drm_plane;
 	struct kmstest_fb *fb;
 	/* position within pipe_src_w x pipe_src_h */
 	int crtc_x, crtc_y;
