@@ -301,6 +301,21 @@ static bool pipe_crc_init_from_string(igt_crc_t *crc, const char *line)
 	return n == 6;
 }
 
+static bool read_one_crc(igt_pipe_crc_t *pipe_crc, igt_crc_t *out)
+{
+	ssize_t bytes_read;
+	char buf[pipe_crc->buffer_len];
+
+	bytes_read = read(pipe_crc->crc_fd, &buf, pipe_crc->line_len);
+	igt_assert_cmpint(bytes_read, ==, pipe_crc->line_len);
+	buf[bytes_read] = '\0';
+
+	if (!pipe_crc_init_from_string(out, buf))
+		return false;
+
+	return true;
+}
+
 /*
  * Read @n_crcs from the @pipe_crc. This function blocks until @n_crcs are
  * retrieved.
@@ -309,9 +324,7 @@ void
 igt_pipe_crc_get_crcs(igt_pipe_crc_t *pipe_crc, int n_crcs,
 		      igt_crc_t **out_crcs)
 {
-	ssize_t bytes_read;
 	igt_crc_t *crcs;
-	char buf[pipe_crc->buffer_len];
 	int n = 0;
 
 	crcs = calloc(n_crcs, sizeof(igt_crc_t));
@@ -319,11 +332,7 @@ igt_pipe_crc_get_crcs(igt_pipe_crc_t *pipe_crc, int n_crcs,
 	do {
 		igt_crc_t *crc = &crcs[n];
 
-		bytes_read = read(pipe_crc->crc_fd, &buf, pipe_crc->line_len);
-		igt_assert_cmpint(bytes_read, ==, pipe_crc->line_len);
-		buf[bytes_read] = '\0';
-
-		if (!pipe_crc_init_from_string(crc, buf))
+		if (!read_one_crc(pipe_crc, crc))
 			continue;
 
 		n++;
