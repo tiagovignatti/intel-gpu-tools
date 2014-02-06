@@ -1412,8 +1412,8 @@ void igt_plane_set_fb(igt_plane_t *plane, struct kmstest_fb *fb)
 	igt_pipe_t *pipe = plane->pipe;
 	igt_display_t *display = pipe->display;
 
-	LOG(display, "%c.%d: plane_set_fb(%p)\n", pipe_name(pipe->pipe),
-	    plane->index, fb);
+	LOG(display, "%c.%d: plane_set_fb(%d)\n", pipe_name(pipe->pipe),
+	    plane->index, fb ? fb->fb_id : 0);
 
 	plane->fb = fb;
 
