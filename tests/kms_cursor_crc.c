@@ -94,7 +94,7 @@ static void do_single_test(test_data_t *test_data, int x, int y)
 	data_t *data = test_data->data;
 	igt_display_t *display = &data->display;
 	igt_pipe_crc_t *pipe_crc = data->pipe_crc[test_data->pipe];
-	igt_crc_t *crcs = NULL;
+	igt_crc_t crc;
 	igt_plane_t *cursor;
 
 	printf("."); fflush(stdout);
@@ -104,14 +104,11 @@ static void do_single_test(test_data_t *test_data, int x, int y)
 	igt_display_commit(display);
 	igt_wait_for_vblank(data->drm_fd, test_data->pipe);
 
-	igt_pipe_crc_start(pipe_crc);
-	igt_pipe_crc_get_crcs(pipe_crc, 1, &crcs);
-	igt_pipe_crc_stop(pipe_crc);
+	igt_pipe_crc_collect_crc(pipe_crc, &crc);
 	if (test_data->crc_must_match)
-		igt_assert(igt_crc_equal(&crcs[0], &test_data->ref_crc));
+		igt_assert(igt_crc_equal(&crc, &test_data->ref_crc));
 	else
-		igt_assert(!igt_crc_equal(&crcs[0], &test_data->ref_crc));
-	free(crcs);
+		igt_assert(!igt_crc_equal(&crc, &test_data->ref_crc));
 }
 
 static void do_test(test_data_t *test_data,
@@ -207,7 +204,6 @@ static void test_crc(test_data_t *test_data, enum cursor_type cursor_type,
 static bool prepare_crtc(test_data_t *test_data, igt_output_t *output)
 {
 	drmModeModeInfo *mode;
-	igt_crc_t *crcs = NULL;
 	data_t *data = test_data->data;
 	igt_display_t *display = &data->display;
 	igt_pipe_crc_t *pipe_crc;
@@ -249,11 +245,7 @@ static bool prepare_crtc(test_data_t *test_data, igt_output_t *output)
 	igt_wait_for_vblank(data->drm_fd, test_data->pipe);
 
 	/* get reference crc w/o cursor */
-	igt_pipe_crc_start(pipe_crc);
-	igt_pipe_crc_get_crcs(pipe_crc, 1, &crcs);
-	test_data->ref_crc = crcs[0];
-	igt_pipe_crc_stop(pipe_crc);
-	free(crcs);
+	igt_pipe_crc_collect_crc(pipe_crc, &test_data->ref_crc);
 
 	return true;
 }
