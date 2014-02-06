@@ -342,6 +342,20 @@ igt_pipe_crc_get_crcs(igt_pipe_crc_t *pipe_crc, int n_crcs,
 }
 
 /*
+ * Read 1 CRC from @pipe_crc. This function blocks until the CRC is retrieved.
+ * @out_crc must be allocated by the caller.
+ *
+ * This function takes care of the pipe_crc book-keeping, it will start/stop
+ * the collection of the CRC.
+ */
+void igt_pipe_crc_collect_crc(igt_pipe_crc_t *pipe_crc, igt_crc_t *out_crc)
+{
+	igt_pipe_crc_start(pipe_crc);
+	read_one_crc(pipe_crc, out_crc);
+	igt_pipe_crc_stop(pipe_crc);
+}
+
+/*
  * Drop caches
  */
 
