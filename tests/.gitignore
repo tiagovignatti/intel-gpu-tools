@@ -111,6 +111,7 @@ kms_cursor_crc
 kms_fbc_crc
 kms_flip
 kms_pipe_crc_basic
+kms_plane
 kms_render
 kms_setmode
 pm_lpsp
