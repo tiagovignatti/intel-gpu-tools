@@ -362,4 +362,6 @@ void igt_system_suspend_autoresume(void);
 /* dropping priviledges */
 void igt_drop_root(void);
 
+void igt_wait_for_keypress(void);
+
 #endif /* DRMTEST_H */

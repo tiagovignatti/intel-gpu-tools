@@ -46,6 +46,7 @@
 #include <sys/types.h>
 #include <sys/syscall.h>
 #include <sys/utsname.h>
+#include <termios.h>
 
 #include "drmtest.h"
 #include "i915_drm.h"
@@ -1703,4 +1704,16 @@ void igt_drop_root(void)
 
 	igt_assert(getgid() == 2);
 	igt_assert(getuid() == 2);
+}
+
+void igt_wait_for_keypress(void)
+{
+	struct termios oldt, newt;
+
+	tcgetattr ( STDIN_FILENO, &oldt );
+	newt = oldt;
+	newt.c_lflag &= ~( ICANON | ECHO );
+	tcsetattr ( STDIN_FILENO, TCSANOW, &newt );
+	getchar();
+	tcsetattr ( STDIN_FILENO, TCSANOW, &oldt );
 }
