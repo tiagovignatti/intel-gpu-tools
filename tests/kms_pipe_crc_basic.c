@@ -55,25 +55,6 @@ static void test_bad_command(data_t *data, const char *cmd)
 	fclose(ctl);
 }
 
-static void create_fb_for_mode(data_t *data, drmModeModeInfo *mode)
-{
-	unsigned int fb_id;
-	cairo_t *cr;
-
-	fb_id = kmstest_create_fb(data->drm_fd,
-				  mode->hdisplay, mode->vdisplay,
-				  32 /* bpp */, 24 /* depth */,
-				  false /* tiling */,
-				  &data->fb);
-	igt_assert(fb_id);
-
-	cr = kmstest_get_cairo_ctx(data->drm_fd, &data->fb);
-	kmstest_paint_color(cr, 0, 0, mode->hdisplay, mode->vdisplay,
-			    0.0, 1.0, 0.0);
-	igt_assert(cairo_status(cr) == 0);
-	cairo_destroy(cr);
-}
-
 #define TEST_SEQUENCE (1<<0)
 
 static void test_read_crc(data_t *data, int pipe, unsigned flags)
@@ -95,7 +76,12 @@ static void test_read_crc(data_t *data, int pipe, unsigned flags)
 			pipe_name(pipe));
 
 		mode = igt_output_get_mode(output);
-		create_fb_for_mode(data, mode);
+		kmstest_create_color_fb(data->drm_fd,
+					mode->hdisplay, mode->vdisplay,
+					DRM_FORMAT_XRGB8888,
+					false, /* tiled */
+					0.0, 1.0, 0.0,
+					&data->fb);
 
 		primary = igt_ouput_get_plane(output, 0);
 		igt_plane_set_fb(primary, &data->fb);
