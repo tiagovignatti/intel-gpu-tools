@@ -1175,11 +1175,13 @@ static int igt_cursor_commit(igt_plane_t *plane, igt_output_t *output)
 static int igt_drm_plane_commit(igt_plane_t *plane, igt_output_t *output)
 {
 	igt_display_t *display = output->display;
+	igt_pipe_t *pipe;
 	uint32_t fb_id, crtc_id;
 	int ret;
 
 	fb_id = igt_plane_get_fd_id(plane);
 	crtc_id = output->config.crtc->crtc_id;
+	pipe = igt_output_get_driving_pipe(output);
 
 	if (plane->fb_changed && fb_id == 0) {
 		LOG(display,
@@ -1228,6 +1230,7 @@ static int igt_drm_plane_commit(igt_plane_t *plane, igt_output_t *output)
 
 		plane->fb_changed = false;
 		plane->position_changed = false;
+		pipe->need_wait_for_vblank = true;
 	}
 
 	return 0;
@@ -1345,6 +1348,11 @@ static int igt_output_commit(igt_output_t *output)
 		igt_plane_t *plane = &pipe->planes[i];
 
 		igt_plane_commit(plane, output);
+	}
+
+	if (pipe->need_wait_for_vblank) {
+		igt_wait_for_vblank(display->drm_fd, pipe->pipe);
+		pipe->need_wait_for_vblank = false;
 	}
 
 	return 0;
