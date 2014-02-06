@@ -33,6 +33,7 @@
 #include <unistd.h>
 #include <getopt.h>
 #include <fcntl.h>
+#include <signal.h>
 #include "drmtest.h"
 #include "intel_gpu_tools.h"
 #include "intel_bufmgr.h"
