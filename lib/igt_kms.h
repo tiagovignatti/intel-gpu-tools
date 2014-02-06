@@ -170,6 +170,12 @@ void igt_plane_set_position(igt_plane_t *plane, int x, int y);
 	for (int i__ = 0;  i__ < (display)->n_outputs; i__++)	\
 		if ((output = &(display)->outputs[i__]), output->valid)
 
+/*
+ * Can be used with igt_output_set_pipe() to mean we don't care about the pipe
+ * that should drive this output
+ */
+#define PIPE_ANY	(-1)
+
 #define IGT_FIXED(i,f)	((i) << 16 | (f))
 
 #endif /* __IGT_KMS_H__ */

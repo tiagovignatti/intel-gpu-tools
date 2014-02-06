@@ -1227,10 +1227,14 @@ void igt_output_set_pipe(igt_output_t *output, enum pipe pipe)
 {
 	igt_display_t *display = output->display;
 
-	LOG(display, "%s: set_pipe(%c)\n", igt_output_name(output),
-	    pipe_name(pipe));
-
-	output->pending_crtc_idx_mask = 1 << pipe;
+	if (pipe == PIPE_ANY) {
+		LOG(display, "%s: set_pipe(any)\n", igt_output_name(output));
+		output->pending_crtc_idx_mask = -1UL;
+	} else {
+		LOG(display, "%s: set_pipe(%c)\n", igt_output_name(output),
+		    pipe_name(pipe));
+		output->pending_crtc_idx_mask = 1 << pipe;
+	}
 }
 
 igt_plane_t *igt_ouput_get_plane(igt_output_t *output, enum igt_plane plane)
