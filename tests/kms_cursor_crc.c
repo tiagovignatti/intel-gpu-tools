@@ -61,25 +61,6 @@ typedef struct {
 } test_data_t;
 
 
-static void create_fb_for_mode(data_t *data, drmModeModeInfo *mode)
-{
-	unsigned int fb_id;
-	cairo_t *cr;
-
-	fb_id = kmstest_create_fb2(data->drm_fd,
-				   mode->hdisplay, mode->vdisplay,
-				   DRM_FORMAT_XRGB8888,
-				   false, &data->primary_fb);
-	igt_assert(fb_id);
-
-	/* black */
-	cr = kmstest_get_cairo_ctx(data->drm_fd, &data->primary_fb);
-	kmstest_paint_color(cr, 0, 0, mode->hdisplay, mode->vdisplay,
-			    0.0, 0.0, 0.0);
-	igt_assert(cairo_status(cr) == 0);
-	cairo_destroy(cr);
-}
-
 static igt_pipe_crc_t *create_crc(data_t *data, enum pipe pipe)
 {
 	igt_pipe_crc_t *crc;
@@ -214,7 +195,11 @@ static bool prepare_crtc(test_data_t *test_data, igt_output_t *output)
 
 	/* create and set the primary plane fb */
 	mode = igt_output_get_mode(output);
-	create_fb_for_mode(data, mode);
+	kmstest_create_color_fb(data->drm_fd, mode->hdisplay, mode->vdisplay,
+				DRM_FORMAT_XRGB8888,
+				false, /* tiled */
+				0.0, 0.0, 0.0,
+				&data->primary_fb);
 
 	primary = igt_ouput_get_plane(output, IGT_PLANE_PRIMARY);
 	igt_plane_set_fb(primary, &data->primary_fb);
