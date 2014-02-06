@@ -358,6 +358,25 @@ unsigned int kmstest_create_fb2(int fd, int width, int height, uint32_t format,
 	return fb_id;
 }
 
+unsigned int kmstest_create_color_fb(int fd, int width, int height,
+				     uint32_t format, bool tiled,
+				     double r, double g, double b,
+				     struct kmstest_fb *fb /* out */)
+{
+	unsigned int fb_id;
+	cairo_t *cr;
+
+	fb_id = kmstest_create_fb2(fd, width, height, format, tiled, fb);
+	igt_assert(fb_id);
+
+	cr = kmstest_get_cairo_ctx(fd, fb);
+	kmstest_paint_color(cr, 0, 0, width, height, r, g, b);
+	igt_assert(cairo_status(cr) == 0);
+	cairo_destroy(cr);
+
+	return fb_id;
+}
+
 static cairo_format_t drm_format_to_cairo(uint32_t drm_format)
 {
 	struct format_desc_struct *f;

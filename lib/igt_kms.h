@@ -79,6 +79,10 @@ unsigned int kmstest_create_fb(int fd, int width, int height, int bpp,
 			       struct kmstest_fb *fb_info);
 unsigned int kmstest_create_fb2(int fd, int width, int height, uint32_t format,
 			        bool tiled, struct kmstest_fb *fb);
+unsigned int kmstest_create_color_fb(int fd, int width, int height,
+				     uint32_t format, bool tiled,
+				     double r, double g, double b,
+				     struct kmstest_fb *fb /* out */);
 void kmstest_remove_fb(int fd, struct kmstest_fb *fb_info);
 cairo_t *kmstest_get_cairo_ctx(int fd, struct kmstest_fb *fb);
 cairo_surface_t *kmstest_get_cairo_surface(int fd, struct kmstest_fb *fb);
