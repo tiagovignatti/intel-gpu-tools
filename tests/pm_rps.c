@@ -350,6 +350,9 @@ static void min_max_config(void (*check)(void))
 {
 	int fmid = (origfreqs[RPn] + origfreqs[RP0]) / 2;
 
+	/* hw (and so kernel) currently rounds to 50 MHz ... */
+	fmid = fmid / 50 * 50;
+
 	log("\nCheck original min and max...\n");
 	check();
 
