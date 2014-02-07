@@ -1122,7 +1122,7 @@ static igt_plane_t *igt_pipe_get_plane(igt_pipe_t *pipe, enum igt_plane plane)
 	if (plane == IGT_PLANE_CURSOR)
 		idx = pipe->n_planes - 1;
 	else {
-		igt_assert_f(plane >= 0 && plane < (pipe->n_planes - 1),
+		igt_assert_f(plane >= 0 && plane < (pipe->n_planes),
 			     "plane=%d\n", plane);
 		idx = plane;
 	}
