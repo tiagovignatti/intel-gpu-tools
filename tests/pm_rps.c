@@ -110,17 +110,6 @@ static int do_writeval(FILE *filp, int val, int lerrno)
 #define writeval(filp, val) do_writeval(filp, val, 0)
 #define writeval_inval(filp, val) do_writeval(filp, val, EINVAL)
 
-static void setfreq(int val)
-{
-	if (val > readval(stuff[MAX].filp)) {
-		writeval(stuff[MAX].filp, val);
-		writeval(stuff[MIN].filp, val);
-	} else {
-		writeval(stuff[MIN].filp, val);
-		writeval(stuff[MAX].filp, val);
-	}
-}
-
 static void checkit(const int *freqs)
 {
 	igt_assert(freqs[MIN] <= freqs[MAX]);
