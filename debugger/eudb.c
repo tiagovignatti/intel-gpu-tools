@@ -538,7 +538,7 @@ int main(int argc, char* argv[]) {
 	}
 
 	pci_dev = intel_get_pci_device();
-	if (devid != -1);
+	if (devid == -1)
 		devid = pci_dev->device_id;
 	if (identify_device(devid)) {
 		abort();
