@@ -207,13 +207,13 @@ static int run_sync_test(int num_buffers, bool verify)
 	batch_3d = intel_batchbuffer_alloc(bufmgr, intel_get_drm_devid(fd));
 	igt_assert(batch_3d);
 
-	src = malloc(num_buffers * sizeof(**src));
+	src = malloc(num_buffers * sizeof(*src));
 	igt_assert(src);
 
-	dst1 = malloc(num_buffers * sizeof(**dst1));
+	dst1 = malloc(num_buffers * sizeof(*dst1));
 	igt_assert(dst1);
 
-	dst2 = malloc(num_buffers * sizeof(**dst2));
+	dst2 = malloc(num_buffers * sizeof(*dst2));
 	igt_assert(dst2);
 
 	s_src = malloc(num_buffers * sizeof(*s_src));
