@@ -351,7 +351,7 @@ static bool validate_src_reg(struct brw_program_instruction *insn,
     /* B. If ExecSize = Width and HorzStride ≠ 0, VertStride must be set to
      * Width * HorzStride. */
     if (execsize == width && hstride != 0) {
-	if (vstride != -1 && vstride != width * hstride);
+	if (vstride != -1 && vstride != width * hstride)
 	    warn(ALL, location, "execution size == width and hstride != 0 but "
 		 "vstride is not width * hstride\n");
     }
