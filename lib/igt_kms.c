@@ -1407,7 +1407,7 @@ void igt_output_set_pipe(igt_output_t *output, enum pipe pipe)
 	}
 }
 
-igt_plane_t *igt_ouput_get_plane(igt_output_t *output, enum igt_plane plane)
+igt_plane_t *igt_output_get_plane(igt_output_t *output, enum igt_plane plane)
 {
 	igt_pipe_t *pipe;
 

@@ -78,7 +78,7 @@ static void do_single_test(test_data_t *test_data, int x, int y)
 
 	printf("."); fflush(stdout);
 
-	cursor = igt_ouput_get_plane(test_data->output, IGT_PLANE_CURSOR);
+	cursor = igt_output_get_plane(test_data->output, IGT_PLANE_CURSOR);
 	igt_plane_set_position(cursor, x, y);
 	igt_display_commit(display);
 	igt_wait_for_vblank(data->drm_fd, test_data->pipe);
@@ -106,7 +106,7 @@ static void cursor_enable(test_data_t *test_data, enum cursor_type cursor_type)
 	igt_output_t *output = test_data->output;
 	igt_plane_t *cursor;
 
-	cursor = igt_ouput_get_plane(output, IGT_PLANE_CURSOR);
+	cursor = igt_output_get_plane(output, IGT_PLANE_CURSOR);
 	igt_plane_set_fb(cursor, &data->fb[cursor_type]);
 	igt_display_commit(display);
 }
@@ -118,7 +118,7 @@ static void cursor_disable(test_data_t *test_data)
 	igt_output_t *output = test_data->output;
 	igt_plane_t *cursor;
 
-	cursor = igt_ouput_get_plane(output, IGT_PLANE_CURSOR);
+	cursor = igt_output_get_plane(output, IGT_PLANE_CURSOR);
 	igt_plane_set_fb(cursor, NULL);
 	igt_display_commit(display);
 }
@@ -199,7 +199,7 @@ static bool prepare_crtc(test_data_t *test_data, igt_output_t *output)
 				0.0, 0.0, 0.0,
 				&data->primary_fb);
 
-	primary = igt_ouput_get_plane(output, IGT_PLANE_PRIMARY);
+	primary = igt_output_get_plane(output, IGT_PLANE_PRIMARY);
 	igt_plane_set_fb(primary, &data->primary_fb);
 
 	igt_display_commit(display);
@@ -243,7 +243,7 @@ static void cleanup_crtc(test_data_t *test_data, igt_output_t *output)
 
 	kmstest_remove_fb(data->drm_fd, &data->primary_fb);
 
-	primary = igt_ouput_get_plane(output, IGT_PLANE_PRIMARY);
+	primary = igt_output_get_plane(output, IGT_PLANE_PRIMARY);
 	igt_plane_set_fb(primary, NULL);
 
 	igt_output_set_pipe(output, PIPE_ANY);

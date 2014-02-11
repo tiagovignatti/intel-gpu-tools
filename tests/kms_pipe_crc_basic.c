@@ -83,7 +83,7 @@ static void test_read_crc(data_t *data, int pipe, unsigned flags)
 					0.0, 1.0, 0.0,
 					&data->fb);
 
-		primary = igt_ouput_get_plane(output, 0);
+		primary = igt_output_get_plane(output, 0);
 		igt_plane_set_fb(primary, &data->fb);
 
 		igt_display_commit(display);

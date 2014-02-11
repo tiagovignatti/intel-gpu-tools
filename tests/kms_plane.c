@@ -98,7 +98,7 @@ test_position_init(test_position_t *test, igt_output_t *output, enum pipe pipe)
 					  pipe, INTEL_PIPE_CRC_SOURCE_AUTO);
 
 	igt_output_set_pipe(output, pipe);
-	primary = igt_ouput_get_plane(output, 0);
+	primary = igt_output_get_plane(output, 0);
 
 	mode = igt_output_get_mode(output);
 	kmstest_create_color_fb(data->drm_fd, mode->hdisplay, mode->vdisplay,
@@ -150,8 +150,8 @@ test_plane_position_with_output(data_t *data,
 	test_position_init(&test, output, pipe);
 
 	mode = igt_output_get_mode(output);
-	primary = igt_ouput_get_plane(output, 0);
-	sprite = igt_ouput_get_plane(output, plane);
+	primary = igt_output_get_plane(output, 0);
+	sprite = igt_output_get_plane(output, plane);
 
 	create_fb_for_mode__position(data, mode, 100, 100, 64, 64,
 				     &primary_fb);
