@@ -972,6 +972,10 @@ bool __igt_run_subtest(const char *subtest_name)
 		return false;
 	}
 
+	if (run_single_subtest &&
+	    strcmp(subtest_name, run_single_subtest) != 0)
+		return false;
+
 	if (skip_subtests_henceforth) {
 		printf("Subtest %s: %s\n", subtest_name,
 		       skip_subtests_henceforth == SKIP ?
@@ -979,14 +983,7 @@ bool __igt_run_subtest(const char *subtest_name)
 		return false;
 	}
 
-	if (!run_single_subtest) {
-		return (in_subtest = subtest_name);
-	} else {
-		if (strcmp(subtest_name, run_single_subtest) == 0)
-			return (in_subtest = subtest_name);
-
-		return false;
-	}
+	return (in_subtest = subtest_name);
 }
 
 const char *igt_subtest_name(void)
