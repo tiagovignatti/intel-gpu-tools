@@ -25,4 +25,11 @@ gen8lp_media_fillfunc(struct intel_batchbuffer *batch,
 		unsigned width, unsigned height,
 		uint8_t color);
 
+void
+gen9_media_fillfunc(struct intel_batchbuffer *batch,
+                struct igt_buf *dst,
+                unsigned x, unsigned y,
+                unsigned width, unsigned height,
+                uint8_t color);
+
 #endif /* RENDE_MEDIA_FILL_H */
