@@ -137,7 +137,7 @@ dontneed_before_exec(void)
 	close(fd);
 }
 
-igt_simple_main
+igt_main
 {
 	igt_skip_on_simulation();
 
