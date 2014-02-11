@@ -65,6 +65,8 @@ static void test_read_crc(data_t *data, int pipe, unsigned flags)
 	int valid_connectors = 0;
 	igt_output_t *output;
 
+	igt_skip_on(pipe >= data->display.n_pipes);
+
 	for_each_connected_output(display, output) {
 		igt_plane_t *primary;
 		drmModeModeInfo *mode;
@@ -155,7 +157,7 @@ igt_main
 	igt_subtest("bad-nb-words-3")
 		test_bad_command(&data, "pipe A none option");
 
-	for (int i = 0; i < igt_display_get_n_pipes(&data.display); i++) {
+	for (int i = 0; i < 3; i++) {
 		igt_subtest_f("read-crc-pipe-%c", 'A'+i)
 			test_read_crc(&data, i, 0);
 
