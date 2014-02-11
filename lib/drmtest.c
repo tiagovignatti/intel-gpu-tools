@@ -1710,6 +1710,9 @@ void igt_wait_for_keypress(void)
 {
 	struct termios oldt, newt;
 
+	if (!isatty(STDIN_FILENO))
+		return;
+
 	tcgetattr ( STDIN_FILENO, &oldt );
 	newt = oldt;
 	newt.c_lflag &= ~( ICANON | ECHO );
