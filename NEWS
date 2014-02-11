@@ -1,6 +1,3 @@
-- Allow register access to succeed if i915 is loaded but debugfs isn't found
-  (i.e. nomodeset is used)
-
 Release 1.6 (2014-XX-YY)
 ------------------------
 
@@ -17,6 +14,11 @@ Release 1.6 (2014-XX-YY)
   i-g-t (Ben).
 
 - Improve the cairo object lifetime management of the kmstest helpers (Chris).
+
+- Allow register access to succeed if i915 is loaded but debugfs isn't found
+  (i.e. nomodeset is used)
+
+- New kernel modesetting helper library for simpler testcases (Damien).
 
 Release 1.5 (2013-11-06)
 ------------------------
