@@ -374,4 +374,11 @@ struct gen8_surface_state
 
 #define GEN9_PIPELINE_SELECTION_MASK		(3 << 8)
 
+/*  If enabled, it will force awake media enginee and the following instructions
+ *  will require that the media enginee is awake.
+ */
+#define GEN9_FORCE_MEDIA_AWAKE_DISABLE		(0 << 5)
+#define GEN9_FORCE_MEDIA_AWAKE_ENABLE		(1 << 5)
+#define GEN9_FORCE_MEDIA_AWAKE_MASK		(1 << 13)
+
 #endif /* GEN8_MEDIA_H */

@@ -363,7 +363,9 @@ gen9_media_fillfunc(struct intel_batchbuffer *batch,
 	/* media pipeline */
 	batch->ptr = batch->buffer;
 	OUT_BATCH(GEN8_PIPELINE_SELECT | PIPELINE_SELECT_MEDIA |
-			GEN9_PIPELINE_SELECTION_MASK);
+			GEN9_FORCE_MEDIA_AWAKE_ENABLE |
+			GEN9_PIPELINE_SELECTION_MASK |
+			GEN9_FORCE_MEDIA_AWAKE_MASK);
 	gen9_emit_state_base_address(batch);
 
 	gen8_emit_vfe_state(batch);
@@ -373,6 +375,11 @@ gen9_media_fillfunc(struct intel_batchbuffer *batch,
 	gen8_emit_interface_descriptor_load(batch, interface_descriptor);
 
 	gen8_emit_media_objects(batch, x, y, width, height);
+
+	OUT_BATCH(GEN8_PIPELINE_SELECT | PIPELINE_SELECT_MEDIA |
+			GEN9_FORCE_MEDIA_AWAKE_DISABLE |
+			GEN9_PIPELINE_SELECTION_MASK |
+			GEN9_FORCE_MEDIA_AWAKE_MASK);
 
 	OUT_BATCH(MI_BATCH_BUFFER_END);
 
