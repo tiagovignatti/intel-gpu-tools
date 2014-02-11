@@ -1027,8 +1027,8 @@ void igt_skip(const char *f, ...)
 		exit_subtest("SKIP");
 	} else if (test_with_subtests) {
 		skip_subtests_henceforth = SKIP;
-		if (in_fixture)
-			__igt_fixture_end();
+		assert(in_fixture);
+		__igt_fixture_end();
 	} else {
 		exit(77);
 	}
