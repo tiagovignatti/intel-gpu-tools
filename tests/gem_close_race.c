@@ -223,9 +223,12 @@ igt_main
 {
 	igt_skip_on_simulation();
 
-	sprintf(device, "/dev/dri/card%d", drm_get_card());
-	{
-		int fd = open(device, O_RDWR);
+	igt_fixture {
+		int fd;
+
+		sprintf(device, "/dev/dri/card%d", drm_get_card());
+		fd = open(device, O_RDWR);
+
 		igt_assert(fd != -1);
 		devid = intel_get_drm_devid(fd);
 		has_64bit_relocations = intel_gen(devid) >= 8;
