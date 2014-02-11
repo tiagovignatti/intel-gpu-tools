@@ -150,6 +150,10 @@ igt_simple_main
 	pid_t children[64];
 	int n;
 
+	/* check for an intel gpu before goint nuts. */
+	int fd = drm_open_any();
+	close(fd);
+
 	igt_skip_on_simulation();
 
 	gettimeofday(&start, NULL);
