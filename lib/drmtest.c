@@ -1672,9 +1672,9 @@ static void enable_prefault_at_exit(int sig)
 
 void igt_disable_prefault(void)
 {
-	igt_install_exit_handler(enable_prefault_at_exit);
-
 	igt_prefault_control(false);
+
+	igt_install_exit_handler(enable_prefault_at_exit);
 }
 
 void igt_enable_prefault(void)
