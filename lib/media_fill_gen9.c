@@ -192,9 +192,9 @@ gen8_fill_interface_descriptor(struct intel_batchbuffer *batch, struct igt_buf *
 }
 
 static void
-gen8_emit_state_base_address(struct intel_batchbuffer *batch)
+gen9_emit_state_base_address(struct intel_batchbuffer *batch)
 {
-	OUT_BATCH(GEN8_STATE_BASE_ADDRESS | (16 - 2));
+	OUT_BATCH(GEN8_STATE_BASE_ADDRESS | (19 - 2));
 
 	/* general */
 	OUT_BATCH(0 | BASE_ADDRESS_MODIFY);
@@ -228,6 +228,11 @@ gen8_emit_state_base_address(struct intel_batchbuffer *batch)
 	OUT_BATCH(0xfffff000 | 1);
 	/* intruction buffer size, must set modify enable bit, otherwise it may result in GPU hang */
 	OUT_BATCH(1 << 12 | 1);
+
+	/* Bindless surface state base address */
+	OUT_BATCH(0 | BASE_ADDRESS_MODIFY);
+	OUT_BATCH(0);
+	OUT_BATCH(0xfffff000);
 }
 
 static void
@@ -358,7 +363,7 @@ gen9_media_fillfunc(struct intel_batchbuffer *batch,
 	/* media pipeline */
 	batch->ptr = batch->buffer;
 	OUT_BATCH(GEN8_PIPELINE_SELECT | PIPELINE_SELECT_MEDIA);
-	gen8_emit_state_base_address(batch);
+	gen9_emit_state_base_address(batch);
 
 	gen8_emit_vfe_state(batch);
 
