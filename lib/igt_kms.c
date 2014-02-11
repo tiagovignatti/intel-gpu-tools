@@ -1130,7 +1130,7 @@ static igt_plane_t *igt_pipe_get_plane(igt_pipe_t *pipe, enum igt_plane plane)
 	return &pipe->planes[idx];
 }
 
-static uint32_t igt_plane_get_fd_id(igt_plane_t *plane)
+static uint32_t igt_plane_get_fb_id(igt_plane_t *plane)
 {
 	if (plane->fb)
 		return plane->fb->fb_id;
@@ -1179,7 +1179,7 @@ static int igt_drm_plane_commit(igt_plane_t *plane, igt_output_t *output)
 	uint32_t fb_id, crtc_id;
 	int ret;
 
-	fb_id = igt_plane_get_fd_id(plane);
+	fb_id = igt_plane_get_fb_id(plane);
 	crtc_id = output->config.crtc->crtc_id;
 	pipe = igt_output_get_driving_pipe(output);
 
@@ -1263,7 +1263,7 @@ static int igt_output_commit(igt_output_t *output)
 		int ret;
 
 		crtc_id = output->config.crtc->crtc_id;
-		fb_id = igt_plane_get_fd_id(primary);
+		fb_id = igt_plane_get_fb_id(primary);
 		if (fb_id)
 			mode = igt_output_get_mode(output);
 		else
