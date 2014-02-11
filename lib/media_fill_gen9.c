@@ -362,7 +362,8 @@ gen9_media_fillfunc(struct intel_batchbuffer *batch,
 
 	/* media pipeline */
 	batch->ptr = batch->buffer;
-	OUT_BATCH(GEN8_PIPELINE_SELECT | PIPELINE_SELECT_MEDIA);
+	OUT_BATCH(GEN8_PIPELINE_SELECT | PIPELINE_SELECT_MEDIA |
+			GEN9_PIPELINE_SELECTION_MASK);
 	gen9_emit_state_base_address(batch);
 
 	gen8_emit_vfe_state(batch);

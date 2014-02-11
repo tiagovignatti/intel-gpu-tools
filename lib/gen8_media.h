@@ -371,4 +371,7 @@ struct gen8_surface_state
 	} ss15;
 };
 
+
+#define GEN9_PIPELINE_SELECTION_MASK		(3 << 8)
+
 #endif /* GEN8_MEDIA_H */
