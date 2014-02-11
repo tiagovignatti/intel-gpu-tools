@@ -1020,6 +1020,8 @@ static void test_params(void)
 #define RING_HAS_CONTEXTS current_ring->contexts(current_ring)
 #define RUN_CTX_TEST(...) do { igt_skip_on(RING_HAS_CONTEXTS == false); __VA_ARGS__; } while (0)
 
+int fd;
+
 igt_main
 {
 	struct local_drm_i915_gem_context_create create;
@@ -1029,7 +1031,6 @@ igt_main
 	igt_skip_on_simulation();
 
 	igt_fixture {
-		int fd;
 		fd = drm_open_any();
 		devid = intel_get_drm_devid(fd);
 		igt_require_f(intel_gen(devid) >= 4,
@@ -1041,8 +1042,6 @@ igt_main
 			      strerror(errno));
 
 		assert(igt_debugfs_init(&dfs) == 0);
-
-		close(fd);
 	}
 
 	igt_subtest("params")
@@ -1050,13 +1049,12 @@ igt_main
 
 	for (int i = 0; i < NUM_RINGS; i++) {
 		const char *name;
-		int fd;
 
 		current_ring = &rings[i];
 		name = current_ring->name;
 
-		fd = drm_open_any();
-		gem_require_ring(fd, current_ring->exec);
+		igt_fixture
+			gem_require_ring(fd, current_ring->exec);
 
 		igt_subtest_f("reset-stats-%s", name)
 			test_rs(4, 1, 0);
@@ -1094,4 +1092,7 @@ igt_main
 			test_close_pending_fork(false);
 		}
 	}
+
+	igt_fixture
+		close(fd);
 }
