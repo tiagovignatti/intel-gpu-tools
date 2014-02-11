@@ -381,4 +381,8 @@ struct gen8_surface_state
 #define GEN9_FORCE_MEDIA_AWAKE_ENABLE		(1 << 5)
 #define GEN9_FORCE_MEDIA_AWAKE_MASK		(1 << 13)
 
+#define GEN9_SAMPLER_DOP_GATE_DISABLE		(0 << 4)
+#define GEN9_SAMPLER_DOP_GATE_ENABLE		(1 << 4)
+#define GEN9_SAMPLER_DOP_GATE_MASK		(1 << 12)
+
 #endif /* GEN8_MEDIA_H */
