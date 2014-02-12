@@ -294,6 +294,33 @@ void igt_wait_helper(struct igt_helper_process *proc);
 #define igt_fork_helper(proc) \
 	for (; __igt_fork_helper(proc); exit(0))
 
+/* logging support */
+enum igt_log_level {
+	IGT_LOG_DEBUG,
+	IGT_LOG_INFO,
+	IGT_LOG_WARN,
+	IGT_LOG_NONE,
+};
+__attribute__((format(printf, 2, 3)))
+void igt_log(enum igt_log_level level, const char *format, ...);
+#define igt_debug(f...) igt_log(IGT_LOG_DEBUG, f)
+#define igt_info(f...) igt_log(IGT_LOG_INFO, f)
+#define igt_warn(f...) igt_log(IGT_LOG_WARN, f)
+extern enum igt_log_level igt_log_level;
+
+#define igt_warn_on(condition) do {\
+		if (condition) \
+			igt_warn("Warning on condition %s in fucntion %s, file %s:%i\n", \
+				 #condition, __func__, __FILE__, __LINE__); \
+	} while (0)
+#define igt_warn_on_f(condition, f...) do {\
+		if (condition) {\
+			igt_warn("Warning on condition %s in fucntion %s, file %s:%i\n", \
+				 #condition, __func__, __FILE__, __LINE__); \
+			igt_warn(f); \
+		} \
+	} while (0)
+
 /* check functions which auto-skip tests by calling igt_skip() */
 void gem_require_caching(int fd);
 static inline void gem_require_ring(int fd, int ring_id)

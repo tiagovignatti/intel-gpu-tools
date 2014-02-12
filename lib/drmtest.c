@@ -937,6 +937,25 @@ out:
 	return ret;
 }
 
+enum igt_log_level igt_log_level = IGT_LOG_INFO;
+
+static void common_init(void)
+{
+	char *env = getenv("IGT_LOG_LEVEL");
+
+	if (!env)
+		return;
+
+	if (strcmp(env, "debug") == 0)
+		igt_log_level = IGT_LOG_DEBUG;
+	else if (strcmp(env, "info") == 0)
+		igt_log_level = IGT_LOG_INFO;
+	else if (strcmp(env, "warn") == 0)
+		igt_log_level = IGT_LOG_WARN;
+	else if (strcmp(env, "none") == 0)
+		igt_log_level = IGT_LOG_NONE;
+}
+
 void igt_subtest_init(int argc, char **argv)
 {
 	int ret;
@@ -951,11 +970,15 @@ void igt_subtest_init(int argc, char **argv)
 
 	/* reset opt parsing */
 	optind = 1;
+
+	common_init();
 }
 
 void igt_simple_init(void)
 {
 	print_version();
+
+	common_init();
 }
 
 /*
@@ -1385,6 +1408,24 @@ void igt_skip_on_simulation(void)
 		return;
 
 	igt_require(!igt_run_in_simulation());
+}
+
+void igt_log(enum igt_log_level level, const char *format, ...)
+{
+	va_list args;
+
+	assert(format);
+
+	if (igt_log_level > level)
+		return;
+
+	va_start(args, format);
+	if (level == IGT_LOG_WARN) {
+		fflush(stdout);
+		vfprintf(stderr, format, args);
+	} else
+		vprintf(format, args);
+	va_end(args);
 }
 
 bool drmtest_dump_aub(void)
