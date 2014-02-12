@@ -1101,6 +1101,7 @@ int main(int argc, char *argv[])
 		{ "transcoder" ,        required_argument, NULL, 't' },
 		{ "infoframe",          required_argument, NULL, 'f' },
 		{ "help",               no_argument,       NULL, 'h' },
+		{ 0 }
 	};
 
 	printf("WARNING: This is just a debugging tool! Don't expect it to work"

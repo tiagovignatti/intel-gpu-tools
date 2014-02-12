@@ -166,7 +166,8 @@ main (int argc, char *argv[])
 	static struct option long_options[] = {
 		{"devid", 1, 0, 'd'},
 		{"ascii", 0, 0, 'a'},
-		{"binary", 0, 0, 'b'}
+		{"binary", 0, 0, 'b'},
+		{ 0 }
 	};
 
 	devid_str = getenv("INTEL_DEVID_OVERRIDE");
