@@ -380,9 +380,9 @@ int main(int argc, char **argv)
 
 		gem_set_caching(fd, src, 0);
 		gem_set_caching(fd, dst, 0);
-	}
 
-	devid = intel_get_drm_devid(fd);
+		devid = intel_get_drm_devid(fd);
+	}
 
 	igt_subtest("uncached-copy-correctness")
 		test_copy(fd, src, dst, tmp, object_size);
