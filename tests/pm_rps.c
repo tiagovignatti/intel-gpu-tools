@@ -40,8 +40,6 @@
 #include "intel_batchbuffer.h"
 #include "igt_debugfs.h"
 
-static bool verbose = false;
-
 static int drm_fd;
 
 static const char sysfs_base_path[] = "/sys/class/drm/card%d/gt_%s_freq_mhz";
@@ -133,18 +131,16 @@ static void matchit(const int *freqs1, const int *freqs2)
 	igt_assert(freqs1[RPn] == freqs2[RPn]);
 }
 
-static void dumpit(const int *freqs)
+static void dump(const int *freqs)
 {
 	int i;
 
-	printf("gt freq (MHz):");
+	igt_debug("gt freq (MHz):");
 	for (i = 0; i < NUMFREQ; i++)
-		printf("  %s=%d", stuff[i].name, freqs[i]);
+		igt_debug("  %s=%d", stuff[i].name, freqs[i]);
 
-	printf("\n");
+	igt_debug("\n");
 }
-#define dump(x) if (verbose) dumpit(x)
-#define log(...) if (verbose) printf(__VA_ARGS__)
 
 enum load {
 	LOW,
@@ -229,7 +225,7 @@ static void load_helper_run(enum load load)
 		drm_intel_bo_map(lh.target_buffer, 0);
 		drm_intel_bo_unmap(lh.target_buffer);
 
-		log("load helper sent %u dword writes\n", val);
+		igt_debug("load helper sent %u dword writes\n", val);
 	}
 }
 
@@ -262,27 +258,27 @@ static void load_helper_init(void)
 	/* MI_STORE_DATA can only use GTT address on gen4+/g33 and needs
 	 * snoopable mem on pre-gen6. */
 	if (intel_gen(lh.devid) < 6) {
-		log("load helper init failed: pre-gen6 not supported\n");
+		igt_debug("load helper init failed: pre-gen6 not supported\n");
 		return;
 	}
 
 	lh.bufmgr = drm_intel_bufmgr_gem_init(drm_fd, 4096);
 	if (!lh.bufmgr) {
-		log("load helper init failed: buffer manager init\n");
+		igt_debug("load helper init failed: buffer manager init\n");
 		return;
 	}
 	drm_intel_bufmgr_gem_enable_reuse(lh.bufmgr);
 
 	lh.batch = intel_batchbuffer_alloc(lh.bufmgr, lh.devid);
 	if (!lh.batch) {
-		log("load helper init failed: batch buffer alloc\n");
+		igt_debug("load helper init failed: batch buffer alloc\n");
 		return;
 	}
 
 	lh.target_buffer = drm_intel_bo_alloc(lh.bufmgr, "target bo",
 					      4096, 4096);
 	if (!lh.target_buffer) {
-		log("load helper init failed: target buffer alloc\n");
+		igt_debug("load helper init failed: target buffer alloc\n");
 		return;
 	}
 
@@ -312,7 +308,7 @@ static void stop_rings(void)
 	fd = igt_debugfs_open(&dfs, "i915_ring_stop", O_WRONLY);
 	igt_assert(fd >= 0);
 
-	log("injecting ring stop\n");
+	igt_debug("injecting ring stop\n");
 	igt_assert(write(fd, data, sizeof(data)) == sizeof(data));
 
 	close(fd);
@@ -342,67 +338,67 @@ static void min_max_config(void (*check)(void))
 	/* hw (and so kernel) currently rounds to 50 MHz ... */
 	fmid = fmid / 50 * 50;
 
-	log("\nCheck original min and max...\n");
+	igt_debug("\nCheck original min and max...\n");
 	check();
 
-	log("\nSet min=RPn and max=RP0...\n");
+	igt_debug("\nSet min=RPn and max=RP0...\n");
 	writeval(stuff[MIN].filp, origfreqs[RPn]);
 	writeval(stuff[MAX].filp, origfreqs[RP0]);
 	check();
 
-	log("\nIncrease min to midpoint...\n");
+	igt_debug("\nIncrease min to midpoint...\n");
 	writeval(stuff[MIN].filp, fmid);
 	check();
 
-	log("\nIncrease min to RP0...\n");
+	igt_debug("\nIncrease min to RP0...\n");
 	writeval(stuff[MIN].filp, origfreqs[RP0]);
 	check();
 
-	log("\nIncrease min above RP0 (invalid)...\n");
+	igt_debug("\nIncrease min above RP0 (invalid)...\n");
 	writeval_inval(stuff[MIN].filp, origfreqs[RP0] + 1000);
 	check();
 
-	log("\nDecrease max to RPn (invalid)...\n");
+	igt_debug("\nDecrease max to RPn (invalid)...\n");
 	writeval_inval(stuff[MAX].filp, origfreqs[RPn]);
 	check();
 
-	log("\nDecrease min to midpoint...\n");
+	igt_debug("\nDecrease min to midpoint...\n");
 	writeval(stuff[MIN].filp, fmid);
 	check();
 
-	log("\nDecrease min to RPn...\n");
+	igt_debug("\nDecrease min to RPn...\n");
 	writeval(stuff[MIN].filp, origfreqs[RPn]);
 	check();
 
-	log("\nDecrease min below RPn (invalid)...\n");
+	igt_debug("\nDecrease min below RPn (invalid)...\n");
 	writeval_inval(stuff[MIN].filp, 0);
 	check();
 
-	log("\nDecrease max to midpoint...\n");
+	igt_debug("\nDecrease max to midpoint...\n");
 	writeval(stuff[MAX].filp, fmid);
 	check();
 
-	log("\nDecrease max to RPn...\n");
+	igt_debug("\nDecrease max to RPn...\n");
 	writeval(stuff[MAX].filp, origfreqs[RPn]);
 	check();
 
-	log("\nDecrease max below RPn (invalid)...\n");
+	igt_debug("\nDecrease max below RPn (invalid)...\n");
 	writeval_inval(stuff[MAX].filp, 0);
 	check();
 
-	log("\nIncrease min to RP0 (invalid)...\n");
+	igt_debug("\nIncrease min to RP0 (invalid)...\n");
 	writeval_inval(stuff[MIN].filp, origfreqs[RP0]);
 	check();
 
-	log("\nIncrease max to midpoint...\n");
+	igt_debug("\nIncrease max to midpoint...\n");
 	writeval(stuff[MAX].filp, fmid);
 	check();
 
-	log("\nIncrease max to RP0...\n");
+	igt_debug("\nIncrease max to RP0...\n");
 	writeval(stuff[MAX].filp, origfreqs[RP0]);
 	check();
 
-	log("\nIncrease max above RP0 (invalid)...\n");
+	igt_debug("\nIncrease max above RP0 (invalid)...\n");
 	writeval_inval(stuff[MAX].filp, origfreqs[RP0] + 1000);
 	check();
 
@@ -439,7 +435,7 @@ static void idle_check(void)
 	} while (wait < IDLE_WAIT_TIMEOUT_MSEC);
 
 	igt_assert(freqs[CUR] == freqs[MIN]);
-	log("Required %d msec to reach cur=min\n", wait);
+	igt_debug("Required %d msec to reach cur=min\n", wait);
 }
 
 #define LOADED_WAIT_TIMESTEP_MSEC 100
@@ -462,7 +458,7 @@ static void loaded_check(void)
 	} while (wait < LOADED_WAIT_TIMEOUT_MSEC);
 
 	igt_assert(freqs[CUR] == freqs[MAX]);
-	log("Required %d msec to reach cur=max\n", wait);
+	igt_debug("Required %d msec to reach cur=max\n", wait);
 }
 
 #define STABILIZE_WAIT_TIMESTEP_MSEC 100
@@ -478,7 +474,7 @@ static void stabilize_check(int *freqs)
 		wait += STABILIZE_WAIT_TIMESTEP_MSEC;
 	} while (wait < STABILIZE_WAIT_TIMEOUT_MSEC);
 
-	log("Waited %d msec to stabilize cur\n", wait);
+	igt_debug("Waited %d msec to stabilize cur\n", wait);
 }
 
 static void reset(void)
@@ -486,30 +482,30 @@ static void reset(void)
 	int pre_freqs[NUMFREQ];
 	int post_freqs[NUMFREQ];
 
-	log("Apply low load...\n");
+	igt_debug("Apply low load...\n");
 	load_helper_run(LOW);
 	stabilize_check(pre_freqs);
 
-	log("Stop rings...\n");
+	igt_debug("Stop rings...\n");
 	stop_rings();
 	while (rings_stopped())
 		usleep(1000 * 100);
-	log("Ring stop cleared\n");
+	igt_debug("Ring stop cleared\n");
 
-	log("Apply high load...\n");
+	igt_debug("Apply high load...\n");
 	load_helper_set_load(HIGH);
 	loaded_check();
 
-	log("Apply low load...\n");
+	igt_debug("Apply low load...\n");
 	load_helper_set_load(LOW);
 	stabilize_check(post_freqs);
 	matchit(pre_freqs, post_freqs);
 
-	log("Apply high load...\n");
+	igt_debug("Apply high load...\n");
 	load_helper_set_load(HIGH);
 	loaded_check();
 
-	log("Removing load...\n");
+	igt_debug("Removing load...\n");
 	load_helper_stop();
 	idle_check();
 }
@@ -528,40 +524,8 @@ static void pm_rps_exit_handler(int sig)
 	close(drm_fd);
 }
 
-static int opt_handler(int opt, int opt_index)
+igt_main
 {
-	switch (opt) {
-	case 'v':
-		verbose = true;
-		break;
-	default:
-		assert(0);
-	}
-
-	return 0;
-}
-
-/* Mod of igt_subtest_init that adds our extra options */
-static void subtest_init(int argc, char **argv)
-{
-	struct option long_opts[] = {
-		{"verbose", 0, 0, 'v'}
-	};
-	const char *help_str = "  -v, --verbose";
-	int ret;
-
-	ret = igt_subtest_init_parse_opts(argc, argv, "v", long_opts,
-					  help_str, opt_handler);
-
-	if (ret < 0)
-		/* exit with no error for -h/--help */
-		exit(ret == -1 ? 0 : ret);
-}
-
-int main(int argc, char **argv)
-{
-	subtest_init(argc, argv);
-
 	igt_skip_on_simulation();
 
 	igt_fixture {
@@ -609,6 +573,4 @@ int main(int argc, char **argv)
 
 	igt_subtest("reset")
 		reset();
-
-	igt_exit();
 }
