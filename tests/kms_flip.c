@@ -862,7 +862,7 @@ static unsigned int run_test_step(struct test_output *o)
 	if (o->flags & TEST_DPMS)
 		set_dpms(o, DRM_MODE_DPMS_ON);
 
-	printf("."); fflush(stdout);
+	igt_log("."); fflush(stdout);
 
 	if (do_flip && (o->flags & TEST_HANG)) {
 		handle = gem_create(drm_fd, 4096);
@@ -1218,7 +1218,7 @@ static void run_test_on_crtc_set(struct test_output *o, int *crtc_idxs,
 
 	last_connector = o->kconnector[0];
 
-	fprintf(stdout, "Beginning %s\n", test_name);
+	igt_log("Beginning %s\n", test_name);
 
 	if (o->flags & TEST_PAN)
 		o->fb_width *= 2;
@@ -1284,7 +1284,7 @@ static void run_test_on_crtc_set(struct test_output *o, int *crtc_idxs,
 	if (o->flags & TEST_VBLANK)
 		check_final_state(o, &o->vblank_state, elapsed);
 
-	fprintf(stdout, "\n%s: PASSED\n\n", test_name);
+	igt_log("\n%s: PASSED\n\n", test_name);
 
 out:
 	kmstest_remove_fb(drm_fd, &o->fb_info[2]);
@@ -1429,7 +1429,7 @@ static void get_timestamp_format(void)
 	ret = drmGetCap(drm_fd, DRM_CAP_TIMESTAMP_MONOTONIC, &cap_mono);
 	igt_assert(ret == 0 || errno == EINVAL);
 	monotonic_timestamp = ret == 0 && cap_mono == 1;
-	printf("Using %s timestamps\n",
+	igt_log("Using %s timestamps\n",
 		monotonic_timestamp ? "monotonic" : "real");
 }
 
