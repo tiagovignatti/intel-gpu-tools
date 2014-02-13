@@ -20,6 +20,10 @@ Release 1.6 (2014-XX-YY)
 
 - New kernel modesetting helper library for simpler testcases (Damien).
 
+- New structure logging support for tests. Message at the WARN level be
+  reflected in the piglit result, also included igt_warn_on macros to simplify
+  test asserts which should just result in warnings, but not in a test abort.
+
 Release 1.5 (2013-11-06)
 ------------------------
 
