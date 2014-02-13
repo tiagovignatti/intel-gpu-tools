@@ -58,7 +58,6 @@ struct option_struct {
 	int rounds;
 	int background;
 	char cmd[1024];
-	int verbose;
 	int timeout;
 	int dontwrap;
 	int prewrap_space;
@@ -318,12 +317,6 @@ static int run_cmd(char *s)
 
 		igt_assert(snprintf(full_path, PATH_MAX, "%s/%s", path, wexp.we_wordv[0]) > 0);
 
-		/* if (!options.verbose) {
-			close(STDOUT_FILENO);
-			close(STDERR_FILENO);
-		}
-		*/
-
 		r = execv(full_path, wexp.we_wordv);
 		if (r == -1)
 			perror("execv failed");
@@ -404,8 +397,7 @@ static int __read_seqno(uint32_t *seqno)
 
 	*seqno = tmp;
 
-	if (options.verbose)
-		printf("next_seqno: 0x%x\n", *seqno);
+	igt_debug("next_seqno: 0x%x\n", *seqno);
 
 	return 0;
 }
@@ -449,8 +441,7 @@ static int write_seqno(uint32_t seqno)
 
 	last_seqno = seqno;
 
-	if (options.verbose)
-		printf("next_seqno set to: 0x%x\n", seqno);
+	igt_debug("next_seqno set to: 0x%x\n", seqno);
 
 	r = __read_seqno(&rb);
 	if (r < 0)
@@ -564,7 +555,6 @@ static void parse_options(int argc, char **argv)
 		{"background", no_argument, 0, 'b'},
 		{"timeout", required_argument, 0, 't'},
 		{"dontwrap", no_argument, 0, 'd'},
-		{"verbose", no_argument, 0, 'v'},
 		{"prewrap", required_argument, 0, 'p'},
 		{"norandom", no_argument, 0, 'r'},
 		{"buffers", required_argument, 0, 'i'},
@@ -575,7 +565,6 @@ static void parse_options(int argc, char **argv)
 	options.background = 0;
 	options.dontwrap = 0;
 	options.timeout = 20;
-	options.verbose = 0;
 	options.random = 1;
 	options.prewrap_space = 21;
 	options.buffers = 10;
@@ -610,9 +599,6 @@ static void parse_options(int argc, char **argv)
 				options.timeout = 10;
 			printf("setting timeout to %d seconds\n",
 			       options.timeout);
-			break;
-		case 'v':
-			options.verbose = 1;
 			break;
 		case 'r':
 			options.random = 0;
@@ -660,16 +646,12 @@ int main(int argc, char **argv)
 
 		wcount++;
 
-		if (options.verbose) {
-			printf("%s done: %d\n",
-			       options.dontwrap ? "tests" : "wraps", wcount);
-			fflush(stdout);
-		}
+		igt_debug("%s done: %d\n",
+			  options.dontwrap ? "tests" : "wraps", wcount);
 	}
 
 	if (options.rounds == wcount) {
-		if (options.verbose)
-			printf("done %d wraps successfully\n", wcount);
+		igt_debug("done %d wraps successfully\n", wcount);
 		return 0;
 	}
 
