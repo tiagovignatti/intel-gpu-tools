@@ -75,6 +75,7 @@ int drm_fd, modes;
 int test_all_modes = 0, test_preferred_mode = 0, force_mode = 0, test_plane,
     test_stereo_modes, enable_tiling;
 int sleep_between_modes = 5;
+bool do_dpms = false;
 uint32_t depth = 24, stride, bpp;
 int qr_code = 0;
 int specified_mode_num = -1, specified_disp_id = -1;
@@ -345,6 +346,34 @@ static void set_single(void)
 		perror("Could not set signal handler");
 }
 
+static void set_connector_dpms(drmModeConnector *connector, int mode)
+{
+	int i, dpms = 0;
+	bool found_it = false;
+
+	for (i = 0; i < connector->count_props; i++) {
+		struct drm_mode_get_property prop;
+
+		prop.prop_id = connector->props[i];
+		prop.count_values = 0;
+		prop.count_enum_blobs = 0;
+		if (drmIoctl(drm_fd, DRM_IOCTL_MODE_GETPROPERTY, &prop))
+			continue;
+
+		if (strcmp(prop.name, "DPMS"))
+			continue;
+
+		dpms = prop.prop_id;
+		found_it = true;
+		break;
+	}
+	igt_assert_f(found_it, "DPMS property not found on %d\n",
+		     connector->connector_id);
+
+	igt_assert(drmModeConnectorSetProperty(drm_fd, connector->connector_id,
+					       dpms, mode) == 0);
+}
+
 static void
 set_mode(struct connector *c)
 {
@@ -398,6 +427,12 @@ set_mode(struct connector *c)
 
 		if (sleep_between_modes && test_all_modes && !qr_code)
 			sleep(sleep_between_modes);
+
+		if (do_dpms) {
+			set_connector_dpms(c->connector, DRM_MODE_DPMS_OFF);
+			sleep(sleep_between_modes);
+			set_connector_dpms(c->connector, DRM_MODE_DPMS_ON);
+		}
 
 		if (qr_code){
 			set_single();
@@ -569,6 +604,12 @@ set_stereo_mode(struct connector *c)
 			pause();
 		} else if (sleep_between_modes)
 			sleep(sleep_between_modes);
+
+		if (do_dpms) {
+			set_connector_dpms(c->connector, DRM_MODE_DPMS_OFF);
+			sleep(sleep_between_modes);
+			set_connector_dpms(c->connector, DRM_MODE_DPMS_ON);
+		}
 	}
 
 	drmModeFreeEncoder(c->encoder);
@@ -655,7 +696,7 @@ int update_display(void)
 	return 1;
 }
 
-static char optstr[] = "3hiaf:s:d:p:mrto:";
+static char optstr[] = "3hiaf:s:d:p:mrto:j";
 
 static void __attribute__((noreturn)) usage(char *name)
 {
@@ -668,6 +709,7 @@ static void __attribute__((noreturn)) usage(char *name)
 	fprintf(stderr, "\t-m\ttest the preferred mode\n");
 	fprintf(stderr, "\t-3\ttest all 3D modes\n");
 	fprintf(stderr, "\t-t\tuse a tiled framebuffer\n");
+	fprintf(stderr, "\t-j\tdo dpms off\n");
 	fprintf(stderr, "\t-r\tprint a QR code on the screen whose content is \"pass\" for the automatic test\n");
 	fprintf(stderr, "\t-o\t<id of the display>,<number of the mode>\tonly test specified mode on the specified display\n");
 	fprintf(stderr, "\t-f\t<clock MHz>,<hdisp>,<hsync-start>,<hsync-end>,<htotal>,\n");
@@ -748,6 +790,9 @@ int main(int argc, char **argv)
 			break;
 		case 's':
 			sleep_between_modes = atoi(optarg);
+			break;
+		case 'j':
+			do_dpms = true;
 			break;
 		case 'd':
 			depth = atoi(optarg);
