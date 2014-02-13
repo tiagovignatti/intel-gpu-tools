@@ -75,7 +75,7 @@ int drm_fd, modes;
 int test_all_modes = 0, test_preferred_mode = 0, force_mode = 0, test_plane,
     test_stereo_modes, enable_tiling;
 int sleep_between_modes = 5;
-bool do_dpms = false;
+int do_dpms = 0; /* This aliases to DPMS_ON */
 uint32_t depth = 24, stride, bpp;
 int qr_code = 0;
 int specified_mode_num = -1, specified_disp_id = -1;
@@ -429,7 +429,7 @@ set_mode(struct connector *c)
 			sleep(sleep_between_modes);
 
 		if (do_dpms) {
-			set_connector_dpms(c->connector, DRM_MODE_DPMS_OFF);
+			set_connector_dpms(c->connector, do_dpms);
 			sleep(sleep_between_modes);
 			set_connector_dpms(c->connector, DRM_MODE_DPMS_ON);
 		}
@@ -696,7 +696,7 @@ int update_display(void)
 	return 1;
 }
 
-static char optstr[] = "3hiaf:s:d:p:mrto:j";
+static char optstr[] = "3hiaf:s:d:p:mrto:j:";
 
 static void __attribute__((noreturn)) usage(char *name)
 {
@@ -709,7 +709,7 @@ static void __attribute__((noreturn)) usage(char *name)
 	fprintf(stderr, "\t-m\ttest the preferred mode\n");
 	fprintf(stderr, "\t-3\ttest all 3D modes\n");
 	fprintf(stderr, "\t-t\tuse a tiled framebuffer\n");
-	fprintf(stderr, "\t-j\tdo dpms off\n");
+	fprintf(stderr, "\t-j\tdo dpms off, optional arg to select dpms leve (1-3)\n");
 	fprintf(stderr, "\t-r\tprint a QR code on the screen whose content is \"pass\" for the automatic test\n");
 	fprintf(stderr, "\t-o\t<id of the display>,<number of the mode>\tonly test specified mode on the specified display\n");
 	fprintf(stderr, "\t-f\t<clock MHz>,<hdisp>,<hsync-start>,<hsync-end>,<htotal>,\n");
@@ -792,7 +792,9 @@ int main(int argc, char **argv)
 			sleep_between_modes = atoi(optarg);
 			break;
 		case 'j':
-			do_dpms = true;
+			do_dpms = atoi(optarg);
+			if (do_dpms == 0)
+				do_dpms = DRM_MODE_DPMS_OFF;
 			break;
 		case 'd':
 			depth = atoi(optarg);
