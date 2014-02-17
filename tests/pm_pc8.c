@@ -741,11 +741,6 @@ static void setup_non_graphics_runtime_pm(void)
 		write(fd, "auto\n", 5);
 		close(fd);
 	}
-
-	/* For some yet unknown reason, it takes some time for the machine to
-	 * reach PC8+ residencies after we do this. I don't really know how much
-	 * we should wait, but this value seems to be working for me. */
-	sleep(10);
 }
 
 static void setup_environment(void)
