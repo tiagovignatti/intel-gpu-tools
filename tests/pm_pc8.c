@@ -1376,6 +1376,17 @@ static void gem_execbuf_stress_subtest(int rounds, int wait_flags)
 	gem_close(drm_fd, handle);
 }
 
+/* When this test was written, it triggered WARNs and DRM_ERRORs on dmesg. */
+static void gem_idle_subtest(void)
+{
+	disable_all_screens(&ms_data);
+	igt_assert(wait_for_suspended());
+
+	sleep(5);
+
+	gem_quiescent_gpu(drm_fd);
+}
+
 int main(int argc, char *argv[])
 {
 	int rounds = 50;
@@ -1415,6 +1426,8 @@ int main(int argc, char *argv[])
 		gem_pread_subtest();
 	igt_subtest("gem-execbuf")
 		gem_execbuf_subtest();
+	igt_subtest("gem-idle")
+		gem_idle_subtest();
 
 	/* Misc */
 	igt_subtest("i2c")
