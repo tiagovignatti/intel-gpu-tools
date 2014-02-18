@@ -29,8 +29,6 @@
 #include <stdio.h>
 #include <string.h>
 
-#include <glib.h>
-
 #include "drmtest.h"
 #include "igt_debugfs.h"
 #include "igt_kms.h"
