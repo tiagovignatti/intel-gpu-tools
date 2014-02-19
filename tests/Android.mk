@@ -32,6 +32,7 @@ endef
 #================#
 
 skip_tests_list := \
+    kms_plane \
     testdisplay \
     kms_addfb \
     kms_cursor_crc \
