@@ -875,6 +875,8 @@ static void i2c_subtest_check_environment(void)
 	struct dirent *dirent;
 
 	/* Make sure the /dev/i2c-* files exist. */
+	igt_assert(system("modprobe -q i2c-dev > /dev/null 2>&1") != -1);
+
 	dev_dir = opendir("/dev");
 	igt_assert(dev_dir);
 	while ((dirent = readdir(dev_dir))) {
