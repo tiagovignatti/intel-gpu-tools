@@ -687,6 +687,8 @@ static void setup_pc8(void)
 		return;
 
 	/* Make sure our Kernel supports MSR and the module is loaded. */
+	igt_assert(system("modprobe -q msr > /dev/null 2>&1") != -1);
+
 	msr_fd = open("/dev/cpu/0/msr", O_RDONLY);
 	igt_assert_f(msr_fd >= 0,
 		     "Can't open /dev/cpu/0/msr.\n");
