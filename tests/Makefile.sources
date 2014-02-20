@@ -125,6 +125,7 @@ TESTS_progs = \
 	gen3_render_mixed_blits \
 	gen3_render_tiledx_blits \
 	gen3_render_tiledy_blits \
+	gen7_forcewake_mt \
 	pm_psr \
 	pm_rc6_residency \
 	prime_udl \
