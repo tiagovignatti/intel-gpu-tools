@@ -658,11 +658,12 @@ static void set_y_tiling(struct test_output *o, int fb_idx)
 	drmFree(r);
 }
 
-static void stop_rings(void)
+static void stop_rings(bool stop)
 {
 	static const char dfs_base[] = "/sys/kernel/debug/dri";
 	static const char dfs_entry[] = "i915_ring_stop";
-	static const char data[] = "0xf";
+	static const char stop_data[] = "0xf";
+	static const char run_data[] = "0x0";
 	char fname[FILENAME_MAX];
 	int card_index = drm_get_card();
 	int fd;
@@ -673,7 +674,10 @@ static void stop_rings(void)
 	fd = open(fname, O_WRONLY);
 	igt_assert(fd >= 0);
 
-	igt_assert(write(fd, data, sizeof(data)) == sizeof(data));
+	if (stop)
+		igt_assert(write(fd, stop_data, sizeof(stop_data)) == sizeof(stop_data));
+	else
+		igt_assert(write(fd, run_data, sizeof(run_data)) == sizeof(run_data));
 
 	close(fd);
 }
@@ -722,6 +726,7 @@ static void unhang_gpu(int fd, uint32_t handle)
 	gem_sync(drm_fd, handle);
 	gem_close(drm_fd, handle);
 	eat_error_state();
+	stop_rings(false);
 }
 
 static uint32_t hang_gpu(int fd)
@@ -730,7 +735,7 @@ static uint32_t hang_gpu(int fd)
 	struct drm_i915_gem_exec_object2 gem_exec;
 	uint32_t b[2] = {MI_BATCH_BUFFER_END};
 
-	stop_rings();
+	stop_rings(true);
 
 	memset(&gem_exec, 0, sizeof(gem_exec));
 	gem_exec.handle = gem_create(fd, 4096);
