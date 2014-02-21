@@ -757,6 +757,14 @@ static uint32_t hang_gpu(int fd)
 	return gem_exec.handle;
 }
 
+static bool is_hung(int fd)
+{
+	if (drmIoctl(fd, DRM_IOCTL_I915_GEM_THROTTLE, 0) == 0)
+		return false;
+
+	return errno == EIO;
+}
+
 static int set_mode(struct test_output *o, uint32_t fb, int x, int y)
 {
 	int n;
@@ -869,8 +877,10 @@ static unsigned int run_test_step(struct test_output *o)
 
 	igt_info("."); fflush(stdout);
 
-	if (do_flip && (o->flags & TEST_HANG))
+	if (do_flip && (o->flags & TEST_HANG)) {
 		hang = hang_gpu(drm_fd);
+		igt_assert_f(hang, "failed to exercise page flip hang recovery\n");
+	}
 
 	if (do_flip)
 		do_or_die(do_page_flip(o, new_fb_id, !(o->flags & TEST_NOEVENT)));
@@ -924,9 +934,6 @@ static unsigned int run_test_step(struct test_output *o)
 
 	if (hang)
 		unhang_gpu(drm_fd, hang);
-
-	igt_assert_f(!(do_flip && (o->flags & TEST_HANG)) || hang,
-		     "failed to exercise page flip hang recovery\n");
 
 	return completed_events;
 }
@@ -1303,6 +1310,8 @@ static int run_test(int duration, int flags)
 	struct test_output o;
 	int i, n, modes = 0;
 
+	igt_require((flags & TEST_HANG) == 0 || !is_hung(drm_fd));
+
 	resources = drmModeGetResources(drm_fd);
 	igt_assert(resources);
 
@@ -1357,6 +1366,8 @@ static int run_pair(int duration, int flags)
 {
 	struct test_output o;
 	int i, j, m, n, modes = 0;
+
+	igt_require((flags & TEST_HANG) == 0 || !is_hung(drm_fd));
 
 	resources = drmModeGetResources(drm_fd);
 	igt_assert(resources);
