@@ -747,6 +747,9 @@ static uint32_t hang_gpu(int fd)
 	execbuf.batch_len = sizeof(b);
 
 	if (drmIoctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf)) {
+		igt_assert_f(errno == EIO,
+			     "failed to exercise page flip hang recovery\n");
+
 		unhang_gpu(fd, gem_exec.handle);
 		gem_exec.handle = 0;
 	}
