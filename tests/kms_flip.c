@@ -658,42 +658,27 @@ static void set_y_tiling(struct test_output *o, int fb_idx)
 	drmFree(r);
 }
 
-
-static void exec_nop(int fd, uint32_t handle)
+static void stop_rings(void)
 {
-	struct drm_i915_gem_execbuffer2 execbuf;
-	struct drm_i915_gem_exec_object2 gem_exec[1];
-	uint32_t b[2] = {MI_BATCH_BUFFER_END};
+	static const char dfs_base[] = "/sys/kernel/debug/dri";
+	static const char dfs_entry[] = "i915_ring_stop";
+	static const char data[] = "0xf";
+	char fname[FILENAME_MAX];
+	int card_index = drm_get_card();
+	int fd;
 
-	gem_write(fd, handle, 0, b, sizeof(b));
+	snprintf(fname, FILENAME_MAX, "%s/%i/%s",
+		 dfs_base, card_index, dfs_entry);
 
-	gem_exec[0].handle = handle;
-	gem_exec[0].relocation_count = 0;
-	gem_exec[0].relocs_ptr = 0;
-	gem_exec[0].alignment = 0;
-	gem_exec[0].offset = 0;
-	gem_exec[0].flags = 0;
-	gem_exec[0].rsvd1 = 0;
-	gem_exec[0].rsvd2 = 0;
+	fd = open(fname, O_WRONLY);
+	igt_assert(fd >= 0);
 
-	execbuf.buffers_ptr = (uintptr_t)gem_exec;
-	execbuf.buffer_count = 1;
-	execbuf.batch_start_offset = 0;
-	execbuf.batch_len = 8;
-	execbuf.cliprects_ptr = 0;
-	execbuf.num_cliprects = 0;
-	execbuf.DR1 = 0;
-	execbuf.DR4 = 0;
-	execbuf.flags =  I915_EXEC_RENDER;
-	i915_execbuffer2_set_context_id(execbuf, 0);
-	execbuf.rsvd2 = 0;
+	igt_assert(write(fd, data, sizeof(data)) == sizeof(data));
 
-	igt_assert(drmIoctl(fd,
-			    DRM_IOCTL_I915_GEM_EXECBUFFER2,
-			    &execbuf) == 0);
+	close(fd);
 }
 
-static void eat_error_state(struct test_output *o)
+static void eat_error_state(void)
 {
 	static const char dfs_base[] = "/sys/kernel/debug/dri";
 	static const char dfs_entry_error[] = "i915_error_state";
@@ -732,24 +717,36 @@ static void eat_error_state(struct test_output *o)
 	close(fd);
 }
 
-static void hang_gpu(struct test_output *o)
+static void unhang_gpu(int fd, uint32_t handle)
 {
-	static const char dfs_base[] = "/sys/kernel/debug/dri";
-	static const char dfs_entry[] = "i915_ring_stop";
-	static const char data[] = "0xf";
-	char fname[FILENAME_MAX];
-	int card_index = drm_get_card();
-	int fd;
+	gem_sync(drm_fd, handle);
+	gem_close(drm_fd, handle);
+	eat_error_state();
+}
 
-	snprintf(fname, FILENAME_MAX, "%s/%i/%s",
-		 dfs_base, card_index, dfs_entry);
+static uint32_t hang_gpu(int fd)
+{
+	struct drm_i915_gem_execbuffer2 execbuf;
+	struct drm_i915_gem_exec_object2 gem_exec;
+	uint32_t b[2] = {MI_BATCH_BUFFER_END};
 
-	fd = open(fname, O_WRONLY);
-	igt_assert(fd >= 0);
+	stop_rings();
 
-	igt_assert(write(fd, data, sizeof(data)) == sizeof(data));
+	memset(&gem_exec, 0, sizeof(gem_exec));
+	gem_exec.handle = gem_create(fd, 4096);
+	gem_write(fd, gem_exec.handle, 0, b, sizeof(b));
 
-	close(fd);
+	memset(&execbuf, 0, sizeof(execbuf));
+	execbuf.buffers_ptr = (uintptr_t)&gem_exec;
+	execbuf.buffer_count = 1;
+	execbuf.batch_len = sizeof(b);
+
+	if (drmIoctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf)) {
+		unhang_gpu(fd, gem_exec.handle);
+		gem_exec.handle = 0;
+	}
+
+	return gem_exec.handle;
 }
 
 static int set_mode(struct test_output *o, uint32_t fb, int x, int y)
@@ -786,7 +783,7 @@ static unsigned int run_test_step(struct test_output *o)
 	bool do_vblank;
 	struct vblank_reply vbl_reply;
 	unsigned int target_seq;
-	uint32_t handle = 0;	/* Suppress GCC warning */
+	uint32_t hang = 0;	/* Suppress GCC warning */
 
 	target_seq = o->vblank_state.seq_step;
 	/* Absolute waits only works once we have a frame counter. */
@@ -864,11 +861,8 @@ static unsigned int run_test_step(struct test_output *o)
 
 	igt_info("."); fflush(stdout);
 
-	if (do_flip && (o->flags & TEST_HANG)) {
-		handle = gem_create(drm_fd, 4096);
-		hang_gpu(o);
-		exec_nop(drm_fd, handle);
-	}
+	if (do_flip && (o->flags & TEST_HANG))
+		hang = hang_gpu(drm_fd);
 
 	if (do_flip)
 		do_or_die(do_page_flip(o, new_fb_id, !(o->flags & TEST_NOEVENT)));
@@ -920,11 +914,8 @@ static unsigned int run_test_step(struct test_output *o)
 	if (do_flip && (o->flags & TEST_EINVAL) && !(o->flags & TEST_FB_BAD_TILING))
 		igt_assert(do_page_flip(o, new_fb_id, true) == expected_einval);
 
-	if (do_flip && (o->flags & TEST_HANG)) {
-		gem_sync(drm_fd, handle);
-		gem_close(drm_fd, handle);
-		eat_error_state(o);
-	}
+	if (hang)
+		unhang_gpu(drm_fd, hang);
 
 	return completed_events;
 }
