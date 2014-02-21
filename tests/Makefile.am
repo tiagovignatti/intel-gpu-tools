@@ -49,7 +49,7 @@ gen7_forcewake_mt_CFLAGS = $(AM_CFLAGS) $(THREAD_CFLAGS)
 gen7_forcewake_mt_LDADD = $(LDADD) -lpthread
 
 gem_wait_render_timeout_LDADD = $(LDADD) -lrt
-kms_flip_LDADD = $(LDADD) -lrt
+kms_flip_LDADD = $(LDADD) -lrt -lpthread
 
 prime_nv_test_CFLAGS = $(AM_CFLAGS) $(DRM_NOUVEAU_CFLAGS)
 prime_nv_test_LDADD = $(LDADD) $(DRM_NOUVEAU_LIBS)

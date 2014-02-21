@@ -66,6 +66,7 @@
 #define TEST_DPMS_OFF_OTHERS	(1 << 21)
 #define TEST_ENOENT		(1 << 22)
 #define TEST_FENCE_STRESS	(1 << 23)
+#define TEST_VBLANK_RACE	(1 << 24)
 
 #define EVENT_FLIP		(1 << 0)
 #define EVENT_VBLANK		(1 << 1)
@@ -83,6 +84,7 @@ struct intel_batchbuffer *batch;
 uint32_t devid;
 int test_time = 3;
 static bool monotonic_timestamp;
+static pthread_t vblank_wait_thread;
 
 static drmModeConnector *last_connector;
 
@@ -489,6 +491,33 @@ static double frame_time(struct test_output *o)
 	return 1000.0 * 1000.0 / o->kmode[0].vrefresh;
 }
 
+static void *vblank_wait_thread_func(void *data)
+{
+	struct test_output *o = data;
+	struct vblank_reply reply;
+	int i;
+
+	for (i = 0; i < 32; i++) {
+		unsigned long start = gettime_us();
+		__wait_for_vblank(TEST_VBLANK_BLOCK, o->pipe, 20, (unsigned long)o, &reply);
+		if (gettime_us() - start > 2 * frame_time(o))
+			return (void*)1;
+	}
+
+	return 0;
+}
+
+static void spawn_vblank_wait_thread(struct test_output *o)
+{
+	igt_assert(pthread_create(&vblank_wait_thread, NULL,
+				  vblank_wait_thread_func, o) == 0);
+}
+
+static void join_vblank_wait_thread(void)
+{
+	igt_assert(pthread_join(vblank_wait_thread, NULL) == 0);
+}
+
 static void fixup_premature_vblank_ts(struct test_output *o,
 				      struct event_state *es)
 {
@@ -866,6 +895,15 @@ static unsigned int run_test_step(struct test_output *o)
 		igt_assert(do_wait_for_vblank(o, o->pipe, target_seq, &vbl_reply)
 		       == -EINVAL);
 
+	if (o->flags & TEST_VBLANK_RACE) {
+		spawn_vblank_wait_thread(o);
+
+		if (o->flags & TEST_MODESET)
+			igt_assert_f(set_mode(o, 0 /* no fb */, 0, 0) == 0,
+				     "failed to disable output: %s\n",
+				     strerror(errno));
+	}
+
 	if (o->flags & TEST_DPMS_OFF)
 		set_dpms(o, DRM_MODE_DPMS_OFF);
 
@@ -874,6 +912,19 @@ static unsigned int run_test_step(struct test_output *o)
 
 	if (o->flags & TEST_DPMS)
 		set_dpms(o, DRM_MODE_DPMS_ON);
+
+	if (o->flags & TEST_VBLANK_RACE) {
+		struct vblank_reply reply;
+		unsigned long start, end;
+
+		/* modeset/DPMS is done, vblank wait should work normally now */
+		start = gettime_us();
+		igt_assert(__wait_for_vblank(TEST_VBLANK_BLOCK, o->pipe, 1, 0, &reply) == 0);
+		end = gettime_us();
+		igt_assert(end - start > 1 * frame_time(o) / 2 &&
+			   end - start < 3 * frame_time(o) / 2);
+		join_vblank_wait_thread();
+	}
 
 	igt_info("."); fflush(stdout);
 
@@ -920,7 +971,7 @@ static unsigned int run_test_step(struct test_output *o)
 	if (o->flags & TEST_DPMS)
 		set_dpms(o, DRM_MODE_DPMS_OFF);
 
-	if (o->flags & TEST_MODESET && !(o->flags & TEST_RMFB))
+	if (o->flags & TEST_MODESET && !(o->flags & TEST_RMFB) && !(o->flags & TEST_VBLANK_RACE))
 		igt_assert_f(set_mode(o, 0 /* no fb */, 0, 0) == 0,
 			     "failed to disable output: %s\n",
 			     strerror(errno));
@@ -1514,6 +1565,8 @@ int main(int argc, char **argv)
 					"single-buffer-flip-vs-dpms-off-vs-modeset" },
 		{ 30, TEST_FLIP | TEST_NO_2X_OUTPUT | TEST_DPMS_OFF_OTHERS , "dpms-off-confusion" },
 		{ 0, TEST_ENOENT | TEST_NOEVENT, "nonexisting-fb" },
+		{ 10, TEST_DPMS_OFF | TEST_DPMS | TEST_VBLANK_RACE, "dpms-vs-vblank-race" },
+		{ 10, TEST_MODESET | TEST_VBLANK_RACE, "modeset-vs-vblank-race" },
 	};
 	int i;
 
