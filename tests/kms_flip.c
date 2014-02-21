@@ -922,6 +922,9 @@ static unsigned int run_test_step(struct test_output *o)
 	if (hang)
 		unhang_gpu(drm_fd, hang);
 
+	igt_assert_f(!(do_flip && (o->flags & TEST_HANG)) || hang,
+		     "failed to exercise page flip hang recovery\n");
+
 	return completed_events;
 }
 
