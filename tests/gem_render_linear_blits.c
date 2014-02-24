@@ -99,7 +99,10 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
-	printf("Using %d 1MiB buffers\n", count);
+	if (count > intel_get_total_ram_mb() * 9 / 10) {
+		count = intel_get_total_ram_mb() * 9 / 10;
+		printf("not enough RAM to run test, reducing buffer count\n");
+	}
 
 	bo = malloc(sizeof(*bo)*count);
 	start_val = malloc(sizeof(*start_val)*count);
