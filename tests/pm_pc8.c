@@ -1391,6 +1391,21 @@ static void gem_idle_subtest(void)
 	gem_quiescent_gpu(drm_fd);
 }
 
+/* This also triggered WARNs on dmesg at some point. */
+static void reg_read_ioctl_subtest(void)
+{
+	struct drm_i915_reg_read rr = {
+		.offset = 0x2358, /* render ring timestamp */
+	};
+
+	disable_all_screens(&ms_data);
+	igt_assert(wait_for_suspended());
+
+	do_ioctl(drm_fd, DRM_IOCTL_I915_REG_READ, &rr);
+
+	igt_assert(wait_for_suspended());
+}
+
 int main(int argc, char *argv[])
 {
 	int rounds = 50;
@@ -1434,6 +1449,8 @@ int main(int argc, char *argv[])
 		gem_idle_subtest();
 
 	/* Misc */
+	igt_subtest("reg-read-ioctl")
+		reg_read_ioctl_subtest();
 	igt_subtest("i2c")
 		i2c_subtest();
 	igt_subtest("pc8-residency")
