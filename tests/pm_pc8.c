@@ -1406,6 +1406,35 @@ static void reg_read_ioctl_subtest(void)
 	igt_assert(wait_for_suspended());
 }
 
+static bool device_in_pci_d3(void)
+{
+	struct pci_device *pci_dev;
+	int rc;
+	uint16_t val;
+
+	pci_dev = intel_get_pci_device();
+
+	rc = pci_device_cfg_read_u16(pci_dev, &val, 0xd4);
+	igt_assert(rc == 0);
+
+	return (val & 0x3) == 0x3;
+}
+
+static void pci_d3_state_subtest(void)
+{
+	igt_require(has_runtime_pm);
+
+	disable_all_screens(&ms_data);
+	igt_assert(wait_for_suspended());
+
+	igt_assert(device_in_pci_d3());
+
+	enable_one_screen(&ms_data);
+	igt_assert(wait_for_active());
+
+	igt_assert(!device_in_pci_d3());
+}
+
 int main(int argc, char *argv[])
 {
 	int rounds = 50;
@@ -1429,6 +1458,8 @@ int main(int argc, char *argv[])
 		basic_subtest();
 	igt_subtest("drm-resources-equal")
 		drm_resources_equal_subtest();
+	igt_subtest("pci-d3-state")
+		pci_d3_state_subtest();
 
 	/* Basic modeset */
 	igt_subtest("modeset-lpsp")
