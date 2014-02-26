@@ -683,7 +683,7 @@ static void setup_pc8(void)
 	has_pc8 = false;
 
 	/* Only Haswell supports the PC8 feature. */
-	if (!IS_HASWELL(ms_data.devid))
+	if (!IS_HASWELL(ms_data.devid) && !IS_BROADWELL(ms_data.devid))
 		return;
 
 	/* Make sure our Kernel supports MSR and the module is loaded. */
