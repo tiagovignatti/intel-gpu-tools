@@ -64,6 +64,7 @@ static int minor_evictions(int fd, struct igt_eviction_test_ops *ops,
 {
 	uint32_t *bo, *sel;
 	int n, m, pass, fail;
+	int total_surfaces;
 
 	/* Make sure nr_surfaces is not divisible by seven
 	 * to avoid duplicates in the selection loop below.
@@ -72,26 +73,26 @@ static int minor_evictions(int fd, struct igt_eviction_test_ops *ops,
 	nr_surfaces *= 7;
 	nr_surfaces += 3;
 
-	igt_require((uint64_t)nr_surfaces * surface_size / (1024 * 1024)
-			< intel_get_total_ram_mb() * 9 / 10);
+	total_surfaces = (uint64_t)intel_get_total_ram_mb() * 9 /10 * 1024 *1024 / surface_size;
+	igt_require(nr_surfaces < total_surfaces);
 
-	bo = malloc(3*nr_surfaces*sizeof(*bo));
+	bo = malloc((nr_surfaces + total_surfaces)*sizeof(*bo));
 	igt_assert(bo);
 
-	for (n = 0; n < 2*nr_surfaces; n++)
+	for (n = 0; n < total_surfaces; n++)
 		bo[n] = ops->create(fd, surface_size);
 
 	sel = bo + n;
 	for (fail = 0, m = 0; fail < 10; fail++) {
 		for (pass = 0; pass < 100; pass++) {
 			for (n = 0; n < nr_surfaces; n++, m += 7)
-				sel[n] = bo[m%(2*nr_surfaces)];
+				sel[n] = bo[m%total_surfaces];
 			ops->copy(fd, sel[0], sel[1], sel, nr_surfaces, 0);
 		}
-		ops->copy(fd, bo[0], bo[0], bo, 2*nr_surfaces, ENOSPC);
+		ops->copy(fd, bo[0], bo[0], bo, total_surfaces, ENOSPC);
 	}
 
-	for (n = 0; n < 2*nr_surfaces; n++)
+	for (n = 0; n < total_surfaces; n++)
 		ops->close(fd, bo[n]);
 	free(bo);
 
