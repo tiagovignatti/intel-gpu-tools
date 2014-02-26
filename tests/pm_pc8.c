@@ -1435,9 +1435,19 @@ static void pci_d3_state_subtest(void)
 	igt_assert(!device_in_pci_d3());
 }
 
+static void stay_subtest(void)
+{
+	disable_all_screens(&ms_data);
+	igt_assert(wait_for_suspended());
+
+	while (1)
+		sleep(600);
+}
+
 int main(int argc, char *argv[])
 {
 	int rounds = 50;
+	bool stay = false;
 
 	igt_subtest_init(argc, argv);
 
@@ -1447,11 +1457,21 @@ int main(int argc, char *argv[])
 	if (argc > 1 && strcmp(argv[1], "--quick") == 0)
 		rounds = 10;
 
+	/* The --stay option enables a mode where we disable all the screens,
+	 * then stay like that, runtime suspended. This mode is useful for
+	 * running manual tests while debugging. */
+	if (argc > 1 && strcmp(argv[1], "--stay") == 0)
+		stay = true;
+
 	/* Skip instead of failing in case the machine is not prepared to reach
 	 * PC8+. We don't want bug reports from cases where the machine is just
 	 * not properly configured. */
 	igt_fixture
 		setup_environment();
+
+	if (stay)
+		igt_subtest("stay")
+			stay_subtest();
 
 	/* Essential things */
 	igt_subtest("rte")
