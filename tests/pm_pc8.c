@@ -1003,8 +1003,7 @@ static void debugfs_forcewake_user_subtest(void)
 {
 	int fd, rc;
 
-	igt_require(!(IS_GEN2(ms_data.devid) || IS_GEN3(ms_data.devid) ||
-		      IS_GEN4(ms_data.devid) || IS_GEN5(ms_data.devid)));
+	igt_require(intel_gen(ms_data.devid) >= 6);
 
 	disable_all_screens(&ms_data);
 	igt_assert(wait_for_suspended());
