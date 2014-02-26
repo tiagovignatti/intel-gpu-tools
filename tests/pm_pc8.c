@@ -1167,16 +1167,14 @@ static void gem_pread_subtest(void)
 
 /* Paints a square of color $color, size $width x $height, at position $x x $y
  * of $dst_handle, which contains pitch $pitch. */
-static void submit_blt_cmd(uint32_t dst_handle, uint32_t x, uint32_t y,
-			   uint32_t width, uint32_t height, uint32_t pitch,
+static void submit_blt_cmd(uint32_t dst_handle, uint16_t x, uint16_t y,
+			   uint16_t width, uint16_t height, uint32_t pitch,
 			   uint32_t color, uint32_t *presumed_dst_offset)
 {
 	int i, reloc_pos;
-	int bpp = 4;
 	uint32_t batch_handle;
 	int batch_size = 8 * sizeof(uint32_t);
 	uint32_t batch_buf[batch_size];
-	uint32_t offset_in_dst = (pitch * y) + (x * bpp);
 	struct drm_i915_gem_execbuffer2 execbuf = {};
 	struct drm_i915_gem_exec_object2 objs[2] = {{}, {}};
 	struct drm_i915_gem_relocation_entry relocs[1] = {{}};
@@ -1184,17 +1182,26 @@ static void submit_blt_cmd(uint32_t dst_handle, uint32_t x, uint32_t y,
 
 	i = 0;
 
-	batch_buf[i++] = COLOR_BLT_CMD | COLOR_BLT_WRITE_ALPHA |
-			 COLOR_BLT_WRITE_RGB;
-	batch_buf[i++] = (3 << 24) | (0xF0 << 16) | pitch;
-	batch_buf[i++] = (height << 16) | width * bpp;
+	if (intel_gen(ms_data.devid) >= 8)
+		batch_buf[i++] = XY_COLOR_BLT_CMD_NOLEN |
+				 XY_COLOR_BLT_WRITE_ALPHA |
+				 XY_COLOR_BLT_WRITE_RGB | 0x5;
+	else
+		batch_buf[i++] = XY_COLOR_BLT_CMD_NOLEN |
+				 XY_COLOR_BLT_WRITE_ALPHA |
+				 XY_COLOR_BLT_WRITE_RGB | 0x4;
+	batch_buf[i++] = (3 << 24) | (0xF0 << 16) | (pitch);
+	batch_buf[i++] = (y << 16) | x;
+	batch_buf[i++] = ((y + height) << 16) | (x + width);
 	reloc_pos = i;
-	batch_buf[i++] = *presumed_dst_offset + offset_in_dst;
+	batch_buf[i++] = *presumed_dst_offset;
+	if (intel_gen(ms_data.devid) >= 8)
+		batch_buf[i++] = 0;
 	batch_buf[i++] = color;
 
-	batch_buf[i++] = MI_NOOP;
 	batch_buf[i++] = MI_BATCH_BUFFER_END;
-	batch_buf[i++] = MI_NOOP;
+	if (intel_gen(ms_data.devid) < 8)
+		batch_buf[i++] = MI_NOOP;
 
 	igt_assert(i * sizeof(uint32_t) == batch_size);
 
@@ -1202,7 +1209,7 @@ static void submit_blt_cmd(uint32_t dst_handle, uint32_t x, uint32_t y,
 	gem_write(drm_fd, batch_handle, 0, batch_buf, batch_size);
 
 	relocs[0].target_handle = dst_handle;
-	relocs[0].delta = offset_in_dst;
+	relocs[0].delta = 0;
 	relocs[0].offset = reloc_pos * sizeof(uint32_t);
 	relocs[0].presumed_offset = *presumed_dst_offset;
 	relocs[0].read_domains = 0;
