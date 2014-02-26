@@ -132,7 +132,7 @@ intel_get_total_swap_mb(void)
 	ret = sysinfo(&sysinf);
 	assert(ret == 0);
 
-	retval = sysinf.totalswap;
+	retval = sysinf.freeswap;
 	retval *= sysinf.mem_unit;
 #elif defined(HAVE_SWAPCTL) /* Solaris */
 	long pagesize = sysconf(_SC_PAGESIZE);
