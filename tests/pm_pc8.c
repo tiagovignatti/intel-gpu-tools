@@ -633,7 +633,8 @@ static void test_i2c(struct mode_set_data *data)
 	int i2c_edids = count_i2c_valid_edids();
 	int drm_edids = count_drm_valid_edids(data);
 
-	igt_assert(i2c_edids == drm_edids);
+	igt_assert_f(i2c_edids == drm_edids, "i2c:%d drm:%d", i2c_edids,
+		     drm_edids);
 }
 
 static void setup_runtime_pm(void)
