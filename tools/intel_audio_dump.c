@@ -360,6 +360,36 @@ static const char * const audio_dp_dip_status[] = {
 	[31] = 0,
 };
 
+#undef TRANSCODER_A
+#undef TRANSCODER_B
+#undef TRANSCODER_C
+
+enum {
+	TRANSCODER_A = 0,
+	TRANSCODER_B,
+	TRANSCODER_C,
+};
+
+enum {
+	PIPE_A = 0,
+	PIPE_B,
+	PIPE_C,
+};
+
+enum {
+	PORT_A = 0,
+	PORT_B,
+	PORT_C,
+	PORT_D,
+	PORT_E,
+};
+
+enum {
+	CONVERTER_1 = 0,
+	CONVERTER_2,
+	CONVERTER_3,
+};
+
 static void do_self_tests(void)
 {
 	if (BIT(1, 0) != 1)
@@ -1694,35 +1724,6 @@ static void dump_cpt(void)
 #define AUD_DP_DIP_STATUS	0x65f20
 
 #define MAX_PREFIX_SIZE		128
-
-#undef TRANSCODER_A
-#undef TRANSCODER_B
-#undef TRANSCODER_C
-enum {
-	TRANSCODER_A = 0,
-	TRANSCODER_B,
-	TRANSCODER_C,
-};
-
-enum {
-	PIPE_A = 0,
-	PIPE_B,
-	PIPE_C,
-};
-
-enum {
-	PORT_A = 0,
-	PORT_B,
-	PORT_C,
-	PORT_D,
-	PORT_E,
-};
-
-enum {
-	CONVERTER_1 = 0,
-	CONVERTER_2,
-	CONVERTER_3,
-};
 
 static void dump_ddi_buf_ctl(int port)
 {
