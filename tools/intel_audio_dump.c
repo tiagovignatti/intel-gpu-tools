@@ -40,6 +40,8 @@ static uint32_t devid;
 static int aud_reg_base = 0;	/* base address of audio registers */
 static int disp_reg_base = 0;	/* base address of display registers */
 
+#define IS_HASWELL_PLUS(devid)  (IS_HASWELL(devid) || IS_BROADWELL(devid))
+
 #define BITSTO(n)		(n >= sizeof(long) * 8 ? ~0 : (1UL << (n)) - 1)
 #define BITMASK(high, low)	(BITSTO(high+1) & ~BITSTO(low))
 #define BITS(reg, high, low)	(((reg) & (BITMASK(high, low))) >> (low))
