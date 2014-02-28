@@ -45,29 +45,30 @@
 
 #define OBJECT_SIZE 16384
 
-#define COPY_BLT_CMD		(2<<29|0x53<<22|0x6)
+#define COPY_BLT_CMD		(2<<29|0x53<<22)
 #define BLT_WRITE_ALPHA		(1<<21)
 #define BLT_WRITE_RGB		(1<<20)
 #define BLT_SRC_TILED		(1<<15)
 #define BLT_DST_TILED		(1<<11)
 
-uint32_t devid;
+uint32_t is_64bit;
+uint32_t exec_flags;
 
 static inline void build_batch(uint32_t *batch, int len, uint32_t *batch_len)
 {
 	unsigned int i = 0;
 
-	batch[i++] = COPY_BLT_CMD | BLT_WRITE_ALPHA | BLT_WRITE_RGB;
+	batch[i++] = COPY_BLT_CMD | BLT_WRITE_ALPHA | BLT_WRITE_RGB | (is_64bit ? 8 : 6);
 	batch[i++] = 0xcc << 16 | 1 << 25 | 1 << 24 | len;
 	batch[i++] = 0;
 	batch[i++] = 1 << 16 | (len / 4);
 	batch[i++] = 0; /* dst */
-	if (intel_gen(devid) >= 8)
+	if (is_64bit)
 		batch[i++] = 0; /* FIXME */
 	batch[i++] = 0;
 	batch[i++] = len;
 	batch[i++] = 0; /* src */
-	if (intel_gen(devid) >= 8)
+	if (is_64bit)
 		batch[i++] = 0; /* FIXME */
 	batch[i++] = MI_BATCH_BUFFER_END;
 	batch[i++] = 0;
@@ -94,7 +95,7 @@ static void copy(int fd, uint32_t src, uint32_t dst, void *buf, int len, int loo
 		(uintptr_t)exec, 3,
 		0, 0,
 		0, 0, 0, 0,
-		HAS_BLT_RING(devid) ? I915_EXEC_BLT : 0,
+		exec_flags,
 	};
 
 	build_batch(batch, len, &execbuf.batch_len);
@@ -127,7 +128,7 @@ static void as_gtt_mmap(int fd, uint32_t src, uint32_t dst, void *buf, int len, 
 		(uintptr_t)exec, 3,
 		0, GPP_BATCH_SIZE,
 		0, 0, 0, 0,
-		HAS_BLT_RING(devid) ? I915_EXEC_BLT : 0,
+		exec_flags,
 	};
 	uint32_t *src_ptr, *dst_ptr;
 
@@ -172,7 +173,7 @@ static void as_cpu_mmap(int fd, uint32_t src, uint32_t dst, void *buf, int len, 
 		(uintptr_t)exec, 3,
 		0, GPP_BATCH_SIZE,
 		0, 0, 0, 0,
-		HAS_BLT_RING(devid) ? I915_EXEC_BLT : 0,
+		exec_flags,
 	};
 	uint32_t *src_ptr, *dst_ptr;
 
@@ -216,7 +217,7 @@ static void test_copy(int fd, uint32_t src, uint32_t dst, uint32_t *buf, int len
 		(uintptr_t)exec, 3,
 		0, GPP_BATCH_SIZE,
 		0, 0, 0, 0,
-		HAS_BLT_RING(devid) ? I915_EXEC_BLT : 0,
+		exec_flags,
 	};
 	int i;
 
@@ -256,7 +257,7 @@ static void test_as_gtt_mmap(int fd, uint32_t src, uint32_t dst, int len)
 		(uintptr_t)exec, 3,
 		0, GPP_BATCH_SIZE,
 		0, 0, 0, 0,
-		HAS_BLT_RING(devid) ? I915_EXEC_BLT : 0,
+		exec_flags,
 	};
 	uint32_t *src_ptr, *dst_ptr;
 	int i;
@@ -300,7 +301,7 @@ static void test_as_cpu_mmap(int fd, uint32_t src, uint32_t dst, int len)
 		(uintptr_t)exec, 3,
 		0, GPP_BATCH_SIZE,
 		0, 0, 0, 0,
-		HAS_BLT_RING(devid) ? I915_EXEC_BLT : 0,
+		exec_flags,
 	};
 	uint32_t *src_ptr, *dst_ptr;
 	int i;
@@ -372,6 +373,8 @@ int main(int argc, char **argv)
 	object_size = (object_size + 3) & -4;
 
 	igt_fixture {
+		uint32_t devid;
+
 		fd = drm_open_any();
 
 		dst = gem_create(fd, object_size);
@@ -382,6 +385,8 @@ int main(int argc, char **argv)
 		gem_set_caching(fd, dst, 0);
 
 		devid = intel_get_drm_devid(fd);
+		is_64bit = intel_gen(devid) >= 8;
+		exec_flags = HAS_BLT_RING(devid) ? I915_EXEC_BLT : 0;
 	}
 
 	igt_subtest("uncached-copy-correctness")
