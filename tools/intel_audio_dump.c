@@ -1748,7 +1748,7 @@ static void dump_aud_hdmi_status(void)
 }
 
 /*
- * IronLake display registers
+ * Display registers of Ironlake and Valleyview
  */
 #undef DP_CTL_B
 #undef DP_CTL_C
@@ -1758,9 +1758,14 @@ static void dump_aud_hdmi_status(void)
 #define DP_CTL_C           0x4200
 #define DP_CTL_D           0x4300
 
+/* ILK HDMI port ctrl */
 #define HDMI_CTL_B         0x1140
 #define HDMI_CTL_C         0x1150
 #define HDMI_CTL_D         0x1160
+
+/* VLV HDMI port ctrl */
+#define SDVO_HDMI_CTL_B    0x1140
+#define SDVO_HDMI_CTL_C    0x1160
 
 static void dump_dp_port_ctrl(int port)
 {
@@ -1787,9 +1792,14 @@ static void dump_hdmi_port_ctrl(int port)
 	int port_ctrl;
 	char prefix[MAX_PREFIX_SIZE];
 
-	sprintf(prefix, "HDMI%c", 'B' + port - PORT_B);
+	if (IS_VALLEYVIEW(devid)) {
+		sprintf(prefix, "SDVO/HDMI%c", 'B' + port - PORT_B);
+		port_ctrl = disp_reg_base + SDVO_HDMI_CTL_B + (port - PORT_B) * 0x20;
+	} else {
+		sprintf(prefix, "HDMI%c     ", 'B' + port - PORT_B);
+		port_ctrl = disp_reg_base + HDMI_CTL_B + (port - PORT_B) * 0x10;
+	}
 
-	port_ctrl = disp_reg_base + HDMI_CTL_B + (port - PORT_B) * 0x10;
 	dword = INREG(port_ctrl);
 	printf("%s HDMI_Enable\t\t\t\t\t%u\n",                 prefix, !!(dword & SDVO_ENABLE));
 	printf("%s Transcoder_Select\t\t\t\t%s\n",             prefix, BIT(dword, 30) ? "Transcoder B" : "Transcoder A");
@@ -1807,14 +1817,24 @@ static void dump_ironlake(void)
 {
 	uint32_t dword;
 
-	set_reg_base(0xe0000, 0x2000);
+	if (!IS_VALLEYVIEW(devid))
+		set_reg_base(0xe0000, 0x2000);   /* ironlake */
+	else
+		set_reg_base(0x60000 + VLV_DISPLAY_BASE, 0x2000);
 
-	dump_disp_reg(HDMI_CTL_B,               "sDVO/HDMI Port B Control");
-	dump_disp_reg(HDMI_CTL_C,               "HDMI Port C Control");
-	dump_disp_reg(HDMI_CTL_D,               "HDMI Port D Control");
+	if (!IS_VALLEYVIEW(devid)) {
+		dump_disp_reg(HDMI_CTL_B,       "sDVO/HDMI Port B Control");
+		dump_disp_reg(HDMI_CTL_C,       "HDMI Port C Control");
+		dump_disp_reg(HDMI_CTL_D,       "HDMI Port D Control");
+	} else {
+		dump_disp_reg(SDVO_HDMI_CTL_B,  "sDVO/HDMI Port B Control");
+		dump_disp_reg(SDVO_HDMI_CTL_C,  "sDVO/HDMI Port C Control");
+	}
+
 	dump_disp_reg(DP_CTL_B,                 "DisplayPort B Control Register");
 	dump_disp_reg(DP_CTL_C,                 "DisplayPort C Control Register");
-	dump_disp_reg(DP_CTL_D,                 "DisplayPort D Control Register");
+	if (!IS_VALLEYVIEW(devid))
+		dump_disp_reg(DP_CTL_D,         "DisplayPort D Control Register");
 
 	dump_aud_reg(AUD_CONFIG_A,              "Audio Configuration - Transcoder A");
 	dump_aud_reg(AUD_CONFIG_B,              "Audio Configuration - Transcoder B");
@@ -1849,11 +1869,13 @@ static void dump_ironlake(void)
 
 	dump_hdmi_port_ctrl(PORT_B);
 	dump_hdmi_port_ctrl(PORT_C);
-	dump_hdmi_port_ctrl(PORT_D);
+	if (!IS_VALLEYVIEW(devid))
+		dump_hdmi_port_ctrl(PORT_D);
 
 	dump_dp_port_ctrl(PORT_B);
 	dump_dp_port_ctrl(PORT_C);
-	dump_dp_port_ctrl(PORT_D);
+	if (!IS_VALLEYVIEW(devid))
+		dump_dp_port_ctrl(PORT_D);
 
 	dump_aud_config(PIPE_A);
 	dump_aud_config(PIPE_B);
@@ -2250,7 +2272,10 @@ int main(int argc, char **argv)
 	else
 		intel_get_mmio(pci_dev);
 
-	if (IS_BROADWELL(devid) || IS_HASWELL(devid)) {
+	if (IS_VALLEYVIEW(devid)) {
+		printf("Valleyview audio registers:\n\n");
+		dump_ironlake();
+	}  else if (IS_BROADWELL(devid) || IS_HASWELL(devid)) {
 		printf("%s audio registers:\n\n",
 			IS_BROADWELL(devid) ? "Broadwell" : "Haswell");
 		dump_hsw_plus();
