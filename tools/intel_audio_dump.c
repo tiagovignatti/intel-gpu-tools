@@ -83,6 +83,20 @@ static int disp_reg_base = 0;	/* base address of display registers */
 
 #define read_aud_reg(reg)	INREG(aud_reg_base + (reg))
 
+static int get_num_pipes(void)
+{
+	int num_pipes;
+
+	if (IS_VALLEYVIEW(devid))
+		num_pipes = 2;  /* Valleyview is Gen 7 but only has 2 pipes */
+	else if (IS_G4X(devid) || IS_GEN5(devid))
+		num_pipes = 2;
+	else
+		num_pipes = 3;
+
+	return num_pipes;
+}
+
 static const char * const pixel_clock[] = {
 	[0] = "25.2 / 1.001 MHz",
 	[1] = "25.2 MHz",
