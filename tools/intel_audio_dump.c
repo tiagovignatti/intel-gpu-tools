@@ -37,6 +37,8 @@
 
 static uint32_t devid;
 
+static int aud_reg_base = 0;	/* base address of audio registers */
+static int disp_reg_base = 0;	/* base address of display registers */
 
 #define BITSTO(n)		(n >= sizeof(long) * 8 ? ~0 : (1UL << (n)) - 1)
 #define BITMASK(high, low)	(BITSTO(high+1) & ~BITSTO(low))
@@ -51,12 +53,33 @@ static uint32_t devid;
 #define OPNAME(names, index)   \
 	names[min_t(unsigned int, index, ARRAY_SIZE(names) - 1)]
 
+#define set_aud_reg_base(base)    (aud_reg_base = (base))
+
+#define set_reg_base(base, audio_offset)	\
+	do {					\
+		disp_reg_base = (base);		\
+		set_aud_reg_base((base) + (audio_offset));	\
+	} while (0)
+
 #define dump_reg(reg, desc)					\
 	do {							\
 		dword = INREG(reg);	\
 		printf("%-21s 0x%08x  %s\n", # reg, dword, desc);	\
 	} while (0)
 
+#define dump_disp_reg(reg, desc)					\
+	do {							\
+		dword = INREG(disp_reg_base + reg);	\
+		printf("%-21s 0x%08x  %s\n", # reg, dword, desc);	\
+	} while (0)
+
+#define dump_aud_reg(reg, desc)					\
+	do {							\
+		dword = INREG(aud_reg_base + reg);	\
+		printf("%-21s 0x%08x  %s\n", # reg, dword, desc);	\
+	} while (0)
+
+#define read_aud_reg(reg)	INREG(aud_reg_base + (reg))
 
 static const char * const pixel_clock[] = {
 	[0] = "25.2 / 1.001 MHz",
