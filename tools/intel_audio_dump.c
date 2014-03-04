@@ -1344,13 +1344,13 @@ static void dump_aud_config(int index)
 		sprintf(prefix, "AUD_TC%c_CONFIG", 'A' + index - TRANSCODER_A);
 	}
 
-	printf("%s  Disable_NCTS\t\t\t\t%lu\n", prefix, BIT(dword, 3));
-	printf("%s  Lower_N_value\t\t\t\t0x%03lx\n", prefix, BITS(dword, 15, 4));
+	printf("%s  Disable_NCTS\t\t\t\t%lu\n",          prefix, BIT(dword, 3));
+	printf("%s  Lower_N_value\t\t\t\t0x%03lx\n",     prefix, BITS(dword, 15, 4));
 	printf("%s  Pixel_Clock_HDMI\t\t\t[0x%lx] %s\n", prefix, BITS(dword, 19, 16),
 		OPNAME(pixel_clock, BITS(dword, 19, 16)));
-	printf("%s  Upper_N_value\t\t\t\t0x%02lx\n", prefix, BITS(dword, 27, 20));
-	printf("%s  N_programming_enable\t\t\t%lu\n", prefix, BIT(dword, 28));
-	printf("%s  N_index_value\t\t\t\t[0x%lx] %s\n", prefix, BIT(dword, 29),
+	printf("%s  Upper_N_value\t\t\t\t0x%02lx\n",     prefix, BITS(dword, 27, 20));
+	printf("%s  N_programming_enable\t\t\t%lu\n",    prefix, BIT(dword, 28));
+	printf("%s  N_index_value\t\t\t\t[0x%lx] %s\n",  prefix, BIT(dword, 29),
 		OPNAME(n_index_value, BIT(dword, 29)));
 }
 
@@ -1367,10 +1367,10 @@ static void dump_aud_misc_control(int index)
 		sprintf(prefix, "AUD_C%c_MISC_CTRL", '1' + index - CONVERTER_1);
 	}
 
-	printf("%s   Pro_Allowed\t\t\t\t%lu\n", prefix, BIT(dword, 1));
+	printf("%s   Pro_Allowed\t\t\t\t%lu\n",           prefix, BIT(dword, 1));
 	printf("%s   Sample_Fabrication_EN_bit\t\t%lu\n", prefix, BIT(dword, 2));
-	printf("%s   Output_Delay\t\t\t\t%lu\n", prefix, BITS(dword, 7, 4));
-	printf("%s   Sample_present_Disable\t\t%lu\n", prefix, BIT(dword, 8));
+	printf("%s   Output_Delay\t\t\t\t%lu\n",          prefix, BITS(dword, 7, 4));
+	printf("%s   Sample_present_Disable\t\t%lu\n",    prefix, BIT(dword, 8));
 }
 
 static void dump_aud_vendor_device_id(void)
@@ -1406,9 +1406,9 @@ static void dump_aud_m_cts_enable(int index)
 		sprintf(prefix, "AUD_TC%c_M_CTS_ENABLE", 'A' + index - TRANSCODER_A);
 	}
 
-	printf("%s  CTS_programming\t\t\t%#lx\n", prefix, BITS(dword, 19, 0));
+	printf("%s  CTS_programming\t\t\t%#lx\n",        prefix, BITS(dword, 19, 0));
 	printf("%s  Enable_CTS_or_M_programming\t%lu\n", prefix, BIT(dword, 20));
-	printf("%s  CTS_M value Index\t\t\t%s\n", prefix, BIT(dword, 21) ? "CTS" : "M");
+	printf("%s  CTS_M value Index\t\t\t%s\n",        prefix, BIT(dword, 21) ? "CTS" : "M");
 }
 
 static void dump_aud_power_state(void)
@@ -1417,12 +1417,12 @@ static void dump_aud_power_state(void)
 	int num_pipes;
 
 	dword = INREG(aud_reg_base + AUD_PWRST);
-	printf("AUD_PWRST  PinB_Widget_Power_State_Set              \t%s\n", power_state[BITS(dword,  1,  0)]);
-	printf("AUD_PWRST  PinB_Widget_Power_State_Current          \t%s\n", power_state[BITS(dword,  3,  2)]);
-	printf("AUD_PWRST  PinC_Widget_Power_State_Set              \t%s\n", power_state[BITS(dword,  5,  4)]);
-	printf("AUD_PWRST  PinC_Widget_Power_State_Current          \t%s\n", power_state[BITS(dword,  7,  6)]);
-	printf("AUD_PWRST  PinD_Widget_Power_State_Set              \t%s\n", power_state[BITS(dword,  9,  8)]);
-	printf("AUD_PWRST  PinD_Widget_Power_State_Current          \t%s\n", power_state[BITS(dword, 11, 10)]);
+	printf("AUD_PWRST  PinB_Widget_Power_State_Set              \t%s\n",         power_state[BITS(dword,  1,  0)]);
+	printf("AUD_PWRST  PinB_Widget_Power_State_Current          \t%s\n",         power_state[BITS(dword,  3,  2)]);
+	printf("AUD_PWRST  PinC_Widget_Power_State_Set              \t%s\n",         power_state[BITS(dword,  5,  4)]);
+	printf("AUD_PWRST  PinC_Widget_Power_State_Current          \t%s\n",         power_state[BITS(dword,  7,  6)]);
+	printf("AUD_PWRST  PinD_Widget_Power_State_Set              \t%s\n",         power_state[BITS(dword,  9,  8)]);
+	printf("AUD_PWRST  PinD_Widget_Power_State_Current          \t%s\n",         power_state[BITS(dword, 11, 10)]);
 
 	if (!IS_HASWELL_PLUS(devid)) {
 		printf("AUD_PWRST  ConvertorA_Widget_Power_State_Requsted   \t%s\n", power_state[BITS(dword, 13, 12)]);
@@ -1548,15 +1548,16 @@ static void dump_aud_pipe_conv_cfg(void)
 	uint32_t dword;
 
 	dword = INREG(aud_reg_base + AUD_PIPE_CONV_CFG);
-	printf("AUD_PIPE_CONV_CFG  Convertor_1_Digen\t\t\t%lu\n", BIT(dword, 0));
-	printf("AUD_PIPE_CONV_CFG  Convertor_2_Digen\t\t\t%lu\n", BIT(dword, 1));
-	printf("AUD_PIPE_CONV_CFG  Convertor_3_Digen\t\t\t%lu\n", BIT(dword, 2));
-	printf("AUD_PIPE_CONV_CFG  Convertor_1_Stream_ID\t\t%lu\n", BITS(dword,  7, 4));
-	printf("AUD_PIPE_CONV_CFG  Convertor_2_Stream_ID\t\t%lu\n", BITS(dword, 11, 8));
-	printf("AUD_PIPE_CONV_CFG  Convertor_3_Stream_ID\t\t%lu\n", BITS(dword, 15, 12));
-	printf("AUD_PIPE_CONV_CFG  Port_B_Out_Enable\t\t\t%lu\n", BIT(dword, 16));
-	printf("AUD_PIPE_CONV_CFG  Port_C_Out_Enable\t\t\t%lu\n", BIT(dword, 17));
-	printf("AUD_PIPE_CONV_CFG  Port_D_Out_Enable\t\t\t%lu\n", BIT(dword, 18));
+	printf("AUD_PIPE_CONV_CFG  Convertor_1_Digen\t\t\t%lu\n",    BIT(dword, 0));
+	printf("AUD_PIPE_CONV_CFG  Convertor_2_Digen\t\t\t%lu\n",    BIT(dword, 1));
+	printf("AUD_PIPE_CONV_CFG  Convertor_3_Digen\t\t\t%lu\n",    BIT(dword, 2));
+	printf("AUD_PIPE_CONV_CFG  Convertor_1_Stream_ID\t\t%lu\n",  BITS(dword,  7, 4));
+	printf("AUD_PIPE_CONV_CFG  Convertor_2_Stream_ID\t\t%lu\n",  BITS(dword, 11, 8));
+	printf("AUD_PIPE_CONV_CFG  Convertor_3_Stream_ID\t\t%lu\n",  BITS(dword, 15, 12));
+
+	printf("AUD_PIPE_CONV_CFG  Port_B_Out_Enable\t\t\t%lu\n",    BIT(dword, 16));
+	printf("AUD_PIPE_CONV_CFG  Port_C_Out_Enable\t\t\t%lu\n",    BIT(dword, 17));
+	printf("AUD_PIPE_CONV_CFG  Port_D_Out_Enable\t\t\t%lu\n",    BIT(dword, 18));
 	printf("AUD_PIPE_CONV_CFG  Port_B_Amp_Mute_Status\t\t%lu\n", BIT(dword, 20));
 	printf("AUD_PIPE_CONV_CFG  Port_C_Amp_Mute_Status\t\t%lu\n", BIT(dword, 21));
 	printf("AUD_PIPE_CONV_CFG  Port_D_Amp_Mute_Status\t\t%lu\n", BIT(dword, 22));
@@ -1575,16 +1576,16 @@ static void dump_aud_dig_cnvt(int index)
 		sprintf(prefix, "AUD_C%c_DIG_CNVT   ", '1' + index - CONVERTER_1);
 	}
 
-	printf("%s  V\t\t\t\t\t%lu\n",		prefix, BIT(dword, 1));
-	printf("%s  VCFG\t\t\t\t\t%lu\n",	prefix, BIT(dword, 2));
-	printf("%s  PRE\t\t\t\t\t%lu\n",	prefix, BIT(dword, 3));
-	printf("%s  Copy\t\t\t\t\t%lu\n",	prefix, BIT(dword, 4));
-	printf("%s  NonAudio\t\t\t\t%lu\n",	prefix, BIT(dword, 5));
-	printf("%s  PRO\t\t\t\t\t%lu\n",	prefix, BIT(dword, 6));
-	printf("%s  Level\t\t\t\t\t%lu\n",	prefix, BIT(dword, 7));
-	printf("%s  Category_Code\t\t\t\t%lu\n", prefix, BITS(dword, 14, 8));
-	printf("%s  Lowest_Channel_Number\t\t\t%lu\n", prefix, BITS(dword, 19, 16));
-	printf("%s  Stream_ID\t\t\t\t%lu\n", prefix, BITS(dword, 23, 20));
+	printf("%s  V\t\t\t\t\t%lu\n",               prefix, BIT(dword, 1));
+	printf("%s  VCFG\t\t\t\t%lu\n",              prefix, BIT(dword, 2));
+	printf("%s  PRE\t\t\t\t\t%lu\n",             prefix, BIT(dword, 3));
+	printf("%s  Copy\t\t\t\t%lu\n",              prefix, BIT(dword, 4));
+	printf("%s  NonAudio\t\t\t\t%lu\n",          prefix, BIT(dword, 5));
+	printf("%s  PRO\t\t\t\t\t%lu\n",             prefix, BIT(dword, 6));
+	printf("%s  Level\t\t\t\t%lu\n",             prefix, BIT(dword, 7));
+	printf("%s  Category_Code\t\t\t%lu\n",       prefix, BITS(dword, 14, 8));
+	printf("%s  Lowest_Channel_Number\t\t%lu\n", prefix, BITS(dword, 19, 16));
+	printf("%s  Stream_ID\t\t\t\t%lu\n",         prefix, BITS(dword, 23, 20));
 }
 
 static void dump_aud_str_desc(int index)
@@ -1601,21 +1602,21 @@ static void dump_aud_str_desc(int index)
 		sprintf(prefix, "AUD_C%c_STR_DESC  ", '1' + index - CONVERTER_1);
 	}
 
-	printf("%s  Number_of_Channels_in_a_Stream\t\t%lu\n", prefix, 1 + BITS(dword, 3, 0));
-	printf("%s  Bits_per_Sample\t\t\t[%#lx] %s\n",  prefix, BITS(dword, 6, 4),
+	printf("%s  Number_of_Channels_in_a_Stream\t%lu\n",   prefix, BITS(dword, 3, 0) + 1);
+	printf("%s  Bits_per_Sample\t\t\t[%#lx] %s\n",        prefix, BITS(dword, 6, 4),
 		OPNAME(bits_per_sample, BITS(dword, 6, 4)));
 
-	printf("%s  Sample_Base_Rate_Divisor\t\t[%#lx] %s\n",  prefix, BITS(dword, 10, 8),
+	printf("%s  Sample_Base_Rate_Divisor\t\t[%#lx] %s\n", prefix, BITS(dword, 10, 8),
 		OPNAME(sample_base_rate_divisor, BITS(dword, 10, 8)));
-	printf("%s  Sample_Base_Rate_Mult\t\t\t[%#lx] %s\n",  prefix, BITS(dword, 13, 11),
+	printf("%s  Sample_Base_Rate_Mult\t\t[%#lx] %s\n",    prefix, BITS(dword, 13, 11),
 		OPNAME(sample_base_rate_mult, BITS(dword, 13, 11)));
-	printf("%s  Sample_Base_Rate\t\t\t[%#lx] %s\t",  prefix, BIT(dword, 14),
+	printf("%s  Sample_Base_Rate\t\t\t[%#lx] %s\t",       prefix, BIT(dword, 14),
 		OPNAME(sample_base_rate, BIT(dword, 14)));
 	rate = (BIT(dword, 14) ? 44100 : 48000) * (BITS(dword, 13, 11) + 1)
 		/(BITS(dword, 10, 8) + 1);
 	printf("=> Sample Rate %d Hz\n", rate);
 
-	printf("%s  Convertor_Channel_Count\t\t%lu\n", prefix, BITS(dword, 20, 16) + 1);
+	printf("%s  Convertor_Channel_Count\t\t%lu\n",        prefix, BITS(dword, 20, 16) + 1);
 
 	if (!IS_HASWELL_PLUS(devid))
 		printf("%s  HBR_enable\t\t\t\t%lu\n",         prefix, BITS(dword, 28, 27));
@@ -1647,8 +1648,8 @@ static void dump_aud_connect_list(void)
 	dword = INREG(aud_reg_base + AUD_PINW_CONNLNG_LIST);
 	sprintf(prefix, "AUD_PINW_CONNLNG_LIST");
 
-	printf("%s  Connect_List_Length\t%lu\n", prefix, BITS(dword, 6, 0));
-	printf("%s  Form \t\t[%#lx] %s\n", prefix, BIT(dword, 7),
+	printf("%s  Connect_List_Length\t\t%lu\n",     prefix, BITS(dword, 6, 0));
+	printf("%s  Form \t\t\t\t[%#lx] %s\n",         prefix, BIT(dword, 7),
 		OPNAME(connect_list_form, BIT(dword, 7)));
 	printf("%s  Connect_List_Entry\t\t%lu, %lu\n", prefix, BITS(dword, 15, 8), BITS(dword, 23, 16));
 }
@@ -1687,15 +1688,15 @@ static void dump_aud_ctrl_state(int index)
 		printf("Audio control state - Pipe %c\n",  'A' + index - PIPE_A);
 	}
 
-	printf("\tELD_ACK\t\t\t\t\t\t%lu\n", BIT(dword, 4));
-	printf("\tELD_buffer_size\t\t\t\t\t%lu\n", BITS(dword, 14, 10));
-	printf("\tDIP_transmission_frequency\t\t\t[0x%lx] %s\n", BITS(dword, 17, 16),
+	printf("\tELD_ACK\t\t\t\t\t\t%lu\n",                                 BIT(dword, 4));
+	printf("\tELD_buffer_size\t\t\t\t\t%lu\n",                           BITS(dword, 14, 10));
+	printf("\tDIP_transmission_frequency\t\t\t[0x%lx] %s\n",             BITS(dword, 17, 16),
 		dip_trans[BITS(dword, 17, 16)]);
-	printf("\tDIP Buffer Index \t\t\t\t[0x%lx] %s\n", BITS(dword, 20, 18),
+	printf("\tDIP Buffer Index \t\t\t\t[0x%lx] %s\n",                    BITS(dword, 20, 18),
 		dip_index[BITS(dword, 20, 18)]);
 	printf("\tAudio DIP type enable status\t\t\t[0x%04lx] %s, %s, %s\n", BITS(dword, 24, 21),
 		dip_type[BIT(dword, 21)], dip_gen1_state[BIT(dword, 22)],  dip_gen2_state[BIT(dword, 23)]);
-	printf("\tAudio DIP port select\t\t\t\t[0x%lx] %s\n", BITS(dword, 30, 29),
+	printf("\tAudio DIP port select\t\t\t\t[0x%lx] %s\n",                BITS(dword, 30, 29),
 		dip_port[BITS(dword, 30, 29)]);
 	printf("\n");
 }
@@ -2051,19 +2052,19 @@ static void dump_aud_hdmi_fifo_status(void)
 static void parse_bdw_audio_chicken_bit_reg(uint32_t dword)
 {
 	printf("\t");
-	printf("%s\n\t", OPNAME(vanilla_dp12_en, BIT(dword, 31)));
-	printf("%s\n\t", OPNAME(vanilla_3_widgets_en, BIT(dword, 30)));
-	printf("%s\n\t", OPNAME(block_audio, BIT(dword, 10)));
+	printf("%s\n\t", OPNAME(vanilla_dp12_en,           BIT(dword, 31)));
+	printf("%s\n\t", OPNAME(vanilla_3_widgets_en,      BIT(dword, 30)));
+	printf("%s\n\t", OPNAME(block_audio,               BIT(dword, 10)));
 	printf("%s\n\t", OPNAME(dis_eld_valid_pulse_trans, BIT(dword, 9)));
-	printf("%s\n\t", OPNAME(dis_pd_pulse_trans, BIT(dword, 8)));
-	printf("%s\n\t", OPNAME(dis_ts_delta_err, BIT(dword, 7)));
-	printf("%s\n\t", OPNAME(dis_ts_fix_dp_hbr, BIT(dword, 6)));
-	printf("%s\n\t", OPNAME(pattern_gen_8_ch_en, BIT(dword, 5)));
-	printf("%s\n\t", OPNAME(pattern_gen_2_ch_en, BIT(dword, 4)));
-	printf("%s\n\t", OPNAME(fabric_32_44_dis, BIT(dword, 3)));
-	printf("%s\n\t", OPNAME(epss_dis, BIT(dword, 2)));
-	printf("%s\n\t", OPNAME(ts_test_mode, BIT(dword, 1)));
-	printf("%s\n", OPNAME(en_mmio_program, BIT(dword, 0)));
+	printf("%s\n\t", OPNAME(dis_pd_pulse_trans,        BIT(dword, 8)));
+	printf("%s\n\t", OPNAME(dis_ts_delta_err,          BIT(dword, 7)));
+	printf("%s\n\t", OPNAME(dis_ts_fix_dp_hbr,         BIT(dword, 6)));
+	printf("%s\n\t", OPNAME(pattern_gen_8_ch_en,       BIT(dword, 5)));
+	printf("%s\n\t", OPNAME(pattern_gen_2_ch_en,       BIT(dword, 4)));
+	printf("%s\n\t", OPNAME(fabric_32_44_dis,          BIT(dword, 3)));
+	printf("%s\n\t", OPNAME(epss_dis,                  BIT(dword, 2)));
+	printf("%s\n\t", OPNAME(ts_test_mode,              BIT(dword, 1)));
+	printf("%s\n",   OPNAME(en_mmio_program,           BIT(dword, 0)));
 }
 
 /* Dump audio registers for Haswell and its successors (eg. Broadwell).
@@ -2077,35 +2078,35 @@ static void dump_hsw_plus(void)
 	set_aud_reg_base(0x65000);
 
 	/* HSW DDI Buffer */
-	dump_reg(DDI_BUF_CTL_A,		"DDI Buffer Controler A");
-	dump_reg(DDI_BUF_CTL_B,		"DDI Buffer Controler B");
-	dump_reg(DDI_BUF_CTL_C,		"DDI Buffer Controler C");
-	dump_reg(DDI_BUF_CTL_D,		"DDI Buffer Controler D");
-	dump_reg(DDI_BUF_CTL_E,		"DDI Buffer Controler E");
+	dump_reg(DDI_BUF_CTL_A,                "DDI Buffer Controler A");
+	dump_reg(DDI_BUF_CTL_B,                "DDI Buffer Controler B");
+	dump_reg(DDI_BUF_CTL_C,                "DDI Buffer Controler C");
+	dump_reg(DDI_BUF_CTL_D,                "DDI Buffer Controler D");
+	dump_reg(DDI_BUF_CTL_E,                "DDI Buffer Controler E");
 
 	/* HSW Pipe Function */
-	dump_reg(PIPE_CONF_A,		"PIPE Configuration A");
-	dump_reg(PIPE_CONF_B,		"PIPE Configuration B");
-	dump_reg(PIPE_CONF_C,		"PIPE Configuration C");
-	dump_reg(PIPE_CONF_EDP,		"PIPE Configuration EDP");
+	dump_reg(PIPE_CONF_A,                  "PIPE Configuration A");
+	dump_reg(PIPE_CONF_B,                  "PIPE Configuration B");
+	dump_reg(PIPE_CONF_C,                  "PIPE Configuration C");
+	dump_reg(PIPE_CONF_EDP,                "PIPE Configuration EDP");
 
-	dump_reg(PIPE_DDI_FUNC_CTL_A,	"PIPE DDI Function Control A");
-	dump_reg(PIPE_DDI_FUNC_CTL_B,	"PIPE DDI Function Control B");
-	dump_reg(PIPE_DDI_FUNC_CTL_C,	"PIPE DDI Function Control C");
-	dump_reg(PIPE_DDI_FUNC_CTL_EDP,	"PIPE DDI Function Control EDP");
+	dump_reg(PIPE_DDI_FUNC_CTL_A,          "PIPE DDI Function Control A");
+	dump_reg(PIPE_DDI_FUNC_CTL_B,          "PIPE DDI Function Control B");
+	dump_reg(PIPE_DDI_FUNC_CTL_C,          "PIPE DDI Function Control C");
+	dump_reg(PIPE_DDI_FUNC_CTL_EDP,        "PIPE DDI Function Control EDP");
 
 	/* HSW Display port */
-	dump_reg(DP_TP_CTL_A,		"DisplayPort Transport A Control");
-	dump_reg(DP_TP_CTL_B,		"DisplayPort Transport B Control");
-	dump_reg(DP_TP_CTL_C,		"DisplayPort Transport C Control");
-	dump_reg(DP_TP_CTL_D,		"DisplayPort Transport D Control");
-	dump_reg(DP_TP_CTL_E,		"DisplayPort Transport E Control");
+	dump_reg(DP_TP_CTL_A,                  "DisplayPort Transport A Control");
+	dump_reg(DP_TP_CTL_B,                  "DisplayPort Transport B Control");
+	dump_reg(DP_TP_CTL_C,                  "DisplayPort Transport C Control");
+	dump_reg(DP_TP_CTL_D,                  "DisplayPort Transport D Control");
+	dump_reg(DP_TP_CTL_E,                  "DisplayPort Transport E Control");
 
-	dump_reg(DP_TP_ST_A,		"DisplayPort Transport A Status");
-	dump_reg(DP_TP_ST_B,		"DisplayPort Transport B Status");
-	dump_reg(DP_TP_ST_C,		"DisplayPort Transport C Status");
-	dump_reg(DP_TP_ST_D,		"DisplayPort Transport D Status");
-	dump_reg(DP_TP_ST_E,		"DisplayPort Transport E Status");
+	dump_reg(DP_TP_ST_A,                   "DisplayPort Transport A Status");
+	dump_reg(DP_TP_ST_B,                   "DisplayPort Transport B Status");
+	dump_reg(DP_TP_ST_C,                   "DisplayPort Transport C Status");
+	dump_reg(DP_TP_ST_D,                   "DisplayPort Transport D Status");
+	dump_reg(DP_TP_ST_E,                   "DisplayPort Transport E Status");
 
 	/* HSW North Display Audio */
 	dump_aud_reg(AUD_TCA_CONFIG,           "Audio Configuration - Transcoder A");
