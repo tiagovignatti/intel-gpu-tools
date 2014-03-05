@@ -84,7 +84,7 @@ static void copy(int fd, uint32_t src, uint32_t dst, void *buf, int len, int loo
 
 	struct drm_i915_gem_relocation_entry reloc[] = {
 		{ dst, 0, 4*sizeof(uint32_t), 0, I915_GEM_DOMAIN_RENDER, I915_GEM_DOMAIN_RENDER },
-		{ src, 0, 7*sizeof(uint32_t), 0, I915_GEM_DOMAIN_RENDER, 0 },
+		{ src, 0, (is_64bit ? 8 : 7)*sizeof(uint32_t), 0, I915_GEM_DOMAIN_RENDER, 0 },
 	};
 	struct drm_i915_gem_exec_object2 exec[] = {
 		{ src },
