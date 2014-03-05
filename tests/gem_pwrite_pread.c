@@ -64,43 +64,42 @@ static inline void build_batch(uint32_t *batch, int len, uint32_t *batch_len)
 	batch[i++] = 1 << 16 | (len / 4);
 	batch[i++] = 0; /* dst */
 	if (is_64bit)
-		batch[i++] = 0; /* FIXME */
+		batch[i++] = 0;
 	batch[i++] = 0;
 	batch[i++] = len;
 	batch[i++] = 0; /* src */
 	if (is_64bit)
-		batch[i++] = 0; /* FIXME */
+		batch[i++] = 0;
 	batch[i++] = MI_BATCH_BUFFER_END;
 	batch[i++] = 0;
 
 	*batch_len = i * 4;
 }
 
-#define GPP_BATCH_SIZE (12 * 4)
+#define BUILD_EXEC \
+	uint32_t batch[12]; \
+	struct drm_i915_gem_relocation_entry reloc[] = { \
+		{ dst, 0, 4*sizeof(uint32_t), 0, I915_GEM_DOMAIN_RENDER, I915_GEM_DOMAIN_RENDER }, \
+		{ src, 0, (is_64bit ? 8 : 7)*sizeof(uint32_t), 0, I915_GEM_DOMAIN_RENDER, 0 }, \
+	}; \
+	struct drm_i915_gem_exec_object2 exec[] = { \
+		{ src }, \
+		{ dst }, \
+		{ gem_create(fd, 4096), 2, (uintptr_t)reloc } \
+	}; \
+	struct drm_i915_gem_execbuffer2 execbuf = { \
+		(uintptr_t)exec, 3, \
+		0, 0, \
+		0, 0, 0, 0, \
+		exec_flags, \
+	}; \
+	build_batch(batch, len, &execbuf.batch_len); \
+	gem_write(fd, exec[2].handle, 0, batch, execbuf.batch_len);
+
 
 static void copy(int fd, uint32_t src, uint32_t dst, void *buf, int len, int loops)
 {
-	uint32_t batch[GPP_BATCH_SIZE] = {0};
-
-	struct drm_i915_gem_relocation_entry reloc[] = {
-		{ dst, 0, 4*sizeof(uint32_t), 0, I915_GEM_DOMAIN_RENDER, I915_GEM_DOMAIN_RENDER },
-		{ src, 0, (is_64bit ? 8 : 7)*sizeof(uint32_t), 0, I915_GEM_DOMAIN_RENDER, 0 },
-	};
-	struct drm_i915_gem_exec_object2 exec[] = {
-		{ src },
-		{ dst },
-		{ gem_create(fd, 4096), 2, (uintptr_t)reloc }
-	};
-	struct drm_i915_gem_execbuffer2 execbuf = {
-		(uintptr_t)exec, 3,
-		0, 0,
-		0, 0, 0, 0,
-		exec_flags,
-	};
-
-	build_batch(batch, len, &execbuf.batch_len);
-
-	gem_write(fd, exec[2].handle, 0, batch, execbuf.batch_len);
+	BUILD_EXEC;
 
 	while (loops--) {
 		gem_write(fd, src, 0, buf, len);
@@ -113,28 +112,8 @@ static void copy(int fd, uint32_t src, uint32_t dst, void *buf, int len, int loo
 
 static void as_gtt_mmap(int fd, uint32_t src, uint32_t dst, void *buf, int len, int loops)
 {
-	uint32_t batch[GPP_BATCH_SIZE] = {0};
-
-	struct drm_i915_gem_relocation_entry reloc[] = {
-		{ dst, 0, 4*sizeof(uint32_t), 0, I915_GEM_DOMAIN_RENDER, I915_GEM_DOMAIN_RENDER },
-		{ src, 0, 7*sizeof(uint32_t), 0, I915_GEM_DOMAIN_RENDER, 0 },
-	};
-	struct drm_i915_gem_exec_object2 exec[] = {
-		{ src },
-		{ dst },
-		{ gem_create(fd, 4096), 2, (uintptr_t)reloc }
-	};
-	struct drm_i915_gem_execbuffer2 execbuf = {
-		(uintptr_t)exec, 3,
-		0, GPP_BATCH_SIZE,
-		0, 0, 0, 0,
-		exec_flags,
-	};
 	uint32_t *src_ptr, *dst_ptr;
-
-	build_batch(batch, len, &execbuf.batch_len);
-
-	gem_write(fd, exec[2].handle, 0, batch, execbuf.batch_len);
+	BUILD_EXEC;
 
 	src_ptr = gem_mmap__gtt(fd, src, OBJECT_SIZE, PROT_WRITE);
 	dst_ptr = gem_mmap__gtt(fd, dst, OBJECT_SIZE, PROT_READ);
@@ -158,28 +137,8 @@ static void as_gtt_mmap(int fd, uint32_t src, uint32_t dst, void *buf, int len, 
 
 static void as_cpu_mmap(int fd, uint32_t src, uint32_t dst, void *buf, int len, int loops)
 {
-	uint32_t batch[GPP_BATCH_SIZE] = {0};
-
-	struct drm_i915_gem_relocation_entry reloc[] = {
-		{ dst, 0, 4*sizeof(uint32_t), 0, I915_GEM_DOMAIN_RENDER, I915_GEM_DOMAIN_RENDER },
-		{ src, 0, 7*sizeof(uint32_t), 0, I915_GEM_DOMAIN_RENDER, 0 },
-	};
-	struct drm_i915_gem_exec_object2 exec[] = {
-		{ src },
-		{ dst },
-		{ gem_create(fd, 4096), 2, (uintptr_t)reloc }
-	};
-	struct drm_i915_gem_execbuffer2 execbuf = {
-		(uintptr_t)exec, 3,
-		0, GPP_BATCH_SIZE,
-		0, 0, 0, 0,
-		exec_flags,
-	};
 	uint32_t *src_ptr, *dst_ptr;
-
-	build_batch(batch, len, &execbuf.batch_len);
-
-	gem_write(fd, exec[2].handle, 0, batch, execbuf.batch_len);
+	BUILD_EXEC;
 
 	src_ptr = gem_mmap__cpu(fd, src, OBJECT_SIZE, PROT_WRITE);
 	dst_ptr = gem_mmap__cpu(fd, dst, OBJECT_SIZE, PROT_READ);
@@ -202,28 +161,8 @@ static void as_cpu_mmap(int fd, uint32_t src, uint32_t dst, void *buf, int len, 
 
 static void test_copy(int fd, uint32_t src, uint32_t dst, uint32_t *buf, int len)
 {
-	uint32_t batch[GPP_BATCH_SIZE] = {0};
-
-	struct drm_i915_gem_relocation_entry reloc[] = {
-		{ dst, 0, 4*sizeof(uint32_t), 0, I915_GEM_DOMAIN_RENDER, I915_GEM_DOMAIN_RENDER },
-		{ src, 0, 7*sizeof(uint32_t), 0, I915_GEM_DOMAIN_RENDER, 0 },
-	};
-	struct drm_i915_gem_exec_object2 exec[] = {
-		{ src },
-		{ dst },
-		{ gem_create(fd, 4096), 2, (uintptr_t)reloc }
-	};
-	struct drm_i915_gem_execbuffer2 execbuf = {
-		(uintptr_t)exec, 3,
-		0, GPP_BATCH_SIZE,
-		0, 0, 0, 0,
-		exec_flags,
-	};
 	int i;
-
-	build_batch(batch, len, &execbuf.batch_len);
-
-	gem_write(fd, exec[2].handle, 0, batch, execbuf.batch_len);
+	BUILD_EXEC;
 
 	for (i = 0; i < len/4; i++)
 		buf[i] = i;
@@ -242,29 +181,9 @@ static void test_copy(int fd, uint32_t src, uint32_t dst, uint32_t *buf, int len
 
 static void test_as_gtt_mmap(int fd, uint32_t src, uint32_t dst, int len)
 {
-	uint32_t batch[GPP_BATCH_SIZE] = {0};
-
-	struct drm_i915_gem_relocation_entry reloc[] = {
-		{ dst, 0, 4*sizeof(uint32_t), 0, I915_GEM_DOMAIN_RENDER, I915_GEM_DOMAIN_RENDER },
-		{ src, 0, 7*sizeof(uint32_t), 0, I915_GEM_DOMAIN_RENDER, 0 },
-	};
-	struct drm_i915_gem_exec_object2 exec[] = {
-		{ src },
-		{ dst },
-		{ gem_create(fd, 4096), 2, (uintptr_t)reloc }
-	};
-	struct drm_i915_gem_execbuffer2 execbuf = {
-		(uintptr_t)exec, 3,
-		0, GPP_BATCH_SIZE,
-		0, 0, 0, 0,
-		exec_flags,
-	};
 	uint32_t *src_ptr, *dst_ptr;
 	int i;
-
-	build_batch(batch, len, &execbuf.batch_len);
-
-	gem_write(fd, exec[2].handle, 0, batch, execbuf.batch_len);
+	BUILD_EXEC;
 
 	src_ptr = gem_mmap__gtt(fd, src, OBJECT_SIZE, PROT_WRITE);
 	dst_ptr = gem_mmap__gtt(fd, dst, OBJECT_SIZE, PROT_READ);
@@ -286,29 +205,9 @@ static void test_as_gtt_mmap(int fd, uint32_t src, uint32_t dst, int len)
 
 static void test_as_cpu_mmap(int fd, uint32_t src, uint32_t dst, int len)
 {
-	uint32_t batch[GPP_BATCH_SIZE] = {0};
-
-	struct drm_i915_gem_relocation_entry reloc[] = {
-		{ dst, 0, 4*sizeof(uint32_t), 0, I915_GEM_DOMAIN_RENDER, I915_GEM_DOMAIN_RENDER },
-		{ src, 0, 7*sizeof(uint32_t), 0, I915_GEM_DOMAIN_RENDER, 0 },
-	};
-	struct drm_i915_gem_exec_object2 exec[] = {
-		{ src },
-		{ dst },
-		{ gem_create(fd, 4096), 2, (uintptr_t)reloc }
-	};
-	struct drm_i915_gem_execbuffer2 execbuf = {
-		(uintptr_t)exec, 3,
-		0, GPP_BATCH_SIZE,
-		0, 0, 0, 0,
-		exec_flags,
-	};
 	uint32_t *src_ptr, *dst_ptr;
 	int i;
-
-	build_batch(batch, len, &execbuf.batch_len);
-
-	gem_write(fd, exec[2].handle, 0, batch, execbuf.batch_len);
+	BUILD_EXEC;
 
 	src_ptr = gem_mmap__cpu(fd, src, OBJECT_SIZE, PROT_WRITE);
 	dst_ptr = gem_mmap__cpu(fd, dst, OBJECT_SIZE, PROT_READ);
