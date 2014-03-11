@@ -59,23 +59,6 @@
 /* This file contains a bunch of wrapper functions to directly use gem ioctls.
  * Mostly useful to write kernel tests. */
 
-drm_intel_bo *
-gem_handle_to_libdrm_bo(drm_intel_bufmgr *bufmgr, int fd, const char *name, uint32_t handle)
-{
-	struct drm_gem_flink flink;
-	int ret;
-	drm_intel_bo *bo;
-
-	flink.handle = handle;
-	ret = ioctl(fd, DRM_IOCTL_GEM_FLINK, &flink);
-	igt_assert(ret == 0);
-
-	bo = drm_intel_bo_gem_create_from_name(bufmgr, name, flink.name);
-	igt_assert(bo);
-
-	return bo;
-}
-
 static int
 is_intel(int fd)
 {

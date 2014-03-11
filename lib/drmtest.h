@@ -46,9 +46,6 @@
 
 #include "ioctl_wrappers.h"
 
-drm_intel_bo * gem_handle_to_libdrm_bo(drm_intel_bufmgr *bufmgr, int fd,
-				       const char *name, uint32_t handle);
-
 int drm_get_card(void);
 int drm_open_any(void);
 int drm_open_any_render(void);
@@ -308,30 +305,6 @@ extern enum igt_log_level igt_log_level;
 			igt_warn(f); \
 		} \
 	} while (0)
-
-/* check functions which auto-skip tests by calling igt_skip() */
-void gem_require_caching(int fd);
-static inline void gem_require_ring(int fd, int ring_id)
-{
-	switch (ring_id) {
-	case I915_EXEC_RENDER:
-		return;
-	case I915_EXEC_BLT:
-		igt_require(HAS_BLT_RING(intel_get_drm_devid(fd)));
-		return;
-	case I915_EXEC_BSD:
-		igt_require(HAS_BSD_RING(intel_get_drm_devid(fd)));
-		return;
-#ifdef I915_EXEC_VEBOX
-	case I915_EXEC_VEBOX:
-		igt_require(gem_has_vebox(fd));
-		return;
-#endif
-	default:
-		assert(0);
-		return;
-	}
-}
 
 /* helpers to automatically reduce test runtime in simulation */
 bool igt_run_in_simulation(void);
