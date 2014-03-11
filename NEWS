@@ -26,6 +26,8 @@ Release 1.6 (2014-XX-YY)
 
 - Broadwell support for intel_audio_dump (Mengdong Lin).
 
+- API documentation support (Thomas)
+
 Release 1.5 (2013-11-06)
 ------------------------
 

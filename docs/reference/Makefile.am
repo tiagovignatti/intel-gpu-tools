@@ -1,0 +1,1 @@
+SUBDIRS = intel-gpu-tools

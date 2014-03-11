@@ -1,0 +1,40 @@
+<?xml version="1.0"?>
+<!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook XML V4.3//EN"
+               "http://www.oasis-open.org/docbook/xml/4.3/docbookx.dtd"
+[
+  <!ENTITY % local.common.attrib "xmlns:xi  CDATA  #FIXED 'http://www.w3.org/2003/XInclude'">
+  <!ENTITY version SYSTEM "version.xml">
+]>
+<book id="index">
+  <bookinfo>
+    <title>intel-gpu-tools Reference Manual</title>
+    <releaseinfo>
+      for intel-gpu-tools &version;.
+    </releaseinfo>
+  </bookinfo>
+
+  <chapter>
+    <title>Intel GPU Tools</title>
+    <xi:include href="xml/debug.xml"/>
+    <xi:include href="xml/drmtest.xml"/>
+    <xi:include href="xml/igt_debugfs.xml"/>
+    <xi:include href="xml/igt_display.xml"/>
+    <xi:include href="xml/igt_kms.xml"/>
+    <xi:include href="xml/intel_batchbuffer.xml"/>
+    <xi:include href="xml/intel_chipset.xml"/>
+    <xi:include href="xml/intel_gpu_tools.xml"/>
+    <xi:include href="xml/media_fill.xml"/>
+    <xi:include href="xml/rendercopy.xml"/>
+
+  </chapter>
+  <index id="api-index-full">
+    <title>API Index</title>
+    <xi:include href="xml/api-index-full.xml"><xi:fallback /></xi:include>
+  </index>
+  <index id="deprecated-api-index" role="deprecated">
+    <title>Index of deprecated API</title>
+    <xi:include href="xml/api-index-deprecated.xml"><xi:fallback /></xi:include>
+  </index>
+
+  <xi:include href="xml/annotation-glossary.xml"><xi:fallback /></xi:include>
+</book>

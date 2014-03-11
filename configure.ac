@@ -42,6 +42,14 @@ AC_PROG_CC
 AM_PROG_LEX
 AC_PROG_YACC
 
+# check for gtk-doc
+m4_ifdef([GTK_DOC_CHECK], [
+GTK_DOC_CHECK([1.14],[--flavour no-tmpl])
+],[
+AM_CONDITIONAL([ENABLE_GTK_DOC], false)
+])
+
+
 # Checks for functions, headers, structures, etc.
 AC_HEADER_STDC
 AC_CHECK_HEADERS([termios.h])
@@ -192,6 +200,10 @@ AC_CONFIG_FILES([
 		 Makefile
 		 benchmarks/Makefile
 		 demos/Makefile
+		 docs/Makefile
+		 docs/reference/Makefile
+		 docs/reference/intel-gpu-tools/Makefile
+		 docs/reference/intel-gpu-tools/version.xml
 		 lib/Makefile
 		 man/Makefile
 		 scripts/Makefile
