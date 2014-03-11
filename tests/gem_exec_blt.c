@@ -234,7 +234,7 @@ static void run(int object_size)
 	i915_execbuffer2_set_context_id(execbuf, 0);
 	execbuf.rsvd2 = 0;
 
-	for (count = 1; count <= 1<<17; count <<= 1) {
+	for (count = 1; count <= 1<<12; count <<= 1) {
 		struct timeval start, end;
 
 		gettimeofday(&start, NULL);
