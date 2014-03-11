@@ -79,7 +79,7 @@ static int create_bo_for_fb(int fd, int width, int height, int bpp,
 			    unsigned *size_ret, unsigned *stride_ret)
 {
 	uint32_t gem_handle;
-	int size;
+	int size, ret = 0;
 	unsigned stride;
 
 	if (tiled) {
@@ -109,13 +109,13 @@ static int create_bo_for_fb(int fd, int width, int height, int bpp,
 	gem_handle = gem_create(fd, size);
 
 	if (tiled)
-		gem_set_tiling(fd, gem_handle, I915_TILING_X, stride);
+		ret = __gem_set_tiling(fd, gem_handle, I915_TILING_X, stride);
 
 	*stride_ret = stride;
 	*size_ret = size;
 	*gem_handle_ret = gem_handle;
 
-	return 0;
+	return ret;
 }
 
 /**

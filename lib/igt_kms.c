@@ -56,7 +56,6 @@
  * Note that this library's header pulls in the [i-g-t framebuffer](intel-gpu-tools-i-g-t-framebuffer.html)
  * library as a dependency.
  */
-
 const char *kmstest_pipe_str(int pipe)
 {
 	const char *str[] = { "A", "B", "C" };

@@ -1277,11 +1277,13 @@ static void run_test_on_crtc_set(struct test_output *o, int *crtc_idxs,
 					 true, &o->fb_info[2]);
 	igt_assert(o->fb_ids[0]);
 	igt_assert(o->fb_ids[1]);
-	igt_assert(o->fb_ids[2]);
+	if (o->flags & TEST_FB_BAD_TILING)
+		igt_require(o->fb_ids[2]);
 
 	paint_flip_mode(&o->fb_info[0], false);
 	paint_flip_mode(&o->fb_info[1], true);
-	paint_flip_mode(&o->fb_info[2], true);
+	if (o->fb_ids[2])
+		paint_flip_mode(&o->fb_info[2], true);
 
 	if (o->flags & TEST_FB_BAD_TILING)
 		set_y_tiling(o, 2);
@@ -1329,7 +1331,8 @@ static void run_test_on_crtc_set(struct test_output *o, int *crtc_idxs,
 	igt_info("\n%s: PASSED\n\n", test_name);
 
 out:
-	igt_remove_fb(drm_fd, &o->fb_info[2]);
+	if (o->fb_ids[2])
+		igt_remove_fb(drm_fd, &o->fb_info[2]);
 	igt_remove_fb(drm_fd, &o->fb_info[1]);
 	igt_remove_fb(drm_fd, &o->fb_info[0]);
 
