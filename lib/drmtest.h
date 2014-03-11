@@ -44,6 +44,8 @@
 #include "intel_chipset.h"
 #include "intel_gpu_tools.h"
 
+#include "ioctl_wrappers.h"
+
 drm_intel_bo * gem_handle_to_libdrm_bo(drm_intel_bufmgr *bufmgr, int fd,
 				       const char *name, uint32_t handle);
 
@@ -52,53 +54,6 @@ int drm_open_any(void);
 int drm_open_any_render(void);
 
 void gem_quiescent_gpu(int fd);
-
-/* ioctl wrappers and similar stuff for bare metal testing */
-void gem_set_tiling(int fd, uint32_t handle, uint32_t tiling, uint32_t stride);
-int __gem_set_tiling(int fd, uint32_t handle, uint32_t tiling, uint32_t stride);
-bool gem_has_enable_ring(int fd,int param);
-bool gem_has_bsd(int fd);
-bool gem_has_blt(int fd);
-bool gem_has_vebox(int fd);
-int gem_get_num_rings(int fd);
-
-void gem_set_caching(int fd, uint32_t handle, int caching);
-uint32_t gem_get_caching(int fd, uint32_t handle);
-uint32_t gem_flink(int fd, uint32_t handle);
-uint32_t gem_open(int fd, uint32_t name);
-void gem_close(int fd, uint32_t handle);
-void gem_write(int fd, uint32_t handle, uint32_t offset,  const void *buf, uint32_t size);
-void gem_read(int fd, uint32_t handle, uint32_t offset, void *buf, uint32_t size);
-void gem_set_domain(int fd, uint32_t handle,
-		    uint32_t read_domains, uint32_t write_domain);
-void gem_sync(int fd, uint32_t handle);
-uint32_t __gem_create(int fd, int size);
-uint32_t gem_create(int fd, int size);
-void gem_execbuf(int fd, struct drm_i915_gem_execbuffer2 *execbuf);
-
-void *gem_mmap__gtt(int fd, uint32_t handle, int size, int prot);
-void *gem_mmap__cpu(int fd, uint32_t handle, int size, int prot);
-#define gem_mmap gem_mmap__gtt
-
-uint64_t gem_available_aperture_size(int fd);
-uint64_t gem_aperture_size(int fd);
-uint64_t gem_mappable_aperture_size(void);
-int gem_madvise(int fd, uint32_t handle, int state);
-
-uint32_t gem_context_create(int fd);
-
-void gem_sw_finish(int fd, uint32_t handle);
-
-bool gem_bo_busy(int fd, uint32_t handle);
-
-/* feature test helpers */
-bool gem_uses_aliasing_ppgtt(int fd);
-int gem_available_fences(int fd);
-
-/* prime */
-int prime_handle_to_fd(int fd, uint32_t handle);
-uint32_t prime_fd_to_handle(int fd, int dma_buf_fd);
-off_t prime_get_size(int dma_buf_fd);
 
 /* generally useful helpers */
 void igt_fork_signal_helper(void);

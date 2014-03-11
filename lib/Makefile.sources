@@ -20,6 +20,8 @@ libintel_tools_la_SOURCES = 	\
 	intel_mmio.c		\
 	intel_pci.c		\
 	intel_reg.h		\
+	ioctl_wrappers.c	\
+	ioctl_wrappers.h	\
 	media_fill.c            \
 	media_fill.h            \
 	media_fill_gen7.c       \
