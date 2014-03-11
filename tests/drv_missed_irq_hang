@@ -10,8 +10,6 @@ oldpath=`pwd`
 
 cd $i915_dfs_path
 
-echo $SOURCE_DIR
-
 function check_for_missed_irq {
 	if test `cat i915_ring_missed_irq` = 0x00000000; then
 		echo "missed interrupts undetected"
