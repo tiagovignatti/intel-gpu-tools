@@ -57,6 +57,7 @@ static int get_perf(const char *path)
 	igt_assert(ret != 0);
 	enabled = strcmp(str, "yes") == 0;
 	ret = fscanf(file, "Performance_Counter: %i", &perf);
+	igt_assert(ret != 0);
 
 	if (!sink)
 	    igt_skip("This panel does not support PSR.\n");
