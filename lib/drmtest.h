@@ -110,7 +110,11 @@ void igt_permute_array(void *array, unsigned size,
 						 unsigned j));
 void igt_progress(const char *header, uint64_t i, uint64_t total);
 
-/* init for simple tests without subtests */
+/**
+ * igt_simple_init:
+ *
+ * Init for simple tests without subtests
+ */
 void igt_simple_init(void);
 #define igt_simple_main \
 	static void igt_tokencat(__real_main, __LINE__)(void); \
@@ -133,7 +137,9 @@ int igt_subtest_init_parse_opts(int argc, char **argv,
 				igt_opt_handler_t opt_handler);
 bool __igt_run_subtest(const char *subtest_name);
 /**
- * igt_subtest/_f - Denote a subtest code block
+ * igt_subtest:
+ *
+ * Denote a subtest code block
  *
  * Magic control flow which denotes a subtest code block. Within that codeblock
  * igt_skip|success will only bail out of the subtest. The _f variant accepts a
@@ -148,6 +154,15 @@ bool __igt_run_subtest(const char *subtest_name);
 	     __igt_run_subtest( tmp ) && \
 	     (setjmp(igt_subtest_jmpbuf) == 0); \
 	     igt_success())
+
+/**
+ * igt_subtest_f:
+ * @...: format string
+ *
+ * Denote a subtest code block
+ *
+ * Like #igt_subtest, but also accepts a printf format string
+ */
 #define igt_subtest_f(f...) \
 	__igt_subtest_f(igt_tokencat(__tmpchar, __LINE__), f)
 #define igt_subtest(name) for (; __igt_run_subtest((name)) && \
@@ -165,27 +180,35 @@ const char *igt_subtest_name(void);
 
 
 /**
- * igt_skip - subtest aware test skipping
+ * igt_skip:
+ *
+ * Subtest aware test skipping
  *
  * For tests with subtests this will either bail out of the current subtest or
  * mark all subsequent subtests as SKIP (in case some global setup code failed).
  *
  * For normal tests without subtest it will directly exit.
  */
-__attribute__((format(printf, 1, 2))) void igt_skip(const char *f, ...) __attribute__((noreturn));
+__attribute__((format(printf, 1, 2)))
+void igt_skip(const char *f, ...) __attribute__((noreturn));
 __attribute__((format(printf, 5, 6)))
 void __igt_skip_check(const char *file, const int line,
 		      const char *func, const char *check,
 		      const char *format, ...) __attribute__((noreturn));
 /**
- * igt_success - complete a (subtest) as successfull
+ * igt_success:
+ *
+ * Complete a (subtest) as successfull
  *
  * This bails out of a subtests and marks it as successful. For global tests it
  * it won't bail out of anything.
  */
 void igt_success(void);
+
 /**
- * igt_fail - fail a testcase
+ * igt_fail:
+ *
+ * Fail a testcase
  *
  * For subtest it just bails out of the subtest, when run in global context it
  * will exit. Note that it won't attempt to keep on running further tests,
@@ -198,7 +221,9 @@ void __igt_fail_assert(int exitcode, const char *file,
 		       const char *format, ...)
 	__attribute__((noreturn));
 /**
- * igt_exit - exit() for igts
+ * igt_exit:
+ *
+ * exit() for igts
  *
  * This will exit the test with the right exit code when subtests have been
  * skipped. For normal tests it exits with a successful exit code, presuming
@@ -207,7 +232,9 @@ void __igt_fail_assert(int exitcode, const char *file,
  */
 void igt_exit(void) __attribute__((noreturn));
 /**
- * igt_assert - fails (sub-)test if a condition is not met
+ * igt_assert:
+ *
+ * Fails (sub-)test if a condition is not met
  *
  * Should be used everywhere where a test checks results.
  */
@@ -220,9 +247,9 @@ void igt_exit(void) __attribute__((noreturn));
 		__igt_fail_assert(99, __FILE__, __LINE__, __func__, #expr , f); \
 	} while (0)
 /**
- * igt_assert_cmptint
+ * igt_assert_cmptint:
  *
- * Like igt_assert(), but displays the values being compared on failure.
+ * Like #igt_assert, but displays the values being compared on failure.
  */
 #define igt_assert_cmpint(n1, cmp, n2) \
 	do { \
@@ -234,7 +261,9 @@ void igt_exit(void) __attribute__((noreturn));
 	} while (0)
 
 /**
- * igt_require - skip a (sub-)test if a condition is not met
+ * igt_require:
+ *
+ * Skip a (sub-)test if a condition is not met
  *
  * This is useful to streamline the skip logic since it allows for a more flat
  * code control flow.
@@ -254,8 +283,10 @@ bool __igt_fixture(void);
 void __igt_fixture_complete(void);
 void __igt_fixture_end(void) __attribute__((noreturn));
 /**
- * igt_fixture - annote global test fixture code
- * 
+ * igt_fixture:
+ *
+ * Annotate global test fixture code
+ *
  * Testcase with subtests often need to set up a bunch of global state as the
  * common test fixture. To avoid such code interferring with the subtest
  * enumeration (e.g. when enumerating on systemes without an intel gpu) such
@@ -270,9 +301,11 @@ void __igt_fixture_end(void) __attribute__((noreturn));
 
 bool __igt_fork(void);
 /**
- * igt_fork - fork parallel test threads with fork()
+ * igt_fork:
  * @child: name of the int variable with the child number
  * @num_children: number of children to fork
+ *
+ * Fork parallel test threads with fork()
  *
  * Joining all test threads should be done with igt_waitchildren to ensure that
  * the exit codes of all children are properly reflected in the test status.
@@ -349,7 +382,9 @@ static inline void gem_require_ring(int fd, int ring_id)
 bool igt_run_in_simulation(void);
 #define SLOW_QUICK(slow,quick) (igt_run_in_simulation() ? (quick) : (slow))
 /**
- * igt_skip_on_simulation - skip tests when INTEL_SIMULATION env war is set
+ * igt_skip_on_simulation:
+ *
+ * Skip tests when INTEL_SIMULATION env war is set
  *
  * Skip the test when running on simulation (and that's relevant only when
  * we're not in the mode where we list the subtests).

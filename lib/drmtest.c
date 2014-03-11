@@ -176,9 +176,11 @@ void gem_quiescent_gpu(int fd)
 }
 
 /**
- * drm_get_card() - get an intel card number for use in /dev or /sys
+ * drm_get_card:
  *
- * returns -1 on error
+ * Get an intel card number for use in /dev or /sys
+ *
+ * Returns: -1 on error
  */
 int drm_get_card(void)
 {
@@ -1241,11 +1243,6 @@ bool __igt_fork_helper(struct igt_helper_process *proc)
 
 }
 
-/**
- * igt_waitchildren - wait for all children forked with igt_fork
- *
- * The magic here is that exit codes from children will be correctly propagated
- */
 void igt_stop_helper(struct igt_helper_process *proc)
 {
 	int status, ret;
@@ -1338,7 +1335,9 @@ bool __igt_fork(void)
 }
 
 /**
- * igt_waitchildren - wait for all children forked with igt_fork
+ * igt_waitchildren:
+ *
+ * Wait for all children forked with igt_fork
  *
  * The magic here is that exit codes from children will be correctly propagated
  */
@@ -1394,7 +1393,9 @@ bool igt_run_in_simulation(void)
 }
 
 /**
- * igt_skip_on_simulation - skip tests when INTEL_SIMULATION env war is set
+ * igt_skip_on_simulation:
+ *
+ * Skip tests when INTEL_SIMULATION env war is set
  *
  * Skip the test when running on simulation (and that's relevant only when
  * we're not in the mode where we list the subtests).
