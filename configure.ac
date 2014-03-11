@@ -235,5 +235,7 @@ echo "       Debugger           : ${enable_debugger}"
 echo "       Python dumper      : ${DUMPER}"
 echo "       Overlay            : X: ${enable_overlay_xlib}, Xv: ${enable_overlay_xvlib}"
 echo ""
+echo " • API-Documentation      : ${enable_gtk_doc}"
+echo ""
 
 # vim: set ft=config ts=8 sw=8 tw=0 noet :
