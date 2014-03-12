@@ -37,7 +37,7 @@
 /*
  * General debugfs helpers
  */
-int igt_debugfs_init(igt_debugfs_t *debugfs)
+void igt_debugfs_init(igt_debugfs_t *debugfs)
 {
 	const char *path = "/sys/kernel/debug";
 	struct stat st;
@@ -51,11 +51,9 @@ int igt_debugfs_init(igt_debugfs_t *debugfs)
 	if (stat("/sys/kernel/debug/dri", &st) == 0)
 		goto find_minor;
 
-	if (stat("/sys/kernel/debug", &st))
-		return errno;
+	igt_assert(stat("/sys/kernel/debug", &st) == 0);
 
-	if (mount("debug", "/sys/kernel/debug", "debugfs", 0, 0))
-		return errno;
+	igt_assert(mount("debug", "/sys/kernel/debug", "debugfs", 0, 0) == 0);
 
 find_minor:
 	strcpy(debugfs->root, path);
@@ -64,12 +62,13 @@ find_minor:
 		sprintf(debugfs->dri_path + len, "/i915_error_state");
 		if (stat(debugfs->dri_path, &st) == 0) {
 			debugfs->dri_path[len] = '\0';
-			return 0;
+			return;
 		}
 	}
 
 	debugfs->dri_path[0] = '\0';
-	return ENOENT;
+
+	igt_fail(4);
 }
 
 int igt_debugfs_open(igt_debugfs_t *debugfs, const char *filename, int mode)

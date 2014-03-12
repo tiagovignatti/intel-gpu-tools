@@ -1041,7 +1041,7 @@ igt_main
 			      "Kernel is too old, or contexts not supported: %s\n",
 			      strerror(errno));
 
-		assert(igt_debugfs_init(&dfs) == 0);
+		igt_debugfs_init(&dfs);
 	}
 
 	igt_subtest("params")
