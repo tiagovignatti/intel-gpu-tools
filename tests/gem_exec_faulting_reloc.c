@@ -41,6 +41,7 @@
 #include "drmtest.h"
 #include "intel_chipset.h"
 #include "intel_gpu_tools.h"
+#include "igt_debugfs.h"
 
 /* Testcase: Submit patches with relocations in memory that will fault
  *

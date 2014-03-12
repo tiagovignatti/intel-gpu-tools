@@ -77,10 +77,6 @@ void igt_cleanup_aperture_trashers(void);
 /* set vt into graphics mode, required to prevent fbcon from interfering */
 void igt_set_vt_graphics_mode(void);
 
-/* prefault disabling, needs the corresponding debugfs interface */
-void igt_disable_prefault(void);
-void igt_enable_prefault(void);
-
 /* suspend and auto-resume system */
 void igt_system_suspend_autoresume(void);
 

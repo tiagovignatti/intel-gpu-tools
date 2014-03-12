@@ -34,6 +34,9 @@
 #include "igt_display.h"
 #include "igt_debugfs.h"
 
+/*
+ * General debugfs helpers
+ */
 int igt_debugfs_init(igt_debugfs_t *debugfs)
 {
 	const char *path = "/sys/kernel/debug";
@@ -375,4 +378,46 @@ void igt_drop_caches_set(uint64_t val)
 	nbytes = write(fd, data, strlen(data) + 1);
 	igt_assert(nbytes == strlen(data) + 1);
 	close(fd);
+}
+
+/*
+ * Prefault control
+ */
+
+#define PREFAULT_DEBUGFS "/sys/module/i915/parameters/prefault_disable"
+static void igt_prefault_control(bool enable)
+{
+	const char *name = PREFAULT_DEBUGFS;
+	int fd;
+	char buf[2] = {'Y', 'N'};
+	int index;
+
+	fd = open(name, O_RDWR);
+	igt_require(fd >= 0);
+
+	if (enable)
+		index = 1;
+	else
+		index = 0;
+
+	igt_require(write(fd, &buf[index], 1) == 1);
+
+	close(fd);
+}
+
+static void enable_prefault_at_exit(int sig)
+{
+	igt_enable_prefault();
+}
+
+void igt_disable_prefault(void)
+{
+	igt_prefault_control(false);
+
+	igt_install_exit_handler(enable_prefault_at_exit);
+}
+
+void igt_enable_prefault(void)
+{
+	igt_prefault_control(true);
 }

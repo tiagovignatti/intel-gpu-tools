@@ -38,6 +38,7 @@
 #include "drm.h"
 #include "i915_drm.h"
 #include "drmtest.h"
+#include "igt_debugfs.h"
 
 static int OBJECT_SIZE = 16*1024*1024;
 

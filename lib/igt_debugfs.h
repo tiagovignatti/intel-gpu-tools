@@ -96,4 +96,12 @@ void igt_pipe_crc_collect_crc(igt_pipe_crc_t *pipe_crc, igt_crc_t *out_crc);
 
 void igt_drop_caches_set(uint64_t val);
 
+/*
+ * Prefault control
+ */
+
+void igt_disable_prefault(void);
+void igt_enable_prefault(void);
+
+
 #endif /* __IGT_DEBUGFS_H__ */
