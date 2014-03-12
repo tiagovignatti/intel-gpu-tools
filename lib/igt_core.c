@@ -72,6 +72,17 @@
  * result propagation. Other generally useful functionality includes optional
  * structure logging infrastructure and some support code for running reduced
  * test set on in simulated hardware environments.
+ *
+ * When writing tests with subtests it is extremely important that nothing
+ * interferes with the subtest enumeration. In i-g-t subtests are enumerated at
+ * runtime, which allows powerful testcase enumeration. But it makes subtest
+ * enumeration a bit more tricky since the test code needs to be careful to
+ * never run any code which might fail (like trying to do privileged operations
+ * or opening device driver nodes).
+ *
+ * To allow this i-g-t provides #igt_fixture code blocks for setup code outside
+ * of subtests and automatically skips the subtest code blocks themselves. For
+ * special cases igt_only_list_subtests() is also provided.
  */
 
 static unsigned int exit_handler_count;
@@ -165,6 +176,25 @@ static void oom_adjust_for_doom(void)
 	igt_assert(write(fd, always_kill, sizeof(always_kill)) == sizeof(always_kill));
 }
 
+/**
+ * igt_subtest_init_parse_opts:
+ * @argc: argc from the test's main()
+ * @argv: argv from the test's main()
+ * @extra_short_opts: getopt_long() compliant list with additional short options
+ * @extra_long_opts: getopt_long() compliant list with additional long options
+ * @help_str: help string for the additional options
+ * @extra_opt_handler: handler for the additional options
+ *
+ * This function handles the subtest related cmdline options and allows an
+ * arbitrary set of additional options. This is useful for tests which have
+ * additional knobs to tune when run manually like the number of rounds execute
+ * or the size of the allocated buffer objects.
+ *
+ * Tests without special needs should just use igt_subtest_init() or use
+ * #igt_main directly instead of their own main() function.
+ *
+ * Returns: Forwards any option parsing errors from getopt_long.
+ */
 int igt_subtest_init_parse_opts(int argc, char **argv,
 				const char *extra_short_opts,
 				struct option *extra_long_opts,
@@ -274,6 +304,19 @@ static void common_init(void)
 		igt_log_level = IGT_LOG_NONE;
 }
 
+/**
+ * igt_subtest_init:
+ * @argc: argc from the test's main()
+ * @argv: argv from the test's main()
+ *
+ * This initializes the for tests with subtests without the need for additional
+ * cmdline options. It is just a simplified version of
+ * igt_subtest_init_parse_opts().
+ *
+ * If there's not a reason to the contrary it's less error prone to just use an
+ * #igt_main block instead of stitching the tests's main() function together
+ * manually.
+ */
 void igt_subtest_init(int argc, char **argv)
 {
 	int ret;
@@ -292,6 +335,15 @@ void igt_subtest_init(int argc, char **argv)
 	common_init();
 }
 
+/**
+ * igt_simple_init:
+ *
+ * This initializes a simple test without any support for subtests.
+ *
+ * If there's not a reason to the contrary it's less error prone to just use an
+ * #igt_simple_main block instead of stitching the tests's main() function together
+ * manually.
+ */
 void igt_simple_init(void)
 {
 	print_version();
@@ -330,11 +382,23 @@ bool __igt_run_subtest(const char *subtest_name)
 	return (in_subtest = subtest_name);
 }
 
+/**
+ * igt_subtest_name:
+ *
+ * Returns: The name of the currently executed subtest or NULL if called from
+ * outside a subtest block.
+ */
 const char *igt_subtest_name(void)
 {
 	return in_subtest;
 }
 
+/**
+ * igt_only_list_subtests:
+ *
+ * Returns: Returns true if only subtest should be listed and any setup code
+ * must be skipped, false otherwise.
+ */
 bool igt_only_list_subtests(void)
 {
 	return list_subtests;
@@ -353,6 +417,20 @@ static void exit_subtest(const char *result)
 	longjmp(igt_subtest_jmpbuf, 1);
 }
 
+/**
+ * igt_skip:
+ * @f: format string
+ * @...: optional arguments used in the format string
+ *
+ * Subtest aware test skipping. The format string is printed to stderr as the
+ * reason why the test skipped.
+ *
+ * For tests with subtests this will either bail out of the current subtest or
+ * mark all subsequent subtests as SKIP (presuming some global setup code
+ * failed).
+ *
+ * For normal tests without subtest it will directly exit.
+ */
 void igt_skip(const char *f, ...)
 {
 	va_list args;
@@ -407,6 +485,14 @@ void __igt_skip_check(const char *file, const int line,
 	}
 }
 
+/**
+ * igt_success:
+ *
+ * Complete a (subtest) as successfull
+ *
+ * This bails out of a subtests and marks it as successful. For global tests it
+ * it won't bail out of anything.
+ */
 void igt_success(void)
 {
 	succeeded_one = true;
@@ -414,6 +500,21 @@ void igt_success(void)
 		exit_subtest("SUCCESS");
 }
 
+/**
+ * igt_fail:
+ * @exitcode: exitcode
+ *
+ * Fail a testcase. The exitcode is used as the exit code of the test process.
+ * It may not be 0 (which indicates success) or 77 (which indicates a skipped
+ * test).
+ *
+ * For tests with subtests this will either bail out of the current subtest or
+ * mark all subsequent subtests as FAIL (presuming some global setup code
+ * failed).
+ *
+ * For normal tests without subtest it will directly exit with the given
+ * exitcode.
+ */
 void igt_fail(int exitcode)
 {
 	assert(exitcode != 0 && exitcode != 77);
@@ -473,6 +574,21 @@ void __igt_fail_assert(int exitcode, const char *file,
 	igt_fail(exitcode);
 }
 
+/**
+ * igt_exit:
+ *
+ * exit() for both types (simple and with subtests) of i-g-t tests.
+ *
+ * This will exit the test with the right exit code when subtests have been
+ * skipped. For normal tests it exits with a successful exit code, presuming
+ * everything has worked out. For subtests it also checks that at least one
+ * subtest has been run (save when only listing subtests.
+ *
+ * It is an error to normally exit a test with subtests without calling
+ * igt_exit() - without it the result reporting will be wrong. To avoid such
+ * issues it is highly recommended to use #igt_main instead of a hand-rolled
+ * main() function.
+ */
 void igt_exit(void)
 {
 	igt_exit_called = true;
@@ -562,6 +678,13 @@ bool __igt_fork_helper(struct igt_helper_process *proc)
 
 }
 
+/**
+ * igt_stop_helper:
+ * @proc: #igt_helper_process structure
+ *
+ * Terminates a helper process. It is an error to call this on a helper process
+ * which hasn't been spawned yet.
+ */
 void igt_stop_helper(struct igt_helper_process *proc)
 {
 	int status, ret;
@@ -583,6 +706,13 @@ void igt_stop_helper(struct igt_helper_process *proc)
 	helper_process_count--;
 }
 
+/**
+ * igt_wait_helper:
+ * @proc: #igt_helper_process structure
+ *
+ * Joins a helper process. It is an error to call this on a helper process which
+ * hasn't been spawned yet.
+ */
 void igt_wait_helper(struct igt_helper_process *proc)
 {
 	int status;
@@ -656,9 +786,15 @@ bool __igt_fork(void)
 /**
  * igt_waitchildren:
  *
- * Wait for all children forked with igt_fork
+ * Wait for all children forked with igt_fork.
  *
  * The magic here is that exit codes from children will be correctly propagated
+ * to the main thread, including the relevant exitcode if a child thread failed.
+ * Of course if multiple children failed with differen exitcodes the resulting
+ * exitcode will be non-deterministic.
+ *
+ * Note that igt_skip() will not be forwarded, feature tests need to be done
+ * before spawning threads with igt_fork().
  */
 void igt_waitchildren(void)
 {
@@ -773,7 +909,10 @@ static void fatal_sig_handler(int sig)
 	syscall(SYS_tgkill, pid, tid, sig);
 }
 
-/*
+/**
+ * igt_install_exit_handler:
+ * @fn: exit handler function
+ *
  * Set a handler that will be called either when the process calls exit() or
  * returns from the main function, or one of the signals in 'handled_signals'
  * is raised. MAX_EXIT_HANDLERS handlers can be installed, each of which will
@@ -782,7 +921,10 @@ static void fatal_sig_handler(int sig)
  * original signal disposition after all handlers returned.
  *
  * The handler will be passed the signal number if called due to a signal, or
- * 0 otherwise.
+ * 0 otherwise. Exit handlers can also be used from test children spawned with
+ * igt_fork(), but not from within helper processes spawned with
+ * igt_helper_process(). The list of exit handlers is reset when forking to
+ * avoid issues with children cleanup up the parent's state too early.
  */
 void igt_install_exit_handler(igt_exit_handler_t fn)
 {
@@ -817,6 +959,12 @@ err:
 	igt_assert_f(0, "failed to install the signal handler\n");
 }
 
+/**
+ * igt_disable_exit_handler:
+ *
+ * Temporarily disable all exit handlers. Useful for library code doing tricky
+ * things.
+ */
 void igt_disable_exit_handler(void)
 {
 	sigset_t set;
@@ -837,6 +985,12 @@ void igt_disable_exit_handler(void)
 	exit_handler_disabled = true;
 }
 
+/**
+ * igt_enable_exit_handler:
+ *
+ * Re-enable all exit handlers temporarily disabled with
+ * igt_disable_exit_handler().
+ */
 void igt_enable_exit_handler(void)
 {
 	if (!exit_handler_disabled)
@@ -851,6 +1005,16 @@ void igt_enable_exit_handler(void)
 }
 
 /* simulation enviroment support */
+
+/**
+ * igt_run_in_simulation:
+ *
+ * This function can be used to select a reduced test set when running in
+ * simulation enviroments. This i-g-t mode is selected by setting the
+ * INTEL_SIMULATION enviroment variable to 1.
+ *
+ * Returns: True when run in simulation mode, false otherwise.
+ */
 bool igt_run_in_simulation(void)
 {
 	static int simulation = -1;
@@ -864,13 +1028,8 @@ bool igt_run_in_simulation(void)
 /**
  * igt_skip_on_simulation:
  *
- * Skip tests when INTEL_SIMULATION env war is set
- *
- * Skip the test when running on simulation (and that's relevant only when
- * we're not in the mode where we list the subtests).
- *
- * This function is subtest aware (since it uses igt_skip) and so can be used to
- * skip specific subtests or all subsequent subtests.
+ * Skip tests when INTEL_SIMULATION environment variable is set. It uses
+ * igt_skip() internally and hence is fully subtest aware.
  */
 void igt_skip_on_simulation(void)
 {
@@ -881,6 +1040,23 @@ void igt_skip_on_simulation(void)
 }
 
 /* structured logging */
+
+/**
+ * igt_log:
+ * @level: #igt_log_level
+ * @format: format string
+ * @...: optional arguments used in the format string
+ *
+ * This is the generic structure logging helper function. i-g-t testcase should
+ * output all normal message to stdout. Warning level message should be printed
+ * to stderr and the test runner should treat this as an intermediate result
+ * between SUCESS and FAILURE.
+ *
+ * The log level can be set through the IGT_LOG_LEVEL enviroment variable with
+ * values "debug", "info", "warn" and "none". By default verbose debug message
+ * are disabled. "none" completely disables all output and is not recommended
+ * since crucial issues only reported at the IGT_LOG_WARN level are ignored.
+ */
 void igt_log(enum igt_log_level level, const char *format, ...)
 {
 	va_list args;
@@ -898,4 +1074,3 @@ void igt_log(enum igt_log_level level, const char *format, ...)
 		vprintf(format, args);
 	va_end(args);
 }
-
