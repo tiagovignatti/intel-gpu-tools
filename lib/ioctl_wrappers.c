@@ -785,7 +785,7 @@ void gem_require_caching(int fd)
 /**
  * gem_require_ring:
  * @fd: open i915 drm file descriptor
- * @id: ring flag bit as used in gem_execbuf()
+ * @ring_id: ring flag bit as used in gem_execbuf()
  *
  * Feature test macro to query whether a specific ring is available.
  * In contrast to gem_has_enable_ring() this automagically skips if the ring
