@@ -34,8 +34,53 @@
 #include "igt_display.h"
 #include "igt_debugfs.h"
 
+/**
+ * SECTION:igt_debugfs
+ * @short_description: Support code for debugfs features
+ * @title: i-g-t debugfs
+ *
+ * This library provides helpers to access debugfs features. On top of some
+ * basic functions to access debugfs files with e.g. igt_debugfs_open() it also
+ * provides higher-level wrappers for some debugfs features
+ *
+ * # Pipe CRC Support
+ *
+ * This library wraps up the kernel's support for capturing pipe CRCs into a
+ * neat and tidy package. For the datailed usage see all the functions which
+ * work on #igt_pipe_crc_t. This is supported on all platforms and outputs.
+ *
+ * Actually using pipe CRCs to write modeset tests is a bit tricky though, so
+ * there is no way to directly check a CRC: Both the details of the plane
+ * blending, color correction and other hardware and how exactly the CRC is
+ * computed at each tap point vary by hardware generation and are not disclosed.
+ *
+ * The only way to use #igt_crc_t CRCs therefors is to compare CRCs among each
+ * another either for equality or difference. Otherwise CRCs must be treated as
+ * completely opaque values. Note that not even CRCs from different pipes or tap
+ * points on the same platform can be compared. Hence only use igt_crc_is_null()
+ * and igt_crc_equal() to insepct CRC values captured by the same
+ * #igt_pipe_crc_t object.
+ *
+ * # Other debugfs interface wrappers
+ *
+ * This covers the miscellaneous debugfs interface wrappers:
+ *
+ * - drm/i915 supports interfaces to evict certain clases of gem buffer objects,
+ *   see igt_drop_caches_set().
+ *
+ * - drm/i915 supports an interface to disable prefaulting, useful to test
+ *   slowpaths in ioctls. See igt_disable_prefault().
+ */
+
 /*
  * General debugfs helpers
+ */
+
+/**
+ * igt_debugfs_init:
+ * @debugfs: debugfs access structure to initialize
+ *
+ * Initializes the debugfs access helper library.
  */
 void igt_debugfs_init(igt_debugfs_t *debugfs)
 {
@@ -71,6 +116,15 @@ find_minor:
 	igt_fail(4);
 }
 
+/**
+ * igt_debugfs_open:
+ * @debugfs: debugfs access structure
+ * @filename: name of the debugfs node to open
+ * @mode: mode bits as used by open()
+ *
+ * This opens a debugfs file as a Unix file descriptor. The filename should be
+ * relative to the drm device's root, i.e without "drm/&lt;minor&gt;".
+ */
 int igt_debugfs_open(igt_debugfs_t *debugfs, const char *filename, int mode)
 {
 	char buf[1024];
@@ -79,6 +133,15 @@ int igt_debugfs_open(igt_debugfs_t *debugfs, const char *filename, int mode)
 	return open(buf, mode);
 }
 
+/**
+ * igt_debugfs_fopen:
+ * @debugfs: debugfs access structure
+ * @filename: name of the debugfs node to open
+ * @mode: mode string as used by fopen()
+ *
+ * This opens a debugfs file as a libc FILE. The filename should be
+ * relative to the drm device's root, i.e without "drm/&lt;minor&gt;".
+ */
 FILE *igt_debugfs_fopen(igt_debugfs_t *debugfs, const char *filename,
 			const char *mode)
 {
@@ -92,6 +155,13 @@ FILE *igt_debugfs_fopen(igt_debugfs_t *debugfs, const char *filename,
  * Pipe CRC
  */
 
+/**
+ * igt_crc_is_null:
+ * @crc: pipe CRC value to check
+ *
+ * Returns: True if the CRC is null/invalid, false if it represents a captured
+ * valid CRC.
+ */
 bool igt_crc_is_null(igt_crc_t *crc)
 {
 	int i;
@@ -103,6 +173,15 @@ bool igt_crc_is_null(igt_crc_t *crc)
 	return true;
 }
 
+/**
+ * igt_crc_equal:
+ * @a: first pipe CRC value
+ * @b: second pipe CRC value
+ *
+ * Compares two CRC values.
+ *
+ * Returns: Retruns true if the two CRCs match, false otherwise.
+ */
 bool igt_crc_equal(igt_crc_t *a, igt_crc_t *b)
 {
 	int i;
@@ -117,6 +196,16 @@ bool igt_crc_equal(igt_crc_t *a, igt_crc_t *b)
 	return true;
 }
 
+/**
+ * igt_crc_to_string:
+ * @crc: pipe CRC value to print
+ *
+ * This formats @crc into a string buffer which is owned by igt_crc_to_string().
+ * The next call will override the buffer again, which makes this multithreading
+ * unsafe.
+ *
+ * This should only ever be used for diagnostic debug output.
+ */
 char *igt_crc_to_string(igt_crc_t *crc)
 {
 	char buf[128];
@@ -205,6 +294,14 @@ static void pipe_crc_exit_handler(int sig)
 	igt_pipe_crc_reset();
 }
 
+/**
+ * igt_pipe_crc_check:
+ * @debugfs: debugfs access structure
+ *
+ * Convenience helper to check whether pipe CRC capturing is supported by the
+ * kernel. Uses igt_skip to automatically skip the test/subtest if this isn't
+ * the case.
+ */
 void igt_pipe_crc_check(igt_debugfs_t *debugfs)
 {
 	const char *cmd = "pipe A none";
@@ -223,6 +320,18 @@ void igt_pipe_crc_check(igt_debugfs_t *debugfs)
 	fclose(ctl);
 }
 
+/**
+ * igt_pipe_crc_new:
+ * @debugfs: debugfs access structure
+ * @pipe: display pipe to use as source
+ * @source: CRC tap point to use as source
+ *
+ * This sets up a new pipe CRC capture object for the given @pipe and @source.
+ *
+ * Returns: A pipe CRC object if the given @pipe and @source is available, NULL
+ * otherwise. Tests can use this to intelligently skip if they require a
+ * specific pipe CRC source to function properly.
+ */
 igt_pipe_crc_t *
 igt_pipe_crc_new(igt_debugfs_t *debugfs, enum pipe pipe,
 		 enum intel_pipe_crc_source source)
@@ -258,6 +367,12 @@ igt_pipe_crc_new(igt_debugfs_t *debugfs, enum pipe pipe,
 	return pipe_crc;
 }
 
+/**
+ * igt_pipe_crc_free:
+ * @pipe_crc: pipe CRC object
+ *
+ * Frees all resources associated with @pipe_crc.
+ */
 void igt_pipe_crc_free(igt_pipe_crc_t *pipe_crc)
 {
 	if (!pipe_crc)
@@ -268,6 +383,12 @@ void igt_pipe_crc_free(igt_pipe_crc_t *pipe_crc)
 	free(pipe_crc);
 }
 
+/**
+ * igt_pipe_crc_start:
+ * @pipe_crc: pipe CRC object
+ *
+ * Starts the CRC capture process on @pipe_crc.
+ */
 void igt_pipe_crc_start(igt_pipe_crc_t *pipe_crc)
 {
 	igt_crc_t *crcs = NULL;
@@ -282,6 +403,12 @@ void igt_pipe_crc_start(igt_pipe_crc_t *pipe_crc)
 	free(crcs);
 }
 
+/**
+ * igt_pipe_crc_stop:
+ * @pipe_crc: pipe CRC object
+ *
+ * Stops the CRC capture process on @pipe_crc.
+ */
 void igt_pipe_crc_stop(igt_pipe_crc_t *pipe_crc)
 {
 	char buf[32];
@@ -315,9 +442,18 @@ static bool read_one_crc(igt_pipe_crc_t *pipe_crc, igt_crc_t *out)
 	return true;
 }
 
-/*
- * Read @n_crcs from the @pipe_crc. This function blocks until @n_crcs are
- * retrieved.
+/**
+ * igt_pipe_crc_get_crcs:
+ * @pipe_crc: pipe CRC object
+ * @n_crcs: number of CRCs to capture
+ * @out_crcs: buffer pointer for the captured CRC values
+ *
+ * Read @n_crcs from @pipe_crc. This function blocks until @n_crcs are
+ * retrieved. @out_crcs is alloced by this function and must be released with
+ * free() by the caller.
+ *
+ * Callers must start and stop the capturing themselves by calling
+ * igt_pipe_crc_start() and igt_pipe_crc_stop().
  */
 void
 igt_pipe_crc_get_crcs(igt_pipe_crc_t *pipe_crc, int n_crcs,
@@ -340,9 +476,13 @@ igt_pipe_crc_get_crcs(igt_pipe_crc_t *pipe_crc, int n_crcs,
 	*out_crcs = crcs;
 }
 
-/*
- * Read 1 CRC from @pipe_crc. This function blocks until the CRC is retrieved.
- * @out_crc must be allocated by the caller.
+/**
+ * igt_pipe_crc_collect_crc:
+ * @pipe_crc: pipe CRC object
+ * @out_crc: buffer for the captured CRC values
+ *
+ * Read a single CRC from @pipe_crc. This function blocks until the CRC is
+ * retrieved.  @out_crc must be allocated by the caller.
  *
  * This function takes care of the pipe_crc book-keeping, it will start/stop
  * the collection of the CRC.
@@ -358,6 +498,13 @@ void igt_pipe_crc_collect_crc(igt_pipe_crc_t *pipe_crc, igt_crc_t *out_crc)
  * Drop caches
  */
 
+/**
+ * igt_drop_caches_set:
+ * @val: bitmask for DROP_* values
+ *
+ * This calls the debugfs interface the drm/i915 GEM driver exposes to drop or
+ * evict certain classes of gem buffer objects.
+ */
 void igt_drop_caches_set(uint64_t val)
 {
 	igt_debugfs_t debugfs;
@@ -406,6 +553,15 @@ static void enable_prefault_at_exit(int sig)
 	igt_enable_prefault();
 }
 
+/**
+ * igt_disable_prefault:
+ *
+ * Disable prefaulting in certain gem ioctls through the debugfs interface. As
+ * usual this installs an exit handler to clean up and re-enable prefaulting
+ * even when the test exited abnormally.
+ *
+ * igt_enable_prefault() will enable normale operation again.
+ */
 void igt_disable_prefault(void)
 {
 	igt_prefault_control(false);
@@ -413,6 +569,11 @@ void igt_disable_prefault(void)
 	igt_install_exit_handler(enable_prefault_at_exit);
 }
 
+/**
+ * igt_enable_prefault:
+ *
+ * Enable prefault (again) through the debugfs interface.
+ */
 void igt_enable_prefault(void)
 {
 	igt_prefault_control(true);

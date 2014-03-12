@@ -31,6 +31,11 @@
 
 #include "igt_display.h"
 
+/**
+ * igt_debugfs_t:
+ *
+ * debugfs access structure. Needs to be initialized with igt_debugfs_init().
+ */
 typedef struct {
 	char root[128];
 	char dri_path[128];
@@ -45,6 +50,38 @@ FILE *igt_debugfs_fopen(igt_debugfs_t *debugfs, const char *filename,
  * Pipe CRC
  */
 
+/**
+ * igt_pipe_crc_t:
+ *
+ * Pipe CRC support structure. Needs to be allocated and set up with
+ * igt_pipe_crc_new() for a specific pipe and pipe CRC source value.
+ */
+typedef struct _igt_pipe_crc igt_pipe_crc_t;
+
+/**
+ * igt_crc_t:
+ * @frame: frame number of the capture CRC
+ * @n_words: internal field, don't access
+ * @crc: internal field, don't access
+ *
+ * Pipe CRC value. All other members than @frame are private and should not be
+ * inspected by testcases.
+ */
+typedef struct {
+	uint32_t frame;
+	int n_words;
+	uint32_t crc[5];
+} igt_crc_t;
+
+/**
+ * intel_pipe_crc_source:
+ *
+ * Enumeration of all supported pipe CRC sources. Not all platforms and all
+ * outputs support all of them. Generic tests should just use
+ * INTEL_PIPE_CRC_SOURCE_AUTO. It should always map to an end-of-pipe CRC
+ * suitable for checking planes, cursor, color correction and any other
+ * output-agnostic features.
+ */
 enum intel_pipe_crc_source {
         INTEL_PIPE_CRC_SOURCE_NONE,
         INTEL_PIPE_CRC_SOURCE_PLANE1,
@@ -58,13 +95,6 @@ enum intel_pipe_crc_source {
         INTEL_PIPE_CRC_SOURCE_AUTO,
         INTEL_PIPE_CRC_SOURCE_MAX,
 };
-
-typedef struct _igt_pipe_crc igt_pipe_crc_t;
-typedef struct {
-	uint32_t frame;
-	int n_words;
-	uint32_t crc[5];
-} igt_crc_t;
 
 bool igt_crc_is_null(igt_crc_t *crc);
 bool igt_crc_equal(igt_crc_t *a, igt_crc_t *b);
@@ -85,9 +115,30 @@ void igt_pipe_crc_collect_crc(igt_pipe_crc_t *pipe_crc, igt_crc_t *out_crc);
  * Drop caches
  */
 
+/**
+ * DROP_UNBOUND:
+ *
+ * Drop all currently unbound gem buffer objects from the cache.
+ */
 #define DROP_UNBOUND 0x1
+/**
+ * DROP_BOUND:
+ *
+ * Drop all inactive objects which are bound into some gpu address space.
+ */
 #define DROP_BOUND 0x2
+/**
+ * DROP_RETIRE:
+ *
+ * Wait for all outstanding gpu commands to complete, but do not take any
+ * further actions.
+ */
 #define DROP_RETIRE 0x4
+/**
+ * DROP_ACTIVE:
+ *
+ * Also drop active objects once retired.
+ */
 #define DROP_ACTIVE 0x8
 #define DROP_ALL (DROP_UNBOUND | \
 		  DROP_BOUND | \
