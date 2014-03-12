@@ -41,5 +41,7 @@ libintel_tools_la_SOURCES = 	\
 	intel_iosf.c		\
 	igt_kms.c \
 	igt_kms.h \
+	igt_core.c \
+	igt_core.h \
 	$(NULL)
 

@@ -17,6 +17,7 @@
     <title>Intel GPU Tools</title>
     <xi:include href="xml/debug.xml"/>
     <xi:include href="xml/drmtest.xml"/>
+    <xi:include href="xml/igt_core.xml"/>
     <xi:include href="xml/igt_debugfs.xml"/>
     <xi:include href="xml/igt_display.xml"/>
     <xi:include href="xml/igt_kms.xml"/>
