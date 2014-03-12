@@ -92,7 +92,7 @@ test_position_init(test_position_t *test, igt_output_t *output, enum pipe pipe)
 	drmModeModeInfo *mode;
 	igt_plane_t *primary;
 
-	test->pipe_crc = igt_pipe_crc_new(&data->debugfs, data->drm_fd,
+	test->pipe_crc = igt_pipe_crc_new(&data->debugfs,
 					  pipe, INTEL_PIPE_CRC_SOURCE_AUTO);
 
 	igt_output_set_pipe(output, pipe);

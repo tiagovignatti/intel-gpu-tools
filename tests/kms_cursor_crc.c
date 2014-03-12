@@ -63,7 +63,7 @@ static igt_pipe_crc_t *create_crc(data_t *data, enum pipe pipe)
 {
 	igt_pipe_crc_t *crc;
 
-	crc = igt_pipe_crc_new(&data->debugfs, data->drm_fd, pipe,
+	crc = igt_pipe_crc_new(&data->debugfs, pipe,
 			       INTEL_PIPE_CRC_SOURCE_AUTO);
 	return crc;
 }

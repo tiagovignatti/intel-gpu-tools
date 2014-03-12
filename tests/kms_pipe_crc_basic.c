@@ -88,7 +88,7 @@ static void test_read_crc(data_t *data, int pipe, unsigned flags)
 
 		igt_display_commit(display);
 
-		pipe_crc = igt_pipe_crc_new(&data->debugfs, data->drm_fd,
+		pipe_crc = igt_pipe_crc_new(&data->debugfs,
 					    pipe, INTEL_PIPE_CRC_SOURCE_AUTO);
 
 		if (!pipe_crc)

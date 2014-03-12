@@ -352,7 +352,7 @@ static bool prepare_crtc(data_t *data, uint32_t connector_id, enum test_mode mod
 	data->pipe_crc[data->crtc_idx] = NULL;
 
 	pipe_crc = igt_pipe_crc_new(&data->debugfs,
-				    data->drm_fd, data->crtc_idx,
+				    data->crtc_idx,
 				    INTEL_PIPE_CRC_SOURCE_AUTO);
 	if (!pipe_crc) {
 		printf("auto crc not supported on this connector with crtc %i\n",

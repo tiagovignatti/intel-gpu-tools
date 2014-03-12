@@ -136,8 +136,6 @@ char *igt_crc_to_string(igt_crc_t *crc)
 #define PIPE_CRC_BUFFER_LEN     (PIPE_CRC_LINE_LEN + 1)
 
 struct _igt_pipe_crc {
-	int drm_fd;
-
 	int ctl_fd;
 	int crc_fd;
 	int line_len;
@@ -226,7 +224,7 @@ void igt_pipe_crc_check(igt_debugfs_t *debugfs)
 }
 
 igt_pipe_crc_t *
-igt_pipe_crc_new(igt_debugfs_t *debugfs, int drm_fd, enum pipe pipe,
+igt_pipe_crc_new(igt_debugfs_t *debugfs, enum pipe pipe,
 		 enum intel_pipe_crc_source source)
 {
 	igt_pipe_crc_t *pipe_crc;
@@ -246,7 +244,6 @@ igt_pipe_crc_new(igt_debugfs_t *debugfs, int drm_fd, enum pipe pipe,
 
 	pipe_crc->line_len = PIPE_CRC_LINE_LEN;
 	pipe_crc->buffer_len = PIPE_CRC_BUFFER_LEN;
-	pipe_crc->drm_fd = drm_fd;
 	pipe_crc->pipe = pipe;
 	pipe_crc->source = source;
 

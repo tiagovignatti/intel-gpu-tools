@@ -72,7 +72,7 @@ char *igt_crc_to_string(igt_crc_t *crc);
 
 void igt_pipe_crc_check(igt_debugfs_t *debugfs);
 igt_pipe_crc_t *
-igt_pipe_crc_new(igt_debugfs_t *debugfs, int drm_fd, enum pipe pipe,
+igt_pipe_crc_new(igt_debugfs_t *debugfs, enum pipe pipe,
 		 enum intel_pipe_crc_source source);
 void igt_pipe_crc_free(igt_pipe_crc_t *pipe_crc);
 void igt_pipe_crc_start(igt_pipe_crc_t *pipe_crc);
