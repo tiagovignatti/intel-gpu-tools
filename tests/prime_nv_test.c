@@ -336,7 +336,7 @@ static void test_i915_blt_fill_nv_read(void)
 	igt_assert(nouveau_bo_prime_handle_ref(ndev, prime_fd, &nvbo) == 0);
 	close(prime_fd);
 
-	intel_copy_bo(intel_batch, test_intel_bo, src_bo, 256, 1);
+	intel_copy_bo(intel_batch, test_intel_bo, src_bo, 256, 1024/4);
 
 	igt_assert(nouveau_bo_map(nvbo, NOUVEAU_BO_RDWR, nclient) == 0);
 
