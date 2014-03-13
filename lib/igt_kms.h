@@ -155,7 +155,6 @@ typedef struct {
 
 struct igt_display {
 	int drm_fd;
-	unsigned int verbose : 1;
 	int log_shift;
 	int n_pipes;
 	int n_outputs;
@@ -167,7 +166,6 @@ struct igt_display {
 void igt_display_init(igt_display_t *display, int drm_fd);
 void igt_display_fini(igt_display_t *display);
 int  igt_display_commit(igt_display_t *display);
-void igt_display_set_verbose(igt_display_t *display, bool verbose);
 int  igt_display_get_n_pipes(igt_display_t *display);
 
 const char *igt_output_name(igt_output_t *output);

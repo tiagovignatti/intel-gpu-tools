@@ -823,7 +823,7 @@ igt_display_log(igt_display_t *display, const char *fmt, ...)
 	va_list args;
 	int n, i;
 
-	if (!display->verbose)
+	if (igt_log_level > IGT_LOG_DEBUG)
 		return 0;
 
 	va_start(args, fmt);
@@ -883,22 +883,7 @@ void igt_display_init(igt_display_t *display, int drm_fd)
 {
 	drmModeRes *resources;
 	drmModePlaneRes *plane_resources;
-	bool verbose;
-	char *env;
 	int i;
-
-	/*
-	 * It's valid to set verbose before the init so we can get debugging
-	 * output for the init() itself.
-	 */
-	verbose = display->verbose;
-	memset(display, 0, sizeof(igt_display_t));
-	display->verbose = verbose;
-
-	/* allow a verbose override from an env variable */
-	env = getenv("IGT_DISPLAY_VERBOSE");
-	if (env)
-		display->verbose = atoi(env) != 0;
 
 	LOG_INDENT(display, "init");
 
@@ -991,11 +976,6 @@ void igt_display_init(igt_display_t *display, int drm_fd)
 	drmModeFreeResources(resources);
 
 	LOG_UNINDENT(display);
-}
-
-void igt_display_set_verbose(igt_display_t *display, bool verbose)
-{
-	display->verbose = verbose;
 }
 
 int igt_display_get_n_pipes(igt_display_t *display)
