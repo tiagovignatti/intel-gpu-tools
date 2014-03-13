@@ -136,7 +136,7 @@ igt_simple_main
 
 	for (i = 0; i < count; i++) {
 		int src = count - i - 1;
-		intel_copy_bo(batch, bo[i], bo[src], width, height);
+		intel_copy_bo(batch, bo[i], bo[src], width*height*4);
 		bo_start_val[i] = bo_start_val[src];
 	}
 
@@ -147,7 +147,7 @@ igt_simple_main
 		if (src == dst)
 			continue;
 
-		intel_copy_bo(batch, bo[dst], bo[src], width, height);
+		intel_copy_bo(batch, bo[dst], bo[src], width*height*4);
 		bo_start_val[dst] = bo_start_val[src];
 
 		/*

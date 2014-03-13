@@ -241,7 +241,7 @@ static void blitter_busy(data_t *data)
 		intel_copy_bo(data->batch,
 			      data->blitter.srcs[i],
 			      data->blitter.dsts[i],
-			      WIDTH, HEIGHT);
+			      WIDTH*HEIGHT*4);
 	}
 }
 
@@ -262,7 +262,7 @@ static void blitter_busy_fini(data_t *data)
 
 static void blitter_copy(data_t *data, drm_intel_bo *src, drm_intel_bo *dst)
 {
-	intel_copy_bo(data->batch, dst, src, WIDTH, HEIGHT);
+	intel_copy_bo(data->batch, dst, src, WIDTH*HEIGHT*4);
 }
 
 struct ring_ops {

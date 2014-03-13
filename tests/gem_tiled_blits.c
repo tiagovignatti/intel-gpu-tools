@@ -81,7 +81,7 @@ create_bo(uint32_t start_val)
 		linear[i] = start_val++;
 	drm_intel_bo_unmap(linear_bo);
 
-	intel_copy_bo (batch, bo, linear_bo, width, height);
+	intel_copy_bo (batch, bo, linear_bo, width*height*4);
 
 	drm_intel_bo_unreference(linear_bo);
 
@@ -97,7 +97,7 @@ check_bo(drm_intel_bo *bo, uint32_t start_val)
 
 	linear_bo = drm_intel_bo_alloc(bufmgr, "linear dst", 1024 * 1024, 4096);
 
-	intel_copy_bo(batch, linear_bo, bo, width, height);
+	intel_copy_bo(batch, linear_bo, bo, width*height*4);
 
 	do_or_die(drm_intel_bo_map(linear_bo, 0));
 	linear = linear_bo->virtual;
@@ -143,7 +143,7 @@ static void run_test(int count)
 		if (src == dst)
 			continue;
 
-		intel_copy_bo(batch, bo[dst], bo[src], width, height);
+		intel_copy_bo(batch, bo[dst], bo[src], width*height*4);
 		bo_start_val[dst] = bo_start_val[src];
 	}
 	for (i = 0; i < count; i++)
@@ -165,7 +165,7 @@ static void run_test(int count)
 		if (src == dst)
 			continue;
 
-		intel_copy_bo(batch, bo[dst], bo[src], width, height);
+		intel_copy_bo(batch, bo[dst], bo[src], width*height*4);
 		bo_start_val[dst] = bo_start_val[src];
 	}
 	for (i = 0; i < count; i++)
@@ -179,7 +179,7 @@ static void run_test(int count)
 		if (src == dst)
 			continue;
 
-		intel_copy_bo(batch, bo[dst], bo[src], width, height);
+		intel_copy_bo(batch, bo[dst], bo[src], width*height*4);
 		bo_start_val[dst] = bo_start_val[src];
 	}
 	for (i = 0; i < count; i++) {

@@ -193,6 +193,6 @@ intel_blt_copy(struct intel_batchbuffer *batch,
 	      int width, int height, int bpp);
 void intel_copy_bo(struct intel_batchbuffer *batch,
 		   drm_intel_bo *dst_bo, drm_intel_bo *src_bo,
-		   int width, int height);
+		   long int size);
 
 #endif

@@ -366,24 +366,21 @@ intel_blt_copy(struct intel_batchbuffer *batch,
  * @batch: batchbuffer object
  * @src_bo: source libdrm buffer object
  * @dst_bo: destination libdrm buffer object
- * @width: width of the copied area in 4-byte pixels
- * @height: height of the copied area in lines
+ * @size: size of the copy range in bytes
  *
  * This emits a copy operation using blitter commands into the supplied batch
- * buffer object. A total of @width times @height bytes from the start of
- * @src_bo is copied over to @dst_bo.
- *
- * FIXME: We need @width and @height to avoid hitting into platform specific
- * of the blitter. It would be easier to just accept a size and do the math
- * ourselves.
+ * buffer object. A total of @size bytes from the start of @src_bo is copied
+ * over to @dst_bo. Note that @size must be page-aligned.
  */
 void
 intel_copy_bo(struct intel_batchbuffer *batch,
 	      drm_intel_bo *dst_bo, drm_intel_bo *src_bo,
-	      int width, int height)
+	      long int size)
 {
+	assert(size % 4096 == 0);
+
 	intel_blt_copy(batch,
-		       src_bo, 0, 0, width * 4,
-		       dst_bo, 0, 0, width * 4,
-		       width, height, 32);
+		       src_bo, 0, 0, 4096,
+		       dst_bo, 0, 0, 4096,
+		       4096/4, size/4096, 32);
 }

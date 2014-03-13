@@ -204,7 +204,7 @@ static void do_overwrite_source(struct access_mode *mode,
 		mode->set_bo(dst[i], i, width, height);
 	}
 	for (i = 0; i < num_buffers; i++)
-		intel_copy_bo(batch, dst[i], src[i], width, height);
+		intel_copy_bo(batch, dst[i], src[i], width*height*4);
 	for (i = num_buffers; i--; )
 		mode->set_bo(src[i], 0xdeadbeef, width, height);
 	for (i = 0; i < num_buffers; i++)
@@ -221,7 +221,7 @@ static void do_early_read(struct access_mode *mode,
 	for (i = num_buffers; i--; )
 		mode->set_bo(src[i], 0xdeadbeef, width, height);
 	for (i = 0; i < num_buffers; i++)
-		intel_copy_bo(batch, dst[i], src[i], width, height);
+		intel_copy_bo(batch, dst[i], src[i], width*height*4);
 	for (i = num_buffers; i--; )
 		mode->cmp_bo(dst[i], 0xdeadbeef, width, height);
 }
@@ -236,9 +236,9 @@ static void do_gpu_read_after_write(struct access_mode *mode,
 	for (i = num_buffers; i--; )
 		mode->set_bo(src[i], 0xabcdabcd, width, height);
 	for (i = 0; i < num_buffers; i++)
-		intel_copy_bo(batch, dst[i], src[i], width, height);
+		intel_copy_bo(batch, dst[i], src[i], width*height*4);
 	for (i = num_buffers; i--; )
-		intel_copy_bo(batch, dummy, dst[i], width, height);
+		intel_copy_bo(batch, dummy, dst[i], width*height*4);
 	for (i = num_buffers; i--; )
 		mode->cmp_bo(dst[i], 0xabcdabcd, width, height);
 }

@@ -160,7 +160,7 @@ static void render_copyfunc(struct scratch_buf *src,
 		}
 		igt_assert(dst->bo);
 		igt_assert(src->bo);
-		intel_copy_bo(batch_blt, dst->bo, src->bo, width, height);
+		intel_copy_bo(batch_blt, dst->bo, src->bo, width*height*4);
 		intel_batchbuffer_flush(batch_blt);
 	}
 }
@@ -252,7 +252,7 @@ static int run_sync_test(int num_buffers, bool verify)
 	if (verify) {
 		for (i = 0; i < num_buffers; i++)
 			intel_copy_bo(batch_blt, dst2[p_dst2[i]], dst1[p_dst1[i]],
-				      width, height);
+				      width*height*4);
 
 		for (i = 0; i < num_buffers; i++) {
 			r = cmp_bo(dst2[p_dst2[i]], i, width, height);

@@ -138,31 +138,31 @@ static void do_test(int fd, int cache_level,
 
 	do {
 		/* First, do a full-buffer read after blitting */
-		intel_copy_bo(batch, tmp[0], src[0], width, height);
+		intel_copy_bo(batch, tmp[0], src[0], width*height*4);
 		verify_large_read(tmp[0], start[0]);
-		intel_copy_bo(batch, tmp[0], src[1], width, height);
+		intel_copy_bo(batch, tmp[0], src[1], width*height*4);
 		verify_large_read(tmp[0], start[1]);
 
-		intel_copy_bo(batch, tmp[0], src[0], width, height);
+		intel_copy_bo(batch, tmp[0], src[0], width*height*4);
 		verify_small_read(tmp[0], start[0]);
-		intel_copy_bo(batch, tmp[0], src[1], width, height);
+		intel_copy_bo(batch, tmp[0], src[1], width*height*4);
 		verify_small_read(tmp[0], start[1]);
 
-		intel_copy_bo(batch, tmp[0], src[0], width, height);
+		intel_copy_bo(batch, tmp[0], src[0], width*height*4);
 		verify_large_read(tmp[0], start[0]);
 
-		intel_copy_bo(batch, tmp[0], src[0], width, height);
-		intel_copy_bo(batch, tmp[1], src[1], width, height);
+		intel_copy_bo(batch, tmp[0], src[0], width*height*4);
+		intel_copy_bo(batch, tmp[1], src[1], width*height*4);
 		verify_large_read(tmp[0], start[0]);
 		verify_large_read(tmp[1], start[1]);
 
-		intel_copy_bo(batch, tmp[0], src[0], width, height);
-		intel_copy_bo(batch, tmp[1], src[1], width, height);
+		intel_copy_bo(batch, tmp[0], src[0], width*height*4);
+		intel_copy_bo(batch, tmp[1], src[1], width*height*4);
 		verify_large_read(tmp[1], start[1]);
 		verify_large_read(tmp[0], start[0]);
 
-		intel_copy_bo(batch, tmp[1], src[0], width, height);
-		intel_copy_bo(batch, tmp[0], src[1], width, height);
+		intel_copy_bo(batch, tmp[1], src[0], width*height*4);
+		intel_copy_bo(batch, tmp[0], src[1], width*height*4);
 		verify_large_read(tmp[0], start[1]);
 		verify_large_read(tmp[1], start[0]);
 	} while (--loop);
