@@ -71,24 +71,75 @@ intel_batchbuffer_require_space(struct intel_batchbuffer *batch,
 		intel_batchbuffer_flush(batch);
 }
 
+/**
+ * BEGIN_BATCH:
+ * @n: number of DWORDS to emit
+ *
+ * Prepares a batch to emit @n DWORDS, flushing it if there's not enough space
+ * available.
+ *
+ * This macro needs a pointer to an #intel_batchbuffer structure called batch in
+ * scope.
+ */
 #define BEGIN_BATCH(n) do {						\
 	intel_batchbuffer_require_space(batch, (n)*4);			\
 } while (0)
 
+/**
+ * OUT_BATCH:
+ * @d: DWORD to emit
+ *
+ * Emits @d into a batch.
+ *
+ * This macro needs a pointer to an #intel_batchbuffer structure called batch in
+ * scope.
+ */
 #define OUT_BATCH(d) intel_batchbuffer_emit_dword(batch, d)
 
+/**
+ * OUT_RELOC_FENCED:
+ * @buf: relocation target libdrm buffer object
+ * @read_domains: gem domain bits for the relocation
+ * @write_domain: gem domain bit for the relocation
+ * @delta: delta value to add to @buffer's gpu address
+ *
+ * Emits a fenced relocation into a batch.
+ *
+ * This macro needs a pointer to an #intel_batchbuffer structure called batch in
+ * scope.
+ */
 #define OUT_RELOC_FENCED(buf, read_domains, write_domain, delta) do {		\
 	assert((delta) >= 0);						\
 	intel_batchbuffer_emit_reloc(batch, buf, delta,			\
 				     read_domains, write_domain, 1);	\
 } while (0)
 
+/**
+ * OUT_RELOC_FENCED:
+ * @buf: relocation target libdrm buffer object
+ * @read_domains: gem domain bits for the relocation
+ * @write_domain: gem domain bit for the relocation
+ * @delta: delta value to add to @buffer's gpu address
+ *
+ * Emits a normal, unfenced relocation into a batch.
+ *
+ * This macro needs a pointer to an #intel_batchbuffer structure called batch in
+ * scope.
+ */
 #define OUT_RELOC(buf, read_domains, write_domain, delta) do {		\
 	assert((delta) >= 0);						\
 	intel_batchbuffer_emit_reloc(batch, buf, delta,			\
 				     read_domains, write_domain, 0);	\
 } while (0)
 
+/**
+ * ADVANCE_BATCH:
+ *
+ * Completes the batch command emission sequence started with #BEGIN_BATCH.
+ *
+ * This macro needs a pointer to an #intel_batchbuffer structure called batch in
+ * scope.
+ */
 #define ADVANCE_BATCH() do {						\
 } while(0)
 
@@ -123,6 +174,12 @@ intel_batchbuffer_require_space(struct intel_batchbuffer *batch,
 	} \
 } while(0)
 
+/**
+ * BLIT_RELOC_UDW:
+ * @devid: pci device id of the drm device
+ *
+ * Emits the upper relocation DWORD on gen8+ and nothing on earlier generations.
+ */
 #define BLIT_RELOC_UDW(devid) do { \
 	if (intel_gen(devid) >= 8) { \
 		OUT_BATCH(0); \

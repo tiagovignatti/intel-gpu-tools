@@ -39,6 +39,28 @@
 #include "intel_reg.h"
 #include <i915_drm.h>
 
+/**
+ * SECTION:intel_batchbuffer
+ * @short_description: Batchbuffer and blitter support
+ * @title: intel batchbuffer
+ *
+ * This library provides some basic support for batchbuffers and using the
+ * blitter engine based upon libdrm. A new batchbuffer is allocated with
+ * intel_batchbuffer_alloc() and for simple blitter commands submitted with
+ * intel_batchbuffer_flush().
+ *
+ * It also provides some convenient macros to easily emit commands into
+ * batchbuffers. All those macros presume that a pointer to a #intel_batchbuffer
+ * structure called batch is in scope. The basic macros are #BEGIN_BATCH,
+ * #OUT_BATCH, #OUT_RELOC and #ADVANCE_BATCH.
+ */
+
+/**
+ * intel_batchbuffer_reset:
+ * @batch: batchbuffer object
+ *
+ * Resets @batch by allocating a new gem buffer object as backing storage.
+ */
 void
 intel_batchbuffer_reset(struct intel_batchbuffer *batch)
 {
@@ -55,6 +77,16 @@ intel_batchbuffer_reset(struct intel_batchbuffer *batch)
 	batch->ptr = batch->buffer;
 }
 
+/**
+ * intel_batchbuffer_reset:
+ * @bufmgr: libdrm buffer manager
+ * @devid: pci device id of the drm device
+ *
+ * Allocates a new batchbuffer object. @devid must be supplied since libdrm
+ * doesn't expose it directly.
+ *
+ * Returns: The allocated and initialized batchbuffer object.
+ */
 struct intel_batchbuffer *
 intel_batchbuffer_alloc(drm_intel_bufmgr *bufmgr, uint32_t devid)
 {
@@ -67,6 +99,12 @@ intel_batchbuffer_alloc(drm_intel_bufmgr *bufmgr, uint32_t devid)
 	return batch;
 }
 
+/**
+ * intel_batchbuffer_reset:
+ * @batch: batchbuffer object
+ *
+ * Releases all resource of the batchbuffer object @batch.
+ */
 void
 intel_batchbuffer_free(struct intel_batchbuffer *batch)
 {
@@ -106,6 +144,13 @@ flush_on_ring_common(struct intel_batchbuffer *batch, int ring)
 	return batch->ptr - batch->buffer;
 }
 
+/**
+ * intel_batchbuffer_flush_on_ring:
+ * @batch: batchbuffer object
+ * @ring: execbuf ring flag
+ *
+ * Submits the batch for execution on @ring.
+ */
 void
 intel_batchbuffer_flush_on_ring(struct intel_batchbuffer *batch, int ring)
 {
@@ -123,6 +168,14 @@ intel_batchbuffer_flush_on_ring(struct intel_batchbuffer *batch, int ring)
 	intel_batchbuffer_reset(batch);
 }
 
+/**
+ * intel_batchbuffer_flush_with_context:
+ * @batch: batchbuffer object
+ * @context: libdrm hardware context object
+ *
+ * Submits the batch for execution on the render engine with the supplied
+ * hardware context.
+ */
 void
 intel_batchbuffer_flush_with_context(struct intel_batchbuffer *batch,
 				     drm_intel_context *context)
@@ -145,6 +198,13 @@ intel_batchbuffer_flush_with_context(struct intel_batchbuffer *batch,
 	intel_batchbuffer_reset(batch);
 }
 
+/**
+ * intel_batchbuffer_flush:
+ * @batch: batchbuffer object
+ *
+ * Submits the batch for execution on the blitter engine, selecting the right
+ * ring depending upon the hardware platform.
+ */
 void
 intel_batchbuffer_flush(struct intel_batchbuffer *batch)
 {
@@ -155,7 +215,21 @@ intel_batchbuffer_flush(struct intel_batchbuffer *batch)
 }
 
 
-/*  This is the only way buffers get added to the validate list.
+/**
+ * intel_batchbuffer_emit_reloc:
+ * @batch: batchbuffer object
+ * @buffer: relocation target libdrm buffer object
+ * @delta: delta value to add to @buffer's gpu address
+ * @read_domains: gem domain bits for the relocation
+ * @write_domain: gem domain bit for the relocation
+ * @fenced: whether this gpu access requires fences
+ *
+ * Emits both a libdrm relocation entry pointing at @buffer and the pre-computed
+ * DWORD of @batch's presumed gpu address plus the supplied @delta into @batch.
+ *
+ * Note that @fenced is only relevant if @buffer is actually tiled.
+ *
+ * This is the only way buffers get added to the validate list.
  */
 void
 intel_batchbuffer_emit_reloc(struct intel_batchbuffer *batch,
@@ -183,6 +257,15 @@ intel_batchbuffer_emit_reloc(struct intel_batchbuffer *batch,
 	assert(ret == 0);
 }
 
+/**
+ * intel_batchbuffer_data:
+ * @batch: batchbuffer object
+ * @data: pointer to the data to write into the batchbuffer
+ * @bytes: number of bytes to write into the batchbuffer
+ *
+ * This transfers the given @data into the batchbuffer. Note that the length
+ * must be DWORD aligned, i.e. multiples of 32bits.
+ */
 void
 intel_batchbuffer_data(struct intel_batchbuffer *batch,
                        const void *data, unsigned int bytes)
@@ -193,6 +276,24 @@ intel_batchbuffer_data(struct intel_batchbuffer *batch,
 	batch->ptr += bytes;
 }
 
+/**
+ * intel_blt_copy:
+ * @batch: batchbuffer object
+ * @src_bo: source libdrm buffer object
+ * @src_x1: source pixel x-coordination
+ * @src_y1: source pixel y-coordination
+ * @src_pitch: @src_bo's pitch in bytes
+ * @dst_bo: destination libdrm buffer object
+ * @dst_x1: source pixel x-coordination
+ * @dst_y1: source pixel y-coordination
+ * @dst_pitch: @dst_bo's pitch in bytes
+ * @width: width of the copied rectangle
+ * @height: height of the copied rectangle
+ * @bpp: bits per pixel
+ *
+ * This emits a 2D copy operation using blitter commands into the supplied batch
+ * buffer object.
+ */
 void
 intel_blt_copy(struct intel_batchbuffer *batch,
 	      drm_intel_bo *src_bo, int src_x1, int src_y1, int src_pitch,
@@ -260,6 +361,22 @@ intel_blt_copy(struct intel_batchbuffer *batch,
 	intel_batchbuffer_flush(batch);
 }
 
+/**
+ * intel_copy_bo:
+ * @batch: batchbuffer object
+ * @src_bo: source libdrm buffer object
+ * @dst_bo: destination libdrm buffer object
+ * @width: width of the copied area in 4-byte pixels
+ * @height: height of the copied area in lines
+ *
+ * This emits a copy operation using blitter commands into the supplied batch
+ * buffer object. A total of @width times @height bytes from the start of
+ * @src_bo is copied over to @dst_bo.
+ *
+ * FIXME: We need @width and @height to avoid hitting into platform specific
+ * of the blitter. It would be easier to just accept a size and do the math
+ * ourselves.
+ */
 void
 intel_copy_bo(struct intel_batchbuffer *batch,
 	      drm_intel_bo *dst_bo, drm_intel_bo *src_bo,
