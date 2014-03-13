@@ -97,6 +97,11 @@ static int get_num_pipes(void)
 	return num_pipes;
 }
 
+static const char * const cts_m_value_index[] = {
+	[0] = "CTS",
+	[1] = "M",
+};
+
 static const char * const pixel_clock[] = {
 	[0] = "25.2 / 1.001 MHz",
 	[1] = "25.2 MHz",
@@ -1408,7 +1413,8 @@ static void dump_aud_m_cts_enable(int index)
 
 	printf("%s  CTS_programming\t\t\t%#lx\n",        prefix, BITS(dword, 19, 0));
 	printf("%s  Enable_CTS_or_M_programming\t%lu\n", prefix, BIT(dword, 20));
-	printf("%s  CTS_M value Index\t\t\t%s\n",        prefix, BIT(dword, 21) ? "CTS" : "M");
+	printf("%s  CTS_M value Index\t\t\t[0x%lx] %s\n",prefix, BIT(dword, 21),
+		OPNAME(cts_m_value_index, BIT(dword, 21)));
 }
 
 static void dump_aud_power_state(void)
