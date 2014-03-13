@@ -120,6 +120,8 @@ static void test_read_crc(data_t *data, int pipe, unsigned flags)
 		igt_pipe_crc_free(pipe_crc);
 		kmstest_remove_fb(data->drm_fd, &data->fb);
 		igt_plane_set_fb(primary, NULL);
+
+		igt_output_set_pipe(output, PIPE_ANY);
 	}
 
 	igt_require_f(valid_connectors, "No connector found for pipe %i\n", pipe);
