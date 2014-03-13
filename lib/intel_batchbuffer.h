@@ -71,10 +71,6 @@ intel_batchbuffer_require_space(struct intel_batchbuffer *batch,
 		intel_batchbuffer_flush(batch);
 }
 
-/* Here are the crusty old macros, to be removed:
- */
-#define BATCH_LOCALS
-
 #define BEGIN_BATCH(n) do {						\
 	intel_batchbuffer_require_space(batch, (n)*4);			\
 } while (0)
