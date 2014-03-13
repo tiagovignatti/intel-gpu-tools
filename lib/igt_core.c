@@ -1074,3 +1074,30 @@ void igt_log(enum igt_log_level level, const char *format, ...)
 		vprintf(format, args);
 	va_end(args);
 }
+
+/**
+ * igt_vlog:
+ * @level: #igt_log_level
+ * @format: format string
+ * @args: variable arguments lists
+ *
+ * This is the generic logging helper function using an explicit varargs
+ * structure and hence useful to implement domain-specific logging
+ * functions.
+ *
+ * If there is no need to wrap up a vararg list in the caller it is simpler to
+ * just use igt_log().
+ */
+void igt_vlog(enum igt_log_level level, const char *format, va_list args)
+{
+	assert(format);
+
+	if (igt_log_level > level)
+		return;
+
+	if (level == IGT_LOG_WARN) {
+		fflush(stdout);
+		vfprintf(stderr, format, args);
+	} else
+		vprintf(format, args);
+}

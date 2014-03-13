@@ -389,6 +389,7 @@ enum igt_log_level {
 };
 __attribute__((format(printf, 2, 3)))
 void igt_log(enum igt_log_level level, const char *format, ...);
+void igt_vlog(enum igt_log_level level, const char *format, va_list args);
 
 /**
  * igt_debug:

@@ -817,23 +817,18 @@ const char *plane_name(enum igt_plane p)
 	} while (0)
 #define LOG(d, fmt, ...)	igt_display_log(d, fmt, ## __VA_ARGS__)
 
-static int  __attribute__((format(printf, 2, 3)))
+static void  __attribute__((format(printf, 2, 3)))
 igt_display_log(igt_display_t *display, const char *fmt, ...)
 {
 	va_list args;
-	int n, i;
-
-	if (igt_log_level > IGT_LOG_DEBUG)
-		return 0;
+	int i;
 
 	va_start(args, fmt);
-	n = printf("display: ");
+	igt_debug("display: ");
 	for (i = 0; i < display->log_shift; i++)
-		n += printf("%s", LOG_SPACES);
-	n += vprintf(fmt, args);
+		igt_debug("%s", LOG_SPACES);
+	igt_vlog(IGT_LOG_DEBUG, fmt, args);
 	va_end(args);
-
-	return n;
 }
 
 static void igt_display_log_shift(igt_display_t *display, int shift)
