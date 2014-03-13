@@ -83,6 +83,38 @@
  * To allow this i-g-t provides #igt_fixture code blocks for setup code outside
  * of subtests and automatically skips the subtest code blocks themselves. For
  * special cases igt_only_list_subtests() is also provided.
+ *
+ * # Magic Control Blocks
+ *
+ * i-g-t makes heavy use of C macros which serve as magic control blocks. They
+ * work fairly well and transparently but since C doesn't have full-blown
+ * closures there are caveats:
+ *
+ * - Asynchronous blocks which are used to spawn children internally use fork().
+ *   Which means that nonsensical control flow like jumping out of the control
+ *   block is possible, but it will badly confuse the i-g-t library code. And of
+ *   course all caveats of a real fork() call apply, namely that file
+ *   descriptors are copied, but still point at the original file. This will
+ *   terminally upset the libdrm buffer manager if both parent and child keep on
+ *   using the same open instance of the drm device. Usually everything related
+ *   to interacting with the kernel driver must be reinitialized to avoid such
+ *   issues.
+ *
+ * - Code blocks with magic control flow are implemented with setjmp() and
+ *   longjmp(). This applies to #igt_fixture and #igt_subtest blocks and all the
+ *   three variants to finish test: igt_success(), igt_skip() and igt_fail().
+ *   Mostly this is of no concern, except when such a control block changes
+ *   stack variables defined in the same function as the control block resides.
+ *   Any store/load behaviour after a longjmp() is ill-defined for these
+ *   variables. Avoid such code.
+ *
+ *   Quoting the man page for longjmp():
+ *
+ *   "The values of automatic variables are unspecified after a call to
+ *   longjmp() if they meet all the following criteria:"
+ *    - "they are local to the function that made the corresponding setjmp() call;
+ *    - "their values are changed between the calls to setjmp() and longjmp(); and
+ *    - "they are not declared as volatile."
  */
 
 static unsigned int exit_handler_count;
