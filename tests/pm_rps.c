@@ -231,7 +231,7 @@ static void load_helper_run(enum load load)
 
 		while (!lh.exit) {
 			if (lh.load == HIGH)
-				intel_copy_bo(lh.batch, lh.dst, lh.dst,
+				intel_copy_bo(lh.batch, lh.dst, lh.src,
 					      LOAD_HELPER_BO_SIZE);
 
 			emit_store_dword_imm(val);
@@ -294,6 +294,10 @@ static void load_helper_deinit(void)
 
 	if (lh.target_buffer)
 		drm_intel_bo_unreference(lh.target_buffer);
+	if (lh.src)
+		drm_intel_bo_unreference(lh.src);
+	if (lh.dst)
+		drm_intel_bo_unreference(lh.dst);
 
 	if (lh.batch)
 		intel_batchbuffer_free(lh.batch);
