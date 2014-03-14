@@ -101,6 +101,7 @@ gen3_render_linear_blits
 gen3_render_mixed_blits
 gen3_render_tiledx_blits
 gen3_render_tiledy_blits
+gen7_forcewake_mt
 igt_fork_helper
 igt_list_only
 igt_no_exit
