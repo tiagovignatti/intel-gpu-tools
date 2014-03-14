@@ -196,9 +196,27 @@ static void emit_store_dword_imm(uint32_t val)
 }
 
 #define LOAD_HELPER_PAUSE_USEC 500
+static void load_helper_set_load(enum load load)
+{
+	assert(lh.igt_proc.running);
+
+	if (lh.load == load)
+		return;
+
+	lh.load = load;
+	kill(lh.igt_proc.pid, SIGUSR2);
+}
+
 static void load_helper_run(enum load load)
 {
-	assert(!lh.igt_proc.running);
+	/*
+	 * FIXME fork helpers won't get cleaned up when started from within a
+	 * subtest, so handle the case where it sticks around a bit too long.
+	 */
+	if (lh.igt_proc.running) {
+		load_helper_set_load(load);
+		return;
+	}
 
 	igt_require(lh.ready == true);
 
@@ -229,20 +247,8 @@ static void load_helper_run(enum load load)
 	}
 }
 
-static void load_helper_set_load(enum load load)
-{
-	assert(lh.igt_proc.running);
-
-	if (lh.load == load)
-		return;
-
-	lh.load = load;
-	kill(lh.igt_proc.pid, SIGUSR2);
-}
-
 static void load_helper_stop(void)
 {
-	assert(lh.igt_proc.running);
 	kill(lh.igt_proc.pid, SIGUSR1);
 	igt_wait_helper(&lh.igt_proc);
 }
