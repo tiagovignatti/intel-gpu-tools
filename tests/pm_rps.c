@@ -156,6 +156,7 @@ static struct load_helper {
 	enum load load;
 	bool exit;
 	struct igt_helper_process igt_proc;
+	drm_intel_bo *src, *dst;
 } lh;
 
 static void load_helper_signal_handler(int sig)
@@ -195,6 +196,7 @@ static void emit_store_dword_imm(uint32_t val)
 }
 
 #define LOAD_HELPER_PAUSE_USEC 500
+#define LOAD_HELPER_BO_SIZE (16*1024*1024)
 static void load_helper_set_load(enum load load)
 {
 	assert(lh.igt_proc.running);
@@ -226,6 +228,10 @@ static void load_helper_run(enum load load)
 		signal(SIGUSR2, load_helper_signal_handler);
 
 		while (!lh.exit) {
+			if (lh.load == HIGH)
+				intel_copy_bo(lh.batch, lh.dst, lh.dst,
+					      LOAD_HELPER_BO_SIZE);
+
 			emit_store_dword_imm(val);
 			intel_batchbuffer_flush_on_ring(lh.batch, 0);
 			val++;
@@ -270,6 +276,13 @@ static void load_helper_init(void)
 	lh.target_buffer = drm_intel_bo_alloc(lh.bufmgr, "target bo",
 					      4096, 4096);
 	igt_assert(lh.target_buffer);
+
+	lh.dst = drm_intel_bo_alloc(lh.bufmgr, "dst bo",
+				    LOAD_HELPER_BO_SIZE, 4096);
+	igt_assert(lh.dst);
+	lh.src = drm_intel_bo_alloc(lh.bufmgr, "src bo",
+				    LOAD_HELPER_BO_SIZE, 4096);
+	igt_assert(lh.src);
 }
 
 static void load_helper_deinit(void)
