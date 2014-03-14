@@ -42,6 +42,7 @@
 #include <sys/mman.h>
 
 #include "intel_gpu_tools.h"
+#include "igt_debugfs.h"
 
 #define FAKEKEY 0x2468ace0
 
@@ -50,8 +51,6 @@ void *mmio;
 static struct _mmio_data {
 	int inited;
 	bool safe;
-	char debugfs_path[FILENAME_MAX];
-	char debugfs_forcewake_path[FILENAME_MAX];
 	uint32_t i915_devid;
 	struct intel_register_map map;
 	int key;
@@ -113,42 +112,6 @@ intel_get_mmio(struct pci_device *pci_dev)
 	}
 }
 
-/*
- * If successful, i915_debugfs_path and i915_debugfs_forcewake_path are both
- * updated with the correct path.
- */
-static int
-find_debugfs_path(const char *dri_base)
-{
-	char buf[FILENAME_MAX];
-	struct stat sb;
-	int i, ret;
-
-	for (i = 0; i < 16; i++) {
-		snprintf(buf, FILENAME_MAX, "%s/%i/name", dri_base, i);
-
-		snprintf(mmio_data.debugfs_path, FILENAME_MAX,
-			 "%s/%i/", dri_base, i);
-		snprintf(mmio_data.debugfs_forcewake_path, FILENAME_MAX,
-			 "%s/%i/i915_forcewake_user", dri_base, i);
-
-		ret = stat(mmio_data.debugfs_forcewake_path, &sb);
-		if (ret) {
-			mmio_data.debugfs_path[0] = 0;
-			mmio_data.debugfs_forcewake_path[0] = 0;
-		} else
-			return 0;
-	}
-
-	return -1;
-}
-
-static int
-get_forcewake_lock(void)
-{
-	return open(mmio_data.debugfs_forcewake_path, 0);
-}
-
 static void
 release_forcewake_lock(int fd)
 {
@@ -184,16 +147,11 @@ intel_register_access_init(struct pci_device *pci_dev, int safe)
 	/* Find where the forcewake lock is. Forcewake doesn't exist
 	 * gen < 6, but the debugfs should do the right things for us.
 	 */
-	ret = find_debugfs_path("/sys/kernel/debug/dri");
-	if (ret) {
-		ret = find_debugfs_path("/debug/dri");
-		if (ret) {
-			fprintf(stderr, "Couldn't find path to dri/debugfs entry\n");
-			fprintf(stderr, "warning: forcewake will not be handled\n");
-		}
+	ret = igt_open_forcewake_handle();
+	if (ret == -1)
 		mmio_data.key = FAKEKEY;
-	} else
-		mmio_data.key = get_forcewake_lock();
+	else
+		mmio_data.key = ret;
 
 	mmio_data.inited++;
 	return 0;

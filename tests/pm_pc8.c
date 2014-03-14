@@ -46,6 +46,7 @@
 #include "intel_gpu_tools.h"
 #include "i915_drm.h"
 #include "igt_kms.h"
+#include "igt_debugfs.h"
 
 #define MSR_PC8_RES	0x630
 #define MSR_PC9_RES	0x631
@@ -1009,8 +1010,8 @@ static void debugfs_forcewake_user_subtest(void)
 	disable_all_screens(&ms_data);
 	igt_assert(wait_for_suspended());
 
-	fd = open("/sys/kernel/debug/dri/0/i915_forcewake_user", O_RDONLY);
-	igt_require(fd);
+	fd = igt_open_forcewake_handle();
+	igt_require(fd >= 0);
 
 	if (has_runtime_pm) {
 		igt_assert(wait_for_active());

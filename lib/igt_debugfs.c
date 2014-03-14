@@ -76,13 +76,7 @@
  * General debugfs helpers
  */
 
-/**
- * igt_debugfs_init:
- * @debugfs: debugfs access structure to initialize
- *
- * Initializes the debugfs access helper library.
- */
-void igt_debugfs_init(igt_debugfs_t *debugfs)
+static bool __igt_debugfs_init(igt_debugfs_t *debugfs)
 {
 	const char *path = "/sys/kernel/debug";
 	struct stat st;
@@ -107,13 +101,24 @@ find_minor:
 		sprintf(debugfs->dri_path + len, "/i915_error_state");
 		if (stat(debugfs->dri_path, &st) == 0) {
 			debugfs->dri_path[len] = '\0';
-			return;
+			return true;
 		}
 	}
 
 	debugfs->dri_path[0] = '\0';
 
-	igt_fail(4);
+	return false;
+}
+
+/**
+ * igt_debugfs_init:
+ * @debugfs: debugfs access structure to initialize
+ *
+ * Initializes the debugfs access helper library.
+ */
+void igt_debugfs_init(igt_debugfs_t *debugfs)
+{
+	igt_assert(__igt_debugfs_init(debugfs));
 }
 
 /**
@@ -577,4 +582,26 @@ void igt_disable_prefault(void)
 void igt_enable_prefault(void)
 {
 	igt_prefault_control(true);
+}
+
+/**
+ * igt_open_forcewake_handle:
+ *
+ * This functions opens the debugfs forcewake file and so prevents the GT from
+ * suspending. The reference is automatically dropped when the is closed.
+ *
+ * Returns: The file descriptor of the forcewake handle or -1 if that didn't
+ * work out.
+ */
+int igt_open_forcewake_handle(void)
+{
+	igt_debugfs_t debugfs;
+	int fd;
+
+	if (!__igt_debugfs_init(&debugfs))
+		return -1;
+
+	fd = igt_debugfs_open(&debugfs, "i915_forcewake_user", O_WRONLY);
+
+	return fd;
 }

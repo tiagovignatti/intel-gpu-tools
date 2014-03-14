@@ -154,5 +154,6 @@ void igt_drop_caches_set(uint64_t val);
 void igt_disable_prefault(void);
 void igt_enable_prefault(void);
 
+int igt_open_forcewake_handle(void);
 
 #endif /* __IGT_DEBUGFS_H__ */
