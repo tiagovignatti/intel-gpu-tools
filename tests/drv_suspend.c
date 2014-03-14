@@ -37,6 +37,7 @@
 #include "drm.h"
 #include "i915_drm.h"
 #include "drmtest.h"
+#include "igt_debugfs.h"
 
 #define OBJECT_SIZE (16*1024*1024)
 
@@ -145,6 +146,17 @@ test_sysfs_reader(void)
 	igt_stop_helper(&reader);
 }
 
+static void
+test_forcewake(void)
+{
+	int fw_fd;
+
+	fw_fd = igt_open_forcewake_handle();
+	igt_assert(fw_fd >= 0);
+	igt_system_suspend_autoresume();
+	close (fw_fd);
+}
+
 int fd;
 
 igt_main
@@ -165,6 +177,9 @@ igt_main
 
 	igt_subtest("sysfs-reader")
 		test_sysfs_reader();
+
+	igt_subtest("forcewake")
+		test_forcewake();
 
 	igt_fixture
 		close(fd);
