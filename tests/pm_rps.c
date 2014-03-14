@@ -153,7 +153,6 @@ static struct load_helper {
 	drm_intel_bufmgr *bufmgr;
 	struct intel_batchbuffer *batch;
 	drm_intel_bo *target_buffer;
-	bool ready;
 	enum load load;
 	bool exit;
 	struct igt_helper_process igt_proc;
@@ -218,8 +217,6 @@ static void load_helper_run(enum load load)
 		return;
 	}
 
-	igt_require(lh.ready == true);
-
 	lh.load = load;
 
 	igt_fork_helper(&lh.igt_proc) {
@@ -253,42 +250,26 @@ static void load_helper_stop(void)
 	igt_wait_helper(&lh.igt_proc);
 }
 
-/* The load helper resource is used by only some subtests. We attempt to
- * initialize in igt_fixture but do our igt_require check only if a
- * subtest attempts to run it */
 static void load_helper_init(void)
 {
 	lh.devid = intel_get_drm_devid(drm_fd);
 	lh.has_ppgtt = gem_uses_aliasing_ppgtt(drm_fd);
 
 	/* MI_STORE_DATA can only use GTT address on gen4+/g33 and needs
-	 * snoopable mem on pre-gen6. */
-	if (intel_gen(lh.devid) < 6) {
-		igt_debug("load helper init failed: pre-gen6 not supported\n");
-		return;
-	}
-
+	 * snoopable mem on pre-gen6. Hence load-helper only works on gen6+, but
+	 * that's also all we care about for the rps testcase*/
+	igt_assert(intel_gen(lh.devid) >= 6);
 	lh.bufmgr = drm_intel_bufmgr_gem_init(drm_fd, 4096);
-	if (!lh.bufmgr) {
-		igt_debug("load helper init failed: buffer manager init\n");
-		return;
-	}
+	igt_assert(lh.bufmgr);
+
 	drm_intel_bufmgr_gem_enable_reuse(lh.bufmgr);
 
 	lh.batch = intel_batchbuffer_alloc(lh.bufmgr, lh.devid);
-	if (!lh.batch) {
-		igt_debug("load helper init failed: batch buffer alloc\n");
-		return;
-	}
+	igt_assert(lh.batch);
 
 	lh.target_buffer = drm_intel_bo_alloc(lh.bufmgr, "target bo",
 					      4096, 4096);
-	if (!lh.target_buffer) {
-		igt_debug("load helper init failed: target buffer alloc\n");
-		return;
-	}
-
-	lh.ready = true;
+	igt_assert(lh.target_buffer);
 }
 
 static void load_helper_deinit(void)
