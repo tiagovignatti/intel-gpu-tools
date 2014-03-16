@@ -31,17 +31,6 @@
 
 #include "igt_display.h"
 
-/**
- * igt_debugfs_t:
- *
- * debugfs access structure. Needs to be initialized with igt_debugfs_init().
- */
-typedef struct {
-	char root[128];
-	char dri_path[128];
-} igt_debugfs_t;
-
-void igt_debugfs_init(igt_debugfs_t *debugfs);
 int igt_debugfs_open(const char *filename, int mode);
 FILE *igt_debugfs_fopen(const char *filename,
 			const char *mode);

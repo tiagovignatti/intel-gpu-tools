@@ -76,6 +76,11 @@
  * General debugfs helpers
  */
 
+typedef struct {
+	char root[128];
+	char dri_path[128];
+} igt_debugfs_t;
+
 static bool __igt_debugfs_init(igt_debugfs_t *debugfs)
 {
 	const char *path = "/sys/kernel/debug";
@@ -108,17 +113,6 @@ find_minor:
 	debugfs->dri_path[0] = '\0';
 
 	return false;
-}
-
-/**
- * igt_debugfs_init:
- * @debugfs: debugfs access structure to initialize
- *
- * Initializes the debugfs access helper library.
- */
-void igt_debugfs_init(igt_debugfs_t *debugfs)
-{
-	igt_assert(__igt_debugfs_init(debugfs));
 }
 
 static igt_debugfs_t *__igt_debugfs_singleton(void)
