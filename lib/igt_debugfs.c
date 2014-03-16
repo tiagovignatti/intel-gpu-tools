@@ -328,13 +328,12 @@ static void pipe_crc_exit_handler(int sig)
 
 /**
  * igt_pipe_crc_check:
- * @debugfs: debugfs access structure
  *
  * Convenience helper to check whether pipe CRC capturing is supported by the
  * kernel. Uses igt_skip to automatically skip the test/subtest if this isn't
  * the case.
  */
-void igt_pipe_crc_check(igt_debugfs_t *debugfs)
+void igt_pipe_crc_check(void)
 {
 	const char *cmd = "pipe A none";
 	FILE *ctl;
@@ -354,7 +353,6 @@ void igt_pipe_crc_check(igt_debugfs_t *debugfs)
 
 /**
  * igt_pipe_crc_new:
- * @debugfs: debugfs access structure
  * @pipe: display pipe to use as source
  * @source: CRC tap point to use as source
  *
@@ -365,8 +363,7 @@ void igt_pipe_crc_check(igt_debugfs_t *debugfs)
  * specific pipe CRC source to function properly.
  */
 igt_pipe_crc_t *
-igt_pipe_crc_new(igt_debugfs_t *debugfs, enum pipe pipe,
-		 enum intel_pipe_crc_source source)
+igt_pipe_crc_new(enum pipe pipe, enum intel_pipe_crc_source source)
 {
 	igt_pipe_crc_t *pipe_crc;
 	char buf[128];

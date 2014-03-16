@@ -42,7 +42,6 @@ enum cursor_type {
 
 typedef struct {
 	int drm_fd;
-	igt_debugfs_t debugfs;
 	igt_display_t display;
 	struct kmstest_fb primary_fb;
 	struct kmstest_fb fb[NUM_CURSOR_TYPES];
@@ -63,8 +62,7 @@ static igt_pipe_crc_t *create_crc(data_t *data, enum pipe pipe)
 {
 	igt_pipe_crc_t *crc;
 
-	crc = igt_pipe_crc_new(&data->debugfs, pipe,
-			       INTEL_PIPE_CRC_SOURCE_AUTO);
+	crc = igt_pipe_crc_new(pipe, INTEL_PIPE_CRC_SOURCE_AUTO);
 	return crc;
 }
 
@@ -318,8 +316,7 @@ igt_main
 
 		igt_set_vt_graphics_mode();
 
-		igt_debugfs_init(&data.debugfs);
-		igt_pipe_crc_check(&data.debugfs);
+		igt_pipe_crc_check();
 
 		igt_display_init(&data.display, data.drm_fd);
 		data.pipe_crc = calloc(igt_display_get_n_pipes(&data.display),

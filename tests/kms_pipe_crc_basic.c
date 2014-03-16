@@ -33,7 +33,6 @@
 
 typedef struct {
 	int drm_fd;
-	igt_debugfs_t debugfs;
 	igt_display_t display;
 	struct kmstest_fb fb;
 } data_t;
@@ -88,8 +87,7 @@ static void test_read_crc(data_t *data, int pipe, unsigned flags)
 
 		igt_display_commit(display);
 
-		pipe_crc = igt_pipe_crc_new(&data->debugfs,
-					    pipe, INTEL_PIPE_CRC_SOURCE_AUTO);
+		pipe_crc = igt_pipe_crc_new(pipe, INTEL_PIPE_CRC_SOURCE_AUTO);
 
 		if (!pipe_crc)
 			continue;
@@ -139,8 +137,7 @@ igt_main
 
 		igt_set_vt_graphics_mode();
 
-		igt_debugfs_init(&data.debugfs);
-		igt_pipe_crc_check(&data.debugfs);
+		igt_pipe_crc_check();
 
 		igt_display_init(&data.display, data.drm_fd);
 	}

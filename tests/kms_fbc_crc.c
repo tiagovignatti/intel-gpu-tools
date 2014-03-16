@@ -56,7 +56,6 @@ typedef struct {
 
 typedef struct {
 	int drm_fd;
-	igt_debugfs_t debugfs;
 	drmModeRes *resources;
 	igt_crc_t ref_crc[2];
 	igt_pipe_crc_t **pipe_crc;
@@ -353,8 +352,7 @@ static bool prepare_crtc(data_t *data, uint32_t connector_id, enum test_mode mod
 	igt_pipe_crc_free(data->pipe_crc[data->crtc_idx]);
 	data->pipe_crc[data->crtc_idx] = NULL;
 
-	pipe_crc = igt_pipe_crc_new(&data->debugfs,
-				    data->crtc_idx,
+	pipe_crc = igt_pipe_crc_new(data->crtc_idx,
 				    INTEL_PIPE_CRC_SOURCE_AUTO);
 	if (!pipe_crc) {
 		printf("auto crc not supported on this connector with crtc %i\n",
@@ -493,8 +491,7 @@ igt_main
 
 		data.devid = intel_get_drm_devid(data.drm_fd);
 
-		igt_debugfs_init(&data.debugfs);
-		igt_pipe_crc_check(&data.debugfs);
+		igt_pipe_crc_check();
 
 		status = igt_debugfs_fopen("i915_fbc_status", "r");
 		igt_require_f(status, "No i915_fbc_status found\n");

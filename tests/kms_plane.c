@@ -35,7 +35,6 @@
 
 typedef struct {
 	int drm_fd;
-	igt_debugfs_t debugfs;
 	igt_display_t display;
 } data_t;
 
@@ -92,8 +91,7 @@ test_position_init(test_position_t *test, igt_output_t *output, enum pipe pipe)
 	drmModeModeInfo *mode;
 	igt_plane_t *primary;
 
-	test->pipe_crc = igt_pipe_crc_new(&data->debugfs,
-					  pipe, INTEL_PIPE_CRC_SOURCE_AUTO);
+	test->pipe_crc = igt_pipe_crc_new(pipe, INTEL_PIPE_CRC_SOURCE_AUTO);
 
 	igt_output_set_pipe(output, pipe);
 	primary = igt_output_get_plane(output, 0);
@@ -231,8 +229,7 @@ igt_main
 
 		igt_set_vt_graphics_mode();
 
-		igt_debugfs_init(&data.debugfs);
-		igt_pipe_crc_check(&data.debugfs);
+		igt_pipe_crc_check();
 		igt_display_init(&data.display, data.drm_fd);
 	}
 
