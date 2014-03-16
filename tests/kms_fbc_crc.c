@@ -491,7 +491,7 @@ igt_main
 
 		data.devid = intel_get_drm_devid(data.drm_fd);
 
-		igt_pipe_crc_check();
+		igt_require_pipe_crc();
 
 		status = igt_debugfs_fopen("i915_fbc_status", "r");
 		igt_require_f(status, "No i915_fbc_status found\n");

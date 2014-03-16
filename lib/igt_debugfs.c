@@ -321,13 +321,13 @@ static void pipe_crc_exit_handler(int sig)
 }
 
 /**
- * igt_pipe_crc_check:
+ * igt_require_pipe_crc:
  *
  * Convenience helper to check whether pipe CRC capturing is supported by the
  * kernel. Uses igt_skip to automatically skip the test/subtest if this isn't
  * the case.
  */
-void igt_pipe_crc_check(void)
+void igt_require_pipe_crc(void)
 {
 	const char *cmd = "pipe A none";
 	FILE *ctl;

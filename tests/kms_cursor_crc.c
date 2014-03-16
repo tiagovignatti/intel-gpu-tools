@@ -316,7 +316,7 @@ igt_main
 
 		igt_set_vt_graphics_mode();
 
-		igt_pipe_crc_check();
+		igt_require_pipe_crc();
 
 		igt_display_init(&data.display, data.drm_fd);
 		data.pipe_crc = calloc(igt_display_get_n_pipes(&data.display),

@@ -89,7 +89,7 @@ bool igt_crc_is_null(igt_crc_t *crc);
 bool igt_crc_equal(igt_crc_t *a, igt_crc_t *b);
 char *igt_crc_to_string(igt_crc_t *crc);
 
-void igt_pipe_crc_check(void);
+void igt_require_pipe_crc(void);
 igt_pipe_crc_t *
 igt_pipe_crc_new(enum pipe pipe, enum intel_pipe_crc_source source);
 void igt_pipe_crc_free(igt_pipe_crc_t *pipe_crc);
