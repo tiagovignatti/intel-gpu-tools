@@ -121,6 +121,22 @@ void igt_debugfs_init(igt_debugfs_t *debugfs)
 	igt_assert(__igt_debugfs_init(debugfs));
 }
 
+static igt_debugfs_t *__igt_debugfs_singleton(void)
+{
+	static igt_debugfs_t singleton;
+	static bool init_done = false;
+
+	if (init_done)
+		return &singleton;
+
+	if (__igt_debugfs_init(&singleton)) {
+		init_done = true;
+		return &singleton;
+	} else {
+		return NULL;
+	}
+}
+
 /**
  * igt_debugfs_open:
  * @debugfs: debugfs access structure
