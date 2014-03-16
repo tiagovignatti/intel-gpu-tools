@@ -955,7 +955,7 @@ static void fatal_sig_handler(int sig)
  * The handler will be passed the signal number if called due to a signal, or
  * 0 otherwise. Exit handlers can also be used from test children spawned with
  * igt_fork(), but not from within helper processes spawned with
- * igt_helper_process(). The list of exit handlers is reset when forking to
+ * igt_fork_helper(). The list of exit handlers is reset when forking to
  * avoid issues with children cleanup up the parent's state too early.
  */
 void igt_install_exit_handler(igt_exit_handler_t fn)
