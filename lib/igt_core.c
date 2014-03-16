@@ -115,6 +115,61 @@
  *    - "they are local to the function that made the corresponding setjmp() call;
  *    - "their values are changed between the calls to setjmp() and longjmp(); and
  *    - "they are not declared as volatile."
+ *
+ * # Best Practices for Test Helper Libraries Design
+ *
+ * Kernel tests itself tend to have fairly complex logic already. It is
+ * therefore paramount that helper code, both in libraries and test-private
+ * functions, add as little boilerplate code to the main test logic as possible.
+ * But then dense code is hard to understand without constantly consulting
+ * the documentation and implementation of all the helper functions if it
+ * doesn't follow some clear patterns. Hence follow these established best
+ * practices:
+ *
+ * - Make extensive use of the implicit control flow afforded by igt_skip(),
+ *   igt_fail and igt_success(). When dealing with optional kernel features
+ *   combine igt_skip() with igt_fail() to skip when the kernel support isn't
+ *   available but fail when anything else goes awry. void should be the most
+ *   common return type in all your functions, except object constructors of
+ *   course.
+ *
+ * - The main test logic should have no explicit control flow for failure
+ *   conditions, but instead such assumptions should be written in a declarative
+ *   style.  Use one of the many macros which encapsulate i-g-t's implicit
+ *   control flow.  Pick the most suitable one to have as much debug output as
+ *   possible without polluting the code unecessarily. For example
+ *   igt_assert_cmpint() for comparing integers or do_ioctl() for running ioctls
+ *   and checking their results.  Feel free to add new ones to the libary or
+ *   wrap up a set of checks into a private function to further condense your
+ *   test logic.
+ *
+ * - When adding a new feature test function which uses igt_skip() internally,
+ *   use the &lt;prefix&gt;_require_&lt;feature_name&gt; naming scheme. When you
+ *   instead add a feature test function which returns a boolean, because your
+ *   main test logic must take different actions depending upon the feature's
+ *   availability, then instead use the &lt;prefix&gt;_has_&lt;feature_name&gt;.
+ *
+ * - As already mentioned eschew explicit error handling logic as much as
+ *   possible. If your test absolutely has to handle the error of some function
+ *   the customary naming pattern is to prefix those variants with __. Try to
+ *   restrict explicit error handling to leaf functions. For the main test flow
+ *   simply pass the expected error condition down into your helper code, which
+ *   results in tidy and declarative test logic.
+ *
+ * - Make your library functions as simple to use as possible. Automatically
+ *   register cleanup handlers through igt_install_exit_handler(). Reduce the
+ *   amount of setup boilerplate needed by using implicit singletons and lazy
+ *   structure initialization and similar design patterns.
+ *
+ * - Don't shy away from refactoring common code, even when there are just 2-3
+ *   users and even if it's not a net reduction in code. As long as it helps to
+ *   remove boilerplate and makes the code more declarative the resulting
+ *   clearer test flow is worth it. All i-g-t library code has been organically
+ *   extracted from testcases in this fashion.
+ *
+ * - For general coding style issues please follow the kernel's rules laid out
+ *   in
+ *   [CodingStyle](https://www.kernel.org/doc/Documentation/CodingStyle).
  */
 
 static unsigned int exit_handler_count;
