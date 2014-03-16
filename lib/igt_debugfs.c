@@ -162,17 +162,24 @@ int igt_debugfs_open(const char *filename, int mode)
 
 /**
  * igt_debugfs_fopen:
- * @debugfs: debugfs access structure
  * @filename: name of the debugfs node to open
  * @mode: mode string as used by fopen()
  *
  * This opens a debugfs file as a libc FILE. The filename should be
  * relative to the drm device's root, i.e without "drm/&lt;minor&gt;".
+ *
+ * Returns:
+ * The libc FILE pointer for the debugfs file or NULL if that didn't work out.
  */
-FILE *igt_debugfs_fopen(igt_debugfs_t *debugfs, const char *filename,
+FILE *igt_debugfs_fopen(const char *filename,
 			const char *mode)
 {
 	char buf[1024];
+
+	igt_debugfs_t *debugfs = __igt_debugfs_singleton();
+
+	if (!debugfs)
+		return NULL;
 
 	sprintf(buf, "%s/%s", debugfs->dri_path, filename);
 	return fopen(buf, mode);
@@ -334,7 +341,7 @@ void igt_pipe_crc_check(igt_debugfs_t *debugfs)
 	size_t written;
 	int ret;
 
-	ctl = igt_debugfs_fopen(debugfs, "i915_display_crc_ctl", "r+");
+	ctl = igt_debugfs_fopen("i915_display_crc_ctl", "r+");
 	igt_require_f(ctl,
 		      "No display_crc_ctl found, kernel too old\n");
 	written = fwrite(cmd, 1, strlen(cmd), ctl);

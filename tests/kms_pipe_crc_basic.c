@@ -43,7 +43,7 @@ static void test_bad_command(data_t *data, const char *cmd)
 	FILE *ctl;
 	size_t written;
 
-	ctl = igt_debugfs_fopen(&data->debugfs, "i915_display_crc_ctl", "r+");
+	ctl = igt_debugfs_fopen("i915_display_crc_ctl", "r+");
 	written = fwrite(cmd, 1, strlen(cmd), ctl);
 	fflush(ctl);
 	igt_assert_cmpint(written, ==, (strlen(cmd)));
