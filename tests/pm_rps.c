@@ -63,8 +63,6 @@ struct junk {
 	{ "cur", "r", NULL }, { "min", "rb+", NULL }, { "max", "rb+", NULL }, { "RP0", "r", NULL }, { "RP1", "r", NULL }, { "RPn", "r", NULL }, { NULL, NULL, NULL }
 };
 
-static igt_debugfs_t dfs;
-
 static int readval(FILE *filp)
 {
 	int val;
@@ -305,7 +303,7 @@ static void stop_rings(void)
 	int fd;
 	static const char data[] = "0xf";
 
-	fd = igt_debugfs_open(&dfs, "i915_ring_stop", O_WRONLY);
+	fd = igt_debugfs_open("i915_ring_stop", O_WRONLY);
 	igt_assert(fd >= 0);
 
 	igt_debug("injecting ring stop\n");
@@ -320,7 +318,7 @@ static bool rings_stopped(void)
 	static char buf[128];
 	unsigned long long val;
 
-	fd = igt_debugfs_open(&dfs, "i915_ring_stop", O_RDONLY);
+	fd = igt_debugfs_open("i915_ring_stop", O_RDONLY);
 	igt_assert(fd >= 0);
 
 	igt_assert(read(fd, buf, sizeof(buf)) > 0);
@@ -555,8 +553,6 @@ igt_main
 		igt_install_exit_handler(pm_rps_exit_handler);
 
 		load_helper_init();
-
-		igt_debugfs_init(&dfs);
 	}
 
 	igt_subtest("basic-api")

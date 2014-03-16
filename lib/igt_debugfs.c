@@ -139,16 +139,22 @@ static igt_debugfs_t *__igt_debugfs_singleton(void)
 
 /**
  * igt_debugfs_open:
- * @debugfs: debugfs access structure
  * @filename: name of the debugfs node to open
  * @mode: mode bits as used by open()
  *
  * This opens a debugfs file as a Unix file descriptor. The filename should be
  * relative to the drm device's root, i.e without "drm/&lt;minor&gt;".
+ *
+ * Returns:
+ * The Unix file descriptor for the debugfs file or -1 if that didn't work out.
  */
-int igt_debugfs_open(igt_debugfs_t *debugfs, const char *filename, int mode)
+int igt_debugfs_open(const char *filename, int mode)
 {
 	char buf[1024];
+	igt_debugfs_t *debugfs = __igt_debugfs_singleton();
+
+	if (!debugfs)
+		return -1;
 
 	sprintf(buf, "%s/%s", debugfs->dri_path, filename);
 	return open(buf, mode);
@@ -297,11 +303,9 @@ static void igt_pipe_crc_pipe_off(int fd, enum pipe pipe)
 
 static void igt_pipe_crc_reset(void)
 {
-	igt_debugfs_t debugfs;
 	int fd;
 
-	igt_debugfs_init(&debugfs);
-	fd = igt_debugfs_open(&debugfs, "i915_display_crc_ctl", O_WRONLY);
+	fd = igt_debugfs_open("i915_display_crc_ctl", O_WRONLY);
 
 	igt_pipe_crc_pipe_off(fd, PIPE_A);
 	igt_pipe_crc_pipe_off(fd, PIPE_B);
@@ -364,12 +368,11 @@ igt_pipe_crc_new(igt_debugfs_t *debugfs, enum pipe pipe,
 
 	pipe_crc = calloc(1, sizeof(struct _igt_pipe_crc));
 
-	pipe_crc->ctl_fd = igt_debugfs_open(debugfs,
-					    "i915_display_crc_ctl", O_WRONLY);
+	pipe_crc->ctl_fd = igt_debugfs_open("i915_display_crc_ctl", O_WRONLY);
 	igt_assert(pipe_crc->ctl_fd != -1);
 
 	sprintf(buf, "i915_pipe_%c_crc", pipe_name(pipe));
-	pipe_crc->crc_fd = igt_debugfs_open(debugfs, buf, O_RDONLY);
+	pipe_crc->crc_fd = igt_debugfs_open(buf, O_RDONLY);
 	igt_assert(pipe_crc->crc_fd != -1);
 
 	pipe_crc->line_len = PIPE_CRC_LINE_LEN;
@@ -528,15 +531,13 @@ void igt_pipe_crc_collect_crc(igt_pipe_crc_t *pipe_crc, igt_crc_t *out_crc)
  */
 void igt_drop_caches_set(uint64_t val)
 {
-	igt_debugfs_t debugfs;
 	int fd;
 	char data[19];
 	size_t nbytes;
 
 	sprintf(data, "0x%" PRIx64, val);
 
-	igt_debugfs_init(&debugfs);
-	fd = igt_debugfs_open(&debugfs, "i915_gem_drop_caches", O_WRONLY);
+	fd = igt_debugfs_open("i915_gem_drop_caches", O_WRONLY);
 
 	igt_assert(fd >= 0);
 	nbytes = write(fd, data, strlen(data) + 1);
@@ -606,18 +607,10 @@ void igt_enable_prefault(void)
  * This functions opens the debugfs forcewake file and so prevents the GT from
  * suspending. The reference is automatically dropped when the is closed.
  *
- * Returns: The file descriptor of the forcewake handle or -1 if that didn't
- * work out.
+ * Returns:
+ * The file descriptor of the forcewake handle or -1 if that didn't work out.
  */
 int igt_open_forcewake_handle(void)
 {
-	igt_debugfs_t debugfs;
-	int fd;
-
-	if (!__igt_debugfs_init(&debugfs))
-		return -1;
-
-	fd = igt_debugfs_open(&debugfs, "i915_forcewake_user", O_WRONLY);
-
-	return fd;
+	return igt_debugfs_open("i915_forcewake_user", O_WRONLY);
 }

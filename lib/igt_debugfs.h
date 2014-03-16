@@ -42,7 +42,7 @@ typedef struct {
 } igt_debugfs_t;
 
 void igt_debugfs_init(igt_debugfs_t *debugfs);
-int igt_debugfs_open(igt_debugfs_t *debugfs, const char *filename, int mode);
+int igt_debugfs_open(const char *filename, int mode);
 FILE *igt_debugfs_fopen(igt_debugfs_t *debugfs, const char *filename,
 			const char *mode);
 

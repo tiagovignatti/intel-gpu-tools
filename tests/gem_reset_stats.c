@@ -76,8 +76,6 @@ struct local_drm_i915_gem_context_destroy {
 #define CONTEXT_DESTROY_IOCTL DRM_IOWR(DRM_COMMAND_BASE + 0x2e, struct local_drm_i915_gem_context_destroy)
 #define GET_RESET_STATS_IOCTL DRM_IOWR(DRM_COMMAND_BASE + 0x32, struct local_drm_i915_reset_stats)
 
-static igt_debugfs_t dfs;
-
 #define LOCAL_I915_EXEC_VEBOX	(4 << 0)
 
 struct target_ring;
@@ -244,7 +242,7 @@ static void stop_rings(const int mask)
 
 	igt_assert((mask & ~((1 << NUM_RINGS) - 1)) == 0);
 	igt_assert(snprintf(buf, sizeof(buf), "0x%02x", mask) == 4);
-	fd = igt_debugfs_open(&dfs, "i915_ring_stop", O_WRONLY);
+	fd = igt_debugfs_open("i915_ring_stop", O_WRONLY);
 	igt_assert(fd >= 0);
 
 	igt_assert(write(fd, buf, 4) == 4);
@@ -1040,8 +1038,6 @@ igt_main
 		igt_skip_on_f(ret != 0 && (errno == ENODEV || errno == EINVAL),
 			      "Kernel is too old, or contexts not supported: %s\n",
 			      strerror(errno));
-
-		igt_debugfs_init(&dfs);
 	}
 
 	igt_subtest("params")
