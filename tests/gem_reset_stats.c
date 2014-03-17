@@ -52,6 +52,9 @@
 #define RS_BATCH_PENDING (1 << 1)
 #define RS_UNKNOWN       (1 << 2)
 
+static uint32_t devid;
+static bool hw_contexts;
+
 struct local_drm_i915_reset_stats {
 	__u32 ctx_id;
 	__u32 flags;
@@ -102,6 +105,9 @@ static const struct target_ring {
 
 static bool has_context(const struct target_ring *ring)
 {
+	if (!hw_contexts)
+		return false;
+
 	if(ring->exec == I915_EXEC_RENDER)
 		return true;
 
@@ -278,7 +284,7 @@ static int inject_hang_ring(int fd, int ctx, int ring)
 
 	srandom(time(NULL));
 
-	if (intel_gen(intel_get_drm_devid(fd)) >= 8)
+	if (intel_gen(devid) >= 8)
 		cmd_len = 3;
 
 	buf = malloc(BUFSIZE);
@@ -961,7 +967,7 @@ static int _test_params(int fd, int ctx, uint32_t flags, uint32_t pad)
 
 typedef enum { root = 0, user } cap_t;
 
-static void test_param_ctx(const int fd, const int ctx, const cap_t cap)
+static void _check_param_ctx(const int fd, const int ctx, const cap_t cap)
 {
 	const uint32_t bad = rand() + 1;
 
@@ -982,8 +988,7 @@ static void check_params(const int fd, const int ctx, cap_t cap)
 	igt_assert(ioctl(fd, GET_RESET_STATS_IOCTL, 0) == -1);
 	igt_assert(_test_params(fd, 0xbadbad, 0, 0) == -ENOENT);
 
-	test_param_ctx(fd, 0, cap);
-	test_param_ctx(fd, ctx, cap);
+	_check_param_ctx(fd, ctx, cap);
 }
 
 static void _test_param(const int fd, const int ctx)
@@ -1003,7 +1008,7 @@ static void _test_param(const int fd, const int ctx)
 	igt_waitchildren();
 }
 
-static void test_params(void)
+static void test_params_ctx(void)
 {
 	int fd, ctx;
 
@@ -1016,29 +1021,76 @@ static void test_params(void)
 	close(fd);
 }
 
-#define RING_HAS_CONTEXTS current_ring->contexts(current_ring)
+static void test_params(void)
+{
+	int fd;
+
+	fd = drm_open_any();
+	igt_assert(fd >= 0);
+
+	_test_param(fd, 0);
+
+	close(fd);
+
+}
+
+static bool gem_has_hw_contexts(int fd)
+{
+	struct local_drm_i915_gem_context_create create;
+	int ret;
+
+	memset(&create, 0, sizeof(create));
+	ret = drmIoctl(fd, CONTEXT_CREATE_IOCTL, &create);
+
+	if (ret == 0) {
+		drmIoctl(fd, CONTEXT_DESTROY_IOCTL, &create);
+		return true;
+	}
+
+	return false;
+}
+
+static bool gem_has_reset_stats(int fd)
+{
+	struct local_drm_i915_reset_stats rs;
+	int ret;
+
+	/* Carefully set flags and pad to zero, otherwise
+	   we get -EINVAL
+	*/
+	memset(&rs, 0, sizeof(rs));
+
+	ret = drmIoctl(fd, GET_RESET_STATS_IOCTL, &rs);
+	if (ret == 0)
+		return true;
+
+	/* If we get EPERM, we have support but did not
+	   have CAP_SYSADM */
+	if (ret == -1 && errno == EPERM)
+		return true;
+
+	return false;
+}
+
+#define RING_HAS_CONTEXTS (current_ring->contexts(current_ring))
 #define RUN_CTX_TEST(...) do { igt_skip_on(RING_HAS_CONTEXTS == false); __VA_ARGS__; } while (0)
 
-int fd;
+static int fd;
 
 igt_main
 {
-	struct local_drm_i915_gem_context_create create;
-	uint32_t devid;
-	int ret;
-
 	igt_skip_on_simulation();
 
 	igt_fixture {
+		bool has_reset_stats;
 		fd = drm_open_any();
 		devid = intel_get_drm_devid(fd);
-		igt_require_f(intel_gen(devid) >= 4,
-			      "Architecture %d too old\n", intel_gen(devid));
 
-		ret = drmIoctl(fd, CONTEXT_CREATE_IOCTL, &create);
-		igt_skip_on_f(ret != 0 && (errno == ENODEV || errno == EINVAL),
-			      "Kernel is too old, or contexts not supported: %s\n",
-			      strerror(errno));
+		hw_contexts = gem_has_hw_contexts(fd);
+		has_reset_stats = gem_has_reset_stats(fd);
+
+		igt_require_f(has_reset_stats,
+			      "No reset stats ioctl support. Too old kernel?\n");
 	}
 
 	igt_subtest("params")
@@ -1052,6 +1104,13 @@ igt_main
 
 		igt_fixture
 			gem_require_ring(fd, current_ring->exec);
+
+		igt_fixture
+			igt_require_f(intel_gen(devid) >= 4,
+				      "gen %d doesn't support reset\n", intel_gen(devid));
+
+		igt_subtest_f("params-ctx-%s", name)
+			RUN_CTX_TEST(test_params_ctx());
 
 		igt_subtest_f("reset-stats-%s", name)
 			test_rs(4, 1, 0);
