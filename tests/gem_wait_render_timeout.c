@@ -86,13 +86,13 @@ static void blt_color_fill(struct intel_batchbuffer *batch,
 {
 	const unsigned short height = pages/4;
 	const unsigned short width =  4096;
-	BEGIN_BATCH(5);
-	OUT_BATCH(COLOR_BLT_CMD		|
-		  COLOR_BLT_WRITE_ALPHA	|
-		  COLOR_BLT_WRITE_RGB);
+	BEGIN_BATCH(6);
+	OUT_BATCH(XY_COLOR_BLT_CMD_NOLEN | 4 |
+		  COLOR_BLT_WRITE_ALPHA	| XY_COLOR_BLT_WRITE_RGB);
 	OUT_BATCH((3 << 24)	| /* 32 Bit Color */
-		  0xF0		| /* Raster OP copy background register */
+		  (0xF0 << 16)	| /* Raster OP copy background register */
 		  0);		  /* Dest pitch is 0 */
+	OUT_BATCH(0);
 	OUT_BATCH(width << 16	|
 		  height);
 	OUT_RELOC(buf, I915_GEM_DOMAIN_RENDER, I915_GEM_DOMAIN_RENDER, 0);
