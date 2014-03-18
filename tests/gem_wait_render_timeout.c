@@ -86,9 +86,17 @@ static void blt_color_fill(struct intel_batchbuffer *batch,
 {
 	const unsigned short height = pages/4;
 	const unsigned short width =  4096;
-	BEGIN_BATCH(6);
-	OUT_BATCH(XY_COLOR_BLT_CMD_NOLEN | 4 |
-		  COLOR_BLT_WRITE_ALPHA	| XY_COLOR_BLT_WRITE_RGB);
+
+	if (intel_gen(batch->devid) >= 8) {
+		BEGIN_BATCH(8);
+		OUT_BATCH(MI_NOOP);
+		OUT_BATCH(XY_COLOR_BLT_CMD_NOLEN | 5 |
+			  COLOR_BLT_WRITE_ALPHA	| XY_COLOR_BLT_WRITE_RGB);
+	} else {
+		BEGIN_BATCH(6);
+		OUT_BATCH(XY_COLOR_BLT_CMD_NOLEN | 4 |
+			  COLOR_BLT_WRITE_ALPHA	| XY_COLOR_BLT_WRITE_RGB);
+	}
 	OUT_BATCH((3 << 24)	| /* 32 Bit Color */
 		  (0xF0 << 16)	| /* Raster OP copy background register */
 		  0);		  /* Dest pitch is 0 */
@@ -96,6 +104,8 @@ static void blt_color_fill(struct intel_batchbuffer *batch,
 	OUT_BATCH(width << 16	|
 		  height);
 	OUT_RELOC(buf, I915_GEM_DOMAIN_RENDER, I915_GEM_DOMAIN_RENDER, 0);
+	if (intel_gen(batch->devid) >= 8)
+		OUT_BATCH(0);
 	OUT_BATCH(rand()); /* random pattern */
 	ADVANCE_BATCH();
 }
