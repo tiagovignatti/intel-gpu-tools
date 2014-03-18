@@ -42,9 +42,6 @@
 #include "i915_drm.h"
 #include "drmtest.h"
 
-#define BLT_WRITE_ALPHA		(1<<21)
-#define BLT_WRITE_RGB		(1<<20)
-
 static const uint32_t canary = 0xdeadbeef;
 
 static double elapsed(const struct timeval *start,
@@ -60,7 +57,7 @@ static void busy(int fd, uint32_t handle, int size, int loops)
 	struct drm_i915_gem_execbuffer2 execbuf;
 	struct drm_i915_gem_pwrite gem_pwrite;
 	struct drm_i915_gem_create create;
-	uint32_t buf[102], *b;
+	uint32_t buf[122], *b;
 	int i;
 
 	memset(reloc, 0, sizeof(reloc));
@@ -69,9 +66,11 @@ static void busy(int fd, uint32_t handle, int size, int loops)
 
 	b = buf;
 	for (i = 0; i < 20; i++) {
-		*b++ = COLOR_BLT_CMD | BLT_WRITE_ALPHA | BLT_WRITE_RGB;
+		*b++ = XY_COLOR_BLT_CMD_NOLEN | 4 |
+			COLOR_BLT_WRITE_ALPHA | XY_COLOR_BLT_WRITE_RGB;
 		*b++ = 0xf0 << 16 | 1 << 25 | 1 << 24 | 4096;
-		*b++ = size >> 12 << 16 | 4096;
+		*b++ = 0;
+		*b++ = size >> 12 << 16 | 1024;
 		reloc[i].offset = (b - buf) * sizeof(uint32_t);
 		reloc[i].target_handle = handle;
 		reloc[i].read_domains = I915_GEM_DOMAIN_RENDER;
