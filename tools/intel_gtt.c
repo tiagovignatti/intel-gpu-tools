@@ -93,7 +93,7 @@ static void pte_dump(int size, uint32_t offset) {
 int main(int argc, char **argv)
 {
 	struct pci_device *pci_dev;
-	int start, aper_size;
+	int start, gtt_size;
 	int flag[] = {
 		PCI_DEV_MAP_FLAG_WRITE_COMBINE,
 		PCI_DEV_MAP_FLAG_WRITABLE,
@@ -136,20 +136,20 @@ int main(int argc, char **argv)
 		exit(1);
 	}
 
-	aper_size = pci_dev->regions[2].size;
+	gtt_size = pci_dev->regions[0].size / 2;
 	if (argc > 1 && !strncmp("-d", argv[1], 2)) {
-		pte_dump(aper_size, 0);
+		pte_dump(gtt_size, 0);
 		return 0;
 	}
 
-	for (start = 0; start < aper_size; start += KB(4)) {
+	for (start = 0; start < gtt_size; start += KB(4)) {
 		uint64_t start_phys = get_phys(start);
 		uint32_t end;
 		int constant_length = 0;
 		int linear_length = 0;
 
 		/* Check if it's a linear sequence */
-		for (end = start + KB(4); end < aper_size; end += KB(4)) {
+		for (end = start + KB(4); end < gtt_size; end += KB(4)) {
 			uint64_t end_phys = get_phys(end);
 			if (end_phys == start_phys + (end - start))
 				linear_length++;
@@ -166,7 +166,7 @@ int main(int argc, char **argv)
 		}
 
 		/* Check if it's a constant sequence */
-		for (end = start + KB(4); end < aper_size; end += KB(4)) {
+		for (end = start + KB(4); end < gtt_size; end += KB(4)) {
 			uint64_t end_phys = get_phys(end);
 			if (end_phys == start_phys)
 				constant_length++;
