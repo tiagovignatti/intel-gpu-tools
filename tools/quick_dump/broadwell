@@ -1,5 +1,6 @@
-gen8_interrupt.txt
-audio_config_haswell_plus.txt
-audio_debug_haswell_plus.txt
 gen7_other.txt
 haswell_other.txt
+gen8_interrupt.txt
+gen8_other.txt
+audio_config_haswell_plus.txt
+audio_debug_haswell_plus.txt

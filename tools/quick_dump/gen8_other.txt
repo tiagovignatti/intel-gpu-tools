@@ -1,0 +1,2 @@
+('PRIVATE_PAT1', '0x000040e0', '')
+('PRIVATE_PAT2', '0x000040e4', '')
