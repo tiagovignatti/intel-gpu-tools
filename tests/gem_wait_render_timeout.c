@@ -153,7 +153,7 @@ igt_simple_main
 			iter <<= 1;
 	} while (!done && iter < 1000000);
 
-	igt_assert(iter < 1000000);
+	igt_assert_cmpint(iter, <, 1000000);
 
 	printf("%d iters is enough work\n", iter);
 	gem_quiescent_gpu(fd);
@@ -171,7 +171,7 @@ igt_simple_main
 
 	igt_assert(gem_bo_wait_timeout(fd, dst2->handle, &timeout) == 0);
 	igt_assert(gem_bo_busy(fd, dst2->handle) == false);
-	igt_assert(timeout != 0);
+	igt_assert_cmpint(timeout, !=, 0);
 	if (timeout ==  (ENOUGH_WORK_IN_SECONDS * NSEC_PER_SEC))
 		printf("Buffer was already done!\n");
 	else {
