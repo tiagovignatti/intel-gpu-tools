@@ -62,6 +62,7 @@ else
     kms_flip \
     kms_flip_tiling \
     kms_pipe_crc_basic \
+    kms_psr_sink_crc \
     kms_fbc_crc \
     kms_setmode \
     kms_sink_crc_basic \
