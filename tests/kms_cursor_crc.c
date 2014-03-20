@@ -152,26 +152,26 @@ static void test_crc(test_data_t *test_data, enum cursor_type cursor_type,
 
 		/* 1 pixel inside */
 		do_test(test_data, left - (cursor_w-1), right + (cursor_w-1), top               , bottom               );
-                do_test(test_data, left               , right               , top - (cursor_h-1), bottom + (cursor_h-1));
-                do_test(test_data, left - (cursor_w-1), right + (cursor_w-1), top - (cursor_h-1), bottom + (cursor_h-1));
+		do_test(test_data, left               , right               , top - (cursor_h-1), bottom + (cursor_h-1));
+		do_test(test_data, left - (cursor_w-1), right + (cursor_w-1), top - (cursor_h-1), bottom + (cursor_h-1));
 	} else {
 		/* cursor offscreen, crc should always match */
 		test_data->crc_must_match = true;
 
 		/* fully outside */
 		do_test(test_data, left - (cursor_w), right + (cursor_w), top             , bottom             );
-                do_test(test_data, left             , right             , top - (cursor_h), bottom + (cursor_h));
-                do_test(test_data, left - (cursor_w), right + (cursor_w), top - (cursor_h), bottom + (cursor_h));
+		do_test(test_data, left             , right             , top - (cursor_h), bottom + (cursor_h));
+		do_test(test_data, left - (cursor_w), right + (cursor_w), top - (cursor_h), bottom + (cursor_h));
 
 		/* fully outside by 1 extra pixels */
 		do_test(test_data, left - (cursor_w+1), right + (cursor_w+1), top               , bottom               );
-                do_test(test_data, left               , right               , top - (cursor_h+1), bottom + (cursor_h+1));
-                do_test(test_data, left - (cursor_w+1), right + (cursor_w+1), top - (cursor_h+1), bottom + (cursor_h+1));
+		do_test(test_data, left               , right               , top - (cursor_h+1), bottom + (cursor_h+1));
+		do_test(test_data, left - (cursor_w+1), right + (cursor_w+1), top - (cursor_h+1), bottom + (cursor_h+1));
 
 		/* fully outside by 2 extra pixels */
 		do_test(test_data, left - (cursor_w+2), right + (cursor_w+2), top               , bottom               );
-                do_test(test_data, left               , right               , top - (cursor_h+2), bottom + (cursor_h+2));
-                do_test(test_data, left - (cursor_w+2), right + (cursor_w+2), top - (cursor_h+2), bottom + (cursor_h+2));
+		do_test(test_data, left               , right               , top - (cursor_h+2), bottom + (cursor_h+2));
+		do_test(test_data, left - (cursor_w+2), right + (cursor_w+2), top - (cursor_h+2), bottom + (cursor_h+2));
 
 		/* fully outside by a lot of extra pixels */
 		do_test(test_data, left - (cursor_w+512), right + (cursor_w+512), top                 , bottom                 );
@@ -358,9 +358,8 @@ igt_main
 		ret = drmGetCap(data.drm_fd, DRM_CAP_CURSOR_HEIGHT, &cursor_height);
 		igt_assert(ret == 0);
 
-		fprintf(stdout, "%d, %d\n", cursor_width, cursor_height);
 		/* We assume width and height are same so max is assigned width */
-		cursor_max_size = (int)cursor_width;
+		igt_assert_cmpint(cursor_width, ==, cursor_height);
 
 		igt_set_vt_graphics_mode();
 
