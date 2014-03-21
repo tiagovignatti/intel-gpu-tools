@@ -24,7 +24,7 @@ AM_CFLAGS = $(DRM_CFLAGS) $(CWARNFLAGS) \
 	-I$(srcdir)/.. \
 	-I$(srcdir)/../lib \
 	-include "$(srcdir)/../lib/check-ndebug.h" \
-	-include "$(srcdir)/../version.h" \
+	-include "$(top_builddir)/version.h" \
 	-DIGT_DATADIR=\""$(abs_srcdir)"\" \
 	$(NULL)
 
