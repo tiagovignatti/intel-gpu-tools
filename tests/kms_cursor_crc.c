@@ -341,11 +341,12 @@ static void run_test_generic(data_t *data, int cursor_max_size)
 
 }
 
+uint64_t cursor_width, cursor_height;
+
 igt_main
 {
 	data_t data = {};
-	int cursor_max_size, ret;
-	uint64_t cursor_width, cursor_height;
+	int ret;
 
 	igt_skip_on_simulation();
 
@@ -371,7 +372,7 @@ igt_main
 
 	}
 
-	run_test_generic(&data, cursor_max_size);
+	run_test_generic(&data, cursor_width);
 
 	igt_fixture {
 		free(data.pipe_crc);
