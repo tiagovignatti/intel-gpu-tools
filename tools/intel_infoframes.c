@@ -367,7 +367,7 @@ static void dump_port_info(int hdmi_port_index)
 
 	if (gen == 4)
 		transcoder = (val & HDMI_PORT_TRANSCODER_GEN4) >> 30;
-	else if (pch >= PCH_CPT)
+	else if (intel_pch >= PCH_CPT)
 		transcoder = (val & HDMI_PORT_TRANSCODER_CPT) >> 29;
 	else
 		transcoder = (val & HDMI_PORT_TRANSCODER_IBX) >> 30;
@@ -1187,7 +1187,7 @@ int main(int argc, char *argv[])
 				transcoder = TRANSC_A;
 			else if (!strcmp(optarg, "B"))
 				transcoder = TRANSC_B;
-			else if (pch >= PCH_CPT && !strcmp(optarg, "C")) {
+			else if (intel_pch >= PCH_CPT && !strcmp(optarg, "C")) {
 				transcoder = TRANSC_C;
 			} else {
 				printf("Invalid transcoder.\n");

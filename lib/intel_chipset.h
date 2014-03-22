@@ -35,7 +35,7 @@ struct pci_device *intel_get_pci_device(void);
 uint32_t intel_get_drm_devid(int fd);
 int intel_gen(uint32_t devid);
 
-extern enum pch_type pch;
+extern enum pch_type intel_pch;
 enum pch_type {
 	PCH_NONE,
 	PCH_IBX,
@@ -45,9 +45,9 @@ enum pch_type {
 
 void intel_check_pch(void);
 
-#define HAS_IBX (pch == PCH_IBX)
-#define HAS_CPT (pch == PCH_CPT)
-#define HAS_LPT (pch == PCH_LPT)
+#define HAS_IBX (intel_pch == PCH_IBX)
+#define HAS_CPT (intel_pch == PCH_CPT)
+#define HAS_LPT (intel_pch == PCH_LPT)
 
 #define PCI_CHIP_I810			0x7121
 #define PCI_CHIP_I810_DC100		0x7123

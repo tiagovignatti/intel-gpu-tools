@@ -2931,18 +2931,18 @@ int main(int argc, char** argv)
 		intel_map_file(file);
 		if (devid) {
 			if (IS_GEN5(devid))
-				pch = PCH_IBX;
+				intel_pch = PCH_IBX;
 			else if (IS_GEN6(devid) || IS_IVYBRIDGE(devid))
-				pch = PCH_CPT;
+				intel_pch = PCH_CPT;
 			else if (IS_HASWELL(devid))
-				pch = PCH_LPT;
+				intel_pch = PCH_LPT;
 			else
-				pch = PCH_NONE;
+				intel_pch = PCH_NONE;
 		} else {
 			printf("Dumping from file without -d argument. "
 			       "Assuming Ironlake machine.\n");
 			devid = 0x0042;
-			pch = PCH_IBX;
+			intel_pch = PCH_IBX;
 		}
 	} else {
 		pci_dev = intel_get_pci_device();

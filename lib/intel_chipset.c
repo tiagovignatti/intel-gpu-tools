@@ -40,7 +40,7 @@
 
 #include "intel_chipset.h"
 
-enum pch_type pch;
+enum pch_type intel_pch;
 
 struct pci_device *
 intel_get_pci_device(void)
@@ -148,18 +148,18 @@ intel_check_pch(void)
 
 	switch (pch_dev->device_id & 0xff00) {
 	case 0x3b00:
-		pch = PCH_IBX;
+		intel_pch = PCH_IBX;
 		break;
 	case 0x1c00:
 	case 0x1e00:
-		pch = PCH_CPT;
+		intel_pch = PCH_CPT;
 		break;
 	case 0x8c00:
 	case 0x9c00:
-		pch = PCH_LPT;
+		intel_pch = PCH_LPT;
 		break;
 	default:
-		pch = PCH_NONE;
+		intel_pch = PCH_NONE;
 		return;
 	}
 }
