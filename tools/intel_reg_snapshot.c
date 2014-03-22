@@ -38,7 +38,7 @@ int main(int argc, char** argv)
 
 	pci_dev = intel_get_pci_device();
 	devid = pci_dev->device_id;
-	intel_get_mmio(pci_dev);
+	intel_mmio_use_pci_bar(pci_dev);
 
 	if (IS_GEN2(devid))
 		mmio_bar = 1;

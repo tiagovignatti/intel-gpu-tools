@@ -2931,7 +2931,7 @@ int main(int argc, char** argv)
 	}
 
 	if (file) {
-		intel_map_file(file);
+		intel_mmio_use_dump_file(file);
 		if (devid) {
 			if (IS_GEN5(devid))
 				intel_pch = PCH_IBX;

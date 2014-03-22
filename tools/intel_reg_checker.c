@@ -350,7 +350,7 @@ int main(int argc, char** argv)
 
 	dev = intel_get_pci_device();
 	devid = dev->device_id;
-	intel_get_mmio(dev);
+	intel_mmio_use_pci_bar(dev);
 
 	if (IS_GEN7(devid))
 		gen = 7;

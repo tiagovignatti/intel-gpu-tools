@@ -58,7 +58,7 @@ static struct _mmio_data {
 } mmio_data;
 
 void
-intel_map_file(char *file)
+intel_mmio_use_dump_file(char *file)
 {
 	int fd;
 	struct stat st;
@@ -80,7 +80,7 @@ intel_map_file(char *file)
 }
 
 void
-intel_get_mmio(struct pci_device *pci_dev)
+intel_mmio_use_pci_bar(struct pci_device *pci_dev)
 {
 	uint32_t devid, gen;
 	int mmio_bar, mmio_size;
@@ -132,7 +132,7 @@ intel_register_access_init(struct pci_device *pci_dev, int safe)
 
 	/* after old API is deprecated, remove this */
 	if (mmio == NULL)
-		intel_get_mmio(pci_dev);
+		intel_mmio_use_pci_bar(pci_dev);
 
 	assert(mmio != NULL);
 

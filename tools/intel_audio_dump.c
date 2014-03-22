@@ -2277,9 +2277,9 @@ int main(int argc, char **argv)
 	do_self_tests();
 
 	if (argc == 2)
-		intel_map_file(argv[1]);
+		intel_mmio_use_dump_file(argv[1]);
 	else
-		intel_get_mmio(pci_dev);
+		intel_mmio_use_pci_bar(pci_dev);
 
 	if (IS_VALLEYVIEW(devid)) {
 		printf("Valleyview audio registers:\n\n");

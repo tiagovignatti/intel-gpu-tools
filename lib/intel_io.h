@@ -33,8 +33,8 @@
 
 /* register access helpers from intel_mmio.c */
 extern void *mmio;
-void intel_get_mmio(struct pci_device *pci_dev);
-void intel_map_file(char *);
+void intel_mmio_use_pci_bar(struct pci_device *pci_dev);
+void intel_mmio_use_dump_file(char *);
 
 int intel_register_access_init(struct pci_device *pci_dev, int safe);
 void intel_register_access_fini(void);
