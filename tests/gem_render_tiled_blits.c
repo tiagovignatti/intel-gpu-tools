@@ -84,7 +84,7 @@ int main(int argc, char **argv)
 	drm_intel_bufmgr *bufmgr;
 	struct intel_batchbuffer *batch;
 	uint32_t *start_val;
-	struct scratch_buf *buf;
+	struct igt_buf *buf;
 	uint32_t start = 0;
 	int i, j, fd, count;
 

@@ -66,7 +66,7 @@ typedef struct {
 	uint8_t linear[WIDTH * HEIGHT];
 } data_t;
 
-static void scratch_buf_init(data_t *data, struct scratch_buf *buf,
+static void scratch_buf_init(data_t *data, struct igt_buf *buf,
 			int width, int height, int stride, uint8_t color)
 {
 	drm_intel_bo *bo;
@@ -85,7 +85,7 @@ static void scratch_buf_init(data_t *data, struct scratch_buf *buf,
 }
 
 static void
-scratch_buf_check(data_t *data, struct scratch_buf *buf, int x, int y,
+scratch_buf_check(data_t *data, struct igt_buf *buf, int x, int y,
 		uint8_t color)
 {
 	uint8_t val;
@@ -104,7 +104,7 @@ igt_simple_main
 {
 	data_t data = {0, };
 	struct intel_batchbuffer *batch = NULL;
-	struct scratch_buf dst;
+	struct igt_buf dst;
 	media_fillfunc_t media_fill = NULL;
 	int i, j;
 

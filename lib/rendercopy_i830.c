@@ -134,7 +134,7 @@ static void gen2_emit_invariant(struct intel_batchbuffer *batch)
 }
 
 static void gen2_emit_target(struct intel_batchbuffer *batch,
-			     struct scratch_buf *dst)
+			     struct igt_buf *dst)
 {
 	uint32_t tiling;
 
@@ -156,13 +156,13 @@ static void gen2_emit_target(struct intel_batchbuffer *batch,
 	OUT_BATCH(_3DSTATE_DRAW_RECT_CMD);
 	OUT_BATCH(0);
 	OUT_BATCH(0);		/* ymin, xmin */
-	OUT_BATCH(DRAW_YMAX(buf_height(dst) - 1) |
-		  DRAW_XMAX(buf_width(dst) - 1));
+	OUT_BATCH(DRAW_YMAX(igt_buf_height(dst) - 1) |
+		  DRAW_XMAX(igt_buf_width(dst) - 1));
 	OUT_BATCH(0);		/* yorig, xorig */
 }
 
 static void gen2_emit_texture(struct intel_batchbuffer *batch,
-			      struct scratch_buf *src,
+			      struct igt_buf *src,
 			      int unit)
 {
 	uint32_t tiling;
@@ -175,8 +175,8 @@ static void gen2_emit_texture(struct intel_batchbuffer *batch,
 
 	OUT_BATCH(_3DSTATE_LOAD_STATE_IMMEDIATE_2 | LOAD_TEXTURE_MAP(unit) | 4);
 	OUT_RELOC(src->bo, I915_GEM_DOMAIN_SAMPLER, 0, 0);
-	OUT_BATCH((buf_height(src) - 1) << TM0S1_HEIGHT_SHIFT |
-		  (buf_width(src) - 1) << TM0S1_WIDTH_SHIFT |
+	OUT_BATCH((igt_buf_height(src) - 1) << TM0S1_HEIGHT_SHIFT |
+		  (igt_buf_width(src) - 1) << TM0S1_WIDTH_SHIFT |
 		  MAPSURF_32BIT | MT_32BIT_ARGB8888 | tiling);
 	OUT_BATCH((src->stride / 4 - 1) << TM0S2_PITCH_SHIFT | TM0S2_MAP_2D);
 	OUT_BATCH(FILTER_NEAREST << TM0S3_MAG_FILTER_SHIFT |
@@ -210,9 +210,9 @@ static void gen2_emit_copy_pipeline(struct intel_batchbuffer *batch)
 
 void gen2_render_copyfunc(struct intel_batchbuffer *batch,
 			  drm_intel_context *context,
-			  struct scratch_buf *src, unsigned src_x, unsigned src_y,
+			  struct igt_buf *src, unsigned src_x, unsigned src_y,
 			  unsigned width, unsigned height,
-			  struct scratch_buf *dst, unsigned dst_x, unsigned dst_y)
+			  struct igt_buf *dst, unsigned dst_x, unsigned dst_y)
 {
 	gen2_emit_invariant(batch);
 	gen2_emit_copy_pipeline(batch);
@@ -231,18 +231,18 @@ void gen2_render_copyfunc(struct intel_batchbuffer *batch,
 	OUT_BATCH(PRIM3D_INLINE | PRIM3D_RECTLIST | (3*4 -1));
 	emit_vertex(batch, dst_x + width);
 	emit_vertex(batch, dst_y + height);
-	emit_vertex_normalized(batch, src_x + width, buf_width(src));
-	emit_vertex_normalized(batch, src_y + height, buf_height(src));
+	emit_vertex_normalized(batch, src_x + width, igt_buf_width(src));
+	emit_vertex_normalized(batch, src_y + height, igt_buf_height(src));
 
 	emit_vertex(batch, dst_x);
 	emit_vertex(batch, dst_y + height);
-	emit_vertex_normalized(batch, src_x, buf_width(src));
-	emit_vertex_normalized(batch, src_y + height, buf_height(src));
+	emit_vertex_normalized(batch, src_x, igt_buf_width(src));
+	emit_vertex_normalized(batch, src_y + height, igt_buf_height(src));
 
 	emit_vertex(batch, dst_x);
 	emit_vertex(batch, dst_y);
-	emit_vertex_normalized(batch, src_x, buf_width(src));
-	emit_vertex_normalized(batch, src_y, buf_height(src));
+	emit_vertex_normalized(batch, src_x, igt_buf_width(src));
+	emit_vertex_normalized(batch, src_y, igt_buf_height(src));
 
 	intel_batchbuffer_flush(batch);
 }

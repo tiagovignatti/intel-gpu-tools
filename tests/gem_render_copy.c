@@ -66,7 +66,7 @@ typedef struct {
 	uint32_t linear[WIDTH * HEIGHT];
 } data_t;
 
-static void scratch_buf_write_to_png(struct scratch_buf *buf, const char *filename)
+static void scratch_buf_write_to_png(struct igt_buf *buf, const char *filename)
 {
 	cairo_surface_t *surface;
 	cairo_status_t ret;
@@ -74,8 +74,8 @@ static void scratch_buf_write_to_png(struct scratch_buf *buf, const char *filena
 	drm_intel_bo_map(buf->bo, 0);
 	surface = cairo_image_surface_create_for_data(buf->bo->virtual,
 						      CAIRO_FORMAT_RGB24,
-						      buf_width(buf),
-						      buf_height(buf),
+						      igt_buf_width(buf),
+						      igt_buf_height(buf),
 						      buf->stride);
 	ret = cairo_surface_write_to_png(surface, filename);
 	if (ret != CAIRO_STATUS_SUCCESS) {
@@ -86,7 +86,7 @@ static void scratch_buf_write_to_png(struct scratch_buf *buf, const char *filena
 	drm_intel_bo_unmap(buf->bo);
 }
 
-static void scratch_buf_init(data_t *data, struct scratch_buf *buf,
+static void scratch_buf_init(data_t *data, struct igt_buf *buf,
 			     int width, int height, int stride, uint32_t color)
 {
 	drm_intel_bo *bo;
@@ -105,7 +105,7 @@ static void scratch_buf_init(data_t *data, struct scratch_buf *buf,
 }
 
 static void
-scratch_buf_check(data_t *data, struct scratch_buf *buf, int x, int y,
+scratch_buf_check(data_t *data, struct igt_buf *buf, int x, int y,
 		  uint32_t color)
 {
 	uint32_t val;
@@ -124,7 +124,7 @@ int main(int argc, char **argv)
 {
 	data_t data = {0, };
 	struct intel_batchbuffer *batch = NULL;
-	struct scratch_buf src, dst;
+	struct igt_buf src, dst;
 	render_copyfunc_t render_copy = NULL;
 	int opt;
 	int opt_dump_png = false;

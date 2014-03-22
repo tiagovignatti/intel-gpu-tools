@@ -61,7 +61,7 @@ int devid;
 int fd;
 
 static void init_buffer(drm_intel_bufmgr *bufmgr,
-			struct scratch_buf *buf,
+			struct igt_buf *buf,
 			uint32_t size)
 {
 	buf->bo = drm_intel_bo_alloc(bufmgr, "", size, 4096);
@@ -93,7 +93,7 @@ static void *work(void *arg)
 	igt_require(context);
 
 	for (i = 0; i < iter; i++) {
-		struct scratch_buf src, dst;
+		struct igt_buf src, dst;
 
 		init_buffer(bufmgr, &src, 4096);
 		init_buffer(bufmgr, &dst, 4096);

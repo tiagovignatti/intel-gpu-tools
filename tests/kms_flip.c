@@ -248,7 +248,7 @@ static void emit_dummy_load__rcs(struct test_output *o)
 {
 	const struct kmstest_fb *fb_info = &o->fb_info[o->current_fb_id];
 	render_copyfunc_t copyfunc;
-	struct scratch_buf sb[2], *src, *dst;
+	struct igt_buf sb[2], *src, *dst;
 	int i, limit;
 
 	copyfunc = get_render_copyfunc(devid);
@@ -277,7 +277,7 @@ static void emit_dummy_load__rcs(struct test_output *o)
 	dst = &sb[1];
 
 	for (i = 0; i < limit; i++) {
-		struct scratch_buf *tmp;
+		struct igt_buf *tmp;
 
 		copyfunc(batch, NULL,
 			 src, 0, 0,

@@ -93,7 +93,7 @@ gen7_tiling_bits(uint32_t tiling)
 
 static uint32_t
 gen7_bind_buf(struct intel_batchbuffer *batch,
-	      struct scratch_buf *buf,
+	      struct igt_buf *buf,
 	      uint32_t format,
 	      int is_dst)
 {
@@ -114,8 +114,8 @@ gen7_bind_buf(struct intel_batchbuffer *batch,
 		 gen7_tiling_bits(buf->tiling) |
 		format << GEN7_SURFACE_FORMAT_SHIFT);
 	ss[1] = buf->bo->offset;
-	ss[2] = ((buf_width(buf) - 1)  << GEN7_SURFACE_WIDTH_SHIFT |
-		 (buf_height(buf) - 1) << GEN7_SURFACE_HEIGHT_SHIFT);
+	ss[2] = ((igt_buf_width(buf) - 1)  << GEN7_SURFACE_WIDTH_SHIFT |
+		 (igt_buf_height(buf) - 1) << GEN7_SURFACE_HEIGHT_SHIFT);
 	ss[3] = (buf->stride - 1) << GEN7_SURFACE_PITCH_SHIFT;
 	ss[4] = 0;
 	ss[5] = 0;
@@ -220,8 +220,8 @@ static void gen7_emit_vertex_buffer(struct intel_batchbuffer *batch,
 
 static uint32_t
 gen7_bind_surfaces(struct intel_batchbuffer *batch,
-		   struct scratch_buf *src,
-		   struct scratch_buf *dst)
+		   struct igt_buf *src,
+		   struct igt_buf *dst)
 {
 	uint32_t *binding_table;
 
@@ -237,19 +237,19 @@ gen7_bind_surfaces(struct intel_batchbuffer *batch,
 
 static void
 gen7_emit_binding_table(struct intel_batchbuffer *batch,
-			struct scratch_buf *src,
-			struct scratch_buf *dst)
+			struct igt_buf *src,
+			struct igt_buf *dst)
 {
 	OUT_BATCH(GEN7_3DSTATE_BINDING_TABLE_POINTERS_PS | (2 - 2));
 	OUT_BATCH(gen7_bind_surfaces(batch, src, dst));
 }
 
 static void
-gen7_emit_drawing_rectangle(struct intel_batchbuffer *batch, struct scratch_buf *dst)
+gen7_emit_drawing_rectangle(struct intel_batchbuffer *batch, struct igt_buf *dst)
 {
 	OUT_BATCH(GEN7_3DSTATE_DRAWING_RECTANGLE | (4 - 2));
 	OUT_BATCH(0);
-	OUT_BATCH((buf_height(dst) - 1) << 16 | (buf_width(dst) - 1));
+	OUT_BATCH((igt_buf_height(dst) - 1) << 16 | (igt_buf_width(dst) - 1));
 	OUT_BATCH(0);
 }
 
@@ -531,9 +531,9 @@ gen7_emit_null_depth_buffer(struct intel_batchbuffer *batch)
 #define BATCH_STATE_SPLIT 2048
 void gen7_render_copyfunc(struct intel_batchbuffer *batch,
 			  drm_intel_context *context,
-			  struct scratch_buf *src, unsigned src_x, unsigned src_y,
+			  struct igt_buf *src, unsigned src_x, unsigned src_y,
 			  unsigned width, unsigned height,
-			  struct scratch_buf *dst, unsigned dst_x, unsigned dst_y)
+			  struct igt_buf *dst, unsigned dst_x, unsigned dst_y)
 {
 	uint32_t batch_end;
 

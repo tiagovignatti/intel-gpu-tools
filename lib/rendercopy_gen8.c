@@ -177,7 +177,7 @@ gen6_render_flush(struct intel_batchbuffer *batch,
 
 /* Mostly copy+paste from gen6, except height, width, pitch moved */
 static uint32_t
-gen8_bind_buf(struct intel_batchbuffer *batch, struct scratch_buf *buf,
+gen8_bind_buf(struct intel_batchbuffer *batch, struct igt_buf *buf,
 	      uint32_t format, int is_dst) {
 	struct gen8_surface_state *ss;
 	uint32_t write_domain, read_domain, offset;
@@ -213,8 +213,8 @@ gen8_bind_buf(struct intel_batchbuffer *batch, struct scratch_buf *buf,
 				      read_domain, write_domain);
 	assert(ret == 0);
 
-	ss->ss2.height = buf_height(buf) - 1;
-	ss->ss2.width  = buf_width(buf) - 1;
+	ss->ss2.height = igt_buf_height(buf) - 1;
+	ss->ss2.width  = igt_buf_width(buf) - 1;
 	ss->ss3.pitch  = buf->stride - 1;
 
 	ss->ss7.shader_chanel_select_r = 4;
@@ -227,8 +227,8 @@ gen8_bind_buf(struct intel_batchbuffer *batch, struct scratch_buf *buf,
 
 static uint32_t
 gen8_bind_surfaces(struct intel_batchbuffer *batch,
-		   struct scratch_buf *src,
-		   struct scratch_buf *dst)
+		   struct igt_buf *src,
+		   struct igt_buf *dst)
 {
 	uint32_t *binding_table, offset;
 
@@ -295,7 +295,7 @@ gen8_fill_ps(struct intel_batchbuffer *batch,
  */
 static uint32_t
 gen7_fill_vertex_buffer_data(struct intel_batchbuffer *batch,
-			     struct scratch_buf *src,
+			     struct igt_buf *src,
 			     uint32_t src_x, uint32_t src_y,
 			     uint32_t dst_x, uint32_t dst_y,
 			     uint32_t width, uint32_t height)
@@ -307,16 +307,16 @@ gen7_fill_vertex_buffer_data(struct intel_batchbuffer *batch,
 	start = batch->ptr;
 
 	emit_vertex_2s(batch, dst_x + width, dst_y + height);
-	emit_vertex_normalized(batch, src_x + width, buf_width(src));
-	emit_vertex_normalized(batch, src_y + height, buf_height(src));
+	emit_vertex_normalized(batch, src_x + width, igt_buf_width(src));
+	emit_vertex_normalized(batch, src_y + height, igt_buf_height(src));
 
 	emit_vertex_2s(batch, dst_x, dst_y + height);
-	emit_vertex_normalized(batch, src_x, buf_width(src));
-	emit_vertex_normalized(batch, src_y + height, buf_height(src));
+	emit_vertex_normalized(batch, src_x, igt_buf_width(src));
+	emit_vertex_normalized(batch, src_y + height, igt_buf_height(src));
 
 	emit_vertex_2s(batch, dst_x, dst_y);
-	emit_vertex_normalized(batch, src_x, buf_width(src));
-	emit_vertex_normalized(batch, src_y, buf_height(src));
+	emit_vertex_normalized(batch, src_x, igt_buf_width(src));
+	emit_vertex_normalized(batch, src_y, igt_buf_height(src));
 
 	offset = batch_offset(batch, start);
 	annotation_add_state(&aub_annotations, AUB_TRACE_VERTEX_BUFFER,
@@ -843,11 +843,11 @@ gen7_emit_clear(struct intel_batchbuffer *batch) {
 }
 
 static void
-gen6_emit_drawing_rectangle(struct intel_batchbuffer *batch, struct scratch_buf *dst)
+gen6_emit_drawing_rectangle(struct intel_batchbuffer *batch, struct igt_buf *dst)
 {
 	OUT_BATCH(GEN6_3DSTATE_DRAWING_RECTANGLE | (4 - 2));
 	OUT_BATCH(0);
-	OUT_BATCH((buf_height(dst) - 1) << 16 | (buf_width(dst) - 1));
+	OUT_BATCH((igt_buf_height(dst) - 1) << 16 | (igt_buf_width(dst) - 1));
 	OUT_BATCH(0);
 }
 
@@ -907,9 +907,9 @@ static void gen8_emit_primitive(struct intel_batchbuffer *batch, uint32_t offset
 
 void gen8_render_copyfunc(struct intel_batchbuffer *batch,
 			  drm_intel_context *context,
-			  struct scratch_buf *src, unsigned src_x, unsigned src_y,
+			  struct igt_buf *src, unsigned src_x, unsigned src_y,
 			  unsigned width, unsigned height,
-			  struct scratch_buf *dst, unsigned dst_x, unsigned dst_y)
+			  struct igt_buf *dst, unsigned dst_x, unsigned dst_y)
 {
 	uint32_t ps_sampler_state, ps_kernel_off, ps_binding_table;
 	uint32_t scissor_state;

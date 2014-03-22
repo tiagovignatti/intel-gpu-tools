@@ -107,7 +107,7 @@ gen6_render_flush(struct intel_batchbuffer *batch,
 }
 
 static uint32_t
-gen6_bind_buf(struct intel_batchbuffer *batch, struct scratch_buf *buf,
+gen6_bind_buf(struct intel_batchbuffer *batch, struct igt_buf *buf,
 	      uint32_t format, int is_dst)
 {
 	struct gen6_surface_state *ss;
@@ -135,8 +135,8 @@ gen6_bind_buf(struct intel_batchbuffer *batch, struct scratch_buf *buf,
 				      read_domain, write_domain);
 	assert(ret == 0);
 
-	ss->ss2.height = buf_height(buf) - 1;
-	ss->ss2.width  = buf_width(buf) - 1;
+	ss->ss2.height = igt_buf_height(buf) - 1;
+	ss->ss2.width  = igt_buf_width(buf) - 1;
 	ss->ss3.pitch  = buf->stride - 1;
 	ss->ss3.tiled_surface = buf->tiling != I915_TILING_NONE;
 	ss->ss3.tile_walk     = buf->tiling == I915_TILING_Y;
@@ -146,8 +146,8 @@ gen6_bind_buf(struct intel_batchbuffer *batch, struct scratch_buf *buf,
 
 static uint32_t
 gen6_bind_surfaces(struct intel_batchbuffer *batch,
-		   struct scratch_buf *src,
-		   struct scratch_buf *dst)
+		   struct igt_buf *src,
+		   struct igt_buf *dst)
 {
 	uint32_t *binding_table;
 
@@ -376,11 +376,11 @@ gen6_emit_binding_table(struct intel_batchbuffer *batch, uint32_t wm_table)
 }
 
 static void
-gen6_emit_drawing_rectangle(struct intel_batchbuffer *batch, struct scratch_buf *dst)
+gen6_emit_drawing_rectangle(struct intel_batchbuffer *batch, struct igt_buf *dst)
 {
 	OUT_BATCH(GEN6_3DSTATE_DRAWING_RECTANGLE | (4 - 2));
 	OUT_BATCH(0);
-	OUT_BATCH((buf_height(dst) - 1) << 16 | (buf_width(dst) - 1));
+	OUT_BATCH((igt_buf_height(dst) - 1) << 16 | (igt_buf_width(dst) - 1));
 	OUT_BATCH(0);
 }
 
@@ -547,9 +547,9 @@ static uint32_t gen6_emit_primitive(struct intel_batchbuffer *batch)
 
 void gen6_render_copyfunc(struct intel_batchbuffer *batch,
 			  drm_intel_context *context,
-			  struct scratch_buf *src, unsigned src_x, unsigned src_y,
+			  struct igt_buf *src, unsigned src_x, unsigned src_y,
 			  unsigned width, unsigned height,
-			  struct scratch_buf *dst, unsigned dst_x, unsigned dst_y)
+			  struct igt_buf *dst, unsigned dst_x, unsigned dst_y)
 {
 	uint32_t wm_state, wm_kernel, wm_table;
 	uint32_t cc_vp, cc_blend, offset;
@@ -601,16 +601,16 @@ void gen6_render_copyfunc(struct intel_batchbuffer *batch,
 		batch_round_upto(batch, VERTEX_SIZE)/VERTEX_SIZE;
 
 	emit_vertex_2s(batch, dst_x + width, dst_y + height);
-	emit_vertex_normalized(batch, src_x + width, buf_width(src));
-	emit_vertex_normalized(batch, src_y + height, buf_height(src));
+	emit_vertex_normalized(batch, src_x + width, igt_buf_width(src));
+	emit_vertex_normalized(batch, src_y + height, igt_buf_height(src));
 
 	emit_vertex_2s(batch, dst_x, dst_y + height);
-	emit_vertex_normalized(batch, src_x, buf_width(src));
-	emit_vertex_normalized(batch, src_y + height, buf_height(src));
+	emit_vertex_normalized(batch, src_x, igt_buf_width(src));
+	emit_vertex_normalized(batch, src_y + height, igt_buf_height(src));
 
 	emit_vertex_2s(batch, dst_x, dst_y);
-	emit_vertex_normalized(batch, src_x, buf_width(src));
-	emit_vertex_normalized(batch, src_y, buf_height(src));
+	emit_vertex_normalized(batch, src_x, igt_buf_width(src));
+	emit_vertex_normalized(batch, src_y, igt_buf_height(src));
 
 	gen6_render_flush(batch, context, batch_end);
 	intel_batchbuffer_reset(batch);

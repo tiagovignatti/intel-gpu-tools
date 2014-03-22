@@ -70,7 +70,7 @@ struct option_struct {
 static struct option_struct options;
 
 static void init_buffer(drm_intel_bufmgr *bufmgr,
-			struct scratch_buf *buf,
+			struct igt_buf *buf,
 			drm_intel_bo *bo,
 			int width, int height)
 {
@@ -139,8 +139,8 @@ static void release_bo(drm_intel_bo *bo)
 	drm_intel_bo_unreference(bo);
 }
 
-static void render_copyfunc(struct scratch_buf *src,
-			    struct scratch_buf *dst,
+static void render_copyfunc(struct igt_buf *src,
+			    struct igt_buf *dst,
 			    int width,
 			    int height)
 {
@@ -188,7 +188,7 @@ static int run_sync_test(int num_buffers, bool verify)
 	int r = -1;
 	int failed = 0;
 	unsigned int *p_dst1, *p_dst2;
-	struct scratch_buf *s_src, *s_dst;
+	struct igt_buf *s_src, *s_dst;
 
 	fd = drm_open_any();
 	igt_assert(fd >= 0);

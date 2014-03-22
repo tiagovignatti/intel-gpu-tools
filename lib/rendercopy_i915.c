@@ -22,9 +22,9 @@
 
 void gen3_render_copyfunc(struct intel_batchbuffer *batch,
 			  drm_intel_context *context,
-			  struct scratch_buf *src, unsigned src_x, unsigned src_y,
+			  struct igt_buf *src, unsigned src_x, unsigned src_y,
 			  unsigned width, unsigned height,
-			  struct scratch_buf *dst, unsigned dst_x, unsigned dst_y)
+			  struct igt_buf *dst, unsigned dst_x, unsigned dst_y)
 {
 	/* invariant state */
 	{
@@ -96,8 +96,8 @@ void gen3_render_copyfunc(struct intel_batchbuffer *batch,
 		OUT_RELOC(src->bo, I915_GEM_DOMAIN_SAMPLER, 0, 0);
 		OUT_BATCH(MAPSURF_32BIT | MT_32BIT_ARGB8888 |
 			  tiling_bits |
-			  (buf_height(src) - 1) << MS3_HEIGHT_SHIFT |
-			  (buf_width(src) - 1) << MS3_WIDTH_SHIFT);
+			  (igt_buf_height(src) - 1) << MS3_HEIGHT_SHIFT |
+			  (igt_buf_width(src) - 1) << MS3_WIDTH_SHIFT);
 		OUT_BATCH((src->stride/4-1) << MS4_PITCH_SHIFT);
 
 		OUT_BATCH(_3DSTATE_SAMPLER_STATE | (3 * TEX_COUNT));
@@ -133,8 +133,8 @@ void gen3_render_copyfunc(struct intel_batchbuffer *batch,
 		OUT_BATCH(_3DSTATE_DRAW_RECT_CMD);
 		OUT_BATCH(0x00000000);
 		OUT_BATCH(0x00000000);	/* ymin, xmin */
-		OUT_BATCH(DRAW_YMAX(buf_height(dst) - 1) |
-			  DRAW_XMAX(buf_width(dst) - 1));
+		OUT_BATCH(DRAW_YMAX(igt_buf_height(dst) - 1) |
+			  DRAW_XMAX(igt_buf_width(dst) - 1));
 		/* yorig, xorig (relate to color buffer?) */
 		OUT_BATCH(0x00000000);
 	}

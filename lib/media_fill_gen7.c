@@ -82,7 +82,7 @@ gen7_fill_curbe_buffer_data(struct intel_batchbuffer *batch,
 
 static uint32_t
 gen7_fill_surface_state(struct intel_batchbuffer *batch,
-			struct scratch_buf *buf,
+			struct igt_buf *buf,
 			uint32_t format,
 			int is_dst)
 {
@@ -116,8 +116,8 @@ gen7_fill_surface_state(struct intel_batchbuffer *batch,
 				read_domain, write_domain);
 	assert(ret == 0);
 
-	ss->ss2.height = buf_height(buf) - 1;
-	ss->ss2.width  = buf_width(buf) - 1;
+	ss->ss2.height = igt_buf_height(buf) - 1;
+	ss->ss2.width  = igt_buf_width(buf) - 1;
 
 	ss->ss3.pitch  = buf->stride - 1;
 
@@ -131,7 +131,7 @@ gen7_fill_surface_state(struct intel_batchbuffer *batch,
 
 static uint32_t
 gen7_fill_binding_table(struct intel_batchbuffer *batch,
-			struct scratch_buf *dst)
+			struct igt_buf *dst)
 {
 	uint32_t *binding_table, offset;
 
@@ -156,7 +156,7 @@ gen7_fill_media_kernel(struct intel_batchbuffer *batch,
 }
 
 static uint32_t
-gen7_fill_interface_descriptor(struct intel_batchbuffer *batch, struct scratch_buf *dst)
+gen7_fill_interface_descriptor(struct intel_batchbuffer *batch, struct igt_buf *dst)
 {
 	struct gen7_interface_descriptor_data *idd;
 	uint32_t offset;
@@ -311,7 +311,7 @@ gen7_emit_media_objects(struct intel_batchbuffer *batch,
 
 void
 gen7_media_fillfunc(struct intel_batchbuffer *batch,
-		struct scratch_buf *dst,
+		struct igt_buf *dst,
 		unsigned x, unsigned y,
 		unsigned width, unsigned height,
 		uint8_t color)

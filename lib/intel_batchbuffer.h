@@ -196,7 +196,7 @@ void intel_copy_bo(struct intel_batchbuffer *batch,
 		   drm_intel_bo *dst_bo, drm_intel_bo *src_bo,
 		   long int size);
 
-struct scratch_buf {
+struct igt_buf {
     drm_intel_bo *bo;
     uint32_t stride;
     uint32_t tiling;
@@ -206,19 +206,19 @@ struct scratch_buf {
     unsigned num_tiles;
 };
 
-unsigned buf_width(struct scratch_buf *buf);
-unsigned buf_height(struct scratch_buf *buf);
+unsigned igt_buf_width(struct igt_buf *buf);
+unsigned igt_buf_height(struct igt_buf *buf);
 
 typedef void (*render_copyfunc_t)(struct intel_batchbuffer *batch,
 				  drm_intel_context *context,
-				  struct scratch_buf *src, unsigned src_x, unsigned src_y,
+				  struct igt_buf *src, unsigned src_x, unsigned src_y,
 				  unsigned width, unsigned height,
-				  struct scratch_buf *dst, unsigned dst_x, unsigned dst_y);
+				  struct igt_buf *dst, unsigned dst_x, unsigned dst_y);
 
 render_copyfunc_t get_render_copyfunc(int devid);
 
 typedef void (*media_fillfunc_t)(struct intel_batchbuffer *batch,
-				struct scratch_buf *dst,
+				struct igt_buf *dst,
 				unsigned x, unsigned y,
 				unsigned width, unsigned height,
 				uint8_t color);

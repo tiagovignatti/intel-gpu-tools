@@ -70,8 +70,8 @@ typedef struct {
 
 	struct {
 		render_copyfunc_t copy;
-		struct scratch_buf *srcs;
-		struct scratch_buf *dsts;
+		struct igt_buf *srcs;
+		struct igt_buf *dsts;
 	} render;
 
 	struct {
@@ -128,7 +128,7 @@ static void bo_check(data_t *data, drm_intel_bo *bo, uint32_t val)
 		igt_assert_cmpint(data->linear[i], ==, val);
 }
 
-static void scratch_buf_init_from_bo(struct scratch_buf *buf, drm_intel_bo *bo)
+static void scratch_buf_init_from_bo(struct igt_buf *buf, drm_intel_bo *bo)
 {
 	buf->bo = bo;
 	buf->stride = 4 * WIDTH;
@@ -136,7 +136,7 @@ static void scratch_buf_init_from_bo(struct scratch_buf *buf, drm_intel_bo *bo)
 	buf->size = 4 * WIDTH * HEIGHT;
 }
 
-static void scratch_buf_init(data_t *data, struct scratch_buf *buf,
+static void scratch_buf_init(data_t *data, struct igt_buf *buf,
 			     int width, int height, uint32_t color)
 {
 	drm_intel_bo *bo;
@@ -162,7 +162,7 @@ static void render_busy(data_t *data)
 	size_t array_size;
 	int i;
 
-	array_size = data->n_buffers_load * sizeof(struct scratch_buf);
+	array_size = data->n_buffers_load * sizeof(struct igt_buf);
 	data->render.srcs = malloc(array_size);
 	data->render.dsts = malloc(array_size);
 
@@ -201,7 +201,7 @@ static void render_busy_fini(data_t *data)
 
 static void render_copy(data_t *data, drm_intel_bo *src, drm_intel_bo *dst)
 {
-	struct scratch_buf src_buf, dst_buf;
+	struct igt_buf src_buf, dst_buf;
 
 	scratch_buf_init_from_bo(&src_buf, src);
 	scratch_buf_init_from_bo(&dst_buf, dst);

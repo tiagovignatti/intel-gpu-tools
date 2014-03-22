@@ -137,7 +137,7 @@ int main(int argc, char **argv)
 
 	printf("Cyclic blits, forward...\n");
 	for (i = 0; i < count * 4; i++) {
-		struct scratch_buf src, dst;
+		struct igt_buf src, dst;
 
 		src.bo = bo[i % count];
 		src.stride = STRIDE;
@@ -160,7 +160,7 @@ int main(int argc, char **argv)
 
 	printf("Cyclic blits, backward...\n");
 	for (i = 0; i < count * 4; i++) {
-		struct scratch_buf src, dst;
+		struct igt_buf src, dst;
 
 		src.bo = bo[(i + 1) % count];
 		src.stride = STRIDE;
@@ -180,7 +180,7 @@ int main(int argc, char **argv)
 
 	printf("Random blits...\n");
 	for (i = 0; i < count * 4; i++) {
-		struct scratch_buf src, dst;
+		struct igt_buf src, dst;
 		int s = random() % count;
 		int d = random() % count;
 

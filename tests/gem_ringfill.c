@@ -115,7 +115,7 @@ static int check_ring(drm_intel_bufmgr *bufmgr,
 		      const char *ring,
 		      render_copyfunc_t copy)
 {
-	struct scratch_buf src, tmp, dst;
+	struct igt_buf src, tmp, dst;
 	struct bo bo;
 	char output[100];
 	int i;
@@ -174,9 +174,9 @@ static int check_ring(drm_intel_bufmgr *bufmgr,
 
 static void blt_copy(struct intel_batchbuffer *batch,
 		     drm_intel_context *context,
-		     struct scratch_buf *src, unsigned src_x, unsigned src_y,
+		     struct igt_buf *src, unsigned src_x, unsigned src_y,
 		     unsigned w, unsigned h,
-		     struct scratch_buf *dst, unsigned dst_x, unsigned dst_y)
+		     struct igt_buf *dst, unsigned dst_x, unsigned dst_y)
 {
 	BLIT_COPY_BATCH_START(batch->devid, 0);
 	OUT_BATCH((3 << 24) | /* 32 bits */
