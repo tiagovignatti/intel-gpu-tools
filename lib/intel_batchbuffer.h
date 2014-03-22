@@ -224,4 +224,12 @@ typedef void (*render_copyfunc_t)(struct intel_batchbuffer *batch,
 
 render_copyfunc_t get_render_copyfunc(int devid);
 
+typedef void (*media_fillfunc_t)(struct intel_batchbuffer *batch,
+				struct scratch_buf *dst,
+				unsigned x, unsigned y,
+				unsigned width, unsigned height,
+				uint8_t color);
+
+media_fillfunc_t get_media_fillfunc(int devid);
+
 #endif

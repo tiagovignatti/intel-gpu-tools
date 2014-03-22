@@ -24,7 +24,6 @@
     <xi:include href="xml/intel_batchbuffer.xml"/>
     <xi:include href="xml/intel_chipset.xml"/>
     <xi:include href="xml/intel_gpu_tools.xml"/>
-    <xi:include href="xml/media_fill.xml"/>
 
   </chapter>
   <index id="api-index-full">

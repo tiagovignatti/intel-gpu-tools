@@ -22,7 +22,6 @@ libintel_tools_la_SOURCES = 	\
 	intel_reg.h		\
 	ioctl_wrappers.c	\
 	ioctl_wrappers.h	\
-	media_fill.c            \
 	media_fill.h            \
 	media_fill_gen7.c       \
 	media_fill_gen8.c       \

@@ -38,6 +38,7 @@
 #include "intel_chipset.h"
 #include "intel_reg.h"
 #include "rendercopy.h"
+#include "media_fill.h"
 #include <i915_drm.h>
 
 /**
@@ -402,4 +403,16 @@ render_copyfunc_t get_render_copyfunc(int devid)
 		copy = gen8_render_copyfunc;
 
 	return copy;
+}
+
+media_fillfunc_t get_media_fillfunc(int devid)
+{
+	media_fillfunc_t fill = NULL;
+
+	if (IS_GEN8(devid))
+		fill = gen8_media_fillfunc;
+	else if (IS_GEN7(devid))
+		fill = gen7_media_fillfunc;
+
+	return fill;
 }
