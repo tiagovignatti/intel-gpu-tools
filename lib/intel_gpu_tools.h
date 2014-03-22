@@ -34,31 +34,32 @@
 
 #include "intel_chipset.h"
 #include "intel_reg.h"
+#include "drmtest.h"
 
-#ifdef ANDROID
-#ifndef HAVE_MMAP64
-extern void*  __mmap2(void *, size_t, int, int, int, off_t);
-static inline void *mmap64(void *addr, size_t length, int prot, int flags,
-        int fd, off64_t offset)
-{
-    return __mmap2(addr, length, prot, flags, fd, offset >> 12);
-}
-#endif
-#endif
-
-#define ARRAY_SIZE(arr) (sizeof(arr)/sizeof(arr[0]))
-
+/* register access helpers from intel_mmio.c */
 extern void *mmio;
 void intel_get_mmio(struct pci_device *pci_dev);
+void intel_map_file(char *);
 
-/* New style register access API */
 int intel_register_access_init(struct pci_device *pci_dev, int safe);
 void intel_register_access_fini(void);
 uint32_t intel_register_read(uint32_t reg);
 void intel_register_write(uint32_t reg, uint32_t val);
 int intel_register_access_needs_fakewake(void);
 
-/* Following functions are relevant only for SoCs like Valleyview */
+static inline uint32_t
+INREG(uint32_t reg)
+{
+	return *(volatile uint32_t *)((volatile char *)mmio + reg);
+}
+
+static inline void
+OUTREG(uint32_t reg, uint32_t val)
+{
+	*(volatile uint32_t *)((volatile char *)mmio + reg) = val;
+}
+
+/* sideband access functions from intel_iosf.c */
 uint32_t intel_dpio_reg_read(uint32_t reg, int phy);
 void intel_dpio_reg_write(uint32_t reg, uint32_t val, int phy);
 
@@ -67,6 +68,7 @@ int intel_punit_write(uint8_t addr, uint32_t val);
 int intel_nc_read(uint8_t addr, uint32_t *val);
 int intel_nc_write(uint8_t addr, uint32_t val);
 
+/* register maps from intel_reg_map.c */
 #define INTEL_RANGE_RSVD	(0<<0) /*  Shouldn't be read or written */
 #define INTEL_RANGE_READ	(1<<0)
 #define INTEL_RANGE_WRITE	(1<<1)
@@ -86,23 +88,5 @@ struct intel_register_map {
 };
 struct intel_register_map intel_get_register_map(uint32_t devid);
 struct intel_register_range *intel_get_register_range(struct intel_register_map map, uint32_t offset, uint32_t mode);
-
-
-static inline uint32_t
-INREG(uint32_t reg)
-{
-	return *(volatile uint32_t *)((volatile char *)mmio + reg);
-}
-
-static inline void
-OUTREG(uint32_t reg, uint32_t val)
-{
-	*(volatile uint32_t *)((volatile char *)mmio + reg) = val;
-}
-
-uint64_t intel_get_total_ram_mb(void);
-uint64_t intel_get_total_swap_mb(void);
-
-void intel_map_file(char *);
 
 #endif /* INTEL_GPU_TOOLS_H */

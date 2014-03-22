@@ -15,7 +15,7 @@ libintel_tools_la_SOURCES = 	\
 	intel_batchbuffer.c	\
 	intel_batchbuffer.h	\
 	intel_chipset.h		\
-	intel_drm.c		\
+	intel_os.c		\
 	intel_gpu_tools.h	\
 	intel_mmio.c		\
 	intel_chipset.c		\

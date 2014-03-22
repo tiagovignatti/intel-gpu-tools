@@ -47,6 +47,19 @@
 #include "ioctl_wrappers.h"
 #include "igt_core.h"
 
+#ifdef ANDROID
+#ifndef HAVE_MMAP64
+extern void*  __mmap2(void *, size_t, int, int, int, off_t);
+static inline void *mmap64(void *addr, size_t length, int prot, int flags,
+        int fd, off64_t offset)
+{
+    return __mmap2(addr, length, prot, flags, fd, offset >> 12);
+}
+#endif
+#endif
+
+#define ARRAY_SIZE(arr) (sizeof(arr)/sizeof(arr[0]))
+
 int drm_get_card(void);
 int drm_open_any(void);
 int drm_open_any_render(void);
@@ -84,5 +97,9 @@ void igt_system_suspend_autoresume(void);
 void igt_drop_root(void);
 
 void igt_wait_for_keypress(void);
+
+/* sysinfo cross-arch wrappers from intel_os.c */
+uint64_t intel_get_total_ram_mb(void);
+uint64_t intel_get_total_swap_mb(void);
 
 #endif /* DRMTEST_H */
