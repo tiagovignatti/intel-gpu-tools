@@ -16,6 +16,7 @@
 #include "intel_bufmgr.h"
 #include "intel_batchbuffer.h"
 #include "intel_gpu_tools.h"
+#include "intel_chipset.h"
 #include "rendercopy.h"
 #include "gen7_render.h"
 #include "intel_reg.h"

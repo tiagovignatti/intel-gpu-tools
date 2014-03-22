@@ -34,11 +34,12 @@
 #include <sys/stat.h>
 #include <sys/time.h>
 #include "drm.h"
-#include "i915_drm.h"
+#include "ioctl_wrappers.h"
 #include "drmtest.h"
 #include "intel_bufmgr.h"
 #include "intel_batchbuffer.h"
 #include "intel_gpu_tools.h"
+#include "intel_chipset.h"
 
 /* Testcase: Test whether the kernel rejects relocations with non-gpu domains
  *

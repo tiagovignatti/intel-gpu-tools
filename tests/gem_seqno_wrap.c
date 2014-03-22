@@ -42,12 +42,13 @@
 #include <getopt.h>
 #include <signal.h>
 
-#include "i915_drm.h"
+#include "ioctl_wrappers.h"
 #include "drmtest.h"
 #include "igt_core.h"
 #include "intel_bufmgr.h"
 #include "intel_batchbuffer.h"
 #include "intel_gpu_tools.h"
+#include "intel_chipset.h"
 
 static int devid;
 static int card_index = 0;

@@ -34,6 +34,7 @@
 
 #include "drmtest.h"
 #include "igt_kms.h"
+#include "ioctl_wrappers.h"
 
 /* helpers to create nice-looking framebuffers */
 static int create_bo_for_fb(int fd, int width, int height, int bpp,

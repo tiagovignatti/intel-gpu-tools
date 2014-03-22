@@ -62,7 +62,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
-#include "i915_drm.h"
+#include "ioctl_wrappers.h"
 #include "drmtest.h"
 #include "testdisplay.h"
 #include "igt_kms.h"

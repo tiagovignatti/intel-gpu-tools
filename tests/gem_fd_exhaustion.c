@@ -32,6 +32,7 @@
 #include <fcntl.h>
 #include <limits.h>
 #include "drmtest.h"
+#include "ioctl_wrappers.h"
 
 
 #define FD_ARR_SZ 100

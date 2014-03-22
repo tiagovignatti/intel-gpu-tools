@@ -30,13 +30,16 @@
 #include <unistd.h>
 #include <sys/time.h>
 
-#include "drm_fourcc.h"
+#include <drm_fourcc.h>
+
 #include "drmtest.h"
 #include "testdisplay.h"
 #include "intel_bufmgr.h"
 #include "intel_batchbuffer.h"
 #include "intel_gpu_tools.h"
+#include "intel_chipset.h"
 #include "igt_kms.h"
+#include "ioctl_wrappers.h"
 
 drmModeRes *resources;
 int drm_fd;

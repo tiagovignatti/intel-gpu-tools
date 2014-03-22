@@ -55,6 +55,7 @@
 #include "intel_bufmgr.h"
 #include "intel_batchbuffer.h"
 #include "intel_gpu_tools.h"
+#include "intel_chipset.h"
 
 /* Happens to be 128k, the size of the VBOs used by i965's Mesa driver. */
 #define OBJECT_WIDTH	256

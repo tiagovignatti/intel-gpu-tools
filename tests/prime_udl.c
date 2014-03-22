@@ -25,11 +25,12 @@
 
 #include "xf86drm.h"
 #include "xf86drmMode.h"
-#include "i915_drm.h"
+#include "ioctl_wrappers.h"
 #include "intel_bufmgr.h"
 #include "intel_gpu_tools.h"
 #include "intel_batchbuffer.h"
 #include "drmtest.h"
+#include "intel_chipset.h"
 
 int intel_fd = -1, udl_fd = -1;
 drm_intel_bufmgr *bufmgr;

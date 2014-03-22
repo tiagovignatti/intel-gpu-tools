@@ -56,6 +56,7 @@
 #include "../version.h"
 #include "config.h"
 #include "intel_reg.h"
+#include "ioctl_wrappers.h"
 
 /* This file contains a bunch of wrapper functions to directly use gem ioctls.
  * Mostly useful to write kernel tests. */

@@ -33,18 +33,11 @@
 #include <unistd.h>
 #include <errno.h>
 #include <stdbool.h>
-#include <setjmp.h>
 #include <sys/mman.h>
 
 #include "xf86drm.h"
 #include "xf86drmMode.h"
-#include "i915_drm.h"
 #include "intel_batchbuffer.h"
-#include "intel_chipset.h"
-#include "intel_gpu_tools.h"
-
-#include "ioctl_wrappers.h"
-#include "igt_core.h"
 
 #ifdef ANDROID
 #ifndef HAVE_MMAP64

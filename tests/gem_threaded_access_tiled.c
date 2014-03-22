@@ -31,7 +31,7 @@
 #include <pthread.h>
 
 #include "drmtest.h"
-#include "i915_drm.h"
+#include "ioctl_wrappers.h"
 #include "intel_bufmgr.h"
 
 /* Testcase: check parallel access to tiled memory

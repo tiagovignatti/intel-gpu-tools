@@ -19,6 +19,7 @@
 #include "intel_gpu_tools.h"
 #include "intel_batchbuffer.h"
 #include "drmtest.h"
+#include "intel_chipset.h"
 
 #define BO_SIZE (256*1024)
 

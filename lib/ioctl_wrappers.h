@@ -30,6 +30,11 @@
 #ifndef IOCTL_WRAPPERS_H
 #define IOCTL_WRAPPERS_H
 
+#include <stdint.h>
+#include <stdbool.h>
+#include <intel_bufmgr.h>
+#include <i915_drm.h>
+
 /* libdrm interfacing */
 drm_intel_bo * gem_handle_to_libdrm_bo(drm_intel_bufmgr *bufmgr, int fd,
 				       const char *name, uint32_t handle);

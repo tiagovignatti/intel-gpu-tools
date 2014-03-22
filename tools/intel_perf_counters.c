@@ -48,6 +48,7 @@
 #include "intel_gpu_tools.h"
 #include "intel_bufmgr.h"
 #include "intel_batchbuffer.h"
+#include "intel_chipset.h"
 
 #define GEN5_COUNTER_COUNT 29
 

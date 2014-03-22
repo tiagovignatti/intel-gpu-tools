@@ -36,7 +36,7 @@
 #include <signal.h>
 
 #include "drm.h"
-#include "i915_drm.h"
+#include "ioctl_wrappers.h"
 #include "drmtest.h"
 
 #define OBJECT_SIZE (1024*1024)

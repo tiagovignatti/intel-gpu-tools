@@ -22,6 +22,7 @@
  *
  */
 
+#include <inttypes.h>
 #include <sys/stat.h>
 #include <sys/mount.h>
 #include <errno.h>

@@ -35,10 +35,11 @@
 #include <string.h>
 
 #include "drm.h"
-#include "i915_drm.h"
+#include "ioctl_wrappers.h"
 #include "i915_pciids.h"
 #include "drmtest.h"
 #include "intel_gpu_tools.h"
+#include "intel_chipset.h"
 
 #define FORCEWAKE_MT 0xa188
 

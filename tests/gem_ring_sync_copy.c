@@ -50,9 +50,10 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
-#include "i915_drm.h"
+#include "ioctl_wrappers.h"
 #include "drmtest.h"
 #include "intel_batchbuffer.h"
+#include "intel_chipset.h"
 
 #define WIDTH	512
 #define HEIGHT	512

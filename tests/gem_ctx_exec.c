@@ -41,7 +41,7 @@
 #include <sys/ioctl.h>
 #include <sys/time.h>
 #include "drm.h"
-#include "i915_drm.h"
+#include "ioctl_wrappers.h"
 #include "drmtest.h"
 
 struct local_drm_i915_gem_context_destroy {

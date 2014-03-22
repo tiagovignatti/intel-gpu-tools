@@ -34,7 +34,7 @@
 #include <sys/stat.h>
 #include <sys/ioctl.h>
 #include "drm.h"
-#include "i915_drm.h"
+#include "ioctl_wrappers.h"
 #include "drmtest.h"
 
 /* Should take 64 pages to store the page pointers on 64 bit */

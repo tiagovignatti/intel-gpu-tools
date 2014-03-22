@@ -40,7 +40,7 @@
 # include <sys/syscall.h>
 
 #include "drm.h"
-#include "i915_drm.h"
+#include "ioctl_wrappers.h"
 #include "drmtest.h"
 
 /* Checks whether the thread id is the current thread */

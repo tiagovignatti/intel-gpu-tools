@@ -44,7 +44,7 @@
 #include <sys/stat.h>
 #include <sys/time.h>
 #include "drm.h"
-#include "i915_drm.h"
+#include "ioctl_wrappers.h"
 #include "drmtest.h"
 #include "intel_bufmgr.h"
 #include "intel_batchbuffer.h"

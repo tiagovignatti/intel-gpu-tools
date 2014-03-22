@@ -34,7 +34,7 @@
 #include <sys/stat.h>
 #include <sys/ioctl.h>
 #include "drm.h"
-#include "i915_drm.h"
+#include "ioctl_wrappers.h"
 #include "drmtest.h"
 
 static void

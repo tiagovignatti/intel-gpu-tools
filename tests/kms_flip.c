@@ -35,10 +35,12 @@
 #include <sys/time.h>
 #include <sys/ioctl.h>
 #include <linux/kd.h>
+#include <time.h>
+#include <pthread.h>
 
-#include "i915_drm.h"
+#include "ioctl_wrappers.h"
 #include "drmtest.h"
-#include "testdisplay.h"
+#include "intel_chipset.h"
 #include "intel_batchbuffer.h"
 #include "igt_kms.h"
 

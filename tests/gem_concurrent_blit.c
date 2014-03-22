@@ -45,11 +45,12 @@
 #include <sys/time.h>
 #include <sys/wait.h>
 #include "drm.h"
-#include "i915_drm.h"
+#include "ioctl_wrappers.h"
 #include "drmtest.h"
 #include "intel_bufmgr.h"
 #include "intel_batchbuffer.h"
 #include "intel_gpu_tools.h"
+#include "intel_chipset.h"
 
 static void
 prw_set_bo(drm_intel_bo *bo, uint32_t val, int width, int height)

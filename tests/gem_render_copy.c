@@ -43,11 +43,12 @@
 #include <sys/time.h>
 #include <getopt.h>
 #include "drm.h"
-#include "i915_drm.h"
+#include "ioctl_wrappers.h"
 #include "drmtest.h"
 #include "intel_bufmgr.h"
 #include "intel_batchbuffer.h"
 #include "intel_gpu_tools.h"
+#include "intel_chipset.h"
 
 #define WIDTH 512
 #define STRIDE (WIDTH*4)

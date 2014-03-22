@@ -36,9 +36,10 @@
 #include <sys/stat.h>
 #include <sys/ioctl.h>
 #include "drm.h"
-#include "i915_drm.h"
+#include "ioctl_wrappers.h"
 #include "drmtest.h"
 #include "intel_gpu_tools.h"
+#include "intel_chipset.h"
 
 static void do_test_invalid_tiling(int fd, uint32_t handle, int tiling, int stride)
 {

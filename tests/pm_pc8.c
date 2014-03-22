@@ -44,7 +44,8 @@
 #include "drmtest.h"
 #include "intel_batchbuffer.h"
 #include "intel_gpu_tools.h"
-#include "i915_drm.h"
+#include "intel_chipset.h"
+#include "ioctl_wrappers.h"
 #include "igt_kms.h"
 #include "igt_debugfs.h"
 
