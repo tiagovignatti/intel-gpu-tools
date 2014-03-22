@@ -286,8 +286,8 @@ intel_batchbuffer_data(struct intel_batchbuffer *batch,
  * @src_y1: source pixel y-coordination
  * @src_pitch: @src_bo's pitch in bytes
  * @dst_bo: destination libdrm buffer object
- * @dst_x1: source pixel x-coordination
- * @dst_y1: source pixel y-coordination
+ * @dst_x1: destination pixel x-coordination
+ * @dst_y1: destination pixel y-coordination
  * @dst_pitch: @dst_bo's pitch in bytes
  * @width: width of the copied rectangle
  * @height: height of the copied rectangle
@@ -387,16 +387,44 @@ intel_copy_bo(struct intel_batchbuffer *batch,
 		       4096/4, size/4096, 32);
 }
 
+/**
+ * igt_buf_width:
+ * @buf: the i-g-t buffer object
+ *
+ * Computes the widht in 32-bit pixels of the given buffer.
+ *
+ * Returns:
+ * The width of the buffer.
+ */
 unsigned igt_buf_width(struct igt_buf *buf)
 {
 	return buf->stride/sizeof(uint32_t);
 }
 
+/**
+ * igt_buf_height:
+ * @buf: the i-g-t buffer object
+ *
+ * Computes the height in 32-bit pixels of the given buffer.
+ *
+ * Returns:
+ * The height of the buffer.
+ */
 unsigned igt_buf_height(struct igt_buf *buf)
 {
 	return buf->size/buf->stride;
 }
 
+/**
+ * igt_get_render_copyfunc:
+ * @devid: pci device id
+ *
+ * Returns:
+ *
+ * The platform-specific render copy function pointer for the device
+ * specified with @devid. Will return NULL when no render copy function is
+ * implemented.
+ */
 igt_render_copyfunc_t igt_get_render_copyfunc(int devid)
 {
 	igt_render_copyfunc_t copy = NULL;
@@ -415,6 +443,15 @@ igt_render_copyfunc_t igt_get_render_copyfunc(int devid)
 	return copy;
 }
 
+/**
+ * igt_get_media_fillfunc:
+ * @devid: pci device id
+ *
+ * Returns:
+ *
+ * The platform-specific media fill function pointer for the device specified
+ * with @devid. Will return NULL when no media fill function is implemented.
+ */
 igt_media_fillfunc_t igt_get_media_fillfunc(int devid)
 {
 	igt_media_fillfunc_t fill = NULL;

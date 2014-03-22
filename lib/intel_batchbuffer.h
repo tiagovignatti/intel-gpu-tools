@@ -196,6 +196,22 @@ void intel_copy_bo(struct intel_batchbuffer *batch,
 		   drm_intel_bo *dst_bo, drm_intel_bo *src_bo,
 		   long int size);
 
+/**
+ * igt_buf:
+ * @bo: underlying libdrm buffer object
+ * @stride: stride of the buffer
+ * @tiling: tiling mode bits
+ * @data: pointer to the memory mapping of the buffer
+ * @size: size of the buffer object
+ * @num_tiles: number of tiles of the buffer object
+ *
+ * This is a i-g-t buffer object wrapper structure which augments the baseline
+ * libdrm buffer object with suitable data needed by the render copy and the
+ * media fill functions.
+ *
+ * Note that @num_tiles is only used by gem_stress.c internally and can be
+ * ignored.
+ */
 struct igt_buf {
     drm_intel_bo *bo;
     uint32_t stride;
@@ -208,6 +224,27 @@ struct igt_buf {
 unsigned igt_buf_width(struct igt_buf *buf);
 unsigned igt_buf_height(struct igt_buf *buf);
 
+/**
+ * igt_render_copyfunc_t:
+ * @batch: batchbuffer object
+ * @context: libdrm hardware context to use
+ * @src: source i-g-t buffer object
+ * @src_x: source pixel x-coordination
+ * @src_y: source pixel y-coordination
+ * @width: width of the copied rectangle
+ * @height: height of the copied rectangle
+ * @dst: destination i-g-t buffer object
+ * @dst_x: destination pixel x-coordination
+ * @dst_y: destination pixel y-coordination
+ *
+ * This is the type of the per-platform render copy functions. The
+ * platform-specific implementation can be obtained by calling
+ * igt_get_render_copyfunc().
+ *
+ * A render copy function will emit a batchbuffer to the kernel which executes
+ * the specified blit copy operation using the render engine. @context is
+ * optional and can be NULL.
+ */
 typedef void (*igt_render_copyfunc_t)(struct intel_batchbuffer *batch,
 				      drm_intel_context *context,
 				      struct igt_buf *src, unsigned src_x, unsigned src_y,
@@ -216,6 +253,23 @@ typedef void (*igt_render_copyfunc_t)(struct intel_batchbuffer *batch,
 
 igt_render_copyfunc_t igt_get_render_copyfunc(int devid);
 
+/**
+ * igt_media_fillfunc_t:
+ * @batch: batchbuffer object
+ * @dst: destination i-g-t buffer object
+ * @x: destination pixel x-coordination
+ * @y: destination pixel y-coordination
+ * @width: width of the filled rectangle
+ * @height: height of the filled rectangle
+ * @color: fill color to use
+ *
+ * This is the type of the per-platform media fill functions. The
+ * platform-specific implementation can be obtained by calling
+ * igt_get_media_fillfunc().
+ *
+ * A media fill function will emit a batchbuffer to the kernel which executes
+ * the specified blit fill operation using the media engine.
+ */
 typedef void (*igt_media_fillfunc_t)(struct intel_batchbuffer *batch,
 				     struct igt_buf *dst,
 				     unsigned x, unsigned y,
