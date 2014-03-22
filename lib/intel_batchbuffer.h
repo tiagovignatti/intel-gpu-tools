@@ -201,7 +201,6 @@ struct igt_buf {
     uint32_t stride;
     uint32_t tiling;
     uint32_t *data;
-    uint32_t *cpu_mapping;
     uint32_t size;
     unsigned num_tiles;
 };

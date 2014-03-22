@@ -126,7 +126,6 @@ static int check_ring(drm_intel_bufmgr *bufmgr,
 
 	src.stride = 4 * width;
 	src.tiling = 0;
-	src.data = src.cpu_mapping = NULL;
 	src.size = 4 * width * height;
 	src.num_tiles = 4 * width * height;
 	dst = tmp = src;

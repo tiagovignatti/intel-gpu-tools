@@ -79,7 +79,6 @@ static void init_buffer(drm_intel_bufmgr *bufmgr,
 	buf->size = width * height * 4;
 	igt_assert(buf->bo);
 	buf->tiling = I915_TILING_NONE;
-	buf->data = buf->cpu_mapping = NULL;
 	buf->num_tiles = width * height * 4;
 	buf->stride = width * 4;
 }
