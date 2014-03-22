@@ -387,6 +387,16 @@ intel_copy_bo(struct intel_batchbuffer *batch,
 		       4096/4, size/4096, 32);
 }
 
+unsigned buf_width(struct scratch_buf *buf)
+{
+	return buf->stride/sizeof(uint32_t);
+}
+
+unsigned buf_height(struct scratch_buf *buf)
+{
+	return buf->size/buf->stride;
+}
+
 render_copyfunc_t get_render_copyfunc(int devid)
 {
 	render_copyfunc_t copy = NULL;

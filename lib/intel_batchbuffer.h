@@ -206,15 +206,8 @@ struct scratch_buf {
     unsigned num_tiles;
 };
 
-static inline unsigned buf_width(struct scratch_buf *buf)
-{
-	return buf->stride/sizeof(uint32_t);
-}
-
-static inline unsigned buf_height(struct scratch_buf *buf)
-{
-	return buf->size/buf->stride;
-}
+unsigned buf_width(struct scratch_buf *buf);
+unsigned buf_height(struct scratch_buf *buf);
 
 typedef void (*render_copyfunc_t)(struct intel_batchbuffer *batch,
 				  drm_intel_context *context,
