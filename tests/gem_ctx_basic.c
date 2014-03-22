@@ -74,7 +74,7 @@ static void init_buffer(drm_intel_bufmgr *bufmgr,
 static void *work(void *arg)
 {
 	struct intel_batchbuffer *batch;
-	render_copyfunc_t rendercopy = get_render_copyfunc(devid);
+	igt_render_copyfunc_t rendercopy = igt_get_render_copyfunc(devid);
 	drm_intel_context *context;
 	drm_intel_bufmgr *bufmgr;
 	int td_fd;

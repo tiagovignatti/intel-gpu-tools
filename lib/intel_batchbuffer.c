@@ -298,9 +298,9 @@ intel_batchbuffer_data(struct intel_batchbuffer *batch,
  */
 void
 intel_blt_copy(struct intel_batchbuffer *batch,
-	      drm_intel_bo *src_bo, int src_x1, int src_y1, int src_pitch,
-	      drm_intel_bo *dst_bo, int dst_x1, int dst_y1, int dst_pitch,
-	      int width, int height, int bpp)
+	       drm_intel_bo *src_bo, int src_x1, int src_y1, int src_pitch,
+	       drm_intel_bo *dst_bo, int dst_x1, int dst_y1, int dst_pitch,
+	       int width, int height, int bpp)
 {
 	uint32_t src_tiling, dst_tiling, swizzle;
 	uint32_t cmd_bits = 0;
@@ -397,9 +397,9 @@ unsigned igt_buf_height(struct igt_buf *buf)
 	return buf->size/buf->stride;
 }
 
-render_copyfunc_t get_render_copyfunc(int devid)
+igt_render_copyfunc_t igt_get_render_copyfunc(int devid)
 {
-	render_copyfunc_t copy = NULL;
+	igt_render_copyfunc_t copy = NULL;
 
 	if (IS_GEN2(devid))
 		copy = gen2_render_copyfunc;
@@ -415,9 +415,9 @@ render_copyfunc_t get_render_copyfunc(int devid)
 	return copy;
 }
 
-media_fillfunc_t get_media_fillfunc(int devid)
+igt_media_fillfunc_t igt_get_media_fillfunc(int devid)
 {
-	media_fillfunc_t fill = NULL;
+	igt_media_fillfunc_t fill = NULL;
 
 	if (IS_GEN8(devid))
 		fill = gen8_media_fillfunc;

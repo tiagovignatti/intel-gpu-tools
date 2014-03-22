@@ -209,20 +209,20 @@ struct igt_buf {
 unsigned igt_buf_width(struct igt_buf *buf);
 unsigned igt_buf_height(struct igt_buf *buf);
 
-typedef void (*render_copyfunc_t)(struct intel_batchbuffer *batch,
-				  drm_intel_context *context,
-				  struct igt_buf *src, unsigned src_x, unsigned src_y,
-				  unsigned width, unsigned height,
-				  struct igt_buf *dst, unsigned dst_x, unsigned dst_y);
+typedef void (*igt_render_copyfunc_t)(struct intel_batchbuffer *batch,
+				      drm_intel_context *context,
+				      struct igt_buf *src, unsigned src_x, unsigned src_y,
+				      unsigned width, unsigned height,
+				      struct igt_buf *dst, unsigned dst_x, unsigned dst_y);
 
-render_copyfunc_t get_render_copyfunc(int devid);
+igt_render_copyfunc_t igt_get_render_copyfunc(int devid);
 
-typedef void (*media_fillfunc_t)(struct intel_batchbuffer *batch,
-				struct igt_buf *dst,
-				unsigned x, unsigned y,
-				unsigned width, unsigned height,
-				uint8_t color);
+typedef void (*igt_media_fillfunc_t)(struct intel_batchbuffer *batch,
+				     struct igt_buf *dst,
+				     unsigned x, unsigned y,
+				     unsigned width, unsigned height,
+				     uint8_t color);
 
-media_fillfunc_t get_media_fillfunc(int devid);
+igt_media_fillfunc_t igt_get_media_fillfunc(int devid);
 
 #endif

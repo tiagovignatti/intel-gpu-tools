@@ -113,7 +113,7 @@ static void destroy_bo(struct bo *b)
 static int check_ring(drm_intel_bufmgr *bufmgr,
 		      struct intel_batchbuffer *batch,
 		      const char *ring,
-		      render_copyfunc_t copy)
+		      igt_render_copyfunc_t copy)
 {
 	struct igt_buf src, tmp, dst;
 	struct bo bo;
@@ -197,7 +197,7 @@ static void blt_copy(struct intel_batchbuffer *batch,
 
 drm_intel_bufmgr *bufmgr;
 struct intel_batchbuffer *batch;
-render_copyfunc_t copy;
+igt_render_copyfunc_t copy;
 int fd;
 
 igt_main
@@ -219,7 +219,7 @@ igt_main
 		/* Strictly only required on architectures with a separate BLT ring,
 		 * but lets stress everybody.
 		 */
-		copy = get_render_copyfunc(batch->devid);
+		copy = igt_get_render_copyfunc(batch->devid);
 		igt_require(copy);
 	}
 

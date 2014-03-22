@@ -125,7 +125,7 @@ int main(int argc, char **argv)
 	data_t data = {0, };
 	struct intel_batchbuffer *batch = NULL;
 	struct igt_buf src, dst;
-	render_copyfunc_t render_copy = NULL;
+	igt_render_copyfunc_t render_copy = NULL;
 	int opt;
 	int opt_dump_png = false;
 	int opt_dump_aub = drmtest_dump_aub();
@@ -149,7 +149,7 @@ int main(int argc, char **argv)
 		data.bufmgr = drm_intel_bufmgr_gem_init(data.drm_fd, 4096);
 		igt_assert(data.bufmgr);
 
-		render_copy = get_render_copyfunc(data.devid);
+		render_copy = igt_get_render_copyfunc(data.devid);
 		igt_require_f(render_copy,
 			      "no render-copy function\n");
 

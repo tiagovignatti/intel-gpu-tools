@@ -206,7 +206,7 @@ static void fill_render(data_t *data, uint32_t handle,
 	struct intel_batchbuffer *batch;
 	struct igt_buf src_buf, dst_buf;
 	const uint8_t buf[4] = { color, color, color, color };
-	render_copyfunc_t rendercopy = get_render_copyfunc(data->devid);
+	igt_render_copyfunc_t rendercopy = igt_get_render_copyfunc(data->devid);
 
 	igt_skip_on(!rendercopy);
 

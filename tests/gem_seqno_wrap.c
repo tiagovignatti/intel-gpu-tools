@@ -145,7 +145,7 @@ static void render_copyfunc(struct igt_buf *src,
 			    int height)
 {
 	const int src_x = 0, src_y = 0, dst_x = 0, dst_y = 0;
-	render_copyfunc_t rendercopy = get_render_copyfunc(devid);
+	igt_render_copyfunc_t rendercopy = igt_get_render_copyfunc(devid);
 	static int warned = 0;
 
 	if (rendercopy) {

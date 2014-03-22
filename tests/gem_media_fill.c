@@ -105,7 +105,7 @@ igt_simple_main
 	data_t data = {0, };
 	struct intel_batchbuffer *batch = NULL;
 	struct igt_buf dst;
-	media_fillfunc_t media_fill = NULL;
+	igt_media_fillfunc_t media_fill = NULL;
 	int i, j;
 
 	data.drm_fd = drm_open_any_render();
@@ -114,7 +114,7 @@ igt_simple_main
 	data.bufmgr = drm_intel_bufmgr_gem_init(data.drm_fd, 4096);
 	igt_assert(data.bufmgr);
 
-	media_fill = get_media_fillfunc(data.devid);
+	media_fill = igt_get_media_fillfunc(data.devid);
 
 	igt_require_f(media_fill,
 		"no media-fill function\n");

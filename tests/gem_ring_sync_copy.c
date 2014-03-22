@@ -69,7 +69,7 @@ typedef struct {
 	uint32_t linear[WIDTH * HEIGHT];
 
 	struct {
-		render_copyfunc_t copy;
+		igt_render_copyfunc_t copy;
 		struct igt_buf *srcs;
 		struct igt_buf *dsts;
 	} render;
@@ -336,7 +336,7 @@ igt_main
 		igt_assert(data.bufmgr);
 		drm_intel_bufmgr_gem_enable_reuse(data.bufmgr);
 
-		data.render.copy = get_render_copyfunc(data.devid);
+		data.render.copy = igt_get_render_copyfunc(data.devid);
 		igt_require_f(data.render.copy,
 			      "no render-copy function\n");
 

@@ -247,11 +247,11 @@ static void emit_fence_stress(struct test_output *o)
 static void emit_dummy_load__rcs(struct test_output *o)
 {
 	const struct kmstest_fb *fb_info = &o->fb_info[o->current_fb_id];
-	render_copyfunc_t copyfunc;
+	igt_render_copyfunc_t copyfunc;
 	struct igt_buf sb[2], *src, *dst;
 	int i, limit;
 
-	copyfunc = get_render_copyfunc(devid);
+	copyfunc = igt_get_render_copyfunc(devid);
 	if (copyfunc == NULL)
 		return emit_dummy_load__bcs(o);
 

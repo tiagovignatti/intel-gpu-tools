@@ -57,7 +57,7 @@
 #define HEIGHT 512
 #define SIZE (HEIGHT*STRIDE)
 
-static render_copyfunc_t render_copy;
+static igt_render_copyfunc_t render_copy;
 
 static void
 check_bo(drm_intel_bo *bo, uint32_t val)
@@ -94,7 +94,7 @@ int main(int argc, char **argv)
 
 	fd = drm_open_any();
 
-	render_copy = get_render_copyfunc(intel_get_drm_devid(fd));
+	render_copy = igt_get_render_copyfunc(intel_get_drm_devid(fd));
 	if (render_copy == NULL) {
 		printf("no render-copy function, doing nothing\n");
 		return 77;
