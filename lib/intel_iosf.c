@@ -55,26 +55,76 @@ static int vlv_sideband_rw(uint32_t port, uint8_t opcode, uint32_t addr,
 	return 0;
 }
 
+/**
+ * intel_punit_read:
+ * @addr: register offset
+ * @val: pointer to starge for the read result
+ *
+ * 32-bit read of the register at @offset through the P-Unit sideband port.
+ *
+ * Returns:
+ * 0 when the register access succeeded, negative errno code on failure.
+ */
 int intel_punit_read(uint8_t addr, uint32_t *val)
 {
 	return vlv_sideband_rw(IOSF_PORT_PUNIT, PUNIT_OPCODE_REG_READ, addr, val);
 }
 
+/**
+ * intel_punit_write:
+ * @addr: register offset
+ * @val: value to write
+ *
+ * 32-bit write of the register at @offset through the P-Unit sideband port.
+ *
+ * Returns:
+ * 0 when the register access succeeded, negative errno code on failure.
+ */
 int intel_punit_write(uint8_t addr, uint32_t val)
 {
 	return vlv_sideband_rw(IOSF_PORT_PUNIT, PUNIT_OPCODE_REG_WRITE, addr, &val);
 }
 
+/**
+ * intel_nc_read:
+ * @addr: register offset
+ * @val: pointer to starge for the read result
+ *
+ * 32-bit read of the register at @offset through the NC sideband port.
+ *
+ * Returns:
+ * 0 when the register access succeeded, negative errno code on failure.
+ */
 int intel_nc_read(uint8_t addr, uint32_t *val)
 {
 	return vlv_sideband_rw(IOSF_PORT_NC, PUNIT_OPCODE_REG_READ, addr, val);
 }
 
+/**
+ * intel_nc_write:
+ * @addr: register offset
+ * @val: value to write
+ *
+ * 32-bit write of the register at @offset through the NC sideband port.
+ *
+ * Returns:
+ * 0 when the register access succeeded, negative errno code on failure.
+ */
 int intel_nc_write(uint8_t addr, uint32_t val)
 {
 	return vlv_sideband_rw(IOSF_PORT_NC, PUNIT_OPCODE_REG_WRITE, addr, &val);
 }
 
+/**
+ * intel_dpio_reg_read:
+ * @reg: register offset
+ * @phy: DPIO PHY to use
+ *
+ * 32-bit read of the register at @offset through the DPIO sideband port.
+ *
+ * Returns:
+ * The value read from the register.
+ */
 uint32_t intel_dpio_reg_read(uint32_t reg, int phy)
 {
 	uint32_t val;
@@ -83,6 +133,14 @@ uint32_t intel_dpio_reg_read(uint32_t reg, int phy)
 	return val;
 }
 
+/**
+ * intel_dpio_reg_write:
+ * @reg: register offset
+ * @val: value to write
+ * @phy: dpio PHY to use
+ *
+ * 32-bit write of the register at @offset through the DPIO sideband port.
+ */
 void intel_dpio_reg_write(uint32_t reg, uint32_t val, int phy)
 {
 	vlv_sideband_rw(IOSF_PORT_DPIO, DPIO_OPCODE_REG_WRITE, reg, &val);

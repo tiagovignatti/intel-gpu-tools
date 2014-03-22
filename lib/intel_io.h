@@ -34,7 +34,7 @@
 /* register access helpers from intel_mmio.c */
 extern void *mmio;
 void intel_mmio_use_pci_bar(struct pci_device *pci_dev);
-void intel_mmio_use_dump_file(char *);
+void intel_mmio_use_dump_file(char *file);
 
 int intel_register_access_init(struct pci_device *pci_dev, int safe);
 void intel_register_access_fini(void);
@@ -42,17 +42,8 @@ uint32_t intel_register_read(uint32_t reg);
 void intel_register_write(uint32_t reg, uint32_t val);
 int intel_register_access_needs_fakewake(void);
 
-static inline uint32_t
-INREG(uint32_t reg)
-{
-	return *(volatile uint32_t *)((volatile char *)mmio + reg);
-}
-
-static inline void
-OUTREG(uint32_t reg, uint32_t val)
-{
-	*(volatile uint32_t *)((volatile char *)mmio + reg) = val;
-}
+uint32_t INREG(uint32_t reg);
+void OUTREG(uint32_t reg, uint32_t val);
 
 /* sideband access functions from intel_iosf.c */
 uint32_t intel_dpio_reg_read(uint32_t reg, int phy);
@@ -64,6 +55,8 @@ int intel_nc_read(uint8_t addr, uint32_t *val);
 int intel_nc_write(uint8_t addr, uint32_t val);
 
 /* register maps from intel_reg_map.c */
+#ifndef __GTK_DOC_IGNORE__
+
 #define INTEL_RANGE_RSVD	(0<<0) /*  Shouldn't be read or written */
 #define INTEL_RANGE_READ	(1<<0)
 #define INTEL_RANGE_WRITE	(1<<1)
@@ -83,5 +76,6 @@ struct intel_register_map {
 };
 struct intel_register_map intel_get_register_map(uint32_t devid);
 struct intel_register_range *intel_get_register_range(struct intel_register_map map, uint32_t offset, uint32_t mode);
+#endif /* __GTK_DOC_IGNORE__ */
 
 #endif /* INTEL_GPU_TOOLS_H */
