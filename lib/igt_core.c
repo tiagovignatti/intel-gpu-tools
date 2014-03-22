@@ -1117,13 +1117,23 @@ bool igt_run_in_simulation(void)
  *
  * Skip tests when INTEL_SIMULATION environment variable is set. It uses
  * igt_skip() internally and hence is fully subtest aware.
+ *
+ * Note that in contrast to all other functions which use igt_skip() internally
+ * it is allowed to use this outside of an #igt_fixture block in a test with
+ * subtests. This is because in contrast to most other test requirements,
+ * checking for simulation mode doesn't depend upon the present hardware and it
+ * so makes a lot of sense to have this check in the outermost #igt_main block.
  */
 void igt_skip_on_simulation(void)
 {
 	if (igt_only_list_subtests())
 		return;
 
-	igt_require(!igt_run_in_simulation());
+	if (!in_fixture) {
+		igt_fixture
+			igt_require(!igt_run_in_simulation());
+	} else
+		igt_require(!igt_run_in_simulation());
 }
 
 /* structured logging */

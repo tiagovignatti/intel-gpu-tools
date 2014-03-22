@@ -179,6 +179,7 @@ TESTS_testsuite = \
 	igt_fork_helper \
 	igt_list_only \
 	igt_no_subtest \
+	igt_simulation \
 	$(NULL)
 
 TESTS = \
