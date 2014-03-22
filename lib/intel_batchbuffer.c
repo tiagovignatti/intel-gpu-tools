@@ -46,6 +46,8 @@
  * @short_description: Batchbuffer and blitter support
  * @title: intel batchbuffer
  *
+ * > #include "intel_batchbuffer.h"
+ *
  * This library provides some basic support for batchbuffers and using the
  * blitter engine based upon libdrm. A new batchbuffer is allocated with
  * intel_batchbuffer_alloc() and for simple blitter commands submitted with
