@@ -49,6 +49,9 @@ void intel_check_pch(void);
 #define HAS_CPT (intel_pch == PCH_CPT)
 #define HAS_LPT (intel_pch == PCH_LPT)
 
+/* Exclude chipset #defines, they just add noise */
+#ifndef __GTK_DOC_IGNORE__
+
 #define PCI_CHIP_I810			0x7121
 #define PCI_CHIP_I810_DC100		0x7123
 #define PCI_CHIP_I810_E			0x7125
@@ -180,6 +183,8 @@ void intel_check_pch(void);
 #define PCI_CHIP_VALLEYVIEW_1		0x0f31
 #define PCI_CHIP_VALLEYVIEW_2		0x0f32
 #define PCI_CHIP_VALLEYVIEW_3		0x0f33
+
+#endif /* __GTK_DOC_IGNORE__ */
 
 #define IS_MOBILE(devid)	((devid) == PCI_CHIP_I855_GM || \
 				 (devid) == PCI_CHIP_I915_GM || \

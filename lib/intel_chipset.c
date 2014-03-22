@@ -40,8 +40,32 @@
 
 #include "intel_chipset.h"
 
+/**
+ * SECTION:intel_chipset
+ * @short_description: Feature macros and chipset helpers
+ * @title: intel chipset
+ *
+ * This library mostly provides feature macros which use raw pci device ids. It
+ * also provides a few more helper functions to handle pci devices, chipset
+ * detection and related issues.
+ */
+
+/**
+ * intel_pch:
+ *
+ * Global variable to keep track of the pch type. Can either be set manually or
+ * detected at runtime with intel_check_pch().
+ */
 enum pch_type intel_pch;
 
+/**
+ * intel_get_pci_device:
+ *
+ * Looks up the main graphics pci device using libpciaccess.
+ *
+ * Returns:
+ * The pci_device, exits the program on any failures.
+ */
 struct pci_device *
 intel_get_pci_device(void)
 {
@@ -92,6 +116,16 @@ intel_get_pci_device(void)
 	return pci_dev;
 }
 
+/**
+ * intel_get_drm_devid:
+ * @fd: open i915 drm file descriptor
+ *
+ * Queries the kernel for the pci device id corresponding to the drm file
+ * descriptor.
+ *
+ * Returns:
+ * The devid, exits the program on any failures.
+ */
 uint32_t
 intel_get_drm_devid(int fd)
 {
@@ -114,6 +148,15 @@ intel_get_drm_devid(int fd)
 	return devid;
 }
 
+/**
+ * intel_gen:
+ * @devid: pci device id
+ *
+ * Computes the Intel GFX generation for the give device id.
+ *
+ * Returns:
+ * The GFX generation on successful lookup, -1 on failure.
+ */
 int intel_gen(uint32_t devid)
 {
 	if (IS_GEN2(devid))
@@ -134,6 +177,12 @@ int intel_gen(uint32_t devid)
 	return -1;
 }
 
+/**
+ * intel_check_pch:
+ *
+ * Detects the PCH chipset type of the running systems and fills in the results
+ * into the global #intel_pch varaible.
+ */
 void
 intel_check_pch(void)
 {
@@ -163,4 +212,3 @@ intel_check_pch(void)
 		return;
 	}
 }
-
