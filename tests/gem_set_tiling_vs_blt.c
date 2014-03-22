@@ -59,7 +59,7 @@
 #include "intel_bufmgr.h"
 #include "intel_batchbuffer.h"
 #include "intel_chipset.h"
-#include "intel_gpu_tools.h"
+#include "intel_io.h"
 
 static drm_intel_bufmgr *bufmgr;
 struct intel_batchbuffer *batch;

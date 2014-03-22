@@ -37,7 +37,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
-#include "intel_gpu_tools.h"
+#include "intel_io.h"
 #include "intel_reg.h"
 #include "intel_bios.h"
 #include "intel_chipset.h"

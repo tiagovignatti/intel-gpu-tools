@@ -33,7 +33,7 @@
 #include <string.h>
 #include <err.h>
 #include <unistd.h>
-#include "intel_gpu_tools.h"
+#include "intel_io.h"
 #include "intel_chipset.h"
 #include "intel_reg.h"
 #include "drmtest.h"

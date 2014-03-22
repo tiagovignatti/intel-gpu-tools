@@ -56,7 +56,7 @@
 #include "drm.h"
 #include "ioctl_wrappers.h"
 #include "drmtest.h"
-#include "intel_gpu_tools.h"
+#include "intel_io.h"
 
 #define WIDTH 512
 #define HEIGHT 512

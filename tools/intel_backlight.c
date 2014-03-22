@@ -30,7 +30,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "intel_gpu_tools.h"
+#include "intel_io.h"
 #include "intel_chipset.h"
 #include "intel_reg.h"
 

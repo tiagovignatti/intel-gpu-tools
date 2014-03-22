@@ -37,7 +37,7 @@
 #include "drm.h"
 #include "ioctl_wrappers.h"
 #include "drmtest.h"
-#include "intel_gpu_tools.h"
+#include "intel_io.h"
 
 #define OBJECT_SIZE (1024*1024)
 #define TEST_STRIDE (1024*4)

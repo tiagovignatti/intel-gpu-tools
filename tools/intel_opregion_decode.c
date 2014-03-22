@@ -37,7 +37,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
-#include "intel_gpu_tools.h"
+#include "intel_io.h"
 #include "drmtest.h"
 
 #define OPREGION_HEADER_OFFSET		0

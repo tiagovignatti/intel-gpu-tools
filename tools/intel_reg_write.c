@@ -29,7 +29,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <err.h>
-#include "intel_gpu_tools.h"
+#include "intel_io.h"
 #include "intel_chipset.h"
 
 int main(int argc, char** argv)

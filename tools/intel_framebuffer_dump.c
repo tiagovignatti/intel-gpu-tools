@@ -35,7 +35,7 @@
 #include <i915_drm.h>
 #include <cairo.h>
 
-#include "intel_gpu_tools.h"
+#include "intel_io.h"
 #include "drmtest.h"
 
 int main(int argc, char **argv)

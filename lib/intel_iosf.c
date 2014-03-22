@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <err.h>
 #include <errno.h>
-#include "intel_gpu_tools.h"
+#include "intel_io.h"
 #include "intel_reg.h"
 
 #define TIMEOUT_US 500000

@@ -49,7 +49,7 @@
 #include "drmtest.h"
 #include "intel_bufmgr.h"
 #include "intel_batchbuffer.h"
-#include "intel_gpu_tools.h"
+#include "intel_io.h"
 
 #if !defined(I915_PARAM_HAS_VMAP)
 #pragma message("No vmap support in drm, skipping")

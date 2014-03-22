@@ -26,7 +26,7 @@
 #include <err.h>
 #include <string.h>
 #include <stdbool.h>
-#include "intel_gpu_tools.h"
+#include "intel_io.h"
 #include "intel_chipset.h"
 
 static uint32_t devid;

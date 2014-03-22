@@ -42,7 +42,7 @@
 #ifdef HAVE_TERMIOS_H
 #include <termios.h>
 #endif
-#include "intel_gpu_tools.h"
+#include "intel_io.h"
 #include "instdone.h"
 #include "intel_reg.h"
 #include "intel_chipset.h"

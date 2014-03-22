@@ -31,7 +31,7 @@
 
 #include "drmtest.h"
 #include "igt_kms.h"
-#include "intel_gpu_tools.h"
+#include "intel_io.h"
 #include "intel_chipset.h"
 
 /* We know that if we don't enable audio runtime PM, snd_hda_intel will never

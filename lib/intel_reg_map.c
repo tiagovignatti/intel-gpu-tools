@@ -29,7 +29,7 @@
 #include <stdarg.h>
 #include <stdlib.h>
 #include <sys/types.h>
-#include "intel_gpu_tools.h"
+#include "intel_io.h"
 #include "intel_chipset.h"
 
 static struct intel_register_range gen_bwcl_register_map[] = {

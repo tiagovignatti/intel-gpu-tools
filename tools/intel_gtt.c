@@ -34,7 +34,7 @@
 #include <pciaccess.h>
 #include <unistd.h>
 
-#include "intel_gpu_tools.h"
+#include "intel_io.h"
 #include "intel_chipset.h"
 
 #define KB(x) ((x) * 1024)

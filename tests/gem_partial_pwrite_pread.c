@@ -39,7 +39,7 @@
 #include "intel_chipset.h"
 #include "intel_bufmgr.h"
 #include "intel_batchbuffer.h"
-#include "intel_gpu_tools.h"
+#include "intel_io.h"
 
 /*
  * Testcase: pwrite/pread consistency when touching partial cachelines

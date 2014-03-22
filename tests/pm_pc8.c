@@ -43,7 +43,7 @@
 #include "drm.h"
 #include "drmtest.h"
 #include "intel_batchbuffer.h"
-#include "intel_gpu_tools.h"
+#include "intel_io.h"
 #include "intel_chipset.h"
 #include "ioctl_wrappers.h"
 #include "igt_kms.h"

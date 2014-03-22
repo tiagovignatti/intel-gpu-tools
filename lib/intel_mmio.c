@@ -41,7 +41,7 @@
 #include <sys/stat.h>
 #include <sys/mman.h>
 
-#include "intel_gpu_tools.h"
+#include "intel_io.h"
 #include "igt_debugfs.h"
 #include "intel_chipset.h"
 

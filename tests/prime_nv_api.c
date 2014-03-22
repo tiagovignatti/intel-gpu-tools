@@ -16,7 +16,7 @@
 
 #include "intel_bufmgr.h"
 #include "nouveau.h"
-#include "intel_gpu_tools.h"
+#include "intel_io.h"
 #include "intel_batchbuffer.h"
 #include "drmtest.h"
 #include "intel_chipset.h"

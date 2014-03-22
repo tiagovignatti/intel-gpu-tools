@@ -39,7 +39,7 @@
 #include "drm.h"
 #include "ioctl_wrappers.h"
 #include "drmtest.h"
-#include "intel_gpu_tools.h"
+#include "intel_io.h"
 
 #define LOCAL_I915_EXEC_VEBOX (4<<0)
 

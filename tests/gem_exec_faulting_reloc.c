@@ -40,7 +40,7 @@
 #include "ioctl_wrappers.h"
 #include "drmtest.h"
 #include "intel_chipset.h"
-#include "intel_gpu_tools.h"
+#include "intel_io.h"
 #include "igt_debugfs.h"
 
 /* Testcase: Submit patches with relocations in memory that will fault

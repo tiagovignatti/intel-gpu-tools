@@ -47,7 +47,7 @@
 #include <sys/swap.h>
 #endif
 
-#include "intel_gpu_tools.h"
+#include "intel_io.h"
 #include "i915_drm.h"
 #include "drmtest.h"
 

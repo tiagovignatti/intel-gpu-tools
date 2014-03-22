@@ -15,7 +15,7 @@
 #include "drmtest.h"
 #include "intel_bufmgr.h"
 #include "intel_batchbuffer.h"
-#include "intel_gpu_tools.h"
+#include "intel_io.h"
 #include "rendercopy.h"
 #include "gen6_render.h"
 #include "intel_reg.h"

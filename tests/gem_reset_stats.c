@@ -46,7 +46,7 @@
 #include "intel_bufmgr.h"
 #include "intel_chipset.h"
 #include "intel_batchbuffer.h"
-#include "intel_gpu_tools.h"
+#include "intel_io.h"
 
 #define RS_NO_ERROR      0
 #define RS_BATCH_ACTIVE  (1 << 0)

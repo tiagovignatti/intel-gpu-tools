@@ -3,7 +3,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-#include "intel_gpu_tools.h"
+#include "intel_io.h"
 #include "drmtest.h"
 
 #define LC_FREQ 2700

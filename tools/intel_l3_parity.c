@@ -36,7 +36,7 @@
 #include <unistd.h>
 #include <getopt.h>
 #include "intel_chipset.h"
-#include "intel_gpu_tools.h"
+#include "intel_io.h"
 #include "drmtest.h"
 #ifdef HAVE_CONFIG_H
 #include "config.h"

@@ -40,7 +40,7 @@
 #include "ioctl_wrappers.h"
 #include "drmtest.h"
 #include "intel_chipset.h"
-#include "intel_gpu_tools.h"
+#include "intel_io.h"
 
 #define OBJECT_SIZE 16384
 

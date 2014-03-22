@@ -31,7 +31,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <sys/io.h>
-#include "intel_gpu_tools.h"
+#include "intel_io.h"
 #include "intel_chipset.h"
 
 static void write_reg(uint32_t reg, uint8_t val, bool use_mmio)
