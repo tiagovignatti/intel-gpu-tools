@@ -29,6 +29,8 @@
 #include <stdint.h>
 #include <cairo.h>
 
+#include <xf86drmMode.h>
+
 #include "igt_display.h"
 
 struct kmstest_connector_config {

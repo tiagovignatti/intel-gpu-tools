@@ -24,7 +24,8 @@
 #include <errno.h>
 
 #include "xf86drm.h"
-#include "xf86drmMode.h"
+#include <xf86drmMode.h>
+
 #include "ioctl_wrappers.h"
 #include "intel_bufmgr.h"
 #include "intel_gpu_tools.h"

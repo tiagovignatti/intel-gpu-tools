@@ -31,6 +31,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <pthread.h>
+#include <errno.h>
 
 #include "drmtest.h"
 #include "ioctl_wrappers.h"

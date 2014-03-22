@@ -32,8 +32,10 @@
 
 #include <setjmp.h>
 #include <stdbool.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
+#include <stdarg.h>
 
 bool __igt_fixture(void);
 void __igt_fixture_complete(void);

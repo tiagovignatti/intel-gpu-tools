@@ -33,9 +33,11 @@
 #include <string.h>
 #include <fcntl.h>
 #include <inttypes.h>
-#include <drm.h>
-#include "ioctl_wrappers.h"
+#include <errno.h>
 
+#include <drm.h>
+
+#include "ioctl_wrappers.h"
 #include "drmtest.h"
 #include "intel_chipset.h"
 #include "intel_gpu_tools.h"

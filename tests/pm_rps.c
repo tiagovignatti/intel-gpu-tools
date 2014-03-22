@@ -34,6 +34,7 @@
 #include <getopt.h>
 #include <fcntl.h>
 #include <signal.h>
+#include <errno.h>
 
 #include "drmtest.h"
 #include "intel_gpu_tools.h"

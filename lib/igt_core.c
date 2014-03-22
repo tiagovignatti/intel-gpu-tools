@@ -48,9 +48,9 @@
 #include <sys/syscall.h>
 #include <sys/utsname.h>
 #include <termios.h>
+#include <errno.h>
 
 #include "drmtest.h"
-#include "i915_drm.h"
 #include "intel_chipset.h"
 #include "intel_gpu_tools.h"
 #include "igt_debugfs.h"

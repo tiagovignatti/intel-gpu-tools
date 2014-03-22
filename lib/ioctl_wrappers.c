@@ -47,6 +47,7 @@
 #include <sys/syscall.h>
 #include <sys/utsname.h>
 #include <termios.h>
+#include <errno.h>
 
 #include "drmtest.h"
 #include "i915_drm.h"

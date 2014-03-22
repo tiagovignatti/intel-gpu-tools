@@ -29,6 +29,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <errno.h>
+
 #include "drmtest.h"
 
 #define SLEEP_DURATION 5000 // in milliseconds

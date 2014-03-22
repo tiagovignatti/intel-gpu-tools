@@ -41,6 +41,7 @@
 #include <wordexp.h>
 #include <getopt.h>
 #include <signal.h>
+#include <errno.h>
 
 #include "ioctl_wrappers.h"
 #include "drmtest.h"

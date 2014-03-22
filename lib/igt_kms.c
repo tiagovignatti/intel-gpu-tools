@@ -23,14 +23,18 @@
  */
 
 #define _GNU_SOURCE
+#include <unistd.h>
 #include <stdio.h>
 #include <stdarg.h>
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <string.h>
+#include <stdlib.h>
 #include <math.h>
 #include <linux/kd.h>
-#include "drm_fourcc.h"
+#include <errno.h>
+
+#include <drm_fourcc.h>
 
 #include "drmtest.h"
 #include "igt_kms.h"

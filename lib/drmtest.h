@@ -28,16 +28,13 @@
 #ifndef DRMTEST_H
 #define DRMTEST_H
 
-#include <stdio.h>
-#include <stdlib.h>
 #include <unistd.h>
-#include <errno.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <sys/mman.h>
 
-#include "xf86drm.h"
-#include "xf86drmMode.h"
-#include "intel_batchbuffer.h"
+#include <xf86drm.h>
+#include <intel_batchbuffer.h>
 
 #ifdef ANDROID
 #ifndef HAVE_MMAP64

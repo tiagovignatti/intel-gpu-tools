@@ -27,6 +27,11 @@
 
 #include <limits.h>
 #include <sys/ioctl.h>
+#include <sys/types.h>
+
+#include <drm.h>
+
+#include "igt_core.h"
 #include "drmtest.h"
 
 /**

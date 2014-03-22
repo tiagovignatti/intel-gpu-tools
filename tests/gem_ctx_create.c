@@ -27,6 +27,8 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <errno.h>
+
 #include "ioctl_wrappers.h"
 #include "drmtest.h"
 

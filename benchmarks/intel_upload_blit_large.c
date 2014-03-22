@@ -53,8 +53,10 @@
 #include <errno.h>
 #include <sys/stat.h>
 #include <sys/time.h>
-#include "drm.h"
-#include "i915_drm.h"
+
+#include <drm.h>
+#include <i915_drm.h>
+
 #include "drmtest.h"
 #include "intel_bufmgr.h"
 #include "intel_batchbuffer.h"

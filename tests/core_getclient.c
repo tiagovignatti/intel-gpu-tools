@@ -27,6 +27,9 @@
 
 #include <limits.h>
 #include <sys/ioctl.h>
+#include <stdlib.h>
+#include <errno.h>
+
 #include "drmtest.h"
 
 /**
