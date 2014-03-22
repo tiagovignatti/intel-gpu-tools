@@ -50,48 +50,6 @@
 #include "intel_gpu_tools.h"
 #include "i915_drm.h"
 
-uint32_t
-intel_get_drm_devid(int fd)
-{
-	int ret;
-	struct drm_i915_getparam gp;
-	uint32_t devid;
-	char *override;
-
-	override = getenv("INTEL_DEVID_OVERRIDE");
-	if (override) {
-		devid = strtod(override, NULL);
-	} else {
-		gp.param = I915_PARAM_CHIPSET_ID;
-		gp.value = (int *)&devid;
-
-		ret = ioctl(fd, DRM_IOCTL_I915_GETPARAM, &gp, sizeof(gp));
-		assert(ret == 0);
-	}
-
-	return devid;
-}
-
-int intel_gen(uint32_t devid)
-{
-	if (IS_GEN2(devid))
-		return 2;
-	if (IS_GEN3(devid))
-		return 3;
-	if (IS_GEN4(devid))
-		return 4;
-	if (IS_GEN5(devid))
-		return 5;
-	if (IS_GEN6(devid))
-		return 6;
-	if (IS_GEN7(devid))
-		return 7;
-	if (IS_GEN8(devid))
-		return 8;
-
-	return -1;
-}
-
 uint64_t
 intel_get_total_ram_mb(void)
 {

@@ -28,6 +28,27 @@
 #ifndef _INTEL_CHIPSET_H
 #define _INTEL_CHIPSET_H
 
+#include <sys/types.h>
+#include <pciaccess.h>
+
+struct pci_device *intel_get_pci_device(void);
+uint32_t intel_get_drm_devid(int fd);
+int intel_gen(uint32_t devid);
+
+extern enum pch_type pch;
+enum pch_type {
+	PCH_NONE,
+	PCH_IBX,
+	PCH_CPT,
+	PCH_LPT,
+};
+
+void intel_check_pch(void);
+
+#define HAS_IBX (pch == PCH_IBX)
+#define HAS_CPT (pch == PCH_CPT)
+#define HAS_LPT (pch == PCH_LPT)
+
 #define PCI_CHIP_I810			0x7121
 #define PCI_CHIP_I810_DC100		0x7123
 #define PCI_CHIP_I810_E			0x7125
