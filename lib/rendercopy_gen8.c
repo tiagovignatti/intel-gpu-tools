@@ -120,7 +120,7 @@ static void annotation_add_state(struct annotations_context *ctx,
 static void annotation_flush(struct annotations_context *ctx,
 			     struct intel_batchbuffer *batch)
 {
-	if (!drmtest_dump_aub())
+	if (!igt_aub_dump_enabled())
 		return;
 
 	drm_intel_bufmgr_gem_set_aub_annotations(batch->bo,

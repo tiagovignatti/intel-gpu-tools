@@ -329,7 +329,7 @@ bool igt_env_set(const char *env_var, bool default_value)
 	return atoi(val) != 0;
 }
 
-bool drmtest_dump_aub(void)
+bool igt_aub_dump_enabled(void)
 {
 	static int dump_aub = -1;
 

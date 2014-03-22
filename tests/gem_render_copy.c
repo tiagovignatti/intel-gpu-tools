@@ -127,7 +127,7 @@ int main(int argc, char **argv)
 	igt_render_copyfunc_t render_copy = NULL;
 	int opt;
 	int opt_dump_png = false;
-	int opt_dump_aub = drmtest_dump_aub();
+	int opt_dump_aub = igt_aub_dump_enabled();
 
 	igt_simple_init();
 
