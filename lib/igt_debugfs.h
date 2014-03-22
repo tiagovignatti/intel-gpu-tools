@@ -27,9 +27,8 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdio.h>
 
-#include "igt_display.h"
+enum pipe;
 
 int igt_debugfs_open(const char *filename, int mode);
 FILE *igt_debugfs_fopen(const char *filename,

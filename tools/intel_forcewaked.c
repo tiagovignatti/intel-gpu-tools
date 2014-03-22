@@ -35,6 +35,7 @@
 #include <syslog.h>
 #include <unistd.h>
 #include "intel_gpu_tools.h"
+#include "intel_chipset.h"
 
 bool daemonized;
 

@@ -43,6 +43,7 @@
 
 #include "intel_gpu_tools.h"
 #include "igt_debugfs.h"
+#include "intel_chipset.h"
 
 #define FAKEKEY 0x2468ace0
 

@@ -31,6 +31,7 @@
 #include <err.h>
 #include <string.h>
 #include "intel_gpu_tools.h"
+#include "intel_chipset.h"
 
 static void usage(char *cmdname)
 {

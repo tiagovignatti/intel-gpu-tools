@@ -31,6 +31,8 @@
 #include <string.h>
 #include <getopt.h>
 #include "intel_gpu_tools.h"
+#include "intel_chipset.h"
+#include "drmtest.h"
 
 typedef enum {
 	TRANSC_A = 0,

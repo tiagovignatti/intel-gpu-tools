@@ -44,6 +44,8 @@
 #endif
 #include "intel_gpu_tools.h"
 #include "instdone.h"
+#include "intel_reg.h"
+#include "intel_chipset.h"
 
 #define  FORCEWAKE	    0xA18C
 #define  FORCEWAKE_ACK	    0x130090

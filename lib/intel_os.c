@@ -49,6 +49,7 @@
 
 #include "intel_gpu_tools.h"
 #include "i915_drm.h"
+#include "drmtest.h"
 
 uint64_t
 intel_get_total_ram_mb(void)

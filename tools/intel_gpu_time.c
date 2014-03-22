@@ -35,6 +35,8 @@
 #include <sys/wait.h>
 
 #include "intel_gpu_tools.h"
+#include "intel_chipset.h"
+#include "intel_reg.h"
 
 #define SAMPLES_PER_SEC             10000
 

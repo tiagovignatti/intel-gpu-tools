@@ -29,12 +29,7 @@
 #define INTEL_GPU_TOOLS_H
 
 #include <stdint.h>
-#include <sys/types.h>
 #include <pciaccess.h>
-
-#include "intel_chipset.h"
-#include "intel_reg.h"
-#include "drmtest.h"
 
 /* register access helpers from intel_mmio.c */
 extern void *mmio;

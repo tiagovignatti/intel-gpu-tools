@@ -30,6 +30,7 @@
 #include <stdlib.h>
 #include <sys/types.h>
 #include "intel_gpu_tools.h"
+#include "intel_chipset.h"
 
 static struct intel_register_range gen_bwcl_register_map[] = {
 	{0x00000000, 0x00000fff, INTEL_RANGE_RW},

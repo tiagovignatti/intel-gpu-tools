@@ -55,6 +55,7 @@
 #include "intel_chipset.h"
 #include "intel_gpu_tools.h"
 #include "instdone.h"
+#include "intel_reg.h"
 
 static uint32_t
 print_head(unsigned int reg)

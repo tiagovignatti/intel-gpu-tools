@@ -18,6 +18,7 @@
 #include "intel_gpu_tools.h"
 #include "rendercopy.h"
 #include "gen8_render.h"
+#include "intel_reg.h"
 
 #include <intel_aub.h>
 

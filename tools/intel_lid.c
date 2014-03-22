@@ -40,6 +40,7 @@
 #include "intel_gpu_tools.h"
 #include "intel_reg.h"
 #include "intel_bios.h"
+#include "intel_chipset.h"
 
 enum lid_status {
 	LID_UNKNOWN = -1,

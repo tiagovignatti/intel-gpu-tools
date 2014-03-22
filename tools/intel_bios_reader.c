@@ -37,6 +37,8 @@
 
 #include "intel_bios.h"
 #include "intel_gpu_tools.h"
+#include "intel_chipset.h"
+#include "drmtest.h"
 
 static uint32_t devid = -1;
 

@@ -1,5 +1,6 @@
 #include "media_fill.h"
 #include "gen8_media.h"
+#include "intel_reg.h"
 
 #include <assert.h>
 

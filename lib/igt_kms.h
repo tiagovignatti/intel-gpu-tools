@@ -26,11 +26,11 @@
 #define __IGT_KMS_H__
 
 #include <stdbool.h>
-
+#include <stdint.h>
 #include <drm_fourcc.h>
 #include <cairo.h>
 
-#include <igt_display.h>
+#include "igt_display.h"
 
 struct kmstest_connector_config {
 	drmModeCrtc *crtc;

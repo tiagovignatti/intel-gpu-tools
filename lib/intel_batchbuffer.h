@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include "intel_bufmgr.h"
 #include "igt_core.h"
+#include "intel_reg.h"
 
 #define BATCH_SZ 4096
 #define BATCH_RESERVED 16

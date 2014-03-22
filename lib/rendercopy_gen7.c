@@ -18,6 +18,7 @@
 #include "intel_gpu_tools.h"
 #include "rendercopy.h"
 #include "gen7_render.h"
+#include "intel_reg.h"
 
 #define ALIGN(x, y) (((x) + (y)-1) & ~((y)-1))
 

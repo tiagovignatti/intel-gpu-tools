@@ -33,6 +33,7 @@
 #include <err.h>
 #include "intel_chipset.h"
 #include "intel_gpu_tools.h"
+#include "intel_reg.h"
 
 static void
 print_clock(const char *name, int clock) {

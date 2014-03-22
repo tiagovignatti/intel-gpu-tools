@@ -29,6 +29,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "intel_gpu_tools.h"
+#include "intel_chipset.h"
 
 struct eu_rdata {
 	union {

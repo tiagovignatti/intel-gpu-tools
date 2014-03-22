@@ -38,6 +38,7 @@
 #include <sys/types.h>
 
 #include "intel_gpu_tools.h"
+#include "drmtest.h"
 
 #define OPREGION_HEADER_OFFSET		0
 #define OPREGION_ACPI_OFFSET		0x100

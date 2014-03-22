@@ -4,6 +4,7 @@
 #include <stdlib.h>
 
 #include "intel_gpu_tools.h"
+#include "drmtest.h"
 
 #define LC_FREQ 2700
 #define LC_FREQ_2K (LC_FREQ * 2000)

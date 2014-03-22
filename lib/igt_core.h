@@ -30,6 +30,8 @@
 #ifndef IGT_CORE_H
 #define IGT_CORE_H
 
+#include <stdbool.h>
+
 bool __igt_fixture(void);
 void __igt_fixture_complete(void);
 void __igt_fixture_end(void) __attribute__((noreturn));
