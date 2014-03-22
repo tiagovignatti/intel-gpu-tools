@@ -83,7 +83,7 @@ store_dword_loop(int divider, unsigned flags)
 			cmd_address_offset = j * 4;
 			buf[j++] = target_bo->offset;
 		}
-		assert(j > 0);
+		igt_assert(j > 0);
 		buf[j++] = 0x42000000 + val;
 
 		igt_assert(drm_intel_bo_references(cmd_bo, target_bo) == 0);

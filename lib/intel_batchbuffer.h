@@ -1,9 +1,9 @@
 #ifndef INTEL_BATCHBUFFER_H
 #define INTEL_BATCHBUFFER_H
 
-#include <assert.h>
 #include <stdint.h>
 #include "intel_bufmgr.h"
+#include "igt_core.h"
 
 #define BATCH_SZ 4096
 #define BATCH_RESERVED 16
@@ -58,7 +58,7 @@ intel_batchbuffer_space(struct intel_batchbuffer *batch)
 static inline void
 intel_batchbuffer_emit_dword(struct intel_batchbuffer *batch, uint32_t dword)
 {
-	assert(intel_batchbuffer_space(batch) >= 4);
+	igt_assert(intel_batchbuffer_space(batch) >= 4);
 	*(uint32_t *) (batch->ptr) = dword;
 	batch->ptr += 4;
 }
@@ -67,7 +67,7 @@ static inline void
 intel_batchbuffer_require_space(struct intel_batchbuffer *batch,
                                 unsigned int sz)
 {
-	assert(sz < BATCH_SZ - BATCH_RESERVED);
+	igt_assert(sz < BATCH_SZ - BATCH_RESERVED);
 	if (intel_batchbuffer_space(batch) < sz)
 		intel_batchbuffer_flush(batch);
 }
@@ -110,7 +110,7 @@ intel_batchbuffer_require_space(struct intel_batchbuffer *batch,
  * scope.
  */
 #define OUT_RELOC_FENCED(buf, read_domains, write_domain, delta) do {		\
-	assert((delta) >= 0);						\
+	igt_assert((delta) >= 0);						\
 	intel_batchbuffer_emit_reloc(batch, buf, delta,			\
 				     read_domains, write_domain, 1);	\
 } while (0)
@@ -128,7 +128,7 @@ intel_batchbuffer_require_space(struct intel_batchbuffer *batch,
  * scope.
  */
 #define OUT_RELOC(buf, read_domains, write_domain, delta) do {		\
-	assert((delta) >= 0);						\
+	igt_assert((delta) >= 0);						\
 	intel_batchbuffer_emit_reloc(batch, buf, delta,			\
 				     read_domains, write_domain, 0);	\
 } while (0)

@@ -109,7 +109,7 @@ test_debugfs_reader(void)
 		snprintf(tmp, sizeof(tmp) - 1,
 			 "while true; do find %s/%i/ -type f | xargs cat > /dev/null 2>&1; done",
 			 dfs_base, drm_get_card());
-		assert(execl("/bin/sh", "sh", "-c", tmp, (char *) NULL) != -1);
+		igt_assert(execl("/bin/sh", "sh", "-c", tmp, (char *) NULL) != -1);
 	}
 
 	sleep(1);
@@ -134,7 +134,7 @@ test_sysfs_reader(void)
 		snprintf(tmp, sizeof(tmp) - 1,
 			 "while true; do find %s%i*/ -type f | xargs cat > /dev/null 2>&1; done",
 			 dfs_base, drm_get_card());
-		assert(execl("/bin/sh", "sh", "-c", tmp, (char *) NULL) != -1);
+		igt_assert(execl("/bin/sh", "sh", "-c", tmp, (char *) NULL) != -1);
 	}
 
 	sleep(1);

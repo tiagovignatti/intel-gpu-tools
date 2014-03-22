@@ -146,7 +146,7 @@ int kmstest_cairo_printf_line(cairo_t *cr, enum kmstest_text_align align,
 
 	va_start(ap, fmt);
 	ret = vasprintf(&text, fmt, ap);
-	assert(ret >= 0);
+	igt_assert(ret >= 0);
 	va_end(ap);
 
 	cairo_text_extents(cr, text, &extents);
@@ -221,7 +221,7 @@ void kmstest_paint_test_pattern(cairo_t *cr, int width, int height)
 	paint_marker(cr, 0, height);
 	paint_marker(cr, width, height);
 
-	assert(!cairo_status(cr));
+	igt_assert(!cairo_status(cr));
 }
 
 void kmstest_paint_image(cairo_t *cr, const char *filename,
@@ -232,7 +232,7 @@ void kmstest_paint_image(cairo_t *cr, const char *filename,
 	double scale_x, scale_y;
 
 	image = cairo_image_surface_create_from_png(filename);
-	assert(cairo_surface_status(image) == CAIRO_STATUS_SUCCESS);
+	igt_assert(cairo_surface_status(image) == CAIRO_STATUS_SUCCESS);
 
 	img_width = cairo_image_surface_get_width(image);
 	img_height = cairo_image_surface_get_height(image);

@@ -113,8 +113,8 @@ _bo_write_verify(struct test *t)
 	unsigned int dwords = OBJECT_SIZE >> 2;
 	const char *tile_str[] = { "none", "x", "y" };
 
-	assert (t->tiling >= 0 && t->tiling <= I915_TILING_Y);
-	assert (t->num_surfaces > 0);
+	igt_assert(t->tiling >= 0 && t->tiling <= I915_TILING_Y);
+	igt_assert(t->num_surfaces > 0);
 
 	s = calloc(sizeof(*s), t->num_surfaces);
 	igt_assert(s);
@@ -171,7 +171,7 @@ static int run_test(int threads_per_fence, void *f, int tiling,
 	t.num_surfaces = surfaces_per_thread;
 
 	num_fences = gem_available_fences(t.fd);
-	assert (num_fences > 0);
+	igt_assert(num_fences > 0);
 
 	num_threads = threads_per_fence * num_fences;
 
@@ -181,7 +181,7 @@ static int run_test(int threads_per_fence, void *f, int tiling,
 
 	if (threads_per_fence) {
 		threads = calloc(sizeof(*threads), num_threads);
-		assert  (threads != NULL);
+		igt_assert(threads != NULL);
 
 		for (n = 0; n < num_threads; n++)
 			pthread_create (&threads[n], NULL, f, &t);
@@ -203,29 +203,29 @@ igt_main
 	igt_skip_on_simulation();
 
 	igt_subtest("bo-write-verify-none")
-		assert (run_test(0, bo_write_verify, I915_TILING_NONE, 80) == 0);
+		igt_assert(run_test(0, bo_write_verify, I915_TILING_NONE, 80) == 0);
 
 	igt_subtest("bo-write-verify-x")
-		assert (run_test(0, bo_write_verify, I915_TILING_X, 80) == 0);
+		igt_assert(run_test(0, bo_write_verify, I915_TILING_X, 80) == 0);
 
 	igt_subtest("bo-write-verify-y")
-		assert (run_test(0, bo_write_verify, I915_TILING_Y, 80) == 0);
+		igt_assert(run_test(0, bo_write_verify, I915_TILING_Y, 80) == 0);
 
 	igt_subtest("bo-write-verify-threaded-none")
-		assert (run_test(5, bo_write_verify, I915_TILING_NONE, 2) == 0);
+		igt_assert(run_test(5, bo_write_verify, I915_TILING_NONE, 2) == 0);
 
 	igt_subtest("bo-write-verify-threaded-x") {
-		assert (run_test(2, bo_write_verify, I915_TILING_X, 2) == 0);
-		assert (run_test(5, bo_write_verify, I915_TILING_X, 2) == 0);
-		assert (run_test(10, bo_write_verify, I915_TILING_X, 2) == 0);
-		assert (run_test(20, bo_write_verify, I915_TILING_X, 2) == 0);
+		igt_assert(run_test(2, bo_write_verify, I915_TILING_X, 2) == 0);
+		igt_assert(run_test(5, bo_write_verify, I915_TILING_X, 2) == 0);
+		igt_assert(run_test(10, bo_write_verify, I915_TILING_X, 2) == 0);
+		igt_assert(run_test(20, bo_write_verify, I915_TILING_X, 2) == 0);
 	}
 
 	igt_subtest("bo-write-verify-threaded-y") {
-		assert (run_test(2, bo_write_verify, I915_TILING_Y, 2) == 0);
-		assert (run_test(5, bo_write_verify, I915_TILING_Y, 2) == 0);
-		assert (run_test(10, bo_write_verify, I915_TILING_Y, 2) == 0);
-		assert (run_test(20, bo_write_verify, I915_TILING_Y, 2) == 0);
+		igt_assert(run_test(2, bo_write_verify, I915_TILING_Y, 2) == 0);
+		igt_assert(run_test(5, bo_write_verify, I915_TILING_Y, 2) == 0);
+		igt_assert(run_test(10, bo_write_verify, I915_TILING_Y, 2) == 0);
+		igt_assert(run_test(20, bo_write_verify, I915_TILING_Y, 2) == 0);
 	}
 
 	igt_subtest("bo-copy")

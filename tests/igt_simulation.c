@@ -28,6 +28,7 @@
 #include <stdlib.h>
 #include <sys/wait.h>
 #include <sys/types.h>
+#include <assert.h>
 
 #include "drmtest.h"
 #include "igt_core.h"

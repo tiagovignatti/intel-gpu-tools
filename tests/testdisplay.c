@@ -504,7 +504,7 @@ static void stereo_fb_layout_from_mode(struct stereo_fb_layout *layout,
 		break;
 	}
 	default:
-		assert(0);
+		igt_assert(0);
 	}
 }
 
@@ -520,7 +520,7 @@ static const char *stereo_mode_str(drmModeModeInfo *mode)
 	case DRM_MODE_FLAG_3D_FRAME_PACKING:
 		return "FP";
 	default:
-		assert(0);
+		igt_assert(0);
 	}
 }
 

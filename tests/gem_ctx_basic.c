@@ -30,12 +30,10 @@
  */
 
 #include <pthread.h>
-#include <assert.h>
 #include <stdlib.h>
 #include <sys/ioctl.h>
 #include <stdio.h>
 #include <string.h>
-#include <assert.h>
 #include <fcntl.h>
 #include <inttypes.h>
 #include <errno.h>

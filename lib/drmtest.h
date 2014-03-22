@@ -31,7 +31,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <assert.h>
 #include <errno.h>
 #include <stdbool.h>
 #include <setjmp.h>

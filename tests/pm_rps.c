@@ -197,7 +197,7 @@ static void emit_store_dword_imm(uint32_t val)
 #define LOAD_HELPER_BO_SIZE (16*1024*1024)
 static void load_helper_set_load(enum load load)
 {
-	assert(lh.igt_proc.running);
+	igt_assert(lh.igt_proc.running);
 
 	if (lh.load == load)
 		return;

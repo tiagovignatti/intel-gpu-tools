@@ -396,7 +396,7 @@ void igt_init_aperture_trashers(drm_intel_bufmgr *bufmgr)
 	num_trash_bos = gem_mappable_aperture_size() / (1024*1024);
 
 	trash_bos = malloc(num_trash_bos * sizeof(drm_intel_bo *));
-	assert(trash_bos);
+	igt_assert(trash_bos);
 
 	for (i = 0; i < num_trash_bos; i++)
 		trash_bos[i] = drm_intel_bo_alloc(bufmgr, "trash bo", 1024*1024, 4096);

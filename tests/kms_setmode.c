@@ -24,7 +24,6 @@
 #include "config.h"
 #endif
 
-#include <assert.h>
 #include <cairo.h>
 #include <errno.h>
 #include <stdint.h>
@@ -193,7 +192,7 @@ static void create_fb_for_crtc(struct crtc_config *crtc,
 	fb_id = kmstest_create_fb(drm_fd, crtc->mode.hdisplay,
 				  crtc->mode.vdisplay, bpp, depth,
 				  enable_tiling, fb_info);
-	assert(fb_id > 0);
+	igt_assert(fb_id > 0);
 }
 
 static void get_mode_for_crtc(struct crtc_config *crtc,
@@ -239,7 +238,7 @@ static int get_encoder_idx(drmModeRes *resources, drmModeEncoder *encoder)
 	for (i = 0; i < resources->count_encoders; i++)
 		if (resources->encoders[i] == encoder->encoder_id)
 			return i;
-	assert(0);
+	igt_assert(0);
 }
 
 static void get_crtc_config_str(struct crtc_config *crtc, char *buf,
@@ -304,7 +303,7 @@ static void setup_crtcs(drmModeRes *resources, struct connector_config *cconf,
 
 		crtc->cconfs = malloc(sizeof(*crtc->cconfs) *
 				      crtc->connector_count);
-		assert(crtc->cconfs);
+		igt_assert(crtc->cconfs);
 
 		encoder_mask = 0;
 		for (j = 0; j < crtc->connector_count; j++) {
@@ -318,7 +317,7 @@ static void setup_crtcs(drmModeRes *resources, struct connector_config *cconf,
 			igt_assert(connector->count_encoders == 1);
 			encoder = drmModeGetEncoder(drm_fd,
 						    connector->encoders[0]);
-			assert(encoder);
+			igt_assert(encoder);
 
 			config_valid &= !!(encoder->possible_crtcs &
 					  (1 << crtc->crtc_idx));
@@ -371,7 +370,7 @@ static uint32_t *get_connector_ids(struct crtc_config *crtc)
 	int i;
 
 	ids = malloc(sizeof(*ids) * crtc->connector_count);
-	assert(ids);
+	igt_assert(ids);
 	for (i = 0; i < crtc->connector_count; i++)
 		ids[i] = crtc->cconfs[i].connector->connector_id;
 
@@ -502,7 +501,7 @@ static int get_one_connector(drmModeRes *resources, int connector_id,
 	drmModeModeInfo mode;
 
 	connector = drmModeGetConnector(drm_fd, connector_id);
-	assert(connector);
+	igt_assert(connector);
 	cconf->connector = connector;
 
 	cconf->connected = connector->connection == DRM_MODE_CONNECTED;
@@ -543,7 +542,7 @@ static int get_connectors(drmModeRes *resources, int *connector_idxs,
 		int connector_id;
 
 		connector_idx = connector_idxs[i];
-		assert(connector_idx < resources->count_connectors);
+		igt_assert(connector_idx < resources->count_connectors);
 		connector_id = resources->connectors[connector_idx];
 
 		if (get_one_connector(resources, connector_id, &cconfs[i]) < 0)
@@ -589,7 +588,7 @@ static void iterate_combinations(int n, int k, bool allow_repetitions,
 	int v;
 
 	if (!k) {
-		assert(set->count < ARRAY_SIZE(set->items));
+		igt_assert(set->count < ARRAY_SIZE(set->items));
 		set->items[set->count++] = *comb;
 		return;
 	}
@@ -608,7 +607,7 @@ static void get_combinations(int n, int k, bool allow_repetitions,
 {
 	struct combination comb;
 
-	assert(k <= ARRAY_SIZE(set->items[0].elems));
+	igt_assert(k <= ARRAY_SIZE(set->items[0].elems));
 	set->count = 0;
 	iterate_combinations(n, k, allow_repetitions, 0, 0, &comb, set);
 }
@@ -634,7 +633,7 @@ static void test_combinations(const struct test_config *tconf,
 		int j;
 
 		cconfs = malloc(sizeof(*cconfs) * connector_count);
-		assert(cconfs);
+		igt_assert(cconfs);
 
 		connector_idxs = &connector_combs.items[i].elems[0];
 		ret = get_connectors(tconf->resources, connector_idxs,
@@ -678,7 +677,7 @@ static int opt_handler(int opt, int opt_index)
 		filter_test_id = atoi(optarg);
 		break;
 	default:
-		assert(0);
+		igt_assert(0);
 	}
 
 	return 0;
@@ -723,7 +722,7 @@ int main(int argc, char **argv)
 			igt_set_vt_graphics_mode();
 
 		drm_resources = drmModeGetResources(drm_fd);
-		assert(drm_resources);
+		igt_assert(drm_resources);
 	}
 
 	for (i = 0; i < ARRAY_SIZE(tests); i++) {

@@ -808,7 +808,7 @@ void gem_require_ring(int fd, int ring_id)
 		return;
 #endif
 	default:
-		assert(0);
+		igt_assert(0);
 		return;
 	}
 }
