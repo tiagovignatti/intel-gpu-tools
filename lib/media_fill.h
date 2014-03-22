@@ -19,26 +19,6 @@
 #include "intel_batchbuffer.h"
 #include "intel_gpu_tools.h"
 
-struct scratch_buf {
-    drm_intel_bo *bo;
-    uint32_t stride;
-    uint32_t tiling;
-    uint32_t *data;
-    uint32_t *cpu_mapping;
-    uint32_t size;
-    unsigned num_tiles;
-};
-
-static inline unsigned buf_width(struct scratch_buf *buf)
-{
-	return buf->stride/sizeof(uint8_t);
-}
-
-static inline unsigned buf_height(struct scratch_buf *buf)
-{
-	return buf->size/buf->stride;
-}
-
 typedef void (*media_fillfunc_t)(struct intel_batchbuffer *batch,
 				struct scratch_buf *dst,
 				unsigned x, unsigned y,

@@ -52,7 +52,7 @@
 
 #include "i915_drm.h"
 #include "drmtest.h"
-#include "rendercopy.h"
+#include "intel_batchbuffer.h"
 
 #define WIDTH	512
 #define HEIGHT	512

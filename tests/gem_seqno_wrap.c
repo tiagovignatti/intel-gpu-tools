@@ -39,13 +39,15 @@
 #include <sys/wait.h>
 #include <limits.h>
 #include <wordexp.h>
+#include <getopt.h>
 #include <signal.h>
 
 #include "i915_drm.h"
+#include "drmtest.h"
+#include "igt_core.h"
 #include "intel_bufmgr.h"
 #include "intel_batchbuffer.h"
 #include "intel_gpu_tools.h"
-#include "rendercopy.h"
 
 static int devid;
 static int card_index = 0;

@@ -26,6 +26,7 @@
  */
 
 #define _GNU_SOURCE
+#include <stdbool.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -40,11 +41,11 @@
 #include <signal.h>
 
 #include "i915_drm.h"
+#include "drmtest.h"
+#include "igt_debugfs.h"
 #include "intel_bufmgr.h"
 #include "intel_batchbuffer.h"
 #include "intel_gpu_tools.h"
-#include "rendercopy.h"
-#include "igt_debugfs.h"
 
 #define RS_NO_ERROR      0
 #define RS_BATCH_ACTIVE  (1 << 0)

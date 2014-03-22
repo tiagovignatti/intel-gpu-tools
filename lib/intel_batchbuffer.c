@@ -37,6 +37,7 @@
 #include "intel_bufmgr.h"
 #include "intel_chipset.h"
 #include "intel_reg.h"
+#include "rendercopy.h"
 #include <i915_drm.h>
 
 /**
@@ -383,4 +384,22 @@ intel_copy_bo(struct intel_batchbuffer *batch,
 		       src_bo, 0, 0, 4096,
 		       dst_bo, 0, 0, 4096,
 		       4096/4, size/4096, 32);
+}
+
+render_copyfunc_t get_render_copyfunc(int devid)
+{
+	render_copyfunc_t copy = NULL;
+
+	if (IS_GEN2(devid))
+		copy = gen2_render_copyfunc;
+	else if (IS_GEN3(devid))
+		copy = gen3_render_copyfunc;
+	else if (IS_GEN6(devid))
+		copy = gen6_render_copyfunc;
+	else if (IS_GEN7(devid))
+		copy = gen7_render_copyfunc;
+	else if (IS_GEN8(devid))
+		copy = gen8_render_copyfunc;
+
+	return copy;
 }

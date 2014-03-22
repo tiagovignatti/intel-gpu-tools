@@ -32,7 +32,7 @@
 #include "drmtest.h"
 #include "igt_debugfs.h"
 #include "igt_kms.h"
-#include "rendercopy.h"
+#include "intel_batchbuffer.h"
 
 enum test_mode {
 	TEST_PAGE_FLIP,

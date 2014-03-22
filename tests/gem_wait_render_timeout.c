@@ -27,8 +27,24 @@
 
 #include <stdio.h>
 #include <time.h>
+#include <assert.h>
+#include <stdlib.h>
+#include <sys/ioctl.h>
+#include <stdio.h>
+#include <string.h>
+#include <assert.h>
+#include <fcntl.h>
+#include <inttypes.h>
+#include <errno.h>
+#include <sys/stat.h>
+#include <sys/time.h>
+#include <getopt.h>
 #include "drm.h"
-#include "rendercopy.h"
+#include "i915_drm.h"
+#include "drmtest.h"
+#include "intel_bufmgr.h"
+#include "intel_batchbuffer.h"
+#include "intel_gpu_tools.h"
 
 #define MSEC_PER_SEC	1000L
 #define USEC_PER_MSEC	1000L

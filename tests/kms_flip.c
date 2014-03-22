@@ -39,7 +39,7 @@
 #include "i915_drm.h"
 #include "drmtest.h"
 #include "testdisplay.h"
-#include "rendercopy.h"
+#include "intel_batchbuffer.h"
 #include "igt_kms.h"
 
 #define TEST_DPMS		(1 << 0)

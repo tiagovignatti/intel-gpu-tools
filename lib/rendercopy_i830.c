@@ -1,3 +1,21 @@
+#include <stdlib.h>
+#include <sys/ioctl.h>
+#include <stdio.h>
+#include <string.h>
+#include <assert.h>
+#include <fcntl.h>
+#include <inttypes.h>
+#include <errno.h>
+#include <sys/stat.h>
+#include <sys/time.h>
+#include <getopt.h>
+#include "drm.h"
+#include "i915_drm.h"
+#include "drmtest.h"
+#include "intel_bufmgr.h"
+#include "intel_batchbuffer.h"
+#include "intel_gpu_tools.h"
+
 #include "i830_reg.h"
 #include "rendercopy.h"
 
@@ -227,22 +245,4 @@ void gen2_render_copyfunc(struct intel_batchbuffer *batch,
 	emit_vertex_normalized(batch, src_y, buf_height(src));
 
 	intel_batchbuffer_flush(batch);
-}
-
-render_copyfunc_t get_render_copyfunc(int devid)
-{
-	render_copyfunc_t copy = NULL;
-
-	if (IS_GEN2(devid))
-		copy = gen2_render_copyfunc;
-	else if (IS_GEN3(devid))
-		copy = gen3_render_copyfunc;
-	else if (IS_GEN6(devid))
-		copy = gen6_render_copyfunc;
-	else if (IS_GEN7(devid))
-		copy = gen7_render_copyfunc;
-	else if (IS_GEN8(devid))
-		copy = gen8_render_copyfunc;
-
-	return copy;
 }

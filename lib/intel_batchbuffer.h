@@ -2,6 +2,7 @@
 #define INTEL_BATCHBUFFER_H
 
 #include <assert.h>
+#include <stdint.h>
 #include "intel_bufmgr.h"
 
 #define BATCH_SZ 4096
@@ -194,5 +195,33 @@ intel_blt_copy(struct intel_batchbuffer *batch,
 void intel_copy_bo(struct intel_batchbuffer *batch,
 		   drm_intel_bo *dst_bo, drm_intel_bo *src_bo,
 		   long int size);
+
+struct scratch_buf {
+    drm_intel_bo *bo;
+    uint32_t stride;
+    uint32_t tiling;
+    uint32_t *data;
+    uint32_t *cpu_mapping;
+    uint32_t size;
+    unsigned num_tiles;
+};
+
+static inline unsigned buf_width(struct scratch_buf *buf)
+{
+	return buf->stride/sizeof(uint32_t);
+}
+
+static inline unsigned buf_height(struct scratch_buf *buf)
+{
+	return buf->size/buf->stride;
+}
+
+typedef void (*render_copyfunc_t)(struct intel_batchbuffer *batch,
+				  drm_intel_context *context,
+				  struct scratch_buf *src, unsigned src_x, unsigned src_y,
+				  unsigned width, unsigned height,
+				  struct scratch_buf *dst, unsigned dst_x, unsigned dst_y);
+
+render_copyfunc_t get_render_copyfunc(int devid);
 
 #endif
