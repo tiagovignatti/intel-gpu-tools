@@ -1,3 +1,6 @@
+#include <intel_bufmgr.h>
+#include <i915_drm.h>
+
 #include "media_fill.h"
 #include "gen8_media.h"
 #include "intel_reg.h"

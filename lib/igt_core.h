@@ -30,7 +30,10 @@
 #ifndef IGT_CORE_H
 #define IGT_CORE_H
 
+#include <setjmp.h>
 #include <stdbool.h>
+#include <string.h>
+#include <sys/types.h>
 
 bool __igt_fixture(void);
 void __igt_fixture_complete(void);

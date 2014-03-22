@@ -2,7 +2,7 @@
 #define INTEL_BATCHBUFFER_H
 
 #include <stdint.h>
-#include "intel_bufmgr.h"
+#include <intel_bufmgr.h>
 #include "igt_core.h"
 #include "intel_reg.h"
 

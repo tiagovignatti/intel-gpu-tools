@@ -27,7 +27,6 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-#include <drm_fourcc.h>
 #include <cairo.h>
 
 #include "igt_display.h"
