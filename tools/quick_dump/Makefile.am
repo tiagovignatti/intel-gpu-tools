@@ -7,9 +7,9 @@ bin_SCRIPTS = chipset.py
 
 lib_LTLIBRARIES = I915ChipsetPython.la
 I915ChipsetPython_la_LDFLAGS = -module -avoid-version $(PYTHON_LDFLAGS) $(PCIACCESS_LIBS)
-I915ChipsetPython_la_SOURCES = chipset_wrap_python.c intel_chipset.c \
+I915ChipsetPython_la_SOURCES = chipset_wrap_python.c chipset_macro_wrap.c \
 			       $(top_srcdir)/lib/intel_drm.c  \
-			       $(top_srcdir)/lib/intel_pci.c  \
+			       $(top_srcdir)/lib/intel_chipset.c  \
 			       $(top_srcdir)/lib/intel_reg_map.c  \
 			       $(top_srcdir)/lib/intel_mmio.c  \
 			       $(top_srcdir)/lib/intel_iosf.c

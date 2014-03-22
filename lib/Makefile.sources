@@ -18,7 +18,7 @@ libintel_tools_la_SOURCES = 	\
 	intel_drm.c		\
 	intel_gpu_tools.h	\
 	intel_mmio.c		\
-	intel_pci.c		\
+	intel_chipset.c		\
 	intel_reg.h		\
 	ioctl_wrappers.c	\
 	ioctl_wrappers.h	\
