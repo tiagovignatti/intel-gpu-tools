@@ -85,7 +85,6 @@ unsigned int kmstest_create_color_fb(int fd, int width, int height,
 				     struct kmstest_fb *fb /* out */);
 void kmstest_remove_fb(int fd, struct kmstest_fb *fb_info);
 cairo_t *kmstest_get_cairo_ctx(int fd, struct kmstest_fb *fb);
-cairo_surface_t *kmstest_get_cairo_surface(int fd, struct kmstest_fb *fb);
 void kmstest_paint_color(cairo_t *cr, int x, int y, int w, int h,
 			 double r, double g, double b);
 void kmstest_paint_color_alpha(cairo_t *cr, int x, int y, int w, int h,

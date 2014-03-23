@@ -374,7 +374,7 @@ static void __kmstest_destroy_cairo_surface(void *arg)
 	munmap(cairo_image_surface_get_data(fb->cairo_surface), fb->size);
 }
 
-cairo_surface_t *kmstest_get_cairo_surface(int fd, struct kmstest_fb *fb)
+static cairo_surface_t *kmstest_get_cairo_surface(int fd, struct kmstest_fb *fb)
 {
 	if (fb->cairo_surface == NULL) {
 		fb->cairo_surface =
