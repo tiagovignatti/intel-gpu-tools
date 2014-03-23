@@ -405,7 +405,7 @@ set_mode(struct connector *c)
 		width = c->mode.hdisplay;
 		height = c->mode.vdisplay;
 
-		fb_id = kmstest_create_fb2(drm_fd, width, height,
+		fb_id = kmstest_create_fb(drm_fd, width, height,
 					  bpp_depth_to_drm_format(bpp, depth),
 					  enable_tiling, &fb_info[current_fb]);
 		paint_output_info(c, &fb_info[current_fb]);
@@ -532,7 +532,7 @@ static uint32_t create_stereo_fb(drmModeModeInfo *mode, struct kmstest_fb *fb)
 	uint32_t fb_id;
 
 	stereo_fb_layout_from_mode(&layout, mode);
-	fb_id = kmstest_create_fb2(drm_fd, layout.fb_width, layout.fb_height,
+	fb_id = kmstest_create_fb(drm_fd, layout.fb_width, layout.fb_height,
 				  bpp_depth_to_drm_format(bpp, depth),
 				  enable_tiling, fb);
 	cr = kmstest_get_cairo_ctx(drm_fd, fb);

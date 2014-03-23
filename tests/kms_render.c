@@ -128,10 +128,10 @@ static int test_format(const char *test_name,
 	width = mode->hdisplay;
 	height = mode->vdisplay;
 
-	if (!kmstest_create_fb2(drm_fd, width, height, format, false, &fb[0]))
+	if (!kmstest_create_fb(drm_fd, width, height, format, false, &fb[0]))
 		goto err1;
 
-	if (!kmstest_create_fb2(drm_fd, width, height, format, false, &fb[1]))
+	if (!kmstest_create_fb(drm_fd, width, height, format, false, &fb[1]))
 		goto err2;
 
 	if (drmModeSetCrtc(drm_fd, cconf->crtc->crtc_id, fb[0].fb_id,

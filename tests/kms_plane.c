@@ -68,7 +68,7 @@ create_fb_for_mode__position(data_t *data, drmModeModeInfo *mode,
 	unsigned int fb_id;
 	cairo_t *cr;
 
-	fb_id = kmstest_create_fb2(data->drm_fd,
+	fb_id = kmstest_create_fb(data->drm_fd,
 				  mode->hdisplay, mode->vdisplay,
 				  DRM_FORMAT_XRGB8888,
 				  false /* tiling */,

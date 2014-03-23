@@ -1290,13 +1290,13 @@ static void run_test_on_crtc_set(struct test_output *o, int *crtc_idxs,
 	if (o->flags & TEST_FENCE_STRESS)
 		tiled = true;
 
-	o->fb_ids[0] = kmstest_create_fb2(drm_fd, o->fb_width, o->fb_height,
+	o->fb_ids[0] = kmstest_create_fb(drm_fd, o->fb_width, o->fb_height,
 					 bpp_depth_to_drm_format(o->bpp, o->depth),
 					 tiled, &o->fb_info[0]);
-	o->fb_ids[1] = kmstest_create_fb2(drm_fd, o->fb_width, o->fb_height,
+	o->fb_ids[1] = kmstest_create_fb(drm_fd, o->fb_width, o->fb_height,
 					 bpp_depth_to_drm_format(o->bpp, o->depth),
 					 tiled, &o->fb_info[1]);
-	o->fb_ids[2] = kmstest_create_fb2(drm_fd, o->fb_width, o->fb_height,
+	o->fb_ids[2] = kmstest_create_fb(drm_fd, o->fb_width, o->fb_height,
 					 bpp_depth_to_drm_format(o->bpp, o->depth),
 					 true, &o->fb_info[2]);
 	igt_assert(o->fb_ids[0]);

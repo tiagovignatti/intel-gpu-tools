@@ -77,8 +77,8 @@ int kmstest_cairo_printf_line(cairo_t *cr, enum kmstest_text_align align,
 			       double yspacing, const char *fmt, ...)
 			       __attribute__((format (printf, 4, 5)));
 
-unsigned int kmstest_create_fb2(int fd, int width, int height, uint32_t format,
-			        bool tiled, struct kmstest_fb *fb);
+unsigned int kmstest_create_fb(int fd, int width, int height, uint32_t format,
+			       bool tiled, struct kmstest_fb *fb);
 unsigned int kmstest_create_color_fb(int fd, int width, int height,
 				     uint32_t format, bool tiled,
 				     double r, double g, double b,

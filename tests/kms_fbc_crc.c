@@ -95,8 +95,8 @@ static uint32_t create_fb(data_t *data,
 	uint32_t fb_id;
 	cairo_t *cr;
 
-	fb_id = kmstest_create_fb2(data->drm_fd, w, h,
-				   DRM_FORMAT_XRGB8888, true, fb);
+	fb_id = kmstest_create_fb(data->drm_fd, w, h,
+				  DRM_FORMAT_XRGB8888, true, fb);
 	igt_assert(fb_id);
 
 	cr = kmstest_get_cairo_ctx(data->drm_fd, fb);

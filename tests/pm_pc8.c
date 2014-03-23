@@ -275,7 +275,7 @@ static struct scanout_fb *create_fb(struct mode_set_data *data, int width,
 	fb_info = malloc(sizeof(struct scanout_fb));
 	igt_assert(fb_info);
 
-	fb_info->handle = kmstest_create_fb2(drm_fd, width, height,
+	fb_info->handle = kmstest_create_fb(drm_fd, width, height,
 					    DRM_FORMAT_XRGB8888,
 					    false, &fb);
 	fb_info->width = width;

@@ -302,9 +302,9 @@ static void create_cursor_fb(data_t *data,
 	cairo_t *cr;
 	uint32_t fb_id[NUM_CURSOR_TYPES];
 
-	fb_id[cursor_type] = kmstest_create_fb2(data->drm_fd, cur_w, cur_h,
-						DRM_FORMAT_ARGB8888, false,
-						&data->fb[cursor_type]);
+	fb_id[cursor_type] = kmstest_create_fb(data->drm_fd, cur_w, cur_h,
+					       DRM_FORMAT_ARGB8888, false,
+					       &data->fb[cursor_type]);
 	igt_assert(fb_id[cursor_type]);
 
 	cr = kmstest_get_cairo_ctx(data->drm_fd,

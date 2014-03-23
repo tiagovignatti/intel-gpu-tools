@@ -299,7 +299,7 @@ uint32_t drm_format_to_bpp(uint32_t drm_format)
 	abort();
 }
 
-unsigned int kmstest_create_fb2(int fd, int width, int height, uint32_t format,
+unsigned int kmstest_create_fb(int fd, int width, int height, uint32_t format,
 			        bool tiled, struct kmstest_fb *fb)
 {
 	uint32_t handles[4];
@@ -346,7 +346,7 @@ unsigned int kmstest_create_color_fb(int fd, int width, int height,
 	unsigned int fb_id;
 	cairo_t *cr;
 
-	fb_id = kmstest_create_fb2(fd, width, height, format, tiled, fb);
+	fb_id = kmstest_create_fb(fd, width, height, format, tiled, fb);
 	igt_assert(fb_id);
 
 	cr = kmstest_get_cairo_ctx(fd, fb);
