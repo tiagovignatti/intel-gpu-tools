@@ -51,6 +51,12 @@
 #include "drmtest.h"
 #include "igt_aux.h"
 
+/**
+ * intel_get_total_ram_mb:
+ *
+ * Returns:
+ * The total amount of system RAM available in MB.
+ */
 uint64_t
 intel_get_total_ram_mb(void)
 {
@@ -79,6 +85,12 @@ intel_get_total_ram_mb(void)
 	return retval / (1024*1024);
 }
 
+/**
+ * intel_get_total_swap_mb:
+ *
+ * Returns:
+ * The total amount of swap space available in MB.
+ */
 uint64_t
 intel_get_total_swap_mb(void)
 {

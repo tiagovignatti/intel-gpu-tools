@@ -59,6 +59,17 @@
 #include "ioctl_wrappers.h"
 
 
+/**
+ * SECTION:igt_aux
+ * @short_description: Auxiliary libararies and support functions
+ * @title: i-g-t aux
+ *
+ * > #include "igt_aux.h"
+ *
+ * This library provides various auxiliary helper functions that don't really
+ * fit into any other topic.
+ */
+
 
 /* signal interrupt helpers */
 static struct igt_helper_process signal_helper;
@@ -78,6 +89,20 @@ static void sig_handler(int i)
 	sig_stat++;
 }
 
+/**
+ * igt_fork_signal_helper:
+ *
+ * Fork a child process using #igt_fork_helper to interrupt the parent process
+ * with a SIGUSR1 signal at regular quick intervals. The corresponding dummy
+ * signal handler is installed in the parent process.
+ *
+ * This is useful to exercise ioctl error paths, at least where those can be
+ * exercises by interrupting blocking waits, like stalling for the gpu. This
+ * helper can also be used from children spawned with #igt_fork.
+ *
+ * In tests with subtests this function can be called outside of failure
+ * catching code blocks like #igt_fixture or #igt_subtest.
+ */
 void igt_fork_signal_helper(void)
 {
 	if (igt_only_list_subtests())
@@ -90,6 +115,14 @@ void igt_fork_signal_helper(void)
 	}
 }
 
+/**
+ * igt_stop_signal_helper:
+ *
+ * Stops the child process spawned with igt_fork_signal_helper() again.
+ *
+ * In tests with subtests this function can be called outside of failure
+ * catching code blocks like #igt_fixture or #igt_subtest.
+ */
 void igt_stop_signal_helper(void)
 {
 	if (igt_only_list_subtests())
@@ -100,6 +133,17 @@ void igt_stop_signal_helper(void)
 	sig_stat = 0;
 }
 
+/**
+ * igt_env_set:
+ * @env_var: environment variable name
+ * @default_value: default value for the environment variable
+ *
+ * This function should be used to parse boolean environment variable options.
+ *
+ * Returns:
+ * The boolean value of the environment variable @env_var as decoded by atoi()
+ * if it is set and @default_value if the variable is not set.
+ */
 bool igt_env_set(const char *env_var, bool default_value)
 {
 	char *val;
@@ -111,6 +155,13 @@ bool igt_env_set(const char *env_var, bool default_value)
 	return atoi(val) != 0;
 }
 
+/**
+ * igt_aub_dump_enabled:
+ *
+ * Returns:
+ * True if AUB dumping is enabled with IGT_DUMP_AUB=1 in the environment, false
+ * otherwise.
+ */
 bool igt_aub_dump_enabled(void)
 {
 	static int dump_aub = -1;
@@ -122,6 +173,15 @@ bool igt_aub_dump_enabled(void)
 }
 
 /* other helpers */
+/**
+ * igt_exchange_int:
+ * @array: pointer to the array of integers
+ * @i: first position
+ * @j: second position
+ *
+ * Exchanges the two values at array indices @i and @j. Useful as an exchange
+ * function for igt_permute_array().
+ */
 void igt_exchange_int(void *array, unsigned i, unsigned j)
 {
 	int *int_arr, tmp;
@@ -132,10 +192,20 @@ void igt_exchange_int(void *array, unsigned i, unsigned j)
 	int_arr[j] = tmp;
 }
 
+/**
+ * igt_permute_array:
+ * @array: pointer to array
+ * @size: size of the array
+ * @exchange_func: function to exchange array elements
+ *
+ * This function randomly permutes the array using random() as the PRNG source.
+ * The @exchange_func function is called to exchange two elements in the array
+ * when needed.
+ */
 void igt_permute_array(void *array, unsigned size,
-			   void (*exchange_func)(void *array,
-						 unsigned i,
-						 unsigned j))
+                       void (*exchange_func)(void *array,
+                                             unsigned i,
+                                             unsigned j))
 {
 	int i;
 
@@ -147,6 +217,17 @@ void igt_permute_array(void *array, unsigned size,
 	}
 }
 
+/**
+ * igt_progress:
+ * @header: header string to prepend to the progress indicator
+ * @i: work processed thus far
+ * @total: total amount of work
+ *
+ * This function draws a progress indicator, which is useful for running
+ * long-winded tests manually on the console. To avoid spamming logfiles in
+ * automated runs the progress indicator is supressed when not running on a
+ * terminal.
+ */
 void igt_progress(const char *header, uint64_t i, uint64_t total)
 {
 	int divider = 200;
@@ -173,6 +254,13 @@ void igt_progress(const char *header, uint64_t i, uint64_t total)
 drm_intel_bo **trash_bos;
 int num_trash_bos;
 
+/**
+ * igt_init_aperture_trashers:
+ * @bufmgr: libdrm buffer manager
+ *
+ * Initialize the aperture trasher using @bufmgr, which can then be run with
+ * igt_trash_aperture().
+ */
 void igt_init_aperture_trashers(drm_intel_bufmgr *bufmgr)
 {
 	int i;
@@ -186,6 +274,11 @@ void igt_init_aperture_trashers(drm_intel_bufmgr *bufmgr)
 		trash_bos[i] = drm_intel_bo_alloc(bufmgr, "trash bo", 1024*1024, 4096);
 }
 
+/**
+ * igt_trash_aperture:
+ *
+ * Trash the aperture by walking a set of GTT memory mapped objects.
+ */
 void igt_trash_aperture(void)
 {
 	int i;
@@ -199,6 +292,11 @@ void igt_trash_aperture(void)
 	}
 }
 
+/**
+ * igt_cleanup_aperture_trashers:
+ *
+ * Clean up all aperture trasher state set up with igt_init_aperture_trashers().
+ */
 void igt_cleanup_aperture_trashers(void)
 {
 	int i;
@@ -209,6 +307,14 @@ void igt_cleanup_aperture_trashers(void)
 	free(trash_bos);
 }
 
+/**
+ * igt_system_suspend_autoresume:
+ *
+ * Execute a system suspend-to-mem cycle and automatically wake up again using
+ * the firmwares resume timer.
+ *
+ * This is very handy for implementing any kind of suspend/resume test.
+ */
 void igt_system_suspend_autoresume(void)
 {
 	int ret;
@@ -222,6 +328,14 @@ void igt_system_suspend_autoresume(void)
 	igt_assert(ret == 0);
 }
 
+/**
+ * igt_drop_roo:
+ *
+ * Drop root priviledges and make sure it actually worked. Useful for tests
+ * which need to check security constraints. Note that this should only be
+ * called from manually forked processes, since the lack of root priviledges
+ * will wreak havoc with the automatic cleanup handlers.
+ */
 void igt_drop_root(void)
 {
 	igt_assert(getuid() == 0);
@@ -233,6 +347,15 @@ void igt_drop_root(void)
 	igt_assert(getuid() == 2);
 }
 
+/**
+ * igt_wait_for_keypress:
+ *
+ * Waits for a key press when run interactively. When not connected to a
+ * terminal immediately continues.
+ *
+ * This is useful for display tests where under certain situation manual
+ * inspection of the display is useful.
+ */
 void igt_wait_for_keypress(void)
 {
 	struct termios oldt, newt;
