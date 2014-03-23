@@ -164,6 +164,9 @@ struct igt_display {
 	igt_pipe_t pipes[I915_MAX_PIPES];
 };
 
+/* set vt into graphics mode, required to prevent fbcon from interfering */
+void igt_set_vt_graphics_mode(void);
+
 void igt_display_init(igt_display_t *display, int drm_fd);
 void igt_display_fini(igt_display_t *display);
 int  igt_display_commit(igt_display_t *display);

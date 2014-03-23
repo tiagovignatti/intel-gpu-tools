@@ -53,10 +53,13 @@
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/ioctl.h>
-#include "drm.h"
+
+#include <drm.h>
+
 #include "ioctl_wrappers.h"
 #include "drmtest.h"
 #include "intel_io.h"
+#include "igt_aux.h"
 
 #define WIDTH 512
 #define HEIGHT 512

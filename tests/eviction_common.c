@@ -30,6 +30,7 @@
 #include <stdlib.h>
 
 #include "drmtest.h"
+#include "igt_aux.h"
 
 struct igt_eviction_test_ops
 {

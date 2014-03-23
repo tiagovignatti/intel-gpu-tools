@@ -34,13 +34,16 @@
 #include <errno.h>
 #include <sys/stat.h>
 #include <sys/time.h>
-#include "drm.h"
+
+#include <drm.h>
+
 #include "ioctl_wrappers.h"
 #include "drmtest.h"
 #include "intel_bufmgr.h"
 #include "intel_batchbuffer.h"
 #include "intel_io.h"
 #include "intel_chipset.h"
+#include "igt_aux.h"
 
 /*
  * Testcase: snoop consistency when touching partial cachelines

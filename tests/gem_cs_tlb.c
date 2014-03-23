@@ -46,10 +46,13 @@
 #include <sys/stat.h>
 #include <sys/ioctl.h>
 #include <sys/time.h>
-#include "drm.h"
+
+#include <drm.h>
+
 #include "ioctl_wrappers.h"
 #include "drmtest.h"
 #include "intel_io.h"
+#include "igt_aux.h"
 
 #define LOCAL_I915_EXEC_VEBOX (4<<0)
 #define BATCH_SIZE (1024*1024)

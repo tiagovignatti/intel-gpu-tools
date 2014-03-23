@@ -48,8 +48,8 @@
 #endif
 
 #include "intel_io.h"
-#include "i915_drm.h"
 #include "drmtest.h"
+#include "igt_aux.h"
 
 uint64_t
 intel_get_total_ram_mb(void)

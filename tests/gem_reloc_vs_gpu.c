@@ -36,14 +36,15 @@
 #include <sys/time.h>
 #include <signal.h>
 #include <sys/wait.h>
-#include "drm.h"
+
+#include <drm.h>
+
 #include "ioctl_wrappers.h"
 #include "drmtest.h"
-#include "intel_bufmgr.h"
-#include "intel_batchbuffer.h"
 #include "intel_chipset.h"
 #include "intel_io.h"
 #include "igt_debugfs.h"
+#include "igt_aux.h"
 
 /*
  * Testcase: Kernel relocations vs. gpu races

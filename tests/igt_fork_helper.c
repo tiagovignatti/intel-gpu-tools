@@ -26,6 +26,7 @@
  */
 
 #include "drmtest.h"
+#include "igt_aux.h"
 
 int main(int argc, char **argv)
 {

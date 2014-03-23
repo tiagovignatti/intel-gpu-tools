@@ -43,10 +43,9 @@
 #include "ioctl_wrappers.h"
 #include "drmtest.h"
 #include "igt_debugfs.h"
-#include "intel_bufmgr.h"
 #include "intel_chipset.h"
-#include "intel_batchbuffer.h"
 #include "intel_io.h"
+#include "igt_aux.h"
 
 #define RS_NO_ERROR      0
 #define RS_BATCH_ACTIVE  (1 << 0)

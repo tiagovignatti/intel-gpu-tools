@@ -10,8 +10,10 @@
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <getopt.h>
-#include "drm.h"
-#include "i915_drm.h"
+
+#include <drm.h>
+#include <i915_drm.h>
+
 #include "drmtest.h"
 #include "intel_bufmgr.h"
 #include "intel_batchbuffer.h"
@@ -19,6 +21,7 @@
 #include "rendercopy.h"
 #include "gen8_render.h"
 #include "intel_reg.h"
+#include "igt_aux.h"
 
 #include <intel_aub.h>
 

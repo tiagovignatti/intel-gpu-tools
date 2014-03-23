@@ -41,6 +41,7 @@
 #include "drmtest.h"
 #include "intel_chipset.h"
 #include "intel_io.h"
+#include "igt_aux.h"
 
 #define WIDTH 1024
 #define HEIGHT 1024

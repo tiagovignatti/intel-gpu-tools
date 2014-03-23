@@ -58,6 +58,7 @@
 #include "config.h"
 
 #include "igt_core.h"
+#include "igt_aux.h"
 
 /**
  * SECTION:igt_core

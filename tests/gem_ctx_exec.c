@@ -40,9 +40,12 @@
 #include <sys/stat.h>
 #include <sys/ioctl.h>
 #include <sys/time.h>
-#include "drm.h"
+
+#include <drm.h>
+
 #include "ioctl_wrappers.h"
 #include "drmtest.h"
+#include "igt_aux.h"
 
 struct local_drm_i915_gem_context_destroy {
 	__u32 ctx_id;
@@ -56,6 +59,7 @@ static void context_destroy(int fd, uint32_t ctx_id)
 	struct local_drm_i915_gem_context_destroy destroy;
 	destroy.ctx_id = ctx_id;
 	do_ioctl(fd, CONTEXT_DESTROY_IOCTL, &destroy);
+#include "igt_aux.h"
 }
 
 /* Copied from gem_exec_nop.c */

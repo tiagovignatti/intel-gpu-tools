@@ -44,13 +44,16 @@
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/wait.h>
-#include "drm.h"
+
+#include <drm.h>
+
 #include "ioctl_wrappers.h"
 #include "drmtest.h"
 #include "intel_bufmgr.h"
 #include "intel_batchbuffer.h"
 #include "intel_io.h"
 #include "intel_chipset.h"
+#include "igt_aux.h"
 
 static void
 prw_set_bo(drm_intel_bo *bo, uint32_t val, int width, int height)

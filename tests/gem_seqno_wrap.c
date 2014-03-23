@@ -46,6 +46,7 @@
 #include "ioctl_wrappers.h"
 #include "drmtest.h"
 #include "igt_core.h"
+#include "igt_aux.h"
 #include "intel_bufmgr.h"
 #include "intel_batchbuffer.h"
 #include "intel_io.h"

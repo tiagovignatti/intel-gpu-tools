@@ -34,10 +34,13 @@
 #include <errno.h>
 #include <sys/stat.h>
 #include <sys/ioctl.h>
-#include "drm.h"
+
+#include <drm.h>
+
 #include "ioctl_wrappers.h"
 #include "drmtest.h"
 #include "igt_debugfs.h"
+#include "igt_aux.h"
 
 #define OBJECT_SIZE (16*1024*1024)
 

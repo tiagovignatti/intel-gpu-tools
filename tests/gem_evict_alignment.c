@@ -41,10 +41,13 @@
 #include <sys/stat.h>
 #include <sys/ioctl.h>
 #include <sys/time.h>
-#include "drm.h"
+
+#include <drm.h>
+
 #include "ioctl_wrappers.h"
 #include "drmtest.h"
 #include "intel_chipset.h"
+#include "igt_aux.h"
 
 #define HEIGHT 256
 #define WIDTH 1024

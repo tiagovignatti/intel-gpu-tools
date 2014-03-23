@@ -38,6 +38,7 @@
 
 #include "drmtest.h"
 #include "igt_kms.h"
+#include "igt_aux.h"
 #include "ioctl_wrappers.h"
 
 /* helpers to create nice-looking framebuffers */

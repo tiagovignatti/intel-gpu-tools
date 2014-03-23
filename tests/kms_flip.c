@@ -43,6 +43,7 @@
 #include "intel_chipset.h"
 #include "intel_batchbuffer.h"
 #include "igt_kms.h"
+#include "igt_aux.h"
 
 #define TEST_DPMS		(1 << 0)
 #define TEST_WITH_DUMMY_BCS	(1 << 1)
