@@ -43,6 +43,8 @@ stamp-h?
 symlink-tree
 texinfo.tex
 ylwrap
+*.log
+*.trs
 
 #	Do not edit the following section
 # 	Edit Compile Debug Document Distribute
