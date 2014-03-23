@@ -28,7 +28,6 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
-#include <drm_fourcc.h>
 
 #include "drmtest.h"
 #include "igt_debugfs.h"
@@ -69,9 +68,9 @@ create_fb_for_mode__position(data_t *data, drmModeModeInfo *mode,
 	unsigned int fb_id;
 	cairo_t *cr;
 
-	fb_id = kmstest_create_fb(data->drm_fd,
+	fb_id = kmstest_create_fb2(data->drm_fd,
 				  mode->hdisplay, mode->vdisplay,
-				  32 /* bpp */, 24 /* depth */,
+				  DRM_FORMAT_XRGB8888,
 				  false /* tiling */,
 				  fb);
 	igt_assert(fb_id);

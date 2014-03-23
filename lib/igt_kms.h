@@ -30,6 +30,7 @@
 #include <cairo.h>
 
 #include <xf86drmMode.h>
+#include <drm_fourcc.h>
 
 #include "igt_display.h"
 
@@ -76,9 +77,6 @@ int kmstest_cairo_printf_line(cairo_t *cr, enum kmstest_text_align align,
 			       double yspacing, const char *fmt, ...)
 			       __attribute__((format (printf, 4, 5)));
 
-unsigned int kmstest_create_fb(int fd, int width, int height, int bpp,
-			       int depth, bool tiled,
-			       struct kmstest_fb *fb_info);
 unsigned int kmstest_create_fb2(int fd, int width, int height, uint32_t format,
 			        bool tiled, struct kmstest_fb *fb);
 unsigned int kmstest_create_color_fb(int fd, int width, int height,
@@ -107,6 +105,7 @@ const char *kmstest_encoder_type_str(int type);
 const char *kmstest_connector_status_str(int type);
 const char *kmstest_connector_type_str(int type);
 
+uint32_t bpp_depth_to_drm_format(int bpp, int depth);
 uint32_t drm_format_to_bpp(uint32_t drm_format);
 
 /*

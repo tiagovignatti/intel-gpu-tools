@@ -30,8 +30,6 @@
 #include <unistd.h>
 #include <sys/time.h>
 
-#include <drm_fourcc.h>
-
 #include "drmtest.h"
 #include "testdisplay.h"
 #include "intel_bufmgr.h"

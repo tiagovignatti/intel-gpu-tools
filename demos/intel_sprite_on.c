@@ -47,8 +47,6 @@
 #include "drmtest.h"
 #include "igt_kms.h"
 
-#include <drm_fourcc.h>
-
 #include "ioctl_wrappers.h"
 
 /*

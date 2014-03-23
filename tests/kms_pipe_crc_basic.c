@@ -26,7 +26,6 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
-#include <drm_fourcc.h>
 
 #include "drmtest.h"
 #include "igt_debugfs.h"

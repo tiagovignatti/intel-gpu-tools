@@ -34,8 +34,6 @@
 #include <linux/kd.h>
 #include <errno.h>
 
-#include <drm_fourcc.h>
-
 #include "drmtest.h"
 #include "igt_kms.h"
 #include "igt_aux.h"
@@ -278,7 +276,7 @@ static struct format_desc_struct {
 #define for_each_format(f)	\
 	for (f = format_desc; f - format_desc < ARRAY_SIZE(format_desc); f++)
 
-static uint32_t bpp_depth_to_drm_format(int bpp, int depth)
+uint32_t bpp_depth_to_drm_format(int bpp, int depth)
 {
 	struct format_desc_struct *f;
 
@@ -290,30 +288,6 @@ static uint32_t bpp_depth_to_drm_format(int bpp, int depth)
 }
 
 /* Return fb_id on success, 0 on error */
-unsigned int kmstest_create_fb(int fd, int width, int height, int bpp,
-			       int depth, bool tiled, struct kmstest_fb *fb)
-{
-	memset(fb, 0, sizeof(*fb));
-
-	if (create_bo_for_fb(fd, width, height, bpp, tiled, &fb->gem_handle,
-			       &fb->size, &fb->stride) < 0)
-		return 0;
-
-	if (drmModeAddFB(fd, width, height, depth, bpp, fb->stride,
-			       fb->gem_handle, &fb->fb_id) < 0) {
-		gem_close(fd, fb->gem_handle);
-
-		return 0;
-	}
-
-	fb->width = width;
-	fb->height = height;
-	fb->tiling = tiled;
-	fb->drm_format = bpp_depth_to_drm_format(bpp, depth);
-
-	return fb->fb_id;
-}
-
 uint32_t drm_format_to_bpp(uint32_t drm_format)
 {
 	struct format_desc_struct *f;

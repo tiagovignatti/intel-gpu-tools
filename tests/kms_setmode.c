@@ -32,7 +32,6 @@
 #include <getopt.h>
 #include <sys/time.h>
 
-#include "drm_fourcc.h"
 #include "drmtest.h"
 #include "intel_bufmgr.h"
 #include "intel_batchbuffer.h"
@@ -189,8 +188,9 @@ static void create_fb_for_crtc(struct crtc_config *crtc,
 	bpp = 32;
 	depth = 24;
 	enable_tiling = false;
-	fb_id = kmstest_create_fb(drm_fd, crtc->mode.hdisplay,
-				  crtc->mode.vdisplay, bpp, depth,
+	fb_id = kmstest_create_fb2(drm_fd, crtc->mode.hdisplay,
+				  crtc->mode.vdisplay,
+				  bpp_depth_to_drm_format(bpp, depth),
 				  enable_tiling, fb_info);
 	igt_assert(fb_id > 0);
 }
