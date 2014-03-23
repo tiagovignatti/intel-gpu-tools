@@ -56,6 +56,9 @@
  * batchbuffers. All those macros presume that a pointer to a #intel_batchbuffer
  * structure called batch is in scope. The basic macros are #BEGIN_BATCH,
  * #OUT_BATCH, #OUT_RELOC and #ADVANCE_BATCH.
+ *
+ * Note that this library's header pulls in the [i-g-t core](intel-gpu-tools-i-g-t-core.html)
+ * library as a depency.
  */
 
 /**
