@@ -1111,7 +1111,7 @@ bool igt_run_in_simulation(void)
 	static int simulation = -1;
 
 	if (simulation == -1)
-		simulation = igt_env_set("INTEL_SIMULATION", false);
+		simulation = igt_check_boolean_env_var("INTEL_SIMULATION", false);
 
 	return simulation;
 }

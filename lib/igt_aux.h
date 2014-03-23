@@ -40,7 +40,7 @@ void igt_permute_array(void *array, unsigned size,
 						 unsigned i,
 						 unsigned j));
 void igt_progress(const char *header, uint64_t i, uint64_t total);
-bool igt_env_set(const char *env_var, bool default_value);
+bool igt_check_boolean_env_var(const char *env_var, bool default_value);
 
 bool igt_aub_dump_enabled(void);
 

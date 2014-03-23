@@ -134,7 +134,7 @@ void igt_stop_signal_helper(void)
 }
 
 /**
- * igt_env_set:
+ * igt_check_boolean_env_var:
  * @env_var: environment variable name
  * @default_value: default value for the environment variable
  *
@@ -144,7 +144,7 @@ void igt_stop_signal_helper(void)
  * The boolean value of the environment variable @env_var as decoded by atoi()
  * if it is set and @default_value if the variable is not set.
  */
-bool igt_env_set(const char *env_var, bool default_value)
+bool igt_check_boolean_env_var(const char *env_var, bool default_value)
 {
 	char *val;
 
@@ -167,7 +167,7 @@ bool igt_aub_dump_enabled(void)
 	static int dump_aub = -1;
 
 	if (dump_aub == -1)
-		dump_aub = igt_env_set("IGT_DUMP_AUB", false);
+		dump_aub = igt_check_boolean_env_var("IGT_DUMP_AUB", false);
 
 	return dump_aub;
 }
