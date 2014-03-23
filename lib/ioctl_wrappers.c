@@ -63,8 +63,7 @@
  * SECTION:ioctl_wrappers
  * @short_description: ioctl wrappers and related functions
  * @title: ioctl wrappers
- *
- * > #include "ioctl_wrappers.h"
+ * @include: ioctl_wrappers.h
  *
  * This helper library contains simple functions to wrap the raw drm/i915 kernel
  * ioctls. The normal versions never pass any error codes to the caller and use

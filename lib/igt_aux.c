@@ -63,6 +63,7 @@
  * SECTION:igt_aux
  * @short_description: Auxiliary libararies and support functions
  * @title: i-g-t aux
+ * @include: igt_aux.h
  *
  * > #include "igt_aux.h"
  *

@@ -64,8 +64,7 @@
  * SECTION:igt_core
  * @short_description: Core i-g-t testing support
  * @title: i-g-t core
- *
- * > #include "igt_core.h"
+ * @include: igt_core.h
  *
  * This libary implements the core of the i-g-t test support infrastructure.
  * Main features are the subtest enumeration, cmdline option parsing helpers for

@@ -40,8 +40,7 @@
  * SECTION:igt_debugfs
  * @short_description: Support code for debugfs features
  * @title: i-g-t debugfs
- *
- * > #include "igt_debugfs.h"
+ * @include: igt_debugfs.h
  *
  * This library provides helpers to access debugfs features. On top of some
  * basic functions to access debugfs files with e.g. igt_debugfs_open() it also
