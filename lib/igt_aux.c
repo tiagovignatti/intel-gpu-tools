@@ -65,8 +65,6 @@
  * @title: i-g-t aux
  * @include: igt_aux.h
  *
- * > #include "igt_aux.h"
- *
  * This library provides various auxiliary helper functions that don't really
  * fit into any other topic.
  */
