@@ -58,8 +58,20 @@
 #include "intel_reg.h"
 #include "ioctl_wrappers.h"
 
-/* This file contains a bunch of wrapper functions to directly use gem ioctls.
- * Mostly useful to write kernel tests. */
+/**
+ * SECTION:drmtest
+ * @short_description: Base library for drm tests and tools
+ * @title: drmtest
+ * @include: drmtest.h
+ *
+ * This library contains the basic support for writing tests, with the most
+ * important part being the helper function to open drm device nodes.
+ *
+ * But there's also a bit of other assorted stuff here.
+ *
+ * Note that this library's header pulls in the [i-g-t core](intel-gpu-tools-i-g-t-core.html)
+ * and [batchbuffer](intel-gpu-tools-intel-batchbuffer.html) libraries as depencies.
+ */
 
 static int
 is_intel(int fd)
@@ -77,7 +89,18 @@ is_intel(int fd)
 }
 
 #define LOCAL_I915_EXEC_VEBOX	(4 << 0)
-/* Ensure the gpu is idle by launching a nop execbuf and stalling for it. */
+/**
+ * gem_quiescent_gpu:
+ * @fd: open i915 drm file descriptor
+ *
+ * Ensure the gpu is idle by launching a nop execbuf and stalling for it. This
+ * is automatically run when opening a drm device node and is also installed as
+ * an exit handler to have the best assurance that the test is run in a pristine
+ * and controlled environment.
+ *
+ * This function simply allows tests to make additional calls in-between, if so
+ * desired.
+ */
 void gem_quiescent_gpu(int fd)
 {
 	uint32_t batch[2] = {MI_BATCH_BUFFER_END, 0};
@@ -134,9 +157,11 @@ void gem_quiescent_gpu(int fd)
 /**
  * drm_get_card:
  *
- * Get an intel card number for use in /dev or /sys
+ * Get an i915 drm card index number for use in /dev or /sys. The minor index of
+ * the legacy node is returned, not of the control or render node.
  *
- * Returns: -1 on error
+ * Returns:
+ * The i915 drm index or -1 on error
  */
 int drm_get_card(void)
 {
@@ -242,6 +267,14 @@ static void quiescent_gpu_at_exit_render(int sig)
 	at_exit_drm_render_fd = -1;
 }
 
+/**
+ * drm_open_any:
+ *
+ * Open an i915 drm legacy device node.
+ *
+ * Returns:
+ * The i915 drm file descriptor or -1 on error
+ */
 int drm_open_any(void)
 {
 	static int open_count;
@@ -259,6 +292,14 @@ int drm_open_any(void)
 	return fd;
 }
 
+/**
+ * drm_open_any:
+ *
+ * Open an i915 drm render device node.
+ *
+ * Returns:
+ * The i915 drm file descriptor or -1 on error
+ */
 int drm_open_any_render(void)
 {
 	static int open_count;

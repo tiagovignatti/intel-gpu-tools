@@ -48,6 +48,12 @@ static inline void *mmap64(void *addr, size_t length, int prot, int flags,
 #endif
 #endif
 
+/**
+ * ARRAY_SIZE:
+ * @arr: static array
+ *
+ * Macro to compute the size of the static array @arr.
+ */
 #define ARRAY_SIZE(arr) (sizeof(arr)/sizeof(arr[0]))
 
 int drm_get_card(void);
@@ -56,7 +62,25 @@ int drm_open_any_render(void);
 
 void gem_quiescent_gpu(int fd);
 
+/**
+ * do_or_die:
+ * @x: command
+ *
+ * Simple macro to execute x and check that it's return value is 0. Presumes
+ * that in any failure case the return value is non-zero and a precise error is
+ * logged into errno. Uses igt_assert() internally.
+ */
 #define do_or_die(x) igt_assert((x) == 0)
-#define do_ioctl(fd, ptr, sz) igt_assert(drmIoctl((fd), (ptr), (sz)) == 0)
+
+/**
+ * do_ioctl:
+ * @fd: open i915 drm file descriptor
+ * @ioc: ioctl op definition from drm headers
+ * @ioc_data: data pointer for the ioctl operation
+ *
+ * This macro wraps drmIoctl() and uses igt_assert to check that it has been
+ * successfully executed.
+ */
+#define do_ioctl(fd, ioc, ioc_data) igt_assert(drmIoctl((fd), (ioc), (ioc_data)) == 0)
 
 #endif /* DRMTEST_H */
