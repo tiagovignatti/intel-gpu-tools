@@ -273,25 +273,25 @@ struct gen8_blend_state {
 	} bs0;
 
 	struct {
-		uint64_t write_disable_blue:1;
-		uint64_t write_disable_green:1;
-		uint64_t write_disable_red:1;
-		uint64_t write_disable_alpha:1;
-		uint64_t pad1:1;
-		uint64_t alpha_blend_func:3;
-		uint64_t dest_alpha_blend_factor:5;
-		uint64_t source_alpha_blend_factor:5;
-		uint64_t color_blend_func:3;
-		uint64_t dest_blend_factor:5;
-		uint64_t source_blend_factor:5;
-		uint64_t color_buffer_blend:1;
-		uint64_t post_blend_color_clamp:1;
-		uint64_t pre_blend_color_clamp:1;
-		uint64_t color_clamp_range:2;
-		uint64_t pre_blend_source_only_clamp:1;
-		uint64_t pad0:22;
-		uint64_t logic_op_func:4;
-		uint64_t logic_op_enable:1;
+		uint32_t write_disable_blue:1;
+		uint32_t write_disable_green:1;
+		uint32_t write_disable_red:1;
+		uint32_t write_disable_alpha:1;
+		uint32_t pad1:1;
+		uint32_t alpha_blend_func:3;
+		uint32_t dest_alpha_blend_factor:5;
+		uint32_t source_alpha_blend_factor:5;
+		uint32_t color_blend_func:3;
+		uint32_t dest_blend_factor:5;
+		uint32_t source_blend_factor:5;
+		uint32_t color_buffer_blend:1;
+		uint32_t post_blend_color_clamp:1;
+		uint32_t pre_blend_color_clamp:1;
+		uint32_t color_clamp_range:2;
+		uint32_t pre_blend_source_only_clamp:1;
+		uint32_t pad0:22;
+		uint32_t logic_op_func:4;
+		uint32_t logic_op_enable:1;
 	} bs[16];
 };
 
