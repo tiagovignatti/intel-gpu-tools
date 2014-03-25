@@ -24,6 +24,8 @@ int yycolumn = 1;
 %x CHANNEL
 %x LINENUMBER
 %x FILENAME
+%x REG
+%x DOTSEL
 
 %%
 \/\/.*[\r\n] { yycolumn = 1; } /* eat up single-line comments */
@@ -247,8 +249,46 @@ yylval.integer = BRW_CHANNEL_W;
 
 [gr][0-9]+ {
 	yylval.integer = atoi(yytext + 1);
+	BEGIN(REG);
 	return GENREG;
 }
+<REG>"<" { return LANGLE; }
+<REG>[0-9][0-9]* {
+	yylval.integer = strtoul(yytext, NULL, 10);
+	return INTEGER;
+}
+<REG>">" { return RANGLE; }
+
+<REG>"," { return COMMA; }
+<REG>"." { BEGIN(DOTSEL); return DOT; }
+<REG>";" { return SEMICOLON; }
+
+<DOTSEL>"x" {
+	yylval.integer = BRW_CHANNEL_X;
+	return X;
+}
+<DOTSEL>"y" {
+	yylval.integer = BRW_CHANNEL_Y;
+	return Y;
+}
+<DOTSEL>"z" {
+	yylval.integer = BRW_CHANNEL_Z;
+	return Z;
+}
+<DOTSEL>"w" {
+	yylval.integer = BRW_CHANNEL_W;
+	return W;
+}
+<DOTSEL>[0-9][0-9]* {
+	yylval.integer = strtoul(yytext, NULL, 10);
+	BEGIN(REG);
+	return INTEGER;
+}
+<DOTSEL>. {
+	yyless(0);
+	BEGIN(INITIAL);
+}
+
 [gr] {
 	return GENREGFILE;
 }
@@ -294,6 +334,11 @@ yylval.integer = BRW_CHANNEL_W;
 "lms" {
 	yylval.integer = 16;
 	return LMS;
+}
+
+<REG>. {
+	yyless(0);
+	BEGIN(INITIAL);
 }
 
  /*
