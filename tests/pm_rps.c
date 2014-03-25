@@ -306,37 +306,6 @@ static void load_helper_deinit(void)
 		drm_intel_bufmgr_destroy(lh.bufmgr);
 }
 
-static void stop_rings(void)
-{
-	int fd;
-	static const char data[] = "0xf";
-
-	fd = igt_debugfs_open("i915_ring_stop", O_WRONLY);
-	igt_assert(fd >= 0);
-
-	igt_debug("injecting ring stop\n");
-	igt_assert(write(fd, data, sizeof(data)) == sizeof(data));
-
-	close(fd);
-}
-
-static bool rings_stopped(void)
-{
-	int fd;
-	static char buf[128];
-	unsigned long long val;
-
-	fd = igt_debugfs_open("i915_ring_stop", O_RDONLY);
-	igt_assert(fd >= 0);
-
-	igt_assert(read(fd, buf, sizeof(buf)) > 0);
-	close(fd);
-
-	sscanf(buf, "%llx", &val);
-
-	return (bool)val;
-}
-
 static void min_max_config(void (*check)(void))
 {
 	int fmid = (origfreqs[RPn] + origfreqs[RP0]) / 2;
@@ -499,8 +468,8 @@ static void reset(void)
 	stabilize_check(pre_freqs);
 
 	igt_debug("Stop rings...\n");
-	stop_rings();
-	while (rings_stopped())
+	igt_set_stop_rings(STOP_RING_DEFAULTS);
+	while (igt_get_stop_rings())
 		usleep(1000 * 100);
 	igt_debug("Ring stop cleared\n");
 

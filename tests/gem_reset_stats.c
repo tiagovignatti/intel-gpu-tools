@@ -242,38 +242,10 @@ static int exec_valid(int fd, int ctx)
 	return exec_valid_ring(fd, ctx, current_ring->exec);
 }
 
-static void stop_rings(const int mask)
-{
-	int fd;
-	char buf[80];
-
-	igt_assert((mask & ~((1 << NUM_RINGS) - 1)) == 0);
-	igt_assert(snprintf(buf, sizeof(buf), "0x%02x", mask) == 4);
-	fd = igt_debugfs_open("i915_ring_stop", O_WRONLY);
-	igt_assert(fd >= 0);
-
-	igt_assert(write(fd, buf, 4) == 4);
-	close(fd);
-}
-
 #define BUFSIZE (4 * 1024)
 #define ITEMS   (BUFSIZE >> 2)
 
-static int ring_to_mask(int ring)
-{
-	for (unsigned i = 0; i < NUM_RINGS; i++) {
-		const struct target_ring *r = &rings[i];
-
-		if (r->exec == ring)
-			return (1 << i);
-	}
-
-	igt_assert(0);
-
-	return -1;
-}
-
-static int inject_hang_ring(int fd, int ctx, int ring)
+static int inject_hang_ring(int fd, int ctx, int ring, bool ignore_ban_error)
 {
 	struct drm_i915_gem_execbuffer2 execbuf;
 	struct drm_i915_gem_exec_object2 exec;
@@ -281,6 +253,7 @@ static int inject_hang_ring(int fd, int ctx, int ring)
 	uint32_t *buf;
 	int roff, i;
 	unsigned cmd_len = 2;
+	enum stop_ring_flags flags;
 
 	srandom(time(NULL));
 
@@ -364,14 +337,26 @@ static int inject_hang_ring(int fd, int ctx, int ring)
 
 	free(buf);
 
-	stop_rings(ring_to_mask(ring));
+	flags = igt_to_stop_ring_flag(ring);
+
+	flags |= STOP_RING_ALLOW_BAN;
+
+	if (!ignore_ban_error)
+		flags |= STOP_RING_ALLOW_ERRORS;
+
+	igt_set_stop_rings(flags);
 
 	return exec.handle;
 }
 
 static int inject_hang(int fd, int ctx)
 {
-	return inject_hang_ring(fd, ctx, current_ring->exec);
+	return inject_hang_ring(fd, ctx, current_ring->exec, false);
+}
+
+static int inject_hang_no_ban_error(int fd, int ctx)
+{
+	return inject_hang_ring(fd, ctx, current_ring->exec, true);
 }
 
 static int _assert_reset_status(int fd, int ctx, int status)
@@ -553,7 +538,7 @@ static void test_ban(void)
 	assert_reset_status(fd_bad, 0, RS_NO_ERROR);
 	assert_reset_status(fd_good, 0, RS_NO_ERROR);
 
-	h2 = inject_hang(fd_bad, 0);
+	h2 = inject_hang_no_ban_error(fd_bad, 0);
 	igt_assert(h2 >= 0);
 	active_count++;
 	/* Second hang will be pending for this */
@@ -563,7 +548,7 @@ static void test_ban(void)
 	h7 = exec_valid(fd_good, 0);
 
         while (retry--) {
-                h3 = inject_hang(fd_bad, 0);
+                h3 = inject_hang_no_ban_error(fd_bad, 0);
                 igt_assert(h3 >= 0);
                 gem_sync(fd_bad, h3);
 		active_count++;
@@ -645,7 +630,7 @@ static void test_ban_ctx(void)
 	assert_reset_status(fd, ctx_good, RS_NO_ERROR);
 	assert_reset_status(fd, ctx_bad, RS_NO_ERROR);
 
-	h2 = inject_hang(fd, ctx_bad);
+	h2 = inject_hang_no_ban_error(fd, ctx_bad);
 	igt_assert(h2 >= 0);
 	active_count++;
 	/* Second hang will be pending for this */
@@ -655,7 +640,7 @@ static void test_ban_ctx(void)
 	h7 = exec_valid(fd, ctx_good);
 
         while (retry--) {
-                h3 = inject_hang(fd, ctx_bad);
+                h3 = inject_hang_no_ban_error(fd, ctx_bad);
                 igt_assert(h3 >= 0);
                 gem_sync(fd, h3);
 		active_count++;

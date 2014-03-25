@@ -44,6 +44,7 @@
 #include "intel_batchbuffer.h"
 #include "igt_kms.h"
 #include "igt_aux.h"
+#include "igt_debugfs.h"
 
 #define TEST_DPMS		(1 << 0)
 #define TEST_WITH_DUMMY_BCS	(1 << 1)
@@ -692,35 +693,17 @@ static void set_y_tiling(struct test_output *o, int fb_idx)
 
 static void stop_rings(bool stop)
 {
-	static const char dfs_base[] = "/sys/kernel/debug/dri";
-	static const char dfs_entry[] = "i915_ring_stop";
-	static const char stop_data[] = "0xf";
-	static const char run_data[] = "0x0";
-	char fname[FILENAME_MAX];
-	int card_index = drm_get_card();
-	int fd;
-
-	snprintf(fname, FILENAME_MAX, "%s/%i/%s",
-		 dfs_base, card_index, dfs_entry);
-
-	fd = open(fname, O_WRONLY);
-	igt_assert(fd >= 0);
-
 	if (stop)
-		igt_assert(write(fd, stop_data, sizeof(stop_data)) == sizeof(stop_data));
+		igt_set_stop_rings(STOP_RING_DEFAULTS);
 	else
-		igt_assert(write(fd, run_data, sizeof(run_data)) == sizeof(run_data));
-
-	close(fd);
+		igt_set_stop_rings(STOP_RING_NONE);
 }
 
 static void eat_error_state(void)
 {
 	static const char dfs_base[] = "/sys/kernel/debug/dri";
 	static const char dfs_entry_error[] = "i915_error_state";
-	static const char dfs_entry_stop[] = "i915_ring_stop";
 	static const char data[] = "";
-	static char tmp[128];
 	char fname[FILENAME_MAX];
 	int card_index = drm_get_card();
 	int fd;
@@ -739,16 +722,9 @@ static void eat_error_state(void)
 
 	/* and check whether stop_rings is not reset, i.e. the hang has indeed
 	 * happened */
-	snprintf(fname, FILENAME_MAX, "%s/%i/%s",
-		 dfs_base, card_index, dfs_entry_stop);
-
-	fd = open(fname, O_RDONLY);
-	igt_assert(fd >= 0);
-
-	igt_assert(read(fd, tmp, sizeof tmp) > 0);
-
-	igt_assert_f(atoi(tmp) == 0,
-		     "no gpu hang detected, stop_rings is still %s\n", tmp);
+	igt_assert_f(igt_get_stop_rings() == STOP_RING_NONE,
+		     "no gpu hang detected, stop_rings is still 0x%x\n",
+		     igt_get_stop_rings());
 
 	close(fd);
 }
