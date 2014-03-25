@@ -28,9 +28,11 @@
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <limits.h>
 #include <string.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <i915_drm.h>
 
 #include "drmtest.h"
 #include "igt_kms.h"
@@ -614,4 +616,110 @@ void igt_enable_prefault(void)
 int igt_open_forcewake_handle(void)
 {
 	return igt_debugfs_open("i915_forcewake_user", O_WRONLY);
+}
+
+/**
+ * igt_to_stop_ring_flag:
+ * @ring: the specified ring flag from execbuf ioctl (I915_EXEC_*)
+ *
+ * This converts the specified ring to a ring flag to be used
+ * with igt_get_stop_rings() and igt_set_stop_rings().
+ *
+ * Returns:
+ * Ring flag for the given ring.
+ */
+enum stop_ring_flags igt_to_stop_ring_flag(int ring) {
+	if (ring == I915_EXEC_DEFAULT)
+		return STOP_RING_RENDER;
+
+	igt_assert(ring && ((ring & ~I915_EXEC_RING_MASK) == 0));
+	return 1 << (ring - 1);
+}
+
+static void stop_rings_write(uint32_t mask)
+{
+	int fd;
+	char buf[80];
+
+	igt_assert(snprintf(buf, sizeof(buf), "0x%08x", mask) == 10);
+	fd = igt_debugfs_open("i915_ring_stop", O_WRONLY);
+	igt_assert(fd >= 0);
+
+	igt_assert(write(fd, buf, strlen(buf)) == strlen(buf));
+	close(fd);
+}
+
+/**
+ * igt_get_stop_rings:
+ *
+ * Read current ring flags from 'i915_ring_stop' debugfs entry.
+ *
+ * Returns:
+ * Current ring flags.
+ */
+enum stop_ring_flags igt_get_stop_rings(void)
+{
+	int fd;
+	char buf[80];
+	int l;
+	unsigned long long ring_mask;
+
+	fd = igt_debugfs_open("i915_ring_stop", O_RDONLY);
+	igt_assert(fd >= 0);
+	l =  read(fd, buf, sizeof(buf));
+	igt_assert(l > 0);
+	igt_assert(l < sizeof(buf));
+
+	buf[l] = '\0';
+
+	close(fd);
+
+	errno = 0;
+	ring_mask = strtoull(buf, NULL, 0);
+	igt_assert(errno == 0);
+	return ring_mask;
+}
+
+/**
+ * igt_set_stop_rings:
+ * @flags: Ring flags to write
+ *
+ * This writes @flags to 'i915_ring_stop' debugfs entry. Driver will
+ * prevent the CPU from writing tail pointer for the ring that @flags
+ * specify. Note that the ring is not stopped right away. Instead any
+ * further command emissions won't be executed after the flag is set.
+ *
+ * This is the least invasive way to make the GPU stuck. Hence you must
+ * set this after a batch submission with it's own invalid or endless
+ * looping instructions. In this case it is merely for giving notification
+ * for the driver that this was simulated hang, as the batch would have
+ * caused hang in any case. On the other hand if you use a valid or noop
+ * batch and want to hang the ring (GPU), you must set corresponding flag
+ * before submitting the batch.
+ *
+ * Driver checks periodically if a ring is making any progress, and if
+ * it is not, it will declare the ring to be hung and will reset the GPU.
+ * After reset, the driver will clear flags in 'i915_ring_stop'
+ *
+ * Note: Always when hanging the GPU, use igt_set_stop_rings() to
+ * notify the driver. Driver controls hang log messaging based on
+ * these flags and thus prevents false positives on logs.
+ */
+void igt_set_stop_rings(enum stop_ring_flags flags)
+{
+	enum stop_ring_flags current;
+
+	igt_assert((flags & ~(STOP_RING_ALL |
+			      STOP_RING_ALLOW_BAN |
+			      STOP_RING_ALLOW_ERRORS)) == 0);
+
+	current = igt_get_stop_rings();
+	igt_assert_f(current == 0,
+		     "previous i915_ring_stop is still 0x%x\n", current);
+
+	stop_rings_write(flags);
+	current = igt_get_stop_rings();
+	if (current != flags)
+		igt_warn("i915_ring_stop readback mismatch 0x%x vs 0x%x\n",
+			 flags, current);
 }

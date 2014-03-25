@@ -88,6 +88,18 @@ is_intel(int fd)
 	return IS_INTEL(devid);
 }
 
+static void check_stop_rings(void)
+{
+	enum stop_ring_flags flags;
+	flags = igt_get_stop_rings();
+	igt_warn_on_f(flags != 0,
+		      "i915_ring_stop flags on exit 0x%x, can't quiescent gpu cleanly\n",
+		      flags);
+
+	if (flags)
+		igt_set_stop_rings(STOP_RING_NONE);
+}
+
 #define LOCAL_I915_EXEC_VEBOX	(4 << 0)
 /**
  * gem_quiescent_gpu:
@@ -107,6 +119,8 @@ void gem_quiescent_gpu(int fd)
 	uint32_t handle;
 	struct drm_i915_gem_execbuffer2 execbuf;
 	struct drm_i915_gem_exec_object2 gem_exec[1];
+
+	check_stop_rings();
 
 	handle = gem_create(fd, 4096);
 	gem_write(fd, handle, 0, batch, sizeof(batch));
@@ -252,6 +266,7 @@ static void quiescent_gpu_at_exit(int sig)
 	if (at_exit_drm_fd < 0)
 		return;
 
+	check_stop_rings();
 	gem_quiescent_gpu(at_exit_drm_fd);
 	close(at_exit_drm_fd);
 	at_exit_drm_fd = -1;
@@ -262,6 +277,7 @@ static void quiescent_gpu_at_exit_render(int sig)
 	if (at_exit_drm_render_fd < 0)
 		return;
 
+	check_stop_rings();
 	gem_quiescent_gpu(at_exit_drm_render_fd);
 	close(at_exit_drm_render_fd);
 	at_exit_drm_render_fd = -1;
