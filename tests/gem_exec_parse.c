@@ -25,9 +25,12 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdio.h>
-#include "drm.h"
-#include "i915_drm.h"
+#include <errno.h>
+
+#include <drm.h>
+
 #include "drmtest.h"
+#include "ioctl_wrappers.h"
 
 #ifndef I915_PARAM_CMD_PARSER_VERSION
 #define I915_PARAM_CMD_PARSER_VERSION       28
