@@ -2262,21 +2262,21 @@ directsrcoperand:	negate abs symbol_reg region regtype
 		    $$.reg.type = $3.type;
 		  }
 		}
-		| negate abs directgenreg region regtype swizzle
+		| negate abs directgenreg region swizzle regtype
 		{
 		  memset (&$$, '\0', sizeof ($$));
 		  $$.reg.address_mode = BRW_ADDRESS_DIRECT;
 		  $$.reg.file = $3.file;
 		  $$.reg.nr = $3.nr;
 		  $$.reg.subnr = $3.subnr;
-		  $$.reg.type = $5.type;
+		  $$.reg.type = $6.type;
 		  $$.reg.vstride = $4.vert_stride;
 		  $$.reg.width = $4.width;
 		  $$.reg.hstride = $4.horiz_stride;
 		  $$.default_region = $4.is_default;
 		  $$.reg.negate = $1;
 		  $$.reg.abs = $2;
-		  $$.reg.dw1.bits.swizzle = $6.reg.dw1.bits.swizzle;
+		  $$.reg.dw1.bits.swizzle = $5.reg.dw1.bits.swizzle;
 		}
 		| srcarchoperandex
 ;
