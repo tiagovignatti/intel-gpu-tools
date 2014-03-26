@@ -1132,7 +1132,7 @@ void igt_skip_on_simulation(void)
 	if (igt_only_list_subtests())
 		return;
 
-	if (!in_fixture) {
+	if (!in_fixture && !in_subtest) {
 		igt_fixture
 			igt_require(!igt_run_in_simulation());
 	} else

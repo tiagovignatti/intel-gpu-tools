@@ -37,6 +37,7 @@
 bool simple;
 bool list_subtests;
 bool in_fixture;
+bool in_subtest;
 
 char test[] = "test";
 char list[] = "--list-subtests";
@@ -66,13 +67,16 @@ static int do_fork(void)
 			if (in_fixture) {
 				igt_fixture
 					igt_skip_on_simulation();
+			} if (in_subtest) {
+				igt_subtest("sim")
+					igt_skip_on_simulation();
 			} else
 				igt_skip_on_simulation();
 
-			igt_subtest("foo")
-				;
+			if (!in_subtest)
+				igt_subtest("foo")
+					;
 
-			printf("baz\n");
 			igt_exit();
 		}
 	default:
@@ -104,7 +108,6 @@ int main(int argc, char **argv)
 	assert(setenv("INTEL_SIMULATION", "1", 1) == 0);
 	assert(do_fork() == 0);
 
-	in_fixture = false;
 	assert(setenv("INTEL_SIMULATION", "0", 1) == 0);
 	assert(do_fork() == 0);
 
@@ -112,7 +115,14 @@ int main(int argc, char **argv)
 	assert(setenv("INTEL_SIMULATION", "1", 1) == 0);
 	assert(do_fork() == 0);
 
-	in_fixture = true;
+	assert(setenv("INTEL_SIMULATION", "0", 1) == 0);
+	assert(do_fork() == 0);
+
+	in_fixture = false;
+	in_subtest = true;
+	assert(setenv("INTEL_SIMULATION", "1", 1) == 0);
+	assert(do_fork() == 0);
+
 	assert(setenv("INTEL_SIMULATION", "0", 1) == 0);
 	assert(do_fork() == 0);
 
@@ -124,7 +134,6 @@ int main(int argc, char **argv)
 	assert(setenv("INTEL_SIMULATION", "1", 1) == 0);
 	assert(do_fork() == 77);
 
-	in_fixture = false;
 	assert(setenv("INTEL_SIMULATION", "0", 1) == 0);
 	assert(do_fork() == 0);
 
@@ -132,10 +141,16 @@ int main(int argc, char **argv)
 	assert(setenv("INTEL_SIMULATION", "1", 1) == 0);
 	assert(do_fork() == 77);
 
-	in_fixture = true;
 	assert(setenv("INTEL_SIMULATION", "0", 1) == 0);
 	assert(do_fork() == 0);
 
+	in_fixture = false;
+	in_subtest = true;
+	assert(setenv("INTEL_SIMULATION", "1", 1) == 0);
+	assert(do_fork() == 77);
+
+	assert(setenv("INTEL_SIMULATION", "0", 1) == 0);
+	assert(do_fork() == 0);
 
 	return 0;
 }
