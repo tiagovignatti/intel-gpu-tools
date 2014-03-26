@@ -60,8 +60,6 @@ static int paint_fb(struct igt_fb *fb, const char *test_name,
 	igt_paint_color_gradient(cr, 0, 0, fb->width, fb->height, 1, 1, 1);
 	igt_paint_test_pattern(cr, fb->width, fb->height);
 
-	cairo_select_font_face(cr, "Helvetica", CAIRO_FONT_SLANT_NORMAL,
-			       CAIRO_FONT_WEIGHT_NORMAL);
 	cairo_move_to(cr, fb->width / 2, fb->height / 2);
 	cairo_set_font_size(cr, 36);
 	igt_cairo_printf_line(cr, align_hcenter, 10, "%s", test_name);

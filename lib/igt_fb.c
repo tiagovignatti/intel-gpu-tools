@@ -382,7 +382,10 @@ cairo_t *igt_get_cairo_ctx(int fd, struct igt_fb *fb)
 	surface = get_cairo_surface(fd, fb);
 	cr = cairo_create(surface);
 	cairo_surface_destroy(surface);
+	igt_assert(cairo_status(cr) == CAIRO_STATUS_SUCCESS);
 
+	cairo_select_font_face(cr, "Helvetica", CAIRO_FONT_SLANT_NORMAL,
+			       CAIRO_FONT_WEIGHT_NORMAL);
 	igt_assert(cairo_status(cr) == CAIRO_STATUS_SUCCESS);
 
 	return cr;

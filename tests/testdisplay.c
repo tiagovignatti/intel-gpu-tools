@@ -284,9 +284,6 @@ static void paint_output_info(struct connector *c, struct igt_fb *fb)
 
 	igt_paint_test_pattern(cr, l_width, l_height);
 
-	cairo_select_font_face(cr, "Helvetica",
-			       CAIRO_FONT_SLANT_NORMAL,
-			       CAIRO_FONT_WEIGHT_NORMAL);
 	cairo_move_to(cr, l_width / 2, l_height / 2);
 
 	/* Print connector and mode name */
