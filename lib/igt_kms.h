@@ -33,7 +33,37 @@
 
 #include <xf86drmMode.h>
 
-#include "igt_display.h"
+enum pipe {
+        PIPE_A = 0,
+        PIPE_B,
+        PIPE_C,
+        I915_MAX_PIPES
+};
+#define pipe_name(p) ((p) + 'A')
+
+/* We namespace this enum to not conflict with the Android i915_drm.h */
+enum igt_plane {
+        IGT_PLANE_1 = 0,
+        IGT_PLANE_PRIMARY = IGT_PLANE_1,
+        IGT_PLANE_2,
+        IGT_PLANE_3,
+        IGT_PLANE_CURSOR,
+};
+
+const char *plane_name(enum igt_plane p);
+
+#define sprite_name(p, s) ((p) * dev_priv->num_plane + (s) + 'A')
+
+enum port {
+        PORT_A = 0,
+        PORT_B,
+        PORT_C,
+        PORT_D,
+        PORT_E,
+        I915_MAX_PORTS
+};
+#define port_name(p) ((p) + 'A')
+
 #include "igt_fb.h"
 
 struct kmstest_connector_config {
@@ -129,6 +159,8 @@ igt_plane_t *igt_output_get_plane(igt_output_t *output, enum igt_plane plane);
 
 void igt_plane_set_fb(igt_plane_t *plane, struct igt_fb *fb);
 void igt_plane_set_position(igt_plane_t *plane, int x, int y);
+
+void igt_wait_for_vblank(int drm_fd, enum pipe pipe);
 
 #define for_each_connected_output(display, output)		\
 	for (int i__ = 0;  i__ < (display)->n_outputs; i__++)	\

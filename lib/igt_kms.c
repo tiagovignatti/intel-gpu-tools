@@ -993,3 +993,16 @@ void igt_plane_set_position(igt_plane_t *plane, int x, int y)
 
 	plane->position_changed = true;
 }
+
+void igt_wait_for_vblank(int drm_fd, enum pipe pipe)
+{
+	drmVBlank wait_vbl;
+
+	memset(&wait_vbl, 0, sizeof(wait_vbl));
+
+	wait_vbl.request.type = pipe << DRM_VBLANK_HIGH_CRTC_SHIFT |
+				DRM_VBLANK_RELATIVE;
+	wait_vbl.request.sequence = 1;
+
+	igt_assert(drmWaitVBlank(drm_fd, &wait_vbl) == 0);
+}

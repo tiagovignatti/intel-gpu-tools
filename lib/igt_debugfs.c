@@ -33,7 +33,7 @@
 #include <unistd.h>
 
 #include "drmtest.h"
-#include "igt_display.h"
+#include "igt_kms.h"
 #include "igt_debugfs.h"
 
 /**

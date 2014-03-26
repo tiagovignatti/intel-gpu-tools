@@ -8,8 +8,6 @@ libintel_tools_la_SOURCES = 	\
 	i915_pciids.h		\
 	igt_debugfs.c		\
 	igt_debugfs.h		\
-	igt_display.c		\
-	igt_display.h		\
 	igt_aux.c		\
 	igt_aux.h		\
 	instdone.c		\

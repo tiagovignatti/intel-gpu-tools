@@ -18,7 +18,6 @@
     <xi:include href="xml/drmtest.xml"/>
     <xi:include href="xml/igt_core.xml"/>
     <xi:include href="xml/igt_debugfs.xml"/>
-    <xi:include href="xml/igt_display.xml"/>
     <xi:include href="xml/igt_kms.xml"/>
     <xi:include href="xml/igt_aux.xml"/>
     <xi:include href="xml/ioctl_wrappers.xml"/>
