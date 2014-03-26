@@ -956,7 +956,7 @@ igt_plane_t *igt_output_get_plane(igt_output_t *output, enum igt_plane plane)
 	return igt_pipe_get_plane(pipe, plane);
 }
 
-void igt_plane_set_fb(igt_plane_t *plane, struct kmstest_fb *fb)
+void igt_plane_set_fb(igt_plane_t *plane, struct igt_fb *fb)
 {
 	igt_pipe_t *pipe = plane->pipe;
 	igt_display_t *display = pipe->display;

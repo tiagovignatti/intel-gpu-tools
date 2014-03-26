@@ -95,7 +95,7 @@ struct crtc_config {
 	int pipe_id;
 	int connector_count;
 	struct connector_config *cconfs;
-	struct kmstest_fb fb_info;
+	struct igt_fb fb_info;
 	drmModeModeInfo mode;
 };
 
@@ -141,22 +141,22 @@ static bool crtc_supports_mode(struct crtc_config *crtc, drmModeModeInfo *mode)
 	return true;
 }
 
-static int paint_fb(struct kmstest_fb *fb, const char *test_name,
+static int paint_fb(struct igt_fb *fb, const char *test_name,
 		    const char **crtc_str, int crtc_count, int current_crtc_idx)
 {
 	double x, y;
 	cairo_t *cr;
 	int i;
 
-	cr = kmstest_get_cairo_ctx(drm_fd, fb);
+	cr = igt_get_cairo_ctx(drm_fd, fb);
 
-	kmstest_paint_test_pattern(cr, fb->width, fb->height);
+	igt_paint_test_pattern(cr, fb->width, fb->height);
 
 	cairo_select_font_face(cr, "Helvetica", CAIRO_FONT_SLANT_NORMAL,
 			       CAIRO_FONT_WEIGHT_NORMAL);
 	cairo_move_to(cr, fb->width / 2, fb->height / 2);
 	cairo_set_font_size(cr, 24);
-	kmstest_cairo_printf_line(cr, align_hcenter, 40, "%s", test_name);
+	igt_cairo_printf_line(cr, align_hcenter, 40, "%s", test_name);
 
 	cairo_get_current_point(cr, &x, &y);
 	cairo_move_to(cr, 60, y);
@@ -165,10 +165,10 @@ static int paint_fb(struct kmstest_fb *fb, const char *test_name,
 		if (i == current_crtc_idx) {
 			cairo_get_current_point(cr, &x, &y);
 			cairo_move_to(cr, x - 20, y);
-			kmstest_cairo_printf_line(cr, align_right, 20, "X");
+			igt_cairo_printf_line(cr, align_right, 20, "X");
 			cairo_move_to(cr, x, y);
 		}
-		kmstest_cairo_printf_line(cr, align_left, 20, "%s",
+		igt_cairo_printf_line(cr, align_left, 20, "%s",
 					  crtc_str[i]);
 	}
 
@@ -178,7 +178,7 @@ static int paint_fb(struct kmstest_fb *fb, const char *test_name,
 }
 
 static void create_fb_for_crtc(struct crtc_config *crtc,
-			       struct kmstest_fb *fb_info)
+			       struct igt_fb *fb_info)
 {
 	int bpp;
 	int depth;
@@ -188,9 +188,9 @@ static void create_fb_for_crtc(struct crtc_config *crtc,
 	bpp = 32;
 	depth = 24;
 	enable_tiling = false;
-	fb_id = kmstest_create_fb(drm_fd, crtc->mode.hdisplay,
+	fb_id = igt_create_fb(drm_fd, crtc->mode.hdisplay,
 				  crtc->mode.vdisplay,
-				  bpp_depth_to_drm_format(bpp, depth),
+				  igt_bpp_depth_to_drm_format(bpp, depth),
 				  enable_tiling, fb_info);
 	igt_assert(fb_id > 0);
 }

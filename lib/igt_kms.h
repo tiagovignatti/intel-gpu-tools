@@ -79,7 +79,7 @@ typedef struct {
 	 * using the atomic modeset API)
 	 */
 	drmModePlane *drm_plane;
-	struct kmstest_fb *fb;
+	struct igt_fb *fb;
 	/* position within pipe_src_w x pipe_src_h */
 	int crtc_x, crtc_y;
 } igt_plane_t;
@@ -127,7 +127,7 @@ drmModeModeInfo *igt_output_get_mode(igt_output_t *output);
 void igt_output_set_pipe(igt_output_t *output, enum pipe pipe);
 igt_plane_t *igt_output_get_plane(igt_output_t *output, enum igt_plane plane);
 
-void igt_plane_set_fb(igt_plane_t *plane, struct kmstest_fb *fb);
+void igt_plane_set_fb(igt_plane_t *plane, struct igt_fb *fb);
 void igt_plane_set_position(igt_plane_t *plane, int x, int y);
 
 #define for_each_connected_output(display, output)		\

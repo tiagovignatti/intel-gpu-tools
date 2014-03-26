@@ -138,7 +138,7 @@ struct test_output {
 	unsigned int fb_height;
 	unsigned int fb_ids[3];
 	int bpp, depth;
-	struct kmstest_fb fb_info[3];
+	struct igt_fb fb_info[3];
 
 	struct event_state flip_state;
 	struct event_state vblank_state;
@@ -162,7 +162,7 @@ static void emit_dummy_load__bcs(struct test_output *o)
 {
 	int i, limit;
 	drm_intel_bo *dummy_bo, *target_bo, *tmp_bo;
-	struct kmstest_fb *fb_info = &o->fb_info[o->current_fb_id];
+	struct igt_fb *fb_info = &o->fb_info[o->current_fb_id];
 	unsigned pitch = fb_info->stride;
 
 	limit = intel_gen(devid) < 6 ? 500 : 5000;
@@ -208,7 +208,7 @@ static void emit_dummy_load__bcs(struct test_output *o)
 static void emit_fence_stress(struct test_output *o)
 {
 	const int num_fences = gem_available_fences(drm_fd);
-	struct kmstest_fb *fb_info = &o->fb_info[o->current_fb_id];
+	struct igt_fb *fb_info = &o->fb_info[o->current_fb_id];
 	struct drm_i915_gem_execbuffer2 execbuf;
 	struct drm_i915_gem_exec_object2 *exec;
 	uint32_t buf[2] = { MI_BATCH_BUFFER_END, 0 };
@@ -249,7 +249,7 @@ static void emit_fence_stress(struct test_output *o)
 
 static void emit_dummy_load__rcs(struct test_output *o)
 {
-	const struct kmstest_fb *fb_info = &o->fb_info[o->current_fb_id];
+	const struct igt_fb *fb_info = &o->fb_info[o->current_fb_id];
 	igt_render_copyfunc_t copyfunc;
 	struct igt_buf sb[2], *src, *dst;
 	int i, limit;
@@ -657,7 +657,7 @@ static void check_all_state(struct test_output *o,
 static void recreate_fb(struct test_output *o)
 {
 	drmModeFBPtr r;
-	struct kmstest_fb *fb_info = &o->fb_info[o->current_fb_id];
+	struct igt_fb *fb_info = &o->fb_info[o->current_fb_id];
 	uint32_t new_fb_id;
 
 	/* Call rmfb/getfb/addfb to ensure those don't introduce stalls */
@@ -679,7 +679,7 @@ static void recreate_fb(struct test_output *o)
 static void set_y_tiling(struct test_output *o, int fb_idx)
 {
 	drmModeFBPtr r;
-	struct kmstest_fb *fb_info = &o->fb_info[fb_idx];
+	struct igt_fb *fb_info = &o->fb_info[fb_idx];
 
 	/* Call rmfb/getfb/addfb to ensure those don't introduce stalls */
 	r = drmModeGetFB(drm_fd, fb_info->fb_id);
@@ -1104,13 +1104,13 @@ found:
 	drmModeFreeCrtc(config[1].crtc);
 }
 
-static void paint_flip_mode(struct kmstest_fb *fb, bool odd_frame)
+static void paint_flip_mode(struct igt_fb *fb, bool odd_frame)
 {
-	cairo_t *cr = kmstest_get_cairo_ctx(drm_fd, fb);
+	cairo_t *cr = igt_get_cairo_ctx(drm_fd, fb);
 	int width = fb->width;
 	int height = fb->height;
 
-	kmstest_paint_test_pattern(cr, width, height);
+	igt_paint_test_pattern(cr, width, height);
 
 	if (odd_frame)
 		cairo_rectangle(cr, width/4, height/2, width/4, height/8);
@@ -1290,14 +1290,14 @@ static void run_test_on_crtc_set(struct test_output *o, int *crtc_idxs,
 	if (o->flags & TEST_FENCE_STRESS)
 		tiled = true;
 
-	o->fb_ids[0] = kmstest_create_fb(drm_fd, o->fb_width, o->fb_height,
-					 bpp_depth_to_drm_format(o->bpp, o->depth),
+	o->fb_ids[0] = igt_create_fb(drm_fd, o->fb_width, o->fb_height,
+					 igt_bpp_depth_to_drm_format(o->bpp, o->depth),
 					 tiled, &o->fb_info[0]);
-	o->fb_ids[1] = kmstest_create_fb(drm_fd, o->fb_width, o->fb_height,
-					 bpp_depth_to_drm_format(o->bpp, o->depth),
+	o->fb_ids[1] = igt_create_fb(drm_fd, o->fb_width, o->fb_height,
+					 igt_bpp_depth_to_drm_format(o->bpp, o->depth),
 					 tiled, &o->fb_info[1]);
-	o->fb_ids[2] = kmstest_create_fb(drm_fd, o->fb_width, o->fb_height,
-					 bpp_depth_to_drm_format(o->bpp, o->depth),
+	o->fb_ids[2] = igt_create_fb(drm_fd, o->fb_width, o->fb_height,
+					 igt_bpp_depth_to_drm_format(o->bpp, o->depth),
 					 true, &o->fb_info[2]);
 	igt_assert(o->fb_ids[0]);
 	igt_assert(o->fb_ids[1]);
@@ -1353,9 +1353,9 @@ static void run_test_on_crtc_set(struct test_output *o, int *crtc_idxs,
 	igt_info("\n%s: PASSED\n\n", test_name);
 
 out:
-	kmstest_remove_fb(drm_fd, &o->fb_info[2]);
-	kmstest_remove_fb(drm_fd, &o->fb_info[1]);
-	kmstest_remove_fb(drm_fd, &o->fb_info[0]);
+	igt_remove_fb(drm_fd, &o->fb_info[2]);
+	igt_remove_fb(drm_fd, &o->fb_info[1]);
+	igt_remove_fb(drm_fd, &o->fb_info[0]);
 
 	last_connector = NULL;
 

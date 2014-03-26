@@ -269,21 +269,21 @@ static struct scanout_fb *create_fb(struct mode_set_data *data, int width,
 				    int height)
 {
 	struct scanout_fb *fb_info;
-	struct kmstest_fb fb;
+	struct igt_fb fb;
 	cairo_t *cr;
 
 	fb_info = malloc(sizeof(struct scanout_fb));
 	igt_assert(fb_info);
 
-	fb_info->handle = kmstest_create_fb(drm_fd, width, height,
+	fb_info->handle = igt_create_fb(drm_fd, width, height,
 					    DRM_FORMAT_XRGB8888,
 					    false, &fb);
 	fb_info->width = width;
 	fb_info->height = height;
 	fb_info->next = NULL;
 
-	cr = kmstest_get_cairo_ctx(drm_fd, &fb);
-	kmstest_paint_test_pattern(cr, width, height);
+	cr = igt_get_cairo_ctx(drm_fd, &fb);
+	igt_paint_test_pattern(cr, width, height);
 	cairo_destroy(cr);
 
 	return fb_info;

@@ -50,30 +50,30 @@ enum test_flags {
 	TEST_GPU_BLIT		= 0x02,
 };
 
-static int paint_fb(struct kmstest_fb *fb, const char *test_name,
+static int paint_fb(struct igt_fb *fb, const char *test_name,
 		    const char *mode_format_str, const char *cconf_str)
 {
 	cairo_t *cr;
 
-	cr = kmstest_get_cairo_ctx(drm_fd, fb);
+	cr = igt_get_cairo_ctx(drm_fd, fb);
 
-	kmstest_paint_color_gradient(cr, 0, 0, fb->width, fb->height, 1, 1, 1);
-	kmstest_paint_test_pattern(cr, fb->width, fb->height);
+	igt_paint_color_gradient(cr, 0, 0, fb->width, fb->height, 1, 1, 1);
+	igt_paint_test_pattern(cr, fb->width, fb->height);
 
 	cairo_select_font_face(cr, "Helvetica", CAIRO_FONT_SLANT_NORMAL,
 			       CAIRO_FONT_WEIGHT_NORMAL);
 	cairo_move_to(cr, fb->width / 2, fb->height / 2);
 	cairo_set_font_size(cr, 36);
-	kmstest_cairo_printf_line(cr, align_hcenter, 10, "%s", test_name);
-	kmstest_cairo_printf_line(cr, align_hcenter, 10, "%s", mode_format_str);
-	kmstest_cairo_printf_line(cr, align_hcenter, 10, "%s", cconf_str);
+	igt_cairo_printf_line(cr, align_hcenter, 10, "%s", test_name);
+	igt_cairo_printf_line(cr, align_hcenter, 10, "%s", mode_format_str);
+	igt_cairo_printf_line(cr, align_hcenter, 10, "%s", cconf_str);
 
 	cairo_destroy(cr);
 
 	return 0;
 }
 
-static void gpu_blit(struct kmstest_fb *dst_fb, struct kmstest_fb *src_fb)
+static void gpu_blit(struct igt_fb *dst_fb, struct igt_fb *src_fb)
 {
 	drm_intel_bo *dst_bo;
 	drm_intel_bo *src_bo;
@@ -81,8 +81,8 @@ static void gpu_blit(struct kmstest_fb *dst_fb, struct kmstest_fb *src_fb)
 
 	igt_assert(dst_fb->drm_format == src_fb->drm_format);
 	igt_assert(src_fb->drm_format == DRM_FORMAT_RGB565 ||
-	       drm_format_to_bpp(src_fb->drm_format) != 16);
-	bpp = drm_format_to_bpp(src_fb->drm_format);
+	       igt_drm_format_to_bpp(src_fb->drm_format) != 16);
+	bpp = igt_drm_format_to_bpp(src_fb->drm_format);
 	dst_bo = gem_handle_to_libdrm_bo(bufmgr, drm_fd, "destination",
 					 dst_fb->gem_handle);
 	igt_assert(dst_bo);
@@ -108,13 +108,13 @@ static int test_format(const char *test_name,
 {
 	int width;
 	int height;
-	struct kmstest_fb fb[2];
+	struct igt_fb fb[2];
 	char *mode_format_str;
 	char *cconf_str;
 	int ret;
 
 	ret = asprintf(&mode_format_str, "%s @ %dHz / %s",
-		 mode->name, mode->vrefresh, kmstest_format_str(format));
+		 mode->name, mode->vrefresh, igt_format_str(format));
 	igt_assert(ret > 0);
 	ret = asprintf(&cconf_str, "pipe %s, encoder %s, connector %s",
 		       kmstest_pipe_str(cconf->pipe),
@@ -128,10 +128,10 @@ static int test_format(const char *test_name,
 	width = mode->hdisplay;
 	height = mode->vdisplay;
 
-	if (!kmstest_create_fb(drm_fd, width, height, format, false, &fb[0]))
+	if (!igt_create_fb(drm_fd, width, height, format, false, &fb[0]))
 		goto err1;
 
-	if (!kmstest_create_fb(drm_fd, width, height, format, false, &fb[1]))
+	if (!igt_create_fb(drm_fd, width, height, format, false, &fb[1]))
 		goto err2;
 
 	if (drmModeSetCrtc(drm_fd, cconf->crtc->crtc_id, fb[0].fb_id,
@@ -155,13 +155,13 @@ static int test_format(const char *test_name,
 	free(mode_format_str);
 	free(cconf_str);
 
-	kmstest_remove_fb(drm_fd, &fb[1]);
-	kmstest_remove_fb(drm_fd, &fb[0]);
+	igt_remove_fb(drm_fd, &fb[1]);
+	igt_remove_fb(drm_fd, &fb[0]);
 
 	return 0;
 
 err2:
-	kmstest_remove_fb(drm_fd, &fb[0]);
+	igt_remove_fb(drm_fd, &fb[0]);
 err1:
 	printf("Test %s with %s on %s: SKIPPED\n",
 		test_name, mode_format_str, cconf_str);
@@ -179,7 +179,7 @@ static void test_connector(const char *test_name,
 	int format_count;
 	int i;
 
-	kmstest_get_all_formats(&formats, &format_count);
+	igt_get_all_formats(&formats, &format_count);
 	for (i = 0; i < cconf->connector->count_modes; i++) {
 		int j;
 

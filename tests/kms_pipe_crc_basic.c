@@ -34,7 +34,7 @@
 typedef struct {
 	int drm_fd;
 	igt_display_t display;
-	struct kmstest_fb fb;
+	struct igt_fb fb;
 } data_t;
 
 static void test_bad_command(data_t *data, const char *cmd)
@@ -75,7 +75,7 @@ static void test_read_crc(data_t *data, int pipe, unsigned flags)
 			pipe_name(pipe));
 
 		mode = igt_output_get_mode(output);
-		kmstest_create_color_fb(data->drm_fd,
+		igt_create_color_fb(data->drm_fd,
 					mode->hdisplay, mode->vdisplay,
 					DRM_FORMAT_XRGB8888,
 					false, /* tiled */
@@ -116,7 +116,7 @@ static void test_read_crc(data_t *data, int pipe, unsigned flags)
 
 		free(crcs);
 		igt_pipe_crc_free(pipe_crc);
-		kmstest_remove_fb(data->drm_fd, &data->fb);
+		igt_remove_fb(data->drm_fd, &data->fb);
 		igt_plane_set_fb(primary, NULL);
 
 		igt_output_set_pipe(output, PIPE_ANY);

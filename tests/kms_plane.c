@@ -63,22 +63,22 @@ static void
 create_fb_for_mode__position(data_t *data, drmModeModeInfo *mode,
 			     double rect_x, double rect_y,
 			     double rect_w, double rect_h,
-			     struct kmstest_fb *fb /* out */)
+			     struct igt_fb *fb /* out */)
 {
 	unsigned int fb_id;
 	cairo_t *cr;
 
-	fb_id = kmstest_create_fb(data->drm_fd,
+	fb_id = igt_create_fb(data->drm_fd,
 				  mode->hdisplay, mode->vdisplay,
 				  DRM_FORMAT_XRGB8888,
 				  false /* tiling */,
 				  fb);
 	igt_assert(fb_id);
 
-	cr = kmstest_get_cairo_ctx(data->drm_fd, fb);
-	kmstest_paint_color(cr, 0, 0, mode->hdisplay, mode->vdisplay,
+	cr = igt_get_cairo_ctx(data->drm_fd, fb);
+	igt_paint_color(cr, 0, 0, mode->hdisplay, mode->vdisplay,
 			    0.0, 1.0, 0.0);
-	kmstest_paint_color(cr, rect_x, rect_y, rect_w, rect_h, 0.0, 0.0, 0.0);
+	igt_paint_color(cr, rect_x, rect_y, rect_w, rect_h, 0.0, 0.0, 0.0);
 	igt_assert(cairo_status(cr) == 0);
 	cairo_destroy(cr);
 }
@@ -87,7 +87,7 @@ static void
 test_position_init(test_position_t *test, igt_output_t *output, enum pipe pipe)
 {
 	data_t *data = test->data;
-	struct kmstest_fb green_fb;
+	struct igt_fb green_fb;
 	drmModeModeInfo *mode;
 	igt_plane_t *primary;
 
@@ -97,7 +97,7 @@ test_position_init(test_position_t *test, igt_output_t *output, enum pipe pipe)
 	primary = igt_output_get_plane(output, 0);
 
 	mode = igt_output_get_mode(output);
-	kmstest_create_color_fb(data->drm_fd, mode->hdisplay, mode->vdisplay,
+	igt_create_color_fb(data->drm_fd, mode->hdisplay, mode->vdisplay,
 				DRM_FORMAT_XRGB8888,
 				false, /* tiled */
 				0.0, 1.0, 0.0,
@@ -111,7 +111,7 @@ test_position_init(test_position_t *test, igt_output_t *output, enum pipe pipe)
 	igt_plane_set_fb(primary, NULL);
 	igt_display_commit(&data->display);
 
-	kmstest_remove_fb(data->drm_fd, &green_fb);
+	igt_remove_fb(data->drm_fd, &green_fb);
 }
 
 static void
@@ -136,7 +136,7 @@ test_plane_position_with_output(data_t *data,
 {
 	test_position_t test = { .data = data };
 	igt_plane_t *primary, *sprite;
-	struct kmstest_fb primary_fb, sprite_fb;
+	struct igt_fb primary_fb, sprite_fb;
 	drmModeModeInfo *mode;
 	igt_crc_t crc;
 
@@ -153,7 +153,7 @@ test_plane_position_with_output(data_t *data,
 				     &primary_fb);
 	igt_plane_set_fb(primary, &primary_fb);
 
-	kmstest_create_color_fb(data->drm_fd,
+	igt_create_color_fb(data->drm_fd,
 				64, 64, /* width, height */
 				DRM_FORMAT_XRGB8888,
 				false, /* tiled */

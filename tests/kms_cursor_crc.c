@@ -50,8 +50,8 @@ enum cursor_type {
 typedef struct {
 	int drm_fd;
 	igt_display_t display;
-	struct kmstest_fb primary_fb;
-	struct kmstest_fb fb[NUM_CURSOR_TYPES];
+	struct igt_fb primary_fb;
+	struct igt_fb fb[NUM_CURSOR_TYPES];
 	igt_pipe_crc_t **pipe_crc;
 } data_t;
 
@@ -199,7 +199,7 @@ static bool prepare_crtc(test_data_t *test_data, igt_output_t *output,
 
 	/* create and set the primary plane fb */
 	mode = igt_output_get_mode(output);
-	kmstest_create_color_fb(data->drm_fd, mode->hdisplay, mode->vdisplay,
+	igt_create_color_fb(data->drm_fd, mode->hdisplay, mode->vdisplay,
 				DRM_FORMAT_XRGB8888,
 				false, /* tiled */
 				0.0, 0.0, 0.0,
@@ -247,7 +247,7 @@ static void cleanup_crtc(test_data_t *test_data, igt_output_t *output)
 	igt_pipe_crc_free(data->pipe_crc[test_data->pipe]);
 	data->pipe_crc[test_data->pipe] = NULL;
 
-	kmstest_remove_fb(data->drm_fd, &data->primary_fb);
+	igt_remove_fb(data->drm_fd, &data->primary_fb);
 
 	primary = igt_output_get_plane(output, IGT_PLANE_PRIMARY);
 	igt_plane_set_fb(primary, NULL);
@@ -302,14 +302,14 @@ static void create_cursor_fb(data_t *data,
 	cairo_t *cr;
 	uint32_t fb_id[NUM_CURSOR_TYPES];
 
-	fb_id[cursor_type] = kmstest_create_fb(data->drm_fd, cur_w, cur_h,
+	fb_id[cursor_type] = igt_create_fb(data->drm_fd, cur_w, cur_h,
 					       DRM_FORMAT_ARGB8888, false,
 					       &data->fb[cursor_type]);
 	igt_assert(fb_id[cursor_type]);
 
-	cr = kmstest_get_cairo_ctx(data->drm_fd,
+	cr = igt_get_cairo_ctx(data->drm_fd,
 				   &data->fb[cursor_type]);
-	kmstest_paint_color_alpha(cr, 0, 0, cur_w, cur_h, r, g, b, a);
+	igt_paint_color_alpha(cr, 0, 0, cur_w, cur_h, r, g, b, a);
 	igt_assert(cairo_status(cr) == 0);
 }
 

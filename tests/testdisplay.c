@@ -221,7 +221,7 @@ static void connector_find_preferred_mode(uint32_t connector_id,
 }
 
 static void
-paint_color_key(struct kmstest_fb *fb_info)
+paint_color_key(struct igt_fb *fb_info)
 {
 	int i, j;
 	uint32_t *fb_ptr;
@@ -272,9 +272,9 @@ static void paint_image(cairo_t *cr, const char *file)
 	cairo_surface_destroy(image);
 }
 
-static void paint_output_info(struct connector *c, struct kmstest_fb *fb)
+static void paint_output_info(struct connector *c, struct igt_fb *fb)
 {
-	cairo_t *cr = kmstest_get_cairo_ctx(drm_fd, fb);
+	cairo_t *cr = igt_get_cairo_ctx(drm_fd, fb);
 	int l_width = fb->width;
 	int l_height = fb->height;
 	double str_width;
@@ -282,7 +282,7 @@ static void paint_output_info(struct connector *c, struct kmstest_fb *fb)
 	double max_width;
 	int i;
 
-	kmstest_paint_test_pattern(cr, l_width, l_height);
+	igt_paint_test_pattern(cr, l_width, l_height);
 
 	cairo_select_font_face(cr, "Helvetica",
 			       CAIRO_FONT_SLANT_NORMAL,
@@ -291,11 +291,11 @@ static void paint_output_info(struct connector *c, struct kmstest_fb *fb)
 
 	/* Print connector and mode name */
 	cairo_set_font_size(cr, 48);
-	kmstest_cairo_printf_line(cr, align_hcenter, 10, "%s",
+	igt_cairo_printf_line(cr, align_hcenter, 10, "%s",
 		 kmstest_connector_type_str(c->connector->connector_type));
 
 	cairo_set_font_size(cr, 36);
-	str_width = kmstest_cairo_printf_line(cr, align_hcenter, 10,
+	str_width = igt_cairo_printf_line(cr, align_hcenter, 10,
 		"%s @ %dHz on %s encoder", c->mode.name, c->mode.vrefresh,
 		kmstest_encoder_type_str(c->encoder->encoder_type));
 
@@ -303,7 +303,7 @@ static void paint_output_info(struct connector *c, struct kmstest_fb *fb)
 
 	/* List available modes */
 	cairo_set_font_size(cr, 18);
-	str_width = kmstest_cairo_printf_line(cr, align_left, 10,
+	str_width = igt_cairo_printf_line(cr, align_left, 10,
 					      "Available modes:");
 	cairo_rel_move_to(cr, str_width, 0);
 	cairo_get_current_point(cr, &x, &top_y);
@@ -316,7 +316,7 @@ static void paint_output_info(struct connector *c, struct kmstest_fb *fb)
 			max_width = 0;
 			cairo_move_to(cr, x, top_y);
 		}
-		str_width = kmstest_cairo_printf_line(cr, align_right, 10,
+		str_width = igt_cairo_printf_line(cr, align_right, 10,
 			"%s @ %dHz", c->connector->modes[i].name,
 			 c->connector->modes[i].vrefresh);
 		if (str_width > max_width)
@@ -378,7 +378,7 @@ static void
 set_mode(struct connector *c)
 {
 	unsigned int fb_id = 0;
-	struct kmstest_fb fb_info[2] = { };
+	struct igt_fb fb_info[2] = { };
 	int j, test_mode_num, current_fb = 0, old_fb = -1;
 
 	test_mode_num = 1;
@@ -405,8 +405,8 @@ set_mode(struct connector *c)
 		width = c->mode.hdisplay;
 		height = c->mode.vdisplay;
 
-		fb_id = kmstest_create_fb(drm_fd, width, height,
-					  bpp_depth_to_drm_format(bpp, depth),
+		fb_id = igt_create_fb(drm_fd, width, height,
+					  igt_bpp_depth_to_drm_format(bpp, depth),
 					  enable_tiling, &fb_info[current_fb]);
 		paint_output_info(c, &fb_info[current_fb]);
 		paint_color_key(&fb_info[current_fb]);
@@ -422,7 +422,7 @@ set_mode(struct connector *c)
 		}
 
 		if (old_fb != -1)
-			kmstest_remove_fb(drm_fd, &fb_info[old_fb]);
+			igt_remove_fb(drm_fd, &fb_info[old_fb]);
 		old_fb = current_fb;
 		current_fb = 1 - current_fb;
 
@@ -442,7 +442,7 @@ set_mode(struct connector *c)
 	}
 
 	if (test_all_modes)
-		kmstest_remove_fb(drm_fd, &fb_info[old_fb]);
+		igt_remove_fb(drm_fd, &fb_info[old_fb]);
 
 	drmModeFreeEncoder(c->encoder);
 	drmModeFreeConnector(c->connector);
@@ -525,22 +525,22 @@ static const char *stereo_mode_str(drmModeModeInfo *mode)
 	}
 }
 
-static uint32_t create_stereo_fb(drmModeModeInfo *mode, struct kmstest_fb *fb)
+static uint32_t create_stereo_fb(drmModeModeInfo *mode, struct igt_fb *fb)
 {
 	struct stereo_fb_layout layout;
 	cairo_t *cr;
 	uint32_t fb_id;
 
 	stereo_fb_layout_from_mode(&layout, mode);
-	fb_id = kmstest_create_fb(drm_fd, layout.fb_width, layout.fb_height,
-				  bpp_depth_to_drm_format(bpp, depth),
+	fb_id = igt_create_fb(drm_fd, layout.fb_width, layout.fb_height,
+				  igt_bpp_depth_to_drm_format(bpp, depth),
 				  enable_tiling, fb);
-	cr = kmstest_get_cairo_ctx(drm_fd, fb);
+	cr = igt_get_cairo_ctx(drm_fd, fb);
 
-	kmstest_paint_image(cr, IGT_DATADIR"/1080p-left.png",
+	igt_paint_image(cr, IGT_DATADIR"/1080p-left.png",
 			    layout.left.x, layout.left.y,
 			    layout.left.width, layout.left.height);
-	kmstest_paint_image(cr, IGT_DATADIR"/1080p-right.png",
+	igt_paint_image(cr, IGT_DATADIR"/1080p-right.png",
 			    layout.right.x, layout.right.y,
 			    layout.right.width, layout.right.height);
 
@@ -555,7 +555,7 @@ static uint32_t create_stereo_fb(drmModeModeInfo *mode, struct kmstest_fb *fb)
 			 mode->vrefresh,
 			 stereo_mode_str(mode));
 
-		kmstest_write_fb(drm_fd, fb, buffer);
+		igt_write_fb_to_png(drm_fd, fb, buffer);
 	}
 
 	return fb_id;
@@ -564,7 +564,7 @@ static uint32_t create_stereo_fb(drmModeModeInfo *mode, struct kmstest_fb *fb)
 static void do_set_stereo_mode(struct connector *c)
 {
 	uint32_t fb_id;
-	struct kmstest_fb fb_info;
+	struct igt_fb fb_info;
 
 	fb_id = create_stereo_fb(&c->mode, &fb_info);
 

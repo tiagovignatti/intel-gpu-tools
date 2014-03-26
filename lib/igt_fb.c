@@ -100,7 +100,7 @@ static int create_bo_for_fb(int fd, int width, int height, int bpp,
 	return 0;
 }
 
-void kmstest_paint_color(cairo_t *cr, int x, int y, int w, int h,
+void igt_paint_color(cairo_t *cr, int x, int y, int w, int h,
 			 double r, double g, double b)
 {
 	cairo_rectangle(cr, x, y, w, h);
@@ -108,7 +108,7 @@ void kmstest_paint_color(cairo_t *cr, int x, int y, int w, int h,
 	cairo_fill(cr);
 }
 
-void kmstest_paint_color_alpha(cairo_t *cr, int x, int y, int w, int h,
+void igt_paint_color_alpha(cairo_t *cr, int x, int y, int w, int h,
 			       double r, double g, double b, double a)
 {
 	cairo_rectangle(cr, x, y, w, h);
@@ -117,7 +117,7 @@ void kmstest_paint_color_alpha(cairo_t *cr, int x, int y, int w, int h,
 }
 
 void
-kmstest_paint_color_gradient(cairo_t *cr, int x, int y, int w, int h,
+igt_paint_color_gradient(cairo_t *cr, int x, int y, int w, int h,
 		     int r, int g, int b)
 {
 	cairo_pattern_t *pat;
@@ -143,19 +143,19 @@ paint_test_patterns(cairo_t *cr, int width, int height)
 	gr_height = height * 0.08;
 	x = (width / 2) - (gr_width / 2);
 
-	kmstest_paint_color_gradient(cr, x, y, gr_width, gr_height, 1, 0, 0);
+	igt_paint_color_gradient(cr, x, y, gr_width, gr_height, 1, 0, 0);
 
 	y += gr_height;
-	kmstest_paint_color_gradient(cr, x, y, gr_width, gr_height, 0, 1, 0);
+	igt_paint_color_gradient(cr, x, y, gr_width, gr_height, 0, 1, 0);
 
 	y += gr_height;
-	kmstest_paint_color_gradient(cr, x, y, gr_width, gr_height, 0, 0, 1);
+	igt_paint_color_gradient(cr, x, y, gr_width, gr_height, 0, 0, 1);
 
 	y += gr_height;
-	kmstest_paint_color_gradient(cr, x, y, gr_width, gr_height, 1, 1, 1);
+	igt_paint_color_gradient(cr, x, y, gr_width, gr_height, 1, 1, 1);
 }
 
-int kmstest_cairo_printf_line(cairo_t *cr, enum kmstest_text_align align,
+int igt_cairo_printf_line(cairo_t *cr, enum igt_text_align align,
 				double yspacing, const char *fmt, ...)
 {
 	double x, y, xofs, yofs;
@@ -202,7 +202,7 @@ int kmstest_cairo_printf_line(cairo_t *cr, enum kmstest_text_align align,
 static void
 paint_marker(cairo_t *cr, int x, int y)
 {
-	enum kmstest_text_align align;
+	enum igt_text_align align;
 	int xoff, yoff;
 
 	cairo_move_to(cr, x, y - 20);
@@ -226,10 +226,10 @@ paint_marker(cairo_t *cr, int x, int y)
 
 	cairo_move_to(cr, x + xoff, y + yoff);
 	cairo_set_font_size(cr, 18);
-	kmstest_cairo_printf_line(cr, align, 0, "(%d, %d)", x, y);
+	igt_cairo_printf_line(cr, align, 0, "(%d, %d)", x, y);
 }
 
-void kmstest_paint_test_pattern(cairo_t *cr, int width, int height)
+void igt_paint_test_pattern(cairo_t *cr, int width, int height)
 {
 	paint_test_patterns(cr, width, height);
 
@@ -244,7 +244,7 @@ void kmstest_paint_test_pattern(cairo_t *cr, int width, int height)
 	igt_assert(!cairo_status(cr));
 }
 
-void kmstest_paint_image(cairo_t *cr, const char *filename,
+void igt_paint_image(cairo_t *cr, const char *filename,
 			 int dst_x, int dst_y, int dst_width, int dst_height)
 {
 	cairo_surface_t *image;
@@ -272,8 +272,8 @@ void kmstest_paint_image(cairo_t *cr, const char *filename,
 	cairo_restore(cr);
 }
 
-unsigned int kmstest_create_fb(int fd, int width, int height, uint32_t format,
-			        bool tiled, struct kmstest_fb *fb)
+unsigned int igt_create_fb(int fd, int width, int height, uint32_t format,
+			        bool tiled, struct igt_fb *fb)
 {
 	uint32_t handles[4];
 	uint32_t pitches[4];
@@ -284,7 +284,7 @@ unsigned int kmstest_create_fb(int fd, int width, int height, uint32_t format,
 
 	memset(fb, 0, sizeof(*fb));
 
-	bpp = drm_format_to_bpp(format);
+	bpp = igt_drm_format_to_bpp(format);
 	ret = create_bo_for_fb(fd, width, height, bpp, tiled, &fb->gem_handle,
 			      &fb->size, &fb->stride);
 	if (ret < 0)
@@ -311,19 +311,19 @@ unsigned int kmstest_create_fb(int fd, int width, int height, uint32_t format,
 	return fb_id;
 }
 
-unsigned int kmstest_create_color_fb(int fd, int width, int height,
+unsigned int igt_create_color_fb(int fd, int width, int height,
 				     uint32_t format, bool tiled,
 				     double r, double g, double b,
-				     struct kmstest_fb *fb /* out */)
+				     struct igt_fb *fb /* out */)
 {
 	unsigned int fb_id;
 	cairo_t *cr;
 
-	fb_id = kmstest_create_fb(fd, width, height, format, tiled, fb);
+	fb_id = igt_create_fb(fd, width, height, format, tiled, fb);
 	igt_assert(fb_id);
 
-	cr = kmstest_get_cairo_ctx(fd, fb);
-	kmstest_paint_color(cr, 0, 0, width, height, r, g, b);
+	cr = igt_get_cairo_ctx(fd, fb);
+	igt_paint_color(cr, 0, 0, width, height, r, g, b);
 	igt_assert(cairo_status(cr) == 0);
 	cairo_destroy(cr);
 
@@ -343,11 +343,11 @@ static cairo_format_t drm_format_to_cairo(uint32_t drm_format)
 
 static void __kmstest_destroy_cairo_surface(void *arg)
 {
-	struct kmstest_fb *fb = arg;
+	struct igt_fb *fb = arg;
 	munmap(cairo_image_surface_get_data(fb->cairo_surface), fb->size);
 }
 
-static cairo_surface_t *kmstest_get_cairo_surface(int fd, struct kmstest_fb *fb)
+static cairo_surface_t *kmstest_get_cairo_surface(int fd, struct igt_fb *fb)
 {
 	if (fb->cairo_surface == NULL) {
 		fb->cairo_surface =
@@ -367,7 +367,7 @@ static cairo_surface_t *kmstest_get_cairo_surface(int fd, struct kmstest_fb *fb)
 	return cairo_surface_reference(fb->cairo_surface);
 }
 
-cairo_t *kmstest_get_cairo_ctx(int fd, struct kmstest_fb *fb)
+cairo_t *igt_get_cairo_ctx(int fd, struct igt_fb *fb)
 {
 	cairo_surface_t *surface;
 	cairo_t *cr;
@@ -381,7 +381,7 @@ cairo_t *kmstest_get_cairo_ctx(int fd, struct kmstest_fb *fb)
 	return cr;
 }
 
-void kmstest_write_fb(int fd, struct kmstest_fb *fb, const char *filename)
+void igt_write_fb_to_png(int fd, struct igt_fb *fb, const char *filename)
 {
 	cairo_surface_t *surface;
 	cairo_status_t status;
@@ -393,7 +393,7 @@ void kmstest_write_fb(int fd, struct kmstest_fb *fb, const char *filename)
 	igt_assert(status == CAIRO_STATUS_SUCCESS);
 }
 
-void kmstest_remove_fb(int fd, struct kmstest_fb *fb)
+void igt_remove_fb(int fd, struct igt_fb *fb)
 {
 	cairo_surface_destroy(fb->cairo_surface);
 	do_or_die(drmModeRmFB(fd, fb->fb_id));
@@ -401,7 +401,7 @@ void kmstest_remove_fb(int fd, struct kmstest_fb *fb)
 }
 
 /* helpers to handle drm fourcc codes */
-uint32_t bpp_depth_to_drm_format(int bpp, int depth)
+uint32_t igt_bpp_depth_to_drm_format(int bpp, int depth)
 {
 	struct format_desc_struct *f;
 
@@ -413,7 +413,7 @@ uint32_t bpp_depth_to_drm_format(int bpp, int depth)
 }
 
 /* Return fb_id on success, 0 on error */
-uint32_t drm_format_to_bpp(uint32_t drm_format)
+uint32_t igt_drm_format_to_bpp(uint32_t drm_format)
 {
 	struct format_desc_struct *f;
 
@@ -424,7 +424,7 @@ uint32_t drm_format_to_bpp(uint32_t drm_format)
 	abort();
 }
 
-const char *kmstest_format_str(uint32_t drm_format)
+const char *igt_format_str(uint32_t drm_format)
 {
 	struct format_desc_struct *f;
 
@@ -435,7 +435,7 @@ const char *kmstest_format_str(uint32_t drm_format)
 	return "invalid";
 }
 
-void kmstest_get_all_formats(const uint32_t **formats, int *format_count)
+void igt_get_all_formats(const uint32_t **formats, int *format_count)
 {
 	static uint32_t *drm_formats;
 

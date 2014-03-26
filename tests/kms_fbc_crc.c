@@ -51,7 +51,7 @@ enum test_mode {
 typedef struct {
 	struct kmstest_connector_config config;
 	drmModeModeInfo mode;
-	struct kmstest_fb fb[2];
+	struct igt_fb fb[2];
 } connector_t;
 
 typedef struct {
@@ -90,17 +90,17 @@ static const char *test_mode_str(enum test_mode mode)
 static uint32_t create_fb(data_t *data,
 			  int w, int h,
 			  double r, double g, double b,
-			  struct kmstest_fb *fb)
+			  struct igt_fb *fb)
 {
 	uint32_t fb_id;
 	cairo_t *cr;
 
-	fb_id = kmstest_create_fb(data->drm_fd, w, h,
+	fb_id = igt_create_fb(data->drm_fd, w, h,
 				  DRM_FORMAT_XRGB8888, true, fb);
 	igt_assert(fb_id);
 
-	cr = kmstest_get_cairo_ctx(data->drm_fd, fb);
-	kmstest_paint_color(cr, 0, 0, w, h, r, g, b);
+	cr = igt_get_cairo_ctx(data->drm_fd, fb);
+	igt_paint_color(cr, 0, 0, w, h, r, g, b);
 	igt_assert(cairo_status(cr) == 0);
 	cairo_destroy(cr);
 

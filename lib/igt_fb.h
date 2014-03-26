@@ -34,7 +34,7 @@
 #include <xf86drmMode.h>
 
 /* helpers to create nice-looking framebuffers */
-struct kmstest_fb {
+struct igt_fb {
 	uint32_t fb_id;
 	uint32_t gem_handle;
 	uint32_t drm_format;
@@ -47,7 +47,7 @@ struct kmstest_fb {
 	cairo_surface_t *cairo_surface;
 };
 
-enum kmstest_text_align {
+enum igt_text_align {
 	align_left,
 	align_bottom	= align_left,
 	align_right	= 0x01,
@@ -56,34 +56,36 @@ enum kmstest_text_align {
 	align_hcenter	= 0x08,
 };
 
-int kmstest_cairo_printf_line(cairo_t *cr, enum kmstest_text_align align,
+int igt_cairo_printf_line(cairo_t *cr, enum igt_text_align align,
 			       double yspacing, const char *fmt, ...)
 			       __attribute__((format (printf, 4, 5)));
 
-unsigned int kmstest_create_fb(int fd, int width, int height, uint32_t format,
-			       bool tiled, struct kmstest_fb *fb);
-unsigned int kmstest_create_color_fb(int fd, int width, int height,
+unsigned int igt_create_fb(int fd, int width, int height, uint32_t format,
+			       bool tiled, struct igt_fb *fb);
+unsigned int igt_create_color_fb(int fd, int width, int height,
 				     uint32_t format, bool tiled,
 				     double r, double g, double b,
-				     struct kmstest_fb *fb /* out */);
-void kmstest_remove_fb(int fd, struct kmstest_fb *fb_info);
-cairo_t *kmstest_get_cairo_ctx(int fd, struct kmstest_fb *fb);
-void kmstest_paint_color(cairo_t *cr, int x, int y, int w, int h,
+				     struct igt_fb *fb /* out */);
+void igt_remove_fb(int fd, struct igt_fb *fb_info);
+
+/* cairo-based painting */
+cairo_t *igt_get_cairo_ctx(int fd, struct igt_fb *fb);
+void igt_paint_color(cairo_t *cr, int x, int y, int w, int h,
 			 double r, double g, double b);
-void kmstest_paint_color_alpha(cairo_t *cr, int x, int y, int w, int h,
+void igt_paint_color_alpha(cairo_t *cr, int x, int y, int w, int h,
 			       double r, double g, double b, double a);
-void kmstest_paint_color_gradient(cairo_t *cr, int x, int y, int w, int h,
+void igt_paint_color_gradient(cairo_t *cr, int x, int y, int w, int h,
 				  int r, int g, int b);
-void kmstest_paint_test_pattern(cairo_t *cr, int width, int height);
-void kmstest_paint_image(cairo_t *cr, const char *filename,
+void igt_paint_test_pattern(cairo_t *cr, int width, int height);
+void igt_paint_image(cairo_t *cr, const char *filename,
 			 int dst_x, int dst_y, int dst_width, int dst_height);
-void kmstest_write_fb(int fd, struct kmstest_fb *fb, const char *filename);
+void igt_write_fb_to_png(int fd, struct igt_fb *fb, const char *filename);
 
 /* helpers to handle drm fourcc codes */
-uint32_t bpp_depth_to_drm_format(int bpp, int depth);
-uint32_t drm_format_to_bpp(uint32_t drm_format);
-const char *kmstest_format_str(uint32_t drm_format);
-void kmstest_get_all_formats(const uint32_t **formats, int *format_count);
+uint32_t igt_bpp_depth_to_drm_format(int bpp, int depth);
+uint32_t igt_drm_format_to_bpp(uint32_t drm_format);
+const char *igt_format_str(uint32_t drm_format);
+void igt_get_all_formats(const uint32_t **formats, int *format_count);
 
 #endif /* __IGT_FB_H__ */
 
