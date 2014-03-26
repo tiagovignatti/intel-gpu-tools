@@ -56,6 +56,7 @@
 #include <stdbool.h>
 #include <strings.h>
 #include <unistd.h>
+#include <termios.h>
 #include <sys/poll.h>
 #include <sys/time.h>
 #include <sys/ioctl.h>
@@ -69,6 +70,8 @@
 
 #include <stdlib.h>
 #include <signal.h>
+
+struct termios saved_tio;
 
 drmModeRes *resources;
 int drm_fd, modes;
@@ -720,6 +723,15 @@ static void __attribute__((noreturn)) usage(char *name)
 
 #define dump_resource(res) if (res) dump_##res()
 
+static void cleanup_and_exit(int ret)
+{
+	close(drm_fd);
+
+	tcsetattr(STDIN_FILENO, TCSANOW, &saved_tio);
+
+	exit(ret);
+}
+
 static gboolean input_event(GIOChannel *source, GIOCondition condition,
 				gpointer data)
 {
@@ -728,7 +740,7 @@ static gboolean input_event(GIOChannel *source, GIOCondition condition,
 
 	count = read(g_io_channel_unix_get_fd(source), buf, sizeof(buf));
 	if (buf[0] == 'q' && (count == 1 || buf[1] == '\n')) {
-		exit(0);
+		cleanup_and_exit(0);
 	}
 
 	return TRUE;
@@ -752,6 +764,21 @@ static void enter_exec_path( char **argv )
 	ret = chdir(exec_path);
 	igt_assert(ret == 0);
 	free(exec_path);
+}
+
+static void set_termio_mode(void)
+{
+	struct termios tio;
+
+	tcgetattr(STDIN_FILENO, &saved_tio);
+
+	tio = saved_tio;
+
+	tio.c_lflag &= ~(ICANON | ECHO);
+
+	tcsetattr(STDIN_FILENO, TCSANOW, &tio);
+
+	return;
 }
 
 int main(int argc, char **argv)
@@ -826,6 +853,8 @@ int main(int argc, char **argv)
 		}
 	}
 
+	set_termio_mode();
+
 	if (depth <= 8)
 		bpp = 8;
 	else if (depth <= 16)
@@ -897,6 +926,8 @@ out_mainloop:
 	g_main_loop_unref(mainloop);
 out_close:
 	close(drm_fd);
+
+	tcsetattr(STDIN_FILENO, TCSANOW, &saved_tio);
 
 	return ret;
 }
