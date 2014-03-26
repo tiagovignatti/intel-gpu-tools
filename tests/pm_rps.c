@@ -488,6 +488,12 @@ static void reset(void)
 	int pre_freqs[NUMFREQ];
 	int post_freqs[NUMFREQ];
 
+	/*
+	 * quiescent_gpu upsets the gpu and makes it get pegged to max somehow.
+	 * Don't ask.
+	 */
+	sleep(10);
+
 	igt_debug("Apply low load...\n");
 	load_helper_run(LOW);
 	stabilize_check(pre_freqs);
