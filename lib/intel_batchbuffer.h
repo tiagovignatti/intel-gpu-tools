@@ -117,7 +117,7 @@ intel_batchbuffer_require_space(struct intel_batchbuffer *batch,
 } while (0)
 
 /**
- * OUT_RELOC_FENCED:
+ * OUT_RELOC:
  * @buf: relocation target libdrm buffer object
  * @read_domains: gem domain bits for the relocation
  * @write_domain: gem domain bit for the relocation
