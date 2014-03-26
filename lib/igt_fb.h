@@ -56,17 +56,13 @@ enum igt_text_align {
 	align_hcenter	= 0x08,
 };
 
-int igt_cairo_printf_line(cairo_t *cr, enum igt_text_align align,
-			       double yspacing, const char *fmt, ...)
-			       __attribute__((format (printf, 4, 5)));
-
 unsigned int igt_create_fb(int fd, int width, int height, uint32_t format,
 			       bool tiled, struct igt_fb *fb);
 unsigned int igt_create_color_fb(int fd, int width, int height,
 				     uint32_t format, bool tiled,
 				     double r, double g, double b,
 				     struct igt_fb *fb /* out */);
-void igt_remove_fb(int fd, struct igt_fb *fb_info);
+void igt_remove_fb(int fd, struct igt_fb *fb);
 
 /* cairo-based painting */
 cairo_t *igt_get_cairo_ctx(int fd, struct igt_fb *fb);
@@ -80,6 +76,9 @@ void igt_paint_test_pattern(cairo_t *cr, int width, int height);
 void igt_paint_image(cairo_t *cr, const char *filename,
 			 int dst_x, int dst_y, int dst_width, int dst_height);
 void igt_write_fb_to_png(int fd, struct igt_fb *fb, const char *filename);
+int igt_cairo_printf_line(cairo_t *cr, enum igt_text_align align,
+			       double yspacing, const char *fmt, ...)
+			       __attribute__((format (printf, 4, 5)));
 
 /* helpers to handle drm fourcc codes */
 uint32_t igt_bpp_depth_to_drm_format(int bpp, int depth);

@@ -38,6 +38,17 @@
  * @short_description: Framebuffer handling and drawing library
  * @title: i-g-t framebuffer
  * @include: igt_fb.h
+ *
+ * This library contains helper functions for handling kms framebuffer objects
+ * using #igt_fb structures to track all the metadata.  igt_create_fb() creates
+ * a basic framebufffer and igt_remove_fb() cleans everything up again.
+ *
+ * It also supports drawing using the cairo library and provides some simplified
+ * helper functions to easily draw test patterns. The main function to create a
+ * cairo drawing context for a framebuffer object is igt_get_cairo_ctx().
+ *
+ * Finally it also pulls in the drm fourcc headers and provides some helper
+ * functions to work with these pixel format codes.
  */
 
 /* drm fourcc/cairo format maps */
@@ -107,25 +118,68 @@ static int create_bo_for_fb(int fd, int width, int height, int bpp,
 	return 0;
 }
 
+/**
+ * igt_paint_color:
+ * @cr: cairo drawing context
+ * @x: pixel x-coordination of the fill rectangle
+ * @y: pixel y-coordination of the fill rectangle
+ * @w: width of the fill rectangle
+ * @h: height of the fill rectangle
+ * @r: red value to use as fill color
+ * @g: gree value to use as fill color
+ * @b: blue value to use as fill color
+ *
+ * This functions draws a solid rectangle with the given color using the drawing
+ * context @cr.
+ */
 void igt_paint_color(cairo_t *cr, int x, int y, int w, int h,
-			 double r, double g, double b)
+		     double r, double g, double b)
 {
 	cairo_rectangle(cr, x, y, w, h);
 	cairo_set_source_rgb(cr, r, g, b);
 	cairo_fill(cr);
 }
 
+/**
+ * igt_paint_color_alpha:
+ * @cr: cairo drawing context
+ * @x: pixel x-coordination of the fill rectangle
+ * @y: pixel y-coordination of the fill rectangle
+ * @w: width of the fill rectangle
+ * @h: height of the fill rectangle
+ * @r: red value to use as fill color
+ * @g: gree value to use as fill color
+ * @b: blue value to use as fill color
+ * @a: alpha value to use as fill color
+ *
+ * This functions draws a rectangle with the given color and alpha values using
+ * the drawing context @cr.
+ */
 void igt_paint_color_alpha(cairo_t *cr, int x, int y, int w, int h,
-			       double r, double g, double b, double a)
+			   double r, double g, double b, double a)
 {
 	cairo_rectangle(cr, x, y, w, h);
 	cairo_set_source_rgba(cr, r, g, b, a);
 	cairo_fill(cr);
 }
 
+/**
+ * igt_paint_color_gradient:
+ * @cr: cairo drawing context
+ * @x: pixel x-coordination of the fill rectangle
+ * @y: pixel y-coordination of the fill rectangle
+ * @w: width of the fill rectangle
+ * @h: height of the fill rectangle
+ * @r: red value to use as fill color
+ * @g: gree value to use as fill color
+ * @b: blue value to use as fill color
+ *
+ * This functions draws a gradient into the rectangle which fades in from black
+ * to the given values using the drawing context @cr.
+ */
 void
 igt_paint_color_gradient(cairo_t *cr, int x, int y, int w, int h,
-		     int r, int g, int b)
+			 int r, int g, int b)
 {
 	cairo_pattern_t *pat;
 
@@ -162,6 +216,21 @@ paint_test_patterns(cairo_t *cr, int width, int height)
 	igt_paint_color_gradient(cr, x, y, gr_width, gr_height, 1, 1, 1);
 }
 
+/**
+ * igt_cairo_printf_line:
+ * @cr: cairo drawing context
+ * @align: text alignment
+ * @yspacing: additional y-direction feed after this line
+ * @fmt: format string
+ * @...: optional arguments used in the format string
+ *
+ * This is a little helper to draw text onto framebuffers. All the initial setup
+ * (like setting the font size and the moving to the starting position) still
+ * needs to be done manually with explicit cairo calls on @cr.
+ *
+ * Returns:
+ * The width of the drawn text.
+ */
 int igt_cairo_printf_line(cairo_t *cr, enum igt_text_align align,
 				double yspacing, const char *fmt, ...)
 {
@@ -236,6 +305,20 @@ paint_marker(cairo_t *cr, int x, int y)
 	igt_cairo_printf_line(cr, align, 0, "(%d, %d)", x, y);
 }
 
+/**
+ * igt_paint_test_pattern:
+ * @cr: cairo drawing context
+ * @width: width of the visible area
+ * @height: height of the visible area
+ *
+ * This functions draws an entire set of test patterns for the given visible
+ * area using the drawing context @cr. This is useful for manual visual
+ * inspection of displayed framebuffers.
+ *
+ * The test patterns include
+ *  - corner markers to check for over/underscan and
+ *  - a set of color and b/w gradients.
+ */
 void igt_paint_test_pattern(cairo_t *cr, int width, int height)
 {
 	paint_test_patterns(cr, width, height);
@@ -251,8 +334,21 @@ void igt_paint_test_pattern(cairo_t *cr, int width, int height)
 	igt_assert(!cairo_status(cr));
 }
 
+/**
+ * igt_paint_image:
+ * @cr: cairo drawing context
+ * @filename: filename of the png image to draw
+ * @dst_x: pixel x-coordination of the destination rectangle
+ * @dst_y: pixel y-coordination of the destination rectangle
+ * @dst_width: width of the destination rectangle
+ * @dst_height: height of the destination rectangle
+ *
+ * This function can be used to draw a scaled version of the supplied png image.
+ * This is currently only used by the CR-code based testing in the "testdisplay"
+ * testcase.
+ */
 void igt_paint_image(cairo_t *cr, const char *filename,
-			 int dst_x, int dst_y, int dst_width, int dst_height)
+		     int dst_x, int dst_y, int dst_width, int dst_height)
 {
 	cairo_surface_t *image;
 	int img_width, img_height;
@@ -279,8 +375,28 @@ void igt_paint_image(cairo_t *cr, const char *filename,
 	cairo_restore(cr);
 }
 
+/**
+ * igt_create_fb:
+ * @fd: open i915 drm file descriptor
+ * @width: width of the framebuffer in pixel
+ * @height: height of the framebuffer in pixel
+ * @format: drm fourcc pixel format code
+ * @tiled: X-tiled or linear framebuffer
+ * @fb: pointer to an #igt_fb structure
+ *
+ * This function allocates a gem buffer object suitable to back a framebuffer
+ * with the requested properties and then wraps it up in a drm framebuffer
+ * object. All metadata is stored in @fb.
+ *
+ * The backing storage of the framebuffer is filled with all zeros, i.e. black
+ * for rgb pixel formats.
+ *
+ * Returns:
+ * The kms id of the created framebuffer on success or a negative error code on
+ * failure.
+ */
 unsigned int igt_create_fb(int fd, int width, int height, uint32_t format,
-			        bool tiled, struct igt_fb *fb)
+			   bool tiled, struct igt_fb *fb)
 {
 	uint32_t handles[4];
 	uint32_t pitches[4];
@@ -318,10 +434,33 @@ unsigned int igt_create_fb(int fd, int width, int height, uint32_t format,
 	return fb_id;
 }
 
+/**
+ * igt_create_color_fb:
+ * @fd: open i915 drm file descriptor
+ * @width: width of the framebuffer in pixel
+ * @height: height of the framebuffer in pixel
+ * @format: drm fourcc pixel format code
+ * @tiled: X-tiled or linear framebuffer
+ * @r: red value to use as fill color
+ * @g: gree value to use as fill color
+ * @b: blue value to use as fill color
+ * @fb: pointer to an #igt_fb structure
+ *
+ * This function allocates a gem buffer object suitable to back a framebuffer
+ * with the requested properties and then wraps it up in a drm framebuffer
+ * object. All metadata is stored in @fb.
+ *
+ * Compared to igt_create_fb() this function also fills the entire framebuffer
+ * with the given color, which is useful for some simple pipe crc based tests.
+ *
+ * Returns:
+ * The kms id of the created framebuffer on success or a negative error code on
+ * failure.
+ */
 unsigned int igt_create_color_fb(int fd, int width, int height,
-				     uint32_t format, bool tiled,
-				     double r, double g, double b,
-				     struct igt_fb *fb /* out */)
+				 uint32_t format, bool tiled,
+				 double r, double g, double b,
+				 struct igt_fb *fb /* out */)
 {
 	unsigned int fb_id;
 	cairo_t *cr;
@@ -345,7 +484,7 @@ static cairo_format_t drm_format_to_cairo(uint32_t drm_format)
 		if (f->drm_id == drm_format)
 			return f->cairo_id;
 
-	abort();
+	igt_fail(101);
 }
 
 static void __destroy_cairo_surface(void *arg)
@@ -374,6 +513,19 @@ static cairo_surface_t *get_cairo_surface(int fd, struct igt_fb *fb)
 	return cairo_surface_reference(fb->cairo_surface);
 }
 
+/**
+ * igt_get_cairo_ctx:
+ * @fd: open i915 drm file descriptor
+ * @fb: pointer to an #igt_fb structure
+ *
+ * This initializes a cairo surface for @fb and then allocates a drawing context
+ * for it. The return cairo drawing context should be released by calling
+ * cairo_destroy(). This also sets a default font for drawing text on
+ * framebuffers.
+ *
+ * Returns:
+ * The created cairo drawing context.
+ */
 cairo_t *igt_get_cairo_ctx(int fd, struct igt_fb *fb)
 {
 	cairo_surface_t *surface;
@@ -391,6 +543,14 @@ cairo_t *igt_get_cairo_ctx(int fd, struct igt_fb *fb)
 	return cr;
 }
 
+/**
+ * @fd: open i915 drm file descriptor
+ * @fb: pointer to an #igt_fb structure
+ * @filename: target name for the png image
+ *
+ * This function stores the contents of the supplied framebuffer into a png
+ * image stored at @filename.
+ */
 void igt_write_fb_to_png(int fd, struct igt_fb *fb, const char *filename)
 {
 	cairo_surface_t *surface;
@@ -403,6 +563,15 @@ void igt_write_fb_to_png(int fd, struct igt_fb *fb, const char *filename)
 	igt_assert(status == CAIRO_STATUS_SUCCESS);
 }
 
+/**
+ * igt_remove_fb:
+ * @fd: open i915 drm file descriptor
+ * @fb: pointer to an #igt_fb structure
+ *
+ * This function releases all resources allocated in igt_create_fb() for @fb.
+ * Note that if this framebuffer is still in use on a primary plane the kernel
+ * will disable the corresponding crtc.
+ */
 void igt_remove_fb(int fd, struct igt_fb *fb)
 {
 	cairo_surface_destroy(fb->cairo_surface);
@@ -410,7 +579,15 @@ void igt_remove_fb(int fd, struct igt_fb *fb)
 	gem_close(fd, fb->gem_handle);
 }
 
-/* helpers to handle drm fourcc codes */
+/**
+ * igt_bpp_depth_to_drm_format:
+ * @bpp: desired bits per pixel
+ * @depth: desired depth
+ *
+ * Returns:
+ * The rgb drm fourcc pixel format code corresponding to the given @bpp and
+ * @depth values.  Fails hard if no match was found.
+ */
 uint32_t igt_bpp_depth_to_drm_format(int bpp, int depth)
 {
 	struct format_desc_struct *f;
@@ -419,10 +596,17 @@ uint32_t igt_bpp_depth_to_drm_format(int bpp, int depth)
 		if (f->bpp == bpp && f->depth == depth)
 			return f->drm_id;
 
-	abort();
+	igt_fail(101);
 }
 
-/* Return fb_id on success, 0 on error */
+/**
+ * igt_drm_format_to_bpp:
+ * @drm_format: drm fourcc pixel format code
+ *
+ * Returns:
+ * The bits per pixel for the given drm fourcc pixel format code. Fails hard if
+ * no match was found.
+ */
 uint32_t igt_drm_format_to_bpp(uint32_t drm_format)
 {
 	struct format_desc_struct *f;
@@ -431,9 +615,17 @@ uint32_t igt_drm_format_to_bpp(uint32_t drm_format)
 		if (f->drm_id == drm_format)
 			return f->bpp;
 
-	abort();
+	igt_fail(101);
 }
 
+/**
+ * igt_format_str:
+ * @drm_format: drm fourcc pixel format code
+ *
+ * Returns:
+ * Human-readable fourcc pixel format code for @drm_format or "invalid" no match
+ * was found.
+ */
 const char *igt_format_str(uint32_t drm_format)
 {
 	struct format_desc_struct *f;
@@ -445,6 +637,14 @@ const char *igt_format_str(uint32_t drm_format)
 	return "invalid";
 }
 
+/**
+ * igt_get_all_formats:
+ * @formats: pointer to pointer to store the allocated formats array
+ * @format_count: pointer to integer to store the size of the allocated array
+ *
+ * This functions returns an array of all the drm fourcc codes supported by this
+ * library. The caller must free the allocated array again with free().
+ */
 void igt_get_all_formats(const uint32_t **formats, int *format_count)
 {
 	static uint32_t *drm_formats;
