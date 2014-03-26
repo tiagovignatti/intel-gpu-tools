@@ -40,9 +40,11 @@ libintel_tools_la_SOURCES = 	\
 	rendercopy.h		\
 	intel_reg_map.c		\
 	intel_iosf.c		\
-	igt_kms.c \
-	igt_kms.h \
-	igt_core.c \
-	igt_core.h \
+	igt_kms.c		\
+	igt_kms.h		\
+	igt_fb.c		\
+	igt_fb.h		\
+	igt_core.c		\
+	igt_core.h		\
 	$(NULL)
 
