@@ -19,6 +19,7 @@
     <xi:include href="xml/igt_core.xml"/>
     <xi:include href="xml/igt_debugfs.xml"/>
     <xi:include href="xml/igt_kms.xml"/>
+    <xi:include href="xml/igt_fb.xml"/>
     <xi:include href="xml/igt_aux.xml"/>
     <xi:include href="xml/ioctl_wrappers.xml"/>
     <xi:include href="xml/intel_batchbuffer.xml"/>

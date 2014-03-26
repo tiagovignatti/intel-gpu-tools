@@ -58,7 +58,7 @@
  * #OUT_BATCH, #OUT_RELOC and #ADVANCE_BATCH.
  *
  * Note that this library's header pulls in the [i-g-t core](intel-gpu-tools-i-g-t-core.html)
- * library as a depency.
+ * library as a dependency.
  */
 
 /**

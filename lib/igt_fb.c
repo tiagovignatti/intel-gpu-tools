@@ -33,6 +33,13 @@
 #include "igt_fb.h"
 #include "ioctl_wrappers.h"
 
+/**
+ * SECTION:igt_fb
+ * @short_description: Framebuffer handling and drawing library
+ * @title: i-g-t framebuffer
+ * @include: igt_fb.h
+ */
+
 /* drm fourcc/cairo format maps */
 #define DF(did, cid, _bpp, _depth)	\
 	{ DRM_FORMAT_##did, CAIRO_FORMAT_##cid, # did, _bpp, _depth }

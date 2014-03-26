@@ -70,7 +70,7 @@
  * But there's also a bit of other assorted stuff here.
  *
  * Note that this library's header pulls in the [i-g-t core](intel-gpu-tools-i-g-t-core.html)
- * and [batchbuffer](intel-gpu-tools-intel-batchbuffer.html) libraries as depencies.
+ * and [batchbuffer](intel-gpu-tools-intel-batchbuffer.html) libraries as dependencies.
  */
 
 static int

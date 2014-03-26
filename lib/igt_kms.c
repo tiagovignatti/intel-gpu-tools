@@ -42,6 +42,20 @@
 #include "igt_kms.h"
 #include "igt_aux.h"
 
+/**
+ * SECTION:igt_kms
+ * @short_description: Kernel modesetting support library
+ * @title: i-g-t kms
+ * @include: igt_kms.h
+ *
+ * This library provides support to enumerate and set modeset configurations.
+ *
+ * Since this library is very much still a work-in-progress and the interfaces
+ * still in-flux detailed api documentation is currently still missing.
+ *
+ * Note that this library's header pulls in the [i-g-t framebuffer](intel-gpu-tools-i-g-t-framebuffer.html)
+ * library as a dependency.
+ */
 
 const char *kmstest_pipe_str(int pipe)
 {
