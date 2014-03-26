@@ -32,3 +32,5 @@ EXTRA_DIST =  \
 	      quick_dump.py \
 	      reg_access.py \
 	      chipset.i chipset.py
+
+AM_CFLAGS = $(CAIRO_CFLAGS)
