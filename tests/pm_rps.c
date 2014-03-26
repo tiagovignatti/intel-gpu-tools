@@ -522,6 +522,43 @@ static void reset(void)
 	idle_check();
 }
 
+static void blocking(void)
+{
+	int pre_freqs[NUMFREQ];
+	int post_freqs[NUMFREQ];
+
+	int fd = drm_open_any();
+	igt_assert(fd >= 0);
+
+	/*
+	 * quiescent_gpu upsets the gpu and makes it get pegged to max somehow.
+	 * Don't ask.
+	 */
+	sleep(10);
+
+	igt_debug("Apply low load...\n");
+	load_helper_run(LOW);
+	stabilize_check(pre_freqs);
+	load_helper_stop();
+
+	sleep(5);
+
+	igt_debug("Kick gpu hard ...\n");
+	/* This relies on the blocking waits in quiescent_gpu and the kernel
+	 * boost logic to ramp the gpu to full load. */
+	gem_quiescent_gpu(fd);
+	gem_quiescent_gpu(fd);
+
+	igt_debug("Apply low load again...\n");
+	load_helper_run(LOW);
+	stabilize_check(post_freqs);
+	load_helper_stop();
+	matchit(pre_freqs, post_freqs);
+
+	igt_debug("Removing load...\n");
+	idle_check();
+}
+
 static void pm_rps_exit_handler(int sig)
 {
 	if (origfreqs[MIN] > readval(stuff[MAX].filp)) {
@@ -583,4 +620,7 @@ igt_main
 
 	igt_subtest("reset")
 		reset();
+
+	igt_subtest("blocking")
+		blocking();
 }
