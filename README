@@ -54,7 +54,7 @@ tests/
 	can run the testcases with (as usual as root, no other drm clients
 	running):
 
-	piglit-sources # ./piglit-run.py tests/igt.tests <results-file>
+	piglit-sources # ./piglit-run.py igt <results-file>
 
 	The testlist is built at runtime, so no need to update anything in
 	piglit when adding new tests. See
