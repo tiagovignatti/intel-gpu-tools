@@ -442,7 +442,7 @@ static void dump_avi_info(Transcoder transcoder)
 
 	printf("AVI InfoFrame:\n");
 
-	if (gen == 4 || IS_VALLEYVIEW(pci_dev->device_id)) {
+	if (gen == 4) {
 		printf("- %sbeing transmitted\n",
 		       val & DIP_CTL_BUFFER_TRANS_ACTIVE_GEN4 ? "" : "not ");
 	}
@@ -541,7 +541,7 @@ static void dump_vendor_info(Transcoder transcoder)
 
 	printf("Vendor InfoFrame:\n");
 
-	if (gen == 4 || IS_VALLEYVIEW(pci_dev->device_id)) {
+	if (gen == 4) {
 		printf("- %sbeing transmitted\n",
 		       val & DIP_CTL_BUFFER_TRANS_ACTIVE_GEN4 ? "" : "not ");
 	}
@@ -576,7 +576,7 @@ static void dump_gamut_info(Transcoder transcoder)
 
 	printf("Gamut InfoFrame:\n");
 
-	if (gen == 4 || IS_VALLEYVIEW(pci_dev->device_id)) {
+	if (gen == 4) {
 		printf("- %sbeing transmitted\n",
 		       val & DIP_CTL_BUFFER_TRANS_ACTIVE_GEN4 ? "" : "not ");
 	}
@@ -604,7 +604,7 @@ static void dump_spd_info(Transcoder transcoder)
 
 	printf("SPD InfoFrame:\n");
 
-	if (gen == 4 || IS_VALLEYVIEW(pci_dev->device_id)) {
+	if (gen == 4) {
 		printf("- %sbeing transmitted\n",
 		       val & DIP_CTL_BUFFER_TRANS_ACTIVE_GEN4 ? "" : "not ");
 	}
