@@ -205,6 +205,8 @@ int fd;
 #define   PIPE_CONTROL_QW_WRITE	(1<<14)
 #define   PIPE_CONTROL_LRI_POST_OP (1<<23)
 
+#define OACONTROL 0x2360
+
 igt_main
 {
 	igt_fixture {
@@ -339,6 +341,52 @@ igt_main
 					    lri_ok, sizeof(lri_ok),
 					    I915_EXEC_RENDER,
 					    0));
+	}
+
+	igt_subtest("oacontrol-tracking") {
+		uint32_t lri_ok[] = {
+			MI_LOAD_REGISTER_IMM,
+			OACONTROL,
+			0x31337000,
+			MI_LOAD_REGISTER_IMM,
+			OACONTROL,
+			0x0,
+			MI_BATCH_BUFFER_END,
+			0
+		};
+		uint32_t lri_bad[] = {
+			MI_LOAD_REGISTER_IMM,
+			OACONTROL,
+			0x31337000,
+			MI_BATCH_BUFFER_END,
+		};
+		uint32_t lri_extra_bad[] = {
+			MI_LOAD_REGISTER_IMM,
+			OACONTROL,
+			0x31337000,
+			MI_LOAD_REGISTER_IMM,
+			OACONTROL,
+			0x0,
+			MI_LOAD_REGISTER_IMM,
+			OACONTROL,
+			0x31337000,
+			MI_BATCH_BUFFER_END,
+		};
+		igt_assert(
+			exec_batch(fd, handle,
+				      lri_ok, sizeof(lri_ok),
+				      I915_EXEC_RENDER,
+				      0));
+		igt_assert(
+			exec_batch(fd, handle,
+				      lri_bad, sizeof(lri_bad),
+				      I915_EXEC_RENDER,
+				      -EINVAL));
+		igt_assert(
+			exec_batch(fd, handle,
+				      lri_extra_bad, sizeof(lri_extra_bad),
+				      I915_EXEC_RENDER,
+				      -EINVAL));
 	}
 
 	igt_fixture {
