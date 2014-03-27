@@ -1,4 +1,4 @@
-AM_CPPFLAGS = -I$(top_srcdir)/lib $(PYTHON_CPPFLAGS) $(DRM_CFLAGS)
+AM_CPPFLAGS = -I$(top_srcdir)/lib $(PYTHON_CPPFLAGS) $(DRM_CFLAGS) $(CAIRO_CFLAGS)
 
 BUILT_SOURCES = chipset_wrap_python.c
 
@@ -32,5 +32,3 @@ EXTRA_DIST =  \
 	      quick_dump.py \
 	      reg_access.py \
 	      chipset.i chipset.py
-
-AM_CFLAGS = $(CAIRO_CFLAGS)
