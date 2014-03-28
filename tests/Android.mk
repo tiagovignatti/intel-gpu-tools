@@ -17,6 +17,9 @@ define add_test
     # Excessive complaining for established cases. Rely on the Linux version warnings.
     LOCAL_CFLAGS += -Wno-sign-compare
 
+    LOCAL_C_INCLUDES = $(LOCAL_PATH)/../lib
+    LOCAL_C_INCLUDES += ${ANDROID_BUILD_TOP}/external/PRIVATE/drm/include/drm
+
     LOCAL_MODULE := $1
     LOCAL_MODULE_TAGS := optional
 
