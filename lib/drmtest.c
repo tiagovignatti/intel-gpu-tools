@@ -302,7 +302,7 @@ int drm_open_any(void)
 		return fd;
 
 	gem_quiescent_gpu(fd);
-	at_exit_drm_fd = dup(fd);
+	at_exit_drm_fd = __drm_open_any();
 	igt_install_exit_handler(quiescent_gpu_at_exit);
 
 	return fd;
@@ -328,7 +328,7 @@ int drm_open_any_render(void)
 	if (__sync_fetch_and_add(&open_count, 1))
 		return fd;
 
-	at_exit_drm_render_fd = dup(fd);
+	at_exit_drm_render_fd = __drm_open_any();
 	gem_quiescent_gpu(fd);
 	igt_install_exit_handler(quiescent_gpu_at_exit_render);
 
