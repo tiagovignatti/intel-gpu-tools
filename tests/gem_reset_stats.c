@@ -1059,22 +1059,49 @@ static bool gem_has_reset_stats(int fd)
 	return false;
 }
 
-#define RING_HAS_CONTEXTS (current_ring->contexts(current_ring))
-#define RUN_CTX_TEST(...) do { igt_skip_on(RING_HAS_CONTEXTS == false); __VA_ARGS__; } while (0)
+static void check_gpu_ok(void)
+{
+	int retry_count = 30;
+	enum stop_ring_flags flags;
+	int fd;
 
-static int fd;
+	igt_debug("checking gpu state\n");
+
+	while (retry_count--) {
+		flags = igt_get_stop_rings();
+		if (flags == 0)
+			break;
+
+		igt_debug("waiting previous hang to clear\n");
+		sleep(1);
+	}
+
+	igt_assert(flags == 0);
+
+	fd = drm_open_any();
+	gem_quiescent_gpu(fd);
+	close(fd);
+}
+
+#define RING_HAS_CONTEXTS (current_ring->contexts(current_ring))
+#define RUN_TEST(...) do { check_gpu_ok(); __VA_ARGS__; check_gpu_ok(); } while (0)
+#define RUN_CTX_TEST(...) do { igt_skip_on(RING_HAS_CONTEXTS == false); RUN_TEST(__VA_ARGS__); } while (0)
 
 igt_main
 {
 	igt_skip_on_simulation();
 
 	igt_fixture {
+		int fd;
+
 		bool has_reset_stats;
 		fd = drm_open_any();
 		devid = intel_get_drm_devid(fd);
 
 		hw_contexts = gem_has_hw_contexts(fd);
 		has_reset_stats = gem_has_reset_stats(fd);
+
+		close(fd);
 
 		igt_require_f(has_reset_stats,
 			      "No reset stats ioctl support. Too old kernel?\n");
@@ -1089,8 +1116,11 @@ igt_main
 		current_ring = &rings[i];
 		name = current_ring->name;
 
-		igt_fixture
+		igt_fixture {
+			int fd = drm_open_any();
 			gem_require_ring(fd, current_ring->exec);
+			close(fd);
+		}
 
 		igt_fixture
 			igt_require_f(intel_gen(devid) >= 4,
@@ -1100,19 +1130,19 @@ igt_main
 			RUN_CTX_TEST(test_params_ctx());
 
 		igt_subtest_f("reset-stats-%s", name)
-			test_rs(4, 1, 0);
+			RUN_TEST(test_rs(4, 1, 0));
 
 		igt_subtest_f("reset-stats-ctx-%s", name)
 			RUN_CTX_TEST(test_rs_ctx(4, 4, 1, 2));
 
 		igt_subtest_f("ban-%s", name)
-			test_ban();
+			RUN_TEST(test_ban());
 
 		igt_subtest_f("ban-ctx-%s", name)
 			RUN_CTX_TEST(test_ban_ctx());
 
 		igt_subtest_f("reset-count-%s", name)
-			test_reset_count(false);
+			RUN_TEST(test_reset_count(false));
 
 		igt_subtest_f("reset-count-ctx-%s", name)
 			RUN_CTX_TEST(test_reset_count(true));
@@ -1120,22 +1150,16 @@ igt_main
 		igt_subtest_f("unrelated-ctx-%s", name)
 			RUN_CTX_TEST(test_unrelated_ctx());
 
-		igt_subtest_f("close-pending-%s", name) {
-			test_close_pending();
-			gem_quiescent_gpu(fd);
-		}
+		igt_subtest_f("close-pending-%s", name)
+			RUN_TEST(test_close_pending());
 
-		igt_subtest_f("close-pending-ctx-%s", name) {
+		igt_subtest_f("close-pending-ctx-%s", name)
 			RUN_CTX_TEST(test_close_pending_ctx());
-			gem_quiescent_gpu(fd);
-		}
 
-		igt_subtest_f("close-pending-fork-%s", name) {
-			test_close_pending_fork(true);
-			test_close_pending_fork(false);
-		}
+		igt_subtest_f("close-pending-fork-%s", name)
+			RUN_TEST(test_close_pending_fork(false));
+
+		igt_subtest_f("close-pending-fork-reverse-%s", name)
+			RUN_TEST(test_close_pending_fork(true));
 	}
-
-	igt_fixture
-		close(fd);
 }
