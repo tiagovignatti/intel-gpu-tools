@@ -33,7 +33,8 @@ include $(LOCAL_PATH)/Makefile.sources
 
 skip_lib_list := \
     igt_kms.c \
-    igt_kms.h
+    igt_kms.h \
+    igt_fb.c
 
 lib_list := $(filter-out $(skip_lib_list),$(libintel_tools_la_SOURCES))
 

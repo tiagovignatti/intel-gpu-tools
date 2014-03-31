@@ -28,7 +28,12 @@
 #ifndef __IGT_FB_H__
 #define __IGT_FB_H__
 
+#ifndef ANDROID
 #include <cairo.h>
+#else
+typedef struct _cairo_surface cairo_surface_t;
+typedef struct _cairo cairo_t;
+#endif
 
 #include <drm_fourcc.h>
 #include <xf86drmMode.h>
