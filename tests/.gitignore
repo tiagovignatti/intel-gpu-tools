@@ -117,6 +117,7 @@ kms_pipe_crc_basic
 kms_plane
 kms_render
 kms_setmode
+multi-tests.txt
 pm_lpsp
 pm_pc8
 pm_psr
@@ -127,5 +128,6 @@ prime_nv_pcopy
 prime_nv_test
 prime_self_import
 prime_udl
+single-tests.txt
 template
 testdisplay

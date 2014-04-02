@@ -5,6 +5,8 @@ if HAVE_NOUVEAU
 endif
 
 if BUILD_TESTS
+all-local: single-tests.txt multi-tests.txt
+
 list-single-tests:
 	@echo TESTLIST
 	@echo ${single_kernel_tests}
@@ -15,10 +17,20 @@ list-multi-tests:
 	@echo ${multi_kernel_tests}
 	@echo END TESTLIST
 
+single-tests.txt:
+	@echo TESTLIST > $@
+	@echo ${single_kernel_tests} >> $@
+	@echo END TESTLIST >> $@
+
+multi-tests.txt:
+	@echo TESTLIST > $@
+	@echo ${multi_kernel_tests} >> $@
+	@echo END TESTLIST >> $@
+
 EXTRA_PROGRAMS = $(TESTS_progs) $(TESTS_progs_M) $(HANG) $(TESTS_testsuite)
 EXTRA_DIST = $(TESTS_scripts) $(TESTS_scripts_M) $(scripts) $(IMAGES) $(common_files)
 
-CLEANFILES = $(EXTRA_PROGRAMS)
+CLEANFILES = $(EXTRA_PROGRAMS) single-tests.txt multi-tests.txt
 
 AM_CFLAGS = $(DRM_CFLAGS) $(CWARNFLAGS) \
 	-I$(srcdir)/.. \
