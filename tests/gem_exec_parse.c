@@ -31,6 +31,7 @@
 
 #include "drmtest.h"
 #include "ioctl_wrappers.h"
+#include "intel_chipset.h"
 
 #ifndef I915_PARAM_CMD_PARSER_VERSION
 #define I915_PARAM_CMD_PARSER_VERSION       28
@@ -219,6 +220,9 @@ igt_main
 		igt_require(!rc && parser_version > 0);
 
 		handle = gem_create(fd, 4096);
+
+		/* ATM cmd parser only exists on gen7. */
+		igt_require(intel_gen(intel_get_drm_devid(fd)) == 7);
 	}
 
 	igt_subtest("basic-allowed") {
