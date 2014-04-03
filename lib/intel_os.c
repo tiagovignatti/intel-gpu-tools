@@ -86,6 +86,40 @@ intel_get_total_ram_mb(void)
 }
 
 /**
+ * intel_get_avail_ram_mb:
+ *
+ * Returns:
+ * The amount of unused system RAM available in MB.
+ */
+uint64_t
+intel_get_avail_ram_mb(void)
+{
+	uint64_t retval;
+
+#ifdef HAVE_STRUCT_SYSINFO_TOTALRAM /* Linux */
+	struct sysinfo sysinf;
+	int ret;
+
+	ret = sysinfo(&sysinf);
+	assert(ret == 0);
+
+	retval = sysinf.freeram;
+	retval *= sysinf.mem_unit;
+#elif defined(_SC_PAGESIZE) && defined(_SC_PHYS_PAGES) /* Solaris */
+	long pagesize, npages;
+
+	pagesize = sysconf(_SC_PAGESIZE);
+        npages = sysconf(_SC_AVPHYS_PAGES);
+
+	retval = (uint64_t) pagesize * npages;
+#else
+#error "Unknown how to get available RAM for this OS"
+#endif
+
+	return retval / (1024*1024);
+}
+
+/**
  * intel_get_total_swap_mb:
  *
  * Returns:

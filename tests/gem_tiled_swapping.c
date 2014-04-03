@@ -104,15 +104,22 @@ igt_simple_main
 	igt_skip_on_simulation();
 
 	fd = drm_open_any();
-	/* need slightly more than total ram */
-	count = intel_get_total_ram_mb() * 11 / 10;
+	/* need slightly more than available memory */
+	count = intel_get_total_ram_mb() + intel_get_total_swap_mb() / 4;
 	bo_handles = calloc(count, sizeof(uint32_t));
 	igt_assert(bo_handles);
 
 	idx_arr = calloc(count, sizeof(int));
 	igt_assert(idx_arr);
 
-	igt_require(intel_get_total_ram_mb() / 4 < intel_get_total_swap_mb());
+	igt_log(IGT_LOG_INFO,
+		"Using %d 1MiB objects (available RAM: %ld/%ld, swap: %ld)\n",
+		count,
+		(long)intel_get_avail_ram_mb(),
+		(long)intel_get_total_ram_mb(),
+		(long)intel_get_total_swap_mb());
+
+	igt_require(count < intel_get_avail_ram_mb() + intel_get_total_swap_mb());
 
 	for (i = 0; i < count; i++) {
 		bo_handles[i] = create_bo_and_fill(fd);
