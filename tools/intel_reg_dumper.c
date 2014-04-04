@@ -2959,7 +2959,7 @@ int main(int argc, char** argv)
 
 	power_well = power_well_get();
 
-	if (IS_HASWELL(devid)) {
+	if (IS_HASWELL(devid) || IS_BROADWELL(devid)) {
 		intel_dump_regs(haswell_debug_regs);
 	} else if (IS_GEN5(devid) || IS_GEN6(devid) || IS_IVYBRIDGE(devid)) {
 		intel_dump_regs(ironlake_debug_regs);
