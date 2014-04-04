@@ -355,7 +355,8 @@ static bool enable_one_screen_with_type(struct mode_set_data *data,
 
 static void enable_one_screen(struct mode_set_data *data)
 {
-	igt_assert(enable_one_screen_with_type(data, SCREEN_TYPE_ANY));
+	/* SKIP if there are no connected screens. */
+	igt_require(enable_one_screen_with_type(data, SCREEN_TYPE_ANY));
 }
 
 static drmModePropertyBlobPtr get_connector_edid(drmModeConnectorPtr connector,
