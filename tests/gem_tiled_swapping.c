@@ -53,6 +53,7 @@
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/ioctl.h>
+#include <pthread.h>
 
 #include <drm.h>
 
@@ -91,14 +92,64 @@ create_bo_and_fill(int fd)
 }
 
 uint32_t *bo_handles;
-int *idx_arr;
+
+struct thread {
+	pthread_t thread;
+	int *idx_arr;
+	int fd, count;
+};
+
+static void
+check_bo(int fd, uint32_t handle)
+{
+	uint32_t *data;
+	int j;
+
+	/* Check the target bo's contents. */
+	data = gem_mmap(fd, handle, LINEAR_DWORDS, PROT_READ | PROT_WRITE);
+	for (j = 0; j < WIDTH*HEIGHT; j++)
+		igt_assert_f(data[j] == j,
+			     "mismatch at %i: %i\n",
+			     j, data[j]);
+	munmap(data, LINEAR_DWORDS);
+}
+
+static void *thread_run(void *data)
+{
+	struct thread *t = data;
+	int i;
+
+	for (i = 0; i < t->count; i++)
+		check_bo(t->fd, bo_handles[t->idx_arr[i]]);
+
+	return NULL;
+}
+
+static void thread_init(struct thread *t, int fd, int count)
+{
+	int i;
+
+	t->fd = fd;
+	t->count = count;
+	t->idx_arr = calloc(count, sizeof(int));
+	igt_assert(t->idx_arr);
+
+	for (i = 0; i < count; i++)
+		t->idx_arr[i] = i;
+
+	igt_permute_array(t->idx_arr, count, igt_exchange_int);
+}
+
+static void thread_fini(struct thread *t)
+{
+	free(t->idx_arr);
+}
 
 igt_simple_main
 {
-	int fd;
-	uint32_t *data;
-	int i, j;
-	int count;
+	struct thread *threads;
+	int fd, n, count, num_threads;
+
 	current_tiling_mode = I915_TILING_X;
 
 	igt_skip_on_simulation();
@@ -110,8 +161,9 @@ igt_simple_main
 	bo_handles = calloc(count, sizeof(uint32_t));
 	igt_assert(bo_handles);
 
-	idx_arr = calloc(count, sizeof(int));
-	igt_assert(idx_arr);
+	num_threads = gem_available_fences(fd);
+	threads = calloc(num_threads, sizeof(struct thread));
+	igt_assert(threads);
 
 	igt_log(IGT_LOG_INFO,
 		"Using %d 1MiB objects (available RAM: %ld/%ld, swap: %ld)\n",
@@ -122,27 +174,26 @@ igt_simple_main
 
 	igt_require(count < intel_get_avail_ram_mb() + intel_get_total_swap_mb());
 
-	for (i = 0; i < count; i++) {
-		bo_handles[i] = create_bo_and_fill(fd);
+	for (n = 0; n < count; n++) {
+		bo_handles[n] = create_bo_and_fill(fd);
 		/* Not enough mmap address space possible. */
-		igt_require(bo_handles[i]);
+		igt_require(bo_handles[n]);
 	}
 
-	for (i = 0; i < count; i++)
-		idx_arr[i] = i;
+	thread_init(&threads[0], fd, count);
+	thread_run(&threads[0]);
+	thread_fini(&threads[0]);
 
-	igt_permute_array(idx_arr, count,
-			      igt_exchange_int);
-
-	for (i = 0; i < count/2; i++) {
-		/* Check the target bo's contents. */
-		data = gem_mmap(fd, bo_handles[idx_arr[i]],
-				LINEAR_DWORDS, PROT_READ | PROT_WRITE);
-		for (j = 0; j < WIDTH*HEIGHT; j++)
-			igt_assert_f(data[j] == j,
-				     "mismatch at %i: %i\n",
-				     j, data[j]);
-		munmap(data, LINEAR_DWORDS);
+	/* Once more with threads */
+	igt_subtest("threaded") {
+		for (n = 0; n < num_threads; n++) {
+			thread_init(&threads[n], fd, count);
+			pthread_create(&threads[n].thread, NULL, thread_run, &threads[n]);
+		}
+		for (n = 0; n < num_threads; n++) {
+			pthread_join(threads[n].thread, NULL);
+			thread_fini(&threads[n]);
+		}
 	}
 
 	close(fd);
