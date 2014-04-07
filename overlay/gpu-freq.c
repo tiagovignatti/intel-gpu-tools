@@ -72,8 +72,12 @@ int gpu_freq_init(struct gpu_freq *gf)
 
 	gf->fd = perf_open();
 
-	sprintf(buf, "%s/i915_cur_delayinfo", debugfs_dri_path);
+	sprintf(buf, "%s/i915_frequency_info", debugfs_dri_path);
 	fd = open(buf, 0);
+	if (fd < 0) {
+		sprintf(buf, "%s/i915_cur_delayinfo", debugfs_dri_path);
+		fd = open(buf, 0);
+	}
 	if (fd < 0)
 		return gf->error = errno;
 
