@@ -61,6 +61,7 @@ void igt_wait_for_keypress(void);
 
 /* These are separate to allow easier testing when porting, see the comment at
  * the bottom of intel_os.c. */
+void intel_purge_vm_caches(void);
 uint64_t intel_get_avail_ram_mb(void);
 uint64_t intel_get_total_ram_mb(void);
 uint64_t intel_get_total_swap_mb(void);

@@ -185,6 +185,19 @@ intel_get_total_swap_mb(void)
 	return retval / (1024*1024);
 }
 
+void
+intel_purge_vm_caches(void)
+{
+	int fd;
+
+	fd = open("/proc/sys/vm/drop_caches", O_RDWR);
+	if (fd < 0)
+		return;
+
+	write(fd, "3\n", 2);
+	close(fd);
+}
+
 
 /*
  * When testing a port to a new platform, create a standalone test binary
