@@ -115,6 +115,7 @@ static void do_single_test(test_data_t *test_data, int x, int y)
 	printf("."); fflush(stdout);
 
 	/* Hardware test */
+	igt_paint_test_pattern(cr, test_data->screenw, test_data->screenh);
 	cursor_enable(test_data);
 	cursor = igt_output_get_plane(test_data->output, IGT_PLANE_CURSOR);
 	igt_plane_set_position(cursor, x, y);
