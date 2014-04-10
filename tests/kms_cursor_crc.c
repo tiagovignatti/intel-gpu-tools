@@ -214,6 +214,18 @@ static void test_crc_sliding(test_data_t *test_data)
 	}
 }
 
+static void test_crc_random(test_data_t *test_data)
+{
+	int i;
+
+	/* Random cursor placement */
+	for (i = 0; i < 50; i++) {
+		int x = rand() % (test_data->screenw + test_data->curw * 2) - test_data->curw;
+		int y = rand() % (test_data->screenh + test_data->curh * 2) - test_data->curh;
+		do_single_test(test_data, x, y);
+	}
+}
+
 static bool prepare_crtc(test_data_t *test_data, igt_output_t *output,
 			 int cursor_w, int cursor_h)
 {
@@ -359,6 +371,8 @@ static void run_test_generic(data_t *data, int cursor_max_size)
 			run_test(data, test_crc_offscreen, cursor_size, cursor_size);
 		igt_subtest_f("cursor-%s-sliding", c_size)
 			run_test(data, test_crc_sliding, cursor_size, cursor_size);
+		igt_subtest_f("cursor-%s-random", c_size)
+			run_test(data, test_crc_random, cursor_size, cursor_size);
 	}
 
 }
