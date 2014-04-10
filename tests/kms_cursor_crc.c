@@ -67,45 +67,6 @@ static void draw_cursor(cairo_t *cr, int x, int y, int w)
 	igt_paint_color_alpha(cr, x + w, y + w, w, w, 0.5, 0.5, 0.5, 1.0);
 }
 
-static igt_pipe_crc_t *create_crc(data_t *data, enum pipe pipe)
-{
-	igt_pipe_crc_t *crc;
-
-	crc = igt_pipe_crc_new(pipe, INTEL_PIPE_CRC_SOURCE_AUTO);
-	return crc;
-}
-
-static void do_single_test(test_data_t *test_data, int x, int y)
-{
-	data_t *data = test_data->data;
-	igt_display_t *display = &data->display;
-	igt_pipe_crc_t *pipe_crc = data->pipe_crc[test_data->pipe];
-	igt_crc_t crc;
-	igt_plane_t *cursor;
-
-	printf("."); fflush(stdout);
-
-	cursor = igt_output_get_plane(test_data->output, IGT_PLANE_CURSOR);
-	igt_plane_set_position(cursor, x, y);
-	igt_display_commit(display);
-	igt_wait_for_vblank(data->drm_fd, test_data->pipe);
-
-	igt_pipe_crc_collect_crc(pipe_crc, &crc);
-	if (test_data->crc_must_match)
-		igt_assert(igt_crc_equal(&crc, &test_data->ref_crc));
-	else
-		igt_assert(!igt_crc_equal(&crc, &test_data->ref_crc));
-}
-
-static void do_test(test_data_t *test_data,
-		    int left, int right, int top, int bottom)
-{
-	do_single_test(test_data, left, top);
-	do_single_test(test_data, right, top);
-	do_single_test(test_data, right, bottom);
-	do_single_test(test_data, left, bottom);
-}
-
 static void cursor_enable(test_data_t *test_data)
 {
 	data_t *data = test_data->data;
@@ -130,6 +91,47 @@ static void cursor_disable(test_data_t *test_data)
 	igt_display_commit(display);
 }
 
+static igt_pipe_crc_t *create_crc(data_t *data, enum pipe pipe)
+{
+	igt_pipe_crc_t *crc;
+
+	crc = igt_pipe_crc_new(pipe, INTEL_PIPE_CRC_SOURCE_AUTO);
+	return crc;
+}
+
+static void do_single_test(test_data_t *test_data, int x, int y)
+{
+	data_t *data = test_data->data;
+	igt_display_t *display = &data->display;
+	igt_pipe_crc_t *pipe_crc = data->pipe_crc[test_data->pipe];
+	igt_crc_t crc;
+	igt_plane_t *cursor;
+
+	printf("."); fflush(stdout);
+
+	cursor_enable(test_data);
+	cursor = igt_output_get_plane(test_data->output, IGT_PLANE_CURSOR);
+	igt_plane_set_position(cursor, x, y);
+	igt_display_commit(display);
+	igt_wait_for_vblank(data->drm_fd, test_data->pipe);
+	igt_pipe_crc_collect_crc(pipe_crc, &crc);
+	cursor_disable(test_data);
+
+	if (test_data->crc_must_match)
+		igt_assert(igt_crc_equal(&crc, &test_data->ref_crc));
+	else
+		igt_assert(!igt_crc_equal(&crc, &test_data->ref_crc));
+}
+
+static void do_test(test_data_t *test_data,
+		    int left, int right, int top, int bottom)
+{
+	do_single_test(test_data, left, top);
+	do_single_test(test_data, right, top);
+	do_single_test(test_data, right, bottom);
+	do_single_test(test_data, left, bottom);
+}
+
 static void test_crc(test_data_t *test_data,
 		     bool onscreen, int cursor_w, int cursor_h)
 {
@@ -137,8 +139,6 @@ static void test_crc(test_data_t *test_data,
 	int right = test_data->right;
 	int top = test_data->top;
 	int bottom = test_data->bottom;
-
-	cursor_enable(test_data);
 
 	if (onscreen) {
 		/* cursor onscreen, crc should match, except when white visible cursor is used */
@@ -183,8 +183,6 @@ static void test_crc(test_data_t *test_data,
 		/* go nuts */
 		do_test(test_data, INT_MIN, INT_MAX, INT_MIN, INT_MAX);
 	}
-
-	cursor_disable(test_data);
 }
 
 static bool prepare_crtc(test_data_t *test_data, igt_output_t *output,
