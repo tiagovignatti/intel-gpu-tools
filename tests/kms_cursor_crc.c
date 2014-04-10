@@ -39,19 +39,11 @@
 #define DRM_CAP_CURSOR_HEIGHT 0x9
 #endif
 
-enum cursor_type {
-	WHITE_VISIBLE,
-	WHITE_INVISIBLE,
-	BLACK_VISIBLE,
-	BLACK_INVISIBLE,
-	NUM_CURSOR_TYPES,
-};
-
 typedef struct {
 	int drm_fd;
 	igt_display_t display;
 	struct igt_fb primary_fb;
-	struct igt_fb fb[NUM_CURSOR_TYPES];
+	struct igt_fb fb;
 	igt_pipe_crc_t **pipe_crc;
 } data_t;
 
@@ -64,6 +56,16 @@ typedef struct {
 	int left, right, top, bottom;
 } test_data_t;
 
+static void draw_cursor(cairo_t *cr, int x, int y, int w)
+{
+	w /= 2;
+	cairo_set_antialias(cr, CAIRO_ANTIALIAS_NONE);
+	/* 4 color rectangles in the corners, RGBY */
+	igt_paint_color_alpha(cr, x, y, w, w, 1.0, 0.0, 0.0, 1.0);
+	igt_paint_color_alpha(cr, x + w, y, w, w, 0.0, 1.0, 0.0, 1.0);
+	igt_paint_color_alpha(cr, x, y + w, w, w, 0.0, 0.0, 1.0, 1.0);
+	igt_paint_color_alpha(cr, x + w, y + w, w, w, 0.5, 0.5, 0.5, 1.0);
+}
 
 static igt_pipe_crc_t *create_crc(data_t *data, enum pipe pipe)
 {
@@ -104,7 +106,7 @@ static void do_test(test_data_t *test_data,
 	do_single_test(test_data, left, bottom);
 }
 
-static void cursor_enable(test_data_t *test_data, enum cursor_type cursor_type)
+static void cursor_enable(test_data_t *test_data)
 {
 	data_t *data = test_data->data;
 	igt_display_t *display = &data->display;
@@ -112,7 +114,7 @@ static void cursor_enable(test_data_t *test_data, enum cursor_type cursor_type)
 	igt_plane_t *cursor;
 
 	cursor = igt_output_get_plane(output, IGT_PLANE_CURSOR);
-	igt_plane_set_fb(cursor, &data->fb[cursor_type]);
+	igt_plane_set_fb(cursor, &data->fb);
 	igt_display_commit(display);
 }
 
@@ -128,7 +130,7 @@ static void cursor_disable(test_data_t *test_data)
 	igt_display_commit(display);
 }
 
-static void test_crc(test_data_t *test_data, enum cursor_type cursor_type,
+static void test_crc(test_data_t *test_data,
 		     bool onscreen, int cursor_w, int cursor_h)
 {
 	int left = test_data->left;
@@ -136,11 +138,11 @@ static void test_crc(test_data_t *test_data, enum cursor_type cursor_type,
 	int top = test_data->top;
 	int bottom = test_data->bottom;
 
-	cursor_enable(test_data, cursor_type);
+	cursor_enable(test_data);
 
 	if (onscreen) {
 		/* cursor onscreen, crc should match, except when white visible cursor is used */
-		test_data->crc_must_match = (cursor_type != WHITE_VISIBLE);
+		test_data->crc_must_match = false;
 
 		/* fully inside  */
 		do_test(test_data, left, right, top, bottom);
@@ -156,7 +158,7 @@ static void test_crc(test_data_t *test_data, enum cursor_type cursor_type,
 		do_test(test_data, left - (cursor_w-1), right + (cursor_w-1), top - (cursor_h-1), bottom + (cursor_h-1));
 	} else {
 		/* cursor offscreen, crc should always match */
-		test_data->crc_must_match = true;
+		test_data->crc_must_match = false;
 
 		/* fully outside */
 		do_test(test_data, left - (cursor_w), right + (cursor_w), top             , bottom             );
@@ -255,8 +257,7 @@ static void cleanup_crtc(test_data_t *test_data, igt_output_t *output)
 	igt_output_set_pipe(output, PIPE_ANY);
 }
 
-static void run_test(data_t *data, enum cursor_type cursor_type, bool onscreen,
-		     int cursor_w, int cursor_h)
+static void run_test(data_t *data, bool onscreen, int cursor_w, int cursor_h)
 {
 	igt_display_t *display = &data->display;
 	igt_output_t *output;
@@ -280,7 +281,7 @@ static void run_test(data_t *data, enum cursor_type cursor_type, bool onscreen,
 				igt_subtest_name(), pipe_name(test_data.pipe),
 				igt_output_name(output));
 
-			test_crc(&test_data, cursor_type, onscreen, cursor_w, cursor_h);
+			test_crc(&test_data, onscreen, cursor_w, cursor_h);
 
 			fprintf(stdout, "\n%s on pipe %c, connector %s: PASSED\n\n",
 				igt_subtest_name(), pipe_name(test_data.pipe),
@@ -294,22 +295,18 @@ static void run_test(data_t *data, enum cursor_type cursor_type, bool onscreen,
 	igt_require_f(valid_tests, "no valid crtc/connector combinations found\n");
 }
 
-static void create_cursor_fb(data_t *data,
-			     enum cursor_type cursor_type,
-			     double r, double g, double b, double a,
-			     int cur_w, int cur_h)
+static void create_cursor_fb(data_t *data, int cur_w, int cur_h)
 {
 	cairo_t *cr;
-	uint32_t fb_id[NUM_CURSOR_TYPES];
+	uint32_t fb_id;
 
-	fb_id[cursor_type] = igt_create_fb(data->drm_fd, cur_w, cur_h,
-					       DRM_FORMAT_ARGB8888, false,
-					       &data->fb[cursor_type]);
-	igt_assert(fb_id[cursor_type]);
+	fb_id = igt_create_fb(data->drm_fd, cur_w, cur_h,
+			      DRM_FORMAT_ARGB8888, false,
+			      &data->fb);
+	igt_assert(fb_id);
 
-	cr = igt_get_cairo_ctx(data->drm_fd,
-				   &data->fb[cursor_type]);
-	igt_paint_color_alpha(cr, 0, 0, cur_w, cur_h, r, g, b, a);
+	cr = igt_get_cairo_ctx(data->drm_fd, &data->fb);
+	draw_cursor(cr, 0, 0, cur_w);
 	igt_assert(cairo_status(cr) == 0);
 }
 
@@ -322,21 +319,13 @@ static void run_test_generic(data_t *data, int cursor_max_size)
 		igt_require(cursor_max_size >= cursor_size);
 		sprintf(c_size, "%d", cursor_size);
 
-		/* Creating cursor framebuffers */
-		create_cursor_fb(data, WHITE_VISIBLE, 1.0, 1.0, 1.0, 1.0, cursor_size, cursor_size);
-		create_cursor_fb(data, WHITE_INVISIBLE, 1.0, 1.0, 1.0, 0.0, cursor_size, cursor_size);
-		create_cursor_fb(data, BLACK_VISIBLE, 0.0, 0.0, 0.0, 1.0, cursor_size, cursor_size);
-		create_cursor_fb(data, BLACK_INVISIBLE, 0.0, 0.0, 0.0, 0.0, cursor_size, cursor_size);
+		create_cursor_fb(data, cursor_size, cursor_size);
 
 		/* Using created cursor FBs to test cursor support */
-		igt_subtest_f("white-visible-cursor-%s-onscreen", c_size)
-			run_test(data, WHITE_VISIBLE, true, cursor_size, cursor_size);
-		igt_subtest_f("white-invisible-cursor-%s-offscreen", c_size)
-			run_test(data, WHITE_INVISIBLE, false, cursor_size, cursor_size);
-                igt_subtest_f("black-visible-cursor-%s-onscreen", c_size)
-                        run_test(data, BLACK_VISIBLE, true, cursor_size, cursor_size);
-                igt_subtest_f("black-invisible-cursor-%s-offscreen", c_size)
-                        run_test(data, BLACK_INVISIBLE, false, cursor_size, cursor_size);
+		igt_subtest_f("cursor-%s-onscreen", c_size)
+			run_test(data, true, cursor_size, cursor_size);
+		igt_subtest_f("cursor-%s-offscreen", c_size)
+			run_test(data, false, cursor_size, cursor_size);
 	}
 
 }
