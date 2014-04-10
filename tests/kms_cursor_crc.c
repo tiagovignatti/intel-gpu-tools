@@ -200,6 +200,20 @@ static void test_crc_offscreen(test_data_t *test_data)
 	do_test(test_data, INT_MIN, INT_MAX, INT_MIN, INT_MAX);
 }
 
+static void test_crc_sliding(test_data_t *test_data)
+{
+	int i;
+
+	/* Make sure cursor moves smoothly and pixel-by-pixel, and that there are
+	 * no alignment issues. Horizontal, vertical and diagonal test.
+	 */
+	for (i = 0; i < 16; i++) {
+		do_single_test(test_data, i, 0);
+		do_single_test(test_data, 0, i);
+		do_single_test(test_data, i, i);
+	}
+}
+
 static bool prepare_crtc(test_data_t *test_data, igt_output_t *output,
 			 int cursor_w, int cursor_h)
 {
@@ -343,6 +357,8 @@ static void run_test_generic(data_t *data, int cursor_max_size)
 			run_test(data, test_crc_onscreen, cursor_size, cursor_size);
 		igt_subtest_f("cursor-%s-offscreen", c_size)
 			run_test(data, test_crc_offscreen, cursor_size, cursor_size);
+		igt_subtest_f("cursor-%s-sliding", c_size)
+			run_test(data, test_crc_sliding, cursor_size, cursor_size);
 	}
 
 }
