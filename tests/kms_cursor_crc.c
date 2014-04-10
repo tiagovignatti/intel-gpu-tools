@@ -52,14 +52,17 @@ typedef struct {
 	igt_output_t *output;
 	enum pipe pipe;
 	igt_crc_t ref_crc;
-	bool crc_must_match;
 	int left, right, top, bottom;
+	int screenw, screenh;
 	int curw, curh; /* cursor size */
 } test_data_t;
 
 static void draw_cursor(cairo_t *cr, int x, int y, int w)
 {
 	w /= 2;
+	/* Cairo doesn't like to be fed numbers that are too wild */
+	if ((x < SHRT_MIN) || (x > SHRT_MAX) || (y < SHRT_MIN) || (y > SHRT_MAX))
+		return;
 	cairo_set_antialias(cr, CAIRO_ANTIALIAS_NONE);
 	/* 4 color rectangles in the corners, RGBY */
 	igt_paint_color_alpha(cr, x, y, w, w, 1.0, 0.0, 0.0, 1.0);
@@ -105,11 +108,13 @@ static void do_single_test(test_data_t *test_data, int x, int y)
 	data_t *data = test_data->data;
 	igt_display_t *display = &data->display;
 	igt_pipe_crc_t *pipe_crc = data->pipe_crc[test_data->pipe];
-	igt_crc_t crc;
+	igt_crc_t crc, ref_crc;
 	igt_plane_t *cursor;
+	cairo_t *cr = igt_get_cairo_ctx(data->drm_fd, &data->primary_fb);
 
 	printf("."); fflush(stdout);
 
+	/* Hardware test */
 	cursor_enable(test_data);
 	cursor = igt_output_get_plane(test_data->output, IGT_PLANE_CURSOR);
 	igt_plane_set_position(cursor, x, y);
@@ -118,10 +123,16 @@ static void do_single_test(test_data_t *test_data, int x, int y)
 	igt_pipe_crc_collect_crc(pipe_crc, &crc);
 	cursor_disable(test_data);
 
-	if (test_data->crc_must_match)
-		igt_assert(igt_crc_equal(&crc, &test_data->ref_crc));
-	else
-		igt_assert(!igt_crc_equal(&crc, &test_data->ref_crc));
+	/* Now render the same in software and collect crc */
+	draw_cursor(cr, x, y, test_data->curw);
+	igt_display_commit(display);
+	igt_wait_for_vblank(data->drm_fd, test_data->pipe);
+	igt_pipe_crc_collect_crc(pipe_crc, &ref_crc);
+	/* Clear screen afterwards */
+	igt_paint_color(cr, 0, 0, test_data->screenw, test_data->screenh,
+			    0.0, 0.0, 0.0);
+
+	igt_assert(igt_crc_equal(&crc, &ref_crc));
 }
 
 static void do_test(test_data_t *test_data,
@@ -232,6 +243,8 @@ static bool prepare_crtc(test_data_t *test_data, igt_output_t *output,
 	test_data->right = mode->hdisplay - cursor_w;
 	test_data->top = 0;
 	test_data->bottom = mode->vdisplay - cursor_h;
+	test_data->screenw = mode->hdisplay;
+	test_data->screenh = mode->vdisplay;
 	test_data->curw = cursor_w;
 	test_data->curh = cursor_h;
 
