@@ -1,7 +1,9 @@
 include Makefile.sources
 
+SUBDIRS = null_state_gen
+
 if HAVE_DUMPER
-SUBDIRS = quick_dump
+SUBDIRS += quick_dump
 endif
 
 AM_CPPFLAGS = -I$(top_srcdir) -I$(top_srcdir)/lib

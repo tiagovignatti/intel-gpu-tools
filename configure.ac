@@ -217,6 +217,7 @@ AC_CONFIG_FILES([
 		 tests/Makefile
 		 tools/Makefile
 		 tools/quick_dump/Makefile
+		 tools/null_state_gen/Makefile
 		 debugger/Makefile
 		 debugger/system_routine/Makefile
 		 assembler/Makefile

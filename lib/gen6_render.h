@@ -152,6 +152,7 @@
 #define VB0_VERTEXDATA			(0 << 20)
 #define VB0_INSTANCEDATA		(1 << 20)
 #define VB0_BUFFER_PITCH_SHIFT		0
+#define VB0_NULL_VERTEX_BUFFER          (1 << 13)
 
 /* VERTEX_ELEMENT_STATE Structure */
 #define VE0_VERTEX_BUFFER_INDEX_SHIFT	26 /* for GEN6 */
