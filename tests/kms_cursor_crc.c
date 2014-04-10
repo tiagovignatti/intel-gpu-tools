@@ -54,6 +54,7 @@ typedef struct {
 	igt_crc_t ref_crc;
 	bool crc_must_match;
 	int left, right, top, bottom;
+	int curw, curh; /* cursor size */
 } test_data_t;
 
 static void draw_cursor(cairo_t *cr, int x, int y, int w)
@@ -133,12 +134,14 @@ static void do_test(test_data_t *test_data,
 }
 
 static void test_crc(test_data_t *test_data,
-		     bool onscreen, int cursor_w, int cursor_h)
+		     bool onscreen)
 {
 	int left = test_data->left;
 	int right = test_data->right;
 	int top = test_data->top;
 	int bottom = test_data->bottom;
+	int cursor_w = test_data->curw;
+	int cursor_h = test_data->curh;
 
 	if (onscreen) {
 		/* cursor onscreen, crc should match, except when white visible cursor is used */
@@ -228,6 +231,8 @@ static bool prepare_crtc(test_data_t *test_data, igt_output_t *output,
 	test_data->right = mode->hdisplay - cursor_w;
 	test_data->top = 0;
 	test_data->bottom = mode->vdisplay - cursor_h;
+	test_data->curw = cursor_w;
+	test_data->curh = cursor_h;
 
 	/* make sure cursor is disabled */
 	cursor_disable(test_data);
@@ -255,7 +260,7 @@ static void cleanup_crtc(test_data_t *test_data, igt_output_t *output)
 	igt_output_set_pipe(output, PIPE_ANY);
 }
 
-static void run_test(data_t *data, bool onscreen, int cursor_w, int cursor_h)
+static void run_test(data_t *data, void (*testfunc)(test_data_t *, bool), bool onscreen, int cursor_w, int cursor_h)
 {
 	igt_display_t *display = &data->display;
 	igt_output_t *output;
@@ -279,7 +284,7 @@ static void run_test(data_t *data, bool onscreen, int cursor_w, int cursor_h)
 				igt_subtest_name(), pipe_name(test_data.pipe),
 				igt_output_name(output));
 
-			test_crc(&test_data, onscreen, cursor_w, cursor_h);
+			testfunc(&test_data, onscreen);
 
 			fprintf(stdout, "\n%s on pipe %c, connector %s: PASSED\n\n",
 				igt_subtest_name(), pipe_name(test_data.pipe),
@@ -321,9 +326,9 @@ static void run_test_generic(data_t *data, int cursor_max_size)
 
 		/* Using created cursor FBs to test cursor support */
 		igt_subtest_f("cursor-%s-onscreen", c_size)
-			run_test(data, true, cursor_size, cursor_size);
+			run_test(data, test_crc, true, cursor_size, cursor_size);
 		igt_subtest_f("cursor-%s-offscreen", c_size)
-			run_test(data, false, cursor_size, cursor_size);
+			run_test(data, test_crc, false, cursor_size, cursor_size);
 	}
 
 }
