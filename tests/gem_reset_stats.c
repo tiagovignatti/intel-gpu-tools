@@ -295,7 +295,7 @@ static int inject_hang_ring(int fd, int ctx, int ring, bool ignore_ban_error)
 	for (i = 0; i < ITEMS; i++)
 		buf[i] = MI_NOOP;
 
-	roff = random() % (ITEMS - cmd_len);
+	roff = random() % (ITEMS - cmd_len - 1);
 	buf[roff] = MI_BATCH_BUFFER_START | (cmd_len - 2);
 	buf[roff + 1] = (gtt_off & 0xfffffffc) + (roff << 2);
 	if (cmd_len == 3)
