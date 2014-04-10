@@ -133,8 +133,7 @@ static void do_test(test_data_t *test_data,
 	do_single_test(test_data, left, bottom);
 }
 
-static void test_crc(test_data_t *test_data,
-		     bool onscreen)
+static void test_crc_onscreen(test_data_t *test_data)
 {
 	int left = test_data->left;
 	int right = test_data->right;
@@ -143,49 +142,51 @@ static void test_crc(test_data_t *test_data,
 	int cursor_w = test_data->curw;
 	int cursor_h = test_data->curh;
 
-	if (onscreen) {
-		/* cursor onscreen, crc should match, except when white visible cursor is used */
-		test_data->crc_must_match = false;
+	/* fully inside  */
+	do_test(test_data, left, right, top, bottom);
 
-		/* fully inside  */
-		do_test(test_data, left, right, top, bottom);
+	/* 2 pixels inside */
+	do_test(test_data, left - (cursor_w-2), right + (cursor_w-2), top               , bottom               );
+	do_test(test_data, left               , right               , top - (cursor_h-2), bottom + (cursor_h-2));
+	do_test(test_data, left - (cursor_w-2), right + (cursor_w-2), top - (cursor_h-2), bottom + (cursor_h-2));
 
-		/* 2 pixels inside */
-		do_test(test_data, left - (cursor_w-2), right + (cursor_w-2), top               , bottom               );
-		do_test(test_data, left               , right               , top - (cursor_h-2), bottom + (cursor_h-2));
-		do_test(test_data, left - (cursor_w-2), right + (cursor_w-2), top - (cursor_h-2), bottom + (cursor_h-2));
+	/* 1 pixel inside */
+	do_test(test_data, left - (cursor_w-1), right + (cursor_w-1), top               , bottom               );
+	do_test(test_data, left               , right               , top - (cursor_h-1), bottom + (cursor_h-1));
+	do_test(test_data, left - (cursor_w-1), right + (cursor_w-1), top - (cursor_h-1), bottom + (cursor_h-1));
+}
 
-		/* 1 pixel inside */
-		do_test(test_data, left - (cursor_w-1), right + (cursor_w-1), top               , bottom               );
-		do_test(test_data, left               , right               , top - (cursor_h-1), bottom + (cursor_h-1));
-		do_test(test_data, left - (cursor_w-1), right + (cursor_w-1), top - (cursor_h-1), bottom + (cursor_h-1));
-	} else {
-		/* cursor offscreen, crc should always match */
-		test_data->crc_must_match = false;
+static void test_crc_offscreen(test_data_t *test_data)
+{
+	int left = test_data->left;
+	int right = test_data->right;
+	int top = test_data->top;
+	int bottom = test_data->bottom;
+	int cursor_w = test_data->curw;
+	int cursor_h = test_data->curh;
 
-		/* fully outside */
-		do_test(test_data, left - (cursor_w), right + (cursor_w), top             , bottom             );
-		do_test(test_data, left             , right             , top - (cursor_h), bottom + (cursor_h));
-		do_test(test_data, left - (cursor_w), right + (cursor_w), top - (cursor_h), bottom + (cursor_h));
+	/* fully outside */
+	do_test(test_data, left - (cursor_w), right + (cursor_w), top             , bottom             );
+	do_test(test_data, left             , right             , top - (cursor_h), bottom + (cursor_h));
+	do_test(test_data, left - (cursor_w), right + (cursor_w), top - (cursor_h), bottom + (cursor_h));
 
-		/* fully outside by 1 extra pixels */
-		do_test(test_data, left - (cursor_w+1), right + (cursor_w+1), top               , bottom               );
-		do_test(test_data, left               , right               , top - (cursor_h+1), bottom + (cursor_h+1));
-		do_test(test_data, left - (cursor_w+1), right + (cursor_w+1), top - (cursor_h+1), bottom + (cursor_h+1));
+	/* fully outside by 1 extra pixels */
+	do_test(test_data, left - (cursor_w+1), right + (cursor_w+1), top               , bottom               );
+	do_test(test_data, left               , right               , top - (cursor_h+1), bottom + (cursor_h+1));
+	do_test(test_data, left - (cursor_w+1), right + (cursor_w+1), top - (cursor_h+1), bottom + (cursor_h+1));
 
-		/* fully outside by 2 extra pixels */
-		do_test(test_data, left - (cursor_w+2), right + (cursor_w+2), top               , bottom               );
-		do_test(test_data, left               , right               , top - (cursor_h+2), bottom + (cursor_h+2));
-		do_test(test_data, left - (cursor_w+2), right + (cursor_w+2), top - (cursor_h+2), bottom + (cursor_h+2));
+	/* fully outside by 2 extra pixels */
+	do_test(test_data, left - (cursor_w+2), right + (cursor_w+2), top               , bottom               );
+	do_test(test_data, left               , right               , top - (cursor_h+2), bottom + (cursor_h+2));
+	do_test(test_data, left - (cursor_w+2), right + (cursor_w+2), top - (cursor_h+2), bottom + (cursor_h+2));
 
-		/* fully outside by a lot of extra pixels */
-		do_test(test_data, left - (cursor_w+512), right + (cursor_w+512), top                 , bottom                 );
-		do_test(test_data, left                 , right                 , top - (cursor_h+512), bottom + (cursor_h+512));
-		do_test(test_data, left - (cursor_w+512), right + (cursor_w+512), top - (cursor_h+512), bottom + (cursor_h+512));
+	/* fully outside by a lot of extra pixels */
+	do_test(test_data, left - (cursor_w+512), right + (cursor_w+512), top                 , bottom                 );
+	do_test(test_data, left                 , right                 , top - (cursor_h+512), bottom + (cursor_h+512));
+	do_test(test_data, left - (cursor_w+512), right + (cursor_w+512), top - (cursor_h+512), bottom + (cursor_h+512));
 
-		/* go nuts */
-		do_test(test_data, INT_MIN, INT_MAX, INT_MIN, INT_MAX);
-	}
+	/* go nuts */
+	do_test(test_data, INT_MIN, INT_MAX, INT_MIN, INT_MAX);
 }
 
 static bool prepare_crtc(test_data_t *test_data, igt_output_t *output,
@@ -260,7 +261,7 @@ static void cleanup_crtc(test_data_t *test_data, igt_output_t *output)
 	igt_output_set_pipe(output, PIPE_ANY);
 }
 
-static void run_test(data_t *data, void (*testfunc)(test_data_t *, bool), bool onscreen, int cursor_w, int cursor_h)
+static void run_test(data_t *data, void (*testfunc)(test_data_t *), int cursor_w, int cursor_h)
 {
 	igt_display_t *display = &data->display;
 	igt_output_t *output;
@@ -284,7 +285,7 @@ static void run_test(data_t *data, void (*testfunc)(test_data_t *, bool), bool o
 				igt_subtest_name(), pipe_name(test_data.pipe),
 				igt_output_name(output));
 
-			testfunc(&test_data, onscreen);
+			testfunc(&test_data);
 
 			fprintf(stdout, "\n%s on pipe %c, connector %s: PASSED\n\n",
 				igt_subtest_name(), pipe_name(test_data.pipe),
@@ -326,9 +327,9 @@ static void run_test_generic(data_t *data, int cursor_max_size)
 
 		/* Using created cursor FBs to test cursor support */
 		igt_subtest_f("cursor-%s-onscreen", c_size)
-			run_test(data, test_crc, true, cursor_size, cursor_size);
+			run_test(data, test_crc_onscreen, cursor_size, cursor_size);
 		igt_subtest_f("cursor-%s-offscreen", c_size)
-			run_test(data, test_crc, false, cursor_size, cursor_size);
+			run_test(data, test_crc_offscreen, cursor_size, cursor_size);
 	}
 
 }
