@@ -326,7 +326,9 @@ static int inject_hang_ring(int fd, int ctx, int ring)
 	buf[roff] = MI_BATCH_BUFFER_START | (cmd_len - 2);
 	buf[roff + 1] = (gtt_off & 0xfffffffc) + (roff << 2);
 	if (cmd_len == 3)
-		buf[roff + 2] = gtt_off & 0xffffffff00000000ull;
+		buf[roff + 2] = (gtt_off & 0xffffffff00000000ull) >> 32;
+
+	buf[roff + cmd_len] = MI_BATCH_BUFFER_END;
 
 #ifdef VERBOSE
 	printf("loop injected at 0x%lx (off 0x%x, bo_start 0x%lx, bo_end 0x%lx)\n",
