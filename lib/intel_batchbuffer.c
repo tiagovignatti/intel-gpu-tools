@@ -481,6 +481,8 @@ igt_render_copyfunc_t igt_get_render_copyfunc(int devid)
 		copy = gen7_render_copyfunc;
 	else if (IS_GEN8(devid))
 		copy = gen8_render_copyfunc;
+	else if (IS_GEN9(devid))
+		copy = gen9_render_copyfunc;
 
 	return copy;
 }
@@ -498,7 +500,9 @@ igt_media_fillfunc_t igt_get_media_fillfunc(int devid)
 {
 	igt_media_fillfunc_t fill = NULL;
 
-	if (IS_BROADWELL(devid))
+	if (IS_GEN9(devid))
+		fill = gen9_media_fillfunc;
+	else if (IS_BROADWELL(devid))
 		fill = gen8_media_fillfunc;
 	else if (IS_GEN7(devid))
 		fill = gen7_media_fillfunc;
