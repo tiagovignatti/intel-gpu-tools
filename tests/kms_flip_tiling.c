@@ -119,11 +119,10 @@ test_flip_changes_tiling(data_t *data, igt_output_t *output)
 }
 
 static data_t data;
+igt_output_t *output;
 
 igt_main
 {
-	igt_output_t *output;
-
 	igt_skip_on_simulation();
 
 	igt_fixture {
@@ -135,10 +134,10 @@ igt_main
 		igt_display_init(&data.display, data.drm_fd);
 	}
 
-	igt_subtest_f("flip-changes-tiling");
-
-	for_each_connected_output(&data.display, output)
-		test_flip_changes_tiling(&data, output);
+	igt_subtest_f("flip-changes-tiling") {
+		for_each_connected_output(&data.display, output)
+			test_flip_changes_tiling(&data, output);
+	}
 
 	igt_fixture {
 		igt_display_fini(&data.display);
