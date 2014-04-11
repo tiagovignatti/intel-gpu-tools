@@ -558,7 +558,7 @@ gen7_emit_urb(struct intel_batchbuffer *batch) {
 	/* XXX: Min valid values from mesa */
 	const int vs_entries = 64;
 	const int vs_size = 2;
-	const int vs_start = 2;
+	const int vs_start = 4;
 
 	OUT_BATCH(GEN7_3DSTATE_URB_VS);
 	OUT_BATCH(vs_entries | ((vs_size - 1) << 16) | (vs_start << 25));
