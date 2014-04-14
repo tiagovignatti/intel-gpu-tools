@@ -64,6 +64,7 @@ TESTS_progs_M = \
 	kms_fence_pin_leak \
 	kms_flip \
 	kms_flip_tiling \
+	kms_mmio_vs_cs_flip \
 	kms_pipe_crc_basic \
 	kms_plane \
 	kms_render \
