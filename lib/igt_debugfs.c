@@ -714,7 +714,7 @@ void igt_set_stop_rings(enum stop_ring_flags flags)
 			      STOP_RING_ALLOW_ERRORS)) == 0);
 
 	current = igt_get_stop_rings();
-	igt_assert_f(current == 0,
+	igt_assert_f(flags == 0 || current == 0,
 		     "previous i915_ring_stop is still 0x%x\n", current);
 
 	stop_rings_write(flags);
