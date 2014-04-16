@@ -666,7 +666,7 @@ enum stop_ring_flags igt_get_stop_rings(void)
 
 	fd = igt_debugfs_open("i915_ring_stop", O_RDONLY);
 	igt_assert(fd >= 0);
-	l =  read(fd, buf, sizeof(buf));
+	l = read(fd, buf, sizeof(buf)-1);
 	igt_assert(l > 0);
 	igt_assert(l < sizeof(buf));
 
