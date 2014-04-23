@@ -21,7 +21,6 @@
 #include "gen7_render.h"
 #include "intel_reg.h"
 
-#define ALIGN(x, y) (((x) + (y)-1) & ~((y)-1))
 
 static const uint32_t ps_kernel[][4] = {
 	{ 0x0080005a, 0x2e2077bd, 0x000000c0, 0x008d0040 },

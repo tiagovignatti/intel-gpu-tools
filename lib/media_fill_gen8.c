@@ -4,10 +4,10 @@
 #include "media_fill.h"
 #include "gen8_media.h"
 #include "intel_reg.h"
+#include "drmtest.h"
 
 #include <assert.h>
 
-#define ALIGN(x, y) (((x) + (y)-1) & ~((y)-1))
 
 static const uint32_t media_kernel[][4] = {
 	{ 0x00400001, 0x20202288, 0x00000020, 0x00000000 },

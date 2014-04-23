@@ -25,7 +25,6 @@
 
 #include <intel_aub.h>
 
-#define ALIGN(x, y) (((x) + (y)-1) & ~((y)-1))
 #define VERTEX_SIZE (3*4)
 
 #if DEBUG_RENDERCPY

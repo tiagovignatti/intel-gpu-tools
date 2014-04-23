@@ -60,6 +60,15 @@ static inline void *igt_mmap64(void *addr, size_t length, int prot, int flags,
  */
 #define ARRAY_SIZE(arr) (sizeof(arr)/sizeof(arr[0]))
 
+/**
+ * ALIGN:
+ * @v: value to be aligned
+ * @a: alignment unit in bytes
+ *
+ * Macro to align a value @v to a specified unit @a.
+ */
+#define ALIGN(v, a) (((v) + (a)-1) & ~((a)-1))
+
 int drm_get_card(void);
 int drm_open_any(void);
 int drm_open_any_render(void);

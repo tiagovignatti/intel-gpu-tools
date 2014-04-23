@@ -20,7 +20,6 @@
 #include "gen6_render.h"
 #include "intel_reg.h"
 
-#define ALIGN(x, y) (((x) + (y)-1) & ~((y)-1))
 #define VERTEX_SIZE (3*4)
 
 static const uint32_t ps_kernel_nomask_affine[][4] = {
