@@ -40,6 +40,7 @@ skip_tests_list := \
     kms_addfb \
     kms_cursor_crc \
     kms_flip \
+    kms_flip_tiling \
     kms_pipe_crc_basic \
     kms_fbc_crc \
     kms_render \
