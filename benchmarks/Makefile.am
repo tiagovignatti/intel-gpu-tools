@@ -1,9 +1,5 @@
 
-bin_PROGRAMS = 				\
-	intel_upload_blit_large		\
-	intel_upload_blit_large_gtt	\
-	intel_upload_blit_large_map	\
-	intel_upload_blit_small
+include Makefile.sources
 
 AM_CPPFLAGS = -I$(top_srcdir) -I$(top_srcdir)/lib
 AM_CFLAGS = $(DRM_CFLAGS) $(CWARNFLAGS) $(CAIRO_CFLAGS)
