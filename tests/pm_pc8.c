@@ -84,6 +84,7 @@ enum screen_type {
 #define WAIT_STATUS	1
 #define WAIT_PC8_RES	2
 #define WAIT_EXTRA	4
+#define USE_DPMS	8
 
 int drm_fd, msr_fd, pm_status_fd, pc8_status_fd;
 bool has_runtime_pm, has_pc8;
@@ -252,6 +253,17 @@ static bool wait_for_active(void)
 		return wait_for_pc8_status(PC8_DISABLED);
 	else
 		return wait_for_pm_status(RUNTIME_PM_STATUS_ACTIVE);
+}
+
+static void disable_all_screens_dpms(struct mode_set_data *data)
+{
+	int i;
+
+	for (i = 0; i < data->res->count_connectors; i++) {
+		drmModeConnectorPtr c = data->connectors[i];
+
+		kmstest_set_connector_dpms(drm_fd, c, DRM_MODE_DPMS_OFF);
+	}
 }
 
 static void disable_all_screens(struct mode_set_data *data)
@@ -825,7 +837,11 @@ static void modeset_subtest(enum screen_type type, int rounds, int wait_flags)
 		igt_require(has_pc8);
 
 	for (i = 0; i < rounds; i++) {
-		disable_all_screens(&ms_data);
+		if (wait_flags & USE_DPMS)
+			disable_all_screens_dpms(&ms_data);
+		else
+			disable_all_screens(&ms_data);
+
 		if (wait_flags & WAIT_STATUS)
 			igt_assert(wait_for_suspended());
 		if (wait_flags & WAIT_PC8_RES)
@@ -1498,6 +1514,10 @@ int main(int argc, char *argv[])
 		modeset_subtest(SCREEN_TYPE_LPSP, 1, WAIT_STATUS);
 	igt_subtest("modeset-non-lpsp")
 		modeset_subtest(SCREEN_TYPE_NON_LPSP, 1, WAIT_STATUS);
+	igt_subtest("dpms-lpsp")
+		modeset_subtest(SCREEN_TYPE_LPSP, 1, WAIT_STATUS | USE_DPMS);
+	igt_subtest("dpms-non-lpsp")
+		modeset_subtest(SCREEN_TYPE_NON_LPSP, 1, WAIT_STATUS | USE_DPMS);
 
 	/* GEM */
 	igt_subtest("gem-mmap-cpu")
