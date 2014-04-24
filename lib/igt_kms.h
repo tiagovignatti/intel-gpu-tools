@@ -88,6 +88,7 @@ const char *kmstest_pipe_str(int pipe);
 const char *kmstest_encoder_type_str(int type);
 const char *kmstest_connector_status_str(int type);
 const char *kmstest_connector_type_str(int type);
+void kmstest_set_connector_dpms(int fd, drmModeConnector *connector, int mode);
 
 /*
  * A small modeset API

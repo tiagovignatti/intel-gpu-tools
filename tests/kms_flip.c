@@ -298,34 +298,6 @@ static void emit_dummy_load__rcs(struct test_output *o)
 	drm_intel_bo_unreference(sb[1].bo);
 }
 
-static void set_connector_dpms(drmModeConnector *connector, int mode)
-{
-	int i, dpms = 0;
-	bool found_it = false;
-
-	for (i = 0; i < connector->count_props; i++) {
-		struct drm_mode_get_property prop;
-
-		prop.prop_id = connector->props[i];
-		prop.count_values = 0;
-		prop.count_enum_blobs = 0;
-		if (drmIoctl(drm_fd, DRM_IOCTL_MODE_GETPROPERTY, &prop))
-			continue;
-
-		if (strcmp(prop.name, "DPMS"))
-			continue;
-
-		dpms = prop.prop_id;
-		found_it = true;
-		break;
-	}
-	igt_assert_f(found_it, "DPMS property not found on %d\n",
-		     connector->connector_id);
-
-	igt_assert(drmModeConnectorSetProperty(drm_fd, connector->connector_id,
-					       dpms, mode) == 0);
-}
-
 static void dpms_off_other_outputs(struct test_output *o)
 {
 	int i, n;
@@ -342,8 +314,8 @@ static void dpms_off_other_outputs(struct test_output *o)
 
 		connector = drmModeGetConnector(drm_fd, connector_id);
 
-		set_connector_dpms(connector,  DRM_MODE_DPMS_ON);
-		set_connector_dpms(connector,  DRM_MODE_DPMS_OFF);
+		kmstest_set_connector_dpms(drm_fd, connector,  DRM_MODE_DPMS_ON);
+		kmstest_set_connector_dpms(drm_fd, connector,  DRM_MODE_DPMS_OFF);
 
 		drmModeFreeConnector(connector);
 next:
@@ -354,7 +326,7 @@ next:
 static void set_dpms(struct test_output *o, int mode)
 {
 	for (int n = 0; n < o->count; n++)
-		set_connector_dpms(o->kconnector[n], mode);
+		kmstest_set_connector_dpms(drm_fd, o->kconnector[n], mode);
 }
 
 static void set_flag(unsigned int *v, unsigned int flag)
@@ -1486,7 +1458,7 @@ static void kms_flip_exit_handler(int sig)
 {
 	igt_fixture {
 		if (last_connector)
-			set_connector_dpms(last_connector, DRM_MODE_DPMS_ON);
+			kmstest_set_connector_dpms(drm_fd, last_connector, DRM_MODE_DPMS_ON);
 	}
 }
 

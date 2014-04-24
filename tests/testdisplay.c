@@ -346,34 +346,6 @@ static void set_single(void)
 		perror("Could not set signal handler");
 }
 
-static void set_connector_dpms(drmModeConnector *connector, int mode)
-{
-	int i, dpms = 0;
-	bool found_it = false;
-
-	for (i = 0; i < connector->count_props; i++) {
-		struct drm_mode_get_property prop;
-
-		prop.prop_id = connector->props[i];
-		prop.count_values = 0;
-		prop.count_enum_blobs = 0;
-		if (drmIoctl(drm_fd, DRM_IOCTL_MODE_GETPROPERTY, &prop))
-			continue;
-
-		if (strcmp(prop.name, "DPMS"))
-			continue;
-
-		dpms = prop.prop_id;
-		found_it = true;
-		break;
-	}
-	igt_assert_f(found_it, "DPMS property not found on %d\n",
-		     connector->connector_id);
-
-	igt_assert(drmModeConnectorSetProperty(drm_fd, connector->connector_id,
-					       dpms, mode) == 0);
-}
-
 static void
 set_mode(struct connector *c)
 {
@@ -430,9 +402,9 @@ set_mode(struct connector *c)
 			sleep(sleep_between_modes);
 
 		if (do_dpms) {
-			set_connector_dpms(c->connector, do_dpms);
+			kmstest_set_connector_dpms(drm_fd, c->connector, do_dpms);
 			sleep(sleep_between_modes);
-			set_connector_dpms(c->connector, DRM_MODE_DPMS_ON);
+			kmstest_set_connector_dpms(drm_fd, c->connector, DRM_MODE_DPMS_ON);
 		}
 
 		if (qr_code){
@@ -608,9 +580,9 @@ set_stereo_mode(struct connector *c)
 			sleep(sleep_between_modes);
 
 		if (do_dpms) {
-			set_connector_dpms(c->connector, DRM_MODE_DPMS_OFF);
+			kmstest_set_connector_dpms(drm_fd, c->connector, DRM_MODE_DPMS_OFF);
 			sleep(sleep_between_modes);
-			set_connector_dpms(c->connector, DRM_MODE_DPMS_ON);
+			kmstest_set_connector_dpms(drm_fd, c->connector, DRM_MODE_DPMS_ON);
 		}
 	}
 

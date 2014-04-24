@@ -180,6 +180,34 @@ int kmstest_get_pipe_from_crtc_id(int fd, int crtc_id)
 	return pfci.pipe;
 }
 
+void kmstest_set_connector_dpms(int fd, drmModeConnector *connector, int mode)
+{
+	int i, dpms = 0;
+	bool found_it = false;
+
+	for (i = 0; i < connector->count_props; i++) {
+		struct drm_mode_get_property prop;
+
+		prop.prop_id = connector->props[i];
+		prop.count_values = 0;
+		prop.count_enum_blobs = 0;
+		if (drmIoctl(fd, DRM_IOCTL_MODE_GETPROPERTY, &prop))
+			continue;
+
+		if (strcmp(prop.name, "DPMS"))
+			continue;
+
+		dpms = prop.prop_id;
+		found_it = true;
+		break;
+	}
+	igt_assert_f(found_it, "DPMS property not found on %d\n",
+		     connector->connector_id);
+
+	igt_assert(drmModeConnectorSetProperty(fd, connector->connector_id,
+					       dpms, mode) == 0);
+}
+
 static signed long set_vt_mode(unsigned long mode)
 {
 	int fd;
