@@ -107,6 +107,7 @@ TESTS_progs = \
 	gem_render_tiled_blits \
 	gem_ring_sync_copy \
 	gem_ring_sync_loop \
+	gem_multi_bsd_sync_loop \
 	gem_seqno_wrap \
 	gem_set_tiling_vs_gtt \
 	gem_set_tiling_vs_pwrite \

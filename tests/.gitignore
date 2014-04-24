@@ -55,6 +55,7 @@ gem_media_fill
 gem_mmap
 gem_mmap_gtt
 gem_mmap_offset_exhaustion
+gem_multi_bsd_sync_loop
 gem_non_secure_batch
 gem_partial_pwrite_pread
 gem_persistent_relocs
