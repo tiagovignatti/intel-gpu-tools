@@ -134,7 +134,7 @@ igt_main
 	}
 
 	igt_subtest("rel-constants-invalid") {
-		execbuf.flags = I915_EXEC_RENDER | (I915_EXEC_CONSTANTS_REL_SURFACE+1);
+		execbuf.flags = I915_EXEC_RENDER | (I915_EXEC_CONSTANTS_REL_SURFACE+(1<<6));
 		RUN_FAIL(EINVAL);
 	}
 
