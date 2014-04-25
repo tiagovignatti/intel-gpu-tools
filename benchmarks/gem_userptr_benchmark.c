@@ -42,8 +42,11 @@
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/mman.h>
+#include <signal.h>
+
 #include "drm.h"
 #include "i915_drm.h"
+
 #include "drmtest.h"
 #include "intel_bufmgr.h"
 #include "intel_batchbuffer.h"
@@ -288,7 +291,6 @@ static void test_ptr_read(void *ptr)
 	unsigned long iter = 0;
 	volatile unsigned long *p;
 	unsigned long i, loops;
-	register unsigned long v;
 
 	loops = BO_SIZE / sizeof(unsigned long) / 4;
 
@@ -297,10 +299,10 @@ static void test_ptr_read(void *ptr)
 	while (run_test) {
 		p = (unsigned long *)ptr;
 		for (i = 0; i < loops; i++) {
-			v = *p++;
-			v = *p++;
-			v = *p++;
-			v = *p++;
+			(void)*p++;
+			(void)*p++;
+			(void)*p++;
+			(void)*p++;
 		}
 		iter++;
 	}

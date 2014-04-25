@@ -46,8 +46,11 @@
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/mman.h>
+#include <signal.h>
+
 #include "drm.h"
 #include "i915_drm.h"
+
 #include "drmtest.h"
 #include "intel_bufmgr.h"
 #include "intel_batchbuffer.h"
@@ -1039,17 +1042,22 @@ static int test_unmap_cycles(int fd, int expected)
 	return 0;
 }
 
+unsigned int total_ram;
+uint64_t aperture_size;
+int fd, count, size = 0, ret;
+
+
 int main(int argc, char **argv)
 {
-	uint64_t aperture_size;
-	unsigned int total_ram;
-	int fd = -1, count = 0, size = 0, ret;
+	int size = sizeof(linear);
 
 	igt_skip_on_simulation();
 
 	igt_subtest_init(argc, argv);
 
 	igt_fixture {
+		int ret;
+
 		fd = drm_open_any();
 		igt_assert(fd >= 0);
 
