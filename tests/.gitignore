@@ -97,7 +97,6 @@ gem_tiled_swapping
 gem_tiling_max_stride
 gem_unfence_active_buffers
 gem_unref_active_buffers
-gem_vmap_blits
 gem_userptr_blits
 gem_wait_render_timeout
 gem_write_read_ring_switch
