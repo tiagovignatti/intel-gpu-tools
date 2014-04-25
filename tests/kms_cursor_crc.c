@@ -349,7 +349,7 @@ static void run_test_generic(data_t *data, int cursor_max_size)
 {
 	int cursor_size;
 	char c_size[5];
-	for (cursor_size = 64; cursor_size <= cursor_max_size; cursor_size *= 2)
+	for (cursor_size = 64; cursor_size <= 256; cursor_size *= 2)
 	{
 		igt_require(cursor_max_size >= cursor_size);
 		sprintf(c_size, "%d", cursor_size);
@@ -372,10 +372,9 @@ static void run_test_generic(data_t *data, int cursor_max_size)
 	}
 }
 
-uint64_t cursor_width, cursor_height;
-
 igt_main
 {
+	uint64_t cursor_width = 64, cursor_height = 64;
 	data_t data = {};
 	int ret;
 
@@ -385,10 +384,10 @@ igt_main
 		data.drm_fd = drm_open_any();
 
 		ret = drmGetCap(data.drm_fd, DRM_CAP_CURSOR_WIDTH, &cursor_width);
-		igt_assert(ret == 0);
+		igt_assert(ret == 0 || errno == EINVAL);
 		/* Not making use of cursor_height since it is same as width, still reading */
 		ret = drmGetCap(data.drm_fd, DRM_CAP_CURSOR_HEIGHT, &cursor_height);
-		igt_assert(ret == 0);
+		igt_assert(ret == 0 || errno == EINVAL);
 
 		/* We assume width and height are same so max is assigned width */
 		igt_assert_cmpint(cursor_width, ==, cursor_height);
