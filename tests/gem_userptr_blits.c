@@ -1044,7 +1044,7 @@ static int test_unmap_cycles(int fd, int expected)
 
 unsigned int total_ram;
 uint64_t aperture_size;
-int fd, count, size = 0, ret;
+int fd, count;
 
 
 int main(int argc, char **argv)

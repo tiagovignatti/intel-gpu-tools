@@ -649,7 +649,7 @@ skip:
 bool gem_has_enable_ring(int fd,int param)
 {
 	drm_i915_getparam_t gp;
-	int ret, tmp;
+	int tmp;
 	memset(&gp, 0, sizeof(gp));
 
 	gp.value = &tmp;
