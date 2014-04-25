@@ -350,7 +350,8 @@ static void run_test_generic(data_t *data, int cursor_max_size)
 	int cursor_size;
 	for (cursor_size = 64; cursor_size <= 256; cursor_size *= 2)
 	{
-		igt_require(cursor_max_size >= cursor_size);
+		igt_fixture
+			igt_require(cursor_max_size >= cursor_size);
 
 		igt_fixture
 			create_cursor_fb(data, cursor_size, cursor_size);
