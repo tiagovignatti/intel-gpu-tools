@@ -348,23 +348,21 @@ static void create_cursor_fb(data_t *data, int cur_w, int cur_h)
 static void run_test_generic(data_t *data, int cursor_max_size)
 {
 	int cursor_size;
-	char c_size[5];
 	for (cursor_size = 64; cursor_size <= 256; cursor_size *= 2)
 	{
 		igt_require(cursor_max_size >= cursor_size);
-		sprintf(c_size, "%d", cursor_size);
 
 		igt_fixture
 			create_cursor_fb(data, cursor_size, cursor_size);
 
 		/* Using created cursor FBs to test cursor support */
-		igt_subtest_f("cursor-%s-onscreen", c_size)
+		igt_subtest_f("cursor-%d-onscreen", cursor_size)
 			run_test(data, test_crc_onscreen, cursor_size, cursor_size);
-		igt_subtest_f("cursor-%s-offscreen", c_size)
+		igt_subtest_f("cursor-%d-offscreen", cursor_size)
 			run_test(data, test_crc_offscreen, cursor_size, cursor_size);
-		igt_subtest_f("cursor-%s-sliding", c_size)
+		igt_subtest_f("cursor-%d-sliding", cursor_size)
 			run_test(data, test_crc_sliding, cursor_size, cursor_size);
-		igt_subtest_f("cursor-%s-random", c_size)
+		igt_subtest_f("cursor-%d-random", cursor_size)
 			run_test(data, test_crc_random, cursor_size, cursor_size);
 
 		igt_fixture
