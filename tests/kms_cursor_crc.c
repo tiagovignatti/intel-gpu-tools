@@ -230,6 +230,13 @@ static bool prepare_crtc(test_data_t *test_data, igt_output_t *output,
 
 	/* select the pipe we want to use */
 	igt_output_set_pipe(output, test_data->pipe);
+	igt_display_commit(display);
+
+	if (!output->valid) {
+		igt_output_set_pipe(output, PIPE_ANY);
+		igt_display_commit(display);
+		return false;
+	}
 
 	/* create and set the primary plane fb */
 	mode = igt_output_get_mode(output);
@@ -279,6 +286,7 @@ static bool prepare_crtc(test_data_t *test_data, igt_output_t *output,
 static void cleanup_crtc(test_data_t *test_data, igt_output_t *output)
 {
 	data_t *data = test_data->data;
+	igt_display_t *display = &data->display;
 	igt_plane_t *primary;
 
 	igt_pipe_crc_free(test_data->pipe_crc);
@@ -290,6 +298,7 @@ static void cleanup_crtc(test_data_t *test_data, igt_output_t *output)
 	igt_plane_set_fb(primary, NULL);
 
 	igt_output_set_pipe(output, PIPE_ANY);
+	igt_display_commit(display);
 }
 
 static void run_test(data_t *data, void (*testfunc)(test_data_t *), int cursor_w, int cursor_h)
