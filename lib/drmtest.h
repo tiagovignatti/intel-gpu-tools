@@ -32,6 +32,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <sys/mman.h>
+#include <errno.h>
 
 #include <xf86drm.h>
 
@@ -94,6 +95,9 @@ void gem_quiescent_gpu(int fd);
  * This macro wraps drmIoctl() and uses igt_assert to check that it has been
  * successfully executed.
  */
-#define do_ioctl(fd, ioc, ioc_data) igt_assert(drmIoctl((fd), (ioc), (ioc_data)) == 0)
+#define do_ioctl(fd, ioc, ioc_data) do { \
+	igt_assert(drmIoctl((fd), (ioc), (ioc_data)) == 0); \
+	errno = 0; \
+} while (0)
 
 #endif /* DRMTEST_H */

@@ -100,6 +100,7 @@ gem_handle_to_libdrm_bo(drm_intel_bufmgr *bufmgr, int fd, const char *name, uint
 	flink.handle = handle;
 	ret = ioctl(fd, DRM_IOCTL_GEM_FLINK, &flink);
 	igt_assert(ret == 0);
+	errno = 0;
 
 	bo = drm_intel_bo_gem_create_from_name(bufmgr, name, flink.name);
 	igt_assert(bo);
@@ -123,6 +124,7 @@ int __gem_set_tiling(int fd, uint32_t handle, uint32_t tiling, uint32_t stride)
 	if (ret != 0)
 		return -errno;
 
+	errno = 0;
 	igt_assert(st.tiling_mode == tiling);
 	return 0;
 }
@@ -175,6 +177,7 @@ void gem_set_caching(int fd, uint32_t handle, uint32_t caching)
 
 	igt_assert(ret == 0 || (errno == ENOTTY || errno == EINVAL));
 	igt_require(ret == 0);
+	errno = 0;
 }
 
 /**
@@ -195,6 +198,7 @@ uint32_t gem_get_caching(int fd, uint32_t handle)
 	arg.caching = 0;
 	ret = ioctl(fd, LOCAL_DRM_IOCTL_I915_GEM_GET_CACHEING, &arg);
 	igt_assert(ret == 0);
+	errno = 0;
 
 	return arg.caching;
 }
@@ -217,6 +221,7 @@ uint32_t gem_open(int fd, uint32_t name)
 	ret = ioctl(fd, DRM_IOCTL_GEM_OPEN, &open_struct);
 	igt_assert(ret == 0);
 	igt_assert(open_struct.handle != 0);
+	errno = 0;
 
 	return open_struct.handle;
 }
@@ -240,6 +245,7 @@ uint32_t gem_flink(int fd, uint32_t handle)
 	flink.handle = handle;
 	ret = ioctl(fd, DRM_IOCTL_GEM_FLINK, &flink);
 	igt_assert(ret == 0);
+	errno = 0;
 
 	return flink.name;
 }
@@ -352,8 +358,9 @@ uint32_t __gem_create(int fd, int size)
 
 	if (ret < 0)
 		return 0;
-	else
-		return create.handle;
+
+	errno = 0;
+	return create.handle;
 }
 
 /**
@@ -394,6 +401,7 @@ void gem_execbuf(int fd, struct drm_i915_gem_execbuffer2 *execbuf)
 		       DRM_IOCTL_I915_GEM_EXECBUFFER2,
 		       execbuf);
 	igt_assert(ret == 0);
+	errno = 0;
 }
 
 /**
@@ -446,6 +454,7 @@ void *gem_mmap__cpu(int fd, uint32_t handle, int size, int prot)
 	if (drmIoctl(fd, DRM_IOCTL_I915_GEM_MMAP, &mmap_arg))
 		return NULL;
 
+	errno = 0;
 	return (void *)(uintptr_t)mmap_arg.addr_ptr;
 }
 
@@ -494,6 +503,7 @@ uint32_t gem_context_create(int fd)
 	ret = drmIoctl(fd, DRM_IOCTL_I915_GEM_CONTEXT_CREATE, &create);
 	igt_require(ret == 0 || (errno != ENODEV && errno != EINVAL));
 	igt_assert(ret == 0);
+	errno = 0;
 
 	return create.ctx_id;
 }
@@ -563,6 +573,7 @@ bool gem_uses_aliasing_ppgtt(int fd)
 	if (ioctl(fd, DRM_IOCTL_I915_GETPARAM, &gp, sizeof(gp)))
 		return 0;
 
+	errno = 0;
 	return val;
 }
 
@@ -586,6 +597,7 @@ int gem_available_fences(int fd)
 	if (ioctl(fd, DRM_IOCTL_I915_GETPARAM, &gp, sizeof(gp)))
 		return 0;
 
+	errno = 0;
 	return val;
 }
 
@@ -643,12 +655,11 @@ bool gem_has_enable_ring(int fd,int param)
 	gp.value = &tmp;
 	gp.param = param;
 
-	ret = drmIoctl(fd, DRM_IOCTL_I915_GETPARAM, &gp);
-
-	if ((ret == 0) && (*gp.value > 0))
-		return true;
-	else
+	if (drmIoctl(fd, DRM_IOCTL_I915_GETPARAM, &gp))
 		return false;
+
+	errno = 0;
+	return tmp > 0;
 }
 
 /**
@@ -664,7 +675,6 @@ bool gem_has_enable_ring(int fd,int param)
  */
 bool gem_has_bsd(int fd)
 {
-
 	return gem_has_enable_ring(fd,I915_PARAM_HAS_BSD);
 }
 
@@ -782,6 +792,7 @@ void gem_require_caching(int fd)
 	gem_close(fd, arg.handle);
 
 	igt_require(ret == 0);
+	errno = 0;
 }
 
 /**
@@ -880,6 +891,7 @@ off_t prime_get_size(int dma_buf_fd)
 	ret = lseek(dma_buf_fd, 0, SEEK_END);
 	igt_assert(ret >= 0 || errno == ESPIPE);
 	igt_require(ret >= 0);
+	errno = 0;
 
 	return ret;
 }

@@ -144,6 +144,7 @@ intel_get_drm_devid(int fd)
 
 		ret = ioctl(fd, DRM_IOCTL_I915_GETPARAM, &gp, sizeof(gp));
 		assert(ret == 0);
+		errno = 0;
 	}
 
 	return devid;
