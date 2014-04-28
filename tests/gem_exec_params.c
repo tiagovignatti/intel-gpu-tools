@@ -117,6 +117,11 @@ igt_main
 		RUN_FAIL(EINVAL);
 	}
 	igt_subtest("invalid-ring") {
+		execbuf.flags = I915_EXEC_RING_MASK;
+		RUN_FAIL(EINVAL);
+	}
+
+	igt_subtest("invalid-ring2") {
 		execbuf.flags = LOCAL_I915_EXEC_VEBOX+1;
 		RUN_FAIL(EINVAL);
 	}
