@@ -149,5 +149,6 @@ prime_nv_test
 prime_self_import
 prime_udl
 single-tests.txt
+skl_ddb_allocation
 template
 testdisplay
