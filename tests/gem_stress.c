@@ -346,11 +346,16 @@ static void render_copyfunc(struct igt_buf *src, unsigned src_x, unsigned src_y,
 	if (keep_gpu_busy_counter & 1)
 		keep_gpu_busy();
 
-	if (rendercopy)
+	if (rendercopy) {
+		/*
+		 * Flush outstanding blts so that they don't end up on
+		 * the render ring when that's not allowed (gen6+).
+		 */
+		intel_batchbuffer_flush(batch);
 		rendercopy(batch, NULL, src, src_x, src_y,
 		     options.tile_size, options.tile_size,
 		     dst, dst_x, dst_y);
-	else
+	} else
 		blitter_copyfunc(src, src_x, src_y,
 				 dst, dst_x, dst_y,
 				 logical_tile_no);
