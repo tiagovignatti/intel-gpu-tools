@@ -277,11 +277,38 @@ skl_allocate_pipe_ddb(struct drm_crtc *crtc,
 
 }
 
+static void skl_ddb_check_entry(struct skl_ddb_entry *entry, int16_t *cursor)
+{
+
+	if (skl_ddb_entry_size(entry) == 0)
+		return;
+
+	/* check that ->start is the next available block */
+	if (entry->start <= *cursor)
+		printf("error: allocation overlaps previous block\n");
+	else if (entry->start > *cursor + 1)
+		printf("warning: allocation leaves a hole\n");
+
+	*cursor = entry->end;
+}
+
+static void skl_ddb_check_last_allocation(int16_t cursor)
+{
+	uint16_t last_offset = SKL_DDB_SIZE - 1 - 4;
+
+	if (cursor < last_offset)
+		printf("warning: %d blocks not allocated\n",
+		       last_offset - cursor);
+	else if (cursor > last_offset)
+		printf("error: allocation greater than available space\n");
+}
+
 static void skl_ddb_print(struct skl_ddb_allocation *ddb)
 {
 	struct skl_ddb_entry *entry;
 	enum pipe pipe;
 	int plane;
+	int16_t cursor = -1;
 
 	printf("%-15s%8s%8s%8s\n", "", "Start", "End", "Size");
 
@@ -290,17 +317,22 @@ static void skl_ddb_print(struct skl_ddb_allocation *ddb)
 
 		for_each_plane(pipe, plane) {
 			entry = &ddb->plane[pipe][plane];
+
 			printf("  Plane%-8d%8u%8u%8u\n", plane + 1,
 			       entry->start, entry->end,
 			       skl_ddb_entry_size(entry));
+
+			skl_ddb_check_entry(entry, &cursor);
 		}
 
 		entry = &ddb->cursor[pipe];
 		printf("  %-13s%8u%8u%8u\n", "Cursor", entry->start,
 		       entry->end, skl_ddb_entry_size(entry));
+
+		skl_ddb_check_entry(entry, &cursor);
 	}
 
-
+	skl_ddb_check_last_allocation(cursor);
 }
 
 static struct drm_device drm_device;
