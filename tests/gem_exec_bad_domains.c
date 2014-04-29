@@ -141,11 +141,10 @@ static void multi_write_domain(int fd)
 	ret = drmIoctl(fd,
 		       DRM_IOCTL_I915_GEM_EXECBUFFER2,
 		       &execbuf);
+	igt_assert(ret != 0 && errno == EINVAL);
 
 	gem_close(fd, handle);
 	gem_close(fd, handle_target);
-
-	igt_assert(ret != 0 && errno == EINVAL);
 }
 
 int fd;

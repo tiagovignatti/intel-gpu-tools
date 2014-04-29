@@ -154,6 +154,8 @@ static int many_exec(int fd, uint32_t batch, int num_exec, int num_reloc, unsign
 	ret = drmIoctl(fd,
 		       DRM_IOCTL_I915_GEM_EXECBUFFER2,
 		       &execbuf);
+	if (ret < 0)
+		ret = -errno;
 
 	for (n = 0; n < num_exec; n++)
 		gem_close(fd, gem_exec[n].handle);
@@ -164,7 +166,7 @@ static int many_exec(int fd, uint32_t batch, int num_exec, int num_reloc, unsign
 	return ret;
 }
 
-#define _fail(x) ((x) == -1 && errno == ENOENT)
+#define _fail(x) ((x) == -ENOENT)
 #define ASSERT(x) do {						\
 	if (!(x)) {						\
 		fprintf(stderr, "%s:%d failed, errno=%d\n",	\
@@ -195,8 +197,7 @@ igt_simple_main
 	fail(exec(fd, handle, USE_LUT | BROKEN));
 
 	for (i = 2; i <= SLOW_QUICK(65536, 8); i *= 2) {
-		if (many_exec(fd, handle, i+1, i+1, NORMAL) == -1 &&
-		    errno == ENOSPC)
+		if (many_exec(fd, handle, i+1, i+1, NORMAL) == -ENOSPC)
 			break;
 
 		pass(many_exec(fd, handle, i-1, i-1, NORMAL));
