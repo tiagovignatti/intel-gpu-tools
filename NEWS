@@ -3,6 +3,17 @@ Release 1.7 (XXXX-XX-XX)
 
 - Piles of API documentation for the core i-g-t testing libraries.
 
+- Improved igt loggin, now also with igt_vlog (for va_args printf-style
+  logging).
+
+- Polish for the igt_debugfs library.
+
+- Split out igt_fb library from igt_kms, cleanup of the igt_kms functions.
+
+- Android porting patches (Tim Gore, Tvrtko Ursulin).
+
+- Piles more tests as usual.
+
 Release 1.6 (2014-03-13)
 ------------------------
 
