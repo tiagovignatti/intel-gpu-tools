@@ -236,4 +236,3 @@ TESTS_progs += testdisplay
 common_files = \
 	       eviction_common.c \
 	       $(NULL)
-
