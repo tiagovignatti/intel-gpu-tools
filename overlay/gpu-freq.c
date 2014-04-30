@@ -124,8 +124,12 @@ int gpu_freq_update(struct gpu_freq *gf)
 		char buf[4096], *s;
 		int fd, len = -1;
 
-		sprintf(buf, "%s/i915_cur_delayinfo", debugfs_dri_path);
+		sprintf(buf, "%s/i915_frequency_info", debugfs_dri_path);
 		fd = open(buf, 0);
+		if (fd < 0) {
+			sprintf(buf, "%s/i915_cur_delayinfo", debugfs_dri_path);
+			fd = open(buf, 0);
+		}
 		if (fd < 0)
 			return gf->error = errno;
 
