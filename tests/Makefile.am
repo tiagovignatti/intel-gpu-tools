@@ -17,12 +17,12 @@ list-multi-tests:
 	@echo ${multi_kernel_tests}
 	@echo END TESTLIST
 
-single-tests.txt:
+single-tests.txt: Makefile.sources
 	@echo TESTLIST > $@
 	@echo ${single_kernel_tests} >> $@
 	@echo END TESTLIST >> $@
 
-multi-tests.txt:
+multi-tests.txt: Makefile.sources
 	@echo TESTLIST > $@
 	@echo ${multi_kernel_tests} >> $@
 	@echo END TESTLIST >> $@
