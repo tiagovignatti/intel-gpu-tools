@@ -1,4 +1,5 @@
 noinst_PROGRAMS = \
+	gem_alive \
 	gem_stress \
 	ddi_compute_wrpll \
 	$(TESTS_progs) \
