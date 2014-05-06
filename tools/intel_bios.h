@@ -590,8 +590,11 @@ struct edp_link_params {
 struct bdb_edp {
 	struct edp_power_seq power_seqs[16];
 	uint32_t color_depth;
-	uint32_t sdrrs_msa_timing_delay;
 	struct edp_link_params link_params[16];
+	uint32_t sdrrs_msa_timing_delay;
+
+	uint16_t edp_s3d_feature;
+	uint16_t edp_t3_optimization;
 } __attribute__ ((packed));
 
 /*
