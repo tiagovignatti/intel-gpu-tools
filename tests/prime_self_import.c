@@ -258,6 +258,11 @@ static void test_reimport_close_race(void)
 	int obj_count;
 	void *status;
 	uint32_t handle;
+	int fake;
+
+	/* Allocate exit handler fds in here so that we dont screw
+	 * up the counts */
+	fake = drm_open_any();
 
 	obj_count = get_object_count();
 
@@ -294,6 +299,9 @@ static void test_reimport_close_race(void)
 	obj_count = get_object_count() - obj_count;
 
 	printf("leaked %i objects\n", obj_count);
+
+	close(fake);
+
 	igt_assert(obj_count == 0);
 }
 

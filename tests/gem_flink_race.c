@@ -163,6 +163,11 @@ static void test_flink_close(void)
 	int r, i, num_threads;
 	int obj_count;
 	void *status;
+	int fake;
+
+	/* Allocate exit handler fds in here so that we dont screw
+	 * up the counts */
+	fake = drm_open_any();
 
 	obj_count = get_object_count();
 
@@ -193,6 +198,9 @@ static void test_flink_close(void)
 	obj_count = get_object_count() - obj_count;
 
 	printf("leaked %i objects\n", obj_count);
+
+	close(fake);
+
 	igt_assert(obj_count == 0);
 }
 
