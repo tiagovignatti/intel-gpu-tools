@@ -66,6 +66,7 @@ typedef struct {
 	uint32_t crtc_id;
 	uint32_t crtc_idx;
 	uint32_t fb_id[2];
+	connector_t connector;
 } data_t;
 
 static const char *test_mode_str(enum test_mode mode)
@@ -108,9 +109,9 @@ static uint32_t create_fb(data_t *data,
 }
 
 static bool
-connector_set_mode(data_t *data, connector_t *connector,
-		   drmModeModeInfo *mode, uint32_t fb_id)
+connector_set_mode(data_t *data, drmModeModeInfo *mode, uint32_t fb_id)
 {
+	connector_t *connector = &data->connector;
 	struct kmstest_connector_config *config = &connector->config;
 	int ret;
 
@@ -335,19 +336,45 @@ static void test_crc(data_t *data, enum test_mode mode)
 	free(crcs);
 }
 
-static bool prepare_crtc(data_t *data, uint32_t connector_id, enum test_mode mode)
+static bool prepare_crtc(data_t *data, uint32_t connector_id)
 {
+	return !kmstest_get_connector_config(data->drm_fd,
+					     connector_id,
+					     1 << data->crtc_idx,
+					     &data->connector.config);
+}
+
+static bool prepare_test(data_t *data, enum test_mode mode)
+{
+	connector_t *connector = &data->connector;
 	igt_pipe_crc_t *pipe_crc;
 	igt_crc_t *crcs = NULL;
-	connector_t connector;
-	int ret;
 
-	ret = kmstest_get_connector_config(data->drm_fd,
-					   connector_id,
-					   1 << data->crtc_idx,
-					   &connector.config);
-	if (ret)
+	data->fb_id[0] = create_fb(data,
+				   connector->config.default_mode.hdisplay,
+				   connector->config.default_mode.vdisplay,
+				   0.0, 0.0, 0.0, &connector->fb[0]);
+	igt_assert(data->fb_id[0]);
+
+	data->fb_id[1] = create_fb(data,
+				   connector->config.default_mode.hdisplay,
+				   connector->config.default_mode.vdisplay,
+				   0.1, 0.1, 0.1, &connector->fb[1]);
+	igt_assert(data->fb_id[1]);
+
+	data->handle[0] = connector->fb[0].gem_handle;
+	data->handle[1] = connector->fb[1].gem_handle;
+
+	/* scanout = fb[1] */
+	connector_set_mode(data, &connector->config.default_mode,
+			   data->fb_id[1]);
+	usleep(300000);
+
+	if (!fbc_enabled(data)) {
+		printf("FBC not enabled\n");
+		kmstest_free_connector_config(&connector->config);
 		return false;
+	}
 
 	igt_pipe_crc_free(data->pipe_crc[data->crtc_idx]);
 	data->pipe_crc[data->crtc_idx] = NULL;
@@ -357,32 +384,11 @@ static bool prepare_crtc(data_t *data, uint32_t connector_id, enum test_mode mod
 	if (!pipe_crc) {
 		printf("auto crc not supported on this connector with crtc %i\n",
 		       data->crtc_idx);
+		kmstest_free_connector_config(&connector->config);
 		return false;
 	}
 
 	data->pipe_crc[data->crtc_idx] = pipe_crc;
-
-	data->fb_id[0] = create_fb(data,
-				   connector.config.default_mode.hdisplay,
-				   connector.config.default_mode.vdisplay,
-				   0.0, 0.0, 0.0, &connector.fb[0]);
-	igt_assert(data->fb_id[0]);
-
-	data->fb_id[1] = create_fb(data,
-				   connector.config.default_mode.hdisplay,
-				   connector.config.default_mode.vdisplay,
-				   0.1, 0.1, 0.1, &connector.fb[1]);
-	igt_assert(data->fb_id[1]);
-
-	data->handle[0] = connector.fb[0].gem_handle;
-	data->handle[1] = connector.fb[1].gem_handle;
-
-	/* scanout = fb[1] */
-	connector_set_mode(data, &connector, &connector.config.default_mode,
-			   data->fb_id[1]);
-	usleep(300000);
-
-	igt_skip_on(!fbc_enabled(data));
 
 	igt_wait_for_vblank(data->drm_fd, data->crtc_idx);
 
@@ -410,18 +416,18 @@ static bool prepare_crtc(data_t *data, uint32_t connector_id, enum test_mode mod
 	}
 
 	/* scanout = fb[0] */
-	connector_set_mode(data, &connector, &connector.config.default_mode,
+	connector_set_mode(data, &connector->config.default_mode,
 			   data->fb_id[0]);
 	usleep(300000);
 
-	igt_skip_on(!fbc_enabled(data));
+	igt_assert(fbc_enabled(data));
 
 	if (mode == TEST_CONTEXT || mode == TEST_PAGE_FLIP_AND_CONTEXT) {
 		/*
 		 * make ctx[0] FBC RT address point to fb[0], ctx[1]
 		 * FBC RT address is left as disabled.
 		 */
-		exec_nop(data, connector.fb[0].gem_handle, data->ctx[0]);
+		exec_nop(data, connector->fb[0].gem_handle, data->ctx[0]);
 	}
 
 	igt_wait_for_vblank(data->drm_fd, data->crtc_idx);
@@ -433,7 +439,7 @@ static bool prepare_crtc(data_t *data, uint32_t connector_id, enum test_mode mod
 	igt_pipe_crc_stop(pipe_crc);
 	free(crcs);
 
-	kmstest_free_connector_config(&connector.config);
+	kmstest_free_connector_config(&connector->config);
 
 	return true;
 }
@@ -452,6 +458,7 @@ static void finish_crtc(data_t *data, enum test_mode mode)
 static void run_test(data_t *data, enum test_mode mode)
 {
 	int i, n;
+	int valid_tests = 0;
 
 	for (i = 0; i < data->resources->count_connectors; i++) {
 		uint32_t connector_id = data->resources->connectors[i];
@@ -460,19 +467,30 @@ static void run_test(data_t *data, enum test_mode mode)
 			data->crtc_idx = n;
 			data->crtc_id = data->resources->crtcs[n];
 
-			if (!prepare_crtc(data, connector_id, mode))
+			if (!prepare_crtc(data, connector_id))
 				continue;
 
 			fprintf(stdout, "Beginning %s on crtc %d, connector %d\n",
 				igt_subtest_name(), data->crtc_id, connector_id);
+
+			if (!prepare_test(data, mode)) {
+				fprintf(stdout, "%s on crtc %d, connector %d: SKIPPED\n",
+					igt_subtest_name(), data->crtc_id, connector_id);
+				continue;
+			}
+
+			valid_tests++;
+
 			test_crc(data, mode);
 
-			fprintf(stdout, "\n%s on crtc %d, connector %d: PASSED\n\n",
+			fprintf(stdout, "%s on crtc %d, connector %d: PASSED\n",
 				igt_subtest_name(), data->crtc_id, connector_id);
 
 			finish_crtc(data, mode);
 		}
 	}
+
+	igt_require_f(valid_tests, "no valid crtc/connector combinations found\n");
 }
 
 igt_main
