@@ -60,15 +60,30 @@
 #define SIZE (HEIGHT*STRIDE)
 
 static igt_render_copyfunc_t render_copy;
+static drm_intel_bo *linear;
+static uint32_t data[WIDTH*HEIGHT];
+static int snoop;
 
 static void
-check_bo(drm_intel_bo *bo, uint32_t val)
+check_bo(struct intel_batchbuffer *batch, struct igt_buf *buf, uint32_t val)
 {
+	struct igt_buf tmp;
 	uint32_t *ptr;
 	int i;
 
-	do_or_die(drm_intel_gem_bo_map_gtt(bo));
-	ptr = bo->virtual;
+	tmp.bo = linear;
+	tmp.stride = STRIDE;
+	tmp.tiling = I915_TILING_NONE;
+	tmp.size = SIZE;
+
+	render_copy(batch, NULL, buf, 0, 0, WIDTH, HEIGHT, &tmp, 0, 0);
+	if (snoop) {
+		do_or_die(dri_bo_map(linear, 0));
+		ptr = linear->virtual;
+	} else {
+		do_or_die(drm_intel_bo_get_subdata(linear, 0, sizeof(data), data));
+		ptr = data;
+	}
 	for (i = 0; i < WIDTH*HEIGHT; i++) {
 		if (ptr[i] != val) {
 			fprintf(stderr, "Expected 0x%08x, found 0x%08x "
@@ -78,7 +93,8 @@ check_bo(drm_intel_bo *bo, uint32_t val)
 		}
 		val++;
 	}
-	drm_intel_gem_bo_unmap_gtt(bo);
+	if (ptr != data)
+		dri_bo_unmap(linear);
 }
 
 int main(int argc, char **argv)
@@ -89,22 +105,30 @@ int main(int argc, char **argv)
 	struct igt_buf *buf;
 	uint32_t start = 0;
 	int i, j, fd, count;
+	uint32_t devid;
 
 	igt_simple_init();
 
 	igt_skip_on_simulation();
 
 	fd = drm_open_any();
+	devid = intel_get_drm_devid(fd);
 
-	render_copy = igt_get_render_copyfunc(intel_get_drm_devid(fd));
+	render_copy = igt_get_render_copyfunc(devid);
 	if (render_copy == NULL) {
 		printf("no render-copy function, doing nothing\n");
 		return 77;
 	}
 
+	snoop = 1;
+	if (IS_GEN2(devid)) /* chipset only handles cached -> uncached */
+		snoop = 0;
+	if (IS_BROADWATER(devid) || IS_CRESTLINE(devid)) /* snafu */
+		snoop = 0;
+
 	bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
 	drm_intel_bufmgr_gem_set_vma_cache_size(bufmgr, 32);
-	batch = intel_batchbuffer_alloc(bufmgr, intel_get_drm_devid(fd));
+	batch = intel_batchbuffer_alloc(bufmgr, devid);
 
 	count = 0;
 	if (argc > 1)
@@ -122,6 +146,12 @@ int main(int argc, char **argv)
 	}
 
 	printf("Using %d 1MiB buffers\n", count);
+
+	linear = drm_intel_bo_alloc(bufmgr, "linear", WIDTH*HEIGHT*4, 0);
+	if (snoop) {
+		gem_set_caching(fd, linear->handle, 1);
+		printf("Using a snoop linear buffer for comparisons\n");
+	}
 
 	buf = malloc(sizeof(*buf)*count);
 	start_val = malloc(sizeof(*start_val)*count);
@@ -149,7 +179,7 @@ int main(int argc, char **argv)
 
 	printf("Verifying initialisation...\n");
 	for (i = 0; i < count; i++)
-		check_bo(buf[i].bo, start_val[i]);
+		check_bo(batch, &buf[i], start_val[i]);
 
 	printf("Cyclic blits, forward...\n");
 	for (i = 0; i < count * 4; i++) {
@@ -160,7 +190,7 @@ int main(int argc, char **argv)
 		start_val[dst] = start_val[src];
 	}
 	for (i = 0; i < count; i++)
-		check_bo(buf[i].bo, start_val[i]);
+		check_bo(batch, &buf[i], start_val[i]);
 
 	printf("Cyclic blits, backward...\n");
 	for (i = 0; i < count * 4; i++) {
@@ -171,7 +201,7 @@ int main(int argc, char **argv)
 		start_val[dst] = start_val[src];
 	}
 	for (i = 0; i < count; i++)
-		check_bo(buf[i].bo, start_val[i]);
+		check_bo(batch, &buf[i], start_val[i]);
 
 	printf("Random blits...\n");
 	for (i = 0; i < count * 4; i++) {
@@ -185,7 +215,7 @@ int main(int argc, char **argv)
 		start_val[dst] = start_val[src];
 	}
 	for (i = 0; i < count; i++)
-		check_bo(buf[i].bo, start_val[i]);
+		check_bo(batch, &buf[i], start_val[i]);
 
 	return 0;
 }
