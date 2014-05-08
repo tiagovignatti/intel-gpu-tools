@@ -82,9 +82,12 @@ static int exec(int fd, uint32_t handle, unsigned int flags)
 	i915_execbuffer2_set_context_id(execbuf, 0);
 	execbuf.rsvd2 = 0;
 
-	return drmIoctl(fd,
-			DRM_IOCTL_I915_GEM_EXECBUFFER2,
-			&execbuf);
+	if (drmIoctl(fd,
+		     DRM_IOCTL_I915_GEM_EXECBUFFER2,
+		     &execbuf))
+		return -errno;
+
+	return 0;
 }
 
 static int many_exec(int fd, uint32_t batch, int num_exec, int num_reloc, unsigned flags)
@@ -167,15 +170,15 @@ static int many_exec(int fd, uint32_t batch, int num_exec, int num_reloc, unsign
 }
 
 #define _fail(x) ((x) == -ENOENT)
-#define ASSERT(x) do {						\
+#define ASSERT(x, y) do {					\
 	if (!(x)) {						\
 		fprintf(stderr, "%s:%d failed, errno=%d\n",	\
-			__FUNCTION__, __LINE__, errno);		\
+			__FUNCTION__, __LINE__, -y);		\
 		abort();					\
 	}							\
 } while (0)
-#define fail(x) ASSERT(_fail(x))
-#define pass(x) ASSERT(!_fail(x))
+#define fail(x) ASSERT(_fail(x), x)
+#define pass(x) ASSERT(!_fail(x), x)
 
 igt_simple_main
 {
