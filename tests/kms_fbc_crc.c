@@ -401,9 +401,9 @@ static bool prepare_test(data_t *data, enum test_mode mode)
 
 	if (mode == TEST_CONTEXT || mode == TEST_PAGE_FLIP_AND_CONTEXT) {
 		data->ctx[0] = drm_intel_gem_context_create(data->bufmgr);
-		igt_require(data->ctx[0]);
+		igt_assert(data->ctx[0]);
 		data->ctx[1] = drm_intel_gem_context_create(data->bufmgr);
-		igt_require(data->ctx[1]);
+		igt_assert(data->ctx[1]);
 
 		/*
 		 * Disable FBC RT address for both contexts
@@ -459,6 +459,12 @@ static void run_test(data_t *data, enum test_mode mode)
 {
 	int i, n;
 	int valid_tests = 0;
+
+	if (mode == TEST_CONTEXT || mode == TEST_PAGE_FLIP_AND_CONTEXT) {
+		drm_intel_context *ctx = drm_intel_gem_context_create(data->bufmgr);
+		igt_require(ctx);
+		drm_intel_gem_context_destroy(ctx);
+	}
 
 	for (i = 0; i < data->resources->count_connectors; i++) {
 		uint32_t connector_id = data->resources->connectors[i];
