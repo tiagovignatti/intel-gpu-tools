@@ -121,7 +121,7 @@ static void *thread(void *arg)
 }
 
 #define MI_LOAD_REGISTER_IMM                    (0x22<<23)
-#define MI_STORE_REGISTER_MEM                   (0x24<<23| 1<<22)
+#define MI_STORE_REGISTER_MEM                   (0x24<<23)
 
 igt_simple_main
 {
@@ -140,8 +140,9 @@ igt_simple_main
 	sleep(2);
 
 	for (i = 0; i < 1000; i++) {
+		uint32_t *p;
 		struct drm_i915_gem_execbuffer2 execbuf;
-		struct drm_i915_gem_exec_object2 exec;
+		struct drm_i915_gem_exec_object2 exec[2];
 		struct drm_i915_gem_relocation_entry reloc[2];
 		uint32_t b[] = {
 			MI_LOAD_REGISTER_IMM | 1,
@@ -149,54 +150,56 @@ igt_simple_main
 			2 << 16 | 2,
 			MI_STORE_REGISTER_MEM | 1,
 			FORCEWAKE_MT,
-			5*sizeof(uint32_t),
+			0, // to be patched
 			MI_LOAD_REGISTER_IMM | 1,
 			FORCEWAKE_MT,
 			2 << 16,
 			MI_STORE_REGISTER_MEM | 1,
 			FORCEWAKE_MT,
-			11*sizeof(uint32_t),
+			1 * sizeof(uint32_t), // to be patched
 			MI_BATCH_BUFFER_END,
 			0
 		};
 
-		memset(&exec, 0, sizeof(exec));
-		exec.handle = gem_create(t[0].fd, 4096);
-		exec.relocation_count = 2;
-		exec.relocs_ptr = (uintptr_t)reloc;
-		//exec.flags = EXEC_OBJECT_NEEDS_GTT;
-		gem_write(t[0].fd, exec.handle, 0, b, sizeof(b));
+		memset(exec, 0, sizeof(exec));
+		exec[1].handle = gem_create(t[0].fd, 4096);
+		exec[1].relocation_count = 2;
+		exec[1].relocs_ptr = (uintptr_t)reloc;
+		gem_write(t[0].fd, exec[1].handle, 0, b, sizeof(b));
+		exec[0].handle = gem_create(t[0].fd, 4096);
 
 		reloc[0].offset = 5 * sizeof(uint32_t);
-		reloc[0].delta = 5 * sizeof(uint32_t);
-		reloc[0].target_handle = exec.handle;
-		reloc[0].read_domains = I915_GEM_DOMAIN_INSTRUCTION;
-		reloc[0].write_domain = 0;
+		reloc[0].delta = 0;
+		reloc[0].target_handle = exec[0].handle;
+		reloc[0].read_domains = I915_GEM_DOMAIN_RENDER;
+		reloc[0].write_domain = I915_GEM_DOMAIN_RENDER;
 		reloc[0].presumed_offset = 0;
 
 		reloc[1].offset = 11 * sizeof(uint32_t);
-		reloc[1].delta = 11 * sizeof(uint32_t);
-		reloc[1].target_handle = exec.handle;
-		reloc[1].read_domains = I915_GEM_DOMAIN_INSTRUCTION;
-		reloc[1].write_domain = 0;
+		reloc[1].delta = 1 * sizeof(uint32_t);
+		reloc[1].target_handle = exec[0].handle;
+		reloc[1].read_domains = I915_GEM_DOMAIN_RENDER;
+		reloc[1].write_domain = I915_GEM_DOMAIN_RENDER;
 		reloc[1].presumed_offset = 0;
 
 		memset(&execbuf, 0, sizeof(execbuf));
 		execbuf.buffers_ptr = (uintptr_t)&exec;
-		execbuf.buffer_count = 1;
+		execbuf.buffer_count = 2;
 		execbuf.batch_len = sizeof(b);
 		execbuf.flags = I915_EXEC_SECURE;
 
 		gem_execbuf(t[0].fd, &execbuf);
-		gem_sync(t[0].fd, exec.handle);
-		gem_read(t[0].fd, exec.handle, 0, b, sizeof(b));
-		gem_close(t[0].fd, exec.handle);
+		gem_sync(t[0].fd, exec[1].handle);
 
-		printf("[%d]={ %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x }\n",
-		       i, b[0], b[1], b[2], b[3], b[4], b[5], b[6], b[7], b[8], b[9], b[10], b[11], b[12]);
+		p = gem_mmap(t[0].fd, exec[0].handle, 4096, PROT_READ);
 
-		igt_assert(b[5] & 2);
-		igt_assert((b[11] & 2) == 0);
+		printf("[%d]={ %08x %08x }\n", i, p[0], p[1]);
+		igt_assert(p[0] & 2);
+		igt_assert((p[1] & 2) == 0);
+
+		munmap(p, 4096);
+		gem_close(t[0].fd, exec[0].handle);
+		gem_close(t[0].fd, exec[1].handle);
 
 		usleep(1000);
 	}
