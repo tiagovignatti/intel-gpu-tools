@@ -465,4 +465,6 @@ extern enum igt_log_level igt_log_level;
 	} while (0)
 
 
+void igt_set_timeout(unsigned int seconds);
+
 #endif /* IGT_CORE_H */

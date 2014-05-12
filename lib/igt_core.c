@@ -641,9 +641,12 @@ void igt_fail(int exitcode)
 	if (test_child)
 		exit(exitcode);
 
-	if (in_subtest)
-		exit_subtest("FAIL");
-	else {
+	if (in_subtest) {
+		if (exitcode == 78)
+			exit_subtest("TIMEOUT");
+		else
+			exit_subtest("FAIL");
+	} else {
 		assert(!test_with_subtests || in_fixture);
 
 		if (in_fixture) {
@@ -1223,4 +1226,39 @@ void igt_vlog(enum igt_log_level level, const char *format, va_list args)
 		vfprintf(stderr, format, args);
 	} else
 		vprintf(format, args);
+}
+
+static void igt_alarm_handler(int signal)
+{
+	/* subsequent tests are skipped */
+	skip_subtests_henceforth = SKIP;
+
+	/* exit with status 78 to indicate timeout */
+	igt_fail(78);
+}
+
+/**
+ * igt_set_timeout:
+ * @seconds: number of seconds before timeout
+ *
+ * Stop the current test and skip any subsequent tests after the specified
+ * number of seconds have elapsed. The test will exit with "timeout" status
+ * (78). Any previous timer is cancelled and no timeout is scheduled if @seconds
+ * is zero.
+ *
+ */
+void igt_set_timeout(unsigned int seconds)
+{
+	struct sigaction sa;
+
+	sa.sa_handler = igt_alarm_handler;
+	sigemptyset(&sa.sa_mask);
+	sa.sa_flags = 0;
+
+	if (seconds == 0)
+		sigaction(SIGALRM, NULL, NULL);
+	else
+		sigaction(SIGALRM, &sa, NULL);
+
+	alarm(seconds);
 }
