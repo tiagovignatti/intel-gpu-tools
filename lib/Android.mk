@@ -31,16 +31,7 @@ $(GPU_TOOLS_PATH)/config.h:
 
 include $(LOCAL_PATH)/Makefile.sources
 
-skip_lib_list := \
-    igt_kms.c \
-    igt_kms.h \
-    igt_fb.c
-
-lib_list := $(filter-out $(skip_lib_list),$(libintel_tools_la_SOURCES))
-
 include $(CLEAR_VARS)
-
-LOCAL_SRC_FILES := $(lib_list)
 
 LOCAL_GENERATED_SOURCES :=       \
 	$(GPU_TOOLS_PATH)/version.h  \
@@ -60,6 +51,20 @@ LOCAL_MODULE:= libintel_gpu_tools
 LOCAL_SHARED_LIBRARIES := libpciaccess  \
 			  libdrm        \
 			  libdrm_intel
+
+ifeq ("${ANDROID_HAS_CAIRO}", "1")
+    skip_lib_list :=
+    LOCAL_C_INCLUDES += $(ANDROID_BUILD_TOP)/external/cairo-1.12.16/src
+    LOCAL_CFLAGS += -DANDROID_HAS_CAIRO=1
+else
+skip_lib_list := \
+    igt_kms.c \
+    igt_kms.h \
+    igt_fb.c
+    -DANDROID_HAS_CAIRO=0
+endif
+
+LOCAL_SRC_FILES := $(filter-out $(skip_lib_list),$(libintel_tools_la_SOURCES))
 
 include $(BUILD_STATIC_LIBRARY)
 

@@ -3,52 +3,70 @@ LOCAL_PATH := $(call my-dir)
 include $(LOCAL_PATH)/Makefile.sources
 
 #================#
-
+# each igt test is a separate executable. define a function to build one of these tests
 define add_test
     include $(CLEAR_VARS)
 
+    # specific to this test
     LOCAL_SRC_FILES := $1.c
-
-    LOCAL_CFLAGS += -DHAVE_STRUCT_SYSINFO_TOTALRAM
-    LOCAL_CFLAGS += -DANDROID -UNDEBUG -include "check-ndebug.h"
-    LOCAL_CFLAGS += -std=c99
-    # FIXME: drop once Bionic correctly annotates "noreturn" on pthread_exit
-    LOCAL_CFLAGS += -Wno-error=return-type
-    # Excessive complaining for established cases. Rely on the Linux version warnings.
-    LOCAL_CFLAGS += -Wno-sign-compare
-
-    LOCAL_C_INCLUDES = $(LOCAL_PATH)/../lib
-    LOCAL_C_INCLUDES += ${ANDROID_BUILD_TOP}/external/PRIVATE/drm/include/drm
-
     LOCAL_MODULE := $1
+
+    # common to all tests
+    LOCAL_CFLAGS += ${IGT_LOCAL_CFLAGS}
+    LOCAL_C_INCLUDES = ${IGT_LOCAL_C_INCLUDES}
+    LOCAL_STATIC_LIBRARIES := ${IGT_LOCAL_STATIC_LIBRARIES}
+    LOCAL_SHARED_LIBRARIES := ${IGT_LOCAL_SHARED_LIBRARIES}
+
     LOCAL_MODULE_TAGS := optional
-
-    LOCAL_STATIC_LIBRARIES := libintel_gpu_tools
-
-    LOCAL_SHARED_LIBRARIES := libpciaccess  \
-                              libdrm        \
-                              libdrm_intel
 
     include $(BUILD_EXECUTABLE)
 endef
 
-#================#
 
-skip_tests_list := \
+# some tests still do not build under android
+skip_tests_list :=
+skip_tests_list += gem_seqno_wrap
+skip_tests_list += testdisplay        # needs glib.h
+skip_tests_list += pm_pc8
+skip_tests_list += kms_render         # needs glib.h
+skip_tests_list += gem_exec_params    # needs macro that's missing from external/PRIVATE/drm/include/drmi915_drm.h
+
+# set local compilation flags for IGT tests
+IGT_LOCAL_CFLAGS += -DHAVE_STRUCT_SYSINFO_TOTALRAM -DANDROID -UNDEBUG
+IGT_LOCAL_CFLAGS += -include "check-ndebug.h" -std=c99
+# FIXME: drop once Bionic correctly annotates "noreturn" on pthread_exit
+IGT_LOCAL_CFLAGS += -Wno-error=return-type
+# Excessive complaining for established cases. Rely on the Linux version warnings.
+IGT_LOCAL_CFLAGS += -Wno-sign-compare
+
+# set local includes
+IGT_LOCAL_C_INCLUDES = $(LOCAL_PATH)/../lib
+IGT_LOCAL_C_INCLUDES += ${ANDROID_BUILD_TOP}/external/PRIVATE/drm/include/drm
+
+# set local libraries
+IGT_LOCAL_STATIC_LIBRARIES := libintel_gpu_tools
+IGT_LOCAL_SHARED_LIBRARIES := libpciaccess libdrm libdrm_intel
+
+# handle cairo requirements if it is enabled
+ifeq ("${ANDROID_HAS_CAIRO}", "1")
+    IGT_LOCAL_C_INCLUDES += ${ANDROID_BUILD_TOP}/external/cairo-1.12.16/src
+    IGT_LOCAL_SHARED_LIBRARIES += libcairo
+    IGT_LOCAL_CFLAGS += -DANDROID_HAS_CAIRO=1
+else
+# the following tests depend on cairo, so skip them
+    skip_tests_list += \
     kms_plane \
-    testdisplay \
     kms_addfb \
     kms_cursor_crc \
     kms_flip \
     kms_flip_tiling \
     kms_pipe_crc_basic \
     kms_fbc_crc \
-    kms_render \
     kms_setmode \
-    pm_pc8 \
-    gem_seqno_wrap \
     gem_render_copy \
     pm_lpsp
+    IGT_LOCAL_CFLAGS += -DANDROID_HAS_CAIRO=0
+endif
 
 tests_list := $(filter-out $(skip_tests_list),$(TESTS_progs) $(TESTS_progs_M) $(HANG) $(TESTS_testsuite))
 
