@@ -71,6 +71,7 @@
 #include <stdlib.h>
 #include <signal.h>
 
+static int tio_fd;
 struct termios saved_tio;
 
 drmModeRes *resources;
@@ -698,9 +699,6 @@ static void __attribute__((noreturn)) usage(char *name)
 static void cleanup_and_exit(int ret)
 {
 	close(drm_fd);
-
-	tcsetattr(STDIN_FILENO, TCSANOW, &saved_tio);
-
 	exit(ret);
 }
 
@@ -738,19 +736,22 @@ static void enter_exec_path( char **argv )
 	free(exec_path);
 }
 
+static void restore_termio_mode(int sig)
+{
+	tcsetattr(tio_fd, TCSANOW, &saved_tio);
+	close(tio_fd);
+}
+
 static void set_termio_mode(void)
 {
 	struct termios tio;
 
-	tcgetattr(STDIN_FILENO, &saved_tio);
-
+	tio_fd = dup(STDIN_FILENO);
+	tcgetattr(tio_fd, &saved_tio);
+	igt_install_exit_handler(restore_termio_mode);
 	tio = saved_tio;
-
 	tio.c_lflag &= ~(ICANON | ECHO);
-
-	tcsetattr(STDIN_FILENO, TCSANOW, &tio);
-
-	return;
+	tcsetattr(tio_fd, TCSANOW, &tio);
 }
 
 int main(int argc, char **argv)
@@ -898,8 +899,6 @@ out_mainloop:
 	g_main_loop_unref(mainloop);
 out_close:
 	close(drm_fd);
-
-	tcsetattr(STDIN_FILENO, TCSANOW, &saved_tio);
 
 	return ret;
 }
