@@ -58,7 +58,7 @@ typedef struct {
 	int drm_fd;
 	drmModeRes *resources;
 	igt_crc_t ref_crc[2];
-	igt_pipe_crc_t **pipe_crc;
+	igt_pipe_crc_t *pipe_crc;
 	drm_intel_bufmgr *bufmgr;
 	drm_intel_context *ctx[2];
 	uint32_t devid;
@@ -136,13 +136,10 @@ static void display_init(data_t *data)
 {
 	data->resources = drmModeGetResources(data->drm_fd);
 	igt_assert(data->resources);
-
-	data->pipe_crc = calloc(data->resources->count_crtcs, sizeof(data->pipe_crc[0]));
 }
 
 static void display_fini(data_t *data)
 {
-	free(data->pipe_crc);
 }
 
 static void fill_blt(data_t *data, uint32_t handle, unsigned char color)
@@ -249,7 +246,7 @@ static bool fbc_enabled(data_t *data)
 
 static void test_crc(data_t *data, enum test_mode mode)
 {
-	igt_pipe_crc_t *pipe_crc = data->pipe_crc[data->crtc_idx];
+	igt_pipe_crc_t *pipe_crc = data->pipe_crc;
 	igt_crc_t *crcs = NULL;
 	uint32_t handle = data->handle[0];
 
@@ -376,8 +373,8 @@ static bool prepare_test(data_t *data, enum test_mode mode)
 		return false;
 	}
 
-	igt_pipe_crc_free(data->pipe_crc[data->crtc_idx]);
-	data->pipe_crc[data->crtc_idx] = NULL;
+	igt_pipe_crc_free(data->pipe_crc);
+	data->pipe_crc = NULL;
 
 	pipe_crc = igt_pipe_crc_new(data->crtc_idx,
 				    INTEL_PIPE_CRC_SOURCE_AUTO);
@@ -388,7 +385,7 @@ static bool prepare_test(data_t *data, enum test_mode mode)
 		return false;
 	}
 
-	data->pipe_crc[data->crtc_idx] = pipe_crc;
+	data->pipe_crc = pipe_crc;
 
 	igt_wait_for_vblank(data->drm_fd, data->crtc_idx);
 
@@ -446,8 +443,8 @@ static bool prepare_test(data_t *data, enum test_mode mode)
 
 static void finish_crtc(data_t *data, enum test_mode mode)
 {
-	igt_pipe_crc_free(data->pipe_crc[data->crtc_idx]);
-	data->pipe_crc[data->crtc_idx] = NULL;
+	igt_pipe_crc_free(data->pipe_crc);
+	data->pipe_crc = NULL;
 
 	if (mode == TEST_CONTEXT || mode == TEST_PAGE_FLIP_AND_CONTEXT) {
 		drm_intel_gem_context_destroy(data->ctx[0]);
