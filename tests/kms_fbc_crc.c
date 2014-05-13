@@ -83,26 +83,6 @@ static const char *test_mode_str(enum test_mode mode)
 	return test_modes[mode];
 }
 
-static uint32_t create_fb(data_t *data,
-			  int w, int h,
-			  double r, double g, double b,
-			  struct igt_fb *fb)
-{
-	uint32_t fb_id;
-	cairo_t *cr;
-
-	fb_id = igt_create_fb(data->drm_fd, w, h,
-				  DRM_FORMAT_XRGB8888, true, fb);
-	igt_assert(fb_id);
-
-	cr = igt_get_cairo_ctx(data->drm_fd, fb);
-	igt_paint_color(cr, 0, 0, w, h, r, g, b);
-	igt_assert(cairo_status(cr) == 0);
-	cairo_destroy(cr);
-
-	return fb_id;
-}
-
 static void fill_blt(data_t *data, uint32_t handle, unsigned char color)
 {
 	drm_intel_bo *dst = gem_handle_to_libdrm_bo(data->bufmgr,
@@ -324,12 +304,16 @@ static bool prepare_test(data_t *data, enum test_mode test_mode)
 	data->primary = igt_output_get_plane(data->output, IGT_PLANE_PRIMARY);
 	mode = igt_output_get_mode(data->output);
 
-	data->fb_id[0] = create_fb(data, mode->hdisplay, mode->vdisplay,
-				   0.0, 0.0, 0.0, &data->fb[0]);
+	data->fb_id[0] = igt_create_color_fb(data->drm_fd, mode->hdisplay, mode->vdisplay,
+					     DRM_FORMAT_XRGB8888,
+					     true, /* tiled */
+					     0.0, 0.0, 0.0, &data->fb[0]);
 	igt_assert(data->fb_id[0]);
-
-	data->fb_id[1] = create_fb(data, mode->hdisplay, mode->vdisplay,
-				   0.1, 0.1, 0.1, &data->fb[1]);
+	data->fb_id[1] = igt_create_color_fb(data->drm_fd, mode->hdisplay, mode->vdisplay,
+					     DRM_FORMAT_XRGB8888,
+					     true, /* tiled */
+					     0.1, 0.1, 0.1,
+					     &data->fb[1]);
 	igt_assert(data->fb_id[1]);
 
 	data->handle[0] = data->fb[0].gem_handle;
