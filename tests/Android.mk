@@ -18,6 +18,9 @@ define add_test
     LOCAL_SHARED_LIBRARIES := ${IGT_LOCAL_SHARED_LIBRARIES}
 
     LOCAL_MODULE_TAGS := optional
+    # ask linker to define a specific symbol; we use this to identify IGT tests
+    LOCAL_LDFLAGS := -Wl,--defsym=$2=0
+    LOCAL_MODULE_PATH := $(ANDROID_PRODUCT_OUT)/$(TARGET_COPY_OUT_VENDOR)/intel/validation/core/igt
 
     include $(BUILD_EXECUTABLE)
 endef
@@ -68,7 +71,10 @@ else
     IGT_LOCAL_CFLAGS += -DANDROID_HAS_CAIRO=0
 endif
 
-tests_list := $(filter-out $(skip_tests_list),$(TESTS_progs) $(TESTS_progs_M) $(HANG) $(TESTS_testsuite))
+# create two test lists, one for simple single tests, one for tests that have subtests
+tests_list   := $(filter-out $(skip_tests_list),$(TESTS_progs) $(HANG) $(TESTS_testsuite))
+tests_list_M := $(filter-out $(skip_tests_list),$(TESTS_progs_M))
 
-$(foreach item,$(tests_list),$(eval $(call add_test,$(item))))
+$(foreach item,$(tests_list),$(eval $(call add_test,$(item),"IGT_SINGLE_TEST")))
+$(foreach item,$(tests_list_M),$(eval $(call add_test,$(item),"IGT_MULTI_TEST")))
 
