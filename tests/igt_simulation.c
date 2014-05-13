@@ -95,10 +95,10 @@ int main(int argc, char **argv)
 	/* simple tests */
 	simple = true;
 	assert(setenv("INTEL_SIMULATION", "1", 1) == 0);
-	assert(do_fork() == 77);
+	assert(do_fork() == IGT_EXIT_SKIP);
 
 	assert(setenv("INTEL_SIMULATION", "0", 1) == 0);
-	assert(do_fork() == 0);
+	assert(do_fork() == IGT_EXIT_SUCCESS);
 
 	/* subtests, list mode */
 	simple = false;
@@ -106,25 +106,25 @@ int main(int argc, char **argv)
 
 	in_fixture = false;
 	assert(setenv("INTEL_SIMULATION", "1", 1) == 0);
-	assert(do_fork() == 0);
+	assert(do_fork() == IGT_EXIT_SUCCESS);
 
 	assert(setenv("INTEL_SIMULATION", "0", 1) == 0);
-	assert(do_fork() == 0);
+	assert(do_fork() == IGT_EXIT_SUCCESS);
 
 	in_fixture = true;
 	assert(setenv("INTEL_SIMULATION", "1", 1) == 0);
-	assert(do_fork() == 0);
+	assert(do_fork() == IGT_EXIT_SUCCESS);
 
 	assert(setenv("INTEL_SIMULATION", "0", 1) == 0);
-	assert(do_fork() == 0);
+	assert(do_fork() == IGT_EXIT_SUCCESS);
 
 	in_fixture = false;
 	in_subtest = true;
 	assert(setenv("INTEL_SIMULATION", "1", 1) == 0);
-	assert(do_fork() == 0);
+	assert(do_fork() == IGT_EXIT_SUCCESS);
 
 	assert(setenv("INTEL_SIMULATION", "0", 1) == 0);
-	assert(do_fork() == 0);
+	assert(do_fork() == IGT_EXIT_SUCCESS);
 
 	/* subtest, run mode */
 	simple = false;
@@ -132,25 +132,25 @@ int main(int argc, char **argv)
 
 	in_fixture = false;
 	assert(setenv("INTEL_SIMULATION", "1", 1) == 0);
-	assert(do_fork() == 77);
+	assert(do_fork() == IGT_EXIT_SKIP);
 
 	assert(setenv("INTEL_SIMULATION", "0", 1) == 0);
-	assert(do_fork() == 0);
+	assert(do_fork() == IGT_EXIT_SUCCESS);
 
 	in_fixture = true;
 	assert(setenv("INTEL_SIMULATION", "1", 1) == 0);
-	assert(do_fork() == 77);
+	assert(do_fork() == IGT_EXIT_SKIP);
 
 	assert(setenv("INTEL_SIMULATION", "0", 1) == 0);
-	assert(do_fork() == 0);
+	assert(do_fork() == IGT_EXIT_SUCCESS);
 
 	in_fixture = false;
 	in_subtest = true;
 	assert(setenv("INTEL_SIMULATION", "1", 1) == 0);
-	assert(do_fork() == 77);
+	assert(do_fork() == IGT_EXIT_SKIP);
 
 	assert(setenv("INTEL_SIMULATION", "0", 1) == 0);
-	assert(do_fork() == 0);
+	assert(do_fork() == IGT_EXIT_SUCCESS);
 
 	return 0;
 }

@@ -16,11 +16,11 @@ int main(void)
 
 	fd = drm_open_any();
 	if (fd < 0)
-		return 77;
+		return IGT_EXIT_SKIP;
 
 	alarm(1);
 	if (ioctl(fd, DRM_IOCTL_I915_GEM_SW_FINISH, &arg) == 0)
-		return 77;
+		return IGT_EXIT_SKIP;
 
 	switch (errno) {
 	case ENOENT:

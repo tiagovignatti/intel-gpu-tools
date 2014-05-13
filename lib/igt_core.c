@@ -564,7 +564,7 @@ void igt_skip(const char *f, ...)
 		assert(in_fixture);
 		__igt_fixture_end();
 	} else {
-		exit(77);
+		exit(IGT_EXIT_SKIP);
 	}
 }
 
@@ -630,7 +630,7 @@ void igt_success(void)
  */
 void igt_fail(int exitcode)
 {
-	assert(exitcode != 0 && exitcode != 77);
+	assert(exitcode != IGT_EXIT_SUCCESS && exitcode != IGT_EXIT_SKIP);
 
 	if (!failed_one)
 		igt_exitcode = exitcode;
@@ -642,7 +642,7 @@ void igt_fail(int exitcode)
 		exit(exitcode);
 
 	if (in_subtest) {
-		if (exitcode == 78)
+		if (exitcode == IGT_EXIT_TIMEOUT)
 			exit_subtest("TIMEOUT");
 		else
 			exit_subtest("FAIL");
@@ -710,10 +710,10 @@ void igt_exit(void)
 	igt_exit_called = true;
 
 	if (igt_only_list_subtests())
-		exit(0);
+		exit(IGT_EXIT_SUCCESS);
 
 	if (!test_with_subtests)
-		exit(0);
+		exit(IGT_EXIT_SUCCESS);
 
 	/* Calling this without calling one of the above is a failure */
 	assert(skipped_one || succeeded_one || failed_one);
@@ -721,9 +721,9 @@ void igt_exit(void)
 	if (failed_one)
 		exit(igt_exitcode);
 	else if (succeeded_one)
-		exit(0);
+		exit(IGT_EXIT_SUCCESS);
 	else
-		exit(77);
+		exit(IGT_EXIT_SKIP);
 }
 
 /* fork support code */
@@ -1233,8 +1233,8 @@ static void igt_alarm_handler(int signal)
 	/* subsequent tests are skipped */
 	skip_subtests_henceforth = SKIP;
 
-	/* exit with status 78 to indicate timeout */
-	igt_fail(78);
+	/* exit with timeout status */
+	igt_fail(IGT_EXIT_TIMEOUT);
 }
 
 /**
@@ -1242,9 +1242,9 @@ static void igt_alarm_handler(int signal)
  * @seconds: number of seconds before timeout
  *
  * Stop the current test and skip any subsequent tests after the specified
- * number of seconds have elapsed. The test will exit with "timeout" status
- * (78). Any previous timer is cancelled and no timeout is scheduled if @seconds
- * is zero.
+ * number of seconds have elapsed. The test will exit with #IGT_EXIT_TIMEOUT
+ * status. Any previous timer is cancelled and no timeout is scheduled if
+ * @seconds is zero.
  *
  */
 void igt_set_timeout(unsigned int seconds)

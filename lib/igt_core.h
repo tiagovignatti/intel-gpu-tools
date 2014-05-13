@@ -37,6 +37,28 @@
 #include <sys/types.h>
 #include <stdarg.h>
 
+/**
+ * IGT_EXIT_TIMEOUT:
+ *
+ * Exit status indicating a timeout occurred.
+ */
+#define IGT_EXIT_TIMEOUT 78
+
+/**
+ * IGT_EXIT_SKIP:
+ *
+ * Exit status indicating the test was skipped.
+ */
+#define IGT_EXIT_SKIP    77
+
+/**
+ * IGT_EXIT_SUCCESS
+ *
+ * Exit status indicating the test executed successfully.
+ */
+#define IGT_EXIT_SUCCESS 0
+
+
 bool __igt_fixture(void);
 void __igt_fixture_complete(void);
 void __igt_fixture_end(void) __attribute__((noreturn));
