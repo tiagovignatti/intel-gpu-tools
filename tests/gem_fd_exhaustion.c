@@ -49,7 +49,7 @@ igt_simple_main
 	igt_assert(fscanf(file_max, "%u", &nofile_rlim) == 1);
 	fclose(file_max);
 
-	printf("System limit for open files is %u\n", nofile_rlim);
+	igt_info("System limit for open files is %u\n", nofile_rlim);
 
 	igt_assert(getrlimit(RLIMIT_NOFILE, &rlim) == 0);
 	rlim.rlim_cur = nofile_rlim;
@@ -78,7 +78,7 @@ igt_simple_main
 			if (tmp_fd < 0) {
 				/* Ensure we actually hit the failure path ... */
 				igt_assert(handle == 0);
-				printf("fd exhaustion after %i rounds.\n", i);
+				igt_info("fd exhaustion after %i rounds.\n", i);
 				break;
 			}
 		}

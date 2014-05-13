@@ -82,7 +82,7 @@ static void do_test(uint32_t tiling, unsigned stride,
 	uint32_t blt_stride, blt_bits;
 	bool tiling_changed = false;
 
-	printf("filling ring .. ");
+	igt_info("filling ring .. ");
 	busy_bo = drm_intel_bo_alloc(bufmgr, "busy bo bo", 16*1024*1024, 4096);
 
 	for (i = 0; i < 250; i++) {
@@ -110,7 +110,7 @@ static void do_test(uint32_t tiling, unsigned stride,
 	}
 	intel_batchbuffer_flush(batch);
 
-	printf("playing tricks .. ");
+	igt_info("playing tricks .. ");
 	/* first allocate the target so it gets out of the way of playing funky
 	 * tricks */
 	target_bo = drm_intel_bo_alloc(bufmgr, "target bo", TEST_SIZE, 4096);
@@ -202,7 +202,7 @@ static void do_test(uint32_t tiling, unsigned stride,
 	/* Now try to trick the kernel the kernel into changing up the fencing
 	 * too early. */
 
-	printf("checking .. ");
+	igt_info("checking .. ");
 	memset(data, 0, TEST_SIZE);
 	drm_intel_bo_get_subdata(target_bo, 0, TEST_SIZE, data);
 	for (i = 0; i < TEST_SIZE/4; i++)
@@ -221,7 +221,7 @@ static void do_test(uint32_t tiling, unsigned stride,
 	drm_intel_bo_unreference(test_bo);
 	drm_intel_bo_unreference(target_bo);
 	drm_intel_bo_unreference(busy_bo);
-	printf("done\n");
+	igt_info("done\n");
 }
 
 int fd;
@@ -246,7 +246,6 @@ igt_main
 	}
 
 	igt_subtest("untiled-to-tiled") {
-		printf("testing untiled->tiled transisition:\n");
 		tiling = I915_TILING_NONE;
 		tiling_after = I915_TILING_X;
 		do_test(tiling, TEST_STRIDE, tiling_after, TEST_STRIDE);
@@ -255,7 +254,6 @@ igt_main
 	}
 
 	igt_subtest("tiled-to-untiled") {
-		printf("testing tiled->untiled transisition:\n");
 		tiling = I915_TILING_X;
 		tiling_after = I915_TILING_NONE;
 		do_test(tiling, TEST_STRIDE, tiling_after, TEST_STRIDE);
@@ -264,7 +262,6 @@ igt_main
 	}
 
 	igt_subtest("tiled-to-tiled") {
-		printf("testing tiled->tiled transisition:\n");
 		tiling = I915_TILING_X;
 		tiling_after = I915_TILING_X;
 		do_test(tiling, TEST_STRIDE/2, tiling_after, TEST_STRIDE);

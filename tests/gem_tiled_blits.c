@@ -133,11 +133,11 @@ static void run_test(int count)
 		bo_start_val[i] = start;
 		start += 1024 * 1024 / 4;
 	}
-	printf("Verifying initialisation...\n");
+	igt_info("Verifying initialisation...\n");
 	for (i = 0; i < count; i++)
 		check_bo(bo[i], bo_start_val[i]);
 
-	printf("Cyclic blits, forward...\n");
+	igt_info("Cyclic blits, forward...\n");
 	for (i = 0; i < count * 4; i++) {
 		int src = i % count;
 		int dst = (i+1) % count;
@@ -159,7 +159,7 @@ static void run_test(int count)
 		return;
 	}
 
-	printf("Cyclic blits, backward...\n");
+	igt_info("Cyclic blits, backward...\n");
 	for (i = 0; i < count * 4; i++) {
 		int src = (i+1) % count;
 		int dst = i % count;
@@ -173,7 +173,7 @@ static void run_test(int count)
 	for (i = 0; i < count; i++)
 		check_bo(bo[i], bo_start_val[i]);
 
-	printf("Random blits...\n");
+	igt_info("Random blits...\n");
 	for (i = 0; i < count * 4; i++) {
 		int src = random() % count;
 		int dst = random() % count;
@@ -218,10 +218,10 @@ int main(int argc, char **argv)
 
 		if (count > intel_get_total_ram_mb() * 9 / 10) {
 			count = intel_get_total_ram_mb() * 9 / 10;
-			printf("not enough RAM to run test, reducing buffer count\n");
+			igt_info("not enough RAM to run test, reducing buffer count\n");
 		}
 
-		printf("Using %d 1MiB buffers\n", count);
+		igt_info("Using %d 1MiB buffers\n", count);
 
 		bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
 		drm_intel_bufmgr_gem_enable_reuse(bufmgr);

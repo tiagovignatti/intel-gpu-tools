@@ -140,8 +140,8 @@ test_plane_position_with_output(data_t *data,
 	drmModeModeInfo *mode;
 	igt_crc_t crc;
 
-	fprintf(stdout, "Testing connector %s using pipe %c plane %d\n",
-		igt_output_name(output), pipe_name(pipe), plane);
+	igt_info("Testing connector %s using pipe %c plane %d\n",
+		 igt_output_name(output), pipe_name(pipe), plane);
 
 	test_position_init(&test, output, pipe);
 

@@ -77,7 +77,7 @@ igt_simple_main
 	batch = intel_batchbuffer_alloc(bufmgr, devid);
 
 	act_size = 2048;
-	printf("filling ring\n");
+	igt_info("filling ring\n");
 	drm_intel_bo_unreference(bo);
 	bo = drm_intel_bo_alloc_tiled(bufmgr, "tiled bo", act_size, act_size,
 				      4, &tiling_mode, &pitch, 0);
@@ -113,10 +113,10 @@ igt_simple_main
 		}
 	}
 
-	printf("waiting\n");
+	igt_info("waiting\n");
 	sleep(10);
 
-	printf("done waiting, check dmesg\n");
+	igt_info("done waiting, check dmesg\n");
 	drm_intel_bo_unreference(bo);
 
 	intel_batchbuffer_free(batch);

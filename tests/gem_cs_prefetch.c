@@ -162,7 +162,7 @@ igt_simple_main
 		igt_progress("gem_cs_prefetch: ", i, count);
 	}
 
-	printf("Test suceeded, cleanup up - this might take a while.\n");
+	igt_info("Test suceeded, cleanup up - this might take a while.\n");
 	drm_intel_bufmgr_destroy(bufmgr);
 
 	close(fd);

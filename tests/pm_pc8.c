@@ -779,8 +779,8 @@ static void setup_environment(void)
 	setup_runtime_pm();
 	setup_pc8();
 
-	printf("Runtime PM support: %d\n", has_runtime_pm);
-	printf("PC8 residency support: %d\n", has_pc8);
+	igt_info("Runtime PM support: %d\n", has_runtime_pm);
+	igt_info("PC8 residency support: %d\n", has_pc8);
 
 	igt_require(has_runtime_pm);
 }

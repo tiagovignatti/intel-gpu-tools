@@ -187,6 +187,6 @@ igt_simple_main
 		igt_assert(status == 0);
 	}
 	gettimeofday(&end, NULL);
-	printf("Time to execute %lu children:		%7.3fms\n",
-	       ARRAY_SIZE(children), elapsed(&start, &end) / 1000);
+	igt_info("Time to execute %lu children:		%7.3fms\n",
+		 ARRAY_SIZE(children), elapsed(&start, &end) / 1000);
 }

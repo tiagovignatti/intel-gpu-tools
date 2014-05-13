@@ -84,7 +84,7 @@ store_dword_loop(int devid, int divider)
 	int i, val = 0;
 	uint32_t *buf;
 
-	printf("running storedw loop on render with stall every %i batch\n", divider);
+	igt_info("running storedw loop on render with stall every %i batch\n", divider);
 
 	for (i = 0; i < SLOW_QUICK(0x100000, 0x10); i++) {
 		emit_store_dword_imm(devid, target_buffer, val);
@@ -109,7 +109,7 @@ cont:
 	drm_intel_bo_map(target_buffer, 0);
 	buf = target_buffer->virtual;
 
-	printf("completed %d writes successfully, current value: 0x%08x\n", i,
+	igt_info("completed %d writes successfully, current value: 0x%08x\n", i,
 			buf[0]);
 	drm_intel_bo_unmap(target_buffer);
 }

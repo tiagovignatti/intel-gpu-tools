@@ -51,12 +51,6 @@ static uint32_t memtype_intel, tile_intel_y, tile_intel_x;
 
 #define NV01_SUBC(subc, mthd) SUBC_##subc((NV01_SUBCHAN_##mthd))
 
-#if 0
-#define dbg(fmt...) fprintf(stderr, fmt);
-#else
-#define dbg(...) do { } while (0)
-#endif
-
 typedef struct {
 	uint32_t w, h;
 	uint32_t pitch, lines;
@@ -94,7 +88,7 @@ static int nv_bo_alloc(struct nouveau_bo **bo, rect *r,
 
 		dx = 1 << tile_x;
 		dy = 1 << tile_y;
-		dbg("Tiling requirements: x y %u %u\n", dx, dy);
+		igt_debug("Tiling requirements: x y %u %u\n", dx, dy);
 	}
 
 	r->w = w;
@@ -120,9 +114,12 @@ static int nv_bo_alloc(struct nouveau_bo **bo, rect *r,
 			return ret;
 		}
 
-		dbg("new flags %08x memtype %08x tile %08x\n", (*bo)->flags, (*bo)->config.nv50.memtype, (*bo)->config.nv50.tile_mode);
+		igt_debug("new flags %08x memtype %08x tile %08x\n",
+			  (*bo)->flags, (*bo)->config.nv50.memtype,
+			  (*bo)->config.nv50.tile_mode);
 		if (tile_mode == tile_intel_y || tile_mode == tile_intel_x) {
-			dbg("tile mode was: %02x, now: %02x\n", (*bo)->config.nv50.tile_mode, tile_mode);
+			igt_debug("tile mode was: %02x, now: %02x\n",
+				  (*bo)->config.nv50.tile_mode, tile_mode);
 			/* Doesn't like intel tiling much.. */
 			(*bo)->config.nv50.tile_mode = tile_mode;
 		}
@@ -140,11 +137,13 @@ static int nv_bo_alloc(struct nouveau_bo **bo, rect *r,
 			nouveau_bo_ref(NULL, bo);
 			return -1;
 		}
-		dbg("prime flags %08x memtype %08x tile %08x\n", (*bo)->flags, (*bo)->config.nv50.memtype, (*bo)->config.nv50.tile_mode);
+		igt_debug("prime flags %08x memtype %08x tile %08x\n",
+			  (*bo)->flags, (*bo)->config.nv50.memtype,
+			  (*bo)->config.nv50.tile_mode);
 		(*bo)->config.nv50.memtype = memtype;
 		(*bo)->config.nv50.tile_mode = tile_mode;
 	}
-	dbg("size: %"PRIu64"\n", (*bo)->size);
+	igt_debug("size: %"PRIu64"\n", (*bo)->size);
 
 	return ret;
 }
@@ -539,9 +538,9 @@ static int perform_copy(struct nouveau_bo *nvbo, const rect *dst,
 	int ret;
 
 	if (nvbi->config.nv50.tile_mode == tile_intel_y)
-		dbg("src is y-tiled\n");
+		igt_debug("src is y-tiled\n");
 	if (nvbo->config.nv50.tile_mode == tile_intel_y)
-		dbg("dst is y-tiled\n");
+		igt_debug("dst is y-tiled\n");
 
 	if (nouveau_pushbuf_space(push, 64, 0, 0) ||
 	    nouveau_pushbuf_refn(push, refs, 3))

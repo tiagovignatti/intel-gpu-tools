@@ -120,7 +120,7 @@ int main(int argc, char **argv)
 
 	if (count > intel_get_total_ram_mb() * 9 / 10) {
 		count = intel_get_total_ram_mb() * 9 / 10;
-		printf("not enough RAM to run test, reducing buffer count\n");
+		igt_info("not enough RAM to run test, reducing buffer count\n");
 	}
 
 	bo = malloc(sizeof(*bo)*count);
@@ -134,11 +134,11 @@ int main(int argc, char **argv)
 		gem_write(fd, bo[i]->handle, 0, linear, sizeof(linear));
 	}
 
-	printf("Verifying initialisation...\n");
+	igt_info("Verifying initialisation...\n");
 	for (i = 0; i < count; i++)
 		check_bo(fd, bo[i]->handle, start_val[i]);
 
-	printf("Cyclic blits, forward...\n");
+	igt_info("Cyclic blits, forward...\n");
 	for (i = 0; i < count * 4; i++) {
 		struct igt_buf src, dst;
 
@@ -161,7 +161,7 @@ int main(int argc, char **argv)
 	if (igt_run_in_simulation())
 		return 0;
 
-	printf("Cyclic blits, backward...\n");
+	igt_info("Cyclic blits, backward...\n");
 	for (i = 0; i < count * 4; i++) {
 		struct igt_buf src, dst;
 
@@ -181,7 +181,7 @@ int main(int argc, char **argv)
 	for (i = 0; i < count; i++)
 		check_bo(fd, bo[i]->handle, start_val[i]);
 
-	printf("Random blits...\n");
+	igt_info("Random blits...\n");
 	for (i = 0; i < count * 4; i++) {
 		struct igt_buf src, dst;
 		int s = random() % count;

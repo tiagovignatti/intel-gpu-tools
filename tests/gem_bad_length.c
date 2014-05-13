@@ -70,7 +70,7 @@ static int gem_exec(int fd, struct drm_i915_gem_execbuffer2 *execbuf)
 static void create0(int fd)
 {
 	int retval = 0;
-	printf("trying to create a zero-length gem object\n");
+	igt_info("trying to create a zero-length gem object\n");
 	do_gem_create(fd, 0, &retval);
 	igt_assert(retval == EINVAL);
 }
@@ -109,7 +109,7 @@ static void exec0(int fd)
 	i915_execbuffer2_set_context_id(execbuf, 0);
 	execbuf.rsvd2 = 0;
 
-	printf("trying to run an empty batchbuffer\n");
+	igt_info("trying to run an empty batchbuffer\n");
 	gem_exec(fd, &execbuf);
 
 	gem_close(fd, exec[0].handle);

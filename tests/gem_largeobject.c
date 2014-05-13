@@ -60,7 +60,7 @@ test_large_object(int fd)
 	else
 		obj_size = OBJ_SIZE;
 	create.size = obj_size;
-	printf("obj size %i\n", obj_size);
+	igt_info("obj size %i\n", obj_size);
 
 	igt_assert(ioctl(fd, DRM_IOCTL_I915_GEM_CREATE, &create) == 0);
 

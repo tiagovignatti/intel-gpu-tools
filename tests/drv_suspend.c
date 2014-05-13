@@ -82,11 +82,11 @@ test_fence_restore(int fd, bool tiled2untiled)
 
 	igt_system_suspend_autoresume();
 
-	printf("checking the first canary object\n");
+	igt_info("checking the first canary object\n");
 	for (i = 0; i < OBJECT_SIZE/sizeof(uint32_t); i++)
 		igt_assert(ptr1[i] == i);
 
-	printf("checking the second canary object\n");
+	igt_info("checking the second canary object\n");
 	for (i = 0; i < OBJECT_SIZE/sizeof(uint32_t); i++)
 		igt_assert(ptr2[i] == i);
 

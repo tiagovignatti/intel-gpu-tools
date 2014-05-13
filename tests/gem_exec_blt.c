@@ -242,10 +242,10 @@ static void run(int object_size)
 			gem_execbuf(fd, &execbuf);
 		gem_sync(fd, handle);
 		gettimeofday(&end, NULL);
-		printf("Time to blt %d bytes x %6d:	%7.3fµs, %s\n",
-		       object_size, count,
-		       elapsed(&start, &end, count),
-		       bytes_per_sec((char *)buf, object_size/elapsed(&start, &end, count)*1e6));
+		igt_info("Time to blt %d bytes x %6d:	%7.3fµs, %s\n",
+			 object_size, count,
+			 elapsed(&start, &end, count),
+			 bytes_per_sec((char *)buf, object_size/elapsed(&start, &end, count)*1e6));
 		fflush(stdout);
 	}
 	gem_close(fd, handle);

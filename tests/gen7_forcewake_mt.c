@@ -193,7 +193,7 @@ igt_simple_main
 
 		p = gem_mmap(t[0].fd, exec[0].handle, 4096, PROT_READ);
 
-		printf("[%d]={ %08x %08x }\n", i, p[0], p[1]);
+		igt_info("[%d]={ %08x %08x }\n", i, p[0], p[1]);
 		igt_assert(p[0] & 2);
 		igt_assert((p[1] & 2) == 0);
 

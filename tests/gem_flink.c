@@ -45,7 +45,7 @@ test_flink(int fd)
 	struct drm_gem_open open_struct;
 	int ret;
 
-	printf("Testing flink and open.\n");
+	igt_info("Testing flink and open.\n");
 
 	memset(&create, 0, sizeof(create));
 	create.size = 16 * 1024;
@@ -70,7 +70,7 @@ test_double_flink(int fd)
 	struct drm_gem_flink flink2;
 	int ret;
 
-	printf("Testing repeated flink.\n");
+	igt_info("Testing repeated flink.\n");
 
 	memset(&create, 0, sizeof(create));
 	create.size = 16 * 1024;
@@ -93,7 +93,7 @@ test_bad_flink(int fd)
 	struct drm_gem_flink flink;
 	int ret;
 
-	printf("Testing error return on bad flink ioctl.\n");
+	igt_info("Testing error return on bad flink ioctl.\n");
 
 	flink.handle = 0x10101010;
 	ret = ioctl(fd, DRM_IOCTL_GEM_FLINK, &flink);
@@ -106,7 +106,7 @@ test_bad_open(int fd)
 	struct drm_gem_open open_struct;
 	int ret;
 
-	printf("Testing error return on bad open ioctl.\n");
+	igt_info("Testing error return on bad open ioctl.\n");
 
 	open_struct.name = 0x10101010;
 	ret = ioctl(fd, DRM_IOCTL_GEM_OPEN, &open_struct);
@@ -122,7 +122,7 @@ test_flink_lifetime(int fd)
 	struct drm_gem_open open_struct;
 	int ret, fd2;
 
-	printf("Testing flink lifetime.\n");
+	igt_info("Testing flink lifetime.\n");
 
 	fd2 = drm_open_any();
 

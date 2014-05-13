@@ -175,9 +175,9 @@ static int run_test(int threads_per_fence, void *f, int tiling,
 
 	num_threads = threads_per_fence * num_fences;
 
-	printf("%s: threads %d, fences %d, tiling %d, surfaces per thread %d\n",
-	       f == bo_copy ? "copy" : "write-verify", num_threads,
-	       num_fences, tiling, surfaces_per_thread);
+	igt_info("%s: threads %d, fences %d, tiling %d, surfaces per thread %d\n",
+		 f == bo_copy ? "copy" : "write-verify", num_threads,
+		 num_fences, tiling, surfaces_per_thread);
 
 	if (threads_per_fence) {
 		threads = calloc(sizeof(*threads), num_threads);

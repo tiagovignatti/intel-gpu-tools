@@ -390,7 +390,7 @@ igt_main
 		if (num_buffers > max)
 			num_buffers = max;
 		num_buffers /= 2;
-		printf("using 2x%d buffers, each 1MiB\n", num_buffers);
+		igt_info("using 2x%d buffers, each 1MiB\n", num_buffers);
 	}
 
 	for (i = 0; i < ARRAY_SIZE(access_modes); i++)

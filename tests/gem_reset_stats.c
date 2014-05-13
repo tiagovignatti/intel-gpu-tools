@@ -303,12 +303,10 @@ static int inject_hang_ring(int fd, int ctx, int ring, bool ignore_ban_error)
 
 	buf[roff + cmd_len] = MI_BATCH_BUFFER_END;
 
-#ifdef VERBOSE
-	printf("loop injected at 0x%lx (off 0x%x, bo_start 0x%lx, bo_end 0x%lx)\n",
-	       (long unsigned int)((roff << 2) + gtt_off),
-	       roff << 2, (long unsigned int)gtt_off,
-	       (long unsigned int)(gtt_off + BUFSIZE - 1));
-#endif
+	igt_debug("loop injected at 0x%lx (off 0x%x, bo_start 0x%lx, bo_end 0x%lx)\n",
+		  (long unsigned int)((roff << 2) + gtt_off),
+		  roff << 2, (long unsigned int)gtt_off,
+		  (long unsigned int)(gtt_off + BUFSIZE - 1));
 	gem_write(fd, exec.handle, 0, buf, BUFSIZE);
 
 	exec.relocation_count = 0;
@@ -365,14 +363,14 @@ static int _assert_reset_status(int fd, int ctx, int status)
 
 	rs = gem_reset_status(fd, ctx);
 	if (rs < 0) {
-		printf("reset status for %d ctx %d returned %d\n",
-		       fd, ctx, rs);
+		igt_info("reset status for %d ctx %d returned %d\n",
+			 fd, ctx, rs);
 		return rs;
 	}
 
 	if (rs != status) {
-		printf("%d:%d reset status %d differs from assumed %d\n",
-		       fd, ctx, rs, status);
+		igt_info("%d:%d reset status %d differs from assumed %d\n",
+			 fd, ctx, rs, status);
 
 		return 1;
 	}
@@ -568,7 +566,7 @@ static void test_ban(void)
                 gem_close(fd_bad, h3);
                 gem_close(fd_bad, h4);
 
-                printf("retrying for ban (%d)\n", retry);
+                igt_info("retrying for ban (%d)\n", retry);
         }
 
 	igt_assert(h4 == -EIO);
@@ -660,7 +658,7 @@ static void test_ban_ctx(void)
                 gem_close(fd, h3);
                 gem_close(fd, h4);
 
-                printf("retrying for ban (%d)\n", retry);
+                igt_info("retrying for ban (%d)\n", retry);
         }
 
 	igt_assert(h4 == -EIO);

@@ -73,22 +73,22 @@ igt_main
 		igt_assert(ret == 0);
 		addr = (uint8_t *)(uintptr_t)arg.addr_ptr;
 
-		printf("Testing contents of newly created object.\n");
+		igt_info("Testing contents of newly created object.\n");
 		memset(expected, 0, sizeof(expected));
 		igt_assert(memcmp(addr, expected, sizeof(expected)) == 0);
 
-		printf("Testing coherency of writes and mmap reads.\n");
+		igt_info("Testing coherency of writes and mmap reads.\n");
 		memset(buf, 0, sizeof(buf));
 		memset(buf + 1024, 0x01, 1024);
 		memset(expected + 1024, 0x01, 1024);
 		gem_write(fd, handle, 0, buf, OBJECT_SIZE);
 		igt_assert(memcmp(buf, addr, sizeof(buf)) == 0);
 
-		printf("Testing that mapping stays after close\n");
+		igt_info("Testing that mapping stays after close\n");
 		gem_close(fd, handle);
 		igt_assert(memcmp(buf, addr, sizeof(buf)) == 0);
 
-		printf("Testing unmapping\n");
+		igt_info("Testing unmapping\n");
 		munmap(addr, OBJECT_SIZE);
 	}
 

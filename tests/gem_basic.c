@@ -44,7 +44,7 @@ test_bad_close(int fd)
 	struct drm_gem_close close_bo;
 	int ret;
 
-	printf("Testing error return on bad close ioctl.\n");
+	igt_info("Testing error return on bad close ioctl.\n");
 
 	close_bo.handle = 0x10101010;
 	ret = ioctl(fd, DRM_IOCTL_GEM_CLOSE, &close_bo);
@@ -57,7 +57,7 @@ test_create_close(int fd)
 {
 	uint32_t handle;
 
-	printf("Testing creating and closing an object.\n");
+	igt_info("Testing creating and closing an object.\n");
 
 	handle = gem_create(fd, 16*1024);
 
@@ -67,7 +67,7 @@ test_create_close(int fd)
 static void
 test_create_fd_close(int fd)
 {
-	printf("Testing closing with an object allocated.\n");
+	igt_info("Testing closing with an object allocated.\n");
 
 	gem_create(fd, 16*1024);
 	/* leak it */

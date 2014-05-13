@@ -242,6 +242,6 @@ igt_simple_main
 		igt_progress("gem_cpu_reloc: ", 2*count+i, 3*count);
 	}
 
-	printf("Test suceeded, cleanup up - this might take a while.\n");
+	igt_info("Test suceeded, cleanup up - this might take a while.\n");
 	close(fd);
 }

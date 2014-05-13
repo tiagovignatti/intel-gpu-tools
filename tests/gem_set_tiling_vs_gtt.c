@@ -77,7 +77,7 @@ igt_simple_main
 
 	gem_set_tiling(fd, handle, I915_TILING_X, TEST_STRIDE);
 
-	printf("testing untiled->tiled\n");
+	igt_info("testing untiled->tiled\n");
 	tiling_changed = false;
 	gem_set_domain(fd, handle, I915_GEM_DOMAIN_GTT, 0);
 	/* Too lazy to check for the correct tiling, and impossible anyway on
@@ -93,7 +93,7 @@ igt_simple_main
 
 	gem_set_tiling(fd, handle, I915_TILING_X, TEST_STRIDE*2);
 
-	printf("testing tiled->tiled\n");
+	igt_info("testing tiled->tiled\n");
 	gem_set_domain(fd, handle, I915_GEM_DOMAIN_GTT, 0);
 	for (i = 0; i < OBJECT_SIZE/4; i++) {
 		int tile_row = i / (TEST_STRIDE * tile_height / 4);
@@ -120,7 +120,7 @@ igt_simple_main
 		ptr[i] = data[i] = i;
 
 	gem_set_tiling(fd, handle, I915_TILING_NONE, 0);
-	printf("testing tiled->untiled\n");
+	igt_info("testing tiled->untiled\n");
 	tiling_changed = false;
 	gem_set_domain(fd, handle, I915_GEM_DOMAIN_GTT, 0);
 	/* Too lazy to check for the correct tiling, and impossible anyway on

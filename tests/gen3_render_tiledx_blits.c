@@ -354,7 +354,7 @@ int main(int argc, char **argv)
 		count = atoi(argv[1]);
 	if (count == 0)
 		count = 3 * gem_aperture_size(fd) / (1024*1024) / 2;
-	printf("Using %d 1MiB buffers\n", count);
+	igt_info("Using %d 1MiB buffers\n", count);
 
 	handle = malloc(sizeof(uint32_t)*count*2);
 	start_val = handle + count;
@@ -365,11 +365,11 @@ int main(int argc, char **argv)
 		start += 1024 * 1024 / 4;
 	}
 
-	printf("Verifying initialisation...\n");
+	igt_info("Verifying initialisation...\n");
 	for (i = 0; i < count; i++)
 		check_bo(fd, handle[i], start_val[i]);
 
-	printf("Cyclic blits, forward...\n");
+	igt_info("Cyclic blits, forward...\n");
 	for (i = 0; i < count * 4; i++) {
 		int src = i % count;
 		int dst = (i + 1) % count;
@@ -380,7 +380,7 @@ int main(int argc, char **argv)
 	for (i = 0; i < count; i++)
 		check_bo(fd, handle[i], start_val[i]);
 
-	printf("Cyclic blits, backward...\n");
+	igt_info("Cyclic blits, backward...\n");
 	for (i = 0; i < count * 4; i++) {
 		int src = (i + 1) % count;
 		int dst = i % count;
@@ -391,7 +391,7 @@ int main(int argc, char **argv)
 	for (i = 0; i < count; i++)
 		check_bo(fd, handle[i], start_val[i]);
 
-	printf("Random blits...\n");
+	igt_info("Random blits...\n");
 	for (i = 0; i < count * 4; i++) {
 		int src = random() % count;
 		int dst = random() % count;

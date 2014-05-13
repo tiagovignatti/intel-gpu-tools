@@ -92,7 +92,7 @@ int main(int argc, char **argv)
 		num_rings++;
 
 
-	printf("num rings detected: %i\n", num_rings);
+	igt_info("num rings detected: %i\n", num_rings);
 
 	bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
 	igt_assert(bufmgr);

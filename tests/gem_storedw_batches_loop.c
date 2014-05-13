@@ -56,7 +56,7 @@ store_dword_loop(int divider, unsigned flags)
 	uint32_t *buf;
 	drm_intel_bo *cmd_bo;
 
-	printf("running storedw loop with stall every %i batch\n", divider);
+	igt_info("running storedw loop with stall every %i batch\n", divider);
 
 	cmd = MI_STORE_DWORD_IMM;
 	if (!has_ppgtt)
@@ -126,7 +126,7 @@ cont:
 		val++;
 	}
 
-	printf("completed %d writes successfully\n", i);
+	igt_info("completed %d writes successfully\n", i);
 }
 
 int fd;

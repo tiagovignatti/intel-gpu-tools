@@ -95,8 +95,8 @@ static int check_bo(struct bo *b)
 			int x = i % width;
 			int y = i / width;
 
-			printf("%s: copy #%d at %d,%d failed: read 0x%08x\n",
-			       b->ring, i, x, y, map[i]);
+			igt_info("%s: copy #%d at %d,%d failed: read 0x%08x\n",
+				 b->ring, i, x, y, map[i]);
 		}
 	}
 	drm_intel_bo_unmap(b->dst);
@@ -165,7 +165,7 @@ static int check_ring(drm_intel_bufmgr *bufmgr,
 	}
 
 	/* verify */
-	printf("verifying\n");
+	igt_info("verifying\n");
 	i = check_bo(&bo);
 	destroy_bo(&bo);
 

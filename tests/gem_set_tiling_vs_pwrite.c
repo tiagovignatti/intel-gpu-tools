@@ -71,7 +71,7 @@ igt_simple_main
 	gem_set_domain(fd, handle, I915_GEM_DOMAIN_GTT, I915_GEM_DOMAIN_GTT);
 	*ptr = 0xdeadbeef;
 
-	printf("testing pwrite on tiled buffer\n");
+	igt_info("testing pwrite on tiled buffer\n");
 	gem_write(fd, handle, 0, data, OBJECT_SIZE);
 	memset(data, 0, OBJECT_SIZE);
 	gem_read(fd, handle, 0, data, OBJECT_SIZE);
@@ -84,7 +84,7 @@ igt_simple_main
 
 	gem_set_tiling(fd, handle, I915_TILING_NONE, 0);
 
-	printf("testing pwrite on untiled, but still fenced buffer\n");
+	igt_info("testing pwrite on untiled, but still fenced buffer\n");
 	gem_write(fd, handle, 0, data, OBJECT_SIZE);
 	memset(data, 0, OBJECT_SIZE);
 	gem_read(fd, handle, 0, data, OBJECT_SIZE);

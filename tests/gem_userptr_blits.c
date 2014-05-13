@@ -767,7 +767,7 @@ static int test_coherency(int fd, int count)
 	uint32_t start = 0;
 	int i, ret;
 
-	printf("Using 2x%d 1MiB buffers\n", count);
+	igt_info("Using 2x%d 1MiB buffers\n", count);
 
 	ret = posix_memalign((void **)&memory, PAGE_SIZE, count*sizeof(linear));
 	if (ret != 0 || memory == NULL) {
@@ -793,13 +793,13 @@ static int test_coherency(int fd, int count)
 		start += WIDTH*HEIGHT;
 	}
 
-	printf("Verifying initialisation...\n");
+	igt_info("Verifying initialisation...\n");
 	for (i = 0; i < count; i++) {
 		check_gpu(fd, gpu[i], gpu_val[i]);
 		check_cpu(memory+i*WIDTH*HEIGHT, cpu_val[i]);
 	}
 
-	printf("Cyclic blits cpu->gpu, forward...\n");
+	igt_info("Cyclic blits cpu->gpu, forward...\n");
 	for (i = 0; i < count * 4; i++) {
 		int src = i % count;
 		int dst = (i + 1) % count;
@@ -810,7 +810,7 @@ static int test_coherency(int fd, int count)
 	for (i = 0; i < count; i++)
 		check_gpu(fd, gpu[i], gpu_val[i]);
 
-	printf("Cyclic blits gpu->cpu, backward...\n");
+	igt_info("Cyclic blits gpu->cpu, backward...\n");
 	for (i = 0; i < count * 4; i++) {
 		int src = (i + 1) % count;
 		int dst = i % count;
@@ -823,7 +823,7 @@ static int test_coherency(int fd, int count)
 		check_cpu(memory+i*WIDTH*HEIGHT, cpu_val[i]);
 	}
 
-	printf("Random blits...\n");
+	igt_info("Random blits...\n");
 	for (i = 0; i < count * 4; i++) {
 		int src = random() % count;
 		int dst = random() % count;
@@ -1068,7 +1068,7 @@ int main(int argc, char **argv)
 		size = sizeof(linear);
 
 		aperture_size = gem_aperture_size(fd);
-		printf("Aperture size is %lu MiB\n", (long)(aperture_size / (1024*1024)));
+		igt_info("Aperture size is %lu MiB\n", (long)(aperture_size / (1024*1024)));
 
 		if (argc > 1)
 			count = atoi(argv[1]);
@@ -1076,11 +1076,11 @@ int main(int argc, char **argv)
 			count = 2 * aperture_size / (1024*1024) / 3;
 
 		total_ram = intel_get_total_ram_mb();
-		printf("Total RAM is %u MiB\n", total_ram);
+		igt_info("Total RAM is %u MiB\n", total_ram);
 
 		if (count > total_ram * 3 / 4) {
 			count = intel_get_total_ram_mb() * 3 / 4;
-			printf("Not enough RAM to run test, reducing buffer count.\n");
+			igt_info("Not enough RAM to run test, reducing buffer count.\n");
 		}
 	}
 
@@ -1096,7 +1096,7 @@ int main(int argc, char **argv)
 	igt_subtest("forbidden-operations")
 		test_forbidden_ops(fd);
 
-	printf("Testing unsynchronized mappings...\n");
+	igt_info("Testing unsynchronized mappings...\n");
 	gem_userptr_test_unsynchronized();
 
 	igt_subtest("create-destroy-unsync")
@@ -1167,7 +1167,7 @@ int main(int argc, char **argv)
 
 	igt_stop_signal_helper();
 
-	printf("Testing synchronized mappings...\n");
+	igt_info("Testing synchronized mappings...\n");
 
 	igt_fixture {
 		size = sizeof(linear);

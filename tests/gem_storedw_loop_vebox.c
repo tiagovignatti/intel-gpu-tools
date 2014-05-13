@@ -57,7 +57,7 @@ store_dword_loop(int divider)
 	int cmd, i, val = 0;
 	uint32_t *buf;
 
-	printf("running storedw loop on blt with stall every %i batch\n", divider);
+	igt_info("running storedw loop on blt with stall every %i batch\n", divider);
 
 	cmd = MI_STORE_DWORD_IMM;
 
@@ -96,7 +96,7 @@ cont:
 	drm_intel_bo_map(target_buffer, 0);
 	buf = target_buffer->virtual;
 
-	printf("completed %d writes successfully, current value: 0x%08x\n", i,
+	igt_info("completed %d writes successfully, current value: 0x%08x\n", i,
 			buf[0]);
 	drm_intel_bo_unmap(target_buffer);
 }

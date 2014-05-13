@@ -197,7 +197,7 @@ static void test_flink_close(void)
 
 	obj_count = get_object_count() - obj_count;
 
-	printf("leaked %i objects\n", obj_count);
+	igt_info("leaked %i objects\n", obj_count);
 
 	close(fake);
 

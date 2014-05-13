@@ -298,10 +298,10 @@ int main(int argc, char **argv)
 			gettimeofday(&start, NULL);
 			copy(fd, src, dst, tmp, object_size, count);
 			gettimeofday(&end, NULL);
-			printf("Time to uncached copy %d bytes x %6d:	%7.3fµs, %s\n",
-			       object_size, count,
-			       elapsed(&start, &end, count),
-			       bytes_per_sec((char *)buf, object_size/elapsed(&start, &end, count)*1e6));
+			igt_info("Time to uncached copy %d bytes x %6d:	%7.3fµs, %s\n",
+				 object_size, count,
+				 elapsed(&start, &end, count),
+				 bytes_per_sec((char *)buf, object_size/elapsed(&start, &end, count)*1e6));
 			fflush(stdout);
 		}
 	}
@@ -315,10 +315,10 @@ int main(int argc, char **argv)
 			gettimeofday(&start, NULL);
 			as_gtt_mmap(fd, src, dst, tmp, object_size, count);
 			gettimeofday(&end, NULL);
-			printf("** mmap uncached copy %d bytes x %6d:	%7.3fµs, %s\n",
-			       object_size, count,
-			       elapsed(&start, &end, count),
-			       bytes_per_sec((char *)buf, object_size/elapsed(&start, &end, count)*1e6));
+			igt_info("** mmap uncached copy %d bytes x %6d:	%7.3fµs, %s\n",
+				 object_size, count,
+				 elapsed(&start, &end, count),
+				 bytes_per_sec((char *)buf, object_size/elapsed(&start, &end, count)*1e6));
 			fflush(stdout);
 		}
 	}
@@ -337,10 +337,10 @@ int main(int argc, char **argv)
 			gettimeofday(&start, NULL);
 			copy(fd, src, dst, tmp, object_size, count);
 			gettimeofday(&end, NULL);
-			printf("Time to snooped copy %d bytes x %6d:	%7.3fµs, %s\n",
-			       object_size, count,
-			       elapsed(&start, &end, count),
-			       bytes_per_sec((char *)buf, object_size/elapsed(&start, &end, count)*1e6));
+			igt_info("Time to snooped copy %d bytes x %6d:	%7.3fµs, %s\n",
+				 object_size, count,
+				 elapsed(&start, &end, count),
+				 bytes_per_sec((char *)buf, object_size/elapsed(&start, &end, count)*1e6));
 			fflush(stdout);
 		}
 	}
@@ -354,10 +354,10 @@ int main(int argc, char **argv)
 			gettimeofday(&start, NULL);
 			as_cpu_mmap(fd, src, dst, tmp, object_size, count);
 			gettimeofday(&end, NULL);
-			printf("** mmap snooped copy %d bytes x %6d:	%7.3fµs, %s\n",
-			       object_size, count,
-			       elapsed(&start, &end, count),
-			       bytes_per_sec((char *)buf, object_size/elapsed(&start, &end, count)*1e6));
+			igt_info("** mmap snooped copy %d bytes x %6d:	%7.3fµs, %s\n",
+				 object_size, count,
+				 elapsed(&start, &end, count),
+				 bytes_per_sec((char *)buf, object_size/elapsed(&start, &end, count)*1e6));
 			fflush(stdout);
 		}
 	}
@@ -376,10 +376,10 @@ int main(int argc, char **argv)
 			gettimeofday(&start, NULL);
 			copy(fd, src, dst, tmp, object_size, count);
 			gettimeofday(&end, NULL);
-			printf("Time to display copy %d bytes x %6d:	%7.3fµs, %s\n",
-			       object_size, count,
-			       elapsed(&start, &end, count),
-			       bytes_per_sec((char *)buf, object_size/elapsed(&start, &end, count)*1e6));
+			igt_info("Time to display copy %d bytes x %6d:	%7.3fµs, %s\n",
+				 object_size, count,
+				 elapsed(&start, &end, count),
+				 bytes_per_sec((char *)buf, object_size/elapsed(&start, &end, count)*1e6));
 			fflush(stdout);
 		}
 	}
@@ -393,10 +393,10 @@ int main(int argc, char **argv)
 			gettimeofday(&start, NULL);
 			as_gtt_mmap(fd, src, dst, tmp, object_size, count);
 			gettimeofday(&end, NULL);
-			printf("** mmap display copy %d bytes x %6d:	%7.3fµs, %s\n",
-			       object_size, count,
-			       elapsed(&start, &end, count),
-			       bytes_per_sec((char *)buf, object_size/elapsed(&start, &end, count)*1e6));
+			igt_info("** mmap display copy %d bytes x %6d:	%7.3fµs, %s\n",
+				 object_size, count,
+				 elapsed(&start, &end, count),
+				 bytes_per_sec((char *)buf, object_size/elapsed(&start, &end, count)*1e6));
 			fflush(stdout);
 		}
 	}

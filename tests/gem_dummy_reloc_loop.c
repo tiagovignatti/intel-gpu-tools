@@ -206,7 +206,7 @@ igt_main
 			unsigned int target_flink;
 			char buffer_name[32];
 			if (dri_bo_flink(target_buffer, &target_flink)) {
-				printf("fail to get flink for target buffer\n");
+				igt_info("fail to get flink for target buffer\n");
 				igt_assert_f(0, "fail to create global "
 					     "gem_handle for target buffer\n");
 			}
@@ -237,52 +237,52 @@ igt_main
 	}
 
 	igt_subtest("render") {
-		printf("running dummy loop on render\n");
+		igt_info("running dummy loop on render\n");
 		dummy_reloc_loop(I915_EXEC_RENDER);
-		printf("dummy loop run on render completed\n");
+		igt_info("dummy loop run on render completed\n");
 	}
 
 	igt_subtest("bsd") {
 		gem_require_ring(fd, I915_EXEC_BSD);
 		sleep(2);
-		printf("running dummy loop on bsd\n");
+		igt_info("running dummy loop on bsd\n");
 		dummy_reloc_loop(I915_EXEC_BSD);
-		printf("dummy loop run on bsd completed\n");
+		igt_info("dummy loop run on bsd completed\n");
 	}
 
 	igt_subtest("blt") {
 		gem_require_ring(fd, I915_EXEC_BLT);
 		sleep(2);
-		printf("running dummy loop on blt\n");
+		igt_info("running dummy loop on blt\n");
 		dummy_reloc_loop(I915_EXEC_BLT);
-		printf("dummy loop run on blt completed\n");
+		igt_info("dummy loop run on blt completed\n");
 	}
 
 #ifdef I915_EXEC_VEBOX
 	igt_subtest("vebox") {
 		gem_require_ring(fd, I915_EXEC_VEBOX);
 		sleep(2);
-		printf("running dummy loop on vebox\n");
+		igt_info("running dummy loop on vebox\n");
 		dummy_reloc_loop(LOCAL_I915_EXEC_VEBOX);
-		printf("dummy loop run on vebox completed\n");
+		igt_info("dummy loop run on vebox completed\n");
 	}
 #endif
 
 	igt_subtest("mixed") {
 		if (num_rings > 1) {
 			sleep(2);
-			printf("running dummy loop on random rings\n");
+			igt_info("running dummy loop on random rings\n");
 			dummy_reloc_loop_random_ring(num_rings);
-			printf("dummy loop run on random rings completed\n");
+			igt_info("dummy loop run on random rings completed\n");
 		}
 	}
 	igt_subtest("mixed_multi_fd") {
 		if (num_rings > 1) {
 			sleep(2);
-			printf("running dummy loop on random rings based on "
+			igt_info("running dummy loop on random rings based on "
 					"multi drm_fd\n");
 			dummy_reloc_loop_random_ring_multi_fd(num_rings);
-			printf("dummy loop run on random rings based on "
+			igt_info("dummy loop run on random rings based on "
 					"multi drm_fd completed\n");
 		}
 	}

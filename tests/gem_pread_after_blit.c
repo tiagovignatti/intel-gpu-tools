@@ -136,8 +136,6 @@ static void do_test(int fd, int cache_level,
 		gem_set_caching(fd, tmp[1]->handle, cache_level);
 	}
 
-	printf("meh");
-
 	do {
 		/* First, do a full-buffer read after blitting */
 		intel_copy_bo(batch, tmp[0], src[0], width*height*4);

@@ -120,7 +120,7 @@ calculate_expected(int offset)
 	int tile_y = tile_off / tile_width;
 	int tile_x = (tile_off % tile_width) / 4;
 
-	/* printf("%3d, %3d, %3d,%3d\n", base_x, base_y, tile_x, tile_y); */
+	igt_debug("%3d, %3d, %3d,%3d\n", base_x, base_y, tile_x, tile_y);
 	return (base_y + tile_y) * WIDTH + base_x + tile_x;
 }
 

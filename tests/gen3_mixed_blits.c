@@ -479,7 +479,7 @@ int main(int argc, char **argv)
 		count = atoi(argv[1]);
 	if (count == 0)
 		count = 3 * gem_aperture_size(fd) / (1024*1024) / 2;
-	printf("Using %d 1MiB buffers\n", count);
+	igt_info("Using %d 1MiB buffers\n", count);
 
 	handle = malloc(sizeof(uint32_t)*count*3);
 	tiling = handle + count;
@@ -491,12 +491,12 @@ int main(int argc, char **argv)
 		start += 1024 * 1024 / 4;
 	}
 
-	printf("Verifying initialisation..."); fflush(stdout);
+	igt_info("Verifying initialisation..."); fflush(stdout);
 	for (i = 0; i < count; i++)
 		check_bo(fd, handle[i], start_val[i]);
-	printf("done\n");
+	igt_info("done\n");
 
-	printf("Cyclic blits, forward..."); fflush(stdout);
+	igt_info("Cyclic blits, forward..."); fflush(stdout);
 	for (i = 0; i < count * 32; i++) {
 		int src = i % count;
 		int dst = (i + 1) % count;
@@ -504,12 +504,12 @@ int main(int argc, char **argv)
 		copy(fd, handle[dst], tiling[dst], handle[src], tiling[src]);
 		start_val[dst] = start_val[src];
 	}
-	printf("verifying..."); fflush(stdout);
+	igt_info("verifying..."); fflush(stdout);
 	for (i = 0; i < count; i++)
 		check_bo(fd, handle[i], start_val[i]);
-	printf("done\n");
+	igt_info("done\n");
 
-	printf("Cyclic blits, backward..."); fflush(stdout);
+	igt_info("Cyclic blits, backward..."); fflush(stdout);
 	for (i = 0; i < count * 32; i++) {
 		int src = (i + 1) % count;
 		int dst = i % count;
@@ -517,12 +517,12 @@ int main(int argc, char **argv)
 		copy(fd, handle[dst], tiling[dst], handle[src], tiling[src]);
 		start_val[dst] = start_val[src];
 	}
-	printf("verifying..."); fflush(stdout);
+	igt_info("verifying..."); fflush(stdout);
 	for (i = 0; i < count; i++)
 		check_bo(fd, handle[i], start_val[i]);
-	printf("done\n");
+	igt_info("done\n");
 
-	printf("Random blits..."); fflush(stdout);
+	igt_info("Random blits..."); fflush(stdout);
 	for (i = 0; i < count * 32; i++) {
 		int src = random() % count;
 		int dst = random() % count;
@@ -533,10 +533,10 @@ int main(int argc, char **argv)
 			copy(fd, handle[dst], tiling[dst], handle[src], tiling[src]);
 		start_val[dst] = start_val[src];
 	}
-	printf("verifying..."); fflush(stdout);
+	igt_info("verifying..."); fflush(stdout);
 	for (i = 0; i < count; i++)
 		check_bo(fd, handle[i], start_val[i]);
-	printf("done\n");
+	igt_info("done\n");
 
 	return 0;
 }

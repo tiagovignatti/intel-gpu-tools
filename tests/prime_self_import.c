@@ -298,7 +298,7 @@ static void test_reimport_close_race(void)
 
 	obj_count = get_object_count() - obj_count;
 
-	printf("leaked %i objects\n", obj_count);
+	igt_info("leaked %i objects\n", obj_count);
 
 	close(fake);
 
@@ -375,7 +375,7 @@ static void test_export_close_race(void)
 
 	obj_count = get_object_count() - obj_count;
 
-	printf("leaked %i objects\n", obj_count);
+	igt_info("leaked %i objects\n", obj_count);
 	igt_assert(obj_count == 0);
 }
 

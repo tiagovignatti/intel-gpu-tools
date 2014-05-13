@@ -66,7 +66,7 @@ int main(int argc, char **argv)
 	if (argc > 1)
 		size = atoi(argv[1]);
 	if (size == 0) {
-		fprintf(stderr, "Invalid object size specified\n");
+		igt_warn("Invalid object size specified\n");
 		return 1;
 	}
 
@@ -79,8 +79,8 @@ int main(int argc, char **argv)
 
 	for (tiling = I915_TILING_NONE; tiling <= I915_TILING_Y; tiling++) {
 		if (tiling != I915_TILING_NONE) {
-			printf("\nSetting tiling mode to %s\n",
-			       tiling == I915_TILING_X ? "X" : "Y");
+			igt_info("\nSetting tiling mode to %s\n",
+				 tiling == I915_TILING_X ? "X" : "Y");
 			gem_set_tiling(fd, handle, tiling, 512);
 		}
 
@@ -118,8 +118,8 @@ int main(int argc, char **argv)
 					munmap(base, size);
 				}
 				gettimeofday(&end, NULL);
-				printf("Time to read %dk through a CPU map:		%7.3fµs\n",
-				       size/1024, elapsed(&start, &end, loop));
+				igt_info("Time to read %dk through a CPU map:		%7.3fµs\n",
+					 size/1024, elapsed(&start, &end, loop));
 
 				/* mmap write */
 				gettimeofday(&start, NULL);
@@ -133,8 +133,8 @@ int main(int argc, char **argv)
 					munmap(base, size);
 				}
 				gettimeofday(&end, NULL);
-				printf("Time to write %dk through a CPU map:		%7.3fµs\n",
-				       size/1024, elapsed(&start, &end, loop));
+				igt_info("Time to write %dk through a CPU map:		%7.3fµs\n",
+					 size/1024, elapsed(&start, &end, loop));
 
 				gettimeofday(&start, NULL);
 				for (loop = 0; loop < 1000; loop++) {
@@ -143,8 +143,8 @@ int main(int argc, char **argv)
 					munmap(base, size);
 				}
 				gettimeofday(&end, NULL);
-				printf("Time to clear %dk through a CPU map:		%7.3fµs\n",
-				       size/1024, elapsed(&start, &end, loop));
+				igt_info("Time to clear %dk through a CPU map:		%7.3fµs\n",
+					 size/1024, elapsed(&start, &end, loop));
 
 				gettimeofday(&start, NULL);
 				base = gem_mmap__cpu(fd, handle, size, PROT_READ | PROT_WRITE);
@@ -152,8 +152,8 @@ int main(int argc, char **argv)
 					memset(base, 0, size);
 				munmap(base, size);
 				gettimeofday(&end, NULL);
-				printf("Time to clear %dk through a cached CPU map:	%7.3fµs\n",
-				       size/1024, elapsed(&start, &end, loop));
+				igt_info("Time to clear %dk through a cached CPU map:	%7.3fµs\n",
+					 size/1024, elapsed(&start, &end, loop));
 			}
 
 			/* CPU pwrite */
@@ -161,16 +161,16 @@ int main(int argc, char **argv)
 			for (loop = 0; loop < 1000; loop++)
 				gem_write(fd, handle, 0, buf, size);
 			gettimeofday(&end, NULL);
-			printf("Time to pwrite %dk through the CPU:		%7.3fµs\n",
-			       size/1024, elapsed(&start, &end, loop));
+			igt_info("Time to pwrite %dk through the CPU:		%7.3fµs\n",
+				 size/1024, elapsed(&start, &end, loop));
 
 			/* CPU pread */
 			gettimeofday(&start, NULL);
 			for (loop = 0; loop < 1000; loop++)
 				gem_read(fd, handle, 0, buf, size);
 			gettimeofday(&end, NULL);
-			printf("Time to pread %dk through the CPU:		%7.3fµs\n",
-			       size/1024, elapsed(&start, &end, loop));
+			igt_info("Time to pread %dk through the CPU:		%7.3fµs\n",
+				 size/1024, elapsed(&start, &end, loop));
 		}
 
 		/* prefault into gtt */
@@ -203,8 +203,8 @@ int main(int argc, char **argv)
 			munmap(base, size);
 		}
 		gettimeofday(&end, NULL);
-		printf("Time to read %dk through a GTT map:		%7.3fµs\n",
-		       size/1024, elapsed(&start, &end, loop));
+		igt_info("Time to read %dk through a GTT map:		%7.3fµs\n",
+			 size/1024, elapsed(&start, &end, loop));
 
 		/* mmap write */
 		gettimeofday(&start, NULL);
@@ -218,8 +218,8 @@ int main(int argc, char **argv)
 			munmap(base, size);
 		}
 		gettimeofday(&end, NULL);
-		printf("Time to write %dk through a GTT map:		%7.3fµs\n",
-		       size/1024, elapsed(&start, &end, loop));
+		igt_info("Time to write %dk through a GTT map:		%7.3fµs\n",
+			 size/1024, elapsed(&start, &end, loop));
 
 		/* mmap clear */
 		gettimeofday(&start, NULL);
@@ -229,8 +229,8 @@ int main(int argc, char **argv)
 			munmap(base, size);
 		}
 		gettimeofday(&end, NULL);
-		printf("Time to clear %dk through a GTT map:		%7.3fµs\n",
-		       size/1024, elapsed(&start, &end, loop));
+		igt_info("Time to clear %dk through a GTT map:		%7.3fµs\n",
+			 size/1024, elapsed(&start, &end, loop));
 
 		gettimeofday(&start, NULL);{
 			uint32_t *base = gem_mmap(fd, handle, size, PROT_READ | PROT_WRITE);
@@ -238,8 +238,8 @@ int main(int argc, char **argv)
 				memset(base, 0, size);
 			munmap(base, size);
 		} gettimeofday(&end, NULL);
-		printf("Time to clear %dk through a cached GTT map:	%7.3fµs\n",
-		       size/1024, elapsed(&start, &end, loop));
+		igt_info("Time to clear %dk through a cached GTT map:	%7.3fµs\n",
+			 size/1024, elapsed(&start, &end, loop));
 
 		/* mmap read */
 		gettimeofday(&start, NULL);
@@ -257,8 +257,8 @@ int main(int argc, char **argv)
 			munmap(base, size);
 		}
 		gettimeofday(&end, NULL);
-		printf("Time to read %dk (again) through a GTT map:	%7.3fµs\n",
-		       size/1024, elapsed(&start, &end, loop));
+		igt_info("Time to read %dk (again) through a GTT map:	%7.3fµs\n",
+			 size/1024, elapsed(&start, &end, loop));
 
 		if (tiling == I915_TILING_NONE) {
 			/* GTT pwrite */
@@ -266,16 +266,16 @@ int main(int argc, char **argv)
 			for (loop = 0; loop < 1000; loop++)
 				gem_write(fd, handle, 0, buf, size);
 			gettimeofday(&end, NULL);
-			printf("Time to pwrite %dk through the GTT:		%7.3fµs\n",
-			       size/1024, elapsed(&start, &end, loop));
+			igt_info("Time to pwrite %dk through the GTT:		%7.3fµs\n",
+				 size/1024, elapsed(&start, &end, loop));
 
 			/* GTT pread */
 			gettimeofday(&start, NULL);
 			for (loop = 0; loop < 1000; loop++)
 				gem_read(fd, handle, 0, buf, size);
 			gettimeofday(&end, NULL);
-			printf("Time to pread %dk through the GTT:		%7.3fµs\n",
-			       size/1024, elapsed(&start, &end, loop));
+			igt_info("Time to pread %dk through the GTT:		%7.3fµs\n",
+				 size/1024, elapsed(&start, &end, loop));
 
 			/* GTT pwrite, including clflush */
 			gettimeofday(&start, NULL);
@@ -284,8 +284,8 @@ int main(int argc, char **argv)
 				gem_sync(fd, handle);
 			}
 			gettimeofday(&end, NULL);
-			printf("Time to pwrite %dk through the GTT (clflush):	%7.3fµs\n",
-			       size/1024, elapsed(&start, &end, loop));
+			igt_info("Time to pwrite %dk through the GTT (clflush):	%7.3fµs\n",
+				 size/1024, elapsed(&start, &end, loop));
 
 			/* GTT pread, including clflush */
 			gettimeofday(&start, NULL);
@@ -294,11 +294,11 @@ int main(int argc, char **argv)
 				gem_read(fd, handle, 0, buf, size);
 			}
 			gettimeofday(&end, NULL);
-			printf("Time to pread %dk through the GTT (clflush):	%7.3fµs\n",
-			       size/1024, elapsed(&start, &end, loop));
+			igt_info("Time to pread %dk through the GTT (clflush):	%7.3fµs\n",
+				 size/1024, elapsed(&start, &end, loop));
 
 			/* partial writes */
-			printf("Now partial writes.\n");
+			igt_info("Now partial writes.\n");
 			size /= 4;
 
 			/* partial GTT pwrite, including clflush */
@@ -308,7 +308,7 @@ int main(int argc, char **argv)
 				gem_sync(fd, handle);
 			}
 			gettimeofday(&end, NULL);
-			printf("Time to pwrite %dk through the GTT (clflush):	%7.3fµs\n",
+			igt_info("Time to pwrite %dk through the GTT (clflush):	%7.3fµs\n",
 			       size/1024, elapsed(&start, &end, loop));
 
 			/* partial GTT pread, including clflush */
@@ -318,7 +318,7 @@ int main(int argc, char **argv)
 				gem_read(fd, handle, 0, buf, size);
 			}
 			gettimeofday(&end, NULL);
-			printf("Time to pread %dk through the GTT (clflush):	%7.3fµs\n",
+			igt_info("Time to pread %dk through the GTT (clflush):	%7.3fµs\n",
 			       size/1024, elapsed(&start, &end, loop));
 
 			size *= 4;

@@ -325,7 +325,7 @@ static bool prepare_test(data_t *data, enum test_mode test_mode)
 	usleep(300000);
 
 	if (!fbc_enabled(data)) {
-		printf("FBC not enabled\n");
+		igt_info("FBC not enabled\n");
 
 		igt_plane_set_fb(data->primary, NULL);
 		igt_output_set_pipe(output, PIPE_ANY);
@@ -342,8 +342,8 @@ static bool prepare_test(data_t *data, enum test_mode test_mode)
 	pipe_crc = igt_pipe_crc_new(data->pipe,
 				    INTEL_PIPE_CRC_SOURCE_AUTO);
 	if (!pipe_crc) {
-		printf("auto crc not supported on this connector with crtc %i\n",
-		       data->pipe);
+		igt_info("auto crc not supported on this connector with crtc %i\n",
+			 data->pipe);
 
 		igt_plane_set_fb(data->primary, NULL);
 		igt_output_set_pipe(output, PIPE_ANY);
@@ -457,14 +457,14 @@ static void run_test(data_t *data, enum test_mode mode)
 			if (!prepare_crtc(data))
 				continue;
 
-			printf("Beginning %s on pipe %c, connector %s\n",
-			       igt_subtest_name(), pipe_name(data->pipe),
-			       igt_output_name(data->output));
+			igt_info("Beginning %s on pipe %c, connector %s\n",
+				 igt_subtest_name(), pipe_name(data->pipe),
+				 igt_output_name(data->output));
 
 			if (!prepare_test(data, mode)) {
-				printf("%s on pipe %c, connector %s: SKIPPED\n",
-				       igt_subtest_name(), pipe_name(data->pipe),
-				       igt_output_name(data->output));
+				igt_info("%s on pipe %c, connector %s: SKIPPED\n",
+					 igt_subtest_name(), pipe_name(data->pipe),
+					 igt_output_name(data->output));
 				continue;
 			}
 
@@ -472,9 +472,9 @@ static void run_test(data_t *data, enum test_mode mode)
 
 			test_crc(data, mode);
 
-			printf("%s on pipe %c, connector %s: PASSED\n",
-			       igt_subtest_name(), pipe_name(data->pipe),
-			       igt_output_name(data->output));
+			igt_info("%s on pipe %c, connector %s: PASSED\n",
+				 igt_subtest_name(), pipe_name(data->pipe),
+				 igt_output_name(data->output));
 
 			finish_crtc(data, mode);
 		}

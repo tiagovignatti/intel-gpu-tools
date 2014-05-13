@@ -127,7 +127,7 @@ igt_main
 			flags &= ~TEST_READ;
 		if (IS_BROADWATER(devid) || IS_CRESTLINE(devid)) {
 			/* chipset is completely fubar */
-			printf("coherency broken on i965g/gm\n");
+			igt_info("coherency broken on i965g/gm\n");
 			flags = 0;
 		}
 
@@ -147,7 +147,7 @@ igt_main
 	igt_subtest("reads") {
 		igt_require(flags & TEST_READ);
 
-		printf("checking partial reads\n");
+		igt_info("checking partial reads\n");
 
 		for (i = 0; i < ROUNDS; i++) {
 			uint8_t val0 = i;
@@ -174,7 +174,7 @@ igt_main
 	igt_subtest("writes") {
 		igt_require(flags & TEST_WRITE);
 
-		printf("checking partial writes\n");
+		igt_info("checking partial writes\n");
 
 		for (i = 0; i < ROUNDS; i++) {
 			uint8_t val0 = i, val1;
@@ -219,7 +219,7 @@ igt_main
 	igt_subtest("read-writes") {
 		igt_require((flags & TEST_BOTH) == TEST_BOTH);
 
-		printf("checking partial writes after partial reads\n");
+		igt_info("checking partial writes after partial reads\n");
 
 		for (i = 0; i < ROUNDS; i++) {
 			uint8_t val0 = i, val1, val2;

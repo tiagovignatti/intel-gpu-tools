@@ -131,7 +131,6 @@ static void test_partial_reads(void)
 {
 	int i, j;
 
-	printf("checking partial reads\n");
 	for (i = 0; i < ROUNDS; i++) {
 		int start, len;
 		int val = i % 256;
@@ -156,7 +155,6 @@ static void test_partial_writes(void)
 {
 	int i, j;
 
-	printf("checking partial writes\n");
 	for (i = 0; i < ROUNDS; i++) {
 		int start, len;
 		int val = i % 256;
@@ -199,7 +197,6 @@ static void test_partial_read_writes(void)
 {
 	int i, j;
 
-	printf("checking partial writes after partial reads\n");
 	for (i = 0; i < ROUNDS; i++) {
 		int start, len;
 		int val = i % 256;

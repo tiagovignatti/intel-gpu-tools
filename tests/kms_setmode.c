@@ -392,7 +392,7 @@ static void test_crtc_config(const struct test_config *tconf,
 	if (filter_test_id && filter_test_id != test_id)
 		return;
 
-	printf("  Test id#%d CRTC count %d\n", test_id, crtc_count);
+	igt_info("  Test id#%d CRTC count %d\n", test_id, crtc_count);
 
 	for (i = 0; i < crtc_count; i++) {
 		get_crtc_config_str(&crtcs[i], str_buf[i], sizeof(str_buf[i]));
@@ -401,7 +401,7 @@ static void test_crtc_config(const struct test_config *tconf,
 
 	if (dry_run) {
 		for (i = 0; i < crtc_count; i++)
-			printf("    %s\n", crtc_strs[i]);
+			igt_info("    %s\n", crtc_strs[i]);
 		return;
 	}
 
@@ -411,7 +411,7 @@ static void test_crtc_config(const struct test_config *tconf,
 
 		crtc = &crtcs[i];
 
-		printf("    %s\n", crtc_strs[i]);
+		igt_info("    %s\n", crtc_strs[i]);
 
 		create_fb_for_crtc(crtc, &crtc->fb_info);
 		paint_fb(&crtc->fb_info, tconf->name, crtc_strs, crtc_count, i);
@@ -623,8 +623,8 @@ static void test_combinations(const struct test_config *tconf,
 	get_combinations(tconf->resources->count_crtcs, connector_count,
 			 true, &crtc_combs);
 
-	printf("Testing: %s %d connector combinations\n", tconf->name,
-		connector_count);
+	igt_info("Testing: %s %d connector combinations\n", tconf->name,
+		 connector_count);
 	for (i = 0; i < connector_combs.count; i++) {
 		int *connector_idxs;
 		int ret;

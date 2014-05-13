@@ -150,10 +150,10 @@ static void big_exec(int fd, uint32_t handle, int ring)
 		gem_close(fd, gem_exec[i].handle);
 		gem_exec[i].handle = handle;
 		execbuf.buffer_count--;
-		printf("trying buffer count %i\n", i - 1);
+		igt_info("trying buffer count %i\n", i - 1);
 	}
 
-	printf("reduced buffer count to %i from %i\n",
+	igt_info("reduced buffer count to %i from %i\n",
 	       i - 1, num_buffers);
 
 	/* double check that it works */

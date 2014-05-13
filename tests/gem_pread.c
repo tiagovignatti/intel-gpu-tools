@@ -115,10 +115,10 @@ int main(int argc, char **argv)
 			gettimeofday(&start, NULL);
 			do_gem_read(fd, dst, src, object_size, count);
 			gettimeofday(&end, NULL);
-			printf("Time to pread %d bytes x %6d:	%7.3fµs, %s\n",
-			       object_size, count,
-			       elapsed(&start, &end, count),
-			       bytes_per_sec((char *)buf, object_size/elapsed(&start, &end, count)*1e6));
+			igt_info("Time to pread %d bytes x %6d:	%7.3fµs, %s\n",
+				 object_size, count,
+				 elapsed(&start, &end, count),
+				 bytes_per_sec((char *)buf, object_size/elapsed(&start, &end, count)*1e6));
 			fflush(stdout);
 		}
 	}
@@ -133,10 +133,10 @@ int main(int argc, char **argv)
 				gettimeofday(&start, NULL);
 				do_gem_read(fd, dst, src, object_size, count);
 				gettimeofday(&end, NULL);
-				printf("Time to %s pread %d bytes x %6d:	%7.3fµs, %s\n",
-						c->name, object_size, count,
-						elapsed(&start, &end, count),
-						bytes_per_sec((char *)buf, object_size/elapsed(&start, &end, count)*1e6));
+				igt_info("Time to %s pread %d bytes x %6d:	%7.3fµs, %s\n",
+					 c->name, object_size, count,
+					 elapsed(&start, &end, count),
+					 bytes_per_sec((char *)buf, object_size/elapsed(&start, &end, count)*1e6));
 				fflush(stdout);
 			}
 		}

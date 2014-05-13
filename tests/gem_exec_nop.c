@@ -99,8 +99,8 @@ static void loop(int fd, uint32_t handle, unsigned ring_id, const char *ring_nam
 		gettimeofday(&start, NULL);
 		igt_assert(exec(fd, handle, count, ring_id) == 0);
 		gettimeofday(&end, NULL);
-		printf("Time to exec x %d:		%7.3fµs (ring=%s)\n",
-		       count, elapsed(&start, &end, count), ring_name);
+		igt_info("Time to exec x %d:		%7.3fµs (ring=%s)\n",
+			 count, elapsed(&start, &end, count), ring_name);
 		fflush(stdout);
 	}
 }

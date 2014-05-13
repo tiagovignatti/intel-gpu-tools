@@ -183,7 +183,7 @@ igt_simple_main
 
 	igt_assert_cmpint(iter, <, 1000000);
 
-	printf("%d iters is enough work\n", iter);
+	igt_info("%d iters is enough work\n", iter);
 	gem_quiescent_gpu(fd);
 	if (do_signals)
 		igt_fork_signal_helper();
@@ -201,9 +201,9 @@ igt_simple_main
 	igt_assert(gem_bo_busy(fd, dst2->handle) == false);
 	igt_assert_cmpint(timeout, !=, 0);
 	if (timeout ==  (ENOUGH_WORK_IN_SECONDS * NSEC_PER_SEC))
-		printf("Buffer was already done!\n");
+		igt_info("Buffer was already done!\n");
 	else {
-		printf("Finished with %lu time remaining\n", timeout);
+		igt_info("Finished with %lu time remaining\n", timeout);
 	}
 
 	/* check that polling with timeout=0 works. */

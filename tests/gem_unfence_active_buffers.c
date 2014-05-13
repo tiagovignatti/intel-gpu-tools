@@ -82,7 +82,7 @@ igt_simple_main
 	devid = intel_get_drm_devid(fd);
 	batch = intel_batchbuffer_alloc(bufmgr, devid);
 
-	printf("filling ring\n");
+	igt_info("filling ring\n");
 	busy_bo = drm_intel_bo_alloc(bufmgr, "busy bo bo", 16*1024*1024, 4096);
 
 	for (i = 0; i < 250; i++) {
@@ -111,7 +111,7 @@ igt_simple_main
 	intel_batchbuffer_flush(batch);
 
 	num_fences = gem_available_fences(fd);
-	printf("creating havoc on %i fences\n", num_fences);
+	igt_info("creating havoc on %i fences\n", num_fences);
 
 	for (i = 0; i < num_fences*2; i++) {
 		test_bo = drm_intel_bo_alloc(bufmgr, "test_bo",
@@ -135,7 +135,7 @@ igt_simple_main
 		BLIT_RELOC_UDW(devid);
 		ADVANCE_BATCH();
 		intel_batchbuffer_flush(batch);
-		printf("test bo offset: %#lx\n", test_bo->offset);
+		igt_info("test bo offset: %#lx\n", test_bo->offset);
 
 		drm_intel_bo_unreference(test_bo);
 	}

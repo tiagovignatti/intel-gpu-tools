@@ -117,10 +117,10 @@ igt_simple_main
 	count = 3 * gem_aperture_size(fd) / (1024*1024) / 2;
 	if (count > intel_get_total_ram_mb() * 9 / 10) {
 		count = intel_get_total_ram_mb() * 9 / 10;
-		printf("not enough RAM to run test, reducing buffer count\n");
+		igt_info("not enough RAM to run test, reducing buffer count\n");
 	}
 	count |= 1;
-	printf("Using %d 1MiB buffers\n", count);
+	igt_info("Using %d 1MiB buffers\n", count);
 
 	bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
 	drm_intel_bufmgr_gem_enable_reuse(bufmgr);
@@ -131,7 +131,7 @@ igt_simple_main
 		bo_start_val[i] = start;
 
 		/*
-		printf("Creating bo %d\n", i);
+		igt_info("Creating bo %d\n", i);
 		check_bo(bo[i], bo_start_val[i]);
 		*/
 
@@ -156,13 +156,13 @@ igt_simple_main
 
 		/*
 		check_bo(bo[dst], bo_start_val[dst]);
-		printf("%d: copy bo %d to %d\n", i, src, dst);
+		igt_info("%d: copy bo %d to %d\n", i, src, dst);
 		*/
 	}
 
 	for (i = 0; i < count; i++) {
 		/*
-		printf("check %d\n", i);
+		igt_info("check %d\n", i);
 		*/
 		check_bo(fd, bo[i], bo_start_val[i]);
 

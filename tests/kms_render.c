@@ -120,8 +120,8 @@ static int test_format(const char *test_name,
 		       kmstest_connector_type_str(cconf->connector->connector_type));
 	igt_assert(ret > 0);
 
-	printf("Beginning test %s with %s on %s\n",
-		test_name, mode_format_str, cconf_str);
+	igt_info("Beginning test %s with %s on %s\n",
+		 test_name, mode_format_str, cconf_str);
 
 	width = mode->hdisplay;
 	height = mode->vdisplay;
@@ -148,8 +148,8 @@ static int test_format(const char *test_name,
 	}
 	sleep(5);
 
-	printf("Test %s with %s on %s: PASSED\n",
-		test_name, mode_format_str, cconf_str);
+	igt_info("Test %s with %s on %s: PASSED\n",
+		 test_name, mode_format_str, cconf_str);
 	free(mode_format_str);
 	free(cconf_str);
 
@@ -161,8 +161,8 @@ static int test_format(const char *test_name,
 err2:
 	igt_remove_fb(drm_fd, &fb[0]);
 err1:
-	printf("Test %s with %s on %s: SKIPPED\n",
-		test_name, mode_format_str, cconf_str);
+	igt_info("Test %s with %s on %s: SKIPPED\n",
+		 test_name, mode_format_str, cconf_str);
 	free(mode_format_str);
 	free(cconf_str);
 

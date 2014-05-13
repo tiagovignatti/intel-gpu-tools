@@ -70,9 +70,9 @@ static void test_read_crc(data_t *data, int pipe, unsigned flags)
 
 		igt_output_set_pipe(output, pipe);
 
-		fprintf(stdout, "%s: Testing connector %s using pipe %c\n",
-			igt_subtest_name(), igt_output_name(output),
-			pipe_name(pipe));
+		igt_info("%s: Testing connector %s using pipe %c\n",
+			 igt_subtest_name(), igt_output_name(output),
+			 pipe_name(pipe));
 
 		mode = igt_output_get_mode(output);
 		igt_create_color_fb(data->drm_fd,

@@ -142,15 +142,15 @@ int main(int argc, char **argv)
 
 	if (count > intel_get_total_ram_mb() * 9 / 10) {
 		count = intel_get_total_ram_mb() * 9 / 10;
-		printf("not enough RAM to run test, reducing buffer count\n");
+		igt_info("not enough RAM to run test, reducing buffer count\n");
 	}
 
-	printf("Using %d 1MiB buffers\n", count);
+	igt_info("Using %d 1MiB buffers\n", count);
 
 	linear = drm_intel_bo_alloc(bufmgr, "linear", WIDTH*HEIGHT*4, 0);
 	if (snoop) {
 		gem_set_caching(fd, linear->handle, 1);
-		printf("Using a snoop linear buffer for comparisons\n");
+		igt_info("Using a snoop linear buffer for comparisons\n");
 	}
 
 	buf = malloc(sizeof(*buf)*count);
@@ -177,11 +177,11 @@ int main(int argc, char **argv)
 		drm_intel_gem_bo_unmap_gtt(buf[i].bo);
 	}
 
-	printf("Verifying initialisation...\n");
+	igt_info("Verifying initialisation...\n");
 	for (i = 0; i < count; i++)
 		check_bo(batch, &buf[i], start_val[i]);
 
-	printf("Cyclic blits, forward...\n");
+	igt_info("Cyclic blits, forward...\n");
 	for (i = 0; i < count * 4; i++) {
 		int src = i % count;
 		int dst = (i + 1) % count;
@@ -192,7 +192,7 @@ int main(int argc, char **argv)
 	for (i = 0; i < count; i++)
 		check_bo(batch, &buf[i], start_val[i]);
 
-	printf("Cyclic blits, backward...\n");
+	igt_info("Cyclic blits, backward...\n");
 	for (i = 0; i < count * 4; i++) {
 		int src = (i + 1) % count;
 		int dst = i % count;
@@ -203,7 +203,7 @@ int main(int argc, char **argv)
 	for (i = 0; i < count; i++)
 		check_bo(batch, &buf[i], start_val[i]);
 
-	printf("Random blits...\n");
+	igt_info("Random blits...\n");
 	for (i = 0; i < count * 4; i++) {
 		int src = random() % count;
 		int dst = random() % count;

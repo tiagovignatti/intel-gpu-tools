@@ -91,7 +91,7 @@ igt_main
 	}
 
 	igt_subtest("new-obj") {
-		printf("Testing contents of newly created object.\n");
+		igt_info("Testing contents of newly created object.\n");
 		ret = do_read(fd, handle, buf, 0, OBJECT_SIZE);
 		igt_assert(ret == 0);
 		memset(&expected, 0, sizeof(expected));
@@ -99,13 +99,13 @@ igt_main
 	}
 
 	igt_subtest("beyond-EOB") {
-		printf("Testing read beyond end of buffer.\n");
+		igt_info("Testing read beyond end of buffer.\n");
 		ret = do_read(fd, handle, buf, OBJECT_SIZE / 2, OBJECT_SIZE);
 		igt_assert(ret == -1 && errno == EINVAL);
 	}
 
 	igt_subtest("read-write") {
-		printf("Testing full write of buffer\n");
+		igt_info("Testing full write of buffer\n");
 		memset(buf, 0, sizeof(buf));
 		memset(buf + 1024, 0x01, 1024);
 		memset(expected + 1024, 0x01, 1024);
@@ -115,7 +115,7 @@ igt_main
 		igt_assert(ret == 0);
 		igt_assert(memcmp(buf, expected, sizeof(buf)) == 0);
 
-		printf("Testing partial write of buffer\n");
+		igt_info("Testing partial write of buffer\n");
 		memset(buf + 4096, 0x02, 1024);
 		memset(expected + 4096, 0x02, 1024);
 		ret = do_write(fd, handle, buf + 4096, 4096, 1024);
@@ -124,20 +124,20 @@ igt_main
 		igt_assert(ret == 0);
 		igt_assert(memcmp(buf, expected, sizeof(buf)) == 0);
 
-		printf("Testing partial read of buffer\n");
+		igt_info("Testing partial read of buffer\n");
 		ret = do_read(fd, handle, buf, 512, 1024);
 		igt_assert(ret == 0);
 		igt_assert(memcmp(buf, expected + 512, 1024) == 0);
 	}
 
 	igt_subtest("read-bad-handle") {
-		printf("Testing read of bad buffer handle\n");
+		igt_info("Testing read of bad buffer handle\n");
 		ret = do_read(fd, 1234, buf, 0, 1024);
 		igt_assert(ret == -1 && errno == ENOENT);
 	}
 
 	igt_subtest("write-bad-handle") {
-		printf("Testing write of bad buffer handle\n");
+		igt_info("Testing write of bad buffer handle\n");
 		ret = do_write(fd, 1234, buf, 0, 1024);
 		igt_assert(ret == -1 && errno == ENOENT);
 	}

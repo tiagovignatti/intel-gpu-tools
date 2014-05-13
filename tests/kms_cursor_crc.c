@@ -105,7 +105,7 @@ static void do_single_test(test_data_t *test_data, int x, int y)
 	igt_plane_t *cursor;
 	cairo_t *cr = igt_get_cairo_ctx(data->drm_fd, &data->primary_fb);
 
-	printf("."); fflush(stdout);
+	igt_info("."); fflush(stdout);
 
 	/* Hardware test */
 	igt_paint_test_pattern(cr, test_data->screenw, test_data->screenh);
@@ -258,8 +258,8 @@ static bool prepare_crtc(test_data_t *test_data, igt_output_t *output,
 	test_data->pipe_crc = igt_pipe_crc_new(test_data->pipe,
 					       INTEL_PIPE_CRC_SOURCE_AUTO);
 	if (!test_data->pipe_crc) {
-		printf("auto crc not supported on this connector with pipe %i\n",
-		       test_data->pipe);
+		igt_info("auto crc not supported on this connector with pipe %i\n",
+			 test_data->pipe);
 		return false;
 	}
 
@@ -321,15 +321,15 @@ static void run_test(data_t *data, void (*testfunc)(test_data_t *), int cursor_w
 
 			valid_tests++;
 
-			fprintf(stdout, "Beginning %s on pipe %c, connector %s\n",
-				igt_subtest_name(), pipe_name(test_data.pipe),
-				igt_output_name(output));
+			igt_info("Beginning %s on pipe %c, connector %s\n",
+				 igt_subtest_name(), pipe_name(test_data.pipe),
+				 igt_output_name(output));
 
 			testfunc(&test_data);
 
-			fprintf(stdout, "\n%s on pipe %c, connector %s: PASSED\n\n",
-				igt_subtest_name(), pipe_name(test_data.pipe),
-				igt_output_name(output));
+			igt_info("\n%s on pipe %c, connector %s: PASSED\n\n",
+				 igt_subtest_name(), pipe_name(test_data.pipe),
+				 igt_output_name(output));
 
 			/* cleanup what prepare_crtc() has done */
 			cleanup_crtc(&test_data, output);

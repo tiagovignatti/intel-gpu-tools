@@ -170,7 +170,7 @@ igt_simple_main
 				elapsed[i][1] = ELAPSED(&start, &end);
 			}
 
-			printf("%s: buffers=%4d:", p->name, n);
+			igt_info("%s: buffers=%4d:", p->name, n);
 
 			s_x = s_y = s_xx = s_xy = 0;
 			for (j = 0; j < i; j++) {
@@ -182,7 +182,7 @@ igt_simple_main
 			}
 			B = (s_xy - s_x * s_y / j) / (s_xx - s_x * s_x / j);
 			A = s_y / j - B * s_x / j;
-			printf(" old=%7.0f + %.1f*reloc,", A, B);
+			igt_info(" old=%7.0f + %.1f*reloc,", A, B);
 
 			s_x = s_y = s_xx = s_xy = 0;
 			for (j = 0; j < i; j++) {
@@ -194,9 +194,9 @@ igt_simple_main
 			}
 			B = (s_xy - s_x * s_y / j) / (s_xx - s_x * s_x / j);
 			A = s_y / j - B * s_x / j;
-			printf(" lut=%7.0f + %.1f*reloc (ns)", A, B);
+			igt_info(" lut=%7.0f + %.1f*reloc (ns)", A, B);
 
-			printf("\n");
+			igt_info("\n");
 		}
 	}
 }
