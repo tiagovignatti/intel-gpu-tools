@@ -1170,7 +1170,7 @@ void igt_skip_on_simulation(void)
  * @format: format string
  * @...: optional arguments used in the format string
  *
- * This is the generic structure logging helper function. i-g-t testcase should
+ * This is the generic structured logging helper function. i-g-t testcase should
  * output all normal message to stdout. Warning level message should be printed
  * to stderr and the test runner should treat this as an intermediate result
  * between SUCESS and FAILURE.
