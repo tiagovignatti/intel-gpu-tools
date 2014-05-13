@@ -544,6 +544,7 @@ cairo_t *igt_get_cairo_ctx(int fd, struct igt_fb *fb)
 }
 
 /**
+ * igt_write_fb_to_png:
  * @fd: open i915 drm file descriptor
  * @fb: pointer to an #igt_fb structure
  * @filename: target name for the png image

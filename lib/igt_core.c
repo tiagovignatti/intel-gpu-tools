@@ -173,6 +173,29 @@
  * - For general coding style issues please follow the kernel's rules laid out
  *   in
  *   [CodingStyle](https://www.kernel.org/doc/Documentation/CodingStyle).
+ *
+ * # Interface with Testrunners
+ *
+ * i-g-t testcase are all executables which should be run as root on an
+ * otherwise completely idle system. The test status is reflected in the
+ * exitcode. 0 means "success", 77 "skip", 78 that some operation "timed out".
+ * All other exit codes encode a failed test result, including any abnormal
+ * termination of the test (e.g. by SIGKILL).
+ *
+ * On top of that tests may report unexpected results and minor issues to
+ * stderr. If stderr is non-empty the test result should be treated as "warn".
+ *
+ * The test lists are generated at build time. Simple testcases are listed in
+ * tests/single-tests.txt and tests with subtests are listed in
+ * tests/multi-tests.txt. When running tests with subtest from a test runner it
+ * is recommend to run each subtest individually, since otherwise the return
+ * code will only reflect the overall result.
+ *
+ * To do that obtain the lists of subtests with "--list-subtests", which can be
+ * run as non-root and doesn't require the i915 driver to be loaded (or any
+ * intel gpu to be present). Then individual subtests can be run with
+ * "--run-subtest". Usage help for tests with subtests can be obtained with the
+ * "--help" commandline option.
  */
 
 static unsigned int exit_handler_count;
