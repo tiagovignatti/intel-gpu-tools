@@ -442,6 +442,19 @@ static void finish_crtc(data_t *data, enum test_mode mode)
 	igt_remove_fb(data->drm_fd, &data->fb[1]);
 }
 
+static void reset_display(data_t *data)
+{
+	igt_display_t *display = &data->display;
+
+	for_each_connected_output(display, data->output) {
+		if (data->output->valid) {
+			data->primary =  igt_output_get_plane(data->output, IGT_PLANE_PRIMARY);
+			igt_plane_set_fb(data->primary, NULL);
+		}
+		igt_output_set_pipe(data->output, PIPE_ANY);
+	}
+}
+
 static void run_test(data_t *data, enum test_mode mode)
 {
 	igt_display_t *display = &data->display;
@@ -452,6 +465,8 @@ static void run_test(data_t *data, enum test_mode mode)
 		igt_require(ctx);
 		drm_intel_gem_context_destroy(ctx);
 	}
+
+	reset_display(data);
 
 	for_each_connected_output(display, data->output) {
 		for (data->pipe = 0; data->pipe < igt_display_get_n_pipes(display); data->pipe++) {
