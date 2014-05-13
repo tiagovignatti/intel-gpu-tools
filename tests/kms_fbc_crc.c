@@ -49,24 +49,19 @@ enum test_mode {
 };
 
 typedef struct {
-	struct kmstest_connector_config config;
-	drmModeModeInfo mode;
-	struct igt_fb fb[2];
-} connector_t;
-
-typedef struct {
 	int drm_fd;
-	drmModeRes *resources;
 	igt_crc_t ref_crc[2];
 	igt_pipe_crc_t *pipe_crc;
 	drm_intel_bufmgr *bufmgr;
 	drm_intel_context *ctx[2];
 	uint32_t devid;
 	uint32_t handle[2];
-	uint32_t crtc_id;
-	uint32_t crtc_idx;
+	igt_display_t display;
+	igt_output_t *output;
+	enum pipe pipe;
+	igt_plane_t *primary;
+	struct igt_fb fb[2];
 	uint32_t fb_id[2];
-	connector_t connector;
 } data_t;
 
 static const char *test_mode_str(enum test_mode mode)
@@ -106,40 +101,6 @@ static uint32_t create_fb(data_t *data,
 	cairo_destroy(cr);
 
 	return fb_id;
-}
-
-static bool
-connector_set_mode(data_t *data, drmModeModeInfo *mode, uint32_t fb_id)
-{
-	connector_t *connector = &data->connector;
-	struct kmstest_connector_config *config = &connector->config;
-	int ret;
-
-#if 0
-	fprintf(stdout, "Using pipe %c, %dx%d\n", pipe_name(config->pipe),
-		mode->hdisplay, mode->vdisplay);
-#endif
-
-	ret = drmModeSetCrtc(data->drm_fd,
-			     config->crtc->crtc_id,
-			     fb_id,
-			     0, 0, /* x, y */
-			     &config->connector->connector_id,
-			     1,
-			     mode);
-	igt_assert(ret == 0);
-
-	return 0;
-}
-
-static void display_init(data_t *data)
-{
-	data->resources = drmModeGetResources(data->drm_fd);
-	igt_assert(data->resources);
-}
-
-static void display_fini(data_t *data)
-{
 }
 
 static void fill_blt(data_t *data, uint32_t handle, unsigned char color)
@@ -246,6 +207,7 @@ static bool fbc_enabled(data_t *data)
 
 static void test_crc(data_t *data, enum test_mode mode)
 {
+	uint32_t crtc_id = data->output->config.crtc->crtc_id;
 	igt_pipe_crc_t *pipe_crc = data->pipe_crc;
 	igt_crc_t *crcs = NULL;
 	uint32_t handle = data->handle[0];
@@ -254,7 +216,7 @@ static void test_crc(data_t *data, enum test_mode mode)
 
 	if (mode >= TEST_PAGE_FLIP_AND_MMAP_CPU) {
 		handle = data->handle[1];
-		igt_assert(drmModePageFlip(data->drm_fd, data->crtc_id,
+		igt_assert(drmModePageFlip(data->drm_fd, crtc_id,
 					   data->fb_id[1], 0, NULL) == 0);
 		usleep(300000);
 
@@ -264,7 +226,7 @@ static void test_crc(data_t *data, enum test_mode mode)
 	switch (mode) {
 		void *ptr;
 	case TEST_PAGE_FLIP:
-		igt_assert(drmModePageFlip(data->drm_fd, data->crtc_id,
+		igt_assert(drmModePageFlip(data->drm_fd, crtc_id,
 					   data->fb_id[1], 0, NULL) == 0);
 		break;
 	case TEST_MMAP_CPU:
@@ -301,8 +263,8 @@ static void test_crc(data_t *data, enum test_mode mode)
 	 * to leave some leeway for the kernel if we ever do
 	 * some kind of delayed FBC disable for GTT mmaps.
 	 */
-	igt_wait_for_vblank(data->drm_fd, data->crtc_idx);
-	igt_wait_for_vblank(data->drm_fd, data->crtc_idx);
+	igt_wait_for_vblank(data->drm_fd, data->pipe);
+	igt_wait_for_vblank(data->drm_fd, data->pipe);
 
 	igt_pipe_crc_start(pipe_crc);
 	igt_pipe_crc_get_crcs(pipe_crc, 1, &crcs);
@@ -333,61 +295,84 @@ static void test_crc(data_t *data, enum test_mode mode)
 	free(crcs);
 }
 
-static bool prepare_crtc(data_t *data, uint32_t connector_id)
+static bool prepare_crtc(data_t *data)
 {
-	return !kmstest_get_connector_config(data->drm_fd,
-					     connector_id,
-					     1 << data->crtc_idx,
-					     &data->connector.config);
+	igt_display_t *display = &data->display;
+	igt_output_t *output = data->output;
+
+	/* select the pipe we want to use */
+	igt_output_set_pipe(output, data->pipe);
+	igt_display_commit(display);
+
+	if (!output->valid) {
+		igt_output_set_pipe(output, PIPE_ANY);
+		igt_display_commit(display);
+		return false;
+	}
+
+	return true;
 }
 
-static bool prepare_test(data_t *data, enum test_mode mode)
+static bool prepare_test(data_t *data, enum test_mode test_mode)
 {
-	connector_t *connector = &data->connector;
+	igt_display_t *display = &data->display;
+	igt_output_t *output = data->output;
+	drmModeModeInfo *mode;
 	igt_pipe_crc_t *pipe_crc;
 	igt_crc_t *crcs = NULL;
 
-	data->fb_id[0] = create_fb(data,
-				   connector->config.default_mode.hdisplay,
-				   connector->config.default_mode.vdisplay,
-				   0.0, 0.0, 0.0, &connector->fb[0]);
+	data->primary = igt_output_get_plane(data->output, IGT_PLANE_PRIMARY);
+	mode = igt_output_get_mode(data->output);
+
+	data->fb_id[0] = create_fb(data, mode->hdisplay, mode->vdisplay,
+				   0.0, 0.0, 0.0, &data->fb[0]);
 	igt_assert(data->fb_id[0]);
 
-	data->fb_id[1] = create_fb(data,
-				   connector->config.default_mode.hdisplay,
-				   connector->config.default_mode.vdisplay,
-				   0.1, 0.1, 0.1, &connector->fb[1]);
+	data->fb_id[1] = create_fb(data, mode->hdisplay, mode->vdisplay,
+				   0.1, 0.1, 0.1, &data->fb[1]);
 	igt_assert(data->fb_id[1]);
 
-	data->handle[0] = connector->fb[0].gem_handle;
-	data->handle[1] = connector->fb[1].gem_handle;
+	data->handle[0] = data->fb[0].gem_handle;
+	data->handle[1] = data->fb[1].gem_handle;
 
 	/* scanout = fb[1] */
-	connector_set_mode(data, &connector->config.default_mode,
-			   data->fb_id[1]);
+	igt_plane_set_fb(data->primary, &data->fb[1]);
+	igt_display_commit(display);
 	usleep(300000);
 
 	if (!fbc_enabled(data)) {
 		printf("FBC not enabled\n");
-		kmstest_free_connector_config(&connector->config);
+
+		igt_plane_set_fb(data->primary, NULL);
+		igt_output_set_pipe(output, PIPE_ANY);
+		igt_display_commit(display);
+
+		igt_remove_fb(data->drm_fd, &data->fb[0]);
+		igt_remove_fb(data->drm_fd, &data->fb[1]);
 		return false;
 	}
 
 	igt_pipe_crc_free(data->pipe_crc);
 	data->pipe_crc = NULL;
 
-	pipe_crc = igt_pipe_crc_new(data->crtc_idx,
+	pipe_crc = igt_pipe_crc_new(data->pipe,
 				    INTEL_PIPE_CRC_SOURCE_AUTO);
 	if (!pipe_crc) {
 		printf("auto crc not supported on this connector with crtc %i\n",
-		       data->crtc_idx);
-		kmstest_free_connector_config(&connector->config);
+		       data->pipe);
+
+		igt_plane_set_fb(data->primary, NULL);
+		igt_output_set_pipe(output, PIPE_ANY);
+		igt_display_commit(display);
+
+		igt_remove_fb(data->drm_fd, &data->fb[0]);
+		igt_remove_fb(data->drm_fd, &data->fb[1]);
 		return false;
 	}
 
 	data->pipe_crc = pipe_crc;
 
-	igt_wait_for_vblank(data->drm_fd, data->crtc_idx);
+	igt_wait_for_vblank(data->drm_fd, data->pipe);
 
 	/* get reference crc for fb[1] */
 	igt_pipe_crc_start(pipe_crc);
@@ -396,7 +381,7 @@ static bool prepare_test(data_t *data, enum test_mode mode)
 	igt_pipe_crc_stop(pipe_crc);
 	free(crcs);
 
-	if (mode == TEST_CONTEXT || mode == TEST_PAGE_FLIP_AND_CONTEXT) {
+	if (test_mode == TEST_CONTEXT || test_mode == TEST_PAGE_FLIP_AND_CONTEXT) {
 		data->ctx[0] = drm_intel_gem_context_create(data->bufmgr);
 		igt_assert(data->ctx[0]);
 		data->ctx[1] = drm_intel_gem_context_create(data->bufmgr);
@@ -413,21 +398,21 @@ static bool prepare_test(data_t *data, enum test_mode mode)
 	}
 
 	/* scanout = fb[0] */
-	connector_set_mode(data, &connector->config.default_mode,
-			   data->fb_id[0]);
+	igt_plane_set_fb(data->primary, &data->fb[0]);
+	igt_display_commit(display);
 	usleep(300000);
 
 	igt_assert(fbc_enabled(data));
 
-	if (mode == TEST_CONTEXT || mode == TEST_PAGE_FLIP_AND_CONTEXT) {
+	if (test_mode == TEST_CONTEXT || test_mode == TEST_PAGE_FLIP_AND_CONTEXT) {
 		/*
 		 * make ctx[0] FBC RT address point to fb[0], ctx[1]
 		 * FBC RT address is left as disabled.
 		 */
-		exec_nop(data, connector->fb[0].gem_handle, data->ctx[0]);
+		exec_nop(data, data->fb[0].gem_handle, data->ctx[0]);
 	}
 
-	igt_wait_for_vblank(data->drm_fd, data->crtc_idx);
+	igt_wait_for_vblank(data->drm_fd, data->pipe);
 
 	/* get reference crc for fb[0] */
 	igt_pipe_crc_start(pipe_crc);
@@ -435,8 +420,6 @@ static bool prepare_test(data_t *data, enum test_mode mode)
 	data->ref_crc[0] = crcs[0];
 	igt_pipe_crc_stop(pipe_crc);
 	free(crcs);
-
-	kmstest_free_connector_config(&connector->config);
 
 	return true;
 }
@@ -450,11 +433,18 @@ static void finish_crtc(data_t *data, enum test_mode mode)
 		drm_intel_gem_context_destroy(data->ctx[0]);
 		drm_intel_gem_context_destroy(data->ctx[1]);
 	}
+
+	igt_plane_set_fb(data->primary, NULL);
+	igt_output_set_pipe(data->output, PIPE_ANY);
+	igt_display_commit(&data->display);
+
+	igt_remove_fb(data->drm_fd, &data->fb[0]);
+	igt_remove_fb(data->drm_fd, &data->fb[1]);
 }
 
 static void run_test(data_t *data, enum test_mode mode)
 {
-	int i, n;
+	igt_display_t *display = &data->display;
 	int valid_tests = 0;
 
 	if (mode == TEST_CONTEXT || mode == TEST_PAGE_FLIP_AND_CONTEXT) {
@@ -463,22 +453,19 @@ static void run_test(data_t *data, enum test_mode mode)
 		drm_intel_gem_context_destroy(ctx);
 	}
 
-	for (i = 0; i < data->resources->count_connectors; i++) {
-		uint32_t connector_id = data->resources->connectors[i];
-
-		for (n = 0; n < data->resources->count_crtcs; n++) {
-			data->crtc_idx = n;
-			data->crtc_id = data->resources->crtcs[n];
-
-			if (!prepare_crtc(data, connector_id))
+	for_each_connected_output(display, data->output) {
+		for (data->pipe = 0; data->pipe < igt_display_get_n_pipes(display); data->pipe++) {
+			if (!prepare_crtc(data))
 				continue;
 
-			fprintf(stdout, "Beginning %s on crtc %d, connector %d\n",
-				igt_subtest_name(), data->crtc_id, connector_id);
+			printf("Beginning %s on pipe %c, connector %s\n",
+			       igt_subtest_name(), pipe_name(data->pipe),
+			       igt_output_name(data->output));
 
 			if (!prepare_test(data, mode)) {
-				fprintf(stdout, "%s on crtc %d, connector %d: SKIPPED\n",
-					igt_subtest_name(), data->crtc_id, connector_id);
+				printf("%s on pipe %c, connector %s: SKIPPED\n",
+				       igt_subtest_name(), pipe_name(data->pipe),
+				       igt_output_name(data->output));
 				continue;
 			}
 
@@ -486,8 +473,9 @@ static void run_test(data_t *data, enum test_mode mode)
 
 			test_crc(data, mode);
 
-			fprintf(stdout, "%s on crtc %d, connector %d: PASSED\n",
-				igt_subtest_name(), data->crtc_id, connector_id);
+			printf("%s on pipe %c, connector %s: PASSED\n",
+			       igt_subtest_name(), pipe_name(data->pipe),
+			       igt_output_name(data->output));
 
 			finish_crtc(data, mode);
 		}
@@ -528,7 +516,7 @@ igt_main
 		igt_assert(data.bufmgr);
 		drm_intel_bufmgr_gem_enable_reuse(data.bufmgr);
 
-		display_init(&data);
+		igt_display_init(&data.display, data.drm_fd);
 	}
 
 	for (mode = TEST_PAGE_FLIP; mode <= TEST_PAGE_FLIP_AND_CONTEXT; mode++) {
@@ -539,6 +527,6 @@ igt_main
 
 	igt_fixture {
 		drm_intel_bufmgr_destroy(data.bufmgr);
-		display_fini(&data);
+		igt_display_fini(&data.display);
 	}
 }
