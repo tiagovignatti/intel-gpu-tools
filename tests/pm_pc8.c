@@ -47,6 +47,7 @@
 #include "intel_io.h"
 #include "intel_chipset.h"
 #include "ioctl_wrappers.h"
+#include "igt_aux.h"
 #include "igt_kms.h"
 #include "igt_debugfs.h"
 
@@ -1472,6 +1473,14 @@ static void stay_subtest(void)
 		sleep(600);
 }
 
+static void system_suspend_subtest(void)
+{
+	disable_all_screens(&ms_data);
+	igt_assert(wait_for_suspended());
+	igt_system_suspend_autoresume();
+	igt_assert(wait_for_suspended());
+}
+
 int main(int argc, char *argv[])
 {
 	int rounds = 50;
@@ -1559,6 +1568,10 @@ int main(int argc, char *argv[])
 	igt_subtest("modeset-stress-extra-wait")
 		modeset_subtest(SCREEN_TYPE_ANY, rounds,
 				WAIT_STATUS | WAIT_EXTRA);
+
+	/* System suspend */
+	igt_subtest("system-suspend")
+		system_suspend_subtest();
 
 	/* GEM stress */
 	igt_subtest("gem-execbuf-stress")
