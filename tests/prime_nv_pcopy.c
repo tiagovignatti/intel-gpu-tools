@@ -290,7 +290,7 @@ static void fill16(void *ptr, uint32_t val)
 
 #define TILE_SIZE 4096
 
-static int swtile_y(uint8_t *out, const uint8_t *in, int w, int h)
+static void swtile_y(uint8_t *out, const uint8_t *in, int w, int h)
 {
 	uint32_t x, y, dx, dy;
 	uint8_t *endptr = out + w * h;
@@ -314,10 +314,9 @@ static int swtile_y(uint8_t *out, const uint8_t *in, int w, int h)
 		}
 	}
 	igt_assert(out == endptr);
-	return 0;
 }
 
-static int swtile_x(uint8_t *out, const uint8_t *in, int w, int h)
+static void swtile_x(uint8_t *out, const uint8_t *in, int w, int h)
 {
 	uint32_t x, y, dy;
 	uint8_t *endptr = out + w * h;
@@ -336,7 +335,6 @@ static int swtile_x(uint8_t *out, const uint8_t *in, int w, int h)
 		}
 	}
 	igt_assert(out == endptr);
-	return 0;
 }
 
 #if 0
@@ -449,11 +447,11 @@ static int perform_copy_hack(struct nouveau_bo *nvbo, const rect *dst,
 }
 #endif
 
-static int perform_copy(struct nouveau_bo *nvbo, const rect *dst,
-			uint32_t dst_x, uint32_t dst_y,
-			struct nouveau_bo *nvbi, const rect *src,
-			uint32_t src_x, uint32_t src_y,
-			uint32_t w, uint32_t h)
+static void perform_copy(struct nouveau_bo *nvbo, const rect *dst,
+			 uint32_t dst_x, uint32_t dst_y,
+			 struct nouveau_bo *nvbi, const rect *src,
+			 uint32_t src_x, uint32_t src_y,
+			 uint32_t w, uint32_t h)
 {
 #if 0
 	/* Too much effort */
@@ -480,9 +478,8 @@ static int perform_copy(struct nouveau_bo *nvbo, const rect *dst,
 	if (nvbo->config.nv50.tile_mode == tile_intel_y)
 		igt_debug("dst is y-tiled\n");
 
-	if (nouveau_pushbuf_space(push, 64, 0, 0) ||
-	    nouveau_pushbuf_refn(push, refs, 3))
-		return -1;
+	igt_assert(nouveau_pushbuf_space(push, 64, 0, 0) == 0);
+	igt_assert(nouveau_pushbuf_refn(push, refs, 3) == 0);
 
 	if (!nvbi->config.nv50.tile_mode) {
 		src_off = src_y * src->pitch + src_x;
@@ -533,61 +530,53 @@ static int perform_copy(struct nouveau_bo *nvbo, const rect *dst,
 
 	ret = nouveau_pushbuf_kick(push, push->channel);
 	while (!ret && *query < query_counter) { usleep(1000); }
-	return ret;
+
+	igt_assert(ret == 0);
 }
 
-static int check1_macro(uint32_t *p, uint32_t w, uint32_t h)
+static void check1_macro(uint32_t *p, uint32_t w, uint32_t h)
 {
 	uint32_t i, val, j;
 
 	for (i = 0; i < 256; ++i, p += 4) {
 		val = (i) | (i << 8) | (i << 16) | (i << 24);
-		if (p[0] != val || p[1] != val || p[2] != val || p[3] != val) {
-			fprintf(stderr, "Retile check failed in first tile!\n");
-			fprintf(stderr, "%08x %08x %08x %08x instead of %08x\n",
-				p[0], p[1], p[2], p[3], val);
-			return -1;
-		}
+		igt_assert_f(p[0] == val && p[1] == val && p[2] == val && p[3] == val,
+			     "Retile check failed in first tile!\n"
+			     "%08x %08x %08x %08x instead of %08x\n",
+			     p[0], p[1], p[2], p[3], val);
 	}
 
 	val = 0x3e3e3e3e;
 	for (i = 0; i < 256 * (w-1); ++i, p += 4) {
-		if (p[0] != val || p[1] != val || p[2] != val || p[3] != val) {
-			fprintf(stderr, "Retile check failed in second tile!\n");
-			fprintf(stderr, "%08x %08x %08x %08x instead of %08x\n",
-				p[0], p[1], p[2], p[3], val);
-			return -1;
-		}
+		igt_assert_f(p[0] == val && p[1] == val && p[2] == val && p[3] == val,
+			     "Retile check failed in second tile!\n"
+			     "%08x %08x %08x %08x instead of %08x\n",
+			     p[0], p[1], p[2], p[3], val);
 	}
 
 	for (j = 1; j < h; ++j) {
 		val = 0x7e7e7e7e;
 		for (i = 0; i < 256; ++i, p += 4) {
-			if (p[0] != val || p[1] != val || p[2] != val || p[3] != val) {
-				fprintf(stderr, "Retile check failed in third tile!\n");
-				fprintf(stderr, "%08x %08x %08x %08x instead of %08x\n",
-					p[0], p[1], p[2], p[3], val);
-				return -1;
-			}
+			igt_assert_f(p[0] == val && p[1] == val && p[2] == val && p[3] == val,
+				     "Retile check failed in third tile!\n"
+				     "%08x %08x %08x %08x instead of %08x\n",
+				     p[0], p[1], p[2], p[3], val);
 		}
 
 		val = 0xcececece;
 		for (i = 0; i < 256 * (w-1); ++i, p += 4) {
-			if (p[0] != val || p[1] != val || p[2] != val || p[3] != val) {
-				fprintf(stderr, "Retile check failed in fourth tile!\n");
-				fprintf(stderr, "%08x %08x %08x %08x instead of %08x\n",
-					p[0], p[1], p[2], p[3], val);
-				return -1;
-			}
+			igt_assert_f(p[0] == val && p[1] == val && p[2] == val && p[3] == val,
+				     "Retile check failed in fourth tile!\n"
+				     "%08x %08x %08x %08x instead of %08x\n",
+				     p[0], p[1], p[2], p[3], val);
 		}
 	}
-	return 0;
 }
 
 /* test 1, see if we can copy from linear to intel Y format safely */
 static int test1_macro(void)
 {
-	int ret, prime_fd = -1;
+	int prime_fd = -1;
 	struct nouveau_bo *nvbo = NULL, *nvbi = NULL;
 	rect dst, src;
 	uint8_t *ptr;
@@ -628,33 +617,32 @@ static int test1_macro(void)
 	memset(nvbo->map, 0xfc, w * h);
 
 	if (pcopy)
-		ret = perform_copy(nvbo, &dst, 0, 0, nvbi, &src, 0, 0, w, h);
+		perform_copy(nvbo, &dst, 0, 0, nvbi, &src, 0, 0, w, h);
 	else
-		ret = swtile_y(nvbo->map, nvbi->map, w, h);
-	if (!ret)
-		ret = check1_macro(nvbo->map, w/128, h/32);
+		swtile_y(nvbo->map, nvbi->map, w, h);
+	check1_macro(nvbo->map, w/128, h/32);
 
 	nouveau_bo_ref(NULL, &nvbo);
 	nouveau_bo_ref(NULL, &nvbi);
 	close(prime_fd);
-	return ret;
+
+	return 0;
 }
 
-static int dump_line(uint8_t *map)
+static void dump_line(uint8_t *map)
 {
 	uint32_t dx, dy;
-	fprintf(stderr, "Dumping sub-tile:\n");
+	igt_debug("Dumping sub-tile:\n");
 	for (dy = 0; dy < 32; ++dy) {
 		for (dx = 0; dx < 15; ++dx, ++map) {
-			fprintf(stderr, "%02x ", *map);
+			igt_debug("%02x ", *map);
 		}
-		fprintf(stderr, "%02x\n", *(map++));
+		igt_debug("%02x\n", *(map++));
 	}
-	return -1;
 }
 
-static int check1_micro(void *map, uint32_t pitch, uint32_t lines,
-			uint32_t dst_x, uint32_t dst_y, uint32_t w, uint32_t h)
+static void check1_micro(void *map, uint32_t pitch, uint32_t lines,
+			 uint32_t dst_x, uint32_t dst_y, uint32_t w, uint32_t h)
 {
 	uint32_t x, y;
 
@@ -663,15 +651,15 @@ static int check1_micro(void *map, uint32_t pitch, uint32_t lines,
 	for (y = 0; y < h; ++y, m += pitch) {
 		for (x = 0; x < w; ++x) {
 			uint8_t expected = ((y & 3) << 6) | (x & 0x3f);
-			if (expected != m[x]) {
-				fprintf(stderr, "failed check at x=%u y=%u, expected %02x got %02x\n",
-					x, y, expected, m[x]);
-				return dump_line(m);
-			}
+
+			if (expected != m[x])
+				dump_line(m);
+
+			igt_assert_f(expected == m[x],
+				     "failed check at x=%u y=%u, expected %02x got %02x\n",
+				     x, y, expected, m[x]);
 		}
 	}
-
-	return 0;
 }
 
 /* test 1, but check micro format, should be unaffected by bit9 swizzling */
@@ -725,20 +713,16 @@ static int test1_micro(void)
 		}
 	}
 
-	ret = perform_copy(bo_nvidia, &nvidia, 0, 0, bo_linear, &linear, 0, 0, nvidia.pitch, nvidia.h);
-	if (ret)
-		goto out;
+	perform_copy(bo_nvidia, &nvidia, 0, 0, bo_linear, &linear, 0, 0, nvidia.pitch, nvidia.h);
 
 	/* Perform the actual sub rectangle copy */
 	if (pcopy)
-		ret = perform_copy(bo_intel, &intel, dst_x, dst_y, bo_nvidia, &nvidia, src_x, src_y, w, h);
+		perform_copy(bo_intel, &intel, dst_x, dst_y, bo_nvidia, &nvidia, src_x, src_y, w, h);
 	else
-		ret = swtile_y(test_intel_bo->virtual, bo_linear->map, w, h);
-	if (ret)
-		goto out;
+		swtile_y(test_intel_bo->virtual, bo_linear->map, w, h);
 
 	noop_intel(test_intel_bo);
-	ret = check1_micro(test_intel_bo->virtual, intel.pitch, intel.h, dst_x, dst_y, w, h);
+	check1_micro(test_intel_bo->virtual, intel.pitch, intel.h, dst_x, dst_y, w, h);
 
 out:
 	nouveau_bo_ref(NULL, &bo_linear);
@@ -888,7 +872,6 @@ out:
  */
 static int test2(void)
 {
-	int ret;
 	struct nouveau_bo *nvbo = NULL, *nvbi = NULL;
 	rect dst, src;
 	uint8_t *ptr;
@@ -925,30 +908,28 @@ static int test2(void)
 
 	/* do this in software, there is no X major tiling in PCOPY (yet?) */
 	if (0 && pcopy)
-		ret = perform_copy(nvbo, &dst, 0, 0, nvbi, &src, 0, 0, w, h);
+		perform_copy(nvbo, &dst, 0, 0, nvbi, &src, 0, 0, w, h);
 	else
-		ret = swtile_x(nvbo->map, nvbi->map, w, h);
-	if (!ret)
-		ret = check1_macro(nvbo->map, w/512, h/8);
+		swtile_x(nvbo->map, nvbi->map, w, h);
+	check1_macro(nvbo->map, w/512, h/8);
 
 	nouveau_bo_ref(NULL, &nvbo);
 	nouveau_bo_ref(NULL, &nvbi);
-	return ret;
+
+	return 0;
 }
 
-static int check3(const uint32_t *p, uint32_t pitch, uint32_t lines,
-		  uint32_t sub_x, uint32_t sub_y,
-		  uint32_t sub_w, uint32_t sub_h)
+static void check3(const uint32_t *p, uint32_t pitch, uint32_t lines,
+		   uint32_t sub_x, uint32_t sub_y,
+		   uint32_t sub_w, uint32_t sub_h)
 {
 	uint32_t x, y;
 
 	sub_w += sub_x;
 	sub_h += sub_y;
 
-	if (p[pitch * lines / 4 - 1] == 0x03030303) {
-		fprintf(stderr, "copy failed: Not all lines have been copied back!\n");
-		return -1;
-	}
+	igt_assert_f(p[pitch * lines / 4 - 1] != 0x03030303,
+		     "copy failed: Not all lines have been copied back!\n");
 
 	for (y = 0; y < lines; ++y) {
 		for (x = 0; x < pitch; x += 4, ++p) {
@@ -958,13 +939,11 @@ static int check3(const uint32_t *p, uint32_t pitch, uint32_t lines,
 				expected = 0x80808080;
 			else
 				expected = 0x04040404;
-			if (*p != expected) {
-				fprintf(stderr, "%u,%u should be %08x, but is %08x\n", x, y, expected, *p);
-				return -1;
-			}
+			igt_assert_f(*p == expected,
+				     "%u,%u should be %08x, but is %08x\n",
+				     x, y, expected, *p);
 		}
 	}
-	return 0;
 }
 
 /* copy from nvidia bo to intel bo and copy to a linear bo to check if tiling went succesful */
@@ -972,7 +951,6 @@ static int test3_base(int tile_src, int tile_dst)
 {
 	struct nouveau_bo *bo_intel = NULL, *bo_nvidia = NULL, *bo_linear = NULL;
 	rect intel, nvidia, linear;
-	int ret;
 	uint32_t cpp = 4;
 
 	uint32_t src_x = 1 * cpp, src_y = 1;
@@ -998,38 +976,30 @@ static int test3_base(int tile_src, int tile_dst)
 
 	noop_intel(test_intel_bo);
 	memset(bo_linear->map, 0x80, bo_linear->size);
-	ret = perform_copy(bo_intel, &intel, 0, 0, bo_linear, &linear, 0, 0, linear.pitch, linear.h);
-	if (ret)
-		goto out;
+	perform_copy(bo_intel, &intel, 0, 0, bo_linear, &linear, 0, 0, linear.pitch, linear.h);
 	noop_intel(test_intel_bo);
 
 	memset(bo_linear->map, 0x04, bo_linear->size);
-	ret = perform_copy(bo_nvidia, &nvidia, 0, 0, bo_linear, &linear, 0, 0, nvidia.pitch, nvidia.h);
-	if (ret)
-		goto out;
+	perform_copy(bo_nvidia, &nvidia, 0, 0, bo_linear, &linear, 0, 0, nvidia.pitch, nvidia.h);
 
 	/* Perform the actual sub rectangle copy */
 	noop_intel(test_intel_bo);
-	ret = perform_copy(bo_intel, &intel, dst_x, dst_y, bo_nvidia, &nvidia, src_x, src_y, w, h);
-	if (ret)
-		goto out;
+	perform_copy(bo_intel, &intel, dst_x, dst_y, bo_nvidia, &nvidia, src_x, src_y, w, h);
 	noop_intel(test_intel_bo);
 
 	memset(bo_linear->map, 0x3, bo_linear->size);
 	noop_intel(test_intel_bo);
-	ret = perform_copy(bo_linear, &linear, 0, 0, bo_intel, &intel, 0, 0, intel.pitch, intel.h);
-	if (ret)
-		goto out;
+	perform_copy(bo_linear, &linear, 0, 0, bo_intel, &intel, 0, 0, intel.pitch, intel.h);
 	noop_intel(test_intel_bo);
 
-	ret = check3(bo_linear->map, linear.pitch, linear.h, dst_x, dst_y, w, h);
+	check3(bo_linear->map, linear.pitch, linear.h, dst_x, dst_y, w, h);
 
-out:
 	nouveau_bo_ref(NULL, &bo_linear);
 	nouveau_bo_ref(NULL, &bo_nvidia);
 	nouveau_bo_ref(NULL, &bo_intel);
 	drm_intel_bo_unreference(test_intel_bo);
-	return ret;
+
+	return 0;
 }
 
 static int test3_1(void)
