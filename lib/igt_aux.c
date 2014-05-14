@@ -369,3 +369,117 @@ void igt_wait_for_keypress(void)
 	getchar();
 	tcsetattr ( STDIN_FILENO, TCSANOW, &oldt );
 }
+
+#define POWER_DIR "/sys/devices/pci0000:00/0000:00:02.0/power"
+/* We just leak this on exit ... */
+int pm_status_fd = -1;
+
+/**
+ * igt_setup_runtime_pm:
+ *
+ * Sets up the runtime PM helper functions and enables runtime PM. To speed up
+ * tests the autosuspend delay is set to 0.
+ *
+ * Returns:
+ * True if runtime pm is available, false otherwise.
+ */
+bool igt_setup_runtime_pm(void)
+{
+	int fd;
+	ssize_t size;
+	char buf[6];
+
+	if (pm_status_fd >= 0)
+		return true;
+
+	/* Our implementation uses autosuspend. Try to set it to 0ms so the test
+	 * suite goes faster and we have a higher probability of triggering race
+	 * conditions. */
+	fd = open(POWER_DIR "/autosuspend_delay_ms", O_WRONLY);
+	igt_assert_f(fd >= 0,
+		     "Can't open " POWER_DIR "/autosuspend_delay_ms\n");
+
+	/* If we fail to write to the file, it means this system doesn't support
+	 * runtime PM. */
+	size = write(fd, "0\n", 2);
+
+	close(fd);
+
+	if (size != 2)
+		return false;
+
+	/* We know we support runtime PM, let's try to enable it now. */
+	fd = open(POWER_DIR "/control", O_RDWR);
+	igt_assert_f(fd >= 0, "Can't open " POWER_DIR "/control\n");
+
+	size = write(fd, "auto\n", 5);
+	igt_assert(size == 5);
+
+	lseek(fd, 0, SEEK_SET);
+	size = read(fd, buf, ARRAY_SIZE(buf));
+	igt_assert(size == 5);
+	igt_assert(strncmp(buf, "auto\n", 5) == 0);
+
+	close(fd);
+
+	pm_status_fd = open(POWER_DIR "/runtime_status", O_RDONLY);
+	igt_assert_f(pm_status_fd >= 0,
+		     "Can't open " POWER_DIR "/runtime_status\n");
+
+	return true;
+}
+
+/**
+ * igt_runtime_pm_status:
+ *
+ * Returns:
+ * The current runtime PM status.
+ */
+enum igt_runtime_pm_status igt_get_runtime_pm_status(void)
+{
+	ssize_t n_read;
+	char buf[32];
+
+	lseek(pm_status_fd, 0, SEEK_SET);
+	n_read = read(pm_status_fd, buf, ARRAY_SIZE(buf));
+	igt_assert(n_read >= 0);
+	buf[n_read] = '\0';
+
+	if (strncmp(buf, "suspended\n", n_read) == 0)
+		return IGT_RUNTIME_PM_STATUS_SUSPENDED;
+	else if (strncmp(buf, "active\n", n_read) == 0)
+		return IGT_RUNTIME_PM_STATUS_ACTIVE;
+	else if (strncmp(buf, "suspending\n", n_read) == 0)
+		return IGT_RUNTIME_PM_STATUS_SUSPENDING;
+	else if (strncmp(buf, "resuming\n", n_read) == 0)
+		return IGT_RUNTIME_PM_STATUS_RESUMING;
+
+	igt_assert_f(false, "Unknown status %s\n", buf);
+	return IGT_RUNTIME_PM_STATUS_UNKNOWN;
+}
+
+/**
+ * igt_wait_for_pm_status:
+ * @status: desired runtime PM status
+ *
+ * Waits until for the driver to switch to into the desired runtime PM status,
+ * with a 10 second timeout.
+ *
+ * Returns:
+ * True if the desired runtime PM status was attained, false if the operation
+ * timed out.
+ */
+bool igt_wait_for_pm_status(enum igt_runtime_pm_status status)
+{
+	int i;
+	int hundred_ms = 100 * 1000, ten_s = 10 * 1000 * 1000;
+
+	for (i = 0; i < ten_s; i += hundred_ms) {
+		if (igt_get_runtime_pm_status() == status)
+			return true;
+
+		usleep(hundred_ms);
+	}
+
+	return false;
+}

@@ -57,6 +57,17 @@ void igt_drop_root(void);
 
 void igt_wait_for_keypress(void);
 
+enum igt_runtime_pm_status {
+	IGT_RUNTIME_PM_STATUS_ACTIVE,
+	IGT_RUNTIME_PM_STATUS_SUSPENDED,
+	IGT_RUNTIME_PM_STATUS_SUSPENDING,
+	IGT_RUNTIME_PM_STATUS_RESUMING,
+	IGT_RUNTIME_PM_STATUS_UNKNOWN,
+};
+bool igt_setup_runtime_pm(void);
+enum igt_runtime_pm_status igt_get_runtime_pm_status(void);
+bool igt_wait_for_pm_status(enum igt_runtime_pm_status status);
+
 /* sysinfo cross-arch wrappers from intel_os.c */
 
 /* These are separate to allow easier testing when porting, see the comment at
