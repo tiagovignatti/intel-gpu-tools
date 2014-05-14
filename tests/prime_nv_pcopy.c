@@ -574,7 +574,7 @@ static void check1_macro(uint32_t *p, uint32_t w, uint32_t h)
 }
 
 /* test 1, see if we can copy from linear to intel Y format safely */
-static int test1_macro(void)
+static void test1_macro(void)
 {
 	int prime_fd = -1;
 	struct nouveau_bo *nvbo = NULL, *nvbi = NULL;
@@ -625,8 +625,6 @@ static int test1_macro(void)
 	nouveau_bo_ref(NULL, &nvbo);
 	nouveau_bo_ref(NULL, &nvbi);
 	close(prime_fd);
-
-	return 0;
 }
 
 static void dump_line(uint8_t *map)
@@ -663,11 +661,10 @@ static void check1_micro(void *map, uint32_t pitch, uint32_t lines,
 }
 
 /* test 1, but check micro format, should be unaffected by bit9 swizzling */
-static int test1_micro(void)
+static void test1_micro(void)
 {
 	struct nouveau_bo *bo_intel = NULL, *bo_nvidia = NULL, *bo_linear = NULL;
 	rect intel, nvidia, linear;
-	int ret = -1;
 	uint32_t tiling = I915_TILING_Y;
 
 	uint32_t src_x = 0, src_y = 0;
@@ -678,22 +675,13 @@ static int test1_micro(void)
 	int prime_fd;
 
 	test_intel_bo = drm_intel_bo_alloc(bufmgr, "test bo", w * h, 4096);
-	if (!test_intel_bo)
-		return -1;
+	igt_assert(test_intel_bo);
 	drm_intel_bo_set_tiling(test_intel_bo, &tiling, w);
-	if (tiling != I915_TILING_Y) {
-		fprintf(stderr, "Couldn't set y tiling\n");
-		goto out;
-	}
-	ret = drm_intel_gem_bo_map_gtt(test_intel_bo);
-	if (ret)
-		goto out;
+	igt_assert(tiling == I915_TILING_Y);
+	igt_assert(drm_intel_gem_bo_map_gtt(test_intel_bo) == 0);
 
 	drm_intel_bo_gem_export_to_prime(test_intel_bo, &prime_fd);
-	if (prime_fd < 0) {
-		drm_intel_bo_unreference(test_intel_bo);
-		goto out;
-	}
+	igt_assert(prime_fd >= 0);
 	noop_intel(test_intel_bo);
 
 	nv_bo_alloc(&bo_intel, &intel, w, h, tile_intel_y, prime_fd, 0);
@@ -724,12 +712,10 @@ static int test1_micro(void)
 	noop_intel(test_intel_bo);
 	check1_micro(test_intel_bo->virtual, intel.pitch, intel.h, dst_x, dst_y, w, h);
 
-out:
 	nouveau_bo_ref(NULL, &bo_linear);
 	nouveau_bo_ref(NULL, &bo_nvidia);
 	nouveau_bo_ref(NULL, &bo_intel);
 	drm_intel_bo_unreference(test_intel_bo);
-	return ret;
 }
 
 #if 0 /* nv can't deswizzle into all possible versions of Intel BO objects ... */
@@ -870,7 +856,7 @@ out:
  * as a reference for potential future tests. Software tiling is
  * used for now
  */
-static int test2(void)
+static void test2(void)
 {
 	struct nouveau_bo *nvbo = NULL, *nvbi = NULL;
 	rect dst, src;
@@ -915,8 +901,6 @@ static int test2(void)
 
 	nouveau_bo_ref(NULL, &nvbo);
 	nouveau_bo_ref(NULL, &nvbi);
-
-	return 0;
 }
 
 static void check3(const uint32_t *p, uint32_t pitch, uint32_t lines,
@@ -947,7 +931,7 @@ static void check3(const uint32_t *p, uint32_t pitch, uint32_t lines,
 }
 
 /* copy from nvidia bo to intel bo and copy to a linear bo to check if tiling went succesful */
-static int test3_base(int tile_src, int tile_dst)
+static void test3_base(int tile_src, int tile_dst)
 {
 	struct nouveau_bo *bo_intel = NULL, *bo_nvidia = NULL, *bo_linear = NULL;
 	rect intel, nvidia, linear;
@@ -961,14 +945,10 @@ static int test3_base(int tile_src, int tile_dst)
 	int prime_fd;
 
 	test_intel_bo = drm_intel_bo_alloc(bufmgr, "test bo", 2048 * cpp * 768, 4096);
-	if (!test_intel_bo)
-		return -1;
+	igt_assert(test_intel_bo);
 
 	drm_intel_bo_gem_export_to_prime(test_intel_bo, &prime_fd);
-	if (prime_fd < 0) {
-		drm_intel_bo_unreference(test_intel_bo);
-		return -1;
-	}
+	igt_assert(prime_fd >= 0);
 
 	nv_bo_alloc(&bo_intel, &intel, 2048 * cpp, 768, tile_dst, prime_fd, 0);
 	nv_bo_alloc(&bo_nvidia, &nvidia, 300 * cpp, 300, tile_src, -1, NOUVEAU_BO_VRAM);
@@ -998,38 +978,36 @@ static int test3_base(int tile_src, int tile_dst)
 	nouveau_bo_ref(NULL, &bo_nvidia);
 	nouveau_bo_ref(NULL, &bo_intel);
 	drm_intel_bo_unreference(test_intel_bo);
-
-	return 0;
 }
 
-static int test3_1(void)
+static void test3_1(void)
 {
 	/* nvidia tiling to intel */
-	return test3_base(0x40, tile_intel_y);
+	test3_base(0x40, tile_intel_y);
 }
 
-static int test3_2(void)
+static void test3_2(void)
 {
 	/* intel tiling to nvidia */
-	return test3_base(tile_intel_y, 0x40);
+	test3_base(tile_intel_y, 0x40);
 }
 
-static int test3_3(void)
+static void test3_3(void)
 {
 	/* intel tiling to linear */
-	return test3_base(tile_intel_y, 0);
+	test3_base(tile_intel_y, 0);
 }
 
-static int test3_4(void)
+static void test3_4(void)
 {
 	/* linear tiling to intel */
-	return test3_base(0, tile_intel_y);
+	test3_base(0, tile_intel_y);
 }
 
-static int test3_5(void)
+static void test3_5(void)
 {
 	/* linear to linear */
-	return test3_base(0, 0);
+	test3_base(0, 0);
 }
 
 /* Acquire when == SEQUENCE */
@@ -1043,44 +1021,33 @@ static int test3_5(void)
 #define SEMA_ACQUIRE_GEQUAL 4
 
 /* Test only new style semaphores, old ones are AWFUL */
-static int test_semaphore(void)
+static void test_semaphore(void)
 {
 	drm_intel_bo *test_intel_bo = NULL;
 	struct nouveau_bo *sema_bo = NULL;
-	int ret = -1, prime_fd;
+	int prime_fd;
 	uint32_t *sema;
 	struct nouveau_pushbuf *push = npush;
 
-	if (ndev->chipset < 0x84)
-		return -1;
+	igt_skip_on(ndev->chipset < 0x84);
 
 	/* Should probably be kept in sysmem */
 	test_intel_bo = drm_intel_bo_alloc(bufmgr, "semaphore bo", 4096, 4096);
-	if (!test_intel_bo)
-		goto out;
+	igt_assert(test_intel_bo);
 
 	drm_intel_bo_gem_export_to_prime(test_intel_bo, &prime_fd);
-	if (prime_fd < 0)
-		goto out;
-	ret = nouveau_bo_prime_handle_ref(ndev, prime_fd, &sema_bo);
+	igt_assert(prime_fd >= 0);
+	igt_assert(nouveau_bo_prime_handle_ref(ndev, prime_fd, &sema_bo) == 0);
 	close(prime_fd);
-	if (ret < 0)
-		goto out;
 
-	ret = drm_intel_gem_bo_map_gtt(test_intel_bo);
-	if (ret != 0) {
-		fprintf(stderr,"failed to map bo\n");
-		goto out;
-	}
+	igt_assert(drm_intel_gem_bo_map_gtt(test_intel_bo) == 0);
 	sema = test_intel_bo->virtual;
 	sema++;
 	*sema = 0;
 
-	ret = -1;
-	if (nouveau_pushbuf_space(push, 64, 0, 0) ||
-	    nouveau_pushbuf_refn(push, &(struct nouveau_pushbuf_refn)
-	    { sema_bo, NOUVEAU_BO_GART|NOUVEAU_BO_RDWR }, 1))
-		goto out;
+	igt_assert(nouveau_pushbuf_space(push, 64, 0, 0) == 0);
+	igt_assert(nouveau_pushbuf_refn(push, &(struct nouveau_pushbuf_refn)
+					{ sema_bo, NOUVEAU_BO_GART|NOUVEAU_BO_RDWR }, 1) == 0);
 
 	if (ndev->chipset < 0xc0) {
 		struct nv04_fifo *nv04_fifo = nchannel->data;
@@ -1119,38 +1086,22 @@ static int test_semaphore(void)
 	nouveau_pushbuf_kick(push, push->channel);
 
 	usleep(1000);
-	if (*sema != 2) {
-		fprintf(stderr, "new sema should be 2 is %u\n", *sema);
-		goto out;
-	}
+	igt_assert(*sema == 2);
 
 	*sema = 3;
 	usleep(1000);
-	if (*sema != 4) {
-		fprintf(stderr, "new sema should be 4 is %u\n", *sema);
-		goto out;
-	}
+	igt_assert(*sema == 4);
 
 	*sema = 5;
 	usleep(1000);
-	if (*sema != 6) {
-		fprintf(stderr, "new sema should be 6 is %u\n", *sema);
-		goto out;
-	}
+	igt_assert(*sema == 6);
 
 	*sema = 8;
 	usleep(1000);
-	if (*sema != 9) {
-		fprintf(stderr, "new sema should be 9 is %u\n", *sema);
-		goto out;
-	}
-	ret = 0;
+	igt_assert(*sema == 9);
 
-out:
 	nouveau_bo_ref(NULL, &sema_bo);
-	if (test_intel_bo)
-		drm_intel_bo_unreference(test_intel_bo);
-	return ret;
+	drm_intel_bo_unreference(test_intel_bo);
 }
 
 igt_main
@@ -1178,7 +1129,7 @@ igt_main
 
 #define xtest(x, args...) \
 	igt_subtest( #x ) \
-		igt_assert(((x)(args)) == 0); \
+		(x)(args);
 
 	xtest(test1_macro);
 	xtest(test1_micro);
