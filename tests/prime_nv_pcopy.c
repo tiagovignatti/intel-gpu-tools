@@ -176,7 +176,7 @@ noop_intel(drm_intel_bo *bo)
 	intel_batchbuffer_flush(batch);
 }
 
-static int find_and_open_devices(void)
+static void find_and_open_devices(void)
 {
 	int i;
 	char path[80], *unused;
@@ -201,57 +201,37 @@ static int find_and_open_devices(void)
 		sprintf(path, "/dev/dri/card%d", i);
 		if (venid == 0x8086) {
 			intel_fd = open(path, O_RDWR);
-			if (!intel_fd)
-				return -1;
+			igt_assert(intel_fd);
 		} else if (venid == 0x10de) {
 			nouveau_fd = open(path, O_RDWR);
-			if (!nouveau_fd)
-				return -1;
+			igt_assert(nouveau_fd);
 		}
 	}
-	return 0;
 }
 
-static int init_nouveau(void)
+static void init_nouveau(void)
 {
 	struct nv04_fifo nv04_data = { .vram = 0xbeef0201,
 				       .gart = 0xbeef0202 };
 	struct nvc0_fifo nvc0_data = { };
 	struct nouveau_fifo *fifo;
-	int size, ret;
+	int size;
 	uint32_t class;
 	void *data;
 
-	ret = nouveau_device_wrap(nouveau_fd, 0, &ndev);
-	if (ret < 0) {
-		fprintf(stderr,"failed to wrap nouveau device\n");
-		return ret;
-	}
+	igt_assert(nouveau_device_wrap(nouveau_fd, 0, &ndev) == 0);
 
-	ret = nouveau_client_new(ndev, &nclient);
-	if (ret < 0) {
-		fprintf(stderr,"failed to setup nouveau client\n");
-		return ret;
-	}
+	igt_assert(nouveau_client_new(ndev, &nclient) == 0);
 
-	if (ndev->chipset < 0xa3 || ndev->chipset == 0xaa || ndev->chipset == 0xac) {
-		fprintf(stderr, "Your card doesn't support PCOPY\n");
-		return -1;
-	}
+	igt_skip_on_f(ndev->chipset < 0xa3 || ndev->chipset == 0xaa || ndev->chipset == 0xac,
+		      "Your card doesn't support PCOPY\n");
 
 	// TODO: Get a kepler and add support for it
-	if (ndev->chipset >= 0xe0) {
-		fprintf(stderr, "Unsure how kepler works!\n");
-		return -1;
-	}
-	ret = nouveau_bo_new(ndev,  NOUVEAU_BO_GART | NOUVEAU_BO_MAP,
-			     4096, 4096, NULL, &query_bo);
-	if (!ret)
-		ret = nouveau_bo_map(query_bo, NOUVEAU_BO_RDWR, nclient);
-	if (ret < 0) {
-		fprintf(stderr,"failed to setup query counter\n");
-		return ret;
-	}
+	igt_skip_on_f(ndev->chipset >= 0xe0,
+		      "Unsure how kepler works!\n");
+	igt_assert(nouveau_bo_new(ndev,  NOUVEAU_BO_GART | NOUVEAU_BO_MAP,
+				  4096, 4096, NULL, &query_bo) == 0);
+	igt_assert(nouveau_bo_map(query_bo, NOUVEAU_BO_RDWR, nclient) == 0);
 	query = query_bo->map;
 	*query = query_counter;
 
@@ -265,45 +245,22 @@ static int init_nouveau(void)
 		size = sizeof(nvc0_data);
 	}
 
-	ret = nouveau_object_new(&ndev->object, 0, NOUVEAU_FIFO_CHANNEL_CLASS,
-				 data, size, &nchannel);
-	if (ret) {
-		fprintf(stderr, "Error creating GPU channel: %d\n", ret);
-		if (ret == -ENODEV) {
-			fprintf(stderr, "Make sure nouveau_accel is active\n");
-			fprintf(stderr, "nvd9 is likely broken regardless\n");
-		}
-		return ret;
-	}
+	igt_assert(nouveau_object_new(&ndev->object, 0, NOUVEAU_FIFO_CHANNEL_CLASS,
+				      data, size, &nchannel) == 0);
 
 	fifo = nchannel->data;
 
-	ret = nouveau_pushbuf_new(nclient, nchannel, 4, 32 * 1024,
-				  true, &npush);
-	if (ret) {
-		fprintf(stderr, "Error allocating DMA push buffer: %d\n", ret);
-		return ret;
-	}
+	igt_assert(nouveau_pushbuf_new(nclient, nchannel, 4, 32 * 1024,
+				       true, &npush) == 0);
 
-	ret = nouveau_bufctx_new(nclient, 1, &nbufctx);
-	if (ret) {
-		fprintf(stderr, "Error allocating buffer context: %d\n", ret);
-		return ret;
-	}
+	igt_assert(nouveau_bufctx_new(nclient, 1, &nbufctx) == 0);
 
 	npush->user_priv = nbufctx;
 
 	/* Hope this is enough init for PCOPY */
-	ret = nouveau_object_new(nchannel, class, class & 0xffff, NULL, 0, &pcopy);
-	if (ret) {
-		fprintf(stderr, "Failed to allocate pcopy: %d\n", ret);
-		return ret;
-	}
-	ret = nouveau_pushbuf_space(npush, 512, 0, 0);
-	if (ret) {
-		fprintf(stderr, "No space in pushbuf: %d\n", ret);
-		return ret;
-	}
+	igt_assert(nouveau_object_new(nchannel, class, class & 0xffff, NULL, 0, &pcopy) == 0);
+	igt_assert(nouveau_pushbuf_space(npush, 512, 0, 0) == 0);
+
 	if (ndev->chipset < 0xc0) {
 		struct nv04_fifo *nv04_fifo = (struct nv04_fifo*)fifo;
 		tile_intel_y = 0x3e;
@@ -322,7 +279,6 @@ static int init_nouveau(void)
 		PUSH_DATA(npush, pcopy->handle);
 	}
 	nouveau_pushbuf_kick(npush, npush->channel);
-	return ret;
 }
 
 static void fill16(void *ptr, uint32_t val)
@@ -1230,7 +1186,7 @@ out:
 igt_main
 {
 	igt_fixture {
-		igt_assert(find_and_open_devices() == 0);
+		find_and_open_devices();
 
 		igt_require(nouveau_fd != -1);
 		igt_require(intel_fd != -1);
@@ -1242,11 +1198,12 @@ igt_main
 		//drm_intel_bufmgr_gem_enable_reuse(bufmgr);
 
 		/* set up nouveau bufmgr */
-		igt_require(init_nouveau() >= 0);
+		init_nouveau();
 
 		/* set up an intel batch buffer */
 		devid = intel_get_drm_devid(intel_fd);
 		batch = intel_batchbuffer_alloc(bufmgr, devid);
+		igt_assert(batch);
 	}
 
 #define xtest(x, args...) \
