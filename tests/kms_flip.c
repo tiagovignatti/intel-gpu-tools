@@ -535,7 +535,7 @@ static void check_state(struct test_output *o, struct event_state *es)
 
 	timersub(&es->current_ts, &es->current_received_ts, &diff);
 	if (!analog_tv_connector(o)) {
-		igt_assert_f(diff.tv_sec <= 0 && (diff.tv_sec == 0 && diff.tv_usec <= 2000),
+		igt_assert_f(diff.tv_sec < 0 || (diff.tv_sec == 0 && diff.tv_usec <= 2000),
 			     "%s ts delayed for too long: %is, %iusec\n",
 			     es->name, (int)diff.tv_sec, (int)diff.tv_usec);
 
