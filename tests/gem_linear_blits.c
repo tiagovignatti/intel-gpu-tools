@@ -178,12 +178,10 @@ check_bo(int fd, uint32_t handle, uint32_t val)
 
 	gem_read(fd, handle, 0, linear, sizeof(linear));
 	for (i = 0; i < WIDTH*HEIGHT; i++) {
-		if (linear[i] != val) {
-			fprintf(stderr, "Expected 0x%08x, found 0x%08x "
-				"at offset 0x%08x\n",
-				val, linear[i], i * 4);
-			abort();
-		}
+		igt_assert_f(linear[i] == val,
+			     "Expected 0x%08x, found 0x%08x "
+			     "at offset 0x%08x\n",
+			     val, linear[i], i * 4);
 		val++;
 	}
 }

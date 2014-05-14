@@ -205,11 +205,8 @@ igt_main
 		{
 			unsigned int target_flink;
 			char buffer_name[32];
-			if (dri_bo_flink(target_buffer, &target_flink)) {
-				igt_info("fail to get flink for target buffer\n");
-				igt_assert_f(0, "fail to create global "
-					     "gem_handle for target buffer\n");
-			}
+			igt_assert(dri_bo_flink(target_buffer, &target_flink) == 0);
+
 			for (i = 0; i < NUM_FD; i++) {
 				sprintf(buffer_name, "Target buffer %d\n", i);
 				mfd[i] = drm_open_any();

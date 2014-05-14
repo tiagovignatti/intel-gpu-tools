@@ -323,12 +323,10 @@ check_bo(int fd, uint32_t handle, uint32_t val)
 	v = gem_mmap(fd, handle, WIDTH*HEIGHT*4, PROT_READ);
 	igt_assert(v);
 	for (i = 0; i < WIDTH*HEIGHT; i++) {
-		if (v[i] != val) {
-			fprintf(stderr, "Expected 0x%08x, found 0x%08x "
-				"at offset 0x%08x\n",
-				val, v[i], i * 4);
-			abort();
-		}
+		igt_assert_f(v[i] == val,
+			     "Expected 0x%08x, found 0x%08x "
+			     "at offset 0x%08x\n",
+			     val, v[i], i * 4);
 		val++;
 	}
 	munmap(v, WIDTH*HEIGHT*4);
@@ -344,10 +342,7 @@ int main(int argc, char **argv)
 
 	fd = drm_open_any();
 
-	if (!IS_GEN3(intel_get_drm_devid(fd))) {
-		printf("gen3-only test, doing nothing\n");
-		return 77;
-	}
+	igt_require(IS_GEN3(intel_get_drm_devid(fd)));
 
 	count = 0;
 	if (argc > 1)

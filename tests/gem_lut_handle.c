@@ -169,16 +169,8 @@ static int many_exec(int fd, uint32_t batch, int num_exec, int num_reloc, unsign
 	return ret;
 }
 
-#define _fail(x) ((x) == -ENOENT)
-#define ASSERT(x, y) do {					\
-	if (!(x)) {						\
-		fprintf(stderr, "%s:%d failed, errno=%d\n",	\
-			__FUNCTION__, __LINE__, -y);		\
-		abort();					\
-	}							\
-} while (0)
-#define fail(x) ASSERT(_fail(x), x)
-#define pass(x) ASSERT(!_fail(x), x)
+#define fail(x) igt_assert((x) == -ENOENT)
+#define pass(x) igt_assert((x) == 0)
 
 igt_simple_main
 {

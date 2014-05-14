@@ -39,19 +39,6 @@ struct local_drm_i915_reg_read {
 
 #define REG_READ_IOCTL DRM_IOWR(DRM_COMMAND_BASE + 0x31, struct local_drm_i915_reg_read)
 
-static void handle_bad(int ret, int expected, const char *desc)
-{
-	if (ret != 0 && errno != expected) {
-		fprintf(stderr, "%s - errno was %d, but should have been %d\n",
-				desc, errno, expected);
-		igt_fail(1);
-	} else if (ret == 0) {
-		fprintf(stderr, "%s - Command succeeded, but should have failed\n",
-			desc);
-		igt_fail(1);
-	}
-}
-
 static uint64_t timer_query(int fd)
 {
 	struct local_drm_i915_reg_read reg_read;
@@ -79,15 +66,14 @@ igt_simple_main
 
 	reg_read.val = timer_query(fd);
 	sleep(1);
-	if (timer_query(fd) == reg_read.val) {
-		fprintf(stderr, "Timer isn't moving, probably busted\n");
-		igt_fail(1);
-	}
+	/* Check that timer is moving and isn't busted. */
+	igt_assert(timer_query(fd) != reg_read.val);
 
 	/* bad reg */
 	reg_read.offset = 0x12345678;
-	handle_bad(drmIoctl(fd, REG_READ_IOCTL, &reg_read),
-		   EINVAL, "bad register");
+	ret = drmIoctl(fd, REG_READ_IOCTL, &reg_read);
+
+	igt_assert(ret != 0 && errno == ENOENT);
 
 	close(fd);
 }

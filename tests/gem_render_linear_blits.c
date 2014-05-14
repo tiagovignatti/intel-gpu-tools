@@ -73,12 +73,10 @@ check_bo(int fd, uint32_t handle, uint32_t val)
 
 	gem_read(fd, handle, 0, linear, sizeof(linear));
 	for (i = 0; i < WIDTH*HEIGHT; i++) {
-		if (linear[i] != val) {
-			fprintf(stderr, "Expected 0x%08x, found 0x%08x "
-				"at offset 0x%08x\n",
-				val, linear[i], i * 4);
-			abort();
-		}
+		igt_assert_f(linear[i] == val,
+			     "Expected 0x%08x, found 0x%08x "
+			     "at offset 0x%08x\n",
+			     val, linear[i], i * 4);
 		val++;
 	}
 }
@@ -97,10 +95,7 @@ int main(int argc, char **argv)
 	fd = drm_open_any();
 
 	render_copy = igt_get_render_copyfunc(intel_get_drm_devid(fd));
-	if (render_copy == NULL) {
-		printf("no render-copy function, doing nothing\n");
-		return 77;
-	}
+	igt_require(render_copy);
 
 	bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
 	batch = intel_batchbuffer_alloc(bufmgr, intel_get_drm_devid(fd));

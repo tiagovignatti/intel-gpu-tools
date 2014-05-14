@@ -43,19 +43,6 @@ struct local_drm_i915_context_destroy {
 
 #define CONTEXT_DESTROY_IOCTL DRM_IOWR(DRM_COMMAND_BASE + 0x2e, struct local_drm_i915_context_destroy)
 
-static void handle_bad(int ret, int lerrno, int expected, const char *desc)
-{
-	if (ret != 0 && lerrno != expected) {
-		fprintf(stderr, "%s - errno was %d, but should have been %d\n",
-				desc, lerrno, expected);
-		igt_fail(1);
-	} else if (ret == 0) {
-		fprintf(stderr, "%s - Command succeeded, but should have failed\n",
-			desc);
-		igt_fail(1);
-	}
-}
-
 igt_simple_main
 {
 	struct local_drm_i915_context_destroy destroy;
@@ -75,17 +62,17 @@ igt_simple_main
 
 	/* try double destroy */
 	ret = drmIoctl(fd, CONTEXT_DESTROY_IOCTL, &destroy);
-	handle_bad(ret, errno, ENOENT, "double destroy");
+	igt_assert(ret != 0 && errno == ENOENT);
 
 	/* destroy something random */
 	destroy.ctx_id = 2;
 	ret = drmIoctl(fd, CONTEXT_DESTROY_IOCTL, &destroy);
-	handle_bad(ret, errno, ENOENT, "random destroy");
+	igt_assert(ret != 0 && errno == ENOENT);
 
 	/* Try to destroy the default context */
 	destroy.ctx_id = 0;
 	ret = drmIoctl(fd, CONTEXT_DESTROY_IOCTL, &destroy);
-	handle_bad(ret, errno, ENOENT, "default destroy");
+	igt_assert(ret != 0 && errno == ENOENT);
 
 	close(fd);
 }

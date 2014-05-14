@@ -80,10 +80,7 @@ static void scratch_buf_write_to_png(struct igt_buf *buf, const char *filename)
 						      igt_buf_height(buf),
 						      buf->stride);
 	ret = cairo_surface_write_to_png(surface, filename);
-	if (ret != CAIRO_STATUS_SUCCESS) {
-		fprintf(stderr, "%s: %s\n", __func__,
-			cairo_status_to_string(ret));
-	}
+	igt_assert(ret == CAIRO_STATUS_SUCCESS);
 	cairo_surface_destroy(surface);
 	drm_intel_bo_unmap(buf->bo);
 }
@@ -115,11 +112,9 @@ scratch_buf_check(data_t *data, struct igt_buf *buf, int x, int y,
 	gem_read(data->drm_fd, buf->bo->handle, 0,
 		 data->linear, sizeof(data->linear));
 	val = data->linear[y * WIDTH + x];
-	if (val != color) {
-		fprintf(stderr, "Expected 0x%08x, found 0x%08x at (%d,%d)\n",
-			color, val, x, y);
-		abort();
-	}
+	igt_assert_f(val == color,
+		     "Expected 0x%08x, found 0x%08x at (%d,%d)\n",
+		     color, val, x, y);
 }
 
 int main(int argc, char **argv)

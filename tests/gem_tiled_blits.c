@@ -105,12 +105,10 @@ check_bo(drm_intel_bo *bo, uint32_t start_val)
 	linear = linear_bo->virtual;
 
 	for (i = 0; i < 1024 * 1024 / 4; i++) {
-		if (linear[i] != start_val) {
-			fprintf(stderr, "Expected 0x%08x, found 0x%08x "
-				"at offset 0x%08x\n",
-				start_val, linear[i], i * 4);
-			abort();
-		}
+		igt_assert_f(linear[i] == start_val,
+			     "Expected 0x%08x, found 0x%08x "
+			     "at offset 0x%08x\n",
+			     start_val, linear[i], i * 4);
 		start_val++;
 	}
 	drm_intel_bo_unmap(linear_bo);

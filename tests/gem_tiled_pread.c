@@ -211,21 +211,17 @@ igt_simple_main
 				swizzle_str = "bit9^10^11";
 				break;
 			default:
-				fprintf(stderr, "Bad swizzle bits; %d\n",
-					swizzle);
-				abort();
+				igt_assert_f(0, "Bad swizzle bits; %d\n",
+					     swizzle);
 			}
 			expected_val = calculate_expected(swizzled_offset);
 			found_val = linear[(j - offset) / 4];
-			if (expected_val != found_val) {
-				fprintf(stderr,
-					"Bad read [%d]: %d instead of %d at 0x%08x "
-					"for read from 0x%08x to 0x%08x, swizzle=%s\n",
-					i, found_val, expected_val, j,
-					offset, offset + len,
-					swizzle_str);
-				abort();
-			}
+			igt_assert_f(expected_val == found_val,
+				     "Bad read [%d]: %d instead of %d at 0x%08x "
+				     "for read from 0x%08x to 0x%08x, swizzle=%s\n",
+				     i, found_val, expected_val, j,
+				     offset, offset + len,
+				     swizzle_str);
 		}
 	}
 

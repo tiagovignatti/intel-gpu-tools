@@ -709,10 +709,8 @@ int main(int argc, char **argv)
 
 	igt_skip_on_simulation();
 
-	if (dry_run && filter_test_id) {
-		fprintf(stderr, "only one of -d and -t is accepted\n");
-		exit(1);
-	}
+	igt_assert_f(!(dry_run && filter_test_id),
+		     "only one of -d and -t is accepted\n");
 
 	igt_fixture {
 		drm_fd = drm_open_any();

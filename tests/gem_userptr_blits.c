@@ -401,12 +401,10 @@ check_cpu(uint32_t *ptr, uint32_t val)
 	int i;
 
 	for (i = 0; i < WIDTH*HEIGHT; i++) {
-		if (ptr[i] != val) {
-			fprintf(stderr, "Expected 0x%08x, found 0x%08x "
-				"at offset 0x%08x\n",
-				val, ptr[i], i * 4);
-			abort();
-		}
+		igt_assert_f(ptr[i] == val,
+			     "Expected 0x%08x, found 0x%08x "
+			     "at offset 0x%08x\n",
+			     val, ptr[i], i * 4);
 		val++;
 	}
 }
@@ -770,11 +768,7 @@ static int test_coherency(int fd, int count)
 	igt_info("Using 2x%d 1MiB buffers\n", count);
 
 	ret = posix_memalign((void **)&memory, PAGE_SIZE, count*sizeof(linear));
-	if (ret != 0 || memory == NULL) {
-		fprintf(stderr, "Unable to allocate %lld bytes\n",
-			(long long)count*sizeof(linear));
-		return 1;
-	}
+	igt_assert(ret == 0 && memory);
 
 	gpu = malloc(sizeof(uint32_t)*count*4);
 	gpu_val = gpu + count;

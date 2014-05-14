@@ -88,13 +88,10 @@ verify_large_read(drm_intel_bo *bo, uint32_t val)
 	drm_intel_bo_get_subdata(bo, 0, size, buf);
 
 	for (i = 0; i < size / 4; i++) {
-		if (buf[i] != val) {
-			fprintf(stderr,
-				"Unexpected value 0x%08x instead of "
-				"0x%08x at offset 0x%08x (%p)\n",
-				buf[i], val, i * 4, buf);
-			abort();
-		}
+		igt_assert_f(buf[i] == val,
+			     "Unexpected value 0x%08x instead of "
+			     "0x%08x at offset 0x%08x (%p)\n",
+			     buf[i], val, i * 4, buf);
 		val++;
 	}
 }
@@ -113,13 +110,10 @@ verify_small_read(drm_intel_bo *bo, uint32_t val)
 		drm_intel_bo_get_subdata(bo, offset, PAGE_SIZE, buf);
 
 		for (i = 0; i < PAGE_SIZE; i += 4) {
-			if (buf[i / 4] != val) {
-				fprintf(stderr,
-					"Unexpected value 0x%08x instead of "
-					"0x%08x at offset 0x%08x\n",
-					buf[i / 4], val, i * 4);
-				abort();
-			}
+			igt_assert_f(buf[i / 4] == val,
+				     "Unexpected value 0x%08x instead of "
+				     "0x%08x at offset 0x%08x\n",
+				     buf[i / 4], val, i * 4);
 			val++;
 		}
 	}

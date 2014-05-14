@@ -134,8 +134,9 @@ static void do_test(uint32_t tiling, unsigned stride,
 	/* note we need a bo bigger than batches, otherwise the buffer reuse
 	 * trick will fail. */
 	test_bo = drm_intel_bo_alloc(bufmgr, "busy bo", TEST_SIZE, 4096);
-	if (test_bo_handle != test_bo->handle)
-		fprintf(stderr, "libdrm reuse trick failed\n");
+	/* double check that the reuse trick worked */
+	igt_assert(test_bo_handle == test_bo->handle);
+
 	test_bo_handle = test_bo->handle;
 	/* ensure we have the right tiling before we start. */
 	ret = drm_intel_bo_set_tiling(test_bo, &tiling, stride);
@@ -176,8 +177,8 @@ static void do_test(uint32_t tiling, unsigned stride,
 	drm_intel_bo_unreference(test_bo);
 
 	test_bo = drm_intel_bo_alloc_for_render(bufmgr, "tiled busy bo", TEST_SIZE, 4096);
-	if (test_bo_handle != test_bo->handle)
-		fprintf(stderr, "libdrm reuse trick failed\n");
+	/* double check that the reuse trick worked */
+	igt_assert(test_bo_handle == test_bo->handle);
 	ret = drm_intel_bo_set_tiling(test_bo, &tiling_after, stride_after);
 	igt_assert(ret == 0);
 

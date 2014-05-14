@@ -72,11 +72,9 @@ int main(int argc, char **argv)
 {
 	int fd;
 
-	if (argc != 2) {
-		fprintf(stderr, "usage: %s <disabled pipe number>\n",
-			argv[0]);
-		igt_fail(-1);
-	}
+	igt_assert_f(argc == 2,
+		     "usage: %s <disabled pipe number>\n",
+		     argv[0]);
 
 	bad_pipe = atoi(argv[1]);
 

@@ -52,13 +52,8 @@ igt_simple_main
 	fd = drm_open_any_render();
 
 	ret = drmIoctl(fd, CONTEXT_CREATE_IOCTL, &create);
-	if (ret != 0 && (errno == ENODEV || errno == EINVAL)) {
-		igt_skip("Kernel is too old, or contexts not supported: %s\n",
-			 strerror(errno));
-	} else if (ret != 0) {
-		fprintf(stderr, "%s\n", strerror(errno));
-		igt_fail(1);
-	}
+	igt_skip_on(ret != 0 && (errno == ENODEV || errno == EINVAL));
+	igt_assert(ret == 0);
 	igt_assert(create.ctx_id != 0);
 
 	close(fd);

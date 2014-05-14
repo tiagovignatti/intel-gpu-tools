@@ -85,12 +85,10 @@ check_bo(struct intel_batchbuffer *batch, struct igt_buf *buf, uint32_t val)
 		ptr = data;
 	}
 	for (i = 0; i < WIDTH*HEIGHT; i++) {
-		if (ptr[i] != val) {
-			fprintf(stderr, "Expected 0x%08x, found 0x%08x "
-				"at offset 0x%08x\n",
-				val, ptr[i], i * 4);
-			abort();
-		}
+		igt_assert_f(ptr[i] == val,
+			     "Expected 0x%08x, found 0x%08x "
+			     "at offset 0x%08x\n",
+			     val, ptr[i], i * 4);
 		val++;
 	}
 	if (ptr != data)
@@ -115,10 +113,7 @@ int main(int argc, char **argv)
 	devid = intel_get_drm_devid(fd);
 
 	render_copy = igt_get_render_copyfunc(devid);
-	if (render_copy == NULL) {
-		printf("no render-copy function, doing nothing\n");
-		return 77;
-	}
+	igt_require(render_copy);
 
 	snoop = 1;
 	if (IS_GEN2(devid)) /* chipset only handles cached -> uncached */

@@ -38,44 +38,29 @@
 static int get_perf(const char *path)
 {
 	int ret, perf;
-	bool sink, source, enabled;
 	FILE *file;
 	char str[4];
 
 	file = fopen(path, "r");
-	if (file == NULL) {
-		fprintf(stderr, "Couldn't open %s (%d)\n", path, errno);
-		abort();
-	}
+	igt_assert(file);
 
 	ret = fscanf(file, "Sink_Support: %s\n", str);
-	if (ret == 0)
-	    igt_skip("i915_edp_psr_status format not supported by this test case\n");
-	sink = strcmp(str, "yes") == 0;
+	igt_skip_on_f(ret == 0,
+		      "i915_edp_psr_status format not supported by this test case\n");
+	igt_require(strcmp(str, "yes") == 0);
 	ret = fscanf(file, "Source_OK: %s\n", str);
 	igt_assert(ret != 0);
-	source = strcmp(str, "yes") == 0;
+
+	igt_require(strcmp(str, "yes") == 0);
+
 	ret = fscanf(file, "Enabled: %s\n", str);
 	igt_assert(ret != 0);
-	enabled = strcmp(str, "yes") == 0;
+	igt_assert(strcmp(str, "yes") == 0);
+
 	ret = fscanf(file, "Performance_Counter: %i", &perf);
 	igt_assert(ret != 0);
 
-	if (!sink)
-	    igt_skip("This panel does not support PSR.\n");
-
-	if (!source)
-	    igt_skip("This Hardware does not support or isn't ready for PSR\n");
-
-	if (!enabled) {
-	    fprintf(stderr, "PSR should be enabled\n");
-	    igt_fail(1);
-	}
-
-	if (perf == 0) {
-	    fprintf(stderr, "PSR state never achieved\n");
-	    igt_fail(1);
-	}
+	igt_assert(perf);
 
 	fclose(file);
 	return perf;
@@ -96,8 +81,6 @@ igt_simple_main
 	sleep(SLEEP_DURATION / 1000);
 	perf2 = get_perf(path);
 
-	if (perf1 == perf2) {
-	    fprintf(stderr, "Unable to enter PSR state again\n");
-	    igt_fail(1);
-	}
+	igt_assert_f(perf1 != perf2,
+		     "Unable to enter PSR state again\n");
 }

@@ -92,11 +92,9 @@ scratch_buf_check(data_t *data, struct igt_buf *buf, int x, int y,
 	gem_read(data->drm_fd, buf->bo->handle, 0,
 		data->linear, sizeof(data->linear));
 	val = data->linear[y * WIDTH + x];
-	if (val != color) {
-		fprintf(stderr, "Expected 0x%02x, found 0x%02x at (%d,%d)\n",
-			color, val, x, y);
-		abort();
-	}
+	igt_assert_f(val == color,
+		     "Expected 0x%02x, found 0x%02x at (%d,%d)\n",
+		     color, val, x, y);
 }
 
 igt_simple_main

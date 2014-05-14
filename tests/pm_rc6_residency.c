@@ -44,10 +44,8 @@ static unsigned int readit(const char *path)
 
 	FILE *file;
 	file = fopen(path, "r");
-	if (file == NULL) {
-		fprintf(stderr, "Couldn't open %s (%d)\n", path, errno);
-		abort();
-	}
+	igt_assert_f(file,
+		     "Couldn't open %s (%d)\n", path, errno);
 	scanned = fscanf(file, "%u", &ret);
 	igt_assert(scanned == 1);
 
@@ -108,14 +106,10 @@ igt_simple_main
 		(value2p - value1p) +
 		(value2 - value1);
 
-	if (diff > (SLEEP_DURATION + RC6_FUDGE)) {
-		fprintf(stderr, "Diff was too high. That is unpossible\n");
-		igt_fail(1);
-	}
-	if (diff < (SLEEP_DURATION - RC6_FUDGE)) {
-		fprintf(stderr, "GPU was not in RC6 long enough. Check that "
-				"the GPU is as idle as possible (ie. no X, "
-				"running and running no other tests)\n");
-		igt_fail(1);
-	}
+	igt_assert_f(diff <= (SLEEP_DURATION + RC6_FUDGE),
+		     "Diff was too high. That is unpossible\n");
+	igt_assert_f(diff >= (SLEEP_DURATION - RC6_FUDGE),
+		     "GPU was not in RC6 long enough. Check that "
+		     "the GPU is as idle as possible (ie. no X, "
+		     "running and running no other tests)\n");
 }

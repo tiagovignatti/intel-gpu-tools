@@ -125,12 +125,8 @@ igt_simple_main
 	{
 		unsigned int target_flink;
 		char buffer_name[32];
-		if (dri_bo_flink(target_buffer, &target_flink)) {
-			printf("fail to get flink for target buffer\n");
-			igt_assert_f(0, "fail to create global gem handle"
-				     " for allocated buffer\n");
-			goto fail_flink;
-		}
+		igt_assert(dri_bo_flink(target_buffer, &target_flink) == 0);
+
 		for (i = 0; i < NUM_FD; i++) {
 			sprintf(buffer_name, "Target buffer %d\n", i);
 			mfd[i] = drm_open_any();
@@ -161,13 +157,6 @@ igt_simple_main
 			close(mfd[i]);
 		}
 	}
-	drm_intel_bo_unreference(target_buffer);
-	drm_intel_bufmgr_destroy(bufmgr);
-
-	close(fd);
-	return;
-
-fail_flink:
 	drm_intel_bo_unreference(target_buffer);
 	drm_intel_bufmgr_destroy(bufmgr);
 

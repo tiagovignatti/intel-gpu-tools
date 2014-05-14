@@ -105,13 +105,11 @@ igt_simple_main
 			+ half*tile_height + ofs;
 		uint32_t val = data[data_i];
 
-		if (ptr[i] != val) {
-			printf("mismatch at %i, row=%i, half=%i, ofs=%i\n",
-			       i, row, half, ofs);
-			printf("read: 0x%08x, expected: 0x%08x\n",
-			       ptr[i], val);
-			igt_assert(0);
-		}
+		igt_assert_f(ptr[i] == val,
+			     "mismatch at %i, row=%i, half=%i, ofs=%i, "
+			     "read: 0x%08x, expected: 0x%08x\n",
+			     i, row, half, ofs,
+			     ptr[i], val);
 
 	}
 
