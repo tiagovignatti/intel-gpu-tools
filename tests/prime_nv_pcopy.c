@@ -56,13 +56,12 @@ typedef struct {
 	uint32_t pitch, lines;
 } rect;
 
-static int nv_bo_alloc(struct nouveau_bo **bo, rect *r,
-		       uint32_t w, uint32_t h, uint32_t tile_mode,
-		       int handle, uint32_t dom)
+static void nv_bo_alloc(struct nouveau_bo **bo, rect *r,
+			uint32_t w, uint32_t h, uint32_t tile_mode,
+			int handle, uint32_t dom)
 {
 	uint32_t size;
 	uint32_t dx = 1, dy = 1, memtype = 0;
-	int ret;
 
 	*bo = NULL;
 	if (tile_mode) {
@@ -104,15 +103,8 @@ static int nv_bo_alloc(struct nouveau_bo **bo, rect *r,
 		cfg.nv50.tile_mode = tile_mode;
 		if (dom == NOUVEAU_BO_GART)
 			dom |= NOUVEAU_BO_MAP;
-		ret = nouveau_bo_new(ndev, dom, 4096, size, &cfg, bo);
-		if (!ret)
-			ret = nouveau_bo_map(*bo, NOUVEAU_BO_RDWR, nclient);
-		if (ret) {
-			fprintf(stderr, "creating bo failed with %i %s\n",
-				ret, strerror(-ret));
-			nouveau_bo_ref(NULL, bo);
-			return ret;
-		}
+		igt_assert(nouveau_bo_new(ndev, dom, 4096, size, &cfg, bo) == 0);
+		igt_assert(nouveau_bo_map(*bo, NOUVEAU_BO_RDWR, nclient) == 0);
 
 		igt_debug("new flags %08x memtype %08x tile %08x\n",
 			  (*bo)->flags, (*bo)->config.nv50.memtype,
@@ -124,19 +116,11 @@ static int nv_bo_alloc(struct nouveau_bo **bo, rect *r,
 			(*bo)->config.nv50.tile_mode = tile_mode;
 		}
 	} else {
-		ret = nouveau_bo_prime_handle_ref(ndev, handle, bo);
+		igt_assert(nouveau_bo_prime_handle_ref(ndev, handle, bo) == 0);
 		close(handle);
-		if (ret < 0) {
-			fprintf(stderr, "receiving bo failed with %i %s\n",
-				ret, strerror(-ret));
-			return ret;
-		}
-		if ((*bo)->size < size) {
-			fprintf(stderr, "expected bo size to be at least %u,"
-				"but received %"PRIu64"\n", size, (*bo)->size);
-			nouveau_bo_ref(NULL, bo);
-			return -1;
-		}
+		igt_assert_f((*bo)->size >= size,
+			     "expected bo size to be at least %u,"
+			     "but received %"PRIu64"\n", size, (*bo)->size);
 		igt_debug("prime flags %08x memtype %08x tile %08x\n",
 			  (*bo)->flags, (*bo)->config.nv50.memtype,
 			  (*bo)->config.nv50.tile_mode);
@@ -144,8 +128,6 @@ static int nv_bo_alloc(struct nouveau_bo **bo, rect *r,
 		(*bo)->config.nv50.tile_mode = tile_mode;
 	}
 	igt_debug("size: %"PRIu64"\n", (*bo)->size);
-
-	return ret;
 }
 
 static inline void
@@ -655,11 +637,8 @@ static int test1_macro(void)
 	uint8_t *ptr;
 	uint32_t w = 2 * 128, h = 2 * 32, x, y;
 
-	ret = nv_bo_alloc(&nvbi, &src, w, h, 0, -1, NOUVEAU_BO_GART);
-	if (ret >= 0)
-		ret = nv_bo_alloc(&nvbo, &dst, w, h, tile_intel_y, -1, NOUVEAU_BO_GART);
-	if (ret < 0)
-		goto out;
+	nv_bo_alloc(&nvbi, &src, w, h, 0, -1, NOUVEAU_BO_GART);
+	nv_bo_alloc(&nvbo, &dst, w, h, tile_intel_y, -1, NOUVEAU_BO_GART);
 
 	nouveau_bo_set_prime(nvbo, &prime_fd);
 
@@ -699,7 +678,6 @@ static int test1_macro(void)
 	if (!ret)
 		ret = check1_macro(nvbo->map, w/128, h/32);
 
-out:
 	nouveau_bo_ref(NULL, &nvbo);
 	nouveau_bo_ref(NULL, &nvbi);
 	close(prime_fd);
@@ -774,13 +752,9 @@ static int test1_micro(void)
 	}
 	noop_intel(test_intel_bo);
 
-	ret = nv_bo_alloc(&bo_intel, &intel, w, h, tile_intel_y, prime_fd, 0);
-	if (!ret)
-		ret = nv_bo_alloc(&bo_nvidia, &nvidia, w, h, 0x10, -1, NOUVEAU_BO_VRAM);
-	if (!ret)
-		ret = nv_bo_alloc(&bo_linear, &linear, w, h, 0, -1, NOUVEAU_BO_GART);
-	if (ret)
-		goto out;
+	nv_bo_alloc(&bo_intel, &intel, w, h, tile_intel_y, prime_fd, 0);
+	nv_bo_alloc(&bo_nvidia, &nvidia, w, h, 0x10, -1, NOUVEAU_BO_VRAM);
+	nv_bo_alloc(&bo_linear, &linear, w, h, 0, -1, NOUVEAU_BO_GART);
 
 	for (y = 0; y < linear.h; ++y) {
 		uint8_t *map = bo_linear->map;
@@ -905,13 +879,9 @@ static int test1_swizzle(void)
 		goto out;
 	}
 
-	ret = nv_bo_alloc(&bo_intel, &intel, w, h, tile_intel_y, prime_fd, 0);
-	if (!ret)
-		ret = nv_bo_alloc(&bo_nvidia, &nvidia, w, h, 0x10, -1, NOUVEAU_BO_VRAM);
-	if (!ret)
-		ret = nv_bo_alloc(&bo_linear, &linear, w, h, 0, -1, NOUVEAU_BO_GART);
-	if (ret)
-		goto out;
+	nv_bo_alloc(&bo_intel, &intel, w, h, tile_intel_y, prime_fd, 0);
+	nv_bo_alloc(&bo_nvidia, &nvidia, w, h, 0x10, -1, NOUVEAU_BO_VRAM);
+	nv_bo_alloc(&bo_linear, &linear, w, h, 0, -1, NOUVEAU_BO_GART);
 
 	noop_intel(test_intel_bo);
 	ptr = bo_linear->map;
@@ -968,11 +938,8 @@ static int test2(void)
 	uint8_t *ptr;
 	uint32_t w = 1024, h = 16, x, y;
 
-	ret = nv_bo_alloc(&nvbi, &src, w, h, 0, -1, NOUVEAU_BO_GART);
-	if (ret >= 0)
-		ret = nv_bo_alloc(&nvbo, &dst, w, h, tile_intel_x, -1, NOUVEAU_BO_GART);
-	if (ret < 0)
-		goto out;
+	nv_bo_alloc(&nvbi, &src, w, h, 0, -1, NOUVEAU_BO_GART);
+	nv_bo_alloc(&nvbo, &dst, w, h, tile_intel_x, -1, NOUVEAU_BO_GART);
 
 	/* Set up something for our tile that should map into the first
 	 * y-major tile, assuming my understanding of documentation is
@@ -1008,7 +975,6 @@ static int test2(void)
 	if (!ret)
 		ret = check1_macro(nvbo->map, w/512, h/8);
 
-out:
 	nouveau_bo_ref(NULL, &nvbo);
 	nouveau_bo_ref(NULL, &nvbi);
 	return ret;
@@ -1070,13 +1036,9 @@ static int test3_base(int tile_src, int tile_dst)
 		return -1;
 	}
 
-	ret = nv_bo_alloc(&bo_intel, &intel, 2048 * cpp, 768, tile_dst, prime_fd, 0);
-	if (!ret)
-		ret = nv_bo_alloc(&bo_nvidia, &nvidia, 300 * cpp, 300, tile_src, -1, NOUVEAU_BO_VRAM);
-	if (!ret)
-		ret = nv_bo_alloc(&bo_linear, &linear, 2048 * cpp, 768, 0, -1, NOUVEAU_BO_GART);
-	if (ret)
-		goto out;
+	nv_bo_alloc(&bo_intel, &intel, 2048 * cpp, 768, tile_dst, prime_fd, 0);
+	nv_bo_alloc(&bo_nvidia, &nvidia, 300 * cpp, 300, tile_src, -1, NOUVEAU_BO_VRAM);
+	nv_bo_alloc(&bo_linear, &linear, 2048 * cpp, 768, 0, -1, NOUVEAU_BO_GART);
 
 	noop_intel(test_intel_bo);
 	memset(bo_linear->map, 0x80, bo_linear->size);
