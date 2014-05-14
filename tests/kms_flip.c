@@ -534,54 +534,46 @@ static void check_state(struct test_output *o, struct event_state *es)
 	double usec_interflip;
 
 	timersub(&es->current_ts, &es->current_received_ts, &diff);
-	if ((!analog_tv_connector(o)) &&
-	    (diff.tv_sec > 0 || (diff.tv_sec == 0 && diff.tv_usec > 2000))) {
-		fprintf(stderr, "%s ts delayed for too long: %is, %iusec\n",
-			es->name, (int)diff.tv_sec, (int)diff.tv_usec);
-		igt_fail(5);
+	if (!analog_tv_connector(o)) {
+		igt_assert_f(diff.tv_sec <= 0 && (diff.tv_sec == 0 && diff.tv_usec <= 2000),
+			     "%s ts delayed for too long: %is, %iusec\n",
+			     es->name, (int)diff.tv_sec, (int)diff.tv_usec);
+
 	}
 
 	if (es->count == 0)
 		return;
 
-	if (!timercmp(&es->last_received_ts, &es->current_ts, <)) {
-		fprintf(stderr, "%s ts before the %s was issued!\n",
-				es->name, es->name);
-
-		timersub(&es->current_ts, &es->last_received_ts, &diff);
-		fprintf(stderr, "timerdiff %is, %ius\n",
-			(int) diff.tv_sec, (int) diff.tv_usec);
-		igt_fail(6);
-	}
+	timersub(&es->current_ts, &es->last_received_ts, &diff);
+	igt_assert_f(timercmp(&es->last_received_ts, &es->current_ts, <),
+		     "%s ts before the %s was issued!\n"
+		     "timerdiff %is, %ius\n",
+		     es->name, es->name,
+		     (int) diff.tv_sec, (int) diff.tv_usec);
 
 	/* This bounding matches the one in DRM_IOCTL_WAIT_VBLANK. */
 	if (!(o->flags & (TEST_DPMS | TEST_MODESET))) {
 		/* check only valid if no modeset happens in between, that
 		 * increments by (1 << 23) on each step. */
-		if (es->current_seq - (es->last_seq + o->seq_step) > 1UL << 23) {
-			fprintf(stderr, "unexpected %s seq %u, should be >= %u\n",
-				es->name, es->current_seq, es->last_seq + o->seq_step);
-			igt_fail(10);
-		}
+
+		igt_assert_f(es->current_seq - (es->last_seq + o->seq_step) <= 1UL << 23,
+			     "unexpected %s seq %u, should be >= %u\n",
+			     es->name, es->current_seq, es->last_seq + o->seq_step);
 	}
 
 	if ((o->flags & TEST_CHECK_TS) && (!analog_tv_connector(o))) {
 		timersub(&es->current_ts, &es->last_ts, &diff);
 		usec_interflip = (double)o->seq_step * frame_time(o);
-		if (fabs((((double) diff.tv_usec) - usec_interflip) /
-		    usec_interflip) > 0.005) {
-			fprintf(stderr, "inter-%s ts jitter: %is, %ius\n",
-				es->name,
-				(int) diff.tv_sec, (int) diff.tv_usec);
-			igt_fail(9);
-		}
 
-		if (es->current_seq != es->last_seq + o->seq_step) {
-			fprintf(stderr, "unexpected %s seq %u, expected %u\n",
-					es->name, es->current_seq,
-					es->last_seq + o->seq_step);
-			igt_fail(9);
-		}
+		igt_assert_f(fabs((((double) diff.tv_usec) - usec_interflip) /
+				  usec_interflip) <= 0.005,
+			     "inter-%s ts jitter: %is, %ius\n",
+			     es->name, (int) diff.tv_sec, (int) diff.tv_usec);
+
+		igt_assert_f(es->current_seq == es->last_seq + o->seq_step,
+			     "unexpected %s seq %u, expected %u\n",
+			     es->name, es->current_seq,
+			     es->last_seq + o->seq_step);
 	}
 }
 
