@@ -71,6 +71,9 @@
 #define TEST_ENOENT		(1 << 22)
 #define TEST_FENCE_STRESS	(1 << 23)
 #define TEST_VBLANK_RACE	(1 << 24)
+#define TEST_RPM		(1 << 25)
+#define TEST_SUSPEND		(1 << 26)
+#define TEST_TS_CONT		(1 << 27)
 
 #define EVENT_FLIP		(1 << 0)
 #define EVENT_VBLANK		(1 << 1)
@@ -551,14 +554,24 @@ static void check_state(struct test_output *o, struct event_state *es)
 		     es->name, es->name,
 		     (int) diff.tv_sec, (int) diff.tv_usec);
 
-	/* This bounding matches the one in DRM_IOCTL_WAIT_VBLANK. */
-	if (!(o->flags & (TEST_DPMS | TEST_MODESET))) {
-		/* check only valid if no modeset happens in between, that
-		 * increments by (1 << 23) on each step. */
-
+	/* check only valid if no modeset happens in between, that increments by
+	 * (1 << 23) on each step. This bounding matches the one in
+	 * DRM_IOCTL_WAIT_VBLANK. */
+	if (!(o->flags & (TEST_DPMS | TEST_MODESET)))
 		igt_assert_f(es->current_seq - (es->last_seq + o->seq_step) <= 1UL << 23,
 			     "unexpected %s seq %u, should be >= %u\n",
 			     es->name, es->current_seq, es->last_seq + o->seq_step);
+
+	/* Check that the vblank frame didn't wrap unexpectedly. */
+	if (o->flags & TEST_TS_CONT) {
+		/* Ignore seq_step here since vblank waits time out immediately
+		 * when we kill the crtc. */
+		igt_assert_f(es->current_seq - es->last_seq >= 0,
+			     "unexpected %s seq %u, should be >= %u\n",
+			     es->name, es->current_seq, es->last_seq);
+		igt_assert_f(es->current_seq - es->last_seq <= 100,
+			     "unexpected %s seq %u, should be < %u\n",
+			     es->name, es->current_seq, es->last_seq + 100);
 	}
 
 	if ((o->flags & TEST_CHECK_TS) && (!analog_tv_connector(o))) {
@@ -918,6 +931,12 @@ static unsigned int run_test_step(struct test_output *o)
 		igt_assert_f(set_mode(o, 0 /* no fb */, 0, 0) == 0,
 			     "failed to disable output: %s\n",
 			     strerror(errno));
+
+	if (o->flags & TEST_RPM)
+		igt_assert(igt_wait_for_pm_status(IGT_RUNTIME_PM_STATUS_SUSPENDED));
+
+	if (o->flags & TEST_SUSPEND)
+		igt_system_suspend_autoresume();
 
 	if (do_vblank && (o->flags & TEST_EINVAL) && o->vblank_state.count > 0)
 		igt_assert(do_wait_for_vblank(o, o->pipe, target_seq, &vbl_reply)
@@ -1312,6 +1331,10 @@ static int run_test(int duration, int flags)
 
 	igt_require((flags & TEST_HANG) == 0 || !is_hung(drm_fd));
 
+
+	if (flags & TEST_RPM)
+		igt_require(igt_setup_runtime_pm());
+
 	resources = drmModeGetResources(drm_fd);
 	igt_assert(resources);
 
@@ -1516,6 +1539,10 @@ int main(int argc, char **argv)
 		{ 0, TEST_ENOENT | TEST_NOEVENT, "nonexisting-fb" },
 		{ 10, TEST_DPMS_OFF | TEST_DPMS | TEST_VBLANK_RACE, "dpms-vs-vblank-race" },
 		{ 10, TEST_MODESET | TEST_VBLANK_RACE, "modeset-vs-vblank-race" },
+		{ 10, TEST_VBLANK | TEST_DPMS | TEST_RPM | TEST_TS_CONT, "dpms-vs-rpm" },
+		{ 10, TEST_VBLANK | TEST_DPMS | TEST_SUSPEND | TEST_TS_CONT, "dpms-vs-suspend" },
+		{ 0, TEST_VBLANK | TEST_MODESET | TEST_RPM | TEST_TS_CONT, "modeset-vs-rpm" },
+		{ 0, TEST_VBLANK | TEST_MODESET | TEST_SUSPEND | TEST_TS_CONT, "modeset-vs-suspend" },
 	};
 	int i;
 
@@ -1541,6 +1568,10 @@ int main(int argc, char **argv)
 		if (tests[i].flags & TEST_NO_2X_OUTPUT)
 			continue;
 
+		/* code doesn't disable all crtcs, so skip rpm tests */
+		if (tests[i].flags & TEST_RPM)
+			continue;
+
 		igt_subtest_f( "2x-%s", tests[i].name)
 			run_pair(tests[i].duration, tests[i].flags);
 	}
@@ -1557,6 +1588,10 @@ int main(int argc, char **argv)
 			run_test(tests[i].duration, tests[i].flags);
 
 		if (tests[i].flags & TEST_NO_2X_OUTPUT)
+			continue;
+
+		/* code doesn't disable all crtcs, so skip rpm tests */
+		if (tests[i].flags & TEST_RPM)
 			continue;
 
 		igt_subtest_f( "2x-%s-interruptible", tests[i].name)
