@@ -178,9 +178,10 @@
  *
  * i-g-t testcase are all executables which should be run as root on an
  * otherwise completely idle system. The test status is reflected in the
- * exitcode. 0 means "success", 77 "skip", 78 that some operation "timed out".
- * All other exit codes encode a failed test result, including any abnormal
- * termination of the test (e.g. by SIGKILL).
+ * exitcode. #IGT_EXIT_SUCCESS means "success", #IGT_EXIT_SKIP "skip",
+ * #IGT_EXIT_TIMEOUT that some operation "timed out".  All other exit codes
+ * encode a failed test result, including any abnormal termination of the test
+ * (e.g. by SIGKILL).
  *
  * On top of that tests may report unexpected results and minor issues to
  * stderr. If stderr is non-empty the test result should be treated as "warn".
