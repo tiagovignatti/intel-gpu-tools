@@ -98,7 +98,7 @@ set_bo(drm_intel_bo *bo, uint32_t val, int width, int height)
 		*vaddr++ = val;
 }
 
-static int
+static void
 cmp_bo(drm_intel_bo *bo, uint32_t val, int width, int height)
 {
 	int size = width * height;
@@ -107,14 +107,13 @@ cmp_bo(drm_intel_bo *bo, uint32_t val, int width, int height)
 	drm_intel_gem_bo_start_gtt_access(bo, false);
 	vaddr = bo->virtual;
 	while (size--) {
-		if (*vaddr++ != val) {
-			printf("%d: 0x%x differs from assumed 0x%x\n",
-			       width * height - size, *vaddr-1, val);
-			return -1;
-		}
+		igt_assert_f(*vaddr++ == val,
+			     "%d: 0x%x differs from assumed 0x%x\n"
+			     "seqno_before_test 0x%x, "
+			     " approximated seqno on test fail 0x%x\n",
+			     width * height - size, *vaddr-1, val,
+			     last_seqno, last_seqno + val * 2);
 	}
-
-	return 0;
 }
 
 static drm_intel_bo *
@@ -179,7 +178,7 @@ static void exchange_uint(void *array, unsigned i, unsigned j)
 	i_arr[j] = i_tmp;
 }
 
-static int run_sync_test(int num_buffers, bool verify)
+static void run_sync_test(int num_buffers, bool verify)
 {
 	drm_intel_bufmgr *bufmgr;
 	int max;
@@ -187,8 +186,6 @@ static int run_sync_test(int num_buffers, bool verify)
 	int width = 128, height = 128;
 	int fd;
 	int i;
-	int r = -1;
-	int failed = 0;
 	unsigned int *p_dst1, *p_dst2;
 	struct igt_buf *s_src, *s_dst;
 
@@ -226,12 +223,10 @@ static int run_sync_test(int num_buffers, bool verify)
 	igt_assert(s_dst);
 
 	p_dst1 = malloc(num_buffers * sizeof(unsigned int));
-	if (p_dst1 == NULL)
-		return -ENOMEM;
+	igt_assert(p_dst1);
 
 	p_dst2 = malloc(num_buffers * sizeof(unsigned int));
-	if (p_dst2 == NULL)
-		return -ENOMEM;
+	igt_assert(p_dst2);
 
 	for (i = 0; i < num_buffers; i++) {
 		p_dst1[i] = p_dst2[i] = i;
@@ -259,13 +254,7 @@ static int run_sync_test(int num_buffers, bool verify)
 				      width*height*4);
 
 		for (i = 0; i < num_buffers; i++) {
-			r = cmp_bo(dst2[p_dst2[i]], i, width, height);
-			if (r) {
-				printf("buffer %d differs, seqno_before_test 0x%x, "
-				       " approximated seqno on test fail 0x%x\n",
-				       i, last_seqno, last_seqno + i * 2);
-				failed = -1;
-			}
+			cmp_bo(dst2[p_dst2[i]], i, width, height);
 		}
 	}
 
@@ -290,8 +279,6 @@ static int run_sync_test(int num_buffers, bool verify)
 	gem_quiescent_gpu(fd);
 
 	close(fd);
-
-	return failed;
 }
 
 static int run_cmd(char *s)
@@ -472,32 +459,27 @@ static uint32_t calc_prewrap_val(void)
 	return (random() % pval);
 }
 
-static int run_test(void)
+static void run_test(void)
 {
-	int r;
-
-	if (strnlen(options.cmd, sizeof(options.cmd)) > 0) {
-		r = run_cmd(options.cmd);
-	} else {
-		r = run_sync_test(options.buffers, true);
-	}
-
-	return r;
+	if (strnlen(options.cmd, sizeof(options.cmd)) > 0)
+		igt_assert(run_cmd(options.cmd) == 0);
+	else
+		run_sync_test(options.buffers, true);
 }
 
 static void preset_run_once(void)
 {
 	igt_assert(write_seqno(1) == 0);
-	igt_assert(run_test() == 0);
+	run_test();
 
 	igt_assert(write_seqno(0x7fffffff) == 0);
-	igt_assert(run_test() == 0);
+	run_test();
 
 	igt_assert(write_seqno(0xffffffff) == 0);
-	igt_assert(run_test() == 0);
+	run_test();
 
 	igt_assert(write_seqno(0xfffffff0) == 0);
-	igt_assert(run_test() == 0);
+	run_test();
 }
 
 static void random_run_once(void)
@@ -511,7 +493,7 @@ static void random_run_once(void)
 	} while (val == 0);
 
 	igt_assert(write_seqno(val) == 0);
-	igt_assert(run_test() == 0);
+	run_test();
 }
 
 static void wrap_run_once(void)
@@ -521,7 +503,7 @@ static void wrap_run_once(void)
 	igt_assert(write_seqno(UINT32_MAX - pw_val) == 0);
 
 	while(!read_seqno())
-		igt_assert(run_test() == 0);
+		run_test();
 }
 
 static void background_run_once(void)
