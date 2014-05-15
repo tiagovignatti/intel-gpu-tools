@@ -41,27 +41,31 @@
 #include "drmtest.h"
 #include "intel_io.h"
 
+#define USE_LUT (1 << 12)
+
 /* Simulates SNA behaviour using negative self-relocations for
  * STATE_BASE_ADDRESS command packets. If they wrap around (to values greater
  * than the total size of the GTT), the GPU will hang.
  * See https://bugs.freedesktop.org/show_bug.cgi?id=78533
  */
-static int negative_reloc(int fd, uint32_t handle)
+static int negative_reloc(int fd, unsigned flags)
 {
 	struct drm_i915_gem_execbuffer2 execbuf;
 	struct drm_i915_gem_exec_object2 gem_exec;
 	struct drm_i915_gem_relocation_entry gem_reloc[1000];
 	uint64_t gtt_max = gem_aperture_size(fd);
-	uint32_t buf[1024];
+	uint32_t buf[1024] = {MI_BATCH_BUFFER_END};
 	int i;
 
 	memset(&gem_exec, 0, sizeof(gem_exec));
-	gem_exec.handle = handle;
+	gem_exec.handle = gem_create(fd, 4096);
+	gem_write(fd, gem_exec.handle, 0, buf, 8);
 
 	memset(&execbuf, 0, sizeof(execbuf));
 	execbuf.buffers_ptr = (uintptr_t)&gem_exec;
 	execbuf.buffer_count = 1;
 	execbuf.batch_len = 8;
+	execbuf.flags = flags & USE_LUT;
 
 	do_or_die(drmIoctl(fd,
 			   DRM_IOCTL_I915_GEM_EXECBUFFER2,
@@ -74,7 +78,7 @@ static int negative_reloc(int fd, uint32_t handle)
 	for (i = 0; i < sizeof(gem_reloc)/sizeof(gem_reloc[0]); i++) {
 		gem_reloc[i].offset = 8 + 4*i;
 		gem_reloc[i].delta = -16*1024*i;
-		gem_reloc[i].target_handle = handle;
+		gem_reloc[i].target_handle = flags & USE_LUT ? 0 : gem_exec.handle;
 		gem_reloc[i].read_domains = I915_GEM_DOMAIN_COMMAND;
 	}
 
@@ -85,32 +89,30 @@ static int negative_reloc(int fd, uint32_t handle)
 			   DRM_IOCTL_I915_GEM_EXECBUFFER2,
 			   &execbuf));
 
-	gem_read(fd, handle, 0, buf, sizeof(buf));
+	gem_read(fd, gem_exec.handle, 0, buf, sizeof(buf));
+	gem_close(fd, gem_exec.handle);
+
 	for (i = 0; i < sizeof(gem_reloc)/sizeof(gem_reloc[0]); i++)
 		igt_assert(buf[2 + i] < gtt_max);
 
 	return 0;
 }
 
-uint32_t batch[2] = {MI_BATCH_BUFFER_END};
-uint32_t handle;
 int fd;
 
 igt_main
 {
 	igt_fixture {
 		fd = drm_open_any();
-
-		handle = gem_create(fd, 4096);
-		gem_write(fd, handle, 0, batch, sizeof(batch));
 	}
 
 	igt_subtest("negative-reloc")
-		negative_reloc(fd, handle);
+		negative_reloc(fd, 0);
+
+	igt_subtest("negative-reloc-lut")
+		negative_reloc(fd, USE_LUT);
 
 	igt_fixture {
-		gem_close(fd, handle);
-
 		close(fd);
 	}
 }
