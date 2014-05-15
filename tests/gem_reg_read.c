@@ -73,7 +73,7 @@ igt_simple_main
 	reg_read.offset = 0x12345678;
 	ret = drmIoctl(fd, REG_READ_IOCTL, &reg_read);
 
-	igt_assert(ret != 0 && errno == ENOENT);
+	igt_assert(ret != 0 && errno == EINVAL);
 
 	close(fd);
 }
