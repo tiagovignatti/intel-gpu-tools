@@ -40,6 +40,7 @@
 #include "ioctl_wrappers.h"
 #include "drmtest.h"
 #include "intel_io.h"
+#include "intel_chipset.h"
 
 #define USE_LUT (1 << 12)
 
