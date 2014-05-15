@@ -178,14 +178,10 @@ static void test_connector(const char *test_name,
 	int i;
 
 	igt_get_all_formats(&formats, &format_count);
-	for (i = 0; i < cconf->connector->count_modes; i++) {
-		int j;
-
-		for (j = 0; j < format_count; j++)
-			test_format(test_name,
-				    cconf, &cconf->connector->modes[i],
-				    formats[j], flags);
-	}
+	for (i = 0; i < format_count; i++)
+		test_format(test_name,
+			    cconf, &cconf->connector->modes[i],
+			    formats[i], flags);
 }
 
 static int run_test(const char *test_name, enum test_flags flags)
