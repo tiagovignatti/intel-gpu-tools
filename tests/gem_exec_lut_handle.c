@@ -155,6 +155,7 @@ igt_simple_main
 			for (i = 0, m = 1; m <= MAX_NUM_RELOC; m *= 2, i++) {
 				struct timeval start, end;
 
+				do_or_die(exec(fd, n, m, 0 | p->flags));
 				gettimeofday(&start, NULL);
 				for (count = 0; count < 1000; count++)
 					do_or_die(exec(fd, n, m, 0 | p->flags));
@@ -162,6 +163,7 @@ igt_simple_main
 				gem_sync(fd, gem_exec[MAX_NUM_EXEC].handle);
 				elapsed[i][0] = ELAPSED(&start, &end);
 
+				do_or_die(exec(fd, n, m, USE_LUT | p->flags));
 				gettimeofday(&start, NULL);
 				for (count = 0; count < 1000; count++)
 					do_or_die(exec(fd, n, m, USE_LUT | p->flags));
