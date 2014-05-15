@@ -197,7 +197,6 @@ static void blt_copy(struct intel_batchbuffer *batch,
 
 drm_intel_bufmgr *bufmgr;
 struct intel_batchbuffer *batch;
-igt_render_copyfunc_t copy;
 int fd;
 
 igt_main
@@ -215,16 +214,17 @@ igt_main
 	igt_subtest("blitter")
 		check_ring(bufmgr, batch, "blt", blt_copy);
 
-	igt_fixture {
-		/* Strictly only required on architectures with a separate BLT ring,
-		 * but lets stress everybody.
-		 */
+	/* Strictly only required on architectures with a separate BLT ring,
+	 * but lets stress everybody.
+	 */
+	igt_subtest("render") {
+		igt_render_copyfunc_t copy;
+
 		copy = igt_get_render_copyfunc(batch->devid);
 		igt_require(copy);
-	}
 
-	igt_subtest("render")
 		check_ring(bufmgr, batch, "render", copy);
+	}
 
 	igt_fixture {
 		intel_batchbuffer_free(batch);
