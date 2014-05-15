@@ -57,6 +57,8 @@ static int negative_reloc(int fd, unsigned flags)
 	uint32_t buf[1024] = {MI_BATCH_BUFFER_END};
 	int i;
 
+	igt_require(intel_gen(intel_get_drm_devid(fd)) >= 7);
+
 	memset(&gem_exec, 0, sizeof(gem_exec));
 	gem_exec.handle = gem_create(fd, 4096);
 	gem_write(fd, gem_exec.handle, 0, buf, 8);
