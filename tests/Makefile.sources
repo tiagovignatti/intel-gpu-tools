@@ -17,6 +17,7 @@ NOUVEAU_TESTS_M = \
 TESTS_progs_M = \
 	core_get_client_auth \
 	drv_suspend \
+	gem_bad_reloc \
 	gem_basic \
 	gem_caching \
 	gem_close_race \

@@ -14,6 +14,7 @@ gem_bad_address
 gem_bad_batch
 gem_bad_blit
 gem_bad_length
+gem_bad_reloc
 gem_basic
 gem_caching
 gem_close_race
