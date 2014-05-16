@@ -82,11 +82,27 @@ struct kmstest_connector_config {
 	int pipe;
 };
 
+/**
+ * kmstest_force_connector_state:
+ * @FORCE_CONNECTOR_UNSPECIFIED: Unspecified
+ * @FORCE_CONNECTOR_ON: On
+ * @FORCE_CONNECTOR_DIGITAL: Digital
+ * @FORCE_CONNECTOR_OFF: Off
+ */
+enum kmstest_force_connector_state {
+	FORCE_CONNECTOR_UNSPECIFIED,
+	FORCE_CONNECTOR_ON,
+	FORCE_CONNECTOR_DIGITAL,
+	FORCE_CONNECTOR_OFF
+};
+
 int kmstest_get_connector_default_mode(int drm_fd, drmModeConnector *connector,
 				      drmModeModeInfo *mode);
 int kmstest_get_connector_config(int drm_fd, uint32_t connector_id,
 				 unsigned long crtc_idx_mask,
 				 struct kmstest_connector_config *config);
+void kmstest_force_connector(int fd, drmModeConnector *connector,
+			     enum kmstest_force_connector_state state);
 void kmstest_free_connector_config(struct kmstest_connector_config *config);
 
 void kmstest_dump_mode(drmModeModeInfo *mode);

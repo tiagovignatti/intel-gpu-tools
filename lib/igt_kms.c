@@ -398,6 +398,63 @@ err1:
 	return -1;
 }
 
+static int get_card_number(int fd)
+{
+	struct stat buf;
+
+	/* find the minor number of the device */
+	fstat(fd, &buf);
+
+	return minor(buf.st_rdev) & 0x3f;
+}
+
+/**
+ * kmstest_force_connector:
+ * @fd: drm file descriptor
+ * @connector: connector
+ * @state: state to force on @connector
+ *
+ * Force the specified state on the specified connector.
+ */
+void kmstest_force_connector(int drm_fd, drmModeConnector *connector, enum
+			     kmstest_force_connector_state state)
+{
+	char *path;
+	const char *value;
+	int debugfs_fd, ret;
+
+	switch (state) {
+	case FORCE_CONNECTOR_ON:
+		value = "on";
+		break;
+	case FORCE_CONNECTOR_DIGITAL:
+		value = "digital";
+		break;
+	case FORCE_CONNECTOR_OFF:
+		value = "off";
+		break;
+
+	default:
+	case FORCE_CONNECTOR_UNSPECIFIED:
+		value = "unspecified";
+		break;
+	}
+
+	asprintf(&path, "/sys/kernel/debug/dri/%d/%s-%d/force",
+		 get_card_number(drm_fd),
+		 kmstest_connector_type_str(connector->connector_type),
+		 connector->connector_type_id);
+	debugfs_fd = open(path, O_WRONLY | O_TRUNC);
+	free(path);
+
+	igt_assert(debugfs_fd != -1);
+
+	ret = write(debugfs_fd, value, strlen(value));
+	close(debugfs_fd);
+
+	igt_assert(ret != -1);
+}
+
 void kmstest_free_connector_config(struct kmstest_connector_config *config)
 {
 	drmModeFreeCrtc(config->crtc);
