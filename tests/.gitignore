@@ -125,7 +125,7 @@ kms_render
 kms_setmode
 multi-tests.txt
 pm_lpsp
-pm_pc8
+pm_rpm
 pm_psr
 pm_rc6_residency
 pm_rps

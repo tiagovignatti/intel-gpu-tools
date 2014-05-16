@@ -69,7 +69,7 @@ TESTS_progs_M = \
 	kms_render \
 	kms_setmode \
 	pm_lpsp \
-	pm_pc8 \
+	pm_rpm \
 	pm_rps \
 	prime_self_import \
 	template \
