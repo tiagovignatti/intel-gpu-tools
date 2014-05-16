@@ -68,6 +68,7 @@ TESTS_progs_M = \
 	kms_plane \
 	kms_render \
 	kms_setmode \
+	kms_sink_crc_basic \
 	pm_lpsp \
 	pm_rpm \
 	pm_rps \

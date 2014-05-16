@@ -66,6 +66,7 @@ else
     kms_pipe_crc_basic \
     kms_fbc_crc \
     kms_setmode \
+    kms_sink_crc_basic \
     gem_render_copy \
     pm_lpsp \
     kms_fence_pin_leak
