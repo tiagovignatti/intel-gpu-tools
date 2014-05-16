@@ -74,6 +74,7 @@
 #define TEST_RPM		(1 << 25)
 #define TEST_SUSPEND		(1 << 26)
 #define TEST_TS_CONT		(1 << 27)
+#define TEST_BO_TOOBIG		(1 << 28)
 
 #define EVENT_FLIP		(1 << 0)
 #define EVENT_VBLANK		(1 << 1)
@@ -1213,6 +1214,7 @@ static void run_test_on_crtc_set(struct test_output *o, int *crtc_idxs,
 {
 	char test_name[128];
 	unsigned elapsed;
+	unsigned bo_size = 0;
 	bool tiled;
 	int i;
 
@@ -1249,12 +1251,17 @@ static void run_test_on_crtc_set(struct test_output *o, int *crtc_idxs,
 	if (o->flags & TEST_FENCE_STRESS)
 		tiled = true;
 
+	/* 256 MB is usually the maximum mappable aperture,
+	 * (make it 4x times that to ensure failure) */
+	if (o->flags & TEST_BO_TOOBIG)
+		bo_size = 4*256*1024*1024;
+
 	o->fb_ids[0] = igt_create_fb(drm_fd, o->fb_width, o->fb_height,
 					 igt_bpp_depth_to_drm_format(o->bpp, o->depth),
 					 tiled, &o->fb_info[0]);
-	o->fb_ids[1] = igt_create_fb(drm_fd, o->fb_width, o->fb_height,
+	o->fb_ids[1] = igt_create_fb_with_bo_size(drm_fd, o->fb_width, o->fb_height,
 					 igt_bpp_depth_to_drm_format(o->bpp, o->depth),
-					 tiled, &o->fb_info[1]);
+					 tiled, &o->fb_info[1], bo_size);
 	o->fb_ids[2] = igt_create_fb(drm_fd, o->fb_width, o->fb_height,
 					 igt_bpp_depth_to_drm_format(o->bpp, o->depth),
 					 true, &o->fb_info[2]);
@@ -1264,7 +1271,8 @@ static void run_test_on_crtc_set(struct test_output *o, int *crtc_idxs,
 		igt_require(o->fb_ids[2]);
 
 	paint_flip_mode(&o->fb_info[0], false);
-	paint_flip_mode(&o->fb_info[1], true);
+	if (!(o->flags & TEST_BO_TOOBIG))
+		paint_flip_mode(&o->fb_info[1], true);
 	if (o->fb_ids[2])
 		paint_flip_mode(&o->fb_info[2], true);
 
@@ -1288,10 +1296,15 @@ static void run_test_on_crtc_set(struct test_output *o, int *crtc_idxs,
 	if (o->flags & TEST_CHECK_TS)
 		sleep(1);
 
-	igt_assert(do_page_flip(o, o->fb_ids[1], true) == 0);
+	if (o->flags & TEST_BO_TOOBIG) {
+		igt_assert(do_page_flip(o, o->fb_ids[1], true) == -E2BIG);
+		goto out;
+	} else
+		igt_assert(do_page_flip(o, o->fb_ids[1], true) == 0);
 	wait_for_events(o);
 
 	o->current_fb_id = 1;
+
 	if (o->flags & TEST_FLIP)
 		o->flip_state.seq_step = 1;
 	else
@@ -1543,6 +1556,7 @@ int main(int argc, char **argv)
 		{ 10, TEST_VBLANK | TEST_DPMS | TEST_SUSPEND | TEST_TS_CONT, "dpms-vs-suspend" },
 		{ 0, TEST_VBLANK | TEST_MODESET | TEST_RPM | TEST_TS_CONT, "modeset-vs-rpm" },
 		{ 0, TEST_VBLANK | TEST_MODESET | TEST_SUSPEND | TEST_TS_CONT, "modeset-vs-suspend" },
+		{ 0, TEST_BO_TOOBIG | TEST_NO_2X_OUTPUT, "bo-too-big" },
 	};
 	int i;
 
