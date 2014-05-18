@@ -153,3 +153,17 @@ void intel_dpio_reg_write(uint32_t reg, uint32_t val, int phy)
 {
 	vlv_sideband_rw(IOSF_PORT_DPIO, SB_MWR_NP, reg, &val);
 }
+
+uint32_t intel_flisdsi_reg_read(uint32_t reg)
+{
+	uint32_t val = 0;
+
+	vlv_sideband_rw(IOSF_PORT_FLISDSI, SB_CRRDDA_NP, reg, &val);
+
+	return val;
+}
+
+void intel_flisdsi_reg_write(uint32_t reg, uint32_t val)
+{
+	vlv_sideband_rw(IOSF_PORT_FLISDSI, SB_CRWRDA_NP, reg, &val);
+}

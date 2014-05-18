@@ -38,6 +38,8 @@ def parse_file(file):
         register = ast.literal_eval(line)
         if register[2] == 'DPIO':
             val = reg.dpio_read(register[1], 0)
+        if register[2] == 'FLISDSI':
+            val = reg.flisdsi_read(register[1])
         else:
             val = reg.read(register[1])
         intreg = int(register[1], 16)

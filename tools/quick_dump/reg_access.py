@@ -35,6 +35,12 @@ def dpio_read(reg, phy):
     val = chipset.intel_dpio_reg_read(reg, phy)
     return val
 
+def flisdsi_read(reg):
+    reg = int(reg, 16)
+
+    val = chipset.intel_flisdsi_reg_read(reg)
+    return val
+
 
 def init():
     pci_dev = chipset.intel_get_pci_device()
