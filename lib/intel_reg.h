@@ -3576,9 +3576,4 @@ typedef enum {
 #define VLV_IOSF_DATA				(VLV_DISPLAY_BASE + 0x2104)
 #define VLV_IOSF_ADDR				(VLV_DISPLAY_BASE + 0x2108)
 
-#define DPIO_OPCODE_REG_READ			0
-#define DPIO_OPCODE_REG_WRITE			1
-#define PUNIT_OPCODE_REG_READ			6
-#define PUNIT_OPCODE_REG_WRITE			7
-
 #endif /* _I810_REG_H */

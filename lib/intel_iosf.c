@@ -8,13 +8,21 @@
 
 #define TIMEOUT_US 500000
 
+/* Standard MMIO read, non-posted */
+#define SB_MRD_NP      0x00
+/* Standard MMIO write, non-posted */
+#define SB_MWR_NP      0x01
+/* Private register read, double-word addressing, non-posted */
+#define SB_CRRDDA_NP   0x06
+/* Private register write, double-word addressing, non-posted */
+#define SB_CRWRDA_NP   0x07
+
 static int vlv_sideband_rw(uint32_t port, uint8_t opcode, uint32_t addr,
 			   uint32_t *val)
 {
 	int timeout = 0;
 	uint32_t cmd, devfn, be, bar;
-	int is_read = (opcode == PUNIT_OPCODE_REG_READ ||
-		       opcode == DPIO_OPCODE_REG_READ);
+	int is_read = (opcode == SB_CRRDDA_NP || opcode == SB_MRD_NP);
 
 	bar = 0;
 	be = 0xf;
@@ -67,7 +75,7 @@ static int vlv_sideband_rw(uint32_t port, uint8_t opcode, uint32_t addr,
  */
 int intel_punit_read(uint8_t addr, uint32_t *val)
 {
-	return vlv_sideband_rw(IOSF_PORT_PUNIT, PUNIT_OPCODE_REG_READ, addr, val);
+	return vlv_sideband_rw(IOSF_PORT_PUNIT, SB_CRRDDA_NP, addr, val);
 }
 
 /**
@@ -82,7 +90,7 @@ int intel_punit_read(uint8_t addr, uint32_t *val)
  */
 int intel_punit_write(uint8_t addr, uint32_t val)
 {
-	return vlv_sideband_rw(IOSF_PORT_PUNIT, PUNIT_OPCODE_REG_WRITE, addr, &val);
+	return vlv_sideband_rw(IOSF_PORT_PUNIT, SB_CRWRDA_NP, addr, &val);
 }
 
 /**
@@ -97,7 +105,7 @@ int intel_punit_write(uint8_t addr, uint32_t val)
  */
 int intel_nc_read(uint8_t addr, uint32_t *val)
 {
-	return vlv_sideband_rw(IOSF_PORT_NC, PUNIT_OPCODE_REG_READ, addr, val);
+	return vlv_sideband_rw(IOSF_PORT_NC, SB_CRRDDA_NP, addr, val);
 }
 
 /**
@@ -112,7 +120,7 @@ int intel_nc_read(uint8_t addr, uint32_t *val)
  */
 int intel_nc_write(uint8_t addr, uint32_t val)
 {
-	return vlv_sideband_rw(IOSF_PORT_NC, PUNIT_OPCODE_REG_WRITE, addr, &val);
+	return vlv_sideband_rw(IOSF_PORT_NC, SB_CRWRDA_NP, addr, &val);
 }
 
 /**
@@ -129,7 +137,7 @@ uint32_t intel_dpio_reg_read(uint32_t reg, int phy)
 {
 	uint32_t val;
 
-	vlv_sideband_rw(IOSF_PORT_DPIO, DPIO_OPCODE_REG_READ, reg, &val);
+	vlv_sideband_rw(IOSF_PORT_DPIO, SB_MRD_NP, reg, &val);
 	return val;
 }
 
@@ -143,5 +151,5 @@ uint32_t intel_dpio_reg_read(uint32_t reg, int phy)
  */
 void intel_dpio_reg_write(uint32_t reg, uint32_t val, int phy)
 {
-	vlv_sideband_rw(IOSF_PORT_DPIO, DPIO_OPCODE_REG_WRITE, reg, &val);
+	vlv_sideband_rw(IOSF_PORT_DPIO, SB_MWR_NP, reg, &val);
 }
