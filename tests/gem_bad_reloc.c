@@ -52,48 +52,64 @@
 static int negative_reloc(int fd, unsigned flags)
 {
 	struct drm_i915_gem_execbuffer2 execbuf;
-	struct drm_i915_gem_exec_object2 gem_exec;
+	struct drm_i915_gem_exec_object2 gem_exec[2];
 	struct drm_i915_gem_relocation_entry gem_reloc[1000];
 	uint64_t gtt_max = gem_aperture_size(fd);
 	uint32_t buf[1024] = {MI_BATCH_BUFFER_END};
 	int i;
 
+#define BIAS (256*1024)
+
 	igt_require(intel_gen(intel_get_drm_devid(fd)) >= 7);
 
-	memset(&gem_exec, 0, sizeof(gem_exec));
-	gem_exec.handle = gem_create(fd, 4096);
-	gem_write(fd, gem_exec.handle, 0, buf, 8);
+	memset(gem_exec, 0, sizeof(gem_exec));
+	gem_exec[0].handle = gem_create(fd, 4096);
+	gem_write(fd, gem_exec[0].handle, 0, buf, 8);
+
+	gem_reloc[0].offset = 1024;
+	gem_reloc[0].delta = 0;
+	gem_reloc[0].target_handle = gem_exec[0].handle;
+	gem_reloc[0].read_domains = I915_GEM_DOMAIN_COMMAND;
+
+	gem_exec[1].handle = gem_create(fd, 4096);
+	gem_write(fd, gem_exec[1].handle, 0, buf, 8);
+	gem_exec[1].relocation_count = 1;
+	gem_exec[1].relocs_ptr = (uintptr_t)gem_reloc;
 
 	memset(&execbuf, 0, sizeof(execbuf));
-	execbuf.buffers_ptr = (uintptr_t)&gem_exec;
-	execbuf.buffer_count = 1;
+	execbuf.buffers_ptr = (uintptr_t)gem_exec;
+	execbuf.buffer_count = 2;
 	execbuf.batch_len = 8;
-	execbuf.flags = flags & USE_LUT;
 
 	do_or_die(drmIoctl(fd,
 			   DRM_IOCTL_I915_GEM_EXECBUFFER2,
 			   &execbuf));
+	gem_close(fd, gem_exec[1].handle);
 
-	printf("Found offset %ld for 4k batch\n", (long)gem_exec.offset);
-	igt_require(gem_exec.offset < 16*1024*1024);
+	printf("Found offset %ld for 4k batch\n", (long)gem_exec[0].offset);
+	igt_require(gem_exec[0].offset < BIAS);
 
 	memset(gem_reloc, 0, sizeof(gem_reloc));
 	for (i = 0; i < sizeof(gem_reloc)/sizeof(gem_reloc[0]); i++) {
 		gem_reloc[i].offset = 8 + 4*i;
-		gem_reloc[i].delta = -16*1024*i;
-		gem_reloc[i].target_handle = flags & USE_LUT ? 0 : gem_exec.handle;
+		gem_reloc[i].delta = -BIAS*i/1024;
+		gem_reloc[i].target_handle = flags & USE_LUT ? 0 : gem_exec[0].handle;
 		gem_reloc[i].read_domains = I915_GEM_DOMAIN_COMMAND;
 	}
 
-	gem_exec.relocation_count = 1000;
-	gem_exec.relocs_ptr = (uintptr_t)gem_reloc;
+	gem_exec[0].relocation_count = sizeof(gem_reloc)/sizeof(gem_reloc[0]);
+	gem_exec[0].relocs_ptr = (uintptr_t)gem_reloc;
 
+	execbuf.buffer_count = 1;
+	execbuf.flags = flags & USE_LUT;
 	do_or_die(drmIoctl(fd,
 			   DRM_IOCTL_I915_GEM_EXECBUFFER2,
 			   &execbuf));
 
-	gem_read(fd, gem_exec.handle, 0, buf, sizeof(buf));
-	gem_close(fd, gem_exec.handle);
+	printf("Batch is now at offset %ld\n", (long)gem_exec[0].offset);
+
+	gem_read(fd, gem_exec[0].handle, 0, buf, sizeof(buf));
+	gem_close(fd, gem_exec[0].handle);
 
 	for (i = 0; i < sizeof(gem_reloc)/sizeof(gem_reloc[0]); i++)
 		igt_assert(buf[2 + i] < gtt_max);
