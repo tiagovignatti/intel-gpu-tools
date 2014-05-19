@@ -61,7 +61,7 @@ store_dword_loop(int divider)
 
 	cmd = MI_STORE_DWORD_IMM;
 
-	for (i = 0; i < SLOW_QUICK(0x2000, 0x10); i++) {
+	for (i = 0; i < SLOW_QUICK(0x100000, 0x10); i++) {
 		BEGIN_BATCH(4);
 		OUT_BATCH(cmd);
 		if (intel_gen(batch->devid) < 8)

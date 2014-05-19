@@ -86,7 +86,7 @@ store_dword_loop(int devid, int divider)
 
 	igt_info("running storedw loop on render with stall every %i batch\n", divider);
 
-	for (i = 0; i < SLOW_QUICK(0x2000, 0x10); i++) {
+	for (i = 0; i < SLOW_QUICK(0x100000, 0x10); i++) {
 		emit_store_dword_imm(devid, target_buffer, val);
 		intel_batchbuffer_flush_on_ring(batch, I915_EXEC_BSD);
 
