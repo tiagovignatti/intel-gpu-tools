@@ -17,6 +17,7 @@ NOUVEAU_TESTS_M = \
 TESTS_progs_M = \
 	core_get_client_auth \
 	drv_suspend \
+	drv_hangman \
 	gem_bad_reloc \
 	gem_basic \
 	gem_caching \
@@ -149,7 +150,6 @@ TESTS_scripts_M = \
 TESTS_scripts = \
 	debugfs_emon_crash \
 	drv_debugfs_reader \
-	drv_hangman \
 	drv_missed_irq_hang \
 	drv_module_reload \
 	kms_sysfs_edid_timing \
