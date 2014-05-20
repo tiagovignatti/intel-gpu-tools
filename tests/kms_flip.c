@@ -574,6 +574,9 @@ static void check_state(struct test_output *o, struct event_state *es)
 		igt_assert_f(es->current_seq - es->last_seq <= 100,
 			     "unexpected %s seq %u, should be < %u\n",
 			     es->name, es->current_seq, es->last_seq + 100);
+
+		igt_debug("testing ts continuity: Current frame %u, old frame %u\n",
+			  es->current_seq, es->last_seq);
 	}
 
 	if ((o->flags & TEST_CHECK_TS) && (!analog_tv_connector(o))) {
@@ -1176,6 +1179,7 @@ static unsigned event_loop(struct test_output *o, unsigned duration_ms)
 {
 	unsigned long start, end;
 	uint32_t hang = 0;	/* Suppress GCC warning */
+	int count = 0;
 
 	if (o->flags & TEST_HANG_ONCE) {
 		hang = hang_gpu(drm_fd);
@@ -1193,8 +1197,10 @@ static unsigned event_loop(struct test_output *o, unsigned duration_ms)
 		check_all_state(o, completed_events);
 		update_all_state(o, completed_events);
 
-		if ((gettime_us() - start) / 1000 >= duration_ms)
+		if (count && (gettime_us() - start) / 1000 >= duration_ms)
 			break;
+
+		count++;
 	}
 
 	end = gettime_us();
@@ -1563,10 +1569,11 @@ int main(int argc, char **argv)
 		{ 0, TEST_ENOENT | TEST_NOEVENT, "nonexisting-fb" },
 		{ 10, TEST_DPMS_OFF | TEST_DPMS | TEST_VBLANK_RACE, "dpms-vs-vblank-race" },
 		{ 10, TEST_MODESET | TEST_VBLANK_RACE, "modeset-vs-vblank-race" },
-		{ 10, TEST_VBLANK | TEST_DPMS | TEST_RPM | TEST_TS_CONT, "dpms-vs-rpm" },
-		{ 10, TEST_VBLANK | TEST_DPMS | TEST_SUSPEND | TEST_TS_CONT, "dpms-vs-suspend" },
-		{ 0, TEST_VBLANK | TEST_MODESET | TEST_RPM | TEST_TS_CONT, "modeset-vs-rpm" },
-		{ 0, TEST_VBLANK | TEST_MODESET | TEST_SUSPEND | TEST_TS_CONT, "modeset-vs-suspend" },
+		{ 10, TEST_VBLANK | TEST_DPMS | TEST_RPM | TEST_TS_CONT, "vblank-vs-dpms-rpm" },
+		{ 10, TEST_VBLANK | TEST_MODESET | TEST_RPM | TEST_TS_CONT, "vblank-vs-modeset-rpm" },
+		{ 0, TEST_VBLANK | TEST_DPMS | TEST_SUSPEND | TEST_TS_CONT, "vblank-vs-dpms-suspend" },
+		{ 0, TEST_VBLANK | TEST_MODESET | TEST_SUSPEND | TEST_TS_CONT, "vblank-vs-modeset-suspend" },
+		{ 0, TEST_VBLANK | TEST_SUSPEND | TEST_TS_CONT, "vblank-vs-suspend" },
 		{ 0, TEST_BO_TOOBIG | TEST_NO_2X_OUTPUT, "bo-too-big" },
 	};
 	int i;
