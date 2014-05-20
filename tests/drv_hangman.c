@@ -22,6 +22,7 @@
  *
  * Authors:
  *    Mika Kuoppala <mika.kuoppala@intel.com>
+ *    Oscar Mateo <oscar.mateo@intel.com>
  *
  */
 
@@ -30,6 +31,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
+#include "intel_chipset.h"
 #include "drmtest.h"
 #include "igt_debugfs.h"
 #include "ioctl_wrappers.h"
@@ -183,11 +185,16 @@ static void check_other_clients(void)
 	igt_debug("found myself in client list\n");
 }
 
+#define MAGIC_NUMBER 0x10001
+const uint32_t batch[] = { MI_NOOP,
+			   MI_BATCH_BUFFER_END,
+			   MAGIC_NUMBER,
+			   MAGIC_NUMBER };
+
 static uint64_t submit_batch(int fd, unsigned ring_id, bool stop_ring)
 {
 	struct drm_i915_gem_execbuffer2 execbuf;
 	struct drm_i915_gem_exec_object2 exec;
-	const uint32_t batch[2] = { MI_BATCH_BUFFER_END, 0 };
 	uint64_t presumed_offset;
 
 	gem_require_ring(fd, ring_id);
@@ -260,6 +267,144 @@ static void test_error_state_basic(void)
 	assert_error_state_clear();
 }
 
+static void check_error_state(const int gen,
+			      const char *expected_ring_name,
+			      uint64_t expected_offset)
+{
+	FILE *file;
+	int debug_fd;
+	char *line = NULL;
+	size_t line_size = 0;
+	char *ring_name = NULL;
+	bool bb_ok = false, req_ok = false, ringbuf_ok = false;
+
+	debug_fd = igt_debugfs_open("i915_error_state", O_RDONLY);
+	igt_assert(debug_fd >= 0);
+	file = fdopen(debug_fd, "r");
+
+	while (getline(&line, &line_size, file) > 0) {
+		char *dashes = NULL;
+		int bb_matched = 0;
+		uint32_t gtt_offset;
+		int req_matched = 0;
+		int requests;
+		uint32_t tail;
+		int ringbuf_matched = 0;
+		int i, items;
+
+		dashes = strstr(line, "---");
+		if (!dashes)
+			continue;
+
+		ring_name = realloc(ring_name, dashes - line);
+		strncpy(ring_name, line, dashes - line);
+		ring_name[dashes - line - 1] = '\0';
+
+		bb_matched = sscanf(dashes, "--- gtt_offset = 0x%08x\n",
+				    &gtt_offset);
+		if (bb_matched == 1) {
+			char expected_line[32];
+
+			igt_assert(strstr(ring_name, expected_ring_name));
+			igt_assert(gtt_offset == expected_offset);
+
+			for (i = 0; i < sizeof(batch) / 4; i++) {
+				igt_assert(getline(&line, &line_size, file) > 0);
+				snprintf(expected_line, sizeof(expected_line), "%08x :  %08x",
+					 4*i, batch[i]);
+				igt_assert(strstr(line, expected_line));
+			}
+			bb_ok = true;
+			continue;
+		}
+
+		req_matched = sscanf(dashes, "--- %d requests\n", &requests);
+		if (req_matched == 1) {
+			igt_assert(strstr(ring_name, expected_ring_name));
+			igt_assert(requests > 0);
+
+			for (i = 0; i < requests; i++) {
+				uint32_t seqno;
+				long jiffies;
+
+				igt_assert(getline(&line, &line_size, file) > 0);
+				items = sscanf(line, "  seqno 0x%08x, emitted %ld, tail 0x%08x\n",
+					       &seqno, &jiffies, &tail);
+				igt_assert(items == 3);
+			}
+			req_ok = true;
+			continue;
+		}
+
+		ringbuf_matched = sscanf(dashes, "--- ringbuffer = 0x%08x\n",
+					 &gtt_offset);
+		if (ringbuf_matched == 1) {
+			unsigned int offset, command, expected_addr = 0;
+
+			if (!strstr(ring_name, expected_ring_name))
+				continue;
+			igt_assert(req_ok);
+
+			for (i = 0; i < tail / 4; i++) {
+				igt_assert(getline(&line, &line_size, file) > 0);
+				items = sscanf(line, "%08x :  %08x\n",
+					       &offset, &command);
+				igt_assert(items == 2);
+				if ((command & 0x1F800000) == MI_BATCH_BUFFER_START) {
+					igt_assert(getline(&line, &line_size, file) > 0);
+					items = sscanf(line, "%08x :  %08x\n",
+						       &offset, &expected_addr);
+					igt_assert(items == 2);
+					i++;
+				}
+			}
+			if (gen >= 4)
+				igt_assert(expected_addr == expected_offset);
+			else
+				igt_assert((expected_addr & ~0x1) == expected_offset);
+			ringbuf_ok = true;
+			continue;
+		}
+
+		if (bb_ok && req_ok && ringbuf_ok)
+			break;
+	}
+	igt_assert(bb_ok && req_ok && ringbuf_ok);
+
+	free(line);
+	free(ring_name);
+	close(debug_fd);
+}
+
+static void test_error_state_capture(unsigned ring_id,
+				     const char *ring_name)
+{
+	int fd, gen;
+	uint64_t offset;
+
+	check_other_clients();
+	clear_error_state();
+
+	fd = drm_open_any();
+	gen = intel_gen(intel_get_drm_devid(fd));
+
+	offset = submit_batch(fd, ring_id, true);
+	close(fd);
+
+	check_error_state(gen, ring_name, offset);
+}
+
+static const struct target_ring {
+	const int id;
+	const char *short_name;
+	const char *full_name;
+} rings[] = {
+	{ I915_EXEC_RENDER, "render", "render ring" },
+	{ I915_EXEC_BSD, "bsd", "bsd ring" },
+	{ I915_EXEC_BLT, "blt", "blitter ring" },
+	{ I915_EXEC_VEBOX, "vebox", "video enhancement ring" },
+};
+
 igt_main
 {
 	igt_skip_on_simulation();
@@ -275,4 +420,9 @@ igt_main
 
 	igt_subtest("error-state-basic")
 		test_error_state_basic();
+
+	for (int i = 0; i < sizeof(rings)/sizeof(rings[0]); i++) {
+		igt_subtest_f("error-state-capture-%s", rings[i].short_name)
+			test_error_state_capture(rings[i].id, rings[i].full_name);
+	}
 }
