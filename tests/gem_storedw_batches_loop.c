@@ -62,7 +62,7 @@ store_dword_loop(int divider, unsigned flags)
 	if (!has_ppgtt)
 		cmd |= MI_MEM_VIRTUAL;
 
-	for (i = 0; i < SLOW_QUICK(0x80000, 4); i++) {
+	for (i = 0; i < SLOW_QUICK(0x2000, 4); i++) {
 		int j = 0;
 		int cmd_address_offset;
 		cmd_bo = drm_intel_bo_alloc(bufmgr, "cmd bo", 4096, 4096);
