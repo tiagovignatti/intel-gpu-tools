@@ -63,7 +63,7 @@
 #define PAGE_SIZE 4096
 #endif
 
-#define LOCAL_I915_GEM_USERPTR       0x34
+#define LOCAL_I915_GEM_USERPTR       0x33
 #define LOCAL_IOCTL_I915_GEM_USERPTR DRM_IOWR (DRM_COMMAND_BASE + LOCAL_I915_GEM_USERPTR, struct local_i915_gem_userptr)
 struct local_i915_gem_userptr {
 	uint64_t user_ptr;
@@ -664,8 +664,8 @@ static int test_dmabuf(void)
 	handle = create_userptr_bo(fd1, sizeof(linear));
 
 	ret = export_handle(fd1, handle, &dma_buf_fd);
-	if (userptr_flags & LOCAL_I915_USERPTR_UNSYNCHRONIZED) {
-		igt_assert(ret == EINVAL);
+	if (userptr_flags & LOCAL_I915_USERPTR_UNSYNCHRONIZED && ret) {
+		igt_assert(ret == EINVAL || ret == ENODEV);
 		free_userptr_bo(fd1, handle);
 
 		return 0;
