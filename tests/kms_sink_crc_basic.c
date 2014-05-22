@@ -134,28 +134,19 @@ static void basic_sink_crc_check(data_t *data, uint32_t connector_id)
 	/* get reference crc for black color */
 	get_crc(ref_crc_black);
 
-	if (strcmp(ref_crc_black, ref_crc_white) == 0) {
-		fprintf(stderr, "CRC Black should differ from CRC White\n");
-		igt_fail(1);
-	}
+	igt_assert(strcmp(ref_crc_black, ref_crc_white) != 0);
 
 	/*Go White again*/
 	connector_set_mode(data, &connector, &connector.config.default_mode, WHITE);
 
 	get_crc(crc_check);
-	if (strcmp(crc_check, ref_crc_white) != 0) {
-		fprintf(stderr, "CRC check for white differ from reference\n");
-		igt_fail(1);
-	}
+	igt_assert(strcmp(crc_check, ref_crc_white) == 0);
 
 	/* Go Black again */
 	connector_set_mode(data, &connector, &connector.config.default_mode, BLACK);
 
 	get_crc(crc_check);
-	if (strcmp(crc_check, ref_crc_black) != 0) {
-		fprintf(stderr, "CRC check for black differ from reference\n");
-		igt_fail(1);
-	}
+	igt_assert(strcmp(crc_check, ref_crc_black) == 0);
 
 	kmstest_free_connector_config(&connector.config);
 }
