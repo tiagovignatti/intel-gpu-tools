@@ -178,8 +178,7 @@ static void run_test(data_t *data)
 		return;
 	}
 
-	fprintf(stderr, "no eDP with CRC support found\n");
-	igt_fail(1);
+	igt_skip("no eDP with CRC support found\n");
 }
 
 igt_simple_main
