@@ -30,6 +30,7 @@
 #include "drmtest.h"
 #include "igt_debugfs.h"
 #include "igt_kms.h"
+#include "igt_aux.h"
 
 typedef struct {
 	int drm_fd;
@@ -160,6 +161,12 @@ igt_main
 
 		igt_subtest_f("read-crc-pipe-%c-frame-sequence", 'A'+i)
 			test_read_crc(&data, i, TEST_SEQUENCE);
+
+		igt_subtest_f("suspend-read-crc-pipe-%c", 'A'+i) {
+			igt_system_suspend_autoresume();
+
+			test_read_crc(&data, i, 0);
+		}
 	}
 
 	igt_fixture {
