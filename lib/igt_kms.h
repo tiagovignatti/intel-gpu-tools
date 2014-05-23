@@ -113,6 +113,7 @@ typedef struct {
 	unsigned int is_cursor        : 1;
 	unsigned int fb_changed       : 1;
 	unsigned int position_changed : 1;
+	unsigned int panning_changed  : 1;
 	/*
 	 * drm_plane can be NULL for primary and cursor planes (when not
 	 * using the atomic modeset API)
@@ -121,6 +122,8 @@ typedef struct {
 	struct igt_fb *fb;
 	/* position within pipe_src_w x pipe_src_h */
 	int crtc_x, crtc_y;
+	/* panning offset within the fb */
+	unsigned int pan_x, pan_y;
 } igt_plane_t;
 
 struct igt_pipe {
@@ -170,6 +173,7 @@ igt_plane_t *igt_output_get_plane(igt_output_t *output, enum igt_plane plane);
 
 void igt_plane_set_fb(igt_plane_t *plane, struct igt_fb *fb);
 void igt_plane_set_position(igt_plane_t *plane, int x, int y);
+void igt_plane_set_panning(igt_plane_t *plane, int x, int y);
 
 void igt_wait_for_vblank(int drm_fd, enum pipe pipe);
 

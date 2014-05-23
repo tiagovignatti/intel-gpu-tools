@@ -979,7 +979,8 @@ static int igt_primary_plane_commit_legacy(igt_plane_t *primary,
 	/* Primary planes can't be windowed when using a legacy commit */
 	igt_assert((primary->crtc_x == 0 && primary->crtc_y == 0));
 
-	if (!primary->fb_changed && !primary->position_changed)
+	if (!primary->fb_changed && !primary->position_changed &&
+	    !primary->panning_changed)
 		return 0;
 
 	crtc_id = output->config.crtc->crtc_id;
@@ -996,13 +997,13 @@ static int igt_primary_plane_commit_legacy(igt_plane_t *primary,
 		    igt_output_name(output),
 		    pipe_name(output->config.pipe),
 		    fb_id,
-		    0, 0,
+		    primary->pan_x, primary->pan_y,
 		    mode->hdisplay, mode->vdisplay);
 
 		ret = drmModeSetCrtc(display->drm_fd,
 				     crtc_id,
 				     fb_id,
-				     0, 0, /* x, y */
+				     primary->pan_x, primary->pan_y,
 				     &output->id,
 				     1,
 				     mode);
@@ -1026,6 +1027,7 @@ static int igt_primary_plane_commit_legacy(igt_plane_t *primary,
 	primary->pipe->enabled = (fb_id != 0);
 	primary->fb_changed = false;
 	primary->position_changed = false;
+	primary->panning_changed = false;
 
 	return 0;
 }
@@ -1252,6 +1254,20 @@ void igt_plane_set_position(igt_plane_t *plane, int x, int y)
 	plane->crtc_y = y;
 
 	plane->position_changed = true;
+}
+
+void igt_plane_set_panning(igt_plane_t *plane, int x, int y)
+{
+	igt_pipe_t *pipe = plane->pipe;
+	igt_display_t *display = pipe->display;
+
+	LOG(display, "%c.%d: plane_set_panning(%d,%d)\n", pipe_name(pipe->pipe),
+	    plane->index, x, y);
+
+	plane->pan_x = x;
+	plane->pan_y = y;
+
+	plane->panning_changed = true;
 }
 
 void igt_wait_for_vblank(int drm_fd, enum pipe pipe)

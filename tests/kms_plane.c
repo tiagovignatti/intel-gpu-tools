@@ -45,7 +45,9 @@ typedef struct {
 	igt_pipe_crc_t *pipe_crc;
 } data_t;
 
+static color_t red   = { 1.0f, 0.0f, 0.0f };
 static color_t green = { 0.0f, 1.0f, 0.0f };
+static color_t blue  = { 0.0f, 0.0f, 1.0f };
 
 /*
  * Common code across all tests, acting on data_t
@@ -211,6 +213,124 @@ test_plane_position(data_t *data, enum pipe pipe, enum igt_plane plane,
 						flags);
 }
 
+/*
+ * Plane panning test.
+ *   - We start by grabbing reference CRCs of a full red and a full blue fb
+ *     being scanned out on the primary plane
+ *   - Then we create a big fb, sized (2 * hdisplay, 2 * vdisplay) and:
+ *      - fill the top left quarter with red
+ *      - fill the bottom right quarter with blue
+ *   - The TEST_PANNING_TOP_LEFT test makes sure that with panning at (0, 0)
+ *     we do get the same CRC than the full red fb.
+ *   - The TEST_PANNING_BOTTOM_RIGHT test makes sure that with panning at
+ *     (vdisplay, hdisplay) we do get the same CRC than the full blue fb.
+ */
+typedef struct {
+	data_t *data;
+	igt_crc_t red_crc, blue_crc;
+} test_panning_t;
+
+static void
+create_fb_for_mode__panning(data_t *data, drmModeModeInfo *mode,
+			    struct igt_fb *fb /* out */)
+{
+	unsigned int fb_id;
+	cairo_t *cr;
+
+	fb_id = igt_create_fb(data->drm_fd,
+			      mode->hdisplay * 2, mode->vdisplay * 2,
+			      DRM_FORMAT_XRGB8888,
+			      false /* tiling */,
+			      fb);
+	igt_assert(fb_id);
+
+	cr = igt_get_cairo_ctx(data->drm_fd, fb);
+
+	igt_paint_color(cr, 0, 0, mode->hdisplay, mode->vdisplay,
+			1.0, 0.0, 0.0);
+
+	igt_paint_color(cr,
+			mode->hdisplay, mode->vdisplay,
+			mode->hdisplay, mode->vdisplay,
+			0.0, 0.0, 1.0);
+
+	igt_assert(cairo_status(cr) == 0);
+	cairo_destroy(cr);
+}
+
+enum {
+	TEST_PANNING_TOP_LEFT	  = 1 << 0,
+	TEST_PANNING_BOTTOM_RIGHT = 1 << 1,
+};
+
+static void
+test_plane_panning_with_output(data_t *data,
+			       enum pipe pipe,
+			       enum igt_plane plane,
+			       igt_output_t *output,
+			       unsigned int flags)
+{
+	test_panning_t test = { .data = data };
+	igt_plane_t *primary;
+	struct igt_fb primary_fb;
+	drmModeModeInfo *mode;
+	igt_crc_t crc;
+
+	fprintf(stdout, "Testing connector %s using pipe %c plane %d\n",
+		igt_output_name(output), pipe_name(pipe), plane);
+
+	test_init(data, pipe);
+
+	test_grab_crc(data, output, &red, &test.red_crc);
+	test_grab_crc(data, output, &blue, &test.blue_crc);
+
+	igt_output_set_pipe(output, pipe);
+
+	mode = igt_output_get_mode(output);
+	primary = igt_output_get_plane(output, 0);
+
+	create_fb_for_mode__panning(data, mode, &primary_fb);
+	igt_plane_set_fb(primary, &primary_fb);
+
+	if (flags & TEST_PANNING_TOP_LEFT)
+		igt_plane_set_panning(primary, 0, 0);
+	else
+		igt_plane_set_panning(primary, mode->hdisplay, mode->vdisplay);
+
+	igt_plane_set_position(primary, 0, 0);
+
+	igt_display_commit(&data->display);
+
+	igt_pipe_crc_collect_crc(data->pipe_crc, &crc);
+
+	if (flags & TEST_PANNING_TOP_LEFT)
+		igt_assert(igt_crc_equal(&test.red_crc, &crc));
+	else
+		igt_assert(igt_crc_equal(&test.blue_crc, &crc));
+
+	igt_plane_set_fb(primary, NULL);
+
+	/* reset states to neutral values, assumed by other tests */
+	igt_output_set_pipe(output, PIPE_ANY);
+	igt_plane_set_panning(primary, 0, 0);
+
+	test_fini(data);
+}
+
+static void
+test_plane_panning(data_t *data, enum pipe pipe, enum igt_plane plane,
+            unsigned int flags)
+{
+	igt_output_t *output;
+
+	igt_skip_on(pipe >= data->display.n_pipes);
+	igt_skip_on(plane >= data->display.pipes[pipe].n_planes);
+
+	for_each_connected_output(&data->display, output)
+		test_plane_panning_with_output(data, pipe, plane, output,
+						flags);
+}
+
 static void
 run_tests_for_pipe_plane(data_t *data, enum pipe pipe, enum igt_plane plane)
 {
@@ -222,6 +342,16 @@ run_tests_for_pipe_plane(data_t *data, enum pipe pipe, enum igt_plane plane)
 	igt_subtest_f("plane-position-hole-pipe-%c-plane-%d",
 		      pipe_name(pipe), plane)
 		test_plane_position(data, pipe, plane, 0);
+
+	igt_subtest_f("plane-panning-top-left-pipe-%c-plane-%d",
+		      pipe_name(pipe), plane)
+		test_plane_panning(data, pipe, plane, TEST_PANNING_TOP_LEFT);
+
+	igt_subtest_f("plane-panning-bottom-right-pipe-%c-plane-%d",
+		      pipe_name(pipe), plane)
+		test_plane_panning(data, pipe, plane,
+				   TEST_PANNING_BOTTOM_RIGHT);
+
 }
 
 static void
