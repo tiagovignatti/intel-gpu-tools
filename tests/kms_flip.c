@@ -923,6 +923,10 @@ static unsigned int run_test_step(struct test_output *o)
 			o->flip_state.count : o->vblank_state.count;
 		int x_ofs = count * 10 > o->fb_width - o->kmode[0].hdisplay ? o->fb_width - o->kmode[0].hdisplay : count * 10;
 
+		/* Make sure DSPSURF changes value */
+		if (o->flags & TEST_HANG)
+			o->current_fb_id = !o->current_fb_id;
+
 		igt_assert_f(set_mode(o, o->fb_ids[o->current_fb_id], x_ofs, 0) == 0,
 			     "failed to pan (%dx%d@%dHz)+%d: %s\n",
 			     o->kmode[0].hdisplay, o->kmode[0].vdisplay, o->kmode[0].vrefresh,
