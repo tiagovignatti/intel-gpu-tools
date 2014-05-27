@@ -96,6 +96,27 @@ enum kmstest_force_connector_state {
 	FORCE_CONNECTOR_OFF
 };
 
+
+/**
+ * kmstest_generic_edid:
+ * @EDID_XGA: 1024x768
+ * @EDID_SXGA: 1280x1024
+ * @EDID_UXGA: 1600x1200
+ * @EDID_WSXGA: 1680x1050
+ * @EDID_FHD: 1920x1080
+ * @MAX_EDIDS: Size of #generic_edid array
+ */
+enum kmstest_generic_edid {
+	EDID_XGA,   /* 1024x768 */
+	EDID_SXGA,  /* 1280x1024 */
+	EDID_UXGA,  /* 1600x1200 */
+	EDID_WSXGA, /* 1680x1050 */
+	EDID_FHD,   /* 1920x1080 */
+
+	MAX_EDIDS
+};
+
+
 int kmstest_get_connector_default_mode(int drm_fd, drmModeConnector *connector,
 				      drmModeModeInfo *mode);
 int kmstest_get_connector_config(int drm_fd, uint32_t connector_id,
@@ -103,6 +124,8 @@ int kmstest_get_connector_config(int drm_fd, uint32_t connector_id,
 				 struct kmstest_connector_config *config);
 void kmstest_force_connector(int fd, drmModeConnector *connector,
 			     enum kmstest_force_connector_state state);
+void kmstest_force_edid(int drm_fd, drmModeConnector *connector,
+			const unsigned char *edid, size_t length);
 void kmstest_free_connector_config(struct kmstest_connector_config *config);
 
 void kmstest_dump_mode(drmModeModeInfo *mode);

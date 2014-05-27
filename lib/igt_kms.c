@@ -408,6 +408,20 @@ static int get_card_number(int fd)
 	return minor(buf.st_rdev) & 0x3f;
 }
 
+static char* get_debugfs_connector_path(int drm_fd, drmModeConnector *connector,
+					const char *file)
+{
+	char *path;
+
+	asprintf(&path, "/sys/kernel/debug/dri/%d/%s-%d/%s",
+		 get_card_number(drm_fd),
+		 kmstest_connector_type_str(connector->connector_type),
+		 connector->connector_type_id,
+		 file);
+
+	return path;
+}
+
 /**
  * kmstest_force_connector:
  * @fd: drm file descriptor
@@ -440,16 +454,44 @@ void kmstest_force_connector(int drm_fd, drmModeConnector *connector, enum
 		break;
 	}
 
-	asprintf(&path, "/sys/kernel/debug/dri/%d/%s-%d/force",
-		 get_card_number(drm_fd),
-		 kmstest_connector_type_str(connector->connector_type),
-		 connector->connector_type_id);
+	path = get_debugfs_connector_path(drm_fd, connector, "force");
 	debugfs_fd = open(path, O_WRONLY | O_TRUNC);
 	free(path);
 
 	igt_assert(debugfs_fd != -1);
 
 	ret = write(debugfs_fd, value, strlen(value));
+	close(debugfs_fd);
+
+	igt_assert(ret != -1);
+}
+
+/**
+ * kmstest_force_edid:
+ * @drm_fd: drm file descriptor
+ * @connector: connector to set @edid on
+ * @edid: An EDID data block
+ * @length: length of the EDID data. #EDID_LENGTH defines the standard EDID
+ * length
+ *
+ * Set the EDID data on @connector to @edid. See #generic_edid and
+ * #kmstest_generic_edid for a set of generic EDID data blocks.
+ */
+void kmstest_force_edid(int drm_fd, drmModeConnector *connector,
+			const unsigned char *edid, size_t length)
+{
+	char *path;
+	int debugfs_fd, ret;
+
+	path = get_debugfs_connector_path(drm_fd, connector, "edid_override");
+
+	debugfs_fd = open(path, O_WRONLY | O_TRUNC);
+
+	free(path);
+
+	igt_assert(debugfs_fd != -1);
+
+	ret = write(debugfs_fd, edid, length);
 	close(debugfs_fd);
 
 	igt_assert(ret != -1);

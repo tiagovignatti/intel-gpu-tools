@@ -40,6 +40,7 @@ libintel_tools_la_SOURCES = 	\
 	intel_iosf.c		\
 	igt_kms.c		\
 	igt_kms.h		\
+	igt_edid.h		\
 	igt_fb.c		\
 	igt_fb.h		\
 	igt_core.c		\

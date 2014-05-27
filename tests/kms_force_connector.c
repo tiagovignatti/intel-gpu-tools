@@ -25,6 +25,7 @@
 #include "igt_core.h"
 #include "igt_kms.h"
 #include "drmtest.h"
+#include "igt_edid.h"
 
 int
 main (int argc, char **argv)
@@ -68,6 +69,29 @@ main (int argc, char **argv)
 	igt_display_init(&display, drm_fd);
 	igt_display_commit(&display);
 
+	/* test edid forcing */
+	kmstest_force_edid(drm_fd, connector, generic_edid[EDID_FHD],
+			   EDID_LENGTH);
+	temp = drmModeGetConnector(drm_fd, connector->connector_id);
+
+	igt_assert(temp->count_modes == 1);
+	igt_assert(temp->modes[0].vrefresh == 60
+		   && temp->modes[0].hdisplay == 1920
+		   && temp->modes[0].vdisplay == 1080);
+
+	drmModeFreeConnector(temp);
+
+	/* custom edid */
+	kmstest_force_edid(drm_fd, connector, generic_edid[EDID_WSXGA],
+			   EDID_LENGTH);
+	temp = drmModeGetConnector(drm_fd, connector->connector_id);
+
+	igt_assert(temp->count_modes == 1);
+	igt_assert(temp->modes[0].vrefresh == 60
+		   && temp->modes[0].hdisplay == 1680
+		   && temp->modes[0].vdisplay == 1050);
+
+	drmModeFreeConnector(temp);
 
 	/* force the connector off */
 	kmstest_force_connector(drm_fd, connector, FORCE_CONNECTOR_OFF);
