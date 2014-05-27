@@ -69,7 +69,8 @@ else
     kms_sink_crc_basic \
     gem_render_copy \
     pm_lpsp \
-    kms_fence_pin_leak
+    kms_fence_pin_leak \
+    kms_mmio_vs_cs_flip
     IGT_LOCAL_CFLAGS += -DANDROID_HAS_CAIRO=0
 endif
 
