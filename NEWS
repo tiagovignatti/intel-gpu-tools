@@ -17,6 +17,14 @@ Release 1.7 (XXXX-XX-XX)
 - Support for building libcairo based tests on Android. Set ANDROID_HAS_CAIRO=1
   in the build enviroment when you have this (Tim Gore).
 
+- Timeout support in igt_aux, see igt_set_timeout (Thomas).
+
+- Documentation for testrunner interface like exit codes, subtest enumeration
+  and log output. Should help other people to run the tests in their own
+  framewok.
+
+- Make swig an optional depency (Damien).
+
 Release 1.6 (2014-03-13)
 ------------------------
 
