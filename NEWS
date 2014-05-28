@@ -25,6 +25,8 @@ Release 1.7 (XXXX-XX-XX)
 
 - Make swig an optional depency (Damien).
 
+- Helpers for runtime pm tests in igt_aux.
+
 Release 1.6 (2014-03-13)
 ------------------------
 
