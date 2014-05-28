@@ -132,7 +132,13 @@ AM_CONDITIONAL(HAVE_NOUVEAU, [test "x$NOUVEAU" = xyes])
 AC_ARG_ENABLE(dumper,
 	      AS_HELP_STRING([--disable-dumper],
 			     [Disable the python based register dumper (default: enabled)]),
-			     [DUMPER=$enableval], [DUMPER=yes])
+			     [DUMPER=$enableval], [DUMPER=auto])
+if test "x$DUMPER" = xauto; then
+	# AX_PYTHON_DEVEL/AX_SWIG_PYTHON are not super friendly and don't
+	# easily allow us to introspect the result of their checks. So if we
+	# find SWING on the system, that's enough to try compiling the dumper.
+	AX_PKG_SWIG(2.0.0, [DUMPER=yes], [DUMPER=no])
+fi
 if test "x$DUMPER" == xyes; then
 	AC_DEFINE(HAVE_DUMPER, 1, [Have dumper support])
 	# SWIG configuration
