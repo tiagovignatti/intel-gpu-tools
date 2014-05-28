@@ -36,13 +36,13 @@ def parse_file(file):
         if ignore_line(line):
             continue
         register = ast.literal_eval(line)
-        if register[2] == 'DPIO':
-            val = reg.dpio_read(register[1], 0)
-        elif register[2] == 'FLISDSI':
-            val = reg.flisdsi_read(register[1])
-        else:
-            val = reg.read(register[1])
         intreg = int(register[1], 16)
+        if register[2] == 'FLISDSI':
+            val = reg.flisdsi_read(intreg)
+        elif register[2] == 'DPIO':
+            val = reg.dpio_read(intreg, 0)
+        else:
+            val = reg.read(intreg)
         print('{0:#010x} | {1:<28} | {2:#010x}'.format(intreg, register[0], val))
     print('')
 

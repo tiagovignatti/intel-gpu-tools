@@ -3,7 +3,6 @@
 import chipset
 
 def read(reg):
-    reg = int(reg, 16)
     val = chipset.intel_register_read(reg)
     return val
 
@@ -12,15 +11,15 @@ def write(reg, val):
 
 def gen6_forcewake_get():
     write(0xa18c, 0x1)
-    read("0xa180")
+    read(0xa180)
 
 def mt_forcewake_get():
     write(0xa188, 0x10001)
-    read("0xa180")
+    read(0xa180)
 
 def vlv_forcewake_get():
     write(0x1300b0, 0x10001)
-    read("0x1300b4")
+    read(0x1300b4)
 
 # don't be clever, just try all possibilities
 def get_wake():
@@ -29,15 +28,12 @@ def get_wake():
     vlv_forcewake_get()
 
 def dpio_read(reg, phy):
-    reg = int(reg, 16)
     phy = int(phy)
 
     val = chipset.intel_dpio_reg_read(reg, phy)
     return val
 
 def flisdsi_read(reg):
-    reg = int(reg, 16)
-
     val = chipset.intel_flisdsi_reg_read(reg)
     return val
 
@@ -62,5 +58,5 @@ if __name__ == "__main__":
         sys.exit()
 
     reg = sys.argv[1]
-    print(hex(read(reg)))
+    print(hex(read(int(reg,16))))
     chipset.intel_register_access_fini()
