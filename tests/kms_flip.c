@@ -894,6 +894,12 @@ static unsigned int run_test_step(struct test_output *o)
 		igt_assert_f(hang, "failed to exercise page flip hang recovery\n");
 	}
 
+	/* try to make sure we can issue two flips during the same frame */
+	if (do_flip && (o->flags & TEST_EBUSY)) {
+		struct vblank_reply reply;
+		igt_assert(__wait_for_vblank(TEST_VBLANK_BLOCK, o->pipe, 1, 0, &reply) == 0);
+	}
+
 	if (do_flip)
 		do_or_die(do_page_flip(o, new_fb_id, !(o->flags & TEST_NOEVENT)));
 
@@ -1536,12 +1542,13 @@ int main(int argc, char **argv)
 		{ 60,  TEST_VBLANK | TEST_MODESET | TEST_WITH_DUMMY_RCS,
 					"rcs-wf_vblank-vs-modeset" },
 
-		{ 30, TEST_FLIP | TEST_EBUSY , "plain-flip" },
+		{ 30, TEST_FLIP , "plain-flip" },
+		{ 30, TEST_FLIP | TEST_EBUSY , "busy-flip" },
 		{ 30, TEST_FLIP | TEST_FENCE_STRESS , "flip-vs-fences" },
-		{ 30, TEST_FLIP | TEST_CHECK_TS | TEST_EBUSY , "plain-flip-ts-check" },
-		{ 30, TEST_FLIP | TEST_CHECK_TS | TEST_EBUSY | TEST_FB_RECREATE,
+		{ 30, TEST_FLIP | TEST_CHECK_TS, "plain-flip-ts-check" },
+		{ 30, TEST_FLIP | TEST_CHECK_TS | TEST_FB_RECREATE,
 			"plain-flip-fb-recreate" },
-		{ 30, TEST_FLIP | TEST_EBUSY | TEST_RMFB | TEST_MODESET , "flip-vs-rmfb" },
+		{ 30, TEST_FLIP | TEST_RMFB | TEST_MODESET , "flip-vs-rmfb" },
 		{ 60, TEST_FLIP | TEST_DPMS | TEST_EINVAL, "flip-vs-dpms" },
 		{ 60, TEST_FLIP | TEST_DPMS | TEST_WITH_DUMMY_BCS, "bcs-flip-vs-dpms" },
 		{ 60, TEST_FLIP | TEST_DPMS | TEST_WITH_DUMMY_RCS, "rcs-flip-vs-dpms" },
