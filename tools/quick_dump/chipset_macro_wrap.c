@@ -18,6 +18,11 @@ int is_valleyview(unsigned short pciid)
 	return IS_VALLEYVIEW(pciid);
 }
 
+int is_cherryview(unsigned short pciid)
+{
+	return IS_CHERRYVIEW(pciid);
+}
+
 int is_haswell(unsigned short pciid)
 {
 	return IS_HASWELL(pciid);

@@ -64,6 +64,8 @@ def autodetect_chipset():
         return open('sandybridge', 'r')
     elif chipset.is_ivybridge(devid):
         return open('ivybridge', 'r')
+    elif chipset.is_cherryview(devid):
+        return open('cherryview', 'r')
     elif chipset.is_valleyview(devid):
         return open('valleyview', 'r')
     elif chipset.is_haswell(devid):
