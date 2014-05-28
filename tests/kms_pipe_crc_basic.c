@@ -127,7 +127,12 @@ test_read_crc_for_output(data_t *data, int pipe, igt_output_t *output,
 	int c, j;
 
 	for (c = 0; c < ARRAY_SIZE(colors); c++) {
+		char *crc_str;
+
 		igt_output_set_pipe(output, pipe);
+
+		igt_debug("Clearing the fb with color (%.02lf,%.02lf,%.02lf)\n",
+			  colors[c].r, colors[c].g, colors[c].b);
 
 		mode = igt_output_get_mode(output);
 		igt_create_color_fb(data->drm_fd,
@@ -161,6 +166,10 @@ test_read_crc_for_output(data_t *data, int pipe, igt_output_t *output,
 		 * other fbs
 		 */
 		colors[c].crc = crcs[0];
+
+		crc_str = igt_crc_to_string(&crcs[0]);
+		igt_debug("CRC for this fb: %s\n", crc_str);
+		free(crc_str);
 
 		/*
 		 * make sure the CRC of this fb is different from the ones of
