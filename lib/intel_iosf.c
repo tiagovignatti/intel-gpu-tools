@@ -137,7 +137,10 @@ uint32_t intel_dpio_reg_read(uint32_t reg, int phy)
 {
 	uint32_t val;
 
-	vlv_sideband_rw(IOSF_PORT_DPIO, SB_MRD_NP, reg, &val);
+	if (phy == 0)
+		vlv_sideband_rw(IOSF_PORT_DPIO, SB_MRD_NP, reg, &val);
+	else
+		vlv_sideband_rw(IOSF_PORT_DPIO_2, SB_MRD_NP, reg, &val);
 	return val;
 }
 
@@ -151,7 +154,10 @@ uint32_t intel_dpio_reg_read(uint32_t reg, int phy)
  */
 void intel_dpio_reg_write(uint32_t reg, uint32_t val, int phy)
 {
-	vlv_sideband_rw(IOSF_PORT_DPIO, SB_MWR_NP, reg, &val);
+	if (phy == 0)
+		vlv_sideband_rw(IOSF_PORT_DPIO, SB_MWR_NP, reg, &val);
+	else
+		vlv_sideband_rw(IOSF_PORT_DPIO_2, SB_MWR_NP, reg, &val);
 }
 
 uint32_t intel_flisdsi_reg_read(uint32_t reg)
