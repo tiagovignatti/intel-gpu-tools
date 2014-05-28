@@ -41,6 +41,8 @@ def parse_file(file):
             val = reg.flisdsi_read(intreg)
         elif register[2] == 'DPIO':
             val = reg.dpio_read(intreg, 0)
+        elif register[2] == 'DPIO2':
+            val = reg.dpio_read(intreg, 1)
         else:
             if register[2] != '':
                 intreg = intreg + int(register[2], 16)
