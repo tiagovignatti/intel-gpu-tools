@@ -185,6 +185,36 @@ intel_get_total_swap_mb(void)
 	return retval / (1024*1024);
 }
 
+bool intel_check_memory(uint32_t count, uint32_t size, unsigned mode)
+{
+/* rough estimate of how many bytes the kernel requires to track each object */
+#define KERNEL_BO_OVERHEAD 512
+	uint64_t required, total;
+
+	required = count;
+	required *= size + KERNEL_BO_OVERHEAD;
+	required = ALIGN(required, 4096);
+
+	total = 0;
+	if (mode & (CHECK_RAM | CHECK_SWAP))
+		total += intel_get_avail_ram_mb();
+	if (mode & CHECK_SWAP)
+		total += intel_get_total_swap_mb();
+	total *= 1024 * 1024;
+
+	if (total <= required) {
+		igt_log(IGT_LOG_INFO,
+			"Estimated that we need %llu bytes for the test, but only have %llu bytes available (%s%s)\n",
+			(long long)required, (long long)total,
+			mode & CHECK_RAM ? "RAM" : "",
+			mode & CHECK_SWAP ? " + swap": "");
+		return 0;
+	}
+
+	return 1;
+}
+
+
 void
 intel_purge_vm_caches(void)
 {

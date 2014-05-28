@@ -101,13 +101,12 @@ static int minor_evictions(int fd, struct igt_eviction_test_ops *ops,
 }
 
 static int major_evictions(int fd, struct igt_eviction_test_ops *ops,
-				int surface_size, int nr_surfaces)
+			   int surface_size, int nr_surfaces)
 {
 	int n, m, loop;
 	uint32_t *bo;
 
-	igt_require((uint64_t)nr_surfaces * surface_size / (1024 * 1024)
-			< intel_get_total_ram_mb() * 9 / 10);
+	igt_require(intel_check_memory(nr_surfaces, surface_size, CHECK_RAM));
 
 	bo = malloc(nr_surfaces*sizeof(*bo));
 	igt_assert(bo);
@@ -128,18 +127,19 @@ static int major_evictions(int fd, struct igt_eviction_test_ops *ops,
 }
 
 static int swapping_evictions(int fd, struct igt_eviction_test_ops *ops,
-				int surface_size,
-				int working_surfaces,
-				int trash_surfaces)
+			      int surface_size,
+			      int working_surfaces,
+			      int trash_surfaces)
 {
 	uint32_t *bo;
 	int i, n, pass;
 
-	igt_require((uint64_t)working_surfaces * surface_size / (1024 * 1024)
-			< intel_get_total_ram_mb() * 9 / 10);
+	igt_require(intel_check_memory(working_surfaces, surface_size, CHECK_RAM));
 
 	if (trash_surfaces < working_surfaces)
 		trash_surfaces = working_surfaces;
+
+	igt_require(intel_check_memory(trash_surfaces, surface_size, CHECK_RAM | CHECK_SWAP));
 
 	bo = malloc(trash_surfaces*sizeof(*bo));
 	igt_assert(bo);
@@ -173,18 +173,17 @@ static int forking_evictions(int fd, struct igt_eviction_test_ops *ops,
 	int num_threads = sysconf(_SC_NPROCESSORS_ONLN);
 	int bo_count;
 
-	igt_require((uint64_t)working_surfaces * surface_size / (1024 * 1024)
-			< intel_get_total_ram_mb() * 9 / 10);
+	igt_require(intel_check_memory(working_surfaces, surface_size, CHECK_RAM));
 
 	if (flags & FORKING_EVICTIONS_SWAPPING) {
-		igt_require(intel_get_total_ram_mb() / 4
-				< intel_get_total_swap_mb());
 		bo_count = trash_surfaces;
-
 		if (bo_count < working_surfaces)
 			bo_count = working_surfaces;
+
 	} else
 		bo_count = working_surfaces;
+
+	igt_require(intel_check_memory(bo_count, surface_size, CHECK_RAM | CHECK_SWAP));
 
 	bo = malloc(bo_count*sizeof(*bo));
 	igt_assert(bo);

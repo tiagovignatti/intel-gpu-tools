@@ -171,8 +171,7 @@ igt_simple_main
 		(long)intel_get_avail_ram_mb(),
 		(long)intel_get_total_ram_mb(),
 		(long)intel_get_total_swap_mb());
-
-	igt_require(count < intel_get_avail_ram_mb() + intel_get_total_swap_mb());
+	igt_require(intel_check_memory(count, 1024*1024, CHECK_RAM | CHECK_SWAP));
 
 	for (n = 0; n < count; n++) {
 		bo_handles[n] = create_bo_and_fill(fd);
