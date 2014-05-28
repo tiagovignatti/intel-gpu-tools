@@ -228,5 +228,8 @@ void igt_wait_for_vblank(int drm_fd, enum pipe pipe);
 
 #define IGT_FIXED(i,f)	((i) << 16 | (f))
 
+void igt_enable_connectors(void);
+void igt_reset_connectors(void);
+
 #endif /* __IGT_KMS_H__ */
 

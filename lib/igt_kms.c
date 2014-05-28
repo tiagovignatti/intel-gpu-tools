@@ -1381,3 +1381,73 @@ void igt_wait_for_vblank(int drm_fd, enum pipe pipe)
 
 	igt_assert(drmWaitVBlank(drm_fd, &wait_vbl) == 0);
 }
+
+static void reset_connectors_at_exit(int sig)
+{
+	igt_reset_connectors();
+}
+
+/**
+ * igt_enable_connectors:
+ *
+ * Force connectors to be enabled where this is known to work well. Use
+ * #igt_reset_connectors to revert the changes.
+ *
+ * An exit handler is installed to ensure connectors are reset when the test
+ * exits.
+ */
+void igt_enable_connectors(void)
+{
+	drmModeRes *res;
+	drmModeConnector *c;
+	int drm_fd;
+
+	drm_fd = drm_open_any();
+
+	res = drmModeGetResources(drm_fd);
+
+	for (int i = 0; i < res->count_connectors; i++) {
+
+		c = drmModeGetConnector(drm_fd, res->connectors[i]);
+
+		/* don't attempt to force connectors that are already connected
+		 */
+		if (c->connection == DRM_MODE_CONNECTED)
+			continue;
+
+		/* just enable VGA for now */
+		if (c->connector_type == DRM_MODE_CONNECTOR_VGA)
+			kmstest_force_connector(drm_fd, c, FORCE_CONNECTOR_ON);
+
+		drmModeFreeConnector(c);
+	}
+	close(drm_fd);
+
+	igt_install_exit_handler(reset_connectors_at_exit);
+}
+
+/**
+ * igt_reset_connectors:
+ *
+ * Remove any forced state from the connectors.
+ */
+void igt_reset_connectors(void)
+{
+	drmModeRes *res;
+	drmModeConnector *c;
+	int drm_fd;
+
+	drm_fd = drm_open_any();
+	res = drmModeGetResources(drm_fd);
+
+	for (int i = 0; i < res->count_connectors; i++) {
+
+		c = drmModeGetConnector(drm_fd, res->connectors[i]);
+
+		kmstest_force_connector(drm_fd, c, FORCE_CONNECTOR_UNSPECIFIED);
+
+		drmModeFreeConnector(c);
+	}
+
+	close(drm_fd);
+}
