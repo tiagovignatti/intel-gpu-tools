@@ -111,6 +111,8 @@ static void test_bad_command(data_t *data, const char *cmd)
 	fclose(ctl);
 }
 
+#define N_CRCS	3
+
 #define TEST_SEQUENCE (1<<0)
 
 static int
@@ -149,8 +151,8 @@ test_read_crc_for_output(data_t *data, int pipe, igt_output_t *output,
 
 		igt_pipe_crc_start(pipe_crc);
 
-		/* wait for 3 vblanks and the corresponding 3 CRCs */
-		igt_pipe_crc_get_crcs(pipe_crc, 3, &crcs);
+		/* wait for N_CRCS vblanks and the corresponding N_CRCS CRCs */
+		igt_pipe_crc_get_crcs(pipe_crc, N_CRCS, &crcs);
 
 		igt_pipe_crc_stop(pipe_crc);
 
@@ -169,18 +171,16 @@ test_read_crc_for_output(data_t *data, int pipe, igt_output_t *output,
 						  &colors[c].crc));
 
 		/* ensure the CRCs are not all 0s */
-		igt_assert(!igt_crc_is_null(&crcs[0]));
-		igt_assert(!igt_crc_is_null(&crcs[1]));
-		igt_assert(!igt_crc_is_null(&crcs[2]));
+		for (j = 0; j < N_CRCS; j++)
+			igt_assert(!igt_crc_is_null(&crcs[j]));
 
 		/* and ensure that they'are all equal, we haven't changed the fb */
-		igt_assert(igt_crc_equal(&crcs[0], &crcs[1]));
-		igt_assert(igt_crc_equal(&crcs[1], &crcs[2]));
+		for (j = 0; j < (N_CRCS - 1); j++)
+			igt_assert(igt_crc_equal(&crcs[j], &crcs[j + 1]));
 
-		if (flags & TEST_SEQUENCE) {
-			igt_assert(crcs[0].frame + 1 == crcs[1].frame);
-			igt_assert(crcs[1].frame + 1 == crcs[2].frame);
-		}
+		if (flags & TEST_SEQUENCE)
+			for (j = 0; j < (N_CRCS - 1); j++)
+				igt_assert(crcs[j].frame + 1 == crcs[j + 1].frame);
 
 		free(crcs);
 		igt_pipe_crc_free(pipe_crc);
