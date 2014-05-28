@@ -39,6 +39,14 @@ typedef struct {
 	struct igt_fb fb;
 } data_t;
 
+static struct {
+	double r, g, b;
+	igt_crc_t crc;
+} colors[2] = {
+	{ .r = 0.0, .g = 1.0, .b = 0.0 },
+	{ .r = 0.0, .g = 1.0, .b = 1.0 },
+};
+
 static uint64_t submit_batch(int fd, unsigned ring_id)
 {
 	const uint32_t batch[] = { MI_NOOP,
@@ -114,54 +122,73 @@ test_read_crc_for_output(data_t *data, int pipe, igt_output_t *output,
 	drmModeModeInfo *mode;
 	igt_pipe_crc_t *pipe_crc;
 	igt_crc_t *crcs = NULL;
+	int c, j;
 
-	igt_output_set_pipe(output, pipe);
+	for (c = 0; c < ARRAY_SIZE(colors); c++) {
+		igt_output_set_pipe(output, pipe);
 
-	mode = igt_output_get_mode(output);
-	igt_create_color_fb(data->drm_fd,
-				mode->hdisplay, mode->vdisplay,
-				DRM_FORMAT_XRGB8888,
-				false, /* tiled */
-				0.0, 1.0, 0.0,
-				&data->fb);
+		mode = igt_output_get_mode(output);
+		igt_create_color_fb(data->drm_fd,
+					mode->hdisplay, mode->vdisplay,
+					DRM_FORMAT_XRGB8888,
+					false, /* tiled */
+					colors[c].r,
+					colors[c].g,
+					colors[c].b,
+					&data->fb);
 
-	primary = igt_output_get_plane(output, 0);
-	igt_plane_set_fb(primary, &data->fb);
+		primary = igt_output_get_plane(output, 0);
+		igt_plane_set_fb(primary, &data->fb);
 
-	igt_display_commit(display);
+		igt_display_commit(display);
 
-	pipe_crc = igt_pipe_crc_new(pipe, INTEL_PIPE_CRC_SOURCE_AUTO);
+		pipe_crc = igt_pipe_crc_new(pipe, INTEL_PIPE_CRC_SOURCE_AUTO);
 
-	if (!pipe_crc)
-		return 0;
+		if (!pipe_crc)
+			return 0;
 
-	igt_pipe_crc_start(pipe_crc);
+		igt_pipe_crc_start(pipe_crc);
 
-	/* wait for 3 vblanks and the corresponding 3 CRCs */
-	igt_pipe_crc_get_crcs(pipe_crc, 3, &crcs);
+		/* wait for 3 vblanks and the corresponding 3 CRCs */
+		igt_pipe_crc_get_crcs(pipe_crc, 3, &crcs);
 
-	igt_pipe_crc_stop(pipe_crc);
+		igt_pipe_crc_stop(pipe_crc);
 
-	/* ensure the CRCs are not all 0s */
-	igt_assert(!igt_crc_is_null(&crcs[0]));
-	igt_assert(!igt_crc_is_null(&crcs[1]));
-	igt_assert(!igt_crc_is_null(&crcs[2]));
+		/*
+		 * save the CRC in colors so it can be compared to the CRC of
+		 * other fbs
+		 */
+		colors[c].crc = crcs[0];
 
-	/* and ensure that they'are all equal, we haven't changed the fb */
-	igt_assert(igt_crc_equal(&crcs[0], &crcs[1]));
-	igt_assert(igt_crc_equal(&crcs[1], &crcs[2]));
+		/*
+		 * make sure the CRC of this fb is different from the ones of
+		 * previous fbs
+		 */
+		for (j = 0; j < c; j++)
+			igt_assert(!igt_crc_equal(&colors[j].crc,
+						  &colors[c].crc));
 
-	if (flags & TEST_SEQUENCE) {
-		igt_assert(crcs[0].frame + 1 == crcs[1].frame);
-		igt_assert(crcs[1].frame + 1 == crcs[2].frame);
+		/* ensure the CRCs are not all 0s */
+		igt_assert(!igt_crc_is_null(&crcs[0]));
+		igt_assert(!igt_crc_is_null(&crcs[1]));
+		igt_assert(!igt_crc_is_null(&crcs[2]));
+
+		/* and ensure that they'are all equal, we haven't changed the fb */
+		igt_assert(igt_crc_equal(&crcs[0], &crcs[1]));
+		igt_assert(igt_crc_equal(&crcs[1], &crcs[2]));
+
+		if (flags & TEST_SEQUENCE) {
+			igt_assert(crcs[0].frame + 1 == crcs[1].frame);
+			igt_assert(crcs[1].frame + 1 == crcs[2].frame);
+		}
+
+		free(crcs);
+		igt_pipe_crc_free(pipe_crc);
+		igt_remove_fb(data->drm_fd, &data->fb);
+		igt_plane_set_fb(primary, NULL);
+
+		igt_output_set_pipe(output, PIPE_ANY);
 	}
-
-	free(crcs);
-	igt_pipe_crc_free(pipe_crc);
-	igt_remove_fb(data->drm_fd, &data->fb);
-	igt_plane_set_fb(primary, NULL);
-
-	igt_output_set_pipe(output, PIPE_ANY);
 
 	return 1;
 }
