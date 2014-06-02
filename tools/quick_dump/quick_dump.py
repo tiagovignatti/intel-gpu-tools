@@ -42,6 +42,8 @@ def parse_file(file):
         elif register[2] == 'DPIO':
             val = reg.dpio_read(intreg, 0)
         else:
+            if register[2] != '':
+                intreg = intreg + int(register[2], 16)
             val = reg.read(intreg)
         print('{0:#010x} | {1:<28} | {2:#010x}'.format(intreg, register[0], val))
     print('')
