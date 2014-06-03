@@ -223,8 +223,8 @@ copy(int fd, uint32_t dst, uint32_t src, unsigned int error)
 	gem_close(fd, handle);
 }
 
-static void
-blit(int fd, uint32_t dst, uint32_t src, uint32_t *all_bo, int n_bo, int error)
+static int
+blit(int fd, uint32_t dst, uint32_t src, uint32_t *all_bo, int n_bo)
 {
 	uint32_t batch[12];
 	struct drm_i915_gem_relocation_entry reloc[2];
@@ -297,10 +297,10 @@ blit(int fd, uint32_t dst, uint32_t src, uint32_t *all_bo, int n_bo, int error)
 	if (ret)
 		ret = errno;
 
-	igt_assert(ret == error);
-
 	gem_close(fd, handle);
 	free(obj);
+
+	return ret;
 }
 
 static uint32_t

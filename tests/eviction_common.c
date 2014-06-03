@@ -36,8 +36,8 @@ struct igt_eviction_test_ops
 {
 	uint32_t (*create)(int fd, int size);
 	void	 (*close)(int fd, uint32_t bo);
-	void	 (*copy)(int fd, uint32_t dst, uint32_t src,
-			 uint32_t *all_bo, int nr_bos, int error);
+	int	 (*copy)(int fd, uint32_t dst, uint32_t src,
+			 uint32_t *all_bo, int nr_bos);
 	void	 (*clear)(int fd, uint32_t bo, int size);
 };
 
@@ -61,7 +61,7 @@ static void exchange_uint32_t(void *array, unsigned i, unsigned j)
 }
 
 static int minor_evictions(int fd, struct igt_eviction_test_ops *ops,
-				int surface_size, int nr_surfaces)
+			   int surface_size, int nr_surfaces)
 {
 	uint32_t *bo, *sel;
 	int n, m, pass, fail;
@@ -76,6 +76,7 @@ static int minor_evictions(int fd, struct igt_eviction_test_ops *ops,
 
 	total_surfaces = (uint64_t)intel_get_total_ram_mb() * 9 /10 * 1024 *1024 / surface_size;
 	igt_require(nr_surfaces < total_surfaces);
+	igt_require(total_surfaces * surface_size > gem_aperture_size(fd));
 
 	bo = malloc((nr_surfaces + total_surfaces)*sizeof(*bo));
 	igt_assert(bo);
@@ -85,12 +86,15 @@ static int minor_evictions(int fd, struct igt_eviction_test_ops *ops,
 
 	sel = bo + n;
 	for (fail = 0, m = 0; fail < 10; fail++) {
+		int ret;
 		for (pass = 0; pass < 100; pass++) {
 			for (n = 0; n < nr_surfaces; n++, m += 7)
 				sel[n] = bo[m%total_surfaces];
-			ops->copy(fd, sel[0], sel[1], sel, nr_surfaces, 0);
+			ret = ops->copy(fd, sel[0], sel[1], sel, nr_surfaces);
+			igt_assert(ret == 0);
 		}
-		ops->copy(fd, bo[0], bo[0], bo, total_surfaces, ENOSPC);
+		ret = ops->copy(fd, bo[0], bo[0], bo, total_surfaces);
+		igt_assert(ret == ENOSPC);
 	}
 
 	for (n = 0; n < total_surfaces; n++)
@@ -105,6 +109,7 @@ static int major_evictions(int fd, struct igt_eviction_test_ops *ops,
 {
 	int n, m, loop;
 	uint32_t *bo;
+	int ret;
 
 	igt_require(intel_check_memory(nr_surfaces, surface_size, CHECK_RAM));
 
@@ -116,7 +121,8 @@ static int major_evictions(int fd, struct igt_eviction_test_ops *ops,
 
 	for (loop = 0, m = 0; loop < 100; loop++, m += 17) {
 		n = m % nr_surfaces;
-		ops->copy(fd, bo[n], bo[n], &bo[n], 1, 0);
+		ret = ops->copy(fd, bo[n], bo[n], &bo[n], 1);
+		igt_assert(ret == 0);
 	}
 
 	for (n = 0; n < nr_surfaces; n++)
@@ -132,7 +138,7 @@ static int swapping_evictions(int fd, struct igt_eviction_test_ops *ops,
 			      int trash_surfaces)
 {
 	uint32_t *bo;
-	int i, n, pass;
+	int i, n, pass, ret;
 
 	igt_require(intel_check_memory(working_surfaces, surface_size, CHECK_RAM));
 
@@ -151,7 +157,8 @@ static int swapping_evictions(int fd, struct igt_eviction_test_ops *ops,
 		igt_permute_array(bo, trash_surfaces, exchange_uint32_t);
 
 		for (pass = 0; pass < 100; pass++) {
-			ops->copy(fd, bo[0], bo[1], bo, working_surfaces, 0);
+			ret = ops->copy(fd, bo[0], bo[1], bo, working_surfaces);
+			igt_assert(ret == 0);
 		}
 	}
 
@@ -169,7 +176,7 @@ static int forking_evictions(int fd, struct igt_eviction_test_ops *ops,
 				int trash_surfaces, unsigned flags)
 {
 	uint32_t *bo;
-	int n, pass, l;
+	int n, pass, l, ret;
 	int num_threads = sysconf(_SC_NPROCESSORS_ONLN);
 	int bo_count;
 
@@ -216,7 +223,8 @@ static int forking_evictions(int fd, struct igt_eviction_test_ops *ops,
 		}
 
 		for (pass = 0; pass < num_passes; pass++) {
-			ops->copy(realfd, bo[0], bo[1], bo, working_surfaces, 0);
+			ret = ops->copy(realfd, bo[0], bo[1], bo, working_surfaces);
+			igt_assert(ret == 0);
 
 			for (l = 0; l < working_surfaces &&
 			  (flags & FORKING_EVICTIONS_MEMORY_PRESSURE);

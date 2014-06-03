@@ -51,8 +51,8 @@
 #define HEIGHT 256
 #define WIDTH 1024
 
-static void
-copy(int fd, uint32_t dst, uint32_t src, uint32_t *all_bo, int n_bo, int error)
+static int
+copy(int fd, uint32_t dst, uint32_t src, uint32_t *all_bo, int n_bo)
 {
 	uint32_t batch[12];
 	struct drm_i915_gem_relocation_entry reloc[2];
@@ -122,10 +122,11 @@ copy(int fd, uint32_t dst, uint32_t src, uint32_t *all_bo, int n_bo, int error)
 	ret = drmIoctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &exec);
 	if (ret)
 		ret = errno;
-	igt_assert(ret == error);
 
 	gem_close(fd, handle);
 	free(obj);
+
+	return ret;
 }
 
 static void clear(int fd, uint32_t handle, int size)
