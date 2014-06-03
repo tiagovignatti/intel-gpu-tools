@@ -31,7 +31,6 @@
 #include <sys/time.h>
 
 #include "drmtest.h"
-#include "testdisplay.h"
 #include "intel_bufmgr.h"
 #include "intel_batchbuffer.h"
 #include "intel_io.h"

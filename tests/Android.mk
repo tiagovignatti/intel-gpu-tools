@@ -31,7 +31,6 @@ skip_tests_list :=
 skip_tests_list += gem_seqno_wrap
 skip_tests_list += testdisplay        # needs glib.h
 skip_tests_list += pm_rpm
-skip_tests_list += kms_render         # needs glib.h
 
 # set local compilation flags for IGT tests
 IGT_LOCAL_CFLAGS += -DHAVE_STRUCT_SYSINFO_TOTALRAM -DANDROID -UNDEBUG
@@ -69,7 +68,8 @@ else
     gem_render_copy \
     pm_lpsp \
     kms_fence_pin_leak \
-    kms_mmio_vs_cs_flip
+    kms_mmio_vs_cs_flip \
+    kms_render
     IGT_LOCAL_CFLAGS += -DANDROID_HAS_CAIRO=0
 endif
 
