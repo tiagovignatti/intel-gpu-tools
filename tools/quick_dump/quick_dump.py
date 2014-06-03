@@ -75,9 +75,6 @@ if __name__ == "__main__":
     parser.add_argument('-b', '--baseless',
             action='store_true', default=False,
             help='baseless mode, ignore files starting with base_')
-    parser.add_argument('-a', '--autodetect',
-            action='store_true', default=False,
-            help='autodetect chipset')
     parser.add_argument('-f', '--file',
             type=argparse.FileType('r'), default=None)
     parser.add_argument('profile', nargs='?',
@@ -101,7 +98,7 @@ if __name__ == "__main__":
     if args.baseless == False:
         walk_base_files()
 
-    if args.autodetect:
+    if args.profile == None:
         args.profile = autodetect_chipset()
 
     if args.profile == None:
