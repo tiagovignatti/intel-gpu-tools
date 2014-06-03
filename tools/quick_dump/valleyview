@@ -3,9 +3,9 @@ vlv_pipe_b.txt
 vlv_display_base.txt
 vlv_dpio_phy.txt
 vlv_dsi.txt
+vlv_flisdsi.txt
 base_interrupt.txt
 base_other.txt
 base_power.txt
 base_rings.txt
 gen7_other.txt
-vlv_flisdsi.txt
