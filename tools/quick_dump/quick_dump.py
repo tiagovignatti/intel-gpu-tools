@@ -30,8 +30,8 @@ def ignore_line(line):
     return False
 
 def parse_file(file):
-    print('{0:^10s} | {1:^28s} | {2:^10s}'. format('offset', file.name, 'value'))
-    print('-' * 54)
+    print('{0:^10s} | {1:^33s} | {2:^10s}'. format('offset', file.name, 'value'))
+    print('-' * 59)
     for line in file:
         if ignore_line(line):
             continue
@@ -47,7 +47,7 @@ def parse_file(file):
             if register[2] != '':
                 intreg = intreg + int(register[2], 16)
             val = reg.read(intreg)
-        print('{0:#010x} | {1:<28} | {2:#010x}'.format(intreg, register[0], val))
+        print('{0:#010x} | {1:<33} | {2:#010x}'.format(intreg, register[0], val))
     print('')
 
 def walk_base_files():
