@@ -1,4 +1,6 @@
-vlv_display.txt
+vlv_pipe_a.txt
+vlv_pipe_b.txt
+vlv_display_base.txt
 vlv_dsi.txt
 base_interrupt.txt
 base_other.txt
