@@ -32,7 +32,6 @@ skip_tests_list += gem_seqno_wrap
 skip_tests_list += testdisplay        # needs glib.h
 skip_tests_list += pm_rpm
 skip_tests_list += kms_render         # needs glib.h
-skip_tests_list += gem_exec_params    # needs macro that's missing from external/PRIVATE/drm/include/drmi915_drm.h
 
 # set local compilation flags for IGT tests
 IGT_LOCAL_CFLAGS += -DHAVE_STRUCT_SYSINFO_TOTALRAM -DANDROID -UNDEBUG
