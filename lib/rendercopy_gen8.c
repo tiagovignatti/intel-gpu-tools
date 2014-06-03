@@ -816,6 +816,10 @@ gen8_emit_ps(struct intel_batchbuffer *batch, uint32_t kernel) {
 
 static void
 gen8_emit_depth(struct intel_batchbuffer *batch) {
+	OUT_BATCH(GEN8_3DSTATE_WM_DEPTH_STENCIL | (3 - 2));
+	OUT_BATCH(0);
+	OUT_BATCH(0);
+
 	OUT_BATCH(GEN7_3DSTATE_DEPTH_BUFFER | (8-2));
 	OUT_BATCH(0);
 	OUT_BATCH(0);
