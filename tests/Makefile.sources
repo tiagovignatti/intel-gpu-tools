@@ -62,7 +62,6 @@ TESTS_progs_M = \
 	kms_addfb \
 	kms_cursor_crc \
 	kms_fbc_crc \
-	kms_fence_pin_leak \
 	kms_flip \
 	kms_flip_tiling \
 	kms_mmio_vs_cs_flip \
@@ -137,6 +136,7 @@ TESTS_progs = \
 	gen3_render_tiledy_blits \
 	gen7_forcewake_mt \
 	kms_sink_crc_basic \
+	kms_fence_pin_leak \
 	pm_psr \
 	pm_rc6_residency \
 	prime_udl \
