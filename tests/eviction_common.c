@@ -74,9 +74,9 @@ static int minor_evictions(int fd, struct igt_eviction_test_ops *ops,
 	nr_surfaces *= 7;
 	nr_surfaces += 3;
 
-	total_surfaces = (uint64_t)intel_get_total_ram_mb() * 9 /10 * 1024 *1024 / surface_size;
+	total_surfaces = gem_aperture_size(fd) / surface_size + 1;
 	igt_require(nr_surfaces < total_surfaces);
-	igt_require(total_surfaces * surface_size > gem_aperture_size(fd));
+	igt_require(intel_check_memory(total_surfaces, surface_size, CHECK_RAM));
 
 	bo = malloc((nr_surfaces + total_surfaces)*sizeof(*bo));
 	igt_assert(bo);
