@@ -195,6 +195,11 @@ bool intel_check_memory(uint32_t count, uint32_t size, unsigned mode)
 	required *= size + KERNEL_BO_OVERHEAD;
 	required = ALIGN(required, 4096);
 
+	igt_debug("Checking %u surfaces of size %u bytes (total %llu) against %s%s\n",
+		  count, size, (long long)required,
+		  mode & (CHECK_RAM | CHECK_SWAP) ? "RAM" : "",
+		  mode & CHECK_SWAP ? " + swap": "");
+
 	total = 0;
 	if (mode & (CHECK_RAM | CHECK_SWAP))
 		total += intel_get_avail_ram_mb();
@@ -206,7 +211,7 @@ bool intel_check_memory(uint32_t count, uint32_t size, unsigned mode)
 		igt_log(IGT_LOG_INFO,
 			"Estimated that we need %llu bytes for the test, but only have %llu bytes available (%s%s)\n",
 			(long long)required, (long long)total,
-			mode & CHECK_RAM ? "RAM" : "",
+			mode & (CHECK_RAM | CHECK_SWAP) ? "RAM" : "",
 			mode & CHECK_SWAP ? " + swap": "");
 		return 0;
 	}
