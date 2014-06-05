@@ -63,7 +63,7 @@
  * another either for equality or difference. Otherwise CRCs must be treated as
  * completely opaque values. Note that not even CRCs from different pipes or tap
  * points on the same platform can be compared. Hence only use igt_crc_is_null()
- * and igt_crc_equal() to insepct CRC values captured by the same
+ * and igt_crc_equal() to inspect CRC values captured by the same
  * #igt_pipe_crc_t object.
  *
  * # Other debugfs interface wrappers
