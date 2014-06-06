@@ -134,7 +134,7 @@ static void minor_evictions(int fd, int size, int count)
 	uint32_t *bo, *sel;
 	int n, m, alignment, pass, fail;
 
-	igt_require(intel_check_memory(count, size, CHECK_RAM));
+	igt_require(intel_check_memory(2*count, size, CHECK_RAM));
 
 	bo = malloc(3*count*sizeof(*bo));
 	igt_assert(bo);
