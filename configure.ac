@@ -203,6 +203,12 @@ fi
 AM_CONDITIONAL(BUILD_TESTS, [test "x$BUILD_TESTS" = xyes])
 AC_DEFINE_UNQUOTED(TARGET_CPU_PLATFORM, ["$host_cpu"], [Target platform])
 
+files="broadwell cherryview haswell ivybridge sandybridge valleyview"
+for file in $files; do
+	QUICK_DUMP_EXTRA_DIST+="$file `tr '\n' ' ' < tools/quick_dump/$file`"
+done
+AC_SUBST(QUICK_DUMP_EXTRA_DIST)
+
 AC_CONFIG_FILES([
 		 Makefile
 		 benchmarks/Makefile
