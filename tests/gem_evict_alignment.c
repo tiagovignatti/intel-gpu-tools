@@ -134,7 +134,7 @@ static void minor_evictions(int fd, int size, int count)
 	uint32_t *bo, *sel;
 	int n, m, alignment, pass, fail;
 
-	igt_require((uint64_t)count * size / (1024 * 1024) < intel_get_total_ram_mb() * 9 / 10);
+	igt_require(intel_check_memory(count, size, CHECK_RAM));
 
 	bo = malloc(3*count*sizeof(*bo));
 	igt_assert(bo);
@@ -164,7 +164,7 @@ static void major_evictions(int fd, int size, int count)
 	int n, m, loop, alignment, max;
 	uint32_t *bo;
 
-	igt_require((uint64_t)count * size / (1024 * 1024) < intel_get_total_ram_mb() * 9 / 10);
+	igt_require(intel_check_memory(count, size, CHECK_RAM));
 
 	bo = malloc(count*sizeof(*bo));
 	igt_assert(bo);
