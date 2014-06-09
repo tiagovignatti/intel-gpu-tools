@@ -34,32 +34,25 @@ tests/
 
 	git://anongit.freedesktop.org/piglit
 
-	and build it (no need to install anything). Then we need to link up the
-	i-g-t sources with piglit
+	There is no need to build and install piglit if it is only going to be
+	used for running i-g-t tests.
+
+	Set the IGT_TEST_ROOT environment variable to point to the tests
+	directory or link up the i-g-t sources with piglit using a symlink:
 
 	piglit-sources $ cd bin
 	piglit-sources/bin $ ln $i-g-t-sources igt -s
 
-	To avoid some hassles with piglit's use of Waffle just disable it. Run
+	In both cases, the tests in the i-g-t sources need to have been built
+	already. Then we can run the testcases with (as usual as root, no other
+	drm clients running):
 
-	piglit-sources $ cmake -D PIGLIT_USE_WAFFLE=OFF .
-
-	With
-
-	piglit-sources $ ccmake .
-
-	you can check your configuration with a curses interface, too.
-
-	The tests in the i-g-t sources need to have been built already. Then we
-	can run the testcases with (as usual as root, no other drm clients
-	running):
-
-	piglit-sources # ./piglit-run.py igt <results-file>
+	piglit-sources # ./piglit run igt <results-file>
 
 	The testlist is built at runtime, so no need to update anything in
 	piglit when adding new tests. See
 
-	piglit-sources $ ./piglit-run.py -h
+	piglit-sources $ ./piglit run -h
 
 	for some useful options.
 
