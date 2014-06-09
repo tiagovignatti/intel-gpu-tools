@@ -1,6 +1,6 @@
 # Please keep sorted alphabetically
-core_getclient
 core_get_client_auth
+core_getclient
 core_getstats
 core_getversion
 ddi_compute_wrpll
@@ -41,8 +41,8 @@ gem_exec_nop
 gem_exec_params
 gem_exec_parse
 gem_fd_exhaustion
-gem_fenced_exec_thrash
 gem_fence_thrash
+gem_fenced_exec_thrash
 gem_flink
 gem_flink_race
 gem_gtt_cpu_tlb
@@ -77,9 +77,9 @@ gem_render_copy_redux
 gem_render_linear_blits
 gem_render_tiled_blits
 gem_reset_stats
-gem_ringfill
 gem_ring_sync_copy
 gem_ring_sync_loop
+gem_ringfill
 gem_seqno_wrap
 gem_set_tiling_vs_blt
 gem_set_tiling_vs_gtt
@@ -118,17 +118,20 @@ igt_simulation
 kms_addfb
 kms_cursor_crc
 kms_fbc_crc
+kms_fence_pin_leak
 kms_flip
 kms_flip_tiling
+kms_mmio_vs_cs_flip
 kms_pipe_crc_basic
 kms_plane
 kms_render
 kms_setmode
+kms_sink_crc_basic
 multi-tests.txt
 pm_lpsp
-pm_rpm
 pm_psr
 pm_rc6_residency
+pm_rpm
 pm_rps
 prime_nv_api
 prime_nv_pcopy
