@@ -108,16 +108,14 @@ docs/
 	reference documenation in docs/reference/ You need to have the gtk doc
 	tools installed to generate this API documentation.
 
-	Note that the currrent gtk-docs integration sucks a bit wrt regenerating
-	the html files. You need at least
+	To regenerate the html files when updating documentation, use:
 
 	$ make clean -C docs && make -C docs
 
-	to regenerate them on any change. If you've added/changed/removed a
-	symbol or anything else that changes the overall structure or indexes,
-	you need a full rebuild:
-
-	$ git clean -dfx && ./autogen.sh --enable-gtk-doc && make -C docs
+	If you've added/changed/removed a symbol or anything else that changes
+	the overall structure or indexes, this needs to be reflected in
+	intel-gpu-tools-sections.txt. Entirely new sections will also need to be
+	added to intel-gpu-tools-docs.xml in the appropriate place.
 
 DEPENDENCIES
 	This is a non-exchaustive list of package dependencies required for
