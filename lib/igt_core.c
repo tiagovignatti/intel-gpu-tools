@@ -1031,11 +1031,11 @@ static void fatal_sig_handler(int sig)
  * @fn: exit handler function
  *
  * Set a handler that will be called either when the process calls exit() or
- * returns from the main function, or one of the signals in 'handled_signals'
- * is raised. MAX_EXIT_HANDLERS handlers can be installed, each of which will
- * be called only once, even if a subsequent signal is raised. If the exit
- * handlers are called due to a signal, the signal will be re-raised with the
- * original signal disposition after all handlers returned.
+ * <!-- -->returns from the main function, or one of the signals in
+ * 'handled_signals' is raised. MAX_EXIT_HANDLERS handlers can be installed,
+ * each of which will be called only once, even if a subsequent signal is
+ * raised. If the exit handlers are called due to a signal, the signal will be
+ * re-raised with the original signal disposition after all handlers returned.
  *
  * The handler will be passed the signal number if called due to a signal, or
  * 0 otherwise. Exit handlers can also be used from test children spawned with

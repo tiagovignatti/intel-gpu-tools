@@ -204,14 +204,10 @@ void intel_copy_bo(struct intel_batchbuffer *batch,
  * @tiling: tiling mode bits
  * @data: pointer to the memory mapping of the buffer
  * @size: size of the buffer object
- * @num_tiles: number of tiles of the buffer object
  *
  * This is a i-g-t buffer object wrapper structure which augments the baseline
  * libdrm buffer object with suitable data needed by the render copy and the
  * media fill functions.
- *
- * Note that @num_tiles is only used by gem_stress.c internally and can be
- * ignored.
  */
 struct igt_buf {
     drm_intel_bo *bo;
@@ -219,6 +215,7 @@ struct igt_buf {
     uint32_t tiling;
     uint32_t *data;
     uint32_t size;
+    /*< private >*/
     unsigned num_tiles;
 };
 

@@ -430,10 +430,9 @@ bool igt_setup_runtime_pm(void)
 }
 
 /**
- * igt_runtime_pm_status:
+ * igt_get_runtime_pm_status:
  *
- * Returns:
- * The current runtime PM status.
+ * Returns: The current runtime PM status.
  */
 enum igt_runtime_pm_status igt_get_runtime_pm_status(void)
 {

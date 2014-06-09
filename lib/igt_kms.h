@@ -99,6 +99,7 @@ typedef struct igt_pipe igt_pipe_t;
 typedef uint32_t igt_fixed_t;			/* 16.16 fixed point */
 
 typedef struct {
+	/*< private >*/
 	igt_pipe_t *pipe;
 	int index;
 	unsigned int is_primary       : 1;
@@ -127,6 +128,7 @@ struct igt_pipe {
 };
 
 typedef struct {
+	/*< private >*/
 	igt_display_t *display;
 	uint32_t id;					/* KMS id */
 	struct kmstest_connector_config config;
