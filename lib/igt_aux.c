@@ -53,7 +53,7 @@
 #include "intel_chipset.h"
 #include "igt_aux.h"
 #include "igt_debugfs.h"
-#include "../version.h"
+#include "version.h"
 #include "config.h"
 #include "intel_reg.h"
 #include "ioctl_wrappers.h"
