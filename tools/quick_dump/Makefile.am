@@ -27,7 +27,7 @@ EXTRA_DIST =  \
 	      base_display.txt base_interrupt.txt base_other.txt base_power.txt base_rings.txt \
 	      gen6_other.txt sandybridge \
 	      gen7_other.txt ivybridge \
-	      vlv_display.txt vlv_dpio.txt valleyview \
+	      vlv_display_base.txt vlv_dpio_phy.txt valleyview \
 	      gen8_interrupt.txt \
 	      quick_dump.py \
 	      reg_access.py \
