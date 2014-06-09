@@ -74,6 +74,7 @@ TESTS_progs_M = \
 	pm_lpsp \
 	pm_rpm \
 	pm_rps \
+	pm_rc6_residency \
 	prime_self_import \
 	template \
 	$(NULL)
@@ -140,7 +141,6 @@ TESTS_progs = \
 	kms_sink_crc_basic \
 	kms_fence_pin_leak \
 	pm_psr \
-	pm_rc6_residency \
 	prime_udl \
 	$(NULL)
 
