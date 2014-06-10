@@ -173,3 +173,17 @@ void intel_flisdsi_reg_write(uint32_t reg, uint32_t val)
 {
 	vlv_sideband_rw(IOSF_PORT_FLISDSI, SB_CRWRDA_NP, reg, &val);
 }
+
+uint32_t intel_iosf_sb_read(uint32_t port, uint32_t reg)
+{
+	uint32_t val;
+
+	vlv_sideband_rw(port, SB_CRRDDA_NP, reg, &val);
+
+	return val;
+}
+
+void intel_iosf_sb_write(uint32_t port, uint32_t reg, uint32_t val)
+{
+	vlv_sideband_rw(port, SB_CRWRDA_NP, reg, &val);
+}

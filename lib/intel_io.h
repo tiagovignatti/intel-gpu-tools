@@ -50,6 +50,8 @@ uint32_t intel_dpio_reg_read(uint32_t reg, int phy);
 void intel_dpio_reg_write(uint32_t reg, uint32_t val, int phy);
 uint32_t intel_flisdsi_reg_read(uint32_t reg);
 void intel_flisdsi_reg_write(uint32_t reg, uint32_t val);
+uint32_t intel_iosf_sb_read(uint32_t port, uint32_t reg);
+void intel_iosf_sb_write(uint32_t port, uint32_t reg, uint32_t val);
 
 int intel_punit_read(uint8_t addr, uint32_t *val);
 int intel_punit_write(uint8_t addr, uint32_t val);
