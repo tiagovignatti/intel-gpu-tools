@@ -185,6 +185,27 @@ intel_get_total_swap_mb(void)
 	return retval / (1024*1024);
 }
 
+/**
+ * intel_check_memory:
+ * @count: number of surfaces that will be created
+ * @size: the size in bytes of each surface
+ * @mode: a bitfield declaring whether the test will be run in RAM or in SWAP
+ *
+ * Computes the total amount of memory required to allocate @count surfaces,
+ * each of @size bytes, and includes an estimate for kernel overhead. It then
+ * queries the kernel for the avilable amount of memory on the system (either
+ * RAM and/or SWAP depending upon @mode) and determines whether there is
+ * sufficient to run the test.
+ *
+ * Most tests should check that there is enough RAM to hold their working set.
+ * The rare swap thrashing tests should check that there is enough RAM + SWAP
+ * for their tests. oom-killer tests should only run if this reports that
+ * there is not enought RAM + SWAP!
+ *
+ * Returns:
+ * Whether the estimated amount of memory required for the objects
+ * fits in the available memory on the system.
+ */
 bool intel_check_memory(uint32_t count, uint32_t size, unsigned mode)
 {
 /* rough estimate of how many bytes the kernel requires to track each object */
