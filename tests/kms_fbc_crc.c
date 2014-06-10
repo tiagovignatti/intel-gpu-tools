@@ -93,11 +93,12 @@ static void fill_blt(data_t *data, uint32_t handle, unsigned char color)
 	batch = intel_batchbuffer_alloc(data->bufmgr, data->devid);
 	igt_assert(batch);
 
-	BEGIN_BATCH(5);
-	OUT_BATCH(COLOR_BLT_CMD);
-	OUT_BATCH((1 << 24) | (0xf0 << 16) | 0);
+	COLOR_BLIT_COPY_BATCH_START(batch->devid, 0);
+	OUT_BATCH((0 << 24) | (0xf0 << 16) | 0);
+	OUT_BATCH(0);
 	OUT_BATCH(1 << 16 | 4);
 	OUT_RELOC(dst, I915_GEM_DOMAIN_RENDER, I915_GEM_DOMAIN_RENDER, 0);
+	BLIT_RELOC_UDW(batch->devid);
 	OUT_BATCH(color);
 	ADVANCE_BATCH();
 
