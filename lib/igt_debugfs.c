@@ -618,6 +618,8 @@ void igt_enable_prefault(void)
  */
 int igt_open_forcewake_handle(void)
 {
+	if (getenv("IGT_NO_FORCEWAKE"))
+		return -1;
 	return igt_debugfs_open("i915_forcewake_user", O_WRONLY);
 }
 
