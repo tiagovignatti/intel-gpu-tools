@@ -102,7 +102,7 @@ static bool __igt_debugfs_init(igt_debugfs_t *debugfs)
 
 	igt_assert(stat("/sys/kernel/debug", &st) == 0);
 
-	igt_assert(mount("debug", "/sys/kernel/debug", "debugfs", 0, 0) == 0);
+	mount("debug", "/sys/kernel/debug", "debugfs", 0, 0);
 
 find_minor:
 	strcpy(debugfs->root, path);
