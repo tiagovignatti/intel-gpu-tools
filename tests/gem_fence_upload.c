@@ -110,10 +110,158 @@ static void performance(void)
 	igt_assert(tiled[1] > 0.75 * tiled[0]);
 }
 
+struct thread_performance {
+	pthread_t thread;
+	int id, count, direction, loops;
+	void **ptr;
+};
+
+static void *read_thread_performance(void *closure)
+{
+	struct thread_performance *t = closure;
+	uint32_t x = 0;
+	int n, m;
+
+	for (n = 0; n < t->loops; n++) {
+		uint32_t *src = t->ptr[rand() % t->count];
+		src += (rand() % 256) * 4096 / 4;
+		for (m = 0; m < 4096/4; m++)
+			x += src[m];
+	}
+
+	return (void *)(uintptr_t)x;
+}
+
+static void *write_thread_performance(void *closure)
+{
+	struct thread_performance *t = closure;
+	int n;
+
+	for (n = 0; n < t->loops; n++) {
+		uint32_t *dst = t->ptr[rand() % t->count];
+		dst += (rand() % 256) * 4096 / 4;
+		memset(dst, 0, 4096);
+	}
+
+	return NULL;
+}
+
+#define READ (1<<0)
+#define WRITE (1<<1)
+static const char *direction_string(unsigned mask)
+{
+	switch (mask) {
+	case READ: return "Download";
+	case WRITE: return "Upload";
+	case READ | WRITE: return "Combined";
+	default: return "Unknown";
+	}
+}
+static void thread_performance(unsigned mask)
+{
+	const int loops = 4096;
+	int n, count;
+	int fd, num_fences;
+	double linear[2], tiled[2];
+
+	fd = drm_open_any();
+
+	num_fences = gem_available_fences(fd);
+	igt_require(num_fences > 0);
+
+	for (count = 2; count < 4*num_fences; count *= 2) {
+		const int nthreads = (mask & READ ? count : 0) + (mask & WRITE ? count : 0);
+		struct timeval start, end;
+		struct thread_performance readers[count];
+		struct thread_performance writers[count];
+		uint32_t handle[count];
+		void *ptr[count];
+
+		for (n = 0; n < count; n++) {
+			handle[n] = gem_create(fd, OBJECT_SIZE);
+			ptr[n] = gem_mmap(fd, handle[n], OBJECT_SIZE, PROT_READ | PROT_WRITE);
+			igt_assert(ptr[n]);
+
+			if (mask & READ) {
+				readers[n].id = n;
+				readers[n].direction = READ;
+				readers[n].ptr = ptr;
+				readers[n].count = count;
+				readers[n].loops = loops;
+			}
+
+			if (mask & WRITE) {
+				writers[n].id = count - n - 1;
+				writers[n].direction = WRITE;
+				writers[n].ptr = ptr;
+				writers[n].count = count;
+				writers[n].loops = loops;
+			}
+		}
+
+		gettimeofday(&start, NULL);
+		for (n = 0; n < count; n++) {
+			if (mask & READ)
+				pthread_create(&readers[n].thread, NULL, read_thread_performance, &readers[n]);
+			if (mask & WRITE)
+				pthread_create(&writers[n].thread, NULL, write_thread_performance, &writers[n]);
+		}
+		for (n = 0; n < count; n++) {
+			if (mask & READ)
+				pthread_join(readers[n].thread, NULL);
+			if (mask & WRITE)
+				pthread_join(writers[n].thread, NULL);
+		}
+		gettimeofday(&end, NULL);
+
+		linear[count != 2] = nthreads * loops / elapsed(&start, &end) / (OBJECT_SIZE / 4096);
+		printf("%s rate for %d linear surfaces, %d threads:	%7.3fMiB/s\n",
+		       direction_string(mask), count, nthreads, linear[count != 2]);
+
+		for (n = 0; n < count; n++)
+			gem_set_tiling(fd, handle[n], I915_TILING_X, 1024);
+
+		gettimeofday(&start, NULL);
+		for (n = 0; n < count; n++) {
+			if (mask & READ)
+				pthread_create(&readers[n].thread, NULL, read_thread_performance, &readers[n]);
+			if (mask & WRITE)
+				pthread_create(&writers[n].thread, NULL, write_thread_performance, &writers[n]);
+		}
+		for (n = 0; n < count; n++) {
+			if (mask & READ)
+				pthread_join(readers[n].thread, NULL);
+			if (mask & WRITE)
+				pthread_join(writers[n].thread, NULL);
+		}
+		gettimeofday(&end, NULL);
+
+		tiled[count != 2] = nthreads * loops / elapsed(&start, &end) / (OBJECT_SIZE / 4096);
+		printf("%s rate for %d tiled surfaces, %d threads:	%7.3fMiB/s\n",
+		       direction_string(mask), count, nthreads, tiled[count != 2]);
+
+		for (n = 0; n < count; n++) {
+			munmap(ptr[n], OBJECT_SIZE);
+			gem_close(fd, handle[n]);
+		}
+	}
+
+	errno = 0;
+	igt_assert(linear[1] > 0.75 * linear[0]);
+	igt_assert(tiled[1] > 0.75 * tiled[0]);
+}
+
 igt_main
 {
 	igt_skip_on_simulation();
 
 	igt_subtest("performance")
 		performance();
+
+	igt_subtest("threaded-performance-read")
+		thread_performance(READ);
+	igt_subtest("threaded-performance-write")
+		thread_performance(WRITE);
+	igt_subtest("threaded-performance-both")
+		thread_performance(READ | WRITE);
 }
