@@ -36,6 +36,7 @@ TESTS_progs_M = \
 	gem_exec_parse \
 	gem_fenced_exec_thrash \
 	gem_fence_thrash \
+	gem_fence_upload \
 	gem_flink \
 	gem_flink_race \
 	gem_linear_blits \
@@ -96,7 +97,6 @@ TESTS_progs = \
 	gem_exec_blt \
 	gem_exec_lut_handle \
 	gem_fd_exhaustion \
-	gem_fence_upload \
 	gem_gtt_cpu_tlb \
 	gem_gtt_hog \
 	gem_gtt_speed \

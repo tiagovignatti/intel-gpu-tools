@@ -116,6 +116,4 @@ igt_main
 
 	igt_subtest("performance")
 		performance();
-
-	igt_exit();
 }
