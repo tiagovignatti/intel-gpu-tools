@@ -32,6 +32,7 @@
 #include <string.h>
 #include <fcntl.h>
 #include <inttypes.h>
+#include <pthread.h>
 #include <errno.h>
 #include <sys/stat.h>
 #include <sys/ioctl.h>
@@ -126,6 +127,63 @@ test_copy(int fd)
 	munmap(src, OBJECT_SIZE);
 }
 
+enum test_read_write {
+	READ_BEFORE_WRITE,
+	READ_AFTER_WRITE,
+};
+
+static void
+test_read_write(int fd, enum test_read_write order)
+{
+	uint32_t handle;
+	void *ptr;
+	volatile uint32_t val = 0;
+
+	handle = gem_create(fd, OBJECT_SIZE);
+
+	ptr = gem_mmap(fd, handle, OBJECT_SIZE, PROT_READ | PROT_WRITE);
+	igt_assert(ptr != MAP_FAILED);
+
+	if (order == READ_BEFORE_WRITE) {
+		val = *(uint32_t *)ptr;
+		*(uint32_t *)ptr = val;
+	} else {
+		*(uint32_t *)ptr = val;
+		val = *(uint32_t *)ptr;
+	}
+
+	gem_close(fd, handle);
+	munmap(ptr, OBJECT_SIZE);
+}
+
+static void
+test_read_write2(int fd, enum test_read_write order)
+{
+	uint32_t handle;
+	void *r, *w;
+	volatile uint32_t val = 0;
+
+	handle = gem_create(fd, OBJECT_SIZE);
+
+	r = gem_mmap(fd, handle, OBJECT_SIZE, PROT_READ);
+	igt_assert(r != MAP_FAILED);
+
+	w = gem_mmap(fd, handle, OBJECT_SIZE, PROT_READ | PROT_WRITE);
+	igt_assert(w != MAP_FAILED);
+
+	if (order == READ_BEFORE_WRITE) {
+		val = *(uint32_t *)r;
+		*(uint32_t *)w = val;
+	} else {
+		*(uint32_t *)w = val;
+		val = *(uint32_t *)r;
+	}
+
+	gem_close(fd, handle);
+	munmap(r, OBJECT_SIZE);
+	munmap(w, OBJECT_SIZE);
+}
+
 static void
 test_write(int fd)
 {
@@ -181,6 +239,54 @@ test_read(int fd)
 	munmap(dst, OBJECT_SIZE);
 }
 
+struct thread_fault_concurrent {
+	pthread_t thread;
+	int id;
+	uint32_t **ptr;
+};
+
+static void *
+thread_fault_concurrent(void *closure)
+{
+	struct thread_fault_concurrent *t = closure;
+	uint32_t val = 0;
+	int n;
+
+	for (n = 0; n < 32; n++) {
+		if (n & 1)
+			*t->ptr[(n + t->id) % 32] = val;
+		else
+			val = *t->ptr[(n + t->id) % 32];
+	}
+
+	return NULL;
+}
+
+static void
+test_fault_concurrent(int fd)
+{
+	uint32_t *ptr[32];
+	struct thread_fault_concurrent thread[64];
+	int n;
+
+	for (n = 0; n < 32; n++) {
+		ptr[n] = create_pointer(fd);
+	}
+
+	for (n = 0; n < 64; n++) {
+		thread[n].ptr = ptr;
+		thread[n].id = n;
+		pthread_create(&thread[n].thread, NULL, thread_fault_concurrent, &thread[n]);
+	}
+
+	for (n = 0; n < 64; n++)
+		pthread_join(thread[n].thread, NULL);
+
+	for (n = 0; n < 32; n++) {
+		munmap(ptr[n], OBJECT_SIZE);
+	}
+}
+
 static void
 run_without_prefault(int fd,
 			void (*func)(int fd))
@@ -210,6 +316,16 @@ igt_main
 		test_write(fd);
 	igt_subtest("write-gtt")
 		test_write_gtt(fd);
+	igt_subtest("read-write")
+		test_read_write(fd, READ_BEFORE_WRITE);
+	igt_subtest("write-read")
+		test_read_write(fd, READ_AFTER_WRITE);
+	igt_subtest("read-write-distinct")
+		test_read_write2(fd, READ_BEFORE_WRITE);
+	igt_subtest("write-read-distinct")
+		test_read_write2(fd, READ_AFTER_WRITE);
+	igt_subtest("fault-concurrent")
+		test_fault_concurrent(fd);
 	igt_subtest("read-no-prefault")
 		run_without_prefault(fd, test_read);
 	igt_subtest("write-no-prefault")
