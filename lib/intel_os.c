@@ -200,7 +200,7 @@ intel_get_total_swap_mb(void)
  * Most tests should check that there is enough RAM to hold their working set.
  * The rare swap thrashing tests should check that there is enough RAM + SWAP
  * for their tests. oom-killer tests should only run if this reports that
- * there is not enought RAM + SWAP!
+ * there is not enough RAM + SWAP!
  *
  * Returns:
  * Whether the estimated amount of memory required for the objects
