@@ -1,3 +1,11 @@
+// Semantic patch for common patters and their replacement by igt infrastructure
+// and macros. Please run with
+//
+// spatch --sp-file lib/igt.cocci --in-place tests/*.c
+//
+// on your new testcase.
+
+
 // Replace open-coded augmented igt_assert/skip/require with macro versions
 @@
 expression Ec;

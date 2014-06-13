@@ -1,6 +1,9 @@
 Release 1.8 (xxxx-xx-xx)
 ------------------------
 
+- Added lib/igt.cocci semantic patch to catch often-seen patterns and convert
+  them to igt macros/infrastructure.
+
 Release 1.7 (2014-06-09)
 ------------------------
 
