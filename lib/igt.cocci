@@ -13,7 +13,14 @@ expression list[n] Ep;
 )
 - igt_fail(...);
 - }
-+ igt_assert_f(Ec, Ep);
++ igt_fail_on_f(Ec, Ep);
+@@
+expression Ec;
+@@
+- if (Ec) {
+- igt_fail(...);
+- }
++ igt_fail_on(Ec);
 @@
 expression Ec;
 expression list[n] Ep;

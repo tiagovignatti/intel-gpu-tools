@@ -204,7 +204,7 @@ void igt_exit(void) __attribute__((noreturn));
  * igt_assert:
  * @expr: condition to test
  *
- * Fails (sub-)test if the condition is not met
+ * Fails (sub-)test if the condition is not met.
  *
  * Should be used everywhere where a test checks results.
  */
@@ -218,7 +218,7 @@ void igt_exit(void) __attribute__((noreturn));
  * @expr: condition to test
  * @...: format string and optional arguments
  *
- * Fails (sub-)test if the condition is not met
+ * Fails (sub-)test if the condition is not met.
  *
  * Should be used everywhere where a test checks results.
  *
@@ -229,6 +229,30 @@ void igt_exit(void) __attribute__((noreturn));
 	do { if (!(expr)) \
 		__igt_fail_assert(99, __FILE__, __LINE__, __func__, #expr , f); \
 	} while (0)
+
+/**
+ * igt_fail_on:
+ * @expr: condition to test
+ *
+ * Fails (sub-)test if the condition is met.
+ *
+ * Should be used everywhere where a test checks results.
+ */
+#define igt_fail_on(expr) igt_assert(!(expr))
+
+/**
+ * igt_assert_f:
+ * @expr: condition to test
+ * @...: format string and optional arguments
+ *
+ * Fails (sub-)test if the condition is met.
+ *
+ * Should be used everywhere where a test checks results.
+ *
+ * In addition to the plain igt_assert() helper this allows to print additional
+ * information to help debugging test failures.
+ */
+#define igt_fail_on_f(expr, f...) igt_assert_f(!(expr), f)
 
 /**
  * igt_assert_cmpint:
