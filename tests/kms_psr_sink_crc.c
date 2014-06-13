@@ -269,8 +269,8 @@ static bool psr_sink_support(data_t *data)
 	igt_require(file);
 
 	ret = fscanf(file, "Sink_Support: %s\n", str);
-	igt_skip_on_f(ret == 0,
-		      "i915_edp_psr_status format not supported by this test case\n");
+	if (ret == 0)
+	    igt_skip("i915_edp_psr_status format not supported by this test case\n");
 
 	fclose(file);
 	return strcmp(str, "yes") == 0;

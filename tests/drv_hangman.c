@@ -118,11 +118,17 @@ static void _assert_dfs_entry(const char *fname, const char *s, bool inverse)
 
 	read_dfs(fname, tmp, l + 1);
 	if (!inverse) {
-		igt_assert_f(strncmp(tmp, s, l) != 0,
-			     "contents of %s: '%s' (expected '%s')\n", fname, tmp, s);
+		if (strncmp(tmp, s, l) != 0) {
+			fprintf(stderr, "contents of %s: '%s' (expected '%s')\n",
+			       fname, tmp, s);
+			igt_fail(1);
+		}
 	} else {
-		igt_assert_f(strncmp(tmp, s, l) == 0,
-			     "contents of %s: '%s' (expected not '%s'\n", fname, tmp, s);
+		if (strncmp(tmp, s, l) == 0) {
+			fprintf(stderr, "contents of %s: '%s' (expected not '%s'\n",
+			       fname, tmp, s);
+			igt_fail(1);
+		}
 	}
 }
 
