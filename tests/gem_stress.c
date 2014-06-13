@@ -924,7 +924,7 @@ int main(int argc, char **argv)
 
 	fan_in_and_check();
 
-	fprintf(stderr, "num failed tiles %u, max incoherent bytes %zd\n",
+	fprintf(stdout, "num failed tiles %u, max incoherent bytes %zd\n",
 		stats.num_failed, stats.max_failed_reads*sizeof(uint32_t));
 
 	intel_batchbuffer_free(batch);

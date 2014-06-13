@@ -1,3 +1,4 @@
+// Replace open-coded augmented igt_assert/skip/require with macro versions
 @@
 expression Ec;
 expression list[n] Ep;

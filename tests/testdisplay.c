@@ -675,22 +675,22 @@ static char optstr[] = "3hiaf:s:d:p:mrto:j:";
 
 static void __attribute__((noreturn)) usage(char *name)
 {
-	fprintf(stderr, "usage: %s [-hiasdpmtf]\n", name);
-	fprintf(stderr, "\t-i\tdump info\n");
-	fprintf(stderr, "\t-a\ttest all modes\n");
-	fprintf(stderr, "\t-s\t<duration>\tsleep between each mode test\n");
-	fprintf(stderr, "\t-d\t<depth>\tbit depth of scanout buffer\n");
-	fprintf(stderr, "\t-p\t<planew,h>,<crtcx,y>,<crtcw,h> test overlay plane\n");
-	fprintf(stderr, "\t-m\ttest the preferred mode\n");
-	fprintf(stderr, "\t-3\ttest all 3D modes\n");
-	fprintf(stderr, "\t-t\tuse a tiled framebuffer\n");
-	fprintf(stderr, "\t-j\tdo dpms off, optional arg to select dpms leve (1-3)\n");
-	fprintf(stderr, "\t-r\tprint a QR code on the screen whose content is \"pass\" for the automatic test\n");
-	fprintf(stderr, "\t-o\t<id of the display>,<number of the mode>\tonly test specified mode on the specified display\n");
-	fprintf(stderr, "\t-f\t<clock MHz>,<hdisp>,<hsync-start>,<hsync-end>,<htotal>,\n");
-	fprintf(stderr, "\t\t<vdisp>,<vsync-start>,<vsync-end>,<vtotal>\n");
-	fprintf(stderr, "\t\ttest force mode\n");
-	fprintf(stderr, "\tDefault is to test all modes.\n");
+	fprintf(stdout, "usage: %s [-hiasdpmtf]\n", name);
+	fprintf(stdout, "\t-i\tdump info\n");
+	fprintf(stdout, "\t-a\ttest all modes\n");
+	fprintf(stdout, "\t-s\t<duration>\tsleep between each mode test\n");
+	fprintf(stdout, "\t-d\t<depth>\tbit depth of scanout buffer\n");
+	fprintf(stdout, "\t-p\t<planew,h>,<crtcx,y>,<crtcw,h> test overlay plane\n");
+	fprintf(stdout, "\t-m\ttest the preferred mode\n");
+	fprintf(stdout, "\t-3\ttest all 3D modes\n");
+	fprintf(stdout, "\t-t\tuse a tiled framebuffer\n");
+	fprintf(stdout, "\t-j\tdo dpms off, optional arg to select dpms leve (1-3)\n");
+	fprintf(stdout, "\t-r\tprint a QR code on the screen whose content is \"pass\" for the automatic test\n");
+	fprintf(stdout, "\t-o\t<id of the display>,<number of the mode>\tonly test specified mode on the specified display\n");
+	fprintf(stdout, "\t-f\t<clock MHz>,<hdisp>,<hsync-start>,<hsync-end>,<htotal>,\n");
+	fprintf(stdout, "\t\t<vdisp>,<vsync-start>,<vsync-end>,<vtotal>\n");
+	fprintf(stdout, "\t\ttest force mode\n");
+	fprintf(stdout, "\tDefault is to test all modes.\n");
 	exit(0);
 }
 
@@ -797,7 +797,7 @@ int main(int argc, char **argv)
 			break;
 		case 'd':
 			depth = atoi(optarg);
-			fprintf(stderr, "using depth %d\n", depth);
+			fprintf(stdout, "using depth %d\n", depth);
 			break;
 		case 'p':
 			if (sscanf(optarg, "%d,%d,%d,%d,%d,%d", &plane_width,
