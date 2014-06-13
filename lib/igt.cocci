@@ -22,6 +22,14 @@ expression list[n] Ep;
 - igt_skip(Ep);
 - }
 + igt_skip_on_f(Ec, Ep);
+@@
+expression Ec;
+expression list[n] Ep;
+@@
+- if (Ec) {
+- igt_warn(Ep);
+- }
++ igt_warn_on_f(Ec, Ep);
 
 // Enforce use of logging functions
 @@
