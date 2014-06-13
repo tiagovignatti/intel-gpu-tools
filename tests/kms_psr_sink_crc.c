@@ -600,7 +600,7 @@ igt_main
 
 		data.devid = intel_get_drm_devid(data.drm_fd);
 
-		igt_assert(psr_sink_support(&data));
+		igt_require(psr_sink_support(&data));
 
 		data.bufmgr = drm_intel_bufmgr_gem_init(data.drm_fd, 4096);
 		igt_assert(data.bufmgr);
