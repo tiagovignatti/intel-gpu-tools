@@ -587,11 +587,11 @@ static void run_test(data_t *data)
 	}
 }
 
+data_t data = {};
+enum tests test;
+
 igt_main
 {
-	data_t data = {};
-	enum tests test;
-
 	igt_skip_on_simulation();
 
 	igt_fixture {
