@@ -42,6 +42,7 @@ gem_exec_params
 gem_exec_parse
 gem_fd_exhaustion
 gem_fence_thrash
+gem_fence_upload
 gem_fenced_exec_thrash
 gem_flink
 gem_flink_race

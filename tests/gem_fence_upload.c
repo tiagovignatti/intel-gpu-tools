@@ -251,17 +251,94 @@ static void thread_performance(unsigned mask)
 	igt_assert(tiled[1] > 0.75 * tiled[0]);
 }
 
+struct thread_contention {
+	pthread_t thread;
+	uint32_t handle;
+	int loops, fd;
+};
+static void *no_contention(void *closure)
+{
+	struct thread_contention *t = closure;
+	int n;
+
+	for (n = 0; n < t->loops; n++) {
+		uint32_t *ptr = gem_mmap(t->fd, t->handle, OBJECT_SIZE, PROT_READ | PROT_WRITE);
+		memset(ptr + (rand() % 256) * 4096 / 4, 0, 4096);
+		munmap(ptr, OBJECT_SIZE);
+	}
+
+	return NULL;
+}
+
+static void thread_contention(void)
+{
+	const int loops = 4096;
+	int n, count;
+	int fd, num_fences;
+	double linear[2], tiled[2];
+
+	fd = drm_open_any();
+
+	num_fences = gem_available_fences(fd);
+	igt_require(num_fences > 0);
+
+	for (count = 1; count < 4*num_fences; count *= 2) {
+		struct timeval start, end;
+		struct thread_contention threads[count];
+
+		for (n = 0; n < count; n++) {
+			threads[n].handle = gem_create(fd, OBJECT_SIZE);
+			threads[n].loops = loops;
+			threads[n].fd = fd;
+		}
+
+		gettimeofday(&start, NULL);
+		for (n = 0; n < count; n++)
+			pthread_create(&threads[n].thread, NULL, no_contention, &threads[n]);
+		for (n = 0; n < count; n++)
+			pthread_join(threads[n].thread, NULL);
+		gettimeofday(&end, NULL);
+
+		linear[count != 2] = count * loops / elapsed(&start, &end) / (OBJECT_SIZE / 4096);
+		printf("Contended upload rate for %d threads:	%7.3fMiB/s\n",
+		       count, linear[count != 2]);
+
+		for (n = 0; n < count; n++)
+			gem_set_tiling(fd, threads[n].handle, I915_TILING_X, 1024);
+
+		gettimeofday(&start, NULL);
+		for (n = 0; n < count; n++)
+			pthread_create(&threads[n].thread, NULL, no_contention, &threads[n]);
+		for (n = 0; n < count; n++)
+			pthread_join(threads[n].thread, NULL);
+		gettimeofday(&end, NULL);
+
+		tiled[count != 2] = count * loops / elapsed(&start, &end) / (OBJECT_SIZE / 4096);
+		printf("Contended upload rate for %d threads:	%7.3fMiB/s\n",
+		       count, tiled[count != 2]);
+
+		for (n = 0; n < count; n++) {
+			gem_close(fd, threads[n].handle);
+		}
+	}
+
+	errno = 0;
+	igt_assert(linear[1] > 0.75 * linear[0]);
+	igt_assert(tiled[1] > 0.75 * tiled[0]);
+}
+
 igt_main
 {
 	igt_skip_on_simulation();
 
 	igt_subtest("performance")
 		performance();
-
-	igt_subtest("threaded-performance-read")
+	igt_subtest("thread-contention")
+		thread_contention();
+	igt_subtest("thread-performance-read")
 		thread_performance(READ);
-	igt_subtest("threaded-performance-write")
+	igt_subtest("thread-performance-write")
 		thread_performance(WRITE);
-	igt_subtest("threaded-performance-both")
+	igt_subtest("thread-performance-both")
 		thread_performance(READ | WRITE);
 }
