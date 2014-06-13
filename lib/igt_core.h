@@ -253,6 +253,19 @@ void igt_exit(void) __attribute__((noreturn));
 	} while (0)
 
 /**
+ * igt_assert_eq:
+ * @n1: first integer
+ * @n2: second integer
+ *
+ * Fails (sub-)test if the two integers are not equal. Beware that for now this
+ * only works on integers.
+ *
+ * Like igt_assert(), but displays the values being compared on failure instead
+ * of simply printing the stringified expression.
+ */
+#define igt_assert_eq(n1, n2) igt_assert_cmpint(n1, ==, n2)
+
+/**
  * igt_require:
  * @expr: condition to test
  *
