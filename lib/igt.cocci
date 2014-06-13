@@ -44,3 +44,10 @@ expression list[n] Ep;
 @@
 -printf(Ep);
 +igt_info(Ep);
+
+// No abort for tests, really. Should only be used for internal library checks
+// in lib/*
+@@
+@@
+-abort();
++igt_fail(1);
