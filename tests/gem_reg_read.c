@@ -44,10 +44,8 @@ static uint64_t timer_query(int fd)
 	struct local_drm_i915_reg_read reg_read;
 
 	reg_read.offset = 0x2358;
-	if (drmIoctl(fd, REG_READ_IOCTL, &reg_read)) {
-		perror("positive test case failed: ");
-		igt_fail(1);
-	}
+	igt_fail_on_f(drmIoctl(fd, REG_READ_IOCTL, &reg_read),
+		      "positive test case failed: ");
 
 	return reg_read.val;
 }

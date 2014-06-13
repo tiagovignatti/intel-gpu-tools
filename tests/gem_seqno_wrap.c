@@ -157,8 +157,7 @@ static void render_copyfunc(struct igt_buf *src,
 		intel_batchbuffer_flush(batch_3d);
 	} else {
 		if (!warned) {
-			printf("No render copy found for this gen, "
-			       "test is shallow!\n");
+			igt_info("No render copy found for this gen, ""test is shallow!\n");
 			warned = 1;
 		}
 		igt_assert(dst->bo);
@@ -290,12 +289,12 @@ static int run_cmd(char *s)
 	int i;
 	r = wordexp(s, &wexp, 0);
 	if (r != 0) {
-		printf("can't parse %s\n", s);
+		igt_info("can't parse %s\n", s);
 		return r;
 	}
 
 	for(i = 0; i < wexp.we_wordc; i++)
-		printf("argv[%d] = %s\n", i, wexp.we_wordv[i]);
+		igt_info("argv[%d] = %s\n", i, wexp.we_wordv[i]);
 
 	pid = fork();
 
@@ -303,14 +302,12 @@ static int run_cmd(char *s)
 		char path[PATH_MAX];
 		char full_path[PATH_MAX];
 
-		if (getcwd(path, PATH_MAX) == NULL)
-			perror("getcwd");
+		igt_warn_on_f(getcwd(path, PATH_MAX) == NULL, "getcwd");
 
 		igt_assert(snprintf(full_path, PATH_MAX, "%s/%s", path, wexp.we_wordv[0]) > 0);
 
 		r = execv(full_path, wexp.we_wordv);
-		if (r == -1)
-			perror("execv failed");
+		igt_warn_on_f(r == -1, "execv failed");
 	} else {
 		int waitcount = options.timeout;
 
@@ -318,14 +315,12 @@ static int run_cmd(char *s)
 			r = waitpid(pid, &status, WNOHANG);
 			if (r == pid) {
 				if(WIFEXITED(status)) {
-					if (WEXITSTATUS(status))
-						fprintf(stderr,
-						    "child returned with %d\n",
-							WEXITSTATUS(status));
+					igt_warn_on_f(WEXITSTATUS(status),
+						      "child returned with %d\n", WEXITSTATUS(status));
 					return WEXITSTATUS(status);
 				}
 			} else if (r != 0) {
-				perror("waitpid");
+				igt_warn("waitpid");
 				return -errno;
 			}
 
@@ -369,7 +364,7 @@ static int __read_seqno(uint32_t *seqno)
 	r = read(fh, buf, sizeof(buf) - 1);
 	close(fh);
 	if (r < 0) {
-		perror("read");
+		igt_warn("read");
 		return -errno;
 	}
 
@@ -382,7 +377,7 @@ static int __read_seqno(uint32_t *seqno)
 	errno = 0;
 	tmp = strtoul(p, NULL, 0);
 	if (tmp == ULONG_MAX && errno) {
-		perror("strtoul");
+		igt_warn("strtoul");
 		return -errno;
 	}
 
@@ -439,7 +434,7 @@ static int write_seqno(uint32_t seqno)
 		return r;
 
 	if (rb != seqno) {
-		printf("seqno readback differs rb:0x%x vs w:0x%x\n", rb, seqno);
+		igt_info("seqno readback differs rb:0x%x vs w:0x%x\n", rb, seqno);
 		return -1;
 	}
 
@@ -518,16 +513,16 @@ static void background_run_once(void)
 
 static void print_usage(const char *s)
 {
-	printf("%s: [OPTION]...\n", s);
-	printf("    where options are:\n");
-	printf("    -b --background       run in background inducing wraps\n");
-	printf("    -c --cmd=cmdstring    use cmdstring to cross wrap\n");
-	printf("    -n --rounds=num       run num times across wrap boundary, 0 == forever\n");
-	printf("    -t --timeout=sec      set timeout to wait for testrun to sec seconds\n");
-	printf("    -d --dontwrap         don't wrap just run the test\n");
-	printf("    -p --prewrap=n        set seqno to WRAP - n for each testrun\n");
-	printf("    -r --norandom         dont randomize prewrap space\n");
-	printf("    -i --buffers          number of buffers to copy\n");
+	igt_info("%s: [OPTION]...\n", s);
+	igt_info("    where options are:\n");
+	igt_info("    -b --background       run in background inducing wraps\n");
+	igt_info("    -c --cmd=cmdstring    use cmdstring to cross wrap\n");
+	igt_info("    -n --rounds=num       run num times across wrap boundary, 0 == forever\n");
+	igt_info("    -t --timeout=sec      set timeout to wait for testrun to sec seconds\n");
+	igt_info("    -d --dontwrap         don't wrap just run the test\n");
+	igt_info("    -p --prewrap=n        set seqno to WRAP - n for each testrun\n");
+	igt_info("    -r --norandom         dont randomize prewrap space\n");
+	igt_info("    -i --buffers          number of buffers to copy\n");
 	igt_fail(-1);
 }
 
@@ -560,50 +555,47 @@ static void parse_options(int argc, char **argv)
 		switch(c) {
 		case 'b':
 			options.background = 1;
-			printf("running in background inducing wraps\n");
+			igt_info("running in background inducing wraps\n");
 			break;
 		case 'd':
 			options.dontwrap = 1;
-			printf("won't wrap after testruns\n");
+			igt_info("won't wrap after testruns\n");
 			break;
 		case 'n':
 			options.rounds = atoi(optarg);
-			printf("running %d rounds\n", options.rounds);
+			igt_info("running %d rounds\n", options.rounds);
 			break;
 		case 'c':
 			strncpy(options.cmd, optarg, sizeof(options.cmd) - 1);
 			options.cmd[sizeof(options.cmd) - 1] = 0;
-			printf("cmd set to %s\n", options.cmd);
+			igt_info("cmd set to %s\n", options.cmd);
 			break;
 		case 'i':
 			options.buffers = atoi(optarg);
-			printf("buffers %d\n", options.buffers);
+			igt_info("buffers %d\n", options.buffers);
 			break;
 		case 't':
 			options.timeout = atoi(optarg);
 			if (options.timeout == 0)
 				options.timeout = 10;
-			printf("setting timeout to %d seconds\n",
-			       options.timeout);
+			igt_info("setting timeout to %d seconds\n", options.timeout);
 			break;
 		case 'r':
 			options.random = 0;
 			break;
 		case 'p':
 			options.prewrap_space = atoi(optarg);
-			printf("prewrap set to %d (0x%x)\n",
-			       options.prewrap_space, UINT32_MAX -
-			       options.prewrap_space);
+			igt_info("prewrap set to %d (0x%x)\n", options.prewrap_space, UINT32_MAX - options.prewrap_space);
 			break;
 		default:
-			printf("unkown command options\n");
+			igt_info("unkown command options\n");
 			print_usage(argv[0]);
 			break;
 		}
 	}
 
 	if (optind < argc) {
-		printf("unkown command options\n");
+		igt_info("unkown command options\n");
 		print_usage(argv[0]);
 	}
 }

@@ -81,8 +81,7 @@ static void performance(void)
 		gettimeofday(&end, NULL);
 
 		linear[count != 2] = count * loop / elapsed(&start, &end);
-		printf("Upload rate for %d linear surfaces:	%7.3fMiB/s\n",
-		       count, linear[count != 2]);
+		igt_info("Upload rate for %d linear surfaces:	%7.3fMiB/s\n", count, linear[count != 2]);
 
 		for (n = 0; n < count; n++)
 			gem_set_tiling(fd, handle[n], I915_TILING_X, 1024);
@@ -95,8 +94,7 @@ static void performance(void)
 		gettimeofday(&end, NULL);
 
 		tiled[count != 2] = count * loop / elapsed(&start, &end);
-		printf("Upload rate for %d tiled surfaces:	%7.3fMiB/s\n",
-		       count, tiled[count != 2]);
+		igt_info("Upload rate for %d tiled surfaces:	%7.3fMiB/s\n", count, tiled[count != 2]);
 
 		for (n = 0; n < count; n++) {
 			munmap(ptr[n], OBJECT_SIZE);
@@ -215,8 +213,7 @@ static void thread_performance(unsigned mask)
 		gettimeofday(&end, NULL);
 
 		linear[count != 2] = nthreads * loops / elapsed(&start, &end) / (OBJECT_SIZE / 4096);
-		printf("%s rate for %d linear surfaces, %d threads:	%7.3fMiB/s\n",
-		       direction_string(mask), count, nthreads, linear[count != 2]);
+		igt_info("%s rate for %d linear surfaces, %d threads:	%7.3fMiB/s\n", direction_string(mask), count, nthreads, linear[count != 2]);
 
 		for (n = 0; n < count; n++)
 			gem_set_tiling(fd, handle[n], I915_TILING_X, 1024);
@@ -237,8 +234,7 @@ static void thread_performance(unsigned mask)
 		gettimeofday(&end, NULL);
 
 		tiled[count != 2] = nthreads * loops / elapsed(&start, &end) / (OBJECT_SIZE / 4096);
-		printf("%s rate for %d tiled surfaces, %d threads:	%7.3fMiB/s\n",
-		       direction_string(mask), count, nthreads, tiled[count != 2]);
+		igt_info("%s rate for %d tiled surfaces, %d threads:	%7.3fMiB/s\n", direction_string(mask), count, nthreads, tiled[count != 2]);
 
 		for (n = 0; n < count; n++) {
 			munmap(ptr[n], OBJECT_SIZE);
@@ -300,8 +296,7 @@ static void thread_contention(void)
 		gettimeofday(&end, NULL);
 
 		linear[count != 2] = count * loops / elapsed(&start, &end) / (OBJECT_SIZE / 4096);
-		printf("Contended upload rate for %d threads:	%7.3fMiB/s\n",
-		       count, linear[count != 2]);
+		igt_info("Contended upload rate for %d threads:	%7.3fMiB/s\n", count, linear[count != 2]);
 
 		for (n = 0; n < count; n++)
 			gem_set_tiling(fd, threads[n].handle, I915_TILING_X, 1024);
@@ -314,8 +309,7 @@ static void thread_contention(void)
 		gettimeofday(&end, NULL);
 
 		tiled[count != 2] = count * loops / elapsed(&start, &end) / (OBJECT_SIZE / 4096);
-		printf("Contended upload rate for %d threads:	%7.3fMiB/s\n",
-		       count, tiled[count != 2]);
+		igt_info("Contended upload rate for %d threads:	%7.3fMiB/s\n", count, tiled[count != 2]);
 
 		for (n = 0; n < count; n++) {
 			gem_close(fd, threads[n].handle);

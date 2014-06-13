@@ -618,16 +618,8 @@ int main(void)
 		unsigned r2, n2, p;
 
 		wrpll_compute_rnp(ref->clock, &r2, &n2, &p);
-		if (ref->r2 != r2 || ref->n2 != n2 || ref->p != p) {
-			printf("Computed value differs for %li Hz:\n"
-			       "  Reference: (%u,%u,%u)\n"
-			       "  Computed:  (%u,%u,%u)\n",
-			       (int64_t)ref->clock * 1000,
-			       ref->r2, ref->n2, ref->p,
-			       r2, n2, p);
-
-			abort();
-		}
+		igt_fail_on_f(ref->r2 != r2 || ref->n2 != n2 || ref->p != p,
+			      "Computed value differs for %li Hz:\n""  Reference: (%u,%u,%u)\n""  Computed:  (%u,%u,%u)\n", (int64_t)ref->clock * 1000, ref->r2, ref->n2, ref->p, r2, n2, p);
 	}
 
 	return 0;

@@ -109,7 +109,7 @@ int main(int argc, char **argv)
 	if (count == 0)
 		count = 3 * gem_aperture_size(fd) / SIZE / 2;
 	else if (count < 2) {
-		fprintf(stderr, "count must be >= 2\n");
+		igt_warn("count must be >= 2\n");
 		return 1;
 	}
 

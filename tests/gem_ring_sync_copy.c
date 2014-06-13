@@ -310,7 +310,7 @@ static void run_test(data_t *data, enum ring r1, enum ring r2, enum test test)
 		bo_check(data, b, 0xc);
 		break;
 	default:
-		abort();
+		igt_fail(1);
 	}
 
 	r1_ops->busy_fini(data);

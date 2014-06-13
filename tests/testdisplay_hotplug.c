@@ -30,6 +30,8 @@
 #include "config.h"
 #endif
 
+#include "igt_core.h"
+
 #if HAVE_UDEV
 #include <libudev.h>
 static struct udev_monitor *uevent_monitor;
@@ -69,13 +71,13 @@ gboolean testdisplay_setup_hotplug(void)
 
 	udev = udev_new();
 	if (!udev) {
-		fprintf(stderr, "failed to create udev object\n");
+		igt_warn("failed to create udev object\n");
 		goto out;
 	}
 
 	uevent_monitor = udev_monitor_new_from_netlink(udev, "udev");
 	if (!uevent_monitor) {
-		fprintf(stderr, "failed to create udev event monitor\n");
+		igt_warn("failed to create udev event monitor\n");
 		goto out;
 	}
 
@@ -83,27 +85,27 @@ gboolean testdisplay_setup_hotplug(void)
 							      "drm",
 							      "drm_minor");
 	if (ret < 0) {
-		fprintf(stderr, "failed to filter for drm events\n");
+		igt_warn("failed to filter for drm events\n");
 		goto out;
 	}
 
 	ret = udev_monitor_enable_receiving(uevent_monitor);
 	if (ret < 0) {
-		fprintf(stderr, "failed to enable udev event reception\n");
+		igt_warn("failed to enable udev event reception\n");
 		goto out;
 	}
 
 	udevchannel =
 		g_io_channel_unix_new(udev_monitor_get_fd(uevent_monitor));
 	if (!udevchannel) {
-		fprintf(stderr, "failed to create udev GIO channel\n");
+		igt_warn("failed to create udev GIO channel\n");
 		goto out;
 	}
 
 	ret = g_io_add_watch(udevchannel, G_IO_IN | G_IO_ERR, hotplug_event,
 			     udev);
 	if (ret < 0) {
-		fprintf(stderr, "failed to add watch on udev GIO channel\n");
+		igt_warn("failed to add watch on udev GIO channel\n");
 		goto out;
 	}
 
@@ -126,7 +128,7 @@ void testdisplay_cleanup_hotplug(void)
 #else
 gboolean testdisplay_setup_hotplug(void)
 {
-	fprintf(stderr, "no hotplug support on this platform\n");
+	igt_warn("no hotplug support on this platform\n");
 	return TRUE;
 }
 

@@ -223,18 +223,15 @@ static void cpucpy2d(uint32_t *src, unsigned src_stride, unsigned src_x, unsigne
 			    + i*options.tile_size + j;
 			uint32_t tmp = src[src_ofs];
 			if (tmp != expect) {
-			    printf("mismatch at tile %i pos %i, read %i, expected %i, diff %i\n",
-				    logical_tile_no, i*options.tile_size + j, tmp, expect, (int) tmp - expect);
-			    if (options.trace_tile >= 0 && options.fail)
-				    igt_fail(1);
+			    igt_info("mismatch at tile %i pos %i, read %i, expected %i, diff %i\n", logical_tile_no, i * options.tile_size + j, tmp, expect, (int)tmp - expect);
+			    igt_fail_on(options.trace_tile >= 0 && options.fail);
 			    failed++;
 			}
 			/* when not aborting, correct any errors */
 			dst[dst_ofs] = expect;
 		}
 	}
-	if (failed && options.fail)
-		igt_fail(1);
+	igt_fail_on(failed && options.fail);
 
 	if (failed > stats.max_failed_reads)
 		stats.max_failed_reads = failed;
@@ -370,35 +367,35 @@ static void next_copyfunc(int tile)
 {
 	if (fence_storm) {
 		if (tile == options.trace_tile)
-			printf(" using fence storm\n");
+			igt_info(" using fence storm\n");
 		return;
 	}
 
 	if (copyfunc_seq % 61 == 0
 			&& options.forced_tiling != I915_TILING_NONE) {
 		if (tile == options.trace_tile)
-			printf(" using fence storm\n");
+			igt_info(" using fence storm\n");
 		fence_storm = num_fences;
 		copyfunc = blitter_copyfunc;
 	} else if (copyfunc_seq % 17 == 0) {
 		if (tile == options.trace_tile)
-			printf(" using cpu\n");
+			igt_info(" using cpu\n");
 		copyfunc = cpu_copyfunc;
 	} else if (copyfunc_seq % 19 == 0) {
 		if (tile == options.trace_tile)
-			printf(" using prw\n");
+			igt_info(" using prw\n");
 		copyfunc = prw_copyfunc;
 	} else if (copyfunc_seq % 3 == 0 && options.use_render) {
 		if (tile == options.trace_tile)
-			printf(" using render\n");
+			igt_info(" using render\n");
 		copyfunc = render_copyfunc;
 	} else if (options.use_blt){
 		if (tile == options.trace_tile)
-			printf(" using blitter\n");
+			igt_info(" using blitter\n");
 		copyfunc = blitter_copyfunc;
 	} else if (options.use_render){
 		if (tile == options.trace_tile)
-			printf(" using render\n");
+			igt_info(" using render\n");
 		copyfunc = render_copyfunc;
 	} else {
 		copyfunc = cpu_copyfunc;
@@ -563,9 +560,7 @@ static void init_set(unsigned set)
 			       buffers[set][i].stride);
 
 		if (options.trace_tile != -1 && i == options.trace_tile/options.tiles_per_buf)
-			printf("changing buffer %i containing tile %i: tiling %i, stride %i\n", i,
-					options.trace_tile,
-					buffers[set][i].tiling, buffers[set][i].stride);
+			igt_info("changing buffer %i containing tile %i: tiling %i, stride %i\n", i, options.trace_tile, buffers[set][i].tiling, buffers[set][i].stride);
 	}
 }
 
@@ -602,9 +597,7 @@ static void copy_tiles(unsigned *permutation)
 		tile2xy(dst_buf, dst_tile, &dst_x, &dst_y);
 
 		if (options.trace_tile == i)
-			printf("copying tile %i from %i (%i, %i) to %i (%i, %i)", i,
-				tile_permutation[i], src_buf_idx, src_tile,
-				permutation[idx], dst_buf_idx, dst_tile);
+			igt_info("copying tile %i from %i (%i, %i) to %i (%i, %i)", i, tile_permutation[i], src_buf_idx, src_tile, permutation[idx], dst_buf_idx, dst_tile);
 
 		if (options.no_hw) {
 			cpucpy2d(src_buf->data,
@@ -681,21 +674,20 @@ static void parse_options(int argc, char **argv)
 		switch(c) {
 		case 'd':
 			options.no_hw = 1;
-			printf("no-hw debug mode\n");
+			igt_info("no-hw debug mode\n");
 			break;
 		case 'S':
 			options.use_signal_helper = 0;
-			printf("disabling that pesky nuisance who keeps interrupting us\n");
+			igt_info("disabling that pesky nuisance who keeps interrupting us\n");
 			break;
 		case 's':
 			tmp = atoi(optarg);
 			if (tmp < options.tile_size*8192)
-				printf("scratch buffer size needs to be at least %i\n",
-				       options.tile_size*8192);
+				igt_info("scratch buffer size needs to be at least %i\n", options.tile_size * 8192);
 			else if (tmp & (tmp - 1)) {
-				printf("scratch buffer size needs to be a power-of-two\n");
+				igt_info("scratch buffer size needs to be a power-of-two\n");
 			} else {
-				printf("fixed scratch buffer size to %u\n", tmp);
+				igt_info("fixed scratch buffer size to %u\n", tmp);
 				options.scratch_buf_size = tmp;
 				sanitize_tiles_per_buf();
 			}
@@ -703,78 +695,78 @@ static void parse_options(int argc, char **argv)
 		case 'g':
 			tmp = atoi(optarg);
 			if (tmp < 0 || tmp > 10)
-				printf("gpu busy load needs to be bigger than 0 and smaller than 10\n");
+				igt_info("gpu busy load needs to be bigger than 0 and smaller than 10\n");
 			else {
-				printf("gpu busy load factor set to %i\n", tmp);
+				igt_info("gpu busy load factor set to %i\n", tmp);
 				gpu_busy_load = options.gpu_busy_load = tmp;
 			}
 			break;
 		case 'c':
 			options.num_buffers = atoi(optarg);
-			printf("buffer count set to %i\n", options.num_buffers);
+			igt_info("buffer count set to %i\n", options.num_buffers);
 			break;
 		case 't':
 			options.trace_tile = atoi(optarg);
-			printf("tracing tile %i\n", options.trace_tile);
+			igt_info("tracing tile %i\n", options.trace_tile);
 			break;
 		case 'r':
 			options.use_render = 0;
-			printf("disabling render copy\n");
+			igt_info("disabling render copy\n");
 			break;
 		case 'b':
 			options.use_blt = 0;
-			printf("disabling blt copy\n");
+			igt_info("disabling blt copy\n");
 			break;
 		case 'u':
 			options.forced_tiling = I915_TILING_NONE;
-			printf("disabling tiling\n");
+			igt_info("disabling tiling\n");
 			break;
 		case 'x':
 			if (options.use_cpu_maps) {
-				printf("tiling not possible with cpu maps\n");
+				igt_info("tiling not possible with cpu maps\n");
 			} else {
 				options.forced_tiling = I915_TILING_X;
-				printf("using only X-tiling\n");
+				igt_info("using only X-tiling\n");
 			}
 			break;
 		case 'm':
 			options.use_cpu_maps = 1;
 			options.forced_tiling = I915_TILING_NONE;
-			printf("disabling tiling\n");
+			igt_info("disabling tiling\n");
 			break;
 		case 'o':
 			options.total_rounds = atoi(optarg);
-			printf("total rounds %i\n", options.total_rounds);
+			igt_info("total rounds %i\n", options.total_rounds);
 			break;
 		case 'f':
 			options.fail = 0;
-			printf("not failing when detecting errors\n");
+			igt_info("not failing when detecting errors\n");
 			break;
 		case 'p':
 			options.tiles_per_buf = atoi(optarg);
-			printf("tiles per buffer %i\n", options.tiles_per_buf);
+			igt_info("tiles per buffer %i\n", options.tiles_per_buf);
 			break;
 		case DUCTAPE:
 			options.ducttape = 0;
-			printf("applying duct-tape\n");
+			igt_info("applying duct-tape\n");
 			break;
 		case TILESZ:
 			options.tile_size = atoi(optarg);
 			sanitize_tiles_per_buf();
-			printf("til size %i\n", options.tile_size);
+			igt_info("til size %i\n", options.tile_size);
 			break;
 		case CHCK_RENDER:
 			options.check_render_cpyfn = 1;
-			printf("checking render copy function\n");
+			igt_info("checking render copy function\n");
 			break;
 		default:
-			printf("unkown command options\n");
+			igt_info("unkown command options\n");
 			break;
 		}
 	}
 
 	if (optind < argc)
-		printf("unkown command options\n");
+		igt_info("unkown command options\n");
 
 	/* actually 32767, according to docs, but that kills our nice pot calculations. */
 	options.max_dimension = 16*1024;
@@ -784,8 +776,7 @@ static void parse_options(int argc, char **argv)
 		else
 			options.max_dimension = 8192;
 	}
-	printf("Limiting buffer to %dx%d\n",
-	       options.max_dimension, options.max_dimension);
+	igt_info("Limiting buffer to %dx%d\n", options.max_dimension, options.max_dimension);
 }
 
 static void init(void)
@@ -798,7 +789,7 @@ static void init(void)
 		tmp = tmp > 256*(1024*1024) ? 256*(1024*1024) : tmp;
 		num_buffers = 2 * tmp / options.scratch_buf_size / 3;
 		num_buffers /= 2;
-		printf("using %u buffers\n", num_buffers);
+		igt_info("using %u buffers\n", num_buffers);
 	} else
 		num_buffers = options.num_buffers;
 
@@ -862,8 +853,7 @@ static void check_render_copyfunc(void)
 			ptr = (uint32_t*)((char *)dst.data + dx*4 + (dy+j) * dst.stride);
 			for (i = 0; i < options.tile_size; i++)
 				if (ptr[i] != j * options.tile_size + i) {
-					printf("render copyfunc mismatch at (%d, %d): found %d, expected %d\n",
-					       i, j, ptr[i], j*options.tile_size + i);
+					igt_info("render copyfunc mismatch at (%d, %d): found %d, expected %d\n", i, j, ptr[i], j * options.tile_size + i);
 				}
 		}
 	}
@@ -898,10 +888,10 @@ int main(int argc, char **argv)
 	fan_out();
 
 	for (i = 0; i < options.total_rounds; i++) {
-		printf("round %i\n", i);
+		igt_info("round %i\n", i);
 		if (i % 64 == 63) {
 			fan_in_and_check();
-			printf("everything correct after %i rounds\n", i + 1);
+			igt_info("everything correct after %i rounds\n", i + 1);
 		}
 
 		target_set = (current_set + 1) & 1;
@@ -924,8 +914,7 @@ int main(int argc, char **argv)
 
 	fan_in_and_check();
 
-	fprintf(stdout, "num failed tiles %u, max incoherent bytes %zd\n",
-		stats.num_failed, stats.max_failed_reads*sizeof(uint32_t));
+	igt_info("num failed tiles %u, max incoherent bytes %zd\n", stats.num_failed, stats.max_failed_reads * sizeof(uint32_t));
 
 	intel_batchbuffer_free(batch);
 	drm_intel_bufmgr_destroy(bufmgr);

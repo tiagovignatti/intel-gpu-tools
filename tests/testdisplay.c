@@ -118,45 +118,36 @@ static void dump_connectors_fd(int drmfd)
 	drmModeRes *mode_resources = drmModeGetResources(drmfd);
 
 	if (!mode_resources) {
-		fprintf(stderr, "drmModeGetResources failed: %s\n",
-			strerror(errno));
+		igt_warn("drmModeGetResources failed: %s\n", strerror(errno));
 		return;
 	}
 
-	printf("Connectors:\n");
-	printf("id\tencoder\tstatus\t\ttype\tsize (mm)\tmodes\n");
+	igt_info("Connectors:\n");
+	igt_info("id\tencoder\tstatus\t\ttype\tsize (mm)\tmodes\n");
 	for (i = 0; i < mode_resources->count_connectors; i++) {
 		drmModeConnector *connector;
 
 		connector = drmModeGetConnector(drmfd, mode_resources->connectors[i]);
 		if (!connector) {
-			fprintf(stderr, "could not get connector %i: %s\n",
-				mode_resources->connectors[i], strerror(errno));
+			igt_warn("could not get connector %i: %s\n", mode_resources->connectors[i], strerror(errno));
 			continue;
 		}
 
-		printf("%d\t%d\t%s\t%s\t%dx%d\t\t%d\n",
-		       connector->connector_id,
-		       connector->encoder_id,
-		       kmstest_connector_status_str(connector->connection),
-		       kmstest_connector_type_str(connector->connector_type),
-		       connector->mmWidth, connector->mmHeight,
-		       connector->count_modes);
+		igt_info("%d\t%d\t%s\t%s\t%dx%d\t\t%d\n", connector->connector_id, connector->encoder_id, kmstest_connector_status_str(connector->connection), kmstest_connector_type_str(connector->connector_type), connector->mmWidth, connector->mmHeight, connector->count_modes);
 
 		if (!connector->count_modes)
 			continue;
 
-		printf("  modes:\n");
-		printf("  name refresh (Hz) hdisp hss hse htot vdisp "
-		       "vss vse vtot flags type clock\n");
+		igt_info("  modes:\n");
+		igt_info("  name refresh (Hz) hdisp hss hse htot vdisp ""vss vse vtot flags type clock\n");
 		for (j = 0; j < connector->count_modes; j++){
-			fprintf(stdout, "[%d]", j );
+			igt_info("[%d]", j);
 			kmstest_dump_mode(&connector->modes[j]);
 		}
 
 		drmModeFreeConnector(connector);
 	}
-	printf("\n");
+	igt_info("\n");
 
 	drmModeFreeResources(mode_resources);
 }
@@ -166,27 +157,22 @@ static void dump_crtcs_fd(int drmfd)
 	int i;
 	drmModeRes *mode_resources = drmModeGetResources(drmfd);
 
-	printf("CRTCs:\n");
-	printf("id\tfb\tpos\tsize\n");
+	igt_info("CRTCs:\n");
+	igt_info("id\tfb\tpos\tsize\n");
 	for (i = 0; i < mode_resources->count_crtcs; i++) {
 		drmModeCrtc *crtc;
 
 		crtc = drmModeGetCrtc(drmfd, mode_resources->crtcs[i]);
 		if (!crtc) {
-			fprintf(stderr, "could not get crtc %i: %s\n",
-				mode_resources->crtcs[i], strerror(errno));
+			igt_warn("could not get crtc %i: %s\n", mode_resources->crtcs[i], strerror(errno));
 			continue;
 		}
-		printf("%d\t%d\t(%d,%d)\t(%dx%d)\n",
-		       crtc->crtc_id,
-		       crtc->buffer_id,
-		       crtc->x, crtc->y,
-		       crtc->width, crtc->height);
+		igt_info("%d\t%d\t(%d,%d)\t(%dx%d)\n", crtc->crtc_id, crtc->buffer_id, crtc->x, crtc->y, crtc->width, crtc->height);
 		kmstest_dump_mode(&crtc->mode);
 
 		drmModeFreeCrtc(crtc);
 	}
-	printf("\n");
+	igt_info("\n");
 
 	drmModeFreeResources(mode_resources);
 }
@@ -343,8 +329,8 @@ static void set_single(void)
 
 	sigemptyset(&sa.sa_mask);
 
-	if (sigaction(sigs[0], &sa, NULL) == -1)
-		perror("Could not set signal handler");
+	igt_warn_on_f(sigaction(sigs[0], &sa, NULL) == -1,
+		      "Could not set signal handler");
 }
 
 static void
@@ -384,13 +370,11 @@ set_mode(struct connector *c)
 		paint_output_info(c, &fb_info[current_fb]);
 		paint_color_key(&fb_info[current_fb]);
 
-		fprintf(stdout, "CRTC(%u):[%d]",c->crtc, j);
+		igt_info("CRTC(%u):[%d]", c->crtc, j);
 		kmstest_dump_mode(&c->mode);
 		if (drmModeSetCrtc(drm_fd, c->crtc, fb_id, 0, 0,
 				   &c->id, 1, &c->mode)) {
-			fprintf(stderr, "failed to set mode (%dx%d@%dHz): %s\n",
-				width, height, c->mode.vrefresh,
-				strerror(errno));
+			igt_warn("failed to set mode (%dx%d@%dHz): %s\n", width, height, c->mode.vrefresh, strerror(errno));
 			continue;
 		}
 
@@ -541,12 +525,8 @@ static void do_set_stereo_mode(struct connector *c)
 
 	fb_id = create_stereo_fb(&c->mode, &fb_info);
 
-	if (drmModeSetCrtc(drm_fd, c->crtc, fb_id, 0, 0,
-			   &c->id, 1, &c->mode)) {
-		fprintf(stderr, "failed to set mode (%dx%d@%dHz): %s\n",
-			width, height, c->mode.vrefresh,
-			strerror(errno));
-	}
+	igt_warn_on_f(drmModeSetCrtc(drm_fd, c->crtc, fb_id, 0, 0, &c->id, 1, &c->mode),
+		      "failed to set mode (%dx%d@%dHz): %s\n", width, height, c->mode.vrefresh, strerror(errno));
 }
 
 static void
@@ -570,7 +550,7 @@ set_stereo_mode(struct connector *c)
 		if (!(c->mode.flags & DRM_MODE_FLAG_3D_MASK))
 			continue;
 
-		fprintf(stdout, "CRTC(%u): [%d]", c->crtc, i);
+		igt_info("CRTC(%u): [%d]", c->crtc, i);
 		kmstest_dump_mode(&c->mode);
 		do_set_stereo_mode(c);
 
@@ -607,8 +587,7 @@ int update_display(void)
 
 	resources = drmModeGetResources(drm_fd);
 	if (!resources) {
-		fprintf(stderr, "drmModeGetResources failed: %s\n",
-			strerror(errno));
+		igt_warn("drmModeGetResources failed: %s\n", strerror(errno));
 		return 0;
 	}
 
@@ -675,22 +654,22 @@ static char optstr[] = "3hiaf:s:d:p:mrto:j:";
 
 static void __attribute__((noreturn)) usage(char *name)
 {
-	fprintf(stdout, "usage: %s [-hiasdpmtf]\n", name);
-	fprintf(stdout, "\t-i\tdump info\n");
-	fprintf(stdout, "\t-a\ttest all modes\n");
-	fprintf(stdout, "\t-s\t<duration>\tsleep between each mode test\n");
-	fprintf(stdout, "\t-d\t<depth>\tbit depth of scanout buffer\n");
-	fprintf(stdout, "\t-p\t<planew,h>,<crtcx,y>,<crtcw,h> test overlay plane\n");
-	fprintf(stdout, "\t-m\ttest the preferred mode\n");
-	fprintf(stdout, "\t-3\ttest all 3D modes\n");
-	fprintf(stdout, "\t-t\tuse a tiled framebuffer\n");
-	fprintf(stdout, "\t-j\tdo dpms off, optional arg to select dpms leve (1-3)\n");
-	fprintf(stdout, "\t-r\tprint a QR code on the screen whose content is \"pass\" for the automatic test\n");
-	fprintf(stdout, "\t-o\t<id of the display>,<number of the mode>\tonly test specified mode on the specified display\n");
-	fprintf(stdout, "\t-f\t<clock MHz>,<hdisp>,<hsync-start>,<hsync-end>,<htotal>,\n");
-	fprintf(stdout, "\t\t<vdisp>,<vsync-start>,<vsync-end>,<vtotal>\n");
-	fprintf(stdout, "\t\ttest force mode\n");
-	fprintf(stdout, "\tDefault is to test all modes.\n");
+	igt_info("usage: %s [-hiasdpmtf]\n", name);
+	igt_info("\t-i\tdump info\n");
+	igt_info("\t-a\ttest all modes\n");
+	igt_info("\t-s\t<duration>\tsleep between each mode test\n");
+	igt_info("\t-d\t<depth>\tbit depth of scanout buffer\n");
+	igt_info("\t-p\t<planew,h>,<crtcx,y>,<crtcw,h> test overlay plane\n");
+	igt_info("\t-m\ttest the preferred mode\n");
+	igt_info("\t-3\ttest all 3D modes\n");
+	igt_info("\t-t\tuse a tiled framebuffer\n");
+	igt_info("\t-j\tdo dpms off, optional arg to select dpms leve (1-3)\n");
+	igt_info("\t-r\tprint a QR code on the screen whose content is \"pass\" for the automatic test\n");
+	igt_info("\t-o\t<id of the display>,<number of the mode>\tonly test specified mode on the specified display\n");
+	igt_info("\t-f\t<clock MHz>,<hdisp>,<hsync-start>,<hsync-end>,<htotal>,\n");
+	igt_info("\t\t<vdisp>,<vsync-start>,<vsync-end>,<vtotal>\n");
+	igt_info("\t\ttest force mode\n");
+	igt_info("\tDefault is to test all modes.\n");
 	exit(0);
 }
 
@@ -797,7 +776,7 @@ int main(int argc, char **argv)
 			break;
 		case 'd':
 			depth = atoi(optarg);
-			fprintf(stdout, "using depth %d\n", depth);
+			igt_info("using depth %d\n", depth);
 			break;
 		case 'p':
 			if (sscanf(optarg, "%d,%d,%d,%d,%d,%d", &plane_width,
@@ -843,7 +822,7 @@ int main(int argc, char **argv)
 
 	if (test_stereo_modes &&
 	    drmSetClientCap(drm_fd, DRM_CLIENT_CAP_STEREO_3D, 1) < 0) {
-		fprintf(stderr, "DRM_CLIENT_CAP_STEREO_3D failed\n");
+		igt_warn("DRM_CLIENT_CAP_STEREO_3D failed\n");
 		goto out_close;
 	}
 
@@ -856,26 +835,26 @@ int main(int argc, char **argv)
 
 	mainloop = g_main_loop_new(NULL, FALSE);
 	if (!mainloop) {
-		fprintf(stderr, "failed to create glib mainloop\n");
+		igt_warn("failed to create glib mainloop\n");
 		ret = -1;
 		goto out_close;
 	}
 
 	if (!testdisplay_setup_hotplug()) {
-		fprintf(stderr, "failed to initialize hotplug support\n");
+		igt_warn("failed to initialize hotplug support\n");
 		goto out_mainloop;
 	}
 
 	stdinchannel = g_io_channel_unix_new(0);
 	if (!stdinchannel) {
-		fprintf(stderr, "failed to create stdin GIO channel\n");
+		igt_warn("failed to create stdin GIO channel\n");
 		goto out_hotplug;
 	}
 
 	ret = g_io_add_watch(stdinchannel, G_IO_IN | G_IO_ERR, input_event,
 			     NULL);
 	if (ret < 0) {
-		fprintf(stderr, "failed to add watch on stdin GIO channel\n");
+		igt_warn("failed to add watch on stdin GIO channel\n");
 		goto out_stdio;
 	}
 

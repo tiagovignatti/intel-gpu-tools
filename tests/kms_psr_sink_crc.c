@@ -269,8 +269,8 @@ static bool psr_sink_support(data_t *data)
 	igt_require(file);
 
 	ret = fscanf(file, "Sink_Support: %s\n", str);
-	if (ret == 0)
-	    igt_skip("i915_edp_psr_status format not supported by this test case\n");
+	igt_skip_on_f(ret == 0,
+		      "i915_edp_psr_status format not supported by this test case\n");
 
 	fclose(file);
 	return strcmp(str, "yes") == 0;
@@ -381,7 +381,7 @@ static void test_crc(data_t *data)
 		ptr = gem_mmap__gtt(data->drm_fd, handle, 4096, PROT_WRITE);
 		gem_set_domain(data->drm_fd, handle,
 			       I915_GEM_DOMAIN_GTT, I915_GEM_DOMAIN_GTT);
-		fprintf(stdout, "Sleeping for 10 sec...\n");
+		igt_info("Sleeping for 10 sec...\n");
                 sleep(10);
 		memset(ptr, 0xff, 4);
 		munmap(ptr, 4096);
@@ -390,12 +390,12 @@ static void test_crc(data_t *data)
 		ptr = gem_mmap__gtt(data->drm_fd, handle, 4096, PROT_WRITE);
 		gem_set_domain(data->drm_fd, handle,
 			       I915_GEM_DOMAIN_GTT, I915_GEM_DOMAIN_GTT);
-		fprintf(stdout, "Sleeping for 10 sec...\n");
+		igt_info("Sleeping for 10 sec...\n");
 		sleep(10);
 		fill_blt(data, handle, 0xff);
 		igt_assert(wait_psr_entry(data, 10));
 		get_sink_crc(data, ref_crc);
-		fprintf(stdout, "Sleeping for 10 sec...\n");
+		igt_info("Sleeping for 10 sec...\n");
 		sleep(10);
 		memset(ptr, 0xff, 4);
 		munmap(ptr, 4096);
@@ -404,12 +404,12 @@ static void test_crc(data_t *data)
 		ptr = gem_mmap__cpu(data->drm_fd, handle, 4096, PROT_WRITE);
 		gem_set_domain(data->drm_fd, handle,
 			       I915_GEM_DOMAIN_CPU, I915_GEM_DOMAIN_CPU);
-		fprintf(stdout, "Sleeping for 10 sec...\n");
+		igt_info("Sleeping for 10 sec...\n");
 		sleep(10);
 		fill_blt(data, handle, 0xff);
 		igt_assert(wait_psr_entry(data, 10));
 		get_sink_crc(data, ref_crc);
-		fprintf(stdout, "Sleeping for 10 sec...\n");
+		igt_info("Sleeping for 10 sec...\n");
 		sleep(10);
 		memset(ptr, 0xff, 4);
 		munmap(ptr, 4096);

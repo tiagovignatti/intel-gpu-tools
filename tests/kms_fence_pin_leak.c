@@ -173,7 +173,7 @@ static bool run_single_test(data_t *data, enum pipe pipe, igt_output_t *output)
 		igt_plane_set_fb(primary, &fb[!(i&1)]);
 		igt_display_commit(display);
 
-		printf(".");
+		igt_info(".");
 		fflush(stdout);
 	}
 
@@ -184,7 +184,7 @@ static bool run_single_test(data_t *data, enum pipe pipe, igt_output_t *output)
 	igt_remove_fb(data->drm_fd, &fb[1]);
 	igt_remove_fb(data->drm_fd, &fb[0]);
 
-	printf("\n");
+	igt_info("\n");
 
 	return true;
 }
