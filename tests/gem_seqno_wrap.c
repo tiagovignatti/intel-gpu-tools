@@ -38,7 +38,6 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <limits.h>
-#include <wordexp.h>
 #include <getopt.h>
 #include <signal.h>
 #include <errno.h>
@@ -62,7 +61,6 @@ static struct intel_batchbuffer *batch_3d;
 struct option_struct {
 	int rounds;
 	int background;
-	char cmd[1024];
 	int timeout;
 	int dontwrap;
 	int prewrap_space;
@@ -280,60 +278,6 @@ static void run_sync_test(int num_buffers, bool verify)
 	close(fd);
 }
 
-static int run_cmd(char *s)
-{
-	int pid;
-	int r = -1;
-	int status = 0;
-	wordexp_t wexp;
-	int i;
-	r = wordexp(s, &wexp, 0);
-	if (r != 0) {
-		igt_info("can't parse %s\n", s);
-		return r;
-	}
-
-	for(i = 0; i < wexp.we_wordc; i++)
-		igt_info("argv[%d] = %s\n", i, wexp.we_wordv[i]);
-
-	pid = fork();
-
-	if (pid == 0) {
-		char path[PATH_MAX];
-		char full_path[PATH_MAX];
-
-		igt_warn_on_f(getcwd(path, PATH_MAX) == NULL, "getcwd");
-
-		igt_assert(snprintf(full_path, PATH_MAX, "%s/%s", path, wexp.we_wordv[0]) > 0);
-
-		r = execv(full_path, wexp.we_wordv);
-		igt_warn_on_f(r == -1, "execv failed");
-	} else {
-		int waitcount = options.timeout;
-
-		while(waitcount-- > 0) {
-			r = waitpid(pid, &status, WNOHANG);
-			if (r == pid) {
-				if(WIFEXITED(status)) {
-					igt_warn_on_f(WEXITSTATUS(status),
-						      "child returned with %d\n", WEXITSTATUS(status));
-					return WEXITSTATUS(status);
-				}
-			} else if (r != 0) {
-				igt_warn("waitpid");
-				return -errno;
-			}
-
-			sleep(3);
-		}
-
-		kill(pid, SIGKILL);
-		return -ETIMEDOUT;
-	}
-
-	return r;
-}
-
 static const char *dfs_base = "/sys/kernel/debug/dri";
 static const char *dfs_entry = "i915_next_seqno";
 
@@ -410,7 +354,7 @@ static int write_seqno(uint32_t seqno)
 	int fh;
 	char buf[32];
 	int r;
-	uint32_t rb;
+	uint32_t rb = -1;
 
 	if (options.dontwrap)
 		return 0;
@@ -456,10 +400,7 @@ static uint32_t calc_prewrap_val(void)
 
 static void run_test(void)
 {
-	if (strnlen(options.cmd, sizeof(options.cmd)) > 0)
-		igt_assert(run_cmd(options.cmd) == 0);
-	else
-		run_sync_test(options.buffers, true);
+	run_sync_test(options.buffers, true);
 }
 
 static void preset_run_once(void)
@@ -516,7 +457,6 @@ static void print_usage(const char *s)
 	igt_info("%s: [OPTION]...\n", s);
 	igt_info("    where options are:\n");
 	igt_info("    -b --background       run in background inducing wraps\n");
-	igt_info("    -c --cmd=cmdstring    use cmdstring to cross wrap\n");
 	igt_info("    -n --rounds=num       run num times across wrap boundary, 0 == forever\n");
 	igt_info("    -t --timeout=sec      set timeout to wait for testrun to sec seconds\n");
 	igt_info("    -d --dontwrap         don't wrap just run the test\n");
@@ -531,7 +471,6 @@ static void parse_options(int argc, char **argv)
 	int c;
 	int option_index = 0;
 	static struct option long_options[] = {
-		{"cmd", required_argument, 0, 'c'},
 		{"rounds", required_argument, 0, 'n'},
 		{"background", no_argument, 0, 'b'},
 		{"timeout", required_argument, 0, 't'},
@@ -541,7 +480,6 @@ static void parse_options(int argc, char **argv)
 		{"buffers", required_argument, 0, 'i'},
 	};
 
-	strcpy(options.cmd, "");
 	options.rounds = SLOW_QUICK(50, 2);
 	options.background = 0;
 	options.dontwrap = 0;
@@ -550,7 +488,7 @@ static void parse_options(int argc, char **argv)
 	options.prewrap_space = 21;
 	options.buffers = 10;
 
-	while((c = getopt_long(argc, argv, "c:n:bvt:dp:ri:",
+	while((c = getopt_long(argc, argv, "n:bvt:dp:ri:",
 			       long_options, &option_index)) != -1) {
 		switch(c) {
 		case 'b':
@@ -564,11 +502,6 @@ static void parse_options(int argc, char **argv)
 		case 'n':
 			options.rounds = atoi(optarg);
 			igt_info("running %d rounds\n", options.rounds);
-			break;
-		case 'c':
-			strncpy(options.cmd, optarg, sizeof(options.cmd) - 1);
-			options.cmd[sizeof(options.cmd) - 1] = 0;
-			igt_info("cmd set to %s\n", options.cmd);
 			break;
 		case 'i':
 			options.buffers = atoi(optarg);

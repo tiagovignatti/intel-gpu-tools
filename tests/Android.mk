@@ -28,7 +28,6 @@ endef
 
 # some tests still do not build under android
 skip_tests_list :=
-skip_tests_list += gem_seqno_wrap
 skip_tests_list += testdisplay        # needs glib.h
 skip_tests_list += pm_rpm
 
