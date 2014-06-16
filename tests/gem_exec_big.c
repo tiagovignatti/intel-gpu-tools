@@ -49,13 +49,12 @@
 
 #define BATCH_SIZE		(1024*1024)
 
-static int exec(int fd, uint32_t handle, uint32_t reloc_ofs)
+static void exec(int fd, uint32_t handle, uint32_t reloc_ofs)
 {
 	struct drm_i915_gem_execbuffer2 execbuf;
 	struct drm_i915_gem_exec_object2 gem_exec[1];
 	struct drm_i915_gem_relocation_entry gem_reloc[1];
 	uint32_t tmp;
-	int ret = 0;
 
 	gem_reloc[0].offset = reloc_ofs;
 	gem_reloc[0].delta = 0;
@@ -85,16 +84,10 @@ static int exec(int fd, uint32_t handle, uint32_t reloc_ofs)
 	i915_execbuffer2_set_context_id(execbuf, 0);
 	execbuf.rsvd2 = 0;
 
-	ret = drmIoctl(fd,
-		       DRM_IOCTL_I915_GEM_EXECBUFFER2,
-		       &execbuf);
-	gem_sync(fd, handle);
+	gem_execbuf(fd, &execbuf);
 
 	gem_read(fd, handle, reloc_ofs, &tmp, 4);
-
-	igt_assert(tmp == gem_reloc[0].presumed_offset);
-
-	return ret;
+	igt_assert_eq(tmp, gem_reloc[0].presumed_offset);
 }
 
 igt_simple_main
@@ -114,7 +107,7 @@ igt_simple_main
 		gem_write(fd, handle, 0, batch, sizeof(batch));
 
 		for (reloc_ofs = 4096; reloc_ofs < batch_size; reloc_ofs += 4096)
-			igt_assert(exec(fd, handle, reloc_ofs) == 0);
+			exec(fd, handle, reloc_ofs);
 	}
 
 	gem_close(fd, handle);
