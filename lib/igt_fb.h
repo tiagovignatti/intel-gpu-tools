@@ -36,6 +36,8 @@ typedef struct _cairo_surface cairo_surface_t;
 typedef struct _cairo cairo_t;
 #endif
 
+#include <stddef.h>
+#include <stdbool.h>
 #include <drm_fourcc.h>
 #include <xf86drmMode.h>
 

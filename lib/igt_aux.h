@@ -29,6 +29,7 @@
 #define IGT_AUX_H
 
 #include <intel_bufmgr.h>
+#include <stdbool.h>
 
 /* auxialiary igt helpers from igt_aux.c */
 /* generally useful helpers */

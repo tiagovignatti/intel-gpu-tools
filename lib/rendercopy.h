@@ -1,3 +1,6 @@
+#include "intel_batchbuffer.h"
+
+
 static inline void emit_vertex_2s(struct intel_batchbuffer *batch,
 				  int16_t x, int16_t y)
 {

@@ -1,6 +1,8 @@
 #ifndef GEN7_RENDER_H
 #define GEN7_RENDER_H
 
+#include <stdint.h>
+
 #define INTEL_MASK(high, low) (((1 << ((high) - (low) + 1)) - 1) << (low))
 
 #define GEN7_3D(Pipeline,Opcode,Subopcode) ((3 << 29) | \
