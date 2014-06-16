@@ -34,8 +34,10 @@
 
 #include "drmtest.h"
 
+#define NUMBER_OF_RC6_RESIDENCY 3
 #define SLEEP_DURATION 3000 // in milliseconds
 #define RC6_FUDGE 900 // in milliseconds
+
 
 static unsigned int readit(const char *path)
 {
@@ -44,8 +46,10 @@ static unsigned int readit(const char *path)
 
 	FILE *file;
 	file = fopen(path, "r");
-	igt_assert_f(file,
-		     "Couldn't open %s (%d)\n", path, errno);
+	if (file == NULL) {
+		fprintf(stderr, "Couldn't open %s (%d)\n", path, errno);
+		abort();
+	}
 	scanned = fscanf(file, "%u", &ret);
 	igt_assert(scanned == 1);
 
@@ -54,14 +58,99 @@ static unsigned int readit(const char *path)
 	return ret;
 }
 
-igt_simple_main
+static void read_rc6_residency( int value[], const char *name_of_rc6_residency[])
 {
 	const int device = drm_get_card();
-	char *path, *pathp, *pathpp;
-	int fd, ret;
-	unsigned int value1, value1p, value1pp, value2, value2p, value2pp;
+	char *path ;
+	int  ret;
 	FILE *file;
-	int diff;
+
+	/* For some reason my ivb isn't idle even after syncing up with the gpu.
+	 * Let's add a sleept just to make it happy. */
+	sleep(5);
+
+	ret = asprintf(&path, "/sys/class/drm/card%d/power/rc6_enable", device);
+	igt_assert(ret != -1);
+
+	file = fopen(path, "r");//open
+	igt_require(file);
+
+	/* claim success if no rc6 enabled. */
+	if (readit(path) == 0)
+		igt_success();
+
+	for(unsigned int i = 0; i < 6; i++)
+	{
+		if(i == 3)
+			sleep(SLEEP_DURATION / 1000);
+		ret = asprintf(&path, "/sys/class/drm/card%d/power/%s_residency_ms",device,name_of_rc6_residency[i % 3] );
+		igt_assert(ret != -1);
+		value[i] = readit(path);
+	}
+	free(path);
+}
+
+static void rc6_residency_counter(int value[],const char * name_of_rc6_residency[])
+{
+	unsigned int flag_counter,flag_support;
+	double  counter_result = 0;
+	flag_counter = 0;
+	flag_support = 0;
+
+	for(int flag = NUMBER_OF_RC6_RESIDENCY-1; flag >= 0 ; flag --)
+	{
+		unsigned int  tmp_counter, tmp_support;
+		double counter;
+		counter = ((double)value[flag + 3] - (double)value[flag]) /(double) SLEEP_DURATION;
+
+		if( counter > 0.9 ){
+			counter_result = counter;
+			tmp_counter = 1;
+		}
+		else
+			tmp_counter = 0;
+
+		if( value [flag + 3] == 0){
+			tmp_support = 0;
+			printf("This machine doesn't support %s\n",name_of_rc6_residency[flag]);
+		}
+		else
+			tmp_support = 1;
+
+		flag_counter = flag_counter + tmp_counter;
+		flag_counter = flag_counter << 1;
+
+		flag_support = flag_support + tmp_support;
+		flag_support = flag_support << 1;
+	}
+
+	printf("The residency counter : %f \n", counter_result);
+
+	igt_assert_f(flag_counter != 0 , "The RC6 residency counter is not good.\n");
+	igt_assert_f(flag_support != 0 , "This machine doesn't support any RC6 state!\n");
+	igt_assert_f(counter_result <=1  , "Debug files must be wrong \n");
+
+	printf("This machine entry %s state.\n", name_of_rc6_residency[(flag_counter / 2) - 1]);
+}
+
+static void rc6_residency_check(int value[])
+{
+	unsigned int diff;
+	diff = (value[3] - value[0]) +
+			(value[4] - value[1]) +
+			(value[5] - value[2]);
+
+	igt_assert_f(diff <= (SLEEP_DURATION + RC6_FUDGE),"Diff was too high. That is unpossible\n");
+	igt_assert_f(diff >= (SLEEP_DURATION - RC6_FUDGE),"GPU was not in RC6 long enough. Check that "
+							"the GPU is as idle as possible(ie. no X, "
+							"running and running no other tests)\n");
+}
+
+igt_main
+{
+	int value[6];
+	int fd;
+	const char * name_of_rc6_residency[3]={"rc6","rc6p","rc6pp"};
 
 	igt_skip_on_simulation();
 
@@ -69,47 +158,12 @@ igt_simple_main
 	fd = drm_open_any();
 	close(fd);
 
-	ret = asprintf(&path, "/sys/class/drm/card%d/power/rc6_enable", device);
-	igt_assert(ret != -1);
+	read_rc6_residency(value, name_of_rc6_residency);
 
-	/* For some reason my ivb isn't idle even after syncing up with the gpu.
-	 * Let's add a sleept just to make it happy. */
-	sleep(5);
+	igt_subtest("rc6-residency-check")
+		rc6_residency_check(value);
 
-	file = fopen(path, "r");
-	igt_require(file);
+	igt_subtest("rc6-residency-counter")
+		rc6_residency_counter(value, name_of_rc6_residency);
 
-	/* claim success if no rc6 enabled. */
-	if (readit(path) == 0)
-		igt_success();
-
-	ret = asprintf(&path, "/sys/class/drm/card%d/power/rc6_residency_ms", device);
-	igt_assert(ret != -1);
-	ret = asprintf(&pathp, "/sys/class/drm/card%d/power/rc6p_residency_ms", device);
-	igt_assert(ret != -1);
-	ret = asprintf(&pathpp, "/sys/class/drm/card%d/power/rc6pp_residency_ms", device);
-	igt_assert(ret != -1);
-
-	value1 = readit(path);
-	value1p = readit(pathp);
-	value1pp = readit(pathpp);
-	sleep(SLEEP_DURATION / 1000);
-	value2 = readit(path);
-	value2p = readit(pathp);
-	value2pp = readit(pathpp);
-
-	free(pathpp);
-	free(pathp);
-	free(path);
-
-	diff = (value2pp - value1pp) +
-		(value2p - value1p) +
-		(value2 - value1);
-
-	igt_assert_f(diff <= (SLEEP_DURATION + RC6_FUDGE),
-		     "Diff was too high. That is unpossible\n");
-	igt_assert_f(diff >= (SLEEP_DURATION - RC6_FUDGE),
-		     "GPU was not in RC6 long enough. Check that "
-		     "the GPU is as idle as possible (ie. no X, "
-		     "running and running no other tests)\n");
 }
