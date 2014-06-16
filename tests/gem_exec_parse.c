@@ -37,8 +37,16 @@
 #define I915_PARAM_CMD_PARSER_VERSION       28
 #endif
 
-static int exec_batch_patched(int fd, uint32_t cmd_bo, uint32_t *cmds,
-			      int size, int patch_offset, uint64_t expected_value)
+static int __gem_execbuf(int fd, struct drm_i915_gem_execbuffer2 *execbuf)
+{
+	if (drmIoctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, execbuf))
+		return -errno;
+
+	return 0;
+}
+
+static void exec_batch_patched(int fd, uint32_t cmd_bo, uint32_t *cmds,
+			       int size, int patch_offset, uint64_t expected_value)
 {
 	struct drm_i915_gem_execbuffer2 execbuf;
 	struct drm_i915_gem_exec_object2 objs[2];
@@ -90,19 +98,16 @@ static int exec_batch_patched(int fd, uint32_t cmd_bo, uint32_t *cmds,
 	gem_sync(fd, cmd_bo);
 
 	gem_read(fd,target_bo, 0, &actual_value, sizeof(actual_value));
-	igt_assert(expected_value == actual_value);
+	igt_assert_eq(expected_value, actual_value);
 
 	gem_close(fd, target_bo);
-
-	return 1;
 }
 
-static int exec_batch(int fd, uint32_t cmd_bo, uint32_t *cmds,
-		      int size, int ring, int expected_ret)
+static void exec_batch(int fd, uint32_t cmd_bo, uint32_t *cmds,
+		       int size, int ring, int expected_ret)
 {
 	struct drm_i915_gem_execbuffer2 execbuf;
 	struct drm_i915_gem_exec_object2 objs[1];
-	int ret;
 
 	gem_write(fd, cmd_bo, 0, cmds, size);
 
@@ -127,27 +132,18 @@ static int exec_batch(int fd, uint32_t cmd_bo, uint32_t *cmds,
 	i915_execbuffer2_set_context_id(execbuf, 0);
 	execbuf.rsvd2 = 0;
 
-	ret = drmIoctl(fd,
-		       DRM_IOCTL_I915_GEM_EXECBUFFER2,
-		       &execbuf);
-	if (ret == 0)
-		igt_assert(expected_ret == 0);
-	else
-		igt_assert(-errno == expected_ret);
+	igt_assert_eq(__gem_execbuf(fd, &execbuf), expected_ret);
 
 	gem_sync(fd, cmd_bo);
-
-	return 1;
 }
 
-static int exec_split_batch(int fd, uint32_t *cmds,
-			    int size, int ring, int expected_ret)
+static void exec_split_batch(int fd, uint32_t *cmds,
+			     int size, int ring, int expected_ret)
 {
 	struct drm_i915_gem_execbuffer2 execbuf;
 	struct drm_i915_gem_exec_object2 objs[1];
 	uint32_t cmd_bo;
 	uint32_t noop[1024] = { 0 };
-	int ret;
 
 	// Allocate and fill a 2-page batch with noops
 	cmd_bo = gem_create(fd, 4096 * 2);
@@ -180,18 +176,10 @@ static int exec_split_batch(int fd, uint32_t *cmds,
 	i915_execbuffer2_set_context_id(execbuf, 0);
 	execbuf.rsvd2 = 0;
 
-	ret = drmIoctl(fd,
-		       DRM_IOCTL_I915_GEM_EXECBUFFER2,
-		       &execbuf);
-	if (ret == 0)
-		igt_assert(expected_ret == 0);
-	else
-		igt_assert(-errno == expected_ret);
+	igt_assert_eq(__gem_execbuf(fd, &execbuf), expected_ret);
 
 	gem_sync(fd, cmd_bo);
 	gem_close(fd, cmd_bo);
-
-	return 1;
 }
 
 uint32_t handle;
@@ -236,11 +224,10 @@ igt_main
 			0,
 			MI_BATCH_BUFFER_END,
 		};
-		igt_assert(
-			exec_batch_patched(fd, handle,
-					   pc, sizeof(pc),
-					   8, // patch offset,
-					   0x12000000));
+		exec_batch_patched(fd, handle,
+				   pc, sizeof(pc),
+				   8, // patch offset,
+				   0x12000000);
 	}
 
 	igt_subtest("basic-rejected") {
@@ -254,28 +241,24 @@ igt_main
 			MI_BATCH_BUFFER_END,
 			0
 		};
-		igt_assert(
-			   exec_batch(fd, handle,
-				      arb_on_off, sizeof(arb_on_off),
-				      I915_EXEC_RENDER,
-				      -EINVAL));
-		igt_assert(
-			   exec_batch(fd, handle,
-				      arb_on_off, sizeof(arb_on_off),
-				      I915_EXEC_BSD,
-				      -EINVAL));
+		exec_batch(fd, handle,
+			   arb_on_off, sizeof(arb_on_off),
+			   I915_EXEC_RENDER,
+			   -EINVAL);
+		exec_batch(fd, handle,
+			   arb_on_off, sizeof(arb_on_off),
+			   I915_EXEC_BSD,
+			   -EINVAL);
 		if (gem_has_vebox(fd)) {
-			igt_assert(
-				   exec_batch(fd, handle,
-					      arb_on_off, sizeof(arb_on_off),
-					      I915_EXEC_VEBOX,
-					      -EINVAL));
+			exec_batch(fd, handle,
+				   arb_on_off, sizeof(arb_on_off),
+				   I915_EXEC_VEBOX,
+				   -EINVAL);
 		}
-		igt_assert(
-			   exec_batch(fd, handle,
-				      display_flip, sizeof(display_flip),
-				      I915_EXEC_BLT,
-				      -EINVAL));
+		exec_batch(fd, handle,
+			   display_flip, sizeof(display_flip),
+			   I915_EXEC_BLT,
+			   -EINVAL);
 	}
 
 	igt_subtest("registers") {
@@ -291,16 +274,14 @@ igt_main
 			0x1,
 			MI_BATCH_BUFFER_END,
 		};
-		igt_assert(
-			   exec_batch(fd, handle,
-				      lri_bad, sizeof(lri_bad),
-				      I915_EXEC_RENDER,
-				      -EINVAL));
-		igt_assert(
-			   exec_batch(fd, handle,
-				      lri_ok, sizeof(lri_ok),
-				      I915_EXEC_RENDER,
-				      0));
+		exec_batch(fd, handle,
+			   lri_bad, sizeof(lri_bad),
+			   I915_EXEC_RENDER,
+			   -EINVAL);
+		exec_batch(fd, handle,
+			   lri_ok, sizeof(lri_ok),
+			   I915_EXEC_RENDER,
+			   0);
 	}
 
 	igt_subtest("bitmasks") {
@@ -313,20 +294,18 @@ igt_main
 			0,
 			MI_BATCH_BUFFER_END,
 		};
-		igt_assert(
-			   exec_batch(fd, handle,
-				      pc, sizeof(pc),
-				      I915_EXEC_RENDER,
-				      -EINVAL));
+		exec_batch(fd, handle,
+			   pc, sizeof(pc),
+			   I915_EXEC_RENDER,
+			   -EINVAL);
 	}
 
 	igt_subtest("batch-without-end") {
 		uint32_t noop[1024] = { 0 };
-		igt_assert(
-			   exec_batch(fd, handle,
-				      noop, sizeof(noop),
-				      I915_EXEC_RENDER,
-				      -EINVAL));
+		exec_batch(fd, handle,
+			   noop, sizeof(noop),
+			   I915_EXEC_RENDER,
+			   -EINVAL);
 	}
 
 	igt_subtest("cmd-crossing-page") {
@@ -336,11 +315,10 @@ igt_main
 			0x1,
 			MI_BATCH_BUFFER_END,
 		};
-		igt_assert(
-			   exec_split_batch(fd,
-					    lri_ok, sizeof(lri_ok),
-					    I915_EXEC_RENDER,
-					    0));
+		exec_split_batch(fd,
+				 lri_ok, sizeof(lri_ok),
+				 I915_EXEC_RENDER,
+				 0);
 	}
 
 	igt_subtest("oacontrol-tracking") {
@@ -372,21 +350,18 @@ igt_main
 			0x31337000,
 			MI_BATCH_BUFFER_END,
 		};
-		igt_assert(
-			exec_batch(fd, handle,
-				      lri_ok, sizeof(lri_ok),
-				      I915_EXEC_RENDER,
-				      0));
-		igt_assert(
-			exec_batch(fd, handle,
-				      lri_bad, sizeof(lri_bad),
-				      I915_EXEC_RENDER,
-				      -EINVAL));
-		igt_assert(
-			exec_batch(fd, handle,
-				      lri_extra_bad, sizeof(lri_extra_bad),
-				      I915_EXEC_RENDER,
-				      -EINVAL));
+		exec_batch(fd, handle,
+			   lri_ok, sizeof(lri_ok),
+			   I915_EXEC_RENDER,
+			   0);
+		exec_batch(fd, handle,
+			   lri_bad, sizeof(lri_bad),
+			   I915_EXEC_RENDER,
+			   -EINVAL);
+		exec_batch(fd, handle,
+			   lri_extra_bad, sizeof(lri_extra_bad),
+			   I915_EXEC_RENDER,
+			   -EINVAL);
 	}
 
 	igt_fixture {
