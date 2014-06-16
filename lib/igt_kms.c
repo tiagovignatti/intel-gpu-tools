@@ -487,6 +487,8 @@ void igt_display_init(igt_display_t *display, int drm_fd)
 	drmModePlaneRes *plane_resources;
 	int i;
 
+	memset(display, 0, sizeof(igt_display_t));
+
 	LOG_INDENT(display, "init");
 
 	display->drm_fd = drm_fd;
