@@ -28,9 +28,6 @@
 #ifndef _DEBUG_H_
 #define _DEBUG_H_
 
-#include <stdint.h>
-#include <stdio.h>
-
 #define DEBUG_PROTOCOL_VERSION 1
 #define COMMUNICATION_OFFSET 0xc00
 #define COMMUNICATION_QWORD 0xc0
