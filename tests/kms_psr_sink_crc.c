@@ -43,8 +43,8 @@ enum tests {
 	TEST_MMAP_GTT,
 	TEST_MMAP_GTT_NO_BUSY,
 	TEST_MMAP_GTT_WAITING_NO_BUSY,
-	TEST_SETDOMAIN_FLIP_WAIT_WRITE_GTT,
-	TEST_SETDOMAIN_FLIP_WAIT_WRITE_CPU,
+	TEST_SETDOMAIN_WAIT_WRITE_GTT,
+	TEST_SETDOMAIN_WAIT_WRITE_CPU,
 	TEST_BLT,
 	TEST_RENDER,
 	TEST_CONTEXT,
@@ -82,8 +82,8 @@ static const char *tests_str(enum tests test)
 		[TEST_MMAP_GTT] = "mmap_gtt",
 		[TEST_MMAP_GTT_NO_BUSY] = "mmap_gtt_no_busy",
 		[TEST_MMAP_GTT_WAITING_NO_BUSY] = "mmap_gtt_waiting_no_busy",
-		[TEST_SETDOMAIN_FLIP_WAIT_WRITE_GTT] = "setdomain_flip_wait_write_gtt",
-		[TEST_SETDOMAIN_FLIP_WAIT_WRITE_CPU] = "setdomain_flip_wait_write_cpu",
+		[TEST_SETDOMAIN_WAIT_WRITE_GTT] = "setdomain_wait_write_gtt",
+		[TEST_SETDOMAIN_WAIT_WRITE_CPU] = "setdomain_wait_write_cpu",
 		[TEST_BLT] = "blt",
 		[TEST_RENDER] = "render",
 		[TEST_CONTEXT] = "context",
@@ -386,29 +386,25 @@ static void test_crc(data_t *data)
 		memset(ptr, 0xff, 4);
 		munmap(ptr, 4096);
 		break;
-	case TEST_SETDOMAIN_FLIP_WAIT_WRITE_GTT:
+	case TEST_SETDOMAIN_WAIT_WRITE_GTT:
 		ptr = gem_mmap__gtt(data->drm_fd, handle, 4096, PROT_WRITE);
-		gem_set_domain(data->drm_fd, handle,
-			       I915_GEM_DOMAIN_GTT, I915_GEM_DOMAIN_GTT);
-		igt_info("Sleeping for 10 sec...\n");
-		sleep(10);
 		fill_blt(data, handle, 0xff);
 		igt_assert(wait_psr_entry(data, 10));
 		get_sink_crc(data, ref_crc);
+		gem_set_domain(data->drm_fd, handle,
+			       I915_GEM_DOMAIN_GTT, I915_GEM_DOMAIN_GTT);
 		igt_info("Sleeping for 10 sec...\n");
 		sleep(10);
 		memset(ptr, 0xff, 4);
 		munmap(ptr, 4096);
 		break;
-	case TEST_SETDOMAIN_FLIP_WAIT_WRITE_CPU:
+	case TEST_SETDOMAIN_WAIT_WRITE_CPU:
 		ptr = gem_mmap__cpu(data->drm_fd, handle, 4096, PROT_WRITE);
-		gem_set_domain(data->drm_fd, handle,
-			       I915_GEM_DOMAIN_CPU, I915_GEM_DOMAIN_CPU);
-		igt_info("Sleeping for 10 sec...\n");
-		sleep(10);
 		fill_blt(data, handle, 0xff);
 		igt_assert(wait_psr_entry(data, 10));
 		get_sink_crc(data, ref_crc);
+		gem_set_domain(data->drm_fd, handle,
+			       I915_GEM_DOMAIN_CPU, I915_GEM_DOMAIN_CPU);
 		igt_info("Sleeping for 10 sec...\n");
 		sleep(10);
 		memset(ptr, 0xff, 4);
