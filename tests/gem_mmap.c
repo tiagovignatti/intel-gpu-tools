@@ -92,6 +92,13 @@ igt_main
 		munmap(addr, OBJECT_SIZE);
 	}
 
+	igt_subtest("short-mmap") {
+		igt_assert(OBJECT_SIZE > 4096);
+		addr = gem_mmap__cpu(fd, handle, 4096, PROT_WRITE);
+		memset(addr, 0, 4096);
+		munmap(addr, 4096);
+	}
+
 	igt_fixture
 		close(fd);
 }
