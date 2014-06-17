@@ -59,6 +59,7 @@ TESTS_progs_M = \
 	gem_storedw_batches_loop \
 	gem_tiled_blits \
 	gem_tiled_partial_pwrite_pread \
+	gem_userptr_blits \
 	gem_write_read_ring_switch \
 	kms_addfb \
 	kms_cursor_crc \
@@ -130,7 +131,6 @@ TESTS_progs = \
 	gem_tiling_max_stride \
 	gem_unfence_active_buffers \
 	gem_unref_active_buffers \
-	gem_userptr_blits \
 	gem_wait_render_timeout \
 	gen3_mixed_blits \
 	gen3_render_linear_blits \
