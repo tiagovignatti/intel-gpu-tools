@@ -46,6 +46,7 @@
 #include "ioctl_wrappers.h"
 #include "drmtest.h"
 #include "igt_aux.h"
+#include "igt_debugfs.h"
 
 struct local_drm_i915_gem_context_destroy {
 	__u32 ctx_id;
@@ -92,7 +93,6 @@ static int exec(int fd, uint32_t handle, int ring, int ctx_id)
 
 	ret = drmIoctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2,
 			&execbuf);
-	gem_sync(fd, handle);
 
 	return ret;
 }
@@ -188,15 +188,43 @@ igt_main
 	igt_subtest("basic") {
 		ctx_id = gem_context_create(fd);
 		igt_assert(exec(fd, handle, I915_EXEC_RENDER, ctx_id) == 0);
+		gem_sync(fd, handle);
 		context_destroy(fd, ctx_id);
 
 		ctx_id = gem_context_create(fd);
 		igt_assert(exec(fd, handle, I915_EXEC_RENDER, ctx_id) == 0);
+		gem_sync(fd, handle);
 		context_destroy(fd, ctx_id);
 
 		igt_assert(exec(fd, handle, I915_EXEC_RENDER, ctx_id) < 0);
+		gem_sync(fd, handle);
 	}
 
 	igt_subtest("eviction")
 		big_exec(fd, handle, I915_EXEC_RENDER);
+
+	igt_subtest("reset-pin-leak") {
+		int i;
+
+		/*
+		 * Use an explicit context to isolate the test from
+		 * any major code changes related to the per-file
+		 * default context (eg. if they would be eliminated).
+		 */
+		ctx_id = gem_context_create(fd);
+
+		/*
+		 * Iterate enough times that the kernel will
+		 * become unhappy if the ggtt pin count for
+		 * the last context is leaked at every reset.
+		 */
+		for (i = 0; i < 20; i++) {
+			igt_set_stop_rings(STOP_RING_DEFAULTS);
+			igt_assert(exec(fd, handle, I915_EXEC_RENDER, 0) == 0);
+			igt_assert(exec(fd, handle, I915_EXEC_RENDER, ctx_id) == 0);
+			gem_sync(fd, handle);
+		}
+
+		context_destroy(fd, ctx_id);
+	}
 }
