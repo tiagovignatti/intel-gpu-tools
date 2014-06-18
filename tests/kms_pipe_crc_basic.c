@@ -231,6 +231,8 @@ igt_main
 	igt_fixture {
 		data.drm_fd = drm_open_any();
 
+		igt_enable_connectors();
+
 		igt_set_vt_graphics_mode();
 
 		igt_require_pipe_crc();
