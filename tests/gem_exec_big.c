@@ -84,7 +84,14 @@ static void exec(int fd, uint32_t handle, uint32_t reloc_ofs)
 	i915_execbuffer2_set_context_id(execbuf, 0);
 	execbuf.rsvd2 = 0;
 
+	/* Avoid hitting slowpaths in the reloc processing which might yield a
+	 * presumed_offset of -1. Happens when the batch is still busy from the
+	 * last round. */
+	gem_sync(fd, handle);
+
 	gem_execbuf(fd, &execbuf);
+
+	igt_warn_on(gem_reloc[0].presumed_offset == -1);
 
 	gem_read(fd, handle, reloc_ofs, &tmp, 4);
 	igt_assert_eq(tmp, gem_reloc[0].presumed_offset);
@@ -106,8 +113,11 @@ igt_simple_main
 		handle = gem_create(fd, batch_size);
 		gem_write(fd, handle, 0, batch, sizeof(batch));
 
-		for (reloc_ofs = 4096; reloc_ofs < batch_size; reloc_ofs += 4096)
+		for (reloc_ofs = 4096; reloc_ofs < batch_size; reloc_ofs += 4096) {
+			igt_debug("batch_size %u, reloc_ofs %u\n",
+				  batch_size, reloc_ofs);
 			exec(fd, handle, reloc_ofs);
+		}
 	}
 
 	gem_close(fd, handle);
