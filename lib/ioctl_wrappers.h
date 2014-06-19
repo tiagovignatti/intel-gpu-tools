@@ -42,6 +42,7 @@ drm_intel_bo * gem_handle_to_libdrm_bo(drm_intel_bufmgr *bufmgr, int fd,
 /* ioctl_wrappers.c:
  *
  * ioctl wrappers and similar stuff for bare metal testing */
+void gem_get_tiling(int fd, uint32_t handle, uint32_t *tiling, uint32_t *swizzle);
 void gem_set_tiling(int fd, uint32_t handle, uint32_t tiling, uint32_t stride);
 int __gem_set_tiling(int fd, uint32_t handle, uint32_t tiling, uint32_t stride);
 

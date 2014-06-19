@@ -60,22 +60,6 @@ static int tile_width;
 static int tile_height;
 static int tile_size;
 
-static void
-gem_get_tiling(int fd, uint32_t handle, uint32_t *tiling, uint32_t *swizzle)
-{
-	struct drm_i915_gem_get_tiling get_tiling;
-	int ret;
-
-	memset(&get_tiling, 0, sizeof(get_tiling));
-	get_tiling.handle = handle;
-
-	ret = drmIoctl(fd, DRM_IOCTL_I915_GEM_GET_TILING, &get_tiling);
-	igt_assert(ret == 0);
-
-	*tiling = get_tiling.tiling_mode;
-	*swizzle = get_tiling.swizzle_mode;
-}
-
 static uint32_t
 create_bo(int fd)
 {
