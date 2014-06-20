@@ -79,7 +79,8 @@ struct termios saved_tio;
 drmModeRes *resources;
 int drm_fd, modes;
 int test_all_modes = 0, test_preferred_mode = 0, force_mode = 0, test_plane,
-    test_stereo_modes, enable_tiling;
+    test_stereo_modes;
+unsigned int tiling = I915_TILING_NONE;
 int sleep_between_modes = 5;
 int do_dpms = 0; /* This aliases to DPMS_ON */
 uint32_t depth = 24, stride, bpp;
@@ -369,8 +370,8 @@ set_mode(struct connector *c)
 		height = c->mode.vdisplay;
 
 		fb_id = igt_create_fb(drm_fd, width, height,
-					  igt_bpp_depth_to_drm_format(bpp, depth),
-					  enable_tiling, &fb_info[current_fb]);
+				      igt_bpp_depth_to_drm_format(bpp, depth),
+				      tiling, &fb_info[current_fb]);
 		paint_output_info(c, &fb_info[current_fb]);
 		paint_color_key(&fb_info[current_fb]);
 
@@ -494,8 +495,8 @@ static uint32_t create_stereo_fb(drmModeModeInfo *mode, struct igt_fb *fb)
 
 	stereo_fb_layout_from_mode(&layout, mode);
 	fb_id = igt_create_fb(drm_fd, layout.fb_width, layout.fb_height,
-				  igt_bpp_depth_to_drm_format(bpp, depth),
-				  enable_tiling, fb);
+			      igt_bpp_depth_to_drm_format(bpp, depth),
+			      tiling, fb);
 	cr = igt_get_cairo_ctx(drm_fd, fb);
 
 	igt_paint_image(cr, IGT_DATADIR"/1080p-left.png",
@@ -803,7 +804,7 @@ int main(int argc, char **argv)
 			test_preferred_mode = 1;
 			break;
 		case 't':
-			enable_tiling = 1;
+			tiling = I915_TILING_X;
 			break;
 		case 'r':
 			qr_code = 1;
