@@ -95,7 +95,7 @@ bad_blit(drm_intel_bo *src_bo, uint32_t devid)
 	intel_batchbuffer_flush(batch);
 }
 
-int main(int argc, char **argv)
+igt_simple_main
 {
 	drm_intel_bo *src;
 	int fd;
@@ -114,6 +114,4 @@ int main(int argc, char **argv)
 	drm_intel_bufmgr_destroy(bufmgr);
 
 	close(fd);
-
-	return 0;
 }

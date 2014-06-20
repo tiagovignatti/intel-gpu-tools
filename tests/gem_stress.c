@@ -865,6 +865,8 @@ int main(int argc, char **argv)
 	int i, j;
 	unsigned *current_permutation, *tmp_permutation;
 
+	igt_simple_init();
+
 	drm_fd = drm_open_any();
 	devid = intel_get_drm_devid(drm_fd);
 

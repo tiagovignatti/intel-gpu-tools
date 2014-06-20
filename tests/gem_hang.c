@@ -72,6 +72,8 @@ int main(int argc, char **argv)
 {
 	int fd;
 
+	igt_simple_init();
+
 	igt_assert_f(argc == 2,
 		     "usage: %s <disabled pipe number>\n",
 		     argv[0]);
