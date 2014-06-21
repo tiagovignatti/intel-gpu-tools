@@ -112,6 +112,40 @@ test_access(int fd)
 }
 
 static void
+test_short(int fd)
+{
+	struct drm_i915_gem_mmap_gtt mmap_arg;
+	int pages, p;
+
+	mmap_arg.handle = gem_create(fd, OBJECT_SIZE);
+	igt_assert(mmap_arg.handle);
+
+	igt_assert(drmIoctl(fd,
+			    DRM_IOCTL_I915_GEM_MMAP_GTT,
+			    &mmap_arg) == 0);
+	for (pages = 1; pages <= OBJECT_SIZE / 4096; pages <<= 1) {
+		uint8_t *r, *w;
+
+		w = mmap64(0, pages * 4096, PROT_READ | PROT_WRITE,
+			   MAP_SHARED, fd, mmap_arg.offset);
+		igt_assert(w != MAP_FAILED);
+
+		r = mmap64(0, pages * 4096, PROT_READ,
+			   MAP_SHARED, fd, mmap_arg.offset);
+		igt_assert(r != MAP_FAILED);
+
+		for (p = 0; p < pages; p++) {
+			w[4096*p] = r[4096*p];
+			w[4096*p+4095] = r[4096*p+4095];
+		}
+
+		munmap(r, pages * 4096);
+		munmap(w, pages * 4096);
+	}
+	gem_close(fd, mmap_arg.handle);
+}
+
+static void
 test_copy(int fd)
 {
 	void *src, *dst;
@@ -308,6 +342,8 @@ igt_main
 
 	igt_subtest("access")
 		test_access(fd);
+	igt_subtest("short")
+		test_short(fd);
 	igt_subtest("copy")
 		test_copy(fd);
 	igt_subtest("read")
