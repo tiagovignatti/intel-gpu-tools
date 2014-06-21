@@ -259,6 +259,7 @@ static void *no_contention(void *closure)
 
 	for (n = 0; n < t->loops; n++) {
 		uint32_t *ptr = gem_mmap(t->fd, t->handle, OBJECT_SIZE, PROT_READ | PROT_WRITE);
+		igt_assert(ptr);
 		memset(ptr + (rand() % 256) * 4096 / 4, 0, 4096);
 		munmap(ptr, OBJECT_SIZE);
 	}
@@ -296,7 +297,7 @@ static void thread_contention(void)
 		gettimeofday(&end, NULL);
 
 		linear[count != 2] = count * loops / elapsed(&start, &end) / (OBJECT_SIZE / 4096);
-		igt_info("Contended upload rate for %d threads:	%7.3fMiB/s\n", count, linear[count != 2]);
+		igt_info("Contended upload rate for %d linear threads:	%7.3fMiB/s\n", count, linear[count != 2]);
 
 		for (n = 0; n < count; n++)
 			gem_set_tiling(fd, threads[n].handle, I915_TILING_X, 1024);
@@ -309,7 +310,7 @@ static void thread_contention(void)
 		gettimeofday(&end, NULL);
 
 		tiled[count != 2] = count * loops / elapsed(&start, &end) / (OBJECT_SIZE / 4096);
-		igt_info("Contended upload rate for %d threads:	%7.3fMiB/s\n", count, tiled[count != 2]);
+		igt_info("Contended upload rate for %d tiled threads:	%7.3fMiB/s\n", count, tiled[count != 2]);
 
 		for (n = 0; n < count; n++) {
 			gem_close(fd, threads[n].handle);
