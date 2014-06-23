@@ -70,7 +70,7 @@ static uint32_t create_fb(data_t *data,
 	uint32_t fb_id;
 
 	fb_id = igt_create_fb(data->drm_fd, w, h,
-			      DRM_FORMAT_XRGB8888, false, fb);
+			      DRM_FORMAT_XRGB8888, I915_TILING_NONE, fb);
 	igt_assert(fb_id);
 
 	cr = igt_get_cairo_ctx(data->drm_fd, fb);
