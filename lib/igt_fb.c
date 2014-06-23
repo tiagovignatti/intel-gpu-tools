@@ -518,24 +518,28 @@ static cairo_format_t drm_format_to_cairo(uint32_t drm_format)
 	igt_fail(101);
 }
 
-static void __destroy_cairo_surface(void *arg)
+static void destroy_cairo_surface__gtt(void *arg)
 {
 	struct igt_fb *fb = arg;
 	munmap(cairo_image_surface_get_data(fb->cairo_surface), fb->size);
 }
 
+static void create_cairo_surface__gtt(int fd, struct igt_fb *fb)
+{
+	fb->cairo_surface =
+		cairo_image_surface_create_for_data(gem_mmap(fd, fb->gem_handle, fb->size, PROT_READ | PROT_WRITE),
+						    drm_format_to_cairo(fb->drm_format),
+						    fb->width, fb->height, fb->stride);
+
+	cairo_surface_set_user_data(fb->cairo_surface,
+				    (cairo_user_data_key_t *)create_cairo_surface__gtt,
+				    fb, destroy_cairo_surface__gtt);
+}
+
 static cairo_surface_t *get_cairo_surface(int fd, struct igt_fb *fb)
 {
-	if (fb->cairo_surface == NULL) {
-		fb->cairo_surface =
-			cairo_image_surface_create_for_data(gem_mmap(fd, fb->gem_handle, fb->size, PROT_READ | PROT_WRITE),
-							    drm_format_to_cairo(fb->drm_format),
-							    fb->width, fb->height, fb->stride);
-
-		cairo_surface_set_user_data(fb->cairo_surface,
-					    (cairo_user_data_key_t *)get_cairo_surface,
-					    fb, __destroy_cairo_surface);
-	}
+	if (fb->cairo_surface == NULL)
+		create_cairo_surface__gtt(fd, fb);
 
 	gem_set_domain(fd, fb->gem_handle,
 		       I915_GEM_DOMAIN_CPU, I915_GEM_DOMAIN_CPU);
