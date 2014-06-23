@@ -108,7 +108,7 @@ static uint32_t create_fb(data_t *data,
 	cairo_t *cr;
 
 	fb_id = igt_create_fb(data->drm_fd, w, h,
-			      DRM_FORMAT_XRGB8888, true, fb);
+			      DRM_FORMAT_XRGB8888, I915_TILING_X, fb);
 	igt_assert(fb_id);
 
 	cr = igt_get_cairo_ctx(data->drm_fd, fb);
@@ -124,7 +124,7 @@ static void create_cursor_fb(data_t *data, struct igt_fb *fb)
 	cairo_t *cr;
 
 	data->fb_id[2] = igt_create_fb(data->drm_fd, 64, 64,
-				       DRM_FORMAT_ARGB8888, false,
+				       DRM_FORMAT_ARGB8888, I915_TILING_NONE,
 				       fb);
 	igt_assert(data->fb_id[2]);
 
@@ -528,13 +528,13 @@ static void test_sprite(data_t *data)
 
 		igt_create_color_fb(data->drm_fd,
 				    mode->hdisplay, mode->vdisplay,
-				    DRM_FORMAT_XRGB8888, true, /* tiled */
+				    DRM_FORMAT_XRGB8888, I915_TILING_X,
 				    0.0, 1.0, 0.0,
 				    &data->fb[0]);
 
 		igt_create_color_fb(data->drm_fd,
 				    mode->hdisplay/2, mode->vdisplay/2,
-				    DRM_FORMAT_XRGB8888, true, /* tiled */
+				    DRM_FORMAT_XRGB8888, I915_TILING_X,
 				    1.0, 0.0, 0.0,
 				    &data->fb[1]);
 
