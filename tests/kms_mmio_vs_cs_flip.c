@@ -220,17 +220,17 @@ test_plane(data_t *data, igt_output_t *output, enum pipe pipe, enum igt_plane pl
 	mode = igt_output_get_mode(output);
 	igt_create_color_fb(data->drm_fd, mode->hdisplay, mode->vdisplay,
 			    DRM_FORMAT_XRGB8888,
-			    false, /* tiled */
+			    I915_TILING_NONE,
 			    1.0, 0.0, 0.0,
 			    &red_fb);
 	igt_create_color_fb(data->drm_fd, mode->hdisplay, mode->vdisplay,
 			    DRM_FORMAT_XRGB8888,
-			    false, /* tiled */
+			    I915_TILING_NONE,
 			    0.0, 1.0, 0.0,
 			    &green_fb);
 	igt_create_color_fb(data->drm_fd, mode->hdisplay, mode->vdisplay,
 			    DRM_FORMAT_XRGB8888,
-			    false, /* tiled */
+			    I915_TILING_NONE,
 			    0.0, 0.0, 1.0,
 			    &blue_fb);
 
@@ -385,17 +385,17 @@ test_crtc(data_t *data, igt_output_t *output, enum pipe pipe)
 	mode = igt_output_get_mode(output);
 	igt_create_color_fb(data->drm_fd, mode->hdisplay, mode->vdisplay+1,
 			    DRM_FORMAT_XRGB8888,
-			    false, /* tiled */
+			    I915_TILING_NONE,
 			    1.0, 0.0, 0.0,
 			    &red_fb);
 	igt_create_color_fb(data->drm_fd, mode->hdisplay, mode->vdisplay+1,
 			    DRM_FORMAT_XRGB8888,
-			    false, /* tiled */
+			    I915_TILING_NONE,
 			    0.0, 0.0, 1.0,
 			    &blue_fb);
 	igt_create_color_fb(data->drm_fd, mode->hdisplay, mode->vdisplay+1,
 			    DRM_FORMAT_XRGB8888,
-			    false, /* tiled */
+			    I915_TILING_NONE,
 			    0.0, 1.0, 0.0,
 			    &green_fb);
 
