@@ -84,9 +84,8 @@ static uint32_t create_fb(int drm_fd, int width, int height)
 	cairo_t *cr;
 	uint32_t buffer_id;
 
-	buffer_id = igt_create_fb(drm_fd, width, height,
-				      DRM_FORMAT_XRGB8888,
-				      false, &fb);
+	buffer_id = igt_create_fb(drm_fd, width, height, DRM_FORMAT_XRGB8888,
+				  I915_TILING_NONE, &fb);
 	cr = igt_get_cairo_ctx(drm_fd, &fb);
 	igt_paint_test_pattern(cr, width, height);
 	cairo_destroy(cr);
