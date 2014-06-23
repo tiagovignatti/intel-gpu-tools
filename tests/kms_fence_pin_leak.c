@@ -127,12 +127,12 @@ static bool run_single_test(data_t *data, enum pipe pipe, igt_output_t *output)
 
 	igt_create_color_fb(data->drm_fd, mode->hdisplay, mode->vdisplay,
 			    DRM_FORMAT_XRGB8888,
-			    true, /* need a fence so must be tiled */
+			    I915_TILING_X, /* need a fence so must be tiled */
 			    0.0, 0.0, 0.0,
 			    &fb[0]);
 	igt_create_color_fb(data->drm_fd, mode->hdisplay, mode->vdisplay,
 			    DRM_FORMAT_XRGB8888,
-			    true, /* need a fence so must be tiled */
+			    I915_TILING_X, /* need a fence so must be tiled */
 			    0.0, 0.0, 0.0,
 			    &fb[1]);
 
