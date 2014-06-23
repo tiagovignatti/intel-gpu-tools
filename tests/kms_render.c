@@ -125,10 +125,12 @@ static int test_format(const char *test_name,
 	width = mode->hdisplay;
 	height = mode->vdisplay;
 
-	if (!igt_create_fb(drm_fd, width, height, format, false, &fb[0]))
+	if (!igt_create_fb(drm_fd, width, height, format, I915_TILING_NONE,
+			   &fb[0]))
 		goto err1;
 
-	if (!igt_create_fb(drm_fd, width, height, format, false, &fb[1]))
+	if (!igt_create_fb(drm_fd, width, height, format, I915_TILING_NONE,
+			   &fb[1]))
 		goto err2;
 
 	if (drmModeSetCrtc(drm_fd, cconf->crtc->crtc_id, fb[0].fb_id,
