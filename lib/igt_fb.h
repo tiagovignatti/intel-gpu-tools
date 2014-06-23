@@ -48,7 +48,6 @@ struct igt_fb {
 	uint32_t drm_format;
 	int width;
 	int height;
-	int depth;
 	unsigned stride;
 	unsigned tiling;
 	unsigned size;
