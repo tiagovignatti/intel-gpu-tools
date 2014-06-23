@@ -75,15 +75,15 @@ static struct format_desc_struct {
 
 /* helpers to create nice-looking framebuffers */
 static int create_bo_for_fb(int fd, int width, int height, int bpp,
-			    bool tiled, uint32_t *gem_handle_ret,
-			    unsigned *size_ret, unsigned *stride_ret,
-			    unsigned bo_size)
+			    unsigned int tiling, uint32_t *gem_handle_ret,
+			    unsigned *size_ret, unsigned *stride_ret, unsigned
+			    bo_size)
 {
 	uint32_t gem_handle;
 	int size, ret = 0;
 	unsigned stride;
 
-	if (tiled) {
+	if (tiling) {
 		int v;
 
 		/* Round the tiling up to the next power-of-two and the
@@ -111,8 +111,8 @@ static int create_bo_for_fb(int fd, int width, int height, int bpp,
 		bo_size = size;
 	gem_handle = gem_create(fd, bo_size);
 
-	if (tiled)
-		ret = __gem_set_tiling(fd, gem_handle, I915_TILING_X, stride);
+	if (tiling)
+		ret = __gem_set_tiling(fd, gem_handle, tiling, stride);
 
 	*stride_ret = stride;
 	*size_ret = size;
@@ -384,7 +384,7 @@ void igt_paint_image(cairo_t *cr, const char *filename,
  * @width: width of the framebuffer in pixel
  * @height: height of the framebuffer in pixel
  * @format: drm fourcc pixel format code
- * @tiled: X-tiled or linear framebuffer
+ * @tiling: tiling layout of the framebuffer
  * @fb: pointer to an #igt_fb structure
  * @bo_size: size of the backing bo (0 for minimum needed size)
  *
@@ -399,9 +399,10 @@ void igt_paint_image(cairo_t *cr, const char *filename,
  * The kms id of the created framebuffer on success or a negative error code on
  * failure.
  */
-unsigned int igt_create_fb_with_bo_size(int fd, int width, int height,
-					uint32_t format, bool tiled,
-					struct igt_fb *fb, unsigned bo_size)
+unsigned int
+igt_create_fb_with_bo_size(int fd, int width, int height,
+			   uint32_t format, unsigned int tiling,
+			   struct igt_fb *fb, unsigned bo_size)
 {
 	uint32_t handles[4];
 	uint32_t pitches[4];
@@ -413,7 +414,7 @@ unsigned int igt_create_fb_with_bo_size(int fd, int width, int height,
 	memset(fb, 0, sizeof(*fb));
 
 	bpp = igt_drm_format_to_bpp(format);
-	ret = create_bo_for_fb(fd, width, height, bpp, tiled, &fb->gem_handle,
+	ret = create_bo_for_fb(fd, width, height, bpp, tiling, &fb->gem_handle,
 			      &fb->size, &fb->stride, bo_size);
 	if (ret < 0)
 		return ret;
@@ -432,7 +433,7 @@ unsigned int igt_create_fb_with_bo_size(int fd, int width, int height,
 
 	fb->width = width;
 	fb->height = height;
-	fb->tiling = tiled;
+	fb->tiling = tiling;
 	fb->drm_format = format;
 	fb->fb_id = fb_id;
 
@@ -445,7 +446,7 @@ unsigned int igt_create_fb_with_bo_size(int fd, int width, int height,
  * @width: width of the framebuffer in pixel
  * @height: height of the framebuffer in pixel
  * @format: drm fourcc pixel format code
- * @tiled: X-tiled or linear framebuffer
+ * @tiling: tiling layout of the framebuffer
  * @fb: pointer to an #igt_fb structure
  *
  * This function allocates a gem buffer object suitable to back a framebuffer
@@ -460,9 +461,9 @@ unsigned int igt_create_fb_with_bo_size(int fd, int width, int height,
  * failure.
  */
 unsigned int igt_create_fb(int fd, int width, int height, uint32_t format,
-			   bool tiled, struct igt_fb *fb)
+			   unsigned int tiling, struct igt_fb *fb)
 {
-	return igt_create_fb_with_bo_size(fd, width, height, format, tiled, fb, 0);
+	return igt_create_fb_with_bo_size(fd, width, height, format, tiling, fb, 0);
 }
 
 /**
@@ -471,7 +472,7 @@ unsigned int igt_create_fb(int fd, int width, int height, uint32_t format,
  * @width: width of the framebuffer in pixel
  * @height: height of the framebuffer in pixel
  * @format: drm fourcc pixel format code
- * @tiled: X-tiled or linear framebuffer
+ * @tiling: tiling layout of the framebuffer
  * @r: red value to use as fill color
  * @g: gree value to use as fill color
  * @b: blue value to use as fill color
@@ -489,14 +490,14 @@ unsigned int igt_create_fb(int fd, int width, int height, uint32_t format,
  * failure.
  */
 unsigned int igt_create_color_fb(int fd, int width, int height,
-				 uint32_t format, bool tiled,
+				 uint32_t format, unsigned int tiling,
 				 double r, double g, double b,
 				 struct igt_fb *fb /* out */)
 {
 	unsigned int fb_id;
 	cairo_t *cr;
 
-	fb_id = igt_create_fb(fd, width, height, format, tiled, fb);
+	fb_id = igt_create_fb(fd, width, height, format, tiling, fb);
 	igt_assert(fb_id);
 
 	cr = igt_get_cairo_ctx(fd, fb);

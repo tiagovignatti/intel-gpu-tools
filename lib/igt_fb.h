@@ -41,6 +41,8 @@ typedef struct _cairo cairo_t;
 #include <drm_fourcc.h>
 #include <xf86drmMode.h>
 
+#include <i915_drm.h>
+
 /* helpers to create nice-looking framebuffers */
 struct igt_fb {
 	uint32_t fb_id;
@@ -63,15 +65,16 @@ enum igt_text_align {
 	align_hcenter	= 0x08,
 };
 
-unsigned int igt_create_fb_with_bo_size(int fd, int width, int height,
-					uint32_t format, bool tiled,
-					struct igt_fb *fb, unsigned bo_size);
+unsigned int
+igt_create_fb_with_bo_size(int fd, int width, int height,
+			   uint32_t format, unsigned int tiling,
+			   struct igt_fb *fb, unsigned bo_size);
 unsigned int igt_create_fb(int fd, int width, int height, uint32_t format,
-			       bool tiled, struct igt_fb *fb);
+			   unsigned int , struct igt_fb *fb);
 unsigned int igt_create_color_fb(int fd, int width, int height,
-				     uint32_t format, bool tiled,
-				     double r, double g, double b,
-				     struct igt_fb *fb /* out */);
+				 uint32_t format, unsigned int tiling,
+				 double r, double g, double b,
+				 struct igt_fb *fb /* out */);
 void igt_remove_fb(int fd, struct igt_fb *fb);
 
 /* cairo-based painting */
