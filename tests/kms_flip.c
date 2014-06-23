@@ -227,7 +227,7 @@ static void emit_fence_stress(struct test_output *o)
 		uint32_t tiling = I915_TILING_X;
 		unsigned long pitch = 0;
 		bo[i] = drm_intel_bo_alloc_tiled(bufmgr,
-						 "tiled bo", 1024, 1024, 4,
+						 "X tiled bo", 1024, 1024, 4,
 						 &tiling, &pitch, 0);
 		exec[i].handle = bo[i]->handle;
 		exec[i].flags = EXEC_OBJECT_NEEDS_FENCE;
@@ -1241,7 +1241,7 @@ static void run_test_on_crtc_set(struct test_output *o, int *crtc_idxs,
 	char test_name[128];
 	unsigned elapsed;
 	unsigned bo_size = 0;
-	bool tiled;
+	unsigned int tiling;
 	int i;
 
 	switch (crtc_count) {
@@ -1273,9 +1273,9 @@ static void run_test_on_crtc_set(struct test_output *o, int *crtc_idxs,
 	if (o->flags & TEST_PAN)
 		o->fb_width *= 2;
 
-	tiled = false;
+	tiling = I915_TILING_NONE;
 	if (o->flags & TEST_FENCE_STRESS)
-		tiled = true;
+		tiling = I915_TILING_X;
 
 	/* 256 MB is usually the maximum mappable aperture,
 	 * (make it 4x times that to ensure failure) */
@@ -1284,13 +1284,13 @@ static void run_test_on_crtc_set(struct test_output *o, int *crtc_idxs,
 
 	o->fb_ids[0] = igt_create_fb(drm_fd, o->fb_width, o->fb_height,
 					 igt_bpp_depth_to_drm_format(o->bpp, o->depth),
-					 tiled, &o->fb_info[0]);
+					 tiling, &o->fb_info[0]);
 	o->fb_ids[1] = igt_create_fb_with_bo_size(drm_fd, o->fb_width, o->fb_height,
 					 igt_bpp_depth_to_drm_format(o->bpp, o->depth),
-					 tiled, &o->fb_info[1], bo_size);
+					 tiling, &o->fb_info[1], bo_size);
 	o->fb_ids[2] = igt_create_fb(drm_fd, o->fb_width, o->fb_height,
 					 igt_bpp_depth_to_drm_format(o->bpp, o->depth),
-					 true, &o->fb_info[2]);
+					 I915_TILING_X, &o->fb_info[2]);
 	igt_assert(o->fb_ids[0]);
 	igt_assert(o->fb_ids[1]);
 	if (o->flags & TEST_FB_BAD_TILING)
