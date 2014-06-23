@@ -179,16 +179,14 @@ static void create_fb_for_crtc(struct crtc_config *crtc,
 {
 	int bpp;
 	int depth;
-	bool enable_tiling;
 	int fb_id;
 
 	bpp = 32;
 	depth = 24;
-	enable_tiling = false;
 	fb_id = igt_create_fb(drm_fd, crtc->mode.hdisplay,
 				  crtc->mode.vdisplay,
 				  igt_bpp_depth_to_drm_format(bpp, depth),
-				  enable_tiling, fb_info);
+				  I915_TILING_NONE, fb_info);
 	igt_assert(fb_id > 0);
 }
 
