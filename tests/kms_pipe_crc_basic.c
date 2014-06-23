@@ -138,7 +138,7 @@ test_read_crc_for_output(data_t *data, int pipe, igt_output_t *output,
 		igt_create_color_fb(data->drm_fd,
 					mode->hdisplay, mode->vdisplay,
 					DRM_FORMAT_XRGB8888,
-					false, /* tiled */
+					I915_TILING_NONE,
 					colors[c].r,
 					colors[c].g,
 					colors[c].b,
