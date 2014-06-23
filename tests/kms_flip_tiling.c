@@ -81,7 +81,7 @@ test_flip_changes_tiling(data_t *data, igt_output_t *output)
 	while (width < mode->hdisplay)
 		width *= 2;
 	fb_id = igt_create_fb(data->drm_fd, width, mode->vdisplay,
-			      DRM_FORMAT_XRGB8888, false, &linear);
+			      DRM_FORMAT_XRGB8888, I915_TILING_NONE, &linear);
 
 	/* fill it with a pattern that will look wrong if tiling is wrong */
 	fill_linear_fb(&linear, data, mode);
@@ -93,7 +93,8 @@ test_flip_changes_tiling(data_t *data, igt_output_t *output)
 
 	/* allocate a tiled buffer and set the crtc with it */
 	igt_create_color_fb(data->drm_fd, width, mode->vdisplay,
-			    DRM_FORMAT_XRGB8888, true, 0.0, 0.0, 0.0, &tiled);
+			    DRM_FORMAT_XRGB8888, I915_TILING_X, 0.0, 0.0, 0.0,
+			    &tiled);
 	igt_plane_set_fb(primary, &tiled);
 	igt_display_commit(&data->display);
 
