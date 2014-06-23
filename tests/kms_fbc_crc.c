@@ -307,12 +307,12 @@ static bool prepare_test(data_t *data, enum test_mode test_mode)
 
 	data->fb_id[0] = igt_create_color_fb(data->drm_fd, mode->hdisplay, mode->vdisplay,
 					     DRM_FORMAT_XRGB8888,
-					     true, /* tiled */
+					     I915_TILING_X,
 					     0.0, 0.0, 0.0, &data->fb[0]);
 	igt_assert(data->fb_id[0]);
 	data->fb_id[1] = igt_create_color_fb(data->drm_fd, mode->hdisplay, mode->vdisplay,
 					     DRM_FORMAT_XRGB8888,
-					     true, /* tiled */
+					     I915_TILING_X,
 					     0.1, 0.1, 0.1,
 					     &data->fb[1]);
 	igt_assert(data->fb_id[1]);
