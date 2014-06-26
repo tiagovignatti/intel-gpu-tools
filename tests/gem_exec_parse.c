@@ -198,7 +198,7 @@ int fd;
 igt_main
 {
 	igt_fixture {
-		int parser_version = 0;
+		int parser_version = 0, has_ppgtt = 0;
                 drm_i915_getparam_t gp;
 		int rc;
 
@@ -208,6 +208,11 @@ igt_main
 		gp.value = &parser_version;
 		rc = drmIoctl(fd, DRM_IOCTL_I915_GETPARAM, &gp);
 		igt_require(!rc && parser_version > 0);
+
+		gp.param = I915_PARAM_HAS_ALIASING_PPGTT;
+		gp.value = &has_ppgtt;
+		rc = drmIoctl(fd, DRM_IOCTL_I915_GETPARAM, &gp);
+		igt_require(!rc && has_ppgtt > 0);
 
 		handle = gem_create(fd, 4096);
 
