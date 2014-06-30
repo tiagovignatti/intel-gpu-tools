@@ -481,6 +481,39 @@ static void igt_output_refresh(igt_output_t *output)
 	display->pipes_in_use |= 1 << output->config.pipe;
 }
 
+/*
+ * Walk a plane's property list to determine its type.  If we don't
+ * find a type property, then the kernel doesn't support universal
+ * planes and we know the plane is an overlay/sprite.
+ */
+static int get_drm_plane_type(igt_display_t *display, uint32_t plane_id)
+{
+	drmModeObjectPropertiesPtr proplist;
+	drmModePropertyPtr prop = NULL;
+	int type = DRM_PLANE_TYPE_OVERLAY;
+	int i;
+
+	proplist = drmModeObjectGetProperties(display->drm_fd,
+					      plane_id,
+					      DRM_MODE_OBJECT_PLANE);
+	for (i = 0; i < proplist->count_props; i++) {
+		drmModeFreeProperty(prop);
+		prop = drmModeGetProperty(display->drm_fd, proplist->props[i]);
+		if (!prop)
+			continue;
+
+		if (strcmp(prop->name, "type") == 0) {
+			type = proplist->prop_values[i];
+			break;
+		}
+	}
+
+	drmModeFreeProperty(prop);
+	drmModeFreeObjectProperties(proplist);
+
+	return type;
+}
+
 void igt_display_init(igt_display_t *display, int drm_fd)
 {
 	drmModeRes *resources;
@@ -502,23 +535,18 @@ void igt_display_init(igt_display_t *display, int drm_fd)
 	 */
 	display->n_pipes = resources->count_crtcs;
 
+	drmSetClientCap(drm_fd, DRM_CLIENT_CAP_UNIVERSAL_PLANES, 1);
 	plane_resources = drmModeGetPlaneResources(display->drm_fd);
 	igt_assert(plane_resources);
 
 	for (i = 0; i < display->n_pipes; i++) {
 		igt_pipe_t *pipe = &display->pipes[i];
 		igt_plane_t *plane;
-		int p, j;
+		int p = IGT_PLANE_2;
+		int j, type;
 
 		pipe->display = display;
 		pipe->pipe = i;
-
-		/* primary plane */
-		p = IGT_PLANE_PRIMARY;
-		plane = &pipe->planes[p];
-		plane->pipe = pipe;
-		plane->index = p;
-		plane->is_primary = true;
 
 		/* add the planes that can be used with that pipe */
 		for (j = 0; j < plane_resources->count_planes; j++) {
@@ -533,21 +561,75 @@ void igt_display_init(igt_display_t *display, int drm_fd)
 				continue;
 			}
 
-			p++;
-			plane = &pipe->planes[p];
+			type = get_drm_plane_type(display,
+						  plane_resources->planes[j]);
+			switch (type) {
+			case DRM_PLANE_TYPE_PRIMARY:
+				plane = &pipe->planes[IGT_PLANE_PRIMARY];
+				plane->is_primary = 1;
+				plane->index = IGT_PLANE_PRIMARY;
+				display->has_universal_planes = 1;
+				break;
+			case DRM_PLANE_TYPE_CURSOR:
+				/*
+				 * Cursor should be the highest index in our
+				 * internal list, but we don't know what that
+				 * is yet.  Just stick it in the last slot
+				 * for now and we'll move it later, if
+				 * necessary.
+				 */
+				plane = &pipe->planes[IGT_PLANE_CURSOR];
+				plane->is_cursor = 1;
+				plane->index = IGT_PLANE_CURSOR;
+				display->has_universal_planes = 1;
+				break;
+			default:
+				plane = &pipe->planes[p];
+				plane->index = p++;
+				break;
+			}
+
 			plane->pipe = pipe;
-			plane->index = p;
 			plane->drm_plane = drm_plane;
 		}
 
-		/* cursor plane */
-		p++;
-		plane = &pipe->planes[p];
-		plane->pipe = pipe;
-		plane->index = p;
-		plane->is_cursor = true;
+		if (display->has_universal_planes) {
+			/*
+			 * If we have universal planes, we should have both
+			 * primary and cursor planes setup now.
+			 */
+			igt_assert(pipe->planes[IGT_PLANE_PRIMARY].drm_plane &&
+				   pipe->planes[IGT_PLANE_CURSOR].drm_plane);
 
-		pipe->n_planes = ++p;
+			/*
+			 * Cursor was put in the last slot.  If we have 0 or
+			 * only 1 sprite, that's the wrong slot and we need to
+			 * move it down.
+			 */
+			if (p != IGT_PLANE_CURSOR) {
+				pipe->planes[p] = pipe->planes[IGT_PLANE_CURSOR];
+				pipe->planes[p].index = p;
+				memset(&pipe->planes[IGT_PLANE_CURSOR], 0,
+				       sizeof *plane);
+			}
+		} else {
+			/*
+			 * No universal plane support.  Add drm_plane-less
+			 * primary and cursor planes.
+			 */
+			plane = &pipe->planes[IGT_PLANE_PRIMARY];
+			plane->pipe = pipe;
+			plane->index = IGT_PLANE_PRIMARY;
+			plane->is_primary = true;
+
+			plane = &pipe->planes[p];
+			plane->pipe = pipe;
+			plane->index = p;
+			plane->is_cursor = true;
+		}
+
+		/* planes = 1 primary, (p-1) sprites, 1 cursor */
+		pipe->n_planes = p + 1;
 
 		/* make sure we don't overflow the plane array */
 		igt_assert(pipe->n_planes <= IGT_MAX_PLANES);
@@ -702,7 +784,7 @@ static igt_plane_t *igt_pipe_get_plane(igt_pipe_t *pipe, enum igt_plane plane)
 {
 	int idx;
 
-	/* Cursor plane is always the upper plane */
+	/* Cursor plane is always the highest index */
 	if (plane == IGT_PLANE_CURSOR)
 		idx = pipe->n_planes - 1;
 	else {
@@ -736,33 +818,6 @@ static uint32_t igt_plane_get_fb_gem_handle(igt_plane_t *plane)
 	igt_assert(r == 0);	\
 }
 
-static int igt_cursor_commit(igt_plane_t *plane,
-			     igt_output_t *output,
-			     bool fail_on_error)
-{
-	igt_display_t *display = output->display;
-	uint32_t crtc_id = output->config.crtc->crtc_id;
-	int ret;
-
-	if (plane->position_changed) {
-		int x = plane->crtc_x;
-		int y = plane->crtc_y;
-
-		LOG(display,
-		    "%s: MoveCursor pipe %c, (%d, %d)\n",
-		    igt_output_name(output),
-		    pipe_name(output->config.pipe),
-		    x, y);
-
-		ret = drmModeMoveCursor(display->drm_fd, crtc_id, x, y);
-		CHECK_RETURN(ret, fail_on_error);
-
-		plane->position_changed = false;
-	}
-
-	return 0;
-}
-
 /*
  * Commit position and fb changes to a DRM plane via the SetPlane ioctl; if the
  * DRM call to program the plane fails, we'll either fail immediately (for
@@ -776,6 +831,8 @@ static int igt_drm_plane_commit(igt_plane_t *plane,
 	igt_display_t *display = output->display;
 	uint32_t fb_id, crtc_id;
 	int ret;
+
+	igt_assert(plane->drm_plane);
 
 	fb_id = igt_plane_get_fb_id(plane);
 	crtc_id = output->config.crtc->crtc_id;
@@ -798,9 +855,8 @@ static int igt_drm_plane_commit(igt_plane_t *plane,
 				      IGT_FIXED(0,0), /* src_y */
 				      IGT_FIXED(0,0), /* src_w */
 				      IGT_FIXED(0,0) /* src_h */);
-		CHECK_RETURN(ret, fail_on_error);
 
-		plane->fb_changed = false;
+		CHECK_RETURN(ret, fail_on_error);
 	} else if (plane->fb_changed || plane->position_changed) {
 		LOG(display,
 		    "%s: SetPlane %c.%d, fb %u, position (%d, %d)\n",
@@ -821,96 +877,31 @@ static int igt_drm_plane_commit(igt_plane_t *plane,
 				      IGT_FIXED(0,0), /* src_y */
 				      IGT_FIXED(plane->fb->width,0), /* src_w */
 				      IGT_FIXED(plane->fb->height,0) /* src_h */);
+
 		CHECK_RETURN(ret, fail_on_error);
-
-		plane->fb_changed = false;
-		plane->position_changed = false;
 	}
 
+	plane->fb_changed = false;
+	plane->position_changed = false;
 	return 0;
 }
 
-static int igt_plane_commit(igt_plane_t *plane,
-			    igt_output_t *output,
-			    bool fail_on_error)
-{
-	if (plane->is_cursor) {
-		igt_cursor_commit(plane, output, fail_on_error);
-	} else if (plane->is_primary) {
-		/* state updated by SetCrtc */
-	} else {
-		igt_drm_plane_commit(plane, output, fail_on_error);
-	}
-
-	return 0;
-}
-
-static int igt_output_commit(igt_output_t *output, bool fail_on_error)
+/*
+ * Commit position and fb changes to a cursor via legacy ioctl's.  If commit
+ * fails, we'll either fail immediately (for tests that expect the commit to
+ * succeed) or return the failure code (for tests that expect a specific error
+ * code).
+ */
+static int igt_cursor_commit_legacy(igt_plane_t *cursor,
+				    igt_output_t *output,
+				    bool fail_on_error)
 {
 	igt_display_t *display = output->display;
-	igt_pipe_t *pipe;
-	igt_plane_t *primary;
-	igt_plane_t *cursor;
-	int i;
-	bool need_wait_for_vblank = false;
-
-	pipe = igt_output_get_driving_pipe(output);
-	primary = igt_pipe_get_plane(pipe, IGT_PLANE_PRIMARY);
-	cursor = igt_pipe_get_plane(pipe, IGT_PLANE_CURSOR);
-	if (primary->fb_changed) {
-		drmModeModeInfo *mode;
-		uint32_t fb_id, crtc_id;
-		int ret;
-
-		crtc_id = output->config.crtc->crtc_id;
-		fb_id = igt_plane_get_fb_id(primary);
-		if (fb_id)
-			mode = igt_output_get_mode(output);
-		else
-			mode = NULL;
-
-		if (fb_id) {
-			LOG(display,
-			    "%s: SetCrtc pipe %c, fb %u, panning (%d, %d), "
-			    "mode %dx%d\n",
-			    igt_output_name(output),
-			    pipe_name(output->config.pipe),
-			    fb_id,
-			    0, 0,
-			    mode->hdisplay, mode->vdisplay);
-
-			ret = drmModeSetCrtc(display->drm_fd,
-					     crtc_id,
-					     fb_id,
-					     0, 0, /* x, y */
-					     &output->id,
-					     1,
-					     mode);
-		} else {
-			LOG(display,
-			    "%s: SetCrtc pipe %c, disabling\n",
-			    igt_output_name(output),
-			    pipe_name(output->config.pipe));
-
-			ret = drmModeSetCrtc(display->drm_fd,
-					     crtc_id,
-					     fb_id,
-					     0, 0, /* x, y */
-					     NULL, /* connectors */
-					     0,    /* n_connectors */
-					     NULL  /* mode */);
-		}
-		CHECK_RETURN(ret, fail_on_error);
-
-		primary->fb_changed = false;
-	}
+	uint32_t crtc_id = output->config.crtc->crtc_id;
+	int ret;
 
 	if (cursor->fb_changed) {
-		uint32_t gem_handle, crtc_id;
-		int ret;
-
-		crtc_id = output->config.crtc->crtc_id;
-		gem_handle = igt_plane_get_fb_gem_handle(cursor);
+		uint32_t gem_handle = igt_plane_get_fb_gem_handle(cursor);
 
 		if (gem_handle) {
 			LOG(display,
@@ -933,11 +924,138 @@ static int igt_output_commit(igt_output_t *output, bool fail_on_error)
 			ret = drmModeSetCursor(display->drm_fd, crtc_id,
 					       0, 0, 0);
 		}
+
 		CHECK_RETURN(ret, fail_on_error);
 
 		cursor->fb_changed = false;
-		need_wait_for_vblank = true;
 	}
+
+	if (cursor->position_changed) {
+		int x = cursor->crtc_x;
+		int y = cursor->crtc_y;
+
+		LOG(display,
+		    "%s: MoveCursor pipe %c, (%d, %d)\n",
+		    igt_output_name(output),
+		    pipe_name(output->config.pipe),
+		    x, y);
+
+		ret = drmModeMoveCursor(display->drm_fd, crtc_id, x, y);
+		CHECK_RETURN(ret, fail_on_error);
+
+		cursor->position_changed = false;
+	}
+
+	return 0;
+}
+
+/*
+ * Commit position and fb changes to a primary plane via the legacy interface
+ * (setmode).
+ */
+static int igt_primary_plane_commit_legacy(igt_plane_t *primary,
+					   igt_output_t *output,
+					   bool fail_on_error)
+{
+	struct igt_display *display = primary->pipe->display;
+	drmModeModeInfo *mode;
+	uint32_t fb_id, crtc_id;
+	int ret;
+
+	/* Primary planes can't be windowed when using a legacy commit */
+	igt_assert((primary->crtc_x == 0 && primary->crtc_y == 0));
+
+	if (!primary->fb_changed && !primary->position_changed)
+		return 0;
+
+	crtc_id = output->config.crtc->crtc_id;
+	fb_id = igt_plane_get_fb_id(primary);
+	if (fb_id)
+		mode = igt_output_get_mode(output);
+	else
+		mode = NULL;
+
+	if (fb_id) {
+		LOG(display,
+		    "%s: SetCrtc pipe %c, fb %u, panning (%d, %d), "
+		    "mode %dx%d\n",
+		    igt_output_name(output),
+		    pipe_name(output->config.pipe),
+		    fb_id,
+		    0, 0,
+		    mode->hdisplay, mode->vdisplay);
+
+		ret = drmModeSetCrtc(display->drm_fd,
+				     crtc_id,
+				     fb_id,
+				     0, 0, /* x, y */
+				     &output->id,
+				     1,
+				     mode);
+	} else {
+		LOG(display,
+		    "%s: SetCrtc pipe %c, disabling\n",
+		    igt_output_name(output),
+		    pipe_name(output->config.pipe));
+
+		ret = drmModeSetCrtc(display->drm_fd,
+				     crtc_id,
+				     fb_id,
+				     0, 0, /* x, y */
+				     NULL, /* connectors */
+				     0,    /* n_connectors */
+				     NULL  /* mode */);
+	}
+
+	CHECK_RETURN(ret, fail_on_error);
+
+	primary->pipe->enabled = (fb_id != 0);
+	primary->fb_changed = false;
+
+	return 0;
+}
+
+
+/*
+ * Commit position and fb changes to a plane.  The value of @s will determine
+ * which API is used to do the programming.
+ */
+static int igt_plane_commit(igt_plane_t *plane,
+			    igt_output_t *output,
+			    enum igt_commit_style s,
+			    bool fail_on_error)
+{
+	if (plane->is_cursor && s == COMMIT_LEGACY) {
+		return igt_cursor_commit_legacy(plane, output, fail_on_error);
+	} else if (plane->is_primary && s == COMMIT_LEGACY) {
+		return igt_primary_plane_commit_legacy(plane, output,
+						       fail_on_error);
+	} else {
+		return igt_drm_plane_commit(plane, output, fail_on_error);
+	}
+}
+
+/*
+ * Commit all plane changes to an output.  Note that if @s is COMMIT_LEGACY,
+ * enabling/disabling the primary plane will also enable/disable the CRTC.
+ *
+ * If @fail_on_error is true, any failure to commit plane state will lead
+ * to subtest failure in the specific function where the failure occurs.
+ * Otherwise, the first error code encountered will be returned and no
+ * further programming will take place, which may result in some changes
+ * taking effect and others not taking effect.
+ */
+static int igt_output_commit(igt_output_t *output,
+			     enum igt_commit_style s,
+			     bool fail_on_error)
+{
+	igt_display_t *display = output->display;
+	igt_pipe_t *pipe;
+	int i;
+	int ret;
+	bool need_wait_for_vblank = false;
+
+	pipe = igt_output_get_driving_pipe(output);
 
 	for (i = 0; i < pipe->n_planes; i++) {
 		igt_plane_t *plane = &pipe->planes[i];
@@ -945,14 +1063,15 @@ static int igt_output_commit(igt_output_t *output, bool fail_on_error)
 		if (plane->fb_changed || plane->position_changed)
 			need_wait_for_vblank = true;
 
-		igt_plane_commit(plane, output, fail_on_error);
+		ret = igt_plane_commit(plane, output, s, fail_on_error);
+		CHECK_RETURN(ret, fail_on_error);
 	}
 
 	/*
 	 * If the crtc is enabled, wait until the next vblank before returning
 	 * if we made changes to any of the planes.
 	 */
-	if (need_wait_for_vblank && igt_plane_get_fb_id(primary) != 0) {
+	if (need_wait_for_vblank && pipe->enabled) {
 		igt_wait_for_vblank(display->drm_fd, pipe->pipe);
 	}
 
@@ -984,7 +1103,7 @@ static int do_display_commit(igt_display_t *display,
 		if (!output->valid)
 			continue;
 
-		ret = igt_output_commit(output, fail_on_error);
+		ret = igt_output_commit(output, s, fail_on_error);
 		CHECK_RETURN(ret, fail_on_error);
 	}
 
@@ -1017,7 +1136,9 @@ static int do_display_commit(igt_display_t *display,
 int igt_display_commit2(igt_display_t *display,
 		       enum igt_commit_style s)
 {
-	return do_display_commit(display, s, true);
+	do_display_commit(display, s, true);
+
+	return 0;
 }
 
 /**
@@ -1041,7 +1162,7 @@ int igt_display_commit2(igt_display_t *display,
  */
 int igt_display_try_commit2(igt_display_t *display, enum igt_commit_style s)
 {
-       return do_display_commit(display, s, false);
+	return do_display_commit(display, s, false);
 }
 
 /**

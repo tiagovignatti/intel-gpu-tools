@@ -126,6 +126,7 @@ typedef struct {
 struct igt_pipe {
 	igt_display_t *display;
 	enum pipe pipe;
+	bool enabled;
 #define IGT_MAX_PLANES	4
 	int n_planes;
 	igt_plane_t planes[IGT_MAX_PLANES];
@@ -149,6 +150,7 @@ struct igt_display {
 	unsigned long pipes_in_use;
 	igt_output_t *outputs;
 	igt_pipe_t pipes[I915_MAX_PIPES];
+	bool has_universal_planes;
 };
 
 /* set vt into graphics mode, required to prevent fbcon from interfering */
