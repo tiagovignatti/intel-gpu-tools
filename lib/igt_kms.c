@@ -837,11 +837,14 @@ static int igt_output_commit(igt_output_t *output)
 {
 	igt_display_t *display = output->display;
 	igt_pipe_t *pipe;
+	igt_plane_t *primary;
+	igt_plane_t *cursor;
 	int i;
 
 	pipe = igt_output_get_driving_pipe(output);
-	if (pipe->need_set_crtc) {
-		igt_plane_t *primary = &pipe->planes[0];
+	primary = igt_pipe_get_plane(pipe, IGT_PLANE_PRIMARY);
+	cursor = igt_pipe_get_plane(pipe, IGT_PLANE_CURSOR);
+	if (primary->fb_changed) {
 		drmModeModeInfo *mode;
 		uint32_t fb_id, crtc_id;
 		int ret;
@@ -887,16 +890,13 @@ static int igt_output_commit(igt_output_t *output)
 
 		igt_assert(ret == 0);
 
-		pipe->need_set_crtc = false;
 		primary->fb_changed = false;
 	}
 
-	if (pipe->need_set_cursor) {
-		igt_plane_t *cursor;
+	if (cursor->fb_changed) {
 		uint32_t gem_handle, crtc_id;
 		int ret;
 
-		cursor = igt_pipe_get_plane(pipe, IGT_PLANE_CURSOR);
 		crtc_id = output->config.crtc->crtc_id;
 		gem_handle = igt_plane_get_fb_gem_handle(cursor);
 
@@ -924,7 +924,6 @@ static int igt_output_commit(igt_output_t *output)
 
 		igt_assert(ret == 0);
 
-		pipe->need_set_cursor = false;
 		cursor->fb_changed = false;
 	}
 
@@ -1008,11 +1007,6 @@ void igt_plane_set_fb(igt_plane_t *plane, struct igt_fb *fb)
 	    plane->index, fb ? fb->fb_id : 0);
 
 	plane->fb = fb;
-
-	if (plane->is_primary)
-		pipe->need_set_crtc = true;
-	else if (plane->is_cursor)
-		pipe->need_set_cursor = true;
 
 	plane->fb_changed = true;
 }
