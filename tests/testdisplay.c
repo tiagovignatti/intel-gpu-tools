@@ -314,6 +314,8 @@ static void paint_output_info(struct connector *c, struct igt_fb *fb)
 		paint_image(cr, IGT_DATADIR"/pass.png");
 
 	igt_assert(!cairo_status(cr));
+
+	cairo_destroy(cr);
 }
 
 static void sighandler(int signo)
