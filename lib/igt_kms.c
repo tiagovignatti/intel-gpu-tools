@@ -946,7 +946,21 @@ static int igt_output_commit(igt_output_t *output)
 	return 0;
 }
 
-int igt_display_commit(igt_display_t *display)
+/**
+ * igt_display_commit2:
+ * @display: DRM device handle
+ * @s: Commit style
+ *
+ * Commits framebuffer and positioning changes to all planes of each display
+ * pipe, using a specific API to perform the programming.  This function should
+ * be used to exercise a specific driver programming API; igt_display_commit
+ * should be used instead if the API used is unimportant to the test being run.
+ *
+ * Returns: 0 upon success.  This function will never return upon failure
+ * since igt_fail() at lower levels will longjmp out of it.
+ */
+int igt_display_commit2(igt_display_t *display,
+		       enum igt_commit_style s)
 {
 	int i;
 
@@ -969,6 +983,22 @@ int igt_display_commit(igt_display_t *display)
 		igt_wait_for_keypress();
 
 	return 0;
+}
+
+/**
+ * igt_display_commit:
+ * @display: DRM device handle
+ * @s: Commit style
+ *
+ * Commits framebuffer and positioning changes to all planes of each display
+ * pipe.
+ *
+ * Returns: 0 upon success.  This function will never return upon failure
+ * since igt_fail() at lower levels will longjmp out of it.
+ */
+int igt_display_commit(igt_display_t *display)
+{
+	return igt_display_commit2(display, COMMIT_LEGACY);
 }
 
 const char *igt_output_name(igt_output_t *output)

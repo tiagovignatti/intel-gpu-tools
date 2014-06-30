@@ -65,6 +65,12 @@ enum port {
 };
 #define port_name(p) ((p) + 'A')
 
+enum igt_commit_style {
+	COMMIT_LEGACY = 0,
+	COMMIT_UNIVERSAL,
+	/* We'll add atomic here eventually. */
+};
+
 #include "igt_fb.h"
 
 struct kmstest_connector_config {
@@ -150,6 +156,7 @@ void igt_set_vt_graphics_mode(void);
 
 void igt_display_init(igt_display_t *display, int drm_fd);
 void igt_display_fini(igt_display_t *display);
+int  igt_display_commit2(igt_display_t *display, enum igt_commit_style s);
 int  igt_display_commit(igt_display_t *display);
 int  igt_display_get_n_pipes(igt_display_t *display);
 
