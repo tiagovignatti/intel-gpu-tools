@@ -349,10 +349,10 @@ static void test_cursor_size(data_t *data)
 	igt_display_t *display = &data->display;
 	igt_pipe_crc_t *pipe_crc = data->pipe_crc;
 	igt_crc_t crc[10], ref_crc;
-	igt_plane_t *cursor;
 	cairo_t *cr;
 	uint32_t fb_id;
 	int i, size, cursor_max_size = data->cursor_max_size;
+	int ret;
 
 	/* Create a maximum size cursor, then change the size in flight to
 	 * smaller ones to see that the size is applied correctly
@@ -367,12 +367,12 @@ static void test_cursor_size(data_t *data)
 
 	/* Hardware test loop */
 	cursor_enable(data);
-	cursor = igt_output_get_plane(data->output, IGT_PLANE_CURSOR);
-	igt_plane_set_position(cursor, 0, 0);
+	ret = drmModeMoveCursor(data->drm_fd, data->output->config.crtc->crtc_id, 0, 0);
+	igt_assert(ret == 0);
 	for (i = 0, size = cursor_max_size; size >= 64; size /= 2, i++) {
 		/* Change size in flight: */
-		int ret = drmModeSetCursor(data->drm_fd, data->output->config.crtc->crtc_id,
-					   data->fb.gem_handle, size, size);
+		ret = drmModeSetCursor(data->drm_fd, data->output->config.crtc->crtc_id,
+				       data->fb.gem_handle, size, size);
 		igt_assert(ret == 0);
 		igt_wait_for_vblank(data->drm_fd, data->pipe);
 		igt_pipe_crc_collect_crc(pipe_crc, &crc[i]);
