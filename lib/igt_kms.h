@@ -158,6 +158,7 @@ void igt_display_init(igt_display_t *display, int drm_fd);
 void igt_display_fini(igt_display_t *display);
 int  igt_display_commit2(igt_display_t *display, enum igt_commit_style s);
 int  igt_display_commit(igt_display_t *display);
+int  igt_display_try_commit2(igt_display_t *display, enum igt_commit_style s);
 int  igt_display_get_n_pipes(igt_display_t *display);
 
 const char *igt_output_name(igt_output_t *output);

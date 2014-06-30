@@ -730,7 +730,15 @@ static uint32_t igt_plane_get_fb_gem_handle(igt_plane_t *plane)
 		return 0;
 }
 
-static int igt_cursor_commit(igt_plane_t *plane, igt_output_t *output)
+#define CHECK_RETURN(r, fail) {	\
+	if (r && !fail)		\
+		return r;	\
+	igt_assert(r == 0);	\
+}
+
+static int igt_cursor_commit(igt_plane_t *plane,
+			     igt_output_t *output,
+			     bool fail_on_error)
 {
 	igt_display_t *display = output->display;
 	uint32_t crtc_id = output->config.crtc->crtc_id;
@@ -747,8 +755,7 @@ static int igt_cursor_commit(igt_plane_t *plane, igt_output_t *output)
 		    x, y);
 
 		ret = drmModeMoveCursor(display->drm_fd, crtc_id, x, y);
-
-		igt_assert(ret == 0);
+		CHECK_RETURN(ret, fail_on_error);
 
 		plane->position_changed = false;
 	}
@@ -756,7 +763,15 @@ static int igt_cursor_commit(igt_plane_t *plane, igt_output_t *output)
 	return 0;
 }
 
-static int igt_drm_plane_commit(igt_plane_t *plane, igt_output_t *output)
+/*
+ * Commit position and fb changes to a DRM plane via the SetPlane ioctl; if the
+ * DRM call to program the plane fails, we'll either fail immediately (for
+ * tests that expect the commit to succeed) or return the failure code (for
+ * tests that expect a specific error code).
+ */
+static int igt_drm_plane_commit(igt_plane_t *plane,
+				igt_output_t *output,
+				bool fail_on_error)
 {
 	igt_display_t *display = output->display;
 	uint32_t fb_id, crtc_id;
@@ -783,8 +798,7 @@ static int igt_drm_plane_commit(igt_plane_t *plane, igt_output_t *output)
 				      IGT_FIXED(0,0), /* src_y */
 				      IGT_FIXED(0,0), /* src_w */
 				      IGT_FIXED(0,0) /* src_h */);
-
-		igt_assert(ret == 0);
+		CHECK_RETURN(ret, fail_on_error);
 
 		plane->fb_changed = false;
 	} else if (plane->fb_changed || plane->position_changed) {
@@ -807,8 +821,7 @@ static int igt_drm_plane_commit(igt_plane_t *plane, igt_output_t *output)
 				      IGT_FIXED(0,0), /* src_y */
 				      IGT_FIXED(plane->fb->width,0), /* src_w */
 				      IGT_FIXED(plane->fb->height,0) /* src_h */);
-
-		igt_assert(ret == 0);
+		CHECK_RETURN(ret, fail_on_error);
 
 		plane->fb_changed = false;
 		plane->position_changed = false;
@@ -817,20 +830,22 @@ static int igt_drm_plane_commit(igt_plane_t *plane, igt_output_t *output)
 	return 0;
 }
 
-static int igt_plane_commit(igt_plane_t *plane, igt_output_t *output)
+static int igt_plane_commit(igt_plane_t *plane,
+			    igt_output_t *output,
+			    bool fail_on_error)
 {
 	if (plane->is_cursor) {
-		igt_cursor_commit(plane, output);
+		igt_cursor_commit(plane, output, fail_on_error);
 	} else if (plane->is_primary) {
 		/* state updated by SetCrtc */
 	} else {
-		igt_drm_plane_commit(plane, output);
+		igt_drm_plane_commit(plane, output, fail_on_error);
 	}
 
 	return 0;
 }
 
-static int igt_output_commit(igt_output_t *output)
+static int igt_output_commit(igt_output_t *output, bool fail_on_error)
 {
 	igt_display_t *display = output->display;
 	igt_pipe_t *pipe;
@@ -885,8 +900,7 @@ static int igt_output_commit(igt_output_t *output)
 					     0,    /* n_connectors */
 					     NULL  /* mode */);
 		}
-
-		igt_assert(ret == 0);
+		CHECK_RETURN(ret, fail_on_error);
 
 		primary->fb_changed = false;
 	}
@@ -919,8 +933,7 @@ static int igt_output_commit(igt_output_t *output)
 			ret = drmModeSetCursor(display->drm_fd, crtc_id,
 					       0, 0, 0);
 		}
-
-		igt_assert(ret == 0);
+		CHECK_RETURN(ret, fail_on_error);
 
 		cursor->fb_changed = false;
 		need_wait_for_vblank = true;
@@ -932,7 +945,7 @@ static int igt_output_commit(igt_output_t *output)
 		if (plane->fb_changed || plane->position_changed)
 			need_wait_for_vblank = true;
 
-		igt_plane_commit(plane, output);
+		igt_plane_commit(plane, output, fail_on_error);
 	}
 
 	/*
@@ -942,6 +955,43 @@ static int igt_output_commit(igt_output_t *output)
 	if (need_wait_for_vblank && igt_plane_get_fb_id(primary) != 0) {
 		igt_wait_for_vblank(display->drm_fd, pipe->pipe);
 	}
+
+	return 0;
+}
+
+/*
+ * Commit all plane changes across all outputs of the display.
+ *
+ * If @fail_on_error is true, any failure to commit plane state will lead
+ * to subtest failure in the specific function where the failure occurs.
+ * Otherwise, the first error code encountered will be returned and no
+ * further programming will take place, which may result in some changes
+ * taking effect and others not taking effect.
+ */
+static int do_display_commit(igt_display_t *display,
+			     enum igt_commit_style s,
+			     bool fail_on_error)
+{
+	int i, ret;
+
+	LOG_INDENT(display, "commit");
+
+	igt_display_refresh(display);
+
+	for (i = 0; i < display->n_outputs; i++) {
+		igt_output_t *output = &display->outputs[i];
+
+		if (!output->valid)
+			continue;
+
+		ret = igt_output_commit(output, fail_on_error);
+		CHECK_RETURN(ret, fail_on_error);
+	}
+
+	LOG_UNINDENT(display);
+
+	if (getenv("IGT_DISPLAY_WAIT_AT_COMMIT"))
+		igt_wait_for_keypress();
 
 	return 0;
 }
@@ -956,39 +1006,47 @@ static int igt_output_commit(igt_output_t *output)
  * be used to exercise a specific driver programming API; igt_display_commit
  * should be used instead if the API used is unimportant to the test being run.
  *
+ * This function should only be used to commit changes that are expected to
+ * succeed, since any failure during the commit process will cause the IGT
+ * subtest to fail.  To commit changes that are expected to fail, use
+ * @igt_try_display_commit2 instead.
+ *
  * Returns: 0 upon success.  This function will never return upon failure
  * since igt_fail() at lower levels will longjmp out of it.
  */
 int igt_display_commit2(igt_display_t *display,
 		       enum igt_commit_style s)
 {
-	int i;
+	return do_display_commit(display, s, true);
+}
 
-	LOG_INDENT(display, "commit");
-
-	igt_display_refresh(display);
-
-	for (i = 0; i < display->n_outputs; i++) {
-		igt_output_t *output = &display->outputs[i];
-
-		if (!output->valid)
-			continue;
-
-		igt_output_commit(output);
-	}
-
-	LOG_UNINDENT(display);
-
-	if (getenv("IGT_DISPLAY_WAIT_AT_COMMIT"))
-		igt_wait_for_keypress();
-
-	return 0;
+/**
+ * igt_display_try_commit2:
+ * @display: DRM device handle
+ * @s: Commit style
+ *
+ * Attempts to commit framebuffer and positioning changes to all planes of each
+ * display pipe.  This function should be used to commit changes that are
+ * expected to fail, so that the error code can be checked for correctness.
+ * For changes that are expected to succeed, use @igt_display_commit instead.
+ *
+ * Note that in non-atomic commit styles, no display programming will be
+ * performed after the first failure is encountered, so only some of the
+ * operations requested by a test may have been completed.  Tests that catch
+ * errors returned by this function should take care to restore the display to
+ * a sane state after a failure is detected.
+ *
+ * Returns: 0 upon success, otherwise the error code of the first error
+ * encountered.
+ */
+int igt_display_try_commit2(igt_display_t *display, enum igt_commit_style s)
+{
+       return do_display_commit(display, s, false);
 }
 
 /**
  * igt_display_commit:
  * @display: DRM device handle
- * @s: Commit style
  *
  * Commits framebuffer and positioning changes to all planes of each display
  * pipe.
