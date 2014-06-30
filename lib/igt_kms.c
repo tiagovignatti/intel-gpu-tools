@@ -1230,12 +1230,6 @@ void igt_plane_set_position(igt_plane_t *plane, int x, int y)
 	igt_pipe_t *pipe = plane->pipe;
 	igt_display_t *display = pipe->display;
 
-	/*
-	 * XXX: Some platforms don't need the primary plane to cover the
-	 * whole pipe. Of course this test becomes wrong when we support that.
-	 */
-	igt_assert(!plane->is_primary || (x == 0 && y == 0));
-
 	LOG(display, "%c.%d: plane_set_position(%d,%d)\n",
 	    pipe_name(pipe->pipe), plane->index, x, y);
 
