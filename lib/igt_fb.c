@@ -547,7 +547,7 @@ static cairo_surface_t *get_cairo_surface(int fd, struct igt_fb *fb)
 		       I915_GEM_DOMAIN_CPU, I915_GEM_DOMAIN_CPU);
 
 	igt_assert(cairo_surface_status(fb->cairo_surface) == CAIRO_STATUS_SUCCESS);
-	return cairo_surface_reference(fb->cairo_surface);
+	return fb->cairo_surface;
 }
 
 /**
