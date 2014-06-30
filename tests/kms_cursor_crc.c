@@ -44,10 +44,6 @@ typedef struct {
 	igt_display_t display;
 	struct igt_fb primary_fb;
 	struct igt_fb fb;
-} data_t;
-
-typedef struct {
-	data_t *data;
 	igt_output_t *output;
 	enum pipe pipe;
 	igt_crc_t ref_crc;
@@ -56,7 +52,7 @@ typedef struct {
 	int curw, curh; /* cursor size */
 	int cursor_max_size;
 	igt_pipe_crc_t *pipe_crc;
-} test_data_t;
+} data_t;
 
 static void draw_cursor(cairo_t *cr, int x, int y, int w)
 {
@@ -72,11 +68,10 @@ static void draw_cursor(cairo_t *cr, int x, int y, int w)
 	igt_paint_color_alpha(cr, x + w, y + w, w, w, 0.5, 0.5, 0.5, 1.0);
 }
 
-static void cursor_enable(test_data_t *test_data)
+static void cursor_enable(data_t *data)
 {
-	data_t *data = test_data->data;
 	igt_display_t *display = &data->display;
-	igt_output_t *output = test_data->output;
+	igt_output_t *output = data->output;
 	igt_plane_t *cursor;
 
 	cursor = igt_output_get_plane(output, IGT_PLANE_CURSOR);
@@ -84,11 +79,10 @@ static void cursor_enable(test_data_t *test_data)
 	igt_display_commit(display);
 }
 
-static void cursor_disable(test_data_t *test_data)
+static void cursor_disable(data_t *data)
 {
-	data_t *data = test_data->data;
 	igt_display_t *display = &data->display;
-	igt_output_t *output = test_data->output;
+	igt_output_t *output = data->output;
 	igt_plane_t *cursor;
 
 	cursor = igt_output_get_plane(output, IGT_PLANE_CURSOR);
@@ -97,11 +91,10 @@ static void cursor_disable(test_data_t *test_data)
 }
 
 
-static void do_single_test(test_data_t *test_data, int x, int y)
+static void do_single_test(data_t *data, int x, int y)
 {
-	data_t *data = test_data->data;
 	igt_display_t *display = &data->display;
-	igt_pipe_crc_t *pipe_crc = test_data->pipe_crc;
+	igt_pipe_crc_t *pipe_crc = data->pipe_crc;
 	igt_crc_t crc, ref_crc;
 	igt_plane_t *cursor;
 	cairo_t *cr = igt_get_cairo_ctx(data->drm_fd, &data->primary_fb);
@@ -109,93 +102,93 @@ static void do_single_test(test_data_t *test_data, int x, int y)
 	igt_info("."); fflush(stdout);
 
 	/* Hardware test */
-	igt_paint_test_pattern(cr, test_data->screenw, test_data->screenh);
-	cursor_enable(test_data);
-	cursor = igt_output_get_plane(test_data->output, IGT_PLANE_CURSOR);
+	igt_paint_test_pattern(cr, data->screenw, data->screenh);
+	cursor_enable(data);
+	cursor = igt_output_get_plane(data->output, IGT_PLANE_CURSOR);
 	igt_plane_set_position(cursor, x, y);
 	igt_display_commit(display);
-	igt_wait_for_vblank(data->drm_fd, test_data->pipe);
+	igt_wait_for_vblank(data->drm_fd, data->pipe);
 	igt_pipe_crc_collect_crc(pipe_crc, &crc);
-	cursor_disable(test_data);
+	cursor_disable(data);
 
 	/* Now render the same in software and collect crc */
-	draw_cursor(cr, x, y, test_data->curw);
+	draw_cursor(cr, x, y, data->curw);
 	igt_display_commit(display);
-	igt_wait_for_vblank(data->drm_fd, test_data->pipe);
+	igt_wait_for_vblank(data->drm_fd, data->pipe);
 	igt_pipe_crc_collect_crc(pipe_crc, &ref_crc);
 	/* Clear screen afterwards */
-	igt_paint_color(cr, 0, 0, test_data->screenw, test_data->screenh,
-			    0.0, 0.0, 0.0);
+	igt_paint_color(cr, 0, 0, data->screenw, data->screenh,
+			0.0, 0.0, 0.0);
 
 	igt_assert(igt_crc_equal(&crc, &ref_crc));
 }
 
-static void do_test(test_data_t *test_data,
+static void do_test(data_t *data,
 		    int left, int right, int top, int bottom)
 {
-	do_single_test(test_data, left, top);
-	do_single_test(test_data, right, top);
-	do_single_test(test_data, right, bottom);
-	do_single_test(test_data, left, bottom);
+	do_single_test(data, left, top);
+	do_single_test(data, right, top);
+	do_single_test(data, right, bottom);
+	do_single_test(data, left, bottom);
 }
 
-static void test_crc_onscreen(test_data_t *test_data)
+static void test_crc_onscreen(data_t *data)
 {
-	int left = test_data->left;
-	int right = test_data->right;
-	int top = test_data->top;
-	int bottom = test_data->bottom;
-	int cursor_w = test_data->curw;
-	int cursor_h = test_data->curh;
+	int left = data->left;
+	int right = data->right;
+	int top = data->top;
+	int bottom = data->bottom;
+	int cursor_w = data->curw;
+	int cursor_h = data->curh;
 
 	/* fully inside  */
-	do_test(test_data, left, right, top, bottom);
+	do_test(data, left, right, top, bottom);
 
 	/* 2 pixels inside */
-	do_test(test_data, left - (cursor_w-2), right + (cursor_w-2), top               , bottom               );
-	do_test(test_data, left               , right               , top - (cursor_h-2), bottom + (cursor_h-2));
-	do_test(test_data, left - (cursor_w-2), right + (cursor_w-2), top - (cursor_h-2), bottom + (cursor_h-2));
+	do_test(data, left - (cursor_w-2), right + (cursor_w-2), top               , bottom               );
+	do_test(data, left               , right               , top - (cursor_h-2), bottom + (cursor_h-2));
+	do_test(data, left - (cursor_w-2), right + (cursor_w-2), top - (cursor_h-2), bottom + (cursor_h-2));
 
 	/* 1 pixel inside */
-	do_test(test_data, left - (cursor_w-1), right + (cursor_w-1), top               , bottom               );
-	do_test(test_data, left               , right               , top - (cursor_h-1), bottom + (cursor_h-1));
-	do_test(test_data, left - (cursor_w-1), right + (cursor_w-1), top - (cursor_h-1), bottom + (cursor_h-1));
+	do_test(data, left - (cursor_w-1), right + (cursor_w-1), top               , bottom               );
+	do_test(data, left               , right               , top - (cursor_h-1), bottom + (cursor_h-1));
+	do_test(data, left - (cursor_w-1), right + (cursor_w-1), top - (cursor_h-1), bottom + (cursor_h-1));
 }
 
-static void test_crc_offscreen(test_data_t *test_data)
+static void test_crc_offscreen(data_t *data)
 {
-	int left = test_data->left;
-	int right = test_data->right;
-	int top = test_data->top;
-	int bottom = test_data->bottom;
-	int cursor_w = test_data->curw;
-	int cursor_h = test_data->curh;
+	int left = data->left;
+	int right = data->right;
+	int top = data->top;
+	int bottom = data->bottom;
+	int cursor_w = data->curw;
+	int cursor_h = data->curh;
 
 	/* fully outside */
-	do_test(test_data, left - (cursor_w), right + (cursor_w), top             , bottom             );
-	do_test(test_data, left             , right             , top - (cursor_h), bottom + (cursor_h));
-	do_test(test_data, left - (cursor_w), right + (cursor_w), top - (cursor_h), bottom + (cursor_h));
+	do_test(data, left - (cursor_w), right + (cursor_w), top             , bottom             );
+	do_test(data, left             , right             , top - (cursor_h), bottom + (cursor_h));
+	do_test(data, left - (cursor_w), right + (cursor_w), top - (cursor_h), bottom + (cursor_h));
 
 	/* fully outside by 1 extra pixels */
-	do_test(test_data, left - (cursor_w+1), right + (cursor_w+1), top               , bottom               );
-	do_test(test_data, left               , right               , top - (cursor_h+1), bottom + (cursor_h+1));
-	do_test(test_data, left - (cursor_w+1), right + (cursor_w+1), top - (cursor_h+1), bottom + (cursor_h+1));
+	do_test(data, left - (cursor_w+1), right + (cursor_w+1), top               , bottom               );
+	do_test(data, left               , right               , top - (cursor_h+1), bottom + (cursor_h+1));
+	do_test(data, left - (cursor_w+1), right + (cursor_w+1), top - (cursor_h+1), bottom + (cursor_h+1));
 
 	/* fully outside by 2 extra pixels */
-	do_test(test_data, left - (cursor_w+2), right + (cursor_w+2), top               , bottom               );
-	do_test(test_data, left               , right               , top - (cursor_h+2), bottom + (cursor_h+2));
-	do_test(test_data, left - (cursor_w+2), right + (cursor_w+2), top - (cursor_h+2), bottom + (cursor_h+2));
+	do_test(data, left - (cursor_w+2), right + (cursor_w+2), top               , bottom               );
+	do_test(data, left               , right               , top - (cursor_h+2), bottom + (cursor_h+2));
+	do_test(data, left - (cursor_w+2), right + (cursor_w+2), top - (cursor_h+2), bottom + (cursor_h+2));
 
 	/* fully outside by a lot of extra pixels */
-	do_test(test_data, left - (cursor_w+512), right + (cursor_w+512), top                 , bottom                 );
-	do_test(test_data, left                 , right                 , top - (cursor_h+512), bottom + (cursor_h+512));
-	do_test(test_data, left - (cursor_w+512), right + (cursor_w+512), top - (cursor_h+512), bottom + (cursor_h+512));
+	do_test(data, left - (cursor_w+512), right + (cursor_w+512), top                 , bottom                 );
+	do_test(data, left                 , right                 , top - (cursor_h+512), bottom + (cursor_h+512));
+	do_test(data, left - (cursor_w+512), right + (cursor_w+512), top - (cursor_h+512), bottom + (cursor_h+512));
 
 	/* go nuts */
-	do_test(test_data, INT_MIN, INT_MAX, INT_MIN, INT_MAX);
+	do_test(data, INT_MIN, INT_MAX, INT_MIN, INT_MAX);
 }
 
-static void test_crc_sliding(test_data_t *test_data)
+static void test_crc_sliding(data_t *data)
 {
 	int i;
 
@@ -203,34 +196,33 @@ static void test_crc_sliding(test_data_t *test_data)
 	 * no alignment issues. Horizontal, vertical and diagonal test.
 	 */
 	for (i = 0; i < 16; i++) {
-		do_single_test(test_data, i, 0);
-		do_single_test(test_data, 0, i);
-		do_single_test(test_data, i, i);
+		do_single_test(data, i, 0);
+		do_single_test(data, 0, i);
+		do_single_test(data, i, i);
 	}
 }
 
-static void test_crc_random(test_data_t *test_data)
+static void test_crc_random(data_t *data)
 {
 	int i;
 
 	/* Random cursor placement */
 	for (i = 0; i < 50; i++) {
-		int x = rand() % (test_data->screenw + test_data->curw * 2) - test_data->curw;
-		int y = rand() % (test_data->screenh + test_data->curh * 2) - test_data->curh;
-		do_single_test(test_data, x, y);
+		int x = rand() % (data->screenw + data->curw * 2) - data->curw;
+		int y = rand() % (data->screenh + data->curh * 2) - data->curh;
+		do_single_test(data, x, y);
 	}
 }
 
-static bool prepare_crtc(test_data_t *test_data, igt_output_t *output,
+static bool prepare_crtc(data_t *data, igt_output_t *output,
 			 int cursor_w, int cursor_h)
 {
 	drmModeModeInfo *mode;
-	data_t *data = test_data->data;
 	igt_display_t *display = &data->display;
 	igt_plane_t *primary;
 
 	/* select the pipe we want to use */
-	igt_output_set_pipe(output, test_data->pipe);
+	igt_output_set_pipe(output, data->pipe);
 	igt_display_commit(display);
 
 	if (!output->valid) {
@@ -242,10 +234,10 @@ static bool prepare_crtc(test_data_t *test_data, igt_output_t *output,
 	/* create and set the primary plane fb */
 	mode = igt_output_get_mode(output);
 	igt_create_color_fb(data->drm_fd, mode->hdisplay, mode->vdisplay,
-				DRM_FORMAT_XRGB8888,
-				false, /* tiled */
-				0.0, 0.0, 0.0,
-				&data->primary_fb);
+			    DRM_FORMAT_XRGB8888,
+			    false, /* tiled */
+			    0.0, 0.0, 0.0,
+			    &data->primary_fb);
 
 	primary = igt_output_get_plane(output, IGT_PLANE_PRIMARY);
 	igt_plane_set_fb(primary, &data->primary_fb);
@@ -253,46 +245,45 @@ static bool prepare_crtc(test_data_t *test_data, igt_output_t *output,
 	igt_display_commit(display);
 
 	/* create the pipe_crc object for this pipe */
-	if (test_data->pipe_crc)
-		igt_pipe_crc_free(test_data->pipe_crc);
+	if (data->pipe_crc)
+		igt_pipe_crc_free(data->pipe_crc);
 
-	test_data->pipe_crc = igt_pipe_crc_new(test_data->pipe,
-					       INTEL_PIPE_CRC_SOURCE_AUTO);
-	if (!test_data->pipe_crc) {
+	data->pipe_crc = igt_pipe_crc_new(data->pipe,
+					  INTEL_PIPE_CRC_SOURCE_AUTO);
+	if (!data->pipe_crc) {
 		igt_info("auto crc not supported on this connector with pipe %i\n",
-			 test_data->pipe);
+			 data->pipe);
 		return false;
 	}
 
 	/* x/y position where the cursor is still fully visible */
-	test_data->left = 0;
-	test_data->right = mode->hdisplay - cursor_w;
-	test_data->top = 0;
-	test_data->bottom = mode->vdisplay - cursor_h;
-	test_data->screenw = mode->hdisplay;
-	test_data->screenh = mode->vdisplay;
-	test_data->curw = cursor_w;
-	test_data->curh = cursor_h;
-	test_data->cursor_max_size = cursor_w;
+	data->left = 0;
+	data->right = mode->hdisplay - cursor_w;
+	data->top = 0;
+	data->bottom = mode->vdisplay - cursor_h;
+	data->screenw = mode->hdisplay;
+	data->screenh = mode->vdisplay;
+	data->curw = cursor_w;
+	data->curh = cursor_h;
+	data->cursor_max_size = cursor_w;
 
 	/* make sure cursor is disabled */
-	cursor_disable(test_data);
-	igt_wait_for_vblank(data->drm_fd, test_data->pipe);
+	cursor_disable(data);
+	igt_wait_for_vblank(data->drm_fd, data->pipe);
 
 	/* get reference crc w/o cursor */
-	igt_pipe_crc_collect_crc(test_data->pipe_crc, &test_data->ref_crc);
+	igt_pipe_crc_collect_crc(data->pipe_crc, &data->ref_crc);
 
 	return true;
 }
 
-static void cleanup_crtc(test_data_t *test_data, igt_output_t *output)
+static void cleanup_crtc(data_t *data, igt_output_t *output)
 {
-	data_t *data = test_data->data;
 	igt_display_t *display = &data->display;
 	igt_plane_t *primary;
 
-	igt_pipe_crc_free(test_data->pipe_crc);
-	test_data->pipe_crc = NULL;
+	igt_pipe_crc_free(data->pipe_crc);
+	data->pipe_crc = NULL;
 
 	igt_remove_fb(data->drm_fd, &data->primary_fb);
 
@@ -303,38 +294,35 @@ static void cleanup_crtc(test_data_t *test_data, igt_output_t *output)
 	igt_display_commit(display);
 }
 
-static void run_test(data_t *data, void (*testfunc)(test_data_t *), int cursor_w, int cursor_h)
+static void run_test(data_t *data, void (*testfunc)(data_t *), int cursor_w, int cursor_h)
 {
 	igt_display_t *display = &data->display;
 	igt_output_t *output;
 	enum pipe p;
-	test_data_t test_data = {
-		.data = data,
-	};
 	int valid_tests = 0;
 
 	for_each_connected_output(display, output) {
-		test_data.output = output;
+		data->output = output;
 		for (p = 0; p < igt_display_get_n_pipes(display); p++) {
-			test_data.pipe = p;
+			data->pipe = p;
 
-			if (!prepare_crtc(&test_data, output, cursor_w, cursor_h))
+			if (!prepare_crtc(data, output, cursor_w, cursor_h))
 				continue;
 
 			valid_tests++;
 
 			igt_info("Beginning %s on pipe %c, connector %s\n",
-				 igt_subtest_name(), pipe_name(test_data.pipe),
+				 igt_subtest_name(), pipe_name(data->pipe),
 				 igt_output_name(output));
 
-			testfunc(&test_data);
+			testfunc(data);
 
 			igt_info("\n%s on pipe %c, connector %s: PASSED\n\n",
-				 igt_subtest_name(), pipe_name(test_data.pipe),
+				 igt_subtest_name(), pipe_name(data->pipe),
 				 igt_output_name(output));
 
 			/* cleanup what prepare_crtc() has done */
-			cleanup_crtc(&test_data, output);
+			cleanup_crtc(data, output);
 		}
 	}
 
@@ -356,16 +344,15 @@ static void create_cursor_fb(data_t *data, int cur_w, int cur_h)
 	igt_assert(cairo_status(cr) == 0);
 }
 
-static void test_cursor_size(test_data_t *test_data)
+static void test_cursor_size(data_t *data)
 {
-	data_t *data = test_data->data;
 	igt_display_t *display = &data->display;
-	igt_pipe_crc_t *pipe_crc = test_data->pipe_crc;
+	igt_pipe_crc_t *pipe_crc = data->pipe_crc;
 	igt_crc_t crc[10], ref_crc;
 	igt_plane_t *cursor;
 	cairo_t *cr;
 	uint32_t fb_id;
-	int i, size, cursor_max_size = test_data->cursor_max_size;
+	int i, size, cursor_max_size = data->cursor_max_size;
 
 	/* Create a maximum size cursor, then change the size in flight to
 	 * smaller ones to see that the size is applied correctly
@@ -379,28 +366,28 @@ static void test_cursor_size(test_data_t *test_data)
 	igt_paint_color_alpha(cr, 0, 0, cursor_max_size, cursor_max_size, 1.0, 1.0, 1.0, 1.0);
 
 	/* Hardware test loop */
-	cursor_enable(test_data);
-	cursor = igt_output_get_plane(test_data->output, IGT_PLANE_CURSOR);
+	cursor_enable(data);
+	cursor = igt_output_get_plane(data->output, IGT_PLANE_CURSOR);
 	igt_plane_set_position(cursor, 0, 0);
 	for (i = 0, size = cursor_max_size; size >= 64; size /= 2, i++) {
 		/* Change size in flight: */
-		int ret = drmModeSetCursor(data->drm_fd, test_data->output->config.crtc->crtc_id,
+		int ret = drmModeSetCursor(data->drm_fd, data->output->config.crtc->crtc_id,
 					   data->fb.gem_handle, size, size);
 		igt_assert(ret == 0);
-		igt_wait_for_vblank(data->drm_fd, test_data->pipe);
+		igt_wait_for_vblank(data->drm_fd, data->pipe);
 		igt_pipe_crc_collect_crc(pipe_crc, &crc[i]);
 	}
-	cursor_disable(test_data);
+	cursor_disable(data);
 	/* Software test loop */
 	cr = igt_get_cairo_ctx(data->drm_fd, &data->primary_fb);
 	for (i = 0, size = cursor_max_size; size >= 64; size /= 2, i++) {
 		/* Now render the same in software and collect crc */
 		igt_paint_color_alpha(cr, 0, 0, size, size, 1.0, 1.0, 1.0, 1.0);
 		igt_display_commit(display);
-		igt_wait_for_vblank(data->drm_fd, test_data->pipe);
+		igt_wait_for_vblank(data->drm_fd, data->pipe);
 		igt_pipe_crc_collect_crc(pipe_crc, &ref_crc);
 		/* Clear screen afterwards */
-		igt_paint_color(cr, 0, 0, test_data->screenw, test_data->screenh,
+		igt_paint_color(cr, 0, 0, data->screenw, data->screenh,
 				0.0, 0.0, 0.0);
 		igt_assert(igt_crc_equal(&crc[i], &ref_crc));
 	}
