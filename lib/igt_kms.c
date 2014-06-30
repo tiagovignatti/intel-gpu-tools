@@ -759,13 +759,11 @@ static int igt_cursor_commit(igt_plane_t *plane, igt_output_t *output)
 static int igt_drm_plane_commit(igt_plane_t *plane, igt_output_t *output)
 {
 	igt_display_t *display = output->display;
-	igt_pipe_t *pipe;
 	uint32_t fb_id, crtc_id;
 	int ret;
 
 	fb_id = igt_plane_get_fb_id(plane);
 	crtc_id = output->config.crtc->crtc_id;
-	pipe = igt_output_get_driving_pipe(output);
 
 	if (plane->fb_changed && fb_id == 0) {
 		LOG(display,
@@ -814,7 +812,6 @@ static int igt_drm_plane_commit(igt_plane_t *plane, igt_output_t *output)
 
 		plane->fb_changed = false;
 		plane->position_changed = false;
-		pipe->need_wait_for_vblank = true;
 	}
 
 	return 0;
@@ -840,6 +837,7 @@ static int igt_output_commit(igt_output_t *output)
 	igt_plane_t *primary;
 	igt_plane_t *cursor;
 	int i;
+	bool need_wait_for_vblank = false;
 
 	pipe = igt_output_get_driving_pipe(output);
 	primary = igt_pipe_get_plane(pipe, IGT_PLANE_PRIMARY);
@@ -925,17 +923,24 @@ static int igt_output_commit(igt_output_t *output)
 		igt_assert(ret == 0);
 
 		cursor->fb_changed = false;
+		need_wait_for_vblank = true;
 	}
 
 	for (i = 0; i < pipe->n_planes; i++) {
 		igt_plane_t *plane = &pipe->planes[i];
 
+		if (plane->fb_changed || plane->position_changed)
+			need_wait_for_vblank = true;
+
 		igt_plane_commit(plane, output);
 	}
 
-	if (pipe->need_wait_for_vblank) {
+	/*
+	 * If the crtc is enabled, wait until the next vblank before returning
+	 * if we made changes to any of the planes.
+	 */
+	if (need_wait_for_vblank && igt_plane_get_fb_id(primary) != 0) {
 		igt_wait_for_vblank(display->drm_fd, pipe->pipe);
-		pipe->need_wait_for_vblank = false;
 	}
 
 	return 0;

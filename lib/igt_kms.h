@@ -120,7 +120,6 @@ typedef struct {
 struct igt_pipe {
 	igt_display_t *display;
 	enum pipe pipe;
-	unsigned int need_wait_for_vblank : 1;
 #define IGT_MAX_PLANES	4
 	int n_planes;
 	igt_plane_t planes[IGT_MAX_PLANES];
