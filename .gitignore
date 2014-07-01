@@ -88,3 +88,6 @@ version.h
 
 gtk-doc.make
 gtk-doc.m4
+
+piglit
+results
