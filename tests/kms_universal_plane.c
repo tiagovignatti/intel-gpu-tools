@@ -133,6 +133,7 @@ functional_test_pipe(data_t *data, enum pipe pipe, igt_output_t *output)
 	int num_primary = 0, num_cursor = 0;
 	int i;
 
+	igt_assert(data->display.has_universal_planes);
 	igt_skip_on(pipe >= display->n_pipes);
 
 	fprintf(stdout, "Testing connector %s using pipe %c\n",
@@ -534,8 +535,6 @@ static void
 run_tests_for_pipe(data_t *data, enum pipe pipe)
 {
 	igt_output_t *output;
-
-	igt_assert(data->display.has_universal_planes);
 
 	igt_subtest_f("universal-plane-pipe-%c-functional", pipe_name(pipe))
 		for_each_connected_output(&data->display, output)
