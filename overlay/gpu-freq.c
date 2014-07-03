@@ -88,26 +88,39 @@ int gpu_freq_init(struct gpu_freq *gf)
 
 	buf[len] = '\0';
 
-	s = strstr(buf, "(RPN)");
-	if (s == NULL)
-		goto err;
-	sscanf(s, "(RPN) frequency: %dMHz", &gf->rpn);
+	if (strstr(buf, "PUNIT_REG_GPU_FREQ_STS")) {
+		/* Baytrail is special, ofc. */
+		gf->is_byt = 1;
+		s = strstr(buf, "max");
+		if (s == NULL)
+			goto err;
+		sscanf(s, "max GPU freq: %d MHz", &gf->max);
+		sscanf(s, "min GPU freq: %d MHz", &gf->min);
 
-	s = strstr(s, "(RP1)");
-	if (s == NULL)
-		goto err;
-	sscanf(s, "(RP1) frequency: %dMHz", &gf->rp1);
+		gf->rp0 = gf->rp1 = gf->max;
+		gf->rpn = gf->min;
+	} else {
+		s = strstr(buf, "(RPN)");
+		if (s == NULL)
+			goto err;
+		sscanf(s, "(RPN) frequency: %dMHz", &gf->rpn);
 
-	s = strstr(s, "(RP0)");
-	if (s == NULL)
-		goto err;
-	sscanf(s, "(RP0) frequency: %dMHz", &gf->rp0);
+		s = strstr(s, "(RP1)");
+		if (s == NULL)
+			goto err;
+		sscanf(s, "(RP1) frequency: %dMHz", &gf->rp1);
 
-	s = strstr(s, "Max");
-	if (s == NULL)
-		goto err;
-	sscanf(s, "Max overclocked frequency: %dMHz", &gf->max);
-	gf->min = gf->rpn;
+		s = strstr(s, "(RP0)");
+		if (s == NULL)
+			goto err;
+		sscanf(s, "(RP0) frequency: %dMHz", &gf->rp0);
+
+		s = strstr(s, "Max");
+		if (s == NULL)
+			goto err;
+		sscanf(s, "Max overclocked frequency: %dMHz", &gf->max);
+		gf->min = gf->rpn;
+	}
 
 	return 0;
 
@@ -140,13 +153,20 @@ int gpu_freq_update(struct gpu_freq *gf)
 
 		buf[len] = '\0';
 
-		s = strstr(buf, "RPNSWREQ:");
-		if (s)
-			sscanf(s, "RPNSWREQ: %dMHz", &gf->request);
+		if (gf->is_byt) {
+			s = strstr(buf, "current");
+			if (s)
+				sscanf(s, "current GPU freq: %d MHz", &gf->current);
+			gf->request = gf->current;
+		} else {
+			s = strstr(buf, "RPNSWREQ:");
+			if (s)
+				sscanf(s, "RPNSWREQ: %dMHz", &gf->request);
 
-		s = strstr(buf, "CAGF:");
-		if (s)
-			sscanf(s, "CAGF: %dMHz", &gf->current);
+			s = strstr(buf, "CAGF:");
+			if (s)
+				sscanf(s, "CAGF: %dMHz", &gf->current);
+		}
 	} else {
 		struct gpu_freq_stat *s = &gf->stat[gf->count++&1];
 		struct gpu_freq_stat *d = &gf->stat[gf->count&1];

@@ -34,6 +34,7 @@ struct gpu_freq {
 	} stat[2];
 	int fd;
 	int count;
+	int is_byt;
 	int min, max;
 	int rpn, rp1, rp0;
 	int request;
