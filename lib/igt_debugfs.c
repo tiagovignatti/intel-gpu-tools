@@ -527,6 +527,8 @@ void igt_pipe_crc_collect_crc(igt_pipe_crc_t *pipe_crc, igt_crc_t *out_crc)
 	igt_pipe_crc_start(pipe_crc);
 	read_one_crc(pipe_crc, out_crc);
 	igt_pipe_crc_stop(pipe_crc);
+
+	igt_assert(!igt_crc_is_null(out_crc));
 }
 
 /*
