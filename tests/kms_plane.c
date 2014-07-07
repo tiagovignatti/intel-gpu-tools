@@ -34,9 +34,59 @@
 #include "igt_kms.h"
 
 typedef struct {
+	float red;
+	float green;
+	float blue;
+} color_t;
+
+typedef struct {
 	int drm_fd;
 	igt_display_t display;
+	igt_pipe_crc_t *pipe_crc;
 } data_t;
+
+static color_t green = { 0.0f, 1.0f, 0.0f };
+
+/*
+ * Common code across all tests, acting on data_t
+ */
+static void test_init(data_t *data, enum pipe pipe)
+{
+	data->pipe_crc = igt_pipe_crc_new(pipe, INTEL_PIPE_CRC_SOURCE_AUTO);
+}
+
+static void test_fini(data_t *data)
+{
+	igt_pipe_crc_free(data->pipe_crc);
+}
+
+static void
+test_grab_crc(data_t *data, igt_output_t *output, color_t *fb_color,
+	      igt_crc_t *crc /* out */)
+{
+	struct igt_fb fb;
+	drmModeModeInfo *mode;
+	igt_plane_t *primary;
+
+	primary = igt_output_get_plane(output, 0);
+
+	mode = igt_output_get_mode(output);
+	igt_create_color_fb(data->drm_fd, mode->hdisplay, mode->vdisplay,
+			    DRM_FORMAT_XRGB8888,
+			    false, /* tiled */
+			    fb_color->red, fb_color->green, fb_color->blue,
+			    &fb);
+	igt_plane_set_fb(primary, &fb);
+
+	igt_display_commit(&data->display);
+
+	igt_pipe_crc_collect_crc(data->pipe_crc, crc);
+
+	igt_plane_set_fb(primary, NULL);
+	igt_display_commit(&data->display);
+
+	igt_remove_fb(data->drm_fd, &fb);
+}
 
 /*
  * Plane position test.
@@ -51,7 +101,6 @@ typedef struct {
 
 typedef struct {
 	data_t *data;
-	igt_pipe_crc_t *pipe_crc;
 	igt_crc_t reference_crc;
 } test_position_t;
 
@@ -83,46 +132,6 @@ create_fb_for_mode__position(data_t *data, drmModeModeInfo *mode,
 	cairo_destroy(cr);
 }
 
-static void
-test_position_init(test_position_t *test, igt_output_t *output, enum pipe pipe)
-{
-	data_t *data = test->data;
-	struct igt_fb green_fb;
-	drmModeModeInfo *mode;
-	igt_plane_t *primary;
-
-	test->pipe_crc = igt_pipe_crc_new(pipe, INTEL_PIPE_CRC_SOURCE_AUTO);
-
-	igt_output_set_pipe(output, pipe);
-	primary = igt_output_get_plane(output, 0);
-
-	mode = igt_output_get_mode(output);
-	igt_create_color_fb(data->drm_fd, mode->hdisplay, mode->vdisplay,
-				DRM_FORMAT_XRGB8888,
-				false, /* tiled */
-				0.0, 1.0, 0.0,
-				&green_fb);
-	igt_plane_set_fb(primary, &green_fb);
-
-	igt_display_commit(&data->display);
-
-	igt_pipe_crc_collect_crc(test->pipe_crc, &test->reference_crc);
-
-	igt_plane_set_fb(primary, NULL);
-	igt_display_commit(&data->display);
-
-	igt_remove_fb(data->drm_fd, &green_fb);
-}
-
-static void
-test_position_fini(test_position_t *test, igt_output_t *output)
-{
-	igt_pipe_crc_free(test->pipe_crc);
-
-	igt_output_set_pipe(output, PIPE_ANY);
-	igt_display_commit(&test->data->display);
-}
-
 enum {
 	TEST_POSITION_FULLY_COVERED = 1 << 0,
 };
@@ -143,7 +152,11 @@ test_plane_position_with_output(data_t *data,
 	igt_info("Testing connector %s using pipe %c plane %d\n",
 		 igt_output_name(output), pipe_name(pipe), plane);
 
-	test_position_init(&test, output, pipe);
+	test_init(data, pipe);
+
+	test_grab_crc(data, output, &green, &test.reference_crc);
+
+	igt_output_set_pipe(output, pipe);
 
 	mode = igt_output_get_mode(output);
 	primary = igt_output_get_plane(output, 0);
@@ -168,7 +181,7 @@ test_plane_position_with_output(data_t *data,
 
 	igt_display_commit(&data->display);
 
-	igt_pipe_crc_collect_crc(test.pipe_crc, &crc);
+	igt_pipe_crc_collect_crc(data->pipe_crc, &crc);
 
 	if (flags & TEST_POSITION_FULLY_COVERED)
 		igt_assert(igt_crc_equal(&test.reference_crc, &crc));
@@ -178,7 +191,10 @@ test_plane_position_with_output(data_t *data,
 	igt_plane_set_fb(primary, NULL);
 	igt_plane_set_fb(sprite, NULL);
 
-	test_position_fini(&test, output);
+	/* reset the constraint on the pipe */
+	igt_output_set_pipe(output, PIPE_ANY);
+
+	test_fini(data);
 }
 
 static void
