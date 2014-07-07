@@ -1025,6 +1025,7 @@ static int igt_primary_plane_commit_legacy(igt_plane_t *primary,
 
 	primary->pipe->enabled = (fb_id != 0);
 	primary->fb_changed = false;
+	primary->position_changed = false;
 
 	return 0;
 }
