@@ -199,9 +199,14 @@ bool igt_crc_is_null(igt_crc_t *crc)
 {
 	int i;
 
-	for (i = 0; i < crc->n_words; i++)
+	for (i = 0; i < crc->n_words; i++) {
+		if (crc->crc[i] == 0xffffffff)
+			igt_warn("Suspicious CRC: it looks like the CRC "
+				 "read back was from a register in a powered "
+				 "down well\n");
 		if (crc->crc[i])
 			return false;
+	}
 
 	return true;
 }
