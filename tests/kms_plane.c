@@ -69,6 +69,7 @@ test_grab_crc(data_t *data, igt_output_t *output, color_t *fb_color,
 	struct igt_fb fb;
 	drmModeModeInfo *mode;
 	igt_plane_t *primary;
+	char *crc_str;
 
 	primary = igt_output_get_plane(output, 0);
 
@@ -88,6 +89,11 @@ test_grab_crc(data_t *data, igt_output_t *output, color_t *fb_color,
 	igt_display_commit(&data->display);
 
 	igt_remove_fb(data->drm_fd, &fb);
+
+	crc_str = igt_crc_to_string(crc);
+	igt_debug("CRC for a (%.02f,%.02f,%.02f) fb: %s\n", fb_color->red,
+		  fb_color->green, fb_color->blue, crc_str);
+	free(crc_str);
 }
 
 /*
