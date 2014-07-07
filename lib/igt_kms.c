@@ -42,6 +42,20 @@
 #include "igt_kms.h"
 #include "igt_aux.h"
 
+/*
+ * There hasn't been a release of libdrm containing these #define's yet, so
+ * copy them here to allow compilation to succeed in the mean time.
+ *
+ * We can drop these #define's and just make i-g-t depend on the proper libdrm
+ * version in the future.
+ */
+#define DRM_CLIENT_CAP_UNIVERSAL_PLANES 2
+#define DRM_PLANE_TYPE_OVERLAY 0
+#define DRM_PLANE_TYPE_PRIMARY 1
+#define DRM_PLANE_TYPE_CURSOR  2
+
+
+
 /**
  * SECTION:igt_kms
  * @short_description: Kernel modesetting support library
