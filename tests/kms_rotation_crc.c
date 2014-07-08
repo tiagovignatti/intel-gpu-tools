@@ -83,10 +83,10 @@ static bool prepare_crtc(data_t *data)
 		igt_pipe_crc_free(data->pipe_crc);
 
 	data->pipe_crc = igt_pipe_crc_new(data->pipe,
-			INTEL_PIPE_CRC_SOURCE_AUTO);
+					  INTEL_PIPE_CRC_SOURCE_AUTO);
 	if (!data->pipe_crc) {
 		igt_info("auto crc not supported on this connector with pipe %i\n",
-				data->pipe);
+			 data->pipe);
 		return false;
 	}
 
@@ -143,10 +143,10 @@ static bool prepare_crtc(data_t *data)
 			h = mode->vdisplay;
 
 			fb_id = igt_create_fb(data->gfx_fd,
-					mode->hdisplay, mode->vdisplay,
-					DRM_FORMAT_XRGB8888,
-					false, /* tiled */
-					&data->fb);
+					      mode->hdisplay, mode->vdisplay,
+					      DRM_FORMAT_XRGB8888,
+					      false, /* tiled */
+					      &data->fb);
 			igt_assert(fb_id);
 			cr = igt_get_cairo_ctx(data->gfx_fd, &data->fb);
 
@@ -218,7 +218,7 @@ static int connector_find_plane(int gfx_fd, uint32_t pipe, uint32_t type)
 	plane_resources = drmModeGetPlaneResources(gfx_fd);
 	if (!plane_resources) {
 		igt_info("drmModeGetPlaneResources failed: %s\n",
-				strerror(errno));
+			 strerror(errno));
 		return 0;
 	}
 
@@ -226,7 +226,7 @@ static int connector_find_plane(int gfx_fd, uint32_t pipe, uint32_t type)
 		ovr = drmModeGetPlane(gfx_fd, plane_resources->planes[i]);
 		if (!ovr) {
 			igt_info("drmModeGetPlane failed: %s\n",
-					strerror(errno));
+				 strerror(errno));
 			continue;
 		}
 
