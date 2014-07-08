@@ -62,7 +62,6 @@ typedef struct {
 	struct igt_fb fb;
 	igt_crc_t ref_crc;
 	igt_pipe_crc_t *pipe_crc;
-	int rotate;
 } data_t;
 
 static void
@@ -208,7 +207,6 @@ static void test_plane_rotation(data_t *data, enum igt_plane plane)
 		data->output = output;
 		for (p = 0; p < igt_display_get_n_pipes(display); p++) {
 			data->pipe = p;
-			data->rotate = DRM_ROTATE_180;
 
 			if (!prepare_crtc(data))
 				continue;
@@ -221,7 +219,7 @@ static void test_plane_rotation(data_t *data, enum igt_plane plane)
 			plane_id = data->plane->drm_plane->plane_id;
 			if (plane_id != 0) {
 				igt_info("Setting rotation property for plane:%d\n", plane_id);
-				ret = set_plane_property(data, plane_id, "rotation", BIT(data->rotate), &crc_output);
+				ret = set_plane_property(data, plane_id, "rotation", BIT(DRM_ROTATE_180), &crc_output);
 				if (ret < 0) {
 					igt_info("Setting rotation failed!");
 					return;
