@@ -58,7 +58,6 @@ typedef struct {
 	igt_display_t display;
 	igt_output_t *output;
 	igt_plane_t *plane;
-	int pipe;
 	struct igt_fb fb;
 	igt_crc_t ref_crc;
 	igt_pipe_crc_t *pipe_crc;
@@ -90,14 +89,14 @@ paint_squares(data_t *data, struct igt_fb *fb, drmModeModeInfo *mode,
 	cairo_destroy(cr);
 }
 
-static bool prepare_crtc(data_t *data)
+static bool prepare_crtc(data_t *data, enum pipe pipe)
 {
 	drmModeModeInfo *mode;
 	igt_display_t *display = &data->display;
 	igt_output_t *output = data->output;
 	int fb_id;
 
-	igt_output_set_pipe(output, data->pipe);
+	igt_output_set_pipe(output, pipe);
 	igt_display_commit(display);
 
 	if (!data->output->valid)
@@ -107,11 +106,10 @@ static bool prepare_crtc(data_t *data)
 	if (data->pipe_crc)
 		igt_pipe_crc_free(data->pipe_crc);
 
-	data->pipe_crc = igt_pipe_crc_new(data->pipe,
-					  INTEL_PIPE_CRC_SOURCE_AUTO);
+	data->pipe_crc = igt_pipe_crc_new(pipe, INTEL_PIPE_CRC_SOURCE_AUTO);
 	if (!data->pipe_crc) {
 		igt_info("auto crc not supported on this connector with pipe %i\n",
-			 data->pipe);
+			 pipe);
 		return false;
 	}
 
@@ -206,9 +204,7 @@ static void test_plane_rotation(data_t *data, enum igt_plane plane)
 	for_each_connected_output(display, output) {
 		data->output = output;
 		for (p = 0; p < igt_display_get_n_pipes(display); p++) {
-			data->pipe = p;
-
-			if (!prepare_crtc(data))
+			if (!prepare_crtc(data, p))
 				continue;
 			sleep(2);
 
