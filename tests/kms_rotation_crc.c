@@ -61,7 +61,7 @@ typedef struct {
 	int type;
 	int pipe;
 	struct igt_fb fb;
-	igt_crc_t ref_crc[2];
+	igt_crc_t ref_crc;
 	igt_pipe_crc_t *pipe_crc;
 	int rotate;
 } data_t;
@@ -97,7 +97,7 @@ static bool prepare_crtc(data_t *data)
 	drmModeModeInfo *mode;
 	igt_display_t *display = &data->display;
 	igt_output_t *output = data->output;
-	igt_plane_t *primary, *sprite;
+	igt_plane_t *plane;
 	int fb_id;
 
 	igt_output_set_pipe(output, data->pipe);
@@ -105,6 +105,19 @@ static bool prepare_crtc(data_t *data)
 
 	if (!data->output->valid)
 		return false;
+
+	switch (data->type) {
+		case DRM_PLANE_TYPE_OVERLAY: /* Sprite */
+			igt_info("Sprite plane\n");
+			plane = igt_output_get_plane(output, IGT_PLANE_2);
+			break;
+		case DRM_PLANE_TYPE_PRIMARY: /* Primary */
+			igt_info("Primary plane\n");
+			plane = igt_output_get_plane(output, IGT_PLANE_PRIMARY);
+			break;
+		default:
+			return false;
+	}
 
 	/* create the pipe_crc object for this pipe */
 	if (data->pipe_crc)
@@ -118,65 +131,27 @@ static bool prepare_crtc(data_t *data)
 		return false;
 	}
 
-	switch (data->type) {
+	mode = igt_output_get_mode(output);
 
-		case DRM_PLANE_TYPE_OVERLAY: /* Sprite */
-			igt_info("Sprite plane\n");
-			mode = igt_output_get_mode(output);
+	fb_id = igt_create_fb(data->gfx_fd,
+			mode->hdisplay, mode->vdisplay,
+			DRM_FORMAT_XRGB8888,
+			false, /* tiled */
+			&data->fb);
+	igt_assert(fb_id);
 
-			fb_id = igt_create_fb(data->gfx_fd,
-					mode->hdisplay, mode->vdisplay,
-					DRM_FORMAT_XRGB8888,
-					false, /* tiled */
-					&data->fb);
-			igt_assert(fb_id);
+	paint_squares(data, &data->fb, mode, DRM_ROTATE_180);
 
-			paint_squares(data, &data->fb, mode, DRM_ROTATE_180);
+	igt_plane_set_fb(plane, &data->fb);
+	igt_display_commit(display);
 
-			sprite = igt_output_get_plane(output, IGT_PLANE_2);
-			igt_plane_set_fb(sprite, &data->fb);
-			igt_display_commit(display);
+	/* Collect reference crc */
+	igt_pipe_crc_collect_crc(data->pipe_crc, &data->ref_crc);
 
-			/* Collect reference crc */
-			igt_pipe_crc_collect_crc(data->pipe_crc, &data->ref_crc[1]);
+	paint_squares(data, &data->fb, mode, DRM_ROTATE_0);
 
-			paint_squares(data, &data->fb, mode, DRM_ROTATE_0);
-
-			sprite = igt_output_get_plane(output, IGT_PLANE_2);
-			igt_plane_set_fb(sprite, &data->fb);
-			igt_display_commit(display);
-
-			break;
-		case DRM_PLANE_TYPE_PRIMARY: /* Primary */
-			igt_info("Primary plane\n");
-			mode = igt_output_get_mode(output);
-
-			fb_id = igt_create_fb(data->gfx_fd,
-					      mode->hdisplay, mode->vdisplay,
-					      DRM_FORMAT_XRGB8888,
-					      false, /* tiled */
-					      &data->fb);
-			igt_assert(fb_id);
-
-			paint_squares(data, &data->fb, mode, DRM_ROTATE_180);
-
-			primary = igt_output_get_plane(output, IGT_PLANE_PRIMARY);
-			igt_plane_set_fb(primary, &data->fb);
-			igt_display_commit(display);
-
-			/* Collect reference crc */
-			igt_pipe_crc_collect_crc(data->pipe_crc, &data->ref_crc[0]);
-
-			paint_squares(data, &data->fb, mode, DRM_ROTATE_0);
-
-			primary = igt_output_get_plane(output, IGT_PLANE_PRIMARY);
-			igt_plane_set_fb(primary, &data->fb);
-			igt_display_commit(display);
-
-			break;
-
-
-	}
+	igt_plane_set_fb(plane, &data->fb);
+	igt_display_commit(display);
 
 	return true;
 }
@@ -332,7 +307,7 @@ static void test_sprite_rotation(data_t *data)
 					return;
 				}
 			}
-			igt_assert(igt_crc_equal(&data->ref_crc[1], &crc_output));
+			igt_assert(igt_crc_equal(&data->ref_crc, &crc_output));
 			sleep(2);
 			valid_tests++;
 			cleanup_crtc(data, output);
@@ -378,7 +353,7 @@ static void test_primary_rotation(data_t *data)
 					return;
 				}
 			}
-			igt_assert(igt_crc_equal(&data->ref_crc[0], &crc_output));
+			igt_assert(igt_crc_equal(&data->ref_crc, &crc_output));
 			sleep(2);
 			valid_tests++;
 			cleanup_crtc(data, output);
