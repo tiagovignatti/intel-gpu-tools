@@ -633,6 +633,14 @@ out:
 	return found;
 }
 
+static bool
+get_plane_property(igt_display_t *display, uint32_t plane_id, const char *name,
+		   uint32_t *prop_id /* out */, uint64_t *value /* out */)
+{
+	return get_property(display, plane_id, DRM_MODE_OBJECT_PLANE,
+			    name, prop_id, value);
+}
+
 /*
  * Walk a plane's property list to determine its type.  If we don't
  * find a type property, then the kernel doesn't support universal
@@ -643,8 +651,8 @@ static int get_drm_plane_type(igt_display_t *display, uint32_t plane_id)
 	uint64_t value;
 	bool has_prop;
 
-	has_prop = get_property(display, plane_id, DRM_MODE_OBJECT_PLANE,
-				"type", NULL /* prop_id */, &value);
+	has_prop = get_plane_property(display, plane_id, "type",
+				      NULL /* prop_id */, &value);
 	if (has_prop)
 		return (int)value;
 
