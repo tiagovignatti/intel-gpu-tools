@@ -31,6 +31,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <fcntl.h>
+#include <math.h>
 
 #include "drmtest.h"
 #include "igt_debugfs.h"
@@ -65,15 +66,39 @@ typedef struct {
 	int rotate;
 } data_t;
 
+static void
+paint_squares(data_t *data, struct igt_fb *fb, drmModeModeInfo *mode,
+	      uint32_t rotation)
+{
+	cairo_t *cr;
+	int w, h;
+
+	w = mode->hdisplay;
+	h = mode->vdisplay;
+
+	cr = igt_get_cairo_ctx(data->gfx_fd, &data->fb);
+
+	if (rotation == DRM_ROTATE_180) {
+		cairo_translate(cr, w, h);
+		cairo_rotate(cr, M_PI);
+	}
+
+	/* Paint with 4 squares of Red, Green, White, Blue Clockwise */
+	igt_paint_color(cr, 0, 0, w/2, h/2, 1.0, 0.0, 0.0);
+	igt_paint_color(cr, (w/2)-1, 0, w/2, h/2, 0.0, 1.0, 0.0);
+	igt_paint_color(cr, 0, (h/2)-1, w/2, h/2, 0.0, 0.0, 1.0);
+	igt_paint_color(cr, (w/2)-1, (h/2)-1, w/2, h/2, 1.0, 1.0, 1.0);
+
+	cairo_destroy(cr);
+}
+
 static bool prepare_crtc(data_t *data)
 {
 	drmModeModeInfo *mode;
 	igt_display_t *display = &data->display;
 	igt_output_t *output = data->output;
-	cairo_t *cr;
 	igt_plane_t *primary, *sprite;
 	int fb_id;
-	int w, h;
 
 	igt_output_set_pipe(output, data->pipe);
 	igt_display_commit(display);
@@ -98,8 +123,6 @@ static bool prepare_crtc(data_t *data)
 		case DRM_PLANE_TYPE_OVERLAY: /* Sprite */
 			igt_info("Sprite plane\n");
 			mode = igt_output_get_mode(output);
-			w = mode->hdisplay;
-			h = mode->vdisplay;
 
 			fb_id = igt_create_fb(data->gfx_fd,
 					mode->hdisplay, mode->vdisplay,
@@ -107,13 +130,9 @@ static bool prepare_crtc(data_t *data)
 					false, /* tiled */
 					&data->fb);
 			igt_assert(fb_id);
-			cr = igt_get_cairo_ctx(data->gfx_fd, &data->fb);
 
-			/* Paint rotated image of 4 colors */
-			igt_paint_color(cr, (w/2)-1, (h/2)-1, w/2, h/2, 1.0, 0.0, 0.0);
-			igt_paint_color(cr, 0, (h/2)-1, w/2, h/2, 0.0, 1.0, 0.0);
-			igt_paint_color(cr, (w/2)-1, 0, w/2, h/2, 0.0, 0.0, 1.0);
-			igt_paint_color(cr, 0, 0, w/2, h/2, 1.0, 1.0, 1.0);
+			paint_squares(data, &data->fb, mode, DRM_ROTATE_180);
+
 			sprite = igt_output_get_plane(output, IGT_PLANE_2);
 			igt_plane_set_fb(sprite, &data->fb);
 			igt_display_commit(display);
@@ -121,12 +140,8 @@ static bool prepare_crtc(data_t *data)
 			/* Collect reference crc */
 			igt_pipe_crc_collect_crc(data->pipe_crc, &data->ref_crc[1]);
 
-			/* Paint with 4 squares of Red, Green, White, Blue Clockwise */
-			igt_paint_color(cr, 0, 0, w/2, h/2, 1.0, 0.0, 0.0);
-			igt_paint_color(cr, (w/2)-1, 0, w/2, h/2, 0.0, 1.0, 0.0);
-			igt_paint_color(cr, 0, (h/2)-1, w/2, h/2, 0.0, 0.0, 1.0);
-			igt_paint_color(cr, (w/2)-1, (h/2)-1, w/2, h/2, 1.0, 1.0, 1.0);
-			cairo_destroy(cr);
+			paint_squares(data, &data->fb, mode, DRM_ROTATE_0);
+
 			sprite = igt_output_get_plane(output, IGT_PLANE_2);
 			igt_plane_set_fb(sprite, &data->fb);
 			igt_display_commit(display);
@@ -135,8 +150,6 @@ static bool prepare_crtc(data_t *data)
 		case DRM_PLANE_TYPE_PRIMARY: /* Primary */
 			igt_info("Primary plane\n");
 			mode = igt_output_get_mode(output);
-			w = mode->hdisplay;
-			h = mode->vdisplay;
 
 			fb_id = igt_create_fb(data->gfx_fd,
 					      mode->hdisplay, mode->vdisplay,
@@ -144,13 +157,9 @@ static bool prepare_crtc(data_t *data)
 					      false, /* tiled */
 					      &data->fb);
 			igt_assert(fb_id);
-			cr = igt_get_cairo_ctx(data->gfx_fd, &data->fb);
 
-			/* Paint rotated image of 4 colors */
-			igt_paint_color(cr, (w/2)-1, (h/2)-1, w/2, h/2, 1.0, 0.2, 0.2);
-			igt_paint_color(cr, 0, (h/2)-1, w/2, h/2, 0.2, 1.0, 0.2);
-			igt_paint_color(cr, (w/2)-1, 0, w/2, h/2, 0.2, 0.2, 1.0);
-			igt_paint_color(cr, 0, 0, w/2, h/2, 0.8, 0.8, 0.8);
+			paint_squares(data, &data->fb, mode, DRM_ROTATE_180);
+
 			primary = igt_output_get_plane(output, IGT_PLANE_PRIMARY);
 			igt_plane_set_fb(primary, &data->fb);
 			igt_display_commit(display);
@@ -158,12 +167,8 @@ static bool prepare_crtc(data_t *data)
 			/* Collect reference crc */
 			igt_pipe_crc_collect_crc(data->pipe_crc, &data->ref_crc[0]);
 
-			/* Paint with 4 squares of Red, Green, White, Blue Clockwise */
-			igt_paint_color(cr, 0, 0, w/2, h/2, 1.0, 0.2, 0.2);
-			igt_paint_color(cr, (w/2)-1, 0, w/2, h/2, 0.2, 1.0, 0.2);
-			igt_paint_color(cr, 0, (h/2)-1, w/2, h/2, 0.2, 0.2, 1.0);
-			igt_paint_color(cr, (w/2)-1, (h/2)-1, w/2, h/2, 0.8, 0.8, 0.8);
-			cairo_destroy(cr);
+			paint_squares(data, &data->fb, mode, DRM_ROTATE_0);
+
 			primary = igt_output_get_plane(output, IGT_PLANE_PRIMARY);
 			igt_plane_set_fb(primary, &data->fb);
 			igt_display_commit(display);
