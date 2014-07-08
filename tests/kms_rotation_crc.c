@@ -65,13 +65,7 @@ typedef struct {
 	int rotate;
 } data_t;
 
-int set_plane_property(data_t *data, int plane_id, const char *prop_name, int
-		val, igt_crc_t *crc_output);
-void test_sprite_rotation(data_t *data);
-void test_primary_rotation(data_t *data);
-bool prepare_crtc(data_t *data);
-
-bool prepare_crtc(data_t *data)
+static bool prepare_crtc(data_t *data)
 {
 	drmModeModeInfo *mode;
 	igt_display_t *display = &data->display;
@@ -249,7 +243,7 @@ static int connector_find_plane(int gfx_fd, uint32_t pipe, uint32_t type)
 	return 0;
 }
 
-int set_plane_property(data_t *data, int plane_id, const char *prop_name, int
+static int set_plane_property(data_t *data, int plane_id, const char *prop_name, int
 		val, igt_crc_t *crc_output)
 {
 	int i = 0, ret = 0;
@@ -313,7 +307,7 @@ static void cleanup_crtc(data_t *data, igt_output_t *output)
 	igt_display_commit(display);
 }
 
-void test_sprite_rotation(data_t *data)
+static void test_sprite_rotation(data_t *data)
 {
 	igt_display_t *display = &data->display;
 	igt_output_t *output;
@@ -355,7 +349,7 @@ void test_sprite_rotation(data_t *data)
 }
 
 
-void test_primary_rotation(data_t *data)
+static void test_primary_rotation(data_t *data)
 {
 	igt_display_t *display = &data->display;
 	igt_output_t *output;
