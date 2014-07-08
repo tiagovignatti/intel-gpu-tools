@@ -599,6 +599,40 @@ static void igt_output_refresh(igt_output_t *output)
 	display->pipes_in_use |= 1 << output->config.pipe;
 }
 
+static bool
+get_property(igt_display_t *display,
+	     uint32_t object_id, uint32_t object_type, const char *name,
+	     uint32_t *prop_id /* out */, uint64_t *value /* out */)
+{
+	drmModeObjectPropertiesPtr proplist;
+	drmModePropertyPtr prop = NULL;
+	bool found = false;
+	int i;
+
+	proplist = drmModeObjectGetProperties(display->drm_fd,
+					      object_id, object_type);
+	for (i = 0; i < proplist->count_props; i++) {
+		drmModeFreeProperty(prop);
+		prop = drmModeGetProperty(display->drm_fd, proplist->props[i]);
+		if (!prop)
+			continue;
+
+		if (strcmp(prop->name, name) == 0) {
+			found = true;
+			if (prop_id)
+				*prop_id = proplist->props[i];
+			if (value)
+				*value = proplist->prop_values[i];
+			goto out;
+		}
+	}
+
+out:
+	drmModeFreeProperty(prop);
+	drmModeFreeObjectProperties(proplist);
+	return found;
+}
+
 /*
  * Walk a plane's property list to determine its type.  If we don't
  * find a type property, then the kernel doesn't support universal
@@ -606,30 +640,15 @@ static void igt_output_refresh(igt_output_t *output)
  */
 static int get_drm_plane_type(igt_display_t *display, uint32_t plane_id)
 {
-	drmModeObjectPropertiesPtr proplist;
-	drmModePropertyPtr prop = NULL;
-	int type = DRM_PLANE_TYPE_OVERLAY;
-	int i;
+	uint64_t value;
+	bool has_prop;
 
-	proplist = drmModeObjectGetProperties(display->drm_fd,
-					      plane_id,
-					      DRM_MODE_OBJECT_PLANE);
-	for (i = 0; i < proplist->count_props; i++) {
-		drmModeFreeProperty(prop);
-		prop = drmModeGetProperty(display->drm_fd, proplist->props[i]);
-		if (!prop)
-			continue;
+	has_prop = get_property(display, plane_id, DRM_MODE_OBJECT_PLANE,
+				"type", NULL /* prop_id */, &value);
+	if (has_prop)
+		return (int)value;
 
-		if (strcmp(prop->name, "type") == 0) {
-			type = proplist->prop_values[i];
-			break;
-		}
-	}
-
-	drmModeFreeProperty(prop);
-	drmModeFreeObjectProperties(proplist);
-
-	return type;
+	return DRM_PLANE_TYPE_OVERLAY;
 }
 
 void igt_display_init(igt_display_t *display, int drm_fd)
