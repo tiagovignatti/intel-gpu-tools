@@ -138,42 +138,6 @@ static bool prepare_crtc(data_t *data, enum pipe pipe)
 	return true;
 }
 
-static int set_plane_property(data_t *data, int plane_id, const char *prop_name, int
-		val, igt_crc_t *crc_output)
-{
-	int i = 0, ret = 0;
-	int drm_fd = data->gfx_fd;
-	uint64_t value;
-	drmModeObjectPropertiesPtr props = NULL;
-
-	value = (uint64_t)val;
-	props = drmModeObjectGetProperties(drm_fd, plane_id, DRM_MODE_OBJECT_PLANE);
-
-	for (i = 0; i < props->count_props; i++) {
-		drmModePropertyPtr prop = drmModeGetProperty(drm_fd, props->props[i]);
-		igt_info("\nProp->name=%s: plane_id:%d\n ", prop->name,	plane_id);
-
-		if (strcmp(prop->name, prop_name) == 0) {
-			ret = drmModeObjectSetProperty(drm_fd, plane_id, DRM_MODE_OBJECT_PLANE,
-					(uint32_t)prop->prop_id, value);
-			if (ret) {
-				igt_info("set_property \"%s\" to %d for plane %d is failed,	err:%d\n", prop_name, val, plane_id, ret);
-				drmModeFreeProperty(prop);
-				drmModeFreeObjectProperties(props);
-				return ret;
-			} else {
-				/* Collect crc after rotation */
-				igt_pipe_crc_collect_crc(data->pipe_crc, crc_output);
-				drmModeFreeProperty(prop);
-				break;
-			}
-		}
-		drmModeFreeProperty(prop);
-	}
-	drmModeFreeObjectProperties(props);
-	return 0;
-}
-
 static void cleanup_crtc(data_t *data, igt_output_t *output)
 {
 	igt_display_t *display = &data->display;
@@ -193,8 +157,6 @@ static void test_plane_rotation(data_t *data, enum igt_plane plane)
 	igt_display_t *display = &data->display;
 	igt_output_t *output;
 	int p;
-	int plane_id;
-	int ret;
 	int valid_tests = 0;
 	igt_crc_t crc_output;
 
@@ -212,16 +174,12 @@ static void test_plane_rotation(data_t *data, enum igt_plane plane)
 
 			igt_require(igt_plane_supports_rotation(data->plane));
 
-			plane_id = data->plane->drm_plane->plane_id;
-			if (plane_id != 0) {
-				igt_info("Setting rotation property for plane:%d\n", plane_id);
-				ret = set_plane_property(data, plane_id, "rotation", BIT(DRM_ROTATE_180), &crc_output);
-				if (ret < 0) {
-					igt_info("Setting rotation failed!");
-					return;
-				}
-			}
+			igt_plane_set_rotation(data->plane, IGT_ROTATION_180);
+			igt_display_commit2(display, COMMIT_UNIVERSAL);
+
+			igt_pipe_crc_collect_crc(data->pipe_crc, &crc_output);
 			igt_assert(igt_crc_equal(&data->ref_crc, &crc_output));
+
 			sleep(2);
 			valid_tests++;
 			cleanup_crtc(data, output);
