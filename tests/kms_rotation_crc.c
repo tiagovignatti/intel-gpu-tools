@@ -57,7 +57,7 @@ typedef struct {
 	int gfx_fd;
 	igt_display_t display;
 	igt_output_t *output;
-	int type;
+	igt_plane_t *plane;
 	int pipe;
 	struct igt_fb fb;
 	igt_crc_t ref_crc;
@@ -96,7 +96,6 @@ static bool prepare_crtc(data_t *data)
 	drmModeModeInfo *mode;
 	igt_display_t *display = &data->display;
 	igt_output_t *output = data->output;
-	igt_plane_t *plane;
 	int fb_id;
 
 	igt_output_set_pipe(output, data->pipe);
@@ -104,19 +103,6 @@ static bool prepare_crtc(data_t *data)
 
 	if (!data->output->valid)
 		return false;
-
-	switch (data->type) {
-		case DRM_PLANE_TYPE_OVERLAY:
-			igt_info("Sprite plane\n");
-			plane = igt_output_get_plane(output, IGT_PLANE_2);
-			break;
-		case DRM_PLANE_TYPE_PRIMARY:
-			igt_info("Primary plane\n");
-			plane = igt_output_get_plane(output, IGT_PLANE_PRIMARY);
-			break;
-		default:
-			return false;
-	}
 
 	/* create the pipe_crc object for this pipe */
 	if (data->pipe_crc)
@@ -141,7 +127,7 @@ static bool prepare_crtc(data_t *data)
 
 	paint_squares(data, &data->fb, mode, DRM_ROTATE_180);
 
-	igt_plane_set_fb(plane, &data->fb);
+	igt_plane_set_fb(data->plane, &data->fb);
 	igt_display_commit(display);
 
 	/* Collect reference crc */
@@ -149,7 +135,7 @@ static bool prepare_crtc(data_t *data)
 
 	paint_squares(data, &data->fb, mode, DRM_ROTATE_0);
 
-	igt_plane_set_fb(plane, &data->fb);
+	igt_plane_set_fb(data->plane, &data->fb);
 	igt_display_commit(display);
 
 	return true;
@@ -194,20 +180,14 @@ static int set_plane_property(data_t *data, int plane_id, const char *prop_name,
 static void cleanup_crtc(data_t *data, igt_output_t *output)
 {
 	igt_display_t *display = &data->display;
-	igt_plane_t *plane = NULL;
 
 	igt_pipe_crc_free(data->pipe_crc);
 	data->pipe_crc = NULL;
 
 	igt_remove_fb(data->gfx_fd, &data->fb);
 
-	if (data->type == DRM_PLANE_TYPE_PRIMARY)
-		plane = igt_output_get_plane(output, IGT_PLANE_PRIMARY);
-	else if (data->type == DRM_PLANE_TYPE_OVERLAY)
-		plane = igt_output_get_plane(output, IGT_PLANE_2);
-
-	if (plane != NULL)
-		igt_plane_set_fb(plane, NULL);
+	if (data->plane != NULL)
+		igt_plane_set_fb(data->plane, NULL);
 
 	igt_output_set_pipe(output, PIPE_ANY);
 	igt_display_commit(display);
@@ -217,7 +197,6 @@ static void test_sprite_rotation(data_t *data)
 {
 	igt_display_t *display = &data->display;
 	igt_output_t *output;
-	igt_plane_t *sprite;
 	igt_crc_t crc_output;
 	int p;
 	int plane_id;
@@ -228,18 +207,17 @@ static void test_sprite_rotation(data_t *data)
 		data->output = output;
 		for (p = 0; p < igt_display_get_n_pipes(display); p++) {
 			data->pipe = p;
-			data->type = 0;
 			data->rotate = DRM_ROTATE_180;
 
 			if (!prepare_crtc(data))
 				continue;
 			sleep(2);
 
-			sprite = igt_output_get_plane(output, IGT_PLANE_2);
+			data->plane = igt_output_get_plane(output, IGT_PLANE_2);
 
-			igt_require(igt_plane_supports_rotation(sprite));
+			igt_require(igt_plane_supports_rotation(data->plane));
 
-			plane_id = sprite->drm_plane->plane_id;
+			plane_id = data->plane->drm_plane->plane_id;
 			if (plane_id != 0) {
 				igt_info("Setting rotation property for plane:%d\n", plane_id);
 				ret = set_plane_property(data, plane_id, "rotation", BIT(data->rotate), &crc_output);
@@ -262,7 +240,6 @@ static void test_primary_rotation(data_t *data)
 {
 	igt_display_t *display = &data->display;
 	igt_output_t *output;
-	igt_plane_t *primary;
 	int p;
 	int plane_id;
 	int ret;
@@ -275,18 +252,17 @@ static void test_primary_rotation(data_t *data)
 		data->output = output;
 		for (p = 0; p < igt_display_get_n_pipes(display); p++) {
 			data->pipe = p;
-			data->type = 1;
 			data->rotate = DRM_ROTATE_180;
 
 			if (!prepare_crtc(data))
 				continue;
 			sleep(2);
 
-			primary = igt_output_get_plane(output, IGT_PLANE_PRIMARY);
+			data->plane = igt_output_get_plane(output, IGT_PLANE_PRIMARY);
 
-			igt_require(igt_plane_supports_rotation(primary));
+			igt_require(igt_plane_supports_rotation(data->plane));
 
-			plane_id = primary->drm_plane->plane_id;
+			plane_id = data->plane->drm_plane->plane_id;
 			if (plane_id != 0) {
 				igt_info("Setting rotation property for plane:%d\n", plane_id);
 				ret = set_plane_property(data, plane_id, "rotation", BIT(data->rotate), &crc_output);
