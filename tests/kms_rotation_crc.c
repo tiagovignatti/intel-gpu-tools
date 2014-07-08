@@ -83,14 +83,10 @@ static bool prepare_crtc(data_t *data, enum pipe pipe)
 {
 	drmModeModeInfo *mode;
 	igt_display_t *display = &data->display;
-	igt_output_t *output = data->output;
 	int fb_id;
 
 	igt_output_set_pipe(output, pipe);
 	igt_display_commit(display);
-
-	if (!data->output->valid)
-		return false;
 
 	/* create the pipe_crc object for this pipe */
 	if (data->pipe_crc)
