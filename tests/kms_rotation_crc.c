@@ -355,6 +355,8 @@ static void test_primary_rotation(data_t *data)
 	int valid_tests = 0;
 	igt_crc_t crc_output;
 
+	igt_require(data->display.has_universal_planes);
+
 	for_each_connected_output(display, output) {
 		data->output = output;
 		for (p = 0; p < igt_display_get_n_pipes(display); p++) {
