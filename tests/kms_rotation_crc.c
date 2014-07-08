@@ -83,10 +83,10 @@ paint_squares(data_t *data, struct igt_fb *fb, drmModeModeInfo *mode,
 	}
 
 	/* Paint with 4 squares of Red, Green, White, Blue Clockwise */
-	igt_paint_color(cr, 0, 0, w/2, h/2, 1.0, 0.0, 0.0);
-	igt_paint_color(cr, (w/2)-1, 0, w/2, h/2, 0.0, 1.0, 0.0);
-	igt_paint_color(cr, 0, (h/2)-1, w/2, h/2, 0.0, 0.0, 1.0);
-	igt_paint_color(cr, (w/2)-1, (h/2)-1, w/2, h/2, 1.0, 1.0, 1.0);
+	igt_paint_color(cr, 0, 0, w / 2, h / 2, 1.0, 0.0, 0.0);
+	igt_paint_color(cr, (w / 2) - 1, 0, w / 2, h / 2, 0.0, 1.0, 0.0);
+	igt_paint_color(cr, 0, (h / 2) - 1, w / 2, h / 2, 0.0, 0.0, 1.0);
+	igt_paint_color(cr, (w / 2) - 1, (h / 2) - 1, w / 2, h / 2, 1.0, 1.0, 1.0);
 
 	cairo_destroy(cr);
 }
