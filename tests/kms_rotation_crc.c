@@ -185,11 +185,9 @@ static void cleanup_crtc(data_t *data, igt_output_t *output)
 	data->pipe_crc = NULL;
 
 	igt_remove_fb(data->gfx_fd, &data->fb);
-
-	if (data->plane != NULL)
-		igt_plane_set_fb(data->plane, NULL);
-
+	igt_plane_set_fb(data->plane, NULL);
 	igt_output_set_pipe(output, PIPE_ANY);
+
 	igt_display_commit(display);
 }
 
