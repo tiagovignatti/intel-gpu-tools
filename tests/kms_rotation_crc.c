@@ -52,7 +52,6 @@
 #define DRM_PLANE_TYPE_OVERLAY 0
 #define DRM_PLANE_TYPE_PRIMARY 1
 #define DRM_PLANE_TYPE_CURSOR  2
-#define DRM_CLIENT_CAP_EXPOSE_PRIMARY_PLANES 2
 
 typedef struct {
 	int gfx_fd;
@@ -154,67 +153,6 @@ static bool prepare_crtc(data_t *data)
 	igt_display_commit(display);
 
 	return true;
-}
-
-static bool check_plane_type(int drm_fd, uint32_t plane_id, uint32_t type)
-{
-	int i = 0;
-	drmModeObjectPropertiesPtr props = NULL;
-
-	props = drmModeObjectGetProperties(drm_fd, plane_id, DRM_MODE_OBJECT_PLANE);
-
-	for (i = 0; i < props->count_props; i++) {
-		drmModePropertyPtr prop = drmModeGetProperty(drm_fd, props->props[i]);
-
-		if (strcmp(prop->name, "type") == 0) {
-			if (props->prop_values[i] == type)
-				return true;
-
-			igt_info("Didn't find the requested type:%u\n", (unsigned int)props->prop_values[i]);
-		}
-	}
-	return false;
-}
-
-static int connector_find_plane(int gfx_fd, uint32_t pipe, uint32_t type)
-{
-	drmModePlaneRes *plane_resources;
-	drmModePlane *ovr;
-	uint32_t id = 0;
-	int i, ret = 0;
-
-	ret = drmSetClientCap(gfx_fd, DRM_CLIENT_CAP_EXPOSE_PRIMARY_PLANES, 1);
-	if (ret < 0) {
-		igt_info("Failed to set client cap:%d\n", ret);
-		return 0;
-	}
-
-	plane_resources = drmModeGetPlaneResources(gfx_fd);
-	if (!plane_resources) {
-		igt_info("drmModeGetPlaneResources failed: %s\n",
-			 strerror(errno));
-		return 0;
-	}
-
-	for (i = 0; i < plane_resources->count_planes; i++) {
-		ovr = drmModeGetPlane(gfx_fd, plane_resources->planes[i]);
-		if (!ovr) {
-			igt_info("drmModeGetPlane failed: %s\n",
-				 strerror(errno));
-			continue;
-		}
-
-		if (ovr->possible_crtcs & (1 << pipe)) {
-			id = ovr->plane_id;
-			if (check_plane_type(gfx_fd, id, type)) {
-				drmModeFreePlane(ovr);
-				return id;
-			}
-		}
-		drmModeFreePlane(ovr);
-	}
-
-	return 0;
 }
 
 static int set_plane_property(data_t *data, int plane_id, const char *prop_name, int
@@ -321,6 +259,7 @@ static void test_primary_rotation(data_t *data)
 {
 	igt_display_t *display = &data->display;
 	igt_output_t *output;
+	igt_plane_t *primary;
 	int p;
 	int plane_id;
 	int ret;
@@ -340,11 +279,8 @@ static void test_primary_rotation(data_t *data)
 				continue;
 			sleep(2);
 
-			/* Find primary plane. Currently igt_plane_t returned from
-			 * igt_output_get_plane has NULL drm_plane which is needed to get
-			 * the plane_id. So finding the primary plane by checking the "type"
-			 * property of the plane */
-			plane_id = connector_find_plane(data->gfx_fd, data->pipe, data->type);
+			primary = igt_output_get_plane(output, IGT_PLANE_PRIMARY);
+			plane_id = primary->drm_plane->plane_id;
 			if (plane_id != 0) {
 				igt_info("Setting rotation property for plane:%d\n", plane_id);
 				ret = set_plane_property(data, plane_id, "rotation", BIT(data->rotate), &crc_output);
