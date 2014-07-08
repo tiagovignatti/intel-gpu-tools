@@ -46,7 +46,6 @@
 typedef struct {
 	int gfx_fd;
 	igt_display_t display;
-	igt_plane_t *plane;
 	struct igt_fb fb;
 	igt_crc_t ref_crc;
 	igt_pipe_crc_t *pipe_crc;
@@ -78,7 +77,8 @@ paint_squares(data_t *data, struct igt_fb *fb, drmModeModeInfo *mode,
 	cairo_destroy(cr);
 }
 
-static bool prepare_crtc(data_t *data, igt_output_t *output, enum pipe pipe)
+static bool prepare_crtc(data_t *data, igt_output_t *output, enum pipe pipe,
+			 igt_plane_t *plane)
 {
 	drmModeModeInfo *mode;
 	igt_display_t *display = &data->display;
@@ -109,7 +109,7 @@ static bool prepare_crtc(data_t *data, igt_output_t *output, enum pipe pipe)
 
 	paint_squares(data, &data->fb, mode, DRM_ROTATE_180);
 
-	igt_plane_set_fb(data->plane, &data->fb);
+	igt_plane_set_fb(plane, &data->fb);
 	igt_display_commit(display);
 
 	/* Collect reference crc */
@@ -117,13 +117,13 @@ static bool prepare_crtc(data_t *data, igt_output_t *output, enum pipe pipe)
 
 	paint_squares(data, &data->fb, mode, DRM_ROTATE_0);
 
-	igt_plane_set_fb(data->plane, &data->fb);
+	igt_plane_set_fb(plane, &data->fb);
 	igt_display_commit(display);
 
 	return true;
 }
 
-static void cleanup_crtc(data_t *data, igt_output_t *output)
+static void cleanup_crtc(data_t *data, igt_output_t *output, igt_plane_t *plane)
 {
 	igt_display_t *display = &data->display;
 
@@ -131,13 +131,13 @@ static void cleanup_crtc(data_t *data, igt_output_t *output)
 	data->pipe_crc = NULL;
 
 	igt_remove_fb(data->gfx_fd, &data->fb);
-	igt_plane_set_fb(data->plane, NULL);
+	igt_plane_set_fb(plane, NULL);
 	igt_output_set_pipe(output, PIPE_ANY);
 
 	igt_display_commit(display);
 }
 
-static void test_plane_rotation(data_t *data, enum igt_plane plane)
+static void test_plane_rotation(data_t *data, enum igt_plane plane_type)
 {
 	igt_display_t *display = &data->display;
 	igt_output_t *output;
@@ -145,26 +145,29 @@ static void test_plane_rotation(data_t *data, enum igt_plane plane)
 	int valid_tests = 0;
 	igt_crc_t crc_output;
 
-	if (plane == IGT_PLANE_PRIMARY)
+	if (plane_type == IGT_PLANE_PRIMARY)
 		igt_require(data->display.has_universal_planes);
 
 	for_each_connected_output(display, output) {
 		for_each_pipe(display, pipe) {
-			if (!prepare_crtc(data, output, pipe))
+			igt_plane_t *plane;
+
+			igt_output_set_pipe(output, pipe);
+
+			plane = igt_output_get_plane(output, plane_type);
+			igt_require(igt_plane_supports_rotation(plane));
+
+			if (!prepare_crtc(data, output, pipe, plane))
 				continue;
 
-			data->plane = igt_output_get_plane(output, plane);
-
-			igt_require(igt_plane_supports_rotation(data->plane));
-
-			igt_plane_set_rotation(data->plane, IGT_ROTATION_180);
+			igt_plane_set_rotation(plane, IGT_ROTATION_180);
 			igt_display_commit2(display, COMMIT_UNIVERSAL);
 
 			igt_pipe_crc_collect_crc(data->pipe_crc, &crc_output);
 			igt_assert(igt_crc_equal(&data->ref_crc, &crc_output));
 
 			valid_tests++;
-			cleanup_crtc(data, output);
+			cleanup_crtc(data, output, plane);
 		}
 	}
 	igt_require_f(valid_tests, "no valid crtc/connector combinations found\n");
