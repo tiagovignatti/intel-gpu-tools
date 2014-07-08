@@ -85,7 +85,6 @@ static bool prepare_crtc(data_t *data, igt_output_t *output, enum pipe pipe,
 	int fb_id;
 
 	igt_output_set_pipe(output, pipe);
-	igt_display_commit(display);
 
 	/* create the pipe_crc object for this pipe */
 	igt_pipe_crc_free(data->pipe_crc);
