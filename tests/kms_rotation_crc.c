@@ -183,12 +183,10 @@ static bool check_plane_type(int drm_fd, uint32_t plane_id, uint32_t type)
 
 	props = drmModeObjectGetProperties(drm_fd, plane_id, DRM_MODE_OBJECT_PLANE);
 
-	for (i = 0; i < props->count_props; i++)
-	{
+	for (i = 0; i < props->count_props; i++) {
 		drmModePropertyPtr prop = drmModeGetProperty(drm_fd, props->props[i]);
 
-		if (strcmp(prop->name, "type") == 0)
-		{
+		if (strcmp(prop->name, "type") == 0) {
 			if (props->prop_values[i] == type) {
 				return true;
 			}
@@ -250,23 +248,19 @@ static int set_plane_property(data_t *data, int plane_id, const char *prop_name,
 	value = (uint64_t)val;
 	props = drmModeObjectGetProperties(drm_fd, plane_id, DRM_MODE_OBJECT_PLANE);
 
-	for (i = 0; i < props->count_props; i++)
-	{
+	for (i = 0; i < props->count_props; i++) {
 		drmModePropertyPtr prop = drmModeGetProperty(drm_fd, props->props[i]);
 		igt_info("\nProp->name=%s: plane_id:%d\n ", prop->name,	plane_id);
 
-		if (strcmp(prop->name, prop_name) == 0)
-		{
+		if (strcmp(prop->name, prop_name) == 0) {
 			ret = drmModeObjectSetProperty(drm_fd, plane_id, DRM_MODE_OBJECT_PLANE,
 					(uint32_t)prop->prop_id, value);
-			if (ret)
-			{
+			if (ret) {
 				igt_info("set_property \"%s\" to %d for plane %d is failed,	err:%d\n", prop_name, val, plane_id, ret);
 				drmModeFreeProperty(prop);
 				drmModeFreeObjectProperties(props);
 				return ret;
-			}
-			else {
+			} else {
 				/* Collect crc after rotation */
 				igt_pipe_crc_collect_crc(data->pipe_crc, crc_output);
 				drmModeFreeProperty(prop);
