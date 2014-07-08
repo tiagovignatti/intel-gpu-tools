@@ -42,16 +42,6 @@
 #define DRM_ROTATE_90  1
 #define DRM_ROTATE_180 2
 #define DRM_ROTATE_270 3
-#define DRM_REFLECT_X  4
-#define DRM_REFLECT_Y  5
-#define DRM_ROTATE_NUM	6
-
-#define BIT(x)	(1 << x)
-
-// This will be part of libdrm later. Adding here temporarily
-#define DRM_PLANE_TYPE_OVERLAY 0
-#define DRM_PLANE_TYPE_PRIMARY 1
-#define DRM_PLANE_TYPE_CURSOR  2
 
 typedef struct {
 	int gfx_fd;
