@@ -46,7 +46,6 @@
 typedef struct {
 	int gfx_fd;
 	igt_display_t display;
-	igt_output_t *output;
 	igt_plane_t *plane;
 	struct igt_fb fb;
 	igt_crc_t ref_crc;
@@ -79,7 +78,7 @@ paint_squares(data_t *data, struct igt_fb *fb, drmModeModeInfo *mode,
 	cairo_destroy(cr);
 }
 
-static bool prepare_crtc(data_t *data, enum pipe pipe)
+static bool prepare_crtc(data_t *data, igt_output_t *output, enum pipe pipe)
 {
 	drmModeModeInfo *mode;
 	igt_display_t *display = &data->display;
@@ -150,9 +149,8 @@ static void test_plane_rotation(data_t *data, enum igt_plane plane)
 		igt_require(data->display.has_universal_planes);
 
 	for_each_connected_output(display, output) {
-		data->output = output;
 		for_each_pipe(display, pipe) {
-			if (!prepare_crtc(data, pipe))
+			if (!prepare_crtc(data, output, pipe))
 				continue;
 			sleep(2);
 
