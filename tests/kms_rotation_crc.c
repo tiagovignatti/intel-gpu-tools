@@ -236,6 +236,9 @@ static void test_sprite_rotation(data_t *data)
 			sleep(2);
 
 			sprite = igt_output_get_plane(output, IGT_PLANE_2);
+
+			igt_require(igt_plane_supports_rotation(sprite));
+
 			plane_id = sprite->drm_plane->plane_id;
 			if (plane_id != 0) {
 				igt_info("Setting rotation property for plane:%d\n", plane_id);
@@ -280,6 +283,9 @@ static void test_primary_rotation(data_t *data)
 			sleep(2);
 
 			primary = igt_output_get_plane(output, IGT_PLANE_PRIMARY);
+
+			igt_require(igt_plane_supports_rotation(primary));
+
 			plane_id = primary->drm_plane->plane_id;
 			if (plane_id != 0) {
 				igt_info("Setting rotation property for plane:%d\n", plane_id);
