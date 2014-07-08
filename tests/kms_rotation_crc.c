@@ -107,11 +107,11 @@ static bool prepare_crtc(data_t *data)
 		return false;
 
 	switch (data->type) {
-		case DRM_PLANE_TYPE_OVERLAY: /* Sprite */
+		case DRM_PLANE_TYPE_OVERLAY:
 			igt_info("Sprite plane\n");
 			plane = igt_output_get_plane(output, IGT_PLANE_2);
 			break;
-		case DRM_PLANE_TYPE_PRIMARY: /* Primary */
+		case DRM_PLANE_TYPE_PRIMARY:
 			igt_info("Primary plane\n");
 			plane = igt_output_get_plane(output, IGT_PLANE_PRIMARY);
 			break;
