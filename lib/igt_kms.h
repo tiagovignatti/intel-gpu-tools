@@ -71,6 +71,14 @@ enum igt_commit_style {
 	/* We'll add atomic here eventually. */
 };
 
+typedef enum {
+	/* this maps to the kernel API */
+	IGT_ROTATION_0   = 1 << 0,
+	IGT_ROTATION_90  = 1 << 1,
+	IGT_ROTATION_180 = 1 << 2,
+	IGT_ROTATION_270 = 1 << 3,
+} igt_rotation_t;
+
 #include "igt_fb.h"
 
 struct kmstest_connector_config {
@@ -155,6 +163,7 @@ typedef struct {
 	unsigned int fb_changed       : 1;
 	unsigned int position_changed : 1;
 	unsigned int panning_changed  : 1;
+	unsigned int rotation_changed : 1;
 	/*
 	 * drm_plane can be NULL for primary and cursor planes (when not
 	 * using the atomic modeset API)
@@ -168,6 +177,7 @@ typedef struct {
 	int crtc_x, crtc_y;
 	/* panning offset within the fb */
 	unsigned int pan_x, pan_y;
+	igt_rotation_t rotation;
 } igt_plane_t;
 
 struct igt_pipe {
@@ -223,6 +233,7 @@ static inline bool igt_plane_supports_rotation(igt_plane_t *plane)
 void igt_plane_set_fb(igt_plane_t *plane, struct igt_fb *fb);
 void igt_plane_set_position(igt_plane_t *plane, int x, int y);
 void igt_plane_set_panning(igt_plane_t *plane, int x, int y);
+void igt_plane_set_rotation(igt_plane_t *plane, igt_rotation_t rotation);
 
 void igt_wait_for_vblank(int drm_fd, enum pipe pipe);
 

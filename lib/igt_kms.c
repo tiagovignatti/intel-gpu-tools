@@ -641,6 +641,16 @@ get_plane_property(igt_display_t *display, uint32_t plane_id, const char *name,
 			    name, prop_id, value);
 }
 
+static void
+igt_plane_set_property(igt_plane_t *plane, uint32_t prop_id, uint64_t value)
+{
+	igt_pipe_t *pipe = plane->pipe;
+	igt_display_t *display = pipe->display;
+
+	drmModeObjectSetProperty(display->drm_fd, plane->drm_plane->plane_id,
+				 DRM_MODE_OBJECT_PLANE, prop_id, value);
+}
+
 /*
  * Walk a plane's property list to determine its type.  If we don't
  * find a type property, then the kernel doesn't support universal
@@ -986,6 +996,10 @@ static int igt_drm_plane_commit(igt_plane_t *plane,
 
 	igt_assert(plane->drm_plane);
 
+	/* it's an error to try an unsupported feature */
+	igt_assert(igt_plane_supports_rotation(plane) ||
+		   !plane->rotation_changed);
+
 	fb_id = igt_plane_get_fb_id(plane);
 	crtc_id = output->config.crtc->crtc_id;
 
@@ -1035,6 +1049,14 @@ static int igt_drm_plane_commit(igt_plane_t *plane,
 
 	plane->fb_changed = false;
 	plane->position_changed = false;
+
+	if (plane->rotation_changed) {
+		igt_plane_set_property(plane, plane->rotation_property,
+				       plane->rotation);
+
+		plane->rotation_changed = false;
+	}
+
 	return 0;
 }
 
@@ -1116,6 +1138,9 @@ static int igt_primary_plane_commit_legacy(igt_plane_t *primary,
 
 	/* Primary planes can't be windowed when using a legacy commit */
 	igt_assert((primary->crtc_x == 0 && primary->crtc_y == 0));
+
+	/* nor rotated */
+	igt_assert(!primary->rotation_changed);
 
 	if (!primary->fb_changed && !primary->position_changed &&
 	    !primary->panning_changed)
@@ -1406,6 +1431,35 @@ void igt_plane_set_panning(igt_plane_t *plane, int x, int y)
 	plane->pan_y = y;
 
 	plane->panning_changed = true;
+}
+
+static const char *rotation_name(igt_rotation_t rotation)
+{
+	switch (rotation) {
+	case IGT_ROTATION_0:
+		return "0°";
+	case IGT_ROTATION_90:
+		return "90°";
+	case IGT_ROTATION_180:
+		return "180°";
+	case IGT_ROTATION_270:
+		return "270°";
+	default:
+		igt_assert(0);
+	}
+}
+
+void igt_plane_set_rotation(igt_plane_t *plane, igt_rotation_t rotation)
+{
+	igt_pipe_t *pipe = plane->pipe;
+	igt_display_t *display = pipe->display;
+
+	LOG(display, "%c.%d: plane_set_rotation(%s)\n", pipe_name(pipe->pipe),
+	    plane->index, rotation_name(rotation));
+
+	plane->rotation = rotation;
+
+	plane->rotation_changed = true;
 }
 
 void igt_wait_for_vblank(int drm_fd, enum pipe pipe)
