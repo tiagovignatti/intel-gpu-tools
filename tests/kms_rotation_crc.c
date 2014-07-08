@@ -78,6 +78,9 @@ static bool prepare_crtc(data_t *data)
 	igt_output_set_pipe(output, data->pipe);
 	igt_display_commit(display);
 
+	if (!data->output->valid)
+		return false;
+
 	/* create the pipe_crc object for this pipe */
 	if (data->pipe_crc)
 		igt_pipe_crc_free(data->pipe_crc);
@@ -87,13 +90,6 @@ static bool prepare_crtc(data_t *data)
 	if (!data->pipe_crc) {
 		igt_info("auto crc not supported on this connector with pipe %i\n",
 			 data->pipe);
-		return false;
-	}
-
-
-	if (!data->output->valid) {
-		igt_output_set_pipe(output, PIPE_ANY);
-		igt_display_commit(display);
 		return false;
 	}
 
