@@ -193,15 +193,18 @@ static void cleanup_crtc(data_t *data, igt_output_t *output)
 	igt_display_commit(display);
 }
 
-static void test_sprite_rotation(data_t *data)
+static void test_plane_rotation(data_t *data, enum igt_plane plane)
 {
 	igt_display_t *display = &data->display;
 	igt_output_t *output;
-	igt_crc_t crc_output;
 	int p;
 	int plane_id;
 	int ret;
 	int valid_tests = 0;
+	igt_crc_t crc_output;
+
+	if (plane == IGT_PLANE_PRIMARY)
+		igt_require(data->display.has_universal_planes);
 
 	for_each_connected_output(display, output) {
 		data->output = output;
@@ -213,52 +216,7 @@ static void test_sprite_rotation(data_t *data)
 				continue;
 			sleep(2);
 
-			data->plane = igt_output_get_plane(output, IGT_PLANE_2);
-
-			igt_require(igt_plane_supports_rotation(data->plane));
-
-			plane_id = data->plane->drm_plane->plane_id;
-			if (plane_id != 0) {
-				igt_info("Setting rotation property for plane:%d\n", plane_id);
-				ret = set_plane_property(data, plane_id, "rotation", BIT(data->rotate), &crc_output);
-				if (ret < 0) {
-					igt_info("Setting rotation failed!");
-					return;
-				}
-			}
-			igt_assert(igt_crc_equal(&data->ref_crc, &crc_output));
-			sleep(2);
-			valid_tests++;
-			cleanup_crtc(data, output);
-		}
-	}
-	igt_require_f(valid_tests, "no valid crtc/connector combinations found\n");
-}
-
-
-static void test_primary_rotation(data_t *data)
-{
-	igt_display_t *display = &data->display;
-	igt_output_t *output;
-	int p;
-	int plane_id;
-	int ret;
-	int valid_tests = 0;
-	igt_crc_t crc_output;
-
-	igt_require(data->display.has_universal_planes);
-
-	for_each_connected_output(display, output) {
-		data->output = output;
-		for (p = 0; p < igt_display_get_n_pipes(display); p++) {
-			data->pipe = p;
-			data->rotate = DRM_ROTATE_180;
-
-			if (!prepare_crtc(data))
-				continue;
-			sleep(2);
-
-			data->plane = igt_output_get_plane(output, IGT_PLANE_PRIMARY);
+			data->plane = igt_output_get_plane(output, plane);
 
 			igt_require(igt_plane_supports_rotation(data->plane));
 
@@ -297,10 +255,10 @@ igt_main
 	}
 
 	igt_subtest_f("primary-rotation")
-		test_primary_rotation(&data);
+		test_plane_rotation(&data, IGT_PLANE_PRIMARY);
 
 	igt_subtest_f("sprite-rotation")
-		test_sprite_rotation(&data);
+		test_plane_rotation(&data, IGT_PLANE_2);
 
 	igt_fixture {
 		igt_display_fini(&data.display);
