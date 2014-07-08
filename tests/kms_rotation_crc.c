@@ -146,7 +146,7 @@ static void test_plane_rotation(data_t *data, enum igt_plane plane)
 {
 	igt_display_t *display = &data->display;
 	igt_output_t *output;
-	int p;
+	enum pipe pipe;
 	int valid_tests = 0;
 	igt_crc_t crc_output;
 
@@ -155,8 +155,8 @@ static void test_plane_rotation(data_t *data, enum igt_plane plane)
 
 	for_each_connected_output(display, output) {
 		data->output = output;
-		for (p = 0; p < igt_display_get_n_pipes(display); p++) {
-			if (!prepare_crtc(data, p))
+		for_each_pipe(display, pipe) {
+			if (!prepare_crtc(data, pipe))
 				continue;
 			sleep(2);
 
