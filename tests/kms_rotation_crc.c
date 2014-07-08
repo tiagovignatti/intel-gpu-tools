@@ -187,9 +187,9 @@ static bool check_plane_type(int drm_fd, uint32_t plane_id, uint32_t type)
 		drmModePropertyPtr prop = drmModeGetProperty(drm_fd, props->props[i]);
 
 		if (strcmp(prop->name, "type") == 0) {
-			if (props->prop_values[i] == type) {
+			if (props->prop_values[i] == type)
 				return true;
-			}
+
 			igt_info("Didn't find the requested type:%u\n", (unsigned int)props->prop_values[i]);
 		}
 	}
@@ -283,12 +283,10 @@ static void cleanup_crtc(data_t *data, igt_output_t *output)
 
 	igt_remove_fb(data->gfx_fd, &data->fb);
 
-	if (data->type == DRM_PLANE_TYPE_PRIMARY) {
+	if (data->type == DRM_PLANE_TYPE_PRIMARY)
 		plane = igt_output_get_plane(output, IGT_PLANE_PRIMARY);
-	}
-	else if (data->type == DRM_PLANE_TYPE_OVERLAY) {
+	else if (data->type == DRM_PLANE_TYPE_OVERLAY)
 		plane = igt_output_get_plane(output, IGT_PLANE_2);
-	}
 
 	if (plane != NULL)
 		igt_plane_set_fb(plane, NULL);
