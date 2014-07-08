@@ -148,8 +148,10 @@ typedef struct {
 	/*< private >*/
 	igt_pipe_t *pipe;
 	int index;
+	/* capabilities */
 	unsigned int is_primary       : 1;
 	unsigned int is_cursor        : 1;
+	/* state tracking */
 	unsigned int fb_changed       : 1;
 	unsigned int position_changed : 1;
 	unsigned int panning_changed  : 1;
@@ -159,6 +161,9 @@ typedef struct {
 	 */
 	drmModePlane *drm_plane;
 	struct igt_fb *fb;
+
+	uint32_t rotation_property;
+
 	/* position within pipe_src_w x pipe_src_h */
 	int crtc_x, crtc_y;
 	/* panning offset within the fb */
@@ -209,6 +214,11 @@ const char *igt_output_name(igt_output_t *output);
 drmModeModeInfo *igt_output_get_mode(igt_output_t *output);
 void igt_output_set_pipe(igt_output_t *output, enum pipe pipe);
 igt_plane_t *igt_output_get_plane(igt_output_t *output, enum igt_plane plane);
+
+static inline bool igt_plane_supports_rotation(igt_plane_t *plane)
+{
+	return plane->rotation_property != 0;
+}
 
 void igt_plane_set_fb(igt_plane_t *plane, struct igt_fb *fb);
 void igt_plane_set_position(igt_plane_t *plane, int x, int y);

@@ -696,6 +696,7 @@ void igt_display_init(igt_display_t *display, int drm_fd)
 		/* add the planes that can be used with that pipe */
 		for (j = 0; j < plane_resources->count_planes; j++) {
 			drmModePlane *drm_plane;
+			uint64_t prop_value;
 
 			drm_plane = drmModeGetPlane(display->drm_fd,
 						    plane_resources->planes[j]);
@@ -736,6 +737,12 @@ void igt_display_init(igt_display_t *display, int drm_fd)
 
 			plane->pipe = pipe;
 			plane->drm_plane = drm_plane;
+
+			get_plane_property(display, drm_plane->plane_id,
+					   "rotation",
+					   &plane->rotation_property,
+					   &prop_value);
+			plane->rotation = (igt_rotation_t)prop_value;
 		}
 
 		if (display->has_universal_planes) {
