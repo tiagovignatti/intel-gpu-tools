@@ -152,7 +152,6 @@ static void test_plane_rotation(data_t *data, enum igt_plane plane)
 		for_each_pipe(display, pipe) {
 			if (!prepare_crtc(data, output, pipe))
 				continue;
-			sleep(2);
 
 			data->plane = igt_output_get_plane(output, plane);
 
@@ -164,7 +163,6 @@ static void test_plane_rotation(data_t *data, enum igt_plane plane)
 			igt_pipe_crc_collect_crc(data->pipe_crc, &crc_output);
 			igt_assert(igt_crc_equal(&data->ref_crc, &crc_output));
 
-			sleep(2);
 			valid_tests++;
 			cleanup_crtc(data, output);
 		}
