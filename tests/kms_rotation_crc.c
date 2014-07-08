@@ -65,7 +65,6 @@ typedef struct {
 	int rotate;
 } data_t;
 
-bool check_plane_type(int drm_fd, uint32_t plane_id, uint32_t type);
 int set_plane_property(data_t *data, int plane_id, const char *prop_name, int
 		val, igt_crc_t *crc_output);
 void test_sprite_rotation(data_t *data);
@@ -187,6 +186,28 @@ bool prepare_crtc(data_t *data)
 	return true;
 }
 
+static bool check_plane_type(int drm_fd, uint32_t plane_id, uint32_t type)
+{
+	int i = 0;
+	drmModeObjectPropertiesPtr props = NULL;
+
+	props = drmModeObjectGetProperties(drm_fd, plane_id, DRM_MODE_OBJECT_PLANE);
+
+	for (i = 0; i < props->count_props; i++)
+	{
+		drmModePropertyPtr prop = drmModeGetProperty(drm_fd, props->props[i]);
+
+		if (strcmp(prop->name, "type") == 0)
+		{
+			if (props->prop_values[i] == type) {
+				return true;
+			}
+			igt_info("Didn't find the requested type:%u\n", (unsigned int)props->prop_values[i]);
+		}
+	}
+	return false;
+}
+
 static int connector_find_plane(int gfx_fd, uint32_t pipe, uint32_t type)
 {
 	drmModePlaneRes *plane_resources;
@@ -226,28 +247,6 @@ static int connector_find_plane(int gfx_fd, uint32_t pipe, uint32_t type)
 	}
 
 	return 0;
-}
-
-bool check_plane_type(int drm_fd, uint32_t plane_id, uint32_t type)
-{
-	int i = 0;
-	drmModeObjectPropertiesPtr props = NULL;
-
-	props = drmModeObjectGetProperties(drm_fd, plane_id, DRM_MODE_OBJECT_PLANE);
-
-	for (i = 0; i < props->count_props; i++)
-	{
-		drmModePropertyPtr prop = drmModeGetProperty(drm_fd, props->props[i]);
-
-		if (strcmp(prop->name, "type") == 0)
-		{
-			if (props->prop_values[i] == type) {
-				return true;
-			}
-			igt_info("Didn't find the requested type:%u\n", (unsigned int)props->prop_values[i]);
-		}
-	}
-	return false;
 }
 
 int set_plane_property(data_t *data, int plane_id, const char *prop_name, int
