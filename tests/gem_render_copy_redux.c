@@ -74,7 +74,7 @@ typedef struct {
 
 static void data_init(data_t *data)
 {
-	data->fd = drm_open_any_render();
+	data->fd = drm_open_any();
 	data->devid = intel_get_drm_devid(data->fd);
 
 	data->bufmgr = drm_intel_bufmgr_gem_init(data->fd, 4096);
