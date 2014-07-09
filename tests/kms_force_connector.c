@@ -93,6 +93,13 @@ main (int argc, char **argv)
 
 	drmModeFreeConnector(temp);
 
+	/* remove edid */
+	kmstest_force_edid(drm_fd, connector, NULL, 0);
+	temp = drmModeGetConnector(drm_fd, connector->connector_id);
+	/* the connector should now have the 5 default modes */
+	igt_assert(temp->count_modes == 5);
+	drmModeFreeConnector(temp);
+
 	/* force the connector off */
 	kmstest_force_connector(drm_fd, connector, FORCE_CONNECTOR_OFF);
 	temp = drmModeGetConnector(drm_fd, connector->connector_id);

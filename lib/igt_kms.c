@@ -476,6 +476,8 @@ void kmstest_force_connector(int drm_fd, drmModeConnector *connector, enum
  *
  * Set the EDID data on @connector to @edid. See #generic_edid and
  * #kmstest_generic_edid for a set of generic EDID data blocks.
+ *
+ * If @length is zero, the forced EDID will be removed.
  */
 void kmstest_force_edid(int drm_fd, drmModeConnector *connector,
 			const unsigned char *edid, size_t length)
@@ -491,7 +493,10 @@ void kmstest_force_edid(int drm_fd, drmModeConnector *connector,
 
 	igt_assert(debugfs_fd != -1);
 
-	ret = write(debugfs_fd, edid, length);
+	if (length == 0)
+		ret = write(debugfs_fd, "reset", 5);
+	else
+		ret = write(debugfs_fd, edid, length);
 	close(debugfs_fd);
 
 	igt_assert(ret != -1);
