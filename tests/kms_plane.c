@@ -63,13 +63,15 @@ static void test_fini(data_t *data)
 }
 
 static void
-test_grab_crc(data_t *data, igt_output_t *output, color_t *fb_color,
-	      igt_crc_t *crc /* out */)
+test_grab_crc(data_t *data, igt_output_t *output, enum pipe pipe,
+	      color_t *fb_color, igt_crc_t *crc /* out */)
 {
 	struct igt_fb fb;
 	drmModeModeInfo *mode;
 	igt_plane_t *primary;
 	char *crc_str;
+
+	igt_output_set_pipe(output, pipe);
 
 	primary = igt_output_get_plane(output, 0);
 
@@ -162,7 +164,7 @@ test_plane_position_with_output(data_t *data,
 
 	test_init(data, pipe);
 
-	test_grab_crc(data, output, &green, &test.reference_crc);
+	test_grab_crc(data, output, pipe, &green, &test.reference_crc);
 
 	igt_output_set_pipe(output, pipe);
 
@@ -287,8 +289,8 @@ test_plane_panning_with_output(data_t *data,
 
 	test_init(data, pipe);
 
-	test_grab_crc(data, output, &red, &test.red_crc);
-	test_grab_crc(data, output, &blue, &test.blue_crc);
+	test_grab_crc(data, output, pipe, &red, &test.red_crc);
+	test_grab_crc(data, output, pipe, &blue, &test.blue_crc);
 
 	igt_output_set_pipe(output, pipe);
 
