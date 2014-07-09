@@ -70,7 +70,8 @@ else
     kms_fence_pin_leak \
     kms_mmio_vs_cs_flip \
     kms_render \
-    kms_universal_plane
+    kms_universal_plane \
+    kms_rotation_crc
     IGT_LOCAL_CFLAGS += -DANDROID_HAS_CAIRO=0
 endif
 
