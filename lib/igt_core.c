@@ -588,14 +588,14 @@ void __igt_skip_check(const char *file, const int line,
 		va_end(args);
 
 		igt_skip("Test requirement not met in function %s, file %s:%i:\n"
-			 "Last errno: %i, %s\n"
-			 "Test requirement: (%s)\n%s",
-			 func, file, line, err, strerror(err), check, buf);
+			 "Test requirement: (%s)\n%s"
+			 "Last errno: %i, %s\n",
+			 func, file, line, check, buf, err, strerror(err));
 	} else {
 		igt_skip("Test requirement not met in function %s, file %s:%i:\n"
-			 "Last errno: %i, %s\n"
-			 "Test requirement: (%s)\n",
-			 func, file, line, err, strerror(err), check);
+			 "Test requirement: (%s)\n"
+			 "Last errno: %i, %s\n",
+			 func, file, line, check, err, strerror(err));
 	}
 }
 
