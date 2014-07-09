@@ -575,6 +575,10 @@ void __igt_skip_check(const char *file, const int line,
 {
 	va_list args;
 	int err = errno;
+	char *err_str = NULL;
+
+	if (err)
+		asprintf(&err_str, "Last errno: %i, %s\n", err, strerror(err));
 
 	if (f) {
 		static char *buf;
@@ -589,13 +593,13 @@ void __igt_skip_check(const char *file, const int line,
 
 		igt_skip("Test requirement not met in function %s, file %s:%i:\n"
 			 "Test requirement: (%s)\n%s"
-			 "Last errno: %i, %s\n",
-			 func, file, line, check, buf, err, strerror(err));
+			 "%s",
+			 func, file, line, check, buf, err_str ?: "");
 	} else {
 		igt_skip("Test requirement not met in function %s, file %s:%i:\n"
 			 "Test requirement: (%s)\n"
-			 "Last errno: %i, %s\n",
-			 func, file, line, check, err, strerror(err));
+			 "%s",
+			 func, file, line, check, err_str ?: "");
 	}
 }
 
