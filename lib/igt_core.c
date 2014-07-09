@@ -678,11 +678,17 @@ void __igt_fail_assert(int exitcode, const char *file,
 {
 	va_list args;
 	int err = errno;
+	char *err_str = NULL;
+
+	if (err)
+		asprintf(&err_str, "Last errno: %i, %s\n", err, strerror(err));
 
 	printf("Test assertion failure function %s, file %s:%i:\n"
-	       "Last errno: %i, %s\n"
-	       "Failed assertion: %s\n",
-	       func, file, line, err, strerror(err), assertion);
+	       "Failed assertion: %s\n"
+	       "%s",
+	       func, file, line, assertion, err_str ?: "");
+
+	free(err_str);
 
 	if (f) {
 		va_start(args, f);
