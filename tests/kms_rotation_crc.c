@@ -86,6 +86,7 @@ static bool prepare_crtc(data_t *data, igt_output_t *output, enum pipe pipe,
 
 	igt_output_set_pipe(output, pipe);
 
+
 	/* create the pipe_crc object for this pipe */
 	igt_pipe_crc_free(data->pipe_crc);
 	data->pipe_crc = igt_pipe_crc_new(pipe, INTEL_PIPE_CRC_SOURCE_AUTO);
@@ -107,6 +108,18 @@ static bool prepare_crtc(data_t *data, igt_output_t *output, enum pipe pipe,
 	/* Step 1: create a reference CRC for a software-rotated fb */
 
 	paint_squares(data, &data->fb, mode, DRM_ROTATE_180);
+
+	/*
+	 * XXX: We always set the primary plane to actually enable the pipe as
+	 * there's no way (that works) to light up a pipe with only a sprite
+	 * plane enabled at the moment.
+	 */
+	if (!plane->is_primary) {
+		igt_plane_t *primary;
+
+		primary = igt_output_get_plane(output, IGT_PLANE_PRIMARY);
+		igt_plane_set_fb(primary, &data->fb);
+	}
 
 	igt_plane_set_fb(plane, &data->fb);
 	igt_display_commit(display);
@@ -133,6 +146,15 @@ static void cleanup_crtc(data_t *data, igt_output_t *output, igt_plane_t *plane)
 	data->pipe_crc = NULL;
 
 	igt_remove_fb(data->gfx_fd, &data->fb);
+
+	/* XXX: see the note in prepare_crtc() */
+	if (!plane->is_primary) {
+		igt_plane_t *primary;
+
+		primary = igt_output_get_plane(output, IGT_PLANE_PRIMARY);
+		igt_plane_set_fb(primary, NULL);
+	}
+
 	igt_plane_set_fb(plane, NULL);
 	igt_output_set_pipe(output, PIPE_ANY);
 
