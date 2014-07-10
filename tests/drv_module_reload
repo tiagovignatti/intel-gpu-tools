@@ -33,10 +33,9 @@ rmmod drm &> /dev/null
 
 if lsmod | grep i915 &> /dev/null ; then
 	echo WARNING: i915.ko still loaded!
-	exitcode=1
+	exit 1
 else
 	echo module successfully unloaded
-	exitcode=0
 fi
 
 modprobe i915
@@ -47,4 +46,4 @@ modprobe snd_hda_intel
 # try to run something
 $SOURCE_DIR/gem_exec_nop > /dev/null && echo "module successfully loaded again"
 
-exit $exitcode
+exit 0
