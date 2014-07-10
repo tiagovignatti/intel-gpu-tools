@@ -29,11 +29,6 @@
 #include "igt_kms.h"
 #include "igt_core.h"
 
-#define DRM_ROTATE_0   0
-#define DRM_ROTATE_90  1
-#define DRM_ROTATE_180 2
-#define DRM_ROTATE_270 3
-
 typedef struct {
 	int gfx_fd;
 	igt_display_t display;
@@ -44,7 +39,7 @@ typedef struct {
 
 static void
 paint_squares(data_t *data, struct igt_fb *fb, drmModeModeInfo *mode,
-	      uint32_t rotation)
+	      igt_rotation_t rotation)
 {
 	cairo_t *cr;
 	int w, h;
@@ -54,7 +49,7 @@ paint_squares(data_t *data, struct igt_fb *fb, drmModeModeInfo *mode,
 
 	cr = igt_get_cairo_ctx(data->gfx_fd, &data->fb);
 
-	if (rotation == DRM_ROTATE_180) {
+	if (rotation == IGT_ROTATION_180) {
 		cairo_translate(cr, w, h);
 		cairo_rotate(cr, M_PI);
 	}
@@ -98,7 +93,7 @@ static bool prepare_crtc(data_t *data, igt_output_t *output, enum pipe pipe,
 
 	/* Step 1: create a reference CRC for a software-rotated fb */
 
-	paint_squares(data, &data->fb, mode, DRM_ROTATE_180);
+	paint_squares(data, &data->fb, mode, IGT_ROTATION_180);
 
 	/*
 	 * XXX: We always set the primary plane to actually enable the pipe as
@@ -121,7 +116,7 @@ static bool prepare_crtc(data_t *data, igt_output_t *output, enum pipe pipe,
 	 * Step 2: prepare the plane with an non-rotated fb let the hw
 	 * rotate it.
 	 */
-	paint_squares(data, &data->fb, mode, DRM_ROTATE_0);
+	paint_squares(data, &data->fb, mode, IGT_ROTATION_0);
 
 	igt_plane_set_fb(plane, &data->fb);
 	igt_display_commit(display);
