@@ -22,15 +22,6 @@
  *
  */
 
-#include <errno.h>
-#include <limits.h>
-#include <stdbool.h>
-#include <stdio.h>
-#include <string.h>
-#include <sys/ioctl.h>
-#include <stdint.h>
-#include <stddef.h>
-#include <fcntl.h>
 #include <math.h>
 
 #include "drmtest.h"
