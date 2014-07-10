@@ -62,9 +62,8 @@ functional_test_init(functional_test_t *test, igt_output_t *output, enum pipe pi
 	drmModeModeInfo *mode;
 
 	test->pipe_crc = igt_pipe_crc_new(pipe, INTEL_PIPE_CRC_SOURCE_AUTO);
-	if (!test->pipe_crc)
-		igt_skip("auto crc not supported on this connector with pipe %i\n",
-		       pipe);
+	igt_skip_on_f(!test->pipe_crc,
+		      "auto crc not supported on this connector with pipe %i\n", pipe);
 
 
 	igt_output_set_pipe(output, pipe);
@@ -136,8 +135,7 @@ functional_test_pipe(data_t *data, enum pipe pipe, igt_output_t *output)
 	igt_assert(data->display.has_universal_planes);
 	igt_skip_on(pipe >= display->n_pipes);
 
-	fprintf(stdout, "Testing connector %s using pipe %c\n",
-		igt_output_name(output), pipe_name(pipe));
+	igt_info("Testing connector %s using pipe %c\n", igt_output_name(output), pipe_name(pipe));
 
 	functional_test_init(&test, output, pipe);
 

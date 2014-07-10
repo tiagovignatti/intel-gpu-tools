@@ -45,10 +45,7 @@ static unsigned int readit(const char *path)
 
 	FILE *file;
 	file = fopen(path, "r");
-	if (file == NULL) {
-		fprintf(stderr, "Couldn't open %s (%d)\n", path, errno);
-		abort();
-	}
+	igt_assert(file);
 	scanned = fscanf(file, "%u", &ret);
 	igt_assert(scanned == 1);
 
@@ -113,7 +110,7 @@ static void rc6_residency_counter(int value[],const char *name_of_rc6_residency[
 
 		if( value [flag + 3] == 0){
 			tmp_support = 0;
-			printf("This machine doesn't support %s\n",name_of_rc6_residency[flag]);
+			igt_info("This machine doesn't support %s\n", name_of_rc6_residency[flag]);
 		}
 		else
 			tmp_support = 1;
@@ -125,12 +122,12 @@ static void rc6_residency_counter(int value[],const char *name_of_rc6_residency[
 		flag_support = flag_support << 1;
 	}
 
-	printf("The residency counter: %f \n", counter_result);
+	igt_info("The residency counter: %f \n", counter_result);
 
 	igt_skip_on_f(flag_support == 0 , "This machine didn't entry any RC6 state.\n");
 	igt_assert_f((flag_counter != 0) && (counter_result <=1) , "Sysfs RC6 residency counter is inaccurate.\n");
 
-	printf("This machine entry %s state.\n", name_of_rc6_residency[(flag_counter / 2) - 1]);
+	igt_info("This machine entry %s state.\n", name_of_rc6_residency[(flag_counter / 2) - 1]);
 }
 
 static void rc6_residency_check(int value[])
