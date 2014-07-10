@@ -104,14 +104,19 @@ static bool prepare_crtc(data_t *data, igt_output_t *output, enum pipe pipe,
 			&data->fb);
 	igt_assert(fb_id);
 
+	/* Step 1: create a reference CRC for a software-rotated fb */
+
 	paint_squares(data, &data->fb, mode, DRM_ROTATE_180);
 
 	igt_plane_set_fb(plane, &data->fb);
 	igt_display_commit(display);
 
-	/* Collect reference crc */
 	igt_pipe_crc_collect_crc(data->pipe_crc, &data->ref_crc);
 
+	/*
+	 * Step 2: prepare the plane with an non-rotated fb let the hw
+	 * rotate it.
+	 */
 	paint_squares(data, &data->fb, mode, DRM_ROTATE_0);
 
 	igt_plane_set_fb(plane, &data->fb);
