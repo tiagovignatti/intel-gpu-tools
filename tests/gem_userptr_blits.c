@@ -542,6 +542,55 @@ static int test_invalid_mapping(int fd)
 	return 0;
 }
 
+static void test_forked_access(int fd)
+{
+	uint32_t handle1, handle2;
+	void *ptr1, *ptr2;
+	int ret;
+
+	ret = posix_memalign(&ptr1, PAGE_SIZE, PAGE_SIZE);
+	igt_assert(ret == 0);
+
+	ret = madvise(ptr1, PAGE_SIZE, MADV_DONTFORK);
+	igt_assert(ret == 0);
+
+	ret = gem_userptr(fd, ptr1, PAGE_SIZE, 0, &handle1);
+	igt_assert(ret == 0);
+
+	ret = posix_memalign(&ptr2, PAGE_SIZE, PAGE_SIZE);
+	igt_assert(ret == 0);
+
+	ret = madvise(ptr2, PAGE_SIZE, MADV_DONTFORK);
+	igt_assert(ret == 0);
+
+	ret = gem_userptr(fd, ptr2, PAGE_SIZE, 0, &handle2);
+	igt_assert(ret == 0);
+
+	memset(ptr1, 0x1, PAGE_SIZE);
+	memset(ptr2, 0x2, PAGE_SIZE);
+
+	igt_fork(child, 1) {
+		copy(fd, handle1, handle2, 0);
+	}
+	igt_waitchildren();
+
+	gem_userptr_sync(fd, handle1);
+	gem_userptr_sync(fd, handle2);
+
+	gem_close(fd, handle1);
+	gem_close(fd, handle2);
+
+	igt_assert(memcmp(ptr1, ptr2, PAGE_SIZE) == 0);
+
+	ret = madvise(ptr1, PAGE_SIZE, MADV_DOFORK);
+	igt_assert(ret == 0);
+	free(ptr1);
+
+	ret = madvise(ptr2, PAGE_SIZE, MADV_DOFORK);
+	igt_assert(ret == 0);
+	free(ptr2);
+}
+
 static int test_forbidden_ops(int fd)
 {
 	void *ptr;
@@ -1107,6 +1156,9 @@ int main(int argc, char **argv)
 
 	igt_subtest("invalid-mapping")
 		test_invalid_mapping(fd);
+
+	igt_subtest("forked-access")
+		test_forked_access(fd);
 
 	igt_subtest("forbidden-operations")
 		test_forbidden_ops(fd);
