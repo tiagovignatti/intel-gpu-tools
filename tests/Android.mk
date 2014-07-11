@@ -71,7 +71,8 @@ else
     kms_mmio_vs_cs_flip \
     kms_render \
     kms_universal_plane \
-    kms_rotation_crc
+    kms_rotation_crc \
+    kms_force_connector
     IGT_LOCAL_CFLAGS += -DANDROID_HAS_CAIRO=0
 endif
 
