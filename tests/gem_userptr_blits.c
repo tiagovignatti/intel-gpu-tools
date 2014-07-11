@@ -321,17 +321,32 @@ create_userptr(int fd, uint32_t val, uint32_t *ptr)
 }
 
 static void **handle_ptr_map;
-static unsigned int num_handle_ptr_map;
+static int *handle_size_map;
+static unsigned int num_handle_map;
 
-static void add_handle_ptr(uint32_t handle, void *ptr)
+static void reset_handle_ptr(void)
 {
-	if (handle >= num_handle_ptr_map) {
+	free(handle_ptr_map);
+	free(handle_size_map);
+	num_handle_map = 0;
+}
+
+static void add_handle_ptr(uint32_t handle, void *ptr, int size)
+{
+	if (handle >= num_handle_map) {
 		handle_ptr_map = realloc(handle_ptr_map,
 					 (handle + 1000) * sizeof(void*));
-		num_handle_ptr_map = handle + 1000;
+		igt_assert(handle_ptr_map);
+
+		handle_size_map = realloc(handle_size_map,
+					 (handle + 1000) * sizeof(int));
+		igt_assert(handle_size_map);
+
+		num_handle_map = handle + 1000;
 	}
 
 	handle_ptr_map[handle] = ptr;
+	handle_size_map[handle] = size;
 }
 
 static void *get_handle_ptr(uint32_t handle)
@@ -341,10 +356,10 @@ static void *get_handle_ptr(uint32_t handle)
 
 static void free_handle_ptr(uint32_t handle)
 {
-	igt_assert(handle < num_handle_ptr_map);
+	igt_assert(handle < num_handle_map);
 	igt_assert(handle_ptr_map[handle]);
 
-	free(handle_ptr_map[handle]);
+	munmap(handle_ptr_map[handle], handle_size_map[handle]);
 	handle_ptr_map[handle] = NULL;
 }
 
@@ -354,12 +369,15 @@ static uint32_t create_userptr_bo(int fd, int size)
 	uint32_t handle;
 	int ret;
 
-	ret = posix_memalign(&ptr, PAGE_SIZE, size);
-	igt_assert(ret == 0);
+	ptr = mmap(NULL, size,
+		   PROT_READ | PROT_WRITE,
+		   MAP_ANONYMOUS | MAP_SHARED,
+		   -1, 0);
+	igt_assert(ptr != MAP_FAILED);
 
 	ret = gem_userptr(fd, (uint32_t *)ptr, size, 0, &handle);
 	igt_assert(ret == 0);
-	add_handle_ptr(handle, ptr);
+	add_handle_ptr(handle, ptr, size);
 
 	return handle;
 }
@@ -641,6 +659,7 @@ static void sigbus(int sig, siginfo_t *info, void *param)
 				MAP_ANONYMOUS | MAP_PRIVATE | MAP_FIXED, -1, 0);
 		if ((unsigned long)addr == ptr) {
 			memset(addr, counter, sizeof(linear));
+			munmap(addr, sizeof(linear));
 			return;
 		}
 	}
@@ -707,6 +726,8 @@ static int test_dmabuf(void)
 	gem_close(fd2, handle_import1);
 	close(fd1);
 	close(fd2);
+
+	reset_handle_ptr();
 
 	return 0;
 }
