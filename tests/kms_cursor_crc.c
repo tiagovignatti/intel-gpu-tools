@@ -303,7 +303,7 @@ static void run_test(data_t *data, void (*testfunc)(data_t *), int cursor_w, int
 
 	for_each_connected_output(display, output) {
 		data->output = output;
-		for (p = 0; p < igt_display_get_n_pipes(display); p++) {
+		for_each_pipe(display, p) {
 			data->pipe = p;
 
 			if (!prepare_crtc(data, output, cursor_w, cursor_h))

@@ -74,3 +74,13 @@ expression list[n] Ep;
 @@
 -abort();
 +igt_fail(1);
+
+@@
+iterator name for_each_pipe;
+igt_display_t *display;
+expression pipe;
+@@
+- for (pipe = 0; pipe < igt_display_get_n_pipes(display); pipe++) {
++ for_each_pipe (display, pipe) {
+...
+}

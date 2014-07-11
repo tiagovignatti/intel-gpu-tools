@@ -196,7 +196,7 @@ static void run_test(data_t *data)
 	enum pipe p;
 
 	for_each_connected_output(display, output) {
-		for (p = 0; p < igt_display_get_n_pipes(display); p++) {
+		for_each_pipe(display, p) {
 			if (run_single_test(data, p, output))
 				return; /* one time ought to be enough */
 		}

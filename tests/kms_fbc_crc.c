@@ -454,7 +454,7 @@ static void run_test(data_t *data, enum test_mode mode)
 	reset_display(data);
 
 	for_each_connected_output(display, data->output) {
-		for (data->pipe = 0; data->pipe < igt_display_get_n_pipes(display); data->pipe++) {
+		for_each_pipe(display, data->pipe) {
 			if (!prepare_crtc(data))
 				continue;
 
