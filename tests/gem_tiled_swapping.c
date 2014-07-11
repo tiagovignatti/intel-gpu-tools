@@ -107,10 +107,8 @@ check_bo(int fd, uint32_t handle)
 
 	/* Check the target bo's contents. */
 	data = gem_mmap(fd, handle, LINEAR_DWORDS, PROT_READ | PROT_WRITE);
-	for (j = 0; j < WIDTH*HEIGHT; j++)
-		igt_assert_f(data[j] == j,
-			     "mismatch at %i: %i\n",
-			     j, data[j]);
+	j = rand() % (WIDTH * HEIGHT);
+	igt_assert_f(data[j] == j, "mismatch at %i: %i\n", j, data[j]);
 	munmap(data, LINEAR_DWORDS);
 }
 
