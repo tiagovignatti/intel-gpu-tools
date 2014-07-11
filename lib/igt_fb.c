@@ -521,7 +521,9 @@ static cairo_format_t drm_format_to_cairo(uint32_t drm_format)
 static void destroy_cairo_surface__gtt(void *arg)
 {
 	struct igt_fb *fb = arg;
+
 	munmap(cairo_image_surface_get_data(fb->cairo_surface), fb->size);
+	fb->cairo_surface = NULL;
 }
 
 static void create_cairo_surface__gtt(int fd, struct igt_fb *fb)
