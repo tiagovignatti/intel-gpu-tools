@@ -925,32 +925,52 @@ bool __igt_fork(void)
  */
 void igt_waitchildren(void)
 {
+	int err = 0;
+	int count;
+
 	assert(!test_child);
 
-	for (int nc = 0; nc < num_test_children; nc++) {
+	count = 0;
+	while (count < num_test_children) {
 		int status = -1;
-		while (waitpid(test_children[nc], &status, 0) == -1 &&
-		       errno == EINTR)
-			;
+		pid_t pid;
+		int c;
 
-		if (status != 0) {
+		pid = wait(&status);
+		if (pid == -1)
+			continue;
+
+		for (c = 0; c < num_test_children; c++)
+			if (pid == test_children[c])
+				break;
+		if (c == num_test_children)
+			continue;
+
+		if (err == 0 && status != 0) {
 			if (WIFEXITED(status)) {
 				printf("child %i failed with exit status %i\n",
-				       nc, WEXITSTATUS(status));
-				igt_fail(WEXITSTATUS(status));
+				       c, WEXITSTATUS(status));
+				err = WEXITSTATUS(status);
 			} else if (WIFSIGNALED(status)) {
 				printf("child %i died with signal %i, %s\n",
-				       nc, WTERMSIG(status),
+				       c, WTERMSIG(status),
 				       strsignal(WTERMSIG(status)));
-				igt_fail(99);
+				err = 128 + WTERMSIG(status);
 			} else {
-				printf("Unhandled failure in child %i\n", nc);
-				abort();
+				printf("Unhandled failure [%d] in child %i\n", status, c);
+				err = 256;
 			}
+
+			for (c = 0; c < num_test_children; c++)
+				kill(test_children[c], SIGKILL);
 		}
+
+		count++;
 	}
 
 	num_test_children = 0;
+	if (err)
+		igt_fail(err);
 }
 
 /* exit handler code */
