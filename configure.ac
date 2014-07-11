@@ -82,19 +82,17 @@ AC_SUBST(ASSEMBLER_WARN_CFLAGS)
 
 PKG_CHECK_MODULES(DRM, [libdrm_intel >= 2.4.52 libdrm])
 PKG_CHECK_MODULES(PCIACCESS, [pciaccess >= 0.10])
-PKG_CHECK_MODULES(OVERLAY_XVLIB, [xv x11 xext], enable_overlay_xvlib=yes, enable_overlay_xvlib=no)
-PKG_CHECK_MODULES(OVERLAY_XLIB, [cairo-xlib], enable_overlay_xlib=yes, enable_overlay_xlib=no)
+PKG_CHECK_MODULES(OVERLAY_XVLIB, [xv x11 xext dri2proto >= 2.6], enable_overlay_xvlib=yes, enable_overlay_xvlib=no)
+PKG_CHECK_MODULES(OVERLAY_XLIB, [cairo-xlib dri2proto >= 2.6], enable_overlay_xlib=yes, enable_overlay_xlib=no)
 
 AM_CONDITIONAL(BUILD_OVERLAY_XVLIB, [test "x$enable_overlay_xvlib" = xyes])
 AM_CONDITIONAL(BUILD_OVERLAY_XLIB, [test "x$enable_overlay_xlib" = xyes])
 AM_CONDITIONAL(BUILD_OVERLAY, [test "x$enable_overlay_xlib" = xyes -o "x$enable_overlay_xvlib"])
 if test x$enable_overlay_xvlib = xyes; then
 	AC_DEFINE(HAVE_OVERLAY_XVLIB, 1, [Enable XV backend])
-	PKG_CHECK_MODULES(DRI2PROTO, [dri2proto >= 2.6])
 fi
 if test x$enable_overlay_xlib = xyes; then
 	AC_DEFINE(HAVE_OVERLAY_XLIB, 1, [Enable X backend])
-	PKG_CHECK_MODULES(DRI2PROTO, [dri2proto >= 2.6])
 fi
 PKG_CHECK_MODULES(XRANDR, xrandr >= 1.3, AC_DEFINE(HAVE_XRANDR, 1, [Have libXrandr]), [have_xrandr=no])
 
