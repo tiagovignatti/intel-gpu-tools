@@ -42,7 +42,7 @@
 #include "drmtest.h"
 #include "intel_chipset.h"
 
-#define OBJECT_SIZE 1024*1024*4
+#define OBJECT_SIZE 4096
 
 #define COPY_BLT_CMD		(2<<29|0x53<<22|0x6)
 #define BLT_WRITE_ALPHA		(1<<21)
@@ -71,7 +71,7 @@ static void selfcopy(int fd, uint32_t handle, int loops)
 	b++;
 	*b++ = 0xcc << 16 | 1 << 25 | 1 << 24 | (4*1024);
 	*b++ = 0;
-	*b++ = 512 << 16 | 1024;
+	*b++ = 1 << 16 | 1024;
 
 	reloc[0].offset = (b - buf) * sizeof(*b);
 	reloc[0].target_handle = handle;
@@ -130,7 +130,7 @@ static uint32_t load(int fd)
 	if (handle == 0)
 		return 0;
 
-	selfcopy(fd, handle, 30);
+	selfcopy(fd, handle, 100);
 	return handle;
 }
 
@@ -172,7 +172,7 @@ static void *thread_run(void *_data)
 			if (create.handle == 0)
 				continue;
 
-			selfcopy(t->fds[n], create.handle, 10);
+			selfcopy(t->fds[n], create.handle, 100);
 
 			drmIoctl(t->fds[n], DRM_IOCTL_GEM_CLOSE, &create.handle);
 		}
@@ -204,7 +204,7 @@ static void *thread_busy(void *_data)
 		if (create.handle == 0)
 			continue;
 
-		selfcopy(t->fds[n], create.handle, 1);
+		selfcopy(t->fds[n], create.handle, 10);
 
 		busy.handle = create.handle;
 		drmIoctl(t->fds[n], DRM_IOCTL_I915_GEM_BUSY, &busy);
