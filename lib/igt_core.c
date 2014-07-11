@@ -1220,6 +1220,9 @@ void igt_log(enum igt_log_level level, const char *format, ...)
 
 	assert(format);
 
+	if (list_subtests)
+		return;
+
 	if (igt_log_level > level)
 		return;
 
@@ -1248,6 +1251,9 @@ void igt_log(enum igt_log_level level, const char *format, ...)
 void igt_vlog(enum igt_log_level level, const char *format, va_list args)
 {
 	assert(format);
+
+	if (list_subtests)
+		return;
 
 	if (igt_log_level > level)
 		return;
