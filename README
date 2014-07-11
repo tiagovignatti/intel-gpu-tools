@@ -24,13 +24,29 @@ tests/
 	changes.  Hopefully this can cover the relevant cases we need to
 	worry about, including backwards compatibility.
 
-	Note: The old automake based testrunner had to be scraped due to
-	upstream changes which broke dynamic creation of the test list. Of
-	course it is still possible to directly run tests, even when not always
-	limiting tests to specific subtests (like piglit does).
+	The test suite can be run using the run-tests.sh script available in
+	the scripts directory. Piglit is used to run the tests and can either
+	be installed from your distribution (if available), or can be
+	downloaded locally for use with the script by running:
 
-	The more comfortable way to run tests is with piglit. First grab piglit
-	from:
+	./scripts/run-tests.sh -d
+
+	run-tests.sh has options for filtering and excluding tests from test
+	runs:
+
+	  -t <regex>      only include tests that match the regular expression
+	  -x <regex>      exclude tests that match the regular expression
+
+	Useful patterns for test filtering are described in
+	tests/NAMING-CONVENTION and the full list of tests and subtests can be
+	produced by passing -l to the run-tests.sh script.
+
+	Results are written to a JSON file and an HTML summary can also be
+	created by passing -s to the run-tests.sh script. Further options are
+	are detailed by using the -h option.
+
+
+	If not using the script, piglit can be obtained from:
 
 	git://anongit.freedesktop.org/piglit
 
@@ -38,14 +54,12 @@ tests/
 	used for running i-g-t tests.
 
 	Set the IGT_TEST_ROOT environment variable to point to the tests
-	directory or link up the i-g-t sources with piglit using a symlink:
+	directory, or set the path key in the "igt" section of piglit.conf to
+	the intel-gpu-tools root directory.
 
-	piglit-sources $ cd bin
-	piglit-sources/bin $ ln $i-g-t-sources igt -s
-
-	In both cases, the tests in the i-g-t sources need to have been built
-	already. Then we can run the testcases with (as usual as root, no other
-	drm clients running):
+	The tests in the i-g-t sources need to have been built already. Then we
+	can run the testcases with (as usual as root, no other drm clients
+	running):
 
 	piglit-sources # ./piglit run igt <results-file>
 
