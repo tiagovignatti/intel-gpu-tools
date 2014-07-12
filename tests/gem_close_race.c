@@ -42,7 +42,7 @@
 #include "drmtest.h"
 #include "intel_chipset.h"
 
-#define OBJECT_SIZE 4096
+#define OBJECT_SIZE (256 * 1024)
 
 #define COPY_BLT_CMD		(2<<29|0x53<<22|0x6)
 #define BLT_WRITE_ALPHA		(1<<21)
@@ -151,6 +151,7 @@ static void run(int child)
 
 struct thread {
 	pthread_mutex_t mutex;
+	int device;
 	int fds[NUM_FD];
 	int done;
 };
@@ -158,58 +159,58 @@ struct thread {
 static void *thread_run(void *_data)
 {
 	struct thread *t = _data;
+	uint32_t handle = gem_create(t->device, OBJECT_SIZE);
+	struct drm_gem_open arg = { gem_flink(t->device, handle) };
 
 	pthread_mutex_lock(&t->mutex);
 	while (!t->done) {
 		pthread_mutex_unlock(&t->mutex);
 
 		for (int n = 0; n < NUM_FD; n++) {
-			struct drm_i915_gem_create create;
+			int fd = t->fds[n];
 
-			create.handle = 0;
-			create.size = OBJECT_SIZE;
-			drmIoctl(t->fds[n], DRM_IOCTL_I915_GEM_CREATE, &create);
-			if (create.handle == 0)
+			arg.handle = 0;
+			drmIoctl(fd, DRM_IOCTL_GEM_OPEN, &arg);
+			if (arg.handle == 0)
 				continue;
 
-			selfcopy(t->fds[n], create.handle, 100);
+			selfcopy(fd, arg.handle, 100);
 
-			drmIoctl(t->fds[n], DRM_IOCTL_GEM_CLOSE, &create.handle);
+			drmIoctl(fd, DRM_IOCTL_GEM_CLOSE, &arg.handle);
 		}
 
 		pthread_mutex_lock(&t->mutex);
 	}
 	pthread_mutex_unlock(&t->mutex);
 
+	gem_close(t->device, handle);
 	return 0;
 }
 
 static void *thread_busy(void *_data)
 {
 	struct thread *t = _data;
-	int n;
+	uint32_t handle = gem_create(t->device, OBJECT_SIZE);
+	struct drm_gem_open arg = { gem_flink(t->device, handle) };
 
 	pthread_mutex_lock(&t->mutex);
 	while (!t->done) {
-		struct drm_i915_gem_create create;
 		struct drm_i915_gem_busy busy;
+		int fd = t->fds[rand() % NUM_FD];
 
 		pthread_mutex_unlock(&t->mutex);
 
-		n  = rand() % NUM_FD;
-
-		create.handle = 0;
-		create.size = OBJECT_SIZE;
-		drmIoctl(t->fds[n], DRM_IOCTL_I915_GEM_CREATE, &create);
-		if (create.handle == 0)
+		arg.handle = 0;
+		drmIoctl(fd, DRM_IOCTL_GEM_OPEN, &arg);
+		if (arg.handle == 0)
 			continue;
 
-		selfcopy(t->fds[n], create.handle, 10);
+		selfcopy(fd, arg.handle, 10);
 
-		busy.handle = create.handle;
-		drmIoctl(t->fds[n], DRM_IOCTL_I915_GEM_BUSY, &busy);
+		busy.handle = arg.handle;
+		drmIoctl(fd, DRM_IOCTL_I915_GEM_BUSY, &busy);
 
-		drmIoctl(t->fds[n], DRM_IOCTL_GEM_CLOSE, &create.handle);
+		drmIoctl(fd, DRM_IOCTL_GEM_CLOSE, &arg.handle);
 
 		usleep(10*1000);
 
@@ -217,6 +218,7 @@ static void *thread_busy(void *_data)
 	}
 	pthread_mutex_unlock(&t->mutex);
 
+	gem_close(t->device, handle);
 	return 0;
 }
 
@@ -250,6 +252,7 @@ igt_main
 		igt_assert(data);
 
 		pthread_mutex_init(&data->mutex, NULL);
+		data->device = open(device, O_RDWR);
 		for (n = 0; n < NUM_FD; n++)
 			data->fds[n] = open(device, O_RDWR);
 
@@ -275,6 +278,7 @@ igt_main
 
 		for (n = 0; n < NUM_FD; n++)
 			close(data->fds[n]);
+		close(data->device);
 		free(data);
 	}
 }
