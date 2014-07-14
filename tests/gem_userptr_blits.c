@@ -47,6 +47,7 @@
 #include <sys/time.h>
 #include <sys/mman.h>
 #include <signal.h>
+#include <pthread.h>
 
 #include "drm.h"
 #include "i915_drm.h"
@@ -1107,6 +1108,53 @@ static int test_unmap_cycles(int fd, int expected)
 	return 0;
 }
 
+static void *mm_stress_thread(void *data)
+{
+        void *ptr;
+        int ret;
+
+	for (;;) {
+		ptr = mmap(NULL, PAGE_SIZE, PROT_READ | PROT_WRITE,
+				MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
+		igt_assert(ptr != MAP_FAILED);
+		ret = munmap(ptr, PAGE_SIZE);
+		igt_assert(ret == 0);
+		pthread_testcancel();
+        }
+
+        return NULL;
+}
+
+static int test_stress_mm(int fd)
+{
+	int ret;
+	pthread_t t;
+	unsigned int loops = 100000;
+	uint32_t handle;
+	void *ptr;
+
+	igt_assert(posix_memalign(&ptr, PAGE_SIZE, PAGE_SIZE) == 0);
+
+	ret = pthread_create(&t, NULL, mm_stress_thread, NULL);
+	igt_assert(ret == 0);
+
+	while (loops--) {
+		ret = gem_userptr(fd, ptr, PAGE_SIZE, 0, &handle);
+		igt_assert(ret == 0);
+
+		gem_close(fd, handle);
+	}
+
+	free(ptr);
+
+	ret = pthread_cancel(t);
+	igt_assert(ret == 0);
+	ret = pthread_join(t, NULL);
+	igt_assert(ret == 0);
+
+	return 0;
+}
+
 unsigned int total_ram;
 uint64_t aperture_size;
 int fd, count;
@@ -1260,6 +1308,9 @@ int main(int argc, char **argv)
 
 	igt_subtest("sync-unmap-after-close")
 		test_unmap_after_close(fd);
+
+	igt_subtest("stress-mm")
+	        test_stress_mm(fd);
 
 	igt_subtest("coherency-sync")
 		test_coherency(fd, count);

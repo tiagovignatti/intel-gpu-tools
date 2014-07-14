@@ -65,6 +65,8 @@ prime_self_import_CFLAGS = $(AM_CFLAGS) $(THREAD_CFLAGS)
 prime_self_import_LDADD = $(LDADD) -lpthread
 gen7_forcewake_mt_CFLAGS = $(AM_CFLAGS) $(THREAD_CFLAGS)
 gen7_forcewake_mt_LDADD = $(LDADD) -lpthread
+gem_userptr_blits_CFLAGS = $(AM_CFLAGS) $(THREAD_CFLAGS)
+gem_userptr_blits_LDADD = $(LDADD) -lpthread
 
 gem_wait_render_timeout_LDADD = $(LDADD) -lrt
 kms_flip_LDADD = $(LDADD) -lrt -lpthread
