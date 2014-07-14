@@ -457,7 +457,7 @@ void igt_vlog(enum igt_log_level level, const char *format, va_list args);
  * igt_debug:
  * @...: format string and optional arguments
  *
- * Wrapper for igt_log for message at the IGT_LOG_DEBUG level.
+ * Wrapper for igt_log() for message at the IGT_LOG_DEBUG level.
  */
 #define igt_debug(f...) igt_log(IGT_LOG_DEBUG, f)
 
@@ -465,7 +465,7 @@ void igt_vlog(enum igt_log_level level, const char *format, va_list args);
  * igt_info:
  * @...: format string and optional arguments
  *
- * Wrapper for igt_log for message at the IGT_LOG_INFO level.
+ * Wrapper for igt_log() for message at the IGT_LOG_INFO level.
  */
 #define igt_info(f...) igt_log(IGT_LOG_INFO, f)
 
@@ -473,7 +473,7 @@ void igt_vlog(enum igt_log_level level, const char *format, va_list args);
  * igt_warn:
  * @...: format string and optional arguments
  *
- * Wrapper for igt_log for message at the IGT_LOG_WARN level.
+ * Wrapper for igt_log() for message at the IGT_LOG_WARN level.
  */
 #define igt_warn(f...) igt_log(IGT_LOG_WARN, f)
 extern enum igt_log_level igt_log_level;
