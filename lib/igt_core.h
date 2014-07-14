@@ -161,12 +161,7 @@ bool igt_only_list_subtests(void);
 	} \
 	static void igt_tokencat(__real_main, __LINE__)(void) \
 
-/**
- * igt_simple_init:
- *
- * Init for simple tests without subtests
- */
-void igt_simple_init(void);
+void igt_simple_init(int argc, char **argv);
 
 /**
  * igt_simple_main:
@@ -178,7 +173,7 @@ void igt_simple_init(void);
 #define igt_simple_main \
 	static void igt_tokencat(__real_main, __LINE__)(void); \
 	int main(int argc, char **argv) { \
-		igt_simple_init(); \
+		igt_simple_init(argc, argv); \
 		igt_tokencat(__real_main, __LINE__)(); \
 		exit(0); \
 	} \

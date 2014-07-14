@@ -257,7 +257,7 @@ int main(int argc, char **argv)
 {
 	int i;
 
-	igt_simple_init();
+	igt_simple_init(argc, argv);
 
 	igt_skip_on_simulation();
 

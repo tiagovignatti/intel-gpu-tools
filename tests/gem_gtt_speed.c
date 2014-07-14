@@ -59,7 +59,7 @@ int main(int argc, char **argv)
 	int loop, i, tiling;
 	int fd;
 
-	igt_simple_init();
+	igt_simple_init(argc, argv);
 
 	igt_skip_on_simulation();
 

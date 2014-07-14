@@ -53,7 +53,7 @@ static int do_fork(void)
 		assert(0);
 	case 0:
 		if (simple) {
-			igt_simple_init();
+			igt_simple_init(1, argv_run);
 
 			igt_skip_on_simulation();
 

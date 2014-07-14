@@ -36,7 +36,7 @@ main (int argc, char **argv)
 	drmModeConnector *connector, *temp;
 	igt_display_t display;
 
-	igt_simple_init();
+	igt_simple_init(argc, argv);
 
 	drm_fd = drm_open_any();
 	res = drmModeGetResources(drm_fd);

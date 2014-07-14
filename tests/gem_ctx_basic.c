@@ -149,7 +149,7 @@ int main(int argc, char *argv[])
 {
 	int i;
 
-	igt_simple_init();
+	igt_simple_init(argc, argv);
 
 	fd = drm_open_any_render();
 	devid = intel_get_drm_devid(fd);

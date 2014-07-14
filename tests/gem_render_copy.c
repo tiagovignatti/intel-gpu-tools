@@ -127,7 +127,7 @@ int main(int argc, char **argv)
 	int opt_dump_png = false;
 	int opt_dump_aub = igt_aub_dump_enabled();
 
-	igt_simple_init();
+	igt_simple_init(argc, argv);
 
 	while ((opt = getopt(argc, argv, "d")) != -1) {
 		switch (opt) {

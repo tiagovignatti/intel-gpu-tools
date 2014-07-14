@@ -538,7 +538,7 @@ int main(int argc, char **argv)
 	int wcount = 0;
 	int r = -1;
 
-	igt_simple_init();
+	igt_simple_init(argc, argv);
 
 	parse_options(argc, argv);
 

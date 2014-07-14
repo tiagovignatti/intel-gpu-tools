@@ -451,6 +451,8 @@ void igt_subtest_init(int argc, char **argv)
 
 /**
  * igt_simple_init:
+ * @argc: argc from the test's main()
+ * @argv: argv from the test's main()
  *
  * This initializes a simple test without any support for subtests.
  *
@@ -458,7 +460,7 @@ void igt_subtest_init(int argc, char **argv)
  * #igt_simple_main block instead of stitching the tests's main() function together
  * manually.
  */
-void igt_simple_init(void)
+void igt_simple_init(int argc, char **argv)
 {
 	print_version();
 
