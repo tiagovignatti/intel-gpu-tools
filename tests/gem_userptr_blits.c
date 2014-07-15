@@ -42,7 +42,6 @@
 #include <fcntl.h>
 #include <inttypes.h>
 #include <errno.h>
-#include <assert.h>
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/mman.h>
@@ -442,7 +441,7 @@ static int has_userptr(int fd)
 	uint32_t oldflags;
 	int ret;
 
-	assert(posix_memalign(&ptr, PAGE_SIZE, PAGE_SIZE) == 0);
+	igt_assert(posix_memalign(&ptr, PAGE_SIZE, PAGE_SIZE) == 0);
 	oldflags = userptr_flags;
 	gem_userptr_test_unsynchronized();
 	ret = gem_userptr(fd, ptr, PAGE_SIZE, 0, &handle);
@@ -530,9 +529,9 @@ static int test_invalid_mapping(int fd)
 	ptr = gem_mmap__gtt(fd, handle, sizeof(linear), PROT_READ | PROT_WRITE);
 	if (ptr == NULL)
 		gem_close(fd, handle);
-	assert(ptr != NULL);
-	assert(((unsigned long)ptr & (PAGE_SIZE - 1)) == 0);
-	assert((sizeof(linear) & (PAGE_SIZE - 1)) == 0);
+	igt_assert(ptr != NULL);
+	igt_assert(((unsigned long)ptr & (PAGE_SIZE - 1)) == 0);
+	igt_assert((sizeof(linear) & (PAGE_SIZE - 1)) == 0);
 	ret = gem_userptr(fd, ptr, sizeof(linear), 0, &handle2);
 	igt_assert(ret == 0);
 	copy(fd, handle, handle, ~0); /* QQQ Precise errno? */
@@ -601,7 +600,7 @@ static int test_forbidden_ops(int fd)
 	struct drm_i915_gem_pread gem_pread;
 	struct drm_i915_gem_pwrite gem_pwrite;
 
-	assert(posix_memalign(&ptr, PAGE_SIZE, PAGE_SIZE) == 0);
+	igt_assert(posix_memalign(&ptr, PAGE_SIZE, PAGE_SIZE) == 0);
 
 	ret = gem_userptr(fd, ptr, PAGE_SIZE, 0, &handle);
 	igt_assert(ret == 0);
@@ -716,7 +715,7 @@ static void sigbus(int sig, siginfo_t *info, void *param)
 
 	if (orig_sigbus)
 		orig_sigbus(sig, info, param);
-	assert(0);
+	igt_assert(0);
 }
 
 static int test_dmabuf(void)
@@ -763,15 +762,15 @@ static int test_dmabuf(void)
 	sigact.sa_sigaction = sigbus;
 	sigact.sa_flags = SA_SIGINFO;
 	ret = sigaction(SIGBUS, &sigact, &orig_sigact);
-	assert(ret == 0);
+	igt_assert(ret == 0);
 	orig_sigbus = orig_sigact.sa_sigaction;
 	sigbus_cnt = 0;
 	check_bo(fd2, handle_import1, 0, fd2, handle_import1);
-	assert(sigbus_cnt > 0);
+	igt_assert(sigbus_cnt > 0);
 	sigact.sa_sigaction = orig_sigbus;
 	sigact.sa_flags = SA_SIGINFO;
 	ret = sigaction(SIGBUS, &sigact, &orig_sigact);
-	assert(ret == 0);
+	igt_assert(ret == 0);
 
 	gem_close(fd2, handle_import1);
 	close(fd1);
@@ -788,7 +787,7 @@ static int test_usage_restrictions(int fd)
 	int ret;
 	uint32_t handle;
 
-	assert(posix_memalign(&ptr, PAGE_SIZE, PAGE_SIZE * 2) == 0);
+	igt_assert(posix_memalign(&ptr, PAGE_SIZE, PAGE_SIZE * 2) == 0);
 
 	/* Address not aligned. */
 	ret = gem_userptr(fd, (char *)ptr + 1, PAGE_SIZE, 0, &handle);
@@ -987,7 +986,7 @@ static void test_major_evictions(int fd, int size, int count)
 	major_evictions(fd, &fault_ops, size, count);
 }
 
-static int test_overlap(int fd, int expected)
+static void test_overlap(int fd, int expected)
 {
 	char *ptr;
 	int ret;
@@ -1023,11 +1022,9 @@ static int test_overlap(int fd, int expected)
 
 	gem_close(fd, handle);
 	free(ptr);
-
-	return 0;
 }
 
-static int test_unmap(int fd, int expected)
+static void test_unmap(int fd, int expected)
 {
 	char *ptr, *bo_ptr;
 	const unsigned int num_obj = 3;
@@ -1038,7 +1035,7 @@ static int test_unmap(int fd, int expected)
 
 	ptr = mmap(NULL, map_size, PROT_READ | PROT_WRITE,
 				MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
-	assert(ptr != MAP_FAILED);
+	igt_assert(ptr != MAP_FAILED);
 
 	bo_ptr = (char *)ALIGN((unsigned long)ptr, PAGE_SIZE);
 
@@ -1053,18 +1050,16 @@ static int test_unmap(int fd, int expected)
 		copy(fd, bo[num_obj], bo[i], 0);
 
 	ret = munmap(ptr, map_size);
-	assert(ret == 0);
+	igt_assert(ret == 0);
 
 	for (i = 0; i < num_obj; i++)
 		copy(fd, bo[num_obj], bo[i], expected);
 
 	for (i = 0; i < (num_obj + 1); i++)
 		gem_close(fd, bo[i]);
-
-	return 0;
 }
 
-static int test_unmap_after_close(int fd)
+static void test_unmap_after_close(int fd)
 {
 	char *ptr, *bo_ptr;
 	const unsigned int num_obj = 3;
@@ -1075,7 +1070,7 @@ static int test_unmap_after_close(int fd)
 
 	ptr = mmap(NULL, map_size, PROT_READ | PROT_WRITE,
 				MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
-	assert(ptr != MAP_FAILED);
+	igt_assert(ptr != MAP_FAILED);
 
 	bo_ptr = (char *)ALIGN((unsigned long)ptr, PAGE_SIZE);
 
@@ -1093,19 +1088,15 @@ static int test_unmap_after_close(int fd)
 		gem_close(fd, bo[i]);
 
 	ret = munmap(ptr, map_size);
-	assert(ret == 0);
-
-	return 0;
+	igt_assert(ret == 0);
 }
 
-static int test_unmap_cycles(int fd, int expected)
+static void test_unmap_cycles(int fd, int expected)
 {
 	int i;
 
 	for (i = 0; i < 1000; i++)
 		test_unmap(fd, expected);
-
-	return 0;
 }
 
 static void *mm_stress_thread(void *data)
@@ -1125,7 +1116,7 @@ static void *mm_stress_thread(void *data)
         return NULL;
 }
 
-static int test_stress_mm(int fd)
+static void test_stress_mm(int fd)
 {
 	int ret;
 	pthread_t t;
@@ -1151,8 +1142,6 @@ static int test_stress_mm(int fd)
 	igt_assert(ret == 0);
 	ret = pthread_join(t, NULL);
 	igt_assert(ret == 0);
-
-	return 0;
 }
 
 unsigned int total_ram;
