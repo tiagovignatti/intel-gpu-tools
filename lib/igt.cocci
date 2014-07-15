@@ -84,3 +84,10 @@ expression pipe;
 + for_each_pipe (display, pipe) {
 ...
 }
+
+// Tests really shouldn't use plain assert!
+@@
+expression E;
+@@
+- assert(E);
++ igt_assert(E);

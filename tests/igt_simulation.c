@@ -34,6 +34,14 @@
 #include "drmtest.h"
 #include "igt_core.h"
 
+/*
+ * We need to hide assert from the cocci igt test refactor spatch.
+ *
+ * IMPORTANT: Test infrastructure tests are the only valid places where using
+ * assert is allowed.
+ */
+#define internal_assert assert
+
 bool simple;
 bool list_subtests;
 bool in_fixture;
@@ -50,7 +58,7 @@ static int do_fork(void)
 
 	switch (pid = fork()) {
 	case -1:
-		assert(0);
+		internal_assert(0);
 	case 0:
 		if (simple) {
 			igt_simple_init(1, argv_run);
@@ -84,7 +92,7 @@ static int do_fork(void)
 		       errno == EINTR)
 			;
 
-		assert(WIFEXITED(status));
+		internal_assert(WIFEXITED(status));
 
 		return WEXITSTATUS(status);
 	}
@@ -94,63 +102,63 @@ int main(int argc, char **argv)
 {
 	/* simple tests */
 	simple = true;
-	assert(setenv("INTEL_SIMULATION", "1", 1) == 0);
-	assert(do_fork() == IGT_EXIT_SKIP);
+	internal_assert(setenv("INTEL_SIMULATION", "1", 1) == 0);
+	internal_assert(do_fork() == IGT_EXIT_SKIP);
 
-	assert(setenv("INTEL_SIMULATION", "0", 1) == 0);
-	assert(do_fork() == IGT_EXIT_SUCCESS);
+	internal_assert(setenv("INTEL_SIMULATION", "0", 1) == 0);
+	internal_assert(do_fork() == IGT_EXIT_SUCCESS);
 
 	/* subtests, list mode */
 	simple = false;
 	list_subtests = true;
 
 	in_fixture = false;
-	assert(setenv("INTEL_SIMULATION", "1", 1) == 0);
-	assert(do_fork() == IGT_EXIT_SUCCESS);
+	internal_assert(setenv("INTEL_SIMULATION", "1", 1) == 0);
+	internal_assert(do_fork() == IGT_EXIT_SUCCESS);
 
-	assert(setenv("INTEL_SIMULATION", "0", 1) == 0);
-	assert(do_fork() == IGT_EXIT_SUCCESS);
+	internal_assert(setenv("INTEL_SIMULATION", "0", 1) == 0);
+	internal_assert(do_fork() == IGT_EXIT_SUCCESS);
 
 	in_fixture = true;
-	assert(setenv("INTEL_SIMULATION", "1", 1) == 0);
-	assert(do_fork() == IGT_EXIT_SUCCESS);
+	internal_assert(setenv("INTEL_SIMULATION", "1", 1) == 0);
+	internal_assert(do_fork() == IGT_EXIT_SUCCESS);
 
-	assert(setenv("INTEL_SIMULATION", "0", 1) == 0);
-	assert(do_fork() == IGT_EXIT_SUCCESS);
+	internal_assert(setenv("INTEL_SIMULATION", "0", 1) == 0);
+	internal_assert(do_fork() == IGT_EXIT_SUCCESS);
 
 	in_fixture = false;
 	in_subtest = true;
-	assert(setenv("INTEL_SIMULATION", "1", 1) == 0);
-	assert(do_fork() == IGT_EXIT_SUCCESS);
+	internal_assert(setenv("INTEL_SIMULATION", "1", 1) == 0);
+	internal_assert(do_fork() == IGT_EXIT_SUCCESS);
 
-	assert(setenv("INTEL_SIMULATION", "0", 1) == 0);
-	assert(do_fork() == IGT_EXIT_SUCCESS);
+	internal_assert(setenv("INTEL_SIMULATION", "0", 1) == 0);
+	internal_assert(do_fork() == IGT_EXIT_SUCCESS);
 
 	/* subtest, run mode */
 	simple = false;
 	list_subtests = false;
 
 	in_fixture = false;
-	assert(setenv("INTEL_SIMULATION", "1", 1) == 0);
-	assert(do_fork() == IGT_EXIT_SKIP);
+	internal_assert(setenv("INTEL_SIMULATION", "1", 1) == 0);
+	internal_assert(do_fork() == IGT_EXIT_SKIP);
 
-	assert(setenv("INTEL_SIMULATION", "0", 1) == 0);
-	assert(do_fork() == IGT_EXIT_SUCCESS);
+	internal_assert(setenv("INTEL_SIMULATION", "0", 1) == 0);
+	internal_assert(do_fork() == IGT_EXIT_SUCCESS);
 
 	in_fixture = true;
-	assert(setenv("INTEL_SIMULATION", "1", 1) == 0);
-	assert(do_fork() == IGT_EXIT_SKIP);
+	internal_assert(setenv("INTEL_SIMULATION", "1", 1) == 0);
+	internal_assert(do_fork() == IGT_EXIT_SKIP);
 
-	assert(setenv("INTEL_SIMULATION", "0", 1) == 0);
-	assert(do_fork() == IGT_EXIT_SUCCESS);
+	internal_assert(setenv("INTEL_SIMULATION", "0", 1) == 0);
+	internal_assert(do_fork() == IGT_EXIT_SUCCESS);
 
 	in_fixture = false;
 	in_subtest = true;
-	assert(setenv("INTEL_SIMULATION", "1", 1) == 0);
-	assert(do_fork() == IGT_EXIT_SKIP);
+	internal_assert(setenv("INTEL_SIMULATION", "1", 1) == 0);
+	internal_assert(do_fork() == IGT_EXIT_SKIP);
 
-	assert(setenv("INTEL_SIMULATION", "0", 1) == 0);
-	assert(do_fork() == IGT_EXIT_SUCCESS);
+	internal_assert(setenv("INTEL_SIMULATION", "0", 1) == 0);
+	internal_assert(do_fork() == IGT_EXIT_SUCCESS);
 
 	return 0;
 }
