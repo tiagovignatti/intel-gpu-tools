@@ -1390,6 +1390,23 @@ static void system_suspend_subtest(void)
 	igt_assert(wait_for_suspended());
 }
 
+/* Enable a screen, activate DPMS, then do a modeset. At some point our driver
+ * produced WARNs on this case. */
+static void dpms_mode_unset_subtest(enum screen_type type)
+{
+	disable_all_screens(&ms_data);
+	igt_assert(wait_for_suspended());
+
+	igt_require(enable_one_screen_with_type(&ms_data, type));
+	igt_assert(wait_for_active());
+
+	disable_all_screens_dpms(&ms_data);
+	igt_assert(wait_for_suspended());
+
+	disable_all_screens(&ms_data);
+	igt_assert(wait_for_suspended());
+}
+
 int main(int argc, char *argv[])
 {
 	int rounds = 50;
@@ -1462,6 +1479,10 @@ int main(int argc, char *argv[])
 		debugfs_forcewake_user_subtest();
 	igt_subtest("sysfs-read")
 		sysfs_read_subtest();
+	igt_subtest("dpms-mode-unset-lpsp")
+		dpms_mode_unset_subtest(SCREEN_TYPE_LPSP);
+	igt_subtest("dpms-mode-unset-non-lpsp")
+		dpms_mode_unset_subtest(SCREEN_TYPE_NON_LPSP);
 
 	/* Modeset stress */
 	igt_subtest("modeset-lpsp-stress")
