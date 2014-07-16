@@ -71,6 +71,15 @@ struct bdb_block {
 	void *data;
 };
 
+static const char * const seq_name[] = {
+	"UNDEFINED",
+	"MIPI_SEQ_ASSERT_RESET",
+	"MIPI_SEQ_INIT_OTP",
+	"MIPI_SEQ_DISPLAY_ON",
+	"MIPI_SEQ_DISPLAY_OFF",
+	"MIPI_SEQ_DEASSERT_RESET",
+};
+
 struct bdb_header *bdb;
 struct bdb_lvds_lfp_data_ptrs *lvds_lfp_data_ptrs;
 static int tv_present;
@@ -784,6 +793,263 @@ static void dump_mipi_config(const struct bdb_block *block)
 	printf("\t\tPanel power cycle delay: %d\n", pps->panel_power_cycle_delay);
 }
 
+static uint8_t *mipi_dump_send_packet(uint8_t *data)
+{
+	uint8_t type, byte, count;
+	uint16_t len;
+
+	byte = *data++;
+	/* get packet type and increment the pointer */
+	type = *data++;
+
+	len = *((uint16_t *) data);
+	data += 2;
+	printf("\t\t SEND COMMAND: ");
+	printf("0x%x 0x%x 0x%x", byte, type, len);
+	for (count = 0; count < len; count++)
+		printf(" 0x%x",*(data+count));
+	printf("\n");
+	data += len;
+	return data;
+}
+
+static uint8_t *mipi_dump_delay(uint8_t *data)
+{
+	printf("\t\t Delay : 0x%x 0x%x 0x%x 0x%x\n", data[0], data[1], data[2], data[3]);
+	data += 4;
+	return data;
+}
+
+static uint8_t *mipi_dump_gpio(uint8_t *data)
+{
+	uint8_t gpio, action;
+
+	printf("\t\t GPIO value:");
+	gpio = *data++;
+
+	/* pull up/down */
+	action = *data++;
+	printf(" 0x%x 0x%x\n", gpio, action);
+	return data;
+}
+
+typedef uint8_t * (*fn_mipi_elem_dump)(uint8_t *data);
+
+static const fn_mipi_elem_dump dump_elem[] = {
+	NULL, /* reserved */
+	mipi_dump_send_packet,
+	mipi_dump_delay,
+	mipi_dump_gpio,
+	NULL, /* status read; later */
+};
+
+static void dump_sequence(uint8_t *sequence)
+{
+	uint8_t *data = sequence;
+	fn_mipi_elem_dump mipi_elem_dump;
+	int index_no;
+
+	if (!sequence)
+		return;
+
+	printf("\tSequence Name: %s\n", seq_name[*data]);
+
+	/* go to the first element of the sequence */
+	data++;
+
+	/* parse each byte till we reach end of sequence byte - 0x00 */
+	while (1) {
+		index_no = *data;
+		mipi_elem_dump = dump_elem[index_no];
+		if (!mipi_elem_dump) {
+			printf("Error: Unsupported MIPI element, skipping sequence execution\n");
+			return;
+		}
+		/* goto element payload */
+		data++;
+
+		/* execute the element specifc rotines */
+		data = mipi_elem_dump(data);
+
+		/*
+		 * After processing the element, data should point to
+		 * next element or end of sequence
+		 * check if have we reached end of sequence
+		 */
+
+		if (*data == 0x00)
+			break;
+	}
+}
+
+static uint8_t *goto_next_sequence(uint8_t *data, int *size)
+{
+	uint16_t len;
+	int tmp = *size;
+
+	if (--tmp < 0)
+		return NULL;
+
+	/* goto first element */
+	data++;
+	while (1) {
+		switch (*data) {
+		case MIPI_SEQ_ELEM_SEND_PKT:
+			/*
+			 * skip by this element payload size
+			 * skip elem id, command flag and data type
+			 */
+			tmp -= 5;
+			if (tmp < 0)
+				return NULL;
+
+			data += 3;
+			len = *((uint16_t *)data);
+
+			tmp -= len;
+			if (tmp < 0)
+				return NULL;
+
+			/* skip by len */
+			data = data + 2 + len;
+			break;
+		case MIPI_SEQ_ELEM_DELAY:
+			/* skip by elem id, and delay is 4 bytes */
+			tmp -= 5;
+			if (tmp < 0)
+				return NULL;
+
+			data += 5;
+			break;
+		case MIPI_SEQ_ELEM_GPIO:
+			tmp -= 3;
+			if (tmp < 0)
+				return NULL;
+
+			data += 3;
+			break;
+		default:
+			printf("Unknown element\n");
+			return NULL;
+                }
+
+		/* end of sequence ? */
+		if (*data == 0)
+			break;
+        }
+
+	/* goto next sequence or end of block byte */
+	if (--tmp < 0)
+		return NULL;
+
+        data++;
+
+	/* update amount of data left for the sequence block to be parsed */
+	*size = tmp;
+	return data;
+}
+
+static uint16_t get_blocksize(void *p)
+{
+	uint16_t *block_ptr, block_size;
+
+	block_ptr = (uint16_t *)((char *)p - 2);
+	block_size = *block_ptr;
+	return block_size;
+}
+
+static void dump_mipi_sequence(const struct bdb_block *block)
+{
+	struct bdb_mipi_sequence *sequence = block->data;
+	uint8_t *data, *seq_data;
+	int i, panel_id, seq_size;
+	uint16_t block_size;
+
+	/* Check if we have sequence block as well */
+	if (!sequence) {
+		printf("No MIPI Sequence found\n");
+		return;
+	}
+
+	block_size = get_blocksize(sequence);
+
+	/*
+	 * parse the sequence block for individual sequences
+	 */
+	seq_data = &sequence->data[0];
+
+	/*
+	 * sequence block is variable length and hence we need to parse and
+	 * get the sequence data for specific panel id
+	 */
+	for (i = 0; i < MAX_MIPI_CONFIGURATIONS; i++) {
+		panel_id = *seq_data;
+		seq_size = *((uint16_t *) (seq_data + 1));
+		if (panel_id == panel_type)
+			break;
+
+		/* skip the sequence including seq header of 3 bytes */
+		seq_data = seq_data + 3 + seq_size;
+		if ((seq_data - &sequence->data[0]) > block_size) {
+			printf("Sequence start is beyond sequence block size, corrupted sequence block\n");
+			return;
+		}
+	}
+
+	if (i == MAX_MIPI_CONFIGURATIONS) {
+		printf("Sequence block detected but no valid configuration\n");
+		return;
+	}
+
+	/* check if found sequence is completely within the sequence block
+	 * just being paranoid */
+	if (seq_size > block_size) {
+		printf("Corrupted sequence/size, bailing out\n");
+		return;
+        }
+
+	/* skip the panel id(1 byte) and seq size(2 bytes) */
+	data = (uint8_t *) calloc(1, seq_size);
+	if (data)
+		memmove(data, seq_data + 3, seq_size);
+	else {
+		printf("Memory not allocated for sequence data\n");
+		return;
+	}
+	/*
+	 * loop into the sequence data and split into multiple sequneces
+	 * There are only 5 types of sequences as of now
+	 */
+
+	/* two consecutive 0x00 indicate end of all sequences */
+        while (1) {
+		int seq_id = *data;
+		if (MIPI_SEQ_MAX > seq_id && seq_id > MIPI_SEQ_UNDEFINED)
+			dump_sequence(data);
+		 else {
+			printf("Error:undefined sequence\n");
+			goto err;
+                }
+
+		/* partial parsing to skip elements */
+		data = goto_next_sequence(data, &seq_size);
+
+		if (data == NULL) {
+			printf("Sequence elements going beyond block itself. Sequence block parsing failed\n");
+			goto err;
+                }
+
+		if (*data == 0)
+			break; /* end of sequence reached */
+	}
+        return;
+
+err:
+	free(data);
+	data = NULL;
+}
+
+
 static int
 get_device_id(unsigned char *bios)
 {
@@ -867,6 +1133,11 @@ struct dumper dumpers[] = {
 		.id = BDB_MIPI_CONFIG,
 		.name = "MIPI configuration block",
 		.dump = dump_mipi_config,
+	},
+	{
+		.id = BDB_MIPI_SEQUENCE,
+		.name = "MIPI sequence block",
+		.dump = dump_mipi_sequence,
 	},
 };
 
@@ -1042,6 +1313,7 @@ int main(int argc, char **argv)
 	dump_section(BDB_DRIVER_FEATURES, size);
 	dump_section(BDB_EDP, size);
 	dump_section(BDB_MIPI_CONFIG, size);
+	dump_section(BDB_MIPI_SEQUENCE, size);
 
 	for (i = 0; i < 256; i++)
 		dump_section(i, size);

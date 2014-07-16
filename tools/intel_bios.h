@@ -30,6 +30,7 @@
 
 #include <stdint.h>
 
+
 struct vbt_header {
 	char signature[20];		/**< Always starts with 'VBT$' */
 	uint16_t version;		/**< decimal */
@@ -728,6 +729,31 @@ struct bdb_mipi_config {
 	struct mipi_config config[MAX_MIPI_CONFIGURATIONS];
 	struct mipi_pps_data pps[MAX_MIPI_CONFIGURATIONS];
 } __attribute__ ((packed));
+
+/* variable number of these - max 6 */
+struct bdb_mipi_sequence {
+	uint8_t version;
+	uint8_t data[0];
+} __attribute__ ((packed));
+
+/* MIPI Sequnece Block definitions */
+enum MIPI_SEQ {
+	MIPI_SEQ_UNDEFINED = 0,
+	MIPI_SEQ_ASSERT_RESET,
+	MIPI_SEQ_INIT_OTP,
+	MIPI_SEQ_DISPLAY_ON,
+	MIPI_SEQ_DISPLAY_OFF,
+	MIPI_SEQ_DEASSERT_RESET,
+	MIPI_SEQ_MAX
+};
+
+enum MIPI_SEQ_ELEMENT {
+	MIPI_SEQ_ELEM_UNDEFINED = 0,
+	MIPI_SEQ_ELEM_SEND_PKT,
+	MIPI_SEQ_ELEM_DELAY,
+	MIPI_SEQ_ELEM_GPIO,
+	MIPI_SEQ_ELEM_MAX
+};
 
 /*
  * Driver<->VBIOS interaction occurs through scratch bits in
