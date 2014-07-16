@@ -696,6 +696,94 @@ static void dump_sdvo_lvds_options(const struct bdb_block *block)
 	printf("\tmisc[3]: %x\n", options->panel_misc_bits_4);
 }
 
+static void dump_mipi_config(const struct bdb_block *block)
+{
+	struct bdb_mipi_config *start = block->data;
+	struct mipi_config *config;
+	struct mipi_pps_data *pps;
+
+	config = &start->config[panel_type];
+	pps = &start->pps[panel_type];
+
+	printf("\tGeneral Param\n");
+	printf("\t\t BTA disable: %s\n", config->bta ? "Disabled" : "Enabled");
+
+	printf("\t\t Video Mode Color Format: ");
+	if (config->videomode_color_format == 0)
+		printf("Not supported\n");
+	else if (config->videomode_color_format == 1)
+		printf("RGB565\n");
+	else if (config->videomode_color_format == 2)
+		printf("RGB666\n");
+	else if (config->videomode_color_format == 3)
+		printf("RGB666 Loosely Packed\n");
+	else if (config->videomode_color_format == 4)
+		printf("RGB888\n");
+	printf("\t\t PPS GPIO Pins: %s \n", config->pwm_blc ? "Using SOC" : "Using PMIC");
+	printf("\t\t CABC Support: %s\n", config->cabc ? "supported" : "not supported");
+	//insert video mode type
+	printf("\t\t Mode: %s\n", config->cmd_mode ? "COMMAND" : "VIDEO");
+	printf("\t\t Dithering: %s\n", config->dithering ? "done in Display Controller" : "done in Panel Controller");
+
+	printf("\tPort Desc\n");
+	//insert pixel overlap count
+	printf("\t\t Lane Count: %d\n", config->lane_cnt + 1);
+	printf("\t\t Dual Link Support: ");
+	if (config->dual_link == 0)
+		printf("not supported\n");
+	else if (config->dual_link == 1)
+		printf("Front Back mode\n");
+	else
+		printf("Pixel Alternative Mode\n");
+
+	printf("\tDphy Flags\n");
+	printf("\t\t Clock Stop: %s\n", config->clk_stop ? "ENABLED" : "DISABLED");
+	printf("\t\t EOT disabled: %s\n\n", config->eot_disabled ? "EOT not to be sent" : "EOT to be sent");
+
+	printf("\tHSTxTimeOut: 0x%x\n", config->hs_tx_timeout);
+	printf("\tLPRXTimeOut: 0x%x\n", config->lp_rx_timeout);
+	printf("\tTurnAroundTimeOut: 0x%x\n", config->turn_around_timeout);
+	printf("\tDeviceResetTimer: 0x%x\n", config->device_reset_timer);
+	printf("\tMasterinitTimer: 0x%x\n", config->master_init_timer);
+	printf("\tDBIBandwidthTimer: 0x%x\n", config->dbi_bw_timer);
+	printf("\tLpByteClkValue: 0x%x\n\n", config->lp_byte_clk_val);
+
+	printf("\tDphy Params\n");
+	printf("\t\tExit to zero Count: 0x%x\n", config->exit_zero_cnt);
+	printf("\t\tTrail Count: 0x%X\n", config->trail_cnt);
+	printf("\t\tClk zero count: 0x%x\n", config->clk_zero_cnt);
+	printf("\t\tPrepare count:0x%x\n\n", config->prepare_cnt);
+
+	printf("\tClockLaneSwitchingCount: 0x%x\n", config->clk_lane_switch_cnt);
+	printf("\tHighToLowSwitchingCount: 0x%x\n\n", config->hl_switch_cnt);
+
+	printf("\tTimings based on Dphy spec\n");
+	printf("\t\tTClkMiss: 0x%x\n", config->tclk_miss);
+	printf("\t\tTClkPost: 0x%x\n", config->tclk_post);
+	printf("\t\tTClkPre: 0x%x\n", config->tclk_pre);
+	printf("\t\tTClkPrepare: 0x%x\n", config->tclk_prepare);
+	printf("\t\tTClkSettle: 0x%x\n", config->tclk_settle);
+	printf("\t\tTClkTermEnable: 0x%x\n\n", config->tclk_term_enable);
+
+	printf("\tTClkTrail: 0x%x\n", config->tclk_trail);
+	printf("\tTClkPrepareTClkZero: 0x%x\n", config->tclk_prepare_clkzero);
+	printf("\tTHSExit: 0x%x\n", config->ths_exit);
+	printf("\tTHsPrepare: 0x%x\n", config->ths_prepare);
+	printf("\tTHsPrepareTHsZero: 0x%x\n", config->ths_prepare_hszero);
+	printf("\tTHSSettle: 0x%x\n", config->ths_settle);
+	printf("\tTHSSkip: 0x%x\n", config->ths_skip);
+	printf("\tTHsTrail: 0x%x\n", config->ths_trail);
+	printf("\tTInit: 0x%x\n", config->tinit);
+	printf("\tTLPX: 0x%x\n", config->tlpx);
+
+	printf("\tMIPI PPS\n");
+	printf("\t\tPanel power ON delay: %d\n", pps->panel_on_delay);
+	printf("\t\tPanel power on to Baklight enable delay: %d\n", pps->bl_enable_delay);
+	printf("\t\tBacklight disable to Panel power OFF delay: %d\n", pps->bl_disable_delay);
+	printf("\t\tPanel power OFF delay: %d\n", pps->panel_off_delay);
+	printf("\t\tPanel power cycle delay: %d\n", pps->panel_power_cycle_delay);
+}
+
 static int
 get_device_id(unsigned char *bios)
 {
@@ -774,6 +862,11 @@ struct dumper dumpers[] = {
 		.id = BDB_EDP,
 		.name = "eDP block",
 		.dump = dump_edp,
+	},
+	{
+		.id = BDB_MIPI_CONFIG,
+		.name = "MIPI configuration block",
+		.dump = dump_mipi_config,
 	},
 };
 
@@ -948,6 +1041,7 @@ int main(int argc, char **argv)
 
 	dump_section(BDB_DRIVER_FEATURES, size);
 	dump_section(BDB_EDP, size);
+	dump_section(BDB_MIPI_CONFIG, size);
 
 	for (i = 0; i < 256; i++)
 		dump_section(i, size);
