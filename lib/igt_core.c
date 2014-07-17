@@ -977,7 +977,7 @@ void igt_waitchildren(void)
 
 /* exit handler code */
 #define MAX_SIGNALS		32
-#define MAX_EXIT_HANDLERS	5
+#define MAX_EXIT_HANDLERS	10
 
 static struct {
 	sighandler_t handler;
