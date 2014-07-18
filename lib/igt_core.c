@@ -291,30 +291,11 @@ static void oom_adjust_for_doom(void)
 	igt_assert(write(fd, always_kill, sizeof(always_kill)) == sizeof(always_kill));
 }
 
-/**
- * igt_subtest_init_parse_opts:
- * @argc: argc from the test's main()
- * @argv: argv from the test's main()
- * @extra_short_opts: getopt_long() compliant list with additional short options
- * @extra_long_opts: getopt_long() compliant list with additional long options
- * @help_str: help string for the additional options
- * @extra_opt_handler: handler for the additional options
- *
- * This function handles the subtest related cmdline options and allows an
- * arbitrary set of additional options. This is useful for tests which have
- * additional knobs to tune when run manually like the number of rounds execute
- * or the size of the allocated buffer objects.
- *
- * Tests without special needs should just use igt_subtest_init() or use
- * #igt_main directly instead of their own main() function.
- *
- * Returns: Forwards any option parsing errors from getopt_long.
- */
-int igt_subtest_init_parse_opts(int argc, char **argv,
-				const char *extra_short_opts,
-				struct option *extra_long_opts,
-				const char *help_str,
-				igt_opt_handler_t extra_opt_handler)
+static int common_init(int argc, char **argv,
+		       const char *extra_short_opts,
+		       struct option *extra_long_opts,
+		       const char *help_str,
+		       igt_opt_handler_t extra_opt_handler)
 {
 	int c, option_index = 0;
 	static struct option long_options[] = {
@@ -328,8 +309,18 @@ int igt_subtest_init_parse_opts(int argc, char **argv,
 	int extra_opt_count;
 	int all_opt_count;
 	int ret = 0;
+	char *env = getenv("IGT_LOG_LEVEL");
 
-	test_with_subtests = true;
+	if (env) {
+		if (strcmp(env, "debug") == 0)
+			igt_log_level = IGT_LOG_DEBUG;
+		else if (strcmp(env, "info") == 0)
+			igt_log_level = IGT_LOG_INFO;
+		else if (strcmp(env, "warn") == 0)
+			igt_log_level = IGT_LOG_WARN;
+		else if (strcmp(env, "none") == 0)
+			igt_log_level = IGT_LOG_NONE;
+	}
 
 	command_str = argv[0];
 	if (strrchr(command_str, '/'))
@@ -389,35 +380,69 @@ int igt_subtest_init_parse_opts(int argc, char **argv,
 		}
 	}
 
-	igt_install_exit_handler(check_igt_exit);
 	oom_adjust_for_doom();
 
 out:
 	free(short_opts);
 	free(combined_opts);
+
+	/* exit immediately if this test has no subtests and a subtest or the
+	 * list of subtests has been requested */
+	if (!test_with_subtests) {
+		if (run_single_subtest) {
+			igt_warn("Unknown subtest: %s\n", run_single_subtest);
+			exit(-1);
+		}
+		if (list_subtests)
+			exit(-1);
+	}
+
+	if (ret < 0)
+		/* exit with no error for -h/--help */
+		exit(ret == -1 ? 0 : ret);
+
 	print_version();
 
 	return ret;
 }
 
-enum igt_log_level igt_log_level = IGT_LOG_INFO;
 
-static void common_init(void)
+/**
+ * igt_subtest_init_parse_opts:
+ * @argc: argc from the test's main()
+ * @argv: argv from the test's main()
+ * @extra_short_opts: getopt_long() compliant list with additional short options
+ * @extra_long_opts: getopt_long() compliant list with additional long options
+ * @help_str: help string for the additional options
+ * @extra_opt_handler: handler for the additional options
+ *
+ * This function handles the subtest related cmdline options and allows an
+ * arbitrary set of additional options. This is useful for tests which have
+ * additional knobs to tune when run manually like the number of rounds execute
+ * or the size of the allocated buffer objects.
+ *
+ * Tests without special needs should just use igt_subtest_init() or use
+ * #igt_main directly instead of their own main() function.
+ *
+ * Returns: Forwards any option parsing errors from getopt_long.
+ */
+int igt_subtest_init_parse_opts(int argc, char **argv,
+				const char *extra_short_opts,
+				struct option *extra_long_opts,
+				const char *help_str,
+				igt_opt_handler_t extra_opt_handler)
 {
-	char *env = getenv("IGT_LOG_LEVEL");
+	int ret;
 
-	if (!env)
-		return;
+	test_with_subtests = true;
+	ret = common_init(argc, argv, extra_short_opts, extra_long_opts,
+			  help_str, extra_opt_handler);
+	igt_install_exit_handler(check_igt_exit);
 
-	if (strcmp(env, "debug") == 0)
-		igt_log_level = IGT_LOG_DEBUG;
-	else if (strcmp(env, "info") == 0)
-		igt_log_level = IGT_LOG_INFO;
-	else if (strcmp(env, "warn") == 0)
-		igt_log_level = IGT_LOG_WARN;
-	else if (strcmp(env, "none") == 0)
-		igt_log_level = IGT_LOG_NONE;
+	return ret;
 }
+
+enum igt_log_level igt_log_level = IGT_LOG_INFO;
 
 /**
  * igt_subtest_init:
@@ -446,8 +471,6 @@ void igt_subtest_init(int argc, char **argv)
 
 	/* reset opt parsing */
 	optind = 1;
-
-	common_init();
 }
 
 /**
@@ -463,11 +486,18 @@ void igt_subtest_init(int argc, char **argv)
  */
 void igt_simple_init(int argc, char **argv)
 {
-	print_version();
+	int ret;
 
-	oom_adjust_for_doom();
+	/* supress getopt errors about unknown options */
+	opterr = 0;
 
-	common_init();
+	ret = common_init(argc, argv, NULL, NULL, NULL, NULL);
+	if (ret < 0)
+		/* exit with no error for -h/--help */
+		exit(ret == -1 ? 0 : ret);
+
+	/* reset opt parsing */
+	optind = 1;
 }
 
 /*
