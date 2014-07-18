@@ -9,7 +9,6 @@
 #include <errno.h>
 #include <sys/stat.h>
 #include <sys/time.h>
-#include <getopt.h>
 #include "drm.h"
 #include "i915_drm.h"
 #include "drmtest.h"

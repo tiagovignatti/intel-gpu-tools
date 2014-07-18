@@ -29,7 +29,6 @@
 #include <stdint.h>
 #include <unistd.h>
 #include <string.h>
-#include <getopt.h>
 #include <sys/time.h>
 
 #include "drmtest.h"

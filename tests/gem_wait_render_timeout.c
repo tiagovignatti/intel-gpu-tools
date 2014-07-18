@@ -36,7 +36,6 @@
 #include <errno.h>
 #include <sys/stat.h>
 #include <sys/time.h>
-#include <getopt.h>
 
 #include <drm.h>
 
