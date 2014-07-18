@@ -500,6 +500,28 @@ void igt_simple_init(int argc, char **argv)
 	optind = 1;
 }
 
+/**
+ * igt_simple_init_parse_opts:
+ * @argc: argc from the test's main()
+ * @argv: argv from the test's main()
+ * @extra_short_opts: getopt_long() compliant list with additional short options
+ * @extra_long_opts: getopt_long() compliant list with additional long options
+ * @help_str: help string for the additional options
+ * @extra_opt_handler: handler for the additional options
+ *
+ * This initializes a simple test without any support for subtests and allows
+ * an arbitrary set of additional options.
+ */
+void igt_simple_init_parse_opts(int argc, char **argv,
+				const char *extra_short_opts,
+				struct option *extra_long_opts,
+				const char *help_str,
+				igt_opt_handler_t extra_opt_handler)
+{
+	common_init(argc, argv, extra_short_opts, extra_long_opts, help_str,
+		    extra_opt_handler);
+}
+
 /*
  * Note: Testcases which use these helpers MUST NOT output anything to stdout
  * outside of places protected by igt_run_subtest checks - the piglit
