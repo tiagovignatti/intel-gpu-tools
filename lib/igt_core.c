@@ -204,6 +204,7 @@ static unsigned int exit_handler_count;
 /* subtests helpers */
 static bool list_subtests = false;
 static char *run_single_subtest = NULL;
+static bool run_single_subtest_found = false;
 static const char *in_subtest = NULL;
 static bool in_fixture = false;
 static bool test_with_subtests = false;
@@ -484,9 +485,14 @@ bool __igt_run_subtest(const char *subtest_name)
 		return false;
 	}
 
-	if (run_single_subtest &&
-	    strcmp(subtest_name, run_single_subtest) != 0)
-		return false;
+	if (run_single_subtest) {
+		if (strcmp(subtest_name, run_single_subtest) != 0)
+			return false;
+		else
+			run_single_subtest_found = true;
+	}
+
+
 
 	if (skip_subtests_henceforth) {
 		printf("Subtest %s: %s\n", subtest_name,
@@ -721,6 +727,12 @@ void __igt_fail_assert(int exitcode, const char *file,
 void igt_exit(void)
 {
 	igt_exit_called = true;
+
+	if (run_single_subtest && !run_single_subtest_found) {
+		igt_warn("Unknown subtest: %s\n", run_single_subtest);
+		exit(-1);
+	}
+
 
 	if (igt_only_list_subtests())
 		exit(IGT_EXIT_SUCCESS);
