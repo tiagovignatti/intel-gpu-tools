@@ -459,18 +459,7 @@ enum igt_log_level igt_log_level = IGT_LOG_INFO;
  */
 void igt_subtest_init(int argc, char **argv)
 {
-	int ret;
-
-	/* supress getopt errors about unknown options */
-	opterr = 0;
-
-	ret = igt_subtest_init_parse_opts(argc, argv, NULL, NULL, NULL, NULL);
-	if (ret < 0)
-		/* exit with no error for -h/--help */
-		exit(ret == -1 ? 0 : ret);
-
-	/* reset opt parsing */
-	optind = 1;
+	igt_subtest_init_parse_opts(argc, argv, NULL, NULL, NULL, NULL);
 }
 
 /**
