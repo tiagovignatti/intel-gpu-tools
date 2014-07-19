@@ -1370,7 +1370,6 @@ static int run_test(int duration, int flags)
 
 	igt_require((flags & TEST_HANG) == 0 || !is_hung(drm_fd));
 
-
 	if (flags & TEST_RPM)
 		igt_require(igt_setup_runtime_pm());
 
@@ -1397,7 +1396,7 @@ static int run_test(int duration, int flags)
 		}
 	}
 
-	igt_assert(modes);
+	igt_require(modes);
 	duration = duration * 1000 / modes;
 	duration = duration < 500 ? 500 : duration;
 
