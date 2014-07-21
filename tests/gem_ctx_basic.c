@@ -39,7 +39,6 @@
 #include <errno.h>
 #include <sys/stat.h>
 #include <sys/time.h>
-#include <getopt.h>
 #include "drm.h"
 #include "ioctl_wrappers.h"
 #include "drmtest.h"
@@ -119,11 +118,9 @@ static void *work(void *arg)
 	pthread_exit(NULL);
 }
 
-static void parse(int argc, char *argv[])
+static int opt_handler(int opt, int opt_index)
 {
-	int opt;
-	while ((opt = getopt(argc, argv, "i:c:n:muh?")) != -1) {
-		switch (opt) {
+	switch (opt) {
 		case 'i':
 			iter = atoi(optarg);
 			break;
@@ -136,20 +133,17 @@ static void parse(int argc, char *argv[])
 		case 'u':
 			uncontexted = 1;
 			break;
-		case 'h':
-		case '?':
-		default:
-			igt_success();
-			break;
-		}
 	}
+
+	return 0;
 }
 
 int main(int argc, char *argv[])
 {
 	int i;
 
-	igt_simple_init(argc, argv);
+	igt_simple_init_parse_opts(argc, argv, "i:c:n:mu", NULL, NULL,
+				   opt_handler);
 
 	fd = drm_open_any_render();
 	devid = intel_get_drm_devid(fd);
@@ -158,8 +152,6 @@ int main(int argc, char *argv[])
 		num_contexts = 2;
 		iter = 4;
 	}
-
-	parse(argc, argv);
 
 	threads = calloc(num_contexts, sizeof(*threads));
 

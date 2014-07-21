@@ -58,7 +58,6 @@
 #include <errno.h>
 #include <sys/stat.h>
 #include <sys/time.h>
-#include <getopt.h>
 
 #include <drm.h>
 
@@ -71,6 +70,10 @@
 #include "igt_aux.h"
 
 #define CMD_POLY_STIPPLE_OFFSET       0x7906
+
+#define DUCTAPE 0xdead0001
+#define TILESZ	0xdead0002
+#define CHCK_RENDER 0xdead0003
 
 /** TODO:
  * - beat on relaxed fencing (i.e. mappable/fenceable tracking in the kernel)
@@ -624,54 +627,11 @@ static void sanitize_tiles_per_buf(void)
 		options.tiles_per_buf = options.scratch_buf_size / TILE_BYTES(options.tile_size);
 }
 
-static void parse_options(int argc, char **argv)
+static int parse_options(int opt, int opt_index)
 {
-	int c, tmp;
-	int option_index = 0;
-	static struct option long_options[] = {
-		{"no-hw", 0, 0, 'd'},
-		{"buf-size", 1, 0, 's'},
-		{"gpu-busy-load", 1, 0, 'g'},
-		{"no-signals", 0, 0, 'S'},
-		{"buffer-count", 1, 0, 'c'},
-		{"trace-tile", 1, 0, 't'},
-		{"disable-blt", 0, 0, 'b'},
-		{"disable-render", 0, 0, 'r'},
-		{"untiled", 0, 0, 'u'},
-		{"x-tiled", 0, 0, 'x'},
-		{"use-cpu-maps", 0, 0, 'm'},
-		{"rounds", 1, 0, 'o'},
-		{"no-fail", 0, 0, 'f'},
-		{"tiles-per-buf", 0, 0, 'p'},
-#define DUCTAPE 0xdead0001
-		{"remove-duct-tape", 0, 0, DUCTAPE},
-#define TILESZ	0xdead0002
-		{"tile-size", 1, 0, TILESZ},
-#define CHCK_RENDER 0xdead0003
-		{"check-render-cpyfn", 0, 0, CHCK_RENDER},
-		{NULL, 0, 0, 0},
-	};
+	int tmp;
 
-	options.scratch_buf_size = 256*4096;
-	options.no_hw = 0;
-	options.use_signal_helper = 1;
-	options.gpu_busy_load = 0;
-	options.num_buffers = 0;
-	options.trace_tile = -1;
-	options.use_render = 1;
-	options.use_blt = 1;
-	options.forced_tiling = -1;
-	options.use_cpu_maps = 0;
-	options.total_rounds = 512;
-	options.fail = 1;
-	options.ducttape = 1;
-	options.tile_size = 16;
-	options.tiles_per_buf = options.scratch_buf_size / TILE_BYTES(options.tile_size);
-	options.check_render_cpyfn = 0;
-
-	while((c = getopt_long(argc, argv, "ds:g:c:t:rbuxmo:fp:",
-			       long_options, &option_index)) != -1) {
-		switch(c) {
+	switch(opt) {
 		case 'd':
 			options.no_hw = 1;
 			igt_info("no-hw debug mode\n");
@@ -759,14 +719,7 @@ static void parse_options(int argc, char **argv)
 			options.check_render_cpyfn = 1;
 			igt_info("checking render copy function\n");
 			break;
-		default:
-			igt_info("unkown command options\n");
-			break;
-		}
 	}
-
-	if (optind < argc)
-		igt_info("unkown command options\n");
 
 	/* actually 32767, according to docs, but that kills our nice pot calculations. */
 	options.max_dimension = 16*1024;
@@ -777,6 +730,8 @@ static void parse_options(int argc, char **argv)
 			options.max_dimension = 8192;
 	}
 	igt_info("Limiting buffer to %dx%d\n", options.max_dimension, options.max_dimension);
+
+	return 0;
 }
 
 static void init(void)
@@ -864,13 +819,49 @@ int main(int argc, char **argv)
 {
 	int i, j;
 	unsigned *current_permutation, *tmp_permutation;
+	static struct option long_options[] = {
+		{"no-hw", 0, 0, 'd'},
+		{"buf-size", 1, 0, 's'},
+		{"gpu-busy-load", 1, 0, 'g'},
+		{"no-signals", 0, 0, 'S'},
+		{"buffer-count", 1, 0, 'c'},
+		{"trace-tile", 1, 0, 't'},
+		{"disable-blt", 0, 0, 'b'},
+		{"disable-render", 0, 0, 'r'},
+		{"untiled", 0, 0, 'u'},
+		{"x-tiled", 0, 0, 'x'},
+		{"use-cpu-maps", 0, 0, 'm'},
+		{"rounds", 1, 0, 'o'},
+		{"no-fail", 0, 0, 'f'},
+		{"tiles-per-buf", 0, 0, 'p'},
+		{"remove-duct-tape", 0, 0, DUCTAPE},
+		{"tile-size", 1, 0, TILESZ},
+		{"check-render-cpyfn", 0, 0, CHCK_RENDER},
+		{NULL, 0, 0, 0},
+	};
 
-	igt_simple_init(argc, argv);
+	options.scratch_buf_size = 256*4096;
+	options.no_hw = 0;
+	options.use_signal_helper = 1;
+	options.gpu_busy_load = 0;
+	options.num_buffers = 0;
+	options.trace_tile = -1;
+	options.use_render = 1;
+	options.use_blt = 1;
+	options.forced_tiling = -1;
+	options.use_cpu_maps = 0;
+	options.total_rounds = 512;
+	options.fail = 1;
+	options.ducttape = 1;
+	options.tile_size = 16;
+	options.tiles_per_buf = options.scratch_buf_size / TILE_BYTES(options.tile_size);
+	options.check_render_cpyfn = 0;
+
+	igt_simple_init_parse_opts(argc, argv,"ds:g:c:t:rbuxmo:fp:",
+				   long_options, NULL, parse_options);
 
 	drm_fd = drm_open_any();
 	devid = intel_get_drm_devid(drm_fd);
-
-	parse_options(argc, argv);
 
 	/* start our little helper early before too may allocations occur */
 	if (options.use_signal_helper)

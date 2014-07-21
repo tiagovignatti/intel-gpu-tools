@@ -38,7 +38,6 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <limits.h>
-#include <getopt.h>
 #include <signal.h>
 #include <errno.h>
 
@@ -452,45 +451,9 @@ static void background_run_once(void)
 		sleep(3);
 }
 
-static void print_usage(const char *s)
+static int parse_options(int opt, int opt_index)
 {
-	igt_info("%s: [OPTION]...\n", s);
-	igt_info("    where options are:\n");
-	igt_info("    -b --background       run in background inducing wraps\n");
-	igt_info("    -n --rounds=num       run num times across wrap boundary, 0 == forever\n");
-	igt_info("    -t --timeout=sec      set timeout to wait for testrun to sec seconds\n");
-	igt_info("    -d --dontwrap         don't wrap just run the test\n");
-	igt_info("    -p --prewrap=n        set seqno to WRAP - n for each testrun\n");
-	igt_info("    -r --norandom         dont randomize prewrap space\n");
-	igt_info("    -i --buffers          number of buffers to copy\n");
-	igt_fail(-1);
-}
-
-static void parse_options(int argc, char **argv)
-{
-	int c;
-	int option_index = 0;
-	static struct option long_options[] = {
-		{"rounds", required_argument, 0, 'n'},
-		{"background", no_argument, 0, 'b'},
-		{"timeout", required_argument, 0, 't'},
-		{"dontwrap", no_argument, 0, 'd'},
-		{"prewrap", required_argument, 0, 'p'},
-		{"norandom", no_argument, 0, 'r'},
-		{"buffers", required_argument, 0, 'i'},
-	};
-
-	options.rounds = SLOW_QUICK(50, 2);
-	options.background = 0;
-	options.dontwrap = 0;
-	options.timeout = 20;
-	options.random = 1;
-	options.prewrap_space = 21;
-	options.buffers = 10;
-
-	while((c = getopt_long(argc, argv, "n:bvt:dp:ri:",
-			       long_options, &option_index)) != -1) {
-		switch(c) {
+	switch(opt) {
 		case 'b':
 			options.background = 1;
 			igt_info("running in background inducing wraps\n");
@@ -520,17 +483,9 @@ static void parse_options(int argc, char **argv)
 			options.prewrap_space = atoi(optarg);
 			igt_info("prewrap set to %d (0x%x)\n", options.prewrap_space, UINT32_MAX - options.prewrap_space);
 			break;
-		default:
-			igt_info("unkown command options\n");
-			print_usage(argv[0]);
-			break;
-		}
 	}
 
-	if (optind < argc) {
-		igt_info("unkown command options\n");
-		print_usage(argv[0]);
-	}
+	return 0;
 }
 
 int main(int argc, char **argv)
@@ -538,9 +493,36 @@ int main(int argc, char **argv)
 	int wcount = 0;
 	int r = -1;
 
-	igt_simple_init(argc, argv);
+	static struct option long_options[] = {
+		{"rounds", required_argument, 0, 'n'},
+		{"background", no_argument, 0, 'b'},
+		{"timeout", required_argument, 0, 't'},
+		{"dontwrap", no_argument, 0, 'd'},
+		{"prewrap", required_argument, 0, 'p'},
+		{"norandom", no_argument, 0, 'r'},
+		{"buffers", required_argument, 0, 'i'},
+		{ 0, 0, 0, 0 }
+	};
 
-	parse_options(argc, argv);
+	const char *help =
+		"  -b --background       run in background inducing wraps\n"
+		"  -n --rounds=num       run num times across wrap boundary, 0 == forever\n"
+		"  -t --timeout=sec      set timeout to wait for testrun to sec seconds\n"
+		"  -d --dontwrap         don't wrap just run the test\n"
+		"  -p --prewrap=n        set seqno to WRAP - n for each testrun\n"
+		"  -r --norandom         dont randomize prewrap space\n"
+		"  -i --buffers          number of buffers to copy\n";
+
+	options.rounds = SLOW_QUICK(50, 2);
+	options.background = 0;
+	options.dontwrap = 0;
+	options.timeout = 20;
+	options.random = 1;
+	options.prewrap_space = 21;
+	options.buffers = 10;
+
+	igt_simple_init_parse_opts(argc, argv, "n:bvt:dp:ri:", long_options,
+				   help, parse_options);
 
 	card_index = drm_get_card();
 

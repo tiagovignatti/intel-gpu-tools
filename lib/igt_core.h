@@ -36,6 +36,7 @@
 #include <string.h>
 #include <sys/types.h>
 #include <stdarg.h>
+#include <getopt.h>
 
 /**
  * IGT_EXIT_TIMEOUT:

@@ -41,7 +41,6 @@
 #include <errno.h>
 #include <sys/stat.h>
 #include <sys/time.h>
-#include <getopt.h>
 
 #include <drm.h>
 
@@ -67,6 +66,7 @@ typedef struct {
 	drm_intel_bufmgr *bufmgr;
 	uint32_t linear[WIDTH * HEIGHT];
 } data_t;
+static int opt_dump_png = false;
 
 static void scratch_buf_write_to_png(struct igt_buf *buf, const char *filename)
 {
@@ -117,27 +117,24 @@ scratch_buf_check(data_t *data, struct igt_buf *buf, int x, int y,
 		     color, val, x, y);
 }
 
+static int opt_handler(int opt, int opt_index)
+{
+	if (opt == 'd') {
+		opt_dump_png = true;
+	}
+
+	return 0;
+}
+
 int main(int argc, char **argv)
 {
 	data_t data = {0, };
 	struct intel_batchbuffer *batch = NULL;
 	struct igt_buf src, dst;
 	igt_render_copyfunc_t render_copy = NULL;
-	int opt;
-	int opt_dump_png = false;
 	int opt_dump_aub = igt_aub_dump_enabled();
 
-	igt_simple_init(argc, argv);
-
-	while ((opt = getopt(argc, argv, "d")) != -1) {
-		switch (opt) {
-		case 'd':
-			opt_dump_png = true;
-			break;
-		default:
-			break;
-		}
-	}
+	igt_simple_init_parse_opts(argc, argv, "d", NULL, NULL, opt_handler);
 
 	igt_fixture {
 		data.drm_fd = drm_open_any_render();
