@@ -98,7 +98,14 @@ intel_get_avail_ram_mb(void)
 
 #ifdef HAVE_STRUCT_SYSINFO_TOTALRAM /* Linux */
 	struct sysinfo sysinf;
-	int ret;
+	int fd, ret;
+
+	fd = open("/proc/sys/vm/drop_caches", O_RDWR);
+	if (fd != -1) {
+		ret = write(fd, "3", 2);
+		close(fd);
+		(void)ret;
+	}
 
 	ret = sysinfo(&sysinf);
 	assert(ret == 0);
