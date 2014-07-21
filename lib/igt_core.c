@@ -362,17 +362,9 @@ static int common_init(int argc, char **argv,
 			ret = -1;
 			goto out;
 		case '?':
-			if (opterr) {
-				print_usage(command_str, help_str, true);
-				ret = -2;
-				goto out;
-			}
-			/*
-			 * Just ignore the error, since the unknown argument
-			 * can be something the caller understands and will
-			 * parse by doing a second getopt scanning.
-			 */
-			break;
+			print_usage(command_str, help_str, true);
+			ret = -2;
+			goto out;
 		default:
 			ret = extra_opt_handler(c, option_index);
 			if (ret)
@@ -475,18 +467,7 @@ void igt_subtest_init(int argc, char **argv)
  */
 void igt_simple_init(int argc, char **argv)
 {
-	int ret;
-
-	/* supress getopt errors about unknown options */
-	opterr = 0;
-
-	ret = common_init(argc, argv, NULL, NULL, NULL, NULL);
-	if (ret < 0)
-		/* exit with no error for -h/--help */
-		exit(ret == -1 ? 0 : ret);
-
-	/* reset opt parsing */
-	optind = 1;
+	common_init(argc, argv, NULL, NULL, NULL, NULL);
 }
 
 /**
