@@ -97,6 +97,7 @@ gem_handle_to_libdrm_bo(drm_intel_bufmgr *bufmgr, int fd, const char *name, uint
 	int ret;
 	drm_intel_bo *bo;
 
+	memset(&flink, 0, sizeof(handle));
 	flink.handle = handle;
 	ret = ioctl(fd, DRM_IOCTL_GEM_FLINK, &flink);
 	igt_assert(ret == 0);
@@ -196,6 +197,7 @@ void gem_set_caching(int fd, uint32_t handle, uint32_t caching)
 	struct local_drm_i915_gem_caching arg;
 	int ret;
 
+	memset(&arg, 0, sizeof(arg));
 	arg.handle = handle;
 	arg.caching = caching;
 	ret = ioctl(fd, LOCAL_DRM_IOCTL_I915_GEM_SET_CACHEING, &arg);
@@ -242,6 +244,7 @@ uint32_t gem_open(int fd, uint32_t name)
 	struct drm_gem_open open_struct;
 	int ret;
 
+	memset(&open_struct, 0, sizeof(open_struct));
 	open_struct.name = name;
 	ret = ioctl(fd, DRM_IOCTL_GEM_OPEN, &open_struct);
 	igt_assert(ret == 0);
@@ -267,6 +270,7 @@ uint32_t gem_flink(int fd, uint32_t handle)
 	struct drm_gem_flink flink;
 	int ret;
 
+	memset(&flink, 0, sizeof(flink));
 	flink.handle = handle;
 	ret = ioctl(fd, DRM_IOCTL_GEM_FLINK, &flink);
 	igt_assert(ret == 0);
@@ -287,6 +291,7 @@ void gem_close(int fd, uint32_t handle)
 {
 	struct drm_gem_close close_bo;
 
+	memset(&close_bo, 0, sizeof(close_bo));
 	close_bo.handle = handle;
 	do_ioctl(fd, DRM_IOCTL_GEM_CLOSE, &close_bo);
 }
@@ -306,6 +311,7 @@ void gem_write(int fd, uint32_t handle, uint32_t offset, const void *buf, uint32
 {
 	struct drm_i915_gem_pwrite gem_pwrite;
 
+	memset(&gem_pwrite, 0, sizeof(gem_pwrite));
 	gem_pwrite.handle = handle;
 	gem_pwrite.offset = offset;
 	gem_pwrite.size = length;
@@ -328,6 +334,7 @@ void gem_read(int fd, uint32_t handle, uint32_t offset, void *buf, uint32_t leng
 {
 	struct drm_i915_gem_pread gem_pread;
 
+	memset(&gem_pread, 0, sizeof(gem_pread));
 	gem_pread.handle = handle;
 	gem_pread.offset = offset;
 	gem_pread.size = length;
@@ -352,6 +359,7 @@ void gem_set_domain(int fd, uint32_t handle,
 {
 	struct drm_i915_gem_set_domain set_domain;
 
+	memset(&set_domain, 0, sizeof(set_domain));
 	set_domain.handle = handle;
 	set_domain.read_domains = read_domains;
 	set_domain.write_domain = write_domain;
@@ -377,6 +385,7 @@ uint32_t __gem_create(int fd, int size)
 	struct drm_i915_gem_create create;
 	int ret;
 
+	memset(&create, 0, sizeof(create));
 	create.handle = 0;
 	create.size = size;
 	ret = drmIoctl(fd, DRM_IOCTL_I915_GEM_CREATE, &create);
@@ -402,6 +411,7 @@ uint32_t gem_create(int fd, int size)
 {
 	struct drm_i915_gem_create create;
 
+	memset(&create, 0, sizeof(create));
 	create.handle = 0;
 	create.size = size;
 	do_ioctl(fd, DRM_IOCTL_I915_GEM_CREATE, &create);
@@ -446,6 +456,7 @@ void *gem_mmap__gtt(int fd, uint32_t handle, int size, int prot)
 	struct drm_i915_gem_mmap_gtt mmap_arg;
 	void *ptr;
 
+	memset(&mmap_arg, 0, sizeof(mmap_arg));
 	mmap_arg.handle = handle;
 	if (drmIoctl(fd, DRM_IOCTL_I915_GEM_MMAP_GTT, &mmap_arg))
 		return NULL;
@@ -473,6 +484,7 @@ void *gem_mmap__cpu(int fd, uint32_t handle, int size, int prot)
 {
 	struct drm_i915_gem_mmap mmap_arg;
 
+	memset(&mmap_arg, 0, sizeof(mmap_arg));
 	mmap_arg.handle = handle;
 	mmap_arg.offset = 0;
 	mmap_arg.size = size;
@@ -501,6 +513,7 @@ int gem_madvise(int fd, uint32_t handle, int state)
 {
 	struct drm_i915_gem_madvise madv;
 
+	memset(&madv, 0, sizeof(madv));
 	madv.handle = handle;
 	madv.madv = state;
 	madv.retained = 1;
@@ -525,6 +538,7 @@ uint32_t gem_context_create(int fd)
 	struct drm_i915_gem_context_create create;
 	int ret;
 
+	memset(&create, 0, sizeof(create));
 	ret = drmIoctl(fd, DRM_IOCTL_I915_GEM_CONTEXT_CREATE, &create);
 	igt_require(ret == 0 || (errno != ENODEV && errno != EINVAL));
 	igt_assert(ret == 0);
@@ -546,6 +560,7 @@ void gem_sw_finish(int fd, uint32_t handle)
 {
 	struct drm_i915_gem_sw_finish finish;
 
+	memset(&finish, 0, sizeof(finish));
 	finish.handle = handle;
 
 	do_ioctl(fd, DRM_IOCTL_I915_GEM_SW_FINISH, &finish);
@@ -565,6 +580,7 @@ bool gem_bo_busy(int fd, uint32_t handle)
 {
 	struct drm_i915_gem_busy busy;
 
+	memset(&busy, 0, sizeof(busy));
 	busy.handle = handle;
 
 	do_ioctl(fd, DRM_IOCTL_I915_GEM_BUSY, &busy);
@@ -590,8 +606,9 @@ bool gem_bo_busy(int fd, uint32_t handle)
 bool gem_uses_aliasing_ppgtt(int fd)
 {
 	struct drm_i915_getparam gp;
-	int val;
+	int val = 0;
 
+	memset(&gp, 0, sizeof(gp));
 	gp.param = 18; /* HAS_ALIASING_PPGTT */
 	gp.value = &val;
 
@@ -614,8 +631,9 @@ bool gem_uses_aliasing_ppgtt(int fd)
 int gem_available_fences(int fd)
 {
 	struct drm_i915_getparam gp;
-	int val;
+	int val = 0;
 
+	memset(&gp, 0, sizeof(gp));
 	gp.param = I915_PARAM_NUM_FENCES_AVAIL;
 	gp.value = &val;
 
@@ -674,9 +692,9 @@ skip:
 bool gem_has_enable_ring(int fd,int param)
 {
 	drm_i915_getparam_t gp;
-	int tmp;
-	memset(&gp, 0, sizeof(gp));
+	int tmp = 0;
 
+	memset(&gp, 0, sizeof(gp));
 	gp.value = &tmp;
 	gp.param = param;
 
@@ -716,7 +734,6 @@ bool gem_has_bsd(int fd)
  */
 bool gem_has_blt(int fd)
 {
-
 	return gem_has_enable_ring(fd,I915_PARAM_HAS_BLT);
 }
 
@@ -735,7 +752,6 @@ bool gem_has_blt(int fd)
  */
 bool gem_has_vebox(int fd)
 {
-
 	return gem_has_enable_ring(fd,LOCAL_I915_PARAM_HAS_VEBOX);
 }
 
@@ -752,8 +768,10 @@ uint64_t gem_available_aperture_size(int fd)
 {
 	struct drm_i915_gem_get_aperture aperture;
 
+	memset(&aperture, 0, sizeof(aperture));
 	aperture.aper_size = 256*1024*1024;
 	do_ioctl(fd, DRM_IOCTL_I915_GEM_GET_APERTURE, &aperture);
+
 	return aperture.aper_available_size;
 }
 
@@ -769,8 +787,10 @@ uint64_t gem_aperture_size(int fd)
 {
 	struct drm_i915_gem_get_aperture aperture;
 
+	memset(&aperture, 0, sizeof(aperture));
 	aperture.aper_size = 256*1024*1024;
 	do_ioctl(fd, DRM_IOCTL_I915_GEM_GET_APERTURE, &aperture);
+
 	return aperture.aper_size;
 }
 
@@ -785,9 +805,8 @@ uint64_t gem_aperture_size(int fd)
  */
 uint64_t gem_mappable_aperture_size(void)
 {
-	struct pci_device *pci_dev;
+	struct pci_device *pci_dev = intel_get_pci_device();
 	int bar;
-	pci_dev = intel_get_pci_device();
 
 	if (intel_gen(pci_dev->device_id) < 3)
 		bar = 0;
@@ -809,6 +828,7 @@ void gem_require_caching(int fd)
 	struct local_drm_i915_gem_caching arg;
 	int ret;
 
+	memset(&arg, 0, sizeof(arg));
 	arg.handle = gem_create(fd, 4096);
 	igt_assert(arg.handle != 0);
 
@@ -868,6 +888,7 @@ int prime_handle_to_fd(int fd, uint32_t handle)
 {
 	struct drm_prime_handle args;
 
+	memset(&args, 0, sizeof(args));
 	args.handle = handle;
 	args.flags = DRM_CLOEXEC;
 	args.fd = -1;
@@ -891,6 +912,7 @@ uint32_t prime_fd_to_handle(int fd, int dma_buf_fd)
 {
 	struct drm_prime_handle args;
 
+	memset(&args, 0, sizeof(args));
 	args.fd = dma_buf_fd;
 	args.flags = 0;
 	args.handle = 0;
@@ -913,6 +935,7 @@ uint32_t prime_fd_to_handle(int fd, int dma_buf_fd)
 off_t prime_get_size(int dma_buf_fd)
 {
 	off_t ret;
+
 	ret = lseek(dma_buf_fd, 0, SEEK_END);
 	igt_assert(ret >= 0 || errno == ESPIPE);
 	igt_require(ret >= 0);

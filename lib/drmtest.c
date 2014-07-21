@@ -77,8 +77,9 @@ static int
 is_intel(int fd)
 {
 	struct drm_i915_getparam gp;
-	int devid;
+	int devid = 0;
 
+	memset(&gp, 0, sizeof(gp));
 	gp.param = I915_PARAM_CHIPSET_ID;
 	gp.value = &devid;
 

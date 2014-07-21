@@ -130,15 +130,17 @@ intel_get_pci_device(void)
 uint32_t
 intel_get_drm_devid(int fd)
 {
-	int ret;
-	struct drm_i915_getparam gp;
-	uint32_t devid;
-	char *override;
+	uint32_t devid = 0;
+	const char *override;
 
 	override = getenv("INTEL_DEVID_OVERRIDE");
 	if (override) {
 		devid = strtod(override, NULL);
 	} else {
+		struct drm_i915_getparam gp;
+		int ret;
+
+		memset(&gp, 0, sizeof(gp));
 		gp.param = I915_PARAM_CHIPSET_ID;
 		gp.value = (int *)&devid;
 
