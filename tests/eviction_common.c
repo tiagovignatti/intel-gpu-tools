@@ -35,6 +35,7 @@
 struct igt_eviction_test_ops
 {
 	uint32_t (*create)(int fd, int size);
+	void (*flink)(uint32_t old_handle, uint32_t new_handle);
 	void	 (*close)(int fd, uint32_t bo);
 	int	 (*copy)(int fd, uint32_t dst, uint32_t src,
 			 uint32_t *all_bo, int nr_bos);
@@ -190,6 +191,7 @@ static int forking_evictions(int fd, struct igt_eviction_test_ops *ops,
 	} else
 		bo_count = working_surfaces;
 
+	igt_assert(working_surfaces <= bo_count);
 	igt_require(intel_check_memory(bo_count, surface_size, CHECK_RAM | CHECK_SWAP));
 
 	bo = malloc(bo_count*sizeof(*bo));
@@ -215,10 +217,12 @@ static int forking_evictions(int fd, struct igt_eviction_test_ops *ops,
 
 			/* We can overwrite the bo array since we're forked. */
 			for (l = 0; l < bo_count; l++) {
-				uint32_t flink;
+				uint32_t handle = bo[l];
+				uint32_t flink = gem_flink(fd, bo[l]);
 
-				flink = gem_flink(fd, bo[l]);
 				bo[l] = gem_open(realfd, flink);
+				if (ops->flink)
+					ops->flink(handle, bo[l]);
 			}
 		}
 
