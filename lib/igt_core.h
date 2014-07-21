@@ -372,7 +372,7 @@ void igt_waitchildren(void);
 /**
  * igt_helper_process_t:
  * @running: indicates whether the process is currently running
- * @use_SIGKILL: whether the helper should be terminated with SIGKILL or SIGQUIT
+ * @use_SIGKILL: whether the helper should be terminated with SIGKILL or SIGTERM
  * @pid: pid of the helper if @running is true
  * @id: internal id
  *

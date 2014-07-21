@@ -761,7 +761,7 @@ static void fork_helper_exit_handler(int sig)
 			/* Someone forgot to fill up the array? */
 			assert(pid != 0);
 
-			ret = kill(pid, SIGQUIT);
+			ret = kill(pid, SIGTERM);
 			assert(ret == 0);
 			while (waitpid(pid, &status, 0) == -1 &&
 			       errno == EINTR)
@@ -821,13 +821,14 @@ void igt_stop_helper(struct igt_helper_process *proc)
 	assert(proc->running);
 
 	ret = kill(proc->pid,
-		   proc->use_SIGKILL ? SIGKILL : SIGQUIT);
+		   proc->use_SIGKILL ? SIGKILL : SIGTERM);
 	assert(ret == 0);
+
 	while (waitpid(proc->pid, &status, 0) == -1 &&
 	       errno == EINTR)
 		;
 	igt_assert(WIFSIGNALED(status) &&
-		   WTERMSIG(status) == (proc->use_SIGKILL ? SIGKILL : SIGQUIT));
+		   WTERMSIG(status) == (proc->use_SIGKILL ? SIGKILL : SIGTERM));
 
 	proc->running = false;
 
@@ -867,7 +868,7 @@ static void children_exit_handler(int sig)
 
 	for (int nc = 0; nc < num_test_children; nc++) {
 		int status = -1;
-		ret = kill(test_children[nc], SIGQUIT);
+		ret = kill(test_children[nc], SIGTERM);
 		assert(ret == 0);
 
 		while (waitpid(test_children[nc], &status, 0) == -1 &&
