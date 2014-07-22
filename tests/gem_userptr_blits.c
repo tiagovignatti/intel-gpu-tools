@@ -1137,21 +1137,32 @@ static void test_unmap_cycles(int fd, int expected)
 		test_unmap(fd, expected);
 }
 
+struct stress_thread_data {
+	unsigned int stop;
+	int exit_code;
+};
+
 static void *mm_stress_thread(void *data)
 {
-        void *ptr;
-        int ret;
+	struct stress_thread_data *stdata = (struct stress_thread_data *)data;
+	void *ptr;
+	int ret;
 
-	for (;;) {
+	while (!stdata->stop) {
 		ptr = mmap(NULL, PAGE_SIZE, PROT_READ | PROT_WRITE,
 				MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
-		igt_assert(ptr != MAP_FAILED);
+		if (ptr == MAP_FAILED) {
+			stdata->exit_code = -EFAULT;
+			break;
+		}
 		ret = munmap(ptr, PAGE_SIZE);
-		igt_assert(ret == 0);
-		pthread_testcancel();
-        }
+		if (ret) {
+		        stdata->exit_code = errno;
+		        break;
+		}
+	}
 
-        return NULL;
+	return NULL;
 }
 
 static void test_stress_mm(int fd)
@@ -1161,10 +1172,13 @@ static void test_stress_mm(int fd)
 	unsigned int loops = 100000;
 	uint32_t handle;
 	void *ptr;
+	struct stress_thread_data stdata;
+
+	memset(&stdata, 0, sizeof(stdata));
 
 	igt_assert(posix_memalign(&ptr, PAGE_SIZE, PAGE_SIZE) == 0);
 
-	ret = pthread_create(&t, NULL, mm_stress_thread, NULL);
+	ret = pthread_create(&t, NULL, mm_stress_thread, &stdata);
 	igt_assert(ret == 0);
 
 	while (loops--) {
@@ -1176,10 +1190,11 @@ static void test_stress_mm(int fd)
 
 	free(ptr);
 
-	ret = pthread_cancel(t);
-	igt_assert(ret == 0);
+	stdata.stop = 1;
 	ret = pthread_join(t, NULL);
 	igt_assert(ret == 0);
+
+	igt_assert(stdata.exit_code == 0);
 }
 
 unsigned int total_ram;
