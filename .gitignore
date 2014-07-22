@@ -84,7 +84,6 @@ cscope.*
 TAGS
 build-aux/
 __pycache__
-version.h
 
 gtk-doc.make
 gtk-doc.m4

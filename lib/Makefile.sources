@@ -47,3 +47,28 @@ libintel_tools_la_SOURCES = 	\
 	igt_core.h		\
 	$(NULL)
 
+.PHONY: version.h.tmp
+version.h.tmp:
+	@touch $@
+	@if test -d $(top_srcdir)/.git; then \
+		if which git > /dev/null 2>&1; then git log -n 1 --oneline | \
+			sed 's/^\([^ ]*\) .*/#define IGT_GIT_SHA1 "g\1"/' \
+			>> $@ ; \
+		else \
+			echo '#define IGT_GIT_SHA1 "NO-GIT"' >> $@ ; \
+		fi \
+	else \
+		echo '#define IGT_GIT_SHA1 "NOT-GIT"' >> $@ ; \
+	fi
+
+version.h: version.h.tmp
+	@if ! cmp -s version.h.tmp version.h; then \
+		echo "updating version.h"; \
+		mv version.h.tmp version.h ;\
+	else \
+		rm version.h.tmp ;\
+	fi
+
+BUILT_SOURCES = version.h
+CLEANFILES = version.h version.h.tmp
+
