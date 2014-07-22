@@ -589,22 +589,22 @@ static void test_forked_access(int fd)
 	void *ptr1 = NULL, *ptr2 = NULL;
 	int ret;
 
-	ret = posix_memalign(&ptr1, PAGE_SIZE, PAGE_SIZE);
-	ret |= madvise(ptr1, PAGE_SIZE, MADV_DONTFORK);
-	ret |= gem_userptr(fd, ptr1, PAGE_SIZE, 0, &handle1);
+	ret = posix_memalign(&ptr1, PAGE_SIZE, sizeof(linear));
+	ret |= madvise(ptr1, sizeof(linear), MADV_DONTFORK);
+	ret |= gem_userptr(fd, ptr1, sizeof(linear), 0, &handle1);
 	igt_assert(ret == 0);
 	igt_assert(ptr1);
 	igt_assert(handle1);
 
-	ret = posix_memalign(&ptr2, PAGE_SIZE, PAGE_SIZE);
-	ret |= madvise(ptr2, PAGE_SIZE, MADV_DONTFORK);
-	ret |= gem_userptr(fd, ptr2, PAGE_SIZE, 0, &handle2);
+	ret = posix_memalign(&ptr2, PAGE_SIZE, sizeof(linear));
+	ret |= madvise(ptr2, sizeof(linear), MADV_DONTFORK);
+	ret |= gem_userptr(fd, ptr2, sizeof(linear), 0, &handle2);
 	igt_assert(ret == 0);
 	igt_assert(ptr2);
 	igt_assert(handle2);
 
-	memset(ptr1, 0x1, PAGE_SIZE);
-	memset(ptr2, 0x2, PAGE_SIZE);
+	memset(ptr1, 0x1, sizeof(linear));
+	memset(ptr2, 0x2, sizeof(linear));
 
 	igt_fork(child, 1) {
 		copy(fd, handle1, handle2, 0);
@@ -617,13 +617,13 @@ static void test_forked_access(int fd)
 	gem_close(fd, handle1);
 	gem_close(fd, handle2);
 
-	igt_assert(memcmp(ptr1, ptr2, PAGE_SIZE) == 0);
+	igt_assert(memcmp(ptr1, ptr2, sizeof(linear)) == 0);
 
-	ret = madvise(ptr1, PAGE_SIZE, MADV_DOFORK);
+	ret = madvise(ptr1, sizeof(linear), MADV_DOFORK);
 	igt_assert(ret == 0);
 	free(ptr1);
 
-	ret = madvise(ptr2, PAGE_SIZE, MADV_DOFORK);
+	ret = madvise(ptr2, sizeof(linear), MADV_DOFORK);
 	igt_assert(ret == 0);
 	free(ptr2);
 }
