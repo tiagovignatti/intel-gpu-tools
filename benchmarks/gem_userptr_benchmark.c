@@ -58,7 +58,7 @@
   #define PAGE_SIZE 4096
 #endif
 
-#define LOCAL_I915_GEM_USERPTR       0x34
+#define LOCAL_I915_GEM_USERPTR       0x33
 #define LOCAL_IOCTL_I915_GEM_USERPTR DRM_IOWR (DRM_COMMAND_BASE + LOCAL_I915_GEM_USERPTR, struct local_i915_gem_userptr)
 struct local_i915_gem_userptr {
 	uint64_t user_ptr;
