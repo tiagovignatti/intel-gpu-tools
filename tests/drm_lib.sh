@@ -34,6 +34,8 @@ if [ `cat $i915_dfs_path/clients | wc -l` -gt "2" ] ; then
 		die "ERROR: other drm clients running"
 fi
 
+whoami | grep -q root || ( echo ERROR: not running as root; exit 1 )
+
 i915_sfs_path=
 if [ -d /sys/class/drm ] ; then
     sysfs_path=/sys/class/drm

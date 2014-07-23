@@ -2,8 +2,6 @@
 # Test some of the most critical tools we have accidentally broken before.
 # TODO: Possibly make tests parse output
 
-whoami | grep -q root || ( echo ERROR: not running as root; exit 1 )
-
 SOURCE_DIR="$( dirname "${BASH_SOURCE[0]}" )"
 . $SOURCE_DIR/drm_lib.sh
 
