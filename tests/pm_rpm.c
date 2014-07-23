@@ -1407,24 +1407,38 @@ static void dpms_mode_unset_subtest(enum screen_type type)
 	igt_assert(wait_for_suspended());
 }
 
+int rounds = 50;
+bool stay = false;
+
+static int opt_handler(int opt, int opt_index)
+{
+	switch (opt) {
+	case 'q':
+		rounds = 10;
+		break;
+	case 's':
+		stay = true;
+		break;
+	default:
+		igt_assert(0);
+	}
+
+	return 0;
+}
+
 int main(int argc, char *argv[])
 {
-	int rounds = 50;
-	bool stay = false;
+	const char *help_str =
+	       "  --quick\t\tMake the stress-tests not stressful, for quick regression testing.\n"
+	       "  --stay\t\tDisable all screen and try to go into runtime pm. Useful for debugging.";
+	static struct option long_options[] = {
+		{"quick", 0, 0, 'q'},
+		{"stay", 0, 0, 's'},
+		{ 0, 0, 0, 0 }
+	};
 
-	igt_subtest_init(argc, argv);
-
-	/* The --quick option makes the stress tests not so stressful. Useful
-	 * when you're developing and just want to make a quick test to make
-	 * sure you didn't break everything. */
-	if (argc > 1 && strcmp(argv[1], "--quick") == 0)
-		rounds = 10;
-
-	/* The --stay option enables a mode where we disable all the screens,
-	 * then stay like that, runtime suspended. This mode is useful for
-	 * running manual tests while debugging. */
-	if (argc > 1 && strcmp(argv[1], "--stay") == 0)
-		stay = true;
+	igt_subtest_init_parse_opts(argc, argv, "", long_options,
+				    help_str, opt_handler);
 
 	/* Skip instead of failing in case the machine is not prepared to reach
 	 * PC8+. We don't want bug reports from cases where the machine is just
