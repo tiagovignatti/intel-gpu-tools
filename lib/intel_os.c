@@ -102,7 +102,7 @@ intel_get_avail_ram_mb(void)
 
 	fd = open("/proc/sys/vm/drop_caches", O_RDWR);
 	if (fd != -1) {
-		ret = write(fd, "3", 2);
+		ret = write(fd, "3\n", 2);
 		close(fd);
 		(void)ret;
 	}
