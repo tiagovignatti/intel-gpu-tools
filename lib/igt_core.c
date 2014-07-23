@@ -276,7 +276,9 @@ static void print_usage(const char *command_str, const char *help_str,
 
 	fprintf(f, "Usage: %s [OPTIONS]\n"
 		   "  --list-subtests\n"
-		   "  --run-subtest <pattern>\n", command_str);
+		   "  --run-subtest <pattern>\n"
+		   "  --debug\n"
+		   "  --help\n", command_str);
 	if (help_str)
 		fprintf(f, "%s\n", help_str);
 }
@@ -301,6 +303,7 @@ static int common_init(int argc, char **argv,
 	static struct option long_options[] = {
 		{"list-subtests", 0, 0, 'l'},
 		{"run-subtest", 1, 0, 'r'},
+		{"debug", 0, 0, 'd'},
 		{"help", 0, 0, 'h'},
 	};
 	const char *command_str;
@@ -349,6 +352,9 @@ static int common_init(int argc, char **argv,
 	while ((c = getopt_long(argc, argv, short_opts, combined_opts,
 			       &option_index)) != -1) {
 		switch(c) {
+		case 'd':
+			igt_log_level = IGT_LOG_DEBUG;
+			break;
 		case 'l':
 			if (!run_single_subtest)
 				list_subtests = true;
