@@ -10,6 +10,12 @@ Release 1.8 (xxxx-xx-xx)
 
 - As usual piles of new tests.
 
+- Improved plane/pipe handling in the igt_kms library (Damien).
+
+- Unified option parsing between simple tests and tests with subtests (Thomas).
+  This will allow us to merge the different Makefile targets once test runners
+  are converted.
+
 Release 1.7 (2014-06-09)
 ------------------------
 
