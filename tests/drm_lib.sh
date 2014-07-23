@@ -1,4 +1,17 @@
 #!/bin/sh
+
+# hacked-up long option parsing
+for arg in $@ ; do
+	case $arg in
+		--list-subtests)
+			exit 79
+			;;
+		--run-subtest)
+			exit 79
+			;;
+	esac
+done
+
 die() {
 	echo "$@"
 	exit 1
