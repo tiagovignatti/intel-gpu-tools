@@ -389,15 +389,15 @@ out:
 	if (!test_with_subtests) {
 		if (run_single_subtest) {
 			igt_warn("Unknown subtest: %s\n", run_single_subtest);
-			exit(-1);
+			exit(IGT_EXIT_INVALID);
 		}
 		if (list_subtests)
-			exit(-1);
+			exit(IGT_EXIT_INVALID);
 	}
 
 	if (ret < 0)
 		/* exit with no error for -h/--help */
-		exit(ret == -1 ? 0 : ret);
+		exit(ret == -1 ? 0 : IGT_EXIT_INVALID);
 
 	print_version();
 
@@ -758,7 +758,7 @@ void igt_exit(void)
 
 	if (run_single_subtest && !run_single_subtest_found) {
 		igt_warn("Unknown subtest: %s\n", run_single_subtest);
-		exit(-1);
+		exit(IGT_EXIT_INVALID);
 	}
 
 

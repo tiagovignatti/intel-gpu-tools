@@ -59,6 +59,13 @@
  */
 #define IGT_EXIT_SUCCESS 0
 
+/**
+ * IGT_EXIT_INVALID
+ *
+ * Exit status indicating an invalid option or subtest was specified
+ */
+#define IGT_EXIT_INVALID 79
+
 
 bool __igt_fixture(void);
 void __igt_fixture_complete(void);
