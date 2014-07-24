@@ -843,6 +843,29 @@ bool __igt_fork_helper(struct igt_helper_process *proc)
 }
 
 /**
+ * igt_wait_helper:
+ * @proc: #igt_helper_process structure
+ *
+ * Joins a helper process. It is an error to call this on a helper process which
+ * hasn't been spawned yet.
+ */
+int igt_wait_helper(struct igt_helper_process *proc)
+{
+	int status = -1;
+
+	assert(proc->running);
+
+	waitpid(proc->pid, &status, WNOHANG);
+
+	proc->running = false;
+
+	helper_process_pids[proc->id] = -1;
+	helper_process_count--;
+
+	return status;
+}
+
+/**
  * igt_stop_helper:
  * @proc: #igt_helper_process structure
  *
@@ -851,48 +874,14 @@ bool __igt_fork_helper(struct igt_helper_process *proc)
  */
 void igt_stop_helper(struct igt_helper_process *proc)
 {
-	int status, ret;
-
-	assert(proc->running);
-
-	ret = kill(proc->pid,
-		   proc->use_SIGKILL ? SIGKILL : SIGTERM);
-	assert(ret == 0);
-
-	while (waitpid(proc->pid, &status, 0) == -1 &&
-	       errno == EINTR)
-		;
-	igt_assert(WIFSIGNALED(status) &&
-		   WTERMSIG(status) == (proc->use_SIGKILL ? SIGKILL : SIGTERM));
-
-	proc->running = false;
-
-	helper_process_pids[proc->id] = -1;
-	helper_process_count--;
-}
-
-/**
- * igt_wait_helper:
- * @proc: #igt_helper_process structure
- *
- * Joins a helper process. It is an error to call this on a helper process which
- * hasn't been spawned yet.
- */
-void igt_wait_helper(struct igt_helper_process *proc)
-{
 	int status;
 
-	assert(proc->running);
+	/* failure here means the pid is already dead and so waiting is safe */
+	kill(proc->pid, proc->use_SIGKILL ? SIGKILL : SIGTERM);
 
-	while (waitpid(proc->pid, &status, 0) == -1 &&
-	       errno == EINTR)
-		;
-	igt_assert(WIFEXITED(status) && WEXITSTATUS(status) == 0);
-
-	proc->running = false;
-
-	helper_process_pids[proc->id] = -1;
-	helper_process_count--;
+	status = igt_wait_helper(proc);
+	assert(WIFSIGNALED(status) &&
+	       WTERMSIG(status) == (proc->use_SIGKILL ? SIGKILL : SIGTERM));
 }
 
 static void children_exit_handler(int sig)

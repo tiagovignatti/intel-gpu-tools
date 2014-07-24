@@ -420,7 +420,7 @@ bool __igt_fork_helper(struct igt_helper_process *proc);
  */
 #define igt_fork_helper(proc) \
 	for (; __igt_fork_helper(proc); exit(0))
-void igt_wait_helper(struct igt_helper_process *proc);
+int igt_wait_helper(struct igt_helper_process *proc);
 void igt_stop_helper(struct igt_helper_process *proc);
 
 /* exit handler code */
