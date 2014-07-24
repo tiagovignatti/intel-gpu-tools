@@ -791,16 +791,24 @@ static void reset_helper_process_list(void)
 	helper_process_count = 0;
 }
 
+static int __waitpid(pid_t pid)
+{
+	int status = -1;
+	while (waitpid(pid, &status, 0) == -1 &&
+	       errno == EINTR)
+		;
+
+	return status;
+}
+
 static void fork_helper_exit_handler(int sig)
 {
-	int status;
-
 	/* Inside a signal handler, play safe */
 	for (int i = 0; i < ARRAY_SIZE(helper_process_pids); i++) {
 		pid_t pid = helper_process_pids[i];
 		if (pid != -1) {
 			kill(pid, SIGTERM);
-			waitpid(pid, &status, WNOHANG);
+			__waitpid(pid);
 			helper_process_count--;
 		}
 	}
@@ -851,11 +859,11 @@ bool __igt_fork_helper(struct igt_helper_process *proc)
  */
 int igt_wait_helper(struct igt_helper_process *proc)
 {
-	int status = -1;
+	int status;
 
 	assert(proc->running);
 
-	waitpid(proc->pid, &status, WNOHANG);
+	status = __waitpid(proc->pid);
 
 	proc->running = false;
 
