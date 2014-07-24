@@ -793,19 +793,14 @@ static void reset_helper_process_list(void)
 
 static void fork_helper_exit_handler(int sig)
 {
+	int status;
+
+	/* Inside a signal handler, play safe */
 	for (int i = 0; i < ARRAY_SIZE(helper_process_pids); i++) {
 		pid_t pid = helper_process_pids[i];
-		int status, ret;
-
 		if (pid != -1) {
-			/* Someone forgot to fill up the array? */
-			assert(pid != 0);
-
-			ret = kill(pid, SIGTERM);
-			assert(ret == 0);
-			while (waitpid(pid, &status, 0) == -1 &&
-			       errno == EINTR)
-				;
+			kill(pid, SIGTERM);
+			waitpid(pid, &status, WNOHANG);
 			helper_process_count--;
 		}
 	}
@@ -902,21 +897,11 @@ void igt_wait_helper(struct igt_helper_process *proc)
 
 static void children_exit_handler(int sig)
 {
-	int ret;
+	int status;
 
-	assert(!test_child);
-
-	for (int nc = 0; nc < num_test_children; nc++) {
-		int status = -1;
-		ret = kill(test_children[nc], SIGTERM);
-		assert(ret == 0);
-
-		while (waitpid(test_children[nc], &status, 0) == -1 &&
-		       errno == EINTR)
-			;
-	}
-
-	num_test_children = 0;
+	/* The exit handler can be called from a fatal signal, so play safe */
+	while (num_test_children-- && wait(&status))
+		;
 }
 
 bool __igt_fork(void)
