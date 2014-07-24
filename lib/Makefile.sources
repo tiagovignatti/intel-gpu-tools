@@ -48,12 +48,14 @@ libintel_tools_la_SOURCES = 	\
 	$(NULL)
 
 .PHONY: version.h.tmp
-version.h.tmp:
+
+$(IGT_LIB_PATH)/version.h.tmp:
 	@touch $@
-	@if test -d $(top_srcdir)/.git; then \
-		if which git > /dev/null 2>&1; then git log -n 1 --oneline | \
+	@if test -d $(GPU_TOOLS_PATH)/.git; then \
+		if which git > /dev/null 2>&1; then cd $(@D); \
+			git log -n 1 --oneline | \
 			sed 's/^\([^ ]*\) .*/#define IGT_GIT_SHA1 "g\1"/' \
-			>> $@ ; \
+			>> $(@F) ; \
 		else \
 			echo '#define IGT_GIT_SHA1 "NO-GIT"' >> $@ ; \
 		fi \
@@ -61,14 +63,14 @@ version.h.tmp:
 		echo '#define IGT_GIT_SHA1 "NOT-GIT"' >> $@ ; \
 	fi
 
-version.h: version.h.tmp
-	@if ! cmp -s version.h.tmp version.h; then \
-		echo "updating version.h"; \
-		mv version.h.tmp version.h ;\
+
+$(IGT_LIB_PATH)/version.h: $(IGT_LIB_PATH)/version.h.tmp
+	@if ! cmp -s $(IGT_LIB_PATH)/version.h.tmp $(IGT_LIB_PATH)/version.h; then \
+		mv $(IGT_LIB_PATH)/version.h.tmp $(IGT_LIB_PATH)/version.h ; \
 	else \
-		rm version.h.tmp ;\
+		rm $(IGT_LIB_PATH)/version.h.tmp ; \
 	fi
 
-BUILT_SOURCES = version.h
-CLEANFILES = version.h version.h.tmp
+BUILT_SOURCES = $(IGT_LIB_PATH)/version.h
+CLEANFILES = $(IGT_LIB_PATH)/version.h $(IGT_LIB_PATH)/version.h.tmp
 

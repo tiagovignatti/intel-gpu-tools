@@ -1,6 +1,7 @@
 LOCAL_PATH := $(call my-dir)
 
 GPU_TOOLS_PATH := $(LOCAL_PATH)/..
+IGT_LIB_PATH := $(LOCAL_PATH)
 
 # FIXME: autogenerate this info #
 $(GPU_TOOLS_PATH)/config.h:
@@ -13,7 +14,7 @@ include $(LOCAL_PATH)/Makefile.sources
 include $(CLEAR_VARS)
 
 LOCAL_GENERATED_SOURCES :=       \
-	$(GPU_TOOLS_PATH)/lib/version.h  \
+	$(IGT_LIB_PATH)/version.h  \
 	$(GPU_TOOLS_PATH)/config.h
 
 LOCAL_C_INCLUDES +=              \
