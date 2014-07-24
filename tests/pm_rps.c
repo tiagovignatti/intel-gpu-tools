@@ -34,6 +34,7 @@
 #include <fcntl.h>
 #include <signal.h>
 #include <errno.h>
+#include <sys/wait.h>
 
 #include "drmtest.h"
 #include "intel_io.h"
