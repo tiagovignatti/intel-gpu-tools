@@ -725,6 +725,11 @@ static void set_termio_mode(void)
 {
 	struct termios tio;
 
+	/* don't attempt to set terminal attributes if not in the foreground
+	 * process group */
+	if (getpgrp() != tcgetpgrp(STDOUT_FILENO))
+		return;
+
 	tio_fd = dup(STDIN_FILENO);
 	tcgetattr(tio_fd, &saved_tio);
 	igt_install_exit_handler(restore_termio_mode);
