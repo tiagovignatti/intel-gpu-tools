@@ -269,8 +269,9 @@ static void print_version(void)
 		uts.sysname, uts.release, uts.machine);
 }
 
-static void print_usage(const char *command_str, const char *help_str,
-			bool output_on_stderr)
+static const char *command_str;
+
+static void print_usage(const char *help_str, bool output_on_stderr)
 {
 	FILE *f = output_on_stderr ? stderr : stdout;
 
@@ -306,7 +307,6 @@ static int common_init(int argc, char **argv,
 		{"debug", 0, 0, 'd'},
 		{"help", 0, 0, 'h'},
 	};
-	const char *command_str;
 	char *short_opts;
 	struct option *combined_opts;
 	int extra_opt_count;
@@ -364,11 +364,11 @@ static int common_init(int argc, char **argv,
 				run_single_subtest = strdup(optarg);
 			break;
 		case 'h':
-			print_usage(command_str, help_str, false);
+			print_usage(help_str, false);
 			ret = -1;
 			goto out;
 		case '?':
-			print_usage(command_str, help_str, true);
+			print_usage(help_str, true);
 			ret = -2;
 			goto out;
 		default:
@@ -498,6 +498,24 @@ void igt_simple_init_parse_opts(int argc, char **argv,
 		    extra_opt_handler);
 }
 
+__attribute__((format(printf, 1, 2)))
+static void kmsg(const char *format, ...)
+#define KERN_INFO "<5>"
+{
+	va_list ap;
+	FILE *file;
+
+	file = fopen("/dev/kmsg", "w");
+	if (file == NULL)
+		return;
+
+	va_start(ap, format);
+	vfprintf(file, format, ap);
+	va_end(ap);
+
+	fclose(file);
+}
+
 /*
  * Note: Testcases which use these helpers MUST NOT output anything to stdout
  * outside of places protected by igt_run_subtest checks - the piglit
@@ -528,6 +546,8 @@ bool __igt_run_subtest(const char *subtest_name)
 		       "SKIP" : "FAIL");
 		return false;
 	}
+
+	kmsg(KERN_INFO "%s: starting subtest %s\n", command_str, subtest_name);
 
 	return (in_subtest = subtest_name);
 }
