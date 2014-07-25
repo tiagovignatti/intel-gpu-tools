@@ -1,4 +1,4 @@
-AM_CPPFLAGS = -I$(top_srcdir)/lib $(PYTHON_CPPFLAGS) $(DRM_CFLAGS) $(CAIRO_CFLAGS) -I$(top_srcdir)
+AM_CPPFLAGS = -I$(top_srcdir)/lib -I$(top_builddir)/lib $(PYTHON_CPPFLAGS) $(DRM_CFLAGS) $(CAIRO_CFLAGS) -I$(top_srcdir)
 
 BUILT_SOURCES = chipset_wrap_python.c
 
