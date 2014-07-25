@@ -16,6 +16,9 @@ Release 1.8 (xxxx-xx-xx)
   This will allow us to merge the different Makefile targets once test runners
   are converted.
 
+- New commit functions for igt_kms to support the new universal planes
+  interfaces (Matt Roper).
+
 Release 1.7 (2014-06-09)
 ------------------------
 
