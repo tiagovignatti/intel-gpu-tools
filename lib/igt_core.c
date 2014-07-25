@@ -218,6 +218,13 @@ int num_test_children;
 int test_children_sz;
 bool test_child;
 
+enum {
+ OPT_LIST_SUBTESTS,
+ OPT_RUN_SUBTEST,
+ OPT_DEBUG,
+ OPT_HELP = 'h'
+};
+
 __attribute__((format(printf, 1, 2)))
 static void kmsg(const char *format, ...)
 #define KERN_INFO "<5>"
@@ -320,10 +327,10 @@ static int common_init(int argc, char **argv,
 {
 	int c, option_index = 0;
 	static struct option long_options[] = {
-		{"list-subtests", 0, 0, 'l'},
-		{"run-subtest", 1, 0, 'r'},
-		{"debug", 0, 0, 'd'},
-		{"help", 0, 0, 'h'},
+		{"list-subtests", 0, 0, OPT_LIST_SUBTESTS},
+		{"run-subtest", 1, 0, OPT_RUN_SUBTEST},
+		{"debug", 0, 0, OPT_DEBUG},
+		{"help", 0, 0, OPT_HELP},
 	};
 	char *short_opts;
 	struct option *combined_opts;
@@ -370,18 +377,18 @@ static int common_init(int argc, char **argv,
 	while ((c = getopt_long(argc, argv, short_opts, combined_opts,
 			       &option_index)) != -1) {
 		switch(c) {
-		case 'd':
+		case OPT_DEBUG:
 			igt_log_level = IGT_LOG_DEBUG;
 			break;
-		case 'l':
+		case OPT_LIST_SUBTESTS:
 			if (!run_single_subtest)
 				list_subtests = true;
 			break;
-		case 'r':
+		case OPT_RUN_SUBTEST:
 			if (!list_subtests)
 				run_single_subtest = strdup(optarg);
 			break;
-		case 'h':
+		case OPT_HELP:
 			print_usage(help_str, false);
 			ret = -1;
 			goto out;
