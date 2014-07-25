@@ -72,6 +72,21 @@
  * and [batchbuffer](intel-gpu-tools-intel-batchbuffer.html) libraries as dependencies.
  */
 
+static int is_i915_device(int fd)
+{
+	drm_version_t version;
+	char name[5] = "";
+
+	memset(&version, 0, sizeof(version));
+	version.name_len = 4;
+	version.name = name;
+
+	if (drmIoctl(fd, DRM_IOCTL_VERSION, &version))
+		return 0;
+
+	return strcmp("i915", name) == 0;
+}
+
 static int
 is_intel(int fd)
 {
@@ -194,7 +209,7 @@ int drm_get_card(void)
 		if (fd == -1)
 			continue;
 
-		if (!is_intel(fd)) {
+		if (!is_i915_device(fd) || !is_intel(fd)) {
 			close(fd);
 			continue;
 		}
@@ -211,22 +226,23 @@ int drm_get_card(void)
 /** Open the first DRM device we can find, searching up to 16 device nodes */
 static int __drm_open_any(void)
 {
-	char *name;
-	int ret, fd;
+	for (int i = 0; i < 16; i++) {
+		char name[80];
+		int fd;
 
-	ret = asprintf(&name, "/dev/dri/card%d", drm_get_card());
-	if (ret == -1)
-		return -1;
+		sprintf(name, "/dev/dri/card%u", i);
+		fd = open(name, O_RDWR);
+		if (fd == -1)
+			continue;
 
-	fd = open(name, O_RDWR);
-	free(name);
+		if (is_i915_device(fd) && is_intel(fd))
+			return fd;
 
-	if (!is_intel(fd)) {
 		close(fd);
-		fd = -1;
 	}
 
-	return fd;
+	igt_skip("No intel gpu found\n");
+	return -1;
 }
 
 static int __drm_open_any_render(void)
@@ -246,7 +262,7 @@ static int __drm_open_any_render(void)
 		if (fd == -1)
 			continue;
 
-		if (!is_intel(fd)) {
+		if (!is_i915_device(fd) || !is_intel(fd)) {
 			close(fd);
 			fd = -1;
 			continue;
