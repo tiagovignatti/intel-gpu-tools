@@ -218,6 +218,24 @@ int num_test_children;
 int test_children_sz;
 bool test_child;
 
+__attribute__((format(printf, 1, 2)))
+static void kmsg(const char *format, ...)
+#define KERN_INFO "<5>"
+{
+	va_list ap;
+	FILE *file;
+
+	file = fopen("/dev/kmsg", "w");
+	if (file == NULL)
+		return;
+
+	va_start(ap, format);
+	vfprintf(file, format, ap);
+	va_end(ap);
+
+	fclose(file);
+}
+
 bool __igt_fixture(void)
 {
 	assert(!in_fixture);
@@ -378,8 +396,6 @@ static int common_init(int argc, char **argv,
 		}
 	}
 
-	oom_adjust_for_doom();
-
 out:
 	free(short_opts);
 	free(combined_opts);
@@ -399,7 +415,12 @@ out:
 		/* exit with no error for -h/--help */
 		exit(ret == -1 ? 0 : IGT_EXIT_INVALID);
 
-	print_version();
+	if (!list_subtests) {
+		kmsg(KERN_INFO "%s: executing\n", command_str);
+		print_version();
+
+		oom_adjust_for_doom();
+	}
 
 	return ret;
 }
@@ -496,24 +517,6 @@ void igt_simple_init_parse_opts(int argc, char **argv,
 {
 	common_init(argc, argv, extra_short_opts, extra_long_opts, help_str,
 		    extra_opt_handler);
-}
-
-__attribute__((format(printf, 1, 2)))
-static void kmsg(const char *format, ...)
-#define KERN_INFO "<5>"
-{
-	va_list ap;
-	FILE *file;
-
-	file = fopen("/dev/kmsg", "w");
-	if (file == NULL)
-		return;
-
-	va_start(ap, format);
-	vfprintf(file, format, ap);
-	va_end(ap);
-
-	fclose(file);
 }
 
 /*
