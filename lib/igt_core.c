@@ -648,12 +648,12 @@ void __igt_skip_check(const char *file, const int line,
 		va_end(args);
 
 		igt_skip("Test requirement not met in function %s, file %s:%i:\n"
-			 "Test requirement: (%s)\n%s"
+			 "Test requirement: %s\n%s"
 			 "%s",
 			 func, file, line, check, buf, err_str ?: "");
 	} else {
 		igt_skip("Test requirement not met in function %s, file %s:%i:\n"
-			 "Test requirement: (%s)\n"
+			 "Test requirement: %s\n"
 			 "%s",
 			 func, file, line, check, err_str ?: "");
 	}

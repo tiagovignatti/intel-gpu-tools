@@ -307,7 +307,10 @@ void igt_exit(void) __attribute__((noreturn));
  * skipping. This is useful to streamline the skip logic since it allows for a more flat
  * code control flow, similar to igt_assert()
  */
-#define igt_require(expr) igt_skip_on(!(expr))
+#define igt_require(expr) \
+	do { if (!(expr)) \
+		__igt_skip_check(__FILE__, __LINE__, __func__, #expr , NULL); \
+	} while (0)
 
 /**
  * igt_skip_on:
@@ -321,7 +324,7 @@ void igt_exit(void) __attribute__((noreturn));
  */
 #define igt_skip_on(expr) \
 	do { if ((expr)) \
-		__igt_skip_check(__FILE__, __LINE__, __func__, #expr , NULL); \
+		__igt_skip_check(__FILE__, __LINE__, __func__, "!(" #expr ")" , NULL); \
 	} while (0)
 
 /**
