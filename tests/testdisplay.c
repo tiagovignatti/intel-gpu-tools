@@ -672,7 +672,7 @@ static void __attribute__((noreturn)) usage(char *name)
 	igt_info("\t\t<vdisp>,<vsync-start>,<vsync-end>,<vtotal>\n");
 	igt_info("\t\ttest force mode\n");
 	igt_info("\tDefault is to test all modes.\n");
-	exit(0);
+	exit((optopt) ? -1 : 0);
 }
 
 #define dump_resource(res) if (res) dump_##res()
