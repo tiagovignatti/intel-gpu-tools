@@ -150,7 +150,6 @@ static void run(data_t *data, int child)
 	munmap(ptr, size);
 
 	igt_assert(x == canary);
-	exit(0);
 }
 
 igt_simple_main
@@ -158,7 +157,6 @@ igt_simple_main
 	struct timeval start, end;
 	pid_t children[64];
 	data_t data = {};
-	int n;
 
 	/* check for an intel gpu before goint nuts. */
 	int fd = drm_open_any();
@@ -171,22 +169,11 @@ igt_simple_main
 	data.intel_gen = intel_gen(data.devid);
 
 	gettimeofday(&start, NULL);
-	for (n = 0; n < ARRAY_SIZE(children); n++) {
-		switch ((children[n] = fork())) {
-		case -1: igt_assert(0);
-		case 0: run(&data, n); break;
-		default: break;
-		}
-	}
-
-	for (n = 0; n < ARRAY_SIZE(children); n++) {
-		int status = -1;
-		while (waitpid(children[n], &status, 0) == -1 &&
-		       errno == -EINTR)
-			;
-		igt_assert(status == 0);
-	}
+	igt_fork(child, ARRAY_SIZE(children))
+		run(&data, child);
+	igt_waitchildren();
 	gettimeofday(&end, NULL);
+
 	igt_info("Time to execute %lu children:		%7.3fms\n",
 		 ARRAY_SIZE(children), elapsed(&start, &end) / 1000);
 }
