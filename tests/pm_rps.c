@@ -254,12 +254,8 @@ static void load_helper_run(enum load load)
 
 static void load_helper_stop(void)
 {
-	int status;
-
 	kill(lh.igt_proc.pid, SIGUSR1);
-	status = igt_wait_helper(&lh.igt_proc);
-
-	igt_assert(WIFSIGNALED(status) && WTERMSIG(status) == SIGUSR1);
+	igt_assert(igt_wait_helper(&lh.igt_proc) == 0);
 }
 
 static void load_helper_init(void)
