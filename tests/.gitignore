@@ -122,9 +122,11 @@ kms_fbc_crc
 kms_fence_pin_leak
 kms_flip
 kms_flip_tiling
+kms_force_connector
 kms_mmio_vs_cs_flip
 kms_pipe_crc_basic
 kms_plane
+kms_psr_sink_crc
 kms_render
 kms_rotation_crc
 kms_setmode

@@ -1,8 +1,10 @@
+# Please keep sorted alphabetically
 forcewaked
 intel_audio_dump
 intel_backlight
 intel_bios_dumper
 intel_bios_reader
+intel_display_poller
 intel_dpio_read
 intel_dpio_write
 intel_dump_decode
@@ -14,6 +16,8 @@ intel_gpu_time
 intel_gpu_top
 intel_gtt
 intel_infoframes
+intel_iosf_sb_read
+intel_iosf_sb_write
 intel_l3_parity
 intel_lid
 intel_nc_read
@@ -31,4 +35,3 @@ intel_reg_write
 intel_stepping
 intel_vga_read
 intel_vga_write
-# Please keep sorted alphabetically
