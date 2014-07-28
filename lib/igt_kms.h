@@ -130,7 +130,7 @@ int kmstest_get_connector_default_mode(int drm_fd, drmModeConnector *connector,
 int kmstest_get_connector_config(int drm_fd, uint32_t connector_id,
 				 unsigned long crtc_idx_mask,
 				 struct kmstest_connector_config *config);
-void kmstest_force_connector(int fd, drmModeConnector *connector,
+bool kmstest_force_connector(int fd, drmModeConnector *connector,
 			     enum kmstest_force_connector_state state);
 void kmstest_force_edid(int drm_fd, drmModeConnector *connector,
 			const unsigned char *edid, size_t length);

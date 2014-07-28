@@ -429,9 +429,11 @@ static char* get_debugfs_connector_path(int drm_fd, drmModeConnector *connector,
  * @state: state to force on @connector
  *
  * Force the specified state on the specified connector.
+ *
+ * Returns: true on success
  */
-void kmstest_force_connector(int drm_fd, drmModeConnector *connector, enum
-			     kmstest_force_connector_state state)
+bool kmstest_force_connector(int drm_fd, drmModeConnector *connector,
+			     enum kmstest_force_connector_state state)
 {
 	char *path;
 	const char *value;
@@ -458,12 +460,15 @@ void kmstest_force_connector(int drm_fd, drmModeConnector *connector, enum
 	debugfs_fd = open(path, O_WRONLY | O_TRUNC);
 	free(path);
 
-	igt_assert(debugfs_fd != -1);
+	if (debugfs_fd == -1) {
+		return false;
+	}
 
 	ret = write(debugfs_fd, value, strlen(value));
 	close(debugfs_fd);
 
 	igt_assert(ret != -1);
+	return (ret == -1) ? false : true;
 }
 
 /**
@@ -1509,8 +1514,12 @@ void igt_enable_connectors(void)
 			continue;
 
 		/* just enable VGA for now */
-		if (c->connector_type == DRM_MODE_CONNECTOR_VGA)
-			kmstest_force_connector(drm_fd, c, FORCE_CONNECTOR_ON);
+		if (c->connector_type == DRM_MODE_CONNECTOR_VGA) {
+			if (!kmstest_force_connector(drm_fd, c, FORCE_CONNECTOR_ON))
+				igt_info("Unable to force state on %s-%d\n",
+					 kmstest_connector_type_str(c->connector_type),
+					 c->connector_type_id);
+		}
 
 		drmModeFreeConnector(c);
 	}
