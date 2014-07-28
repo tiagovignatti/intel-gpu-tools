@@ -227,7 +227,14 @@ enum {
 
 __attribute__((format(printf, 1, 2)))
 static void kmsg(const char *format, ...)
-#define KERN_INFO "<5>"
+#define KERN_EMER	"<0>"
+#define KERN_ALERT	"<1>"
+#define KERN_CRIT	"<2>"
+#define KERN_ERR	"<3>"
+#define KERN_WARNING	"<4>"
+#define KERN_NOTICE	"<5>"
+#define KERN_INFO	"<6>"
+#define KERN_DEBUG	"<7>"
 {
 	va_list ap;
 	FILE *file;
