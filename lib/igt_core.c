@@ -325,14 +325,16 @@ static int common_init(int argc, char **argv,
 		       const char *help_str,
 		       igt_opt_handler_t extra_opt_handler)
 {
-	int c, option_index = 0;
+	int c, option_index = 0, i, x;
 	static struct option long_options[] = {
 		{"list-subtests", 0, 0, OPT_LIST_SUBTESTS},
 		{"run-subtest", 1, 0, OPT_RUN_SUBTEST},
 		{"debug", 0, 0, OPT_DEBUG},
 		{"help", 0, 0, OPT_HELP},
+		{0, 0, 0, 0}
 	};
 	char *short_opts;
+	const char *std_short_opts = "h";
 	struct option *combined_opts;
 	int extra_opt_count;
 	int all_opt_count;
@@ -356,9 +358,44 @@ static int common_init(int argc, char **argv,
 
 	/* First calculate space for all passed-in extra long options */
 	all_opt_count = 0;
-	while (extra_long_opts && extra_long_opts[all_opt_count].name)
+	while (extra_long_opts && extra_long_opts[all_opt_count].name) {
+
+		/* check for conflicts with standard long option values */
+		for (i = 0; long_options[i].name; i++)
+			if (extra_long_opts[all_opt_count].val == long_options[i].val)
+				igt_warn("Conflicting long option values between --%s and --%s\n",
+					 extra_long_opts[all_opt_count].name,
+					 long_options[i].name);
+
+		/* check for conflicts with short options */
+		if (extra_long_opts[all_opt_count].val != ':'
+		    && strchr(std_short_opts, extra_long_opts[all_opt_count].val)) {
+			igt_warn("Conflicting long and short option values between --%s and -%s\n",
+				 extra_long_opts[all_opt_count].name,
+				 long_options[i].name);
+		}
+
+
 		all_opt_count++;
+	}
 	extra_opt_count = all_opt_count;
+
+	/* check for conflicts in extra short options*/
+	for (i = 0; extra_short_opts && extra_short_opts[i]; i++) {
+
+		if (extra_short_opts[i] == ':')
+			continue;
+
+		/* check for conflicts with standard short options */
+		if (strchr(std_short_opts, extra_short_opts[i]))
+			igt_warn("Conflicting short option: -%c\n", std_short_opts[i]);
+
+		/* check for conflicts with standard long option values */
+		for (x = 0; long_options[x].name; x++)
+			if (long_options[x].val == extra_short_opts[i])
+				igt_warn("Conflicting short option and long option value: --%s and -%c\n",
+					 long_options[x].name, extra_short_opts[i]);
+	}
 
 	all_opt_count += ARRAY_SIZE(long_options);
 
@@ -370,8 +407,9 @@ static int common_init(int argc, char **argv,
 	memcpy(&combined_opts[extra_opt_count], long_options,
 		ARRAY_SIZE(long_options) * sizeof(*combined_opts));
 
-	ret = asprintf(&short_opts, "%sh",
-		       extra_short_opts ? extra_short_opts : "");
+	ret = asprintf(&short_opts, "%s%s",
+		       extra_short_opts ? extra_short_opts : "",
+		       std_short_opts);
 	assert(ret >= 0);
 
 	while ((c = getopt_long(argc, argv, short_opts, combined_opts,
