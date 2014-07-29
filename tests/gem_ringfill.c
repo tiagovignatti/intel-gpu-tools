@@ -226,6 +226,23 @@ igt_main
 		check_ring(bufmgr, batch, "render", copy);
 	}
 
+	igt_fork_signal_helper();
+	igt_subtest("blitter-interruptible")
+		check_ring(bufmgr, batch, "blt", blt_copy);
+
+	/* Strictly only required on architectures with a separate BLT ring,
+	 * but lets stress everybody.
+	 */
+	igt_subtest("render-interruptible") {
+		igt_render_copyfunc_t copy;
+
+		copy = igt_get_render_copyfunc(batch->devid);
+		igt_require(copy);
+
+		check_ring(bufmgr, batch, "render", copy);
+	}
+	igt_stop_signal_helper();
+
 	igt_fixture {
 		intel_batchbuffer_free(batch);
 		drm_intel_bufmgr_destroy(bufmgr);
