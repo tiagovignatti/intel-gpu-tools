@@ -649,6 +649,86 @@ kmstest_get_property(int drm_fd, uint32_t object_id, uint32_t object_type,
 }
 
 /**
+ * kmstest_edid_add_3d:
+ * @edid: an existing valid edid block
+ * @length: length of @edid
+ * @new_edid_ptr: pointer to where the new edid will be placed
+ * @new_length: pointer to the size of the new edid
+ *
+ * Makes a copy of an existing edid block and adds an extension indicating
+ * stereo 3D capabilities.
+ */
+void kmstest_edid_add_3d(const unsigned char *edid, size_t length,
+			 unsigned char *new_edid_ptr[], size_t *new_length)
+{
+	unsigned char *new_edid;
+	int n_extensions;
+	char sum = 0;
+	int pos;
+	int i;
+	char cea_header_len = 4, video_block_len = 6, vsdb_block_len = 11;
+
+	igt_assert(new_edid_ptr != NULL && new_length != NULL);
+
+	*new_length = length + 128;
+
+	new_edid = calloc(*new_length, sizeof(char));
+	memcpy(new_edid, edid, length);
+	*new_edid_ptr = new_edid;
+
+	n_extensions = new_edid[126];
+	n_extensions++;
+	new_edid[126] = n_extensions;
+
+	/* recompute checksum */
+	for (i = 0; i < 127; i++) {
+		sum = sum + new_edid[i];
+	}
+	new_edid[127] = 256 - sum;
+
+	/* add a cea-861 extension block */
+	pos = length;
+	new_edid[pos++] = 0x2;
+	new_edid[pos++] = 0x3;
+	new_edid[pos++] = cea_header_len + video_block_len + vsdb_block_len;
+	new_edid[pos++] = 0x0;
+
+	/* video block (id | length) */
+	new_edid[pos++] = 2 << 5 | (video_block_len - 1);
+	new_edid[pos++] = 32 | 0x80; /* 1080p @ 24Hz | (native)*/
+	new_edid[pos++] = 5;         /* 1080i @ 60Hz */
+	new_edid[pos++] = 20;        /* 1080i @ 50Hz */
+	new_edid[pos++] = 4;         /* 720p @ 60Hz*/
+	new_edid[pos++] = 19;        /* 720p @ 50Hz*/
+
+	/* vsdb block ( id | length ) */
+	new_edid[pos++] = 3 << 5 | (vsdb_block_len - 1);
+	/* registration id */
+	new_edid[pos++] = 0x3;
+	new_edid[pos++] = 0xc;
+	new_edid[pos++] = 0x0;
+	/* source physical address */
+	new_edid[pos++] = 0x10;
+	new_edid[pos++] = 0x00;
+	/* Supports_AI ... etc */
+	new_edid[pos++] = 0x00;
+	/* Max TMDS Clock */
+	new_edid[pos++] = 0x00;
+	/* Latency present, HDMI Video Present */
+	new_edid[pos++] = 0x20;
+	/* HDMI Video */
+	new_edid[pos++] = 0x80;
+	new_edid[pos++] = 0x00;
+
+	/* checksum */
+	sum = 0;
+	for (i = 0; i < 127; i++) {
+		sum = sum + new_edid[length + i];
+	}
+	new_edid[length + 127] = 256 - sum;
+}
+
+/**
  * kmstest_unset_all_crtcs:
  * @drm_fd: the DRM fd
  * @resources: libdrm resources pointer
