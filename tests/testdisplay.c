@@ -71,6 +71,8 @@
 #include <stdlib.h>
 #include <signal.h>
 
+#define SUBTEST_OPTS 1
+
 static int tio_fd;
 struct termios saved_tio;
 
@@ -748,12 +750,17 @@ int main(int argc, char **argv)
 	GMainLoop *mainloop;
 	float force_clock;
 	bool opt_dump_info = false;
+	struct option long_opts[] = {
+		{"list-subtests", 0, 0, SUBTEST_OPTS},
+		{"run-subtest", 1, 0, SUBTEST_OPTS},
+		{ 0, 0, 0, 0 }
+	};
 
 	igt_skip_on_simulation();
 
 	enter_exec_path( argv );
 
-	while ((c = getopt(argc, argv, optstr)) != -1) {
+	while ((c = getopt_long(argc, argv, optstr, long_opts, NULL)) != -1) {
 		switch (c) {
 		case '3':
 			test_stereo_modes = 1;
@@ -803,6 +810,10 @@ int main(int argc, char **argv)
 			break;
 		case 'o':
 			sscanf(optarg, "%d,%d", &specified_disp_id, &specified_mode_num);
+			break;
+		case SUBTEST_OPTS:
+			/* invalid subtest options */
+			exit(IGT_EXIT_INVALID);
 			break;
 		default:
 			/* fall through */
