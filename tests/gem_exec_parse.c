@@ -187,7 +187,6 @@ int fd;
 
 #define MI_ARB_ON_OFF (0x8 << 23)
 #define MI_DISPLAY_FLIP ((0x14 << 23) | 1)
-#define MI_LOAD_REGISTER_IMM ((0x22 << 23) | 1)
 
 #define GFX_OP_PIPE_CONTROL	((0x3<<29)|(0x3<<27)|(0x2<<24)|2)
 #define   PIPE_CONTROL_QW_WRITE	(1<<14)

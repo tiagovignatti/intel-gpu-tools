@@ -52,8 +52,6 @@ struct intel_batchbuffer *batch;
  * should fail if the non-secure handling works correctly.
  */
 
-#define MI_LOAD_REGISTER_IMM                 (0x22<<23)
-
 static int num_rings = 1;
 
 static void
@@ -67,7 +65,7 @@ mi_lri_loop(void)
 		int ring = random() % num_rings + 1;
 
 		BEGIN_BATCH(4, 0);
-		OUT_BATCH(MI_LOAD_REGISTER_IMM | 1);
+		OUT_BATCH(MI_LOAD_REGISTER_IMM);
 		OUT_BATCH(0x203c); /* RENDER RING CTL */
 		OUT_BATCH(0); /* try to stop the ring */
 		OUT_BATCH(MI_NOOP);

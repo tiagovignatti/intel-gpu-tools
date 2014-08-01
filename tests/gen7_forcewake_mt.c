@@ -120,7 +120,6 @@ static void *thread(void *arg)
 	return NULL;
 }
 
-#define MI_LOAD_REGISTER_IMM                    (0x22<<23)
 #define MI_STORE_REGISTER_MEM                   (0x24<<23)
 
 igt_simple_main
@@ -145,13 +144,13 @@ igt_simple_main
 		struct drm_i915_gem_exec_object2 exec[2];
 		struct drm_i915_gem_relocation_entry reloc[2];
 		uint32_t b[] = {
-			MI_LOAD_REGISTER_IMM | 1,
+			MI_LOAD_REGISTER_IMM,
 			FORCEWAKE_MT,
 			2 << 16 | 2,
 			MI_STORE_REGISTER_MEM | 1,
 			FORCEWAKE_MT,
 			0, // to be patched
-			MI_LOAD_REGISTER_IMM | 1,
+			MI_LOAD_REGISTER_IMM,
 			FORCEWAKE_MT,
 			2 << 16,
 			MI_STORE_REGISTER_MEM | 1,
