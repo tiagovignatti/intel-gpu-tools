@@ -39,32 +39,21 @@ static const uint32_t ps_kernel[][4] = {
 static uint32_t
 gen8_bind_buf_null(struct intel_batchbuffer *batch)
 {
-	struct gen8_surface_state *ss;
+	struct gen8_surface_state ss;
+	memset(&ss, 0, sizeof(ss));
 
-	ss = intel_batch_state_alloc(batch, sizeof(*ss), 64);
-	if (ss == NULL)
-		return -1;
-
-	memset(ss, 0, sizeof(*ss));
-
-	return intel_batch_offset(batch, ss);
+	return OUT_STATE_STRUCT(ss, 64);
 }
 
 static uint32_t
 gen8_bind_surfaces(struct intel_batchbuffer *batch)
 {
-	uint32_t *binding_table, offset;
+	unsigned offset;
 
-	binding_table = intel_batch_state_alloc(batch, 8, 32);
-	if (binding_table == NULL)
-		return -1;
+	offset = intel_batch_state_alloc(batch, 8, 32, "bind surfaces");
 
-	offset = intel_batch_offset(batch, binding_table);
-
-	binding_table[0] =
-		gen8_bind_buf_null(batch);
-	binding_table[1] =
-		gen8_bind_buf_null(batch);
+	bb_area_emit_offset(batch->state, offset, gen8_bind_buf_null(batch), STATE_OFFSET, "bind 1");
+	bb_area_emit_offset(batch->state, offset + 4, gen8_bind_buf_null(batch), STATE_OFFSET, "bind 2");
 
 	return offset;
 }
@@ -72,26 +61,20 @@ gen8_bind_surfaces(struct intel_batchbuffer *batch)
 /* Mostly copy+paste from gen6, except wrap modes moved */
 static uint32_t
 gen8_create_sampler(struct intel_batchbuffer *batch) {
-	struct gen8_sampler_state *ss;
-	uint32_t offset;
+	struct gen8_sampler_state ss;
+	memset(&ss, 0, sizeof(ss));
 
-	ss = intel_batch_state_alloc(batch, sizeof(*ss), 64);
-	if (ss == NULL)
-		return -1;
-
-	offset = intel_batch_offset(batch, ss);
-
-	ss->ss0.min_filter = GEN6_MAPFILTER_NEAREST;
-	ss->ss0.mag_filter = GEN6_MAPFILTER_NEAREST;
-	ss->ss3.r_wrap_mode = GEN6_TEXCOORDMODE_CLAMP;
-	ss->ss3.s_wrap_mode = GEN6_TEXCOORDMODE_CLAMP;
-	ss->ss3.t_wrap_mode = GEN6_TEXCOORDMODE_CLAMP;
+	ss.ss0.min_filter = GEN6_MAPFILTER_NEAREST;
+	ss.ss0.mag_filter = GEN6_MAPFILTER_NEAREST;
+	ss.ss3.r_wrap_mode = GEN6_TEXCOORDMODE_CLAMP;
+	ss.ss3.s_wrap_mode = GEN6_TEXCOORDMODE_CLAMP;
+	ss.ss3.t_wrap_mode = GEN6_TEXCOORDMODE_CLAMP;
 
 	/* I've experimented with non-normalized coordinates and using the LD
 	 * sampler fetch, but couldn't make it work. */
-	ss->ss3.non_normalized_coord = 0;
+	ss.ss3.non_normalized_coord = 0;
 
-	return offset;
+	return OUT_STATE_STRUCT(ss, 64);
 }
 
 static uint32_t
@@ -99,7 +82,7 @@ gen8_fill_ps(struct intel_batchbuffer *batch,
 	     const uint32_t kernel[][4],
 	     size_t size)
 {
-	return intel_batch_state_copy(batch, kernel, size, 64);
+	return intel_batch_state_copy(batch, kernel, size, 64, "ps kernel");
 }
 
 /**
@@ -115,13 +98,9 @@ gen8_fill_ps(struct intel_batchbuffer *batch,
 static uint32_t
 gen7_fill_vertex_buffer_data(struct intel_batchbuffer *batch)
 {
-	uint16_t *start;
+	uint16_t *v;
 
-	start = intel_batch_state_alloc(batch, 2 * sizeof(*start), 8);
-	start[0] = 0;
-	start[1] = 0;
-
-	return intel_batch_offset(batch, start);
+	return intel_batch_state_alloc(batch, 2 * sizeof(*v), 8, "vertex buffer");
 }
 
 /**
@@ -194,7 +173,7 @@ static void gen7_emit_vertex_buffer(struct intel_batchbuffer *batch,
 		  GEN7_VB0_BUFFER_ADDR_MOD_EN | /* Address Modify Enable */
 		  VB0_NULL_VERTEX_BUFFER |
 		  0 << VB0_BUFFER_PITCH_SHIFT);
-	OUT_RELOC(batch, I915_GEM_DOMAIN_VERTEX, 0, offset);
+	OUT_RELOC_STATE(batch, I915_GEM_DOMAIN_VERTEX, 0, offset);
 	OUT_BATCH(0);
 	OUT_BATCH(0);
 }
@@ -202,94 +181,68 @@ static void gen7_emit_vertex_buffer(struct intel_batchbuffer *batch,
 static uint32_t
 gen6_create_cc_state(struct intel_batchbuffer *batch)
 {
-	struct gen6_color_calc_state *cc_state;
-	uint32_t offset;
+	struct gen6_color_calc_state cc_state;
+	memset(&cc_state, 0, sizeof(cc_state));
 
-	cc_state = intel_batch_state_alloc(batch, sizeof(*cc_state), 64);
-	if (cc_state == NULL)
-		return -1;
-
-	offset = intel_batch_offset(batch, cc_state);
-
-	return offset;
+	return OUT_STATE_STRUCT(cc_state, 64);
 }
 
 static uint32_t
 gen8_create_blend_state(struct intel_batchbuffer *batch)
 {
-	struct gen8_blend_state *blend;
+	struct gen8_blend_state blend;
 	int i;
-	uint32_t offset;
 
-	blend = intel_batch_state_alloc(batch, sizeof(*blend), 64);
-	if (blend == NULL)
-		return -1;
-
-	offset = intel_batch_offset(batch, blend);
+	memset(&blend, 0, sizeof(blend));
 
 	for (i = 0; i < 16; i++) {
-		blend->bs[i].dest_blend_factor = GEN6_BLENDFACTOR_ZERO;
-		blend->bs[i].source_blend_factor = GEN6_BLENDFACTOR_ONE;
-		blend->bs[i].color_blend_func = GEN6_BLENDFUNCTION_ADD;
-		blend->bs[i].pre_blend_color_clamp = 1;
-		blend->bs[i].color_buffer_blend = 0;
+		blend.bs[i].dest_blend_factor = GEN6_BLENDFACTOR_ZERO;
+		blend.bs[i].source_blend_factor = GEN6_BLENDFACTOR_ONE;
+		blend.bs[i].color_blend_func = GEN6_BLENDFUNCTION_ADD;
+		blend.bs[i].pre_blend_color_clamp = 1;
+		blend.bs[i].color_buffer_blend = 0;
 	}
 
-	return offset;
+	return OUT_STATE_STRUCT(blend, 64);
 }
 
 static uint32_t
 gen6_create_cc_viewport(struct intel_batchbuffer *batch)
 {
-	struct gen6_cc_viewport *vp;
-	uint32_t offset;
+	struct gen6_cc_viewport vp;
 
-	vp = intel_batch_state_alloc(batch, sizeof(*vp), 32);
-	if (vp == NULL)
-		return -1;
-
-	offset = intel_batch_offset(batch, vp);
+	memset(&vp, 0, sizeof(vp));
 
 	/* XXX I don't understand this */
-	vp->min_depth = -1.e35;
-	vp->max_depth = 1.e35;
+	vp.min_depth = -1.e35;
+	vp.max_depth = 1.e35;
 
-	return offset;
+	return OUT_STATE_STRUCT(vp, 32);
 }
 
 static uint32_t
 gen7_create_sf_clip_viewport(struct intel_batchbuffer *batch) {
 	/* XXX these are likely not needed */
-	struct gen7_sf_clip_viewport *scv_state;
-	uint32_t offset;
+	struct gen7_sf_clip_viewport scv_state;
 
-	scv_state = intel_batch_state_alloc(batch, sizeof(*scv_state), 64);
-	if (scv_state == NULL)
-		return -1;
+	memset(&scv_state, 0, sizeof(scv_state));
 
-	offset = intel_batch_offset(batch, scv_state);
+	scv_state.guardband.xmin = 0;
+	scv_state.guardband.xmax = 1.0f;
+	scv_state.guardband.ymin = 0;
+	scv_state.guardband.ymax = 1.0f;
 
-	scv_state->guardband.xmin = 0;
-	scv_state->guardband.xmax = 1.0f;
-	scv_state->guardband.ymin = 0;
-	scv_state->guardband.ymax = 1.0f;
-
-	return offset;
+	return OUT_STATE_STRUCT(scv_state, 64);
 }
 
 static uint32_t
 gen6_create_scissor_rect(struct intel_batchbuffer *batch)
 {
-	struct gen6_scissor_rect *scissor;
-	uint32_t offset;
+	struct gen6_scissor_rect scissor;
 
-	scissor = intel_batch_state_alloc(batch, sizeof(*scissor), 64);
-	if (scissor == NULL)
-		return -1;
+	memset(&scissor, 0, sizeof(scissor));
 
-	offset = intel_batch_offset(batch, scissor);
-
-	return offset;
+	return OUT_STATE_STRUCT(scissor, 64);
 }
 
 static void
@@ -371,10 +324,10 @@ gen7_emit_urb(struct intel_batchbuffer *batch) {
 static void
 gen8_emit_cc(struct intel_batchbuffer *batch) {
 	OUT_BATCH(GEN7_3DSTATE_BLEND_STATE_POINTERS);
-	OUT_BATCH(cc.blend_state | 1);
+	OUT_BATCH_STATE_OFFSET(cc.blend_state | 1);
 
 	OUT_BATCH(GEN6_3DSTATE_CC_STATE_POINTERS);
-	OUT_BATCH(cc.cc_state | 1);
+	OUT_BATCH_STATE_OFFSET(cc.cc_state | 1);
 }
 
 static void
@@ -596,7 +549,7 @@ gen8_emit_ps(struct intel_batchbuffer *batch, uint32_t kernel) {
 	OUT_BATCH(0);
 
 	OUT_BATCH(GEN7_3DSTATE_PS | (12-2));
-	OUT_BATCH(kernel);
+	OUT_BATCH_STATE_OFFSET(kernel);
 	OUT_BATCH(0); /* kernel hi */
 	OUT_BATCH(1 << GEN6_3DSTATE_WM_SAMPLER_COUNT_SHIFT |
 		  2 << GEN6_3DSTATE_WM_BINDING_TABLE_ENTRY_COUNT_SHIFT);
@@ -664,7 +617,7 @@ static void gen8_emit_vf_topology(struct intel_batchbuffer *batch)
 }
 
 /* Vertex elements MUST be defined before this according to spec */
-static void gen8_emit_primitive(struct intel_batchbuffer *batch, uint32_t offset)
+static void gen8_emit_primitive(struct intel_batchbuffer *batch)
 {
 	OUT_BATCH(GEN8_3DSTATE_VF_INSTANCING | (3 - 2));
 	OUT_BATCH(0);
@@ -679,7 +632,7 @@ static void gen8_emit_primitive(struct intel_batchbuffer *batch, uint32_t offset
 	OUT_BATCH(0);	/* index buffer offset, ignored */
 }
 
-int gen8_setup_null_render_state(struct intel_batchbuffer *batch)
+void gen8_setup_null_render_state(struct intel_batchbuffer *batch)
 {
 	uint32_t ps_sampler_state, ps_kernel_off, ps_binding_table;
 	uint32_t scissor_state;
@@ -709,9 +662,9 @@ int gen8_setup_null_render_state(struct intel_batchbuffer *batch)
 	gen8_emit_state_base_address(batch);
 
 	OUT_BATCH(GEN7_3DSTATE_VIEWPORT_STATE_POINTERS_CC);
-	OUT_BATCH(viewport.cc_state);
+	OUT_BATCH_STATE_OFFSET(viewport.cc_state);
 	OUT_BATCH(GEN7_3DSTATE_VIEWPORT_STATE_POINTERS_SF_CLIP);
-	OUT_BATCH(viewport.sf_clip_state);
+	OUT_BATCH_STATE_OFFSET(viewport.sf_clip_state);
 
 	gen7_emit_urb(batch);
 
@@ -732,15 +685,15 @@ int gen8_setup_null_render_state(struct intel_batchbuffer *batch)
 	gen8_emit_sf(batch);
 
 	OUT_BATCH(GEN7_3DSTATE_BINDING_TABLE_POINTERS_PS);
-	OUT_BATCH(ps_binding_table);
+	OUT_BATCH_STATE_OFFSET(ps_binding_table);
 
 	OUT_BATCH(GEN7_3DSTATE_SAMPLER_STATE_POINTERS_PS);
-	OUT_BATCH(ps_sampler_state);
+	OUT_BATCH_STATE_OFFSET(ps_sampler_state);
 
 	gen8_emit_ps(batch, ps_kernel_off);
 
 	OUT_BATCH(GEN6_3DSTATE_SCISSOR_STATE_POINTERS);
-	OUT_BATCH(scissor_state);
+	OUT_BATCH_STATE_OFFSET(scissor_state);
 
 	gen8_emit_depth(batch);
 
@@ -752,13 +705,7 @@ int gen8_setup_null_render_state(struct intel_batchbuffer *batch)
 	gen6_emit_vertex_elements(batch);
 
 	gen8_emit_vf_topology(batch);
-	gen8_emit_primitive(batch, vertex_buffer);
+	gen8_emit_primitive(batch);
 
 	OUT_BATCH(MI_BATCH_BUFFER_END);
-
-	ret = intel_batch_error(batch);
-	if (ret == 0)
-		ret = intel_batch_total_used(batch);
-
-	return ret;
 }

@@ -29,145 +29,248 @@
  **************************************************************************/
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+#include <assert.h>
 
 #include "intel_batchbuffer.h"
 
-int intel_batch_reset(struct intel_batchbuffer *batch,
-		      void *p,
-		      uint32_t size,
-		      uint32_t off)
+void bb_area_emit(struct bb_area *a, uint32_t dword, item_type type, const char *str)
 {
-	batch->err = -EINVAL;
-	batch->base = batch->base_ptr = p;
-	batch->state_base = batch->state_ptr = p;
+	struct bb_item *item;
+	assert(a != NULL);
+	assert(a->num_items < MAX_ITEMS);
+	item = &a->item[a->num_items];
 
-	if (off >= size || ALIGN(off, 4) != off)
-		return -EINVAL;
+	item->data = dword;
+	item->type = type;
+	strncpy(item->str, str, MAX_STRLEN);
+	item->str[MAX_STRLEN - 1] = 0;
 
-	batch->size = size;
-
-	batch->state_base = batch->state_ptr = &batch->base[off];
-
-	batch->num_relocs = 0;
-	batch->err = 0;
-
-	return batch->err;
+	a->num_items++;
 }
 
-uint32_t intel_batch_state_used(struct intel_batchbuffer *batch)
+void bb_area_emit_offset(struct bb_area *a, unsigned offset, uint32_t dword, item_type type, const char *str)
 {
-	return batch->state_ptr - batch->state_base;
+	const unsigned i = offset / 4;
+	struct bb_item *item;
+	assert(a != NULL);
+	assert(a->num_items < MAX_ITEMS);
+	assert(i < a->num_items);
+	item = &a->item[i];
+
+	item->data = dword;
+	item->type = type;
+	strncpy(item->str, str, MAX_STRLEN);
+	item->str[MAX_STRLEN - 1] = 0;
 }
 
-uint32_t intel_batch_state_offset(struct intel_batchbuffer *batch)
+static struct bb_item *bb_area_get(struct bb_area *a, unsigned i)
 {
-	return batch->state_ptr - batch->base;
+	assert (i < a->num_items);
+	return &a->item[i];
 }
 
-void *intel_batch_state_alloc(struct intel_batchbuffer *batch,
-			      uint32_t size,
-			      uint32_t align)
+static unsigned bb_area_items(struct bb_area *a)
 {
-	uint32_t cur;
-	uint32_t offset;
+	return a->num_items;
+}
 
-	if (batch->err)
+static unsigned long bb_area_used(struct bb_area *a)
+{
+	assert(a != NULL);
+	assert(a->num_items <= MAX_ITEMS);
+
+	return a->num_items * 4;
+}
+
+static unsigned long bb_area_room(struct bb_area *a)
+{
+	assert (a != NULL);
+	assert (a->num_items <= MAX_ITEMS);
+
+	return (MAX_ITEMS - a->num_items) * 4;
+}
+
+struct intel_batchbuffer *intel_batchbuffer_create(void)
+{
+	struct intel_batchbuffer *batch;
+
+	batch = calloc(1, sizeof(*batch));
+	if (batch == NULL)
 		return NULL;
 
-	cur  = intel_batch_state_offset(batch);
-	offset = ALIGN(cur, align);
-
-	if (offset + size > batch->size) {
-		batch->err = -ENOSPC;
+	batch->cmds = calloc(1, sizeof(struct bb_area));
+	if (batch->cmds == NULL) {
+		free(batch);
 		return NULL;
 	}
 
-	batch->state_ptr = batch->base + offset + size;
-
-	memset(batch->base + cur, 0, size);
-
-	return batch->base + offset;
-}
-
-int intel_batch_offset(struct intel_batchbuffer *batch, const void *ptr)
-{
-	return (uint8_t *)ptr - batch->base;
-}
-
-int intel_batch_state_copy(struct intel_batchbuffer *batch,
-			   const void *ptr,
-			   const uint32_t size,
-			   const uint32_t align)
-{
-	void * const p = intel_batch_state_alloc(batch, size, align);
-
-	if (p == NULL)
-		return -1;
-
-	return intel_batch_offset(batch, memcpy(p, ptr, size));
-}
-
-uint32_t intel_batch_cmds_used(struct intel_batchbuffer *batch)
-{
-	return batch->base_ptr - batch->base;
-}
-
-uint32_t intel_batch_total_used(struct intel_batchbuffer *batch)
-{
-	return batch->state_ptr - batch->base;
-}
-
-static uint32_t intel_batch_space(struct intel_batchbuffer *batch)
-{
-	return batch->state_base - batch->base_ptr;
-}
-
-int intel_batch_emit_dword(struct intel_batchbuffer *batch, uint32_t dword)
-{
-	uint32_t offset;
-
-	if (batch->err)
-		return -1;
-
-	if (intel_batch_space(batch) < 4) {
-		batch->err = -ENOSPC;
-		return -1;
+	batch->state = calloc(1, sizeof(struct bb_area));
+	if (batch->state == NULL) {
+		free(batch->cmds);
+		free(batch);
+		return NULL;
 	}
 
-	offset = intel_batch_offset(batch, batch->base_ptr);
+	batch->state_start_offset = -1;
+	batch->cmds_end_offset = -1;
 
-	*(uint32_t *) (batch->base_ptr) = dword;
-	batch->base_ptr += 4;
+	return batch;
+}
+
+static void bb_area_align(struct bb_area *a, unsigned align)
+{
+	if (align == 0)
+		return;
+
+	assert((align % 4) == 0);
+
+	while ((a->num_items * 4) % align != 0)
+		bb_area_emit(a, 0, PAD, "align pad");
+}
+
+static int reloc_exists(struct intel_batchbuffer *batch, uint32_t offset)
+{
+	int i;
+
+	for (i = 0; i < batch->cmds->num_items; i++)
+		if ((batch->cmds->item[i].type == RELOC ||
+		     batch->cmds->item[i].type == RELOC_STATE) &&
+		    i * 4 == offset)
+			return 1;
+
+	return 0;
+}
+
+int intel_batch_is_reloc(struct intel_batchbuffer *batch, unsigned i)
+{
+	return reloc_exists(batch, i * 4);
+}
+
+static void intel_batch_cmd_align(struct intel_batchbuffer *batch, unsigned align)
+{
+	bb_area_align(batch->cmds, align);
+}
+
+static void intel_batch_state_align(struct intel_batchbuffer *batch, unsigned align)
+{
+	bb_area_align(batch->state, align);
+}
+
+unsigned intel_batch_num_cmds(struct intel_batchbuffer *batch)
+{
+	return bb_area_items(batch->cmds);
+}
+
+static unsigned intel_batch_num_state(struct intel_batchbuffer *batch)
+{
+	return bb_area_items(batch->state);
+}
+
+struct bb_item *intel_batch_cmd_get(struct intel_batchbuffer *batch, unsigned i)
+{
+	return bb_area_get(batch->cmds, i);
+}
+
+struct bb_item *intel_batch_state_get(struct intel_batchbuffer *batch, unsigned i)
+{
+	return bb_area_get(batch->state, i);
+}
+
+uint32_t intel_batch_state_offset(struct intel_batchbuffer *batch, unsigned align)
+{
+	intel_batch_state_align(batch, align);
+	return bb_area_used(batch->state);
+}
+
+uint32_t intel_batch_state_alloc(struct intel_batchbuffer *batch, unsigned bytes, unsigned align,
+				 const char *str)
+{
+	unsigned offset;
+	unsigned dwords = bytes/4;
+	assert ((bytes % 4) == 0);
+	assert (bb_area_room(batch->state) >= bytes);
+
+	offset = intel_batch_state_offset(batch, align);
+
+	while (dwords--)
+		bb_area_emit(batch->state, 0, UNINITIALIZED, str);
 
 	return offset;
 }
 
-int intel_batch_emit_reloc(struct intel_batchbuffer *batch,
-			   const uint32_t delta)
+uint32_t intel_batch_state_copy(struct intel_batchbuffer *batch,
+				void *d, unsigned bytes,
+				unsigned align,
+				const char *str)
 {
-	uint32_t offset;
+	unsigned offset;
+	unsigned i;
+	unsigned dwords = bytes/4;
+	assert (d);
+	assert ((bytes % 4) == 0);
+	assert (bb_area_room(batch->state) >= bytes);
 
-	if (batch->err)
-		return -1;
+	offset = intel_batch_state_offset(batch, align);
 
-	if (delta >= batch->size) {
-		batch->err = -EINVAL;
-		return -1;
+	for (i = 0; i < dwords; i++) {
+		char offsetinside[80];
+		sprintf(offsetinside, "%s: 0x%x", str, i * 4);
+
+		uint32_t *s = (uint32_t *)(uint8_t *)d + i;
+		bb_area_emit(batch->state, *s, STATE, offsetinside);
 	}
-
-	offset = intel_batch_emit_dword(batch, delta);
-
-	if (batch->err)
-		return -1;
-
-	if (batch->num_relocs >= MAX_RELOCS) {
-		batch->err = -ENOSPC;
-		return -1;
-	}
-
-	batch->relocs[batch->num_relocs++] = offset;
 
 	return offset;
+}
+
+void intel_batch_relocate_state(struct intel_batchbuffer *batch)
+{
+	unsigned int i;
+
+	assert (batch->state_start_offset == -1);
+
+	batch->cmds_end_offset = bb_area_used(batch->cmds) - 4;
+
+	/* Hardcoded, could track max align done also */
+	intel_batch_cmd_align(batch, 64);
+
+	batch->state_start_offset = bb_area_used(batch->cmds);
+
+	for (i = 0; i < bb_area_items(batch->state); i++) {
+		const struct bb_item *s = bb_area_get(batch->state, i);
+
+		bb_area_emit(batch->cmds, s->data, s->type, s->str);
+	}
+
+	for (i = 0; i < bb_area_items(batch->cmds); i++) {
+		struct bb_item *s = bb_area_get(batch->cmds, i);
+
+		if (s->type == STATE_OFFSET || s->type == RELOC_STATE)
+			s->data += batch->state_start_offset;
+	}
+}
+
+const char *intel_batch_type_as_str(const struct bb_item *item)
+{
+	switch (item->type) {
+	case UNINITIALIZED:
+		return "UNINITIALIZED";
+	case CMD:
+		return "CMD";
+	case STATE:
+		return "STATE";
+	case PAD:
+		return "PAD";
+	case RELOC:
+		return "RELOC";
+	case RELOC_STATE:
+		return "RELOC_STATE";
+	case STATE_OFFSET:
+		return "STATE_OFFSET";
+	}
+
+	return "UNKNOWN";
 }

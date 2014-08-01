@@ -34,58 +34,64 @@
 #include <stdint.h>
 
 #define MAX_RELOCS 64
+#define MAX_ITEMS 4096
+#define MAX_STRLEN 256
+
 #define ALIGN(x, y) (((x) + (y)-1) & ~((y)-1))
 
-struct intel_batchbuffer {
-	int err;
-	uint8_t *base;
-	uint8_t *base_ptr;
-	uint8_t *state_base;
-	uint8_t *state_ptr;
-	int size;
+typedef enum {
+	UNINITIALIZED,
+	CMD,
+	STATE,
+	RELOC,
+	RELOC_STATE,
+	STATE_OFFSET,
+	PAD,
+} item_type;
 
-	uint32_t relocs[MAX_RELOCS];
-	uint32_t num_relocs;
+struct bb_item {
+	uint32_t data;
+	item_type type;
+	char str[MAX_STRLEN];
 };
 
-#define OUT_BATCH(d) intel_batch_emit_dword(batch, d)
-#define OUT_RELOC(batch, read_domains, write_domain, delta) \
-	intel_batch_emit_reloc(batch, delta)
+struct bb_area {
+	struct bb_item item[MAX_ITEMS];
+	unsigned long num_items;
+};
 
-int intel_batch_reset(struct intel_batchbuffer *batch,
-		       void *p,
-		       uint32_t size, uint32_t split_off);
+struct intel_batchbuffer {
+	struct bb_area *cmds;
+	struct bb_area *state;
+	unsigned long cmds_end_offset;
+	unsigned long state_start_offset;
+};
 
-uint32_t intel_batch_state_used(struct intel_batchbuffer *batch);
+struct intel_batchbuffer *intel_batchbuffer_create(void);
 
-void *intel_batch_state_alloc(struct intel_batchbuffer *batch,
-			      uint32_t size,
-			      uint32_t align);
+#define OUT_BATCH(d) bb_area_emit(batch->cmds, d, CMD, #d)
+#define OUT_BATCH_STATE_OFFSET(d) bb_area_emit(batch->cmds, d, STATE_OFFSET, #d)
+#define OUT_RELOC(batch, read_domain, write_domain, d) bb_area_emit(batch->cmds, d, RELOC, #d)
+#define OUT_RELOC_STATE(batch, read_domain, write_domain, d) bb_area_emit(batch->cmds, d, RELOC_STATE, #d);
+#define OUT_STATE(d) bb_area_emit(batch->state, d, STATE, #d)
+#define OUT_STATE_OFFSET(offset) bb_area_emit(batch->state, offset, STATE_OFFSET, #offset)
+#define OUT_STATE_STRUCT(name, align) intel_batch_state_copy(batch, &name, sizeof(name), align, #name " " #align)
 
-int intel_batch_offset(struct intel_batchbuffer *batch, const void *ptr);
+uint32_t intel_batch_state_copy(struct intel_batchbuffer *batch, void *d, unsigned bytes, unsigned align,
+				const char *name);
+uint32_t intel_batch_state_alloc(struct intel_batchbuffer *batch, unsigned bytes, unsigned align,
+				 const char *name);
 
-int intel_batch_state_copy(struct intel_batchbuffer *batch,
-			   const void *ptr,
-			   const uint32_t size,
-			   const uint32_t align);
+unsigned intel_batch_num_cmds(struct intel_batchbuffer *batch);
 
-uint32_t intel_batch_cmds_used(struct intel_batchbuffer *batch);
+struct bb_item *intel_batch_cmd_get(struct intel_batchbuffer *batch, unsigned i);
+int intel_batch_is_reloc(struct intel_batchbuffer *batch, unsigned i);
 
-int intel_batch_emit_dword(struct intel_batchbuffer *batch, uint32_t dword);
+void intel_batch_relocate_state(struct intel_batchbuffer *batch);
 
-int intel_batch_emit_reloc(struct intel_batchbuffer *batch,
-			   const uint32_t delta);
+const char *intel_batch_type_as_str(const struct bb_item *item);
 
-uint32_t intel_batch_total_used(struct intel_batchbuffer *batch);
-
-static inline int intel_batch_error(struct intel_batchbuffer *batch)
-{
-	return batch->err;
-}
-
-static inline uint32_t intel_batch_state_start(struct intel_batchbuffer *batch)
-{
-	return batch->state_base - batch->base;
-}
+void bb_area_emit(struct bb_area *a, uint32_t dword, item_type type, const char *str);
+void bb_area_emit_offset(struct bb_area *a, unsigned i, uint32_t dword, item_type type, const char *str);
 
 #endif

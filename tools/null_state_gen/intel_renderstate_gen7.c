@@ -25,6 +25,7 @@
 #include "intel_batchbuffer.h"
 #include <lib/gen7_render.h>
 #include <lib/intel_reg.h>
+#include <string.h>
 #include <stdio.h>
 
 static const uint32_t ps_kernel[][4] = {
@@ -41,22 +42,7 @@ static const uint32_t ps_kernel[][4] = {
 static uint32_t
 gen7_bind_buf_null(struct intel_batchbuffer *batch)
 {
-	uint32_t *ss;
-
-	ss = intel_batch_state_alloc(batch, 8 * sizeof(*ss), 32);
-	if (ss == NULL)
-		return -1;
-
-	ss[0] = 0;
-	ss[1] = 0;
-	ss[2] = 0;
-	ss[3] = 0;
-	ss[4] = 0;
-	ss[5] = 0;
-	ss[6] = 0;
-	ss[7] = 0;
-
-	return intel_batch_offset(batch, ss);
+	return intel_batch_state_alloc(batch, 32, 32, "bind buf null");
 }
 
 static void
@@ -99,26 +85,7 @@ gen7_create_vertex_buffer(struct intel_batchbuffer *batch)
 {
 	uint16_t *v;
 
-	v = intel_batch_state_alloc(batch, 12*sizeof(*v), 8);
-	if (v == NULL)
-		return -1;
-
-	v[0] = 0;
-	v[1] = 0;
-	v[2] = 0;
-	v[3] = 0;
-
-	v[4] = 0;
-	v[5] = 0;
-	v[6] = 0;
-	v[7] = 0;
-
-	v[8] = 0;
-	v[9] = 0;
-	v[10] = 0;
-	v[11] = 0;
-
-	return intel_batch_offset(batch, v);
+	return intel_batch_state_alloc(batch, 12*sizeof(*v), 8, "vertex buffer");
 }
 
 static void gen7_emit_vertex_buffer(struct intel_batchbuffer *batch)
@@ -134,7 +101,7 @@ static void gen7_emit_vertex_buffer(struct intel_batchbuffer *batch)
 		  GEN7_VB0_NULL_VERTEX_BUFFER |
 		  4*2 << GEN7_VB0_BUFFER_PITCH_SHIFT);
 
-	OUT_RELOC(batch, I915_GEM_DOMAIN_VERTEX, 0, offset);
+	OUT_RELOC_STATE(batch, I915_GEM_DOMAIN_VERTEX, 0, offset);
 	OUT_BATCH(~0);
 	OUT_BATCH(0);
 }
@@ -142,23 +109,21 @@ static void gen7_emit_vertex_buffer(struct intel_batchbuffer *batch)
 static uint32_t
 gen7_bind_surfaces(struct intel_batchbuffer *batch)
 {
-	uint32_t *binding_table;
+	unsigned offset;
 
-	binding_table = intel_batch_state_alloc(batch, 8, 32);
-	if (binding_table == NULL)
-		return -1;
+	offset = intel_batch_state_alloc(batch, 8, 32, "bind surfaces");
 
-	binding_table[0] = gen7_bind_buf_null(batch);
-	binding_table[1] = gen7_bind_buf_null(batch);
+	bb_area_emit_offset(batch->state, offset, gen7_bind_buf_null(batch), STATE_OFFSET, "bind 1");
+	bb_area_emit_offset(batch->state, offset + 4, gen7_bind_buf_null(batch), STATE_OFFSET, "bind 2");
 
-	return intel_batch_offset(batch, binding_table);
+	return offset;
 }
 
 static void
 gen7_emit_binding_table(struct intel_batchbuffer *batch)
 {
 	OUT_BATCH(GEN7_3DSTATE_BINDING_TABLE_POINTERS_PS | (2 - 2));
-	OUT_BATCH(gen7_bind_surfaces(batch));
+	OUT_BATCH_STATE_OFFSET(gen7_bind_surfaces(batch));
 }
 
 static void
@@ -174,19 +139,16 @@ gen7_emit_drawing_rectangle(struct intel_batchbuffer *batch)
 static uint32_t
 gen7_create_blend_state(struct intel_batchbuffer *batch)
 {
-	struct gen7_blend_state *blend;
+	struct gen7_blend_state blend;
+	memset(&blend, 0, sizeof(blend));
 
-	blend = intel_batch_state_alloc(batch, sizeof(*blend), 64);
-	if (blend == NULL)
-		return -1;
+	blend.blend0.dest_blend_factor = GEN7_BLENDFACTOR_ZERO;
+	blend.blend0.source_blend_factor = GEN7_BLENDFACTOR_ONE;
+	blend.blend0.blend_func = GEN7_BLENDFUNCTION_ADD;
+	blend.blend1.post_blend_clamp_enable = 1;
+	blend.blend1.pre_blend_clamp_enable = 1;
 
-	blend->blend0.dest_blend_factor = GEN7_BLENDFACTOR_ZERO;
-	blend->blend0.source_blend_factor = GEN7_BLENDFACTOR_ONE;
-	blend->blend0.blend_func = GEN7_BLENDFUNCTION_ADD;
-	blend->blend1.post_blend_clamp_enable = 1;
-	blend->blend1.pre_blend_clamp_enable = 1;
-
-	return intel_batch_offset(batch, blend);
+	return OUT_STATE_STRUCT(blend, 64);
 }
 
 static void
@@ -208,54 +170,48 @@ gen7_emit_state_base_address(struct intel_batchbuffer *batch)
 static uint32_t
 gen7_create_cc_viewport(struct intel_batchbuffer *batch)
 {
-	struct gen7_cc_viewport *vp;
+	struct gen7_cc_viewport vp;
+	memset(&vp, 0, sizeof(vp));
 
-	vp = intel_batch_state_alloc(batch, sizeof(*vp), 32);
-	if (vp == NULL)
-		return -1;
+	vp.min_depth = -1.e35;
+	vp.max_depth = 1.e35;
 
-	vp->min_depth = -1.e35;
-	vp->max_depth = 1.e35;
-
-	return intel_batch_offset(batch, vp);
+	return OUT_STATE_STRUCT(vp, 32);
 }
 
 static void
 gen7_emit_cc(struct intel_batchbuffer *batch)
 {
 	OUT_BATCH(GEN7_3DSTATE_BLEND_STATE_POINTERS | (2 - 2));
-	OUT_BATCH(gen7_create_blend_state(batch));
+	OUT_BATCH_STATE_OFFSET(gen7_create_blend_state(batch));
 
 	OUT_BATCH(GEN7_3DSTATE_VIEWPORT_STATE_POINTERS_CC | (2 - 2));
-	OUT_BATCH(gen7_create_cc_viewport(batch));
+	OUT_BATCH_STATE_OFFSET(gen7_create_cc_viewport(batch));
 }
 
 static uint32_t
 gen7_create_sampler(struct intel_batchbuffer *batch)
 {
-	struct gen7_sampler_state *ss;
+	struct gen7_sampler_state ss;
+	memset(&ss, 0, sizeof(ss));
 
-	ss = intel_batch_state_alloc(batch, sizeof(*ss), 32);
-	if (ss == NULL)
-		return -1;
+	ss.ss0.min_filter = GEN7_MAPFILTER_NEAREST;
+	ss.ss0.mag_filter = GEN7_MAPFILTER_NEAREST;
 
-	ss->ss0.min_filter = GEN7_MAPFILTER_NEAREST;
-	ss->ss0.mag_filter = GEN7_MAPFILTER_NEAREST;
+	ss.ss3.r_wrap_mode = GEN7_TEXCOORDMODE_CLAMP;
+	ss.ss3.s_wrap_mode = GEN7_TEXCOORDMODE_CLAMP;
+	ss.ss3.t_wrap_mode = GEN7_TEXCOORDMODE_CLAMP;
 
-	ss->ss3.r_wrap_mode = GEN7_TEXCOORDMODE_CLAMP;
-	ss->ss3.s_wrap_mode = GEN7_TEXCOORDMODE_CLAMP;
-	ss->ss3.t_wrap_mode = GEN7_TEXCOORDMODE_CLAMP;
+	ss.ss3.non_normalized_coord = 1;
 
-	ss->ss3.non_normalized_coord = 1;
-
-	return intel_batch_offset(batch, ss);
+	return OUT_STATE_STRUCT(ss, 32);
 }
 
 static void
 gen7_emit_sampler(struct intel_batchbuffer *batch)
 {
 	OUT_BATCH(GEN7_3DSTATE_SAMPLER_STATE_POINTERS_PS | (2 - 2));
-	OUT_BATCH(gen7_create_sampler(batch));
+	OUT_BATCH_STATE_OFFSET(gen7_create_sampler(batch));
 }
 
 static void
@@ -406,8 +362,8 @@ gen7_emit_ps(struct intel_batchbuffer *batch)
 		threads = 40 << IVB_PS_MAX_THREADS_SHIFT;
 
 	OUT_BATCH(GEN7_3DSTATE_PS | (8 - 2));
-	OUT_BATCH(intel_batch_state_copy(batch, ps_kernel,
-					 sizeof(ps_kernel), 64));
+	OUT_BATCH_STATE_OFFSET(intel_batch_state_copy(batch, ps_kernel,
+						      sizeof(ps_kernel), 64, "ps kernel"));
 	OUT_BATCH(1 << GEN7_PS_SAMPLER_COUNT_SHIFT |
 		  2 << GEN7_PS_BINDING_TABLE_ENTRY_COUNT_SHIFT);
 	OUT_BATCH(0); /* scratch address */
@@ -458,7 +414,7 @@ gen7_emit_null_depth_buffer(struct intel_batchbuffer *batch)
 	OUT_BATCH(0);
 }
 
-int gen7_setup_null_render_state(struct intel_batchbuffer *batch)
+void gen7_setup_null_render_state(struct intel_batchbuffer *batch)
 {
 	int ret;
 
@@ -496,10 +452,4 @@ int gen7_setup_null_render_state(struct intel_batchbuffer *batch)
 	OUT_BATCH(0);   /* index buffer offset, ignored */
 
 	OUT_BATCH(MI_BATCH_BUFFER_END);
-
-	ret = intel_batch_error(batch);
-	if (ret == 0)
-		ret = intel_batch_total_used(batch);
-
-	return ret;
 }

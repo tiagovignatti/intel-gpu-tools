@@ -11,22 +11,13 @@ extern int gen6_setup_null_render_state(struct intel_batchbuffer *batch);
 extern int gen7_setup_null_render_state(struct intel_batchbuffer *batch);
 extern int gen8_setup_null_render_state(struct intel_batchbuffer *batch);
 
+static int debug = 0;
+
 static void print_usage(char *s)
 {
 	fprintf(stderr, "%s: <gen>\n"
 		"     gen:     gen to generate for (6,7,8)\n",
 	       s);
-}
-
-static int is_reloc(struct intel_batchbuffer *batch, uint32_t offset)
-{
-	int i;
-
-	for (i = 0; i < batch->num_relocs; i++)
-		if (batch->relocs[i] == offset)
-			return 1;
-
-	return 0;
 }
 
 static int print_state(int gen, struct intel_batchbuffer *batch)
@@ -36,33 +27,37 @@ static int print_state(int gen, struct intel_batchbuffer *batch)
 	printf("#include \"intel_renderstate.h\"\n\n");
 
 	printf("static const u32 gen%d_null_state_relocs[] = {\n", gen);
-	for (i = 0; i < batch->num_relocs; i++) {
-		printf("\t0x%08x,\n", batch->relocs[i]);
+	for (i = 0; i < batch->cmds->num_items; i++) {
+		if (intel_batch_is_reloc(batch, i))
+			printf("\t0x%08x,\n", i * 4);
 	}
 	printf("\t%d,\n", -1);
 	printf("};\n\n");
 
 	printf("static const u32 gen%d_null_state_batch[] = {\n", gen);
-	for (i = 0; i < batch->size; i += 4) {
-		const uint32_t *p = (void *)batch->base + i;
-		printf("\t0x%08x,", *p);
+	for (i = 0; i < intel_batch_num_cmds(batch); i++) {
+		const struct bb_item *cmd = intel_batch_cmd_get(batch, i);
+		printf("\t0x%08x,", cmd->data);
 
-		if (i == intel_batch_cmds_used(batch) - 4)
+		if (debug)
+			printf("\t /* 0x%08x %s '%s' */", i * 4,
+			       intel_batch_type_as_str(cmd), cmd->str);
+
+		if (i * 4 == batch->cmds_end_offset)
 			printf("\t /* cmds end */");
 
-		if (i == intel_batch_state_start(batch))
+		if (intel_batch_is_reloc(batch, i))
+			printf("\t /* reloc */");
+
+		if (i * 4 == batch->state_start_offset)
 			printf("\t /* state start */");
 
-
-		if (i == intel_batch_state_start(batch) +
-		    intel_batch_state_used(batch) - 4)
+		if (i == intel_batch_num_cmds(batch) - 1)
 			printf("\t /* state end */");
-
-		if (is_reloc(batch, i))
-			printf("\t /* reloc */");
 
 		printf("\n");
 	}
+
 	printf("};\n\nRO_RENDERSTATE(%d);\n", gen);
 
 	return 0;
@@ -70,22 +65,13 @@ static int print_state(int gen, struct intel_batchbuffer *batch)
 
 static int do_generate(int gen)
 {
-	int initial_size = 8192;
-	struct intel_batchbuffer batch;
-	void *p;
+	struct intel_batchbuffer *batch;
 	int ret = -EINVAL;
-	uint32_t cmd_len, state_len, size;
 	int (*null_state_gen)(struct intel_batchbuffer *batch) = NULL;
 
-	p = malloc(initial_size);
-	if (p == NULL)
+	batch = intel_batchbuffer_create();
+	if (batch == NULL)
 		return -ENOMEM;
-
-	assert(ALIGN(initial_size/2, STATE_ALIGN) == initial_size/2);
-
-	ret = intel_batch_reset(&batch, p, initial_size, initial_size/2);
-	if (ret)
-		goto out;
 
 	switch (gen) {
 	case 6:
@@ -103,50 +89,26 @@ static int do_generate(int gen)
 
 	if (null_state_gen == NULL) {
 		printf("no generator found for %d\n", gen);
-		ret = -EINVAL;
-		goto out;
+		return -EINVAL;
 	}
 
-	ret = null_state_gen(&batch);
-	if (ret < 0)
-		goto out;
+	null_state_gen(batch);
+	intel_batch_relocate_state(batch);
 
-	cmd_len = intel_batch_cmds_used(&batch);
-	state_len = intel_batch_state_used(&batch);
+	ret = print_state(gen, batch);
 
-	size = cmd_len + state_len + ALIGN(cmd_len, STATE_ALIGN) - cmd_len;
-
-	ret = intel_batch_reset(&batch, p, size, ALIGN(cmd_len, STATE_ALIGN));
-	if (ret)
-		goto out;
-
-	ret = null_state_gen(&batch);
-	if (ret < 0)
-		goto out;
-
-	assert(cmd_len == intel_batch_cmds_used(&batch));
-	assert(state_len == intel_batch_state_used(&batch));
-	assert(size == ret);
-
-	/* Batch buffer needs to end */
-	assert(*(uint32_t *)(p + cmd_len - 4) == (0xA << 23));
-
-	ret = print_state(gen, &batch);
-out:
-	free(p);
-
-	if (ret < 0)
-		return ret;
-
-	return 0;
+	return ret;
 }
 
 int main(int argc, char *argv[])
 {
-	if (argc != 2) {
+	if (argc < 2) {
 		print_usage(argv[0]);
 		return 1;
 	}
+
+	if (argc > 2)
+		debug = 1;
 
 	return do_generate(atoi(argv[1]));
 }
