@@ -790,7 +790,7 @@ gen8_emit_ps(struct intel_batchbuffer *batch, uint32_t kernel) {
 	OUT_BATCH(GEN7_3DSTATE_PS | (12-2));
 	OUT_BATCH(kernel);
 	OUT_BATCH(0); /* kernel hi */
-	OUT_BATCH(1 << GEN6_3DSTATE_WM_SAMPLER_COUNT_SHITF |
+	OUT_BATCH(1 << GEN6_3DSTATE_WM_SAMPLER_COUNT_SHIFT |
 		  2 << GEN6_3DSTATE_WM_BINDING_TABLE_ENTRY_COUNT_SHIFT);
 	OUT_BATCH(0); /* scratch space stuff */
 	OUT_BATCH(0); /* scratch hi */
