@@ -39,6 +39,7 @@ static int print_state(int gen, struct intel_batchbuffer *batch)
 	for (i = 0; i < batch->num_relocs; i++) {
 		printf("\t0x%08x,\n", batch->relocs[i]);
 	}
+	printf("\t%d,\n", -1);
 	printf("};\n\n");
 
 	printf("static const u32 gen%d_null_state_batch[] = {\n", gen);
