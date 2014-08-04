@@ -502,6 +502,106 @@ unsigned int igt_create_color_fb(int fd, int width, int height,
 	return fb_id;
 }
 
+struct box {
+	int x, y, width, height;
+};
+
+struct stereo_fb_layout {
+	int fb_width, fb_height;
+	struct box left, right;
+};
+
+static void box_init(struct box *box, int x, int y, int bwidth, int bheight)
+{
+	box->x = x;
+	box->y = y;
+	box->width = bwidth;
+	box->height = bheight;
+}
+
+
+static void stereo_fb_layout_from_mode(struct stereo_fb_layout *layout,
+				       drmModeModeInfo *mode)
+{
+	unsigned int format = mode->flags & DRM_MODE_FLAG_3D_MASK;
+	const int hdisplay = mode->hdisplay, vdisplay = mode->vdisplay;
+	int middle;
+
+	switch (format) {
+	case DRM_MODE_FLAG_3D_TOP_AND_BOTTOM:
+		layout->fb_width = hdisplay;
+		layout->fb_height = vdisplay;
+
+		middle = vdisplay / 2;
+		box_init(&layout->left, 0, 0, hdisplay, middle);
+		box_init(&layout->right,
+			 0, middle, hdisplay, vdisplay - middle);
+		break;
+	case DRM_MODE_FLAG_3D_SIDE_BY_SIDE_HALF:
+		layout->fb_width = hdisplay;
+		layout->fb_height = vdisplay;
+
+		middle = hdisplay / 2;
+		box_init(&layout->left, 0, 0, middle, vdisplay);
+		box_init(&layout->right,
+			 middle, 0, hdisplay - middle, vdisplay);
+		break;
+	case DRM_MODE_FLAG_3D_FRAME_PACKING:
+	{
+		int vactive_space = mode->vtotal - vdisplay;
+
+		layout->fb_width = hdisplay;
+		layout->fb_height = 2 * vdisplay + vactive_space;
+
+		box_init(&layout->left,
+			 0, 0, hdisplay, vdisplay);
+		box_init(&layout->right,
+			 0, vdisplay + vactive_space, hdisplay, vdisplay);
+		break;
+	}
+	default:
+		igt_assert(0);
+	}
+}
+
+/**
+ * igt_create_stereo_fb:
+ * @drm_fd: open i915 drm file descriptor
+ * @mode: A stereo 3D mode.
+ * @format: drm fourcc pixel format code
+ * @tiling: tiling layout of the framebuffer
+ *
+ * Create a framebuffer for use with the stereo 3D mode specified by @mode.
+ *
+ * Returns:
+ * The kms id of the created framebuffer on success or a negative error code on
+ * failure.
+ */
+unsigned int igt_create_stereo_fb(int drm_fd, drmModeModeInfo *mode,
+				  uint32_t format, unsigned int tiling)
+{
+	struct stereo_fb_layout layout;
+	cairo_t *cr;
+	uint32_t fb_id;
+	struct igt_fb fb;
+
+	stereo_fb_layout_from_mode(&layout, mode);
+	fb_id = igt_create_fb(drm_fd, layout.fb_width, layout.fb_height, format,
+			      tiling, &fb);
+	cr = igt_get_cairo_ctx(drm_fd, &fb);
+
+	igt_paint_image(cr, IGT_DATADIR"/1080p-left.png",
+			layout.left.x, layout.left.y,
+			layout.left.width, layout.left.height);
+	igt_paint_image(cr, IGT_DATADIR"/1080p-right.png",
+			layout.right.x, layout.right.y,
+			layout.right.width, layout.right.height);
+
+	cairo_destroy(cr);
+
+	return fb_id;
+}
+
 static cairo_format_t drm_format_to_cairo(uint32_t drm_format)
 {
 	struct format_desc_struct *f;

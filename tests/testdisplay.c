@@ -410,125 +410,13 @@ set_mode(struct connector *c)
 	drmModeFreeConnector(c->connector);
 }
 
-struct box {
-	int x, y, width, height;
-};
-
-struct stereo_fb_layout {
-	int fb_width, fb_height;
-	struct box left, right;
-};
-
-static void box_init(struct box *box, int x, int y, int bwidth, int bheight)
-{
-	box->x = x;
-	box->y = y;
-	box->width = bwidth;
-	box->height = bheight;
-}
-
-static void stereo_fb_layout_from_mode(struct stereo_fb_layout *layout,
-				       drmModeModeInfo *mode)
-{
-	unsigned int format = mode->flags & DRM_MODE_FLAG_3D_MASK;
-	const int hdisplay = mode->hdisplay, vdisplay = mode->vdisplay;
-	int middle;
-
-	switch (format) {
-	case DRM_MODE_FLAG_3D_TOP_AND_BOTTOM:
-		layout->fb_width = hdisplay;
-		layout->fb_height = vdisplay;
-
-		middle = vdisplay / 2;
-		box_init(&layout->left, 0, 0, hdisplay, middle);
-		box_init(&layout->right,
-			 0, middle, hdisplay, vdisplay - middle);
-		break;
-	case DRM_MODE_FLAG_3D_SIDE_BY_SIDE_HALF:
-		layout->fb_width = hdisplay;
-		layout->fb_height = vdisplay;
-
-		middle = hdisplay / 2;
-		box_init(&layout->left, 0, 0, middle, vdisplay);
-		box_init(&layout->right,
-			 middle, 0, hdisplay - middle, vdisplay);
-		break;
-	case DRM_MODE_FLAG_3D_FRAME_PACKING:
-	{
-		int vactive_space = mode->vtotal - vdisplay;
-
-		layout->fb_width = hdisplay;
-		layout->fb_height = 2 * vdisplay + vactive_space;
-
-		box_init(&layout->left,
-			 0, 0, hdisplay, vdisplay);
-		box_init(&layout->right,
-			 0, vdisplay + vactive_space, hdisplay, vdisplay);
-		break;
-	}
-	default:
-		igt_assert(0);
-	}
-}
-
-static const char *stereo_mode_str(drmModeModeInfo *mode)
-{
-	unsigned int layout = mode->flags & DRM_MODE_FLAG_3D_MASK;
-
-	switch (layout) {
-	case DRM_MODE_FLAG_3D_TOP_AND_BOTTOM:
-		return "TB";
-	case DRM_MODE_FLAG_3D_SIDE_BY_SIDE_HALF:
-		return "SbSH";
-	case DRM_MODE_FLAG_3D_FRAME_PACKING:
-		return "FP";
-	default:
-		igt_assert(0);
-	}
-}
-
-static uint32_t create_stereo_fb(drmModeModeInfo *mode, struct igt_fb *fb)
-{
-	struct stereo_fb_layout layout;
-	cairo_t *cr;
-	uint32_t fb_id;
-
-	stereo_fb_layout_from_mode(&layout, mode);
-	fb_id = igt_create_fb(drm_fd, layout.fb_width, layout.fb_height,
-			      igt_bpp_depth_to_drm_format(bpp, depth),
-			      tiling, fb);
-	cr = igt_get_cairo_ctx(drm_fd, fb);
-
-	igt_paint_image(cr, IGT_DATADIR"/1080p-left.png",
-			    layout.left.x, layout.left.y,
-			    layout.left.width, layout.left.height);
-	igt_paint_image(cr, IGT_DATADIR"/1080p-right.png",
-			    layout.right.x, layout.right.y,
-			    layout.right.width, layout.right.height);
-
-	cairo_destroy(cr);
-
-	{
-		char buffer[64];
-
-		snprintf(buffer, sizeof(buffer), "%dx%d@%dHz-%s.png",
-			 mode->hdisplay,
-			 mode->vdisplay,
-			 mode->vrefresh,
-			 stereo_mode_str(mode));
-
-		igt_write_fb_to_png(drm_fd, fb, buffer);
-	}
-
-	return fb_id;
-}
-
 static void do_set_stereo_mode(struct connector *c)
 {
 	uint32_t fb_id;
-	struct igt_fb fb_info;
 
-	fb_id = create_stereo_fb(&c->mode, &fb_info);
+	fb_id = igt_create_stereo_fb(drm_fd, &c->mode,
+				     igt_bpp_depth_to_drm_format(bpp, depth),
+				     tiling);
 
 	igt_warn_on_f(drmModeSetCrtc(drm_fd, c->crtc, fb_id, 0, 0, &c->id, 1, &c->mode),
 		      "failed to set mode (%dx%d@%dHz): %s\n", width, height, c->mode.vrefresh, strerror(errno));

@@ -75,6 +75,8 @@ unsigned int igt_create_color_fb(int fd, int width, int height,
 				 uint32_t format, unsigned int tiling,
 				 double r, double g, double b,
 				 struct igt_fb *fb /* out */);
+unsigned int igt_create_stereo_fb(int drm_fd, drmModeModeInfo *mode,
+				  uint32_t format, unsigned int tiling);
 void igt_remove_fb(int fd, struct igt_fb *fb);
 
 /* cairo-based painting */
