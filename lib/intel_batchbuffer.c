@@ -460,10 +460,12 @@ igt_media_fillfunc_t igt_get_media_fillfunc(int devid)
 {
 	igt_media_fillfunc_t fill = NULL;
 
-	if (IS_GEN8(devid))
+	if (IS_BROADWELL(devid))
 		fill = gen8_media_fillfunc;
 	else if (IS_GEN7(devid))
 		fill = gen7_media_fillfunc;
+	else if (IS_CHERRYVIEW(devid))
+		fill = gen8lp_media_fillfunc;
 
 	return fill;
 }

@@ -25,6 +25,7 @@ libintel_tools_la_SOURCES = 	\
 	media_fill.h            \
 	media_fill_gen7.c       \
 	media_fill_gen8.c       \
+	media_fill_gen8lp.c     \
 	gen7_media.h            \
 	gen8_media.h            \
 	rendercopy_i915.c	\
