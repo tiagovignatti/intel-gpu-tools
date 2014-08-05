@@ -276,21 +276,11 @@ void igt_set_vt_graphics_mode(void)
 int kmstest_get_connector_default_mode(int drm_fd, drmModeConnector *connector,
 				      drmModeModeInfo *mode)
 {
-	drmModeRes *resources;
 	int i;
-
-	resources = drmModeGetResources(drm_fd);
-	if (!resources) {
-		perror("drmModeGetResources failed");
-
-		return -1;
-	}
 
 	if (!connector->count_modes) {
 		fprintf(stderr, "no modes for connector %d\n",
 			connector->connector_id);
-		drmModeFreeResources(resources);
-
 		return -1;
 	}
 
@@ -302,8 +292,6 @@ int kmstest_get_connector_default_mode(int drm_fd, drmModeConnector *connector,
 				break;
 		}
 	}
-
-	drmModeFreeResources(resources);
 
 	return 0;
 }
