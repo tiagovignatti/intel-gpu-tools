@@ -146,6 +146,7 @@ void kmstest_set_connector_dpms(int fd, drmModeConnector *connector, int mode);
 bool kmstest_get_property(int drm_fd, uint32_t object_id, uint32_t object_type,
 			  const char *name, uint32_t *prop_id, uint64_t *value,
 			  drmModePropertyPtr *prop);
+void kmstest_unset_all_crtcs(int drm_fd, drmModeResPtr resources);
 
 /*
  * A small modeset API

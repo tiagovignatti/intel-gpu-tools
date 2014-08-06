@@ -1561,3 +1561,21 @@ void igt_reset_connectors(void)
 
 	close(drm_fd);
 }
+
+/**
+ * kmstest_unset_all_crtcs:
+ * @drm_fd: the DRM fd
+ * @resources: libdrm resources pointer
+ *
+ * Disables all the screens.
+ */
+void kmstest_unset_all_crtcs(int drm_fd, drmModeResPtr resources)
+{
+	int i, rc;
+
+	for (i = 0; i < resources->count_crtcs; i++) {
+		rc = drmModeSetCrtc(drm_fd, resources->crtcs[i], -1, 0, 0, NULL,
+				    0, NULL);
+		igt_assert(rc == 0);
+	}
+}

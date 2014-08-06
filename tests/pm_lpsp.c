@@ -70,22 +70,11 @@ static bool lpsp_is_enabled(int drm_fd)
 	return !(val & HSW_PWR_WELL_STATE_ENABLED);
 }
 
-static void disable_all_screens(int drm_fd, drmModeResPtr drm_resources)
-{
-	int i, rc;
-
-	for (i = 0; i < drm_resources->count_crtcs; i++) {
-		rc = drmModeSetCrtc(drm_fd, drm_resources->crtcs[i], -1, 0, 0,
-				    NULL, 0, NULL);
-		igt_assert(rc == 0);
-	}
-}
-
 /* The LPSP mode is all about an enabled pipe, but we expect to also be in the
  * low power mode when no pipes are enabled, so do this check anyway. */
 static void screens_disabled_subtest(int drm_fd, drmModeResPtr drm_res)
 {
-	disable_all_screens(drm_fd, drm_res);
+	kmstest_unset_all_crtcs(drm_fd, drm_res);
 	igt_assert(lpsp_is_enabled(drm_fd));
 }
 
@@ -131,7 +120,7 @@ static void edp_subtest(int drm_fd, drmModeResPtr drm_res,
 		.name = "Custom 1024x768",
 	};
 
-	disable_all_screens(drm_fd, drm_res);
+	kmstest_unset_all_crtcs(drm_fd, drm_res);
 
 	for (i = 0; i < drm_res->count_connectors; i++) {
 		drmModeConnectorPtr c = drm_connectors[i];
@@ -193,7 +182,7 @@ static void non_edp_subtest(int drm_fd, drmModeResPtr drm_res,
 	uint32_t connector_id = 0, crtc_id = 0, buffer_id = 0;
 	drmModeModeInfoPtr mode = NULL;
 
-	disable_all_screens(drm_fd, drm_res);
+	kmstest_unset_all_crtcs(drm_fd, drm_res);
 
 	for (i = 0; i < drm_res->count_connectors; i++) {
 		drmModeConnectorPtr c = drm_connectors[i];

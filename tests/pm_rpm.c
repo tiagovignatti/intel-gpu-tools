@@ -232,13 +232,7 @@ static void disable_all_screens_dpms(struct mode_set_data *data)
 
 static void disable_all_screens(struct mode_set_data *data)
 {
-	int i, rc;
-
-	for (i = 0; i < data->res->count_crtcs; i++) {
-		rc = drmModeSetCrtc(drm_fd, data->res->crtcs[i], -1, 0, 0,
-				    NULL, 0, NULL);
-		igt_assert(rc == 0);
-	}
+	kmstest_unset_all_crtcs(drm_fd, data->res);
 }
 
 static struct scanout_fb *create_fb(struct mode_set_data *data, int width,
