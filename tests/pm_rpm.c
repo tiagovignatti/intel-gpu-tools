@@ -1704,6 +1704,74 @@ static void planes_subtest(bool universal, bool dpms)
 	}
 }
 
+static void fences_subtest(bool dpms)
+{
+	uint32_t connector_id, crtc_id = 0;
+	drmModeModeInfoPtr mode;
+	struct igt_fb scanout_fb;
+	int rc, i;
+	uint32_t *buf_ptr;
+	uint32_t tiling = false, swizzle;
+
+	disable_all_screens(&ms_data);
+	igt_assert(wait_for_suspended());
+
+	igt_require(find_connector_for_modeset(&ms_data, SCREEN_TYPE_ANY,
+					       &connector_id, &mode));
+
+	crtc_id = ms_data.res->crtcs[0];
+	igt_assert(crtc_id);
+
+	igt_create_fb(drm_fd, mode->hdisplay, mode->vdisplay,
+		      DRM_FORMAT_XRGB8888, true, &scanout_fb);
+
+	/* Even though we passed "true" as the tiling argument, double-check
+	 * that the fb is really tiled. */
+	gem_get_tiling(drm_fd, scanout_fb.gem_handle, &tiling, &swizzle);
+	igt_assert(tiling);
+
+	buf_ptr = gem_mmap__gtt(drm_fd, scanout_fb.gem_handle,
+				scanout_fb.size, PROT_WRITE | PROT_READ);
+	for (i = 0; i < scanout_fb.size/sizeof(uint32_t); i++)
+		buf_ptr[i] = i;
+
+	rc = drmModeSetCrtc(drm_fd, crtc_id, scanout_fb.fb_id, 0, 0,
+			    &connector_id, 1, mode);
+	igt_assert(rc == 0);
+	igt_assert(wait_for_active());
+
+	if (dpms)
+		disable_all_screens_dpms(&ms_data);
+	else
+		disable_all_screens(&ms_data);
+	igt_assert(wait_for_suspended());
+
+	for (i = 0; i < scanout_fb.size/sizeof(uint32_t); i++)
+		igt_assert_eq(buf_ptr[i], i);
+	igt_assert(wait_for_suspended());
+
+	if (dpms) {
+		drmModeConnectorPtr c = NULL;
+
+		for (i = 0; i < ms_data.res->count_connectors; i++)
+			if (ms_data.connectors[i]->connector_id == connector_id)
+				c = ms_data.connectors[i];
+		igt_assert(c);
+
+		kmstest_set_connector_dpms(drm_fd, c, DRM_MODE_DPMS_ON);
+	} else {
+		rc = drmModeSetCrtc(drm_fd, crtc_id, scanout_fb.fb_id, 0, 0,
+				    &connector_id, 1, mode);
+		igt_assert(rc == 0);
+	}
+	igt_assert(wait_for_active());
+
+	for (i = 0; i < scanout_fb.size/sizeof(uint32_t); i++)
+		igt_assert_eq(buf_ptr[i], i);
+
+	igt_assert(munmap(buf_ptr, scanout_fb.size) == 0);
+}
+
 int rounds = 50;
 bool stay = false;
 
@@ -1808,6 +1876,10 @@ int main(int argc, char *argv[])
 		dpms_mode_unset_subtest(SCREEN_TYPE_LPSP);
 	igt_subtest("dpms-mode-unset-non-lpsp")
 		dpms_mode_unset_subtest(SCREEN_TYPE_NON_LPSP);
+	igt_subtest("fences")
+		fences_subtest(false);
+	igt_subtest("fences-dpms")
+		fences_subtest(true);
 
 	/* Modeset stress */
 	igt_subtest("modeset-lpsp-stress")
