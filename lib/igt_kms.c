@@ -593,20 +593,19 @@ static void igt_output_refresh(igt_output_t *output)
 }
 
 static bool
-get_property(igt_display_t *display,
-	     uint32_t object_id, uint32_t object_type, const char *name,
-	     uint32_t *prop_id /* out */, uint64_t *value /* out */)
+get_property(int drm_fd, uint32_t object_id, uint32_t object_type,
+	     const char *name, uint32_t *prop_id /* out */,
+	     uint64_t *value /* out */)
 {
 	drmModeObjectPropertiesPtr proplist;
 	drmModePropertyPtr prop = NULL;
 	bool found = false;
 	int i;
 
-	proplist = drmModeObjectGetProperties(display->drm_fd,
-					      object_id, object_type);
+	proplist = drmModeObjectGetProperties(drm_fd, object_id, object_type);
 	for (i = 0; i < proplist->count_props; i++) {
 		drmModeFreeProperty(prop);
-		prop = drmModeGetProperty(display->drm_fd, proplist->props[i]);
+		prop = drmModeGetProperty(drm_fd, proplist->props[i]);
 		if (!prop)
 			continue;
 
@@ -627,10 +626,10 @@ out:
 }
 
 static bool
-get_plane_property(igt_display_t *display, uint32_t plane_id, const char *name,
+get_plane_property(int drm_fd, uint32_t plane_id, const char *name,
 		   uint32_t *prop_id /* out */, uint64_t *value /* out */)
 {
-	return get_property(display, plane_id, DRM_MODE_OBJECT_PLANE,
+	return get_property(drm_fd, plane_id, DRM_MODE_OBJECT_PLANE,
 			    name, prop_id, value);
 }
 
@@ -649,12 +648,12 @@ igt_plane_set_property(igt_plane_t *plane, uint32_t prop_id, uint64_t value)
  * find a type property, then the kernel doesn't support universal
  * planes and we know the plane is an overlay/sprite.
  */
-static int get_drm_plane_type(igt_display_t *display, uint32_t plane_id)
+static int get_drm_plane_type(int drm_fd, uint32_t plane_id)
 {
 	uint64_t value;
 	bool has_prop;
 
-	has_prop = get_plane_property(display, plane_id, "type",
+	has_prop = get_plane_property(drm_fd, plane_id, "type",
 				      NULL /* prop_id */, &value);
 	if (has_prop)
 		return (int)value;
@@ -710,7 +709,7 @@ void igt_display_init(igt_display_t *display, int drm_fd)
 				continue;
 			}
 
-			type = get_drm_plane_type(display,
+			type = get_drm_plane_type(display->drm_fd,
 						  plane_resources->planes[j]);
 			switch (type) {
 			case DRM_PLANE_TYPE_PRIMARY:
@@ -741,7 +740,7 @@ void igt_display_init(igt_display_t *display, int drm_fd)
 			plane->pipe = pipe;
 			plane->drm_plane = drm_plane;
 
-			get_plane_property(display, drm_plane->plane_id,
+			get_plane_property(display->drm_fd, drm_plane->plane_id,
 					   "rotation",
 					   &plane->rotation_property,
 					   &prop_value);
