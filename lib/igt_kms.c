@@ -595,42 +595,46 @@ static void igt_output_refresh(igt_output_t *output)
 static bool
 get_property(int drm_fd, uint32_t object_id, uint32_t object_type,
 	     const char *name, uint32_t *prop_id /* out */,
-	     uint64_t *value /* out */)
+	     uint64_t *value /* out */, drmModePropertyPtr *prop /* out */)
 {
 	drmModeObjectPropertiesPtr proplist;
-	drmModePropertyPtr prop = NULL;
+	drmModePropertyPtr _prop;
 	bool found = false;
 	int i;
 
 	proplist = drmModeObjectGetProperties(drm_fd, object_id, object_type);
 	for (i = 0; i < proplist->count_props; i++) {
-		drmModeFreeProperty(prop);
-		prop = drmModeGetProperty(drm_fd, proplist->props[i]);
-		if (!prop)
+		_prop = drmModeGetProperty(drm_fd, proplist->props[i]);
+		if (!_prop)
 			continue;
 
-		if (strcmp(prop->name, name) == 0) {
+		if (strcmp(_prop->name, name) == 0) {
 			found = true;
 			if (prop_id)
 				*prop_id = proplist->props[i];
 			if (value)
 				*value = proplist->prop_values[i];
-			goto out;
+			if (prop)
+				*prop = _prop;
+			else
+				drmModeFreeProperty(_prop);
+
+			break;
 		}
+		drmModeFreeProperty(_prop);
 	}
 
-out:
-	drmModeFreeProperty(prop);
 	drmModeFreeObjectProperties(proplist);
 	return found;
 }
 
 static bool
 get_plane_property(int drm_fd, uint32_t plane_id, const char *name,
-		   uint32_t *prop_id /* out */, uint64_t *value /* out */)
+		   uint32_t *prop_id /* out */, uint64_t *value /* out */,
+		   drmModePropertyPtr *prop /* out */)
 {
 	return get_property(drm_fd, plane_id, DRM_MODE_OBJECT_PLANE,
-			    name, prop_id, value);
+			    name, prop_id, value, prop);
 }
 
 static void
@@ -654,7 +658,7 @@ static int get_drm_plane_type(int drm_fd, uint32_t plane_id)
 	bool has_prop;
 
 	has_prop = get_plane_property(drm_fd, plane_id, "type",
-				      NULL /* prop_id */, &value);
+				      NULL /* prop_id */, &value, NULL);
 	if (has_prop)
 		return (int)value;
 
@@ -743,7 +747,8 @@ void igt_display_init(igt_display_t *display, int drm_fd)
 			get_plane_property(display->drm_fd, drm_plane->plane_id,
 					   "rotation",
 					   &plane->rotation_property,
-					   &prop_value);
+					   &prop_value,
+					   NULL);
 			plane->rotation = (igt_rotation_t)prop_value;
 		}
 
