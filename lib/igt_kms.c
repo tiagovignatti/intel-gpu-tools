@@ -592,10 +592,26 @@ static void igt_output_refresh(igt_output_t *output)
 	display->pipes_in_use |= 1 << output->config.pipe;
 }
 
-static bool
-get_property(int drm_fd, uint32_t object_id, uint32_t object_type,
-	     const char *name, uint32_t *prop_id /* out */,
-	     uint64_t *value /* out */, drmModePropertyPtr *prop /* out */)
+/**
+ * kmstest_get_property:
+ * @drm_fd: drm file descriptor
+ * @object_id: object whose properties we're going to get
+ * @object_type: type of obj_id (DRM_MODE_OBJECT_*)
+ * @name: name of the property we're going to get
+ * @prop_id: if not NULL, returns the property id
+ * @value: if not NULL, returns the property value
+ * @prop: if not NULL, returns the property, and the caller will have to free
+ *        it manually.
+ *
+ * Finds a property with the given name on the given object.
+ *
+ * Returns: true in case we found something.
+ */
+bool
+kmstest_get_property(int drm_fd, uint32_t object_id, uint32_t object_type,
+		     const char *name, uint32_t *prop_id /* out */,
+		     uint64_t *value /* out */,
+		     drmModePropertyPtr *prop /* out */)
 {
 	drmModeObjectPropertiesPtr proplist;
 	drmModePropertyPtr _prop;
@@ -633,8 +649,8 @@ get_plane_property(int drm_fd, uint32_t plane_id, const char *name,
 		   uint32_t *prop_id /* out */, uint64_t *value /* out */,
 		   drmModePropertyPtr *prop /* out */)
 {
-	return get_property(drm_fd, plane_id, DRM_MODE_OBJECT_PLANE,
-			    name, prop_id, value, prop);
+	return kmstest_get_property(drm_fd, plane_id, DRM_MODE_OBJECT_PLANE,
+				    name, prop_id, value, prop);
 }
 
 static void

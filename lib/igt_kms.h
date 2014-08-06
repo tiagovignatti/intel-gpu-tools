@@ -143,6 +143,9 @@ const char *kmstest_encoder_type_str(int type);
 const char *kmstest_connector_status_str(int type);
 const char *kmstest_connector_type_str(int type);
 void kmstest_set_connector_dpms(int fd, drmModeConnector *connector, int mode);
+bool kmstest_get_property(int drm_fd, uint32_t object_id, uint32_t object_type,
+			  const char *name, uint32_t *prop_id, uint64_t *value,
+			  drmModePropertyPtr *prop);
 
 /*
  * A small modeset API
