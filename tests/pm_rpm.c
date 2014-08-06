@@ -348,29 +348,25 @@ static void enable_one_screen(struct mode_set_data *data)
 static drmModePropertyBlobPtr get_connector_edid(drmModeConnectorPtr connector,
 						 int index)
 {
-	unsigned int i;
-	drmModeObjectPropertiesPtr props;
-	drmModePropertyBlobPtr ret = NULL;
+	bool found;
+	uint64_t prop_value;
+	drmModePropertyPtr prop;
+	drmModePropertyBlobPtr blob = NULL;
 
-	props = drmModeObjectGetProperties(drm_fd, connector->connector_id,
-					   DRM_MODE_OBJECT_CONNECTOR);
+	found = kmstest_get_property(drm_fd, connector->connector_id,
+				     DRM_MODE_OBJECT_CONNECTOR, "EDID",
+				     NULL, &prop_value, &prop);
 
-	for (i = 0; i < props->count_props; i++) {
-		drmModePropertyPtr prop = drmModeGetProperty(drm_fd,
-							     props->props[i]);
+	if (found) {
+		igt_assert(prop->flags & DRM_MODE_PROP_BLOB);
+		igt_assert(prop->count_blobs == 0);
 
-		if (strcmp(prop->name, "EDID") == 0) {
-			igt_assert(prop->flags & DRM_MODE_PROP_BLOB);
-			igt_assert(prop->count_blobs == 0);
-			ret = drmModeGetPropertyBlob(drm_fd,
-						     props->prop_values[i]);
-		}
+		blob = drmModeGetPropertyBlob(drm_fd, prop_value);
 
 		drmModeFreeProperty(prop);
 	}
 
-	drmModeFreeObjectProperties(props);
-	return ret;
+	return blob;
 }
 
 static void init_mode_set_data(struct mode_set_data *data)
@@ -1529,52 +1525,39 @@ static void cursor_subtest(bool dpms)
 
 static enum plane_type get_plane_type(uint32_t plane_id)
 {
-	drmModeObjectPropertiesPtr props;
-	int i, j;
+	int i;
+	bool found;
+	uint64_t prop_value;
+	drmModePropertyPtr prop;
+	const char *enum_name = NULL;
 	enum plane_type type;
-	bool found = false;
 
-	props = drmModeObjectGetProperties(drm_fd, plane_id,
-					   DRM_MODE_OBJECT_PLANE);
-	igt_assert(props);
-
-	for (i = 0; i < props->count_props && !found; i++) {
-		drmModePropertyPtr prop;
-		const char *enum_name = NULL;
-
-		prop = drmModeGetProperty(drm_fd, props->props[i]);
-		igt_assert(prop);
-
-		if (strcmp(prop->name, "type") == 0) {
-			igt_assert(prop->flags & DRM_MODE_PROP_ENUM);
-			igt_assert(props->prop_values[i] < prop->count_enums);
-
-			for (j = 0; j < prop->count_enums; j++) {
-				if (prop->enums[j].value ==
-				    props->prop_values[i]) {
-					enum_name = prop->enums[j].name;
-					break;
-				}
-			}
-			igt_assert(enum_name);
-
-			if (strcmp(enum_name, "Overlay") == 0)
-				type = PLANE_OVERLAY;
-			else if (strcmp(enum_name, "Primary") == 0)
-				type = PLANE_PRIMARY;
-			else if (strcmp(enum_name, "Cursor") == 0)
-				type = PLANE_CURSOR;
-			else
-				igt_assert(0);
-
-			found = true;
-		}
-
-		drmModeFreeProperty(prop);
-	}
+	found = kmstest_get_property(drm_fd, plane_id, DRM_MODE_OBJECT_PLANE,
+				     "type", NULL, &prop_value, &prop);
 	igt_assert(found);
 
-	drmModeFreeObjectProperties(props);
+	igt_assert(prop->flags & DRM_MODE_PROP_ENUM);
+	igt_assert(prop_value < prop->count_enums);
+
+	for (i = 0; i < prop->count_enums; i++) {
+		if (prop->enums[i].value == prop_value) {
+			enum_name = prop->enums[i].name;
+			break;
+		}
+	}
+	igt_assert(enum_name);
+
+	if (strcmp(enum_name, "Overlay") == 0)
+		type = PLANE_OVERLAY;
+	else if (strcmp(enum_name, "Primary") == 0)
+		type = PLANE_PRIMARY;
+	else if (strcmp(enum_name, "Cursor") == 0)
+		type = PLANE_CURSOR;
+	else
+		igt_assert(0);
+
+	drmModeFreeProperty(prop);
+
 	return type;
 }
 
