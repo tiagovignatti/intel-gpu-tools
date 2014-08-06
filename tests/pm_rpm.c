@@ -51,6 +51,9 @@
 #include "igt_kms.h"
 #include "igt_debugfs.h"
 
+/* One day, this will be on your libdrm. */
+#define DRM_CLIENT_CAP_UNIVERSAL_PLANES 2
+
 #define MSR_PC8_RES	0x630
 #define MSR_PC9_RES	0x631
 #define MSR_PC10_RES	0x632
@@ -70,6 +73,12 @@ enum screen_type {
 	SCREEN_TYPE_LPSP,
 	SCREEN_TYPE_NON_LPSP,
 	SCREEN_TYPE_ANY,
+};
+
+enum plane_type {
+	PLANE_OVERLAY,
+	PLANE_PRIMARY,
+	PLANE_CURSOR,
 };
 
 /* Wait flags */
@@ -277,13 +286,15 @@ static uint32_t get_fb(struct mode_set_data *data, int width, int height)
 	igt_assert(false);
 }
 
-static bool enable_one_screen_with_type(struct mode_set_data *data,
-					enum screen_type type)
+static bool find_connector_for_modeset(struct mode_set_data *data,
+				       enum screen_type type,
+				       uint32_t *connector_id,
+				       drmModeModeInfoPtr *mode)
 {
-	uint32_t crtc_id = 0, buffer_id = 0, connector_id = 0;
-	drmModeModeInfoPtr mode = NULL;
-	int i, rc;
+	int i;
 
+	*connector_id = 0;
+	*mode = NULL;
 	for (i = 0; i < data->res->count_connectors; i++) {
 		drmModeConnectorPtr c = data->connectors[i];
 
@@ -296,13 +307,23 @@ static bool enable_one_screen_with_type(struct mode_set_data *data,
 			continue;
 
 		if (c->connection == DRM_MODE_CONNECTED && c->count_modes) {
-			connector_id = c->connector_id;
-			mode = &c->modes[0];
+			*connector_id = c->connector_id;
+			*mode = &c->modes[0];
 			break;
 		}
 	}
 
-	if (connector_id == 0)
+	return (*connector_id != 0);
+}
+
+static bool enable_one_screen_with_type(struct mode_set_data *data,
+					enum screen_type type)
+{
+	uint32_t crtc_id = 0, buffer_id = 0, connector_id;
+	drmModeModeInfoPtr mode;
+	int rc;
+
+	if (!find_connector_for_modeset(data, type, &connector_id, &mode))
 		return false;
 
 	crtc_id = data->res->crtcs[0];
@@ -310,8 +331,6 @@ static bool enable_one_screen_with_type(struct mode_set_data *data,
 
 	igt_assert(crtc_id);
 	igt_assert(buffer_id);
-	igt_assert(connector_id);
-	igt_assert(mode);
 
 	rc = drmModeSetCrtc(drm_fd, crtc_id, buffer_id, 0, 0, &connector_id,
 			    1, mode);
@@ -1407,6 +1426,307 @@ static void dpms_mode_unset_subtest(enum screen_type type)
 	igt_assert(wait_for_suspended());
 }
 
+static void fill_igt_fb(struct igt_fb *fb, uint32_t color)
+{
+	int i;
+	uint32_t *ptr;
+
+	ptr = gem_mmap__gtt(drm_fd, fb->gem_handle, fb->size, PROT_WRITE);
+	for (i = 0; i < fb->size/sizeof(uint32_t); i++)
+		ptr[i] = color;
+	igt_assert(munmap(ptr, fb->size) == 0);
+}
+
+/* At some point, this test triggered WARNs in the Kernel. */
+static void cursor_subtest(bool dpms)
+{
+	uint32_t crtc_id = 0, connector_id;
+	drmModeModeInfoPtr mode;
+	int rc;
+	struct igt_fb scanout_fb, cursor_fb1, cursor_fb2, cursor_fb3;
+
+	disable_all_screens(&ms_data);
+	igt_assert(wait_for_suspended());
+
+	igt_require(find_connector_for_modeset(&ms_data, SCREEN_TYPE_ANY,
+					       &connector_id, &mode));
+
+	crtc_id = ms_data.res->crtcs[0];
+	igt_assert(crtc_id);
+
+	igt_create_fb(drm_fd, mode->hdisplay, mode->vdisplay,
+		      DRM_FORMAT_XRGB8888, false, &scanout_fb);
+	igt_create_fb(drm_fd, 64, 64, DRM_FORMAT_ARGB8888, false, &cursor_fb1);
+	igt_create_fb(drm_fd, 64, 64, DRM_FORMAT_ARGB8888, false, &cursor_fb2);
+	igt_create_fb(drm_fd, 64, 64, DRM_FORMAT_ARGB8888, true, &cursor_fb3);
+
+	fill_igt_fb(&scanout_fb, 0xFF);
+	fill_igt_fb(&cursor_fb1, 0xFF00FFFF);
+	fill_igt_fb(&cursor_fb2, 0xFF00FF00);
+	fill_igt_fb(&cursor_fb3, 0xFFFF0000);
+
+	rc = drmModeSetCrtc(drm_fd, crtc_id, scanout_fb.fb_id, 0, 0,
+			    &connector_id, 1, mode);
+	igt_assert(rc == 0);
+	igt_assert(wait_for_active());
+
+	rc = drmModeSetCursor(drm_fd, crtc_id, cursor_fb1.gem_handle,
+			      cursor_fb1.width, cursor_fb1.height);
+	igt_assert(rc == 0);
+	rc = drmModeMoveCursor(drm_fd, crtc_id, 0, 0);
+	igt_assert(rc == 0);
+	igt_assert(wait_for_active());
+
+	if (dpms)
+		disable_all_screens_dpms(&ms_data);
+	else
+		disable_all_screens(&ms_data);
+	igt_assert(wait_for_suspended());
+
+	/* First, just move the cursor. */
+	rc = drmModeMoveCursor(drm_fd, crtc_id, 1, 1);
+	igt_assert(rc == 0);
+	igt_assert(wait_for_suspended());
+
+	/* Then unset it, and set a new one. */
+	rc = drmModeSetCursor(drm_fd, crtc_id, 0, 0, 0);
+	igt_assert(rc == 0);
+	igt_assert(wait_for_suspended());
+
+	rc = drmModeSetCursor(drm_fd, crtc_id, cursor_fb2.gem_handle,
+			      cursor_fb1.width, cursor_fb2.height);
+	igt_assert(rc == 0);
+	igt_assert(wait_for_suspended());
+
+	/* Move the new cursor. */
+	rc = drmModeMoveCursor(drm_fd, crtc_id, 2, 2);
+	igt_assert(rc == 0);
+	igt_assert(wait_for_suspended());
+
+	/* Now set a new one without unsetting the previous one. */
+	rc = drmModeSetCursor(drm_fd, crtc_id, cursor_fb1.gem_handle,
+			      cursor_fb1.width, cursor_fb1.height);
+	igt_assert(rc == 0);
+	igt_assert(wait_for_suspended());
+
+	/* Cursor 3 was created with tiling and painted with a GTT mmap, so
+	 * hopefully it has some fences around it. */
+	rc = drmModeRmFB(drm_fd, cursor_fb3.fb_id);
+	igt_assert(rc == 0);
+	gem_set_tiling(drm_fd, cursor_fb3.gem_handle, false, cursor_fb3.stride);
+	igt_assert(wait_for_suspended());
+
+	rc = drmModeSetCursor(drm_fd, crtc_id, cursor_fb3.gem_handle,
+			      cursor_fb3.width, cursor_fb3.height);
+	igt_assert(rc == 0);
+	igt_assert(wait_for_suspended());
+
+	/* Make sure nothing remains for the other tests. */
+	rc = drmModeSetCursor(drm_fd, crtc_id, 0, 0, 0);
+	igt_assert(rc == 0);
+	igt_assert(wait_for_suspended());
+}
+
+static enum plane_type get_plane_type(uint32_t plane_id)
+{
+	drmModeObjectPropertiesPtr props;
+	int i, j;
+	enum plane_type type;
+	bool found = false;
+
+	props = drmModeObjectGetProperties(drm_fd, plane_id,
+					   DRM_MODE_OBJECT_PLANE);
+	igt_assert(props);
+
+	for (i = 0; i < props->count_props && !found; i++) {
+		drmModePropertyPtr prop;
+		const char *enum_name = NULL;
+
+		prop = drmModeGetProperty(drm_fd, props->props[i]);
+		igt_assert(prop);
+
+		if (strcmp(prop->name, "type") == 0) {
+			igt_assert(prop->flags & DRM_MODE_PROP_ENUM);
+			igt_assert(props->prop_values[i] < prop->count_enums);
+
+			for (j = 0; j < prop->count_enums; j++) {
+				if (prop->enums[j].value ==
+				    props->prop_values[i]) {
+					enum_name = prop->enums[j].name;
+					break;
+				}
+			}
+			igt_assert(enum_name);
+
+			if (strcmp(enum_name, "Overlay") == 0)
+				type = PLANE_OVERLAY;
+			else if (strcmp(enum_name, "Primary") == 0)
+				type = PLANE_PRIMARY;
+			else if (strcmp(enum_name, "Cursor") == 0)
+				type = PLANE_CURSOR;
+			else
+				igt_assert(0);
+
+			found = true;
+		}
+
+		drmModeFreeProperty(prop);
+	}
+	igt_assert(found);
+
+	drmModeFreeObjectProperties(props);
+	return type;
+}
+
+static void test_one_plane(bool dpms, uint32_t plane_id,
+			   enum plane_type plane_type)
+{
+	int rc;
+	uint32_t plane_format, plane_w, plane_h;
+	uint32_t crtc_id, connector_id;
+	struct igt_fb scanout_fb, plane_fb1, plane_fb2;
+	drmModeModeInfoPtr mode;
+	int32_t crtc_x = 0, crtc_y = 0;
+	bool tiling;
+
+	disable_all_screens(&ms_data);
+	igt_assert(wait_for_suspended());
+
+	igt_require(find_connector_for_modeset(&ms_data, SCREEN_TYPE_ANY,
+					       &connector_id, &mode));
+
+	crtc_id = ms_data.res->crtcs[0];
+	igt_assert(crtc_id);
+
+	igt_create_fb(drm_fd, mode->hdisplay, mode->vdisplay,
+		      DRM_FORMAT_XRGB8888, false, &scanout_fb);
+
+	fill_igt_fb(&scanout_fb, 0xFF);
+
+	switch (plane_type) {
+	case PLANE_OVERLAY:
+		plane_format = DRM_FORMAT_XRGB8888;
+		plane_w = 64;
+		plane_h = 64;
+		tiling = true;
+		break;
+	case PLANE_PRIMARY:
+		plane_format = DRM_FORMAT_XRGB8888;
+		plane_w = mode->hdisplay;
+		plane_h = mode->vdisplay;
+		tiling = true;
+		break;
+	case PLANE_CURSOR:
+		plane_format = DRM_FORMAT_ARGB8888;
+		plane_w = 64;
+		plane_h = 64;
+		tiling = false;
+		break;
+	default:
+		igt_assert(0);
+		break;
+	}
+
+	igt_create_fb(drm_fd, plane_w, plane_h, plane_format, tiling,
+		      &plane_fb1);
+	igt_create_fb(drm_fd, plane_w, plane_h, plane_format, tiling,
+		      &plane_fb2);
+	fill_igt_fb(&plane_fb1, 0xFF00FFFF);
+	fill_igt_fb(&plane_fb2, 0xFF00FF00);
+
+	rc = drmModeSetCrtc(drm_fd, crtc_id, scanout_fb.fb_id, 0, 0,
+			    &connector_id, 1, mode);
+	igt_assert(rc == 0);
+	igt_assert(wait_for_active());
+
+	rc = drmModeSetPlane(drm_fd, plane_id, crtc_id, plane_fb1.fb_id, 0,
+			     0, 0, plane_fb1.width, plane_fb1.height,
+			     0 << 16, 0 << 16, plane_fb1.width << 16,
+			     plane_fb1.height << 16);
+	igt_assert(rc == 0);
+
+	if (dpms)
+		disable_all_screens_dpms(&ms_data);
+	else
+		disable_all_screens(&ms_data);
+	igt_assert(wait_for_suspended());
+
+	/* Just move the plane around. */
+	if (plane_type != PLANE_PRIMARY) {
+		crtc_x++;
+		crtc_y++;
+	}
+	rc = drmModeSetPlane(drm_fd, plane_id, crtc_id, plane_fb1.fb_id, 0,
+			     crtc_x, crtc_y, plane_fb1.width, plane_fb1.height,
+			     0 << 16, 0 << 16, plane_fb1.width << 16,
+			     plane_fb1.height << 16);
+	igt_assert(rc == 0);
+
+	/* Unset, then change the plane. */
+	rc = drmModeSetPlane(drm_fd, plane_id, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+	igt_assert(rc == 0);
+
+	rc = drmModeSetPlane(drm_fd, plane_id, crtc_id, plane_fb2.fb_id, 0,
+			     crtc_x, crtc_y, plane_fb2.width, plane_fb2.height,
+			     0 << 16, 0 << 16, plane_fb2.width << 16,
+			     plane_fb2.height << 16);
+	igt_assert(rc == 0);
+
+	/* Now change the plane without unsetting first. */
+	rc = drmModeSetPlane(drm_fd, plane_id, crtc_id, plane_fb1.fb_id, 0,
+			     crtc_x, crtc_y, plane_fb1.width, plane_fb1.height,
+			     0 << 16, 0 << 16, plane_fb1.width << 16,
+			     plane_fb1.height << 16);
+	igt_assert(rc == 0);
+
+	/* Make sure nothing remains for the other tests. */
+	rc = drmModeSetPlane(drm_fd, plane_id, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+	igt_assert(rc == 0);
+}
+
+/* This one also triggered WARNs on our driver at some point in time. */
+static void planes_subtest(bool universal, bool dpms)
+{
+	int i, rc, planes_tested = 0;
+	drmModePlaneResPtr planes;
+
+	if (universal) {
+		rc = drmSetClientCap(drm_fd, DRM_CLIENT_CAP_UNIVERSAL_PLANES,
+				     1);
+		igt_require(rc == 0);
+	}
+
+	planes = drmModeGetPlaneResources(drm_fd);
+	for (i = 0; i < planes->count_planes; i++) {
+		drmModePlanePtr plane;
+
+		plane = drmModeGetPlane(drm_fd, planes->planes[i]);
+		igt_assert(plane);
+
+		/* We just pick the first CRTC on the list, so we can test for
+		 * 0x1 as the index. */
+		if (plane->possible_crtcs & 0x1) {
+			enum plane_type type;
+
+			type = universal ? get_plane_type(plane->plane_id) :
+					   PLANE_OVERLAY;
+			test_one_plane(dpms, plane->plane_id, type);
+			planes_tested++;
+		}
+		drmModeFreePlane(plane);
+	}
+	drmModeFreePlaneResources(planes);
+
+	if (universal) {
+		rc = drmSetClientCap(drm_fd, DRM_CLIENT_CAP_UNIVERSAL_PLANES, 0);
+		igt_assert(rc == 0);
+
+		igt_assert(planes_tested >= 3);
+	} else {
+		igt_assert(planes_tested >= 1);
+	}
+}
+
 int rounds = 50;
 bool stay = false;
 
@@ -1479,6 +1799,20 @@ int main(int argc, char *argv[])
 		gem_execbuf_subtest();
 	igt_subtest("gem-idle")
 		gem_idle_subtest();
+
+	/* Planes and cursors */
+	igt_subtest("cursor")
+		cursor_subtest(false);
+	igt_subtest("cursor-dpms")
+		cursor_subtest(true);
+	igt_subtest("legacy-planes")
+		planes_subtest(false, false);
+	igt_subtest("legacy-planes-dpms")
+		planes_subtest(false, true);
+	igt_subtest("universal-planes")
+		planes_subtest(true, false);
+	igt_subtest("universal-planes-dpms")
+		planes_subtest(true, true);
 
 	/* Misc */
 	igt_subtest("reg-read-ioctl")
