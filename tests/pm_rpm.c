@@ -1638,16 +1638,19 @@ static void test_one_plane(bool dpms, uint32_t plane_id,
 			     0 << 16, 0 << 16, plane_fb1.width << 16,
 			     plane_fb1.height << 16);
 	igt_assert(rc == 0);
+	igt_assert(wait_for_suspended());
 
 	/* Unset, then change the plane. */
 	rc = drmModeSetPlane(drm_fd, plane_id, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 	igt_assert(rc == 0);
+	igt_assert(wait_for_suspended());
 
 	rc = drmModeSetPlane(drm_fd, plane_id, crtc_id, plane_fb2.fb_id, 0,
 			     crtc_x, crtc_y, plane_fb2.width, plane_fb2.height,
 			     0 << 16, 0 << 16, plane_fb2.width << 16,
 			     plane_fb2.height << 16);
 	igt_assert(rc == 0);
+	igt_assert(wait_for_suspended());
 
 	/* Now change the plane without unsetting first. */
 	rc = drmModeSetPlane(drm_fd, plane_id, crtc_id, plane_fb1.fb_id, 0,
@@ -1655,10 +1658,12 @@ static void test_one_plane(bool dpms, uint32_t plane_id,
 			     0 << 16, 0 << 16, plane_fb1.width << 16,
 			     plane_fb1.height << 16);
 	igt_assert(rc == 0);
+	igt_assert(wait_for_suspended());
 
 	/* Make sure nothing remains for the other tests. */
 	rc = drmModeSetPlane(drm_fd, plane_id, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 	igt_assert(rc == 0);
+	igt_assert(wait_for_suspended());
 }
 
 /* This one also triggered WARNs on our driver at some point in time. */
