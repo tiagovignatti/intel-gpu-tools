@@ -240,6 +240,19 @@ static void disable_all_screens(struct mode_set_data *data)
 	igt_assert(wait_for_suspended()); \
 } while (0)
 
+static void disable_or_dpms_all_screens(struct mode_set_data *data, bool dpms)
+{
+	if (dpms)
+		disable_all_screens_dpms(&ms_data);
+	else
+		disable_all_screens(&ms_data);
+}
+
+#define disable_or_dpms_all_screens_and_wait(data, dpms) do { \
+	disable_or_dpms_all_screens((data), (dpms)); \
+	igt_assert(wait_for_suspended()); \
+} while (0)
+
 static struct scanout_fb *create_fb(struct mode_set_data *data, int width,
 				    int height)
 {
@@ -1445,11 +1458,7 @@ static void cursor_subtest(bool dpms)
 	igt_assert(rc == 0);
 	igt_assert(wait_for_active());
 
-	if (dpms)
-		disable_all_screens_dpms(&ms_data);
-	else
-		disable_all_screens(&ms_data);
-	igt_assert(wait_for_suspended());
+	disable_or_dpms_all_screens_and_wait(&ms_data, dpms);
 
 	/* First, just move the cursor. */
 	rc = drmModeMoveCursor(drm_fd, crtc_id, 1, 1);
@@ -1599,11 +1608,7 @@ static void test_one_plane(bool dpms, uint32_t plane_id,
 			     plane_fb1.height << 16);
 	igt_assert(rc == 0);
 
-	if (dpms)
-		disable_all_screens_dpms(&ms_data);
-	else
-		disable_all_screens(&ms_data);
-	igt_assert(wait_for_suspended());
+	disable_or_dpms_all_screens_and_wait(&ms_data, dpms);
 
 	/* Just move the plane around. */
 	if (plane_type != PLANE_PRIMARY) {
@@ -1721,11 +1726,7 @@ static void fences_subtest(bool dpms)
 	igt_assert(rc == 0);
 	igt_assert(wait_for_active());
 
-	if (dpms)
-		disable_all_screens_dpms(&ms_data);
-	else
-		disable_all_screens(&ms_data);
-	igt_assert(wait_for_suspended());
+	disable_or_dpms_all_screens_and_wait(&ms_data, dpms);
 
 	for (i = 0; i < scanout_fb.size/sizeof(uint32_t); i++)
 		igt_assert_eq(buf_ptr[i], i);
