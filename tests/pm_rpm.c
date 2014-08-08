@@ -91,7 +91,6 @@ enum plane_type {
 int drm_fd, msr_fd, pm_status_fd, pc8_status_fd;
 bool has_runtime_pm, has_pc8;
 struct mode_set_data ms_data;
-struct scanout_fb *fbs = NULL;
 
 /* Stuff used when creating FBs and mode setting. */
 struct mode_set_data {
@@ -111,14 +110,16 @@ struct compare_data {
 	drmModePropertyBlobPtr edids[MAX_CONNECTORS];
 };
 
-/* During the stress tests we want to be as fast as possible, so use pre-created
- * FBs instead of creating them again and again. */
-struct scanout_fb {
-	uint32_t handle;
-	int width;
-	int height;
-	struct scanout_fb *next;
+struct modeset_params {
+	uint32_t crtc_id;
+	uint32_t connector_id;
+	struct igt_fb fb;
+	drmModeModeInfoPtr mode;
 };
+
+struct modeset_params lpsp_mode_params;
+struct modeset_params non_lpsp_mode_params;
+struct modeset_params *default_mode_params;
 
 /* If the read fails, then the machine doesn't support PC8+ residencies. */
 static bool supports_pc8_plus_residencies(void)
@@ -253,60 +254,15 @@ static void disable_or_dpms_all_screens(struct mode_set_data *data, bool dpms)
 	igt_assert(wait_for_suspended()); \
 } while (0)
 
-static struct scanout_fb *create_fb(struct mode_set_data *data, int width,
-				    int height)
-{
-	struct scanout_fb *fb_info;
-	struct igt_fb fb;
-	cairo_t *cr;
-
-	fb_info = malloc(sizeof(struct scanout_fb));
-	igt_assert(fb_info);
-
-	fb_info->handle = igt_create_fb(drm_fd, width, height,
-					    DRM_FORMAT_XRGB8888,
-					    false, &fb);
-	fb_info->width = width;
-	fb_info->height = height;
-	fb_info->next = NULL;
-
-	cr = igt_get_cairo_ctx(drm_fd, &fb);
-	igt_paint_test_pattern(cr, width, height);
-	cairo_destroy(cr);
-
-	return fb_info;
-}
-
-static uint32_t get_fb(struct mode_set_data *data, int width, int height)
-{
-	struct scanout_fb *fb;
-
-	if (!fbs) {
-		fbs = create_fb(data, width, height);
-		return fbs->handle;
-	}
-
-	for (fb = fbs; fb != NULL; fb = fb->next) {
-		if (fb->width == width && fb->height == height)
-			return fb->handle;
-
-		if (!fb->next) {
-			fb->next = create_fb(data, width, height);
-			return fb->next->handle;
-		}
-	}
-	igt_assert(false);
-}
-
-static bool find_connector_for_modeset(struct mode_set_data *data,
-				       enum screen_type type,
-				       uint32_t *connector_id,
-				       drmModeModeInfoPtr *mode)
+static bool init_modeset_params_for_type(struct mode_set_data *data,
+					 struct modeset_params *params,
+					 enum screen_type type)
 {
 	int i;
+	uint32_t connector_id = 0;
+	drmModeModeInfoPtr mode = NULL;
+	cairo_t *cr;
 
-	*connector_id = 0;
-	*mode = NULL;
 	for (i = 0; i < data->res->count_connectors; i++) {
 		drmModeConnectorPtr c = data->connectors[i];
 
@@ -319,36 +275,82 @@ static bool find_connector_for_modeset(struct mode_set_data *data,
 			continue;
 
 		if (c->connection == DRM_MODE_CONNECTED && c->count_modes) {
-			*connector_id = c->connector_id;
-			*mode = &c->modes[0];
+			connector_id = c->connector_id;
+			mode = &c->modes[0];
 			break;
 		}
 	}
 
-	return (*connector_id != 0);
+	if (!connector_id)
+		return false;
+
+	igt_create_fb(drm_fd, mode->hdisplay, mode->vdisplay,
+		      DRM_FORMAT_XRGB8888, false, &params->fb);
+	cr = igt_get_cairo_ctx(drm_fd, &params->fb);
+	igt_paint_test_pattern(cr, mode->hdisplay, mode->vdisplay);
+	cairo_destroy(cr);
+
+	params->crtc_id = data->res->crtcs[0];
+	params->connector_id = connector_id;
+	params->mode = mode;
+
+	return true;
 }
+
+static void init_modeset_cached_params(struct mode_set_data *data)
+{
+	bool lpsp, non_lpsp;
+
+	lpsp = init_modeset_params_for_type(data, &lpsp_mode_params,
+					    SCREEN_TYPE_LPSP);
+	non_lpsp = init_modeset_params_for_type(data, &non_lpsp_mode_params,
+						SCREEN_TYPE_NON_LPSP);
+
+	if (lpsp)
+		default_mode_params = &lpsp_mode_params;
+	else if (non_lpsp)
+		default_mode_params = &non_lpsp_mode_params;
+	else
+		default_mode_params = NULL;
+}
+
+static bool set_mode_for_params(struct modeset_params *params)
+{
+	int rc;
+
+	rc = drmModeSetCrtc(drm_fd, params->crtc_id, params->fb.fb_id, 0, 0,
+			    &params->connector_id, 1, params->mode);
+	return (rc == 0);
+}
+
+#define set_mode_for_params_and_wait(params) do { \
+	igt_assert(set_mode_for_params(params)); \
+	igt_assert(wait_for_active()); \
+} while (0)
 
 static bool enable_one_screen_with_type(struct mode_set_data *data,
 					enum screen_type type)
 {
-	uint32_t crtc_id = 0, buffer_id = 0, connector_id;
-	drmModeModeInfoPtr mode;
-	int rc;
+	struct modeset_params *params = NULL;
 
-	if (!find_connector_for_modeset(data, type, &connector_id, &mode))
+	switch (type) {
+	case SCREEN_TYPE_ANY:
+		params = default_mode_params;
+		break;
+	case SCREEN_TYPE_LPSP:
+		params = &lpsp_mode_params;
+		break;
+	case SCREEN_TYPE_NON_LPSP:
+		params = &non_lpsp_mode_params;
+		break;
+	default:
+		igt_assert(0);
+	}
+
+	if (!params)
 		return false;
 
-	crtc_id = data->res->crtcs[0];
-	buffer_id = get_fb(data, mode->hdisplay, mode->vdisplay);
-
-	igt_assert(crtc_id);
-	igt_assert(buffer_id);
-
-	rc = drmModeSetCrtc(drm_fd, crtc_id, buffer_id, 0, 0, &connector_id,
-			    1, mode);
-	igt_assert(rc == 0);
-
-	return true;
+	return set_mode_for_params(params);
 }
 
 static void enable_one_screen(struct mode_set_data *data)
@@ -403,6 +405,8 @@ static void init_mode_set_data(struct mode_set_data *data)
 	data->devid = intel_get_drm_devid(drm_fd);
 
 	igt_set_vt_graphics_mode();
+
+	init_modeset_cached_params(&ms_data);
 }
 
 static void fini_mode_set_data(struct mode_set_data *data)
@@ -726,19 +730,11 @@ static void setup_environment(void)
 	igt_info("PC8 residency support: %d\n", has_pc8);
 
 	igt_require(has_runtime_pm);
+
 }
 
 static void teardown_environment(void)
 {
-	struct scanout_fb *fb, *fb_next;
-
-	fb = fbs;
-	while (fb) {
-		fb_next = fb->next;
-		free(fb);
-		fb = fb_next;
-	}
-
 	fini_mode_set_data(&ms_data);
 	drmClose(drm_fd);
 	close(msr_fd);
@@ -1422,34 +1418,24 @@ static void fill_igt_fb(struct igt_fb *fb, uint32_t color)
 /* At some point, this test triggered WARNs in the Kernel. */
 static void cursor_subtest(bool dpms)
 {
-	uint32_t crtc_id = 0, connector_id;
-	drmModeModeInfoPtr mode;
 	int rc;
-	struct igt_fb scanout_fb, cursor_fb1, cursor_fb2, cursor_fb3;
+	struct igt_fb cursor_fb1, cursor_fb2, cursor_fb3;
+	uint32_t crtc_id;
 
 	disable_all_screens_and_wait(&ms_data);
 
-	igt_require(find_connector_for_modeset(&ms_data, SCREEN_TYPE_ANY,
-					       &connector_id, &mode));
+	igt_require(default_mode_params);
+	crtc_id = default_mode_params->crtc_id;
 
-	crtc_id = ms_data.res->crtcs[0];
-	igt_assert(crtc_id);
-
-	igt_create_fb(drm_fd, mode->hdisplay, mode->vdisplay,
-		      DRM_FORMAT_XRGB8888, false, &scanout_fb);
 	igt_create_fb(drm_fd, 64, 64, DRM_FORMAT_ARGB8888, false, &cursor_fb1);
 	igt_create_fb(drm_fd, 64, 64, DRM_FORMAT_ARGB8888, false, &cursor_fb2);
 	igt_create_fb(drm_fd, 64, 64, DRM_FORMAT_ARGB8888, true, &cursor_fb3);
 
-	fill_igt_fb(&scanout_fb, 0xFF);
 	fill_igt_fb(&cursor_fb1, 0xFF00FFFF);
 	fill_igt_fb(&cursor_fb2, 0xFF00FF00);
 	fill_igt_fb(&cursor_fb3, 0xFFFF0000);
 
-	rc = drmModeSetCrtc(drm_fd, crtc_id, scanout_fb.fb_id, 0, 0,
-			    &connector_id, 1, mode);
-	igt_assert(rc == 0);
-	igt_assert(wait_for_active());
+	set_mode_for_params_and_wait(default_mode_params);
 
 	rc = drmModeSetCursor(drm_fd, crtc_id, cursor_fb1.gem_handle,
 			      cursor_fb1.width, cursor_fb1.height);
@@ -1547,24 +1533,15 @@ static void test_one_plane(bool dpms, uint32_t plane_id,
 {
 	int rc;
 	uint32_t plane_format, plane_w, plane_h;
-	uint32_t crtc_id, connector_id;
-	struct igt_fb scanout_fb, plane_fb1, plane_fb2;
-	drmModeModeInfoPtr mode;
+	uint32_t crtc_id;
+	struct igt_fb plane_fb1, plane_fb2;
 	int32_t crtc_x = 0, crtc_y = 0;
 	bool tiling;
 
 	disable_all_screens_and_wait(&ms_data);
 
-	igt_require(find_connector_for_modeset(&ms_data, SCREEN_TYPE_ANY,
-					       &connector_id, &mode));
-
-	crtc_id = ms_data.res->crtcs[0];
-	igt_assert(crtc_id);
-
-	igt_create_fb(drm_fd, mode->hdisplay, mode->vdisplay,
-		      DRM_FORMAT_XRGB8888, false, &scanout_fb);
-
-	fill_igt_fb(&scanout_fb, 0xFF);
+	igt_require(default_mode_params);
+	crtc_id = default_mode_params->crtc_id;
 
 	switch (plane_type) {
 	case PLANE_OVERLAY:
@@ -1575,8 +1552,8 @@ static void test_one_plane(bool dpms, uint32_t plane_id,
 		break;
 	case PLANE_PRIMARY:
 		plane_format = DRM_FORMAT_XRGB8888;
-		plane_w = mode->hdisplay;
-		plane_h = mode->vdisplay;
+		plane_w = default_mode_params->mode->hdisplay;
+		plane_h = default_mode_params->mode->vdisplay;
 		tiling = true;
 		break;
 	case PLANE_CURSOR:
@@ -1597,10 +1574,7 @@ static void test_one_plane(bool dpms, uint32_t plane_id,
 	fill_igt_fb(&plane_fb1, 0xFF00FFFF);
 	fill_igt_fb(&plane_fb2, 0xFF00FF00);
 
-	rc = drmModeSetCrtc(drm_fd, crtc_id, scanout_fb.fb_id, 0, 0,
-			    &connector_id, 1, mode);
-	igt_assert(rc == 0);
-	igt_assert(wait_for_active());
+	set_mode_for_params_and_wait(default_mode_params);
 
 	rc = drmModeSetPlane(drm_fd, plane_id, crtc_id, plane_fb1.fb_id, 0,
 			     0, 0, plane_fb1.width, plane_fb1.height,
@@ -1693,42 +1667,35 @@ static void planes_subtest(bool universal, bool dpms)
 
 static void fences_subtest(bool dpms)
 {
-	uint32_t connector_id, crtc_id = 0;
-	drmModeModeInfoPtr mode;
-	struct igt_fb scanout_fb;
-	int rc, i;
+	int i;
 	uint32_t *buf_ptr;
 	uint32_t tiling = false, swizzle;
+	struct modeset_params params;
 
 	disable_all_screens_and_wait(&ms_data);
 
-	igt_require(find_connector_for_modeset(&ms_data, SCREEN_TYPE_ANY,
-					       &connector_id, &mode));
-
-	crtc_id = ms_data.res->crtcs[0];
-	igt_assert(crtc_id);
-
-	igt_create_fb(drm_fd, mode->hdisplay, mode->vdisplay,
-		      DRM_FORMAT_XRGB8888, true, &scanout_fb);
+	igt_require(default_mode_params);
+	params.crtc_id = default_mode_params->crtc_id;
+	params.connector_id = default_mode_params->connector_id;
+	params.mode = default_mode_params->mode;
+	igt_create_fb(drm_fd, params.mode->hdisplay, params.mode->vdisplay,
+		      DRM_FORMAT_XRGB8888, true, &params.fb);
 
 	/* Even though we passed "true" as the tiling argument, double-check
 	 * that the fb is really tiled. */
-	gem_get_tiling(drm_fd, scanout_fb.gem_handle, &tiling, &swizzle);
+	gem_get_tiling(drm_fd, params.fb.gem_handle, &tiling, &swizzle);
 	igt_assert(tiling);
 
-	buf_ptr = gem_mmap__gtt(drm_fd, scanout_fb.gem_handle,
-				scanout_fb.size, PROT_WRITE | PROT_READ);
-	for (i = 0; i < scanout_fb.size/sizeof(uint32_t); i++)
+	buf_ptr = gem_mmap__gtt(drm_fd, params.fb.gem_handle,
+				params.fb.size, PROT_WRITE | PROT_READ);
+	for (i = 0; i < params.fb.size/sizeof(uint32_t); i++)
 		buf_ptr[i] = i;
 
-	rc = drmModeSetCrtc(drm_fd, crtc_id, scanout_fb.fb_id, 0, 0,
-			    &connector_id, 1, mode);
-	igt_assert(rc == 0);
-	igt_assert(wait_for_active());
+	set_mode_for_params_and_wait(&params);
 
 	disable_or_dpms_all_screens_and_wait(&ms_data, dpms);
 
-	for (i = 0; i < scanout_fb.size/sizeof(uint32_t); i++)
+	for (i = 0; i < params.fb.size/sizeof(uint32_t); i++)
 		igt_assert_eq(buf_ptr[i], i);
 	igt_assert(wait_for_suspended());
 
@@ -1736,22 +1703,21 @@ static void fences_subtest(bool dpms)
 		drmModeConnectorPtr c = NULL;
 
 		for (i = 0; i < ms_data.res->count_connectors; i++)
-			if (ms_data.connectors[i]->connector_id == connector_id)
+			if (ms_data.connectors[i]->connector_id ==
+			    params.connector_id)
 				c = ms_data.connectors[i];
 		igt_assert(c);
 
 		kmstest_set_connector_dpms(drm_fd, c, DRM_MODE_DPMS_ON);
 	} else {
-		rc = drmModeSetCrtc(drm_fd, crtc_id, scanout_fb.fb_id, 0, 0,
-				    &connector_id, 1, mode);
-		igt_assert(rc == 0);
+		set_mode_for_params(&params);
 	}
 	igt_assert(wait_for_active());
 
-	for (i = 0; i < scanout_fb.size/sizeof(uint32_t); i++)
+	for (i = 0; i < params.fb.size/sizeof(uint32_t); i++)
 		igt_assert_eq(buf_ptr[i], i);
 
-	igt_assert(munmap(buf_ptr, scanout_fb.size) == 0);
+	igt_assert(munmap(buf_ptr, params.fb.size) == 0);
 }
 
 int rounds = 50;
