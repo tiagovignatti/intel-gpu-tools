@@ -235,6 +235,11 @@ static void disable_all_screens(struct mode_set_data *data)
 	kmstest_unset_all_crtcs(drm_fd, data->res);
 }
 
+#define disable_all_screens_and_wait(data) do { \
+	disable_all_screens(data); \
+	igt_assert(wait_for_suspended()); \
+} while (0)
+
 static struct scanout_fb *create_fb(struct mode_set_data *data, int width,
 				    int height)
 {
@@ -338,6 +343,11 @@ static void enable_one_screen(struct mode_set_data *data)
 	/* SKIP if there are no connected screens. */
 	igt_require(enable_one_screen_with_type(data, SCREEN_TYPE_ANY));
 }
+
+#define enable_one_screen_and_wait(data) do { \
+	enable_one_screen(data); \
+	igt_assert(wait_for_active()); \
+} while (0)
 
 static drmModePropertyBlobPtr get_connector_edid(drmModeConnectorPtr connector,
 						 int index)
@@ -725,11 +735,9 @@ static void teardown_environment(void)
 
 static void basic_subtest(void)
 {
-	disable_all_screens(&ms_data);
-	igt_assert(wait_for_suspended());
+	disable_all_screens_and_wait(&ms_data);
 
-	enable_one_screen(&ms_data);
-	igt_assert(wait_for_active());
+	enable_one_screen_and_wait(&ms_data);
 }
 
 static void pc8_residency_subtest(void)
@@ -788,18 +796,15 @@ static void drm_resources_equal_subtest(void)
 {
 	struct compare_data pre_suspend, during_suspend, post_suspend;
 
-	enable_one_screen(&ms_data);
-	igt_assert(wait_for_active());
+	enable_one_screen_and_wait(&ms_data);
 	get_drm_info(&pre_suspend);
 	igt_assert(wait_for_active());
 
-	disable_all_screens(&ms_data);
-	igt_assert(wait_for_suspended());
+	disable_all_screens_and_wait(&ms_data);
 	get_drm_info(&during_suspend);
 	igt_assert(wait_for_suspended());
 
-	enable_one_screen(&ms_data);
-	igt_assert(wait_for_active());
+	enable_one_screen_and_wait(&ms_data);
 	get_drm_info(&post_suspend);
 	igt_assert(wait_for_active());
 
@@ -835,11 +840,9 @@ static void i2c_subtest(void)
 {
 	i2c_subtest_check_environment();
 
-	enable_one_screen(&ms_data);
-	igt_assert(wait_for_active());
+	enable_one_screen_and_wait(&ms_data);
 
-	disable_all_screens(&ms_data);
-	igt_assert(wait_for_suspended());
+	disable_all_screens_and_wait(&ms_data);
 	test_i2c(&ms_data);
 	igt_assert(wait_for_suspended());
 
@@ -917,8 +920,7 @@ static void debugfs_read_subtest(void)
 	igt_require_f(dir, "Can't open the debugfs directory\n");
 	closedir(dir);
 
-	disable_all_screens(&ms_data);
-	igt_assert(wait_for_suspended());
+	disable_all_screens_and_wait(&ms_data);
 
 	read_files_from_dir(path, 0);
 }
@@ -933,8 +935,7 @@ static void sysfs_read_subtest(void)
 	igt_require_f(dir, "Can't open the sysfs directory\n");
 	closedir(dir);
 
-	disable_all_screens(&ms_data);
-	igt_assert(wait_for_suspended());
+	disable_all_screens_and_wait(&ms_data);
 
 	read_files_from_dir(path, 0);
 }
@@ -946,8 +947,7 @@ static void debugfs_forcewake_user_subtest(void)
 
 	igt_require(intel_gen(ms_data.devid) >= 6);
 
-	disable_all_screens(&ms_data);
-	igt_assert(wait_for_suspended());
+	disable_all_screens_and_wait(&ms_data);
 
 	fd = igt_open_forcewake_handle();
 	igt_require(fd >= 0);
@@ -974,8 +974,7 @@ static void gem_mmap_subtest(bool gtt_mmap)
 	uint8_t *gem_buf;
 
 	/* Create, map and set data while the device is active. */
-	enable_one_screen(&ms_data);
-	igt_assert(wait_for_active());
+	enable_one_screen_and_wait(&ms_data);
 
 	handle = gem_create(drm_fd, buf_size);
 
@@ -993,8 +992,7 @@ static void gem_mmap_subtest(bool gtt_mmap)
 		igt_assert(gem_buf[i] == (i & 0xFF));
 
 	/* Now suspend, read and modify. */
-	disable_all_screens(&ms_data);
-	igt_assert(wait_for_suspended());
+	disable_all_screens_and_wait(&ms_data);
 
 	for (i = 0; i < buf_size; i++)
 		igt_assert(gem_buf[i] == (i & 0xFF));
@@ -1005,8 +1003,7 @@ static void gem_mmap_subtest(bool gtt_mmap)
 	igt_assert(wait_for_suspended());
 
 	/* Now resume and see if it's still there. */
-	enable_one_screen(&ms_data);
-	igt_assert(wait_for_active());
+	enable_one_screen_and_wait(&ms_data);
 	for (i = 0; i < buf_size; i++)
 		igt_assert(gem_buf[i] == (~i & 0xFF));
 
@@ -1014,8 +1011,7 @@ static void gem_mmap_subtest(bool gtt_mmap)
 
 	/* Now the opposite: suspend, and try to create the mmap while
 	 * suspended. */
-	disable_all_screens(&ms_data);
-	igt_assert(wait_for_suspended());
+	disable_all_screens_and_wait(&ms_data);
 
 	if (gtt_mmap)
 		gem_buf = gem_mmap__gtt(drm_fd, handle, buf_size,
@@ -1034,8 +1030,7 @@ static void gem_mmap_subtest(bool gtt_mmap)
 	igt_assert(wait_for_suspended());
 
 	/* Resume and check if it's still there. */
-	enable_one_screen(&ms_data);
-	igt_assert(wait_for_active());
+	enable_one_screen_and_wait(&ms_data);
 	for (i = 0; i < buf_size; i++)
 		igt_assert(gem_buf[i] == (i & 0xFF));
 
@@ -1058,8 +1053,7 @@ static void gem_pread_subtest(void)
 	memset(read_buf, 0, buf_size);
 
 	/* Create and set data while the device is active. */
-	enable_one_screen(&ms_data);
-	igt_assert(wait_for_active());
+	enable_one_screen_and_wait(&ms_data);
 
 	handle = gem_create(drm_fd, buf_size);
 
@@ -1074,8 +1068,7 @@ static void gem_pread_subtest(void)
 		igt_assert(cpu_buf[i] == read_buf[i]);
 
 	/* Now suspend, read and modify. */
-	disable_all_screens(&ms_data);
-	igt_assert(wait_for_suspended());
+	disable_all_screens_and_wait(&ms_data);
 
 	memset(read_buf, 0, buf_size);
 	gem_read(drm_fd, handle, 0, read_buf, buf_size);
@@ -1090,8 +1083,7 @@ static void gem_pread_subtest(void)
 	igt_assert(wait_for_suspended());
 
 	/* Now resume and see if it's still there. */
-	enable_one_screen(&ms_data);
-	igt_assert(wait_for_active());
+	enable_one_screen_and_wait(&ms_data);
 
 	memset(read_buf, 0, buf_size);
 	gem_read(drm_fd, handle, 0, read_buf, buf_size);
@@ -1198,8 +1190,7 @@ static void gem_execbuf_subtest(void)
 	uint32_t color;
 
 	/* Create and set data while the device is active. */
-	enable_one_screen(&ms_data);
-	igt_assert(wait_for_active());
+	enable_one_screen_and_wait(&ms_data);
 
 	handle = gem_create(drm_fd, dst_size);
 
@@ -1209,8 +1200,7 @@ static void gem_execbuf_subtest(void)
 	gem_write(drm_fd, handle, 0, cpu_buf, dst_size);
 
 	/* Now suspend and try it. */
-	disable_all_screens(&ms_data);
-	igt_assert(wait_for_suspended());
+	disable_all_screens_and_wait(&ms_data);
 
 	color = 0x12345678;
 	submit_blt_cmd(handle, sq_x, sq_y, sq_w, sq_h, pitch, color,
@@ -1232,8 +1222,7 @@ static void gem_execbuf_subtest(void)
 	}
 
 	/* Now resume and check for it again. */
-	enable_one_screen(&ms_data);
-	igt_assert(wait_for_active());
+	enable_one_screen_and_wait(&ms_data);
 
 	memset(cpu_buf, 0, dst_size);
 	gem_read(drm_fd, handle, 0, cpu_buf, dst_size);
@@ -1256,8 +1245,7 @@ static void gem_execbuf_subtest(void)
 	submit_blt_cmd(handle, sq_x, sq_y, sq_w, sq_h, pitch, color,
 		       &presumed_offset);
 
-	disable_all_screens(&ms_data);
-	igt_assert(wait_for_suspended());
+	disable_all_screens_and_wait(&ms_data);
 
 	memset(cpu_buf, 0, dst_size);
 	gem_read(drm_fd, handle, 0, cpu_buf, dst_size);
@@ -1299,8 +1287,7 @@ static void gem_execbuf_stress_subtest(int rounds, int wait_flags)
 	batch_buf[i++] = MI_NOOP;
 	igt_assert(i * sizeof(uint32_t) == batch_size);
 
-	disable_all_screens(&ms_data);
-	igt_assert(wait_for_suspended());
+	disable_all_screens_and_wait(&ms_data);
 
 	handle = gem_create(drm_fd, batch_size);
 	gem_write(drm_fd, handle, 0, batch_buf, batch_size);
@@ -1330,8 +1317,7 @@ static void gem_execbuf_stress_subtest(int rounds, int wait_flags)
 /* When this test was written, it triggered WARNs and DRM_ERRORs on dmesg. */
 static void gem_idle_subtest(void)
 {
-	disable_all_screens(&ms_data);
-	igt_assert(wait_for_suspended());
+	disable_all_screens_and_wait(&ms_data);
 
 	sleep(5);
 
@@ -1345,8 +1331,7 @@ static void reg_read_ioctl_subtest(void)
 		.offset = 0x2358, /* render ring timestamp */
 	};
 
-	disable_all_screens(&ms_data);
-	igt_assert(wait_for_suspended());
+	disable_all_screens_and_wait(&ms_data);
 
 	do_ioctl(drm_fd, DRM_IOCTL_I915_REG_READ, &rr);
 
@@ -1371,21 +1356,18 @@ static void pci_d3_state_subtest(void)
 {
 	igt_require(has_runtime_pm);
 
-	disable_all_screens(&ms_data);
-	igt_assert(wait_for_suspended());
+	disable_all_screens_and_wait(&ms_data);
 
 	igt_assert(device_in_pci_d3());
 
-	enable_one_screen(&ms_data);
-	igt_assert(wait_for_active());
+	enable_one_screen_and_wait(&ms_data);
 
 	igt_assert(!device_in_pci_d3());
 }
 
 static void stay_subtest(void)
 {
-	disable_all_screens(&ms_data);
-	igt_assert(wait_for_suspended());
+	disable_all_screens_and_wait(&ms_data);
 
 	while (1)
 		sleep(600);
@@ -1393,8 +1375,7 @@ static void stay_subtest(void)
 
 static void system_suspend_subtest(void)
 {
-	disable_all_screens(&ms_data);
-	igt_assert(wait_for_suspended());
+	disable_all_screens_and_wait(&ms_data);
 	igt_system_suspend_autoresume();
 	igt_assert(wait_for_suspended());
 }
@@ -1403,8 +1384,7 @@ static void system_suspend_subtest(void)
  * produced WARNs on this case. */
 static void dpms_mode_unset_subtest(enum screen_type type)
 {
-	disable_all_screens(&ms_data);
-	igt_assert(wait_for_suspended());
+	disable_all_screens_and_wait(&ms_data);
 
 	igt_require(enable_one_screen_with_type(&ms_data, type));
 	igt_assert(wait_for_active());
@@ -1412,8 +1392,7 @@ static void dpms_mode_unset_subtest(enum screen_type type)
 	disable_all_screens_dpms(&ms_data);
 	igt_assert(wait_for_suspended());
 
-	disable_all_screens(&ms_data);
-	igt_assert(wait_for_suspended());
+	disable_all_screens_and_wait(&ms_data);
 }
 
 static void fill_igt_fb(struct igt_fb *fb, uint32_t color)
@@ -1435,8 +1414,7 @@ static void cursor_subtest(bool dpms)
 	int rc;
 	struct igt_fb scanout_fb, cursor_fb1, cursor_fb2, cursor_fb3;
 
-	disable_all_screens(&ms_data);
-	igt_assert(wait_for_suspended());
+	disable_all_screens_and_wait(&ms_data);
 
 	igt_require(find_connector_for_modeset(&ms_data, SCREEN_TYPE_ANY,
 					       &connector_id, &mode));
@@ -1566,8 +1544,7 @@ static void test_one_plane(bool dpms, uint32_t plane_id,
 	int32_t crtc_x = 0, crtc_y = 0;
 	bool tiling;
 
-	disable_all_screens(&ms_data);
-	igt_assert(wait_for_suspended());
+	disable_all_screens_and_wait(&ms_data);
 
 	igt_require(find_connector_for_modeset(&ms_data, SCREEN_TYPE_ANY,
 					       &connector_id, &mode));
@@ -1718,8 +1695,7 @@ static void fences_subtest(bool dpms)
 	uint32_t *buf_ptr;
 	uint32_t tiling = false, swizzle;
 
-	disable_all_screens(&ms_data);
-	igt_assert(wait_for_suspended());
+	disable_all_screens_and_wait(&ms_data);
 
 	igt_require(find_connector_for_modeset(&ms_data, SCREEN_TYPE_ANY,
 					       &connector_id, &mode));
