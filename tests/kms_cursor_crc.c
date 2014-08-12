@@ -396,8 +396,7 @@ static void test_cursor_size(data_t *data)
 static void run_test_generic(data_t *data, int cursor_max_size)
 {
 	int cursor_size;
-	for (cursor_size = 64; cursor_size <= 256; cursor_size *= 2)
-	{
+	for (cursor_size = 64; cursor_size <= 256; cursor_size *= 2) {
 		igt_fixture
 			igt_require(cursor_max_size >= cursor_size);
 
