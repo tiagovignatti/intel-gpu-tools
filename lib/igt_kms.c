@@ -87,6 +87,26 @@ const char *kmstest_pipe_name(enum pipe pipe)
 	return str[pipe];
 }
 
+/**
+ * kmstest_plane_name:
+ * @plane: display plane
+ *
+ * Returns: String represnting @pipe, e.g. "plane1".
+ */
+const char *kmstest_plane_name(enum igt_plane plane)
+{
+	static const char *names[] = {
+		[IGT_PLANE_1] = "plane1",
+		[IGT_PLANE_2] = "plane2",
+		[IGT_PLANE_3] = "plane3",
+		[IGT_PLANE_CURSOR] = "cursor",
+	};
+
+	igt_assert(plane < ARRAY_SIZE(names) && names[plane]);
+
+	return names[plane];
+}
+
 struct type_name {
 	int type;
 	const char *name;
@@ -164,6 +184,12 @@ static const char *mode_stereo_name(const drmModeModeInfo *mode)
 	}
 }
 
+/**
+ * kmstest_dump_mode:
+ * @mode: libdrm mode structure
+ *
+ * Prints @mode to stdout in a huma-readable form.
+ */
 void kmstest_dump_mode(drmModeModeInfo *mode)
 {
 	const char *stereo = mode_stereo_name(mode);
@@ -507,20 +533,6 @@ void kmstest_free_connector_config(struct kmstest_connector_config *config)
 	drmModeFreeCrtc(config->crtc);
 	drmModeFreeEncoder(config->encoder);
 	drmModeFreeConnector(config->connector);
-}
-
-const char *plane_name(enum igt_plane p)
-{
-	static const char *names[] = {
-		[IGT_PLANE_1] = "plane1",
-		[IGT_PLANE_2] = "plane2",
-		[IGT_PLANE_3] = "plane3",
-		[IGT_PLANE_CURSOR] = "cursor",
-	};
-
-	igt_assert(p < ARRAY_SIZE(names) && names[p]);
-
-	return names[p];
 }
 
 /*

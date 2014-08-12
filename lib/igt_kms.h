@@ -51,9 +51,7 @@ enum igt_plane {
         IGT_PLANE_CURSOR,
 };
 
-const char *plane_name(enum igt_plane p);
-
-#define sprite_name(p, s) ((p) * dev_priv->num_plane + (s) + 'A')
+const char *kmstest_plane_name(enum igt_plane plane);
 
 enum port {
         PORT_A = 0,
@@ -63,7 +61,14 @@ enum port {
         PORT_E,
         I915_MAX_PORTS
 };
-#define port_name(p) ((p) + 'A')
+
+/**
+ * kmstest_port_name:
+ * @port: display plane
+ *
+ * Returns: String represnting @port, e.g. "A".
+ */
+#define kmstest_port_name(port) ((port) + 'A')
 
 enum igt_commit_style {
 	COMMIT_LEGACY = 0,
