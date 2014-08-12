@@ -34,6 +34,8 @@
 
 #include <xf86drmMode.h>
 
+#include "igt_fb.h"
+
 enum pipe {
         PIPE_A = 0,
         PIPE_B,
@@ -70,21 +72,29 @@ enum port {
  */
 #define kmstest_port_name(port) ((port) + 'A')
 
-enum igt_commit_style {
-	COMMIT_LEGACY = 0,
-	COMMIT_UNIVERSAL,
-	/* We'll add atomic here eventually. */
-};
+/**
+ * kmstest_encoder_type_str:
+ * @type: DRM_MODE_ENCODER_* enumeration value
+ *
+ * Returns: A string representing the drm encoder @type.
+ */
+const char *kmstest_encoder_type_str(int type);
 
-typedef enum {
-	/* this maps to the kernel API */
-	IGT_ROTATION_0   = 1 << 0,
-	IGT_ROTATION_90  = 1 << 1,
-	IGT_ROTATION_180 = 1 << 2,
-	IGT_ROTATION_270 = 1 << 3,
-} igt_rotation_t;
+/**
+ * kmstest_connector_status_str:
+ * @status: DRM_MODE_* connector status value
+ *
+ * Returns: A string representing the drm connector status @status.
+ */
+const char *kmstest_connector_status_str(int status);
 
-#include "igt_fb.h"
+/**
+ * kmstest_connector_type_str:
+ * @type: DRM_MODE_CONNECTOR_* enumeration value
+ *
+ * Returns: A string representing the drm connector @type.
+ */
+const char *kmstest_connector_type_str(int type);
 
 struct kmstest_connector_config {
 	drmModeCrtc *crtc;
@@ -143,9 +153,6 @@ void kmstest_free_connector_config(struct kmstest_connector_config *config);
 
 void kmstest_dump_mode(drmModeModeInfo *mode);
 int kmstest_get_pipe_from_crtc_id(int fd, int crtc_id);
-const char *kmstest_encoder_type_str(int type);
-const char *kmstest_connector_status_str(int type);
-const char *kmstest_connector_type_str(int type);
 void kmstest_set_connector_dpms(int fd, drmModeConnector *connector, int mode);
 bool kmstest_get_property(int drm_fd, uint32_t object_id, uint32_t object_type,
 			  const char *name, uint32_t *prop_id, uint64_t *value,
@@ -156,9 +163,23 @@ void kmstest_unset_all_crtcs(int drm_fd, drmModeResPtr resources);
  * A small modeset API
  */
 
+enum igt_commit_style {
+	COMMIT_LEGACY = 0,
+	COMMIT_UNIVERSAL,
+	/* We'll add atomic here eventually. */
+};
+
 typedef struct igt_display igt_display_t;
 typedef struct igt_pipe igt_pipe_t;
 typedef uint32_t igt_fixed_t;			/* 16.16 fixed point */
+
+typedef enum {
+	/* this maps to the kernel API */
+	IGT_ROTATION_0   = 1 << 0,
+	IGT_ROTATION_90  = 1 << 1,
+	IGT_ROTATION_180 = 1 << 2,
+	IGT_ROTATION_270 = 1 << 3,
+} igt_rotation_t;
 
 typedef struct {
 	/*< private >*/
