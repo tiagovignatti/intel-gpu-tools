@@ -111,16 +111,14 @@ connector_set_mode(data_t *data, connector_t *connector, drmModeModeInfo *mode,
 static void basic_sink_crc_check(data_t *data, uint32_t connector_id)
 {
 	connector_t connector;
-	int ret;
 	char ref_crc_white[12];
 	char ref_crc_black[12];
 	char crc_check[12];
 
-	ret = kmstest_get_connector_config(data->drm_fd,
-					   connector_id,
-					   1 << 0,
-					   &connector.config);
-	igt_require(ret == 0);
+	igt_require(kmstest_get_connector_config(data->drm_fd,
+						 connector_id,
+						 1 << 0,
+						 &connector.config));
 
 	/*Go White*/
 	connector_set_mode(data, &connector, &connector.config.default_mode, WHITE);

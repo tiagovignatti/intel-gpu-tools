@@ -443,13 +443,10 @@ static void test_crc(data_t *data)
 
 static bool prepare_crtc(data_t *data, uint32_t connector_id)
 {
-	int ret;
-
-	ret = kmstest_get_connector_config(data->drm_fd,
-					   connector_id,
-					   1 << data->crtc_idx,
-					   &data->config);
-	if (ret)
+	if (!kmstest_get_connector_config(data->drm_fd,
+					  connector_id,
+					  1 << data->crtc_idx,
+					  &data->config))
 		return false;
 
 	data->fb_id[0] = create_fb(data,

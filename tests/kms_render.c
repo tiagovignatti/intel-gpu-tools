@@ -198,11 +198,9 @@ static int run_test(const char *test_name, enum test_flags flags)
 		connector_id = resources->connectors[i];
 		for (j = 0; j < resources->count_crtcs; j++) {
 			struct kmstest_connector_config cconf;
-			int ret;
 
-			ret = kmstest_get_connector_config(drm_fd, connector_id,
-							   1 << j, &cconf);
-			if (ret < 0)
+			if (!kmstest_get_connector_config(drm_fd, connector_id,
+							   1 << j, &cconf))
 				continue;
 
 			test_connector(test_name, &cconf, flags);

@@ -103,7 +103,6 @@ void kmstest_dump_mode(drmModeModeInfo *mode);
 int kmstest_get_pipe_from_crtc_id(int fd, int crtc_id);
 void kmstest_set_vt_graphics_mode(void);
 
-
 struct kmstest_connector_config {
 	drmModeCrtc *crtc;
 	drmModeConnector *connector;
@@ -154,9 +153,9 @@ void kmstest_force_edid(int drm_fd, drmModeConnector *connector,
 
 bool kmstest_get_connector_default_mode(int drm_fd, drmModeConnector *connector,
 					drmModeModeInfo *mode);
-int kmstest_get_connector_config(int drm_fd, uint32_t connector_id,
-				 unsigned long crtc_idx_mask,
-				 struct kmstest_connector_config *config);
+bool kmstest_get_connector_config(int drm_fd, uint32_t connector_id,
+				  unsigned long crtc_idx_mask,
+				  struct kmstest_connector_config *config);
 void kmstest_free_connector_config(struct kmstest_connector_config *config);
 
 void kmstest_set_connector_dpms(int fd, drmModeConnector *connector, int mode);

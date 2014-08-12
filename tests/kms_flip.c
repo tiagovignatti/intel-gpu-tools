@@ -989,8 +989,8 @@ static void connector_find_preferred_mode(uint32_t connector_id, int crtc_idx,
 {
 	struct kmstest_connector_config config;
 
-	if (kmstest_get_connector_config(drm_fd, connector_id, 1 << crtc_idx,
-					 &config) < 0) {
+	if (!kmstest_get_connector_config(drm_fd, connector_id, 1 << crtc_idx,
+					  &config)) {
 		o->mode_valid = 0;
 		return;
 	}
@@ -1032,12 +1032,12 @@ static void connector_find_compatible_mode(int crtc_idx0, int crtc_idx1,
 	drmModeModeInfo *mode[2];
 	int n, m;
 
-	if (kmstest_get_connector_config(drm_fd, o->_connector[0],
-					 1 << crtc_idx0, &config[0]) < 0)
+	if (!kmstest_get_connector_config(drm_fd, o->_connector[0],
+					  1 << crtc_idx0, &config[0]))
 		return;
 
-	if (kmstest_get_connector_config(drm_fd, o->_connector[1],
-					 1 << crtc_idx1, &config[1]) < 0) {
+	if (!kmstest_get_connector_config(drm_fd, o->_connector[1],
+					  1 << crtc_idx1, &config[1])) {
 		kmstest_free_connector_config(&config[0]);
 		return;
 	}

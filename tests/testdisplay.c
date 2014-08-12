@@ -191,8 +191,8 @@ static void connector_find_preferred_mode(uint32_t connector_id,
 {
 	struct kmstest_connector_config config;
 
-	if (kmstest_get_connector_config(drm_fd, connector_id, crtc_idx_mask,
-					 &config) < 0) {
+	if (!kmstest_get_connector_config(drm_fd, connector_id, crtc_idx_mask,
+					  &config)) {
 		c->mode_valid = 0;
 		return;
 	}

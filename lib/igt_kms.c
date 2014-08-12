@@ -414,9 +414,9 @@ bool kmstest_get_connector_default_mode(int drm_fd, drmModeConnector *connector,
 	return true;
 }
 
-int kmstest_get_connector_config(int drm_fd, uint32_t connector_id,
-				 unsigned long crtc_idx_mask,
-				 struct kmstest_connector_config *config)
+bool kmstest_get_connector_config(int drm_fd, uint32_t connector_id,
+				  unsigned long crtc_idx_mask,
+				  struct kmstest_connector_config *config)
 {
 	drmModeRes *resources;
 	drmModeConnector *connector;
@@ -493,7 +493,7 @@ found:
 
 	drmModeFreeResources(resources);
 
-	return 0;
+	return true;
 err4:
 	drmModeFreeEncoder(encoder);
 err3:
@@ -501,7 +501,7 @@ err3:
 err2:
 	drmModeFreeResources(resources);
 err1:
-	return -1;
+	return false;
 }
 
 void kmstest_free_connector_config(struct kmstest_connector_config *config)
@@ -651,7 +651,7 @@ static void igt_display_log_shift(igt_display_t *display, int shift)
 static void igt_output_refresh(igt_output_t *output)
 {
 	igt_display_t *display = output->display;
-	int ret;
+	bool ret;
 	unsigned long crtc_idx_mask;
 
 	/* we mask out the pipes already in use */
@@ -659,11 +659,12 @@ static void igt_output_refresh(igt_output_t *output)
 
 	if (output->valid)
 		kmstest_free_connector_config(&output->config);
+
 	ret = kmstest_get_connector_config(display->drm_fd,
 					   output->id,
 					   crtc_idx_mask,
 					   &output->config);
-	if (ret == 0)
+	if (ret)
 		output->valid = true;
 	else
 		output->valid = false;
