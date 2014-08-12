@@ -517,8 +517,8 @@ static int get_one_connector(drmModeRes *resources, int connector_id,
 	}
 
 	if (cconf->connected) {
-		if (kmstest_get_connector_default_mode(drm_fd, connector,
-							&mode) < 0)
+		if (!kmstest_get_connector_default_mode(drm_fd, connector,
+							&mode))
 			mode = mode_640_480;
 	} else {
 		mode = mode_640_480;

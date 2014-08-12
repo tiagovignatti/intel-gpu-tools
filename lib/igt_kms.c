@@ -391,15 +391,15 @@ void kmstest_force_edid(int drm_fd, drmModeConnector *connector,
 	igt_assert(ret != -1);
 }
 
-int kmstest_get_connector_default_mode(int drm_fd, drmModeConnector *connector,
-				      drmModeModeInfo *mode)
+bool kmstest_get_connector_default_mode(int drm_fd, drmModeConnector *connector,
+					drmModeModeInfo *mode)
 {
 	int i;
 
 	if (!connector->count_modes) {
 		fprintf(stderr, "no modes for connector %d\n",
 			connector->connector_id);
-		return -1;
+		return false;
 	}
 
 	for (i = 0; i < connector->count_modes; i++) {
@@ -411,7 +411,7 @@ int kmstest_get_connector_default_mode(int drm_fd, drmModeConnector *connector,
 		}
 	}
 
-	return 0;
+	return true;
 }
 
 int kmstest_get_connector_config(int drm_fd, uint32_t connector_id,
@@ -480,8 +480,8 @@ int kmstest_get_connector_config(int drm_fd, uint32_t connector_id,
 	goto err3;
 
 found:
-	if (kmstest_get_connector_default_mode(drm_fd, connector,
-				       &config->default_mode) < 0)
+	if (!kmstest_get_connector_default_mode(drm_fd, connector,
+						&config->default_mode))
 		goto err4;
 
 	config->connector = connector;
