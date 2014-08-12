@@ -159,8 +159,8 @@ test_plane_position_with_output(data_t *data,
 	drmModeModeInfo *mode;
 	igt_crc_t crc;
 
-	igt_info("Testing connector %s using pipe %c plane %d\n",
-		 igt_output_name(output), pipe_name(pipe), plane);
+	igt_info("Testing connector %s using pipe %s plane %d\n",
+		 igt_output_name(output), kmstest_pipe_name(pipe), plane);
 
 	test_init(data, pipe);
 
@@ -284,7 +284,8 @@ test_plane_panning_with_output(data_t *data,
 	drmModeModeInfo *mode;
 	igt_crc_t crc;
 
-	igt_info("Testing connector %s using pipe %c plane %d\n", igt_output_name(output), pipe_name(pipe), plane);
+	igt_info("Testing connector %s using pipe %s plane %d\n",
+		 igt_output_name(output), kmstest_pipe_name(pipe), plane);
 
 	test_init(data, pipe);
 
@@ -341,21 +342,21 @@ test_plane_panning(data_t *data, enum pipe pipe, enum igt_plane plane,
 static void
 run_tests_for_pipe_plane(data_t *data, enum pipe pipe, enum igt_plane plane)
 {
-	igt_subtest_f("plane-position-covered-pipe-%c-plane-%d",
-		      pipe_name(pipe), plane)
+	igt_subtest_f("plane-position-covered-pipe-%s-plane-%d",
+		      kmstest_pipe_name(pipe), plane)
 		test_plane_position(data, pipe, plane,
 				    TEST_POSITION_FULLY_COVERED);
 
-	igt_subtest_f("plane-position-hole-pipe-%c-plane-%d",
-		      pipe_name(pipe), plane)
+	igt_subtest_f("plane-position-hole-pipe-%s-plane-%d",
+		      kmstest_pipe_name(pipe), plane)
 		test_plane_position(data, pipe, plane, 0);
 
-	igt_subtest_f("plane-panning-top-left-pipe-%c-plane-%d",
-		      pipe_name(pipe), plane)
+	igt_subtest_f("plane-panning-top-left-pipe-%s-plane-%d",
+		      kmstest_pipe_name(pipe), plane)
 		test_plane_panning(data, pipe, plane, TEST_PANNING_TOP_LEFT);
 
-	igt_subtest_f("plane-panning-bottom-right-pipe-%c-plane-%d",
-		      pipe_name(pipe), plane)
+	igt_subtest_f("plane-panning-bottom-right-pipe-%s-plane-%d",
+		      kmstest_pipe_name(pipe), plane)
 		test_plane_panning(data, pipe, plane,
 				   TEST_PANNING_BOTTOM_RIGHT);
 

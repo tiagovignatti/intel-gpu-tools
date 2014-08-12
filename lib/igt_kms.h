@@ -40,7 +40,7 @@ enum pipe {
         PIPE_C,
         I915_MAX_PIPES
 };
-#define pipe_name(p) ((p) + 'A')
+const char *kmstest_pipe_name(enum pipe pipe);
 
 /* We namespace this enum to not conflict with the Android i915_drm.h */
 enum igt_plane {
@@ -138,7 +138,6 @@ void kmstest_free_connector_config(struct kmstest_connector_config *config);
 
 void kmstest_dump_mode(drmModeModeInfo *mode);
 int kmstest_get_pipe_from_crtc_id(int fd, int crtc_id);
-const char *kmstest_pipe_str(int pipe);
 const char *kmstest_encoder_type_str(int type);
 const char *kmstest_connector_status_str(int type);
 const char *kmstest_connector_type_str(int type);

@@ -70,7 +70,14 @@
  * Note that this library's header pulls in the [i-g-t framebuffer](intel-gpu-tools-i-g-t-framebuffer.html)
  * library as a dependency.
  */
-const char *kmstest_pipe_str(int pipe)
+
+/**
+ * kmstest_pipe_name:
+ * @pipe: display pipe
+ *
+ * Returns: String represnting @pipe, e.g. "A".
+ */
+const char *kmstest_pipe_name(enum pipe pipe)
 {
 	const char *str[] = { "A", "B", "C" };
 
@@ -586,8 +593,8 @@ static void igt_output_refresh(igt_output_t *output)
 			 c->connector_type_id);
 	}
 
-	LOG(display, "%s: Selecting pipe %c\n", output->name,
-	    pipe_name(output->config.pipe));
+	LOG(display, "%s: Selecting pipe %s\n", output->name,
+	    kmstest_pipe_name(output->config.pipe));
 
 	display->pipes_in_use |= 1 << output->config.pipe;
 }
@@ -902,9 +909,9 @@ static void igt_display_refresh(igt_display_t *display)
 
                         igt_assert_f(a->pending_crtc_idx_mask !=
                                      b->pending_crtc_idx_mask,
-                                     "%s and %s are both trying to use pipe %c\n",
+                                     "%s and %s are both trying to use pipe %s\n",
                                      igt_output_name(a), igt_output_name(b),
-                                     pipe_name(ffs(a->pending_crtc_idx_mask) - 1));
+                                     kmstest_pipe_name(ffs(a->pending_crtc_idx_mask) - 1));
                 }
         }
 
@@ -1018,9 +1025,9 @@ static int igt_drm_plane_commit(igt_plane_t *plane,
 
 	if (plane->fb_changed && fb_id == 0) {
 		LOG(display,
-		    "%s: SetPlane pipe %c, plane %d, disabling\n",
+		    "%s: SetPlane pipe %s, plane %d, disabling\n",
 		    igt_output_name(output),
-		    pipe_name(output->config.pipe),
+		    kmstest_pipe_name(output->config.pipe),
 		    plane->index);
 
 		ret = drmModeSetPlane(display->drm_fd,
@@ -1038,9 +1045,9 @@ static int igt_drm_plane_commit(igt_plane_t *plane,
 		CHECK_RETURN(ret, fail_on_error);
 	} else if (plane->fb_changed || plane->position_changed) {
 		LOG(display,
-		    "%s: SetPlane %c.%d, fb %u, position (%d, %d)\n",
+		    "%s: SetPlane %s.%d, fb %u, position (%d, %d)\n",
 		    igt_output_name(output),
-		    pipe_name(output->config.pipe),
+		    kmstest_pipe_name(output->config.pipe),
 		    plane->index,
 		    fb_id,
 		    plane->crtc_x, plane->crtc_y);
@@ -1092,9 +1099,9 @@ static int igt_cursor_commit_legacy(igt_plane_t *cursor,
 
 		if (gem_handle) {
 			LOG(display,
-			    "%s: SetCursor pipe %c, fb %u %dx%d\n",
+			    "%s: SetCursor pipe %s, fb %u %dx%d\n",
 			    igt_output_name(output),
-			    pipe_name(output->config.pipe),
+			    kmstest_pipe_name(output->config.pipe),
 			    gem_handle,
 			    cursor->fb->width, cursor->fb->height);
 
@@ -1104,9 +1111,9 @@ static int igt_cursor_commit_legacy(igt_plane_t *cursor,
 					       cursor->fb->height);
 		} else {
 			LOG(display,
-			    "%s: SetCursor pipe %c, disabling\n",
+			    "%s: SetCursor pipe %s, disabling\n",
 			    igt_output_name(output),
-			    pipe_name(output->config.pipe));
+			    kmstest_pipe_name(output->config.pipe));
 
 			ret = drmModeSetCursor(display->drm_fd, crtc_id,
 					       0, 0, 0);
@@ -1122,9 +1129,9 @@ static int igt_cursor_commit_legacy(igt_plane_t *cursor,
 		int y = cursor->crtc_y;
 
 		LOG(display,
-		    "%s: MoveCursor pipe %c, (%d, %d)\n",
+		    "%s: MoveCursor pipe %s, (%d, %d)\n",
 		    igt_output_name(output),
-		    pipe_name(output->config.pipe),
+		    kmstest_pipe_name(output->config.pipe),
 		    x, y);
 
 		ret = drmModeMoveCursor(display->drm_fd, crtc_id, x, y);
@@ -1168,10 +1175,10 @@ static int igt_primary_plane_commit_legacy(igt_plane_t *primary,
 
 	if (fb_id) {
 		LOG(display,
-		    "%s: SetCrtc pipe %c, fb %u, panning (%d, %d), "
+		    "%s: SetCrtc pipe %s, fb %u, panning (%d, %d), "
 		    "mode %dx%d\n",
 		    igt_output_name(output),
-		    pipe_name(output->config.pipe),
+		    kmstest_pipe_name(output->config.pipe),
 		    fb_id,
 		    primary->pan_x, primary->pan_y,
 		    mode->hdisplay, mode->vdisplay);
@@ -1185,9 +1192,9 @@ static int igt_primary_plane_commit_legacy(igt_plane_t *primary,
 				     mode);
 	} else {
 		LOG(display,
-		    "%s: SetCrtc pipe %c, disabling\n",
+		    "%s: SetCrtc pipe %s, disabling\n",
 		    igt_output_name(output),
-		    pipe_name(output->config.pipe));
+		    kmstest_pipe_name(output->config.pipe));
 
 		ret = drmModeSetCrtc(display->drm_fd,
 				     crtc_id,
@@ -1391,8 +1398,8 @@ void igt_output_set_pipe(igt_output_t *output, enum pipe pipe)
 		LOG(display, "%s: set_pipe(any)\n", igt_output_name(output));
 		output->pending_crtc_idx_mask = -1UL;
 	} else {
-		LOG(display, "%s: set_pipe(%c)\n", igt_output_name(output),
-		    pipe_name(pipe));
+		LOG(display, "%s: set_pipe(%s)\n", igt_output_name(output),
+		    kmstest_pipe_name(pipe));
 		output->pending_crtc_idx_mask = 1 << pipe;
 	}
 }
@@ -1410,7 +1417,7 @@ void igt_plane_set_fb(igt_plane_t *plane, struct igt_fb *fb)
 	igt_pipe_t *pipe = plane->pipe;
 	igt_display_t *display = pipe->display;
 
-	LOG(display, "%c.%d: plane_set_fb(%d)\n", pipe_name(pipe->pipe),
+	LOG(display, "%s.%d: plane_set_fb(%d)\n", kmstest_pipe_name(pipe->pipe),
 	    plane->index, fb ? fb->fb_id : 0);
 
 	plane->fb = fb;
@@ -1423,8 +1430,8 @@ void igt_plane_set_position(igt_plane_t *plane, int x, int y)
 	igt_pipe_t *pipe = plane->pipe;
 	igt_display_t *display = pipe->display;
 
-	LOG(display, "%c.%d: plane_set_position(%d,%d)\n",
-	    pipe_name(pipe->pipe), plane->index, x, y);
+	LOG(display, "%s.%d: plane_set_position(%d,%d)\n",
+	    kmstest_pipe_name(pipe->pipe), plane->index, x, y);
 
 	plane->crtc_x = x;
 	plane->crtc_y = y;
@@ -1437,7 +1444,8 @@ void igt_plane_set_panning(igt_plane_t *plane, int x, int y)
 	igt_pipe_t *pipe = plane->pipe;
 	igt_display_t *display = pipe->display;
 
-	LOG(display, "%c.%d: plane_set_panning(%d,%d)\n", pipe_name(pipe->pipe),
+	LOG(display, "%s.%d: plane_set_panning(%d,%d)\n",
+	    kmstest_pipe_name(pipe->pipe),
 	    plane->index, x, y);
 
 	plane->pan_x = x;
@@ -1467,7 +1475,8 @@ void igt_plane_set_rotation(igt_plane_t *plane, igt_rotation_t rotation)
 	igt_pipe_t *pipe = plane->pipe;
 	igt_display_t *display = pipe->display;
 
-	LOG(display, "%c.%d: plane_set_rotation(%s)\n", pipe_name(pipe->pipe),
+	LOG(display, "%s.%d: plane_set_rotation(%s)\n",
+	    kmstest_pipe_name(pipe->pipe),
 	    plane->index, rotation_name(rotation));
 
 	plane->rotation = rotation;

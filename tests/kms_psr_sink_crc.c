@@ -140,7 +140,7 @@ connector_set_mode(data_t *data, drmModeModeInfo *mode, uint32_t fb_id)
 	int ret;
 
 #if 0
-	fprintf(stdout, "Using pipe %c, %dx%d\n", pipe_name(config->pipe),
+	fprintf(stdout, "Using pipe %s, %dx%d\n", kmstest_pipe_name(config->pipe),
 		mode->hdisplay, mode->vdisplay);
 #endif
 

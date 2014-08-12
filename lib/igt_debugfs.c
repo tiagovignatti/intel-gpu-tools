@@ -294,7 +294,7 @@ static bool igt_pipe_crc_do_start(igt_pipe_crc_t *pipe_crc)
 {
 	char buf[64];
 
-	sprintf(buf, "pipe %c %s", pipe_name(pipe_crc->pipe),
+	sprintf(buf, "pipe %s %s", kmstest_pipe_name(pipe_crc->pipe),
 		pipe_crc_source_name(pipe_crc->source));
 	errno = 0;
 	write(pipe_crc->ctl_fd, buf, strlen(buf));
@@ -308,7 +308,7 @@ static void igt_pipe_crc_pipe_off(int fd, enum pipe pipe)
 {
 	char buf[32];
 
-	sprintf(buf, "pipe %c none", pipe_name(pipe));
+	sprintf(buf, "pipe %s none", kmstest_pipe_name(pipe));
 	write(fd, buf, strlen(buf));
 }
 
@@ -379,7 +379,7 @@ igt_pipe_crc_new(enum pipe pipe, enum intel_pipe_crc_source source)
 	pipe_crc->ctl_fd = igt_debugfs_open("i915_display_crc_ctl", O_WRONLY);
 	igt_assert(pipe_crc->ctl_fd != -1);
 
-	sprintf(buf, "i915_pipe_%c_crc", pipe_name(pipe));
+	sprintf(buf, "i915_pipe_%s_crc", kmstest_pipe_name(pipe));
 	pipe_crc->crc_fd = igt_debugfs_open(buf, O_RDONLY);
 	igt_assert(pipe_crc->crc_fd != -1);
 
@@ -445,7 +445,7 @@ void igt_pipe_crc_stop(igt_pipe_crc_t *pipe_crc)
 {
 	char buf[32];
 
-	sprintf(buf, "pipe %c none", pipe_name(pipe_crc->pipe));
+	sprintf(buf, "pipe %s none", kmstest_pipe_name(pipe_crc->pipe));
 	write(pipe_crc->ctl_fd, buf, strlen(buf));
 }
 

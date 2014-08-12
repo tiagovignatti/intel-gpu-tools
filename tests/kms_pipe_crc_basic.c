@@ -212,9 +212,9 @@ static void test_read_crc(data_t *data, int pipe, unsigned flags)
 
 	for_each_connected_output(display, output) {
 
-		igt_info("%s: Testing connector %s using pipe %c\n",
+		igt_info("%s: Testing connector %s using pipe %s\n",
 			 igt_subtest_name(), igt_output_name(output),
-			 pipe_name(pipe));
+			 kmstest_pipe_name(pipe));
 
 		valid_connectors += test_read_crc_for_output(data, pipe, output, flags);
 	}

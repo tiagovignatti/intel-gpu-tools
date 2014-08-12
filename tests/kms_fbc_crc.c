@@ -458,13 +458,15 @@ static void run_test(data_t *data, enum test_mode mode)
 			if (!prepare_crtc(data))
 				continue;
 
-			igt_info("Beginning %s on pipe %c, connector %s\n",
-				 igt_subtest_name(), pipe_name(data->pipe),
+			igt_info("Beginning %s on pipe %s, connector %s\n",
+				 igt_subtest_name(),
+				 kmstest_pipe_name(data->pipe),
 				 igt_output_name(data->output));
 
 			if (!prepare_test(data, mode)) {
-				igt_info("%s on pipe %c, connector %s: SKIPPED\n",
-					 igt_subtest_name(), pipe_name(data->pipe),
+				igt_info("%s on pipe %s, connector %s: SKIPPED\n",
+					 igt_subtest_name(),
+					 kmstest_pipe_name(data->pipe),
 					 igt_output_name(data->output));
 				continue;
 			}
@@ -473,8 +475,9 @@ static void run_test(data_t *data, enum test_mode mode)
 
 			test_crc(data, mode);
 
-			igt_info("%s on pipe %c, connector %s: PASSED\n",
-				 igt_subtest_name(), pipe_name(data->pipe),
+			igt_info("%s on pipe %s, connector %s: PASSED\n",
+				 igt_subtest_name(),
+				 kmstest_pipe_name(data->pipe),
 				 igt_output_name(data->output));
 
 			finish_crtc(data, mode);

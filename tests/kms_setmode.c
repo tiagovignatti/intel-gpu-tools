@@ -246,7 +246,7 @@ static void get_crtc_config_str(struct crtc_config *crtc, char *buf,
 
 	pos = snprintf(buf, buf_size,
 		       "CRTC[%d] [Pipe %s] Mode: %s@%dHz Connectors: ",
-		       crtc->crtc_id, kmstest_pipe_str(crtc->pipe_id),
+		       crtc->crtc_id, kmstest_pipe_name(crtc->pipe_id),
 		       crtc->mode.name, crtc->mode.vrefresh);
 	if (pos > buf_size)
 		return;

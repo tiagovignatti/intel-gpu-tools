@@ -114,7 +114,7 @@ static int test_format(const char *test_name,
 		 mode->name, mode->vrefresh, igt_format_str(format));
 	igt_assert(ret > 0);
 	ret = asprintf(&cconf_str, "pipe %s, encoder %s, connector %s",
-		       kmstest_pipe_str(cconf->pipe),
+		       kmstest_pipe_name(cconf->pipe),
 		       kmstest_encoder_type_str(cconf->encoder->encoder_type),
 		       kmstest_connector_type_str(cconf->connector->connector_type));
 	igt_assert(ret > 0);

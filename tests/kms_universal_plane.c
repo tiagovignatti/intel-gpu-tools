@@ -135,7 +135,8 @@ functional_test_pipe(data_t *data, enum pipe pipe, igt_output_t *output)
 	igt_assert(data->display.has_universal_planes);
 	igt_skip_on(pipe >= display->n_pipes);
 
-	igt_info("Testing connector %s using pipe %c\n", igt_output_name(output), pipe_name(pipe));
+	igt_info("Testing connector %s using pipe %s\n", igt_output_name(output),
+		 kmstest_pipe_name(pipe));
 
 	functional_test_init(&test, output, pipe);
 
@@ -534,15 +535,18 @@ run_tests_for_pipe(data_t *data, enum pipe pipe)
 {
 	igt_output_t *output;
 
-	igt_subtest_f("universal-plane-pipe-%c-functional", pipe_name(pipe))
+	igt_subtest_f("universal-plane-pipe-%s-functional",
+		      kmstest_pipe_name(pipe))
 		for_each_connected_output(&data->display, output)
 			functional_test_pipe(data, pipe, output);
 
-	igt_subtest_f("universal-plane-pipe-%c-sanity", pipe_name(pipe))
+	igt_subtest_f("universal-plane-pipe-%s-sanity",
+		      kmstest_pipe_name(pipe))
 		for_each_connected_output(&data->display, output)
 			sanity_test_pipe(data, pipe, output);
 
-	igt_subtest_f("disable-primary-vs-flip-pipe-%c", pipe_name(pipe))
+	igt_subtest_f("disable-primary-vs-flip-pipe-%s",
+		      kmstest_pipe_name(pipe))
 		for_each_connected_output(&data->display, output)
 			pageflip_test_pipe(data, pipe, output);
 }

@@ -311,14 +311,16 @@ static void run_test(data_t *data, void (*testfunc)(data_t *), int cursor_w, int
 
 			valid_tests++;
 
-			igt_info("Beginning %s on pipe %c, connector %s\n",
-				 igt_subtest_name(), pipe_name(data->pipe),
+			igt_info("Beginning %s on pipe %s, connector %s\n",
+				 igt_subtest_name(),
+				 kmstest_pipe_name(data->pipe),
 				 igt_output_name(output));
 
 			testfunc(data);
 
-			igt_info("\n%s on pipe %c, connector %s: PASSED\n\n",
-				 igt_subtest_name(), pipe_name(data->pipe),
+			igt_info("\n%s on pipe %s, connector %s: PASSED\n\n",
+				 igt_subtest_name(),
+				 kmstest_pipe_name(data->pipe),
 				 igt_output_name(output));
 
 			/* cleanup what prepare_crtc() has done */
