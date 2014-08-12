@@ -180,7 +180,7 @@ igt_simple_main
 
 	data.drm_fd = drm_open_any();
 
-	igt_set_vt_graphics_mode();
+	kmstest_set_vt_graphics_mode();
 
 	data.resources = drmModeGetResources(data.drm_fd);
 	igt_assert(data.resources);

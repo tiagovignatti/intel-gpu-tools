@@ -64,7 +64,7 @@ main (int argc, char **argv)
 	drmModeFreeConnector(temp);
 
 	/* attempt to use the display */
-	igt_set_vt_graphics_mode();
+	kmstest_set_vt_graphics_mode();
 
 	igt_display_init(&display, drm_fd);
 	igt_display_commit(&display);

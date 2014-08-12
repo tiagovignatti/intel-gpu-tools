@@ -714,7 +714,7 @@ int main(int argc, char **argv)
 	igt_fixture {
 		drm_fd = drm_open_any();
 		if (!dry_run)
-			igt_set_vt_graphics_mode();
+			kmstest_set_vt_graphics_mode();
 
 		drm_resources = drmModeGetResources(drm_fd);
 		igt_assert(drm_resources);

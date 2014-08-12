@@ -287,12 +287,16 @@ static void restore_vt_mode_at_exit(int sig)
 		set_vt_mode(orig_vt_mode);
 }
 
-/*
- * Set the VT to graphics mode and install an exit handler to restore the
- * original mode.
+/**
+ * kmstest_set_vt_graphics_mode:
+ *
+ * Sets the controlling VT (if available) into graphics/raw mode and installs an
+ * igt exit handler to set the VT back to text mode on exit.
+ *
+ * All kms tests must call this function to make sure that the fbcon doesn't
+ * interfere by e.g. blanking the screen.
  */
-
-void igt_set_vt_graphics_mode(void)
+void kmstest_set_vt_graphics_mode(void)
 {
 	long ret;
 

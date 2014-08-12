@@ -499,7 +499,7 @@ igt_main
 		FILE *status;
 
 		data.drm_fd = drm_open_any();
-		igt_set_vt_graphics_mode();
+		kmstest_set_vt_graphics_mode();
 
 		data.devid = intel_get_drm_devid(data.drm_fd);
 

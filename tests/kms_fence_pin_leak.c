@@ -216,7 +216,7 @@ igt_simple_main
 
 	data.devid = intel_get_drm_devid(data.drm_fd);
 
-	igt_set_vt_graphics_mode();
+	kmstest_set_vt_graphics_mode();
 
 	data.bufmgr = drm_intel_bufmgr_gem_init(data.drm_fd, 4096);
 	igt_assert(data.bufmgr);

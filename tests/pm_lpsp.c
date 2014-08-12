@@ -245,7 +245,7 @@ igt_main
 
 		intel_register_access_init(intel_get_pci_device(), 0);
 
-		igt_set_vt_graphics_mode();
+		kmstest_set_vt_graphics_mode();
 	}
 
 	igt_subtest("screens-disabled")

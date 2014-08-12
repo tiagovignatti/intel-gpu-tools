@@ -404,7 +404,7 @@ static void init_mode_set_data(struct mode_set_data *data)
 
 	data->devid = intel_get_drm_devid(drm_fd);
 
-	igt_set_vt_graphics_mode();
+	kmstest_set_vt_graphics_mode();
 
 	init_modeset_cached_params(&ms_data);
 }

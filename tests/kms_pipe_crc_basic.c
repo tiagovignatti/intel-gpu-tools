@@ -233,7 +233,7 @@ igt_main
 
 		igt_enable_connectors();
 
-		igt_set_vt_graphics_mode();
+		kmstest_set_vt_graphics_mode();
 
 		igt_require_pipe_crc();
 

@@ -115,7 +115,7 @@ igt_simple_main
 	igt_skip_on_simulation();
 
 	data.drm_fd = drm_open_any();
-	igt_set_vt_graphics_mode();
+	kmstest_set_vt_graphics_mode();
 
 	igt_display_init(&data.display, data.drm_fd);
 

@@ -128,7 +128,7 @@ igt_main
 	igt_fixture {
 		data.drm_fd = drm_open_any();
 
-		igt_set_vt_graphics_mode();
+		kmstest_set_vt_graphics_mode();
 
 		igt_require_pipe_crc();
 		igt_display_init(&data.display, data.drm_fd);

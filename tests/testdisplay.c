@@ -849,7 +849,7 @@ int main(int argc, char **argv)
 		goto out_close;
 	}
 
-	igt_set_vt_graphics_mode();
+	kmstest_set_vt_graphics_mode();
 
 	mainloop = g_main_loop_new(NULL, FALSE);
 	if (!mainloop) {

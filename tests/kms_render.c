@@ -236,7 +236,7 @@ igt_main
 		devid = intel_get_drm_devid(drm_fd);
 		batch = intel_batchbuffer_alloc(bufmgr, devid);
 
-		igt_set_vt_graphics_mode();
+		kmstest_set_vt_graphics_mode();
 	}
 
 	for (i = 0; i < ARRAY_SIZE(tests); i++) {

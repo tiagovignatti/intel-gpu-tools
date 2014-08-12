@@ -36,6 +36,8 @@
 
 #include "igt_fb.h"
 
+/* Low-level helpers with kmstest_ prefix */
+
 enum pipe {
         PIPE_A = 0,
         PIPE_B,
@@ -163,6 +165,10 @@ void kmstest_unset_all_crtcs(int drm_fd, drmModeResPtr resources);
  * A small modeset API
  */
 
+/* set vt into graphics mode, required to prevent fbcon from interfering */
+void kmstest_set_vt_graphics_mode(void);
+
+/* High-level kms api with igt_ prefix */
 enum igt_commit_style {
 	COMMIT_LEGACY = 0,
 	COMMIT_UNIVERSAL,
@@ -238,9 +244,6 @@ struct igt_display {
 	igt_pipe_t pipes[I915_MAX_PIPES];
 	bool has_universal_planes;
 };
-
-/* set vt into graphics mode, required to prevent fbcon from interfering */
-void igt_set_vt_graphics_mode(void);
 
 void igt_display_init(igt_display_t *display, int drm_fd);
 void igt_display_fini(igt_display_t *display);

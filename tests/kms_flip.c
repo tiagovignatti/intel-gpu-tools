@@ -1596,7 +1596,7 @@ int main(int argc, char **argv)
 
 		igt_enable_connectors();
 
-		igt_set_vt_graphics_mode();
+		kmstest_set_vt_graphics_mode();
 		igt_install_exit_handler(kms_flip_exit_handler);
 		get_timestamp_format();
 

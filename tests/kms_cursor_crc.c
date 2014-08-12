@@ -440,7 +440,7 @@ igt_main
 		/* We assume width and height are same so max is assigned width */
 		igt_assert_cmpint(cursor_width, ==, cursor_height);
 
-		igt_set_vt_graphics_mode();
+		kmstest_set_vt_graphics_mode();
 
 		igt_require_pipe_crc();
 
