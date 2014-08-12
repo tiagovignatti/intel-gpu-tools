@@ -64,8 +64,16 @@
  *
  * This library provides support to enumerate and set modeset configurations.
  *
- * Since this library is very much still a work-in-progress and the interfaces
- * still in-flux detailed api documentation is currently still missing.
+ * There are two parts in this library: First the low level helper function
+ * which directly build on top of raw ioctls or the interfaces provided by
+ * libdrm. Those functions all have a kmstest_ prefix.
+ *
+ * The second part is a high-level library to manage modeset configurations
+ * which abstracts away some of the low-level details like the difference
+ * between legacy and universal plane support for setting cursors or in the
+ * future the difference between legacy and atomic commit. These high-level
+ * functions have all igt_ prefixes. This part is still very much work in
+ * progress and so also lacks a bit documentation for the individual functions.
  *
  * Note that this library's header pulls in the [i-g-t framebuffer](intel-gpu-tools-i-g-t-framebuffer.html)
  * library as a dependency.
@@ -214,6 +222,14 @@ void kmstest_dump_mode(drmModeModeInfo *mode)
 	fflush(stdout);
 }
 
+/**
+ * kmstest_get_pipe_from_crtc_id:
+ * @fd: DRM fd
+ * @crtc_id: DRM CRTC id
+ *
+ * Returns: The pipe number for the given DRM CRTC @crtc_id. This maps directly
+ * to an enum pipe value used in other helper functions.
+ */
 int kmstest_get_pipe_from_crtc_id(int fd, int crtc_id)
 {
 	struct drm_i915_get_pipe_from_crtc_id pfci;
@@ -391,6 +407,16 @@ void kmstest_force_edid(int drm_fd, drmModeConnector *connector,
 	igt_assert(ret != -1);
 }
 
+/**
+ * kmstest_get_connector_default_mode:
+ * @drm_fd: DRM fd
+ * @connector: libdrm connector
+ * @mode: libdrm mode
+ *
+ * Retrieves the default mode for @connector and stores it in @mode.
+ *
+ * Returns: true on success, false on failure
+ */
 bool kmstest_get_connector_default_mode(int drm_fd, drmModeConnector *connector,
 					drmModeModeInfo *mode)
 {
@@ -414,6 +440,16 @@ bool kmstest_get_connector_default_mode(int drm_fd, drmModeConnector *connector,
 	return true;
 }
 
+/**
+ * kmstest_get_connector_config:
+ * @drm_fd: DRM fd
+ * @connector_id: DRM connector id
+ * @crtc_idx_mask: mask of allowed DRM CRTC indices
+ * @config: structure filled with the possible configuration
+ *
+ * This tries to find a suitable configuration for the given connector and CRTC
+ * constraint and fills it into @config.
+ */
 bool kmstest_get_connector_config(int drm_fd, uint32_t connector_id,
 				  unsigned long crtc_idx_mask,
 				  struct kmstest_connector_config *config)
@@ -504,6 +540,12 @@ err1:
 	return false;
 }
 
+/**
+ * kmstest_free_connector_config:
+ * @config: connector configuration structure
+ *
+ * Free any resources in @config allocated in kmstest_get_connector_config().
+ */
 void kmstest_free_connector_config(struct kmstest_connector_config *config)
 {
 	drmModeFreeCrtc(config->crtc);
@@ -511,6 +553,14 @@ void kmstest_free_connector_config(struct kmstest_connector_config *config)
 	drmModeFreeConnector(config->connector);
 }
 
+/**
+ * kmstest_set_connector_dpms:
+ * @fd: DRM fd
+ * @connector: libdrm connector
+ * @mode: DRM DPMS value
+ *
+ * This function sets the DPMS setting of @connector to @mode.
+ */
 void kmstest_set_connector_dpms(int fd, drmModeConnector *connector, int mode)
 {
 	int i, dpms = 0;
