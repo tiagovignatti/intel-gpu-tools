@@ -98,6 +98,12 @@ const char *kmstest_connector_status_str(int status);
  */
 const char *kmstest_connector_type_str(int type);
 
+void kmstest_dump_mode(drmModeModeInfo *mode);
+
+int kmstest_get_pipe_from_crtc_id(int fd, int crtc_id);
+void kmstest_set_vt_graphics_mode(void);
+
+
 struct kmstest_connector_config {
 	drmModeCrtc *crtc;
 	drmModeConnector *connector;
@@ -141,20 +147,18 @@ enum kmstest_generic_edid {
 	MAX_EDIDS
 };
 
+bool kmstest_force_connector(int fd, drmModeConnector *connector,
+			     enum kmstest_force_connector_state state);
+void kmstest_force_edid(int drm_fd, drmModeConnector *connector,
+			const unsigned char *edid, size_t length);
 
 int kmstest_get_connector_default_mode(int drm_fd, drmModeConnector *connector,
 				      drmModeModeInfo *mode);
 int kmstest_get_connector_config(int drm_fd, uint32_t connector_id,
 				 unsigned long crtc_idx_mask,
 				 struct kmstest_connector_config *config);
-bool kmstest_force_connector(int fd, drmModeConnector *connector,
-			     enum kmstest_force_connector_state state);
-void kmstest_force_edid(int drm_fd, drmModeConnector *connector,
-			const unsigned char *edid, size_t length);
 void kmstest_free_connector_config(struct kmstest_connector_config *config);
 
-void kmstest_dump_mode(drmModeModeInfo *mode);
-int kmstest_get_pipe_from_crtc_id(int fd, int crtc_id);
 void kmstest_set_connector_dpms(int fd, drmModeConnector *connector, int mode);
 bool kmstest_get_property(int drm_fd, uint32_t object_id, uint32_t object_type,
 			  const char *name, uint32_t *prop_id, uint64_t *value,
@@ -164,9 +168,6 @@ void kmstest_unset_all_crtcs(int drm_fd, drmModeResPtr resources);
 /*
  * A small modeset API
  */
-
-/* set vt into graphics mode, required to prevent fbcon from interfering */
-void kmstest_set_vt_graphics_mode(void);
 
 /* High-level kms api with igt_ prefix */
 enum igt_commit_style {

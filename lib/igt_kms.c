@@ -227,34 +227,6 @@ int kmstest_get_pipe_from_crtc_id(int fd, int crtc_id)
 	return pfci.pipe;
 }
 
-void kmstest_set_connector_dpms(int fd, drmModeConnector *connector, int mode)
-{
-	int i, dpms = 0;
-	bool found_it = false;
-
-	for (i = 0; i < connector->count_props; i++) {
-		struct drm_mode_get_property prop;
-
-		prop.prop_id = connector->props[i];
-		prop.count_values = 0;
-		prop.count_enum_blobs = 0;
-		if (drmIoctl(fd, DRM_IOCTL_MODE_GETPROPERTY, &prop))
-			continue;
-
-		if (strcmp(prop.name, "DPMS"))
-			continue;
-
-		dpms = prop.prop_id;
-		found_it = true;
-		break;
-	}
-	igt_assert_f(found_it, "DPMS property not found on %d\n",
-		     connector->connector_id);
-
-	igt_assert(drmModeConnectorSetProperty(fd, connector->connector_id,
-					       dpms, mode) == 0);
-}
-
 static signed long set_vt_mode(unsigned long mode)
 {
 	int fd;
@@ -308,6 +280,115 @@ void kmstest_set_vt_graphics_mode(void)
 
 	igt_assert(ret >= 0);
 	orig_vt_mode = ret;
+}
+
+static int get_card_number(int fd)
+{
+	struct stat buf;
+
+	/* find the minor number of the device */
+	fstat(fd, &buf);
+
+	return minor(buf.st_rdev) & 0x3f;
+}
+
+static char* get_debugfs_connector_path(int drm_fd, drmModeConnector *connector,
+					const char *file)
+{
+	char *path;
+
+	asprintf(&path, "/sys/kernel/debug/dri/%d/%s-%d/%s",
+		 get_card_number(drm_fd),
+		 kmstest_connector_type_str(connector->connector_type),
+		 connector->connector_type_id,
+		 file);
+
+	return path;
+}
+
+/**
+ * kmstest_force_connector:
+ * @fd: drm file descriptor
+ * @connector: connector
+ * @state: state to force on @connector
+ *
+ * Force the specified state on the specified connector.
+ *
+ * Returns: true on success
+ */
+bool kmstest_force_connector(int drm_fd, drmModeConnector *connector,
+			     enum kmstest_force_connector_state state)
+{
+	char *path;
+	const char *value;
+	int debugfs_fd, ret;
+
+	switch (state) {
+	case FORCE_CONNECTOR_ON:
+		value = "on";
+		break;
+	case FORCE_CONNECTOR_DIGITAL:
+		value = "digital";
+		break;
+	case FORCE_CONNECTOR_OFF:
+		value = "off";
+		break;
+
+	default:
+	case FORCE_CONNECTOR_UNSPECIFIED:
+		value = "unspecified";
+		break;
+	}
+
+	path = get_debugfs_connector_path(drm_fd, connector, "force");
+	debugfs_fd = open(path, O_WRONLY | O_TRUNC);
+	free(path);
+
+	if (debugfs_fd == -1) {
+		return false;
+	}
+
+	ret = write(debugfs_fd, value, strlen(value));
+	close(debugfs_fd);
+
+	igt_assert(ret != -1);
+	return (ret == -1) ? false : true;
+}
+
+/**
+ * kmstest_force_edid:
+ * @drm_fd: drm file descriptor
+ * @connector: connector to set @edid on
+ * @edid: An EDID data block
+ * @length: length of the EDID data. #EDID_LENGTH defines the standard EDID
+ * length
+ *
+ * Set the EDID data on @connector to @edid. See #generic_edid and
+ * #kmstest_generic_edid for a set of generic EDID data blocks.
+ *
+ * If @length is zero, the forced EDID will be removed.
+ */
+void kmstest_force_edid(int drm_fd, drmModeConnector *connector,
+			const unsigned char *edid, size_t length)
+{
+	char *path;
+	int debugfs_fd, ret;
+
+	path = get_debugfs_connector_path(drm_fd, connector, "edid_override");
+
+	debugfs_fd = open(path, O_WRONLY | O_TRUNC);
+
+	free(path);
+
+	igt_assert(debugfs_fd != -1);
+
+	if (length == 0)
+		ret = write(debugfs_fd, "reset", 5);
+	else
+		ret = write(debugfs_fd, edid, length);
+	close(debugfs_fd);
+
+	igt_assert(ret != -1);
 }
 
 int kmstest_get_connector_default_mode(int drm_fd, drmModeConnector *connector,
@@ -423,120 +504,109 @@ err1:
 	return -1;
 }
 
-static int get_card_number(int fd)
-{
-	struct stat buf;
-
-	/* find the minor number of the device */
-	fstat(fd, &buf);
-
-	return minor(buf.st_rdev) & 0x3f;
-}
-
-static char* get_debugfs_connector_path(int drm_fd, drmModeConnector *connector,
-					const char *file)
-{
-	char *path;
-
-	asprintf(&path, "/sys/kernel/debug/dri/%d/%s-%d/%s",
-		 get_card_number(drm_fd),
-		 kmstest_connector_type_str(connector->connector_type),
-		 connector->connector_type_id,
-		 file);
-
-	return path;
-}
-
-/**
- * kmstest_force_connector:
- * @fd: drm file descriptor
- * @connector: connector
- * @state: state to force on @connector
- *
- * Force the specified state on the specified connector.
- *
- * Returns: true on success
- */
-bool kmstest_force_connector(int drm_fd, drmModeConnector *connector,
-			     enum kmstest_force_connector_state state)
-{
-	char *path;
-	const char *value;
-	int debugfs_fd, ret;
-
-	switch (state) {
-	case FORCE_CONNECTOR_ON:
-		value = "on";
-		break;
-	case FORCE_CONNECTOR_DIGITAL:
-		value = "digital";
-		break;
-	case FORCE_CONNECTOR_OFF:
-		value = "off";
-		break;
-
-	default:
-	case FORCE_CONNECTOR_UNSPECIFIED:
-		value = "unspecified";
-		break;
-	}
-
-	path = get_debugfs_connector_path(drm_fd, connector, "force");
-	debugfs_fd = open(path, O_WRONLY | O_TRUNC);
-	free(path);
-
-	if (debugfs_fd == -1) {
-		return false;
-	}
-
-	ret = write(debugfs_fd, value, strlen(value));
-	close(debugfs_fd);
-
-	igt_assert(ret != -1);
-	return (ret == -1) ? false : true;
-}
-
-/**
- * kmstest_force_edid:
- * @drm_fd: drm file descriptor
- * @connector: connector to set @edid on
- * @edid: An EDID data block
- * @length: length of the EDID data. #EDID_LENGTH defines the standard EDID
- * length
- *
- * Set the EDID data on @connector to @edid. See #generic_edid and
- * #kmstest_generic_edid for a set of generic EDID data blocks.
- *
- * If @length is zero, the forced EDID will be removed.
- */
-void kmstest_force_edid(int drm_fd, drmModeConnector *connector,
-			const unsigned char *edid, size_t length)
-{
-	char *path;
-	int debugfs_fd, ret;
-
-	path = get_debugfs_connector_path(drm_fd, connector, "edid_override");
-
-	debugfs_fd = open(path, O_WRONLY | O_TRUNC);
-
-	free(path);
-
-	igt_assert(debugfs_fd != -1);
-
-	if (length == 0)
-		ret = write(debugfs_fd, "reset", 5);
-	else
-		ret = write(debugfs_fd, edid, length);
-	close(debugfs_fd);
-
-	igt_assert(ret != -1);
-}
-
 void kmstest_free_connector_config(struct kmstest_connector_config *config)
 {
 	drmModeFreeCrtc(config->crtc);
 	drmModeFreeEncoder(config->encoder);
 	drmModeFreeConnector(config->connector);
+}
+
+void kmstest_set_connector_dpms(int fd, drmModeConnector *connector, int mode)
+{
+	int i, dpms = 0;
+	bool found_it = false;
+
+	for (i = 0; i < connector->count_props; i++) {
+		struct drm_mode_get_property prop;
+
+		prop.prop_id = connector->props[i];
+		prop.count_values = 0;
+		prop.count_enum_blobs = 0;
+		if (drmIoctl(fd, DRM_IOCTL_MODE_GETPROPERTY, &prop))
+			continue;
+
+		if (strcmp(prop.name, "DPMS"))
+			continue;
+
+		dpms = prop.prop_id;
+		found_it = true;
+		break;
+	}
+	igt_assert_f(found_it, "DPMS property not found on %d\n",
+		     connector->connector_id);
+
+	igt_assert(drmModeConnectorSetProperty(fd, connector->connector_id,
+					       dpms, mode) == 0);
+}
+
+/**
+ * kmstest_get_property:
+ * @drm_fd: drm file descriptor
+ * @object_id: object whose properties we're going to get
+ * @object_type: type of obj_id (DRM_MODE_OBJECT_*)
+ * @name: name of the property we're going to get
+ * @prop_id: if not NULL, returns the property id
+ * @value: if not NULL, returns the property value
+ * @prop: if not NULL, returns the property, and the caller will have to free
+ *        it manually.
+ *
+ * Finds a property with the given name on the given object.
+ *
+ * Returns: true in case we found something.
+ */
+bool
+kmstest_get_property(int drm_fd, uint32_t object_id, uint32_t object_type,
+		     const char *name, uint32_t *prop_id /* out */,
+		     uint64_t *value /* out */,
+		     drmModePropertyPtr *prop /* out */)
+{
+	drmModeObjectPropertiesPtr proplist;
+	drmModePropertyPtr _prop;
+	bool found = false;
+	int i;
+
+	proplist = drmModeObjectGetProperties(drm_fd, object_id, object_type);
+	for (i = 0; i < proplist->count_props; i++) {
+		_prop = drmModeGetProperty(drm_fd, proplist->props[i]);
+		if (!_prop)
+			continue;
+
+		if (strcmp(_prop->name, name) == 0) {
+			found = true;
+			if (prop_id)
+				*prop_id = proplist->props[i];
+			if (value)
+				*value = proplist->prop_values[i];
+			if (prop)
+				*prop = _prop;
+			else
+				drmModeFreeProperty(_prop);
+
+			break;
+		}
+		drmModeFreeProperty(_prop);
+	}
+
+	drmModeFreeObjectProperties(proplist);
+	return found;
+}
+
+/**
+ * kmstest_unset_all_crtcs:
+ * @drm_fd: the DRM fd
+ * @resources: libdrm resources pointer
+ *
+ * Disables all the screens.
+ */
+void kmstest_unset_all_crtcs(int drm_fd, drmModeResPtr resources)
+{
+	int i, rc;
+
+	for (i = 0; i < resources->count_crtcs; i++) {
+		rc = drmModeSetCrtc(drm_fd, resources->crtcs[i], -1, 0, 0, NULL,
+				    0, NULL);
+		igt_assert(rc == 0);
+	}
 }
 
 /*
@@ -613,58 +683,6 @@ static void igt_output_refresh(igt_output_t *output)
 	    kmstest_pipe_name(output->config.pipe));
 
 	display->pipes_in_use |= 1 << output->config.pipe;
-}
-
-/**
- * kmstest_get_property:
- * @drm_fd: drm file descriptor
- * @object_id: object whose properties we're going to get
- * @object_type: type of obj_id (DRM_MODE_OBJECT_*)
- * @name: name of the property we're going to get
- * @prop_id: if not NULL, returns the property id
- * @value: if not NULL, returns the property value
- * @prop: if not NULL, returns the property, and the caller will have to free
- *        it manually.
- *
- * Finds a property with the given name on the given object.
- *
- * Returns: true in case we found something.
- */
-bool
-kmstest_get_property(int drm_fd, uint32_t object_id, uint32_t object_type,
-		     const char *name, uint32_t *prop_id /* out */,
-		     uint64_t *value /* out */,
-		     drmModePropertyPtr *prop /* out */)
-{
-	drmModeObjectPropertiesPtr proplist;
-	drmModePropertyPtr _prop;
-	bool found = false;
-	int i;
-
-	proplist = drmModeObjectGetProperties(drm_fd, object_id, object_type);
-	for (i = 0; i < proplist->count_props; i++) {
-		_prop = drmModeGetProperty(drm_fd, proplist->props[i]);
-		if (!_prop)
-			continue;
-
-		if (strcmp(_prop->name, name) == 0) {
-			found = true;
-			if (prop_id)
-				*prop_id = proplist->props[i];
-			if (value)
-				*value = proplist->prop_values[i];
-			if (prop)
-				*prop = _prop;
-			else
-				drmModeFreeProperty(_prop);
-
-			break;
-		}
-		drmModeFreeProperty(_prop);
-	}
-
-	drmModeFreeObjectProperties(proplist);
-	return found;
 }
 
 static bool
@@ -1585,22 +1603,4 @@ void igt_reset_connectors(void)
 	}
 
 	close(drm_fd);
-}
-
-/**
- * kmstest_unset_all_crtcs:
- * @drm_fd: the DRM fd
- * @resources: libdrm resources pointer
- *
- * Disables all the screens.
- */
-void kmstest_unset_all_crtcs(int drm_fd, drmModeResPtr resources)
-{
-	int i, rc;
-
-	for (i = 0; i < resources->count_crtcs; i++) {
-		rc = drmModeSetCrtc(drm_fd, resources->crtcs[i], -1, 0, 0, NULL,
-				    0, NULL);
-		igt_assert(rc == 0);
-	}
 }
