@@ -179,12 +179,11 @@ igt_simple_main
 	}
 
 	aper_size = gem_mappable_aperture_size();
-	igt_skip_on_f(intel_get_total_ram_mb() < aper_size / (1024*1024) * 2,
-		      "not enough mem to run test\n");
-
 	count = aper_size / 4096 * 2;
 	if (igt_run_in_simulation())
 		count = 10;
+
+	igt_require(intel_check_memory(1+count, 4096, CHECK_RAM));
 
 	handles = malloc (count * sizeof(uint32_t));
 	igt_assert(handles);
