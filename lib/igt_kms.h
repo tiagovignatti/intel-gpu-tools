@@ -102,6 +102,7 @@ void kmstest_dump_mode(drmModeModeInfo *mode);
 
 int kmstest_get_pipe_from_crtc_id(int fd, int crtc_id);
 void kmstest_set_vt_graphics_mode(void);
+void kmstest_restore_vt_mode(void);
 
 struct kmstest_connector_config {
 	drmModeCrtc *crtc;

@@ -269,17 +269,30 @@ err:
 
 static unsigned long orig_vt_mode = -1UL;
 
-static void restore_vt_mode_at_exit(int sig)
+/**
+ * kmstest_restore_vt_mode:
+ *
+ * Restore the VT mode in use before #kmstest_set_vt_graphics_mode was called.
+ */
+void kmstest_restore_vt_mode(void)
 {
-	if (orig_vt_mode != -1UL)
-		set_vt_mode(orig_vt_mode);
+	long ret;
+
+	if (orig_vt_mode != -1UL) {
+		ret = set_vt_mode(orig_vt_mode);
+		orig_vt_mode = -1UL;
+
+		igt_assert(ret >= 0);
+		igt_debug("VT: original mode restored\n");
+	}
 }
 
 /**
  * kmstest_set_vt_graphics_mode:
  *
- * Sets the controlling VT (if available) into graphics/raw mode and installs an
- * igt exit handler to set the VT back to text mode on exit.
+ * Sets the controlling VT (if available) into graphics/raw mode and installs
+ * an igt exit handler to set the VT back to text mode on exit. Use
+ * #kmstest_restore_vt_mode to restore the previous VT mode manually.
  *
  * All kms tests must call this function to make sure that the fbcon doesn't
  * interfere by e.g. blanking the screen.
@@ -288,7 +301,7 @@ void kmstest_set_vt_graphics_mode(void)
 {
 	long ret;
 
-	igt_install_exit_handler(restore_vt_mode_at_exit);
+	igt_install_exit_handler((igt_exit_handler_t) kmstest_restore_vt_mode);
 
 	igt_disable_exit_handler();
 	ret = set_vt_mode(KD_GRAPHICS);
@@ -296,6 +309,8 @@ void kmstest_set_vt_graphics_mode(void)
 
 	igt_assert(ret >= 0);
 	orig_vt_mode = ret;
+
+	igt_debug("VT: graphics mode set\n");
 }
 
 static int get_card_number(int fd)
