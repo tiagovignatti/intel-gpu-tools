@@ -153,7 +153,7 @@ static void test_plane_rotation(data_t *data, enum igt_plane plane_type)
 	igt_output_t *output;
 	enum pipe pipe;
 	int valid_tests = 0;
-	igt_crc_t crc_output;
+	igt_crc_t crc_output, crc_unrotated;
 	enum igt_commit_style commit = COMMIT_LEGACY;
 
 	if (plane_type == IGT_PLANE_PRIMARY) {
@@ -173,11 +173,24 @@ static void test_plane_rotation(data_t *data, enum igt_plane plane_type)
 			if (!prepare_crtc(data, output, pipe, plane))
 				continue;
 
+			/* collect unrotated CRC */
+			igt_display_commit2(display, commit);
+			igt_pipe_crc_collect_crc(data->pipe_crc, &crc_unrotated);
+
 			igt_plane_set_rotation(plane, IGT_ROTATION_180);
 			igt_display_commit2(display, commit);
 
 			igt_pipe_crc_collect_crc(data->pipe_crc, &crc_output);
 			igt_assert(igt_crc_equal(&data->ref_crc, &crc_output));
+
+			/* check the rotation state has been reset when the VT
+			 * mode is restored */
+			kmstest_restore_vt_mode();
+			kmstest_set_vt_graphics_mode();
+			prepare_crtc(data, output, pipe, plane);
+			igt_pipe_crc_collect_crc(data->pipe_crc, &crc_output);
+			igt_assert(igt_crc_equal(&crc_unrotated, &crc_output));
+
 
 			valid_tests++;
 			cleanup_crtc(data, output, plane);
