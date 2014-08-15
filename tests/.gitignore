@@ -121,6 +121,7 @@ kms_cursor_crc
 kms_fbc_crc
 kms_fence_pin_leak
 kms_flip
+kms_flip_event_leak
 kms_flip_tiling
 kms_force_connector
 kms_mmio_vs_cs_flip
