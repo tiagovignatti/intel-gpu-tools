@@ -33,7 +33,10 @@
 
 import sys,re
 
-file = open(sys.argv[1], "r")
+# make sure both input file and stdout are handled as utf-8 text, regardless
+# of current locale (eg. LANG=C which tells python to use ascii encoding)
+sys.stdout = open(sys.__stdout__.fileno(), "a", encoding="utf-8")
+file = open(sys.argv[1], "r", encoding="utf-8")
 
 lines = file.readlines()
 len(lines)
