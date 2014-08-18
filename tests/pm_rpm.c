@@ -285,7 +285,7 @@ static bool init_modeset_params_for_type(struct mode_set_data *data,
 		return false;
 
 	igt_create_fb(drm_fd, mode->hdisplay, mode->vdisplay,
-		      DRM_FORMAT_XRGB8888, false, &params->fb);
+		      DRM_FORMAT_XRGB8888, I915_TILING_NONE, &params->fb);
 	cr = igt_get_cairo_ctx(drm_fd, &params->fb);
 	igt_paint_test_pattern(cr, mode->hdisplay, mode->vdisplay);
 	cairo_destroy(cr);
@@ -1427,9 +1427,12 @@ static void cursor_subtest(bool dpms)
 	igt_require(default_mode_params);
 	crtc_id = default_mode_params->crtc_id;
 
-	igt_create_fb(drm_fd, 64, 64, DRM_FORMAT_ARGB8888, false, &cursor_fb1);
-	igt_create_fb(drm_fd, 64, 64, DRM_FORMAT_ARGB8888, false, &cursor_fb2);
-	igt_create_fb(drm_fd, 64, 64, DRM_FORMAT_ARGB8888, true, &cursor_fb3);
+	igt_create_fb(drm_fd, 64, 64, DRM_FORMAT_ARGB8888, I915_TILING_NONE,
+		      &cursor_fb1);
+	igt_create_fb(drm_fd, 64, 64, DRM_FORMAT_ARGB8888, I915_TILING_NONE,
+		      &cursor_fb2);
+	igt_create_fb(drm_fd, 64, 64, DRM_FORMAT_ARGB8888, I915_TILING_X,
+		      &cursor_fb3);
 
 	fill_igt_fb(&cursor_fb1, 0xFF00FFFF);
 	fill_igt_fb(&cursor_fb2, 0xFF00FF00);
@@ -1536,7 +1539,7 @@ static void test_one_plane(bool dpms, uint32_t plane_id,
 	uint32_t crtc_id;
 	struct igt_fb plane_fb1, plane_fb2;
 	int32_t crtc_x = 0, crtc_y = 0;
-	bool tiling;
+	unsigned int tiling;
 
 	disable_all_screens_and_wait(&ms_data);
 
@@ -1548,19 +1551,19 @@ static void test_one_plane(bool dpms, uint32_t plane_id,
 		plane_format = DRM_FORMAT_XRGB8888;
 		plane_w = 64;
 		plane_h = 64;
-		tiling = true;
+		tiling = I915_TILING_X;
 		break;
 	case PLANE_PRIMARY:
 		plane_format = DRM_FORMAT_XRGB8888;
 		plane_w = default_mode_params->mode->hdisplay;
 		plane_h = default_mode_params->mode->vdisplay;
-		tiling = true;
+		tiling = I915_TILING_X;
 		break;
 	case PLANE_CURSOR:
 		plane_format = DRM_FORMAT_ARGB8888;
 		plane_w = 64;
 		plane_h = 64;
-		tiling = false;
+		tiling = I915_TILING_NONE;
 		break;
 	default:
 		igt_assert(0);
@@ -1679,7 +1682,7 @@ static void fences_subtest(bool dpms)
 	params.connector_id = default_mode_params->connector_id;
 	params.mode = default_mode_params->mode;
 	igt_create_fb(drm_fd, params.mode->hdisplay, params.mode->vdisplay,
-		      DRM_FORMAT_XRGB8888, true, &params.fb);
+		      DRM_FORMAT_XRGB8888, I915_TILING_X, &params.fb);
 
 	/* Even though we passed "true" as the tiling argument, double-check
 	 * that the fb is really tiled. */
