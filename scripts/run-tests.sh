@@ -55,8 +55,10 @@ function print_help {
 	echo "                  (default: $RESULTS)"
 	echo "  -s              create html summary"
 	echo "  -t <regex>      only include tests that match the regular expression"
+	echo "                  (can be used more than once)"
 	echo "  -v              enable verbose mode"
 	echo "  -x <regex>      exclude tests that match the regular expression"
+	echo "                  (can be used more than once)"
 	echo ""
 	echo "Useful patterns for test filtering are described in tests/NAMING-CONVENTION"
 }
@@ -78,9 +80,9 @@ while getopts ":dhlr:st:vx:" opt; do
 		l) list_tests; exit ;;
 		r) RESULTS="$OPTARG" ;;
 		s) SUMMARY="html" ;;
-		t) FILTER="-t $OPTARG" ;;
+		t) FILTER="$FILTER -t $OPTARG" ;;
 		v) VERBOSE="-v" ;;
-		x) EXCLUDE="-x $OPTARG" ;;
+		x) EXCLUDE="$EXCLUDE -x $OPTARG" ;;
 		:)
 			echo "Option -$OPTARG requires an argument."
 			exit 1
