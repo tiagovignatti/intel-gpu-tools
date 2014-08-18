@@ -62,10 +62,8 @@ igt_main
 		igt_assert(ret == -1 && errno == ENOENT);
 	}
 
-	igt_fixture
-		handle = gem_create(fd, OBJECT_SIZE);
-
 	igt_subtest("new-object") {
+		handle = gem_create(fd, OBJECT_SIZE);
 		arg.handle = handle;
 		arg.offset = 0;
 		arg.size = OBJECT_SIZE;
@@ -94,9 +92,11 @@ igt_main
 
 	igt_subtest("short-mmap") {
 		igt_assert(OBJECT_SIZE > 4096);
+		handle = gem_create(fd, OBJECT_SIZE);
 		addr = gem_mmap__cpu(fd, handle, 4096, PROT_WRITE);
 		memset(addr, 0, 4096);
 		munmap(addr, 4096);
+		gem_close(fd, handle);
 	}
 
 	igt_fixture
