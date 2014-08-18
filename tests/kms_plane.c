@@ -78,7 +78,7 @@ test_grab_crc(data_t *data, igt_output_t *output, enum pipe pipe,
 	mode = igt_output_get_mode(output);
 	igt_create_color_fb(data->drm_fd, mode->hdisplay, mode->vdisplay,
 			    DRM_FORMAT_XRGB8888,
-			    false, /* tiled */
+			    I915_TILING_NONE,
 			    fb_color->red, fb_color->green, fb_color->blue,
 			    &fb);
 	igt_plane_set_fb(primary, &fb);
@@ -130,7 +130,7 @@ create_fb_for_mode__position(data_t *data, drmModeModeInfo *mode,
 	fb_id = igt_create_fb(data->drm_fd,
 				  mode->hdisplay, mode->vdisplay,
 				  DRM_FORMAT_XRGB8888,
-				  false /* tiling */,
+				  I915_TILING_NONE,
 				  fb);
 	igt_assert(fb_id);
 
@@ -179,7 +179,7 @@ test_plane_position_with_output(data_t *data,
 	igt_create_color_fb(data->drm_fd,
 				64, 64, /* width, height */
 				DRM_FORMAT_XRGB8888,
-				false, /* tiled */
+				I915_TILING_NONE,
 				0.0, 1.0, 0.0,
 				&sprite_fb);
 	igt_plane_set_fb(sprite, &sprite_fb);
@@ -248,7 +248,7 @@ create_fb_for_mode__panning(data_t *data, drmModeModeInfo *mode,
 	fb_id = igt_create_fb(data->drm_fd,
 			      mode->hdisplay * 2, mode->vdisplay * 2,
 			      DRM_FORMAT_XRGB8888,
-			      false /* tiling */,
+			      I915_TILING_NONE,
 			      fb);
 	igt_assert(fb_id);
 
