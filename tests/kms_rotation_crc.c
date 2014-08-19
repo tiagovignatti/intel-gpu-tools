@@ -72,7 +72,6 @@ static bool prepare_crtc(data_t *data, igt_output_t *output, enum pipe pipe,
 
 	igt_output_set_pipe(output, pipe);
 
-
 	/* create the pipe_crc object for this pipe */
 	igt_pipe_crc_free(data->pipe_crc);
 	data->pipe_crc = igt_pipe_crc_new(pipe, INTEL_PIPE_CRC_SOURCE_AUTO);
@@ -119,8 +118,6 @@ static bool prepare_crtc(data_t *data, igt_output_t *output, enum pipe pipe,
 	paint_squares(data, &data->fb, mode, IGT_ROTATION_0);
 
 	igt_plane_set_fb(plane, &data->fb);
-	igt_display_commit(display);
-
 	return true;
 }
 
@@ -172,6 +169,7 @@ static void test_plane_rotation(data_t *data, enum igt_plane plane_type)
 
 			if (!prepare_crtc(data, output, pipe, plane))
 				continue;
+			igt_display_commit2(display, commit);
 
 			/* collect unrotated CRC */
 			igt_display_commit2(display, commit);
