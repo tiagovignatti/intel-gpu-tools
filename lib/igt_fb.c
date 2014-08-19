@@ -396,8 +396,7 @@ void igt_paint_image(cairo_t *cr, const char *filename,
  * for rgb pixel formats.
  *
  * Returns:
- * The kms id of the created framebuffer on success or a negative error code on
- * failure.
+ * The kms id of the created framebuffer.
  */
 unsigned int
 igt_create_fb_with_bo_size(int fd, int width, int height,
@@ -416,20 +415,16 @@ igt_create_fb_with_bo_size(int fd, int width, int height,
 	bpp = igt_drm_format_to_bpp(format);
 	ret = create_bo_for_fb(fd, width, height, bpp, tiling, &fb->gem_handle,
 			      &fb->size, &fb->stride, bo_size);
-	if (ret < 0)
-		return ret;
+	igt_assert(ret == 0);
 
 	memset(handles, 0, sizeof(handles));
 	handles[0] = fb->gem_handle;
 	memset(pitches, 0, sizeof(pitches));
 	pitches[0] = fb->stride;
 	memset(offsets, 0, sizeof(offsets));
-	if (drmModeAddFB2(fd, width, height, format, handles, pitches,
-			  offsets, &fb_id, 0) < 0) {
-		gem_close(fd, fb->gem_handle);
-
-		return 0;
-	}
+	ret = drmModeAddFB2(fd, width, height, format, handles, pitches,
+			    offsets, &fb_id, 0);
+	igt_assert(ret == 0);
 
 	fb->width = width;
 	fb->height = height;
@@ -457,8 +452,7 @@ igt_create_fb_with_bo_size(int fd, int width, int height,
  * for rgb pixel formats.
  *
  * Returns:
- * The kms id of the created framebuffer on success or a negative error code on
- * failure.
+ * The kms id of the created framebuffer.
  */
 unsigned int igt_create_fb(int fd, int width, int height, uint32_t format,
 			   unsigned int tiling, struct igt_fb *fb)
