@@ -516,7 +516,8 @@ static cairo_format_t drm_format_to_cairo(uint32_t drm_format)
 		if (f->drm_id == drm_format)
 			return f->cairo_id;
 
-	igt_fail(101);
+	igt_assert_f(0, "can't find a cairo format for %08x (%s)\n",
+		     drm_format, igt_format_str(drm_format));
 }
 
 static void destroy_cairo_surface__gtt(void *arg)
@@ -635,7 +636,9 @@ uint32_t igt_bpp_depth_to_drm_format(int bpp, int depth)
 		if (f->bpp == bpp && f->depth == depth)
 			return f->drm_id;
 
-	igt_fail(101);
+
+	igt_assert_f(0, "can't find drm format with bpp=%d, depth=%d\n", bpp,
+		     depth);
 }
 
 /**
@@ -654,7 +657,8 @@ uint32_t igt_drm_format_to_bpp(uint32_t drm_format)
 		if (f->drm_id == drm_format)
 			return f->bpp;
 
-	igt_fail(101);
+	igt_assert_f(0, "can't find a bpp format for %08x (%s)\n",
+		     drm_format, igt_format_str(drm_format));
 }
 
 /**
