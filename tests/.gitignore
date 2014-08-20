@@ -117,6 +117,7 @@ igt_no_exit
 igt_no_exit_list_only
 igt_no_subtest
 igt_simulation
+kms_3d
 kms_addfb
 kms_cursor_crc
 kms_fbc_crc

@@ -55,6 +55,7 @@ ifeq ("${ANDROID_HAS_CAIRO}", "1")
 else
 # the following tests depend on cairo, so skip them
     skip_tests_list += \
+    kms_3d \
     kms_plane \
     kms_addfb \
     kms_cursor_crc \

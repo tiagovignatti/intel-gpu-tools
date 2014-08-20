@@ -142,6 +142,7 @@ TESTS_progs = \
 	gen3_render_tiledx_blits \
 	gen3_render_tiledy_blits \
 	gen7_forcewake_mt \
+	kms_3d \
 	kms_force_connector \
 	kms_sink_crc_basic \
 	kms_fence_pin_leak \
