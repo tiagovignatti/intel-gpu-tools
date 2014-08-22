@@ -258,23 +258,6 @@ static void fill_render(data_t *data, uint32_t handle,
 	gem_bo_busy(data->drm_fd, handle);
 }
 
-static bool psr_sink_support(data_t *data)
-{
-	int ret;
-	FILE *file;
-	char str[4];
-
-	file = igt_debugfs_fopen("i915_edp_psr_status", "r");
-	igt_require(file);
-
-	ret = fscanf(file, "Sink_Support: %s\n", str);
-	igt_skip_on_f(ret == 0,
-		      "i915_edp_psr_status format not supported by this test case\n");
-
-	fclose(file);
-	return strcmp(str, "yes") == 0;
-}
-
 static bool psr_enabled(data_t *data)
 {
 	int ret;
@@ -286,11 +269,37 @@ static bool psr_enabled(data_t *data)
 
 	ret = fscanf(file, "Sink_Support: %s\n", str);
 	igt_assert(ret != 0);
-
 	ret = fscanf(file, "Source_OK: %s\n", str);
 	igt_assert(ret != 0);
-
 	ret = fscanf(file, "Enabled: %s\n", str);
+	igt_assert(ret != 0);
+
+	fclose(file);
+	return strcmp(str, "yes") == 0;
+}
+
+static bool psr_active(data_t *data)
+{
+	int ret;
+	FILE *file;
+	char str[4];
+
+	file = igt_debugfs_fopen("i915_edp_psr_status", "r");
+	igt_require(file);
+
+	ret = fscanf(file, "Sink_Support: %s\n", str);
+	igt_assert(ret != 0);
+	ret = fscanf(file, "Source_OK: %s\n", str);
+	igt_assert(ret != 0);
+	ret = fscanf(file, "Enabled: %s\n", str);
+	igt_assert(ret != 0);
+	ret = fscanf(file, "Active: %s\n", str);
+	igt_assert(ret != 0);
+	ret = fscanf(file, "Busy frontbuffer bits: %s\n", str);
+	igt_assert(ret != 0);
+	ret = fscanf(file, "Re-enable work scheduled: %s\n", str);
+	igt_assert(ret != 0);
+	ret = fscanf(file, "HW Enabled & Active bit: %s\n", str);
 	igt_assert(ret != 0);
 
 	fclose(file);
@@ -300,7 +309,7 @@ static bool psr_enabled(data_t *data)
 static bool wait_psr_entry(data_t *data, int timeout)
 {
 	while (timeout--) {
-		if (psr_enabled(data))
+		if (psr_active(data))
 			return true;
 		sleep(1);
 	}
@@ -512,8 +521,6 @@ static void test_sprite(data_t *data)
 	igt_output_t *output;
 	drmModeModeInfo *mode;
 
-	igt_skip_on(IS_HASWELL(data->devid));
-
 	for_each_connected_output(display, output) {
 		drmModeConnectorPtr c = output->config.connector;
 
@@ -592,7 +599,7 @@ igt_main
 
 		data.devid = intel_get_drm_devid(data.drm_fd);
 
-		igt_require(psr_sink_support(&data));
+		igt_skip_on(!psr_enabled(&data));
 
 		data.bufmgr = drm_intel_bufmgr_gem_init(data.drm_fd, 4096);
 		igt_assert(data.bufmgr);
