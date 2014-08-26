@@ -87,13 +87,22 @@ static void read_rc6_residency( int value[], const char *name_of_rc6_residency[]
 	free(path);
 }
 
-static void rc6_residency_counter(int value[],const char *name_of_rc6_residency[])
+static void residency_accuracy(int value[],const char *name_of_rc6_residency[])
 {
 	int flag;
 	unsigned int flag_counter,flag_support;
 	double counter_result = 0;
+	unsigned int diff;
 	flag_counter = 0;
 	flag_support = 0;
+	diff = (value[3] - value[0]) +
+			(value[4] - value[1]) +
+			(value[5] - value[2]);
+
+	igt_assert_f(diff <= (SLEEP_DURATION + RC6_FUDGE),"Diff was too high. That is unpossible\n");
+	igt_assert_f(diff >= (SLEEP_DURATION - RC6_FUDGE),"GPU was not in RC6 long enough. Check that "
+							"the GPU is as idle as possible(ie. no X, "
+							"running and running no other tests)\n");
 
 	for(flag = NUMBER_OF_RC6_RESIDENCY-1; flag >= 0; flag --)
 	{
@@ -123,24 +132,9 @@ static void rc6_residency_counter(int value[],const char *name_of_rc6_residency[
 	}
 
 	igt_info("The residency counter: %f \n", counter_result);
-
 	igt_skip_on_f(flag_support == 0 , "This machine didn't entry any RC6 state.\n");
 	igt_assert_f((flag_counter != 0) && (counter_result <=1) , "Sysfs RC6 residency counter is inaccurate.\n");
-
 	igt_info("This machine entry %s state.\n", name_of_rc6_residency[(flag_counter / 2) - 1]);
-}
-
-static void rc6_residency_check(int value[])
-{
-	unsigned int diff;
-	diff = (value[3] - value[0]) +
-			(value[4] - value[1]) +
-			(value[5] - value[2]);
-
-	igt_assert_f(diff <= (SLEEP_DURATION + RC6_FUDGE),"Diff was too high. That is unpossible\n");
-	igt_assert_f(diff >= (SLEEP_DURATION - RC6_FUDGE),"GPU was not in RC6 long enough. Check that "
-							"the GPU is as idle as possible(ie. no X, "
-							"running and running no other tests)\n");
 }
 
 igt_main
@@ -159,9 +153,6 @@ igt_main
 		read_rc6_residency(value, name_of_rc6_residency);
 	}
 
-	igt_subtest("rc6-residency-check")
-		rc6_residency_check(value);
-
-	igt_subtest("rc6-residency-counter")
-		rc6_residency_counter(value, name_of_rc6_residency);
+	igt_subtest("residency-accuracy")
+		residency_accuracy(value, name_of_rc6_residency);
 }
