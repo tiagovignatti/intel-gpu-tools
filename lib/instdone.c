@@ -30,6 +30,7 @@
 
 #include "intel_chipset.h"
 #include "intel_reg.h"
+#include "igt_core.h"
 
 /* INSTDONE */
 # define IDCT_DONE			(1 << 30)
@@ -279,7 +280,7 @@ int num_instdone_bits = 0;
 static void
 add_instdone_bit(uint32_t reg, uint32_t bit, const char *name)
 {
-	assert(num_instdone_bits < MAX_INSTDONE_BITS);
+	igt_assert(num_instdone_bits < MAX_INSTDONE_BITS);
 	instdone_bits[num_instdone_bits].reg = reg;
 	instdone_bits[num_instdone_bits].bit = bit;
 	instdone_bits[num_instdone_bits].name = name;
@@ -587,7 +588,7 @@ init_instdone_definitions(uint32_t devid)
 		gen3_instdone_bit(MAP_FILTER_DONE, "Map filter");
 		gen3_instdone_bit(MAP_L2_IDLE, "Map L2");
 	} else {
-		assert(IS_GEN2(devid));
+		igt_assert(IS_GEN2(devid));
 		gen3_instdone_bit(I830_GMBUS_DONE, "GMBUS");
 		gen3_instdone_bit(I830_FBC_DONE, "FBC");
 		gen3_instdone_bit(I830_BINNER_DONE, "BINNER");

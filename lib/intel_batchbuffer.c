@@ -193,13 +193,13 @@ intel_batchbuffer_flush_with_context(struct intel_batchbuffer *batch,
 		return;
 
 	ret = drm_intel_bo_subdata(batch->bo, 0, used, batch->buffer);
-	assert(ret == 0);
+	igt_assert(ret == 0);
 
 	batch->ptr = NULL;
 
 	ret = drm_intel_gem_bo_context_exec(batch->bo, context, used,
 					    I915_EXEC_RENDER);
-	assert(ret == 0);
+	igt_assert(ret == 0);
 
 	intel_batchbuffer_reset(batch);
 }
@@ -246,10 +246,9 @@ intel_batchbuffer_emit_reloc(struct intel_batchbuffer *batch,
 	int ret;
 
 	if (batch->ptr - batch->buffer > BATCH_SZ)
-		printf("bad relocation ptr %p map %p offset %d size %d\n",
-		       batch->ptr, batch->buffer,
-		       (int)(batch->ptr - batch->buffer),
-		       BATCH_SZ);
+		igt_info("bad relocation ptr %p map %p offset %d size %d\n",
+			 batch->ptr, batch->buffer,
+			 (int)(batch->ptr - batch->buffer), BATCH_SZ);
 
 	if (fenced)
 		ret = drm_intel_bo_emit_reloc_fence(batch->bo, batch->ptr - batch->buffer,
@@ -260,7 +259,7 @@ intel_batchbuffer_emit_reloc(struct intel_batchbuffer *batch,
 					      buffer, delta,
 					      read_domains, write_domain);
 	intel_batchbuffer_emit_dword(batch, buffer->offset + delta);
-	assert(ret == 0);
+	igt_assert(ret == 0);
 }
 
 /**
@@ -276,7 +275,7 @@ void
 intel_batchbuffer_data(struct intel_batchbuffer *batch,
                        const void *data, unsigned int bytes)
 {
-	assert((bytes & 3) == 0);
+	igt_assert((bytes & 3) == 0);
 	intel_batchbuffer_require_space(batch, bytes);
 	memcpy(batch->ptr, data, bytes);
 	batch->ptr += bytes;
@@ -336,16 +335,17 @@ intel_blt_copy(struct intel_batchbuffer *batch,
 			    XY_SRC_COPY_BLT_WRITE_RGB;
 		break;
 	default:
-		abort();
+		igt_fail(1);
 	}
 
 #define CHECK_RANGE(x)	((x) >= 0 && (x) < (1 << 15))
-	assert(CHECK_RANGE(src_x1) && CHECK_RANGE(src_y1) &&
-	       CHECK_RANGE(dst_x1) && CHECK_RANGE(dst_y1) &&
-	       CHECK_RANGE(width) && CHECK_RANGE(height) &&
-	       CHECK_RANGE(src_x1 + width) && CHECK_RANGE(src_y1 + height) &&
-	       CHECK_RANGE(dst_x1 + width) && CHECK_RANGE(dst_y1 + height) &&
-	       CHECK_RANGE(src_pitch) && CHECK_RANGE(dst_pitch));
+	igt_assert(CHECK_RANGE(src_x1) && CHECK_RANGE(src_y1) &&
+		   CHECK_RANGE(dst_x1) && CHECK_RANGE(dst_y1) &&
+		   CHECK_RANGE(width) && CHECK_RANGE(height) &&
+		   CHECK_RANGE(src_x1 + width) && CHECK_RANGE(src_y1 + height)
+		   && CHECK_RANGE(dst_x1 + width) && CHECK_RANGE(dst_y1 +
+								 height) &&
+		   CHECK_RANGE(src_pitch) && CHECK_RANGE(dst_pitch));
 #undef CHECK_RANGE
 
 	BEGIN_BATCH(intel_gen(batch->devid) >= 8 ? 10 : 8);
@@ -383,7 +383,7 @@ intel_copy_bo(struct intel_batchbuffer *batch,
 	      drm_intel_bo *dst_bo, drm_intel_bo *src_bo,
 	      long int size)
 {
-	assert(size % 4096 == 0);
+	igt_assert(size % 4096 == 0);
 
 	intel_blt_copy(batch,
 		       src_bo, 0, 0, 4096,
