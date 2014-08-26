@@ -77,14 +77,14 @@ gen7_render_flush(struct intel_batchbuffer *batch,
 	if (ret == 0)
 		ret = drm_intel_gem_bo_context_exec(batch->bo, context,
 						    batch_end, 0);
-	assert(ret == 0);
+	igt_assert(ret == 0);
 }
 
 static uint32_t
 gen7_tiling_bits(uint32_t tiling)
 {
 	switch (tiling) {
-	default: assert(0);
+	default: igt_assert(0);
 	case I915_TILING_NONE: return 0;
 	case I915_TILING_X: return GEN7_SURFACE_TILED;
 	case I915_TILING_Y: return GEN7_SURFACE_TILED | GEN7_SURFACE_TILED_Y;
@@ -128,7 +128,7 @@ gen7_bind_buf(struct intel_batchbuffer *batch,
 				      batch_offset(batch, ss) + 4,
 				      buf->bo, 0,
 				      read_domain, write_domain);
-	assert(ret == 0);
+	igt_assert(ret == 0);
 
 	return batch_offset(batch, ss);
 }
@@ -579,7 +579,7 @@ void gen7_render_copyfunc(struct intel_batchbuffer *batch,
 
 	batch_end = batch->ptr - batch->buffer;
 	batch_end = ALIGN(batch_end, 8);
-	assert(batch_end < BATCH_STATE_SPLIT);
+	igt_assert(batch_end < BATCH_STATE_SPLIT);
 
 	gen7_render_flush(batch, context, batch_end);
 	intel_batchbuffer_reset(batch);

@@ -107,7 +107,7 @@ static void annotation_add_state(struct annotations_context *ctx,
 				 uint32_t start_offset,
 				 size_t   size)
 {
-	assert(ctx->index < MAX_ANNOTATIONS);
+	igt_assert(ctx->index < MAX_ANNOTATIONS);
 
 	add_annotation(&ctx->annotations[ctx->index++],
 		       AUB_TRACE_TYPE_NOTYPE, 0,
@@ -174,7 +174,7 @@ gen6_render_flush(struct intel_batchbuffer *batch,
 	if (ret == 0)
 		ret = drm_intel_gem_bo_context_exec(batch->bo, context,
 						    batch_end, 0);
-	assert(ret == 0);
+	igt_assert(ret == 0);
 }
 
 /* Mostly copy+paste from gen6, except height, width, pitch moved */
@@ -213,7 +213,7 @@ gen8_bind_buf(struct intel_batchbuffer *batch, struct igt_buf *buf,
 				      batch_offset(batch, ss) + 8 * 4,
 				      buf->bo, 0,
 				      read_domain, write_domain);
-	assert(ret == 0);
+	igt_assert(ret == 0);
 
 	ss->ss2.height = igt_buf_height(buf) - 1;
 	ss->ss2.width  = igt_buf_width(buf) - 1;
@@ -944,7 +944,7 @@ void gen8_render_copyfunc(struct intel_batchbuffer *batch,
 	scissor_state = gen6_create_scissor_rect(batch);
 	/* TODO: theree is other state which isn't setup */
 
-	assert(batch->ptr < &batch->buffer[4095]);
+	igt_assert(batch->ptr < &batch->buffer[4095]);
 
 	batch->ptr = batch->buffer;
 
@@ -1007,7 +1007,7 @@ void gen8_render_copyfunc(struct intel_batchbuffer *batch,
 	OUT_BATCH(MI_BATCH_BUFFER_END);
 
 	batch_end = batch_align(batch, 8);
-	assert(batch_end < BATCH_STATE_SPLIT);
+	igt_assert(batch_end < BATCH_STATE_SPLIT);
 	annotation_add_batch(&aub_annotations, batch_end);
 
 	dump_batch(batch);

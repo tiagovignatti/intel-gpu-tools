@@ -67,7 +67,7 @@ gen7_render_flush(struct intel_batchbuffer *batch, uint32_t batch_end)
 	if (ret == 0)
 		ret = drm_intel_bo_mrb_exec(batch->bo, batch_end,
 					NULL, 0, 0, 0);
-	assert(ret == 0);
+	igt_assert(ret == 0);
 }
 
 static uint32_t
@@ -118,7 +118,7 @@ gen7_fill_surface_state(struct intel_batchbuffer *batch,
 				batch_offset(batch, ss) + 4,
 				buf->bo, 0,
 				read_domain, write_domain);
-	assert(ret == 0);
+	igt_assert(ret == 0);
 
 	ss->ss2.height = igt_buf_height(buf) - 1;
 	ss->ss2.width  = igt_buf_width(buf) - 1;
@@ -330,7 +330,7 @@ gen7_media_fillfunc(struct intel_batchbuffer *batch,
 
 	curbe_buffer = gen7_fill_curbe_buffer_data(batch, color);
 	interface_descriptor = gen7_fill_interface_descriptor(batch, dst);
-	assert(batch->ptr < &batch->buffer[4095]);
+	igt_assert(batch->ptr < &batch->buffer[4095]);
 
 	/* media pipeline */
 	batch->ptr = batch->buffer;
@@ -348,7 +348,7 @@ gen7_media_fillfunc(struct intel_batchbuffer *batch,
 	OUT_BATCH(MI_BATCH_BUFFER_END);
 
 	batch_end = batch_align(batch, 8);
-	assert(batch_end < BATCH_STATE_SPLIT);
+	igt_assert(batch_end < BATCH_STATE_SPLIT);
 
 	gen7_render_flush(batch, batch_end);
 	intel_batchbuffer_reset(batch);

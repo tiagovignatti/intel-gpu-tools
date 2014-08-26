@@ -102,7 +102,7 @@ gen6_render_flush(struct intel_batchbuffer *batch,
 	if (ret == 0)
 		ret = drm_intel_gem_bo_context_exec(batch->bo, context,
 						    batch_end, 0);
-	assert(ret == 0);
+	igt_assert(ret == 0);
 }
 
 static uint32_t
@@ -132,7 +132,7 @@ gen6_bind_buf(struct intel_batchbuffer *batch, struct igt_buf *buf,
 				      batch_offset(batch, ss) + 4,
 				      buf->bo, 0,
 				      read_domain, write_domain);
-	assert(ret == 0);
+	igt_assert(ret == 0);
 
 	ss->ss2.height = igt_buf_height(buf) - 1;
 	ss->ss2.width  = igt_buf_width(buf) - 1;
