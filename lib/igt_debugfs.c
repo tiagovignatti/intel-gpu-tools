@@ -200,10 +200,10 @@ bool igt_crc_is_null(igt_crc_t *crc)
 	int i;
 
 	for (i = 0; i < crc->n_words; i++) {
-		if (crc->crc[i] == 0xffffffff)
-			igt_warn("Suspicious CRC: it looks like the CRC "
-				 "read back was from a register in a powered "
-				 "down well\n");
+		igt_warn_on_f(crc->crc[i] == 0xffffffff,
+			      "Suspicious CRC: it looks like the CRC "
+			      "read back was from a register in a powered "
+			      "down well\n");
 		if (crc->crc[i])
 			return false;
 	}
@@ -731,7 +731,7 @@ void igt_set_stop_rings(enum stop_ring_flags flags)
 
 	stop_rings_write(flags);
 	current = igt_get_stop_rings();
-	if (current != flags)
-		igt_warn("i915_ring_stop readback mismatch 0x%x vs 0x%x\n",
-			 flags, current);
+	igt_warn_on_f(current != flags,
+		      "i915_ring_stop readback mismatch 0x%x vs 0x%x\n",
+		      flags, current);
 }

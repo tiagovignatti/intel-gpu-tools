@@ -233,7 +233,7 @@ void igt_progress(const char *header, uint64_t i, uint64_t total)
 		return;
 
 	if (i+1 >= total) {
-		fprintf(stderr, "\r%s100%%\n", header);
+		igt_warn("\r%s100%%\n", header);
 		return;
 	}
 
@@ -241,10 +241,9 @@ void igt_progress(const char *header, uint64_t i, uint64_t total)
 		divider = 1;
 
 	/* only bother updating about every 0.5% */
-	if (i % (total / divider) == 0 || i+1 >= total) {
-		fprintf(stderr, "\r%s%3llu%%", header,
-			(long long unsigned) i * 100 / total);
-	}
+	igt_warn_on_f(i % (total / divider) == 0 || i + 1 >= total,
+		      "\r%s%3llu%%", header,
+		      (long long unsigned)i * 100 / total);
 }
 
 /* mappable aperture trasher helper */

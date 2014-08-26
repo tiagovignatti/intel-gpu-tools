@@ -202,24 +202,15 @@ void kmstest_dump_mode(drmModeModeInfo *mode)
 {
 	const char *stereo = mode_stereo_name(mode);
 
-	printf("  %s %d %d %d %d %d %d %d %d %d 0x%x 0x%x %d%s%s%s\n",
-	       mode->name,
-	       mode->vrefresh,
-	       mode->hdisplay,
-	       mode->hsync_start,
-	       mode->hsync_end,
-	       mode->htotal,
-	       mode->vdisplay,
-	       mode->vsync_start,
-	       mode->vsync_end,
-	       mode->vtotal,
-	       mode->flags,
-	       mode->type,
-	       mode->clock,
-	       stereo ? " (3D:" : "",
-	       stereo ? stereo : "",
-	       stereo ? ")" : "");
-	fflush(stdout);
+	igt_info("  %s %d %d %d %d %d %d %d %d %d 0x%x 0x%x %d%s%s%s\n",
+		 mode->name, mode->vrefresh,
+		 mode->hdisplay, mode->hsync_start,
+		 mode->hsync_end, mode->htotal,
+		 mode->vdisplay, mode->vsync_start,
+		 mode->vsync_end, mode->vtotal,
+		 mode->flags, mode->type, mode->clock,
+		 stereo ? " (3D:" : "",
+		 stereo ? stereo : "", stereo ? ")" : "");
 }
 
 /**
@@ -438,8 +429,8 @@ bool kmstest_get_connector_default_mode(int drm_fd, drmModeConnector *connector,
 	int i;
 
 	if (!connector->count_modes) {
-		fprintf(stderr, "no modes for connector %d\n",
-			connector->connector_id);
+		igt_warn("no modes for connector %d\n",
+			 connector->connector_id);
 		return false;
 	}
 
@@ -476,7 +467,7 @@ bool kmstest_get_connector_config(int drm_fd, uint32_t connector_id,
 
 	resources = drmModeGetResources(drm_fd);
 	if (!resources) {
-		perror("drmModeGetResources failed");
+		igt_warn("drmModeGetResources failed");
 		goto err1;
 	}
 
@@ -489,13 +480,13 @@ bool kmstest_get_connector_config(int drm_fd, uint32_t connector_id,
 		goto err3;
 
 	if (!connector->count_modes) {
-		fprintf(stderr, "connector %d has no modes\n", connector_id);
+		igt_warn("connector %d has no modes\n", connector_id);
 		goto err3;
 	}
 
 	if (connector->connector_id != connector_id) {
-		fprintf(stderr, "connector id doesn't match (%d != %d)\n",
-			connector->connector_id, connector_id);
+		igt_warn("connector id doesn't match (%d != %d)\n",
+			 connector->connector_id, connector_id);
 		goto err3;
 	}
 
@@ -515,8 +506,9 @@ bool kmstest_get_connector_config(int drm_fd, uint32_t connector_id,
 						    connector->encoders[j]);
 
 			if (!encoder) {
-				fprintf(stderr, "could not get encoder %d: %s\n",
-					resources->encoders[j], strerror(errno));
+				igt_warn("could not get encoder %d: %s\n",
+					 resources->encoders[j],
+					 strerror(errno));
 
 				continue;
 			}
