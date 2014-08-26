@@ -29,8 +29,10 @@
 #include <stdarg.h>
 #include <stdlib.h>
 #include <sys/types.h>
+
 #include "intel_io.h"
 #include "intel_chipset.h"
+#include "igt_core.h"
 
 static struct intel_register_range gen_bwcl_register_map[] = {
 	{0x00000000, 0x00000fff, INTEL_RANGE_RW},
@@ -141,9 +143,7 @@ intel_get_register_map(uint32_t devid)
 		map.map = gen4_register_map;
 		map.top = 0x80000;
 	} else {
-		fprintf(stderr, "Gen2/3 Ranges are not supported. Please use "
-			"unsafe access.");
-		abort();
+		igt_fail_on("Gen2/3 Ranges are not supported. Please use ""unsafe access.");
 	}
 
 	map.alignment_mask = 0x3;

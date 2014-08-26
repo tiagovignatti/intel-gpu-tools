@@ -42,6 +42,7 @@
 #include <sys/mman.h>
 
 #include "intel_io.h"
+#include "igt_core.h"
 #include "igt_debugfs.h"
 #include "intel_chipset.h"
 
@@ -93,18 +94,13 @@ intel_mmio_use_dump_file(char *file)
 	struct stat st;
 
 	fd = open(file, O_RDWR);
-	if (fd == -1) {
-		    fprintf(stderr, "Couldn't open %s: %s\n", file,
-			    strerror(errno));
-		    exit(1);
-	}
+	igt_fail_on_f(fd == -1,
+		      "Couldn't open %s\n", file);
+
 	fstat(fd, &st);
 	mmio = mmap(NULL, st.st_size, PROT_READ|PROT_WRITE, MAP_PRIVATE, fd, 0);
-	if (mmio == MAP_FAILED) {
-		    fprintf(stderr, "Couldn't mmap %s: %s\n", file,
-			    strerror(errno));
-		    exit(1);
-	}
+	igt_fail_on_f(mmio == MAP_FAILED,
+		      "Couldn't mmap %s\n", file);
 	close(fd);
 }
 
@@ -145,11 +141,8 @@ intel_mmio_use_pci_bar(struct pci_device *pci_dev)
 				      PCI_DEV_MAP_FLAG_WRITABLE,
 				      &mmio);
 
-	if (error != 0) {
-		fprintf(stderr, "Couldn't map MMIO region: %s\n",
-			strerror(error));
-		exit(1);
-	}
+	igt_fail_on_f(error != 0,
+		      "Couldn't map MMIO region\n");
 }
 
 static void
@@ -180,7 +173,7 @@ intel_register_access_init(struct pci_device *pci_dev, int safe)
 	if (mmio == NULL)
 		intel_mmio_use_pci_bar(pci_dev);
 
-	assert(mmio != NULL);
+	igt_assert(mmio != NULL);
 
 	if (mmio_data.inited)
 		return -1;
@@ -254,10 +247,10 @@ intel_register_read(uint32_t reg)
 	struct intel_register_range *range;
 	uint32_t ret;
 
-	assert(mmio_data.inited);
+	igt_assert(mmio_data.inited);
 
 	if (intel_gen(mmio_data.i915_devid) >= 6)
-		assert(mmio_data.key != -1);
+		igt_assert(mmio_data.key != -1);
 
 	if (!mmio_data.safe)
 		goto read_out;
@@ -267,8 +260,7 @@ intel_register_read(uint32_t reg)
 					 INTEL_RANGE_READ);
 
 	if(!range) {
-		fprintf(stderr, "Register read blocked for safety "
-			"(*0x%08x)\n", reg);
+		igt_warn("Register read blocked for safety ""(*0x%08x)\n", reg);
 		ret = 0xffffffff;
 		goto out;
 	}
@@ -295,10 +287,10 @@ intel_register_write(uint32_t reg, uint32_t val)
 {
 	struct intel_register_range *range;
 
-	assert(mmio_data.inited);
+	igt_assert(mmio_data.inited);
 
 	if (intel_gen(mmio_data.i915_devid) >= 6)
-		assert(mmio_data.key != -1);
+		igt_assert(mmio_data.key != -1);
 
 	if (!mmio_data.safe)
 		goto write_out;
@@ -307,10 +299,8 @@ intel_register_write(uint32_t reg, uint32_t val)
 					 reg,
 					 INTEL_RANGE_WRITE);
 
-	if (!range) {
-		fprintf(stderr, "Register write blocked for safety "
-			"(*0x%08x = 0x%x)\n", reg, val);
-	}
+	igt_warn_on_f(!range,
+		      "Register write blocked for safety ""(*0x%08x = 0x%x)\n", reg, val);
 
 write_out:
 	*(volatile uint32_t *)((volatile char *)mmio + reg) = val;

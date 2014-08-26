@@ -3,8 +3,10 @@
 #include <stdio.h>
 #include <err.h>
 #include <errno.h>
+
 #include "intel_io.h"
 #include "intel_reg.h"
+#include "igt_core.h"
 
 #define TIMEOUT_US 500000
 
@@ -33,8 +35,7 @@ static int vlv_sideband_rw(uint32_t port, uint8_t opcode, uint32_t addr,
 		(bar << IOSF_BAR_SHIFT);
 
 	if (intel_register_read(VLV_IOSF_DOORBELL_REQ) & IOSF_SB_BUSY) {
-		fprintf(stderr, "warning: pcode (%s) mailbox access failed\n",
-			is_read ? "read" : "write");
+		igt_warn("warning: pcode (%s) mailbox access failed\n", is_read ? "read" : "write");
 		return -EAGAIN;
 	}
 
@@ -51,8 +52,7 @@ static int vlv_sideband_rw(uint32_t port, uint8_t opcode, uint32_t addr,
 		 timeout < TIMEOUT_US);
 
 	if (timeout >= TIMEOUT_US) {
-		fprintf(stderr, "timeout waiting for pcode %s (%d) to finish\n",
-			is_read ? "read" : "write", addr);
+		igt_warn("timeout waiting for pcode %s (%d) to finish\n", is_read ? "read" : "write", addr);
 		return -ETIMEDOUT;
 	}
 

@@ -67,7 +67,7 @@ intel_get_total_ram_mb(void)
 	int ret;
 
 	ret = sysinfo(&sysinf);
-	assert(ret == 0);
+	igt_assert(ret == 0);
 
 	retval = sysinf.totalram;
 	retval *= sysinf.mem_unit;
@@ -108,7 +108,7 @@ intel_get_avail_ram_mb(void)
 	}
 
 	ret = sysinfo(&sysinf);
-	assert(ret == 0);
+	igt_assert(ret == 0);
 
 	retval = sysinf.freeram;
 	retval *= sysinf.mem_unit;
@@ -142,7 +142,7 @@ intel_get_total_swap_mb(void)
 	int ret;
 
 	ret = sysinfo(&sysinf);
-	assert(ret == 0);
+	igt_assert(ret == 0);
 
 	retval = sysinf.freeswap;
 	retval *= sysinf.mem_unit;
@@ -154,7 +154,7 @@ intel_get_total_swap_mb(void)
 	int n, i;
 
 	if ((n = swapctl(SC_GETNSWP, NULL)) == -1) {
-	    perror("swapctl: GETNSWP");
+	    igt_warn("swapctl: GETNSWP");
 	    return 0;
 	}
 	if (n == 0) {
@@ -165,7 +165,7 @@ intel_get_total_swap_mb(void)
 	swt = malloc(sizeof(struct swaptable) + (n * sizeof(swapent_t)));
 	buf = malloc(n * MAXPATHLEN);
 	if (!swt || !buf) {
-	    perror("malloc");
+	    igt_warn("malloc");
 	} else {
 	    swt->swt_n = n;
 	    for (i = 0 ; i < n; i++) {
@@ -173,7 +173,7 @@ intel_get_total_swap_mb(void)
 	    }
 
 	    if ((n = swapctl(SC_LIST, swt)) == -1) {
-		perror("swapctl: LIST");
+		igt_warn("swapctl: LIST");
 	    } else {
 		for (i = 0; i < swt->swt_n; i++) {
 		    totalpages += swt->swt_ent[i].ste_pages;
@@ -273,8 +273,8 @@ void *mmio;
 
 int main(int argc, char **argv)
 {
-    printf("Total RAM:  %" PRIu64 " Mb\n", intel_get_total_ram_mb());
-    printf("Total Swap: %" PRIu64 " Mb\n", intel_get_total_swap_mb());
+    igt_info("Total RAM:  %"PRIu64" Mb\n", intel_get_total_ram_mb());
+    igt_info("Total Swap: %"PRIu64" Mb\n", intel_get_total_swap_mb());
 
     return 0;
 }

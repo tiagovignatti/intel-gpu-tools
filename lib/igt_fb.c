@@ -455,7 +455,7 @@ igt_create_fb_with_bo_size(int fd, int width, int height,
  * The kms id of the created framebuffer.
  */
 unsigned int igt_create_fb(int fd, int width, int height, uint32_t format,
-			   unsigned int tiling, struct igt_fb *fb)
+			   unsigned tiling, struct igt_fb *fb)
 {
 	return igt_create_fb_with_bo_size(fd, width, height, format, tiling, fb, 0);
 }

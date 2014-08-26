@@ -39,6 +39,7 @@
 #include "i915_drm.h"
 
 #include "intel_chipset.h"
+#include "igt_core.h"
 
 /**
  * SECTION:intel_chipset
@@ -74,11 +75,8 @@ intel_get_pci_device(void)
 	int error;
 
 	error = pci_system_init();
-	if (error != 0) {
-		fprintf(stderr, "Couldn't initialize PCI system: %s\n",
-			strerror(error));
-		exit(1);
-	}
+	igt_fail_on_f(error != 0,
+		      "Couldn't initialize PCI system\n");
 
 	/* Grab the graphics card. Try the canonical slot first, then
 	 * walk the entire PCI bus for a matching device. */
@@ -105,11 +103,8 @@ intel_get_pci_device(void)
 		errx(1, "Couldn't find graphics card");
 
 	error = pci_device_probe(pci_dev);
-	if (error != 0) {
-		fprintf(stderr, "Couldn't probe graphics card: %s\n",
-			strerror(error));
-		exit(1);
-	}
+	igt_fail_on_f(error != 0,
+		      "Couldn't probe graphics card\n");
 
 	if (pci_dev->vendor_id != 0x8086)
 		errx(1, "Graphics card is non-intel");
@@ -145,7 +140,7 @@ intel_get_drm_devid(int fd)
 		gp.value = (int *)&devid;
 
 		ret = ioctl(fd, DRM_IOCTL_I915_GETPARAM, &gp, sizeof(gp));
-		assert(ret == 0);
+		igt_assert(ret == 0);
 		errno = 0;
 	}
 
