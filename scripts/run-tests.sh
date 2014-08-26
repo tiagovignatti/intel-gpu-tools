@@ -59,6 +59,8 @@ function print_help {
 	echo "  -v              enable verbose mode"
 	echo "  -x <regex>      exclude tests that match the regular expression"
 	echo "                  (can be used more than once)"
+	echo "  -R              resume interrupted test where the partial results"
+	echo "                  are in the directory given by -r"
 	echo ""
 	echo "Useful patterns for test filtering are described in tests/NAMING-CONVENTION"
 }
@@ -73,7 +75,7 @@ function list_tests {
 	done
 }
 
-while getopts ":dhlr:st:vx:" opt; do
+while getopts ":dhlr:st:vx:R" opt; do
 	case $opt in
 		d) download_piglit; exit ;;
 		h) print_help; exit ;;
@@ -83,6 +85,7 @@ while getopts ":dhlr:st:vx:" opt; do
 		t) FILTER="$FILTER -t $OPTARG" ;;
 		v) VERBOSE="-v" ;;
 		x) EXCLUDE="$EXCLUDE -x $OPTARG" ;;
+		R) RESUME="true" ;;
 		:)
 			echo "Option -$OPTARG requires an argument."
 			exit 1
@@ -112,9 +115,12 @@ if [ ! -x "$PIGLIT" ]; then
 	exit 1
 fi
 
-mkdir -p "$RESULTS"
-
-sudo IGT_TEST_ROOT="$IGT_TEST_ROOT" "$PIGLIT" run igt "$RESULTS" $VERBOSE $EXCLUDE $FILTER
+if [ "x$RESUME" != "x" ]; then
+	sudo IGT_TEST_ROOT="$IGT_TEST_ROOT" "$PIGLIT" resume "$RESULTS"
+else
+	mkdir -p "$RESULTS"
+	sudo IGT_TEST_ROOT="$IGT_TEST_ROOT" "$PIGLIT" run igt "$RESULTS" $VERBOSE $EXCLUDE $FILTER
+fi
 
 if [ "$SUMMARY" == "html" ]; then
 	"$PIGLIT" summary html --overwrite "$RESULTS/html" "$RESULTS"
