@@ -48,13 +48,33 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-	port = strtoul(argv[1], NULL, 16);
+	if (!strcasecmp(argv[1], "bunit"))
+		port = 0x03;
+	else if (!strcasecmp(argv[1], "punit"))
+		port = 0x04;
+	else if (!strcasecmp(argv[1], "nc"))
+		port = 0x11;
+	else if (!strcasecmp(argv[1], "dpio"))
+		port = 0x13;
+	else if (!strcasecmp(argv[1], "gpio_nc"))
+		port = 0x13;
+	else if (!strcasecmp(argv[1], "cck"))
+		port = 0x14;
+	else if (!strcasecmp(argv[1], "ccu"))
+		port = 0xa9;
+	else if (!strcasecmp(argv[1], "dpio2"))
+		port = 0x1a;
+	else if (!strcasecmp(argv[1], "flisdsi"))
+		port = 0x1b;
+	else
+		port = strtoul(argv[1], NULL, 16);
+
 	reg = strtoul(argv[2], NULL, 16);
 
 	intel_register_access_init(dev, 0);
 
 	val = intel_iosf_sb_read(port, reg);
-	printf("0x%02x/0x%04x : 0x%08x\n", port, reg, val);
+	printf("0x%02x(%s)/0x%04x : 0x%08x\n", port, argv[1], reg, val);
 
 	intel_register_access_fini();
 
