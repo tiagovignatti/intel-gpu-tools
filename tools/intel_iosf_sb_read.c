@@ -43,7 +43,7 @@ int main(int argc, char *argv[])
 	uint32_t port, reg, val;
 	struct pci_device *dev = intel_get_pci_device();
 
-	if (argc != 3 || !IS_VALLEYVIEW(dev->device_id)) {
+	if (argc != 3 || !(IS_VALLEYVIEW(dev->device_id) || IS_CHERRYVIEW(dev->device_id))) {
 		usage(argv[0]);
 		return 1;
 	}

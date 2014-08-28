@@ -47,7 +47,7 @@ int main(int argc, char** argv)
 	char *cmdname = strdup(argv[0]);
 	struct pci_device *dev = intel_get_pci_device();
 
-	if (argc != 2 || !IS_VALLEYVIEW(dev->device_id)) {
+	if (argc != 2 || !(IS_VALLEYVIEW(dev->device_id) || IS_CHERRYVIEW(dev->device_id))) {
 		usage(cmdname);
 		ret = 1;
 		goto out;
