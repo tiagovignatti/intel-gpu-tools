@@ -23,10 +23,6 @@ bin_PROGRAMS = 				\
 	intel_dpio_read			\
 	intel_dpio_write		\
 	intel_l3_parity			\
-	intel_punit_read		\
-	intel_punit_write		\
-	intel_nc_write			\
-	intel_nc_read			\
 	intel_vga_read			\
 	intel_vga_write			\
 	intel_dump_decode 		\
