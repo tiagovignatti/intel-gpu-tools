@@ -311,6 +311,20 @@ intel_blt_copy(struct intel_batchbuffer *batch,
 	uint32_t cmd_bits = 0;
 	uint32_t br13_bits;
 
+#define CHECK_RANGE(x)	((x) >= 0 && (x) < (1 << 15))
+	igt_assert(CHECK_RANGE(src_x1) && CHECK_RANGE(src_y1) &&
+		   CHECK_RANGE(dst_x1) && CHECK_RANGE(dst_y1) &&
+		   CHECK_RANGE(width) && CHECK_RANGE(height) &&
+		   CHECK_RANGE(src_x1 + width) && CHECK_RANGE(src_y1 + height)
+		   && CHECK_RANGE(dst_x1 + width) && CHECK_RANGE(dst_y1 +
+								 height) &&
+		   CHECK_RANGE(src_pitch) && CHECK_RANGE(dst_pitch));
+#undef CHECK_RANGE
+	igt_assert(bpp*(src_x1 + width) <= 8*src_pitch);
+	igt_assert(bpp*(dst_x1 + width) <= 8*dst_pitch);
+	igt_assert(src_pitch * (src_y1 + height) <= src_bo->size);
+	igt_assert(dst_pitch * (dst_y1 + height) <= dst_bo->size);
+
 	drm_intel_bo_get_tiling(src_bo, &src_tiling, &swizzle);
 	drm_intel_bo_get_tiling(dst_bo, &dst_tiling, &swizzle);
 
@@ -339,16 +353,6 @@ intel_blt_copy(struct intel_batchbuffer *batch,
 	default:
 		igt_fail(1);
 	}
-
-#define CHECK_RANGE(x)	((x) >= 0 && (x) < (1 << 15))
-	igt_assert(CHECK_RANGE(src_x1) && CHECK_RANGE(src_y1) &&
-		   CHECK_RANGE(dst_x1) && CHECK_RANGE(dst_y1) &&
-		   CHECK_RANGE(width) && CHECK_RANGE(height) &&
-		   CHECK_RANGE(src_x1 + width) && CHECK_RANGE(src_y1 + height)
-		   && CHECK_RANGE(dst_x1 + width) && CHECK_RANGE(dst_y1 +
-								 height) &&
-		   CHECK_RANGE(src_pitch) && CHECK_RANGE(dst_pitch));
-#undef CHECK_RANGE
 
 	BEGIN_BATCH(gen >= 8 ? 10 : 8);
 	OUT_BATCH(XY_SRC_COPY_BLT_CMD | cmd_bits |
