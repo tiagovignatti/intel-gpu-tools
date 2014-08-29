@@ -42,16 +42,8 @@ enum tests {
 	TEST_PAGE_FLIP,
 	TEST_MMAP_CPU,
 	TEST_MMAP_GTT,
-	TEST_MMAP_GTT_NO_BUSY,
-	TEST_MMAP_GTT_WAITING_NO_BUSY,
-	TEST_SETDOMAIN_WAIT_WRITE_GTT,
-	TEST_SETDOMAIN_WAIT_WRITE_CPU,
 	TEST_BLT,
 	TEST_RENDER,
-	TEST_PAGE_FLIP_AND_MMAP_CPU,
-	TEST_PAGE_FLIP_AND_MMAP_GTT,
-	TEST_PAGE_FLIP_AND_BLT,
-	TEST_PAGE_FLIP_AND_RENDER,
 	TEST_CURSOR_MOVE,
 	TEST_SPRITE,
 };
@@ -80,16 +72,8 @@ static const char *tests_str(enum tests test)
 		[TEST_PAGE_FLIP] = "page_flip",
 		[TEST_MMAP_CPU] = "mmap_cpu",
 		[TEST_MMAP_GTT] = "mmap_gtt",
-		[TEST_MMAP_GTT_NO_BUSY] = "mmap_gtt_no_busy",
-		[TEST_MMAP_GTT_WAITING_NO_BUSY] = "mmap_gtt_waiting_no_busy",
-		[TEST_SETDOMAIN_WAIT_WRITE_GTT] = "setdomain_wait_write_gtt",
-		[TEST_SETDOMAIN_WAIT_WRITE_CPU] = "setdomain_wait_write_cpu",
 		[TEST_BLT] = "blt",
 		[TEST_RENDER] = "render",
-		[TEST_PAGE_FLIP_AND_MMAP_CPU] = "page_flip_and_mmap_cpu",
-		[TEST_PAGE_FLIP_AND_MMAP_GTT] = "page_flip_and_mmap_gtt",
-		[TEST_PAGE_FLIP_AND_BLT] = "page_flip_and_blt",
-		[TEST_PAGE_FLIP_AND_RENDER] = "page_flip_and_render",
 		[TEST_CURSOR_MOVE] = "cursor_move",
 		[TEST_SPRITE] = "sprite",
 	};
@@ -339,10 +323,6 @@ static void test_crc(data_t *data)
 		igt_assert(drmModePageFlip(data->drm_fd, data->crtc_id,
 					   data->fb_id[1], 0, NULL) == 0);
 		break;
-	case TEST_PAGE_FLIP_AND_MMAP_CPU:
-		handle = data->handle[1];
-		igt_assert(drmModePageFlip(data->drm_fd, data->crtc_id,
-					   data->fb_id[1], 0, NULL) == 0);
 	case TEST_MMAP_CPU:
 		ptr = gem_mmap__cpu(data->drm_fd, handle, 4096, PROT_WRITE);
 		gem_set_domain(data->drm_fd, handle,
@@ -353,10 +333,6 @@ static void test_crc(data_t *data)
 		sleep(1);
 		gem_sw_finish(data->drm_fd, handle);
 		break;
-	case TEST_PAGE_FLIP_AND_MMAP_GTT:
-		handle = data->handle[1];
-		igt_assert(drmModePageFlip(data->drm_fd, data->crtc_id,
-					   data->fb_id[1], 0, NULL) == 0);
 	case TEST_MMAP_GTT:
 		ptr = gem_mmap__gtt(data->drm_fd, handle, 4096, PROT_WRITE);
 		gem_set_domain(data->drm_fd, handle,
@@ -365,53 +341,10 @@ static void test_crc(data_t *data)
 		munmap(ptr, 4096);
 		gem_bo_busy(data->drm_fd, handle);
 		break;
-	case TEST_MMAP_GTT_NO_BUSY:
-		ptr = gem_mmap__gtt(data->drm_fd, handle, 4096, PROT_WRITE);
-		gem_set_domain(data->drm_fd, handle,
-			       I915_GEM_DOMAIN_GTT, I915_GEM_DOMAIN_GTT);
-		memset(ptr, 0xff, 4);
-		munmap(ptr, 4096);
-		break;
-	case TEST_MMAP_GTT_WAITING_NO_BUSY:
-		ptr = gem_mmap__gtt(data->drm_fd, handle, 4096, PROT_WRITE);
-		gem_set_domain(data->drm_fd, handle,
-			       I915_GEM_DOMAIN_GTT, I915_GEM_DOMAIN_GTT);
-		igt_info("Sleeping for 10 sec...\n");
-                sleep(10);
-		memset(ptr, 0xff, 4);
-		munmap(ptr, 4096);
-		break;
-	case TEST_SETDOMAIN_WAIT_WRITE_GTT:
-		ptr = gem_mmap__gtt(data->drm_fd, handle, 4096, PROT_WRITE);
-		fill_blt(data, handle, 0xff);
-		igt_assert(wait_psr_entry(data, 10));
-		get_sink_crc(data, ref_crc);
-		gem_set_domain(data->drm_fd, handle,
-			       I915_GEM_DOMAIN_GTT, I915_GEM_DOMAIN_GTT);
-		igt_info("Sleeping for 10 sec...\n");
-		sleep(10);
-		memset(ptr, 0xff, 4);
-		munmap(ptr, 4096);
-		break;
-	case TEST_SETDOMAIN_WAIT_WRITE_CPU:
-		ptr = gem_mmap__cpu(data->drm_fd, handle, 4096, PROT_WRITE);
-		fill_blt(data, handle, 0xff);
-		igt_assert(wait_psr_entry(data, 10));
-		get_sink_crc(data, ref_crc);
-		gem_set_domain(data->drm_fd, handle,
-			       I915_GEM_DOMAIN_CPU, I915_GEM_DOMAIN_CPU);
-		igt_info("Sleeping for 10 sec...\n");
-		sleep(10);
-		memset(ptr, 0xff, 4);
-		munmap(ptr, 4096);
-		gem_sw_finish(data->drm_fd, handle);
-		break;
 	case TEST_BLT:
-	case TEST_PAGE_FLIP_AND_BLT:
 		fill_blt(data, handle, 0xff);
 		break;
 	case TEST_RENDER:
-	case TEST_PAGE_FLIP_AND_RENDER:
 		fill_render(data, handle, 0xff);
 		break;
 	case TEST_CURSOR_MOVE:
