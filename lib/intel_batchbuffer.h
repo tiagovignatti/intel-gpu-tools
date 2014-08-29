@@ -12,6 +12,7 @@
 struct intel_batchbuffer {
 	drm_intel_bufmgr *bufmgr;
 	uint32_t devid;
+	int gen;
 
 	drm_intel_bo *bo;
 

@@ -100,6 +100,7 @@ intel_batchbuffer_alloc(drm_intel_bufmgr *bufmgr, uint32_t devid)
 
 	batch->bufmgr = bufmgr;
 	batch->devid = devid;
+	batch->gen = intel_gen(devid);
 	intel_batchbuffer_reset(batch);
 
 	return batch;
@@ -305,6 +306,7 @@ intel_blt_copy(struct intel_batchbuffer *batch,
 	       drm_intel_bo *dst_bo, int dst_x1, int dst_y1, int dst_pitch,
 	       int width, int height, int bpp)
 {
+	const int gen = batch->gen;
 	uint32_t src_tiling, dst_tiling, swizzle;
 	uint32_t cmd_bits = 0;
 	uint32_t br13_bits;
@@ -312,12 +314,12 @@ intel_blt_copy(struct intel_batchbuffer *batch,
 	drm_intel_bo_get_tiling(src_bo, &src_tiling, &swizzle);
 	drm_intel_bo_get_tiling(dst_bo, &dst_tiling, &swizzle);
 
-	if (IS_965(batch->devid) && src_tiling != I915_TILING_NONE) {
+	if (gen >= 4 && src_tiling != I915_TILING_NONE) {
 		src_pitch /= 4;
 		cmd_bits |= XY_SRC_COPY_BLT_SRC_TILED;
 	}
 
-	if (IS_965(batch->devid) && dst_tiling != I915_TILING_NONE) {
+	if (gen >= 4 && dst_tiling != I915_TILING_NONE) {
 		dst_pitch /= 4;
 		cmd_bits |= XY_SRC_COPY_BLT_DST_TILED;
 	}
@@ -348,9 +350,9 @@ intel_blt_copy(struct intel_batchbuffer *batch,
 		   CHECK_RANGE(src_pitch) && CHECK_RANGE(dst_pitch));
 #undef CHECK_RANGE
 
-	BEGIN_BATCH(intel_gen(batch->devid) >= 8 ? 10 : 8);
+	BEGIN_BATCH(gen >= 8 ? 10 : 8);
 	OUT_BATCH(XY_SRC_COPY_BLT_CMD | cmd_bits |
-		  (intel_gen(batch->devid) >= 8 ? 8 : 6));
+		  (gen >= 8 ? 8 : 6));
 	OUT_BATCH((br13_bits) |
 		  (0xcc << 16) | /* copy ROP */
 		  dst_pitch);
