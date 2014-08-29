@@ -27,8 +27,6 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "drm_fourcc.h"
-
 #include "ioctl_wrappers.h"
 #include "drmtest.h"
 #include "intel_bufmgr.h"
@@ -77,88 +75,37 @@ typedef struct {
 	int drm_fd;
 	enum planes test_plane;
 	enum operations op;
-	drmModeRes *resources;
-	drm_intel_bufmgr *bufmgr;
 	uint32_t devid;
-	uint32_t handle[2];
 	uint32_t crtc_id;
-	uint32_t crtc_idx;
-	uint32_t fb_id[3];
-	struct kmstest_connector_config config;
 	igt_display_t display;
-	struct igt_fb fb[2];
-	igt_plane_t *plane[2];
+	drm_intel_bufmgr *bufmgr;
+	struct igt_fb fb_green, fb_white;
+	igt_plane_t *primary, *sprite, *cursor;
 } data_t;
 
-static uint32_t create_fb(data_t *data,
-			  int w, int h,
-			  double r, double g, double b,
-			  struct igt_fb *fb)
+static void create_cursor_fb(data_t *data)
 {
-	uint32_t fb_id;
 	cairo_t *cr;
+	uint32_t fb_id;
 
-	fb_id = igt_create_fb(data->drm_fd, w, h,
-			      DRM_FORMAT_XRGB8888, I915_TILING_X, fb);
+	fb_id = igt_create_fb(data->drm_fd, 64, 64,
+			      DRM_FORMAT_ARGB8888, I915_TILING_NONE,
+			      &data->fb_white);
 	igt_assert(fb_id);
 
-	cr = igt_get_cairo_ctx(data->drm_fd, fb);
-	igt_paint_color(cr, 0, 0, w, h, r, g, b);
-	igt_assert(cairo_status(cr) == 0);
-	cairo_destroy(cr);
-
-	return fb_id;
-}
-
-static void create_cursor_fb(data_t *data, struct igt_fb *fb)
-{
-	cairo_t *cr;
-
-	data->fb_id[2] = igt_create_fb(data->drm_fd, 64, 64,
-				       DRM_FORMAT_ARGB8888, I915_TILING_NONE,
-				       fb);
-	igt_assert(data->fb_id[2]);
-
-	cr = igt_get_cairo_ctx(data->drm_fd, fb);
+	cr = igt_get_cairo_ctx(data->drm_fd, &data->fb_white);
 	igt_paint_color_alpha(cr, 0, 0, 64, 64, 1.0, 1.0, 1.0, 1.0);
 	igt_assert(cairo_status(cr) == 0);
-}
-
-static bool
-connector_set_mode(data_t *data, drmModeModeInfo *mode, uint32_t fb_id)
-{
-	struct kmstest_connector_config *config = &data->config;
-	int ret;
-
-#if 0
-	fprintf(stdout, "Using pipe %s, %dx%d\n", kmstest_pipe_name(config->pipe),
-		mode->hdisplay, mode->vdisplay);
-#endif
-
-	ret = drmModeSetCrtc(data->drm_fd,
-			     config->crtc->crtc_id,
-			     fb_id,
-			     0, 0, /* x, y */
-			     &config->connector->connector_id,
-			     1,
-			     mode);
-	igt_assert(ret == 0);
-
-	return 0;
 }
 
 static void display_init(data_t *data)
 {
 	igt_display_init(&data->display, data->drm_fd);
-	data->resources = drmModeGetResources(data->drm_fd);
-	igt_assert(data->resources);
 }
 
 static void display_fini(data_t *data)
 {
 	igt_display_fini(&data->display);
-	drmModeSetCursor(data->drm_fd, data->crtc_id, 0, 0, 0);
-	drmModeFreeResources(data->resources);
 }
 
 static void fill_blt(data_t *data, uint32_t handle, unsigned char color)
@@ -312,112 +259,105 @@ static void get_sink_crc(data_t *data, char *crc) {
 
 static void test_crc(data_t *data)
 {
-	uint32_t handle = data->handle[0];
+	uint32_t handle = data->fb_white.gem_handle;
+	igt_plane_t *test_plane;
+	void *ptr;
 	char ref_crc[12];
 	char crc[12];
 
-	if (data->op == PLANE_MOVE) {
-		igt_assert(drmModeSetCursor(data->drm_fd, data->crtc_id,
-					    handle, 64, 64) == 0);
-		igt_assert(drmModeMoveCursor(data->drm_fd, data->crtc_id,
-					     1, 1) == 0);
+	igt_plane_set_fb(data->primary, &data->fb_green);
+	igt_display_commit(&data->display);
+
+	/* Setting a secondary fb/plane */
+	switch (data->test_plane) {
+	case PRIMARY: default: test_plane = data->primary; break;
+	case SPRITE: test_plane = data->sprite; break;
+	case CURSOR: test_plane = data->cursor; break;
 	}
+	igt_plane_set_fb(test_plane, &data->fb_white);
+	igt_display_commit(&data->display);
 
 	igt_assert(wait_psr_entry(data, 10));
 	get_sink_crc(data, ref_crc);
 
 	switch (data->op) {
-		void *ptr;
 	case PAGE_FLIP:
+		/* Only in use when testing primary plane */
 		igt_assert(drmModePageFlip(data->drm_fd, data->crtc_id,
-					   data->fb_id[1], 0, NULL) == 0);
+					   data->fb_green.fb_id, 0, NULL) == 0);
+		break;
+	case MMAP_GTT:
+		ptr = gem_mmap__gtt(data->drm_fd, handle, 4096, PROT_WRITE);
+		gem_set_domain(data->drm_fd, handle,
+			       I915_GEM_DOMAIN_GTT, I915_GEM_DOMAIN_GTT);
+		memset(ptr, 0, 4);
+		munmap(ptr, 4096);
+		break;
+	case MMAP_GTT_WAITING:
+		ptr = gem_mmap__gtt(data->drm_fd, handle, 4096, PROT_WRITE);
+		gem_set_domain(data->drm_fd, handle,
+			       I915_GEM_DOMAIN_GTT, I915_GEM_DOMAIN_GTT);
+
+		/* Printing white on white so the screen shouldn't change */
+		memset(ptr, 0xff, 4);
+		get_sink_crc(data, crc);
+		igt_assert(strcmp(ref_crc, crc) == 0);
+
+		fprintf(stdout, "Waiting 10s...\n");
+		sleep(10);
+
+		/* Now lets print black to change the screen */
+		memset(ptr, 0, 4);
+		munmap(ptr, 4096);
 		break;
 	case MMAP_CPU:
 		ptr = gem_mmap__cpu(data->drm_fd, handle, 4096, PROT_WRITE);
 		gem_set_domain(data->drm_fd, handle,
 			       I915_GEM_DOMAIN_CPU, I915_GEM_DOMAIN_CPU);
-		sleep(1);
 		memset(ptr, 0, 4);
 		munmap(ptr, 4096);
-		sleep(1);
 		gem_sw_finish(data->drm_fd, handle);
 		break;
-	case MMAP_GTT:
-	case MMAP_GTT_WAITING:
-		ptr = gem_mmap__gtt(data->drm_fd, handle, 4096, PROT_WRITE);
-		gem_set_domain(data->drm_fd, handle,
-			       I915_GEM_DOMAIN_GTT, I915_GEM_DOMAIN_GTT);
-		memset(ptr, 0xff, 4);
-		munmap(ptr, 4096);
-		gem_bo_busy(data->drm_fd, handle);
-		break;
 	case BLT:
-		fill_blt(data, handle, 0xff);
+		fill_blt(data, handle, 0);
 		break;
 	case RENDER:
-		fill_render(data, handle, 0xff);
+		fill_render(data, handle, 0);
 		break;
 	case PLANE_MOVE:
-		igt_assert(drmModeMoveCursor(data->drm_fd, data->crtc_id, 1, 2) == 0);
+		/* Only in use when testing Sprite and Cursor */
+		igt_plane_set_position(test_plane, 1, 1);
+		igt_display_commit(&data->display);
 		break;
 	case PLANE_ONOFF:
-		igt_plane_set_fb(data->plane[0], &data->fb[0]);
-		igt_display_commit(&data->display);
-		igt_plane_set_fb(data->plane[1], &data->fb[1]);
+		/* Only in use when testing Sprite and Cursor */
+		igt_plane_set_fb(test_plane, NULL);
 		igt_display_commit(&data->display);
 		break;
 	}
-
-	igt_wait_for_vblank(data->drm_fd, data->crtc_idx);
-
 	get_sink_crc(data, crc);
 	igt_assert(strcmp(ref_crc, crc) != 0);
 }
 
-static bool prepare_crtc(data_t *data, uint32_t connector_id)
-{
-	if (!kmstest_get_connector_config(data->drm_fd,
-					  connector_id,
-					  1 << data->crtc_idx,
-					  &data->config))
-		return false;
+static void test_cleanup(data_t *data) {
+	igt_plane_set_fb(data->primary, NULL);
+	if (data->test_plane == SPRITE)
+		igt_plane_set_fb(data->sprite, NULL);
+	if (data->test_plane == CURSOR)
+		igt_plane_set_fb(data->cursor, NULL);
 
-	data->fb_id[0] = create_fb(data,
-				   data->config.default_mode.hdisplay,
-				   data->config.default_mode.vdisplay,
-				   0.0, 1.0, 0.0, &data->fb[0]);
-	igt_assert(data->fb_id[0]);
+	igt_display_commit(&data->display);
 
-	if (data->op == PLANE_MOVE)
-		create_cursor_fb(data, &data->fb[0]);
-
-	data->fb_id[1] = create_fb(data,
-				   data->config.default_mode.hdisplay,
-				   data->config.default_mode.vdisplay,
-				   1.0, 0.0, 0.0, &data->fb[1]);
-	igt_assert(data->fb_id[1]);
-
-	data->handle[0] = data->fb[0].gem_handle;
-	data->handle[1] = data->fb[1].gem_handle;
-
-	/* scanout = fb[1] */
-	connector_set_mode(data, &data->config.default_mode,
-			   data->fb_id[1]);
-
-	/* scanout = fb[0] */
-	connector_set_mode(data, &data->config.default_mode,
-			   data->fb_id[0]);
-
-	kmstest_free_connector_config(&data->config);
-
-	return true;
+	igt_remove_fb(data->drm_fd, &data->fb_green);
+	igt_remove_fb(data->drm_fd, &data->fb_white);
 }
 
-static void test_sprite(data_t *data)
+static void run_test(data_t *data)
 {
 	igt_display_t *display = &data->display;
 	igt_output_t *output;
 	drmModeModeInfo *mode;
+	uint32_t white_h, white_v;
 
 	for_each_connected_output(display, output) {
 		drmModeConnectorPtr c = output->config.connector;
@@ -427,6 +367,7 @@ static void test_sprite(data_t *data)
 			continue;
 
 		igt_output_set_pipe(output, PIPE_ANY);
+		data->crtc_id = output->config.crtc->crtc_id;
 
 		mode = igt_output_get_mode(output);
 
@@ -434,51 +375,45 @@ static void test_sprite(data_t *data)
 				    mode->hdisplay, mode->vdisplay,
 				    DRM_FORMAT_XRGB8888, I915_TILING_X,
 				    0.0, 1.0, 0.0,
-				    &data->fb[0]);
+				    &data->fb_green);
 
-		igt_create_color_fb(data->drm_fd,
-				    mode->hdisplay/2, mode->vdisplay/2,
-				    DRM_FORMAT_XRGB8888, I915_TILING_X,
-				    1.0, 0.0, 0.0,
-				    &data->fb[1]);
+		data->primary = igt_output_get_plane(output, IGT_PLANE_PRIMARY);
+		igt_plane_set_fb(data->primary, NULL);
 
-		data->plane[0] = igt_output_get_plane(output, 0);
-		data->plane[1] = igt_output_get_plane(output, 1);
+		white_h = mode->hdisplay;
+		white_v = mode->vdisplay;
+
+		switch (data->test_plane) {
+		case SPRITE:
+			data->sprite = igt_output_get_plane(output,
+							    IGT_PLANE_2);
+			igt_plane_set_fb(data->sprite, NULL);
+			/* To make it different for human eyes let's make
+			 * sprite visible in only one quarter of the primary
+			 */
+			white_h = white_h/2;
+			white_v = white_v/2;
+		case PRIMARY:
+			igt_create_color_fb(data->drm_fd,
+					    white_h, white_v,
+					    DRM_FORMAT_XRGB8888, I915_TILING_X,
+					    1.0, 1.0, 1.0,
+					    &data->fb_white);
+			break;
+		case CURSOR:
+			data->cursor = igt_output_get_plane(output,
+							    IGT_PLANE_CURSOR);
+			igt_plane_set_fb(data->cursor, NULL);
+			create_cursor_fb(data);
+			igt_plane_set_position(data->cursor, 0, 0);
+			break;
+		}
+
+		igt_display_commit(&data->display);
 
 		test_crc(data);
-	}
-}
 
-static void run_test(data_t *data)
-{
-	int i, n;
-	drmModeConnectorPtr c;
-	/* Baytrail supports per-pipe PSR configuration, however PSR on
-	 * PIPE_B isn't working properly. So let's keep it disabled for now.
-	 * crtcs = IS_VALLEYVIEW(data->devid)? 2 : 1; */
-	int crtcs = 1;
-
-	if (data->op == PLANE_ONOFF) {
-		test_sprite(data);
-		return;
-	}
-
-	for (i = 0; i < data->resources->count_connectors; i++) {
-		uint32_t connector_id = data->resources->connectors[i];
-		c = drmModeGetConnector(data->drm_fd, connector_id);
-
-		if (c->connector_type != DRM_MODE_CONNECTOR_eDP ||
-		    c->connection != DRM_MODE_CONNECTED)
-			continue;
-		for (n = 0; n < crtcs; n++) {
-			data->crtc_idx = n;
-			data->crtc_id = data->resources->crtcs[n];
-
-			if (!prepare_crtc(data, connector_id))
-				continue;
-
-			test_crc(data);
-		}
+		test_cleanup(data);
 	}
 }
 
@@ -497,7 +432,6 @@ igt_main
 	igt_fixture {
 		data.drm_fd = drm_open_any();
 		kmstest_set_vt_graphics_mode();
-
 		data.devid = intel_get_drm_devid(data.drm_fd);
 
 		igt_skip_on(!psr_enabled(&data));
@@ -509,7 +443,6 @@ igt_main
 		display_init(&data);
 	}
 
-
 	for (op = PAGE_FLIP; op <= RENDER; op++) {
 		igt_subtest_f("primary_%s", op_str(op)) {
 			data.test_plane = PRIMARY;
@@ -518,7 +451,7 @@ igt_main
 		}
 	}
 
-	for (op = PLANE_ONOFF; op <= PLANE_ONOFF; op++) {
+	for (op = MMAP_GTT; op <= PLANE_ONOFF; op++) {
 		igt_subtest_f("sprite_%s", op_str(op)) {
 			data.test_plane = SPRITE;
 			data.op = op;
@@ -526,7 +459,7 @@ igt_main
 		}
 	}
 
-	for (op = PLANE_MOVE; op <= PLANE_MOVE; op++) {
+	for (op = MMAP_GTT; op <= PLANE_ONOFF; op++) {
 		igt_subtest_f("cursor_%s", op_str(op)) {
 			data.test_plane = CURSOR;
 			data.op = op;
