@@ -268,10 +268,41 @@ struct access_mode access_modes[] = {
 int num_buffers = MAX_NUM_BUFFERS;
 drm_intel_bufmgr *bufmgr;
 int width = 512, height = 512;
+igt_render_copyfunc_t rendercopy;
+
+typedef void (*do_copy)(drm_intel_bo *dst, drm_intel_bo *src);
+
+static void render_copy_bo(drm_intel_bo *dst, drm_intel_bo *src)
+{
+	struct igt_buf d = {
+		.bo = dst,
+		.size = width * height * 4,
+		.tiling = I915_TILING_NONE,
+		.num_tiles = width * height * 4,
+		.stride = width * 4,
+	}, s = {
+		.bo = src,
+		.size = width * height * 4,
+		.tiling = I915_TILING_NONE,
+		.num_tiles = width * height * 4,
+		.stride = width * 4,
+	};
+	igt_require(rendercopy);
+	rendercopy(batch, NULL,
+		   &s, 0, 0,
+		   width, height,
+		   &d, 0, 0);
+}
+
+static void blt_copy_bo(drm_intel_bo *dst, drm_intel_bo *src)
+{
+	intel_copy_bo(batch, dst, src, width*height*4);
+}
 
 static void do_overwrite_source(struct access_mode *mode,
 				drm_intel_bo **src, drm_intel_bo **dst,
-				drm_intel_bo *dummy)
+				drm_intel_bo *dummy,
+				do_copy do_copy_func)
 {
 	int i;
 
@@ -281,7 +312,7 @@ static void do_overwrite_source(struct access_mode *mode,
 		mode->set_bo(dst[i], i, width, height);
 	}
 	for (i = 0; i < num_buffers; i++)
-		intel_copy_bo(batch, dst[i], src[i], width*height*4);
+		do_copy_func(dst[i], src[i]);
 	for (i = num_buffers; i--; )
 		mode->set_bo(src[i], 0xdeadbeef, width, height);
 	for (i = 0; i < num_buffers; i++)
@@ -290,7 +321,8 @@ static void do_overwrite_source(struct access_mode *mode,
 
 static void do_early_read(struct access_mode *mode,
 			  drm_intel_bo **src, drm_intel_bo **dst,
-			  drm_intel_bo *dummy)
+			  drm_intel_bo *dummy,
+			  do_copy do_copy_func)
 {
 	int i;
 
@@ -298,14 +330,15 @@ static void do_early_read(struct access_mode *mode,
 	for (i = num_buffers; i--; )
 		mode->set_bo(src[i], 0xdeadbeef, width, height);
 	for (i = 0; i < num_buffers; i++)
-		intel_copy_bo(batch, dst[i], src[i], width*height*4);
+		do_copy_func(dst[i], src[i]);
 	for (i = num_buffers; i--; )
 		mode->cmp_bo(dst[i], 0xdeadbeef, width, height);
 }
 
 static void do_gpu_read_after_write(struct access_mode *mode,
 				    drm_intel_bo **src, drm_intel_bo **dst,
-				    drm_intel_bo *dummy)
+				    drm_intel_bo *dummy,
+				    do_copy do_copy_func)
 {
 	int i;
 
@@ -313,46 +346,50 @@ static void do_gpu_read_after_write(struct access_mode *mode,
 	for (i = num_buffers; i--; )
 		mode->set_bo(src[i], 0xabcdabcd, width, height);
 	for (i = 0; i < num_buffers; i++)
-		intel_copy_bo(batch, dst[i], src[i], width*height*4);
+		do_copy_func(dst[i], src[i]);
 	for (i = num_buffers; i--; )
-		intel_copy_bo(batch, dummy, dst[i], width*height*4);
+		do_copy_func(dummy, dst[i]);
 	for (i = num_buffers; i--; )
 		mode->cmp_bo(dst[i], 0xabcdabcd, width, height);
 }
 
 typedef void (*do_test)(struct access_mode *mode,
 			drm_intel_bo **src, drm_intel_bo **dst,
-			drm_intel_bo *dummy);
+			drm_intel_bo *dummy,
+			do_copy do_copy_func);
 
 typedef void (*run_wrap)(struct access_mode *mode,
 			 drm_intel_bo **src, drm_intel_bo **dst,
 			 drm_intel_bo *dummy,
-			 do_test do_test_func);
+			 do_test do_test_func,
+			 do_copy do_copy_func);
 
 static void run_single(struct access_mode *mode,
 		       drm_intel_bo **src, drm_intel_bo **dst,
 		       drm_intel_bo *dummy,
-		       do_test do_test_func)
+		       do_test do_test_func,
+		       do_copy do_copy_func)
 {
-	do_test_func(mode, src, dst, dummy);
+	do_test_func(mode, src, dst, dummy, do_copy_func);
 }
-
 
 static void run_interruptible(struct access_mode *mode,
 			      drm_intel_bo **src, drm_intel_bo **dst,
 			      drm_intel_bo *dummy,
-			      do_test do_test_func)
+			      do_test do_test_func,
+			      do_copy do_copy_func)
 {
 	int loop;
 
 	for (loop = 0; loop < 10; loop++)
-		do_test_func(mode, src, dst, dummy);
+		do_test_func(mode, src, dst, dummy, do_copy_func);
 }
 
 static void run_forked(struct access_mode *mode,
 		       drm_intel_bo **src, drm_intel_bo **dst,
 		       drm_intel_bo *dummy,
-		       do_test do_test_func)
+		       do_test do_test_func,
+		       do_copy do_copy_func)
 {
 	const int old_num_buffers = num_buffers;
 
@@ -370,7 +407,7 @@ static void run_forked(struct access_mode *mode,
 		}
 		dummy = mode->create_bo(bufmgr, 0, width, height);
 		for (int loop = 0; loop < 10; loop++)
-			do_test_func(mode, src, dst, dummy);
+			do_test_func(mode, src, dst, dummy, do_copy_func);
 		/* as we borrow the fd, we need to reap our bo */
 		for (int i = 0; i < num_buffers; i++) {
 			drm_intel_bo_unreference(src[i]);
@@ -392,17 +429,31 @@ run_basic_modes(struct access_mode *mode,
 		drm_intel_bo *dummy, const char *suffix,
 		run_wrap run_wrap_func)
 {
-	/* try to overwrite the source values */
-	igt_subtest_f("%s-overwrite-source%s", mode->name, suffix)
-		run_wrap_func(mode, src, dst, dummy, do_overwrite_source);
+	struct {
+		const char *prefix;
+		do_copy copy;
+	} pipelines[] = {
+		{ "bcs", blt_copy_bo },
+		{ "rcs", render_copy_bo },
+		{ NULL, NULL }
+	}, *p;
 
-	/* try to read the results before the copy completes */
-	igt_subtest_f("%s-early-read%s", mode->name, suffix)
-		run_wrap_func(mode, src, dst, dummy, do_early_read);
+	for (p = pipelines; p->prefix; p++) {
+		/* try to overwrite the source values */
+		igt_subtest_f("%s-%s-overwrite-source%s", mode->name, p->prefix, suffix)
+			run_wrap_func(mode, src, dst, dummy,
+				      do_overwrite_source, p->copy);
 
-	/* and finally try to trick the kernel into loosing the pending write */
-	igt_subtest_f("%s-gpu-read-after-write%s", mode->name, suffix)
-		run_wrap_func(mode, src, dst, dummy, do_gpu_read_after_write);
+		/* try to read the results before the copy completes */
+		igt_subtest_f("%s-%s-early-read%s", mode->name, p->prefix, suffix)
+			run_wrap_func(mode, src, dst, dummy,
+				      do_early_read, p->copy);
+
+		/* and finally try to trick the kernel into loosing the pending write */
+		igt_subtest_f("%s-%s-gpu-read-after-write%s", mode->name, p->prefix, suffix)
+			run_wrap_func(mode, src, dst, dummy,
+				      do_gpu_read_after_write, p->copy);
+	}
 }
 
 static void
@@ -453,6 +504,7 @@ igt_main
 		fd = drm_open_any();
 		devid = intel_get_drm_devid(fd);
 		gen = intel_gen(devid);
+		rendercopy = igt_get_render_copyfunc(devid);
 
 		max = gem_aperture_size (fd) / (1024 * 1024) / 2;
 		if (num_buffers > max)
