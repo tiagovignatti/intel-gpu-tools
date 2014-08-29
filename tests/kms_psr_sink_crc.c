@@ -36,6 +36,7 @@
 #include "intel_chipset.h"
 #include "igt_debugfs.h"
 #include "igt_kms.h"
+#include "igt_aux.h"
 
 enum tests {
 	TEST_PAGE_FLIP,
@@ -56,6 +57,8 @@ enum tests {
 	TEST_CURSOR_MOVE,
 	TEST_SPRITE,
 };
+
+bool running_with_psr_disabled;
 
 typedef struct {
 	int drm_fd;
@@ -264,6 +267,9 @@ static bool psr_enabled(data_t *data)
 	FILE *file;
 	char str[4];
 
+	if (running_with_psr_disabled)
+		return true;
+
 	file = igt_debugfs_fopen("i915_edp_psr_status", "r");
 	igt_require(file);
 
@@ -283,6 +289,9 @@ static bool psr_active(data_t *data)
 	int ret;
 	FILE *file;
 	char str[4];
+
+	if (running_with_psr_disabled)
+		return true;
 
 	file = igt_debugfs_fopen("i915_edp_psr_status", "r");
 	igt_require(file);
@@ -327,6 +336,14 @@ static void get_sink_crc(data_t *data, char *crc) {
 	igt_require(ret > 0);
 
 	fclose(file);
+
+	igt_debug("%s\n", crc);
+	igt_debug_wait_for_keypress("crc");
+
+	/* The important value was already taken.
+	 * Now give a time for human eyes
+	 */
+	usleep(300000);
 }
 
 static void test_crc(data_t *data)
@@ -342,7 +359,6 @@ static void test_crc(data_t *data)
 					     1, 1) == 0);
 	}
 
-	usleep(300000);
 	igt_assert(wait_psr_entry(data, 10));
 	get_sink_crc(data, ref_crc);
 
@@ -586,11 +602,16 @@ static void run_test(data_t *data)
 	}
 }
 
-data_t data = {};
-enum tests test;
-
 igt_main
 {
+	data_t data = {};
+	enum tests test;
+	char *env_psr;
+
+	env_psr = getenv("IGT_PSR_DISABLED");
+
+	running_with_psr_disabled = (bool) env_psr;
+
 	igt_skip_on_simulation();
 
 	igt_fixture {
