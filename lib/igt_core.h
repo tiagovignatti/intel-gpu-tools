@@ -281,7 +281,7 @@ void igt_exit(void) __attribute__((noreturn));
 		if (__n1 cmp __n2) ; else \
 		__igt_fail_assert(99, __FILE__, __LINE__, __func__, \
 				  #n1 " " #cmp " " #n2, \
-				  "error: %d %s %d\n", __n1, #ncmp, __n2); \
+				  "error: %d " #ncmp " %d\n", __n1, __n2); \
 	} while (0)
 
 #define igt_assert_cmpuint(n1, cmp, ncmp, n2) \
@@ -290,7 +290,7 @@ void igt_exit(void) __attribute__((noreturn));
 		if (__n1 cmp __n2) ; else \
 		__igt_fail_assert(99, __FILE__, __LINE__, __func__, \
 				  #n1 " " #cmp " " #n2, \
-				  "error: %#x %s %#x\n", __n1, #ncmp, __n2); \
+				  "error: %#x " #ncmp " %#x\n", __n1, __n2); \
 	} while (0)
 
 /**
