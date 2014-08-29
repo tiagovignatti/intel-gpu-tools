@@ -97,8 +97,7 @@ static void fill_blt(data_t *data, uint32_t handle, unsigned char color)
 	OUT_BATCH((0 << 24) | (0xf0 << 16) | 0);
 	OUT_BATCH(0);
 	OUT_BATCH(1 << 16 | 4);
-	OUT_RELOC(dst, I915_GEM_DOMAIN_RENDER, I915_GEM_DOMAIN_RENDER, 0);
-	BLIT_RELOC_UDW(batch->devid);
+	OUT_RELOC_FENCED(dst, I915_GEM_DOMAIN_RENDER, I915_GEM_DOMAIN_RENDER, 0);
 	OUT_BATCH(color);
 	ADVANCE_BATCH();
 

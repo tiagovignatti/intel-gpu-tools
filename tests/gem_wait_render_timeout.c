@@ -120,9 +120,7 @@ static void blt_color_fill(struct intel_batchbuffer *batch,
 	OUT_BATCH(0);
 	OUT_BATCH(width << 16	|
 		  height);
-	OUT_RELOC(buf, I915_GEM_DOMAIN_RENDER, I915_GEM_DOMAIN_RENDER, 0);
-	if (intel_gen(batch->devid) >= 8)
-		OUT_BATCH(0);
+	OUT_RELOC_FENCED(buf, I915_GEM_DOMAIN_RENDER, I915_GEM_DOMAIN_RENDER, 0);
 	OUT_BATCH(rand()); /* random pattern */
 	ADVANCE_BATCH();
 }

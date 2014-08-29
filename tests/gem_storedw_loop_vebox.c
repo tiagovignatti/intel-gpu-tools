@@ -68,7 +68,6 @@ store_dword_loop(int divider)
 			OUT_BATCH(0); /* reserved */
 		OUT_RELOC(target_buffer, I915_GEM_DOMAIN_INSTRUCTION,
 			  I915_GEM_DOMAIN_INSTRUCTION, 0);
-		BLIT_RELOC_UDW(batch->devid);
 		OUT_BATCH(val);
 		ADVANCE_BATCH();
 

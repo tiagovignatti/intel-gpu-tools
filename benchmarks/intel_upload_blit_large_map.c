@@ -105,11 +105,9 @@ do_render(drm_intel_bufmgr *bufmgr, struct intel_batchbuffer *batch,
 	OUT_BATCH(0); /* dst x1,y1 */
 	OUT_BATCH((height << 16) | width); /* dst x2,y2 */
 	OUT_RELOC(dst_bo, I915_GEM_DOMAIN_RENDER, I915_GEM_DOMAIN_RENDER, 0);
-	BLIT_RELOC_UDW(batch->devid);
 	OUT_BATCH(0); /* src x1,y1 */
 	OUT_BATCH(width * 4); /* src pitch */
 	OUT_RELOC(src_bo, I915_GEM_DOMAIN_RENDER, 0, 0);
-	BLIT_RELOC_UDW(batch->devid);
 	ADVANCE_BATCH();
 
 	intel_batchbuffer_flush(batch);

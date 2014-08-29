@@ -17,7 +17,7 @@ struct intel_batchbuffer {
 	drm_intel_bo *bo;
 
 	uint8_t buffer[BATCH_SZ];
-	uint8_t *ptr;
+	uint8_t *ptr, *end;
 	uint8_t *state;
 };
 
@@ -39,7 +39,7 @@ void intel_batchbuffer_data(struct intel_batchbuffer *batch,
 
 void intel_batchbuffer_emit_reloc(struct intel_batchbuffer *batch,
 				  drm_intel_bo *buffer,
-				  uint32_t delta,
+				  uint64_t delta,
 				  uint32_t read_domains,
 				  uint32_t write_domain,
 				  int fenced);
@@ -85,7 +85,9 @@ intel_batchbuffer_require_space(struct intel_batchbuffer *batch,
  * scope.
  */
 #define BEGIN_BATCH(n) do {						\
+	igt_assert(batch->end == NULL); \
 	intel_batchbuffer_require_space(batch, (n)*4);			\
+	batch->end = batch->ptr + (n) * 4; \
 } while (0)
 
 /**
@@ -144,6 +146,8 @@ intel_batchbuffer_require_space(struct intel_batchbuffer *batch,
  * scope.
  */
 #define ADVANCE_BATCH() do {						\
+	igt_assert(batch->ptr == batch->end); \
+	batch->end = NULL; \
 } while(0)
 
 #define BLIT_COPY_BATCH_START(devid, flags) do { \
@@ -174,18 +178,6 @@ intel_batchbuffer_require_space(struct intel_batchbuffer *batch,
 		OUT_BATCH(XY_COLOR_BLT_CMD_NOLEN | 0x4 | \
 				COLOR_BLT_WRITE_ALPHA | \
 				XY_COLOR_BLT_WRITE_RGB); \
-	} \
-} while(0)
-
-/**
- * BLIT_RELOC_UDW:
- * @devid: pci device id of the drm device
- *
- * Emits the upper relocation DWORD on gen8+ and nothing on earlier generations.
- */
-#define BLIT_RELOC_UDW(devid) do { \
-	if (intel_gen(devid) >= 8) { \
-		OUT_BATCH(0); \
 	} \
 } while(0)
 

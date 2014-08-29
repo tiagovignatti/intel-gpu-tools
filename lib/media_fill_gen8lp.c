@@ -205,12 +205,10 @@ gen8_emit_state_base_address(struct intel_batchbuffer *batch)
 
 	/* surface */
 	OUT_RELOC(batch->bo, I915_GEM_DOMAIN_SAMPLER, 0, BASE_ADDRESS_MODIFY);
-	OUT_BATCH(0);
 
 	/* dynamic */
 	OUT_RELOC(batch->bo, I915_GEM_DOMAIN_RENDER | I915_GEM_DOMAIN_INSTRUCTION,
 		0, BASE_ADDRESS_MODIFY);
-	OUT_BATCH(0);
 
 	/* indirect */
 	OUT_BATCH(0);
@@ -218,7 +216,6 @@ gen8_emit_state_base_address(struct intel_batchbuffer *batch)
 
 	/* instruction */
 	OUT_RELOC(batch->bo, I915_GEM_DOMAIN_INSTRUCTION, 0, BASE_ADDRESS_MODIFY);
-	OUT_BATCH(0);
 
 	/* general state buffer size */
 	OUT_BATCH(0xfffff000 | 1);

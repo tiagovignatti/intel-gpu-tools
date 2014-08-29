@@ -184,12 +184,10 @@ static void blt_copy(struct intel_batchbuffer *batch,
 		  dst->stride);
 	OUT_BATCH((dst_y << 16) | dst_x); /* dst x1,y1 */
 	OUT_BATCH(((dst_y + h) << 16) | (dst_x + w)); /* dst x2,y2 */
-	OUT_RELOC(dst->bo, I915_GEM_DOMAIN_RENDER, I915_GEM_DOMAIN_RENDER, 0);
-	BLIT_RELOC_UDW(batch->devid);
+	OUT_RELOC_FENCED(dst->bo, I915_GEM_DOMAIN_RENDER, I915_GEM_DOMAIN_RENDER, 0);
 	OUT_BATCH((src_y << 16) | src_x); /* src x1,y1 */
 	OUT_BATCH(src->stride);
-	OUT_RELOC(src->bo, I915_GEM_DOMAIN_RENDER, 0, 0);
-	BLIT_RELOC_UDW(batch->devid);
+	OUT_RELOC_FENCED(src->bo, I915_GEM_DOMAIN_RENDER, 0, 0);
 	ADVANCE_BATCH();
 
 	intel_batchbuffer_flush(batch);

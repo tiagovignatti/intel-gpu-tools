@@ -186,11 +186,9 @@ static void emit_dummy_load__bcs(struct test_output *o)
 		OUT_BATCH(0 << 16 | 0);
 		OUT_BATCH(o->fb_height << 16 | o->fb_width);
 		OUT_RELOC_FENCED(dummy_bo, I915_GEM_DOMAIN_RENDER, I915_GEM_DOMAIN_RENDER, 0);
-		BLIT_RELOC_UDW(devid);
 		OUT_BATCH(0 << 16 | 0);
 		OUT_BATCH(pitch);
 		OUT_RELOC_FENCED(target_bo, I915_GEM_DOMAIN_RENDER, 0, 0);
-		BLIT_RELOC_UDW(devid);
 		ADVANCE_BATCH();
 
 		if (IS_GEN6(devid) || IS_GEN7(devid)) {

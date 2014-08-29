@@ -236,7 +236,7 @@ testdisplay_SOURCES = \
 	testdisplay_hotplug.c \
 	$(NULL)
 
-TESTS_progs += testdisplay
+#TESTS_progs += testdisplay
 
 common_files = \
 	       eviction_common.c \

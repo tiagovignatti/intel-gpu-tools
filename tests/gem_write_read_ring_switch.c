@@ -86,12 +86,10 @@ static void run_test(int ring)
 			  4096);
 		OUT_BATCH(0); /* dst x1,y1 */
 		OUT_BATCH((1024 << 16) | 512);
-		OUT_RELOC(load_bo, I915_GEM_DOMAIN_RENDER, I915_GEM_DOMAIN_RENDER, 0);
-		BLIT_RELOC_UDW(batch->devid);
+		OUT_RELOC_FENCED(load_bo, I915_GEM_DOMAIN_RENDER, I915_GEM_DOMAIN_RENDER, 0);
 		OUT_BATCH((0 << 16) | 512); /* src x1, y1 */
 		OUT_BATCH(4096);
-		OUT_RELOC(load_bo, I915_GEM_DOMAIN_RENDER, 0, 0);
-		BLIT_RELOC_UDW(batch->devid);
+		OUT_RELOC_FENCED(load_bo, I915_GEM_DOMAIN_RENDER, 0, 0);
 		ADVANCE_BATCH();
 	}
 
@@ -101,8 +99,7 @@ static void run_test(int ring)
 		  128);
 	OUT_BATCH(0); /* dst x1,y1 */
 	OUT_BATCH((1 << 16) | 1);
-	OUT_RELOC(target_bo, I915_GEM_DOMAIN_RENDER, I915_GEM_DOMAIN_RENDER, 0);
-	BLIT_RELOC_UDW(batch->devid);
+	OUT_RELOC_FENCED(target_bo, I915_GEM_DOMAIN_RENDER, I915_GEM_DOMAIN_RENDER, 0);
 	OUT_BATCH(COLOR);
 	ADVANCE_BATCH();
 

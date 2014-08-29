@@ -87,12 +87,10 @@ static void exec_blt(data_t *data)
 			  pitch);
 		OUT_BATCH(0 << 16 | 0);
 		OUT_BATCH(h << 16 | w);
-		OUT_RELOC(data->busy_bo, I915_GEM_DOMAIN_RENDER, I915_GEM_DOMAIN_RENDER, 0);
-		BLIT_RELOC_UDW(data->devid);
+		OUT_RELOC_FENCED(data->busy_bo, I915_GEM_DOMAIN_RENDER, I915_GEM_DOMAIN_RENDER, 0);
 		OUT_BATCH(0 << 16 | 0);
 		OUT_BATCH(pitch);
-		OUT_RELOC(data->busy_bo, I915_GEM_DOMAIN_RENDER, 0, 0);
-		BLIT_RELOC_UDW(data->devid);
+		OUT_RELOC_FENCED(data->busy_bo, I915_GEM_DOMAIN_RENDER, 0, 0);
 		ADVANCE_BATCH();
 	}
 

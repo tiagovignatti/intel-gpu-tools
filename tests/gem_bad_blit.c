@@ -85,11 +85,9 @@ bad_blit(drm_intel_bo *src_bo, uint32_t devid)
 	OUT_BATCH(0); /* dst x1,y1 */
 	OUT_BATCH((64 << 16) | 64); /* 64x64 blit */
 	OUT_BATCH(BAD_GTT_DEST);
-	BLIT_RELOC_UDW(devid);
 	OUT_BATCH(0); /* src x1,y1 */
 	OUT_BATCH(src_pitch);
-	OUT_RELOC(src_bo, I915_GEM_DOMAIN_RENDER, 0, 0);
-	BLIT_RELOC_UDW(devid);
+	OUT_RELOC_FENCED(src_bo, I915_GEM_DOMAIN_RENDER, 0, 0);
 	ADVANCE_BATCH();
 
 	intel_batchbuffer_flush(batch);

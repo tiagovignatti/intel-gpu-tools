@@ -140,12 +140,10 @@ igt_simple_main
 			  4096);
 		OUT_BATCH(0); /* dst y1,x1 */
 		OUT_BATCH((1 << 16) | 1024);
-		OUT_RELOC(batch_bo, I915_GEM_DOMAIN_RENDER, I915_GEM_DOMAIN_RENDER, 0);
-		BLIT_RELOC_UDW(batch->devid);
+		OUT_RELOC_FENCED(batch_bo, I915_GEM_DOMAIN_RENDER, I915_GEM_DOMAIN_RENDER, 0);
 		OUT_BATCH((0 << 16) | 0); /* src x1, y1 */
 		OUT_BATCH(4096);
-		OUT_RELOC(sample_batch_bo, I915_GEM_DOMAIN_RENDER, 0, 0);
-		BLIT_RELOC_UDW(batch->devid);
+		OUT_RELOC_FENCED(sample_batch_bo, I915_GEM_DOMAIN_RENDER, 0, 0);
 		ADVANCE_BATCH();
 
 		intel_batchbuffer_flush(batch);

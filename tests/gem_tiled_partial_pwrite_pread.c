@@ -91,11 +91,9 @@ copy_bo(drm_intel_bo *src, int src_tiled,
 	OUT_BATCH(0 << 16 | 0);
 	OUT_BATCH(BO_SIZE/scratch_pitch << 16 | 1024);
 	OUT_RELOC_FENCED(dst, I915_GEM_DOMAIN_RENDER, I915_GEM_DOMAIN_RENDER, 0);
-	BLIT_RELOC_UDW(devid);
 	OUT_BATCH(0 << 16 | 0);
 	OUT_BATCH(src_pitch);
 	OUT_RELOC_FENCED(src, I915_GEM_DOMAIN_RENDER, 0, 0);
-	BLIT_RELOC_UDW(devid);
 	ADVANCE_BATCH();
 
 	intel_batchbuffer_flush(batch);

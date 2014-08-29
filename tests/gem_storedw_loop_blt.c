@@ -64,7 +64,6 @@ emit_store_dword_imm(int devid, drm_intel_bo *dest, uint32_t val)
 		OUT_BATCH(cmd);
 		OUT_RELOC(dest, I915_GEM_DOMAIN_INSTRUCTION,
 			  I915_GEM_DOMAIN_INSTRUCTION, 0);
-		OUT_BATCH(0);
 		OUT_BATCH(val);
 		ADVANCE_BATCH();
 	} else {

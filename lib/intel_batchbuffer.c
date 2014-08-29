@@ -240,10 +240,11 @@ intel_batchbuffer_flush(struct intel_batchbuffer *batch)
  */
 void
 intel_batchbuffer_emit_reloc(struct intel_batchbuffer *batch,
-                             drm_intel_bo *buffer, uint32_t delta,
+                             drm_intel_bo *buffer, uint64_t delta,
 			     uint32_t read_domains, uint32_t write_domain,
 			     int fenced)
 {
+	uint64_t offset;
 	int ret;
 
 	if (batch->ptr - batch->buffer > BATCH_SZ)
@@ -259,7 +260,12 @@ intel_batchbuffer_emit_reloc(struct intel_batchbuffer *batch,
 		ret = drm_intel_bo_emit_reloc(batch->bo, batch->ptr - batch->buffer,
 					      buffer, delta,
 					      read_domains, write_domain);
-	intel_batchbuffer_emit_dword(batch, buffer->offset + delta);
+
+	offset = buffer->offset64;
+	offset += delta;
+	intel_batchbuffer_emit_dword(batch, offset);
+	if (batch->gen >= 8)
+		intel_batchbuffer_emit_dword(batch, offset >> 32);
 	igt_assert(ret == 0);
 }
 
@@ -362,13 +368,25 @@ intel_blt_copy(struct intel_batchbuffer *batch,
 		  dst_pitch);
 	OUT_BATCH((dst_y1 << 16) | dst_x1); /* dst x1,y1 */
 	OUT_BATCH(((dst_y1 + height) << 16) | (dst_x1 + width)); /* dst x2,y2 */
-	OUT_RELOC(dst_bo, I915_GEM_DOMAIN_RENDER, I915_GEM_DOMAIN_RENDER, 0);
-	BLIT_RELOC_UDW(batch->devid);
+	OUT_RELOC_FENCED(dst_bo, I915_GEM_DOMAIN_RENDER, I915_GEM_DOMAIN_RENDER, 0);
 	OUT_BATCH((src_y1 << 16) | src_x1); /* src x1,y1 */
 	OUT_BATCH(src_pitch);
-	OUT_RELOC(src_bo, I915_GEM_DOMAIN_RENDER, 0, 0);
-	BLIT_RELOC_UDW(batch->devid);
+	OUT_RELOC_FENCED(src_bo, I915_GEM_DOMAIN_RENDER, 0, 0);
 	ADVANCE_BATCH();
+
+#define CMD_POLY_STIPPLE_OFFSET       0x7906
+	if (gen == 5) {
+		OUT_BATCH(CMD_POLY_STIPPLE_OFFSET << 16);
+		OUT_BATCH(0);
+	}
+
+	if (gen >= 6 && src_bo == dst_bo) {
+		BEGIN_BATCH(3);
+		OUT_BATCH(XY_SETUP_CLIP_BLT_CMD);
+		OUT_BATCH(0);
+		OUT_BATCH(0);
+		ADVANCE_BATCH();
+	}
 
 	intel_batchbuffer_flush(batch);
 }

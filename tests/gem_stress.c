@@ -170,11 +170,9 @@ static void emit_blt(drm_intel_bo *src_bo, uint32_t src_tiling, unsigned src_pit
 	OUT_BATCH(dst_y << 16 | dst_x);
 	OUT_BATCH((dst_y+h) << 16 | (dst_x+w));
 	OUT_RELOC_FENCED(dst_bo, I915_GEM_DOMAIN_RENDER, I915_GEM_DOMAIN_RENDER, 0);
-	BLIT_RELOC_UDW(devid);
 	OUT_BATCH(src_y << 16 | src_x);
 	OUT_BATCH(src_pitch);
 	OUT_RELOC_FENCED(src_bo, I915_GEM_DOMAIN_RENDER, 0, 0);
-	BLIT_RELOC_UDW(devid);
 	ADVANCE_BATCH();
 
 	if (IS_GEN6(devid) || IS_GEN7(devid)) {

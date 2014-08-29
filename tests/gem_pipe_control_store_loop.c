@@ -87,10 +87,9 @@ store_pipe_control_loop(bool preuse_buffer)
 			 * different domain than what the pipe control write
 			 * (and kernel wa) uses!
 			 */
-			OUT_RELOC(target_bo,
+			OUT_RELOC_FENCED(target_bo,
 			     I915_GEM_DOMAIN_RENDER, I915_GEM_DOMAIN_RENDER,
 			     0);
-			BLIT_RELOC_UDW(devid);
 			OUT_BATCH(0xdeadbeef);
 			ADVANCE_BATCH();
 
@@ -104,10 +103,9 @@ store_pipe_control_loop(bool preuse_buffer)
 			BEGIN_BATCH(5);
 			OUT_BATCH(GFX_OP_PIPE_CONTROL + 1);
 			OUT_BATCH(PIPE_CONTROL_WRITE_IMMEDIATE);
-			OUT_RELOC(target_bo,
+			OUT_RELOC_FENCED(target_bo,
 			     I915_GEM_DOMAIN_INSTRUCTION, I915_GEM_DOMAIN_INSTRUCTION,
 			     PIPE_CONTROL_GLOBAL_GTT);
-			BLIT_RELOC_UDW(devid);
 			OUT_BATCH(val); /* write data */
 			ADVANCE_BATCH();
 

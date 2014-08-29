@@ -69,11 +69,9 @@ dummy_reloc_loop(void)
 		OUT_BATCH(2048 << 16 | 0);
 		OUT_BATCH((4096) << 16 | (2048));
 		OUT_RELOC_FENCED(blt_bo, I915_GEM_DOMAIN_RENDER, I915_GEM_DOMAIN_RENDER, 0);
-		BLIT_RELOC_UDW(batch->devid);
 		OUT_BATCH(0 << 16 | 0);
 		OUT_BATCH(4*4096);
 		OUT_RELOC_FENCED(blt_bo, I915_GEM_DOMAIN_RENDER, 0, 0);
-		BLIT_RELOC_UDW(batch->devid);
 		ADVANCE_BATCH();
 		intel_batchbuffer_flush(batch);
 
