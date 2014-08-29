@@ -70,7 +70,7 @@ igt_create_fb_with_bo_size(int fd, int width, int height,
 			   uint32_t format, unsigned int tiling,
 			   struct igt_fb *fb, unsigned bo_size);
 unsigned int igt_create_fb(int fd, int width, int height, uint32_t format,
-			   unsigned int , struct igt_fb *fb);
+			   unsigned int tiling, struct igt_fb *fb);
 unsigned int igt_create_color_fb(int fd, int width, int height,
 				 uint32_t format, unsigned int tiling,
 				 double r, double g, double b,
