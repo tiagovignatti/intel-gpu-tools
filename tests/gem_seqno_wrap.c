@@ -45,6 +45,7 @@
 #include "drmtest.h"
 #include "igt_core.h"
 #include "igt_aux.h"
+#include "igt_debugfs.h"
 #include "intel_bufmgr.h"
 #include "intel_batchbuffer.h"
 #include "intel_io.h"
@@ -277,23 +278,6 @@ static void run_sync_test(int num_buffers, bool verify)
 	close(fd);
 }
 
-static const char *dfs_base = "/sys/kernel/debug/dri";
-static const char *dfs_entry = "i915_next_seqno";
-
-static int dfs_open(int mode)
-{
-	char fname[FILENAME_MAX];
-	int fh;
-
-	snprintf(fname, FILENAME_MAX, "%s/%i/%s",
-		 dfs_base, card_index, dfs_entry);
-
-	fh = open(fname, mode);
-	igt_require(fh >= 0);
-
-	return fh;
-}
-
 static int __read_seqno(uint32_t *seqno)
 {
 	int fh;
@@ -302,7 +286,7 @@ static int __read_seqno(uint32_t *seqno)
 	char *p;
 	unsigned long int tmp;
 
-	fh = dfs_open(O_RDONLY);
+	fh = igt_debugfs_open("i915_next_seqno", O_RDONLY);
 
 	r = read(fh, buf, sizeof(buf) - 1);
 	close(fh);
@@ -358,7 +342,7 @@ static int write_seqno(uint32_t seqno)
 	if (options.dontwrap)
 		return 0;
 
-	fh = dfs_open(O_RDWR);
+	fh = igt_debugfs_open("i915_next_seqno", O_RDWR);
 	igt_assert(snprintf(buf, sizeof(buf), "0x%x", seqno) > 0);
 
 	r = write(fh, buf, strnlen(buf, sizeof(buf)));
