@@ -438,7 +438,7 @@ igt_main
 		igt_assert(ret == 0 || errno == EINVAL);
 
 		/* We assume width and height are same so max is assigned width */
-		igt_assert_cmpint(cursor_width, ==, cursor_height);
+		igt_assert_eq(cursor_width, cursor_height);
 
 		kmstest_set_vt_graphics_mode();
 

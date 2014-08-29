@@ -80,7 +80,7 @@ store_dword_loop(int divider)
 		drm_intel_bo_map(target_buffer, 0);
 
 		buf = target_buffer->virtual;
-		igt_assert_cmpint (buf[0], ==, val);
+		igt_assert_eq_u32(buf[0], val);
 
 		drm_intel_bo_unmap(target_buffer);
 

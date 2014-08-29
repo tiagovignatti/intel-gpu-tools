@@ -101,7 +101,7 @@ static int do_writeval(FILE *filp, int val, int lerrno)
 		igt_assert(readval(filp) == orig);
 	} else {
 		/* Expecting no error */
-		igt_assert(ret != EOF);
+		igt_assert_neq(ret, 0);
 		igt_assert(readval(filp) == val);
 	}
 
@@ -112,25 +112,25 @@ static int do_writeval(FILE *filp, int val, int lerrno)
 
 static void checkit(const int *freqs)
 {
-	igt_assert_cmpint(freqs[MIN], <=, freqs[MAX]);
-	igt_assert_cmpint(freqs[CUR], <=, freqs[MAX]);
-	igt_assert_cmpint(freqs[MIN], <=, freqs[CUR]);
-	igt_assert_cmpint(freqs[RPn], <=, freqs[MIN]);
-	igt_assert_cmpint(freqs[MAX], <=, freqs[RP0]);
-	igt_assert_cmpint(freqs[RP1], <=, freqs[RP0]);
-	igt_assert_cmpint(freqs[RPn], <=, freqs[RP1]);
-	igt_assert(freqs[RP0] != 0);
-	igt_assert(freqs[RP1] != 0);
+	igt_assert_lte(freqs[MIN], freqs[MAX]);
+	igt_assert_lte(freqs[CUR], freqs[MAX]);
+	igt_assert_lte(freqs[MIN], freqs[CUR]);
+	igt_assert_lte(freqs[RPn], freqs[MIN]);
+	igt_assert_lte(freqs[MAX], freqs[RP0]);
+	igt_assert_lte(freqs[RP1], freqs[RP0]);
+	igt_assert_lte(freqs[RPn], freqs[RP1]);
+	igt_assert_neq(freqs[RP0], 0);
+	igt_assert_neq(freqs[RP1], 0);
 }
 
 static void matchit(const int *freqs1, const int *freqs2)
 {
-	igt_assert_cmpint(freqs1[CUR], ==, freqs2[CUR]);
-	igt_assert_cmpint(freqs1[MIN], ==, freqs2[MIN]);
-	igt_assert_cmpint(freqs1[MAX], ==, freqs2[MAX]);
-	igt_assert_cmpint(freqs1[RP0], ==, freqs2[RP0]);
-	igt_assert_cmpint(freqs1[RP1], ==, freqs2[RP1]);
-	igt_assert_cmpint(freqs1[RPn], ==, freqs2[RPn]);
+	igt_assert_eq(freqs1[CUR], freqs2[CUR]);
+	igt_assert_eq(freqs1[MIN], freqs2[MIN]);
+	igt_assert_eq(freqs1[MAX], freqs2[MAX]);
+	igt_assert_eq(freqs1[RP0], freqs2[RP0]);
+	igt_assert_eq(freqs1[RP1], freqs2[RP1]);
+	igt_assert_eq(freqs1[RPn], freqs2[RPn]);
 }
 
 static void dump(const int *freqs)
@@ -409,7 +409,7 @@ static void idle_check(void)
 		wait += IDLE_WAIT_TIMESTEP_MSEC;
 	} while (wait < IDLE_WAIT_TIMEOUT_MSEC);
 
-	igt_assert_cmpint(freqs[CUR], ==, freqs[MIN]);
+	igt_assert_eq(freqs[CUR], freqs[MIN]);
 	igt_debug("Required %d msec to reach cur=min\n", wait);
 }
 
@@ -432,7 +432,7 @@ static void loaded_check(void)
 		wait += LOADED_WAIT_TIMESTEP_MSEC;
 	} while (wait < LOADED_WAIT_TIMEOUT_MSEC);
 
-	igt_assert_cmpint(freqs[CUR], ==, freqs[MAX]);
+	igt_assert_eq(freqs[CUR], freqs[MAX]);
 	igt_debug("Required %d msec to reach cur=max\n", wait);
 }
 

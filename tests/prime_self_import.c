@@ -302,7 +302,7 @@ static void test_reimport_close_race(void)
 
 	close(fake);
 
-	igt_assert_cmpint(obj_count, ==, 0);
+	igt_assert_eq(obj_count, 0);
 }
 
 static void *thread_fn_export_vs_close(void *p)
@@ -376,7 +376,7 @@ static void test_export_close_race(void)
 	obj_count = get_object_count() - obj_count;
 
 	igt_info("leaked %i objects\n", obj_count);
-	igt_assert_cmpint(obj_count, ==, 0);
+	igt_assert_eq(obj_count, 0);
 }
 
 static void test_llseek_size(void)

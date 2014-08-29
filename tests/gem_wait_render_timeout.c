@@ -180,7 +180,7 @@ igt_simple_main
 			iter <<= 1;
 	} while (!done && iter < 1000000);
 
-	igt_assert_cmpint(iter, <, 1000000);
+	igt_assert_cmpint(iter, <, >=, 1000000);
 
 	igt_info("%d iters is enough work\n", iter);
 	gem_quiescent_gpu(fd);
@@ -196,9 +196,9 @@ igt_simple_main
 	intel_batchbuffer_flush(batch);
 	igt_assert(gem_bo_busy(fd, dst2->handle) == true);
 
-	igt_assert(gem_bo_wait_timeout(fd, dst2->handle, &timeout) == 0);
+	igt_assert_eq(gem_bo_wait_timeout(fd, dst2->handle, &timeout), 0);
 	igt_assert(gem_bo_busy(fd, dst2->handle) == false);
-	igt_assert_cmpint(timeout, !=, 0);
+	igt_assert_neq(timeout, 0);
 	if (timeout ==  (ENOUGH_WORK_IN_SECONDS * NSEC_PER_SEC))
 		igt_info("Buffer was already done!\n");
 	else {
@@ -207,8 +207,8 @@ igt_simple_main
 
 	/* check that polling with timeout=0 works. */
 	timeout = 0;
-	igt_assert(gem_bo_wait_timeout(fd, dst2->handle, &timeout) == 0);
-	igt_assert(timeout == 0);
+	igt_assert_eq(gem_bo_wait_timeout(fd, dst2->handle, &timeout), 0);
+	igt_assert_eq(timeout, 0);
 
 	/* Now check that we correctly time out, twice the auto-tune load should
 	 * be good enough. */
@@ -219,14 +219,14 @@ igt_simple_main
 	intel_batchbuffer_flush(batch);
 
 	ret = gem_bo_wait_timeout(fd, dst2->handle, &timeout);
-	igt_assert(ret == -ETIME);
-	igt_assert(timeout == 0);
+	igt_assert_eq(ret, -ETIME);
+	igt_assert_eq(timeout, 0);
 	igt_assert(gem_bo_busy(fd, dst2->handle) == true);
 
 	/* check that polling with timeout=0 works. */
 	timeout = 0;
-	igt_assert(gem_bo_wait_timeout(fd, dst2->handle, &timeout) == -ETIME);
-	igt_assert(timeout == 0);
+	igt_assert_eq(gem_bo_wait_timeout(fd, dst2->handle, &timeout), -ETIME);
+	igt_assert_eq(timeout, 0);
 
 
 	if (do_signals)

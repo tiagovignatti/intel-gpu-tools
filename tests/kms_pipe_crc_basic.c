@@ -104,9 +104,9 @@ static void test_bad_command(data_t *data, const char *cmd)
 	ctl = igt_debugfs_fopen("i915_display_crc_ctl", "r+");
 	written = fwrite(cmd, 1, strlen(cmd), ctl);
 	fflush(ctl);
-	igt_assert_cmpint(written, ==, (strlen(cmd)));
+	igt_assert_eq(written, strlen(cmd));
 	igt_assert(ferror(ctl));
-	igt_assert_cmpint(errno, ==, EINVAL);
+	igt_assert_eq(errno, EINVAL);
 
 	fclose(ctl);
 }

@@ -126,7 +126,7 @@ static void bo_check(data_t *data, drm_intel_bo *bo, uint32_t val)
 	gem_read(data->drm_fd, bo->handle, 0,
 		 data->linear, sizeof(data->linear));
 	for (i = 0; i < WIDTH * HEIGHT; i++)
-		igt_assert_cmpint(data->linear[i], ==, val);
+		igt_assert_eq_u32(data->linear[i], val);
 }
 
 static void scratch_buf_init_from_bo(struct igt_buf *buf, drm_intel_bo *bo)

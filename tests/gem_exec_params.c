@@ -98,7 +98,7 @@ igt_main
 		igt_assert(drmIoctl(fd, \
 				    DRM_IOCTL_I915_GEM_EXECBUFFER2, \
 				    &execbuf) == -1); \
-		igt_assert_cmpint(errno, ==, expected_errno); \
+		igt_assert_eq(errno, expected_errno); \
 	} while(0)
 
 	igt_subtest("no-bsd") {

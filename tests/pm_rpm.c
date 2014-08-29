@@ -641,7 +641,7 @@ static void test_i2c(struct mode_set_data *data)
 	int i2c_edids = count_i2c_valid_edids();
 	int drm_edids = count_drm_valid_edids(data);
 
-	igt_assert_cmpint(i2c_edids, ==, drm_edids);
+	igt_assert_eq(i2c_edids, drm_edids);
 }
 
 static void setup_pc8(void)

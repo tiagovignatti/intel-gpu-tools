@@ -275,13 +275,22 @@ void igt_exit(void) __attribute__((noreturn));
  * Like igt_assert(), but displays the values being compared on failure instead
  * of simply printing the stringified expression.
  */
-#define igt_assert_cmpint(n1, cmp, n2) \
+#define igt_assert_cmpint(n1, cmp, ncmp, n2) \
 	do { \
 		int __n1 = (n1), __n2 = (n2); \
 		if (__n1 cmp __n2) ; else \
 		__igt_fail_assert(99, __FILE__, __LINE__, __func__, \
 				  #n1 " " #cmp " " #n2, \
-				  "error: %d %s %d\n", __n1, #cmp, __n2); \
+				  "error: %d %s %d\n", __n1, #ncmp, __n2); \
+	} while (0)
+
+#define igt_assert_cmpuint(n1, cmp, ncmp, n2) \
+	do { \
+		uint32_t __n1 = (n1), __n2 = (n2); \
+		if (__n1 cmp __n2) ; else \
+		__igt_fail_assert(99, __FILE__, __LINE__, __func__, \
+				  #n1 " " #cmp " " #n2, \
+				  "error: %#x %s %#x\n", __n1, #ncmp, __n2); \
 	} while (0)
 
 /**
@@ -295,7 +304,34 @@ void igt_exit(void) __attribute__((noreturn));
  * Like igt_assert(), but displays the values being compared on failure instead
  * of simply printing the stringified expression.
  */
-#define igt_assert_eq(n1, n2) igt_assert_cmpint(n1, ==, n2)
+#define igt_assert_eq(n1, n2) igt_assert_cmpint(n1, ==, !=, n2)
+#define igt_assert_eq_u32(n1, n2) igt_assert_cmpuint(n1, ==, !=, n2)
+
+/**
+ * igt_assert_neq:
+ * @n1: first integer
+ * @n2: second integer
+ *
+ * Fails (sub-)test if the two integers are equal. Beware that for now this
+ * only works on integers.
+ *
+ * Like igt_assert(), but displays the values being compared on failure instead
+ * of simply printing the stringified expression.
+ */
+#define igt_assert_neq(n1, n2) igt_assert_cmpint(n1, !=, ==, n2)
+
+/**
+ * igt_assert_lte:
+ * @n1: first integer
+ * @n2: second integer
+ *
+ * Fails (sub-)test if the second integers is greater than the first.
+ * Beware that for now this only works on integers.
+ *
+ * Like igt_assert(), but displays the values being compared on failure instead
+ * of simply printing the stringified expression.
+ */
+#define igt_assert_lte(n1, n2) igt_assert_cmpint(n1, <=, >, n2)
 
 /**
  * igt_require:
