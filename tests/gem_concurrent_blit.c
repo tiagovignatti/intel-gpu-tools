@@ -55,6 +55,9 @@
 #include "intel_chipset.h"
 #include "igt_aux.h"
 
+int fd, devid, gen;
+struct intel_batchbuffer *batch;
+
 static void
 prw_set_bo(drm_intel_bo *bo, uint32_t val, int width, int height)
 {
@@ -84,14 +87,14 @@ prw_cmp_bo(drm_intel_bo *bo, uint32_t val, int width, int height)
 		memset(tmp, 0, 4*size);
 		do_or_die(drm_intel_bo_get_subdata(bo, 0, 4*size, tmp));
 		for (i = 0; i < size; i++)
-			igt_assert(tmp[i] == val);
+			igt_assert_eq_u32(tmp[i], val);
 		free(tmp);
 	} else {
 		uint32_t t;
 		for (i = 0; i < size; i++) {
 			t = 0;
 			do_or_die(drm_intel_bo_get_subdata(bo, 4*i, 4, &t));
-			igt_assert(t == val);
+			igt_assert_eq_u32(t, val);
 		}
 	}
 }
@@ -128,7 +131,7 @@ gtt_cmp_bo(drm_intel_bo *bo, uint32_t val, int width, int height)
 	drm_intel_gem_bo_start_gtt_access(bo, false);
 	vaddr = bo->virtual;
 	while (size--)
-		igt_assert(*vaddr++ == val);
+		igt_assert_eq_u32(*vaddr++, val);
 }
 
 static drm_intel_bo *
@@ -169,8 +172,77 @@ cpu_cmp_bo(drm_intel_bo *bo, uint32_t val, int width, int height)
 	do_or_die(drm_intel_bo_map(bo, false));
 	vaddr = bo->virtual;
 	while (size--)
-		igt_assert(*vaddr++ == val);
+		igt_assert_eq_u32(*vaddr++, val);
 	drm_intel_bo_unmap(bo);
+}
+
+static void
+gpu_set_bo(drm_intel_bo *bo, uint32_t val, int width, int height)
+{
+	struct drm_i915_gem_relocation_entry reloc[1];
+	struct drm_i915_gem_exec_object2 gem_exec[2];
+	struct drm_i915_gem_execbuffer2 execbuf;
+	struct drm_i915_gem_pwrite gem_pwrite;
+	struct drm_i915_gem_create create;
+	uint32_t buf[10], *b;
+
+	memset(reloc, 0, sizeof(reloc));
+	memset(gem_exec, 0, sizeof(gem_exec));
+	memset(&execbuf, 0, sizeof(execbuf));
+
+	b = buf;
+	*b++ = XY_COLOR_BLT_CMD_NOLEN |
+		((gen >= 8) ? 5 : 4) |
+		COLOR_BLT_WRITE_ALPHA | XY_COLOR_BLT_WRITE_RGB;
+	*b++ = 0xf0 << 16 | 1 << 25 | 1 << 24 | width << 2;
+	*b++ = 0;
+	*b++ = height << 16 | width;
+	reloc[0].offset = (b - buf) * sizeof(uint32_t);
+	reloc[0].target_handle = bo->handle;
+	reloc[0].read_domains = I915_GEM_DOMAIN_RENDER;
+	reloc[0].write_domain = I915_GEM_DOMAIN_RENDER;
+	*b++ = 0;
+	if (gen >= 8)
+		*b++ = 0;
+	*b++ = val;
+	*b++ = MI_BATCH_BUFFER_END;
+	if ((b - buf) & 1)
+		*b++ = 0;
+
+	gem_exec[0].handle = bo->handle;
+	gem_exec[0].flags = EXEC_OBJECT_NEEDS_FENCE;
+
+	create.handle = 0;
+	create.size = 4096;
+	drmIoctl(fd, DRM_IOCTL_I915_GEM_CREATE, &create);
+	gem_exec[1].handle = create.handle;
+	gem_exec[1].relocation_count = 1;
+	gem_exec[1].relocs_ptr = (uintptr_t)reloc;
+
+	execbuf.buffers_ptr = (uintptr_t)gem_exec;
+	execbuf.buffer_count = 2;
+	execbuf.batch_len = (b - buf) * sizeof(buf[0]);
+	execbuf.flags = 1 << 11;
+	if (HAS_BLT_RING(devid))
+		execbuf.flags |= I915_EXEC_BLT;
+
+	gem_pwrite.handle = gem_exec[1].handle;
+	gem_pwrite.offset = 0;
+	gem_pwrite.size = execbuf.batch_len;
+	gem_pwrite.data_ptr = (uintptr_t)buf;
+	if (drmIoctl(fd, DRM_IOCTL_I915_GEM_PWRITE, &gem_pwrite) == 0)
+		drmIoctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf);
+
+	drmIoctl(fd, DRM_IOCTL_GEM_CLOSE, &create.handle);
+}
+
+static void
+gpu_cmp_bo(drm_intel_bo *bo, uint32_t val, int width, int height)
+{
+	dri_bo *tmp = drm_intel_bo_alloc(bo->bufmgr, "tmp", 4*width*height, 0);
+	intel_copy_bo(batch, tmp, bo, width*height*4);
+	cpu_cmp_bo(tmp, val, width, height);
+	drm_intel_bo_unreference(tmp);
 }
 
 struct access_mode {
@@ -188,12 +260,13 @@ struct access_mode access_modes[] = {
 		.create_bo = unmapped_create_bo, .name = "cpu" },
 	{ .set_bo = gtt_set_bo, .cmp_bo = gtt_cmp_bo,
 		.create_bo = gtt_create_bo, .name = "gtt" },
+	{ .set_bo = gpu_set_bo, .cmp_bo = gpu_cmp_bo,
+		.create_bo = unmapped_create_bo, .name = "gpu" },
 };
 
 #define MAX_NUM_BUFFERS 1024
-int num_buffers = MAX_NUM_BUFFERS, fd;
+int num_buffers = MAX_NUM_BUFFERS;
 drm_intel_bufmgr *bufmgr;
-struct intel_batchbuffer *batch;
 int width = 512, height = 512;
 
 static void do_overwrite_source(struct access_mode *mode,
@@ -272,12 +345,8 @@ static void run_interruptible(struct access_mode *mode,
 {
 	int loop;
 
-	igt_fork_signal_helper();
-
 	for (loop = 0; loop < 10; loop++)
 		do_test_func(mode, src, dst, dummy);
-
-	igt_stop_signal_helper();
 }
 
 static void run_forked(struct access_mode *mode,
@@ -289,8 +358,6 @@ static void run_forked(struct access_mode *mode,
 
 	num_buffers /= 16;
 	num_buffers += 2;
-
-	igt_fork_signal_helper();
 
 	igt_fork(child, 16) {
 		/* recreate process local variables */
@@ -315,8 +382,6 @@ static void run_forked(struct access_mode *mode,
 	}
 
 	igt_waitchildren();
-
-	igt_stop_signal_helper();
 
 	num_buffers = old_num_buffers;
 }
@@ -358,7 +423,10 @@ run_modes(struct access_mode *mode)
 	}
 
 	run_basic_modes(mode, src, dst, dummy, "", run_single);
+
+	igt_fork_signal_helper();
 	run_basic_modes(mode, src, dst, dummy, "-interruptible", run_interruptible);
+	igt_stop_signal_helper();
 
 	igt_fixture {
 		for (int i = 0; i < num_buffers; i++) {
@@ -370,7 +438,9 @@ run_modes(struct access_mode *mode)
 		drm_intel_bufmgr_destroy(bufmgr);
 	}
 
+	igt_fork_signal_helper();
 	run_basic_modes(mode, src, dst, dummy, "-forked", run_forked);
+	igt_stop_signal_helper();
 }
 
 igt_main
@@ -381,6 +451,8 @@ igt_main
 
 	igt_fixture {
 		fd = drm_open_any();
+		devid = intel_get_drm_devid(fd);
+		gen = intel_gen(devid);
 
 		max = gem_aperture_size (fd) / (1024 * 1024) / 2;
 		if (num_buffers > max)
