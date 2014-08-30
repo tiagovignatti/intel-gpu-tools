@@ -78,7 +78,7 @@ bad_blit(drm_intel_bo *src_bo, uint32_t devid)
 		cmd_bits |= XY_SRC_COPY_BLT_DST_TILED;
 	}
 
-	BLIT_COPY_BATCH_START(devid, cmd_bits);
+	BLIT_COPY_BATCH_START(cmd_bits);
 	OUT_BATCH((3 << 24) | /* 32 bits */
 		  (0xcc << 16) | /* copy ROP */
 		  dst_pitch);

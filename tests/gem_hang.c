@@ -54,7 +54,7 @@ gpu_hang(void)
 	cmd = bad_pipe ? MI_WAIT_FOR_PIPEB_SCAN_LINE_WINDOW :
 		MI_WAIT_FOR_PIPEA_SCAN_LINE_WINDOW;
 
-	BEGIN_BATCH(6);
+	BEGIN_BATCH(6, 0);
 	/* The documentation says that the LOAD_SCAN_LINES command
 	 * always comes in pairs. Don't ask me why. */
 	OUT_BATCH(MI_LOAD_SCAN_LINES_INCL | (bad_pipe << 20));

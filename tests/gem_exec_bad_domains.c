@@ -163,13 +163,13 @@ igt_main
 	}
 
 	igt_subtest("cpu-domain") {
-		BEGIN_BATCH(2);
+		BEGIN_BATCH(2, 1);
 		OUT_BATCH(0);
 		OUT_RELOC(tmp, I915_GEM_DOMAIN_CPU, 0, 0);
 		ADVANCE_BATCH();
 		igt_assert(run_batch() == -EINVAL);
 
-		BEGIN_BATCH(2);
+		BEGIN_BATCH(2, 1);
 		OUT_BATCH(0);
 		OUT_RELOC(tmp, I915_GEM_DOMAIN_CPU, I915_GEM_DOMAIN_CPU, 0);
 		ADVANCE_BATCH();
@@ -177,13 +177,13 @@ igt_main
 	}
 
 	igt_subtest("gtt-domain") {
-		BEGIN_BATCH(2);
+		BEGIN_BATCH(2, 1);
 		OUT_BATCH(0);
 		OUT_RELOC(tmp, I915_GEM_DOMAIN_GTT, 0, 0);
 		ADVANCE_BATCH();
 		igt_assert(run_batch() == -EINVAL);
 
-		BEGIN_BATCH(2);
+		BEGIN_BATCH(2, 1);
 		OUT_BATCH(0);
 		OUT_RELOC(tmp, I915_GEM_DOMAIN_GTT, I915_GEM_DOMAIN_GTT, 0);
 		ADVANCE_BATCH();
@@ -193,7 +193,7 @@ igt_main
 	/* Note: Older kernels disallow this. Punt on the skip check though
 	 * since this is too old. */
 	igt_subtest("conflicting-write-domain") {
-		BEGIN_BATCH(4);
+		BEGIN_BATCH(4, 2);
 		OUT_BATCH(0);
 		OUT_RELOC(tmp, I915_GEM_DOMAIN_RENDER,
 			  I915_GEM_DOMAIN_RENDER, 0);
@@ -208,14 +208,14 @@ igt_main
 		multi_write_domain(fd);
 
 	igt_subtest("invalid-gpu-domain") {
-		BEGIN_BATCH(2);
+		BEGIN_BATCH(2, 1);
 		OUT_BATCH(0);
 		OUT_RELOC(tmp, ~(I915_GEM_GPU_DOMAINS | I915_GEM_DOMAIN_GTT | I915_GEM_DOMAIN_CPU),
 			  0, 0);
 		ADVANCE_BATCH();
 		igt_assert(run_batch() == -EINVAL);
 
-		BEGIN_BATCH(2);
+		BEGIN_BATCH(2, 1);
 		OUT_BATCH(0);
 		OUT_RELOC(tmp, I915_GEM_DOMAIN_GTT << 1,
 			  I915_GEM_DOMAIN_GTT << 1, 0);

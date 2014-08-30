@@ -66,7 +66,7 @@ mi_lri_loop(void)
 	for (i = 0; i < 0x100; i++) {
 		int ring = random() % num_rings + 1;
 
-		BEGIN_BATCH(4);
+		BEGIN_BATCH(4, 0);
 		OUT_BATCH(MI_LOAD_REGISTER_IMM | 1);
 		OUT_BATCH(0x203c); /* RENDER RING CTL */
 		OUT_BATCH(0); /* try to stop the ring */

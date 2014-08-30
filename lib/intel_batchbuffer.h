@@ -77,6 +77,7 @@ intel_batchbuffer_require_space(struct intel_batchbuffer *batch,
 /**
  * BEGIN_BATCH:
  * @n: number of DWORDS to emit
+ * @r: number of RELOCS to emit
  *
  * Prepares a batch to emit @n DWORDS, flushing it if there's not enough space
  * available.
@@ -84,10 +85,13 @@ intel_batchbuffer_require_space(struct intel_batchbuffer *batch,
  * This macro needs a pointer to an #intel_batchbuffer structure called batch in
  * scope.
  */
-#define BEGIN_BATCH(n) do {						\
+#define BEGIN_BATCH(n, r) do {						\
+	int __n = (n); \
 	igt_assert(batch->end == NULL); \
-	intel_batchbuffer_require_space(batch, (n)*4);			\
-	batch->end = batch->ptr + (n) * 4; \
+	if (batch->gen >= 8) __n += r;	\
+	__n *= 4; \
+	intel_batchbuffer_require_space(batch, __n);			\
+	batch->end = batch->ptr + __n; \
 } while (0)
 
 /**
@@ -150,35 +154,21 @@ intel_batchbuffer_require_space(struct intel_batchbuffer *batch,
 	batch->end = NULL; \
 } while(0)
 
-#define BLIT_COPY_BATCH_START(devid, flags) do { \
-	if (intel_gen(devid) >= 8) { \
-		BEGIN_BATCH(10); \
-		OUT_BATCH(XY_SRC_COPY_BLT_CMD | \
-				XY_SRC_COPY_BLT_WRITE_ALPHA | \
-				XY_SRC_COPY_BLT_WRITE_RGB | \
-				(flags) | 8); \
-	} else { \
-		BEGIN_BATCH(8); \
-		OUT_BATCH(XY_SRC_COPY_BLT_CMD | \
-				XY_SRC_COPY_BLT_WRITE_ALPHA | \
-				XY_SRC_COPY_BLT_WRITE_RGB | \
-				(flags) | 6); \
-	} \
+#define BLIT_COPY_BATCH_START(flags) do { \
+	BEGIN_BATCH(8, 2); \
+	OUT_BATCH(XY_SRC_COPY_BLT_CMD | \
+		  XY_SRC_COPY_BLT_WRITE_ALPHA | \
+		  XY_SRC_COPY_BLT_WRITE_RGB | \
+		  (flags) | \
+		  (6 + (2*batch->gen >= 8))); \
 } while(0)
 
-#define COLOR_BLIT_COPY_BATCH_START(devid, flags) do { \
-	if (intel_gen(devid) >= 8) { \
-		BEGIN_BATCH(8); \
-		OUT_BATCH(MI_NOOP); \
-		OUT_BATCH(XY_COLOR_BLT_CMD_NOLEN | 0x5 | \
-				COLOR_BLT_WRITE_ALPHA | \
-				XY_COLOR_BLT_WRITE_RGB); \
-	} else { \
-		BEGIN_BATCH(6); \
-		OUT_BATCH(XY_COLOR_BLT_CMD_NOLEN | 0x4 | \
-				COLOR_BLT_WRITE_ALPHA | \
-				XY_COLOR_BLT_WRITE_RGB); \
-	} \
+#define COLOR_BLIT_COPY_BATCH_START(flags) do { \
+	BEGIN_BATCH(6, 1); \
+	OUT_BATCH(XY_COLOR_BLT_CMD_NOLEN | \
+		  COLOR_BLT_WRITE_ALPHA | \
+		  XY_COLOR_BLT_WRITE_RGB | \
+		  (4 + (batch->gen >= 8))); \
 } while(0)
 
 void

@@ -98,7 +98,7 @@ do_render(drm_intel_bufmgr *bufmgr, struct intel_batchbuffer *batch,
 	drm_intel_bo_unmap(src_bo);
 
 	/* Render the junk to the dst. */
-	BLIT_COPY_BATCH_START(batch->devid, 0);
+	BLIT_COPY_BATCH_START(0);
 	OUT_BATCH((3 << 24) | /* 32 bits */
 		  (0xcc << 16) | /* copy ROP */
 		  (width * 4) /* dst pitch */);

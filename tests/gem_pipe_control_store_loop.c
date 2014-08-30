@@ -77,7 +77,7 @@ store_pipe_control_loop(bool preuse_buffer)
 		igt_assert(target_bo);
 
 		if (preuse_buffer) {
-			COLOR_BLIT_COPY_BATCH_START(devid, 0);
+			COLOR_BLIT_COPY_BATCH_START(0);
 			OUT_BATCH((3 << 24) | (0xf0 << 16) | 64);
 			OUT_BATCH(0);
 			OUT_BATCH(1 << 16 | 1);
@@ -99,8 +99,8 @@ store_pipe_control_loop(bool preuse_buffer)
 		/* gem_storedw_batches_loop.c is a bit overenthusiastic with
 		 * creating new batchbuffers - with buffer reuse disabled, the
 		 * support code will do that for us. */
-		if (intel_gen(devid) >= 8) {
-			BEGIN_BATCH(5);
+		if (batch->gen >= 8) {
+			BEGIN_BATCH(4, 1);
 			OUT_BATCH(GFX_OP_PIPE_CONTROL + 1);
 			OUT_BATCH(PIPE_CONTROL_WRITE_IMMEDIATE);
 			OUT_RELOC_FENCED(target_bo,
@@ -109,10 +109,10 @@ store_pipe_control_loop(bool preuse_buffer)
 			OUT_BATCH(val); /* write data */
 			ADVANCE_BATCH();
 
-		} else if (intel_gen(devid) >= 6) {
+		} else if (batch->gen >= 6) {
 			/* work-around hw issue, see intel_emit_post_sync_nonzero_flush
 			 * in mesa sources. */
-			BEGIN_BATCH(4);
+			BEGIN_BATCH(4, 1);
 			OUT_BATCH(GFX_OP_PIPE_CONTROL);
 			OUT_BATCH(PIPE_CONTROL_CS_STALL |
 			     PIPE_CONTROL_STALL_AT_SCOREBOARD);
@@ -120,7 +120,7 @@ store_pipe_control_loop(bool preuse_buffer)
 			OUT_BATCH(0); /* write data */
 			ADVANCE_BATCH();
 
-			BEGIN_BATCH(4);
+			BEGIN_BATCH(4, 1);
 			OUT_BATCH(GFX_OP_PIPE_CONTROL);
 			OUT_BATCH(PIPE_CONTROL_WRITE_IMMEDIATE);
 			OUT_RELOC(target_bo,
@@ -128,8 +128,8 @@ store_pipe_control_loop(bool preuse_buffer)
 			     PIPE_CONTROL_GLOBAL_GTT);
 			OUT_BATCH(val); /* write data */
 			ADVANCE_BATCH();
-		} else if (intel_gen(devid) >= 4) {
-			BEGIN_BATCH(4);
+		} else if (batch->gen >= 4) {
+			BEGIN_BATCH(4, 1);
 			OUT_BATCH(GFX_OP_PIPE_CONTROL | PIPE_CONTROL_WC_FLUSH |
 					PIPE_CONTROL_TC_FLUSH |
 					PIPE_CONTROL_WRITE_IMMEDIATE | 2);

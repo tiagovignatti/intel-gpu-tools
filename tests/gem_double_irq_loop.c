@@ -62,7 +62,7 @@ dummy_reloc_loop(void)
 	int i;
 
 	for (i = 0; i < 0x800; i++) {
-		BLIT_COPY_BATCH_START(batch->devid, 0);
+		BLIT_COPY_BATCH_START(0);
 		OUT_BATCH((3 << 24) | /* 32 bits */
 			  (0xcc << 16) | /* copy ROP */
 			  4*4096);
@@ -75,7 +75,7 @@ dummy_reloc_loop(void)
 		ADVANCE_BATCH();
 		intel_batchbuffer_flush(batch);
 
-		BEGIN_BATCH(4);
+		BEGIN_BATCH(4, 1);
 		OUT_BATCH(MI_FLUSH_DW | 1);
 		OUT_BATCH(0); /* reserved */
 		OUT_RELOC(target_buffer, I915_GEM_DOMAIN_RENDER,

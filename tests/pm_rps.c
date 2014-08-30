@@ -178,23 +178,19 @@ static void emit_store_dword_imm(uint32_t val)
 	if (!lh.has_ppgtt)
 		cmd |= MI_MEM_VIRTUAL;
 
-	if (intel_gen(lh.devid) >= 8) {
-		BEGIN_BATCH(4);
-		OUT_BATCH(cmd);
+	BEGIN_BATCH(4, 1);
+	OUT_BATCH(cmd);
+	if (batch->gen >= 8) {
 		OUT_RELOC(lh.target_buffer, I915_GEM_DOMAIN_INSTRUCTION,
 			  I915_GEM_DOMAIN_INSTRUCTION, 0);
-		OUT_BATCH(0);
 		OUT_BATCH(val);
-		ADVANCE_BATCH();
 	} else {
-		BEGIN_BATCH(4);
-		OUT_BATCH(cmd);
 		OUT_BATCH(0); /* reserved */
 		OUT_RELOC(lh.target_buffer, I915_GEM_DOMAIN_INSTRUCTION,
 			  I915_GEM_DOMAIN_INSTRUCTION, 0);
 		OUT_BATCH(val);
-		ADVANCE_BATCH();
 	}
+	ADVANCE_BATCH();
 }
 
 #define LOAD_HELPER_PAUSE_USEC 500

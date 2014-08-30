@@ -54,7 +54,7 @@ static void exec_nop(data_t *data, uint32_t handle, drm_intel_context *context)
 	igt_assert(batch);
 
 	/* add the reloc to make sure the kernel will think we write to dst */
-	BEGIN_BATCH(4);
+	BEGIN_BATCH(4, 1);
 	OUT_BATCH(MI_BATCH_BUFFER_END);
 	OUT_BATCH(MI_NOOP);
 	OUT_RELOC(dst, I915_GEM_DOMAIN_RENDER, I915_GEM_DOMAIN_RENDER, 0);

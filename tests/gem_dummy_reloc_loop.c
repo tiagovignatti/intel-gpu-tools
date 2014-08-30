@@ -71,23 +71,21 @@ dummy_reloc_loop(int ring)
 	int i;
 
 	for (i = 0; i < 0x100000; i++) {
+		BEGIN_BATCH(4, 1);
 		if (ring == I915_EXEC_RENDER) {
-			BEGIN_BATCH(4);
 			OUT_BATCH(MI_COND_BATCH_BUFFER_END | MI_DO_COMPARE);
 			OUT_BATCH(0xffffffff); /* compare dword */
 			OUT_RELOC(target_buffer, I915_GEM_DOMAIN_RENDER,
 					I915_GEM_DOMAIN_RENDER, 0);
 			OUT_BATCH(MI_NOOP);
-			ADVANCE_BATCH();
 		} else {
-			BEGIN_BATCH(4);
 			OUT_BATCH(MI_FLUSH_DW | 1);
 			OUT_BATCH(0); /* reserved */
 			OUT_RELOC(target_buffer, I915_GEM_DOMAIN_RENDER,
 					I915_GEM_DOMAIN_RENDER, 0);
 			OUT_BATCH(MI_NOOP | (1<<22) | (0xf));
-			ADVANCE_BATCH();
 		}
+		ADVANCE_BATCH();
 		intel_batchbuffer_flush_on_ring(batch, ring);
 
 		drm_intel_bo_map(target_buffer, 0);
@@ -106,23 +104,21 @@ dummy_reloc_loop_random_ring(int num_rings)
 	for (i = 0; i < 0x100000; i++) {
 		int ring = random() % num_rings + 1;
 
+		BEGIN_BATCH(4, 1);
 		if (ring == I915_EXEC_RENDER) {
-			BEGIN_BATCH(4);
 			OUT_BATCH(MI_COND_BATCH_BUFFER_END | MI_DO_COMPARE);
 			OUT_BATCH(0xffffffff); /* compare dword */
 			OUT_RELOC(target_buffer, I915_GEM_DOMAIN_RENDER,
 					I915_GEM_DOMAIN_RENDER, 0);
 			OUT_BATCH(MI_NOOP);
-			ADVANCE_BATCH();
 		} else {
-			BEGIN_BATCH(4);
 			OUT_BATCH(MI_FLUSH_DW | 1);
 			OUT_BATCH(0); /* reserved */
 			OUT_RELOC(target_buffer, I915_GEM_DOMAIN_RENDER,
 					I915_GEM_DOMAIN_RENDER, 0);
 			OUT_BATCH(MI_NOOP | (1<<22) | (0xf));
-			ADVANCE_BATCH();
 		}
+		ADVANCE_BATCH();
 		intel_batchbuffer_flush_on_ring(batch, ring);
 
 		drm_intel_bo_map(target_buffer, 0);
@@ -148,23 +144,21 @@ dummy_reloc_loop_random_ring_multi_fd(int num_rings)
 		mindex = random() % NUM_FD;
 		batch = mbatch[mindex];
 
+		BEGIN_BATCH(4, 1);
 		if (ring == I915_EXEC_RENDER) {
-			BEGIN_BATCH(4);
 			OUT_BATCH(MI_COND_BATCH_BUFFER_END | MI_DO_COMPARE);
 			OUT_BATCH(0xffffffff); /* compare dword */
 			OUT_RELOC(mbuffer[mindex], I915_GEM_DOMAIN_RENDER,
 					I915_GEM_DOMAIN_RENDER, 0);
 			OUT_BATCH(MI_NOOP);
-			ADVANCE_BATCH();
 		} else {
-			BEGIN_BATCH(4);
 			OUT_BATCH(MI_FLUSH_DW | 1);
 			OUT_BATCH(0); /* reserved */
 			OUT_RELOC(mbuffer[mindex], I915_GEM_DOMAIN_RENDER,
 					I915_GEM_DOMAIN_RENDER, 0);
 			OUT_BATCH(MI_NOOP | (1<<22) | (0xf));
-			ADVANCE_BATCH();
 		}
+		ADVANCE_BATCH();
 		intel_batchbuffer_flush_on_ring(batch, ring);
 
 		drm_intel_bo_map(target_buffer, 0);

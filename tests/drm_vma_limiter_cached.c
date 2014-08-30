@@ -81,7 +81,7 @@ igt_simple_main
 	/* put some load onto the gpu to keep the light buffers active for long
 	 * enough */
 	for (i = 0; i < 10000; i++) {
-		BLIT_COPY_BATCH_START(batch->devid, 0);
+		BLIT_COPY_BATCH_START(0);
 		OUT_BATCH((3 << 24) | /* 32 bits */
 			  (0xcc << 16) | /* copy ROP */
 			  4096);
@@ -110,7 +110,7 @@ igt_simple_main
 			drm_intel_gem_bo_unmap_gtt(bo[j]);
 
 			/* put it onto the active list ... */
-			COLOR_BLIT_COPY_BATCH_START(intel_get_drm_devid(fd), 0);
+			COLOR_BLIT_COPY_BATCH_START(0);
 			OUT_BATCH((3 << 24) | /* 32 bits */
 				  128);
 			OUT_BATCH(0); /* dst x1,y1 */

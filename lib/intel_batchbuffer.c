@@ -360,9 +360,7 @@ intel_blt_copy(struct intel_batchbuffer *batch,
 		igt_fail(1);
 	}
 
-	BEGIN_BATCH(gen >= 8 ? 10 : 8);
-	OUT_BATCH(XY_SRC_COPY_BLT_CMD | cmd_bits |
-		  (gen >= 8 ? 8 : 6));
+	BLIT_COPY_BATCH_START(cmd_bits);
 	OUT_BATCH((br13_bits) |
 		  (0xcc << 16) | /* copy ROP */
 		  dst_pitch);
@@ -376,12 +374,14 @@ intel_blt_copy(struct intel_batchbuffer *batch,
 
 #define CMD_POLY_STIPPLE_OFFSET       0x7906
 	if (gen == 5) {
+		BEGIN_BATCH(2, 0);
 		OUT_BATCH(CMD_POLY_STIPPLE_OFFSET << 16);
 		OUT_BATCH(0);
+		ADVANCE_BATCH();
 	}
 
 	if (gen >= 6 && src_bo == dst_bo) {
-		BEGIN_BATCH(3);
+		BEGIN_BATCH(3, 0);
 		OUT_BATCH(XY_SETUP_CLIP_BLT_CMD);
 		OUT_BATCH(0);
 		OUT_BATCH(0);

@@ -332,7 +332,7 @@ gen5_get_counters(void)
 
 	stats_bo = drm_intel_bo_alloc(bufmgr, "stats", 4096, 4096);
 
-	BEGIN_BATCH(6);
+	BEGIN_BATCH(6, 2);
 	OUT_BATCH(GEN5_MI_REPORT_PERF_COUNT | MI_COUNTER_SET_0);
 	OUT_RELOC(stats_bo,
 		  I915_GEM_DOMAIN_INSTRUCTION, I915_GEM_DOMAIN_INSTRUCTION,
@@ -380,7 +380,7 @@ gen6_get_counters(void)
 
 	stats_bo = drm_intel_bo_alloc(bufmgr, "stats", 4096, 4096);
 
-	BEGIN_BATCH(3);
+	BEGIN_BATCH(3, 1);
 	OUT_BATCH(GEN6_MI_REPORT_PERF_COUNT | (3 - 2));
 	OUT_RELOC(stats_bo,
 		  I915_GEM_DOMAIN_INSTRUCTION, I915_GEM_DOMAIN_INSTRUCTION,
@@ -410,7 +410,7 @@ gen7_get_counters(void)
 
 	stats_bo = drm_intel_bo_alloc(bufmgr, "stats", 4096, 4096);
 
-	BEGIN_BATCH(3);
+	BEGIN_BATCH(3, 1);
 	OUT_BATCH(GEN6_MI_REPORT_PERF_COUNT | (3 - 2));
 	OUT_RELOC(stats_bo,
 		  I915_GEM_DOMAIN_INSTRUCTION, I915_GEM_DOMAIN_INSTRUCTION, 0);

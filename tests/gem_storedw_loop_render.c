@@ -59,23 +59,19 @@ emit_store_dword_imm(int devid, drm_intel_bo *dest, uint32_t val)
 	if (!has_ppgtt)
 		cmd |= MI_MEM_VIRTUAL;
 
-	if (intel_gen(devid) >= 8) {
-		BEGIN_BATCH(4);
-		OUT_BATCH(cmd);
+	BEGIN_BATCH(4, 0);
+	OUT_BATCH(cmd);
+	if (batch->gen >= 8) {
 		OUT_RELOC(dest, I915_GEM_DOMAIN_INSTRUCTION,
 			  I915_GEM_DOMAIN_INSTRUCTION, 0);
-		OUT_BATCH(0);
 		OUT_BATCH(val);
-		ADVANCE_BATCH();
 	} else {
-		BEGIN_BATCH(4);
-		OUT_BATCH(cmd);
 		OUT_BATCH(0); /* reserved */
 		OUT_RELOC(dest, I915_GEM_DOMAIN_INSTRUCTION,
 			  I915_GEM_DOMAIN_INSTRUCTION, 0);
 		OUT_BATCH(val);
-		ADVANCE_BATCH();
 	}
+	ADVANCE_BATCH();
 }
 
 static void

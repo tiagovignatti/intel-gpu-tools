@@ -125,7 +125,7 @@ static void emit_dummy_load(int pitch)
 	}
 
 	for (i = 0; i < 5; i++) {
-		BLIT_COPY_BATCH_START(devid, tile_flags);
+		BLIT_COPY_BATCH_START(tile_flags);
 		OUT_BATCH((3 << 24) | /* 32 bits */
 			  (0xcc << 16) | /* copy ROP */
 			  pitch);
@@ -137,8 +137,8 @@ static void emit_dummy_load(int pitch)
 		OUT_RELOC_FENCED(dummy_bo, I915_GEM_DOMAIN_RENDER, 0, 0);
 		ADVANCE_BATCH();
 
-		if (intel_gen(devid) >= 6) {
-			BEGIN_BATCH(3);
+		if (batch->gen >= 6) {
+			BEGIN_BATCH(3, 0);
 			OUT_BATCH(XY_SETUP_CLIP_BLT_CMD);
 			OUT_BATCH(0);
 			OUT_BATCH(0);

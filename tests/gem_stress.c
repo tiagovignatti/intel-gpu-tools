@@ -163,7 +163,7 @@ static void emit_blt(drm_intel_bo *src_bo, uint32_t src_tiling, unsigned src_pit
 	}
 
 	/* copy lower half to upper half */
-	BLIT_COPY_BATCH_START(devid, cmd_bits);
+	BLIT_COPY_BATCH_START(cmd_bits);
 	OUT_BATCH((3 << 24) | /* 32 bits */
 		  (0xcc << 16) | /* copy ROP */
 		  dst_pitch);
@@ -175,8 +175,8 @@ static void emit_blt(drm_intel_bo *src_bo, uint32_t src_tiling, unsigned src_pit
 	OUT_RELOC_FENCED(src_bo, I915_GEM_DOMAIN_RENDER, 0, 0);
 	ADVANCE_BATCH();
 
-	if (IS_GEN6(devid) || IS_GEN7(devid)) {
-		BEGIN_BATCH(3);
+	if (batch->gen >= 6) {
+		BEGIN_BATCH(3, 0);
 		OUT_BATCH(XY_SETUP_CLIP_BLT_CMD);
 		OUT_BATCH(0);
 		OUT_BATCH(0);

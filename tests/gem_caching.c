@@ -63,7 +63,7 @@ int fd;
 static void
 copy_bo(drm_intel_bo *src, drm_intel_bo *dst)
 {
-	BLIT_COPY_BATCH_START(devid, 0);
+	BLIT_COPY_BATCH_START(0);
 	OUT_BATCH((3 << 24) | /* 32 bits */
 		  (0xcc << 16) | /* copy ROP */
 		  4096);

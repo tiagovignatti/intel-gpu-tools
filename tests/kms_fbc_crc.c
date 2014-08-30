@@ -83,20 +83,33 @@ static const char *test_mode_str(enum test_mode mode)
 	return test_modes[mode];
 }
 
-static void fill_blt(data_t *data, uint32_t handle, unsigned char color)
+static void fill_blt(data_t *data,
+		     uint32_t handle,
+		     struct igt_fb *fb,
+		     unsigned char color)
 {
 	drm_intel_bo *dst = gem_handle_to_libdrm_bo(data->bufmgr,
 						    data->drm_fd,
 						    "", handle);
 	struct intel_batchbuffer *batch;
+	unsigned flags;
+	int pitch;
 
 	batch = intel_batchbuffer_alloc(data->bufmgr, data->devid);
 	igt_assert(batch);
 
-	COLOR_BLIT_COPY_BATCH_START(batch->devid, 0);
-	OUT_BATCH((0 << 24) | (0xf0 << 16) | 0);
+	pitch = fb->stride;
+	flags = XY_COLOR_BLT_WRITE_ALPHA |
+		XY_COLOR_BLT_WRITE_RGB;
+	if (fb->tiling && batch->gen >= 4) {
+		flags |= XY_COLOR_BLT_TILED;
+		pitch /= 4;
+	}
+
+	COLOR_BLIT_COPY_BATCH_START(flags);
+	OUT_BATCH(3 << 24 | 0xf0 << 16 | pitch);
 	OUT_BATCH(0);
-	OUT_BATCH(1 << 16 | 4);
+	OUT_BATCH(fb->height << 16 | fb->width);
 	OUT_RELOC_FENCED(dst, I915_GEM_DOMAIN_RENDER, I915_GEM_DOMAIN_RENDER, 0);
 	OUT_BATCH(color);
 	ADVANCE_BATCH();
@@ -127,7 +140,7 @@ static void exec_nop(data_t *data, uint32_t handle, drm_intel_context *context)
 	igt_assert(batch);
 
 	/* add the reloc to make sure the kernel will think we write to dst */
-	BEGIN_BATCH(4);
+	BEGIN_BATCH(4, 1);
 	OUT_BATCH(MI_BATCH_BUFFER_END);
 	OUT_BATCH(MI_NOOP);
 	OUT_RELOC(dst, I915_GEM_DOMAIN_RENDER, I915_GEM_DOMAIN_RENDER, 0);
@@ -226,7 +239,7 @@ static void test_crc(data_t *data, enum test_mode mode)
 		break;
 	case TEST_BLT:
 	case TEST_PAGE_FLIP_AND_BLT:
-		fill_blt(data, handle, 0xff);
+		fill_blt(data, handle, data->fb, ~0);
 		break;
 	case TEST_RENDER:
 	case TEST_CONTEXT:

@@ -84,7 +84,7 @@ copy_bo(drm_intel_bo *src, int src_tiled,
 		cmd_bits |= XY_SRC_COPY_BLT_SRC_TILED;
 	}
 
-	BLIT_COPY_BATCH_START(devid, cmd_bits);
+	BLIT_COPY_BATCH_START(cmd_bits);
 	OUT_BATCH((3 << 24) | /* 32 bits */
 		  (0xcc << 16) | /* copy ROP */
 		  dst_pitch);

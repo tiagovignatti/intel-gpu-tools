@@ -180,8 +180,7 @@ static void fill_blt(data_t *data, uint32_t handle, unsigned char color)
 	batch = intel_batchbuffer_alloc(data->bufmgr, data->devid);
 	igt_assert(batch);
 
-	BEGIN_BATCH(5);
-	OUT_BATCH(COLOR_BLT_CMD);
+	COLOR_BLIT_COPY_BATCH_START(0);
 	OUT_BATCH((1 << 24) | (0xf0 << 16) | 0);
 	OUT_BATCH(1 << 16 | 4);
 	OUT_RELOC(dst, I915_GEM_DOMAIN_RENDER, I915_GEM_DOMAIN_RENDER, 0);
@@ -214,7 +213,7 @@ static void exec_nop(data_t *data, uint32_t handle, drm_intel_context *context)
 	igt_assert(batch);
 
 	/* add the reloc to make sure the kernel will think we write to dst */
-	BEGIN_BATCH(4);
+	BEGIN_BATCH(4, 1);
 	OUT_BATCH(MI_BATCH_BUFFER_END);
 	OUT_BATCH(MI_NOOP);
 	OUT_RELOC(dst, I915_GEM_DOMAIN_RENDER, I915_GEM_DOMAIN_RENDER, 0);

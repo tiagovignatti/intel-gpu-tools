@@ -50,7 +50,7 @@ struct intel_batchbuffer *batch;
 static void
 bad_store(void)
 {
-	BEGIN_BATCH(4);
+	BEGIN_BATCH(4, 0);
 	OUT_BATCH(MI_STORE_DWORD_IMM | MI_MEM_VIRTUAL | 1 << 21);
 	OUT_BATCH(0);
 	OUT_BATCH(BAD_GTT_DEST);

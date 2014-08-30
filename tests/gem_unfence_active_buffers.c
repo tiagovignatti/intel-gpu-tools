@@ -86,7 +86,7 @@ igt_simple_main
 	busy_bo = drm_intel_bo_alloc(bufmgr, "busy bo bo", 16*1024*1024, 4096);
 
 	for (i = 0; i < 250; i++) {
-		BLIT_COPY_BATCH_START(devid, 0);
+		BLIT_COPY_BATCH_START(0);
 		OUT_BATCH((3 << 24) | /* 32 bits */
 			  (0xcc << 16) | /* copy ROP */
 			  2*1024*4);
@@ -98,8 +98,8 @@ igt_simple_main
 		OUT_RELOC_FENCED(busy_bo, I915_GEM_DOMAIN_RENDER, 0, 0);
 		ADVANCE_BATCH();
 
-		if (IS_GEN6(devid) || IS_GEN7(devid)) {
-			BEGIN_BATCH(3);
+		if (batch->gen >= 6) {
+			BEGIN_BATCH(3, 0);
 			OUT_BATCH(XY_SETUP_CLIP_BLT_CMD);
 			OUT_BATCH(0);
 			OUT_BATCH(0);
@@ -119,7 +119,7 @@ igt_simple_main
 
 		drm_intel_bo_disable_reuse(test_bo);
 
-		BLIT_COPY_BATCH_START(devid, 0);
+		BLIT_COPY_BATCH_START(0);
 		OUT_BATCH((3 << 24) | /* 32 bits */
 			  (0xcc << 16) | /* copy ROP */
 			  TEST_STRIDE);
@@ -138,7 +138,7 @@ igt_simple_main
 
 	/* launch a few batchs to ensure the damaged slab objects get reused. */
 	for (i = 0; i < 10; i++) {
-		BLIT_COPY_BATCH_START(devid, 0);
+		BLIT_COPY_BATCH_START(0);
 		OUT_BATCH((3 << 24) | /* 32 bits */
 			  (0xcc << 16) | /* copy ROP */
 			  2*1024*4);
@@ -150,8 +150,8 @@ igt_simple_main
 		OUT_RELOC_FENCED(busy_bo, I915_GEM_DOMAIN_RENDER, 0, 0);
 		ADVANCE_BATCH();
 
-		if (IS_GEN6(devid) || IS_GEN7(devid)) {
-			BEGIN_BATCH(3);
+		if (batch->gen >= 8) {
+			BEGIN_BATCH(3, 0);
 			OUT_BATCH(XY_SETUP_CLIP_BLT_CMD);
 			OUT_BATCH(0);
 			OUT_BATCH(0);

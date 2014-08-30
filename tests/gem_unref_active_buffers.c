@@ -74,7 +74,7 @@ igt_simple_main
 		load_bo = drm_intel_bo_alloc(bufmgr, "target bo", 1024*4096, 4096);
 		igt_assert(load_bo);
 
-		BLIT_COPY_BATCH_START(batch->devid, 0);
+		BLIT_COPY_BATCH_START(0);
 		OUT_BATCH((3 << 24) | /* 32 bits */
 			  (0xcc << 16) | /* copy ROP */
 			  4096);

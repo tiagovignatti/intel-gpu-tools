@@ -88,9 +88,8 @@ igt_simple_main
 		pitch /= 4;
 
 	for (i = 0; i < 10000; i++) {
-		BLIT_COPY_BATCH_START(devid,
-				XY_SRC_COPY_BLT_SRC_TILED |
-				XY_SRC_COPY_BLT_DST_TILED);
+		BLIT_COPY_BATCH_START(XY_SRC_COPY_BLT_SRC_TILED |
+				      XY_SRC_COPY_BLT_DST_TILED);
 		OUT_BATCH((3 << 24) | /* 32 bits */
 			  (0xcc << 16) | /* copy ROP */
 			  pitch);
@@ -102,8 +101,8 @@ igt_simple_main
 		OUT_RELOC_FENCED(bo, I915_GEM_DOMAIN_RENDER, 0, 0);
 		ADVANCE_BATCH();
 
-		if (IS_GEN6(devid) || IS_GEN7(devid)) {
-			BEGIN_BATCH(3);
+		if (batch->gen >= 6) {
+			BEGIN_BATCH(3, 0);
 			OUT_BATCH(XY_SETUP_CLIP_BLT_CMD);
 			OUT_BATCH(0);
 			OUT_BATCH(0);

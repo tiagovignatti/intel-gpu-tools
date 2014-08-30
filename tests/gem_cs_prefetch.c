@@ -134,7 +134,7 @@ igt_simple_main
 
 		/* copy the sample batch with the gpu to the new one, so that we
 		 * also test the unmappable part of the gtt. */
-		BLIT_COPY_BATCH_START(batch->devid, 0);
+		BLIT_COPY_BATCH_START(0);
 		OUT_BATCH((3 << 24) | /* 32 bits */
 			  (0xcc << 16) | /* copy ROP */
 			  4096);

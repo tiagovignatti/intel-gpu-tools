@@ -62,9 +62,9 @@ store_dword_loop(int divider)
 	cmd = MI_STORE_DWORD_IMM;
 
 	for (i = 0; i < SLOW_QUICK(0x2000, 0x10); i++) {
-		BEGIN_BATCH(4);
+		BEGIN_BATCH(4, 0);
 		OUT_BATCH(cmd);
-		if (intel_gen(batch->devid) < 8)
+		if (batch->gen < 8)
 			OUT_BATCH(0); /* reserved */
 		OUT_RELOC(target_buffer, I915_GEM_DOMAIN_INSTRUCTION,
 			  I915_GEM_DOMAIN_INSTRUCTION, 0);

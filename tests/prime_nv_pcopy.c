@@ -166,7 +166,7 @@ BEGIN_NVXX(struct nouveau_pushbuf *push, int subc, int mthd, int size)
 static void
 noop_intel(drm_intel_bo *bo)
 {
-	BEGIN_BATCH(3);
+	BEGIN_BATCH(3, 1);
 	OUT_BATCH(MI_NOOP);
 	OUT_BATCH(MI_BATCH_BUFFER_END);
 	OUT_RELOC(bo, I915_GEM_DOMAIN_RENDER,

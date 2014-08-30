@@ -86,7 +86,7 @@ static void do_test(uint32_t tiling, unsigned stride,
 	busy_bo = drm_intel_bo_alloc(bufmgr, "busy bo bo", 16*1024*1024, 4096);
 
 	for (i = 0; i < 250; i++) {
-		BLIT_COPY_BATCH_START(devid, 0);
+		BLIT_COPY_BATCH_START(0);
 		OUT_BATCH((3 << 24) | /* 32 bits */
 			  (0xcc << 16) | /* copy ROP */
 			  2*1024*4);
@@ -98,8 +98,8 @@ static void do_test(uint32_t tiling, unsigned stride,
 		OUT_RELOC_FENCED(busy_bo, I915_GEM_DOMAIN_RENDER, 0, 0);
 		ADVANCE_BATCH();
 
-		if (IS_GEN6(devid) || IS_GEN7(devid)) {
-			BEGIN_BATCH(3);
+		if (batch->gen >= 6) {
+			BEGIN_BATCH(3, 0);
 			OUT_BATCH(XY_SETUP_CLIP_BLT_CMD);
 			OUT_BATCH(0);
 			OUT_BATCH(0);
@@ -157,7 +157,7 @@ static void do_test(uint32_t tiling, unsigned stride,
 		blt_bits = XY_SRC_COPY_BLT_SRC_TILED;
 	}
 
-	BLIT_COPY_BATCH_START(devid, blt_bits);
+	BLIT_COPY_BATCH_START(blt_bits);
 	OUT_BATCH((3 << 24) | /* 32 bits */
 		  (0xcc << 16) | /* copy ROP */
 		  stride);
@@ -181,7 +181,7 @@ static void do_test(uint32_t tiling, unsigned stride,
 	/* Note: We don't care about gen4+ here because the blitter doesn't use
 	 * fences there. So not setting tiling flags on the tiled buffer is ok.
 	 */
-	BLIT_COPY_BATCH_START(devid, 0);
+	BLIT_COPY_BATCH_START(0);
 	OUT_BATCH((3 << 24) | /* 32 bits */
 		  (0xcc << 16) | /* copy ROP */
 		  stride_after);

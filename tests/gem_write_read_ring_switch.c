@@ -80,7 +80,7 @@ static void run_test(int ring)
 	/* put some load onto the gpu to keep the light buffers active for long
 	 * enough */
 	for (i = 0; i < 1000; i++) {
-		BLIT_COPY_BATCH_START(batch->devid, 0);
+		BLIT_COPY_BATCH_START(0);
 		OUT_BATCH((3 << 24) | /* 32 bits */
 			  (0xcc << 16) | /* copy ROP */
 			  4096);
@@ -93,7 +93,7 @@ static void run_test(int ring)
 		ADVANCE_BATCH();
 	}
 
-	COLOR_BLIT_COPY_BATCH_START(batch->devid, 0);
+	COLOR_BLIT_COPY_BATCH_START(0);
 	OUT_BATCH((3 << 24) | /* 32 bits */
 		  (0xff << 16) |
 		  128);
@@ -107,7 +107,7 @@ static void run_test(int ring)
 
 	/* Emit an empty batch so that signalled seqno on the target ring >
 	 * signalled seqnoe on the blt ring. This is required to hit the bug. */
-	BEGIN_BATCH(2);
+	BEGIN_BATCH(2, 0);
 	OUT_BATCH(MI_NOOP);
 	OUT_BATCH(MI_NOOP);
 	ADVANCE_BATCH();
@@ -116,14 +116,14 @@ static void run_test(int ring)
 	/* For the ring->ring sync it's important to only emit a read reloc, for
 	 * otherwise the obj->last_write_seqno will be updated. */
 	if (ring == I915_EXEC_RENDER) {
-		BEGIN_BATCH(4);
+		BEGIN_BATCH(4, 1);
 		OUT_BATCH(MI_COND_BATCH_BUFFER_END | MI_DO_COMPARE);
 		OUT_BATCH(0xffffffff); /* compare dword */
 		OUT_RELOC(target_bo, I915_GEM_DOMAIN_RENDER, 0, 0);
 		OUT_BATCH(MI_NOOP);
 		ADVANCE_BATCH();
 	} else {
-		BEGIN_BATCH(4);
+		BEGIN_BATCH(4, 1);
 		OUT_BATCH(MI_FLUSH_DW | 1);
 		OUT_BATCH(0); /* reserved */
 		OUT_RELOC(target_bo, I915_GEM_DOMAIN_RENDER, 0, 0);

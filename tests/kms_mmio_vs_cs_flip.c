@@ -55,7 +55,7 @@ static void exec_nop(data_t *data, uint32_t handle, unsigned int ring)
 	igt_assert(bo);
 
 	/* add relocs to make sure the kernel will think we write to dst */
-	BEGIN_BATCH(4);
+	BEGIN_BATCH(4, 1);
 	OUT_BATCH(MI_BATCH_BUFFER_END);
 	OUT_BATCH(MI_NOOP);
 	OUT_RELOC(bo, I915_GEM_DOMAIN_RENDER, I915_GEM_DOMAIN_RENDER, 0);
@@ -81,7 +81,7 @@ static void exec_blt(data_t *data)
 	pitch = w * 4;
 
 	for (i = 0; i < 40; i++) {
-		BLIT_COPY_BATCH_START(data->devid, 0);
+		BLIT_COPY_BATCH_START(0);
 		OUT_BATCH((3 << 24) | /* 32 bits */
 			  (0xcc << 16) | /* copy ROP */
 			  pitch);

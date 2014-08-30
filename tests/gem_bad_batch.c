@@ -48,7 +48,7 @@ struct intel_batchbuffer *batch;
 static void
 bad_batch(void)
 {
-	BEGIN_BATCH(2);
+	BEGIN_BATCH(2, 0);
 	OUT_BATCH(MI_BATCH_BUFFER_START);
 	OUT_BATCH(0);
 	ADVANCE_BATCH();

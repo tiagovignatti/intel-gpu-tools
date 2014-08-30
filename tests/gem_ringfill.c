@@ -178,7 +178,7 @@ static void blt_copy(struct intel_batchbuffer *batch,
 		     unsigned w, unsigned h,
 		     struct igt_buf *dst, unsigned dst_x, unsigned dst_y)
 {
-	BLIT_COPY_BATCH_START(batch->devid, 0);
+	BLIT_COPY_BATCH_START(0);
 	OUT_BATCH((3 << 24) | /* 32 bits */
 		  (0xcc << 16) | /* copy ROP */
 		  dst->stride);
