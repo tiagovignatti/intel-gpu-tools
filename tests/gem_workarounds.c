@@ -184,7 +184,7 @@ igt_main
 		devid = intel_get_drm_devid(drm_fd);
 		batch = intel_batchbuffer_alloc(bufmgr, devid);
 
-		fd = igt_debugfs_open("intel_wa_registers", O_RDONLY);
+		fd = igt_debugfs_open("i915_wa_registers", O_RDONLY);
 		igt_assert(fd >= 0);
 
 		file = fdopen(fd, "r");
