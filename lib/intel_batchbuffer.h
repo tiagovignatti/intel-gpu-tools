@@ -160,7 +160,7 @@ intel_batchbuffer_require_space(struct intel_batchbuffer *batch,
 		  XY_SRC_COPY_BLT_WRITE_ALPHA | \
 		  XY_SRC_COPY_BLT_WRITE_RGB | \
 		  (flags) | \
-		  (6 + (2*batch->gen >= 8))); \
+		  (6 + 2*(batch->gen >= 8))); \
 } while(0)
 
 #define COLOR_BLIT_COPY_BATCH_START(flags) do { \
