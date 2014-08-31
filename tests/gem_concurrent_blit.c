@@ -77,26 +77,17 @@ prw_set_bo(drm_intel_bo *bo, uint32_t val, int width, int height)
 }
 
 static void
-prw_cmp_bo(drm_intel_bo *bo, uint32_t val, int width, int height)
+prw_cmp_bo(drm_intel_bo *bo, uint32_t val, int width, int height, drm_intel_bo *tmp)
 {
 	int size = width * height, i;
-	uint32_t *tmp;
+	uint32_t *vaddr;
 
-	tmp = malloc(4*size);
-	if (tmp) {
-		memset(tmp, 0, 4*size);
-		do_or_die(drm_intel_bo_get_subdata(bo, 0, 4*size, tmp));
-		for (i = 0; i < size; i++)
-			igt_assert_eq_u32(tmp[i], val);
-		free(tmp);
-	} else {
-		uint32_t t;
-		for (i = 0; i < size; i++) {
-			t = 0;
-			do_or_die(drm_intel_bo_get_subdata(bo, 4*i, 4, &t));
-			igt_assert_eq_u32(t, val);
-		}
-	}
+	do_or_die(drm_intel_bo_map(tmp, true));
+	do_or_die(drm_intel_bo_get_subdata(bo, 0, 4*size, tmp->virtual));
+	vaddr = tmp->virtual;
+	for (i = 0; i < size; i++)
+		igt_assert_eq_u32(vaddr[i], val);
+	drm_intel_bo_unmap(tmp);
 }
 
 static drm_intel_bo *
@@ -123,7 +114,7 @@ gtt_set_bo(drm_intel_bo *bo, uint32_t val, int width, int height)
 }
 
 static void
-gtt_cmp_bo(drm_intel_bo *bo, uint32_t val, int width, int height)
+gtt_cmp_bo(drm_intel_bo *bo, uint32_t val, int width, int height, drm_intel_bo *tmp)
 {
 	int size = width * height;
 	uint32_t *vaddr;
@@ -195,7 +186,7 @@ cpu_set_bo(drm_intel_bo *bo, uint32_t val, int width, int height)
 }
 
 static void
-cpu_cmp_bo(drm_intel_bo *bo, uint32_t val, int width, int height)
+cpu_cmp_bo(drm_intel_bo *bo, uint32_t val, int width, int height, drm_intel_bo *tmp)
 {
 	int size = width * height;
 	uint32_t *vaddr;
@@ -268,24 +259,22 @@ gpu_set_bo(drm_intel_bo *bo, uint32_t val, int width, int height)
 	gem_pwrite.offset = 0;
 	gem_pwrite.size = execbuf.batch_len;
 	gem_pwrite.data_ptr = (uintptr_t)buf;
-	if (drmIoctl(fd, DRM_IOCTL_I915_GEM_PWRITE, &gem_pwrite) == 0)
-		drmIoctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf);
+	do_or_die(drmIoctl(fd, DRM_IOCTL_I915_GEM_PWRITE, &gem_pwrite));
+	do_or_die(drmIoctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf));
 
 	drmIoctl(fd, DRM_IOCTL_GEM_CLOSE, &create.handle);
 }
 
 static void
-gpu_cmp_bo(drm_intel_bo *bo, uint32_t val, int width, int height)
+gpu_cmp_bo(drm_intel_bo *bo, uint32_t val, int width, int height, drm_intel_bo *tmp)
 {
-	dri_bo *tmp = drm_intel_bo_alloc(bo->bufmgr, "tmp", 4*width*height, 0);
 	intel_copy_bo(batch, tmp, bo, width*height*4);
-	cpu_cmp_bo(tmp, val, width, height);
-	drm_intel_bo_unreference(tmp);
+	cpu_cmp_bo(tmp, val, width, height, NULL);
 }
 
 struct access_mode {
 	void (*set_bo)(drm_intel_bo *bo, uint32_t val, int w, int h);
-	void (*cmp_bo)(drm_intel_bo *bo, uint32_t val, int w, int h);
+	void (*cmp_bo)(drm_intel_bo *bo, uint32_t val, int w, int h, drm_intel_bo *tmp);
 	drm_intel_bo *(*create_bo)(drm_intel_bufmgr *bufmgr, int width, int height);
 	const char *name;
 };
@@ -355,14 +344,14 @@ static void do_overwrite_source(struct access_mode *mode,
 	gem_quiescent_gpu(fd);
 	for (i = 0; i < num_buffers; i++) {
 		mode->set_bo(src[i], i, width, height);
-		mode->set_bo(dst[i], i, width, height);
+		mode->set_bo(dst[i], ~i, width, height);
 	}
 	for (i = 0; i < num_buffers; i++)
 		do_copy_func(dst[i], src[i]);
 	for (i = num_buffers; i--; )
 		mode->set_bo(src[i], 0xdeadbeef, width, height);
 	for (i = 0; i < num_buffers; i++)
-		mode->cmp_bo(dst[i], i, width, height);
+		mode->cmp_bo(dst[i], i, width, height, dummy);
 }
 
 static void do_early_read(struct access_mode *mode,
@@ -378,7 +367,7 @@ static void do_early_read(struct access_mode *mode,
 	for (i = 0; i < num_buffers; i++)
 		do_copy_func(dst[i], src[i]);
 	for (i = num_buffers; i--; )
-		mode->cmp_bo(dst[i], 0xdeadbeef, width, height);
+		mode->cmp_bo(dst[i], 0xdeadbeef, width, height, dummy);
 }
 
 static void do_gpu_read_after_write(struct access_mode *mode,
@@ -396,7 +385,7 @@ static void do_gpu_read_after_write(struct access_mode *mode,
 	for (i = num_buffers; i--; )
 		do_copy_func(dummy, dst[i]);
 	for (i = num_buffers; i--; )
-		mode->cmp_bo(dst[i], 0xabcdabcd, width, height);
+		mode->cmp_bo(dst[i], 0xabcdabcd, width, height, dummy);
 }
 
 typedef void (*do_test)(struct access_mode *mode,
