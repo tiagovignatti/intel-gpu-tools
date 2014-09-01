@@ -384,19 +384,18 @@ gen6_emit_vertex_elements(struct intel_batchbuffer *batch) {
 }
 
 /*
- * gen7_emit_vertex_buffer emit the vertex buffers command
+ * gen8_emit_vertex_buffer emit the vertex buffers command
  *
  * @batch
  * @offset - bytw offset within the @batch where the vertex buffer starts.
  */
-static void gen7_emit_vertex_buffer(struct intel_batchbuffer *batch,
+static void gen8_emit_vertex_buffer(struct intel_batchbuffer *batch,
 				    uint32_t offset) {
 	OUT_BATCH(GEN6_3DSTATE_VERTEX_BUFFERS | (1 + (4 * 1) - 2));
 	OUT_BATCH(0 << VB0_BUFFER_INDEX_SHIFT | /* VB 0th index */
 		  GEN7_VB0_BUFFER_ADDR_MOD_EN | /* Address Modify Enable */
 		  VERTEX_SIZE << VB0_BUFFER_PITCH_SHIFT);
 	OUT_RELOC(batch->bo, I915_GEM_DOMAIN_VERTEX, 0, offset);
-	OUT_BATCH(0);
 	OUT_BATCH(3 * VERTEX_SIZE);
 }
 
@@ -995,7 +994,7 @@ void gen8_render_copyfunc(struct intel_batchbuffer *batch,
 
 	gen6_emit_drawing_rectangle(batch, dst);
 
-	gen7_emit_vertex_buffer(batch, vertex_buffer);
+	gen8_emit_vertex_buffer(batch, vertex_buffer);
 	gen6_emit_vertex_elements(batch);
 
 	gen8_emit_vf_topology(batch);
