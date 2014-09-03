@@ -895,6 +895,7 @@ bool __igt_fork_helper(struct igt_helper_process *proc)
 {
 	pid_t pid;
 	int id;
+	int tmp_count;
 
 	assert(!proc->running);
 	assert(helper_process_count < ARRAY_SIZE(helper_process_pids));
@@ -904,16 +905,24 @@ bool __igt_fork_helper(struct igt_helper_process *proc)
 
 	igt_install_exit_handler(fork_helper_exit_handler);
 
+	/*
+	 * Avoid races when the parent stops the child before the setup code
+	 * had a chance to run. This happens e.g. when skipping tests wrapped in
+	 * the signal helper.
+	 */
+	tmp_count = exit_handler_count;
+	exit_handler_count = 0;
 	switch (pid = fork()) {
 	case -1:
+		exit_handler_count = tmp_count;
 		igt_assert(0);
 	case 0:
-		exit_handler_count = 0;
 		reset_helper_process_list();
 		oom_adjust_for_doom();
 
 		return true;
 	default:
+		exit_handler_count = tmp_count;
 		proc->running = true;
 		proc->pid = pid;
 		proc->id = id;
