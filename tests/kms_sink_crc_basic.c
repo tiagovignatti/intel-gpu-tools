@@ -34,20 +34,18 @@
 #include "igt_debugfs.h"
 #include "igt_kms.h"
 
+#define CRC_BLACK "000000000000"
+
 enum color {
-	WHITE,
-	BLACK,
-	NUM_COLORS,
+	RED,
+	GREEN,
 };
 
 typedef struct {
-	struct kmstest_connector_config config;
-	struct igt_fb fb;
-} connector_t;
-
-typedef struct {
 	int drm_fd;
-	drmModeRes *resources;
+	igt_display_t display;
+	struct igt_fb fb_green, fb_red;
+	igt_plane_t *primary;
 } data_t;
 
 static void get_crc(char *crc) {
@@ -59,111 +57,104 @@ static void get_crc(char *crc) {
 	igt_require(ret > 0);
 
 	fclose(file);
+
+	/* Black screen is always invalid */
+	igt_assert(strcmp(crc, CRC_BLACK) != 0);
 }
 
-static uint32_t create_fb(data_t *data,
-			  int w, int h,
-			  double r, double g, double b,
-			  struct igt_fb *fb)
+static void assert_color(char *crc, enum color color)
 {
-	cairo_t *cr;
-	uint32_t fb_id;
-
-	fb_id = igt_create_fb(data->drm_fd, w, h,
-			      DRM_FORMAT_XRGB8888, I915_TILING_NONE, fb);
-	igt_assert(fb_id);
-
-	cr = igt_get_cairo_ctx(data->drm_fd, fb);
-	igt_paint_color(cr, 0, 0, w, h, r, g, b);
-	igt_assert(cairo_status(cr) == 0);
-
-	return fb_id;
-}
-
-static bool
-connector_set_mode(data_t *data, connector_t *connector, drmModeModeInfo *mode,
-		   enum color crtc_color)
-{
-	struct kmstest_connector_config *config = &connector->config;
-	unsigned int fb_id;
+	char color_mask[5] = "FFFF\0";
+	char rs[5], gs[5], bs[5];
+	unsigned int rh, gh, bh, mask;
 	int ret;
 
-	if (crtc_color == WHITE)
-		fb_id = create_fb(data, mode->hdisplay, mode->vdisplay,
-				  1.0, 1.0, 1.0, &connector->fb);
-	else
-		fb_id = create_fb(data, mode->hdisplay, mode->vdisplay,
-				  0.0, 0.0, 0.0, &connector->fb);
-	igt_assert(fb_id);
+	sscanf(color_mask, "%4x", &mask);
 
-	ret = drmModeSetCrtc(data->drm_fd,
-			     config->crtc->crtc_id,
-			     connector->fb.fb_id,
-			     0, 0, /* x, y */
-			     &config->connector->connector_id,
-			     1,
-			     mode);
-	igt_assert(ret == 0);
+	memcpy(rs, &crc[0], 4);
+	rs[4] = '\0';
+	ret = sscanf(rs, "%4x", &rh);
+	igt_require(ret > 0);
 
-	return 0;
+	memcpy(gs, &crc[4], 4);
+	gs[4] = '\0';
+	ret = sscanf(gs, "%4x", &gh);
+	igt_require(ret > 0);
+
+	memcpy(bs, &crc[8], 4);
+	bs[4] = '\0';
+	ret = sscanf(bs, "%4x", &bh);
+	igt_require(ret > 0);
+
+	switch (color) {
+	case RED:
+		igt_assert((rh & mask) != 0 &&
+			   (gh & mask) == 0 &&
+			   (bh & mask) == 0);
+		break;
+	case GREEN:
+		igt_assert((rh & mask) == 0 &&
+			   (gh & mask) != 0 &&
+			   (bh & mask) == 0);
+		break;
+	default:
+		igt_fail(-1);
+	}
 }
 
-static void basic_sink_crc_check(data_t *data, uint32_t connector_id)
+static void basic_sink_crc_check(data_t *data)
 {
-	connector_t connector;
-	char ref_crc_white[12];
-	char ref_crc_black[12];
-	char crc_check[12];
+	char crc[13];
 
-	igt_require(kmstest_get_connector_config(data->drm_fd,
-						 connector_id,
-						 1 << 0,
-						 &connector.config));
+	/* Go Green */
+	igt_plane_set_fb(data->primary, &data->fb_green);
+	igt_display_commit(&data->display);
 
-	/*Go White*/
-	connector_set_mode(data, &connector, &connector.config.default_mode, WHITE);
+	/* It should be Green */
+	get_crc(crc);
+	assert_color(crc, GREEN);
 
-	/* get reference crc for white color */
-	get_crc(ref_crc_white);
+	/* Go Red */
+	igt_plane_set_fb(data->primary, &data->fb_red);
+	igt_display_commit(&data->display);
 
-	/* Go Black */
-	connector_set_mode(data, &connector, &connector.config.default_mode, BLACK);
-
-	/* get reference crc for black color */
-	get_crc(ref_crc_black);
-
-	igt_assert(strcmp(ref_crc_black, ref_crc_white) != 0);
-
-	/*Go White again*/
-	connector_set_mode(data, &connector, &connector.config.default_mode, WHITE);
-
-	get_crc(crc_check);
-	igt_assert(strcmp(crc_check, ref_crc_white) == 0);
-
-	/* Go Black again */
-	connector_set_mode(data, &connector, &connector.config.default_mode, BLACK);
-
-	get_crc(crc_check);
-	igt_assert(strcmp(crc_check, ref_crc_black) == 0);
-
-	kmstest_free_connector_config(&connector.config);
+	/* It should be Red */
+	get_crc(crc);
+	assert_color(crc, RED);
 }
 
 static void run_test(data_t *data)
 {
-	int i;
-	drmModeConnectorPtr c;
-	uint32_t connector_id = 0;
+	igt_display_t *display = &data->display;
+	igt_output_t *output;
+	drmModeModeInfo *mode;
 
-	for (i = 0; i < data->resources->count_connectors; i++) {
-		connector_id = data->resources->connectors[i];
-		c = drmModeGetConnector(data->drm_fd, connector_id);
+	for_each_connected_output(display, output) {
+		drmModeConnectorPtr c = output->config.connector;
 
 		if (c->connector_type != DRM_MODE_CONNECTOR_eDP ||
 		    c->connection != DRM_MODE_CONNECTED)
 			continue;
 
-		basic_sink_crc_check(data, connector_id);
+		igt_output_set_pipe(output, PIPE_ANY);
+
+		mode = igt_output_get_mode(output);
+
+		igt_create_color_fb(data->drm_fd,
+				    mode->hdisplay, mode->vdisplay,
+				    DRM_FORMAT_XRGB8888, I915_TILING_X,
+				    0.0, 1.0, 0.0,
+				    &data->fb_green);
+
+		igt_create_color_fb(data->drm_fd,
+				    mode->hdisplay, mode->vdisplay,
+				    DRM_FORMAT_XRGB8888, I915_TILING_X,
+				    1.0, 0.0, 0.0,
+				    &data->fb_red);
+
+		data->primary = igt_output_get_plane(output, IGT_PLANE_PRIMARY);
+
+		basic_sink_crc_check(data);
 		return;
 	}
 
@@ -179,11 +170,9 @@ igt_simple_main
 	data.drm_fd = drm_open_any();
 
 	kmstest_set_vt_graphics_mode();
-
-	data.resources = drmModeGetResources(data.drm_fd);
-	igt_assert(data.resources);
+	igt_display_init(&data.display, data.drm_fd);
 
 	run_test(&data);
 
-	drmModeFreeResources(data.resources);
+	igt_display_fini(&data.display);
 }
