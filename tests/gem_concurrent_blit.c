@@ -319,7 +319,6 @@ static void render_copy_bo(drm_intel_bo *dst, drm_intel_bo *src)
 	drm_intel_bo_get_tiling(dst, &d.tiling, &swizzle);
 	drm_intel_bo_get_tiling(src, &s.tiling, &swizzle);
 
-	igt_require(rendercopy);
 	rendercopy(batch, NULL,
 		   &s, 0, 0,
 		   width, height,
@@ -459,6 +458,15 @@ static void run_forked(struct access_mode *mode,
 	num_buffers = old_num_buffers;
 }
 
+static void bcs_require(void)
+{
+}
+
+static void rcs_require(void)
+{
+	igt_require(rendercopy);
+}
+
 static void
 run_basic_modes(struct access_mode *mode,
 		drm_intel_bo **src, drm_intel_bo **dst,
@@ -468,27 +476,34 @@ run_basic_modes(struct access_mode *mode,
 	struct {
 		const char *prefix;
 		do_copy copy;
+		void (*require)(void);
 	} pipelines[] = {
-		{ "bcs", blt_copy_bo },
-		{ "rcs", render_copy_bo },
+		{ "bcs", blt_copy_bo, bcs_require },
+		{ "rcs", render_copy_bo, rcs_require },
 		{ NULL, NULL }
 	}, *p;
 
 	for (p = pipelines; p->prefix; p++) {
 		/* try to overwrite the source values */
-		igt_subtest_f("%s-%s-overwrite-source%s", mode->name, p->prefix, suffix)
+		igt_subtest_f("%s-%s-overwrite-source%s", mode->name, p->prefix, suffix) {
+			p->require();
 			run_wrap_func(mode, src, dst, dummy,
 				      do_overwrite_source, p->copy);
+		}
 
 		/* try to read the results before the copy completes */
-		igt_subtest_f("%s-%s-early-read%s", mode->name, p->prefix, suffix)
+		igt_subtest_f("%s-%s-early-read%s", mode->name, p->prefix, suffix) {
+			p->require();
 			run_wrap_func(mode, src, dst, dummy,
 				      do_early_read, p->copy);
+		}
 
 		/* and finally try to trick the kernel into loosing the pending write */
-		igt_subtest_f("%s-%s-gpu-read-after-write%s", mode->name, p->prefix, suffix)
+		igt_subtest_f("%s-%s-gpu-read-after-write%s", mode->name, p->prefix, suffix) {
+			p->require();
 			run_wrap_func(mode, src, dst, dummy,
 				      do_gpu_read_after_write, p->copy);
+		}
 	}
 }
 
