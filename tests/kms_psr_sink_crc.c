@@ -48,12 +48,10 @@ enum tests {
 	TEST_SETDOMAIN_WAIT_WRITE_CPU,
 	TEST_BLT,
 	TEST_RENDER,
-	TEST_CONTEXT,
 	TEST_PAGE_FLIP_AND_MMAP_CPU,
 	TEST_PAGE_FLIP_AND_MMAP_GTT,
 	TEST_PAGE_FLIP_AND_BLT,
 	TEST_PAGE_FLIP_AND_RENDER,
-	TEST_PAGE_FLIP_AND_CONTEXT,
 	TEST_CURSOR_MOVE,
 	TEST_SPRITE,
 };
@@ -65,7 +63,6 @@ typedef struct {
 	enum tests test;
 	drmModeRes *resources;
 	drm_intel_bufmgr *bufmgr;
-	drm_intel_context *ctx[2];
 	uint32_t devid;
 	uint32_t handle[2];
 	uint32_t crtc_id;
@@ -89,12 +86,10 @@ static const char *tests_str(enum tests test)
 		[TEST_SETDOMAIN_WAIT_WRITE_CPU] = "setdomain_wait_write_cpu",
 		[TEST_BLT] = "blt",
 		[TEST_RENDER] = "render",
-		[TEST_CONTEXT] = "context",
 		[TEST_PAGE_FLIP_AND_MMAP_CPU] = "page_flip_and_mmap_cpu",
 		[TEST_PAGE_FLIP_AND_MMAP_GTT] = "page_flip_and_mmap_gtt",
 		[TEST_PAGE_FLIP_AND_BLT] = "page_flip_and_blt",
 		[TEST_PAGE_FLIP_AND_RENDER] = "page_flip_and_render",
-		[TEST_PAGE_FLIP_AND_CONTEXT] = "page_flip_and_context",
 		[TEST_CURSOR_MOVE] = "cursor_move",
 		[TEST_SPRITE] = "sprite",
 	};
@@ -204,31 +199,7 @@ static void scratch_buf_init(struct igt_buf *buf, drm_intel_bo *bo)
 	buf->size = 4096;
 }
 
-static void exec_nop(data_t *data, uint32_t handle, drm_intel_context *context)
-{
-	drm_intel_bo *dst;
-	struct intel_batchbuffer *batch;
-
-	dst = gem_handle_to_libdrm_bo(data->bufmgr, data->drm_fd, "", handle);
-	igt_assert(dst);
-
-	batch = intel_batchbuffer_alloc(data->bufmgr, data->devid);
-	igt_assert(batch);
-
-	/* add the reloc to make sure the kernel will think we write to dst */
-	BEGIN_BATCH(4, 1);
-	OUT_BATCH(MI_BATCH_BUFFER_END);
-	OUT_BATCH(MI_NOOP);
-	OUT_RELOC(dst, I915_GEM_DOMAIN_RENDER, I915_GEM_DOMAIN_RENDER, 0);
-	OUT_BATCH(MI_NOOP);
-	ADVANCE_BATCH();
-
-	intel_batchbuffer_flush_with_context(batch, context);
-	intel_batchbuffer_free(batch);
-}
-
-static void fill_render(data_t *data, uint32_t handle,
-			drm_intel_context *context, unsigned char color)
+static void fill_render(data_t *data, uint32_t handle, unsigned char color)
 {
 	drm_intel_bo *src, *dst;
 	struct intel_batchbuffer *batch;
@@ -252,7 +223,7 @@ static void fill_render(data_t *data, uint32_t handle,
 	batch = intel_batchbuffer_alloc(data->bufmgr, data->devid);
 	igt_assert(batch);
 
-	rendercopy(batch, context,
+	rendercopy(batch, NULL,
 		   &src_buf, 0, 0, 1, 1,
 		   &dst_buf, 0, 0);
 
@@ -440,13 +411,8 @@ static void test_crc(data_t *data)
 		fill_blt(data, handle, 0xff);
 		break;
 	case TEST_RENDER:
-	case TEST_CONTEXT:
 	case TEST_PAGE_FLIP_AND_RENDER:
-	case TEST_PAGE_FLIP_AND_CONTEXT:
-		fill_render(data, handle,
-			    (data->test == TEST_CONTEXT ||
-			     data->test == TEST_PAGE_FLIP_AND_CONTEXT) ?
-			    data->ctx[1] : NULL, 0xff);
+		fill_render(data, handle, 0xff);
 		break;
 	case TEST_CURSOR_MOVE:
 		igt_assert(drmModeMoveCursor(data->drm_fd, data->crtc_id, 1, 2) == 0);
@@ -495,40 +461,13 @@ static bool prepare_crtc(data_t *data, uint32_t connector_id)
 	connector_set_mode(data, &data->config.default_mode,
 			   data->fb_id[1]);
 
-	if (data->test == TEST_CONTEXT ||
-	    data->test == TEST_PAGE_FLIP_AND_CONTEXT) {
-		data->ctx[0] = drm_intel_gem_context_create(data->bufmgr);
-		igt_require(data->ctx[0]);
-		data->ctx[1] = drm_intel_gem_context_create(data->bufmgr);
-		igt_require(data->ctx[1]);
-
-		exec_nop(data, data->handle[0], data->ctx[1]);
-		exec_nop(data, data->handle[0], data->ctx[0]);
-		exec_nop(data, data->handle[0], data->ctx[1]);
-		exec_nop(data, data->handle[0], data->ctx[0]);
-	}
-
 	/* scanout = fb[0] */
 	connector_set_mode(data, &data->config.default_mode,
 			   data->fb_id[0]);
 
-	if (data->test == TEST_CONTEXT ||
-	    data->test == TEST_PAGE_FLIP_AND_CONTEXT) {
-		exec_nop(data, data->fb[0].gem_handle, data->ctx[0]);
-	}
-
 	kmstest_free_connector_config(&data->config);
 
 	return true;
-}
-
-static void finish_crtc(data_t *data)
-{
-	if (data->test == TEST_CONTEXT ||
-	    data->test == TEST_PAGE_FLIP_AND_CONTEXT) {
-		drm_intel_gem_context_destroy(data->ctx[0]);
-		drm_intel_gem_context_destroy(data->ctx[1]);
-	}
 }
 
 static void test_sprite(data_t *data)
@@ -596,8 +535,6 @@ static void run_test(data_t *data)
 				continue;
 
 			test_crc(data);
-
-			finish_crtc(data);
 		}
 	}
 }
