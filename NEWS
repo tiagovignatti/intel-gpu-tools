@@ -19,6 +19,27 @@ Release 1.8 (xxxx-xx-xx)
 - New commit functions for igt_kms to support the new universal planes
   interfaces (Matt Roper).
 
+- Polish the debug output when test requirements aren't met a bit and inject the
+  program name/subtest in dmesg for easier backtrace/oom debugging (Chris).
+
+- A bit of polish for the framebuffer helper functions (Damien).
+
+- Robuster option parsing helpers, they now check for conflicts when merging
+  different option lists (Thomas).
+
+- MIPI DSI vbt support in intel_bios_read (Gaurav K Singh).
+
+- Clarify the split between low-level helpers and the high-level library in
+  igt_kms a bit by renaming some functions and improving and extending the api
+  documentation.
+
+- Helper to restore the vt mode, useful to test lastclose/fbdev emulation
+  behaviour (Thomas).
+
+- Refactor the support for 64bit relocs. By specifying the number of relocations
+  explicit a lot of the gen8 checks can be removed from simple testcases which
+  only use the blitter (Chris).
+
 Release 1.7 (2014-06-09)
 ------------------------
 
