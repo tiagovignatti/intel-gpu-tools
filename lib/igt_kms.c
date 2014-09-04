@@ -55,6 +55,9 @@
 #define DRM_PLANE_TYPE_PRIMARY 1
 #define DRM_PLANE_TYPE_CURSOR  2
 
+/* list of connectors that need resetting on exit */
+#define MAX_CONNECTORS 32
+static char *forced_connectors[MAX_CONNECTORS + 1];
 
 
 /**
@@ -342,9 +345,9 @@ static char* get_debugfs_connector_path(int drm_fd, drmModeConnector *connector,
 bool kmstest_force_connector(int drm_fd, drmModeConnector *connector,
 			     enum kmstest_force_connector_state state)
 {
-	char *path;
+	char *path, **tmp;
 	const char *value;
-	int debugfs_fd, ret;
+	int debugfs_fd, ret, len;
 	uint32_t devid;
 
 	devid = intel_get_drm_devid(drm_fd);
@@ -376,7 +379,6 @@ bool kmstest_force_connector(int drm_fd, drmModeConnector *connector,
 
 	path = get_debugfs_connector_path(drm_fd, connector, "force");
 	debugfs_fd = open(path, O_WRONLY | O_TRUNC);
-	free(path);
 
 	if (debugfs_fd == -1) {
 		return false;
@@ -384,6 +386,31 @@ bool kmstest_force_connector(int drm_fd, drmModeConnector *connector,
 
 	ret = write(debugfs_fd, value, strlen(value));
 	close(debugfs_fd);
+
+	for (len = 0, tmp = forced_connectors; *tmp; tmp++) {
+		/* check the connector is not already present */
+		if (strcmp(*tmp, path) == 0) {
+			len = -1;
+			break;
+		}
+		len++;
+	}
+
+	if (len != -1 && len < MAX_CONNECTORS)
+		forced_connectors[len] = path;
+
+	if (len >= MAX_CONNECTORS)
+		igt_warn("Connector limit reached, %s will not be reset\n",
+			 path);
+
+	igt_debug("Connector %s is now forced %s\n", path, value);
+	igt_debug("Current forced connectors:\n");
+	tmp = forced_connectors;
+	while (*tmp) {
+		igt_debug("\t%s\n", *tmp);
+		tmp++;
+	}
+
 
 	igt_assert(ret != -1);
 	return (ret == -1) ? false : true;
@@ -1735,21 +1762,14 @@ void igt_enable_connectors(void)
  */
 void igt_reset_connectors(void)
 {
-	drmModeRes *res;
-	drmModeConnector *c;
-	int drm_fd;
+	char **tmp;
 
-	drm_fd = drm_open_any();
-	res = drmModeGetResources(drm_fd);
+	/* reset the connectors stored in forced_connectors, avoiding any
+	 * functions that are not safe to call in signal handlers */
 
-	for (int i = 0; i < res->count_connectors; i++) {
-
-		c = drmModeGetConnector(drm_fd, res->connectors[i]);
-
-		kmstest_force_connector(drm_fd, c, FORCE_CONNECTOR_UNSPECIFIED);
-
-		drmModeFreeConnector(c);
+	for (tmp = forced_connectors; *tmp; tmp++) {
+		int fd = open(*tmp, O_WRONLY | O_TRUNC);
+		write(fd, "unspecified", 11);
+		close(fd);
 	}
-
-	close(drm_fd);
 }
