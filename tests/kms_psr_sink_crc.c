@@ -243,6 +243,9 @@ static void get_sink_crc(data_t *data, char *crc) {
 	int ret;
 	FILE *file;
 
+	igt_wait_for_vblank(data->drm_fd, 0);
+	igt_wait_for_vblank(data->drm_fd, 0);
+
 	file = igt_debugfs_fopen("i915_sink_crc_eDP1", "r");
 	igt_require(file);
 
@@ -414,7 +417,7 @@ static void run_test(data_t *data)
 		    c->connection != DRM_MODE_CONNECTED)
 			continue;
 
-		igt_output_set_pipe(output, PIPE_ANY);
+		igt_output_set_pipe(output, 0);
 		data->crtc_id = output->config.crtc->crtc_id;
 
 		mode = igt_output_get_mode(output);
