@@ -60,7 +60,8 @@ igt_simple_main
 			    &length);
 
 	kmstest_force_edid(drm_fd, connector, edid, length);
-	kmstest_force_connector(drm_fd, connector, FORCE_CONNECTOR_ON);
+	if (!kmstest_force_connector(drm_fd, connector, FORCE_CONNECTOR_ON))
+		igt_skip("Could not force connector on\n");
 
 	connector_id = connector->connector_id;
 
