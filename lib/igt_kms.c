@@ -41,6 +41,7 @@
 #include "drmtest.h"
 #include "igt_kms.h"
 #include "igt_aux.h"
+#include "intel_chipset.h"
 
 /*
  * There hasn't been a release of libdrm containing these #define's yet, so
@@ -344,6 +345,17 @@ bool kmstest_force_connector(int drm_fd, drmModeConnector *connector,
 	char *path;
 	const char *value;
 	int debugfs_fd, ret;
+	uint32_t devid;
+
+	devid = intel_get_drm_devid(drm_fd);
+
+	/* forcing hdmi or dp connectors on HSW and BDW doesn't currently work,
+	 * so fail early to allow the test to skip if required */
+	if ((connector->connector_type == DRM_MODE_CONNECTOR_HDMIA ||
+	     connector->connector_type == DRM_MODE_CONNECTOR_HDMIB ||
+	     connector->connector_type == DRM_MODE_CONNECTOR_DisplayPort)
+	    && (IS_HASWELL(devid) || IS_BROADWELL(devid)))
+		return false;
 
 	switch (state) {
 	case FORCE_CONNECTOR_ON:
