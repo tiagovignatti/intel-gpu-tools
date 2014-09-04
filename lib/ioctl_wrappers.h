@@ -104,4 +104,16 @@ int prime_handle_to_fd(int fd, uint32_t handle);
 uint32_t prime_fd_to_handle(int fd, int dma_buf_fd);
 off_t prime_get_size(int dma_buf_fd);
 
+struct local_i915_gem_context_param {
+	uint32_t context;
+	uint32_t size;
+	uint64_t param;
+#define LOCAL_CONTEXT_PARAM_BAN_PERIOD 0x1
+	uint64_t value;
+};
+
+int gem_context_has_param(int fd, uint64_t param);
+int gem_context_get_param(int fd, struct local_i915_gem_context_param *p);
+int gem_context_set_param(int fd, struct local_i915_gem_context_param *p);
+
 #endif /* IOCTL_WRAPPERS_H */

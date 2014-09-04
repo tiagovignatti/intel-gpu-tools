@@ -49,11 +49,13 @@
 
 #include "ioctl_wrappers.h"
 #include "drmtest.h"
+#include "igt_aux.h"
+#include "igt_core.h"
+#include "igt_gt.h"
 #include "intel_bufmgr.h"
 #include "intel_batchbuffer.h"
 #include "intel_io.h"
 #include "intel_chipset.h"
-#include "igt_aux.h"
 
 IGT_TEST_DESCRIPTION("Test of pread/pwrite behavior when writing to active"
 		     " buffers.");
@@ -365,6 +367,7 @@ const int width = 512, height = 512;
 igt_render_copyfunc_t rendercopy;
 
 typedef void (*do_copy)(drm_intel_bo *dst, drm_intel_bo *src);
+typedef struct igt_hang_ring (*do_hang)(void);
 
 static void render_copy_bo(drm_intel_bo *dst, drm_intel_bo *src)
 {
@@ -454,11 +457,33 @@ static void wc_copy_bo(drm_intel_bo *dst, drm_intel_bo *src)
 	munmap(s, size);
 }
 
+static struct igt_hang_ring no_hang(void)
+{
+	return (struct igt_hang_ring){0, 0};
+}
+
+static struct igt_hang_ring bcs_hang(void)
+{
+	return igt_hang_ring(fd, gen, I915_EXEC_BLT);
+}
+
+static struct igt_hang_ring rcs_hang(void)
+{
+	return igt_hang_ring(fd, gen, I915_EXEC_RENDER);
+}
+
+static void hang_require(void)
+{
+	igt_require(igt_can_hang_ring(fd, gen, -1));
+}
+
 static void do_overwrite_source(const struct access_mode *mode,
 				drm_intel_bo **src, drm_intel_bo **dst,
 				drm_intel_bo *dummy,
-				do_copy do_copy_func)
+				do_copy do_copy_func,
+				do_hang do_hang_func)
 {
+	struct igt_hang_ring hang;
 	int i;
 
 	gem_quiescent_gpu(fd);
@@ -468,17 +493,63 @@ static void do_overwrite_source(const struct access_mode *mode,
 	}
 	for (i = 0; i < num_buffers; i++)
 		do_copy_func(dst[i], src[i]);
+	hang = do_hang_func();
 	for (i = num_buffers; i--; )
 		mode->set_bo(src[i], 0xdeadbeef, width, height);
 	for (i = 0; i < num_buffers; i++)
 		mode->cmp_bo(dst[i], i, width, height, dummy);
+	igt_post_hang_ring(fd, hang);
+}
+
+static void do_overwrite_source__rev(const struct access_mode *mode,
+				     drm_intel_bo **src, drm_intel_bo **dst,
+				     drm_intel_bo *dummy,
+				     do_copy do_copy_func,
+				     do_hang do_hang_func)
+{
+	struct igt_hang_ring hang;
+	int i;
+
+	gem_quiescent_gpu(fd);
+	for (i = 0; i < num_buffers; i++) {
+		mode->set_bo(src[i], i, width, height);
+		mode->set_bo(dst[i], ~i, width, height);
+	}
+	for (i = 0; i < num_buffers; i++)
+		do_copy_func(dst[i], src[i]);
+	hang = do_hang_func();
+	for (i = 0; i < num_buffers; i++)
+		mode->set_bo(src[i], 0xdeadbeef, width, height);
+	for (i = num_buffers; i--; )
+		mode->cmp_bo(dst[i], i, width, height, dummy);
+	igt_post_hang_ring(fd, hang);
+}
+
+static void do_overwrite_source__one(const struct access_mode *mode,
+				     drm_intel_bo **src, drm_intel_bo **dst,
+				     drm_intel_bo *dummy,
+				     do_copy do_copy_func,
+				     do_hang do_hang_func)
+{
+	struct igt_hang_ring hang;
+
+	gem_quiescent_gpu(fd);
+	mode->set_bo(src[0], 0, width, height);
+	mode->set_bo(dst[0], ~0, width, height);
+	do_copy_func(dst[0], src[0]);
+	hang = do_hang_func();
+	mode->set_bo(src[0], 0xdeadbeef, width, height);
+	mode->cmp_bo(dst[0], 0, width, height, dummy);
+	igt_post_hang_ring(fd, hang);
 }
 
 static void do_early_read(const struct access_mode *mode,
 			  drm_intel_bo **src, drm_intel_bo **dst,
 			  drm_intel_bo *dummy,
-			  do_copy do_copy_func)
+			  do_copy do_copy_func,
+			  do_hang do_hang_func)
 {
+	struct igt_hang_ring hang;
 	int i;
 
 	gem_quiescent_gpu(fd);
@@ -486,15 +557,19 @@ static void do_early_read(const struct access_mode *mode,
 		mode->set_bo(src[i], 0xdeadbeef, width, height);
 	for (i = 0; i < num_buffers; i++)
 		do_copy_func(dst[i], src[i]);
+	hang = do_hang_func();
 	for (i = num_buffers; i--; )
 		mode->cmp_bo(dst[i], 0xdeadbeef, width, height, dummy);
+	igt_post_hang_ring(fd, hang);
 }
 
 static void do_gpu_read_after_write(const struct access_mode *mode,
 				    drm_intel_bo **src, drm_intel_bo **dst,
 				    drm_intel_bo *dummy,
-				    do_copy do_copy_func)
+				    do_copy do_copy_func,
+				    do_hang do_hang_func)
 {
+	struct igt_hang_ring hang;
 	int i;
 
 	gem_quiescent_gpu(fd);
@@ -504,47 +579,54 @@ static void do_gpu_read_after_write(const struct access_mode *mode,
 		do_copy_func(dst[i], src[i]);
 	for (i = num_buffers; i--; )
 		do_copy_func(dummy, dst[i]);
+	hang = do_hang_func();
 	for (i = num_buffers; i--; )
 		mode->cmp_bo(dst[i], 0xabcdabcd, width, height, dummy);
+	igt_post_hang_ring(fd, hang);
 }
 
 typedef void (*do_test)(const struct access_mode *mode,
 			drm_intel_bo **src, drm_intel_bo **dst,
 			drm_intel_bo *dummy,
-			do_copy do_copy_func);
+			do_copy do_copy_func,
+			do_hang do_hang_func);
 
 typedef void (*run_wrap)(const struct access_mode *mode,
 			 drm_intel_bo **src, drm_intel_bo **dst,
 			 drm_intel_bo *dummy,
 			 do_test do_test_func,
-			 do_copy do_copy_func);
+			 do_copy do_copy_func,
+			 do_hang do_hang_func);
 
 static void run_single(const struct access_mode *mode,
 		       drm_intel_bo **src, drm_intel_bo **dst,
 		       drm_intel_bo *dummy,
 		       do_test do_test_func,
-		       do_copy do_copy_func)
+		       do_copy do_copy_func,
+		       do_hang do_hang_func)
 {
-	do_test_func(mode, src, dst, dummy, do_copy_func);
+	do_test_func(mode, src, dst, dummy, do_copy_func, do_hang_func);
 }
 
 static void run_interruptible(const struct access_mode *mode,
 			      drm_intel_bo **src, drm_intel_bo **dst,
 			      drm_intel_bo *dummy,
 			      do_test do_test_func,
-			      do_copy do_copy_func)
+			      do_copy do_copy_func,
+			      do_hang do_hang_func)
 {
 	int loop;
 
 	for (loop = 0; loop < 10; loop++)
-		do_test_func(mode, src, dst, dummy, do_copy_func);
+		do_test_func(mode, src, dst, dummy, do_copy_func, do_hang_func);
 }
 
 static void run_forked(const struct access_mode *mode,
 		       drm_intel_bo **src, drm_intel_bo **dst,
 		       drm_intel_bo *dummy,
 		       do_test do_test_func,
-		       do_copy do_copy_func)
+		       do_copy do_copy_func,
+		       do_hang do_hang_func)
 {
 	const int old_num_buffers = num_buffers;
 
@@ -555,6 +637,7 @@ static void run_forked(const struct access_mode *mode,
 		drm_intel_bufmgr *bufmgr;
 
 		/* recreate process local variables */
+		fd = drm_open_any();
 		bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
 		drm_intel_bufmgr_gem_enable_reuse(bufmgr);
 
@@ -567,18 +650,14 @@ static void run_forked(const struct access_mode *mode,
 		dummy = mode->create_bo(bufmgr, width, height);
 
 		for (int loop = 0; loop < 10; loop++)
-			do_test_func(mode, src, dst, dummy, do_copy_func);
+			do_test_func(mode, src, dst, dummy,
+				     do_copy_func, do_hang_func);
 
-		/* as we borrow the fd, we need to reap our bo */
 		for (int i = 0; i < num_buffers; i++) {
 			mode->release_bo(src[i]);
 			mode->release_bo(dst[i]);
 		}
 		mode->release_bo(dummy);
-
-		intel_batchbuffer_free(batch);
-
-		drm_intel_bufmgr_destroy(bufmgr);
 	}
 
 	igt_waitchildren();
@@ -629,10 +708,13 @@ static void rcs_require(void)
 	igt_require(rendercopy);
 }
 
+static void no_require(void)
+{
+}
+
 static void
 run_basic_modes(const struct access_mode *mode,
-		drm_intel_bo **src, drm_intel_bo **dst,
-		drm_intel_bo *dummy, const char *suffix,
+		const char *suffix,
 		run_wrap run_wrap_func)
 {
 	const struct {
@@ -647,27 +729,85 @@ run_basic_modes(const struct access_mode *mode,
 		{ "rcs", render_copy_bo, rcs_require },
 		{ NULL, NULL }
 	}, *p;
+	const struct {
+		const char *suffix;
+		do_hang hang;
+		void (*require)(void);
+	} hangs[] = {
+		{ "", no_hang, no_require },
+		{ "-hang(bcs)", bcs_hang, hang_require },
+		{ "-hang(rcs)", rcs_hang, hang_require },
+		{ NULL, NULL },
+	}, *h;
+	drm_intel_bo *src[MAX_NUM_BUFFERS], *dst[MAX_NUM_BUFFERS], *dummy = NULL;
+	drm_intel_bufmgr *bufmgr;
 
-	for (p = pipelines; p->prefix; p++) {
-		/* try to overwrite the source values */
-		igt_subtest_f("%s-%s-overwrite-source%s", mode->name, p->prefix, suffix) {
-			p->require();
-			run_wrap_func(mode, src, dst, dummy,
-				      do_overwrite_source, p->copy);
-		}
 
-		/* try to read the results before the copy completes */
-		igt_subtest_f("%s-%s-early-read%s", mode->name, p->prefix, suffix) {
-			p->require();
-			run_wrap_func(mode, src, dst, dummy,
-				      do_early_read, p->copy);
-		}
+	for (h = hangs; h->suffix; h++) {
+		for (p = pipelines; p->prefix; p++) {
+			igt_fixture {
+				bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
+				drm_intel_bufmgr_gem_enable_reuse(bufmgr);
+				batch = intel_batchbuffer_alloc(bufmgr, devid);
 
-		/* and finally try to trick the kernel into loosing the pending write */
-		igt_subtest_f("%s-%s-gpu-read-after-write%s", mode->name, p->prefix, suffix) {
-			p->require();
-			run_wrap_func(mode, src, dst, dummy,
-				      do_gpu_read_after_write, p->copy);
+				for (int i = 0; i < num_buffers; i++) {
+					src[i] = mode->create_bo(bufmgr, width, height);
+					dst[i] = mode->create_bo(bufmgr, width, height);
+				}
+				dummy = mode->create_bo(bufmgr, width, height);
+	}
+
+			/* try to overwrite the source values */
+			igt_subtest_f("%s-%s-overwrite-source-one%s%s", mode->name, p->prefix, suffix, h->suffix) {
+				h->require();
+				p->require();
+				run_wrap_func(mode, src, dst, dummy,
+					      do_overwrite_source__one,
+					      p->copy, h->hang);
+			}
+
+			igt_subtest_f("%s-%s-overwrite-source%s%s", mode->name, p->prefix, suffix, h->suffix) {
+				h->require();
+				p->require();
+				run_wrap_func(mode, src, dst, dummy,
+					      do_overwrite_source,
+					      p->copy, h->hang);
+			}
+			igt_subtest_f("%s-%s-overwrite-source-rev%s%s", mode->name, p->prefix, suffix, h->suffix) {
+				h->require();
+				p->require();
+				run_wrap_func(mode, src, dst, dummy,
+					      do_overwrite_source__rev,
+					      p->copy, h->hang);
+			}
+
+			/* try to read the results before the copy completes */
+			igt_subtest_f("%s-%s-early-read%s%s", mode->name, p->prefix, suffix, h->suffix) {
+				h->require();
+				p->require();
+				run_wrap_func(mode, src, dst, dummy,
+					      do_early_read,
+					      p->copy, h->hang);
+			}
+
+			/* and finally try to trick the kernel into loosing the pending write */
+			igt_subtest_f("%s-%s-gpu-read-after-write%s%s", mode->name, p->prefix, suffix, h->suffix) {
+				h->require();
+				p->require();
+				run_wrap_func(mode, src, dst, dummy,
+					      do_gpu_read_after_write,
+					      p->copy, h->hang);
+			}
+
+			igt_fixture {
+				for (int i = 0; i < num_buffers; i++) {
+					mode->release_bo(src[i]);
+					mode->release_bo(dst[i]);
+				}
+				mode->release_bo(dummy);
+				intel_batchbuffer_free(batch);
+				drm_intel_bufmgr_destroy(bufmgr);
+			}
 		}
 	}
 }
@@ -675,39 +815,14 @@ run_basic_modes(const struct access_mode *mode,
 static void
 run_modes(const struct access_mode *mode)
 {
-	drm_intel_bo *src[MAX_NUM_BUFFERS], *dst[MAX_NUM_BUFFERS], *dummy = NULL;
-	drm_intel_bufmgr *bufmgr;
-
-	igt_fixture {
-		bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
-		drm_intel_bufmgr_gem_enable_reuse(bufmgr);
-		batch = intel_batchbuffer_alloc(bufmgr, devid);
-
-		for (int i = 0; i < num_buffers; i++) {
-			src[i] = mode->create_bo(bufmgr, width, height);
-			dst[i] = mode->create_bo(bufmgr, width, height);
-		}
-		dummy = mode->create_bo(bufmgr, width, height);
-	}
-
-	run_basic_modes(mode, src, dst, dummy, "", run_single);
+	run_basic_modes(mode, "", run_single);
 
 	igt_fork_signal_helper();
-	run_basic_modes(mode, src, dst, dummy, "-interruptible", run_interruptible);
+	run_basic_modes(mode, "-interruptible", run_interruptible);
 	igt_stop_signal_helper();
 
-	igt_fixture {
-		for (int i = 0; i < num_buffers; i++) {
-			mode->release_bo(src[i]);
-			mode->release_bo(dst[i]);
-		}
-		mode->release_bo(dummy);
-		intel_batchbuffer_free(batch);
-		drm_intel_bufmgr_destroy(bufmgr);
-	}
-
 	igt_fork_signal_helper();
-	run_basic_modes(mode, src, dst, dummy, "-forked", run_forked);
+	run_basic_modes(mode, "-forked", run_forked);
 	igt_stop_signal_helper();
 }
 

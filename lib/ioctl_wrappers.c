@@ -1042,3 +1042,36 @@ off_t prime_get_size(int dma_buf_fd)
 	return ret;
 }
 
+int gem_context_get_param(int fd, struct local_i915_gem_context_param *p)
+{
+#define LOCAL_I915_GEM_CONTEXT_GETPARAM       0x34
+#define LOCAL_IOCTL_I915_GEM_CONTEXT_GETPARAM DRM_IOWR (DRM_COMMAND_BASE + LOCAL_I915_GEM_CONTEXT_GETPARAM, struct local_i915_gem_context_param)
+	if (drmIoctl(fd, LOCAL_IOCTL_I915_GEM_CONTEXT_GETPARAM, p))
+		return -1;
+
+	errno = 0;
+	return 0;
+}
+
+int gem_context_set_param(int fd, struct local_i915_gem_context_param *p)
+{
+#define LOCAL_I915_GEM_CONTEXT_SETPARAM       0x35
+#define LOCAL_IOCTL_I915_GEM_CONTEXT_SETPARAM DRM_IOWR (DRM_COMMAND_BASE + LOCAL_I915_GEM_CONTEXT_SETPARAM, struct local_i915_gem_context_param)
+	if (drmIoctl(fd, LOCAL_IOCTL_I915_GEM_CONTEXT_SETPARAM, p))
+		return -1;
+
+	errno = 0;
+	return 0;
+}
+
+int gem_context_has_param(int fd, uint64_t param)
+{
+	struct local_i915_gem_context_param p;
+
+	p.context = 0;
+	p.param = param;
+	p.value = 0;
+	p.size = 0;
+
+	return gem_context_get_param(fd, &p) == 0;
+}

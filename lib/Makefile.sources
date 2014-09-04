@@ -10,6 +10,8 @@ libintel_tools_la_SOURCES = 	\
 	igt_debugfs.h		\
 	igt_aux.c		\
 	igt_aux.h		\
+	igt_gt.c		\
+	igt_gt.h		\
 	instdone.c		\
 	instdone.h		\
 	intel_batchbuffer.c	\
