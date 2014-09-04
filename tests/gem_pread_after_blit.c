@@ -50,6 +50,7 @@
 #include "intel_chipset.h"
 #include "intel_io.h"
 #include "igt_aux.h"
+#include "igt_gt.h"
 
 IGT_TEST_DESCRIPTION("Test pread behavior when getting values out of"
 		     " just-drawn-to buffers.");
@@ -122,12 +123,26 @@ verify_small_read(drm_intel_bo *bo, uint32_t val)
 	}
 }
 
+typedef struct igt_hang_ring (*do_hang)(int fd);
+
+static struct igt_hang_ring no_hang(int fd)
+{
+	return (struct igt_hang_ring){0};
+}
+
+static struct igt_hang_ring bcs_hang(int fd)
+{
+	return igt_hang_ring(fd, batch->gen, batch->gen >= 6 ? I915_EXEC_BLT : I915_EXEC_DEFAULT);
+}
+
 static void do_test(int fd, int cache_level,
 		    drm_intel_bo *src[2],
 		    const uint32_t start[2],
 		    drm_intel_bo *tmp[2],
-		    int loop)
+		    int loop, do_hang do_hang_func)
 {
+	struct igt_hang_ring hang;
+
 	if (cache_level != -1) {
 		gem_set_caching(fd, tmp[0]->handle, cache_level);
 		gem_set_caching(fd, tmp[1]->handle, cache_level);
@@ -136,32 +151,48 @@ static void do_test(int fd, int cache_level,
 	do {
 		/* First, do a full-buffer read after blitting */
 		intel_copy_bo(batch, tmp[0], src[0], width*height*4);
+		hang = do_hang_func(fd);
 		verify_large_read(tmp[0], start[0]);
+		igt_post_hang_ring(fd, hang);
 		intel_copy_bo(batch, tmp[0], src[1], width*height*4);
+		hang = do_hang_func(fd);
 		verify_large_read(tmp[0], start[1]);
+		igt_post_hang_ring(fd, hang);
 
 		intel_copy_bo(batch, tmp[0], src[0], width*height*4);
+		hang = do_hang_func(fd);
 		verify_small_read(tmp[0], start[0]);
+		igt_post_hang_ring(fd, hang);
 		intel_copy_bo(batch, tmp[0], src[1], width*height*4);
+		hang = do_hang_func(fd);
 		verify_small_read(tmp[0], start[1]);
+		igt_post_hang_ring(fd, hang);
 
 		intel_copy_bo(batch, tmp[0], src[0], width*height*4);
+		hang = do_hang_func(fd);
 		verify_large_read(tmp[0], start[0]);
+		igt_post_hang_ring(fd, hang);
 
 		intel_copy_bo(batch, tmp[0], src[0], width*height*4);
 		intel_copy_bo(batch, tmp[1], src[1], width*height*4);
+		hang = do_hang_func(fd);
 		verify_large_read(tmp[0], start[0]);
 		verify_large_read(tmp[1], start[1]);
+		igt_post_hang_ring(fd, hang);
 
 		intel_copy_bo(batch, tmp[0], src[0], width*height*4);
 		intel_copy_bo(batch, tmp[1], src[1], width*height*4);
+		hang = do_hang_func(fd);
 		verify_large_read(tmp[1], start[1]);
 		verify_large_read(tmp[0], start[0]);
+		igt_post_hang_ring(fd, hang);
 
 		intel_copy_bo(batch, tmp[1], src[0], width*height*4);
 		intel_copy_bo(batch, tmp[0], src[1], width*height*4);
+		hang = do_hang_func(fd);
 		verify_large_read(tmp[0], start[1]);
 		verify_large_read(tmp[1], start[0]);
+		igt_post_hang_ring(fd, hang);
 	} while (--loop);
 }
 
@@ -171,6 +202,16 @@ int fd;
 igt_main
 {
 	const uint32_t start[2] = {0, 1024 * 1024 / 4};
+	const struct {
+		const char *name;
+		int cache;
+	} tests[] = {
+		{ "default", -1 },
+		{ "uncached", 0 },
+		{ "snooped", 1 },
+		{ "display", 2 },
+		{ NULL, -1 },
+	}, *t;
 
 	igt_skip_on_simulation();
 
@@ -188,40 +229,19 @@ igt_main
 		dst[1] = drm_intel_bo_alloc(bufmgr, "dst bo", size, 4096);
 	}
 
-	igt_subtest("normal")
-		do_test(fd, -1, src, start, dst, 1);
+	for (t = tests; t->name; t++) {
+		igt_subtest_f("%s-normal", t->name)
+			do_test(fd, t->cache, src, start, dst, 1, no_hang);
 
-	igt_subtest("interruptible") {
 		igt_fork_signal_helper();
-		do_test(fd, -1, src, start, dst, 100);
+		igt_subtest_f("%s-interruptible", t->name)
+			do_test(fd, t->cache, src, start, dst, 100, no_hang);
 		igt_stop_signal_helper();
-	}
 
-	igt_subtest("normal-uncached")
-		do_test(fd, 0, src, start, dst, 1);
-
-	igt_subtest("interruptible-uncached") {
-		igt_fork_signal_helper();
-		do_test(fd, 0, src, start, dst, 100);
-		igt_stop_signal_helper();
-	}
-
-	igt_subtest("normal-snoop")
-		do_test(fd, 1, src, start, dst, 1);
-
-	igt_subtest("interruptible-snoop") {
-		igt_fork_signal_helper();
-		do_test(fd, 1, src, start, dst, 100);
-		igt_stop_signal_helper();
-	}
-
-	igt_subtest("normal-display")
-		do_test(fd, 2, src, start, dst, 1);
-
-	igt_subtest("interruptible-display") {
-		igt_fork_signal_helper();
-		do_test(fd, 2, src, start, dst, 100);
-		igt_stop_signal_helper();
+		igt_subtest_f("%s-hang", t->name) {
+			igt_require(igt_can_hang_ring(fd, batch->gen, -1));
+			do_test(fd, t->cache, src, start, dst, 1, bcs_hang);
+		}
 	}
 
 	igt_fixture {
