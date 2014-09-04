@@ -45,6 +45,7 @@
 #include "intel_io.h"
 #include "igt_debugfs.h"
 #include "igt_aux.h"
+#include "igt_gt.h"
 
 IGT_TEST_DESCRIPTION("Test kernel relocations vs. gpu races.");
 
@@ -190,7 +191,18 @@ static void reloc_and_emit(int fd, drm_intel_bo *target_bo, bool faulting_reloc)
 	gem_close(fd, handle_relocs);
 }
 
-static void do_test(int fd, bool faulting_reloc)
+static struct igt_hang_ring no_hang(int fd)
+{
+	return (struct igt_hang_ring){0};
+}
+
+static struct igt_hang_ring bcs_hang(int fd)
+{
+	return igt_hang_ring(fd, batch->gen, I915_EXEC_BLT);
+}
+
+static void do_test(int fd, bool faulting_reloc,
+		    struct igt_hang_ring (*do_hang)(int fd))
 {
 	uint32_t tiling_mode = I915_TILING_X;
 	unsigned long pitch, act_size;
@@ -209,11 +221,16 @@ static void do_test(int fd, bool faulting_reloc)
 	create_special_bo();
 
 	for (i = 0; i < NUM_TARGET_BOS; i++) {
+		struct igt_hang_ring hang;
+
 		pc_target_bo[i] = drm_intel_bo_alloc(bufmgr, "special batch", 4096, 4096);
 		emit_dummy_load(pitch);
 		igt_assert(pc_target_bo[i]->offset == 0);
+		hang = do_hang(fd);
 
 		reloc_and_emit(fd, pc_target_bo[i], faulting_reloc);
+
+		igt_post_hang_ring(fd, hang);
 	}
 
 	/* Only check at the end to avoid unnecessary synchronous behaviour. */
@@ -238,11 +255,17 @@ static void do_test(int fd, bool faulting_reloc)
 #define FAULTING	(1 << 1)
 #define THRASH		(1 << 2)
 #define THRASH_INACTIVE	(1 << 3)
-#define ALL_FLAGS	(INTERRUPT | FAULTING | THRASH | THRASH_INACTIVE)
+#define HANG		(1 << 4)
+#define ALL_FLAGS	(HANG | INTERRUPT | FAULTING | THRASH | THRASH_INACTIVE)
 static void do_forked_test(int fd, unsigned flags)
 {
 	int num_threads = sysconf(_SC_NPROCESSORS_ONLN);
 	struct igt_helper_process thrasher = {};
+
+	if (flags & HANG)
+		igt_require(igt_can_hang_ring(fd,
+					      intel_gen(devid),
+					      I915_EXEC_BLT));
 
 	if (flags & (THRASH | THRASH_INACTIVE)) {
 		uint64_t val = (flags & THRASH_INACTIVE) ?
@@ -258,13 +281,14 @@ static void do_forked_test(int fd, unsigned flags)
 
 	igt_fork(i, num_threads * 4) {
 		/* re-create process local data */
+		fd = drm_open_any();
 		bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
 		batch = intel_batchbuffer_alloc(bufmgr, devid);
 
 		if (flags & INTERRUPT)
 			igt_fork_signal_helper();
 
-		do_test(fd, flags & FAULTING);
+		do_test(fd, flags & FAULTING, flags & HANG ? bcs_hang : no_hang);
 
 		if (flags & INTERRUPT)
 			igt_stop_signal_helper();
@@ -286,7 +310,6 @@ igt_main
 
 	igt_fixture {
 		fd = drm_open_any();
-
 		bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
 		/* disable reuse, otherwise the test fails */
 		//drm_intel_bufmgr_gem_enable_reuse(bufmgr);
@@ -295,28 +318,39 @@ igt_main
 	}
 
 	igt_subtest("normal")
-		do_test(fd, false);
+		do_test(fd, false, no_hang);
 
 	igt_subtest("faulting-reloc")
-		do_test(fd, true);
+		do_test(fd, true, no_hang);
 
 	igt_fork_signal_helper();
 	igt_subtest("interruptible")
-		do_test(fd, false);
+		do_test(fd, false, no_hang);
+
+	igt_subtest("interruptible-hang") {
+		igt_require(igt_can_hang_ring(fd, intel_gen(devid), I915_EXEC_BLT));
+		do_test(fd, false, bcs_hang);
+	}
 
 	igt_subtest("faulting-reloc-interruptible")
-		do_test(fd, true);
+		do_test(fd, true, no_hang);
+
+	igt_subtest("faulting-reloc-interruptible-hang") {
+		igt_require(igt_can_hang_ring(fd, intel_gen(devid), I915_EXEC_BLT));
+		do_test(fd, true, bcs_hang);
+	}
 	igt_stop_signal_helper();
 
 	for (unsigned flags = 0; flags <= ALL_FLAGS; flags++) {
 		if ((flags & THRASH) && (flags & THRASH_INACTIVE))
 			continue;
 
-		igt_subtest_f("forked%s%s%s%s",
+		igt_subtest_f("forked%s%s%s%s%s",
 			      flags & INTERRUPT ? "-interruptible" : "",
 			      flags & FAULTING ? "-faulting-reloc" : "",
 			      flags & THRASH ? "-thrashing" : "",
-			      flags & THRASH_INACTIVE ? "-thrash-inactive" : "")
+			      flags & THRASH_INACTIVE ? "-thrash-inactive" : "",
+			      flags & HANG ? "-hang": "")
 			do_forked_test(fd, flags);
 	}
 
