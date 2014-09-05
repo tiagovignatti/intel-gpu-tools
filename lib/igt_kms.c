@@ -1401,8 +1401,7 @@ static int do_display_commit(igt_display_t *display,
 
 	LOG_UNINDENT(display);
 
-	if (getenv("IGT_DISPLAY_WAIT_AT_COMMIT"))
-		igt_wait_for_keypress();
+	igt_debug_wait_for_keypress("modeset");
 
 	return 0;
 }

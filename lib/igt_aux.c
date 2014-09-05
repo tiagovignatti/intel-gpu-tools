@@ -344,20 +344,36 @@ void igt_drop_root(void)
 }
 
 /**
- * igt_wait_for_keypress:
+ * igt_debug_wait_for_keypress:
+ * @key: env var lookup to to enable this wait
  *
- * Waits for a key press when run interactively. When not connected to a
- * terminal immediately continues.
+ * Waits for a key press when run interactively and when the corresponding debug
+ * key is set in the IGT_DEBUG_INTERACTIVE environment variable. Multiple keys
+ * can be specified as a comma-separated list or alternatively "all" if a wait
+ * should happen for all keys.  When not connected to a terminal the enviroment
+ * setting is ignored and execution immediately continues.
  *
  * This is useful for display tests where under certain situation manual
- * inspection of the display is useful.
+ * inspection of the display is useful. Or when running a testcase in the
+ * background.
  */
-void igt_wait_for_keypress(void)
+void igt_debug_wait_for_keypress(const char *key)
 {
 	struct termios oldt, newt;
+	const char *env;
 
 	if (!isatty(STDIN_FILENO))
 		return;
+
+	env = getenv("IGT_DEBUG_INTERACTIVE");
+
+	if (!env)
+		return;
+
+	if (!strstr(env, key) && !strstr(env, "all"))
+		return;
+
+	igt_info("Press any key to continue ...\n");
 
 	tcgetattr ( STDIN_FILENO, &oldt );
 	newt = oldt;
