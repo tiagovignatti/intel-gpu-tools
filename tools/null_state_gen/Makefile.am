@@ -8,9 +8,10 @@ intel_null_state_gen_SOURCES = 	\
 	intel_renderstate_gen6.c \
 	intel_renderstate_gen7.c \
 	intel_renderstate_gen8.c \
+	intel_renderstate_gen9.c \
 	intel_null_state_gen.c
 
-gens := 6 7 8
+gens := 6 7 8 9
 
 h = /tmp/intel_renderstate_gen$$gen.c
 state_headers: intel_null_state_gen

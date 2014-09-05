@@ -35,14 +35,15 @@
 extern int gen6_setup_null_render_state(struct intel_batchbuffer *batch);
 extern int gen7_setup_null_render_state(struct intel_batchbuffer *batch);
 extern int gen8_setup_null_render_state(struct intel_batchbuffer *batch);
+extern int gen9_setup_null_render_state(struct intel_batchbuffer *batch);
 
 static int debug = 0;
 
 static void print_usage(char *s)
 {
 	fprintf(stderr, "%s: <gen>\n"
-		"     gen:     gen to generate for (6,7,8)\n",
-	       s);
+		"     gen:     gen to generate for (6,7,8,9)\n",
+		s);
 }
 
 /* Creates the intel_renderstate_genX.c file for the particular
@@ -131,6 +132,9 @@ static int do_generate(int gen)
 
 	case 8:
 		null_state_gen = gen8_setup_null_render_state;
+		break;
+	case 9:
+		null_state_gen = gen9_setup_null_render_state;
 		break;
 	}
 
