@@ -555,6 +555,7 @@ static data_t data;
 
 igt_main
 {
+	int num_pipes;
 
 	igt_skip_on_simulation();
 
@@ -569,7 +570,8 @@ igt_main
 		igt_require(data.display.has_universal_planes);
 	}
 
-	for (int pipe = 0; pipe < 3; pipe++)
+	num_pipes = igt_display_get_n_pipes(&data.display);
+	for (int pipe = 0; pipe < num_pipes; pipe++)
 		run_tests_for_pipe(&data, pipe);
 
 	igt_fixture {
