@@ -62,7 +62,7 @@ static struct format_desc_struct {
 	int depth;
 } format_desc[] = {
 	DF(RGB565,	RGB16_565,	16, 16),
-	DF(RGB888,	INVALID,	24, 24),
+	//DF(RGB888,	INVALID,	24, 24),
 	DF(XRGB8888,	RGB24,		32, 24),
 	DF(XRGB2101010,	RGB30,		32, 30),
 	DF(ARGB8888,	ARGB32,		32, 32),
