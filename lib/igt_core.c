@@ -49,6 +49,7 @@
 #include <sys/utsname.h>
 #include <termios.h>
 #include <errno.h>
+#include <time.h>
 
 #include "drmtest.h"
 #include "intel_chipset.h"
@@ -206,6 +207,7 @@ static bool list_subtests = false;
 static char *run_single_subtest = NULL;
 static bool run_single_subtest_found = false;
 static const char *in_subtest = NULL;
+static struct timespec subtest_time;
 static bool in_fixture = false;
 static bool test_with_subtests = false;
 static enum {
@@ -248,6 +250,14 @@ static void kmsg(const char *format, ...)
 	va_end(ap);
 
 	fclose(file);
+}
+
+static void gettime(struct timespec *ts)
+{
+	memset(ts, 0, sizeof(*ts));
+
+	if (clock_gettime(CLOCK_MONOTONIC_COARSE, ts))
+		clock_gettime(CLOCK_MONOTONIC, ts);
 }
 
 bool __igt_fixture(void)
@@ -593,8 +603,6 @@ bool __igt_run_subtest(const char *subtest_name)
 			run_single_subtest_found = true;
 	}
 
-
-
 	if (skip_subtests_henceforth) {
 		printf("Subtest %s: %s\n", subtest_name,
 		       skip_subtests_henceforth == SKIP ?
@@ -604,6 +612,7 @@ bool __igt_run_subtest(const char *subtest_name)
 
 	kmsg(KERN_INFO "%s: starting subtest %s\n", command_str, subtest_name);
 
+	gettime(&subtest_time);
 	return (in_subtest = subtest_name);
 }
 
@@ -637,7 +646,14 @@ static int igt_exitcode;
 static void exit_subtest(const char *) __attribute__((noreturn));
 static void exit_subtest(const char *result)
 {
-	printf("Subtest %s: %s\n", in_subtest, result);
+	struct timespec now;
+	double elapsed;
+
+	gettime(&now);
+	elapsed = now.tv_sec - subtest_time.tv_sec;
+	elapsed += (now.tv_nsec - subtest_time.tv_nsec) * 1e-9;
+
+	printf("Subtest %s: %s (%.3fs)\n", in_subtest, result, elapsed);
 	in_subtest = NULL;
 	longjmp(igt_subtest_jmpbuf, 1);
 }
