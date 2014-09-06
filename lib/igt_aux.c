@@ -241,9 +241,9 @@ void igt_progress(const char *header, uint64_t i, uint64_t total)
 		divider = 1;
 
 	/* only bother updating about every 0.5% */
-	igt_warn_on_f(i % (total / divider) == 0 || i + 1 >= total,
-		      "\r%s%3llu%%", header,
-		      (long long unsigned)i * 100 / total);
+	if (i % (total / divider) == 0)
+		igt_warn("\r%s%3llu%%", header,
+			 (long long unsigned)i * 100 / total);
 }
 
 /* mappable aperture trasher helper */
