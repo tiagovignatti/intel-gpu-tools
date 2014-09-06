@@ -235,6 +235,21 @@ igt_main
 		test_major_evictions(fd, size, count);
 	}
 
+	if (igt_fork_hang_helper()) {
+		igt_subtest("swapping-hang")
+			test_swapping_evictions(fd, size, count);
+
+		igt_subtest("minor-hang")
+			test_minor_evictions(fd, size, count);
+
+		igt_subtest("major-hang") {
+			size = 3*gem_aperture_size(fd) / 4;
+			count = 4;
+			test_major_evictions(fd, size, count);
+		}
+
+		igt_stop_hang_helper();
+	}
 	igt_stop_signal_helper();
 
 	igt_fixture {

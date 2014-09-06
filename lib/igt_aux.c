@@ -53,6 +53,7 @@
 #include "intel_chipset.h"
 #include "igt_aux.h"
 #include "igt_debugfs.h"
+#include "igt_gt.h"
 #include "config.h"
 #include "intel_reg.h"
 #include "ioctl_wrappers.h"
@@ -129,6 +130,74 @@ void igt_stop_signal_helper(void)
 	igt_stop_helper(&signal_helper);
 
 	sig_stat = 0;
+}
+
+/* GPU abusers */
+static struct igt_helper_process hang_helper;
+static void __attribute__((noreturn))
+hang_helper_process(pid_t pid, int fd, int gen)
+{
+	while (1) {
+		if (kill(pid, 0)) /* Parent has died, so must we. */
+			exit(0);
+
+		igt_post_hang_ring(fd,
+				   igt_hang_ring(fd, gen, I915_EXEC_DEFAULT));
+
+		sleep(1);
+	}
+}
+
+/**
+ * igt_fork_hang_helper:
+ *
+ * Fork a child process using #igt_fork_helper to hang the default engine
+ * of the GPU at regular intervals.
+ *
+ * This is useful to exercise slow running code (such as aperture placement)
+ * which needs to be robust against a GPU reset.
+ *
+ * In tests with subtests this function can be called outside of failure
+ * catching code blocks like #igt_fixture or #igt_subtest.
+ */
+int igt_fork_hang_helper(void)
+{
+	int fd, gen;
+
+	if (igt_only_list_subtests())
+		return 1;
+
+	fd = drm_open_any();
+	if (fd == -1)
+		return 0;
+
+	gen = intel_gen(intel_get_drm_devid(fd));
+	if (gen < 5) {
+		close(fd);
+		return 0;
+	}
+
+	igt_fork_helper(&hang_helper)
+		hang_helper_process(getppid(), fd, gen);
+
+	close(fd);
+	return 1;
+}
+
+/**
+ * igt_stop_hang_helper:
+ *
+ * Stops the child process spawned with igt_fork_hang_helper().
+ *
+ * In tests with subtests this function can be called outside of failure
+ * catching code blocks like #igt_fixture or #igt_subtest.
+ */
+void igt_stop_hang_helper(void)
+{
+	if (igt_only_list_subtests())
+		return;
+
+	igt_stop_helper(&hang_helper);
 }
 
 /**
