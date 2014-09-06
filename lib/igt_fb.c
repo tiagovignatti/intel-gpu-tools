@@ -75,9 +75,10 @@ static struct format_desc_struct {
 
 /* helpers to create nice-looking framebuffers */
 static int create_bo_for_fb(int fd, int width, int height, int bpp,
-			    unsigned int tiling, uint32_t *gem_handle_ret,
-			    unsigned *size_ret, unsigned *stride_ret, unsigned
-			    bo_size)
+			    unsigned int tiling, unsigned bo_size,
+			    uint32_t *gem_handle_ret,
+			    unsigned *size_ret,
+			    unsigned *stride_ret)
 {
 	uint32_t gem_handle;
 	int size, ret = 0;
@@ -408,23 +409,27 @@ igt_create_fb_with_bo_size(int fd, int width, int height,
 	uint32_t offsets[4];
 	uint32_t fb_id;
 	int bpp;
-	int ret;
 
 	memset(fb, 0, sizeof(*fb));
+	memset(handles, 0, sizeof(handles));
+	memset(pitches, 0, sizeof(pitches));
+	memset(offsets, 0, sizeof(offsets));
 
 	bpp = igt_drm_format_to_bpp(format);
-	ret = create_bo_for_fb(fd, width, height, bpp, tiling, &fb->gem_handle,
-			      &fb->size, &fb->stride, bo_size);
-	igt_assert(ret == 0);
 
-	memset(handles, 0, sizeof(handles));
+	igt_debug("%s(width=%d, height=%d, format=0x%x [bpp=%d], tiling=%d, size=%d\n",
+		  __func__, width, height, format, bpp, tiling, bo_size);
+	do_or_die(create_bo_for_fb(fd, width, height, bpp, tiling, bo_size,
+				   &fb->gem_handle, &fb->size, &fb->stride));
+
 	handles[0] = fb->gem_handle;
-	memset(pitches, 0, sizeof(pitches));
 	pitches[0] = fb->stride;
-	memset(offsets, 0, sizeof(offsets));
-	ret = drmModeAddFB2(fd, width, height, format, handles, pitches,
-			    offsets, &fb_id, 0);
-	igt_assert(ret == 0);
+
+	igt_debug("%s(handle=%d, pitch=%d)\n",
+		  __func__, handles[0], pitches[0]);
+	do_or_die(drmModeAddFB2(fd, width, height, format,
+				handles, pitches, offsets,
+				&fb_id, 0));
 
 	fb->width = width;
 	fb->height = height;
