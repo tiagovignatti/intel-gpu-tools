@@ -198,6 +198,8 @@ __attribute__((format(printf, 5, 6)))
 void __igt_skip_check(const char *file, const int line,
 		      const char *func, const char *check,
 		      const char *format, ...) __attribute__((noreturn));
+#define igt_skip_check(E, F...) \
+	__igt_skip_check(__FILE__, __LINE__, __func__, E, F);
 void igt_success(void);
 
 void igt_fail(int exitcode) __attribute__((noreturn));
@@ -343,10 +345,9 @@ void igt_exit(void) __attribute__((noreturn));
  * skipping. This is useful to streamline the skip logic since it allows for a more flat
  * code control flow, similar to igt_assert()
  */
-#define igt_require(expr) \
-	do { if (!(expr)) \
-		__igt_skip_check(__FILE__, __LINE__, __func__, #expr , NULL); \
-	} while (0)
+#define igt_require(expr) do { \
+	if (!(expr)) igt_skip_check(#expr , NULL); \
+} while (0)
 
 /**
  * igt_skip_on:
@@ -358,10 +359,9 @@ void igt_exit(void) __attribute__((noreturn));
  * skipping. This is useful to streamline the skip logic since it allows for a more flat
  * code control flow, similar to igt_assert()
  */
-#define igt_skip_on(expr) \
-	do { if ((expr)) \
-		__igt_skip_check(__FILE__, __LINE__, __func__, "!(" #expr ")" , NULL); \
-	} while (0)
+#define igt_skip_on(expr) do { \
+	if ((expr)) igt_skip_check("!(" #expr ")" , NULL); \
+} while (0)
 
 /**
  * igt_require_f:
@@ -377,7 +377,9 @@ void igt_exit(void) __attribute__((noreturn));
  * In addition to the plain igt_require() helper this allows to print additional
  * information to help debugging test failures.
  */
-#define igt_require_f(expr, f...) igt_skip_on_f(!(expr), f)
+#define igt_require_f(expr, f...) do { \
+	if (!(expr)) igt_skip_check(#expr , f); \
+} while (0)
 
 /**
  * igt_skip_on_f:
@@ -393,10 +395,9 @@ void igt_exit(void) __attribute__((noreturn));
  * In addition to the plain igt_skip_on() helper this allows to print additional
  * information to help debugging test failures.
  */
-#define igt_skip_on_f(expr, f...) \
-	do { if ((expr)) \
-		__igt_skip_check(__FILE__, __LINE__, __func__, #expr , f); \
-	} while (0)
+#define igt_skip_on_f(expr, f...) do { \
+	if ((expr)) igt_skip_check(#expr , f); \
+} while (0)
 
 /* fork support code */
 bool __igt_fork(void);
