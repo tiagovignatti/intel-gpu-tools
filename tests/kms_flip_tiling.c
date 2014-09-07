@@ -67,9 +67,9 @@ test_flip_changes_tiling(data_t *data, igt_output_t *output)
 	igt_crc_t reference_crc, crc;
 	int fb_id, pipe, ret, width;
 
-	pipe = 0;
+	pipe = output->config.pipe;
 	pipe_crc = igt_pipe_crc_new(pipe, INTEL_PIPE_CRC_SOURCE_AUTO);
-	igt_output_set_pipe(output, 0);
+	igt_output_set_pipe(output, pipe);
 
 	mode = igt_output_get_mode(output);
 	primary = igt_output_get_plane(output, 0);
