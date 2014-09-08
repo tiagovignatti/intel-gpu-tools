@@ -78,6 +78,7 @@ void gem_sw_finish(int fd, uint32_t handle);
 bool gem_bo_busy(int fd, uint32_t handle);
 
 /* feature test helpers */
+bool gem_has_llc(int fd);
 int gem_get_num_rings(int fd);
 bool gem_has_enable_ring(int fd,int param);
 bool gem_has_bsd(int fd);

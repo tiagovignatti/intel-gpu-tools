@@ -643,6 +643,22 @@ int gem_available_fences(int fd)
 	return val;
 }
 
+bool gem_has_llc(int fd)
+{
+	struct drm_i915_getparam gp;
+	int val = 0;
+
+	memset(&gp, 0, sizeof(gp));
+	gp.param = I915_PARAM_HAS_LLC;
+	gp.value = &val;
+
+	if (ioctl(fd, DRM_IOCTL_I915_GETPARAM, &gp, sizeof(gp)))
+		return 0;
+
+	errno = 0;
+	return val;
+}
+
 /**
  * gem_get_num_rings:
  * @fd: open i915 drm file descriptor

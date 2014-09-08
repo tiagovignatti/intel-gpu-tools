@@ -273,6 +273,31 @@ test_read(int fd)
 	munmap(dst, OBJECT_SIZE);
 }
 
+static void
+test_write_cpu_read_gtt(int fd)
+{
+	uint32_t handle;
+	uint32_t *src, *dst;
+
+	igt_require(gem_has_llc(fd));
+
+	handle = gem_create(fd, OBJECT_SIZE);
+
+	dst = gem_mmap(fd, handle, OBJECT_SIZE, PROT_READ);
+	igt_assert(dst != (uint32_t *)MAP_FAILED);
+
+	src = gem_mmap__cpu(fd, handle, OBJECT_SIZE, PROT_WRITE);
+	igt_assert(src != (uint32_t *)MAP_FAILED);
+
+	gem_close(fd, handle);
+
+	memset(src, 0xaa, OBJECT_SIZE);
+	igt_assert(memcmp(dst, src, OBJECT_SIZE) == 0);
+
+	munmap(src, OBJECT_SIZE);
+	munmap(dst, OBJECT_SIZE);
+}
+
 struct thread_fault_concurrent {
 	pthread_t thread;
 	int id;
@@ -368,6 +393,8 @@ igt_main
 		run_without_prefault(fd, test_write);
 	igt_subtest("write-gtt-no-prefault")
 		run_without_prefault(fd, test_write_gtt);
+	igt_subtest("write-cpu-read-gtt")
+		test_write_cpu_read_gtt(fd);
 
 	igt_fixture
 		close(fd);
