@@ -200,6 +200,7 @@ igt_simple_main
 
 		bad = gem_create(fd, 4096);
 		gem_write(fd, bad, 0, hang, sizeof(hang));
+		gem_write(fd, bad, 4096-sizeof(end), end, sizeof(end));
 
 		/* launch the newly created batch */
 		copy(fd, handles[i], noop, bad);
@@ -215,6 +216,7 @@ igt_simple_main
 
 		bad = gem_create(fd, 4096);
 		gem_write(fd, bad, 0, hang, sizeof(hang));
+		gem_write(fd, bad, 4096-sizeof(end), end, sizeof(end));
 
 		/* launch the newly created batch */
 		copy(fd, handles[count-i-1], noop, bad);
@@ -230,6 +232,7 @@ igt_simple_main
 
 		bad = gem_create(fd, 4096);
 		gem_write(fd, bad, 0, hang, sizeof(hang));
+		gem_write(fd, bad, 4096-sizeof(end), end, sizeof(end));
 
 		/* launch the newly created batch */
 		gem_set_domain(fd, handles[i],
