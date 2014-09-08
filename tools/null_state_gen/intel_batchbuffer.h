@@ -84,7 +84,7 @@ uint32_t intel_batch_state_copy(struct intel_batchbuffer *batch, void *d, unsign
 				const char *name);
 uint32_t intel_batch_state_alloc(struct intel_batchbuffer *batch, unsigned bytes, unsigned align,
 				 const char *name);
-
+uint32_t intel_batch_state_offset(struct intel_batchbuffer *batch, unsigned align);
 unsigned intel_batch_num_cmds(struct intel_batchbuffer *batch);
 
 struct bb_item *intel_batch_cmd_get(struct intel_batchbuffer *batch, unsigned i);
