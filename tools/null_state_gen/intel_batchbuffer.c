@@ -274,3 +274,18 @@ const char *intel_batch_type_as_str(const struct bb_item *item)
 
 	return "UNKNOWN";
 }
+
+void intel_batch_cmd_emit_null(struct intel_batchbuffer *batch,
+			       const int cmd, const int len, const int len_bias,
+			       const char *str)
+{
+	int i;
+
+	assert(len > 1);
+	assert((len - len_bias) >= 0);
+
+	bb_area_emit(batch->cmds, (cmd | (len - len_bias)), CMD, str);
+
+	for (i = len_bias-1; i < len; i++)
+		OUT_BATCH(0);
+}

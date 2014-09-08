@@ -69,6 +69,9 @@ struct intel_batchbuffer {
 
 struct intel_batchbuffer *intel_batchbuffer_create(void);
 
+#define OUT_CMD_B(cmd, len, bias) intel_batch_cmd_emit_null(batch, (cmd), (len), (bias), #cmd " " #len)
+#define OUT_CMD(cmd, len) OUT_CMD_B(cmd, len, 2)
+
 #define OUT_BATCH(d) bb_area_emit(batch->cmds, d, CMD, #d)
 #define OUT_BATCH_STATE_OFFSET(d) bb_area_emit(batch->cmds, d, STATE_OFFSET, #d)
 #define OUT_RELOC(batch, read_domain, write_domain, d) bb_area_emit(batch->cmds, d, RELOC, #d)
@@ -94,4 +97,8 @@ const char *intel_batch_type_as_str(const struct bb_item *item);
 void bb_area_emit(struct bb_area *a, uint32_t dword, item_type type, const char *str);
 void bb_area_emit_offset(struct bb_area *a, unsigned i, uint32_t dword, item_type type, const char *str);
 
+void intel_batch_cmd_emit_null(struct intel_batchbuffer *batch,
+			       const int cmd,
+			       const int len, const int len_bias,
+			       const char *str);
 #endif
