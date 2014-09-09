@@ -48,9 +48,15 @@ typedef struct {
 	igt_plane_t *primary;
 } data_t;
 
-static void get_crc(char *crc) {
+static void get_crc(data_t *data, char *crc) {
 	int ret;
-	FILE *file = fopen("/sys/kernel/debug/dri/0/i915_sink_crc_eDP1", "r");
+	FILE *file;
+
+	igt_wait_for_vblank(data->drm_fd, 0);
+	igt_wait_for_vblank(data->drm_fd, 0);
+
+	file = igt_debugfs_fopen("i915_sink_crc_eDP1", "r");
+
 	igt_require(file);
 
 	ret = fscanf(file, "%s\n", crc);
@@ -111,7 +117,7 @@ static void basic_sink_crc_check(data_t *data)
 	igt_display_commit(&data->display);
 
 	/* It should be Green */
-	get_crc(crc);
+	get_crc(data, crc);
 	assert_color(crc, GREEN);
 
 	/* Go Red */
@@ -119,7 +125,7 @@ static void basic_sink_crc_check(data_t *data)
 	igt_display_commit(&data->display);
 
 	/* It should be Red */
-	get_crc(crc);
+	get_crc(data, crc);
 	assert_color(crc, RED);
 }
 
@@ -136,7 +142,7 @@ static void run_test(data_t *data)
 		    c->connection != DRM_MODE_CONNECTED)
 			continue;
 
-		igt_output_set_pipe(output, PIPE_ANY);
+		igt_output_set_pipe(output, 0);
 
 		mode = igt_output_get_mode(output);
 
