@@ -22,7 +22,7 @@
 
 AC_PREREQ([2.60])
 AC_INIT([intel-gpu-tools],
-	[1.7],
+	[1.8],
 	[https://bugs.freedesktop.org/enter_bug.cgi?product=xorg],
 	[intel-gpu-tools])
 

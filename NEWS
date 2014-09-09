@@ -1,4 +1,4 @@
-Release 1.8 (xxxx-xx-xx)
+Release 1.8 (2014-09-08)
 ------------------------
 
 - Added lib/igt.cocci semantic patch to catch often-seen patterns and convert
