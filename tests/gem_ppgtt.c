@@ -82,7 +82,8 @@ static void scratch_buf_fini(struct igt_buf *buf)
 	memset(buf, 0, sizeof(*buf));
 }
 
-static void fork_rcs_copy(int target, dri_bo **dst, int count)
+static void fork_rcs_copy(int target, dri_bo **dst, int count, unsigned flags)
+#define CREATE_CONTEXT 0x1
 {
 	igt_render_copyfunc_t render_copy;
 	int devid;
@@ -98,6 +99,13 @@ static void fork_rcs_copy(int target, dri_bo **dst, int count)
 
 		dst[child] = create_bo(bufmgr, ~0);
 
+		if (flags & CREATE_CONTEXT) {
+			drm_intel_context *ctx;
+
+			ctx = drm_intel_gem_context_create(dst[child]->bufmgr);
+			igt_require(ctx);
+		}
+
 		render_copy = igt_get_render_copyfunc(devid);
 		igt_require_f(render_copy,
 			      "no render-copy function\n");
@@ -110,6 +118,13 @@ static void fork_rcs_copy(int target, dri_bo **dst, int count)
 		batch = intel_batchbuffer_alloc(dst[child]->bufmgr,
 						devid);
 		igt_assert(batch);
+
+		if (flags & CREATE_CONTEXT) {
+			drm_intel_context *ctx;
+
+			ctx = drm_intel_gem_context_create(dst[child]->bufmgr);
+			intel_batchbuffer_set_context(batch, ctx);
+		}
 
 		buf.bo = dst[child];
 		buf.stride = STRIDE;
@@ -185,21 +200,33 @@ static void surfaces_check(dri_bo **bo, int count, uint32_t expected)
 	}
 }
 
+#define N_CHILD 8
 int main(int argc, char **argv)
 {
 	igt_subtest_init(argc, argv);
 
-	igt_subtest("bcs-vs-rcs") {
-#define N_CHILD 8
+	igt_subtest("bcs-vs-rcs-ctx0") {
 		dri_bo *bcs[1], *rcs[N_CHILD];
 
 		fork_bcs_copy(0x4000, bcs, 1);
-		fork_rcs_copy(0x4000 / N_CHILD, rcs, N_CHILD);
+		fork_rcs_copy(0x8000 / N_CHILD, rcs, N_CHILD, 0);
 
 		igt_waitchildren();
 
 		surfaces_check(bcs, 1, 0x4000);
-		surfaces_check(rcs, N_CHILD, 0x4000 / N_CHILD);
+		surfaces_check(rcs, N_CHILD, 0x8000 / N_CHILD);
+	}
+
+	igt_subtest("bcs-vs-rcs-ctxN") {
+		dri_bo *bcs[1], *rcs[N_CHILD];
+
+		fork_bcs_copy(0x4000, bcs, 1);
+		fork_rcs_copy(0x8000 / N_CHILD, rcs, N_CHILD, CREATE_CONTEXT);
+
+		igt_waitchildren();
+
+		surfaces_check(bcs, 1, 0x4000);
+		surfaces_check(rcs, N_CHILD, 0x8000 / N_CHILD);
 	}
 
 	igt_exit();

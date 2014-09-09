@@ -14,6 +14,7 @@ struct intel_batchbuffer {
 	uint32_t devid;
 	int gen;
 
+	drm_intel_context *ctx;
 	drm_intel_bo *bo;
 
 	uint8_t buffer[BATCH_SZ];
@@ -23,6 +24,10 @@ struct intel_batchbuffer {
 
 struct intel_batchbuffer *intel_batchbuffer_alloc(drm_intel_bufmgr *bufmgr,
 						  uint32_t devid);
+
+void intel_batchbuffer_set_context(struct intel_batchbuffer *batch,
+				   drm_intel_context *ctx);
+
 
 void intel_batchbuffer_free(struct intel_batchbuffer *batch);
 

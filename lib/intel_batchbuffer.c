@@ -79,6 +79,7 @@ intel_batchbuffer_reset(struct intel_batchbuffer *batch)
 				       BATCH_SZ, 4096);
 
 	memset(batch->buffer, 0, sizeof(batch->buffer));
+	batch->ctx = NULL;
 
 	batch->ptr = batch->buffer;
 	batch->end = NULL;
@@ -163,6 +164,7 @@ void
 intel_batchbuffer_flush_on_ring(struct intel_batchbuffer *batch, int ring)
 {
 	unsigned int used = flush_on_ring_common(batch, ring);
+	drm_intel_context *ctx;
 
 	if (used == 0)
 		return;
@@ -171,9 +173,20 @@ intel_batchbuffer_flush_on_ring(struct intel_batchbuffer *batch, int ring)
 
 	batch->ptr = NULL;
 
-	do_or_die(drm_intel_bo_mrb_exec(batch->bo, used, NULL, 0, 0, ring));
+	/* XXX bad kernel API */
+	ctx = batch->ctx;
+	if (ring != I915_EXEC_RENDER)
+		ctx = NULL;
+	do_or_die(drm_intel_gem_bo_context_exec(batch->bo, ctx, used, ring));
 
 	intel_batchbuffer_reset(batch);
+}
+
+void
+intel_batchbuffer_set_context(struct intel_batchbuffer *batch,
+				     drm_intel_context *context)
+{
+	batch->ctx = context;
 }
 
 /**
