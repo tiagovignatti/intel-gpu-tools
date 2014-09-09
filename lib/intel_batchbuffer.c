@@ -81,6 +81,7 @@ intel_batchbuffer_reset(struct intel_batchbuffer *batch)
 	memset(batch->buffer, 0, sizeof(batch->buffer));
 
 	batch->ptr = batch->buffer;
+	batch->end = NULL;
 }
 
 /**

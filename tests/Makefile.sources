@@ -46,6 +46,7 @@ TESTS_progs_M = \
 	gem_partial_pwrite_pread \
 	gem_persistent_relocs \
 	gem_pipe_control_store_loop \
+	gem_ppgtt \
 	gem_pread \
 	gem_pread_after_blit \
 	gem_pwrite \
