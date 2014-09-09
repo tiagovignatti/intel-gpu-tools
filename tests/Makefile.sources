@@ -147,7 +147,6 @@ TESTS_progs = \
 	kms_force_connector \
 	kms_sink_crc_basic \
 	kms_fence_pin_leak \
-	pm_psr \
 	prime_udl \
 	$(NULL)
 
