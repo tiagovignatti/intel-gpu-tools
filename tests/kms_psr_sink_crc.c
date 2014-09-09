@@ -38,6 +38,8 @@
 
 bool running_with_psr_disabled;
 
+#define CRC_BLACK "000000000000"
+
 enum planes {
 	PRIMARY,
 	SPRITE,
@@ -255,6 +257,38 @@ static void get_sink_crc(data_t *data, char *crc) {
 	 * Now give a time for human eyes
 	 */
 	usleep(300000);
+
+	/* Black screen is always invalid */
+	igt_assert(strcmp(crc, CRC_BLACK) != 0);
+}
+
+static bool is_green(char *crc)
+{
+	char color_mask[5] = "FFFF\0";
+	char rs[5], gs[5], bs[5];
+	unsigned int rh, gh, bh, mask;
+	int ret;
+
+	sscanf(color_mask, "%4x", &mask);
+
+	memcpy(rs, &crc[0], 4);
+	rs[4] = '\0';
+	ret = sscanf(rs, "%4x", &rh);
+	igt_require(ret > 0);
+
+	memcpy(gs, &crc[4], 4);
+	gs[4] = '\0';
+	ret = sscanf(gs, "%4x", &gh);
+	igt_require(ret > 0);
+
+	memcpy(bs, &crc[8], 4);
+	bs[4] = '\0';
+	ret = sscanf(bs, "%4x", &bh);
+	igt_require(ret > 0);
+
+	return ((rh & mask) == 0 &&
+		(gh & mask) != 0 &&
+		(bh & mask) == 0);
 }
 
 static void test_crc(data_t *data)
@@ -268,6 +302,15 @@ static void test_crc(data_t *data)
 	igt_plane_set_fb(data->primary, &data->fb_green);
 	igt_display_commit(&data->display);
 
+	/* Confirm that screen became Green */
+	get_sink_crc(data, ref_crc);
+	igt_assert(is_green(ref_crc));
+
+	/* Confirm screen stays Green after PSR got active */
+	igt_assert(wait_psr_entry(data, 10));
+	get_sink_crc(data, ref_crc);
+	igt_assert(is_green(ref_crc));
+
 	/* Setting a secondary fb/plane */
 	switch (data->test_plane) {
 	case PRIMARY: default: test_plane = data->primary; break;
@@ -277,14 +320,18 @@ static void test_crc(data_t *data)
 	igt_plane_set_fb(test_plane, &data->fb_white);
 	igt_display_commit(&data->display);
 
+	/* Confirm it is not Green anymore */
 	igt_assert(wait_psr_entry(data, 10));
 	get_sink_crc(data, ref_crc);
+	igt_assert(!is_green(ref_crc));
 
 	switch (data->op) {
 	case PAGE_FLIP:
 		/* Only in use when testing primary plane */
 		igt_assert(drmModePageFlip(data->drm_fd, data->crtc_id,
 					   data->fb_green.fb_id, 0, NULL) == 0);
+		get_sink_crc(data, crc);
+		igt_assert(is_green(crc));
 		break;
 	case MMAP_GTT:
 		ptr = gem_mmap__gtt(data->drm_fd, handle, 4096, PROT_WRITE);
