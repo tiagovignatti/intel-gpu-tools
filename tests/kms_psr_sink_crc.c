@@ -38,21 +38,45 @@
 #include "igt_kms.h"
 #include "igt_aux.h"
 
-enum tests {
-	TEST_PAGE_FLIP,
-	TEST_MMAP_CPU,
-	TEST_MMAP_GTT,
-	TEST_BLT,
-	TEST_RENDER,
-	TEST_CURSOR_MOVE,
-	TEST_SPRITE,
+bool running_with_psr_disabled;
+
+enum planes {
+	PRIMARY,
+	SPRITE,
+	CURSOR,
 };
 
-bool running_with_psr_disabled;
+enum operations {
+	PAGE_FLIP,
+	MMAP_GTT,
+	MMAP_GTT_WAITING,
+	MMAP_CPU,
+	BLT,
+	RENDER,
+	PLANE_MOVE,
+	PLANE_ONOFF,
+};
+
+static const char *op_str(enum operations op)
+{
+	static const char * const name[] = {
+		[PAGE_FLIP] = "page_flip",
+		[MMAP_GTT] = "mmap_gtt",
+		[MMAP_GTT_WAITING] = "mmap_gtt_waiting",
+		[MMAP_CPU] = "mmap_cpu",
+		[BLT] = "blt",
+		[RENDER] = "render",
+		[PLANE_MOVE] = "plane_move",
+		[PLANE_ONOFF] = "plane_onoff",
+	};
+
+	return name[op];
+}
 
 typedef struct {
 	int drm_fd;
-	enum tests test;
+	enum planes test_plane;
+	enum operations op;
 	drmModeRes *resources;
 	drm_intel_bufmgr *bufmgr;
 	uint32_t devid;
@@ -65,21 +89,6 @@ typedef struct {
 	struct igt_fb fb[2];
 	igt_plane_t *plane[2];
 } data_t;
-
-static const char *tests_str(enum tests test)
-{
-	static const char * const testss[] = {
-		[TEST_PAGE_FLIP] = "page_flip",
-		[TEST_MMAP_CPU] = "mmap_cpu",
-		[TEST_MMAP_GTT] = "mmap_gtt",
-		[TEST_BLT] = "blt",
-		[TEST_RENDER] = "render",
-		[TEST_CURSOR_MOVE] = "cursor_move",
-		[TEST_SPRITE] = "sprite",
-	};
-
-	return testss[test];
-}
 
 static uint32_t create_fb(data_t *data,
 			  int w, int h,
@@ -307,7 +316,7 @@ static void test_crc(data_t *data)
 	char ref_crc[12];
 	char crc[12];
 
-	if (data->test == TEST_CURSOR_MOVE) {
+	if (data->op == PLANE_MOVE) {
 		igt_assert(drmModeSetCursor(data->drm_fd, data->crtc_id,
 					    handle, 64, 64) == 0);
 		igt_assert(drmModeMoveCursor(data->drm_fd, data->crtc_id,
@@ -317,13 +326,13 @@ static void test_crc(data_t *data)
 	igt_assert(wait_psr_entry(data, 10));
 	get_sink_crc(data, ref_crc);
 
-	switch (data->test) {
+	switch (data->op) {
 		void *ptr;
-	case TEST_PAGE_FLIP:
+	case PAGE_FLIP:
 		igt_assert(drmModePageFlip(data->drm_fd, data->crtc_id,
 					   data->fb_id[1], 0, NULL) == 0);
 		break;
-	case TEST_MMAP_CPU:
+	case MMAP_CPU:
 		ptr = gem_mmap__cpu(data->drm_fd, handle, 4096, PROT_WRITE);
 		gem_set_domain(data->drm_fd, handle,
 			       I915_GEM_DOMAIN_CPU, I915_GEM_DOMAIN_CPU);
@@ -333,7 +342,8 @@ static void test_crc(data_t *data)
 		sleep(1);
 		gem_sw_finish(data->drm_fd, handle);
 		break;
-	case TEST_MMAP_GTT:
+	case MMAP_GTT:
+	case MMAP_GTT_WAITING:
 		ptr = gem_mmap__gtt(data->drm_fd, handle, 4096, PROT_WRITE);
 		gem_set_domain(data->drm_fd, handle,
 			       I915_GEM_DOMAIN_GTT, I915_GEM_DOMAIN_GTT);
@@ -341,16 +351,16 @@ static void test_crc(data_t *data)
 		munmap(ptr, 4096);
 		gem_bo_busy(data->drm_fd, handle);
 		break;
-	case TEST_BLT:
+	case BLT:
 		fill_blt(data, handle, 0xff);
 		break;
-	case TEST_RENDER:
+	case RENDER:
 		fill_render(data, handle, 0xff);
 		break;
-	case TEST_CURSOR_MOVE:
+	case PLANE_MOVE:
 		igt_assert(drmModeMoveCursor(data->drm_fd, data->crtc_id, 1, 2) == 0);
 		break;
-	case TEST_SPRITE:
+	case PLANE_ONOFF:
 		igt_plane_set_fb(data->plane[0], &data->fb[0]);
 		igt_display_commit(&data->display);
 		igt_plane_set_fb(data->plane[1], &data->fb[1]);
@@ -378,7 +388,7 @@ static bool prepare_crtc(data_t *data, uint32_t connector_id)
 				   0.0, 1.0, 0.0, &data->fb[0]);
 	igt_assert(data->fb_id[0]);
 
-	if (data->test == TEST_CURSOR_MOVE)
+	if (data->op == PLANE_MOVE)
 		create_cursor_fb(data, &data->fb[0]);
 
 	data->fb_id[1] = create_fb(data,
@@ -448,7 +458,7 @@ static void run_test(data_t *data)
 	 * crtcs = IS_VALLEYVIEW(data->devid)? 2 : 1; */
 	int crtcs = 1;
 
-	if (data->test == TEST_SPRITE) {
+	if (data->op == PLANE_ONOFF) {
 		test_sprite(data);
 		return;
 	}
@@ -475,7 +485,7 @@ static void run_test(data_t *data)
 igt_main
 {
 	data_t data = {};
-	enum tests test;
+	enum operations op;
 	char *env_psr;
 
 	env_psr = getenv("IGT_PSR_DISABLED");
@@ -499,9 +509,27 @@ igt_main
 		display_init(&data);
 	}
 
-	for (test = TEST_PAGE_FLIP; test <= TEST_SPRITE; test++) {
-		igt_subtest_f("%s", tests_str(test)) {
-			data.test = test;
+
+	for (op = PAGE_FLIP; op <= RENDER; op++) {
+		igt_subtest_f("primary_%s", op_str(op)) {
+			data.test_plane = PRIMARY;
+			data.op = op;
+			run_test(&data);
+		}
+	}
+
+	for (op = PLANE_ONOFF; op <= PLANE_ONOFF; op++) {
+		igt_subtest_f("sprite_%s", op_str(op)) {
+			data.test_plane = SPRITE;
+			data.op = op;
+			run_test(&data);
+		}
+	}
+
+	for (op = PLANE_MOVE; op <= PLANE_MOVE; op++) {
+		igt_subtest_f("cursor_%s", op_str(op)) {
+			data.test_plane = CURSOR;
+			data.op = op;
 			run_test(&data);
 		}
 	}
