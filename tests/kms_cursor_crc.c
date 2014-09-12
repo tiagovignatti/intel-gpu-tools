@@ -31,6 +31,7 @@
 #include "drmtest.h"
 #include "igt_debugfs.h"
 #include "igt_kms.h"
+#include "intel_chipset.h"
 
 #ifndef DRM_CAP_CURSOR_WIDTH
 #define DRM_CAP_CURSOR_WIDTH 0x8
@@ -50,22 +51,30 @@ typedef struct {
 	int left, right, top, bottom;
 	int screenw, screenh;
 	int curw, curh; /* cursor size */
-	int cursor_max_size;
+	int cursor_max_w, cursor_max_h;
 	igt_pipe_crc_t *pipe_crc;
+	uint32_t devid;
 } data_t;
 
-static void draw_cursor(cairo_t *cr, int x, int y, int w)
+static void draw_cursor(cairo_t *cr, int x, int y, int cw, int ch)
 {
-	w /= 2;
+	int wl, wr, ht, hb;
+
+	/* deal with odd cursor width/height */
+	wl = cw / 2;
+	wr = (cw + 1) / 2;
+	ht = ch / 2;
+	hb = (ch + 1) / 2;
+
 	/* Cairo doesn't like to be fed numbers that are too wild */
 	if ((x < SHRT_MIN) || (x > SHRT_MAX) || (y < SHRT_MIN) || (y > SHRT_MAX))
 		return;
 	cairo_set_antialias(cr, CAIRO_ANTIALIAS_NONE);
 	/* 4 color rectangles in the corners, RGBY */
-	igt_paint_color_alpha(cr, x, y, w, w, 1.0, 0.0, 0.0, 1.0);
-	igt_paint_color_alpha(cr, x + w, y, w, w, 0.0, 1.0, 0.0, 1.0);
-	igt_paint_color_alpha(cr, x, y + w, w, w, 0.0, 0.0, 1.0, 1.0);
-	igt_paint_color_alpha(cr, x + w, y + w, w, w, 0.5, 0.5, 0.5, 1.0);
+	igt_paint_color_alpha(cr, x,      y,      wl, ht, 1.0, 0.0, 0.0, 1.0);
+	igt_paint_color_alpha(cr, x + wl, y,      wr, ht, 0.0, 1.0, 0.0, 1.0);
+	igt_paint_color_alpha(cr, x,      y + ht, wl, hb, 0.0, 0.0, 1.0, 1.0);
+	igt_paint_color_alpha(cr, x + wl, y + ht, wr, hb, 0.5, 0.5, 0.5, 1.0);
 }
 
 static void cursor_enable(data_t *data)
@@ -76,7 +85,7 @@ static void cursor_enable(data_t *data)
 
 	cursor = igt_output_get_plane(output, IGT_PLANE_CURSOR);
 	igt_plane_set_fb(cursor, &data->fb);
-	igt_display_commit(display);
+	igt_plane_set_size(cursor, data->curw, data->curh);
 }
 
 static void cursor_disable(data_t *data)
@@ -87,7 +96,6 @@ static void cursor_disable(data_t *data)
 
 	cursor = igt_output_get_plane(output, IGT_PLANE_CURSOR);
 	igt_plane_set_fb(cursor, NULL);
-	igt_display_commit(display);
 }
 
 
@@ -110,9 +118,10 @@ static void do_single_test(data_t *data, int x, int y)
 	igt_wait_for_vblank(data->drm_fd, data->pipe);
 	igt_pipe_crc_collect_crc(pipe_crc, &crc);
 	cursor_disable(data);
+	igt_display_commit(display);
 
 	/* Now render the same in software and collect crc */
-	draw_cursor(cr, x, y, data->curw);
+	draw_cursor(cr, x, y, data->curw, data->curh);
 	igt_display_commit(display);
 	igt_wait_for_vblank(data->drm_fd, data->pipe);
 	igt_pipe_crc_collect_crc(pipe_crc, &ref_crc);
@@ -223,6 +232,7 @@ static bool prepare_crtc(data_t *data, igt_output_t *output,
 
 	/* select the pipe we want to use */
 	igt_output_set_pipe(output, data->pipe);
+	cursor_disable(data);
 	igt_display_commit(display);
 
 	if (!output->valid) {
@@ -265,7 +275,6 @@ static bool prepare_crtc(data_t *data, igt_output_t *output,
 	data->screenh = mode->vdisplay;
 	data->curw = cursor_w;
 	data->curh = cursor_h;
-	data->cursor_max_size = cursor_w;
 
 	/* make sure cursor is disabled */
 	cursor_disable(data);
@@ -300,6 +309,9 @@ static void run_test(data_t *data, void (*testfunc)(data_t *), int cursor_w, int
 	igt_output_t *output;
 	enum pipe p;
 	int valid_tests = 0;
+
+	igt_require(cursor_w <= data->cursor_max_w &&
+		    cursor_h <= data->cursor_max_h);
 
 	for_each_connected_output(display, output) {
 		data->output = output;
@@ -336,14 +348,34 @@ static void create_cursor_fb(data_t *data, int cur_w, int cur_h)
 	cairo_t *cr;
 	uint32_t fb_id;
 
-	fb_id = igt_create_fb(data->drm_fd, cur_w, cur_h,
-			      DRM_FORMAT_ARGB8888, I915_TILING_NONE,
-			      &data->fb);
+	/*
+	 * Make the FB slightly taller and leave the extra
+	 * line opaque white, so that we can see that the
+	 * hardware won't scan beyond what it should (esp.
+	 * with non-square cursors).
+	 */
+	fb_id = igt_create_color_fb(data->drm_fd, cur_w, cur_h + 1,
+				    DRM_FORMAT_ARGB8888, I915_TILING_NONE,
+				    1.0, 1.0, 1.0,
+				    &data->fb);
+
 	igt_assert(fb_id);
 
 	cr = igt_get_cairo_ctx(data->drm_fd, &data->fb);
-	draw_cursor(cr, 0, 0, cur_w);
+	draw_cursor(cr, 0, 0, cur_w, cur_h);
 	igt_assert(cairo_status(cr) == 0);
+}
+
+static bool has_nonsquare_cursors(uint32_t devid)
+{
+	/*
+	 * Test non-square cursors a bit on the platforms
+	 * that support such things.
+	 */
+	return devid == PCI_CHIP_845_G ||
+		devid == PCI_CHIP_I865_G ||
+		(IS_GEN7(devid) && !IS_VALLEYVIEW(devid)) ||
+		(IS_GEN8(devid) && !IS_CHERRYVIEW(devid));
 }
 
 static void test_cursor_size(data_t *data)
@@ -353,7 +385,8 @@ static void test_cursor_size(data_t *data)
 	igt_crc_t crc[10], ref_crc;
 	cairo_t *cr;
 	uint32_t fb_id;
-	int i, size, cursor_max_size = data->cursor_max_size;
+	int i, size;
+	int cursor_max_size = data->cursor_max_w;
 	int ret;
 
 	/* Create a maximum size cursor, then change the size in flight to
@@ -395,41 +428,75 @@ static void test_cursor_size(data_t *data)
 	}
 }
 
-static void run_test_generic(data_t *data, int cursor_max_size)
+static void run_test_generic(data_t *data)
 {
 	int cursor_size;
-	for (cursor_size = 64; cursor_size <= 256; cursor_size *= 2) {
-		igt_fixture
-			igt_require(cursor_max_size >= cursor_size);
+	for (cursor_size = 64; cursor_size <= 512; cursor_size *= 2) {
+		int w = cursor_size;
+		int h = cursor_size;
 
 		igt_fixture
-			create_cursor_fb(data, cursor_size, cursor_size);
+			create_cursor_fb(data, w, h);
 
 		/* Using created cursor FBs to test cursor support */
-		igt_subtest_f("cursor-%d-onscreen", cursor_size)
-			run_test(data, test_crc_onscreen, cursor_size, cursor_size);
-		igt_subtest_f("cursor-%d-offscreen", cursor_size)
-			run_test(data, test_crc_offscreen, cursor_size, cursor_size);
-		igt_subtest_f("cursor-%d-sliding", cursor_size)
-			run_test(data, test_crc_sliding, cursor_size, cursor_size);
-		igt_subtest_f("cursor-%d-random", cursor_size)
-			run_test(data, test_crc_random, cursor_size, cursor_size);
+		igt_subtest_f("cursor-%dx%d-onscreen", w, h)
+			run_test(data, test_crc_onscreen, w, h);
+		igt_subtest_f("cursor-%dx%d-offscreen", w, h)
+			run_test(data, test_crc_offscreen, w, h);
+		igt_subtest_f("cursor-%dx%d-sliding", w, h)
+			run_test(data, test_crc_sliding, w, h);
+		igt_subtest_f("cursor-%dx%d-random", w, h)
+			run_test(data, test_crc_random, w, h);
+
+		igt_fixture
+			igt_remove_fb(data->drm_fd, &data->fb);
+
+		/*
+		 * Test non-square cursors a bit on the platforms
+		 * that support such things. And make it a bit more
+		 * interesting by using a non-pot height.
+		 */
+		h /= 3;
+
+		igt_fixture
+			create_cursor_fb(data, w, h);
+
+		/* Using created cursor FBs to test cursor support */
+		igt_subtest_f("cursor-%dx%d-onscreen", w, h) {
+			igt_require(has_nonsquare_cursors(data->devid));
+			run_test(data, test_crc_onscreen, w, h);
+		}
+		igt_subtest_f("cursor-%dx%d-offscreen", w, h) {
+			igt_require(has_nonsquare_cursors(data->devid));
+			run_test(data, test_crc_offscreen, w, h);
+		}
+		igt_subtest_f("cursor-%dx%d-sliding", w, h) {
+			igt_require(has_nonsquare_cursors(data->devid));
+			run_test(data, test_crc_sliding, w, h);
+		}
+		igt_subtest_f("cursor-%dx%d-random", w, h) {
+			igt_require(has_nonsquare_cursors(data->devid));
+			run_test(data, test_crc_random, w, h);
+		}
 
 		igt_fixture
 			igt_remove_fb(data->drm_fd, &data->fb);
 	}
 }
 
+static data_t data;
+
 igt_main
 {
 	uint64_t cursor_width = 64, cursor_height = 64;
-	data_t data = {};
 	int ret;
 
 	igt_skip_on_simulation();
 
 	igt_fixture {
 		data.drm_fd = drm_open_any();
+
+		data.devid = intel_get_drm_devid(data.drm_fd);
 
 		ret = drmGetCap(data.drm_fd, DRM_CAP_CURSOR_WIDTH, &cursor_width);
 		igt_assert(ret == 0 || errno == EINVAL);
@@ -447,10 +514,13 @@ igt_main
 		igt_display_init(&data.display, data.drm_fd);
 	}
 
+	data.cursor_max_w = cursor_width;
+	data.cursor_max_h = cursor_height;
+
 	igt_subtest_f("cursor-size-change")
 		run_test(&data, test_cursor_size, cursor_width, cursor_height);
 
-	run_test_generic(&data, cursor_width);
+	run_test_generic(&data);
 
 	igt_fixture {
 		igt_display_fini(&data.display);
