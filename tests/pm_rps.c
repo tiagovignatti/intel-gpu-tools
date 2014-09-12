@@ -178,7 +178,7 @@ static void emit_store_dword_imm(uint32_t val)
 	if (!lh.has_ppgtt)
 		cmd |= MI_MEM_VIRTUAL;
 
-	BEGIN_BATCH(4, 1);
+	BEGIN_BATCH(3, 1);
 	OUT_BATCH(cmd);
 	if (batch->gen >= 8) {
 		OUT_RELOC(lh.target_buffer, I915_GEM_DOMAIN_INSTRUCTION,
