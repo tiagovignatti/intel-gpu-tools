@@ -553,7 +553,9 @@ void igt_drop_caches_set(uint64_t val)
 	fd = igt_debugfs_open("i915_gem_drop_caches", O_WRONLY);
 
 	igt_assert(fd >= 0);
-	nbytes = write(fd, data, strlen(data) + 1);
+	do {
+		nbytes = write(fd, data, strlen(data) + 1);
+	} while (nbytes == -1 && (errno == EINTR || errno == EAGAIN));
 	igt_assert(nbytes == strlen(data) + 1);
 	close(fd);
 }
