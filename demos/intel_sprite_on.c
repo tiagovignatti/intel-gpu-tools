@@ -279,12 +279,12 @@ static void connector_find_preferred_mode(int gfx_fd,
 	c->connector = connector;
 }
 
-static int connector_find_plane(int gfx_fd, struct connector *c)
+static int connector_find_plane(int gfx_fd, struct connector *c,
+				unsigned int **sprite_plane_id)
 {
 	drmModePlaneRes *plane_resources;
 	drmModePlane *ovr;
-	uint32_t id = 0;
-	int i;
+	int i, sprite_plane_count = 0;
 
 	plane_resources = drmModeGetPlaneResources(gfx_fd);
 	if (!plane_resources) {
@@ -293,6 +293,12 @@ static int connector_find_plane(int gfx_fd, struct connector *c)
 		return 0;
 	}
 
+	/* Allocating buffer to hold sprite plane ids of the
+         * current connector.
+         */
+	*sprite_plane_id = (unsigned int *) malloc(plane_resources->count_planes *
+						   sizeof(unsigned int));
+
 	for (i = 0; i < plane_resources->count_planes; i++) {
 		ovr = drmModeGetPlane(gfx_fd, plane_resources->planes[i]);
 		if (!ovr) {
@@ -300,16 +306,15 @@ static int connector_find_plane(int gfx_fd, struct connector *c)
 				strerror(errno));
 			continue;
 		}
-
+		/* Add the available sprite id to the buffer sprite_plane_id.
+                 */
 		if (ovr->possible_crtcs & (1 << c->pipe)) {
-			id = ovr->plane_id;
-			drmModeFreePlane(ovr);
-			break;
+			(*sprite_plane_id)[sprite_plane_count++] = ovr->plane_id;
 		}
 		drmModeFreePlane(ovr);
 	}
 
-	return id;
+	return sprite_plane_count;
 }
 
 static int prepare_primary_surface(int fd, int prim_width, int prim_height,
@@ -479,8 +484,8 @@ static void ricochet(int tiled, int sprite_w, int sprite_h,
 	const int                           num_surfaces = 3;
 	uint32_t                            sprite_handles[num_surfaces];
 	uint32_t                            sprite_fb_id[num_surfaces];
-	int                                 sprite_x;
-	int                                 sprite_y;
+	int                                 *sprite_x = NULL;
+	int                                 *sprite_y = NULL;
 	uint32_t                            sprite_stride;
 	uint32_t                            sprite_size;
 	uint32_t                            handles[4],
@@ -499,10 +504,10 @@ static void ricochet(int tiled, int sprite_w, int sprite_h,
 					    curr_term;
 	int                                 c_index;
 	int                                 sprite_index;
-	unsigned int                        sprite_plane_id;
+	unsigned int                        *sprite_plane_id = NULL;
 	uint32_t                            plane_flags = 0;
-	int                                 delta_x,
-					    delta_y;
+	int                                 *delta_x = NULL,
+					    *delta_y = NULL;
 	struct timeval                      stTimeVal;
 	long long                           currTime,
 	     prevFlipTime,
@@ -511,7 +516,8 @@ static void ricochet(int tiled, int sprite_w, int sprite_h,
 	     deltaMoveTime,
 	     SleepTime;
 	char                                key;
-
+	int				    sprite_plane_count = 0;
+	int 				    i;
 	// Open up I915 graphics device
 	gfx_fd = drmOpen("i915", NULL);
 	if (gfx_fd < 0) {
@@ -564,8 +570,9 @@ static void ricochet(int tiled, int sprite_w, int sprite_h,
 
 		// Determine if sprite hardware is available on pipe
 		// associated with this connector.
-		sprite_plane_id = connector_find_plane(gfx_fd, &curr_connector);
-		if (!sprite_plane_id) {
+		sprite_plane_count = connector_find_plane(gfx_fd, &curr_connector,
+							  &sprite_plane_id);
+		if (!sprite_plane_count) {
 			printf("Failed to find sprite plane on crtc\n");
 			goto out;
 		}
@@ -704,12 +711,15 @@ static void ricochet(int tiled, int sprite_w, int sprite_h,
 		}
 
 		// Set the sprite colorkey state
-		set.plane_id = sprite_plane_id;
-		set.min_value = 0;
-		set.max_value = 0;
-		set.flags = I915_SET_COLORKEY_NONE;
-		ret = drmCommandWrite(gfx_fd, DRM_I915_SET_SPRITE_COLORKEY, &set, sizeof(set));
-		assert(ret == 0);
+		for(i = 0; i < sprite_plane_count; i++) {
+			set.plane_id = sprite_plane_id[i];
+			set.min_value = 0;
+			set.max_value = 0;
+			set.flags = I915_SET_COLORKEY_NONE;
+			ret = drmCommandWrite(gfx_fd, DRM_I915_SET_SPRITE_COLORKEY, &set,
+					      sizeof(set));
+			assert(ret == 0);
+		}
 
 		// Set up sprite output dimensions, initial position, etc.
 		if (out_w > prim_width / 2)
@@ -717,10 +727,21 @@ static void ricochet(int tiled, int sprite_w, int sprite_h,
 		if (out_h > prim_height / 2)
 			out_h = prim_height / 2;
 
-		delta_x = 3;
-		delta_y = 4;
-		sprite_x = (prim_width / 2) - (out_w / 2);
-		sprite_y = (prim_height / 2) - (out_h / 2);
+		delta_x = (int *) malloc(sprite_plane_count * sizeof(int));
+		delta_y = (int *) malloc(sprite_plane_count * sizeof(int));
+		sprite_x = (int *) malloc(sprite_plane_count * sizeof(int));
+		sprite_y = (int *) malloc(sprite_plane_count * sizeof(int));
+
+		/* Initializing the coordinates (x,y) of the available sprites on the
+		 * connector, equally spaced along the diagonal of the rectangle
+		 * {(0,0),(prim_width/2, prim_height/2)}.
+		 */
+		for(i = 0; i < sprite_plane_count; i++) {
+			delta_x[i] = 3;
+			delta_y[i] = 4;
+			sprite_x[i] = i * (prim_width / (2 * sprite_plane_count));
+			sprite_y[i] = i * (prim_height / (2 * sprite_plane_count));
+		}
 
 		currTime = 0;
 		prevFlipTime = 0;       // Will force immediate sprite flip
@@ -748,38 +769,44 @@ static void ricochet(int tiled, int sprite_w, int sprite_h,
 			// Move the sprite on the screen and flip
 			// the surface if the index has changed
 			// NB: sprite_w and sprite_h must be 16.16 fixed point, herego << 16
-			if (drmModeSetPlane(gfx_fd, sprite_plane_id, curr_connector.crtc,
-					    sprite_fb_id[sprite_index], plane_flags,
-					    sprite_x, sprite_y,
-					    out_w, out_h,
-					    0, 0,
-					    sprite_w << 16, sprite_h << 16))
-				printf("Failed to enable sprite plane: %s\n", strerror(errno));
+			for(i = 0; i < sprite_plane_count; i++) {
+				if (drmModeSetPlane(gfx_fd, sprite_plane_id[i],
+						    curr_connector.crtc,
+						    sprite_fb_id[sprite_index],
+						    plane_flags,
+						    sprite_x[i], sprite_y[i],
+						    out_w, out_h,
+						    0, 0,
+						    sprite_w << 16, sprite_h << 16))
+					printf("Failed to enable sprite plane: %s\n",
+						strerror(errno));
+			}
 
 			// Check if it's time to move the sprite surface
 			if (currTime - prevMoveTime > deltaMoveTime)  {
 
 				// Compute the next position for sprite
-				sprite_x += delta_x;
-				sprite_y += delta_y;
-				if (sprite_x < 0) {
-					sprite_x = 0;
-					delta_x = -delta_x;
-				}
-				else if (sprite_x > prim_width - out_w) {
-					sprite_x = prim_width - out_w;
-					delta_x = -delta_x;
-				}
+				for(i = 0; i < sprite_plane_count; i++) {
+					sprite_x[i] += delta_x[i];
+					sprite_y[i] += delta_y[i];
+					if (sprite_x[i] < 0) {
+						sprite_x[i] = 0;
+						delta_x[i] = -delta_x[i];
+					}
+					else if (sprite_x[i] > prim_width - out_w) {
+						sprite_x[i] = prim_width - out_w;
+						delta_x[i] = -delta_x[i];
+					}
 
-				if (sprite_y < 0) {
-					sprite_y = 0;
-					delta_y = -delta_y;
+					if (sprite_y[i] < 0) {
+						sprite_y[i] = 0;
+						delta_y[i] = -delta_y[i];
+					}
+					else if (sprite_y[i] > prim_height - out_h) {
+						sprite_y[i] = prim_height - out_h;
+						delta_y[i] = -delta_y[i];
+					}
 				}
-				else if (sprite_y > prim_height - out_h) {
-					sprite_y = prim_height - out_h;
-					delta_y = -delta_y;
-				}
-
 				prevMoveTime = currTime;
 			}
 
@@ -829,6 +856,15 @@ static void ricochet(int tiled, int sprite_w, int sprite_h,
 				deltaFlipTime : deltaMoveTime;
 			usleep(SleepTime);
 		}
+
+		free(sprite_plane_id);
+		free(sprite_x);
+		free(sprite_y);
+		free(delta_x);
+		free(delta_y);
+		sprite_plane_id = NULL;
+		sprite_plane_count = 0;
+		sprite_x = sprite_y = delta_x = delta_y = NULL;
 	}
 
 out:
