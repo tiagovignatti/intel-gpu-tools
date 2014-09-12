@@ -181,7 +181,7 @@ static void test_connector(const char *test_name,
 	igt_get_all_formats(&formats, &format_count);
 	for (i = 0; i < format_count; i++)
 		test_format(test_name,
-			    cconf, &cconf->connector->modes[i],
+			    cconf, &cconf->connector->modes[0],
 			    formats[i], flags);
 }
 
