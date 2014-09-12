@@ -566,6 +566,9 @@ static int test_invalid_gtt_mapping(int fd)
 #define PE_BUSY 0x2
 static void test_process_exit(int fd, int flags)
 {
+	if (flags & PE_GTT_MAP)
+		igt_require(gem_has_llc(fd));
+
 	igt_fork(child, 1) {
 		uint32_t handle;
 
