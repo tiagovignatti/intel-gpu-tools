@@ -212,6 +212,8 @@ typedef struct {
 
 	/* position within pipe_src_w x pipe_src_h */
 	int crtc_x, crtc_y;
+	/* size within pipe_src_w x pipe_src_h */
+	int crtc_w, crtc_h;
 	/* panning offset within the fb */
 	unsigned int pan_x, pan_y;
 	igt_rotation_t rotation;
@@ -266,6 +268,7 @@ static inline bool igt_plane_supports_rotation(igt_plane_t *plane)
 
 void igt_plane_set_fb(igt_plane_t *plane, struct igt_fb *fb);
 void igt_plane_set_position(igt_plane_t *plane, int x, int y);
+void igt_plane_set_size(igt_plane_t *plane, int w, int h);
 void igt_plane_set_panning(igt_plane_t *plane, int x, int y);
 void igt_plane_set_rotation(igt_plane_t *plane, igt_rotation_t rotation);
 

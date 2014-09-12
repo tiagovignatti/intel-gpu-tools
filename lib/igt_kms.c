@@ -1269,7 +1269,7 @@ static int igt_drm_plane_commit(igt_plane_t *plane,
 				      fb_id,
 				      0,    /* flags */
 				      plane->crtc_x, plane->crtc_y,
-				      plane->fb->width, plane->fb->height,
+				      plane->crtc_w, plane->crtc_h,
 				      IGT_FIXED(0,0), /* src_x */
 				      IGT_FIXED(0,0), /* src_y */
 				      IGT_FIXED(plane->fb->width,0), /* src_w */
@@ -1314,12 +1314,12 @@ static int igt_cursor_commit_legacy(igt_plane_t *cursor,
 			    igt_output_name(output),
 			    kmstest_pipe_name(output->config.pipe),
 			    gem_handle,
-			    cursor->fb->width, cursor->fb->height);
+			    cursor->crtc_w, cursor->crtc_h);
 
 			ret = drmModeSetCursor(display->drm_fd, crtc_id,
 					       gem_handle,
-					       cursor->fb->width,
-					       cursor->fb->height);
+					       cursor->crtc_w,
+					       cursor->crtc_h);
 		} else {
 			LOG(display,
 			    "%s: SetCursor pipe %s, disabling\n",
@@ -1631,6 +1631,14 @@ void igt_plane_set_fb(igt_plane_t *plane, struct igt_fb *fb)
 	    plane->index, fb ? fb->fb_id : 0);
 
 	plane->fb = fb;
+	/* hack to keep tests working that don't call igt_plane_set_size() */
+	if (fb) {
+		plane->crtc_w = fb->width;
+		plane->crtc_h = fb->height;
+	} else {
+		plane->crtc_w = 0;
+		plane->crtc_h = 0;
+	}
 
 	plane->fb_changed = true;
 }
@@ -1647,6 +1655,24 @@ void igt_plane_set_position(igt_plane_t *plane, int x, int y)
 	plane->crtc_y = y;
 
 	plane->position_changed = true;
+}
+
+void igt_plane_set_size(igt_plane_t *plane, int w, int h)
+{
+	igt_pipe_t *pipe = plane->pipe;
+	igt_display_t *display = pipe->display;
+
+	LOG(display, "%s.%d: plane_set_size(%d,%d)\n",
+	    kmstest_pipe_name(pipe->pipe), plane->index, w, h);
+
+	plane->crtc_w = w;
+	plane->crtc_h = h;
+
+	/*
+	 * must be fb_changed so that legacy cursors call
+	 * drmModeSetCursor() instead of drmModeMoveCursor()
+	 */
+	plane->fb_changed = true;
 }
 
 void igt_plane_set_panning(igt_plane_t *plane, int x, int y)
