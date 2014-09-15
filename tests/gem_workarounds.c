@@ -50,6 +50,7 @@
 enum operation {
 	GPU_RESET = 0x01,
 	SUSPEND_RESUME = 0x02,
+	SIMPLE_READ = 0x03,
 };
 
 struct intel_wa_reg {
@@ -58,24 +59,19 @@ struct intel_wa_reg {
 	uint32_t mask;
 };
 
-int drm_fd;
-uint32_t devid;
+static int drm_fd;
+static uint32_t devid;
 static drm_intel_bufmgr *bufmgr;
 struct intel_batchbuffer *batch;
-int num_wa_regs;
-struct intel_wa_reg *wa_regs;
+static int num_wa_regs;
 
+static struct intel_wa_reg *wa_regs;
 
-static void test_hang_gpu(void)
+static void wait_gpu(void)
 {
-	int retry_count = 30;
-	enum stop_ring_flags flags;
 	struct drm_i915_gem_execbuffer2 execbuf;
 	struct drm_i915_gem_exec_object2 gem_exec;
 	uint32_t b[2] = {MI_BATCH_BUFFER_END};
-
-	igt_assert(retry_count);
-	igt_set_stop_rings(STOP_RING_DEFAULTS);
 
 	memset(&gem_exec, 0, sizeof(gem_exec));
 	gem_exec.handle = gem_create(drm_fd, 4096);
@@ -87,6 +83,21 @@ static void test_hang_gpu(void)
 	execbuf.batch_len = sizeof(b);
 
 	drmIoctl(drm_fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf);
+
+	gem_sync(drm_fd, gem_exec.handle);
+
+	gem_close(drm_fd, gem_exec.handle);
+}
+
+static void test_hang_gpu(void)
+{
+	int retry_count = 30;
+	enum stop_ring_flags flags;
+
+	igt_assert(retry_count);
+	igt_set_stop_rings(STOP_RING_DEFAULTS);
+
+	wait_gpu();
 
 	while(retry_count--) {
 		flags = igt_get_stop_rings();
@@ -107,30 +118,46 @@ static void test_suspend_resume(void)
 	igt_system_suspend_autoresume();
 }
 
-static void get_current_wa_data(struct intel_wa_reg **curr, int num)
+static int workaround_fail_count(void)
 {
-	int i;
-	struct intel_wa_reg *ptr = NULL;
-
-	ptr = *curr;
+	int i, fail_count = 0;
 
 	intel_register_access_init(intel_get_pci_device(), 0);
 
-	for (i = 0; i < num; ++i) {
-		ptr[i].addr = wa_regs[i].addr;
-		ptr[i].value = intel_register_read(wa_regs[i].addr);
-		ptr[i].mask = wa_regs[i].mask;
+	/* There is a small delay after coming ot of rc6 to the correct
+	   render context values will get loaded by hardware (bdw,chv).
+	   This here ensures that we have the correct context loaded before
+	   we start to read values */
+	wait_gpu();
+
+	igt_debug("Address\tval\t\tmask\t\tread\t\tresult\n");
+
+	for (i = 0; i < num_wa_regs; ++i) {
+		const uint32_t val = intel_register_read(wa_regs[i].addr);
+		const bool ok = (wa_regs[i].value & wa_regs[i].mask) ==
+			(val & wa_regs[i].mask);
+
+		igt_debug("0x%05X\t0x%08X\t0x%08X\t0x%08X\t%s\n",
+			  wa_regs[i].addr, wa_regs[i].value, wa_regs[i].mask,
+			  val, ok ? "OK" : "FAIL");
+
+		if (!ok) {
+			igt_warn("0x%05X\t0x%08X\t0x%08X\t0x%08X\t%s\n",
+				 wa_regs[i].addr, wa_regs[i].value,
+				 wa_regs[i].mask,
+				 val, ok ? "OK" : "FAIL");
+			fail_count++;
+		}
 	}
 
 	intel_register_access_fini();
+
+	return fail_count;
 }
 
-static void check_workarounds(enum operation op, int num)
+static void check_workarounds(enum operation op)
 {
-	int i;
-	int fail_count = 0;
-	int status = 0;
-	struct intel_wa_reg *current_wa = NULL;
+	igt_assert(workaround_fail_count() == 0);
 
 	switch (op) {
 	case GPU_RESET:
@@ -141,31 +168,14 @@ static void check_workarounds(enum operation op, int num)
 		test_suspend_resume();
 		break;
 
+	case SIMPLE_READ:
+		return;
+
 	default:
-		fail_count = 1;
-		goto out;
+		igt_assert(0);
 	}
 
-	current_wa = malloc(num * sizeof(*current_wa));
-	igt_assert(current_wa);
-	get_current_wa_data(&current_wa, num);
-
-	igt_info("Address\tbefore\t\tafter\t\tw/a mask\tresult\n");
-	for (i = 0; i < num; ++i) {
-		status = (current_wa[i].value & current_wa[i].mask) !=
-			(wa_regs[i].value & wa_regs[i].mask);
-		if (status)
-			++fail_count;
-
-		igt_info("0x%X\t0x%08X\t0x%08X\t0x%08X\t%s\n",
-		       current_wa[i].addr, wa_regs[i].value,
-		       current_wa[i].value, current_wa[i].mask,
-		       status ? "fail" : "success");
-	}
-
-out:
-	free(current_wa);
-	igt_assert(fail_count == 0);
+	igt_assert(workaround_fail_count() == 0);
 }
 
 igt_main
@@ -193,7 +203,12 @@ igt_main
 		ret = getline(&line, &line_size, file);
 		igt_assert(ret > 0);
 		sscanf(line, "Workarounds applied: %d", &num_wa_regs);
-		igt_assert(num_wa_regs > 0);
+
+		if (IS_BROADWELL(devid) ||
+		    IS_CHERRYVIEW(devid))
+			igt_assert(num_wa_regs > 0);
+		else
+			igt_assert(num_wa_regs >= 0);
 
 		wa_regs = malloc(num_wa_regs * sizeof(*wa_regs));
 
@@ -210,19 +225,14 @@ igt_main
 		close(fd);
 	}
 
-	igt_subtest("check-workaround-data-after-reset") {
-		if (IS_BROADWELL(devid))
-			check_workarounds(GPU_RESET, num_wa_regs);
-		else
-			igt_skip_on("No Workaround table available!!\n");
-	}
+	igt_subtest("read")
+		check_workarounds(SIMPLE_READ);
 
-	igt_subtest("check-workaround-data-after-suspend-resume") {
-		if (IS_BROADWELL(devid))
-			check_workarounds(SUSPEND_RESUME, num_wa_regs);
-		else
-			igt_skip_on("No Workaround table available!!\n");
-	}
+	igt_subtest("reset")
+		check_workarounds(GPU_RESET);
+
+	igt_subtest("suspend-resume")
+		check_workarounds(SUSPEND_RESUME);
 
 	igt_fixture {
 		free(wa_regs);
