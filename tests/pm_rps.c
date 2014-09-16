@@ -178,18 +178,17 @@ static void emit_store_dword_imm(uint32_t val)
 	if (!lh.has_ppgtt)
 		cmd |= MI_MEM_VIRTUAL;
 
-	BEGIN_BATCH(3, 1);
+	BEGIN_BATCH(4, 0); /* just ignore the reloc we emit and count dwords */
 	OUT_BATCH(cmd);
 	if (batch->gen >= 8) {
 		OUT_RELOC(lh.target_buffer, I915_GEM_DOMAIN_INSTRUCTION,
 			  I915_GEM_DOMAIN_INSTRUCTION, 0);
-		OUT_BATCH(val);
 	} else {
 		OUT_BATCH(0); /* reserved */
 		OUT_RELOC(lh.target_buffer, I915_GEM_DOMAIN_INSTRUCTION,
 			  I915_GEM_DOMAIN_INSTRUCTION, 0);
-		OUT_BATCH(val);
 	}
+	OUT_BATCH(val);
 	ADVANCE_BATCH();
 }
 
