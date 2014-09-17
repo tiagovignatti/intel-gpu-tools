@@ -2972,7 +2972,7 @@ int main(int argc, char** argv)
 		intel_dump_other_regs();
 	}
 
-	if (IS_GEN6(devid) || IS_GEN7(devid)) {
+	if (intel_gen(devid) >= 6) {
 		intel_dump_regs(gen6_fences);
 		intel_dump_regs(gen6_rp_debug_regs);
 	}
