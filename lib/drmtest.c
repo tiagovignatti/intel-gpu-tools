@@ -325,6 +325,25 @@ int drm_open_any(void)
 }
 
 /**
+ * drm_open_any_master:
+ *
+ * Open an i915 drm legacy device node and ensure that it is drm master.
+ *
+ * Returns:
+ * The i915 drm file descriptor or -1 on error
+ */
+int drm_open_any_master(void)
+{
+	int fd = drm_open_any();
+
+	igt_require(fd >= 0);
+	igt_require_f(drmSetMaster(fd) == 0, "Can't become DRM master, "
+		      "please check if no other DRM client is running.\n");
+
+	return fd;
+}
+
+/**
  * drm_open_any:
  *
  * Open an i915 drm render device node.

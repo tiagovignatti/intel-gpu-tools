@@ -72,6 +72,7 @@ static inline void *igt_mmap64(void *addr, size_t length, int prot, int flags,
 
 int drm_get_card(void);
 int drm_open_any(void);
+int drm_open_any_master(void);
 int drm_open_any_render(void);
 
 void gem_quiescent_gpu(int fd);

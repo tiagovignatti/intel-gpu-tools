@@ -713,11 +713,7 @@ static void setup_non_graphics_runtime_pm(void)
 
 static void setup_environment(void)
 {
-	drm_fd = drm_open_any();
-	igt_assert(drm_fd >= 0);
-
-	igt_require_f(drmSetMaster(drm_fd) == 0, "Can't become DRM master, "
-		      "please check if no other DRM client is running.\n");
+	drm_fd = drm_open_any_master();
 
 	init_mode_set_data(&ms_data);
 
