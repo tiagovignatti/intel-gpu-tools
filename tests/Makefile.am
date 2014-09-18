@@ -44,6 +44,8 @@ LDADD = ../lib/libintel_tools.la $(PCIACCESS_LIBS) $(DRM_LIBS)
 LDADD += $(CAIRO_LIBS) $(LIBUDEV_LIBS) $(GLIB_LIBS)
 AM_CFLAGS += $(CAIRO_CFLAGS) $(LIBUDEV_CFLAGS) $(GLIB_CFLAGS)
 
+drm_import_export_CFLAGS = $(AM_CFLAGS) $(THREAD_CFLAGS)
+drm_import_export_LDADD = $(LDADD) -lpthread
 gem_close_race_CFLAGS = $(AM_CFLAGS) $(THREAD_CFLAGS)
 gem_close_race_LDADD = $(LDADD) -lpthread
 gem_ctx_basic_CFLAGS = $(AM_CFLAGS) $(THREAD_CFLAGS)
