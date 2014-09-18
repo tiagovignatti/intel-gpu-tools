@@ -218,7 +218,7 @@ int fd;
 igt_main
 {
 	igt_fixture
-		fd = drm_open_any();
+		fd = drm_open_any_master();
 
 	pitch_tests(fd);
 

@@ -36,7 +36,7 @@ igt_simple_main
 	size_t length;
 	int mode_count, connector_id;
 
-	drm_fd = drm_open_any();
+	drm_fd = drm_open_any_master();
 	res = drmModeGetResources(drm_fd);
 
 	igt_assert(drmSetClientCap(drm_fd, DRM_CLIENT_CAP_STEREO_3D, 1) >= 0);

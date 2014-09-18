@@ -226,7 +226,7 @@ igt_main
 	igt_fixture {
 		int i;
 
-		drm_fd = drm_open_any();
+		drm_fd = drm_open_any_master();
 		igt_require(drm_fd >= 0);
 
 		devid = intel_get_drm_devid(drm_fd);

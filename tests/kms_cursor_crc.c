@@ -492,7 +492,7 @@ igt_main
 	igt_skip_on_simulation();
 
 	igt_fixture {
-		data.drm_fd = drm_open_any();
+		data.drm_fd = drm_open_any_master();
 
 		data.devid = intel_get_drm_devid(data.drm_fd);
 

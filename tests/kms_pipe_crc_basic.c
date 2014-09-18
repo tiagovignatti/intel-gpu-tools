@@ -229,7 +229,7 @@ igt_main
 	igt_skip_on_simulation();
 
 	igt_fixture {
-		data.drm_fd = drm_open_any();
+		data.drm_fd = drm_open_any_master();
 
 		igt_enable_connectors();
 

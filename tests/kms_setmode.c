@@ -710,7 +710,7 @@ int main(int argc, char **argv)
 		     "only one of -d and -t is accepted\n");
 
 	igt_fixture {
-		drm_fd = drm_open_any();
+		drm_fd = drm_open_any_master();
 		if (!dry_run)
 			kmstest_set_vt_graphics_mode();
 

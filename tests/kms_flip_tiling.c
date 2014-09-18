@@ -127,7 +127,7 @@ igt_main
 	igt_skip_on_simulation();
 
 	igt_fixture {
-		data.drm_fd = drm_open_any();
+		data.drm_fd = drm_open_any_master();
 
 		kmstest_set_vt_graphics_mode();
 

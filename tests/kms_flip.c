@@ -1590,7 +1590,7 @@ int main(int argc, char **argv)
 	igt_skip_on_simulation();
 
 	igt_fixture {
-		drm_fd = drm_open_any();
+		drm_fd = drm_open_any_master();
 
 		igt_enable_connectors();
 

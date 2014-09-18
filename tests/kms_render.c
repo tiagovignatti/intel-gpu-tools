@@ -230,7 +230,7 @@ igt_main
 	igt_skip_on_simulation();
 
 	igt_fixture {
-		drm_fd = drm_open_any();
+		drm_fd = drm_open_any_master();
 
 		bufmgr = drm_intel_bufmgr_gem_init(drm_fd, 4096);
 		devid = intel_get_drm_devid(drm_fd);

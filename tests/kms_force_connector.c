@@ -38,7 +38,7 @@ main (int argc, char **argv)
 
 	igt_simple_init(argc, argv);
 
-	drm_fd = drm_open_any();
+	drm_fd = drm_open_any_master();
 	res = drmModeGetResources(drm_fd);
 
 	/* find the vga connector */
