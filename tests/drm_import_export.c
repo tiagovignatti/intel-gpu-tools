@@ -48,6 +48,8 @@ drm_intel_bufmgr *bufmgr;
 int fd1;
 drm_intel_bufmgr *bufmgr1;
 
+bool use_flink;
+
 static void new_buffers(void)
 {
 	unsigned int *buf1;
@@ -82,12 +84,24 @@ static void test_surfaces(drm_intel_bo *bo_shared)
 	int loop=2;
 
 	while(loop--) {
-		struct drm_gem_open op;
+		if (use_flink) {
+			uint32_t name;
+			drm_intel_bo_flink(bo_shared, &name);
+			bo = drm_intel_bo_gem_create_from_name(bufmgr,
+							       "shared resource",
+							       name);
+		} else {
+			int prime_fd;
 
-		drm_intel_bo_flink(bo_shared, &op.name);
-		bo = drm_intel_bo_gem_create_from_name( bufmgr, "shared resource" , op.name );
+			drm_intel_bo_gem_export_to_prime(bo_shared, &prime_fd);
+			bo = drm_intel_bo_gem_create_from_prime(bufmgr,
+								prime_fd, 4096);
+			close(prime_fd);
+		}
+
+		igt_assert(bo);
 		new_buffers();
-		drm_intel_bo_unreference( bo );
+		drm_intel_bo_unreference(bo);
 	}
 }
 
@@ -113,33 +127,53 @@ static void * test_thread(void * par)
 	return NULL;
 }
 
-igt_simple_main {
-	pthread_t test_thread_id1;
-	pthread_t test_thread_id2;
-	pthread_t test_thread_id3;
-	pthread_t test_thread_id4;
+pthread_t test_thread_id1;
+pthread_t test_thread_id2;
+pthread_t test_thread_id3;
+pthread_t test_thread_id4;
 
-	fd1 = drm_open_any();
-	igt_assert(fd1 >= 0);
-	bufmgr1 = drm_intel_bufmgr_gem_init( fd1, 8 *1024);
-	igt_assert(bufmgr1);
+igt_main {
+	igt_fixture {
+		fd1 = drm_open_any();
+		igt_assert(fd1 >= 0);
+		bufmgr1 = drm_intel_bufmgr_gem_init(fd1, 8 *1024);
+		igt_assert(bufmgr1);
 
-	drm_intel_bufmgr_gem_enable_reuse( bufmgr1);
+		drm_intel_bufmgr_gem_enable_reuse(bufmgr1);
 
-	fd = drm_open_any();
-	igt_assert(fd >= 0);
-	bufmgr = drm_intel_bufmgr_gem_init( fd, 8 *1024);
-	igt_assert(bufmgr);
+		fd = drm_open_any();
+		igt_assert(fd >= 0);
+		bufmgr = drm_intel_bufmgr_gem_init(fd, 8 *1024);
+		igt_assert(bufmgr);
 
-	drm_intel_bufmgr_gem_enable_reuse( bufmgr);
+		drm_intel_bufmgr_gem_enable_reuse(bufmgr);
+	}
 
-	pthread_create(&test_thread_id1, NULL, test_thread, NULL);
-	pthread_create(&test_thread_id2, NULL, test_thread, NULL);
-	pthread_create(&test_thread_id3, NULL, test_thread, NULL);
-	pthread_create(&test_thread_id4, NULL, test_thread, NULL);
+	igt_subtest("flink") {
+		use_flink = true;
 
-	pthread_join(test_thread_id1, NULL);
-	pthread_join(test_thread_id2, NULL);
-	pthread_join(test_thread_id3, NULL);
-	pthread_join(test_thread_id4, NULL);
+		pthread_create(&test_thread_id1, NULL, test_thread, NULL);
+		pthread_create(&test_thread_id2, NULL, test_thread, NULL);
+		pthread_create(&test_thread_id3, NULL, test_thread, NULL);
+		pthread_create(&test_thread_id4, NULL, test_thread, NULL);
+
+		pthread_join(test_thread_id1, NULL);
+		pthread_join(test_thread_id2, NULL);
+		pthread_join(test_thread_id3, NULL);
+		pthread_join(test_thread_id4, NULL);
+	}
+
+	igt_subtest("prime") {
+		use_flink = false;
+
+		pthread_create(&test_thread_id1, NULL, test_thread, NULL);
+		pthread_create(&test_thread_id2, NULL, test_thread, NULL);
+		pthread_create(&test_thread_id3, NULL, test_thread, NULL);
+		pthread_create(&test_thread_id4, NULL, test_thread, NULL);
+
+		pthread_join(test_thread_id1, NULL);
+		pthread_join(test_thread_id2, NULL);
+		pthread_join(test_thread_id3, NULL);
+		pthread_join(test_thread_id4, NULL);
+	}
 }
