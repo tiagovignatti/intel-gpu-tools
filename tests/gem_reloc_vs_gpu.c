@@ -140,35 +140,28 @@ static void emit_dummy_load(int pitch)
 	intel_batchbuffer_flush(batch);
 }
 
-static void faulting_reloc_and_emit(int fd, drm_intel_bo *target_bo)
+static void reloc_and_emit(int fd, drm_intel_bo *target_bo, bool faulting_reloc)
 {
 	struct drm_i915_gem_execbuffer2 execbuf;
 	struct drm_i915_gem_exec_object2 exec[2];
 	struct drm_i915_gem_relocation_entry reloc[1];
 	uint32_t handle_relocs;
 	void *gtt_relocs;
-	int ring;
 
-	if (intel_gen(devid) >= 6)
-		ring = I915_EXEC_BLT;
-	else
-		ring = 0;
+	memset(&execbuf, 0, sizeof(execbuf));
+	memset(exec, 0, sizeof(exec));
+	memset(reloc, 0, sizeof(reloc));
 
 	exec[0].handle = target_bo->handle;
-	exec[0].relocation_count = 0;
-	exec[0].relocs_ptr = 0;
-	exec[0].alignment = 0;
-	exec[0].offset = 0;
-	exec[0].flags = 0;
-	exec[0].rsvd1 = 0;
-	exec[0].rsvd2 = 0;
 
 	reloc[0].offset = special_reloc_ofs;
-	reloc[0].delta = 0;
 	reloc[0].target_handle = target_bo->handle;
 	reloc[0].read_domains = I915_GEM_DOMAIN_RENDER;
 	reloc[0].write_domain = I915_GEM_DOMAIN_RENDER;
-	reloc[0].presumed_offset = 0;
+	/* We do not track the last patched value, so force the relocation
+	 * every time.
+	 */
+	reloc[0].presumed_offset = -1;
 
 	handle_relocs = gem_create(fd, 4096);
 	gem_write(fd, handle_relocs, 0, reloc, sizeof(reloc));
@@ -179,47 +172,20 @@ static void faulting_reloc_and_emit(int fd, drm_intel_bo *target_bo)
 	exec[1].handle = special_bo->handle;
 	exec[1].relocation_count = 1;
 	/* A newly mmap gtt bo will fault on first access. */
-	exec[1].relocs_ptr = (uintptr_t)gtt_relocs;
-	exec[1].alignment = 0;
-	exec[1].offset = 0;
-	exec[1].flags = 0;
-	exec[1].rsvd1 = 0;
-	exec[1].rsvd2 = 0;
+	if (faulting_reloc)
+		exec[1].relocs_ptr = (uintptr_t)gtt_relocs;
+	else
+		exec[1].relocs_ptr = (uintptr_t)reloc;
 
 	execbuf.buffers_ptr = (uintptr_t)exec;
 	execbuf.buffer_count = 2;
-	execbuf.batch_start_offset = 0;
 	execbuf.batch_len = special_batch_len;
-	execbuf.cliprects_ptr = 0;
-	execbuf.num_cliprects = 0;
-	execbuf.DR1 = 0;
-	execbuf.DR4 = 0;
-	execbuf.flags = ring;
-	i915_execbuffer2_set_context_id(execbuf, 0);
-	execbuf.rsvd2 = 0;
+	if (intel_gen(devid) >= 6)
+		execbuf.flags |= I915_EXEC_BLT;
 
 	gem_execbuf(fd, &execbuf);
 
 	gem_close(fd, handle_relocs);
-}
-
-static void reloc_and_emit(int fd, drm_intel_bo *target_bo)
-{
-	int ring;
-
-	if (intel_gen(devid) >= 6)
-		ring = I915_EXEC_BLT;
-	else
-		ring = 0;
-
-	drm_intel_bo_emit_reloc(special_bo, special_reloc_ofs,
-				target_bo,
-				0,
-				I915_GEM_DOMAIN_RENDER,
-				I915_GEM_DOMAIN_RENDER);
-	drm_intel_bo_mrb_exec(special_bo, special_batch_len, NULL,
-			      0, 0, ring);
-
 }
 
 static void do_test(int fd, bool faulting_reloc)
@@ -245,10 +211,7 @@ static void do_test(int fd, bool faulting_reloc)
 		emit_dummy_load(pitch);
 		igt_assert(pc_target_bo[i]->offset == 0);
 
-		if (faulting_reloc)
-			faulting_reloc_and_emit(fd, pc_target_bo[i]);
-		else
-			reloc_and_emit(fd, pc_target_bo[i]);
+		reloc_and_emit(fd, pc_target_bo[i], faulting_reloc);
 	}
 
 	/* Only check at the end to avoid unnecessary synchronous behaviour. */
