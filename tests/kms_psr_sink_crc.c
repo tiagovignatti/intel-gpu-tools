@@ -468,16 +468,32 @@ static void run_test(data_t *data)
 	}
 }
 
-igt_main
+static int opt_handler(int opt, int opt_index)
 {
+	switch (opt) {
+	case 'n':
+		running_with_psr_disabled = true;
+		break;
+	default:
+		igt_assert(0);
+	}
+
+	return 0;
+}
+
+int main(int argc, char *argv[])
+{
+	const char *help_str =
+	       "  --no-psr\tRun test without PSR to check the CRC test logic.";
+	static struct option long_options[] = {
+		{"no-psr", 0, 0, 'n'},
+		{ 0, 0, 0, 0 }
+	};
 	data_t data = {};
 	enum operations op;
-	char *env_psr;
 
-	env_psr = getenv("IGT_PSR_DISABLED");
-
-	running_with_psr_disabled = (bool) env_psr;
-
+	igt_subtest_init_parse_opts(argc, argv, "", long_options,
+				    help_str, opt_handler);
 	igt_skip_on_simulation();
 
 	igt_fixture {
@@ -522,4 +538,6 @@ igt_main
 		drm_intel_bufmgr_destroy(data.bufmgr);
 		display_fini(&data);
 	}
+
+	igt_exit();
 }
