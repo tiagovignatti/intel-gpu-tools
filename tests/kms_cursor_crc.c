@@ -79,7 +79,6 @@ static void draw_cursor(cairo_t *cr, int x, int y, int cw, int ch)
 
 static void cursor_enable(data_t *data)
 {
-	igt_display_t *display = &data->display;
 	igt_output_t *output = data->output;
 	igt_plane_t *cursor;
 
@@ -90,7 +89,6 @@ static void cursor_enable(data_t *data)
 
 static void cursor_disable(data_t *data)
 {
-	igt_display_t *display = &data->display;
 	igt_output_t *output = data->output;
 	igt_plane_t *cursor;
 
