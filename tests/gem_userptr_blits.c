@@ -47,6 +47,7 @@
 #include <sys/mman.h>
 #include <signal.h>
 #include <pthread.h>
+#include <time.h>
 
 #include "drm.h"
 #include "i915_drm.h"
@@ -833,19 +834,32 @@ static int test_usage_restrictions(int fd)
 	return 0;
 }
 
-static int test_create_destroy(int fd)
+static int test_create_destroy(int fd, int time)
 {
-	void *ptr;
-	int ret;
+	struct timespec start, now;
 	uint32_t handle;
+	void *ptr;
+	int n;
 
-	igt_assert(posix_memalign(&ptr, PAGE_SIZE, PAGE_SIZE) == 0);
+	igt_fork_signal_helper();
 
-	ret = gem_userptr(fd, ptr, PAGE_SIZE, 0, &handle);
-	igt_assert(ret == 0);
+	clock_gettime(CLOCK_MONOTONIC, &start);
+	do {
+		for (n = 0; n < 1000; n++) {
+			igt_assert(posix_memalign(&ptr, PAGE_SIZE, PAGE_SIZE) == 0);
 
-	gem_close(fd, handle);
-	free(ptr);
+			do_or_die(gem_userptr(fd, ptr, PAGE_SIZE, 0, &handle));
+
+			gem_close(fd, handle);
+			free(ptr);
+		}
+
+		clock_gettime(CLOCK_MONOTONIC, &now);
+		now.tv_sec -= time;
+	} while (now.tv_sec < start.tv_sec ||
+		 (now.tv_sec == start.tv_sec && now.tv_nsec < start.tv_nsec));
+
+	igt_stop_signal_helper();
 
 	return 0;
 }
@@ -1264,7 +1278,7 @@ int main(int argc, char **argv)
 	gem_userptr_test_unsynchronized();
 
 	igt_subtest("create-destroy-unsync")
-		test_create_destroy(fd);
+		test_create_destroy(fd, 5);
 
 	igt_subtest("unsync-overlap")
 		test_overlap(fd, 0);
@@ -1355,7 +1369,7 @@ int main(int argc, char **argv)
 		test_process_exit(fd, PE_GTT_MAP | PE_BUSY);
 
 	igt_subtest("create-destroy-sync")
-		test_create_destroy(fd);
+		test_create_destroy(fd, 5);
 
 	igt_subtest("sync-overlap")
 		test_overlap(fd, EINVAL);
