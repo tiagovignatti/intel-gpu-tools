@@ -104,11 +104,10 @@ unmapped_create_bo(drm_intel_bufmgr *bufmgr, int width, int height)
 static void
 gtt_set_bo(drm_intel_bo *bo, uint32_t val, int width, int height)
 {
+	uint32_t *vaddr = bo->virtual;
 	int size = width * height;
-	uint32_t *vaddr;
 
 	drm_intel_gem_bo_start_gtt_access(bo, true);
-	vaddr = bo->virtual;
 	while (size--)
 		*vaddr++ = val;
 }
@@ -116,13 +115,13 @@ gtt_set_bo(drm_intel_bo *bo, uint32_t val, int width, int height)
 static void
 gtt_cmp_bo(drm_intel_bo *bo, uint32_t val, int width, int height, drm_intel_bo *tmp)
 {
-	int size = width * height;
-	uint32_t *vaddr;
+	uint32_t *vaddr = bo->virtual;
+	int y;
 
+	/* GTT access is slow. So we just compare a few points */
 	drm_intel_gem_bo_start_gtt_access(bo, false);
-	vaddr = bo->virtual;
-	while (size--)
-		igt_assert_eq_u32(*vaddr++, val);
+	for (y = 0; y < height; y++)
+		igt_assert_eq_u32(vaddr[y*width+y], val);
 }
 
 static drm_intel_bo *
