@@ -928,6 +928,10 @@ bool __igt_fork_helper(struct igt_helper_process *proc)
 	 */
 	tmp_count = exit_handler_count;
 	exit_handler_count = 0;
+
+	/* ensure any buffers are flushed before fork */
+	fflush(NULL);
+
 	switch (pid = fork()) {
 	case -1:
 		exit_handler_count = tmp_count;
@@ -1018,6 +1022,9 @@ bool __igt_fork(void)
 					sizeof(pid_t)*test_children_sz);
 		igt_assert(test_children);
 	}
+
+	/* ensure any buffers are flushed before fork */
+	fflush(NULL);
 
 	switch (test_children[num_test_children++] = fork()) {
 	case -1:
