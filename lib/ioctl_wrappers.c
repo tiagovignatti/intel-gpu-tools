@@ -506,7 +506,7 @@ void *gem_mmap__cpu(int fd, uint32_t handle, int size, int prot)
  * object is in need again it must be set back to WILLNEED before first use.
  *
  * Returns: When setting the madvise state to WILLNEED this returns whether the
- * backing storage was still avialable or not.
+ * backing storage was still available or not.
  */
 int gem_madvise(int fd, uint32_t handle, int state)
 {
@@ -597,7 +597,7 @@ bool gem_bo_busy(int fd, uint32_t handle)
  * Feature test macro to check whether the kernel internally uses ppgtt to
  * execute batches. The /aliasing/ in the function name is a bit a misnomer,
  * this driver parameter is also true when full ppgtt address spaces are
- * availabel since for batchbuffer construction only ppgtt or global gtt is
+ * available since for batchbuffer construction only ppgtt or global gtt is
  * relevant.
  *
  * Returns: Whether batches are run through ppgtt.
@@ -623,7 +623,7 @@ bool gem_uses_aliasing_ppgtt(int fd)
  * @fd: open i915 drm file descriptor
  *
  * Feature test macro to query the kernel for the number of available fences
- * useable in a batchbuffer. Only relevant for pre-gen4.
+ * usable in a batchbuffer. Only relevant for pre-gen4.
  *
  * Returns: The number of available fences.
  */
@@ -663,7 +663,7 @@ bool gem_has_llc(int fd)
  * gem_get_num_rings:
  * @fd: open i915 drm file descriptor
  *
- * Feature test macro to query the number of avaible rings. This is useful in
+ * Feature test macro to query the number of available rings. This is useful in
  * test loops which need to step through all rings and similar logic.
  *
  * For more explicit tests of ring availability see gem_has_enable_ring() and
@@ -702,7 +702,7 @@ skip:
  *
  * Feature test macro to query whether a specific ring is available.
  *
- * Returns: Whether the ring is avaible or not.
+ * Returns: Whether the ring is available or not.
  */
 bool gem_has_enable_ring(int fd,int param)
 {
@@ -729,7 +729,7 @@ bool gem_has_enable_ring(int fd,int param)
  *
  * Note that recent Bspec calls this the VCS ring for Video Command Submission.
  *
- * Returns: Whether the BSD ring is avaible or not.
+ * Returns: Whether the BSD ring is available or not.
  */
 bool gem_has_bsd(int fd)
 {
@@ -745,7 +745,7 @@ bool gem_has_bsd(int fd)
  *
  * Note that recent Bspec calls this the BCS ring for Blitter Command Submission.
  *
- * Returns: Whether the blitter ring is avaible or not.
+ * Returns: Whether the blitter ring is available or not.
  */
 bool gem_has_blt(int fd)
 {
@@ -763,7 +763,7 @@ bool gem_has_blt(int fd)
  * Note that recent Bspec calls this the VECS ring for Video Enhancement Command
  * Submission.
  *
- * Returns: Whether the vebox ring is avaible or not.
+ * Returns: Whether the vebox ring is available or not.
  */
 bool gem_has_vebox(int fd)
 {
@@ -775,7 +775,7 @@ bool gem_has_vebox(int fd)
  * @fd: open i915 drm file descriptor
  *
  * Feature test macro to query the kernel for the available gpu aperture size
- * useable in a batchbuffer.
+ * usable in a batchbuffer.
  *
  * Returns: The available gtt address space size.
  */
@@ -814,7 +814,7 @@ uint64_t gem_aperture_size(int fd)
  * @fd: open i915 drm file descriptor
  *
  * Feature test macro to query the kernel for the mappable gpu aperture size.
- * This is the area avaialble for GTT memory mappings.
+ * This is the area available for GTT memory mappings.
  *
  * Returns: The mappable gtt address space size.
  */

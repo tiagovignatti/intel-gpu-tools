@@ -51,7 +51,7 @@
  * # Pipe CRC Support
  *
  * This library wraps up the kernel's support for capturing pipe CRCs into a
- * neat and tidy package. For the datailed usage see all the functions which
+ * neat and tidy package. For the detailed usage see all the functions which
  * work on #igt_pipe_crc_t. This is supported on all platforms and outputs.
  *
  * Actually using pipe CRCs to write modeset tests is a bit tricky though, so
@@ -59,7 +59,7 @@
  * blending, color correction and other hardware and how exactly the CRC is
  * computed at each tap point vary by hardware generation and are not disclosed.
  *
- * The only way to use #igt_crc_t CRCs therefors is to compare CRCs among each
+ * The only way to use #igt_crc_t CRCs therefore is to compare CRCs among each
  * another either for equality or difference. Otherwise CRCs must be treated as
  * completely opaque values. Note that not even CRCs from different pipes or tap
  * points on the same platform can be compared. Hence only use igt_crc_is_null()
@@ -218,7 +218,7 @@ bool igt_crc_is_null(igt_crc_t *crc)
  *
  * Compares two CRC values.
  *
- * Returns: Retruns true if the two CRCs match, false otherwise.
+ * Returns: true if the two CRCs match, false otherwise.
  */
 bool igt_crc_equal(igt_crc_t *a, igt_crc_t *b)
 {

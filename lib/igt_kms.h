@@ -70,7 +70,7 @@ enum port {
  * kmstest_port_name:
  * @port: display plane
  *
- * Returns: String represnting @port, e.g. "A".
+ * Returns: String representing @port, e.g. "A".
  */
 #define kmstest_port_name(port) ((port) + 'A')
 

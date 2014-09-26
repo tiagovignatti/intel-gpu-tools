@@ -59,7 +59,7 @@
 
 /**
  * SECTION:igt_aux
- * @short_description: Auxiliary libararies and support functions
+ * @short_description: Auxiliary libraries and support functions
  * @title: i-g-t aux
  * @include: igt_aux.h
  *
@@ -222,7 +222,7 @@ void igt_permute_array(void *array, unsigned size,
  *
  * This function draws a progress indicator, which is useful for running
  * long-winded tests manually on the console. To avoid spamming logfiles in
- * automated runs the progress indicator is supressed when not running on a
+ * automated runs the progress indicator is suppressed when not running on a
  * terminal.
  */
 void igt_progress(const char *header, uint64_t i, uint64_t total)
@@ -325,11 +325,11 @@ void igt_system_suspend_autoresume(void)
 }
 
 /**
- * igt_drop_roo:
+ * igt_drop_root:
  *
- * Drop root priviledges and make sure it actually worked. Useful for tests
+ * Drop root privileges and make sure it actually worked. Useful for tests
  * which need to check security constraints. Note that this should only be
- * called from manually forked processes, since the lack of root priviledges
+ * called from manually forked processes, since the lack of root privileges
  * will wreak havoc with the automatic cleanup handlers.
  */
 void igt_drop_root(void)
@@ -350,7 +350,7 @@ void igt_drop_root(void)
  * Waits for a key press when run interactively and when the corresponding debug
  * key is set in the IGT_DEBUG_INTERACTIVE environment variable. Multiple keys
  * can be specified as a comma-separated list or alternatively "all" if a wait
- * should happen for all keys.  When not connected to a terminal the enviroment
+ * should happen for all keys.  When not connected to a terminal the environment
  * setting is ignored and execution immediately continues.
  *
  * This is useful for display tests where under certain situation manual

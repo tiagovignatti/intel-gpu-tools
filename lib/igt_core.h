@@ -118,7 +118,7 @@ bool __igt_run_subtest(const char *subtest_name);
  * @name: name of the subtest
  *
  * This is a magic control flow block which denotes a subtest code block. Within
- * that codeblock igt_skip|success will only bail out of the subtest. The _f
+ * that code block igt_skip|success will only bail out of the subtest. The _f
  * variant accepts a printf format string, which is useful for constructing
  * combinatorial tests.
  *
@@ -140,7 +140,7 @@ bool __igt_run_subtest(const char *subtest_name);
  * @...: format string and optional arguments
  *
  * This is a magic control flow block which denotes a subtest code block. Within
- * that codeblock igt_skip|success will only bail out of the subtest. The _f
+ * that code block igt_skip|success will only bail out of the subtest. The _f
  * variant accepts a printf format string, which is useful for constructing
  * combinatorial tests.
  *

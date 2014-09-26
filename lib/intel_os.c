@@ -200,7 +200,7 @@ intel_get_total_swap_mb(void)
  *
  * Computes the total amount of memory required to allocate @count surfaces,
  * each of @size bytes, and includes an estimate for kernel overhead. It then
- * queries the kernel for the avilable amount of memory on the system (either
+ * queries the kernel for the available amount of memory on the system (either
  * RAM and/or SWAP depending upon @mode) and determines whether there is
  * sufficient to run the test.
  *

@@ -53,12 +53,12 @@
  * @include: intel_io.h
  *
  * This library provides register I/O helpers in both a basic version and a more
- * fancy version which also handles forcewak and can optionally check registers
+ * fancy version which also handles forcewake and can optionally check registers
  * against a white-list. All register function are compatible. Hence the same
  * code can be used to decode registers with either of them, or also from a dump
  * file using intel_mmio_use_dump_file().
  *
- * Futhermore this library also provides helper functions for accessing the
+ * Furthermore this library also provides helper functions for accessing the
  * various sideband interfaces found on Valleyview/Baytrail based platforms.
  */
 
@@ -84,7 +84,7 @@ static struct _mmio_data {
  * @file: name of the register dump file to open
  *
  * Sets up #mmio to point at the data contained in @file. This allows the same
- * code to get reused for dumping and decoding from running hardwared as from
+ * code to get reused for dumping and decoding from running hardware as from
  * register dumps.
  */
 void
@@ -109,7 +109,7 @@ intel_mmio_use_dump_file(char *file)
  * @pci_dev: intel gracphis pci device
  *
  * Sets up #mmio to point at the data contained in @file. This allows the same
- * code to get reused for dumping and decoding from running hardwared as from
+ * code to get reused for dumping and decoding from running hardware as from
  * register dumps.
  *
  * @pci_dev can be obtained from intel_get_pci_device().

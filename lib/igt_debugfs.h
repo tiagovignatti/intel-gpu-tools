@@ -153,7 +153,7 @@ int igt_open_forcewake_handle(void);
  * @STOP_RING_RENDER: Render ring
  * @STOP_RING_BSD: Video encoding/decoding ring
  * @STOP_RING_BLT: Blitter ring
- * @STOP_RING_VEBOX: Video enchanment ring
+ * @STOP_RING_VEBOX: Video enhancement ring
  * @STOP_RING_ALL: All rings
  * @STOP_RING_ALLOW_ERRORS: Driver will not omit expected DRM_ERRORS
  * @STOP_RING_ALLOW_BAN: Driver will use context ban policy

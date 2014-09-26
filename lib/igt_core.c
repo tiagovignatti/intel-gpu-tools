@@ -67,7 +67,7 @@
  * @title: i-g-t core
  * @include: igt_core.h
  *
- * This libary implements the core of the i-g-t test support infrastructure.
+ * This library implements the core of the i-g-t test support infrastructure.
  * Main features are the subtest enumeration, cmdline option parsing helpers for
  * subtest handling and various helpers to structure testcases with subtests and
  * handle subtest test results.
@@ -141,9 +141,9 @@
  *   conditions, but instead such assumptions should be written in a declarative
  *   style.  Use one of the many macros which encapsulate i-g-t's implicit
  *   control flow.  Pick the most suitable one to have as much debug output as
- *   possible without polluting the code unecessarily. For example
+ *   possible without polluting the code unnecessarily. For example
  *   igt_assert_cmpint() for comparing integers or do_ioctl() for running ioctls
- *   and checking their results.  Feel free to add new ones to the libary or
+ *   and checking their results.  Feel free to add new ones to the library or
  *   wrap up a set of checks into a private function to further condense your
  *   test logic.
  *
@@ -197,7 +197,7 @@
  * run as non-root and doesn't require the i915 driver to be loaded (or any
  * intel gpu to be present). Then individual subtests can be run with
  * "--run-subtest". Usage help for tests with subtests can be obtained with the
- * "--help" commandline option.
+ * "--help" command line option.
  */
 
 static unsigned int exit_handler_count;
@@ -734,7 +734,7 @@ void __igt_skip_check(const char *file, const int line,
 /**
  * igt_success:
  *
- * Complete a (subtest) as successfull
+ * Complete a (subtest) as successful
  *
  * This bails out of a subtests and marks it as successful. For global tests it
  * it won't bail out of anything.
@@ -1041,9 +1041,9 @@ bool __igt_fork(void)
  * Wait for all children forked with igt_fork.
  *
  * The magic here is that exit codes from children will be correctly propagated
- * to the main thread, including the relevant exitcode if a child thread failed.
- * Of course if multiple children failed with differen exitcodes the resulting
- * exitcode will be non-deterministic.
+ * to the main thread, including the relevant exit code if a child thread failed.
+ * Of course if multiple children failed with different exit codes the resulting
+ * exit code will be non-deterministic.
  *
  * Note that igt_skip() will not be forwarded, feature tests need to be done
  * before spawning threads with igt_fork().
@@ -1282,8 +1282,8 @@ void igt_enable_exit_handler(void)
  * igt_run_in_simulation:
  *
  * This function can be used to select a reduced test set when running in
- * simulation enviroments. This i-g-t mode is selected by setting the
- * INTEL_SIMULATION enviroment variable to 1.
+ * simulation environments. This i-g-t mode is selected by setting the
+ * INTEL_SIMULATION environment variable to 1.
  *
  * Returns: True when run in simulation mode, false otherwise.
  */
@@ -1334,7 +1334,7 @@ void igt_skip_on_simulation(void)
  * to stderr and the test runner should treat this as an intermediate result
  * between SUCESS and FAILURE.
  *
- * The log level can be set through the IGT_LOG_LEVEL enviroment variable with
+ * The log level can be set through the IGT_LOG_LEVEL environment variable with
  * values "debug", "info", "warn" and "none". By default verbose debug message
  * are disabled. "none" completely disables all output and is not recommended
  * since crucial issues only reported at the IGT_LOG_WARN level are ignored.
