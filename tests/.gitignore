@@ -104,7 +104,7 @@ gem_tiling_max_stride
 gem_unfence_active_buffers
 gem_unref_active_buffers
 gem_userptr_blits
-gem_wait_render_timeout
+gem_wait
 gem_write_read_ring_switch
 gem_workarounds
 gen3_mixed_blits

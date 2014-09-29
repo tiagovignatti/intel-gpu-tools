@@ -106,20 +106,18 @@ static void blt_color_fill(struct intel_batchbuffer *batch,
 	ADVANCE_BATCH();
 }
 
-igt_simple_main
+static void render_timeout(int fd)
 {
 	drm_intel_bufmgr *bufmgr;
 	struct intel_batchbuffer *batch;
 	uint64_t timeout = ENOUGH_WORK_IN_SECONDS * NSEC_PER_SEC;
-	int fd, ret;
+	int ret;
 	const bool do_signals = true; /* signals will seem to make the operation
 				       * use less process CPU time */
 	bool done = false;
 	int i, iter = 1;
 
 	igt_skip_on_simulation();
-
-	fd = drm_open_any();
 
 	bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
 	drm_intel_bufmgr_gem_enable_reuse(bufmgr);
@@ -216,4 +214,19 @@ igt_simple_main
 	drm_intel_bufmgr_destroy(bufmgr);
 
 	close(fd);
+}
+
+int drm_fd;
+
+igt_main
+{
+	igt_fixture
+		drm_fd = drm_open_any();
+
+	igt_subtest("render_timeout")
+		render_timeout(drm_fd);
+
+
+	igt_fixture
+		close(drm_fd);
 }
