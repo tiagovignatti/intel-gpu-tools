@@ -216,6 +216,37 @@ static void render_timeout(int fd)
 	close(fd);
 }
 
+static void invalid_flags(int fd)
+{
+	struct drm_i915_gem_wait wait;
+	int ret;
+	uint32_t handle;
+
+	handle = gem_create(fd, 4096);
+
+	wait.bo_handle = handle;
+	wait.timeout_ns = 1;
+	wait.flags = 0xffffffff;
+	ret = drmIoctl(fd, DRM_IOCTL_I915_GEM_WAIT, &wait);
+
+	igt_assert(ret != 0 && errno == EINVAL);
+
+	gem_close(fd, handle);
+}
+
+static void invalid_buf(int fd)
+{
+	struct drm_i915_gem_wait wait;
+	int ret;
+
+	wait.bo_handle = 0;
+	wait.timeout_ns = 1;
+	wait.flags = 0;
+	ret = drmIoctl(fd, DRM_IOCTL_I915_GEM_WAIT, &wait);
+
+	igt_assert(ret != 0 && errno == ENOENT);
+}
+
 int drm_fd;
 
 igt_main
@@ -226,6 +257,11 @@ igt_main
 	igt_subtest("render_timeout")
 		render_timeout(drm_fd);
 
+	igt_subtest("invalid-flags")
+		invalid_flags(drm_fd);
+
+	igt_subtest("invalid-buf")
+		invalid_buf(drm_fd);
 
 	igt_fixture
 		close(drm_fd);
