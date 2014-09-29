@@ -69,21 +69,10 @@ do_time_diff(struct timespec *end, struct timespec *start)
 	return ret;
 }
 
-/* to avoid stupid depencies on libdrm, copy&paste */
-struct local_drm_i915_gem_wait {
-	/** Handle of BO we shall wait on */
-	__u32 bo_handle;
-	__u32 flags;
-	/** Number of nanoseconds to wait, Returns time remaining. */
-	__u64 timeout_ns;
-};
-
-# define WAIT_IOCTL DRM_IOWR(DRM_COMMAND_BASE + 0x2c, struct local_drm_i915_gem_wait)
-
 static int
 gem_bo_wait_timeout(int fd, uint32_t handle, uint64_t *timeout_ns)
 {
-	struct local_drm_i915_gem_wait wait;
+	struct drm_i915_gem_wait wait;
 	int ret;
 
 	igt_assert(timeout_ns);
@@ -91,7 +80,7 @@ gem_bo_wait_timeout(int fd, uint32_t handle, uint64_t *timeout_ns)
 	wait.bo_handle = handle;
 	wait.timeout_ns = *timeout_ns;
 	wait.flags = 0;
-	ret = drmIoctl(fd, WAIT_IOCTL, &wait);
+	ret = drmIoctl(fd, DRM_IOCTL_I915_GEM_WAIT, &wait);
 	*timeout_ns = wait.timeout_ns;
 
 	return ret ? -errno : 0;
