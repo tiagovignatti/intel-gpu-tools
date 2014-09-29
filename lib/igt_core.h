@@ -188,7 +188,7 @@ void igt_simple_init_parse_opts(int argc, char **argv,
 	int main(int argc, char **argv) { \
 		igt_simple_init(argc, argv); \
 		igt_tokencat(__real_main, __LINE__)(); \
-		exit(0); \
+		igt_exit(); \
 	} \
 	static void igt_tokencat(__real_main, __LINE__)(void) \
 

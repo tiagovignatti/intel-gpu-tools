@@ -65,7 +65,7 @@ static int do_fork(void)
 
 			igt_skip_on_simulation();
 
-			exit(0);
+			igt_exit();
 		} else {
 			if (list_subtests)
 				igt_subtest_init(2, argv_list);

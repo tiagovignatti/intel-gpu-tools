@@ -641,7 +641,7 @@ bool igt_only_list_subtests(void)
 static bool skipped_one = false;
 static bool succeeded_one = false;
 static bool failed_one = false;
-static int igt_exitcode;
+static int igt_exitcode = IGT_EXIT_SUCCESS;
 
 static void exit_subtest(const char *) __attribute__((noreturn));
 static void exit_subtest(const char *result)
@@ -692,7 +692,8 @@ void igt_skip(const char *f, ...)
 		assert(in_fixture);
 		__igt_fixture_end();
 	} else {
-		exit(IGT_EXIT_SKIP);
+		igt_exitcode = IGT_EXIT_SKIP;
+		igt_exit();
 	}
 }
 
@@ -786,7 +787,7 @@ void igt_fail(int exitcode)
 			__igt_fixture_end();
 		}
 
-		exit(exitcode);
+		igt_exit();
 	}
 }
 
@@ -838,10 +839,9 @@ void __igt_fail_assert(int exitcode, const char *file,
  * everything has worked out. For subtests it also checks that at least one
  * subtest has been run (save when only listing subtests.
  *
- * It is an error to normally exit a test with subtests without calling
- * igt_exit() - without it the result reporting will be wrong. To avoid such
- * issues it is highly recommended to use #igt_main instead of a hand-rolled
- * main() function.
+ * It is an error to normally exit a test calling igt_exit() - without it the
+ * result reporting will be wrong. To avoid such issues it is highly recommended
+ * to use #igt_main or #igt_simple_main instead of a hand-rolled main() function.
  */
 void igt_exit(void)
 {
@@ -857,7 +857,7 @@ void igt_exit(void)
 		exit(IGT_EXIT_SUCCESS);
 
 	if (!test_with_subtests)
-		exit(IGT_EXIT_SUCCESS);
+		exit(igt_exitcode);
 
 	/* Calling this without calling one of the above is a failure */
 	assert(skipped_one || succeeded_one || failed_one);
