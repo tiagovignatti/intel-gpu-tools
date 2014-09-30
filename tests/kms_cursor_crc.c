@@ -32,6 +32,7 @@
 #include "igt_debugfs.h"
 #include "igt_kms.h"
 #include "intel_chipset.h"
+#include "igt_aux.h"
 
 #ifndef DRM_CAP_CURSOR_WIDTH
 #define DRM_CAP_CURSOR_WIDTH 0x8
@@ -105,7 +106,7 @@ static void do_single_test(data_t *data, int x, int y)
 	igt_plane_t *cursor;
 	cairo_t *cr = igt_get_cairo_ctx(data->drm_fd, &data->primary_fb);
 
-	igt_info("."); fflush(stdout);
+	igt_print_activity();
 
 	/* Hardware test */
 	igt_paint_test_pattern(cr, data->screenw, data->screenh);

@@ -246,6 +246,21 @@ void igt_progress(const char *header, uint64_t i, uint64_t total)
 			 (long long unsigned)i * 100 / total);
 }
 
+/**
+ * igt_print_activity:
+ *
+ * Print a '.' to indicate activity. This is printed without a newline and
+ * only if output is to a terminal.
+ */
+void igt_print_activity(void)
+{
+	if (!isatty(STDOUT_FILENO))
+		return;
+
+	igt_info(".");
+	fflush(stdout);
+}
+
 /* mappable aperture trasher helper */
 drm_intel_bo **trash_bos;
 int num_trash_bos;

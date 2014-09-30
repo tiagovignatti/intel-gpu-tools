@@ -885,7 +885,7 @@ static unsigned int run_test_step(struct test_output *o)
 		join_vblank_wait_thread();
 	}
 
-	igt_info("."); fflush(stdout);
+	igt_print_activity();
 
 	if (do_flip && (o->flags & TEST_HANG)) {
 		hang = hang_gpu(drm_fd);

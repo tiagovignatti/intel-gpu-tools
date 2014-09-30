@@ -33,6 +33,7 @@
 #include "igt_kms.h"
 #include "ioctl_wrappers.h"
 #include "intel_chipset.h"
+#include "igt_aux.h"
 
 typedef struct {
 	int drm_fd;
@@ -173,8 +174,7 @@ static bool run_single_test(data_t *data, enum pipe pipe, igt_output_t *output)
 		igt_plane_set_fb(primary, &fb[!(i&1)]);
 		igt_display_commit(display);
 
-		igt_info(".");
-		fflush(stdout);
+		igt_print_activity();
 	}
 
 	igt_plane_set_fb(primary, NULL);
