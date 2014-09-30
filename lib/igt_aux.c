@@ -214,6 +214,23 @@ void igt_permute_array(void *array, unsigned size,
 	}
 }
 
+__attribute__((format(printf, 1, 2)))
+static void igt_interactive_info(const char *format, ...)
+{
+	va_list args;
+
+	if (!isatty(STDERR_FILENO))
+		return;
+
+	if (igt_log_level > IGT_LOG_INFO)
+		return;
+
+	va_start(args, format);
+	vfprintf(stderr, format, args);
+	va_end(args);
+}
+
+
 /**
  * igt_progress:
  * @header: header string to prepend to the progress indicator
@@ -229,11 +246,8 @@ void igt_progress(const char *header, uint64_t i, uint64_t total)
 {
 	int divider = 200;
 
-	if (!isatty(fileno(stderr)))
-		return;
-
 	if (i+1 >= total) {
-		igt_warn("\r%s100%%\n", header);
+		igt_interactive_info("\r%s100%%\n", header);
 		return;
 	}
 
@@ -242,8 +256,8 @@ void igt_progress(const char *header, uint64_t i, uint64_t total)
 
 	/* only bother updating about every 0.5% */
 	if (i % (total / divider) == 0)
-		igt_warn("\r%s%3llu%%", header,
-			 (long long unsigned)i * 100 / total);
+		igt_interactive_info("\r%s%3llu%%", header,
+				     (long long unsigned)i * 100 / total);
 }
 
 /**
@@ -254,11 +268,7 @@ void igt_progress(const char *header, uint64_t i, uint64_t total)
  */
 void igt_print_activity(void)
 {
-	if (!isatty(STDOUT_FILENO))
-		return;
-
-	igt_info(".");
-	fflush(stdout);
+	igt_interactive_info(".");
 }
 
 /* mappable aperture trasher helper */
