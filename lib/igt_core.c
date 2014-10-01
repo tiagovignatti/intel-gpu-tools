@@ -289,9 +289,72 @@ void __igt_fixture_end(void)
 	longjmp(igt_subtest_jmpbuf, 1);
 }
 
-bool igt_exit_called;
-static void check_igt_exit(int sig)
+/*
+ * Some of the IGT tests put quite a lot of pressure on memory and when
+ * running on Android they are sometimes killed by the Android low memory killer.
+ * This seems to be due to some incompatibility between the kswapd free memory
+ * targets and the way the lowmemorykiller assesses free memory.
+ * The low memory killer really isn't usefull in this context and has no
+ * interaction with the gpu driver that we are testing, so the following
+ * function is used to disable it by modifying one of its module parameters.
+ * We still have the normal linux oom killer to protect the kernel.
+ * Apparently it is also possible for the lowmemorykiller to get included
+ * in some linux distributions; so rather than check for Android we directly
+ * check for the existence of the module parameter we want to adjust.
+ *
+ * In future, if we can get the lowmemorykiller to play nicely then we can
+ * remove this hack.
+ */
+static void low_mem_killer_disable(bool disable)
 {
+	static const char* adj_fname="/sys/module/lowmemorykiller/parameters/adj";
+	static const char no_lowmem_killer[] = "9999";
+	int fd;
+	struct stat buf;
+	/* The following must persist across invocations */
+	static char prev_adj_scores[256];
+	static int adj_scores_len = 0;
+
+	/* capture the permissions bits for the lowmemkiller adj pseudo-file.
+	 * Bail out if the stat fails; it probably means that there is no
+	 * lowmemorykiller, but in any case we're doomed. */
+	if (stat(adj_fname, &buf)) {
+		igt_assert(errno == ENOENT);
+		return;
+	}
+
+	/* make sure the file can be read/written - by default it is write-only */
+	chmod(adj_fname, S_IRUSR | S_IWUSR);
+
+	if (disable) {
+		/* read the current oom adj parameters for lowmemorykiller */
+		fd = open(adj_fname, O_RDWR);
+		igt_assert(fd != -1);
+		adj_scores_len = read(fd, (void*)prev_adj_scores, 255);
+		igt_assert(adj_scores_len > 0);
+
+		/* writing 9999 to this module parameter effectively diables the
+		 * low memory killer. This is not a real file, so we dont need to
+		 * seek to the start or truncate it */
+		write(fd, no_lowmem_killer, sizeof(no_lowmem_killer));
+		close(fd);
+	} else {
+		/* just re-enstate the original settings */
+		fd = open(adj_fname, O_WRONLY);
+		igt_assert(fd != -1);
+		write(fd, prev_adj_scores, adj_scores_len);
+		close(fd);
+	}
+
+	/* re-enstate the file permissions */
+	chmod(adj_fname, buf.st_mode);
+}
+
+bool igt_exit_called;
+static void common_exit_handler(int sig)
+{
+	low_mem_killer_disable(false);
+
 	/* When not killed by a signal check that igt_exit() has been properly
 	 * called. */
 	assert(sig != 0 || igt_exit_called);
@@ -326,6 +389,7 @@ static void print_usage(const char *help_str, bool output_on_stderr)
 		fprintf(f, "%s\n", help_str);
 }
 
+
 static void oom_adjust_for_doom(void)
 {
 	int fd;
@@ -334,6 +398,9 @@ static void oom_adjust_for_doom(void)
 	fd = open("/proc/self/oom_score_adj", O_WRONLY);
 	igt_assert(fd != -1);
 	igt_assert(write(fd, always_kill, sizeof(always_kill)) == sizeof(always_kill));
+	close(fd);
+
+	low_mem_killer_disable(true);
 }
 
 static int common_init(int argc, char **argv,
@@ -484,6 +551,9 @@ out:
 		oom_adjust_for_doom();
 	}
 
+	/* install exit handler, to ensure we clean up */
+	igt_install_exit_handler(common_exit_handler);
+
 	return ret;
 }
 
@@ -518,7 +588,6 @@ int igt_subtest_init_parse_opts(int argc, char **argv,
 	test_with_subtests = true;
 	ret = common_init(argc, argv, extra_short_opts, extra_long_opts,
 			  help_str, extra_opt_handler);
-	igt_install_exit_handler(check_igt_exit);
 
 	return ret;
 }
