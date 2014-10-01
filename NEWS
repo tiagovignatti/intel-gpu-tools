@@ -1,6 +1,18 @@
 Release 1.9 (XXXX-XX-XX)
 ------------------------
 
+- As usual piles of new testcases and improvements to existing ones.
+
+- New helper for interactive progress indicators (see igt_print_activity and
+  igt_progress), which can be disabled by setting the log-level to warn (Thomas
+  and Daniel).
+
+- Basic skl support: pci ids, rendercpy&mediafill (Damien, Zhao Yakui).
+
+- chv support for the iosf sideband tools and a few other improvements (Ville).
+
+- Fence register support for intel_reg_dumper on bdw+ (Rodrigo).
+
 Release 1.8 (2014-09-08)
 ------------------------
 
