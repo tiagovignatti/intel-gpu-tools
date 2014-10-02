@@ -329,5 +329,5 @@ int main(int argc, char **argv)
 	gem_close(fd, handle);
 	close(fd);
 
-	return 0;
+	igt_exit();
 }

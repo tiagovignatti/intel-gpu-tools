@@ -407,5 +407,5 @@ int main(int argc, char **argv)
 		check_bo(fd, handle[i], start_val[i]);
 	igt_info("done\n");
 
-	return 0;
+	igt_exit();
 }

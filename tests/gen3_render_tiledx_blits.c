@@ -400,5 +400,5 @@ int main(int argc, char **argv)
 	for (i = 0; i < count; i++)
 		check_bo(fd, handle[i], start_val[i]);
 
-	return 0;
+	igt_exit();
 }

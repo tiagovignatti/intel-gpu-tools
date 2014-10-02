@@ -914,5 +914,5 @@ int main(int argc, char **argv)
 
 	igt_stop_signal_helper();
 
-	return 0;
+	igt_exit();
 }

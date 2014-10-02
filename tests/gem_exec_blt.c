@@ -270,5 +270,5 @@ int main(int argc, char **argv)
 	} else
 		run(OBJECT_SIZE);
 
-	return 0;
+	igt_exit();
 }

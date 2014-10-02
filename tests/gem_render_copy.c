@@ -186,5 +186,5 @@ int main(int argc, char **argv)
 		scratch_buf_check(&data, &dst, WIDTH - 10, HEIGHT - 10, SRC_COLOR);
 	}
 
-	return 0;
+	igt_exit();
 }

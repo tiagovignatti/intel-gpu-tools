@@ -1443,6 +1443,4 @@ int main(int argc, char **argv)
 		test_access_control(fd);
 
 	igt_exit();
-
-	return 0;
 }

@@ -241,6 +241,4 @@ int main(int argc, char **argv)
 	}
 
 	igt_exit();
-
-	return 0;
 }

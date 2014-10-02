@@ -527,10 +527,7 @@ int main(int argc, char **argv)
 			  options.dontwrap ? "tests" : "wraps", wcount);
 	}
 
-	if (options.rounds == wcount) {
-		igt_debug("done %d wraps successfully\n", wcount);
-		return 0;
-	}
+	igt_assert(options.rounds == wcount);
 
-	return r;
+	igt_exit();
 }
