@@ -35,7 +35,7 @@ LOCAL_SHARED_LIBRARIES := libpciaccess  \
 ifeq ("${ANDROID_HAS_CAIRO}", "1")
     skip_lib_list :=
     LOCAL_C_INCLUDES += $(ANDROID_BUILD_TOP)/external/cairo-1.12.16/src
-    LOCAL_CFLAGS += -DANDROID_HAS_CAIRO=1
+    LOCAL_CFLAGS += -DANDROID_HAS_CAIRO=1 -DIGT_DATADIR=\".\"
 else
 skip_lib_list := \
     igt_kms.c \
