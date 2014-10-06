@@ -475,7 +475,6 @@ static int parse_options(int opt, int opt_index)
 int main(int argc, char **argv)
 {
 	int wcount = 0;
-	int r = -1;
 
 	static struct option long_options[] = {
 		{"rounds", required_argument, 0, 'n'},
