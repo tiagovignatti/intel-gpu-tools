@@ -72,6 +72,8 @@ def autodetect_chipset():
         return open('haswell', 'r')
     elif chipset.is_broadwell(devid):
         return open('broadwell', 'r')
+    elif chipset.is_skylake(devid):
+        return open('skylake', 'r')
     else:
         print("Autodetect of devid " + hex(devid) + " failed")
         return None

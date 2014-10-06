@@ -33,6 +33,11 @@ int is_broadwell(unsigned short pciid)
 	return IS_BROADWELL(pciid);
 }
 
+int is_skylake(unsigned short pciid)
+{
+	return IS_SKYLAKE(pciid);
+}
+
 /* Simple helper because I couldn't make this work in the script */
 unsigned short pcidev_to_devid(struct pci_device *pdev)
 {
