@@ -38,15 +38,3 @@ unsigned short pcidev_to_devid(struct pci_device *pdev)
 {
 	return pdev->device_id;
 }
-
-bool igt_check_boolean_env_var(const char *env_var, bool default_value)
-{
-	char *val;
-
-	val = getenv(env_var);
-	if (!val)
-		return default_value;
-
-	return atoi(val) != 0;
-}
-

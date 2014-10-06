@@ -6,15 +6,14 @@ dist_bin_SCRIPTS = quick_dump.py reg_access.py
 bin_SCRIPTS = chipset.py
 
 lib_LTLIBRARIES = I915ChipsetPython.la
-I915ChipsetPython_la_LDFLAGS = -module -avoid-version $(PYTHON_LDFLAGS) $(PCIACCESS_LIBS)
-I915ChipsetPython_la_SOURCES = chipset_wrap_python.c chipset_macro_wrap.c \
-			       $(top_srcdir)/lib/igt_core.c  \
-			       $(top_srcdir)/lib/igt_debugfs.c  \
-			       $(top_srcdir)/lib/intel_os.c  \
-			       $(top_srcdir)/lib/intel_chipset.c  \
-			       $(top_srcdir)/lib/intel_reg_map.c  \
-			       $(top_srcdir)/lib/intel_mmio.c  \
-			       $(top_srcdir)/lib/intel_iosf.c
+I915ChipsetPython_la_LDFLAGS = -module -avoid-version $(PYTHON_LDFLAGS)
+I915ChipsetPython_la_SOURCES = chipset_wrap_python.c chipset_macro_wrap.c
+I915ChipsetPython_la_LIBADD =			\
+	$(top_builddir)/lib/libintel_tools.la	\
+	$(PCIACCESS_LIBS)			\
+	$(DRM_LIBS)				\
+	$(CAIRO_LIBS)				\
+	$(NULL)
 
 chipset_wrap_python.c chipset.py: chipset.i
 	$(AM_V_GEN)$(SWIG) $(AX_SWIG_PYTHON_OPT) -I/usr/include -I$(top_srcdir)/lib -o $@ $<
