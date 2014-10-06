@@ -179,7 +179,7 @@ static void render_timeout(int fd)
 	if (timeout ==  (ENOUGH_WORK_IN_SECONDS * NSEC_PER_SEC))
 		igt_info("Buffer was already done!\n");
 	else {
-		igt_info("Finished with %llu time remaining\n", timeout);
+		igt_info("Finished with %" PRIu64 " time remaining\n", timeout);
 	}
 
 	/* check that polling with timeout=0 works. */
