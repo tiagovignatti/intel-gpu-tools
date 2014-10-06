@@ -76,10 +76,11 @@ static enum position get_position(struct config *config)
 static void screen_size(Display *dpy, struct config *config,
 			int *scr_x, int *scr_y, int *scr_width, int *scr_height)
 {
-	const char *crtc;
 	Screen *scr;
 
 #ifdef HAVE_XRANDR
+	const char *crtc;
+
 	crtc = config_get_value(config, "x11", "crtc");
 	if (crtc) {
 		XRRScreenResources *res;
