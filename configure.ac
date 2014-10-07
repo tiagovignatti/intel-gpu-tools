@@ -137,7 +137,7 @@ if test "x$DUMPER" = xauto; then
 	# find SWING on the system, that's enough to try compiling the dumper.
 	AX_PKG_SWIG(2.0.0, [DUMPER=yes], [DUMPER=no])
 fi
-if test "x$DUMPER" == xyes; then
+if test "x$DUMPER" = xyes; then
 	AC_DEFINE(HAVE_DUMPER, 1, [Have dumper support])
 	# SWIG configuration
 	AX_PKG_SWIG(2.0.0, [], [ AC_MSG_ERROR([SWIG 2.0.0 or higher is required to build..]) ])
