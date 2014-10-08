@@ -286,7 +286,7 @@ gen8_fill_ps(struct intel_batchbuffer *batch,
 	return offset;
 }
 
-/**
+/*
  * gen7_fill_vertex_buffer_data populate vertex buffer with data.
  *
  * The vertex buffer consists of 3 vertices to construct a RECTLIST. The 4th
@@ -327,7 +327,7 @@ gen7_fill_vertex_buffer_data(struct intel_batchbuffer *batch,
 	return offset;
 }
 
-/**
+/*
  * gen6_emit_vertex_elements - The vertex elements describe the contents of the
  * vertex buffer. We pack the vertex buffer in a semi weird way, conforming to
  * what gen6_rendercopy did. The most straightforward would be to store
@@ -384,7 +384,7 @@ gen6_emit_vertex_elements(struct intel_batchbuffer *batch) {
 		  GEN6_VFCOMPONENT_STORE_1_FLT << VE1_VFCOMPONENT_3_SHIFT);
 }
 
-/**
+/*
  * gen7_emit_vertex_buffer emit the vertex buffers command
  *
  * @batch

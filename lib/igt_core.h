@@ -268,6 +268,7 @@ void igt_exit(void) __attribute__((noreturn));
  * igt_assert_cmpint:
  * @n1: first value
  * @cmp: compare operator
+ * @ncmp: negated version of @cmp
  * @n2: second value
  *
  * Fails (sub-)test if the condition is not met

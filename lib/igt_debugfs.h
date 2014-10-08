@@ -146,7 +146,6 @@ int igt_open_forcewake_handle(void);
 
 /**
  * stop_ring_flags:
- *
  * @STOP_RING_NONE: Can be used to clear the pending stop (warning: hang might
  * be declared already). Returned by igt_get_stop_rings() if there is
  * no currently stopped rings.
@@ -157,7 +156,8 @@ int igt_open_forcewake_handle(void);
  * @STOP_RING_ALL: All rings
  * @STOP_RING_ALLOW_ERRORS: Driver will not omit expected DRM_ERRORS
  * @STOP_RING_ALLOW_BAN: Driver will use context ban policy
- * @STOP_RING_DEFAULT: STOP_RING_ALL | STOP_RING_ALLOW_ERRORS
+ * @STOP_RING_DEFAULTS: STOP_RING_ALL | STOP_RING_ALLOW_ERRORS
+ *
  * Enumeration of all supported flags for igt_set_stop_rings().
  *
  */
