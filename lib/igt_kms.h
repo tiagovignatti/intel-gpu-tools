@@ -292,5 +292,8 @@ void igt_wait_for_vblank(int drm_fd, enum pipe pipe);
 void igt_enable_connectors(void);
 void igt_reset_connectors(void);
 
+const unsigned char* igt_kms_get_base_edid(void);
+
+
 #endif /* __IGT_KMS_H__ */
 
