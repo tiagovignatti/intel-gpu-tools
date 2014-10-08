@@ -1513,6 +1513,28 @@ static void kms_flip_exit_handler(int sig)
 	}
 }
 
+static void test_nonblocking_read(int in)
+{
+	char buffer[1024];
+	int fd = dup(in);
+	int ret;
+
+	ret = -1;
+	if (fd != -1)
+		ret = fcntl(fd, F_GETFL);
+	if (ret != -1) {
+		ret |= O_NONBLOCK;
+		ret = fcntl(fd, F_SETFL, ret);
+	}
+	igt_require(ret != -1);
+
+	ret = read(fd, buffer, sizeof(buffer));
+	igt_assert_eq(ret, -1);
+	igt_assert_eq(errno, EAGAIN);
+
+	close(fd);
+}
+
 int main(int argc, char **argv)
 {
 	struct {
@@ -1602,6 +1624,9 @@ int main(int argc, char **argv)
 		devid = intel_get_drm_devid(drm_fd);
 		batch = intel_batchbuffer_alloc(bufmgr, devid);
 	}
+
+	igt_subtest("nonblocking-read")
+		test_nonblocking_read(drm_fd);
 
 	for (i = 0; i < sizeof(tests) / sizeof (tests[0]); i++) {
 		igt_subtest(tests[i].name)
