@@ -44,7 +44,6 @@
 #include "igt_aux.h"
 #include "intel_chipset.h"
 #include "igt_debugfs.h"
-#include "igt_edid.h"
 
 /*
  * There hasn't been a release of libdrm containing these #define's yet, so
@@ -460,8 +459,7 @@ bool kmstest_force_connector(int drm_fd, drmModeConnector *connector,
  * @length: length of the EDID data. #EDID_LENGTH defines the standard EDID
  * length
  *
- * Set the EDID data on @connector to @edid. See #generic_edid and
- * #kmstest_generic_edid for a set of generic EDID data blocks.
+ * Set the EDID data on @connector to @edid. See also #igt_kms_get_base_edid.
  *
  * If @length is zero, the forced EDID will be removed.
  */

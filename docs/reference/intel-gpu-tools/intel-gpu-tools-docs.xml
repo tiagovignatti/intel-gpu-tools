@@ -25,7 +25,6 @@
     <xi:include href="xml/intel_batchbuffer.xml"/>
     <xi:include href="xml/intel_chipset.xml"/>
     <xi:include href="xml/intel_io.xml"/>
-    <xi:include href="xml/igt_edid.xml"/>
   </chapter>
   <xi:include href="xml/igt_test_programs.xml"/>
   <index id="api-index-full">

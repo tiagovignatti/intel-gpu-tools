@@ -127,26 +127,6 @@ enum kmstest_force_connector_state {
 	FORCE_CONNECTOR_OFF
 };
 
-
-/**
- * kmstest_generic_edid:
- * @EDID_XGA: 1024x768
- * @EDID_SXGA: 1280x1024
- * @EDID_UXGA: 1600x1200
- * @EDID_WSXGA: 1680x1050
- * @EDID_FHD: 1920x1080
- * @MAX_EDIDS: Size of #generic_edid array
- */
-enum kmstest_generic_edid {
-	EDID_XGA,   /* 1024x768 */
-	EDID_SXGA,  /* 1280x1024 */
-	EDID_UXGA,  /* 1600x1200 */
-	EDID_WSXGA, /* 1680x1050 */
-	EDID_FHD,   /* 1920x1080 */
-
-	MAX_EDIDS
-};
-
 bool kmstest_force_connector(int fd, drmModeConnector *connector,
 			     enum kmstest_force_connector_state state);
 void kmstest_edid_add_3d(const unsigned char *edid, size_t length, unsigned char *new_edid_ptr[], size_t *new_length);
@@ -292,6 +272,7 @@ void igt_wait_for_vblank(int drm_fd, enum pipe pipe);
 void igt_enable_connectors(void);
 void igt_reset_connectors(void);
 
+#define EDID_LENGTH 128
 const unsigned char* igt_kms_get_base_edid(void);
 
 
