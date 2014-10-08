@@ -30,6 +30,9 @@
 IGT_TEST_DESCRIPTION("Check the debugfs force connector/edid features work"
 		     " correctly.");
 
+#define CHECK_MODE(m, h, w, r) igt_assert(m.hdisplay == h && m.vdisplay == w \
+					  && m.vrefresh == r)
+
 igt_main
 {
 	/* force the VGA output and test that it worked */
@@ -98,25 +101,15 @@ igt_main
 
 		/* test edid forcing */
 		kmstest_force_edid(drm_fd, vga_connector,
-				   generic_edid[EDID_FHD], EDID_LENGTH);
-		temp = drmModeGetConnector(drm_fd, vga_connector->connector_id);
+				   igt_kms_get_base_edid(), EDID_LENGTH);
+		temp = drmModeGetConnector(drm_fd,
+					   vga_connector->connector_id);
 
-		igt_assert(temp->count_modes == 1);
-		igt_assert(temp->modes[0].vrefresh == 60
-			   && temp->modes[0].hdisplay == 1920
-			   && temp->modes[0].vdisplay == 1080);
-
-		drmModeFreeConnector(temp);
-
-		/* custom edid */
-		kmstest_force_edid(drm_fd, vga_connector,
-				   generic_edid[EDID_WSXGA], EDID_LENGTH);
-		temp = drmModeGetConnector(drm_fd, vga_connector->connector_id);
-
-		igt_assert(temp->count_modes == 1);
-		igt_assert(temp->modes[0].vrefresh == 60
-			   && temp->modes[0].hdisplay == 1680
-			   && temp->modes[0].vdisplay == 1050);
+		CHECK_MODE(temp->modes[0], 1920, 1080, 60);
+		CHECK_MODE(temp->modes[1], 1280, 720, 60);
+		CHECK_MODE(temp->modes[2], 1024, 768, 60);
+		CHECK_MODE(temp->modes[3], 800, 600, 60);
+		CHECK_MODE(temp->modes[4], 640, 480, 60);
 
 		drmModeFreeConnector(temp);
 

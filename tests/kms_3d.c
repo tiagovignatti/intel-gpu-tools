@@ -58,7 +58,7 @@ igt_simple_main
 	}
 	igt_require(connector);
 
-	kmstest_edid_add_3d(generic_edid[EDID_FHD], EDID_LENGTH, &edid,
+	kmstest_edid_add_3d(igt_kms_get_base_edid(), EDID_LENGTH, &edid,
 			    &length);
 
 	kmstest_force_edid(drm_fd, connector, edid, length);
@@ -75,7 +75,7 @@ igt_simple_main
 			mode_count++;
 	}
 
-	igt_assert(mode_count == 13);
+	igt_assert(mode_count == 15);
 
 	/* set 3D modes */
 	igt_info("Testing:\n");
