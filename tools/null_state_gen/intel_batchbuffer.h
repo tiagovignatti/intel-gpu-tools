@@ -34,7 +34,7 @@
 #include <stdint.h>
 
 #define MAX_RELOCS 64
-#define MAX_ITEMS 4096
+#define MAX_ITEMS 1024
 #define MAX_STRLEN 256
 
 #define ALIGN(x, y) (((x) + (y)-1) & ~((y)-1))
