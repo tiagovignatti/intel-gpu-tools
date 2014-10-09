@@ -17,16 +17,17 @@
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
  * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
- * IN THE SOFTWARE.
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+ * DEALINGS IN THE SOFTWARE.
+ *
+ * Authors:
+ *	Mika Kuoppala <mika.kuoppala@intel.com>
  */
-
 
 #include "intel_batchbuffer.h"
 #include <lib/gen7_render.h>
 #include <lib/intel_reg.h>
 #include <string.h>
-#include <stdio.h>
 
 static const uint32_t ps_kernel[][4] = {
 	{ 0x0080005a, 0x2e2077bd, 0x000000c0, 0x008d0040 },
