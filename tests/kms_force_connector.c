@@ -116,5 +116,5 @@ main (int argc, char **argv)
 
 	drmModeFreeConnector(connector);
 
-	igt_success();
+	igt_exit();
 }
