@@ -33,7 +33,7 @@ main (int argc, char **argv)
 	/* force the VGA output and test that it worked */
 	int drm_fd;
 	drmModeRes *res;
-	drmModeConnector *connector, *temp;
+	drmModeConnector *vga_connector, *temp;
 	igt_display_t display;
 
 	igt_simple_init(argc, argv);
@@ -44,21 +44,21 @@ main (int argc, char **argv)
 	/* find the vga connector */
 	for (int i = 0; i < res->count_connectors; i++) {
 
-		connector = drmModeGetConnector(drm_fd, res->connectors[i]);
+		vga_connector = drmModeGetConnector(drm_fd, res->connectors[i]);
 
-		if (connector->connector_type == DRM_MODE_CONNECTOR_VGA)
+		if (vga_connector->connector_type == DRM_MODE_CONNECTOR_VGA)
 			break;
 
-		drmModeFreeConnector(connector);
+		drmModeFreeConnector(vga_connector);
 
-		connector = NULL;
+		vga_connector = NULL;
 	}
 
-	igt_assert(connector);
+	igt_require(vga_connector);
 
 	/* force the connector on and check the reported values */
-	kmstest_force_connector(drm_fd, connector, FORCE_CONNECTOR_ON);
-	temp = drmModeGetConnector(drm_fd, connector->connector_id);
+	kmstest_force_connector(drm_fd, vga_connector, FORCE_CONNECTOR_ON);
+	temp = drmModeGetConnector(drm_fd, vga_connector->connector_id);
 	igt_assert(temp->connection == DRM_MODE_CONNECTED);
 	igt_assert(temp->count_modes > 0);
 	drmModeFreeConnector(temp);
@@ -70,9 +70,9 @@ main (int argc, char **argv)
 	igt_display_commit(&display);
 
 	/* test edid forcing */
-	kmstest_force_edid(drm_fd, connector, generic_edid[EDID_FHD],
+	kmstest_force_edid(drm_fd, vga_connector, generic_edid[EDID_FHD],
 			   EDID_LENGTH);
-	temp = drmModeGetConnector(drm_fd, connector->connector_id);
+	temp = drmModeGetConnector(drm_fd, vga_connector->connector_id);
 
 	igt_assert(temp->count_modes == 1);
 	igt_assert(temp->modes[0].vrefresh == 60
@@ -82,9 +82,9 @@ main (int argc, char **argv)
 	drmModeFreeConnector(temp);
 
 	/* custom edid */
-	kmstest_force_edid(drm_fd, connector, generic_edid[EDID_WSXGA],
+	kmstest_force_edid(drm_fd, vga_connector, generic_edid[EDID_WSXGA],
 			   EDID_LENGTH);
-	temp = drmModeGetConnector(drm_fd, connector->connector_id);
+	temp = drmModeGetConnector(drm_fd, vga_connector->connector_id);
 
 	igt_assert(temp->count_modes == 1);
 	igt_assert(temp->modes[0].vrefresh == 60
@@ -94,27 +94,28 @@ main (int argc, char **argv)
 	drmModeFreeConnector(temp);
 
 	/* remove edid */
-	kmstest_force_edid(drm_fd, connector, NULL, 0);
-	temp = drmModeGetConnector(drm_fd, connector->connector_id);
+	kmstest_force_edid(drm_fd, vga_connector, NULL, 0);
+	temp = drmModeGetConnector(drm_fd, vga_connector->connector_id);
 	/* the connector should now have the 5 default modes */
 	igt_assert(temp->count_modes == 5);
 	drmModeFreeConnector(temp);
 
 	/* force the connector off */
-	kmstest_force_connector(drm_fd, connector, FORCE_CONNECTOR_OFF);
-	temp = drmModeGetConnector(drm_fd, connector->connector_id);
+	kmstest_force_connector(drm_fd, vga_connector, FORCE_CONNECTOR_OFF);
+	temp = drmModeGetConnector(drm_fd, vga_connector->connector_id);
 	igt_assert(temp->connection == DRM_MODE_DISCONNECTED);
 	igt_assert(temp->count_modes == 0);
 	drmModeFreeConnector(temp);
 
 
 	/* check that the previous state is restored */
-	kmstest_force_connector(drm_fd, connector, FORCE_CONNECTOR_UNSPECIFIED);
-	temp = drmModeGetConnector(drm_fd, connector->connector_id);
-	igt_assert(temp->connection == connector->connection);
+	kmstest_force_connector(drm_fd, vga_connector,
+				FORCE_CONNECTOR_UNSPECIFIED);
+	temp = drmModeGetConnector(drm_fd, vga_connector->connector_id);
+	igt_assert(temp->connection == vga_connector->connection);
 	drmModeFreeConnector(temp);
 
-	drmModeFreeConnector(connector);
+	drmModeFreeConnector(vga_connector);
 
 	igt_exit();
 }
