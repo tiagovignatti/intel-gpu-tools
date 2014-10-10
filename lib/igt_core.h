@@ -38,6 +38,18 @@
 #include <stdarg.h>
 #include <getopt.h>
 
+extern const char* __igt_test_description __attribute__((weak));
+
+/**
+ * IGT_TEST_DESCRIPTION:
+ * @str: description string
+ *
+ * Defines a description for a test. This is used as the output for the
+ * "--help-description" option and is also included in the generated
+ * documentation.
+ */
+#define IGT_TEST_DESCRIPTION(str) const char* __igt_test_description = str
+
 /**
  * IGT_EXIT_TIMEOUT:
  *

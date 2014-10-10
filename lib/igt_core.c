@@ -223,6 +223,7 @@ bool test_child;
 enum {
  OPT_LIST_SUBTESTS,
  OPT_RUN_SUBTEST,
+ OPT_DESCRIPTION,
  OPT_DEBUG,
  OPT_HELP = 'h'
 };
@@ -360,6 +361,12 @@ static void common_exit_handler(int sig)
 	assert(sig != 0 || igt_exit_called);
 }
 
+static void print_test_description(void)
+{
+	if (&__igt_test_description)
+		printf("%s\n", __igt_test_description);
+}
+
 static void print_version(void)
 {
 	struct utsname uts;
@@ -380,11 +387,12 @@ static void print_usage(const char *help_str, bool output_on_stderr)
 {
 	FILE *f = output_on_stderr ? stderr : stdout;
 
-	fprintf(f, "Usage: %s [OPTIONS]\n"
-		   "  --list-subtests\n"
+	fprintf(f, "Usage: %s [OPTIONS]\n", command_str);
+	fprintf(f, "  --list-subtests\n"
 		   "  --run-subtest <pattern>\n"
 		   "  --debug\n"
-		   "  --help\n", command_str);
+		   "  --help-description\n"
+		   "  --help\n");
 	if (help_str)
 		fprintf(f, "%s\n", help_str);
 }
@@ -413,6 +421,7 @@ static int common_init(int argc, char **argv,
 	static struct option long_options[] = {
 		{"list-subtests", 0, 0, OPT_LIST_SUBTESTS},
 		{"run-subtest", 1, 0, OPT_RUN_SUBTEST},
+		{"help-description", 0, 0, OPT_DESCRIPTION},
 		{"debug", 0, 0, OPT_DEBUG},
 		{"help", 0, 0, OPT_HELP},
 		{0, 0, 0, 0}
@@ -510,6 +519,10 @@ static int common_init(int argc, char **argv,
 			if (!list_subtests)
 				run_single_subtest = strdup(optarg);
 			break;
+		case OPT_DESCRIPTION:
+			print_test_description();
+			ret = -1;
+			goto out;
 		case OPT_HELP:
 			print_usage(help_str, false);
 			ret = -1;
