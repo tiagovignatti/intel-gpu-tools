@@ -170,8 +170,6 @@ static int swapping_evictions(int fd, struct igt_eviction_test_ops *ops,
 	return 0;
 }
 
-#define min(a, b) ((a) < (b) ? (a) : (b))
-
 static int forking_evictions(int fd, struct igt_eviction_test_ops *ops,
 				int surface_size, int working_surfaces,
 				int trash_surfaces, unsigned flags)

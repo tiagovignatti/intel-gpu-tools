@@ -981,8 +981,6 @@ static int can_swap(void)
 	return 1;
 }
 
-#define min(a, b) ((a) < (b) ? (a) : (b))
-
 static void test_forking_evictions(int fd, int size, int count,
 			     unsigned flags)
 {

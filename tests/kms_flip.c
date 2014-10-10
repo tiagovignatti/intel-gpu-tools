@@ -84,8 +84,6 @@
 #define DRM_CAP_TIMESTAMP_MONOTONIC 6
 #endif
 
-#define max(a, b) ((a) > (b) ? (a) : (b))
-
 drmModeRes *resources;
 int drm_fd;
 static drm_intel_bufmgr *bufmgr;
@@ -925,7 +923,7 @@ static unsigned int run_test_step(struct test_output *o)
 	if (o->flags & TEST_PAN) {
 		int count = do_flip ?
 			o->flip_state.count : o->vblank_state.count;
-		int x_ofs = count * 10 > o->fb_width - o->kmode[0].hdisplay ? o->fb_width - o->kmode[0].hdisplay : count * 10;
+		int x_ofs = min(count * 10, o->fb_width - o->kmode[0].hdisplay);
 
 		/* Make sure DSPSURF changes value */
 		if (o->flags & TEST_HANG)
@@ -1396,7 +1394,7 @@ static int run_test(int duration, int flags)
 
 	igt_require(modes);
 	duration = duration * 1000 / modes;
-	duration = duration < 500 ? 500 : duration;
+	duration = max(500, duration);
 
 	/* Find any connected displays */
 	for (i = 0; i < resources->count_connectors; i++) {
@@ -1460,7 +1458,7 @@ static int run_pair(int duration, int flags)
 	 * configuration at all. So skip in that case. */
 	igt_require(modes);
 	duration = duration * 1000 / modes;
-	duration = duration < 500 ? 500 : duration;
+	duration = max(duration, 500);
 
 	/* Find a pair of connected displays */
 	for (i = 0; i < resources->count_connectors; i++) {

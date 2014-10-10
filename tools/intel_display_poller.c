@@ -36,9 +36,7 @@
 #include "intel_io.h"
 #include "igt_debugfs.h"
 #include "drmtest.h"
-
-#define min(a,b) ((a) < (b) ? (a) : (b))
-#define max(a,b) ((a) > (b) ? (a) : (b))
+#include "igt_aux.h"
 
 enum test {
 	TEST_INVALID,
