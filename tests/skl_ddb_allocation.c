@@ -105,7 +105,7 @@ struct skl_pipe_wm_parameters {
 };
 
 struct skl_ddb_entry {
-	uint16_t start, end;	/* in number of blocks */
+	uint16_t start, end;	/* in number of blocks. 'end' is exclusive */
 };
 
 static inline uint16_t skl_ddb_entry_size(const struct skl_ddb_entry *entry)
@@ -114,7 +114,7 @@ static inline uint16_t skl_ddb_entry_size(const struct skl_ddb_entry *entry)
 	if (entry->end == 0)
 		return 0;
 
-	return entry->end - entry->start + 1;
+	return entry->end - entry->start;
 }
 
 static inline bool skl_ddb_entry_equal(const struct skl_ddb_entry *e1,
@@ -171,7 +171,7 @@ skl_ddb_get_pipe_allocation_limits(struct drm_device *dev,
 
 	pipe_size = ddb_size / config->num_pipes_active;
 	alloc->start = nth_active_pipe * ddb_size / config->num_pipes_active;
-	alloc->end = alloc->start + pipe_size - 1;
+	alloc->end = alloc->start + pipe_size;
 }
 
 static unsigned int skl_cursor_allocation(const struct intel_wm_config *config)
@@ -236,7 +236,7 @@ skl_allocate_pipe_ddb(struct drm_crtc *crtc,
 	}
 
 	cursor_blocks = skl_cursor_allocation(config);
-	ddb->cursor[pipe].start = alloc.end - cursor_blocks + 1;
+	ddb->cursor[pipe].start = alloc.end - cursor_blocks;
 	ddb->cursor[pipe].end = alloc.end;
 
 	alloc_size -= cursor_blocks;
@@ -270,7 +270,7 @@ skl_allocate_pipe_ddb(struct drm_crtc *crtc,
 				       total_data_rate);
 
 		ddb->plane[pipe][plane].start = start;
-		ddb->plane[pipe][plane].end = start + plane_blocks - 1;
+		ddb->plane[pipe][plane].end = start + plane_blocks;
 
 		start += plane_blocks;
 	}
@@ -284,9 +284,9 @@ static void skl_ddb_check_entry(struct skl_ddb_entry *entry, int16_t *cursor)
 		return;
 
 	/* check that ->start is the next available block */
-	if (entry->start <= *cursor)
+	if (entry->start < *cursor)
 		printf("error: allocation overlaps previous block\n");
-	else if (entry->start > *cursor + 1)
+	else if (entry->start >= *cursor + 1)
 		printf("warning: allocation leaves a hole\n");
 
 	*cursor = entry->end;
@@ -294,7 +294,7 @@ static void skl_ddb_check_entry(struct skl_ddb_entry *entry, int16_t *cursor)
 
 static void skl_ddb_check_last_allocation(int16_t cursor)
 {
-	uint16_t last_offset = SKL_DDB_SIZE - 1 - 4;
+	uint16_t last_offset = SKL_DDB_SIZE - 4;
 
 	if (cursor < last_offset)
 		printf("warning: %d blocks not allocated\n",
@@ -308,7 +308,7 @@ static void skl_ddb_print(struct skl_ddb_allocation *ddb)
 	struct skl_ddb_entry *entry;
 	enum pipe pipe;
 	int plane;
-	int16_t cursor = -1;
+	int16_t cursor = 0;
 
 	printf("%-15s%8s%8s%8s\n", "", "Start", "End", "Size");
 
