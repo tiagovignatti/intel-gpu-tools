@@ -35,6 +35,9 @@
 #include "intel_chipset.h"
 #include "igt_aux.h"
 
+IGT_TEST_DESCRIPTION("Exercises full ppgtt fence pin_count leak in the "
+		     "kernel.");
+
 typedef struct {
 	int drm_fd;
 	uint32_t devid;

@@ -32,9 +32,8 @@
 
 #include "drmtest.h"
 
-/**
- * Checks DRM_IOCTL_GET_CLIENT.
- */
+IGT_TEST_DESCRIPTION("Tests the DRM_IOCTL_GET_CLIENT ioctl.");
+
 igt_simple_main
 {
 	int fd, ret;

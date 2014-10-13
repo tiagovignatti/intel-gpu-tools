@@ -39,12 +39,12 @@ typedef struct {
 	igt_display_t display;
 } data_t;
 
-/*
- * This test tries to provoke the kernel to leak a pending page flip event
- * when the fd is closed before the flip has completed. The test itself won't
- * fail even if the kernel leaks the event, but the resulting dmesg WARN
- * will cause piglit to report a failure.
- */
+IGT_TEST_DESCRIPTION(
+    "This test tries to provoke the kernel into leaking a pending page flip "
+    "event when the fd is closed before the flip has completed. The test "
+    "itself won't fail even if the kernel leaks the event, but the resulting "
+    "dmesg WARN will indicate a failure.");
+
 static bool test(data_t *data, enum pipe pipe, igt_output_t *output)
 {
 	igt_plane_t *primary;

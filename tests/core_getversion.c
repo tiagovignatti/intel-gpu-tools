@@ -29,9 +29,9 @@
 #include <sys/ioctl.h>
 #include "drmtest.h"
 
-/**
- * Checks DRM_IOCTL_GET_VERSION and libdrm's drmGetVersion() interface to it.
- */
+IGT_TEST_DESCRIPTION("Tests the DRM_IOCTL_GET_VERSION ioctl and libdrm's "
+		     "drmGetVersion() interface to it.");
+
 igt_simple_main
 {
 	int fd;

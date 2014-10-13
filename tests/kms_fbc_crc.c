@@ -34,6 +34,11 @@
 #include "intel_batchbuffer.h"
 #include "ioctl_wrappers.h"
 
+IGT_TEST_DESCRIPTION(
+   "Performs various write operations to the scanout buffer while FBC is "
+   "enabled. CRC checks will be used to make sure the modifications to scanout "
+   "buffer are detected.");
+
 enum test_mode {
 	TEST_PAGE_FLIP,
 	TEST_MMAP_CPU,

@@ -40,6 +40,9 @@
  * I don't care too much about the actual contents, just that the kernel
  * doesn't crash.
  */
+
+IGT_TEST_DESCRIPTION("Tests the DRM_IOCTL_GET_STATS ioctl.");
+
 igt_simple_main
 {
 	int fd, ret;

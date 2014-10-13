@@ -34,6 +34,14 @@
 #include "intel_chipset.h"
 #include "igt_aux.h"
 
+IGT_TEST_DESCRIPTION(
+   "Use the display CRC support to validate cursor plane functionality. "
+   "The test will position the cursor plane either fully onscreen, "
+   "partially onscreen, or fully offscreen, using either a fully opaque "
+   "or fully transparent surface. In each case it then reads the PF CRC "
+   "and compares it with the CRC value obtained when the cursor plane "
+   "was disabled.");
+
 #ifndef DRM_CAP_CURSOR_WIDTH
 #define DRM_CAP_CURSOR_WIDTH 0x8
 #endif
