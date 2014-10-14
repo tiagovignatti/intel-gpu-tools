@@ -1,0 +1,65 @@
+<?xml version="1.0"?>
+<!DOCTYPE refentry PUBLIC "-//OASIS//DTD DocBook XML V4.3//EN"
+               "http://www.oasis-open.org/docbook/xml/4.3/docbookx.dtd"
+[
+  <!ENTITY % local.common.attrib "xmlns:xi  CDATA  #FIXED 'http://www.w3.org/2003/XInclude'">
+  <!ENTITY version SYSTEM "version.xml">
+]>
+<refentry id="intel-gpu-tools-test-programs">
+<refmeta>
+<refentrytitle role="top_of_page" id="intel-gpu-tools-test-programs.top_of_page">Test Programs</refentrytitle>
+<manvolnum>1</manvolnum>
+<refmiscinfo>
+  INTEL-GPU-TOOLS Library
+</refmiscinfo>
+</refmeta>
+<refnamediv>
+<refname>Tests Programs</refname>
+<refpurpose>Test cases for features and bugs</refpurpose>
+</refnamediv>
+
+<refsect1 id="intel-gpu-tools-test-programs.description" role="desc">
+<title role="desc.title">Description</title>
+Test cases for bugs, features and regression testing. All tests support the
+following common options:
+
+<variablelist>
+<varlistentry>
+<term><option>--list-subtests</option></term>
+<listitem><para>
+list the available subtests and exit
+</para></listitem>
+</varlistentry>
+
+<varlistentry>
+<term><option>--run-subtest <replaceable>subtest</replaceable></option></term>
+<listitem><para>
+run the specified subtest
+</para></listitem>
+</varlistentry>
+
+<varlistentry>
+<term><option>--debug</option></term>
+<listitem><para>
+print extra debugging information when running tests
+</para></listitem>
+</varlistentry>
+
+<varlistentry>
+<term><option>--help-description</option></term>
+<listitem><para>
+print a short description of the test and exit
+</para></listitem>
+</varlistentry>
+
+<varlistentry>
+<term><option>--help</option></term>
+<listitem><para>
+print help and exit
+</para></listitem>
+</varlistentry>
+</variablelist>
+</refsect1>
+
+<refsect1>
+<title>Programs</title>

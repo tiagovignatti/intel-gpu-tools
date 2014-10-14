@@ -1,5 +1,22 @@
 ## Process this file with automake to produce Makefile.in
 
+TESTLISTS = $(top_builddir)/tests/single-tests.txt $(top_builddir)/tests/multi-tests.txt
+igt_test_programs.xml: igt_test_programs.xml.header $(TESTLISTS)
+	cat $(srcdir)/igt_test_programs.xml.header > $@; \
+	for test in `cat $(TESTLISTS)`; do \
+		if [ "$$test" = "TESTLIST" -o "$$test" = "END" ]; then \
+			continue; \
+		fi; \
+		echo "<refsect2 id=\"$$test\"><title>$$test</title><para>" >> $@; \
+		if [ -x $(top_builddir)/tests/$$test ]; then \
+			./$(top_builddir)/tests/$$test --help-description >> $@; \
+		else \
+			./$(top_srcdir)/tests/$$test --help-description >> $@; \
+		fi; \
+		echo "</para></refsect2>" >> $@; \
+	done; \
+	echo "</refsect1></refentry>" >> $@;
+
 # We require automake 1.6 at least.
 AUTOMAKE_OPTIONS = 1.6
 
@@ -68,12 +85,12 @@ HTML_IMAGES=
 
 # Extra SGML files that are included by $(DOC_MAIN_SGML_FILE).
 # e.g. content_files=running.sgml building.sgml changes-2.0.sgml
-content_files=
+content_files=igt_test_programs.xml
 
 # SGML files where gtk-doc abbrevations (#GtkWidget) are expanded
 # These files must be listed here *and* in content_files
 # e.g. expand_content_files=running.sgml
-expand_content_files=
+expand_content_files=igt_test_programs.xml
 
 # CFLAGS and LDFLAGS for compiling gtkdoc-scangobj with your library.
 # Only needed if you are using gtkdoc-scangobj to dynamically query widget
@@ -88,12 +105,14 @@ include $(top_srcdir)/gtk-doc.make
 
 # Other files to distribute
 # e.g. EXTRA_DIST += version.xml.in
-EXTRA_DIST +=
+EXTRA_DIST += igt_test_programs.xml.header
 
 # Files not to distribute
 # for --rebuild-types in $(SCAN_OPTIONS), e.g. $(DOC_MODULE).types
 # for --rebuild-sections in $(SCAN_OPTIONS) e.g. $(DOC_MODULE)-sections.txt
-DISTCLEANFILES = $(DOC_MODULE)-sections.txt
+DISTCLEANFILES = $(DOC_MODULE)-sections.txt igt_test_programs.xml
+
+CLEANFILES += igt_test_programs.xml
 
 # Comment this out if you want 'make check' to test you doc status
 # and run some sanity checks
