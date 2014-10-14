@@ -33,8 +33,8 @@
 #include <errno.h>
 
 #include "drmtest.h"
+#include "intel_chipset.h"
 
-#define NUMBER_OF_RC6_RESIDENCY 3
 #define SLEEP_DURATION 3000 // in milliseconds
 #define RC6_FUDGE 900 // in milliseconds
 
@@ -54,7 +54,7 @@ static unsigned int readit(const char *path)
 	return ret;
 }
 
-static void read_rc6_residency( int value[], const char *name_of_rc6_residency[])
+static void read_rc6_residency( int value[], const char *name_of_rc6_residency)
 {
 	unsigned int i;
 	const int device = drm_get_card();
@@ -76,83 +76,91 @@ static void read_rc6_residency( int value[], const char *name_of_rc6_residency[]
 	if (readit(path) == 0)
 		igt_success();
 
-	for(i = 0; i < 6; i++)
+	for(i = 0; i < 2; i++)
 	{
-		if(i == 3)
-			sleep(SLEEP_DURATION / 1000);
-		ret = asprintf(&path, "/sys/class/drm/card%d/power/%s_residency_ms",device,name_of_rc6_residency[i % 3]);
+		sleep(SLEEP_DURATION / 1000);
+		ret = asprintf(&path, "/sys/class/drm/card%d/power/%s_residency_ms",device,name_of_rc6_residency);
 		igt_assert(ret != -1);
 		value[i] = readit(path);
 	}
 	free(path);
 }
 
-static void residency_accuracy(int value[],const char *name_of_rc6_residency[])
+static void residency_accuracy(int value[],const char *name_of_rc6_residency)
 {
-	int flag;
 	unsigned int flag_counter,flag_support;
 	double counter_result = 0;
 	unsigned int diff;
+	unsigned int  tmp_counter, tmp_support;
+	double counter;
 	flag_counter = 0;
 	flag_support = 0;
-	diff = (value[3] - value[0]) +
-			(value[4] - value[1]) +
-			(value[5] - value[2]);
+	diff = (value[1] - value[0]);
 
 	igt_assert_f(diff <= (SLEEP_DURATION + RC6_FUDGE),"Diff was too high. That is unpossible\n");
 	igt_assert_f(diff >= (SLEEP_DURATION - RC6_FUDGE),"GPU was not in RC6 long enough. Check that "
 							"the GPU is as idle as possible(ie. no X, "
 							"running and running no other tests)\n");
 
-	for(flag = NUMBER_OF_RC6_RESIDENCY-1; flag >= 0; flag --)
-	{
-		unsigned int  tmp_counter, tmp_support;
-		double counter;
-		counter = ((double)value[flag + 3] - (double)value[flag]) /(double) SLEEP_DURATION;
+	counter = ((double)value[1] - (double)value[0]) /(double) SLEEP_DURATION;
 
-		if( counter > 0.9 ){
-			counter_result = counter;
-			tmp_counter = 1;
-		}
-		else
-			tmp_counter = 0;
-
-		if( value [flag + 3] == 0){
-			tmp_support = 0;
-			igt_info("This machine doesn't support %s\n", name_of_rc6_residency[flag]);
-		}
-		else
-			tmp_support = 1;
-
-		flag_counter = flag_counter + tmp_counter;
-		flag_counter = flag_counter << 1;
-
-		flag_support = flag_support + tmp_support;
-		flag_support = flag_support << 1;
+	if( counter > 0.9 ){
+		counter_result = counter;
+		tmp_counter = 1;
 	}
+	else
+		tmp_counter = 0;
+
+	if( value [1] == 0){
+		tmp_support = 0;
+		igt_info("This machine/configuration doesn't support %s\n", name_of_rc6_residency);
+	}
+	else
+		tmp_support = 1;
+
+	flag_counter = flag_counter + tmp_counter;
+	flag_counter = flag_counter << 1;
+
+	flag_support = flag_support + tmp_support;
+	flag_support = flag_support << 1;
 
 	igt_info("The residency counter: %f \n", counter_result);
-	igt_skip_on_f(flag_support == 0 , "This machine didn't entry any RC6 state.\n");
+	igt_skip_on_f(flag_support == 0 , "This machine didn't entry %s state.\n", name_of_rc6_residency);
 	igt_assert_f((flag_counter != 0) && (counter_result <=1) , "Sysfs RC6 residency counter is inaccurate.\n");
-	igt_info("This machine entry %s state.\n", name_of_rc6_residency[(flag_counter / 2) - 1]);
+	igt_info("This machine entry %s state.\n", name_of_rc6_residency);
 }
 
 igt_main
 {
 	int fd;
-	int value[6];
-	const char *name_of_rc6_residency[3]={"rc6","rc6p","rc6pp"};
+	int devid = 0;
+	int rc6[2], rc6p[2], rc6pp[2];
 
 	igt_skip_on_simulation();
 
 	/* Use drm_open_any to verify device existence */
 	igt_fixture {
 		fd = drm_open_any();
+		devid = intel_get_drm_devid(fd);
 		close(fd);
 
-		read_rc6_residency(value, name_of_rc6_residency);
+		read_rc6_residency(rc6, "rc6");
+		if (IS_GEN6(devid) || IS_IVYBRIDGE(devid)) {
+			read_rc6_residency(rc6p, "rc6p");
+			read_rc6_residency(rc6pp, "rc6pp");
+		}
 	}
 
-	igt_subtest("residency-accuracy")
-		residency_accuracy(value, name_of_rc6_residency);
+	igt_subtest("rc6-accuracy")
+		residency_accuracy(rc6, "rc6");
+	igt_subtest("rc6p-accuracy") {
+		if (!IS_GEN6(devid) && !IS_IVYBRIDGE(devid))
+			igt_skip("This platform doesn't support RC6p\n");
+		residency_accuracy(rc6p, "rc6p");
+	}
+	igt_subtest("rc6pp-accuracy") {
+		if (!IS_GEN6(devid) && !IS_IVYBRIDGE(devid))
+			igt_skip("This platform doesn't support RC6pp\n");
+		residency_accuracy(rc6pp, "rc6pp");
+	}
 }
