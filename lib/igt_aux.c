@@ -42,6 +42,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/wait.h>
+#include <sys/time.h>
 #include <sys/types.h>
 #include <sys/syscall.h>
 #include <sys/utsname.h>
@@ -502,21 +503,27 @@ enum igt_runtime_pm_status igt_get_runtime_pm_status(void)
  * Waits until for the driver to switch to into the desired runtime PM status,
  * with a 10 second timeout.
  *
+ * Some subtests call this function while the signal helper is active, so we
+ * can't assume each usleep() call will sleep for 100ms.
+ *
  * Returns:
  * True if the desired runtime PM status was attained, false if the operation
  * timed out.
  */
 bool igt_wait_for_pm_status(enum igt_runtime_pm_status status)
 {
-	int i;
-	int hundred_ms = 100 * 1000, ten_s = 10 * 1000 * 1000;
+	struct timeval start, end, diff;
 
-	for (i = 0; i < ten_s; i += hundred_ms) {
+	igt_assert(gettimeofday(&start, NULL) == 0);
+	do {
 		if (igt_get_runtime_pm_status() == status)
 			return true;
 
-		usleep(hundred_ms);
-	}
+		usleep(100 * 1000);
+
+		igt_assert(gettimeofday(&end, NULL) == 0);
+		timersub(&end, &start, &diff);
+	} while (diff.tv_sec < 10);
 
 	return false;
 }
