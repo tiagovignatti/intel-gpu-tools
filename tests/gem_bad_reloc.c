@@ -128,6 +128,7 @@ static int negative_reloc_blt(int fd)
 
 	memset(&gem_reloc, 0, sizeof(gem_reloc));
 	gem_reloc.offset = 4 * sizeof(uint32_t);
+	gem_reloc.presumed_offset = ~0ULL;
 	gem_reloc.delta = -4096;
 	gem_reloc.target_handle = 0;
 	gem_reloc.read_domains = I915_GEM_DOMAIN_RENDER;
@@ -146,9 +147,9 @@ static int negative_reloc_blt(int fd)
 		*b++ = 0xf0 << 16 | 1 << 25 | 1 << 24 | 4096;
 		*b++ = 1 << 16 | 0;
 		*b++ = 2 << 16 | 1024;
-		*b++ = 0;
+		*b++ = ~0;
 		if (gen >= 8)
-			*b++ = 0;
+			*b++ = ~0;
 		*b++ = 0xc0ffee ^ i;
 		*b++ = MI_BATCH_BUFFER_END;
 		if ((b - buf) & 1)
