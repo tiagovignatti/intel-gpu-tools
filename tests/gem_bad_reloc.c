@@ -117,6 +117,82 @@ static int negative_reloc(int fd, unsigned flags)
 	return 0;
 }
 
+static int negative_reloc_blt(int fd)
+{
+	const int gen = intel_gen(intel_get_drm_devid(fd));
+	struct drm_i915_gem_execbuffer2 execbuf;
+	struct drm_i915_gem_exec_object2 gem_exec[1024][2];
+	struct drm_i915_gem_relocation_entry gem_reloc;
+	uint32_t buf[1024], *b;
+	int i;
+
+	memset(&gem_reloc, 0, sizeof(gem_reloc));
+	gem_reloc.offset = 4 * sizeof(uint32_t);
+	gem_reloc.delta = -4096;
+	gem_reloc.target_handle = 0;
+	gem_reloc.read_domains = I915_GEM_DOMAIN_RENDER;
+	gem_reloc.write_domain = I915_GEM_DOMAIN_RENDER;
+
+	for (i = 0; i < 1024; i++) {
+		memset(gem_exec[i], 0, sizeof(gem_exec[i]));
+
+		gem_exec[i][0].handle = gem_create(fd, 4096);
+		gem_exec[i][0].flags = EXEC_OBJECT_NEEDS_FENCE;
+
+		b = buf;
+		*b++ = XY_COLOR_BLT_CMD_NOLEN |
+			((gen >= 8) ? 5 : 4) |
+			COLOR_BLT_WRITE_ALPHA | XY_COLOR_BLT_WRITE_RGB;
+		*b++ = 0xf0 << 16 | 1 << 25 | 1 << 24 | 4096;
+		*b++ = 1 << 16 | 0;
+		*b++ = 2 << 16 | 1024;
+		*b++ = 0;
+		if (gen >= 8)
+			*b++ = 0;
+		*b++ = 0xc0ffee ^ i;
+		*b++ = MI_BATCH_BUFFER_END;
+		if ((b - buf) & 1)
+			*b++ = 0;
+
+		gem_exec[i][1].handle = gem_create(fd, 4096);
+		gem_write(fd, gem_exec[i][1].handle, 0, buf, (b - buf) * sizeof(uint32_t));
+		gem_exec[i][1].relocation_count = 1;
+		gem_exec[i][1].relocs_ptr = (uintptr_t)&gem_reloc;
+	}
+
+	memset(&execbuf, 0, sizeof(execbuf));
+	execbuf.buffer_count = 2;
+	execbuf.batch_len = (b - buf) * sizeof(uint32_t);
+	execbuf.flags = USE_LUT;
+	if (gen >= 6)
+		execbuf.flags |= I915_EXEC_BLT;
+
+	for (i = 0; i < 1024; i++) {
+		execbuf.buffers_ptr = (uintptr_t)gem_exec[i];
+		gem_execbuf(fd, &execbuf);
+	}
+
+	for (i = 1024; i--;) {
+		gem_read(fd, gem_exec[i][0].handle,
+			 i*sizeof(uint32_t), buf + i, sizeof(uint32_t));
+		gem_close(fd, gem_exec[i][0].handle);
+		gem_close(fd, gem_exec[i][1].handle);
+	}
+
+	if (0) {
+		for (i = 0; i < 1024; i += 8)
+			printf("%08x %08x %08x %08x %08x %08x %08x %08x\n",
+			       buf[i + 0], buf[i + 1],
+			       buf[i + 2], buf[i + 3],
+			       buf[i + 4], buf[i + 5],
+			       buf[i + 6], buf[i + 7]);
+	}
+	for (i = 0; i < 1024; i++)
+		igt_assert_eq(buf[i], 0xc0ffee ^ i);
+
+	return 0;
+}
+
 int fd;
 
 igt_main
@@ -130,6 +206,9 @@ igt_main
 
 	igt_subtest("negative-reloc-lut")
 		negative_reloc(fd, USE_LUT);
+
+	igt_subtest("negative-reloc-blt")
+		negative_reloc_blt(fd);
 
 	igt_fixture {
 		close(fd);
