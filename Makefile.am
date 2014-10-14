@@ -21,7 +21,7 @@
 
 ACLOCAL_AMFLAGS = ${ACLOCAL_FLAGS} -I m4
 
-SUBDIRS = docs lib man tools scripts benchmarks demos overlay
+SUBDIRS = lib man tools scripts benchmarks demos overlay
 
 if BUILD_ASSEMBLER
 SUBDIRS += assembler
@@ -34,6 +34,8 @@ endif
 if BUILD_TESTS
 SUBDIRS += tests
 endif
+
+SUBDIRS += docs
 
 MAINTAINERCLEANFILES = ChangeLog INSTALL
 
