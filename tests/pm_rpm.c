@@ -768,6 +768,9 @@ static void modeset_subtest(enum screen_type type, int rounds, int wait_flags)
 	if (wait_flags & WAIT_PC8_RES)
 		igt_require(has_pc8);
 
+	if (wait_flags & WAIT_EXTRA)
+		rounds /= 2;
+
 	for (i = 0; i < rounds; i++) {
 		if (wait_flags & USE_DPMS)
 			disable_all_screens_dpms(&ms_data);
@@ -1719,7 +1722,7 @@ static void fences_subtest(bool dpms)
 	igt_assert(munmap(buf_ptr, params.fb.size) == 0);
 }
 
-int rounds = 50;
+int rounds = 40;
 bool stay = false;
 
 static int opt_handler(int opt, int opt_index)
