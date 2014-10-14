@@ -459,7 +459,7 @@ static void free_drm_info(struct compare_data *data)
 	drmModeFreeResources(data->res);
 }
 
-#define COMPARE(d1, d2, data) igt_assert(d1->data == d2->data)
+#define COMPARE(d1, d2, data) igt_assert_eq(d1->data, d2->data)
 #define COMPARE_ARRAY(d1, d2, size, data) do { \
 	for (i = 0; i < size; i++) \
 		igt_assert(d1->data[i] == d2->data[i]); \
