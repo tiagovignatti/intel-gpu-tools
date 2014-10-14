@@ -693,7 +693,7 @@ static void setup_non_graphics_runtime_pm(void)
 		if (fd < 0)
 			break;
 
-		write(fd, "min_power\n", 10);
+		igt_assert(write(fd, "min_power\n", 10) == 10);
 		close(fd);
 	}
 	free(file_name);
@@ -701,12 +701,12 @@ static void setup_non_graphics_runtime_pm(void)
 	/* Audio runtime PM policies. */
 	fd = open("/sys/module/snd_hda_intel/parameters/power_save", O_WRONLY);
 	if (fd >= 0) {
-		write(fd, "1\n", 2);
+		igt_assert(write(fd, "1\n", 2) == 2);
 		close(fd);
 	}
 	fd = open("/sys/bus/pci/devices/0000:00:03.0/power/control", O_WRONLY);
 	if (fd >= 0) {
-		write(fd, "auto\n", 5);
+		igt_assert(write(fd, "auto\n", 5) == 5);
 		close(fd);
 	}
 }
