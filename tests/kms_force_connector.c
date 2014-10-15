@@ -35,6 +35,7 @@ main (int argc, char **argv)
 	drmModeRes *res;
 	drmModeConnector *vga_connector, *temp;
 	igt_display_t display;
+	int start_n_modes;
 
 	igt_simple_init(argc, argv);
 
@@ -61,6 +62,7 @@ main (int argc, char **argv)
 	temp = drmModeGetConnector(drm_fd, vga_connector->connector_id);
 	igt_assert(temp->connection == DRM_MODE_CONNECTED);
 	igt_assert(temp->count_modes > 0);
+	start_n_modes = temp->count_modes;
 	drmModeFreeConnector(temp);
 
 	/* attempt to use the display */
@@ -96,8 +98,9 @@ main (int argc, char **argv)
 	/* remove edid */
 	kmstest_force_edid(drm_fd, vga_connector, NULL, 0);
 	temp = drmModeGetConnector(drm_fd, vga_connector->connector_id);
-	/* the connector should now have the 5 default modes */
-	igt_assert(temp->count_modes == 5);
+	/* the connector should now have the same number of modes that it
+	 * started with */
+	igt_assert(temp->count_modes == start_n_modes);
 	drmModeFreeConnector(temp);
 
 	/* force the connector off */
