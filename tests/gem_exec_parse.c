@@ -182,6 +182,96 @@ static void exec_split_batch(int fd, uint32_t *cmds,
 	gem_close(fd, cmd_bo);
 }
 
+static void exec_batch_chained(int fd, uint32_t cmd_bo, uint32_t *cmds,
+			       int size, int patch_offset,
+			       uint64_t expected_value)
+{
+	struct drm_i915_gem_execbuffer2 execbuf;
+	struct drm_i915_gem_exec_object2 objs[3];
+	struct drm_i915_gem_relocation_entry reloc;
+	struct drm_i915_gem_relocation_entry first_level_reloc;
+
+	uint32_t target_bo = gem_create(fd, 4096);
+	uint32_t first_level_bo = gem_create(fd, 4096);
+	uint64_t actual_value = 0;
+
+	static uint32_t first_level_cmds[] = {
+		MI_BATCH_BUFFER_START | MI_BATCH_NON_SECURE_I965,
+		0,
+		MI_BATCH_BUFFER_END,
+		0,
+	};
+
+	if (IS_HASWELL(intel_get_drm_devid(fd)))
+		first_level_cmds[0] |= MI_BATCH_NON_SECURE_HSW;
+
+	gem_write(fd, first_level_bo, 0,
+		  first_level_cmds, sizeof(first_level_cmds));
+	gem_write(fd, cmd_bo, 0, cmds, size);
+
+	reloc.offset = patch_offset;
+	reloc.delta = 0;
+	reloc.target_handle = target_bo;
+	reloc.read_domains = I915_GEM_DOMAIN_RENDER;
+	reloc.write_domain = I915_GEM_DOMAIN_RENDER;
+	reloc.presumed_offset = 0;
+
+	first_level_reloc.offset = 4;
+	first_level_reloc.delta = 0;
+	first_level_reloc.target_handle = cmd_bo;
+	first_level_reloc.read_domains = I915_GEM_DOMAIN_INSTRUCTION;
+	first_level_reloc.write_domain = 0;
+	first_level_reloc.presumed_offset = 0;
+
+	objs[0].handle = target_bo;
+	objs[0].relocation_count = 0;
+	objs[0].relocs_ptr = 0;
+	objs[0].alignment = 0;
+	objs[0].offset = 0;
+	objs[0].flags = 0;
+	objs[0].rsvd1 = 0;
+	objs[0].rsvd2 = 0;
+
+	objs[1].handle = cmd_bo;
+	objs[1].relocation_count = 1;
+	objs[1].relocs_ptr = (uintptr_t)&reloc;
+	objs[1].alignment = 0;
+	objs[1].offset = 0;
+	objs[1].flags = 0;
+	objs[1].rsvd1 = 0;
+	objs[1].rsvd2 = 0;
+
+	objs[2].handle = first_level_bo;
+	objs[2].relocation_count = 1;
+	objs[2].relocs_ptr = (uintptr_t)&first_level_reloc;
+	objs[2].alignment = 0;
+	objs[2].offset = 0;
+	objs[2].flags = 0;
+	objs[2].rsvd1 = 0;
+	objs[2].rsvd2 = 0;
+
+	execbuf.buffers_ptr = (uintptr_t)objs;
+	execbuf.buffer_count = 3;
+	execbuf.batch_start_offset = 0;
+	execbuf.batch_len = sizeof(first_level_cmds);
+	execbuf.cliprects_ptr = 0;
+	execbuf.num_cliprects = 0;
+	execbuf.DR1 = 0;
+	execbuf.DR4 = 0;
+	execbuf.flags = I915_EXEC_RENDER;
+	i915_execbuffer2_set_context_id(execbuf, 0);
+	execbuf.rsvd2 = 0;
+
+	gem_execbuf(fd, &execbuf);
+	gem_sync(fd, cmd_bo);
+
+	gem_read(fd,target_bo, 0, &actual_value, sizeof(actual_value));
+	igt_assert_eq(expected_value, actual_value);
+
+	gem_close(fd, first_level_bo);
+	gem_close(fd, target_bo);
+}
+
 uint32_t handle;
 int fd;
 
@@ -363,6 +453,21 @@ igt_main
 			   lri_extra_bad, sizeof(lri_extra_bad),
 			   I915_EXEC_RENDER,
 			   -EINVAL);
+	}
+
+	igt_subtest("chained-batch") {
+		uint32_t pc[] = {
+			GFX_OP_PIPE_CONTROL,
+			PIPE_CONTROL_QW_WRITE,
+			0, // To be patched
+			0x12000000,
+			0,
+			MI_BATCH_BUFFER_END,
+		};
+		exec_batch_chained(fd, handle,
+				   pc, sizeof(pc),
+				   8, // patch offset,
+				   0x12000000);
 	}
 
 	igt_fixture {
