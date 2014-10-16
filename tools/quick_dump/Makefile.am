@@ -23,7 +23,7 @@ all-local: I915ChipsetPython.la
 
 CLEANFILES = chipset_wrap_python.c chipset.py _chipset.so
 EXTRA_DIST = $(QUICK_DUMP_EXTRA_DIST) \
-	      base_display.txt base_interrupt.txt base_other.txt base_power.txt base_rings.txt \
+	      base_interrupt.txt base_other.txt base_power.txt base_rings.txt \
 	      quick_dump.py \
 	      reg_access.py \
 	      chipset.i chipset.py
