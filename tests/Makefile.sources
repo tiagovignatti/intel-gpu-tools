@@ -202,8 +202,13 @@ TESTS_testsuite = \
 	igt_simulation \
 	$(NULL)
 
+TESTS_testsuite_scripts = \
+	igt_command_line.sh \
+	$(NULL)
+
 TESTS = \
 	$(TESTS_testsuite) \
+	$(TESTS_testsuite_scripts) \
 	$(NULL)
 
 # Test that exercise specific asserts in the test framework library and are
@@ -229,6 +234,7 @@ scripts = \
 	ddx_intel_after_fbdev \
 	debugfs_wedged \
 	drm_lib.sh \
+	igt_command_line.sh \
 	$(NULL)
 
 IMAGES = pass.png 1080p-left.png 1080p-right.png
