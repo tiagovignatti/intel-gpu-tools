@@ -9,6 +9,17 @@ for arg in $@ ; do
 		--run-subtest)
 			exit 79
 			;;
+		--debug)
+			IGT_LOG_LEVEL=debug
+			;;
+		--help)
+			echo "Usage: `basename $0` [OPTIONS]"
+			echo "  --list-subtests"
+			echo "  --run-subtest <pattern>"
+			echo "  --debug"
+			echo "  --help"
+			exit 0
+			;;
 	esac
 done
 
