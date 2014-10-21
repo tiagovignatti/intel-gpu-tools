@@ -431,6 +431,20 @@ bool igt_setup_runtime_pm(void)
 	if (pm_status_fd >= 0)
 		return true;
 
+	/* The Audio driver can get runtime PM references, so we need to make
+	 * sure its runtime PM is enabled, so it can release the refs and
+	 * actually enable us to runtime suspend. */
+	fd = open("/sys/module/snd_hda_intel/parameters/power_save", O_WRONLY);
+	if (fd >= 0) {
+		igt_assert(write(fd, "1\n", 2) == 2);
+		close(fd);
+	}
+	fd = open("/sys/bus/pci/devices/0000:00:03.0/power/control", O_WRONLY);
+	if (fd >= 0) {
+		igt_assert(write(fd, "auto\n", 5) == 5);
+		close(fd);
+	}
+
 	/* Our implementation uses autosuspend. Try to set it to 0ms so the test
 	 * suite goes faster and we have a higher probability of triggering race
 	 * conditions. */
