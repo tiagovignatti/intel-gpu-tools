@@ -678,18 +678,33 @@ static void (* volatile orig_sigbus)(int sig, siginfo_t *info, void *param);
 static volatile unsigned long sigbus_start;
 static volatile long sigbus_cnt = -1;
 
+static void *umap(int fd, uint32_t handle)
+{
+	void *ptr;
+
+	if (gem_has_llc(fd)) {
+		ptr = gem_mmap(fd, handle, sizeof(linear), PROT_READ | PROT_WRITE);
+	} else {
+		uint32_t tmp = gem_create(fd, sizeof(linear));
+		copy(fd, tmp, handle, 0);
+		ptr = gem_mmap__cpu(fd, handle, sizeof(linear), PROT_READ);
+		gem_close(fd, tmp);
+	}
+
+	return ptr;
+}
+
 static void
 check_bo(int fd1, uint32_t handle1, int is_userptr, int fd2, uint32_t handle2)
 {
 	unsigned char *ptr1, *ptr2;
 	unsigned long size = sizeof(linear);
 
-	ptr2 = gem_mmap(fd2, handle2, sizeof(linear), PROT_READ | PROT_WRITE);
-
+	ptr2 = umap(fd2, handle2);
 	if (is_userptr)
 		ptr1 = is_userptr > 0 ? get_handle_ptr(handle1) : ptr2;
 	else
-		ptr1 = gem_mmap(fd1, handle1, sizeof(linear), PROT_READ | PROT_WRITE);
+		ptr1 = umap(fd1, handle1);
 
 	igt_assert(ptr1);
 	igt_assert(ptr2);
@@ -697,10 +712,11 @@ check_bo(int fd1, uint32_t handle1, int is_userptr, int fd2, uint32_t handle2)
 	sigbus_start = (unsigned long)ptr2;
 	igt_assert(memcmp(ptr1, ptr2, sizeof(linear)) == 0);
 
-	counter++;
-
-	memset(ptr1, counter, size);
-	memset(ptr2, counter, size);
+	if (gem_has_llc(fd1)) {
+		counter++;
+		memset(ptr1, counter, size);
+		memset(ptr2, counter, size);
+	}
 
 	if (!is_userptr)
 		munmap(ptr1, sizeof(linear));
@@ -754,7 +770,6 @@ static int test_dmabuf(void)
 	uint32_t handle, handle_import;
 	int dma_buf_fd = -1;
 	int ret;
-	struct sigaction sigact, orig_sigact;
 
 	fd1 = drm_open_any();
 
@@ -784,20 +799,24 @@ static int test_dmabuf(void)
 	free_userptr_bo(fd1, handle);
 	close(fd1);
 
-	memset(&sigact, 0, sizeof(sigact));
-	sigact.sa_sigaction = sigbus;
-	sigact.sa_flags = SA_SIGINFO;
-	ret = sigaction(SIGBUS, &sigact, &orig_sigact);
-	igt_assert(ret == 0);
+	if (gem_has_llc(fd2)) {
+		struct sigaction sigact, orig_sigact;
 
-	orig_sigbus = orig_sigact.sa_sigaction;
+		memset(&sigact, 0, sizeof(sigact));
+		sigact.sa_sigaction = sigbus;
+		sigact.sa_flags = SA_SIGINFO;
+		ret = sigaction(SIGBUS, &sigact, &orig_sigact);
+		igt_assert(ret == 0);
 
-	sigbus_cnt = 0;
-	check_bo(fd2, handle_import, -1, fd2, handle_import);
-	igt_assert(sigbus_cnt > 0);
+		orig_sigbus = orig_sigact.sa_sigaction;
 
-	ret = sigaction(SIGBUS, &orig_sigact, NULL);
-	igt_assert(ret == 0);
+		sigbus_cnt = 0;
+		check_bo(fd2, handle_import, -1, fd2, handle_import);
+		igt_assert(sigbus_cnt > 0);
+
+		ret = sigaction(SIGBUS, &orig_sigact, NULL);
+		igt_assert(ret == 0);
+	}
 
 	close(fd2);
 	reset_handle_ptr();
