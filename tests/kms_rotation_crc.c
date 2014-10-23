@@ -33,33 +33,49 @@ typedef struct {
 	int gfx_fd;
 	igt_display_t display;
 	struct igt_fb fb;
+	struct igt_fb fb_cursor;
 	igt_crc_t ref_crc;
 	igt_pipe_crc_t *pipe_crc;
 } data_t;
 
 static void
 paint_squares(data_t *data, struct igt_fb *fb, drmModeModeInfo *mode,
-	      igt_rotation_t rotation)
+	      igt_rotation_t rotation, igt_plane_t *plane)
 {
 	cairo_t *cr;
 	int w, h;
 
-	w = mode->hdisplay;
-	h = mode->vdisplay;
+	if (plane->is_cursor) {
+		w = 128;
+		h = 128;
+		cr = igt_get_cairo_ctx(data->gfx_fd, &data->fb_cursor);
 
-	cr = igt_get_cairo_ctx(data->gfx_fd, &data->fb);
+		if (rotation == IGT_ROTATION_180) {
+			cairo_translate(cr, w, h);
+			cairo_rotate(cr, M_PI);
+		}
 
-	if (rotation == IGT_ROTATION_180) {
-		cairo_translate(cr, w, h);
-		cairo_rotate(cr, M_PI);
+		igt_paint_color(cr, 0, 0, w / 2, h / 2, .75, 0.5, 0.5);
+		igt_paint_color(cr, w / 2, 0, w / 2, h / 2, 0.5, .75, 0.5);
+		igt_paint_color(cr, 0, h / 2, w / 2, h / 2, 0.5, 0.5, .75);
+		igt_paint_color(cr, w / 2, h / 2, w / 2, h / 2, .75, .75, .75);
+	} else {
+		w = mode->hdisplay;
+		h = mode->vdisplay;
+
+		cr = igt_get_cairo_ctx(data->gfx_fd, &data->fb);
+
+		if (rotation == IGT_ROTATION_180) {
+			cairo_translate(cr, w, h);
+			cairo_rotate(cr, M_PI);
+		}
+
+		/* Paint with 4 squares of Red, Green, White, Blue Clockwise */
+		igt_paint_color(cr, 0, 0, w / 2, h / 2, 1.0, 0.0, 0.0);
+		igt_paint_color(cr, w / 2, 0, w / 2, h / 2, 0.0, 1.0, 0.0);
+		igt_paint_color(cr, 0, h / 2, w / 2, h / 2, 0.0, 0.0, 1.0);
+		igt_paint_color(cr, w / 2, h / 2, w / 2, h / 2, 1.0, 1.0, 1.0);
 	}
-
-	/* Paint with 4 squares of Red, Green, White, Blue Clockwise */
-	igt_paint_color(cr, 0, 0, w / 2, h / 2, 1.0, 0.0, 0.0);
-	igt_paint_color(cr, w / 2, 0, w / 2, h / 2, 0.0, 1.0, 0.0);
-	igt_paint_color(cr, 0, h / 2, w / 2, h / 2, 0.0, 0.0, 1.0);
-	igt_paint_color(cr, w / 2, h / 2, w / 2, h / 2, 1.0, 1.0, 1.0);
-
 	cairo_destroy(cr);
 }
 
@@ -68,7 +84,7 @@ static bool prepare_crtc(data_t *data, igt_output_t *output, enum pipe pipe,
 {
 	drmModeModeInfo *mode;
 	igt_display_t *display = &data->display;
-	int fb_id;
+	int fb_id, fb_cursor_id;
 
 	igt_output_set_pipe(output, pipe);
 
@@ -90,9 +106,14 @@ static bool prepare_crtc(data_t *data, igt_output_t *output, enum pipe pipe,
 			&data->fb);
 	igt_assert(fb_id);
 
-	/* Step 1: create a reference CRC for a software-rotated fb */
+	fb_cursor_id = igt_create_fb(data->gfx_fd,
+				     128, 128,
+				     DRM_FORMAT_ARGB8888,
+				     false, /* tiled */
+				     &data->fb_cursor);
+	igt_assert(fb_cursor_id);
 
-	paint_squares(data, &data->fb, mode, IGT_ROTATION_180);
+	/* Step 1: create a reference CRC for a software-rotated fb */
 
 	/*
 	 * XXX: We always set the primary plane to actually enable the pipe as
@@ -103,21 +124,32 @@ static bool prepare_crtc(data_t *data, igt_output_t *output, enum pipe pipe,
 		igt_plane_t *primary;
 
 		primary = igt_output_get_plane(output, IGT_PLANE_PRIMARY);
+		paint_squares(data, &data->fb, mode, IGT_ROTATION_180, primary);
 		igt_plane_set_fb(primary, &data->fb);
 	}
 
-	igt_plane_set_fb(plane, &data->fb);
+	if (plane->is_cursor) {
+		paint_squares(data, &data->fb_cursor, mode, IGT_ROTATION_180, plane);
+		igt_plane_set_fb(plane, &data->fb_cursor);
+	} else {
+		paint_squares(data, &data->fb, mode, IGT_ROTATION_180, plane);
+		igt_plane_set_fb(plane, &data->fb);
+	}
 	igt_display_commit(display);
-
 	igt_pipe_crc_collect_crc(data->pipe_crc, &data->ref_crc);
 
 	/*
 	 * Step 2: prepare the plane with an non-rotated fb let the hw
 	 * rotate it.
 	 */
-	paint_squares(data, &data->fb, mode, IGT_ROTATION_0);
+	if (plane->is_cursor) {
+		paint_squares(data, &data->fb_cursor, mode, IGT_ROTATION_0, plane);
+		igt_plane_set_fb(plane, &data->fb_cursor);
+	} else {
+		paint_squares(data, &data->fb, mode, IGT_ROTATION_0, plane);
+		igt_plane_set_fb(plane, &data->fb);
+	}
 
-	igt_plane_set_fb(plane, &data->fb);
 	return true;
 }
 
@@ -129,6 +161,7 @@ static void cleanup_crtc(data_t *data, igt_output_t *output, igt_plane_t *plane)
 	data->pipe_crc = NULL;
 
 	igt_remove_fb(data->gfx_fd, &data->fb);
+	igt_remove_fb(data->gfx_fd, &data->fb_cursor);
 
 	/* XXX: see the note in prepare_crtc() */
 	if (!plane->is_primary) {
@@ -153,7 +186,7 @@ static void test_plane_rotation(data_t *data, enum igt_plane plane_type)
 	igt_crc_t crc_output, crc_unrotated;
 	enum igt_commit_style commit = COMMIT_LEGACY;
 
-	if (plane_type == IGT_PLANE_PRIMARY) {
+	if (plane_type == IGT_PLANE_PRIMARY || plane_type == IGT_PLANE_CURSOR) {
 		igt_require(data->display.has_universal_planes);
 		commit = COMMIT_UNIVERSAL;
 	}
@@ -172,7 +205,6 @@ static void test_plane_rotation(data_t *data, enum igt_plane plane_type)
 			igt_display_commit2(display, commit);
 
 			/* collect unrotated CRC */
-			igt_display_commit2(display, commit);
 			igt_pipe_crc_collect_crc(data->pipe_crc, &crc_unrotated);
 
 			igt_plane_set_rotation(plane, IGT_ROTATION_180);
@@ -218,6 +250,9 @@ igt_main
 
 	igt_subtest_f("sprite-rotation")
 		test_plane_rotation(&data, IGT_PLANE_2);
+
+	igt_subtest_f("cursor-rotation")
+		test_plane_rotation(&data, IGT_PLANE_CURSOR);
 
 	igt_fixture {
 		igt_display_fini(&data.display);
