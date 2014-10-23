@@ -351,7 +351,7 @@ static void test_crc(data_t *data)
 		get_sink_crc(data, crc);
 		igt_assert(strcmp(ref_crc, crc) == 0);
 
-		fprintf(stdout, "Waiting 10s...\n");
+		igt_info("Waiting 10s...\n");
 		sleep(10);
 
 		/* Now lets print black to change the screen */

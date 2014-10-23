@@ -182,11 +182,9 @@ static int negative_reloc_blt(int fd)
 
 	if (0) {
 		for (i = 0; i < 1024; i += 8)
-			printf("%08x %08x %08x %08x %08x %08x %08x %08x\n",
-			       buf[i + 0], buf[i + 1],
-			       buf[i + 2], buf[i + 3],
-			       buf[i + 4], buf[i + 5],
-			       buf[i + 6], buf[i + 7]);
+			igt_info("%08x %08x %08x %08x %08x %08x %08x %08x\n",
+				 buf[i + 0], buf[i + 1], buf[i + 2], buf[i + 3],
+				 buf[i + 4], buf[i + 5], buf[i + 6], buf[i + 7]);
 	}
 	for (i = 0; i < 1024; i++)
 		igt_assert_eq(buf[i], 0xc0ffee ^ i);
