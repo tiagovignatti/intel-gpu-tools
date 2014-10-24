@@ -1376,6 +1376,55 @@ static void system_suspend_subtest(void)
 	igt_assert(wait_for_suspended());
 }
 
+static void system_suspend_execbuf_subtest(void)
+{
+	int i;
+	int batch_size = 4 * sizeof(uint32_t);
+	uint32_t batch_buf[batch_size];
+	uint32_t handle;
+	struct drm_i915_gem_execbuffer2 execbuf = {};
+	struct drm_i915_gem_exec_object2 objs[1] = {{}};
+
+	i = 0;
+	batch_buf[i++] = MI_NOOP;
+	batch_buf[i++] = MI_NOOP;
+	batch_buf[i++] = MI_BATCH_BUFFER_END;
+	batch_buf[i++] = MI_NOOP;
+	igt_assert(i * sizeof(uint32_t) == batch_size);
+
+	handle = gem_create(drm_fd, batch_size);
+	gem_write(drm_fd, handle, 0, batch_buf, batch_size);
+
+	objs[0].handle = handle;
+
+	execbuf.buffers_ptr = (uintptr_t)objs;
+	execbuf.buffer_count = 1;
+	execbuf.batch_len = batch_size;
+	execbuf.flags = I915_EXEC_RENDER;
+	i915_execbuffer2_set_context_id(execbuf, 0);
+
+	disable_all_screens_and_wait(&ms_data);
+	igt_system_suspend_autoresume();
+	igt_assert(wait_for_suspended());
+
+	for (i = 0; i < 20; i++) {
+		do_ioctl(drm_fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf);
+		igt_assert(wait_for_suspended());
+	}
+
+	gem_close(drm_fd, handle);
+}
+
+static void system_suspend_modeset_subtest(void)
+{
+	disable_all_screens_and_wait(&ms_data);
+	igt_system_suspend_autoresume();
+	igt_assert(wait_for_suspended());
+
+	enable_one_screen_and_wait(&ms_data);
+	disable_all_screens_and_wait(&ms_data);
+}
+
 /* Enable a screen, activate DPMS, then do a modeset. At some point our driver
  * produced WARNs on this case. */
 static void dpms_mode_unset_subtest(enum screen_type type)
@@ -1837,6 +1886,10 @@ int main(int argc, char *argv[])
 	/* System suspend */
 	igt_subtest("system-suspend")
 		system_suspend_subtest();
+	igt_subtest("system-suspend-execbuf")
+		system_suspend_execbuf_subtest();
+	igt_subtest("system-suspend-modeset")
+		system_suspend_modeset_subtest();
 
 	/* GEM stress */
 	igt_subtest("gem-execbuf-stress")
