@@ -1,4 +1,5 @@
 # Please keep sorted alphabetically
+ddi_compute_wrpll
 forcewaked
 intel_audio_dump
 intel_backlight
@@ -35,3 +36,4 @@ intel_reg_write
 intel_stepping
 intel_vga_read
 intel_vga_write
+skl_ddb_allocation

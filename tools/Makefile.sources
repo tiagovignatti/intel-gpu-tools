@@ -1,3 +1,8 @@
+noinst_PROGRAMS = \
+	ddi_compute_wrpll \
+	skl_ddb_allocation \
+	$(NULL)
+
 bin_PROGRAMS = 				\
 	intel_audio_dump 		\
 	intel_backlight 		\

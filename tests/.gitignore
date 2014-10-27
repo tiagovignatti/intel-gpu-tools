@@ -3,7 +3,6 @@ core_get_client_auth
 core_getclient
 core_getstats
 core_getversion
-ddi_compute_wrpll
 drm_import_export
 drm_vma_limiter
 drm_vma_limiter_cached
@@ -149,6 +148,5 @@ prime_nv_test
 prime_self_import
 prime_udl
 single-tests.txt
-skl_ddb_allocation
 template
 testdisplay

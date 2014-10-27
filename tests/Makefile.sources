@@ -1,8 +1,6 @@
 noinst_PROGRAMS = \
 	gem_alive \
 	gem_stress \
-	ddi_compute_wrpll \
-	skl_ddb_allocation \
 	$(TESTS_progs) \
 	$(TESTS_progs_M) \
 	$(HANG) \
