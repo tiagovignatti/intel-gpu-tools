@@ -216,6 +216,7 @@ AC_CONFIG_FILES([
 		 docs/reference/intel-gpu-tools/Makefile
 		 docs/reference/intel-gpu-tools/version.xml
 		 lib/Makefile
+		 lib/tests/Makefile
 		 man/Makefile
 		 scripts/Makefile
 		 tests/Makefile

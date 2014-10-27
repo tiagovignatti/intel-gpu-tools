@@ -191,24 +191,6 @@ kernel_tests = \
 	$(multi_kernel_tests) \
 	$(NULL)
 
-TESTS_testsuite = \
-	igt_no_exit \
-	igt_no_exit_list_only \
-	igt_fork_helper \
-	igt_list_only \
-	igt_no_subtest \
-	igt_simulation \
-	$(NULL)
-
-TESTS_testsuite_scripts = \
-	igt_command_line.sh \
-	$(NULL)
-
-TESTS = \
-	$(TESTS_testsuite) \
-	$(TESTS_testsuite_scripts) \
-	$(NULL)
-
 # Test that exercise specific asserts in the test framework library and are
 # hence expected to fail.
 XFAIL_TESTS = \

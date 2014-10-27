@@ -1,0 +1,7 @@
+# Please keep sorted alphabetically
+igt_fork_helper
+igt_list_only
+igt_no_exit
+igt_no_exit_list_only
+igt_no_subtest
+igt_simulation

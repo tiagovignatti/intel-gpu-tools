@@ -1,6 +1,8 @@
 IGT_LIB_PATH := $(builddir)
 GPU_TOOLS_PATH := $(top_srcdir)
 
+SUBDIRS = tests
+
 include Makefile.sources
 
 noinst_LTLIBRARIES = libintel_tools.la
