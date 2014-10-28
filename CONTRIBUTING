@@ -1,0 +1,48 @@
+Patches to intel-gpu-tools are very much welcome, we really want this to be the
+universal set of low-level tools and testcases for the Intel kernel gfx driver
+on Linux and similar platforms. So please bring on porting patches, bugfixes,
+improvements for documentation and new tools and testcases.
+
+A short list of contribution guidelines:
+
+- Please submit patches formatted with git send-email/git format-patch or
+  equivalent to
+
+    Intel GFX discussion <intel-gfx@lists.freedesktop.org>
+
+  Please use --subject-prefix="PATCH i-g-t" so that i-g-t patches are easily
+  identified in the massive amount mails on intel-gfx. To ensure this is always
+  done just run
+
+    git config format.subjectprefix "PATCH i-g-t"
+
+  from within your i-g-t git checkout.
+
+- intel-gpu-tools is MIT lincensed and we require contributions to follow the
+  developer's certificate of origin: http://developercertificate.org/
+
+- When submitting new testcases please follow the naming conventions documented
+  in tests/NAMING-CONVENTION. Also please make full use of all the helpers and
+  convenience macros provided by the igt library. The semantic patch lib/igt.cocci
+  can help with the more automatic conversions.
+
+- There is no formal review requirement and regular contributors with commit
+  access can push patches right after submitting them to the mailing lists. But
+  invasive changes, new helper libraries and contributions from newcomers should
+  go through a proper review to ensure overall consistency in the codebase.
+
+- When patches from new contributors (without commit access) are stuck, for
+  anything related to the regular releases, issues with packaging and
+  integrating platform support or anything else really please contact the i-g-t
+  maintainer:
+
+    Thomas Wood <thomas.wood@intel.com>
+
+  Of course please also cc the intel-gfx mailing list.
+
+- Especially changes to the testcase should get tested on relevant platforms
+  before committing. For Intel employees that's best done using PRTS, see the
+  relevant internal howtos. Everyone else can just run piglit with i-g-t tests
+  locally.
+
+Happy hacking!
