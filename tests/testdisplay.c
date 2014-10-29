@@ -786,7 +786,7 @@ out_mainloop:
 out_close:
 	close(drm_fd);
 
-	igt_assert(ret);
+	igt_assert(ret == 0);
 
 	igt_exit();
 }
