@@ -1,7 +1,7 @@
 include Makefile.sources
 
 EXTRA_PROGRAMS = $(TESTS_testsuite)
-EXTRA_DIST = $(TESTS_scripts)
+EXTRA_DIST = $(TESTS_testsuite_scripts)
 
 CLEANFILES = $(EXTRA_PROGRAMS)
 

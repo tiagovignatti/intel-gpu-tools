@@ -214,7 +214,6 @@ scripts = \
 	ddx_intel_after_fbdev \
 	debugfs_wedged \
 	drm_lib.sh \
-	igt_command_line.sh \
 	$(NULL)
 
 IMAGES = pass.png 1080p-left.png 1080p-right.png
