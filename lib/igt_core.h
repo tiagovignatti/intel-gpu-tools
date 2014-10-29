@@ -397,7 +397,7 @@ void igt_exit(void) __attribute__((noreturn));
  * information to help debugging test failures.
  */
 #define igt_skip_on_f(expr, f...) do { \
-	if ((expr)) igt_skip_check(#expr , f); \
+	if ((expr)) igt_skip_check("!("#expr")", f); \
 } while (0)
 
 /* fork support code */
