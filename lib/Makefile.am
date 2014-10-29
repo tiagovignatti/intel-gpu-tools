@@ -1,7 +1,7 @@
 IGT_LIB_PATH := $(builddir)
 GPU_TOOLS_PATH := $(top_srcdir)
 
-SUBDIRS = tests
+SUBDIRS = . tests
 
 include Makefile.sources
 
