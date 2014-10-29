@@ -199,7 +199,7 @@ void __igt_skip_check(const char *file, const int line,
 		      const char *func, const char *check,
 		      const char *format, ...) __attribute__((noreturn));
 #define igt_skip_check(E, F...) \
-	__igt_skip_check(__FILE__, __LINE__, __func__, E, F);
+	__igt_skip_check(__FILE__, __LINE__, __func__, E, F)
 void igt_success(void);
 
 void igt_fail(int exitcode) __attribute__((noreturn));
@@ -348,6 +348,7 @@ void igt_exit(void) __attribute__((noreturn));
  */
 #define igt_require(expr) do { \
 	if (!(expr)) igt_skip_check(#expr , NULL); \
+	else igt_debug("Test requirement passed: "#expr"\n"); \
 } while (0)
 
 /**
@@ -362,6 +363,7 @@ void igt_exit(void) __attribute__((noreturn));
  */
 #define igt_skip_on(expr) do { \
 	if ((expr)) igt_skip_check("!(" #expr ")" , NULL); \
+	else igt_debug("Test requirement passed: !("#expr")\n"); \
 } while (0)
 
 /**
@@ -380,6 +382,7 @@ void igt_exit(void) __attribute__((noreturn));
  */
 #define igt_require_f(expr, f...) do { \
 	if (!(expr)) igt_skip_check(#expr , f); \
+	else igt_debug("Test requirement passed: "#expr"\n"); \
 } while (0)
 
 /**
@@ -398,6 +401,7 @@ void igt_exit(void) __attribute__((noreturn));
  */
 #define igt_skip_on_f(expr, f...) do { \
 	if ((expr)) igt_skip_check("!("#expr")", f); \
+	else igt_debug("Test requirement passed: !("#expr")\n"); \
 } while (0)
 
 /* fork support code */
