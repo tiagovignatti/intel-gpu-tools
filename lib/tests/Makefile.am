@@ -1,9 +1,6 @@
 include Makefile.sources
 
-EXTRA_PROGRAMS = $(TESTS_testsuite)
-EXTRA_DIST = $(TESTS_testsuite_scripts)
-
-CLEANFILES = $(EXTRA_PROGRAMS)
+EXTRA_DIST = $(check_SCRIPTS)
 
 AM_CFLAGS = $(DRM_CFLAGS) $(CWARNFLAGS) \
 	-I$(srcdir)/../.. \
