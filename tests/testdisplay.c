@@ -72,6 +72,7 @@
 #include <signal.h>
 
 #define SUBTEST_OPTS 1
+#define HELP_DESCRIPTION 2
 
 static int tio_fd;
 struct termios saved_tio;
@@ -642,6 +643,7 @@ int main(int argc, char **argv)
 	struct option long_opts[] = {
 		{"list-subtests", 0, 0, SUBTEST_OPTS},
 		{"run-subtest", 1, 0, SUBTEST_OPTS},
+		{"help-description", 0, 0, HELP_DESCRIPTION},
 		{"help", 0, 0, 'h'},
 		{ 0, 0, 0, 0 }
 	};
@@ -704,6 +706,10 @@ int main(int argc, char **argv)
 		case SUBTEST_OPTS:
 			/* invalid subtest options */
 			exit(IGT_EXIT_INVALID);
+			break;
+		case HELP_DESCRIPTION:
+			printf("Tests display functionality.");
+			exit(0);
 			break;
 		default:
 			/* fall through */
