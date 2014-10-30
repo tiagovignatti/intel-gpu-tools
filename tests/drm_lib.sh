@@ -12,11 +12,16 @@ for arg in $@ ; do
 		--debug)
 			IGT_LOG_LEVEL=debug
 			;;
+		--help-description)
+			echo $IGT_TEST_DESCRIPTION
+			exit 0
+			;;
 		--help)
 			echo "Usage: `basename $0` [OPTIONS]"
 			echo "  --list-subtests"
 			echo "  --run-subtest <pattern>"
 			echo "  --debug"
+			echo "  --help-description"
 			echo "  --help"
 			exit 0
 			;;
