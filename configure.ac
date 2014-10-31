@@ -203,7 +203,7 @@ AC_DEFINE_UNQUOTED(TARGET_CPU_PLATFORM, ["$host_cpu"], [Target platform])
 
 files="broadwell cherryview haswell ivybridge sandybridge valleyview skylake"
 for file in $files; do
-	QUICK_DUMP_EXTRA_DIST="$QUICK_DUMP_EXTRA_DIST $file `tr '\n' ' ' < tools/quick_dump/$file`"
+	QUICK_DUMP_EXTRA_DIST="$QUICK_DUMP_EXTRA_DIST $file `tr '\n' ' ' < $srcdir/tools/quick_dump/$file`"
 done
 AC_SUBST(QUICK_DUMP_EXTRA_DIST)
 
