@@ -48,20 +48,20 @@ for test in $TESTLIST; do
 
 	# check invalid option handling
 	echo "  Checking invalid option handling..."
-	./$test --invalid-option 2> /dev/null && exit 99
+	./$test --invalid-option 2> /dev/null && exit 1
 
 	# check valid options succeed
 	echo "  Checking valid option handling..."
-	./$test --help > /dev/null || exit 99
+	./$test --help > /dev/null || exit 1
 
 	# check --list-subtests works correctly
 	echo "  Checking subtest enumeration..."
 	./$test --list-subtests > /dev/null
 	if [ $? -ne 0 -a $? -ne 79 ]; then
-		exit 99
+		exit 1
 	fi
 
 	# check invalid subtest handling
 	echo "  Checking invalid subtest handling..."
-	./$test --run-subtest invalid-subtest > /dev/null 2>&1 && exit 99
+	./$test --run-subtest invalid-subtest > /dev/null 2>&1 && exit 1
 done
