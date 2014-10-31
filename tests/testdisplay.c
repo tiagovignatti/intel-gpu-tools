@@ -545,7 +545,7 @@ int update_display(void)
 
 static char optstr[] = "3hiaf:s:d:p:mrto:j:";
 
-static void __attribute__((noreturn)) usage(char *name)
+static void __attribute__((noreturn)) usage(char *name, char opt)
 {
 	igt_info("usage: %s [-hiasdpmtf]\n", name);
 	igt_info("\t-i\tdump info\n");
@@ -563,7 +563,7 @@ static void __attribute__((noreturn)) usage(char *name)
 	igt_info("\t\t<vdisp>,<vsync-start>,<vsync-end>,<vtotal>\n");
 	igt_info("\t\ttest force mode\n");
 	igt_info("\tDefault is to test all modes.\n");
-	exit((optopt) ? -1 : 0);
+	exit((opt != 'h') ? -1 : 0);
 }
 
 #define dump_resource(res) if (res) dump_##res()
@@ -665,7 +665,7 @@ int main(int argc, char **argv)
 			if(sscanf(optarg,"%f,%hu,%hu,%hu,%hu,%hu,%hu,%hu,%hu",
 				&force_clock,&force_timing.hdisplay, &force_timing.hsync_start,&force_timing.hsync_end,&force_timing.htotal,
 				&force_timing.vdisplay, &force_timing.vsync_start, &force_timing.vsync_end, &force_timing.vtotal)!= 9)
-				usage(argv[0]);
+				usage(argv[0], c);
 			force_timing.clock = force_clock*1000;
 
 			break;
@@ -685,7 +685,7 @@ int main(int argc, char **argv)
 			if (sscanf(optarg, "%d,%d,%d,%d,%d,%d", &plane_width,
 				   &plane_height, &crtc_x, &crtc_y,
 				   &crtc_w, &crtc_h) != 6)
-				usage(argv[0]);
+				usage(argv[0], c);
 			test_plane = 1;
 			break;
 		case 'm':
@@ -707,7 +707,7 @@ int main(int argc, char **argv)
 		default:
 			/* fall through */
 		case 'h':
-			usage(argv[0]);
+			usage(argv[0], c);
 			break;
 		}
 	}
