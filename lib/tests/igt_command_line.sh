@@ -25,17 +25,23 @@
 # Check that command line handling works consistently across all tests
 #
 
-for test in `cat single-tests.txt multi-tests.txt`; do
+TESTLIST=`cat $top_builddir/tests/single-tests.txt $top_builddir/tests/multi-tests.txt`
+if [ $? -ne 0 ]; then
+	echo "Error: Could not read test lists"
+	exit 99
+fi
+
+for test in $TESTLIST; do
 
 	if [ "$test" = "TESTLIST" -o "$test" = "END" ]; then
 		continue
 	fi
 
-	# if the test is a script, it will be in $srcdir
-	if [ ! -x $test ]; then
-		if [ -x $srcdir/$test ]; then
-			test=$srcdir/$test
-		fi
+	if [ -x $top_builddir/tests/$test ]; then
+		test=$top_builddir/tests/$test
+	else
+		# if the test is a script, it will be in $srcdir
+		test=$top_srcdir/tests/$test
 	fi
 
 	echo "$test:"

@@ -1,5 +1,9 @@
 include Makefile.sources
 
+AM_TESTS_ENVIRONMENT = \
+	top_builddir=$(top_builddir) \
+	top_srcdir=$(top_srcdir)
+
 EXTRA_DIST = $(check_SCRIPTS)
 
 AM_CFLAGS = $(DRM_CFLAGS) $(CWARNFLAGS) \
