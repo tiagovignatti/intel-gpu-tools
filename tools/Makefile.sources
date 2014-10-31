@@ -45,6 +45,7 @@ intel_reg_SOURCES =		\
 
 intel_error_decode_SOURCES =	\
 	intel_error_decode.c
+intel_error_decode_LDFLAGS = -lz
 
 intel_bios_reader_SOURCES =	\
 	intel_bios_reader.c	\
