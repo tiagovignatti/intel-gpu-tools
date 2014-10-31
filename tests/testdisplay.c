@@ -642,6 +642,7 @@ int main(int argc, char **argv)
 	struct option long_opts[] = {
 		{"list-subtests", 0, 0, SUBTEST_OPTS},
 		{"run-subtest", 1, 0, SUBTEST_OPTS},
+		{"help", 0, 0, 'h'},
 		{ 0, 0, 0, 0 }
 	};
 
