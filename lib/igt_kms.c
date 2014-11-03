@@ -42,6 +42,7 @@
 #include "igt_kms.h"
 #include "igt_aux.h"
 #include "intel_chipset.h"
+#include "igt_debugfs.h"
 
 /*
  * There hasn't been a release of libdrm containing these #define's yet, so
@@ -308,30 +309,6 @@ void kmstest_set_vt_graphics_mode(void)
 	igt_debug("VT: graphics mode set\n");
 }
 
-static int get_card_number(int fd)
-{
-	struct stat buf;
-
-	/* find the minor number of the device */
-	fstat(fd, &buf);
-
-	return minor(buf.st_rdev) & 0x3f;
-}
-
-static char* get_debugfs_connector_path(int drm_fd, drmModeConnector *connector,
-					const char *file)
-{
-	char *path;
-
-	asprintf(&path, "/sys/kernel/debug/dri/%d/%s-%d/%s",
-		 get_card_number(drm_fd),
-		 kmstest_connector_type_str(connector->connector_type),
-		 connector->connector_type_id,
-		 file);
-
-	return path;
-}
-
 /**
  * kmstest_force_connector:
  * @fd: drm file descriptor
@@ -377,8 +354,10 @@ bool kmstest_force_connector(int drm_fd, drmModeConnector *connector,
 		break;
 	}
 
-	path = get_debugfs_connector_path(drm_fd, connector, "force");
-	debugfs_fd = open(path, O_WRONLY | O_TRUNC);
+	asprintf(&path, "%s-%d/force",
+		 kmstest_connector_type_str(connector->connector_type),
+		 connector->connector_type_id);
+	debugfs_fd = igt_debugfs_open(path, O_WRONLY | O_TRUNC);
 
 	if (debugfs_fd == -1) {
 		return false;
@@ -435,10 +414,10 @@ void kmstest_force_edid(int drm_fd, drmModeConnector *connector,
 	char *path;
 	int debugfs_fd, ret;
 
-	path = get_debugfs_connector_path(drm_fd, connector, "edid_override");
-
-	debugfs_fd = open(path, O_WRONLY | O_TRUNC);
-
+	asprintf(&path, "%s-%d/edid_override",
+		 kmstest_connector_type_str(connector->connector_type),
+		 connector->connector_type_id);
+	debugfs_fd = igt_debugfs_open(path, O_WRONLY | O_TRUNC);
 	free(path);
 
 	igt_assert(debugfs_fd != -1);

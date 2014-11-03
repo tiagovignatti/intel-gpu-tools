@@ -663,8 +663,7 @@ static void setup_pc8(void)
 	if (!supports_pc8_plus_residencies())
 		return;
 
-	pc8_status_fd = open("/sys/kernel/debug/dri/0/i915_pc8_status",
-			     O_RDONLY);
+	pc8_status_fd = igt_debugfs_open("i915_pc8_status", O_RDONLY);
 	igt_assert_f(pc8_status_fd >= 0,
 		     "Can't open /sys/kernel/debug/dri/0/i915_pc8_status");
 

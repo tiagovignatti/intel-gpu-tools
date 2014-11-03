@@ -50,7 +50,9 @@ typedef struct {
 
 static void get_crc(char *crc) {
 	int ret;
-	FILE *file = fopen("/sys/kernel/debug/dri/0/i915_sink_crc_eDP1", "r");
+	FILE *file;
+
+	file = igt_debugfs_fopen("i915_sink_crc_eDP1", "r");
 	igt_require(file);
 
 	ret = fscanf(file, "%s\n", crc);

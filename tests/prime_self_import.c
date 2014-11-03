@@ -216,15 +216,10 @@ static int get_object_count(void)
 {
 	FILE *file;
 	int ret, scanned;
-	int device = drm_get_card();
-	char *path;
 
 	igt_drop_caches_set(DROP_RETIRE);
 
-	ret = asprintf(&path, "/sys/kernel/debug/dri/%d/i915_gem_objects", device);
-	igt_assert(ret != -1);
-
-	file = fopen(path, "r");
+	file = igt_debugfs_fopen("i915_gem_objects", "r");
 
 	scanned = fscanf(file, "%i objects", &ret);
 	igt_assert(scanned == 1);

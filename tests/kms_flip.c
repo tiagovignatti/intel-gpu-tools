@@ -679,20 +679,11 @@ static void stop_rings(bool stop)
 
 static void eat_error_state(void)
 {
-	static const char dfs_base[] = "/sys/kernel/debug/dri";
 	static const char dfs_entry_error[] = "i915_error_state";
 	static const char data[] = "";
-	char fname[FILENAME_MAX];
-	int card_index = drm_get_card();
 	int fd;
 
-	igt_assert(card_index != -1);
-
-	/* clear the error state */
-	snprintf(fname, FILENAME_MAX, "%s/%i/%s",
-		 dfs_base, card_index, dfs_entry_error);
-
-	fd = open(fname, O_WRONLY);
+	fd = igt_debugfs_open(dfs_entry_error, O_WRONLY);
 	igt_assert(fd >= 0);
 
 	igt_assert(write(fd, data, sizeof(data)) == sizeof(data));
