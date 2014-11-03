@@ -144,16 +144,18 @@ static void exec_split_batch(int fd, uint32_t *cmds,
 	struct drm_i915_gem_exec_object2 objs[1];
 	uint32_t cmd_bo;
 	uint32_t noop[1024] = { 0 };
+	const int alloc_size = 4096 * 2;
+	const int actual_start_offset = 4096-sizeof(uint32_t);
 
 	// Allocate and fill a 2-page batch with noops
-	cmd_bo = gem_create(fd, 4096 * 2);
+	cmd_bo = gem_create(fd, alloc_size);
 	gem_write(fd, cmd_bo, 0, noop, sizeof(noop));
 	gem_write(fd, cmd_bo, 4096, noop, sizeof(noop));
 
 	// Write the provided commands such that the first dword
 	// of the command buffer is the last dword of the first
 	// page (i.e. the command is split across the two pages).
-	gem_write(fd, cmd_bo, 4096-sizeof(uint32_t), cmds, size);
+	gem_write(fd, cmd_bo, actual_start_offset, cmds, size);
 
 	objs[0].handle = cmd_bo;
 	objs[0].relocation_count = 0;
@@ -166,8 +168,14 @@ static void exec_split_batch(int fd, uint32_t *cmds,
 
 	execbuf.buffers_ptr = (uintptr_t)objs;
 	execbuf.buffer_count = 1;
-	execbuf.batch_start_offset = 0;
-	execbuf.batch_len = size;
+	// NB: We want batch_start_offset and batch_len to point to the block
+	// of the actual commands (i.e. at the last dword of the first page),
+	// but have to adjust both the start offset and length to meet the
+	// kernel driver's requirements on the alignment of those fields.
+	execbuf.batch_start_offset = actual_start_offset & ~0x7;
+	execbuf.batch_len =
+		ALIGN(size + actual_start_offset - execbuf.batch_start_offset,
+		      0x8);
 	execbuf.cliprects_ptr = 0;
 	execbuf.num_cliprects = 0;
 	execbuf.DR1 = 0;
