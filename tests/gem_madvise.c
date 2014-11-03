@@ -131,6 +131,7 @@ dontneed_before_exec(void)
 
 	execbuf.buffers_ptr = (uintptr_t)&exec;
 	execbuf.buffer_count = 1;
+	execbuf.batch_len = sizeof(buf);
 	gem_execbuf(fd, &execbuf);
 
 	gem_close(fd, exec.handle);
