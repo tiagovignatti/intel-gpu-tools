@@ -36,6 +36,10 @@
 #include "igt_debugfs.h"
 #include "ioctl_wrappers.h"
 
+#ifndef I915_PARAM_CMD_PARSER_VERSION
+#define I915_PARAM_CMD_PARSER_VERSION       28
+#endif
+
 static int _read_sysfs(void *dst, int maxlen,
 		      const char* path,
 		      const char *fname)
@@ -262,6 +266,7 @@ static void test_error_state_basic(void)
 }
 
 static void check_error_state(const int gen,
+			      const bool uses_cmd_parser,
 			      const char *expected_ring_name,
 			      uint64_t expected_offset)
 {
@@ -300,7 +305,8 @@ static void check_error_state(const int gen,
 			char expected_line[32];
 
 			igt_assert(strstr(ring_name, expected_ring_name));
-			igt_assert(gtt_offset == expected_offset);
+			if (!uses_cmd_parser)
+				igt_assert(gtt_offset == expected_offset);
 
 			for (i = 0; i < sizeof(batch) / 4; i++) {
 				igt_assert(getline(&line, &line_size, file) > 0);
@@ -352,10 +358,12 @@ static void check_error_state(const int gen,
 					i++;
 				}
 			}
-			if (gen >= 4)
-				igt_assert(expected_addr == expected_offset);
-			else
-				igt_assert((expected_addr & ~0x1) == expected_offset);
+			if (!uses_cmd_parser) {
+				if (gen >= 4)
+					igt_assert(expected_addr == expected_offset);
+				else
+					igt_assert((expected_addr & ~0x1) == expected_offset);
+			}
 			ringbuf_ok = true;
 			continue;
 		}
@@ -370,22 +378,45 @@ static void check_error_state(const int gen,
 	close(debug_fd);
 }
 
+static bool uses_cmd_parser(int fd, int gen)
+{
+	int parser_version = 0;
+	drm_i915_getparam_t gp;
+	int rc;
+
+	gp.param = I915_PARAM_CMD_PARSER_VERSION;
+	gp.value = &parser_version;
+	rc = drmIoctl(fd, DRM_IOCTL_I915_GETPARAM, &gp);
+	if (rc || parser_version == 0)
+		return false;
+
+	if (!gem_uses_aliasing_ppgtt(fd))
+		return false;
+
+	if (gen != 7)
+		return false;
+
+	return true;
+}
+
 static void test_error_state_capture(unsigned ring_id,
 				     const char *ring_name)
 {
 	int fd, gen;
 	uint64_t offset;
+	bool cmd_parser;
 
 	check_other_clients();
 	clear_error_state();
 
 	fd = drm_open_any();
 	gen = intel_gen(intel_get_drm_devid(fd));
+	cmd_parser = uses_cmd_parser(fd, gen);
 
 	offset = submit_batch(fd, ring_id, true);
 	close(fd);
 
-	check_error_state(gen, ring_name, offset);
+	check_error_state(gen, cmd_parser, ring_name, offset);
 }
 
 static const struct target_ring {
