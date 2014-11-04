@@ -201,6 +201,8 @@ static void test_i915_import_cpu_mmap(void)
 	struct nouveau_bo *nvbo;
 	uint32_t *ptr;
 
+	igt_skip("cpu mmap support for imported dma-bufs not yet implemented\n");
+
 	igt_assert(nouveau_bo_new(ndev, NOUVEAU_BO_GART | NOUVEAU_BO_MAP,
 				  0, BO_SIZE, NULL, &nvbo) == 0);
 	igt_assert(nouveau_bo_set_prime(nvbo, &prime_fd) == 0);
