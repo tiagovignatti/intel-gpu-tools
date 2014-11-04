@@ -272,6 +272,7 @@ int main(int argc, char **argv)
 		}
 
 		igt_info("Using %d 1MiB buffers\n", count);
+		igt_require(intel_check_memory(count, sizeof(linear), CHECK_RAM));
 	}
 
 	igt_subtest("normal")

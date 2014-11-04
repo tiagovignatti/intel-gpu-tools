@@ -220,6 +220,7 @@ int main(int argc, char **argv)
 		}
 
 		igt_info("Using %d 1MiB buffers\n", count);
+		igt_require(intel_check_memory(count, 1024*1024, CHECK_RAM));
 
 		bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
 		drm_intel_bufmgr_gem_enable_reuse(bufmgr);
