@@ -1,2 +1,0 @@
-cat: /sys/kernel/debug/dri/0/i915_emon_status: No such device
-cat: 2: No such file or directory
