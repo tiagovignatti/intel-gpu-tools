@@ -286,7 +286,7 @@ test_write_cpu_read_gtt(int fd)
 	dst = gem_mmap(fd, handle, OBJECT_SIZE, PROT_READ);
 	igt_assert(dst != (uint32_t *)MAP_FAILED);
 
-	src = gem_mmap__cpu(fd, handle, OBJECT_SIZE, PROT_WRITE);
+	src = gem_mmap__cpu(fd, handle, 0, OBJECT_SIZE, PROT_WRITE);
 	igt_assert(src != (uint32_t *)MAP_FAILED);
 
 	gem_close(fd, handle);

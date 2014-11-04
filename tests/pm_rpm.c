@@ -978,7 +978,7 @@ static void gem_mmap_subtest(bool gtt_mmap)
 		gem_buf = gem_mmap__gtt(drm_fd, handle, buf_size,
 					PROT_READ | PROT_WRITE);
 	else
-		gem_buf = gem_mmap__cpu(drm_fd, handle, buf_size, 0);
+		gem_buf = gem_mmap__cpu(drm_fd, handle, 0, buf_size, 0);
 
 
 	for (i = 0; i < buf_size; i++)
@@ -1013,7 +1013,7 @@ static void gem_mmap_subtest(bool gtt_mmap)
 		gem_buf = gem_mmap__gtt(drm_fd, handle, buf_size,
 					PROT_READ | PROT_WRITE);
 	else
-		gem_buf = gem_mmap__cpu(drm_fd, handle, buf_size, 0);
+		gem_buf = gem_mmap__cpu(drm_fd, handle, 0, buf_size, 0);
 
 	igt_assert(wait_for_suspended());
 

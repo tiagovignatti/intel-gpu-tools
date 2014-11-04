@@ -687,7 +687,7 @@ static void *umap(int fd, uint32_t handle)
 	} else {
 		uint32_t tmp = gem_create(fd, sizeof(linear));
 		copy(fd, tmp, handle, 0);
-		ptr = gem_mmap__cpu(fd, tmp, sizeof(linear), PROT_READ);
+		ptr = gem_mmap__cpu(fd, tmp, 0, sizeof(linear), PROT_READ);
 		gem_close(fd, tmp);
 	}
 

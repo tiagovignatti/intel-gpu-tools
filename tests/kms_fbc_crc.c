@@ -224,7 +224,7 @@ static void test_crc(data_t *data, enum test_mode mode)
 		break;
 	case TEST_MMAP_CPU:
 	case TEST_PAGE_FLIP_AND_MMAP_CPU:
-		ptr = gem_mmap__cpu(data->drm_fd, handle, 4096, PROT_WRITE);
+		ptr = gem_mmap__cpu(data->drm_fd, handle, 0, 4096, PROT_WRITE);
 		gem_set_domain(data->drm_fd, handle, I915_GEM_DOMAIN_CPU, I915_GEM_DOMAIN_CPU);
 		memset(ptr, 0xff, 4);
 		munmap(ptr, 4096);

@@ -68,7 +68,7 @@ bo_create (int fd, int tiling)
 	handle = gem_create(fd, OBJECT_SIZE);
 
 	/* dirty cpu caches a bit ... */
-	ptr = gem_mmap__cpu(fd, handle, OBJECT_SIZE, PROT_READ | PROT_WRITE);
+	ptr = gem_mmap__cpu(fd, handle, 0, OBJECT_SIZE, PROT_READ | PROT_WRITE);
 	igt_assert(ptr);
 	memset(ptr, 0, OBJECT_SIZE);
 	munmap(ptr, OBJECT_SIZE);

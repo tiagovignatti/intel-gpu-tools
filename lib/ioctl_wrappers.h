@@ -61,7 +61,7 @@ uint32_t gem_create(int fd, int size);
 void gem_execbuf(int fd, struct drm_i915_gem_execbuffer2 *execbuf);
 
 void *gem_mmap__gtt(int fd, uint32_t handle, int size, int prot);
-void *gem_mmap__cpu(int fd, uint32_t handle, int size, int prot);
+void *gem_mmap__cpu(int fd, uint32_t handle, int offset, int size, int prot);
 /**
  * gem_mmap:
  *

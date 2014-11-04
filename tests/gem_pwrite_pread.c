@@ -141,8 +141,8 @@ static void as_cpu_mmap(int fd, uint32_t src, uint32_t dst, void *buf, int len, 
 	uint32_t *src_ptr, *dst_ptr;
 	BUILD_EXEC;
 
-	src_ptr = gem_mmap__cpu(fd, src, OBJECT_SIZE, PROT_WRITE);
-	dst_ptr = gem_mmap__cpu(fd, dst, OBJECT_SIZE, PROT_READ);
+	src_ptr = gem_mmap__cpu(fd, src, 0, OBJECT_SIZE, PROT_WRITE);
+	dst_ptr = gem_mmap__cpu(fd, dst, 0, OBJECT_SIZE, PROT_READ);
 
 	while (loops--) {
 		gem_set_domain(fd, src,
@@ -210,8 +210,8 @@ static void test_as_cpu_mmap(int fd, uint32_t src, uint32_t dst, int len)
 	int i;
 	BUILD_EXEC;
 
-	src_ptr = gem_mmap__cpu(fd, src, OBJECT_SIZE, PROT_WRITE);
-	dst_ptr = gem_mmap__cpu(fd, dst, OBJECT_SIZE, PROT_READ);
+	src_ptr = gem_mmap__cpu(fd, src, 0, OBJECT_SIZE, PROT_WRITE);
+	dst_ptr = gem_mmap__cpu(fd, dst, 0, OBJECT_SIZE, PROT_READ);
 
 	gem_set_domain(fd, src, I915_GEM_DOMAIN_CPU, I915_GEM_DOMAIN_CPU);
 	for (i = 0; i < len/4; i++)

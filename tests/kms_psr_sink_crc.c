@@ -359,7 +359,7 @@ static void test_crc(data_t *data)
 		munmap(ptr, 4096);
 		break;
 	case MMAP_CPU:
-		ptr = gem_mmap__cpu(data->drm_fd, handle, 4096, PROT_WRITE);
+		ptr = gem_mmap__cpu(data->drm_fd, handle, 0, 4096, PROT_WRITE);
 		gem_set_domain(data->drm_fd, handle,
 			       I915_GEM_DOMAIN_CPU, I915_GEM_DOMAIN_CPU);
 		memset(ptr, 0, 4);

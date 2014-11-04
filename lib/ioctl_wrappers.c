@@ -471,7 +471,8 @@ void *gem_mmap__gtt(int fd, uint32_t handle, int size, int prot)
  * gem_mmap__cpu:
  * @fd: open i915 drm file descriptor
  * @handle: gem buffer object handle
- * @size: size of the gem buffer
+ * @offset: offset in the gem buffer of te mmap arena
+ * @size: size of the mmap arena
  * @prot: memory protection bits as used by mmap()
  *
  * This functions wraps up procedure to establish a memory mapping through
@@ -479,13 +480,13 @@ void *gem_mmap__gtt(int fd, uint32_t handle, int size, int prot)
  *
  * Returns: A pointer to the created memory mapping.
  */
-void *gem_mmap__cpu(int fd, uint32_t handle, int size, int prot)
+void *gem_mmap__cpu(int fd, uint32_t handle, int offset, int size, int prot)
 {
 	struct drm_i915_gem_mmap mmap_arg;
 
 	memset(&mmap_arg, 0, sizeof(mmap_arg));
 	mmap_arg.handle = handle;
-	mmap_arg.offset = 0;
+	mmap_arg.offset = offset;
 	mmap_arg.size = size;
 	if (drmIoctl(fd, DRM_IOCTL_I915_GEM_MMAP, &mmap_arg))
 		return NULL;
