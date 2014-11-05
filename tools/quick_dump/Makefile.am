@@ -1,13 +1,12 @@
 AM_CPPFLAGS = -I$(top_srcdir)/lib -I$(top_builddir)/lib $(PYTHON_CPPFLAGS) $(DRM_CFLAGS) $(CAIRO_CFLAGS) -I$(top_srcdir)
 
-BUILT_SOURCES = chipset_wrap_python.c
-
 dist_bin_SCRIPTS = quick_dump.py reg_access.py
 bin_SCRIPTS = chipset.py
 
 lib_LTLIBRARIES = I915ChipsetPython.la
 I915ChipsetPython_la_LDFLAGS = -module -avoid-version $(PYTHON_LDFLAGS)
-I915ChipsetPython_la_SOURCES = chipset_wrap_python.c chipset_macro_wrap.c
+I915ChipsetPython_la_SOURCES = chipset_macro_wrap.c
+nodist_I915ChipsetPython_la_SOURCES = chipset_wrap_python.c
 I915ChipsetPython_la_LIBADD =			\
 	$(top_builddir)/lib/libintel_tools.la	\
 	$(PCIACCESS_LIBS)			\
@@ -15,7 +14,9 @@ I915ChipsetPython_la_LIBADD =			\
 	$(CAIRO_LIBS)				\
 	$(NULL)
 
-chipset_wrap_python.c chipset.py: chipset.i
+chipset.py: chipset_wrap_python.c
+
+chipset_wrap_python.c: chipset.i
 	$(AM_V_GEN)$(SWIG) $(AX_SWIG_PYTHON_OPT) -I/usr/include -I$(top_srcdir)/lib -o $@ $<
 
 all-local: I915ChipsetPython.la
@@ -26,4 +27,4 @@ EXTRA_DIST = $(QUICK_DUMP_EXTRA_DIST) \
 	      base_interrupt.txt base_other.txt base_power.txt base_rings.txt \
 	      quick_dump.py \
 	      reg_access.py \
-	      chipset.i chipset.py
+	      chipset.i
