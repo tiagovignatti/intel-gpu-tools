@@ -434,26 +434,23 @@ print_fault_data(unsigned devid, uint32_t data1, uint32_t data0)
 }
 
 #define MAX_RINGS 10 /* I really hope this never... */
-uint32_t head[MAX_RINGS];
-int head_ndx = 0;
-int num_rings = 0;
-static void print_batch(int is_batch, const char *ring_name, uint32_t gtt_offset)
-{
-	const char *buffer_type[2] = {  "ringbuffer", "batchbuffer" };
-	if (is_batch || !num_rings)
-		printf("%s (%s) at 0x%08x\n", buffer_type[is_batch], ring_name, gtt_offset);
-	else
-		printf("%s (%s) at 0x%08x; HEAD points to: 0x%08x\n", buffer_type[is_batch], ring_name, gtt_offset, head[head_ndx++ % num_rings] + gtt_offset);
-}
 
-static void decode(struct drm_intel_decode *ctx, bool is_batch,
-		   const char *ring_name, uint32_t gtt_offset, uint32_t *data,
+static void decode(struct drm_intel_decode *ctx,
+		   const char *buffer_name,
+		   const char *ring_name,
+		   uint32_t gtt_offset,
+		   uint32_t head_offset,
+		   uint32_t *data,
 		   int *count)
 {
 	if (!*count)
 		return;
 
-	print_batch(is_batch, ring_name, gtt_offset);
+	printf("%s (%s) at 0x%08x", buffer_name, ring_name, gtt_offset);
+	if (head_offset != -1)
+		printf("; HEAD points to: 0x%08x", head_offset+ gtt_offset);
+	printf("\n");
+
 	drm_intel_decode_set_batch_pointer(ctx, data, gtt_offset, *count);
 	drm_intel_decode(ctx);
 	*count = 0;
@@ -546,14 +543,18 @@ read_data_file(FILE *file)
 	struct drm_intel_decode *decode_ctx = NULL;
 	uint32_t devid = PCI_CHIP_I855_GM;
 	uint32_t *data = NULL;
+	uint32_t head[MAX_RINGS];
+	int head_idx = 0;
+	int num_rings = 0;
 	long long unsigned fence;
 	int data_size = 0, count = 0, line_number = 0, matched;
 	char *line = NULL;
 	size_t line_size;
 	uint32_t offset, value, ring_length = 0;
 	uint32_t gtt_offset = 0, new_gtt_offset;
+	uint32_t head_offset = -1;
+	const char *buffer_name = "batch buffer";
 	char *ring_name = NULL;
-	int is_batch = 1;
 
 	while (getline(&line, &line_size, file) > 0) {
 		char *dashes;
@@ -565,30 +566,51 @@ read_data_file(FILE *file)
 			strncpy(new_ring_name, line, dashes - line);
 			new_ring_name[dashes - line - 1] = '\0';
 
-			if (num_rings == -1)
-				num_rings = head_ndx;
-
 			matched = sscanf(dashes, "--- gtt_offset = 0x%08x\n",
 					&new_gtt_offset);
 			if (matched == 1) {
-				decode(decode_ctx, is_batch, ring_name,
-				       gtt_offset, data, &count);
+				decode(decode_ctx,
+				       buffer_name, ring_name,
+				       gtt_offset, head_offset,
+				       data, &count);
 				gtt_offset = new_gtt_offset;
-				is_batch = 1;
+				head_offset = -1;
 				free(ring_name);
 				ring_name = new_ring_name;
+				buffer_name = "batch buffer";
 				continue;
 			}
 
 			matched = sscanf(dashes, "--- ringbuffer = 0x%08x\n",
 					&new_gtt_offset);
 			if (matched == 1) {
-				decode(decode_ctx, is_batch, ring_name,
-				       gtt_offset, data, &count);
+				decode(decode_ctx,
+				       buffer_name, ring_name,
+				       gtt_offset, head_offset,
+				       data, &count);
 				gtt_offset = new_gtt_offset;
-				is_batch = 0;
+				if (head_idx < num_rings)
+					head_offset = head[head_idx++];
+				else
+					head_offset = -1;
 				free(ring_name);
 				ring_name = new_ring_name;
+				buffer_name = "ring buffer";
+				continue;
+			}
+
+			matched = sscanf(dashes, "--- HW Context = 0x%08x\n",
+					&new_gtt_offset);
+			if (matched == 1) {
+				decode(decode_ctx,
+				       buffer_name, ring_name,
+				       gtt_offset, head_offset,
+				       data, &count);
+				gtt_offset = new_gtt_offset;
+				head_offset = -1;
+				free(ring_name);
+				ring_name = new_ring_name;
+				buffer_name = "HW Context";
 				continue;
 			}
 		}
@@ -599,7 +621,9 @@ read_data_file(FILE *file)
 				fprintf(stderr, "ASCII85 decode failed.\n");
 				exit(1);
 			}
-			decode(decode_ctx, is_batch, ring_name, gtt_offset,
+			decode(decode_ctx,
+			       buffer_name, ring_name,
+			       gtt_offset, head_offset,
 			       data, &count);
 			continue;
 		}
@@ -609,7 +633,9 @@ read_data_file(FILE *file)
 			unsigned int reg, reg2;
 
 			/* display reg section is after the ringbuffers, don't mix them */
-			decode(decode_ctx, is_batch, ring_name, gtt_offset,
+			decode(decode_ctx,
+			       buffer_name, ring_name,
+			       gtt_offset, head_offset,
 			       data, &count);
 
 			printf("%s", line);
@@ -690,7 +716,10 @@ read_data_file(FILE *file)
 		data[count-1] = value;
 	}
 
-	decode(decode_ctx, is_batch, ring_name, gtt_offset, data, &count);
+	decode(decode_ctx,
+	       buffer_name, ring_name,
+	       gtt_offset, head_offset,
+	       data, &count);
 
 	free(data);
 	free(line);
