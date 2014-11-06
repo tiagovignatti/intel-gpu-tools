@@ -397,7 +397,6 @@ static void gen7_emit_vertex_buffer(struct intel_batchbuffer *batch,
 		  GEN7_VB0_BUFFER_ADDR_MOD_EN | /* Address Modify Enable */
 		  VERTEX_SIZE << VB0_BUFFER_PITCH_SHIFT);
 	OUT_RELOC(batch->bo, I915_GEM_DOMAIN_VERTEX, 0, offset);
-	OUT_BATCH(0);
 	OUT_BATCH(3 * VERTEX_SIZE);
 }
 
@@ -523,12 +522,10 @@ gen9_emit_state_base_address(struct intel_batchbuffer *batch) {
 
 	/* surface */
 	OUT_RELOC(batch->bo, I915_GEM_DOMAIN_SAMPLER, 0, BASE_ADDRESS_MODIFY);
-	OUT_BATCH(0);
 
 	/* dynamic */
 	OUT_RELOC(batch->bo, I915_GEM_DOMAIN_RENDER | I915_GEM_DOMAIN_INSTRUCTION,
 		  0, BASE_ADDRESS_MODIFY);
-	OUT_BATCH(0);
 
 	/* indirect */
 	OUT_BATCH(0);
@@ -536,7 +533,6 @@ gen9_emit_state_base_address(struct intel_batchbuffer *batch) {
 
 	/* instruction */
 	OUT_RELOC(batch->bo, I915_GEM_DOMAIN_INSTRUCTION, 0, BASE_ADDRESS_MODIFY);
-	OUT_BATCH(0);
 
 	/* general state buffer size */
 	OUT_BATCH(0xfffff000 | 1);
