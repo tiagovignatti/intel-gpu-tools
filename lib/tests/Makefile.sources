@@ -5,6 +5,7 @@ check_PROGRAMS = \
 	igt_list_only \
 	igt_no_subtest \
 	igt_simulation \
+	igt_timeout \
 	$(NULL)
 
 check_SCRIPTS = \
@@ -22,4 +23,5 @@ XFAIL_TESTS = \
 	igt_no_exit \
 	igt_no_exit_list_only \
 	igt_no_subtest \
+	igt_timeout \
 	$(NULL)
