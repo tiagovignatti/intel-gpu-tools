@@ -1019,6 +1019,45 @@ static void test_params(void)
 
 }
 
+static void defer_hangcheck(int ring_num)
+{
+	int fd, count_start, count_end;
+	int seconds = 30;
+	const struct target_ring *next_ring;
+	fd = drm_open_any();
+	igt_assert(fd >= 0);
+
+	do {
+		next_ring = &rings[(++ring_num) % NUM_RINGS];
+
+		if (next_ring->present(fd))
+			break;
+
+	} while(next_ring != current_ring);
+
+	igt_skip_on(next_ring == current_ring);
+
+	count_start = get_reset_count(fd, 0);
+	igt_assert(count_start >= 0);
+
+	igt_assert(inject_hang_ring(fd, 0, current_ring->exec, true));
+	while (--seconds) {
+		igt_assert(exec_valid_ring(fd, 0, next_ring->exec));
+
+		count_end = get_reset_count(fd, 0);
+		igt_assert(count_end >= 0);
+
+		if (count_end > count_start)
+			break;
+
+		sleep(1);
+	}
+
+	igt_assert(count_end > count_start);
+
+	close(fd);
+}
+
 static bool gem_has_hw_contexts(int fd)
 {
 	struct local_drm_i915_gem_context_create create;
@@ -1159,5 +1198,9 @@ igt_main
 
 		igt_subtest_f("close-pending-fork-reverse-%s", name)
 			RUN_TEST(test_close_pending_fork(true));
+
+		igt_subtest_f("defer-hangcheck-%s", name)
+			RUN_TEST(defer_hangcheck(i));
+
 	}
 }
