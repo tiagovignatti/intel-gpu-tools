@@ -147,14 +147,15 @@ static void exec_split_batch(int fd, uint32_t *cmds,
 	const int alloc_size = 4096 * 2;
 	const int actual_start_offset = 4096-sizeof(uint32_t);
 
-	// Allocate and fill a 2-page batch with noops
+	/* Allocate and fill a 2-page batch with noops */
 	cmd_bo = gem_create(fd, alloc_size);
 	gem_write(fd, cmd_bo, 0, noop, sizeof(noop));
 	gem_write(fd, cmd_bo, 4096, noop, sizeof(noop));
 
-	// Write the provided commands such that the first dword
-	// of the command buffer is the last dword of the first
-	// page (i.e. the command is split across the two pages).
+	/* Write the provided commands such that the first dword
+	 * of the command buffer is the last dword of the first
+	 * page (i.e. the command is split across the two pages).
+	 */
 	gem_write(fd, cmd_bo, actual_start_offset, cmds, size);
 
 	objs[0].handle = cmd_bo;
@@ -168,10 +169,11 @@ static void exec_split_batch(int fd, uint32_t *cmds,
 
 	execbuf.buffers_ptr = (uintptr_t)objs;
 	execbuf.buffer_count = 1;
-	// NB: We want batch_start_offset and batch_len to point to the block
-	// of the actual commands (i.e. at the last dword of the first page),
-	// but have to adjust both the start offset and length to meet the
-	// kernel driver's requirements on the alignment of those fields.
+	/* NB: We want batch_start_offset and batch_len to point to the block
+	 * of the actual commands (i.e. at the last dword of the first page),
+	 * but have to adjust both the start offset and length to meet the
+	 * kernel driver's requirements on the alignment of those fields.
+	 */
 	execbuf.batch_start_offset = actual_start_offset & ~0x7;
 	execbuf.batch_len =
 		ALIGN(size + actual_start_offset - execbuf.batch_start_offset,
@@ -318,14 +320,14 @@ igt_main
 		uint32_t pc[] = {
 			GFX_OP_PIPE_CONTROL,
 			PIPE_CONTROL_QW_WRITE,
-			0, // To be patched
+			0, /* To be patched */
 			0x12000000,
 			0,
 			MI_BATCH_BUFFER_END,
 		};
 		exec_batch_patched(fd, handle,
 				   pc, sizeof(pc),
-				   8, // patch offset,
+				   8, /* patch offset, */
 				   0x12000000);
 	}
 
@@ -363,13 +365,13 @@ igt_main
 	igt_subtest("registers") {
 		uint32_t lri_bad[] = {
 			MI_LOAD_REGISTER_IMM,
-			0, // disallowed register address
+			0, /* disallowed register address */
 			0x12000000,
 			MI_BATCH_BUFFER_END,
 		};
 		uint32_t lri_ok[] = {
 			MI_LOAD_REGISTER_IMM,
-			0x5280, // allowed register address (SO_WRITE_OFFSET[0])
+			0x5280, /* allowed register address (SO_WRITE_OFFSET[0]) */
 			0x1,
 			MI_BATCH_BUFFER_END,
 		};
@@ -388,7 +390,7 @@ igt_main
 			GFX_OP_PIPE_CONTROL,
 			(PIPE_CONTROL_QW_WRITE |
 			 PIPE_CONTROL_LRI_POST_OP),
-			0, // To be patched
+			0, /* To be patched */
 			0x12000000,
 			0,
 			MI_BATCH_BUFFER_END,
@@ -410,7 +412,7 @@ igt_main
 	igt_subtest("cmd-crossing-page") {
 		uint32_t lri_ok[] = {
 			MI_LOAD_REGISTER_IMM,
-			0x5280, // allowed register address (SO_WRITE_OFFSET[0])
+			0x5280, /* allowed register address (SO_WRITE_OFFSET[0]) */
 			0x1,
 			MI_BATCH_BUFFER_END,
 		};
@@ -467,14 +469,14 @@ igt_main
 		uint32_t pc[] = {
 			GFX_OP_PIPE_CONTROL,
 			PIPE_CONTROL_QW_WRITE,
-			0, // To be patched
+			0, /* To be patched */
 			0x12000000,
 			0,
 			MI_BATCH_BUFFER_END,
 		};
 		exec_batch_chained(fd, handle,
 				   pc, sizeof(pc),
-				   8, // patch offset,
+				   8, /* patch offset, */
 				   0x12000000);
 	}
 
