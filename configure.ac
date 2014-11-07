@@ -23,7 +23,7 @@
 AC_PREREQ([2.60])
 AC_INIT([intel-gpu-tools],
 	[1.8],
-	[https://bugs.freedesktop.org/enter_bug.cgi?product=xorg],
+	[https://bugs.freedesktop.org/enter_bug.cgi?product=DRI&component=DRM/Intel],
 	[intel-gpu-tools])
 
 AC_CONFIG_SRCDIR([Makefile.am])
