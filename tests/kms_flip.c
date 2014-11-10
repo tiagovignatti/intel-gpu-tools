@@ -1521,7 +1521,9 @@ static void test_nonblocking_read(int in)
 	}
 	igt_require(ret != -1);
 
+	igt_set_timeout(5);
 	ret = read(fd, buffer, sizeof(buffer));
+	igt_set_timeout(0);
 	igt_assert_eq(ret, -1);
 	igt_assert_eq(errno, EAGAIN);
 
