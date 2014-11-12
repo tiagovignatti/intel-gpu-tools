@@ -28,7 +28,7 @@ multi-tests.txt: Makefile.sources
 	@echo END TESTLIST >> $@
 
 EXTRA_PROGRAMS = $(TESTS_progs) $(TESTS_progs_M) $(HANG)
-EXTRA_DIST = $(TESTS_scripts_M) $(scripts) $(IMAGES) $(common_files)
+EXTRA_DIST = $(TESTS_scripts) $(TESTS_scripts_M) $(scripts) $(IMAGES) $(common_files)
 
 CLEANFILES = $(EXTRA_PROGRAMS) single-tests.txt multi-tests.txt
 
