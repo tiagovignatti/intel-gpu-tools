@@ -56,7 +56,7 @@
 #include "config.h"
 #include "intel_reg.h"
 #include "ioctl_wrappers.h"
-
+#include "igt_kms.h"
 
 /**
  * SECTION:igt_aux
@@ -542,3 +542,62 @@ bool igt_wait_for_pm_status(enum igt_runtime_pm_status status)
 
 	return false;
 }
+
+/* Functions with prefix kmstest_ independent of cairo library are pulled out
+ * from file igt_kms.c since this file is skipped in lib/Android.mk when flag
+ * ANDROID_HAS_CAIRO is 0. This ensures the usability of these functions even
+ * when cairo library is not present on Android.
+ */
+
+struct type_name {
+	int type;
+	const char *name;
+};
+
+#define type_name_fn(res) \
+const char * kmstest_##res##_str(int type) {		\
+	unsigned int i;					\
+	for (i = 0; i < ARRAY_SIZE(res##_names); i++) { \
+		if (res##_names[i].type == type)	\
+			return res##_names[i].name;	\
+	}						\
+	return "(invalid)";				\
+}
+
+struct type_name encoder_type_names[] = {
+	{ DRM_MODE_ENCODER_NONE, "none" },
+	{ DRM_MODE_ENCODER_DAC, "DAC" },
+	{ DRM_MODE_ENCODER_TMDS, "TMDS" },
+	{ DRM_MODE_ENCODER_LVDS, "LVDS" },
+	{ DRM_MODE_ENCODER_TVDAC, "TVDAC" },
+};
+
+type_name_fn(encoder_type)
+
+struct type_name connector_status_names[] = {
+	{ DRM_MODE_CONNECTED, "connected" },
+	{ DRM_MODE_DISCONNECTED, "disconnected" },
+	{ DRM_MODE_UNKNOWNCONNECTION, "unknown" },
+};
+
+type_name_fn(connector_status)
+
+struct type_name connector_type_names[] = {
+	{ DRM_MODE_CONNECTOR_Unknown, "unknown" },
+	{ DRM_MODE_CONNECTOR_VGA, "VGA" },
+	{ DRM_MODE_CONNECTOR_DVII, "DVI-I" },
+	{ DRM_MODE_CONNECTOR_DVID, "DVI-D" },
+	{ DRM_MODE_CONNECTOR_DVIA, "DVI-A" },
+	{ DRM_MODE_CONNECTOR_Composite, "composite" },
+	{ DRM_MODE_CONNECTOR_SVIDEO, "s-video" },
+	{ DRM_MODE_CONNECTOR_LVDS, "LVDS" },
+	{ DRM_MODE_CONNECTOR_Component, "component" },
+	{ DRM_MODE_CONNECTOR_9PinDIN, "9-pin DIN" },
+	{ DRM_MODE_CONNECTOR_DisplayPort, "DP" },
+	{ DRM_MODE_CONNECTOR_HDMIA, "HDMI-A" },
+	{ DRM_MODE_CONNECTOR_HDMIB, "HDMI-B" },
+	{ DRM_MODE_CONNECTOR_TV, "TV" },
+	{ DRM_MODE_CONNECTOR_eDP, "eDP" },
+};
+
+type_name_fn(connector_type)

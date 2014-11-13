@@ -1,2 +1,2 @@
-include $(call all-named-subdir-makefiles, lib tests tools benchmarks)
+include $(call all-named-subdir-makefiles, lib tests tools benchmarks demos)
 
