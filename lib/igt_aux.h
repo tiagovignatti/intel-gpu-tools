@@ -31,6 +31,9 @@
 #include <intel_bufmgr.h>
 #include <stdbool.h>
 
+extern drm_intel_bo **trash_bos;
+extern int num_trash_bos;
+
 /* auxialiary igt helpers from igt_aux.c */
 /* generally useful helpers */
 void igt_fork_signal_helper(void);

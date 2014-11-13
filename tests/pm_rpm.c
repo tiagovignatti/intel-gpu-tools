@@ -1319,6 +1319,29 @@ static void gem_idle_subtest(void)
 	gem_quiescent_gpu(drm_fd);
 }
 
+static void gem_evict_pwrite_subtest(void)
+{
+	static drm_intel_bufmgr *bufmgr;
+	uint32_t buf;
+	int i;
+
+	bufmgr = drm_intel_bufmgr_gem_init(drm_fd, 4096);
+	igt_assert(bufmgr);
+	igt_init_aperture_trashers(bufmgr);
+
+	igt_trash_aperture();
+
+	disable_or_dpms_all_screens_and_wait(&ms_data, true);
+	igt_assert(wait_for_suspended());
+
+	buf = 0;
+	for (i = 0; i < num_trash_bos; i++)
+		gem_write(drm_fd, trash_bos[i]->handle, 0, &buf, sizeof(buf));
+
+	igt_cleanup_aperture_trashers();
+	drm_intel_bufmgr_destroy(bufmgr);
+}
+
 /* This also triggered WARNs on dmesg at some point. */
 static void reg_read_ioctl_subtest(void)
 {
@@ -1830,6 +1853,8 @@ int main(int argc, char *argv[])
 		gem_execbuf_subtest();
 	igt_subtest("gem-idle")
 		gem_idle_subtest();
+	igt_subtest("gem-evict-pwrite")
+		gem_evict_pwrite_subtest();
 
 	/* Planes and cursors */
 	igt_subtest("cursor")
