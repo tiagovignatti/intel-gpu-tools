@@ -1481,9 +1481,6 @@ void igt_vlog(enum igt_log_level level, const char *format, va_list args)
 
 static void igt_alarm_handler(int signal)
 {
-	/* subsequent tests are skipped */
-	skip_subtests_henceforth = SKIP;
-
 	/* exit with timeout status */
 	igt_fail(IGT_EXIT_TIMEOUT);
 }
@@ -1492,11 +1489,13 @@ static void igt_alarm_handler(int signal)
  * igt_set_timeout:
  * @seconds: number of seconds before timeout
  *
- * Stop the current test and skip any subsequent tests after the specified
- * number of seconds have elapsed. The test will exit with #IGT_EXIT_TIMEOUT
- * status. Any previous timer is cancelled and no timeout is scheduled if
- * @seconds is zero.
+ * Fail a test and exit with #IGT_EXIT_TIMEOUT status after the specified
+ * number of seconds have elapsed. If the current test has subtests and the
+ * timeout occurs outside a subtest, subsequent subtests will be skipped and
+ * marked as failed.
  *
+ * Any previous timer is cancelled and no timeout is scheduled if @seconds is
+ * zero.
  */
 void igt_set_timeout(unsigned int seconds)
 {
