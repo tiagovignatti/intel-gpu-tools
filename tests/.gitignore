@@ -126,6 +126,7 @@ kms_mmio_vs_cs_flip
 kms_pipe_crc_basic
 kms_plane
 kms_psr_sink_crc
+kms_pwrite_crc
 kms_render
 kms_rotation_crc
 kms_setmode
