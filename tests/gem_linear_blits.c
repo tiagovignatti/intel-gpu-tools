@@ -192,6 +192,8 @@ static void run_test(int fd, int count)
 	uint32_t start = 0;
 	int i;
 
+	igt_debug("Using %d 1MiB buffers\n", count);
+
 	handle = malloc(sizeof(uint32_t)*count*2);
 	start_val = handle + count;
 
@@ -248,37 +250,36 @@ static void run_test(int fd, int count)
 
 int main(int argc, char **argv)
 {
-	int fd = 0, count = 0;
-
-	igt_skip_on_simulation();
+	int fd = 0;
 
 	igt_subtest_init(argc, argv);
 
 	igt_fixture {
 		fd = drm_open_any();
-
-		if (argc > 1)
-			count = atoi(argv[1]);
-		if (count == 0)
-			count = 3 * gem_aperture_size(fd) / (1024*1024) / 2;
-		else if (count < 2) {
-			fprintf(stderr, "count must be >= 2\n");
-			return 1;
-		}
-
-		if (count > intel_get_total_ram_mb() * 9 / 10) {
-			count = intel_get_total_ram_mb() * 9 / 10;
-			igt_info("not enough RAM to run test, reducing buffer count\n");
-		}
-
-		igt_info("Using %d 1MiB buffers\n", count);
-		igt_require(intel_check_memory(count, sizeof(linear), CHECK_RAM));
 	}
 
-	igt_subtest("normal")
+	igt_subtest("basic")
+		run_test(fd, 2);
+
+	igt_subtest("normal") {
+		int count;
+
+		igt_skip_on_simulation();
+
+		count = 3 * gem_aperture_size(fd) / (1024*1024) / 2;
+		igt_require(count > 1);
+		igt_require(intel_check_memory(count, sizeof(linear), CHECK_RAM));
 		run_test(fd, count);
+	}
 
 	igt_subtest("interruptible") {
+		int count;
+
+		igt_skip_on_simulation();
+
+		count = 3 * gem_aperture_size(fd) / (1024*1024) / 2;
+		igt_require(count > 1);
+		igt_require(intel_check_memory(count, sizeof(linear), CHECK_RAM));
 		igt_fork_signal_helper();
 		run_test(fd, count);
 		igt_stop_signal_helper();
