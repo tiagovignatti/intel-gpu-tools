@@ -151,7 +151,7 @@ static void test_forking_evictions(int fd, int size, int count,
 	int trash_count;
 
 	trash_count = intel_get_total_ram_mb() * 11 / 10;
-	igt_require(intel_check_memory(trash_count, size, CHECK_RAM | CHECK_SWAP));
+	intel_require_memory(trash_count, size, CHECK_RAM | CHECK_SWAP);
 
 	forking_evictions(fd, &fault_ops, size, count, trash_count, flags);
 }
@@ -161,7 +161,7 @@ static void test_swapping_evictions(int fd, int size, int count)
 	int trash_count;
 
 	trash_count = intel_get_total_ram_mb() * 11 / 10;
-	igt_require(intel_check_memory(trash_count, size, CHECK_RAM | CHECK_SWAP));
+	intel_require_memory(trash_count, size, CHECK_RAM | CHECK_SWAP);
 
 	swapping_evictions(fd, &fault_ops, size, count, trash_count);
 }

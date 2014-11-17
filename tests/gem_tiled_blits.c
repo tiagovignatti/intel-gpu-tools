@@ -218,7 +218,7 @@ int main(int argc, char **argv)
 
 		count = 3 * gem_aperture_size(fd) / (1024*1024) / 2;
 		count += (count & 1) == 0;
-		igt_require(intel_check_memory(count, 1024*1024, CHECK_RAM));
+		intel_require_memory(count, 1024*1024, CHECK_RAM);
 
 		run_test(count);
 	}
@@ -230,7 +230,7 @@ int main(int argc, char **argv)
 
 		count = 3 * gem_aperture_size(fd) / (1024*1024) / 2;
 		count += (count & 1) == 0;
-		igt_require(intel_check_memory(count, 1024*1024, CHECK_RAM));
+		intel_require_memory(count, 1024*1024, CHECK_RAM);
 
 		igt_fork_signal_helper();
 		run_test(count);

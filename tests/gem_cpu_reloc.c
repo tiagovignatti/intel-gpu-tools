@@ -183,7 +183,7 @@ igt_simple_main
 	if (igt_run_in_simulation())
 		count = 10;
 
-	igt_require(intel_check_memory(1+count, 4096, CHECK_RAM));
+	intel_require_memory(1+count, 4096, CHECK_RAM);
 
 	handles = malloc (count * sizeof(uint32_t));
 	igt_assert(handles);

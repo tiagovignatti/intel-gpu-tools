@@ -193,7 +193,7 @@ intel_get_total_swap_mb(void)
 }
 
 /**
- * intel_check_memory:
+ * intel_require_memory:
  * @count: number of surfaces that will be created
  * @size: the size in bytes of each surface
  * @mode: a bitfield declaring whether the test will be run in RAM or in SWAP
@@ -209,11 +209,10 @@ intel_get_total_swap_mb(void)
  * for their tests. oom-killer tests should only run if this reports that
  * there is not enough RAM + SWAP!
  *
- * Returns:
- * Whether the estimated amount of memory required for the objects
- * fits in the available memory on the system.
+ * If there is not enough RAM this function calls igt_skip with an appropriate
+ * message. It only ever returns if the requirement is fullfilled.
  */
-bool intel_check_memory(uint32_t count, uint32_t size, unsigned mode)
+void intel_require_memory(uint32_t count, uint32_t size, unsigned mode)
 {
 /* rough estimate of how many bytes the kernel requires to track each object */
 #define KERNEL_BO_OVERHEAD 512
@@ -235,18 +234,12 @@ bool intel_check_memory(uint32_t count, uint32_t size, unsigned mode)
 		total += intel_get_total_swap_mb();
 	total *= 1024 * 1024;
 
-	if (total <= required) {
-		igt_log(IGT_LOG_INFO,
-			"Estimated that we need %llu bytes for the test, but only have %llu bytes available (%s%s)\n",
-			(long long)required, (long long)total,
-			mode & (CHECK_RAM | CHECK_SWAP) ? "RAM" : "",
-			mode & CHECK_SWAP ? " + swap": "");
-		return 0;
-	}
-
-	return 1;
+	igt_skip_on_f(total <= required,
+		      "Estimated that we need %llu bytes for the test, but only have %llu bytes available (%s%s)\n",
+		      (long long)required, (long long)total,
+		      mode & (CHECK_RAM | CHECK_SWAP) ? "RAM" : "",
+		      mode & CHECK_SWAP ? " + swap": "");
 }
-
 
 void
 intel_purge_vm_caches(void)
