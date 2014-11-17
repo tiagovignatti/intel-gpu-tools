@@ -1,0 +1,151 @@
+<?xml version="1.0"?>
+<!DOCTYPE chapter PUBLIC "-//OASIS//DTD DocBook XML V4.3//EN"
+               "http://www.oasis-open.org/docbook/xml/4.3/docbookx.dtd"
+[
+  <!ENTITY % local.common.attrib "xmlns:xi  CDATA  #FIXED 'http://www.w3.org/2003/XInclude'">
+  <!ENTITY version SYSTEM "version.xml">
+]>
+
+<chapter id="test-programs">
+  <title>Test Programs</title>
+
+  <refentry id="igt-test-programs-common-features">
+    <refnamediv>
+      <refname>Common Features</refname>
+      <refpurpose>Features available in all test programs</refpurpose>
+    </refnamediv>
+    <refsect1>
+      <title>Command Line Options</title>
+      <para>
+        All tests support the following command line options:
+
+        <variablelist>
+          <varlistentry>
+            <term><option>--list-subtests</option></term>
+            <listitem><para>
+                list the available subtests and exit
+            </para></listitem>
+          </varlistentry>
+
+          <varlistentry>
+            <term><option>--run-subtest <replaceable>subtest</replaceable></option></term>
+            <listitem><para>
+                run the specified subtest
+            </para></listitem>
+          </varlistentry>
+
+          <varlistentry>
+            <term><option>--debug</option></term>
+            <listitem><para>
+                print extra debugging information when running tests
+            </para></listitem>
+          </varlistentry>
+
+          <varlistentry>
+            <term><option>--help-description</option></term>
+            <listitem><para>
+                print a short description of the test and exit
+            </para></listitem>
+          </varlistentry>
+
+          <varlistentry>
+            <term><option>--help</option></term>
+            <listitem><para>
+                print help and exit
+            </para></listitem>
+          </varlistentry>
+        </variablelist>
+      </para>
+    </refsect1>
+  </refentry>
+
+  <refentry id="igt-core-tests">
+    <refnamediv>
+      <refname>Core Tests</refname>
+      <refpurpose>Tests for core drm ioctls and behaviour.</refpurpose>
+    </refnamediv>
+    <xi:include href="igt_test_programs_core_programs.xml"/>
+    <xi:include href="igt_test_programs_core_description.xml"/>
+  </refentry>
+
+  <refentry id="igt-drm-tests">
+    <refnamediv>
+      <refname>DRM Tests</refname>
+      <refpurpose>Tests for libdrm behaviour.</refpurpose>
+    </refnamediv>
+    <xi:include href="igt_test_programs_drm_programs.xml"/>
+    <xi:include href="igt_test_programs_drm_description.xml"/>
+  </refentry>
+
+  <refentry id="igt-drv-tests">
+    <refnamediv>
+      <refname>DRV Tests</refname>
+      <refpurpose>Tests for overall driver behaviour.</refpurpose>
+    </refnamediv>
+    <xi:include href="igt_test_programs_drv_programs.xml"/>
+    <xi:include href="igt_test_programs_drv_description.xml"/>
+  </refentry>
+
+  <refentry id="igt-gem-tests">
+    <refnamediv>
+      <refname>GEM Tests</refname>
+      <refpurpose>Tests for core drm ioctls and behaviour.</refpurpose>
+    </refnamediv>
+    <xi:include href="igt_test_programs_gem_programs.xml"/>
+    <xi:include href="igt_test_programs_gem_description.xml"/>
+  </refentry>
+
+  <refentry id="igt-kms-tests">
+    <refnamediv>
+      <refname>KMS Tests</refname>
+      <refpurpose>Mode setting tests</refpurpose>
+    </refnamediv>
+    <xi:include href="igt_test_programs_kms_programs.xml"/>
+    <xi:include href="igt_test_programs_kms_description.xml"/>
+  </refentry>
+
+  <refentry id="igt-pm-tests">
+    <refnamediv>
+      <refname>PM Tests</refname>
+      <refpurpose>Tests for power management features</refpurpose>
+    </refnamediv>
+    <xi:include href="igt_test_programs_pm_programs.xml"/>
+    <xi:include href="igt_test_programs_pm_description.xml"/>
+  </refentry>
+
+  <refentry id="igt-prime-tests">
+    <refnamediv>
+      <refname>Prime Tests</refname>
+      <refpurpose>Buffer sharing tests</refpurpose>
+    </refnamediv>
+    <xi:include href="igt_test_programs_prime_programs.xml"/>
+    <xi:include href="igt_test_programs_prime_description.xml"/>
+  </refentry>
+
+  <refentry id="igt-gen3-tests">
+    <refnamediv>
+      <refname>Gen 3 Tests</refname>
+      <refpurpose>Gen 3 specific tests</refpurpose>
+    </refnamediv>
+    <xi:include href="igt_test_programs_gen3_programs.xml"/>
+    <xi:include href="igt_test_programs_gen3_description.xml"/>
+  </refentry>
+
+  <refentry id="igt-sysfs-tests">
+    <refnamediv>
+      <refname>Sysfs Tests</refname>
+      <refpurpose>Sysfs tests</refpurpose>
+    </refnamediv>
+    <xi:include href="igt_test_programs_sysfs_programs.xml"/>
+    <xi:include href="igt_test_programs_sysfs_description.xml"/>
+  </refentry>
+
+  <refentry id="igt-debugfs-tests">
+    <refnamediv>
+      <refname>Debugfs Tests</refname>
+      <refpurpose>Debugfs tests</refpurpose>
+    </refnamediv>
+    <xi:include href="igt_test_programs_debugfs_programs.xml"/>
+    <xi:include href="igt_test_programs_debugfs_description.xml"/>
+  </refentry>
+</chapter>

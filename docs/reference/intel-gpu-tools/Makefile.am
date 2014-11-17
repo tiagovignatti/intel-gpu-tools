@@ -1,21 +1,47 @@
 ## Process this file with automake to produce Makefile.in
 
 TESTLISTS = $(top_builddir)/tests/single-tests.txt $(top_builddir)/tests/multi-tests.txt
-igt_test_programs.xml: igt_test_programs.xml.header $(TESTLISTS)
-	cat $(srcdir)/igt_test_programs.xml.header > $@; \
-	for test in `cat $(TESTLISTS)`; do \
-		if [ "$$test" = "TESTLIST" -o "$$test" = "END" ]; then \
-			continue; \
-		fi; \
+xml/igt_test_programs_%_programs.xml: $(TESTLISTS)
+	mkdir -p `dirname $@`
+	echo "<?xml version=\"1.0\"?>" > $@
+	echo "<!DOCTYPE refsect1 PUBLIC \"-//OASIS//DTD DocBook XML V4.3//EN\"" >> $@
+	echo "               \"http://www.oasis-open.org/docbook/xml/4.3/docbookx.dtd\"" >> $@
+	echo "[" >> $@
+	echo "  <!ENTITY % local.common.attrib \"xmlns:xi  CDATA  #FIXED 'http://www.w3.org/2003/XInclude'\">" >> $@
+	echo "  <!ENTITY version SYSTEM \"version.xml\">" >> $@
+	echo "]>" >> $@
+	echo "<refsect1>" >> $@
+	echo "<title>Programs</title>" >> $@
+	echo "<informaltable pgwide=\"1\" frame=\"none\"><tgroup cols=\"2\"><tbody>" >> $@
+	for test in `cat $(TESTLISTS) | tr ' ' '\n' | grep "^$*" | sort`; do \
+		echo "<row><entry role=\"program_name\">" >> $@; \
+		echo "<link linkend=\"$$test\">$$test</link></entry></row>" >> $@; \
+	done;
+	echo "</tbody></tgroup></informaltable>" >> $@
+	echo "</refsect1>" >> $@
+
+xml/igt_test_programs_%_description.xml: $(TESTLISTS)
+	mkdir -p `dirname $@`
+	echo "<?xml version=\"1.0\"?>" > $@
+	echo "<!DOCTYPE refsect1 PUBLIC \"-//OASIS//DTD DocBook XML V4.3//EN\"" >> $@
+	echo "               \"http://www.oasis-open.org/docbook/xml/4.3/docbookx.dtd\"" >> $@
+	echo "[" >> $@
+	echo "  <!ENTITY % local.common.attrib \"xmlns:xi  CDATA  #FIXED 'http://www.w3.org/2003/XInclude'\">" >> $@
+	echo "  <!ENTITY version SYSTEM \"version.xml\">" >> $@
+	echo "]>" >> $@
+	echo "<refsect1>" >> $@
+	echo "<title>Description</title>" >> $@
+	for test in `cat $(TESTLISTS) | tr ' ' '\n' | grep "^$*" | sort`; do \
 		echo "<refsect2 id=\"$$test\"><title>$$test</title><para>" >> $@; \
 		if [ -x $(top_builddir)/tests/$$test ]; then \
-			./$(top_builddir)/tests/$$test --help-description >> $@; \
+			testprog=$(top_builddir)/tests/$$test; \
 		else \
-			./$(top_srcdir)/tests/$$test --help-description >> $@; \
+			testprog=$(top_srcdir)/tests/$$test; \
 		fi; \
+		 ./$$testprog --help-description >> $@; \
 		echo "</para></refsect2>" >> $@; \
-	done; \
-	echo "</refsect1></refentry>" >> $@;
+	done;
+	echo "</refsect1>" >> $@
 
 # We require automake 1.6 at least.
 AUTOMAKE_OPTIONS = 1.6
@@ -83,9 +109,32 @@ IGNORE_HFILES=gen6_render.h gen7_media.h gen7_render.h gen8_media.h \
 # e.g. HTML_IMAGES=$(top_srcdir)/gtk/stock-icons/stock_about_24.png
 HTML_IMAGES=
 
+test_program_files = xml/igt_test_programs_core_description.xml \
+		     xml/igt_test_programs_core_programs.xml \
+		     xml/igt_test_programs_debugfs_description.xml \
+		     xml/igt_test_programs_debugfs_programs.xml \
+		     xml/igt_test_programs_drm_description.xml \
+		     xml/igt_test_programs_drm_programs.xml \
+		     xml/igt_test_programs_drv_description.xml \
+		     xml/igt_test_programs_drv_programs.xml \
+		     xml/igt_test_programs_gem_description.xml \
+		     xml/igt_test_programs_gem_programs.xml \
+		     xml/igt_test_programs_gen3_description.xml \
+		     xml/igt_test_programs_gen3_programs.xml \
+		     xml/igt_test_programs_kms_description.xml \
+		     xml/igt_test_programs_kms_programs.xml \
+		     xml/igt_test_programs_pm_description.xml \
+		     xml/igt_test_programs_pm_programs.xml \
+		     xml/igt_test_programs_prime_description.xml \
+		     xml/igt_test_programs_prime_programs.xml \
+		     xml/igt_test_programs_sysfs_description.xml \
+		     xml/igt_test_programs_sysfs_programs.xml \
+		     $(NULL)
+
 # Extra SGML files that are included by $(DOC_MAIN_SGML_FILE).
 # e.g. content_files=running.sgml building.sgml changes-2.0.sgml
-content_files=igt_test_programs.xml
+content_files=igt_test_programs.xml $(test_program_files) \
+	      $(NULL)
 
 # SGML files where gtk-doc abbrevations (#GtkWidget) are expanded
 # These files must be listed here *and* in content_files
@@ -105,14 +154,14 @@ include $(top_srcdir)/gtk-doc.make
 
 # Other files to distribute
 # e.g. EXTRA_DIST += version.xml.in
-EXTRA_DIST += igt_test_programs.xml.header
+# EXTRA_DIST +=
 
 # Files not to distribute
 # for --rebuild-types in $(SCAN_OPTIONS), e.g. $(DOC_MODULE).types
 # for --rebuild-sections in $(SCAN_OPTIONS) e.g. $(DOC_MODULE)-sections.txt
-DISTCLEANFILES = $(DOC_MODULE)-sections.txt igt_test_programs.xml
+DISTCLEANFILES = $(DOC_MODULE)-sections.txt $(test_program_files)
 
-CLEANFILES += igt_test_programs.xml
+CLEANFILES += $(test_program_files)
 
 # Comment this out if you want 'make check' to test you doc status
 # and run some sanity checks
