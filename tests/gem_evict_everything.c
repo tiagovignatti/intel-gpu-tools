@@ -182,8 +182,6 @@ igt_main
 	size = count = 0;
 	fd = -1;
 
-	igt_skip_on_simulation();
-
 	igt_fixture {
 		fd = drm_open_any();
 

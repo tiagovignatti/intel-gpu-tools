@@ -150,7 +150,6 @@ igt_simple_main
 
 	current_tiling_mode = I915_TILING_X;
 
-	igt_skip_on_simulation();
 	intel_purge_vm_caches();
 
 	fd = drm_open_any();

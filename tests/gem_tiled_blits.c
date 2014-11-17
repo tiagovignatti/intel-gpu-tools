@@ -214,8 +214,6 @@ int main(int argc, char **argv)
 	igt_subtest("normal") {
 		int count;
 
-		igt_skip_on_simulation();
-
 		count = 3 * gem_aperture_size(fd) / (1024*1024) / 2;
 		count += (count & 1) == 0;
 		intel_require_memory(count, 1024*1024, CHECK_RAM);
@@ -225,8 +223,6 @@ int main(int argc, char **argv)
 
 	igt_subtest("interruptible") {
 		int count;
-
-		igt_skip_on_simulation();
 
 		count = 3 * gem_aperture_size(fd) / (1024*1024) / 2;
 		count += (count & 1) == 0;

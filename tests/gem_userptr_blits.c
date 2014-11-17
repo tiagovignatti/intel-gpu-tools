@@ -1240,8 +1240,6 @@ int main(int argc, char **argv)
 {
 	int size = sizeof(linear);
 
-	igt_skip_on_simulation();
-
 	igt_subtest_init(argc, argv);
 
 	igt_fixture {

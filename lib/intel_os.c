@@ -210,7 +210,10 @@ intel_get_total_swap_mb(void)
  * there is not enough RAM + SWAP!
  *
  * If there is not enough RAM this function calls igt_skip with an appropriate
- * message. It only ever returns if the requirement is fullfilled.
+ * message. It only ever returns if the requirement is fullfilled. This function
+ * also causes the test to be skipped automatically on simulation under the
+ * assumption that any test that needs to check for memory requirements is a
+ * thrashing test unsuitable for slow simulated systems.
  */
 void intel_require_memory(uint32_t count, uint32_t size, unsigned mode)
 {
@@ -239,6 +242,8 @@ void intel_require_memory(uint32_t count, uint32_t size, unsigned mode)
 		      (long long)required, (long long)total,
 		      mode & (CHECK_RAM | CHECK_SWAP) ? "RAM" : "",
 		      mode & CHECK_SWAP ? " + swap": "");
+
+	igt_skip_on_simulation();
 }
 
 void
