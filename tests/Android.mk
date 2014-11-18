@@ -74,7 +74,8 @@ else
     kms_universal_plane \
     kms_rotation_crc \
     kms_force_connector \
-    kms_flip_event_leak
+    kms_flip_event_leak \
+    kms_pwrite_crc
     IGT_LOCAL_CFLAGS += -DANDROID_HAS_CAIRO=0
 endif
 
