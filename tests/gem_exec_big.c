@@ -46,13 +46,12 @@
 #include "drm.h"
 #include "ioctl_wrappers.h"
 #include "drmtest.h"
+#include "igt_aux.h"
 
 IGT_TEST_DESCRIPTION("Run a large nop batch to stress test the error capture"
 		     " code.");
 
-#define BATCH_SIZE		(1024*1024)
-
-static void exec(int fd, uint32_t handle, uint32_t reloc_ofs)
+static void exec(int fd, uint32_t handle, uint32_t reloc_ofs, unsigned flags)
 {
 	struct drm_i915_gem_execbuffer2 execbuf;
 	struct drm_i915_gem_exec_object2 gem_exec[1];
@@ -83,7 +82,7 @@ static void exec(int fd, uint32_t handle, uint32_t reloc_ofs)
 	execbuf.num_cliprects = 0;
 	execbuf.DR1 = 0;
 	execbuf.DR4 = 0;
-	execbuf.flags = 0;
+	execbuf.flags = flags;
 	i915_execbuffer2_set_context_id(execbuf, 0);
 	execbuf.rsvd2 = 0;
 
@@ -103,27 +102,34 @@ static void exec(int fd, uint32_t handle, uint32_t reloc_ofs)
 igt_simple_main
 {
 	uint32_t batch[2] = {MI_BATCH_BUFFER_END};
-	uint32_t handle;
 	int fd;
 	uint32_t reloc_ofs;
 	unsigned batch_size;
-
-	igt_skip_on_simulation();
+	int max;
 
 	fd = drm_open_any();
+	max = 3 * gem_aperture_size(fd) / 4;
 
-	for (batch_size = BATCH_SIZE/4; batch_size <= BATCH_SIZE; batch_size += 4096) {
-		handle = gem_create(fd, batch_size);
+	intel_require_memory(1, max, CHECK_RAM);
+
+	for (batch_size = 4096; batch_size <= max; ) {
+		uint32_t handle = gem_create(fd, batch_size);
 		gem_write(fd, handle, 0, batch, sizeof(batch));
 
 		for (reloc_ofs = 4096; reloc_ofs < batch_size; reloc_ofs += 4096) {
 			igt_debug("batch_size %u, reloc_ofs %u\n",
 				  batch_size, reloc_ofs);
-			exec(fd, handle, reloc_ofs);
+			exec(fd, handle, reloc_ofs, 0);
+			exec(fd, handle, reloc_ofs, I915_EXEC_SECURE);
 		}
-	}
 
-	gem_close(fd, handle);
+		gem_madvise(fd, handle, I915_MADV_DONTNEED);
+
+		if (batch_size < max && 2*batch_size > max)
+			batch_size = max;
+		else
+			batch_size *= 2;
+	}
 
 	close(fd);
 }
