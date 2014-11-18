@@ -341,14 +341,14 @@ static void test_export_close_race(void)
 	int obj_count;
 	void *status;
 
-	obj_count = get_object_count();
-
 	num_threads = sysconf(_SC_NPROCESSORS_ONLN);
 
 	threads = calloc(num_threads, sizeof(pthread_t));
 
 	fd = drm_open_any();
 	igt_assert(fd >= 0);
+
+	obj_count = get_object_count();
 
 	for (i = 0; i < num_threads; i++) {
 		r = pthread_create(&threads[i], NULL,
