@@ -61,6 +61,7 @@
 #include "drmtest.h"
 #include "intel_io.h"
 #include "igt_aux.h"
+#include "igt_debugfs.h"
 
 IGT_TEST_DESCRIPTION("Exercise swizzle code for swapping.");
 
@@ -158,6 +159,25 @@ static void thread_fini(struct thread *t)
 	free(t->idx_arr);
 }
 
+static void check_memory_layout(void)
+{
+	FILE *tiling_debugfs_file;
+	char *line = NULL;
+	size_t sz = 0;
+
+	tiling_debugfs_file = igt_debugfs_fopen("i915_swizzle_info", "r");
+	igt_assert(tiling_debugfs_file);
+
+	while (getline(&line, &sz, tiling_debugfs_file) > 0) {
+		if (strstr(line, "L-shaped") != 0)
+			continue;
+
+		igt_skip("L-shaped memory configuration detected\n");
+	}
+
+	igt_debug("normal memory configuration detected, continuing\n");
+}
+
 igt_main
 {
 	struct thread *threads;
@@ -171,6 +191,8 @@ igt_main
 		intel_purge_vm_caches();
 
 		fd = drm_open_any();
+
+		check_memory_layout();
 
 		/* lock RAM, leaving only 512MB available */
 		lock_size = max(0, intel_get_total_ram_mb() - AVAIL_RAM);
