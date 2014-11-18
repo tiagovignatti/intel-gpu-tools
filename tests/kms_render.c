@@ -179,10 +179,17 @@ static void test_connector(const char *test_name,
 	int i;
 
 	igt_get_all_formats(&formats, &format_count);
-	for (i = 0; i < format_count; i++)
+	for (i = 0; i < format_count; i++) {
+		if (intel_gen(intel_get_drm_devid(drm_fd)) < 4
+		    && formats[i] == DRM_FORMAT_XRGB2101010) {
+			igt_info("gen2/3 don't support 10bpc, skipping\n");
+			continue;
+		}
+
 		test_format(test_name,
 			    cconf, &cconf->connector->modes[0],
 			    formats[i], flags);
+	}
 }
 
 static int run_test(const char *test_name, enum test_flags flags)
