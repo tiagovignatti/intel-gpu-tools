@@ -187,4 +187,110 @@
     <xi:include href="igt_test_programs_debugfs_programs.xml"/>
     <xi:include href="igt_test_programs_debugfs_description.xml"/>
   </refentry>
+
+  <glossary>
+    <title>Gloassary</title>
+
+    <para>The following terms are commonly used in test names to describe
+      various features of the test and can be used to filter and select
+      particular tests.</para>
+
+    <glossentry id="hang">
+      <glossterm>hang</glossterm>
+      <glossdef>
+        <para>Tests that provoke gpu hangs.</para>
+      </glossdef>
+    </glossentry>
+
+    <glossentry id="swap">
+      <glossterm>swap</glossterm>
+      <glossdef>
+        <para>Tests that force their full working sets through swap.</para>
+      </glossdef>
+    </glossentry>
+
+    <glossentry id="thrash">
+      <glossterm>thrash</glossterm>
+      <glossdef>
+        <para>Tests that tend to have really slow forward progress due to gtt/memory/.. thrashing.</para>
+      </glossdef>
+    </glossentry>
+
+    <glossentry id="crc">
+      <glossterm>crc</glossterm>
+      <glossdef>
+        <para>Tests that use the display CRC infrastructure to check the results.</para>
+      </glossdef>
+    </glossentry>
+
+    <glossentry id="tiled">
+      <glossterm>tiled</glossterm>
+      <glossdef>
+        <para>Tests that exercise behaviour on tiled buffers.</para>
+      </glossdef>
+    </glossentry>
+
+    <glossentry id="tiling">
+      <glossterm>tiling</glossterm>
+      <glossdef>
+        <para>Tests that exercise behaviour on tiled buffers.</para>
+      </glossdef>
+    </glossentry>
+
+    <glossentry id="rte">
+      <glossterm>rte</glossterm>
+      <glossdef>
+        <para>Runtime enviroment checks.</para>
+      </glossdef>
+    </glossentry>
+
+    <glossentry id="ctx">
+      <glossterm>ctx</glossterm>
+      <glossdef>
+        <para>Tests that exercise the hardware context support.</para>
+      </glossdef>
+    </glossentry>
+
+    <glossentry id="render">
+      <glossterm>render</glossterm>
+      <glossdef>
+        <para>Tests which apply to the render ring.</para>
+      </glossdef>
+    </glossentry>
+
+    <glossentry id="blt">
+      <glossterm>blt</glossterm>
+      <glossdef>
+        <para>Tests which apply to the blt ring.</para>
+      </glossdef>
+    </glossentry>
+
+    <glossentry id="bsd">
+      <glossterm>bsd</glossterm>
+      <glossdef>
+        <para>Tests which apply to the bsd ring.</para>
+      </glossdef>
+    </glossentry>
+
+    <glossentry id="vebox">
+      <glossterm>vebox</glossterm>
+      <glossdef>
+        <para>Tests which apply to the vebox ring.</para>
+      </glossdef>
+    </glossentry>
+
+    <glossentry id="exec">
+      <glossterm>exec</glossterm>
+      <glossdef>
+        <para>Tests that exercise the execbuf code in various ways.</para>
+      </glossdef>
+    </glossentry>
+
+    <glossentry id="rpm">
+      <glossterm>rpm</glossterm>
+      <glossdef>
+        <para>Runtime power management tests.</para>
+      </glossdef>
+    </glossentry>
+  </glossary>
 </chapter>

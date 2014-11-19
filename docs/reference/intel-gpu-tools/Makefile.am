@@ -1,6 +1,8 @@
 ## Process this file with automake to produce Makefile.in
 
 TESTLISTS = $(top_builddir)/tests/single-tests.txt $(top_builddir)/tests/multi-tests.txt
+KEYWORDS = (hang|swap|thrash|crc|tiled|tiling|rte|ctx|exec|rpm)
+
 xml/igt_test_programs_%_programs.xml: $(TESTLISTS)
 	mkdir -p `dirname $@`
 	echo "<?xml version=\"1.0\"?>" > $@
@@ -32,7 +34,9 @@ xml/igt_test_programs_%_description.xml: $(TESTLISTS)
 	echo "<refsect1>" >> $@
 	echo "<title>Description</title>" >> $@
 	for test in `cat $(TESTLISTS) | tr ' ' '\n' | grep "^$*" | sort`; do \
-		echo "<refsect2 id=\"$$test\"><title>$$test</title><para>" >> $@; \
+		echo "<refsect2 id=\"$$test\"><title>" >> $@; \
+		echo "$$test" | perl -pe 's/(?<=_)$(KEYWORDS)(?=(_|\W))/<acronym>\1<\/acronym>/g' >> $@; \
+		echo "</title><para>" >> $@; \
 		if [ -x $(top_builddir)/tests/$$test ]; then \
 			testprog=$(top_builddir)/tests/$$test; \
 		else \
@@ -44,7 +48,9 @@ xml/igt_test_programs_%_description.xml: $(TESTLISTS)
 			echo "<refsect3><title>Subtests</title>" >> $@; \
 			echo "<simplelist>" >> $@; \
 			for subtest in `./$$testprog --list-subtests`; do \
-				echo "<member>$$subtest</member>" >> $@; \
+				echo "<member>" >> $@; \
+				echo "$$subtest" | perl -pe 's/\b$(KEYWORDS)\b/<acronym>\1<\/acronym>/g' >> $@; \
+				echo "</member>" >> $@; \
 			done; \
 			echo "</simplelist></refsect3>" >> $@; \
 		fi; \

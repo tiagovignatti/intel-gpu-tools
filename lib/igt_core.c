@@ -1433,20 +1433,8 @@ void igt_log(enum igt_log_level level, const char *format, ...)
 {
 	va_list args;
 
-	assert(format);
-
-	if (list_subtests)
-		return;
-
-	if (igt_log_level > level)
-		return;
-
 	va_start(args, format);
-	if (level == IGT_LOG_WARN) {
-		fflush(stdout);
-		vfprintf(stderr, format, args);
-	} else
-		vprintf(format, args);
+	igt_vlog(level, format, args);
 	va_end(args);
 }
 
