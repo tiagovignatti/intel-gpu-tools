@@ -359,18 +359,6 @@ static bool prepare_test(data_t *data, enum test_mode test_mode)
 
 	pipe_crc = igt_pipe_crc_new(data->pipe,
 				    INTEL_PIPE_CRC_SOURCE_AUTO);
-	if (!pipe_crc) {
-		igt_info("auto crc not supported on this connector with crtc %i\n",
-			 data->pipe);
-
-		igt_plane_set_fb(data->primary, NULL);
-		igt_output_set_pipe(output, PIPE_ANY);
-		igt_display_commit(display);
-
-		igt_remove_fb(data->drm_fd, &data->fb[0]);
-		igt_remove_fb(data->drm_fd, &data->fb[1]);
-		return false;
-	}
 
 	data->pipe_crc = pipe_crc;
 

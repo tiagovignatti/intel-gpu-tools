@@ -294,6 +294,9 @@ static bool igt_pipe_crc_do_start(igt_pipe_crc_t *pipe_crc)
 {
 	char buf[64];
 
+	/* Stop first just to make sure we don't have lingering state left. */
+	igt_pipe_crc_stop(pipe_crc);
+
 	sprintf(buf, "pipe %s %s", kmstest_pipe_name(pipe_crc->pipe),
 		pipe_crc_source_name(pipe_crc->source));
 	errno = 0;
@@ -362,9 +365,9 @@ void igt_require_pipe_crc(void)
  *
  * This sets up a new pipe CRC capture object for the given @pipe and @source.
  *
- * Returns: A pipe CRC object if the given @pipe and @source is available, NULL
- * otherwise. Tests can use this to intelligently skip if they require a
- * specific pipe CRC source to function properly.
+ * Returns: A pipe CRC object if the given @pipe and @source. The library
+ * assumes that the source is always available since recent kernels support at
+ * least INTEL_PIPE_CRC_SOURCE_AUTO everywhere.
  */
 igt_pipe_crc_t *
 igt_pipe_crc_new(enum pipe pipe, enum intel_pipe_crc_source source)
@@ -387,14 +390,6 @@ igt_pipe_crc_new(enum pipe pipe, enum intel_pipe_crc_source source)
 	pipe_crc->buffer_len = PIPE_CRC_BUFFER_LEN;
 	pipe_crc->pipe = pipe;
 	pipe_crc->source = source;
-
-	/* make sure this source is actually supported */
-	if (!igt_pipe_crc_do_start(pipe_crc)) {
-		igt_pipe_crc_free(pipe_crc);
-		return NULL;
-	}
-
-	igt_pipe_crc_stop(pipe_crc);
 
 	return pipe_crc;
 }

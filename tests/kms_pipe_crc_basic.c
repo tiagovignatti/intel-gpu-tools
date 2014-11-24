@@ -151,9 +151,6 @@ test_read_crc_for_output(data_t *data, int pipe, igt_output_t *output,
 
 		pipe_crc = igt_pipe_crc_new(pipe, INTEL_PIPE_CRC_SOURCE_AUTO);
 
-		if (!pipe_crc)
-			return 0;
-
 		igt_pipe_crc_start(pipe_crc);
 
 		/* wait for N_CRCS vblanks and the corresponding N_CRCS CRCs */

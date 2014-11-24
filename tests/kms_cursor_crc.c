@@ -230,7 +230,7 @@ static void test_crc_random(data_t *data)
 	}
 }
 
-static bool prepare_crtc(data_t *data, igt_output_t *output,
+static void prepare_crtc(data_t *data, igt_output_t *output,
 			 int cursor_w, int cursor_h)
 {
 	drmModeModeInfo *mode;
@@ -267,11 +267,6 @@ static bool prepare_crtc(data_t *data, igt_output_t *output,
 
 	data->pipe_crc = igt_pipe_crc_new(data->pipe,
 					  INTEL_PIPE_CRC_SOURCE_AUTO);
-	if (!data->pipe_crc) {
-		igt_info("auto crc not supported on this connector with pipe %i\n",
-			 data->pipe);
-		return false;
-	}
 
 	/* x/y position where the cursor is still fully visible */
 	data->left = 0;
@@ -289,8 +284,6 @@ static bool prepare_crtc(data_t *data, igt_output_t *output,
 
 	/* get reference crc w/o cursor */
 	igt_pipe_crc_collect_crc(data->pipe_crc, &data->ref_crc);
-
-	return true;
 }
 
 static void cleanup_crtc(data_t *data, igt_output_t *output)
@@ -325,8 +318,7 @@ static void run_test(data_t *data, void (*testfunc)(data_t *), int cursor_w, int
 		for_each_pipe(display, p) {
 			data->pipe = p;
 
-			if (!prepare_crtc(data, output, cursor_w, cursor_h))
-				continue;
+			prepare_crtc(data, output, cursor_w, cursor_h);
 
 			valid_tests++;
 

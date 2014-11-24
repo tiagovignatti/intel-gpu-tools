@@ -247,21 +247,6 @@ test_plane(data_t *data, igt_output_t *output, enum pipe pipe, enum igt_plane pl
 	if (data->pipe_crc)
 		igt_pipe_crc_free(data->pipe_crc);
 	data->pipe_crc = igt_pipe_crc_new(pipe, INTEL_PIPE_CRC_SOURCE_AUTO);
-	if (!data->pipe_crc) {
-		igt_info("auto crc not supported on this connector with crtc %i\n",
-			 pipe);
-
-		igt_plane_set_fb(primary, NULL);
-		igt_plane_set_fb(sprite, NULL);
-		igt_output_set_pipe(output, PIPE_ANY);
-		igt_display_commit(&data->display);
-
-		igt_remove_fb(data->drm_fd, &red_fb);
-		igt_remove_fb(data->drm_fd, &green_fb);
-		igt_remove_fb(data->drm_fd, &blue_fb);
-
-		return false;
-	}
 
 	/* set red fb and grab reference crc */
 	igt_plane_set_fb(primary, &red_fb);
@@ -410,20 +395,6 @@ test_crtc(data_t *data, igt_output_t *output, enum pipe pipe)
 	if (data->pipe_crc)
 		igt_pipe_crc_free(data->pipe_crc);
 	data->pipe_crc = igt_pipe_crc_new(pipe, INTEL_PIPE_CRC_SOURCE_AUTO);
-	if (!data->pipe_crc) {
-		igt_info("auto crc not supported on this connector with crtc %i\n",
-			 pipe);
-
-		igt_plane_set_fb(primary, NULL);
-		igt_output_set_pipe(output, PIPE_ANY);
-		igt_display_commit(&data->display);
-
-		igt_remove_fb(data->drm_fd, &red_fb);
-		igt_remove_fb(data->drm_fd, &green_fb);
-		igt_remove_fb(data->drm_fd, &blue_fb);
-
-		return false;
-	}
 
 	/* set red fb and grab reference crc */
 	igt_plane_set_fb(primary, &red_fb);

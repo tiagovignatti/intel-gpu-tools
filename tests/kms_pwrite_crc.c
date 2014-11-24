@@ -136,11 +136,6 @@ static bool prepare_crtc(data_t *data)
 
 	data->pipe_crc = igt_pipe_crc_new(data->pipe,
 					  INTEL_PIPE_CRC_SOURCE_AUTO);
-	if (!data->pipe_crc) {
-		igt_info("auto crc not supported on this connector with pipe %i\n",
-			 data->pipe);
-		return false;
-	}
 
 	/* get reference crc for the white fb */
 	igt_pipe_crc_collect_crc(data->pipe_crc, &data->ref_crc);

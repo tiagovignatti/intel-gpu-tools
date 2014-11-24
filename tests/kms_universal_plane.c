@@ -62,9 +62,6 @@ functional_test_init(functional_test_t *test, igt_output_t *output, enum pipe pi
 	drmModeModeInfo *mode;
 
 	test->pipe_crc = igt_pipe_crc_new(pipe, INTEL_PIPE_CRC_SOURCE_AUTO);
-	igt_skip_on_f(!test->pipe_crc,
-		      "auto crc not supported on this connector with pipe %i\n", pipe);
-
 
 	igt_output_set_pipe(output, pipe);
 
