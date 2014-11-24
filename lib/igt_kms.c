@@ -1773,8 +1773,8 @@ void igt_reset_connectors(void)
 	 * functions that are not safe to call in signal handlers */
 
 	for (tmp = forced_connectors; *tmp; tmp++) {
-		int fd = open(*tmp, O_WRONLY | O_TRUNC);
-		write(fd, "unspecified", 11);
+		int fd = igt_debugfs_open(*tmp, O_WRONLY | O_TRUNC);
+		igt_assert(write(fd, "unspecified", 11) == 11);
 		close(fd);
 	}
 }
