@@ -143,42 +143,46 @@ static void thread_fini(struct thread *t)
 	free(t->idx_arr);
 }
 
-igt_simple_main
+igt_main
 {
 	struct thread *threads;
 	int fd, n, count, num_threads;
 
-	current_tiling_mode = I915_TILING_X;
+	igt_fixture {
+		current_tiling_mode = I915_TILING_X;
 
-	intel_purge_vm_caches();
+		intel_purge_vm_caches();
 
-	fd = drm_open_any();
-	/* need slightly more than available memory */
-	count = intel_get_total_ram_mb() + intel_get_total_swap_mb() / 4;
-	bo_handles = calloc(count, sizeof(uint32_t));
-	igt_assert(bo_handles);
+		fd = drm_open_any();
+		/* need slightly more than available memory */
+		count = intel_get_total_ram_mb() + intel_get_total_swap_mb() / 4;
+		bo_handles = calloc(count, sizeof(uint32_t));
+		igt_assert(bo_handles);
 
-	num_threads = gem_available_fences(fd);
-	threads = calloc(num_threads, sizeof(struct thread));
-	igt_assert(threads);
+		num_threads = gem_available_fences(fd);
+		threads = calloc(num_threads, sizeof(struct thread));
+		igt_assert(threads);
 
-	igt_log(IGT_LOG_INFO,
-		"Using %d 1MiB objects (available RAM: %ld/%ld, swap: %ld)\n",
-		count,
-		(long)intel_get_avail_ram_mb(),
-		(long)intel_get_total_ram_mb(),
-		(long)intel_get_total_swap_mb());
-	intel_require_memory(count, 1024*1024, CHECK_RAM | CHECK_SWAP);
+		igt_log(IGT_LOG_INFO,
+			"Using %d 1MiB objects (available RAM: %ld/%ld, swap: %ld)\n",
+			count,
+			(long)intel_get_avail_ram_mb(),
+			(long)intel_get_total_ram_mb(),
+			(long)intel_get_total_swap_mb());
+		intel_require_memory(count, 1024*1024, CHECK_RAM | CHECK_SWAP);
 
-	for (n = 0; n < count; n++) {
-		bo_handles[n] = create_bo_and_fill(fd);
-		/* Not enough mmap address space possible. */
-		igt_require(bo_handles[n]);
+		for (n = 0; n < count; n++) {
+			bo_handles[n] = create_bo_and_fill(fd);
+			/* Not enough mmap address space possible. */
+			igt_require(bo_handles[n]);
+		}
 	}
 
-	thread_init(&threads[0], fd, count);
-	thread_run(&threads[0]);
-	thread_fini(&threads[0]);
+	igt_subtest("non-threaded") {
+		thread_init(&threads[0], fd, count);
+		thread_run(&threads[0]);
+		thread_fini(&threads[0]);
+	}
 
 	/* Once more with threads */
 	igt_subtest("threaded") {
