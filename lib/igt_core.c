@@ -672,6 +672,7 @@ bool __igt_run_subtest(const char *subtest_name)
 {
 	assert(!in_subtest);
 	assert(!in_fixture);
+	assert(test_with_subtests);
 
 	if (list_subtests) {
 		printf("%s\n", subtest_name);
