@@ -620,7 +620,7 @@ bool gem_uses_aliasing_ppgtt(int fd)
 }
 
 /**
- * gem_uses_aliasing_ppgtt:
+ * gem_available_fences:
  * @fd: open i915 drm file descriptor
  *
  * Feature test macro to query the kernel for the number of available fences
@@ -811,7 +811,7 @@ uint64_t gem_aperture_size(int fd)
 }
 
 /**
- * gem_aperture_size:
+ * gem_mappable_aperture_size:
  * @fd: open i915 drm file descriptor
  *
  * Feature test macro to query the kernel for the mappable gpu aperture size.

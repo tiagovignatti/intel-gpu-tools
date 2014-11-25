@@ -344,7 +344,7 @@ int drm_open_any_master(void)
 }
 
 /**
- * drm_open_any:
+ * drm_open_any_render:
  *
  * Open an i915 drm render device node.
  *

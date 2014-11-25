@@ -263,7 +263,7 @@ void igt_exit(void) __attribute__((noreturn));
 #define igt_fail_on(expr) igt_assert(!(expr))
 
 /**
- * igt_assert_f:
+ * igt_fail_on_f:
  * @expr: condition to test
  * @...: format string and optional arguments
  *

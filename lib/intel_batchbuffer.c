@@ -86,7 +86,7 @@ intel_batchbuffer_reset(struct intel_batchbuffer *batch)
 }
 
 /**
- * intel_batchbuffer_reset:
+ * intel_batchbuffer_alloc:
  * @bufmgr: libdrm buffer manager
  * @devid: pci device id of the drm device
  *
@@ -109,7 +109,7 @@ intel_batchbuffer_alloc(drm_intel_bufmgr *bufmgr, uint32_t devid)
 }
 
 /**
- * intel_batchbuffer_reset:
+ * intel_batchbuffer_free:
  * @batch: batchbuffer object
  *
  * Releases all resource of the batchbuffer object @batch.
