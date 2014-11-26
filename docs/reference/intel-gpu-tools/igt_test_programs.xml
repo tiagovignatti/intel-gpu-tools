@@ -57,6 +57,45 @@
         </variablelist>
       </para>
     </refsect1>
+
+    <refsect1>
+      <title>Exit Status</title>
+      <para>
+      The following exit status codes are defined:
+
+      <informaltable pgwide="1" frame="none">
+        <tgroup cols="3" align="left">
+          <thead>
+            <row><entry>Name</entry><entry>Value</entry><entry>Description</entry></row>
+          </thead>
+          <tbody>
+            <row>
+              <entry>#IGT_EXIT_SUCCESS</entry>
+              <entry>0</entry>
+              <entry>The test was succesful</entry>
+            </row>
+            <row>
+              <entry>#IGT_EXIT_SKIP</entry>
+              <entry>77</entry>
+              <entry>The test was skipped</entry>
+            </row>
+            <row>
+              <entry>#IGT_EXIT_TIMEOUT</entry>
+              <entry>78</entry>
+              <entry>The test took longer than expected and was stopped</entry>
+            </row>
+            <row>
+              <entry>#IGT_EXIT_INVALID</entry>
+              <entry>79</entry>
+              <entry>An invalid option or subtest was specified</entry>
+            </row>
+          </tbody>
+        </tgroup>
+      </informaltable>
+
+      Any other exit status indicates a test failure.
+    </para>
+    </refsect1>
   </refentry>
 
   <refentry id="igt-core-tests">
