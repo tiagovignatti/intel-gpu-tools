@@ -84,6 +84,9 @@
 #define DRM_CAP_TIMESTAMP_MONOTONIC 6
 #endif
 
+#define USEC_PER_SEC 1000000L
+#define NSEC_PER_SEC 1000000000L
+
 drmModeRes *resources;
 int drm_fd;
 static drm_intel_bufmgr *bufmgr;
@@ -162,6 +165,34 @@ static unsigned long gettime_us(void)
 	return ts.tv_sec * 1000000 + ts.tv_nsec / 1000;
 }
 
+static int calibrate_dummy_load(struct test_output *o,
+				const char *ring_name,
+				int (*emit)(struct test_output *o, int limit, int timeout))
+{
+	unsigned long start;
+	int ops = 1;
+
+	start = gettime_us();
+
+	do {
+		unsigned long diff;
+		int ret;
+
+		ret = emit(o, (ops+1)/2, 10);
+		diff = gettime_us() - start;
+
+		if (ret || diff / USEC_PER_SEC >= 1)
+			break;
+
+		ops += ops;
+	} while (ops < 100000);
+
+	igt_debug("%s dummy load calibrated: %d operations / second\n",
+		  ring_name, ops);
+
+	return ops;
+}
+
 static void blit_copy(drm_intel_bo *dst, drm_intel_bo *src,
 		      unsigned int width, unsigned int height,
 		      unsigned int dst_pitch, unsigned int src_pitch)
@@ -187,13 +218,11 @@ static void blit_copy(drm_intel_bo *dst, drm_intel_bo *src,
 	}
 }
 
-static void emit_dummy_load__bcs(struct test_output *o)
+static int _emit_dummy_load__bcs(struct test_output *o, int limit, int timeout)
 {
-	int i, limit;
+	int i, ret = 0;
 	drm_intel_bo *src_bo, *dst_bo, *fb_bo;
 	struct igt_fb *fb_info = &o->fb_info[o->current_fb_id];
-
-	limit = intel_gen(devid) < 6 ? 500 : 5000;
 
 	src_bo = drm_intel_bo_alloc(bufmgr, "dummy_bo", 2048*2048*4, 4096);
 	igt_assert(src_bo);
@@ -216,9 +245,25 @@ static void emit_dummy_load__bcs(struct test_output *o)
 		  fb_info->stride, 2048*4);
 	intel_batchbuffer_flush(batch);
 
+	if (timeout > 0)
+		ret = drm_intel_gem_bo_wait(fb_bo, timeout * NSEC_PER_SEC);
+
 	drm_intel_bo_unreference(src_bo);
 	drm_intel_bo_unreference(dst_bo);
 	drm_intel_bo_unreference(fb_bo);
+
+	return ret;
+}
+
+static void emit_dummy_load__bcs(struct test_output *o, int seconds)
+{
+	static int ops_per_sec;
+
+	if (ops_per_sec == 0)
+		ops_per_sec = calibrate_dummy_load(o, "bcs",
+						   _emit_dummy_load__bcs);
+
+	_emit_dummy_load__bcs(o, seconds * ops_per_sec, 0);
 }
 
 static void emit_fence_stress(struct test_output *o)
@@ -263,18 +308,16 @@ static void emit_fence_stress(struct test_output *o)
 	free(exec);
 }
 
-static void emit_dummy_load__rcs(struct test_output *o)
+static int _emit_dummy_load__rcs(struct test_output *o, int limit, int timeout)
 {
 	const struct igt_fb *fb_info = &o->fb_info[o->current_fb_id];
 	igt_render_copyfunc_t copyfunc;
 	struct igt_buf sb[3], *src, *dst, *fb;
-	int i, limit;
+	int i, ret = 0;
 
 	copyfunc = igt_get_render_copyfunc(devid);
 	if (copyfunc == NULL)
-		return emit_dummy_load__bcs(o);
-
-	limit = intel_gen(devid) < 6 ? 500 : 5000;
+		return _emit_dummy_load__bcs(o, limit, timeout);
 
 	sb[0].bo = drm_intel_bo_alloc(bufmgr, "dummy_bo", 2048*2048*4, 4096);
 	igt_assert(sb[0].bo);
@@ -318,9 +361,25 @@ static void emit_dummy_load__rcs(struct test_output *o)
 		 fb, 0, 0);
 	intel_batchbuffer_flush(batch);
 
+	if (timeout > 0)
+		ret = drm_intel_gem_bo_wait(fb->bo, timeout * NSEC_PER_SEC);
+
 	drm_intel_bo_unreference(sb[0].bo);
 	drm_intel_bo_unreference(sb[1].bo);
 	drm_intel_bo_unreference(sb[2].bo);
+
+	return ret;
+}
+
+static void emit_dummy_load__rcs(struct test_output *o, int seconds)
+{
+	static int ops_per_sec;
+
+	if (ops_per_sec == 0)
+		ops_per_sec = calibrate_dummy_load(o, "rcs",
+						   _emit_dummy_load__rcs);
+
+	_emit_dummy_load__bcs(o, seconds * ops_per_sec, 0);
 }
 
 static void dpms_off_other_outputs(struct test_output *o)
@@ -820,10 +879,10 @@ static unsigned int run_test_step(struct test_output *o)
 		dpms_off_other_outputs(o);
 
 	if (o->flags & TEST_WITH_DUMMY_BCS)
-		emit_dummy_load__bcs(o);
+		emit_dummy_load__bcs(o, 1);
 
 	if (o->flags & TEST_WITH_DUMMY_RCS)
-		emit_dummy_load__rcs(o);
+		emit_dummy_load__rcs(o, 1);
 
 	if (!(o->flags & TEST_SINGLE_BUFFER))
 		o->current_fb_id = !o->current_fb_id;
