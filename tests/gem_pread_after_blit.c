@@ -51,6 +51,9 @@
 #include "intel_io.h"
 #include "igt_aux.h"
 
+IGT_TEST_DESCRIPTION("Test pread behavior when getting values out of"
+		     " just-drawn-to buffers.");
+
 static drm_intel_bufmgr *bufmgr;
 struct intel_batchbuffer *batch;
 static const int width = 512, height = 512;

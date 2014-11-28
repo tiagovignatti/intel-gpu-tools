@@ -69,6 +69,8 @@
 #include "intel_chipset.h"
 #include "igt_aux.h"
 
+IGT_TEST_DESCRIPTION("General gem coherency test.");
+
 #define CMD_POLY_STIPPLE_OFFSET       0x7906
 
 #define DUCTAPE 0xdead0001

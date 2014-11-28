@@ -46,6 +46,8 @@
 #include "igt_debugfs.h"
 #include "igt_aux.h"
 
+IGT_TEST_DESCRIPTION("Test kernel relocations vs. gpu races.");
+
 /*
  * Testcase: Kernel relocations vs. gpu races
  *

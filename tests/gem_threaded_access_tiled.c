@@ -34,6 +34,8 @@
 #include "ioctl_wrappers.h"
 #include "intel_bufmgr.h"
 
+IGT_TEST_DESCRIPTION("Check parallel access to tiled memory.");
+
 /* Testcase: check parallel access to tiled memory
  *
  * Parallel access to tiled memory caused sigbus

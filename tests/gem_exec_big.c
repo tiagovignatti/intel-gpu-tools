@@ -47,6 +47,9 @@
 #include "ioctl_wrappers.h"
 #include "drmtest.h"
 
+IGT_TEST_DESCRIPTION("Run a large nop batch to stress test the error capture"
+		     " code.");
+
 #define BATCH_SIZE		(1024*1024)
 
 static void exec(int fd, uint32_t handle, uint32_t reloc_ofs)

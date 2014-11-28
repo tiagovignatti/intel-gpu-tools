@@ -38,8 +38,10 @@
 #include "ioctl_wrappers.h"
 #include "drmtest.h"
 
+IGT_TEST_DESCRIPTION("Test minimal bo_create and batchbuffer exec.");
+
 /*
- * Testcase: Minmal bo_create and batchbuffer exec
+ * Testcase: Minimal bo_create and batchbuffer exec
  *
  * Originally this caught an kernel oops due to the unchecked assumption that
  * objects have size > 0.

@@ -45,6 +45,9 @@
 #include "intel_chipset.h"
 #include "igt_aux.h"
 
+IGT_TEST_DESCRIPTION("Test snoop consistency when touching partial"
+		     " cachelines.");
+
 /*
  * Testcase: snoop consistency when touching partial cachelines
  *

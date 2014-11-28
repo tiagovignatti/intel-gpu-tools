@@ -38,6 +38,8 @@
 #include "intel_bufmgr.h"
 #include "igt_debugfs.h"
 
+IGT_TEST_DESCRIPTION("Check for flink/open vs. gem close races.");
+
 /* Testcase: check for flink/open vs. gem close races
  *
  * The gem flink open ioctl had a little race with gem close which could result

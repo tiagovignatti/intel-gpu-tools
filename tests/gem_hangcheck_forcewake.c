@@ -41,6 +41,9 @@
 #include "intel_io.h"
 #include "intel_chipset.h"
 
+IGT_TEST_DESCRIPTION("Provoke the hangcheck timer on an otherwise idle"
+		     " system.");
+
 /*
  * Testcase: Provoke the hangcheck timer on an otherwise idle system
  *

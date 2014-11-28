@@ -44,6 +44,8 @@
 #include "intel_io.h"
 #include "igt_aux.h"
 
+IGT_TEST_DESCRIPTION("Exercises pinning of small buffer objects.");
+
 #define COPY_BLT_CMD            (2<<29|0x53<<22|0x6)
 #define BLT_WRITE_ALPHA         (1<<21)
 #define BLT_WRITE_RGB           (1<<20)

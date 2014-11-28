@@ -50,6 +50,10 @@
 #include "intel_io.h"
 #include "intel_chipset.h"
 
+
+IGT_TEST_DESCRIPTION("Test pread behavior on tiled objects with respect to the"
+		     " reported swizzling value.");
+
 #define WIDTH 512
 #define HEIGHT 512
 static uint32_t linear[WIDTH * HEIGHT];

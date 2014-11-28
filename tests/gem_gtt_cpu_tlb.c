@@ -44,6 +44,9 @@
 #include "drmtest.h"
 #include "intel_io.h"
 
+IGT_TEST_DESCRIPTION("Check whether gtt tlbs for cpu access are correctly"
+		     " invalidated.");
+
 #define OBJ_SIZE (1024*1024)
 
 #define PAGE_SIZE 4096

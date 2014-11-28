@@ -39,6 +39,8 @@
 #include "drmtest.h"
 #include "intel_io.h"
 
+IGT_TEST_DESCRIPTION("Check set_tiling vs pwrite coherency.");
+
 #define OBJECT_SIZE (1024*1024)
 #define TEST_STRIDE (1024*4)
 

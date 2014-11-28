@@ -42,6 +42,9 @@
 #include "intel_io.h"
 #include "igt_aux.h"
 
+IGT_TEST_DESCRIPTION("Test pwrite/pread consistency when touching partial"
+		     " cachelines.");
+
 /*
  * Testcase: pwrite/pread consistency when touching partial cachelines
  *

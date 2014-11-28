@@ -34,6 +34,9 @@
 #include "igt_kms.h"
 #include "ioctl_wrappers.h"
 
+IGT_TEST_DESCRIPTION("Test that a page flip from a tiled buffer to a linear"
+		     " one works correctly.");
+
 typedef struct {
 	int drm_fd;
 	igt_display_t display;

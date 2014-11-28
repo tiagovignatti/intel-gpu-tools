@@ -49,6 +49,9 @@
 #include "intel_chipset.h"
 #include "igt_aux.h"
 
+IGT_TEST_DESCRIPTION("Run a couple of big batches to force the unbind on"
+		     " misalignment code.");
+
 #define HEIGHT 256
 #define WIDTH 1024
 

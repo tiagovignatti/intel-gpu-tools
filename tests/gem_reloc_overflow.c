@@ -48,6 +48,8 @@
 #include "drmtest.h"
 #include "intel_io.h"
 
+IGT_TEST_DESCRIPTION("Check that kernel relocation overflows are caught.");
+
 /*
  * Testcase: Kernel relocation overflows are caught.
  */

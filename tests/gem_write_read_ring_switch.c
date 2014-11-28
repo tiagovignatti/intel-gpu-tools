@@ -43,6 +43,8 @@
 #include "i830_reg.h"
 #include "igt_aux.h"
 
+IGT_TEST_DESCRIPTION("Check read/write syncpoints when switching rings.");
+
 #define LOCAL_I915_EXEC_VEBOX (4<<0)
 
 static drm_intel_bufmgr *bufmgr;

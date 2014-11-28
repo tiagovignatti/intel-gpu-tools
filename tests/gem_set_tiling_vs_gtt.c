@@ -40,6 +40,8 @@
 #include "intel_io.h"
 #include "intel_chipset.h"
 
+IGT_TEST_DESCRIPTION("Check set_tiling vs gtt mmap coherency.");
+
 #define OBJECT_SIZE (1024*1024)
 #define TEST_STRIDE (1024*4)
 

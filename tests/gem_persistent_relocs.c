@@ -46,6 +46,8 @@
 #include "igt_debugfs.h"
 #include "igt_aux.h"
 
+IGT_TEST_DESCRIPTION("Test persistent relocations as used by uxa/libva.");
+
 /*
  * Testcase: Persistent relocations as used by uxa/libva
  *

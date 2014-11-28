@@ -36,6 +36,8 @@
 #include "ioctl_wrappers.h"
 #include "drmtest.h"
 
+IGT_TEST_DESCRIPTION("Negative test cases for destroy contexts.");
+
 struct local_drm_i915_context_destroy {
 	__u32 ctx_id;
 	__u32 pad;

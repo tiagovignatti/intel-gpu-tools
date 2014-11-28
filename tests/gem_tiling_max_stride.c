@@ -41,6 +41,8 @@
 #include "intel_io.h"
 #include "intel_chipset.h"
 
+IGT_TEST_DESCRIPTION("Check that max fence stride works.");
+
 static void do_test_invalid_tiling(int fd, uint32_t handle, int tiling, int stride)
 {
 	igt_assert(__gem_set_tiling(fd, handle, tiling, tiling ? stride : 0) == -EINVAL);

@@ -48,6 +48,8 @@
 #include "intel_io.h"
 #include "intel_chipset.h"
 
+IGT_TEST_DESCRIPTION("Test unreferencing of active buffers.");
+
 static drm_intel_bufmgr *bufmgr;
 struct intel_batchbuffer *batch;
 static drm_intel_bo *load_bo;

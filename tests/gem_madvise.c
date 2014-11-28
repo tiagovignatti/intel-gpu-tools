@@ -39,6 +39,9 @@
 #include "ioctl_wrappers.h"
 #include "drmtest.h"
 
+IGT_TEST_DESCRIPTION("Checks that the kernel reports EFAULT when trying to use"
+		     " purged bo.");
+
 #define OBJECT_SIZE (1024*1024)
 
 /* Testcase: checks that the kernel reports EFAULT when trying to use purged bo

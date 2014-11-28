@@ -62,6 +62,8 @@
 #include "intel_io.h"
 #include "igt_aux.h"
 
+IGT_TEST_DESCRIPTION("Exercise swizzle code for swapping.");
+
 #define WIDTH 512
 #define HEIGHT 512
 #define LINEAR_DWORDS (4 * WIDTH * HEIGHT)

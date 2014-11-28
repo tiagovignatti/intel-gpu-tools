@@ -47,6 +47,10 @@
 #include "intel_io.h"
 #include "intel_chipset.h"
 
+IGT_TEST_DESCRIPTION("This is a test of write-combining mmap's behavior on"
+		     " tiled objects with respect to the reported swizzling"
+		     " value.");
+
 #define WIDTH 512
 #define HEIGHT 512
 #define SIZE (WIDTH*HEIGHT*sizeof(uint32_t))

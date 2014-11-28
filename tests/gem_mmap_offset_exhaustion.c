@@ -38,6 +38,9 @@
 #include "ioctl_wrappers.h"
 #include "drmtest.h"
 
+IGT_TEST_DESCRIPTION("Checks whether the kernel handles mmap offset exhaustion"
+		     " correctly.");
+
 #define OBJECT_SIZE (1024*1024)
 
 /* Testcase: checks whether the kernel handles mmap offset exhaustion correctly

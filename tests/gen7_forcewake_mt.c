@@ -41,6 +41,9 @@
 #include "intel_io.h"
 #include "intel_chipset.h"
 
+IGT_TEST_DESCRIPTION("Exercise a suspect workaround required for"
+		     " FORCEWAKE_MT.");
+
 #define FORCEWAKE_MT 0xa188
 
 struct thread {

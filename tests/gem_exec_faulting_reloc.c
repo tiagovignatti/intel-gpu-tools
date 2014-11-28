@@ -48,6 +48,9 @@
  * To be really evil, use a gtt mmap for them.
  */
 
+IGT_TEST_DESCRIPTION("Submit patches with relocations in memory that will"
+		     " fault.");
+
 #define OBJECT_SIZE 16384
 
 #define COPY_BLT_CMD_NOLEN	(2<<29|0x53<<22)

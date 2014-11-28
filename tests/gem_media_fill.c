@@ -49,6 +49,9 @@
 #include "intel_io.h"
 #include "intel_chipset.h"
 
+IGT_TEST_DESCRIPTION("Basic test for the media_fill() function, a very simple"
+		     " workload for the Media pipeline.");
+
 #define WIDTH 64
 #define STRIDE (WIDTH)
 #define HEIGHT 64

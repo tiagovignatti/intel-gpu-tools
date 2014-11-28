@@ -51,6 +51,9 @@
 #include "intel_io.h"
 #include "intel_chipset.h"
 
+IGT_TEST_DESCRIPTION("Runs blitcopy -> rendercopy with multiple buffers over"
+		     " wrap boundary.");
+
 static int devid;
 static int card_index = 0;
 static uint32_t last_seqno = 0;

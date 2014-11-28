@@ -61,6 +61,9 @@
 #include "intel_chipset.h"
 #include "intel_io.h"
 
+IGT_TEST_DESCRIPTION("Check for proper synchronization of tiling changes vs."
+		     " tiled gpu access.");
+
 static drm_intel_bufmgr *bufmgr;
 struct intel_batchbuffer *batch;
 uint32_t devid;

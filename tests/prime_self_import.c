@@ -48,6 +48,9 @@
 #include "drmtest.h"
 #include "igt_debugfs.h"
 
+IGT_TEST_DESCRIPTION("Check whether prime import/export works on the same"
+		     " device.");
+
 #define BO_SIZE (16*1024)
 
 static char counter;

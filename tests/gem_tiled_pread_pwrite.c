@@ -36,7 +36,7 @@
  */
 
 /*
- * Testcase: Test swizzling by testing pwrite does the invers of pread
+ * Testcase: Test swizzling by testing pwrite does the inverse of pread
  *
  * Together with the explicit pread testcase, this should cover our swizzle
  * handling.
@@ -60,6 +60,9 @@
 #include "drmtest.h"
 #include "intel_io.h"
 #include "igt_aux.h"
+
+IGT_TEST_DESCRIPTION("Test swizzling by testing pwrite does the inverse of"
+		     " pread.");
 
 #define WIDTH 512
 #define HEIGHT 512

@@ -55,6 +55,8 @@
 #include "intel_batchbuffer.h"
 #include "intel_chipset.h"
 
+IGT_TEST_DESCRIPTION("Ensure inter-ring dependencies are respected.");
+
 #define WIDTH	512
 #define HEIGHT	512
 #define NUM_BUSY_BUFFERS 32

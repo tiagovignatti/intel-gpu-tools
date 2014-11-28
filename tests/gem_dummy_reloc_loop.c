@@ -62,6 +62,7 @@ static drm_intel_bo *mbuffer[NUM_FD];
  * at hitting the missed irq bug that's worked around with the HWSTAM irq write.
  */
 
+IGT_TEST_DESCRIPTION("Check ring<->cpu sync using a dummy reloc.");
 
 #define MI_COND_BATCH_BUFFER_END	(0x36<<23 | 1)
 #define MI_DO_COMPARE			(1<<21)

@@ -55,6 +55,9 @@
 #include "intel_chipset.h"
 #include "igt_aux.h"
 
+IGT_TEST_DESCRIPTION("Test of pread/pwrite behavior when writing to active"
+		     " buffers.");
+
 int fd, devid, gen;
 struct intel_batchbuffer *batch;
 

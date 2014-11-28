@@ -50,6 +50,8 @@ struct intel_batchbuffer *batch;
  * this checks whether they actually work.
  */
 
+IGT_TEST_DESCRIPTION("Check whether the libdrm vma limiter works.");
+
 /* we do both cpu and gtt maps, so only need half of 64k to exhaust */
 #define BO_ARRAY_SIZE 35000
 drm_intel_bo *bos[BO_ARRAY_SIZE];

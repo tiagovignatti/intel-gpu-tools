@@ -48,6 +48,8 @@
 #include "igt_aux.h"
 #include "igt_debugfs.h"
 
+IGT_TEST_DESCRIPTION("Test basic context switch functionality.");
+
 struct local_drm_i915_gem_context_destroy {
 	__u32 ctx_id;
 	__u32 pad;

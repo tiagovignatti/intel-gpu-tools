@@ -25,7 +25,7 @@
  *
  */
 
-/* Exercises the basic execbuffer using theh andle LUT interface */
+/* Exercises the basic execbuffer using the handle LUT interface */
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -38,6 +38,9 @@
 #include "drm.h"
 #include "ioctl_wrappers.h"
 #include "drmtest.h"
+
+IGT_TEST_DESCRIPTION("Exercises the basic execbuffer using the handle LUT"
+		     " interface.");
 
 #define BATCH_SIZE		(1024*1024)
 

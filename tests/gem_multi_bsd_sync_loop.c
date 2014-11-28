@@ -43,6 +43,8 @@
 #include "i830_reg.h"
 #include "intel_chipset.h"
 
+IGT_TEST_DESCRIPTION("Basic check of ring<->ring sync using a dummy reloc.");
+
 static drm_intel_bufmgr *bufmgr;
 struct intel_batchbuffer *batch;
 static drm_intel_bo *target_buffer;

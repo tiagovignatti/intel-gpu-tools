@@ -64,6 +64,8 @@
 #include "intel_chipset.h"
 #include "igt_aux.h"
 
+IGT_TEST_DESCRIPTION("Test the relocations through the CPU domain.");
+
 static uint32_t use_blt;
 
 static void copy(int fd, uint32_t batch, uint32_t src, uint32_t dst)

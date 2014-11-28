@@ -50,6 +50,9 @@
 #include "intel_io.h"
 #include "igt_aux.h"
 
+IGT_TEST_DESCRIPTION("Test doing many blits with a working set larger than the"
+		     " aperture size.");
+
 #define WIDTH 512
 #define HEIGHT 512
 

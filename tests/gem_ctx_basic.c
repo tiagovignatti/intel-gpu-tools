@@ -47,6 +47,8 @@
 #include "intel_io.h"
 #include "intel_chipset.h"
 
+IGT_TEST_DESCRIPTION("Basic test for memory and refcount leaks.");
+
 /* options */
 int num_contexts = 10;
 int uncontexted = 0; /* test only context create/destroy */

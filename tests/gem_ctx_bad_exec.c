@@ -45,6 +45,9 @@
 #include "ioctl_wrappers.h"
 #include "drmtest.h"
 
+IGT_TEST_DESCRIPTION("Test that context cannot be submitted to unsupported"
+		     " rings.");
+
 /* Copied from gem_exec_nop.c */
 static int exec(int fd, uint32_t handle, int ring, int ctx_id)
 {

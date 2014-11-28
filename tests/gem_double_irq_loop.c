@@ -53,6 +53,8 @@ static drm_intel_bo *target_buffer, *blt_bo;
  * on the second batch. This hopefully catches races in our irq acknowledgement.
  */
 
+IGT_TEST_DESCRIPTION("Basic check for missed IRQs on blt ring.");
+
 
 #define MI_COND_BATCH_BUFFER_END	(0x36<<23 | 1)
 #define MI_DO_COMPARE			(1<<21)

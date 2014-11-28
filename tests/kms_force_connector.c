@@ -27,6 +27,9 @@
 #include "drmtest.h"
 #include "igt_edid.h"
 
+IGT_TEST_DESCRIPTION("Check the debugfs force connector/edid features work"
+		     " correctly.");
+
 int
 main (int argc, char **argv)
 {

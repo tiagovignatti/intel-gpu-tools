@@ -48,6 +48,9 @@
 
 #include "eviction_common.c"
 
+IGT_TEST_DESCRIPTION("Run a couple of big batches to force the eviction"
+		     " code.");
+
 #define HEIGHT 256
 #define WIDTH 1024
 

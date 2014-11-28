@@ -54,6 +54,8 @@
 #include "intel_io.h"
 #include "igt_aux.h"
 
+IGT_TEST_DESCRIPTION("Check whether we correctly invalidate the cs tlb.");
+
 #define LOCAL_I915_EXEC_VEBOX (4<<0)
 #define BATCH_SIZE (1024*1024)
 

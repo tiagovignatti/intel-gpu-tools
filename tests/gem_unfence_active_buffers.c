@@ -55,6 +55,8 @@
 #include "intel_io.h"
 #include "intel_chipset.h"
 
+IGT_TEST_DESCRIPTION("Check for use-after-free in the fence stealing code.");
+
 static drm_intel_bufmgr *bufmgr;
 struct intel_batchbuffer *batch;
 uint32_t devid;

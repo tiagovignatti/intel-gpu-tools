@@ -43,6 +43,8 @@
 #include "intel_io.h"
 #include "igt_aux.h"
 
+IGT_TEST_DESCRIPTION("Test execbuf fence accounting.");
+
 #define WIDTH 1024
 #define HEIGHT 1024
 #define OBJECT_SIZE (4*WIDTH*HEIGHT)

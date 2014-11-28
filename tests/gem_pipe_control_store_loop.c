@@ -47,6 +47,8 @@
 #include "intel_chipset.h"
 #include "intel_io.h"
 
+IGT_TEST_DESCRIPTION("Test (TLB-)Coherency of pipe_control QW writes.");
+
 static drm_intel_bufmgr *bufmgr;
 struct intel_batchbuffer *batch;
 uint32_t devid;

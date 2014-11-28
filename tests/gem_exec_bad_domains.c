@@ -46,6 +46,9 @@
  * If it does not, it'll oops somewhen later on because we don't expect that.
  */
 
+IGT_TEST_DESCRIPTION("Test whether the kernel rejects relocations with non-gpu"
+		     " domains.");
+
 static drm_intel_bufmgr *bufmgr;
 struct intel_batchbuffer *batch;
 

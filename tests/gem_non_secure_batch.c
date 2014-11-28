@@ -42,6 +42,8 @@
 #include "intel_io.h"
 #include "i830_reg.h"
 
+IGT_TEST_DESCRIPTION("Basic check of non-secure batches.");
+
 static drm_intel_bufmgr *bufmgr;
 struct intel_batchbuffer *batch;
 

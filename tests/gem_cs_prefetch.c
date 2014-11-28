@@ -54,6 +54,8 @@
 #include "intel_chipset.h"
 #include "igt_aux.h"
 
+IGT_TEST_DESCRIPTION("Test the CS prefetch behaviour on batches.");
+
 static drm_intel_bufmgr *bufmgr;
 struct intel_batchbuffer *batch;
 

@@ -58,6 +58,9 @@
 #include "intel_io.h"
 #include "igt_aux.h"
 
+IGT_TEST_DESCRIPTION("Test doing many tiled blits, with a working set larger"
+		     " than the aperture size.");
+
 static drm_intel_bufmgr *bufmgr;
 struct intel_batchbuffer *batch;
 static int width = 512, height = 512;

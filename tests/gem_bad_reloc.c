@@ -42,6 +42,9 @@
 #include "intel_io.h"
 #include "intel_chipset.h"
 
+IGT_TEST_DESCRIPTION("Simulates SNA behaviour using negative self-relocations"
+		     " for STATE_BASE_ADDRESS command packets.");
+
 #define USE_LUT (1 << 12)
 
 /* Simulates SNA behaviour using negative self-relocations for

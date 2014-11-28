@@ -41,6 +41,8 @@
 #include "intel_io.h"
 #include "intel_chipset.h"
 
+IGT_TEST_DESCRIPTION("Basic vebox MI check using MI_STORE_DATA_IMM.");
+
 #define LOCAL_I915_EXEC_VEBOX (4<<0)
 
 static drm_intel_bufmgr *bufmgr;

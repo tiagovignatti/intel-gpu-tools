@@ -54,6 +54,8 @@
 #include "intel_chipset.h"
 #include "igt_aux.h"
 
+IGT_TEST_DESCRIPTION("Advanced test for the render_copy() function.");
+
 #define WIDTH 512
 #define STRIDE (WIDTH*4)
 #define HEIGHT 512
