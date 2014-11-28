@@ -878,14 +878,14 @@ static unsigned int run_test_step(struct test_output *o)
 	if (o->flags & TEST_DPMS_OFF_OTHERS)
 		dpms_off_other_outputs(o);
 
+	if (!(o->flags & TEST_SINGLE_BUFFER))
+		o->current_fb_id = !o->current_fb_id;
+
 	if (o->flags & TEST_WITH_DUMMY_BCS)
 		emit_dummy_load__bcs(o, 1);
 
 	if (o->flags & TEST_WITH_DUMMY_RCS)
 		emit_dummy_load__rcs(o, 1);
-
-	if (!(o->flags & TEST_SINGLE_BUFFER))
-		o->current_fb_id = !o->current_fb_id;
 
 	if (o->flags & TEST_FB_RECREATE)
 		recreate_fb(o);
