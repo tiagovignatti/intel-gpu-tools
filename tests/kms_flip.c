@@ -867,10 +867,16 @@ static unsigned int run_test_step(struct test_output *o)
 
 		/* modeset/DPMS is done, vblank wait should work normally now */
 		start = gettime_us();
-		igt_assert(__wait_for_vblank(TEST_VBLANK_BLOCK, o->pipe, 1, 0, &reply) == 0);
+		igt_assert(__wait_for_vblank(TEST_VBLANK_BLOCK, o->pipe, 2, 0, &reply) == 0);
 		end = gettime_us();
-		igt_assert(end - start > 1 * frame_time(o) / 2 &&
-			   end - start < 3 * frame_time(o) / 2);
+		/*
+		 * we waited for two vblanks, so verify that
+		 * we were blocked for ~1-2 frames.
+		 */
+		igt_assert_f(end - start > 0.9 * frame_time(o) &&
+			     end - start < 2.1 * frame_time(o),
+			     "wait for two vblanks took %lu usec (frame time %f usec)\n",
+			     end - start, frame_time(o));
 		join_vblank_wait_thread();
 	}
 
