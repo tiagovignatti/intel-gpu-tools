@@ -57,6 +57,7 @@
 
 #define WIDTH	512
 #define HEIGHT	512
+#define NUM_BUSY_BUFFERS 32
 
 typedef struct {
 	int drm_fd;
@@ -163,11 +164,13 @@ static void render_busy(data_t *data)
 	size_t array_size;
 	int i;
 
-	array_size = data->n_buffers_load * sizeof(struct igt_buf);
+	/* allocate 32 buffer objects and re-use them as needed */
+	array_size = NUM_BUSY_BUFFERS * sizeof(struct igt_buf);
+
 	data->render.srcs = malloc(array_size);
 	data->render.dsts = malloc(array_size);
 
-	for (i = 0; i < data->n_buffers_load; i++) {
+	for (i = 0; i < NUM_BUSY_BUFFERS; i++) {
 		scratch_buf_init(data, &data->render.srcs[i], WIDTH, HEIGHT,
 				 0xdeadbeef);
 		scratch_buf_init(data, &data->render.dsts[i], WIDTH, HEIGHT,
@@ -177,10 +180,10 @@ static void render_busy(data_t *data)
 	for (i = 0; i < data->n_buffers_load; i++) {
 		data->render.copy(data->batch,
 				  NULL,			/* context */
-				  &data->render.srcs[i],
+				  &data->render.srcs[i % NUM_BUSY_BUFFERS],
 				  0, 0,			/* src_x, src_y */
 				  WIDTH, HEIGHT,
-				  &data->render.dsts[i],
+				  &data->render.dsts[i % NUM_BUSY_BUFFERS],
 				  0, 0			/* dst_x, dst_y */);
 	}
 }
@@ -189,7 +192,7 @@ static void render_busy_fini(data_t *data)
 {
 	int i;
 
-	for (i = 0; i < data->n_buffers_load; i++) {
+	for (i = 0; i < NUM_BUSY_BUFFERS; i++) {
 		drm_intel_bo_unreference(data->render.srcs[i].bo);
 		drm_intel_bo_unreference(data->render.dsts[i].bo);
 	}
@@ -225,11 +228,13 @@ static void blitter_busy(data_t *data)
 	size_t array_size;
 	int i;
 
-	array_size = data->n_buffers_load * sizeof(drm_intel_bo *);
+	/* allocate 32 buffer objects and re-use them as needed */
+	array_size = NUM_BUSY_BUFFERS * sizeof(drm_intel_bo *);
+
 	data->blitter.srcs = malloc(array_size);
 	data->blitter.dsts = malloc(array_size);
 
-	for (i = 0; i < data->n_buffers_load; i++) {
+	for (i = 0; i < NUM_BUSY_BUFFERS; i++) {
 		data->blitter.srcs[i] = bo_create(data,
 						  WIDTH, HEIGHT,
 						  0xdeadbeef);
@@ -240,8 +245,8 @@ static void blitter_busy(data_t *data)
 
 	for (i = 0; i < data->n_buffers_load; i++) {
 		intel_copy_bo(data->batch,
-			      data->blitter.srcs[i],
-			      data->blitter.dsts[i],
+			      data->blitter.srcs[i % NUM_BUSY_BUFFERS],
+			      data->blitter.dsts[i % NUM_BUSY_BUFFERS],
 			      WIDTH*HEIGHT*4);
 	}
 }
@@ -250,7 +255,7 @@ static void blitter_busy_fini(data_t *data)
 {
 	int i;
 
-	for (i = 0; i < data->n_buffers_load; i++) {
+	for (i = 0; i < NUM_BUSY_BUFFERS; i++) {
 		drm_intel_bo_unreference(data->blitter.srcs[i]);
 		drm_intel_bo_unreference(data->blitter.dsts[i]);
 	}
