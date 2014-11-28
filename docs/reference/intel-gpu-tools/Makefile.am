@@ -39,7 +39,16 @@ xml/igt_test_programs_%_description.xml: $(TESTLISTS)
 			testprog=$(top_srcdir)/tests/$$test; \
 		fi; \
 		 ./$$testprog --help-description >> $@; \
-		echo "</para></refsect2>" >> $@; \
+		echo "</para>" >> $@; \
+		if ./$$testprog --list-subtests > /dev/null ; then \
+			echo "<refsect3><title>Subtests</title>" >> $@; \
+			echo "<simplelist>" >> $@; \
+			for subtest in `./$$testprog --list-subtests`; do \
+				echo "<member>$$subtest</member>" >> $@; \
+			done; \
+			echo "</simplelist></refsect3>" >> $@; \
+		fi; \
+		echo "</refsect2>" >> $@; \
 	done;
 	echo "</refsect1>" >> $@
 
