@@ -91,3 +91,39 @@ expression E;
 @@
 - assert(E);
 + igt_assert(E);
+
+// Replace open-coded swap()
+@@
+type T;
+T a, b, tmp;
+@@
+- tmp = a;
+- a = b;
+- b = tmp;
++ swap(a, b);
+
+// Replace open-coded min()
+@@
+expression a;
+expression b;
+@@
+(
+- ((a) < (b) ? (a) : (b))
++ min(a, b)
+|
+- ((a) <= (b) ? (a) : (b))
++ min(a, b)
+)
+
+// Replace open-coded max()
+@@
+expression a;
+expression b;
+@@
+(
+- ((a) > (b) ? (a) : (b))
++ max(a, b)
+|
+- ((a) >= (b) ? (a) : (b))
++ max(a, b)
+)
