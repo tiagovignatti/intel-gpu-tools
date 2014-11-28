@@ -36,14 +36,14 @@ xml/igt_test_programs_%_description.xml: $(TESTLISTS)
 	for test in `cat $(TESTLISTS) | tr ' ' '\n' | grep "^$*" | sort`; do \
 		echo "<refsect2 id=\"$$test\"><title>" >> $@; \
 		echo "$$test" | perl -pe 's/(?<=_)$(KEYWORDS)(?=(_|\W))/<acronym>\1<\/acronym>/g' >> $@; \
-		echo "</title><para>" >> $@; \
+		echo "</title><para><![CDATA[" >> $@; \
 		if [ -x $(top_builddir)/tests/$$test ]; then \
 			testprog=$(top_builddir)/tests/$$test; \
 		else \
 			testprog=$(top_srcdir)/tests/$$test; \
 		fi; \
 		 ./$$testprog --help-description >> $@; \
-		echo "</para>" >> $@; \
+		echo "]]></para>" >> $@; \
 		if ./$$testprog --list-subtests > /dev/null ; then \
 			echo "<refsect3><title>Subtests</title>" >> $@; \
 			echo "<simplelist>" >> $@; \
