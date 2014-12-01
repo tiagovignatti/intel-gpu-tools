@@ -163,26 +163,6 @@ static int get_line_count(const char *s)
 	return count;
 }
 
-static void check_other_clients(void)
-{
-	char tmp[1024];
-	char *s;
-	int dev, pid, uid, magic;
-
-	read_dfs("clients", tmp, sizeof(tmp));
-	if (get_line_count(tmp) <= 2)
-		return;
-
-	s = strstr(tmp, "y");
-	igt_assert(s != NULL);
-	igt_assert(sscanf(s, "y %d %d %d %d",
-			  &dev, &pid, &uid, &magic) == 4);
-
-	igt_debug("client %d %d %d %d\n", dev, pid, uid, magic);
-	igt_assert(pid == getpid());
-	igt_debug("found myself in client list\n");
-}
-
 #define MAGIC_NUMBER 0x10001
 const uint32_t batch[] = { MI_NOOP,
 			   MI_BATCH_BUFFER_END,
@@ -252,7 +232,6 @@ static void test_error_state_basic(void)
 {
 	int fd;
 
-	check_other_clients();
 	clear_error_state();
 	assert_error_state_clear();
 
@@ -406,7 +385,6 @@ static void test_error_state_capture(unsigned ring_id,
 	uint64_t offset;
 	bool cmd_parser;
 
-	check_other_clients();
 	clear_error_state();
 
 	fd = drm_open_any();
