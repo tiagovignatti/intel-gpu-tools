@@ -35,9 +35,11 @@
           </varlistentry>
 
           <varlistentry>
-            <term><option>--debug</option></term>
+            <term><option>--debug[=log-domain]</option></term>
             <listitem><para>
-                print extra debugging information when running tests
+                print extra debugging information when running tests and
+                optionaly only show the messages from the specified log domain
+                (use "application" to specifiy the default application domain)
             </para></listitem>
           </varlistentry>
 

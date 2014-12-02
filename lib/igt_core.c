@@ -228,6 +228,8 @@ enum {
  OPT_HELP = 'h'
 };
 
+static char* igt_log_domain_filter;
+
 __attribute__((format(printf, 1, 2)))
 static void kmsg(const char *format, ...)
 #define KERN_EMER	"<0>"
@@ -390,7 +392,7 @@ static void print_usage(const char *help_str, bool output_on_stderr)
 	fprintf(f, "Usage: %s [OPTIONS]\n", command_str);
 	fprintf(f, "  --list-subtests\n"
 		   "  --run-subtest <pattern>\n"
-		   "  --debug\n"
+		   "  --debug[=log-domain]\n"
 		   "  --help-description\n"
 		   "  --help\n");
 	if (help_str)
@@ -422,7 +424,7 @@ static int common_init(int argc, char **argv,
 		{"list-subtests", 0, 0, OPT_LIST_SUBTESTS},
 		{"run-subtest", 1, 0, OPT_RUN_SUBTEST},
 		{"help-description", 0, 0, OPT_DESCRIPTION},
-		{"debug", 0, 0, OPT_DEBUG},
+		{"debug", optional_argument, 0, OPT_DEBUG},
 		{"help", 0, 0, OPT_HELP},
 		{0, 0, 0, 0}
 	};
@@ -510,6 +512,8 @@ static int common_init(int argc, char **argv,
 		switch(c) {
 		case OPT_DEBUG:
 			igt_log_level = IGT_LOG_DEBUG;
+			if (optarg && strlen(optarg) > 0)
+				igt_log_domain_filter = strdup(optarg);
 			break;
 		case OPT_LIST_SUBTESTS:
 			if (!run_single_subtest)
@@ -1475,6 +1479,15 @@ void igt_vlog(const char *domain, enum igt_log_level level, const char *format, 
 
 	if (igt_log_level > level)
 		return;
+
+	if (igt_log_domain_filter) {
+		/* if null domain and filter is not "application", return */
+		if (!domain && strcmp(igt_log_domain_filter, "application"))
+			return;
+		/* else if domain and filter do not match, return */
+		else if (domain && strcmp(igt_log_domain_filter, domain))
+			return;
+	}
 
 	if (level == IGT_LOG_WARN) {
 		file = stderr;
