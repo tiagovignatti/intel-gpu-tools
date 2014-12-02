@@ -134,6 +134,7 @@ kms_flip
 kms_flip_event_leak
 kms_flip_tiling
 kms_force_connector
+kms_frontbuffer_tracking
 kms_legacy_colorkey
 kms_mmio_vs_cs_flip
 kms_pipe_b_c_ivb
