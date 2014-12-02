@@ -165,12 +165,11 @@ igt_main
 		threads = calloc(num_threads, sizeof(struct thread));
 		igt_assert(threads);
 
-		igt_log(IGT_LOG_INFO,
-			"Using %d 1MiB objects (available RAM: %ld/%ld, swap: %ld)\n",
-			count,
-			(long)intel_get_avail_ram_mb(),
-			(long)intel_get_total_ram_mb(),
-			(long)intel_get_total_swap_mb());
+		igt_info("Using %d 1MiB objects (available RAM: %ld/%ld, swap: %ld)\n",
+			 count,
+			 (long)intel_get_avail_ram_mb(),
+			 (long)intel_get_total_ram_mb(),
+			 (long)intel_get_total_swap_mb());
 		intel_require_memory(count, 1024*1024, CHECK_RAM | CHECK_SWAP);
 
 		for (n = 0; n < count; n++) {
