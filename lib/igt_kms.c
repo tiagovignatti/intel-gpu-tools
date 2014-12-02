@@ -855,7 +855,7 @@ igt_display_log(igt_display_t *display, const char *fmt, ...)
 	igt_debug("display: ");
 	for (i = 0; i < display->log_shift; i++)
 		igt_debug("%s", LOG_SPACES);
-	igt_vlog(IGT_LOG_DEBUG, fmt, args);
+	igt_vlog(IGT_LOG_DOMAIN, IGT_LOG_DEBUG, fmt, args);
 	va_end(args);
 }
 

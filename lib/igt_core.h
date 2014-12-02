@@ -512,16 +512,20 @@ bool igt_run_in_simulation(void);
 void igt_skip_on_simulation(void);
 
 /* structured logging */
+#ifndef IGT_LOG_DOMAIN
+#define IGT_LOG_DOMAIN (NULL)
+#endif
+
 enum igt_log_level {
 	IGT_LOG_DEBUG,
 	IGT_LOG_INFO,
 	IGT_LOG_WARN,
 	IGT_LOG_NONE,
 };
-__attribute__((format(printf, 2, 3)))
-void igt_log(enum igt_log_level level, const char *format, ...);
-__attribute__((format(printf, 2, 0)))
-void igt_vlog(enum igt_log_level level, const char *format, va_list args);
+__attribute__((format(printf, 3, 4)))
+void igt_log(const char *domain, enum igt_log_level level, const char *format, ...);
+__attribute__((format(printf, 3, 0)))
+void igt_vlog(const char *domain, enum igt_log_level level, const char *format, va_list args);
 
 /**
  * igt_debug:
@@ -529,7 +533,7 @@ void igt_vlog(enum igt_log_level level, const char *format, va_list args);
  *
  * Wrapper for igt_log() for message at the IGT_LOG_DEBUG level.
  */
-#define igt_debug(f...) igt_log(IGT_LOG_DEBUG, f)
+#define igt_debug(f...) igt_log(IGT_LOG_DOMAIN, IGT_LOG_DEBUG, f)
 
 /**
  * igt_info:
@@ -537,7 +541,7 @@ void igt_vlog(enum igt_log_level level, const char *format, va_list args);
  *
  * Wrapper for igt_log() for message at the IGT_LOG_INFO level.
  */
-#define igt_info(f...) igt_log(IGT_LOG_INFO, f)
+#define igt_info(f...) igt_log(IGT_LOG_DOMAIN, IGT_LOG_INFO, f)
 
 /**
  * igt_warn:
@@ -545,7 +549,7 @@ void igt_vlog(enum igt_log_level level, const char *format, va_list args);
  *
  * Wrapper for igt_log() for message at the IGT_LOG_WARN level.
  */
-#define igt_warn(f...) igt_log(IGT_LOG_WARN, f)
+#define igt_warn(f...) igt_log(IGT_LOG_DOMAIN, IGT_LOG_WARN, f)
 extern enum igt_log_level igt_log_level;
 
 /**

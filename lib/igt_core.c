@@ -1429,12 +1429,12 @@ void igt_skip_on_simulation(void)
  * are disabled. "none" completely disables all output and is not recommended
  * since crucial issues only reported at the IGT_LOG_WARN level are ignored.
  */
-void igt_log(enum igt_log_level level, const char *format, ...)
+void igt_log(const char *domain, enum igt_log_level level, const char *format, ...)
 {
 	va_list args;
 
 	va_start(args, format);
-	igt_vlog(level, format, args);
+	igt_vlog(domain, level, format, args);
 	va_end(args);
 }
 
@@ -1451,9 +1451,24 @@ void igt_log(enum igt_log_level level, const char *format, ...)
  * If there is no need to wrap up a vararg list in the caller it is simpler to
  * just use igt_log().
  */
-void igt_vlog(enum igt_log_level level, const char *format, va_list args)
+void igt_vlog(const char *domain, enum igt_log_level level, const char *format, va_list args)
 {
+	FILE *file;
+	const char *program_name;
+	const char *igt_log_level_str[] = {
+		"DEBUG",
+		"INFO",
+		"WARNING",
+		"NONE"
+	};
+
 	assert(format);
+
+#ifdef __GLIBC__
+	program_name = program_invocation_short_name;
+#else
+	program_name = command_str;
+#endif
 
 	if (list_subtests)
 		return;
@@ -1462,10 +1477,18 @@ void igt_vlog(enum igt_log_level level, const char *format, va_list args)
 		return;
 
 	if (level == IGT_LOG_WARN) {
+		file = stderr;
 		fflush(stdout);
-		vfprintf(stderr, format, args);
-	} else
-		vprintf(format, args);
+	}
+	else
+		file = stdout;
+
+	if (level != IGT_LOG_INFO) {
+		fprintf(file, "(%s:%d) %s%s%s: ", program_name, getpid(),
+			(domain) ? domain : "", (domain) ? "-" : "",
+			igt_log_level_str[level]);
+	}
+	vfprintf(file, format, args);
 }
 
 static void igt_alarm_handler(int signal)
