@@ -112,6 +112,7 @@ TESTS_progs = \
 	gem_lut_handle \
 	gem_mmap_offset_exhaustion \
 	gem_media_fill \
+	gem_gpgpu_fill \
 	gem_pin \
 	gem_reg_read \
 	gem_render_copy \
