@@ -160,6 +160,11 @@ static void test_forking_evictions(int fd, int size, int count,
 	forking_evictions(fd, &fault_ops, size, count, trash_count, flags);
 }
 
+static void test_mlocked_evictions(int fd, int size, int count)
+{
+	mlocked_evictions(fd, &fault_ops, size, count);
+}
+
 static void test_swapping_evictions(int fd, int size, int count)
 {
 	int trash_count;
@@ -205,6 +210,9 @@ igt_main
 		}
 	}
 
+	igt_subtest("mlocked-normal")
+		test_mlocked_evictions(fd, size, count);
+
 	igt_subtest("swapping-normal")
 		test_swapping_evictions(fd, size, count);
 
@@ -224,6 +232,9 @@ igt_main
 
 	igt_fork_signal_helper();
 
+	igt_subtest("mlocked-interruptible")
+		test_mlocked_evictions(fd, size, count);
+
 	igt_subtest("swapping-interruptible")
 		test_swapping_evictions(fd, size, count);
 
@@ -237,6 +248,14 @@ igt_main
 	}
 
 	if (igt_fork_hang_helper()) {
+		igt_fixture {
+			size = 1024 * 1024;
+			count = 3*gem_aperture_size(fd) / size / 4;
+		}
+
+		igt_subtest("mlocked-hang")
+			test_mlocked_evictions(fd, size, count);
+
 		igt_subtest("swapping-hang")
 			test_swapping_evictions(fd, size, count);
 

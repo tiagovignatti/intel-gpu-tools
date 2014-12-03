@@ -130,6 +130,90 @@ static int major_evictions(int fd, struct igt_eviction_test_ops *ops,
 	return 0;
 }
 
+static void mlocked_evictions(int fd, struct igt_eviction_test_ops *ops,
+			      int surface_size,
+			      int surface_count)
+{
+	size_t sz, pin;
+	int result[2];
+	void *locked;
+	int ret = -1;
+
+	intel_require_memory(surface_count, surface_size, CHECK_RAM);
+	igt_assert(pipe(result) == 0);
+
+	sz = surface_size*surface_count;
+	pin = intel_get_avail_ram_mb();
+	pin *= 1024 * 1024;
+	igt_require(pin > sz);
+	pin -= 3*sz/2;
+
+	igt_debug("Pinning [%ld, %ld] MiB\n",
+		  (long)pin/(1024*1024), (long)(pin + sz)/(1024*1024));
+
+	locked = malloc(pin + sz);
+	if (locked != NULL && mlock(locked, pin + sz)) {
+		free(locked);
+		locked = NULL;
+	} else {
+		munlock(locked, pin + sz);
+		free(locked);
+	}
+	igt_require(locked);
+
+	igt_fork(child, 1) {
+		uint32_t *bo;
+		int n;
+
+		bo = malloc(surface_count*sizeof(*bo));
+		igt_assert(bo);
+
+		locked = malloc(pin);
+		if (locked == NULL || mlock(locked, pin)) {
+			ret = ENOSPC;
+			goto out;
+		}
+
+		for (n = 0; n < surface_count; n++)
+			bo[n] = ops->create(fd, surface_size);
+
+		ret = 0;
+		for (n = 0; n < surface_count - 2; n++) {
+			igt_permute_array(bo, surface_count, exchange_uint32_t);
+			ret = ops->copy(fd, bo[0], bo[1], bo, surface_count-n);
+			if (ret)
+				break;
+
+			/* Having used the surfaces (and so pulled out of
+			 * our pages into memory), start a memory hog to
+			 * force evictions.
+			 */
+
+			locked = malloc(surface_size);
+			if (locked == NULL || mlock(locked, surface_size)) {
+				ret = ENOSPC;
+				goto out;
+			}
+		}
+
+		for (n = 0; n < surface_count; n++)
+			ops->close(fd, bo[n]);
+
+out:
+		write(result[1], &ret, sizeof(ret));
+	}
+
+	igt_waitchildren();
+
+	fcntl(result[0], F_SETFL, fcntl(result[0], F_GETFL) | O_NONBLOCK);
+	read(result[0], &ret, sizeof(ret));
+	close(result[0]);
+	close(result[1]);
+
+	errno = ret;
+	igt_assert(ret == 0);
+}
+
 static int swapping_evictions(int fd, struct igt_eviction_test_ops *ops,
 			      int surface_size,
 			      int working_surfaces,

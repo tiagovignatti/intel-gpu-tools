@@ -1028,6 +1028,12 @@ static void test_forking_evictions(int fd, int size, int count,
 	reset_handle_ptr();
 }
 
+static void test_mlocked_evictions(int fd, int size, int count)
+{
+	mlocked_evictions(fd, &fault_ops, size, count);
+	reset_handle_ptr();
+}
+
 static void test_swapping_evictions(int fd, int size, int count)
 {
 	int trash_count;
@@ -1395,6 +1401,9 @@ int main(int argc, char **argv)
 		}
 	}
 
+	igt_subtest("mlocked-unsync-normal")
+		test_mlocked_evictions(fd, size, count);
+
 	igt_subtest("swapping-unsync-normal")
 		test_swapping_evictions(fd, size, count);
 
@@ -1415,6 +1424,9 @@ int main(int argc, char **argv)
 	}
 
 	igt_fork_signal_helper();
+
+	igt_subtest("mlocked-unsync-interruptible")
+		test_mlocked_evictions(fd, size, count);
 
 	igt_subtest("swapping-unsync-interruptible")
 		test_swapping_evictions(fd, size, count);
@@ -1495,6 +1507,9 @@ int main(int argc, char **argv)
 		}
 	}
 
+	igt_subtest("mlocked-normal-sync")
+		test_mlocked_evictions(fd, size, count);
+
 	igt_subtest("swapping-normal-sync")
 		test_swapping_evictions(fd, size, count);
 
@@ -1515,6 +1530,9 @@ int main(int argc, char **argv)
 	}
 
 	igt_fork_signal_helper();
+
+	igt_subtest("mlocked-sync-interruptible")
+		test_mlocked_evictions(fd, size, count);
 
 	igt_subtest("swapping-sync-interruptible")
 		test_swapping_evictions(fd, size, count);
