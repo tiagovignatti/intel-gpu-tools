@@ -195,7 +195,7 @@ void intel_copy_bo(struct intel_batchbuffer *batch,
  *
  * This is a i-g-t buffer object wrapper structure which augments the baseline
  * libdrm buffer object with suitable data needed by the render copy and the
- * media fill functions.
+ * fill functions.
  */
 struct igt_buf {
     drm_intel_bo *bo;
@@ -240,7 +240,7 @@ typedef void (*igt_render_copyfunc_t)(struct intel_batchbuffer *batch,
 igt_render_copyfunc_t igt_get_render_copyfunc(int devid);
 
 /**
- * igt_media_fillfunc_t:
+ * igt_fillfunc_t:
  * @batch: batchbuffer object
  * @dst: destination i-g-t buffer object
  * @x: destination pixel x-coordination
@@ -249,19 +249,19 @@ igt_render_copyfunc_t igt_get_render_copyfunc(int devid);
  * @height: height of the filled rectangle
  * @color: fill color to use
  *
- * This is the type of the per-platform media fill functions. The
- * platform-specific implementation can be obtained by calling
- * igt_get_media_fillfunc().
+ * This is the type of the per-platform fill functions using media
+ * pipeline. The platform-specific implementation can be obtained
+ * by calling igt_get_media_fillfunc().
  *
- * A media fill function will emit a batchbuffer to the kernel which executes
+ * A fill function will emit a batchbuffer to the kernel which executes
  * the specified blit fill operation using the media engine.
  */
-typedef void (*igt_media_fillfunc_t)(struct intel_batchbuffer *batch,
-				     struct igt_buf *dst,
-				     unsigned x, unsigned y,
-				     unsigned width, unsigned height,
-				     uint8_t color);
+typedef void (*igt_fillfunc_t)(struct intel_batchbuffer *batch,
+			       struct igt_buf *dst,
+			       unsigned x, unsigned y,
+			       unsigned width, unsigned height,
+			       uint8_t color);
 
-igt_media_fillfunc_t igt_get_media_fillfunc(int devid);
+igt_fillfunc_t igt_get_media_fillfunc(int devid);
 
 #endif

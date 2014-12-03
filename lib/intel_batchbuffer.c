@@ -496,9 +496,9 @@ igt_render_copyfunc_t igt_get_render_copyfunc(int devid)
  * The platform-specific media fill function pointer for the device specified
  * with @devid. Will return NULL when no media fill function is implemented.
  */
-igt_media_fillfunc_t igt_get_media_fillfunc(int devid)
+igt_fillfunc_t igt_get_media_fillfunc(int devid)
 {
-	igt_media_fillfunc_t fill = NULL;
+	igt_fillfunc_t fill = NULL;
 
 	if (IS_GEN9(devid))
 		fill = gen9_media_fillfunc;

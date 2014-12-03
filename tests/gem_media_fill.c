@@ -101,7 +101,7 @@ igt_simple_main
 	data_t data = {0, };
 	struct intel_batchbuffer *batch = NULL;
 	struct igt_buf dst;
-	igt_media_fillfunc_t media_fill = NULL;
+	igt_fillfunc_t media_fill = NULL;
 	int i, j;
 
 	data.drm_fd = drm_open_any_render();
