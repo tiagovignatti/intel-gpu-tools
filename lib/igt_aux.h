@@ -30,6 +30,7 @@
 
 #include <intel_bufmgr.h>
 #include <stdbool.h>
+#include <sys/time.h>
 
 extern drm_intel_bo **trash_bos;
 extern int num_trash_bos;
@@ -101,5 +102,47 @@ void intel_require_memory(uint32_t count, uint32_t size, unsigned mode);
 
 void igt_lock_mem(size_t size);
 void igt_unlock_mem(void);
+
+/**
+ * igt_wait:
+ * @COND: condition to wait
+ * @timeout_ms: timeout in milliseconds
+ * @interval_ms: amount of time we try to sleep between COND checks
+ *
+ * Waits until COND evaluates to true or the timeout passes.
+ *
+ * It is safe to call this macro if the signal helper is active. The only
+ * problem is that the usleep() calls will return early, making us evaluate COND
+ * too often, possibly eating valuable CPU cycles.
+ *
+ * Returns:
+ * True of COND evaluated to true, false otherwise.
+ */
+#define igt_wait(COND, timeout_ms, interval_ms) ({			\
+	struct timeval start_, end_, diff_;				\
+	int elapsed_ms_;						\
+	bool ret_ = false;						\
+									\
+	igt_assert(gettimeofday(&start_, NULL) == 0);			\
+	do {								\
+		if (COND) {						\
+			ret_ = true;					\
+			break;						\
+		}							\
+									\
+		usleep(interval_ms * 1000);				\
+									\
+		igt_assert(gettimeofday(&end_, NULL) == 0);		\
+		timersub(&end_, &start_, &diff_);			\
+									\
+		elapsed_ms_ = diff_.tv_sec * 1000 +			\
+			      diff_.tv_usec / 1000;			\
+	} while (elapsed_ms_ < timeout_ms);				\
+									\
+	if (!ret_ && (COND))						\
+		ret_ = true;						\
+									\
+	ret_;								\
+})
 
 #endif /* IGT_AUX_H */

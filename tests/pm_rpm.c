@@ -153,24 +153,16 @@ static uint64_t get_residency(uint32_t type)
 
 static bool pc8_plus_residency_changed(unsigned int timeout_sec)
 {
-	unsigned int i;
 	uint64_t res_pc8, res_pc9, res_pc10;
-	int to_sleep = 100 * 1000;
 
 	res_pc8 = get_residency(MSR_PC8_RES);
 	res_pc9 = get_residency(MSR_PC9_RES);
 	res_pc10 = get_residency(MSR_PC10_RES);
 
-	for (i = 0; i < timeout_sec * 1000 * 1000; i += to_sleep) {
-		if (res_pc8 != get_residency(MSR_PC8_RES) ||
-		    res_pc9 != get_residency(MSR_PC9_RES) ||
-		    res_pc10 != get_residency(MSR_PC10_RES)) {
-			return true;
-		}
-		usleep(to_sleep);
-	}
-
-	return false;
+	return igt_wait(res_pc8 != get_residency(MSR_PC8_RES) ||
+			res_pc9 != get_residency(MSR_PC9_RES) ||
+			res_pc10 != get_residency(MSR_PC10_RES),
+			timeout_sec * 1000, 100);
 }
 
 static enum pc8_status get_pc8_status(void)
@@ -191,17 +183,7 @@ static enum pc8_status get_pc8_status(void)
 
 static bool wait_for_pc8_status(enum pc8_status status)
 {
-	int i;
-	int hundred_ms = 100 * 1000, ten_s = 10 * 1000 * 1000;
-
-	for (i = 0; i < ten_s; i += hundred_ms) {
-		if (get_pc8_status() == status)
-			return true;
-
-		usleep(hundred_ms);
-	}
-
-	return false;
+	return igt_wait(get_pc8_status() == status, 10000, 100);
 }
 
 static bool wait_for_suspended(void)

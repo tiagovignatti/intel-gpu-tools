@@ -606,29 +606,13 @@ enum igt_runtime_pm_status igt_get_runtime_pm_status(void)
  * Waits until for the driver to switch to into the desired runtime PM status,
  * with a 10 second timeout.
  *
- * Some subtests call this function while the signal helper is active, so we
- * can't assume each usleep() call will sleep for 100ms.
- *
  * Returns:
  * True if the desired runtime PM status was attained, false if the operation
  * timed out.
  */
 bool igt_wait_for_pm_status(enum igt_runtime_pm_status status)
 {
-	struct timeval start, end, diff;
-
-	igt_assert(gettimeofday(&start, NULL) == 0);
-	do {
-		if (igt_get_runtime_pm_status() == status)
-			return true;
-
-		usleep(100 * 1000);
-
-		igt_assert(gettimeofday(&end, NULL) == 0);
-		timersub(&end, &start, &diff);
-	} while (diff.tv_sec < 10);
-
-	return false;
+	return igt_wait(igt_get_runtime_pm_status() == status, 10000, 100);
 }
 
 /* Functions with prefix kmstest_ independent of cairo library are pulled out
