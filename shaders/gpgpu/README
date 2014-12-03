@@ -1,0 +1,4 @@
+
+Commands used to generate the shader on gen7
+$> m4 gpgpu_fill.gxa > gpgpu_fill.gxm
+$> intel-gen4asm -g 7 -o <output> gpgpu_fill.gxm

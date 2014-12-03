@@ -179,6 +179,7 @@
 #define GEN7_PIPELINE_SELECT			GFXPIPE(1, 1, 4)
 # define PIPELINE_SELECT_3D			(0 << 0)
 # define PIPELINE_SELECT_MEDIA			(1 << 0)
+# define PIPELINE_SELECT_GPGPU			(2 << 0)
 
 #define GEN7_STATE_BASE_ADDRESS			GFXPIPE(0, 1, 1)
 # define BASE_ADDRESS_MODIFY			(1 << 0)
@@ -187,6 +188,7 @@
 #define GEN7_MEDIA_CURBE_LOAD			GFXPIPE(2, 0, 1)
 #define GEN7_MEDIA_INTERFACE_DESCRIPTOR_LOAD	GFXPIPE(2, 0, 2)
 #define GEN7_MEDIA_OBJECT			GFXPIPE(2, 1, 0)
+#define GEN7_GPGPU_WALKER                       GFXPIPE(2, 1, 5)
 
 struct gen7_interface_descriptor_data
 {

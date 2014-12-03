@@ -8,12 +8,28 @@
 
 #include <assert.h>
 
-
 static const uint32_t media_kernel[][4] = {
 	{ 0x00400001, 0x20200231, 0x00000020, 0x00000000 },
 	{ 0x00600001, 0x20800021, 0x008d0000, 0x00000000 },
 	{ 0x00200001, 0x20800021, 0x00450040, 0x00000000 },
 	{ 0x00000001, 0x20880061, 0x00000000, 0x000f000f },
+	{ 0x00800001, 0x20a00021, 0x00000020, 0x00000000 },
+	{ 0x00800001, 0x20e00021, 0x00000020, 0x00000000 },
+	{ 0x00800001, 0x21200021, 0x00000020, 0x00000000 },
+	{ 0x00800001, 0x21600021, 0x00000020, 0x00000000 },
+	{ 0x05800031, 0x24001ca8, 0x00000080, 0x120a8000 },
+	{ 0x00600001, 0x2e000021, 0x008d0000, 0x00000000 },
+	{ 0x07800031, 0x20001ca8, 0x00000e00, 0x82000010 },
+};
+
+/* shaders/gpgpu/gpgpu_fill.gxa */
+static const uint32_t gpgpu_kernel[][4] = {
+	{ 0x00400001, 0x20200231, 0x00000020, 0x00000000 },
+	{ 0x00000041, 0x20400c21, 0x00000004, 0x00000010 },
+	{ 0x00000001, 0x20440021, 0x00000018, 0x00000000 },
+	{ 0x00600001, 0x20800021, 0x008d0000, 0x00000000 },
+	{ 0x00200001, 0x20800021, 0x00450040, 0x00000000 },
+	{ 0x00000001, 0x20880061, 0x00000000, 0x0000000f },
 	{ 0x00800001, 0x20a00021, 0x00000020, 0x00000000 },
 	{ 0x00800001, 0x20e00021, 0x00000020, 0x00000000 },
 	{ 0x00800001, 0x21200021, 0x00000020, 0x00000000 },
@@ -160,14 +176,15 @@ gen7_fill_media_kernel(struct intel_batchbuffer *batch,
 }
 
 static uint32_t
-gen7_fill_interface_descriptor(struct intel_batchbuffer *batch, struct igt_buf *dst)
+gen7_fill_interface_descriptor(struct intel_batchbuffer *batch, struct igt_buf *dst,
+			       const uint32_t kernel[][4], size_t size)
 {
 	struct gen7_interface_descriptor_data *idd;
 	uint32_t offset;
 	uint32_t binding_table_offset, kernel_offset;
 
 	binding_table_offset = gen7_fill_binding_table(batch, dst);
-	kernel_offset = gen7_fill_media_kernel(batch, media_kernel, sizeof(media_kernel));
+	kernel_offset = gen7_fill_media_kernel(batch, kernel, size);
 
 	idd = batch_alloc(batch, sizeof(*idd), 64);
 	offset = batch_offset(batch, idd);
@@ -329,7 +346,9 @@ gen7_media_fillfunc(struct intel_batchbuffer *batch,
 	batch->ptr = &batch->buffer[BATCH_STATE_SPLIT];
 
 	curbe_buffer = gen7_fill_curbe_buffer_data(batch, color);
-	interface_descriptor = gen7_fill_interface_descriptor(batch, dst);
+	interface_descriptor = gen7_fill_interface_descriptor(batch, dst,
+							      media_kernel,
+							      sizeof(media_kernel));
 	igt_assert(batch->ptr < &batch->buffer[4095]);
 
 	/* media pipeline */
@@ -344,6 +363,140 @@ gen7_media_fillfunc(struct intel_batchbuffer *batch,
 	gen7_emit_interface_descriptor_load(batch, interface_descriptor);
 
 	gen7_emit_media_objects(batch, x, y, width, height);
+
+	OUT_BATCH(MI_BATCH_BUFFER_END);
+
+	batch_end = batch_align(batch, 8);
+	igt_assert(batch_end < BATCH_STATE_SPLIT);
+
+	gen7_render_flush(batch, batch_end);
+	intel_batchbuffer_reset(batch);
+}
+
+static void
+gen7_emit_vfe_state_gpgpu(struct intel_batchbuffer *batch)
+{
+	OUT_BATCH(GEN7_MEDIA_VFE_STATE | (8 - 2));
+
+	/* scratch buffer */
+	OUT_BATCH(0);
+
+	/* number of threads & urb entries */
+	OUT_BATCH(1 << 16 | /* max num of threads */
+		  0 << 8 | /* num of URB entry */
+		  1 << 2); /* GPGPU mode */
+
+	OUT_BATCH(0);
+
+	/* urb entry size & curbe size */
+	OUT_BATCH(0 << 16 | 	/* URB entry size in 256 bits unit */
+		  1);		/* CURBE entry size in 256 bits unit */
+
+	/* scoreboard */
+	OUT_BATCH(0);
+	OUT_BATCH(0);
+	OUT_BATCH(0);
+}
+
+static void
+gen7_emit_gpgpu_walk(struct intel_batchbuffer *batch,
+		     unsigned x, unsigned y,
+		     unsigned width, unsigned height)
+{
+	uint32_t x_dim, y_dim, tmp, right_mask;
+
+	/*
+	 * Simply do SIMD16 based dispatch, so every thread uses
+	 * SIMD16 channels.
+	 *
+	 * Define our own thread group size, e.g 16x1 for every group, then
+	 * will have 1 thread each group in SIMD16 dispatch. So thread
+	 * width/height/depth are all 1.
+	 *
+	 * Then thread group X = width / 16 (aligned to 16)
+	 * thread group Y = height;
+	 */
+	x_dim = (width + 15) / 16;
+	y_dim = height;
+
+	tmp = width & 15;
+	if (tmp == 0)
+		right_mask = (1 << 16) - 1;
+	else
+		right_mask = (1 << tmp) - 1;
+
+	OUT_BATCH(GEN7_GPGPU_WALKER | 9);
+
+	/* interface descriptor offset */
+	OUT_BATCH(0);
+
+	/* SIMD size, thread w/h/d */
+	OUT_BATCH(1 << 30 | /* SIMD16 */
+		  0 << 16 | /* depth:1 */
+		  0 << 8 | /* height:1 */
+		  0); /* width:1 */
+
+	/* thread group X */
+	OUT_BATCH(0);
+	OUT_BATCH(x_dim);
+
+	/* thread group Y */
+	OUT_BATCH(0);
+	OUT_BATCH(y_dim);
+
+	/* thread group Z */
+	OUT_BATCH(0);
+	OUT_BATCH(1);
+
+	/* right mask */
+	OUT_BATCH(right_mask);
+
+	/* bottom mask, height 1, always 0xffffffff */
+	OUT_BATCH(0xffffffff);
+}
+
+void
+gen7_gpgpu_fillfunc(struct intel_batchbuffer *batch,
+		    struct igt_buf *dst,
+		    unsigned x, unsigned y,
+		    unsigned width, unsigned height,
+		    uint8_t color)
+{
+	uint32_t curbe_buffer, interface_descriptor;
+	uint32_t batch_end;
+
+	intel_batchbuffer_flush(batch);
+
+	/* setup states */
+	batch->ptr = &batch->buffer[BATCH_STATE_SPLIT];
+
+	/*
+	 * const buffer needs to fill for every thread, but as we have just 1 thread
+	 * per every group, so need only one curbe data.
+	 *
+	 * For each thread, just use thread group ID for buffer offset.
+	 */
+	curbe_buffer = gen7_fill_curbe_buffer_data(batch, color);
+
+	interface_descriptor = gen7_fill_interface_descriptor(batch, dst,
+							      gpgpu_kernel,
+							      sizeof(gpgpu_kernel));
+	igt_assert(batch->ptr < &batch->buffer[4095]);
+
+	batch->ptr = batch->buffer;
+
+	/* GPGPU pipeline */
+	OUT_BATCH(GEN7_PIPELINE_SELECT | PIPELINE_SELECT_GPGPU);
+
+	gen7_emit_state_base_address(batch);
+
+	gen7_emit_vfe_state_gpgpu(batch);
+
+	gen7_emit_curbe_load(batch, curbe_buffer);
+
+	gen7_emit_interface_descriptor_load(batch, interface_descriptor);
+
+	gen7_emit_gpgpu_walk(batch, x, y, width, height);
 
 	OUT_BATCH(MI_BATCH_BUFFER_END);
 

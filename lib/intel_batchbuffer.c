@@ -511,3 +511,22 @@ igt_fillfunc_t igt_get_media_fillfunc(int devid)
 
 	return fill;
 }
+
+/**
+ * igt_get_gpgpu_fillfunc:
+ * @devid: pci device id
+ *
+ * Returns:
+ *
+ * The platform-specific gpgpu fill function pointer for the device specified
+ * with @devid. Will return NULL when no gpgpu fill function is implemented.
+ */
+igt_fillfunc_t igt_get_gpgpu_fillfunc(int devid)
+{
+	igt_fillfunc_t fill = NULL;
+
+	if (IS_GEN7(devid))
+		fill = gen7_gpgpu_fillfunc;
+
+	return fill;
+}

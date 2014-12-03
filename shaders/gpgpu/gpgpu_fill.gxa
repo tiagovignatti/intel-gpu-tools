@@ -1,0 +1,51 @@
+/*
+ * Registers
+ * g0 -- header
+ * g1 -- constant
+ * g2 -- calculate X/Y offset
+ * g4-g12 payload for write message
+ */
+define(`ORIG',          `g2.0<2,2,1>UD')
+define(`ORIG_X',        `g2.0<1>UD')
+define(`ORIG_Y',        `g2.4<1>UD')
+define(`COLOR',         `g1.0')
+define(`COLORUB',       `COLOR<0,1,0>UB')
+define(`COLORUD',       `COLOR<0,1,0>UD')
+define(`X',             `g0.4<0,1,0>UD')
+define(`Y',             `g0.24<0,1,0>UD')
+
+mov(4)  COLOR<1>UB      COLORUB         {align1};
+
+/* WRITE */
+/* count thread group ID for X/Y offset */
+mul(1)  ORIG_X          X        0x10UD {align1};
+mov(1)  ORIG_Y          Y               {align1};
+mov(8)  g4.0<1>UD       g0.0<8,8,1>UD   {align1};
+mov(2)  g4.0<1>UD       ORIG            {align1};
+/* Normal mode: for block height 1 row and block width 16 bytes */
+mov(1)  g4.8<1>UD       0x0000000fUD    {align1};
+
+mov(16) g5.0<1>UD       COLORUD         {align1 compr};
+mov(16) g7.0<1>UD       COLORUD         {align1 compr};
+mov(16) g9.0<1>UD       COLORUD         {align1 compr};
+mov(16) g11.0<1>UD      COLORUD         {align1 compr};
+
+/*
+ * comment out the following instruction on Gen7
+ * write(0, 0, 10, 12)
+ *   10: media_block_write
+ *   12: data cache data port 1
+ */
+send(16) 4 acc0<1>UW null write(0, 0, 10, 12) mlen 9 rlen 0 {align1};
+
+/*
+ * uncomment the following instruction on Gen7
+ * write(0, 0, 10, 0)
+ *   10: media_block_write
+ *    0: reander cache data port
+ */
+/* send(16) 4 acc0<1>UW null write(0, 0, 10, 0) mlen 9 rlen 0 {align1}; */
+
+/* EOT */
+mov(8)  g112.0<1>UD       g0.0<8,8,1>UD   {align1};
+send(16) 112 null<1>UW null thread_spawner(0, 0, 1) mlen 1 rlen 0 {align1 EOT};

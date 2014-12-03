@@ -250,11 +250,11 @@ igt_render_copyfunc_t igt_get_render_copyfunc(int devid);
  * @color: fill color to use
  *
  * This is the type of the per-platform fill functions using media
- * pipeline. The platform-specific implementation can be obtained
- * by calling igt_get_media_fillfunc().
+ * or gpgpu pipeline. The platform-specific implementation can be obtained
+ * by calling igt_get_media_fillfunc() or igt_get_gpgpu_fillfunc().
  *
  * A fill function will emit a batchbuffer to the kernel which executes
- * the specified blit fill operation using the media engine.
+ * the specified blit fill operation using the media/gpgpu engine.
  */
 typedef void (*igt_fillfunc_t)(struct intel_batchbuffer *batch,
 			       struct igt_buf *dst,
@@ -263,5 +263,6 @@ typedef void (*igt_fillfunc_t)(struct intel_batchbuffer *batch,
 			       uint8_t color);
 
 igt_fillfunc_t igt_get_media_fillfunc(int devid);
+igt_fillfunc_t igt_get_gpgpu_fillfunc(int devid);
 
 #endif
