@@ -162,6 +162,31 @@ static unsigned long gettime_us(void)
 	return ts.tv_sec * 1000000 + ts.tv_nsec / 1000;
 }
 
+static void blit_copy(drm_intel_bo *dst, drm_intel_bo *src,
+		      unsigned int width, unsigned int height,
+		      unsigned int dst_pitch, unsigned int src_pitch)
+{
+	BLIT_COPY_BATCH_START(0);
+	OUT_BATCH((3 << 24) | /* 32 bits */
+		  (0xcc << 16) | /* copy ROP */
+		  dst_pitch);
+	OUT_BATCH(0 << 16 | 0);
+	OUT_BATCH(height << 16 | width);
+	OUT_RELOC_FENCED(dst, I915_GEM_DOMAIN_RENDER, I915_GEM_DOMAIN_RENDER, 0);
+	OUT_BATCH(0 << 16 | 0);
+	OUT_BATCH(src_pitch);
+	OUT_RELOC_FENCED(src, I915_GEM_DOMAIN_RENDER, 0, 0);
+	ADVANCE_BATCH();
+
+	if (batch->gen >= 6) {
+		BEGIN_BATCH(3, 0);
+		OUT_BATCH(XY_SETUP_CLIP_BLT_CMD);
+		OUT_BATCH(0);
+		OUT_BATCH(0);
+		ADVANCE_BATCH();
+	}
+}
+
 static void emit_dummy_load__bcs(struct test_output *o)
 {
 	int i, limit;
@@ -177,25 +202,9 @@ static void emit_dummy_load__bcs(struct test_output *o)
 	igt_assert(target_bo);
 
 	for (i = 0; i < limit; i++) {
-		BLIT_COPY_BATCH_START(0);
-		OUT_BATCH((3 << 24) | /* 32 bits */
-			  (0xcc << 16) | /* copy ROP */
-			  pitch);
-		OUT_BATCH(0 << 16 | 0);
-		OUT_BATCH(o->fb_height << 16 | o->fb_width);
-		OUT_RELOC_FENCED(dummy_bo, I915_GEM_DOMAIN_RENDER, I915_GEM_DOMAIN_RENDER, 0);
-		OUT_BATCH(0 << 16 | 0);
-		OUT_BATCH(pitch);
-		OUT_RELOC_FENCED(target_bo, I915_GEM_DOMAIN_RENDER, 0, 0);
-		ADVANCE_BATCH();
-
-		if (batch->gen >= 6) {
-			BEGIN_BATCH(3, 0);
-			OUT_BATCH(XY_SETUP_CLIP_BLT_CMD);
-			OUT_BATCH(0);
-			OUT_BATCH(0);
-			ADVANCE_BATCH();
-		}
+		blit_copy(dummy_bo, target_bo,
+			  o->fb_width, o->fb_height,
+			  pitch, pitch);
 
 		swap(dummy_bo, target_bo);
 	}
