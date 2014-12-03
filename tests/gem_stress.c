@@ -570,11 +570,8 @@ static void init_set(unsigned set)
 static void exchange_uint(void *array, unsigned i, unsigned j)
 {
 	unsigned *i_arr = array;
-	unsigned i_tmp;
 
-	i_tmp = i_arr[i];
-	i_arr[i] = i_arr[j];
-	i_arr[j] = i_tmp;
+	swap(i_arr[i], i_arr[j]);
 }
 
 static void copy_tiles(unsigned *permutation)
@@ -741,7 +738,7 @@ static void init(void)
 
 	if (options.num_buffers == 0) {
 		tmp = gem_aperture_size(drm_fd);
-		tmp = tmp > 256*(1024*1024) ? 256*(1024*1024) : tmp;
+		tmp = min(256 * (1024 * 1024), tmp);
 		num_buffers = 2 * tmp / options.scratch_buf_size / 3;
 		num_buffers /= 2;
 		igt_info("using %u buffers\n", num_buffers);

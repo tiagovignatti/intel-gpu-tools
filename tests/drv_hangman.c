@@ -33,6 +33,7 @@
 
 #include "intel_chipset.h"
 #include "drmtest.h"
+#include "igt_aux.h"
 #include "igt_debugfs.h"
 #include "ioctl_wrappers.h"
 
@@ -117,8 +118,7 @@ static void read_dfs(const char *fname, char *d, int maxlen)
 static void _assert_dfs_entry(const char *fname, const char *s, bool inverse)
 {
 	char tmp[1024];
-	const int l = strlen(s) < sizeof(tmp) ?
-		strlen(s) : sizeof(tmp);
+	const int l = min(strlen(s), sizeof(tmp));
 
 	read_dfs(fname, tmp, l + 1);
 	if (!inverse) {

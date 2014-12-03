@@ -165,7 +165,7 @@ static unsigned long gettime_us(void)
 static void emit_dummy_load__bcs(struct test_output *o)
 {
 	int i, limit;
-	drm_intel_bo *dummy_bo, *target_bo, *tmp_bo;
+	drm_intel_bo *dummy_bo, *target_bo;
 	struct igt_fb *fb_info = &o->fb_info[o->current_fb_id];
 	unsigned pitch = fb_info->stride;
 
@@ -197,9 +197,7 @@ static void emit_dummy_load__bcs(struct test_output *o)
 			ADVANCE_BATCH();
 		}
 
-		tmp_bo = dummy_bo;
-		dummy_bo = target_bo;
-		target_bo = tmp_bo;
+		swap(dummy_bo, target_bo);
 	}
 	intel_batchbuffer_flush(batch);
 
@@ -282,16 +280,12 @@ static void emit_dummy_load__rcs(struct test_output *o)
 	dst = &sb[1];
 
 	for (i = 0; i < limit; i++) {
-		struct igt_buf *tmp;
-
 		copyfunc(batch, NULL,
 			 src, 0, 0,
 			 o->fb_width, o->fb_height,
 			 dst, 0, 0);
 
-		tmp = src;
-		src = dst;
-		dst = tmp;
+		swap(src, dst);
 	}
 	intel_batchbuffer_flush(batch);
 

@@ -54,11 +54,8 @@ struct igt_eviction_test_ops
 static void exchange_uint32_t(void *array, unsigned i, unsigned j)
 {
 	uint32_t *i_arr = array;
-	uint32_t i_tmp;
 
-	i_tmp = i_arr[i];
-	i_arr[i] = i_arr[j];
-	i_arr[j] = i_tmp;
+	swap(i_arr[i], i_arr[j]);
 }
 
 static int minor_evictions(int fd, struct igt_eviction_test_ops *ops,

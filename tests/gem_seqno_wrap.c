@@ -171,11 +171,8 @@ static void render_copyfunc(struct igt_buf *src,
 static void exchange_uint(void *array, unsigned i, unsigned j)
 {
 	unsigned *i_arr = array;
-	unsigned i_tmp;
 
-	i_tmp = i_arr[i];
-	i_arr[i] = i_arr[j];
-	i_arr[j] = i_tmp;
+	swap(i_arr[i], i_arr[j]);
 }
 
 static void run_sync_test(int num_buffers, bool verify)
