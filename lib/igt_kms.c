@@ -365,6 +365,12 @@ void kmstest_set_vt_graphics_mode(void)
 	igt_debug("VT: graphics mode set\n");
 }
 
+
+static void reset_connectors_at_exit(int sig)
+{
+	igt_reset_connectors();
+}
+
 /**
  * kmstest_force_connector:
  * @fd: drm file descriptor
@@ -446,6 +452,7 @@ bool kmstest_force_connector(int drm_fd, drmModeConnector *connector,
 		tmp++;
 	}
 
+	igt_install_exit_handler(reset_connectors_at_exit);
 
 	igt_assert(ret != -1);
 	return (ret == -1) ? false : true;
@@ -1767,11 +1774,6 @@ void igt_wait_for_vblank(int drm_fd, enum pipe pipe)
 	igt_assert(drmWaitVBlank(drm_fd, &wait_vbl) == 0);
 }
 
-static void reset_connectors_at_exit(int sig)
-{
-	igt_reset_connectors();
-}
-
 /**
  * igt_enable_connectors:
  *
@@ -1811,8 +1813,6 @@ void igt_enable_connectors(void)
 		drmModeFreeConnector(c);
 	}
 	close(drm_fd);
-
-	igt_install_exit_handler(reset_connectors_at_exit);
 }
 
 /**
