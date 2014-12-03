@@ -190,28 +190,35 @@ static void blit_copy(drm_intel_bo *dst, drm_intel_bo *src,
 static void emit_dummy_load__bcs(struct test_output *o)
 {
 	int i, limit;
-	drm_intel_bo *dummy_bo, *target_bo;
+	drm_intel_bo *src_bo, *dst_bo, *fb_bo;
 	struct igt_fb *fb_info = &o->fb_info[o->current_fb_id];
-	unsigned pitch = fb_info->stride;
 
 	limit = intel_gen(devid) < 6 ? 500 : 5000;
 
-	dummy_bo = drm_intel_bo_alloc(bufmgr, "dummy_bo", fb_info->size, 4096);
-	igt_assert(dummy_bo);
-	target_bo = gem_handle_to_libdrm_bo(bufmgr, drm_fd, "imported", fb_info->gem_handle);
-	igt_assert(target_bo);
+	src_bo = drm_intel_bo_alloc(bufmgr, "dummy_bo", 2048*2048*4, 4096);
+	igt_assert(src_bo);
+
+	dst_bo = drm_intel_bo_alloc(bufmgr, "dummy_bo", 2048*2048*4, 4096);
+	igt_assert(dst_bo);
+
+	fb_bo = gem_handle_to_libdrm_bo(bufmgr, drm_fd, "imported", fb_info->gem_handle);
+	igt_assert(fb_bo);
 
 	for (i = 0; i < limit; i++) {
-		blit_copy(dummy_bo, target_bo,
-			  o->fb_width, o->fb_height,
-			  pitch, pitch);
+		blit_copy(dst_bo, src_bo,
+			  2048, 2048,
+			  2048*4, 2048*4);
 
-		swap(dummy_bo, target_bo);
+		swap(src_bo, dst_bo);
 	}
+	blit_copy(fb_bo, src_bo,
+		  min(o->fb_width, 2048), min(o->fb_height, 2048),
+		  fb_info->stride, 2048*4);
 	intel_batchbuffer_flush(batch);
 
-	drm_intel_bo_unreference(dummy_bo);
-	drm_intel_bo_unreference(target_bo);
+	drm_intel_bo_unreference(src_bo);
+	drm_intel_bo_unreference(dst_bo);
+	drm_intel_bo_unreference(fb_bo);
 }
 
 static void emit_fence_stress(struct test_output *o)
@@ -260,7 +267,7 @@ static void emit_dummy_load__rcs(struct test_output *o)
 {
 	const struct igt_fb *fb_info = &o->fb_info[o->current_fb_id];
 	igt_render_copyfunc_t copyfunc;
-	struct igt_buf sb[2], *src, *dst;
+	struct igt_buf sb[3], *src, *dst, *fb;
 	int i, limit;
 
 	copyfunc = igt_get_render_copyfunc(devid);
@@ -269,37 +276,51 @@ static void emit_dummy_load__rcs(struct test_output *o)
 
 	limit = intel_gen(devid) < 6 ? 500 : 5000;
 
-	sb[0].bo = drm_intel_bo_alloc(bufmgr, "dummy_bo", fb_info->size, 4096);
+	sb[0].bo = drm_intel_bo_alloc(bufmgr, "dummy_bo", 2048*2048*4, 4096);
 	igt_assert(sb[0].bo);
 	sb[0].size = sb[0].bo->size;
 	sb[0].tiling = I915_TILING_NONE;
 	sb[0].data = NULL;
 	sb[0].num_tiles = sb[0].bo->size;
-	sb[0].stride = 4 * o->fb_width;
+	sb[0].stride = 4 * 2048;
 
-	sb[1].bo = gem_handle_to_libdrm_bo(bufmgr, drm_fd, "imported", fb_info->gem_handle);
+	sb[1].bo = drm_intel_bo_alloc(bufmgr, "dummy_bo", 2048*2048*4, 4096);
 	igt_assert(sb[1].bo);
 	sb[1].size = sb[1].bo->size;
-	sb[1].tiling = fb_info->tiling;
+	sb[1].tiling = I915_TILING_NONE;
 	sb[1].data = NULL;
 	sb[1].num_tiles = sb[1].bo->size;
-	sb[1].stride = fb_info->stride;
+	sb[1].stride = 4 * 2048;
+
+	sb[2].bo = gem_handle_to_libdrm_bo(bufmgr, drm_fd, "imported", fb_info->gem_handle);
+	igt_assert(sb[2].bo);
+	sb[2].size = sb[2].bo->size;
+	sb[2].tiling = fb_info->tiling;
+	sb[2].data = NULL;
+	sb[2].num_tiles = sb[2].bo->size;
+	sb[2].stride = fb_info->stride;
 
 	src = &sb[0];
 	dst = &sb[1];
+	fb = &sb[2];
 
 	for (i = 0; i < limit; i++) {
 		copyfunc(batch, NULL,
 			 src, 0, 0,
-			 o->fb_width, o->fb_height,
+			 2048, 2048,
 			 dst, 0, 0);
 
 		swap(src, dst);
 	}
+	copyfunc(batch, NULL,
+		 src, 0, 0,
+		 min(o->fb_width, 2048), min(o->fb_height, 2048),
+		 fb, 0, 0);
 	intel_batchbuffer_flush(batch);
 
 	drm_intel_bo_unreference(sb[0].bo);
 	drm_intel_bo_unreference(sb[1].bo);
+	drm_intel_bo_unreference(sb[2].bo);
 }
 
 static void dpms_off_other_outputs(struct test_output *o)
