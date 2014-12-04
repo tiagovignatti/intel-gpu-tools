@@ -34,6 +34,7 @@
 #include <fcntl.h>
 #include <signal.h>
 #include <errno.h>
+#include <time.h>
 #include <sys/wait.h>
 
 #include "drmtest.h"
@@ -87,6 +88,38 @@ static void read_freqs(int *freqs)
 		freqs[i] = readval(stuff[i].filp);
 }
 
+static void nsleep(unsigned long ns)
+{
+	struct timespec ts;
+	int ret;
+
+	ts.tv_sec = 0;
+	ts.tv_nsec = ns;
+	do {
+		struct timespec rem;
+
+		ret = nanosleep(&ts, &rem);
+		igt_assert(ret == 0 || errno == EINTR);
+		ts = rem;
+	} while (ret && errno == EINTR);
+}
+
+static void wait_freq_settle(void)
+{
+	int timeout = 10;
+
+	while (1) {
+		int freqs[NUMFREQ];
+
+		read_freqs(freqs);
+		if (freqs[CUR] >= freqs[MIN] && freqs[CUR] <= freqs[MAX])
+			break;
+		nsleep(1000000);
+		if (!timeout--)
+			break;
+	}
+}
+
 static int do_writeval(FILE *filp, int val, int lerrno)
 {
 	int ret, orig;
@@ -102,6 +135,7 @@ static int do_writeval(FILE *filp, int val, int lerrno)
 	} else {
 		/* Expecting no error */
 		igt_assert_neq(ret, 0);
+		wait_freq_settle();
 		igt_assert(readval(filp) == val);
 	}
 
