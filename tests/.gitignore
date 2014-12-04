@@ -46,6 +46,7 @@ gem_fence_upload
 gem_fenced_exec_thrash
 gem_flink
 gem_flink_race
+gem_gpgpu_fill
 gem_gtt_cpu_tlb
 gem_gtt_hog
 gem_gtt_speed
