@@ -120,7 +120,7 @@ static void wait_freq_settle(void)
 	}
 }
 
-static int do_writeval(FILE *filp, int val, int lerrno)
+static int do_writeval(FILE *filp, int val, int lerrno, bool readback_check)
 {
 	int ret, orig;
 
@@ -131,18 +131,21 @@ static int do_writeval(FILE *filp, int val, int lerrno)
 	if (lerrno) {
 		/* Expecting specific error */
 		igt_assert(ret == EOF && errno == lerrno);
-		igt_assert(readval(filp) == orig);
+		if (readback_check)
+			igt_assert_eq(readval(filp), orig);
 	} else {
 		/* Expecting no error */
 		igt_assert_neq(ret, 0);
 		wait_freq_settle();
-		igt_assert(readval(filp) == val);
+		if (readback_check)
+			igt_assert_eq(readval(filp), val);
 	}
 
 	return ret;
 }
-#define writeval(filp, val) do_writeval(filp, val, 0)
-#define writeval_inval(filp, val) do_writeval(filp, val, EINVAL)
+#define writeval(filp, val) do_writeval(filp, val, 0, true)
+#define writeval_inval(filp, val) do_writeval(filp, val, EINVAL, true)
+#define writeval_nocheck(filp, val) do_writeval(filp, val, 0, false)
 
 static void checkit(const int *freqs)
 {
@@ -342,12 +345,39 @@ static void do_load_gpu(void)
 	load_helper_stop();
 }
 
+/* Return a frequency rounded by HW to the nearest supported value */
+static int get_hw_rounded_freq(int target)
+{
+	int freqs[NUMFREQ];
+	int old_freq;
+	int idx;
+	int ret;
+
+	read_freqs(freqs);
+
+	if (freqs[MIN] > target)
+		idx = MIN;
+	else
+		idx = MAX;
+
+	old_freq = freqs[idx];
+	writeval_nocheck(stuff[idx].filp, target);
+	read_freqs(freqs);
+	ret = freqs[idx];
+	writeval_nocheck(stuff[idx].filp, old_freq);
+
+	return ret;
+}
+
 static void min_max_config(void (*check)(void), bool load_gpu)
 {
 	int fmid = (origfreqs[RPn] + origfreqs[RP0]) / 2;
 
-	/* hw (and so kernel) currently rounds to 50 MHz ... */
-	fmid = fmid / 50 * 50;
+	/*
+	 * hw (and so kernel) rounds to the nearest value supported by
+	 * the given platform.
+	 */
+	fmid = get_hw_rounded_freq(fmid);
 
 	igt_debug("\nCheck original min and max...\n");
 	if (load_gpu)
