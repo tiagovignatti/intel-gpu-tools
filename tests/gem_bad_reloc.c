@@ -90,7 +90,15 @@ static int negative_reloc(int fd, unsigned flags)
 	gem_close(fd, gem_exec[1].handle);
 
 	igt_info("Found offset %ld for 4k batch\n", (long)gem_exec[0].offset);
-	igt_require(gem_exec[0].offset < BIAS);
+	/*
+	 * Ideally we'd like to be able to control where the kernel is going to
+	 * place the buffer. We don't SKIP here because it causes the test
+	 * to "randomly" flip-flop between the SKIP and PASS states.
+	 */
+	if (gem_exec[0].offset < BIAS) {
+		igt_info("Offset is below BIAS, not testing anything\n");
+		return 0;
+	}
 
 	memset(gem_reloc, 0, sizeof(gem_reloc));
 	for (i = 0; i < sizeof(gem_reloc)/sizeof(gem_reloc[0]); i++) {
