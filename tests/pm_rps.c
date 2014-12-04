@@ -335,7 +335,14 @@ static void load_helper_deinit(void)
 		drm_intel_bufmgr_destroy(lh.bufmgr);
 }
 
-static void min_max_config(void (*check)(void))
+static void do_load_gpu(void)
+{
+	load_helper_run(LOW);
+	nsleep(10000000);
+	load_helper_stop();
+}
+
+static void min_max_config(void (*check)(void), bool load_gpu)
 {
 	int fmid = (origfreqs[RPn] + origfreqs[RP0]) / 2;
 
@@ -343,11 +350,15 @@ static void min_max_config(void (*check)(void))
 	fmid = fmid / 50 * 50;
 
 	igt_debug("\nCheck original min and max...\n");
+	if (load_gpu)
+		do_load_gpu();
 	check();
 
 	igt_debug("\nSet min=RPn and max=RP0...\n");
 	writeval(stuff[MIN].filp, origfreqs[RPn]);
 	writeval(stuff[MAX].filp, origfreqs[RP0]);
+	if (load_gpu)
+		do_load_gpu();
 	check();
 
 	igt_debug("\nIncrease min to midpoint...\n");
@@ -368,10 +379,14 @@ static void min_max_config(void (*check)(void))
 
 	igt_debug("\nDecrease min to midpoint...\n");
 	writeval(stuff[MIN].filp, fmid);
+	if (load_gpu)
+		do_load_gpu();
 	check();
 
 	igt_debug("\nDecrease min to RPn...\n");
 	writeval(stuff[MIN].filp, origfreqs[RPn]);
+	if (load_gpu)
+		do_load_gpu();
 	check();
 
 	igt_debug("\nDecrease min below RPn (invalid)...\n");
@@ -605,14 +620,14 @@ igt_main
 	}
 
 	igt_subtest("basic-api")
-		min_max_config(basic_check);
+		min_max_config(basic_check, false);
 
 	igt_subtest("min-max-config-idle")
-		min_max_config(idle_check);
+		min_max_config(idle_check, true);
 
 	igt_subtest("min-max-config-loaded") {
 		load_helper_run(HIGH);
-		min_max_config(loaded_check);
+		min_max_config(loaded_check, false);
 		load_helper_stop();
 	}
 
