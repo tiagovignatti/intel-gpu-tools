@@ -33,12 +33,9 @@ A short list of contribution guidelines:
 
 - When patches from new contributors (without commit access) are stuck, for
   anything related to the regular releases, issues with packaging and
-  integrating platform support or anything else really please contact the i-g-t
-  maintainer:
-
-    Thomas Wood <thomas.wood@intel.com>
-
-  Of course please also cc the intel-gfx mailing list.
+  integrating platform support or any other intel-gpu-tools issues, please
+  contact one of the maintainers (listed in the MAINTAINERS file) and cc the
+  intel-gfx mailing list.
 
 - Especially changes to the testcase should get tested on relevant platforms
   before committing. For Intel employees that's best done using PRTS, see the
