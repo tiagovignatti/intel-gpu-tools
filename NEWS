@@ -1,17 +1,29 @@
 Release 1.9 (XXXX-XX-XX)
 ------------------------
 
-- As usual piles of new testcases and improvements to existing ones.
+- New test cases added: drm_import_export, gem_gpgpu_fill, gem_ppgtt,
+  gem_tiled_wb, kms_pwrite_crc.
 
 - New helper for interactive progress indicators (see igt_print_activity and
   igt_progress), which can be disabled by setting the log-level to warn (Thomas
   and Daniel).
 
-- Basic skl support: pci ids, rendercpy&mediafill (Damien, Zhao Yakui).
+- Basic skl support: pci ids, rendercopy & mediafill (Damien, Zhao Yakui).
 
 - chv support for the iosf sideband tools and a few other improvements (Ville).
 
 - Fence register support for intel_reg_dumper on bdw+ (Rodrigo).
+
+- Support for skl in quick_dump (Damien).
+
+- Golden state generation infrastructure (Mika).
+
+- New skl watermark tool (Damien).
+
+- New EDID test block that includes multiple display modes (Thomas).
+
+- Individual test documentation available in generated documentation and from
+  the test binaries (Thomas).
 
 Release 1.8 (2014-09-08)
 ------------------------
