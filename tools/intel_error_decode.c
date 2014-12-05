@@ -244,6 +244,59 @@ print_pgtbl_err(unsigned int reg, unsigned int devid)
 	}
 }
 
+static void print_ivb_error(unsigned int reg, unsigned int devid)
+{
+	if (reg & (1 << 0))
+		printf("    TLB page fault error (GTT entry not valid)\n");
+	if (reg & (1 << 1))
+		printf("    Invalid physical address in RSTRM interface (PAVP)\n");
+	if (reg & (1 << 2))
+		printf("    Invalid page directory entry error\n");
+	if (reg & (1 << 3))
+		printf("    Invalid physical address in ROSTRM interface (PAVP)\n");
+	if (reg & (1 << 4))
+		printf("    TLB page VTD translation generated an error\n");
+	if (reg & (1 << 5))
+		printf("    Invalid physical address in WRITE interface (PAVP)\n");
+	if (reg & (1 << 6))
+		printf("    Page directory VTD translation generated error\n");
+	if (reg & (1 << 8))
+		printf("    Cacheline containing a PD was marked as invalid\n");
+	if (IS_HASWELL(devid) && (reg >> 10) & 0x1f)
+		printf("    %d pending page faults\n", (reg >> 10) & 0x1f);
+}
+
+static void print_snb_error(unsigned int reg)
+{
+	if (reg & (1 << 0))
+		printf("    TLB page fault error (GTT entry not valid)\n");
+	if (reg & (1 << 1))
+		printf("    Context page GTT translation generated a fault (GTT entry not valid)\n");
+	if (reg & (1 << 2))
+		printf("    Invalid page directory entry error\n");
+	if (reg & (1 << 3))
+		printf("    HWS page GTT translation generated a page fault (GTT entry not valid)\n");
+	if (reg & (1 << 4))
+		printf("    TLB page VTD translation generated an error\n");
+	if (reg & (1 << 5))
+		printf("    Context page VTD translation generated an error\n");
+	if (reg & (1 << 6))
+		printf("    Page directory VTD translation generated error\n");
+	if (reg & (1 << 7))
+		printf("    HWS page VTD translation generated an error\n");
+	if (reg & (1 << 8))
+		printf("    Cacheline containing a PD was marked as invalid\n");
+}
+
+static void
+print_error(unsigned int reg, unsigned int devid)
+{
+	switch (intel_gen(devid)) {
+	case 7: return print_ivb_error(reg, devid);
+	case 6: return print_snb_error(reg);
+	}
+}
+
 static void
 print_snb_fence(unsigned int devid, uint64_t fence)
 {
@@ -431,6 +484,10 @@ read_data_file(FILE *file)
 			matched = sscanf(line, "  PGTBL_ER: 0x%08x\n", &reg);
 			if (matched == 1 && reg)
 				print_pgtbl_err(reg, devid);
+
+			matched = sscanf(line, "  ERROR: 0x%08x\n", &reg);
+			if (matched == 1 && reg)
+				print_error(reg, devid);
 
 			matched = sscanf(line, "  INSTDONE: 0x%08x\n", &reg);
 			if (matched == 1)
