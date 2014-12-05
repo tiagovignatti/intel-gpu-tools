@@ -28,6 +28,7 @@
 #include <string.h>
 
 #include "drmtest.h"
+#include "igt_aux.h"
 #include "igt_debugfs.h"
 #include "igt_kms.h"
 #include "intel_chipset.h"
@@ -203,6 +204,11 @@ static bool fbc_enabled(data_t *data)
 	return strstr(str, "FBC enabled") != NULL;
 }
 
+static bool wait_for_fbc_enabled(data_t *data)
+{
+	return igt_wait(fbc_enabled(data), 300, 30);
+}
+
 static void test_crc(data_t *data, enum test_mode mode)
 {
 	uint32_t crtc_id = data->output->config.crtc->crtc_id;
@@ -216,9 +222,8 @@ static void test_crc(data_t *data, enum test_mode mode)
 		handle = data->handle[1];
 		igt_assert(drmModePageFlip(data->drm_fd, crtc_id,
 					   data->fb_id[1], 0, NULL) == 0);
-		usleep(300000);
 
-		igt_assert(fbc_enabled(data));
+		igt_assert(wait_for_fbc_enabled(data));
 	}
 
 	switch (mode) {
@@ -277,9 +282,7 @@ static void test_crc(data_t *data, enum test_mode mode)
 	 * Allow time for FBC to kick in again if it
 	 * got disabled during dirtyfb or page flip.
 	 */
-	usleep(300000);
-
-	igt_assert(fbc_enabled(data));
+	igt_assert(wait_for_fbc_enabled(data));
 
 	igt_pipe_crc_start(pipe_crc);
 	igt_pipe_crc_get_crcs(pipe_crc, 1, &crcs);
@@ -338,9 +341,8 @@ static bool prepare_test(data_t *data, enum test_mode test_mode)
 	/* scanout = fb[1] */
 	igt_plane_set_fb(data->primary, &data->fb[1]);
 	igt_display_commit(display);
-	usleep(300000);
 
-	if (!fbc_enabled(data)) {
+	if (!wait_for_fbc_enabled(data)) {
 		igt_info("FBC not enabled\n");
 
 		igt_plane_set_fb(data->primary, NULL);
@@ -388,9 +390,8 @@ static bool prepare_test(data_t *data, enum test_mode test_mode)
 	/* scanout = fb[0] */
 	igt_plane_set_fb(data->primary, &data->fb[0]);
 	igt_display_commit(display);
-	usleep(300000);
 
-	igt_assert(fbc_enabled(data));
+	igt_assert(wait_for_fbc_enabled(data));
 
 	if (test_mode == TEST_CONTEXT || test_mode == TEST_PAGE_FLIP_AND_CONTEXT) {
 		/*
