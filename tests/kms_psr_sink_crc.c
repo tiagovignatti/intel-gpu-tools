@@ -139,7 +139,7 @@ static void scratch_buf_init(struct igt_buf *buf, drm_intel_bo *bo)
 	buf->bo = bo;
 	buf->stride = 4096;
 	buf->tiling = I915_TILING_X;
-	buf->size = 4096;
+	buf->size = 64 * 4096;
 }
 
 static void fill_render(data_t *data, uint32_t handle, unsigned char color)
@@ -155,7 +155,7 @@ static void fill_render(data_t *data, uint32_t handle, unsigned char color)
 	dst = gem_handle_to_libdrm_bo(data->bufmgr, data->drm_fd, "", handle);
 	igt_assert(dst);
 
-	src = drm_intel_bo_alloc(data->bufmgr, "", 4096, 4096);
+	src = drm_intel_bo_alloc(data->bufmgr, "", 64 * 4096, 4096);
 	igt_assert(src);
 
 	gem_write(data->drm_fd, src->handle, 0, buf, 4);
@@ -167,7 +167,7 @@ static void fill_render(data_t *data, uint32_t handle, unsigned char color)
 	igt_assert(batch);
 
 	rendercopy(batch, NULL,
-		   &src_buf, 0, 0, 1, 1,
+		   &src_buf, 0, 0, 0xff, 0xff,
 		   &dst_buf, 0, 0);
 
 	intel_batchbuffer_free(batch);
