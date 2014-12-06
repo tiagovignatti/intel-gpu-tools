@@ -123,7 +123,7 @@ static void fill_blt(data_t *data, uint32_t handle, unsigned char color)
 	COLOR_BLIT_COPY_BATCH_START(0);
 	OUT_BATCH((1 << 24) | (0xf0 << 16) | 0);
 	OUT_BATCH(0);
-	OUT_BATCH(1 << 16 | 4);
+	OUT_BATCH(0xfff << 16 | 0xfff);
 	OUT_RELOC(dst, I915_GEM_DOMAIN_RENDER, I915_GEM_DOMAIN_RENDER, 0);
 	OUT_BATCH(color);
 	ADVANCE_BATCH();
