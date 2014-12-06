@@ -392,7 +392,7 @@ static void test_crc(data_t *data)
 		break;
 	case PLANE_MOVE:
 		/* Only in use when testing Sprite and Cursor */
-		igt_plane_set_position(test_plane, 1, 1);
+		igt_plane_set_position(test_plane, 500, 500);
 		igt_display_commit(&data->display);
 		break;
 	case PLANE_ONOFF:
