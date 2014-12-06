@@ -259,11 +259,14 @@ static void get_sink_crc(data_t *data, char *crc) {
 	int ret;
 	FILE *file;
 
+	if (igt_interactive_debug)
+		return;
+
 	file = igt_debugfs_fopen("i915_sink_crc_eDP1", "r");
 	igt_require(file);
 
 	ret = fscanf(file, "%s\n", crc);
-	igt_require(ret > 0);
+	igt_require_f(ret > 0, "Sink CRC is unreliable on this machine. Try manual debug with --interactive-debug=manual\n");
 
 	fclose(file);
 
@@ -285,6 +288,9 @@ static bool is_green(char *crc)
 	char rs[5], gs[5], bs[5];
 	unsigned int rh, gh, bh, mask;
 	int ret;
+
+	if (igt_interactive_debug)
+		return false;
 
 	sscanf(color_mask, "%4x", &mask);
 
@@ -308,6 +314,16 @@ static bool is_green(char *crc)
 		(bh & mask) == 0);
 }
 
+static void assert_or_manual(bool condition, const char *expected)
+{
+	if (igt_interactive_debug)
+		igt_info("Is %s?\n", expected);
+	else
+		igt_debug("%s\n", expected);
+	igt_debug_wait_for_keypress("manual");
+	igt_assert(igt_interactive_debug || condition);
+}
+
 static void test_crc(data_t *data)
 {
 	uint32_t handle = data->fb_white.gem_handle;
@@ -315,18 +331,19 @@ static void test_crc(data_t *data)
 	void *ptr;
 	char ref_crc[12];
 	char crc[12];
+	const char *expected = "";
 
 	igt_plane_set_fb(data->primary, &data->fb_green);
 	igt_display_commit(&data->display);
 
 	/* Confirm that screen became Green */
 	get_sink_crc(data, ref_crc);
-	igt_assert(is_green(ref_crc));
+	assert_or_manual(is_green(ref_crc), "screen GREEN");
 
 	/* Confirm screen stays Green after PSR got active */
 	igt_assert(wait_psr_entry(data, 10));
 	get_sink_crc(data, ref_crc);
-	igt_assert(is_green(ref_crc));
+	assert_or_manual(is_green(ref_crc), "screen GREEN");
 
 	/* Setting a secondary fb/plane */
 	switch (data->test_plane) {
@@ -340,7 +357,10 @@ static void test_crc(data_t *data)
 	/* Confirm it is not Green anymore */
 	igt_assert(wait_psr_entry(data, 10));
 	get_sink_crc(data, ref_crc);
-	igt_assert(!is_green(ref_crc));
+	if (data->test_plane == PRIMARY)
+		assert_or_manual(!is_green(ref_crc), "screen WHITE");
+	else
+		assert_or_manual(!is_green(ref_crc), "GREEN background with WHITE box");
 
 	switch (data->op) {
 	case PAGE_FLIP:
@@ -348,7 +368,8 @@ static void test_crc(data_t *data)
 		igt_assert(drmModePageFlip(data->drm_fd, data->crtc_id,
 					   data->fb_green.fb_id, 0, NULL) == 0);
 		get_sink_crc(data, crc);
-		igt_assert(is_green(crc));
+		assert_or_manual(is_green(crc), "screen GREEN");
+		expected = "still GREEN";
 		break;
 	case MMAP_GTT:
 		ptr = gem_mmap__gtt(data->drm_fd, handle, data->mod_size,
@@ -357,6 +378,7 @@ static void test_crc(data_t *data)
 			       I915_GEM_DOMAIN_GTT, I915_GEM_DOMAIN_GTT);
 		memset(ptr, 0xcc, data->mod_size);
 		munmap(ptr, data->mod_size);
+		expected = "BLACK or TRANSPARENT mark on top of plane in test";
 		break;
 	case MMAP_GTT_WAITING:
 		ptr = gem_mmap__gtt(data->drm_fd, handle, data->mod_size,
@@ -367,7 +389,11 @@ static void test_crc(data_t *data)
 		/* Printing white on white so the screen shouldn't change */
 		memset(ptr, 0xff, data->mod_size);
 		get_sink_crc(data, crc);
-		igt_assert(strcmp(ref_crc, crc) == 0);
+		if (data->test_plane == PRIMARY)
+			assert_or_manual(strcmp(ref_crc, crc) == 0, "screen WHITE");
+		else
+			assert_or_manual(strcmp(ref_crc, crc) == 0,
+			       "GREEN background with WHITE box");
 
 		igt_info("Waiting 10s...\n");
 		sleep(10);
@@ -375,6 +401,7 @@ static void test_crc(data_t *data)
 		/* Now lets print black to change the screen */
 		memset(ptr, 0, data->mod_size);
 		munmap(ptr, data->mod_size);
+		expected = "BLACK or TRANSPARENT mark on top of plane in test";
 		break;
 	case MMAP_CPU:
 		ptr = gem_mmap__cpu(data->drm_fd, handle, 0, data->mod_size, PROT_WRITE);
@@ -383,26 +410,31 @@ static void test_crc(data_t *data)
 		memset(ptr, 0, data->mod_size);
 		munmap(ptr, data->mod_size);
 		gem_sw_finish(data->drm_fd, handle);
+		expected = "BLACK or TRANSPARENT mark on top of plane in test";
 		break;
 	case BLT:
 		fill_blt(data, handle, 0);
+		expected = "BLACK or TRANSPARENT mark on top of plane in test";
 		break;
 	case RENDER:
 		fill_render(data, handle, 0);
+		expected = "BLACK or TRANSPARENT mark on top of plane in test";
 		break;
 	case PLANE_MOVE:
 		/* Only in use when testing Sprite and Cursor */
 		igt_plane_set_position(test_plane, 500, 500);
 		igt_display_commit(&data->display);
+		expected = "White box moved to 500x500";
 		break;
 	case PLANE_ONOFF:
 		/* Only in use when testing Sprite and Cursor */
 		igt_plane_set_fb(test_plane, NULL);
 		igt_display_commit(&data->display);
+		expected = "screen GREEN";
 		break;
 	}
 	get_sink_crc(data, crc);
-	igt_assert(strcmp(ref_crc, crc) != 0);
+	assert_or_manual(strcmp(ref_crc, crc) != 0, expected);
 }
 
 static void test_cleanup(data_t *data) {
