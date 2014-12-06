@@ -83,6 +83,7 @@ typedef struct {
 	drm_intel_bufmgr *bufmgr;
 	struct igt_fb fb_green, fb_white;
 	igt_plane_t *primary, *sprite, *cursor;
+	int mod_size;
 } data_t;
 
 static void create_cursor_fb(data_t *data)
@@ -350,19 +351,21 @@ static void test_crc(data_t *data)
 		igt_assert(is_green(crc));
 		break;
 	case MMAP_GTT:
-		ptr = gem_mmap__gtt(data->drm_fd, handle, 4096, PROT_WRITE);
+		ptr = gem_mmap__gtt(data->drm_fd, handle, data->mod_size,
+				    PROT_WRITE);
 		gem_set_domain(data->drm_fd, handle,
 			       I915_GEM_DOMAIN_GTT, I915_GEM_DOMAIN_GTT);
-		memset(ptr, 0, 4);
-		munmap(ptr, 4096);
+		memset(ptr, 0xcc, data->mod_size);
+		munmap(ptr, data->mod_size);
 		break;
 	case MMAP_GTT_WAITING:
-		ptr = gem_mmap__gtt(data->drm_fd, handle, 4096, PROT_WRITE);
+		ptr = gem_mmap__gtt(data->drm_fd, handle, data->mod_size,
+				    PROT_WRITE);
 		gem_set_domain(data->drm_fd, handle,
 			       I915_GEM_DOMAIN_GTT, I915_GEM_DOMAIN_GTT);
 
 		/* Printing white on white so the screen shouldn't change */
-		memset(ptr, 0xff, 4);
+		memset(ptr, 0xff, data->mod_size);
 		get_sink_crc(data, crc);
 		igt_assert(strcmp(ref_crc, crc) == 0);
 
@@ -370,15 +373,15 @@ static void test_crc(data_t *data)
 		sleep(10);
 
 		/* Now lets print black to change the screen */
-		memset(ptr, 0, 4);
-		munmap(ptr, 4096);
+		memset(ptr, 0, data->mod_size);
+		munmap(ptr, data->mod_size);
 		break;
 	case MMAP_CPU:
-		ptr = gem_mmap__cpu(data->drm_fd, handle, 0, 4096, PROT_WRITE);
+		ptr = gem_mmap__cpu(data->drm_fd, handle, 0, data->mod_size, PROT_WRITE);
 		gem_set_domain(data->drm_fd, handle,
 			       I915_GEM_DOMAIN_CPU, I915_GEM_DOMAIN_CPU);
-		memset(ptr, 0, 4);
-		munmap(ptr, 4096);
+		memset(ptr, 0, data->mod_size);
+		munmap(ptr, data->mod_size);
 		gem_sw_finish(data->drm_fd, handle);
 		break;
 	case BLT:
@@ -447,6 +450,9 @@ static void run_test(data_t *data)
 		white_h = mode->hdisplay;
 		white_v = mode->vdisplay;
 
+		/* Ignoring pitch and bpp to avoid changing full screen */
+		data->mod_size = white_h * white_v;
+
 		switch (data->test_plane) {
 		case SPRITE:
 			data->sprite = igt_output_get_plane(output,
@@ -471,6 +477,9 @@ static void run_test(data_t *data)
 			igt_plane_set_fb(data->cursor, NULL);
 			create_cursor_fb(data);
 			igt_plane_set_position(data->cursor, 0, 0);
+
+			/* Cursor is 64 x 64, ignoring pitch and bbp again */
+			data->mod_size = 64 * 64;
 			break;
 		}
 
