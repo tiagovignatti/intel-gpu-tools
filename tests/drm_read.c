@@ -63,7 +63,7 @@ static void generate_event(int fd)
 {
 	union drm_wait_vblank vbl;
 
-	/* We assume that pipe 0 is running */
+	/* We require that pipe 0 is running */
 
 	vbl.request.type =
 		DRM_VBLANK_RELATIVE |
@@ -152,6 +152,48 @@ static void test_short_buffer(int in, int nonblock)
 	teardown(fd);
 }
 
+static int pipe0_enabled(int fd)
+{
+	struct drm_mode_card_res res;
+	uint32_t crtcs[32];
+	int i;
+
+	/* We assume we can generate events on pipe 0. So we have better
+	 * make sure that is running!
+	 */
+
+	memset(&res, 0, sizeof(res));
+	res.count_crtcs = 32;
+	res.crtc_id_ptr = (uintptr_t)crtcs;
+
+	if (drmIoctl(fd, DRM_IOCTL_MODE_GETRESOURCES, &res))
+		return 0;
+
+	if (res.count_crtcs > 32)
+		return 0;
+
+	for (i = 0; i < res.count_crtcs; i++) {
+		struct drm_i915_get_pipe_from_crtc_id get_pipe;
+		struct drm_mode_crtc mode;
+
+		memset(&get_pipe, 0, sizeof(get_pipe));
+		memset(&mode, 0, sizeof(mode));
+
+		mode.crtc_id = crtcs[i];
+
+		get_pipe.pipe = -1;
+		get_pipe.crtc_id = mode.crtc_id;
+		drmIoctl(fd, DRM_IOCTL_I915_GET_PIPE_FROM_CRTC_ID, &get_pipe);
+		if (get_pipe.pipe)
+			continue;
+
+		drmIoctl(fd, DRM_IOCTL_MODE_GETCRTC, &mode);
+		return mode.mode_valid && mode.mode.clock;
+	}
+
+	return 0;
+}
+
 igt_main
 {
 	int fd;
@@ -161,6 +203,7 @@ igt_main
 
 	igt_fixture {
 		fd = drm_open_any_master();
+		igt_require(pipe0_enabled(fd));
 	}
 
 	igt_subtest("invalid-buffer")
