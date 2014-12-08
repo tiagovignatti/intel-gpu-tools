@@ -96,4 +96,7 @@ void intel_require_memory(uint32_t count, uint32_t size, unsigned mode);
 	(b) = _tmp;		\
 } while (0)
 
+void igt_lock_mem(size_t size);
+void igt_unlock_mem(void);
+
 #endif /* IGT_AUX_H */

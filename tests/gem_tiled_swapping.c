@@ -70,6 +70,7 @@ IGT_TEST_DESCRIPTION("Exercise swizzle code for swapping.");
 static uint32_t current_tiling_mode;
 
 #define PAGE_SIZE 4096
+#define AVAIL_RAM 512
 
 static uint32_t
 create_bo_and_fill(int fd)
@@ -151,13 +152,20 @@ igt_main
 	int fd, n, count, num_threads;
 
 	igt_fixture {
+		size_t lock_size;
+
 		current_tiling_mode = I915_TILING_X;
 
 		intel_purge_vm_caches();
 
 		fd = drm_open_any();
+
+		/* lock RAM, leaving only 512MB available */
+		lock_size = max(0, intel_get_total_ram_mb() - AVAIL_RAM);
+		igt_lock_mem(lock_size);
+
 		/* need slightly more than available memory */
-		count = intel_get_total_ram_mb() + intel_get_total_swap_mb() / 4;
+		count = min(intel_get_total_ram_mb(), AVAIL_RAM) * 1.25;
 		bo_handles = calloc(count, sizeof(uint32_t));
 		igt_assert(bo_handles);
 

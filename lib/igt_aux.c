@@ -601,3 +601,61 @@ struct type_name connector_type_names[] = {
 };
 
 type_name_fn(connector_type)
+
+
+/**
+ * igt_lock_mem:
+ * @size: the amount of memory to lock into RAM, in MB
+ *
+ * Allocate @size MB of memory and lock it into RAM. This releases any
+ * previously locked memory.
+ *
+ * Use #igt_unlock_mem to release the currently locked memory.
+ */
+static char *locked_mem;
+static size_t locked_size;
+
+void igt_lock_mem(size_t size)
+{
+	long pagesize = sysconf(_SC_PAGESIZE);
+	size_t i;
+	int ret;
+
+	if (size == 0) {
+		return;
+	}
+
+	if (locked_mem) {
+		igt_unlock_mem();
+		igt_warn("Unlocking previously locked memory.\n");
+	}
+
+	locked_size = size * 1024 * 1024;
+
+	locked_mem = malloc(locked_size);
+	igt_require_f(locked_mem,
+		      "Could not allocate enough memory to lock.\n");
+
+	/* write into each page to ensure it is allocated */
+	for (i = 0; i < locked_size; i += pagesize)
+		locked_mem[i] = i;
+
+	ret = mlock(locked_mem, locked_size);
+	igt_assert_f(ret == 0, "Could not lock memory into RAM.\n");
+}
+
+/**
+ * igt_unlock_mem:
+ *
+ * Release and free the RAM used by #igt_lock_mem.
+ */
+void igt_unlock_mem(void)
+{
+	if (!locked_mem)
+		return;
+
+	munlock(locked_mem, locked_size);
+
+	free(locked_mem);
+	locked_mem = NULL;
+}
