@@ -230,7 +230,7 @@ static void test_crc_random(data_t *data)
 	}
 }
 
-static void prepare_crtc(data_t *data, igt_output_t *output,
+static bool prepare_crtc(data_t *data, igt_output_t *output,
 			 int cursor_w, int cursor_h)
 {
 	drmModeModeInfo *mode;
@@ -245,7 +245,7 @@ static void prepare_crtc(data_t *data, igt_output_t *output,
 	if (!output->valid) {
 		igt_output_set_pipe(output, PIPE_ANY);
 		igt_display_commit(display);
-		return;
+		return false;
 	}
 
 	/* create and set the primary plane fb */
@@ -284,6 +284,8 @@ static void prepare_crtc(data_t *data, igt_output_t *output,
 
 	/* get reference crc w/o cursor */
 	igt_pipe_crc_collect_crc(data->pipe_crc, &data->ref_crc);
+
+	return true;
 }
 
 static void cleanup_crtc(data_t *data, igt_output_t *output)
@@ -318,7 +320,8 @@ static void run_test(data_t *data, void (*testfunc)(data_t *), int cursor_w, int
 		for_each_pipe(display, p) {
 			data->pipe = p;
 
-			prepare_crtc(data, output, cursor_w, cursor_h);
+			if (!prepare_crtc(data, output, cursor_w, cursor_h))
+				continue;
 
 			valid_tests++;
 
