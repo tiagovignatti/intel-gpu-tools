@@ -474,31 +474,37 @@ test_crtc(data_t *data, igt_output_t *output, enum pipe pipe)
 }
 
 static void
-run_plane_test_for_pipe(data_t *data, enum pipe pipe)
+run_plane_test(data_t *data)
 {
 	igt_output_t *output;
 	enum igt_plane plane = 1; /* testing with one sprite is enough */
 	int valid_tests = 0;
-
-	igt_require(data->display.pipes[pipe].n_planes > 2);
+	enum pipe pipe;
 
 	for_each_connected_output(&data->display, output) {
-		if (test_plane(data, output, pipe, plane))
-			valid_tests++;
+		for_each_pipe(&data->display, pipe) {
+			igt_require(data->display.pipes[pipe].n_planes > 2);
+
+			if (test_plane(data, output, pipe, plane))
+				valid_tests++;
+		}
 	}
 
 	igt_require_f(valid_tests, "no valid crtc/connector combinations found\n");
 }
 
 static void
-run_crtc_test_for_pipe(data_t *data, enum pipe pipe)
+run_crtc_test(data_t *data)
 {
 	igt_output_t *output;
 	int valid_tests = 0;
+	enum pipe pipe;
 
 	for_each_connected_output(&data->display, output) {
-		if (test_crtc(data, output, pipe))
-			valid_tests++;
+		for_each_pipe(&data->display, pipe) {
+			if (test_crtc(data, output, pipe))
+				valid_tests++;
+		}
 	}
 
 	igt_require_f(valid_tests, "no valid crtc/connector combinations found\n");
@@ -508,8 +514,6 @@ static data_t data;
 
 igt_main
 {
-	int pipe;
-
 	igt_skip_on_simulation();
 
 	igt_fixture {
@@ -531,15 +535,11 @@ igt_main
 		gem_set_tiling(data.drm_fd, data.busy_bo->handle, 0, 4096);
 	}
 
-	igt_subtest_f("setplane_vs_cs_flip") {
-		for (pipe = 0; pipe < data.display.n_pipes; pipe++)
-			run_plane_test_for_pipe(&data, pipe);
-	}
+	igt_subtest_f("setplane_vs_cs_flip")
+		run_plane_test(&data);
 
-	igt_subtest_f("setcrtc_vs_cs_flip") {
-		for (pipe = 0; pipe < data.display.n_pipes; pipe++)
-			run_crtc_test_for_pipe(&data, pipe);
-	}
+	igt_subtest_f("setcrtc_vs_cs_flip")
+		run_crtc_test(&data);
 
 	igt_fixture {
 		drm_intel_bo_unreference(data.busy_bo);
