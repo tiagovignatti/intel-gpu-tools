@@ -245,7 +245,7 @@ static void prepare_crtc(data_t *data, igt_output_t *output,
 	if (!output->valid) {
 		igt_output_set_pipe(output, PIPE_ANY);
 		igt_display_commit(display);
-		return false;
+		return;
 	}
 
 	/* create and set the primary plane fb */
