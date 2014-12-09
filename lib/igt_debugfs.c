@@ -425,8 +425,11 @@ void igt_pipe_crc_start(igt_pipe_crc_t *pipe_crc)
 	/*
 	 * For some no yet identified reason, the first CRC is bonkers. So
 	 * let's just wait for the next vblank and read out the buggy result.
+	 *
+	 * On CHV sometimes the second CRC is bonkers as well, so don't trust
+	 * that one either.
 	 */
-	igt_pipe_crc_get_crcs(pipe_crc, 1, &crcs);
+	igt_pipe_crc_get_crcs(pipe_crc, 2, &crcs);
 	free(crcs);
 }
 
