@@ -150,19 +150,6 @@ static void assert_error_state_collected(void)
 	assert_dfs_entry_not("i915_error_state", "no error state collected");
 }
 
-static int get_line_count(const char *s)
-{
-	int count = 0;
-
-	while (*s) {
-		if (*s == '\n')
-			count++;
-		s++;
-	}
-
-	return count;
-}
-
 #define MAGIC_NUMBER 0x10001
 const uint32_t batch[] = { MI_NOOP,
 			   MI_BATCH_BUFFER_END,
