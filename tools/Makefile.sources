@@ -5,6 +5,7 @@ noinst_PROGRAMS = \
 
 bin_PROGRAMS = 				\
 	intel_audio_dump 		\
+	intel_reg			\
 	intel_backlight 		\
 	intel_bios_dumper 		\
 	intel_bios_reader 		\
@@ -39,6 +40,11 @@ dist_bin_SCRIPTS = intel_gpu_abrt
 
 intel_dump_decode_SOURCES = 	\
 	intel_dump_decode.c
+
+intel_reg_SOURCES =		\
+	intel_reg.c		\
+	intel_reg_decode.c	\
+	intel_reg_spec.c
 
 intel_error_decode_SOURCES =	\
 	intel_error_decode.c
