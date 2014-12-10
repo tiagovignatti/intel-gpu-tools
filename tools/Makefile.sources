@@ -32,7 +32,8 @@ bin_PROGRAMS = 				\
 	intel_reg_write 		\
 	intel_stepping 			\
 	intel_vga_read			\
-	intel_vga_write
+	intel_vga_write			\
+	intel_watermark
 
 dist_bin_SCRIPTS = intel_gpu_abrt
 
