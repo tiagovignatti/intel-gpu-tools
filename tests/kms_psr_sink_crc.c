@@ -266,7 +266,7 @@ static void get_sink_crc(data_t *data, char *crc) {
 	igt_require(file);
 
 	ret = fscanf(file, "%s\n", crc);
-	igt_require_f(ret > 0, "Sink CRC is unreliable on this machine. Try manual debug with --interactive-debug=manual\n");
+	igt_require_f(ret > 0, "Sink CRC is unreliable on this machine. Try manual debug with --interactive-debug=no-crc\n");
 
 	fclose(file);
 
@@ -316,11 +316,7 @@ static bool is_green(char *crc)
 
 static void assert_or_manual(bool condition, const char *expected)
 {
-	if (igt_interactive_debug)
-		igt_info("Is %s?\n", expected);
-	else
-		igt_debug("%s\n", expected);
-	igt_debug_wait_for_keypress("manual");
+	igt_debug_manual_check("no-crc", expected);
 	igt_assert(igt_interactive_debug || condition);
 }
 

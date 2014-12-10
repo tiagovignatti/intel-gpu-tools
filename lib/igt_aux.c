@@ -448,6 +448,56 @@ void igt_debug_wait_for_keypress(const char *var)
 	tcsetattr ( STDIN_FILENO, TCSANOW, &oldt );
 }
 
+/**
+ * igt_debug_manual_check:
+ * @var: var lookup to to enable this wait
+ * @expected: message to be printed as expected behaviour before wait for keys Y/n
+ *
+ * Waits for a key press when run interactively and when the corresponding debug
+ * var is set in the --interactive-debug=<var> variable. Multiple vars
+ * can be specified as a comma-separated list or alternatively "all" if a wait
+ * should happen for all cases.
+ *
+ * This is useful for display tests where under certain situation manual
+ * inspection of the display is useful. Or when running a testcase in the
+ * background.
+ *
+ * When not connected to a terminal interactive_debug is ignored
+ * and execution immediately continues. For this reason by default this function
+ * returns true. It returns false only when N/n is pressed indicating the
+ * user ins't seeing what was expected.
+ *
+ * Force test fail when N/n is pressed.
+ */
+void igt_debug_manual_check(const char *var, const char *expected)
+{
+	struct termios oldt, newt;
+	char key;
+
+	if (!isatty(STDIN_FILENO))
+		return;
+
+	if (!igt_interactive_debug)
+		return;
+
+	if (!strstr(igt_interactive_debug, var) &&
+	    !strstr(igt_interactive_debug, "all"))
+		return;
+
+	igt_info("Is %s [Y/n]", expected);
+
+	tcgetattr ( STDIN_FILENO, &oldt );
+	newt = oldt;
+	newt.c_lflag &= ~ICANON;
+	tcsetattr ( STDIN_FILENO, TCSANOW, &newt );
+	key = getchar();
+	tcsetattr ( STDIN_FILENO, TCSANOW, &oldt );
+
+	igt_info("\n");
+
+	igt_assert(key != 'n' && key != 'N');
+}
+
 #define POWER_DIR "/sys/devices/pci0000:00/0000:00:02.0/power"
 /* We just leak this on exit ... */
 int pm_status_fd = -1;

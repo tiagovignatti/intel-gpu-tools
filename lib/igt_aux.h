@@ -63,6 +63,7 @@ void igt_system_hibernate_autoresume(void);
 void igt_drop_root(void);
 
 void igt_debug_wait_for_keypress(const char *var);
+void igt_debug_manual_check(const char *var, const char *expected);
 
 enum igt_runtime_pm_status {
 	IGT_RUNTIME_PM_STATUS_ACTIVE,
