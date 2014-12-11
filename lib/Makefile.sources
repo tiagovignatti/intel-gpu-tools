@@ -55,16 +55,16 @@ libintel_tools_la_SOURCES = 	\
 $(IGT_LIB_PATH)/version.h.tmp:
 	@touch $@
 	@if test -d $(GPU_TOOLS_PATH)/.git; then \
-		if which git > /dev/null 2>&1; then cd $(@D); \
+		if which git > /dev/null 2>&1; then \
+			cd $(GPU_TOOLS_PATH); \
 			git log -n 1 --oneline | \
-			sed 's/^\([^ ]*\) .*/#define IGT_GIT_SHA1 "g\1"/' \
-			>> $(@F) ; \
+			sed 's/^\([^ ]*\) .*/#define IGT_GIT_SHA1 "g\1"/' ; \
 		else \
-			echo '#define IGT_GIT_SHA1 "NO-GIT"' >> $@ ; \
+			echo '#define IGT_GIT_SHA1 "NO-GIT"' ; \
 		fi \
 	else \
-		echo '#define IGT_GIT_SHA1 "NOT-GIT"' >> $@ ; \
-	fi
+		echo '#define IGT_GIT_SHA1 "NOT-GIT"' ; \
+	fi >> $@
 
 
 $(IGT_LIB_PATH)/version.h: $(IGT_LIB_PATH)/version.h.tmp
