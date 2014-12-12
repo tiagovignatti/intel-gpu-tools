@@ -25,6 +25,10 @@ Release 1.9 (XXXX-XX-XX)
 - Individual test documentation available in generated documentation and from
   the test binaries (Thomas).
 
+- New logging domains and log filtering (Thomas).
+
+- Various API documentation fixes and improvements (Thomas).
+
 Release 1.8 (2014-09-08)
 ------------------------
 
