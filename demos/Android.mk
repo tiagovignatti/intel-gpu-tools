@@ -4,7 +4,9 @@ LOCAL_PATH := $(call my-dir)
 
 include $(CLEAR_VARS)
 
-LOCAL_SRC_FILES := intel_sprite_on.c
+# This demo wont build on android
+#LOCAL_SRC_FILES := intel_sprite_on.c
+
 
 LOCAL_CFLAGS += -DHAVE_TERMIOS_H
 LOCAL_CFLAGS += -DANDROID -UNDEBUG
