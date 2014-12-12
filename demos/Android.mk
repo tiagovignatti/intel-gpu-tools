@@ -4,8 +4,7 @@ LOCAL_PATH := $(call my-dir)
 
 include $(CLEAR_VARS)
 
-# This demo wont build on android
-#LOCAL_SRC_FILES := intel_sprite_on.c
+LOCAL_SRC_FILES := intel_sprite_on.c
 
 
 LOCAL_CFLAGS += -DHAVE_TERMIOS_H
@@ -24,6 +23,7 @@ LOCAL_STATIC_LIBRARIES := libintel_gpu_tools
 
 LOCAL_SHARED_LIBRARIES := libdrm
 
-include $(BUILD_EXECUTABLE)
+# This demo (intel_sprite_on.c) wont build on android
+#include $(BUILD_EXECUTABLE)
 
 #================#
