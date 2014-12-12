@@ -812,7 +812,6 @@ uint64_t gem_aperture_size(int fd)
 
 /**
  * gem_mappable_aperture_size:
- * @fd: open i915 drm file descriptor
  *
  * Feature test macro to query the kernel for the mappable gpu aperture size.
  * This is the area available for GTT memory mappings.

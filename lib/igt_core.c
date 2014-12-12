@@ -1419,6 +1419,7 @@ void igt_skip_on_simulation(void)
 
 /**
  * igt_log:
+ * @domain: the log domain, or NULL for no domain
  * @level: #igt_log_level
  * @format: format string
  * @...: optional arguments used in the format string
@@ -1444,6 +1445,7 @@ void igt_log(const char *domain, enum igt_log_level level, const char *format, .
 
 /**
  * igt_vlog:
+ * @domain: the log domain, or NULL for no domain
  * @level: #igt_log_level
  * @format: format string
  * @args: variable arguments lists
