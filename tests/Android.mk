@@ -33,7 +33,7 @@ skip_tests_list += pm_rpm
 
 # set local compilation flags for IGT tests
 IGT_LOCAL_CFLAGS += -DHAVE_STRUCT_SYSINFO_TOTALRAM -DANDROID -UNDEBUG
-IGT_LOCAL_CFLAGS += -include "check-ndebug.h" -std=c99
+IGT_LOCAL_CFLAGS += -include "check-ndebug.h" -std=gnu99
 # FIXME: drop once Bionic correctly annotates "noreturn" on pthread_exit
 IGT_LOCAL_CFLAGS += -Wno-error=return-type
 # Excessive complaining for established cases. Rely on the Linux version warnings.

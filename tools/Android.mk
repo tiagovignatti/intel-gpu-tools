@@ -12,7 +12,7 @@ define add_tool
     LOCAL_CFLAGS += -DHAVE_TERMIOS_H
     LOCAL_CFLAGS += -DHAVE_STRUCT_SYSINFO_TOTALRAM
     LOCAL_CFLAGS += -DANDROID -UNDEBUG
-    LOCAL_CFLAGS += -std=c99
+    LOCAL_CFLAGS += -std=gnu99
     # FIXME: drop once Bionic correctly annotates "noreturn" on pthread_exit
     LOCAL_CFLAGS += -Wno-error=return-type
     # Excessive complaining for established cases. Rely on the Linux version warnings.

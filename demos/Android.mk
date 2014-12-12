@@ -10,7 +10,7 @@ include $(CLEAR_VARS)
 
 LOCAL_CFLAGS += -DHAVE_TERMIOS_H
 LOCAL_CFLAGS += -DANDROID -UNDEBUG
-LOCAL_CFLAGS += -std=c99
+LOCAL_CFLAGS += -std=gnu99
 # Excessive complaining for established cases. Rely on the Linux version warnings.
 LOCAL_CFLAGS += -Wno-sign-compare
 
