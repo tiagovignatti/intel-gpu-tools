@@ -22,7 +22,7 @@
 
 AC_PREREQ([2.60])
 AC_INIT([intel-gpu-tools],
-	[1.8],
+	[1.9],
 	[https://bugs.freedesktop.org/enter_bug.cgi?product=DRI&component=DRM/Intel],
 	[intel-gpu-tools])
 

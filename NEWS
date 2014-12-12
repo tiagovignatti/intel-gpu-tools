@@ -1,4 +1,4 @@
-Release 1.9 (XXXX-XX-XX)
+Release 1.9 (2014-12-12)
 ------------------------
 
 - New test cases added: drm_import_export, gem_gpgpu_fill, gem_ppgtt,
