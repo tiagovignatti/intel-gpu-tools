@@ -520,6 +520,7 @@ enum igt_log_level {
 	IGT_LOG_DEBUG,
 	IGT_LOG_INFO,
 	IGT_LOG_WARN,
+	IGT_LOG_CRITICAL,
 	IGT_LOG_NONE,
 };
 __attribute__((format(printf, 3, 4)))
@@ -550,6 +551,15 @@ void igt_vlog(const char *domain, enum igt_log_level level, const char *format, 
  * Wrapper for igt_log() for message at the IGT_LOG_WARN level.
  */
 #define igt_warn(f...) igt_log(IGT_LOG_DOMAIN, IGT_LOG_WARN, f)
+
+/**
+ * igt_critical:
+ * @...: format string and optional arguments
+ *
+ * Wrapper for igt_log() for message at the IGT_LOG_CRITICAL level.
+ */
+#define igt_critical(f...) igt_log(IGT_LOG_DOMAIN, IGT_LOG_CRITICAL, f)
+
 extern enum igt_log_level igt_log_level;
 
 /**

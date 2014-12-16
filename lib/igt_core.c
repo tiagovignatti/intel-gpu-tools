@@ -1453,9 +1453,10 @@ void igt_skip_on_simulation(void)
  * between SUCESS and FAILURE.
  *
  * The log level can be set through the IGT_LOG_LEVEL environment variable with
- * values "debug", "info", "warn" and "none". By default verbose debug message
- * are disabled. "none" completely disables all output and is not recommended
- * since crucial issues only reported at the IGT_LOG_WARN level are ignored.
+ * values "debug", "info", "warn", "critical" and "none". By default verbose
+ * debug message are disabled. "none" completely disables all output and is not
+ * recommended since crucial issues only reported at the IGT_LOG_WARN level are
+ * ignored.
  */
 void igt_log(const char *domain, enum igt_log_level level, const char *format, ...)
 {
@@ -1488,6 +1489,7 @@ void igt_vlog(const char *domain, enum igt_log_level level, const char *format, 
 		"DEBUG",
 		"INFO",
 		"WARNING",
+		"CRITICAL",
 		"NONE"
 	};
 
@@ -1514,7 +1516,7 @@ void igt_vlog(const char *domain, enum igt_log_level level, const char *format, 
 			return;
 	}
 
-	if (level == IGT_LOG_WARN) {
+	if (level > IGT_LOG_WARN) {
 		file = stderr;
 		fflush(stdout);
 	}
