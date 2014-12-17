@@ -23,7 +23,6 @@ LOCAL_STATIC_LIBRARIES := libintel_gpu_tools
 
 LOCAL_SHARED_LIBRARIES := libdrm
 
-# This demo (intel_sprite_on.c) wont build on android
-#include $(BUILD_EXECUTABLE)
+include $(BUILD_EXECUTABLE)
 
 #================#
