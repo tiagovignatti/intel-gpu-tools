@@ -38,6 +38,11 @@
 #include <stdarg.h>
 #include <getopt.h>
 
+#ifndef IGT_LOG_DOMAIN
+#define IGT_LOG_DOMAIN (NULL)
+#endif
+
+
 extern const char* __igt_test_description __attribute__((weak));
 
 /**
@@ -215,8 +220,8 @@ void __igt_skip_check(const char *file, const int line,
 void igt_success(void);
 
 void igt_fail(int exitcode) __attribute__((noreturn));
-__attribute__((format(printf, 6, 7)))
-void __igt_fail_assert(int exitcode, const char *file,
+__attribute__((format(printf, 7, 8)))
+void __igt_fail_assert(int exitcode, const char *domain, const char *file,
 		       const int line, const char *func, const char *assertion,
 		       const char *format, ...)
 	__attribute__((noreturn));
@@ -232,7 +237,7 @@ void igt_exit(void) __attribute__((noreturn));
  */
 #define igt_assert(expr) \
 	do { if (!(expr)) \
-		__igt_fail_assert(99, __FILE__, __LINE__, __func__, #expr , NULL); \
+		__igt_fail_assert(99, IGT_LOG_DOMAIN, __FILE__, __LINE__, __func__, #expr , NULL); \
 	} while (0)
 
 /**
@@ -249,7 +254,7 @@ void igt_exit(void) __attribute__((noreturn));
  */
 #define igt_assert_f(expr, f...) \
 	do { if (!(expr)) \
-		__igt_fail_assert(99, __FILE__, __LINE__, __func__, #expr , f); \
+		__igt_fail_assert(99, IGT_LOG_DOMAIN, __FILE__, __LINE__, __func__, #expr , f); \
 	} while (0)
 
 /**
@@ -294,7 +299,7 @@ void igt_exit(void) __attribute__((noreturn));
 	do { \
 		int __n1 = (n1), __n2 = (n2); \
 		if (__n1 cmp __n2) ; else \
-		__igt_fail_assert(99, __FILE__, __LINE__, __func__, \
+		__igt_fail_assert(99, IGT_LOG_DOMAIN, __FILE__, __LINE__, __func__, \
 				  #n1 " " #cmp " " #n2, \
 				  "error: %d " #ncmp " %d\n", __n1, __n2); \
 	} while (0)
@@ -303,7 +308,7 @@ void igt_exit(void) __attribute__((noreturn));
 	do { \
 		uint32_t __n1 = (n1), __n2 = (n2); \
 		if (__n1 cmp __n2) ; else \
-		__igt_fail_assert(99, __FILE__, __LINE__, __func__, \
+		__igt_fail_assert(99, IGT_LOG_DOMAIN, __FILE__, __LINE__, __func__, \
 				  #n1 " " #cmp " " #n2, \
 				  "error: %#x " #ncmp " %#x\n", __n1, __n2); \
 	} while (0)
@@ -512,10 +517,6 @@ bool igt_run_in_simulation(void);
 void igt_skip_on_simulation(void);
 
 /* structured logging */
-#ifndef IGT_LOG_DOMAIN
-#define IGT_LOG_DOMAIN (NULL)
-#endif
-
 enum igt_log_level {
 	IGT_LOG_DEBUG,
 	IGT_LOG_INFO,
