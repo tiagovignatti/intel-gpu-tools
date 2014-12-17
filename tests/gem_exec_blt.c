@@ -170,7 +170,23 @@ static const char *bytes_per_sec(char *buf, double v)
 	return buf;
 }
 
-static void run(int object_size)
+static uint32_t dumb_create(int fd)
+{
+	struct drm_mode_create_dumb arg;
+	int ret;
+
+	arg.bpp = 32;
+	arg.width = 32;
+	arg.height = 32;
+
+	ret = drmIoctl(fd, DRM_IOCTL_MODE_CREATE_DUMB, &arg);
+	igt_assert(ret == 0);
+	igt_assert(arg.size >= 4096);
+
+	return arg.handle;
+}
+
+static void run(int object_size, bool dumb)
 {
 	struct drm_i915_gem_execbuffer2 execbuf;
 	struct drm_i915_gem_exec_object2 exec[3];
@@ -181,7 +197,11 @@ static void run(int object_size)
 	int ring;
 
 	fd = drm_open_any();
-	handle = gem_create(fd, 4096);
+	if (dumb)
+		handle = dumb_create(fd);
+	else
+		handle = gem_create(fd, 4096);
+
 	src = gem_create(fd, object_size);
 	dst = gem_create(fd, object_size);
 
@@ -257,18 +277,31 @@ int main(int argc, char **argv)
 {
 	int i;
 
-	igt_simple_init(argc, argv);
+	igt_subtest_init(argc, argv);
 
 	igt_skip_on_simulation();
 
-	if (argc > 1) {
-		for (i = 1; i < argc; i++) {
-			int object_size = atoi(argv[i]);
-			if (object_size)
-				run((object_size + 3) & -4);
-		}
-	} else
-		run(OBJECT_SIZE);
+	igt_subtest("normal") {
+		if (argc > 1) {
+			for (i = 1; i < argc; i++) {
+				int object_size = atoi(argv[i]);
+				if (object_size)
+					run((object_size + 3) & -4, false);
+			}
+		} else
+			run(OBJECT_SIZE, false);
+	}
+
+	igt_subtest("dumb-buf") {
+		if (argc > 1) {
+			for (i = 1; i < argc; i++) {
+				int object_size = atoi(argv[i]);
+				if (object_size)
+					run((object_size + 3) & -4, true);
+			}
+		} else
+			run(OBJECT_SIZE, true);
+	}
 
 	igt_exit();
 }
