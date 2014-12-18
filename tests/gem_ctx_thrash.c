@@ -251,6 +251,7 @@ threads(void)
 
 	bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
 	igt_assert(bufmgr);
+	drm_intel_bufmgr_gem_enable_reuse(bufmgr);
 
 	if (ppgtt_mode > 1)
 		ctx_size = aperture >> 10; /* Assume full-ppgtt of maximum size */
