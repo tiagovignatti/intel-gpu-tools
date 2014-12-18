@@ -190,6 +190,15 @@ void igt_exchange_int(void *array, unsigned i, unsigned j)
 	int_arr[j] = tmp;
 }
 
+static uint32_t
+hars_petruska_f54_1_random_unsafe(void)
+{
+	static uint32_t state = 0x12345678;
+#define rol(x,k) ((x << k) | (x >> (32-k)))
+	return state = (state ^ rol (state, 5) ^ rol (state, 24)) + 0x37798849;
+#undef rol
+}
+
 /**
  * igt_permute_array:
  * @array: pointer to array
@@ -209,7 +218,7 @@ void igt_permute_array(void *array, unsigned size,
 
 	for (i = size - 1; i > 1; i--) {
 		/* yes, not perfectly uniform, who cares */
-		long l = random() % (i +1);
+		long l = hars_petruska_f54_1_random_unsafe() % (i +1);
 		if (i != l)
 			exchange_func(array, i, l);
 	}
