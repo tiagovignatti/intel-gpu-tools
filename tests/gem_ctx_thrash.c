@@ -98,17 +98,17 @@ static void *thread(void *bufmgr)
 			struct igt_buf src, dst;
 
 			src.bo = bo[b % num_bo];
-			src.stride = 4;
+			src.stride = 64;
 			src.size = OBJECT_SIZE;
 			src.tiling = I915_TILING_NONE;
 
 			dst.bo = bo[(b+1) % num_bo];
-			dst.stride = 4;
+			dst.stride = 64;
 			dst.size = OBJECT_SIZE;
 			dst.tiling = I915_TILING_NONE;
 
 			render_copy(batch, ctx[c % num_ctx],
-				    &src, 0, 0, 1, 1, &dst, 0, 0);
+				    &src, 0, 0, 16, 16, &dst, 0, 0);
 		}
 	}
 
@@ -171,11 +171,11 @@ processes(void)
 		all_fds[n] = reopen(fd);
 		if (all_fds[n] == -1) {
 			int err = errno;
-			while (n--)
-				close(all_fds[n]);
+			for (int i = n; i--; )
+				close(all_fds[i]);
 			free(all_fds);
 			errno = err;
-			igt_assert(0);
+			igt_assert_f(0, "failed to create context %d/%d\n", n, num_ctx);
 		}
 	}
 
@@ -200,18 +200,18 @@ processes(void)
 
 			src.bo = drm_intel_bo_alloc(bufmgr, "", obj_size, 0);
 			igt_assert(src.bo);
-			src.stride = 4;
+			src.stride = 64;
 			src.size = obj_size;
 			src.tiling = I915_TILING_NONE;
 
 			dst.bo = drm_intel_bo_alloc(bufmgr, "", obj_size, 0);
 			igt_assert(dst.bo);
-			dst.stride = 4;
+			dst.stride = 64;
 			dst.size = obj_size;
 			dst.tiling = I915_TILING_NONE;
 
 			render_copy(batch, NULL,
-				    &src, 0, 0, 1, 1, &dst, 0, 0);
+				    &src, 0, 0, 16, 16, &dst, 0, 0);
 
 			intel_batchbuffer_free(batch);
 			drm_intel_bo_unreference(src.bo);
@@ -276,8 +276,8 @@ threads(void)
 		igt_assert(all_bo[n]);
 	}
 
-	ctx_per_thread = 5 * num_ctx / NUM_THREADS / 4;
-	bo_per_ctx = 2 * num_bo / ctx_per_thread;
+	ctx_per_thread = 3 * num_ctx / NUM_THREADS / 2;
+	bo_per_ctx = 3 * num_bo / NUM_THREADS / 2;
 
 	for (n = 0; n < NUM_THREADS; n++)
 		pthread_create(&threads[n], NULL, thread, bufmgr);
