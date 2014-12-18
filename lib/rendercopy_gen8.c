@@ -77,15 +77,15 @@ struct annotations_context {
 	drm_intel_aub_annotation annotations[MAX_ANNOTATIONS];
 	int index;
 	uint32_t offset;
-} aub_annotations;
+};
 
-static void annotation_init(struct annotations_context *ctx)
+static void annotation_init(struct annotations_context *aub)
 {
-	/* ctx->annotations is an array keeping a list of annotations of the
-	 * batch buffer ordered by offset. ctx->annotations[0] is thus left
+	/* aub->annotations is an array keeping a list of annotations of the
+	 * batch buffer ordered by offset. aub->annotations[0] is thus left
 	 * for the command stream and will be filled just before executing
 	 * the batch buffer with annotations_add_batch() */
-	ctx->index = 1;
+	aub->index = 1;
 }
 
 static void add_annotation(drm_intel_aub_annotation *a,
@@ -97,36 +97,36 @@ static void add_annotation(drm_intel_aub_annotation *a,
 	a->ending_offset = ending_offset;
 }
 
-static void annotation_add_batch(struct annotations_context *ctx, size_t size)
+static void annotation_add_batch(struct annotations_context *aub, size_t size)
 {
-	add_annotation(&ctx->annotations[0], AUB_TRACE_TYPE_BATCH, 0, size);
+	add_annotation(&aub->annotations[0], AUB_TRACE_TYPE_BATCH, 0, size);
 }
 
-static void annotation_add_state(struct annotations_context *ctx,
+static void annotation_add_state(struct annotations_context *aub,
 				 uint32_t state_type,
 				 uint32_t start_offset,
 				 size_t   size)
 {
-	igt_assert(ctx->index < MAX_ANNOTATIONS);
+	igt_assert(aub->index < MAX_ANNOTATIONS);
 
-	add_annotation(&ctx->annotations[ctx->index++],
+	add_annotation(&aub->annotations[aub->index++],
 		       AUB_TRACE_TYPE_NOTYPE, 0,
 		       start_offset);
-	add_annotation(&ctx->annotations[ctx->index++],
+	add_annotation(&aub->annotations[aub->index++],
 		       AUB_TRACE_TYPE(state_type),
 		       AUB_TRACE_SUBTYPE(state_type),
 		       start_offset + size);
 }
 
-static void annotation_flush(struct annotations_context *ctx,
+static void annotation_flush(struct annotations_context *aub,
 			     struct intel_batchbuffer *batch)
 {
 	if (!igt_aub_dump_enabled())
 		return;
 
 	drm_intel_bufmgr_gem_set_aub_annotations(batch->bo,
-						 ctx->annotations,
-						 ctx->index);
+						 aub->annotations,
+						 aub->index);
 }
 
 static uint32_t
@@ -179,8 +179,11 @@ gen6_render_flush(struct intel_batchbuffer *batch,
 
 /* Mostly copy+paste from gen6, except height, width, pitch moved */
 static uint32_t
-gen8_bind_buf(struct intel_batchbuffer *batch, struct igt_buf *buf,
-	      uint32_t format, int is_dst) {
+gen8_bind_buf(struct intel_batchbuffer *batch,
+	      struct annotations_context *aub,
+	      struct igt_buf *buf,
+	      uint32_t format, int is_dst)
+{
 	struct gen8_surface_state *ss;
 	uint32_t write_domain, read_domain, offset;
 	int ret;
@@ -194,8 +197,7 @@ gen8_bind_buf(struct intel_batchbuffer *batch, struct igt_buf *buf,
 
 	ss = batch_alloc(batch, sizeof(*ss), 64);
 	offset = batch_offset(batch, ss);
-	annotation_add_state(&aub_annotations, AUB_TRACE_SURFACE_STATE,
-			     offset, sizeof(*ss));
+	annotation_add_state(aub, AUB_TRACE_SURFACE_STATE, offset, sizeof(*ss));
 
 	ss->ss0.surface_type = GEN6_SURFACE_2D;
 	ss->ss0.surface_format = format;
@@ -229,6 +231,7 @@ gen8_bind_buf(struct intel_batchbuffer *batch, struct igt_buf *buf,
 
 static uint32_t
 gen8_bind_surfaces(struct intel_batchbuffer *batch,
+		   struct annotations_context *aub,
 		   struct igt_buf *src,
 		   struct igt_buf *dst)
 {
@@ -236,26 +239,29 @@ gen8_bind_surfaces(struct intel_batchbuffer *batch,
 
 	binding_table = batch_alloc(batch, 8, 32);
 	offset = batch_offset(batch, binding_table);
-	annotation_add_state(&aub_annotations, AUB_TRACE_BINDING_TABLE,
-			     offset, 8);
+	annotation_add_state(aub, AUB_TRACE_BINDING_TABLE, offset, 8);
 
 	binding_table[0] =
-		gen8_bind_buf(batch, dst, GEN6_SURFACEFORMAT_B8G8R8A8_UNORM, 1);
+		gen8_bind_buf(batch, aub,
+			      dst, GEN6_SURFACEFORMAT_B8G8R8A8_UNORM, 1);
 	binding_table[1] =
-		gen8_bind_buf(batch, src, GEN6_SURFACEFORMAT_B8G8R8A8_UNORM, 0);
+		gen8_bind_buf(batch, aub,
+			      src, GEN6_SURFACEFORMAT_B8G8R8A8_UNORM, 0);
 
 	return offset;
 }
 
 /* Mostly copy+paste from gen6, except wrap modes moved */
 static uint32_t
-gen8_create_sampler(struct intel_batchbuffer *batch) {
+gen8_create_sampler(struct intel_batchbuffer *batch,
+		    struct annotations_context *aub)
+{
 	struct gen8_sampler_state *ss;
 	uint32_t offset;
 
 	ss = batch_alloc(batch, sizeof(*ss), 64);
 	offset = batch_offset(batch, ss);
-	annotation_add_state(&aub_annotations, AUB_TRACE_SAMPLER_STATE,
+	annotation_add_state(aub, AUB_TRACE_SAMPLER_STATE,
 			     offset, sizeof(*ss));
 
 	ss->ss0.min_filter = GEN6_MAPFILTER_NEAREST;
@@ -273,14 +279,14 @@ gen8_create_sampler(struct intel_batchbuffer *batch) {
 
 static uint32_t
 gen8_fill_ps(struct intel_batchbuffer *batch,
+	     struct annotations_context *aub,
 	     const uint32_t kernel[][4],
 	     size_t size)
 {
 	uint32_t offset;
 
 	offset = batch_copy(batch, kernel, size, 64);
-	annotation_add_state(&aub_annotations, AUB_TRACE_KERNEL_INSTRUCTIONS,
-			     offset, size);
+	annotation_add_state(aub, AUB_TRACE_KERNEL_INSTRUCTIONS, offset, size);
 
 	return offset;
 }
@@ -297,6 +303,7 @@ gen8_fill_ps(struct intel_batchbuffer *batch,
  */
 static uint32_t
 gen7_fill_vertex_buffer_data(struct intel_batchbuffer *batch,
+			     struct annotations_context *aub,
 			     struct igt_buf *src,
 			     uint32_t src_x, uint32_t src_y,
 			     uint32_t dst_x, uint32_t dst_y,
@@ -321,7 +328,7 @@ gen7_fill_vertex_buffer_data(struct intel_batchbuffer *batch,
 	emit_vertex_normalized(batch, src_y, igt_buf_height(src));
 
 	offset = batch_offset(batch, start);
-	annotation_add_state(&aub_annotations, AUB_TRACE_VERTEX_BUFFER,
+	annotation_add_state(aub, AUB_TRACE_VERTEX_BUFFER,
 			     offset, 3 * VERTEX_SIZE);
 	return offset;
 }
@@ -400,21 +407,23 @@ static void gen8_emit_vertex_buffer(struct intel_batchbuffer *batch,
 }
 
 static uint32_t
-gen6_create_cc_state(struct intel_batchbuffer *batch)
+gen6_create_cc_state(struct intel_batchbuffer *batch,
+		     struct annotations_context *aub)
 {
 	struct gen6_color_calc_state *cc_state;
 	uint32_t offset;
 
 	cc_state = batch_alloc(batch, sizeof(*cc_state), 64);
 	offset = batch_offset(batch, cc_state);
-	annotation_add_state(&aub_annotations, AUB_TRACE_CC_STATE,
+	annotation_add_state(aub, AUB_TRACE_CC_STATE,
 			     offset, sizeof(*cc_state));
 
 	return offset;
 }
 
 static uint32_t
-gen8_create_blend_state(struct intel_batchbuffer *batch)
+gen8_create_blend_state(struct intel_batchbuffer *batch,
+			struct annotations_context *aub)
 {
 	struct gen8_blend_state *blend;
 	int i;
@@ -422,7 +431,7 @@ gen8_create_blend_state(struct intel_batchbuffer *batch)
 
 	blend = batch_alloc(batch, sizeof(*blend), 64);
 	offset = batch_offset(batch, blend);
-	annotation_add_state(&aub_annotations, AUB_TRACE_BLEND_STATE,
+	annotation_add_state(aub, AUB_TRACE_BLEND_STATE,
 			     offset, sizeof(*blend));
 
 	for (i = 0; i < 16; i++) {
@@ -437,14 +446,15 @@ gen8_create_blend_state(struct intel_batchbuffer *batch)
 }
 
 static uint32_t
-gen6_create_cc_viewport(struct intel_batchbuffer *batch)
+gen6_create_cc_viewport(struct intel_batchbuffer *batch,
+			struct annotations_context *aub)
 {
 	struct gen6_cc_viewport *vp;
 	uint32_t offset;
 
 	vp = batch_alloc(batch, sizeof(*vp), 32);
 	offset = batch_offset(batch, vp);
-	annotation_add_state(&aub_annotations, AUB_TRACE_CC_VP_STATE,
+	annotation_add_state(aub, AUB_TRACE_CC_VP_STATE,
 			     offset, sizeof(*vp));
 
 	/* XXX I don't understand this */
@@ -455,14 +465,16 @@ gen6_create_cc_viewport(struct intel_batchbuffer *batch)
 }
 
 static uint32_t
-gen7_create_sf_clip_viewport(struct intel_batchbuffer *batch) {
+gen7_create_sf_clip_viewport(struct intel_batchbuffer *batch,
+			struct annotations_context *aub)
+{
 	/* XXX these are likely not needed */
 	struct gen7_sf_clip_viewport *scv_state;
 	uint32_t offset;
 
 	scv_state = batch_alloc(batch, sizeof(*scv_state), 64);
 	offset = batch_offset(batch, scv_state);
-	annotation_add_state(&aub_annotations, AUB_TRACE_CLIP_VP_STATE,
+	annotation_add_state(aub, AUB_TRACE_CLIP_VP_STATE,
 			     offset, sizeof(*scv_state));
 
 	scv_state->guardband.xmin = 0;
@@ -474,14 +486,15 @@ gen7_create_sf_clip_viewport(struct intel_batchbuffer *batch) {
 }
 
 static uint32_t
-gen6_create_scissor_rect(struct intel_batchbuffer *batch)
+gen6_create_scissor_rect(struct intel_batchbuffer *batch,
+			struct annotations_context *aub)
 {
 	struct gen6_scissor_rect *scissor;
 	uint32_t offset;
 
 	scissor = batch_alloc(batch, sizeof(*scissor), 64);
 	offset = batch_offset(batch, scissor);
-	annotation_add_state(&aub_annotations, AUB_TRACE_SCISSOR_STATE,
+	annotation_add_state(aub, AUB_TRACE_SCISSOR_STATE,
 			     offset, sizeof(*scissor));
 
 	return offset;
@@ -913,6 +926,7 @@ void gen8_render_copyfunc(struct intel_batchbuffer *batch,
 			  unsigned width, unsigned height,
 			  struct igt_buf *dst, unsigned dst_x, unsigned dst_y)
 {
+	struct annotations_context aub_annotations;
 	uint32_t ps_sampler_state, ps_kernel_off, ps_binding_table;
 	uint32_t scissor_state;
 	uint32_t vertex_buffer;
@@ -926,18 +940,21 @@ void gen8_render_copyfunc(struct intel_batchbuffer *batch,
 
 	annotation_init(&aub_annotations);
 
-	ps_binding_table  = gen8_bind_surfaces(batch, src, dst);
-	ps_sampler_state  = gen8_create_sampler(batch);
-	ps_kernel_off = gen8_fill_ps(batch, ps_kernel, sizeof(ps_kernel));
-	vertex_buffer = gen7_fill_vertex_buffer_data(batch, src,
+	ps_binding_table  = gen8_bind_surfaces(batch, &aub_annotations,
+					       src, dst);
+	ps_sampler_state  = gen8_create_sampler(batch, &aub_annotations);
+	ps_kernel_off = gen8_fill_ps(batch, &aub_annotations,
+				     ps_kernel, sizeof(ps_kernel));
+	vertex_buffer = gen7_fill_vertex_buffer_data(batch, &aub_annotations,
+						     src,
 						     src_x, src_y,
 						     dst_x, dst_y,
 						     width, height);
-	cc.cc_state = gen6_create_cc_state(batch);
-	cc.blend_state = gen8_create_blend_state(batch);
-	viewport.cc_state = gen6_create_cc_viewport(batch);
-	viewport.sf_clip_state = gen7_create_sf_clip_viewport(batch);
-	scissor_state = gen6_create_scissor_rect(batch);
+	cc.cc_state = gen6_create_cc_state(batch, &aub_annotations);
+	cc.blend_state = gen8_create_blend_state(batch, &aub_annotations);
+	viewport.cc_state = gen6_create_cc_viewport(batch, &aub_annotations);
+	viewport.sf_clip_state = gen7_create_sf_clip_viewport(batch, &aub_annotations);
+	scissor_state = gen6_create_scissor_rect(batch, &aub_annotations);
 	/* TODO: theree is other state which isn't setup */
 
 	igt_assert(batch->ptr < &batch->buffer[4095]);
