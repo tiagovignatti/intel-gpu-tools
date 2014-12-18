@@ -219,6 +219,7 @@ processes(void)
 			drm_intel_bufmgr_destroy(bufmgr);
 		}
 	}
+	igt_waitchildren();
 
 	for (n = 0; n < num_ctx; n++)
 		close(all_fds[n]);
