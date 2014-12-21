@@ -266,6 +266,7 @@ static int wait_begin(struct gpu_perf *gp, const void *event)
 		return 0;
 
 	wait->comm = comm;
+	wait->comm->active = true;
 	wait->seqno = sample->raw[2];
 	wait->time = sample->time;
 	wait->next = gp->wait[sample->raw[1]];
@@ -284,6 +285,8 @@ static int wait_end(struct gpu_perf *gp, const void *event)
 			continue;
 
 		wait->comm->wait_time += sample->time - wait->time;
+		wait->comm->active = false;
+
 		*prev = wait->next;
 		free(wait);
 		return 1;

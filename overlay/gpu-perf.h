@@ -26,6 +26,7 @@
 #define GPU_PERF_H
 
 #include <stdint.h>
+#include <stdbool.h>
 
 #define MAX_RINGS 4
 
@@ -48,6 +49,7 @@ struct gpu_perf {
 		struct gpu_perf_comm *next;
 		char name[256];
 		pid_t pid;
+		bool active;
 		int nr_requests[4];
 		void *user_data;
 

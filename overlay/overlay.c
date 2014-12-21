@@ -362,6 +362,12 @@ static void show_gpu_perf(struct overlay_context *ctx, struct overlay_gpu_perf *
 	for (comm = gp->gpu_perf.comm; comm; comm = comm->next) {
 		int total;
 
+		if (comm->name[0] == '\0')
+			continue;
+
+		if (strncmp(comm->name, "kworker", 7) == 0)
+			continue;
+
 		if (comm->user_data == NULL) {
 			comm->user_data = malloc(sizeof(struct chart));
 			if (comm->user_data == NULL)
@@ -387,11 +393,18 @@ static void show_gpu_perf(struct overlay_context *ctx, struct overlay_gpu_perf *
 	}
 
 	range[0] = range[1] = 0;
-	for (comm = gp->gpu_perf.comm; comm; comm = comm->next)
+	for (comm = gp->gpu_perf.comm; comm; comm = comm->next) {
+		if (comm->user_data == NULL)
+			continue;
+
 		chart_get_range(comm->user_data, range);
+	}
 
 	y2 = y1 = y;
 	for (comm = gp->gpu_perf.comm; comm; comm = comm->next) {
+		if (comm->user_data == NULL)
+			continue;
+
 		chart_set_range(comm->user_data, range[0], range[1]);
 		chart_draw(comm->user_data, ctx->cr);
 		y2 += 14;
@@ -414,7 +427,7 @@ static void show_gpu_perf(struct overlay_context *ctx, struct overlay_gpu_perf *
 	for (prev = &gp->gpu_perf.comm; (comm = *prev) != NULL; ) {
 		int need_comma = 0, len;
 
-		if (comm->name[0] == '\0')
+		if (comm->user_data == NULL)
 			goto skip_comm;
 
 		len = sprintf(buf, "%s:", comm->name);
@@ -467,8 +480,9 @@ static void show_gpu_perf(struct overlay_context *ctx, struct overlay_gpu_perf *
 
 skip_comm:
 		memset(comm->nr_requests, 0, sizeof(comm->nr_requests));
-		if (comm->show < ctx->time - IDLE_TIME ||
-		    strcmp(comm->name, get_comm(comm->pid, buf, sizeof(buf)))) {
+		if (!comm->active &&
+		    (comm->show < ctx->time - IDLE_TIME ||
+		     strcmp(comm->name, get_comm(comm->pid, buf, sizeof(buf))))) {
 			*prev = comm->next;
 			if (comm->user_data) {
 				chart_fini(comm->user_data);
