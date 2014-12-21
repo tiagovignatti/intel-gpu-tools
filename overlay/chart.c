@@ -143,7 +143,11 @@ static double value_at(struct chart *chart, int n)
 	else if (n >= chart->current_sample)
 		n = chart->current_sample - 1;
 
-	return chart->samples[n % chart->num_samples];
+	n %= chart->num_samples;
+	if (n < 0)
+		n += chart->num_samples;
+
+	return chart->samples[n];
 }
 
 static double gradient_at(struct chart *chart, int n)
