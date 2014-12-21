@@ -196,6 +196,7 @@ static int add_value(const char *section,
 			return 0;
 
 		memcpy(s->name, section, len);
+		s->values = NULL;
 		s->next = c->sections;
 		c->sections = s;
 	}

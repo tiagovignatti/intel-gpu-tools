@@ -57,11 +57,15 @@ int gem_objects_init(struct gem_objects *obj)
 	fd = open(buf, 0);
 	if (fd < 0)
 		return errno;
-	len = read(fd, buf, sizeof(buf)-1);
+	len = read(fd, buf+1, sizeof(buf)-2);
 	close(fd);
 
 	if (len < 0)
 		return EIO;
+
+	/* Add sentinel values for the string searches */
+	buf[0] = '\n';
+	buf[len+1] = '\0';
 
 	b = strstr(buf, "gtt total");
 	if (b == NULL)
