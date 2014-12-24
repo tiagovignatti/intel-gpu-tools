@@ -1206,6 +1206,10 @@ void igt_waitchildren(void)
 #define MAX_SIGNALS		32
 #define MAX_EXIT_HANDLERS	10
 
+#ifndef HAVE_SIGHANDLER_T
+typedef void (*sighandler_t)(int);
+#endif
+
 static struct {
 	sighandler_t handler;
 	bool installed;

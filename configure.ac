@@ -57,6 +57,8 @@ AC_CHECK_HEADERS([termios.h linux/kd.h sys/kd.h libgen.h])
 AC_CHECK_MEMBERS([struct sysinfo.totalram],[],[],[AC_INCLUDES_DEFAULT
 		  #include <sys/sysinfo.h>
 		  ])
+AC_CHECK_TYPES([sighandler_t],[],[],[AC_INCLUDES_DEFAULT
+#include <signal.h>])
 AC_CHECK_FUNCS([swapctl])
 AC_CHECK_FUNCS([asprintf])
 
