@@ -65,6 +65,10 @@
 #include "igt_core.h"
 #include "igt_aux.h"
 
+#ifdef HAVE_LIBGEN_H
+#include <libgen.h>   /* for basename() on Solaris */
+#endif
+
 /**
  * SECTION:igt_core
  * @short_description: Core i-g-t testing support
