@@ -37,7 +37,11 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#ifdef __linux__
 # include <sys/syscall.h>
+#else
+# include <pthread.h>
+#endif
 
 #include "drm.h"
 #include "ioctl_wrappers.h"
@@ -47,7 +51,9 @@
 static bool
 is_local_tid(pid_t tid)
 {
-#ifndef ANDROID
+#ifndef __linux__
+	return pthread_self() == tid;
+#elif !defined(ANDROID)
 	/* On Linux systems, drmGetClient() would return the thread ID
 	   instead of the actual process ID */
 	return syscall(SYS_gettid) == tid;

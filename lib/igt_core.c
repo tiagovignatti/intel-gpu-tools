@@ -45,7 +45,11 @@
 #include <unistd.h>
 #include <sys/wait.h>
 #include <sys/types.h>
+#ifdef __linux__
 #include <sys/syscall.h>
+#else
+#include <pthread.h>
+#endif
 #include <sys/utsname.h>
 #include <termios.h>
 #include <errno.h>
@@ -1260,8 +1264,6 @@ static void igt_atexit_handler(void)
 
 static void fatal_sig_handler(int sig)
 {
-	pid_t pid, tid;
-
 	restore_all_sig_handler();
 
 	/*
@@ -1270,11 +1272,20 @@ static void fatal_sig_handler(int sig)
 	 */
 	call_exit_handlers(sig);
 
+	{
+#ifdef __linux__
 	/* Workaround cached PID and TID races on glibc and Bionic libc. */
-	pid = syscall(SYS_getpid);
-	tid = syscall(SYS_gettid);
+		pid_t pid = syscall(SYS_getpid);
+		pid_t tid = syscall(SYS_gettid);
 
-	syscall(SYS_tgkill, pid, tid, sig);
+		syscall(SYS_tgkill, pid, tid, sig);
+#else
+		pthread_t tid = pthread_self();
+		union sigval value = { .sival_ptr = NULL };
+
+		pthread_sigqueue(tid, sig, value);
+#endif
+        }
 }
 
 /**

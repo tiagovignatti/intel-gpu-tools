@@ -121,7 +121,11 @@ static void start_test(void)
 
 static void * test_thread(void * par)
 {
+#ifdef __linux__
 	igt_debug("start %ld\n", syscall(SYS_gettid));
+#else
+	igt_debug("start %ld\n", (long) pthread_self());
+#endif
 	start_test();
 
 	return NULL;
