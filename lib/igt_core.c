@@ -267,7 +267,9 @@ static void gettime(struct timespec *ts)
 {
 	memset(ts, 0, sizeof(*ts));
 
+#ifdef CLOCK_MONOTONIC_COARSE
 	if (clock_gettime(CLOCK_MONOTONIC_COARSE, ts))
+#endif
 		clock_gettime(CLOCK_MONOTONIC, ts);
 }
 
