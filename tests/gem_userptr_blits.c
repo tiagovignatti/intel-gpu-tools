@@ -594,14 +594,18 @@ static void test_forked_access(int fd)
 	int ret;
 
 	ret = posix_memalign(&ptr1, PAGE_SIZE, sizeof(linear));
+#ifdef MADV_DONTFORK
 	ret |= madvise(ptr1, sizeof(linear), MADV_DONTFORK);
+#endif
 	ret |= gem_userptr(fd, ptr1, sizeof(linear), 0, &handle1);
 	igt_assert(ret == 0);
 	igt_assert(ptr1);
 	igt_assert(handle1);
 
 	ret = posix_memalign(&ptr2, PAGE_SIZE, sizeof(linear));
+#ifdef MADV_DONTFORK
 	ret |= madvise(ptr2, sizeof(linear), MADV_DONTFORK);
+#endif
 	ret |= gem_userptr(fd, ptr2, sizeof(linear), 0, &handle2);
 	igt_assert(ret == 0);
 	igt_assert(ptr2);
@@ -623,12 +627,16 @@ static void test_forked_access(int fd)
 
 	igt_assert(memcmp(ptr1, ptr2, sizeof(linear)) == 0);
 
+#ifdef MADV_DOFORK
 	ret = madvise(ptr1, sizeof(linear), MADV_DOFORK);
 	igt_assert(ret == 0);
+#endif
 	free(ptr1);
 
+#ifdef MADV_DOFORK
 	ret = madvise(ptr2, sizeof(linear), MADV_DOFORK);
 	igt_assert(ret == 0);
+#endif
 	free(ptr2);
 }
 
