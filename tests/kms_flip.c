@@ -34,7 +34,11 @@
 #include <sys/poll.h>
 #include <sys/time.h>
 #include <sys/ioctl.h>
+#ifdef HAVE_LINUX_KD_H
 #include <linux/kd.h>
+#elif HAVE_SYS_KD_H
+#include <sys/kd.h>
+#endif
 #include <time.h>
 #include <pthread.h>
 

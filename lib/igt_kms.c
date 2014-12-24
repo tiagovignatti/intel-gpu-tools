@@ -25,7 +25,7 @@
  * 	Damien Lespiau <damien.lespiau@intel.com>
  */
 
-#define _GNU_SOURCE
+#include "config.h"
 #include <unistd.h>
 #include <stdio.h>
 #include <stdarg.h>
@@ -33,7 +33,11 @@
 #include <sys/stat.h>
 #include <string.h>
 #include <stdlib.h>
+#ifdef HAVE_LINUX_KD_H
 #include <linux/kd.h>
+#elif HAVE_SYS_KD_H
+#include <sys/kd.h>
+#endif
 #include <errno.h>
 #include <time.h>
 

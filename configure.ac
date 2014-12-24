@@ -53,7 +53,7 @@ enable_gtk_doc=no
 
 # Checks for functions, headers, structures, etc.
 AC_HEADER_STDC
-AC_CHECK_HEADERS([termios.h])
+AC_CHECK_HEADERS([termios.h linux/kd.h sys/kd.h])
 AC_CHECK_MEMBERS([struct sysinfo.totalram],[],[],[AC_INCLUDES_DEFAULT
 		  #include <sys/sysinfo.h>
 		  ])
