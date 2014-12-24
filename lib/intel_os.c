@@ -112,7 +112,7 @@ intel_get_avail_ram_mb(void)
 
 	retval = sysinf.freeram;
 	retval *= sysinf.mem_unit;
-#elif defined(_SC_PAGESIZE) && defined(_SC_PHYS_PAGES) /* Solaris */
+#elif defined(_SC_PAGESIZE) && defined(_SC_AVPHYS_PAGES) /* Solaris */
 	long pagesize, npages;
 
 	pagesize = sysconf(_SC_PAGESIZE);
