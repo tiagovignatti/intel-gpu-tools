@@ -267,6 +267,21 @@ static void *no_contention(void *closure)
 	return NULL;
 }
 
+static void *wc_mmap(void *closure)
+{
+	struct thread_contention *t = closure;
+	int n;
+
+	for (n = 0; n < t->loops; n++) {
+		uint32_t *ptr = gem_mmap__wc(t->fd, t->handle, 0, OBJECT_SIZE, PROT_READ | PROT_WRITE);
+		igt_assert(ptr);
+		memset(ptr + (rand() % 256) * 4096 / 4, 0, 4096);
+		munmap(ptr, OBJECT_SIZE);
+	}
+
+	return NULL;
+}
+
 static void thread_contention(void)
 {
 	const int loops = 4096;
@@ -322,6 +337,62 @@ static void thread_contention(void)
 	igt_assert(tiled[1] > 0.75 * tiled[0]);
 }
 
+static void wc_contention(void)
+{
+	const int loops = 4096;
+	int n, count;
+	int fd, num_fences;
+	double linear[2], tiled[2];
+
+	fd = drm_open_any();
+	igt_require_mmap_wc(fd);
+
+	num_fences = gem_available_fences(fd);
+	igt_require(num_fences > 0);
+
+	for (count = 1; count < 4*num_fences; count *= 2) {
+		struct timeval start, end;
+		struct thread_contention threads[count];
+
+		for (n = 0; n < count; n++) {
+			threads[n].handle = gem_create(fd, OBJECT_SIZE);
+			threads[n].loops = loops;
+			threads[n].fd = fd;
+		}
+
+		gettimeofday(&start, NULL);
+		for (n = 0; n < count; n++)
+			pthread_create(&threads[n].thread, NULL, wc_mmap, &threads[n]);
+		for (n = 0; n < count; n++)
+			pthread_join(threads[n].thread, NULL);
+		gettimeofday(&end, NULL);
+
+		linear[count != 2] = count * loops / elapsed(&start, &end) / (OBJECT_SIZE / 4096);
+		igt_info("Contended upload rate for %d linear threads/wc:	%7.3fMiB/s\n", count, linear[count != 2]);
+
+		for (n = 0; n < count; n++)
+			gem_set_tiling(fd, threads[n].handle, I915_TILING_X, 1024);
+
+		gettimeofday(&start, NULL);
+		for (n = 0; n < count; n++)
+			pthread_create(&threads[n].thread, NULL, wc_mmap, &threads[n]);
+		for (n = 0; n < count; n++)
+			pthread_join(threads[n].thread, NULL);
+		gettimeofday(&end, NULL);
+
+		tiled[count != 2] = count * loops / elapsed(&start, &end) / (OBJECT_SIZE / 4096);
+		igt_info("Contended upload rate for %d tiled threads/wc:	%7.3fMiB/s\n", count, tiled[count != 2]);
+
+		for (n = 0; n < count; n++) {
+			gem_close(fd, threads[n].handle);
+		}
+	}
+
+	errno = 0;
+	igt_assert(linear[1] > 0.75 * linear[0]);
+	igt_assert(tiled[1] > 0.75 * tiled[0]);
+}
+
 igt_main
 {
 	igt_skip_on_simulation();
@@ -330,6 +401,8 @@ igt_main
 		performance();
 	igt_subtest("thread-contention")
 		thread_contention();
+	igt_subtest("wc-contention")
+		wc_contention();
 	igt_subtest("thread-performance-read")
 		thread_performance(READ);
 	igt_subtest("thread-performance-write")
