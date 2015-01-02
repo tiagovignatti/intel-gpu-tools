@@ -41,6 +41,17 @@
 #include "drmtest.h"
 #include "igt_debugfs.h"
 
+struct local_i915_gem_mmap_v2 {
+	uint32_t handle;
+	uint32_t pad;
+	uint64_t offset;
+	uint64_t size;
+	uint64_t addr_ptr;
+	uint64_t flags;
+#define I915_MMAP_WC 0x1
+};
+#define LOCAL_IOCTL_I915_GEM_MMAP_v2 DRM_IOWR(DRM_COMMAND_BASE + DRM_I915_GEM_MMAP, struct local_i915_gem_mmap_v2)
+
 static int OBJECT_SIZE = 16*1024*1024;
 
 static void set_domain(int fd, uint32_t handle)
@@ -73,6 +84,45 @@ create_pointer(int fd)
 	gem_close(fd, handle);
 
 	return ptr;
+}
+
+static void
+test_invalid_flags(int fd)
+{
+	struct drm_i915_getparam gp;
+	struct local_i915_gem_mmap_v2 arg;
+	uint64_t flag = I915_MMAP_WC;
+	int val = -1;
+
+	memset(&arg, 0, sizeof(arg));
+	arg.handle = gem_create(fd, 4096);
+	arg.offset = 0;
+	arg.size = 4096;
+
+	memset(&gp, 0, sizeof(gp));
+	gp.param = 30; /* MMAP_VERSION */
+	gp.value = &val;
+
+	/* Do we have the new mmap_ioctl? */
+	do_ioctl(fd, DRM_IOCTL_I915_GETPARAM, &gp);
+
+	if (val >= 1) {
+		/*
+		 * Only MMAP_WC flag is supported in version 1, so any other
+		 * flag should be rejected.
+		 */
+		flag <<= 1;
+		while (flag) {
+			arg.flags = flag;
+			igt_assert(drmIoctl(fd,
+				   LOCAL_IOCTL_I915_GEM_MMAP_v2,
+				   &arg) == -1);
+			igt_assert_eq(errno, EINVAL);
+			flag <<= 1;
+		}
+	}
+
+	gem_close(fd, arg.handle);
 }
 
 static void
@@ -336,6 +386,8 @@ igt_main
 	igt_fixture
 		fd = drm_open_any();
 
+	igt_subtest("invalid flags")
+		test_invalid_flags(fd);
 	igt_subtest("copy")
 		test_copy(fd);
 	igt_subtest("read")
