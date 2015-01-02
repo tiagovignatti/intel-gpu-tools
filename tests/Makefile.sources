@@ -137,6 +137,7 @@ TESTS_progs = \
 	gem_tiled_pread_pwrite \
 	gem_tiled_swapping \
 	gem_tiled_wb \
+	gem_tiled_wc \
 	gem_tiling_max_stride \
 	gem_unfence_active_buffers \
 	gem_unref_active_buffers \
