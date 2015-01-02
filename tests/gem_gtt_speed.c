@@ -206,6 +206,27 @@ int main(int argc, char **argv)
 		igt_info("Time to read %dk through a GTT map:		%7.3fµs\n",
 			 size/1024, elapsed(&start, &end, loop));
 
+		if (gem_mmap__has_wc(fd)) {
+			gettimeofday(&start, NULL);
+			for (loop = 0; loop < 1000; loop++) {
+				uint32_t *base = gem_mmap__wc(fd, handle, 0, size, PROT_READ | PROT_WRITE);
+				volatile uint32_t *ptr = base;
+				int x = 0;
+
+				for (i = 0; i < size/sizeof(*ptr); i++)
+					x += ptr[i];
+
+				/* force overtly clever gcc to actually compute x */
+				ptr[0] = x;
+
+				munmap(base, size);
+			}
+			gettimeofday(&end, NULL);
+			igt_info("Time to read %dk through a WC map:		%7.3fµs\n",
+					size/1024, elapsed(&start, &end, loop));
+		}
+
+
 		/* mmap write */
 		gettimeofday(&start, NULL);
 		for (loop = 0; loop < 1000; loop++) {
@@ -221,6 +242,23 @@ int main(int argc, char **argv)
 		igt_info("Time to write %dk through a GTT map:		%7.3fµs\n",
 			 size/1024, elapsed(&start, &end, loop));
 
+		if (gem_mmap__has_wc(fd)) {
+			/* mmap write */
+			gettimeofday(&start, NULL);
+			for (loop = 0; loop < 1000; loop++) {
+				uint32_t *base = gem_mmap__wc(fd, handle, 0, size, PROT_READ | PROT_WRITE);
+				volatile uint32_t *ptr = base;
+
+				for (i = 0; i < size/sizeof(*ptr); i++)
+					ptr[i] = i;
+
+				munmap(base, size);
+			}
+			gettimeofday(&end, NULL);
+			igt_info("Time to write %dk through a WC map:		%7.3fµs\n",
+					size/1024, elapsed(&start, &end, loop));
+		}
+
 		/* mmap clear */
 		gettimeofday(&start, NULL);
 		for (loop = 0; loop < 1000; loop++) {
@@ -232,6 +270,19 @@ int main(int argc, char **argv)
 		igt_info("Time to clear %dk through a GTT map:		%7.3fµs\n",
 			 size/1024, elapsed(&start, &end, loop));
 
+		if (gem_mmap__has_wc(fd)) {
+			/* mmap clear */
+			gettimeofday(&start, NULL);
+			for (loop = 0; loop < 1000; loop++) {
+				uint32_t *base = gem_mmap__wc(fd, handle, 0, size, PROT_READ | PROT_WRITE);
+				memset(base, 0, size);
+				munmap(base, size);
+			}
+			gettimeofday(&end, NULL);
+			igt_info("Time to clear %dk through a WC map:		%7.3fµs\n",
+					size/1024, elapsed(&start, &end, loop));
+		}
+
 		gettimeofday(&start, NULL);{
 			uint32_t *base = gem_mmap(fd, handle, size, PROT_READ | PROT_WRITE);
 			for (loop = 0; loop < 1000; loop++)
@@ -240,6 +291,17 @@ int main(int argc, char **argv)
 		} gettimeofday(&end, NULL);
 		igt_info("Time to clear %dk through a cached GTT map:	%7.3fµs\n",
 			 size/1024, elapsed(&start, &end, loop));
+
+		if (gem_mmap__has_wc(fd)) {
+			gettimeofday(&start, NULL);{
+				uint32_t *base = gem_mmap__wc(fd, handle, 0, size, PROT_READ | PROT_WRITE);
+				for (loop = 0; loop < 1000; loop++)
+					memset(base, 0, size);
+				munmap(base, size);
+			} gettimeofday(&end, NULL);
+			igt_info("Time to clear %dk through a cached WC map:	%7.3fµs\n",
+					size/1024, elapsed(&start, &end, loop));
+		}
 
 		/* mmap read */
 		gettimeofday(&start, NULL);
@@ -323,7 +385,6 @@ int main(int argc, char **argv)
 
 			size *= 4;
 		}
-
 	}
 
 	gem_close(fd, handle);
