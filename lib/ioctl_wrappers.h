@@ -62,6 +62,11 @@ void gem_execbuf(int fd, struct drm_i915_gem_execbuffer2 *execbuf);
 
 void *gem_mmap__gtt(int fd, uint32_t handle, int size, int prot);
 void *gem_mmap__cpu(int fd, uint32_t handle, int offset, int size, int prot);
+
+bool gem_mmap__has_wc(int fd);
+void *gem_mmap__wc(int fd, uint32_t handle, int offset, int size, int prot);
+#define igt_require_mmap_wc(x) igt_require(gem_mmap__has_wc(x))
+
 /**
  * gem_mmap:
  *

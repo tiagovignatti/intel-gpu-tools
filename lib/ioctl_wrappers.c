@@ -463,8 +463,89 @@ void *gem_mmap__gtt(int fd, uint32_t handle, int size, int prot)
 	ptr = mmap64(0, size, prot, MAP_SHARED, fd, mmap_arg.offset);
 	if (ptr == MAP_FAILED)
 		ptr = NULL;
+	else
+		errno = 0;
 
 	return ptr;
+}
+
+struct local_i915_gem_mmap_v2 {
+	uint32_t handle;
+	uint32_t pad;
+	uint64_t offset;
+	uint64_t size;
+	uint64_t addr_ptr;
+	uint64_t flags;
+#define I915_MMAP_WC 0x1
+};
+#define LOCAL_IOCTL_I915_GEM_MMAP_v2 DRM_IOWR(DRM_COMMAND_BASE + DRM_I915_GEM_MMAP, struct local_i915_gem_mmap_v2)
+
+bool gem_mmap__has_wc(int fd)
+{
+	static int has_wc = -1;
+
+	if (has_wc == -1) {
+		struct drm_i915_getparam gp;
+		int val = -1;
+
+		has_wc = 0;
+
+		memset(&gp, 0, sizeof(gp));
+		gp.param = 30; /* MMAP_VERSION */
+		gp.value = &val;
+
+		/* Do we have the new mmap_ioctl? */
+		ioctl(fd, DRM_IOCTL_I915_GETPARAM, &gp);
+		if (val >= 1) {
+			struct local_i915_gem_mmap_v2 arg;
+
+			/* Does this device support wc-mmaps ? */
+			memset(&arg, 0, sizeof(arg));
+			arg.handle = gem_create(fd, 4096);
+			arg.offset = 0;
+			arg.size = 4096;
+			arg.flags = I915_MMAP_WC;
+			has_wc = drmIoctl(fd, LOCAL_IOCTL_I915_GEM_MMAP_v2, &arg) == 0;
+			gem_close(fd, arg.handle);
+		}
+		errno = 0;
+	}
+
+	return has_wc > 0;
+}
+
+/**
+ * gem_mmap__wc:
+ * @fd: open i915 drm file descriptor
+ * @handle: gem buffer object handle
+ * @offset: offset in the gem buffer of te mmap arena
+ * @size: size of the mmap arena
+ * @prot: memory protection bits as used by mmap()
+ *
+ * This functions wraps up procedure to establish a memory mapping through
+ * direct cpu access, bypassing the gpu and cpu caches completely.
+ *
+ * Returns: A pointer to the created memory mapping.
+ */
+void *gem_mmap__wc(int fd, uint32_t handle, int offset, int size, int prot)
+{
+	struct local_i915_gem_mmap_v2 arg;
+
+	if (!gem_mmap__has_wc(fd)) {
+		errno = ENOSYS;
+		return NULL;
+	}
+
+	memset(&arg, 0, sizeof(arg));
+	arg.handle = handle;
+	arg.offset = offset;
+	arg.size = size;
+	arg.flags = I915_MMAP_WC;
+	if (drmIoctl(fd, LOCAL_IOCTL_I915_GEM_MMAP_v2, &arg))
+		return NULL;
+
+	errno = 0;
+	return (void *)(uintptr_t)arg.addr_ptr;
 }
 
 /**
