@@ -62,6 +62,12 @@ int fd, devid, gen;
 struct intel_batchbuffer *batch;
 
 static void
+nop_release_bo(drm_intel_bo *bo)
+{
+	drm_intel_bo_unreference(bo);
+}
+
+static void
 prw_set_bo(drm_intel_bo *bo, uint32_t val, int width, int height)
 {
 	int size = width * height, i;
@@ -159,6 +165,27 @@ static drm_intel_bo *
 gttX_create_bo(drm_intel_bufmgr *bufmgr, int width, int height)
 {
 	return tile_bo(gtt_create_bo(bufmgr, width, height), width);
+}
+
+static drm_intel_bo *
+wc_create_bo(drm_intel_bufmgr *bufmgr, int width, int height)
+{
+	drm_intel_bo *bo;
+
+	igt_require_mmap_wc(fd);
+
+	bo = unmapped_create_bo(bufmgr, width, height);
+	bo->virtual = gem_mmap__wc(fd, bo->handle, 0, bo->size, PROT_READ | PROT_WRITE);
+	return bo;
+}
+
+static void
+wc_release_bo(drm_intel_bo *bo)
+{
+	munmap(bo->virtual, bo->size);
+	bo->virtual = NULL;
+
+	nop_release_bo(bo);
 }
 
 static drm_intel_bo *
@@ -274,26 +301,62 @@ gpu_cmp_bo(drm_intel_bo *bo, uint32_t val, int width, int height, drm_intel_bo *
 	cpu_cmp_bo(tmp, val, width, height, NULL);
 }
 
-struct access_mode {
+const struct access_mode {
+	const char *name;
 	void (*set_bo)(drm_intel_bo *bo, uint32_t val, int w, int h);
 	void (*cmp_bo)(drm_intel_bo *bo, uint32_t val, int w, int h, drm_intel_bo *tmp);
 	drm_intel_bo *(*create_bo)(drm_intel_bufmgr *bufmgr, int width, int height);
-	const char *name;
-};
-
-struct access_mode access_modes[] = {
-	{ .set_bo = prw_set_bo, .cmp_bo = prw_cmp_bo,
-		.create_bo = unmapped_create_bo, .name = "prw" },
-	{ .set_bo = cpu_set_bo, .cmp_bo = cpu_cmp_bo,
-		.create_bo = unmapped_create_bo, .name = "cpu" },
-	{ .set_bo = gtt_set_bo, .cmp_bo = gtt_cmp_bo,
-		.create_bo = gtt_create_bo, .name = "gtt" },
-	{ .set_bo = gtt_set_bo, .cmp_bo = gtt_cmp_bo,
-		.create_bo = gttX_create_bo, .name = "gttX" },
-	{ .set_bo = gpu_set_bo, .cmp_bo = gpu_cmp_bo,
-		.create_bo = gpu_create_bo, .name = "gpu" },
-	{ .set_bo = gpu_set_bo, .cmp_bo = gpu_cmp_bo,
-		.create_bo = gpuX_create_bo, .name = "gpuX" },
+	void (*release_bo)(drm_intel_bo *bo);
+} access_modes[] = {
+	{
+		.name = "prw",
+		.set_bo = prw_set_bo,
+		.cmp_bo = prw_cmp_bo,
+		.create_bo = unmapped_create_bo,
+		.release_bo = nop_release_bo,
+	},
+	{
+		.name = "cpu",
+		.set_bo = cpu_set_bo,
+		.cmp_bo = cpu_cmp_bo,
+		.create_bo = unmapped_create_bo,
+		.release_bo = nop_release_bo,
+	},
+	{
+		.name = "gtt",
+		.set_bo = gtt_set_bo,
+		.cmp_bo = gtt_cmp_bo,
+		.create_bo = gtt_create_bo,
+		.release_bo = nop_release_bo,
+	},
+	{
+		.name = "gttX",
+		.set_bo = gtt_set_bo,
+		.cmp_bo = gtt_cmp_bo,
+		.create_bo = gttX_create_bo,
+		.release_bo = nop_release_bo,
+	},
+	{
+		.name = "wc",
+		.set_bo = gtt_set_bo,
+		.cmp_bo = gtt_cmp_bo,
+		.create_bo = wc_create_bo,
+		.release_bo = wc_release_bo,
+	},
+	{
+		.name = "gpu",
+		.set_bo = gpu_set_bo,
+		.cmp_bo = gpu_cmp_bo,
+		.create_bo = gpu_create_bo,
+		.release_bo = nop_release_bo,
+	},
+	{
+		.name = "gpuX",
+		.set_bo = gpu_set_bo,
+		.cmp_bo = gpu_cmp_bo,
+		.create_bo = gpuX_create_bo,
+		.release_bo = nop_release_bo,
+	},
 };
 
 #define MAX_NUM_BUFFERS 1024
@@ -335,7 +398,63 @@ static void blt_copy_bo(drm_intel_bo *dst, drm_intel_bo *src)
 		       width, height, 32);
 }
 
-static void do_overwrite_source(struct access_mode *mode,
+static void cpu_copy_bo(drm_intel_bo *dst, drm_intel_bo *src)
+{
+	const int size = width * height * sizeof(uint32_t);
+	void *d, *s;
+
+	gem_set_domain(fd, src->handle, I915_GEM_DOMAIN_CPU, 0);
+	gem_set_domain(fd, dst->handle, I915_GEM_DOMAIN_CPU, I915_GEM_DOMAIN_CPU);
+	s = gem_mmap__cpu(fd, src->handle, 0, size, PROT_READ);
+	igt_assert(s != NULL);
+	d = gem_mmap__cpu(fd, dst->handle, 0, size, PROT_WRITE);
+	igt_assert(d != NULL);
+
+	memcpy(d, s, size);
+
+	munmap(d, size);
+	munmap(s, size);
+}
+
+static void gtt_copy_bo(drm_intel_bo *dst, drm_intel_bo *src)
+{
+	const int size = width * height * sizeof(uint32_t);
+	void *d, *s;
+
+	gem_set_domain(fd, src->handle, I915_GEM_DOMAIN_GTT, 0);
+	gem_set_domain(fd, dst->handle, I915_GEM_DOMAIN_GTT, I915_GEM_DOMAIN_GTT);
+
+	s = gem_mmap__gtt(fd, src->handle, size, PROT_READ);
+	igt_assert(s != NULL);
+	d = gem_mmap__gtt(fd, dst->handle, size, PROT_WRITE);
+	igt_assert(d != NULL);
+
+	memcpy(d, s, size);
+
+	munmap(d, size);
+	munmap(s, size);
+}
+
+static void wc_copy_bo(drm_intel_bo *dst, drm_intel_bo *src)
+{
+	const int size = width * height * sizeof(uint32_t);
+	void *d, *s;
+
+	gem_set_domain(fd, src->handle, I915_GEM_DOMAIN_GTT, 0);
+	gem_set_domain(fd, dst->handle, I915_GEM_DOMAIN_GTT, I915_GEM_DOMAIN_GTT);
+
+	s = gem_mmap__wc(fd, src->handle, 0, size, PROT_READ);
+	igt_assert(s != NULL);
+	d = gem_mmap__wc(fd, dst->handle, 0, size, PROT_WRITE);
+	igt_assert(d != NULL);
+
+	memcpy(d, s, size);
+
+	munmap(d, size);
+	munmap(s, size);
+}
+
+static void do_overwrite_source(const struct access_mode *mode,
 				drm_intel_bo **src, drm_intel_bo **dst,
 				drm_intel_bo *dummy,
 				do_copy do_copy_func)
@@ -355,7 +474,7 @@ static void do_overwrite_source(struct access_mode *mode,
 		mode->cmp_bo(dst[i], i, width, height, dummy);
 }
 
-static void do_early_read(struct access_mode *mode,
+static void do_early_read(const struct access_mode *mode,
 			  drm_intel_bo **src, drm_intel_bo **dst,
 			  drm_intel_bo *dummy,
 			  do_copy do_copy_func)
@@ -371,7 +490,7 @@ static void do_early_read(struct access_mode *mode,
 		mode->cmp_bo(dst[i], 0xdeadbeef, width, height, dummy);
 }
 
-static void do_gpu_read_after_write(struct access_mode *mode,
+static void do_gpu_read_after_write(const struct access_mode *mode,
 				    drm_intel_bo **src, drm_intel_bo **dst,
 				    drm_intel_bo *dummy,
 				    do_copy do_copy_func)
@@ -389,18 +508,18 @@ static void do_gpu_read_after_write(struct access_mode *mode,
 		mode->cmp_bo(dst[i], 0xabcdabcd, width, height, dummy);
 }
 
-typedef void (*do_test)(struct access_mode *mode,
+typedef void (*do_test)(const struct access_mode *mode,
 			drm_intel_bo **src, drm_intel_bo **dst,
 			drm_intel_bo *dummy,
 			do_copy do_copy_func);
 
-typedef void (*run_wrap)(struct access_mode *mode,
+typedef void (*run_wrap)(const struct access_mode *mode,
 			 drm_intel_bo **src, drm_intel_bo **dst,
 			 drm_intel_bo *dummy,
 			 do_test do_test_func,
 			 do_copy do_copy_func);
 
-static void run_single(struct access_mode *mode,
+static void run_single(const struct access_mode *mode,
 		       drm_intel_bo **src, drm_intel_bo **dst,
 		       drm_intel_bo *dummy,
 		       do_test do_test_func,
@@ -409,7 +528,7 @@ static void run_single(struct access_mode *mode,
 	do_test_func(mode, src, dst, dummy, do_copy_func);
 }
 
-static void run_interruptible(struct access_mode *mode,
+static void run_interruptible(const struct access_mode *mode,
 			      drm_intel_bo **src, drm_intel_bo **dst,
 			      drm_intel_bo *dummy,
 			      do_test do_test_func,
@@ -421,43 +540,84 @@ static void run_interruptible(struct access_mode *mode,
 		do_test_func(mode, src, dst, dummy, do_copy_func);
 }
 
-static void run_forked(struct access_mode *mode,
+static void run_forked(const struct access_mode *mode,
 		       drm_intel_bo **src, drm_intel_bo **dst,
 		       drm_intel_bo *dummy,
 		       do_test do_test_func,
 		       do_copy do_copy_func)
 {
 	const int old_num_buffers = num_buffers;
-	drm_intel_bufmgr *bufmgr;
 
 	num_buffers /= 16;
 	num_buffers += 2;
 
 	igt_fork(child, 16) {
+		drm_intel_bufmgr *bufmgr;
+
 		/* recreate process local variables */
 		bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
 		drm_intel_bufmgr_gem_enable_reuse(bufmgr);
+
 		batch = intel_batchbuffer_alloc(bufmgr, devid);
+
 		for (int i = 0; i < num_buffers; i++) {
 			src[i] = mode->create_bo(bufmgr, width, height);
 			dst[i] = mode->create_bo(bufmgr, width, height);
 		}
 		dummy = mode->create_bo(bufmgr, width, height);
+
 		for (int loop = 0; loop < 10; loop++)
 			do_test_func(mode, src, dst, dummy, do_copy_func);
+
 		/* as we borrow the fd, we need to reap our bo */
 		for (int i = 0; i < num_buffers; i++) {
-			drm_intel_bo_unreference(src[i]);
-			drm_intel_bo_unreference(dst[i]);
+			mode->release_bo(src[i]);
+			mode->release_bo(dst[i]);
 		}
-		drm_intel_bo_unreference(dummy);
+		mode->release_bo(dummy);
+
 		intel_batchbuffer_free(batch);
+
 		drm_intel_bufmgr_destroy(bufmgr);
 	}
 
 	igt_waitchildren();
 
 	num_buffers = old_num_buffers;
+}
+
+static void bit17_require(void)
+{
+	struct drm_i915_gem_get_tiling2 {
+		uint32_t handle;
+		uint32_t tiling_mode;
+		uint32_t swizzle_mode;
+		uint32_t phys_swizzle_mode;
+	} arg;
+#define DRM_IOCTL_I915_GEM_GET_TILING2	DRM_IOWR (DRM_COMMAND_BASE + DRM_I915_GEM_GET_TILING, struct drm_i915_gem_get_tiling2)
+
+	memset(&arg, 0, sizeof(arg));
+	arg.handle = gem_create(fd, 4096);
+	gem_set_tiling(fd, arg.handle, I915_TILING_X, 512);
+
+	do_or_die(drmIoctl(fd, DRM_IOCTL_I915_GEM_GET_TILING2, &arg));
+	gem_close(fd, arg.handle);
+	igt_require(arg.phys_swizzle_mode == arg.swizzle_mode);
+}
+
+static void cpu_require(void)
+{
+	bit17_require();
+}
+
+static void gtt_require(void)
+{
+}
+
+static void wc_require(void)
+{
+	bit17_require();
+	igt_require_mmap_wc(fd);
 }
 
 static void bcs_require(void)
@@ -470,16 +630,19 @@ static void rcs_require(void)
 }
 
 static void
-run_basic_modes(struct access_mode *mode,
+run_basic_modes(const struct access_mode *mode,
 		drm_intel_bo **src, drm_intel_bo **dst,
 		drm_intel_bo *dummy, const char *suffix,
 		run_wrap run_wrap_func)
 {
-	struct {
+	const struct {
 		const char *prefix;
 		do_copy copy;
 		void (*require)(void);
 	} pipelines[] = {
+		{ "cpu", cpu_copy_bo, cpu_require },
+		{ "gtt", gtt_copy_bo, gtt_require },
+		{ "wc", wc_copy_bo, wc_require },
 		{ "bcs", blt_copy_bo, bcs_require },
 		{ "rcs", render_copy_bo, rcs_require },
 		{ NULL, NULL }
@@ -510,7 +673,7 @@ run_basic_modes(struct access_mode *mode,
 }
 
 static void
-run_modes(struct access_mode *mode)
+run_modes(const struct access_mode *mode)
 {
 	drm_intel_bo *src[MAX_NUM_BUFFERS], *dst[MAX_NUM_BUFFERS], *dummy = NULL;
 	drm_intel_bufmgr *bufmgr;
@@ -535,10 +698,10 @@ run_modes(struct access_mode *mode)
 
 	igt_fixture {
 		for (int i = 0; i < num_buffers; i++) {
-			drm_intel_bo_unreference(src[i]);
-			drm_intel_bo_unreference(dst[i]);
+			mode->release_bo(src[i]);
+			mode->release_bo(dst[i]);
 		}
-		drm_intel_bo_unreference(dummy);
+		mode->release_bo(dummy);
 		intel_batchbuffer_free(batch);
 		drm_intel_bufmgr_destroy(bufmgr);
 	}
