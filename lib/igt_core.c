@@ -943,7 +943,7 @@ void igt_exit(void)
 	if (igt_only_list_subtests())
 		exit(IGT_EXIT_SUCCESS);
 
-	kmsg(KMSG_INFO "%s: exiting, ret=%d\n", command_str, igt_exitcode);
+	kmsg(KERN_INFO "%s: exiting, ret=%d\n", command_str, igt_exitcode);
 
 	if (!test_with_subtests)
 		exit(igt_exitcode);
