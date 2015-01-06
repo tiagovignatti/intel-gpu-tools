@@ -523,7 +523,9 @@ bool gem_mmap__has_wc(int fd)
  * @prot: memory protection bits as used by mmap()
  *
  * This functions wraps up procedure to establish a memory mapping through
- * direct cpu access, bypassing the gpu and cpu caches completely.
+ * direct cpu access, bypassing the gpu and cpu caches completely and also
+ * bypassing the GTT system agent (i.e. there is no automatic tiling of
+ * the mmapping through the fence registers).
  *
  * Returns: A pointer to the created memory mapping.
  */
