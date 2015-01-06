@@ -28,6 +28,7 @@
 #include <pthread.h>
 #include <fcntl.h>
 #include <sys/stat.h>
+#include <sys/resource.h>
 
 #include "ioctl_wrappers.h"
 #include "igt_aux.h"
@@ -140,6 +141,7 @@ processes(void)
 {
 	int *all_fds;
 	uint64_t aperture;
+	struct rlimit rlim;
 	int ppgtt_mode;
 	int ctx_size;
 	int obj_size;
@@ -165,6 +167,16 @@ processes(void)
 	igt_info("Creating %d contexts (assuming of size %d)\n",
 		 num_ctx, ctx_size);
 	intel_require_memory(num_ctx, ctx_size, CHECK_RAM | CHECK_SWAP);
+
+	/* tweak rlimits to allow us to create this many files */
+	igt_assert(getrlimit(RLIMIT_NOFILE, &rlim) == 0);
+	if (rlim.rlim_cur < ALIGN(num_ctx + 1024, 1024)) {
+		rlim.rlim_cur = ALIGN(num_ctx + 1024, 1024);
+		if (rlim.rlim_cur > rlim.rlim_max)
+			rlim.rlim_max = rlim.rlim_cur;
+		igt_assert(setrlimit(RLIMIT_NOFILE, &rlim) == 0);
+	}
+
 	all_fds = malloc(num_ctx * sizeof(int));
 	igt_assert(all_fds);
 	for (n = 0; n < num_ctx; n++) {
