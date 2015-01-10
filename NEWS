@@ -1,6 +1,8 @@
 Release 1.10 (XXXX-XX-XX)
 -------------------------
 
+- New frequency manipulation tool (intel_gpu_frequency)
+
 Release 1.9 (2014-12-12)
 ------------------------
 

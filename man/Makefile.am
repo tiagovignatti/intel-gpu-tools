@@ -4,6 +4,7 @@ appman_PRE = 				\
 	intel_bios_dumper.man		\
 	intel_bios_reader.man		\
 	intel_error_decode.man		\
+	intel_gpu_frequency.man		\
 	intel_gpu_top.man		\
 	intel_gtt.man			\
 	intel_infoframes.man		\
