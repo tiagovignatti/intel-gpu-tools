@@ -51,7 +51,7 @@
 IGT_TEST_DESCRIPTION("Run a large nop batch to stress test the error capture"
 		     " code.");
 
-static void exec1(int fd, uint32_t handle, uint32_t reloc_ofs, unsigned flags)
+static void exec1(int fd, uint32_t handle, uint32_t reloc_ofs, unsigned flags, uint32_t *ptr)
 {
 	struct drm_i915_gem_execbuffer2 execbuf;
 	struct drm_i915_gem_exec_object2 gem_exec[1];
@@ -95,11 +95,16 @@ static void exec1(int fd, uint32_t handle, uint32_t reloc_ofs, unsigned flags)
 
 	igt_warn_on(gem_reloc[0].presumed_offset == -1);
 
-	gem_read(fd, handle, reloc_ofs, &tmp, 4);
-	igt_assert_eq(tmp, gem_reloc[0].presumed_offset);
+	if (ptr) {
+		igt_assert_eq(ptr[reloc_ofs/sizeof(*ptr)],
+			      gem_reloc[0].presumed_offset);
+	} else {
+		gem_read(fd, handle, reloc_ofs, &tmp, 4);
+		igt_assert_eq(tmp, gem_reloc[0].presumed_offset);
+	}
 }
 
-static void execN(int fd, uint32_t handle, uint32_t batch_size, unsigned flags)
+static void execN(int fd, uint32_t handle, uint32_t batch_size, unsigned flags, uint32_t *ptr)
 {
 #define reloc_ofs(N, T) ((((N)+1) << 12) - 4*(1 + ((N) == ((T)-1))))
 	struct drm_i915_gem_execbuffer2 execbuf;
@@ -138,9 +143,15 @@ static void execN(int fd, uint32_t handle, uint32_t batch_size, unsigned flags)
 	for (n = 0; n < nreloc; n++)
 		igt_warn_on(gem_reloc[n].presumed_offset == -1);
 
-	for (n = 0; n < nreloc; n++) {
-		gem_read(fd, handle, reloc_ofs(n, nreloc), &tmp, 4);
-		igt_assert_eq(tmp, gem_reloc[n].presumed_offset);
+	if (ptr) {
+		for (n = 0; n < nreloc; n++)
+			igt_assert_eq(ptr[reloc_ofs(n, nreloc)/sizeof(*ptr)],
+				      gem_reloc[n].presumed_offset);
+	} else {
+		for (n = 0; n < nreloc; n++) {
+			gem_read(fd, handle, reloc_ofs(n, nreloc), &tmp, 4);
+			igt_assert_eq(tmp, gem_reloc[n].presumed_offset);
+		}
 	}
 
 	free(gem_reloc);
@@ -161,21 +172,28 @@ igt_simple_main
 	intel_require_memory(1, max, CHECK_RAM);
 
 	for (batch_size = 4096; batch_size <= max; ) {
-		uint32_t handle = gem_create(fd, batch_size);
+		uint32_t handle, *ptr;
+
+		handle = gem_create(fd, batch_size);
 		gem_write(fd, handle, 0, batch, sizeof(batch));
+
+		ptr = NULL;
+		if (gem_mmap__has_wc(fd))
+			ptr = gem_mmap__wc(fd, handle, 0, batch_size, PROT_READ);
 
 		for (reloc_ofs = 4096; reloc_ofs < batch_size; reloc_ofs += 4096) {
 			igt_debug("batch_size %u, reloc_ofs %u\n",
 				  batch_size, reloc_ofs);
-			exec1(fd, handle, reloc_ofs, 0);
-			exec1(fd, handle, reloc_ofs, I915_EXEC_SECURE);
+			exec1(fd, handle, reloc_ofs, 0, ptr);
+			exec1(fd, handle, reloc_ofs, I915_EXEC_SECURE, ptr);
 		}
 
 		igt_debug("batch_size %u, all %d relocs\n",
 			  batch_size, batch_size >> 12);
-		execN(fd, handle, batch_size, 0);
-		execN(fd, handle, batch_size, I915_EXEC_SECURE);
+		execN(fd, handle, batch_size, 0, ptr);
+		execN(fd, handle, batch_size, I915_EXEC_SECURE, ptr);
 
+		munmap(ptr, batch_size);
 		gem_madvise(fd, handle, I915_MADV_DONTNEED);
 
 		if (batch_size < max && 2*batch_size > max)
