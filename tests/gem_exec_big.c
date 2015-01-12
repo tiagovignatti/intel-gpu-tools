@@ -51,7 +51,7 @@
 IGT_TEST_DESCRIPTION("Run a large nop batch to stress test the error capture"
 		     " code.");
 
-static void exec(int fd, uint32_t handle, uint32_t reloc_ofs, unsigned flags)
+static void exec1(int fd, uint32_t handle, uint32_t reloc_ofs, unsigned flags)
 {
 	struct drm_i915_gem_execbuffer2 execbuf;
 	struct drm_i915_gem_exec_object2 gem_exec[1];
@@ -99,6 +99,54 @@ static void exec(int fd, uint32_t handle, uint32_t reloc_ofs, unsigned flags)
 	igt_assert_eq(tmp, gem_reloc[0].presumed_offset);
 }
 
+static void execN(int fd, uint32_t handle, uint32_t batch_size, unsigned flags)
+{
+#define reloc_ofs(N, T) ((((N)+1) << 12) - 4*(1 + ((N) == ((T)-1))))
+	struct drm_i915_gem_execbuffer2 execbuf;
+	struct drm_i915_gem_exec_object2 gem_exec[1];
+	struct drm_i915_gem_relocation_entry *gem_reloc;
+	int n, nreloc = batch_size >> 12;
+	uint32_t tmp;
+
+	gem_reloc = calloc(nreloc, sizeof(*gem_reloc));
+	igt_assert(gem_reloc);
+
+	for (n = 0; n < nreloc; n++) {
+		gem_reloc[n].offset = reloc_ofs(n, nreloc);
+		gem_reloc[n].target_handle = handle;
+		gem_reloc[n].read_domains = I915_GEM_DOMAIN_RENDER;
+	}
+
+	memset(gem_exec, 0, sizeof(gem_exec));
+	gem_exec[0].handle = handle;
+	gem_exec[0].relocation_count = nreloc;
+	gem_exec[0].relocs_ptr = (uintptr_t)gem_reloc;
+
+	memset(&execbuf, 0, sizeof(execbuf));
+	execbuf.buffers_ptr = (uintptr_t)gem_exec;
+	execbuf.buffer_count = 1;
+	execbuf.batch_start_offset = 0;
+	execbuf.batch_len = 8;
+	execbuf.flags = flags;
+
+	/* Avoid hitting slowpaths in the reloc processing which might yield a
+	 * presumed_offset of -1. Happens when the batch is still busy from the
+	 * last round. */
+	gem_sync(fd, handle);
+
+	gem_execbuf(fd, &execbuf);
+	for (n = 0; n < nreloc; n++)
+		igt_warn_on(gem_reloc[n].presumed_offset == -1);
+
+	for (n = 0; n < nreloc; n++) {
+		gem_read(fd, handle, reloc_ofs(n, nreloc), &tmp, 4);
+		igt_assert_eq(tmp, gem_reloc[n].presumed_offset);
+	}
+
+	free(gem_reloc);
+#undef reloc_ofs
+}
+
 igt_simple_main
 {
 	uint32_t batch[2] = {MI_BATCH_BUFFER_END};
@@ -119,9 +167,14 @@ igt_simple_main
 		for (reloc_ofs = 4096; reloc_ofs < batch_size; reloc_ofs += 4096) {
 			igt_debug("batch_size %u, reloc_ofs %u\n",
 				  batch_size, reloc_ofs);
-			exec(fd, handle, reloc_ofs, 0);
-			exec(fd, handle, reloc_ofs, I915_EXEC_SECURE);
+			exec1(fd, handle, reloc_ofs, 0);
+			exec1(fd, handle, reloc_ofs, I915_EXEC_SECURE);
 		}
+
+		igt_debug("batch_size %u, all %d relocs\n",
+			  batch_size, batch_size >> 12);
+		execN(fd, handle, batch_size, 0);
+		execN(fd, handle, batch_size, I915_EXEC_SECURE);
 
 		gem_madvise(fd, handle, I915_MADV_DONTNEED);
 
