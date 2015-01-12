@@ -516,6 +516,8 @@ bool igt_run_in_simulation(void);
 
 void igt_skip_on_simulation(void);
 
+const char *igt_interactive_debug;
+
 /* structured logging */
 enum igt_log_level {
 	IGT_LOG_DEBUG,

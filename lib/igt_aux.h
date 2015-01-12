@@ -64,7 +64,7 @@ void igt_system_suspend_autoresume(void);
 /* dropping priviledges */
 void igt_drop_root(void);
 
-void igt_debug_wait_for_keypress(const char *key);
+void igt_debug_wait_for_keypress(const char *var);
 
 enum igt_runtime_pm_status {
 	IGT_RUNTIME_PM_STATUS_ACTIVE,

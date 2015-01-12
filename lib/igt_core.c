@@ -233,6 +233,7 @@ enum {
  OPT_RUN_SUBTEST,
  OPT_DESCRIPTION,
  OPT_DEBUG,
+ OPT_INTERACTIVE_DEBUG,
  OPT_HELP = 'h'
 };
 
@@ -403,6 +404,7 @@ static void print_usage(const char *help_str, bool output_on_stderr)
 	fprintf(f, "  --list-subtests\n"
 		   "  --run-subtest <pattern>\n"
 		   "  --debug[=log-domain]\n"
+		   "  --interactive-debug[=domain]\n"
 		   "  --help-description\n"
 		   "  --help\n");
 	if (help_str)
@@ -435,6 +437,7 @@ static int common_init(int argc, char **argv,
 		{"run-subtest", 1, 0, OPT_RUN_SUBTEST},
 		{"help-description", 0, 0, OPT_DESCRIPTION},
 		{"debug", optional_argument, 0, OPT_DEBUG},
+		{"interactive-debug", optional_argument, 0, OPT_INTERACTIVE_DEBUG},
 		{"help", 0, 0, OPT_HELP},
 		{0, 0, 0, 0}
 	};
@@ -520,6 +523,12 @@ static int common_init(int argc, char **argv,
 	while ((c = getopt_long(argc, argv, short_opts, combined_opts,
 			       &option_index)) != -1) {
 		switch(c) {
+		case OPT_INTERACTIVE_DEBUG:
+			if (optarg && strlen(optarg) > 0)
+				igt_interactive_debug = strdup(optarg);
+			else
+				igt_interactive_debug = "all";
+			break;
 		case OPT_DEBUG:
 			igt_log_level = IGT_LOG_DEBUG;
 			if (optarg && strlen(optarg) > 0)
