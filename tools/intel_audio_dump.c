@@ -69,19 +69,19 @@ static int disp_reg_base = 0;	/* base address of display registers */
 #define dump_reg(reg, desc)					\
 	do {							\
 		dword = INREG(reg);	\
-		printf("%-21s 0x%08x  %s\n", # reg, dword, desc);	\
+		printf("%-21s(%#x) 0x%08x  %s\n", # reg, reg, dword, desc);	\
 	} while (0)
 
 #define dump_disp_reg(reg, desc)					\
 	do {							\
 		dword = INREG(disp_reg_base + reg);	\
-		printf("%-21s 0x%08x  %s\n", # reg, dword, desc);	\
+		printf("%-21s(%#x) 0x%08x  %s\n", # reg, reg, dword, desc);	\
 	} while (0)
 
 #define dump_aud_reg(reg, desc)					\
 	do {							\
 		dword = INREG(aud_reg_base + reg);	\
-		printf("%-21s 0x%08x  %s\n", # reg, dword, desc);	\
+		printf("%-21s(%#x) 0x%08x  %s\n", # reg, reg, dword, desc);	\
 	} while (0)
 
 #define read_aud_reg(reg)	INREG(aud_reg_base + (reg))
@@ -1771,6 +1771,9 @@ static void dump_aud_hdmi_status(void)
 #define HDMI_CTL_B         0x1140
 #define HDMI_CTL_C         0x1150
 #define HDMI_CTL_D         0x1160
+#define BSW_HDMI_CTL_B		0x1140
+#define BSW_HDMI_CTL_C		0x1160
+#define BSW_HDMI_CTL_D		0x116c
 
 /* VLV HDMI port ctrl */
 #define SDVO_HDMI_CTL_B    0x1140
@@ -2108,6 +2111,10 @@ static void dump_hsw_plus(void)
 
 	set_aud_reg_base(0x65000);
 
+	dump_reg(PORT_HOTPLUG_EN, "port hotplug enable");
+	dump_reg(PORT_HOTPLUG_STAT, "port hotplug status");
+	dump_reg(DISPLAY_HOTPLUG_CTL, "display hotplug control");
+
 	/* HSW DDI Buffer */
 	dump_reg(DDI_BUF_CTL_A,                "DDI Buffer Controler A");
 	dump_reg(DDI_BUF_CTL_B,                "DDI Buffer Controler B");
@@ -2267,6 +2274,83 @@ static void dump_hsw_plus(void)
 	printf("\n");
 }
 
+/* offset of hotplug enable */
+#define PORT_HOTPLUG_EN_OFFSET 0x1110
+/* offset of hotplug status */
+#define PORT_HOTPLUG_STAT_OFFSET 0x1114
+/* offset of hotplug control*/
+#define DISPLAY_HOTPLUG_CTL_OFFSET 0x1164
+/* dump the braswell registers for audio */
+static void dump_braswell(void)
+{
+	uint32_t dword;
+
+	/* set_aud_reg_base(0x62000 + VLV_DISPLAY_BASE); */
+	set_reg_base(0x60000 + VLV_DISPLAY_BASE, 0x2000);
+
+
+	dump_disp_reg(PORT_HOTPLUG_EN_OFFSET, "port hotplug enable");
+	dump_disp_reg(PORT_HOTPLUG_STAT_OFFSET, "port hotplug status");
+	dump_disp_reg(DISPLAY_HOTPLUG_CTL_OFFSET, "display hotplug control");
+
+	dump_disp_reg(BSW_HDMI_CTL_B,       "sDVO/HDMI Port B Control");
+	dump_disp_reg(BSW_HDMI_CTL_C,       "HDMI Port C Control"); // The address is wrong?
+	dump_disp_reg(BSW_HDMI_CTL_D,       "HDMI Port D Control");
+
+	dump_disp_reg(DP_CTL_B,                 "DisplayPort B Control Register");
+	dump_disp_reg(DP_CTL_C,                 "DisplayPort C Control Register");
+	dump_disp_reg(DP_CTL_D,         "DisplayPort D Control Register");
+
+	/* HSW North Display Audio */
+	dump_aud_reg(AUD_TCA_CONFIG,           "Audio Configuration - Transcoder A");
+	dump_aud_reg(AUD_TCB_CONFIG,           "Audio Configuration - Transcoder B");
+	dump_aud_reg(AUD_TCC_CONFIG,           "Audio Configuration - Transcoder C");
+	dump_aud_reg(AUD_C1_MISC_CTRL,         "Audio Converter 1 MISC Control");
+	dump_aud_reg(AUD_C2_MISC_CTRL,         "Audio Converter 2 MISC Control");
+	dump_aud_reg(AUD_C3_MISC_CTRL,         "Audio Converter 3 MISC Control");
+	dump_aud_reg(AUD_VID_DID,              "Audio Vendor ID / Device ID");
+	dump_aud_reg(AUD_RID,                  "Audio Revision ID");
+	dump_aud_reg(AUD_TCA_M_CTS_ENABLE,     "Audio M & CTS Programming Enable - Transcoder A");
+	dump_aud_reg(AUD_TCB_M_CTS_ENABLE,     "Audio M & CTS Programming Enable - Transcoder B");
+	dump_aud_reg(AUD_TCC_M_CTS_ENABLE,     "Audio M & CTS Programming Enable - Transcoder C");
+	dump_aud_reg(AUD_PWRST,                "Audio Power State (Function Group, Convertor, Pin Widget)");
+	dump_aud_reg(AUD_TCA_EDID_DATA,        "Audio EDID Data Block - Transcoder A");
+	dump_aud_reg(AUD_TCB_EDID_DATA,        "Audio EDID Data Block - Transcoder B");
+	dump_aud_reg(AUD_TCC_EDID_DATA,        "Audio EDID Data Block - Transcoder C");
+	dump_aud_reg(AUD_TCA_INFOFR,           "Audio Widget Data Island Packet - Transcoder A");
+	dump_aud_reg(AUD_TCB_INFOFR,           "Audio Widget Data Island Packet - Transcoder B");
+	dump_aud_reg(AUD_TCC_INFOFR,           "Audio Widget Data Island Packet - Transcoder C");
+	dump_aud_reg(AUD_PIPE_CONV_CFG,        "Audio Pipe and Converter Configs");
+	dump_aud_reg(AUD_C1_DIG_CNVT,          "Audio Digital Converter - Converter 1");
+	dump_aud_reg(AUD_C2_DIG_CNVT,          "Audio Digital Converter - Converter 2");
+	dump_aud_reg(AUD_C3_DIG_CNVT,          "Audio Digital Converter - Converter 3");
+	dump_aud_reg(AUD_C1_STR_DESC,          "Audio Stream Descriptor Format - Converter 1");
+	dump_aud_reg(AUD_C2_STR_DESC,          "Audio Stream Descriptor Format - Converter 2");
+	dump_aud_reg(AUD_C3_STR_DESC,          "Audio Stream Descriptor Format - Converter 3");
+	dump_aud_reg(AUD_OUT_CHAN_MAP,         "Audio Output Channel Mapping");
+	dump_aud_reg(AUD_TCA_PIN_PIPE_CONN_ENTRY_LNGTH, "Audio Connection List entry and Length - Transcoder A");
+	dump_aud_reg(AUD_TCB_PIN_PIPE_CONN_ENTRY_LNGTH, "Audio Connection List entry and Length - Transcoder B");
+	dump_aud_reg(AUD_TCC_PIN_PIPE_CONN_ENTRY_LNGTH, "Audio Connection List entry and Length - Transcoder C");
+	dump_aud_reg(AUD_PIPE_CONN_SEL_CTRL,   "Audio Pipe Connection Select Control");
+	dump_aud_reg(AUD_TCA_DIP_ELD_CTRL_ST,  "Audio DIP and ELD control state - Transcoder A");
+	dump_aud_reg(AUD_TCB_DIP_ELD_CTRL_ST,  "Audio DIP and ELD control state - Transcoder B");
+	dump_aud_reg(AUD_TCC_DIP_ELD_CTRL_ST,  "Audio DIP and ELD control state - Transcoder C");
+	dump_aud_reg(AUD_PIN_ELD_CP_VLD,       "Audio pin ELD valid and CP ready status");
+	dump_aud_reg(AUD_HDMI_FIFO_STATUS,     "Audio HDMI FIFO Status");
+
+	/* Audio debug registers */
+	dump_aud_reg(AUD_ICOI,                 "Audio Immediate Command Output Interface");
+	dump_aud_reg(AUD_IRII,                 "Audio Immediate Response Input Interface");
+	dump_aud_reg(AUD_ICS,                  "Audio Immediate Command Status");
+	dump_aud_reg(AUD_CHICKENBIT_REG,       "Audio Chicken Bit Register");
+	dump_aud_reg(AUD_DP_DIP_STATUS,        "Audio DP and DIP FIFO Debug Status");
+	dump_aud_reg(AUD_TCA_M_CTS,            "Audio M CTS Read Back Transcoder A");
+	dump_aud_reg(AUD_TCB_M_CTS,            "Audio M CTS Read Back Transcoder B");
+	dump_aud_reg(AUD_TCC_M_CTS,            "Audio M CTS Read Back Transcoder C");
+
+	printf("\n");
+}
+
 int main(int argc, char **argv)
 {
 	struct pci_device *pci_dev;
@@ -2300,6 +2384,9 @@ int main(int argc, char **argv)
 	} else if (IS_G4X(devid)) {
 		printf("G45 audio registers:\n\n");
 		dump_eaglelake();
+	} else if (IS_CHERRYVIEW(devid)) {
+		printf("Braswell audio registers:\n\n");
+		dump_braswell();
 	}
 
 	return 0;
