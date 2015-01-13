@@ -45,6 +45,9 @@
 #include "igt_aux.h"
 
 #define LOCAL_I915_EXEC_VEBOX (4<<0)
+#define LOCAL_I915_EXEC_BSD_MASK (3<<13)
+#define LOCAL_I915_EXEC_BSD_RING1 (1<<13)
+#define LOCAL_I915_EXEC_BSD_RING2 (2<<13)
 
 struct drm_i915_gem_execbuffer2 execbuf;
 struct drm_i915_gem_exec_object2 gem_exec[1];
@@ -123,6 +126,44 @@ igt_main
 
 	igt_subtest("invalid-ring2") {
 		execbuf.flags = LOCAL_I915_EXEC_VEBOX+1;
+		RUN_FAIL(EINVAL);
+	}
+
+	igt_subtest("invalid-bsd-ring") {
+		igt_require(gem_has_bsd2(fd));
+		execbuf.flags = I915_EXEC_BSD | LOCAL_I915_EXEC_BSD_MASK;
+		RUN_FAIL(EINVAL);
+	}
+
+	igt_subtest("invalid-bsd1-flag-on-render") {
+		execbuf.flags = I915_EXEC_RENDER | LOCAL_I915_EXEC_BSD_RING1;
+		RUN_FAIL(EINVAL);
+	}
+
+	igt_subtest("invalid-bsd2-flag-on-render") {
+		execbuf.flags = I915_EXEC_RENDER | LOCAL_I915_EXEC_BSD_RING2;
+		RUN_FAIL(EINVAL);
+	}
+
+	igt_subtest("invalid-bsd1-flag-on-blt") {
+		execbuf.flags = I915_EXEC_BLT | LOCAL_I915_EXEC_BSD_RING1;
+		RUN_FAIL(EINVAL);
+	}
+
+	igt_subtest("invalid-bsd2-flag-on-blt") {
+		execbuf.flags = I915_EXEC_BLT | LOCAL_I915_EXEC_BSD_RING2;
+		RUN_FAIL(EINVAL);
+	}
+
+	igt_subtest("invalid-bsd1-flag-on-vebox") {
+		igt_require(gem_has_vebox(fd));
+		execbuf.flags = LOCAL_I915_EXEC_VEBOX | LOCAL_I915_EXEC_BSD_RING1;
+		RUN_FAIL(EINVAL);
+	}
+
+	igt_subtest("invalid-bsd2-flag-on-vebox") {
+		igt_require(gem_has_vebox(fd));
+		execbuf.flags = LOCAL_I915_EXEC_VEBOX | LOCAL_I915_EXEC_BSD_RING2;
 		RUN_FAIL(EINVAL);
 	}
 
