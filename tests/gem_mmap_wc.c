@@ -281,11 +281,10 @@ test_write_cpu_read_wc(int fd)
 	src = gem_mmap__cpu(fd, handle, 0, OBJECT_SIZE, PROT_WRITE);
 	igt_assert(src != (uint32_t *)MAP_FAILED);
 
-	gem_close(fd, handle);
-
 	memset(src, 0xaa, OBJECT_SIZE);
 	set_domain(fd, handle);
 	igt_assert(memcmp(dst, src, OBJECT_SIZE) == 0);
+	gem_close(fd, handle);
 
 	munmap(src, OBJECT_SIZE);
 	munmap(dst, OBJECT_SIZE);
@@ -308,10 +307,9 @@ test_write_gtt_read_wc(int fd)
 	src = gem_mmap__gtt(fd, handle, OBJECT_SIZE, PROT_WRITE);
 	igt_assert(src != (uint32_t *)MAP_FAILED);
 
-	gem_close(fd, handle);
-
 	memset(src, 0xaa, OBJECT_SIZE);
 	igt_assert(memcmp(dst, src, OBJECT_SIZE) == 0);
+	gem_close(fd, handle);
 
 	munmap(src, OBJECT_SIZE);
 	munmap(dst, OBJECT_SIZE);
