@@ -179,7 +179,7 @@ version(const char *prog)
 
 /* Returns read or write operation */
 static bool
-parse(int argc, char *argv[], bool *act_upon, int *new_freq)
+parse(int argc, char *argv[], bool *act_upon, size_t act_upon_n, int *new_freq)
 {
 	int c, tmp;
 	bool write = false;
@@ -193,7 +193,7 @@ parse(int argc, char *argv[], bool *act_upon, int *new_freq)
 
 	/* No args means -g" */
 	if (argc == 1) {
-		for (c = 0; c < ARRAY_SIZE(act_upon); c++)
+		for (c = 0; c < act_upon_n; c++)
 			act_upon[c] = true;
 		goto done;
 	}
@@ -233,7 +233,7 @@ parse(int argc, char *argv[], bool *act_upon, int *new_freq)
 				}
 			} else {
 				int i;
-				for (i = 0; i < ARRAY_SIZE(act_upon); i++)
+				for (i = 0; i < act_upon_n; i++)
 					act_upon[i] = true;
 			}
 			break;
@@ -333,7 +333,7 @@ int main(int argc, char *argv[])
 	devid = intel_get_drm_devid(drm_open_any());
 	device = drm_get_card();
 
-	write = parse(argc, argv, targets, set_freq);
+	write = parse(argc, argv, targets, ARRAY_SIZE(targets), set_freq);
 	fail = write;
 
 	/* If we've previously locked the frequency, we need to make sure to set things
