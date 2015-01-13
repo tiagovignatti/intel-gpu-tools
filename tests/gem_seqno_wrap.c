@@ -187,7 +187,6 @@ static void run_sync_test(int num_buffers, bool verify)
 	struct igt_buf *s_src, *s_dst;
 
 	fd = drm_open_any();
-	igt_assert(fd >= 0);
 
 	gem_quiescent_gpu(fd);
 

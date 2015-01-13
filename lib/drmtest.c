@@ -302,10 +302,10 @@ static void quiescent_gpu_at_exit_render(int sig)
 /**
  * drm_open_any:
  *
- * Open an i915 drm legacy device node.
+ * Open an i915 drm legacy device node. This function always returns a valid
+ * file descriptor.
  *
- * Returns:
- * The i915 drm file descriptor or -1 on error
+ * Returns: a i915 drm file descriptor
  */
 int drm_open_any(void)
 {

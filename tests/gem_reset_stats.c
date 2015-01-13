@@ -520,10 +520,8 @@ static void test_ban(void)
 	struct local_drm_i915_reset_stats rs_bad, rs_good;
 
 	fd_bad = drm_open_any();
-	igt_assert(fd_bad >= 0);
 
 	fd_good = drm_open_any();
-	igt_assert(fd_good >= 0);
 
 	assert_reset_status(fd_bad, 0, RS_NO_ERROR);
 	assert_reset_status(fd_good, 0, RS_NO_ERROR);
@@ -609,7 +607,6 @@ static void test_ban_ctx(void)
 	struct local_drm_i915_reset_stats rs_bad, rs_good;
 
 	fd = drm_open_any();
-	igt_assert(fd >= 0);
 
 	assert_reset_status(fd, 0, RS_NO_ERROR);
 
@@ -749,7 +746,6 @@ static void test_close_pending_ctx(void)
 	uint32_t ctx;
 
 	fd = drm_open_any();
-	igt_assert(fd >= 0);
 	ctx = context_create(fd);
 
 	assert_reset_status(fd, ctx, RS_NO_ERROR);
@@ -768,7 +764,6 @@ static void test_close_pending(void)
 	int fd, h;
 
 	fd = drm_open_any();
-	igt_assert(fd >= 0);
 
 	assert_reset_status(fd, 0, RS_NO_ERROR);
 
@@ -831,7 +826,6 @@ static void test_close_pending_fork(const bool reverse)
 	int fd, h;
 
 	fd = drm_open_any();
-	igt_assert(fd >= 0);
 
 	assert_reset_status(fd, 0, RS_NO_ERROR);
 
@@ -871,7 +865,6 @@ static void test_close_pending_fork(const bool reverse)
 
 	/* Then we just wait on hang to happen */
 	fd = drm_open_any();
-	igt_assert(fd >= 0);
 
 	h = exec_valid(fd, 0);
 	igt_assert(h >= 0);
@@ -887,7 +880,6 @@ static void test_reset_count(const bool create_ctx)
 	long c1, c2;
 
 	fd = drm_open_any();
-	igt_assert(fd >= 0);
 	if (create_ctx)
 		ctx = context_create(fd);
 	else
@@ -998,7 +990,6 @@ static void test_params_ctx(void)
 	int fd, ctx;
 
 	fd = drm_open_any();
-	igt_assert(fd >= 0);
 	ctx = context_create(fd);
 
 	_test_param(fd, ctx);
@@ -1011,7 +1002,6 @@ static void test_params(void)
 	int fd;
 
 	fd = drm_open_any();
-	igt_assert(fd >= 0);
 
 	_test_param(fd, 0);
 
@@ -1025,7 +1015,6 @@ static void defer_hangcheck(int ring_num)
 	int seconds = 30;
 	const struct target_ring *next_ring;
 	fd = drm_open_any();
-	igt_assert(fd >= 0);
 
 	do {
 		next_ring = &rings[(++ring_num) % NUM_RINGS];

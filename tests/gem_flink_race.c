@@ -103,7 +103,6 @@ static void test_flink_name(void)
 	threads = calloc(num_threads, sizeof(pthread_t));
 
 	fd = drm_open_any();
-	igt_assert(fd >= 0);
 
 	for (i = 0; i < num_threads; i++) {
 		r = pthread_create(&threads[i], NULL,
@@ -173,7 +172,6 @@ static void test_flink_close(void)
 	threads = calloc(num_threads, sizeof(pthread_t));
 
 	fd = drm_open_any();
-	igt_assert(fd >= 0);
 
 	for (i = 0; i < num_threads; i++) {
 		r = pthread_create(&threads[i], NULL,

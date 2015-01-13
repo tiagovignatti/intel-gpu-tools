@@ -127,3 +127,17 @@ expression b;
 - ((a) >= (b) ? (a) : (b))
 + max(a, b)
 )
+
+// drm_open_any always returns a valid file descriptor
+@@
+expression a;
+@@
+a = drm_open_any();
+(
+- igt_assert(a >= 0);
+|
+- if (a < 0) {
+- ...
+- return ...;
+- }
+)

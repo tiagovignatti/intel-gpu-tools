@@ -269,7 +269,6 @@ static void test_reimport_close_race(void)
 	threads = calloc(num_threads, sizeof(pthread_t));
 
 	fds[0] = drm_open_any();
-	igt_assert(fds[0] >= 0);
 
 	handle = gem_create(fds[0], BO_SIZE);
 
@@ -349,7 +348,6 @@ static void test_export_close_race(void)
 	threads = calloc(num_threads, sizeof(pthread_t));
 
 	fd = drm_open_any();
-	igt_assert(fd >= 0);
 
 	obj_count = get_object_count();
 
