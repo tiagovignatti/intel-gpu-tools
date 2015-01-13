@@ -89,6 +89,7 @@ bool gem_has_enable_ring(int fd,int param);
 bool gem_has_bsd(int fd);
 bool gem_has_blt(int fd);
 bool gem_has_vebox(int fd);
+bool gem_has_bsd2(int fd);
 bool gem_uses_aliasing_ppgtt(int fd);
 int gem_available_fences(int fd);
 uint64_t gem_available_aperture_size(int fd);

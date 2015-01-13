@@ -854,6 +854,22 @@ bool gem_has_vebox(int fd)
 	return gem_has_enable_ring(fd,LOCAL_I915_PARAM_HAS_VEBOX);
 }
 
+#define LOCAL_I915_PARAM_HAS_BSD2 31
+/**
+ * gem_has_bsd2:
+ * @fd: open i915 drm file descriptor
+ *
+ * Feature test macro to query whether the BSD2 ring is available. This is simply
+ * a specific version of gem_has_enable_ring() for the BSD2 ring.
+ *
+ * Note that recent Bspec calls this the VCS ring for Video Command Submission.
+ *
+ * Returns: Whether the BSD ring is avaible or not.
+ */
+bool gem_has_bsd2(int fd)
+{
+	return gem_has_enable_ring(fd,LOCAL_I915_PARAM_HAS_BSD2);
+}
 /**
  * gem_available_aperture_size:
  * @fd: open i915 drm file descriptor
