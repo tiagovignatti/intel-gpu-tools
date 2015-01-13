@@ -43,6 +43,8 @@
 #include "intel_chipset.h"
 
 #define LOCAL_I915_EXEC_VEBOX (4<<0)
+#define LOCAL_I915_EXEC_BSD_RING1 (1<<13)
+#define LOCAL_I915_EXEC_BSD_RING2 (2<<13)
 
 static drm_intel_bufmgr *bufmgr;
 struct intel_batchbuffer *batch;
@@ -259,6 +261,22 @@ igt_main
 		igt_info("dummy loop run on vebox completed\n");
 	}
 #endif
+
+	igt_subtest("bsd-ring1") {
+		igt_require(gem_has_bsd2(fd));
+		sleep(2);
+		igt_info("running dummy loop on bsd-ring1\n");
+		dummy_reloc_loop(I915_EXEC_BSD|LOCAL_I915_EXEC_BSD_RING1);
+		igt_info("dummy loop run on bsd-ring1 completed\n");
+	}
+
+	igt_subtest("bsd-ring2") {
+		igt_require(gem_has_bsd2(fd));
+		sleep(2);
+		igt_info("running dummy loop on bsd-ring2\n");
+		dummy_reloc_loop(I915_EXEC_BSD|LOCAL_I915_EXEC_BSD_RING2);
+		igt_info("dummy loop run on bsd-ring2 completed\n");
+	}
 
 	igt_subtest("mixed") {
 		if (num_rings > 1) {
