@@ -193,7 +193,8 @@ igt_simple_main
 		execN(fd, handle, batch_size, 0, ptr);
 		execN(fd, handle, batch_size, I915_EXEC_SECURE, ptr);
 
-		munmap(ptr, batch_size);
+		if (ptr)
+			munmap(ptr, batch_size);
 		gem_madvise(fd, handle, I915_MADV_DONTNEED);
 
 		if (batch_size < max && 2*batch_size > max)
