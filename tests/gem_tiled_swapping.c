@@ -73,25 +73,50 @@ static uint32_t current_tiling_mode;
 #define AVAIL_RAM 512
 
 static uint32_t
-create_bo_and_fill(int fd)
+create_bo(int fd)
 {
 	uint32_t handle;
 	uint32_t *data;
-	int i;
 
 	handle = gem_create(fd, LINEAR_DWORDS);
 	gem_set_tiling(fd, handle, current_tiling_mode, WIDTH * sizeof(uint32_t));
 
-	/* Fill the BO with dwords starting at start_val */
 	data = gem_mmap(fd, handle, LINEAR_DWORDS, PROT_READ | PROT_WRITE);
-	if (data == NULL && errno == ENOSPC)
+	if (data == NULL) {
+		gem_close(fd, handle);
 		return 0;
-
-	for (i = 0; i < WIDTH*HEIGHT; i++)
-		data[i] = i;
+	}
 	munmap(data, LINEAR_DWORDS);
 
 	return handle;
+}
+
+static void
+fill_bo(int fd, uint32_t handle)
+{
+	uint32_t *data;
+	int i;
+
+	data = gem_mmap(fd, handle, LINEAR_DWORDS, PROT_READ | PROT_WRITE);
+	igt_assert(data);
+
+	gem_set_domain(fd, handle, I915_GEM_DOMAIN_GTT, I915_GEM_DOMAIN_GTT);
+	for (i = 0; i < WIDTH*HEIGHT; i++)
+		data[i] = i;
+	munmap(data, LINEAR_DWORDS);
+}
+
+static void
+check_bo(int fd, uint32_t handle)
+{
+	uint32_t *data;
+	int j;
+
+	data = gem_mmap(fd, handle, LINEAR_DWORDS, PROT_READ);
+	gem_set_domain(fd, handle, I915_GEM_DOMAIN_GTT, 0);
+	j = rand() % (WIDTH * HEIGHT);
+	igt_assert_f(data[j] == j, "mismatch at %i: %i\n", j, data[j]);
+	munmap(data, LINEAR_DWORDS);
 }
 
 uint32_t *bo_handles;
@@ -101,19 +126,6 @@ struct thread {
 	int *idx_arr;
 	int fd, count;
 };
-
-static void
-check_bo(int fd, uint32_t handle)
-{
-	uint32_t *data;
-	int j;
-
-	/* Check the target bo's contents. */
-	data = gem_mmap(fd, handle, LINEAR_DWORDS, PROT_READ | PROT_WRITE);
-	j = rand() % (WIDTH * HEIGHT);
-	igt_assert_f(data[j] == j, "mismatch at %i: %i\n", j, data[j]);
-	munmap(data, LINEAR_DWORDS);
-}
 
 static void *thread_run(void *data)
 {
@@ -181,28 +193,40 @@ igt_main
 		intel_require_memory(count, 1024*1024, CHECK_RAM | CHECK_SWAP);
 
 		for (n = 0; n < count; n++) {
-			bo_handles[n] = create_bo_and_fill(fd);
+			bo_handles[n] = create_bo(fd);
 			/* Not enough mmap address space possible. */
 			igt_require(bo_handles[n]);
 		}
 	}
 
 	igt_subtest("non-threaded") {
+		for (n = 0; n < count; n++)
+			fill_bo(fd, bo_handles[n]);
+
 		thread_init(&threads[0], fd, count);
+		thread_run(&threads[0]);
+		thread_run(&threads[0]);
 		thread_run(&threads[0]);
 		thread_fini(&threads[0]);
 	}
 
 	/* Once more with threads */
 	igt_subtest("threaded") {
-		for (n = 0; n < num_threads; n++) {
+		for (n = 0; n < count; n++)
+			fill_bo(fd, bo_handles[n]);
+
+		for (n = 0; n < num_threads; n++)
 			thread_init(&threads[n], fd, count);
+
+		thread_run(&threads[0]);
+		for (n = 0; n < num_threads; n++)
 			pthread_create(&threads[n].thread, NULL, thread_run, &threads[n]);
-		}
-		for (n = 0; n < num_threads; n++) {
+		for (n = 0; n < num_threads; n++)
 			pthread_join(threads[n].thread, NULL);
+		thread_run(&threads[0]);
+
+		for (n = 0; n < num_threads; n++)
 			thread_fini(&threads[n]);
-		}
 	}
 
 	close(fd);
