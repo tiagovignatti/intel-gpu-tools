@@ -2349,6 +2349,56 @@ static void dump_braswell(void)
 	dump_aud_reg(AUD_TCC_M_CTS,            "Audio M CTS Read Back Transcoder C");
 
 	printf("\n");
+
+	printf("\nDetails:\n\n");
+
+	dump_aud_vendor_device_id();
+	dump_aud_revision_id();
+
+	dump_hdmi_port_ctrl(PORT_B);
+	dump_hdmi_port_ctrl(PORT_C);
+	if (!IS_VALLEYVIEW(devid))
+		dump_hdmi_port_ctrl(PORT_D);
+
+	dump_dp_port_ctrl(PORT_B);
+	dump_dp_port_ctrl(PORT_C);
+	if (!IS_VALLEYVIEW(devid))
+		dump_dp_port_ctrl(PORT_D);
+
+	dump_aud_config(PIPE_A);
+	dump_aud_config(PIPE_B);
+
+	dump_aud_m_cts_enable(PIPE_A);
+	dump_aud_m_cts_enable(PIPE_B);
+
+	dump_aud_misc_control(PIPE_A);
+	dump_aud_misc_control(PIPE_B);
+
+	dump_aud_power_state();
+	dump_aud_port_en_hd_cfg();
+
+	dump_aud_dig_cnvt(PIPE_A);
+	dump_aud_dig_cnvt(PIPE_B);
+
+	dump_aud_out_ch_str();
+
+	dump_aud_str_desc(PIPE_A);
+	dump_aud_str_desc(PIPE_B);
+
+	dump_aud_connect_list();
+	dump_aud_connect_select();
+
+	dump_aud_ctrl_state(PIPE_A);
+	dump_aud_ctrl_state(PIPE_B);
+	dump_aud_ctrl_state2();
+
+	dump_aud_hdmi_status();
+
+	dump_aud_edid_data(PIPE_A);
+	dump_aud_edid_data(PIPE_B);
+
+	dump_aud_infoframe(PIPE_A);
+	dump_aud_infoframe(PIPE_B);
 }
 
 int main(int argc, char **argv)
