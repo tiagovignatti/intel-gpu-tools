@@ -315,6 +315,51 @@ test_write_gtt_read_wc(int fd)
 	munmap(dst, OBJECT_SIZE);
 }
 
+static void
+test_set_cache_level(int fd)
+{
+	struct drm_mode_cursor arg;
+	struct drm_mode_card_res res;
+	uint32_t crtc[32];
+	int active_crtc = 0;
+	int n;
+
+	/* We want to trigger an old WARN in set-cache-level when
+	 * it sees an unbound object in the GTT domain, following
+	 * the introduction of mmap(wc).
+	 */
+
+	memset(&arg, 0, sizeof(arg));
+	arg.flags = DRM_MODE_CURSOR_BO;
+	arg.width = arg.height = 64;
+	arg.handle = gem_create(fd, 64*64*4);
+	set_domain(fd, arg.handle);
+
+	/* Bind the object to the cursor to force set-cache-level(DISPLAY) */
+	memset(&res, 0, sizeof(res));
+	res.count_crtcs = 32;
+	res.crtc_id_ptr = (uintptr_t)crtc;
+	do_ioctl(fd, DRM_IOCTL_MODE_GETRESOURCES, &res);
+	for (n = 0; n < res.count_crtcs; n++) {
+		struct drm_mode_crtc mode;
+
+		memset(&mode, 0, sizeof(mode));
+		mode.crtc_id = crtc[n];
+		do_ioctl(fd, DRM_IOCTL_MODE_GETCRTC, &mode);
+
+		if (!mode.mode_valid)
+			continue;
+
+		active_crtc++;
+
+		arg.crtc_id = crtc[n];
+		do_ioctl(fd, DRM_IOCTL_MODE_CURSOR, &arg);
+	}
+
+	gem_close(fd, arg.handle);
+	igt_require(active_crtc);
+}
+
 struct thread_fault_concurrent {
 	pthread_t thread;
 	int id;
@@ -414,6 +459,8 @@ igt_main
 		test_write_cpu_read_wc(fd);
 	igt_subtest("write-gtt-read-wc")
 		test_write_gtt_read_wc(fd);
+	igt_subtest("set-cache-level")
+		test_set_cache_level(fd);
 
 	igt_fixture
 		close(fd);
