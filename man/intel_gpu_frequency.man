@@ -3,7 +3,7 @@
 intel_gpu_frequency: \- manual page for intel_gpu_frequency
 .SH SYNOPSIS
 .B intel_gpu_frequency
-[\fI\,-e\/\fR] [\fI\,--min | --max\/\fR] [\fI\,-g (min|max|efficient)\/\fR] [\fI\,-s frequency_mhz\/\fR]
+[\fI\,-e\/\fR] [\fI\,--min | --max\/\fR] [\fI\,-g\/\fR] [\fI\,-s frequency_mhz\/\fR]
 .SH DESCRIPTION
 \&A program to manipulate Intel GPU frequencies. Intel GPUs
 will automatically throttle the frequencies based on system demands, up when
@@ -19,8 +19,8 @@ safe bet.
 \fB\-e\fR
 Lock frequency to the most efficient frequency
 .TP
-\fB\-g\fR, \fB\-\-get=\fR
-Get the frequency comma separated list of ("cur"|"min"|"max"|"eff")
+\fB\-g\fR, \fB\-\-get\fR
+Get all the current frequency settings
 .TP
 \fB\-s\fR, \fB\-\-set\fR
 Lock frequency to an absolute value (MHz)

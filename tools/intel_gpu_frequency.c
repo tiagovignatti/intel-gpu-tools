@@ -22,16 +22,13 @@
  *
  * Example:
  * Get all frequencies:
- * intel_gpu_frequency --get=cur,min,max,eff
+ * intel_gpu_frequency --get
  *
  * Same as above:
  * intel_gpu_frequency -g
  *
- * Get the efficient frequency:
- * intel_gpu_frequency -geff
- *
  * Lock the GPU frequency to 300MHz:
- * intel_gpu_frequency --set min=300
+ * intel_gpu_frequency --set 300
  *
  * Set the maximum frequency to 900MHz:
  * intel_gpu_frequency --custom max=900
@@ -152,7 +149,7 @@ usage(const char *prog)
 	printf("Usage: %s [-e] [--min | --max] [-g (min|max|efficient)] [-s frequency_mhz]\n\n", prog);
 	printf("Options: \n");
 	printf("  -e		Lock frequency to the most efficient frequency\n");
-	printf("  -g, --get=    Get the frequency (optional arg: \"cur\"|\"min\"|\"max\"|\"eff\")\n");
+	printf("  -g, --get     Get all the frequency settings\n");
 	printf("  -s, --set     Lock frequency to an absolute value (MHz)\n");
 	printf("  -c, --custom  Set a min, or max frequency \"min=X | max=Y\"\n");
 	printf("  -m  --max     Lock frequency to max frequency\n");
@@ -184,13 +181,6 @@ parse(int argc, char *argv[], bool *act_upon, size_t act_upon_n, int *new_freq)
 	int c, tmp;
 	bool write = false;
 
-	char *token[] = {
-		(char *)info[CUR].name,
-		(char *)info[MIN].name,
-		(char *)"eff",
-		(char *)info[MAX].name
-	};
-
 	/* No args means -g" */
 	if (argc == 1) {
 		for (c = 0; c < act_upon_n; c++)
@@ -200,7 +190,7 @@ parse(int argc, char *argv[], bool *act_upon, size_t act_upon_n, int *new_freq)
 	while (1) {
 		int option_index = 0;
 		static struct option long_options[] = {
-			{ "get", optional_argument, NULL, 'g' },
+			{ "get", no_argument, NULL, 'g' },
 			{ "set", required_argument, NULL, 's' },
 			{ "custom", required_argument, NULL, 'c'},
 			{ "min", no_argument, NULL, 'i' },
@@ -211,7 +201,7 @@ parse(int argc, char *argv[], bool *act_upon, size_t act_upon_n, int *new_freq)
 			{ NULL, 0, NULL, 0}
 		};
 
-		c = getopt_long(argc, argv, "eg::s:c:midh", long_options, &option_index);
+		c = getopt_long(argc, argv, "egs:c:midh", long_options, &option_index);
 		if (c == -1)
 			break;
 
@@ -219,19 +209,7 @@ parse(int argc, char *argv[], bool *act_upon, size_t act_upon_n, int *new_freq)
 		case 'g':
 			if (write == true)
 				fprintf(stderr, "Read and write operations not support simultaneously.\n");
-
-			if (optarg) {
-				char *value, *subopts = optarg;
-				int x;
-				while (*subopts != '\0') {
-					x = getsubopt(&subopts, token, &value);
-					if (x == -1) {
-						fprintf(stderr, "Unrecognized option (%s)\n", value);
-						break;
-					} else
-						act_upon[x] = true;
-				}
-			} else {
+			{
 				int i;
 				for (i = 0; i < act_upon_n; i++)
 					act_upon[i] = true;
