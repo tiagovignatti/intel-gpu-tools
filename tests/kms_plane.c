@@ -32,6 +32,7 @@
 #include "drmtest.h"
 #include "igt_debugfs.h"
 #include "igt_kms.h"
+#include "igt_aux.h"
 
 typedef struct {
 	float red;
@@ -269,6 +270,7 @@ create_fb_for_mode__panning(data_t *data, drmModeModeInfo *mode,
 enum {
 	TEST_PANNING_TOP_LEFT	  = 1 << 0,
 	TEST_PANNING_BOTTOM_RIGHT = 1 << 1,
+	TEST_SUSPEND_RESUME	  = 1 << 2,
 };
 
 static void
@@ -309,7 +311,12 @@ test_plane_panning_with_output(data_t *data,
 
 	igt_display_commit(&data->display);
 
+	if (flags & TEST_SUSPEND_RESUME)
+		igt_system_suspend_autoresume();
+
 	igt_pipe_crc_collect_crc(data->pipe_crc, &crc);
+
+	igt_debug_wait_for_keypress("crc");
 
 	if (flags & TEST_PANNING_TOP_LEFT)
 		igt_assert(igt_crc_equal(&test.red_crc, &crc));
@@ -360,6 +367,11 @@ run_tests_for_pipe_plane(data_t *data, enum pipe pipe, enum igt_plane plane)
 		test_plane_panning(data, pipe, plane,
 				   TEST_PANNING_BOTTOM_RIGHT);
 
+	igt_subtest_f("plane-panning-bottom-right-suspend-pipe-%s-plane-%d",
+		      kmstest_pipe_name(pipe), plane)
+		test_plane_panning(data, pipe, plane,
+				   TEST_PANNING_BOTTOM_RIGHT |
+				   TEST_SUSPEND_RESUME);
 }
 
 static void
