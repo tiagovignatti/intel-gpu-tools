@@ -11,7 +11,8 @@ noinst_HEADERS = check-ndebug.h
 AM_CPPFLAGS = -I$(top_srcdir)
 AM_CFLAGS = $(DRM_CFLAGS) $(CWARNFLAGS)  \
 	    -DIGT_DATADIR=\""$(abs_top_srcdir)/tests"\" \
-	    -DIGT_LOG_DOMAIN=\""$(subst _,-,$*)"\"
+	    -DIGT_LOG_DOMAIN=\""$(subst _,-,$*)"\" \
+	    -pthread
 
 
 LDADD = $(CAIRO_LIBS)

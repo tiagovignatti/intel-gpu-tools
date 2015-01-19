@@ -47,9 +47,8 @@
 #include <sys/types.h>
 #ifdef __linux__
 #include <sys/syscall.h>
-#else
-#include <pthread.h>
 #endif
+#include <pthread.h>
 #include <sys/utsname.h>
 #include <termios.h>
 #include <errno.h>
@@ -239,6 +238,35 @@ enum {
 };
 
 static char* igt_log_domain_filter;
+static struct {
+	char *entries[256];
+	uint8_t start, end;
+} log_buffer;
+static pthread_mutex_t log_buffer_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+static void _igt_log_buffer_append(char *line)
+{
+	pthread_mutex_lock(&log_buffer_mutex);
+
+	free(log_buffer.entries[log_buffer.end]);
+	log_buffer.entries[log_buffer.end] = line;
+	log_buffer.end++;
+	if (log_buffer.end == log_buffer.start)
+		log_buffer.start++;
+
+	pthread_mutex_unlock(&log_buffer_mutex);
+}
+
+static void _igt_log_buffer_reset(void)
+{
+	pthread_mutex_lock(&log_buffer_mutex);
+
+	log_buffer.start = log_buffer.end = 0;
+
+	pthread_mutex_unlock(&log_buffer_mutex);
+}
+
+
 
 __attribute__((format(printf, 1, 2)))
 static void kmsg(const char *format, ...)
@@ -733,6 +761,8 @@ bool __igt_run_subtest(const char *subtest_name)
 
 	kmsg(KERN_INFO "%s: starting subtest %s\n", command_str, subtest_name);
 	igt_debug("Starting subtest: %s\n", subtest_name);
+
+	_igt_log_buffer_reset();
 
 	gettime(&subtest_time);
 	return (in_subtest = subtest_name);
@@ -1532,6 +1562,7 @@ void igt_log(const char *domain, enum igt_log_level level, const char *format, .
 void igt_vlog(const char *domain, enum igt_log_level level, const char *format, va_list args)
 {
 	FILE *file;
+	char *line, *formatted_line;
 	const char *program_name;
 	const char *igt_log_level_str[] = {
 		"DEBUG",
@@ -1552,18 +1583,33 @@ void igt_vlog(const char *domain, enum igt_log_level level, const char *format, 
 	if (list_subtests && level <= IGT_LOG_WARN)
 		return;
 
-	if (igt_log_level > level)
+	if (vasprintf(&line, format, args) == -1)
 		return;
 
+	if (asprintf(&formatted_line, "(%s:%d) %s%s%s: %s", program_name,
+		     getpid(), (domain) ? domain : "", (domain) ? "-" : "",
+		     igt_log_level_str[level], line) == -1) {
+		goto out;
+	}
+
+	/* append log buffer */
+	_igt_log_buffer_append(formatted_line);
+
+	/* check print log level */
+	if (igt_log_level > level)
+		goto out;
+
+	/* check domain filter */
 	if (igt_log_domain_filter) {
 		/* if null domain and filter is not "application", return */
 		if (!domain && strcmp(igt_log_domain_filter, "application"))
-			return;
+			goto out;
 		/* else if domain and filter do not match, return */
 		else if (domain && strcmp(igt_log_domain_filter, domain))
-			return;
+			goto out;
 	}
 
+	/* use stderr for warning messages and above */
 	if (level >= IGT_LOG_WARN) {
 		file = stderr;
 		fflush(stdout);
@@ -1571,12 +1617,16 @@ void igt_vlog(const char *domain, enum igt_log_level level, const char *format, 
 	else
 		file = stdout;
 
-	if (level != IGT_LOG_INFO) {
-		fprintf(file, "(%s:%d) %s%s%s: ", program_name, getpid(),
-			(domain) ? domain : "", (domain) ? "-" : "",
-			igt_log_level_str[level]);
-	}
-	vfprintf(file, format, args);
+	/* prepend all except information messages with process, domain and log
+	 * level information */
+	if (level != IGT_LOG_INFO)
+		fwrite(formatted_line, sizeof(char), strlen(formatted_line),
+		       file);
+	else
+		fwrite(line, sizeof(char), strlen(line), file);
+
+out:
+	free(line);
 }
 
 static void igt_alarm_handler(int signal)
