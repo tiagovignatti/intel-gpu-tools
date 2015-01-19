@@ -224,7 +224,7 @@ int drm_get_card(void)
 }
 
 /** Open the first DRM device we can find, searching up to 16 device nodes */
-static int __drm_open_any(void)
+int __drm_open_any(void)
 {
 	for (int i = 0; i < 16; i++) {
 		char name[80];

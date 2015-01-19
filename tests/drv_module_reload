@@ -43,7 +43,18 @@ echo 1 > /sys/class/vtconsole/vtcon1/bind
 
 modprobe snd_hda_intel
 
-# try to run something
-$SOURCE_DIR/gem_exec_nop > /dev/null && echo "module successfully loaded again"
+# does the device exist?
+if $SOURCE_DIR/gem_alive > /dev/null ; then
+	echo "module successfully loaded again"
+else
+	echo "failed to reload module successfully"
+	exit 2
+fi
+
+# then try to run something
+if ! $SOURCE_DIR/gem_exec_nop > /dev/null ; then
+	echo "failed to execute a simple batch after reload"
+	exit 3
+fi
 
 exit 0

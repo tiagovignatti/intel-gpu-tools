@@ -14,7 +14,9 @@ int main(void)
 
 	signal(SIGALRM, SIG_IGN);
 
-	fd = drm_open_any();
+	fd = __drm_open_any();
+	if (fd < 0)
+		return IGT_EXIT_SKIP;
 
 	alarm(1);
 	if (ioctl(fd, DRM_IOCTL_I915_GEM_SW_FINISH, &arg) == 0)

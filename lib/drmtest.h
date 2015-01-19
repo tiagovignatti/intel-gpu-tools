@@ -71,6 +71,7 @@ static inline void *igt_mmap64(void *addr, size_t length, int prot, int flags,
 #define ALIGN(v, a) (((v) + (a)-1) & ~((a)-1))
 
 int drm_get_card(void);
+int __drm_open_any(void);
 int drm_open_any(void);
 int drm_open_any_master(void);
 int drm_open_any_render(void);
