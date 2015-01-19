@@ -342,14 +342,19 @@ static void test_export_close_race(void)
 	int fd;
 	int obj_count;
 	void *status;
+	int fake;
 
 	num_threads = sysconf(_SC_NPROCESSORS_ONLN);
 
 	threads = calloc(num_threads, sizeof(pthread_t));
 
-	fd = drm_open_any();
+	/* Allocate exit handler fds in here so that we dont screw
+	 * up the counts */
+	fake = drm_open_any();
 
 	obj_count = get_object_count();
+
+	fd = drm_open_any();
 
 	for (i = 0; i < num_threads; i++) {
 		r = pthread_create(&threads[i], NULL,
@@ -372,6 +377,9 @@ static void test_export_close_race(void)
 	obj_count = get_object_count() - obj_count;
 
 	igt_info("leaked %i objects\n", obj_count);
+
+	close(fake);
+
 	igt_assert_eq(obj_count, 0);
 }
 
