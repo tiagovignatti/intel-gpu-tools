@@ -237,6 +237,9 @@ enum {
  OPT_HELP = 'h'
 };
 
+static int igt_exitcode = IGT_EXIT_SUCCESS;
+static const char *command_str;
+
 static char* igt_log_domain_filter;
 static struct {
 	char *entries[256];
@@ -266,7 +269,39 @@ static void _igt_log_buffer_reset(void)
 	pthread_mutex_unlock(&log_buffer_mutex);
 }
 
+static void _igt_log_buffer_dump(void)
+{
+	uint8_t i;
 
+	if (in_subtest)
+		fprintf(stderr, "Subtest %s failed.\n", in_subtest);
+	else
+		fprintf(stderr, "Test %s failed.\n", command_str);
+
+	if (log_buffer.start == log_buffer.end) {
+		fprintf(stderr, "No log.\n");
+		return;
+	}
+
+	pthread_mutex_lock(&log_buffer_mutex);
+
+	fprintf(stderr, "Log Start\n");
+
+	i = log_buffer.start;
+	do {
+		char *last_line = log_buffer.entries[i];
+		fprintf(stderr, "%s%s", last_line,
+			(last_line[strlen(last_line)-1] != '\n') ? "\n" : "");
+		i++;
+	} while (i != log_buffer.start && i != log_buffer.end);
+
+	/* reset the buffer */
+	log_buffer.start = log_buffer.end = 0;
+
+	pthread_mutex_unlock(&log_buffer_mutex);
+
+	fprintf(stderr, "Log End\n");
+}
 
 __attribute__((format(printf, 1, 2)))
 static void kmsg(const char *format, ...)
@@ -422,8 +457,6 @@ static void print_version(void)
 		IGT_GIT_SHA1, TARGET_CPU_PLATFORM,
 		uts.sysname, uts.release, uts.machine);
 }
-
-static const char *command_str;
 
 static void print_usage(const char *help_str, bool output_on_stderr)
 {
@@ -793,7 +826,6 @@ bool igt_only_list_subtests(void)
 static bool skipped_one = false;
 static bool succeeded_one = false;
 static bool failed_one = false;
-static int igt_exitcode = IGT_EXIT_SUCCESS;
 
 static void exit_subtest(const char *) __attribute__((noreturn));
 static void exit_subtest(const char *result)
@@ -925,6 +957,8 @@ void igt_fail(int exitcode)
 	/* Silent exit, parent will do the yelling. */
 	if (test_child)
 		exit(exitcode);
+
+	_igt_log_buffer_dump();
 
 	if (in_subtest) {
 		if (exitcode == IGT_EXIT_TIMEOUT)
