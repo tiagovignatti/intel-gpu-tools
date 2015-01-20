@@ -453,7 +453,7 @@ void igt_drop_root(void)
  * @var: var lookup to to enable this wait
  *
  * Waits for a key press when run interactively and when the corresponding debug
- * var is set in the --interactive-debug=<var> variable. Multiple keys
+ * var is set in the --interactive-debug=&lt;var&gt; variable. Multiple keys
  * can be specified as a comma-separated list or alternatively "all" if a wait
  * should happen for all cases.
  *
