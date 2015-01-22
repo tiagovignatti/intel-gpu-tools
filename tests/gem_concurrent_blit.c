@@ -735,8 +735,8 @@ run_basic_modes(const struct access_mode *mode,
 		void (*require)(void);
 	} hangs[] = {
 		{ "", no_hang, no_require },
-		{ "-hang(bcs)", bcs_hang, hang_require },
-		{ "-hang(rcs)", rcs_hang, hang_require },
+		{ "-hang-blt", bcs_hang, hang_require },
+		{ "-hang-render", rcs_hang, hang_require },
 		{ NULL, NULL },
 	}, *h;
 	drm_intel_bo *src[MAX_NUM_BUFFERS], *dst[MAX_NUM_BUFFERS], *dummy = NULL;

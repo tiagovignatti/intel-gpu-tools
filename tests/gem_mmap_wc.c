@@ -429,7 +429,7 @@ igt_main
 	igt_fixture
 		fd = drm_open_any();
 
-	igt_subtest("invalid flags")
+	igt_subtest("invalid-flags")
 		test_invalid_flags(fd);
 	igt_subtest("copy")
 		test_copy(fd);
