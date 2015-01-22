@@ -68,7 +68,7 @@ create_bo(int fd)
 	gem_set_tiling(fd, handle, I915_TILING_X, WIDTH * sizeof(uint32_t));
 
 	/* Fill the BO with dwords starting at start_val */
-	data = gem_mmap__wc(fd, handle, 0, SIZE, PROT_READ | PROT_WRITE);
+	data = gem_mmap__gtt(fd, handle, SIZE, PROT_READ | PROT_WRITE);
 	for (i = 0; i < WIDTH*HEIGHT; i++)
 		data[i] = i;
 	munmap(data, SIZE);
@@ -101,7 +101,9 @@ calculate_expected(int offset)
 	int tile_y = tile_off / tile_width;
 	int tile_x = (tile_off % tile_width) / 4;
 
-	igt_debug("%3d, %3d, %3d,%3d\n", base_x, base_y, tile_x, tile_y);
+	igt_debug("%s(%d): %3d, %3d, %3d,%3d = %d\n",
+		  __func__, offset, base_x, base_y, tile_x, tile_y,
+		  (base_y + tile_y) * WIDTH + base_x + tile_x);
 	return (base_y + tile_y) * WIDTH + base_x + tile_x;
 }
 
@@ -221,6 +223,8 @@ igt_simple_main
 				igt_skip("unknown swizzling");
 				break;
 			}
+			igt_debug("Checking offset %d swizzled %s -> %d\n",
+				  j, swizzle_str, swizzled_offset);
 			expected_val = calculate_expected(swizzled_offset);
 			found_val = linear[j / 4];
 			igt_assert_f(expected_val == found_val,
@@ -229,8 +233,8 @@ igt_simple_main
 				     i, found_val, expected_val, j,
 				     offset, offset + len,
 				     swizzle_str);
-			munmap(linear, last_page - first_page);
 		}
+		munmap(linear, last_page - first_page);
 	}
 
 	close(fd);
