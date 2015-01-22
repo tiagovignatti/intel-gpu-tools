@@ -755,7 +755,7 @@ run_basic_modes(const struct access_mode *mode,
 					dst[i] = mode->create_bo(bufmgr, width, height);
 				}
 				dummy = mode->create_bo(bufmgr, width, height);
-	}
+			}
 
 			/* try to overwrite the source values */
 			igt_subtest_f("%s-%s-overwrite-source-one%s%s", mode->name, p->prefix, suffix, h->suffix) {
