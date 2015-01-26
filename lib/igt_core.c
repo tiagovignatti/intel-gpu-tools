@@ -1522,7 +1522,7 @@ void igt_vlog(const char *domain, enum igt_log_level level, const char *format, 
 			return;
 	}
 
-	if (level > IGT_LOG_WARN) {
+	if (level >= IGT_LOG_WARN) {
 		file = stderr;
 		fflush(stdout);
 	}
