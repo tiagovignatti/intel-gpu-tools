@@ -54,6 +54,7 @@
 #include <termios.h>
 #include <errno.h>
 #include <time.h>
+#include <ctype.h>
 
 #include "drmtest.h"
 #include "intel_chipset.h"
@@ -693,9 +694,20 @@ void igt_simple_init_parse_opts(int argc, char **argv,
  */
 bool __igt_run_subtest(const char *subtest_name)
 {
+	int i;
+
 	assert(!in_subtest);
 	assert(!in_fixture);
 	assert(test_with_subtests);
+
+	/* check the subtest name only contains a-z, A-Z, 0-9, '-' and '_' */
+	for (i = 0; subtest_name[i] != '\0'; i++)
+		if (subtest_name[i] != '_' && subtest_name[i] != '-'
+		    && !isalnum(subtest_name[i])) {
+			igt_critical("Invalid subtest name \"%s\".\n",
+				     subtest_name);
+			igt_exit();
+		}
 
 	if (list_subtests) {
 		printf("%s\n", subtest_name);
