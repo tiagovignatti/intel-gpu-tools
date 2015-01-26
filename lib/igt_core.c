@@ -1507,7 +1507,7 @@ void igt_vlog(const char *domain, enum igt_log_level level, const char *format, 
 	program_name = command_str;
 #endif
 
-	if (list_subtests)
+	if (list_subtests && level <= IGT_LOG_WARN)
 		return;
 
 	if (igt_log_level > level)
