@@ -359,6 +359,8 @@ sanity_test_pipe(data_t *data, enum pipe pipe, igt_output_t *output)
 	drmModeModeInfo *mode;
 	int i, ret = 0;
 
+	igt_skip_on(pipe >= data->display.n_pipes);
+
 	igt_output_set_pipe(output, pipe);
 	mode = igt_output_get_mode(output);
 
@@ -471,6 +473,8 @@ pageflip_test_pipe(data_t *data, enum pipe pipe, igt_output_t *output)
 	fd_set fds;
 	int ret = 0;
 
+	igt_skip_on(pipe >= data->display.n_pipes);
+
 	igt_output_set_pipe(output, pipe);
 
 	pageflip_test_init(&test, output, pipe);
@@ -552,8 +556,6 @@ static data_t data;
 
 igt_main
 {
-	int num_pipes;
-
 	igt_skip_on_simulation();
 
 	igt_fixture {
@@ -567,8 +569,7 @@ igt_main
 		igt_require(data.display.has_universal_planes);
 	}
 
-	num_pipes = igt_display_get_n_pipes(&data.display);
-	for (int pipe = 0; pipe < num_pipes; pipe++)
+	for (int pipe = 0; pipe < 3; pipe++)
 		run_tests_for_pipe(&data, pipe);
 
 	igt_fixture {
