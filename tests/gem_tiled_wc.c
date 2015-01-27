@@ -175,7 +175,6 @@ igt_simple_main
 
 		first_page = offset & ~(PAGE_SIZE-1);
 		last_page = (offset + len + PAGE_SIZE) & ~(PAGE_SIZE-1);
-		offset -= first_page;
 
 		linear = gem_mmap__wc(fd, handle, first_page, last_page - first_page, PROT_READ);
 		igt_assert(linear);
@@ -226,7 +225,7 @@ igt_simple_main
 			igt_debug("Checking offset %d swizzled %s -> %d\n",
 				  j, swizzle_str, swizzled_offset);
 			expected_val = calculate_expected(swizzled_offset);
-			found_val = linear[j / 4];
+			found_val = linear[(j - first_page)/ 4];
 			igt_assert_f(expected_val == found_val,
 				     "Bad read [%d]: %d instead of %d at 0x%08x "
 				     "for read from 0x%08x to 0x%08x, swizzle=%s\n",
