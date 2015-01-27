@@ -591,6 +591,9 @@ out:
 	/* install exit handler, to ensure we clean up */
 	igt_install_exit_handler(common_exit_handler);
 
+	if (!test_with_subtests)
+		gettime(&subtest_time);
+
 	return ret;
 }
 
@@ -975,8 +978,33 @@ void igt_exit(void)
 	kmsg(KERN_INFO "%s: exiting, ret=%d\n", command_str, igt_exitcode);
 	igt_debug("Exiting with status code %d\n", igt_exitcode);
 
-	if (!test_with_subtests)
+	if (!test_with_subtests) {
+		struct timespec now;
+		double elapsed;
+		const char *result;
+
+		gettime(&now);
+		elapsed = now.tv_sec - subtest_time.tv_sec;
+		elapsed += (now.tv_nsec - subtest_time.tv_nsec) * 1e-9;
+
+		switch (igt_exitcode) {
+			case IGT_EXIT_SUCCESS:
+				result = "SUCCESS";
+				break;
+			case IGT_EXIT_TIMEOUT:
+				result = "TIMEOUT";
+				break;
+			case IGT_EXIT_SKIP:
+				result = "SKIP";
+				break;
+			default:
+				result = "FAIL";
+		}
+
+
+		printf("%s (%.3fs)\n", result, elapsed);
 		exit(igt_exitcode);
+	}
 
 	/* Calling this without calling one of the above is a failure */
 	assert(skipped_one || succeeded_one || failed_one);
