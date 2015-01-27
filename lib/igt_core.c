@@ -729,6 +729,7 @@ bool __igt_run_subtest(const char *subtest_name)
 	}
 
 	kmsg(KERN_INFO "%s: starting subtest %s\n", command_str, subtest_name);
+	igt_debug("Starting subtest: %s\n", subtest_name);
 
 	gettime(&subtest_time);
 	return (in_subtest = subtest_name);
@@ -972,6 +973,7 @@ void igt_exit(void)
 		exit(IGT_EXIT_SUCCESS);
 
 	kmsg(KERN_INFO "%s: exiting, ret=%d\n", command_str, igt_exitcode);
+	igt_debug("Exiting with status code %d\n", igt_exitcode);
 
 	if (!test_with_subtests)
 		exit(igt_exitcode);
