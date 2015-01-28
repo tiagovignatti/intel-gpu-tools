@@ -7,6 +7,7 @@ check_PROGRAMS = \
 	igt_simulation \
 	igt_simple_test_subtests \
 	igt_timeout \
+	igt_invalid_subtest_name \
 	$(NULL)
 
 check_SCRIPTS = \
@@ -26,4 +27,5 @@ XFAIL_TESTS = \
 	igt_no_subtest \
 	igt_simple_test_subtests \
 	igt_timeout \
+	igt_invalid_subtest_name \
 	$(NULL)
