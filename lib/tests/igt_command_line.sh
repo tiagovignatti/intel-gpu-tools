@@ -56,8 +56,17 @@ for test in $TESTLIST; do
 
 	# check --list-subtests works correctly
 	echo "  Checking subtest enumeration..."
-	./$test --list-subtests > /dev/null
-	if [ $? -ne 0 -a $? -ne 79 ]; then
+	LIST=`./$test --list-subtests`
+	RET=$?
+	if [ $RET -ne 0 -a $RET -ne 79 ]; then
+		exit 1
+	fi
+
+	if [ $RET -eq 79 -a -n "$LIST" ]; then
+		exit 1
+	fi
+
+	if [ $RET -eq 0 -a -z "$LIST" ]; then
 		exit 1
 	fi
 
