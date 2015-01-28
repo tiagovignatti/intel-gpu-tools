@@ -69,6 +69,7 @@ typedef struct {
 	uint32_t linear[WIDTH * HEIGHT];
 } data_t;
 static int opt_dump_png = false;
+static int check_all_pixels = false;
 
 static void scratch_buf_write_to_png(struct igt_buf *buf, const char *filename)
 {
@@ -125,6 +126,10 @@ static int opt_handler(int opt, int opt_index)
 		opt_dump_png = true;
 	}
 
+	if (opt == 'a') {
+		check_all_pixels = true;
+	}
+
 	return 0;
 }
 
@@ -136,7 +141,7 @@ int main(int argc, char **argv)
 	igt_render_copyfunc_t render_copy = NULL;
 	int opt_dump_aub = igt_aub_dump_enabled();
 
-	igt_simple_init_parse_opts(argc, argv, "d", NULL, NULL, opt_handler);
+	igt_simple_init_parse_opts(argc, argv, "da", NULL, NULL, opt_handler);
 
 	igt_fixture {
 		data.drm_fd = drm_open_any_render();
@@ -170,6 +175,14 @@ int main(int argc, char **argv)
 		drm_intel_bufmgr_gem_set_aub_dump(data.bufmgr, true);
 	}
 
+	/* This will copy the src to the mid point of the dst buffer. Presumably
+	 * the out of bounds accesses will get clipped.
+	 * Resulting buffer should look like:
+	 *	  _______
+	 *	 |dst|dst|
+	 *	 |dst|src|
+	 *	  -------
+	 */
 	render_copy(batch, NULL,
 		    &src, 0, 0, WIDTH, HEIGHT,
 		    &dst, WIDTH / 2, HEIGHT / 2);
@@ -183,6 +196,23 @@ int main(int argc, char **argv)
 			AUB_DUMP_BMP_FORMAT_ARGB_8888,
 			STRIDE, 0);
 		drm_intel_bufmgr_gem_set_aub_dump(data.bufmgr, false);
+	} else if (check_all_pixels) {
+		uint32_t val;
+		int i, j;
+		gem_read(data.drm_fd, dst.bo->handle, 0,
+			 data.linear, sizeof(data.linear));
+		for (i = 0; i < WIDTH; i++) {
+			for (j = 0; j < HEIGHT; j++) {
+				uint32_t color = DST_COLOR;
+				val = data.linear[j * WIDTH + i];
+				if (j >= HEIGHT/2 && i >= WIDTH/2)
+					color = SRC_COLOR;
+
+				igt_assert_f(val == color,
+					     "Expected 0x%08x, found 0x%08x at (%d,%d)\n",
+					     color, val, i, j);
+			}
+		}
 	} else {
 		scratch_buf_check(&data, &dst, 10, 10, DST_COLOR);
 		scratch_buf_check(&data, &dst, WIDTH - 10, HEIGHT - 10, SRC_COLOR);
