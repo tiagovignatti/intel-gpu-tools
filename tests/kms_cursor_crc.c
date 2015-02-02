@@ -139,6 +139,29 @@ static void do_single_test(data_t *data, int x, int y)
 	igt_assert(igt_crc_equal(&crc, &ref_crc));
 }
 
+static void do_fail_test(data_t *data, int x, int y, int expect)
+{
+	igt_display_t *display = &data->display;
+	igt_plane_t *cursor;
+	cairo_t *cr = igt_get_cairo_ctx(data->drm_fd, &data->primary_fb);
+	int ret;
+
+	igt_print_activity();
+
+	/* Hardware test */
+	igt_paint_test_pattern(cr, data->screenw, data->screenh);
+	cursor_enable(data);
+	cursor = igt_output_get_plane(data->output, IGT_PLANE_CURSOR);
+	igt_plane_set_position(cursor, x, y);
+	ret = igt_display_try_commit2(display, COMMIT_LEGACY);
+
+	igt_plane_set_position(cursor, 0, 0);
+	cursor_disable(data);
+	igt_display_commit(display);
+
+	igt_assert(ret == expect);
+}
+
 static void do_test(data_t *data,
 		    int left, int right, int top, int bottom)
 {
@@ -201,7 +224,11 @@ static void test_crc_offscreen(data_t *data)
 	do_test(data, left - (cursor_w+512), right + (cursor_w+512), top - (cursor_h+512), bottom + (cursor_h+512));
 
 	/* go nuts */
-	do_test(data, INT_MIN, INT_MAX, INT_MIN, INT_MAX);
+	do_test(data, INT_MIN, INT_MAX - cursor_w, INT_MIN, INT_MAX - cursor_h);
+	do_test(data, SHRT_MIN, SHRT_MAX, SHRT_MIN, SHRT_MAX);
+
+	/* Make sure we get -ERANGE on integer overflow */
+	do_fail_test(data, INT_MAX - cursor_w + 1, INT_MAX - cursor_h + 1, -ERANGE);
 }
 
 static void test_crc_sliding(data_t *data)
