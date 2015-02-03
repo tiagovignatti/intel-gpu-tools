@@ -1179,6 +1179,8 @@ static void test_unmap_cycles(int fd, int expected)
 		test_unmap(fd, expected);
 }
 
+#define MM_STRESS_LOOPS 100000
+
 struct stress_thread_data {
 	unsigned int stop;
 	int exit_code;
@@ -1211,7 +1213,7 @@ static void test_stress_mm(int fd)
 {
 	int ret;
 	pthread_t t;
-	unsigned int loops = 100000;
+	unsigned int loops = MM_STRESS_LOOPS;
 	uint32_t handle;
 	void *ptr;
 	struct stress_thread_data stdata;
@@ -1237,6 +1239,65 @@ static void test_stress_mm(int fd)
 	igt_assert(ret == 0);
 
 	igt_assert(stdata.exit_code == 0);
+}
+
+struct userptr_close_thread_data {
+	int fd;
+	void *ptr;
+	bool overlap;
+	bool stop;
+	pthread_mutex_t mutex;
+};
+
+static void *mm_userptr_close_thread(void *data)
+{
+	struct userptr_close_thread_data *t = (struct userptr_close_thread_data *)data;
+	int num_handles = t->overlap ? 2 : 1;
+
+	uint32_t handle[num_handles];
+
+	/* Be pedantic and enforce the required memory barriers */
+	pthread_mutex_lock(&t->mutex);
+	while (!t->stop) {
+		pthread_mutex_unlock(&t->mutex);
+		for (int i = 0; i < num_handles; i++)
+			igt_assert(gem_userptr(t->fd, t->ptr, PAGE_SIZE, 0, &handle[i]) == 0);
+		for (int i = 0; i < num_handles; i++)
+			gem_close(t->fd, handle[i]);
+		pthread_mutex_lock(&t->mutex);
+	}
+	pthread_mutex_unlock(&t->mutex);
+
+	return NULL;
+}
+
+static void test_invalidate_close_race(int fd, bool overlap)
+{
+	pthread_t t;
+	unsigned int loops = MM_STRESS_LOOPS;
+	struct userptr_close_thread_data t_data;
+
+	memset(&t_data, 0, sizeof(t_data));
+	t_data.fd = fd;
+	t_data.overlap = overlap;
+	igt_assert(posix_memalign(&t_data.ptr, PAGE_SIZE, PAGE_SIZE) == 0);
+	pthread_mutex_init(&t_data.mutex, NULL);
+
+	igt_assert(pthread_create(&t, NULL, mm_userptr_close_thread, &t_data) == 0);
+
+	while (loops--) {
+		mprotect(t_data.ptr, PAGE_SIZE, PROT_READ | PROT_WRITE | PROT_EXEC);
+		mprotect(t_data.ptr, PAGE_SIZE, PROT_READ | PROT_WRITE);
+	}
+
+	pthread_mutex_lock(&t_data.mutex);
+	t_data.stop = 1;
+	pthread_mutex_unlock(&t_data.mutex);
+
+	pthread_join(t, NULL);
+
+	pthread_mutex_destroy(&t_data.mutex);
+	free(t_data.ptr);
 }
 
 unsigned int total_ram;
@@ -1407,7 +1468,13 @@ int main(int argc, char **argv)
 		test_unmap_after_close(fd);
 
 	igt_subtest("stress-mm")
-	        test_stress_mm(fd);
+		test_stress_mm(fd);
+
+	igt_subtest("stress-mm-invalidate-close")
+		test_invalidate_close_race(fd, false);
+
+	igt_subtest("stress-mm-invalidate-close-overlap")
+		test_invalidate_close_race(fd, true);
 
 	igt_subtest("coherency-sync")
 		test_coherency(fd, count);
