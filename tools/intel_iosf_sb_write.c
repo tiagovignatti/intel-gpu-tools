@@ -69,36 +69,67 @@ static int iosf_sb_port_parse(const char *name)
 
 static void usage(const char *name)
 {
-	printf("Warning : This program will work only on Valleyview\n"
-	       "Usage: %s <port> <reg> <val>\n"
-	       "\t port/reg/val : in 0xXXXX format\n",
-	       name);
+	int i;
+
+	printf("Warning : This program will work only on Valleyview/Cherryview\n"
+	       "Usage: %s [-h] [--] <port> <reg> <val>\n"
+	       "\t -h : Show this help text\n"
+	       "\t <port> : ", name);
+	for (i = 0; i < ARRAY_SIZE(iosf_sb_ports); i++)
+		printf("%s,", iosf_sb_ports[i].name);
+	printf(" or in hex\n"
+	       "\t <reg> : in hex\n"
+	       "\t <val> : in hex\n");
 }
 
 int main(int argc, char** argv)
 {
 	uint32_t port, reg, val, tmp;
 	struct pci_device *dev = intel_get_pci_device();
+	int i, nregs;
+	const char *name;
 
-	if (argc != 4 || !(IS_VALLEYVIEW(dev->device_id) || IS_CHERRYVIEW(dev->device_id))) {
+	if (!IS_VALLEYVIEW(dev->device_id) &&
+	    !IS_CHERRYVIEW(dev->device_id)) {
 		usage(argv[0]);
 		return 1;
 	}
 
-	port = iosf_sb_port_parse(argv[1]);
+	for (;;) {
+		int c = getopt(argc, argv, "h");
 
-	reg = strtoul(argv[2], NULL, 16);
-	val = strtoul(argv[3], NULL, 16);
+		if (c == -1)
+			break;
+
+		switch (c) {
+		case 'h':
+			usage(argv[0]);
+			return 0;
+		}
+	}
+
+	nregs = argc - optind;
+	if (nregs < 2) {
+		usage(argv[0]);
+		return 2;
+	}
+
+	i = optind;
+	name = argv[i++];
+	port = iosf_sb_port_parse(name);
+
+	reg = strtoul(argv[i], NULL, 16);
+	val = strtoul(argv[i+1], NULL, 16);
 
 	intel_register_access_init(dev, 0);
 
 	tmp = intel_iosf_sb_read(port, reg);
-	printf("0x%02x(%s)/0x%04x before : 0x%08x\n", port, argv[1], reg, tmp);
+	printf("0x%02x(%s)/0x%04x before : 0x%08x\n", port, name, reg, tmp);
 
 	intel_iosf_sb_write(port, reg, val);
 
 	tmp = intel_iosf_sb_read(port, reg);
-	printf("0x%02x(%s)/0x%04x after  : 0x%08x\n", port, argv[1], reg, tmp);
+	printf("0x%02x(%s)/0x%04x after  : 0x%08x\n", port, name, reg, tmp);
 
 	intel_register_access_fini();
 
