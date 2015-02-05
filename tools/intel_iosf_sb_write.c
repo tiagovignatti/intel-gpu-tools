@@ -72,7 +72,7 @@ static void usage(const char *name)
 	int i;
 
 	printf("Warning : This program will work only on Valleyview/Cherryview\n"
-	       "Usage: %s [-h] [--] <port> <reg> <val>\n"
+	       "Usage: %s [-h] [--] <port> <reg> <val> [<reg> <val> ...]\n"
 	       "\t -h : Show this help text\n"
 	       "\t <port> : ", name);
 	for (i = 0; i < ARRAY_SIZE(iosf_sb_ports); i++)
@@ -118,18 +118,18 @@ int main(int argc, char** argv)
 	name = argv[i++];
 	port = iosf_sb_port_parse(name);
 
-	reg = strtoul(argv[i], NULL, 16);
-	val = strtoul(argv[i+1], NULL, 16);
-
 	intel_register_access_init(dev, 0);
 
-	tmp = intel_iosf_sb_read(port, reg);
-	printf("0x%02x(%s)/0x%04x before : 0x%08x\n", port, name, reg, tmp);
+	for (; i < argc; i += 2) {
+		reg = strtoul(argv[i], NULL, 16);
+		val = strtoul(argv[i+1], NULL, 16);
 
-	intel_iosf_sb_write(port, reg, val);
-
-	tmp = intel_iosf_sb_read(port, reg);
-	printf("0x%02x(%s)/0x%04x after  : 0x%08x\n", port, name, reg, tmp);
+		tmp = intel_iosf_sb_read(port, reg);
+		printf("0x%02x(%s)/0x%04x before : 0x%08x\n", port, name, reg, tmp);
+		intel_iosf_sb_write(port, reg, val);
+		tmp = intel_iosf_sb_read(port, reg);
+		printf("0x%02x(%s)/0x%04x after  : 0x%08x\n", port, name, reg, tmp);
+	}
 
 	intel_register_access_fini();
 

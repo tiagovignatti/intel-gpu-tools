@@ -73,7 +73,7 @@ static void usage(const char *name)
 	int i;
 
 	printf("Warning : This program will work only on Valleyview/Cherryview\n"
-	       "Usage: %s [-h] [--] <port> <reg>\n"
+	       "Usage: %s [-h] [--] <port> <reg> [<reg> ...]\n"
 	       "\t -h : Show this help text\n"
 	       "\t <port> : ", name);
 	for (i = 0; i < ARRAY_SIZE(iosf_sb_ports); i++)
@@ -96,7 +96,7 @@ int main(int argc, char *argv[])
 	}
 
 	for (;;) {
-		int c = getopt(argc, argv, "h");
+		int c = getopt(argc, argv, "hc:");
 
 		if (c == -1)
 			break;
@@ -120,9 +120,12 @@ int main(int argc, char *argv[])
 
 	intel_register_access_init(dev, 0);
 
-	reg = strtoul(argv[i], NULL, 16);
-	val = intel_iosf_sb_read(port, reg);
-	printf("0x%02x(%s)/0x%04x : 0x%08x\n", port, name, reg, val);
+	for (; i < argc; i++) {
+		reg = strtoul(argv[i], NULL, 16);
+
+		val = intel_iosf_sb_read(port, reg);
+		printf("0x%02x(%s)/0x%04x : 0x%08x\n", port, name, reg, val);
+	}
 
 	intel_register_access_fini();
 
