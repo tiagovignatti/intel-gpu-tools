@@ -28,7 +28,7 @@ static int vlv_sideband_rw(uint32_t port, uint8_t opcode, uint32_t addr,
 
 	bar = 0;
 	be = 0xf;
-	devfn = 16;
+	devfn = 0;
 
 	cmd = (devfn << IOSF_DEVFN_SHIFT) | (opcode << IOSF_OPCODE_SHIFT) |
 		(port << IOSF_PORT_SHIFT) | (be << IOSF_BYTE_ENABLES_SHIFT) |
