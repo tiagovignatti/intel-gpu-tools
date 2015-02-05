@@ -54,7 +54,7 @@ int main(int argc, char** argv)
 	else if (!strcasecmp(argv[1], "nc"))
 		port = 0x11;
 	else if (!strcasecmp(argv[1], "dpio"))
-		port = 0x13;
+		port = 0x12;
 	else if (!strcasecmp(argv[1], "gpio_nc"))
 		port = 0x13;
 	else if (!strcasecmp(argv[1], "cck"))
