@@ -29,6 +29,44 @@
 #include <string.h>
 #include "intel_io.h"
 #include "intel_chipset.h"
+#include "drmtest.h"
+
+/* keep sorted by name for bsearch() */
+static const struct iosf_sb_port {
+	const char *name;
+	uint8_t port;
+} iosf_sb_ports[] = {
+	{ "bunit",   0x03, },
+	{ "cck",     0x14, },
+	{ "ccu",     0xa9, },
+	{ "dpio",    0x12, },
+	{ "dpio2",   0x1a, },
+	{ "flisdsi", 0x1b, },
+	{ "gpio_nc", 0x13, },
+	{ "nc",      0x11, },
+	{ "punit",   0x04, },
+};
+
+static int iosf_sb_port_compare(const void *a, const void *b)
+{
+	const char *name = a;
+	const struct iosf_sb_port *p = b;
+
+	return strcasecmp(name, p->name);
+}
+
+static int iosf_sb_port_parse(const char *name)
+{
+	const struct iosf_sb_port *p;
+
+	p = bsearch(name, iosf_sb_ports, ARRAY_SIZE(iosf_sb_ports),
+		    sizeof(iosf_sb_ports[0]),
+		    iosf_sb_port_compare);
+	if (p)
+		return p->port;
+
+	return strtoul(name, NULL, 16);
+}
 
 static void usage(const char *name)
 {
@@ -48,26 +86,7 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-	if (!strcasecmp(argv[1], "bunit"))
-		port = 0x03;
-	else if (!strcasecmp(argv[1], "punit"))
-		port = 0x04;
-	else if (!strcasecmp(argv[1], "nc"))
-		port = 0x11;
-	else if (!strcasecmp(argv[1], "dpio"))
-		port = 0x12;
-	else if (!strcasecmp(argv[1], "gpio_nc"))
-		port = 0x13;
-	else if (!strcasecmp(argv[1], "cck"))
-		port = 0x14;
-	else if (!strcasecmp(argv[1], "ccu"))
-		port = 0xa9;
-	else if (!strcasecmp(argv[1], "dpio2"))
-		port = 0x1a;
-	else if (!strcasecmp(argv[1], "flisdsi"))
-		port = 0x1b;
-	else
-		port = strtoul(argv[1], NULL, 16);
+	port = iosf_sb_port_parse(argv[1]);
 
 	reg = strtoul(argv[2], NULL, 16);
 
