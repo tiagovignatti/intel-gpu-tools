@@ -35,16 +35,17 @@
 static const struct iosf_sb_port {
 	const char *name;
 	uint8_t port;
+	uint8_t reg_stride;
 } iosf_sb_ports[] = {
-	{ "bunit",   0x03, },
-	{ "cck",     0x14, },
-	{ "ccu",     0xa9, },
-	{ "dpio",    0x12, },
-	{ "dpio2",   0x1a, },
-	{ "flisdsi", 0x1b, },
-	{ "gpio_nc", 0x13, },
-	{ "nc",      0x11, },
-	{ "punit",   0x04, },
+	{ "bunit",   0x03, 1, },
+	{ "cck",     0x14, 1, },
+	{ "ccu",     0xa9, 4, },
+	{ "dpio",    0x12, 4, },
+	{ "dpio2",   0x1a, 4, },
+	{ "flisdsi", 0x1b, 1, },
+	{ "gpio_nc", 0x13, 4, },
+	{ "nc",      0x11, 4, },
+	{ "punit",   0x04, 1, },
 };
 
 static int iosf_sb_port_compare(const void *a, const void *b)
@@ -55,16 +56,19 @@ static int iosf_sb_port_compare(const void *a, const void *b)
 	return strcasecmp(name, p->name);
 }
 
-static int iosf_sb_port_parse(const char *name)
+static int iosf_sb_port_parse(const char *name, int *reg_stride)
 {
 	const struct iosf_sb_port *p;
 
 	p = bsearch(name, iosf_sb_ports, ARRAY_SIZE(iosf_sb_ports),
 		    sizeof(iosf_sb_ports[0]),
 		    iosf_sb_port_compare);
-	if (p)
+	if (p) {
+		*reg_stride = p->reg_stride;
 		return p->port;
+	}
 
+	*reg_stride = 4;
 	return strtoul(name, NULL, 16);
 }
 
@@ -87,7 +91,7 @@ int main(int argc, char *argv[])
 {
 	uint32_t port, reg, val;
 	struct pci_device *dev = intel_get_pci_device();
-	int i, nregs, count = 1;
+	int i, nregs, count = 1, reg_stride;
 	const char *name;
 
 	if (!IS_VALLEYVIEW(dev->device_id) &&
@@ -124,7 +128,7 @@ int main(int argc, char *argv[])
 
 	i = optind;
 	name = argv[i++];
-	port = iosf_sb_port_parse(name);
+	port = iosf_sb_port_parse(name, &reg_stride);
 
 	intel_register_access_init(dev, 0);
 
@@ -136,7 +140,7 @@ int main(int argc, char *argv[])
 		for (j = 0; j < count; j++) {
 			val = intel_iosf_sb_read(port, reg);
 			printf("0x%02x(%s)/0x%04x : 0x%08x\n", port, name, reg, val);
-			reg += 4;
+			reg += reg_stride;
 		}
 	}
 
