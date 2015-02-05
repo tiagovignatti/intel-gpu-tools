@@ -73,8 +73,9 @@ static void usage(const char *name)
 	int i;
 
 	printf("Warning : This program will work only on Valleyview/Cherryview\n"
-	       "Usage: %s [-h] [--] <port> <reg> [<reg> ...]\n"
+	       "Usage: %s [-h] [-c <count>] [--] <port> <reg> [<reg> ...]\n"
 	       "\t -h : Show this help text\n"
+	       "\t -c <count> : how many consecutive registers to read\n"
 	       "\t <port> : ", name);
 	for (i = 0; i < ARRAY_SIZE(iosf_sb_ports); i++)
 		printf("%s,", iosf_sb_ports[i].name);
@@ -86,7 +87,7 @@ int main(int argc, char *argv[])
 {
 	uint32_t port, reg, val;
 	struct pci_device *dev = intel_get_pci_device();
-	int i, nregs;
+	int i, nregs, count = 1;
 	const char *name;
 
 	if (!IS_VALLEYVIEW(dev->device_id) &&
@@ -105,6 +106,13 @@ int main(int argc, char *argv[])
 		case 'h':
 			usage(argv[0]);
 			return 0;
+		case 'c':
+			count = strtol(optarg, NULL, 0);
+			if (count < 1) {
+				usage(argv[0]);
+				return 3;
+			}
+			break;
 		}
 	}
 
@@ -121,10 +129,15 @@ int main(int argc, char *argv[])
 	intel_register_access_init(dev, 0);
 
 	for (; i < argc; i++) {
+		int j;
+
 		reg = strtoul(argv[i], NULL, 16);
 
-		val = intel_iosf_sb_read(port, reg);
-		printf("0x%02x(%s)/0x%04x : 0x%08x\n", port, name, reg, val);
+		for (j = 0; j < count; j++) {
+			val = intel_iosf_sb_read(port, reg);
+			printf("0x%02x(%s)/0x%04x : 0x%08x\n", port, name, reg, val);
+			reg += 4;
+		}
 	}
 
 	intel_register_access_fini();
