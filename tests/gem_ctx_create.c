@@ -32,17 +32,10 @@
 #include "ioctl_wrappers.h"
 #include "drmtest.h"
 
-struct local_drm_i915_gem_context_create {
-	__u32 ctx_id;
-	__u32 pad;
-};
-
-#define CONTEXT_CREATE_IOCTL DRM_IOWR(DRM_COMMAND_BASE + 0x2d, struct local_drm_i915_gem_context_create)
-
 igt_simple_main
 {
 	int ret, fd;
-	struct local_drm_i915_gem_context_create create;
+	struct drm_i915_gem_context_create create;
 
 	igt_skip_on_simulation();
 
@@ -51,7 +44,7 @@ igt_simple_main
 
 	fd = drm_open_any_render();
 
-	ret = drmIoctl(fd, CONTEXT_CREATE_IOCTL, &create);
+	ret = drmIoctl(fd, DRM_IOCTL_I915_GEM_CONTEXT_CREATE, &create);
 	igt_skip_on(ret != 0 && (errno == ENODEV || errno == EINVAL));
 	igt_assert(ret == 0);
 	igt_assert(create.ctx_id != 0);

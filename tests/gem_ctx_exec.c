@@ -50,21 +50,6 @@
 
 IGT_TEST_DESCRIPTION("Test basic context switch functionality.");
 
-struct local_drm_i915_gem_context_destroy {
-	__u32 ctx_id;
-	__u32 pad;
-};
-
-#define CONTEXT_DESTROY_IOCTL DRM_IOWR(DRM_COMMAND_BASE + 0x2e, struct local_drm_i915_gem_context_destroy)
-
-static void context_destroy(int fd, uint32_t ctx_id)
-{
-	struct local_drm_i915_gem_context_destroy destroy;
-	destroy.ctx_id = ctx_id;
-	do_ioctl(fd, CONTEXT_DESTROY_IOCTL, &destroy);
-#include "igt_aux.h"
-}
-
 /* Copied from gem_exec_nop.c */
 static int exec(int fd, uint32_t handle, int ring, int ctx_id)
 {
@@ -183,7 +168,7 @@ igt_main
 
 		/* check that we can create contexts. */
 		ctx_id = gem_context_create(fd);
-		context_destroy(fd, ctx_id);
+		gem_context_destroy(fd, ctx_id);
 		gem_write(fd, handle, 0, batch, sizeof(batch));
 	}
 
@@ -191,12 +176,12 @@ igt_main
 		ctx_id = gem_context_create(fd);
 		igt_assert(exec(fd, handle, I915_EXEC_RENDER, ctx_id) == 0);
 		gem_sync(fd, handle);
-		context_destroy(fd, ctx_id);
+		gem_context_destroy(fd, ctx_id);
 
 		ctx_id = gem_context_create(fd);
 		igt_assert(exec(fd, handle, I915_EXEC_RENDER, ctx_id) == 0);
 		gem_sync(fd, handle);
-		context_destroy(fd, ctx_id);
+		gem_context_destroy(fd, ctx_id);
 
 		igt_assert(exec(fd, handle, I915_EXEC_RENDER, ctx_id) < 0);
 		gem_sync(fd, handle);
@@ -227,6 +212,6 @@ igt_main
 			gem_sync(fd, handle);
 		}
 
-		context_destroy(fd, ctx_id);
+		gem_context_destroy(fd, ctx_id);
 	}
 }

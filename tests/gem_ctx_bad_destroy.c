@@ -38,18 +38,10 @@
 
 IGT_TEST_DESCRIPTION("Negative test cases for destroy contexts.");
 
-struct local_drm_i915_context_destroy {
-	__u32 ctx_id;
-	__u32 pad;
-};
-
-#define CONTEXT_DESTROY_IOCTL DRM_IOWR(DRM_COMMAND_BASE + 0x2e, struct local_drm_i915_context_destroy)
-
 igt_simple_main
 {
-	struct local_drm_i915_context_destroy destroy;
 	uint32_t ctx_id;
-	int ret, fd;
+	int fd;
 
 	igt_skip_on_simulation();
 
@@ -57,24 +49,17 @@ igt_simple_main
 
 	ctx_id = gem_context_create(fd);
 
-	destroy.ctx_id = ctx_id;
 	/* Make sure a proper destroy works first */
-	ret = drmIoctl(fd, CONTEXT_DESTROY_IOCTL, &destroy);
-	igt_assert(ret == 0);
+	gem_context_destroy(fd, ctx_id);
 
 	/* try double destroy */
-	ret = drmIoctl(fd, CONTEXT_DESTROY_IOCTL, &destroy);
-	igt_assert(ret != 0 && errno == ENOENT);
+	igt_assert(__gem_context_destroy(fd, ctx_id) == -ENOENT);
 
 	/* destroy something random */
-	destroy.ctx_id = 2;
-	ret = drmIoctl(fd, CONTEXT_DESTROY_IOCTL, &destroy);
-	igt_assert(ret != 0 && errno == ENOENT);
+	igt_assert(__gem_context_destroy(fd, 2) == -ENOENT);
 
 	/* Try to destroy the default context */
-	destroy.ctx_id = 0;
-	ret = drmIoctl(fd, CONTEXT_DESTROY_IOCTL, &destroy);
-	igt_assert(ret != 0 && errno == ENOENT);
+	igt_assert(__gem_context_destroy(fd, 0) == -ENOENT);
 
 	close(fd);
 }
