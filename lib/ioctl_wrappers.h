@@ -95,6 +95,8 @@ void *gem_mmap__wc(int fd, uint32_t handle, int offset, int size, int prot);
 int gem_madvise(int fd, uint32_t handle, int state);
 
 uint32_t gem_context_create(int fd);
+void gem_context_destroy(int fd, uint32_t ctx_id);
+int __gem_context_destroy(int fd, uint32_t ctx_id);
 
 void gem_sw_finish(int fd, uint32_t handle);
 

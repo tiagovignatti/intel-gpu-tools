@@ -630,6 +630,38 @@ uint32_t gem_context_create(int fd)
 	return create.ctx_id;
 }
 
+int __gem_context_destroy(int fd, uint32_t ctx_id)
+{
+	struct drm_i915_gem_context_destroy destroy;
+	int ret;
+
+	memset(&destroy, 0, sizeof(destroy));
+	destroy.ctx_id = ctx_id;
+
+	ret = drmIoctl(fd, DRM_IOCTL_I915_GEM_CONTEXT_DESTROY, &destroy);
+	if (ret)
+		return -errno;
+	return 0;
+}
+
+/**
+ * gem_context_create:
+ * @fd: open i915 drm file descriptor
+ * @ctx_id: i915 hw context id
+ *
+ * This is a wraps the CONTEXT_DESTROY ioctl, which is used to free a hardware
+ * context.
+ */
+void gem_context_destroy(int fd, uint32_t ctx_id)
+{
+	struct drm_i915_gem_context_destroy destroy;
+
+	memset(&destroy, 0, sizeof(destroy));
+	destroy.ctx_id = ctx_id;
+
+	do_ioctl(fd, DRM_IOCTL_I915_GEM_CONTEXT_DESTROY, &destroy);
+}
+
 /**
  * gem_sw_finish:
  * @fd: open i915 drm file descriptor
