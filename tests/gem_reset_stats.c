@@ -53,7 +53,6 @@
 #define RS_UNKNOWN       (1 << 2)
 
 static uint32_t devid;
-static bool hw_contexts;
 
 struct local_drm_i915_reset_stats {
 	__u32 ctx_id;
@@ -64,20 +63,8 @@ struct local_drm_i915_reset_stats {
 	__u32 pad;
 };
 
-struct local_drm_i915_gem_context_create {
-	__u32 ctx_id;
-	__u32 pad;
-};
-
-struct local_drm_i915_gem_context_destroy {
-	__u32 ctx_id;
-	__u32 pad;
-};
-
 #define MAX_FD 32
 
-#define CONTEXT_CREATE_IOCTL DRM_IOWR(DRM_COMMAND_BASE + 0x2d, struct local_drm_i915_gem_context_create)
-#define CONTEXT_DESTROY_IOCTL DRM_IOWR(DRM_COMMAND_BASE + 0x2e, struct local_drm_i915_gem_context_destroy)
 #define GET_RESET_STATS_IOCTL DRM_IOWR(DRM_COMMAND_BASE + 0x32, struct local_drm_i915_reset_stats)
 
 #define LOCAL_I915_EXEC_VEBOX	(4 << 0)
@@ -89,63 +76,31 @@ static bool gem_has_render(int fd)
 	return true;
 }
 
-static bool has_context(const struct target_ring *ring);
-
 static const struct target_ring {
 	uint32_t exec;
 	bool (*present)(int fd);
-	bool (*contexts)(const struct target_ring *ring);
 	const char *name;
 } rings[] = {
-	{ I915_EXEC_RENDER, gem_has_render, has_context, "render" },
-	{ I915_EXEC_BLT, gem_has_blt, has_context, "blt" },
-	{ I915_EXEC_BSD, gem_has_bsd, has_context, "bsd" },
-	{ LOCAL_I915_EXEC_VEBOX, gem_has_vebox, has_context, "vebox" },
+	{ I915_EXEC_RENDER, gem_has_render, "render" },
+	{ I915_EXEC_BLT, gem_has_blt, "blt" },
+	{ I915_EXEC_BSD, gem_has_bsd, "bsd" },
+	{ LOCAL_I915_EXEC_VEBOX, gem_has_vebox, "vebox" },
 };
 
-static bool has_context(const struct target_ring *ring)
+static void check_context(const struct target_ring *ring)
 {
-	if (!hw_contexts)
-		return false;
+	int fd = drm_open_any();
 
-	if(ring->exec == I915_EXEC_RENDER)
-		return true;
+	gem_context_destroy(fd,
+			    gem_context_create(fd));
+	close(fd);
 
-	return false;
+	igt_require(ring->exec == I915_EXEC_RENDER);
 }
 
 #define NUM_RINGS (sizeof(rings)/sizeof(struct target_ring))
 
 static const struct target_ring *current_ring;
-
-static uint32_t context_create(int fd)
-{
-	struct local_drm_i915_gem_context_create create;
-	int ret;
-
-	create.ctx_id = rand();
-	create.pad = rand();
-
-	ret = drmIoctl(fd, CONTEXT_CREATE_IOCTL, &create);
-	igt_assert(ret == 0);
-
-	return create.ctx_id;
-}
-
-static int context_destroy(int fd, uint32_t ctx_id)
-{
-	int ret;
-	struct local_drm_i915_gem_context_destroy destroy;
-
-	destroy.ctx_id = ctx_id;
-	destroy.pad = rand();
-
-	ret = drmIoctl(fd, CONTEXT_DESTROY_IOCTL, &destroy);
-	if (ret != 0)
-		return -errno;
-
-	return 0;
-}
 
 static int gem_reset_stats(int fd, int ctx_id,
 			   struct local_drm_i915_reset_stats *rs)
@@ -450,7 +405,7 @@ static void test_rs_ctx(int num_fds, int num_ctx, int hang_index,
 		assert_reset_status(fd[i], 0, RS_NO_ERROR);
 
 		for (j = 0; j < num_ctx; j++) {
-			ctx[i][j] = context_create(fd[i]);
+			ctx[i][j] = gem_context_create(fd[i]);
 
 		}
 
@@ -502,7 +457,7 @@ static void test_rs_ctx(int num_fds, int num_ctx, int hang_index,
 	for (i = 0; i < num_fds; i++) {
 		for (j = 0; j < num_ctx; j++) {
 			gem_close(fd[i], h[i][j]);
-			igt_assert(context_destroy(fd[i], ctx[i][j]) == 0);
+			gem_context_destroy(fd[i], ctx[i][j]);
 		}
 
 		assert_reset_status(fd[i], 0, RS_NO_ERROR);
@@ -610,8 +565,8 @@ static void test_ban_ctx(void)
 
 	assert_reset_status(fd, 0, RS_NO_ERROR);
 
-	ctx_good = context_create(fd);
-	ctx_bad = context_create(fd);
+	ctx_good = gem_context_create(fd);
+	ctx_bad = gem_context_create(fd);
 
 	assert_reset_status(fd, 0, RS_NO_ERROR);
 	assert_reset_status(fd, ctx_good, RS_NO_ERROR);
@@ -681,8 +636,8 @@ static void test_ban_ctx(void)
 	igt_assert(h1 >= 0);
 	gem_close(fd, h1);
 
-	igt_assert(context_destroy(fd, ctx_good) == 0);
-	igt_assert(context_destroy(fd, ctx_bad) == 0);
+	gem_context_destroy(fd, ctx_good);
+	gem_context_destroy(fd, ctx_bad);
 	igt_assert(gem_reset_status(fd, ctx_good) < 0);
 	igt_assert(gem_reset_status(fd, ctx_bad) < 0);
 	igt_assert(exec_valid(fd, ctx_good) < 0);
@@ -701,8 +656,8 @@ static void test_unrelated_ctx(void)
 	fd2 = drm_open_any();
 	assert_reset_status(fd1, 0, RS_NO_ERROR);
 	assert_reset_status(fd2, 0, RS_NO_ERROR);
-	ctx_guilty = context_create(fd1);
-	ctx_unrelated = context_create(fd2);
+	ctx_guilty = gem_context_create(fd1);
+	ctx_unrelated = gem_context_create(fd2);
 
 	assert_reset_status(fd1, ctx_guilty, RS_NO_ERROR);
 	assert_reset_status(fd2, ctx_unrelated, RS_NO_ERROR);
@@ -721,8 +676,8 @@ static void test_unrelated_ctx(void)
 	gem_close(fd1, h1);
 	gem_close(fd2, h2);
 
-	igt_assert(context_destroy(fd1, ctx_guilty) == 0);
-	igt_assert(context_destroy(fd2, ctx_unrelated) == 0);
+	gem_context_destroy(fd1, ctx_guilty);
+	gem_context_destroy(fd2, ctx_unrelated);
 
 	close(fd1);
 	close(fd2);
@@ -746,14 +701,14 @@ static void test_close_pending_ctx(void)
 	uint32_t ctx;
 
 	fd = drm_open_any();
-	ctx = context_create(fd);
+	ctx = gem_context_create(fd);
 
 	assert_reset_status(fd, ctx, RS_NO_ERROR);
 
 	h = inject_hang(fd, ctx);
 	igt_assert(h >= 0);
-	igt_assert(context_destroy(fd, ctx) == 0);
-	igt_assert(context_destroy(fd, ctx) == -ENOENT);
+	gem_context_destroy(fd, ctx);
+	igt_assert(__gem_context_destroy(fd, ctx) == -ENOENT);
 
 	gem_close(fd, h);
 	close(fd);
@@ -881,7 +836,7 @@ static void test_reset_count(const bool create_ctx)
 
 	fd = drm_open_any();
 	if (create_ctx)
-		ctx = context_create(fd);
+		ctx = gem_context_create(fd);
 	else
 		ctx = 0;
 
@@ -915,7 +870,7 @@ static void test_reset_count(const bool create_ctx)
 	gem_close(fd, h);
 
 	if (create_ctx)
-		context_destroy(fd, ctx);
+		gem_context_destroy(fd, ctx);
 
 	close(fd);
 }
@@ -990,7 +945,7 @@ static void test_params_ctx(void)
 	int fd, ctx;
 
 	fd = drm_open_any();
-	ctx = context_create(fd);
+	ctx = gem_context_create(fd);
 
 	_test_param(fd, ctx);
 
@@ -1047,22 +1002,6 @@ static void defer_hangcheck(int ring_num)
 	close(fd);
 }
 
-static bool gem_has_hw_contexts(int fd)
-{
-	struct local_drm_i915_gem_context_create create;
-	int ret;
-
-	memset(&create, 0, sizeof(create));
-	ret = drmIoctl(fd, CONTEXT_CREATE_IOCTL, &create);
-
-	if (ret == 0) {
-		drmIoctl(fd, CONTEXT_DESTROY_IOCTL, &create);
-		return true;
-	}
-
-	return false;
-}
-
 static bool gem_has_reset_stats(int fd)
 {
 	struct local_drm_i915_reset_stats rs;
@@ -1109,9 +1048,8 @@ static void check_gpu_ok(void)
 	close(fd);
 }
 
-#define RING_HAS_CONTEXTS (current_ring->contexts(current_ring))
 #define RUN_TEST(...) do { check_gpu_ok(); __VA_ARGS__; check_gpu_ok(); } while (0)
-#define RUN_CTX_TEST(...) do { igt_skip_on(RING_HAS_CONTEXTS == false); RUN_TEST(__VA_ARGS__); } while (0)
+#define RUN_CTX_TEST(...) do { check_context(current_ring); RUN_TEST(__VA_ARGS__); } while (0)
 
 igt_main
 {
@@ -1124,7 +1062,6 @@ igt_main
 		fd = drm_open_any();
 		devid = intel_get_drm_devid(fd);
 
-		hw_contexts = gem_has_hw_contexts(fd);
 		has_reset_stats = gem_has_reset_stats(fd);
 
 		close(fd);
