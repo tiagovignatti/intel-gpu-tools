@@ -97,6 +97,16 @@ int gem_madvise(int fd, uint32_t handle, int state);
 uint32_t gem_context_create(int fd);
 void gem_context_destroy(int fd, uint32_t ctx_id);
 int __gem_context_destroy(int fd, uint32_t ctx_id);
+struct local_i915_gem_context_param {
+	uint32_t context;
+	uint32_t size;
+	uint64_t param;
+#define LOCAL_CONTEXT_PARAM_BAN_PERIOD 0x1
+	uint64_t value;
+};
+void gem_context_require_param(int fd, uint64_t param);
+void gem_context_get_param(int fd, struct local_i915_gem_context_param *p);
+void gem_context_set_param(int fd, struct local_i915_gem_context_param *p);
 
 void gem_sw_finish(int fd, uint32_t handle);
 
@@ -124,17 +134,5 @@ void gem_require_ring(int fd, int ring_id);
 int prime_handle_to_fd(int fd, uint32_t handle);
 uint32_t prime_fd_to_handle(int fd, int dma_buf_fd);
 off_t prime_get_size(int dma_buf_fd);
-
-struct local_i915_gem_context_param {
-	uint32_t context;
-	uint32_t size;
-	uint64_t param;
-#define LOCAL_CONTEXT_PARAM_BAN_PERIOD 0x1
-	uint64_t value;
-};
-
-void gem_context_require_param(int fd, uint64_t param);
-void gem_context_get_param(int fd, struct local_i915_gem_context_param *p);
-void gem_context_set_param(int fd, struct local_i915_gem_context_param *p);
 
 #endif /* IOCTL_WRAPPERS_H */

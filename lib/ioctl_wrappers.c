@@ -663,6 +663,59 @@ void gem_context_destroy(int fd, uint32_t ctx_id)
 }
 
 /**
+ * gem_context_get_param:
+ * @fd: open i915 drm file descriptor
+ * @p: i915 hw context parameter
+ *
+ * This is a wraps the CONTEXT_GET_PARAM ioctl, which is used to free a hardware
+ * context. Not that similarly to gem_set_caching() this wrapper calls
+ * igt_require() internally to correctly skip on kernels and platforms where hw
+ * context parameter support is not available.
+ */
+void gem_context_get_param(int fd, struct local_i915_gem_context_param *p)
+{
+#define LOCAL_I915_GEM_CONTEXT_GETPARAM       0x34
+#define LOCAL_IOCTL_I915_GEM_CONTEXT_GETPARAM DRM_IOWR (DRM_COMMAND_BASE + LOCAL_I915_GEM_CONTEXT_GETPARAM, struct local_i915_gem_context_param)
+	do_ioctl(fd, LOCAL_IOCTL_I915_GEM_CONTEXT_GETPARAM, p);
+}
+
+/**
+ * gem_context_set_param:
+ * @fd: open i915 drm file descriptor
+ * @p: i915 hw context parameter
+ *
+ * This is a wraps the CONTEXT_SET_PARAM ioctl, which is used to free a hardware
+ * context. Not that similarly to gem_set_caching() this wrapper calls
+ * igt_require() internally to correctly skip on kernels and platforms where hw
+ * context parameter support is not available.
+ */
+void gem_context_set_param(int fd, struct local_i915_gem_context_param *p)
+{
+#define LOCAL_I915_GEM_CONTEXT_SETPARAM       0x35
+#define LOCAL_IOCTL_I915_GEM_CONTEXT_SETPARAM DRM_IOWR (DRM_COMMAND_BASE + LOCAL_I915_GEM_CONTEXT_SETPARAM, struct local_i915_gem_context_param)
+	do_ioctl(fd, LOCAL_IOCTL_I915_GEM_CONTEXT_SETPARAM, p);
+}
+
+/**
+ * gem_require_caching:
+ * @fd: open i915 drm file descriptor
+ *
+ * Feature test macro to query whether hw context parameter support for @param
+ * is available. Automatically skips through igt_require() if not.
+ */
+void gem_context_require_param(int fd, uint64_t param)
+{
+	struct local_i915_gem_context_param p;
+
+	p.context = 0;
+	p.param = param;
+	p.value = 0;
+	p.size = 0;
+
+	igt_require(drmIoctl(fd, LOCAL_IOCTL_I915_GEM_CONTEXT_GETPARAM, &p) == 0);
+}
+
+/**
  * gem_sw_finish:
  * @fd: open i915 drm file descriptor
  * @handle: gem buffer object handle
@@ -1088,30 +1141,4 @@ off_t prime_get_size(int dma_buf_fd)
 	errno = 0;
 
 	return ret;
-}
-
-void gem_context_get_param(int fd, struct local_i915_gem_context_param *p)
-{
-#define LOCAL_I915_GEM_CONTEXT_GETPARAM       0x34
-#define LOCAL_IOCTL_I915_GEM_CONTEXT_GETPARAM DRM_IOWR (DRM_COMMAND_BASE + LOCAL_I915_GEM_CONTEXT_GETPARAM, struct local_i915_gem_context_param)
-	do_ioctl(fd, LOCAL_IOCTL_I915_GEM_CONTEXT_GETPARAM, p);
-}
-
-void gem_context_set_param(int fd, struct local_i915_gem_context_param *p)
-{
-#define LOCAL_I915_GEM_CONTEXT_SETPARAM       0x35
-#define LOCAL_IOCTL_I915_GEM_CONTEXT_SETPARAM DRM_IOWR (DRM_COMMAND_BASE + LOCAL_I915_GEM_CONTEXT_SETPARAM, struct local_i915_gem_context_param)
-	do_ioctl(fd, LOCAL_IOCTL_I915_GEM_CONTEXT_SETPARAM, p);
-}
-
-void gem_context_require_param(int fd, uint64_t param)
-{
-	struct local_i915_gem_context_param p;
-
-	p.context = 0;
-	p.param = param;
-	p.value = 0;
-	p.size = 0;
-
-	igt_require(drmIoctl(fd, LOCAL_I915_GEM_CONTEXT_GETPARAM, &p) == 0);
 }
