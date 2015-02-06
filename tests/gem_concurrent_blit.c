@@ -725,8 +725,8 @@ run_basic_modes(const struct access_mode *mode,
 		{ "cpu", cpu_copy_bo, cpu_require },
 		{ "gtt", gtt_copy_bo, gtt_require },
 		{ "wc", wc_copy_bo, wc_require },
-		{ "bcs", blt_copy_bo, bcs_require },
-		{ "rcs", render_copy_bo, rcs_require },
+		{ "blt", blt_copy_bo, bcs_require },
+		{ "render", render_copy_bo, rcs_require },
 		{ NULL, NULL }
 	}, *p;
 	const struct {

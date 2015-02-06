@@ -205,7 +205,7 @@ int main(int argc, char **argv)
 {
 	igt_subtest_init(argc, argv);
 
-	igt_subtest("bcs-vs-rcs-ctx0") {
+	igt_subtest("blt-vs-render-ctx0") {
 		dri_bo *bcs[1], *rcs[N_CHILD];
 
 		fork_bcs_copy(0x4000, bcs, 1);
@@ -217,7 +217,7 @@ int main(int argc, char **argv)
 		surfaces_check(rcs, N_CHILD, 0x8000 / N_CHILD);
 	}
 
-	igt_subtest("bcs-vs-rcs-ctxN") {
+	igt_subtest("blt-vs-render-ctxN") {
 		dri_bo *bcs[1], *rcs[N_CHILD];
 
 		fork_rcs_copy(0x8000 / N_CHILD, rcs, N_CHILD, CREATE_CONTEXT);
