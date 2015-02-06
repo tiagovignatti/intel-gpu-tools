@@ -55,7 +55,7 @@ struct igt_hang_ring igt_hang_ring(int fd, int gen, int ring)
 	ban = param.value;
 
 	param.value = 0;
-	igt_require(gem_context_set_param(fd, &param) == 0);
+	gem_context_set_param(fd, &param);
 
 	memset(&reloc, 0, sizeof(reloc));
 	memset(&exec, 0, sizeof(exec));
