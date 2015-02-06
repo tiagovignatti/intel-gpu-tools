@@ -239,7 +239,7 @@ igt_main
 		igt_stop_signal_helper();
 
 		igt_subtest_f("%s-hang", t->name) {
-			igt_require(igt_can_hang_ring(fd, batch->gen, -1));
+			igt_require_hang_ring(fd, -1);
 			do_test(fd, t->cache, src, start, dst, 1, bcs_hang);
 		}
 	}

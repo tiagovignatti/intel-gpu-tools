@@ -263,9 +263,7 @@ static void do_forked_test(int fd, unsigned flags)
 	struct igt_helper_process thrasher = {};
 
 	if (flags & HANG)
-		igt_require(igt_can_hang_ring(fd,
-					      intel_gen(devid),
-					      I915_EXEC_BLT));
+		igt_require_hang_ring(fd, I915_EXEC_BLT);
 
 	if (flags & (THRASH | THRASH_INACTIVE)) {
 		uint64_t val = (flags & THRASH_INACTIVE) ?
@@ -328,7 +326,7 @@ igt_main
 		do_test(fd, false, no_hang);
 
 	igt_subtest("interruptible-hang") {
-		igt_require(igt_can_hang_ring(fd, intel_gen(devid), I915_EXEC_BLT));
+		igt_require_hang_ring(fd, I915_EXEC_BLT);
 		do_test(fd, false, bcs_hang);
 	}
 
@@ -336,7 +334,7 @@ igt_main
 		do_test(fd, true, no_hang);
 
 	igt_subtest("faulting-reloc-interruptible-hang") {
-		igt_require(igt_can_hang_ring(fd, intel_gen(devid), I915_EXEC_BLT));
+		igt_require_hang_ring(fd, I915_EXEC_BLT);
 		do_test(fd, true, bcs_hang);
 	}
 	igt_stop_signal_helper();

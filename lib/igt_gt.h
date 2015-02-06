@@ -24,7 +24,7 @@
 #ifndef IGT_GT_H
 #define IGT_GT_H
 
-int igt_can_hang_ring(int fd, int gen, int ring);
+void igt_require_hang_ring(int fd, int ring);
 
 struct igt_hang_ring {
 	unsigned handle;

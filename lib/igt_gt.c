@@ -29,16 +29,12 @@
 #include "igt_debugfs.h"
 #include "ioctl_wrappers.h"
 #include "intel_reg.h"
+#include "intel_chipset.h"
 
-int igt_can_hang_ring(int fd, int gen, int ring)
+void igt_require_hang_ring(int fd, int ring)
 {
-	if (!gem_context_has_param(fd, LOCAL_CONTEXT_PARAM_BAN_PERIOD))
-		return 0;
-
-	if (gen < 5) /* safe resets */
-		return 0;
-
-	return 1;
+	igt_require(gem_context_has_param(fd, LOCAL_CONTEXT_PARAM_BAN_PERIOD));
+	igt_require(intel_gen(intel_get_drm_devid(fd)) >= 5);
 }
 
 struct igt_hang_ring igt_hang_ring(int fd, int gen, int ring)

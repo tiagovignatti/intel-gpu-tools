@@ -474,7 +474,7 @@ static struct igt_hang_ring rcs_hang(void)
 
 static void hang_require(void)
 {
-	igt_require(igt_can_hang_ring(fd, gen, -1));
+	igt_require_hang_ring(fd, -1);
 }
 
 static void do_overwrite_source(const struct access_mode *mode,
