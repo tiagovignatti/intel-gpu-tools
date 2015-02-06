@@ -161,7 +161,8 @@ int fd;
 igt_main
 {
 	igt_skip_on_simulation();
-		igt_fixture {
+
+	igt_fixture {
 		fd = drm_open_any_render();
 
 		handle = gem_create(fd, 4096);

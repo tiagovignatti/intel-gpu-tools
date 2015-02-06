@@ -30,6 +30,7 @@ gem_ctx_basic
 gem_ctx_create
 gem_ctx_exec
 gem_ctx_thrash
+gem_ctx_param_basic
 gem_double_irq_loop
 gem_dummy_reloc_loop
 gem_evict_alignment

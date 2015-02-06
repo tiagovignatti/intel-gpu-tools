@@ -23,6 +23,7 @@ TESTS_progs_M = \
 	gem_close_race \
 	gem_concurrent_blit \
 	gem_cs_tlb \
+	gem_ctx_param_basic \
 	gem_ctx_bad_exec \
 	gem_ctx_exec \
 	gem_dummy_reloc_loop \
