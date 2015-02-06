@@ -113,7 +113,7 @@ struct local_i915_gem_context_param {
 	uint64_t value;
 };
 
-int gem_context_has_param(int fd, uint64_t param);
+void gem_context_require_param(int fd, uint64_t param);
 int gem_context_get_param(int fd, struct local_i915_gem_context_param *p);
 int gem_context_set_param(int fd, struct local_i915_gem_context_param *p);
 

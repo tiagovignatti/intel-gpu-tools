@@ -1080,7 +1080,7 @@ int gem_context_set_param(int fd, struct local_i915_gem_context_param *p)
 	return 0;
 }
 
-int gem_context_has_param(int fd, uint64_t param)
+void gem_context_require_param(int fd, uint64_t param)
 {
 	struct local_i915_gem_context_param p;
 
@@ -1089,5 +1089,5 @@ int gem_context_has_param(int fd, uint64_t param)
 	p.value = 0;
 	p.size = 0;
 
-	return gem_context_get_param(fd, &p) == 0;
+	igt_require(gem_context_get_param(fd, &p) == 0);
 }
