@@ -32,22 +32,40 @@
 #include "ioctl_wrappers.h"
 #include "drmtest.h"
 
-igt_simple_main
+int ret, fd;
+struct drm_i915_gem_context_create create;
+
+igt_main
 {
-	int ret, fd;
-	struct drm_i915_gem_context_create create;
+	igt_fixture
+		fd = drm_open_any_render();
 
-	igt_skip_on_simulation();
+	igt_subtest("basic") {
+		create.ctx_id = rand();
+		create.pad = 0;
 
-	create.ctx_id = rand();
-	create.pad = rand();
 
-	fd = drm_open_any_render();
+		ret = drmIoctl(fd, DRM_IOCTL_I915_GEM_CONTEXT_CREATE, &create);
+		igt_skip_on(ret != 0 && (errno == ENODEV || errno == EINVAL));
+		igt_assert(ret == 0);
+		igt_assert(create.ctx_id != 0);
+	}
 
-	ret = drmIoctl(fd, DRM_IOCTL_I915_GEM_CONTEXT_CREATE, &create);
-	igt_skip_on(ret != 0 && (errno == ENODEV || errno == EINVAL));
-	igt_assert(ret == 0);
-	igt_assert(create.ctx_id != 0);
+	igt_subtest("invalid-pad") {
+		create.ctx_id = rand();
+		create.pad = 0;
 
-	close(fd);
+		ret = drmIoctl(fd, DRM_IOCTL_I915_GEM_CONTEXT_CREATE, &create);
+		igt_skip_on(ret != 0 && (errno == ENODEV || errno == EINVAL));
+		igt_assert(ret == 0);
+		igt_assert(create.ctx_id != 0);
+
+		create.pad = 1;
+
+		igt_assert(drmIoctl(fd, DRM_IOCTL_I915_GEM_CONTEXT_CREATE, &create) < 0 &&
+			   errno == EINVAL);
+	}
+
+	igt_fixture
+		close(fd);
 }

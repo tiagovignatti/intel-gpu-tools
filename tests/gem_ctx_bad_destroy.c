@@ -38,28 +38,46 @@
 
 IGT_TEST_DESCRIPTION("Negative test cases for destroy contexts.");
 
-igt_simple_main
+uint32_t ctx_id;
+int fd;
+
+igt_main
 {
-	uint32_t ctx_id;
-	int fd;
+	igt_fixture {
+		fd = drm_open_any_render();
 
-	igt_skip_on_simulation();
-
-	fd = drm_open_any_render();
-
-	ctx_id = gem_context_create(fd);
-
-	/* Make sure a proper destroy works first */
-	gem_context_destroy(fd, ctx_id);
+		ctx_id = gem_context_create(fd);
+		/* Make sure a proper destroy works first */
+		gem_context_destroy(fd, ctx_id);
+	}
 
 	/* try double destroy */
-	igt_assert(__gem_context_destroy(fd, ctx_id) == -ENOENT);
+	igt_subtest("double-destroy") {
+		ctx_id = gem_context_create(fd);
+		gem_context_destroy(fd, ctx_id);
+		igt_assert(__gem_context_destroy(fd, ctx_id) == -ENOENT);
+	}
 
-	/* destroy something random */
-	igt_assert(__gem_context_destroy(fd, 2) == -ENOENT);
+	igt_subtest("invalid-ctx")
+		igt_assert(__gem_context_destroy(fd, 2) == -ENOENT);
 
-	/* Try to destroy the default context */
-	igt_assert(__gem_context_destroy(fd, 0) == -ENOENT);
+	igt_subtest("invalid-default-ctx")
+		igt_assert(__gem_context_destroy(fd, 0) == -ENOENT);
 
-	close(fd);
+	igt_subtest("invalid-pad") {
+		struct drm_i915_gem_context_destroy destroy;
+
+		ctx_id = gem_context_create(fd);
+
+		memset(&destroy, 0, sizeof(destroy));
+		destroy.ctx_id = ctx_id;
+		destroy.pad = 1;
+
+		igt_assert(drmIoctl(fd, DRM_IOCTL_I915_GEM_CONTEXT_DESTROY, &destroy) < 0 &&
+			   errno == EINVAL);
+		gem_context_destroy(fd, ctx_id);
+	}
+
+	igt_fixture
+		close(fd);
 }
