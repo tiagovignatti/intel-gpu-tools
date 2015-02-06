@@ -345,7 +345,7 @@ static void wc_contention(void)
 	double linear[2], tiled[2];
 
 	fd = drm_open_any();
-	igt_require_mmap_wc(fd);
+	gem_require_mmap_wc(fd);
 
 	num_fences = gem_available_fences(fd);
 	igt_require(num_fences > 0);

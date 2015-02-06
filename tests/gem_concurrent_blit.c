@@ -174,7 +174,7 @@ wc_create_bo(drm_intel_bufmgr *bufmgr, int width, int height)
 {
 	drm_intel_bo *bo;
 
-	igt_require_mmap_wc(fd);
+	gem_require_mmap_wc(fd);
 
 	bo = unmapped_create_bo(bufmgr, width, height);
 	bo->virtual = gem_mmap__wc(fd, bo->handle, 0, bo->size, PROT_READ | PROT_WRITE);
@@ -696,7 +696,7 @@ static void gtt_require(void)
 static void wc_require(void)
 {
 	bit17_require();
-	igt_require_mmap_wc(fd);
+	gem_require_mmap_wc(fd);
 }
 
 static void bcs_require(void)

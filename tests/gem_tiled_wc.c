@@ -136,7 +136,7 @@ igt_simple_main
 	uint32_t handle;
 
 	fd = drm_open_any();
-	igt_require_mmap_wc(fd);
+	gem_require_mmap_wc(fd);
 
 	handle = create_bo(fd);
 	get_tiling(fd, handle, &tiling, &swizzle);

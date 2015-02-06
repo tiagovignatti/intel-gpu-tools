@@ -65,7 +65,16 @@ void *gem_mmap__cpu(int fd, uint32_t handle, int offset, int size, int prot);
 
 bool gem_mmap__has_wc(int fd);
 void *gem_mmap__wc(int fd, uint32_t handle, int offset, int size, int prot);
-#define igt_require_mmap_wc(x) igt_require(gem_mmap__has_wc(x))
+
+/**
+ * gem_require_mmap_wc:
+ * @fd: open i915 drm file descriptor
+ *
+ * Feature test macro to query whether direct (i.e. cpu access path, bypassing
+ * the gtt) write-combine memory mappings are available. Automatically skips
+ * through igt_require() if not.
+ */
+#define gem_require_mmap_wc(x) igt_require(gem_mmap__has_wc(x))
 
 /**
  * gem_mmap:
