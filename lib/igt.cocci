@@ -92,7 +92,7 @@ expression E;
 - assert(E);
 + igt_assert(E);
 
-// Replace open-coded swap()
+// Replace open-coded igt_swap()
 @@
 type T;
 T a, b, tmp;
@@ -100,7 +100,7 @@ T a, b, tmp;
 - tmp = a;
 - a = b;
 - b = tmp;
-+ swap(a, b);
++ igt_swap(a, b);
 
 // Replace open-coded min()
 @@

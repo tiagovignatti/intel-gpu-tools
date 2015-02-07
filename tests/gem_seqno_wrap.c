@@ -172,7 +172,7 @@ static void exchange_uint(void *array, unsigned i, unsigned j)
 {
 	unsigned *i_arr = array;
 
-	swap(i_arr[i], i_arr[j]);
+	igt_swap(i_arr[i], i_arr[j]);
 }
 
 static void run_sync_test(int num_buffers, bool verify)

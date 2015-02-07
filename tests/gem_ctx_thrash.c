@@ -55,13 +55,13 @@ static int ctx_per_thread;
 static void xchg_ptr(void *array, unsigned i, unsigned j)
 {
 	void **A = array;
-	swap(A[i], A[j]);
+	igt_swap(A[i], A[j]);
 }
 
 static void xchg_int(void *array, unsigned i, unsigned j)
 {
 	int *A = array;
-	swap(A[i], A[j]);
+	igt_swap(A[i], A[j]);
 }
 
 static int reopen(int _fd)

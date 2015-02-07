@@ -94,7 +94,7 @@ void intel_require_memory(uint32_t count, uint32_t size, unsigned mode);
 #define min(a, b) ((a) < (b) ? (a) : (b))
 #define max(a, b) ((a) > (b) ? (a) : (b))
 
-#define swap(a, b) do {		\
+#define igt_swap(a, b) do {	\
 	typeof(a) _tmp = (a);	\
 	(a) = (b);		\
 	(b) = _tmp;		\

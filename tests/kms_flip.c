@@ -242,7 +242,7 @@ static int _emit_dummy_load__bcs(struct test_output *o, int limit, int timeout)
 			  2048, 2048,
 			  2048*4, 2048*4);
 
-		swap(src_bo, dst_bo);
+		igt_swap(src_bo, dst_bo);
 	}
 	blit_copy(fb_bo, src_bo,
 		  min(o->fb_width, 2048), min(o->fb_height, 2048),
@@ -357,7 +357,7 @@ static int _emit_dummy_load__rcs(struct test_output *o, int limit, int timeout)
 			 2048, 2048,
 			 dst, 0, 0);
 
-		swap(src, dst);
+		igt_swap(src, dst);
 	}
 	copyfunc(batch, NULL,
 		 src, 0, 0,
