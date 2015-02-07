@@ -197,6 +197,13 @@
       various features of the test and can be used to filter and select
       particular tests.</para>
 
+    <glossentry id="invalid">
+      <glossterm>invalid</glossterm>
+      <glossdef>
+        <para>Negative tests to validate kernel interface input validation.</para>
+      </glossdef>
+    </glossentry>
+
     <glossentry id="hang">
       <glossterm>hang</glossterm>
       <glossdef>

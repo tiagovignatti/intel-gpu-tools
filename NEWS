@@ -3,6 +3,18 @@ Release 1.10 (XXXX-XX-XX)
 
 - New frequency manipulation tool (intel_gpu_frequency)
 
+- Adjustments for the Solaris port (Alan Coopersmith).
+
+- Remove tests/NAMING-CONVENTION since it's all in the docbook now, to avoid
+  divergent conventions.
+
+- New CRITICAL log level for really serious stuff (Thomas Wood).
+
+- Interactive test mode can now be enabled by the shared cmdline option
+  --interactive-debug=$var (Rodrigo Vivi).
+
+- Piles of new testcases and improvements to existing ones as usual.
+
 Release 1.9 (2014-12-12)
 ------------------------
 

@@ -1,7 +1,7 @@
 ## Process this file with automake to produce Makefile.in
 
 TESTLISTS = $(top_builddir)/tests/single-tests.txt $(top_builddir)/tests/multi-tests.txt
-KEYWORDS = (hang|swap|thrash|crc|tiled|tiling|rte|ctx|exec|rpm)
+KEYWORDS = (invalid|hang|swap|thrash|crc|tiled|tiling|rte|ctx|render|blt|bsd|vebox|exec|rpm)
 
 xml/igt_test_programs_%_programs.xml: $(TESTLISTS)
 	mkdir -p `dirname $@`

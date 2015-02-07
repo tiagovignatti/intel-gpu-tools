@@ -22,7 +22,7 @@ A short list of contribution guidelines:
   developer's certificate of origin: http://developercertificate.org/
 
 - When submitting new testcases please follow the naming conventions documented
-  in tests/NAMING-CONVENTION. Also please make full use of all the helpers and
+  in the generated documentation. Also please make full use of all the helpers and
   convenience macros provided by the igt library. The semantic patch lib/igt.cocci
   can help with the more automatic conversions.
 
