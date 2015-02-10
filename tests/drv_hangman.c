@@ -34,7 +34,7 @@
 #include "intel_chipset.h"
 #include "drmtest.h"
 #include "igt_aux.h"
-#include "igt_debugfs.h"
+#include "igt_gt.h"
 #include "ioctl_wrappers.h"
 
 #ifndef I915_PARAM_CMD_PARSER_VERSION

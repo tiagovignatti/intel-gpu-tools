@@ -45,6 +45,7 @@
 #include "ioctl_wrappers.h"
 #include "drmtest.h"
 #include "intel_chipset.h"
+#include "igt_gt.h"
 
 #include "eviction_common.c"
 

@@ -464,12 +464,12 @@ static struct igt_hang_ring no_hang(void)
 
 static struct igt_hang_ring bcs_hang(void)
 {
-	return igt_hang_ring(fd, gen, I915_EXEC_BLT);
+	return igt_hang_ring(fd, I915_EXEC_BLT);
 }
 
 static struct igt_hang_ring rcs_hang(void)
 {
-	return igt_hang_ring(fd, gen, I915_EXEC_RENDER);
+	return igt_hang_ring(fd, I915_EXEC_RENDER);
 }
 
 static void hang_require(void)

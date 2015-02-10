@@ -132,7 +132,7 @@ static struct igt_hang_ring no_hang(int fd)
 
 static struct igt_hang_ring bcs_hang(int fd)
 {
-	return igt_hang_ring(fd, batch->gen, batch->gen >= 6 ? I915_EXEC_BLT : I915_EXEC_DEFAULT);
+	return igt_hang_ring(fd, batch->gen >= 6 ? I915_EXEC_BLT : I915_EXEC_DEFAULT);
 }
 
 static void do_test(int fd, int cache_level,

@@ -42,7 +42,7 @@
 #include "intel_bufmgr.h"
 #include "intel_batchbuffer.h"
 #include "intel_chipset.h"
-#include "igt_debugfs.h"
+#include "igt_gt.h"
 #include "ioctl_wrappers.h"
 
 static int drm_fd;

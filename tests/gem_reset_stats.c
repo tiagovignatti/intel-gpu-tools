@@ -42,7 +42,7 @@
 
 #include "ioctl_wrappers.h"
 #include "drmtest.h"
-#include "igt_debugfs.h"
+#include "igt_gt.h"
 #include "intel_chipset.h"
 #include "intel_io.h"
 #include "igt_aux.h"

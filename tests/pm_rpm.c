@@ -49,7 +49,7 @@
 #include "ioctl_wrappers.h"
 #include "igt_aux.h"
 #include "igt_kms.h"
-#include "igt_debugfs.h"
+#include "igt_gt.h"
 
 /* One day, this will be on your libdrm. */
 #define DRM_CLIENT_CAP_UNIVERSAL_PLANES 2

@@ -51,6 +51,7 @@
 #include "i915_drm.h"
 #include "intel_chipset.h"
 #include "intel_io.h"
+#include "igt_gt.h"
 #include "igt_debugfs.h"
 #include "version.h"
 #include "config.h"

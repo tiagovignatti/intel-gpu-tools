@@ -198,7 +198,7 @@ static struct igt_hang_ring no_hang(int fd)
 
 static struct igt_hang_ring bcs_hang(int fd)
 {
-	return igt_hang_ring(fd, batch->gen, I915_EXEC_BLT);
+	return igt_hang_ring(fd, I915_EXEC_BLT);
 }
 
 static void do_test(int fd, bool faulting_reloc,

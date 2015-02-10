@@ -48,6 +48,7 @@
 #include "drmtest.h"
 #include "intel_chipset.h"
 #include "igt_aux.h"
+#include "igt_gt.h"
 
 IGT_TEST_DESCRIPTION("Run a couple of big batches to force the unbind on"
 		     " misalignment code.");

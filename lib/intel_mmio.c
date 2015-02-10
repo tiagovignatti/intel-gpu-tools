@@ -43,7 +43,7 @@
 
 #include "intel_io.h"
 #include "igt_core.h"
-#include "igt_debugfs.h"
+#include "igt_gt.h"
 #include "intel_chipset.h"
 
 /**

@@ -39,9 +39,6 @@ extern int num_trash_bos;
 void igt_fork_signal_helper(void);
 void igt_stop_signal_helper(void);
 
-int igt_fork_hang_helper(void);
-void igt_stop_hang_helper(void);
-
 void igt_exchange_int(void *array, unsigned i, unsigned j);
 void igt_permute_array(void *array, unsigned size,
 			   void (*exchange_func)(void *array,

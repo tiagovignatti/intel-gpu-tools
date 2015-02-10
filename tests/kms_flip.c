@@ -48,7 +48,7 @@
 #include "intel_batchbuffer.h"
 #include "igt_kms.h"
 #include "igt_aux.h"
-#include "igt_debugfs.h"
+#include "igt_gt.h"
 
 #define TEST_DPMS		(1 << 0)
 #define TEST_WITH_DUMMY_BCS	(1 << 1)
