@@ -1,5 +1,5 @@
 /*
- * Copyright © 2013 Intel Corporation
+ * Copyright © 2013, 2015 Intel Corporation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -22,6 +22,7 @@
  *
  * Authors:
  *    Daniel Vetter <daniel.vetter@ffwll.ch>
+ *    David Weinehall <david.weinehall@intel.com>
  *
  */
 
@@ -45,7 +46,7 @@
 #define OBJECT_SIZE (16*1024*1024)
 
 static void
-test_fence_restore(int fd, bool tiled2untiled)
+test_fence_restore(int fd, bool tiled2untiled, bool hibernate)
 {
 	uint32_t handle1, handle2, handle_tiled;
 	uint32_t *ptr1, *ptr2, *ptr_tiled;
@@ -80,7 +81,10 @@ test_fence_restore(int fd, bool tiled2untiled)
 	else
 		gem_set_tiling(fd, handle_tiled, I915_TILING_X, 2048);
 
-	igt_system_suspend_autoresume();
+	if (hibernate)
+		igt_system_hibernate_autoresume();
+	else
+		igt_system_suspend_autoresume();
 
 	igt_info("checking the first canary object\n");
 	for (i = 0; i < OBJECT_SIZE/sizeof(uint32_t); i++)
@@ -100,7 +104,7 @@ test_fence_restore(int fd, bool tiled2untiled)
 }
 
 static void
-test_debugfs_reader(void)
+test_debugfs_reader(bool hibernate)
 {
 	struct igt_helper_process reader = {};
 	reader.use_SIGKILL = true;
@@ -117,7 +121,10 @@ test_debugfs_reader(void)
 
 	sleep(1);
 
-	igt_system_suspend_autoresume();
+	if (hibernate)
+		igt_system_hibernate_autoresume();
+	else
+		igt_system_suspend_autoresume();
 
 	sleep(1);
 
@@ -125,7 +132,7 @@ test_debugfs_reader(void)
 }
 
 static void
-test_sysfs_reader(void)
+test_sysfs_reader(bool hibernate)
 {
 	struct igt_helper_process reader = {};
 	reader.use_SIGKILL = true;
@@ -142,7 +149,10 @@ test_sysfs_reader(void)
 
 	sleep(1);
 
-	igt_system_suspend_autoresume();
+	if (hibernate)
+		igt_system_hibernate_autoresume();
+	else
+		igt_system_suspend_autoresume();
 
 	sleep(1);
 
@@ -150,13 +160,18 @@ test_sysfs_reader(void)
 }
 
 static void
-test_forcewake(void)
+test_forcewake(bool hibernate)
 {
 	int fw_fd;
 
 	fw_fd = igt_open_forcewake_handle();
 	igt_assert(fw_fd >= 0);
-	igt_system_suspend_autoresume();
+
+	if (hibernate)
+		igt_system_hibernate_autoresume();
+	else
+		igt_system_suspend_autoresume();
+
 	close (fw_fd);
 }
 
@@ -169,20 +184,35 @@ igt_main
 	igt_fixture
 		fd = drm_open_any();
 
-	igt_subtest("fence-restore-tiled2untiled")
-		test_fence_restore(fd, true);
+	igt_subtest("fence-restore-tiled2untiled-suspend")
+		test_fence_restore(fd, true, false);
 
-	igt_subtest("fence-restore-untiled")
-		test_fence_restore(fd, false);
+	igt_subtest("fence-restore-untiled-suspend")
+		test_fence_restore(fd, false, false);
 
-	igt_subtest("debugfs-reader")
-		test_debugfs_reader();
+	igt_subtest("debugfs-reader-suspend")
+		test_debugfs_reader(false);
 
-	igt_subtest("sysfs-reader")
-		test_sysfs_reader();
+	igt_subtest("sysfs-reader-suspend")
+		test_sysfs_reader(false);
 
-	igt_subtest("forcewake")
-		test_forcewake();
+	igt_subtest("forcewake-suspend")
+		test_forcewake(false);
+
+	igt_subtest("fence-restore-tiled2untiled-hibernate")
+		test_fence_restore(fd, true, true);
+
+	igt_subtest("fence-restore-untiled-hibernate")
+		test_fence_restore(fd, false, true);
+
+	igt_subtest("debugfs-reader-hibernate")
+		test_debugfs_reader(true);
+
+	igt_subtest("sysfs-reader-hibernate")
+		test_sysfs_reader(true);
+
+	igt_subtest("forcewake-hibernate")
+		test_forcewake(true);
 
 	igt_fixture
 		close(fd);

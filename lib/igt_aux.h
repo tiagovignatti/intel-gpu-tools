@@ -1,5 +1,5 @@
 /*
- * Copyright © 2014 Intel Corporation
+ * Copyright © 2014, 2015 Intel Corporation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -55,8 +55,9 @@ void igt_init_aperture_trashers(drm_intel_bufmgr *bufmgr);
 void igt_trash_aperture(void);
 void igt_cleanup_aperture_trashers(void);
 
-/* suspend and auto-resume system */
+/* suspend/hibernate and auto-resume system */
 void igt_system_suspend_autoresume(void);
+void igt_system_hibernate_autoresume(void);
 
 /* dropping priviledges */
 void igt_drop_root(void);

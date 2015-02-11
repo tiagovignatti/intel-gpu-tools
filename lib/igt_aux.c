@@ -1,5 +1,5 @@
 /*
- * Copyright © 2007, 2011, 2013, 2014 Intel Corporation
+ * Copyright © 2007, 2011, 2013, 2014, 2015 Intel Corporation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -343,7 +343,7 @@ void igt_cleanup_aperture_trashers(void)
  * igt_system_suspend_autoresume:
  *
  * Execute a system suspend-to-mem cycle and automatically wake up again using
- * the firmwares resume timer.
+ * the firmware's resume timer.
  *
  * This is very handy for implementing any kind of suspend/resume test.
  */
@@ -357,6 +357,34 @@ void igt_system_suspend_autoresume(void)
 	igt_skip_on_simulation();
 
 	ret = system("rtcwake -s 30 -m mem");
+	igt_assert_f(ret == 0, "This failure means that something is wrong with the rtcwake tool "
+		     "or how your distro is set up. This is not a i915.ko or i-g-t bug.");
+}
+
+/**
+ * igt_system_hibernate_autoresume:
+ *
+ * Execute a system suspend-to-disk cycle and automatically wake up again using
+ * the firmware's resume timer.
+ *
+ * This is very handy for implementing any kind of hibernate/resume test.
+ */
+void igt_system_hibernate_autoresume(void)
+{
+	int ret;
+
+	/* FIXME: I'm guessing simulation behaves the same way as with
+	 * suspend/resume, but it might be prudent to make sure
+	 */
+	/* FIXME: Simulation doesn't like suspend/resume, and not even a lighter
+	 * approach using /sys/power/pm_test to just test our driver's callbacks
+	 * seems to fare better. We need to investigate what's going on. */
+	igt_skip_on_simulation();
+
+	/* The timeout might need to be adjusted if hibernation takes too long
+	 * or if we have to wait excessively long before resume
+	 */
+	ret = system("rtcwake -s 90 -m disk");
 	igt_assert_f(ret == 0, "This failure means that something is wrong with the rtcwake tool "
 		     "or how your distro is set up. This is not a i915.ko or i-g-t bug.");
 }
