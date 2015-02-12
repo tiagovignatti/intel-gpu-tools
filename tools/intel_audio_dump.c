@@ -362,6 +362,21 @@ static const char * const en_mmio_program[] = {
 	[1] = "Programming by MMIO debug registers",
 };
 
+static const char * const sdi_operate_mode[] = {
+	[0] = "2T mode with sdi data held for 2 bit clocks",
+	[1] = "1T mode with sdi data held for 1 bit clock only",
+};
+
+static const char * const bclk_96mhz[] = {
+	[0] = "iDisplay audio link 96MHz bclk off",
+	[1] = "iDisplay audio link 96MHz bclk on",
+};
+
+static const char * const bclk_48mhz[] = {
+	[0] = "iDisplay audio link 48MHz bclk off",
+	[1] = "iDisplay audio link 48MHz bclk on",
+};
+
 static const char * const audio_dp_dip_status[] = {
 	[0] = "audfc dp fifo full",
 	[1] = "audfc dp fifo empty",
@@ -1293,6 +1308,7 @@ static void dump_cpt(void)
 #define AUD_CNTL_ST_B           (AUD_CNTL_ST_A + PIPE_OFS)
 #define AUD_CNTL_ST2            0x0c0
 #define AUD_HDMIW_STATUS        0x0d4
+#define AUD_FREQ_CNTRL          0x900
 
 /* Audio config registers of Haswell+ */
 #define AUD_TCA_CONFIG          AUD_CONFIG_A
@@ -1335,6 +1351,20 @@ static void dump_cpt(void)
 #define AUD_TCA_M_CTS           0xf44
 #define AUD_TCB_M_CTS           0xf54
 #define AUD_TCC_M_CTS           0xf64
+#define AUD_HDA_DMA_REG         0xe00
+#define AUD_HDA_LPIB0_REG       0xe04
+#define AUD_HDA_LPIB1_REG       0xe08
+#define AUD_HDA_LPIB2_REG       0xe0c
+#define AUD_HDA_EXTRA_REG       0xe10
+#define AUD_FPGA_CRC_CTL_A      0xf14
+#define AUD_FPGA_CRC_CTL_B      0xf24
+#define AUD_FPGA_CRC_CTL_C      0xf34
+#define AUD_FPGA_CRC_RESULT_A   0xf18
+#define AUD_FPGA_CRC_RESULT_B   0xf28
+#define AUD_FPGA_CRC_RESULT_C   0xf38
+#define AUD_DFT_MVAL_REG        0xe20
+#define AUD_DFT_NVAL_REG        0xe24
+#define AUD_DFT_LOAD_REG        0xe28
 
 /* Common functions to dump audio registers */
 #define MAX_PREFIX_SIZE		128
@@ -2101,6 +2131,14 @@ static void parse_bdw_audio_chicken_bit_reg(uint32_t dword)
 	printf("%s\n",   OPNAME(en_mmio_program,           BIT(dword, 0)));
 }
 
+static void parse_skl_audio_freq_cntrl_reg(uint32_t dword)
+{
+	printf("\t");
+	printf("%s\n\t", OPNAME(sdi_operate_mode,          BIT(dword, 15)));
+	printf("%s\n\t", OPNAME(bclk_96mhz,                BIT(dword, 4)));
+	printf("%s\n",   OPNAME(bclk_48mhz,                BIT(dword, 3)));
+}
+
 /* Dump audio registers for Haswell and its successors (eg. Broadwell).
  * Their register layout are same in the north display engine.
  */
@@ -2162,6 +2200,8 @@ static void dump_hsw_plus(void)
 	dump_aud_reg(AUD_TCA_EDID_DATA,        "Audio EDID Data Block - Transcoder A");
 	dump_aud_reg(AUD_TCB_EDID_DATA,        "Audio EDID Data Block - Transcoder B");
 	dump_aud_reg(AUD_TCC_EDID_DATA,        "Audio EDID Data Block - Transcoder C");
+	if (IS_SKYLAKE(devid))
+		dump_aud_reg(AUD_FREQ_CNTRL,   "Audio BCLK Frequency Control");
 	dump_aud_reg(AUD_TCA_INFOFR,           "Audio Widget Data Island Packet - Transcoder A");
 	dump_aud_reg(AUD_TCB_INFOFR,           "Audio Widget Data Island Packet - Transcoder B");
 	dump_aud_reg(AUD_TCC_INFOFR,           "Audio Widget Data Island Packet - Transcoder C");
@@ -2192,6 +2232,22 @@ static void dump_hsw_plus(void)
 	dump_aud_reg(AUD_TCA_M_CTS,            "Audio M CTS Read Back Transcoder A");
 	dump_aud_reg(AUD_TCB_M_CTS,            "Audio M CTS Read Back Transcoder B");
 	dump_aud_reg(AUD_TCC_M_CTS,            "Audio M CTS Read Back Transcoder C");
+	if (IS_SKYLAKE(devid)) {
+		dump_aud_reg(AUD_HDA_DMA_REG,  "Audio HD Audio DMA Control Register");
+		dump_aud_reg(AUD_HDA_LPIB0_REG, "Audio HD Audio Stream0 Link Position in Buffer");
+		dump_aud_reg(AUD_HDA_LPIB1_REG, "Audio HD Audio Stream1 Link Position in Buffer");
+		dump_aud_reg(AUD_HDA_LPIB2_REG, "Audio HD Audio Stream2 Link Position in Buffer");
+		dump_aud_reg(AUD_HDA_EXTRA_REG, "Audio HD Audio Extra Register");
+		dump_aud_reg(AUD_FPGA_CRC_CTL_A, "Audio FPGA Pipe A CRC Control");
+		dump_aud_reg(AUD_FPGA_CRC_CTL_B, "Audio FPGA Pipe B CRC Control");
+		dump_aud_reg(AUD_FPGA_CRC_CTL_C, "Audio FPGA Pipe C CRC Control");
+		dump_aud_reg(AUD_FPGA_CRC_RESULT_A, "Audio FPGA Pipe A CRC Result");
+		dump_aud_reg(AUD_FPGA_CRC_RESULT_B, "Audio FPGA Pipe B CRC Result");
+		dump_aud_reg(AUD_FPGA_CRC_RESULT_C, "Audio FPGA Pipe C CRC Result");
+		dump_aud_reg(AUD_DFT_MVAL_REG, "Audio DFT M Value Register");
+		dump_aud_reg(AUD_DFT_NVAL_REG, "Audio DFT N Value Register");
+		dump_aud_reg(AUD_DFT_LOAD_REG, "Audio DFT LOAD Register");
+	}
 
 	printf("\nDetails:\n\n");
 
@@ -2272,6 +2328,11 @@ static void dump_hsw_plus(void)
 		if (BIT(dword, i))
 			printf("%s\n\t", audio_dp_dip_status[i]);
 	printf("\n");
+
+	dword = read_aud_reg(AUD_FREQ_CNTRL);
+	printf("AUD_FREQ_CNTRL Audio BCLK Frequency Control: %08x\n", dword);
+	if (IS_SKYLAKE(devid))
+		parse_skl_audio_freq_cntrl_reg(dword);
 }
 
 /* offset of hotplug enable */
@@ -2418,9 +2479,11 @@ int main(int argc, char **argv)
 	if (IS_VALLEYVIEW(devid)) {
 		printf("Valleyview audio registers:\n\n");
 		dump_ironlake();
-	}  else if (IS_BROADWELL(devid) || IS_HASWELL(devid)) {
+	}  else if (IS_SKYLAKE(devid)
+		|| IS_BROADWELL(devid) || IS_HASWELL(devid)) {
 		printf("%s audio registers:\n\n",
-			IS_BROADWELL(devid) ? "Broadwell" : "Haswell");
+			IS_SKYLAKE(devid) ? "Skylake" :
+			(IS_BROADWELL(devid) ? "Broadwell" : "Haswell"));
 		dump_hsw_plus();
 	} else if (IS_GEN6(devid) || IS_GEN7(devid)
 		|| getenv("HAS_PCH_SPLIT")) {
