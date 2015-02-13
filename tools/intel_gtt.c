@@ -42,11 +42,31 @@
 unsigned char *gtt;
 uint32_t devid;
 
-#define INGTT(offset) (*(volatile uint32_t *)(gtt + (offset) / (KB(4) / 4)))
+typedef uint32_t gen6_gtt_pte_t;
+typedef uint64_t gen8_gtt_pte_t;
+
+static gen6_gtt_pte_t gen6_gtt_pte(const unsigned i)
+{
+	return *((volatile gen6_gtt_pte_t *)(gtt) + i);
+}
+
+static gen8_gtt_pte_t gen8_gtt_pte(const unsigned i)
+{
+	return *((volatile gen8_gtt_pte_t *)(gtt) + i);
+}
+
+static uint64_t ingtt(const unsigned offset)
+{
+	if (intel_gen(devid) < 8)
+		return gen6_gtt_pte(offset/KB(4));
+
+	return gen8_gtt_pte(offset/KB(4));
+}
+
 static uint64_t get_phys(uint32_t pt_offset)
 {
 	uint64_t pae = 0;
-	uint64_t phys = INGTT(pt_offset);
+	uint64_t phys = ingtt(pt_offset);
 
 	if (intel_gen(devid) < 4 && !IS_G33(devid))
 		return phys & ~0xfff;
@@ -64,6 +84,10 @@ static uint64_t get_phys(uint32_t pt_offset)
 			else
 				pae = (phys & 0xff0) << 28;
 			break;
+		case 8:
+		case 9:
+			phys = phys & 0x7ffffff000;
+			break;
 		default:
 			fprintf(stderr, "Unsupported platform\n");
 			exit(-1);
@@ -73,28 +97,49 @@ static uint64_t get_phys(uint32_t pt_offset)
 }
 
 static void pte_dump(int size, uint32_t offset) {
-	int start;
+	int pte_size;
+	int entries;
+	unsigned int i;
+
 	/* Want to print 4 ptes at a time (4b PTE assumed). */
 	if (size % 16)
 		size = (size + 16) & ~0xffff;
 
+	if (intel_gen(devid) < 8)
+		pte_size = 4;
+	else
+		pte_size = 8;
 
-	printf("GTT offset |                 PTEs\n");
-	printf("--------------------------------------------------------\n");
-	for (start = 0; start < size; start += KB(16)) {
-		printf("  0x%06x | 0x%08x 0x%08x 0x%08x 0x%08x\n",
-				start,
-				INGTT(start + 0x0),
-				INGTT(start + 0x1000),
-				INGTT(start + 0x2000),
-				INGTT(start + 0x3000));
+	entries = size / pte_size;
+
+	printf("GTT offset   |                 %d PTEs (%d MB)\n", entries,
+	       entries * 4096 / 1024 / 1024);
+	printf("----------------------------------------------------------\n");
+
+	for (i = 0; i < entries; i += 4) {
+		if (intel_gen(devid) < 8) {
+			printf("  0x%08x | 0x%08x 0x%08x 0x%08x 0x%08x\n",
+			       KB(4 * i),
+			       gen6_gtt_pte(i + 0),
+			       gen6_gtt_pte(i + 1),
+			       gen6_gtt_pte(i + 2),
+			       gen6_gtt_pte(i + 3) );
+		} else {
+			printf("  0x%08x | 0x%016" PRIx64 " 0x%016" PRIx64
+			       " 0x%016" PRIx64 " 0x%016" PRIx64 " \n",
+			       KB(4 * i),
+			       gen8_gtt_pte(i + 0),
+			       gen8_gtt_pte(i + 1),
+			       gen8_gtt_pte(i + 2),
+			       gen8_gtt_pte(i + 3) );
+		}
 	}
 }
 
 int main(int argc, char **argv)
 {
 	struct pci_device *pci_dev;
-	int start, gtt_size;
+	unsigned int start, gtt_size;
 	int flag[] = {
 		PCI_DEV_MAP_FLAG_WRITE_COMBINE,
 		PCI_DEV_MAP_FLAG_WRITABLE,
@@ -119,11 +164,13 @@ int main(int argc, char **argv)
 						 (void **)&gtt) == 0)
 				break;
 		} else {
-			int offset;
+			unsigned offset;
+
+			offset = pci_dev->regions[0].size / 2;
+
 			if (IS_GEN4(devid))
 				offset = KB(512);
-			else
-				offset = MB(2);
+
 			if (pci_device_map_range(pci_dev,
 						 pci_dev->regions[0].base_addr + offset,
 						 offset,
