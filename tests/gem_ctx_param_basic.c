@@ -29,7 +29,7 @@
 #include <stdio.h>
 #include "ioctl_wrappers.h"
 #include "drmtest.h"
-#include "igt_aux.c"
+#include "igt_aux.h"
 
 IGT_TEST_DESCRIPTION("Basic test for context set/get param input validation.");
 
