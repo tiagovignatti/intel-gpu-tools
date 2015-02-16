@@ -74,7 +74,7 @@ void *gem_mmap__wc(int fd, uint32_t handle, int offset, int size, int prot);
  * the gtt) write-combine memory mappings are available. Automatically skips
  * through igt_require() if not.
  */
-#define gem_require_mmap_wc(x) igt_require(gem_mmap__has_wc(x))
+#define gem_require_mmap_wc(fd) igt_require(gem_mmap__has_wc(fd))
 
 /**
  * gem_mmap:

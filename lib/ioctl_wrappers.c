@@ -645,7 +645,7 @@ int __gem_context_destroy(int fd, uint32_t ctx_id)
 }
 
 /**
- * gem_context_create:
+ * gem_context_destroy:
  * @fd: open i915 drm file descriptor
  * @ctx_id: i915 hw context id
  *
