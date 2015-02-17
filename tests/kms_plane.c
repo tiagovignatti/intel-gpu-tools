@@ -399,7 +399,7 @@ igt_main
 		igt_display_init(&data.display, data.drm_fd);
 	}
 
-	for (int pipe = 0; pipe < 3; pipe++)
+	for (int pipe = 0; pipe < I915_MAX_PIPES; pipe++)
 		run_tests_for_pipe(&data, pipe);
 
 	igt_fixture {

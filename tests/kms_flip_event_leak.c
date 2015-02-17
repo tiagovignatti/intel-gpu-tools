@@ -119,7 +119,7 @@ igt_simple_main
 
 	igt_display_init(&data.display, data.drm_fd);
 
-	for (pipe = 0; pipe < 3; pipe++) {
+	for_each_pipe(&data.display, pipe) {
 		for_each_connected_output(&data.display, output) {
 			if (test(&data, pipe, output))
 				valid_tests++;
