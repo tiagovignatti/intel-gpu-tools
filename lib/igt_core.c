@@ -696,40 +696,6 @@ int igt_subtest_init_parse_opts(int argc, char **argv,
 enum igt_log_level igt_log_level = IGT_LOG_INFO;
 
 /**
- * igt_subtest_init:
- * @argc: argc from the test's main()
- * @argv: argv from the test's main()
- *
- * This initializes the for tests with subtests without the need for additional
- * cmdline options. It is just a simplified version of
- * igt_subtest_init_parse_opts().
- *
- * If there's not a reason to the contrary it's less error prone to just use an
- * #igt_main block instead of stitching the tests's main() function together
- * manually.
- */
-void igt_subtest_init(int argc, char **argv)
-{
-	igt_subtest_init_parse_opts(argc, argv, NULL, NULL, NULL, NULL);
-}
-
-/**
- * igt_simple_init:
- * @argc: argc from the test's main()
- * @argv: argv from the test's main()
- *
- * This initializes a simple test without any support for subtests.
- *
- * If there's not a reason to the contrary it's less error prone to just use an
- * #igt_simple_main block instead of stitching the tests's main() function together
- * manually.
- */
-void igt_simple_init(int argc, char **argv)
-{
-	common_init(argc, argv, NULL, NULL, NULL, NULL);
-}
-
-/**
  * igt_simple_init_parse_opts:
  * @argc: argc from the test's main()
  * @argv: argv from the test's main()

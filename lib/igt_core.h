@@ -106,7 +106,6 @@ void __igt_fixture_end(void) __attribute__((noreturn));
 
 /* subtest infrastructure */
 jmp_buf igt_subtest_jmpbuf;
-void igt_subtest_init(int argc, char **argv);
 typedef int (*igt_opt_handler_t)(int opt, int opt_index);
 #ifndef __GTK_DOC_IGNORE__ /* gtkdoc wants to document this forward decl */
 struct option;
@@ -116,6 +115,22 @@ int igt_subtest_init_parse_opts(int argc, char **argv,
 				struct option *extra_long_opts,
 				const char *help_str,
 				igt_opt_handler_t extra_opt_handler);
+
+
+/**
+ * igt_subtest_init:
+ * @argc: argc from the test's main()
+ * @argv: argv from the test's main()
+ *
+ * This initializes the for tests with subtests without the need for additional
+ * cmdline options. It is just a simplified version of
+ * igt_subtest_init_parse_opts().
+ *
+ * If there's not a reason to the contrary it's less error prone to just use an
+ * #igt_main block instead of stitching the test's main() function together
+ * manually.
+ */
+#define igt_subtest_init(argc, argv) igt_subtest_init_parse_opts(argc, argv, NULL, NULL, NULL, NULL);
 
 bool __igt_run_subtest(const char *subtest_name);
 #define __igt_tokencat2(x, y) x ## y
@@ -180,18 +195,31 @@ bool igt_only_list_subtests(void);
 #define igt_main \
 	static void igt_tokencat(__real_main, __LINE__)(void); \
 	int main(int argc, char **argv) { \
-		igt_subtest_init(argc, argv); \
+		igt_subtest_init_parse_opts(argc, argv, NULL, NULL, NULL, NULL); \
 		igt_tokencat(__real_main, __LINE__)(); \
 		igt_exit(); \
 	} \
 	static void igt_tokencat(__real_main, __LINE__)(void) \
 
-void igt_simple_init(int argc, char **argv);
+
 void igt_simple_init_parse_opts(int argc, char **argv,
 				const char *extra_short_opts,
 				struct option *extra_long_opts,
 				const char *help_str,
 				igt_opt_handler_t extra_opt_handler);
+
+/**
+ * igt_simple_init:
+ * @argc: argc from the test's main()
+ * @argv: argv from the test's main()
+ *
+ * This initializes a simple test without any support for subtests.
+ *
+ * If there's not a reason to the contrary it's less error prone to just use an
+ * #igt_simple_main block instead of stitching the test's main() function together
+ * manually.
+ */
+#define igt_simple_init(argc, argv) igt_simple_init_parse_opts(argc, argv, NULL, NULL, NULL, NULL);
 
 /**
  * igt_simple_main:
@@ -203,7 +231,7 @@ void igt_simple_init_parse_opts(int argc, char **argv,
 #define igt_simple_main \
 	static void igt_tokencat(__real_main, __LINE__)(void); \
 	int main(int argc, char **argv) { \
-		igt_simple_init(argc, argv); \
+		igt_simple_init_parse_opts(argc, argv, NULL, NULL, NULL, NULL); \
 		igt_tokencat(__real_main, __LINE__)(); \
 		igt_exit(); \
 	} \
