@@ -73,6 +73,8 @@
  * and [batchbuffer](intel-gpu-tools-intel-batchbuffer.html) libraries as dependencies.
  */
 
+uint16_t __drm_device_id;
+
 static int is_i915_device(int fd)
 {
 	drm_version_t version;
@@ -101,7 +103,11 @@ is_intel(int fd)
 	if (ioctl(fd, DRM_IOCTL_I915_GETPARAM, &gp, sizeof(gp)))
 		return 0;
 
-	return IS_INTEL(devid);
+	if (!IS_INTEL(devid))
+		return 0;
+
+	__drm_device_id = devid;
+	return 1;
 }
 
 static void check_stop_rings(void)

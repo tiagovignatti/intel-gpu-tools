@@ -112,6 +112,8 @@ intel_get_pci_device(void)
 	return pci_dev;
 }
 
+extern uint16_t __drm_device_id;
+
 /**
  * intel_get_drm_devid:
  * @fd: open i915 drm file descriptor
@@ -125,26 +127,15 @@ intel_get_pci_device(void)
 uint32_t
 intel_get_drm_devid(int fd)
 {
-	uint32_t devid = 0;
 	const char *override;
 
+	igt_assert(__drm_device_id);
+
 	override = getenv("INTEL_DEVID_OVERRIDE");
-	if (override) {
-		devid = strtod(override, NULL);
-	} else {
-		struct drm_i915_getparam gp;
-		int ret;
-
-		memset(&gp, 0, sizeof(gp));
-		gp.param = I915_PARAM_CHIPSET_ID;
-		gp.value = (int *)&devid;
-
-		ret = ioctl(fd, DRM_IOCTL_I915_GETPARAM, &gp, sizeof(gp));
-		igt_assert(ret == 0);
-		errno = 0;
-	}
-
-	return devid;
+	if (override)
+		return strtod(override, NULL);
+	else
+		return __drm_device_id;
 }
 
 /**
