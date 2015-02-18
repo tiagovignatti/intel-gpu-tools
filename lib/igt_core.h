@@ -110,7 +110,7 @@ typedef int (*igt_opt_handler_t)(int opt, int opt_index);
 #ifndef __GTK_DOC_IGNORE__ /* gtkdoc wants to document this forward decl */
 struct option;
 #endif
-int igt_subtest_init_parse_opts(int argc, char **argv,
+int igt_subtest_init_parse_opts(int *argc, char **argv,
 				const char *extra_short_opts,
 				struct option *extra_long_opts,
 				const char *help_str,
@@ -130,7 +130,7 @@ int igt_subtest_init_parse_opts(int argc, char **argv,
  * #igt_main block instead of stitching the test's main() function together
  * manually.
  */
-#define igt_subtest_init(argc, argv) igt_subtest_init_parse_opts(argc, argv, NULL, NULL, NULL, NULL);
+#define igt_subtest_init(argc, argv) igt_subtest_init_parse_opts(&argc, argv, NULL, NULL, NULL, NULL);
 
 bool __igt_run_subtest(const char *subtest_name);
 #define __igt_tokencat2(x, y) x ## y
@@ -195,14 +195,14 @@ bool igt_only_list_subtests(void);
 #define igt_main \
 	static void igt_tokencat(__real_main, __LINE__)(void); \
 	int main(int argc, char **argv) { \
-		igt_subtest_init_parse_opts(argc, argv, NULL, NULL, NULL, NULL); \
+		igt_subtest_init_parse_opts(&argc, argv, NULL, NULL, NULL, NULL); \
 		igt_tokencat(__real_main, __LINE__)(); \
 		igt_exit(); \
 	} \
 	static void igt_tokencat(__real_main, __LINE__)(void) \
 
 
-void igt_simple_init_parse_opts(int argc, char **argv,
+void igt_simple_init_parse_opts(int *argc, char **argv,
 				const char *extra_short_opts,
 				struct option *extra_long_opts,
 				const char *help_str,
@@ -219,7 +219,7 @@ void igt_simple_init_parse_opts(int argc, char **argv,
  * #igt_simple_main block instead of stitching the test's main() function together
  * manually.
  */
-#define igt_simple_init(argc, argv) igt_simple_init_parse_opts(argc, argv, NULL, NULL, NULL, NULL);
+#define igt_simple_init(argc, argv) igt_simple_init_parse_opts(&argc, argv, NULL, NULL, NULL, NULL);
 
 /**
  * igt_simple_main:
@@ -231,7 +231,7 @@ void igt_simple_init_parse_opts(int argc, char **argv,
 #define igt_simple_main \
 	static void igt_tokencat(__real_main, __LINE__)(void); \
 	int main(int argc, char **argv) { \
-		igt_simple_init_parse_opts(argc, argv, NULL, NULL, NULL, NULL); \
+		igt_simple_init_parse_opts(&argc, argv, NULL, NULL, NULL, NULL); \
 		igt_tokencat(__real_main, __LINE__)(); \
 		igt_exit(); \
 	} \

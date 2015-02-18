@@ -1811,7 +1811,7 @@ int main(int argc, char *argv[])
 		{ 0, 0, 0, 0 }
 	};
 
-	igt_subtest_init_parse_opts(argc, argv, "", long_options,
+	igt_subtest_init_parse_opts(&argc, argv, "", long_options,
 				    help_str, opt_handler);
 
 	/* Skip instead of failing in case the machine is not prepared to reach

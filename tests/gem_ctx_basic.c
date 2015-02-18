@@ -144,7 +144,7 @@ int main(int argc, char *argv[])
 {
 	int i;
 
-	igt_simple_init_parse_opts(argc, argv, "i:c:n:mu", NULL, NULL,
+	igt_simple_init_parse_opts(&argc, argv, "i:c:n:mu", NULL, NULL,
 				   opt_handler);
 
 	fd = drm_open_any_render();

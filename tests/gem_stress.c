@@ -854,7 +854,7 @@ int main(int argc, char **argv)
 	options.tiles_per_buf = options.scratch_buf_size / TILE_BYTES(options.tile_size);
 	options.check_render_cpyfn = 0;
 
-	igt_simple_init_parse_opts(argc, argv,"ds:g:c:t:rbuxmo:fp:",
+	igt_simple_init_parse_opts(&argc, argv,"ds:g:c:t:rbuxmo:fp:",
 				   long_options, NULL, parse_options);
 
 	drm_fd = drm_open_any();

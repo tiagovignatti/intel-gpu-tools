@@ -487,7 +487,7 @@ static void oom_adjust_for_doom(void)
 	low_mem_killer_disable(true);
 }
 
-static int common_init(int argc, char **argv,
+static int common_init(int *argc, char **argv,
 		       const char *extra_short_opts,
 		       struct option *extra_long_opts,
 		       const char *help_str,
@@ -582,7 +582,7 @@ static int common_init(int argc, char **argv,
 		       std_short_opts);
 	assert(ret >= 0);
 
-	while ((c = getopt_long(argc, argv, short_opts, combined_opts,
+	while ((c = getopt_long(*argc, argv, short_opts, combined_opts,
 			       &option_index)) != -1) {
 		switch(c) {
 		case OPT_INTERACTIVE_DEBUG:
@@ -655,6 +655,11 @@ out:
 	if (!test_with_subtests)
 		gettime(&subtest_time);
 
+	for (i = 0; (optind + i) < *argc; i++)
+		argv[i + 1] = argv[optind + i];
+
+	*argc = *argc - optind + 1;
+
 	return ret;
 }
 
@@ -678,7 +683,7 @@ out:
  *
  * Returns: Forwards any option parsing errors from getopt_long.
  */
-int igt_subtest_init_parse_opts(int argc, char **argv,
+int igt_subtest_init_parse_opts(int *argc, char **argv,
 				const char *extra_short_opts,
 				struct option *extra_long_opts,
 				const char *help_str,
@@ -707,7 +712,7 @@ enum igt_log_level igt_log_level = IGT_LOG_INFO;
  * This initializes a simple test without any support for subtests and allows
  * an arbitrary set of additional options.
  */
-void igt_simple_init_parse_opts(int argc, char **argv,
+void igt_simple_init_parse_opts(int *argc, char **argv,
 				const char *extra_short_opts,
 				struct option *extra_long_opts,
 				const char *help_str,

@@ -503,7 +503,7 @@ int main(int argc, char **argv)
 	options.prewrap_space = 21;
 	options.buffers = 10;
 
-	igt_simple_init_parse_opts(argc, argv, "n:bvt:dp:ri:", long_options,
+	igt_simple_init_parse_opts(&argc, argv, "n:bvt:dp:ri:", long_options,
 				   help, parse_options);
 
 	card_index = drm_get_card();

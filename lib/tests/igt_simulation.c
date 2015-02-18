@@ -55,22 +55,27 @@ char *argv_run[] = { test };
 static int do_fork(void)
 {
 	int pid, status;
+	int argc;
 
 	switch (pid = fork()) {
 	case -1:
 		internal_assert(0);
 	case 0:
 		if (simple) {
-			igt_simple_init(1, argv_run);
+			argc = 1;
+			igt_simple_init(argc, argv_run);
 
 			igt_skip_on_simulation();
 
 			igt_exit();
 		} else {
-			if (list_subtests)
-				igt_subtest_init(2, argv_list);
-			else
-				igt_subtest_init(1, argv_run);
+			if (list_subtests) {
+				argc = 2;
+				igt_subtest_init(argc, argv_list);
+			} else {
+				argc = 1;
+				igt_subtest_init(argc, argv_run);
+			}
 
 			if (in_fixture) {
 				igt_fixture

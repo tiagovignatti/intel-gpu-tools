@@ -141,7 +141,7 @@ int main(int argc, char **argv)
 	igt_render_copyfunc_t render_copy = NULL;
 	int opt_dump_aub = igt_aub_dump_enabled();
 
-	igt_simple_init_parse_opts(argc, argv, "da", NULL, NULL, opt_handler);
+	igt_simple_init_parse_opts(&argc, argv, "da", NULL, NULL, opt_handler);
 
 	igt_fixture {
 		data.drm_fd = drm_open_any_render();

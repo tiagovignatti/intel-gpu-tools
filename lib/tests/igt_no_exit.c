@@ -31,8 +31,9 @@ int main(int argc, char **argv)
 {
 	char prog[] = "igt_no_exit";
 	char *fake_argv[] = {prog};
+	int fake_argc = 1;
 
-	igt_subtest_init(1, fake_argv);
+	igt_subtest_init(fake_argc, fake_argv);
 
 	igt_subtest("A")
 		;

@@ -489,7 +489,7 @@ int main(int argc, char *argv[])
 	data_t data = {};
 	enum operations op;
 
-	igt_subtest_init_parse_opts(argc, argv, "", long_options,
+	igt_subtest_init_parse_opts(&argc, argv, "", long_options,
 				    help_str, opt_handler);
 	igt_skip_on_simulation();
 

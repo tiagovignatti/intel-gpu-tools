@@ -699,7 +699,7 @@ int main(int argc, char **argv)
 	int i;
 	int ret;
 
-	ret = igt_subtest_init_parse_opts(argc, argv, "dt:", NULL, help_str,
+	ret = igt_subtest_init_parse_opts(&argc, argv, "dt:", NULL, help_str,
 					  opt_handler);
 	if (ret < 0)
 		return ret == -1 ? 0 : ret;
