@@ -133,7 +133,7 @@ intel_get_drm_devid(int fd)
 
 	override = getenv("INTEL_DEVID_OVERRIDE");
 	if (override)
-		return strtod(override, NULL);
+		return strtol(override, NULL, 0);
 	else
 		return __drm_device_id;
 }
