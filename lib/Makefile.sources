@@ -52,6 +52,8 @@ libintel_tools_la_SOURCES = 	\
 	igt_fb.h		\
 	igt_core.c		\
 	igt_core.h		\
+	igt_draw.c		\
+	igt_draw.h		\
 	$(NULL)
 
 .PHONY: version.h.tmp

@@ -126,6 +126,7 @@ gen7_forcewake_mt
 kms_3d
 kms_addfb
 kms_cursor_crc
+kms_draw_crc
 kms_fbc_crc
 kms_fence_pin_leak
 kms_flip
