@@ -1303,8 +1303,10 @@ static struct {
 static igt_exit_handler_t exit_handler_fn[MAX_EXIT_HANDLERS];
 static bool exit_handler_disabled;
 static sigset_t saved_sig_mask;
-static const int handled_signals[] =
-	{ SIGINT, SIGHUP, SIGTERM, SIGQUIT, SIGPIPE, SIGABRT, SIGSEGV, SIGBUS };
+#define SIGDEF(x) { x, #x, sizeof(#x) - 1 }
+static const struct { int number; const char *name; size_t name_len; } handled_signals[] =
+	{ SIGDEF(SIGINT), SIGDEF(SIGHUP), SIGDEF(SIGTERM), SIGDEF(SIGQUIT),
+	  SIGDEF(SIGPIPE), SIGDEF(SIGABRT), SIGDEF(SIGSEGV), SIGDEF(SIGBUS) };
 
 static int install_sig_handler(int sig_num, sighandler_t handler)
 {
@@ -1357,7 +1359,19 @@ static void igt_atexit_handler(void)
 
 static void fatal_sig_handler(int sig)
 {
+	int i;
+
 	restore_all_sig_handler();
+
+	for (i = 0; i < ARRAY_SIZE(handled_signals); i++) {
+		if (handled_signals[i].number == sig) {
+			write(STDERR_FILENO, "Received signal ", 16);
+			write(STDERR_FILENO, handled_signals[i].name,
+			      handled_signals[i].name_len);
+			write(STDERR_FILENO, ".\n", 2);
+			break;
+		}
+	}
 
 	/*
 	 * exit_handler_disabled is always false here, since when we set it
@@ -1415,7 +1429,7 @@ void igt_install_exit_handler(igt_exit_handler_t fn)
 		return;
 
 	for (i = 0; i < ARRAY_SIZE(handled_signals); i++) {
-		if (install_sig_handler(handled_signals[i],
+		if (install_sig_handler(handled_signals[i].number,
 					fatal_sig_handler))
 			goto err;
 	}
@@ -1447,7 +1461,7 @@ void igt_disable_exit_handler(void)
 
 	sigemptyset(&set);
 	for (i = 0; i < ARRAY_SIZE(handled_signals); i++)
-		sigaddset(&set, handled_signals[i]);
+		sigaddset(&set, handled_signals[i].number);
 
 	if (sigprocmask(SIG_BLOCK, &set, &saved_sig_mask)) {
 		perror("sigprocmask");
