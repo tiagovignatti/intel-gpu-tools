@@ -125,7 +125,7 @@ igt_hang_ring_t igt_hang_ring(int fd, int ring)
 }
 
 /**
- * igt_hang_ring:
+ * igt_post_hang_ring:
  * @fd: open i915 drm file descriptor
  * @arg: hang state from igt_hang_ring()
  *

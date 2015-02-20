@@ -697,7 +697,7 @@ void gem_context_set_param(int fd, struct local_i915_gem_context_param *p)
 }
 
 /**
- * gem_require_caching:
+ * gem_context_require_param:
  * @fd: open i915 drm file descriptor
  *
  * Feature test macro to query whether hw context parameter support for @param

@@ -473,7 +473,7 @@ bool __igt_fork(void);
 void igt_waitchildren(void);
 
 /**
- * igt_helper_process_t:
+ * igt_helper_process:
  * @running: indicates whether the process is currently running
  * @use_SIGKILL: whether the helper should be terminated with SIGKILL or SIGTERM
  * @pid: pid of the helper if @running is true
