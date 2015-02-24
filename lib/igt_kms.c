@@ -299,12 +299,26 @@ int kmstest_get_pipe_from_crtc_id(int fd, int crtc_id)
 	return pfci.pipe;
 }
 
+/*
+ * Returns: the previous mode, or KD_GRAPHICS if no /dev/tty0 was
+ * found and nothing was done.
+ */
 static signed long set_vt_mode(unsigned long mode)
 {
 	int fd;
 	unsigned long prev_mode;
+	static const char TTY0[] = "/dev/tty0";
 
-	fd = open("/dev/tty0", O_RDONLY);
+	if (access(TTY0, F_OK)) {
+		/* errno message should be "No such file". Do not
+		   hardcode but ask strerror() in the very unlikely
+		   case something else happened. */
+		igt_debug("VT: %s: %s, cannot change its mode\n",
+			  TTY0, strerror(errno));
+		return KD_GRAPHICS;
+	}
+
+	fd = open(TTY0, O_RDONLY);
 	if (fd < 0)
 		return -errno;
 
@@ -336,10 +350,10 @@ void kmstest_restore_vt_mode(void)
 
 	if (orig_vt_mode != -1UL) {
 		ret = set_vt_mode(orig_vt_mode);
-		orig_vt_mode = -1UL;
 
 		igt_assert(ret >= 0);
-		igt_debug("VT: original mode restored\n");
+		igt_debug("VT: original mode 0x%lx restored\n", orig_vt_mode);
+		orig_vt_mode = -1UL;
 	}
 }
 
@@ -366,7 +380,7 @@ void kmstest_set_vt_graphics_mode(void)
 	igt_assert(ret >= 0);
 	orig_vt_mode = ret;
 
-	igt_debug("VT: graphics mode set\n");
+	igt_debug("VT: graphics mode set (mode was 0x%lx)\n", ret);
 }
 
 
