@@ -135,7 +135,7 @@ igt_main
 {
 	int fd;
 	int devid = 0;
-	int rc6[2], rc6p[2], rc6pp[2];
+	int rc6[2], rc6p[2], rc6pp[2], media[2];
 
 	igt_skip_on_simulation();
 
@@ -146,6 +146,9 @@ igt_main
 		close(fd);
 
 		read_rc6_residency(rc6, "rc6");
+		if (IS_VALLEYVIEW(devid) || IS_CHERRYVIEW(devid))
+			read_rc6_residency(media, "media_rc6");
+
 		if (IS_GEN6(devid) || IS_IVYBRIDGE(devid)) {
 			read_rc6_residency(rc6p, "rc6p");
 			read_rc6_residency(rc6pp, "rc6pp");
@@ -154,6 +157,9 @@ igt_main
 
 	igt_subtest("rc6-accuracy")
 		residency_accuracy(rc6, "rc6");
+	igt_subtest("media-rc6-accuracy")
+		if (IS_VALLEYVIEW(devid) || IS_CHERRYVIEW(devid))
+			residency_accuracy(media, "media_rc6");
 	igt_subtest("rc6p-accuracy") {
 		if (!IS_GEN6(devid) && !IS_IVYBRIDGE(devid))
 			igt_skip("This platform doesn't support RC6p\n");
