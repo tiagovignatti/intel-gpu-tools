@@ -184,19 +184,19 @@ igt_main
 	igt_fixture
 		fd = drm_open_any();
 
-	igt_subtest("fence-restore-tiled2untiled-suspend")
+	igt_subtest("fence-restore-tiled2untiled")
 		test_fence_restore(fd, true, false);
 
-	igt_subtest("fence-restore-untiled-suspend")
+	igt_subtest("fence-restore-untiled")
 		test_fence_restore(fd, false, false);
 
-	igt_subtest("debugfs-reader-suspend")
+	igt_subtest("debugfs-reader")
 		test_debugfs_reader(false);
 
-	igt_subtest("sysfs-reader-suspend")
+	igt_subtest("sysfs-reader")
 		test_sysfs_reader(false);
 
-	igt_subtest("forcewake-suspend")
+	igt_subtest("forcewake")
 		test_forcewake(false);
 
 	igt_subtest("fence-restore-tiled2untiled-hibernate")
