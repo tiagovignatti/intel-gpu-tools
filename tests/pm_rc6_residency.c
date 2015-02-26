@@ -37,6 +37,7 @@
 
 #define SLEEP_DURATION 3000 // in milliseconds
 #define RC6_FUDGE 900 // in milliseconds
+#define CODE_TIME 50 // in microseconfs
 
 static unsigned int readit(const char *path)
 {
@@ -102,7 +103,7 @@ static void residency_accuracy(int value[],const char *name_of_rc6_residency)
 							"the GPU is as idle as possible(ie. no X, "
 							"running and running no other tests)\n");
 
-	counter = ((double)value[1] - (double)value[0]) /(double) SLEEP_DURATION;
+	counter = ((double)value[1] - (double)value[0]) /(double) (SLEEP_DURATION + CODE_TIME);
 
 	if( counter > 0.9 ){
 		counter_result = counter;
