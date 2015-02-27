@@ -204,7 +204,7 @@ static void test_plane_rotation(data_t *data, enum igt_plane plane_type)
 			igt_display_commit2(display, commit);
 
 			igt_pipe_crc_collect_crc(data->pipe_crc, &crc_output);
-			igt_assert(igt_crc_equal(&data->ref_crc, &crc_output));
+			igt_assert_crc_equal(&data->ref_crc, &crc_output);
 
 			/* check the rotation state has been reset when the VT
 			 * mode is restored */
@@ -212,7 +212,7 @@ static void test_plane_rotation(data_t *data, enum igt_plane plane_type)
 			kmstest_set_vt_graphics_mode();
 			prepare_crtc(data, output, pipe, plane);
 			igt_pipe_crc_collect_crc(data->pipe_crc, &crc_output);
-			igt_assert(igt_crc_equal(&crc_unrotated, &crc_output));
+			igt_assert_crc_equal(&crc_unrotated, &crc_output);
 
 
 			valid_tests++;

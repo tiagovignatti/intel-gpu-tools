@@ -63,7 +63,7 @@
  * another either for equality or difference. Otherwise CRCs must be treated as
  * completely opaque values. Note that not even CRCs from different pipes or tap
  * points on the same platform can be compared. Hence only use igt_crc_is_null()
- * and igt_crc_equal() to inspect CRC values captured by the same
+ * and igt_assert_crc_equal() to inspect CRC values captured by the same
  * #igt_pipe_crc_t object.
  *
  * # Other debugfs interface wrappers
@@ -232,6 +232,25 @@ bool igt_crc_equal(igt_crc_t *a, igt_crc_t *b)
 			return false;
 
 	return true;
+}
+
+/**
+ * igt_assert_crc_equal:
+ * @a: first pipe CRC value
+ * @b: second pipe CRC value
+ *
+ * Compares two CRC values and fails the testcase if they don't match with
+ * igt_fail(). Note that due to CRC collisions CRC based testcase can only
+ * assert that CRCs match, never that they are different. Otherwise there might
+ * be random testcase failures when different screen contents end up with the
+ * same CRC by chance.
+ */
+void igt_assert_crc_equal(igt_crc_t *a, igt_crc_t *b)
+{
+	int i;
+
+	for (i = 0; i < a->n_words; i++)
+		igt_assert_eq_u32(a->crc[i], b->crc[i]);
 }
 
 /**

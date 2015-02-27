@@ -261,37 +261,37 @@ functional_test_pipe(data_t *data, enum pipe pipe, igt_output_t *output)
 	igt_display_commit2(display, COMMIT_LEGACY);
 
 	/* Blue bg + red sprite should be same under both types of API's */
-	igt_assert(igt_crc_equal(&test.crc_2, &test.crc_4));
+	igt_assert_crc_equal(&test.crc_2, &test.crc_4);
 
 	/* Disabling primary plane should be same as black primary */
-	igt_assert(igt_crc_equal(&test.crc_1, &test.crc_5));
+	igt_assert_crc_equal(&test.crc_1, &test.crc_5);
 
 	/* Re-enabling primary should return to blue properly */
-	igt_assert(igt_crc_equal(&test.crc_2, &test.crc_6));
+	igt_assert_crc_equal(&test.crc_2, &test.crc_6);
 
 	/*
 	 * We should be able to setup plane FB's while CRTC is disabled and
 	 * then have them pop up correctly when the CRTC is re-enabled.
 	 */
-	igt_assert(igt_crc_equal(&test.crc_2, &test.crc_7));
+	igt_assert_crc_equal(&test.crc_2, &test.crc_7);
 
 	/*
 	 * We should be able to modeset with the primary plane off
 	 * successfully
 	 */
-	igt_assert(igt_crc_equal(&test.crc_3, &test.crc_8));
+	igt_assert_crc_equal(&test.crc_3, &test.crc_8);
 
 	/*
 	 * We should be able to move the primary plane completely offscreen
 	 * and have it disable successfully.
 	 */
-	igt_assert(igt_crc_equal(&test.crc_5, &test.crc_9));
+	igt_assert_crc_equal(&test.crc_5, &test.crc_9);
 
 	/*
 	 * We should be able to explicitly disable an already
 	 * implicitly-disabled primary plane
 	 */
-	igt_assert(igt_crc_equal(&test.crc_5, &test.crc_10));
+	igt_assert_crc_equal(&test.crc_5, &test.crc_10);
 
 	igt_plane_set_fb(primary, NULL);
 	igt_plane_set_fb(sprite, NULL);

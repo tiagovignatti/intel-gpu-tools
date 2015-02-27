@@ -269,7 +269,7 @@ static void test_crc(data_t *data, enum test_mode mode)
 	igt_pipe_crc_stop(pipe_crc);
 	igt_assert(!igt_crc_equal(&crcs[0], &data->ref_crc[0]));
 	if (mode == TEST_PAGE_FLIP)
-		igt_assert(igt_crc_equal(&crcs[0], &data->ref_crc[1]));
+		igt_assert_crc_equal(&crcs[0], &data->ref_crc[1]);
 	else
 		igt_assert(!igt_crc_equal(&crcs[0], &data->ref_crc[1]));
 	free(crcs);
@@ -287,7 +287,7 @@ static void test_crc(data_t *data, enum test_mode mode)
 	igt_pipe_crc_stop(pipe_crc);
 	igt_assert(!igt_crc_equal(&crcs[0], &data->ref_crc[0]));
 	if (mode == TEST_PAGE_FLIP)
-		igt_assert(igt_crc_equal(&crcs[0], &data->ref_crc[1]));
+		igt_assert_crc_equal(&crcs[0], &data->ref_crc[1]);
 	else
 		igt_assert(!igt_crc_equal(&crcs[0], &data->ref_crc[1]));
 	free(crcs);

@@ -87,6 +87,7 @@ enum intel_pipe_crc_source {
 
 bool igt_crc_is_null(igt_crc_t *crc);
 bool igt_crc_equal(igt_crc_t *a, igt_crc_t *b);
+void igt_assert_crc_equal(igt_crc_t *a, igt_crc_t *b);
 char *igt_crc_to_string(igt_crc_t *crc);
 
 void igt_require_pipe_crc(void);

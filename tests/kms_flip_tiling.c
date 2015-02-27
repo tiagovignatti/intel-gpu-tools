@@ -113,7 +113,7 @@ test_flip_changes_tiling(data_t *data, igt_output_t *output, uint64_t tiling)
 
 	/* get a crc and compare with the reference */
 	igt_pipe_crc_collect_crc(pipe_crc, &crc);
-	igt_assert(igt_crc_equal(&reference_crc, &crc));
+	igt_assert_crc_equal(&reference_crc, &crc);
 
 	/* clean up */
 	igt_plane_set_fb(primary, NULL);

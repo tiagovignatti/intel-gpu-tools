@@ -319,7 +319,7 @@ test_plane(data_t *data, igt_output_t *output, enum pipe pipe, enum igt_plane pl
 	igt_output_set_pipe(output, PIPE_ANY);
 	igt_display_commit(&data->display);
 
-	igt_assert(igt_crc_equal(&ref_crc, &crc));
+	igt_assert_crc_equal(&ref_crc, &crc);
 
 	return true;
 }
@@ -468,7 +468,7 @@ test_crtc(data_t *data, igt_output_t *output, enum pipe pipe)
 	igt_output_set_pipe(output, PIPE_ANY);
 	igt_display_commit(&data->display);
 
-	igt_assert(igt_crc_equal(&ref_crc, &crc));
+	igt_assert_crc_equal(&ref_crc, &crc);
 
 	return true;
 }

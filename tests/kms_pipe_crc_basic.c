@@ -182,7 +182,7 @@ test_read_crc_for_output(data_t *data, int pipe, igt_output_t *output,
 
 		/* and ensure that they'are all equal, we haven't changed the fb */
 		for (j = 0; j < (N_CRCS - 1); j++)
-			igt_assert(igt_crc_equal(&crcs[j], &crcs[j + 1]));
+			igt_assert_crc_equal(&crcs[j], &crcs[j + 1]);
 
 		if (flags & TEST_SEQUENCE)
 			for (j = 0; j < (N_CRCS - 1); j++)
