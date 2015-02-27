@@ -382,6 +382,19 @@ void igt_exit(void) __attribute__((noreturn));
 #define igt_assert_lte(n1, n2) igt_assert_cmpint(n1, <=, >, n2)
 
 /**
+ * igt_assert_lt:
+ * @n1: first integer
+ * @n2: second integer
+ *
+ * Fails (sub-)test if the second integers is strictly smaller than the first.
+ * Beware that for now this only works on integers.
+ *
+ * Like igt_assert(), but displays the values being compared on failure instead
+ * of simply printing the stringified expression.
+ */
+#define igt_assert_lt(n1, n2) igt_assert_cmpint(n1, <, >=, n2)
+
+/**
  * igt_require:
  * @expr: condition to test
  *

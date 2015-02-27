@@ -157,7 +157,7 @@ static void render_timeout(int fd)
 			iter <<= 1;
 	} while (!done && iter < 1000000);
 
-	igt_assert_cmpint(iter, <, >=, 1000000);
+	igt_assert_lt(iter, 1000000);
 
 	igt_info("%d iters is enough work\n", iter);
 	gem_quiescent_gpu(fd);
