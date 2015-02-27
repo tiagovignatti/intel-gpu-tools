@@ -62,8 +62,8 @@
  * The only way to use #igt_crc_t CRCs therefore is to compare CRCs among each
  * another either for equality or difference. Otherwise CRCs must be treated as
  * completely opaque values. Note that not even CRCs from different pipes or tap
- * points on the same platform can be compared. Hence only use igt_crc_is_null()
- * and igt_assert_crc_equal() to inspect CRC values captured by the same
+ * points on the same platform can be compared. Hence only use
+ * igt_assert_crc_equal() to inspect CRC values captured by the same
  * #igt_pipe_crc_t object.
  *
  * # Other debugfs interface wrappers
@@ -188,14 +188,7 @@ FILE *igt_debugfs_fopen(const char *filename,
  * Pipe CRC
  */
 
-/**
- * igt_crc_is_null:
- * @crc: pipe CRC value to check
- *
- * Returns: True if the CRC is null/invalid, false if it represents a captured
- * valid CRC.
- */
-bool igt_crc_is_null(igt_crc_t *crc)
+static bool igt_crc_is_null(igt_crc_t *crc)
 {
 	int i;
 
@@ -207,29 +200,6 @@ bool igt_crc_is_null(igt_crc_t *crc)
 		if (crc->crc[i])
 			return false;
 	}
-
-	return true;
-}
-
-/**
- * igt_crc_equal:
- * @a: first pipe CRC value
- * @b: second pipe CRC value
- *
- * Compares two CRC values.
- *
- * Returns: true if the two CRCs match, false otherwise.
- */
-bool igt_crc_equal(igt_crc_t *a, igt_crc_t *b)
-{
-	int i;
-
-	if (a->n_words != b->n_words)
-		return false;
-
-	for (i = 0; i < a->n_words; i++)
-		if (a->crc[i] != b->crc[i])
-			return false;
 
 	return true;
 }

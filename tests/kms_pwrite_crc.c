@@ -75,10 +75,6 @@ static void test(data_t *data)
 	igt_plane_set_fb(data->primary, fb);
 	igt_display_commit(display);
 
-	/* sanity check to make sure crc changed */
-	igt_pipe_crc_collect_crc(data->pipe_crc, &crc);
-	igt_assert(!igt_crc_equal(&crc, &data->ref_crc));
-
 	/* flip back the original white buffer */
 	igt_plane_set_fb(data->primary, &data->fb[0]);
 	igt_display_commit(display);

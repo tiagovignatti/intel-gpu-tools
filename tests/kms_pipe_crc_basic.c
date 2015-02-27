@@ -168,18 +168,6 @@ test_read_crc_for_output(data_t *data, int pipe, igt_output_t *output,
 		igt_debug("CRC for this fb: %s\n", crc_str);
 		free(crc_str);
 
-		/*
-		 * make sure the CRC of this fb is different from the ones of
-		 * previous fbs
-		 */
-		for (j = 0; j < c; j++)
-			igt_assert(!igt_crc_equal(&colors[j].crc,
-						  &colors[c].crc));
-
-		/* ensure the CRCs are not all 0s */
-		for (j = 0; j < N_CRCS; j++)
-			igt_assert(!igt_crc_is_null(&crcs[j]));
-
 		/* and ensure that they'are all equal, we haven't changed the fb */
 		for (j = 0; j < (N_CRCS - 1); j++)
 			igt_assert_crc_equal(&crcs[j], &crcs[j + 1]);
