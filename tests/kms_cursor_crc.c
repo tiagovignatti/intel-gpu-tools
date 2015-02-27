@@ -130,13 +130,14 @@ static void do_single_test(data_t *data, int x, int y)
 	/* Now render the same in software and collect crc */
 	draw_cursor(cr, x, y, data->curw, data->curh);
 	igt_display_commit(display);
+
 	igt_wait_for_vblank(data->drm_fd, data->pipe);
 	igt_pipe_crc_collect_crc(pipe_crc, &ref_crc);
 	/* Clear screen afterwards */
+	igt_assert(igt_crc_equal(&crc, &ref_crc));
+
 	igt_paint_color(cr, 0, 0, data->screenw, data->screenh,
 			0.0, 0.0, 0.0);
-
-	igt_assert(igt_crc_equal(&crc, &ref_crc));
 }
 
 static void do_fail_test(data_t *data, int x, int y, int expect)

@@ -918,6 +918,8 @@ void igt_fail(int exitcode)
 {
 	assert(exitcode != IGT_EXIT_SUCCESS && exitcode != IGT_EXIT_SKIP);
 
+	igt_debug_wait_for_keypress("failure");
+
 	if (!failed_one)
 		igt_exitcode = exitcode;
 
