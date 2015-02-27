@@ -636,12 +636,35 @@ static int count_i2c_valid_edids(void)
 	return ret;
 }
 
+static int count_vga_outputs(struct mode_set_data *data)
+{
+	int i, count = 0;
+
+	for (i = 0; i < data->res->count_connectors; i++)
+		if (data->connectors[i]->connector_type ==
+		    DRM_MODE_CONNECTOR_VGA)
+			count++;
+
+	return count;
+}
+
 static void test_i2c(struct mode_set_data *data)
 {
 	int i2c_edids = count_i2c_valid_edids();
 	int drm_edids = count_drm_valid_edids(data);
+	int vga_outputs = count_vga_outputs(data);
+	int diff;
 
-	igt_assert_eq(i2c_edids, drm_edids);
+	igt_debug("i2c edids:%d drm edids:%d vga outputs:%d\n",
+		  i2c_edids, drm_edids, vga_outputs);
+
+	/* We fail to detect some VGA monitors using our i2c method. If you look
+	 * at the dmesg of these cases, you'll see the Kernel complaining about
+	 * the EDID reading mostly FFs and then disabling bit-banging. Since we
+	 * don't want to reimplement everything the Kernel does, let's just
+	 * accept the fact that some VGA outputs won't be properly detected. */
+	diff = drm_edids - i2c_edids;
+	igt_assert(diff <= vga_outputs && diff >= 0);
 }
 
 static void setup_pc8(void)
