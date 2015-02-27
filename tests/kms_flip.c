@@ -1544,7 +1544,7 @@ static int run_pair(int duration, int flags)
 
 	/* If we have fewer than 2 connected outputs then we won't have any
 	 * configuration at all. So skip in that case. */
-	igt_require(modes);
+	igt_require_f(modes, "At least two displays required\n");
 	duration = duration * 1000 / modes;
 	duration = max(duration, 500);
 
