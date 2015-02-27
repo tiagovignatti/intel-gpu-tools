@@ -125,7 +125,6 @@ functional_test_pipe(data_t *data, enum pipe pipe, igt_output_t *output)
 	functional_test_t test = { .data = data };
 	igt_display_t *display = &data->display;
 	igt_plane_t *primary, *sprite;
-	int ret;
 	int num_primary = 0, num_cursor = 0;
 	int i;
 
@@ -217,10 +216,9 @@ functional_test_pipe(data_t *data, enum pipe pipe, igt_output_t *output)
 	igt_display_commit2(display, COMMIT_UNIVERSAL);
 
 	/* Step 10: Enable crtc (fb = -1), take CRC (CRC 7) */
-	ret = drmModeSetCrtc(data->drm_fd, output->config.crtc->crtc_id, -1,
-			     0, 0, &output->config.connector->connector_id,
-			     1, test.mode);
-	igt_assert(ret == 0);
+	igt_assert(drmModeSetCrtc(data->drm_fd, output->config.crtc->crtc_id, -1,
+				  0, 0, &output->config.connector->connector_id,
+				  1, test.mode) == 0);
 	igt_pipe_crc_collect_crc(test.pipe_crc, &test.crc_7);
 
 	/* Step 11: Disable primary plane */
@@ -238,16 +236,15 @@ functional_test_pipe(data_t *data, enum pipe pipe, igt_output_t *output)
 	igt_display_commit2(display, COMMIT_LEGACY);
 
 	/* Step 14: Universal API, set primary completely offscreen (CRC 9) */
-	ret = drmModeSetPlane(data->drm_fd, primary->drm_plane->plane_id,
-			      output->config.crtc->crtc_id,
-			      test.blue_fb.fb_id, 0,
-			      9000, 9000,
-			      test.mode->hdisplay,
-			      test.mode->vdisplay,
-			      IGT_FIXED(0,0), IGT_FIXED(0,0),
-			      IGT_FIXED(test.mode->hdisplay,0),
-			      IGT_FIXED(test.mode->vdisplay,0));
-	igt_assert(ret == 0);
+	igt_assert(drmModeSetPlane(data->drm_fd, primary->drm_plane->plane_id,
+				   output->config.crtc->crtc_id,
+				   test.blue_fb.fb_id, 0,
+				   9000, 9000,
+				   test.mode->hdisplay,
+				   test.mode->vdisplay,
+				   IGT_FIXED(0,0), IGT_FIXED(0,0),
+				   IGT_FIXED(test.mode->hdisplay,0),
+				   IGT_FIXED(test.mode->vdisplay,0)) == 0);
 	igt_pipe_crc_collect_crc(test.pipe_crc, &test.crc_9);
 
 	/*
@@ -357,7 +354,7 @@ sanity_test_pipe(data_t *data, enum pipe pipe, igt_output_t *output)
 	sanity_test_t test = { .data = data };
 	igt_plane_t *primary;
 	drmModeModeInfo *mode;
-	int i, ret = 0;
+	int i;
 
 	igt_skip_on(pipe >= data->display.n_pipes);
 
@@ -377,54 +374,49 @@ sanity_test_pipe(data_t *data, enum pipe pipe, igt_output_t *output)
 	 * doesn't cover CRTC (should fail).
 	 */
 	igt_plane_set_fb(primary, &test.undersized_fb);
-	ret = igt_display_try_commit2(&data->display, COMMIT_UNIVERSAL);
-	igt_assert(ret == -EINVAL);
+	igt_assert(igt_display_try_commit2(&data->display, COMMIT_UNIVERSAL) == -EINVAL);
 
 	/* Same as above, but different plane positioning. */
 	igt_plane_set_position(primary, 100, 100);
-	ret = igt_display_try_commit2(&data->display, COMMIT_UNIVERSAL);
-	igt_assert(ret == -EINVAL);
+	igt_assert(igt_display_try_commit2(&data->display, COMMIT_UNIVERSAL) == -EINVAL);
 
 	igt_plane_set_position(primary, 0, 0);
 
 	/* Try to use universal plane API to scale down (should fail) */
-	ret = drmModeSetPlane(data->drm_fd, primary->drm_plane->plane_id,
-			      output->config.crtc->crtc_id,
-			      test.oversized_fb.fb_id, 0,
-			      0, 0,
-			      mode->hdisplay + 100,
-			      mode->vdisplay + 100,
-			      IGT_FIXED(0,0), IGT_FIXED(0,0),
-			      IGT_FIXED(mode->hdisplay,0),
-			      IGT_FIXED(mode->vdisplay,0));
-	igt_assert(ret == -ERANGE);
+	igt_assert(drmModeSetPlane(data->drm_fd, primary->drm_plane->plane_id,
+				   output->config.crtc->crtc_id,
+				   test.oversized_fb.fb_id, 0,
+				   0, 0,
+				   mode->hdisplay + 100,
+				   mode->vdisplay + 100,
+				   IGT_FIXED(0,0), IGT_FIXED(0,0),
+				   IGT_FIXED(mode->hdisplay,0),
+				   IGT_FIXED(mode->vdisplay,0)) == -ERANGE);
 
 	/* Try to use universal plane API to scale up (should fail) */
-	ret = drmModeSetPlane(data->drm_fd, primary->drm_plane->plane_id,
-			      output->config.crtc->crtc_id,
-			      test.oversized_fb.fb_id, 0,
-			      0, 0,
-			      mode->hdisplay,
-			      mode->vdisplay,
-			      IGT_FIXED(0,0), IGT_FIXED(0,0),
-			      IGT_FIXED(mode->hdisplay - 100,0),
-			      IGT_FIXED(mode->vdisplay - 100,0));
-	igt_assert(ret == -ERANGE);
+	igt_assert(drmModeSetPlane(data->drm_fd, primary->drm_plane->plane_id,
+				   output->config.crtc->crtc_id,
+				   test.oversized_fb.fb_id, 0,
+				   0, 0,
+				   mode->hdisplay,
+				   mode->vdisplay,
+				   IGT_FIXED(0,0), IGT_FIXED(0,0),
+				   IGT_FIXED(mode->hdisplay - 100,0),
+				   IGT_FIXED(mode->vdisplay - 100,0)) == -ERANGE);
 
 	/* Find other crtcs and try to program our primary plane on them */
 	for (i = 0; i < test.moderes->count_crtcs; i++)
 		if (test.moderes->crtcs[i] != output->config.crtc->crtc_id) {
-			ret = drmModeSetPlane(data->drm_fd,
-					      primary->drm_plane->plane_id,
-					      test.moderes->crtcs[i],
-					      test.blue_fb.fb_id, 0,
-					      0, 0,
-					      mode->hdisplay,
-					      mode->vdisplay,
-					      IGT_FIXED(0,0), IGT_FIXED(0,0),
-					      IGT_FIXED(mode->hdisplay,0),
-					      IGT_FIXED(mode->vdisplay,0));
-			igt_assert(ret == -EINVAL);
+			igt_assert(drmModeSetPlane(data->drm_fd,
+						   primary->drm_plane->plane_id,
+						   test.moderes->crtcs[i],
+						   test.blue_fb.fb_id, 0,
+						   0, 0,
+						   mode->hdisplay,
+						   mode->vdisplay,
+						   IGT_FIXED(0,0), IGT_FIXED(0,0),
+						   IGT_FIXED(mode->hdisplay,0),
+						   IGT_FIXED(mode->vdisplay,0)) == -EINVAL);
 		}
 
 	igt_plane_set_fb(primary, NULL);
@@ -495,9 +487,8 @@ pageflip_test_pipe(data_t *data, enum pipe pipe, igt_output_t *output)
 	 * Note that crtc->primary->fb = NULL causes flip to return EBUSY for
 	 * historical reasons...
 	 */
-	ret = drmModePageFlip(data->drm_fd, output->config.crtc->crtc_id,
-			      test.red_fb.fb_id, 0, NULL);
-	igt_assert(ret == -EBUSY);
+	igt_assert(drmModePageFlip(data->drm_fd, output->config.crtc->crtc_id,
+				   test.red_fb.fb_id, 0, NULL) == -EBUSY);
 
 	/* Turn primary plane back on */
 	igt_plane_set_fb(primary, &test.blue_fb);
@@ -510,10 +501,9 @@ pageflip_test_pipe(data_t *data, enum pipe pipe, igt_output_t *output)
 	 * completes, which we don't have a good way to specifically test for,
 	 * but at least we can make sure that nothing blows up.
 	 */
-	ret = drmModePageFlip(data->drm_fd, output->config.crtc->crtc_id,
-			      test.red_fb.fb_id, DRM_MODE_PAGE_FLIP_EVENT,
-			      &test);
-	igt_assert(ret == 0);
+	igt_assert(drmModePageFlip(data->drm_fd, output->config.crtc->crtc_id,
+				   test.red_fb.fb_id, DRM_MODE_PAGE_FLIP_EVENT,
+				   &test) == 0);
 	igt_plane_set_fb(primary, NULL);
 	igt_display_commit2(&data->display, COMMIT_UNIVERSAL);
 
@@ -524,8 +514,7 @@ pageflip_test_pipe(data_t *data, enum pipe pipe, igt_output_t *output)
 		ret = select(data->drm_fd + 1, &fds, NULL, NULL, &timeout);
 	} while (ret < 0 && errno == EINTR);
 	igt_assert(ret == 1);
-	ret = drmHandleEvent(data->drm_fd, &evctx);
-	igt_assert(ret == 0);
+	igt_assert(drmHandleEvent(data->drm_fd, &evctx) == 0);
 
 	igt_plane_set_fb(primary, NULL);
 	pageflip_test_fini(&test, output);
@@ -641,8 +630,7 @@ cursor_leak_test_pipe(data_t *data, enum pipe pipe, igt_output_t *output)
 	/* We should be back to the same framebuffer count as when we started */
 	count2 = i915_gem_fb_count();
 
-	igt_assert_f(count1 == count2, "Cursor framebuffer leak detected.  "
-		     "Initial fb count=%d, final count=%d\n", count1, count2);
+	igt_assert_eq(count1, count2);
 }
 
 static void
