@@ -532,6 +532,120 @@ pageflip_test_pipe(data_t *data, enum pipe pipe, igt_output_t *output)
 }
 
 static void
+cursor_leak_test_fini(data_t *data,
+		      igt_output_t *output,
+		      struct igt_fb *bg,
+		      struct igt_fb *curs)
+{
+	int i;
+
+	igt_remove_fb(data->drm_fd, bg);
+	for (i = 0; i < 10; i++)
+		igt_remove_fb(data->drm_fd, &curs[i]);
+
+	igt_output_set_pipe(output, PIPE_ANY);
+}
+
+static int
+i915_gem_fb_count(void)
+{
+	char buf[1024];
+	FILE *fp;
+	int count = 0;
+
+	fp = igt_debugfs_fopen("i915_gem_framebuffer", "r");
+	igt_require(fp);
+	while (fgets(buf, sizeof(buf), fp) != NULL)
+		count++;
+	fclose(fp);
+
+	return count;
+}
+
+static void
+cursor_leak_test_pipe(data_t *data, enum pipe pipe, igt_output_t *output)
+{
+	igt_display_t *display = &data->display;
+	igt_plane_t *primary, *cursor;
+	drmModeModeInfo *mode;
+	struct igt_fb background_fb;
+	struct igt_fb cursor_fb[10];
+	int i;
+	int r, g, b;
+	int count1, count2;
+
+	igt_assert(data->display.has_universal_planes);
+	igt_skip_on(pipe >= display->n_pipes);
+
+	igt_output_set_pipe(output, pipe);
+	mode = igt_output_get_mode(output);
+
+	/* Count GEM framebuffers before creating our cursor FB's */
+	count1 = i915_gem_fb_count();
+
+	/* Black background FB */
+	igt_create_color_fb(data->drm_fd, mode->hdisplay, mode->vdisplay,
+			    DRM_FORMAT_XRGB8888,
+			    false,
+			    0.0, 0.0, 0.0,
+			    &background_fb);
+
+	/* Random color cursors */
+	for (i = 0; i < 10; i++) {
+		r = rand() % 0xFF;
+		g = rand() % 0xFF;
+		b = rand() % 0xFF;
+		igt_create_color_fb(data->drm_fd, 64, 64,
+				    DRM_FORMAT_ARGB8888,
+				    false,
+				    (double)r / 0xFF,
+				    (double)g / 0xFF,
+				    (double)b / 0xFF,
+				    &cursor_fb[i]);
+	}
+
+	primary = igt_output_get_plane(output, IGT_PLANE_PRIMARY);
+	cursor = igt_output_get_plane(output, IGT_PLANE_CURSOR);
+	if (!primary || !cursor) {
+		cursor_leak_test_fini(data, output, &background_fb, cursor_fb);
+		igt_skip("Primary and/or cursor are unavailable\n");
+	}
+
+
+	igt_plane_set_fb(primary, &background_fb);
+	igt_display_commit2(display, COMMIT_LEGACY);
+
+	igt_plane_set_position(cursor, 100, 100);
+
+	/*
+	 * Exercise both legacy and universal code paths.  Note that legacy
+	 * handling in the kernel redirects through universal codepaths
+	 * internally, so that redirection is where we're most worried about
+	 * leaking.
+	 */
+	for (i = 0; i < 10; i++) {
+		igt_plane_set_fb(cursor, &cursor_fb[i]);
+		igt_display_commit2(display, COMMIT_UNIVERSAL);
+	}
+	for (i = 0; i < 10; i++) {
+		igt_plane_set_fb(cursor, &cursor_fb[i]);
+		igt_display_commit2(display, COMMIT_LEGACY);
+	}
+
+	/* Release our framebuffer handles before we take a second count */
+	igt_plane_set_fb(primary, NULL);
+	igt_plane_set_fb(cursor, NULL);
+	igt_display_commit2(display, COMMIT_LEGACY);
+	cursor_leak_test_fini(data, output, &background_fb, cursor_fb);
+
+	/* We should be back to the same framebuffer count as when we started */
+	count2 = i915_gem_fb_count();
+
+	igt_assert_f(count1 == count2, "Cursor framebuffer leak detected.  "
+		     "Initial fb count=%d, final count=%d\n", count1, count2);
+}
+
+static void
 run_tests_for_pipe(data_t *data, enum pipe pipe)
 {
 	igt_output_t *output;
@@ -550,6 +664,11 @@ run_tests_for_pipe(data_t *data, enum pipe pipe)
 		      kmstest_pipe_name(pipe))
 		for_each_connected_output(&data->display, output)
 			pageflip_test_pipe(data, pipe, output);
+
+	igt_subtest_f("cursor-fb-leak-pipe-%s",
+		      kmstest_pipe_name(pipe))
+		for_each_connected_output(&data->display, output)
+			cursor_leak_test_pipe(data, pipe, output);
 }
 
 static data_t data;
