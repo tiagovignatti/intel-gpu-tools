@@ -290,8 +290,7 @@ static void _igt_log_buffer_dump(void)
 	i = log_buffer.start;
 	do {
 		char *last_line = log_buffer.entries[i];
-		fprintf(stderr, "%s%s", last_line,
-			(last_line[strlen(last_line)-1] != '\n') ? "\n" : "");
+		fprintf(stderr, "%s", last_line);
 		i++;
 	} while (i != log_buffer.start && i != log_buffer.end);
 
@@ -1590,6 +1589,7 @@ void igt_vlog(const char *domain, enum igt_log_level level, const char *format, 
 		"CRITICAL",
 		"NONE"
 	};
+	static bool line_continuation = false;
 
 	assert(format);
 
@@ -1605,11 +1605,17 @@ void igt_vlog(const char *domain, enum igt_log_level level, const char *format, 
 	if (vasprintf(&line, format, args) == -1)
 		return;
 
-	if (asprintf(&formatted_line, "(%s:%d) %s%s%s: %s", program_name,
+	if (line_continuation) {
+		formatted_line = strdup(line);
+		if (!formatted_line)
+			goto out;
+	} else if (asprintf(&formatted_line, "(%s:%d) %s%s%s: %s", program_name,
 		     getpid(), (domain) ? domain : "", (domain) ? "-" : "",
 		     igt_log_level_str[level], line) == -1) {
 		goto out;
 	}
+
+	line_continuation = line[strlen(line)] != '\n';
 
 	/* append log buffer */
 	_igt_log_buffer_append(formatted_line);
