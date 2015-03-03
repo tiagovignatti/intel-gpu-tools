@@ -1142,3 +1142,26 @@ off_t prime_get_size(int dma_buf_fd)
 
 	return ret;
 }
+
+/**
+ * igt_require_fb_modifiers:
+ * @fd: Open DRM file descriptor.
+ *
+ * Requires presence of DRM_CAP_ADDFB2_MODIFIERS.
+ */
+void igt_require_fb_modifiers(int fd)
+{
+	static bool has_modifiers, cap_modifiers_tested;
+
+	if (!cap_modifiers_tested) {
+		uint64_t cap_modifiers;
+		int ret;
+
+		ret = drmGetCap(fd, LOCAL_DRM_CAP_ADDFB2_MODIFIERS, &cap_modifiers);
+		igt_assert(ret == 0 || errno == EINVAL);
+		has_modifiers = ret == 0 && cap_modifiers == 1;
+		cap_modifiers_tested = true;
+	}
+
+	igt_require(has_modifiers);
+}

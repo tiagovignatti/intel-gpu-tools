@@ -213,6 +213,79 @@ static void size_tests(int fd)
 	}
 }
 
+static void addfb25_tests(int fd)
+{
+	struct local_drm_mode_fb_cmd2 f = {};
+
+	igt_fixture {
+		gem_bo = gem_create(fd, 1024*1024*4);
+		igt_assert(gem_bo);
+
+		memset(&f, 0, sizeof(f));
+
+		f.width = 1024;
+		f.height = 1024;
+		f.pixel_format = DRM_FORMAT_XRGB8888;
+		f.pitches[0] = 1024*4;
+		f.modifier[0] = LOCAL_DRM_FORMAT_MOD_NONE;
+
+		f.handles[0] = gem_bo;
+	}
+
+	igt_subtest("addfb25-modifier-no-flag") {
+		igt_require_fb_modifiers(fd);
+
+		f.modifier[0] = LOCAL_I915_FORMAT_MOD_X_TILED;
+		igt_assert(drmIoctl(fd, LOCAL_DRM_IOCTL_MODE_ADDFB2, &f) < 0 && errno == EINVAL);
+	}
+
+	igt_fixture {
+		f.flags = LOCAL_DRM_MODE_FB_MODIFIERS;
+	}
+
+	igt_subtest("addfb25-bad-modifier") {
+		igt_require_fb_modifiers(fd);
+
+		f.modifier[0] = ~0;
+		igt_assert(drmIoctl(fd, LOCAL_DRM_IOCTL_MODE_ADDFB2, &f) < 0 && errno == EINVAL);
+	}
+
+	igt_fixture {
+		gem_set_tiling(fd, gem_bo, I915_TILING_X, 1024*4);
+	}
+
+	igt_subtest("addfb25-X-tiled-mismatch") {
+		igt_require_fb_modifiers(fd);
+
+		f.modifier[0] = LOCAL_DRM_FORMAT_MOD_NONE;
+		igt_assert(drmIoctl(fd, LOCAL_DRM_IOCTL_MODE_ADDFB2, &f) < 0 && errno == EINVAL);
+	}
+
+	igt_subtest("addfb25-X-tiled") {
+		igt_require_fb_modifiers(fd);
+
+		f.modifier[0] = LOCAL_I915_FORMAT_MOD_X_TILED;
+		igt_assert(drmIoctl(fd, LOCAL_DRM_IOCTL_MODE_ADDFB2, &f) == 0);
+		igt_assert(drmIoctl(fd, DRM_IOCTL_MODE_RMFB, &f.fb_id) == 0);
+		f.fb_id = 0;
+	}
+
+	igt_subtest("addfb25-framebuffer-vs-set-tiling") {
+		igt_require_fb_modifiers(fd);
+
+		f.modifier[0] = LOCAL_I915_FORMAT_MOD_X_TILED;
+		igt_assert(drmIoctl(fd, LOCAL_DRM_IOCTL_MODE_ADDFB2, &f) == 0);
+		igt_assert(__gem_set_tiling(fd, gem_bo, I915_TILING_X, 512*4) == -EBUSY);
+		igt_assert(__gem_set_tiling(fd, gem_bo, I915_TILING_X, 1024*4) == -EBUSY);
+		igt_assert(drmIoctl(fd, DRM_IOCTL_MODE_RMFB, &f.fb_id) == 0);
+		f.fb_id = 0;
+	}
+
+	igt_fixture {
+		gem_close(fd, gem_bo);
+	}
+}
+
 int fd;
 
 igt_main
@@ -223,6 +296,8 @@ igt_main
 	pitch_tests(fd);
 
 	size_tests(fd);
+
+	addfb25_tests(fd);
 
 	igt_fixture
 		close(fd);
