@@ -33,6 +33,7 @@
 #include "igt_debugfs.h"
 #include "igt_kms.h"
 #include "ioctl_wrappers.h"
+#include "intel_chipset.h"
 
 IGT_TEST_DESCRIPTION("Test that a page flip from a tiled buffer to a linear"
 		     " one works correctly.");
@@ -40,6 +41,7 @@ IGT_TEST_DESCRIPTION("Test that a page flip from a tiled buffer to a linear"
 typedef struct {
 	int drm_fd;
 	igt_display_t display;
+	int gen;
 } data_t;
 
 /*
@@ -61,7 +63,7 @@ fill_linear_fb(struct igt_fb *fb, data_t *data, drmModeModeInfo *mode)
 }
 
 static void
-test_flip_changes_tiling(data_t *data, igt_output_t *output)
+test_flip_changes_tiling(data_t *data, igt_output_t *output, uint64_t tiling)
 {
 	struct igt_fb linear, tiled;
 	drmModeModeInfo *mode;
@@ -97,7 +99,7 @@ test_flip_changes_tiling(data_t *data, igt_output_t *output)
 
 	/* allocate a tiled buffer and set the crtc with it */
 	igt_create_color_fb(data->drm_fd, width, mode->vdisplay,
-			    DRM_FORMAT_XRGB8888, LOCAL_I915_FORMAT_MOD_X_TILED,
+			    DRM_FORMAT_XRGB8888, tiling,
 			    0.0, 0.0, 0.0, &tiled);
 	igt_plane_set_fb(primary, &tiled);
 	igt_display_commit(&data->display);
@@ -132,6 +134,7 @@ igt_main
 
 	igt_fixture {
 		data.drm_fd = drm_open_any_master();
+		data.gen = intel_gen(intel_get_drm_devid(data.drm_fd));
 
 		kmstest_set_vt_graphics_mode();
 
@@ -141,7 +144,26 @@ igt_main
 
 	igt_subtest_f("flip-changes-tiling") {
 		for_each_connected_output(&data.display, output)
-			test_flip_changes_tiling(&data, output);
+			test_flip_changes_tiling(&data, output,
+						LOCAL_I915_FORMAT_MOD_X_TILED);
+	}
+
+	igt_subtest_f("flip-changes-tiling-Y") {
+		igt_require_fb_modifiers(data.drm_fd);
+		igt_require(data.gen >= 9);
+
+		for_each_connected_output(&data.display, output)
+			test_flip_changes_tiling(&data, output,
+						LOCAL_I915_FORMAT_MOD_Y_TILED);
+	}
+
+	igt_subtest_f("flip-changes-tiling-Yf") {
+		igt_require_fb_modifiers(data.drm_fd);
+		igt_require(data.gen >= 9);
+
+		for_each_connected_output(&data.display, output)
+			test_flip_changes_tiling(&data, output,
+						LOCAL_I915_FORMAT_MOD_Yf_TILED);
 	}
 
 	igt_fixture {
