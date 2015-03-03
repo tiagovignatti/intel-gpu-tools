@@ -51,6 +51,7 @@
 
 #include <cairo.h>
 #include <errno.h>
+#include <getopt.h>
 #include <math.h>
 #include <stdint.h>
 #include <stdbool.h>
@@ -71,8 +72,10 @@
 #include <stdlib.h>
 #include <signal.h>
 
-#define SUBTEST_OPTS 1
+#define SUBTEST_OPTS	 1
 #define HELP_DESCRIPTION 2
+#define Yb_OPT		 3
+#define Yf_OPT		 4
 
 static int tio_fd;
 struct termios saved_tio;
@@ -544,7 +547,7 @@ int update_display(void)
 	return 1;
 }
 
-static char optstr[] = "3hiaf:s:d:p:mrto:j:";
+static char optstr[] = "3hiaf:s:d:p:mrto:j:y";
 
 static void __attribute__((noreturn)) usage(char *name, char opt)
 {
@@ -645,6 +648,8 @@ int main(int argc, char **argv)
 		{"run-subtest", 1, 0, SUBTEST_OPTS},
 		{"help-description", 0, 0, HELP_DESCRIPTION},
 		{"help", 0, 0, 'h'},
+		{"yb", 0, 0, Yb_OPT},
+		{"yf", 0, 0, Yf_OPT},
 		{ 0, 0, 0, 0 }
 	};
 
@@ -696,6 +701,13 @@ int main(int argc, char **argv)
 			break;
 		case 't':
 			tiling = LOCAL_I915_FORMAT_MOD_X_TILED;
+			break;
+		case 'y':
+		case Yb_OPT:
+			tiling = LOCAL_I915_FORMAT_MOD_Y_TILED;
+			break;
+		case Yf_OPT:
+			tiling = LOCAL_I915_FORMAT_MOD_Yf_TILED;
 			break;
 		case 'r':
 			qr_code = 1;
