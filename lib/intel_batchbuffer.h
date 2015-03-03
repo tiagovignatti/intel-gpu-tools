@@ -3,6 +3,8 @@
 
 #include <stdint.h>
 #include <intel_bufmgr.h>
+#include <i915_drm.h>
+
 #include "igt_core.h"
 #include "intel_reg.h"
 
@@ -226,6 +228,22 @@ void igt_blitter_fast_copy(struct intel_batchbuffer *batch,
 			  struct igt_buf *src, unsigned src_x, unsigned src_y,
 			  unsigned width, unsigned height,
 			  struct igt_buf *dst, unsigned dst_x, unsigned dst_y);
+
+void igt_blitter_fast_copy__raw(int fd,
+				/* src */
+				uint32_t src_handle,
+				unsigned int src_stride,
+				unsigned int src_tiling,
+				unsigned int src_x, unsigned src_y,
+
+				/* size */
+				unsigned int width, unsigned int height,
+
+				/* dst */
+				uint32_t dst_handle,
+				unsigned int dst_stride,
+				unsigned int dst_tiling,
+				unsigned int dst_x, unsigned dst_y);
 
 /**
  * igt_render_copyfunc_t:

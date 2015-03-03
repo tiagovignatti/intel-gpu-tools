@@ -39,6 +39,8 @@
 #include "intel_reg.h"
 #include "rendercopy.h"
 #include "media_fill.h"
+#include "ioctl_wrappers.h"
+
 #include <i915_drm.h>
 
 /**
@@ -461,7 +463,7 @@ unsigned igt_buf_height(struct igt_buf *buf)
  * pitches are in bytes if the surfaces are linear, number of dwords
  * otherwise
  */
-static uint32_t fast_copy_pitch(unsigned int stride, enum i915_tiling tiling)
+static uint32_t fast_copy_pitch(unsigned int stride, unsigned int tiling)
 {
 	if (tiling != I915_TILING_NONE)
 		return stride / 4;
@@ -524,6 +526,136 @@ static uint32_t fast_copy_dword1(unsigned int src_tiling,
 	dword1 |= XY_FAST_COPY_COLOR_DEPTH_32;
 
 	return dword1;
+}
+
+static void
+fill_relocation(struct drm_i915_gem_relocation_entry *reloc,
+		uint32_t gem_handle, uint32_t offset, /* in dwords */
+		uint32_t read_domains, uint32_t write_domains)
+{
+	reloc->target_handle = gem_handle;
+	reloc->delta = 0;
+	reloc->offset = offset * sizeof(uint32_t);
+	reloc->presumed_offset = 0;
+	reloc->read_domains = read_domains;
+	reloc->write_domain = write_domains;
+}
+
+static void
+fill_object(struct drm_i915_gem_exec_object2 *obj, uint32_t gem_handle,
+	    struct drm_i915_gem_relocation_entry *relocs, uint32_t count)
+{
+	memset(obj, 0, sizeof(*obj));
+	obj->handle = gem_handle;
+	obj->relocation_count = count;
+	obj->relocs_ptr = (uint64_t)relocs;
+}
+
+static void exec_blit(int fd,
+		      struct drm_i915_gem_exec_object2 *objs, uint32_t count,
+		      uint32_t batch_len /* in dwords */)
+{
+	struct drm_i915_gem_execbuffer2 exec;
+
+	exec.buffers_ptr = (uint64_t)objs;
+	exec.buffer_count = count;
+	exec.batch_start_offset = 0;
+	exec.batch_len = batch_len * 4;
+	exec.DR1 = exec.DR4 = 0;
+	exec.num_cliprects = 0;
+	exec.cliprects_ptr = 0;
+	exec.flags = I915_EXEC_BLT;
+	i915_execbuffer2_set_context_id(exec, 0);
+	exec.rsvd2 = 0;
+
+	gem_execbuf(fd, &exec);
+}
+
+/**
+ * igt_blitter_fast_copy__raw:
+ * @fd: file descriptor of the i915 driver
+ * @src_handle: GEM handle of the source buffer
+ * @src_stride: Stride (in bytes) of the source buffer
+ * @src_tiling: Tiling mode of the source buffer
+ * @src_x: X coordinate of the source region to copy
+ * @src_y: Y coordinate of the source region to copy
+ * @width: Width of the region to copy
+ * @height: Height of the region to copy
+ * @dst_handle: GEM handle of the source buffer
+ * @dst_stride: Stride (in bytes) of the destination buffer
+ * @dst_tiling: Tiling mode of the destination buffer
+ * @dst_x: X coordinate of destination
+ * @dst_y: Y coordinate of destination
+ *
+ * Like igt_blitter_fast_copy(), but talking to the kernel directly.
+ */
+void igt_blitter_fast_copy__raw(int fd,
+				/* src */
+				uint32_t src_handle,
+				unsigned int src_stride,
+				unsigned int src_tiling,
+				unsigned int src_x, unsigned src_y,
+
+				/* size */
+				unsigned int width, unsigned int height,
+
+				/* dst */
+				uint32_t dst_handle,
+				unsigned int dst_stride,
+				unsigned int dst_tiling,
+				unsigned int dst_x, unsigned dst_y)
+{
+	uint32_t batch[12];
+	struct drm_i915_gem_exec_object2 objs[3];
+	struct drm_i915_gem_relocation_entry relocs[2];
+	uint32_t batch_handle;
+	uint32_t dword0, dword1;
+	uint32_t src_pitch, dst_pitch;
+	int i = 0;
+
+	src_pitch = fast_copy_pitch(src_stride, src_tiling);
+	dst_pitch = fast_copy_pitch(dst_stride, dst_tiling);
+	dword0 = fast_copy_dword0(src_tiling, dst_tiling);
+	dword1 = fast_copy_dword1(src_tiling, dst_tiling);
+
+#define CHECK_RANGE(x)	((x) >= 0 && (x) < (1 << 15))
+	assert(CHECK_RANGE(src_x) && CHECK_RANGE(src_y) &&
+	       CHECK_RANGE(dst_x) && CHECK_RANGE(dst_y) &&
+	       CHECK_RANGE(width) && CHECK_RANGE(height) &&
+	       CHECK_RANGE(src_x + width) && CHECK_RANGE(src_y + height) &&
+	       CHECK_RANGE(dst_x + width) && CHECK_RANGE(dst_y + height) &&
+	       CHECK_RANGE(src_pitch) && CHECK_RANGE(dst_pitch));
+#undef CHECK_RANGE
+
+	batch[i++] = dword0;
+	batch[i++] = dword1 | dst_pitch;
+	batch[i++] = (dst_y << 16) | dst_x; /* dst x1,y1 */
+	batch[i++] = ((dst_y + height) << 16) | (dst_x + width); /* dst x2,y2 */
+	batch[i++] = 0; /* dst address lower bits */
+	batch[i++] = 0;	/* dst address upper bits */
+	batch[i++] = (src_y << 16) | src_x; /* src x1,y1 */
+	batch[i++] = src_pitch;
+	batch[i++] = 0; /* src address lower bits */
+	batch[i++] = 0;	/* src address upper bits */
+	batch[i++] = MI_BATCH_BUFFER_END;
+	batch[i++] = MI_NOOP;
+
+	igt_assert(i == ARRAY_SIZE(batch));
+
+	batch_handle = gem_create(fd, 4096);
+	gem_write(fd, batch_handle, 0, batch, sizeof(batch));
+
+	fill_relocation(&relocs[0], dst_handle, 4,
+			I915_GEM_DOMAIN_RENDER, I915_GEM_DOMAIN_RENDER);
+	fill_relocation(&relocs[1], src_handle, 8, I915_GEM_DOMAIN_RENDER, 0);
+
+	fill_object(&objs[0], dst_handle, NULL, 0);
+	fill_object(&objs[1], src_handle, NULL, 0);
+	fill_object(&objs[2], batch_handle, relocs, 2);
+
+	exec_blit(fd, objs, 3, ARRAY_SIZE(batch));
+
+	gem_close(fd, batch_handle);
 }
 
 /**
