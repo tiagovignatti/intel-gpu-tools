@@ -112,7 +112,7 @@ static int create_bo_for_fb(int fd, int width, int height, int bpp,
 		bo_size = size;
 	gem_handle = gem_create(fd, bo_size);
 
-	if (tiling != LOCAL_DRM_FORMAT_MOD_NONE)
+	if (tiling == LOCAL_I915_FORMAT_MOD_X_TILED)
 		ret = __gem_set_tiling(fd, gem_handle, I915_TILING_X, stride);
 
 	*stride_ret = stride;
@@ -629,6 +629,104 @@ static cairo_format_t drm_format_to_cairo(uint32_t drm_format)
 		     drm_format, igt_format_str(drm_format));
 }
 
+struct fb_blit_upload {
+	int fd;
+	struct igt_fb *fb;
+	struct {
+		uint32_t handle;
+		unsigned size, stride;
+		uint8_t *map;
+	} linear;
+};
+
+static void destroy_cairo_surface__blit(void *arg)
+{
+	struct fb_blit_upload *blit = arg;
+	struct igt_fb *fb = blit->fb;
+	unsigned int obj_tiling = I915_TILING_NONE;
+
+	munmap(blit->linear.map, blit->linear.size);
+	fb->cairo_surface = NULL;
+
+	gem_set_domain(blit->fd, blit->linear.handle,
+			I915_GEM_DOMAIN_GTT, 0);
+
+	switch (fb->tiling) {
+	case LOCAL_I915_FORMAT_MOD_X_TILED:
+		obj_tiling = I915_TILING_X;
+		break;
+	case LOCAL_I915_FORMAT_MOD_Y_TILED:
+		obj_tiling = I915_TILING_Y;
+		break;
+	case LOCAL_I915_FORMAT_MOD_Yf_TILED:
+		obj_tiling = I915_TILING_Yf;
+		break;
+	}
+
+	igt_blitter_fast_copy__raw(blit->fd,
+				   blit->linear.handle,
+				   blit->linear.stride,
+				   I915_TILING_NONE,
+				   0, 0, /* src_x, src_y */
+				   fb->width, fb->height,
+				   fb->gem_handle,
+				   fb->stride,
+				   obj_tiling,
+				   0, 0 /* dst_x, dst_y */);
+
+	gem_sync(blit->fd, blit->linear.handle);
+	gem_close(blit->fd, blit->linear.handle);
+
+	free(blit);
+}
+
+static void create_cairo_surface__blit(int fd, struct igt_fb *fb)
+{
+	struct fb_blit_upload *blit;
+	cairo_format_t cairo_format;
+	int bpp, ret;
+
+	blit = malloc(sizeof(*blit));
+	igt_assert(blit);
+
+	/*
+	 * We create a linear BO that we'll map for the CPU to write to (using
+	 * cairo). This linear bo will be then blitted to its final
+	 * destination, tiling it at the same time.
+	 */
+	bpp = igt_drm_format_to_bpp(fb->drm_format);
+	ret = create_bo_for_fb(fd, fb->width, fb->height, bpp,
+				LOCAL_DRM_FORMAT_MOD_NONE, 0,
+				&blit->linear.handle,
+				&blit->linear.size,
+				&blit->linear.stride);
+
+	igt_assert(ret == 0);
+
+	blit->fd = fd;
+	blit->fb = fb;
+	blit->linear.map = gem_mmap__cpu(fd,
+					 blit->linear.handle,
+					 0,
+					 blit->linear.size,
+					 PROT_READ | PROT_WRITE);
+	igt_assert(blit->linear.map);
+
+	gem_set_domain(fd, blit->linear.handle,
+		       I915_GEM_DOMAIN_CPU, I915_GEM_DOMAIN_CPU);
+
+	cairo_format = drm_format_to_cairo(fb->drm_format);
+	fb->cairo_surface =
+		cairo_image_surface_create_for_data(blit->linear.map,
+						    cairo_format,
+						    fb->width, fb->height,
+						    blit->linear.stride);
+
+	cairo_surface_set_user_data(fb->cairo_surface,
+				    (cairo_user_data_key_t *)create_cairo_surface__blit,
+				    blit, destroy_cairo_surface__blit);
+}
+
 static void destroy_cairo_surface__gtt(void *arg)
 {
 	struct igt_fb *fb = arg;
@@ -651,8 +749,13 @@ static void create_cairo_surface__gtt(int fd, struct igt_fb *fb)
 
 static cairo_surface_t *get_cairo_surface(int fd, struct igt_fb *fb)
 {
-	if (fb->cairo_surface == NULL)
-		create_cairo_surface__gtt(fd, fb);
+	if (fb->cairo_surface == NULL) {
+		if (fb->tiling == LOCAL_I915_FORMAT_MOD_Y_TILED ||
+		    fb->tiling == LOCAL_I915_FORMAT_MOD_Yf_TILED)
+			create_cairo_surface__blit(fd, fb);
+		else
+			create_cairo_surface__gtt(fd, fb);
+	}
 
 	gem_set_domain(fd, fb->gem_handle,
 		       I915_GEM_DOMAIN_CPU, I915_GEM_DOMAIN_CPU);
