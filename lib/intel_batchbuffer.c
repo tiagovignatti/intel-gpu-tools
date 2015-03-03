@@ -461,12 +461,12 @@ unsigned igt_buf_height(struct igt_buf *buf)
  * pitches are in bytes if the surfaces are linear, number of dwords
  * otherwise
  */
-static uint32_t fast_copy_pitch(struct igt_buf *buf)
+static uint32_t fast_copy_pitch(unsigned int stride, enum i915_tiling tiling)
 {
-	if (buf->tiling != I915_TILING_NONE)
-		return buf->stride / 4;
+	if (tiling != I915_TILING_NONE)
+		return stride / 4;
 	else
-		return buf->stride;
+		return stride;
 }
 
 /**
@@ -494,8 +494,8 @@ void igt_blitter_fast_copy(struct intel_batchbuffer *batch,
 	uint32_t src_pitch, dst_pitch;
 	uint32_t dword0 = 0, dword1 = 0;
 
-	src_pitch = fast_copy_pitch(src);
-	dst_pitch = fast_copy_pitch(dst);
+	src_pitch = fast_copy_pitch(src->stride, src->tiling);
+	dst_pitch = fast_copy_pitch(dst->stride, src->tiling);
 
 #define CHECK_RANGE(x)	((x) >= 0 && (x) < (1 << 15))
 	assert(CHECK_RANGE(src_x) && CHECK_RANGE(src_y) &&
