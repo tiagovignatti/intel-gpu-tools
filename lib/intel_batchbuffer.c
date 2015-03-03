@@ -457,6 +457,112 @@ unsigned igt_buf_height(struct igt_buf *buf)
 	return buf->size/buf->stride;
 }
 
+/*
+ * pitches are in bytes if the surfaces are linear, number of dwords
+ * otherwise
+ */
+static uint32_t fast_copy_pitch(struct igt_buf *buf)
+{
+	if (buf->tiling != I915_TILING_NONE)
+		return buf->stride / 4;
+	else
+		return buf->stride;
+}
+
+/**
+ * igt_blitter_fast_copy:
+ * @batch: batchbuffer object
+ * @context: libdrm hardware context to use
+ * @src: source i-g-t buffer object
+ * @src_x: source pixel x-coordination
+ * @src_y: source pixel y-coordination
+ * @width: width of the copied rectangle
+ * @height: height of the copied rectangle
+ * @dst: destination i-g-t buffer object
+ * @dst_x: destination pixel x-coordination
+ * @dst_y: destination pixel y-coordination
+ *
+ * Copy @src into @dst using the gen9 fast copy blitter comamnd.
+ *
+ * The source and destination surfaces cannot overlap.
+ */
+void igt_blitter_fast_copy(struct intel_batchbuffer *batch,
+			   struct igt_buf *src, unsigned src_x, unsigned src_y,
+			   unsigned width, unsigned height,
+			   struct igt_buf *dst, unsigned dst_x, unsigned dst_y)
+{
+	uint32_t src_pitch, dst_pitch;
+	uint32_t dword0 = 0, dword1 = 0;
+
+	src_pitch = fast_copy_pitch(src);
+	dst_pitch = fast_copy_pitch(dst);
+
+#define CHECK_RANGE(x)	((x) >= 0 && (x) < (1 << 15))
+	assert(CHECK_RANGE(src_x) && CHECK_RANGE(src_y) &&
+	       CHECK_RANGE(dst_x) && CHECK_RANGE(dst_y) &&
+	       CHECK_RANGE(width) && CHECK_RANGE(height) &&
+	       CHECK_RANGE(src_x + width) && CHECK_RANGE(src_y + height) &&
+	       CHECK_RANGE(dst_x + width) && CHECK_RANGE(dst_y + height) &&
+	       CHECK_RANGE(src_pitch) && CHECK_RANGE(dst_pitch));
+#undef CHECK_RANGE
+
+	dword0 |= XY_FAST_COPY_BLT;
+
+	switch (src->tiling) {
+	case I915_TILING_X:
+		dword0 |= XY_FAST_COPY_SRC_TILING_X;
+		break;
+	case I915_TILING_Y:
+	case I915_TILING_Yf:
+		dword0 |= XY_FAST_COPY_SRC_TILING_Yb_Yf;
+		break;
+	case I915_TILING_Ys:
+		dword0 |= XY_FAST_COPY_SRC_TILING_Ys;
+		break;
+	case I915_TILING_NONE:
+	default:
+		break;
+	}
+
+	switch (dst->tiling) {
+	case I915_TILING_X:
+		dword0 |= XY_FAST_COPY_DST_TILING_X;
+		break;
+	case I915_TILING_Y:
+	case I915_TILING_Yf:
+		dword0 |= XY_FAST_COPY_DST_TILING_Yb_Yf;
+		break;
+	case I915_TILING_Ys:
+		dword0 |= XY_FAST_COPY_DST_TILING_Ys;
+		break;
+	case I915_TILING_NONE:
+	default:
+		break;
+	}
+
+	if (src->tiling == I915_TILING_Yf)
+		dword1 |= XY_FAST_COPY_SRC_TILING_Yf;
+	if (dst->tiling == I915_TILING_Yf)
+		dword1 |= XY_FAST_COPY_DST_TILING_Yf;
+
+	dword1 |= XY_FAST_COPY_COLOR_DEPTH_32;
+
+	BEGIN_BATCH(10, 2);
+	OUT_BATCH(dword0);
+	OUT_BATCH(dword1 | dst_pitch);
+	OUT_BATCH((dst_y << 16) | dst_x); /* dst x1,y1 */
+	OUT_BATCH(((dst_y + height) << 16) | (dst_x + width)); /* dst x2,y2 */
+	OUT_RELOC(dst->bo, I915_GEM_DOMAIN_RENDER, I915_GEM_DOMAIN_RENDER, 0);
+	OUT_BATCH(0);	/* dst address upper bits */
+	OUT_BATCH((src_y << 16) | src_x); /* src x1,y1 */
+	OUT_BATCH(src_pitch);
+	OUT_RELOC(src->bo, I915_GEM_DOMAIN_RENDER, 0, 0);
+	OUT_BATCH(0);	/* src address upper bits */
+	ADVANCE_BATCH();
+
+	intel_batchbuffer_flush(batch);
+}
+
 /**
  * igt_get_render_copyfunc:
  * @devid: pci device id

@@ -2514,6 +2514,24 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #define XY_MONO_SRC_BLT_WRITE_ALPHA	(1<<21)
 #define XY_MONO_SRC_BLT_WRITE_RGB	(1<<20)
 
+#define XY_FAST_COPY_BLT				((2<<29)|(0x42<<22)|0x8)
+/* dword 0 */
+#define   XY_FAST_COPY_SRC_TILING_LINEAR		(0 << 20)
+#define   XY_FAST_COPY_SRC_TILING_X			(1 << 20)
+#define   XY_FAST_COPY_SRC_TILING_Yb_Yf			(2 << 20)
+#define   XY_FAST_COPY_SRC_TILING_Ys			(3 << 20)
+#define   XY_FAST_COPY_SRC_HORIZONTAL_ALIGNMENT(n)	(n << 17)
+#define   XY_FAST_COPY_SRC_VERTICAL_ALIGNMENT(n)	(n << 15)
+#define   XY_FAST_COPY_DST_TILING_X			(1 << 13)
+#define   XY_FAST_COPY_DST_TILING_Yb_Yf			(2 << 13)
+#define   XY_FAST_COPY_DST_TILING_Ys			(3 << 13)
+#define   XY_FAST_COPY_DST_HORIZONTAL_ALIGNMENT(n)	(n << 10)
+#define   XY_FAST_COPY_DST_VERTICAL_ALIGNMENT(n)	(n <<  8)
+/* dword 1 */
+#define   XY_FAST_COPY_SRC_TILING_Yf			(1 <<  31)
+#define   XY_FAST_COPY_DST_TILING_Yf			(1 <<  30)
+#define   XY_FAST_COPY_COLOR_DEPTH_32			(3  << 24)
+
 #define MI_STORE_DWORD_IMM		((0x20<<23)|2)
 #define   MI_MEM_VIRTUAL	(1 << 22) /* 965+ only */
 

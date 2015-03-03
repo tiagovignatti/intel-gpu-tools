@@ -186,6 +186,18 @@ void intel_copy_bo(struct intel_batchbuffer *batch,
 		   long int size);
 
 /**
+ * Yf/Ys tiling
+ *
+ * Tiling mode in the I915_TILING_... namespace for new tiling modes which are
+ * defined in the kernel. (They are not fenceable so the kernel does not need
+ * to know about them.)
+ *
+ * They are to be used the the blitting routines below.
+ */
+#define I915_TILING_Yf	3
+#define I915_TILING_Ys	4
+
+/**
  * igt_buf:
  * @bo: underlying libdrm buffer object
  * @stride: stride of the buffer
@@ -209,6 +221,11 @@ struct igt_buf {
 
 unsigned igt_buf_width(struct igt_buf *buf);
 unsigned igt_buf_height(struct igt_buf *buf);
+
+void igt_blitter_fast_copy(struct intel_batchbuffer *batch,
+			  struct igt_buf *src, unsigned src_x, unsigned src_y,
+			  unsigned width, unsigned height,
+			  struct igt_buf *dst, unsigned dst_x, unsigned dst_y);
 
 /**
  * igt_render_copyfunc_t:
