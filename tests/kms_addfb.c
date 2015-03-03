@@ -38,6 +38,7 @@
 #include "ioctl_wrappers.h"
 #include "drmtest.h"
 #include "drm_fourcc.h"
+#include "intel_chipset.h"
 
 uint32_t gem_bo;
 uint32_t gem_bo_small;
@@ -286,18 +287,85 @@ static void addfb25_tests(int fd)
 	}
 }
 
+static void addfb25_ytile(int fd, int gen)
+{
+	struct local_drm_mode_fb_cmd2 f = {};
+	int shouldret;
+
+	igt_fixture {
+		gem_bo = gem_create(fd, 1024*1024*4);
+		igt_assert(gem_bo);
+		gem_bo_small = gem_create(fd, 1024*1023*4);
+		igt_assert(gem_bo_small);
+
+		shouldret = gen >= 9 ? 0 : -1;
+
+		memset(&f, 0, sizeof(f));
+
+		f.width = 1024;
+		f.height = 1024;
+		f.pixel_format = DRM_FORMAT_XRGB8888;
+		f.pitches[0] = 1024*4;
+		f.flags = LOCAL_DRM_MODE_FB_MODIFIERS;
+		f.modifier[0] = LOCAL_DRM_FORMAT_MOD_NONE;
+
+		f.handles[0] = gem_bo;
+	}
+
+	igt_subtest("addfb25-Y-tiled") {
+		igt_require_fb_modifiers(fd);
+
+		f.modifier[0] = LOCAL_I915_FORMAT_MOD_Y_TILED;
+		igt_assert(drmIoctl(fd, LOCAL_DRM_IOCTL_MODE_ADDFB2, &f) == shouldret);
+		if (!shouldret)
+			igt_assert(drmIoctl(fd, DRM_IOCTL_MODE_RMFB, &f.fb_id) == 0);
+		f.fb_id = 0;
+	}
+
+	igt_subtest("addfb25-Yf-tiled") {
+		igt_require_fb_modifiers(fd);
+
+		f.modifier[0] = LOCAL_I915_FORMAT_MOD_Yf_TILED;
+		igt_assert(drmIoctl(fd, LOCAL_DRM_IOCTL_MODE_ADDFB2, &f) == shouldret);
+		if (!shouldret)
+			igt_assert(drmIoctl(fd, DRM_IOCTL_MODE_RMFB, &f.fb_id) == 0);
+		f.fb_id = 0;
+	}
+
+	igt_subtest("addfb25-Y-tiled-small") {
+		igt_require_fb_modifiers(fd);
+		igt_require(gen >= 9);
+
+		f.modifier[0] = LOCAL_I915_FORMAT_MOD_Y_TILED;
+		f.height = 1023;
+		f.handles[0] = gem_bo_small;
+		igt_assert(drmIoctl(fd, LOCAL_DRM_IOCTL_MODE_ADDFB2, &f) < 0 && errno == EINVAL);
+		f.fb_id = 0;
+	}
+
+	igt_fixture {
+		gem_close(fd, gem_bo);
+		gem_close(fd, gem_bo_small);
+	}
+}
+
 int fd;
+int gen;
 
 igt_main
 {
-	igt_fixture
+	igt_fixture {
 		fd = drm_open_any_master();
+		gen = intel_gen(intel_get_drm_devid(fd));
+	}
 
 	pitch_tests(fd);
 
 	size_tests(fd);
 
 	addfb25_tests(fd);
+
+	addfb25_ytile(fd, gen);
 
 	igt_fixture
 		close(fd);
