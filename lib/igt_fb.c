@@ -404,16 +404,10 @@ igt_create_fb_with_bo_size(int fd, int width, int height,
 			   uint32_t format, uint64_t tiling,
 			   struct igt_fb *fb, unsigned bo_size)
 {
-	uint32_t handles[4];
-	uint32_t pitches[4];
-	uint32_t offsets[4];
 	uint32_t fb_id;
 	int bpp;
 
 	memset(fb, 0, sizeof(*fb));
-	memset(handles, 0, sizeof(handles));
-	memset(pitches, 0, sizeof(pitches));
-	memset(offsets, 0, sizeof(offsets));
 
 	bpp = igt_drm_format_to_bpp(format);
 
@@ -422,14 +416,30 @@ igt_create_fb_with_bo_size(int fd, int width, int height,
 	do_or_die(create_bo_for_fb(fd, width, height, bpp, tiling, bo_size,
 				   &fb->gem_handle, &fb->size, &fb->stride));
 
-	handles[0] = fb->gem_handle;
-	pitches[0] = fb->stride;
-
 	igt_debug("%s(handle=%d, pitch=%d)\n",
-		  __func__, handles[0], pitches[0]);
-	do_or_die(drmModeAddFB2(fd, width, height, format,
-				handles, pitches, offsets,
-				&fb_id, 0));
+		  __func__, fb->gem_handle, fb->stride);
+
+	if (tiling != LOCAL_DRM_FORMAT_MOD_NONE &&
+	    tiling != LOCAL_I915_FORMAT_MOD_X_TILED) {
+		do_or_die(__kms_addfb(fd, fb->gem_handle, width, height,
+				      fb->stride, format, tiling,
+				      LOCAL_DRM_MODE_FB_MODIFIERS, &fb_id));
+	} else {
+		uint32_t handles[4];
+		uint32_t pitches[4];
+		uint32_t offsets[4];
+
+		memset(handles, 0, sizeof(handles));
+		memset(pitches, 0, sizeof(pitches));
+		memset(offsets, 0, sizeof(offsets));
+
+		handles[0] = fb->gem_handle;
+		pitches[0] = fb->stride;
+
+		do_or_die(drmModeAddFB2(fd, width, height, format,
+					handles, pitches, offsets,
+					&fb_id, 0));
+	}
 
 	fb->width = width;
 	fb->height = height;
