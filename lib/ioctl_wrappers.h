@@ -167,4 +167,13 @@ struct local_drm_mode_fb_cmd2 {
 
 void igt_require_fb_modifiers(int fd);
 
+/**
+ * __kms_addfb:
+ *
+ * Creates a framebuffer object.
+ */
+int __kms_addfb(int fd, uint32_t handle, uint32_t width, uint32_t height,
+		uint32_t stride, uint32_t pixel_format, uint64_t modifier,
+		uint32_t flags, uint32_t *buf_id);
+
 #endif /* IOCTL_WRAPPERS_H */

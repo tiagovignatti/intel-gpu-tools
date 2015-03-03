@@ -1165,3 +1165,29 @@ void igt_require_fb_modifiers(int fd)
 
 	igt_require(has_modifiers);
 }
+
+int __kms_addfb(int fd, uint32_t handle, uint32_t width, uint32_t height,
+		uint32_t stride, uint32_t pixel_format, uint64_t modifier,
+		uint32_t flags, uint32_t *buf_id)
+{
+	struct local_drm_mode_fb_cmd2 f;
+	int ret;
+
+	igt_require_fb_modifiers(fd);
+
+	memset(&f, 0, sizeof(f));
+
+	f.width  = width;
+	f.height = height;
+	f.pixel_format = pixel_format;
+	f.flags = flags;
+	f.handles[0] = handle;
+	f.pitches[0] = stride;
+	f.modifier[0] = modifier;
+
+	ret = drmIoctl(fd, LOCAL_DRM_IOCTL_MODE_ADDFB2, &f);
+
+	*buf_id = f.fb_id;
+
+	return ret < 0 ? -errno : ret;
+}
