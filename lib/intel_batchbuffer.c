@@ -469,6 +469,63 @@ static uint32_t fast_copy_pitch(unsigned int stride, enum i915_tiling tiling)
 		return stride;
 }
 
+static uint32_t fast_copy_dword0(unsigned int src_tiling,
+				 unsigned int dst_tiling)
+{
+	uint32_t dword0 = 0;
+
+	dword0 |= XY_FAST_COPY_BLT;
+
+	switch (src_tiling) {
+	case I915_TILING_X:
+		dword0 |= XY_FAST_COPY_SRC_TILING_X;
+		break;
+	case I915_TILING_Y:
+	case I915_TILING_Yf:
+		dword0 |= XY_FAST_COPY_SRC_TILING_Yb_Yf;
+		break;
+	case I915_TILING_Ys:
+		dword0 |= XY_FAST_COPY_SRC_TILING_Ys;
+		break;
+	case I915_TILING_NONE:
+	default:
+		break;
+	}
+
+	switch (dst_tiling) {
+	case I915_TILING_X:
+		dword0 |= XY_FAST_COPY_DST_TILING_X;
+		break;
+	case I915_TILING_Y:
+	case I915_TILING_Yf:
+		dword0 |= XY_FAST_COPY_DST_TILING_Yb_Yf;
+		break;
+	case I915_TILING_Ys:
+		dword0 |= XY_FAST_COPY_DST_TILING_Ys;
+		break;
+	case I915_TILING_NONE:
+	default:
+		break;
+	}
+
+	return dword0;
+}
+
+static uint32_t fast_copy_dword1(unsigned int src_tiling,
+				 unsigned int dst_tiling)
+{
+	uint32_t dword1 = 0;
+
+	if (src_tiling == I915_TILING_Yf)
+		dword1 |= XY_FAST_COPY_SRC_TILING_Yf;
+	if (dst_tiling == I915_TILING_Yf)
+		dword1 |= XY_FAST_COPY_DST_TILING_Yf;
+
+	dword1 |= XY_FAST_COPY_COLOR_DEPTH_32;
+
+	return dword1;
+}
+
 /**
  * igt_blitter_fast_copy:
  * @batch: batchbuffer object
@@ -492,10 +549,12 @@ void igt_blitter_fast_copy(struct intel_batchbuffer *batch,
 			   struct igt_buf *dst, unsigned dst_x, unsigned dst_y)
 {
 	uint32_t src_pitch, dst_pitch;
-	uint32_t dword0 = 0, dword1 = 0;
+	uint32_t dword0, dword1;
 
 	src_pitch = fast_copy_pitch(src->stride, src->tiling);
 	dst_pitch = fast_copy_pitch(dst->stride, src->tiling);
+	dword0 = fast_copy_dword0(src->tiling, dst->tiling);
+	dword1 = fast_copy_dword1(src->tiling, dst->tiling);
 
 #define CHECK_RANGE(x)	((x) >= 0 && (x) < (1 << 15))
 	assert(CHECK_RANGE(src_x) && CHECK_RANGE(src_y) &&
@@ -505,47 +564,6 @@ void igt_blitter_fast_copy(struct intel_batchbuffer *batch,
 	       CHECK_RANGE(dst_x + width) && CHECK_RANGE(dst_y + height) &&
 	       CHECK_RANGE(src_pitch) && CHECK_RANGE(dst_pitch));
 #undef CHECK_RANGE
-
-	dword0 |= XY_FAST_COPY_BLT;
-
-	switch (src->tiling) {
-	case I915_TILING_X:
-		dword0 |= XY_FAST_COPY_SRC_TILING_X;
-		break;
-	case I915_TILING_Y:
-	case I915_TILING_Yf:
-		dword0 |= XY_FAST_COPY_SRC_TILING_Yb_Yf;
-		break;
-	case I915_TILING_Ys:
-		dword0 |= XY_FAST_COPY_SRC_TILING_Ys;
-		break;
-	case I915_TILING_NONE:
-	default:
-		break;
-	}
-
-	switch (dst->tiling) {
-	case I915_TILING_X:
-		dword0 |= XY_FAST_COPY_DST_TILING_X;
-		break;
-	case I915_TILING_Y:
-	case I915_TILING_Yf:
-		dword0 |= XY_FAST_COPY_DST_TILING_Yb_Yf;
-		break;
-	case I915_TILING_Ys:
-		dword0 |= XY_FAST_COPY_DST_TILING_Ys;
-		break;
-	case I915_TILING_NONE:
-	default:
-		break;
-	}
-
-	if (src->tiling == I915_TILING_Yf)
-		dword1 |= XY_FAST_COPY_SRC_TILING_Yf;
-	if (dst->tiling == I915_TILING_Yf)
-		dword1 |= XY_FAST_COPY_DST_TILING_Yf;
-
-	dword1 |= XY_FAST_COPY_COLOR_DEPTH_32;
 
 	BEGIN_BATCH(10, 2);
 	OUT_BATCH(dword0);
