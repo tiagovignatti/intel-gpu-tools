@@ -73,49 +73,27 @@ check_bo(int fd, uint32_t handle, uint32_t val)
 	gem_read(fd, handle, 0, linear, sizeof(linear));
 	for (i = 0; i < WIDTH*HEIGHT; i++) {
 		igt_assert_f(linear[i] == val,
-			     "Expected 0x%08x, found 0x%08x "
-			     "at offset 0x%08x\n",
-			     val, linear[i], i * 4);
+			"Expected 0x%08x, found 0x%08x "
+			"at offset 0x%08x\n",
+			val, linear[i], i * 4);
 		val++;
 	}
 }
 
-int main(int argc, char **argv)
+static void run_test (int fd, int count)
 {
 	drm_intel_bufmgr *bufmgr;
 	struct intel_batchbuffer *batch;
 	uint32_t *start_val;
 	drm_intel_bo **bo;
 	uint32_t start = 0;
-	int i, j, fd, count;
-
-	igt_simple_init(argc, argv);
-
-	fd = drm_open_any();
+	int i, j;
 
 	render_copy = igt_get_render_copyfunc(intel_get_drm_devid(fd));
 	igt_require(render_copy);
 
 	bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
 	batch = intel_batchbuffer_alloc(bufmgr, intel_get_drm_devid(fd));
-
-	count = 0;
-	if (igt_run_in_simulation())
-		count = 2;
-	if (argc > 1)
-		count = atoi(argv[1]);
-
-	if (count == 0)
-		count = 3 * gem_aperture_size(fd) / SIZE / 2;
-	else if (count < 2) {
-		igt_warn("count must be >= 2\n");
-		return 1;
-	}
-
-	if (count > intel_get_total_ram_mb() * 9 / 10) {
-		count = intel_get_total_ram_mb() * 9 / 10;
-		igt_info("not enough RAM to run test, reducing buffer count\n");
-	}
 
 	bo = malloc(sizeof(*bo)*count);
 	start_val = malloc(sizeof(*start_val)*count);
@@ -128,7 +106,7 @@ int main(int argc, char **argv)
 		gem_write(fd, bo[i]->handle, 0, linear, sizeof(linear));
 	}
 
-	igt_info("Verifying initialisation...\n");
+	igt_info("Verifying initialisation - %d buffers of %d bytes\n", count, SIZE);
 	for (i = 0; i < count; i++)
 		check_bo(fd, bo[i]->handle, start_val[i]);
 
@@ -153,7 +131,7 @@ int main(int argc, char **argv)
 		check_bo(fd, bo[i]->handle, start_val[i]);
 
 	if (igt_run_in_simulation())
-		return 0;
+		return;
 
 	igt_info("Cyclic blits, backward...\n");
 	for (i = 0; i < count * 4; i++) {
@@ -199,6 +177,44 @@ int main(int argc, char **argv)
 	}
 	for (i = 0; i < count; i++)
 		check_bo(fd, bo[i]->handle, start_val[i]);
+
+	/* release resources */
+	for (i = 0; i < count; i++) {
+		drm_intel_bo_unreference(bo[i]);
+	}
+	intel_batchbuffer_free(batch);
+	drm_intel_bufmgr_destroy(bufmgr);
+}
+
+igt_main
+{
+	static int fd = 0;
+	int count=0;
+
+	igt_fixture {
+		fd = drm_open_any();
+	}
+
+	igt_subtest("basic") {
+		run_test(fd, 2);
+	}
+
+	/* the rest of the tests are too long for simulation */
+	igt_skip_on_simulation();
+
+	igt_subtest("apperture-thrash") {
+		count = 3 * gem_aperture_size(fd) / SIZE / 2;
+		intel_require_memory(count, SIZE, CHECK_RAM);
+		run_test(fd, count);
+	}
+
+	igt_subtest("swap-thrash") {
+		uint64_t swap_mb = intel_get_total_swap_mb();
+		igt_require(swap_mb > 0);
+		count = ((intel_get_avail_ram_mb() + (swap_mb / 2)) * 1024*1024) / SIZE;
+		intel_require_memory(count, SIZE, CHECK_RAM | CHECK_SWAP);
+		run_test(fd, count);
+	}
 
 	igt_exit();
 }
