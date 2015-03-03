@@ -65,7 +65,7 @@ static void test(data_t *data)
 
 	/* create a non-white fb where we can pwrite later */
 	igt_create_fb(data->drm_fd, mode->hdisplay, mode->vdisplay,
-		      DRM_FORMAT_XRGB8888, I915_TILING_NONE, fb);
+		      DRM_FORMAT_XRGB8888, LOCAL_DRM_FORMAT_MOD_NONE, fb);
 
 	cr = igt_get_cairo_ctx(data->drm_fd, fb);
 	igt_paint_test_pattern(cr, fb->width, fb->height);
@@ -123,7 +123,7 @@ static bool prepare_crtc(data_t *data)
 
 	/* create a white reference fb and flip to it */
 	igt_create_color_fb(data->drm_fd, mode->hdisplay, mode->vdisplay,
-			    DRM_FORMAT_XRGB8888, I915_TILING_NONE,
+			    DRM_FORMAT_XRGB8888, LOCAL_DRM_FORMAT_MOD_NONE,
 			    1.0, 1.0, 1.0, &data->fb[0]);
 
 	data->primary = igt_output_get_plane(output, IGT_PLANE_PRIMARY);

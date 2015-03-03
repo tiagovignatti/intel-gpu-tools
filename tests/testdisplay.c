@@ -81,7 +81,7 @@ drmModeRes *resources;
 int drm_fd, modes;
 int test_all_modes = 0, test_preferred_mode = 0, force_mode = 0, test_plane,
     test_stereo_modes;
-unsigned int tiling = I915_TILING_NONE;
+uint64_t tiling = LOCAL_DRM_FORMAT_MOD_NONE;
 int sleep_between_modes = 5;
 int do_dpms = 0; /* This aliases to DPMS_ON */
 uint32_t depth = 24, stride, bpp;
@@ -695,7 +695,7 @@ int main(int argc, char **argv)
 			test_preferred_mode = 1;
 			break;
 		case 't':
-			tiling = I915_TILING_X;
+			tiling = LOCAL_I915_FORMAT_MOD_X_TILED;
 			break;
 		case 'r':
 			qr_code = 1;

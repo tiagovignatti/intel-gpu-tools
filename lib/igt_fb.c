@@ -75,7 +75,7 @@ static struct format_desc_struct {
 
 /* helpers to create nice-looking framebuffers */
 static int create_bo_for_fb(int fd, int width, int height, int bpp,
-			    unsigned int tiling, unsigned bo_size,
+			    uint64_t tiling, unsigned bo_size,
 			    uint32_t *gem_handle_ret,
 			    unsigned *size_ret,
 			    unsigned *stride_ret)
@@ -84,7 +84,7 @@ static int create_bo_for_fb(int fd, int width, int height, int bpp,
 	int size, ret = 0;
 	unsigned stride;
 
-	if (tiling) {
+	if (tiling != LOCAL_DRM_FORMAT_MOD_NONE) {
 		int v;
 
 		/* Round the tiling up to the next power-of-two and the
@@ -112,8 +112,8 @@ static int create_bo_for_fb(int fd, int width, int height, int bpp,
 		bo_size = size;
 	gem_handle = gem_create(fd, bo_size);
 
-	if (tiling)
-		ret = __gem_set_tiling(fd, gem_handle, tiling, stride);
+	if (tiling != LOCAL_DRM_FORMAT_MOD_NONE)
+		ret = __gem_set_tiling(fd, gem_handle, I915_TILING_X, stride);
 
 	*stride_ret = stride;
 	*size_ret = size;
@@ -385,7 +385,7 @@ void igt_paint_image(cairo_t *cr, const char *filename,
  * @width: width of the framebuffer in pixel
  * @height: height of the framebuffer in pixel
  * @format: drm fourcc pixel format code
- * @tiling: tiling layout of the framebuffer
+ * @tiling: tiling layout of the framebuffer (as framebuffer modifier)
  * @fb: pointer to an #igt_fb structure
  * @bo_size: size of the backing bo (0 for minimum needed size)
  *
@@ -401,7 +401,7 @@ void igt_paint_image(cairo_t *cr, const char *filename,
  */
 unsigned int
 igt_create_fb_with_bo_size(int fd, int width, int height,
-			   uint32_t format, unsigned int tiling,
+			   uint32_t format, uint64_t tiling,
 			   struct igt_fb *fb, unsigned bo_size)
 {
 	uint32_t handles[4];
@@ -417,7 +417,7 @@ igt_create_fb_with_bo_size(int fd, int width, int height,
 
 	bpp = igt_drm_format_to_bpp(format);
 
-	igt_debug("%s(width=%d, height=%d, format=0x%x [bpp=%d], tiling=%d, size=%d\n",
+	igt_debug("%s(width=%d, height=%d, format=0x%x [bpp=%d], tiling=%llx, size=%d\n",
 		  __func__, width, height, format, bpp, tiling, bo_size);
 	do_or_die(create_bo_for_fb(fd, width, height, bpp, tiling, bo_size,
 				   &fb->gem_handle, &fb->size, &fb->stride));
@@ -460,7 +460,7 @@ igt_create_fb_with_bo_size(int fd, int width, int height,
  * The kms id of the created framebuffer.
  */
 unsigned int igt_create_fb(int fd, int width, int height, uint32_t format,
-			   unsigned int tiling, struct igt_fb *fb)
+			   uint64_t tiling, struct igt_fb *fb)
 {
 	return igt_create_fb_with_bo_size(fd, width, height, format, tiling, fb, 0);
 }
@@ -489,7 +489,7 @@ unsigned int igt_create_fb(int fd, int width, int height, uint32_t format,
  * failure.
  */
 unsigned int igt_create_color_fb(int fd, int width, int height,
-				 uint32_t format, unsigned int tiling,
+				 uint32_t format, uint64_t tiling,
 				 double r, double g, double b,
 				 struct igt_fb *fb /* out */)
 {
@@ -583,7 +583,7 @@ static void stereo_fb_layout_from_mode(struct stereo_fb_layout *layout,
  * failure.
  */
 unsigned int igt_create_stereo_fb(int drm_fd, drmModeModeInfo *mode,
-				  uint32_t format, unsigned int tiling)
+				  uint32_t format, uint64_t tiling)
 {
 	struct stereo_fb_layout layout;
 	cairo_t *cr;

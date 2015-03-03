@@ -51,7 +51,7 @@ struct igt_fb {
 	int width;
 	int height;
 	unsigned stride;
-	unsigned tiling;
+	uint64_t tiling;
 	unsigned size;
 	cairo_surface_t *cairo_surface;
 };
@@ -67,16 +67,16 @@ enum igt_text_align {
 
 unsigned int
 igt_create_fb_with_bo_size(int fd, int width, int height,
-			   uint32_t format, unsigned int tiling,
+			   uint32_t format, uint64_t tiling,
 			   struct igt_fb *fb, unsigned bo_size);
 unsigned int igt_create_fb(int fd, int width, int height, uint32_t format,
-			   unsigned int tiling, struct igt_fb *fb);
+			   uint64_t tiling, struct igt_fb *fb);
 unsigned int igt_create_color_fb(int fd, int width, int height,
-				 uint32_t format, unsigned int tiling,
+				 uint32_t format, uint64_t tiling,
 				 double r, double g, double b,
 				 struct igt_fb *fb /* out */);
 unsigned int igt_create_stereo_fb(int drm_fd, drmModeModeInfo *mode,
-				  uint32_t format, unsigned int tiling);
+				  uint32_t format, uint64_t tiling);
 void igt_remove_fb(int fd, struct igt_fb *fb);
 
 /* cairo-based painting */

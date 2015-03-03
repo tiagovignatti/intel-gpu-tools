@@ -103,7 +103,7 @@ igt_simple_main
 		/* create stereo framebuffer */
 		fb_id = igt_create_stereo_fb(drm_fd, &connector->modes[i],
 					     igt_bpp_depth_to_drm_format(32, 32),
-					     I915_TILING_NONE);
+					     LOCAL_DRM_FORMAT_MOD_NONE);
 
 		ret = drmModeSetCrtc(drm_fd, config.crtc->crtc_id, fb_id, 0, 0,
 				     &connector->connector_id, 1,

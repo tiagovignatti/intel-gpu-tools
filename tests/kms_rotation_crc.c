@@ -97,14 +97,14 @@ static void prepare_crtc(data_t *data, igt_output_t *output, enum pipe pipe,
 	fb_id = igt_create_fb(data->gfx_fd,
 			mode->hdisplay, mode->vdisplay,
 			DRM_FORMAT_XRGB8888,
-			false, /* tiled */
+			LOCAL_DRM_FORMAT_MOD_NONE,
 			&data->fb);
 	igt_assert(fb_id);
 
 	fb_cursor_id = igt_create_fb(data->gfx_fd,
 				     128, 128,
 				     DRM_FORMAT_ARGB8888,
-				     false, /* tiled */
+				     LOCAL_DRM_FORMAT_MOD_NONE,
 				     &data->fb_cursor);
 	igt_assert(fb_cursor_id);
 

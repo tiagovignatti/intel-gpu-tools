@@ -35,6 +35,7 @@
 #include <xf86drmMode.h>
 
 #include "igt_fb.h"
+#include "ioctl_wrappers.h"
 
 /* Low-level helpers with kmstest_ prefix */
 

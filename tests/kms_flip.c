@@ -1325,7 +1325,7 @@ static void run_test_on_crtc_set(struct test_output *o, int *crtc_idxs,
 	char test_name[128];
 	unsigned elapsed;
 	unsigned bo_size = 0;
-	unsigned int tiling;
+	uint64_t tiling;
 	int i;
 
 	switch (crtc_count) {
@@ -1357,9 +1357,9 @@ static void run_test_on_crtc_set(struct test_output *o, int *crtc_idxs,
 	if (o->flags & TEST_PAN)
 		o->fb_width *= 2;
 
-	tiling = I915_TILING_NONE;
+	tiling = LOCAL_DRM_FORMAT_MOD_NONE;
 	if (o->flags & TEST_FENCE_STRESS)
-		tiling = I915_TILING_X;
+		tiling = LOCAL_I915_FORMAT_MOD_X_TILED;
 
 	/* 256 MB is usually the maximum mappable aperture,
 	 * (make it 4x times that to ensure failure) */
@@ -1374,7 +1374,7 @@ static void run_test_on_crtc_set(struct test_output *o, int *crtc_idxs,
 					 tiling, &o->fb_info[1], bo_size);
 	o->fb_ids[2] = igt_create_fb(drm_fd, o->fb_width, o->fb_height,
 					 igt_bpp_depth_to_drm_format(o->bpp, o->depth),
-					 I915_TILING_X, &o->fb_info[2]);
+					 LOCAL_I915_FORMAT_MOD_X_TILED, &o->fb_info[2]);
 	igt_assert(o->fb_ids[0]);
 	igt_assert(o->fb_ids[1]);
 	if (o->flags & TEST_FB_BAD_TILING)
