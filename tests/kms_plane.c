@@ -145,6 +145,7 @@ create_fb_for_mode__position(data_t *data, drmModeModeInfo *mode,
 
 enum {
 	TEST_POSITION_FULLY_COVERED = 1 << 0,
+	TEST_DPMS = 1 << 1,
 };
 
 static void
@@ -158,7 +159,7 @@ test_plane_position_with_output(data_t *data,
 	igt_plane_t *primary, *sprite;
 	struct igt_fb primary_fb, sprite_fb;
 	drmModeModeInfo *mode;
-	igt_crc_t crc;
+	igt_crc_t crc, crc2;
 
 	igt_info("Testing connector %s using pipe %s plane %d\n",
 		 igt_output_name(output), kmstest_pipe_name(pipe), plane);
@@ -194,10 +195,23 @@ test_plane_position_with_output(data_t *data,
 
 	igt_pipe_crc_collect_crc(data->pipe_crc, &crc);
 
+	if (flags & TEST_DPMS) {
+		kmstest_set_connector_dpms(data->drm_fd,
+					   output->config.connector,
+					   DRM_MODE_DPMS_OFF);
+		kmstest_set_connector_dpms(data->drm_fd,
+					   output->config.connector,
+					   DRM_MODE_DPMS_ON);
+	}
+
+	igt_pipe_crc_collect_crc(data->pipe_crc, &crc2);
+
 	if (flags & TEST_POSITION_FULLY_COVERED)
 		igt_assert(igt_crc_equal(&test.reference_crc, &crc));
 	else
 		igt_assert(!igt_crc_equal(&test.reference_crc, &crc));
+
+	igt_assert(igt_crc_equal(&crc, &crc2));
 
 	igt_plane_set_fb(primary, NULL);
 	igt_plane_set_fb(sprite, NULL);
@@ -357,6 +371,11 @@ run_tests_for_pipe_plane(data_t *data, enum pipe pipe, enum igt_plane plane)
 	igt_subtest_f("plane-position-hole-pipe-%s-plane-%d",
 		      kmstest_pipe_name(pipe), plane)
 		test_plane_position(data, pipe, plane, 0);
+
+	igt_subtest_f("plane-position-hole-dpms-pipe-%s-plane-%d",
+		      kmstest_pipe_name(pipe), plane)
+		test_plane_position(data, pipe, plane,
+				    TEST_DPMS);
 
 	igt_subtest_f("plane-panning-top-left-pipe-%s-plane-%d",
 		      kmstest_pipe_name(pipe), plane)
