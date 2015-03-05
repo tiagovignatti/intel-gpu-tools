@@ -188,22 +188,6 @@ FILE *igt_debugfs_fopen(const char *filename,
  * Pipe CRC
  */
 
-static bool igt_crc_is_null(igt_crc_t *crc)
-{
-	int i;
-
-	for (i = 0; i < crc->n_words; i++) {
-		igt_warn_on_f(crc->crc[i] == 0xffffffff,
-			      "Suspicious CRC: it looks like the CRC "
-			      "read back was from a register in a powered "
-			      "down well\n");
-		if (crc->crc[i])
-			return false;
-	}
-
-	return true;
-}
-
 /**
  * igt_assert_crc_equal:
  * @a: first pipe CRC value
@@ -498,6 +482,23 @@ igt_pipe_crc_get_crcs(igt_pipe_crc_t *pipe_crc, int n_crcs,
 	*out_crcs = crcs;
 }
 
+static void crc_sanity_checks(igt_crc_t *crc)
+{
+	int i;
+	bool all_zero = true;
+
+	for (i = 0; i < crc->n_words; i++) {
+		igt_warn_on_f(crc->crc[i] == 0xffffffff,
+			      "Suspicious CRC: it looks like the CRC "
+			      "read back was from a register in a powered "
+			      "down well\n");
+		if (crc->crc[i])
+			all_zero = false;
+	}
+
+	igt_warn_on_f(all_zero, "Suspicious CRC: All values are 0.\n");
+}
+
 /**
  * igt_pipe_crc_collect_crc:
  * @pipe_crc: pipe CRC object
@@ -515,7 +516,7 @@ void igt_pipe_crc_collect_crc(igt_pipe_crc_t *pipe_crc, igt_crc_t *out_crc)
 	read_one_crc(pipe_crc, out_crc);
 	igt_pipe_crc_stop(pipe_crc);
 
-	igt_assert(!igt_crc_is_null(out_crc));
+	crc_sanity_checks(out_crc);
 }
 
 /*
