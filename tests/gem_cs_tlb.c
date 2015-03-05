@@ -130,7 +130,8 @@ static void run_on_ring(int fd, unsigned ring_id, const char *ring_name)
 			gem_close(fd, handle);
 		}
 
-		igt_assert(exec(fd, handle_new, split, &gtt_offset_new, 0) == 0);
+		igt_assert_eq(exec(fd, handle_new, split, &gtt_offset_new, 0),
+			      0);
 
 		if (split > 0) {
 			/* Check that we've managed to collide in the tlb. */

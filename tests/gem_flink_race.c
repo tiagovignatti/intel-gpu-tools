@@ -61,7 +61,7 @@ static int get_object_count(void)
 	file = igt_debugfs_fopen("i915_gem_objects", "r");
 
 	scanned = fscanf(file, "%i objects", &ret);
-	igt_assert(scanned == 1);
+	igt_assert_eq(scanned, 1);
 
 	return ret;
 }
@@ -107,7 +107,7 @@ static void test_flink_name(void)
 	for (i = 0; i < num_threads; i++) {
 		r = pthread_create(&threads[i], NULL,
 				   thread_fn_flink_name, NULL);
-		igt_assert(r == 0);
+		igt_assert_eq(r, 0);
 	}
 
 	for (i = 0; i < 1000000; i++) {
@@ -176,7 +176,7 @@ static void test_flink_close(void)
 	for (i = 0; i < num_threads; i++) {
 		r = pthread_create(&threads[i], NULL,
 				   thread_fn_flink_close, NULL);
-		igt_assert(r == 0);
+		igt_assert_eq(r, 0);
 	}
 
 	sleep(5);
@@ -196,7 +196,7 @@ static void test_flink_close(void)
 
 	close(fake);
 
-	igt_assert(obj_count == 0);
+	igt_assert_eq(obj_count, 0);
 }
 
 igt_main

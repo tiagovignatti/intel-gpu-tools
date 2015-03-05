@@ -107,7 +107,7 @@ static void test_i915_nv_import_twice_check_flink_name(void)
 	igt_assert(nouveau_bo_name_get(nvbo, &flink_name1) == 0);
 	igt_assert(nouveau_bo_name_get(nvbo2, &flink_name2) == 0);
 
-	igt_assert(flink_name1 == flink_name2);
+	igt_assert_eq_u32(flink_name1, flink_name2);
 
 	nouveau_bo_ref(NULL, &nvbo2);
 	nouveau_bo_ref(NULL, &nvbo);
@@ -137,7 +137,7 @@ static void test_i915_nv_reimport_twice_check_flink_name(void)
 	igt_assert(nouveau_bo_name_get(nvbo, &flink_name1) == 0);
 	igt_assert(nouveau_bo_name_get(nvbo2, &flink_name2) == 0);
 
-	igt_assert(flink_name1 == flink_name2);
+	igt_assert_eq_u32(flink_name1, flink_name2);
 
 	nouveau_bo_ref(NULL, &nvbo2);
 	nouveau_bo_ref(NULL, &nvbo);
@@ -166,7 +166,7 @@ static void test_nv_i915_import_twice_check_flink_name(void)
 	igt_assert(drm_intel_bo_flink(intel_bo, &flink_name1) == 0);
 	igt_assert(drm_intel_bo_flink(intel_bo2, &flink_name2) == 0);
 
-	igt_assert(flink_name1 == flink_name2);
+	igt_assert_eq_u32(flink_name1, flink_name2);
 
 	nouveau_bo_ref(NULL, &nvbo);
 	drm_intel_bo_unreference(intel_bo);
@@ -197,7 +197,7 @@ static void test_nv_i915_reimport_twice_check_flink_name(void)
 	igt_assert(drm_intel_bo_flink(intel_bo, &flink_name1) == 0);
 	igt_assert(drm_intel_bo_flink(intel_bo2, &flink_name2) == 0);
 
-	igt_assert(flink_name1 == flink_name2);
+	igt_assert_eq_u32(flink_name1, flink_name2);
 
 	nouveau_bo_ref(NULL, &nvbo);
 	drm_intel_bo_unreference(intel_bo);

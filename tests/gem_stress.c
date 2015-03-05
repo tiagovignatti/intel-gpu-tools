@@ -193,7 +193,7 @@ static void keep_gpu_busy(void)
 	int tmp;
 
 	tmp = 1 << gpu_busy_load;
-	igt_assert(tmp <= 1024);
+	igt_assert_lte(tmp, 1024);
 
 	emit_blt(busy_bo, 0, 4096, 0, 0, tmp, 128,
 		 busy_bo, 0, 4096, 0, 128);
@@ -749,7 +749,7 @@ static void init(void)
 	drm_intel_bufmgr_gem_enable_reuse(bufmgr);
 	drm_intel_bufmgr_gem_enable_fenced_relocs(bufmgr);
 	num_fences = gem_available_fences(drm_fd);
-	igt_assert(num_fences > 4);
+	igt_assert_lt(4, num_fences);
 	batch = intel_batchbuffer_alloc(bufmgr, devid);
 
 	busy_bo = drm_intel_bo_alloc(bufmgr, "tiled bo", BUSY_BUF_SIZE, 4096);

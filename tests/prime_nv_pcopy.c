@@ -411,7 +411,7 @@ static void perform_copy(struct nouveau_bo *nvbo, const rect *dst,
 	ret = nouveau_pushbuf_kick(push, push->channel);
 	while (!ret && *query < query_counter) { usleep(1000); }
 
-	igt_assert(ret == 0);
+	igt_assert_eq(ret, 0);
 }
 
 static void check1_macro(uint32_t *p, uint32_t w, uint32_t h)
@@ -561,7 +561,7 @@ static void test1_micro(void)
 	igt_assert(drm_intel_gem_bo_map_gtt(test_intel_bo) == 0);
 
 	drm_intel_bo_gem_export_to_prime(test_intel_bo, &prime_fd);
-	igt_assert(prime_fd >= 0);
+	igt_assert_lte(0, prime_fd);
 	noop_intel(test_intel_bo);
 
 	nv_bo_alloc(&bo_intel, &intel, w, h, tile_intel_y, prime_fd, 0);
@@ -695,7 +695,7 @@ static void test3_base(int tile_src, int tile_dst)
 	igt_assert(test_intel_bo);
 
 	drm_intel_bo_gem_export_to_prime(test_intel_bo, &prime_fd);
-	igt_assert(prime_fd >= 0);
+	igt_assert_lte(0, prime_fd);
 
 	nv_bo_alloc(&bo_intel, &intel, 2048 * cpp, 768, tile_dst, prime_fd, 0);
 	nv_bo_alloc(&bo_nvidia, &nvidia, 300 * cpp, 300, tile_src, -1, NOUVEAU_BO_VRAM);
@@ -783,7 +783,7 @@ static void test_semaphore(void)
 	igt_assert(test_intel_bo);
 
 	drm_intel_bo_gem_export_to_prime(test_intel_bo, &prime_fd);
-	igt_assert(prime_fd >= 0);
+	igt_assert_lte(0, prime_fd);
 	igt_assert(nouveau_bo_prime_handle_ref(ndev, prime_fd, &sema_bo) == 0);
 	close(prime_fd);
 

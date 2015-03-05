@@ -50,15 +50,15 @@ test_flink(int fd)
 	memset(&create, 0, sizeof(create));
 	create.size = 16 * 1024;
 	ret = ioctl(fd, DRM_IOCTL_I915_GEM_CREATE, &create);
-	igt_assert(ret == 0);
+	igt_assert_eq(ret, 0);
 
 	flink.handle = create.handle;
 	ret = ioctl(fd, DRM_IOCTL_GEM_FLINK, &flink);
-	igt_assert(ret == 0);
+	igt_assert_eq(ret, 0);
 
 	open_struct.name = flink.name;
 	ret = ioctl(fd, DRM_IOCTL_GEM_OPEN, &open_struct);
-	igt_assert(ret == 0);
+	igt_assert_eq(ret, 0);
 	igt_assert(open_struct.handle != 0);
 }
 
@@ -75,15 +75,15 @@ test_double_flink(int fd)
 	memset(&create, 0, sizeof(create));
 	create.size = 16 * 1024;
 	ret = ioctl(fd, DRM_IOCTL_I915_GEM_CREATE, &create);
-	igt_assert(ret == 0);
+	igt_assert_eq(ret, 0);
 
 	flink.handle = create.handle;
 	ret = ioctl(fd, DRM_IOCTL_GEM_FLINK, &flink);
-	igt_assert(ret == 0);
+	igt_assert_eq(ret, 0);
 
 	flink2.handle = create.handle;
 	ret = ioctl(fd, DRM_IOCTL_GEM_FLINK, &flink2);
-	igt_assert(ret == 0);
+	igt_assert_eq(ret, 0);
 	igt_assert(flink2.name == flink.name);
 }
 
@@ -129,15 +129,15 @@ test_flink_lifetime(int fd)
 	memset(&create, 0, sizeof(create));
 	create.size = 16 * 1024;
 	ret = ioctl(fd2, DRM_IOCTL_I915_GEM_CREATE, &create);
-	igt_assert(ret == 0);
+	igt_assert_eq(ret, 0);
 
 	flink.handle = create.handle;
 	ret = ioctl(fd2, DRM_IOCTL_GEM_FLINK, &flink);
-	igt_assert(ret == 0);
+	igt_assert_eq(ret, 0);
 
 	open_struct.name = flink.name;
 	ret = ioctl(fd, DRM_IOCTL_GEM_OPEN, &open_struct);
-	igt_assert(ret == 0);
+	igt_assert_eq(ret, 0);
 	igt_assert(open_struct.handle != 0);
 
 	close(fd2);
@@ -145,7 +145,7 @@ test_flink_lifetime(int fd)
 
 	open_struct.name = flink.name;
 	ret = ioctl(fd2, DRM_IOCTL_GEM_OPEN, &open_struct);
-	igt_assert(ret == 0);
+	igt_assert_eq(ret, 0);
 	igt_assert(open_struct.handle != 0);
 }
 

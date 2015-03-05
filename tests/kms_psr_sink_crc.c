@@ -188,11 +188,11 @@ static bool psr_enabled(data_t *data)
 	igt_require(file);
 
 	ret = fscanf(file, "Sink_Support: %s\n", str);
-	igt_assert(ret != 0);
+	igt_assert_neq(ret, 0);
 	ret = fscanf(file, "Source_OK: %s\n", str);
-	igt_assert(ret != 0);
+	igt_assert_neq(ret, 0);
 	ret = fscanf(file, "Enabled: %s\n", str);
-	igt_assert(ret != 0);
+	igt_assert_neq(ret, 0);
 
 	fclose(file);
 	return strcmp(str, "yes") == 0;
@@ -211,19 +211,19 @@ static bool psr_active(data_t *data)
 	igt_require(file);
 
 	ret = fscanf(file, "Sink_Support: %s\n", str);
-	igt_assert(ret != 0);
+	igt_assert_neq(ret, 0);
 	ret = fscanf(file, "Source_OK: %s\n", str);
-	igt_assert(ret != 0);
+	igt_assert_neq(ret, 0);
 	ret = fscanf(file, "Enabled: %s\n", str);
-	igt_assert(ret != 0);
+	igt_assert_neq(ret, 0);
 	ret = fscanf(file, "Active: %s\n", str);
-	igt_assert(ret != 0);
+	igt_assert_neq(ret, 0);
 	ret = fscanf(file, "Busy frontbuffer bits: %s\n", str);
-	igt_assert(ret != 0);
+	igt_assert_neq(ret, 0);
 	ret = fscanf(file, "Re-enable work scheduled: %s\n", str);
-	igt_assert(ret != 0);
+	igt_assert_neq(ret, 0);
 	ret = fscanf(file, "HW Enabled & Active bit: %s\n", str);
-	igt_assert(ret != 0);
+	igt_assert_neq(ret, 0);
 
 	fclose(file);
 	return strcmp(str, "yes") == 0;

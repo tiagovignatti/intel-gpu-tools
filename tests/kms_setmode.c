@@ -187,7 +187,7 @@ static void create_fb_for_crtc(struct crtc_config *crtc,
 				  crtc->mode.vdisplay,
 				  igt_bpp_depth_to_drm_format(bpp, depth),
 				  I915_TILING_NONE, fb_info);
-	igt_assert(fb_id > 0);
+	igt_assert_lt(0, fb_id);
 }
 
 static void get_mode_for_crtc(struct crtc_config *crtc,
@@ -281,7 +281,7 @@ static void setup_crtcs(drmModeRes *resources, struct connector_config *cconf,
 		unsigned long encoder_mask;
 		int j;
 
-		igt_assert(crtc_count < MAX_CRTCS);
+		igt_assert_lt(crtc_count, MAX_CRTCS);
 
 		crtc->crtc_idx = cconf[i].crtc_idx;
 		drm_crtc = drmModeGetCrtc(drm_fd,

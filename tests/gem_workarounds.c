@@ -157,7 +157,7 @@ static int workaround_fail_count(void)
 
 static void check_workarounds(enum operation op)
 {
-	igt_assert(workaround_fail_count() == 0);
+	igt_assert_eq(workaround_fail_count(), 0);
 
 	switch (op) {
 	case GPU_RESET:
@@ -175,7 +175,7 @@ static void check_workarounds(enum operation op)
 		igt_assert(0);
 	}
 
-	igt_assert(workaround_fail_count() == 0);
+	igt_assert_eq(workaround_fail_count(), 0);
 }
 
 igt_main

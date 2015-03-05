@@ -127,7 +127,7 @@ static void wait_for_flip(data_t *data, uint32_t flip_handle)
 		if (ret < 0 && errno == EINTR)
 			continue;
 
-		igt_assert(ret >= 0);
+		igt_assert_lte(0, ret);
 
 		do_or_die(drmHandleEvent(data->drm_fd, &evctx));
 	}
@@ -256,14 +256,14 @@ test_plane(data_t *data, igt_output_t *output, enum pipe pipe, enum igt_plane pl
 	ret = drmModeSetCrtc(data->drm_fd, output->config.crtc->crtc_id,
 			     blue_fb.fb_id, 0, 0, &output->id, 1,
 			     mode);
-	igt_assert(ret == 0);
+	igt_assert_eq(ret, 0);
 
 	make_gpu_busy(data, blue_fb.gem_handle);
 
 	data->flip_done = false;
 	ret = drmModePageFlip(data->drm_fd, output->config.crtc->crtc_id,
 			      blue_fb.fb_id, DRM_MODE_PAGE_FLIP_EVENT, data);
-	igt_assert(ret == 0);
+	igt_assert_eq(ret, 0);
 
 	/*
 	 * Toggle a fullscreen sprite on and back off. This will result
@@ -279,14 +279,14 @@ test_plane(data_t *data, igt_output_t *output, enum pipe pipe, enum igt_plane pl
 			      green_fb.fb_id, 0,
 			      0, 0, mode->hdisplay, mode->vdisplay,
 			      0, 0, mode->hdisplay << 16, mode->vdisplay << 16);
-	igt_assert(ret == 0);
+	igt_assert_eq(ret, 0);
 	ret = drmModeSetPlane(data->drm_fd,
 			      sprite->drm_plane->plane_id,
 			      output->config.crtc->crtc_id,
 			      0, 0,
 			      0, 0, 0, 0,
 			      0, 0, 0, 0);
-	igt_assert(ret == 0);
+	igt_assert_eq(ret, 0);
 
 	/*
 	 * Set primary plane to red fb. This should wait for the CS flip
@@ -298,7 +298,7 @@ test_plane(data_t *data, igt_output_t *output, enum pipe pipe, enum igt_plane pl
 	ret = drmModeSetCrtc(data->drm_fd, output->config.crtc->crtc_id,
 			     red_fb.fb_id, 0, 0, &output->id, 1,
 			     mode);
-	igt_assert(ret == 0);
+	igt_assert_eq(ret, 0);
 
 	/* Make sure the flip has been executed */
 	wait_for_flip(data, blue_fb.gem_handle);
@@ -410,7 +410,7 @@ test_crtc(data_t *data, igt_output_t *output, enum pipe pipe)
 	ret = drmModeSetCrtc(data->drm_fd, output->config.crtc->crtc_id,
 			     green_fb.fb_id, 0, 1, &output->id, 1,
 			     mode);
-	igt_assert(ret == 0);
+	igt_assert_eq(ret, 0);
 
 	/*
 	 * Make it more likely that the CS flip has been submitted into the
@@ -424,7 +424,7 @@ test_crtc(data_t *data, igt_output_t *output, enum pipe pipe)
 	ret = drmModeSetCrtc(data->drm_fd, output->config.crtc->crtc_id,
 			     green_fb.fb_id, 0, 0, &output->id, 1,
 			     mode);
-	igt_assert(ret == 0);
+	igt_assert_eq(ret, 0);
 
 	make_gpu_busy(data, blue_fb.gem_handle);
 
@@ -435,7 +435,7 @@ test_crtc(data_t *data, igt_output_t *output, enum pipe pipe)
 	data->flip_done = false;
 	ret = drmModePageFlip(data->drm_fd, output->config.crtc->crtc_id,
 			      blue_fb.fb_id, DRM_MODE_PAGE_FLIP_EVENT, data);
-	igt_assert(ret == 0);
+	igt_assert_eq(ret, 0);
 
 	/*
 	 * Set primary plane to red fb. This should wait for the CS flip
@@ -447,7 +447,7 @@ test_crtc(data_t *data, igt_output_t *output, enum pipe pipe)
 	ret = drmModeSetCrtc(data->drm_fd, output->config.crtc->crtc_id,
 			     red_fb.fb_id, 0, 0, &output->id, 1,
 			     mode);
-	igt_assert(ret == 0);
+	igt_assert_eq(ret, 0);
 
 	/* Make sure the flip has been executed */
 	wait_for_flip(data, blue_fb.gem_handle);

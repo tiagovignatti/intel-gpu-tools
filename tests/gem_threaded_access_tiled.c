@@ -77,7 +77,7 @@ static int copy_tile_threaded(drm_intel_bo *bo)
 	for (i = 0; i < NUM_THREADS; i++) {
 		tctx[i].bo = bo;
 		r = pthread_create(&thr[i], NULL, copy_fn, (void *)&tctx[i]);
-		igt_assert(r == 0);
+		igt_assert_eq(r, 0);
 	}
 
 	for (i = 0;  i < NUM_THREADS; i++) {

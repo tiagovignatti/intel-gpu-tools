@@ -89,7 +89,7 @@ static int minor_evictions(int fd, struct igt_eviction_test_ops *ops,
 			for (n = 0; n < nr_surfaces; n++, m += 7)
 				sel[n] = bo[m%total_surfaces];
 			ret = ops->copy(fd, sel[0], sel[1], sel, nr_surfaces);
-			igt_assert(ret == 0);
+			igt_assert_eq(ret, 0);
 		}
 		ret = ops->copy(fd, bo[0], bo[0], bo, total_surfaces);
 		igt_assert(ret == ENOSPC);
@@ -120,7 +120,7 @@ static int major_evictions(int fd, struct igt_eviction_test_ops *ops,
 	for (loop = 0, m = 0; loop < 100; loop++, m += 17) {
 		n = m % nr_surfaces;
 		ret = ops->copy(fd, bo[n], bo[n], &bo[n], 1);
-		igt_assert(ret == 0);
+		igt_assert_eq(ret, 0);
 	}
 
 	for (n = 0; n < nr_surfaces; n++)
@@ -156,7 +156,7 @@ static int swapping_evictions(int fd, struct igt_eviction_test_ops *ops,
 
 		for (pass = 0; pass < 100; pass++) {
 			ret = ops->copy(fd, bo[0], bo[1], bo, working_surfaces);
-			igt_assert(ret == 0);
+			igt_assert_eq(ret, 0);
 		}
 	}
 
@@ -186,7 +186,7 @@ static int forking_evictions(int fd, struct igt_eviction_test_ops *ops,
 	} else
 		bo_count = working_surfaces;
 
-	igt_assert(working_surfaces <= bo_count);
+	igt_assert_lte(working_surfaces, bo_count);
 	intel_require_memory(bo_count, surface_size, CHECK_RAM | CHECK_SWAP);
 
 	bo = malloc(bo_count*sizeof(*bo));
@@ -223,7 +223,7 @@ static int forking_evictions(int fd, struct igt_eviction_test_ops *ops,
 
 		for (pass = 0; pass < num_passes; pass++) {
 			ret = ops->copy(realfd, bo[0], bo[1], bo, working_surfaces);
-			igt_assert(ret == 0);
+			igt_assert_eq(ret, 0);
 
 			for (l = 0; l < working_surfaces &&
 			  (flags & FORKING_EVICTIONS_MEMORY_PRESSURE);

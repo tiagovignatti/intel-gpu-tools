@@ -162,7 +162,7 @@ static void edp_subtest(int drm_fd, drmModeResPtr drm_res,
 
 	rc = drmModeSetCrtc(drm_fd, crtc_id, buffer_id, 0, 0, &connector_id, 1,
 			    mode);
-	igt_assert(rc == 0);
+	igt_assert_eq(rc, 0);
 
 	if (use_panel_fitter) {
 		if (IS_HASWELL(devid))
@@ -209,7 +209,7 @@ static void non_edp_subtest(int drm_fd, drmModeResPtr drm_res,
 
 	rc = drmModeSetCrtc(drm_fd, crtc_id, buffer_id, 0, 0, &connector_id, 1,
 			    mode);
-	igt_assert(rc == 0);
+	igt_assert_eq(rc, 0);
 
 	igt_assert(!lpsp_is_enabled(drm_fd));
 }

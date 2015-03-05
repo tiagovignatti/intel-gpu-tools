@@ -121,7 +121,7 @@ static void do_test(uint32_t tiling, unsigned stride,
 	test_bo = drm_intel_bo_alloc(bufmgr, "tiled busy bo", TEST_SIZE, 4096);
 	test_bo_handle = test_bo->handle;
 	ret = drm_intel_bo_set_tiling(test_bo, &tiling_after, stride_after);
-	igt_assert(ret == 0);
+	igt_assert_eq(ret, 0);
 	drm_intel_gem_bo_map_gtt(test_bo);
 	ptr = test_bo->virtual;
 	*ptr = 0;
@@ -141,7 +141,7 @@ static void do_test(uint32_t tiling, unsigned stride,
 	test_bo_handle = test_bo->handle;
 	/* ensure we have the right tiling before we start. */
 	ret = drm_intel_bo_set_tiling(test_bo, &tiling, stride);
-	igt_assert(ret == 0);
+	igt_assert_eq(ret, 0);
 
 	if (tiling == I915_TILING_NONE) {
 		drm_intel_bo_subdata(test_bo, 0, TEST_SIZE, data);
@@ -179,7 +179,7 @@ static void do_test(uint32_t tiling, unsigned stride,
 	/* double check that the reuse trick worked */
 	igt_assert(test_bo_handle == test_bo->handle);
 	ret = drm_intel_bo_set_tiling(test_bo, &tiling_after, stride_after);
-	igt_assert(ret == 0);
+	igt_assert_eq(ret, 0);
 
 	/* Note: We don't care about gen4+ here because the blitter doesn't use
 	 * fences there. So not setting tiling flags on the tiled buffer is ok.

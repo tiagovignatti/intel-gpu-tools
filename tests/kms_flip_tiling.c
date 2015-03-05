@@ -104,7 +104,7 @@ test_flip_changes_tiling(data_t *data, igt_output_t *output)
 	/* flip to the linear buffer */
 	ret = drmModePageFlip(data->drm_fd, output->config.crtc->crtc_id,
 			      fb_id, 0, NULL);
-	igt_assert(ret == 0);
+	igt_assert_eq(ret, 0);
 
 	igt_wait_for_vblank(data->drm_fd, pipe);
 

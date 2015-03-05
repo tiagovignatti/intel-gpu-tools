@@ -165,7 +165,7 @@ test_forcewake(bool hibernate)
 	int fw_fd;
 
 	fw_fd = igt_open_forcewake_handle();
-	igt_assert(fw_fd >= 0);
+	igt_assert_lte(0, fw_fd);
 
 	if (hibernate)
 		igt_system_hibernate_autoresume();

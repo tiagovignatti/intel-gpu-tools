@@ -76,10 +76,10 @@ static bool test(data_t *data, enum pipe pipe, igt_output_t *output)
 	fd = drm_open_any();
 
 	ret = drmDropMaster(data->drm_fd);
-	igt_assert(ret == 0);
+	igt_assert_eq(ret, 0);
 
 	ret = drmSetMaster(fd);
-	igt_assert(ret == 0);
+	igt_assert_eq(ret, 0);
 
 	igt_create_color_fb(fd, mode->hdisplay, mode->vdisplay,
 			    DRM_FORMAT_XRGB8888,
@@ -88,13 +88,13 @@ static bool test(data_t *data, enum pipe pipe, igt_output_t *output)
 	ret = drmModePageFlip(fd, output->config.crtc->crtc_id,
 			      fb[1].fb_id, DRM_MODE_PAGE_FLIP_EVENT,
 			      data);
-	igt_assert(ret == 0);
+	igt_assert_eq(ret, 0);
 
 	ret = close(fd);
-	igt_assert(ret == 0);
+	igt_assert_eq(ret, 0);
 
 	ret = drmSetMaster(data->drm_fd);
-	igt_assert(ret == 0);
+	igt_assert_eq(ret, 0);
 
 	igt_plane_set_fb(primary, NULL);
 	igt_output_set_pipe(output, PIPE_ANY);

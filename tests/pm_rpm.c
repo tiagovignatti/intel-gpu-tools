@@ -624,7 +624,7 @@ static int count_i2c_valid_edids(void)
 		if (strncmp(dirent->d_name, "i2c-", 4) == 0) {
 			snprintf(full_name, 32, "/dev/%s", dirent->d_name);
 			fd = open(full_name, O_RDWR);
-			igt_assert(fd != -1);
+			igt_assert_neq(fd, -1);
 			if (i2c_edid_is_valid(fd))
 				ret++;
 			close(fd);
@@ -883,7 +883,7 @@ static void read_full_file(const char *name)
 	} while (rc == ARRAY_SIZE(buf));
 
 	rc = close(fd);
-	igt_assert(rc == 0);
+	igt_assert_eq(rc, 0);
 
 	igt_assert_f(wait_for_suspended(), "File: %s\n", name);
 }
@@ -900,7 +900,7 @@ static void read_files_from_dir(const char *name, int level)
 
 	full_name = malloc(PATH_MAX);
 
-	igt_assert(level < 128);
+	igt_assert_lt(level, 128);
 
 	while ((dirent = readdir(dir))) {
 		struct stat stat_buf;
@@ -913,7 +913,7 @@ static void read_files_from_dir(const char *name, int level)
 		snprintf(full_name, PATH_MAX, "%s/%s", name, dirent->d_name);
 
 		rc = lstat(full_name, &stat_buf);
-		igt_assert(rc == 0);
+		igt_assert_eq(rc, 0);
 
 		if (S_ISDIR(stat_buf.st_mode))
 			read_files_from_dir(full_name, level + 1);
@@ -979,7 +979,7 @@ static void debugfs_forcewake_user_subtest(void)
 	}
 
 	rc = close(fd);
-	igt_assert(rc == 0);
+	igt_assert_eq(rc, 0);
 
 	igt_assert(wait_for_suspended());
 }
@@ -1233,7 +1233,7 @@ static void gem_execbuf_subtest(void)
 
 			if (y >= sq_y && y < (sq_y + sq_h) &&
 			    x >= sq_x && x < (sq_x + sq_w))
-				igt_assert(px == color);
+				igt_assert_eq_u32(px, color);
 			else
 				igt_assert(px == 0);
 		}
@@ -1250,7 +1250,7 @@ static void gem_execbuf_subtest(void)
 
 			if (y >= sq_y && y < (sq_y + sq_h) &&
 			    x >= sq_x && x < (sq_x + sq_w))
-				igt_assert(px == color);
+				igt_assert_eq_u32(px, color);
 			else
 				igt_assert(px == 0);
 		}
@@ -1273,7 +1273,7 @@ static void gem_execbuf_subtest(void)
 
 			if (y >= sq_y && y < (sq_y + sq_h) &&
 			    x >= sq_x && x < (sq_x + sq_w))
-				igt_assert(px == color);
+				igt_assert_eq_u32(px, color);
 			else
 				igt_assert(px == 0);
 		}
@@ -1388,7 +1388,7 @@ static bool device_in_pci_d3(void)
 	pci_dev = intel_get_pci_device();
 
 	rc = pci_device_cfg_read_u16(pci_dev, &val, 0xd4);
-	igt_assert(rc == 0);
+	igt_assert_eq(rc, 0);
 
 	return (val & 0x3) == 0x3;
 }
@@ -1523,54 +1523,54 @@ static void cursor_subtest(bool dpms)
 
 	rc = drmModeSetCursor(drm_fd, crtc_id, cursor_fb1.gem_handle,
 			      cursor_fb1.width, cursor_fb1.height);
-	igt_assert(rc == 0);
+	igt_assert_eq(rc, 0);
 	rc = drmModeMoveCursor(drm_fd, crtc_id, 0, 0);
-	igt_assert(rc == 0);
+	igt_assert_eq(rc, 0);
 	igt_assert(wait_for_active());
 
 	disable_or_dpms_all_screens_and_wait(&ms_data, dpms);
 
 	/* First, just move the cursor. */
 	rc = drmModeMoveCursor(drm_fd, crtc_id, 1, 1);
-	igt_assert(rc == 0);
+	igt_assert_eq(rc, 0);
 	igt_assert(wait_for_suspended());
 
 	/* Then unset it, and set a new one. */
 	rc = drmModeSetCursor(drm_fd, crtc_id, 0, 0, 0);
-	igt_assert(rc == 0);
+	igt_assert_eq(rc, 0);
 	igt_assert(wait_for_suspended());
 
 	rc = drmModeSetCursor(drm_fd, crtc_id, cursor_fb2.gem_handle,
 			      cursor_fb1.width, cursor_fb2.height);
-	igt_assert(rc == 0);
+	igt_assert_eq(rc, 0);
 	igt_assert(wait_for_suspended());
 
 	/* Move the new cursor. */
 	rc = drmModeMoveCursor(drm_fd, crtc_id, 2, 2);
-	igt_assert(rc == 0);
+	igt_assert_eq(rc, 0);
 	igt_assert(wait_for_suspended());
 
 	/* Now set a new one without unsetting the previous one. */
 	rc = drmModeSetCursor(drm_fd, crtc_id, cursor_fb1.gem_handle,
 			      cursor_fb1.width, cursor_fb1.height);
-	igt_assert(rc == 0);
+	igt_assert_eq(rc, 0);
 	igt_assert(wait_for_suspended());
 
 	/* Cursor 3 was created with tiling and painted with a GTT mmap, so
 	 * hopefully it has some fences around it. */
 	rc = drmModeRmFB(drm_fd, cursor_fb3.fb_id);
-	igt_assert(rc == 0);
+	igt_assert_eq(rc, 0);
 	gem_set_tiling(drm_fd, cursor_fb3.gem_handle, false, cursor_fb3.stride);
 	igt_assert(wait_for_suspended());
 
 	rc = drmModeSetCursor(drm_fd, crtc_id, cursor_fb3.gem_handle,
 			      cursor_fb3.width, cursor_fb3.height);
-	igt_assert(rc == 0);
+	igt_assert_eq(rc, 0);
 	igt_assert(wait_for_suspended());
 
 	/* Make sure nothing remains for the other tests. */
 	rc = drmModeSetCursor(drm_fd, crtc_id, 0, 0, 0);
-	igt_assert(rc == 0);
+	igt_assert_eq(rc, 0);
 	igt_assert(wait_for_suspended());
 }
 
@@ -1664,7 +1664,7 @@ static void test_one_plane(bool dpms, uint32_t plane_id,
 			     0, 0, plane_fb1.width, plane_fb1.height,
 			     0 << 16, 0 << 16, plane_fb1.width << 16,
 			     plane_fb1.height << 16);
-	igt_assert(rc == 0);
+	igt_assert_eq(rc, 0);
 
 	disable_or_dpms_all_screens_and_wait(&ms_data, dpms);
 
@@ -1677,19 +1677,19 @@ static void test_one_plane(bool dpms, uint32_t plane_id,
 			     crtc_x, crtc_y, plane_fb1.width, plane_fb1.height,
 			     0 << 16, 0 << 16, plane_fb1.width << 16,
 			     plane_fb1.height << 16);
-	igt_assert(rc == 0);
+	igt_assert_eq(rc, 0);
 	igt_assert(wait_for_suspended());
 
 	/* Unset, then change the plane. */
 	rc = drmModeSetPlane(drm_fd, plane_id, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
-	igt_assert(rc == 0);
+	igt_assert_eq(rc, 0);
 	igt_assert(wait_for_suspended());
 
 	rc = drmModeSetPlane(drm_fd, plane_id, crtc_id, plane_fb2.fb_id, 0,
 			     crtc_x, crtc_y, plane_fb2.width, plane_fb2.height,
 			     0 << 16, 0 << 16, plane_fb2.width << 16,
 			     plane_fb2.height << 16);
-	igt_assert(rc == 0);
+	igt_assert_eq(rc, 0);
 	igt_assert(wait_for_suspended());
 
 	/* Now change the plane without unsetting first. */
@@ -1697,12 +1697,12 @@ static void test_one_plane(bool dpms, uint32_t plane_id,
 			     crtc_x, crtc_y, plane_fb1.width, plane_fb1.height,
 			     0 << 16, 0 << 16, plane_fb1.width << 16,
 			     plane_fb1.height << 16);
-	igt_assert(rc == 0);
+	igt_assert_eq(rc, 0);
 	igt_assert(wait_for_suspended());
 
 	/* Make sure nothing remains for the other tests. */
 	rc = drmModeSetPlane(drm_fd, plane_id, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
-	igt_assert(rc == 0);
+	igt_assert_eq(rc, 0);
 	igt_assert(wait_for_suspended());
 }
 
@@ -1741,11 +1741,11 @@ static void planes_subtest(bool universal, bool dpms)
 
 	if (universal) {
 		rc = drmSetClientCap(drm_fd, DRM_CLIENT_CAP_UNIVERSAL_PLANES, 0);
-		igt_assert(rc == 0);
+		igt_assert_eq(rc, 0);
 
-		igt_assert(planes_tested >= 3);
+		igt_assert_lte(3, planes_tested);
 	} else {
-		igt_assert(planes_tested >= 1);
+		igt_assert_lte(1, planes_tested);
 	}
 }
 

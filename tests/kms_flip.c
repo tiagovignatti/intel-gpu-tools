@@ -771,7 +771,7 @@ static void eat_error_state(void)
 	int fd;
 
 	fd = igt_debugfs_open(dfs_entry_error, O_WRONLY);
-	igt_assert(fd >= 0);
+	igt_assert_lte(0, fd);
 
 	igt_assert(write(fd, data, sizeof(data)) == sizeof(data));
 	close(fd);
@@ -1348,7 +1348,7 @@ static void run_test_on_crtc_set(struct test_output *o, int *crtc_idxs,
 	if (!o->mode_valid)
 		return;
 
-	igt_assert(o->count == crtc_count);
+	igt_assert_eq(o->count, crtc_count);
 
 	last_connector = o->kconnector[0];
 
@@ -1407,10 +1407,10 @@ static void run_test_on_crtc_set(struct test_output *o, int *crtc_idxs,
 		sleep(1);
 
 	if (o->flags & TEST_BO_TOOBIG) {
-		igt_assert(do_page_flip(o, o->fb_ids[1], true) == -E2BIG);
+		igt_assert_eq(do_page_flip(o, o->fb_ids[1], true), -E2BIG);
 		goto out;
 	} else
-		igt_assert(do_page_flip(o, o->fb_ids[1], true) == 0);
+		igt_assert_eq(do_page_flip(o, o->fb_ids[1], true), 0);
 	wait_for_events(o);
 
 	o->current_fb_id = 1;

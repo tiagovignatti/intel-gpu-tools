@@ -127,7 +127,7 @@ copy(int fd, uint32_t dst, uint32_t src, uint32_t *all_bo, int n_bo, int alignme
 	ret = drmIoctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &exec);
 	if (ret)
 		ret = errno;
-	igt_assert(ret == error);
+	igt_assert_eq(ret, error);
 
 	gem_close(fd, handle);
 	free(obj);

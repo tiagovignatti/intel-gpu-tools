@@ -75,7 +75,7 @@ run_batch(void)
 	used = batch->ptr - batch->buffer;
 
 	ret = drm_intel_bo_subdata(batch->bo, 0, used, batch->buffer);
-	igt_assert(ret == 0);
+	igt_assert_eq(ret, 0);
 
 	batch->ptr = NULL;
 

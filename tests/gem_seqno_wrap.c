@@ -321,7 +321,7 @@ static int read_seqno(void)
 	int wrap = 0;
 
 	r = __read_seqno(&seqno);
-	igt_assert(r == 0);
+	igt_assert_eq(r, 0);
 
 	if (last_seqno > seqno)
 		wrap++;
@@ -387,16 +387,16 @@ static void run_test(void)
 
 static void preset_run_once(void)
 {
-	igt_assert(write_seqno(1) == 0);
+	igt_assert_eq(write_seqno(1), 0);
 	run_test();
 
-	igt_assert(write_seqno(0x7fffffff) == 0);
+	igt_assert_eq(write_seqno(0x7fffffff), 0);
 	run_test();
 
-	igt_assert(write_seqno(0xffffffff) == 0);
+	igt_assert_eq(write_seqno(0xffffffff), 0);
 	run_test();
 
-	igt_assert(write_seqno(0xfffffff0) == 0);
+	igt_assert_eq(write_seqno(0xfffffff0), 0);
 	run_test();
 }
 
@@ -410,7 +410,7 @@ static void random_run_once(void)
 			val += random();
 	} while (val == 0);
 
-	igt_assert(write_seqno(val) == 0);
+	igt_assert_eq(write_seqno(val), 0);
 	run_test();
 }
 
@@ -418,7 +418,7 @@ static void wrap_run_once(void)
 {
 	const uint32_t pw_val = calc_prewrap_val();
 
-	igt_assert(write_seqno(UINT32_MAX - pw_val) == 0);
+	igt_assert_eq(write_seqno(UINT32_MAX - pw_val), 0);
 
 	while(!read_seqno())
 		run_test();
@@ -428,7 +428,7 @@ static void background_run_once(void)
 {
 	const uint32_t pw_val = calc_prewrap_val();
 
-	igt_assert(write_seqno(UINT32_MAX - pw_val) == 0);
+	igt_assert_eq(write_seqno(UINT32_MAX - pw_val), 0);
 
 	while(!read_seqno())
 		sleep(3);
@@ -525,7 +525,7 @@ int main(int argc, char **argv)
 			  options.dontwrap ? "tests" : "wraps", wcount);
 	}
 
-	igt_assert(options.rounds == wcount);
+	igt_assert_eq(options.rounds, wcount);
 
 	igt_exit();
 }

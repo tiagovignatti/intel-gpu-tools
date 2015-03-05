@@ -94,14 +94,14 @@ static void *igfx_get_mmio(void)
 	igt_skip_on(intel_gen(pci->device_id) != 7);
 
 	error = pci_device_probe(pci);
-	igt_assert(error == 0);
+	igt_assert_eq(error, 0);
 
 	error = pci_device_map_range(pci,
 				     pci->regions[0].base_addr,
 				     2*1024*1024,
 				     PCI_DEV_MAP_FLAG_WRITABLE,
 				     &mmio);
-	igt_assert(error == 0);
+	igt_assert_eq(error, 0);
 	igt_assert(mmio != NULL);
 
 	return mmio;

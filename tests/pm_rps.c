@@ -75,7 +75,7 @@ static int readval(FILE *filp)
 
 	rewind(filp);
 	scanned = fscanf(filp, "%d", &val);
-	igt_assert(scanned == 1);
+	igt_assert_eq(scanned, 1);
 
 	return val;
 }
@@ -571,7 +571,7 @@ static void blocking(void)
 	int post_freqs[NUMFREQ];
 
 	int fd = drm_open_any();
-	igt_assert(fd >= 0);
+	igt_assert_lte(0, fd);
 
 	/*
 	 * quiescent_gpu upsets the gpu and makes it get pegged to max somehow.

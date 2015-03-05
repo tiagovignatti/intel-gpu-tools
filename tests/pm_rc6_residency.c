@@ -48,7 +48,7 @@ static unsigned int readit(const char *path)
 	file = fopen(path, "r");
 	igt_assert(file);
 	scanned = fscanf(file, "%u", &ret);
-	igt_assert(scanned == 1);
+	igt_assert_eq(scanned, 1);
 
 	fclose(file);
 
@@ -68,7 +68,7 @@ static void read_rc6_residency( int value[], const char *name_of_rc6_residency)
 	sleep(5);
 
 	ret = asprintf(&path, "/sys/class/drm/card%d/power/rc6_enable", device);
-	igt_assert(ret != -1);
+	igt_assert_neq(ret, -1);
 
 	file = fopen(path, "r");
 	igt_require(file);
@@ -81,7 +81,7 @@ static void read_rc6_residency( int value[], const char *name_of_rc6_residency)
 	{
 		sleep(SLEEP_DURATION / 1000);
 		ret = asprintf(&path, "/sys/class/drm/card%d/power/%s_residency_ms",device,name_of_rc6_residency);
-		igt_assert(ret != -1);
+		igt_assert_neq(ret, -1);
 		value[i] = readit(path);
 	}
 	free(path);

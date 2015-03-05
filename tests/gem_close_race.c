@@ -140,7 +140,7 @@ static void run(int child)
 	int fd;
 
 	fd = open(device, O_RDWR);
-	igt_assert(fd != -1);
+	igt_assert_neq(fd, -1);
 
 	handle = load(fd);
 	if ((child & 63) == 63)

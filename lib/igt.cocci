@@ -141,3 +141,35 @@ a = drm_open_any();
 - return ...;
 - }
 )
+
+// Use comparison macros instead of raw igt_assert when possible
+@@
+typedef uint32_t;
+uint32_t E1, E2;
+int E3, E4;
+@@
+(
+- igt_assert(E1 == E2);
++ igt_assert_eq_u32(E1, E2);
+|
+- igt_assert(E1 != E2);
++ igt_assert_neq_u32(E1, E2);
+|
+- igt_assert(E1 <= E2);
++ igt_assert_lte_u32(E1, E2);
+|
+- igt_assert(E1 < E2);
++ igt_assert_lt_u32(E1, E2);
+|
+- igt_assert(E3 == E4);
++ igt_assert_eq(E3, E4);
+|
+- igt_assert(E3 != E4);
++ igt_assert_neq(E3, E4);
+|
+- igt_assert(E3 <= E4);
++ igt_assert_lte(E3, E4);
+|
+- igt_assert(E3 < E4);
++ igt_assert_lt(E3, E4);
+)

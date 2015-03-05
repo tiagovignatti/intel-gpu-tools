@@ -90,7 +90,7 @@ static void exec(int fd, uint32_t handle)
 		       DRM_IOCTL_I915_GEM_EXECBUFFER2,
 		       &execbuf);
 	gem_sync(fd, handle);
-	igt_assert(ret == 0);
+	igt_assert_eq(ret, 0);
 }
 
 igt_simple_main

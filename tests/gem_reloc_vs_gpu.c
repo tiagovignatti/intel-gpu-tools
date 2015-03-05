@@ -100,7 +100,7 @@ static void create_special_bo(void)
 		BATCH(CMD_POLY_STIPPLE_OFFSET << 16);
 		BATCH(0);
 	}
-	igt_assert(len % 2 == 0);
+	igt_assert_eq(len % 2, 0);
 	BATCH(MI_NOOP);
 	BATCH(MI_BATCH_BUFFER_END);
 

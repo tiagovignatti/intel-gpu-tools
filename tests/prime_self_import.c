@@ -162,7 +162,7 @@ static void test_with_one_bo_two_files(void)
 	handle_import = prime_fd_to_handle(fd2, dma_buf_fd2);
 
 	/* dma-buf selfimporting an flink bo should give the same handle */
-	igt_assert(handle_import == handle_open);
+	igt_assert_eq_u32(handle_import, handle_open);
 
 	close(fd1);
 	close(fd2);
@@ -189,11 +189,11 @@ static void test_with_one_bo(void)
 	/* reimport should give us the same handle so that userspace can check
 	 * whether it has that bo already somewhere. */
 	handle_import2 = prime_fd_to_handle(fd2, dma_buf_fd);
-	igt_assert(handle_import1 == handle_import2);
+	igt_assert_eq_u32(handle_import1, handle_import2);
 
 	/* Same for re-importing on the exporting fd. */
 	handle_selfimport = prime_fd_to_handle(fd1, dma_buf_fd);
-	igt_assert(handle == handle_selfimport);
+	igt_assert_eq_u32(handle, handle_selfimport);
 
 	/* close dma_buf, check whether nothing disappears. */
 	close(dma_buf_fd);
@@ -225,7 +225,7 @@ static int get_object_count(void)
 	file = igt_debugfs_fopen("i915_gem_objects", "r");
 
 	scanned = fscanf(file, "%i objects", &ret);
-	igt_assert(scanned == 1);
+	igt_assert_eq(scanned, 1);
 
 	return ret;
 }
@@ -278,7 +278,7 @@ static void test_reimport_close_race(void)
 		r = pthread_create(&threads[i], NULL,
 				   thread_fn_reimport_vs_close,
 				   (void *)(uintptr_t)fds);
-		igt_assert(r == 0);
+		igt_assert_eq(r, 0);
 	}
 
 	sleep(5);
@@ -360,7 +360,7 @@ static void test_export_close_race(void)
 		r = pthread_create(&threads[i], NULL,
 				   thread_fn_export_vs_close,
 				   (void *)(uintptr_t)fd);
-		igt_assert(r == 0);
+		igt_assert_eq(r, 0);
 	}
 
 	sleep(5);

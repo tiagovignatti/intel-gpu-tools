@@ -149,7 +149,7 @@ static void run(data_t *data, int child)
 	x = ptr[rand() % (size / 4)];
 	munmap(ptr, size);
 
-	igt_assert(x == canary);
+	igt_assert_eq_u32(x, canary);
 }
 
 igt_simple_main

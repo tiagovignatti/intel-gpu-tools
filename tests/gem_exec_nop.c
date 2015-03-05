@@ -97,7 +97,7 @@ static void loop(int fd, uint32_t handle, unsigned ring_id, const char *ring_nam
 		struct timeval start, end;
 
 		gettimeofday(&start, NULL);
-		igt_assert(exec(fd, handle, count, ring_id) == 0);
+		igt_assert_eq(exec(fd, handle, count, ring_id), 0);
 		gettimeofday(&end, NULL);
 		igt_info("Time to exec x %d:		%7.3fµs (ring=%s)\n",
 			 count, elapsed(&start, &end, count), ring_name);

@@ -243,7 +243,7 @@ static int inject_hang_ring(int fd, int ctx, int ring, bool ignore_ban_error)
 	i915_execbuffer2_set_context_id(execbuf, ctx);
 	execbuf.rsvd2 = 0;
 
-	igt_assert(gem_exec(fd, &execbuf) == 0);
+	igt_assert_eq(gem_exec(fd, &execbuf), 0);
 
 	gtt_off = exec.offset;
 
@@ -284,7 +284,7 @@ static int inject_hang_ring(int fd, int ctx, int ring, bool ignore_ban_error)
 	i915_execbuffer2_set_context_id(execbuf, ctx);
 	execbuf.rsvd2 = 0;
 
-	igt_assert(gem_exec(fd, &execbuf) == 0);
+	igt_assert_eq(gem_exec(fd, &execbuf), 0);
 
 	igt_assert(gtt_off == exec.offset);
 
@@ -342,8 +342,8 @@ static void test_rs(int num_fds, int hang_index, int rs_assumed_no_hang)
 	int fd[MAX_FD];
 	int h[MAX_FD];
 
-	igt_assert (num_fds <= MAX_FD);
-	igt_assert (hang_index < MAX_FD);
+	igt_assert_lte(num_fds, MAX_FD);
+	igt_assert_lt(hang_index, MAX_FD);
 
 	for (i = 0; i < num_fds; i++) {
 		fd[i] = drm_open_any();
@@ -391,11 +391,11 @@ static void test_rs_ctx(int num_fds, int num_ctx, int hang_index,
 	int h[MAX_FD][MAX_CTX];
 	int ctx[MAX_FD][MAX_CTX];
 
-	igt_assert (num_fds <= MAX_FD);
-	igt_assert (hang_index < MAX_FD);
+	igt_assert_lte(num_fds, MAX_FD);
+	igt_assert_lt(hang_index, MAX_FD);
 
-	igt_assert (num_ctx <= MAX_CTX);
-	igt_assert (hang_context < MAX_CTX);
+	igt_assert_lte(num_ctx, MAX_CTX);
+	igt_assert_lt(hang_context, MAX_CTX);
 
 	test_rs(num_fds, -1, RS_NO_ERROR);
 
@@ -482,15 +482,15 @@ static void test_ban(void)
 	assert_reset_status(fd_good, 0, RS_NO_ERROR);
 
 	h1 = exec_valid(fd_bad, 0);
-	igt_assert(h1 >= 0);
+	igt_assert_lte(0, h1);
 	h5 = exec_valid(fd_good, 0);
-	igt_assert(h5 >= 0);
+	igt_assert_lte(0, h5);
 
 	assert_reset_status(fd_bad, 0, RS_NO_ERROR);
 	assert_reset_status(fd_good, 0, RS_NO_ERROR);
 
 	h2 = inject_hang_no_ban_error(fd_bad, 0);
-	igt_assert(h2 >= 0);
+	igt_assert_lte(0, h2);
 	active_count++;
 	/* Second hang will be pending for this */
 	pending_count++;
@@ -500,7 +500,7 @@ static void test_ban(void)
 
         while (retry--) {
                 h3 = inject_hang_no_ban_error(fd_bad, 0);
-                igt_assert(h3 >= 0);
+                igt_assert_lte(0, h3);
                 gem_sync(fd_bad, h3);
 		active_count++;
 		/* This second hand will count as pending */
@@ -515,21 +515,21 @@ static void test_ban(void)
                 /* Should not happen often but sometimes hang is declared too slow
                  * due to our way of faking hang using loop */
 
-                igt_assert(h4 >= 0);
+                igt_assert_lte(0, h4);
                 gem_close(fd_bad, h3);
                 gem_close(fd_bad, h4);
 
                 igt_info("retrying for ban (%d)\n", retry);
         }
 
-	igt_assert(h4 == -EIO);
+	igt_assert_eq(h4, -EIO);
 	assert_reset_status(fd_bad, 0, RS_BATCH_ACTIVE);
 
 	gem_sync(fd_good, h7);
 	assert_reset_status(fd_good, 0, RS_BATCH_PENDING);
 
-	igt_assert(gem_reset_stats(fd_good, 0, &rs_good) == 0);
-	igt_assert(gem_reset_stats(fd_bad, 0, &rs_bad) == 0);
+	igt_assert_eq(gem_reset_stats(fd_good, 0, &rs_good), 0);
+	igt_assert_eq(gem_reset_stats(fd_bad, 0, &rs_bad), 0);
 
 	igt_assert(rs_bad.batch_active == active_count);
 	igt_assert(rs_bad.batch_pending == pending_count);
@@ -542,14 +542,14 @@ static void test_ban(void)
 	gem_close(fd_good, h7);
 
 	h1 = exec_valid(fd_good, 0);
-	igt_assert(h1 >= 0);
+	igt_assert_lte(0, h1);
 	gem_close(fd_good, h1);
 
 	close(fd_bad);
 	close(fd_good);
 
-	igt_assert(gem_reset_status(fd_bad, 0) < 0);
-	igt_assert(gem_reset_status(fd_good, 0) < 0);
+	igt_assert_lt(gem_reset_status(fd_bad, 0), 0);
+	igt_assert_lt(gem_reset_status(fd_good, 0), 0);
 }
 
 static void test_ban_ctx(void)
@@ -573,15 +573,15 @@ static void test_ban_ctx(void)
 	assert_reset_status(fd, ctx_bad, RS_NO_ERROR);
 
 	h1 = exec_valid(fd, ctx_bad);
-	igt_assert(h1 >= 0);
+	igt_assert_lte(0, h1);
 	h5 = exec_valid(fd, ctx_good);
-	igt_assert(h5 >= 0);
+	igt_assert_lte(0, h5);
 
 	assert_reset_status(fd, ctx_good, RS_NO_ERROR);
 	assert_reset_status(fd, ctx_bad, RS_NO_ERROR);
 
 	h2 = inject_hang_no_ban_error(fd, ctx_bad);
-	igt_assert(h2 >= 0);
+	igt_assert_lte(0, h2);
 	active_count++;
 	/* Second hang will be pending for this */
 	pending_count++;
@@ -591,7 +591,7 @@ static void test_ban_ctx(void)
 
         while (retry--) {
                 h3 = inject_hang_no_ban_error(fd, ctx_bad);
-                igt_assert(h3 >= 0);
+                igt_assert_lte(0, h3);
                 gem_sync(fd, h3);
 		active_count++;
 		/* This second hand will count as pending */
@@ -606,21 +606,21 @@ static void test_ban_ctx(void)
                 /* Should not happen often but sometimes hang is declared too slow
                  * due to our way of faking hang using loop */
 
-                igt_assert(h4 >= 0);
+                igt_assert_lte(0, h4);
                 gem_close(fd, h3);
                 gem_close(fd, h4);
 
                 igt_info("retrying for ban (%d)\n", retry);
         }
 
-	igt_assert(h4 == -EIO);
+	igt_assert_eq(h4, -EIO);
 	assert_reset_status(fd, ctx_bad, RS_BATCH_ACTIVE);
 
 	gem_sync(fd, h7);
 	assert_reset_status(fd, ctx_good, RS_BATCH_PENDING);
 
-	igt_assert(gem_reset_stats(fd, ctx_good, &rs_good) == 0);
-	igt_assert(gem_reset_stats(fd, ctx_bad, &rs_bad) == 0);
+	igt_assert_eq(gem_reset_stats(fd, ctx_good, &rs_good), 0);
+	igt_assert_eq(gem_reset_stats(fd, ctx_bad, &rs_bad), 0);
 
 	igt_assert(rs_bad.batch_active == active_count);
 	igt_assert(rs_bad.batch_pending == pending_count);
@@ -633,15 +633,15 @@ static void test_ban_ctx(void)
 	gem_close(fd, h7);
 
 	h1 = exec_valid(fd, ctx_good);
-	igt_assert(h1 >= 0);
+	igt_assert_lte(0, h1);
 	gem_close(fd, h1);
 
 	gem_context_destroy(fd, ctx_good);
 	gem_context_destroy(fd, ctx_bad);
-	igt_assert(gem_reset_status(fd, ctx_good) < 0);
-	igt_assert(gem_reset_status(fd, ctx_bad) < 0);
-	igt_assert(exec_valid(fd, ctx_good) < 0);
-	igt_assert(exec_valid(fd, ctx_bad) < 0);
+	igt_assert_lt(gem_reset_status(fd, ctx_good), 0);
+	igt_assert_lt(gem_reset_status(fd, ctx_bad), 0);
+	igt_assert_lt(exec_valid(fd, ctx_good), 0);
+	igt_assert_lt(exec_valid(fd, ctx_bad), 0);
 
 	close(fd);
 }
@@ -663,13 +663,13 @@ static void test_unrelated_ctx(void)
 	assert_reset_status(fd2, ctx_unrelated, RS_NO_ERROR);
 
 	h1 = inject_hang(fd1, ctx_guilty);
-	igt_assert(h1 >= 0);
+	igt_assert_lte(0, h1);
 	gem_sync(fd1, h1);
 	assert_reset_status(fd1, ctx_guilty, RS_BATCH_ACTIVE);
 	assert_reset_status(fd2, ctx_unrelated, RS_NO_ERROR);
 
 	h2 = exec_valid(fd2, ctx_unrelated);
-	igt_assert(h2 >= 0);
+	igt_assert_lte(0, h2);
 	gem_sync(fd2, h2);
 	assert_reset_status(fd1, ctx_guilty, RS_BATCH_ACTIVE);
 	assert_reset_status(fd2, ctx_unrelated, RS_NO_ERROR);
@@ -706,7 +706,7 @@ static void test_close_pending_ctx(void)
 	assert_reset_status(fd, ctx, RS_NO_ERROR);
 
 	h = inject_hang(fd, ctx);
-	igt_assert(h >= 0);
+	igt_assert_lte(0, h);
 	gem_context_destroy(fd, ctx);
 	igt_assert(__gem_context_destroy(fd, ctx) == -ENOENT);
 
@@ -723,7 +723,7 @@ static void test_close_pending(void)
 	assert_reset_status(fd, 0, RS_NO_ERROR);
 
 	h = inject_hang(fd, 0);
-	igt_assert(h >= 0);
+	igt_assert_lte(0, h);
 
 	gem_close(fd, h);
 	close(fd);
@@ -785,7 +785,7 @@ static void test_close_pending_fork(const bool reverse)
 	assert_reset_status(fd, 0, RS_NO_ERROR);
 
 	h = inject_hang(fd, 0);
-	igt_assert(h >= 0);
+	igt_assert_lte(0, h);
 
 	sleep(1);
 
@@ -796,7 +796,7 @@ static void test_close_pending_fork(const bool reverse)
 	pid = fork();
 	if (pid == 0) {
 		const int fd2 = drm_open_any();
-		igt_assert(fd2 >= 0);
+		igt_assert_lte(0, fd2);
 
 		/* The crucial component is that we schedule the same noop batch
 		 * on each ring. This exercises batch_obj reference counting,
@@ -807,7 +807,7 @@ static void test_close_pending_fork(const bool reverse)
 		close(fd2);
 		return;
 	} else {
-		igt_assert(pid > 0);
+		igt_assert_lt(0, pid);
 		sleep(1);
 
 		/* Kill the child to reduce refcounts on
@@ -822,7 +822,7 @@ static void test_close_pending_fork(const bool reverse)
 	fd = drm_open_any();
 
 	h = exec_valid(fd, 0);
-	igt_assert(h >= 0);
+	igt_assert_lte(0, h);
 
 	gem_sync(fd, h);
 	gem_close(fd, h);
@@ -846,7 +846,7 @@ static void test_reset_count(const bool create_ctx)
 	igt_assert(c1 >= 0);
 
 	h = inject_hang(fd, ctx);
-	igt_assert (h >= 0);
+	igt_assert_lte(0, h);
 	gem_sync(fd, h);
 
 	assert_reset_status(fd, ctx, RS_BATCH_ACTIVE);
@@ -905,20 +905,20 @@ static void _check_param_ctx(const int fd, const int ctx, const cap_t cap)
 
 	if (ctx == 0) {
 		if (cap == root)
-			igt_assert(_test_params(fd, ctx, 0, 0) == 0);
+			igt_assert_eq(_test_params(fd, ctx, 0, 0), 0);
 		else
-			igt_assert(_test_params(fd, ctx, 0, 0) == -EPERM);
+			igt_assert_eq(_test_params(fd, ctx, 0, 0), -EPERM);
 	}
 
-	igt_assert(_test_params(fd, ctx, 0, bad) == -EINVAL);
-	igt_assert(_test_params(fd, ctx, bad, 0) == -EINVAL);
-	igt_assert(_test_params(fd, ctx, bad, bad) == -EINVAL);
+	igt_assert_eq(_test_params(fd, ctx, 0, bad), -EINVAL);
+	igt_assert_eq(_test_params(fd, ctx, bad, 0), -EINVAL);
+	igt_assert_eq(_test_params(fd, ctx, bad, bad), -EINVAL);
 }
 
 static void check_params(const int fd, const int ctx, cap_t cap)
 {
 	igt_assert(ioctl(fd, GET_RESET_STATS_IOCTL, 0) == -1);
-	igt_assert(_test_params(fd, 0xbadbad, 0, 0) == -ENOENT);
+	igt_assert_eq(_test_params(fd, 0xbadbad, 0, 0), -ENOENT);
 
 	_check_param_ctx(fd, ctx, cap);
 }
@@ -982,14 +982,14 @@ static void defer_hangcheck(int ring_num)
 	igt_skip_on(next_ring == current_ring);
 
 	count_start = get_reset_count(fd, 0);
-	igt_assert(count_start >= 0);
+	igt_assert_lte(0, count_start);
 
 	igt_assert(inject_hang_ring(fd, 0, current_ring->exec, true));
 	while (--seconds) {
 		igt_assert(exec_valid_ring(fd, 0, next_ring->exec));
 
 		count_end = get_reset_count(fd, 0);
-		igt_assert(count_end >= 0);
+		igt_assert_lte(0, count_end);
 
 		if (count_end > count_start)
 			break;
@@ -997,7 +997,7 @@ static void defer_hangcheck(int ring_num)
 		sleep(1);
 	}
 
-	igt_assert(count_end > count_start);
+	igt_assert_lt(count_start, count_end);
 
 	close(fd);
 }

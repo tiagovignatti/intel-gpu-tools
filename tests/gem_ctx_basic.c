@@ -85,7 +85,7 @@ static void *work(void *arg)
 	else
 		td_fd = fd;
 
-	igt_assert(td_fd >= 0);
+	igt_assert_lte(0, td_fd);
 
 	bufmgr = drm_intel_bufmgr_gem_init(td_fd, 4096);
 	batch = intel_batchbuffer_alloc(bufmgr, devid);
@@ -105,7 +105,7 @@ static void *work(void *arg)
 		} else {
 			int ret;
 			ret = drm_intel_bo_subdata(batch->bo, 0, 4096, batch->buffer);
-			igt_assert(ret == 0);
+			igt_assert_eq(ret, 0);
 			intel_batchbuffer_flush_with_context(batch, context);
 		}
 	}

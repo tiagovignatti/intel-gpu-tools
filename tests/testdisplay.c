@@ -605,7 +605,7 @@ static void enter_exec_path( char **argv )
 		*(pos+1) = '\0';
 
 	ret = chdir(exec_path);
-	igt_assert(ret == 0);
+	igt_assert_eq(ret, 0);
 	free(exec_path);
 }
 
@@ -708,7 +708,7 @@ int main(int argc, char **argv)
 			exit(IGT_EXIT_INVALID);
 			break;
 		case HELP_DESCRIPTION:
-			printf("Tests display functionality.");
+			igt_info("Tests display functionality.");
 			exit(0);
 			break;
 		default:
@@ -793,7 +793,7 @@ out_mainloop:
 out_close:
 	close(drm_fd);
 
-	igt_assert(ret == 0);
+	igt_assert_eq(ret, 0);
 
 	igt_exit();
 }

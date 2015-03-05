@@ -70,7 +70,7 @@ static int gem_linear_blt(uint32_t *batch,
 	uint32_t *b = batch;
 	int height = length / (16 * 1024);
 
-	igt_assert(height <= 1<<16);
+	igt_assert_lte(height, 1 << 16);
 
 	if (height) {
 		int i = 0;

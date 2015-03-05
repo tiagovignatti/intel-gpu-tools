@@ -60,7 +60,7 @@ static int gem_linear_blt(int fd,
 	uint32_t *b = batch;
 	int height = length / (16 * 1024);
 
-	igt_assert(height <= 1<<16);
+	igt_assert_lte(height, 1 << 16);
 
 	if (height) {
 		int i = 0;
@@ -180,7 +180,7 @@ static uint32_t dumb_create(int fd)
 	arg.height = 32;
 
 	ret = drmIoctl(fd, DRM_IOCTL_MODE_CREATE_DUMB, &arg);
-	igt_assert(ret == 0);
+	igt_assert_eq(ret, 0);
 	igt_assert(arg.size >= 4096);
 
 	return arg.handle;

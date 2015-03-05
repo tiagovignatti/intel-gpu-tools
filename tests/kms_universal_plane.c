@@ -148,8 +148,8 @@ functional_test_pipe(data_t *data, enum pipe pipe, igt_output_t *output)
 		else if (display->pipes[pipe].planes[i].is_cursor)
 			num_cursor++;
 
-	igt_assert(num_primary == 1);
-	igt_assert(num_cursor <= 1);
+	igt_assert_eq(num_primary, 1);
+	igt_assert_lte(num_cursor, 1);
 
 	primary = igt_output_get_plane(output, IGT_PLANE_PRIMARY);
 	sprite = igt_output_get_plane(output, IGT_PLANE_2);
@@ -513,7 +513,7 @@ pageflip_test_pipe(data_t *data, enum pipe pipe, igt_output_t *output)
 	do {
 		ret = select(data->drm_fd + 1, &fds, NULL, NULL, &timeout);
 	} while (ret < 0 && errno == EINTR);
-	igt_assert(ret == 1);
+	igt_assert_eq(ret, 1);
 	igt_assert(drmHandleEvent(data->drm_fd, &evctx) == 0);
 
 	igt_plane_set_fb(primary, NULL);

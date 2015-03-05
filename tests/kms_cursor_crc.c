@@ -159,7 +159,7 @@ static void do_fail_test(data_t *data, int x, int y, int expect)
 	cursor_disable(data);
 	igt_display_commit(display);
 
-	igt_assert(ret == expect);
+	igt_assert_eq(ret, expect);
 }
 
 static void do_test(data_t *data,
@@ -429,12 +429,12 @@ static void test_cursor_size(data_t *data)
 	/* Hardware test loop */
 	cursor_enable(data);
 	ret = drmModeMoveCursor(data->drm_fd, data->output->config.crtc->crtc_id, 0, 0);
-	igt_assert(ret == 0);
+	igt_assert_eq(ret, 0);
 	for (i = 0, size = cursor_max_size; size >= 64; size /= 2, i++) {
 		/* Change size in flight: */
 		ret = drmModeSetCursor(data->drm_fd, data->output->config.crtc->crtc_id,
 				       data->fb.gem_handle, size, size);
-		igt_assert(ret == 0);
+		igt_assert_eq(ret, 0);
 		igt_wait_for_vblank(data->drm_fd, data->pipe);
 		igt_pipe_crc_collect_crc(pipe_crc, &crc[i]);
 	}

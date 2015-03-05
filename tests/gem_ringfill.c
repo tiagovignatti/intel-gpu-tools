@@ -156,7 +156,7 @@ static int check_ring(drm_intel_bufmgr *bufmgr,
 
 		igt_progress(output, i, width*height);
 
-		igt_assert(y < height);
+		igt_assert_lt(y, height);
 
 		/* Dummy load to fill the ring */
 		copy(batch, NULL, &src, 0, 0, width, height, &tmp, 0, 0);

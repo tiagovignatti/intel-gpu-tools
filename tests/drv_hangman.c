@@ -79,14 +79,15 @@ static void test_sysfs_error_exists(void)
 {
 	char tmp[1024];
 
-	igt_assert(read_sysfs(tmp, sizeof(tmp), "error") > 0);
+	igt_assert_lt(0, read_sysfs(tmp, sizeof(tmp), "error"));
 }
 
 static void test_debugfs_error_state_exists(void)
 {
 	int fd;
 
-	igt_assert((fd = igt_debugfs_open("i915_error_state", O_RDONLY)) >= 0);
+	igt_assert_lte(0,
+		       (fd = igt_debugfs_open("i915_error_state", O_RDONLY)));
 
 	close (fd);
 }
@@ -95,7 +96,7 @@ static void test_debugfs_ring_stop_exists(void)
 {
 	int fd;
 
-	igt_assert((fd = igt_debugfs_open("i915_ring_stop", O_RDONLY)) >= 0);
+	igt_assert_lte(0, (fd = igt_debugfs_open("i915_ring_stop", O_RDONLY)));
 
 	close(fd);
 }
@@ -105,10 +106,10 @@ static void read_dfs(const char *fname, char *d, int maxlen)
 	int fd;
 	int l;
 
-	igt_assert((fd = igt_debugfs_open(fname, O_RDONLY)) >= 0);
+	igt_assert_lte(0, (fd = igt_debugfs_open(fname, O_RDONLY)));
 
-	igt_assert((l = read(fd, d, maxlen-1)) > 0);
-	igt_assert(l < maxlen);
+	igt_assert_lt(0, (l = read(fd, d, maxlen - 1)));
+	igt_assert_lt(l, maxlen);
 	d[l] = 0;
 	close(fd);
 
@@ -210,7 +211,8 @@ static void clear_error_state(void)
 	int fd;
 	const char *b = "1";
 
-	igt_assert((fd = igt_debugfs_open("i915_error_state", O_WRONLY)) >= 0);
+	igt_assert_lte(0,
+		       (fd = igt_debugfs_open("i915_error_state", O_WRONLY)));
 	igt_assert(write(fd, b, 1) == 1);
 	close(fd);
 }
@@ -244,7 +246,7 @@ static void check_error_state(const int gen,
 	bool bb_ok = false, req_ok = false, ringbuf_ok = false;
 
 	debug_fd = igt_debugfs_open("i915_error_state", O_RDONLY);
-	igt_assert(debug_fd >= 0);
+	igt_assert_lte(0, debug_fd);
 	file = fdopen(debug_fd, "r");
 
 	while (getline(&line, &line_size, file) > 0) {
@@ -287,7 +289,7 @@ static void check_error_state(const int gen,
 		req_matched = sscanf(dashes, "--- %d requests\n", &requests);
 		if (req_matched == 1) {
 			igt_assert(strstr(ring_name, expected_ring_name));
-			igt_assert(requests > 0);
+			igt_assert_lt(0, requests);
 
 			for (i = 0; i < requests; i++) {
 				uint32_t seqno;
@@ -296,7 +298,7 @@ static void check_error_state(const int gen,
 				igt_assert(getline(&line, &line_size, file) > 0);
 				items = sscanf(line, "  seqno 0x%08x, emitted %ld, tail 0x%08x\n",
 					       &seqno, &jiffies, &tail);
-				igt_assert(items == 3);
+				igt_assert_eq(items, 3);
 			}
 			req_ok = true;
 			continue;
@@ -315,12 +317,12 @@ static void check_error_state(const int gen,
 				igt_assert(getline(&line, &line_size, file) > 0);
 				items = sscanf(line, "%08x :  %08x\n",
 					       &offset, &command);
-				igt_assert(items == 2);
+				igt_assert_eq(items, 2);
 				if ((command & 0x1F800000) == MI_BATCH_BUFFER_START) {
 					igt_assert(getline(&line, &line_size, file) > 0);
 					items = sscanf(line, "%08x :  %08x\n",
 						       &offset, &expected_addr);
-					igt_assert(items == 2);
+					igt_assert_eq(items, 2);
 					i++;
 				}
 			}

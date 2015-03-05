@@ -114,7 +114,7 @@ _bo_write_verify(struct test *t)
 	const char *tile_str[] = { "none", "x", "y" };
 
 	igt_assert(t->tiling >= 0 && t->tiling <= I915_TILING_Y);
-	igt_assert(t->num_surfaces > 0);
+	igt_assert_lt(0, t->num_surfaces);
 
 	s = calloc(sizeof(*s), t->num_surfaces);
 	igt_assert(s);
@@ -171,7 +171,7 @@ static int run_test(int threads_per_fence, void *f, int tiling,
 	t.num_surfaces = surfaces_per_thread;
 
 	num_fences = gem_available_fences(t.fd);
-	igt_assert(num_fences > 0);
+	igt_assert_lt(0, num_fences);
 
 	num_threads = threads_per_fence * num_fences;
 

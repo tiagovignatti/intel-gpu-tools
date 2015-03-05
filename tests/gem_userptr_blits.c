@@ -201,7 +201,7 @@ copy(int fd, uint32_t dst, uint32_t src, unsigned int error)
 		ret = errno;
 
 	if (error == ~0)
-		igt_assert(ret != 0);
+		igt_assert_neq(ret, 0);
 	else
 		igt_assert(ret == error);
 
@@ -295,7 +295,7 @@ create_userptr(int fd, uint32_t val, uint32_t *ptr)
 	int i, ret;
 
 	ret = gem_userptr(fd, ptr, sizeof(linear), 0, &handle);
-	igt_assert(ret == 0);
+	igt_assert_eq(ret, 0);
 	igt_assert(handle != 0);
 
 	/* Fill the BO with dwords starting at val */
@@ -375,7 +375,7 @@ static uint32_t create_userptr_bo(int fd, int size)
 	igt_assert(ptr != MAP_FAILED);
 
 	ret = gem_userptr(fd, (uint32_t *)ptr, size, 0, &handle);
-	igt_assert(ret == 0);
+	igt_assert_eq(ret, 0);
 	add_handle_ptr(handle, ptr, size);
 
 	return handle;
@@ -477,7 +477,7 @@ static int test_input_checking(int fd)
 	userptr.user_size = 0;
 	userptr.flags = ~0;
 	ret = drmIoctl(fd, LOCAL_IOCTL_I915_GEM_USERPTR, &userptr);
-	igt_assert(ret != 0);
+	igt_assert_neq(ret, 0);
 
 	/* Too big. */
 	memset(&userptr, 0, sizeof(userptr));
@@ -485,7 +485,7 @@ static int test_input_checking(int fd)
 	userptr.user_size = ~0;
 	userptr.flags = 0;
 	ret = drmIoctl(fd, LOCAL_IOCTL_I915_GEM_USERPTR, &userptr);
-	igt_assert(ret != 0);
+	igt_assert_neq(ret, 0);
 
 	/* Both wrong. */
 	memset(&userptr, 0, sizeof(userptr));
@@ -493,7 +493,7 @@ static int test_input_checking(int fd)
 	userptr.user_size = ~0;
 	userptr.flags = ~0;
 	ret = drmIoctl(fd, LOCAL_IOCTL_I915_GEM_USERPTR, &userptr);
-	igt_assert(ret != 0);
+	igt_assert_neq(ret, 0);
 
 	return 0;
 }
@@ -531,7 +531,7 @@ static int test_invalid_null_pointer(int fd)
 
 	/* NULL pointer. */
 	ret = gem_userptr(fd, NULL, PAGE_SIZE, 0, &handle);
-	igt_assert(ret == 0);
+	igt_assert_eq(ret, 0);
 
 	copy(fd, handle, handle, ~0); /* QQQ Precise errno? */
 	gem_close(fd, handle);
@@ -554,7 +554,7 @@ static int test_invalid_gtt_mapping(int fd)
 	igt_assert((sizeof(linear) & (PAGE_SIZE - 1)) == 0);
 
 	ret = gem_userptr(fd, ptr, sizeof(linear), 0, &handle2);
-	igt_assert(ret == 0);
+	igt_assert_eq(ret, 0);
 	copy(fd, handle2, handle2, ~0); /* QQQ Precise errno? */
 	gem_close(fd, handle2);
 
@@ -598,7 +598,7 @@ static void test_forked_access(int fd)
 	ret |= madvise(ptr1, sizeof(linear), MADV_DONTFORK);
 #endif
 	ret |= gem_userptr(fd, ptr1, sizeof(linear), 0, &handle1);
-	igt_assert(ret == 0);
+	igt_assert_eq(ret, 0);
 	igt_assert(ptr1);
 	igt_assert(handle1);
 
@@ -607,7 +607,7 @@ static void test_forked_access(int fd)
 	ret |= madvise(ptr2, sizeof(linear), MADV_DONTFORK);
 #endif
 	ret |= gem_userptr(fd, ptr2, sizeof(linear), 0, &handle2);
-	igt_assert(ret == 0);
+	igt_assert_eq(ret, 0);
 	igt_assert(ptr2);
 	igt_assert(handle2);
 
@@ -629,13 +629,13 @@ static void test_forked_access(int fd)
 
 #ifdef MADV_DOFORK
 	ret = madvise(ptr1, sizeof(linear), MADV_DOFORK);
-	igt_assert(ret == 0);
+	igt_assert_eq(ret, 0);
 #endif
 	free(ptr1);
 
 #ifdef MADV_DOFORK
 	ret = madvise(ptr2, sizeof(linear), MADV_DOFORK);
-	igt_assert(ret == 0);
+	igt_assert_eq(ret, 0);
 #endif
 	free(ptr2);
 }
@@ -655,7 +655,7 @@ static int test_forbidden_ops(int fd)
 	igt_assert(posix_memalign(&ptr, PAGE_SIZE, PAGE_SIZE) == 0);
 
 	ret = gem_userptr(fd, ptr, PAGE_SIZE, 0, &handle);
-	igt_assert(ret == 0);
+	igt_assert_eq(ret, 0);
 
 	/* pread/pwrite are not always forbidden, but when they
 	 * are they should fail with EINVAL.
@@ -791,8 +791,8 @@ static int test_dmabuf(void)
 		close(fd1);
 		return 0;
 	} else {
-		igt_assert(ret == 0);
-		igt_assert(dma_buf_fd >= 0);
+		igt_assert_eq(ret, 0);
+		igt_assert_lte(0, dma_buf_fd);
 	}
 
 	fd2 = drm_open_any();
@@ -814,7 +814,7 @@ static int test_dmabuf(void)
 		sigact.sa_sigaction = sigbus;
 		sigact.sa_flags = SA_SIGINFO;
 		ret = sigaction(SIGBUS, &sigact, &orig_sigact);
-		igt_assert(ret == 0);
+		igt_assert_eq(ret, 0);
 
 		orig_sigbus = orig_sigact.sa_sigaction;
 
@@ -823,7 +823,7 @@ static int test_dmabuf(void)
 		igt_assert(sigbus_cnt > 0);
 
 		ret = sigaction(SIGBUS, &orig_sigact, NULL);
-		igt_assert(ret == 0);
+		igt_assert_eq(ret, 0);
 	}
 
 	close(fd2);
@@ -842,19 +842,19 @@ static int test_usage_restrictions(int fd)
 
 	/* Address not aligned. */
 	ret = gem_userptr(fd, (char *)ptr + 1, PAGE_SIZE, 0, &handle);
-	igt_assert(ret != 0);
+	igt_assert_neq(ret, 0);
 
 	/* Size not rounded to page size. */
 	ret = gem_userptr(fd, ptr, PAGE_SIZE - 1, 0, &handle);
-	igt_assert(ret != 0);
+	igt_assert_neq(ret, 0);
 
 	/* Both wrong. */
 	ret = gem_userptr(fd, (char *)ptr + 1, PAGE_SIZE - 1, 0, &handle);
-	igt_assert(ret != 0);
+	igt_assert_neq(ret, 0);
 
 	/* Read-only not supported. */
 	ret = gem_userptr(fd, (char *)ptr, PAGE_SIZE, 1, &handle);
-	igt_assert(ret != 0);
+	igt_assert_neq(ret, 0);
 
 	free(ptr);
 
@@ -1062,19 +1062,19 @@ static void test_overlap(int fd, int expected)
 	igt_assert(posix_memalign((void *)&ptr, PAGE_SIZE, PAGE_SIZE * 3) == 0);
 
 	ret = gem_userptr(fd, ptr + PAGE_SIZE, PAGE_SIZE, 0, &handle);
-	igt_assert(ret == 0);
+	igt_assert_eq(ret, 0);
 
 	/* before, no overlap */
 	ret = gem_userptr(fd, ptr, PAGE_SIZE, 0, &handle2);
 	if (ret == 0)
 		gem_close(fd, handle2);
-	igt_assert(ret == 0);
+	igt_assert_eq(ret, 0);
 
 	/* after, no overlap */
 	ret = gem_userptr(fd, ptr + PAGE_SIZE * 2, PAGE_SIZE, 0, &handle2);
 	if (ret == 0)
 		gem_close(fd, handle2);
-	igt_assert(ret == 0);
+	igt_assert_eq(ret, 0);
 
 	/* exactly overlapping */
 	ret = gem_userptr(fd, ptr + PAGE_SIZE, PAGE_SIZE, 0, &handle2);
@@ -1121,7 +1121,7 @@ static void test_unmap(int fd, int expected)
 
 	for (i = 0; i < num_obj; i++, bo_ptr += sizeof(linear)) {
 		ret = gem_userptr(fd, bo_ptr, sizeof(linear), 0, &bo[i]);
-		igt_assert(ret == 0);
+		igt_assert_eq(ret, 0);
 	}
 
 	bo[num_obj] = create_bo(fd, 0);
@@ -1130,7 +1130,7 @@ static void test_unmap(int fd, int expected)
 		copy(fd, bo[num_obj], bo[i], 0);
 
 	ret = munmap(ptr, map_size);
-	igt_assert(ret == 0);
+	igt_assert_eq(ret, 0);
 
 	for (i = 0; i < num_obj; i++)
 		copy(fd, bo[num_obj], bo[i], expected);
@@ -1156,7 +1156,7 @@ static void test_unmap_after_close(int fd)
 
 	for (i = 0; i < num_obj; i++, bo_ptr += sizeof(linear)) {
 		ret = gem_userptr(fd, bo_ptr, sizeof(linear), 0, &bo[i]);
-		igt_assert(ret == 0);
+		igt_assert_eq(ret, 0);
 	}
 
 	bo[num_obj] = create_bo(fd, 0);
@@ -1168,7 +1168,7 @@ static void test_unmap_after_close(int fd)
 		gem_close(fd, bo[i]);
 
 	ret = munmap(ptr, map_size);
-	igt_assert(ret == 0);
+	igt_assert_eq(ret, 0);
 }
 
 static void test_unmap_cycles(int fd, int expected)
@@ -1223,11 +1223,11 @@ static void test_stress_mm(int fd)
 	igt_assert(posix_memalign(&ptr, PAGE_SIZE, PAGE_SIZE) == 0);
 
 	ret = pthread_create(&t, NULL, mm_stress_thread, &stdata);
-	igt_assert(ret == 0);
+	igt_assert_eq(ret, 0);
 
 	while (loops--) {
 		ret = gem_userptr(fd, ptr, PAGE_SIZE, 0, &handle);
-		igt_assert(ret == 0);
+		igt_assert_eq(ret, 0);
 
 		gem_close(fd, handle);
 	}
@@ -1236,9 +1236,9 @@ static void test_stress_mm(int fd)
 
 	stdata.stop = 1;
 	ret = pthread_join(t, NULL);
-	igt_assert(ret == 0);
+	igt_assert_eq(ret, 0);
 
-	igt_assert(stdata.exit_code == 0);
+	igt_assert_eq(stdata.exit_code, 0);
 }
 
 struct userptr_close_thread_data {
@@ -1261,7 +1261,8 @@ static void *mm_userptr_close_thread(void *data)
 	while (!t->stop) {
 		pthread_mutex_unlock(&t->mutex);
 		for (int i = 0; i < num_handles; i++)
-			igt_assert(gem_userptr(t->fd, t->ptr, PAGE_SIZE, 0, &handle[i]) == 0);
+			igt_assert_eq(gem_userptr(t->fd, t->ptr, PAGE_SIZE, 0, &handle[i]),
+				      0);
 		for (int i = 0; i < num_handles; i++)
 			gem_close(t->fd, handle[i]);
 		pthread_mutex_lock(&t->mutex);

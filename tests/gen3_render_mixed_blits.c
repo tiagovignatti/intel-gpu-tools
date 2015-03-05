@@ -302,7 +302,7 @@ copy(int fd,
 		drmCommandNone(fd, DRM_I915_GEM_THROTTLE);
 		ret = drmIoctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &exec);
 	}
-	igt_assert(ret == 0);
+	igt_assert_eq(ret, 0);
 
 	gem_close(fd, handle);
 }

@@ -74,7 +74,7 @@ create_bo(int fd, uint32_t start_val)
 
 	bo = drm_intel_bo_alloc(bufmgr, "tiled bo", 1024 * 1024, 4096);
 	ret = drm_intel_bo_set_tiling(bo, &tiling, width * 4);
-	igt_assert(ret == 0);
+	igt_assert_eq(ret, 0);
 	igt_assert(tiling == I915_TILING_X);
 
 	/* Fill the BO with dwords starting at start_val */
