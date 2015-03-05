@@ -13,6 +13,15 @@ Release 1.10 (XXXX-XX-XX)
 - Interactive test mode can now be enabled by the shared cmdline option
   --interactive-debug=$var (Rodrigo Vivi).
 
+- Improved logging to kmsg to better line up test runs with kernel messages
+  (Chris Wilson).
+
+- Record all log levels (including disabled levels) in a ringbuffer and dump
+  that on test failures for quicker diagnostics of automated test run results
+  (Thomas Wood).
+
+- A lot of small polish all over the test library.
+
 - Piles of new testcases and improvements to existing ones as usual.
 
 Release 1.9 (2014-12-12)
