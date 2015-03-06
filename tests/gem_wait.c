@@ -111,6 +111,7 @@ static void render_timeout(int fd)
 	drm_intel_bufmgr *bufmgr;
 	struct intel_batchbuffer *batch;
 	int64_t timeout = ENOUGH_WORK_IN_SECONDS * NSEC_PER_SEC;
+	int64_t negative_timeout = -1;
 	int ret;
 	const bool do_signals = true; /* signals will seem to make the operation
 				       * use less process CPU time */
@@ -205,6 +206,17 @@ static void render_timeout(int fd)
 	igt_assert_eq(gem_bo_wait_timeout(fd, dst2->handle, &timeout), -ETIME);
 	igt_assert_eq(timeout, 0);
 
+
+	/* Now check that we can pass negative (infinite) timeouts. */
+	negative_timeout = -1;
+	for (i = 0; i < iter; i++)
+		blt_color_fill(batch, dst2, BUF_PAGES);
+
+	intel_batchbuffer_flush(batch);
+
+	igt_assert_eq(gem_bo_wait_timeout(fd, dst2->handle, &negative_timeout), 0);
+	igt_assert_eq(negative_timeout, 0);
+	igt_assert(gem_bo_busy(fd, dst2->handle) == false);
 
 	if (do_signals)
 		igt_stop_signal_helper();
