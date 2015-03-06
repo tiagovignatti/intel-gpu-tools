@@ -284,8 +284,7 @@ static void _igt_log_buffer_dump(void)
 	}
 
 	pthread_mutex_lock(&log_buffer_mutex);
-
-	fprintf(stderr, "Log Start\n");
+	fprintf(stderr, "**** DEBUG ****\n");
 
 	i = log_buffer.start;
 	do {
@@ -297,9 +296,8 @@ static void _igt_log_buffer_dump(void)
 	/* reset the buffer */
 	log_buffer.start = log_buffer.end = 0;
 
+	fprintf(stderr, "****  END  ****\n");
 	pthread_mutex_unlock(&log_buffer_mutex);
-
-	fprintf(stderr, "Log End\n");
 }
 
 __attribute__((format(printf, 1, 2)))
