@@ -70,7 +70,7 @@ do_time_diff(struct timespec *end, struct timespec *start)
 }
 
 static int
-gem_bo_wait_timeout(int fd, uint32_t handle, uint64_t *timeout_ns)
+gem_bo_wait_timeout(int fd, uint32_t handle, int64_t *timeout_ns)
 {
 	struct drm_i915_gem_wait wait;
 	int ret;
@@ -110,7 +110,7 @@ static void render_timeout(int fd)
 {
 	drm_intel_bufmgr *bufmgr;
 	struct intel_batchbuffer *batch;
-	uint64_t timeout = ENOUGH_WORK_IN_SECONDS * NSEC_PER_SEC;
+	int64_t timeout = ENOUGH_WORK_IN_SECONDS * NSEC_PER_SEC;
 	int ret;
 	const bool do_signals = true; /* signals will seem to make the operation
 				       * use less process CPU time */
