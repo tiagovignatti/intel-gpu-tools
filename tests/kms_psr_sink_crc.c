@@ -177,9 +177,9 @@ static void fill_render(data_t *data, uint32_t handle, unsigned char color)
 
 static bool psr_enabled(data_t *data)
 {
-	int ret;
 	FILE *file;
-	char str[4];
+	char buf[4096];
+	int ret;
 
 	if (running_with_psr_disabled)
 		return true;
@@ -187,15 +187,30 @@ static bool psr_enabled(data_t *data)
 	file = igt_debugfs_fopen("i915_edp_psr_status", "r");
 	igt_require(file);
 
-	ret = fscanf(file, "Sink_Support: %s\n", str);
-	igt_assert_neq(ret, 0);
-	ret = fscanf(file, "Source_OK: %s\n", str);
-	igt_assert_neq(ret, 0);
-	ret = fscanf(file, "Enabled: %s\n", str);
-	igt_assert_neq(ret, 0);
+	/* First dump the entire file into the debug log for later analysis
+	 * if required.
+	 */
+	ret = fread(buf, 1, 4095, file);
+	igt_require(ret > 0);
+	buf[ret] = '\0';
+	igt_debug("i915_edp_psr_status:\n%s", buf);
+	fseek(file, 0, SEEK_SET);
+
+	/* Now check that we have all the preconditions required for PSR */
+	ret = fscanf(file, "Sink_Support: %s\n", buf);
+	igt_require_f(ret == 1 && strcmp(buf, "yes") == 0,
+		      "Sink_Support: %s\n", buf);
+
+	ret = fscanf(file, "Source_OK: %s\n", buf);
+	igt_require_f(ret == 1 && strcmp(buf, "yes") == 0,
+		      "Source_OK: %s\n", buf);
+
+	ret = fscanf(file, "Enabled: %s\n", buf);
+	igt_require_f(ret == 1 && strcmp(buf, "yes") == 0,
+		      "Enabled: %s\n", buf);
 
 	fclose(file);
-	return strcmp(str, "yes") == 0;
+	return true;
 }
 
 static bool psr_active(data_t *data)
