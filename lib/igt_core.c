@@ -209,6 +209,7 @@
  */
 
 static unsigned int exit_handler_count;
+const char *igt_interactive_debug;
 
 /* subtests helpers */
 static bool list_subtests = false;
