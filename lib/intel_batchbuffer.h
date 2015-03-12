@@ -187,7 +187,7 @@ void intel_copy_bo(struct intel_batchbuffer *batch,
 		   drm_intel_bo *dst_bo, drm_intel_bo *src_bo,
 		   long int size);
 
-/**
+/*
  * Yf/Ys tiling
  *
  * Tiling mode in the I915_TILING_... namespace for new tiling modes which are

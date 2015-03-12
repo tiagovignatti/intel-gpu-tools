@@ -661,7 +661,6 @@ void igt_blitter_fast_copy__raw(int fd,
 /**
  * igt_blitter_fast_copy:
  * @batch: batchbuffer object
- * @context: libdrm hardware context to use
  * @src: source i-g-t buffer object
  * @src_x: source pixel x-coordination
  * @src_y: source pixel y-coordination

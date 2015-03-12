@@ -699,6 +699,7 @@ void gem_context_set_param(int fd, struct local_i915_gem_context_param *p)
 /**
  * gem_context_require_param:
  * @fd: open i915 drm file descriptor
+ * @param: i915 hw context parameter
  *
  * Feature test macro to query whether hw context parameter support for @param
  * is available. Automatically skips through igt_require() if not.
