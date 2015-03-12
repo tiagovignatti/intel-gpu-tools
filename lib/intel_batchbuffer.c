@@ -40,6 +40,7 @@
 #include "rendercopy.h"
 #include "media_fill.h"
 #include "ioctl_wrappers.h"
+#include "media_spin.h"
 
 #include <i915_drm.h>
 
@@ -787,4 +788,27 @@ igt_fillfunc_t igt_get_gpgpu_fillfunc(int devid)
 		fill = gen7_gpgpu_fillfunc;
 
 	return fill;
+}
+
+/**
+ * igt_get_media_spinfunc:
+ * @devid: pci device id
+ *
+ * Returns:
+ *
+ * The platform-specific media spin function pointer for the device specified
+ * with @devid. Will return NULL when no media spin function is implemented.
+ */
+igt_media_spinfunc_t igt_get_media_spinfunc(int devid)
+{
+	igt_media_spinfunc_t spin = NULL;
+
+	if (IS_GEN9(devid))
+		spin = gen9_media_spinfunc;
+	else if (IS_BROADWELL(devid))
+		spin = gen8_media_spinfunc;
+	else if (IS_CHERRYVIEW(devid))
+		spin = gen8lp_media_spinfunc;
+
+	return spin;
 }

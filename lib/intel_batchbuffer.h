@@ -300,4 +300,26 @@ typedef void (*igt_fillfunc_t)(struct intel_batchbuffer *batch,
 igt_fillfunc_t igt_get_media_fillfunc(int devid);
 igt_fillfunc_t igt_get_gpgpu_fillfunc(int devid);
 
+/**
+ * igt_media_spinfunc_t:
+ * @batch: batchbuffer object
+ * @dst: destination i-g-t buffer object
+ * @spins: number of loops to execute
+ *
+ * This is the type of the per-platform media spin functions. The
+ * platform-specific implementation can be obtained by calling
+ * igt_get_media_spinfunc().
+ *
+ * The media spin function emits a batchbuffer for the render engine with
+ * the media pipeline selected. The workload consists of a single thread
+ * which spins in a tight loop the requested number of times. Each spin
+ * increments a counter whose final 32-bit value is written to the
+ * destination buffer on completion. This utility provides a simple way
+ * to keep the render engine busy for a set time for various tests.
+ */
+typedef void (*igt_media_spinfunc_t)(struct intel_batchbuffer *batch,
+				     struct igt_buf *dst, uint32_t spins);
+
+igt_media_spinfunc_t igt_get_media_spinfunc(int devid);
+
 #endif
