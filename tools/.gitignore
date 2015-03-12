@@ -1,6 +1,5 @@
 # Please keep sorted alphabetically
 ddi_compute_wrpll
-forcewaked
 intel_audio_dump
 intel_backlight
 intel_bios_dumper
@@ -12,7 +11,6 @@ intel_dump_decode
 intel_error_decode
 intel_forcewaked
 intel_framebuffer_dump
-intel_gpu_dump
 intel_gpu_frequency
 intel_gpu_time
 intel_gpu_top
@@ -22,13 +20,9 @@ intel_iosf_sb_read
 intel_iosf_sb_write
 intel_l3_parity
 intel_lid
-intel_nc_read
-intel_nc_write
 intel_opregion_decode
 intel_panel_fitter
 intel_perf_counters
-intel_punit_read
-intel_punit_write
 intel_reg_checker
 intel_reg_dumper
 intel_reg_read

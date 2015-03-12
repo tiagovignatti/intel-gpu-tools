@@ -140,7 +140,6 @@ kms_sink_crc_basic
 kms_universal_plane
 multi-tests.txt
 pm_lpsp
-pm_psr
 pm_rc6_residency
 pm_rpm
 pm_rps
