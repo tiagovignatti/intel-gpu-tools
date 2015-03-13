@@ -525,6 +525,15 @@ static void setup_test_plane(data_t *data)
 	igt_display_commit(&data->display);
 }
 
+static void dpms_off_on(data_t data)
+{
+	kmstest_set_connector_dpms(data.drm_fd, data.output->config.connector,
+				   DRM_MODE_DPMS_OFF);
+	sleep(1);
+	kmstest_set_connector_dpms(data.drm_fd, data.output->config.connector,
+				   DRM_MODE_DPMS_ON);
+}
+
 static int opt_handler(int opt, int opt_index)
 {
 	switch (opt) {
@@ -598,6 +607,30 @@ int main(int argc, char *argv[])
 			run_test(&data);
 			test_cleanup(&data);
 		}
+	}
+
+	igt_subtest_f("dpms_off_psr_active") {
+		data.test_plane = PRIMARY;
+		data.op = RENDER;
+		setup_test_plane(&data);
+		igt_assert(wait_psr_entry(&data));
+
+		dpms_off_on(data);
+
+		run_test(&data);
+		test_cleanup(&data);
+	}
+
+	igt_subtest_f("dpms_off_psr_exit") {
+		data.test_plane = SPRITE;
+		data.op = PLANE_ONOFF;
+		setup_test_plane(&data);
+
+		dpms_off_on(data);
+
+		igt_assert(wait_psr_entry(&data));
+		run_test(&data);
+		test_cleanup(&data);
 	}
 
 	igt_fixture {
