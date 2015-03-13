@@ -63,7 +63,11 @@ typedef struct {
 	int cursor_max_w, cursor_max_h;
 	igt_pipe_crc_t *pipe_crc;
 	uint32_t devid;
+	unsigned flags;
 } data_t;
+
+#define TEST_DPMS (1<<0)
+#define TEST_SUSPEND (1<<1)
 
 static void draw_cursor(cairo_t *cr, int x, int y, int cw, int ch)
 {
@@ -124,6 +128,27 @@ static void do_single_test(data_t *data, int x, int y)
 	igt_display_commit(display);
 	igt_wait_for_vblank(data->drm_fd, data->pipe);
 	igt_pipe_crc_collect_crc(pipe_crc, &crc);
+
+	if (data->flags & (TEST_DPMS | TEST_SUSPEND)) {
+		igt_crc_t crc_after;
+
+		if (data->flags & TEST_DPMS) {
+			igt_debug("dpms off/on cycle\n");
+			kmstest_set_connector_dpms(data->drm_fd,
+						   data->output->config.connector,
+						   DRM_MODE_DPMS_OFF);
+			kmstest_set_connector_dpms(data->drm_fd,
+						   data->output->config.connector,
+						   DRM_MODE_DPMS_ON);
+		}
+
+		if (data->flags & TEST_SUSPEND)
+			igt_system_suspend_autoresume();
+
+		igt_pipe_crc_collect_crc(pipe_crc, &crc_after);
+		igt_assert_crc_equal(&crc, &crc_after);
+	}
+
 	cursor_disable(data);
 	igt_display_commit(display);
 
@@ -248,10 +273,12 @@ static void test_crc_sliding(data_t *data)
 
 static void test_crc_random(data_t *data)
 {
-	int i;
+	int i, max;
+
+	max = data->flags & (TEST_DPMS | TEST_SUSPEND) ? 2 : 50;
 
 	/* Random cursor placement */
-	for (i = 0; i < 50; i++) {
+	for (i = 0; i < max; i++) {
 		int x = rand() % (data->screenw + data->curw * 2) - data->curw;
 		int y = rand() % (data->screenh + data->curh * 2) - data->curh;
 		do_single_test(data, x, y);
@@ -476,6 +503,17 @@ static void run_test_generic(data_t *data)
 			run_test(data, test_crc_sliding, w, h);
 		igt_subtest_f("cursor-%dx%d-random", w, h)
 			run_test(data, test_crc_random, w, h);
+		igt_subtest_f("cursor-%dx%d-dpms", w, h) {
+			data->flags = TEST_DPMS;
+			run_test(data, test_crc_random, w, h);
+			data->flags = 0;
+		}
+
+		igt_subtest_f("cursor-%dx%d-suspend", w, h) {
+			data->flags = TEST_SUSPEND;
+			run_test(data, test_crc_random, w, h);
+			data->flags = 0;
+		}
 
 		igt_fixture
 			igt_remove_fb(data->drm_fd, &data->fb);
