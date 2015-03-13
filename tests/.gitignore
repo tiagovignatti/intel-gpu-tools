@@ -1,7 +1,6 @@
 # Please keep sorted alphabetically
 core_get_client_auth
 core_getclient
-core_getparams
 core_getstats
 core_getversion
 drm_import_export
@@ -10,6 +9,7 @@ drm_vma_limiter
 drm_vma_limiter_cached
 drm_vma_limiter_cpu
 drm_vma_limiter_gtt
+drv_getparams
 drv_hangman
 drv_suspend
 gem_alive
