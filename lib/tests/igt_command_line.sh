@@ -25,7 +25,7 @@
 # Check that command line handling works consistently across all tests
 #
 
-TESTLIST=`cat $top_builddir/tests/single-tests.txt $top_builddir/tests/multi-tests.txt`
+TESTLIST=`cat $top_builddir/tests/test-list.txt`
 if [ $? -ne 0 ]; then
 	echo "Error: Could not read test lists"
 	exit 99

@@ -5,26 +5,11 @@ if HAVE_NOUVEAU
 endif
 
 if BUILD_TESTS
-all-local: single-tests.txt multi-tests.txt
+all-local: test-list.txt
 
-list-single-tests:
-	@echo TESTLIST
-	@echo ${single_kernel_tests}
-	@echo END TESTLIST
-
-list-multi-tests:
-	@echo TESTLIST
-	@echo ${multi_kernel_tests}
-	@echo END TESTLIST
-
-single-tests.txt: Makefile.sources
+test-list.txt: Makefile.sources
 	@echo TESTLIST > $@
-	@echo ${single_kernel_tests} >> $@
-	@echo END TESTLIST >> $@
-
-multi-tests.txt: Makefile.sources
-	@echo TESTLIST > $@
-	@echo ${multi_kernel_tests} >> $@
+	@echo ${single_kernel_tests} ${multi_kernel_tests} >> $@
 	@echo END TESTLIST >> $@
 
 noinst_PROGRAMS = \
@@ -52,7 +37,7 @@ dist_pkgdata_DATA = \
 EXTRA_PROGRAMS = $(HANG)
 EXTRA_DIST = $(common_files)
 
-CLEANFILES = $(EXTRA_PROGRAMS) single-tests.txt multi-tests.txt
+CLEANFILES = $(EXTRA_PROGRAMS) test-list.txt
 
 AM_CFLAGS = $(DRM_CFLAGS) $(CWARNFLAGS) $(DEBUG_CFLAGS)\
 	-I$(srcdir)/.. \
