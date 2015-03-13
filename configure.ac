@@ -187,6 +187,15 @@ AM_CONDITIONAL(BUILD_SHADER_DEBUGGER, [test "x$BUILD_SHADER_DEBUGGER" != xno])
 AS_IF([test "x$BUILD_SHADER_DEBUGGER" != xno],
       [enable_debugger=yes], [enable_debugger=no])
 
+AC_ARG_WITH(libunwind,
+	    AS_HELP_STRING([--without-libunwind],
+			   [Build tests without libunwind support]),
+	    [], [with_libunwind=yes])
+if test "x$with_libunwind" = xyes; then
+	PKG_CHECK_MODULES(LIBUNWIND, libunwind, AC_DEFINE(HAVE_LIBUNWIND, 1, [libunwind support]),
+			  AC_MSG_ERROR([libunwind not found. Use --without-libunwind to disable libunwind support.]))
+fi
+
 # -----------------------------------------------------------------------------
 
 # To build multithread code, gcc uses -pthread, Solaris Studio cc uses -mt
@@ -243,6 +252,7 @@ echo ""
 echo " • Tests:"
 echo "       Build tests        : ${BUILD_TESTS}"
 echo "       Compile prime tests: ${NOUVEAU}"
+echo "       Print stack traces : ${with_libunwind}"
 echo ""
 echo " • Tools:"
 echo "       Assembler          : ${enable_assembler}"

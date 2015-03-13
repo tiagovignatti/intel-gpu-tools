@@ -37,9 +37,10 @@ AM_CFLAGS = $(DRM_CFLAGS) $(CWARNFLAGS) \
 	-I$(srcdir)/../lib \
 	-include "$(srcdir)/../lib/check-ndebug.h" \
 	-DIGT_DATADIR=\""$(abs_srcdir)"\" \
+	$(LIBUNWIND_CFLAGS) \
 	$(NULL)
 
-LDADD = ../lib/libintel_tools.la $(PCIACCESS_LIBS) $(DRM_LIBS) 
+LDADD = ../lib/libintel_tools.la $(PCIACCESS_LIBS) $(DRM_LIBS) $(LIBUNWIND_LIBS)
 
 LDADD += $(CAIRO_LIBS) $(LIBUDEV_LIBS) $(GLIB_LIBS)
 AM_CFLAGS += $(CAIRO_CFLAGS) $(LIBUDEV_CFLAGS) $(GLIB_CFLAGS)

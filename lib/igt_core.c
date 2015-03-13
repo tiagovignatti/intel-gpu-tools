@@ -962,6 +962,33 @@ static bool run_under_gdb(void)
 		strncmp(basename(buf), "gdb", 3) == 0);
 }
 
+#ifdef HAVE_LIBUNWIND
+#define UNW_LOCAL_ONLY
+#include <libunwind.h>
+
+static void print_backtrace(void)
+{
+	unw_cursor_t cursor;
+	unw_context_t uc;
+	int stack_num = 0;
+
+	printf("Stack trace:\n");
+
+	unw_getcontext(&uc);
+	unw_init_local(&cursor, &uc);
+	while (unw_step(&cursor) > 0) {
+		char name[255];
+		unw_word_t off;
+
+		if (unw_get_proc_name(&cursor, name, 255, &off) < 0)
+			strcpy(name, "<unknown>");
+
+		printf("  #%d [%s+0x%x]\n", stack_num++, name,
+		       (unsigned int) off);
+	}
+}
+#endif
+
 void __igt_fail_assert(int exitcode, const char *domain, const char *file,
 		       const int line, const char *func, const char *assertion,
 		       const char *f, ...)
@@ -982,6 +1009,10 @@ void __igt_fail_assert(int exitcode, const char *domain, const char *file,
 		igt_vlog(domain, IGT_LOG_CRITICAL, f, args);
 		va_end(args);
 	}
+
+#ifdef HAVE_LIBUNWIND
+	print_backtrace();
+#endif
 
 	if (run_under_gdb())
 		abort();
