@@ -84,6 +84,8 @@ typedef struct {
 	struct igt_fb fb_green, fb_white;
 	igt_plane_t *primary, *sprite, *cursor;
 	int mod_size;
+	drmModeModeInfo *mode;
+	igt_output_t *output;
 } data_t;
 
 static void create_cursor_fb(data_t *data)
@@ -101,9 +103,32 @@ static void create_cursor_fb(data_t *data)
 	igt_assert(cairo_status(cr) == 0);
 }
 
+
+static void setup_output(data_t *data)
+{
+	igt_display_t *display = &data->display;
+	igt_output_t *output;
+
+	for_each_connected_output(display, output) {
+		drmModeConnectorPtr c = output->config.connector;
+
+		if (c->connector_type != DRM_MODE_CONNECTOR_eDP ||
+		    c->connection != DRM_MODE_CONNECTED)
+			continue;
+
+		igt_output_set_pipe(output, PIPE_ANY);
+		data->crtc_id = output->config.crtc->crtc_id;
+		data->output = output;
+		data->mode = igt_output_get_mode(output);
+
+		return;
+	}
+}
+
 static void display_init(data_t *data)
 {
 	igt_display_init(&data->display, data->drm_fd);
+	setup_output(data);
 }
 
 static void display_fini(data_t *data)
@@ -321,7 +346,7 @@ static void assert_or_manual(bool condition, const char *expected)
 	igt_assert(igt_interactive_debug || condition);
 }
 
-static void test_crc(data_t *data)
+static void run_test(data_t *data)
 {
 	uint32_t handle = data->fb_white.gem_handle;
 	igt_plane_t *test_plane;
@@ -329,9 +354,6 @@ static void test_crc(data_t *data)
 	char ref_crc[12];
 	char crc[12];
 	const char *expected = "";
-
-	igt_plane_set_fb(data->primary, &data->fb_green);
-	igt_display_commit(&data->display);
 
 	/* Confirm that screen became Green */
 	get_sink_crc(data, ref_crc);
@@ -447,77 +469,60 @@ static void test_cleanup(data_t *data) {
 	igt_remove_fb(data->drm_fd, &data->fb_white);
 }
 
-static void run_test(data_t *data)
+static void setup_test_plane(data_t *data)
 {
-	igt_display_t *display = &data->display;
-	igt_output_t *output;
-	drmModeModeInfo *mode;
 	uint32_t white_h, white_v;
 
-	for_each_connected_output(display, output) {
-		drmModeConnectorPtr c = output->config.connector;
+	igt_create_color_fb(data->drm_fd,
+			    data->mode->hdisplay, data->mode->vdisplay,
+			    DRM_FORMAT_XRGB8888,
+			    LOCAL_I915_FORMAT_MOD_X_TILED,
+			    0.0, 1.0, 0.0,
+			    &data->fb_green);
 
-		if (c->connector_type != DRM_MODE_CONNECTOR_eDP ||
-		    c->connection != DRM_MODE_CONNECTED)
-			continue;
+	data->primary = igt_output_get_plane(data->output, IGT_PLANE_PRIMARY);
+	igt_plane_set_fb(data->primary, NULL);
 
-		igt_output_set_pipe(output, PIPE_ANY);
-		data->crtc_id = output->config.crtc->crtc_id;
+	white_h = data->mode->hdisplay;
+	white_v = data->mode->vdisplay;
 
-		mode = igt_output_get_mode(output);
+	/* Ignoring pitch and bpp to avoid changing full screen */
+	data->mod_size = white_h * white_v;
 
+	switch (data->test_plane) {
+	case SPRITE:
+		data->sprite = igt_output_get_plane(data->output,
+						    IGT_PLANE_2);
+		igt_plane_set_fb(data->sprite, NULL);
+		/* To make it different for human eyes let's make
+		 * sprite visible in only one quarter of the primary
+		 */
+		white_h = white_h/2;
+		white_v = white_v/2;
+	case PRIMARY:
 		igt_create_color_fb(data->drm_fd,
-				    mode->hdisplay, mode->vdisplay,
+				    white_h, white_v,
 				    DRM_FORMAT_XRGB8888,
 				    LOCAL_I915_FORMAT_MOD_X_TILED,
-				    0.0, 1.0, 0.0,
-				    &data->fb_green);
+				    1.0, 1.0, 1.0,
+				    &data->fb_white);
+		break;
+	case CURSOR:
+		data->cursor = igt_output_get_plane(data->output,
+						    IGT_PLANE_CURSOR);
+		igt_plane_set_fb(data->cursor, NULL);
+		create_cursor_fb(data);
+		igt_plane_set_position(data->cursor, 0, 0);
 
-		data->primary = igt_output_get_plane(output, IGT_PLANE_PRIMARY);
-		igt_plane_set_fb(data->primary, NULL);
-
-		white_h = mode->hdisplay;
-		white_v = mode->vdisplay;
-
-		/* Ignoring pitch and bpp to avoid changing full screen */
-		data->mod_size = white_h * white_v;
-
-		switch (data->test_plane) {
-		case SPRITE:
-			data->sprite = igt_output_get_plane(output,
-							    IGT_PLANE_2);
-			igt_plane_set_fb(data->sprite, NULL);
-			/* To make it different for human eyes let's make
-			 * sprite visible in only one quarter of the primary
-			 */
-			white_h = white_h/2;
-			white_v = white_v/2;
-		case PRIMARY:
-			igt_create_color_fb(data->drm_fd,
-					    white_h, white_v,
-					    DRM_FORMAT_XRGB8888,
-					    LOCAL_I915_FORMAT_MOD_X_TILED,
-					    1.0, 1.0, 1.0,
-					    &data->fb_white);
-			break;
-		case CURSOR:
-			data->cursor = igt_output_get_plane(output,
-							    IGT_PLANE_CURSOR);
-			igt_plane_set_fb(data->cursor, NULL);
-			create_cursor_fb(data);
-			igt_plane_set_position(data->cursor, 0, 0);
-
-			/* Cursor is 64 x 64, ignoring pitch and bbp again */
-			data->mod_size = 64 * 64;
-			break;
-		}
-
-		igt_display_commit(&data->display);
-
-		test_crc(data);
-
-		test_cleanup(data);
+		/* Cursor is 64 x 64, ignoring pitch and bbp again */
+		data->mod_size = 64 * 64;
+		break;
 	}
+
+	igt_display_commit(&data->display);
+
+	igt_plane_set_fb(data->primary, &data->fb_green);
+	igt_display_commit(&data->display);
 }
 
 static int opt_handler(int opt, int opt_index)
@@ -566,7 +571,10 @@ int main(int argc, char *argv[])
 		igt_subtest_f("primary_%s", op_str(op)) {
 			data.test_plane = PRIMARY;
 			data.op = op;
+			setup_test_plane(&data);
+			igt_assert(wait_psr_entry(&data));
 			run_test(&data);
+			test_cleanup(&data);
 		}
 	}
 
@@ -574,7 +582,10 @@ int main(int argc, char *argv[])
 		igt_subtest_f("sprite_%s", op_str(op)) {
 			data.test_plane = SPRITE;
 			data.op = op;
+			setup_test_plane(&data);
+			igt_assert(wait_psr_entry(&data));
 			run_test(&data);
+			test_cleanup(&data);
 		}
 	}
 
@@ -582,7 +593,10 @@ int main(int argc, char *argv[])
 		igt_subtest_f("cursor_%s", op_str(op)) {
 			data.test_plane = CURSOR;
 			data.op = op;
+			setup_test_plane(&data);
+			igt_assert(wait_psr_entry(&data));
 			run_test(&data);
+			test_cleanup(&data);
 		}
 	}
 
