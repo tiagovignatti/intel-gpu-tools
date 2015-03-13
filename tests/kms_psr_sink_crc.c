@@ -245,8 +245,9 @@ static bool psr_active(data_t *data)
 	return strcmp(str, "yes") == 0;
 }
 
-static bool wait_psr_entry(data_t *data, int timeout)
+static bool wait_psr_entry(data_t *data)
 {
+	int timeout = 10;
 	while (timeout--) {
 		if (psr_active(data))
 			return true;
@@ -337,7 +338,7 @@ static void test_crc(data_t *data)
 	assert_or_manual(is_green(ref_crc), "screen GREEN");
 
 	/* Confirm screen stays Green after PSR got active */
-	igt_assert(wait_psr_entry(data, 10));
+	igt_assert(wait_psr_entry(data));
 	get_sink_crc(data, ref_crc);
 	assert_or_manual(is_green(ref_crc), "screen GREEN");
 
@@ -351,7 +352,7 @@ static void test_crc(data_t *data)
 	igt_display_commit(&data->display);
 
 	/* Confirm it is not Green anymore */
-	igt_assert(wait_psr_entry(data, 10));
+	igt_assert(wait_psr_entry(data));
 	get_sink_crc(data, ref_crc);
 	if (data->test_plane == PRIMARY)
 		assert_or_manual(!is_green(ref_crc), "screen WHITE");
