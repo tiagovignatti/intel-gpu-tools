@@ -1,6 +1,7 @@
 # Please keep sorted alphabetically
 core_get_client_auth
 core_getclient
+core_getparams
 core_getstats
 core_getversion
 drm_import_export

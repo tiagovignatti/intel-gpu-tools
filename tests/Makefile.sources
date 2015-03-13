@@ -15,6 +15,7 @@ NOUVEAU_TESTS_M = \
 
 TESTS_progs_M = \
 	core_get_client_auth \
+	core_getparams \
 	drv_suspend \
 	drv_hangman \
 	gem_bad_reloc \
