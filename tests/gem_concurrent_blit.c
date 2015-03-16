@@ -568,6 +568,52 @@ static void do_overwrite_source(struct buffers *buffers,
 	igt_post_hang_ring(fd, hang);
 }
 
+static void do_overwrite_source_read(struct buffers *buffers,
+				     do_copy do_copy_func,
+				     do_hang do_hang_func,
+				     int do_rcs)
+{
+	const int half = buffers->count/2;
+	struct igt_hang_ring hang;
+	int i;
+
+	gem_quiescent_gpu(fd);
+	for (i = 0; i < half; i++) {
+		buffers->mode->set_bo(buffers->src[i], i, width, height);
+		buffers->mode->set_bo(buffers->dst[i], ~i, width, height);
+		buffers->mode->set_bo(buffers->dst[i+half], ~i, width, height);
+	}
+	for (i = 0; i < half; i++) {
+		do_copy_func(buffers->dst[i], buffers->src[i]);
+		if (do_rcs)
+			render_copy_bo(buffers->dst[i+half], buffers->src[i]);
+		else
+			blt_copy_bo(buffers->dst[i+half], buffers->src[i]);
+	}
+	hang = do_hang_func();
+	for (i = half; i--; )
+		buffers->mode->set_bo(buffers->src[i], 0xdeadbeef, width, height);
+	for (i = 0; i < half; i++) {
+		buffers->mode->cmp_bo(buffers->dst[i], i, width, height, buffers->dummy);
+		buffers->mode->cmp_bo(buffers->dst[i+half], i, width, height, buffers->dummy);
+	}
+	igt_post_hang_ring(fd, hang);
+}
+
+static void do_overwrite_source_read_bcs(struct buffers *buffers,
+					 do_copy do_copy_func,
+					 do_hang do_hang_func)
+{
+	do_overwrite_source_read(buffers, do_copy_func, do_hang_func, 0);
+}
+
+static void do_overwrite_source_read_rcs(struct buffers *buffers,
+					 do_copy do_copy_func,
+					 do_hang do_hang_func)
+{
+	do_overwrite_source_read(buffers, do_copy_func, do_hang_func, 1);
+}
+
 static void do_overwrite_source__rev(struct buffers *buffers,
 				     do_copy do_copy_func,
 				     do_hang do_hang_func)
@@ -843,6 +889,26 @@ run_basic_modes(const struct access_mode *mode,
 					      do_overwrite_source,
 					      p->copy, h->hang);
 			}
+
+			igt_subtest_f("%s-%s-overwrite-source-read-bcs%s%s", mode->name, p->prefix, suffix, h->suffix) {
+				h->require();
+				p->require();
+				buffers_create(&buffers, num_buffers);
+				run_wrap_func(&buffers,
+					      do_overwrite_source_read_bcs,
+					      p->copy, h->hang);
+			}
+
+			igt_subtest_f("%s-%s-overwrite-source-read-rcs%s%s", mode->name, p->prefix, suffix, h->suffix) {
+				h->require();
+				p->require();
+				igt_require(rendercopy);
+				buffers_create(&buffers, num_buffers);
+				run_wrap_func(&buffers,
+					      do_overwrite_source_read_rcs,
+					      p->copy, h->hang);
+			}
+
 			igt_subtest_f("%s-%s-overwrite-source-rev%s%s", mode->name, p->prefix, suffix, h->suffix) {
 				h->require();
 				p->require();
