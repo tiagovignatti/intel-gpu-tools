@@ -73,7 +73,7 @@ static int vlv_sideband_rw(uint32_t port, uint8_t opcode, uint32_t addr,
  * Returns:
  * 0 when the register access succeeded, negative errno code on failure.
  */
-int intel_punit_read(uint8_t addr, uint32_t *val)
+int intel_punit_read(uint32_t addr, uint32_t *val)
 {
 	return vlv_sideband_rw(IOSF_PORT_PUNIT, SB_CRRDDA_NP, addr, val);
 }
@@ -88,7 +88,7 @@ int intel_punit_read(uint8_t addr, uint32_t *val)
  * Returns:
  * 0 when the register access succeeded, negative errno code on failure.
  */
-int intel_punit_write(uint8_t addr, uint32_t val)
+int intel_punit_write(uint32_t addr, uint32_t val)
 {
 	return vlv_sideband_rw(IOSF_PORT_PUNIT, SB_CRWRDA_NP, addr, &val);
 }
@@ -103,7 +103,7 @@ int intel_punit_write(uint8_t addr, uint32_t val)
  * Returns:
  * 0 when the register access succeeded, negative errno code on failure.
  */
-int intel_nc_read(uint8_t addr, uint32_t *val)
+int intel_nc_read(uint32_t addr, uint32_t *val)
 {
 	return vlv_sideband_rw(IOSF_PORT_NC, SB_CRRDDA_NP, addr, val);
 }
@@ -118,7 +118,7 @@ int intel_nc_read(uint8_t addr, uint32_t *val)
  * Returns:
  * 0 when the register access succeeded, negative errno code on failure.
  */
-int intel_nc_write(uint8_t addr, uint32_t val)
+int intel_nc_write(uint32_t addr, uint32_t val)
 {
 	return vlv_sideband_rw(IOSF_PORT_NC, SB_CRWRDA_NP, addr, &val);
 }

@@ -53,10 +53,10 @@ void intel_flisdsi_reg_write(uint32_t reg, uint32_t val);
 uint32_t intel_iosf_sb_read(uint32_t port, uint32_t reg);
 void intel_iosf_sb_write(uint32_t port, uint32_t reg, uint32_t val);
 
-int intel_punit_read(uint8_t addr, uint32_t *val);
-int intel_punit_write(uint8_t addr, uint32_t val);
-int intel_nc_read(uint8_t addr, uint32_t *val);
-int intel_nc_write(uint8_t addr, uint32_t val);
+int intel_punit_read(uint32_t addr, uint32_t *val);
+int intel_punit_write(uint32_t addr, uint32_t val);
+int intel_nc_read(uint32_t addr, uint32_t *val);
+int intel_nc_write(uint32_t addr, uint32_t val);
 
 /* register maps from intel_reg_map.c */
 #ifndef __GTK_DOC_IGNORE__
