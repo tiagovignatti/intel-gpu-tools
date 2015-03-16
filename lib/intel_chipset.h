@@ -59,6 +59,7 @@ void intel_check_pch(void);
 
 #define PCI_CHIP_I830_M			0x3577
 #define PCI_CHIP_845_G			0x2562
+#define PCI_CHIP_I854_G			0x358e
 #define PCI_CHIP_I855_GM		0x3582
 #define PCI_CHIP_I865_G			0x2572
 
@@ -245,6 +246,7 @@ void intel_check_pch(void);
 
 #define IS_GEN2(devid)		((devid) == PCI_CHIP_I830_M || \
 				 (devid) == PCI_CHIP_845_G || \
+				 (devid) == PCI_CHIP_I854_G || \
 				 (devid) == PCI_CHIP_I855_GM || \
 				 (devid) == PCI_CHIP_I865_G)
 
