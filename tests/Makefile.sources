@@ -54,6 +54,7 @@ TESTS_progs_M = \
 	gem_pwrite \
 	gem_pwrite_pread \
 	gem_readwrite \
+	gem_read_read_speed \
 	gem_reloc_overflow \
 	gem_reloc_vs_gpu \
 	gem_render_copy_redux \
