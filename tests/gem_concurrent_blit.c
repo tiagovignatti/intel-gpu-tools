@@ -372,7 +372,8 @@ igt_render_copyfunc_t rendercopy;
 struct buffers {
 	const struct access_mode *mode;
 	drm_intel_bufmgr *bufmgr;
-	drm_intel_bo *src[MAX_NUM_BUFFERS], *dst[MAX_NUM_BUFFERS], *dummy;
+	drm_intel_bo *src[MAX_NUM_BUFFERS], *dst[MAX_NUM_BUFFERS];
+	drm_intel_bo *dummy, *spare;
 	int count;
 };
 
@@ -400,6 +401,7 @@ static void buffers_destroy(struct buffers *data)
 		data->mode->release_bo(data->dst[i]);
 	}
 	data->mode->release_bo(data->dummy);
+	data->mode->release_bo(data->spare);
 	data->count = 0;
 }
 
@@ -417,6 +419,7 @@ static void buffers_create(struct buffers *data,
 			data->mode->create_bo(data->bufmgr, width, height);
 	}
 	data->dummy = data->mode->create_bo(data->bufmgr, width, height);
+	data->spare = data->mode->create_bo(data->bufmgr, width, height);
 	data->count = count;
 }
 
@@ -621,6 +624,48 @@ static void do_early_read(struct buffers *buffers,
 	igt_post_hang_ring(fd, hang);
 }
 
+static void do_read_read_bcs(struct buffers *buffers,
+			     do_copy do_copy_func,
+			     do_hang do_hang_func)
+{
+	struct igt_hang_ring hang;
+	int i;
+
+	gem_quiescent_gpu(fd);
+	for (i = buffers->count; i--; )
+		buffers->mode->set_bo(buffers->src[i], 0xdeadbeef ^ i, width, height);
+	for (i = 0; i < buffers->count; i++) {
+		do_copy_func(buffers->dst[i], buffers->src[i]);
+		blt_copy_bo(buffers->spare, buffers->src[i]);
+	}
+	cpu_cmp_bo(buffers->spare, 0xdeadbeef^(buffers->count-1), width, height, NULL);
+	hang = do_hang_func();
+	for (i = buffers->count; i--; )
+		buffers->mode->cmp_bo(buffers->dst[i], 0xdeadbeef ^ i, width, height, buffers->dummy);
+	igt_post_hang_ring(fd, hang);
+}
+
+static void do_read_read_rcs(struct buffers *buffers,
+			     do_copy do_copy_func,
+			     do_hang do_hang_func)
+{
+	struct igt_hang_ring hang;
+	int i;
+
+	gem_quiescent_gpu(fd);
+	for (i = buffers->count; i--; )
+		buffers->mode->set_bo(buffers->src[i], 0xdeadbeef ^ i, width, height);
+	for (i = 0; i < buffers->count; i++) {
+		do_copy_func(buffers->dst[i], buffers->src[i]);
+		render_copy_bo(buffers->spare, buffers->src[i]);
+	}
+	cpu_cmp_bo(buffers->spare, 0xdeadbeef^(buffers->count-1), width, height, NULL);
+	hang = do_hang_func();
+	for (i = buffers->count; i--; )
+		buffers->mode->cmp_bo(buffers->dst[i], 0xdeadbeef ^ i, width, height, buffers->dummy);
+	igt_post_hang_ring(fd, hang);
+}
+
 static void do_gpu_read_after_write(struct buffers *buffers,
 				    do_copy do_copy_func,
 				    do_hang do_hang_func)
@@ -814,6 +859,25 @@ run_basic_modes(const struct access_mode *mode,
 				buffers_create(&buffers, num_buffers);
 				run_wrap_func(&buffers,
 					      do_early_read,
+					      p->copy, h->hang);
+			}
+
+			/* concurrent reads */
+			igt_subtest_f("%s-%s-read-read-bcs%s%s", mode->name, p->prefix, suffix, h->suffix) {
+				h->require();
+				p->require();
+				buffers_create(&buffers, num_buffers);
+				run_wrap_func(&buffers,
+					      do_read_read_bcs,
+					      p->copy, h->hang);
+			}
+			igt_subtest_f("%s-%s-read-read-rcs%s%s", mode->name, p->prefix, suffix, h->suffix) {
+				h->require();
+				p->require();
+				igt_require(rendercopy);
+				buffers_create(&buffers, num_buffers);
+				run_wrap_func(&buffers,
+					      do_read_read_rcs,
 					      p->copy, h->hang);
 			}
 
