@@ -90,7 +90,7 @@ static int semaphores_enabled(int fd)
 	return detected;
 }
 
-static void rcs_copy_bo(drm_intel_bo *dst, drm_intel_bo *src)
+static drm_intel_bo *rcs_copy_bo(drm_intel_bo *dst, drm_intel_bo *src)
 {
 	struct igt_buf d = {
 		.bo = dst,
@@ -104,6 +104,8 @@ static void rcs_copy_bo(drm_intel_bo *dst, drm_intel_bo *src)
 		.stride = width * 4,
 	};
 	uint32_t swizzle;
+	drm_intel_bo *bo = batch->bo;
+	drm_intel_bo_reference(bo);
 
 	drm_intel_bo_get_tiling(dst, &d.tiling, &swizzle);
 	drm_intel_bo_get_tiling(src, &s.tiling, &swizzle);
@@ -112,14 +114,21 @@ static void rcs_copy_bo(drm_intel_bo *dst, drm_intel_bo *src)
 		   &s, 0, 0,
 		   width, height,
 		   &d, 0, 0);
+
+	return bo;
 }
 
-static void bcs_copy_bo(drm_intel_bo *dst, drm_intel_bo *src)
+static drm_intel_bo *bcs_copy_bo(drm_intel_bo *dst, drm_intel_bo *src)
 {
+	drm_intel_bo *bo = batch->bo;
+	drm_intel_bo_reference(bo);
+
 	intel_blt_copy(batch,
 		       src, 0, 0, 4*width,
 		       dst, 0, 0, 4*width,
 		       width, height, 32);
+
+	return bo;
 }
 
 static void
@@ -128,7 +137,7 @@ set_bo(drm_intel_bo *bo, uint32_t val)
 	int size = width * height;
 	uint32_t *vaddr;
 
-	do_or_die(drm_intel_gem_bo_map_gtt(bo));
+	do_or_die(drm_intel_bo_map(bo, 1));
 	vaddr = bo->virtual;
 	while (size--)
 		*vaddr++ = val;
@@ -142,25 +151,43 @@ static double elapsed(const struct timespec *start,
 	return (1e6*(end->tv_sec - start->tv_sec) + (end->tv_nsec - start->tv_nsec)/1000)/loop;
 }
 
+static drm_intel_bo *create_bo(drm_intel_bufmgr *bufmgr,
+			       const char *name)
+{
+	uint32_t tiling_mode = I915_TILING_X;
+	unsigned long pitch;
+	return drm_intel_bo_alloc_tiled(bufmgr, name,
+					width, height, 4,
+					&tiling_mode, &pitch, 0);
+}
+
 static void run(drm_intel_bufmgr *bufmgr, int _width, int _height)
 {
 	drm_intel_bo *src = NULL, *bcs = NULL, *rcs = NULL;
+	drm_intel_bo *bcs_batch, *rcs_batch;
 	struct timespec start, end;
 	int loops = 1000;
 
 	width = _width;
 	height = _height;
 
-	src = drm_intel_bo_alloc(bufmgr, "src", 4*width*height, 0);
-	bcs = drm_intel_bo_alloc(bufmgr, "bcs", 4*width*height, 0);
-	rcs = drm_intel_bo_alloc(bufmgr, "rcs", 4*width*height, 0);
+	src = create_bo(bufmgr, "src");
+	bcs = create_bo(bufmgr, "bcs");
+	rcs = create_bo(bufmgr, "rcs");
 
 	set_bo(src, 0xdeadbeef);
 
+	rcs_batch = rcs_copy_bo(rcs, src);
+	bcs_batch = bcs_copy_bo(bcs, src);
+
+	drm_intel_bo_unreference(rcs);
+	drm_intel_bo_unreference(bcs);
+
+	drm_intel_gem_bo_start_gtt_access(src, true);
 	clock_gettime(CLOCK_MONOTONIC, &start);
 	for (int i = 0; i < loops; i++) {
-		rcs_copy_bo(rcs, src);
-		bcs_copy_bo(bcs, src);
+		drm_intel_gem_bo_context_exec(rcs_batch, NULL, 4096, I915_EXEC_RENDER);
+		drm_intel_gem_bo_context_exec(bcs_batch, NULL, 4096, I915_EXEC_BLT);
 	}
 	drm_intel_gem_bo_start_gtt_access(src, true);
 	clock_gettime(CLOCK_MONOTONIC, &end);
@@ -169,15 +196,17 @@ static void run(drm_intel_bufmgr *bufmgr, int _width, int _height)
 		 width, height, 4*width*height/1024,
 		 elapsed(&start, &end, loops));
 
-	drm_intel_bo_unreference(rcs);
-	drm_intel_bo_unreference(bcs);
+	drm_intel_bo_unreference(rcs_batch);
+	drm_intel_bo_unreference(bcs_batch);
+
 	drm_intel_bo_unreference(src);
 }
 
 igt_main
 {
-	drm_intel_bufmgr *bufmgr;
-	int fd;
+	const int sizes[] = {1, 128, 256, 512, 1024, 2048, 4096, 8192, 0};
+	drm_intel_bufmgr *bufmgr = NULL;
+	int fd, i;
 
 	igt_skip_on_simulation();
 
@@ -185,9 +214,9 @@ igt_main
 		int devid;
 
 		fd = drm_open_any();
-		igt_info("Semaphores: %d\n", semaphores_enabled(fd));
 
 		devid = intel_get_drm_devid(fd);
+		igt_require(intel_gen(devid) >= 6);
 
 		rendercopy = igt_get_render_copyfunc(devid);
 		igt_require(rendercopy);
@@ -196,14 +225,11 @@ igt_main
 		igt_assert(bufmgr);
 
 		batch =  intel_batchbuffer_alloc(bufmgr, devid);
+
+		igt_info("Semaphores: %d\n", semaphores_enabled(fd));
 	}
 
-	igt_subtest("read-read-1x1")
-		run(bufmgr, 1, 1);
-
-	igt_subtest("read-read-512x512")
-		run(bufmgr, 512, 512);
-
-	igt_subtest("read-read-4096x4096")
-		run(bufmgr, 4096, 4096);
+	for (i = 0; sizes[i] != 0; i++)
+		igt_subtest_f("read-read-%dx%d", sizes[i], sizes[i])
+			run(bufmgr, sizes[i], sizes[i]);
 }
