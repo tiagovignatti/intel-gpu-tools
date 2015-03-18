@@ -652,6 +652,62 @@ static void do_overwrite_source__one(struct buffers *buffers,
 	igt_post_hang_ring(fd, hang);
 }
 
+static void do_intermix(struct buffers *buffers,
+			do_copy do_copy_func,
+			do_hang do_hang_func,
+			int do_rcs)
+{
+	const int half = buffers->count/2;
+	struct igt_hang_ring hang;
+	int i;
+
+	gem_quiescent_gpu(fd);
+	for (i = 0; i < buffers->count; i++) {
+		buffers->mode->set_bo(buffers->src[i], 0xdeadbeef^~i, width, height);
+		buffers->mode->set_bo(buffers->dst[i], i, width, height);
+	}
+	for (i = 0; i < half; i++) {
+		if (do_rcs == 1 || (do_rcs == -1 && i & 1))
+			render_copy_bo(buffers->dst[i], buffers->src[i]);
+		else
+			blt_copy_bo(buffers->dst[i], buffers->src[i]);
+
+		do_copy_func(buffers->dst[i+half], buffers->src[i]);
+
+		if (do_rcs == 1 || (do_rcs == -1 && (i & 1) == 0))
+			render_copy_bo(buffers->dst[i], buffers->dst[i+half]);
+		else
+			blt_copy_bo(buffers->dst[i], buffers->dst[i+half]);
+
+		do_copy_func(buffers->dst[i+half], buffers->src[i+half]);
+	}
+	hang = do_hang_func();
+	for (i = 0; i < 2*half; i++)
+		buffers->mode->cmp_bo(buffers->dst[i], 0xdeadbeef^~i, width, height, buffers->dummy);
+	igt_post_hang_ring(fd, hang);
+}
+
+static void do_intermix_rcs(struct buffers *buffers,
+			    do_copy do_copy_func,
+			    do_hang do_hang_func)
+{
+	do_intermix(buffers, do_copy_func, do_hang_func, 1);
+}
+
+static void do_intermix_bcs(struct buffers *buffers,
+			    do_copy do_copy_func,
+			    do_hang do_hang_func)
+{
+	do_intermix(buffers, do_copy_func, do_hang_func, 0);
+}
+
+static void do_intermix_both(struct buffers *buffers,
+			     do_copy do_copy_func,
+			     do_hang do_hang_func)
+{
+	do_intermix(buffers, do_copy_func, do_hang_func, -1);
+}
+
 static void do_early_read(struct buffers *buffers,
 			  do_copy do_copy_func,
 			  do_hang do_hang_func)
@@ -915,6 +971,35 @@ run_basic_modes(const struct access_mode *mode,
 				buffers_create(&buffers, num_buffers);
 				run_wrap_func(&buffers,
 					      do_overwrite_source__rev,
+					      p->copy, h->hang);
+			}
+
+			/* try to intermix copies with GPU copies*/
+			igt_subtest_f("%s-%s-intermix-rcs%s%s", mode->name, p->prefix, suffix, h->suffix) {
+				h->require();
+				p->require();
+				igt_require(rendercopy);
+				buffers_create(&buffers, num_buffers);
+				run_wrap_func(&buffers,
+					      do_intermix_rcs,
+					      p->copy, h->hang);
+			}
+			igt_subtest_f("%s-%s-intermix-bcs%s%s", mode->name, p->prefix, suffix, h->suffix) {
+				h->require();
+				p->require();
+				igt_require(rendercopy);
+				buffers_create(&buffers, num_buffers);
+				run_wrap_func(&buffers,
+					      do_intermix_bcs,
+					      p->copy, h->hang);
+			}
+			igt_subtest_f("%s-%s-intermix-both%s%s", mode->name, p->prefix, suffix, h->suffix) {
+				h->require();
+				p->require();
+				igt_require(rendercopy);
+				buffers_create(&buffers, num_buffers);
+				run_wrap_func(&buffers,
+					      do_intermix_both,
 					      p->copy, h->hang);
 			}
 
