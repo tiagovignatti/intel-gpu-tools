@@ -78,9 +78,8 @@ static int exec(int fd, uint32_t handle, int loops, unsigned ring_id)
 	execbuf.rsvd2 = 0;
 
 	while (loops-- && ret == 0) {
-		ret = drmIoctl(fd,
-			       DRM_IOCTL_I915_GEM_EXECBUFFER2,
-			       &execbuf);
+		if (drmIoctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf))
+			ret = -errno;
 	}
 	gem_sync(fd, handle);
 
