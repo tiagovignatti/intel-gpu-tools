@@ -333,15 +333,6 @@ intel_blt_copy(struct intel_batchbuffer *batch,
 	uint32_t cmd_bits = 0;
 	uint32_t br13_bits;
 
-#define CHECK_RANGE(x)	((x) >= 0 && (x) < (1 << 15))
-	igt_assert(CHECK_RANGE(src_x1) && CHECK_RANGE(src_y1) &&
-		   CHECK_RANGE(dst_x1) && CHECK_RANGE(dst_y1) &&
-		   CHECK_RANGE(width) && CHECK_RANGE(height) &&
-		   CHECK_RANGE(src_x1 + width) && CHECK_RANGE(src_y1 + height)
-		   && CHECK_RANGE(dst_x1 + width) && CHECK_RANGE(dst_y1 +
-								 height) &&
-		   CHECK_RANGE(src_pitch) && CHECK_RANGE(dst_pitch));
-#undef CHECK_RANGE
 	igt_assert(bpp*(src_x1 + width) <= 8*src_pitch);
 	igt_assert(bpp*(dst_x1 + width) <= 8*dst_pitch);
 	igt_assert(src_pitch * (src_y1 + height) <= src_bo->size);
@@ -359,6 +350,18 @@ intel_blt_copy(struct intel_batchbuffer *batch,
 		dst_pitch /= 4;
 		cmd_bits |= XY_SRC_COPY_BLT_DST_TILED;
 	}
+
+#define CHECK_RANGE(x)	((x) >= 0 && (x) < (1 << 15))
+	igt_assert(CHECK_RANGE(src_x1) && CHECK_RANGE(src_y1) &&
+		   CHECK_RANGE(dst_x1) && CHECK_RANGE(dst_y1) &&
+		   CHECK_RANGE(width) && CHECK_RANGE(height) &&
+		   CHECK_RANGE(src_x1 + width) &&
+		   CHECK_RANGE(src_y1 + height) &&
+		   CHECK_RANGE(dst_x1 + width) &&
+		   CHECK_RANGE(dst_y1 + height) &&
+		   CHECK_RANGE(src_pitch) &&
+		   CHECK_RANGE(dst_pitch));
+#undef CHECK_RANGE
 
 	br13_bits = 0;
 	switch (bpp) {
