@@ -548,7 +548,7 @@ fill_object(struct drm_i915_gem_exec_object2 *obj, uint32_t gem_handle,
 	memset(obj, 0, sizeof(*obj));
 	obj->handle = gem_handle;
 	obj->relocation_count = count;
-	obj->relocs_ptr = (uint64_t)relocs;
+	obj->relocs_ptr = (uintptr_t)relocs;
 }
 
 static void exec_blit(int fd,
@@ -557,7 +557,7 @@ static void exec_blit(int fd,
 {
 	struct drm_i915_gem_execbuffer2 exec;
 
-	exec.buffers_ptr = (uint64_t)objs;
+	exec.buffers_ptr = (uintptr_t)objs;
 	exec.buffer_count = count;
 	exec.batch_start_offset = 0;
 	exec.batch_len = batch_len * 4;
