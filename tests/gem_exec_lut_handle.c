@@ -113,9 +113,32 @@ static int exec(int fd, int num_exec, int num_relocs, unsigned flags)
 			&execbuf);
 }
 
-#define ELAPSED(a,b) (1e6*((b)->tv_sec - (a)->tv_sec) + ((b)->tv_usec - (a)->tv_usec))
-igt_simple_main
+int repeats = 10;
+
+static int opt_handler(int opt, int opt_index)
 {
+	switch (opt) {
+	case 'r':
+		igt_warn("meh\n");
+		repeats = atoi(optarg);
+		igt_warn("meh\n");
+		break;
+	default:
+		igt_assert(0);
+	}
+
+	return 0;
+}
+
+#define ELAPSED(a,b) (1e6*((b)->tv_sec - (a)->tv_sec) + ((b)->tv_usec - (a)->tv_usec))
+int main(int argc, char **argv)
+{
+	const char *help_str =
+	       "  --repeats\t\tNumber of repeats to run the microbenchmarks for.";
+	static struct option long_options[] = {
+		{"repeats", 1, 0, 'r'},
+		{ 0, 0, 0, 0 }
+	};
 	uint32_t batch[2] = {MI_BATCH_BUFFER_END};
 	int fd, n, m, count;
 	const struct {
@@ -127,6 +150,9 @@ igt_simple_main
 		{ .name = "no-relocs", .flags = NO_RELOC },
 		{ .name = NULL },
 	}, *p;
+
+	igt_simple_init_parse_opts(&argc, argv, "", long_options,
+				   help_str, opt_handler);
 
 	igt_skip_on_simulation();
 
@@ -160,7 +186,7 @@ igt_simple_main
 
 				do_or_die(exec(fd, n, m, 0 | p->flags));
 				gettimeofday(&start, NULL);
-				for (count = 0; count < 1000; count++)
+				for (count = 0; count < repeats; count++)
 					do_or_die(exec(fd, n, m, 0 | p->flags));
 				gettimeofday(&end, NULL);
 				gem_sync(fd, gem_exec[MAX_NUM_EXEC].handle);
@@ -168,7 +194,7 @@ igt_simple_main
 
 				do_or_die(exec(fd, n, m, USE_LUT | p->flags));
 				gettimeofday(&start, NULL);
-				for (count = 0; count < 1000; count++)
+				for (count = 0; count < repeats; count++)
 					do_or_die(exec(fd, n, m, USE_LUT | p->flags));
 				gettimeofday(&end, NULL);
 				gem_sync(fd, gem_exec[MAX_NUM_EXEC].handle);
@@ -204,4 +230,10 @@ igt_simple_main
 			igt_info("\n");
 		}
 	}
+
+	igt_info("Used %i rounds for testing.\n"
+		 "Increase for more accurate results when microbenchmarking with --repeats\n",
+		 repeats);
+
+	igt_exit();
 }
