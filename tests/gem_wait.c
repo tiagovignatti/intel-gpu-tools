@@ -215,7 +215,7 @@ static void render_timeout(int fd)
 	intel_batchbuffer_flush(batch);
 
 	igt_assert_eq(gem_bo_wait_timeout(fd, dst2->handle, &negative_timeout), 0);
-	igt_assert_eq(negative_timeout, 0);
+	igt_assert_eq(negative_timeout, -1); /* infinity always remains */
 	igt_assert(gem_bo_busy(fd, dst2->handle) == false);
 
 	if (do_signals)
