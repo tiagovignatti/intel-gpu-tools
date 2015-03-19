@@ -140,6 +140,7 @@ kms_rotation_crc
 kms_setmode
 kms_sink_crc_basic
 kms_universal_plane
+kms_vblank
 multi-tests.txt
 pm_lpsp
 pm_rc6_residency
