@@ -1304,9 +1304,12 @@ static igt_exit_handler_t exit_handler_fn[MAX_EXIT_HANDLERS];
 static bool exit_handler_disabled;
 static sigset_t saved_sig_mask;
 #define SIGDEF(x) { x, #x, sizeof(#x) - 1 }
+#define SILENT(x) { x, NULL, 0 }
 static const struct { int number; const char *name; size_t name_len; } handled_signals[] =
-	{ SIGDEF(SIGINT), SIGDEF(SIGHUP), SIGDEF(SIGTERM), SIGDEF(SIGQUIT),
-	  SIGDEF(SIGPIPE), SIGDEF(SIGABRT), SIGDEF(SIGSEGV), SIGDEF(SIGBUS) };
+	{ SILENT(SIGINT), SILENT(SIGHUP), SILENT(SIGTERM), SILENT(SIGQUIT),
+	  SILENT(SIGPIPE), SIGDEF(SIGABRT), SIGDEF(SIGSEGV), SIGDEF(SIGBUS) };
+#undef SILENT
+#undef SIGDEF
 
 static int install_sig_handler(int sig_num, sighandler_t handler)
 {
@@ -1364,13 +1367,17 @@ static void fatal_sig_handler(int sig)
 	restore_all_sig_handler();
 
 	for (i = 0; i < ARRAY_SIZE(handled_signals); i++) {
-		if (handled_signals[i].number == sig) {
+		if (handled_signals[i].number != sig)
+			continue;
+
+		if (handled_signals[i].name_len) {
 			write(STDERR_FILENO, "Received signal ", 16);
 			write(STDERR_FILENO, handled_signals[i].name,
 			      handled_signals[i].name_len);
 			write(STDERR_FILENO, ".\n", 2);
-			break;
 		}
+
+		break;
 	}
 
 	/*
