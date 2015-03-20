@@ -189,6 +189,17 @@ static uint32_t dumb_create(int fd)
 	return arg.handle;
 }
 
+static int dcmp(const void *A, const void *B)
+{
+	const double *a = A, *b = B;
+	if (*a < *b)
+		return -1;
+	else if (*a > *b)
+		return 1;
+	else
+		return 0;
+}
+
 static void run(int object_size, bool dumb)
 {
 	struct drm_i915_gem_execbuffer2 execbuf;
@@ -245,16 +256,26 @@ static void run(int object_size, bool dumb)
 
 	for (count = 1; count <= 1<<12; count <<= 1) {
 		struct timeval start, end;
+		const int reps = 9;
+		double t[reps], sum;
+		int n;
 
-		gettimeofday(&start, NULL);
-		for (int loop = 0; loop < count; loop++)
-			gem_execbuf(fd, &execbuf);
-		gem_sync(fd, handle);
-		gettimeofday(&end, NULL);
+		for (n = 0; n < reps; n++) {
+			gettimeofday(&start, NULL);
+			for (int loop = 0; loop < count; loop++)
+				gem_execbuf(fd, &execbuf);
+			gem_sync(fd, handle);
+			gettimeofday(&end, NULL);
+			t[n] = elapsed(&start, &end, count);
+		}
+		qsort(t, n, sizeof(double), dcmp);
+		sum = 0;
+		for (n = 2; n < reps - 2; n++)
+			sum += t[n];
+		sum /= reps - 4;
 		igt_info("Time to blt %d bytes x %6d:	%7.3fµs, %s\n",
-			 object_size, count,
-			 elapsed(&start, &end, count),
-			 bytes_per_sec((char *)buf, object_size/elapsed(&start, &end, count)*1e6));
+			 object_size, count, sum,
+			 bytes_per_sec((char *)buf, object_size/sum*1e6));
 		fflush(stdout);
 	}
 	gem_close(fd, handle);
