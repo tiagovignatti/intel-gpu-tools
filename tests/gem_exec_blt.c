@@ -50,6 +50,9 @@
 #define BLT_SRC_TILED		(1<<15)
 #define BLT_DST_TILED		(1<<11)
 
+#define LOCAL_I915_EXEC_NO_RELOC (1<<11)
+#define LOCAL_I915_EXEC_HANDLE_LUT (1<<12)
+
 static int gem_linear_blt(int fd,
 			  uint32_t *batch,
 			  uint32_t src,
@@ -205,26 +208,12 @@ static void run(int object_size, bool dumb)
 	src = gem_create(fd, object_size);
 	dst = gem_create(fd, object_size);
 
-	len = gem_linear_blt(fd, buf, src, dst, object_size, reloc);
+	len = gem_linear_blt(fd, buf, 0, 1, object_size, reloc);
 	gem_write(fd, handle, 0, buf, len);
 
+	memset(exec, 0, sizeof(exec));
 	exec[0].handle = src;
-	exec[0].relocation_count = 0;
-	exec[0].relocs_ptr = 0;
-	exec[0].alignment = 0;
-	exec[0].offset = 0;
-	exec[0].flags = 0;
-	exec[0].rsvd1 = 0;
-	exec[0].rsvd2 = 0;
-
 	exec[1].handle = dst;
-	exec[1].relocation_count = 0;
-	exec[1].relocs_ptr = 0;
-	exec[1].alignment = 0;
-	exec[1].offset = 0;
-	exec[1].flags = 0;
-	exec[1].rsvd1 = 0;
-	exec[1].rsvd2 = 0;
 
 	exec[2].handle = handle;
 	if (intel_gen(intel_get_drm_devid(fd)) >= 8)
@@ -232,27 +221,26 @@ static void run(int object_size, bool dumb)
 	else
 		exec[2].relocation_count = len > 40 ? 4 : 2;
 	exec[2].relocs_ptr = (uintptr_t)reloc;
-	exec[2].alignment = 0;
-	exec[2].offset = 0;
-	exec[2].flags = 0;
-	exec[2].rsvd1 = 0;
-	exec[2].rsvd2 = 0;
 
 	ring = 0;
 	if (HAS_BLT_RING(intel_get_drm_devid(fd)))
 		ring = I915_EXEC_BLT;
 
+	memset(&execbuf, 0, sizeof(execbuf));
 	execbuf.buffers_ptr = (uintptr_t)exec;
 	execbuf.buffer_count = 3;
-	execbuf.batch_start_offset = 0;
 	execbuf.batch_len = len;
-	execbuf.cliprects_ptr = 0;
-	execbuf.num_cliprects = 0;
-	execbuf.DR1 = 0;
-	execbuf.DR4 = 0;
 	execbuf.flags = ring;
-	i915_execbuffer2_set_context_id(execbuf, 0);
-	execbuf.rsvd2 = 0;
+	execbuf.flags |= LOCAL_I915_EXEC_HANDLE_LUT;
+	execbuf.flags |= LOCAL_I915_EXEC_NO_RELOC;
+
+	if (drmIoctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf)) {
+		len = gem_linear_blt(fd, buf, src, dst, object_size, reloc);
+		igt_assert(len == execbuf.batch_len);
+		gem_write(fd, handle, 0, buf, len);
+		execbuf.flags = ring;
+		do_ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf);
+	}
 
 	for (count = 1; count <= 1<<12; count <<= 1) {
 		struct timeval start, end;
