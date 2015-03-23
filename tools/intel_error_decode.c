@@ -380,6 +380,44 @@ print_fence(unsigned int devid, uint64_t fence)
 	}
 }
 
+static void
+print_fault_reg(unsigned devid, uint32_t reg)
+{
+	const char *gen7_types[] = { "Page",
+				     "Invalid PD",
+				     "Unloaded PD",
+				     "Invalid and Unloaded PD" };
+
+	const char *gen8_types[] = { "PTE",
+				     "PDE",
+				     "PDPE",
+				     "PML4E" };
+
+	const char *engine[] = { "GFX", "MFX0", "MFX1", "VEBX",
+				 "BLT", "Unknown", "Unknown", "Unknown" };
+
+	if (intel_gen(devid) < 7)
+		return;
+
+	if (reg & (1 << 0))
+		printf("    Valid\n");
+	else
+		return;
+
+	if (intel_gen(devid) < 8)
+		printf("    %s Fault (%s)\n", gen7_types[reg >> 1 & 0x3],
+		       reg & (1 << 11) ? "GGTT" : "PPGTT");
+	else
+		printf("    Invalid %s Fault\n", gen8_types[reg >> 1 & 0x3]);
+
+	if (intel_gen(devid) < 8)
+		printf("    Address 0x%08x\n", reg & ~((1 << 12)-1));
+	else
+		printf("    Engine %s\n", engine[reg >> 12 & 0x7]);
+
+	printf("    Source ID %d\n", reg >> 3 & 0xff);
+}
+
 #define MAX_RINGS 10 /* I really hope this never... */
 uint32_t head[MAX_RINGS];
 int head_ndx = 0;
@@ -519,6 +557,10 @@ read_data_file(FILE *file)
 			matched = sscanf(line, "  fence[%i] = %Lx\n", &reg, &fence);
 			if (matched == 2)
 				print_fence(devid, fence);
+
+			matched = sscanf(line, "  FAULT_REG: 0x%08x\n", &reg);
+			if (matched == 1 && reg)
+				print_fault_reg(devid, reg);
 
 			continue;
 		}
