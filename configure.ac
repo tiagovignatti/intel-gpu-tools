@@ -196,6 +196,19 @@ if test "x$with_libunwind" = xyes; then
 			  AC_MSG_ERROR([libunwind not found. Use --without-libunwind to disable libunwind support.]))
 fi
 
+# enable debug symbols
+AC_ARG_ENABLE(debug,
+	      AS_HELP_STRING([--disable-debug],
+			     [Build tests without debug symbols]),
+	      [], [enable_debug=yes])
+
+if test "x$enable_debug" = xyes; then
+	AS_COMPILER_FLAG([-g3], [DEBUG_CFLAGS="-g3"], [DEBUG_CFLAGS="-g"])
+	AS_COMPILER_FLAG([-Og], [DEBUG_CFLAGS+=" -Og -Wno-maybe-uninitialized"], # disable maybe-uninitialized due to false positives
+			 [DEBUG_CFLAGS+=" -O0"])
+	AC_SUBST([DEBUG_CFLAGS])
+fi
+
 # -----------------------------------------------------------------------------
 
 # To build multithread code, gcc uses -pthread, Solaris Studio cc uses -mt
@@ -253,6 +266,7 @@ echo " • Tests:"
 echo "       Build tests        : ${BUILD_TESTS}"
 echo "       Compile prime tests: ${NOUVEAU}"
 echo "       Print stack traces : ${with_libunwind}"
+echo "       Debug flags        : ${DEBUG_CFLAGS}"
 echo ""
 echo " • Tools:"
 echo "       Assembler          : ${enable_assembler}"

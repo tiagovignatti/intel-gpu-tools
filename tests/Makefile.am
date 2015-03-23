@@ -32,7 +32,7 @@ EXTRA_DIST = $(TESTS_scripts) $(TESTS_scripts_M) $(scripts) $(IMAGES) $(common_f
 
 CLEANFILES = $(EXTRA_PROGRAMS) single-tests.txt multi-tests.txt
 
-AM_CFLAGS = $(DRM_CFLAGS) $(CWARNFLAGS) \
+AM_CFLAGS = $(DRM_CFLAGS) $(CWARNFLAGS) $(DEBUG_CFLAGS)\
 	-I$(srcdir)/.. \
 	-I$(srcdir)/../lib \
 	-include "$(srcdir)/../lib/check-ndebug.h" \
