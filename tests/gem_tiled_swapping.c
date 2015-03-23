@@ -169,7 +169,7 @@ static void check_memory_layout(void)
 	igt_assert(tiling_debugfs_file);
 
 	while (getline(&line, &sz, tiling_debugfs_file) > 0) {
-		if (strstr(line, "L-shaped") != 0)
+		if (strstr(line, "L-shaped") == NULL)
 			continue;
 
 		igt_skip("L-shaped memory configuration detected\n");
