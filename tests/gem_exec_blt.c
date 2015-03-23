@@ -241,6 +241,7 @@ static void run(int object_size, bool dumb)
 		execbuf.flags = ring;
 		do_ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf);
 	}
+	gem_sync(fd, handle);
 
 	for (count = 1; count <= 1<<12; count <<= 1) {
 		struct timeval start, end;
@@ -269,27 +270,23 @@ int main(int argc, char **argv)
 
 	igt_skip_on_simulation();
 
-	igt_subtest("normal") {
-		if (argc > 1) {
-			for (i = 1; i < argc; i++) {
-				int object_size = atoi(argv[i]);
-				if (object_size)
-					run((object_size + 3) & -4, false);
-			}
-		} else
-			run(OBJECT_SIZE, false);
+	if (argc > 1) {
+		for (i = 1; i < argc; i++) {
+			int object_size = atoi(argv[i]);
+			if (object_size)
+				run((object_size + 3) & -4, false);
+		}
+		return 0;
 	}
 
-	igt_subtest("dumb-buf") {
-		if (argc > 1) {
-			for (i = 1; i < argc; i++) {
-				int object_size = atoi(argv[i]);
-				if (object_size)
-					run((object_size + 3) & -4, true);
-			}
-		} else
-			run(OBJECT_SIZE, true);
-	}
+	igt_subtest("cold")
+		run(OBJECT_SIZE, false);
+
+	igt_subtest("normal")
+		run(OBJECT_SIZE, false);
+
+	igt_subtest("dumb-buf")
+		run(OBJECT_SIZE, true);
 
 	igt_exit();
 }
