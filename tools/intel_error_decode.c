@@ -288,10 +288,29 @@ static void print_snb_error(unsigned int reg)
 		printf("    Cacheline containing a PD was marked as invalid\n");
 }
 
+static void print_bdw_error(unsigned int reg, unsigned int devid)
+{
+	print_ivb_error(reg, devid);
+
+	if (reg & (1 << 10))
+		printf("    Non WB memory type for Advanced Context\n");
+	if (reg & (1 << 11))
+		printf("    PASID not enabled\n");
+	if (reg & (1 << 12))
+		printf("    PASID boundary violation\n");
+	if (reg & (1 << 13))
+		printf("    PASID not valid\n");
+	if (reg & (1 << 14))
+		printf("    PASID was zero for untranslated request\n");
+	if (reg & (1 << 15))
+		printf("    Context was not marked as present when doing DMA\n");
+}
+
 static void
 print_error(unsigned int reg, unsigned int devid)
 {
 	switch (intel_gen(devid)) {
+	case 8: return print_bdw_error(reg, devid);
 	case 7: return print_ivb_error(reg, devid);
 	case 6: return print_snb_error(reg);
 	}
