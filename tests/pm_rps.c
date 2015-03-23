@@ -526,6 +526,26 @@ static void stabilize_check(int *freqs)
 	igt_debug("Waited %d msec to stabilize cur\n", wait);
 }
 
+/*
+ * reset - test that turbo works across a ring stop
+ *
+ * METHOD
+ *   Apply a low GPU load, collect the resulting frequencies, then stop
+ *   the GPU by stopping the rings.  Apply alternating high and low loads
+ *   following the restart, comparing against the previous low load freqs
+ *   and whether the GPU ramped to max freq successfully.  Finally check
+ *   that we return to idle at the end.
+ *
+ * EXPECTED RESULTS
+ *   Low load freqs match, high load freqs reach max, and GPU returns to
+ *   idle at the end.
+ *
+ * FAILURES
+ *    Failures here could indicate turbo doesn't work across a ring stop
+ *    or that load generation routines don't successfully generate stable
+ *    or maximal GPU loads.  It could also indicate a thermal limit if the
+ *    GPU isn't able to reach its maximum frequency.
+ */
 static void reset(void)
 {
 	int pre_freqs[NUMFREQ];
@@ -565,6 +585,27 @@ static void reset(void)
 	idle_check();
 }
 
+/*
+ * blocking - test that GPU returns to idle after a forced blocking boost
+ *   and a low GPU load.  Frequencies resulting from the low load are also
+ *   expected to match.o
+ *
+ * METHOD
+ *   Collect frequencies resulting from a low GPU load and compare with
+ *   frequencies collected after a quiesce and a second low load, then
+ *   verify idle.
+ *
+ * EXPECTED RESULTS
+ *   Frequencies match and GPU successfully returns to idle afterward.
+ *
+ * FAILURES
+ *   Failures in this test could be due to several possible bugs:
+ *     - load generation creates unstable frequencies, though stabilize_check()
+ *       is supposed to catch this
+ *     - quiescent_gpu() call does not boost GPU to max freq
+ *     - frequency ramp down is too slow, causing second set of collected
+ *       frequencies to be higher than the first
+ */
 static void blocking(void)
 {
 	int pre_freqs[NUMFREQ];
