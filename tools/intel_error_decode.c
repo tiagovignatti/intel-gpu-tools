@@ -418,6 +418,19 @@ print_fault_reg(unsigned devid, uint32_t reg)
 	printf("    Source ID %d\n", reg >> 3 & 0xff);
 }
 
+static void
+print_fault_data(unsigned devid, uint32_t data1, uint32_t data0)
+{
+	uint64_t address;
+
+	if (intel_gen(devid) < 8)
+		return;
+
+	address = ((uint64_t)(data0) << 12) | ((uint64_t)data1 & 0xf) << 44;
+	printf("    Address 0x%016" PRIx64 " %s\n", address,
+	       data1 & (1 << 4) ? "GGTT" : "PPGTT");
+}
+
 #define MAX_RINGS 10 /* I really hope this never... */
 uint32_t head[MAX_RINGS];
 int head_ndx = 0;
@@ -499,7 +512,7 @@ read_data_file(FILE *file)
 
 		matched = sscanf(line, "%08x : %08x", &offset, &value);
 		if (matched != 2) {
-			unsigned int reg;
+			unsigned int reg, reg2;
 
 			/* display reg section is after the ringbuffers, don't mix them */
 			decode(decode_ctx, is_batch, ring_name, gtt_offset,
@@ -561,6 +574,10 @@ read_data_file(FILE *file)
 			matched = sscanf(line, "  FAULT_REG: 0x%08x\n", &reg);
 			if (matched == 1 && reg)
 				print_fault_reg(devid, reg);
+
+			matched = sscanf(line, "  FAULT_TLB_DATA: 0x%08x 0x%08x\n", &reg, &reg2);
+			if (matched == 2)
+				print_fault_data(devid, reg, reg2);
 
 			continue;
 		}
