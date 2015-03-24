@@ -61,13 +61,11 @@ typedef struct {
 	drm_intel_bufmgr *bufmgr;
 	drm_intel_context *ctx[2];
 	uint32_t devid;
-	uint32_t handle[2];
 	igt_display_t display;
 	igt_output_t *output;
 	enum pipe pipe;
 	igt_plane_t *primary;
 	struct igt_fb fb[2];
-	uint32_t fb_id[2];
 } data_t;
 
 static const char *test_mode_str(enum test_mode mode)
@@ -214,14 +212,14 @@ static void test_crc(data_t *data, enum test_mode mode)
 	uint32_t crtc_id = data->output->config.crtc->crtc_id;
 	igt_pipe_crc_t *pipe_crc = data->pipe_crc;
 	igt_crc_t crc;
-	uint32_t handle = data->handle[0];
+	uint32_t handle = data->fb[0].gem_handle;
 
 	igt_assert(fbc_enabled(data));
 
 	if (mode >= TEST_PAGE_FLIP_AND_MMAP_CPU) {
-		handle = data->handle[1];
+		handle = data->fb[1].gem_handle;
 		igt_assert(drmModePageFlip(data->drm_fd, crtc_id,
-					   data->fb_id[1], 0, NULL) == 0);
+					   data->fb[1].fb_id, 0, NULL) == 0);
 
 		igt_assert(wait_for_fbc_enabled(data));
 	}
@@ -230,7 +228,7 @@ static void test_crc(data_t *data, enum test_mode mode)
 		void *ptr;
 	case TEST_PAGE_FLIP:
 		igt_assert(drmModePageFlip(data->drm_fd, crtc_id,
-					   data->fb_id[1], 0, NULL) == 0);
+					   data->fb[1].fb_id, 0, NULL) == 0);
 		break;
 	case TEST_MMAP_CPU:
 	case TEST_PAGE_FLIP_AND_MMAP_CPU:
@@ -312,24 +310,21 @@ static bool prepare_test(data_t *data, enum test_mode test_mode)
 	igt_output_t *output = data->output;
 	drmModeModeInfo *mode;
 	igt_pipe_crc_t *pipe_crc;
+	int rc;
 
 	data->primary = igt_output_get_plane(data->output, IGT_PLANE_PRIMARY);
 	mode = igt_output_get_mode(data->output);
 
-	data->fb_id[0] = igt_create_color_fb(data->drm_fd, mode->hdisplay, mode->vdisplay,
-					     DRM_FORMAT_XRGB8888,
-					     LOCAL_I915_FORMAT_MOD_X_TILED,
-					     0.0, 0.0, 0.0, &data->fb[0]);
-	igt_assert(data->fb_id[0]);
-	data->fb_id[1] = igt_create_color_fb(data->drm_fd, mode->hdisplay, mode->vdisplay,
-					     DRM_FORMAT_XRGB8888,
-					     LOCAL_I915_FORMAT_MOD_X_TILED,
-					     0.1, 0.1, 0.1,
-					     &data->fb[1]);
-	igt_assert(data->fb_id[1]);
-
-	data->handle[0] = data->fb[0].gem_handle;
-	data->handle[1] = data->fb[1].gem_handle;
+	rc = igt_create_color_fb(data->drm_fd, mode->hdisplay, mode->vdisplay,
+				 DRM_FORMAT_XRGB8888,
+				 LOCAL_I915_FORMAT_MOD_X_TILED,
+				 0.0, 0.0, 0.0, &data->fb[0]);
+	igt_assert(rc);
+	rc = igt_create_color_fb(data->drm_fd, mode->hdisplay, mode->vdisplay,
+				 DRM_FORMAT_XRGB8888,
+				 LOCAL_I915_FORMAT_MOD_X_TILED,
+				 0.1, 0.1, 0.1, &data->fb[1]);
+	igt_assert(rc);
 
 	/* scanout = fb[1] */
 	igt_plane_set_fb(data->primary, &data->fb[1]);
@@ -370,10 +365,10 @@ static bool prepare_test(data_t *data, enum test_mode test_mode)
 		 * Disable FBC RT address for both contexts
 		 * (by "rendering" to a non-scanout buffer).
 		 */
-		exec_nop(data, data->handle[0], data->ctx[1]);
-		exec_nop(data, data->handle[0], data->ctx[0]);
-		exec_nop(data, data->handle[0], data->ctx[1]);
-		exec_nop(data, data->handle[0], data->ctx[0]);
+		exec_nop(data, data->fb[0].gem_handle, data->ctx[1]);
+		exec_nop(data, data->fb[0].gem_handle, data->ctx[0]);
+		exec_nop(data, data->fb[0].gem_handle, data->ctx[1]);
+		exec_nop(data, data->fb[0].gem_handle, data->ctx[0]);
 	}
 
 	/* scanout = fb[0] */
