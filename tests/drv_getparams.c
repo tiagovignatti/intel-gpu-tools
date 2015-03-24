@@ -77,6 +77,7 @@ subslice_total(void)
 	int ret;
 
 	ret = getparam(LOCAL_I915_PARAM_SUBSLICE_TOTAL, (int*)&subslice_total);
+	igt_skip_on_f(ret == -EINVAL, "Interface not supported by kernel\n");
 
 	if (ret) {
 		/*
@@ -93,9 +94,7 @@ subslice_total(void)
 		 * fail them if we are here.
 		*/
 		} else {
-			igt_assert_neq(ret, EINVAL); /* request not recognized? */
-			igt_assert_neq(ret, ENODEV); /* device not supported? */
-			igt_assert_eq(ret, 0); /* other error? */
+			igt_assert_eq(ret, 0);
 		}
 	} else {
 		/*
@@ -115,6 +114,7 @@ eu_total(void)
 	int ret;
 
 	ret = getparam(LOCAL_I915_PARAM_EU_TOTAL, (int*)&eu_total);
+	igt_skip_on_f(ret == -EINVAL, "Interface not supported by kernel\n");
 
 	if (ret) {
 		/*
@@ -131,9 +131,7 @@ eu_total(void)
 		 * fail them if we are here.
 		*/
 		} else {
-			igt_assert_neq(ret, EINVAL); /* request not recognized? */
-			igt_assert_neq(ret, ENODEV); /* device not supported? */
-			igt_assert_eq(ret, 0); /* other error? */
+			igt_assert_eq(ret, 0);
 		}
 	} else {
 		/*
