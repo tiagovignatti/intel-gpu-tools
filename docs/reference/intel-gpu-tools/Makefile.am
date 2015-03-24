@@ -46,13 +46,21 @@ xml/igt_test_programs_%_description.xml: $(TESTLISTS)
 		echo "]]></para>" >> $@; \
 		if ./$$testprog --list-subtests > /dev/null ; then \
 			echo "<refsect3><title>Subtests</title>" >> $@; \
-			echo "<simplelist>" >> $@; \
-			for subtest in `./$$testprog --list-subtests`; do \
-				echo "<member>" >> $@; \
-				echo "$$subtest" | perl -pe 's/\b$(KEYWORDS)\b/<acronym>\1<\/acronym>/g' >> $@; \
-				echo "</member>" >> $@; \
-			done; \
-			echo "</simplelist></refsect3>" >> $@; \
+			subtest_list=`./$$testprog --list-subtests`; \
+			subtest_count=`echo $$subtest_list | wc -w`; \
+			if [ $$subtest_count -gt 100 ]; then \
+				echo "<para>This test has over 100 subtests. " >> $@; \
+				echo "Run <command>$$test</command> <option>--list-subtests</option> to list them.</para>" >> $@; \
+			else \
+				echo "<simplelist>" >> $@; \
+				for subtest in $$subtest_list; do \
+					echo "<member>" >> $@; \
+					echo "$$subtest" | perl -pe 's/\b$(KEYWORDS)\b/<acronym>\1<\/acronym>/g' >> $@; \
+					echo "</member>" >> $@; \
+				done; \
+				echo "</simplelist>" >> $@; \
+			fi; \
+			echo "</refsect3>" >> $@; \
 		fi; \
 		echo "</refsect2>" >> $@; \
 	done;
