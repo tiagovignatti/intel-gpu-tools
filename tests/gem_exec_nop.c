@@ -41,7 +41,21 @@
 #include "drmtest.h"
 #include "intel_io.h"
 
+#define LOCAL_I915_EXEC_NO_RELOC (1<<11)
+#define LOCAL_I915_EXEC_HANDLE_LUT (1<<12)
+
 #define LOCAL_I915_EXEC_VEBOX (4<<0)
+
+static int dcmp(const void *A, const void *B)
+{
+	double a = *(double *)A, b = *(double *)B;
+	if (a < b)
+		return -1;
+	else if (a > b)
+		return 1;
+	else
+		return 0;
+}
 
 static double elapsed(const struct timeval *start,
 		      const struct timeval *end,
@@ -50,56 +64,53 @@ static double elapsed(const struct timeval *start,
 	return (1e6*(end->tv_sec - start->tv_sec) + (end->tv_usec - start->tv_usec))/loop;
 }
 
-static int exec(int fd, uint32_t handle, int loops, unsigned ring_id)
+static void loop(int fd, uint32_t handle, unsigned ring_id, const char *ring_name)
 {
 	struct drm_i915_gem_execbuffer2 execbuf;
 	struct drm_i915_gem_exec_object2 gem_exec[1];
-	int ret = 0;
-
-	gem_exec[0].handle = handle;
-	gem_exec[0].relocation_count = 0;
-	gem_exec[0].relocs_ptr = 0;
-	gem_exec[0].alignment = 0;
-	gem_exec[0].offset = 0;
-	gem_exec[0].flags = 0;
-	gem_exec[0].rsvd1 = 0;
-	gem_exec[0].rsvd2 = 0;
-
-	execbuf.buffers_ptr = (uintptr_t)gem_exec;
-	execbuf.buffer_count = 1;
-	execbuf.batch_start_offset = 0;
-	execbuf.batch_len = 8;
-	execbuf.cliprects_ptr = 0;
-	execbuf.num_cliprects = 0;
-	execbuf.DR1 = 0;
-	execbuf.DR4 = 0;
-	execbuf.flags = ring_id;
-	i915_execbuffer2_set_context_id(execbuf, 0);
-	execbuf.rsvd2 = 0;
-
-	while (loops-- && ret == 0) {
-		if (drmIoctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf))
-			ret = -errno;
-	}
-	gem_sync(fd, handle);
-
-	return ret;
-}
-
-static void loop(int fd, uint32_t handle, unsigned ring_id, const char *ring_name)
-{
 	int count;
 
 	gem_require_ring(fd, ring_id);
 
-	for (count = 1; count <= SLOW_QUICK(1<<17, 1<<4); count <<= 1) {
-		struct timeval start, end;
+	memset(&gem_exec, 0, sizeof(gem_exec));
+	gem_exec[0].handle = handle;
 
-		gettimeofday(&start, NULL);
-		igt_assert_eq(exec(fd, handle, count, ring_id), 0);
-		gettimeofday(&end, NULL);
+	memset(&execbuf, 0, sizeof(execbuf));
+	execbuf.buffers_ptr = (uintptr_t)gem_exec;
+	execbuf.buffer_count = 1;
+	execbuf.flags = ring_id;
+	execbuf.flags |= LOCAL_I915_EXEC_HANDLE_LUT;
+	execbuf.flags |= LOCAL_I915_EXEC_NO_RELOC;
+	if (drmIoctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf)) {
+		execbuf.flags = ring_id;
+		do_ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf);
+	}
+	gem_sync(fd, handle);
+
+	for (count = 1; count <= SLOW_QUICK(1<<17, 1<<4); count <<= 1) {
+		const int reps = 9;
+		double t[reps], sum;
+		int n;
+
+		for (n = 0; n < reps; n++) {
+			struct timeval start, end;
+			int loops = count;
+			gettimeofday(&start, NULL);
+			while (loops--)
+				do_ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf);
+			gem_sync(fd, handle);
+			gettimeofday(&end, NULL);
+			t[n] = elapsed(&start, &end, count);
+		}
+
+		qsort(t, reps, sizeof(double), dcmp);
+		sum = 0;
+		for (n = 2; n < reps-2; n++)
+			sum += t[n];
+		sum /= reps - 4;
+
 		igt_info("Time to exec x %d:		%7.3fµs (ring=%s)\n",
-			 count, elapsed(&start, &end, count), ring_name);
+				count, sum, ring_name);
 		fflush(stdout);
 	}
 }
