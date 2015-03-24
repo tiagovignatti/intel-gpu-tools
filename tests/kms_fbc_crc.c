@@ -213,7 +213,7 @@ static void test_crc(data_t *data, enum test_mode mode)
 {
 	uint32_t crtc_id = data->output->config.crtc->crtc_id;
 	igt_pipe_crc_t *pipe_crc = data->pipe_crc;
-	igt_crc_t *crcs = NULL;
+	igt_crc_t crc;
 	uint32_t handle = data->handle[0];
 
 	igt_assert(fbc_enabled(data));
@@ -269,14 +269,11 @@ static void test_crc(data_t *data, enum test_mode mode)
 	igt_wait_for_vblank(data->drm_fd, data->pipe);
 	igt_wait_for_vblank(data->drm_fd, data->pipe);
 
-	igt_pipe_crc_start(pipe_crc);
-	igt_pipe_crc_get_crcs(pipe_crc, 1, &crcs);
-	igt_pipe_crc_stop(pipe_crc);
+	igt_pipe_crc_collect_crc(pipe_crc, &crc);
 	if (mode == TEST_PAGE_FLIP)
-		igt_assert_crc_equal(&crcs[0], &data->ref_crc[1]);
+		igt_assert_crc_equal(&crc, &data->ref_crc[1]);
 	else
 		;/* FIXME: missing reference CRCs */
-	free(crcs);
 
 	/*
 	 * Allow time for FBC to kick in again if it
@@ -284,14 +281,11 @@ static void test_crc(data_t *data, enum test_mode mode)
 	 */
 	igt_assert(wait_for_fbc_enabled(data));
 
-	igt_pipe_crc_start(pipe_crc);
-	igt_pipe_crc_get_crcs(pipe_crc, 1, &crcs);
-	igt_pipe_crc_stop(pipe_crc);
+	igt_pipe_crc_collect_crc(pipe_crc, &crc);
 	if (mode == TEST_PAGE_FLIP)
-		igt_assert_crc_equal(&crcs[0], &data->ref_crc[1]);
+		igt_assert_crc_equal(&crc, &data->ref_crc[1]);
 	else
 		;/* FIXME: missing reference CRCs */
-	free(crcs);
 }
 
 static bool prepare_crtc(data_t *data)
@@ -318,7 +312,6 @@ static bool prepare_test(data_t *data, enum test_mode test_mode)
 	igt_output_t *output = data->output;
 	drmModeModeInfo *mode;
 	igt_pipe_crc_t *pipe_crc;
-	igt_crc_t *crcs = NULL;
 
 	data->primary = igt_output_get_plane(data->output, IGT_PLANE_PRIMARY);
 	mode = igt_output_get_mode(data->output);
@@ -365,11 +358,7 @@ static bool prepare_test(data_t *data, enum test_mode test_mode)
 	igt_wait_for_vblank(data->drm_fd, data->pipe);
 
 	/* get reference crc for fb[1] */
-	igt_pipe_crc_start(pipe_crc);
-	igt_pipe_crc_get_crcs(pipe_crc, 1, &crcs);
-	data->ref_crc[1] = crcs[0];
-	igt_pipe_crc_stop(pipe_crc);
-	free(crcs);
+	igt_pipe_crc_collect_crc(pipe_crc, &data->ref_crc[1]);
 
 	if (test_mode == TEST_CONTEXT || test_mode == TEST_PAGE_FLIP_AND_CONTEXT) {
 		data->ctx[0] = drm_intel_gem_context_create(data->bufmgr);
@@ -404,11 +393,7 @@ static bool prepare_test(data_t *data, enum test_mode test_mode)
 	igt_wait_for_vblank(data->drm_fd, data->pipe);
 
 	/* get reference crc for fb[0] */
-	igt_pipe_crc_start(pipe_crc);
-	igt_pipe_crc_get_crcs(pipe_crc, 1, &crcs);
-	data->ref_crc[0] = crcs[0];
-	igt_pipe_crc_stop(pipe_crc);
-	free(crcs);
+	igt_pipe_crc_collect_crc(pipe_crc, &data->ref_crc[0]);
 
 	return true;
 }
