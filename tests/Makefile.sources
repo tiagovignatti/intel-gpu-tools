@@ -86,6 +86,7 @@ TESTS_progs_M = \
 	pm_rpm \
 	pm_rps \
 	pm_rc6_residency \
+	pm_sseu \
 	prime_self_import \
 	template \
 	$(NULL)
