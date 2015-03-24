@@ -62,8 +62,9 @@
 
 static drm_intel_bufmgr *bufmgr;
 struct intel_batchbuffer *batch;
-static int width = 512, height = 512;
-static uint32_t linear[1024*1024/4];
+enum {width=512, height=512};
+static const int bo_size = width * height * 4;
+static uint32_t linear[width * height];
 
 static drm_intel_bo *
 create_bo(int fd, uint32_t start_val)
@@ -72,13 +73,13 @@ create_bo(int fd, uint32_t start_val)
 	uint32_t tiling = I915_TILING_X;
 	int ret, i;
 
-	bo = drm_intel_bo_alloc(bufmgr, "tiled bo", 1024 * 1024, 4096);
+	bo = drm_intel_bo_alloc(bufmgr, "tiled bo", bo_size, 4096);
 	ret = drm_intel_bo_set_tiling(bo, &tiling, width * 4);
 	igt_assert_eq(ret, 0);
 	igt_assert(tiling == I915_TILING_X);
 
 	/* Fill the BO with dwords starting at start_val */
-	for (i = 0; i < 1024 * 1024 / 4; i++)
+	for (i = 0; i < width * height; i++)
 		linear[i] = start_val++;
 
 	gem_write(fd, bo->handle, 0, linear, sizeof(linear));
@@ -93,7 +94,7 @@ check_bo(int fd, drm_intel_bo *bo, uint32_t start_val)
 
 	gem_read(fd, bo->handle, 0, linear, sizeof(linear));
 
-	for (i = 0; i < 1024 * 1024 / 4; i++) {
+	for (i = 0; i < width * height; i++) {
 		igt_assert_f(linear[i] == start_val,
 			     "Expected 0x%08x, found 0x%08x "
 			     "at offset 0x%08x\n",
@@ -102,21 +103,13 @@ check_bo(int fd, drm_intel_bo *bo, uint32_t start_val)
 	}
 }
 
-igt_simple_main
+static void run_test (int fd, int count)
 {
 	drm_intel_bo *bo[4096];
 	uint32_t bo_start_val[4096];
 	uint32_t start = 0;
-	int fd, i, count;
+	int i;
 
-	igt_skip_on_simulation();
-
-	fd = drm_open_any();
-	count = 3 * gem_aperture_size(fd) / (1024*1024) / 2;
-	if (count > intel_get_total_ram_mb() * 9 / 10) {
-		count = intel_get_total_ram_mb() * 9 / 10;
-		igt_info("not enough RAM to run test, reducing buffer count\n");
-	}
 	count |= 1;
 	igt_info("Using %d 1MiB buffers\n", count);
 
@@ -133,12 +126,12 @@ igt_simple_main
 		check_bo(bo[i], bo_start_val[i]);
 		*/
 
-		start += 1024 * 1024 / 4;
+		start += width * height;
 	}
 
 	for (i = 0; i < count; i++) {
 		int src = count - i - 1;
-		intel_copy_bo(batch, bo[i], bo[src], width*height*4);
+		intel_copy_bo(batch, bo[i], bo[src], bo_size);
 		bo_start_val[i] = bo_start_val[src];
 	}
 
@@ -149,7 +142,7 @@ igt_simple_main
 		if (src == dst)
 			continue;
 
-		intel_copy_bo(batch, bo[dst], bo[src], width*height*4);
+		intel_copy_bo(batch, bo[dst], bo[src], bo_size);
 		bo_start_val[dst] = bo_start_val[src];
 
 		/*
@@ -170,6 +163,28 @@ igt_simple_main
 
 	intel_batchbuffer_free(batch);
 	drm_intel_bufmgr_destroy(bufmgr);
+}
+
+igt_main
+{
+	int fd, count;
+
+	igt_fixture {
+		fd = drm_open_any();
+	}
+
+	igt_subtest("basic") {
+		run_test (fd, 2);
+	}
+
+	/* the rest of the tests are too long for simulation */
+	igt_skip_on_simulation();
+
+	igt_subtest("normal") {
+		count = 3 * gem_aperture_size(fd) / (bo_size) / 2;
+		intel_require_memory(count, bo_size, CHECK_RAM);
+		run_test(fd, count);
+	}
 
 	close(fd);
 }
