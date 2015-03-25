@@ -341,7 +341,6 @@ static void dump_child_device(struct child_device_config *child)
 static void dump_general_definitions(const struct bdb_block *block)
 {
 	struct bdb_general_definitions *defs = block->data;
-	struct child_device_config *child;
 	int i;
 	int child_device_num;
 
@@ -354,9 +353,11 @@ static void dump_general_definitions(const struct bdb_block *block)
 	printf("\tBoot display type: 0x%02x%02x\n", defs->boot_display[1],
 	       defs->boot_display[0]);
 	printf("\tTV data block present: %s\n", YESNO(tv_present));
-	child_device_num = (block->size - sizeof(*defs)) / sizeof(*child);
+	printf("\tChild device size: %d\n", defs->child_dev_size);
+	child_device_num = (block->size - sizeof(*defs)) /
+		defs->child_dev_size;
 	for (i = 0; i < child_device_num; i++)
-		dump_child_device(&defs->devices[i]);
+		dump_child_device((void*)&defs->devices[i * defs->child_dev_size]);
 }
 
 static void dump_child_devices(const struct bdb_block *block)

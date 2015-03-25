@@ -269,7 +269,7 @@ struct bdb_general_definitions {
 	 * TV and LVDS are missing, so be careful when interpreting
 	 * [4] and [5].
 	 */
-	struct child_device_config devices[0];
+	uint8_t devices[0];
 	/* may be another device block here on some platforms */
 } __attribute__ ((packed));
 
