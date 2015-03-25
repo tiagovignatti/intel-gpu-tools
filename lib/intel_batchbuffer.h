@@ -175,6 +175,7 @@ intel_batchbuffer_require_space(struct intel_batchbuffer *batch,
 	OUT_BATCH(XY_COLOR_BLT_CMD_NOLEN | \
 		  COLOR_BLT_WRITE_ALPHA | \
 		  XY_COLOR_BLT_WRITE_RGB | \
+		  (flags) | \
 		  (4 + (batch->gen >= 8))); \
 } while(0)
 
