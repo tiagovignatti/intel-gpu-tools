@@ -5,8 +5,6 @@ intel_backlight
 intel_bios_dumper
 intel_bios_reader
 intel_display_poller
-intel_dpio_read
-intel_dpio_write
 intel_dump_decode
 intel_error_decode
 intel_forcewaked
@@ -31,4 +29,5 @@ intel_reg_write
 intel_stepping
 intel_vga_read
 intel_vga_write
+intel_watermark
 skl_ddb_allocation
