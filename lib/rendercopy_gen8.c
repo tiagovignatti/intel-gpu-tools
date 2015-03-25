@@ -30,7 +30,7 @@
 static void dump_batch(struct intel_batchbuffer *batch) {
 	int fd = open("/tmp/i965-batchbuffers.dump", O_WRONLY | O_CREAT,  0666);
 	if (fd != -1) {
-		write(fd, batch->buffer, 4096);
+		igt_assert_eq(write(fd, batch->buffer, 4096), 4096);
 		fd = close(fd);
 	}
 }

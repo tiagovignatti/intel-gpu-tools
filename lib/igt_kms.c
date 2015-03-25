@@ -434,9 +434,8 @@ bool kmstest_force_connector(int drm_fd, drmModeConnector *connector,
 		break;
 	}
 
-	asprintf(&path, "%s-%d/force",
-		 kmstest_connector_type_str(connector->connector_type),
-		 connector->connector_type_id);
+	igt_assert_neq(asprintf(&path, "%s-%d/force", kmstest_connector_type_str(connector->connector_type), connector->connector_type_id),
+		       -1);
 	debugfs_fd = igt_debugfs_open(path, O_WRONLY | O_TRUNC);
 
 	if (debugfs_fd == -1) {
@@ -494,9 +493,8 @@ void kmstest_force_edid(int drm_fd, drmModeConnector *connector,
 	char *path;
 	int debugfs_fd, ret;
 
-	asprintf(&path, "%s-%d/edid_override",
-		 kmstest_connector_type_str(connector->connector_type),
-		 connector->connector_type_id);
+	igt_assert_neq(asprintf(&path, "%s-%d/edid_override", kmstest_connector_type_str(connector->connector_type), connector->connector_type_id),
+		       -1);
 	debugfs_fd = igt_debugfs_open(path, O_WRONLY | O_TRUNC);
 	free(path);
 
@@ -910,9 +908,8 @@ static void igt_output_refresh(igt_output_t *output)
 	if (!output->name) {
 		drmModeConnector *c = output->config.connector;
 
-		asprintf(&output->name, "%s-%d",
-			 kmstest_connector_type_str(c->connector_type),
-			 c->connector_type_id);
+		igt_assert_neq(asprintf(&output->name, "%s-%d", kmstest_connector_type_str(c->connector_type), c->connector_type_id),
+			       -1);
 	}
 
 	LOG(display, "%s: Selecting pipe %s\n", output->name,

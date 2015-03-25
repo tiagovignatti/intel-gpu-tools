@@ -173,3 +173,31 @@ int E3, E4;
 - igt_assert(E3 < E4);
 + igt_assert_lt(E3, E4);
 )
+
+// avoid unused-result warnings when compiling with _FORTIFY_SOURCE defined
+@@
+identifier func =~ "^(read|write)$";
+expression list[2] E;
+expression size;
+@@
+-func(E, size);
++igt_assert_eq(func(E, size), size);
+
+@@
+expression ptr, size, nmemb, stream;
+@@
+-fread(ptr, size, nmemb, stream);
++igt_assert_eq(fread(ptr, size, nmemb, stream), nmemb);
+
+@@
+expression list E;
+@@
+-fgets(E);
++igt_assert_neq(fgets(E), NULL);
+
+@@
+identifier func =~ "^v?asprintf$";
+expression list E;
+@@
+-func(E);
++igt_assert_neq(func(E), -1);

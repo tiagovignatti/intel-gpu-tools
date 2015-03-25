@@ -255,7 +255,7 @@ intel_purge_vm_caches(void)
 	if (fd < 0)
 		return;
 
-	write(fd, "3\n", 2);
+	igt_assert_eq(write(fd, "3\n", 2), 2);
 	close(fd);
 }
 

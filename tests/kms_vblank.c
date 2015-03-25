@@ -101,7 +101,7 @@ static void query(int fd, bool busy)
 		 busy ? "busy" : "idle", elapsed(&start, &end, count));
 
 	if (busy)
-		read(fd, buf, sizeof(buf));
+		igt_assert_eq(read(fd, buf, sizeof(buf)), sizeof(buf));
 }
 
 igt_main

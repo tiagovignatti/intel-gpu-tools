@@ -198,7 +198,7 @@ static bool fbc_enabled(data_t *data)
 	status = igt_debugfs_fopen("i915_fbc_status", "r");
 	igt_assert(status);
 
-	fread(str, sizeof(str) - 1, 1, status);
+	igt_assert_eq(fread(str, sizeof(str) - 1, 1, status), 1);
 	fclose(status);
 	return strstr(str, "FBC enabled") != NULL;
 }
@@ -510,7 +510,7 @@ igt_main
 
 		status = igt_debugfs_fopen("i915_fbc_status", "r");
 		igt_require_f(status, "No i915_fbc_status found\n");
-		fread(buf, sizeof(buf), 1, status);
+		igt_assert_eq(fread(buf, sizeof(buf), 1, status), sizeof(buf));
 		fclose(status);
 		buf[sizeof(buf) - 1] = '\0';
 		igt_require_f(!strstr(buf, "unsupported by this chipset") &&

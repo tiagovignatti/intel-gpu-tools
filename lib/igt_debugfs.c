@@ -273,7 +273,7 @@ static bool igt_pipe_crc_do_start(igt_pipe_crc_t *pipe_crc)
 	sprintf(buf, "pipe %s %s", kmstest_pipe_name(pipe_crc->pipe),
 		pipe_crc_source_name(pipe_crc->source));
 	errno = 0;
-	write(pipe_crc->ctl_fd, buf, strlen(buf));
+	igt_assert_eq(write(pipe_crc->ctl_fd, buf, strlen(buf)), strlen(buf));
 	if (errno != 0)
 		return false;
 
@@ -285,7 +285,7 @@ static void igt_pipe_crc_pipe_off(int fd, enum pipe pipe)
 	char buf[32];
 
 	sprintf(buf, "pipe %s none", kmstest_pipe_name(pipe));
-	write(fd, buf, strlen(buf));
+	igt_assert_eq(write(fd, buf, strlen(buf)), strlen(buf));
 }
 
 static void igt_pipe_crc_reset(void)
@@ -417,7 +417,7 @@ void igt_pipe_crc_stop(igt_pipe_crc_t *pipe_crc)
 	char buf[32];
 
 	sprintf(buf, "pipe %s none", kmstest_pipe_name(pipe_crc->pipe));
-	write(pipe_crc->ctl_fd, buf, strlen(buf));
+	igt_assert_eq(write(pipe_crc->ctl_fd, buf, strlen(buf)), strlen(buf));
 }
 
 static bool pipe_crc_init_from_string(igt_crc_t *crc, const char *line)

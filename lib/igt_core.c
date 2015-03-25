@@ -417,13 +417,15 @@ static void low_mem_killer_disable(bool disable)
 		/* writing 9999 to this module parameter effectively diables the
 		 * low memory killer. This is not a real file, so we dont need to
 		 * seek to the start or truncate it */
-		write(fd, no_lowmem_killer, sizeof(no_lowmem_killer));
+		igt_assert_eq(write(fd, no_lowmem_killer, sizeof(no_lowmem_killer)),
+			      sizeof(no_lowmem_killer));
 		close(fd);
 	} else {
 		/* just re-enstate the original settings */
 		fd = open(adj_fname, O_WRONLY);
 		igt_assert(fd != -1);
-		write(fd, prev_adj_scores, adj_scores_len);
+		igt_assert_eq(write(fd, prev_adj_scores, adj_scores_len),
+			      adj_scores_len);
 		close(fd);
 	}
 
@@ -864,7 +866,8 @@ void __igt_skip_check(const char *file, const int line,
 	char *err_str = NULL;
 
 	if (err)
-		asprintf(&err_str, "Last errno: %i, %s\n", err, strerror(err));
+		igt_assert_neq(asprintf(&err_str, "Last errno: %i, %s\n", err, strerror(err)),
+			       -1);
 
 	if (f) {
 		static char *buf;
@@ -874,7 +877,7 @@ void __igt_skip_check(const char *file, const int line,
 			free(buf);
 
 		va_start(args, f);
-		vasprintf(&buf, f, args);
+		igt_assert_neq(vasprintf(&buf, f, args), -1);
 		va_end(args);
 
 		igt_skip("Test requirement not met in function %s, file %s:%i:\n"
@@ -1407,10 +1410,11 @@ static void fatal_sig_handler(int sig)
 			continue;
 
 		if (handled_signals[i].name_len) {
-			write(STDERR_FILENO, "Received signal ", 16);
-			write(STDERR_FILENO, handled_signals[i].name,
-			      handled_signals[i].name_len);
-			write(STDERR_FILENO, ".\n", 2);
+			igt_assert_eq(write(STDERR_FILENO, "Received signal ", 16),
+                                      16);
+			igt_assert_eq(write(STDERR_FILENO, handled_signals[i].name, handled_signals[i].name_len),
+                                      handled_signals[i].name_len);
+			igt_assert_eq(write(STDERR_FILENO, ".\n", 2), 2);
 		}
 
 		break;
