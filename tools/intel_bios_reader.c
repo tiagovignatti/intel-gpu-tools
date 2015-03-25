@@ -1055,10 +1055,13 @@ err:
 
 
 static int
-get_device_id(unsigned char *bios)
+get_device_id(unsigned char *bios, int size)
 {
     int device;
     int offset = (bios[0x19] << 8) + bios[0x18];
+
+    if (offset + 7 >= size)
+	return -1;
 
     if (bios[offset] != 'P' ||
 	bios[offset+1] != 'C' ||
@@ -1299,7 +1302,7 @@ int main(int argc, char **argv)
 	printf("\n");
 
 	if (devid == -1)
-	    devid = get_device_id(VBIOS);
+	    devid = get_device_id(VBIOS, size);
 	if (devid == -1)
 	    printf("Warning: could not find PCI device ID!\n");
 
