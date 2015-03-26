@@ -21,6 +21,7 @@ gem_bad_reloc
 gem_basic
 gem_caching
 gem_close_race
+gem_concurrent_all
 gem_concurrent_blit
 gem_cpu_reloc
 gem_cs_prefetch

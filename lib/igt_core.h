@@ -202,6 +202,7 @@ bool igt_only_list_subtests(void);
 	static void igt_tokencat(__real_main, __LINE__)(void) \
 
 
+const char *igt_test_name(void);
 void igt_simple_init_parse_opts(int *argc, char **argv,
 				const char *extra_short_opts,
 				struct option *extra_long_opts,

@@ -248,6 +248,11 @@ static struct {
 } log_buffer;
 static pthread_mutex_t log_buffer_mutex = PTHREAD_MUTEX_INITIALIZER;
 
+const char *igt_test_name(void)
+{
+	return command_str;
+}
+
 static void _igt_log_buffer_append(char *line)
 {
 	pthread_mutex_lock(&log_buffer_mutex);

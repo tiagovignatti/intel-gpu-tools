@@ -27,9 +27,9 @@
  *
  */
 
-/** @file gem_concurrent_blit.c
+/** @file gem_concurrent.c
  *
- * This is a test of pread/pwrite behavior when writing to active
+ * This is a test of pread/pwrite/mmap behavior when writing to active
  * buffers.
  *
  * Based on gem_gtt_concurrent_blt.
@@ -57,11 +57,12 @@
 #include "intel_io.h"
 #include "intel_chipset.h"
 
-IGT_TEST_DESCRIPTION("Test of pread/pwrite behavior when writing to active"
+IGT_TEST_DESCRIPTION("Test of pread/pwrite/mmap behavior when writing to active"
 		     " buffers.");
 
 int fd, devid, gen;
 struct intel_batchbuffer *batch;
+int all;
 
 static void
 nop_release_bo(drm_intel_bo *bo)
@@ -908,7 +909,7 @@ run_basic_modes(const struct access_mode *mode,
 		{ "blt", blt_copy_bo, bcs_require },
 		{ "render", render_copy_bo, rcs_require },
 		{ NULL, NULL }
-	}, *p;
+	}, *pskip = pipelines + 3, *p;
 	const struct {
 		const char *suffix;
 		do_hang hang;
@@ -922,7 +923,10 @@ run_basic_modes(const struct access_mode *mode,
 	struct buffers buffers;
 
 	for (h = hangs; h->suffix; h++) {
-		for (p = pipelines; p->prefix; p++) {
+		if (!all && *h->suffix)
+			continue;
+
+		for (p = all ? pipelines : pskip; p->prefix; p++) {
 			igt_fixture {
 				batch = buffers_init(&buffers, mode, fd);
 			}
@@ -1052,11 +1056,13 @@ run_basic_modes(const struct access_mode *mode,
 static void
 run_modes(const struct access_mode *mode)
 {
-	run_basic_modes(mode, "", run_single);
+	if (all) {
+		run_basic_modes(mode, "", run_single);
 
-	igt_fork_signal_helper();
-	run_basic_modes(mode, "-interruptible", run_interruptible);
-	igt_stop_signal_helper();
+		igt_fork_signal_helper();
+		run_basic_modes(mode, "-interruptible", run_interruptible);
+		igt_stop_signal_helper();
+	}
 
 	igt_fork_signal_helper();
 	run_basic_modes(mode, "-forked", run_forked);
@@ -1068,6 +1074,9 @@ igt_main
 	int max, i;
 
 	igt_skip_on_simulation();
+
+	if (strstr(igt_test_name(), "all"))
+		all = true;
 
 	igt_fixture {
 		fd = drm_open_any();
