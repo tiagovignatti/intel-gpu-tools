@@ -46,6 +46,60 @@
 
 #define LOCAL_I915_EXEC_VEBOX (4<<0)
 
+const uint32_t batch[2] = {MI_BATCH_BUFFER_END};
+int device;
+
+static int sysfs_read(const char *name)
+{
+	char buf[4096];
+	struct stat st;
+	int sysfd;
+	int len;
+
+	if (fstat(device, &st))
+		return -1;
+
+	sprintf(buf, "/sys/class/drm/card%d/%s",
+		(int)(st.st_rdev & 0x7f), name);
+	sysfd = open(buf, O_RDONLY);
+	if (sysfd < 0)
+		return -1;
+
+	len = read(sysfd, buf, sizeof(buf)-1);
+	close(sysfd);
+	if (len < 0)
+		return -1;
+
+	buf[len] = '\0';
+	return atoi(buf);
+}
+
+static int sysfs_write(const char *name, int value)
+{
+	char buf[4096];
+	struct stat st;
+	int sysfd;
+	int len;
+
+	if (fstat(device, &st))
+		return -1;
+
+	sprintf(buf, "/sys/class/drm/card%d/%s",
+		(int)(st.st_rdev & 0x7f), name);
+	sysfd = open(buf, O_WRONLY);
+	if (sysfd < 0)
+		return -1;
+
+	len = sprintf(buf, "%d", value);
+	len = write(sysfd, buf, len);
+	close(sysfd);
+
+	if (len < 0)
+		return len;
+
+	return 0;
+}
+
 static int dcmp(const void *A, const void *B)
 {
 	double a = *(double *)A, b = *(double *)B;
@@ -71,6 +125,9 @@ static void loop(int fd, uint32_t handle, unsigned ring_id, const char *ring_nam
 	int count;
 
 	gem_require_ring(fd, ring_id);
+	igt_debug("RPS frequency range [%d, %d]\n",
+		  sysfs_read("gt_min_freq_mhz"),
+		  sysfs_read("gt_max_freq_mhz"));
 
 	memset(&gem_exec, 0, sizeof(gem_exec));
 	gem_exec[0].handle = handle;
@@ -115,34 +172,83 @@ static void loop(int fd, uint32_t handle, unsigned ring_id, const char *ring_nam
 	}
 }
 
-uint32_t batch[2] = {MI_BATCH_BUFFER_END};
-uint32_t handle;
-int fd;
+static void set_auto_freq(void)
+{
+	int min = sysfs_read("gt_RPn_freq_mhz");
+	int max = sysfs_read("gt_RP0_freq_mhz");
+	if (max <= min)
+		return;
+
+	igt_debug("Setting min to %dMHz, and max to %dMHz\n", min, max);
+	sysfs_write("gt_min_freq_mhz", min);
+	sysfs_write("gt_max_freq_mhz", max);
+}
+
+static void set_min_freq(void)
+{
+	int min = sysfs_read("gt_RPn_freq_mhz");
+	igt_require(min > 0);
+	igt_debug("Setting min/max to %dMHz\n", min);
+	igt_require(sysfs_write("gt_min_freq_mhz", min) == 0 &&
+		    sysfs_write("gt_max_freq_mhz", min) == 0);
+}
+
+static void set_max_freq(void)
+{
+	int max = sysfs_read("gt_RP0_freq_mhz");
+	igt_require(max > 0);
+	igt_debug("Setting min/max to %dMHz\n", max);
+	igt_require(sysfs_write("gt_max_freq_mhz", max) == 0 &&
+		    sysfs_write("gt_min_freq_mhz", max) == 0);
+}
 
 igt_main
 {
-	igt_fixture {
-		fd = drm_open_any();
+	const struct {
+		const char *suffix;
+		void (*func)(void);
+	} rps[] = {
+		{ "", set_auto_freq },
+		{ "-min", set_min_freq },
+		{ "-max", set_max_freq },
+		{ NULL, NULL },
+	}, *r;
+	int min = -1, max = -1;
+	uint32_t handle = 0;
 
-		handle = gem_create(fd, 4096);
-		gem_write(fd, handle, 0, batch, sizeof(batch));
+	igt_fixture {
+		device = drm_open_any();
+
+		min = sysfs_read("gt_min_freq_mhz");
+		max = sysfs_read("gt_max_freq_mhz");
+
+		handle = gem_create(device, 4096);
+		gem_write(device, handle, 0, batch, sizeof(batch));
 	}
 
-	igt_subtest("render")
-		loop(fd, handle, I915_EXEC_RENDER, "render");
+	for (r = rps; r->suffix; r++) {
+		r->func();
 
-	igt_subtest("bsd")
-		loop(fd, handle, I915_EXEC_BSD, "bsd");
+		igt_subtest_f("render%s", r->suffix)
+			loop(device, handle, I915_EXEC_RENDER, "render");
 
-	igt_subtest("blt")
-		loop(fd, handle, I915_EXEC_BLT, "blt");
+		igt_subtest_f("bsd%s", r->suffix)
+			loop(device, handle, I915_EXEC_BSD, "bsd");
 
-	igt_subtest("vebox")
-		loop(fd, handle, LOCAL_I915_EXEC_VEBOX, "vebox");
+		igt_subtest_f("blt%s", r->suffix)
+			loop(device, handle, I915_EXEC_BLT, "blt");
+
+		igt_subtest_f("vebox%s", r->suffix)
+			loop(device, handle, LOCAL_I915_EXEC_VEBOX, "vebox");
+	}
 
 	igt_fixture {
-		gem_close(fd, handle);
+		gem_close(device, handle);
 
-		close(fd);
+		if (min > 0)
+			sysfs_write("gt_min_freq_mhz", min);
+		if (max > 0)
+			sysfs_write("gt_max_freq_mhz", max);
+		close(device);
 	}
 }
