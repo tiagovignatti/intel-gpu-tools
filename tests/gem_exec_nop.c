@@ -227,7 +227,7 @@ igt_main
 	}
 
 	for (r = rps; r->suffix; r++) {
-		r->func();
+		igt_fixture r->func();
 
 		igt_subtest_f("render%s", r->suffix)
 			loop(device, handle, I915_EXEC_RENDER, "render");

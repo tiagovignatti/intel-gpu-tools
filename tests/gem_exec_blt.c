@@ -388,7 +388,7 @@ int main(int argc, char **argv)
 	max = sysfs_read("gt_max_freq_mhz");
 
 	for (r = rps; r->suffix; r++) {
-		r->func();
+		igt_fixture r->func();
 
 		igt_subtest_f("cold%s", r->suffix)
 			run(OBJECT_SIZE, false);
