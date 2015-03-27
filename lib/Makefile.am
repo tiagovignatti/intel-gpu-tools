@@ -9,7 +9,7 @@ noinst_LTLIBRARIES = libintel_tools.la
 noinst_HEADERS = check-ndebug.h
 
 AM_CPPFLAGS = -I$(top_srcdir)
-AM_CFLAGS = $(DRM_CFLAGS) $(CWARNFLAGS) $(LIBUNWIND_CFLAGS) \
+AM_CFLAGS = $(DRM_CFLAGS) $(CWARNFLAGS) $(LIBUNWIND_CFLAGS) $(DEBUG_CFLAGS) \
 	    -DIGT_DATADIR=\""$(abs_top_srcdir)/tests"\" \
 	    -DIGT_LOG_DOMAIN=\""$(subst _,-,$*)"\" \
 	    -pthread
