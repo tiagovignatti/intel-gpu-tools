@@ -384,8 +384,10 @@ int main(int argc, char **argv)
 		return 0;
 	}
 
-	min = sysfs_read("gt_min_freq_mhz");
-	max = sysfs_read("gt_max_freq_mhz");
+	igt_fixture {
+		min = sysfs_read("gt_min_freq_mhz");
+		max = sysfs_read("gt_max_freq_mhz");
+	}
 
 	for (r = rps; r->suffix; r++) {
 		igt_fixture r->func();
@@ -400,10 +402,12 @@ int main(int argc, char **argv)
 			run(OBJECT_SIZE, true);
 	}
 
-	if (min > 0)
-		sysfs_write("gt_min_freq_mhz", min);
-	if (max > 0)
-		sysfs_write("gt_max_freq_mhz", max);
+	igt_fixture {
+		if (min > 0)
+			sysfs_write("gt_min_freq_mhz", min);
+		if (max > 0)
+			sysfs_write("gt_max_freq_mhz", max);
+	}
 
 	igt_exit();
 }
