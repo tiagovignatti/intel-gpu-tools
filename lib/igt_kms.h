@@ -274,6 +274,10 @@ void igt_wait_for_vblank(int drm_fd, enum pipe pipe);
 #define for_each_pipe(display, pipe)					\
 	for (pipe = 0; pipe < igt_display_get_n_pipes(display); pipe++)	\
 
+#define for_each_plane_on_pipe(display, pipe, plane)			\
+	for (int i__ = 0; (plane) = &(display)->pipes[(pipe)].planes[i__], \
+		     i__ < (display)->pipes[(pipe)].n_planes; i__++)
+
 /*
  * Can be used with igt_output_set_pipe() to mean we don't care about the pipe
  * that should drive this output
