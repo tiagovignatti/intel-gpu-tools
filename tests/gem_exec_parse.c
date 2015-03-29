@@ -103,8 +103,8 @@ static void exec_batch_patched(int fd, uint32_t cmd_bo, uint32_t *cmds,
 	gem_close(fd, target_bo);
 }
 
-static void exec_batch(int fd, uint32_t cmd_bo, uint32_t *cmds,
-		       int size, int ring, int expected_ret)
+static int __exec_batch(int fd, uint32_t cmd_bo, uint32_t *cmds,
+			int size, int ring)
 {
 	struct drm_i915_gem_execbuffer2 execbuf;
 	struct drm_i915_gem_exec_object2 objs[1];
@@ -132,10 +132,10 @@ static void exec_batch(int fd, uint32_t cmd_bo, uint32_t *cmds,
 	i915_execbuffer2_set_context_id(execbuf, 0);
 	execbuf.rsvd2 = 0;
 
-	igt_assert_eq(__gem_execbuf(fd, &execbuf), expected_ret);
-
-	gem_sync(fd, cmd_bo);
+	return __gem_execbuf(fd, &execbuf);
 }
+#define exec_batch(fd, bo, cmds, sz, ring, expected) \
+	igt_assert_eq(__exec_batch(fd, bo, cmds, sz, ring), expected)
 
 static void exec_split_batch(int fd, uint32_t *cmds,
 			     int size, int ring, int expected_ret)
