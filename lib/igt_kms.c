@@ -905,6 +905,9 @@ static void igt_output_refresh(igt_output_t *output)
 	if (!output->valid)
 		return;
 
+	if (output->use_override_mode)
+		output->config.default_mode = output->override_mode;
+
 	if (!output->name) {
 		drmModeConnector *c = output->config.connector;
 
@@ -1654,6 +1657,21 @@ const char *igt_output_name(igt_output_t *output)
 drmModeModeInfo *igt_output_get_mode(igt_output_t *output)
 {
 	return &output->config.default_mode;
+}
+
+/**
+ * igt_output_override_mode:
+ * @output: Output of which the mode will be overriden
+ * @mode: New mode
+ *
+ * Overrides the output's mode with @mode, so that it is used instead of the
+ * mode obtained with get connectors. Note that the mode is used without
+ * checking if the output supports it, so this might lead to unexpect results.
+ */
+void igt_output_override_mode(igt_output_t *output, drmModeModeInfo *mode)
+{
+	output->override_mode = *mode;
+	output->use_override_mode = true;
 }
 
 void igt_output_set_pipe(igt_output_t *output, enum pipe pipe)

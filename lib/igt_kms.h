@@ -217,6 +217,8 @@ typedef struct {
 	char *name;
 	bool valid;
 	unsigned long pending_crtc_idx_mask;
+	bool use_override_mode;
+	drmModeModeInfo override_mode;
 } igt_output_t;
 
 struct igt_display {
@@ -239,6 +241,7 @@ int  igt_display_get_n_pipes(igt_display_t *display);
 
 const char *igt_output_name(igt_output_t *output);
 drmModeModeInfo *igt_output_get_mode(igt_output_t *output);
+void igt_output_override_mode(igt_output_t *output, drmModeModeInfo *mode);
 void igt_output_set_pipe(igt_output_t *output, enum pipe pipe);
 igt_plane_t *igt_output_get_plane(igt_output_t *output, enum igt_plane plane);
 
