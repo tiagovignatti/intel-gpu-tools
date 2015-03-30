@@ -77,6 +77,7 @@ else
     kms_flip_event_leak \
     kms_crtc_background_color \
     kms_plane_scaling \
+    kms_panel_fitting \
     kms_pwrite_crc \
     kms_pipe_b_c_ivb
     IGT_LOCAL_CFLAGS += -DANDROID_HAS_CAIRO=0
