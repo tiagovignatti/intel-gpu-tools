@@ -182,6 +182,7 @@ typedef struct {
 	unsigned int position_changed : 1;
 	unsigned int panning_changed  : 1;
 	unsigned int rotation_changed : 1;
+	unsigned int size_changed     : 1;
 	/*
 	 * drm_plane can be NULL for primary and cursor planes (when not
 	 * using the atomic modeset API)
@@ -259,6 +260,10 @@ void igt_plane_set_size(igt_plane_t *plane, int w, int h);
 void igt_plane_set_panning(igt_plane_t *plane, int x, int y);
 void igt_plane_set_rotation(igt_plane_t *plane, igt_rotation_t rotation);
 void igt_crtc_set_background(igt_pipe_t *pipe, uint64_t background);
+void igt_fb_set_position(struct igt_fb *fb, igt_plane_t *plane,
+	uint32_t x, uint32_t y);
+void igt_fb_set_size(struct igt_fb *fb, igt_plane_t *plane,
+	uint32_t w, uint32_t h);
 
 void igt_wait_for_vblank(int drm_fd, enum pipe pipe);
 

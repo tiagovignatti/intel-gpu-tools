@@ -54,6 +54,10 @@ struct igt_fb {
 	uint64_t tiling;
 	unsigned size;
 	cairo_surface_t *cairo_surface;
+	uint32_t src_x;
+	uint32_t src_y;
+	uint32_t src_w;
+	uint32_t src_h;
 };
 
 enum igt_text_align {

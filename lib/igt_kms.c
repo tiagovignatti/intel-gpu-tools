@@ -1313,6 +1313,14 @@ static int igt_drm_plane_commit(igt_plane_t *plane,
 	igt_display_t *display = output->display;
 	uint32_t fb_id, crtc_id;
 	int ret;
+	uint32_t src_x;
+	uint32_t src_y;
+	uint32_t src_w;
+	uint32_t src_h;
+	int32_t crtc_x;
+	int32_t crtc_y;
+	uint32_t crtc_w;
+	uint32_t crtc_h;
 
 	igt_assert(plane->drm_plane);
 
@@ -1343,32 +1351,43 @@ static int igt_drm_plane_commit(igt_plane_t *plane,
 				      IGT_FIXED(0,0) /* src_h */);
 
 		CHECK_RETURN(ret, fail_on_error);
-	} else if (plane->fb_changed || plane->position_changed) {
+	} else if (plane->fb_changed || plane->position_changed ||
+		plane->size_changed) {
+		src_x = IGT_FIXED(plane->fb->src_x,0); /* src_x */
+		src_y = IGT_FIXED(plane->fb->src_y,0); /* src_y */
+		src_w = IGT_FIXED(plane->fb->src_w,0); /* src_w */
+		src_h = IGT_FIXED(plane->fb->src_h,0); /* src_h */
+		crtc_x = plane->crtc_x;
+		crtc_y = plane->crtc_y;
+		crtc_w = plane->crtc_w;
+		crtc_h = plane->crtc_h;
+
 		LOG(display,
-		    "%s: SetPlane %s.%d, fb %u, position (%d, %d)\n",
+		    "%s: SetPlane %s.%d, fb %u, src = (%d, %d) "
+			"%ux%u dst = (%u, %u) %ux%u\n",
 		    igt_output_name(output),
 		    kmstest_pipe_name(output->config.pipe),
 		    plane->index,
 		    fb_id,
-		    plane->crtc_x, plane->crtc_y);
+		    src_x >> 16, src_y >> 16, src_w >> 16, src_h >> 16,
+		    crtc_x, crtc_y, crtc_w, crtc_h);
 
 		ret = drmModeSetPlane(display->drm_fd,
 				      plane->drm_plane->plane_id,
 				      crtc_id,
 				      fb_id,
 				      0,    /* flags */
-				      plane->crtc_x, plane->crtc_y,
-				      plane->crtc_w, plane->crtc_h,
-				      IGT_FIXED(0,0), /* src_x */
-				      IGT_FIXED(0,0), /* src_y */
-				      IGT_FIXED(plane->fb->width,0), /* src_w */
-				      IGT_FIXED(plane->fb->height,0) /* src_h */);
+				      crtc_x, crtc_y,
+				      crtc_w, crtc_h,
+				      src_x, src_y,
+				      src_w, src_h);
 
 		CHECK_RETURN(ret, fail_on_error);
 	}
 
 	plane->fb_changed = false;
 	plane->position_changed = false;
+	plane->size_changed = false;
 
 	if (plane->rotation_changed) {
 		igt_plane_set_property(plane, plane->rotation_property,
@@ -1463,7 +1482,7 @@ static int igt_primary_plane_commit_legacy(igt_plane_t *primary,
 	igt_assert(!primary->rotation_changed);
 
 	if (!primary->fb_changed && !primary->position_changed &&
-	    !primary->panning_changed)
+		!primary->size_changed && !primary->panning_changed)
 		return 0;
 
 	crtc_id = output->config.crtc->crtc_id;
@@ -1510,6 +1529,7 @@ static int igt_primary_plane_commit_legacy(igt_plane_t *primary,
 	primary->pipe->enabled = (fb_id != 0);
 	primary->fb_changed = false;
 	primary->position_changed = false;
+	primary->size_changed = false;
 	primary->panning_changed = false;
 
 	return 0;
@@ -1567,7 +1587,7 @@ static int igt_output_commit(igt_output_t *output,
 	for (i = 0; i < pipe->n_planes; i++) {
 		igt_plane_t *plane = &pipe->planes[i];
 
-		if (plane->fb_changed || plane->position_changed)
+		if (plane->fb_changed || plane->position_changed || plane->size_changed)
 			need_wait_for_vblank = true;
 
 		ret = igt_plane_commit(plane, output, s, fail_on_error);
@@ -1751,7 +1771,22 @@ void igt_plane_set_fb(igt_plane_t *plane, struct igt_fb *fb)
 		plane->crtc_h = 0;
 	}
 
+	if (fb) {
+		/* set default plane pos/size as fb size */
+		plane->crtc_x = 0;
+		plane->crtc_y = 0;
+		plane->crtc_w = fb->width;
+		plane->crtc_h = fb->height;
+
+		/* set default src pos/size as fb size */
+		fb->src_x = 0;
+		fb->src_y = 0;
+		fb->src_w = fb->width;
+		fb->src_h = fb->height;
+	}
+
 	plane->fb_changed = true;
+	plane->size_changed = true;
 }
 
 void igt_plane_set_position(igt_plane_t *plane, int x, int y)
@@ -1768,21 +1803,76 @@ void igt_plane_set_position(igt_plane_t *plane, int x, int y)
 	plane->position_changed = true;
 }
 
+/**
+ * igt_plane_set_size:
+ * @plane: plane pointer for which size to be set
+ * @w: width
+ * @h: height
+ *
+ * This function sets width and height for requested plane.
+ * New size will be commited at plane commit time via
+ * drmModeSetPlane().
+ */
 void igt_plane_set_size(igt_plane_t *plane, int w, int h)
 {
 	igt_pipe_t *pipe = plane->pipe;
 	igt_display_t *display = pipe->display;
 
-	LOG(display, "%s.%d: plane_set_size(%d,%d)\n",
+	LOG(display, "%s.%d: plane_set_size (%dx%d)\n",
 	    kmstest_pipe_name(pipe->pipe), plane->index, w, h);
 
 	plane->crtc_w = w;
 	plane->crtc_h = h;
 
-	/*
-	 * must be fb_changed so that legacy cursors call
-	 * drmModeSetCursor() instead of drmModeMoveCursor()
-	 */
+	plane->size_changed = true;
+}
+
+/**
+ * igt_fb_set_position:
+ * @fb: framebuffer pointer
+ * @x: X position
+ * @y: Y position
+ *
+ * This function sets position for requested framebuffer as src to plane.
+ * New position will be commited at plane commit time via drmModeSetPlane().
+ */
+void igt_fb_set_position(struct igt_fb *fb, igt_plane_t *plane,
+	uint32_t x, uint32_t y)
+{
+	igt_pipe_t *pipe = plane->pipe;
+	igt_display_t *display = pipe->display;
+
+	LOG(display, "%s.%d: fb_set_position(%d,%d)\n",
+	    kmstest_pipe_name(pipe->pipe), plane->index, x, y);
+
+	fb->src_x = x;
+	fb->src_y = y;
+
+	plane->fb_changed = true;
+}
+
+/**
+ * igt_fb_set_position:
+ * @fb: framebuffer pointer
+ * @w: width
+ * @h: height
+ *
+ * This function sets fetch rect size from requested framebuffer as src
+ * to plane. New size will be commited at plane commit time via
+ * drmModeSetPlane().
+ */
+void igt_fb_set_size(struct igt_fb *fb, igt_plane_t *plane,
+	uint32_t w, uint32_t h)
+{
+	igt_pipe_t *pipe = plane->pipe;
+	igt_display_t *display = pipe->display;
+
+	LOG(display, "%s.%d: fb_set_position(%dx%d)\n",
+	    kmstest_pipe_name(pipe->pipe), plane->index, w, h);
+
+	fb->src_w = w;
+	fb->src_h = h;
+
 	plane->fb_changed = true;
 }
 
