@@ -207,6 +207,9 @@ struct igt_pipe {
 #define IGT_MAX_PLANES	4
 	int n_planes;
 	igt_plane_t planes[IGT_MAX_PLANES];
+	uint64_t background; /* Background color MSB BGR 16bpc LSB */
+	uint32_t background_changed : 1;
+	uint32_t background_property;
 };
 
 typedef struct {
@@ -255,6 +258,7 @@ void igt_plane_set_position(igt_plane_t *plane, int x, int y);
 void igt_plane_set_size(igt_plane_t *plane, int w, int h);
 void igt_plane_set_panning(igt_plane_t *plane, int x, int y);
 void igt_plane_set_rotation(igt_plane_t *plane, igt_rotation_t rotation);
+void igt_crtc_set_background(igt_pipe_t *pipe, uint64_t background);
 
 void igt_wait_for_vblank(int drm_fd, enum pipe pipe);
 

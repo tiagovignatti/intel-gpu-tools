@@ -74,6 +74,7 @@ TESTS_progs_M = \
 	kms_setmode \
 	kms_universal_plane \
 	kms_vblank \
+	kms_crtc_background_color \
 	pm_lpsp \
 	pm_rpm \
 	pm_rps \

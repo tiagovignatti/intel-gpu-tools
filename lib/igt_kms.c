@@ -940,6 +940,22 @@ igt_plane_set_property(igt_plane_t *plane, uint32_t prop_id, uint64_t value)
 				 DRM_MODE_OBJECT_PLANE, prop_id, value);
 }
 
+static bool
+get_crtc_property(int drm_fd, uint32_t crtc_id, const char *name,
+		   uint32_t *prop_id /* out */, uint64_t *value /* out */,
+		   drmModePropertyPtr *prop /* out */)
+{
+	return kmstest_get_property(drm_fd, crtc_id, DRM_MODE_OBJECT_CRTC,
+				    name, prop_id, value, prop);
+}
+
+static void
+igt_crtc_set_property(igt_output_t *output, uint32_t prop_id, uint64_t value)
+{
+	drmModeObjectSetProperty(output->display->drm_fd,
+		output->config.crtc->crtc_id, DRM_MODE_OBJECT_CRTC, prop_id, value);
+}
+
 /*
  * Walk a plane's property list to determine its type.  If we don't
  * find a type property, then the kernel doesn't support universal
@@ -1097,6 +1113,7 @@ void igt_display_init(igt_display_t *display, int drm_fd)
 	igt_assert(display->outputs);
 
 	for (i = 0; i < display->n_outputs; i++) {
+		int j;
 		igt_output_t *output = &display->outputs[i];
 
 		/*
@@ -1108,6 +1125,19 @@ void igt_display_init(igt_display_t *display, int drm_fd)
 		output->display = display;
 
 		igt_output_refresh(output);
+
+		for (j = 0; j < display->n_pipes; j++) {
+			uint64_t prop_value;
+			igt_pipe_t *pipe = &display->pipes[j];
+			if (output->config.crtc) {
+				get_crtc_property(display->drm_fd, output->config.crtc->crtc_id,
+						   "background_color",
+						   &pipe->background_property,
+						   &prop_value,
+						   NULL);
+				pipe->background = (uint32_t)prop_value;
+			}
+		}
 	}
 
 	drmModeFreePlaneResources(plane_resources);
@@ -1527,6 +1557,13 @@ static int igt_output_commit(igt_output_t *output,
 
 	pipe = igt_output_get_driving_pipe(output);
 
+	if (pipe->background_changed) {
+		igt_crtc_set_property(output, pipe->background_property,
+			pipe->background);
+
+		pipe->background_changed = false;
+	}
+
 	for (i = 0; i < pipe->n_planes; i++) {
 		igt_plane_t *plane = &pipe->planes[i];
 
@@ -1793,6 +1830,30 @@ void igt_plane_set_rotation(igt_plane_t *plane, igt_rotation_t rotation)
 
 	plane->rotation_changed = true;
 }
+
+/**
+ * igt_crtc_set_background:
+ * @pipe: pipe pointer to which background color to be set
+ * @background: background color value in BGR 16bpc
+ *
+ * Sets background color for requested pipe. Color value provided here
+ * will be actually submitted at output commit time via "background_color"
+ * property.
+ * For example to get red as background, set background = 0x00000000FFFF.
+ */
+void igt_crtc_set_background(igt_pipe_t *pipe, uint64_t background)
+{
+	igt_display_t *display = pipe->display;
+
+	LOG(display, "%s.%d: crtc_set_background(%lu)\n",
+	    kmstest_pipe_name(pipe->pipe),
+	    pipe->pipe, background);
+
+	pipe->background = background;
+
+	pipe->background_changed = true;
+}
+
 
 void igt_wait_for_vblank(int drm_fd, enum pipe pipe)
 {
