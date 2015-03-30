@@ -132,6 +132,7 @@ kms_flip_event_leak
 kms_flip_tiling
 kms_force_connector
 kms_mmio_vs_cs_flip
+kms_pipe_b_c_ivb
 kms_pipe_crc_basic
 kms_plane
 kms_psr_sink_crc
