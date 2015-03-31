@@ -153,7 +153,9 @@ static void dump_general_features(const struct bdb_block *block)
 	printf("\tExternal VBT: %s\n", YESNO(features->download_ext_vbt));
 	printf("\tEnable SSC: %s\n", YESNO(features->enable_ssc));
 	if (features->enable_ssc) {
-		if (HAS_PCH_SPLIT(devid))
+		if (IS_VALLEYVIEW(devid) || IS_CHERRYVIEW(devid))
+			printf("\tSSC frequency: 100 MHz\n");
+		else if (HAS_PCH_SPLIT(devid))
 			printf("\tSSC frequency: %s\n", features->ssc_freq ?
 			       "100 MHz" : "120 MHz");
 		else
