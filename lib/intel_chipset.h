@@ -420,7 +420,7 @@ void intel_check_pch(void);
 				 IS_GEN6(devid) || \
 				 IS_IVYBRIDGE(devid) || IS_HASWELL(devid) || \
 				 IS_BROADWELL(devid) || \
-				 IS_GEN9(devid))
+				 IS_SKYLAKE(devid))
 
 #define HAS_BLT_RING(devid)	(IS_GEN6(devid) || \
 				 IS_GEN7(devid) || \
