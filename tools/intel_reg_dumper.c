@@ -147,7 +147,9 @@ DEBUGSTRING(i830_debug_dspcntr)
 DEBUGSTRING(i830_debug_pipeconf)
 {
 	const char *enabled = val & PIPEACONF_ENABLE ? "enabled" : "disabled";
-	const char *bit30, *interlace;
+	const char *bit30;
+	char buf[256];
+	int buf_len;
 
 	if (IS_965(devid))
 		bit30 = val & I965_PIPECONF_ACTIVE ? "active" : "inactive";
@@ -155,10 +157,19 @@ DEBUGSTRING(i830_debug_pipeconf)
 		bit30 =
 		    val & PIPEACONF_DOUBLE_WIDE ? "double-wide" : "single-wide";
 
-	if (HAS_PCH_SPLIT(devid)) {
-		const char *bpc, *rotation;
+	buf_len = snprintf(buf, sizeof(buf), "%s, %s", enabled, bit30);
 
-		switch ((val >> 21) & 7) {
+	if (HAS_PCH_SPLIT(devid) || IS_BROXTON(devid)) {
+		const char *interlace;
+		int interlace_mode;
+
+		if ((IS_IVYBRIDGE(devid) || IS_HASWELL(devid) ||
+		     IS_BROADWELL(devid) || IS_GEN9(devid)))
+			interlace_mode = (val >> 21) & 3;
+		else
+			interlace_mode = (val >> 21) & 7;
+
+		switch (interlace_mode) {
 		case 0:
 			interlace = "pf-pd";
 			break;
@@ -178,42 +189,13 @@ DEBUGSTRING(i830_debug_pipeconf)
 			interlace = "rsvd";
 			break;
 		}
+		if (buf_len < sizeof(buf))
+			buf_len += snprintf(&buf[buf_len], sizeof(buf) - buf_len,
+					    ", %s", interlace);
+	} else if (IS_GEN4(devid) || IS_VALLEYVIEW(devid) ||
+		   IS_CHERRYVIEW(devid)) {
+		const char *interlace;
 
-		switch ((val >> 14) & 3) {
-		case 0:
-			rotation = "rotate 0";
-			break;
-		case 1:
-			rotation = "rotate 90";
-			break;
-		case 2:
-			rotation = "rotate 180";
-			break;
-		case 3:
-			rotation = "rotate 270";
-			break;
-		}
-
-		switch (val & (7 << 5)) {
-		case PIPECONF_8BPP:
-			bpc = "8bpc";
-			break;
-		case PIPECONF_10BPP:
-			bpc = "10bpc";
-			break;
-		case PIPECONF_6BPP:
-			bpc = "6bpc";
-			break;
-		case PIPECONF_12BPP:
-			bpc = "12bpc";
-			break;
-		default:
-			bpc = "invalid bpc";
-			break;
-		}
-		snprintf(result, len, "%s, %s, %s, %s, %s", enabled, bit30,
-			 interlace, rotation, bpc);
-	} else if (IS_GEN4(devid)) {
 		switch ((val >> 21) & 7) {
 		case 0:
 		case 1:
@@ -234,9 +216,60 @@ DEBUGSTRING(i830_debug_pipeconf)
 			interlace = "interlaced legacy";
 			break;
 		}
-		snprintf(result, len, "%s, %s, %s", enabled, bit30, interlace);
-	} else
-		snprintf(result, len, "%s, %s", enabled, bit30);
+		if (buf_len < sizeof(buf))
+			buf_len += snprintf(&buf[buf_len], sizeof(buf) - buf_len,
+					    ", %s", interlace);
+	}
+
+	if (IS_HASWELL(devid) || IS_IVYBRIDGE(devid) ||
+	    IS_GEN6(devid) || IS_GEN5(devid)) {
+		const char *rotation;
+
+		switch ((val >> 14) & 3) {
+		case 0:
+			rotation = "rotate 0";
+			break;
+		case 1:
+			rotation = "rotate 90";
+			break;
+		case 2:
+			rotation = "rotate 180";
+			break;
+		case 3:
+			rotation = "rotate 270";
+			break;
+		}
+		if (buf_len < sizeof(buf))
+			buf_len += snprintf(&buf[buf_len], sizeof(buf) - buf_len,
+					    ", %s", rotation);
+	}
+
+	if (IS_IVYBRIDGE(devid) || IS_GEN6(devid) || IS_GEN5(devid)) {
+		const char *bpc;
+
+		switch (val & (7 << 5)) {
+		case PIPECONF_8BPP:
+			bpc = "8bpc";
+			break;
+		case PIPECONF_10BPP:
+			bpc = "10bpc";
+			break;
+		case PIPECONF_6BPP:
+			bpc = "6bpc";
+			break;
+		case PIPECONF_12BPP:
+			bpc = "12bpc";
+			break;
+		default:
+			bpc = "invalid bpc";
+			break;
+		}
+		if (buf_len < sizeof(buf))
+			buf_len += snprintf(&buf[buf_len], sizeof(buf) - buf_len,
+					    ", %s", bpc);
+	}
+
+	snprintf(result, len, "%s", buf);
 }
 
 DEBUGSTRING(i830_debug_pipestat)
