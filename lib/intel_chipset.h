@@ -206,6 +206,11 @@ void intel_check_pch(void);
 #define PCI_CHIP_SKYLAKE_SRV_GT1	0x190A
 #define PCI_CHIP_SKYLAKE_WKS_GT2 	0x191D
 
+#define PCI_CHIP_BROXTON_0		0x0A84
+#define PCI_CHIP_BROXTON_1		0x0A85
+#define PCI_CHIP_BROXTON_2		0x0A86
+#define PCI_CHIP_BROXTON_3		0x0A87
+
 #endif /* __GTK_DOC_IGNORE__ */
 
 #define IS_MOBILE(devid)	((devid) == PCI_CHIP_I855_GM || \
@@ -390,7 +395,12 @@ void intel_check_pch(void);
 				 IS_SKL_GT2(devid) || \
 				 IS_SKL_GT3(devid))
 
-#define IS_GEN9(devid)		IS_SKYLAKE(devid)
+#define IS_BROXTON(devid)	((devid) == PCI_CHIP_BROXTON_0 || \
+				 (devid) == PCI_CHIP_BROXTON_1 || \
+				 (devid) == PCI_CHIP_BROXTON_2 || \
+				 (devid) == PCI_CHIP_BROXTON_3)
+
+#define IS_GEN9(devid)		(IS_SKYLAKE(devid) || IS_BROXTON(devid))
 
 #define IS_965(devid)		(IS_GEN4(devid) || \
 				 IS_GEN5(devid) || \
