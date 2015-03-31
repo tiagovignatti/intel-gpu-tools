@@ -419,7 +419,7 @@ void intel_check_pch(void);
 #define HAS_PCH_SPLIT(devid)	(IS_GEN5(devid) || \
 				 IS_GEN6(devid) || \
 				 IS_IVYBRIDGE(devid) || IS_HASWELL(devid) || \
-				 IS_GEN8(devid) || \
+				 IS_BROADWELL(devid) || \
 				 IS_GEN9(devid))
 
 #define HAS_BLT_RING(devid)	(IS_GEN6(devid) || \
