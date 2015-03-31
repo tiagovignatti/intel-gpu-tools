@@ -33,6 +33,7 @@
 #include <setjmp.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 #include <sys/types.h>
 #include <stdarg.h>
@@ -649,5 +650,17 @@ extern enum igt_log_level igt_log_level;
 
 
 void igt_set_timeout(unsigned int seconds);
+
+FILE *__igt_fopen_data(const char* igt_srcdir, const char* igt_datadir,
+		       const char* filename);
+/**
+ * igt_fopen_data:
+ * @filename: filename to open.
+ *
+ * Open a datafile for test, first try from installation directory
+ * then from build directory.
+ */
+#define igt_fopen_data(filename) \
+	__igt_fopen_data(IGT_SRCDIR, IGT_DATADIR, filename)
 
 #endif /* IGT_CORE_H */

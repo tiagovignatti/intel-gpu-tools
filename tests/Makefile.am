@@ -27,8 +27,23 @@ multi-tests.txt: Makefile.sources
 	@echo ${multi_kernel_tests} >> $@
 	@echo END TESTLIST >> $@
 
-EXTRA_PROGRAMS = $(TESTS_progs) $(TESTS_progs_M) $(HANG)
-EXTRA_DIST = $(TESTS_scripts) $(TESTS_scripts_M) $(scripts) $(IMAGES) $(common_files)
+igt_tests_bin_PROGRAMS += \
+	$(TESTS_progs) \
+	$(TESTS_progs_M) \
+	$(NULL)
+
+igt_tests_bin_SCRIPTS += \
+	$(TESTS_scripts) \
+	$(TESTS_scripts_M) \
+	$(scripts) \
+	$(NULL)
+
+igt_tests_data_DATA += \
+	$(IMAGES) \
+	$(NULL)
+
+EXTRA_PROGRAMS = $(HANG)
+EXTRA_DIST = $(common_files)
 
 CLEANFILES = $(EXTRA_PROGRAMS) single-tests.txt multi-tests.txt
 
@@ -36,7 +51,8 @@ AM_CFLAGS = $(DRM_CFLAGS) $(CWARNFLAGS) $(DEBUG_CFLAGS)\
 	-I$(srcdir)/.. \
 	-I$(srcdir)/../lib \
 	-include "$(srcdir)/../lib/check-ndebug.h" \
-	-DIGT_DATADIR=\""$(abs_srcdir)"\" \
+	-DIGT_SRCDIR=\""$(abs_srcdir)"\" \
+	-DIGT_DATADIR=\""$(igt_tests_datadir)"\" \
 	$(LIBUNWIND_CFLAGS) \
 	$(NULL)
 

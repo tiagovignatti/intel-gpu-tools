@@ -68,6 +68,7 @@
 #include "drmtest.h"
 #include "testdisplay.h"
 #include "igt_kms.h"
+#include "igt_core.h"
 
 #include <stdlib.h>
 #include <signal.h>
@@ -238,12 +239,21 @@ paint_color_key(struct igt_fb *fb_info)
 	munmap(fb_ptr, fb_info->size);
 }
 
+static cairo_status_t
+stdio_read_func(void* closure, unsigned char* data, unsigned int size)
+{
+	if (fread (data, 1, size, (FILE*)closure) != size)
+		return CAIRO_STATUS_READ_ERROR;
+	return CAIRO_STATUS_SUCCESS;
+}
+
 static void paint_image(cairo_t *cr, const char *file)
 {
 	int img_x, img_y, img_w, img_h, img_w_o, img_h_o;
 	double img_w_scale, img_h_scale;
 
 	cairo_surface_t *image;
+	FILE* fp;
 
 	img_y = height * (0.10 );
 	img_h = height * 0.08 * 4;
@@ -251,7 +261,14 @@ static void paint_image(cairo_t *cr, const char *file)
 
 	img_x = (width / 2) - (img_w / 2);
 
-	image = cairo_image_surface_create_from_png(file);
+	fp = igt_fopen_data(file);
+	if (!fp) {
+                igt_warn("data file \'%s\' missing: %s\n",
+		         file, strerror(errno));
+                return;
+	}
+	image = cairo_image_surface_create_from_png_stream(&stdio_read_func,
+							   (void*)fp);
 
 	img_w_o = cairo_image_surface_get_width(image);
 	img_h_o = cairo_image_surface_get_height(image);
@@ -318,7 +335,7 @@ static void paint_output_info(struct connector *c, struct igt_fb *fb)
 	}
 
 	if (qr_code)
-		paint_image(cr, IGT_DATADIR"/pass.png");
+		paint_image(cr, "pass.png");
 
 	igt_assert(!cairo_status(cr));
 

@@ -54,6 +54,7 @@
 #include <errno.h>
 #include <time.h>
 #include <ctype.h>
+#include <limits.h>
 
 #include "drmtest.h"
 #include "intel_chipset.h"
@@ -1734,4 +1735,19 @@ void igt_set_timeout(unsigned int seconds)
 		sigaction(SIGALRM, &sa, NULL);
 
 	alarm(seconds);
+}
+
+FILE *__igt_fopen_data(const char* igt_srcdir, const char* igt_datadir,
+		       const char* filename)
+{
+	char path[PATH_MAX];
+	FILE *fp;
+
+	snprintf(path, sizeof(path), "%s/%s", igt_datadir, filename);
+	fp = fopen(path, "r");
+	if (!fp) {
+		snprintf(path, sizeof(path), "%s/%s", igt_srcdir, filename);
+		fp = fopen(path, "r");
+	}
+	return fp;
 }
