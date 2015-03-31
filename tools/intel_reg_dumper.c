@@ -138,7 +138,7 @@ DEBUGSTRING(i830_debug_dspcntr)
 {
 	const char *enabled = val & DISPLAY_PLANE_ENABLE ? "enabled" : "disabled";
 	char plane = val & DISPPLANE_SEL_PIPE_B ? 'B' : 'A';
-	if (HAS_PCH_SPLIT(devid))
+	if (HAS_PCH_SPLIT(devid) || IS_BROXTON(devid))
 		snprintf(result, len, "%s", enabled);
 	else
 		snprintf(result, len, "%s, pipe %c", enabled, plane);
