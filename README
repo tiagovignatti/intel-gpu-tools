@@ -141,14 +141,15 @@ docs/
 Requirements
 ------------
 
-This is a non-exhaustive list of package dependencies required for
-building everything:
+This is a non-exhaustive list of package dependencies required for building
+everything (package names may vary):
 
-	libpciaccess-dev
-	libdrm-dev
-	xutils-dev
-	libcairo2-dev
-	swig2.0
-	libpython3.3-dev
-	x11proto-dri2-dev
 	gtk-doc-tools
+	libcairo2-dev
+	libdrm-dev
+	libpciaccess-dev
+	libpython3.3-dev
+	libunwind-dev
+	swig2.0
+	x11proto-dri2-dev
+	xutils-dev
