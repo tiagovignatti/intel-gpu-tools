@@ -510,7 +510,7 @@ igt_main
 
 		status = igt_debugfs_fopen("i915_fbc_status", "r");
 		igt_require_f(status, "No i915_fbc_status found\n");
-		igt_assert_eq(fread(buf, sizeof(buf), 1, status), sizeof(buf));
+		igt_assert_lt(0, fread(buf, 1, sizeof(buf), status));
 		fclose(status);
 		buf[sizeof(buf) - 1] = '\0';
 		igt_require_f(!strstr(buf, "unsupported by this chipset") &&
