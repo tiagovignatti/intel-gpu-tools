@@ -381,7 +381,7 @@ int main(int argc, char **argv)
 			if (object_size)
 				run((object_size + 3) & -4, false);
 		}
-		return 0;
+		_exit(0); /* blergh */
 	}
 
 	igt_fixture {
