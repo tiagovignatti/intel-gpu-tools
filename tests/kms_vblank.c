@@ -67,12 +67,12 @@ static bool crtc0_active(int fd)
 	return drmIoctl(fd, DRM_IOCTL_WAIT_VBLANK, &vbl) == 0;
 }
 
-static void query(int fd, bool busy)
+static void vblank_query(int fd, bool busy)
 {
 	union drm_wait_vblank vbl;
 	struct timespec start, end;
 	unsigned long sq, count = 0;
-	char buf[4096];
+	struct drm_event_vblank buf;
 
 	memset(&vbl, 0, sizeof(vbl));
 
@@ -101,7 +101,46 @@ static void query(int fd, bool busy)
 		 busy ? "busy" : "idle", elapsed(&start, &end, count));
 
 	if (busy)
-		igt_assert_eq(read(fd, buf, sizeof(buf)), sizeof(buf));
+		igt_assert_eq(read(fd, &buf, sizeof(buf)), sizeof(buf));
+}
+
+static void vblank_wait(int fd, bool busy)
+{
+	union drm_wait_vblank vbl;
+	struct timespec start, end;
+	unsigned long sq, count = 0;
+	struct drm_event_vblank buf;
+
+	memset(&vbl, 0, sizeof(vbl));
+
+	if (busy) {
+		vbl.request.type = DRM_VBLANK_RELATIVE | DRM_VBLANK_EVENT;
+		vbl.request.sequence = 72;
+		do_or_die(drmIoctl(fd, DRM_IOCTL_WAIT_VBLANK, &vbl));
+	}
+
+	vbl.request.type = DRM_VBLANK_RELATIVE;
+	vbl.request.sequence = 0;
+	do_or_die(drmIoctl(fd, DRM_IOCTL_WAIT_VBLANK, &vbl));
+
+	sq = vbl.reply.sequence;
+
+	clock_gettime(CLOCK_MONOTONIC, &start);
+	do {
+		vbl.request.type = DRM_VBLANK_RELATIVE;
+		vbl.request.sequence = 1;
+		do_or_die(drmIoctl(fd, DRM_IOCTL_WAIT_VBLANK, &vbl));
+		count++;
+	} while ((vbl.reply.sequence - sq) <= 60);
+	clock_gettime(CLOCK_MONOTONIC, &end);
+
+	igt_info("Time to wait for %ld/%d vblanks (%s):		%7.3fµs\n",
+		 count, (int)(vbl.reply.sequence - sq),
+		 busy ? "busy" : "idle",
+		 elapsed(&start, &end, count));
+
+	if (busy)
+		igt_assert_eq(read(fd, &buf, sizeof(buf)), sizeof(buf));
 }
 
 igt_main
@@ -116,8 +155,14 @@ igt_main
 	}
 
 	igt_subtest("query-idle")
-		query(fd, false);
+		vblank_query(fd, false);
 
 	igt_subtest("query-busy")
-		query(fd, true);
+		vblank_query(fd, true);
+
+	igt_subtest("wait-idle")
+		vblank_wait(fd, false);
+
+	igt_subtest("wait-busy")
+		vblank_wait(fd, true);
 }
