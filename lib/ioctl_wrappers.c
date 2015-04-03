@@ -429,12 +429,10 @@ uint32_t gem_create(int fd, int size)
  */
 void gem_execbuf(int fd, struct drm_i915_gem_execbuffer2 *execbuf)
 {
-	int ret;
+	int result;
 
-	ret = drmIoctl(fd,
-		       DRM_IOCTL_I915_GEM_EXECBUFFER2,
-		       execbuf);
-	igt_assert(ret == 0);
+	result = drmIoctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, execbuf);
+	igt_assert(result == 0);
 	errno = 0;
 }
 

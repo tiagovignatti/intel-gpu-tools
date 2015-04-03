@@ -103,7 +103,7 @@ static void copy(int fd, uint32_t batch, uint32_t src, uint32_t dst)
 	execbuf.batch_len = 4096;
 	execbuf.flags = use_blt;
 
-	do_or_die(drmIoctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf));
+	gem_execbuf(fd, &execbuf);
 }
 
 static void exec(int fd, uint32_t handle)
@@ -119,7 +119,7 @@ static void exec(int fd, uint32_t handle)
 	execbuf.buffer_count = 1;
 	execbuf.batch_len = 4096;
 
-	do_or_die(drmIoctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf));
+	gem_execbuf(fd, &execbuf);
 }
 
 uint32_t gen6_batch[] = {
