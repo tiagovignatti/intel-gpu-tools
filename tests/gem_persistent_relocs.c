@@ -51,6 +51,8 @@ IGT_TEST_DESCRIPTION("Test persistent relocations as used by uxa/libva.");
 /*
  * Testcase: Persistent relocations as used by uxa/libva
  *
+ * Note: this currently fails on byt/full-ppgtt
+ * https://bugs.freedesktop.org/show_bug.cgi?id=84859
  */
 
 static drm_intel_bufmgr *bufmgr;
