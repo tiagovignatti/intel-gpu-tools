@@ -262,6 +262,8 @@ gem_init(void)
 
 	gem.devid = intel_get_drm_devid(gem.drm_fd);
 	gem.gen = intel_gen(gem.devid);
+	igt_require_f(gem.gen >= 8,
+		      "SSEU power gating only relevant for Gen8+");
 	gem.has_ppgtt = gem_uses_aliasing_ppgtt(gem.drm_fd);
 
 	gem.bufmgr = drm_intel_bufmgr_gem_init(gem.drm_fd, 4096);
