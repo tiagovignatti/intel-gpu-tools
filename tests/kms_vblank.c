@@ -67,6 +67,40 @@ static bool crtc0_active(int fd)
 	return drmIoctl(fd, DRM_IOCTL_WAIT_VBLANK, &vbl) == 0;
 }
 
+static void accuracy(int fd)
+{
+	union drm_wait_vblank vbl;
+	unsigned long target;
+	int n;
+
+	memset(&vbl, 0, sizeof(vbl));
+
+	vbl.request.type = DRM_VBLANK_RELATIVE;
+	vbl.request.sequence = 1;
+	do_ioctl(fd, DRM_IOCTL_WAIT_VBLANK, &vbl);
+
+	target = vbl.reply.sequence + 60;
+	for (n = 0; n < 60; n++) {
+		vbl.request.type = DRM_VBLANK_RELATIVE;
+		vbl.request.sequence = 1;
+		do_ioctl(fd, DRM_IOCTL_WAIT_VBLANK, &vbl);
+
+		vbl.request.type = DRM_VBLANK_ABSOLUTE | DRM_VBLANK_EVENT;
+		vbl.request.sequence = target;
+		do_ioctl(fd, DRM_IOCTL_WAIT_VBLANK, &vbl);
+	}
+	vbl.request.type = DRM_VBLANK_RELATIVE;
+	vbl.request.sequence = 0;
+	do_ioctl(fd, DRM_IOCTL_WAIT_VBLANK, &vbl);
+	igt_assert_eq(vbl.reply.sequence, target);
+
+	for (n = 0; n < 60; n++) {
+		struct drm_event_vblank ev;
+		igt_assert_eq(read(fd, &ev, sizeof(ev)), sizeof(ev));
+		igt_assert_eq(ev.sequence, target);
+	}
+}
+
 static void vblank_query(int fd, bool busy)
 {
 	union drm_wait_vblank vbl;
@@ -79,12 +113,12 @@ static void vblank_query(int fd, bool busy)
 	if (busy) {
 		vbl.request.type = DRM_VBLANK_RELATIVE | DRM_VBLANK_EVENT;
 		vbl.request.sequence = 72;
-		do_or_die(drmIoctl(fd, DRM_IOCTL_WAIT_VBLANK, &vbl));
+		do_ioctl(fd, DRM_IOCTL_WAIT_VBLANK, &vbl);
 	}
 
 	vbl.request.type = DRM_VBLANK_RELATIVE;
 	vbl.request.sequence = 0;
-	do_or_die(drmIoctl(fd, DRM_IOCTL_WAIT_VBLANK, &vbl));
+	do_ioctl(fd, DRM_IOCTL_WAIT_VBLANK, &vbl);
 
 	sq = vbl.reply.sequence;
 
@@ -92,7 +126,7 @@ static void vblank_query(int fd, bool busy)
 	do {
 		vbl.request.type = DRM_VBLANK_RELATIVE;
 		vbl.request.sequence = 0;
-		do_or_die(drmIoctl(fd, DRM_IOCTL_WAIT_VBLANK, &vbl));
+		do_ioctl(fd, DRM_IOCTL_WAIT_VBLANK, &vbl);
 		count++;
 	} while ((vbl.reply.sequence - sq) <= 60);
 	clock_gettime(CLOCK_MONOTONIC, &end);
@@ -116,12 +150,12 @@ static void vblank_wait(int fd, bool busy)
 	if (busy) {
 		vbl.request.type = DRM_VBLANK_RELATIVE | DRM_VBLANK_EVENT;
 		vbl.request.sequence = 72;
-		do_or_die(drmIoctl(fd, DRM_IOCTL_WAIT_VBLANK, &vbl));
+		do_ioctl(fd, DRM_IOCTL_WAIT_VBLANK, &vbl);
 	}
 
 	vbl.request.type = DRM_VBLANK_RELATIVE;
 	vbl.request.sequence = 0;
-	do_or_die(drmIoctl(fd, DRM_IOCTL_WAIT_VBLANK, &vbl));
+	do_ioctl(fd, DRM_IOCTL_WAIT_VBLANK, &vbl);
 
 	sq = vbl.reply.sequence;
 
@@ -129,7 +163,7 @@ static void vblank_wait(int fd, bool busy)
 	do {
 		vbl.request.type = DRM_VBLANK_RELATIVE;
 		vbl.request.sequence = 1;
-		do_or_die(drmIoctl(fd, DRM_IOCTL_WAIT_VBLANK, &vbl));
+		do_ioctl(fd, DRM_IOCTL_WAIT_VBLANK, &vbl);
 		count++;
 	} while ((vbl.reply.sequence - sq) <= 60);
 	clock_gettime(CLOCK_MONOTONIC, &end);
@@ -153,6 +187,9 @@ igt_main
 		fd = drm_open_any();
 		igt_require(crtc0_active(fd));
 	}
+
+	igt_subtest("accuracy")
+		accuracy(fd);
 
 	igt_subtest("query-idle")
 		vblank_query(fd, false);
