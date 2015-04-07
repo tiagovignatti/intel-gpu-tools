@@ -930,13 +930,13 @@ get_plane_property(int drm_fd, uint32_t plane_id, const char *name,
 				    name, prop_id, value, prop);
 }
 
-static void
+static int
 igt_plane_set_property(igt_plane_t *plane, uint32_t prop_id, uint64_t value)
 {
 	igt_pipe_t *pipe = plane->pipe;
 	igt_display_t *display = pipe->display;
 
-	drmModeObjectSetProperty(display->drm_fd, plane->drm_plane->plane_id,
+	return drmModeObjectSetProperty(display->drm_fd, plane->drm_plane->plane_id,
 				 DRM_MODE_OBJECT_PLANE, prop_id, value);
 }
 
@@ -1390,10 +1390,11 @@ static int igt_drm_plane_commit(igt_plane_t *plane,
 	plane->size_changed = false;
 
 	if (plane->rotation_changed) {
-		igt_plane_set_property(plane, plane->rotation_property,
+		ret = igt_plane_set_property(plane, plane->rotation_property,
 				       plane->rotation);
 
 		plane->rotation_changed = false;
+		CHECK_RETURN(ret, fail_on_error);
 	}
 
 	return 0;
