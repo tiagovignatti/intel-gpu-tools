@@ -43,9 +43,16 @@
 
 static int OBJECT_SIZE = 16*1024*1024;
 
-static void set_domain(int fd, uint32_t handle)
+static void
+set_domain_gtt(int fd, uint32_t handle)
 {
 	gem_set_domain(fd, handle, I915_GEM_DOMAIN_GTT, I915_GEM_DOMAIN_GTT);
+}
+
+static void
+set_domain_cpu(int fd, uint32_t handle)
+{
+	gem_set_domain(fd, handle, I915_GEM_DOMAIN_CPU, I915_GEM_DOMAIN_CPU);
 }
 
 static void *
@@ -245,7 +252,7 @@ test_write_gtt(int fd)
 
 	/* prefault object into gtt */
 	dst_gtt = mmap_bo(fd, dst);
-	set_domain(fd, dst);
+	set_domain_gtt(fd, dst);
 	memset(dst_gtt, 0, OBJECT_SIZE);
 	munmap(dst_gtt, OBJECT_SIZE);
 
