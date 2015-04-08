@@ -13,12 +13,6 @@ igt_tests_bin_PROGRAMS = \
 	$(TESTS_progs_M) \
 	$(NULL)
 
-igt_tests_bin_SCRIPTS = \
-	$(NULL)
-
-igt_tests_data_DATA = \
-	$(NULL)
-
 NOUVEAU_TESTS_M = \
 	prime_nv_api \
 	prime_nv_pcopy \

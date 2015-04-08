@@ -32,13 +32,13 @@ igt_tests_bin_PROGRAMS += \
 	$(TESTS_progs_M) \
 	$(NULL)
 
-igt_tests_bin_SCRIPTS += \
+dist_igt_tests_bin_SCRIPTS = \
 	$(TESTS_scripts) \
 	$(TESTS_scripts_M) \
 	$(scripts) \
 	$(NULL)
 
-igt_tests_data_DATA += \
+dist_igt_tests_data_DATA = \
 	$(IMAGES) \
 	$(NULL)
 
