@@ -50,9 +50,8 @@ IGT_TEST_DESCRIPTION("Exercises the basic execbuffer using the handle LUT"
 #define MAX_NUM_EXEC 2048
 #define MAX_NUM_RELOC 4096
 
-#define USE_LUT 0x1
-#define SKIP_RELOC 0x2
-#define NO_RELOC 0x4
+#define SKIP_RELOC 0x1
+#define NO_RELOC 0x2
 
 struct drm_i915_gem_exec_object2 gem_exec[MAX_NUM_EXEC+1];
 struct drm_i915_gem_relocation_entry gem_reloc[MAX_NUM_RELOC];
@@ -67,50 +66,16 @@ hars_petruska_f54_1_random (void)
 #undef rol
 }
 
-
-static int exec(int fd, int num_exec, int num_relocs, unsigned flags)
+static int has_exec_lut(int fd)
 {
 	struct drm_i915_gem_execbuffer2 execbuf;
-	struct drm_i915_gem_exec_object2 *objects;
-	int i;
 
-	gem_exec[MAX_NUM_EXEC].relocation_count = num_relocs;
-	gem_exec[MAX_NUM_EXEC].relocs_ptr = (uintptr_t) gem_reloc;
+	memset(&execbuf, 0, sizeof(execbuf));
+	execbuf.buffers_ptr = (uintptr_t)(gem_exec + MAX_NUM_EXEC);
+	execbuf.buffer_count = 1;
+	execbuf.flags = LOCAL_I915_EXEC_HANDLE_LUT;
 
-	objects = gem_exec + MAX_NUM_EXEC - num_exec;
-
-	for (i = 0; i < num_relocs; i++) {
-		int target = hars_petruska_f54_1_random() % num_exec;
-		gem_reloc[i].offset = 1024;
-		gem_reloc[i].delta = 0;
-		gem_reloc[i].target_handle =
-			flags & USE_LUT ? target : objects[target].handle;
-		gem_reloc[i].read_domains = I915_GEM_DOMAIN_RENDER;
-		gem_reloc[i].write_domain = 0;
-		gem_reloc[i].presumed_offset = 0;
-		if (flags & SKIP_RELOC)
-			gem_reloc[i].presumed_offset = objects[target].offset;
-	}
-
-	execbuf.buffers_ptr = (uintptr_t)objects;
-	execbuf.buffer_count = num_exec + 1;
-	execbuf.batch_start_offset = 0;
-	execbuf.batch_len = 8;
-	execbuf.cliprects_ptr = 0;
-	execbuf.num_cliprects = 0;
-	execbuf.DR1 = 0;
-	execbuf.DR4 = 0;
-	execbuf.flags = 0;
-	if (flags & USE_LUT)
-		execbuf.flags |= LOCAL_I915_EXEC_HANDLE_LUT;
-	if (flags & NO_RELOC)
-		execbuf.flags |= LOCAL_I915_EXEC_NO_RELOC;
-	i915_execbuffer2_set_context_id(execbuf, 0);
-	execbuf.rsvd2 = 0;
-
-	return drmIoctl(fd,
-			DRM_IOCTL_I915_GEM_EXECBUFFER2,
-			&execbuf);
+	return drmIoctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf) == 0;
 }
 
 #define ELAPSED(a,b) (1e6*((b)->tv_sec - (a)->tv_sec) + ((b)->tv_usec - (a)->tv_usec))
@@ -132,21 +97,20 @@ igt_simple_main
 
 	fd = drm_open_any();
 
-	for (n = 0; n < MAX_NUM_EXEC; n++) {
+	memset(gem_exec, 0, sizeof(gem_exec));
+	for (n = 0; n < MAX_NUM_EXEC; n++)
 		gem_exec[n].handle = gem_create(fd, 4096);
-		gem_exec[n].relocation_count = 0;
-		gem_exec[n].relocs_ptr = 0;
-		gem_exec[n].alignment = 0;
-		gem_exec[n].offset = 0;
-		gem_exec[n].flags = 0;
-		gem_exec[n].rsvd1 = 0;
-		gem_exec[n].rsvd2 = 0;
-	}
 
-	gem_exec[n].handle =  gem_create(fd, 4096);
+	gem_exec[n].handle = gem_create(fd, 4096);
 	gem_write(fd, gem_exec[n].handle, 0, batch, sizeof(batch));
 
-	igt_skip_on(exec(fd, 1, 0, USE_LUT));
+	memset(gem_reloc, 0, sizeof(gem_reloc));
+	for (n = 0; n < MAX_NUM_RELOC; n++) {
+		gem_reloc[n].offset = 1024;
+		gem_reloc[n].read_domains = I915_GEM_DOMAIN_RENDER;
+	}
+
+	igt_require(has_exec_lut(fd));
 
 	for (p = pass; p->name != NULL; p++) {
 		for (n = 1; n <= MAX_NUM_EXEC; n *= 2) {
@@ -156,23 +120,55 @@ igt_simple_main
 			int i, j;
 
 			for (i = 0, m = 1; m <= MAX_NUM_RELOC; m *= 2, i++) {
+				struct drm_i915_gem_execbuffer2 execbuf;
+				struct drm_i915_gem_exec_object2 *objects;
 				struct timeval start, end;
 
-				do_or_die(exec(fd, n, m, 0 | p->flags));
-				gettimeofday(&start, NULL);
-				for (count = 0; count < 1000; count++)
-					do_or_die(exec(fd, n, m, 0 | p->flags));
-				gettimeofday(&end, NULL);
-				gem_sync(fd, gem_exec[MAX_NUM_EXEC].handle);
-				elapsed[i][0] = ELAPSED(&start, &end);
+				gem_exec[MAX_NUM_EXEC].relocation_count = m;
+				gem_exec[MAX_NUM_EXEC].relocs_ptr = (uintptr_t)gem_reloc;
+				objects = gem_exec + MAX_NUM_EXEC - n;
 
-				do_or_die(exec(fd, n, m, USE_LUT | p->flags));
+				memset(&execbuf, 0, sizeof(execbuf));
+				execbuf.buffers_ptr = (uintptr_t)objects;
+				execbuf.buffer_count = n + 1;
+				execbuf.flags = LOCAL_I915_EXEC_HANDLE_LUT;
+				if (p->flags & NO_RELOC)
+					execbuf.flags |= LOCAL_I915_EXEC_NO_RELOC;
+
+				for (j = 0; j < m; j++) {
+					int target = hars_petruska_f54_1_random() % n;
+					gem_reloc[j].target_handle = target;
+					if (p->flags & SKIP_RELOC)
+						gem_reloc[j].presumed_offset = objects[target].offset;
+					else
+						gem_reloc[j].presumed_offset = 0;
+				}
+
+				gem_execbuf(fd,&execbuf);
 				gettimeofday(&start, NULL);
 				for (count = 0; count < 1000; count++)
-					do_or_die(exec(fd, n, m, USE_LUT | p->flags));
+					gem_execbuf(fd, &execbuf);
 				gettimeofday(&end, NULL);
 				gem_sync(fd, gem_exec[MAX_NUM_EXEC].handle);
 				elapsed[i][1] = ELAPSED(&start, &end);
+
+				execbuf.flags &= ~LOCAL_I915_EXEC_HANDLE_LUT;
+				for (j = 0; j < m; j++) {
+					int target = gem_reloc[j].target_handle;
+					gem_reloc[j].target_handle = objects[target].handle;
+					if (p->flags & SKIP_RELOC)
+						gem_reloc[j].presumed_offset = objects[target].offset;
+					else
+						gem_reloc[j].presumed_offset = 0;
+				}
+
+				gem_execbuf(fd,&execbuf);
+				gettimeofday(&start, NULL);
+				for (count = 0; count < 1000; count++)
+					gem_execbuf(fd, &execbuf);
+				gettimeofday(&end, NULL);
+				gem_sync(fd, gem_exec[MAX_NUM_EXEC].handle);
+				elapsed[i][0] = ELAPSED(&start, &end);
 			}
 
 			igt_info("%s: buffers=%4d:", p->name, n);
