@@ -27,18 +27,25 @@ multi-tests.txt: Makefile.sources
 	@echo ${multi_kernel_tests} >> $@
 	@echo END TESTLIST >> $@
 
-igt_tests_bin_PROGRAMS += \
+noinst_PROGRAMS = \
+	$(HANG) \
+	$(TESTS_testsuite) \
+	$(NULL)
+
+pkglibexec_PROGRAMS = \
+	gem_alive \
+	gem_stress \
 	$(TESTS_progs) \
 	$(TESTS_progs_M) \
 	$(NULL)
 
-dist_igt_tests_bin_SCRIPTS = \
+dist_pkglibexec_SCRIPTS = \
 	$(TESTS_scripts) \
 	$(TESTS_scripts_M) \
 	$(scripts) \
 	$(NULL)
 
-dist_igt_tests_data_DATA = \
+dist_pkgdata_DATA = \
 	$(IMAGES) \
 	$(NULL)
 
@@ -52,7 +59,7 @@ AM_CFLAGS = $(DRM_CFLAGS) $(CWARNFLAGS) $(DEBUG_CFLAGS)\
 	-I$(srcdir)/../lib \
 	-include "$(srcdir)/../lib/check-ndebug.h" \
 	-DIGT_SRCDIR=\""$(abs_srcdir)"\" \
-	-DIGT_DATADIR=\""$(igt_tests_datadir)"\" \
+	-DIGT_DATADIR=\""$(pkgdatadir)"\" \
 	$(LIBUNWIND_CFLAGS) \
 	$(NULL)
 

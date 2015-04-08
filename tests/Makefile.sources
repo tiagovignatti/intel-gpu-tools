@@ -1,18 +1,3 @@
-igt_tests_bindir = $(pkglibexecdir)/tests
-igt_tests_datadir = $(pkgdatadir)/tests
-
-noinst_PROGRAMS = \
-	$(HANG) \
-	$(TESTS_testsuite) \
-	$(NULL)
-
-igt_tests_bin_PROGRAMS = \
-	gem_alive \
-	gem_stress \
-	$(TESTS_progs) \
-	$(TESTS_progs_M) \
-	$(NULL)
-
 NOUVEAU_TESTS_M = \
 	prime_nv_api \
 	prime_nv_pcopy \
