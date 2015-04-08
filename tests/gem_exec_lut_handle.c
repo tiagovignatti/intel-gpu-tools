@@ -53,6 +53,7 @@ IGT_TEST_DESCRIPTION("Exercises the basic execbuffer using the handle LUT"
 #define SKIP_RELOC 0x1
 #define NO_RELOC 0x2
 
+int target[MAX_NUM_RELOC];
 struct drm_i915_gem_exec_object2 gem_exec[MAX_NUM_EXEC+1];
 struct drm_i915_gem_relocation_entry gem_reloc[MAX_NUM_RELOC];
 
@@ -89,7 +90,7 @@ igt_simple_main
 	} pass[] = {
 		{ .name = "relocation", .flags = 0 },
 		{ .name = "skip-relocs", .flags = SKIP_RELOC },
-		{ .name = "no-relocs", .flags = NO_RELOC },
+		{ .name = "no-relocs", .flags = SKIP_RELOC | NO_RELOC },
 		{ .name = NULL },
 	}, *p;
 
@@ -136,36 +137,35 @@ igt_simple_main
 					execbuf.flags |= LOCAL_I915_EXEC_NO_RELOC;
 
 				for (j = 0; j < m; j++) {
-					int target = hars_petruska_f54_1_random() % n;
-					gem_reloc[j].target_handle = target;
-					if (p->flags & SKIP_RELOC)
-						gem_reloc[j].presumed_offset = objects[target].offset;
-					else
-						gem_reloc[j].presumed_offset = 0;
+					target[j] = hars_petruska_f54_1_random() % n;
+					gem_reloc[j].target_handle = target[j];
+					gem_reloc[j].presumed_offset = 0;
 				}
 
 				gem_execbuf(fd,&execbuf);
 				gettimeofday(&start, NULL);
-				for (count = 0; count < 1000; count++)
+				for (count = 0; count < 1000; count++) {
+					if ((p->flags & SKIP_RELOC) == 0)
+						for (j = 0; j < m; j++)
+							gem_reloc[j].presumed_offset = 0;
 					gem_execbuf(fd, &execbuf);
+				}
 				gettimeofday(&end, NULL);
 				gem_sync(fd, gem_exec[MAX_NUM_EXEC].handle);
 				elapsed[i][1] = ELAPSED(&start, &end);
 
 				execbuf.flags &= ~LOCAL_I915_EXEC_HANDLE_LUT;
-				for (j = 0; j < m; j++) {
-					int target = gem_reloc[j].target_handle;
-					gem_reloc[j].target_handle = objects[target].handle;
-					if (p->flags & SKIP_RELOC)
-						gem_reloc[j].presumed_offset = objects[target].offset;
-					else
-						gem_reloc[j].presumed_offset = 0;
-				}
+				for (j = 0; j < m; j++)
+					gem_reloc[j].target_handle = objects[target[j]].handle;
 
 				gem_execbuf(fd,&execbuf);
 				gettimeofday(&start, NULL);
-				for (count = 0; count < 1000; count++)
+				for (count = 0; count < 1000; count++) {
+					if ((p->flags & SKIP_RELOC) == 0)
+						for (j = 0; j < m; j++)
+							gem_reloc[j].presumed_offset = 0;
 					gem_execbuf(fd, &execbuf);
+				}
 				gettimeofday(&end, NULL);
 				gem_sync(fd, gem_exec[MAX_NUM_EXEC].handle);
 				elapsed[i][0] = ELAPSED(&start, &end);
