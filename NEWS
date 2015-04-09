@@ -1,6 +1,19 @@
 Release 1.11 (XXXX-XX-XX)
 -------------------------
 
+- Single combined test list (supported by piglit since commit 8a122bb)
+
+- Optional dependency on libunwind to provide automatic stack traces on test
+  failures. (Thomas Wood)
+
+- Add optional default debug and optimisation flags for tests to enable better
+  stack traces and debugging. (Thomas Wood)
+
+- Test programs are now installed into libexec. This is useful when building a
+  complete software stack for a DUT from scratch. (Building and installing
+  tests can still be disabled by the --disable-tests configure flag.)
+  (Joonas Lahtinen)
+
 
 Release 1.10 (2015-03-12)
 -------------------------
