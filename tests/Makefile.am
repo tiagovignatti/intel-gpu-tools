@@ -5,8 +5,6 @@ if HAVE_NOUVEAU
 endif
 
 if BUILD_TESTS
-all-local: test-list.txt
-
 test-list.txt: Makefile.sources
 	@echo TESTLIST > $@
 	@echo ${single_kernel_tests} ${multi_kernel_tests} >> $@
@@ -33,6 +31,8 @@ dist_pkglibexec_SCRIPTS = \
 dist_pkgdata_DATA = \
 	$(IMAGES) \
 	$(NULL)
+
+pkgdata_DATA = test-list.txt
 
 EXTRA_PROGRAMS = $(HANG)
 EXTRA_DIST = $(common_files)
