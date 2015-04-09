@@ -13,6 +13,7 @@ I915ChipsetPython_la_LIBADD =			\
 	$(PCIACCESS_LIBS)			\
 	$(DRM_LIBS)				\
 	$(CAIRO_LIBS)				\
+	$(LIBUNWIND_LIBS)			\
 	$(NULL)
 
 chipset.py: chipset_wrap_python.c
