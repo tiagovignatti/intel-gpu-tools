@@ -21,6 +21,7 @@ TESTS = \
 
 # Test that exercise specific asserts in the test framework library and are
 # hence expected to fail.
+DISABLE_HARD_ERRORS=1
 XFAIL_TESTS = \
 	igt_no_exit \
 	igt_no_exit_list_only \

@@ -1705,15 +1705,17 @@ out:
 
 static void igt_alarm_handler(int signal)
 {
-	/* exit with timeout status */
-	igt_fail(IGT_EXIT_TIMEOUT);
+	igt_info("Timed out\n");
+
+	/* exit with failure status */
+	igt_fail(IGT_EXIT_FAILURE);
 }
 
 /**
  * igt_set_timeout:
  * @seconds: number of seconds before timeout
  *
- * Fail a test and exit with #IGT_EXIT_TIMEOUT status after the specified
+ * Fail a test and exit with #IGT_EXIT_FAILURE status after the specified
  * number of seconds have elapsed. If the current test has subtests and the
  * timeout occurs outside a subtest, subsequent subtests will be skipped and
  * marked as failed.
