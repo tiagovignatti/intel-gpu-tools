@@ -513,7 +513,7 @@ igt_main
 		igt_assert_lt(0, fread(buf, 1, sizeof(buf), status));
 		fclose(status);
 		buf[sizeof(buf) - 1] = '\0';
-		igt_require_f(!strstr(buf, "unsupported by this chipset") &&
+		igt_require_f(!strstr(buf, "unsupported on this chipset") &&
 			      !strstr(buf, "disabled per module param") &&
 			      !strstr(buf, "disabled per chip default"),
 			      "FBC not supported/enabled\n");
