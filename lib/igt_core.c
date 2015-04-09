@@ -993,8 +993,8 @@ static void print_backtrace(void)
 }
 #endif
 
-void __igt_fail_assert(int exitcode, const char *domain, const char *file,
-		       const int line, const char *func, const char *assertion,
+void __igt_fail_assert(const char *domain, const char *file, const int line,
+		       const char *func, const char *assertion,
 		       const char *f, ...)
 {
 	va_list args;
@@ -1020,7 +1020,7 @@ void __igt_fail_assert(int exitcode, const char *domain, const char *file,
 
 	if (run_under_gdb())
 		abort();
-	igt_fail(exitcode);
+	igt_fail(IGT_EXIT_FAILURE);
 }
 
 /**

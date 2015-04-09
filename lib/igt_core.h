@@ -84,6 +84,12 @@ extern const char* __igt_test_description __attribute__((weak));
  */
 #define IGT_EXIT_INVALID 79
 
+/**
+ * IGT_EXIT_FAILURE
+ *
+ * Exit status indicating a test failure
+ */
+#define IGT_EXIT_FAILURE 99
 
 bool __igt_fixture(void);
 void __igt_fixture_complete(void);
@@ -250,8 +256,8 @@ void __igt_skip_check(const char *file, const int line,
 void igt_success(void);
 
 void igt_fail(int exitcode) __attribute__((noreturn));
-__attribute__((format(printf, 7, 8)))
-void __igt_fail_assert(int exitcode, const char *domain, const char *file,
+__attribute__((format(printf, 6, 7)))
+void __igt_fail_assert(const char *domain, const char *file,
 		       const int line, const char *func, const char *assertion,
 		       const char *format, ...)
 	__attribute__((noreturn));
@@ -267,7 +273,7 @@ void igt_exit(void) __attribute__((noreturn));
  */
 #define igt_assert(expr) \
 	do { if (!(expr)) \
-		__igt_fail_assert(99, IGT_LOG_DOMAIN, __FILE__, __LINE__, __func__, #expr , NULL); \
+		__igt_fail_assert(IGT_LOG_DOMAIN, __FILE__, __LINE__, __func__, #expr , NULL); \
 	} while (0)
 
 /**
@@ -284,7 +290,7 @@ void igt_exit(void) __attribute__((noreturn));
  */
 #define igt_assert_f(expr, f...) \
 	do { if (!(expr)) \
-		__igt_fail_assert(99, IGT_LOG_DOMAIN, __FILE__, __LINE__, __func__, #expr , f); \
+		__igt_fail_assert(IGT_LOG_DOMAIN, __FILE__, __LINE__, __func__, #expr , f); \
 	} while (0)
 
 /**
@@ -329,7 +335,7 @@ void igt_exit(void) __attribute__((noreturn));
 	do { \
 		int __n1 = (n1), __n2 = (n2); \
 		if (__n1 cmp __n2) ; else \
-		__igt_fail_assert(99, IGT_LOG_DOMAIN, __FILE__, __LINE__, __func__, \
+		__igt_fail_assert(IGT_LOG_DOMAIN, __FILE__, __LINE__, __func__, \
 				  #n1 " " #cmp " " #n2, \
 				  "error: %d " #ncmp " %d\n", __n1, __n2); \
 	} while (0)
@@ -338,7 +344,7 @@ void igt_exit(void) __attribute__((noreturn));
 	do { \
 		uint32_t __n1 = (n1), __n2 = (n2); \
 		if (__n1 cmp __n2) ; else \
-		__igt_fail_assert(99, IGT_LOG_DOMAIN, __FILE__, __LINE__, __func__, \
+		__igt_fail_assert(IGT_LOG_DOMAIN, __FILE__, __LINE__, __func__, \
 				  #n1 " " #cmp " " #n2, \
 				  "error: %#x " #ncmp " %#x\n", __n1, __n2); \
 	} while (0)

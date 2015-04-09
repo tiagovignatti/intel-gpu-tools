@@ -100,7 +100,7 @@ static void assert_color(char *crc, enum color color)
 			   (bh & mask) == 0);
 		break;
 	default:
-		igt_fail(-1);
+		igt_fail(IGT_EXIT_FAILURE);
 	}
 }
 

@@ -73,7 +73,7 @@ expression list[n] Ep;
 @@
 @@
 -abort();
-+igt_fail(1);
++igt_fail(IGT_EXIT_FAILURE);
 
 @@
 iterator name for_each_pipe;

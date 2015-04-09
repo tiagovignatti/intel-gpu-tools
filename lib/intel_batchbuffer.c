@@ -377,7 +377,7 @@ intel_blt_copy(struct intel_batchbuffer *batch,
 			    XY_SRC_COPY_BLT_WRITE_RGB;
 		break;
 	default:
-		igt_fail(1);
+		igt_fail(IGT_EXIT_FAILURE);
 	}
 
 	BLIT_COPY_BATCH_START(cmd_bits);
