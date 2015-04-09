@@ -4,7 +4,8 @@ dist_bin_SCRIPTS = quick_dump.py reg_access.py
 bin_SCRIPTS = chipset.py
 
 lib_LTLIBRARIES = I915ChipsetPython.la
-I915ChipsetPython_la_LDFLAGS = -module -avoid-version $(PYTHON_LDFLAGS)
+I915ChipsetPython_la_LDFLAGS = -module -avoid-version $(PYTHON_LDFLAGS) \
+	-Wl,--no-undefined
 I915ChipsetPython_la_SOURCES = chipset_macro_wrap.c
 nodist_I915ChipsetPython_la_SOURCES = chipset_wrap_python.c
 I915ChipsetPython_la_LIBADD =			\
