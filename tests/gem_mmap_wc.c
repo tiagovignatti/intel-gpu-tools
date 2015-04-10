@@ -266,7 +266,22 @@ test_read(int fd)
 }
 
 static void
-test_write_cpu_read_wc(int fd)
+test_close(int fd)
+{
+	uint32_t handle = gem_create(fd, OBJECT_SIZE);
+	uint8_t *ptr = mmap_bo(fd, handle);
+	int i;
+
+	memset(ptr, 0xcc, OBJECT_SIZE);
+	gem_close(fd, handle);
+	for (i = 0; i < 4096; i++)
+		igt_assert(ptr[i*4096+i] == 0xcc);
+
+	munmap(ptr, OBJECT_SIZE);
+}
+
+static void
+test_write_cpu_read_wc(int fd, int force_domain)
 {
 	uint32_t handle;
 	uint32_t *src, *dst;
@@ -282,7 +297,8 @@ test_write_cpu_read_wc(int fd)
 	igt_assert(src != (uint32_t *)MAP_FAILED);
 
 	memset(src, 0xaa, OBJECT_SIZE);
-	set_domain(fd, handle);
+	if (force_domain)
+		set_domain(fd, handle);
 	igt_assert(memcmp(dst, src, OBJECT_SIZE) == 0);
 	gem_close(fd, handle);
 
@@ -431,6 +447,8 @@ igt_main
 
 	igt_subtest("invalid-flags")
 		test_invalid_flags(fd);
+	igt_subtest("close")
+		test_close(fd);
 	igt_subtest("copy")
 		test_copy(fd);
 	igt_subtest("read")
@@ -456,7 +474,9 @@ igt_main
 	igt_subtest("write-gtt-no-prefault")
 		run_without_prefault(fd, test_write_gtt);
 	igt_subtest("write-cpu-read-wc")
-		test_write_cpu_read_wc(fd);
+		test_write_cpu_read_wc(fd, 1);
+	igt_subtest("write-cpu-read-wc-unflushed")
+		test_write_cpu_read_wc(fd, 0);
 	igt_subtest("write-gtt-read-wc")
 		test_write_gtt_read_wc(fd);
 	igt_subtest("set-cache-level")
