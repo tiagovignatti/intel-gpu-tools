@@ -56,12 +56,13 @@ static int get_object_count(void)
 	FILE *file;
 	int scanned, ret;
 
-	igt_drop_caches_set(DROP_RETIRE);
+	igt_drop_caches_set(DROP_RETIRE | DROP_ACTIVE);
 
 	file = igt_debugfs_fopen("i915_gem_objects", "r");
 
 	scanned = fscanf(file, "%i objects", &ret);
 	igt_assert_eq(scanned, 1);
+	igt_debug("Reports %d objects\n", ret);
 
 	return ret;
 }
@@ -165,6 +166,7 @@ static void test_flink_close(void)
 	 * up the counts */
 	fake = drm_open_any();
 
+	gem_quiescent_gpu(fake);
 	obj_count = get_object_count();
 
 	num_threads = sysconf(_SC_NPROCESSORS_ONLN);
@@ -190,6 +192,7 @@ static void test_flink_close(void)
 
 	close(fd);
 
+	gem_quiescent_gpu(fake);
 	obj_count = get_object_count() - obj_count;
 
 	igt_info("leaked %i objects\n", obj_count);
