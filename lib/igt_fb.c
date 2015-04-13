@@ -338,6 +338,15 @@ void igt_paint_test_pattern(cairo_t *cr, int width, int height)
 	igt_assert(!cairo_status(cr));
 }
 
+static cairo_status_t
+stdio_read_func(void *closure, unsigned char* data, unsigned int size)
+{
+	if (fread(data, 1, size, (FILE*)closure) != size)
+		return CAIRO_STATUS_READ_ERROR;
+
+	return CAIRO_STATUS_SUCCESS;
+}
+
 /**
  * igt_paint_image:
  * @cr: cairo drawing context
@@ -347,9 +356,8 @@ void igt_paint_test_pattern(cairo_t *cr, int width, int height)
  * @dst_width: width of the destination rectangle
  * @dst_height: height of the destination rectangle
  *
- * This function can be used to draw a scaled version of the supplied png image.
- * This is currently only used by the CR-code based testing in the "testdisplay"
- * testcase.
+ * This function can be used to draw a scaled version of the supplied png image,
+ * which is loaded from the package data directory.
  */
 void igt_paint_image(cairo_t *cr, const char *filename,
 		     int dst_x, int dst_y, int dst_width, int dst_height)
@@ -357,8 +365,11 @@ void igt_paint_image(cairo_t *cr, const char *filename,
 	cairo_surface_t *image;
 	int img_width, img_height;
 	double scale_x, scale_y;
+	FILE* f;
 
-	image = cairo_image_surface_create_from_png(filename);
+	f = igt_fopen_data(filename);
+
+	image = cairo_image_surface_create_from_png_stream(&stdio_read_func, f);
 	igt_assert(cairo_surface_status(image) == CAIRO_STATUS_SUCCESS);
 
 	img_width = cairo_image_surface_get_width(image);
@@ -605,10 +616,10 @@ unsigned int igt_create_stereo_fb(int drm_fd, drmModeModeInfo *mode,
 			      tiling, &fb);
 	cr = igt_get_cairo_ctx(drm_fd, &fb);
 
-	igt_paint_image(cr, IGT_DATADIR"/1080p-left.png",
+	igt_paint_image(cr, "1080p-left.png",
 			layout.left.x, layout.left.y,
 			layout.left.width, layout.left.height);
-	igt_paint_image(cr, IGT_DATADIR"/1080p-right.png",
+	igt_paint_image(cr, "1080p-right.png",
 			layout.right.x, layout.right.y,
 			layout.right.width, layout.right.height);
 

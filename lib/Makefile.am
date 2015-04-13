@@ -10,7 +10,8 @@ noinst_HEADERS = check-ndebug.h
 
 AM_CPPFLAGS = -I$(top_srcdir)
 AM_CFLAGS = $(DRM_CFLAGS) $(CWARNFLAGS) $(LIBUNWIND_CFLAGS) $(DEBUG_CFLAGS) \
-	    -DIGT_DATADIR=\""$(abs_top_srcdir)/tests"\" \
+	    -DIGT_SRCDIR=\""$(abs_top_srcdir)/tests"\" \
+	    -DIGT_DATADIR=\""$(pkgdatadir)"\" \
 	    -DIGT_LOG_DOMAIN=\""$(subst _,-,$*)"\" \
 	    -pthread
 

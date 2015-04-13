@@ -239,21 +239,9 @@ paint_color_key(struct igt_fb *fb_info)
 	munmap(fb_ptr, fb_info->size);
 }
 
-static cairo_status_t
-stdio_read_func(void* closure, unsigned char* data, unsigned int size)
-{
-	if (fread (data, 1, size, (FILE*)closure) != size)
-		return CAIRO_STATUS_READ_ERROR;
-	return CAIRO_STATUS_SUCCESS;
-}
-
 static void paint_image(cairo_t *cr, const char *file)
 {
-	int img_x, img_y, img_w, img_h, img_w_o, img_h_o;
-	double img_w_scale, img_h_scale;
-
-	cairo_surface_t *image;
-	FILE* fp;
+	int img_x, img_y, img_w, img_h;
 
 	img_y = height * (0.10 );
 	img_h = height * 0.08 * 4;
@@ -261,26 +249,7 @@ static void paint_image(cairo_t *cr, const char *file)
 
 	img_x = (width / 2) - (img_w / 2);
 
-	fp = igt_fopen_data(file);
-	if (!fp)
-                return;
-	image = cairo_image_surface_create_from_png_stream(&stdio_read_func,
-							   (void*)fp);
-
-	img_w_o = cairo_image_surface_get_width(image);
-	img_h_o = cairo_image_surface_get_height(image);
-
-	cairo_translate(cr, img_x, img_y);
-
-	img_w_scale = (double)img_w / (double)img_w_o;
-	img_h_scale = (double)img_h / (double)img_h_o;
-	cairo_scale(cr, img_w_scale, img_h_scale);
-
-	cairo_set_source_surface(cr, image, 0, 0);
-	cairo_scale(cr, 1, 1);
-
-	cairo_paint(cr);
-	cairo_surface_destroy(image);
+	igt_paint_image(cr, file, img_x, img_y, img_h, img_w);
 }
 
 static void paint_output_info(struct connector *c, struct igt_fb *fb)
