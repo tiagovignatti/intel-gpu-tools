@@ -371,12 +371,22 @@ void gem_set_domain(int fd, uint32_t handle,
  * @fd: open i915 drm file descriptor
  * @handle: gem buffer object handle
  *
- * This is a wrapper around gem_set_domain() which simply blocks for any
- * outstanding rendering to complete.
+ * This functions waits for outstanding rendering to complete.
  */
 void gem_sync(int fd, uint32_t handle)
 {
-	gem_set_domain(fd, handle, I915_GEM_DOMAIN_GTT, I915_GEM_DOMAIN_GTT);
+	struct drm_i915_gem_wait wait;
+
+	memset(&wait, 0, sizeof(wait));
+	wait.bo_handle = handle;
+	wait.timeout_ns =-1;
+	if (drmIoctl(fd, DRM_IOCTL_I915_GEM_WAIT, &wait) == 0) {
+		errno = 0;
+		return;
+	}
+
+	gem_set_domain(fd, handle,
+		       I915_GEM_DOMAIN_GTT, I915_GEM_DOMAIN_GTT);
 }
 
 uint32_t __gem_create(int fd, int size)
