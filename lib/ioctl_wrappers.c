@@ -724,6 +724,24 @@ void gem_context_require_param(int fd, uint64_t param)
 	igt_require(drmIoctl(fd, LOCAL_IOCTL_I915_GEM_CONTEXT_GETPARAM, &p) == 0);
 }
 
+void gem_context_require_ban_period(int fd)
+{
+	static int has_ban_period = -1;
+
+	if (has_ban_period < 0) {
+		struct local_i915_gem_context_param p;
+
+		p.context = 0;
+		p.param = LOCAL_CONTEXT_PARAM_BAN_PERIOD;
+		p.value = 0;
+		p.size = 0;
+
+		has_ban_period = drmIoctl(fd, LOCAL_IOCTL_I915_GEM_CONTEXT_GETPARAM, &p) == 0;
+	}
+
+	igt_require(has_ban_period);
+}
+
 /**
  * gem_sw_finish:
  * @fd: open i915 drm file descriptor
@@ -807,34 +825,40 @@ bool gem_uses_aliasing_ppgtt(int fd)
  */
 int gem_available_fences(int fd)
 {
-	struct drm_i915_getparam gp;
-	int val = 0;
+	static int num_fences = -1;
 
-	memset(&gp, 0, sizeof(gp));
-	gp.param = I915_PARAM_NUM_FENCES_AVAIL;
-	gp.value = &val;
+	if (num_fences < 0) {
+		struct drm_i915_getparam gp;
 
-	if (ioctl(fd, DRM_IOCTL_I915_GETPARAM, &gp, sizeof(gp)))
-		return 0;
+		memset(&gp, 0, sizeof(gp));
+		gp.param = I915_PARAM_NUM_FENCES_AVAIL;
+		gp.value = &num_fences;
 
-	errno = 0;
-	return val;
+		num_fences = 0;
+		ioctl(fd, DRM_IOCTL_I915_GETPARAM, &gp, sizeof(gp));
+		errno = 0;
+	}
+
+	return num_fences;
 }
 
 bool gem_has_llc(int fd)
 {
-	struct drm_i915_getparam gp;
-	int val = 0;
+	static int has_llc = -1;
 
-	memset(&gp, 0, sizeof(gp));
-	gp.param = I915_PARAM_HAS_LLC;
-	gp.value = &val;
+	if (has_llc < 0) {
+		struct drm_i915_getparam gp;
 
-	if (ioctl(fd, DRM_IOCTL_I915_GETPARAM, &gp, sizeof(gp)))
-		return 0;
+		memset(&gp, 0, sizeof(gp));
+		gp.param = I915_PARAM_HAS_LLC;
+		gp.value = &has_llc;
 
-	errno = 0;
-	return val;
+		has_llc = 0;
+		ioctl(fd, DRM_IOCTL_I915_GETPARAM, &gp, sizeof(gp));
+		errno = 0;
+	}
+
+	return has_llc;
 }
 
 /**
@@ -851,24 +875,26 @@ bool gem_has_llc(int fd)
  */
 int gem_get_num_rings(int fd)
 {
-	int num_rings = 1;	/* render ring is always available */
+	static int num_rings = -1;
 
-	if (gem_has_bsd(fd))
-		num_rings++;
-	else
-		goto skip;
+	if (num_rings < 0) {
+		num_rings = 1;	/* render ring is always available */
 
-	if (gem_has_blt(fd))
-		num_rings++;
-	else
-		goto skip;
+		if (gem_has_bsd(fd))
+			num_rings++;
+		else
+			goto skip;
 
-	if (gem_has_vebox(fd))
-		num_rings++;
-	else
-		goto skip;
+		if (gem_has_blt(fd))
+			num_rings++;
+		else
+			goto skip;
 
-
+		if (gem_has_vebox(fd))
+			num_rings++;
+		else
+			goto skip;
+	}
 skip:
 	return num_rings;
 }
@@ -911,7 +937,10 @@ bool gem_has_enable_ring(int fd,int param)
  */
 bool gem_has_bsd(int fd)
 {
-	return gem_has_enable_ring(fd,I915_PARAM_HAS_BSD);
+	static int has_bsd = -1;
+	if (has_bsd < 0)
+		has_bsd = gem_has_enable_ring(fd,I915_PARAM_HAS_BSD);
+	return has_bsd;
 }
 
 /**
@@ -927,7 +956,10 @@ bool gem_has_bsd(int fd)
  */
 bool gem_has_blt(int fd)
 {
-	return gem_has_enable_ring(fd,I915_PARAM_HAS_BLT);
+	static int has_blt = -1;
+	if (has_blt < 0)
+		has_blt =  gem_has_enable_ring(fd,I915_PARAM_HAS_BLT);
+	return has_blt;
 }
 
 #define LOCAL_I915_PARAM_HAS_VEBOX 22
@@ -945,7 +977,10 @@ bool gem_has_blt(int fd)
  */
 bool gem_has_vebox(int fd)
 {
-	return gem_has_enable_ring(fd,LOCAL_I915_PARAM_HAS_VEBOX);
+	static int has_vebox = -1;
+	if (has_vebox < 0)
+		has_vebox =  gem_has_enable_ring(fd,LOCAL_I915_PARAM_HAS_VEBOX);
+	return has_vebox;
 }
 
 #define LOCAL_I915_PARAM_HAS_BSD2 31
@@ -962,7 +997,10 @@ bool gem_has_vebox(int fd)
  */
 bool gem_has_bsd2(int fd)
 {
-	return gem_has_enable_ring(fd,LOCAL_I915_PARAM_HAS_BSD2);
+	static int has_bsd2 = -1;
+	if (has_bsd2 < 0)
+		has_bsd2 = gem_has_enable_ring(fd,LOCAL_I915_PARAM_HAS_BSD2);
+	return has_bsd2;
 }
 /**
  * gem_available_aperture_size:
@@ -994,13 +1032,19 @@ uint64_t gem_available_aperture_size(int fd)
  */
 uint64_t gem_aperture_size(int fd)
 {
-	struct drm_i915_gem_get_aperture aperture;
+	static uint64_t aperture_size = 0;
 
-	memset(&aperture, 0, sizeof(aperture));
-	aperture.aper_size = 256*1024*1024;
-	do_ioctl(fd, DRM_IOCTL_I915_GEM_GET_APERTURE, &aperture);
+	if (aperture_size == 0) {
+		struct drm_i915_gem_get_aperture aperture;
 
-	return aperture.aper_size;
+		memset(&aperture, 0, sizeof(aperture));
+		aperture.aper_size = 256*1024*1024;
+		do_ioctl(fd, DRM_IOCTL_I915_GEM_GET_APERTURE, &aperture);
+
+		aperture_size =  aperture.aper_size;
+	}
+
+	return aperture_size;
 }
 
 /**
@@ -1063,10 +1107,10 @@ void gem_require_ring(int fd, int ring_id)
 	case I915_EXEC_RENDER:
 		return;
 	case I915_EXEC_BLT:
-		igt_require(HAS_BLT_RING(intel_get_drm_devid(fd)));
+		igt_require(gem_has_blt(fd));
 		return;
 	case I915_EXEC_BSD:
-		igt_require(HAS_BSD_RING(intel_get_drm_devid(fd)));
+		igt_require(gem_has_bsd(fd));
 		return;
 #ifdef I915_EXEC_VEBOX
 	case I915_EXEC_VEBOX:

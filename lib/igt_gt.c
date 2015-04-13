@@ -59,7 +59,7 @@
  */
 void igt_require_hang_ring(int fd, int ring)
 {
-	gem_context_require_param(fd, LOCAL_CONTEXT_PARAM_BAN_PERIOD);
+	gem_context_require_ban_period(fd);
 	igt_require(intel_gen(intel_get_drm_devid(fd)) >= 5);
 }
 
