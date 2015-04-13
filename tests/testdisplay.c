@@ -262,11 +262,8 @@ static void paint_image(cairo_t *cr, const char *file)
 	img_x = (width / 2) - (img_w / 2);
 
 	fp = igt_fopen_data(file);
-	if (!fp) {
-                igt_warn("data file \'%s\' missing: %s\n",
-		         file, strerror(errno));
+	if (!fp)
                 return;
-	}
 	image = cairo_image_surface_create_from_png_stream(&stdio_read_func,
 							   (void*)fp);
 

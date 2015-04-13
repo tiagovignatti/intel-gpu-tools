@@ -1751,5 +1751,10 @@ FILE *__igt_fopen_data(const char* igt_srcdir, const char* igt_datadir,
 		snprintf(path, sizeof(path), "%s/%s", igt_srcdir, filename);
 		fp = fopen(path, "r");
 	}
+
+	if (!fp)
+		igt_critical("Could not open data file \"%s\": %s", filename,
+			     strerror(errno));
+
 	return fp;
 }
