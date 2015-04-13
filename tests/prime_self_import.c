@@ -220,7 +220,7 @@ static int get_object_count(void)
 	FILE *file;
 	int ret, scanned;
 
-	igt_drop_caches_set(DROP_RETIRE);
+	igt_drop_caches_set(DROP_RETIRE | DROP_ACTIVE);
 
 	file = igt_debugfs_fopen("i915_gem_objects", "r");
 
@@ -262,6 +262,7 @@ static void test_reimport_close_race(void)
 	 * up the counts */
 	fake = drm_open_any();
 
+	gem_quiescent_gpu(fake);
 	obj_count = get_object_count();
 
 	num_threads = sysconf(_SC_NPROCESSORS_ONLN);
@@ -293,6 +294,7 @@ static void test_reimport_close_race(void)
 	close(fds[0]);
 	close(fds[1]);
 
+	gem_quiescent_gpu(fake);
 	obj_count = get_object_count() - obj_count;
 
 	igt_info("leaked %i objects\n", obj_count);
@@ -352,6 +354,7 @@ static void test_export_close_race(void)
 	 * up the counts */
 	fake = drm_open_any();
 
+	gem_quiescent_gpu(fake);
 	obj_count = get_object_count();
 
 	fd = drm_open_any();
@@ -374,6 +377,7 @@ static void test_export_close_race(void)
 
 	close(fd);
 
+	gem_quiescent_gpu(fake);
 	obj_count = get_object_count() - obj_count;
 
 	igt_info("leaked %i objects\n", obj_count);
