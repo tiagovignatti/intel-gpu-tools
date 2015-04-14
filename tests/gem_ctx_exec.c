@@ -155,7 +155,7 @@ static void big_exec(int fd, uint32_t handle, int ring)
 
 uint32_t handle;
 uint32_t batch[2] = {0, MI_BATCH_BUFFER_END};
-uint32_t ctx_id;
+uint32_t ctx_id, ctx_id2;
 int fd;
 
 igt_main
@@ -214,5 +214,33 @@ igt_main
 		}
 
 		gem_context_destroy(fd, ctx_id);
+	}
+
+	igt_subtest("lrc-lite-restore") {
+		int i, j;
+
+		/*
+		 * Need 2 contexts to be able to replicate a lite restore,
+		 * i.e. a running context is resubmitted.
+		 */
+		ctx_id = gem_context_create(fd);
+		ctx_id2 = gem_context_create(fd);
+
+		/*
+		 * Queue several small batchbuffers to be sure we'll send execlists
+		 * with 2 valid context, and likely cause a lite restore when ctxB
+		 * is resubmitted at the top of the new execlist.
+		 */
+		for (i = 0; i < 20; i++) {
+			for (j = 0; j < 200; j++) {
+				igt_assert(exec(fd, handle, I915_EXEC_RENDER, ctx_id) == 0);
+				igt_assert(exec(fd, handle, I915_EXEC_RENDER, ctx_id2) == 0);
+			}
+
+			gem_sync(fd, handle);
+		}
+
+		gem_context_destroy(fd, ctx_id);
+		gem_context_destroy(fd, ctx_id2);
 	}
 }
