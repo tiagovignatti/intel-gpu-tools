@@ -41,6 +41,10 @@
 #include "drmtest.h"
 #include "igt_debugfs.h"
 
+#ifndef PAGE_SIZE
+#define PAGE_SIZE 4096
+#endif
+
 static int OBJECT_SIZE = 16*1024*1024;
 
 static void
@@ -53,6 +57,20 @@ static void
 set_domain_cpu(int fd, uint32_t handle)
 {
 	gem_set_domain(fd, handle, I915_GEM_DOMAIN_CPU, I915_GEM_DOMAIN_CPU);
+}
+
+static void
+pread_bo(int fd, int handle, void *buf, int offset, int size)
+{
+	struct drm_i915_gem_pread gem_pread;
+
+	memset(&gem_pread, 0, sizeof(gem_pread));
+	gem_pread.handle = handle;
+	gem_pread.data_ptr = (uintptr_t)buf;
+	gem_pread.size = size;
+	gem_pread.offset = offset;
+
+	igt_assert(ioctl(fd, DRM_IOCTL_I915_GEM_PREAD, &gem_pread) == 0);
 }
 
 static void *
@@ -265,6 +283,92 @@ test_write_gtt(int fd)
 }
 
 static void
+test_huge_bo(int fd)
+{
+	uint32_t bo;
+	char *ptr_cpu;
+	char *ptr_gtt;
+	char *cpu_pattern;
+	char *gtt_pattern;
+	uint64_t mappable_aperture_pages = gem_mappable_aperture_size() /
+					   PAGE_SIZE;
+	uint64_t huge_object_size = (mappable_aperture_pages + 1) * PAGE_SIZE;
+	uint64_t last_offset = huge_object_size - PAGE_SIZE;
+
+	cpu_pattern = malloc(PAGE_SIZE);
+	gtt_pattern = malloc(PAGE_SIZE);
+	igt_assert(cpu_pattern && gtt_pattern);
+	memset(cpu_pattern,  0xaa, PAGE_SIZE);
+	memset(gtt_pattern, ~0xaa, PAGE_SIZE);
+
+	bo = gem_create(fd, huge_object_size);
+
+	/* Obtain CPU mapping for the object. */
+	ptr_cpu = gem_mmap__cpu(fd, bo, 0, huge_object_size,
+				PROT_READ | PROT_WRITE);
+	igt_assert(ptr_cpu);
+
+	set_domain_cpu(fd, bo);
+
+	/* Write first page through the mapping and assert reading it back
+	 * works. */
+	memcpy(ptr_cpu, cpu_pattern, PAGE_SIZE);
+	igt_assert(memcmp(ptr_cpu, cpu_pattern, PAGE_SIZE) == 0);
+
+	/* Write last page through the mapping and assert reading it back
+	 * works. */
+	memcpy(ptr_cpu + last_offset, cpu_pattern, PAGE_SIZE);
+	igt_assert(memcmp(ptr_cpu + last_offset, cpu_pattern, PAGE_SIZE) == 0);
+
+	/* Cross check that accessing two simultaneous pages works. */
+	igt_assert(memcmp(ptr_cpu, ptr_cpu + last_offset, PAGE_SIZE) == 0);
+
+	munmap(ptr_cpu, huge_object_size);
+	ptr_cpu = NULL;
+
+	/* Obtain mapping for the object through GTT. */
+	ptr_gtt = gem_mmap__gtt(fd, bo, huge_object_size,
+			        PROT_READ | PROT_WRITE);
+	igt_require_f(ptr_gtt, "Huge BO GTT mapping not supported.\n");
+
+	set_domain_gtt(fd, bo);
+
+	/* Access through GTT should still provide the CPU written values. */
+	igt_assert(memcmp(ptr_gtt              , cpu_pattern, PAGE_SIZE) == 0);
+	igt_assert(memcmp(ptr_gtt + last_offset, cpu_pattern, PAGE_SIZE) == 0);
+
+	/* Try replacing first page through GTT mapping and make sure other page
+	 * stays intact. */
+	memcpy(ptr_gtt, gtt_pattern, PAGE_SIZE);
+	igt_assert(memcmp(ptr_gtt              , gtt_pattern, PAGE_SIZE) == 0);
+	igt_assert(memcmp(ptr_gtt + last_offset, cpu_pattern, PAGE_SIZE) == 0);
+
+	/* And make sure that after writing, both pages contain what they
+	 * should.*/
+	memcpy(ptr_gtt + last_offset, gtt_pattern, PAGE_SIZE);
+	igt_assert(memcmp(ptr_gtt              , gtt_pattern, PAGE_SIZE) == 0);
+	igt_assert(memcmp(ptr_gtt + last_offset, gtt_pattern, PAGE_SIZE) == 0);
+
+	munmap(ptr_gtt, huge_object_size);
+	ptr_gtt = NULL;
+
+	/* Verify the page contents after GTT writes by reading without mapping.
+	 * Mapping to CPU domain is avoided not to cause a huge flush.
+	 */
+	pread_bo(fd, bo, cpu_pattern, 0, PAGE_SIZE);
+	igt_assert(memcmp(cpu_pattern, gtt_pattern, PAGE_SIZE) == 0);
+
+	memset(cpu_pattern, 0x00, PAGE_SIZE);
+
+	pread_bo(fd, bo, cpu_pattern, last_offset, PAGE_SIZE);
+	igt_assert(memcmp(cpu_pattern, gtt_pattern, PAGE_SIZE) == 0);
+
+	gem_close(fd, bo);
+	free(cpu_pattern);
+	free(gtt_pattern);
+}
+
+static void
 test_read(int fd)
 {
 	void *dst;
@@ -402,6 +506,8 @@ igt_main
 		run_without_prefault(fd, test_write_gtt);
 	igt_subtest("write-cpu-read-gtt")
 		test_write_cpu_read_gtt(fd);
+	igt_subtest("huge-bo")
+		test_huge_bo(fd);
 
 	igt_fixture
 		close(fd);
