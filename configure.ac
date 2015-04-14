@@ -50,6 +50,9 @@ AM_CONDITIONAL([ENABLE_GTK_DOC], false)
 enable_gtk_doc=no
 ])
 
+# check for rst2man for generating man pages
+AC_CHECK_PROG(RST2MAN, rst2man, yes, no)
+AM_CONDITIONAL(HAVE_RST2MAN, [test "x$RST2MAN" = xyes])
 
 # Checks for functions, headers, structures, etc.
 AC_HEADER_STDC

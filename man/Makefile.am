@@ -21,6 +21,14 @@ appman_PRE = 				\
 
 appman_DATA = $(appman_PRE:man=$(APP_MAN_SUFFIX))
 
+# man pages in rst, only used if we have rst2man
+appman_RST =				\
+	intel_reg.rst
+
+if HAVE_RST2MAN
+appman_DATA += $(appman_RST:rst=$(APP_MAN_SUFFIX))
+endif
+
 EXTRA_DIST = $(appman_PRE)
 CLEANFILES = $(appman_DATA)
 
@@ -29,3 +37,7 @@ SUFFIXES = .$(APP_MAN_SUFFIX) .man
 
 .man.$(APP_MAN_SUFFIX):
 	$(AM_V_GEN)$(SED) $(MAN_SUBSTS) < $< > $@
+
+# FIXME: handle MAN_SUBST in rst
+.rst.$(APP_MAN_SUFFIX):
+	$(AM_V_GEN)rst2man < $< > $@

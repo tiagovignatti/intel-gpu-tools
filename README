@@ -150,6 +150,7 @@ everything (package names may vary):
 	libpciaccess-dev
 	libpython3.3-dev
 	libunwind-dev
+	python-docutils
 	swig2.0
 	x11proto-dri2-dev
 	xutils-dev
