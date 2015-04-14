@@ -52,6 +52,7 @@ IGT_TEST_DESCRIPTION("Exercises the basic execbuffer using the handle LUT"
 
 #define SKIP_RELOC 0x1
 #define NO_RELOC 0x2
+#define CYCLE_BATCH 0x4
 
 int target[MAX_NUM_RELOC];
 struct drm_i915_gem_exec_object2 gem_exec[MAX_NUM_EXEC+1];
@@ -83,12 +84,14 @@ static int has_exec_lut(int fd)
 igt_simple_main
 {
 	uint32_t batch[2] = {MI_BATCH_BUFFER_END};
-	int fd, n, m, count;
+	uint32_t cycle[16];
+	int fd, n, m, count, c;
 	const struct {
 		const char *name;
 		unsigned int flags;
 	} pass[] = {
 		{ .name = "relocation", .flags = 0 },
+		{ .name = "cycle-relocation", .flags = CYCLE_BATCH },
 		{ .name = "skip-relocs", .flags = SKIP_RELOC },
 		{ .name = "no-relocs", .flags = SKIP_RELOC | NO_RELOC },
 		{ .name = NULL },
@@ -102,8 +105,11 @@ igt_simple_main
 	for (n = 0; n < MAX_NUM_EXEC; n++)
 		gem_exec[n].handle = gem_create(fd, 4096);
 
-	gem_exec[n].handle = gem_create(fd, 4096);
-	gem_write(fd, gem_exec[n].handle, 0, batch, sizeof(batch));
+	for (n = 0; n < 16; n++) {
+		cycle[n] = gem_create(fd, 4096);
+		gem_write(fd, cycle[n], 0, batch, sizeof(batch));
+	}
+	gem_exec[MAX_NUM_EXEC].handle = cycle[0];
 
 	memset(gem_reloc, 0, sizeof(gem_reloc));
 	for (n = 0; n < MAX_NUM_RELOC; n++) {
@@ -145,13 +151,22 @@ igt_simple_main
 				gem_execbuf(fd,&execbuf);
 				gettimeofday(&start, NULL);
 				for (count = 0; count < 1000; count++) {
-					if ((p->flags & SKIP_RELOC) == 0)
+					if ((p->flags & SKIP_RELOC) == 0) {
 						for (j = 0; j < m; j++)
 							gem_reloc[j].presumed_offset = 0;
+						if (p->flags & CYCLE_BATCH) {
+							c = (c + 1) % 16;
+							gem_exec[MAX_NUM_EXEC].handle = cycle[c];
+						}
+					}
 					gem_execbuf(fd, &execbuf);
 				}
 				gettimeofday(&end, NULL);
-				gem_sync(fd, gem_exec[MAX_NUM_EXEC].handle);
+				c = 16;
+				do
+					gem_sync(fd, cycle[--c]);
+				while (c != 0);
+				gem_exec[MAX_NUM_EXEC].handle = cycle[c];
 				elapsed[i][1] = ELAPSED(&start, &end);
 
 				execbuf.flags &= ~LOCAL_I915_EXEC_HANDLE_LUT;
@@ -161,13 +176,22 @@ igt_simple_main
 				gem_execbuf(fd,&execbuf);
 				gettimeofday(&start, NULL);
 				for (count = 0; count < 1000; count++) {
-					if ((p->flags & SKIP_RELOC) == 0)
+					if ((p->flags & SKIP_RELOC) == 0) {
 						for (j = 0; j < m; j++)
 							gem_reloc[j].presumed_offset = 0;
+						if (p->flags & CYCLE_BATCH) {
+							c = (c + 1) % 16;
+							gem_exec[MAX_NUM_EXEC].handle = cycle[c];
+						}
+					}
 					gem_execbuf(fd, &execbuf);
 				}
 				gettimeofday(&end, NULL);
-				gem_sync(fd, gem_exec[MAX_NUM_EXEC].handle);
+				c = 16;
+				do
+					gem_sync(fd, cycle[--c]);
+				while (c != 0);
+				gem_exec[MAX_NUM_EXEC].handle = cycle[c];
 				elapsed[i][0] = ELAPSED(&start, &end);
 			}
 
