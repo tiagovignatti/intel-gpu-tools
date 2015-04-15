@@ -51,8 +51,7 @@ static void dump_range(uint32_t start, uint32_t end)
 	int i;
 
 	for (i = start; i < end; i += 4)
-		printf("0x%X : 0x%X\n", i,
-		       *(volatile uint32_t *)((volatile char*)mmio + i));
+		printf("0x%X : 0x%X\n", i, INREG(i));
 }
 
 static void usage(char *cmdname)
@@ -130,7 +129,7 @@ int main(int argc, char** argv)
 			dump_range(reg, reg + (dwords * 4));
 
 			if (decode_bits)
-				bit_decode(*(volatile uint32_t *)((volatile char*)mmio + reg));
+				bit_decode(INREG(reg));
 		}
 	}
 
