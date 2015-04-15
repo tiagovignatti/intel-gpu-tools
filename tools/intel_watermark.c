@@ -38,7 +38,7 @@ static uint32_t devid;
 
 static uint32_t read_reg(uint32_t addr)
 {
-	return *(volatile uint32_t *)((volatile char*)mmio + display_base + addr);
+	return INREG(display_base + addr);
 }
 
 struct gmch_wm {
