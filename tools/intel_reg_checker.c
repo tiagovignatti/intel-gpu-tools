@@ -32,16 +32,10 @@
 static uint32_t devid;
 static int gen;
 
-static inline uint32_t
-read_reg(uint32_t reg)
-{
-	return *(volatile uint32_t *)((volatile char *)mmio + reg);
-}
-
 static uint32_t
 read_and_print_reg(const char *name, uint32_t reg)
 {
-	uint32_t val = read_reg(reg);
+	uint32_t val = INREG(reg);
 
 	printf("%s (0x%x): 0x%08x\n", name, reg, val);
 
