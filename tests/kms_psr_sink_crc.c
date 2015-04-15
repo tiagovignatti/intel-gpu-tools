@@ -84,6 +84,7 @@ typedef struct {
 	struct igt_fb fb_green, fb_white;
 	igt_plane_t *primary, *sprite, *cursor;
 	int mod_size;
+	int mod_stride;
 	drmModeModeInfo *mode;
 	igt_output_t *output;
 } data_t;
@@ -160,12 +161,13 @@ static void fill_blt(data_t *data, uint32_t handle, unsigned char color)
 	gem_bo_busy(data->drm_fd, handle);
 }
 
-static void scratch_buf_init(struct igt_buf *buf, drm_intel_bo *bo)
+static void scratch_buf_init(struct igt_buf *buf, drm_intel_bo *bo,
+			     int size, int stride)
 {
 	buf->bo = bo;
-	buf->stride = 4096;
+	buf->stride = stride;
 	buf->tiling = I915_TILING_X;
-	buf->size = 64 * 4096;
+	buf->size = size;
 }
 
 static void fill_render(data_t *data, uint32_t handle, unsigned char color)
@@ -181,13 +183,13 @@ static void fill_render(data_t *data, uint32_t handle, unsigned char color)
 	dst = gem_handle_to_libdrm_bo(data->bufmgr, data->drm_fd, "", handle);
 	igt_assert(dst);
 
-	src = drm_intel_bo_alloc(data->bufmgr, "", 64 * 4096, 4096);
+	src = drm_intel_bo_alloc(data->bufmgr, "", data->mod_size, 4096);
 	igt_assert(src);
 
 	gem_write(data->drm_fd, src->handle, 0, buf, 4);
 
-	scratch_buf_init(&src_buf, src);
-	scratch_buf_init(&dst_buf, dst);
+	scratch_buf_init(&src_buf, src, data->mod_size, data->mod_stride);
+	scratch_buf_init(&dst_buf, dst, data->mod_size, data->mod_stride);
 
 	batch = intel_batchbuffer_alloc(data->bufmgr, data->devid);
 	igt_assert(batch);
@@ -488,6 +490,7 @@ static void setup_test_plane(data_t *data)
 
 	/* Ignoring pitch and bpp to avoid changing full screen */
 	data->mod_size = white_h * white_v;
+	data->mod_stride = white_h * 4;
 
 	switch (data->test_plane) {
 	case SPRITE:
