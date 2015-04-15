@@ -36,24 +36,14 @@
 
 /* XXX PCH only today */
 
-static uint32_t reg_read(uint32_t reg)
-{
-	return *(volatile uint32_t *)((volatile char*)mmio + reg);
-}
-
-static void reg_write(uint32_t reg, uint32_t val)
-{
-	*(volatile uint32_t *)((volatile char*)mmio + reg) = val;
-}
-
 int main(int argc, char** argv)
 {
 	uint32_t current, max;
 
 	intel_mmio_use_pci_bar(intel_get_pci_device());
 
-	current = reg_read(BLC_PWM_CPU_CTL) & BACKLIGHT_DUTY_CYCLE_MASK;
-	max = reg_read(BLC_PWM_PCH_CTL2) >> 16;
+	current = INREG(BLC_PWM_CPU_CTL) & BACKLIGHT_DUTY_CYCLE_MASK;
+	max = INREG(BLC_PWM_PCH_CTL2) >> 16;
 
 	printf ("current backlight value: %d%%\n", current * 100 / max);
 
@@ -61,9 +51,9 @@ int main(int argc, char** argv)
 		uint32_t v = atoi (argv[1]) * max / 100;
 		if (v > max)
 			v = max;
-		reg_write(BLC_PWM_CPU_CTL,
-			  (reg_read(BLC_PWM_CPU_CTL) &~ BACKLIGHT_DUTY_CYCLE_MASK) | v);
-		(void) reg_read(BLC_PWM_CPU_CTL);
+		OUTREG(BLC_PWM_CPU_CTL,
+		       (INREG(BLC_PWM_CPU_CTL) &~ BACKLIGHT_DUTY_CYCLE_MASK) | v);
+		(void) INREG(BLC_PWM_CPU_CTL);
 		printf ("set backlight to %d%%\n", v * 100 / max);
 	}
 
