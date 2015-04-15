@@ -226,8 +226,7 @@ static int read_register(struct config *config, struct reg *reg, uint32_t *valp)
 
 	switch (reg->port_desc.port) {
 	case PORT_MMIO:
-		val = *(volatile uint32_t *)((volatile char*)mmio +
-					     reg->mmio_offset + reg->addr);
+		val = INREG(reg->mmio_offset + reg->addr);
 		break;
 	case PORT_PORTIO_VGA:
 		iopl(3);
@@ -235,7 +234,7 @@ static int read_register(struct config *config, struct reg *reg, uint32_t *valp)
 		iopl(0);
 		break;
 	case PORT_MMIO_VGA:
-		val = *((volatile uint8_t*)mmio + reg->addr);
+		val = INREG8(reg->addr);
 		break;
 	case PORT_BUNIT:
 	case PORT_PUNIT:
@@ -284,8 +283,7 @@ static int write_register(struct config *config, struct reg *reg, uint32_t val)
 
 	switch (reg->port_desc.port) {
 	case PORT_MMIO:
-		*(volatile uint32_t *)((volatile char *)mmio +
-				       reg->mmio_offset + reg->addr) = val;
+		OUTREG(reg->mmio_offset + reg->addr, val);
 		break;
 	case PORT_PORTIO_VGA:
 		if (val > 0xff) {
@@ -303,7 +301,7 @@ static int write_register(struct config *config, struct reg *reg, uint32_t val)
 				val, reg->port_desc.name);
 			return -1;
 		}
-		*((volatile uint8_t *)mmio + reg->addr) = val;
+		OUTREG8(reg->addr, val);
 		break;
 	case PORT_BUNIT:
 	case PORT_PUNIT:
