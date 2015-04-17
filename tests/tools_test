@@ -6,9 +6,9 @@ SOURCE_DIR="$( dirname "${BASH_SOURCE[0]}" )"
 . $SOURCE_DIR/drm_lib.sh
 
 # ARB_MODE has existed for many gens
-do_or_die "$SOURCE_DIR/../tools/intel_reg_read 0x4030"
-
-do_or_die "$SOURCE_DIR/../tools/intel_reg_dumper"
+PATH=$SOURCE_DIR/../tools:$PATH
+do_or_die "intel_reg_read 0x4030"
+do_or_die "intel_reg_dumper"
 
 # TODO: Add more tests
 
