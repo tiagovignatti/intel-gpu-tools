@@ -142,7 +142,7 @@ static igt_debugfs_t *__igt_debugfs_singleton(void)
  * @mode: mode bits as used by open()
  *
  * This opens a debugfs file as a Unix file descriptor. The filename should be
- * relative to the drm device's root, i.e without "drm/&lt;minor&gt;".
+ * relative to the drm device's root, i.e without "drm/<minor>".
  *
  * Returns:
  * The Unix file descriptor for the debugfs file or -1 if that didn't work out.
@@ -165,7 +165,7 @@ int igt_debugfs_open(const char *filename, int mode)
  * @mode: mode string as used by fopen()
  *
  * This opens a debugfs file as a libc FILE. The filename should be
- * relative to the drm device's root, i.e without "drm/&lt;minor&gt;".
+ * relative to the drm device's root, i.e without "drm/<minor>".
  *
  * Returns:
  * The libc FILE pointer for the debugfs file or NULL if that didn't work out.
