@@ -39,7 +39,7 @@
 #include "intel_batchbuffer.h"
 
 #ifdef ANDROID
-#ifndef HAVE_MMAP64
+#if (!(defined HAVE_MMAP64)) && (!(defined __x86_64__))
 extern void*  __mmap2(void *, size_t, int, int, int, off_t);
 
 /* mmap64 is a recent addition to bionic and not available in all android builds. */
