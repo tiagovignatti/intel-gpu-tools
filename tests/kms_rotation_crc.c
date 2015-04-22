@@ -238,7 +238,6 @@ static void test_unsupported_tiling_pixel_format(data_t *data, enum igt_plane pl
 	igt_display_t *display = &data->display;
 	igt_output_t *output;
 	enum pipe pipe;
-	int valid_tests = 0;
 	int fb_tiling_id, fb_565_id;
 	struct igt_fb fb_565, fb_tiling;
 
@@ -285,8 +284,6 @@ static void test_unsupported_tiling_pixel_format(data_t *data, enum igt_plane pl
 			kmstest_restore_vt_mode();
 			kmstest_set_vt_graphics_mode();
 			prepare_crtc(data, output, pipe, plane);
-
-			valid_tests++;
 
 			igt_remove_fb(data->gfx_fd, &fb_tiling);
 			igt_remove_fb(data->gfx_fd, &fb_565);
