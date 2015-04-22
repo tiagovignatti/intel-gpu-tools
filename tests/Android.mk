@@ -79,7 +79,8 @@ else
     kms_plane_scaling \
     kms_panel_fitting \
     kms_pwrite_crc \
-    kms_pipe_b_c_ivb
+    kms_pipe_b_c_ivb \
+    kms_legacy_colorkey
     IGT_LOCAL_CFLAGS += -DANDROID_HAS_CAIRO=0
 endif
 
