@@ -28,14 +28,21 @@
 #include "igt_debugfs.h"
 #include "igt_kms.h"
 #include "igt_core.h"
+#include "intel_chipset.h"
 
 typedef struct {
 	int gfx_fd;
 	igt_display_t display;
 	struct igt_fb fb;
 	struct igt_fb fb_cursor;
+	struct igt_fb fb_full;
+	struct igt_fb fb_565;
+	struct igt_fb fb_tiling;
 	igt_crc_t ref_crc;
 	igt_pipe_crc_t *pipe_crc;
+	igt_rotation_t rotation;
+	int pos_x;
+	int pos_y;
 } data_t;
 
 static void
@@ -63,18 +70,46 @@ paint_squares(data_t *data, struct igt_fb *fb, drmModeModeInfo *mode,
 		w = mode->hdisplay;
 		h = mode->vdisplay;
 
-		cr = igt_get_cairo_ctx(data->gfx_fd, &data->fb);
+		cr = igt_get_cairo_ctx(data->gfx_fd, fb);
 
 		if (rotation == IGT_ROTATION_180) {
 			cairo_translate(cr, w, h);
 			cairo_rotate(cr, M_PI);
 		}
 
-		/* Paint with 4 squares of Red, Green, White, Blue Clockwise */
-		igt_paint_color(cr, 0, 0, w / 2, h / 2, 1.0, 0.0, 0.0);
-		igt_paint_color(cr, w / 2, 0, w / 2, h / 2, 0.0, 1.0, 0.0);
-		igt_paint_color(cr, 0, h / 2, w / 2, h / 2, 0.0, 0.0, 1.0);
-		igt_paint_color(cr, w / 2, h / 2, w / 2, h / 2, 1.0, 1.0, 1.0);
+		/*
+		 * "rotation" is used for creating ref rotated fb and
+		 * "data->rotation" is used to determine the required size
+		 * while creating unrotated fb.
+		 */
+		if (rotation == IGT_ROTATION_90) {
+			/* Paint 4 squares with width == height in Blue, Red,
+			Green, White Clockwise order to look like 90 degree rotated*/
+			w = h = mode->vdisplay;
+			igt_paint_color(cr, 0, 0, w / 2, h / 2, 0.0, 0.0, 1.0);
+			igt_paint_color(cr, w / 2, 0, w / 2, h / 2, 1.0, 0.0, 0.0);
+			igt_paint_color(cr, 0, h / 2, w / 2, h / 2, 1.0, 1.0, 1.0);
+			igt_paint_color(cr, w / 2, h / 2, w / 2, h / 2, 0.0, 1.0, 0.0);
+
+		} else if (rotation == IGT_ROTATION_270) {
+			/* Paint 4 squares with width == height in Green, White,
+			Blue, Red Clockwise order to look like 270 degree rotated*/
+			w = h = mode->vdisplay;
+			igt_paint_color(cr, 0, 0, w / 2, h / 2, 0.0, 1.0, 0.0);
+			igt_paint_color(cr, w / 2, 0, w / 2, h / 2, 1.0, 1.0, 1.0);
+			igt_paint_color(cr, 0, h / 2, w / 2, h / 2, 1.0, 0.0, 0.0);
+			igt_paint_color(cr, w / 2, h / 2, w / 2, h / 2, 0.0, 0.0, 1.0);
+
+		} else {
+			if (data->rotation == IGT_ROTATION_90 ||
+				data->rotation == IGT_ROTATION_270)
+				w = h = mode->vdisplay;
+			/* Paint with 4 squares of Red, Green, White, Blue Clockwise */
+			igt_paint_color(cr, 0, 0, w / 2, h / 2, 1.0, 0.0, 0.0);
+			igt_paint_color(cr, w / 2, 0, w / 2, h / 2, 0.0, 1.0, 0.0);
+			igt_paint_color(cr, 0, h / 2, w / 2, h / 2, 0.0, 0.0, 1.0);
+			igt_paint_color(cr, w / 2, h / 2, w / 2, h / 2, 1.0, 1.0, 1.0);
+		}
 	}
 	cairo_destroy(cr);
 }
@@ -84,7 +119,12 @@ static void prepare_crtc(data_t *data, igt_output_t *output, enum pipe pipe,
 {
 	drmModeModeInfo *mode;
 	igt_display_t *display = &data->display;
-	int fb_id, fb_cursor_id;
+	int fb_id, fb_cursor_id, fb_full_id;
+	int w, h;
+	uint64_t tiling = LOCAL_DRM_FORMAT_MOD_NONE;
+	enum igt_commit_style commit = COMMIT_LEGACY;
+	int old_rotation;
+	igt_plane_t *primary;
 
 	igt_output_set_pipe(output, pipe);
 
@@ -94,10 +134,45 @@ static void prepare_crtc(data_t *data, igt_output_t *output, enum pipe pipe,
 
 	mode = igt_output_get_mode(output);
 
-	fb_id = igt_create_fb(data->gfx_fd,
-			mode->hdisplay, mode->vdisplay,
+	w = mode->hdisplay;
+	h = mode->vdisplay;
+
+	fb_full_id = igt_create_fb(data->gfx_fd,
+			w, h,
 			DRM_FORMAT_XRGB8888,
-			LOCAL_DRM_FORMAT_MOD_NONE,
+			tiling,
+			&data->fb_full);
+	igt_assert(fb_full_id);
+
+	/*
+	 * With igt_display_commit2 and COMMIT_UNIVERSAL, we call just the
+	 * setplane without a modeset. So, to be able to call
+	 * igt_display_commit and ultimately setcrtc to do the first modeset,
+	 * we create an fb covering the crtc and call commit
+	 */
+
+	old_rotation = data->rotation;
+	data->rotation = IGT_ROTATION_0;
+	primary = igt_output_get_plane(output, IGT_PLANE_PRIMARY);
+	paint_squares(data, &data->fb_full, mode, IGT_ROTATION_0, primary);
+	igt_plane_set_fb(primary, &data->fb_full);
+	igt_display_commit(display);
+	data->rotation = old_rotation;
+
+	/*
+	 * For 90/270, we will use create smaller fb so that the rotated
+	 * frame can fit in
+	 */
+	if (data->rotation == IGT_ROTATION_90 ||
+		data->rotation == IGT_ROTATION_270) {
+		tiling = LOCAL_I915_FORMAT_MOD_Y_TILED;
+		w = h =  mode->vdisplay;
+	}
+
+	fb_id = igt_create_fb(data->gfx_fd,
+			w, h,
+			DRM_FORMAT_XRGB8888,
+			tiling,
 			&data->fb);
 	igt_assert(fb_id);
 
@@ -110,27 +185,20 @@ static void prepare_crtc(data_t *data, igt_output_t *output, enum pipe pipe,
 
 	/* Step 1: create a reference CRC for a software-rotated fb */
 
-	/*
-	 * XXX: We always set the primary plane to actually enable the pipe as
-	 * there's no way (that works) to light up a pipe with only a sprite
-	 * plane enabled at the moment.
-	 */
-	if (!plane->is_primary) {
-		igt_plane_t *primary;
-
-		primary = igt_output_get_plane(output, IGT_PLANE_PRIMARY);
-		paint_squares(data, &data->fb, mode, IGT_ROTATION_180, primary);
-		igt_plane_set_fb(primary, &data->fb);
-	}
-
 	if (plane->is_cursor) {
-		paint_squares(data, &data->fb_cursor, mode, IGT_ROTATION_180, plane);
+		paint_squares(data, &data->fb_cursor, mode, data->rotation, plane);
 		igt_plane_set_fb(plane, &data->fb_cursor);
 	} else {
-		paint_squares(data, &data->fb, mode, IGT_ROTATION_180, plane);
+		paint_squares(data, &data->fb, mode, data->rotation, plane);
 		igt_plane_set_fb(plane, &data->fb);
+		igt_plane_set_position(plane, data->pos_x, data->pos_y);
 	}
-	igt_display_commit(display);
+	if (plane->is_primary || plane->is_cursor) {
+		igt_require(data->display.has_universal_planes);
+		commit = COMMIT_UNIVERSAL;
+	}
+
+	igt_display_commit2(display, commit);
 	igt_pipe_crc_collect_crc(data->pipe_crc, &data->ref_crc);
 
 	/*
@@ -155,6 +223,7 @@ static void cleanup_crtc(data_t *data, igt_output_t *output, igt_plane_t *plane)
 
 	igt_remove_fb(data->gfx_fd, &data->fb);
 	igt_remove_fb(data->gfx_fd, &data->fb_cursor);
+	igt_remove_fb(data->gfx_fd, &data->fb_full);
 
 	/* XXX: see the note in prepare_crtc() */
 	if (!plane->is_primary) {
@@ -168,6 +237,71 @@ static void cleanup_crtc(data_t *data, igt_output_t *output, igt_plane_t *plane)
 	igt_output_set_pipe(output, PIPE_ANY);
 
 	igt_display_commit(display);
+}
+
+static void test_unsupported_tiling_pixel_format(data_t *data, enum igt_plane plane_type)
+{
+	drmModeModeInfo *mode;
+	igt_display_t *display = &data->display;
+	igt_output_t *output;
+	enum pipe pipe;
+	int valid_tests = 0;
+	int fb_tiling_id, fb_565_id;
+
+	for_each_connected_output(display, output) {
+		for_each_pipe(display, pipe) {
+			igt_plane_t *plane;
+
+			igt_output_set_pipe(output, pipe);
+
+			plane = igt_output_get_plane(output, plane_type);
+			igt_require(igt_plane_supports_rotation(plane));
+			mode = igt_output_get_mode(output);
+
+			fb_tiling_id = igt_create_fb(data->gfx_fd,
+					mode->hdisplay, mode->vdisplay,
+					DRM_FORMAT_XRGB8888,
+					LOCAL_DRM_FORMAT_MOD_NONE,
+					&data->fb_tiling);
+			igt_assert(fb_tiling_id);
+			paint_squares(data, &data->fb_tiling, mode, IGT_ROTATION_0, plane);
+			igt_plane_set_fb(plane, &data->fb_tiling);
+			/* For the first modeset with legacy commit */
+			igt_display_commit(display);
+			igt_plane_set_rotation(plane, data->rotation);
+			/* Shud fail because 90/270 is only supported with Y/Yf */
+			igt_assert(igt_display_try_commit2(display, COMMIT_UNIVERSAL) == -EINVAL);
+
+			fb_565_id = igt_create_fb(data->gfx_fd,
+					mode->hdisplay, mode->vdisplay,
+					DRM_FORMAT_RGB565,
+					LOCAL_I915_FORMAT_MOD_Y_TILED,
+					&data->fb_565);
+			igt_assert(fb_565_id);
+			paint_squares(data, &data->fb_565, mode, IGT_ROTATION_0, plane);
+			igt_plane_set_fb(plane, &data->fb_565);
+			igt_plane_set_rotation(plane, data->rotation);
+			/* Shud fail because 90/270 is not supported with RGB565 */
+			igt_assert(igt_display_try_commit2(display, COMMIT_UNIVERSAL) == -EINVAL);
+
+			/*
+			 * check the rotation state has been reset when the VT
+			 * mode is restored
+			 */
+			kmstest_restore_vt_mode();
+			kmstest_set_vt_graphics_mode();
+			prepare_crtc(data, output, pipe, plane);
+
+			valid_tests++;
+
+			igt_remove_fb(data->gfx_fd, &data->fb_tiling);
+			igt_remove_fb(data->gfx_fd, &data->fb_565);
+			cleanup_crtc(data, output, plane);
+
+			igt_display_commit(display);
+
+		}
+	}
 }
 
 static void test_plane_rotation(data_t *data, enum igt_plane plane_type)
@@ -200,20 +334,23 @@ static void test_plane_rotation(data_t *data, enum igt_plane plane_type)
 			/* collect unrotated CRC */
 			igt_pipe_crc_collect_crc(data->pipe_crc, &crc_unrotated);
 
-			igt_plane_set_rotation(plane, IGT_ROTATION_180);
+			igt_plane_set_rotation(plane, data->rotation);
 			igt_display_commit2(display, commit);
 
 			igt_pipe_crc_collect_crc(data->pipe_crc, &crc_output);
+
 			igt_assert_crc_equal(&data->ref_crc, &crc_output);
 
-			/* check the rotation state has been reset when the VT
-			 * mode is restored */
+			/*
+			 * check the rotation state has been reset when the VT
+			 * mode is restored
+			 */
 			kmstest_restore_vt_mode();
 			kmstest_set_vt_graphics_mode();
 			prepare_crtc(data, output, pipe, plane);
+
 			igt_pipe_crc_collect_crc(data->pipe_crc, &crc_output);
 			igt_assert_crc_equal(&crc_unrotated, &crc_output);
-
 
 			valid_tests++;
 			cleanup_crtc(data, output, plane);
@@ -225,11 +362,13 @@ static void test_plane_rotation(data_t *data, enum igt_plane plane_type)
 igt_main
 {
 	data_t data = {};
+	int gen = 0;
 
 	igt_skip_on_simulation();
 
 	igt_fixture {
 		data.gfx_fd = drm_open_any_master();
+		gen = intel_gen(intel_get_drm_devid(data.gfx_fd));
 
 		kmstest_set_vt_graphics_mode();
 
@@ -237,15 +376,60 @@ igt_main
 
 		igt_display_init(&data.display, data.gfx_fd);
 	}
-
-	igt_subtest_f("primary-rotation")
+	igt_subtest_f("primary-rotation-180") {
+		data.rotation = IGT_ROTATION_180;
 		test_plane_rotation(&data, IGT_PLANE_PRIMARY);
+	}
 
-	igt_subtest_f("sprite-rotation")
+	igt_subtest_f("sprite-rotation-180") {
+		data.rotation = IGT_ROTATION_180;
 		test_plane_rotation(&data, IGT_PLANE_2);
+	}
 
-	igt_subtest_f("cursor-rotation")
+	igt_subtest_f("cursor-rotation-180") {
+		data.rotation = IGT_ROTATION_180;
 		test_plane_rotation(&data, IGT_PLANE_CURSOR);
+	}
+
+	igt_subtest_f("primary-rotation-90") {
+		igt_require(gen >= 9);
+		data.rotation = IGT_ROTATION_90;
+		test_plane_rotation(&data, IGT_PLANE_PRIMARY);
+	}
+
+	igt_subtest_f("primary-rotation-270") {
+		igt_require(gen >= 9);
+		data.rotation = IGT_ROTATION_270;
+		test_plane_rotation(&data, IGT_PLANE_PRIMARY);
+	}
+
+	igt_subtest_f("sprite-rotation-90") {
+		igt_require(gen >= 9);
+		data.rotation = IGT_ROTATION_90;
+		test_plane_rotation(&data, IGT_PLANE_2);
+	}
+
+	igt_subtest_f("sprite-rotation-270") {
+		igt_require(gen >= 9);
+		data.rotation = IGT_ROTATION_270;
+		test_plane_rotation(&data, IGT_PLANE_2);
+	}
+
+	igt_subtest_f("sprite-rotation-90-pos-100-0") {
+		igt_require(gen >= 9);
+		data.rotation = IGT_ROTATION_90;
+		data.pos_x = 100,
+		data.pos_y = 0;
+		test_plane_rotation(&data, IGT_PLANE_2);
+	}
+
+	igt_subtest_f("90-rotation-unsupported-tiling-pixel-format") {
+		igt_require(gen >= 9);
+		data.rotation = IGT_ROTATION_90;
+		data.pos_x = 0,
+		data.pos_y = 0;
+		test_unsupported_tiling_pixel_format(&data, IGT_PLANE_PRIMARY);
+	}
 
 	igt_fixture {
 		igt_display_fini(&data.display);
