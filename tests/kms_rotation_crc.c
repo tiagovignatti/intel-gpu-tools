@@ -257,7 +257,6 @@ static void test_unsupported_tiling_pixel_format(data_t *data, enum igt_plane pl
 					LOCAL_DRM_FORMAT_MOD_NONE,
 					&fb_tiling);
 			igt_assert(fb_tiling_id);
-			paint_squares(data, &fb_tiling, mode, IGT_ROTATION_0, plane);
 			igt_plane_set_fb(plane, &fb_tiling);
 			/* For the first modeset with legacy commit */
 			igt_display_commit(display);
@@ -271,7 +270,6 @@ static void test_unsupported_tiling_pixel_format(data_t *data, enum igt_plane pl
 					LOCAL_I915_FORMAT_MOD_Y_TILED,
 					&fb_565);
 			igt_assert(fb_565_id);
-			paint_squares(data, &fb_565, mode, IGT_ROTATION_0, plane);
 			igt_plane_set_fb(plane, &fb_565);
 			igt_plane_set_rotation(plane, data->rotation);
 			/* Shud fail because 90/270 is not supported with RGB565 */
