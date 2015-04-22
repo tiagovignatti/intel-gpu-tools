@@ -36,8 +36,6 @@ typedef struct {
 	struct igt_fb fb;
 	struct igt_fb fb_cursor;
 	struct igt_fb fb_full;
-	struct igt_fb fb_565;
-	struct igt_fb fb_tiling;
 	igt_crc_t ref_crc;
 	igt_pipe_crc_t *pipe_crc;
 	igt_rotation_t rotation;
@@ -247,6 +245,7 @@ static void test_unsupported_tiling_pixel_format(data_t *data, enum igt_plane pl
 	enum pipe pipe;
 	int valid_tests = 0;
 	int fb_tiling_id, fb_565_id;
+	struct igt_fb fb_565, fb_tiling;
 
 	for_each_connected_output(display, output) {
 		for_each_pipe(display, pipe) {
@@ -262,10 +261,10 @@ static void test_unsupported_tiling_pixel_format(data_t *data, enum igt_plane pl
 					mode->hdisplay, mode->vdisplay,
 					DRM_FORMAT_XRGB8888,
 					LOCAL_DRM_FORMAT_MOD_NONE,
-					&data->fb_tiling);
+					&fb_tiling);
 			igt_assert(fb_tiling_id);
-			paint_squares(data, &data->fb_tiling, mode, IGT_ROTATION_0, plane);
-			igt_plane_set_fb(plane, &data->fb_tiling);
+			paint_squares(data, &fb_tiling, mode, IGT_ROTATION_0, plane);
+			igt_plane_set_fb(plane, &fb_tiling);
 			/* For the first modeset with legacy commit */
 			igt_display_commit(display);
 			igt_plane_set_rotation(plane, data->rotation);
@@ -276,10 +275,10 @@ static void test_unsupported_tiling_pixel_format(data_t *data, enum igt_plane pl
 					mode->hdisplay, mode->vdisplay,
 					DRM_FORMAT_RGB565,
 					LOCAL_I915_FORMAT_MOD_Y_TILED,
-					&data->fb_565);
+					&fb_565);
 			igt_assert(fb_565_id);
-			paint_squares(data, &data->fb_565, mode, IGT_ROTATION_0, plane);
-			igt_plane_set_fb(plane, &data->fb_565);
+			paint_squares(data, &fb_565, mode, IGT_ROTATION_0, plane);
+			igt_plane_set_fb(plane, &fb_565);
 			igt_plane_set_rotation(plane, data->rotation);
 			/* Shud fail because 90/270 is not supported with RGB565 */
 			igt_assert(igt_display_try_commit2(display, COMMIT_UNIVERSAL) == -EINVAL);
@@ -294,8 +293,8 @@ static void test_unsupported_tiling_pixel_format(data_t *data, enum igt_plane pl
 
 			valid_tests++;
 
-			igt_remove_fb(data->gfx_fd, &data->fb_tiling);
-			igt_remove_fb(data->gfx_fd, &data->fb_565);
+			igt_remove_fb(data->gfx_fd, &fb_tiling);
+			igt_remove_fb(data->gfx_fd, &fb_565);
 			cleanup_crtc(data, output, plane);
 
 			igt_display_commit(display);
