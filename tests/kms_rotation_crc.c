@@ -35,7 +35,7 @@ typedef struct {
 	igt_display_t display;
 	struct igt_fb fb;
 	struct igt_fb fb_cursor;
-	struct igt_fb fb_full;
+	struct igt_fb fb_modeset;
 	igt_crc_t ref_crc;
 	igt_pipe_crc_t *pipe_crc;
 	igt_rotation_t rotation;
@@ -117,11 +117,10 @@ static void prepare_crtc(data_t *data, igt_output_t *output, enum pipe pipe,
 {
 	drmModeModeInfo *mode;
 	igt_display_t *display = &data->display;
-	int fb_id, fb_cursor_id, fb_full_id;
+	int fb_id, fb_cursor_id, fb_modeset_id;
 	int w, h;
 	uint64_t tiling = LOCAL_DRM_FORMAT_MOD_NONE;
 	enum igt_commit_style commit = COMMIT_LEGACY;
-	int old_rotation;
 	igt_plane_t *primary;
 
 	igt_output_set_pipe(output, pipe);
@@ -135,12 +134,12 @@ static void prepare_crtc(data_t *data, igt_output_t *output, enum pipe pipe,
 	w = mode->hdisplay;
 	h = mode->vdisplay;
 
-	fb_full_id = igt_create_fb(data->gfx_fd,
-			w, h,
-			DRM_FORMAT_XRGB8888,
-			tiling,
-			&data->fb_full);
-	igt_assert(fb_full_id);
+	fb_modeset_id = igt_create_fb(data->gfx_fd,
+				      w, h,
+				      DRM_FORMAT_XRGB8888,
+				      tiling,
+				      &data->fb_modeset);
+	igt_assert(fb_modeset_id);
 
 	/*
 	 * With igt_display_commit2 and COMMIT_UNIVERSAL, we call just the
@@ -149,13 +148,9 @@ static void prepare_crtc(data_t *data, igt_output_t *output, enum pipe pipe,
 	 * we create an fb covering the crtc and call commit
 	 */
 
-	old_rotation = data->rotation;
-	data->rotation = IGT_ROTATION_0;
 	primary = igt_output_get_plane(output, IGT_PLANE_PRIMARY);
-	paint_squares(data, &data->fb_full, mode, IGT_ROTATION_0, primary);
-	igt_plane_set_fb(primary, &data->fb_full);
+	igt_plane_set_fb(primary, &data->fb_modeset);
 	igt_display_commit(display);
-	data->rotation = old_rotation;
 
 	/*
 	 * For 90/270, we will use create smaller fb so that the rotated
@@ -221,7 +216,7 @@ static void cleanup_crtc(data_t *data, igt_output_t *output, igt_plane_t *plane)
 
 	igt_remove_fb(data->gfx_fd, &data->fb);
 	igt_remove_fb(data->gfx_fd, &data->fb_cursor);
-	igt_remove_fb(data->gfx_fd, &data->fb_full);
+	igt_remove_fb(data->gfx_fd, &data->fb_modeset);
 
 	/* XXX: see the note in prepare_crtc() */
 	if (!plane->is_primary) {
