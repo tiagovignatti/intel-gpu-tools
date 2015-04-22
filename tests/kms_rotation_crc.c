@@ -41,6 +41,8 @@ typedef struct {
 	int pos_x;
 	int pos_y;
 	unsigned int w, h;
+	uint32_t override_fmt;
+	uint64_t override_tiling;
 } data_t;
 
 static void
@@ -92,8 +94,10 @@ static void prepare_crtc(data_t *data, igt_output_t *output, enum pipe pipe,
 	igt_display_t *display = &data->display;
 	int fb_id, fb_modeset_id;
 	unsigned int w, h;
-	uint64_t tiling = LOCAL_DRM_FORMAT_MOD_NONE;
-	uint32_t pixel_format = DRM_FORMAT_XRGB8888;
+	uint64_t tiling = data->override_tiling ?
+			  data->override_tiling : LOCAL_DRM_FORMAT_MOD_NONE;
+	uint32_t pixel_format = data->override_fmt ?
+				data->override_fmt : DRM_FORMAT_XRGB8888;
 	enum igt_commit_style commit = COMMIT_LEGACY;
 	igt_plane_t *primary;
 
@@ -132,10 +136,12 @@ static void prepare_crtc(data_t *data, igt_output_t *output, enum pipe pipe,
 	 */
 	if (data->rotation == IGT_ROTATION_90 ||
 	    data->rotation == IGT_ROTATION_270) {
-		tiling = LOCAL_I915_FORMAT_MOD_Y_TILED;
+		tiling = data->override_tiling ?
+			 data->override_tiling : LOCAL_I915_FORMAT_MOD_Y_TILED;
 		w = h =  mode->vdisplay;
 	} else if (plane->is_cursor) {
-		pixel_format = DRM_FORMAT_ARGB8888;
+		pixel_format = data->override_fmt ?
+			       data->override_fmt : DRM_FORMAT_ARGB8888;
 		w = h = 128;
 	}
 
@@ -196,67 +202,6 @@ static void cleanup_crtc(data_t *data, igt_output_t *output, igt_plane_t *plane)
 	igt_display_commit(display);
 }
 
-static void test_unsupported_tiling_pixel_format(data_t *data, enum igt_plane plane_type)
-{
-	drmModeModeInfo *mode;
-	igt_display_t *display = &data->display;
-	igt_output_t *output;
-	enum pipe pipe;
-	int fb_tiling_id, fb_565_id;
-	struct igt_fb fb_565, fb_tiling;
-
-	for_each_connected_output(display, output) {
-		for_each_pipe(display, pipe) {
-			igt_plane_t *plane;
-
-			igt_output_set_pipe(output, pipe);
-
-			plane = igt_output_get_plane(output, plane_type);
-			igt_require(igt_plane_supports_rotation(plane));
-			mode = igt_output_get_mode(output);
-
-			fb_tiling_id = igt_create_fb(data->gfx_fd,
-					mode->hdisplay, mode->vdisplay,
-					DRM_FORMAT_XRGB8888,
-					LOCAL_DRM_FORMAT_MOD_NONE,
-					&fb_tiling);
-			igt_assert(fb_tiling_id);
-			igt_plane_set_fb(plane, &fb_tiling);
-			/* For the first modeset with legacy commit */
-			igt_display_commit(display);
-			igt_plane_set_rotation(plane, data->rotation);
-			/* Shud fail because 90/270 is only supported with Y/Yf */
-			igt_assert(igt_display_try_commit2(display, COMMIT_UNIVERSAL) == -EINVAL);
-
-			fb_565_id = igt_create_fb(data->gfx_fd,
-					mode->hdisplay, mode->vdisplay,
-					DRM_FORMAT_RGB565,
-					LOCAL_I915_FORMAT_MOD_Y_TILED,
-					&fb_565);
-			igt_assert(fb_565_id);
-			igt_plane_set_fb(plane, &fb_565);
-			igt_plane_set_rotation(plane, data->rotation);
-			/* Shud fail because 90/270 is not supported with RGB565 */
-			igt_assert(igt_display_try_commit2(display, COMMIT_UNIVERSAL) == -EINVAL);
-
-			/*
-			 * check the rotation state has been reset when the VT
-			 * mode is restored
-			 */
-			kmstest_restore_vt_mode();
-			kmstest_set_vt_graphics_mode();
-			prepare_crtc(data, output, pipe, plane);
-
-			igt_remove_fb(data->gfx_fd, &fb_tiling);
-			igt_remove_fb(data->gfx_fd, &fb_565);
-			cleanup_crtc(data, output, plane);
-
-			igt_display_commit(display);
-
-		}
-	}
-}
-
 static void test_plane_rotation(data_t *data, enum igt_plane plane_type)
 {
 	igt_display_t *display = &data->display;
@@ -265,6 +210,7 @@ static void test_plane_rotation(data_t *data, enum igt_plane plane_type)
 	int valid_tests = 0;
 	igt_crc_t crc_output, crc_unrotated;
 	enum igt_commit_style commit = COMMIT_LEGACY;
+	int ret;
 
 	if (plane_type == IGT_PLANE_PRIMARY || plane_type == IGT_PLANE_CURSOR) {
 		igt_require(data->display.has_universal_planes);
@@ -288,11 +234,16 @@ static void test_plane_rotation(data_t *data, enum igt_plane plane_type)
 			igt_pipe_crc_collect_crc(data->pipe_crc, &crc_unrotated);
 
 			igt_plane_set_rotation(plane, data->rotation);
-			igt_display_commit2(display, commit);
-
-			igt_pipe_crc_collect_crc(data->pipe_crc, &crc_output);
-
-			igt_assert_crc_equal(&data->ref_crc, &crc_output);
+			ret = igt_display_try_commit2(display, commit);
+			if (data->override_fmt || data->override_tiling) {
+				igt_assert(ret == -EINVAL);
+			} else {
+				igt_assert(ret == 0);
+				igt_pipe_crc_collect_crc(data->pipe_crc,
+							 &crc_output);
+				igt_assert_crc_equal(&data->ref_crc,
+						     &crc_output);
+			}
 
 			/*
 			 * check the rotation state has been reset when the VT
@@ -376,12 +327,21 @@ igt_main
 		test_plane_rotation(&data, IGT_PLANE_2);
 	}
 
-	igt_subtest_f("90-rotation-unsupported-tiling-pixel-format") {
+	igt_subtest_f("bad-pixel-format") {
 		igt_require(gen >= 9);
-		data.rotation = IGT_ROTATION_90;
 		data.pos_x = 0,
 		data.pos_y = 0;
-		test_unsupported_tiling_pixel_format(&data, IGT_PLANE_PRIMARY);
+		data.rotation = IGT_ROTATION_90;
+		data.override_fmt = DRM_FORMAT_RGB565;
+		test_plane_rotation(&data, IGT_PLANE_PRIMARY);
+	}
+
+	igt_subtest_f("bad-tiling") {
+		igt_require(gen >= 9);
+		data.override_fmt = 0;
+		data.rotation = IGT_ROTATION_90;
+		data.override_tiling = LOCAL_DRM_FORMAT_MOD_NONE;
+		test_plane_rotation(&data, IGT_PLANE_PRIMARY);
 	}
 
 	igt_fixture {
