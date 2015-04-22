@@ -34,81 +34,64 @@ typedef struct {
 	int gfx_fd;
 	igt_display_t display;
 	struct igt_fb fb;
-	struct igt_fb fb_cursor;
 	struct igt_fb fb_modeset;
 	igt_crc_t ref_crc;
 	igt_pipe_crc_t *pipe_crc;
 	igt_rotation_t rotation;
 	int pos_x;
 	int pos_y;
+	unsigned int w, h;
 } data_t;
 
 static void
-paint_squares(data_t *data, struct igt_fb *fb, drmModeModeInfo *mode,
-	      igt_rotation_t rotation, igt_plane_t *plane)
+paint_squares(data_t *data, drmModeModeInfo *mode, igt_rotation_t rotation,
+	      igt_plane_t *plane)
 {
 	cairo_t *cr;
-	int w, h;
+	unsigned int w = data->w;
+	unsigned int h = data->h;
 
-	if (plane->is_cursor) {
-		w = 128;
-		h = 128;
-		cr = igt_get_cairo_ctx(data->gfx_fd, &data->fb_cursor);
+	cr = igt_get_cairo_ctx(data->gfx_fd, &data->fb);
 
-		if (rotation == IGT_ROTATION_180) {
-			cairo_translate(cr, w, h);
-			cairo_rotate(cr, M_PI);
-		}
-
-		igt_paint_color(cr, 0, 0, w / 2, h / 2, .75, 0.5, 0.5);
-		igt_paint_color(cr, w / 2, 0, w / 2, h / 2, 0.5, .75, 0.5);
-		igt_paint_color(cr, 0, h / 2, w / 2, h / 2, 0.5, 0.5, .75);
-		igt_paint_color(cr, w / 2, h / 2, w / 2, h / 2, .75, .75, .75);
-	} else {
-		w = mode->hdisplay;
-		h = mode->vdisplay;
-
-		cr = igt_get_cairo_ctx(data->gfx_fd, fb);
-
-		if (rotation == IGT_ROTATION_180) {
-			cairo_translate(cr, w, h);
-			cairo_rotate(cr, M_PI);
-		}
-
-		/*
-		 * "rotation" is used for creating ref rotated fb and
-		 * "data->rotation" is used to determine the required size
-		 * while creating unrotated fb.
-		 */
-		if (rotation == IGT_ROTATION_90) {
-			/* Paint 4 squares with width == height in Blue, Red,
-			Green, White Clockwise order to look like 90 degree rotated*/
-			w = h = mode->vdisplay;
-			igt_paint_color(cr, 0, 0, w / 2, h / 2, 0.0, 0.0, 1.0);
-			igt_paint_color(cr, w / 2, 0, w / 2, h / 2, 1.0, 0.0, 0.0);
-			igt_paint_color(cr, 0, h / 2, w / 2, h / 2, 1.0, 1.0, 1.0);
-			igt_paint_color(cr, w / 2, h / 2, w / 2, h / 2, 0.0, 1.0, 0.0);
-
-		} else if (rotation == IGT_ROTATION_270) {
-			/* Paint 4 squares with width == height in Green, White,
-			Blue, Red Clockwise order to look like 270 degree rotated*/
-			w = h = mode->vdisplay;
-			igt_paint_color(cr, 0, 0, w / 2, h / 2, 0.0, 1.0, 0.0);
-			igt_paint_color(cr, w / 2, 0, w / 2, h / 2, 1.0, 1.0, 1.0);
-			igt_paint_color(cr, 0, h / 2, w / 2, h / 2, 1.0, 0.0, 0.0);
-			igt_paint_color(cr, w / 2, h / 2, w / 2, h / 2, 0.0, 0.0, 1.0);
-
-		} else {
-			if (data->rotation == IGT_ROTATION_90 ||
-				data->rotation == IGT_ROTATION_270)
-				w = h = mode->vdisplay;
-			/* Paint with 4 squares of Red, Green, White, Blue Clockwise */
-			igt_paint_color(cr, 0, 0, w / 2, h / 2, 1.0, 0.0, 0.0);
-			igt_paint_color(cr, w / 2, 0, w / 2, h / 2, 0.0, 1.0, 0.0);
-			igt_paint_color(cr, 0, h / 2, w / 2, h / 2, 0.0, 0.0, 1.0);
-			igt_paint_color(cr, w / 2, h / 2, w / 2, h / 2, 1.0, 1.0, 1.0);
-		}
+	if (rotation == IGT_ROTATION_180) {
+		cairo_translate(cr, w, h);
+		cairo_rotate(cr, M_PI);
 	}
+
+	/*
+	 * "rotation" is used for creating ref rotated fb and
+	 * "data->rotation" is used to determine the required size
+	 * while creating unrotated fb.
+	 */
+	if (rotation == IGT_ROTATION_90) {
+		/* Paint 4 squares with width == height in Blue, Red,
+		Green, White Clockwise order to look like 90 degree rotated*/
+		w = h = mode->vdisplay;
+		igt_paint_color(cr, 0, 0, w / 2, h / 2, 0.0, 0.0, 1.0);
+		igt_paint_color(cr, w / 2, 0, w / 2, h / 2, 1.0, 0.0, 0.0);
+		igt_paint_color(cr, 0, h / 2, w / 2, h / 2, 1.0, 1.0, 1.0);
+		igt_paint_color(cr, w / 2, h / 2, w / 2, h / 2, 0.0, 1.0, 0.0);
+
+	} else if (rotation == IGT_ROTATION_270) {
+		/* Paint 4 squares with width == height in Green, White,
+		Blue, Red Clockwise order to look like 270 degree rotated*/
+		w = h = mode->vdisplay;
+		igt_paint_color(cr, 0, 0, w / 2, h / 2, 0.0, 1.0, 0.0);
+		igt_paint_color(cr, w / 2, 0, w / 2, h / 2, 1.0, 1.0, 1.0);
+		igt_paint_color(cr, 0, h / 2, w / 2, h / 2, 1.0, 0.0, 0.0);
+		igt_paint_color(cr, w / 2, h / 2, w / 2, h / 2, 0.0, 0.0, 1.0);
+
+	} else {
+		if (data->rotation == IGT_ROTATION_90 ||
+			data->rotation == IGT_ROTATION_270)
+			w = h = mode->vdisplay;
+		/* Paint with 4 squares of Red, Green, White, Blue Clockwise */
+		igt_paint_color(cr, 0, 0, w / 2, h / 2, 1.0, 0.0, 0.0);
+		igt_paint_color(cr, w / 2, 0, w / 2, h / 2, 0.0, 1.0, 0.0);
+		igt_paint_color(cr, 0, h / 2, w / 2, h / 2, 0.0, 0.0, 1.0);
+		igt_paint_color(cr, w / 2, h / 2, w / 2, h / 2, 1.0, 1.0, 1.0);
+	}
+
 	cairo_destroy(cr);
 }
 
@@ -117,9 +100,10 @@ static void prepare_crtc(data_t *data, igt_output_t *output, enum pipe pipe,
 {
 	drmModeModeInfo *mode;
 	igt_display_t *display = &data->display;
-	int fb_id, fb_cursor_id, fb_modeset_id;
-	int w, h;
+	int fb_id, fb_modeset_id;
+	unsigned int w, h;
 	uint64_t tiling = LOCAL_DRM_FORMAT_MOD_NONE;
+	uint32_t pixel_format = DRM_FORMAT_XRGB8888;
 	enum igt_commit_style commit = COMMIT_LEGACY;
 	igt_plane_t *primary;
 
@@ -136,7 +120,7 @@ static void prepare_crtc(data_t *data, igt_output_t *output, enum pipe pipe,
 
 	fb_modeset_id = igt_create_fb(data->gfx_fd,
 				      w, h,
-				      DRM_FORMAT_XRGB8888,
+				      pixel_format,
 				      tiling,
 				      &data->fb_modeset);
 	igt_assert(fb_modeset_id);
@@ -157,35 +141,31 @@ static void prepare_crtc(data_t *data, igt_output_t *output, enum pipe pipe,
 	 * frame can fit in
 	 */
 	if (data->rotation == IGT_ROTATION_90 ||
-		data->rotation == IGT_ROTATION_270) {
+	    data->rotation == IGT_ROTATION_270) {
 		tiling = LOCAL_I915_FORMAT_MOD_Y_TILED;
 		w = h =  mode->vdisplay;
+	} else if (plane->is_cursor) {
+		pixel_format = DRM_FORMAT_ARGB8888;
+		w = h = 128;
 	}
 
-	fb_id = igt_create_fb(data->gfx_fd,
-			w, h,
-			DRM_FORMAT_XRGB8888,
-			tiling,
-			&data->fb);
-	igt_assert(fb_id);
+	data->w = w;
+	data->h = h;
 
-	fb_cursor_id = igt_create_fb(data->gfx_fd,
-				     128, 128,
-				     DRM_FORMAT_ARGB8888,
-				     LOCAL_DRM_FORMAT_MOD_NONE,
-				     &data->fb_cursor);
-	igt_assert(fb_cursor_id);
+	fb_id = igt_create_fb(data->gfx_fd,
+			      w, h,
+			      pixel_format,
+			      tiling,
+			      &data->fb);
+	igt_assert(fb_id);
 
 	/* Step 1: create a reference CRC for a software-rotated fb */
 
-	if (plane->is_cursor) {
-		paint_squares(data, &data->fb_cursor, mode, data->rotation, plane);
-		igt_plane_set_fb(plane, &data->fb_cursor);
-	} else {
-		paint_squares(data, &data->fb, mode, data->rotation, plane);
-		igt_plane_set_fb(plane, &data->fb);
+	paint_squares(data, mode, data->rotation, plane);
+	igt_plane_set_fb(plane, &data->fb);
+	if (!plane->is_cursor)
 		igt_plane_set_position(plane, data->pos_x, data->pos_y);
-	}
+
 	if (plane->is_primary || plane->is_cursor) {
 		igt_require(data->display.has_universal_planes);
 		commit = COMMIT_UNIVERSAL;
@@ -198,13 +178,8 @@ static void prepare_crtc(data_t *data, igt_output_t *output, enum pipe pipe,
 	 * Step 2: prepare the plane with an non-rotated fb let the hw
 	 * rotate it.
 	 */
-	if (plane->is_cursor) {
-		paint_squares(data, &data->fb_cursor, mode, IGT_ROTATION_0, plane);
-		igt_plane_set_fb(plane, &data->fb_cursor);
-	} else {
-		paint_squares(data, &data->fb, mode, IGT_ROTATION_0, plane);
-		igt_plane_set_fb(plane, &data->fb);
-	}
+	paint_squares(data, mode, IGT_ROTATION_0, plane);
+	igt_plane_set_fb(plane, &data->fb);
 }
 
 static void cleanup_crtc(data_t *data, igt_output_t *output, igt_plane_t *plane)
@@ -215,7 +190,6 @@ static void cleanup_crtc(data_t *data, igt_output_t *output, igt_plane_t *plane)
 	data->pipe_crc = NULL;
 
 	igt_remove_fb(data->gfx_fd, &data->fb);
-	igt_remove_fb(data->gfx_fd, &data->fb_cursor);
 	igt_remove_fb(data->gfx_fd, &data->fb_modeset);
 
 	/* XXX: see the note in prepare_crtc() */
