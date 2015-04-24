@@ -148,24 +148,25 @@ test_short(int fd)
 	igt_assert(drmIoctl(fd,
 			    DRM_IOCTL_I915_GEM_MMAP_GTT,
 			    &mmap_arg) == 0);
-	for (pages = 1; pages <= OBJECT_SIZE / 4096; pages <<= 1) {
+	for (pages = 1; pages <= OBJECT_SIZE / PAGE_SIZE; pages <<= 1) {
 		uint8_t *r, *w;
 
-		w = mmap64(0, pages * 4096, PROT_READ | PROT_WRITE,
+		w = mmap64(0, pages * PAGE_SIZE, PROT_READ | PROT_WRITE,
 			   MAP_SHARED, fd, mmap_arg.offset);
 		igt_assert(w != MAP_FAILED);
 
-		r = mmap64(0, pages * 4096, PROT_READ,
+		r = mmap64(0, pages * PAGE_SIZE, PROT_READ,
 			   MAP_SHARED, fd, mmap_arg.offset);
 		igt_assert(r != MAP_FAILED);
 
 		for (p = 0; p < pages; p++) {
-			w[4096*p] = r[4096*p];
-			w[4096*p+4095] = r[4096*p+4095];
+			w[p*PAGE_SIZE] = r[p*PAGE_SIZE];
+			w[p*PAGE_SIZE+(PAGE_SIZE-1)] =
+				r[p*PAGE_SIZE+(PAGE_SIZE-1)];
 		}
 
-		munmap(r, pages * 4096);
-		munmap(w, pages * 4096);
+		munmap(r, pages * PAGE_SIZE);
+		munmap(w, pages * PAGE_SIZE);
 	}
 	gem_close(fd, mmap_arg.handle);
 }
