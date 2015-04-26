@@ -81,13 +81,13 @@ static const char *bytes_per_sec(char *buf, double v)
 	return buf;
 }
 
-static void test_big_cpu(int fd)
+static void test_big_cpu(int fd, int scale)
 {
-	uint32_t handle;
-	uint32_t *ptr;
 	uint64_t offset, size;
+	uint32_t *ptr;
+	uint32_t handle;
 
-	size = 3 * gem_aperture_size(fd) / 4;
+	size = scale * gem_aperture_size(fd) >> 2;
 	intel_require_memory(1, size, CHECK_RAM);
 
 	igt_require(gem_mmap__has_wc(fd));
@@ -109,13 +109,13 @@ static void test_big_cpu(int fd)
 	gem_close(fd, handle);
 }
 
-static void test_big_gtt(int fd)
+static void test_big_gtt(int fd, int scale)
 {
 	uint64_t offset, size;
 	uint64_t *ptr;
 	uint32_t handle;
 
-	size = 3 * gem_aperture_size(fd) / 4;
+	size = scale * gem_aperture_size(fd) >> 2;
 	intel_require_memory(1, size, CHECK_RAM);
 
 	igt_require(gem_mmap__has_wc(fd));
@@ -210,9 +210,14 @@ int main(int argc, char **argv)
 	}
 
 	igt_subtest("big-cpu")
-		test_big_cpu(fd);
+		test_big_cpu(fd, 3);
 	igt_subtest("big-gtt")
-		test_big_gtt(fd);
+		test_big_gtt(fd, 3);
+
+	igt_subtest("huge-cpu")
+		test_big_cpu(fd, 6);
+	igt_subtest("huge-gtt")
+		test_big_gtt(fd, 6);
 
 	igt_fixture
 		close(fd);
