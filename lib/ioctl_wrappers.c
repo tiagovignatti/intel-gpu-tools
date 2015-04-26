@@ -458,7 +458,7 @@ void gem_execbuf(int fd, struct drm_i915_gem_execbuffer2 *execbuf)
  *
  * Returns: A pointer to the created memory mapping.
  */
-void *gem_mmap__gtt(int fd, uint32_t handle, int size, int prot)
+void *gem_mmap__gtt(int fd, uint32_t handle, uint64_t size, unsigned prot)
 {
 	struct drm_i915_gem_mmap_gtt mmap_arg;
 	void *ptr;
@@ -537,7 +537,7 @@ bool gem_mmap__has_wc(int fd)
  *
  * Returns: A pointer to the created memory mapping.
  */
-void *gem_mmap__wc(int fd, uint32_t handle, int offset, int size, int prot)
+void *gem_mmap__wc(int fd, uint32_t handle, uint64_t offset, uint64_t size, unsigned prot)
 {
 	struct local_i915_gem_mmap_v2 arg;
 
@@ -571,7 +571,7 @@ void *gem_mmap__wc(int fd, uint32_t handle, int offset, int size, int prot)
  *
  * Returns: A pointer to the created memory mapping.
  */
-void *gem_mmap__cpu(int fd, uint32_t handle, int offset, int size, int prot)
+void *gem_mmap__cpu(int fd, uint32_t handle, uint64_t offset, uint64_t size, unsigned prot)
 {
 	struct drm_i915_gem_mmap mmap_arg;
 
