@@ -416,7 +416,7 @@ uint32_t __gem_create(int fd, int size)
  *
  * Returns: The file-private handle of the created buffer object
  */
-uint32_t gem_create(int fd, int size)
+uint32_t gem_create(int fd, uint64_t size)
 {
 	struct drm_i915_gem_create create;
 
