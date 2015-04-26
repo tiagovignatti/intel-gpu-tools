@@ -84,7 +84,6 @@ static const char *bytes_per_sec(char *buf, double v)
 static void test_big_cpu(int fd, int scale)
 {
 	uint64_t offset, size;
-	uint32_t *ptr;
 	uint32_t handle;
 
 	size = scale * gem_aperture_size(fd) >> 2;
@@ -95,7 +94,6 @@ static void test_big_cpu(int fd, int scale)
 	handle = gem_create(fd, size);
 	gem_set_domain(fd, handle, I915_GEM_DOMAIN_CPU, I915_GEM_DOMAIN_CPU);
 
-	ptr = gem_mmap__wc(fd, handle, 0, size, PROT_READ);
 	for (offset = 0; offset < size; offset += 4096) {
 		int suboffset = (offset >> 12) % (4096 - sizeof(offset));
 		uint64_t tmp;
@@ -105,7 +103,6 @@ static void test_big_cpu(int fd, int scale)
 		igt_assert_eq(offset, tmp);
 	}
 
-	munmap(ptr, size);
 	gem_close(fd, handle);
 }
 
