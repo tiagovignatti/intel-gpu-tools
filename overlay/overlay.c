@@ -903,7 +903,7 @@ int main(int argc, char **argv)
 	if (ctx.surface == NULL)
 		ctx.surface = kms_overlay_create(&config, &ctx.width, &ctx.height);
 	if (ctx.surface == NULL)
-		return ENOMEM;
+		return ENXIO;
 
 	if (daemonize && daemon(0, 0))
 		return EINVAL;
