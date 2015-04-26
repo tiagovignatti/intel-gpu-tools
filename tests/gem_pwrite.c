@@ -39,6 +39,7 @@
 #include "drm.h"
 #include "ioctl_wrappers.h"
 #include "drmtest.h"
+#include "igt_aux.h"
 
 #define OBJECT_SIZE 16384
 
@@ -80,6 +81,59 @@ static const char *bytes_per_sec(char *buf, double v)
 	return buf;
 }
 
+static void test_big_cpu(int fd)
+{
+	uint32_t handle;
+	uint32_t *ptr;
+	uint64_t offset, size;
+
+	size = 3 * gem_aperture_size(fd) / 4;
+	intel_require_memory(1, size, CHECK_RAM);
+
+	igt_require(gem_mmap__has_wc(fd));
+
+	handle = gem_create(fd, size);
+	gem_set_domain(fd, handle, I915_GEM_DOMAIN_CPU, I915_GEM_DOMAIN_CPU);
+
+	ptr = gem_mmap__wc(fd, handle, 0, size, PROT_READ);
+	for (offset = 0; offset < size; offset += 4096) {
+		int suboffset = (offset >> 12) % (4096 - sizeof(offset));
+		uint64_t tmp;
+
+		gem_write(fd, handle, offset + suboffset , &offset, sizeof(offset));
+		gem_read(fd, handle, offset + suboffset, &tmp, sizeof(tmp));
+		igt_assert_eq(offset, tmp);
+	}
+
+	munmap(ptr, size);
+	gem_close(fd, handle);
+}
+
+static void test_big_gtt(int fd)
+{
+	uint64_t offset, size;
+	uint64_t *ptr;
+	uint32_t handle;
+
+	size = 3 * gem_aperture_size(fd) / 4;
+	intel_require_memory(1, size, CHECK_RAM);
+
+	igt_require(gem_mmap__has_wc(fd));
+
+	handle = gem_create(fd, size);
+	gem_set_domain(fd, handle, I915_GEM_DOMAIN_GTT, I915_GEM_DOMAIN_GTT);
+
+	ptr = gem_mmap__wc(fd, handle, 0, size, PROT_READ);
+	for (offset = 0; offset < size; offset += 4096) {
+		int suboffset = (offset >> 12) % (4096 / sizeof(offset) - 1) * sizeof(offset);
+
+		gem_write(fd, handle, offset + suboffset, &offset, sizeof(offset));
+		igt_assert_eq(ptr[(offset + suboffset)/sizeof(offset)], offset);
+	}
+
+	munmap(ptr, size);
+	gem_close(fd, handle);
+}
 
 uint32_t *src, dst;
 int fd;
@@ -153,9 +207,15 @@ int main(int argc, char **argv)
 	igt_fixture {
 		free(src);
 		gem_close(fd, dst);
-
-		close(fd);
 	}
+
+	igt_subtest("big-cpu")
+		test_big_cpu(fd);
+	igt_subtest("big-gtt")
+		test_big_gtt(fd);
+
+	igt_fixture
+		close(fd);
 
 	igt_exit();
 }
