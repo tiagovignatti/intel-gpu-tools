@@ -396,6 +396,7 @@ static void low_mem_killer_disable(bool disable)
 	/* The following must persist across invocations */
 	static char prev_adj_scores[256];
 	static int adj_scores_len = 0;
+	static bool is_disabled = false;
 
 	/* capture the permissions bits for the lowmemkiller adj pseudo-file.
 	 * Bail out if the stat fails; it probably means that there is no
@@ -408,7 +409,7 @@ static void low_mem_killer_disable(bool disable)
 	/* make sure the file can be read/written - by default it is write-only */
 	chmod(adj_fname, S_IRUSR | S_IWUSR);
 
-	if (disable) {
+	if (disable && !is_disabled) {
 		/* read the current oom adj parameters for lowmemorykiller */
 		fd = open(adj_fname, O_RDWR);
 		igt_assert(fd != -1);
@@ -421,13 +422,15 @@ static void low_mem_killer_disable(bool disable)
 		igt_assert_eq(write(fd, no_lowmem_killer, sizeof(no_lowmem_killer)),
 			      sizeof(no_lowmem_killer));
 		close(fd);
-	} else {
+		is_disabled = true;
+	} else if (is_disabled) {
 		/* just re-enstate the original settings */
 		fd = open(adj_fname, O_WRONLY);
 		igt_assert(fd != -1);
 		igt_assert_eq(write(fd, prev_adj_scores, adj_scores_len),
 			      adj_scores_len);
 		close(fd);
+		is_disabled = false;
 	}
 
 	/* re-enstate the file permissions */
@@ -437,7 +440,9 @@ static void low_mem_killer_disable(bool disable)
 bool igt_exit_called;
 static void common_exit_handler(int sig)
 {
-	low_mem_killer_disable(false);
+	if (!igt_only_list_subtests()) {
+		low_mem_killer_disable(false);
+	}
 
 	/* When not killed by a signal check that igt_exit() has been properly
 	 * called. */
@@ -490,7 +495,6 @@ static void oom_adjust_for_doom(void)
 	igt_assert(write(fd, always_kill, sizeof(always_kill)) == sizeof(always_kill));
 	close(fd);
 
-	low_mem_killer_disable(true);
 }
 
 static int common_init(int *argc, char **argv,
@@ -653,6 +657,7 @@ out:
 		print_version();
 
 		oom_adjust_for_doom();
+		low_mem_killer_disable(true);
 	}
 
 	/* install exit handler, to ensure we clean up */
