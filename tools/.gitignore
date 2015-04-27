@@ -21,6 +21,7 @@ intel_lid
 intel_opregion_decode
 intel_panel_fitter
 intel_perf_counters
+intel_reg
 intel_reg_checker
 intel_reg_dumper
 intel_reg_read
