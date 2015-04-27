@@ -44,7 +44,8 @@ intel_dump_decode_SOURCES = 	\
 intel_reg_SOURCES =		\
 	intel_reg.c		\
 	intel_reg_decode.c	\
-	intel_reg_spec.c
+	intel_reg_spec.c	\
+	intel_reg_spec.h
 
 intel_error_decode_SOURCES =	\
 	intel_error_decode.c
