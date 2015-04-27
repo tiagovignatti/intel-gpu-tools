@@ -87,19 +87,46 @@ paint_squares(data_t *data, drmModeModeInfo *mode, igt_rotation_t rotation,
 	cairo_destroy(cr);
 }
 
+static void commit_crtc(data_t *data, igt_output_t *output, igt_plane_t *plane)
+{
+	igt_display_t *display = &data->display;
+	enum igt_commit_style commit = COMMIT_LEGACY;
+	igt_plane_t *primary;
+
+	/*
+	 * With igt_display_commit2 and COMMIT_UNIVERSAL, we call just the
+	 * setplane without a modeset. So, to be able to call
+	 * igt_display_commit and ultimately setcrtc to do the first modeset,
+	 * we create an fb covering the crtc and call commit
+	 */
+
+	primary = igt_output_get_plane(output, IGT_PLANE_PRIMARY);
+	igt_plane_set_fb(primary, &data->fb_modeset);
+	igt_display_commit(display);
+
+	igt_plane_set_fb(plane, &data->fb);
+
+	if (!plane->is_cursor)
+		igt_plane_set_position(plane, data->pos_x, data->pos_y);
+
+	if (plane->is_primary || plane->is_cursor) {
+		igt_require(data->display.has_universal_planes);
+		commit = COMMIT_UNIVERSAL;
+	}
+
+	igt_display_commit2(display, commit);
+}
+
 static void prepare_crtc(data_t *data, igt_output_t *output, enum pipe pipe,
 			 igt_plane_t *plane)
 {
 	drmModeModeInfo *mode;
-	igt_display_t *display = &data->display;
 	int fb_id, fb_modeset_id;
 	unsigned int w, h;
 	uint64_t tiling = data->override_tiling ?
 			  data->override_tiling : LOCAL_DRM_FORMAT_MOD_NONE;
 	uint32_t pixel_format = data->override_fmt ?
 				data->override_fmt : DRM_FORMAT_XRGB8888;
-	enum igt_commit_style commit = COMMIT_LEGACY;
-	igt_plane_t *primary;
 
 	igt_output_set_pipe(output, pipe);
 
@@ -118,17 +145,6 @@ static void prepare_crtc(data_t *data, igt_output_t *output, enum pipe pipe,
 				      tiling,
 				      &data->fb_modeset);
 	igt_assert(fb_modeset_id);
-
-	/*
-	 * With igt_display_commit2 and COMMIT_UNIVERSAL, we call just the
-	 * setplane without a modeset. So, to be able to call
-	 * igt_display_commit and ultimately setcrtc to do the first modeset,
-	 * we create an fb covering the crtc and call commit
-	 */
-
-	primary = igt_output_get_plane(output, IGT_PLANE_PRIMARY);
-	igt_plane_set_fb(primary, &data->fb_modeset);
-	igt_display_commit(display);
 
 	/*
 	 * For 90/270, we will use create smaller fb so that the rotated
@@ -156,18 +172,8 @@ static void prepare_crtc(data_t *data, igt_output_t *output, enum pipe pipe,
 	igt_assert(fb_id);
 
 	/* Step 1: create a reference CRC for a software-rotated fb */
-
 	paint_squares(data, mode, data->rotation, plane);
-	igt_plane_set_fb(plane, &data->fb);
-	if (!plane->is_cursor)
-		igt_plane_set_position(plane, data->pos_x, data->pos_y);
-
-	if (plane->is_primary || plane->is_cursor) {
-		igt_require(data->display.has_universal_planes);
-		commit = COMMIT_UNIVERSAL;
-	}
-
-	igt_display_commit2(display, commit);
+	commit_crtc(data, output, plane);
 	igt_pipe_crc_collect_crc(data->pipe_crc, &data->ref_crc);
 
 	/*
@@ -251,7 +257,8 @@ static void test_plane_rotation(data_t *data, enum igt_plane plane_type)
 			 */
 			kmstest_restore_vt_mode();
 			kmstest_set_vt_graphics_mode();
-			prepare_crtc(data, output, pipe, plane);
+
+			commit_crtc(data, output, plane);
 
 			igt_pipe_crc_collect_crc(data->pipe_crc, &crc_output);
 			igt_assert_crc_equal(&crc_unrotated, &crc_output);
