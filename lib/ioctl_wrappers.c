@@ -306,7 +306,7 @@ void gem_close(int fd, uint32_t handle)
  * This wraps the PWRITE ioctl, which is to upload a linear data to a subrange
  * of a gem buffer object.
  */
-void gem_write(int fd, uint32_t handle, uint32_t offset, const void *buf, uint32_t length)
+void gem_write(int fd, uint32_t handle, uint64_t offset, const void *buf, uint64_t length)
 {
 	struct drm_i915_gem_pwrite gem_pwrite;
 
@@ -329,7 +329,7 @@ void gem_write(int fd, uint32_t handle, uint32_t offset, const void *buf, uint32
  * This wraps the PREAD ioctl, which is to download a linear data to a subrange
  * of a gem buffer object.
  */
-void gem_read(int fd, uint32_t handle, uint32_t offset, void *buf, uint32_t length)
+void gem_read(int fd, uint32_t handle, uint64_t offset, void *buf, uint64_t length)
 {
 	struct drm_i915_gem_pread gem_pread;
 
