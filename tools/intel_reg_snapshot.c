@@ -45,7 +45,7 @@ int main(int argc, char** argv)
 	else
 		mmio_bar = 0;
 
-	ret = write(1, mmio, pci_dev->regions[mmio_bar].size);
+	ret = write(1, igt_global_mmio, pci_dev->regions[mmio_bar].size);
 	assert(ret > 0);
 
 	return 0;

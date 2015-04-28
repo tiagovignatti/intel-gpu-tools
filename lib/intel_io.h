@@ -32,7 +32,7 @@
 #include <pciaccess.h>
 
 /* register access helpers from intel_mmio.c */
-extern void *mmio;
+extern void *igt_global_mmio;
 void intel_mmio_use_pci_bar(struct pci_device *pci_dev);
 void intel_mmio_use_dump_file(char *file);
 

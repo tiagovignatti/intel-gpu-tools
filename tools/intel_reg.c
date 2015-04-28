@@ -491,7 +491,7 @@ static int intel_reg_snapshot(struct config *config, int argc, char *argv[])
 	intel_mmio_use_pci_bar(config->pci_dev);
 
 	/* XXX: error handling */
-	write(1, mmio, config->pci_dev->regions[mmio_bar].size);
+	write(1, igt_global_mmio, config->pci_dev->regions[mmio_bar].size);
 
 	if (config->verbosity > 0)
 		printf("use this with --mmio=FILE --devid=0x%04X\n",
