@@ -88,6 +88,7 @@ static struct pci_device *__igfx_get(void)
 static void *igfx_get_mmio(void)
 {
 	struct pci_device *pci = __igfx_get();
+	void *mmio = NULL;
 	int error;
 
 	igt_skip_on(pci == NULL);
