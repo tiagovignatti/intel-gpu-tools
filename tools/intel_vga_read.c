@@ -37,7 +37,7 @@
 static uint8_t read_reg(uint32_t reg, bool use_mmio)
 {
 	if (use_mmio)
-		return *((volatile uint8_t *)mmio + reg);
+		return INREG8(reg);
 	else
 		return inb(reg);
 }

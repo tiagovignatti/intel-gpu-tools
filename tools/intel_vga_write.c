@@ -37,7 +37,7 @@
 static void write_reg(uint32_t reg, uint8_t val, bool use_mmio)
 {
 	if (use_mmio)
-		*((volatile uint8_t *)mmio + reg) = val;
+		OUTREG8(reg, val);
 	else
 		outb(val, reg);
 }
