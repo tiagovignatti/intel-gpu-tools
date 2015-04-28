@@ -311,8 +311,8 @@ write_out:
  * INREG:
  * @reg: register offset
  *
- * 32-bit read of the register at @offset. This function only works when the new
- * register access helper is initialized with intel_register_access_init().
+ * 32-bit read of the register at offset @reg. This function only works when the
+ * new register access helper is initialized with intel_register_access_init().
  *
  * This function directly accesses the #mmio without safety checks.
  *
@@ -325,16 +325,83 @@ uint32_t INREG(uint32_t reg)
 }
 
 /**
- * OUTRET:
+ * INREG16:
+ * @reg: register offset
+ *
+ * 16-bit read of the register at offset @reg. This function only works when the
+ * new register access helper is initialized with intel_register_access_init().
+ *
+ * This function directly accesses the #mmio without safety checks.
+ *
+ * Returns:
+ * The value read from the register.
+ */
+uint16_t INREG16(uint32_t reg)
+{
+	return *(volatile uint16_t *)((volatile char *)mmio + reg);
+}
+
+/**
+ * INREG8:
+ * @reg: register offset
+ *
+ * 8-bit read of the register at offset @reg. This function only works when the
+ * new register access helper is initialized with intel_register_access_init().
+ *
+ * This function directly accesses the #mmio without safety checks.
+ *
+ * Returns:
+ * The value read from the register.
+ */
+uint8_t INREG8(uint32_t reg)
+{
+	return *((volatile uint8_t *)mmio + reg);
+}
+
+/**
+ * OUTREG:
  * @reg: register offset
  * @val: value to write
  *
- * 32-bit write to the register at @offset. This function only works when the new
- * register access helper is initialized with intel_register_access_init().
+ * 32-bit write of @val to the register at offset @reg. This function only works
+ * when the new register access helper is initialized with
+ * intel_register_access_init().
  *
  * This function directly accesses the #mmio without safety checks.
  */
 void OUTREG(uint32_t reg, uint32_t val)
 {
 	*(volatile uint32_t *)((volatile char *)mmio + reg) = val;
+}
+
+/**
+ * OUTREG16:
+ * @reg: register offset
+ * @val: value to write
+ *
+ * 16-bit write of @val to the register at offset @reg. This function only works
+ * when the new register access helper is initialized with
+ * intel_register_access_init().
+ *
+ * This function directly accesses the #mmio without safety checks.
+ */
+void OUTREG16(uint32_t reg, uint16_t val)
+{
+	*(volatile uint16_t *)((volatile char *)mmio + reg) = val;
+}
+
+/**
+ * OUTREG8:
+ * @reg: register offset
+ * @val: value to write
+ *
+ * 8-bit write of @val to the register at offset @reg. This function only works
+ * when the new register access helper is initialized with
+ * intel_register_access_init().
+ *
+ * This function directly accesses the #mmio without safety checks.
+ */
+void OUTREG8(uint32_t reg, uint8_t val)
+{
+	*((volatile uint8_t *)mmio + reg) = val;
 }

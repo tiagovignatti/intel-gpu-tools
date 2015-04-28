@@ -43,7 +43,11 @@ void intel_register_write(uint32_t reg, uint32_t val);
 int intel_register_access_needs_fakewake(void);
 
 uint32_t INREG(uint32_t reg);
+uint16_t INREG16(uint32_t reg);
+uint8_t INREG8(uint32_t reg);
 void OUTREG(uint32_t reg, uint32_t val);
+void OUTREG16(uint32_t reg, uint16_t val);
+void OUTREG8(uint32_t reg, uint8_t val);
 
 /* sideband access functions from intel_iosf.c */
 uint32_t intel_dpio_reg_read(uint32_t reg, int phy);
