@@ -67,22 +67,22 @@ static void sighandler(int x)
 
 static uint16_t read_reg_16(uint32_t reg)
 {
-	return *(volatile uint16_t *)((volatile char*)mmio + vlv_offset + reg);
+	return INREG16(vlv_offset + reg);
 }
 
 static uint32_t read_reg(uint32_t reg)
 {
-	return *(volatile uint32_t *)((volatile char*)mmio + vlv_offset + reg);
+	return INREG(vlv_offset + reg);
 }
 
 static void write_reg_16(uint32_t reg, uint16_t val)
 {
-	*(volatile uint16_t *)((volatile char*)mmio + vlv_offset + reg) = val;
+	OUTREG16(vlv_offset + reg, val);
 }
 
 static void write_reg(uint32_t reg, uint32_t val)
 {
-	*(volatile uint32_t *)((volatile char*)mmio + vlv_offset + reg) = val;
+	OUTREG(vlv_offset + reg, val);
 }
 
 static int pipe_to_plane(uint32_t devid, int pipe)
