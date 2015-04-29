@@ -650,29 +650,33 @@ struct fb_blit_upload {
 	} linear;
 };
 
+static unsigned int fb_mod_to_obj_tiling(uint64_t fb_mod)
+{
+	switch (fb_mod) {
+	case LOCAL_DRM_FORMAT_MOD_NONE:
+		return I915_TILING_NONE;
+	case LOCAL_I915_FORMAT_MOD_X_TILED:
+		return I915_TILING_X;
+	case LOCAL_I915_FORMAT_MOD_Y_TILED:
+		return I915_TILING_Y;
+	case LOCAL_I915_FORMAT_MOD_Yf_TILED:
+		return I915_TILING_Yf;
+	default:
+		igt_assert(0);
+	}
+}
+
 static void destroy_cairo_surface__blit(void *arg)
 {
 	struct fb_blit_upload *blit = arg;
 	struct igt_fb *fb = blit->fb;
-	unsigned int obj_tiling = I915_TILING_NONE;
+	unsigned int obj_tiling = fb_mod_to_obj_tiling(fb->tiling);
 
 	munmap(blit->linear.map, blit->linear.size);
 	fb->cairo_surface = NULL;
 
 	gem_set_domain(blit->fd, blit->linear.handle,
 			I915_GEM_DOMAIN_GTT, 0);
-
-	switch (fb->tiling) {
-	case LOCAL_I915_FORMAT_MOD_X_TILED:
-		obj_tiling = I915_TILING_X;
-		break;
-	case LOCAL_I915_FORMAT_MOD_Y_TILED:
-		obj_tiling = I915_TILING_Y;
-		break;
-	case LOCAL_I915_FORMAT_MOD_Yf_TILED:
-		obj_tiling = I915_TILING_Yf;
-		break;
-	}
 
 	igt_blitter_fast_copy__raw(blit->fd,
 				   blit->linear.handle,
@@ -695,6 +699,7 @@ static void create_cairo_surface__blit(int fd, struct igt_fb *fb)
 {
 	struct fb_blit_upload *blit;
 	cairo_format_t cairo_format;
+	unsigned int obj_tiling = fb_mod_to_obj_tiling(fb->tiling);
 	int bpp, ret;
 
 	blit = malloc(sizeof(*blit));
@@ -716,15 +721,34 @@ static void create_cairo_surface__blit(int fd, struct igt_fb *fb)
 
 	blit->fd = fd;
 	blit->fb = fb;
+
+	/* Copy fb content to linear BO */
+	gem_set_domain(fd, blit->linear.handle,
+			I915_GEM_DOMAIN_GTT, 0);
+
+	igt_blitter_fast_copy__raw(fd,
+				   fb->gem_handle,
+				   fb->stride,
+				   obj_tiling,
+				   0, 0, /* src_x, src_y */
+				   fb->width, fb->height,
+				   blit->linear.handle,
+				   blit->linear.stride,
+				   I915_TILING_NONE,
+				   0, 0 /* dst_x, dst_y */);
+
+	gem_sync(fd, blit->linear.handle);
+
+	gem_set_domain(fd, blit->linear.handle,
+		       I915_GEM_DOMAIN_CPU, I915_GEM_DOMAIN_CPU);
+
+	/* Setup cairo context */
 	blit->linear.map = gem_mmap__cpu(fd,
 					 blit->linear.handle,
 					 0,
 					 blit->linear.size,
 					 PROT_READ | PROT_WRITE);
 	igt_assert(blit->linear.map);
-
-	gem_set_domain(fd, blit->linear.handle,
-		       I915_GEM_DOMAIN_CPU, I915_GEM_DOMAIN_CPU);
 
 	cairo_format = drm_format_to_cairo(fb->drm_format);
 	fb->cairo_surface =
