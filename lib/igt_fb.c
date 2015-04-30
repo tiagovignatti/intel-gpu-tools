@@ -388,6 +388,8 @@ void igt_paint_image(cairo_t *cr, const char *filename,
 	cairo_surface_destroy(image);
 
 	cairo_restore(cr);
+
+	fclose(f);
 }
 
 /**
