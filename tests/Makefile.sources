@@ -91,6 +91,7 @@ TESTS_progs = \
 	core_getclient \
 	core_getstats \
 	core_getversion \
+	drm_auth \
 	drm_import_export \
 	drm_read \
 	drm_vma_limiter \
