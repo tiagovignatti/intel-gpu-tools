@@ -197,7 +197,7 @@ static bool fbc_enabled(data_t *data)
 	status = igt_debugfs_fopen("i915_fbc_status", "r");
 	igt_assert(status);
 
-	igt_assert_eq(fread(str, sizeof(str) - 1, 1, status), 1);
+	igt_assert(fread(str, 1, sizeof(str) - 1, status) > 0);
 	fclose(status);
 	return strstr(str, "FBC enabled") != NULL;
 }
