@@ -1,5 +1,5 @@
 noinst_PROGRAMS = \
-	ddi_compute_wrpll \
+	hsw_compute_wrpll \
 	skl_ddb_allocation \
 	$(NULL)
 
