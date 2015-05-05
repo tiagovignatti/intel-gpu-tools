@@ -204,7 +204,7 @@ static bool fbc_enabled(data_t *data)
 
 static bool wait_for_fbc_enabled(data_t *data)
 {
-	return igt_wait(fbc_enabled(data), 300, 30);
+	return igt_wait(fbc_enabled(data), 3000, 30);
 }
 
 static void test_crc(data_t *data, enum test_mode mode)
