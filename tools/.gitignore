@@ -31,4 +31,5 @@ intel_stepping
 intel_vga_read
 intel_vga_write
 intel_watermark
+skl_compute_wrpll
 skl_ddb_allocation
