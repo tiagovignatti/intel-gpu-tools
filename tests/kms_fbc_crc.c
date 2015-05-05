@@ -383,6 +383,7 @@ static bool prepare_test(data_t *data, enum test_mode test_mode)
 		 * FBC RT address is left as disabled.
 		 */
 		exec_nop(data, data->fb[0].gem_handle, data->ctx[0]);
+		igt_assert(wait_for_fbc_enabled(data));
 	}
 
 	igt_wait_for_vblank(data->drm_fd, data->pipe);
