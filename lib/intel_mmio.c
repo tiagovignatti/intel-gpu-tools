@@ -278,7 +278,7 @@ out:
  * 32-bit write to the register at @offset. This function only works when the new
  * register access helper is initialized with intel_register_access_init().
  *
- * Compared to OUTRET() it can do optional checking with the register access
+ * Compared to OUTREG() it can do optional checking with the register access
  * white lists.
  */
 void
