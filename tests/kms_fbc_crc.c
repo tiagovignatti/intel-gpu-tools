@@ -216,19 +216,18 @@ static void test_crc(data_t *data, enum test_mode mode)
 
 	igt_assert(fbc_enabled(data));
 
-	if (mode >= TEST_PAGE_FLIP_AND_MMAP_CPU) {
+	if (mode == TEST_PAGE_FLIP || mode >= TEST_PAGE_FLIP_AND_MMAP_CPU) {
 		handle = data->fb[1].gem_handle;
 		igt_assert(drmModePageFlip(data->drm_fd, crtc_id,
 					   data->fb[1].fb_id, 0, NULL) == 0);
 
-		igt_assert(wait_for_fbc_enabled(data));
+		if (mode != TEST_PAGE_FLIP)
+			igt_assert(wait_for_fbc_enabled(data));
 	}
 
 	switch (mode) {
 		void *ptr;
 	case TEST_PAGE_FLIP:
-		igt_assert(drmModePageFlip(data->drm_fd, crtc_id,
-					   data->fb[1].fb_id, 0, NULL) == 0);
 		break;
 	case TEST_MMAP_CPU:
 	case TEST_PAGE_FLIP_AND_MMAP_CPU:
