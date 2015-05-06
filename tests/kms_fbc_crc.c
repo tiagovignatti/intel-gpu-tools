@@ -207,11 +207,21 @@ static bool wait_for_fbc_enabled(data_t *data)
 	return igt_wait(fbc_enabled(data), 3000, 30);
 }
 
+static void check_crc(data_t *data, enum test_mode mode)
+{
+	igt_pipe_crc_t *pipe_crc = data->pipe_crc;
+	igt_crc_t crc;
+
+	igt_pipe_crc_collect_crc(pipe_crc, &crc);
+	if (mode == TEST_PAGE_FLIP)
+		igt_assert_crc_equal(&crc, &data->ref_crc[1]);
+	else
+		;/* FIXME: missing reference CRCs */
+}
+
 static void test_crc(data_t *data, enum test_mode mode)
 {
 	uint32_t crtc_id = data->output->config.crtc->crtc_id;
-	igt_pipe_crc_t *pipe_crc = data->pipe_crc;
-	igt_crc_t crc;
 	uint32_t handle = data->fb[0].gem_handle;
 
 	igt_assert(fbc_enabled(data));
@@ -266,11 +276,7 @@ static void test_crc(data_t *data, enum test_mode mode)
 	igt_wait_for_vblank(data->drm_fd, data->pipe);
 	igt_wait_for_vblank(data->drm_fd, data->pipe);
 
-	igt_pipe_crc_collect_crc(pipe_crc, &crc);
-	if (mode == TEST_PAGE_FLIP)
-		igt_assert_crc_equal(&crc, &data->ref_crc[1]);
-	else
-		;/* FIXME: missing reference CRCs */
+	check_crc(data, mode);
 
 	/*
 	 * Allow time for FBC to kick in again if it
@@ -278,11 +284,7 @@ static void test_crc(data_t *data, enum test_mode mode)
 	 */
 	igt_assert(wait_for_fbc_enabled(data));
 
-	igt_pipe_crc_collect_crc(pipe_crc, &crc);
-	if (mode == TEST_PAGE_FLIP)
-		igt_assert_crc_equal(&crc, &data->ref_crc[1]);
-	else
-		;/* FIXME: missing reference CRCs */
+	check_crc(data, mode);
 }
 
 static bool prepare_crtc(data_t *data)
