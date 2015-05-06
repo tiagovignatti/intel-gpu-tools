@@ -48,6 +48,22 @@
 #define HEIGHT 512
 #define SIZE (HEIGHT*STRIDE)
 
+static bool uses_full_ppgtt(int fd)
+{
+	struct drm_i915_getparam gp;
+	int val = 0;
+
+	memset(&gp, 0, sizeof(gp));
+	gp.param = 18; /* HAS_ALIASING_PPGTT */
+	gp.value = &val;
+
+	if (drmIoctl(fd, DRM_IOCTL_I915_GETPARAM, &gp))
+		return 0;
+
+	errno = 0;
+	return val > 1;
+}
+
 static drm_intel_bo *create_bo(drm_intel_bufmgr *bufmgr,
 			       uint32_t pixel)
 {
@@ -200,6 +216,60 @@ static void surfaces_check(dri_bo **bo, int count, uint32_t expected)
 	}
 }
 
+static uint64_t exec_and_get_offset(int fd, uint32_t batch)
+{
+	struct drm_i915_gem_execbuffer2 execbuf;
+	struct drm_i915_gem_exec_object2 exec[1];
+	uint32_t batch_data[2] = { MI_BATCH_BUFFER_END };
+
+	gem_write(fd, batch, 0, batch_data, sizeof(batch_data));
+
+	memset(exec, 0, sizeof(exec));
+	exec[0].handle = batch;
+
+	memset(&execbuf, 0, sizeof(execbuf));
+	execbuf.buffers_ptr = (uintptr_t)exec;
+	execbuf.buffer_count = 1;
+
+	gem_execbuf(fd, &execbuf);
+	igt_assert_neq(exec[0].offset, -1);
+
+	return exec[0].offset;
+}
+
+static void flink_and_close(void)
+{
+	uint32_t fd, fd2;
+	uint32_t bo, flinked_bo, new_bo, name;
+	uint64_t offset, offset_new;
+
+	fd = drm_open_any();
+	igt_require(uses_full_ppgtt(fd));
+
+	bo = gem_create(fd, 4096);
+	name = gem_flink(fd, bo);
+
+	fd2 = drm_open_any();
+
+	flinked_bo = gem_open(fd2, name);
+	offset = exec_and_get_offset(fd2, flinked_bo);
+	gem_sync(fd2, flinked_bo);
+	gem_close(fd2, flinked_bo);
+
+	/* the flinked bo VMA should have been cleared now, so a new bo of the
+	 * same size should get the same offset
+	 */
+	new_bo = gem_create(fd2, 4096);
+	offset_new = exec_and_get_offset(fd2, new_bo);
+	gem_close(fd2, new_bo);
+
+	igt_assert_eq(offset, offset_new);
+
+	gem_close(fd, bo);
+	close(fd);
+	close(fd2);
+}
+
 #define N_CHILD 8
 int main(int argc, char **argv)
 {
@@ -228,6 +298,9 @@ int main(int argc, char **argv)
 		surfaces_check(bcs, 1, 0x4000);
 		surfaces_check(rcs, N_CHILD, 0x8000 / N_CHILD);
 	}
+
+	igt_subtest("flink-and-close-vma-leak")
+		flink_and_close();
 
 	igt_exit();
 }
