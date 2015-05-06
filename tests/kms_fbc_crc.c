@@ -227,6 +227,7 @@ static void test_crc(data_t *data, enum test_mode mode)
 
 	switch (mode) {
 		void *ptr;
+		drm_intel_context *context = NULL;
 	case TEST_PAGE_FLIP:
 		break;
 	case TEST_MMAP_CPU:
@@ -248,13 +249,12 @@ static void test_crc(data_t *data, enum test_mode mode)
 	case TEST_PAGE_FLIP_AND_BLT:
 		fill_blt(data, handle, data->fb, ~0);
 		break;
-	case TEST_RENDER:
 	case TEST_CONTEXT:
-	case TEST_PAGE_FLIP_AND_RENDER:
 	case TEST_PAGE_FLIP_AND_CONTEXT:
-		fill_render(data, handle,
-			    (mode == TEST_CONTEXT || mode == TEST_PAGE_FLIP_AND_CONTEXT) ?
-			    data->ctx[1] : NULL, 0xff);
+		context = data->ctx[1];
+	case TEST_RENDER:
+	case TEST_PAGE_FLIP_AND_RENDER:
+		fill_render(data, handle, context, 0xff);
 		break;
 	}
 
