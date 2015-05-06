@@ -330,8 +330,6 @@ test_plane_panning_with_output(data_t *data,
 
 	igt_pipe_crc_collect_crc(data->pipe_crc, &crc);
 
-	igt_debug_wait_for_keypress("crc");
-
 	if (flags & TEST_PANNING_TOP_LEFT)
 		igt_assert_crc_equal(&test.red_crc, &crc);
 	else

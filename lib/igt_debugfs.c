@@ -35,6 +35,7 @@
 #include <i915_drm.h>
 
 #include "drmtest.h"
+#include "igt_aux.h"
 #include "igt_kms.h"
 #include "igt_debugfs.h"
 
@@ -509,9 +510,14 @@ static void crc_sanity_checks(igt_crc_t *crc)
  *
  * This function takes care of the pipe_crc book-keeping, it will start/stop
  * the collection of the CRC.
+ *
+ * This function also calls the interactive debug with the "crc" domain, so you
+ * can make use of this feature to actually see the screen that is being CRC'd.
  */
 void igt_pipe_crc_collect_crc(igt_pipe_crc_t *pipe_crc, igt_crc_t *out_crc)
 {
+	igt_debug_wait_for_keypress("crc");
+
 	igt_pipe_crc_start(pipe_crc);
 	read_one_crc(pipe_crc, out_crc);
 	igt_pipe_crc_stop(pipe_crc);

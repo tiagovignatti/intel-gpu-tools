@@ -102,7 +102,6 @@ static void get_method_crc(enum igt_draw_method method, uint64_t tiling,
 			    &ms.connector_id, 1, ms.mode);
 	igt_assert(rc == 0);
 
-	igt_debug_wait_for_keypress("crc");
 	igt_pipe_crc_collect_crc(pipe_crc, crc);
 
 	kmstest_unset_all_crtcs(drm_fd, drm_res);
@@ -144,7 +143,6 @@ static void get_fill_crc(uint64_t tiling, igt_crc_t *crc)
 			    &ms.connector_id, 1, ms.mode);
 	igt_assert(rc == 0);
 
-	igt_debug_wait_for_keypress("crc");
 	igt_pipe_crc_collect_crc(pipe_crc, crc);
 
 	kmstest_unset_all_crtcs(drm_fd, drm_res);
@@ -171,7 +169,6 @@ static void fill_fb_subtest(void)
 			    &ms.connector_id, 1, ms.mode);
 	igt_assert(rc == 0);
 
-	igt_debug_wait_for_keypress("crc");
 	igt_pipe_crc_collect_crc(pipe_crc, &base_crc);
 
 	get_fill_crc(LOCAL_DRM_FORMAT_MOD_NONE, &crc);
