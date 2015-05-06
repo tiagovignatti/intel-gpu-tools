@@ -33,13 +33,13 @@ if [ ! -d "$IGT_TEST_ROOT" ]; then
 	exit 1
 fi
 
-if [ ! -f "$IGT_TEST_ROOT/single-tests.txt" ]; then
+if [ ! -f "$IGT_TEST_ROOT/test-list.txt" ]; then
 	echo "Error: test list not found."
 	echo "Please run make in the tests directory to generate the test list."
+	exit 1
 fi
 
-SINGLE_TEST_LIST=`cat "$IGT_TEST_ROOT/single-tests.txt" | sed -e '/TESTLIST/d' -e 's/ /\n/g'`
-MULTI_TEST_LIST=`cat "$IGT_TEST_ROOT/multi-tests.txt" | sed -e '/TESTLIST/d' -e 's/ /\n/g'`
+TEST_LIST=`cat "$IGT_TEST_ROOT/test-list.txt" | sed -e '/TESTLIST/d' -e 's/ /\n/g'`
 
 function download_piglit {
 	git clone git://anongit.freedesktop.org/piglit "$ROOT/piglit"
@@ -66,12 +66,15 @@ function print_help {
 }
 
 function list_tests {
-	echo "$SINGLE_TEST_LIST"
-	for test in $MULTI_TEST_LIST; do
+	for test in $TEST_LIST; do
 		SUBTESTS=`"$IGT_TEST_ROOT/$test" --list-subtests`
-		for subtest in $SUBTESTS; do
-			echo "$test/$subtest"
-		done
+		if [ -z "$SUBTESTS" ]; then
+			echo "$test"
+		else
+			for subtest in $SUBTESTS; do
+				echo "$test/$subtest"
+			done
+		fi
 	done
 }
 
