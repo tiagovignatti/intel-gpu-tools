@@ -190,6 +190,29 @@ static void fill_render(data_t *data, uint32_t handle,
 	gem_bo_busy(data->drm_fd, handle);
 }
 
+static void fill_mmap_cpu(data_t *data, uint32_t handle, unsigned char color)
+{
+	void *ptr;
+
+	ptr = gem_mmap__cpu(data->drm_fd, handle, 0, 4096, PROT_WRITE);
+	gem_set_domain(data->drm_fd, handle, I915_GEM_DOMAIN_CPU,
+		       I915_GEM_DOMAIN_CPU);
+	memset(ptr, color, 4);
+	munmap(ptr, 4096);
+	gem_sw_finish(data->drm_fd, handle);
+}
+
+static void fill_mmap_gtt(data_t *data, uint32_t handle, unsigned char color)
+{
+	void *ptr;
+
+	ptr = gem_mmap__gtt(data->drm_fd, handle, 4096, PROT_WRITE);
+	gem_set_domain(data->drm_fd, handle, I915_GEM_DOMAIN_GTT,
+		       I915_GEM_DOMAIN_GTT);
+	memset(ptr, color, 4);
+	munmap(ptr, 4096);
+}
+
 static bool fbc_enabled(data_t *data)
 {
 	FILE *status;
@@ -237,24 +260,16 @@ static void test_crc(data_t *data, enum test_mode mode)
 	}
 
 	switch (mode) {
-		void *ptr;
 		drm_intel_context *context = NULL;
 	case TEST_PAGE_FLIP:
 		break;
 	case TEST_MMAP_CPU:
 	case TEST_PAGE_FLIP_AND_MMAP_CPU:
-		ptr = gem_mmap__cpu(data->drm_fd, handle, 0, 4096, PROT_WRITE);
-		gem_set_domain(data->drm_fd, handle, I915_GEM_DOMAIN_CPU, I915_GEM_DOMAIN_CPU);
-		memset(ptr, 0xff, 4);
-		munmap(ptr, 4096);
-		gem_sw_finish(data->drm_fd, handle);
+		fill_mmap_cpu(data, handle, 0xff);
 		break;
 	case TEST_MMAP_GTT:
 	case TEST_PAGE_FLIP_AND_MMAP_GTT:
-		ptr = gem_mmap__gtt(data->drm_fd, handle, 4096, PROT_WRITE);
-		gem_set_domain(data->drm_fd, handle, I915_GEM_DOMAIN_GTT, I915_GEM_DOMAIN_GTT);
-		memset(ptr, 0xff, 4);
-		munmap(ptr, 4096);
+		fill_mmap_gtt(data, handle, 0xff);
 		break;
 	case TEST_BLT:
 	case TEST_PAGE_FLIP_AND_BLT:
