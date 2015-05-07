@@ -836,10 +836,12 @@ struct test_ops {
 static void test_run(struct test_ops *test)
 {
 	unsigned int m;
+	unsigned p_odd_even[2] = { 0, 0 };
 
 	for (m = 0; m < ARRAY_SIZE(modes); m++) {
 		struct skl_wrpll_params params = {};
 		int clock = modes[m].clock;
+		unsigned int p;
 
 		if (!test->compute(clock, &params)) {
 			fprintf(stderr, "Couldn't compute divider for %dHz\n",
@@ -847,12 +849,13 @@ static void test_run(struct test_ops *test)
 			continue;
 		}
 
+		p = params.p0 * params.p1 * params.p2;
+
 		/*
 		 * make sure we respect the +1%/-6% contraint around the
 		 * central frequency
 		 */
 		{
-			unsigned int p = params.p0 * params.p1 * params.p2;
 			uint64_t dco_freq = (uint64_t)p * clock * 5;
 			uint64_t central_freq = params.central_freq_hz;
 			uint64_t deviation;
@@ -871,7 +874,17 @@ static void test_run(struct test_ops *test)
 				       "deviation=%"PRIu64"\n", clock,
 				       deviation);
 		}
+
+		/*
+		 * count how many even/odd dividers we have through the whole
+		 * list of tested frequencies
+		 */
+		{
+			p_odd_even[p % 2]++;
+		}
 	}
+
+	printf("even/odd dividers: %d/%d\n", p_odd_even[0], p_odd_even[1]);
 }
 
 int main(int argc, char **argv)
