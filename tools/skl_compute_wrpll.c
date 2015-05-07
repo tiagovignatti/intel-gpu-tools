@@ -60,6 +60,10 @@ struct skl_wrpll_params {
 	uint32_t        kdiv;
 	uint32_t        pdiv;
 	uint32_t        central_freq;
+
+	/* for this test code only */
+	uint64_t central_freq_hz;
+	unsigned int p0, p1, p2;
 };
 
 static bool
@@ -239,6 +243,12 @@ found:
 
 	}
 
+	/* for this unit test only */
+	wrpll_params->central_freq_hz = dco_central_freq[min_dco_index];
+	wrpll_params->p0 = candidate_p0[min_dco_index];
+	wrpll_params->p1 = candidate_p1[min_dco_index];
+	wrpll_params->p2 = candidate_p2[min_dco_index];
+
 	return true;
 }
 
@@ -406,6 +416,7 @@ skl_ddi_calculate_wrpll2(int clock /* in Hz */,
 	};
 	struct skl_wrpll_context ctx;
 	unsigned int dco, d, i;
+	unsigned int p0, p1, p2;
 
 	skl_wrpll_context_init(&ctx);
 
@@ -427,6 +438,12 @@ skl_ddi_calculate_wrpll2(int clock /* in Hz */,
 		return false;
 
 	skl_wrpll_get_multipliers(ctx.p, &p0, &p1, &p2);
+
+	/* for this unit test only */
+	wrpll_params->central_freq_hz = ctx.central_freq;
+	wrpll_params->p0 = p0;
+	wrpll_params->p1 = p1;
+	wrpll_params->p2 = p2;
 
 	return true;
 }
@@ -828,6 +845,31 @@ static void test_run(struct test_ops *test)
 			fprintf(stderr, "Couldn't compute divider for %dHz\n",
 				clock);
 			continue;
+		}
+
+		/*
+		 * make sure we respect the +1%/-6% contraint around the
+		 * central frequency
+		 */
+		{
+			unsigned int p = params.p0 * params.p1 * params.p2;
+			uint64_t dco_freq = (uint64_t)p * clock * 5;
+			uint64_t central_freq = params.central_freq_hz;
+			uint64_t deviation;
+			uint64_t diff;
+
+			diff = abs_diff(dco_freq, central_freq);
+			deviation = div64_u64(10000 * diff, central_freq);
+
+			if (dco_freq > central_freq) {
+				if (deviation > 100)
+					printf("failed constraint for %dHz "
+					       "deviation=%"PRIu64"\n", clock,
+					       deviation);
+			} else if (deviation > 600)
+				printf("failed constraint for %dHz "
+				       "deviation=%"PRIu64"\n", clock,
+				       deviation);
 		}
 	}
 }
