@@ -98,6 +98,7 @@ static void fill_blt(data_t *data,
 	struct intel_batchbuffer *batch;
 	unsigned flags;
 	int pitch;
+	uint32_t pixel = color | (color << 8) | (color << 16) | (color << 24);
 
 	batch = intel_batchbuffer_alloc(data->bufmgr, data->devid);
 	igt_assert(batch);
@@ -113,9 +114,9 @@ static void fill_blt(data_t *data,
 	COLOR_BLIT_COPY_BATCH_START(flags);
 	OUT_BATCH(3 << 24 | 0xf0 << 16 | pitch);
 	OUT_BATCH(0);
-	OUT_BATCH(fb->height << 16 | fb->width);
+	OUT_BATCH(1 << 16 | 1);
 	OUT_RELOC_FENCED(dst, I915_GEM_DOMAIN_RENDER, I915_GEM_DOMAIN_RENDER, 0);
-	OUT_BATCH(color);
+	OUT_BATCH(pixel);
 	ADVANCE_BATCH();
 
 	intel_batchbuffer_flush(batch);
