@@ -56,7 +56,7 @@ enum test_mode {
 
 typedef struct {
 	int drm_fd;
-	igt_crc_t ref_crc[2];
+	igt_crc_t ref_crc[4];
 	igt_pipe_crc_t *pipe_crc;
 	drm_intel_bufmgr *bufmgr;
 	drm_intel_context *ctx[2];
@@ -234,13 +234,32 @@ static bool wait_for_fbc_enabled(data_t *data)
 static void check_crc(data_t *data, enum test_mode mode)
 {
 	igt_pipe_crc_t *pipe_crc = data->pipe_crc;
-	igt_crc_t crc;
+	igt_crc_t crc, *ref_crc;
+
+	switch (mode) {
+	case TEST_PAGE_FLIP:
+		ref_crc = &data->ref_crc[1];
+		break;
+	case TEST_MMAP_CPU:
+	case TEST_MMAP_GTT:
+	case TEST_BLT:
+	case TEST_RENDER:
+	case TEST_CONTEXT:
+		ref_crc = &data->ref_crc[2];
+		break;
+	case TEST_PAGE_FLIP_AND_MMAP_CPU:
+	case TEST_PAGE_FLIP_AND_MMAP_GTT:
+	case TEST_PAGE_FLIP_AND_BLT:
+	case TEST_PAGE_FLIP_AND_RENDER:
+	case TEST_PAGE_FLIP_AND_CONTEXT:
+		ref_crc = &data->ref_crc[3];
+		break;
+	default:
+		igt_assert(false);
+	}
 
 	igt_pipe_crc_collect_crc(pipe_crc, &crc);
-	if (mode == TEST_PAGE_FLIP)
-		igt_assert_crc_equal(&crc, &data->ref_crc[1]);
-	else
-		;/* FIXME: missing reference CRCs */
+	igt_assert_crc_equal(&crc, ref_crc);
 }
 
 static void test_crc(data_t *data, enum test_mode mode)
@@ -321,27 +340,71 @@ static bool prepare_crtc(data_t *data)
 	return true;
 }
 
+static void create_fbs(data_t *data, bool tiled, struct igt_fb *fbs)
+{
+	int rc;
+	drmModeModeInfo *mode = igt_output_get_mode(data->output);
+	uint64_t tiling = tiled ? LOCAL_I915_FORMAT_MOD_X_TILED :
+				  LOCAL_DRM_FORMAT_MOD_NONE;
+
+	rc = igt_create_color_fb(data->drm_fd, mode->hdisplay, mode->vdisplay,
+				 DRM_FORMAT_XRGB8888, tiling,
+				 0.0, 0.0, 0.0, &fbs[0]);
+	igt_assert(rc);
+	rc = igt_create_color_fb(data->drm_fd, mode->hdisplay, mode->vdisplay,
+				 DRM_FORMAT_XRGB8888, tiling,
+				 0.1, 0.1, 0.1, &fbs[1]);
+	igt_assert(rc);
+}
+
+/* Since we want to be really safe that the CRCs are actually what we really
+ * want, use untiled FBs, so FBC won't happen to disrupt things. Also do the
+ * drawing before setting the modes, just to be sure. */
+static void get_ref_crcs(data_t *data)
+{
+	igt_display_t *display = &data->display;
+	struct igt_fb fbs[4];
+	int i;
+
+	create_fbs(data, false, &fbs[0]);
+	create_fbs(data, false, &fbs[2]);
+
+	fill_mmap_gtt(data, fbs[2].gem_handle, 0xff);
+	fill_mmap_gtt(data, fbs[3].gem_handle, 0xff);
+
+	for (i = 0; i < 4; i++) {
+		igt_plane_set_fb(data->primary, &fbs[i]);
+		igt_display_commit(display);
+		igt_wait_for_vblank(data->drm_fd, data->pipe);
+		igt_assert(!fbc_enabled(data));
+		igt_pipe_crc_collect_crc(data->pipe_crc, &data->ref_crc[i]);
+		igt_assert(!fbc_enabled(data));
+	}
+
+	igt_plane_set_fb(data->primary, &data->fb[1]);
+	igt_display_commit(display);
+
+	for (i = 0; i < 4; i++)
+		igt_remove_fb(data->drm_fd, &fbs[i]);
+}
+
 static bool prepare_test(data_t *data, enum test_mode test_mode)
 {
 	igt_display_t *display = &data->display;
 	igt_output_t *output = data->output;
-	drmModeModeInfo *mode;
 	igt_pipe_crc_t *pipe_crc;
-	int rc;
 
 	data->primary = igt_output_get_plane(data->output, IGT_PLANE_PRIMARY);
-	mode = igt_output_get_mode(data->output);
 
-	rc = igt_create_color_fb(data->drm_fd, mode->hdisplay, mode->vdisplay,
-				 DRM_FORMAT_XRGB8888,
-				 LOCAL_I915_FORMAT_MOD_X_TILED,
-				 0.0, 0.0, 0.0, &data->fb[0]);
-	igt_assert(rc);
-	rc = igt_create_color_fb(data->drm_fd, mode->hdisplay, mode->vdisplay,
-				 DRM_FORMAT_XRGB8888,
-				 LOCAL_I915_FORMAT_MOD_X_TILED,
-				 0.1, 0.1, 0.1, &data->fb[1]);
-	igt_assert(rc);
+	create_fbs(data, true, data->fb);
+
+	igt_pipe_crc_free(data->pipe_crc);
+	data->pipe_crc = NULL;
+	pipe_crc = igt_pipe_crc_new(data->pipe,
+				    INTEL_PIPE_CRC_SOURCE_AUTO);
+	data->pipe_crc = pipe_crc;
+
+	get_ref_crcs(data);
 
 	/* scanout = fb[1] */
 	igt_plane_set_fb(data->primary, &data->fb[1]);
@@ -358,19 +421,6 @@ static bool prepare_test(data_t *data, enum test_mode test_mode)
 		igt_remove_fb(data->drm_fd, &data->fb[1]);
 		return false;
 	}
-
-	igt_pipe_crc_free(data->pipe_crc);
-	data->pipe_crc = NULL;
-
-	pipe_crc = igt_pipe_crc_new(data->pipe,
-				    INTEL_PIPE_CRC_SOURCE_AUTO);
-
-	data->pipe_crc = pipe_crc;
-
-	igt_wait_for_vblank(data->drm_fd, data->pipe);
-
-	/* get reference crc for fb[1] */
-	igt_pipe_crc_collect_crc(pipe_crc, &data->ref_crc[1]);
 
 	if (test_mode == TEST_CONTEXT || test_mode == TEST_PAGE_FLIP_AND_CONTEXT) {
 		data->ctx[0] = drm_intel_gem_context_create(data->bufmgr);
@@ -404,9 +454,6 @@ static bool prepare_test(data_t *data, enum test_mode test_mode)
 	}
 
 	igt_wait_for_vblank(data->drm_fd, data->pipe);
-
-	/* get reference crc for fb[0] */
-	igt_pipe_crc_collect_crc(pipe_crc, &data->ref_crc[0]);
 
 	return true;
 }
