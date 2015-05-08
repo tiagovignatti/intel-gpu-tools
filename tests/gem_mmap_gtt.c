@@ -345,8 +345,11 @@ test_huge_copy(int fd, int huge, int tiling_a, int tiling_b)
 	char *a, *b;
 
 	switch (huge) {
-	case -1:
+	case -2:
 		huge_object_size = gem_mappable_aperture_size() / 4;
+		break;
+	case -1:
+		huge_object_size = gem_mappable_aperture_size() / 2;
 		break;
 	case 0:
 		huge_object_size = gem_mappable_aperture_size() + PAGE_SIZE;
@@ -575,8 +578,12 @@ igt_main
 		test_huge_bo(fd, 1, I915_TILING_Y);
 
 	igt_subtest("small-copy")
-		test_huge_copy(fd, -1, I915_TILING_NONE, I915_TILING_NONE);
+		test_huge_copy(fd, -2, I915_TILING_NONE, I915_TILING_NONE);
 	igt_subtest("small-copy-XY")
+		test_huge_copy(fd, -2, I915_TILING_X, I915_TILING_Y);
+	igt_subtest("medium-copy")
+		test_huge_copy(fd, -1, I915_TILING_NONE, I915_TILING_NONE);
+	igt_subtest("medium-copy-XY")
 		test_huge_copy(fd, -1, I915_TILING_X, I915_TILING_Y);
 	igt_subtest("big-copy")
 		test_huge_copy(fd, 0, I915_TILING_NONE, I915_TILING_NONE);
