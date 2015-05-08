@@ -40,6 +40,7 @@
 #include "ioctl_wrappers.h"
 #include "drmtest.h"
 #include "igt_debugfs.h"
+#include "igt_aux.h"
 
 #ifndef PAGE_SIZE
 #define PAGE_SIZE 4096
@@ -51,26 +52,6 @@ static void
 set_domain_gtt(int fd, uint32_t handle)
 {
 	gem_set_domain(fd, handle, I915_GEM_DOMAIN_GTT, I915_GEM_DOMAIN_GTT);
-}
-
-static void
-set_domain_cpu(int fd, uint32_t handle)
-{
-	gem_set_domain(fd, handle, I915_GEM_DOMAIN_CPU, I915_GEM_DOMAIN_CPU);
-}
-
-static void
-pread_bo(int fd, int handle, void *buf, int offset, int size)
-{
-	struct drm_i915_gem_pread gem_pread;
-
-	memset(&gem_pread, 0, sizeof(gem_pread));
-	gem_pread.handle = handle;
-	gem_pread.data_ptr = (uintptr_t)buf;
-	gem_pread.size = size;
-	gem_pread.offset = offset;
-
-	igt_assert(ioctl(fd, DRM_IOCTL_I915_GEM_PREAD, &gem_pread) == 0);
 }
 
 static void *
@@ -284,89 +265,153 @@ test_write_gtt(int fd)
 }
 
 static void
-test_huge_bo(int fd)
+test_huge_bo(int fd, int huge, int tiling)
 {
 	uint32_t bo;
-	char *ptr_cpu;
-	char *ptr_gtt;
-	char *cpu_pattern;
-	char *gtt_pattern;
-	uint64_t mappable_aperture_pages = gem_mappable_aperture_size() /
-					   PAGE_SIZE;
-	uint64_t huge_object_size = (mappable_aperture_pages + 1) * PAGE_SIZE;
-	uint64_t last_offset = huge_object_size - PAGE_SIZE;
+	char *ptr;
+	char *tiled_pattern;
+	char *linear_pattern;
+	uint64_t size, last_offset;
+	int pitch = tiling == I915_TILING_Y ? 128 : 512;
+	int i;
 
-	cpu_pattern = malloc(PAGE_SIZE);
-	gtt_pattern = malloc(PAGE_SIZE);
-	igt_assert(cpu_pattern && gtt_pattern);
-	memset(cpu_pattern,  0xaa, PAGE_SIZE);
-	memset(gtt_pattern, ~0xaa, PAGE_SIZE);
+	switch (huge) {
+	case -1:
+		size = gem_mappable_aperture_size() / 2;
+		break;
+	case 0:
+		size = gem_mappable_aperture_size() + PAGE_SIZE;
+		break;
+	default:
+		size = gem_aperture_size(fd) + PAGE_SIZE;
+		break;
+	}
+	intel_require_memory(1, size, CHECK_RAM);
 
-	bo = gem_create(fd, huge_object_size);
+	last_offset = size - PAGE_SIZE;
 
-	/* Obtain CPU mapping for the object. */
-	ptr_cpu = gem_mmap__cpu(fd, bo, 0, huge_object_size,
-				PROT_READ | PROT_WRITE);
-	igt_assert(ptr_cpu);
+	/* Create pattern */
+	bo = gem_create(fd, PAGE_SIZE);
+	if (tiling)
+		gem_set_tiling(fd, bo, tiling, pitch);
+	linear_pattern = gem_mmap__gtt(fd, bo, PAGE_SIZE,
+				       PROT_READ | PROT_WRITE);
+	igt_assert(linear_pattern);
+	for (i = 0; i < PAGE_SIZE; i++)
+		linear_pattern[i] = i;
+	tiled_pattern = gem_mmap__cpu(fd, bo, 0, PAGE_SIZE, PROT_READ);
+	igt_assert(tiled_pattern);
 
-	set_domain_cpu(fd, bo);
+	gem_set_domain(fd, bo, I915_GEM_DOMAIN_CPU | I915_GEM_DOMAIN_GTT, 0);
+	gem_close(fd, bo);
 
-	/* Write first page through the mapping and assert reading it back
-	 * works. */
-	memcpy(ptr_cpu, cpu_pattern, PAGE_SIZE);
-	igt_assert(memcmp(ptr_cpu, cpu_pattern, PAGE_SIZE) == 0);
+	bo = gem_create(fd, size);
+	if (tiling)
+		gem_set_tiling(fd, bo, tiling, pitch);
 
-	/* Write last page through the mapping and assert reading it back
-	 * works. */
-	memcpy(ptr_cpu + last_offset, cpu_pattern, PAGE_SIZE);
-	igt_assert(memcmp(ptr_cpu + last_offset, cpu_pattern, PAGE_SIZE) == 0);
-
-	/* Cross check that accessing two simultaneous pages works. */
-	igt_assert(memcmp(ptr_cpu, ptr_cpu + last_offset, PAGE_SIZE) == 0);
-
-	munmap(ptr_cpu, huge_object_size);
-	ptr_cpu = NULL;
+	/* Initialise first/last page through CPU mmap */
+	ptr = gem_mmap__cpu(fd, bo, 0, size, PROT_READ | PROT_WRITE);
+	memcpy(ptr, tiled_pattern, PAGE_SIZE);
+	memcpy(ptr + last_offset, tiled_pattern, PAGE_SIZE);
+	munmap(ptr, size);
 
 	/* Obtain mapping for the object through GTT. */
-	ptr_gtt = gem_mmap__gtt(fd, bo, huge_object_size,
-			        PROT_READ | PROT_WRITE);
-	igt_require_f(ptr_gtt, "Huge BO GTT mapping not supported.\n");
+	ptr = gem_mmap__gtt(fd, bo, size, PROT_READ | PROT_WRITE);
+	igt_require_f(ptr, "Huge BO GTT mapping not supported.\n");
 
 	set_domain_gtt(fd, bo);
 
 	/* Access through GTT should still provide the CPU written values. */
-	igt_assert(memcmp(ptr_gtt              , cpu_pattern, PAGE_SIZE) == 0);
-	igt_assert(memcmp(ptr_gtt + last_offset, cpu_pattern, PAGE_SIZE) == 0);
+	igt_assert(memcmp(ptr              , linear_pattern, PAGE_SIZE) == 0);
+	igt_assert(memcmp(ptr + last_offset, linear_pattern, PAGE_SIZE) == 0);
 
-	/* Try replacing first page through GTT mapping and make sure other page
-	 * stays intact. */
-	memcpy(ptr_gtt, gtt_pattern, PAGE_SIZE);
-	igt_assert(memcmp(ptr_gtt              , gtt_pattern, PAGE_SIZE) == 0);
-	igt_assert(memcmp(ptr_gtt + last_offset, cpu_pattern, PAGE_SIZE) == 0);
+	gem_set_tiling(fd, bo, I915_TILING_NONE, 0);
 
-	/* And make sure that after writing, both pages contain what they
-	 * should.*/
-	memcpy(ptr_gtt + last_offset, gtt_pattern, PAGE_SIZE);
-	igt_assert(memcmp(ptr_gtt              , gtt_pattern, PAGE_SIZE) == 0);
-	igt_assert(memcmp(ptr_gtt + last_offset, gtt_pattern, PAGE_SIZE) == 0);
+	igt_assert(memcmp(ptr              , tiled_pattern, PAGE_SIZE) == 0);
+	igt_assert(memcmp(ptr + last_offset, tiled_pattern, PAGE_SIZE) == 0);
 
-	munmap(ptr_gtt, huge_object_size);
-	ptr_gtt = NULL;
-
-	/* Verify the page contents after GTT writes by reading without mapping.
-	 * Mapping to CPU domain is avoided not to cause a huge flush.
-	 */
-	pread_bo(fd, bo, cpu_pattern, 0, PAGE_SIZE);
-	igt_assert(memcmp(cpu_pattern, gtt_pattern, PAGE_SIZE) == 0);
-
-	memset(cpu_pattern, 0x00, PAGE_SIZE);
-
-	pread_bo(fd, bo, cpu_pattern, last_offset, PAGE_SIZE);
-	igt_assert(memcmp(cpu_pattern, gtt_pattern, PAGE_SIZE) == 0);
+	munmap(ptr, size);
 
 	gem_close(fd, bo);
-	free(cpu_pattern);
-	free(gtt_pattern);
+	munmap(tiled_pattern, PAGE_SIZE);
+	munmap(linear_pattern, PAGE_SIZE);
+}
+
+static void
+test_huge_copy(int fd, int huge, int tiling_a, int tiling_b)
+{
+	uint64_t huge_object_size, i;
+	uint32_t bo, *pattern_a, *pattern_b;
+	char *a, *b;
+
+	switch (huge) {
+	case -1:
+		huge_object_size = gem_mappable_aperture_size() / 4;
+		break;
+	case 0:
+		huge_object_size = gem_mappable_aperture_size() + PAGE_SIZE;
+		break;
+	default:
+		huge_object_size = gem_aperture_size(fd) + PAGE_SIZE;
+		break;
+	}
+	intel_require_memory(2, huge_object_size, CHECK_RAM);
+
+	pattern_a = malloc(PAGE_SIZE);
+	for (i = 0; i < PAGE_SIZE/4; i++)
+		pattern_a[i] = i;
+
+	pattern_b = malloc(PAGE_SIZE);
+	for (i = 0; i < PAGE_SIZE/4; i++)
+		pattern_b[i] = ~i;
+
+	bo = gem_create(fd, huge_object_size);
+	if (tiling_a)
+		gem_set_tiling(fd, bo, tiling_a,
+			       tiling_a == I915_TILING_Y ? 128 : 512);
+	a = gem_mmap__gtt(fd, bo, huge_object_size, PROT_READ | PROT_WRITE);
+	igt_require(a);
+	gem_close(fd, bo);
+
+	for (i = 0; i < huge_object_size / PAGE_SIZE; i++)
+		memcpy(a + PAGE_SIZE*i, pattern_a, PAGE_SIZE);
+
+	bo = gem_create(fd, huge_object_size);
+	if (tiling_b)
+		gem_set_tiling(fd, bo, tiling_b, 
+			       tiling_b == I915_TILING_Y ? 128 : 512);
+	b = gem_mmap__gtt(fd, bo, huge_object_size, PROT_READ | PROT_WRITE);
+	igt_require(b);
+	gem_close(fd, bo);
+
+	for (i = 0; i < huge_object_size / PAGE_SIZE; i++)
+		memcpy(b + PAGE_SIZE*i, pattern_b, PAGE_SIZE);
+
+	for (i = 0; i < huge_object_size / PAGE_SIZE; i++) {
+		if (i & 1)
+			memcpy(a + i *PAGE_SIZE, b + i*PAGE_SIZE, PAGE_SIZE);
+		else
+			memcpy(b + i *PAGE_SIZE, a + i*PAGE_SIZE, PAGE_SIZE);
+	}
+
+	for (i = 0; i < huge_object_size / PAGE_SIZE; i++) {
+		if (i & 1)
+			igt_assert(memcmp(pattern_b, a + PAGE_SIZE*i, PAGE_SIZE) == 0);
+		else
+			igt_assert(memcmp(pattern_a, a + PAGE_SIZE*i, PAGE_SIZE) == 0);
+	}
+	munmap(a, huge_object_size);
+
+	for (i = 0; i < huge_object_size / PAGE_SIZE; i++) {
+		if (i & 1)
+			igt_assert(memcmp(pattern_b, b + PAGE_SIZE*i, PAGE_SIZE) == 0);
+		else
+			igt_assert(memcmp(pattern_a, b + PAGE_SIZE*i, PAGE_SIZE) == 0);
+	}
+	munmap(b, huge_object_size);
+
+	free(pattern_a);
+	free(pattern_b);
 }
 
 static void
@@ -507,8 +552,40 @@ igt_main
 		run_without_prefault(fd, test_write_gtt);
 	igt_subtest("write-cpu-read-gtt")
 		test_write_cpu_read_gtt(fd);
+
+	igt_subtest("small-bo")
+		test_huge_bo(fd, -1, I915_TILING_NONE);
+	igt_subtest("small-bo-tiledX")
+		test_huge_bo(fd, -1, I915_TILING_X);
+	igt_subtest("small-bo-tiledY")
+		test_huge_bo(fd, -1, I915_TILING_Y);
+
+	igt_subtest("big-bo")
+		test_huge_bo(fd, 0, I915_TILING_NONE);
+	igt_subtest("big-bo-tiledX")
+		test_huge_bo(fd, 0, I915_TILING_X);
+	igt_subtest("big-bo-tiledY")
+		test_huge_bo(fd, 0, I915_TILING_Y);
+
 	igt_subtest("huge-bo")
-		test_huge_bo(fd);
+		test_huge_bo(fd, 1, I915_TILING_NONE);
+	igt_subtest("huge-bo-tiledX")
+		test_huge_bo(fd, 1, I915_TILING_X);
+	igt_subtest("huge-bo-tiledY")
+		test_huge_bo(fd, 1, I915_TILING_Y);
+
+	igt_subtest("small-copy")
+		test_huge_copy(fd, -1, I915_TILING_NONE, I915_TILING_NONE);
+	igt_subtest("small-copy-XY")
+		test_huge_copy(fd, -1, I915_TILING_X, I915_TILING_Y);
+	igt_subtest("big-copy")
+		test_huge_copy(fd, 0, I915_TILING_NONE, I915_TILING_NONE);
+	igt_subtest("big-copy-XY")
+		test_huge_copy(fd, 0, I915_TILING_X, I915_TILING_Y);
+	igt_subtest("huge-copy")
+		test_huge_copy(fd, 1, I915_TILING_NONE, I915_TILING_NONE);
+	igt_subtest("huge-copy-XY")
+		test_huge_copy(fd, 1, I915_TILING_X, I915_TILING_Y);
 
 	igt_fixture
 		close(fd);

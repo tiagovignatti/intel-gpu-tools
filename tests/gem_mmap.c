@@ -36,11 +36,68 @@
 #include <sys/ioctl.h>
 #include "drm.h"
 #include "ioctl_wrappers.h"
+#include "igt_aux.h"
 #include "drmtest.h"
 
 #define OBJECT_SIZE 16384
+#define PAGE_SIZE 4096
 int fd;
 int handle;
+
+static void
+test_huge_bo(int huge, int tiling)
+{
+	uint64_t huge_object_size, last_offset;
+	char *ptr_cpu;
+	char *cpu_pattern;
+	uint32_t bo;
+	int i;
+
+	switch (huge) {
+	case -1:
+		huge_object_size = gem_mappable_aperture_size() / 2;
+		break;
+	case 0:
+		huge_object_size = gem_mappable_aperture_size() + PAGE_SIZE;
+		break;
+	default:
+		huge_object_size = gem_aperture_size(fd) + PAGE_SIZE;
+		break;
+	}
+	intel_require_memory(1, huge_object_size, CHECK_RAM);
+
+	last_offset = huge_object_size - PAGE_SIZE;
+
+	cpu_pattern = malloc(PAGE_SIZE);
+	igt_assert(cpu_pattern);
+	for (i = 0; i < PAGE_SIZE; i++)
+		cpu_pattern[i] = i;
+
+	bo = gem_create(fd, huge_object_size);
+
+	/* Obtain CPU mapping for the object. */
+	ptr_cpu = gem_mmap__cpu(fd, bo, 0, huge_object_size,
+				PROT_READ | PROT_WRITE);
+	igt_assert(ptr_cpu);
+	gem_set_domain(fd, handle, I915_GEM_DOMAIN_CPU, I915_GEM_DOMAIN_CPU);
+	gem_close(fd, bo);
+
+	/* Write first page through the mapping and assert reading it back
+	 * works. */
+	memcpy(ptr_cpu, cpu_pattern, PAGE_SIZE);
+	igt_assert(memcmp(ptr_cpu, cpu_pattern, PAGE_SIZE) == 0);
+
+	/* Write last page through the mapping and assert reading it back
+	 * works. */
+	memcpy(ptr_cpu + last_offset, cpu_pattern, PAGE_SIZE);
+	igt_assert(memcmp(ptr_cpu + last_offset, cpu_pattern, PAGE_SIZE) == 0);
+
+	/* Cross check that accessing two simultaneous pages works. */
+	igt_assert(memcmp(ptr_cpu, ptr_cpu + last_offset, PAGE_SIZE) == 0);
+
+	munmap(ptr_cpu, huge_object_size);
+	free(cpu_pattern);
+}
 
 igt_main
 {
@@ -98,6 +155,13 @@ igt_main
 		munmap(addr, 4096);
 		gem_close(fd, handle);
 	}
+
+	igt_subtest("small-bo")
+		test_huge_bo(fd, -1);
+	igt_subtest("big-bo")
+		test_huge_bo(fd, 0);
+	igt_subtest("huge-bo")
+		test_huge_bo(fd, 1);
 
 	igt_fixture
 		close(fd);
