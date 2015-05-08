@@ -107,7 +107,7 @@ void __igt_fixture_end(void) __attribute__((noreturn));
 #define igt_fixture for (int igt_tokencat(__tmpint,__LINE__) = 0; \
 			 igt_tokencat(__tmpint,__LINE__) < 1 && \
 			 __igt_fixture() && \
-			 (setjmp(igt_subtest_jmpbuf) == 0); \
+			 (sigsetjmp(igt_subtest_jmpbuf, 1) == 0); \
 			 igt_tokencat(__tmpint,__LINE__) ++, \
 			 __igt_fixture_complete())
 
@@ -164,14 +164,14 @@ bool __igt_run_subtest(const char *subtest_name);
  * This is a simpler version of igt_subtest_f()
  */
 #define igt_subtest(name) for (; __igt_run_subtest((name)) && \
-				   (setjmp(igt_subtest_jmpbuf) == 0); \
+				   (sigsetjmp(igt_subtest_jmpbuf, 1) == 0); \
 				   igt_success())
 #define __igt_subtest_f(tmp, format...) \
 	for (char tmp [256]; \
 	     snprintf( tmp , sizeof( tmp ), \
 		      format), \
 	     __igt_run_subtest( tmp ) && \
-	     (setjmp(igt_subtest_jmpbuf) == 0); \
+	     (sigsetjmp(igt_subtest_jmpbuf, 1) == 0); \
 	     igt_success())
 
 /**

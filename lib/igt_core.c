@@ -368,7 +368,7 @@ void __igt_fixture_end(void)
 	assert(in_fixture);
 
 	in_fixture = false;
-	longjmp(igt_subtest_jmpbuf, 1);
+	siglongjmp(igt_subtest_jmpbuf, 1);
 }
 
 /*
@@ -821,7 +821,7 @@ static void exit_subtest(const char *result)
 
 	printf("Subtest %s: %s (%.3fs)\n", in_subtest, result, elapsed);
 	in_subtest = NULL;
-	longjmp(igt_subtest_jmpbuf, 1);
+	siglongjmp(igt_subtest_jmpbuf, 1);
 }
 
 /**
@@ -1409,8 +1409,6 @@ static void fatal_sig_handler(int sig)
 {
 	int i;
 
-	restore_all_sig_handler();
-
 	for (i = 0; i < ARRAY_SIZE(handled_signals); i++) {
 		if (handled_signals[i].number != sig)
 			continue;
@@ -1423,8 +1421,12 @@ static void fatal_sig_handler(int sig)
 			igt_assert_eq(write(STDERR_FILENO, ".\n", 2), 2);
 		}
 
+		if (in_subtest)
+			exit_subtest("CRASH");
 		break;
 	}
+
+	restore_all_sig_handler();
 
 	/*
 	 * exit_handler_disabled is always false here, since when we set it
