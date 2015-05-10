@@ -1405,6 +1405,18 @@ static void igt_atexit_handler(void)
 		call_exit_handlers(0);
 }
 
+static bool crash_signal(int sig)
+{
+	switch (sig) {
+	case SIGILL:
+	case SIGBUS:
+	case SIGSEGV:
+		return true;
+	default:
+		return false;
+	}
+}
+
 static void fatal_sig_handler(int sig)
 {
 	int i;
@@ -1421,7 +1433,7 @@ static void fatal_sig_handler(int sig)
 			igt_assert_eq(write(STDERR_FILENO, ".\n", 2), 2);
 		}
 
-		if (in_subtest)
+		if (in_subtest && crash_signal(sig))
 			exit_subtest("CRASH");
 		break;
 	}
