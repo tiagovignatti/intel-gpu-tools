@@ -43,7 +43,7 @@
 #include "igt_aux.h"
 #include "intel_chipset.h"
 
-#define OBJECT_SIZE 256*1024
+#define OBJECT_SIZE 1024*1024
 #define CHUNK_SIZE 32
 
 #define COPY_BLT_CMD		(2<<29|0x53<<22|0x6)
@@ -58,7 +58,7 @@ static void test_streaming(int fd, int mode)
 	const int has_64bit_reloc = intel_gen(intel_get_drm_devid(fd)) >= 8;
 	struct drm_i915_gem_execbuffer2 execbuf;
 	struct drm_i915_gem_exec_object2 exec[3];
-	struct drm_i915_gem_relocation_entry reloc[2];
+	struct drm_i915_gem_relocation_entry reloc[128];
 	uint32_t tmp[] = { MI_BATCH_BUFFER_END };
 	uint64_t __src_offset, __dst_offset;
 	uint32_t *s, *d;
@@ -67,7 +67,7 @@ static void test_streaming(int fd, int mode)
 		uint32_t handle;
 		uint64_t offset;
 	} *batch;
-	int i;
+	int i, n;
 
 	memset(exec, 0, sizeof(exec));
 	exec[0].handle = gem_create(fd, OBJECT_SIZE);
@@ -104,61 +104,67 @@ static void test_streaming(int fd, int mode)
 	__dst_offset = dst_offset;
 
 	memset(reloc, 0, sizeof(reloc));
-	reloc[0].offset = 4 * sizeof(uint32_t);
-	reloc[0].delta = 0;
-	reloc[0].target_handle = dst;
-	reloc[0].presumed_offset = dst_offset;
-	reloc[0].read_domains = I915_GEM_DOMAIN_RENDER;
-	reloc[0].write_domain = I915_GEM_DOMAIN_RENDER;
+	for (i = 0; i < 64; i++) {
+		reloc[2*i+0].offset = 64*i + 4 * sizeof(uint32_t);
+		reloc[2*i+0].delta = 0;
+		reloc[2*i+0].target_handle = dst;
+		reloc[2*i+0].presumed_offset = dst_offset;
+		reloc[2*i+0].read_domains = I915_GEM_DOMAIN_RENDER;
+		reloc[2*i+0].write_domain = I915_GEM_DOMAIN_RENDER;
 
-	reloc[1].offset = 7 * sizeof(uint32_t);
-	if (has_64bit_reloc)
-		reloc[1].offset +=  sizeof(uint32_t);
-	reloc[1].delta = 0;
-	reloc[1].target_handle = src;
-	reloc[1].presumed_offset = src_offset;
-	reloc[1].read_domains = I915_GEM_DOMAIN_RENDER;
-	reloc[1].write_domain = 0;
+		reloc[2*i+1].offset = 64*i + 7 * sizeof(uint32_t);
+		if (has_64bit_reloc)
+			reloc[2*i+1].offset +=  sizeof(uint32_t);
+		reloc[2*i+1].delta = 0;
+		reloc[2*i+1].target_handle = src;
+		reloc[2*i+1].presumed_offset = src_offset;
+		reloc[2*i+1].read_domains = I915_GEM_DOMAIN_RENDER;
+		reloc[2*i+1].write_domain = 0;
+	}
 
 	exec[2].relocation_count = 2;
-	exec[2].relocs_ptr = (uintptr_t)reloc;
 	execbuf.buffer_count = 3;
 	execbuf.flags = I915_EXEC_NO_RELOC;
 	if (gem_has_blt(fd))
 		execbuf.flags |= I915_EXEC_BLT;
 
-	batch = malloc(sizeof(*batch) * (OBJECT_SIZE / CHUNK_SIZE));
-	for (i = 0; i < OBJECT_SIZE / CHUNK_SIZE; i++) {
-		unsigned x = (i * CHUNK_SIZE) % 4096 >> 2;
-		unsigned y = (i * CHUNK_SIZE) / 4096;
-		uint32_t *b;
-		int j;
+	batch = malloc(sizeof(*batch) * (OBJECT_SIZE / CHUNK_SIZE / 64));
+	for (i = n = 0; i < OBJECT_SIZE / CHUNK_SIZE / 64; i++) {
+		uint32_t *base;
 
 		batch[i].handle = gem_create(fd, 4096);
 		batch[i].offset = 0;
 
-		b = gem_mmap__cpu(fd, batch[i].handle, 0, 4096, PROT_WRITE);
-		igt_assert(b);
+		base = gem_mmap__cpu(fd, batch[i].handle, 0, 4096, PROT_WRITE);
+		igt_assert(base);
 
-		j = 0;
-		b[j] = COPY_BLT_CMD | BLT_WRITE_ARGB;
-		if (has_64bit_reloc)
-			b[j] += 2;
-		j++;
-		b[j++] = 0xcc << 16 | 1 << 25 | 1 << 24 | 4096;
-		b[j++] = (y << 16) | x;
-		b[j++] = ((y+1) << 16) | (x + (CHUNK_SIZE >> 2));
-		b[j++] = dst_offset;
-		if (has_64bit_reloc)
-			b[j++] = dst_offset >> 32;
-		b[j++] = (y << 16) | x;
-		b[j++] = 4096;
-		b[j++] = src_offset;
-		if (has_64bit_reloc)
-			b[j++] = src_offset >> 32;
-		b[j++] = MI_BATCH_BUFFER_END;
+		for (int j = 0; j < 64; j++) {
+			unsigned x = (n * CHUNK_SIZE) % 4096 >> 2;
+			unsigned y = (n * CHUNK_SIZE) / 4096;
+			uint32_t *b = base + 16 * j;
+			int k = 0;
 
-		munmap(b, 4096);
+			b[k] = COPY_BLT_CMD | BLT_WRITE_ARGB;
+			if (has_64bit_reloc)
+				b[k] += 2;
+			k++;
+			b[k++] = 0xcc << 16 | 1 << 25 | 1 << 24 | 4096;
+			b[k++] = (y << 16) | x;
+			b[k++] = ((y+1) << 16) | (x + (CHUNK_SIZE >> 2));
+			b[k++] = dst_offset;
+			if (has_64bit_reloc)
+				b[k++] = dst_offset >> 32;
+			b[k++] = (y << 16) | x;
+			b[k++] = 4096;
+			b[k++] = src_offset;
+			if (has_64bit_reloc)
+				b[k++] = src_offset >> 32;
+			b[k++] = MI_BATCH_BUFFER_END;
+
+			n++;
+		}
+
+		munmap(base, 4096);
 	}
 
 	for (int pass = 0; pass < 256; pass++) {
@@ -167,17 +173,23 @@ static void test_streaming(int fd, int mode)
 
 		/* Now copy from the src to the dst in 32byte chunks */
 		for (offset = 0; offset < OBJECT_SIZE; offset += CHUNK_SIZE) {
+			int b;
+
 			for (i = 0; i < CHUNK_SIZE/4; i++)
 				s[offset/4 + i] = (OBJECT_SIZE*pass + offset)/4 + i;
 
-			exec[2].handle = batch[offset/CHUNK_SIZE].handle;
-			exec[2].offset = batch[offset/CHUNK_SIZE].offset;
+			b = offset / CHUNK_SIZE / 64;
+			n = offset / CHUNK_SIZE % 64;
+			exec[2].relocs_ptr = (uintptr_t)(reloc + 2*n);
+			exec[2].handle = batch[b].handle;
+			exec[2].offset = batch[b].offset;
+			execbuf.batch_start_offset = 64*n;
 
 			gem_execbuf(fd, &execbuf);
 			igt_assert(__src_offset == src_offset);
 			igt_assert(__dst_offset == dst_offset);
 
-			batch[offset/CHUNK_SIZE].offset = exec[2].offset;
+			batch[b].offset = exec[2].offset;
 		}
 
 		gem_set_domain(fd, dst, I915_GEM_DOMAIN_CPU, 0);
@@ -185,7 +197,7 @@ static void test_streaming(int fd, int mode)
 			igt_assert_eq(pass*OBJECT_SIZE/4 + offset, d[offset]);
 	}
 
-	for (i = 0; i < OBJECT_SIZE / CHUNK_SIZE; i++)
+	for (i = 0; i < OBJECT_SIZE / CHUNK_SIZE / 64; i++)
 		gem_close(fd, batch[i].handle);
 	free(batch);
 
