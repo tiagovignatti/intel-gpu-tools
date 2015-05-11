@@ -100,6 +100,7 @@ gem_storedw_loop_blt
 gem_storedw_loop_bsd
 gem_storedw_loop_render
 gem_storedw_loop_vebox
+gem_streaming_writes
 gem_stress
 gem_threaded_access_tiled
 gem_tiled_blits
