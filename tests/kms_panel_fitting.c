@@ -43,8 +43,6 @@ typedef struct {
 	int image_w;
 	int image_h;
 
-	int num_scalers;
-
 	struct igt_fb fb1;
 	struct igt_fb fb2;
 	struct igt_fb fb3;
@@ -176,10 +174,6 @@ static void test_panel_fitting(data_t *d)
 	enum pipe pipe;
 	int valid_tests = 0;
 
-	igt_require(d->display.has_universal_planes);
-	igt_require(d->num_scalers);
-	igt_require(d->num_scalers);
-
 	for_each_connected_output(display, output) {
 		drmModeModeInfo *mode, native_mode;
 
@@ -260,8 +254,6 @@ igt_simple_main
 	igt_require_pipe_crc();
 	igt_display_init(&data.display, data.drm_fd);
 	data.devid = intel_get_drm_devid(data.drm_fd);
-
-	data.num_scalers = intel_gen(data.devid) >= 9 ? 2 : 0;
 
 	test_panel_fitting(&data);
 
