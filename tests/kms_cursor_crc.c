@@ -158,11 +158,10 @@ static void do_single_test(data_t *data, int x, int y)
 
 	igt_wait_for_vblank(data->drm_fd, data->pipe);
 	igt_pipe_crc_collect_crc(pipe_crc, &ref_crc);
-	/* Clear screen afterwards */
 	igt_assert_crc_equal(&crc, &ref_crc);
 
-	igt_paint_color(cr, 0, 0, data->screenw, data->screenh,
-			0.0, 0.0, 0.0);
+	/* Clear screen afterwards */
+	igt_paint_color(cr, 0, 0, data->screenw, data->screenh, 0.0, 0.0, 0.0);
 }
 
 static void do_fail_test(data_t *data, int x, int y, int expect)
