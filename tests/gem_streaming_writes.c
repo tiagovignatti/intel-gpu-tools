@@ -51,7 +51,14 @@
 #define BLT_WRITE_RGB		(1<<20)
 #define BLT_WRITE_ARGB (BLT_WRITE_ALPHA | BLT_WRITE_RGB)
 
+#define LOCAL_I915_EXEC_HANDLE_LUT (1<<12)
+
 IGT_TEST_DESCRIPTION("Test of streaming writes into active GPU sources");
+
+static bool __gem_execbuf(int fd, struct drm_i915_gem_execbuffer2 *eb)
+{
+	return drmIoctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, eb) == 0;
+}
 
 static void test_streaming(int fd, int mode)
 {
@@ -98,7 +105,11 @@ static void test_streaming(int fd, int mode)
 	memset(&execbuf, 0, sizeof(execbuf));
 	execbuf.buffers_ptr = (uintptr_t)exec;
 	execbuf.buffer_count = 2;
-	gem_execbuf(fd, &execbuf);
+	execbuf.flags = LOCAL_I915_EXEC_HANDLE_LUT;
+	if (!__gem_execbuf(fd, &execbuf)) {
+		execbuf.flags = 0;
+		gem_execbuf(fd, &execbuf);
+	}
 	/* We assume that the active objects are fixed to avoid relocations */
 	__src_offset = src_offset;
 	__dst_offset = dst_offset;
@@ -107,7 +118,7 @@ static void test_streaming(int fd, int mode)
 	for (i = 0; i < 64; i++) {
 		reloc[2*i+0].offset = 64*i + 4 * sizeof(uint32_t);
 		reloc[2*i+0].delta = 0;
-		reloc[2*i+0].target_handle = dst;
+		reloc[2*i+0].target_handle = execbuf.flags & LOCAL_I915_EXEC_HANDLE_LUT ? 0 : dst;
 		reloc[2*i+0].presumed_offset = dst_offset;
 		reloc[2*i+0].read_domains = I915_GEM_DOMAIN_RENDER;
 		reloc[2*i+0].write_domain = I915_GEM_DOMAIN_RENDER;
@@ -116,7 +127,7 @@ static void test_streaming(int fd, int mode)
 		if (has_64bit_reloc)
 			reloc[2*i+1].offset +=  sizeof(uint32_t);
 		reloc[2*i+1].delta = 0;
-		reloc[2*i+1].target_handle = src;
+		reloc[2*i+1].target_handle = execbuf.flags & LOCAL_I915_EXEC_HANDLE_LUT ? 1 : src;
 		reloc[2*i+1].presumed_offset = src_offset;
 		reloc[2*i+1].read_domains = I915_GEM_DOMAIN_RENDER;
 		reloc[2*i+1].write_domain = 0;
@@ -124,7 +135,7 @@ static void test_streaming(int fd, int mode)
 
 	exec[2].relocation_count = 2;
 	execbuf.buffer_count = 3;
-	execbuf.flags = I915_EXEC_NO_RELOC;
+	execbuf.flags |= I915_EXEC_NO_RELOC;
 	if (gem_has_blt(fd))
 		execbuf.flags |= I915_EXEC_BLT;
 
