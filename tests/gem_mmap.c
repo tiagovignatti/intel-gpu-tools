@@ -42,7 +42,6 @@
 #define OBJECT_SIZE 16384
 #define PAGE_SIZE 4096
 int fd;
-int handle;
 
 static void
 test_huge_bo(int huge, int tiling)
@@ -79,7 +78,7 @@ test_huge_bo(int huge, int tiling)
 	ptr_cpu = gem_mmap__cpu(fd, bo, 0, huge_object_size,
 				PROT_READ | PROT_WRITE);
 	igt_assert(ptr_cpu);
-	gem_set_domain(fd, handle, I915_GEM_DOMAIN_CPU, I915_GEM_DOMAIN_CPU);
+	gem_set_domain(fd, bo, I915_GEM_DOMAIN_CPU, I915_GEM_DOMAIN_CPU);
 	gem_close(fd, bo);
 
 	/* Write first page through the mapping and assert reading it back
@@ -120,8 +119,7 @@ igt_main
 	}
 
 	igt_subtest("new-object") {
-		handle = gem_create(fd, OBJECT_SIZE);
-		arg.handle = handle;
+		arg.handle = gem_create(fd, OBJECT_SIZE);
 		arg.offset = 0;
 		arg.size = OBJECT_SIZE;
 		ret = ioctl(fd, DRM_IOCTL_I915_GEM_MMAP, &arg);
@@ -136,11 +134,11 @@ igt_main
 		memset(buf, 0, sizeof(buf));
 		memset(buf + 1024, 0x01, 1024);
 		memset(expected + 1024, 0x01, 1024);
-		gem_write(fd, handle, 0, buf, OBJECT_SIZE);
+		gem_write(fd, arg.handle, 0, buf, OBJECT_SIZE);
 		igt_assert(memcmp(buf, addr, sizeof(buf)) == 0);
 
 		igt_info("Testing that mapping stays after close\n");
-		gem_close(fd, handle);
+		gem_close(fd, arg.handle);
 		igt_assert(memcmp(buf, addr, sizeof(buf)) == 0);
 
 		igt_info("Testing unmapping\n");
@@ -149,11 +147,11 @@ igt_main
 
 	igt_subtest("short-mmap") {
 		igt_assert(OBJECT_SIZE > 4096);
-		handle = gem_create(fd, OBJECT_SIZE);
-		addr = gem_mmap__cpu(fd, handle, 0, 4096, PROT_WRITE);
+		arg.handle = gem_create(fd, OBJECT_SIZE);
+		addr = gem_mmap__cpu(fd, arg.handle, 0, 4096, PROT_WRITE);
 		memset(addr, 0, 4096);
 		munmap(addr, 4096);
-		gem_close(fd, handle);
+		gem_close(fd, arg.handle);
 	}
 
 	igt_subtest("small-bo")
