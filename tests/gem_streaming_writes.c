@@ -171,12 +171,19 @@ static void test_streaming(int fd, int mode)
 		int domain = mode ? I915_GEM_DOMAIN_GTT : I915_GEM_DOMAIN_CPU;
 		gem_set_domain(fd, src, domain, domain);
 
+		if (pass == 0) {
+			for (i = 0; i < OBJECT_SIZE/4; i++)
+				s[i] = i;
+		}
+
 		/* Now copy from the src to the dst in 32byte chunks */
 		for (offset = 0; offset < OBJECT_SIZE; offset += CHUNK_SIZE) {
 			int b;
 
-			for (i = 0; i < CHUNK_SIZE/4; i++)
-				s[offset/4 + i] = (OBJECT_SIZE*pass + offset)/4 + i;
+			if (pass) {
+				for (i = 0; i < CHUNK_SIZE/4; i++)
+					s[offset/4 + i] = (OBJECT_SIZE*pass + offset)/4 + i;
+			}
 
 			b = offset / CHUNK_SIZE / 64;
 			n = offset / CHUNK_SIZE % 64;
