@@ -36,7 +36,6 @@
 #include "intel_chipset.h"
 
 #define SLEEP_DURATION 3000 // in milliseconds
-#define RC6_FUDGE 900 // in milliseconds
 #define CODE_TIME 50 // in microseconfs
 
 static unsigned int readit(const char *path)
@@ -89,46 +88,17 @@ static void read_rc6_residency( int value[], const char *name_of_rc6_residency)
 
 static void residency_accuracy(int value[],const char *name_of_rc6_residency)
 {
-	unsigned int flag_counter,flag_support;
-	double counter_result = 0;
 	unsigned int diff;
-	unsigned int  tmp_counter, tmp_support;
-	double counter;
-	flag_counter = 0;
-	flag_support = 0;
-	diff = (value[1] - value[0]);
+	double ratio;
 
-	igt_assert_f(diff <= (SLEEP_DURATION + RC6_FUDGE),"Diff was too high. That is unpossible\n");
-	igt_assert_f(diff >= (SLEEP_DURATION - RC6_FUDGE),"GPU was not in RC6 long enough. Check that "
-							"the GPU is as idle as possible(ie. no X, "
-							"running and running no other tests)\n");
+	diff = value[1] - value[0];
 
-	counter = ((double)value[1] - (double)value[0]) /(double) (SLEEP_DURATION + CODE_TIME);
+	ratio = (double)diff / (SLEEP_DURATION + CODE_TIME);
 
-	if( counter > 0.9 ){
-		counter_result = counter;
-		tmp_counter = 1;
-	}
-	else
-		tmp_counter = 0;
-
-	if( value [1] == 0){
-		tmp_support = 0;
-		igt_info("This machine/configuration doesn't support %s\n", name_of_rc6_residency);
-	}
-	else
-		tmp_support = 1;
-
-	flag_counter = flag_counter + tmp_counter;
-	flag_counter = flag_counter << 1;
-
-	flag_support = flag_support + tmp_support;
-	flag_support = flag_support << 1;
-
-	igt_info("The residency counter: %f \n", counter_result);
-	igt_skip_on_f(flag_support == 0 , "This machine didn't entry %s state.\n", name_of_rc6_residency);
-	igt_assert_f((flag_counter != 0) && (counter_result <=1) , "Sysfs RC6 residency counter is inaccurate.\n");
-	igt_info("This machine entry %s state.\n", name_of_rc6_residency);
+	igt_info("Residency in %s or deeper state: %u ms (ratio to expected duration: %.02f)\n",
+		 name_of_rc6_residency, diff, ratio);
+	igt_assert_f(ratio > 0.9 && ratio <= 1,
+		     "Sysfs RC6 residency counter is inaccurate.\n");
 }
 
 igt_main
