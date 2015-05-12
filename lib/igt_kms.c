@@ -1765,14 +1765,6 @@ void igt_plane_set_fb(igt_plane_t *plane, struct igt_fb *fb)
 	plane->fb = fb;
 	/* hack to keep tests working that don't call igt_plane_set_size() */
 	if (fb) {
-		plane->crtc_w = fb->width;
-		plane->crtc_h = fb->height;
-	} else {
-		plane->crtc_w = 0;
-		plane->crtc_h = 0;
-	}
-
-	if (fb) {
 		/* set default plane pos/size as fb size */
 		plane->crtc_x = 0;
 		plane->crtc_y = 0;
@@ -1784,6 +1776,9 @@ void igt_plane_set_fb(igt_plane_t *plane, struct igt_fb *fb)
 		fb->src_y = 0;
 		fb->src_w = fb->width;
 		fb->src_h = fb->height;
+	} else {
+		plane->crtc_w = 0;
+		plane->crtc_h = 0;
 	}
 
 	plane->fb_changed = true;
