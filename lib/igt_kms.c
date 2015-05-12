@@ -1331,7 +1331,7 @@ static int igt_drm_plane_commit(igt_plane_t *plane,
 	fb_id = igt_plane_get_fb_id(plane);
 	crtc_id = output->config.crtc->crtc_id;
 
-	if (plane->fb_changed && fb_id == 0) {
+	if ((plane->fb_changed || plane->size_changed) && fb_id == 0) {
 		LOG(display,
 		    "%s: SetPlane pipe %s, plane %d, disabling\n",
 		    igt_output_name(output),
