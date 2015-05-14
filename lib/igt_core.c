@@ -501,7 +501,8 @@ static int common_init(int *argc, char **argv,
 		       const char *extra_short_opts,
 		       struct option *extra_long_opts,
 		       const char *help_str,
-		       igt_opt_handler_t extra_opt_handler)
+		       igt_opt_handler_t extra_opt_handler,
+		       void *handler_data)
 {
 	int c, option_index = 0, i, x;
 	static struct option long_options[] = {
@@ -627,7 +628,7 @@ static int common_init(int *argc, char **argv,
 			ret = -2;
 			goto out;
 		default:
-			ret = extra_opt_handler(c, option_index);
+			ret = extra_opt_handler(c, option_index, handler_data);
 			if (ret)
 				goto out;
 		}
@@ -683,6 +684,7 @@ out:
  * @extra_long_opts: getopt_long() compliant list with additional long options
  * @help_str: help string for the additional options
  * @extra_opt_handler: handler for the additional options
+ * @handler_data: user data given to @extra_opt_handler when invoked
  *
  * This function handles the subtest related cmdline options and allows an
  * arbitrary set of additional options. This is useful for tests which have
@@ -698,13 +700,14 @@ int igt_subtest_init_parse_opts(int *argc, char **argv,
 				const char *extra_short_opts,
 				struct option *extra_long_opts,
 				const char *help_str,
-				igt_opt_handler_t extra_opt_handler)
+				igt_opt_handler_t extra_opt_handler,
+				void *handler_data)
 {
 	int ret;
 
 	test_with_subtests = true;
 	ret = common_init(argc, argv, extra_short_opts, extra_long_opts,
-			  help_str, extra_opt_handler);
+			  help_str, extra_opt_handler, handler_data);
 
 	return ret;
 }
@@ -719,6 +722,7 @@ enum igt_log_level igt_log_level = IGT_LOG_INFO;
  * @extra_long_opts: getopt_long() compliant list with additional long options
  * @help_str: help string for the additional options
  * @extra_opt_handler: handler for the additional options
+ * @handler_data: user data given to @extra_opt_handler when invoked
  *
  * This initializes a simple test without any support for subtests and allows
  * an arbitrary set of additional options.
@@ -727,10 +731,11 @@ void igt_simple_init_parse_opts(int *argc, char **argv,
 				const char *extra_short_opts,
 				struct option *extra_long_opts,
 				const char *help_str,
-				igt_opt_handler_t extra_opt_handler)
+				igt_opt_handler_t extra_opt_handler,
+				void *handler_data)
 {
 	common_init(argc, argv, extra_short_opts, extra_long_opts, help_str,
-		    extra_opt_handler);
+		    extra_opt_handler, handler_data);
 }
 
 /*

@@ -662,7 +662,7 @@ static void run_test(const struct test_config *tconf)
 		test_combinations(tconf, connector_num);
 }
 
-static int opt_handler(int opt, int opt_index)
+static int opt_handler(int opt, int opt_index, void *data)
 {
 	switch (opt) {
 	case 'd':
@@ -700,7 +700,7 @@ int main(int argc, char **argv)
 	int ret;
 
 	ret = igt_subtest_init_parse_opts(&argc, argv, "dt:", NULL, help_str,
-					  opt_handler);
+					  opt_handler, NULL);
 	if (ret < 0)
 		return ret == -1 ? 0 : ret;
 

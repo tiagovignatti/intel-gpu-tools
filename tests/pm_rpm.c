@@ -1791,7 +1791,7 @@ static void fences_subtest(bool dpms)
 int rounds = 40;
 bool stay = false;
 
-static int opt_handler(int opt, int opt_index)
+static int opt_handler(int opt, int opt_index, void *data)
 {
 	switch (opt) {
 	case 'q':
@@ -1819,7 +1819,7 @@ int main(int argc, char *argv[])
 	};
 
 	igt_subtest_init_parse_opts(&argc, argv, "", long_options,
-				    help_str, opt_handler);
+				    help_str, opt_handler, NULL);
 
 	/* Skip instead of failing in case the machine is not prepared to reach
 	 * PC8+. We don't want bug reports from cases where the machine is just

@@ -624,7 +624,7 @@ static void sanitize_tiles_per_buf(void)
 		options.tiles_per_buf = options.scratch_buf_size / TILE_BYTES(options.tile_size);
 }
 
-static int parse_options(int opt, int opt_index)
+static int parse_options(int opt, int opt_index, void *data)
 {
 	int tmp;
 
@@ -855,7 +855,7 @@ int main(int argc, char **argv)
 	options.check_render_cpyfn = 0;
 
 	igt_simple_init_parse_opts(&argc, argv,"ds:g:c:t:rbuxmo:fp:",
-				   long_options, NULL, parse_options);
+				   long_options, NULL, parse_options, NULL);
 
 	drm_fd = drm_open_any();
 	devid = intel_get_drm_devid(drm_fd);

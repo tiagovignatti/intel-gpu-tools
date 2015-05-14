@@ -537,7 +537,7 @@ static void dpms_off_on(data_t data)
 				   DRM_MODE_DPMS_ON);
 }
 
-static int opt_handler(int opt, int opt_index)
+static int opt_handler(int opt, int opt_index, void *data)
 {
 	switch (opt) {
 	case 'n':
@@ -562,7 +562,7 @@ int main(int argc, char *argv[])
 	enum operations op;
 
 	igt_subtest_init_parse_opts(&argc, argv, "", long_options,
-				    help_str, opt_handler);
+				    help_str, opt_handler, NULL);
 	igt_skip_on_simulation();
 
 	igt_fixture {

@@ -120,7 +120,7 @@ static void *work(void *arg)
 	pthread_exit(NULL);
 }
 
-static int opt_handler(int opt, int opt_index)
+static int opt_handler(int opt, int opt_index, void *data)
 {
 	switch (opt) {
 		case 'i':
@@ -145,7 +145,7 @@ int main(int argc, char *argv[])
 	int i;
 
 	igt_simple_init_parse_opts(&argc, argv, "i:c:n:mu", NULL, NULL,
-				   opt_handler);
+				   opt_handler, NULL);
 
 	fd = drm_open_any_render();
 	devid = intel_get_drm_devid(fd);

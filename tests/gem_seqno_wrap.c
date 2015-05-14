@@ -434,7 +434,7 @@ static void background_run_once(void)
 		sleep(3);
 }
 
-static int parse_options(int opt, int opt_index)
+static int parse_options(int opt, int opt_index, void *data)
 {
 	switch(opt) {
 		case 'b':
@@ -504,7 +504,7 @@ int main(int argc, char **argv)
 	options.buffers = 10;
 
 	igt_simple_init_parse_opts(&argc, argv, "n:bvt:dp:ri:", long_options,
-				   help, parse_options);
+				   help, parse_options, NULL);
 
 	card_index = drm_get_card();
 
