@@ -1824,11 +1824,12 @@ void igt_plane_set_size(igt_plane_t *plane, int w, int h)
 /**
  * igt_fb_set_position:
  * @fb: framebuffer pointer
+ * @plane: plane
  * @x: X position
  * @y: Y position
  *
  * This function sets position for requested framebuffer as src to plane.
- * New position will be commited at plane commit time via drmModeSetPlane().
+ * New position will be committed at plane commit time via drmModeSetPlane().
  */
 void igt_fb_set_position(struct igt_fb *fb, igt_plane_t *plane,
 	uint32_t x, uint32_t y)
@@ -1846,13 +1847,14 @@ void igt_fb_set_position(struct igt_fb *fb, igt_plane_t *plane,
 }
 
 /**
- * igt_fb_set_position:
+ * igt_fb_set_size:
  * @fb: framebuffer pointer
+ * @plane: plane
  * @w: width
  * @h: height
  *
  * This function sets fetch rect size from requested framebuffer as src
- * to plane. New size will be commited at plane commit time via
+ * to plane. New size will be committed at plane commit time via
  * drmModeSetPlane().
  */
 void igt_fb_set_size(struct igt_fb *fb, igt_plane_t *plane,

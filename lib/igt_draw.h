@@ -29,10 +29,10 @@
 #include "igt_fb.h"
 
 /**
- *igt_draw_method:
+ * igt_draw_method:
  * @IGT_DRAW_MMAP_CPU: draw using a CPU mmap.
  * @IGT_DRAW_MMAP_GTT: draw using a GTT mmap.
- * @IGT-DRAW_MMAP_WC: draw using the WC mmap.
+ * @IGT_DRAW_MMAP_WC: draw using the WC mmap.
  * @IGT_DRAW_PWRITE: draw using the pwrite ioctl.
  * @IGT_DRAW_BLT: draw using the BLT ring.
  * @IGT_DRAW_RENDER: draw using the render ring.

@@ -68,6 +68,7 @@ struct rect {
 
 /**
  * igt_draw_get_method_name:
+ * @method: draw method
  *
  * Simple function to transform the enum into a string. Useful when naming
  * subtests and printing debug messages.
@@ -533,6 +534,17 @@ void igt_draw_rect(int fd, drm_intel_bufmgr *bufmgr, drm_intel_context *context,
 
 /**
  * igt_draw_rect_fb:
+ * @fd: the DRM file descriptor
+ * @bufmgr: the libdrm bufmgr, only required for IGT_DRAW_BLT and
+ *          IGT_DRAW_RENDER
+ * @context: the context, can be NULL if you don't want to think about it
+ * @fb: framebuffer
+ * @method: method you're going to use to write to the buffer
+ * @rect_x: horizontal position on the buffer where your rectangle starts
+ * @rect_y: vertical position on the buffer where your rectangle starts
+ * @rect_w: width of the rectangle
+ * @rect_h: height of the rectangle
+ * @color: color of the rectangle
  *
  * This is exactly the same as igt_draw_rect, but you can pass an igt_fb instead
  * of manually providing its details. See igt_draw_rect.
