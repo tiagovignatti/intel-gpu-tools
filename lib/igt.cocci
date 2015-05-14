@@ -193,7 +193,7 @@ expression ptr, size, nmemb, stream;
 expression list E;
 @@
 -fgets(E);
-+igt_assert_neq(fgets(E), NULL);
++igt_assert(fgets(E) != NULL);
 
 @@
 identifier func =~ "^v?asprintf$";
