@@ -34,7 +34,7 @@
 
 struct igt_eviction_test_ops
 {
-	uint32_t (*create)(int fd, int size);
+	uint32_t (*create)(int fd, uint64_t size);
 	void (*flink)(uint32_t old_handle, uint32_t new_handle);
 	void	 (*close)(int fd, uint32_t bo);
 	int	 (*copy)(int fd, uint32_t dst, uint32_t src,

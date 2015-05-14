@@ -362,7 +362,7 @@ static void free_handle_ptr(uint32_t handle)
 	handle_ptr_map[handle] = NULL;
 }
 
-static uint32_t create_userptr_bo(int fd, int size)
+static uint32_t create_userptr_bo(int fd, uint64_t size)
 {
 	void *ptr;
 	uint32_t handle;
