@@ -60,7 +60,7 @@
 static drm_intel_bufmgr *bufmgr;
 struct intel_batchbuffer *batch;
 
-#define BAD_GTT_DEST ((256*1024*1024)) /* past end of aperture */
+#define BAD_GTT_DEST (256*1024*1024ULL) /* past end of aperture */
 
 static void
 bad_blit(drm_intel_bo *src_bo, uint32_t devid)
