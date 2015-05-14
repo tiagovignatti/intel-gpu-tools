@@ -159,16 +159,14 @@ uint32_t gen8_batch[] = {
 uint32_t *batch = gen6_batch;
 uint32_t batch_size = sizeof(gen6_batch);
 
-igt_simple_main
+static void run_test(int fd, int count)
 {
 	const uint32_t hang[] = {-1, -1, -1, -1};
 	const uint32_t end[] = {MI_BATCH_BUFFER_END, 0};
-	uint64_t aper_size;
 	uint32_t noop;
 	uint32_t *handles;
-	int fd, i, count;
+	int i;
 
-	fd = drm_open_any();
 	noop = intel_get_drm_devid(fd);
 
 	use_blt = 0;
@@ -179,13 +177,6 @@ igt_simple_main
 		batch = gen8_batch;
 		batch_size += 2 * 4;
 	}
-
-	aper_size = gem_mappable_aperture_size();
-	count = aper_size / 4096 * 2;
-	if (igt_run_in_simulation())
-		count = 10;
-
-	intel_require_memory(1+count, 4096, CHECK_RAM);
 
 	handles = malloc (count * sizeof(uint32_t));
 	igt_assert(handles);
@@ -246,6 +237,41 @@ igt_simple_main
 		igt_progress("gem_cpu_reloc: ", 2*count+i, 3*count);
 	}
 
-	igt_info("Test suceeded, cleanup up - this might take a while.\n");
-	close(fd);
+	igt_info("Subtest suceeded, cleanup up - this might take a while.\n");
+	for (i = 0; i < count; i++) {
+		gem_close(fd, handles[i]);
+	}
+	gem_close(fd, noop);
+	free(handles);
+}
+
+igt_main
+{
+	uint64_t aper_size;
+	int fd, count;
+
+	igt_fixture {
+		fd = drm_open_any();
+	}
+
+	igt_subtest("basic") {
+		run_test (fd, 10);
+	}
+
+	igt_skip_on_simulation();
+
+	igt_subtest("full") {
+		aper_size = gem_mappable_aperture_size();
+		count = aper_size / 4096 * 2;
+
+		/* count + 2 (noop & bad) buffers. A gem object appears to
+                   require about 2kb + buffer + kernel overhead */
+		intel_require_memory(2+count, 2048+4096, CHECK_RAM);
+
+		run_test (fd, count);
+	}
+
+	igt_fixture {
+		close(fd);
+	}
 }
