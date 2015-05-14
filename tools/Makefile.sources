@@ -10,6 +10,7 @@ bin_PROGRAMS = 				\
 	intel_backlight 		\
 	intel_bios_dumper 		\
 	intel_bios_reader 		\
+	intel_display_crc		\
 	intel_display_poller		\
 	intel_dump_decode 		\
 	intel_error_decode 		\
