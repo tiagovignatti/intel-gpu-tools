@@ -82,26 +82,18 @@ static unsigned long get_rc6_enabled_mask(void)
 
 static int read_rc6_residency(const char *name_of_rc6_residency)
 {
-	unsigned int i;
+	unsigned int residency;
 	const int device = drm_get_card();
 	char *path ;
 	int  ret;
-	int value[2];
 
-	/* For some reason my ivb isn't idle even after syncing up with the gpu.
-	 * Let's add a sleept just to make it happy. */
-	sleep(5);
-
-	for(i = 0; i < 2; i++)
-	{
-		sleep(SLEEP_DURATION / 1000);
-		ret = asprintf(&path, "/sys/class/drm/card%d/power/%s_residency_ms",device,name_of_rc6_residency);
-		igt_assert_neq(ret, -1);
-		value[i] = readit(path);
-	}
+	ret = asprintf(&path, "/sys/class/drm/card%d/power/%s_residency_ms",
+		       device, name_of_rc6_residency);
+	igt_assert_neq(ret, -1);
+	residency = readit(path);
 	free(path);
 
-	return value[1] - value[0];
+	return residency;
 }
 
 static void residency_accuracy(unsigned int diff,
@@ -117,8 +109,8 @@ static void residency_accuracy(unsigned int diff,
 		     "Sysfs RC6 residency counter is inaccurate.\n");
 }
 
-static void measure_residencies(int devid, unsigned int rc6_mask,
-				struct residencies *res)
+static void read_residencies(int devid, unsigned int rc6_mask,
+			     struct residencies *res)
 {
 	if (rc6_mask & RC6_ENABLED)
 		res->rc6 = read_rc6_residency("rc6");
@@ -132,6 +124,31 @@ static void measure_residencies(int devid, unsigned int rc6_mask,
 
 	if (rc6_mask & RC6PP_ENABLED)
 		res->rc6pp = read_rc6_residency("rc6pp");
+}
+
+static void measure_residencies(int devid, unsigned int rc6_mask,
+				struct residencies *res)
+{
+	struct residencies start = { };
+	struct residencies end = { };
+
+	if (!rc6_mask)
+		return;
+
+	/*
+	 * For some reason my ivb isn't idle even after syncing up with the gpu.
+	 * Let's add a sleep just to make it happy.
+	 */
+	sleep(8);
+
+	read_residencies(devid, rc6_mask, &start);
+	sleep(SLEEP_DURATION / 1000);
+	read_residencies(devid, rc6_mask, &end);
+
+	res->rc6 = end.rc6 - start.rc6;
+	res->rc6p = end.rc6p - start.rc6p;
+	res->rc6pp = end.rc6pp - start.rc6pp;
+	res->media_rc6 = end.media_rc6 - start.media_rc6;
 }
 
 igt_main
