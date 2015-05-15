@@ -207,9 +207,8 @@ void intel_check_pch(void);
 #define PCI_CHIP_SKYLAKE_WKS_GT2 	0x191D
 
 #define PCI_CHIP_BROXTON_0		0x0A84
-#define PCI_CHIP_BROXTON_1		0x0A85
-#define PCI_CHIP_BROXTON_2		0x0A86
-#define PCI_CHIP_BROXTON_3		0x0A87
+#define PCI_CHIP_BROXTON_1		0x1A84
+#define PCI_CHIP_BROXTON_2		0x5A84
 
 #endif /* __GTK_DOC_IGNORE__ */
 
@@ -397,8 +396,7 @@ void intel_check_pch(void);
 
 #define IS_BROXTON(devid)	((devid) == PCI_CHIP_BROXTON_0 || \
 				 (devid) == PCI_CHIP_BROXTON_1 || \
-				 (devid) == PCI_CHIP_BROXTON_2 || \
-				 (devid) == PCI_CHIP_BROXTON_3)
+				 (devid) == PCI_CHIP_BROXTON_2)
 
 #define IS_GEN9(devid)		(IS_SKYLAKE(devid) || IS_BROXTON(devid))
 
