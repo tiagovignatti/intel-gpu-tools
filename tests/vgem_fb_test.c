@@ -14,6 +14,7 @@
 #include <stdlib.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
+#include <sys/time.h>
 #include <sys/types.h>
 #include <unistd.h>
 
@@ -39,6 +40,8 @@ struct context {
 	uint32_t drm_fb_id[BUFFERS];
 
 };
+
+static int enable_profiling = false;
 
 void disable_psr() {
 	const char psr_path[] = "/sys/module/i915/parameters/enable_psr";
@@ -93,6 +96,11 @@ int drm_open_vgem()
 		return fd;
 	}
 	return -1;
+}
+
+static double elapsed(const struct timeval *start, const struct timeval *end)
+{
+	return 1e6*(end->tv_sec - start->tv_sec) + (end->tv_usec - start->tv_usec);
 }
 
 void * mmap_dumb_bo(int fd, int handle, size_t size)
@@ -258,11 +266,19 @@ void draw(struct context *ctx)
 			size_t bo_size = gbm_bo_get_stride(ctx->gbm_buffer[fb_idx]) * gbm_bo_get_height(ctx->gbm_buffer[fb_idx]);
 			uint32_t *bo_ptr;
 			volatile uint32_t *ptr;
+			struct timeval start, end;
 
 			for (sequence_subindex = 0; sequence_subindex < 4; sequence_subindex++) {
 				switch (sequences[sequence_index][sequence_subindex]) {
 				case STEP_MMAP:
+					if (enable_profiling)
+						gettimeofday(&start, NULL);
 					bo_ptr = mmap_dumb_bo(ctx->vgem_card_fd, ctx->vgem_bo_handle[fb_idx], bo_size);
+					if (enable_profiling) {
+						gettimeofday(&end, NULL);
+						fprintf(stderr, "time to execute mmap: %7.3fms\n",
+								elapsed(&start, &end) / 1000);
+					}
 					ptr = bo_ptr;
 					break;
 
@@ -306,6 +322,8 @@ void draw(struct context *ctx)
 	}
 }
 
+static const char optstr[] = "d:p";
+
 int main(int argc, char **argv)
 {
 	int ret = 0;
@@ -315,9 +333,21 @@ int main(int argc, char **argv)
 	int drm_prime_fd;
 	size_t i;
 	char *drm_card_path = "/dev/dri/card0";
+	char c;
 
-	if (argc >= 2)
-		drm_card_path = argv[1];
+	while ((c = getopt(argc, argv, optstr)) != -1) {
+		switch (c) {
+		case 'd':
+			drm_card_path = optarg;
+			break;
+		case 'p':
+			enable_profiling = true;
+			break;
+		default:
+			ret = 1;
+			goto fail;
+		}
+	}
 
 	do_fixes();
 
