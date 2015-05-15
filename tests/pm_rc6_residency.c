@@ -131,6 +131,7 @@ static void measure_residencies(int devid, unsigned int rc6_mask,
 {
 	struct residencies start = { };
 	struct residencies end = { };
+	int retry;
 
 	if (!rc6_mask)
 		return;
@@ -141,9 +142,21 @@ static void measure_residencies(int devid, unsigned int rc6_mask,
 	 */
 	sleep(8);
 
-	read_residencies(devid, rc6_mask, &start);
-	sleep(SLEEP_DURATION / 1000);
-	read_residencies(devid, rc6_mask, &end);
+	/*
+	 * Retry in case of counter wrap-around. We simply re-run the
+	 * measurement, since the valid counter range is different on
+	 * different platforms and so fixing it up would be non-trivial.
+	 */
+	for (retry = 0; retry < 2; retry++) {
+		read_residencies(devid, rc6_mask, &start);
+		sleep(SLEEP_DURATION / 1000);
+		read_residencies(devid, rc6_mask, &end);
+
+		if (end.rc6 >= start.rc6 && end.media_rc6 >= start.media_rc6 &&
+		    end.rc6p >= start.rc6p && end.rc6pp >= start.rc6pp)
+			break;
+	}
+	igt_assert_f(retry < 2, "residency values are not consistent\n");
 
 	res->rc6 = end.rc6 - start.rc6;
 	res->rc6p = end.rc6p - start.rc6p;
