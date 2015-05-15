@@ -39,7 +39,7 @@ EXTRA_DIST = $(common_files)
 
 CLEANFILES = $(EXTRA_PROGRAMS) test-list.txt
 
-AM_CFLAGS = $(DRM_CFLAGS) $(CWARNFLAGS) $(DEBUG_CFLAGS)\
+AM_CFLAGS = $(GBM_CFLAGS) $(DRM_CFLAGS) $(CWARNFLAGS) $(DEBUG_CFLAGS)\
 	-I$(srcdir)/.. \
 	-I$(srcdir)/../lib \
 	-include "$(srcdir)/../lib/check-ndebug.h" \
@@ -48,7 +48,7 @@ AM_CFLAGS = $(DRM_CFLAGS) $(CWARNFLAGS) $(DEBUG_CFLAGS)\
 	$(LIBUNWIND_CFLAGS) \
 	$(NULL)
 
-LDADD = ../lib/libintel_tools.la $(PCIACCESS_LIBS) $(DRM_LIBS) $(LIBUNWIND_LIBS)
+LDADD = ../lib/libintel_tools.la $(PCIACCESS_LIBS) $(GBM_LIBS) $(DRM_LIBS) $(LIBUNWIND_LIBS)
 
 LDADD += $(CAIRO_LIBS) $(LIBUDEV_LIBS) $(GLIB_LIBS) -lm
 AM_CFLAGS += $(CAIRO_CFLAGS) $(LIBUDEV_CFLAGS) $(GLIB_CFLAGS)

@@ -165,6 +165,7 @@ TESTS_progs = \
 	kms_pwrite_crc \
 	kms_sink_crc_basic \
 	prime_udl \
+	vgem_fb_test \
 	$(NULL)
 
 # IMPORTANT: The ZZ_ tests need to be run last!
