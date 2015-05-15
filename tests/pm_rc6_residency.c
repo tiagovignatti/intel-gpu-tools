@@ -54,13 +54,14 @@ static unsigned int readit(const char *path)
 	return ret;
 }
 
-static void read_rc6_residency( int value[], const char *name_of_rc6_residency)
+static int read_rc6_residency(const char *name_of_rc6_residency)
 {
 	unsigned int i;
 	const int device = drm_get_card();
 	char *path ;
 	int  ret;
 	FILE *file;
+	int value[2];
 
 	/* For some reason my ivb isn't idle even after syncing up with the gpu.
 	 * Let's add a sleept just to make it happy. */
@@ -84,14 +85,14 @@ static void read_rc6_residency( int value[], const char *name_of_rc6_residency)
 		value[i] = readit(path);
 	}
 	free(path);
+
+	return value[1] - value[0];
 }
 
-static void residency_accuracy(int value[],const char *name_of_rc6_residency)
+static void residency_accuracy(unsigned int diff,
+			       const char *name_of_rc6_residency)
 {
-	unsigned int diff;
 	double ratio;
-
-	diff = value[1] - value[0];
 
 	ratio = (double)diff / (SLEEP_DURATION + CODE_TIME);
 
@@ -105,7 +106,7 @@ igt_main
 {
 	int fd;
 	int devid = 0;
-	int rc6[2], rc6p[2], rc6pp[2], media[2];
+	int rc6, rc6p, rc6pp, media;
 
 	igt_skip_on_simulation();
 
@@ -115,13 +116,13 @@ igt_main
 		devid = intel_get_drm_devid(fd);
 		close(fd);
 
-		read_rc6_residency(rc6, "rc6");
+		rc6 = read_rc6_residency("rc6");
 		if (IS_VALLEYVIEW(devid) || IS_CHERRYVIEW(devid))
-			read_rc6_residency(media, "media_rc6");
+			media = read_rc6_residency("media_rc6");
 
 		if (IS_GEN6(devid) || IS_IVYBRIDGE(devid)) {
-			read_rc6_residency(rc6p, "rc6p");
-			read_rc6_residency(rc6pp, "rc6pp");
+			rc6p = read_rc6_residency("rc6p");
+			rc6pp = read_rc6_residency("rc6pp");
 		}
 	}
 
