@@ -38,6 +38,13 @@
 #define SLEEP_DURATION 3000 // in milliseconds
 #define CODE_TIME 50 // in microseconfs
 
+struct residencies {
+	int rc6;
+	int media_rc6;
+	int rc6p;
+	int rc6pp;
+};
+
 static unsigned int readit(const char *path)
 {
 	unsigned int ret;
@@ -102,11 +109,23 @@ static void residency_accuracy(unsigned int diff,
 		     "Sysfs RC6 residency counter is inaccurate.\n");
 }
 
+static void measure_residencies(int devid, struct residencies *res)
+{
+	res->rc6 = read_rc6_residency("rc6");
+	if (IS_VALLEYVIEW(devid) || IS_CHERRYVIEW(devid))
+		res->media_rc6 = read_rc6_residency("media_rc6");
+
+	if (IS_GEN6(devid) || IS_IVYBRIDGE(devid)) {
+		res->rc6p = read_rc6_residency("rc6p");
+		res->rc6pp = read_rc6_residency("rc6pp");
+	}
+}
+
 igt_main
 {
 	int fd;
 	int devid = 0;
-	int rc6, rc6p, rc6pp, media;
+	struct residencies res;
 
 	igt_skip_on_simulation();
 
@@ -116,29 +135,22 @@ igt_main
 		devid = intel_get_drm_devid(fd);
 		close(fd);
 
-		rc6 = read_rc6_residency("rc6");
-		if (IS_VALLEYVIEW(devid) || IS_CHERRYVIEW(devid))
-			media = read_rc6_residency("media_rc6");
-
-		if (IS_GEN6(devid) || IS_IVYBRIDGE(devid)) {
-			rc6p = read_rc6_residency("rc6p");
-			rc6pp = read_rc6_residency("rc6pp");
-		}
+		measure_residencies(devid, &res);
 	}
 
 	igt_subtest("rc6-accuracy")
-		residency_accuracy(rc6, "rc6");
+		residency_accuracy(res.rc6, "rc6");
 	igt_subtest("media-rc6-accuracy")
 		if (IS_VALLEYVIEW(devid) || IS_CHERRYVIEW(devid))
-			residency_accuracy(media, "media_rc6");
+			residency_accuracy(res.media_rc6, "media_rc6");
 	igt_subtest("rc6p-accuracy") {
 		if (!IS_GEN6(devid) && !IS_IVYBRIDGE(devid))
 			igt_skip("This platform doesn't support RC6p\n");
-		residency_accuracy(rc6p, "rc6p");
+		residency_accuracy(res.rc6p, "rc6p");
 	}
 	igt_subtest("rc6pp-accuracy") {
 		if (!IS_GEN6(devid) && !IS_IVYBRIDGE(devid))
 			igt_skip("This platform doesn't support RC6pp\n");
-		residency_accuracy(rc6pp, "rc6pp");
+		residency_accuracy(res.rc6pp, "rc6pp");
 	}
 }
