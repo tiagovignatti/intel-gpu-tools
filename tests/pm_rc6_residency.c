@@ -162,6 +162,17 @@ static void measure_residencies(int devid, unsigned int rc6_mask,
 	res->rc6p = end.rc6p - start.rc6p;
 	res->rc6pp = end.rc6pp - start.rc6pp;
 	res->media_rc6 = end.media_rc6 - start.media_rc6;
+
+	/*
+	 * For the purposes of this test case we want a given residency value
+	 * to include the time spent in the corresponding RC state _and_ also
+	 * the time spent in any enabled deeper states. So for example if any
+	 * of RC6P or RC6PP is enabled we want the time spent in these states
+	 * to be also included in the RC6 residency value. The kernel reported
+	 * residency values are exclusive, so add up things here.
+	 */
+	res->rc6p += res->rc6pp;
+	res->rc6 += res->rc6p;
 }
 
 igt_main
