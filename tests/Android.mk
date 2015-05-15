@@ -55,32 +55,18 @@ ifeq ("${ANDROID_HAS_CAIRO}", "1")
 else
 # the following tests depend on cairo, so skip them
     skip_tests_list += \
-    kms_3d \
-    kms_plane \
-    kms_addfb \
-    kms_cursor_crc \
-    kms_flip \
-    kms_flip_tiling \
-    kms_pipe_crc_basic \
-    kms_psr_sink_crc \
-    kms_fbc_crc \
-    kms_setmode \
-    kms_sink_crc_basic \
     gem_render_copy \
-    pm_lpsp \
-    kms_fence_pin_leak \
-    kms_mmio_vs_cs_flip \
-    kms_render \
-    kms_universal_plane \
-    kms_rotation_crc \
-    kms_force_connector \
-    kms_flip_event_leak \
-    kms_crtc_background_color \
-    kms_plane_scaling \
-    kms_panel_fitting \
-    kms_pwrite_crc \
-    kms_pipe_b_c_ivb \
-    kms_legacy_colorkey
+    pm_lpsp
+
+# All kms tests depend on cairo
+    tmp_list := $(foreach test_name, $(TESTS_progs),\
+        $(if $(findstring kms_,$(test_name)),$(test_name)))
+    skip_tests_list += $(tmp_list)
+
+    tmp_list := $(foreach test_name, $(TESTS_progs_M),\
+        $(if $(findstring kms_,$(test_name)),$(test_name)))
+    skip_tests_list += $(tmp_list)
+
     IGT_LOCAL_CFLAGS += -DANDROID_HAS_CAIRO=0
 endif
 
