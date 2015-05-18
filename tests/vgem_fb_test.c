@@ -24,10 +24,14 @@
 #include <xf86drmMode.h>
 
 #define BUFFERS 2
+#define USE_VGEM
 
 struct context {
 	int drm_card_fd;
+#ifdef USE_VGEM
 	int vgem_card_fd;
+#endif
+	int card_fd;
 	struct gbm_device *drm_gbm;
 
 	drmModeRes *resources;
@@ -36,7 +40,7 @@ struct context {
 	drmModeModeInfo *mode;
 
 	struct gbm_bo *gbm_buffer[BUFFERS];
-	uint32_t vgem_bo_handle[BUFFERS];
+	uint32_t bo_handle[BUFFERS];
 	uint32_t drm_fb_id[BUFFERS];
 
 };
@@ -63,6 +67,7 @@ void do_fixes() {
 	disable_psr();
 }
 
+#ifdef USE_VGEM
 const char g_sys_card_path_format[] =
    "/sys/bus/platform/devices/vgem/drm/card%d";
 const char g_dev_card_path_format[] =
@@ -97,6 +102,7 @@ int drm_open_vgem()
 	}
 	return -1;
 }
+#endif
 
 static double elapsed(const struct timeval *start, const struct timeval *end)
 {
@@ -273,7 +279,7 @@ void draw(struct context *ctx)
 				case STEP_MMAP:
 					if (enable_profiling)
 						gettimeofday(&start, NULL);
-					bo_ptr = mmap_dumb_bo(ctx->vgem_card_fd, ctx->vgem_bo_handle[fb_idx], bo_size);
+					bo_ptr = mmap_dumb_bo(ctx->drm_card_fd, ctx->bo_handle[fb_idx], bo_size);
 					if (enable_profiling) {
 						gettimeofday(&end, NULL);
 						fprintf(stderr, "time to execute mmap: %7.3fms\n",
@@ -357,19 +363,25 @@ int main(int argc, char **argv)
 		ret = 1;
 		goto fail;
 	}
-
+#ifdef USE_VGEM
 	ctx.vgem_card_fd = drm_open_vgem();
 	if (ctx.vgem_card_fd < 0) {
 		fprintf(stderr, "failed to open vgem card\n");
 		ret = 1;
 		goto close_drm_card;
 	}
+	ctx.card_fd = ctx.vgem_card_fd;
+	fprintf(stderr, "Method to open video card: VGEM\n");
+#else
+	ctx.card_fd = ctx.drm_card_fd;
+	fprintf(stderr, "Method to open video card: DRM\n");
+#endif
 
 	ctx.drm_gbm = gbm_create_device(ctx.drm_card_fd);
 	if (!ctx.drm_gbm) {
 		fprintf(stderr, "failed to create gbm device on %s\n", drm_card_path);
 		ret = 1;
-		goto close_vgem_card;
+		goto close_card;
 	}
 
 	if (!setup_drm(&ctx)) {
@@ -404,8 +416,8 @@ int main(int argc, char **argv)
 			goto free_buffers;
 		}
 
-		ret = drmPrimeFDToHandle(ctx.vgem_card_fd, drm_prime_fd,
-					 &ctx.vgem_bo_handle[i]);
+		ret = drmPrimeFDToHandle(ctx.drm_card_fd, drm_prime_fd,
+					 &ctx.bo_handle[i]);
 		if (ret) {
 			fprintf(stderr, "failed to import handle\n");
 			ret = 1;
@@ -444,8 +456,10 @@ free_buffers:
 	drmModeFreeResources(ctx.resources);
 destroy_drm_gbm:
 	gbm_device_destroy(ctx.drm_gbm);
-close_vgem_card:
+close_card:
+#ifdef USE_VGEM
 	close(ctx.vgem_card_fd);
+#endif
 close_drm_card:
 	close(ctx.drm_card_fd);
 fail:
