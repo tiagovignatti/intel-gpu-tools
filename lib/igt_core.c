@@ -1438,8 +1438,15 @@ static void fatal_sig_handler(int sig)
 			igt_assert_eq(write(STDERR_FILENO, ".\n", 2), 2);
 		}
 
-		if (in_subtest && crash_signal(sig))
+		if (in_subtest && crash_signal(sig)) {
+			/* Linux standard to return exit code as 128 + signal */
+			if (!failed_one)
+				igt_exitcode = 128 + sig;
+
+			failed_one = true;
+
 			exit_subtest("CRASH");
+		}
 		break;
 	}
 
