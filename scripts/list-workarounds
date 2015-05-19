@@ -19,10 +19,11 @@ def find_nth(haystack, needle, n):
 
 valid_platforms = ('ctg', 'elk', 'ilk', 'snb', 'ivb', 'vlv', 'hsw', 'bdw',
 		   'chv', 'skl', 'bxt')
-def parse_platforms(p):
+def parse_platforms(line, p):
 	l =  p.split(',')
 	for p in l:
 		if p not in valid_platforms:
+			sys.stdout.write("warning: %s\n" % line)
 			sys.stdout.write("unknown platform %s\n" % p)
 	return l
 
@@ -40,6 +41,7 @@ def parse(me):
 			# no platform has been specified
 			name = waname_re.search(line).group('name')
 			path = line[:find_nth(line, ':', 2)]
+			sys.stdout.write("warning: %s\n" % line)
 			sys.stdout.write("%s: no platform for %s\n"
 					 % (path, name))
 			continue
@@ -48,12 +50,12 @@ def parse(me):
 		platforms = match.group('platforms')
 
 		if wa_name in workarounds:
-			platforms = parse_platforms(platforms)
+			platforms = parse_platforms(line, platforms)
 			for p in platforms:
 				if not p in workarounds[wa_name]:
 					workarounds[wa_name].append(p)
 		else:
-			workarounds[wa_name] = parse_platforms(platforms)
+			workarounds[wa_name] = parse_platforms(line, platforms)
 
 
 def execute(cmd):
