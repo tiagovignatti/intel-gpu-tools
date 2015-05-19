@@ -78,6 +78,7 @@ static void test_streaming(int fd, int mode, int sync)
 
 	memset(exec, 0, sizeof(exec));
 	exec[0].handle = gem_create(fd, OBJECT_SIZE);
+	exec[0].flags = EXEC_OBJECT_WRITE;
 #define dst exec[0].handle
 #define dst_offset exec[0].offset
 	exec[1].handle = gem_create(fd, OBJECT_SIZE);
