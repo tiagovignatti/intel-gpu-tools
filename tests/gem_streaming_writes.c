@@ -228,6 +228,138 @@ static void test_streaming(int fd, int mode, int sync)
 	gem_close(fd, dst);
 }
 
+static void test_batch(int fd, int mode)
+{
+	const int has_64bit_reloc = intel_gen(intel_get_drm_devid(fd)) >= 8;
+	struct drm_i915_gem_execbuffer2 execbuf;
+	struct drm_i915_gem_exec_object2 exec[3];
+	struct drm_i915_gem_relocation_entry reloc[2];
+	uint32_t tmp[] = { MI_BATCH_BUFFER_END };
+	uint64_t __src_offset, __dst_offset;
+	uint32_t *s, *d;
+	uint32_t *base;
+	uint32_t offset;
+
+	memset(exec, 0, sizeof(exec));
+	exec[0].handle = gem_create(fd, OBJECT_SIZE);
+	exec[0].flags = EXEC_OBJECT_WRITE;
+#define dst exec[0].handle
+#define dst_offset exec[0].offset
+	exec[1].handle = gem_create(fd, OBJECT_SIZE);
+#define src exec[1].handle
+#define src_offset exec[1].offset
+
+	s = gem_mmap__wc(fd, src, 0, OBJECT_SIZE, PROT_READ | PROT_WRITE);
+	igt_assert(s);
+
+	d = gem_mmap__cpu(fd, dst, 0, OBJECT_SIZE, PROT_READ);
+	igt_assert(d);
+
+	memset(reloc, 0, sizeof(reloc));
+	reloc[0].offset =  4 * sizeof(uint32_t);
+	reloc[0].delta = 0;
+	reloc[0].target_handle = execbuf.flags & LOCAL_I915_EXEC_HANDLE_LUT ? 0 : dst;
+	reloc[0].presumed_offset = dst_offset;
+	reloc[0].read_domains = I915_GEM_DOMAIN_RENDER;
+	reloc[0].write_domain = I915_GEM_DOMAIN_RENDER;
+
+	reloc[1].offset = 7 * sizeof(uint32_t);
+	if (has_64bit_reloc)
+		reloc[1].offset +=  sizeof(uint32_t);
+	reloc[1].delta = 0;
+	reloc[1].target_handle = execbuf.flags & LOCAL_I915_EXEC_HANDLE_LUT ? 1 : src;
+	reloc[1].presumed_offset = src_offset;
+	reloc[1].read_domains = I915_GEM_DOMAIN_RENDER;
+	reloc[1].write_domain = 0;
+
+	exec[2].relocs_ptr = (uintptr_t)reloc;
+	exec[2].relocation_count = 2;
+	exec[2].handle = gem_create(fd, OBJECT_SIZE / CHUNK_SIZE * 128);
+
+	switch (mode) {
+	case 0: /* cpu/snoop */
+		igt_require(gem_has_llc(fd));
+		base = gem_mmap__cpu(fd, exec[2].handle, 0, OBJECT_SIZE, PROT_READ | PROT_WRITE);
+		break;
+	case 1: /* gtt */
+		base = gem_mmap__gtt(fd, exec[2].handle, OBJECT_SIZE / CHUNK_SIZE * 128, PROT_READ | PROT_WRITE);
+		break;
+	case 2: /* wc */
+		base = gem_mmap__wc(fd, exec[2].handle, 0, OBJECT_SIZE / CHUNK_SIZE * 128, PROT_READ | PROT_WRITE);
+		break;
+	}
+	igt_assert(base);
+
+	gem_write(fd, exec[2].handle, 0, tmp, sizeof(tmp));
+	memset(&execbuf, 0, sizeof(execbuf));
+	execbuf.buffers_ptr = (uintptr_t)exec;
+	execbuf.buffer_count = 3;
+	execbuf.flags = LOCAL_I915_EXEC_HANDLE_LUT;
+	if (gem_has_blt(fd))
+		execbuf.flags |= I915_EXEC_BLT;
+	if (!__gem_execbuf(fd, &execbuf)) {
+		execbuf.flags &= ~LOCAL_I915_EXEC_HANDLE_LUT;
+		gem_execbuf(fd, &execbuf);
+	}
+	execbuf.flags |= I915_EXEC_NO_RELOC;
+	/* We assume that the active objects are fixed to avoid relocations */
+	exec[2].relocation_count = 0;
+	__src_offset = src_offset;
+	__dst_offset = dst_offset;
+
+	offset = mode ? I915_GEM_DOMAIN_GTT : I915_GEM_DOMAIN_CPU;
+	gem_set_domain(fd, exec[2].handle, offset, offset);
+	for (int pass = 0; pass < 256; pass++) {
+		gem_set_domain(fd, src, I915_GEM_DOMAIN_GTT, I915_GEM_DOMAIN_GTT);
+		for (offset = 0; offset < OBJECT_SIZE/4; offset++)
+			s[offset] = OBJECT_SIZE*pass/4 + offset;
+
+		/* Now copy from the src to the dst in 32byte chunks */
+		for (offset = 0; offset < OBJECT_SIZE / CHUNK_SIZE; offset++) {
+			unsigned x = (offset * CHUNK_SIZE) % 4096 >> 2;
+			unsigned y = (offset * CHUNK_SIZE) / 4096;
+			int k;
+
+			execbuf.batch_start_offset = 128 * offset;
+			execbuf.batch_start_offset += 8 * (pass & 7);
+			k = execbuf.batch_start_offset / 4;
+
+			base[k] = COPY_BLT_CMD | BLT_WRITE_ARGB;
+			if (has_64bit_reloc)
+				base[k] += 2;
+			k++;
+			base[k++] = 0xcc << 16 | 1 << 25 | 1 << 24 | 4096;
+			base[k++] = (y << 16) | x;
+			base[k++] = ((y+1) << 16) | (x + (CHUNK_SIZE >> 2));
+			base[k++] = dst_offset;
+			if (has_64bit_reloc)
+				base[k++] = dst_offset >> 32;
+			base[k++] = (y << 16) | x;
+			base[k++] = 4096;
+			base[k++] = src_offset;
+			if (has_64bit_reloc)
+				base[k++] = src_offset >> 32;
+			base[k++] = MI_BATCH_BUFFER_END;
+
+			gem_execbuf(fd, &execbuf);
+			igt_assert(__src_offset == src_offset);
+			igt_assert(__dst_offset == dst_offset);
+		}
+
+		gem_set_domain(fd, dst, I915_GEM_DOMAIN_CPU, 0);
+		for (offset = 0; offset < OBJECT_SIZE/4; offset++)
+			igt_assert_eq(pass*OBJECT_SIZE/4 + offset, d[offset]);
+	}
+
+	munmap(base, OBJECT_SIZE / CHUNK_SIZE * 128);
+	gem_close(fd, exec[2].handle);
+
+	munmap(s, OBJECT_SIZE);
+	gem_close(fd, src);
+	munmap(d, OBJECT_SIZE);
+	gem_close(fd, dst);
+}
+
 igt_main
 {
 	int fd, sync;
@@ -243,6 +375,13 @@ igt_main
 		igt_subtest_f("wc%s", sync ? "-sync":"")
 			test_streaming(fd, 2, sync);
 	}
+
+	igt_subtest("batch-cpu")
+		test_batch(fd, 0);
+	igt_subtest("batch-gtt")
+		test_batch(fd, 1);
+	igt_subtest("batch-wc")
+		test_batch(fd, 2);
 
 	igt_fixture
 		close(fd);
