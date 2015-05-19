@@ -2,6 +2,16 @@
  * Copyright 2014 The Chromium OS Authors. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
+ *
+ * This is a test meant to benchmark VGEM performance. There are three running
+ * paths (VGEM, GEM and DRM) that one should set via the define macros below.
+ * At the moment we are only measuring memory mapping performance of a PRIME
+ * imported buffer object - this is pretty much useful for graphics systems
+ * like the Chrome's where one process creates the buffer to render and another
+ * maps to display it on the screen.
+ *
+ * vgem_fb_test is originally inspired from:
+ * https://chromium.googlesource.com/chromiumos/platform/drm-tests/+/master/vgem_fb_test.c
  */
 
 #define _GNU_SOURCE
@@ -18,15 +28,23 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include <gbm.h>
 #include <drm_fourcc.h>
 #include <xf86drm.h>
 #include <xf86drmMode.h>
 
 #include "drmtest.h"
 
+// to use DRM, one has to comment both USE_GEM and USE_VGEM defines.
+#define USE_GEM
+//#define USE_VGEM
+
+#ifdef USE_GEM
+#include "ioctl_wrappers.h"
+#else
+#include <gbm.h>
+#endif
+
 #define BUFFERS 2
-#define USE_VGEM
 
 struct context {
 	int drm_card_fd;
@@ -34,20 +52,30 @@ struct context {
 	int vgem_card_fd;
 #endif
 	int card_fd;
-	struct gbm_device *drm_gbm;
 
 	drmModeRes *resources;
 	drmModeConnector *connector;
 	drmModeEncoder *encoder;
 	drmModeModeInfo *mode;
 
-	struct gbm_bo *gbm_buffer[BUFFERS];
-	uint32_t bo_handle[BUFFERS];
 	uint32_t drm_fb_id[BUFFERS];
+#ifdef USE_GEM
+	drm_intel_bufmgr *bufmgr;
 
+	drm_intel_bo *intel_bo_handle[BUFFERS];
+	unsigned long bo_stride;
+#else
+	struct gbm_device *drm_gbm;
+	struct gbm_bo *gbm_buffer[BUFFERS];
+#endif
+	uint32_t bo_handle[BUFFERS];
 };
 
-static int enable_profiling = false;
+#ifdef USE_GEM
+#define BO_SIZE (16*4096)
+#endif
+
+static int disable_profiling = false;
 
 void disable_psr() {
 	const char psr_path[] = "/sys/module/i915/parameters/enable_psr";
@@ -112,6 +140,17 @@ static double elapsed(const struct timeval *start, const struct timeval *end)
 	return 1e6*(end->tv_sec - start->tv_sec) + (end->tv_usec - start->tv_usec);
 }
 
+#ifdef USE_GEM
+void * mmap_intel_bo(drm_intel_bo *buffer)
+{
+	if (drm_intel_bo_map(buffer, 1)) {
+		fprintf(stderr, "fail to map a drm buffer\n");
+		return NULL;
+	}
+	assert(buffer->virtual);
+	return buffer->virtual;
+}
+#else
 void * mmap_dumb_bo(int fd, int handle, size_t size)
 {
 	struct drm_mode_map_dumb mmap_arg;
@@ -133,6 +172,7 @@ void * mmap_dumb_bo(int fd, int handle, size_t size)
 
 	return ptr;
 }
+#endif
 
 bool setup_drm(struct context *ctx)
 {
@@ -271,8 +311,13 @@ void draw(struct context *ctx)
 	for (sequence_index = 0; sequence_index < 4; sequence_index++) {
 		show_sequence(sequences[sequence_index]);
 		for (i = 0; i < 0x100; i++) {
+#ifdef USE_GEM
+			size_t bo_stride = ctx->bo_stride;
+			size_t bo_size = ctx->bo_stride * ctx->mode->vdisplay;
+#else
 			size_t bo_stride = gbm_bo_get_stride(ctx->gbm_buffer[fb_idx]);
 			size_t bo_size = gbm_bo_get_stride(ctx->gbm_buffer[fb_idx]) * gbm_bo_get_height(ctx->gbm_buffer[fb_idx]);
+#endif
 			uint32_t *bo_ptr;
 			volatile uint32_t *ptr;
 			struct timeval start, end;
@@ -280,10 +325,14 @@ void draw(struct context *ctx)
 			for (sequence_subindex = 0; sequence_subindex < 4; sequence_subindex++) {
 				switch (sequences[sequence_index][sequence_subindex]) {
 				case STEP_MMAP:
-					if (enable_profiling)
+					if (!disable_profiling)
 						gettimeofday(&start, NULL);
+#ifdef USE_GEM
+					bo_ptr = (uint32_t*)mmap_intel_bo(ctx->intel_bo_handle[fb_idx]);
+#else
 					bo_ptr = mmap_dumb_bo(ctx->drm_card_fd, ctx->bo_handle[fb_idx], bo_size);
-					if (enable_profiling) {
+#endif
+					if (!disable_profiling) {
 						gettimeofday(&end, NULL);
 						fprintf(stderr, "time to execute mmap: %7.3fms\n",
 								elapsed(&start, &end) / 1000);
@@ -321,9 +370,11 @@ void draw(struct context *ctx)
 					break;
 				}
 			}
-
+#ifdef USE_GEM
+			drm_intel_bo_unmap(ctx->intel_bo_handle[fb_idx]);
+#else
 			munmap(bo_ptr, bo_size);
-
+#endif
 			usleep(1e6 / 120); /* 120 Hz */
 
 			fb_idx = fb_idx ^ 1;
@@ -338,7 +389,7 @@ static int opt_handler(int opt, int opt_index)
 			drm_card_path = optarg;
 			break;
 		case 'p':
-			enable_profiling = true;
+			disable_profiling = true;
 			break;
 	}
 
@@ -365,6 +416,11 @@ int main(int argc, char **argv)
 		ret = 1;
 		goto fail;
 	}
+#ifdef USE_GEM
+	ctx.bufmgr = drm_intel_bufmgr_gem_init(ctx.drm_card_fd, BO_SIZE);
+	ctx.card_fd = ctx.drm_card_fd;
+	fprintf(stderr, "Method to open video card: GEM\n");
+#else
 #ifdef USE_VGEM
 	ctx.vgem_card_fd = drm_open_vgem();
 	if (ctx.vgem_card_fd < 0) {
@@ -385,6 +441,7 @@ int main(int argc, char **argv)
 		ret = 1;
 		goto close_card;
 	}
+#endif // USE_GEM
 
 	if (!setup_drm(&ctx)) {
 		fprintf(stderr, "failed to setup drm resources\n");
@@ -395,8 +452,18 @@ int main(int argc, char **argv)
 	fprintf(stderr, "display size: %dx%d\n",
 		ctx.mode->hdisplay, ctx.mode->vdisplay);
 
-
 	for (i = 0; i < BUFFERS; ++i) {
+#ifdef USE_GEM
+		uint32_t tiling_mode = I915_TILING_NONE;
+		drm_intel_bo *intel_bo = NULL;
+		intel_bo = drm_intel_bo_alloc_tiled(
+		                             ctx.bufmgr,
+		                             "chromium-gpu-memory-buffer",
+		                             ctx.mode->hdisplay, ctx.mode->vdisplay,
+		                             4, &tiling_mode, &bo_stride, 0);
+		ctx.bo_stride = bo_stride;
+		drm_intel_bo_gem_export_to_prime(intel_bo, &drm_prime_fd);
+#else
 		ctx.gbm_buffer[i] = gbm_bo_create(ctx.drm_gbm,
 			ctx.mode->hdisplay, ctx.mode->vdisplay, GBM_BO_FORMAT_XRGB8888,
 			GBM_BO_USE_SCANOUT | GBM_BO_USE_RENDERING);
@@ -411,7 +478,7 @@ int main(int argc, char **argv)
 		bo_stride = gbm_bo_get_stride(ctx.gbm_buffer[i]);
 
 		drm_prime_fd = gbm_bo_get_fd(ctx.gbm_buffer[i]);
-
+#endif // USE_GEM
 		if (drm_prime_fd < 0) {
 			fprintf(stderr, "failed to turn handle into fd\n");
 			ret = 1;
@@ -419,16 +486,19 @@ int main(int argc, char **argv)
 		}
 
 		ret = drmPrimeFDToHandle(ctx.drm_card_fd, drm_prime_fd,
-					 &ctx.bo_handle[i]);
+			                       &ctx.bo_handle[i]);
 		if (ret) {
 			fprintf(stderr, "failed to import handle\n");
 			ret = 1;
 			goto free_buffers;
 		}
+#ifdef USE_GEM
+		ctx.intel_bo_handle[i] = drm_intel_bo_gem_create_from_prime(
+				ctx.bufmgr, drm_prime_fd, BO_SIZE);
+#endif
 
 		ret = drmModeAddFB(ctx.drm_card_fd, ctx.mode->hdisplay, ctx.mode->vdisplay,
-			24, 32, bo_stride, bo_handle, &ctx.drm_fb_id[i]);
-
+			24, 32, bo_stride, ctx.bo_handle[i], &ctx.drm_fb_id[i]);
 		if (ret) {
 			fprintf(stderr, "failed to add fb\n");
 			ret = 1;
@@ -449,15 +519,19 @@ free_buffers:
 	for (i = 0; i < BUFFERS; ++i) {
 		if (ctx.drm_fb_id[i])
 			drmModeRmFB(ctx.drm_card_fd, ctx.drm_fb_id[i]);
+#ifndef USE_GEM
 		if (ctx.gbm_buffer[i])
 			gbm_bo_destroy(ctx.gbm_buffer[i]);
+#endif
 	}
 
 	drmModeFreeConnector(ctx.connector);
 	drmModeFreeEncoder(ctx.encoder);
 	drmModeFreeResources(ctx.resources);
 destroy_drm_gbm:
+#ifndef USE_GEM
 	gbm_device_destroy(ctx.drm_gbm);
+#endif
 close_card:
 #ifdef USE_VGEM
 	close(ctx.vgem_card_fd);
