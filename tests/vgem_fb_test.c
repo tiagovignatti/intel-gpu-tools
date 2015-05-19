@@ -23,6 +23,8 @@
 #include <xf86drm.h>
 #include <xf86drmMode.h>
 
+#include "drmtest.h"
+
 #define BUFFERS 2
 #define USE_VGEM
 
@@ -67,6 +69,7 @@ void do_fixes() {
 	disable_psr();
 }
 
+char *drm_card_path = "/dev/dri/card0";
 #ifdef USE_VGEM
 const char g_sys_card_path_format[] =
    "/sys/bus/platform/devices/vgem/drm/card%d";
@@ -328,7 +331,19 @@ void draw(struct context *ctx)
 	}
 }
 
-static const char optstr[] = "d:p";
+static int opt_handler(int opt, int opt_index)
+{
+  switch (opt) {
+		case 'd':
+			drm_card_path = optarg;
+			break;
+		case 'p':
+			enable_profiling = true;
+			break;
+	}
+
+	return 0;
+}
 
 int main(int argc, char **argv)
 {
@@ -338,22 +353,9 @@ int main(int argc, char **argv)
 	uint32_t bo_stride;
 	int drm_prime_fd;
 	size_t i;
-	char *drm_card_path = "/dev/dri/card0";
-	char c;
 
-	while ((c = getopt(argc, argv, optstr)) != -1) {
-		switch (c) {
-		case 'd':
-			drm_card_path = optarg;
-			break;
-		case 'p':
-			enable_profiling = true;
-			break;
-		default:
-			ret = 1;
-			goto fail;
-		}
-	}
+	igt_simple_init_parse_opts(&argc, argv, "d:p", NULL, NULL, opt_handler);
+	igt_skip_on_simulation();
 
 	do_fixes();
 
@@ -464,4 +466,6 @@ close_drm_card:
 	close(ctx.drm_card_fd);
 fail:
 	return ret;
+
+	igt_exit();
 }
