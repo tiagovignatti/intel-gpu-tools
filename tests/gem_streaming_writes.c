@@ -60,7 +60,7 @@ static bool __gem_execbuf(int fd, struct drm_i915_gem_execbuffer2 *eb)
 	return drmIoctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, eb) == 0;
 }
 
-static void test_streaming(int fd, int mode)
+static void test_streaming(int fd, int mode, int sync)
 {
 	const int has_64bit_reloc = intel_gen(intel_get_drm_devid(fd)) >= 8;
 	struct drm_i915_gem_execbuffer2 execbuf;
@@ -192,6 +192,8 @@ static void test_streaming(int fd, int mode)
 			int b;
 
 			if (pass) {
+				if (sync)
+					gem_set_domain(fd, src, domain, domain);
 				for (i = 0; i < CHUNK_SIZE/4; i++)
 					s[offset/4 + i] = (OBJECT_SIZE*pass + offset)/4 + i;
 			}
@@ -227,17 +229,19 @@ static void test_streaming(int fd, int mode)
 
 igt_main
 {
-	int fd;
+	int fd, sync;
 
 	igt_fixture
 		fd = drm_open_any();
 
-	igt_subtest("cpu")
-		test_streaming(fd, 0);
-	igt_subtest("gtt")
-		test_streaming(fd, 1);
-	igt_subtest("wc")
-		test_streaming(fd, 2);
+	for (sync = 2; sync--; ) {
+		igt_subtest_f("cpu%s", sync ? "-sync":"")
+			test_streaming(fd, 0, sync);
+		igt_subtest_f("gtt%s", sync ? "-sync":"")
+			test_streaming(fd, 1, sync);
+		igt_subtest_f("wc%s", sync ? "-sync":"")
+			test_streaming(fd, 2, sync);
+	}
 
 	igt_fixture
 		close(fd);
