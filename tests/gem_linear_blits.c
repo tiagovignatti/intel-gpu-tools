@@ -65,8 +65,7 @@ copy(int fd, uint32_t dst, uint32_t src)
 	struct drm_i915_gem_relocation_entry reloc[2];
 	struct drm_i915_gem_exec_object2 obj[3];
 	struct drm_i915_gem_execbuffer2 exec;
-	uint32_t handle;
-	int ret, i=0;
+	int i = 0;
 
 	batch[i++] = XY_SRC_COPY_BLT_CMD |
 		  XY_SRC_COPY_BLT_WRITE_ALPHA |
@@ -92,14 +91,12 @@ copy(int fd, uint32_t dst, uint32_t src)
 	batch[i++] = MI_BATCH_BUFFER_END;
 	batch[i++] = MI_NOOP;
 
-	handle = gem_create(fd, 4096);
-	gem_write(fd, handle, 0, batch, sizeof(batch));
-
+	memset(reloc, 0, sizeof(reloc));
 	reloc[0].target_handle = dst;
 	reloc[0].delta = 0;
 	reloc[0].offset = 4 * sizeof(batch[0]);
 	reloc[0].presumed_offset = 0;
-	reloc[0].read_domains = I915_GEM_DOMAIN_RENDER;;
+	reloc[0].read_domains = I915_GEM_DOMAIN_RENDER;
 	reloc[0].write_domain = I915_GEM_DOMAIN_RENDER;
 
 	reloc[1].target_handle = src;
@@ -108,54 +105,25 @@ copy(int fd, uint32_t dst, uint32_t src)
 	if (intel_gen(intel_get_drm_devid(fd)) >= 8)
 		reloc[1].offset += sizeof(batch[0]);
 	reloc[1].presumed_offset = 0;
-	reloc[1].read_domains = I915_GEM_DOMAIN_RENDER;;
+	reloc[1].read_domains = I915_GEM_DOMAIN_RENDER;
 	reloc[1].write_domain = 0;
 
+	memset(obj, 0, sizeof(obj));
 	obj[0].handle = dst;
-	obj[0].relocation_count = 0;
-	obj[0].relocs_ptr = 0;
-	obj[0].alignment = 0;
-	obj[0].offset = 0;
-	obj[0].flags = 0;
-	obj[0].rsvd1 = 0;
-	obj[0].rsvd2 = 0;
-
 	obj[1].handle = src;
-	obj[1].relocation_count = 0;
-	obj[1].relocs_ptr = 0;
-	obj[1].alignment = 0;
-	obj[1].offset = 0;
-	obj[1].flags = 0;
-	obj[1].rsvd1 = 0;
-	obj[1].rsvd2 = 0;
-
-	obj[2].handle = handle;
+	obj[2].handle = gem_create(fd, 4096);
+	gem_write(fd, obj[2].handle, 0, batch, i * sizeof(batch[0]));
 	obj[2].relocation_count = 2;
 	obj[2].relocs_ptr = (uintptr_t)reloc;
-	obj[2].alignment = 0;
-	obj[2].offset = 0;
-	obj[2].flags = 0;
-	obj[2].rsvd1 = obj[2].rsvd2 = 0;
 
+	memset(&exec, 0, sizeof(exec));
 	exec.buffers_ptr = (uintptr_t)obj;
 	exec.buffer_count = 3;
-	exec.batch_start_offset = 0;
-	exec.batch_len = i * 4;
-	exec.DR1 = exec.DR4 = 0;
-	exec.num_cliprects = 0;
-	exec.cliprects_ptr = 0;
-	exec.flags = HAS_BLT_RING(intel_get_drm_devid(fd)) ? I915_EXEC_BLT : 0;
-	i915_execbuffer2_set_context_id(exec, 0);
-	exec.rsvd2 = 0;
+	exec.batch_len = i * sizeof(batch[0]);
+	exec.flags = gem_has_blt(fd) ? I915_EXEC_BLT : 0;
 
-	ret = drmIoctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &exec);
-	while (ret && errno == EBUSY) {
-		drmCommandNone(fd, DRM_I915_GEM_THROTTLE);
-		ret = drmIoctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &exec);
-	}
-	igt_assert_eq(ret, 0);
-
-	gem_close(fd, handle);
+	gem_execbuf(fd, &exec);
+	gem_close(fd, obj[2].handle);
 }
 
 static uint32_t
@@ -206,11 +174,11 @@ static void run_test(int fd, int count)
 		start += 1024 * 1024 / 4;
 	}
 
-	igt_info("Verifying initialisation...\n");
+	igt_debug("Verifying initialisation...\n");
 	for (i = 0; i < count; i++)
 		check_bo(fd, handle[i], start_val[i]);
 
-	igt_info("Cyclic blits, forward...\n");
+	igt_debug("Cyclic blits, forward...\n");
 	for (i = 0; i < count * 4; i++) {
 		int src = i % count;
 		int dst = (i + 1) % count;
@@ -221,7 +189,7 @@ static void run_test(int fd, int count)
 	for (i = 0; i < count; i++)
 		check_bo(fd, handle[i], start_val[i]);
 
-	igt_info("Cyclic blits, backward...\n");
+	igt_debug("Cyclic blits, backward...\n");
 	for (i = 0; i < count * 4; i++) {
 		int src = (i + 1) % count;
 		int dst = i % count;
@@ -232,7 +200,7 @@ static void run_test(int fd, int count)
 	for (i = 0; i < count; i++)
 		check_bo(fd, handle[i], start_val[i]);
 
-	igt_info("Random blits...\n");
+	igt_debug("Random blits...\n");
 	for (i = 0; i < count * 4; i++) {
 		int src = random() % count;
 		int dst = random() % count;
