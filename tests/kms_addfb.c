@@ -43,6 +43,62 @@
 uint32_t gem_bo;
 uint32_t gem_bo_small;
 
+static void invalid_tests(int fd)
+{
+	struct local_drm_mode_fb_cmd2 f = {};
+
+	f.width = 512;
+	f.height = 512;
+	f.pixel_format = DRM_FORMAT_XRGB8888;
+	f.pitches[0] = 512*4;
+
+	igt_fixture {
+		gem_bo = gem_create(fd, 1024*1024*4);
+		igt_assert(gem_bo);
+		gem_bo_small = gem_create(fd, 1024*1024*4 - 4096);
+		igt_assert(gem_bo_small);
+
+		f.handles[0] = gem_bo;
+
+		igt_assert(drmIoctl(fd, DRM_IOCTL_MODE_ADDFB2, &f) == 0);
+		igt_assert(drmIoctl(fd, DRM_IOCTL_MODE_RMFB, &f.fb_id) == 0);
+		f.fb_id = 0;
+	}
+
+	igt_subtest("unused-handle") {
+		f.handles[1] = gem_bo_small;
+		igt_assert(drmIoctl(fd, DRM_IOCTL_MODE_ADDFB2, &f) == -1 &&
+			   errno == EINVAL);
+		f.handles[1] = 0;
+	}
+
+	igt_subtest("unused-pitches") {
+		f.pitches[1] = 512;
+		igt_assert(drmIoctl(fd, DRM_IOCTL_MODE_ADDFB2, &f) == -1 &&
+			   errno == EINVAL);
+		f.pitches[1] = 0;
+	}
+
+	igt_subtest("unused-offsets") {
+		f.offsets[1] = 512;
+		igt_assert(drmIoctl(fd, DRM_IOCTL_MODE_ADDFB2, &f) == -1 &&
+			   errno == EINVAL);
+		f.offsets[1] = 0;
+	}
+
+	igt_subtest("unused-modifier") {
+		f.modifier[1] =  LOCAL_I915_FORMAT_MOD_X_TILED;
+		igt_assert(drmIoctl(fd, DRM_IOCTL_MODE_ADDFB2, &f) == -1 &&
+			   errno == EINVAL);
+		f.modifier[1] = 0;
+	}
+
+	igt_fixture {
+		gem_close(fd, gem_bo);
+		gem_close(fd, gem_bo_small);
+	}
+}
+
 static void pitch_tests(int fd)
 {
 	struct drm_mode_fb_cmd2 f = {};
@@ -240,9 +296,8 @@ static void addfb25_tests(int fd)
 		igt_assert(drmIoctl(fd, LOCAL_DRM_IOCTL_MODE_ADDFB2, &f) < 0 && errno == EINVAL);
 	}
 
-	igt_fixture {
+	igt_fixture
 		f.flags = LOCAL_DRM_MODE_FB_MODIFIERS;
-	}
 
 	igt_subtest("addfb25-bad-modifier") {
 		igt_require_fb_modifiers(fd);
@@ -251,9 +306,8 @@ static void addfb25_tests(int fd)
 		igt_assert(drmIoctl(fd, LOCAL_DRM_IOCTL_MODE_ADDFB2, &f) < 0 && errno == EINVAL);
 	}
 
-	igt_fixture {
+	igt_fixture
 		gem_set_tiling(fd, gem_bo, I915_TILING_X, 1024*4);
-	}
 
 	igt_subtest("addfb25-X-tiled-mismatch") {
 		igt_require_fb_modifiers(fd);
@@ -282,9 +336,8 @@ static void addfb25_tests(int fd)
 		f.fb_id = 0;
 	}
 
-	igt_fixture {
+	igt_fixture
 		gem_close(fd, gem_bo);
-	}
 }
 
 static void addfb25_ytile(int fd, int gen)
@@ -358,6 +411,8 @@ igt_main
 		fd = drm_open_any_master();
 		gen = intel_gen(intel_get_drm_devid(fd));
 	}
+
+	invalid_tests(fd);
 
 	pitch_tests(fd);
 
