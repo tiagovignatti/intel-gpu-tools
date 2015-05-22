@@ -61,21 +61,19 @@ paint_squares(data_t *data, drmModeModeInfo *mode, igt_rotation_t rotation,
 	}
 
 	if (rotation == IGT_ROTATION_90) {
-		/* Paint 4 squares with width == height in Blue, Red,
-		Green, White Clockwise order to look like 90 degree rotated*/
-		igt_paint_color(cr, 0, 0, w / 2, h / 2, 0.0, 0.0, 1.0);
-		igt_paint_color(cr, w / 2, 0, w / 2, h / 2, 1.0, 0.0, 0.0);
-		igt_paint_color(cr, 0, h / 2, w / 2, h / 2, 1.0, 1.0, 1.0);
-		igt_paint_color(cr, w / 2, h / 2, w / 2, h / 2, 0.0, 1.0, 0.0);
-
-	} else if (rotation == IGT_ROTATION_270) {
 		/* Paint 4 squares with width == height in Green, White,
 		Blue, Red Clockwise order to look like 270 degree rotated*/
 		igt_paint_color(cr, 0, 0, w / 2, h / 2, 0.0, 1.0, 0.0);
 		igt_paint_color(cr, w / 2, 0, w / 2, h / 2, 1.0, 1.0, 1.0);
 		igt_paint_color(cr, 0, h / 2, w / 2, h / 2, 1.0, 0.0, 0.0);
 		igt_paint_color(cr, w / 2, h / 2, w / 2, h / 2, 0.0, 0.0, 1.0);
-
+	} else if (rotation == IGT_ROTATION_270) {
+		/* Paint 4 squares with width == height in Blue, Red,
+		Green, White Clockwise order to look like 90 degree rotated*/
+		igt_paint_color(cr, 0, 0, w / 2, h / 2, 0.0, 0.0, 1.0);
+		igt_paint_color(cr, w / 2, 0, w / 2, h / 2, 1.0, 0.0, 0.0);
+		igt_paint_color(cr, 0, h / 2, w / 2, h / 2, 1.0, 1.0, 1.0);
+		igt_paint_color(cr, w / 2, h / 2, w / 2, h / 2, 0.0, 1.0, 0.0);
 	} else {
 		/* Paint with 4 squares of Red, Green, White, Blue Clockwise */
 		igt_paint_color(cr, 0, 0, w / 2, h / 2, 1.0, 0.0, 0.0);
