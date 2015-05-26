@@ -207,15 +207,11 @@ wait_for_attn(int timeout, int *out_bits) {
 #define eu_tid(bit) eu_info->debuggees[bit].tid
 static struct eu_state *
 find_eu_shmem(int bit, volatile uint8_t *buf) {
-	struct per_thread_data {
-		uint8_t ____[dh.per_thread_scratch];
-	}__attribute__((packed)) *data;
 	struct eu_state *eu;
 	int mem_tid, mem_euid, i;
 
-	data = (struct per_thread_data *)buf;
 	for(i = 0; i < eu_info->num_threads; i++) {
-		eu = (struct eu_state *)&data[i];
+		eu = (struct eu_state *)(buf + i * dh.per_thread_scratch);
 		mem_tid = eu->sr0 & 0x7;
 		mem_euid = (eu->sr0 >> 8) & 0xf;
 		if (mem_tid == eu_tid(bit) && mem_euid == eu_id(bit))
