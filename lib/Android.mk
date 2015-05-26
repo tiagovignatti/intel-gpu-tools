@@ -25,7 +25,7 @@ LOCAL_EXPORT_C_INCLUDE_DIRS := $(LOCAL_PATH)
 LOCAL_CFLAGS += -DHAVE_LIBDRM_ATOMIC_PRIMITIVES
 LOCAL_CFLAGS += -DHAVE_STRUCT_SYSINFO_TOTALRAM
 LOCAL_CFLAGS += -DANDROID -DHAVE_LINUX_KD_H
-LOCAL_CFLAGS += -std=gnu99
+LOCAL_CFLAGS += -std=gnu99 -UNDEBUG
 LOCAL_MODULE:= libintel_gpu_tools
 
 LOCAL_SHARED_LIBRARIES := libpciaccess  \
@@ -47,4 +47,6 @@ endif
 LOCAL_SRC_FILES := $(filter-out $(skip_lib_list),$(libintel_tools_la_SOURCES))
 
 include $(BUILD_STATIC_LIBRARY)
+
+include $(call first-makefiles-under, $(LOCAL_PATH))
 
