@@ -26,6 +26,8 @@
 
 #include "drmtest.h"
 
+IGT_TEST_DESCRIPTION("Template test.");
+
 /*
  * Note that test function (and code called by them) should generally not return
  * a variable indicating success/failure. Instead use the igt_require/igt_assert
