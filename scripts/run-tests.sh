@@ -61,6 +61,8 @@ function print_help {
 	echo "                  (can be used more than once)"
 	echo "  -R              resume interrupted test where the partial results"
 	echo "                  are in the directory given by -r"
+	echo "  -n              do not retry incomplete tests when resuming a"
+	echo "                  test run with -R"
 	echo ""
 	echo "Useful patterns for test filtering are described in tests/NAMING-CONVENTION"
 }
@@ -78,7 +80,7 @@ function list_tests {
 	done
 }
 
-while getopts ":dhlr:st:vx:R" opt; do
+while getopts ":dhlr:st:vx:Rn" opt; do
 	case $opt in
 		d) download_piglit; exit ;;
 		h) print_help; exit ;;
@@ -89,6 +91,7 @@ while getopts ":dhlr:st:vx:R" opt; do
 		v) VERBOSE="-v" ;;
 		x) EXCLUDE="$EXCLUDE -x $OPTARG" ;;
 		R) RESUME="true" ;;
+		n) NORETRY="--no-retry" ;;
 		:)
 			echo "Option -$OPTARG requires an argument."
 			exit 1
@@ -119,10 +122,10 @@ if [ ! -x "$PIGLIT" ]; then
 fi
 
 if [ "x$RESUME" != "x" ]; then
-	sudo IGT_TEST_ROOT="$IGT_TEST_ROOT" "$PIGLIT" resume "$RESULTS"
+	sudo IGT_TEST_ROOT="$IGT_TEST_ROOT" "$PIGLIT" resume "$RESULTS" $NORETRY
 else
 	mkdir -p "$RESULTS"
-	sudo IGT_TEST_ROOT="$IGT_TEST_ROOT" "$PIGLIT" run igt "$RESULTS" $VERBOSE $EXCLUDE $FILTER
+	sudo IGT_TEST_ROOT="$IGT_TEST_ROOT" "$PIGLIT" run igt "$RESULTS" -s $VERBOSE $EXCLUDE $FILTER
 fi
 
 if [ "$SUMMARY" == "html" ]; then
