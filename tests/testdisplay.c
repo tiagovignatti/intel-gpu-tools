@@ -364,6 +364,7 @@ set_mode(struct connector *c)
 		if (drmModeSetCrtc(drm_fd, c->crtc, fb_id, 0, 0,
 				   &c->id, 1, &c->mode)) {
 			igt_warn("failed to set mode (%dx%d@%dHz): %s\n", width, height, c->mode.vrefresh, strerror(errno));
+			igt_remove_fb(drm_fd, &fb_info[current_fb]);
 			continue;
 		}
 
@@ -387,7 +388,7 @@ set_mode(struct connector *c)
 		}
 	}
 
-	if (test_all_modes)
+	if (test_all_modes && old_fb != -1)
 		igt_remove_fb(drm_fd, &fb_info[old_fb]);
 
 	drmModeFreeEncoder(c->encoder);
