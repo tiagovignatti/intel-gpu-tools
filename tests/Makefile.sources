@@ -80,6 +80,7 @@ TESTS_progs_M = \
 	kms_crtc_background_color \
 	kms_plane_scaling \
 	kms_panel_fitting \
+	pm_backlight \
 	pm_lpsp \
 	pm_rpm \
 	pm_rps \

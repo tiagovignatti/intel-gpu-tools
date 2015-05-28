@@ -150,6 +150,7 @@ kms_vblank
 kms_crtc_background_color
 kms_plane_scaling
 kms_panel_fitting
+pm_backlight
 pm_lpsp
 pm_rc6_residency
 pm_rpm
