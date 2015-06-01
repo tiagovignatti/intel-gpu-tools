@@ -145,4 +145,8 @@ void igt_unlock_mem(void);
 	ret_;								\
 })
 
+
+void igt_set_module_param(const char *name, const char *val);
+void igt_set_module_param_int(const char *name, int val);
+
 #endif /* IGT_AUX_H */

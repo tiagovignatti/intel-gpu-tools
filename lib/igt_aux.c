@@ -735,3 +735,137 @@ void igt_unlock_mem(void)
 	free(locked_mem);
 	locked_mem = NULL;
 }
+
+
+#define MODULE_PARAM_DIR "/sys/module/i915/parameters/"
+#define PARAM_NAME_MAX_SZ 32
+#define PARAM_VALUE_MAX_SZ 16
+#define PARAM_FILE_PATH_MAX_SZ (strlen(MODULE_PARAM_DIR) + PARAM_NAME_MAX_SZ)
+
+struct module_param_data {
+	char name[PARAM_NAME_MAX_SZ];
+	char original_value[PARAM_VALUE_MAX_SZ];
+
+	struct module_param_data *next;
+};
+struct module_param_data *module_params = NULL;
+
+static void igt_module_param_exit_handler(int sig)
+{
+	const size_t dir_len = strlen(MODULE_PARAM_DIR);
+	char file_path[PARAM_FILE_PATH_MAX_SZ];
+	struct module_param_data *data;
+	int fd;
+
+	/* We don't need to assert string sizes on this function since they were
+	 * already checked before being stored on the lists. Besides,
+	 * igt_assert() is not AS-Safe. */
+	strcpy(file_path, MODULE_PARAM_DIR);
+
+	for (data = module_params; data != NULL; data = data->next) {
+		strcpy(file_path + dir_len, data->name);
+
+		fd = open(file_path, O_RDWR);
+		if (fd >= 0) {
+			write(fd, data->original_value,
+			      strlen(data->original_value));
+			close(fd);
+		}
+	}
+	/* free() is not AS-Safe, so we can't call it here. */
+}
+
+/**
+ * igt_save_module_param:
+ * @name: name of the i915.ko module parameter
+ * @file_path: full sysfs file path for the parameter
+ *
+ * Reads the current value of an i915.ko module parameter, saves it on an array,
+ * then installs an exit handler to restore it when the program exits.
+ *
+ * It is safe to call this function multiple times for the same parameter.
+ *
+ * Notice that this function is called by igt_set_module_param(), so that one -
+ * or one of its wrappers - is the only function the test programs need to call.
+ */
+static void igt_save_module_param(const char *name, const char *file_path)
+{
+	struct module_param_data *data;
+	size_t n;
+	int fd;
+
+	/* Check if this parameter is already saved. */
+	for (data = module_params; data != NULL; data = data->next)
+		if (strncmp(data->name, name, PARAM_NAME_MAX_SZ) == 0)
+			return;
+
+	if (!module_params)
+		igt_install_exit_handler(igt_module_param_exit_handler);
+
+	data = calloc(1, sizeof (*data));
+	igt_assert(data);
+
+	strncpy(data->name, name, PARAM_NAME_MAX_SZ);
+
+	fd = open(file_path, O_RDONLY);
+	igt_assert(fd >= 0);
+
+	n = read(fd, data->original_value, PARAM_VALUE_MAX_SZ);
+	igt_assert_f(n > 0 && n < PARAM_VALUE_MAX_SZ,
+		     "Need to increase PARAM_VALUE_MAX_SZ\n");
+
+	igt_assert(close(fd) == 0);
+
+	data->next = module_params;
+	module_params = data;
+}
+
+/**
+ * igt_set_module_param:
+ * @name: i915.ko parameter name
+ * @val: i915.ko parameter value
+ *
+ * This function sets the desired value for the given i915.ko parameter. It also
+ * takes care of saving and restoring the values that were already set before
+ * the test was run by calling igt_save_module_param().
+ *
+ * Please consider using igt_set_module_param_int() for the integer and bool
+ * parameters.
+ */
+void igt_set_module_param(const char *name, const char *val)
+{
+	char file_path[PARAM_FILE_PATH_MAX_SZ];
+	size_t len = strlen(val);
+	int fd;
+
+	igt_assert_f(strlen(name) < PARAM_NAME_MAX_SZ,
+		     "Need to increase PARAM_NAME_MAX_SZ\n");
+	strcpy(file_path, MODULE_PARAM_DIR);
+	strcpy(file_path + strlen(MODULE_PARAM_DIR), name);
+
+	igt_save_module_param(name, file_path);
+
+	fd = open(file_path, O_RDWR);
+	igt_assert(write(fd, val, len) == len);
+	igt_assert(close(fd) == 0);
+}
+
+/**
+ * igt_set_module_param_int:
+ * @name: i915.ko parameter name
+ * @val: i915.ko parameter value
+ *
+ * This is a wrapper for igt_set_module_param() that takes an integer instead of
+ * a string. Please see igt_set_module_param().
+ */
+void igt_set_module_param_int(const char *name, int val)
+{
+	char str[PARAM_VALUE_MAX_SZ];
+	int n;
+
+	n = snprintf(str, PARAM_VALUE_MAX_SZ, "%d\n", val);
+	igt_assert_f(n < PARAM_VALUE_MAX_SZ,
+		     "Need to increase PARAM_VALUE_MAX_SZ\n");
+
+	igt_set_module_param(name, str);
+}
