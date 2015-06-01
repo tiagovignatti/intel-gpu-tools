@@ -180,7 +180,7 @@ static int has_userptr(int fd)
 	return handle != 0;
 }
 
-static const unsigned int nr_bos[] = {0, 1, 10, 100, 1000};
+static const unsigned int nr_bos[] = {0, 1, 10, 100, 1000, 10000};
 static const unsigned int test_duration_sec = 3;
 
 static volatile unsigned int run_test;
@@ -334,7 +334,71 @@ static void test_ptr_write(void *ptr)
 	printf("%8lu MB/s\n", iter / test_duration_sec * BO_SIZE / 1000000);
 }
 
-static void test_impact(int fd)
+static void do_impact_tests(unsigned int n, const char *pfix, const char *pfix2,
+			    void *ptr)
+{
+	printf("%s%sptr-read,                   %5u bos = ", pfix, pfix2, n);
+	test_ptr_read(ptr);
+
+	printf("%s%sptr-write                   %5u bos = ", pfix, pfix2, n);
+	test_ptr_write(ptr);
+
+	printf("%s%smalloc-free,                %5u bos = ", pfix, pfix2, n);
+	test_malloc_free(0);
+	printf("%s%smalloc-free-random          %5u bos = ", pfix, pfix2, n);
+	test_malloc_free(1);
+
+	printf("%s%smalloc-realloc-free,        %5u bos = ", pfix, pfix2, n);
+	test_malloc_realloc_free(0);
+	printf("%s%smalloc-realloc-free-random, %5u bos = ", pfix, pfix2, n);
+	test_malloc_realloc_free(1);
+
+	printf("%s%smmap-unmap,                 %5u bos = ", pfix, pfix2, n);
+	test_mmap_unmap(0);
+	printf("%s%smmap-unmap-random,          %5u bos = ", pfix, pfix2, n);
+	test_mmap_unmap(1);
+}
+
+static void test_impact_overlap(int fd, const char *prefix)
+{
+	unsigned int total = sizeof(nr_bos) / sizeof(nr_bos[0]);
+	unsigned int subtest, i;
+	uint32_t handles[nr_bos[total-1]];
+	void *block = NULL;
+	void *ptr;
+	unsigned char *p;
+	char buffer[BO_SIZE];
+	int ret;
+
+	for (subtest = 0; subtest < total; subtest++) {
+		if (nr_bos[subtest] > 0) {
+			igt_assert(PAGE_SIZE < BO_SIZE);
+			ret = posix_memalign(&block, PAGE_SIZE,
+					PAGE_SIZE * nr_bos[subtest] + BO_SIZE);
+			igt_assert(ret == 0);
+
+			for (i = 0, p = block; i < nr_bos[subtest];
+			     i++, p += PAGE_SIZE)
+				ret = gem_userptr(fd, (uint32_t *)p, BO_SIZE, 0,
+						  &handles[i]);
+				igt_assert(ret == 0);
+		}
+
+		if (nr_bos[subtest] > 0)
+			ptr = block;
+		else
+			ptr = buffer;
+
+		do_impact_tests(nr_bos[subtest], prefix, "overlap-", ptr);
+
+		for (i = 0; i < nr_bos[subtest]; i++)
+			gem_close(fd, handles[i]);
+		if (block)
+			free(block);
+	}
+}
+
+static void test_impact(int fd, const char *prefix)
 {
 	unsigned int total = sizeof(nr_bos) / sizeof(nr_bos[0]);
 	unsigned int subtest, i;
@@ -351,26 +415,7 @@ static void test_impact(int fd)
 		else
 			ptr = buffer;
 
-		printf("ptr-read,                   %5u bos = ", nr_bos[subtest]);
-		test_ptr_read(ptr);
-
-		printf("ptr-write                   %5u bos = ", nr_bos[subtest]);
-		test_ptr_write(ptr);
-
-		printf("malloc-free,                %5u bos = ", nr_bos[subtest]);
-		test_malloc_free(0);
-		printf("malloc-free-random          %5u bos = ", nr_bos[subtest]);
-		test_malloc_free(1);
-
-		printf("malloc-realloc-free,        %5u bos = ", nr_bos[subtest]);
-		test_malloc_realloc_free(0);
-		printf("malloc-realloc-free-random, %5u bos = ", nr_bos[subtest]);
-		test_malloc_realloc_free(1);
-
-		printf("mmap-unmap,                 %5u bos = ", nr_bos[subtest]);
-		test_mmap_unmap(0);
-		printf("mmap-unmap-random,          %5u bos = ", nr_bos[subtest]);
-		test_mmap_unmap(1);
+		do_impact_tests(nr_bos[subtest], prefix, "no-overlap-", ptr);
 
 		for (i = 0; i < nr_bos[subtest]; i++)
 			free_userptr_bo(fd, handles[i]);
@@ -484,7 +529,10 @@ int main(int argc, char **argv)
 		test_userptr(fd);
 
 	igt_subtest("userptr-impact-unsync")
-		test_impact(fd);
+		test_impact(fd, "unsync-");
+
+	igt_subtest("userptr-impact-unsync-overlap")
+		test_impact_overlap(fd, "unsync-");
 
 	gem_userptr_test_synchronized();
 
@@ -492,7 +540,10 @@ int main(int argc, char **argv)
 		test_userptr(fd);
 
 	igt_subtest("userptr-impact-sync")
-		test_impact(fd);
+		test_impact(fd, "sync-");
+
+	igt_subtest("userptr-impact-sync-overlap")
+		test_impact_overlap(fd, "sync-");
 
 	igt_exit();
 
