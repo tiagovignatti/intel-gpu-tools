@@ -203,7 +203,7 @@ static void fill_render(data_t *data, uint32_t handle, unsigned char color)
 	gem_bo_busy(data->drm_fd, handle);
 }
 
-static bool psr_enabled(data_t *data)
+static bool psr_possible(data_t *data)
 {
 	FILE *file;
 	char buf[4096];
@@ -228,14 +228,6 @@ static bool psr_enabled(data_t *data)
 	ret = fscanf(file, "Sink_Support: %s\n", buf);
 	igt_require_f(ret == 1 && strcmp(buf, "yes") == 0,
 		      "Sink_Support: %s\n", buf);
-
-	ret = fscanf(file, "Source_OK: %s\n", buf);
-	igt_require_f(ret == 1 && strcmp(buf, "yes") == 0,
-		      "Source_OK: %s\n", buf);
-
-	ret = fscanf(file, "Enabled: %s\n", buf);
-	igt_require_f(ret == 1 && strcmp(buf, "yes") == 0,
-		      "Enabled: %s\n", buf);
 
 	fclose(file);
 	return true;
@@ -570,7 +562,9 @@ int main(int argc, char *argv[])
 		kmstest_set_vt_graphics_mode();
 		data.devid = intel_get_drm_devid(data.drm_fd);
 
-		igt_skip_on(!psr_enabled(&data));
+		igt_set_module_param_int("enable_psr", 1);
+
+		igt_skip_on(!psr_possible(&data));
 
 		data.bufmgr = drm_intel_bufmgr_gem_init(data.drm_fd, 4096);
 		igt_assert(data.bufmgr);
