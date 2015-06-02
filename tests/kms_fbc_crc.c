@@ -559,10 +559,10 @@ igt_main
 		igt_assert_lt(0, fread(buf, 1, sizeof(buf), status));
 		fclose(status);
 		buf[sizeof(buf) - 1] = '\0';
-		igt_require_f(!strstr(buf, "unsupported on this chipset") &&
-			      !strstr(buf, "disabled per module param") &&
-			      !strstr(buf, "disabled per chip default"),
-			      "FBC not supported/enabled\n");
+		igt_require_f(!strstr(buf, "unsupported on this chipset"),
+			      "FBC not supported\n");
+
+		igt_set_module_param_int("enable_fbc", 1);
 
 		data.bufmgr = drm_intel_bufmgr_gem_init(data.drm_fd, 4096);
 		igt_assert(data.bufmgr);
