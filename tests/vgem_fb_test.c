@@ -16,6 +16,7 @@
 
 #define _GNU_SOURCE
 #include <assert.h>
+#include <dlfcn.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <stdbool.h>
@@ -35,7 +36,7 @@
 #include "drmtest.h"
 
 // to use DRM, one has to comment USE_GEM defines.
-#define USE_GEM
+//#define USE_GEM
 
 #ifdef USE_GEM
 #include "ioctl_wrappers.h"
@@ -58,13 +59,15 @@ struct context {
 #ifdef USE_GEM
 	drm_intel_bufmgr *bufmgr;
 
-	drm_intel_bo *intel_bo_handle[BUFFERS];
+	// render
+	drm_intel_bo *intel_bo[BUFFERS];
 	unsigned long bo_stride;
 #else
 	struct gbm_device *drm_gbm;
-	struct gbm_bo *gbm_buffer[BUFFERS];
+
+	// render
+	struct gbm_bo *drm_bo[BUFFERS];
 #endif
-	uint32_t bo_handle[BUFFERS];
 };
 
 #ifdef USE_GEM
@@ -109,28 +112,6 @@ static void * mmap_intel_bo(drm_intel_bo *buffer)
 	}
 	assert(buffer->virtual);
 	return buffer->virtual;
-}
-#else
-void * mmap_dumb_bo(int fd, int handle, size_t size)
-{
-	struct drm_mode_map_dumb mmap_arg;
-	void *ptr;
-	int ret;
-
-	memset(&mmap_arg, 0, sizeof(mmap_arg));
-
-	mmap_arg.handle = handle;
-
-	ret = drmIoctl(fd, DRM_IOCTL_MODE_MAP_DUMB, &mmap_arg);
-	assert(ret == 0);
-	assert(mmap_arg.offset != 0);
-
-	ptr = mmap(NULL, size, (PROT_READ|PROT_WRITE), MAP_SHARED, fd,
-		   mmap_arg.offset);
-
-	assert(ptr != MAP_FAILED);
-
-	return ptr;
 }
 #endif
 
@@ -275,8 +256,8 @@ static void draw(struct context *ctx)
 			size_t bo_stride = ctx->bo_stride;
 			size_t bo_size = ctx->bo_stride * ctx->mode->vdisplay;
 #else
-			size_t bo_stride = gbm_bo_get_stride(ctx->gbm_buffer[fb_idx]);
-			size_t bo_size = gbm_bo_get_stride(ctx->gbm_buffer[fb_idx]) * gbm_bo_get_height(ctx->gbm_buffer[fb_idx]);
+			size_t bo_stride = gbm_bo_get_stride(ctx->drm_bo[fb_idx]);
+			size_t bo_size = gbm_bo_get_stride(ctx->drm_bo[fb_idx]) * gbm_bo_get_height(ctx->drm_bo[fb_idx]);
 #endif
 			uint32_t *bo_ptr;
 			volatile uint32_t *ptr;
@@ -288,9 +269,9 @@ static void draw(struct context *ctx)
 					if (!disable_profiling)
 						gettimeofday(&start, NULL);
 #ifdef USE_GEM
-					bo_ptr = (uint32_t*)mmap_intel_bo(ctx->intel_bo_handle[fb_idx]);
+					bo_ptr = (uint32_t*)mmap_intel_bo(ctx->intel_bo[fb_idx]);
 #else
-					bo_ptr = mmap_dumb_bo(ctx->drm_card_fd, ctx->bo_handle[fb_idx], bo_size);
+					bo_ptr = gbm_bo_map(ctx->drm_bo[fb_idx]);
 #endif
 					if (!disable_profiling) {
 						gettimeofday(&end, NULL);
@@ -331,9 +312,9 @@ static void draw(struct context *ctx)
 				}
 			}
 #ifdef USE_GEM
-			drm_intel_bo_unmap(ctx->intel_bo_handle[fb_idx]);
+			drm_intel_bo_unmap(ctx->intel_bo[fb_idx]);
 #else
-			munmap(bo_ptr, bo_size);
+			gbm_bo_unmap(ctx->drm_bo[fb_idx]);
 #endif
 			usleep(1e6 / 120); /* 120 Hz */
 
@@ -361,6 +342,7 @@ int main(int argc, char **argv)
 	int ret = 0;
 	struct context ctx;
 	unsigned long bo_stride = 0;
+	uint32_t bo_handle[BUFFERS];
 	int drm_prime_fd;
 	size_t i;
 
@@ -382,6 +364,13 @@ int main(int argc, char **argv)
 #else
 	ctx.card_fd = ctx.drm_card_fd;
 	fprintf(stderr, "Method to open video card: DRM\n");
+
+	/* GBM will load a dri driver, but even though they need symbols from
+	 * libglapi, in some version of Mesa they are not linked to it. Since
+	 * only the gl-renderer module links to it, the call above won't make
+	 * these symbols globally available, and loading the DRI driver fails.
+	 * Workaround this by dlopen()'ing libglapi with RTLD_GLOBAL. */
+	dlopen("libglapi.so.0", RTLD_LAZY | RTLD_GLOBAL);
 
 	ctx.drm_gbm = gbm_create_device(ctx.drm_card_fd);
 	if (!ctx.drm_gbm) {
@@ -412,19 +401,20 @@ int main(int argc, char **argv)
 		ctx.bo_stride = bo_stride;
 		drm_intel_bo_gem_export_to_prime(intel_bo, &drm_prime_fd);
 #else
-		ctx.gbm_buffer[i] = gbm_bo_create(ctx.drm_gbm,
+		struct gbm_bo *gbm_buffer;
+		gbm_buffer = gbm_bo_create(ctx.drm_gbm,
 			ctx.mode->hdisplay, ctx.mode->vdisplay, GBM_BO_FORMAT_XRGB8888,
-			GBM_BO_USE_SCANOUT | GBM_BO_USE_RENDERING);
+			GBM_BO_USE_LINEAR);
 
-		if (!ctx.gbm_buffer[i]) {
+		if (!gbm_buffer) {
 			fprintf(stderr, "failed to create buffer object\n");
 			ret = 1;
 			goto free_buffers;
 		}
 
-		bo_stride = gbm_bo_get_stride(ctx.gbm_buffer[i]);
+		bo_stride = gbm_bo_get_stride(gbm_buffer);
 
-		drm_prime_fd = gbm_bo_get_fd(ctx.gbm_buffer[i]);
+		drm_prime_fd = gbm_bo_get_fd(gbm_buffer);
 #endif // USE_GEM
 		if (drm_prime_fd < 0) {
 			fprintf(stderr, "failed to turn handle into fd\n");
@@ -433,19 +423,29 @@ int main(int argc, char **argv)
 		}
 
 		ret = drmPrimeFDToHandle(ctx.drm_card_fd, drm_prime_fd,
-			                       &ctx.bo_handle[i]);
+			                       &bo_handle[i]);
 		if (ret) {
 			fprintf(stderr, "failed to import handle\n");
 			ret = 1;
 			goto free_buffers;
 		}
 #ifdef USE_GEM
-		ctx.intel_bo_handle[i] = drm_intel_bo_gem_create_from_prime(
+		ctx.intel_bo[i] = drm_intel_bo_gem_create_from_prime(
 				ctx.bufmgr, drm_prime_fd, BO_SIZE);
+#else
+		struct gbm_import_fd_data gbm_dmabuf = {
+				.fd     = drm_prime_fd,
+				.width  = ctx.mode->hdisplay,
+				.height = ctx.mode->vdisplay,
+				.stride = bo_stride,
+				.format = DRM_FORMAT_XRGB8888
+		};
+
+		ctx.drm_bo[i] = gbm_bo_import(ctx.drm_gbm, GBM_BO_IMPORT_FD, &gbm_dmabuf, 0);
 #endif
 
 		ret = drmModeAddFB(ctx.drm_card_fd, ctx.mode->hdisplay, ctx.mode->vdisplay,
-			24, 32, bo_stride, ctx.bo_handle[i], &ctx.drm_fb_id[i]);
+			24, 32, bo_stride, bo_handle[i], &ctx.drm_fb_id[i]);
 		if (ret) {
 			fprintf(stderr, "failed to add fb\n");
 			ret = 1;
@@ -467,8 +467,8 @@ free_buffers:
 		if (ctx.drm_fb_id[i])
 			drmModeRmFB(ctx.drm_card_fd, ctx.drm_fb_id[i]);
 #ifndef USE_GEM
-		if (ctx.gbm_buffer[i])
-			gbm_bo_destroy(ctx.gbm_buffer[i]);
+		if (ctx.drm_bo[i])
+			gbm_bo_destroy(ctx.drm_bo[i]);
 #endif
 	}
 
@@ -482,7 +482,5 @@ destroy_drm_gbm:
 close_card:
 	close(ctx.drm_card_fd);
 fail:
-	return ret;
-
 	igt_exit();
 }
