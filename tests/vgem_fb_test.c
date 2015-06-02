@@ -34,9 +34,8 @@
 
 #include "drmtest.h"
 
-// to use DRM, one has to comment both USE_GEM and USE_VGEM defines.
+// to use DRM, one has to comment USE_GEM defines.
 #define USE_GEM
-//#define USE_VGEM
 
 #ifdef USE_GEM
 #include "ioctl_wrappers.h"
@@ -48,9 +47,6 @@
 
 struct context {
 	int drm_card_fd;
-#ifdef USE_VGEM
-	int vgem_card_fd;
-#endif
 	int card_fd;
 
 	drmModeRes *resources;
@@ -77,7 +73,7 @@ struct context {
 
 static int disable_profiling = false;
 
-void disable_psr() {
+static void disable_psr(void) {
 	const char psr_path[] = "/sys/module/i915/parameters/enable_psr";
 	int psr_fd = open(psr_path, O_WRONLY);
 
@@ -93,47 +89,11 @@ void disable_psr() {
 	close(psr_fd);
 }
 
-void do_fixes() {
+static void do_fixes(void) {
 	disable_psr();
 }
 
-char *drm_card_path = "/dev/dri/card0";
-#ifdef USE_VGEM
-const char g_sys_card_path_format[] =
-   "/sys/bus/platform/devices/vgem/drm/card%d";
-const char g_dev_card_path_format[] =
-   "/dev/dri/card%d";
-
-int drm_open_vgem()
-{
-	char *name;
-	int i, fd;
-
-	for (i = 0; i < 16; i++) {
-		struct stat _stat;
-		int ret;
-		ret = asprintf(&name, g_sys_card_path_format, i);
-		assert(ret != -1);
-
-		if (stat(name, &_stat) == -1) {
-			free(name);
-			continue;
-		}
-
-		free(name);
-		ret = asprintf(&name, g_dev_card_path_format, i);
-		assert(ret != -1);
-
-		fd = open(name, O_RDWR);
-		free(name);
-		if (fd == -1) {
-			continue;
-		}
-		return fd;
-	}
-	return -1;
-}
-#endif
+const char *drm_card_path = "/dev/dri/card0";
 
 static double elapsed(const struct timeval *start, const struct timeval *end)
 {
@@ -141,7 +101,7 @@ static double elapsed(const struct timeval *start, const struct timeval *end)
 }
 
 #ifdef USE_GEM
-void * mmap_intel_bo(drm_intel_bo *buffer)
+static void * mmap_intel_bo(drm_intel_bo *buffer)
 {
 	if (drm_intel_bo_map(buffer, 1)) {
 		fprintf(stderr, "fail to map a drm buffer\n");
@@ -174,7 +134,7 @@ void * mmap_dumb_bo(int fd, int handle, size_t size)
 }
 #endif
 
-bool setup_drm(struct context *ctx)
+static bool setup_drm(struct context *ctx)
 {
 	int fd = ctx->drm_card_fd;
 	drmModeRes *resources = NULL;
@@ -261,7 +221,7 @@ bool setup_drm(struct context *ctx)
 #define STEP_FLIP 3
 #define STEP_DRAW 4
 
-void show_sequence(const int *sequence)
+static void show_sequence(const int *sequence)
 {
 	int sequence_subindex;
 	fprintf(stderr, "starting sequence: ");
@@ -290,7 +250,7 @@ void show_sequence(const int *sequence)
 	fprintf(stderr, "\n");
 }
 
-void draw(struct context *ctx)
+static void draw(struct context *ctx)
 {
 	int i;
 
@@ -382,7 +342,7 @@ void draw(struct context *ctx)
 	}
 }
 
-static int opt_handler(int opt, int opt_index)
+static int opt_handler(int opt, int opt_index, void *data)
 {
   switch (opt) {
 		case 'd':
@@ -400,8 +360,7 @@ int main(int argc, char **argv)
 {
 	int ret = 0;
 	struct context ctx;
-	uint32_t bo_handle;
-	uint32_t bo_stride;
+	unsigned long bo_stride = 0;
 	int drm_prime_fd;
 	size_t i;
 
@@ -421,19 +380,8 @@ int main(int argc, char **argv)
 	ctx.card_fd = ctx.drm_card_fd;
 	fprintf(stderr, "Method to open video card: GEM\n");
 #else
-#ifdef USE_VGEM
-	ctx.vgem_card_fd = drm_open_vgem();
-	if (ctx.vgem_card_fd < 0) {
-		fprintf(stderr, "failed to open vgem card\n");
-		ret = 1;
-		goto close_drm_card;
-	}
-	ctx.card_fd = ctx.vgem_card_fd;
-	fprintf(stderr, "Method to open video card: VGEM\n");
-#else
 	ctx.card_fd = ctx.drm_card_fd;
 	fprintf(stderr, "Method to open video card: DRM\n");
-#endif
 
 	ctx.drm_gbm = gbm_create_device(ctx.drm_card_fd);
 	if (!ctx.drm_gbm) {
@@ -474,7 +422,6 @@ int main(int argc, char **argv)
 			goto free_buffers;
 		}
 
-		bo_handle = gbm_bo_get_handle(ctx.gbm_buffer[i]).u32;
 		bo_stride = gbm_bo_get_stride(ctx.gbm_buffer[i]);
 
 		drm_prime_fd = gbm_bo_get_fd(ctx.gbm_buffer[i]);
@@ -533,10 +480,6 @@ destroy_drm_gbm:
 	gbm_device_destroy(ctx.drm_gbm);
 #endif
 close_card:
-#ifdef USE_VGEM
-	close(ctx.vgem_card_fd);
-#endif
-close_drm_card:
 	close(ctx.drm_card_fd);
 fail:
 	return ret;
