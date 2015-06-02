@@ -228,7 +228,7 @@ static void test_streaming(int fd, int mode, int sync)
 	gem_close(fd, dst);
 }
 
-static void test_batch(int fd, int mode)
+static void test_batch(int fd, int mode, int reverse)
 {
 	const int has_64bit_reloc = intel_gen(intel_get_drm_devid(fd)) >= 8;
 	struct drm_i915_gem_execbuffer2 execbuf;
@@ -236,6 +236,7 @@ static void test_batch(int fd, int mode)
 	struct drm_i915_gem_relocation_entry reloc[2];
 	uint32_t tmp[] = { MI_BATCH_BUFFER_END };
 	uint64_t __src_offset, __dst_offset;
+	uint64_t batch_size;
 	uint32_t *s, *d;
 	uint32_t *base;
 	uint32_t offset;
@@ -272,20 +273,21 @@ static void test_batch(int fd, int mode)
 	reloc[1].read_domains = I915_GEM_DOMAIN_RENDER;
 	reloc[1].write_domain = 0;
 
+	batch_size = ALIGN(OBJECT_SIZE / CHUNK_SIZE * 128, 4096);
 	exec[2].relocs_ptr = (uintptr_t)reloc;
 	exec[2].relocation_count = 2;
-	exec[2].handle = gem_create(fd, OBJECT_SIZE / CHUNK_SIZE * 128);
+	exec[2].handle = gem_create(fd, batch_size);
 
 	switch (mode) {
 	case 0: /* cpu/snoop */
 		igt_require(gem_has_llc(fd));
-		base = gem_mmap__cpu(fd, exec[2].handle, 0, OBJECT_SIZE, PROT_READ | PROT_WRITE);
+		base = gem_mmap__cpu(fd, exec[2].handle, 0, batch_size, PROT_READ | PROT_WRITE);
 		break;
 	case 1: /* gtt */
-		base = gem_mmap__gtt(fd, exec[2].handle, OBJECT_SIZE / CHUNK_SIZE * 128, PROT_READ | PROT_WRITE);
+		base = gem_mmap__gtt(fd, exec[2].handle, batch_size, PROT_READ | PROT_WRITE);
 		break;
 	case 2: /* wc */
-		base = gem_mmap__wc(fd, exec[2].handle, 0, OBJECT_SIZE / CHUNK_SIZE * 128, PROT_READ | PROT_WRITE);
+		base = gem_mmap__wc(fd, exec[2].handle, 0, batch_size, PROT_READ | PROT_WRITE);
 		break;
 	}
 	igt_assert(base);
@@ -322,6 +324,10 @@ static void test_batch(int fd, int mode)
 
 			execbuf.batch_start_offset = 128 * offset;
 			execbuf.batch_start_offset += 8 * (pass & 7);
+			igt_assert(execbuf.batch_start_offset <= batch_size - 64);
+			if (reverse)
+				execbuf.batch_start_offset = batch_size - execbuf.batch_start_offset - 64;
+			igt_assert(execbuf.batch_start_offset <= batch_size - 64);
 			k = execbuf.batch_start_offset / 4;
 
 			base[k] = COPY_BLT_CMD | BLT_WRITE_ARGB;
@@ -377,11 +383,17 @@ igt_main
 	}
 
 	igt_subtest("batch-cpu")
-		test_batch(fd, 0);
+		test_batch(fd, 0, 0);
 	igt_subtest("batch-gtt")
-		test_batch(fd, 1);
+		test_batch(fd, 1, 0);
 	igt_subtest("batch-wc")
-		test_batch(fd, 2);
+		test_batch(fd, 2, 0);
+	igt_subtest("batch-reverse-cpu")
+		test_batch(fd, 0, 1);
+	igt_subtest("batch-reverse-gtt")
+		test_batch(fd, 1, 1);
+	igt_subtest("batch-reverse-wc")
+		test_batch(fd, 2, 1);
 
 	igt_fixture
 		close(fd);
