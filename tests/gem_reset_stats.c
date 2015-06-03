@@ -1033,7 +1033,7 @@ static void check_gpu_ok(void)
 	igt_debug("checking gpu state\n");
 
 	while (retry_count--) {
-		flags = igt_get_stop_rings();
+		flags = igt_get_stop_rings() & STOP_RING_ALL;
 		if (flags == 0)
 			break;
 
@@ -1042,6 +1042,12 @@ static void check_gpu_ok(void)
 	}
 
 	igt_assert(flags == 0);
+
+	/*
+	 * Clear the _ALLOW_ERRORS and _ALLOW_BAN flags;
+	 * these are not cleared by individual ring reset.
+	 */
+	igt_set_stop_rings(0);
 
 	fd = drm_open_any();
 	gem_quiescent_gpu(fd);
