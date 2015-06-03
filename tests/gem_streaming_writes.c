@@ -60,6 +60,15 @@ static bool __gem_execbuf(int fd, struct drm_i915_gem_execbuffer2 *eb)
 	return drmIoctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, eb) == 0;
 }
 
+#define SRC 0
+#define DST 1
+#define BATCH 2
+
+#define src exec[SRC].handle
+#define src_offset exec[SRC].offset
+#define dst exec[DST].handle
+#define dst_offset exec[DST].offset
+
 static void test_streaming(int fd, int mode, int sync)
 {
 	const int has_64bit_reloc = intel_gen(intel_get_drm_devid(fd)) >= 8;
@@ -77,13 +86,9 @@ static void test_streaming(int fd, int mode, int sync)
 	int i, n;
 
 	memset(exec, 0, sizeof(exec));
-	exec[0].handle = gem_create(fd, OBJECT_SIZE);
-	exec[0].flags = EXEC_OBJECT_WRITE;
-#define dst exec[0].handle
-#define dst_offset exec[0].offset
-	exec[1].handle = gem_create(fd, OBJECT_SIZE);
-#define src exec[1].handle
-#define src_offset exec[1].offset
+	exec[SRC].handle = gem_create(fd, OBJECT_SIZE);
+	exec[DST].handle = gem_create(fd, OBJECT_SIZE);
+	exec[DST].flags = EXEC_OBJECT_WRITE;
 
 	switch (mode) {
 	case 0: /* cpu/snoop */
@@ -102,14 +107,14 @@ static void test_streaming(int fd, int mode, int sync)
 	d = gem_mmap__cpu(fd, dst, 0, OBJECT_SIZE, PROT_READ);
 	igt_assert(d);
 
-	gem_write(fd, src, 0, tmp, sizeof(tmp));
+	gem_write(fd, dst, 0, tmp, sizeof(tmp));
 	memset(&execbuf, 0, sizeof(execbuf));
 	execbuf.buffers_ptr = (uintptr_t)exec;
 	execbuf.buffer_count = 2;
 	execbuf.flags = LOCAL_I915_EXEC_HANDLE_LUT;
 	if (!__gem_execbuf(fd, &execbuf)) {
 		execbuf.flags = 0;
-		gem_execbuf(fd, &execbuf);
+		igt_require(__gem_execbuf(fd, &execbuf) == 0);
 	}
 	/* We assume that the active objects are fixed to avoid relocations */
 	__src_offset = src_offset;
@@ -119,7 +124,7 @@ static void test_streaming(int fd, int mode, int sync)
 	for (i = 0; i < 64; i++) {
 		reloc[2*i+0].offset = 64*i + 4 * sizeof(uint32_t);
 		reloc[2*i+0].delta = 0;
-		reloc[2*i+0].target_handle = execbuf.flags & LOCAL_I915_EXEC_HANDLE_LUT ? 0 : dst;
+		reloc[2*i+0].target_handle = execbuf.flags & LOCAL_I915_EXEC_HANDLE_LUT ? DST : dst;
 		reloc[2*i+0].presumed_offset = dst_offset;
 		reloc[2*i+0].read_domains = I915_GEM_DOMAIN_RENDER;
 		reloc[2*i+0].write_domain = I915_GEM_DOMAIN_RENDER;
@@ -128,7 +133,7 @@ static void test_streaming(int fd, int mode, int sync)
 		if (has_64bit_reloc)
 			reloc[2*i+1].offset +=  sizeof(uint32_t);
 		reloc[2*i+1].delta = 0;
-		reloc[2*i+1].target_handle = execbuf.flags & LOCAL_I915_EXEC_HANDLE_LUT ? 1 : src;
+		reloc[2*i+1].target_handle = execbuf.flags & LOCAL_I915_EXEC_HANDLE_LUT ? SRC : src;
 		reloc[2*i+1].presumed_offset = src_offset;
 		reloc[2*i+1].read_domains = I915_GEM_DOMAIN_RENDER;
 		reloc[2*i+1].write_domain = 0;
@@ -242,13 +247,9 @@ static void test_batch(int fd, int mode, int reverse)
 	uint32_t offset;
 
 	memset(exec, 0, sizeof(exec));
-	exec[0].handle = gem_create(fd, OBJECT_SIZE);
-	exec[0].flags = EXEC_OBJECT_WRITE;
-#define dst exec[0].handle
-#define dst_offset exec[0].offset
-	exec[1].handle = gem_create(fd, OBJECT_SIZE);
-#define src exec[1].handle
-#define src_offset exec[1].offset
+	exec[DST].handle = gem_create(fd, OBJECT_SIZE);
+	exec[DST].flags = EXEC_OBJECT_WRITE;
+	exec[SRC].handle = gem_create(fd, OBJECT_SIZE);
 
 	s = gem_mmap__wc(fd, src, 0, OBJECT_SIZE, PROT_READ | PROT_WRITE);
 	igt_assert(s);
@@ -259,7 +260,7 @@ static void test_batch(int fd, int mode, int reverse)
 	memset(reloc, 0, sizeof(reloc));
 	reloc[0].offset =  4 * sizeof(uint32_t);
 	reloc[0].delta = 0;
-	reloc[0].target_handle = execbuf.flags & LOCAL_I915_EXEC_HANDLE_LUT ? 0 : dst;
+	reloc[0].target_handle = execbuf.flags & LOCAL_I915_EXEC_HANDLE_LUT ? DST : dst;
 	reloc[0].presumed_offset = dst_offset;
 	reloc[0].read_domains = I915_GEM_DOMAIN_RENDER;
 	reloc[0].write_domain = I915_GEM_DOMAIN_RENDER;
@@ -268,7 +269,7 @@ static void test_batch(int fd, int mode, int reverse)
 	if (has_64bit_reloc)
 		reloc[1].offset +=  sizeof(uint32_t);
 	reloc[1].delta = 0;
-	reloc[1].target_handle = execbuf.flags & LOCAL_I915_EXEC_HANDLE_LUT ? 1 : src;
+	reloc[1].target_handle = execbuf.flags & LOCAL_I915_EXEC_HANDLE_LUT ? SRC : src;
 	reloc[1].presumed_offset = src_offset;
 	reloc[1].read_domains = I915_GEM_DOMAIN_RENDER;
 	reloc[1].write_domain = 0;
