@@ -670,8 +670,11 @@ static void setup_pc8(void)
 		return;
 
 	pc8_status_fd = igt_debugfs_open("i915_pc8_status", O_RDONLY);
+	if (pc8_status_fd == -1)
+		pc8_status_fd = igt_debugfs_open("i915_runtime_pm_status",
+						 O_RDONLY);
 	igt_assert_f(pc8_status_fd >= 0,
-		     "Can't open /sys/kernel/debug/dri/0/i915_pc8_status");
+		     "Can't open /sys/kernel/debug/dri/0/i915_runtime_pm_status");
 
 	has_pc8 = true;
 }
