@@ -35,7 +35,7 @@ AC_SYS_LARGEFILE
 AC_GNU_SOURCE
 AC_CANONICAL_HOST
 
-AM_INIT_AUTOMAKE([1.12 foreign dist-bzip2])
+AM_INIT_AUTOMAKE([1.12 foreign subdir-objects dist-bzip2])
 AM_PATH_PYTHON([3],, [:])
 
 AC_PROG_CC
