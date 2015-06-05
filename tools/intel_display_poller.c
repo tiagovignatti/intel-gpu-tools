@@ -57,6 +57,9 @@ enum test {
 };
 
 static uint32_t vlv_offset;
+static uint16_t pipe_offset[3] = { 0, 0x1000, 0x2000, };
+
+#define PIPE_REG(pipe, reg_a) (pipe_offset[(pipe)] + (reg_a))
 
 static volatile bool quit;
 
@@ -109,95 +112,29 @@ static int pipe_to_plane(uint32_t devid, int pipe)
 static uint32_t dspoffset_reg(uint32_t devid, int pipe)
 {
 	bool use_tileoff;
-
-	pipe = pipe_to_plane(devid, pipe);
+	int plane = pipe_to_plane(devid, pipe);
 
 	if (IS_GEN2(devid) || IS_GEN3(devid))
 		use_tileoff = false;
-	if (IS_HASWELL(devid) || IS_BROADWELL(devid))
+	else if (IS_HASWELL(devid) || IS_BROADWELL(devid))
 		use_tileoff = true;
-	else {
-		switch (pipe) {
-		case 0:
-			use_tileoff = read_reg(DSPACNTR) & DISPLAY_PLANE_TILED;
-			break;
-		case 1:
-			use_tileoff = read_reg(DSPBCNTR) & DISPLAY_PLANE_TILED;
-			break;
-		case 2:
-			use_tileoff = read_reg(DSPCCNTR) & DISPLAY_PLANE_TILED;
-			break;
-		}
-	}
+	else
+		use_tileoff = read_reg(PIPE_REG(plane, DSPACNTR)) & DISPLAY_PLANE_TILED;
 
-	if (use_tileoff) {
-		switch (pipe) {
-		case 0:
-			return DSPATILEOFF;
-		case 1:
-			return DSPBTILEOFF;
-		case 2:
-			return DSPCTILEOFF;
-		}
-	} else {
-		switch (pipe) {
-		case 0:
-			return DSPABASE;
-		case 1:
-			return DSPBBASE;
-		case 2:
-			return DSPCBASE;
-		}
-	}
-
-	assert(0);
-
-	return 0;
+	if (use_tileoff)
+		return PIPE_REG(plane, DSPATILEOFF);
+	else
+		return PIPE_REG(plane, DSPABASE);
 }
 
 static uint32_t dspsurf_reg(uint32_t devid, int pipe)
 {
-	pipe = pipe_to_plane(devid, pipe);
+	int plane = pipe_to_plane(devid, pipe);
 
-	if (IS_GEN2(devid) || IS_GEN3(devid)) {
-		switch (pipe) {
-		case 0:
-			return DSPABASE;
-		case 1:
-			return DSPBBASE;
-		case 2:
-			return DSPCBASE;
-		}
-	} else {
-		switch (pipe) {
-		case 0:
-			return DSPASURF;
-		case 1:
-			return DSPBSURF;
-		case 2:
-			return DSPCSURF;
-		}
-	}
-
-	assert(0);
-
-	return 0;
-}
-
-static uint32_t dsl_reg(int pipe)
-{
-	switch (pipe) {
-	case 0:
-		return PIPEA_DSL;
-	case 1:
-		return PIPEB_DSL;
-	case 2:
-		return PIPEC_DSL;
-	}
-
-	assert(0);
-
-	return 0;
+	if (IS_GEN2(devid) || IS_GEN3(devid))
+		return PIPE_REG(plane, DSPABASE);
+	else
+		return PIPE_REG(plane, DSPASURF);
 }
 
 static void poll_pixel_pipestat(int pipe, int bit, uint32_t *min, uint32_t *max, const int count)
@@ -205,20 +142,9 @@ static void poll_pixel_pipestat(int pipe, int bit, uint32_t *min, uint32_t *max,
 	uint32_t pix, pix1, pix2, iir, iir1, iir2, iir_bit, iir_mask;
 	int i = 0;
 
-	switch (pipe) {
-	case 0:
-		pix = PIPEAFRAMEPIXEL;
-		iir_bit = 1 << bit;
-		iir = PIPEASTAT;
-		break;
-	case 1:
-		pix = PIPEBFRAMEPIXEL;
-		iir_bit = 1 << bit;
-		iir = PIPEBSTAT;
-		break;
-	default:
-		return;
-	}
+	pix = PIPE_REG(pipe, PIPEAFRAMEPIXEL);
+	iir_bit = 1 << bit;
+	iir = PIPE_REG(pipe, PIPEASTAT);
 
 	iir_mask = read_reg(iir) & 0x7fff0000;
 
@@ -254,17 +180,7 @@ static void poll_pixel_iir_gen3(int pipe, int bit, uint32_t *min, uint32_t *max,
 	int i = 0;
 
 	bit = 1 << bit;
-
-	switch (pipe) {
-	case 0:
-		pix = PIPEAFRAMEPIXEL;
-		break;
-	case 1:
-		pix = PIPEBFRAMEPIXEL;
-		break;
-	default:
-		return;
-	}
+	pix = PIPE_REG(pipe, PIPEAFRAMEPIXEL);
 
 	imr_save = read_reg(IMR);
 	ier_save = read_reg(IER);
@@ -306,16 +222,7 @@ static void poll_pixel_framecount_gen3(int pipe, uint32_t *min, uint32_t *max, c
 	uint32_t pix, pix1, pix2, frm1, frm2;
 	int i = 0;
 
-	switch (pipe) {
-	case 0:
-		pix = PIPEAFRAMEPIXEL;
-		break;
-	case 1:
-		pix = PIPEBFRAMEPIXEL;
-		break;
-	default:
-		return;
-	}
+	pix = PIPE_REG(pipe, PIPEAFRAMEPIXEL);
 
 	while (!quit) {
 		pix1 = read_reg(pix);
@@ -344,17 +251,7 @@ static void poll_pixel_pan(uint32_t devid, int pipe, int target_pixel, int targe
 	uint32_t saved, surf = 0;
 	int i = 0;
 
-	switch (pipe) {
-	case 0:
-		pix = PIPEAFRAMEPIXEL;
-		break;
-	case 1:
-		pix = PIPEBFRAMEPIXEL;
-		break;
-	default:
-		return;
-	}
-
+	pix = PIPE_REG(pipe, PIPEAFRAMEPIXEL);
 	surf = dspoffset_reg(devid, pipe);
 
 	saved = read_reg(surf);
@@ -388,19 +285,11 @@ static void poll_pixel_pan(uint32_t devid, int pipe, int target_pixel, int targe
 static void poll_pixel_flip(uint32_t devid, int pipe, int target_pixel, int target_fuzz,
 			    uint32_t *min, uint32_t *max, const int count)
 {
-	uint32_t pix, pix1, pix2;
+	uint32_t pix, pix1 = 0, pix2 = 0;
 	uint32_t saved, surf = 0;
 	int i = 0;
 
-	switch (pipe) {
-	case 0:
-		pix = PIPEAFRAMEPIXEL;
-	case 1:
-		pix = PIPEBFRAMEPIXEL;
-	default:
-		return;
-	}
-
+	pix = PIPE_REG(pipe, PIPEAFRAMEPIXEL);
 	surf = dspsurf_reg(devid, pipe);
 
 	saved = read_reg(surf);
@@ -436,16 +325,7 @@ static void poll_pixel_wrap(int pipe, uint32_t *min, uint32_t *max, const int co
 	uint32_t pix, pix1, pix2;
 	int i = 0;
 
-	switch (pipe) {
-	case 0:
-		pix = PIPEAFRAMEPIXEL;
-		break;
-	case 1:
-		pix = PIPEBFRAMEPIXEL;
-		break;
-	default:
-		return;
-	}
+	pix = PIPE_REG(pipe, PIPEAFRAMEPIXEL);
 
 	while (!quit) {
 		pix1 = read_reg(pix);
@@ -471,20 +351,9 @@ static void poll_dsl_pipestat(int pipe, int bit,
 	bool field1, field2;
 	int i[2] = {};
 
-	switch (pipe) {
-	case 0:
-		iir_bit = 1 << bit;
-		iir = PIPEASTAT;
-		break;
-	case 1:
-		iir_bit = 1 << bit;
-		iir = PIPEBSTAT;
-		break;
-	default:
-		return;
-	}
-
-	dsl = dsl_reg(pipe);
+	iir_bit = 1 << bit;
+	iir = PIPE_REG(pipe, PIPEASTAT);
+	dsl = PIPE_REG(pipe, PIPEA_DSL);
 
 	iir_mask = read_reg(iir) & 0x7fff0000;
 
@@ -528,8 +397,7 @@ static void poll_dsl_iir_gen2(int pipe, int bit,
 	int i[2] = {};
 
 	bit = 1 << bit;
-
-	dsl = dsl_reg(pipe);
+	dsl = PIPE_REG(pipe, PIPEA_DSL);
 
 	imr_save = read_reg_16(IMR);
 	ier_save = read_reg_16(IER);
@@ -580,8 +448,7 @@ static void poll_dsl_iir_gen3(int pipe, int bit,
 	int i[2] = {};
 
 	bit = 1 << bit;
-
-	dsl = dsl_reg(pipe);
+	dsl = PIPE_REG(pipe, PIPEA_DSL);
 
 	imr_save = read_reg(IMR);
 	ier_save = read_reg(IER);
@@ -633,8 +500,7 @@ static void poll_dsl_deiir(uint32_t devid, int pipe, int bit,
 	int i[2] = {};
 
 	bit = 1 << bit;
-
-	dsl = dsl_reg(pipe);
+	dsl = PIPE_REG(pipe, PIPEA_DSL);
 
 	if (IS_GEN8(devid)) {
 		iir = GEN8_DE_PIPE_IIR(pipe);
@@ -693,21 +559,8 @@ static void poll_dsl_framecount_g4x(int pipe, uint32_t *min, uint32_t *max, cons
 	bool field1, field2;
 	int i[2] = {};
 
-	switch (pipe) {
-	case 0:
-		frm = PIPEAFRMCOUNT_G4X;
-		break;
-	case 1:
-		frm = PIPEBFRMCOUNT_G4X;
-		break;
-	case 2:
-		frm = PIPECFRMCOUNT_G4X;
-		break;
-	default:
-		return;
-	}
-
-	dsl = dsl_reg(pipe);
+	frm = PIPE_REG(pipe, PIPEAFRMCOUNT_G4X);
+	dsl = PIPE_REG(pipe, PIPEA_DSL);
 
 	while (!quit) {
 		dsl1 = read_reg(dsl);
@@ -741,21 +594,8 @@ static void poll_dsl_flipcount_g4x(uint32_t devid, int pipe,
 	bool field1, field2;
 	int i[2] = {};
 
-	switch (pipe) {
-	case 0:
-		flp = PIPEAFLIPCOUNT_G4X;
-		break;
-	case 1:
-		flp = PIPEBFLIPCOUNT_G4X;
-		break;
-	case 2:
-		flp = PIPECFLIPCOUNT_G4X;
-		break;
-	default:
-		return;
-	}
-
-	dsl = dsl_reg(pipe);
+	flp = PIPE_REG(pipe, PIPEAFLIPCOUNT_G4X);
+	dsl = PIPE_REG(pipe, PIPEA_DSL);
 	surf = dspsurf_reg(devid, pipe);
 
 	while (!quit) {
@@ -813,18 +653,8 @@ static void poll_dsl_framecount_gen3(int pipe, uint32_t *min, uint32_t *max, con
 	bool field1, field2;
 	int i[2] = {};
 
-	switch (pipe) {
-	case 0:
-		frm = PIPEAFRAMEPIXEL;
-		break;
-	case 1:
-		frm = PIPEBFRAMEPIXEL;
-		break;
-	default:
-		return;
-	}
-
-	dsl = dsl_reg(pipe);
+	frm = PIPE_REG(pipe, PIPEAFRAMEPIXEL);
+	dsl = PIPE_REG(pipe, PIPEA_DSL);
 
 	while (!quit) {
 		dsl1 = read_reg(dsl);
@@ -859,7 +689,7 @@ static void poll_dsl_pan(uint32_t devid, int pipe, int target_scanline, int targ
 	uint32_t saved, surf = 0;
 	int i[2] = {};
 
-	dsl = dsl_reg(pipe);
+	dsl = PIPE_REG(pipe, PIPEA_DSL);
 	surf = dspoffset_reg(devid, pipe);
 
 	saved = read_reg(surf);
@@ -906,7 +736,7 @@ static void poll_dsl_flip(uint32_t devid, int pipe, int target_scanline, int tar
 	uint32_t saved, surf = 0;
 	int i[2] = {};
 
-	dsl = dsl_reg(pipe);
+	dsl = PIPE_REG(pipe, PIPEA_DSL);
 	surf = dspsurf_reg(devid, pipe);
 
 	saved = read_reg(surf);
@@ -952,21 +782,8 @@ static void poll_dsl_surflive(uint32_t devid, int pipe,
 	bool field1 = false, field2 = false;
 	int i[2] = {};
 
-	switch (pipe) {
-	case 0:
-		surflive = DSPASURFLIVE;
-		break;
-	case 1:
-		surflive = DSPBSURFLIVE;
-		break;
-	case 2:
-		surflive = DSPCSURFLIVE;
-		break;
-	default:
-		return;
-	}
-
-	dsl = dsl_reg(pipe);
+	surflive = PIPE_REG(pipe, DSPASURFLIVE);
+	dsl = PIPE_REG(pipe, PIPEA_DSL);
 	surf = dspsurf_reg(devid, pipe);
 
 	saved = read_reg(surf);
@@ -1017,7 +834,7 @@ static void poll_dsl_wrap(int pipe, uint32_t *min, uint32_t *max, const int coun
 	bool field1, field2;
 	int i[2] = {};
 
-	dsl = dsl_reg(pipe);
+	dsl = PIPE_REG(pipe, PIPEA_DSL);
 
 	while (!quit) {
 		dsl1 = read_reg(dsl);
@@ -1048,7 +865,7 @@ static void poll_dsl_field(int pipe, uint32_t *min, uint32_t *max, const int cou
 	bool field1, field2;
 	int i[2] = {};
 
-	dsl = dsl_reg(pipe);
+	dsl = PIPE_REG(pipe, PIPEA_DSL);
 
 	while (!quit) {
 		dsl1 = read_reg(dsl);
@@ -1262,11 +1079,14 @@ int main(int argc, char *argv[])
 		default:
 			usage(argv[0]);
 		}
-	} else if (IS_G4X(devid) || IS_VALLEYVIEW(devid)) {
-		if (IS_VALLEYVIEW(devid))
+	} else if (IS_G4X(devid) ||
+		   IS_VALLEYVIEW(devid) || IS_CHERRYVIEW(devid)) {
+		if (IS_VALLEYVIEW(devid) || IS_CHERRYVIEW(devid))
 			vlv_offset = 0x180000;
+		if (IS_CHERRYVIEW(devid))
+			pipe_offset[2] = 0x4000;
 
-		if (pipe > 1)
+		if (pipe > 1 && !IS_CHERRYVIEW(devid))
 			usage(argv[0]);
 
 		if (test_pixelcount)
