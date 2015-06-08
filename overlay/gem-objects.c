@@ -137,8 +137,11 @@ int gem_objects_update(struct gem_objects *obj)
 
 	while (*b != '\n')
 		b--;
+	b++;
 
 	do {
+		char *eol, *colon;
+
 		comm = freed;
 		if (comm)
 			freed = comm->next;
@@ -148,11 +151,23 @@ int gem_objects_update(struct gem_objects *obj)
 			break;
 
 		/* Xorg: 35 objects, 16347136 bytes (0 active, 12103680 inactive, 0 unbound) */
-		sscanf(++b, "%256s %lu objects, %lu bytes",
-		       comm->name, &comm->count, &comm->bytes);
+		eol = strchr(b, '\n');
+		if (eol) {
+			do {
+			*eol++ = '\0';
+			} while (*eol == '\n');
+		}
+
+		colon = strchr(b, ':');
+		memcpy(comm->name, b, colon-b+1);
+		comm->name[colon-b+1] = '\0';
+
+		sscanf(colon + 1, "%lu objects, %lu bytes",
+		       &comm->count, &comm->bytes);
 
 		insert_sorted(obj, comm);
-	} while ((b = strchr(b, '\n')) != NULL);
+		b = eol;
+	} while (b != NULL);
 
 done:
 	while (freed) {
