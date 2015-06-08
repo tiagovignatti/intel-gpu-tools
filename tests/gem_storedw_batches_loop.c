@@ -169,6 +169,22 @@ igt_main
 		store_dword_loop(5, SECURE_DISPATCH);
 	}
 
+	igt_subtest("cached-mapping") {
+		gem_set_caching(fd, target_bo->handle, 1);
+		store_dword_loop(1, 0);
+		store_dword_loop(2, 0);
+		store_dword_loop(3, 0);
+		store_dword_loop(5, 0);
+	}
+
+	igt_subtest("uncached-mapping") {
+		gem_set_caching(fd, target_bo->handle, 0);
+		store_dword_loop(1, 0);
+		store_dword_loop(2, 0);
+		store_dword_loop(3, 0);
+		store_dword_loop(5, 0);
+	}
+
 	igt_fixture {
 		drm_intel_bo_unreference(target_bo);
 		drm_intel_bufmgr_destroy(bufmgr);
