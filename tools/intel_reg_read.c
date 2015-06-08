@@ -74,6 +74,9 @@ int main(int argc, char** argv)
 	int decode_bits = 0;
 	int dwords = 1;
 
+	fprintf(stderr, "WARNING: Use of %s has been deprecated and replaced by"
+		" intel_reg.\n", argv[0]);
+
 	while ((ch = getopt(argc, argv, "dfhc:")) != -1) {
 		switch(ch) {
 		case 'd':

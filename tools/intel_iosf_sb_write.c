@@ -89,6 +89,9 @@ int main(int argc, char** argv)
 	int i, nregs;
 	const char *name;
 
+	fprintf(stderr, "WARNING: Use of %s has been deprecated and replaced by"
+		" intel_reg.\n", argv[0]);
+
 	if (!IS_VALLEYVIEW(dev->device_id) &&
 	    !IS_CHERRYVIEW(dev->device_id)) {
 		usage(argv[0]);

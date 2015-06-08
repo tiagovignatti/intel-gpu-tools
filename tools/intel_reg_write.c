@@ -36,6 +36,9 @@ int main(int argc, char** argv)
 {
 	uint32_t reg, value;
 
+	fprintf(stderr, "WARNING: Use of %s has been deprecated and replaced by"
+		" intel_reg.\n", argv[0]);
+
 	if (argc < 3) {
 		printf("Usage: %s addr value\n", argv[0]);
 		printf("  WARNING: This is dangerous to you and your system's health.\n");

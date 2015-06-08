@@ -2931,6 +2931,9 @@ int main(int argc, char** argv)
 	char *file = NULL, *reg_name = NULL;
 	uint32_t reg_val, power_well;
 
+	fprintf(stderr, "WARNING: Use of %s has been deprecated and replaced by"
+		" intel_reg.\n", argv[0]);
+
 	while ((opt = getopt(argc, argv, "d:h")) != -1) {
 		switch (opt) {
 		case 'd':

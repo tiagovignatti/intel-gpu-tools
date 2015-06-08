@@ -26,6 +26,7 @@
 
 #include <unistd.h>
 #include <assert.h>
+#include <stdio.h>
 #include "intel_io.h"
 #include "intel_chipset.h"
 
@@ -35,6 +36,9 @@ int main(int argc, char** argv)
 	uint32_t devid;
 	int mmio_bar;
 	int ret;
+
+	fprintf(stderr, "WARNING: Use of %s has been deprecated and replaced by"
+		" intel_reg.\n", argv[0]);
 
 	pci_dev = intel_get_pci_device();
 	devid = pci_dev->device_id;

@@ -57,6 +57,9 @@ int main(int argc, char *argv[])
 	int ch;
 	const char *cmdname = argv[0];
 
+	fprintf(stderr, "WARNING: Use of %s has been deprecated and replaced by"
+		" intel_reg.\n", argv[0]);
+
 	while ((ch = getopt(argc, argv, "m")) != -1) {
 		switch(ch) {
 		case 'm':
