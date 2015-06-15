@@ -26,6 +26,7 @@
 #include <errno.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/ioctl.h>
 #include <fcntl.h>
 
 #include "drmtest.h"
@@ -47,6 +48,20 @@
  * engines.
  */
 
+static bool has_gpu_reset(int fd)
+{
+	struct drm_i915_getparam gp;
+	int val = 0;
+
+	memset(&gp, 0, sizeof(gp));
+	gp.param = 35; /* HAS_GPU_RESET */
+	gp.value = &val;
+
+	if (ioctl(fd, DRM_IOCTL_I915_GETPARAM, &gp))
+		return intel_gen(intel_get_drm_devid(fd)) >= 5;
+
+	return val > 0;
+}
 
 /**
  * igt_require_hang_ring:
@@ -60,7 +75,7 @@
 void igt_require_hang_ring(int fd, int ring)
 {
 	gem_context_require_ban_period(fd);
-	igt_require(intel_gen(intel_get_drm_devid(fd)) >= 5);
+	igt_require(has_gpu_reset(fd));
 }
 
 /**
