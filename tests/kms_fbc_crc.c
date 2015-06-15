@@ -562,7 +562,8 @@ igt_main
 		igt_require_f(!strstr(buf, "unsupported on this chipset"),
 			      "FBC not supported\n");
 
-		igt_set_module_param_int("enable_fbc", 1);
+		if (intel_gen(data.devid) >= 6)
+			igt_set_module_param_int("enable_fbc", 1);
 
 		data.bufmgr = drm_intel_bufmgr_gem_init(data.drm_fd, 4096);
 		igt_assert(data.bufmgr);
