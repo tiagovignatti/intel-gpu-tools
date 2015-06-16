@@ -48,6 +48,7 @@
 #define LOCAL_I915_EXEC_BSD_MASK (3<<13)
 #define LOCAL_I915_EXEC_BSD_RING1 (1<<13)
 #define LOCAL_I915_EXEC_BSD_RING2 (2<<13)
+#define LOCAL_I915_EXEC_RESOURCE_STREAMER (1<<15)
 
 struct drm_i915_gem_execbuffer2 execbuf;
 struct drm_i915_gem_exec_object2 gem_exec[1];
@@ -220,7 +221,7 @@ igt_main
 	/* HANDLE_LUT and NO_RELOC are already exercised by gem_exec_lut_handle */
 
 	igt_subtest("invalid-flag") {
-		execbuf.flags = I915_EXEC_RENDER | (I915_EXEC_HANDLE_LUT << 1);
+		execbuf.flags = I915_EXEC_RENDER | (LOCAL_I915_EXEC_RESOURCE_STREAMER << 1);
 		RUN_FAIL(EINVAL);
 	}
 
@@ -232,6 +233,30 @@ igt_main
 		execbuf.num_cliprects = 1;
 		RUN_FAIL(EINVAL);
 		execbuf.num_cliprects = 0;
+	}
+
+	igt_subtest("rs-invalid-on-bsd-ring") {
+		igt_require(IS_HASWELL(devid) || intel_gen(devid) >= 8);
+		execbuf.flags = I915_EXEC_BSD | LOCAL_I915_EXEC_RESOURCE_STREAMER;
+		RUN_FAIL(EINVAL);
+	}
+
+	igt_subtest("rs-invalid-on-blt-ring") {
+		igt_require(IS_HASWELL(devid) || intel_gen(devid) >= 8);
+		execbuf.flags = I915_EXEC_BLT | LOCAL_I915_EXEC_RESOURCE_STREAMER;
+		RUN_FAIL(EINVAL);
+	}
+
+	igt_subtest("rs-invalid-on-vebox-ring") {
+		igt_require(IS_HASWELL(devid) || intel_gen(devid) >= 8);
+		execbuf.flags = I915_EXEC_VEBOX | LOCAL_I915_EXEC_RESOURCE_STREAMER;
+		RUN_FAIL(EINVAL);
+	}
+
+	igt_subtest("rs-invalid-gen") {
+		igt_require(!IS_HASWELL(devid) && intel_gen(devid) < 8);
+		execbuf.flags = I915_EXEC_RENDER | LOCAL_I915_EXEC_RESOURCE_STREAMER;
+		RUN_FAIL(EINVAL);
 	}
 
 #define DIRT(name) \
