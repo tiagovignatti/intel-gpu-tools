@@ -36,6 +36,7 @@ gem_ctx_thrash
 gem_ctx_param_basic
 gem_double_irq_loop
 gem_dummy_reloc_loop
+gem_eio
 gem_evict_alignment
 gem_evict_everything
 gem_exec_bad_domains
