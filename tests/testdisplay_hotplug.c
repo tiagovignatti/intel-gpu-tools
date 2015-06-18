@@ -25,6 +25,8 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include <sys/stat.h>
+
 #include "testdisplay.h"
 #ifdef HAVE_CONFIG_H
 #include "config.h"
