@@ -23,21 +23,13 @@ bin_PROGRAMS = 				\
 	intel_gpu_top 			\
 	intel_gtt 			\
 	intel_infoframes		\
-	intel_iosf_sb_read		\
-	intel_iosf_sb_write		\
 	intel_l3_parity			\
 	intel_lid			\
 	intel_opregion_decode		\
 	intel_panel_fitter		\
 	intel_perf_counters		\
 	intel_reg_checker 		\
-	intel_reg_dumper 		\
-	intel_reg_read 			\
-	intel_reg_snapshot 		\
-	intel_reg_write 		\
 	intel_stepping 			\
-	intel_vga_read			\
-	intel_vga_write			\
 	intel_watermark
 
 dist_bin_SCRIPTS = intel_gpu_abrt

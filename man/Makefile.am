@@ -11,9 +11,6 @@ appman_PRE = 				\
 	intel_infoframes.man		\
 	intel_lid.man			\
 	intel_panel_fitter.man		\
-	intel_reg_dumper.man		\
-	intel_reg_read.man		\
-	intel_reg_write.man		\
 	intel_stepping.man		\
 	intel_upload_blit_large.man	\
 	intel_upload_blit_large_gtt.man \
