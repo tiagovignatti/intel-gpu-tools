@@ -174,7 +174,11 @@ struct both_crcs *wanted_crc;
 
 struct {
 	int fd;
-} sink_crc;
+	bool supported;
+} sink_crc = {
+	.fd = -1,
+	.supported = false,
+};
 
 /* The goal of this structure is to easily allow us to deal with cases where we
  * have a big framebuffer and the CRTC is just displaying a subregion of this
@@ -839,6 +843,13 @@ static void draw_rect_igt_fb(struct draw_pattern_info *pattern,
 	draw_rect(pattern, &region, method, r);
 }
 
+static void fill_fb_region(struct fb_region *region, uint32_t color)
+{
+	igt_draw_rect_fb(drm.fd, NULL, NULL, region->fb, IGT_DRAW_MMAP_GTT,
+			 region->x, region->y, region->w, region->h,
+			 color);
+}
+
 static void unset_all_crtcs(void)
 {
 	int i, rc;
@@ -882,12 +893,9 @@ static void print_crc(const char *str, struct both_crcs *crc)
 
 static void collect_crcs(struct both_crcs *crcs)
 {
-	drmModeConnectorPtr c;
-
 	igt_pipe_crc_collect_crc(pipe_crc, &crcs->pipe);
 
-	c = get_connector(prim_mode_params.connector_id);
-	if (c->connector_type == DRM_MODE_CONNECTOR_eDP)
+	if (sink_crc.supported)
 		get_sink_crc(&crcs->sink);
 	else
 		memcpy(&crcs->sink, "unsupported!", SINK_CRC_SIZE);
@@ -1029,12 +1037,47 @@ static void teardown_modeset(void)
 	igt_remove_fb(drm.fd, &fbs.big);
 }
 
+static void setup_sink_crc(void)
+{
+	ssize_t rc;
+	sink_crc_t crc;
+	int errno_;
+	drmModeConnectorPtr c;
+
+	c = get_connector(prim_mode_params.connector_id);
+	if (c->connector_type != DRM_MODE_CONNECTOR_eDP) {
+		igt_info("Sink CRC not supported: primary screen is not eDP\n");
+		return;
+	}
+
+	/* We need to make sure there's a mode set on the eDP screen and it's
+	 * not on DPMS state, otherwise we fall into the "Unexpected sink CRC
+	 * error" case. */
+	prim_mode_params.fb.fb = &fbs.prim_pri;
+	prim_mode_params.fb.x = prim_mode_params.fb.y = 0;
+	fill_fb_region(&prim_mode_params.fb, 0xFF);
+	unset_all_crtcs();
+	set_mode_for_params(&prim_mode_params);
+
+	sink_crc.fd = igt_debugfs_open("i915_sink_crc_eDP1", O_RDONLY);
+	igt_assert(sink_crc.fd >= 0);
+
+	rc = read(sink_crc.fd, crc.data, SINK_CRC_SIZE);
+	errno_ = errno;
+	if (rc == -1 && errno_ == ENOTTY)
+		igt_info("Sink CRC not supported: panel doesn't support it\n");
+	else if (rc == SINK_CRC_SIZE)
+		sink_crc.supported = true;
+	else
+		igt_info("Unexpected sink CRC error, rc=:%ld errno:%d %s\n",
+			 rc, errno_, strerror(errno_));
+}
+
 static void setup_crcs(void)
 {
 	pipe_crc = igt_pipe_crc_new(0, INTEL_PIPE_CRC_SOURCE_AUTO);
 
-	sink_crc.fd = igt_debugfs_open("i915_sink_crc_eDP1", O_RDONLY);
-	igt_assert(sink_crc.fd >= 0);
+	setup_sink_crc();
 
 	init_blue_crc();
 
@@ -1074,7 +1117,8 @@ static void teardown_crcs(void)
 	if (pattern4.crcs)
 		free(pattern4.crcs);
 
-	close(sink_crc.fd);
+	if (sink_crc.fd != -1)
+		close(sink_crc.fd);
 
 	igt_pipe_crc_free(pipe_crc);
 }
@@ -1303,13 +1347,6 @@ static int adjust_assertion_flags(const struct test_mode *t, int flags)
 		wait_user("Paused after assertions.");			\
 } while (0)
 
-static void fill_fb_region(struct fb_region *region, uint32_t color)
-{
-	igt_draw_rect_fb(drm.fd, NULL, NULL, region->fb, IGT_DRAW_MMAP_GTT,
-			 region->x, region->y, region->w, region->h,
-			 color);
-}
-
 static void enable_prim_screen_and_wait(const struct test_mode *t)
 {
 	fill_fb_region(&prim_mode_params.fb, 0xFF);
@@ -1383,9 +1420,12 @@ static void check_test_requirements(const struct test_mode *t)
 		igt_require_f(fbc.can_test,
 			      "Can't test FBC with this chipset\n");
 
-	if (t->feature & FEATURE_PSR)
+	if (t->feature & FEATURE_PSR) {
 		igt_require_f(psr.can_test,
 			      "Can't test PSR with the current outputs\n");
+		igt_require_f(sink_crc.supported,
+			      "Can't test PSR without sink CRCs\n");
+	}
 
 	if (opt.only_feature != FEATURE_COUNT)
 		igt_require(t->feature == opt.only_feature);
