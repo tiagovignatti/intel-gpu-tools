@@ -27,6 +27,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <pthread.h>
 
 #include "drmtest.h"
 #include "igt_aux.h"
@@ -258,6 +259,19 @@ struct {
 	struct igt_fb offscreen;
 	struct igt_fb big;
 } fbs;
+
+struct {
+	pthread_t thread;
+	bool stop;
+
+	uint32_t handle;
+	uint32_t size;
+	uint32_t stride;
+	int width;
+	int height;
+} busy_thread = {
+	.stop = true,
+};
 
 static drmModeModeInfoPtr get_connector_smallest_mode(drmModeConnectorPtr c)
 {
@@ -876,6 +890,41 @@ static void disable_features(void)
 	psr_disable();
 }
 
+static void *busy_thread_func(void *data)
+{
+	while (!busy_thread.stop)
+		igt_draw_rect(drm.fd, drm.bufmgr, NULL, busy_thread.handle,
+			      busy_thread.size, busy_thread.stride,
+			      IGT_DRAW_BLT, 0, 0, busy_thread.width,
+			      busy_thread.height, 0xFF);
+
+	pthread_exit(0);
+}
+
+static void start_busy_thread(struct igt_fb *fb)
+{
+	int rc;
+
+	igt_assert(busy_thread.stop == true);
+	busy_thread.stop = false;
+	busy_thread.handle = fb->gem_handle;
+	busy_thread.size = fb->size;
+	busy_thread.stride = fb->stride;
+	busy_thread.width = fb->width;
+	busy_thread.height = fb->height;
+
+	rc = pthread_create(&busy_thread.thread, NULL, busy_thread_func, NULL);
+	igt_assert(rc == 0);
+}
+
+static void stop_busy_thread(void)
+{
+	if (!busy_thread.stop) {
+		busy_thread.stop = true;
+		igt_assert(pthread_join(busy_thread.thread, NULL) == 0);
+	}
+}
+
 static void print_crc(const char *str, struct both_crcs *crc)
 {
 	int i;
@@ -1199,6 +1248,8 @@ static void setup_environment(void)
 
 static void teardown_environment(void)
 {
+	stop_busy_thread();
+
 	teardown_crcs();
 	teardown_psr();
 	teardown_fbc();
@@ -1480,6 +1531,8 @@ static void prepare_subtest(const struct test_mode *t,
 			    struct draw_pattern_info *pattern)
 {
 	check_test_requirements(t);
+
+	stop_busy_thread();
 
 	disable_features();
 	set_crtc_fbs(t);
@@ -1964,6 +2017,50 @@ static void fullscreen_plane_subtest(const struct test_mode *t)
 	igt_remove_fb(drm.fd, &fullscreen_fb);
 }
 
+/**
+ * modesetfrombusy - modeset from a busy buffer to a non-busy buffer
+ *
+ * METHOD
+ *   Set a mode, make the frontbuffer busy using BLT writes, do a modeset to a
+ *   non-busy buffer, then check if the features are enabled. The goal of this
+ *   test is to exercise a bug we had on the frontbuffer tracking infrastructure
+ *   code.
+ *
+ * EXPECTED RESULTS
+ *   No assertions fail.
+ *
+ * FAILURES
+ *   If you're failing this test, then you probably need "drm/i915: Clear
+ *   fb_tracking.busy_bits also for synchronous flips" or any other patch that
+ *   properly updates dev_priv->fb_tracking.busy_bits when we're alternating
+ *   between buffers with different busyness.
+ */
+static void modesetfrombusy_subtest(const struct test_mode *t)
+{
+	struct draw_pattern_info *pattern = &pattern1;
+	struct modeset_params *params = pick_params(t);
+	struct igt_fb fb2;
+
+	prepare_subtest(t, pattern);
+
+	igt_create_fb(drm.fd, params->fb.fb->width, params->fb.fb->height,
+		      DRM_FORMAT_XRGB8888, LOCAL_I915_FORMAT_MOD_X_TILED, &fb2);
+	igt_draw_fill_fb(drm.fd, &fb2, 0xFF);
+
+	start_busy_thread(params->fb.fb);
+	usleep(10000);
+
+	unset_all_crtcs();
+	params->fb.fb = &fb2;
+	set_mode_for_params(params);
+
+	do_assertions(0);
+
+	stop_busy_thread();
+
+	igt_remove_fb(drm.fd, &fb2);
+}
+
 static int opt_handler(int option, int option_index, void *data)
 {
 	switch (option) {
@@ -2246,6 +2343,22 @@ int main(int argc, char *argv[])
 			      fbs_str(t.fbs),
 			      igt_draw_get_method_name(t.method))
 			multidraw_subtest(&t);
+	TEST_MODE_ITER_END
+
+	TEST_MODE_ITER_BEGIN(t)
+		if (t.pipes != PIPE_SINGLE)
+			continue;
+		if (t.screen != SCREEN_PRIM)
+			continue;
+		if (t.plane != PLANE_PRI)
+			continue;
+		if (t.fbs != FBS_SINGLE)
+			continue;
+		if (t.method != IGT_DRAW_MMAP_CPU)
+			continue;
+
+		igt_subtest_f("%s-modesetfrombusy", feature_str(t.feature))
+			modesetfrombusy_subtest(&t);
 	TEST_MODE_ITER_END
 
 	/*
