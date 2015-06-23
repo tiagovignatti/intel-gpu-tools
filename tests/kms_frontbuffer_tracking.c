@@ -1717,8 +1717,7 @@ static void flip_subtest(const struct test_mode *t)
 {
 	int r, rc;
 	int assertions = 0;
-	struct igt_fb fb2;
-	struct fb_region fb2_region, *target;
+	struct igt_fb fb2, *orig_fb;
 	struct modeset_params *params = pick_params(t);
 	struct draw_pattern_info *pattern = &pattern1;
 	uint32_t bg_color;
@@ -1741,22 +1740,18 @@ static void flip_subtest(const struct test_mode *t)
 	igt_create_fb(drm.fd, params->fb.fb->width, params->fb.fb->height,
 		      DRM_FORMAT_XRGB8888, LOCAL_I915_FORMAT_MOD_X_TILED, &fb2);
 	igt_draw_fill_fb(drm.fd, &fb2, bg_color);
-	fb2_region.fb = &fb2;
-	fb2_region.x = params->fb.x;
-	fb2_region.y = params->fb.y;
-	fb2_region.w = params->fb.w;
-	fb2_region.h = params->fb.h;
+	orig_fb = params->fb.fb;
 
 	for (r = 0; r < pattern->n_rects; r++) {
-		target = (r % 2 == 0) ? &fb2_region : &params->fb;
+		params->fb.fb = (r % 2 == 0) ? &fb2 : orig_fb;
 
 		if (r != 0)
-			draw_rect(pattern, target, t->method, r - 1);
-		draw_rect(pattern, target, t->method, r);
+			draw_rect(pattern, &params->fb, t->method, r - 1);
+		draw_rect(pattern, &params->fb, t->method, r);
 		update_wanted_crc(t, &pattern->crcs[r]);
 
-		rc = drmModePageFlip(drm.fd, params->crtc_id, target->fb->fb_id,
-				     0, NULL);
+		rc = drmModePageFlip(drm.fd, params->crtc_id,
+				     params->fb.fb->fb_id, 0, NULL);
 		igt_assert(rc == 0);
 
 		do_assertions(assertions);
