@@ -62,8 +62,8 @@ struct test {
 static void *
 bo_create (int fd, int tiling)
 {
+	uint32_t handle;
 	void *ptr;
-	int handle;
 
 	handle = gem_create(fd, OBJECT_SIZE);
 
@@ -78,8 +78,8 @@ bo_create (int fd, int tiling)
 	ptr = gem_mmap(fd, handle, OBJECT_SIZE, PROT_READ | PROT_WRITE);
 	igt_assert(ptr);
 
-	/* XXX: mmap_gtt pulls the bo into the GTT read domain. */
-	gem_sync(fd, handle);
+	gem_set_domain(fd, handle, I915_GEM_DOMAIN_GTT, I915_GEM_DOMAIN_GTT);
+	gem_close(fd, handle);
 
 	return ptr;
 }
@@ -99,6 +99,9 @@ bo_copy (void *_arg)
 		memcpy (a, b, OBJECT_SIZE);
 		sched_yield ();
 	}
+
+	munmap(a, OBJECT_SIZE);
+	munmap(b, OBJECT_SIZE);
 
 	return NULL;
 }
@@ -188,6 +191,8 @@ static int run_test(int threads_per_fence, void *f, int tiling,
 
 		for (n = 0; n < num_threads; n++)
 			pthread_join (threads[n], NULL);
+
+		free(threads);
 	} else {
 		void *(*func)(void *) = f;
 		igt_assert(func(&t) == (void *)0);
