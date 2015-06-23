@@ -1476,8 +1476,8 @@ static void set_crtc_fbs(const struct test_mode *t)
 	scnd_mode_params.sprite.fb = &fbs.scnd_spr;
 }
 
-static void set_screens_for_test(const struct test_mode *t,
-				 struct draw_pattern_info *pattern)
+static void prepare_subtest(const struct test_mode *t,
+			    struct draw_pattern_info *pattern)
 {
 	check_test_requirements(t);
 
@@ -1608,7 +1608,7 @@ static void draw_subtest(const struct test_mode *t)
 		igt_assert(false);
 	}
 
-	set_screens_for_test(t, pattern);
+	prepare_subtest(t, pattern);
 	target = pick_target(t, params);
 
 	for (r = 0; r < pattern->n_rects; r++) {
@@ -1660,7 +1660,7 @@ static void multidraw_subtest(const struct test_mode *t)
 		igt_assert(false);
 	}
 
-	set_screens_for_test(t, pattern);
+	prepare_subtest(t, pattern);
 	target = pick_target(t, params);
 
 	for (m = 0; m < IGT_DRAW_METHOD_COUNT; m++) {
@@ -1735,7 +1735,7 @@ static void flip_subtest(const struct test_mode *t)
 		igt_assert(false);
 	}
 
-	set_screens_for_test(t, pattern);
+	prepare_subtest(t, pattern);
 
 	igt_create_fb(drm.fd, params->fb.fb->width, params->fb.fb->height,
 		      DRM_FORMAT_XRGB8888, LOCAL_I915_FORMAT_MOD_X_TILED, &fb2);
@@ -1782,7 +1782,7 @@ static void move_subtest(const struct test_mode *t)
 	struct draw_pattern_info *pattern = &pattern3;
 	bool repeat = false;
 
-	set_screens_for_test(t, pattern);
+	prepare_subtest(t, pattern);
 
 	/* Just paint the right color since we start at 0x0. */
 	draw_rect(pattern, pick_target(t, params), t->method, 0);
@@ -1845,7 +1845,7 @@ static void onoff_subtest(const struct test_mode *t)
 	struct modeset_params *params = pick_params(t);
 	struct draw_pattern_info *pattern = &pattern3;
 
-	set_screens_for_test(t, pattern);
+	prepare_subtest(t, pattern);
 
 	/* Just paint the right color since we start at 0x0. */
 	draw_rect(pattern, pick_target(t, params), t->method, 0);
@@ -1924,7 +1924,7 @@ static void fullscreen_plane_subtest(const struct test_mode *t)
 	int assertions;
 	int rc;
 
-	set_screens_for_test(t, pattern);
+	prepare_subtest(t, pattern);
 
 	rect = pattern->get_rect(&params->fb, 0);
 	igt_create_fb(drm.fd, rect.w, rect.h, DRM_FORMAT_XRGB8888,
