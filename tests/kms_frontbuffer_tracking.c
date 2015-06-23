@@ -1206,8 +1206,11 @@ static void teardown_environment(void)
 	teardown_drm();
 }
 
-static void wait_user(const char *msg)
+static void wait_user(int step, const char *msg)
 {
+	if (opt.step < step)
+		return;
+
 	igt_info("%s Press enter...\n", msg);
 	while (getchar() != '\n')
 		;
@@ -1298,8 +1301,7 @@ static int adjust_assertion_flags(const struct test_mode *t, int flags)
 #define do_assertions(flags) do {					\
 	int flags_ = adjust_assertion_flags(t, (flags));		\
 									\
-	if (opt.step > 1)						\
-		wait_user("Paused before assertions.");			\
+	wait_user(2, "Paused before assertions.");			\
 									\
 	/* Check the CRC to make sure the drawing operations work	\
 	 * immediately, independently of the features being enabled. */	\
@@ -1343,8 +1345,7 @@ static int adjust_assertion_flags(const struct test_mode *t, int flags)
 			igt_assert(!fbc_last_action_changed());		\
 	}								\
 									\
-	if (opt.step)							\
-		wait_user("Paused after assertions.");			\
+	wait_user(1, "Paused after assertions.");			\
 } while (0)
 
 static void enable_prim_screen_and_wait(const struct test_mode *t)
