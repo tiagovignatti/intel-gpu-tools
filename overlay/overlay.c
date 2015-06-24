@@ -35,6 +35,7 @@
 #include <signal.h>
 #include <getopt.h>
 #include <time.h>
+#include <locale.h>
 
 #include "overlay.h"
 #include "chart.h"
@@ -857,6 +858,7 @@ int main(int argc, char **argv)
 	int daemonize = 1, renice = 0;
 	int i;
 
+	setlocale(LC_ALL, "");
 	config_init(&config);
 
 	opterr = 0;
