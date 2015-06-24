@@ -55,6 +55,7 @@
 #include <time.h>
 #include <ctype.h>
 #include <limits.h>
+#include <locale.h>
 
 #include "drmtest.h"
 #include "intel_chipset.h"
@@ -521,6 +522,9 @@ static int common_init(int *argc, char **argv,
 	int all_opt_count;
 	int ret = 0;
 	char *env = getenv("IGT_LOG_LEVEL");
+
+	if (isatty(STDOUT_FILENO))
+		setlocale(LC_ALL, "");
 
 	if (env) {
 		if (strcmp(env, "debug") == 0)
