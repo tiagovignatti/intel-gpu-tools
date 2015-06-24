@@ -2207,6 +2207,8 @@ static const char *feature_str(int feature)
 	for (t.method = 0; t.method < IGT_DRAW_METHOD_COUNT; t.method++) { \
 		if (t.pipes == PIPE_SINGLE && t.screen == SCREEN_SCND)	   \
 			continue;					   \
+		if (t.screen == SCREEN_OFFSCREEN && t.plane != PLANE_PRI)  \
+			continue;					   \
 		if (!opt.show_hidden && t.pipes == PIPE_DUAL &&		   \
 		    t.screen == SCREEN_OFFSCREEN)			   \
 			continue;					   \
