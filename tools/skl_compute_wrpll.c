@@ -23,6 +23,7 @@
 
 #include <assert.h>
 #include <inttypes.h>
+#include <limits.h>
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -31,6 +32,7 @@
 
 #include "igt_stats.h"
 
+#define U64_MAX         ((uint64_t)~0ULL)
 #define ARRAY_SIZE(arr) (sizeof(arr)/sizeof(arr[0]))
 
 #define WARN(cond, msg)	printf(msg)
@@ -255,8 +257,7 @@ found:
 }
 
 struct skl_wrpll_context {
-	uint32_t min_pdeviation;	/* record the minimum deviations to */
-	uint32_t min_ndeviation;	/* compare candidates */
+	uint64_t min_deviation;		/* current minimal deviation */
 	uint64_t central_freq;		/* chosen central freq */
 	uint64_t dco_freq;		/* chosen dco freq */
 	unsigned int p;			/* chosen divider */
@@ -266,10 +267,11 @@ static void skl_wrpll_context_init(struct skl_wrpll_context *ctx)
 {
 	memset(ctx, 0, sizeof(*ctx));
 
-	/* DCO freq must be within +1%/-6%  of the DCO central freq */
-	ctx->min_pdeviation = 100;
-	ctx-> min_ndeviation = 600;
+	ctx->min_deviation = U64_MAX;
 }
+
+#define SKL_MAX_PDEVIATION	100
+#define SKL_MAX_NDEVIATION	600
 
 static void skl_wrpll_try_divider(struct skl_wrpll_context *ctx,
 				  uint64_t central_freq,
@@ -284,8 +286,9 @@ static void skl_wrpll_try_divider(struct skl_wrpll_context *ctx,
 
 	/* positive deviation */
 	if (dco_freq >= central_freq) {
-		if (deviation < ctx->min_pdeviation) {
-			ctx->min_pdeviation = deviation;
+		if (deviation < SKL_MAX_PDEVIATION &&
+		    deviation < ctx->min_deviation) {
+			ctx->min_deviation = deviation;
 			ctx->central_freq = central_freq;
 			ctx->dco_freq = dco_freq;
 			ctx->p = divider;
@@ -294,8 +297,9 @@ static void skl_wrpll_try_divider(struct skl_wrpll_context *ctx,
 #endif
 		}
 	/* negative deviation */
-	} else if (deviation < ctx->min_ndeviation) {
-		ctx->min_ndeviation = deviation;
+	} else if (deviation < SKL_MAX_NDEVIATION &&
+		   deviation < ctx->min_deviation) {
+		ctx->min_deviation = deviation;
 		ctx->central_freq = central_freq;
 		ctx->dco_freq = dco_freq;
 		ctx->p = divider;
