@@ -29,6 +29,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "igt_stats.h"
+
 #define ARRAY_SIZE(arr) (sizeof(arr)/sizeof(arr[0]))
 
 #define WARN(cond, msg)	printf(msg)
@@ -844,6 +846,9 @@ static void test_run(struct test_ops *test)
 {
 	unsigned int m;
 	unsigned p_odd_even[2] = { 0, 0 };
+	igt_stats_t stats;
+
+	igt_stats_init(&stats, ARRAY_SIZE(modes));
 
 	for (m = 0; m < ARRAY_SIZE(modes); m++) {
 		struct skl_wrpll_params params = {};
@@ -871,6 +876,8 @@ static void test_run(struct test_ops *test)
 			diff = abs_diff(dco_freq, central_freq);
 			deviation = div64_u64(10000 * diff, central_freq);
 
+			igt_stats_push(&stats, deviation);
+
 			if (dco_freq > central_freq) {
 				if (deviation > 100)
 					printf("failed constraint for %dHz "
@@ -892,6 +899,9 @@ static void test_run(struct test_ops *test)
 	}
 
 	printf("even/odd dividers: %d/%d\n", p_odd_even[0], p_odd_even[1]);
+	printf("average deviation: %.2lf\n", igt_stats_get_average(&stats));
+
+	igt_stats_fini(&stats);
 }
 
 int main(int argc, char **argv)
