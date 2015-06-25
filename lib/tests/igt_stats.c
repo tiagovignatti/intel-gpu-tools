@@ -45,6 +45,30 @@ static void test_mean(void)
 	igt_stats_fini(&stats);
 }
 
+static void test_invalidate_mean(void)
+{
+	igt_stats_t stats;
+	double mean1, mean2;
+
+	igt_stats_init(&stats, 6);
+
+	igt_stats_push(&stats, 2);
+	igt_stats_push(&stats, 4);
+	igt_stats_push(&stats, 6);
+	igt_stats_push(&stats, 8);
+	igt_stats_push(&stats, 10);
+
+	mean1 = igt_stats_get_mean(&stats);
+	igt_assert(mean1 == (2 + 4 + 6 + 8 + 10) / 5.);
+
+	igt_stats_push(&stats, 100);
+
+	mean2 = igt_stats_get_mean(&stats);
+	igt_assert(mean1 != mean2);
+
+	igt_stats_fini(&stats);
+}
+
 /*
  * Taken from the "Basic examples" section of:
  * https://en.wikipedia.org/wiki/Standard_deviation
@@ -80,5 +104,6 @@ static void test_std_deviation(void)
 igt_simple_main
 {
 	test_mean();
+	test_invalidate_mean();
 	test_std_deviation();
 }
