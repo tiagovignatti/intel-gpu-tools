@@ -270,6 +270,7 @@ static void skl_wrpll_context_init(struct skl_wrpll_context *ctx)
 	ctx->min_deviation = U64_MAX;
 }
 
+/* DCO freq must be within +1%/-6%  of the DCO central freq */
 #define SKL_MAX_PDEVIATION	100
 #define SKL_MAX_NDEVIATION	600
 
