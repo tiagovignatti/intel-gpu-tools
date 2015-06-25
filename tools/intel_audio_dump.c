@@ -2200,7 +2200,7 @@ static void dump_hsw_plus(void)
 	dump_aud_reg(AUD_TCA_EDID_DATA,        "Audio EDID Data Block - Transcoder A");
 	dump_aud_reg(AUD_TCB_EDID_DATA,        "Audio EDID Data Block - Transcoder B");
 	dump_aud_reg(AUD_TCC_EDID_DATA,        "Audio EDID Data Block - Transcoder C");
-	if (IS_SKYLAKE(devid))
+	if (IS_GEN9(devid))
 		dump_aud_reg(AUD_FREQ_CNTRL,   "Audio BCLK Frequency Control");
 	dump_aud_reg(AUD_TCA_INFOFR,           "Audio Widget Data Island Packet - Transcoder A");
 	dump_aud_reg(AUD_TCB_INFOFR,           "Audio Widget Data Island Packet - Transcoder B");
@@ -2232,7 +2232,7 @@ static void dump_hsw_plus(void)
 	dump_aud_reg(AUD_TCA_M_CTS,            "Audio M CTS Read Back Transcoder A");
 	dump_aud_reg(AUD_TCB_M_CTS,            "Audio M CTS Read Back Transcoder B");
 	dump_aud_reg(AUD_TCC_M_CTS,            "Audio M CTS Read Back Transcoder C");
-	if (IS_SKYLAKE(devid)) {
+	if (IS_GEN9(devid)) {
 		dump_aud_reg(AUD_HDA_DMA_REG,  "Audio HD Audio DMA Control Register");
 		dump_aud_reg(AUD_HDA_LPIB0_REG, "Audio HD Audio Stream0 Link Position in Buffer");
 		dump_aud_reg(AUD_HDA_LPIB1_REG, "Audio HD Audio Stream1 Link Position in Buffer");
@@ -2331,7 +2331,7 @@ static void dump_hsw_plus(void)
 
 	dword = read_aud_reg(AUD_FREQ_CNTRL);
 	printf("AUD_FREQ_CNTRL Audio BCLK Frequency Control: %08x\n", dword);
-	if (IS_SKYLAKE(devid))
+	if (IS_GEN9(devid))
 		parse_skl_audio_freq_cntrl_reg(dword);
 }
 
@@ -2479,11 +2479,12 @@ int main(int argc, char **argv)
 	if (IS_VALLEYVIEW(devid)) {
 		printf("Valleyview audio registers:\n\n");
 		dump_ironlake();
-	}  else if (IS_SKYLAKE(devid)
+	}  else if (IS_GEN9(devid)
 		|| IS_BROADWELL(devid) || IS_HASWELL(devid)) {
 		printf("%s audio registers:\n\n",
-			IS_SKYLAKE(devid) ? "Skylake" :
-			(IS_BROADWELL(devid) ? "Broadwell" : "Haswell"));
+			IS_BROXTON(devid) ? "Broxton" :
+			(IS_SKYLAKE(devid) ? "Skylake" :
+			(IS_BROADWELL(devid) ? "Broadwell" : "Haswell")));
 		dump_hsw_plus();
 	} else if (IS_GEN6(devid) || IS_GEN7(devid)
 		|| getenv("HAS_PCH_SPLIT")) {
