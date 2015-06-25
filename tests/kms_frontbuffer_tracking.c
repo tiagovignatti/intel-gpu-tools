@@ -1609,6 +1609,23 @@ static void update_wanted_crc(const struct test_mode *t, struct both_crcs *crc)
 		wanted_crc = crc;
 }
 
+static bool op_disables_psr(const struct test_mode *t,
+			    enum igt_draw_method method)
+{
+	if (method != IGT_DRAW_MMAP_GTT && method != IGT_DRAW_MMAP_WC)
+		return false;
+	if (t->screen == SCREEN_PRIM)
+		return true;
+	/* On FBS_MULTI, even if the target is not the PSR screen (SCREEN_PRIM),
+	 * all primary planes share the same frontbuffer, so a write to the
+	 * second screen primary plane - or offscreen plane - will touch the
+	 * framebuffer that's also used by the primary screen. */
+	if (t->fbs == FBS_MULTI && t->plane == PLANE_PRI)
+		return true;
+
+	return false;
+}
+
 /*
  * draw - draw a set of rectangles on the screen using the provided method
  *
@@ -1660,6 +1677,9 @@ static void draw_subtest(const struct test_mode *t)
 	default:
 		igt_assert(false);
 	}
+
+	if (op_disables_psr(t, t->method))
+		assertions |= ASSERT_PSR_DISABLED;
 
 	prepare_subtest(t, pattern);
 	target = pick_target(t, params);
@@ -1722,8 +1742,10 @@ static void multidraw_subtest(const struct test_mode *t)
 
 		igt_debug("Method %s\n", igt_draw_get_method_name(m));
 		for (r = 0; r < pattern->n_rects; r++) {
-
 			used_method = (r % 2 == 0) ? t->method : m;
+
+			igt_debug("Used method %s\n",
+				  igt_draw_get_method_name(used_method));
 
 			draw_rect(pattern, target, used_method, r);
 			update_wanted_crc(t, &pattern->crcs[r]);
@@ -1731,6 +1753,9 @@ static void multidraw_subtest(const struct test_mode *t)
 			assertions = used_method != IGT_DRAW_MMAP_GTT ?
 				     ASSERT_LAST_ACTION_CHANGED :
 				     ASSERT_NO_ACTION_CHANGE;
+			if (op_disables_psr(t, used_method))
+				assertions |= ASSERT_PSR_DISABLED;
+
 			do_assertions(assertions);
 		}
 
