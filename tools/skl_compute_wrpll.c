@@ -274,7 +274,12 @@ static void skl_wrpll_context_init(struct skl_wrpll_context *ctx)
 #define SKL_MAX_PDEVIATION	100
 #define SKL_MAX_NDEVIATION	600
 
-static void skl_wrpll_try_divider(struct skl_wrpll_context *ctx,
+
+/*
+ * Returns true if we're sure to have found the definitive divider (ie
+ * deviation == 0).
+ */
+static bool skl_wrpll_try_divider(struct skl_wrpll_context *ctx,
 				  uint64_t central_freq,
 				  uint64_t dco_freq,
 				  unsigned int divider)
@@ -297,6 +302,10 @@ static void skl_wrpll_try_divider(struct skl_wrpll_context *ctx,
 			found = true;
 #endif
 		}
+
+		/* we can't improve a 0 deviation */
+		if (deviation == 0)
+			return true;
 	/* negative deviation */
 	} else if (deviation < SKL_MAX_NDEVIATION &&
 		   deviation < ctx->min_deviation) {
@@ -315,6 +324,8 @@ static void skl_wrpll_try_divider(struct skl_wrpll_context *ctx,
 		printf("dco_freq: %"PRIu64", dco_central_freq %"PRIu64"\n",
 		       dco_freq, central_freq);
 	}
+
+	return false;
 }
 
 static void skl_wrpll_get_multipliers(unsigned int p,
@@ -433,13 +444,15 @@ skl_ddi_calculate_wrpll2(int clock /* in Hz */,
 				unsigned int p = dividers[d].list[i];
 				uint64_t dco_freq = p * afe_clock;
 
-				skl_wrpll_try_divider(&ctx,
-						      dco_central_freq[dco],
-						      dco_freq,
-						      p);
+				if (skl_wrpll_try_divider(&ctx,
+							  dco_central_freq[dco],
+							  dco_freq,
+							  p))
+					goto skip_remaining_dividers;
 			}
 		}
 
+skip_remaining_dividers:
 		/*
 		 * If a solution is found with an even divider, prefer
 		 * this one.
