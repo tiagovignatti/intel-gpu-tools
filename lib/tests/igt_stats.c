@@ -45,7 +45,40 @@ static void test_mean(void)
 	igt_stats_fini(&stats);
 }
 
+/*
+ * Taken from the "Basic examples" section of:
+ * https://en.wikipedia.org/wiki/Standard_deviation
+ */
+static void test_std_deviation(void)
+{
+	igt_stats_t stats;
+	double mean, variance, std_deviation;
+
+	igt_stats_init(&stats, 8);
+
+	igt_stats_push(&stats, 2);
+	igt_stats_push(&stats, 4);
+	igt_stats_push(&stats, 4);
+	igt_stats_push(&stats, 4);
+	igt_stats_push(&stats, 5);
+	igt_stats_push(&stats, 5);
+	igt_stats_push(&stats, 7);
+	igt_stats_push(&stats, 9);
+
+	mean = igt_stats_get_mean(&stats);
+	igt_assert(mean == (2 + 3 * 4 + 2 * 5 + 7 + 9) / 8.);
+
+	variance = igt_stats_get_variance(&stats);
+	igt_assert(variance == 4);
+
+	std_deviation = igt_stats_get_std_deviation(&stats);
+	igt_assert(std_deviation == 2);
+
+	igt_stats_fini(&stats);
+}
+
 igt_simple_main
 {
 	test_mean();
+	test_std_deviation();
 }

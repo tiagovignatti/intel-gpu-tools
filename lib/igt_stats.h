@@ -37,3 +37,4 @@ void igt_stats_fini(igt_stats_t *stats);
 void igt_stats_push(igt_stats_t *stats, uint64_t value);
 double igt_stats_get_mean(igt_stats_t *stats);
 double igt_stats_get_variance(igt_stats_t *stats);
+double igt_stats_get_std_deviation(igt_stats_t *stats);

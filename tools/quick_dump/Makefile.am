@@ -15,6 +15,7 @@ I915ChipsetPython_la_LIBADD =			\
 	$(CAIRO_LIBS)				\
 	$(LIBUNWIND_LIBS)			\
 	-lrt					\
+	-lm					\
 	$(NULL)
 
 chipset.py: chipset_wrap_python.c

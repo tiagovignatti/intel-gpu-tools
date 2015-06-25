@@ -22,6 +22,8 @@
  *
  */
 
+#include <math.h>
+
 #include "igt_core.h"
 #include "igt_stats.h"
 
@@ -85,4 +87,11 @@ double igt_stats_get_variance(igt_stats_t *stats)
 	igt_stats_knuth_mean_variance(stats);
 
 	return stats->variance;
+}
+
+double igt_stats_get_std_deviation(igt_stats_t *stats)
+{
+	igt_stats_knuth_mean_variance(stats);
+
+	return sqrt(stats->variance);
 }
