@@ -422,8 +422,8 @@ skl_ddi_calculate_wrpll2(int clock /* in Hz */,
 
 	skl_wrpll_context_init(&ctx);
 
-	for (dco = 0; dco < ARRAY_SIZE(dco_central_freq); dco++) {
-		for (d = 0; d < ARRAY_SIZE(dividers); d++) {
+	for (d = 0; d < ARRAY_SIZE(dividers); d++) {
+		for (dco = 0; dco < ARRAY_SIZE(dco_central_freq); dco++) {
 			for (i = 0; i < dividers[d].n_dividers; i++) {
 				unsigned int p = dividers[d].list[i];
 				uint64_t dco_freq = p * afe_clock;
@@ -433,14 +433,14 @@ skl_ddi_calculate_wrpll2(int clock /* in Hz */,
 						      dco_freq,
 						      p);
 			}
-
-			/*
-			 * If a solution is found with an even divider, prefer
-			 * this one.
-			 */
-			if (d == 0 && ctx.p)
-				break;
 		}
+
+		/*
+		 * If a solution is found with an even divider, prefer
+		 * this one.
+		 */
+		if (d == 0 && ctx.p)
+			break;
 	}
 
 	if (!ctx.p)
