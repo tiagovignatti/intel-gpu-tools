@@ -25,10 +25,10 @@
 #include "igt_core.h"
 #include "igt_stats.h"
 
-static void test_average(void)
+static void test_mean(void)
 {
 	igt_stats_t stats;
-	double average;
+	double mean;
 
 	igt_stats_init(&stats, 5);
 
@@ -38,12 +38,12 @@ static void test_average(void)
 	igt_stats_push(&stats, 8);
 	igt_stats_push(&stats, 10);
 
-	average = igt_stats_get_average(&stats);
+	mean = igt_stats_get_mean(&stats);
 
-	igt_assert(average == (2 + 4 + 6 + 8 + 10) / 5.);
+	igt_assert(mean == (2 + 4 + 6 + 8 + 10) / 5.);
 }
 
 igt_simple_main
 {
-	test_average();
+	test_mean();
 }

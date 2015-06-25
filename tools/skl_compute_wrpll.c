@@ -917,7 +917,8 @@ static void test_run(struct test_ops *test)
 	}
 
 	printf("even/odd dividers: %d/%d\n", p_odd_even[0], p_odd_even[1]);
-	printf("average deviation: %.2lf\n", igt_stats_get_average(&stats));
+	printf("mean central freq deviation: %.2lf\n",
+	       igt_stats_get_mean(&stats));
 
 	igt_stats_fini(&stats);
 }

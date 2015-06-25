@@ -44,7 +44,7 @@ void igt_stats_push(igt_stats_t *stats, uint64_t value)
 	stats->values[stats->n_values++] = value;
 }
 
-double igt_stats_get_average(igt_stats_t *stats)
+double igt_stats_get_mean(igt_stats_t *stats)
 {
 	unsigned int i;
 	double a = 0.0;
