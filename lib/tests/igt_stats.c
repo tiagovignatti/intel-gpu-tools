@@ -41,6 +41,8 @@ static void test_mean(void)
 	mean = igt_stats_get_mean(&stats);
 
 	igt_assert(mean == (2 + 4 + 6 + 8 + 10) / 5.);
+
+	igt_stats_fini(&stats);
 }
 
 igt_simple_main
