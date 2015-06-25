@@ -829,6 +829,8 @@ static void exit_subtest(const char *result)
 	elapsed += (now.tv_nsec - subtest_time.tv_nsec) * 1e-9;
 
 	printf("Subtest %s: %s (%.3fs)\n", in_subtest, result, elapsed);
+	fflush(stdout);
+
 	in_subtest = NULL;
 	siglongjmp(igt_subtest_jmpbuf, 1);
 }
