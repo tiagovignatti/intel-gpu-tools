@@ -12,6 +12,8 @@ libintel_tools_la_SOURCES = 	\
 	igt_aux.h		\
 	igt_gt.c		\
 	igt_gt.h		\
+	igt_stats.c		\
+	igt_stats.h		\
 	instdone.c		\
 	instdone.h		\
 	intel_batchbuffer.c	\

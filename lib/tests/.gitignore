@@ -8,4 +8,5 @@ igt_no_subtest
 igt_segfault
 igt_simple_test_subtests
 igt_simulation
+igt_stats
 igt_timeout

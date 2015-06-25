@@ -6,6 +6,7 @@ check_PROGRAMS = \
 	igt_no_subtest \
 	igt_simulation \
 	igt_simple_test_subtests \
+	igt_stats \
 	igt_timeout \
 	igt_invalid_subtest_name \
 	igt_segfault \
