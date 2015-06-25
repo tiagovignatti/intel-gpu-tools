@@ -859,7 +859,7 @@ static void draw_rect_igt_fb(struct draw_pattern_info *pattern,
 
 static void fill_fb_region(struct fb_region *region, uint32_t color)
 {
-	igt_draw_rect_fb(drm.fd, NULL, NULL, region->fb, IGT_DRAW_MMAP_GTT,
+	igt_draw_rect_fb(drm.fd, NULL, NULL, region->fb, IGT_DRAW_MMAP_CPU,
 			 region->x, region->y, region->w, region->h,
 			 color);
 }
