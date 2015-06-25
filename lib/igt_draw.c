@@ -262,6 +262,9 @@ static void draw_rect_mmap_gtt(int fd, struct buf_data *buf, struct rect *rect,
 {
 	uint32_t *ptr;
 
+	gem_set_domain(fd, buf->handle, I915_GEM_DOMAIN_GTT,
+		       I915_GEM_DOMAIN_GTT);
+
 	ptr = gem_mmap__gtt(fd, buf->handle, buf->size, PROT_READ | PROT_WRITE);
 	igt_assert(ptr);
 
@@ -276,6 +279,8 @@ static void draw_rect_mmap_wc(int fd, struct buf_data *buf, struct rect *rect,
 	uint32_t *ptr;
 	uint32_t tiling, swizzle;
 
+	gem_set_domain(fd, buf->handle, I915_GEM_DOMAIN_GTT,
+		       I915_GEM_DOMAIN_GTT);
 	gem_get_tiling(fd, buf->handle, &tiling, &swizzle);
 
 	/* We didn't implement suport for the older tiling methods yet. */
