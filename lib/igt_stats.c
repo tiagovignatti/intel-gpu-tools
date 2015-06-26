@@ -91,6 +91,20 @@ void igt_stats_fini(igt_stats_t *stats)
 	free(stats->values);
 }
 
+
+/**
+ * igt_stats_is_population:
+ * @stats: An #igt_stats_t instance
+ *
+ * Returns: #true if @stats represents a population, #false if only a sample.
+ *
+ * See igt_stats_set_population() for more details.
+ */
+bool igt_stats_is_population(igt_stats_t *stats)
+{
+	return stats->is_population;
+}
+
 /**
  * igt_stats_set_population:
  * @stats: An #igt_stats_t instance

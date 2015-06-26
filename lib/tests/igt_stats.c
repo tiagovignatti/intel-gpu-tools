@@ -35,6 +35,19 @@ static void test_init_zero(void)
 	igt_assert(stats.mean == 0.);
 }
 
+static void test_init(void)
+{
+	igt_stats_t stats;
+
+	igt_stats_init(&stats, 2);
+
+	/*
+	 * Make sure we default to representing only a sample of a bigger
+	 * population.
+	 */
+	igt_assert(igt_stats_is_population(&stats) == false);
+}
+
 static void test_mean(void)
 {
 	igt_stats_t stats;
@@ -115,6 +128,7 @@ static void test_std_deviation(void)
 igt_simple_main
 {
 	test_init_zero();
+	test_init();
 	test_mean();
 	test_invalidate_mean();
 	test_std_deviation();

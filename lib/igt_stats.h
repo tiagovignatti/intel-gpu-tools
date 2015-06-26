@@ -26,6 +26,7 @@
 #define __IGT_STATS_H__
 
 #include <stdint.h>
+#include <stdbool.h>
 
 /**
  * igt_stats_t:
@@ -45,6 +46,7 @@ typedef struct {
 
 void igt_stats_init(igt_stats_t *stats, unsigned int capacity);
 void igt_stats_fini(igt_stats_t *stats);
+bool igt_stats_is_population(igt_stats_t *stats);
 void igt_stats_set_population(igt_stats_t *stats, bool full_population);
 void igt_stats_push(igt_stats_t *stats, uint64_t value);
 double igt_stats_get_mean(igt_stats_t *stats);
