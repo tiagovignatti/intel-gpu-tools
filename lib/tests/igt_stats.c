@@ -89,6 +89,7 @@ static void test_std_deviation(void)
 	double mean, variance, std_deviation;
 
 	igt_stats_init(&stats, 8);
+	igt_stats_set_population(&stats, true);
 
 	igt_stats_push(&stats, 2);
 	igt_stats_push(&stats, 4);

@@ -92,6 +92,36 @@ void igt_stats_fini(igt_stats_t *stats)
 }
 
 /**
+ * igt_stats_set_population:
+ * @stats: An #igt_stats_t instance
+ * @full_population: Whether we're dealing with sample data or a full
+ *		     population
+ *
+ * In statistics, we usually deal with a subset of the full data (which may be
+ * a continuous or infinite set). Data analysis is then done on a sample of
+ * this population.
+ *
+ * This has some importance as only having a sample of the data leads to
+ * [biased estimators](https://en.wikipedia.org/wiki/Bias_of_an_estimator). We
+ * currently used the information given by this method to apply
+ * [Bessel's correction](https://en.wikipedia.org/wiki/Bessel%27s_correction)
+ * to the variance.
+ *
+ * When giving #true to this function, the data set in @stats is considered a
+ * full population. It's considered a sample of a bigger population otherwise.
+ *
+ * When newly created, @stats defaults to holding sample data.
+ */
+void igt_stats_set_population(igt_stats_t *stats, bool full_population)
+{
+	if (full_population == stats->is_population)
+		return;
+
+	stats->is_population = full_population;
+	stats->mean_variance_valid = false;
+}
+
+/**
  * igt_stats_push:
  * @stats: An #igt_stats_t instance
  * @value: An integer value
@@ -129,7 +159,10 @@ static void igt_stats_knuth_mean_variance(igt_stats_t *stats)
 	}
 
 	stats->mean = mean;
-	stats->variance = m2 / stats->n_values;
+	if (stats->n_values > 1 && !stats->is_population)
+		stats->variance = m2 / (stats->n_values - 1);
+	else
+		stats->variance = m2 / stats->n_values;
 	stats->mean_variance_valid = true;
 }
 

@@ -867,6 +867,7 @@ static void test_run(struct test_ops *test)
 	igt_stats_t stats;
 
 	igt_stats_init(&stats, ARRAY_SIZE(modes));
+	igt_stats_set_population(&stats, true);
 
 	for (m = 0; m < ARRAY_SIZE(modes); m++) {
 		struct skl_wrpll_params params = {};
