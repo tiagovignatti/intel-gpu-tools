@@ -55,6 +55,7 @@ struct bo {
 };
 
 static const int width = 512, height = 512;
+int fd;
 
 static void create_bo(drm_intel_bufmgr *bufmgr,
 		      struct bo *b,
@@ -88,7 +89,10 @@ static int check_bo(struct bo *b)
 	const uint32_t *map;
 	int i, fails = 0;
 
-	drm_intel_bo_map(b->dst, false);
+	igt_debug("verifying\n");
+
+	do_or_die(drm_intel_bo_map(b->dst, false));
+
 	map = b->dst->virtual;
 	for (i = 0; i < width*height; i++) {
 		if (map[i] != i && ++fails <= 9) {
@@ -111,17 +115,17 @@ static void destroy_bo(struct bo *b)
 	drm_intel_bo_unreference(b->dst);
 }
 
-static int check_ring(drm_intel_bufmgr *bufmgr,
-		      struct intel_batchbuffer *batch,
+static void fill_ring(drm_intel_bufmgr *bufmgr,
 		      const char *ring,
 		      igt_render_copyfunc_t copy)
 {
+	struct intel_batchbuffer *batch;
 	struct igt_buf src, tmp, dst;
 	struct bo bo;
-	char output[100];
 	int i;
 
-	snprintf(output, 100, "filling %s ring: ", ring);
+	batch = intel_batchbuffer_alloc(bufmgr, intel_get_drm_devid(fd));
+	igt_assert(batch);
 
 	create_bo(bufmgr, &bo, ring);
 
@@ -154,8 +158,6 @@ static int check_ring(drm_intel_bufmgr *bufmgr,
 		int x = i % width;
 		int y = i / width;
 
-		igt_progress(output, i, width*height);
-
 		igt_assert_lt(y, height);
 
 		/* Dummy load to fill the ring */
@@ -165,11 +167,9 @@ static int check_ring(drm_intel_bufmgr *bufmgr,
 	}
 
 	/* verify */
-	igt_info("verifying\n");
-	i = check_bo(&bo);
+	igt_assert_eq(check_bo(&bo), 0);
 	destroy_bo(&bo);
-
-	return i;
+	intel_batchbuffer_free(batch);
 }
 
 static void blt_copy(struct intel_batchbuffer *batch,
@@ -193,9 +193,47 @@ static void blt_copy(struct intel_batchbuffer *batch,
 	intel_batchbuffer_flush(batch);
 }
 
-drm_intel_bufmgr *bufmgr;
-struct intel_batchbuffer *batch;
-int fd;
+static void run_test(int ring, bool interruptible, int nchild) {
+	drm_intel_bufmgr *bufmgr;
+	igt_render_copyfunc_t copy;
+	const char* ring_name;
+
+	bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
+	igt_assert(bufmgr);
+	drm_intel_bufmgr_gem_enable_reuse(bufmgr);
+
+	if (ring == I915_EXEC_RENDER) {
+		copy = igt_get_render_copyfunc(intel_get_drm_devid(fd));
+		ring_name = "render";
+	} else if (ring == I915_EXEC_BLT) {
+		copy = blt_copy;
+		ring_name = "blt";
+	} else {
+		igt_fail_on_f(true, "Unsupported ring.");
+	}
+
+	/* Not all platforms have dedicated render ring. */
+	igt_require(copy);
+
+	if (interruptible) {
+		igt_fork_signal_helper();
+	}
+
+	if (nchild) {
+		igt_fork(child, nchild) {
+			fill_ring(bufmgr, ring_name, copy);
+		}
+		igt_waitchildren();
+	} else {
+		fill_ring(bufmgr, ring_name, copy);
+	}
+
+	if (interruptible) {
+		igt_stop_signal_helper();
+	}
+
+	drm_intel_bufmgr_destroy(bufmgr);
+}
 
 igt_main
 {
@@ -203,48 +241,33 @@ igt_main
 
 	igt_fixture {
 		fd = drm_open_any();
-
-		bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
-		drm_intel_bufmgr_gem_enable_reuse(bufmgr);
-		batch = intel_batchbuffer_alloc(bufmgr, intel_get_drm_devid(fd));
 	}
 
 	igt_subtest("blitter")
-		check_ring(bufmgr, batch, "blt", blt_copy);
+		run_test(I915_EXEC_BLT, false, 0);
 
-	/* Strictly only required on architectures with a separate BLT ring,
-	 * but lets stress everybody.
-	 */
-	igt_subtest("render") {
-		igt_render_copyfunc_t copy;
+	igt_subtest("render")
+		run_test(I915_EXEC_RENDER, false, 0);
 
-		copy = igt_get_render_copyfunc(batch->devid);
-		igt_require(copy);
-
-		check_ring(bufmgr, batch, "render", copy);
-	}
-
-	igt_fork_signal_helper();
 	igt_subtest("blitter-interruptible")
-		check_ring(bufmgr, batch, "blt", blt_copy);
+		run_test(I915_EXEC_BLT, true, 0);
 
-	/* Strictly only required on architectures with a separate BLT ring,
-	 * but lets stress everybody.
-	 */
-	igt_subtest("render-interruptible") {
-		igt_render_copyfunc_t copy;
+	igt_subtest("render-interruptible")
+		run_test(I915_EXEC_RENDER, true, 0);
 
-		copy = igt_get_render_copyfunc(batch->devid);
-		igt_require(copy);
+	igt_subtest("blitter-forked-1")
+		run_test(I915_EXEC_BLT, false, 1);
 
-		check_ring(bufmgr, batch, "render", copy);
-	}
-	igt_stop_signal_helper();
+	igt_subtest("render-forked-1")
+		run_test(I915_EXEC_RENDER, false, 1);
+
+	igt_subtest("blitter-forked-4")
+		run_test(I915_EXEC_BLT, false, 4);
+
+	igt_subtest("render-forked-4")
+		run_test(I915_EXEC_RENDER, false, 4);
 
 	igt_fixture {
-		intel_batchbuffer_free(batch);
-		drm_intel_bufmgr_destroy(bufmgr);
-
 		close(fd);
 	}
 }
