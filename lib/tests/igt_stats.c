@@ -25,6 +25,16 @@
 #include "igt_core.h"
 #include "igt_stats.h"
 
+/* Make sure we zero igt_stats_t fields at init() time */
+static void test_init_zero(void)
+{
+	igt_stats_t stats;
+
+	stats.mean = 1.;
+	igt_stats_init(&stats, 2);
+	igt_assert(stats.mean == 0.);
+}
+
 static void test_mean(void)
 {
 	igt_stats_t stats;
@@ -103,6 +113,7 @@ static void test_std_deviation(void)
 
 igt_simple_main
 {
+	test_init_zero();
 	test_mean();
 	test_invalidate_mean();
 	test_std_deviation();

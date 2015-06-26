@@ -23,16 +23,18 @@
  */
 
 #include <math.h>
+#include <string.h>
 
 #include "igt_core.h"
 #include "igt_stats.h"
 
 void igt_stats_init(igt_stats_t *stats, unsigned int capacity)
 {
+	memset(stats, 0, sizeof(*stats));
+
 	stats->values = calloc(capacity, sizeof(*stats->values));
 	igt_assert(stats->values);
 	stats->capacity = capacity;
-	stats->n_values = 0;
 }
 
 void igt_stats_fini(igt_stats_t *stats)
