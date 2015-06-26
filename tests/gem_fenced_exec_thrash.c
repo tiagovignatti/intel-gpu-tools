@@ -215,6 +215,18 @@ static void run_test(int fd, int num_fences, int expected_errno,
 
 	if (flags & INTERRUPTIBLE)
 		igt_stop_signal_helper();
+
+	/* Cleanup */
+	for (n = 0; n < 2*num_fences; n++)
+		gem_close(fd, exec[0][n].handle);
+
+	for (i = 0; i < 2; i++)
+		gem_close(fd, exec[i][2*num_fences].handle);
+
+	if (flags & BUSY_LOAD) {
+		intel_batchbuffer_free(batch);
+		drm_intel_bufmgr_destroy(bufmgr);
+	}
 }
 
 int fd;
