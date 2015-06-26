@@ -28,6 +28,49 @@
 #include "igt_core.h"
 #include "igt_stats.h"
 
+/**
+ * SECTION:igt_stats
+ * @short_description: Tools for statistical analysis
+ * @title: Stats
+ * @include: igt_stats.h
+ *
+ * Various tools to make sense of data.
+ *
+ * #igt_stats_t is a container of data samples. igt_stats_push() is used to add
+ * new samples and various results (mean, variance, standard deviation, ...)
+ * can then be retrieved.
+ *
+ * |[
+ *	igt_stats_t stats;
+ *
+ *	igt_stats_init(&stats, 8);
+ *
+ *	igt_stats_push(&stats, 2);
+ *	igt_stats_push(&stats, 4);
+ *	igt_stats_push(&stats, 4);
+ *	igt_stats_push(&stats, 4);
+ *	igt_stats_push(&stats, 5);
+ *	igt_stats_push(&stats, 5);
+ *	igt_stats_push(&stats, 7);
+ *	igt_stats_push(&stats, 9);
+ *
+ *	printf("Mean: %lf\n", igt_stats_get_mean(&stats));
+ *
+ *	igt_stats_fini(&stats);
+ * ]|
+ */
+
+/**
+ * igt_stats_init:
+ * @stats: An #igt_stats_t instance
+ * @capacity: Number of data samples @stats can contain
+ *
+ * Initializes an #igt_stats_t instance to hold @capacity samples.
+ * igt_stats_fini() must be called once finished with @stats.
+ *
+ * We currently assume the user knows how many data samples upfront and there's
+ * no need to grow the array of values.
+ */
 void igt_stats_init(igt_stats_t *stats, unsigned int capacity)
 {
 	memset(stats, 0, sizeof(*stats));
@@ -37,11 +80,24 @@ void igt_stats_init(igt_stats_t *stats, unsigned int capacity)
 	stats->capacity = capacity;
 }
 
+/**
+ * igt_stats_fini:
+ * @stats: An #igt_stats_t instance
+ *
+ * Frees resources allocated in igt_stats_init().
+ */
 void igt_stats_fini(igt_stats_t *stats)
 {
 	free(stats->values);
 }
 
+/**
+ * igt_stats_push:
+ * @stats: An #igt_stats_t instance
+ * @value: An integer value
+ *
+ * Adds a new value to the @stats dataset.
+ */
 void igt_stats_push(igt_stats_t *stats, uint64_t value)
 {
 	igt_assert(stats->n_values < stats->capacity);
@@ -77,6 +133,12 @@ static void igt_stats_knuth_mean_variance(igt_stats_t *stats)
 	stats->mean_variance_valid = true;
 }
 
+/**
+ * igt_stats_get_mean:
+ * @stats: An #igt_stats_t instance
+ *
+ * Retrieves the mean of the @stats dataset.
+ */
 double igt_stats_get_mean(igt_stats_t *stats)
 {
 	igt_stats_knuth_mean_variance(stats);
@@ -84,6 +146,12 @@ double igt_stats_get_mean(igt_stats_t *stats)
 	return stats->mean;
 }
 
+/**
+ * igt_stats_get_variance:
+ * @stats: An #igt_stats_t instance
+ *
+ * Retrieves the variance of the @stats dataset.
+ */
 double igt_stats_get_variance(igt_stats_t *stats)
 {
 	igt_stats_knuth_mean_variance(stats);
@@ -91,6 +159,12 @@ double igt_stats_get_variance(igt_stats_t *stats)
 	return stats->variance;
 }
 
+/**
+ * igt_stats_get_std_deviation:
+ * @stats: An #igt_stats_t instance
+ *
+ * Retrieves the standard deviation of the @stats dataset.
+ */
 double igt_stats_get_std_deviation(igt_stats_t *stats)
 {
 	igt_stats_knuth_mean_variance(stats);

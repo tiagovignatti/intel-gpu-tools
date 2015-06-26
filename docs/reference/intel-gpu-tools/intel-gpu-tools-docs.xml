@@ -17,6 +17,7 @@
     <title>API Reference</title>
     <xi:include href="xml/drmtest.xml"/>
     <xi:include href="xml/igt_core.xml"/>
+    <xi:include href="xml/igt_stats.xml"/>
     <xi:include href="xml/igt_debugfs.xml"/>
     <xi:include href="xml/igt_draw.xml"/>
     <xi:include href="xml/igt_kms.xml"/>

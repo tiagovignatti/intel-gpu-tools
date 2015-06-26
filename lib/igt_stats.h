@@ -27,10 +27,17 @@
 
 #include <stdint.h>
 
+/**
+ * igt_stats_t:
+ * @values: An array containing the pushed values
+ * @n_values: The number of pushed values
+ */
 typedef struct {
 	uint64_t *values;
-	unsigned int capacity;
 	unsigned int n_values;
+
+	/*< private >*/
+	unsigned int capacity;
 	unsigned int mean_variance_valid : 1;
 	double mean, variance;
 } igt_stats_t;
