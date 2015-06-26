@@ -121,6 +121,11 @@ bool igt_stats_is_population(igt_stats_t *stats)
  * [Bessel's correction](https://en.wikipedia.org/wiki/Bessel%27s_correction)
  * to the variance.
  *
+ * Note that even if we manage to have an unbiased variance by multiplying
+ * a sample variance by the Bessel's correction, n/(n - 1), the standard
+ * deviation derived from the unbiased variance isn't itself unbiased.
+ * Statisticians talk about a "corrected" standard deviation.
+ *
  * When giving #true to this function, the data set in @stats is considered a
  * full population. It's considered a sample of a bigger population otherwise.
  *
