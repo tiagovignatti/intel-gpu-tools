@@ -47,7 +47,7 @@
 /**
  * SECTION:intel_batchbuffer
  * @short_description: Batchbuffer and blitter support
- * @title: intel batchbuffer
+ * @title: Batch Buffer
  * @include: intel_batchbuffer.h
  *
  * This library provides some basic support for batchbuffers and using the

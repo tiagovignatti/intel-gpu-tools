@@ -42,7 +42,7 @@
 /**
  * SECTION:igt_debugfs
  * @short_description: Support code for debugfs features
- * @title: i-g-t debugfs
+ * @title: debugfs
  * @include: igt_debugfs.h
  *
  * This library provides helpers to access debugfs features. On top of some

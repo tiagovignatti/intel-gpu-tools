@@ -49,7 +49,7 @@
 /**
  * SECTION:intel_io
  * @short_description: Register access and sideband I/O libraray
- * @title: intel io
+ * @title: I/O
  * @include: intel_io.h
  *
  * This library provides register I/O helpers in both a basic version and a more

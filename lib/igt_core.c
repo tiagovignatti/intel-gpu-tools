@@ -74,7 +74,7 @@
 /**
  * SECTION:igt_core
  * @short_description: Core i-g-t testing support
- * @title: i-g-t core
+ * @title: Core
  * @include: igt_core.h
  *
  * This library implements the core of the i-g-t test support infrastructure.

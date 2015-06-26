@@ -40,7 +40,7 @@
 /**
  * SECTION:igt_gt
  * @short_description: GT support library
- * @title: i-g-t gt
+ * @title: GT
  * @include: igt_gt.h
  *
  * This library provides various auxiliary helper functions to handle general
