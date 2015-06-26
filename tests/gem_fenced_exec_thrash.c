@@ -145,6 +145,14 @@ static void fill_reloc(struct drm_i915_gem_relocation_entry *reloc, uint32_t han
 	reloc->write_domain = 0;
 }
 
+static int __gem_execbuf(int fd, struct drm_i915_gem_execbuffer2 *eb)
+{
+	int err = 0;
+	if (drmIoctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, eb))
+		err = errno;
+	return err;
+}
+
 #define BUSY_LOAD (1 << 0)
 #define INTERRUPTIBLE (1 << 1)
 
@@ -193,24 +201,11 @@ static void run_test(int fd, int num_fences, int expected_errno,
 	}
 
 	do {
-		int ret;
-
 		if (flags & BUSY_LOAD)
 			emit_dummy_load();
 
-		ret = drmIoctl(fd,
-			       DRM_IOCTL_I915_GEM_EXECBUFFER2,
-			       &execbuf[0]);
-		igt_assert(expected_errno ?
-		       ret < 0 && errno == expected_errno :
-		       ret == 0);
-
-		ret = drmIoctl(fd,
-			       DRM_IOCTL_I915_GEM_EXECBUFFER2,
-			       &execbuf[1]);
-		igt_assert(expected_errno ?
-		       ret < 0 && errno == expected_errno :
-		       ret == 0);
+		igt_assert_eq(__gem_execbuf(fd, &execbuf[0]), expected_errno);
+		igt_assert_eq(__gem_execbuf(fd, &execbuf[1]), expected_errno);
 	} while (--loop);
 
 	if (flags & INTERRUPTIBLE)
