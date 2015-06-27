@@ -365,6 +365,24 @@ void igt_exit(void) __attribute__((noreturn));
 	} while (0)
 
 /**
+ * igt_assert_cmpdouble:
+ * @n1: first value
+ * @cmp: compare operator
+ * @ncmp: negated version of @cmp
+ * @n2: second value
+ *
+ * Like igt_assert_cmpint(), but for doubles;
+ */
+#define igt_assert_cmpdouble(n1, cmp, ncmp, n2) \
+	do { \
+		double __n1 = (n1), __n2 = (n2); \
+		if (__n1 cmp __n2) ; else \
+		__igt_fail_assert(IGT_LOG_DOMAIN, __FILE__, __LINE__, __func__, \
+				  #n1 " " #cmp " " #n2, \
+				  "error: %#lf " #ncmp " %#lf\n", __n1, __n2); \
+	} while (0)
+
+/**
  * igt_assert_eq:
  * @n1: first integer
  * @n2: second integer
@@ -385,6 +403,15 @@ void igt_exit(void) __attribute__((noreturn));
  * Like igt_assert_eq(), but for uint32_t.
  */
 #define igt_assert_eq_u32(n1, n2) igt_assert_cmpuint(n1, ==, !=, n2)
+
+/**
+ * igt_assert_eq_double:
+ * @n1: first double
+ * @n2: second double
+ *
+ * Like igt_assert_eq(), but for doubles.
+ */
+#define igt_assert_eq_double(n1, n2) igt_assert_cmpdouble(n1, ==, !=, n2)
 
 /**
  * igt_assert_neq:
