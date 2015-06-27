@@ -41,6 +41,7 @@ typedef struct {
 	unsigned int capacity;
 	unsigned int is_population  : 1;
 	unsigned int mean_variance_valid : 1;
+	uint64_t min, max;
 	double mean, variance;
 } igt_stats_t;
 
@@ -49,6 +50,8 @@ void igt_stats_fini(igt_stats_t *stats);
 bool igt_stats_is_population(igt_stats_t *stats);
 void igt_stats_set_population(igt_stats_t *stats, bool full_population);
 void igt_stats_push(igt_stats_t *stats, uint64_t value);
+uint64_t igt_stats_get_min(igt_stats_t *stats);
+uint64_t igt_stats_get_max(igt_stats_t *stats);
 double igt_stats_get_mean(igt_stats_t *stats);
 double igt_stats_get_variance(igt_stats_t *stats);
 double igt_stats_get_std_deviation(igt_stats_t *stats);

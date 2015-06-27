@@ -57,6 +57,17 @@ static void test_init(void)
 	igt_assert(igt_stats_is_population(&stats) == false);
 }
 
+static void test_min_max(void)
+{
+	igt_stats_t stats;
+
+	igt_stats_init(&stats, 5);
+	push_fixture_1(&stats);
+
+	igt_assert(igt_stats_get_min(&stats) == 2);
+	igt_assert(igt_stats_get_max(&stats) == 10);
+}
+
 static void test_mean(void)
 {
 	igt_stats_t stats;
@@ -127,6 +138,7 @@ igt_simple_main
 {
 	test_init_zero();
 	test_init();
+	test_min_max();
 	test_mean();
 	test_invalidate_mean();
 	test_std_deviation();

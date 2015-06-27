@@ -28,6 +28,8 @@
 #include "igt_core.h"
 #include "igt_stats.h"
 
+#define U64_MAX         ((uint64_t)~0ULL)
+
 /**
  * SECTION:igt_stats
  * @short_description: Tools for statistical analysis
@@ -78,6 +80,9 @@ void igt_stats_init(igt_stats_t *stats, unsigned int capacity)
 	stats->values = calloc(capacity, sizeof(*stats->values));
 	igt_assert(stats->values);
 	stats->capacity = capacity;
+
+	stats->min = U64_MAX;
+	stats->max = 0;
 }
 
 /**
@@ -151,7 +156,35 @@ void igt_stats_push(igt_stats_t *stats, uint64_t value)
 {
 	igt_assert(stats->n_values < stats->capacity);
 	stats->values[stats->n_values++] = value;
+
 	stats->mean_variance_valid = false;
+
+	if (value < stats->min)
+		stats->min = value;
+	if (value > stats->max)
+		stats->max = value;
+}
+
+/**
+ * igt_stats_get_min:
+ * @stats: An #igt_stats_t instance
+ *
+ * Retrieves the minimal value in @stats
+ */
+uint64_t igt_stats_get_min(igt_stats_t *stats)
+{
+	return stats->min;
+}
+
+/**
+ * igt_stats_get_max:
+ * @stats: An #igt_stats_t instance
+ *
+ * Retrieves the maximum value in @stats
+ */
+uint64_t igt_stats_get_max(igt_stats_t *stats)
+{
+	return stats->max;
 }
 
 /*
