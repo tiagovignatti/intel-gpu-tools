@@ -346,6 +346,15 @@ void igt_exit(void) __attribute__((noreturn));
 				  "error: %d " #ncmp " %d\n", __n1, __n2); \
 	} while (0)
 
+/**
+ * igt_assert_cmpuint:
+ * @n1: first value
+ * @cmp: compare operator
+ * @ncmp: negated version of @cmp
+ * @n2: second value
+ *
+ * Like igt_assert_cmpint(), but for unsigned ints;
+ */
 #define igt_assert_cmpuint(n1, cmp, ncmp, n2) \
 	do { \
 		uint32_t __n1 = (n1), __n2 = (n2); \
