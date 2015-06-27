@@ -25,6 +25,8 @@
 #include "igt_core.h"
 #include "igt_stats.h"
 
+#define ARRAY_SIZE(arr) (sizeof(arr)/sizeof(arr[0]))
+
 static void push_fixture_1(igt_stats_t *stats)
 {
 	igt_stats_push(stats, 2);
@@ -76,6 +78,44 @@ static void test_range(void)
 	push_fixture_1(&stats);
 
 	igt_assert(igt_stats_get_range(&stats) == 8);
+}
+
+/*
+ * Examples taken from: https://en.wikipedia.org/wiki/Quartile
+ * The values are shifted a bit to test we do indeed start by sorting data
+ * set.
+ */
+static void test_quartiles(void)
+{
+	static const uint64_t s1[] =
+		{ 47, 49, 6, 7, 15, 36, 39, 40, 41, 42, 43 };
+	static const uint64_t s2[] = { 40, 41, 7, 15, 36, 39 };
+	igt_stats_t stats;
+	double q1, q2, q3;
+
+	/* s1, odd number of data points */
+	igt_stats_init(&stats, ARRAY_SIZE(s1));
+	igt_stats_push_array(&stats, s1, ARRAY_SIZE(s1));
+
+	igt_stats_get_quartiles(&stats, &q1, &q2, &q3);
+	igt_assert_eq_double(q1, 25.5);
+	igt_assert_eq_double(q2, 40);
+	igt_assert_eq_double(q3, 42.5);
+	igt_assert_eq_double(igt_stats_get_median(&stats), 40);
+
+	igt_stats_fini(&stats);
+
+	/* s1, even number of data points */
+	igt_stats_init(&stats, ARRAY_SIZE(s2));
+	igt_stats_push_array(&stats, s2, ARRAY_SIZE(s2));
+
+	igt_stats_get_quartiles(&stats, &q1, &q2, &q3);
+	igt_assert_eq_double(q1, 15);
+	igt_assert_eq_double(q2, 37.5);
+	igt_assert_eq_double(q3, 40);
+	igt_assert_eq_double(igt_stats_get_median(&stats), 37.5);
+
+	igt_stats_fini(&stats);
 }
 
 static void test_mean(void)
@@ -150,6 +190,7 @@ igt_simple_main
 	test_init();
 	test_min_max();
 	test_range();
+	test_quartiles();
 	test_mean();
 	test_invalidate_mean();
 	test_std_deviation();

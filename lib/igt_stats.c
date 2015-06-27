@@ -23,6 +23,7 @@
  */
 
 #include <math.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "igt_core.h"
@@ -94,6 +95,7 @@ void igt_stats_init(igt_stats_t *stats, unsigned int capacity)
 void igt_stats_fini(igt_stats_t *stats)
 {
 	free(stats->values);
+	free(stats->sorted);
 }
 
 
@@ -158,6 +160,7 @@ void igt_stats_push(igt_stats_t *stats, uint64_t value)
 	stats->values[stats->n_values++] = value;
 
 	stats->mean_variance_valid = false;
+	stats->sorted_array_valid = false;
 
 	if (value < stats->min)
 		stats->min = value;
@@ -218,6 +221,134 @@ uint64_t igt_stats_get_max(igt_stats_t *stats)
 uint64_t igt_stats_get_range(igt_stats_t *stats)
 {
 	return igt_stats_get_max(stats) - igt_stats_get_min(stats);
+}
+
+static int cmp_u64(const void *pa, const void *pb)
+{
+	const uint64_t *a = pa, *b = pb;
+
+	if (*a < *b)
+		return -1;
+	if (*a > *b)
+		return 1;
+	return 0;
+}
+
+static void igt_stats_ensure_sorted_values(igt_stats_t *stats)
+{
+	if (stats->sorted_array_valid)
+		return;
+
+	if (!stats->sorted) {
+		stats->sorted = calloc(stats->capacity, sizeof(*stats->values));
+		igt_assert(stats->sorted);
+	}
+
+	memcpy(stats->sorted, stats->values,
+	       sizeof(*stats->values) * stats->n_values);
+
+	qsort(stats->sorted, stats->n_values, sizeof(*stats->values), cmp_u64);
+
+	stats->sorted_array_valid = true;
+}
+
+/*
+ * We use Tukey's hinge for our quartiles determination.
+ * ends (end, lower_end) are exclusive.
+ */
+static double
+igt_stats_get_median_internal(igt_stats_t *stats,
+			      unsigned int start, unsigned int end,
+			      unsigned int *lower_end /* out */,
+			      unsigned int *upper_start /* out */)
+{
+	unsigned int mid, n_values = end - start;
+	double median;
+
+	igt_stats_ensure_sorted_values(stats);
+
+	/* odd number of data points */
+	if (n_values % 2 == 1) {
+		/* median is the value in the middle (actual datum) */
+		mid = start + n_values / 2;
+		median = stats->sorted[mid];
+
+		/* the two halves contain the median value */
+		if (lower_end)
+			*lower_end = mid + 1;
+		if (upper_start)
+			*upper_start = mid;
+
+	/* even number of data points */
+	} else {
+		/*
+		 * The middle is in between two indexes, 'mid' points at the
+		 * lower one. The median is then the average between those two
+		 * values.
+		 */
+		mid = start + n_values / 2 - 1;
+		median = (stats->sorted[mid] + stats->sorted[mid + 1]) / 2.;
+
+		if (lower_end)
+			*lower_end = mid + 1;
+		if (upper_start)
+			*upper_start = mid + 1;
+	}
+
+	return median;
+}
+
+/**
+ * igt_stats_get_quartiles:
+ * @stats: An #igt_stats_t instance
+ * @q1: (out): lower or 25th quartile
+ * @q2: (out): median or 50th quartile
+ * @q3: (out): upper or 75th quartile
+ *
+ * Retrieves the [quartiles](https://en.wikipedia.org/wiki/Quartile) of the
+ * @stats dataset.
+ */
+void igt_stats_get_quartiles(igt_stats_t *stats,
+			     double *q1, double *q2, double *q3)
+{
+	unsigned int lower_end, upper_start;
+	double ret;
+
+	if (stats->n_values < 3) {
+		if (q1)
+			*q1 = 0.;
+		if (q2)
+			*q2 = 0.;
+		if (q3)
+			*q3 = 0.;
+		return;
+	}
+
+	ret = igt_stats_get_median_internal(stats, 0, stats->n_values,
+					    &lower_end, &upper_start);
+	if (q2)
+		*q2 = ret;
+
+	ret = igt_stats_get_median_internal(stats, 0, lower_end, NULL, NULL);
+	if (q1)
+		*q1 = ret;
+
+	ret = igt_stats_get_median_internal(stats, upper_start, stats->n_values,
+					    NULL, NULL);
+	if (q3)
+		*q3 = ret;
+}
+
+/**
+ * igt_stats_get_median:
+ * @stats: An #igt_stats_t instance
+ *
+ * Retrieves the median of the @stats dataset.
+ */
+double igt_stats_get_median(igt_stats_t *stats)
+{
+	return igt_stats_get_median_internal(stats, 0, stats->n_values,
+					     NULL, NULL);
 }
 
 /*
