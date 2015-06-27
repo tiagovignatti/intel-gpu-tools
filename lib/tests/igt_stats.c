@@ -68,6 +68,16 @@ static void test_min_max(void)
 	igt_assert(igt_stats_get_max(&stats) == 10);
 }
 
+static void test_range(void)
+{
+	igt_stats_t stats;
+
+	igt_stats_init(&stats, 5);
+	push_fixture_1(&stats);
+
+	igt_assert(igt_stats_get_range(&stats) == 8);
+}
+
 static void test_mean(void)
 {
 	igt_stats_t stats;
@@ -139,6 +149,7 @@ igt_simple_main
 	test_init_zero();
 	test_init();
 	test_min_max();
+	test_range();
 	test_mean();
 	test_invalidate_mean();
 	test_std_deviation();

@@ -187,6 +187,22 @@ uint64_t igt_stats_get_max(igt_stats_t *stats)
 	return stats->max;
 }
 
+/**
+ * igt_stats_get_range:
+ * @stats: An #igt_stats_t instance
+ *
+ * Retrieves the range of the values in @stats. The range is the difference
+ * between the highest and the lowest value.
+ *
+ * The range can be a deceiving characterization of the values, because there
+ * can be extreme minimal and maximum values that are just anomalies. Prefer
+ * the interquatile range or an histogram.
+ */
+uint64_t igt_stats_get_range(igt_stats_t *stats)
+{
+	return igt_stats_get_max(stats) - igt_stats_get_min(stats);
+}
+
 /*
  * Algorithm popularised by Knuth in:
  *

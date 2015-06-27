@@ -52,6 +52,7 @@ void igt_stats_set_population(igt_stats_t *stats, bool full_population);
 void igt_stats_push(igt_stats_t *stats, uint64_t value);
 uint64_t igt_stats_get_min(igt_stats_t *stats);
 uint64_t igt_stats_get_max(igt_stats_t *stats);
+uint64_t igt_stats_get_range(igt_stats_t *stats);
 double igt_stats_get_mean(igt_stats_t *stats);
 double igt_stats_get_variance(igt_stats_t *stats);
 double igt_stats_get_std_deviation(igt_stats_t *stats);
