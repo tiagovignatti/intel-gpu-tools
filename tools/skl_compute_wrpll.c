@@ -866,7 +866,7 @@ static void test_run(struct test_ops *test)
 	unsigned p_odd_even[2] = { 0, 0 };
 	igt_stats_t stats;
 
-	igt_stats_init(&stats, ARRAY_SIZE(modes));
+	igt_stats_init_with_size(&stats, ARRAY_SIZE(modes));
 	igt_stats_set_population(&stats, true);
 
 	for (m = 0; m < ARRAY_SIZE(modes); m++) {

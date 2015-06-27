@@ -97,15 +97,32 @@ static void igt_stats_ensure_capacity(igt_stats_t *stats,
 /**
  * igt_stats_init:
  * @stats: An #igt_stats_t instance
+ *
+ * Initializes an #igt_stats_t instance. igt_stats_fini() must be called once
+ * finished with @stats.
+ */
+void igt_stats_init(igt_stats_t *stats)
+{
+	memset(stats, 0, sizeof(*stats));
+
+	igt_stats_ensure_capacity(stats, 128);
+
+	stats->min = U64_MAX;
+	stats->max = 0;
+}
+
+/**
+ * igt_stats_init_with_size:
+ * @stats: An #igt_stats_t instance
  * @capacity: Number of data samples @stats can contain
  *
- * Initializes an #igt_stats_t instance to hold @capacity samples.
- * igt_stats_fini() must be called once finished with @stats.
+ * Like igt_stats_init() but with a size to avoid reallocating the underlying
+ * array(s) when pushing new values. Useful if we have a good idea of the
+ * number of data points we want @stats to hold.
  *
- * We currently assume the user knows how many data samples upfront and there's
- * no need to grow the array of values.
+ * igt_stats_fini() must be called once finished with @stats.
  */
-void igt_stats_init(igt_stats_t *stats, unsigned int capacity)
+void igt_stats_init_with_size(igt_stats_t *stats, unsigned int capacity)
 {
 	memset(stats, 0, sizeof(*stats));
 

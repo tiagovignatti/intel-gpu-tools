@@ -47,7 +47,8 @@ typedef struct {
 	uint64_t *sorted;
 } igt_stats_t;
 
-void igt_stats_init(igt_stats_t *stats, unsigned int capacity);
+void igt_stats_init(igt_stats_t *stats);
+void igt_stats_init_with_size(igt_stats_t *stats, unsigned int capacity);
 void igt_stats_fini(igt_stats_t *stats);
 bool igt_stats_is_population(igt_stats_t *stats);
 void igt_stats_set_population(igt_stats_t *stats, bool full_population);

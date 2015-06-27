@@ -42,7 +42,7 @@ static void test_init_zero(void)
 	igt_stats_t stats;
 
 	stats.mean = 1.;
-	igt_stats_init(&stats, 2);
+	igt_stats_init(&stats);
 	igt_assert_eq_double(stats.mean, 0.);
 }
 
@@ -50,7 +50,7 @@ static void test_init(void)
 {
 	igt_stats_t stats;
 
-	igt_stats_init(&stats, 2);
+	igt_stats_init(&stats);
 
 	/*
 	 * Make sure we default to representing only a sample of a bigger
@@ -63,7 +63,7 @@ static void test_min_max(void)
 {
 	igt_stats_t stats;
 
-	igt_stats_init(&stats, 5);
+	igt_stats_init(&stats);
 	push_fixture_1(&stats);
 
 	igt_assert(igt_stats_get_min(&stats) == 2);
@@ -74,7 +74,7 @@ static void test_range(void)
 {
 	igt_stats_t stats;
 
-	igt_stats_init(&stats, 5);
+	igt_stats_init(&stats);
 	push_fixture_1(&stats);
 
 	igt_assert(igt_stats_get_range(&stats) == 8);
@@ -94,7 +94,7 @@ static void test_quartiles(void)
 	double q1, q2, q3;
 
 	/* s1, odd number of data points */
-	igt_stats_init(&stats, ARRAY_SIZE(s1));
+	igt_stats_init(&stats);
 	igt_stats_push_array(&stats, s1, ARRAY_SIZE(s1));
 
 	igt_stats_get_quartiles(&stats, &q1, &q2, &q3);
@@ -107,7 +107,7 @@ static void test_quartiles(void)
 	igt_stats_fini(&stats);
 
 	/* s1, even number of data points */
-	igt_stats_init(&stats, ARRAY_SIZE(s2));
+	igt_stats_init(&stats);
 	igt_stats_push_array(&stats, s2, ARRAY_SIZE(s2));
 
 	igt_stats_get_quartiles(&stats, &q1, &q2, &q3);
@@ -127,7 +127,7 @@ static void test_invalidate_sorted(void)
 		{ 47, 49, 6, 7, 15, 36, 39, 40, 41, 42};
 	double median1, median2;
 
-	igt_stats_init(&stats, ARRAY_SIZE(s1_truncated) + 1);
+	igt_stats_init(&stats);
 	igt_stats_push_array(&stats, s1_truncated, ARRAY_SIZE(s1_truncated));
 	median1 = igt_stats_get_median(&stats);
 
@@ -143,7 +143,7 @@ static void test_mean(void)
 	igt_stats_t stats;
 	double mean;
 
-	igt_stats_init(&stats, 5);
+	igt_stats_init(&stats);
 	push_fixture_1(&stats);
 
 	mean = igt_stats_get_mean(&stats);
@@ -157,7 +157,7 @@ static void test_invalidate_mean(void)
 	igt_stats_t stats;
 	double mean1, mean2;
 
-	igt_stats_init(&stats, 6);
+	igt_stats_init(&stats);
 	push_fixture_1(&stats);
 
 	mean1 = igt_stats_get_mean(&stats);
@@ -180,7 +180,7 @@ static void test_std_deviation(void)
 	igt_stats_t stats;
 	double mean, variance, std_deviation;
 
-	igt_stats_init(&stats, 8);
+	igt_stats_init(&stats);
 	igt_stats_set_population(&stats, true);
 
 	igt_stats_push(&stats, 2);
