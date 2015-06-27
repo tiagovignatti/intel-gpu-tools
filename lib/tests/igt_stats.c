@@ -120,6 +120,24 @@ static void test_quartiles(void)
 	igt_stats_fini(&stats);
 }
 
+static void test_invalidate_sorted(void)
+{
+	igt_stats_t stats;
+	static const uint64_t s1_truncated[] =
+		{ 47, 49, 6, 7, 15, 36, 39, 40, 41, 42};
+	double median1, median2;
+
+	igt_stats_init(&stats, ARRAY_SIZE(s1_truncated) + 1);
+	igt_stats_push_array(&stats, s1_truncated, ARRAY_SIZE(s1_truncated));
+	median1 = igt_stats_get_median(&stats);
+
+	igt_stats_push(&stats, 43);
+	median2 = igt_stats_get_median(&stats);
+
+	igt_assert_eq_double(median2, 40);
+	igt_assert(median1 != median2);
+}
+
 static void test_mean(void)
 {
 	igt_stats_t stats;
@@ -193,6 +211,7 @@ igt_simple_main
 	test_min_max();
 	test_range();
 	test_quartiles();
+	test_invalidate_sorted();
 	test_mean();
 	test_invalidate_mean();
 	test_std_deviation();
