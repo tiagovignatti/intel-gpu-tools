@@ -63,6 +63,37 @@
  * ]|
  */
 
+static unsigned int get_new_capacity(int need)
+{
+	unsigned int new_capacity;
+
+	/* taken from Python's list */
+	new_capacity = (need >> 6) + (need < 9 ? 3 : 6);
+	new_capacity += need;
+
+	return new_capacity;
+}
+
+static void igt_stats_ensure_capacity(igt_stats_t *stats,
+				      unsigned int n_additional_values)
+{
+	unsigned int new_n_values = stats->n_values + n_additional_values;
+	unsigned int new_capacity;
+
+	if (new_n_values <= stats->capacity)
+		return;
+
+	new_capacity = get_new_capacity(new_n_values);
+	stats->values = realloc(stats->values,
+				sizeof(*stats->values) * new_capacity);
+	igt_assert(stats->values);
+
+	stats->capacity = new_capacity;
+
+	free(stats->sorted);
+	stats->sorted = NULL;
+}
+
 /**
  * igt_stats_init:
  * @stats: An #igt_stats_t instance
@@ -78,9 +109,7 @@ void igt_stats_init(igt_stats_t *stats, unsigned int capacity)
 {
 	memset(stats, 0, sizeof(*stats));
 
-	stats->values = calloc(capacity, sizeof(*stats->values));
-	igt_assert(stats->values);
-	stats->capacity = capacity;
+	igt_stats_ensure_capacity(stats, capacity);
 
 	stats->min = U64_MAX;
 	stats->max = 0;
@@ -156,7 +185,8 @@ void igt_stats_set_population(igt_stats_t *stats, bool full_population)
  */
 void igt_stats_push(igt_stats_t *stats, uint64_t value)
 {
-	igt_assert(stats->n_values < stats->capacity);
+	igt_stats_ensure_capacity(stats, 1);
+
 	stats->values[stats->n_values++] = value;
 
 	stats->mean_variance_valid = false;
@@ -180,6 +210,8 @@ void igt_stats_push_array(igt_stats_t *stats,
 			  const uint64_t *values, unsigned int n_values)
 {
 	unsigned int i;
+
+	igt_stats_ensure_capacity(stats, n_values);
 
 	for (i = 0; i < n_values; i++)
 		igt_stats_push(stats, values[i]);
@@ -240,6 +272,12 @@ static void igt_stats_ensure_sorted_values(igt_stats_t *stats)
 		return;
 
 	if (!stats->sorted) {
+		/*
+		 * igt_stats_ensure_capacity() will free ->sorted when the
+		 * capacity increases, which also correspond to an invalidation
+		 * of the sorted array. We'll then reallocate it here on
+		 * demand.
+		 */
 		stats->sorted = calloc(stats->capacity, sizeof(*stats->values));
 		igt_assert(stats->sorted);
 	}
