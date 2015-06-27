@@ -204,6 +204,29 @@ static void test_std_deviation(void)
 	igt_stats_fini(&stats);
 }
 
+static void test_reallocation(void)
+{
+	igt_stats_t stats;
+	unsigned int i;
+
+	igt_stats_init_with_size(&stats, 1);
+
+	for (i = 0; i < 101; i++) {
+		igt_stats_push(&stats, i);
+		/* also triggers ->sorted reallocations */
+		if (i > 10)
+			igt_stats_get_median(&stats);
+	}
+
+	igt_assert_eq(stats.n_values, 101);
+	for (i = 0; i < 101; i++)
+		igt_assert_eq(stats.values[i], i);
+	igt_assert_eq_double(igt_stats_get_mean(&stats), 50.0);
+	igt_assert_eq_double(igt_stats_get_median(&stats), 50.0);
+
+	igt_stats_fini(&stats);
+}
+
 igt_simple_main
 {
 	test_init_zero();
@@ -215,4 +238,5 @@ igt_simple_main
 	test_mean();
 	test_invalidate_mean();
 	test_std_deviation();
+	test_reallocation();
 }
