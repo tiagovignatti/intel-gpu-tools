@@ -48,7 +48,7 @@
 
 /**
  * SECTION:intel_io
- * @short_description: Register access and sideband I/O libraray
+ * @short_description: Register access and sideband I/O library
  * @title: I/O
  * @include: intel_io.h
  *
