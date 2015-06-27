@@ -216,7 +216,7 @@ uint64_t igt_stats_get_max(igt_stats_t *stats)
  *
  * The range can be a deceiving characterization of the values, because there
  * can be extreme minimal and maximum values that are just anomalies. Prefer
- * the interquatile range or an histogram.
+ * the interquatile range (see igt_stats_get_iqr()) or an histogram.
  */
 uint64_t igt_stats_get_range(igt_stats_t *stats)
 {
@@ -337,6 +337,22 @@ void igt_stats_get_quartiles(igt_stats_t *stats,
 					    NULL, NULL);
 	if (q3)
 		*q3 = ret;
+}
+
+/**
+ * igt_stats_get_iqr:
+ * @stats: An #igt_stats_t instance
+ *
+ * Retrieves the
+ * [interquartile range](https://en.wikipedia.org/wiki/Interquartile_range)
+ * (IQR) of the @stats dataset.
+ */
+double igt_stats_get_iqr(igt_stats_t *stats)
+{
+	double q1, q3;
+
+	igt_stats_get_quartiles(stats, &q1, NULL, &q3);
+	return (q3 - q1);
 }
 
 /**

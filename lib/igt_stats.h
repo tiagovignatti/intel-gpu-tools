@@ -59,6 +59,7 @@ uint64_t igt_stats_get_max(igt_stats_t *stats);
 uint64_t igt_stats_get_range(igt_stats_t *stats);
 void igt_stats_get_quartiles(igt_stats_t *stats,
 			     double *q1, double *q2, double *q3);
+double igt_stats_get_iqr(igt_stats_t *stats);
 double igt_stats_get_mean(igt_stats_t *stats);
 double igt_stats_get_median(igt_stats_t *stats);
 double igt_stats_get_variance(igt_stats_t *stats);

@@ -102,6 +102,7 @@ static void test_quartiles(void)
 	igt_assert_eq_double(q2, 40);
 	igt_assert_eq_double(q3, 42.5);
 	igt_assert_eq_double(igt_stats_get_median(&stats), 40);
+	igt_assert_eq_double(igt_stats_get_iqr(&stats), 42.5 - 25.5);
 
 	igt_stats_fini(&stats);
 
@@ -114,6 +115,7 @@ static void test_quartiles(void)
 	igt_assert_eq_double(q2, 37.5);
 	igt_assert_eq_double(q3, 40);
 	igt_assert_eq_double(igt_stats_get_median(&stats), 37.5);
+	igt_assert_eq_double(igt_stats_get_iqr(&stats), 40 - 15);
 
 	igt_stats_fini(&stats);
 }
