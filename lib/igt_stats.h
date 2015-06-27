@@ -50,6 +50,8 @@ void igt_stats_fini(igt_stats_t *stats);
 bool igt_stats_is_population(igt_stats_t *stats);
 void igt_stats_set_population(igt_stats_t *stats, bool full_population);
 void igt_stats_push(igt_stats_t *stats, uint64_t value);
+void igt_stats_push_array(igt_stats_t *stats,
+			  const uint64_t *values, unsigned int n_values);
 uint64_t igt_stats_get_min(igt_stats_t *stats);
 uint64_t igt_stats_get_max(igt_stats_t *stats);
 uint64_t igt_stats_get_range(igt_stats_t *stats);

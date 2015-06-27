@@ -166,6 +166,23 @@ void igt_stats_push(igt_stats_t *stats, uint64_t value)
 }
 
 /**
+ * igt_stats_push_array:
+ * @stats: An #igt_stats_t instance
+ * @values: (array length=n_values): A pointer to an array of data points
+ * @n_values: The number of data points to add
+ *
+ * Adds an array of values to the @stats dataset.
+ */
+void igt_stats_push_array(igt_stats_t *stats,
+			  const uint64_t *values, unsigned int n_values)
+{
+	unsigned int i;
+
+	for (i = 0; i < n_values; i++)
+		igt_stats_push(stats, values[i]);
+}
+
+/**
  * igt_stats_get_min:
  * @stats: An #igt_stats_t instance
  *
