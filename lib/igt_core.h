@@ -367,6 +367,14 @@ void igt_exit(void) __attribute__((noreturn));
  * of simply printing the stringified expression.
  */
 #define igt_assert_eq(n1, n2) igt_assert_cmpint(n1, ==, !=, n2)
+
+/**
+ * igt_assert_eq_u32:
+ * @n1: first integer
+ * @n2: second integer
+ *
+ * Like igt_assert_eq(), but for uint32_t.
+ */
 #define igt_assert_eq_u32(n1, n2) igt_assert_cmpuint(n1, ==, !=, n2)
 
 /**
