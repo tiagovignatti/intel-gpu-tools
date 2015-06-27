@@ -41,7 +41,7 @@ static void test_init_zero(void)
 
 	stats.mean = 1.;
 	igt_stats_init(&stats, 2);
-	igt_assert(stats.mean == 0.);
+	igt_assert_eq_double(stats.mean, 0.);
 }
 
 static void test_init(void)
@@ -87,7 +87,7 @@ static void test_mean(void)
 	push_fixture_1(&stats);
 
 	mean = igt_stats_get_mean(&stats);
-	igt_assert(mean == (2 + 4 + 6 + 8 + 10) / 5.);
+	igt_assert_eq_double(mean, (2 + 4 + 6 + 8 + 10) / 5.);
 
 	igt_stats_fini(&stats);
 }
@@ -101,7 +101,7 @@ static void test_invalidate_mean(void)
 	push_fixture_1(&stats);
 
 	mean1 = igt_stats_get_mean(&stats);
-	igt_assert(mean1 == (2 + 4 + 6 + 8 + 10) / 5.);
+	igt_assert_eq_double(mean1, (2 + 4 + 6 + 8 + 10) / 5.);
 
 	igt_stats_push(&stats, 100);
 
@@ -133,13 +133,13 @@ static void test_std_deviation(void)
 	igt_stats_push(&stats, 9);
 
 	mean = igt_stats_get_mean(&stats);
-	igt_assert(mean == (2 + 3 * 4 + 2 * 5 + 7 + 9) / 8.);
+	igt_assert_eq_double(mean, (2 + 3 * 4 + 2 * 5 + 7 + 9) / 8.);
 
 	variance = igt_stats_get_variance(&stats);
-	igt_assert(variance == 4);
+	igt_assert_eq_double(variance, 4);
 
 	std_deviation = igt_stats_get_std_deviation(&stats);
-	igt_assert(std_deviation == 2);
+	igt_assert_eq_double(std_deviation, 2);
 
 	igt_stats_fini(&stats);
 }
