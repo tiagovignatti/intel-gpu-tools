@@ -25,6 +25,15 @@
 #include "igt_core.h"
 #include "igt_stats.h"
 
+static void push_fixture_1(igt_stats_t *stats)
+{
+	igt_stats_push(stats, 2);
+	igt_stats_push(stats, 4);
+	igt_stats_push(stats, 6);
+	igt_stats_push(stats, 8);
+	igt_stats_push(stats, 10);
+}
+
 /* Make sure we zero igt_stats_t fields at init() time */
 static void test_init_zero(void)
 {
@@ -54,15 +63,9 @@ static void test_mean(void)
 	double mean;
 
 	igt_stats_init(&stats, 5);
-
-	igt_stats_push(&stats, 2);
-	igt_stats_push(&stats, 4);
-	igt_stats_push(&stats, 6);
-	igt_stats_push(&stats, 8);
-	igt_stats_push(&stats, 10);
+	push_fixture_1(&stats);
 
 	mean = igt_stats_get_mean(&stats);
-
 	igt_assert(mean == (2 + 4 + 6 + 8 + 10) / 5.);
 
 	igt_stats_fini(&stats);
@@ -74,12 +77,7 @@ static void test_invalidate_mean(void)
 	double mean1, mean2;
 
 	igt_stats_init(&stats, 6);
-
-	igt_stats_push(&stats, 2);
-	igt_stats_push(&stats, 4);
-	igt_stats_push(&stats, 6);
-	igt_stats_push(&stats, 8);
-	igt_stats_push(&stats, 10);
+	push_fixture_1(&stats);
 
 	mean1 = igt_stats_get_mean(&stats);
 	igt_assert(mean1 == (2 + 4 + 6 + 8 + 10) / 5.);
