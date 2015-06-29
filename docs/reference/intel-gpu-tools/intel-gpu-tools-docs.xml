@@ -30,6 +30,8 @@
     <xi:include href="xml/intel_io.xml"/>
   </chapter>
   <xi:include href="xml/igt_test_programs.xml"/>
+
+  <xi:include href="xml/annotation-glossary.xml"><xi:fallback /></xi:include>
   <index id="api-index-full">
     <title>API Index</title>
     <xi:include href="xml/api-index-full.xml"><xi:fallback /></xi:include>
