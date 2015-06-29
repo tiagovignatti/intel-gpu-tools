@@ -827,7 +827,7 @@ static void igt_save_module_param(const char *name, const char *file_path)
  *
  * This function sets the desired value for the given i915.ko parameter. It also
  * takes care of saving and restoring the values that were already set before
- * the test was run by calling igt_save_module_param().
+ * the test was run.
  *
  * Please consider using igt_set_module_param_int() for the integer and bool
  * parameters.
