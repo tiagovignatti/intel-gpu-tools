@@ -51,6 +51,7 @@
  * @short_description: Register access and sideband I/O library
  * @title: I/O
  * @include: intel_io.h
+ * @section_id: intel-gpu-tools-IO
  *
  * This library provides register I/O helpers in both a basic version and a more
  * fancy version which also handles forcewake and can optionally check registers
