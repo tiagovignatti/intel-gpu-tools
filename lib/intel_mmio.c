@@ -153,7 +153,7 @@ release_forcewake_lock(int fd)
 
 /**
  * intel_register_access_init:
- * @pci_dev: intel gracphis pci device
+ * @pci_dev: intel graphics pci device
  * @safe: use safe register access tables
  *
  * This initializes the new register access library, which supports forcewake

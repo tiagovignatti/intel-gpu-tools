@@ -38,8 +38,8 @@
             <term><option>--debug[=log-domain]</option></term>
             <listitem><para>
                 print extra debugging information when running tests and
-                optionaly only show the messages from the specified log domain
-                (use "application" to specifiy the default application domain)
+                optionally only show the messages from the specified log domain
+                (use "application" to specify the default application domain)
             </para></listitem>
           </varlistentry>
 
@@ -74,7 +74,7 @@
             <row>
               <entry>#IGT_EXIT_SUCCESS</entry>
               <entry>0</entry>
-              <entry>The test was succesful</entry>
+              <entry>The test was successful</entry>
             </row>
             <row>
               <entry>#IGT_EXIT_SKIP</entry>
@@ -191,7 +191,7 @@
   </refentry>
 
   <glossary>
-    <title>Gloassary</title>
+    <title>Glossary</title>
 
     <para>The following terms are commonly used in test names to describe
       various features of the test and can be used to filter and select
@@ -249,7 +249,7 @@
     <glossentry id="rte">
       <glossterm>rte</glossterm>
       <glossdef>
-        <para>Runtime enviroment checks.</para>
+        <para>Runtime environment checks.</para>
       </glossdef>
     </glossentry>
 

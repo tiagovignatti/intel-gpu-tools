@@ -249,7 +249,7 @@ static void igt_interactive_info(const char *format, ...)
  * @total: total amount of work
  *
  * This function draws a progress indicator, which is useful for running
- * long-winded tests manually on the console. To avoid spamming logfiles in
+ * long-winded tests manually on the console. To avoid spamming log files in
  * automated runs the progress indicator is suppressed when not running on a
  * terminal.
  */
@@ -469,7 +469,7 @@ void igt_debug_wait_for_keypress(const char *var)
  * When not connected to a terminal interactive_debug is ignored
  * and execution immediately continues. For this reason by default this function
  * returns true. It returns false only when N/n is pressed indicating the
- * user ins't seeing what was expected.
+ * user isn't seeing what was expected.
  *
  * Force test fail when N/n is pressed.
  */

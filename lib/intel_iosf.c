@@ -66,7 +66,7 @@ static int vlv_sideband_rw(uint32_t port, uint8_t opcode, uint32_t addr,
 /**
  * intel_punit_read:
  * @addr: register offset
- * @val: pointer to starge for the read result
+ * @val: pointer to store the read result
  *
  * 32-bit read of the register at @offset through the P-Unit sideband port.
  *

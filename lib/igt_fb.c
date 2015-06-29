@@ -41,7 +41,7 @@
  *
  * This library contains helper functions for handling kms framebuffer objects
  * using #igt_fb structures to track all the metadata.  igt_create_fb() creates
- * a basic framebufffer and igt_remove_fb() cleans everything up again.
+ * a basic framebuffer and igt_remove_fb() cleans everything up again.
  *
  * It also supports drawing using the cairo library and provides some simplified
  * helper functions to easily draw test patterns. The main function to create a
@@ -130,7 +130,7 @@ static int create_bo_for_fb(int fd, int width, int height, int bpp,
  * @w: width of the fill rectangle
  * @h: height of the fill rectangle
  * @r: red value to use as fill color
- * @g: gree value to use as fill color
+ * @g: green value to use as fill color
  * @b: blue value to use as fill color
  *
  * This functions draws a solid rectangle with the given color using the drawing
@@ -152,7 +152,7 @@ void igt_paint_color(cairo_t *cr, int x, int y, int w, int h,
  * @w: width of the fill rectangle
  * @h: height of the fill rectangle
  * @r: red value to use as fill color
- * @g: gree value to use as fill color
+ * @g: green value to use as fill color
  * @b: blue value to use as fill color
  * @a: alpha value to use as fill color
  *
@@ -175,7 +175,7 @@ void igt_paint_color_alpha(cairo_t *cr, int x, int y, int w, int h,
  * @w: width of the fill rectangle
  * @h: height of the fill rectangle
  * @r: red value to use as fill color
- * @g: gree value to use as fill color
+ * @g: green value to use as fill color
  * @b: blue value to use as fill color
  *
  * This functions draws a gradient into the rectangle which fades in from black

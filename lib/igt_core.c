@@ -690,7 +690,7 @@ out:
  * @extra_opt_handler: handler for the additional options
  * @handler_data: user data given to @extra_opt_handler when invoked
  *
- * This function handles the subtest related cmdline options and allows an
+ * This function handles the subtest related command line options and allows an
  * arbitrary set of additional options. This is useful for tests which have
  * additional knobs to tune when run manually like the number of rounds execute
  * or the size of the allocated buffer objects.
@@ -1632,7 +1632,7 @@ void igt_skip_on_simulation(void)
  * This is the generic structured logging helper function. i-g-t testcase should
  * output all normal message to stdout. Warning level message should be printed
  * to stderr and the test runner should treat this as an intermediate result
- * between SUCESS and FAILURE.
+ * between SUCCESS and FAILURE.
  *
  * The log level can be set through the IGT_LOG_LEVEL environment variable with
  * values "debug", "info", "warn", "critical" and "none". By default verbose

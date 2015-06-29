@@ -173,7 +173,7 @@ int intel_gen(uint32_t devid)
  * intel_check_pch:
  *
  * Detects the PCH chipset type of the running systems and fills in the results
- * into the global #intel_pch varaible.
+ * into the global #intel_pch variable.
  */
 void
 intel_check_pch(void)

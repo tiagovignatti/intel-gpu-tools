@@ -196,7 +196,7 @@ intel_get_total_swap_mb(void)
  * intel_require_memory:
  * @count: number of surfaces that will be created
  * @size: the size in bytes of each surface
- * @mode: a bitfield declaring whether the test will be run in RAM or in SWAP
+ * @mode: a bit field declaring whether the test will be run in RAM or in SWAP
  *
  * Computes the total amount of memory required to allocate @count surfaces,
  * each of @size bytes, and includes an estimate for kernel overhead. It then
@@ -210,7 +210,7 @@ intel_get_total_swap_mb(void)
  * there is not enough RAM + SWAP!
  *
  * If there is not enough RAM this function calls igt_skip with an appropriate
- * message. It only ever returns if the requirement is fullfilled. This function
+ * message. It only ever returns if the requirement is fulfilled. This function
  * also causes the test to be skipped automatically on simulation under the
  * assumption that any test that needs to check for memory requirements is a
  * thrashing test unsuitable for slow simulated systems.

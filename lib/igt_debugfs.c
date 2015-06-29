@@ -71,11 +71,11 @@
  *
  * This covers the miscellaneous debugfs interface wrappers:
  *
- * - drm/i915 supports interfaces to evict certain clases of gem buffer objects,
- *   see igt_drop_caches_set().
+ * - drm/i915 supports interfaces to evict certain classes of gem buffer
+ *   objects, see igt_drop_caches_set().
  *
  * - drm/i915 supports an interface to disable prefaulting, useful to test
- *   slowpaths in ioctls. See igt_disable_prefault().
+ *   slow paths in ioctls. See igt_disable_prefault().
  */
 
 /*
@@ -143,7 +143,7 @@ static igt_debugfs_t *__igt_debugfs_singleton(void)
  * @mode: mode bits as used by open()
  *
  * This opens a debugfs file as a Unix file descriptor. The filename should be
- * relative to the drm device's root, i.e without "drm/<minor>".
+ * relative to the drm device's root, i.e. without "drm/<minor>".
  *
  * Returns:
  * The Unix file descriptor for the debugfs file or -1 if that didn't work out.
@@ -166,7 +166,7 @@ int igt_debugfs_open(const char *filename, int mode)
  * @mode: mode string as used by fopen()
  *
  * This opens a debugfs file as a libc FILE. The filename should be
- * relative to the drm device's root, i.e without "drm/<minor>".
+ * relative to the drm device's root, i.e. without "drm/<minor>".
  *
  * Returns:
  * The libc FILE pointer for the debugfs file or NULL if that didn't work out.

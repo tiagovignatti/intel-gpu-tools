@@ -100,8 +100,8 @@ void __igt_fixture_end(void) __attribute__((noreturn));
  * Annotate global test fixture code
  *
  * Testcase with subtests often need to set up a bunch of global state as the
- * common test fixture. To avoid such code interferring with the subtest
- * enumeration (e.g. when enumerating on systemes without an intel gpu) such
+ * common test fixture. To avoid such code interfering with the subtest
+ * enumeration (e.g. when enumerating on systems without an intel gpu) such
  * blocks should be annotated with igt_fixture.
  */
 #define igt_fixture for (int igt_tokencat(__tmpint,__LINE__) = 0; \
@@ -131,7 +131,7 @@ int igt_subtest_init_parse_opts(int *argc, char **argv,
  * @argv: argv from the test's main()
  *
  * This initializes the for tests with subtests without the need for additional
- * cmdline options. It is just a simplified version of
+ * command line options. It is just a simplified version of
  * igt_subtest_init_parse_opts().
  *
  * If there's not a reason to the contrary it's less error prone to just use an
@@ -199,7 +199,7 @@ bool igt_only_list_subtests(void);
  *
  * This is a magic control flow block used instead of a main() function for
  * tests with subtests. Open-coding the main() function is only recommended if
- * the test needs to parse additional cmdline arguments of its own.
+ * the test needs to parse additional command line arguments of its own.
  */
 #define igt_main \
 	static void igt_tokencat(__real_main, __LINE__)(void); \
@@ -239,7 +239,7 @@ void igt_simple_init_parse_opts(int *argc, char **argv,
  *
  * This is a magic control flow block used instead of a main() function for
  * simple tests. Open-coding the main() function is only recommended if
- * the test needs to parse additional cmdline arguments of its own.
+ * the test needs to parse additional command line arguments of its own.
  */
 #define igt_simple_main \
 	static void igt_tokencat(__real_main, __LINE__)(void); \
@@ -353,7 +353,7 @@ void igt_exit(void) __attribute__((noreturn));
  * @ncmp: negated version of @cmp
  * @n2: second value
  *
- * Like igt_assert_cmpint(), but for unsigned ints;
+ * Like igt_assert_cmpint(), but for unsigned ints.
  */
 #define igt_assert_cmpuint(n1, cmp, ncmp, n2) \
 	do { \
@@ -371,7 +371,7 @@ void igt_exit(void) __attribute__((noreturn));
  * @ncmp: negated version of @cmp
  * @n2: second value
  *
- * Like igt_assert_cmpint(), but for doubles;
+ * Like igt_assert_cmpint(), but for doubles.
  */
 #define igt_assert_cmpdouble(n1, cmp, ncmp, n2) \
 	do { \

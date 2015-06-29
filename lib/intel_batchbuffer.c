@@ -439,7 +439,7 @@ intel_copy_bo(struct intel_batchbuffer *batch,
  * igt_buf_width:
  * @buf: the i-g-t buffer object
  *
- * Computes the widht in 32-bit pixels of the given buffer.
+ * Computes the width in 32-bit pixels of the given buffer.
  *
  * Returns:
  * The width of the buffer.
@@ -674,7 +674,7 @@ void igt_blitter_fast_copy__raw(int fd,
  * @dst_x: destination pixel x-coordination
  * @dst_y: destination pixel y-coordination
  *
- * Copy @src into @dst using the gen9 fast copy blitter comamnd.
+ * Copy @src into @dst using the gen9 fast copy blitter command.
  *
  * The source and destination surfaces cannot overlap.
  */

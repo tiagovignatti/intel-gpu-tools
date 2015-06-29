@@ -1719,12 +1719,12 @@ drmModeModeInfo *igt_output_get_mode(igt_output_t *output)
 
 /**
  * igt_output_override_mode:
- * @output: Output of which the mode will be overriden
+ * @output: Output of which the mode will be overridden
  * @mode: New mode
  *
  * Overrides the output's mode with @mode, so that it is used instead of the
  * mode obtained with get connectors. Note that the mode is used without
- * checking if the output supports it, so this might lead to unexpect results.
+ * checking if the output supports it, so this might lead to unexpected results.
  */
 void igt_output_override_mode(igt_output_t *output, drmModeModeInfo *mode)
 {
@@ -1804,7 +1804,7 @@ void igt_plane_set_position(igt_plane_t *plane, int x, int y)
  * @h: height
  *
  * This function sets width and height for requested plane.
- * New size will be commited at plane commit time via
+ * New size will be committed at plane commit time via
  * drmModeSetPlane().
  */
 void igt_plane_set_size(igt_plane_t *plane, int w, int h)
