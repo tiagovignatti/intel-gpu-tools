@@ -17,6 +17,7 @@ bin_PROGRAMS = 				\
 	intel_forcewaked		\
 	intel_gpu_frequency		\
 	intel_framebuffer_dump 		\
+	intel_firmware_decode		\
 	intel_gpu_time 			\
 	intel_gpu_top 			\
 	intel_gtt 			\
