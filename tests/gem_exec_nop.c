@@ -179,6 +179,8 @@ static void set_min_freq(void)
 	int min = sysfs_read("gt_RPn_freq_mhz");
 	igt_require(min > 0);
 	igt_debug("Setting min/max to %dMHz\n", min);
+	(void)sysfs_write("gt_idle_freq_mhz", min);
+	(void)sysfs_write("gt_boost_freq_mhz", min);
 	igt_require(sysfs_write("gt_min_freq_mhz", min) == 0 &&
 		    sysfs_write("gt_max_freq_mhz", min) == 0);
 }
@@ -188,6 +190,8 @@ static void set_max_freq(void)
 	int max = sysfs_read("gt_RP0_freq_mhz");
 	igt_require(max > 0);
 	igt_debug("Setting min/max to %dMHz\n", max);
+	(void)sysfs_write("gt_idle_freq_mhz", max);
+	(void)sysfs_write("gt_boost_freq_mhz", max);
 	igt_require(sysfs_write("gt_max_freq_mhz", max) == 0 &&
 		    sysfs_write("gt_min_freq_mhz", max) == 0);
 }
@@ -203,7 +207,7 @@ igt_main
 		{ "-max", set_max_freq },
 		{ NULL, NULL },
 	}, *r;
-	int min = -1, max = -1;
+	int min = -1, max = -1, boost = -1, idle = -1;
 	uint32_t handle = 0;
 
 	igt_fixture {
@@ -211,6 +215,8 @@ igt_main
 
 		min = sysfs_read("gt_min_freq_mhz");
 		max = sysfs_read("gt_max_freq_mhz");
+		boost = sysfs_read("gt_boost_freq_mhz");
+		idle = sysfs_read("gt_idle_freq_mhz");
 
 		handle = gem_create(device, 4096);
 		gem_write(device, handle, 0, batch, sizeof(batch));
@@ -239,6 +245,10 @@ igt_main
 			sysfs_write("gt_min_freq_mhz", min);
 		if (max > 0)
 			sysfs_write("gt_max_freq_mhz", max);
+		if (boost > 0)
+			sysfs_write("gt_boost_freq_mhz", boost);
+		if (idle > 0)
+			sysfs_write("gt_idle_freq_mhz", idle);
 		close(device);
 	}
 }
