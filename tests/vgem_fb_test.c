@@ -382,7 +382,7 @@ void draw(struct context *ctx)
 	}
 }
 
-static int opt_handler(int opt, int opt_index)
+static int opt_handler(int opt, int opt_index, void *data)
 {
   switch (opt) {
 		case 'd':
@@ -405,7 +405,7 @@ int main(int argc, char **argv)
 	int drm_prime_fd;
 	size_t i;
 
-	igt_simple_init_parse_opts(&argc, argv, "d:p", NULL, NULL, opt_handler);
+	igt_simple_init_parse_opts(&argc, argv, "d:p", NULL, NULL, opt_handler, NULL);
 	igt_skip_on_simulation();
 
 	do_fixes();
