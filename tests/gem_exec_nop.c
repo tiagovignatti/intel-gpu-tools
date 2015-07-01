@@ -36,10 +36,12 @@
 #include <sys/stat.h>
 #include <sys/ioctl.h>
 #include <sys/time.h>
+#include <time.h>
 #include "drm.h"
 #include "ioctl_wrappers.h"
 #include "drmtest.h"
 #include "intel_io.h"
+#include "igt_stats.h"
 
 #define LOCAL_I915_EXEC_NO_RELOC (1<<11)
 #define LOCAL_I915_EXEC_HANDLE_LUT (1<<12)
@@ -100,22 +102,11 @@ static int sysfs_write(const char *name, int value)
 	return 0;
 }
 
-static int dcmp(const void *A, const void *B)
+static uint64_t elapsed(const struct timespec *start,
+		const struct timespec *end,
+		int loop)
 {
-	double a = *(double *)A, b = *(double *)B;
-	if (a < b)
-		return -1;
-	else if (a > b)
-		return 1;
-	else
-		return 0;
-}
-
-static double elapsed(const struct timeval *start,
-		      const struct timeval *end,
-		      int loop)
-{
-	return (1e6*(end->tv_sec - start->tv_sec) + (end->tv_usec - start->tv_usec))/loop;
+	return (1000000000ULL*(end->tv_sec - start->tv_sec) + (end->tv_nsec - start->tv_nsec))/loop;
 }
 
 static void loop(int fd, uint32_t handle, unsigned ring_id, const char *ring_name)
@@ -145,30 +136,29 @@ static void loop(int fd, uint32_t handle, unsigned ring_id, const char *ring_nam
 	gem_sync(fd, handle);
 
 	for (count = 1; count <= SLOW_QUICK(1<<17, 1<<4); count <<= 1) {
-		const int reps = 9;
-		double t[reps], sum;
+		const int reps = 13;
+		igt_stats_t stats;
 		int n;
 
+		igt_stats_init_with_size(&stats, reps);
+
 		for (n = 0; n < reps; n++) {
-			struct timeval start, end;
+			struct timespec start, end;
 			int loops = count;
-			gettimeofday(&start, NULL);
+			sleep(1); /* wait for the hw to go back to sleep */
+			clock_gettime(CLOCK_MONOTONIC, &start);
 			while (loops--)
 				do_ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf);
 			gem_sync(fd, handle);
-			gettimeofday(&end, NULL);
-			t[n] = elapsed(&start, &end, count);
+			clock_gettime(CLOCK_MONOTONIC, &end);
+			igt_stats_push(&stats, elapsed(&start, &end, count));
 		}
 
-		qsort(t, reps, sizeof(double), dcmp);
-		sum = 0;
-		for (n = 2; n < reps-2; n++)
-			sum += t[n];
-		sum /= reps - 4;
-
 		igt_info("Time to exec x %d:		%7.3fµs (ring=%s)\n",
-				count, sum, ring_name);
+			 count, igt_stats_get_trimean(&stats)/1000, ring_name);
 		fflush(stdout);
+
+		igt_stats_fini(&stats);
 	}
 }
 
