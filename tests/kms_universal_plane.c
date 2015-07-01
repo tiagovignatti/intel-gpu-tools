@@ -29,10 +29,12 @@
 #include "drmtest.h"
 #include "igt_debugfs.h"
 #include "igt_kms.h"
+#include "intel_chipset.h"
 
 typedef struct {
 	int drm_fd;
 	igt_display_t display;
+	int gen;
 } data_t;
 
 typedef struct {
@@ -355,6 +357,7 @@ sanity_test_pipe(data_t *data, enum pipe pipe, igt_output_t *output)
 	igt_plane_t *primary;
 	drmModeModeInfo *mode;
 	int i;
+	int expect;
 
 	igt_skip_on(pipe >= data->display.n_pipes);
 
@@ -371,18 +374,21 @@ sanity_test_pipe(data_t *data, enum pipe pipe, igt_output_t *output)
 
 	/*
 	 * Try to use universal plane API to set primary plane that
-	 * doesn't cover CRTC (should fail).
+	 * doesn't cover CRTC (should fail on pre-gen9 and succeed on
+	 * gen9+).
 	 */
 	igt_plane_set_fb(primary, &test.undersized_fb);
-	igt_assert(igt_display_try_commit2(&data->display, COMMIT_UNIVERSAL) == -EINVAL);
+	expect = (data->gen < 9) ? -EINVAL : 0;
+	igt_assert(igt_display_try_commit2(&data->display, COMMIT_UNIVERSAL) == expect);
 
 	/* Same as above, but different plane positioning. */
 	igt_plane_set_position(primary, 100, 100);
-	igt_assert(igt_display_try_commit2(&data->display, COMMIT_UNIVERSAL) == -EINVAL);
+	igt_assert(igt_display_try_commit2(&data->display, COMMIT_UNIVERSAL) == expect);
 
 	igt_plane_set_position(primary, 0, 0);
 
-	/* Try to use universal plane API to scale down (should fail) */
+	/* Try to use universal plane API to scale down (should fail on pre-gen9) */
+	expect = (data->gen < 9) ? -ERANGE : 0;
 	igt_assert(drmModeSetPlane(data->drm_fd, primary->drm_plane->plane_id,
 				   output->config.crtc->crtc_id,
 				   test.oversized_fb.fb_id, 0,
@@ -391,9 +397,9 @@ sanity_test_pipe(data_t *data, enum pipe pipe, igt_output_t *output)
 				   mode->vdisplay + 100,
 				   IGT_FIXED(0,0), IGT_FIXED(0,0),
 				   IGT_FIXED(mode->hdisplay,0),
-				   IGT_FIXED(mode->vdisplay,0)) == -ERANGE);
+				   IGT_FIXED(mode->vdisplay,0)) == expect);
 
-	/* Try to use universal plane API to scale up (should fail) */
+	/* Try to use universal plane API to scale up (should fail on pre-gen9) */
 	igt_assert(drmModeSetPlane(data->drm_fd, primary->drm_plane->plane_id,
 				   output->config.crtc->crtc_id,
 				   test.oversized_fb.fb_id, 0,
@@ -402,7 +408,7 @@ sanity_test_pipe(data_t *data, enum pipe pipe, igt_output_t *output)
 				   mode->vdisplay,
 				   IGT_FIXED(0,0), IGT_FIXED(0,0),
 				   IGT_FIXED(mode->hdisplay - 100,0),
-				   IGT_FIXED(mode->vdisplay - 100,0)) == -ERANGE);
+				   IGT_FIXED(mode->vdisplay - 100,0)) == expect);
 
 	/* Find other crtcs and try to program our primary plane on them */
 	for (i = 0; i < test.moderes->count_crtcs; i++)
@@ -667,6 +673,7 @@ igt_main
 
 	igt_fixture {
 		data.drm_fd = drm_open_any_master();
+		data.gen = intel_gen(intel_get_drm_devid(data.drm_fd));
 
 		kmstest_set_vt_graphics_mode();
 
