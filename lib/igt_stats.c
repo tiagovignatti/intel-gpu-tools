@@ -528,3 +528,19 @@ double igt_stats_get_iqm(igt_stats_t *stats)
 
 	return mean;
 }
+
+/**
+ * igt_stats_get_trimean:
+ * @stats: An #igt_stats_t instance
+ *
+ * Retrieves the trimean of the @stats dataset.
+ *
+ * The trimean is a the most efficient 3-point L-estimator, even more
+ * robust than the median at estimating the average of a sample population.
+ */
+double igt_stats_get_trimean(igt_stats_t *stats)
+{
+	double q1, q2, q3;
+	igt_stats_get_quartiles(stats, &q1, &q2, &q3);
+	return (q1 + 2*q2 + q3) / 4;
+}
