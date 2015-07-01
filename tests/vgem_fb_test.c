@@ -41,7 +41,7 @@ struct context {
 
 };
 
-static int enable_profiling = false;
+static int enable_profiling = true;
 
 void disable_psr() {
 	const char psr_path[] = "/sys/module/i915/parameters/enable_psr";
@@ -341,7 +341,7 @@ int main(int argc, char **argv)
 			drm_card_path = optarg;
 			break;
 		case 'p':
-			enable_profiling = true;
+			enable_profiling = false;
 			break;
 		default:
 			ret = 1;
