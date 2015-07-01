@@ -212,6 +212,13 @@ if test "x$enable_debug" = xyes; then
 	AC_SUBST([DEBUG_CFLAGS])
 fi
 
+# prevent relinking the world on every commit for developers
+AC_ARG_ENABLE(git-hash,
+	      AS_HELP_STRING([--disable-git-hash],
+			     [Do not use git hash in version]),
+	      [git_hash=$enableval], [git_hash=yes])
+AM_CONDITIONAL(SKIP_GIT_HASH, [test "x$git_hash" = xno])
+
 # -----------------------------------------------------------------------------
 
 # To build multithread code, gcc uses -pthread, Solaris Studio cc uses -mt
