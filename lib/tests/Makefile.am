@@ -6,7 +6,7 @@ AM_TESTS_ENVIRONMENT = \
 
 EXTRA_DIST = $(check_SCRIPTS)
 
-AM_CFLAGS = $(DRM_CFLAGS) $(CWARNFLAGS) \
+AM_CFLAGS = $(DRM_CFLAGS) $(CWARNFLAGS) $(DEBUG_CFLAGS) \
 	-I$(srcdir)/../.. \
 	-I$(srcdir)/.. \
 	-include "$(srcdir)/../../lib/check-ndebug.h" \
