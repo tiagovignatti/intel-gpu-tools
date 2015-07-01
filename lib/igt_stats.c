@@ -491,3 +491,40 @@ double igt_stats_get_std_deviation(igt_stats_t *stats)
 
 	return sqrt(stats->variance);
 }
+
+/**
+ * igt_stats_get_iqm:
+ * @stats: An #igt_stats_t instance
+ *
+ * Retrieves the interquartile mean of the @stats dataset.
+ *
+ * The interquartile mean is a "statistical measure of central tendency".
+ * It is a truncated mean that discards the lowest and highest 25% of values,
+ * and calculates the mean value of the remaining central values.
+ */
+double igt_stats_get_iqm(igt_stats_t *stats)
+{
+	unsigned int q1, q3, i;
+	double mean;
+
+	igt_stats_ensure_sorted_values(stats);
+
+	q1 = (stats->n_values + 3) / 4;
+	q3 = 3 * stats->n_values / 4;
+
+	mean = 0;
+	for (i = 0; i <= q3 - q1; i++)
+		mean += (stats->sorted[q1 + i] - mean) / (i + 1);
+
+	if (stats->n_values % 4) {
+		double rem = .5 * (stats->n_values % 4) / 4;
+
+		q1 = (stats->n_values) / 4;
+		q3 = (3 * stats->n_values + 3) / 4;
+
+		mean += rem * (stats->sorted[q1] - mean) / i++;
+		mean += rem * (stats->sorted[q3] - mean) / i++;
+	}
+
+	return mean;
+}
