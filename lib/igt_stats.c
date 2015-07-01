@@ -496,11 +496,15 @@ double igt_stats_get_std_deviation(igt_stats_t *stats)
  * igt_stats_get_iqm:
  * @stats: An #igt_stats_t instance
  *
- * Retrieves the interquartile mean of the @stats dataset.
+ * Retrieves the
+ * [interquartile mean](https://en.wikipedia.org/wiki/Interquartile_mean) (IQM)
+ * of the @stats dataset.
  *
  * The interquartile mean is a "statistical measure of central tendency".
  * It is a truncated mean that discards the lowest and highest 25% of values,
  * and calculates the mean value of the remaining central values.
+ *
+ * It's useful to hide outliers in measurements (due to cold cache etc).
  */
 double igt_stats_get_iqm(igt_stats_t *stats)
 {
@@ -533,7 +537,8 @@ double igt_stats_get_iqm(igt_stats_t *stats)
  * igt_stats_get_trimean:
  * @stats: An #igt_stats_t instance
  *
- * Retrieves the trimean of the @stats dataset.
+ * Retrieves the [trimean](https://en.wikipedia.org/wiki/Trimean) of the @stats
+ * dataset.
  *
  * The trimean is a the most efficient 3-point L-estimator, even more
  * robust than the median at estimating the average of a sample population.
