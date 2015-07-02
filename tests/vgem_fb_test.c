@@ -43,7 +43,7 @@ struct context {
 
 static int enable_profiling = true;
 
-void disable_psr() {
+static void disable_psr(void) {
 	const char psr_path[] = "/sys/module/i915/parameters/enable_psr";
 	int psr_fd = open(psr_path, O_WRONLY);
 
@@ -59,7 +59,7 @@ void disable_psr() {
 	close(psr_fd);
 }
 
-void do_fixes() {
+static void do_fixes(void) {
 	disable_psr();
 }
 
@@ -68,8 +68,7 @@ const char g_sys_card_path_format[] =
 const char g_dev_card_path_format[] =
    "/dev/dri/card%d";
 
-int drm_open_vgem()
-{
+static int drm_open_vgem(void) {
 	char *name;
 	int i, fd;
 
@@ -98,13 +97,11 @@ int drm_open_vgem()
 	return -1;
 }
 
-static double elapsed(const struct timeval *start, const struct timeval *end)
-{
+static double elapsed(const struct timeval *start, const struct timeval *end) {
 	return 1e6*(end->tv_sec - start->tv_sec) + (end->tv_usec - start->tv_usec);
 }
 
-void * mmap_dumb_bo(int fd, int handle, size_t size)
-{
+static void *mmap_dumb_bo(int fd, int handle, size_t size) {
 	struct drm_mode_map_dumb mmap_arg;
 	void *ptr;
 	int ret;
@@ -125,8 +122,7 @@ void * mmap_dumb_bo(int fd, int handle, size_t size)
 	return ptr;
 }
 
-bool setup_drm(struct context *ctx)
-{
+static bool setup_drm(struct context *ctx) {
 	int fd = ctx->drm_card_fd;
 	drmModeRes *resources = NULL;
 	drmModeConnector *connector = NULL;
@@ -212,8 +208,7 @@ bool setup_drm(struct context *ctx)
 #define STEP_FLIP 3
 #define STEP_DRAW 4
 
-void show_sequence(const int *sequence)
-{
+static void show_sequence(const int *sequence) {
 	int sequence_subindex;
 	fprintf(stderr, "starting sequence: ");
 	for (sequence_subindex = 0; sequence_subindex < 4; sequence_subindex++) {
@@ -241,8 +236,7 @@ void show_sequence(const int *sequence)
 	fprintf(stderr, "\n");
 }
 
-void draw(struct context *ctx)
-{
+static void draw(struct context *ctx) {
 	int i;
 
 	// Run the drawing routine with the key driver events in different
@@ -295,8 +289,8 @@ void draw(struct context *ctx)
 
 				case STEP_DRAW:
 					for (ptr = bo_ptr; ptr < bo_ptr + (bo_size / sizeof(*bo_ptr)); ptr++) {
-						int y = ((void*)ptr - (void*)bo_ptr) / bo_stride;
-						int x = ((void*)ptr - (void*)bo_ptr - bo_stride * y) / sizeof(*ptr);
+						int y = ((char*)ptr - (char*)bo_ptr) / bo_stride;
+						int x = ((char*)ptr - (char*)bo_ptr - bo_stride * y) / sizeof(*ptr);
 						x -= 100;
 						y -= 100;
 						*ptr = 0xff000000;
@@ -332,7 +326,7 @@ int main(int argc, char **argv)
 	uint32_t bo_stride;
 	int drm_prime_fd;
 	size_t i;
-	char *drm_card_path = "/dev/dri/card0";
+	const char *drm_card_path = "/dev/dri/card0";
 	char c;
 
 	while ((c = getopt(argc, argv, optstr)) != -1) {
