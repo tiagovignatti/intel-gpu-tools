@@ -259,7 +259,7 @@ static void draw(struct context *ctx) {
 			size_t bo_stride = gbm_bo_get_stride(ctx->gbm_buffer[fb_idx]);
 			size_t bo_size = gbm_bo_get_stride(ctx->gbm_buffer[fb_idx]) * gbm_bo_get_height(ctx->gbm_buffer[fb_idx]);
 			uint32_t *bo_ptr;
-			volatile uint32_t *ptr;
+			uint32_t *ptr;
 			struct timeval start, end;
 
 			for (sequence_subindex = 0; sequence_subindex < 4; sequence_subindex++) {
@@ -306,10 +306,7 @@ static void draw(struct context *ctx) {
 					break;
 				}
 			}
-
 			munmap(bo_ptr, bo_size);
-
-			usleep(1e6 / 120); /* 120 Hz */
 
 			fb_idx = fb_idx ^ 1;
 		}
