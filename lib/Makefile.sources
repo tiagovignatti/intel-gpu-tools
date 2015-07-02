@@ -60,10 +60,11 @@ libintel_tools_la_SOURCES = 	\
 
 .PHONY: version.h.tmp
 
-if SKIP_GIT_HASH
+# leaving a space here to work around automake's conditionals
+ ifeq ($(GIT_HASH),no)
 $(IGT_LIB_PATH)/version.h.tmp:
 	@echo '#define IGT_GIT_SHA1 "git"' >> $@
-else
+ else
 $(IGT_LIB_PATH)/version.h.tmp:
 	@touch $@
 	@if test -d $(GPU_TOOLS_PATH)/.git; then \
@@ -77,7 +78,7 @@ $(IGT_LIB_PATH)/version.h.tmp:
 	else \
 		echo '#define IGT_GIT_SHA1 "NOT-GIT"' ; \
 	fi >> $@
-endif # SKIP_GIT_HASH
+ endif # GIT_HASH
 
 
 $(IGT_LIB_PATH)/version.h: $(IGT_LIB_PATH)/version.h.tmp

@@ -217,7 +217,7 @@ AC_ARG_ENABLE(git-hash,
 	      AS_HELP_STRING([--disable-git-hash],
 			     [Do not use git hash in version]),
 	      [git_hash=$enableval], [git_hash=yes])
-AM_CONDITIONAL(SKIP_GIT_HASH, [test "x$git_hash" = xno])
+AC_SUBST(GIT_HASH, [$git_hash])
 
 # -----------------------------------------------------------------------------
 
