@@ -453,11 +453,13 @@ static bool init_modeset_cached_params(void)
 	return true;
 }
 
+#define BIGFB_X_OFFSET 500
+#define BIGFB_Y_OFFSET 500
 /*
- * This is how the prim, scnd and offscreens FB should be positioned inside the
- * big FB. The prim buffer starts at a 500x500 offset, then scnd starts at the
- * same 500 pixel Y offset, right after prim ends on the X axis, then the
- * offscreen fb starts after scnd ends.
+ * This is how the prim, scnd and offscreen FBs should be positioned inside the
+ * big FB. The prim buffer starts at the X and Y offsets defined above, then
+ * scnd starts at the same Y pixel offset, right after prim ends on the X axis,
+ * then the offscreen fb starts after scnd ends. Just like the picture:
  * +------------------------------------+
  * | big                                |
  * |   +--------+-----------+-----------+
@@ -484,14 +486,14 @@ static void create_big_fb(void)
 	offs_w = offscreen_fb.w;
 	offs_h = offscreen_fb.h;
 
-	big_w = prim_w + scnd_w + offs_w + 500;
+	big_w = prim_w + scnd_w + offs_w + BIGFB_X_OFFSET;
 
 	big_h = prim_h;
 	if (scnd_h > big_h)
 		big_h = scnd_h;
 	if (offs_h > big_h)
 		big_h = offs_h;
-	big_h += 500;
+	big_h += BIGFB_Y_OFFSET;
 
 	igt_create_fb(drm.fd, big_w, big_h, DRM_FORMAT_XRGB8888,
 		      LOCAL_I915_FORMAT_MOD_X_TILED, &fbs.big);
@@ -1508,14 +1510,14 @@ static void set_crtc_fbs(const struct test_mode *t)
 		scnd_mode_params.fb.fb = &fbs.big;
 		offscreen_fb.fb = &fbs.big;
 
-		prim_mode_params.fb.x = 500;
+		prim_mode_params.fb.x = BIGFB_X_OFFSET;
 		scnd_mode_params.fb.x = prim_mode_params.fb.x +
 					prim_mode_params.fb.w;
 		offscreen_fb.x = scnd_mode_params.fb.x + scnd_mode_params.fb.w;
 
-		prim_mode_params.fb.y = 500;
-		scnd_mode_params.fb.y = 500;
-		offscreen_fb.y = 500;
+		prim_mode_params.fb.y = BIGFB_Y_OFFSET;
+		scnd_mode_params.fb.y = BIGFB_Y_OFFSET;
+		offscreen_fb.y = BIGFB_Y_OFFSET;
 		break;
 	default:
 		igt_assert(false);
