@@ -843,6 +843,21 @@ static struct rect pat4_get_rect(struct fb_region *fb, int r)
 	return rect;
 }
 
+static void fb_dirty_ioctl(struct fb_region *fb, struct rect *rect)
+{
+	int rc;
+	drmModeClip clip = {
+		.x1 = rect->x,
+		.x2 = rect->x + rect->w,
+		.y1 = rect->y,
+		.y2 = rect->y + rect->h,
+	};
+
+	rc = drmModeDirtyFB(drm.fd, fb->fb->fb_id, &clip, 1);
+
+	igt_assert(rc == 0 || rc == -ENOSYS);
+}
+
 static void draw_rect(struct draw_pattern_info *pattern, struct fb_region *fb,
 		      enum igt_draw_method method, int r)
 {
@@ -851,6 +866,9 @@ static void draw_rect(struct draw_pattern_info *pattern, struct fb_region *fb,
 	igt_draw_rect_fb(drm.fd, drm.bufmgr, NULL, fb->fb, method,
 			 fb->x + rect.x, fb->y + rect.y,
 			 rect.w, rect.h, rect.color);
+
+	if (method == IGT_DRAW_MMAP_WC)
+		fb_dirty_ioctl(fb, &rect);
 }
 
 static void draw_rect_igt_fb(struct draw_pattern_info *pattern,
