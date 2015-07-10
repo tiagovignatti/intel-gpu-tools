@@ -2248,6 +2248,71 @@ static void modesetfrombusy_subtest(const struct test_mode *t)
 	igt_remove_fb(drm.fd, &fb2);
 }
 
+static void try_invalid_strides(void)
+{
+	uint32_t gem_handle;
+	int rc;
+
+	/* Sizes that the Kernel shouldn't even allow for tiled */
+	gem_handle = gem_create(drm.fd, 2048);
+
+	/* Smaller than 512, yet still 64-byte aligned. */
+	rc = __gem_set_tiling(drm.fd, gem_handle, I915_TILING_X, 448);
+	igt_assert(rc == -EINVAL);
+
+	/* Bigger than 512, but not 64-byte aligned. */
+	rc = __gem_set_tiling(drm.fd, gem_handle, I915_TILING_X, 1022);
+	igt_assert(rc == -EINVAL);
+
+	/* Just make sure something actually works. */
+	rc = __gem_set_tiling(drm.fd, gem_handle, I915_TILING_X, 1024);
+	igt_assert(rc == 0);
+
+	gem_close(drm.fd, gem_handle);
+}
+
+/**
+ * badstride - try to use buffers with strides that are not supported
+ *
+ * METHOD
+ *   First we try to create buffers with strides that are not allowed for tiled
+ *   surfaces and assert the Kernel rejects them. Then we create buffers with
+ *   strides that are allowed by the Kernel, but that are incompatible with FBC
+ *   and we assert that FBC stays disabled after we set a mode on those buffers.
+ *
+ * EXPECTED RESULTS
+ *   The invalid strides are rejected, and the valid strides that are
+ *   incompatible with FBC result in FBC disabled.
+ *
+ * FAILURES
+ *   There are two possible places where the Kernel can be broken: either the
+ *   code that checks valid strides for tiled buffers or the code that checks
+ *   the valid strides for FBC.
+ */
+static void badstride_subtest(const struct test_mode *t)
+{
+	struct igt_fb wide_fb;
+	struct modeset_params *params = pick_params(t);
+
+	try_invalid_strides();
+
+	prepare_subtest(t, &pattern4);
+
+	igt_create_fb(drm.fd, params->fb.fb->width + 4096,
+		      params->fb.fb->height, DRM_FORMAT_XRGB8888,
+		      LOCAL_I915_FORMAT_MOD_X_TILED, &wide_fb);
+	igt_assert(wide_fb.stride > 16384);
+
+	igt_draw_fill_fb(drm.fd, &wide_fb, 0xFF);
+
+	params->fb.fb = &wide_fb;
+	set_mode_for_params(params);
+
+	do_assertions(ASSERT_FBC_DISABLED);
+
+	igt_remove_fb(drm.fd, &wide_fb);
+}
+
 static int opt_handler(int option, int option_index, void *data)
 {
 	switch (option) {
@@ -2564,6 +2629,10 @@ int main(int argc, char *argv[])
 
 		igt_subtest_f("%s-modesetfrombusy", feature_str(t.feature))
 			modesetfrombusy_subtest(&t);
+
+		if (t.feature & FEATURE_FBC)
+			igt_subtest_f("%s-badstride", feature_str(t.feature))
+				badstride_subtest(&t);
 	TEST_MODE_ITER_END
 
 	/*
