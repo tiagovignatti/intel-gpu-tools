@@ -27,6 +27,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <poll.h>
 #include <pthread.h>
 
 #include "drmtest.h"
@@ -111,6 +112,12 @@ struct test_mode {
 	} feature;
 
 	enum igt_draw_method method;
+};
+
+enum flip_type {
+	FLIP_PAGEFLIP,
+	FLIP_PAGEFLIP_EVENT,
+	FLIP_MODESET,
 };
 
 enum feature_status {
@@ -1791,12 +1798,74 @@ static void multidraw_subtest(const struct test_mode *t)
 	}
 }
 
+static void flip_handler(int fd, unsigned int sequence, unsigned int tv_sec,
+			 unsigned int tv_usec, void *data)
+{
+	igt_debug("Flip event received.\n");
+}
+
+static void wait_flip_event(void)
+{
+	int rc;
+	drmEventContext evctx;
+	struct pollfd pfd;
+
+	evctx.version = DRM_EVENT_CONTEXT_VERSION;
+	evctx.vblank_handler = NULL;
+	evctx.page_flip_handler = flip_handler;
+
+	pfd.fd = drm.fd;
+	pfd.events = POLLIN;
+	pfd.revents = 0;
+
+	rc = poll(&pfd, 1, 1000);
+	switch (rc) {
+	case 0:
+		igt_assert_f(false, "Poll timeout\n");
+		break;
+	case 1:
+		rc = drmHandleEvent(drm.fd, &evctx);
+		igt_assert(rc == 0);
+		break;
+	default:
+		igt_assert_f(false, "Unexpected poll rc %d\n", rc);
+		break;
+	}
+}
+
+static void page_flip_for_params(struct modeset_params *params,
+				 enum flip_type type)
+{
+	int rc;
+
+	switch (type) {
+	case FLIP_PAGEFLIP:
+		rc = drmModePageFlip(drm.fd, params->crtc_id,
+				     params->fb.fb->fb_id, 0, NULL);
+		igt_assert(rc == 0);
+		break;
+	case FLIP_PAGEFLIP_EVENT:
+		rc = drmModePageFlip(drm.fd, params->crtc_id,
+				     params->fb.fb->fb_id,
+				     DRM_MODE_PAGE_FLIP_EVENT, NULL);
+		igt_assert(rc == 0);
+		wait_flip_event();
+		break;
+	case FLIP_MODESET:
+		set_mode_for_params(params);
+		break;
+	default:
+		igt_assert(false);
+	}
+}
+
 /*
  * flip - just exercise page flips with the patterns we have
  *
  * METHOD
  *   We draw the pattern on a backbuffer using the provided method, then we
- *   flip, making this the frontbuffer.
+ *   flip, making this the frontbuffer. We can flip both using the dedicated
+ *   pageflip IOCTL or the modeset IOCTL.
  *
  * EXPECTED RESULTS
  *   Everything works as expected, screen contents are properly updated.
@@ -1805,9 +1874,9 @@ static void multidraw_subtest(const struct test_mode *t)
  *   On a failure here you need to go directly to the Kernel's flip code and see
  *   how it interacts with the feature being tested.
  */
-static void flip_subtest(const struct test_mode *t)
+static void flip_subtest(const struct test_mode *t, enum flip_type type)
 {
-	int r, rc;
+	int r;
 	int assertions = 0;
 	struct igt_fb fb2, *orig_fb;
 	struct modeset_params *params = pick_params(t);
@@ -1842,9 +1911,7 @@ static void flip_subtest(const struct test_mode *t)
 		draw_rect(pattern, &params->fb, t->method, r);
 		update_wanted_crc(t, &pattern->crcs[r]);
 
-		rc = drmModePageFlip(drm.fd, params->crtc_id,
-				     params->fb.fb->fb_id, 0, NULL);
-		igt_assert(rc == 0);
+		page_flip_for_params(params, type);
 
 		do_assertions(assertions);
 	}
@@ -2415,7 +2482,23 @@ int main(int argc, char *argv[])
 			      screen_str(t.screen),
 			      fbs_str(t.fbs),
 			      igt_draw_get_method_name(t.method))
-			flip_subtest(&t);
+			flip_subtest(&t, FLIP_PAGEFLIP);
+
+		igt_subtest_f("%s-%s-%s-%s-evflip-%s",
+			      feature_str(t.feature),
+			      pipes_str(t.pipes),
+			      screen_str(t.screen),
+			      fbs_str(t.fbs),
+			      igt_draw_get_method_name(t.method))
+			flip_subtest(&t, FLIP_PAGEFLIP_EVENT);
+
+		igt_subtest_f("%s-%s-%s-%s-msflip-%s",
+			      feature_str(t.feature),
+			      pipes_str(t.pipes),
+			      screen_str(t.screen),
+			      fbs_str(t.fbs),
+			      igt_draw_get_method_name(t.method))
+			flip_subtest(&t, FLIP_MODESET);
 	TEST_MODE_ITER_END
 
 	TEST_MODE_ITER_BEGIN(t)
