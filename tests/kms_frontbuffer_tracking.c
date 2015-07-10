@@ -1994,6 +1994,93 @@ static void onoff_subtest(const struct test_mode *t)
 	}
 }
 
+static bool plane_is_primary(uint32_t plane_id)
+{
+	int i;
+	bool found, is_primary;
+	uint64_t prop_value;
+	drmModePropertyPtr prop;
+	const char *enum_name = NULL;
+
+	found = kmstest_get_property(drm.fd, plane_id, DRM_MODE_OBJECT_PLANE,
+				     "type", NULL, &prop_value, &prop);
+	if (!found) {
+		igt_debug("Property not found\n");
+		return false;
+	}
+	if (!(prop->flags & DRM_MODE_PROP_ENUM)) {
+		igt_debug("Property is not an enum\n");
+		return false;
+	}
+	if (prop_value >= prop->count_enums) {
+		igt_debug("Bad property value\n");
+		return false;
+	}
+
+	for (i = 0; i < prop->count_enums; i++) {
+		if (prop->enums[i].value == prop_value) {
+			enum_name = prop->enums[i].name;
+			break;
+		}
+	}
+	if (!enum_name) {
+		igt_debug("Enum name not found\n");
+		return false;
+	}
+
+	is_primary = (strcmp(enum_name, "Primary") == 0);
+	drmModeFreeProperty(prop);
+	return is_primary;
+}
+
+static bool prim_plane_disabled(void)
+{
+	int i, rc;
+	bool disabled, found = false;
+	drmModePlaneResPtr planes;
+
+	rc = drmSetClientCap(drm.fd, DRM_CLIENT_CAP_UNIVERSAL_PLANES, 1);
+	igt_assert(rc == 0);
+
+	planes = drmModeGetPlaneResources(drm.fd);
+	for (i = 0; i < planes->count_planes; i++) {
+		drmModePlanePtr plane;
+
+		plane = drmModeGetPlane(drm.fd, planes->planes[i]);
+		if (!plane) {
+			igt_debug("Failed to get plane\n");
+			goto fail;
+		}
+
+		/* We just pick the first CRTC for the primary plane. */
+		if ((plane->possible_crtcs & 0x1) &&
+		    plane_is_primary(plane->plane_id)) {
+			found = true;
+			disabled = (plane->crtc_id == 0);
+		}
+		drmModeFreePlane(plane);
+	}
+	drmModeFreePlaneResources(planes);
+
+	if (!found) {
+		igt_debug("Primary plane not found\n");
+		goto fail;
+	}
+
+	rc = drmSetClientCap(drm.fd, DRM_CLIENT_CAP_UNIVERSAL_PLANES, 0);
+	igt_assert(rc == 0);
+
+	return disabled;
+
+fail:
+	/* Make sure we do this before failing any assertions so we don't mess
+	 * the other subtests. */
+	rc = drmSetClientCap(drm.fd, DRM_CLIENT_CAP_UNIVERSAL_PLANES, 0);
+	igt_assert(rc == 0);
+	igt_assert(false);
+	return false;
+}
+
 /*
  * fullscreen_plane - put a fullscreen plane covering the whole screen
  *
@@ -2033,8 +2120,10 @@ static void fullscreen_plane_subtest(const struct test_mode *t)
 
 	switch (t->screen) {
 	case SCREEN_PRIM:
-		assertions = ASSERT_FBC_DISABLED |
-			     ASSERT_LAST_ACTION_CHANGED;
+		assertions = ASSERT_LAST_ACTION_CHANGED;
+
+		if (prim_plane_disabled())
+			assertions |= ASSERT_FBC_DISABLED;
 		break;
 	case SCREEN_SCND:
 		assertions = ASSERT_NO_ACTION_CHANGE;
