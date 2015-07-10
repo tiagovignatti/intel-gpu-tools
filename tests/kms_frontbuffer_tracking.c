@@ -98,9 +98,9 @@ struct test_mode {
 	 * framebuffer, but on different places. This includes the offscreen
 	 * screen. */
 	enum {
-		FBS_SINGLE = 0,
-		FBS_MULTI,
-		FBS_COUNT
+		FBS_INDIVIDUAL = 0,
+		FBS_SHARED,
+		FBS_COUNT,
 	} fbs;
 
 	/* Which features are we going to test now? This is a mask! */
@@ -1510,7 +1510,7 @@ static void check_test_requirements(const struct test_mode *t)
 static void set_crtc_fbs(const struct test_mode *t)
 {
 	switch (t->fbs) {
-	case FBS_SINGLE:
+	case FBS_INDIVIDUAL:
 		prim_mode_params.fb.fb = &fbs.prim_pri;
 		scnd_mode_params.fb.fb = &fbs.scnd_pri;
 		offscreen_fb.fb = &fbs.offscreen;
@@ -1523,7 +1523,7 @@ static void set_crtc_fbs(const struct test_mode *t)
 		scnd_mode_params.fb.y = 0;
 		offscreen_fb.y = 0;
 		break;
-	case FBS_MULTI:
+	case FBS_SHARED:
 		/* Please see the comment at the top of create_big_fb(). */
 		prim_mode_params.fb.fb = &fbs.big;
 		scnd_mode_params.fb.fb = &fbs.big;
@@ -1637,11 +1637,11 @@ static bool op_disables_psr(const struct test_mode *t,
 		return false;
 	if (t->screen == SCREEN_PRIM)
 		return true;
-	/* On FBS_MULTI, even if the target is not the PSR screen (SCREEN_PRIM),
-	 * all primary planes share the same frontbuffer, so a write to the
-	 * second screen primary plane - or offscreen plane - will touch the
-	 * framebuffer that's also used by the primary screen. */
-	if (t->fbs == FBS_MULTI && t->plane == PLANE_PRI)
+	/* On FBS_SHARED, even if the target is not the PSR screen
+	 * (SCREEN_PRIM), all primary planes share the same frontbuffer, so a
+	 * write to the second screen primary plane - or offscreen plane - will
+	 * touch the framebuffer that's also used by the primary screen. */
+	if (t->fbs == FBS_SHARED && t->plane == PLANE_PRI)
 		return true;
 
 	return false;
@@ -2368,10 +2368,10 @@ static const char *plane_str(int plane)
 static const char *fbs_str(int fb)
 {
 	switch (fb) {
-	case FBS_SINGLE:
-		return "sfb";
-	case FBS_MULTI:
-		return "mfb";
+	case FBS_INDIVIDUAL:
+		return "indfb";
+	case FBS_SHARED:
+		return "shrfb";
 	default:
 		igt_assert(false);
 	}
@@ -2446,7 +2446,7 @@ int main(int argc, char *argv[])
 		for (t.pipes = 0; t.pipes < PIPE_COUNT; t.pipes++) {
 			t.screen = SCREEN_PRIM;
 			t.plane = PLANE_PRI;
-			t.fbs = FBS_SINGLE;
+			t.fbs = FBS_INDIVIDUAL;
 			/* Make sure nothing is using this value. */
 			t.method = -1;
 
@@ -2546,7 +2546,7 @@ int main(int argc, char *argv[])
 	TEST_MODE_ITER_BEGIN(t)
 		if (t.screen != SCREEN_PRIM)
 			continue;
-		if (!opt.show_hidden && t.fbs != FBS_SINGLE)
+		if (!opt.show_hidden && t.fbs != FBS_INDIVIDUAL)
 			continue;
 
 		igt_subtest_f("%s-%s-%s-%s-multidraw-%s",
@@ -2565,7 +2565,7 @@ int main(int argc, char *argv[])
 			continue;
 		if (t.plane != PLANE_PRI)
 			continue;
-		if (t.fbs != FBS_SINGLE)
+		if (t.fbs != FBS_INDIVIDUAL)
 			continue;
 		if (t.method != IGT_DRAW_MMAP_CPU)
 			continue;
