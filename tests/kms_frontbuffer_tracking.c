@@ -1390,13 +1390,13 @@ static int adjust_assertion_flags(const struct test_mode *t, int flags)
 			    opt.fbc_check_compression)			\
 				igt_assert(fbc_wait_for_compression());	\
 		} else if (flags_ & ASSERT_FBC_DISABLED) {		\
-			igt_assert(fbc_wait_for_status(DISABLED));	\
+			igt_assert(!fbc_wait_for_status(ENABLED));	\
 		}							\
 									\
 		if (flags_ & ASSERT_PSR_ENABLED)			\
 			igt_assert(psr_wait_for_status(ENABLED));	\
 		else if (flags_ & ASSERT_PSR_DISABLED)			\
-			igt_assert(psr_wait_for_status(DISABLED));	\
+			igt_assert(!psr_wait_for_status(ENABLED));	\
 	} else {							\
 		/* Make sure we settle before continuing. */		\
 		sleep(1);						\
