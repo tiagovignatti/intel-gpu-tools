@@ -138,7 +138,6 @@ struct {
 } drm;
 
 struct {
-	int fd;
 	bool can_test;
 
 	bool supports_compressing;
@@ -146,17 +145,14 @@ struct {
 
 	struct timespec last_action;
 } fbc = {
-	.fd = -1,
 	.can_test = false,
 	.supports_last_action = false,
 	.supports_compressing = false,
 };
 
 struct {
-	int fd;
 	bool can_test;
 } psr = {
-	.fd = -1,
 	.can_test = false,
 };
 
@@ -560,45 +556,47 @@ static bool set_mode_for_params(struct modeset_params *params)
 	return (rc == 0);
 }
 
-#define DEBUGFS_MSG_SIZE 256
-
-static void get_debugfs_string(int fd, char *buf)
+static void debugfs_read(const char *filename, char *buf, int buf_size)
 {
-	ssize_t n_read;
+	FILE *file;
+	size_t n_read;
 
-	lseek(fd, 0, SEEK_SET);
+	file = igt_debugfs_fopen(filename, "r");
+	igt_assert(file);
 
-	n_read = read(fd, buf, DEBUGFS_MSG_SIZE -1);
-	igt_assert(n_read >= 0);
+	n_read = fread(buf, 1, buf_size - 1, file);
+	igt_assert(n_read > 0);
+	igt_assert(feof(file));
+
 	buf[n_read] = '\0';
+
+	igt_assert(fclose(file) == 0);
 }
 
 static bool fbc_is_enabled(void)
 {
-	char buf[DEBUGFS_MSG_SIZE];
+	char buf[128];
 
-	get_debugfs_string(fbc.fd, buf);
-
+	debugfs_read("i915_fbc_status", buf, ARRAY_SIZE(buf));
 	return strstr(buf, "FBC enabled\n");
 }
 
 static bool psr_is_enabled(void)
 {
-	char buf[DEBUGFS_MSG_SIZE];
+	char buf[256];
 
-	get_debugfs_string(psr.fd, buf);
-
+	debugfs_read("i915_edp_psr_status", buf, ARRAY_SIZE(buf));
 	return (strstr(buf, "\nActive: yes\n"));
 }
 
 static struct timespec fbc_get_last_action(void)
 {
 	struct timespec ret = { 0, 0 };
-	char buf[DEBUGFS_MSG_SIZE];
+	char buf[128];
 	char *action;
 	ssize_t n_read;
 
-	get_debugfs_string(fbc.fd, buf);
+	debugfs_read("i915_fbc_status", buf, ARRAY_SIZE(buf));
 
 	action = strstr(buf, "\nLast action:");
 	igt_assert(action);
@@ -644,10 +642,10 @@ static void fbc_update_last_action(void)
 static void fbc_setup_last_action(void)
 {
 	ssize_t n_read;
-	char buf[DEBUGFS_MSG_SIZE];
+	char buf[128];
 	char *action;
 
-	get_debugfs_string(fbc.fd, buf);
+	debugfs_read("i915_fbc_status", buf, ARRAY_SIZE(buf));
 
 	action = strstr(buf, "\nLast action:");
 	if (!action) {
@@ -664,9 +662,9 @@ static void fbc_setup_last_action(void)
 
 static bool fbc_is_compressing(void)
 {
-	char buf[DEBUGFS_MSG_SIZE];
+	char buf[128];
 
-	get_debugfs_string(fbc.fd, buf);
+	debugfs_read("i915_fbc_status", buf, ARRAY_SIZE(buf));
 	return strstr(buf, "\nCompressing: yes\n") != NULL;
 }
 
@@ -677,9 +675,9 @@ static bool fbc_wait_for_compression(void)
 
 static void fbc_setup_compressing(void)
 {
-	char buf[DEBUGFS_MSG_SIZE];
+	char buf[128];
 
-	get_debugfs_string(fbc.fd, buf);
+	debugfs_read("i915_fbc_status", buf, ARRAY_SIZE(buf));
 
 	if (strstr(buf, "\nCompressing:"))
 		fbc.supports_compressing = true;
@@ -1187,18 +1185,14 @@ static void teardown_crcs(void)
 
 static bool fbc_supported_on_chipset(void)
 {
-	char buf[DEBUGFS_MSG_SIZE];
+	char buf[128];
 
-	get_debugfs_string(fbc.fd, buf);
-
+	debugfs_read("i915_fbc_status", buf, ARRAY_SIZE(buf));
 	return !strstr(buf, "FBC unsupported on this chipset\n");
 }
 
 static void setup_fbc(void)
 {
-	fbc.fd = igt_debugfs_open("i915_fbc_status", O_RDONLY);
-	igt_assert(fbc.fd >= 0);
-
 	if (!fbc_supported_on_chipset()) {
 		igt_info("Can't test FBC: not supported on this chipset\n");
 		return;
@@ -1211,16 +1205,13 @@ static void setup_fbc(void)
 
 static void teardown_fbc(void)
 {
-	if (fbc.fd != -1)
-		close(fbc.fd);
 }
 
 static bool psr_sink_has_support(void)
 {
-	char buf[DEBUGFS_MSG_SIZE];
+	char buf[256];
 
-	get_debugfs_string(psr.fd, buf);
-
+	debugfs_read("i915_edp_psr_status", buf, ARRAY_SIZE(buf));
 	return strstr(buf, "Sink_Support: yes\n");
 }
 
@@ -1232,9 +1223,6 @@ static void setup_psr(void)
 		return;
 	}
 
-	psr.fd = igt_debugfs_open("i915_edp_psr_status", O_RDONLY);
-	igt_assert(psr.fd >= 0);
-
 	if (!psr_sink_has_support()) {
 		igt_info("Can't test PSR: not supported by sink.\n");
 		return;
@@ -1244,8 +1232,6 @@ static void setup_psr(void)
 
 static void teardown_psr(void)
 {
-	if (psr.fd != -1)
-		close(psr.fd);
 }
 
 static void setup_environment(void)
