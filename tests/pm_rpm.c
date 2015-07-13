@@ -88,7 +88,7 @@ enum plane_type {
 #define WAIT_EXTRA	4
 #define USE_DPMS	8
 
-int drm_fd, msr_fd, pm_status_fd, pc8_status_fd;
+int drm_fd, msr_fd, pc8_status_fd;
 bool has_runtime_pm, has_pc8;
 struct mode_set_data ms_data;
 
