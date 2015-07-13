@@ -2248,6 +2248,72 @@ static void modesetfrombusy_subtest(const struct test_mode *t)
 	igt_remove_fb(drm.fd, &fb2);
 }
 
+/**
+ * farfromfence - test drawing as far from the fence start as possible
+ *
+ * METHOD
+ *   One of the possible problems with FBC is that if the mode being displayed
+ *   is very far away from the fence we might setup the hardware frontbuffer
+ *   tracking in the wrong way. So this test tries to set a really tall FB,
+ *   makes the CRTC point to the bottom of that FB, then it tries to exercise
+ *   the hardware frontbuffer tracking through GTT mmap operations.
+ *
+ * EXPECTED RESULTS
+ *   Everything succeeds.
+ *
+ * FAILURES
+ *   If you're getting wrong CRC calulations, then the hardware tracking might
+ *   be misconfigured and needs to be checked. If we're failing because FBC is
+ *   disabled and the reason is that there's not enough stolen memory, then the
+ *   Kernel might be calculating the amount of stolen memory needed based on the
+ *   whole framebuffer size, and not just on the needed size: in this case, you
+ *   need a newer Kernel.
+ */
+static void farfromfence_subtest(const struct test_mode *t)
+{
+	int r;
+	struct igt_fb tall_fb;
+	struct modeset_params *params = pick_params(t);
+	struct draw_pattern_info *pattern = &pattern1;
+	struct fb_region *target;
+	int max_height;
+
+	switch (intel_gen(intel_get_drm_devid(drm.fd))) {
+	case 2:
+		max_height = 2048;
+		break;
+	case 3:
+		max_height = 4096;
+		break;
+	default:
+		max_height = 8192;
+		break;
+	}
+
+	prepare_subtest(t, pattern);
+	target = pick_target(t, params);
+
+	igt_create_fb(drm.fd, params->mode->hdisplay, max_height,
+		      DRM_FORMAT_XRGB8888, LOCAL_I915_FORMAT_MOD_X_TILED,
+		      &tall_fb);
+
+	igt_draw_fill_fb(drm.fd, &tall_fb, 0xFF);
+
+	params->fb.fb = &tall_fb;
+	params->fb.x = 0;
+	params->fb.y = max_height - params->mode->vdisplay;
+	set_mode_for_params(params);
+	do_assertions(0);
+
+	for (r = 0; r < pattern->n_rects; r++) {
+		draw_rect(pattern, target, t->method, r);
+		update_wanted_crc(t, &pattern->crcs[r]);
+		do_assertions(0);
+	}
+
+	igt_remove_fb(drm.fd, &tall_fb);
+}
+
 static void try_invalid_strides(void)
 {
 	uint32_t gem_handle;
@@ -2613,6 +2679,22 @@ int main(int argc, char *argv[])
 			      fbs_str(t.fbs),
 			      igt_draw_get_method_name(t.method))
 			multidraw_subtest(&t);
+	TEST_MODE_ITER_END
+
+	TEST_MODE_ITER_BEGIN(t)
+		if (t.pipes != PIPE_SINGLE)
+			continue;
+		if (t.screen != SCREEN_PRIM)
+			continue;
+		if (t.plane != PLANE_PRI)
+			continue;
+		if (t.fbs != FBS_INDIVIDUAL)
+			continue;
+		if (t.method != IGT_DRAW_MMAP_GTT)
+			continue;
+
+		igt_subtest_f("%s-farfromfence", feature_str(t.feature))
+			farfromfence_subtest(&t);
 	TEST_MODE_ITER_END
 
 	TEST_MODE_ITER_BEGIN(t)
