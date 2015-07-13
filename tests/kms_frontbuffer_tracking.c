@@ -556,28 +556,11 @@ static bool set_mode_for_params(struct modeset_params *params)
 	return (rc == 0);
 }
 
-static void debugfs_read(const char *filename, char *buf, int buf_size)
-{
-	FILE *file;
-	size_t n_read;
-
-	file = igt_debugfs_fopen(filename, "r");
-	igt_assert(file);
-
-	n_read = fread(buf, 1, buf_size - 1, file);
-	igt_assert(n_read > 0);
-	igt_assert(feof(file));
-
-	buf[n_read] = '\0';
-
-	igt_assert(fclose(file) == 0);
-}
-
 static bool fbc_is_enabled(void)
 {
 	char buf[128];
 
-	debugfs_read("i915_fbc_status", buf, ARRAY_SIZE(buf));
+	igt_debugfs_read("i915_fbc_status", buf);
 	return strstr(buf, "FBC enabled\n");
 }
 
@@ -585,7 +568,7 @@ static bool psr_is_enabled(void)
 {
 	char buf[256];
 
-	debugfs_read("i915_edp_psr_status", buf, ARRAY_SIZE(buf));
+	igt_debugfs_read("i915_edp_psr_status", buf);
 	return (strstr(buf, "\nActive: yes\n"));
 }
 
@@ -596,7 +579,7 @@ static struct timespec fbc_get_last_action(void)
 	char *action;
 	ssize_t n_read;
 
-	debugfs_read("i915_fbc_status", buf, ARRAY_SIZE(buf));
+	igt_debugfs_read("i915_fbc_status", buf);
 
 	action = strstr(buf, "\nLast action:");
 	igt_assert(action);
@@ -645,7 +628,7 @@ static void fbc_setup_last_action(void)
 	char buf[128];
 	char *action;
 
-	debugfs_read("i915_fbc_status", buf, ARRAY_SIZE(buf));
+	igt_debugfs_read("i915_fbc_status", buf);
 
 	action = strstr(buf, "\nLast action:");
 	if (!action) {
@@ -664,7 +647,7 @@ static bool fbc_is_compressing(void)
 {
 	char buf[128];
 
-	debugfs_read("i915_fbc_status", buf, ARRAY_SIZE(buf));
+	igt_debugfs_read("i915_fbc_status", buf);
 	return strstr(buf, "\nCompressing: yes\n") != NULL;
 }
 
@@ -677,7 +660,7 @@ static void fbc_setup_compressing(void)
 {
 	char buf[128];
 
-	debugfs_read("i915_fbc_status", buf, ARRAY_SIZE(buf));
+	igt_debugfs_read("i915_fbc_status", buf);
 
 	if (strstr(buf, "\nCompressing:"))
 		fbc.supports_compressing = true;
@@ -1205,7 +1188,7 @@ static bool fbc_supported_on_chipset(void)
 {
 	char buf[128];
 
-	debugfs_read("i915_fbc_status", buf, ARRAY_SIZE(buf));
+	igt_debugfs_read("i915_fbc_status", buf);
 	return !strstr(buf, "FBC unsupported on this chipset\n");
 }
 
@@ -1229,7 +1212,7 @@ static bool psr_sink_has_support(void)
 {
 	char buf[256];
 
-	debugfs_read("i915_edp_psr_status", buf, ARRAY_SIZE(buf));
+	igt_debugfs_read("i915_edp_psr_status", buf);
 	return strstr(buf, "Sink_Support: yes\n");
 }
 

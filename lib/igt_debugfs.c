@@ -185,6 +185,33 @@ FILE *igt_debugfs_fopen(const char *filename,
 	return fopen(buf, mode);
 }
 
+/**
+ * __igt_debugfs_read:
+ * @filename: file name
+ * @buf: buffer where the contents will be stored, allocated by the caller
+ * @buf_size: size of the buffer
+ *
+ * This function opens the debugfs file, reads it, stores the content in the
+ * provided buffer, then closes the file. Users should make sure that the buffer
+ * provided is big enough to fit the whole file, plus one byte.
+ */
+void __igt_debugfs_read(const char *filename, char *buf, int buf_size)
+{
+	FILE *file;
+	size_t n_read;
+
+	file = igt_debugfs_fopen(filename, "r");
+	igt_assert(file);
+
+	n_read = fread(buf, 1, buf_size - 1, file);
+	igt_assert(n_read > 0);
+	igt_assert(feof(file));
+
+	buf[n_read] = '\0';
+
+	igt_assert(fclose(file) == 0);
+}
+
 /*
  * Pipe CRC
  */

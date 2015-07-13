@@ -86,28 +86,11 @@ static void teardown_drm(struct drm_info *drm)
 	igt_assert(close(drm->fd) == 0);
 }
 
-static void debugfs_read(const char *filename, char *buf, int buf_size)
-{
-	FILE *file;
-	size_t n_read;
-
-	file = igt_debugfs_fopen(filename, "r");
-	igt_assert(file);
-
-	n_read = fread(buf, 1, buf_size - 1, file);
-	igt_assert(n_read > 0);
-	igt_assert(feof(file));
-
-	buf[n_read] = '\0';
-
-	igt_assert(fclose(file) == 0);
-}
-
 static bool fbc_supported_on_chipset(void)
 {
 	char buf[128];
 
-	debugfs_read("i915_fbc_status", buf, ARRAY_SIZE(buf));
+	igt_debugfs_read("i915_fbc_status", buf);
 	return !strstr(buf, "FBC unsupported on this chipset\n");
 }
 
@@ -120,7 +103,7 @@ static bool fbc_is_enabled(void)
 {
 	char buf[128];
 
-	debugfs_read("i915_fbc_status", buf, ARRAY_SIZE(buf));
+	igt_debugfs_read("i915_fbc_status", buf);
 	return strstr(buf, "FBC enabled\n");
 }
 
@@ -172,7 +155,7 @@ static bool psr_supported_on_chipset(void)
 {
 	char buf[256];
 
-	debugfs_read("i915_edp_psr_status", buf, ARRAY_SIZE(buf));
+	igt_debugfs_read("i915_edp_psr_status", buf);
 	return strstr(buf, "Sink_Support: yes\n");
 }
 
@@ -185,7 +168,7 @@ static bool psr_is_enabled(void)
 {
 	char buf[256];
 
-	debugfs_read("i915_edp_psr_status", buf, ARRAY_SIZE(buf));
+	igt_debugfs_read("i915_edp_psr_status", buf);
 	return strstr(buf, "\nActive: yes\n");
 }
 

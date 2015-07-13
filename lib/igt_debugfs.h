@@ -34,6 +34,18 @@ enum pipe;
 int igt_debugfs_open(const char *filename, int mode);
 FILE *igt_debugfs_fopen(const char *filename,
 			const char *mode);
+void __igt_debugfs_read(const char *filename, char *buf, int buf_size);
+
+/**
+ * igt_debugfs_read:
+ * @filename: name of the debugfs file
+ * @buf: buffer where the contents will be stored, allocated by the caller.
+ *
+ * This is just a convenience wrapper for __igt_debugfs_read. See its
+ * documentation.
+ */
+#define igt_debugfs_read(filename, buf) \
+		__igt_debugfs_read((filename), (buf), sizeof(buf))
 
 /*
  * Pipe CRC

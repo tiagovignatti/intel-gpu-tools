@@ -215,14 +215,9 @@ static void fill_mmap_gtt(data_t *data, uint32_t handle, unsigned char color)
 
 static bool fbc_enabled(data_t *data)
 {
-	FILE *status;
-	char str[64] = {};
+	char str[128] = {};
 
-	status = igt_debugfs_fopen("i915_fbc_status", "r");
-	igt_assert(status);
-
-	igt_assert(fread(str, 1, sizeof(str) - 1, status) > 0);
-	fclose(status);
+	igt_debugfs_read("i915_fbc_status", str);
 	return strstr(str, "FBC enabled") != NULL;
 }
 
@@ -544,8 +539,7 @@ igt_main
 	igt_skip_on_simulation();
 
 	igt_fixture {
-		char buf[64];
-		FILE *status;
+		char buf[128];
 
 		data.drm_fd = drm_open_any_master();
 		kmstest_set_vt_graphics_mode();
@@ -554,11 +548,7 @@ igt_main
 
 		igt_require_pipe_crc();
 
-		status = igt_debugfs_fopen("i915_fbc_status", "r");
-		igt_require_f(status, "No i915_fbc_status found\n");
-		igt_assert_lt(0, fread(buf, 1, sizeof(buf), status));
-		fclose(status);
-		buf[sizeof(buf) - 1] = '\0';
+		igt_debugfs_read("i915_fbc_status", buf);
 		igt_require_f(!strstr(buf, "unsupported on this chipset"),
 			      "FBC not supported\n");
 
