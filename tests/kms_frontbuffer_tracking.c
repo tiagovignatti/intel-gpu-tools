@@ -1554,7 +1554,10 @@ static void prepare_subtest(const struct test_mode *t,
 		fill_fb_region(&offscreen_fb, 0x80);
 
 	unset_all_crtcs();
-	init_crcs(pattern);
+
+	if (pattern)
+		init_crcs(pattern);
+
 	enable_features_for_test(t);
 
 	enable_prim_screen_and_wait(t);
@@ -2224,11 +2227,10 @@ static void fullscreen_plane_subtest(const struct test_mode *t)
  */
 static void modesetfrombusy_subtest(const struct test_mode *t)
 {
-	struct draw_pattern_info *pattern = &pattern1;
 	struct modeset_params *params = pick_params(t);
 	struct igt_fb fb2;
 
-	prepare_subtest(t, pattern);
+	prepare_subtest(t, NULL);
 
 	igt_create_fb(drm.fd, params->fb.fb->width, params->fb.fb->height,
 		      DRM_FORMAT_XRGB8888, LOCAL_I915_FORMAT_MOD_X_TILED, &fb2);
@@ -2362,7 +2364,7 @@ static void badstride_subtest(const struct test_mode *t)
 
 	try_invalid_strides();
 
-	prepare_subtest(t, &pattern4);
+	prepare_subtest(t, NULL);
 
 	igt_create_fb(drm.fd, params->fb.fb->width + 4096,
 		      params->fb.fb->height, DRM_FORMAT_XRGB8888,
