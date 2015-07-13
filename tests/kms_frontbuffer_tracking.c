@@ -2592,11 +2592,9 @@ int main(int argc, char *argv[])
 	TEST_MODE_ITER_END
 
 	TEST_MODE_ITER_BEGIN(t)
-		if (t.plane != PLANE_PRI)
-			continue;
-		if (t.screen == SCREEN_OFFSCREEN)
-			continue;
-		if (!opt.show_hidden && t.method != IGT_DRAW_BLT)
+		if (t.plane != PLANE_PRI ||
+		    t.screen == SCREEN_OFFSCREEN ||
+		    (!opt.show_hidden && t.method != IGT_DRAW_BLT))
 			continue;
 
 		igt_subtest_f("%s-%s-%s-%s-flip-%s",
@@ -2625,11 +2623,9 @@ int main(int argc, char *argv[])
 	TEST_MODE_ITER_END
 
 	TEST_MODE_ITER_BEGIN(t)
-		if (t.screen == SCREEN_OFFSCREEN)
-			continue;
-		if (t.method != IGT_DRAW_BLT)
-			continue;
-		if (t.plane == PLANE_PRI)
+		if (t.screen == SCREEN_OFFSCREEN ||
+		    t.method != IGT_DRAW_BLT ||
+		    t.plane == PLANE_PRI)
 			continue;
 
 		igt_subtest_f("%s-%s-%s-%s-%s-move",
@@ -2650,11 +2646,9 @@ int main(int argc, char *argv[])
 	TEST_MODE_ITER_END
 
 	TEST_MODE_ITER_BEGIN(t)
-		if (t.screen == SCREEN_OFFSCREEN)
-			continue;
-		if (t.method != IGT_DRAW_BLT)
-			continue;
-		if (t.plane != PLANE_SPR)
+		if (t.screen == SCREEN_OFFSCREEN ||
+		    t.method != IGT_DRAW_BLT ||
+		    t.plane != PLANE_SPR)
 			continue;
 
 		igt_subtest_f("%s-%s-%s-%s-%s-fullscreen",
@@ -2667,9 +2661,8 @@ int main(int argc, char *argv[])
 	TEST_MODE_ITER_END
 
 	TEST_MODE_ITER_BEGIN(t)
-		if (t.screen != SCREEN_PRIM)
-			continue;
-		if (!opt.show_hidden && t.fbs != FBS_INDIVIDUAL)
+		if (t.screen != SCREEN_PRIM ||
+		    (!opt.show_hidden && t.fbs != FBS_INDIVIDUAL))
 			continue;
 
 		igt_subtest_f("%s-%s-%s-%s-multidraw-%s",
@@ -2682,15 +2675,11 @@ int main(int argc, char *argv[])
 	TEST_MODE_ITER_END
 
 	TEST_MODE_ITER_BEGIN(t)
-		if (t.pipes != PIPE_SINGLE)
-			continue;
-		if (t.screen != SCREEN_PRIM)
-			continue;
-		if (t.plane != PLANE_PRI)
-			continue;
-		if (t.fbs != FBS_INDIVIDUAL)
-			continue;
-		if (t.method != IGT_DRAW_MMAP_GTT)
+		if (t.pipes != PIPE_SINGLE ||
+		    t.screen != SCREEN_PRIM ||
+		    t.plane != PLANE_PRI ||
+		    t.fbs != FBS_INDIVIDUAL ||
+		    t.method != IGT_DRAW_MMAP_GTT)
 			continue;
 
 		igt_subtest_f("%s-farfromfence", feature_str(t.feature))
@@ -2698,15 +2687,11 @@ int main(int argc, char *argv[])
 	TEST_MODE_ITER_END
 
 	TEST_MODE_ITER_BEGIN(t)
-		if (t.pipes != PIPE_SINGLE)
-			continue;
-		if (t.screen != SCREEN_PRIM)
-			continue;
-		if (t.plane != PLANE_PRI)
-			continue;
-		if (t.fbs != FBS_INDIVIDUAL)
-			continue;
-		if (t.method != IGT_DRAW_MMAP_CPU)
+		if (t.pipes != PIPE_SINGLE ||
+		    t.screen != SCREEN_PRIM ||
+		    t.plane != PLANE_PRI ||
+		    t.fbs != FBS_INDIVIDUAL ||
+		    t.method != IGT_DRAW_MMAP_CPU)
 			continue;
 
 		igt_subtest_f("%s-modesetfrombusy", feature_str(t.feature))
