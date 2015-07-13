@@ -120,11 +120,6 @@ enum flip_type {
 	FLIP_MODESET,
 };
 
-enum feature_status {
-	ENABLED,
-	DISABLED,
-};
-
 struct rect {
 	int x;
 	int y;
@@ -575,28 +570,22 @@ static void get_debugfs_string(int fd, char *buf)
 	buf[n_read] = '\0';
 }
 
-static enum feature_status fbc_get_status(void)
+static bool fbc_is_enabled(void)
 {
 	char buf[DEBUGFS_MSG_SIZE];
 
 	get_debugfs_string(fbc.fd, buf);
 
-	if (strstr(buf, "FBC enabled\n"))
-		return ENABLED;
-	else
-		return DISABLED;
+	return strstr(buf, "FBC enabled\n");
 }
 
-static enum feature_status psr_get_status(void)
+static bool psr_is_enabled(void)
 {
 	char buf[DEBUGFS_MSG_SIZE];
 
 	get_debugfs_string(psr.fd, buf);
 
-	if (strstr(buf, "\nActive: yes\n"))
-		return ENABLED;
-	else
-		return DISABLED;
+	return (strstr(buf, "\nActive: yes\n"));
 }
 
 static struct timespec fbc_get_last_action(void)
@@ -695,14 +684,14 @@ static void fbc_setup_compressing(void)
 		igt_info("FBC compression information not supported\n");
 }
 
-static bool fbc_wait_for_status(enum feature_status status)
+static bool fbc_wait_until_enabled(void)
 {
-	return igt_wait(fbc_get_status() == status, 5000, 1);
+	return igt_wait(fbc_is_enabled(), 5000, 1);
 }
 
-static bool psr_wait_for_status(enum feature_status status)
+static bool psr_wait_until_enabled(void)
 {
-	return igt_wait(psr_get_status() == status, 5000, 1);
+	return igt_wait(psr_is_enabled(), 5000, 1);
 }
 
 #define fbc_enable() igt_set_module_param_int("enable_fbc", 1)
@@ -1384,19 +1373,19 @@ static int adjust_assertion_flags(const struct test_mode *t, int flags)
 									\
 	if (opt.check_status) {						\
 		if (flags_ & ASSERT_FBC_ENABLED) {			\
-			igt_assert(fbc_wait_for_status(ENABLED));	\
+			igt_assert(fbc_wait_until_enabled());		\
 									\
 			if (fbc.supports_compressing && 		\
 			    opt.fbc_check_compression)			\
 				igt_assert(fbc_wait_for_compression());	\
 		} else if (flags_ & ASSERT_FBC_DISABLED) {		\
-			igt_assert(!fbc_wait_for_status(ENABLED));	\
+			igt_assert(!fbc_wait_until_enabled());		\
 		}							\
 									\
 		if (flags_ & ASSERT_PSR_ENABLED)			\
-			igt_assert(psr_wait_for_status(ENABLED));	\
+			igt_assert(psr_wait_until_enabled());		\
 		else if (flags_ & ASSERT_PSR_DISABLED)			\
-			igt_assert(!psr_wait_for_status(ENABLED));	\
+			igt_assert(!psr_wait_until_enabled());		\
 	} else {							\
 		/* Make sure we settle before continuing. */		\
 		sleep(1);						\
