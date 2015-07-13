@@ -275,6 +275,25 @@ struct {
 	.stop = true,
 };
 
+drmModeModeInfo std_1024_mode = {
+	.clock = 65000,
+	.hdisplay = 1024,
+	.hsync_start = 1048,
+	.hsync_end = 1184,
+	.htotal = 1344,
+	.vtotal = 806,
+	.hskew = 0,
+	.vdisplay = 768,
+	.vsync_start = 771,
+	.vsync_end = 777,
+	.vtotal = 806,
+	.vscan = 0,
+	.vrefresh = 60,
+	.flags = 0xA,
+	.type = 0x40,
+	.name = "Custom 1024x768",
+};
+
 static drmModeModeInfoPtr get_connector_smallest_mode(drmModeConnectorPtr c)
 {
 	int i;
@@ -290,6 +309,9 @@ static drmModeModeInfoPtr get_connector_smallest_mode(drmModeConnectorPtr c)
 		    smallest->hdisplay * smallest->vdisplay)
 			smallest = mode;
 	}
+
+	if (c->connector_type == DRM_MODE_CONNECTOR_eDP)
+		smallest = &std_1024_mode;
 
 	return smallest;
 }
@@ -357,25 +379,6 @@ static void init_mode_params(struct modeset_params *params, uint32_t crtc_id,
 	params->sprite.h = 64;
 }
 
-drmModeModeInfo std_1024_mode = {
-	.clock = 65000,
-	.hdisplay = 1024,
-	.hsync_start = 1048,
-	.hsync_end = 1184,
-	.htotal = 1344,
-	.vtotal = 806,
-	.hskew = 0,
-	.vdisplay = 768,
-	.vsync_start = 771,
-	.vsync_end = 777,
-	.vtotal = 806,
-	.vscan = 0,
-	.vrefresh = 60,
-	.flags = 0xA,
-	.type = 0x40,
-	.name = "Custom 1024x768",
-};
-
 static bool connector_get_mode(drmModeConnectorPtr c, drmModeModeInfoPtr *mode)
 {
 	*mode = NULL;
@@ -391,10 +394,10 @@ static bool connector_get_mode(drmModeConnectorPtr c, drmModeModeInfoPtr *mode)
 	else
 		*mode = &c->modes[0];
 
-	/* Because on some machines we don't have enough stolen memory to fit in
-	 * those 3k panels. And on HSW the CRC WA is so awful that it makes you
-	 * think everything is bugged. */
-	if (c->connector_type == DRM_MODE_CONNECTOR_eDP)
+	 /* On HSW the CRC WA is so awful that it makes you think everything is
+	  * bugged. */
+	if (IS_HASWELL(intel_get_drm_devid(drm.fd)) &&
+	    c->connector_type == DRM_MODE_CONNECTOR_eDP)
 		*mode = &std_1024_mode;
 
 	return true;
