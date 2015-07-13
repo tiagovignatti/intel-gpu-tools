@@ -2251,6 +2251,42 @@ static void modesetfrombusy_subtest(const struct test_mode *t)
 }
 
 /**
+ * suspend - make sure suspend/resume keeps us on the same state
+ *
+ * METHOD
+ *   Set a mode, assert FBC is there, suspend, resume, assert FBC is still
+ *   there. Unset modes, assert FBC is disabled, resuspend, resume, assert FBC
+ *   is still disabled.
+ *
+ * EXPECTED RESULTS
+ *   Suspend/resume doesn't affect the FBC state.
+ *
+ * FAILURES
+ *   A lot of different things could lead to a bug here, you'll have to check
+ *   the Kernel code.
+ */
+static void suspend_subtest(const struct test_mode *t)
+{
+	struct modeset_params *params = pick_params(t);
+
+	prepare_subtest(t, NULL);
+	sleep(5);
+	igt_system_suspend_autoresume();
+	sleep(5);
+	do_assertions(0);
+
+	unset_all_crtcs();
+	sleep(5);
+	igt_system_suspend_autoresume();
+	sleep(5);
+	do_assertions(ASSERT_FBC_DISABLED | ASSERT_PSR_DISABLED |
+		      DONT_ASSERT_CRC);
+
+	set_mode_for_params(params);
+	do_assertions(0);
+}
+
+/**
  * farfromfence - test drawing as far from the fence start as possible
  *
  * METHOD
@@ -2702,6 +2738,9 @@ int main(int argc, char *argv[])
 		if (t.feature & FEATURE_FBC)
 			igt_subtest_f("%s-badstride", feature_str(t.feature))
 				badstride_subtest(&t);
+
+		igt_subtest_f("%s-suspend", feature_str(t.feature))
+			suspend_subtest(&t);
 	TEST_MODE_ITER_END
 
 	/*
