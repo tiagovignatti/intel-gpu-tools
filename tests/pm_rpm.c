@@ -51,9 +51,6 @@
 #include "igt_kms.h"
 #include "igt_gt.h"
 
-/* One day, this will be on your libdrm. */
-#define DRM_CLIENT_CAP_UNIVERSAL_PLANES 2
-
 #define MSR_PC8_RES	0x630
 #define MSR_PC9_RES	0x631
 #define MSR_PC10_RES	0x632
