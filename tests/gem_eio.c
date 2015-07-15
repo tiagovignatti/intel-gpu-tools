@@ -147,9 +147,34 @@ static void test_execbuf(int fd)
 	trigger_reset(fd);
 }
 
+static int __gem_wait(int fd, uint32_t handle, int64_t timeout)
+{
+	struct drm_i915_gem_wait wait;
+	int err = 0;
+
+	memset(&wait, 0, sizeof(wait));
+	wait.bo_handle = handle;
+	wait.timeout_ns = timeout;
+	if (drmIoctl(fd, DRM_IOCTL_I915_GEM_WAIT, &wait))
+		err = -errno;
+
+	return err;
+}
+
+static void test_wait(int fd)
+{
+	igt_hang_ring_t hang;
+
+	hang = igt_hang_ring(fd, I915_EXEC_DEFAULT);
+	igt_assert_eq(__gem_wait(fd, hang.handle, -1), -EIO);
+	igt_post_hang_ring(fd, hang);
+
+	trigger_reset(fd);
+}
+
 igt_main
 {
-	int fd;
+	int fd = -1;
 
 	igt_skip_on_simulation();
 
@@ -163,6 +188,9 @@ igt_main
 
 	igt_subtest("execbuf")
 		test_execbuf(fd);
+
+	igt_subtest("wait")
+		test_wait(fd);
 
 	igt_fixture
 		close(fd);
