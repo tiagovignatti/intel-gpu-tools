@@ -7,7 +7,11 @@ include $(LOCAL_PATH)/Makefile.sources
 define add_tool
     include $(CLEAR_VARS)
 
-    LOCAL_SRC_FILES := $1.c
+    ifeq ($($(1)_SOURCES),)
+        LOCAL_SRC_FILES := $1.c
+    else
+        LOCAL_SRC_FILES := $($(1)_SOURCES)
+    endif
 
     LOCAL_CFLAGS += -DHAVE_TERMIOS_H
     LOCAL_CFLAGS += -DHAVE_STRUCT_SYSINFO_TOTALRAM
