@@ -28,9 +28,14 @@
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
+#include <sys/utsname.h>
+#include <time.h>
 
 #include "ioctl_wrappers.h"
 #include "drmtest.h"
+
+static bool is_x86_64;
+static bool has_proper_timestamp;
 
 struct local_drm_i915_reg_read {
 	__u64 offset;
@@ -39,39 +44,133 @@ struct local_drm_i915_reg_read {
 
 #define REG_READ_IOCTL DRM_IOWR(DRM_COMMAND_BASE + 0x31, struct local_drm_i915_reg_read)
 
-static uint64_t timer_query(int fd)
+#define RENDER_RING_TIMESTAMP 0x2358
+
+static int read_register(int fd, uint64_t offset, uint64_t * val)
 {
+	int ret = 0;
 	struct local_drm_i915_reg_read reg_read;
+	reg_read.offset = offset;
 
-	reg_read.offset = 0x2358;
-	igt_fail_on_f(drmIoctl(fd, REG_READ_IOCTL, &reg_read),
-		      "positive test case failed: ");
+	if (drmIoctl(fd, REG_READ_IOCTL, &reg_read))
+		ret = -errno;
 
-	return reg_read.val;
+	*val = reg_read.val;
+
+	return ret;
 }
 
-igt_simple_main
+static bool check_kernel_x86_64(void)
 {
-	struct local_drm_i915_reg_read reg_read;
-	int fd, ret;
+	int ret;
+	struct utsname uts;
 
-	fd = drm_open_any();
+	ret = uname(&uts);
+	igt_assert(ret == 0);
 
-	reg_read.offset = 0x2358;
-	ret = drmIoctl(fd, REG_READ_IOCTL, &reg_read);
-	igt_assert(ret == 0 || errno == EINVAL);
-	igt_require(ret == 0);
+	if (!strcmp(uts.machine, "x86_64"))
+		return true;
 
-	reg_read.val = timer_query(fd);
+	return false;
+}
+
+static bool check_timestamp(int fd)
+{
+	int ret;
+	uint64_t val;
+
+	ret = read_register(fd, RENDER_RING_TIMESTAMP | 1, &val);
+
+	return ret == 0;
+}
+
+static int timer_query(int fd, uint64_t * val)
+{
+	uint64_t offset;
+	int ret;
+
+	offset = RENDER_RING_TIMESTAMP;
+	if (has_proper_timestamp)
+		offset |= 1;
+
+	ret = read_register(fd, offset, val);
+
+/*
+ * When reading the timestamp register with single 64b read, we are observing
+ * invalid values on x86_64:
+ *
+ *      [f = valid counter value | X = garbage]
+ *
+ *      i386:   0x0000000fffffffff
+ *      x86_64: 0xffffffffXXXXXXXX
+ *
+ * In the absence of a corrected register read ioctl, attempt
+ * to fix up the return value to be vaguely useful.
+ */
+
+	if (is_x86_64 && !has_proper_timestamp)
+		*val >>= 32;
+
+	return ret;
+}
+
+static void test_timestamp_moving(int fd)
+{
+	uint64_t first_val, second_val;
+
+	igt_fail_on(timer_query(fd, &first_val) != 0);
 	sleep(1);
-	/* Check that timer is moving and isn't busted. */
-	igt_assert(timer_query(fd) != reg_read.val);
+	igt_fail_on(timer_query(fd, &second_val) != 0);
+	igt_assert(second_val != first_val);
+}
 
-	/* bad reg */
-	reg_read.offset = 0x12345678;
-	ret = drmIoctl(fd, REG_READ_IOCTL, &reg_read);
+static void test_timestamp_monotonic(int fd)
+{
+	uint64_t first_val, second_val;
+	time_t start;
+	bool retry = true;
 
-	igt_assert(ret != 0 && errno == EINVAL);
+	igt_fail_on(timer_query(fd, &first_val) != 0);
+	time(&start);
+	do {
+retry:
+		igt_fail_on(timer_query(fd, &second_val) != 0);
+		if (second_val < first_val && retry) {
+		/* We may hit timestamp overflow once */
+			retry = false;
+			first_val = second_val;
+			goto retry;
+		}
+		igt_assert(second_val >= first_val);
+	} while(difftime(time(NULL), start) < 5);
 
-	close(fd);
+}
+
+igt_main
+{
+	uint64_t val = 0;
+	int fd = -1;
+
+	igt_fixture {
+		fd = drm_open_any();
+		is_x86_64 = check_kernel_x86_64();
+		has_proper_timestamp = check_timestamp(fd);
+	}
+
+	igt_subtest("bad-register")
+		igt_assert_eq(read_register(fd, 0x12345678, &val), -EINVAL);
+
+	igt_subtest("timestamp-moving") {
+		igt_skip_on(timer_query(fd, &val) != 0);
+		test_timestamp_moving(fd);
+	}
+
+	igt_subtest("timestamp-monotonic") {
+		igt_skip_on(timer_query(fd, &val) != 0);
+		test_timestamp_monotonic(fd);
+	}
+
+	igt_fixture {
+		close(fd);
+	}
 }
