@@ -28,7 +28,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/io.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -37,6 +36,22 @@
 #include "intel_chipset.h"
 
 #include "intel_reg_spec.h"
+
+
+#ifdef HAVE_SYS_IO_H
+#include <sys/io.h>
+#else
+
+static inline int _not_supported(void)
+{
+       fprintf(stderr, "portio-vga not supported\n");
+       exit(EXIT_FAILURE);
+}
+#define inb(port)              _not_supported()
+#define outb(value, port)      _not_supported()
+#define iopl(level)
+
+#endif /* HAVE_SYS_IO_H */
 
 struct config {
 	struct pci_device *pci_dev;
