@@ -221,6 +221,7 @@ static const char *in_subtest = NULL;
 static struct timespec subtest_time;
 static bool in_fixture = false;
 static bool test_with_subtests = false;
+static bool in_atexit_handler = false;
 static enum {
 	CONT = 0, SKIP, FAIL
 } skip_subtests_henceforth = CONT;
@@ -945,6 +946,11 @@ void igt_fail(int exitcode)
 
 	igt_debug_wait_for_keypress("failure");
 
+	/* Exit immediately if the test is already exiting and igt_fail is
+	 * called. This can happen if an igt_assert fails in an exit handler */
+	if (in_atexit_handler)
+		_exit(IGT_EXIT_FAILURE);
+
 	if (!failed_one)
 		igt_exitcode = exitcode;
 
@@ -1410,6 +1416,8 @@ static void call_exit_handlers(int sig)
 
 static void igt_atexit_handler(void)
 {
+	in_atexit_handler = true;
+
 	restore_all_sig_handler();
 
 	if (!exit_handler_disabled)
