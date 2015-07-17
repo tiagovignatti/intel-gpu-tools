@@ -62,6 +62,19 @@ static const uint32_t gen8_gpgpu_kernel[][4] = {
 	{ 0x07800031, 0x20000a40, 0x0e000e00, 0x82000010 },
 };
 
+static const uint32_t gen9_gpgpu_kernel[][4] = {
+	{ 0x00400001, 0x20202288, 0x00000020, 0x00000000 },
+	{ 0x00000041, 0x20400208, 0x06000004, 0x00000010 },
+	{ 0x00000001, 0x20440208, 0x00000018, 0x00000000 },
+	{ 0x00600001, 0x20800208, 0x008d0000, 0x00000000 },
+	{ 0x00200001, 0x20800208, 0x00450040, 0x00000000 },
+	{ 0x00000001, 0x20880608, 0x00000000, 0x0000000f },
+	{ 0x00800001, 0x20a00208, 0x00000020, 0x00000000 },
+	{ 0x0c800031, 0x24000a40, 0x06000080, 0x060a8000 },
+	{ 0x00600001, 0x2e000208, 0x008d0000, 0x00000000 },
+	{ 0x07800031, 0x20000a40, 0x06000e00, 0x82000010 },
+};
+
 static uint32_t
 batch_used(struct intel_batchbuffer *batch)
 {
@@ -390,6 +403,47 @@ gen8_emit_state_base_address(struct intel_batchbuffer *batch)
 }
 
 static void
+gen9_emit_state_base_address(struct intel_batchbuffer *batch)
+{
+	OUT_BATCH(GEN8_STATE_BASE_ADDRESS | (19 - 2));
+
+	/* general */
+	OUT_BATCH(0 | BASE_ADDRESS_MODIFY);
+	OUT_BATCH(0);
+
+	/* stateless data port */
+	OUT_BATCH(0 | BASE_ADDRESS_MODIFY);
+
+	/* surface */
+	OUT_RELOC(batch->bo, I915_GEM_DOMAIN_SAMPLER, 0, BASE_ADDRESS_MODIFY);
+
+	/* dynamic */
+	OUT_RELOC(batch->bo, I915_GEM_DOMAIN_RENDER | I915_GEM_DOMAIN_INSTRUCTION,
+		0, BASE_ADDRESS_MODIFY);
+
+	/* indirect */
+	OUT_BATCH(0);
+	OUT_BATCH(0);
+
+	/* instruction */
+	OUT_RELOC(batch->bo, I915_GEM_DOMAIN_INSTRUCTION, 0, BASE_ADDRESS_MODIFY);
+
+	/* general state buffer size */
+	OUT_BATCH(0xfffff000 | 1);
+	/* dynamic state buffer size */
+	OUT_BATCH(1 << 12 | 1);
+	/* indirect object buffer size */
+	OUT_BATCH(0xfffff000 | 1);
+	/* intruction buffer size, must set modify enable bit, otherwise it may result in GPU hang */
+	OUT_BATCH(1 << 12 | 1);
+
+	/* Bindless surface state base address */
+	OUT_BATCH(0 | BASE_ADDRESS_MODIFY);
+	OUT_BATCH(0);
+	OUT_BATCH(0xfffff000);
+}
+
+static void
 gen7_emit_vfe_state_gpgpu(struct intel_batchbuffer *batch)
 {
 	OUT_BATCH(GEN7_MEDIA_VFE_STATE | (8 - 2));
@@ -694,6 +748,54 @@ gen8_gpgpu_fillfunc(struct intel_batchbuffer *batch,
 	gen8_emit_vfe_state_gpgpu(batch);
 	gen7_emit_curbe_load(batch, curbe_buffer);
 	gen8_emit_interface_descriptor_load(batch, interface_descriptor);
+	gen8_emit_gpgpu_walk(batch, x, y, width, height);
+
+	OUT_BATCH(MI_BATCH_BUFFER_END);
+
+	batch_end = batch_align(batch, 8);
+	igt_assert(batch_end < BATCH_STATE_SPLIT);
+
+	gen7_render_flush(batch, batch_end);
+	intel_batchbuffer_reset(batch);
+}
+
+void
+gen9_gpgpu_fillfunc(struct intel_batchbuffer *batch,
+		    struct igt_buf *dst,
+		    unsigned x, unsigned y,
+		    unsigned width, unsigned height,
+		    uint8_t color)
+{
+	uint32_t curbe_buffer, interface_descriptor;
+	uint32_t batch_end;
+
+	intel_batchbuffer_flush(batch);
+
+	/* setup states */
+	batch->ptr = &batch->buffer[BATCH_STATE_SPLIT];
+
+	/*
+	 * const buffer needs to fill for every thread, but as we have just 1 thread
+	 * per every group, so need only one curbe data.
+	 *
+	 * For each thread, just use thread group ID for buffer offset.
+	 */
+	curbe_buffer = gen7_fill_curbe_buffer_data(batch, color);
+
+	interface_descriptor = gen8_fill_interface_descriptor(batch, dst,
+							      gen9_gpgpu_kernel,
+							      sizeof(gen9_gpgpu_kernel));
+	igt_assert(batch->ptr < &batch->buffer[4095]);
+
+	batch->ptr = batch->buffer;
+
+	/* GPGPU pipeline */
+	OUT_BATCH(GEN7_PIPELINE_SELECT | PIPELINE_SELECT_GPGPU);
+
+	gen9_emit_state_base_address(batch);
+	gen8_emit_vfe_state_gpgpu(batch);
+	gen7_emit_curbe_load(batch, curbe_buffer);
+	gen7_emit_interface_descriptor_load(batch, interface_descriptor);
 	gen8_emit_gpgpu_walk(batch, x, y, width, height);
 
 	OUT_BATCH(MI_BATCH_BUFFER_END);
