@@ -41,6 +41,7 @@
 #include "media_fill.h"
 #include "ioctl_wrappers.h"
 #include "media_spin.h"
+#include "gpgpu_fill.h"
 
 #include <i915_drm.h>
 

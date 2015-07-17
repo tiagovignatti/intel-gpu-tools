@@ -1,23 +1,49 @@
+/*
+ * Copyright © 2015 Intel Corporation
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a
+ * copy of this software and associated documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
+ * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ *
+ * Authors:
+ *  Zhenyu Wang <zhenyuw@linux.intel.com>
+ *  Dominik Zeromski <dominik.zeromski@intel.com>
+ */
+
 #include <intel_bufmgr.h>
 #include <i915_drm.h>
 
-#include "media_fill.h"
-#include "gen7_media.h"
 #include "intel_reg.h"
 #include "drmtest.h"
+#include "intel_batchbuffer.h"
+#include "gen7_media.h"
+#include "gpgpu_fill.h"
 
-#include <assert.h>
-
-static const uint32_t media_kernel[][4] = {
+/* shaders/gpgpu/gpgpu_fill.gxa */
+static const uint32_t gen7_gpgpu_kernel[][4] = {
 	{ 0x00400001, 0x20200231, 0x00000020, 0x00000000 },
+	{ 0x00000041, 0x20400c21, 0x00000004, 0x00000010 },
+	{ 0x00000001, 0x20440021, 0x00000018, 0x00000000 },
 	{ 0x00600001, 0x20800021, 0x008d0000, 0x00000000 },
 	{ 0x00200001, 0x20800021, 0x00450040, 0x00000000 },
-	{ 0x00000001, 0x20880061, 0x00000000, 0x000f000f },
+	{ 0x00000001, 0x20880061, 0x00000000, 0x0000000f },
 	{ 0x00800001, 0x20a00021, 0x00000020, 0x00000000 },
-	{ 0x00800001, 0x20e00021, 0x00000020, 0x00000000 },
-	{ 0x00800001, 0x21200021, 0x00000020, 0x00000000 },
-	{ 0x00800001, 0x21600021, 0x00000020, 0x00000000 },
-	{ 0x05800031, 0x24001ca8, 0x00000080, 0x120a8000 },
+	{ 0x05800031, 0x24001ca8, 0x00000080, 0x060a8000 },
 	{ 0x00600001, 0x2e000021, 0x008d0000, 0x00000000 },
 	{ 0x07800031, 0x20001ca8, 0x00000e00, 0x82000010 },
 };
@@ -52,7 +78,8 @@ batch_offset(struct intel_batchbuffer *batch, void *ptr)
 }
 
 static uint32_t
-batch_copy(struct intel_batchbuffer *batch, const void *ptr, uint32_t size, uint32_t align)
+batch_copy(struct intel_batchbuffer *batch, const void *ptr, uint32_t size,
+	   uint32_t align)
 {
 	return batch_offset(batch, memcpy(batch_alloc(batch, size, align), ptr, size));
 }
@@ -147,7 +174,7 @@ gen7_fill_binding_table(struct intel_batchbuffer *batch,
 }
 
 static uint32_t
-gen7_fill_media_kernel(struct intel_batchbuffer *batch,
+gen7_fill_gpgpu_kernel(struct intel_batchbuffer *batch,
 		const uint32_t kernel[][4],
 		size_t size)
 {
@@ -167,7 +194,7 @@ gen7_fill_interface_descriptor(struct intel_batchbuffer *batch, struct igt_buf *
 	uint32_t binding_table_offset, kernel_offset;
 
 	binding_table_offset = gen7_fill_binding_table(batch, dst);
-	kernel_offset = gen7_fill_media_kernel(batch, kernel, size);
+	kernel_offset = gen7_fill_gpgpu_kernel(batch, kernel, size);
 
 	idd = batch_alloc(batch, sizeof(*idd), 64);
 	offset = batch_offset(batch, idd);
@@ -217,7 +244,7 @@ gen7_emit_state_base_address(struct intel_batchbuffer *batch)
 }
 
 static void
-gen7_emit_vfe_state(struct intel_batchbuffer *batch)
+gen7_emit_vfe_state_gpgpu(struct intel_batchbuffer *batch)
 {
 	OUT_BATCH(GEN7_MEDIA_VFE_STATE | (8 - 2));
 
@@ -225,14 +252,15 @@ gen7_emit_vfe_state(struct intel_batchbuffer *batch)
 	OUT_BATCH(0);
 
 	/* number of threads & urb entries */
-	OUT_BATCH(1 << 16 |
-		2 << 8);
+	OUT_BATCH(1 << 16 | /* max num of threads */
+		  0 << 8 | /* num of URB entry */
+		  1 << 2); /* GPGPU mode */
 
 	OUT_BATCH(0);
 
 	/* urb entry size & curbe size */
-	OUT_BATCH(2 << 16 | 	/* in 256 bits unit */
-		2);		/* in 256 bits unit */
+	OUT_BATCH(0 << 16 | 	/* URB entry size in 256 bits unit */
+		  1);		/* CURBE entry size in 256 bits unit */
 
 	/* scoreboard */
 	OUT_BATCH(0);
@@ -263,36 +291,64 @@ gen7_emit_interface_descriptor_load(struct intel_batchbuffer *batch, uint32_t in
 }
 
 static void
-gen7_emit_media_objects(struct intel_batchbuffer *batch,
-			unsigned x, unsigned y,
-			unsigned width, unsigned height)
+gen7_emit_gpgpu_walk(struct intel_batchbuffer *batch,
+		     unsigned x, unsigned y,
+		     unsigned width, unsigned height)
 {
-	int i, j;
+	uint32_t x_dim, y_dim, tmp, right_mask;
 
-	for (i = 0; i < width / 16; i++) {
-		for (j = 0; j < height / 16; j++) {
-			OUT_BATCH(GEN7_MEDIA_OBJECT | (8 - 2));
+	/*
+	 * Simply do SIMD16 based dispatch, so every thread uses
+	 * SIMD16 channels.
+	 *
+	 * Define our own thread group size, e.g 16x1 for every group, then
+	 * will have 1 thread each group in SIMD16 dispatch. So thread
+	 * width/height/depth are all 1.
+	 *
+	 * Then thread group X = width / 16 (aligned to 16)
+	 * thread group Y = height;
+	 */
+	x_dim = (width + 15) / 16;
+	y_dim = height;
 
-			/* interface descriptor offset */
-			OUT_BATCH(0);
+	tmp = width & 15;
+	if (tmp == 0)
+		right_mask = (1 << 16) - 1;
+	else
+		right_mask = (1 << tmp) - 1;
 
-			/* without indirect data */
-			OUT_BATCH(0);
-			OUT_BATCH(0);
+	OUT_BATCH(GEN7_GPGPU_WALKER | 9);
 
-			/* scoreboard */
-			OUT_BATCH(0);
-			OUT_BATCH(0);
+	/* interface descriptor offset */
+	OUT_BATCH(0);
 
-			/* inline data (xoffset, yoffset) */
-			OUT_BATCH(x + i * 16);
-			OUT_BATCH(y + j * 16);
-		}
-	}
+	/* SIMD size, thread w/h/d */
+	OUT_BATCH(1 << 30 | /* SIMD16 */
+		  0 << 16 | /* depth:1 */
+		  0 << 8 | /* height:1 */
+		  0); /* width:1 */
+
+	/* thread group X */
+	OUT_BATCH(0);
+	OUT_BATCH(x_dim);
+
+	/* thread group Y */
+	OUT_BATCH(0);
+	OUT_BATCH(y_dim);
+
+	/* thread group Z */
+	OUT_BATCH(0);
+	OUT_BATCH(1);
+
+	/* right mask */
+	OUT_BATCH(right_mask);
+
+	/* bottom mask, height 1, always 0xffffffff */
+	OUT_BATCH(0xffffffff);
 }
 
 /*
- * This sets up the media pipeline,
+ * This sets up the gpgpu pipeline,
  *
  * +---------------+ <---- 4096
  * |       ^       |
@@ -314,11 +370,11 @@ gen7_emit_media_objects(struct intel_batchbuffer *batch,
 #define BATCH_STATE_SPLIT 2048
 
 void
-gen7_media_fillfunc(struct intel_batchbuffer *batch,
-		struct igt_buf *dst,
-		unsigned x, unsigned y,
-		unsigned width, unsigned height,
-		uint8_t color)
+gen7_gpgpu_fillfunc(struct intel_batchbuffer *batch,
+		    struct igt_buf *dst,
+		    unsigned x, unsigned y,
+		    unsigned width, unsigned height,
+		    uint8_t color)
 {
 	uint32_t curbe_buffer, interface_descriptor;
 	uint32_t batch_end;
@@ -328,24 +384,33 @@ gen7_media_fillfunc(struct intel_batchbuffer *batch,
 	/* setup states */
 	batch->ptr = &batch->buffer[BATCH_STATE_SPLIT];
 
+	/*
+	 * const buffer needs to fill for every thread, but as we have just 1 thread
+	 * per every group, so need only one curbe data.
+	 *
+	 * For each thread, just use thread group ID for buffer offset.
+	 */
 	curbe_buffer = gen7_fill_curbe_buffer_data(batch, color);
+
 	interface_descriptor = gen7_fill_interface_descriptor(batch, dst,
-							      media_kernel,
-							      sizeof(media_kernel));
+							      gen7_gpgpu_kernel,
+							      sizeof(gen7_gpgpu_kernel));
 	igt_assert(batch->ptr < &batch->buffer[4095]);
 
-	/* media pipeline */
 	batch->ptr = batch->buffer;
-	OUT_BATCH(GEN7_PIPELINE_SELECT | PIPELINE_SELECT_MEDIA);
+
+	/* GPGPU pipeline */
+	OUT_BATCH(GEN7_PIPELINE_SELECT | PIPELINE_SELECT_GPGPU);
+
 	gen7_emit_state_base_address(batch);
 
-	gen7_emit_vfe_state(batch);
+	gen7_emit_vfe_state_gpgpu(batch);
 
 	gen7_emit_curbe_load(batch, curbe_buffer);
 
 	gen7_emit_interface_descriptor_load(batch, interface_descriptor);
 
-	gen7_emit_media_objects(batch, x, y, width, height);
+	gen7_emit_gpgpu_walk(batch, x, y, width, height);
 
 	OUT_BATCH(MI_BATCH_BUFFER_END);
 

@@ -32,7 +32,9 @@ libintel_tools_la_SOURCES = 	\
 	media_fill_gen8lp.c     \
 	media_fill_gen9.c       \
 	media_spin.h		\
-	media_spin.c	\
+	media_spin.c		\
+	gpgpu_fill.h		\
+	gpgpu_fill.c		\
 	gen7_media.h            \
 	gen8_media.h            \
 	rendercopy_i915.c	\
