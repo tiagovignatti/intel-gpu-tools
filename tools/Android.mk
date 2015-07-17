@@ -45,6 +45,10 @@ skip_tools_list := \
     intel_vga_read \
     intel_vga_write
 
+ifneq ("${ANDROID_HAS_CAIRO}", "1")
+    skip_tools_list += intel_display_crc
+endif
+
 tools_list := $(filter-out $(skip_tools_list),$(bin_PROGRAMS))
 
 $(foreach item,$(tools_list),$(eval $(call add_tool,$(item))))
