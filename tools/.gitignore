@@ -1,5 +1,6 @@
 # Please keep sorted alphabetically
 hsw_compute_wrpll
+igt_stats
 intel_audio_dump
 intel_backlight
 intel_bios_dumper

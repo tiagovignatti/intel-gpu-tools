@@ -5,6 +5,7 @@ noinst_PROGRAMS = \
 	$(NULL)
 
 bin_PROGRAMS = 				\
+	igt_stats			\
 	intel_audio_dump 		\
 	intel_reg			\
 	intel_backlight 		\
