@@ -31,6 +31,9 @@
 
 #define U64_MAX         ((uint64_t)~0ULL)
 
+#define sorted_value(stats, i) (stats->is_float ? stats->sorted_f[i] : stats->sorted_u64[i])
+#define unsorted_value(stats, i) (stats->is_float ? stats->values_f[i] : stats->values_u64[i])
+
 /**
  * SECTION:igt_stats
  * @short_description: Tools for statistical analysis
@@ -84,14 +87,14 @@ static void igt_stats_ensure_capacity(igt_stats_t *stats,
 		return;
 
 	new_capacity = get_new_capacity(new_n_values);
-	stats->values = realloc(stats->values,
-				sizeof(*stats->values) * new_capacity);
-	igt_assert(stats->values);
+	stats->values_u64 = realloc(stats->values_u64,
+				    sizeof(*stats->values_u64) * new_capacity);
+	igt_assert(stats->values_u64);
 
 	stats->capacity = new_capacity;
 
-	free(stats->sorted);
-	stats->sorted = NULL;
+	free(stats->sorted_u64);
+	stats->sorted_u64 = NULL;
 }
 
 /**
@@ -130,6 +133,8 @@ void igt_stats_init_with_size(igt_stats_t *stats, unsigned int capacity)
 
 	stats->min = U64_MAX;
 	stats->max = 0;
+	stats->range[0] = HUGE_VAL;
+	stats->range[1] = -HUGE_VAL;
 }
 
 /**
@@ -140,8 +145,8 @@ void igt_stats_init_with_size(igt_stats_t *stats, unsigned int capacity)
  */
 void igt_stats_fini(igt_stats_t *stats)
 {
-	free(stats->values);
-	free(stats->sorted);
+	free(stats->values_u64);
+	free(stats->sorted_u64);
 }
 
 
@@ -202,9 +207,14 @@ void igt_stats_set_population(igt_stats_t *stats, bool full_population)
  */
 void igt_stats_push(igt_stats_t *stats, uint64_t value)
 {
+	if (stats->is_float) {
+		igt_stats_push_float(stats, value);
+		return;
+	}
+
 	igt_stats_ensure_capacity(stats, 1);
 
-	stats->values[stats->n_values++] = value;
+	stats->values_u64[stats->n_values++] = value;
 
 	stats->mean_variance_valid = false;
 	stats->sorted_array_valid = false;
@@ -213,6 +223,38 @@ void igt_stats_push(igt_stats_t *stats, uint64_t value)
 		stats->min = value;
 	if (value > stats->max)
 		stats->max = value;
+}
+
+/**
+ * igt_stats_push:
+ * @stats: An #igt_stats_t instance
+ * @value: An floating point
+ *
+ * Adds a new value to the @stats dataset and converts the igt_stats from
+ * an integer collection to a floating point one.
+ */
+void igt_stats_push_float(igt_stats_t *stats, double value)
+{
+	igt_stats_ensure_capacity(stats, 1);
+
+	if (!stats->is_float) {
+		int n;
+
+		for (n = 0; n < stats->n_values; n++)
+			stats->values_f[n] = stats->values_u64[n];
+
+		stats->is_float = true;
+	}
+
+	stats->values_f[stats->n_values++] = value;
+
+	stats->mean_variance_valid = false;
+	stats->sorted_array_valid = false;
+
+	if (value < stats->range[0])
+		stats->range[0] = value;
+	if (value > stats->range[1])
+		stats->range[1] = value;
 }
 
 /**
@@ -242,6 +284,7 @@ void igt_stats_push_array(igt_stats_t *stats,
  */
 uint64_t igt_stats_get_min(igt_stats_t *stats)
 {
+	igt_assert(!stats->is_float);
 	return stats->min;
 }
 
@@ -253,6 +296,7 @@ uint64_t igt_stats_get_min(igt_stats_t *stats)
  */
 uint64_t igt_stats_get_max(igt_stats_t *stats)
 {
+	igt_assert(!stats->is_float);
 	return stats->max;
 }
 
@@ -283,26 +327,39 @@ static int cmp_u64(const void *pa, const void *pb)
 	return 0;
 }
 
+static int cmp_f(const void *pa, const void *pb)
+{
+	const double *a = pa, *b = pb;
+
+	if (*a < *b)
+		return -1;
+	if (*a > *b)
+		return 1;
+	return 0;
+}
+
 static void igt_stats_ensure_sorted_values(igt_stats_t *stats)
 {
 	if (stats->sorted_array_valid)
 		return;
 
-	if (!stats->sorted) {
+	if (!stats->sorted_u64) {
 		/*
 		 * igt_stats_ensure_capacity() will free ->sorted when the
 		 * capacity increases, which also correspond to an invalidation
 		 * of the sorted array. We'll then reallocate it here on
 		 * demand.
 		 */
-		stats->sorted = calloc(stats->capacity, sizeof(*stats->values));
-		igt_assert(stats->sorted);
+		stats->sorted_u64 = calloc(stats->capacity,
+					   sizeof(*stats->values_u64));
+		igt_assert(stats->sorted_u64);
 	}
 
-	memcpy(stats->sorted, stats->values,
-	       sizeof(*stats->values) * stats->n_values);
+	memcpy(stats->sorted_u64, stats->values_u64,
+	       sizeof(*stats->values_u64) * stats->n_values);
 
-	qsort(stats->sorted, stats->n_values, sizeof(*stats->values), cmp_u64);
+	qsort(stats->sorted_u64, stats->n_values, sizeof(*stats->values_u64),
+	      stats->is_float ? cmp_f : cmp_u64);
 
 	stats->sorted_array_valid = true;
 }
@@ -326,7 +383,7 @@ igt_stats_get_median_internal(igt_stats_t *stats,
 	if (n_values % 2 == 1) {
 		/* median is the value in the middle (actual datum) */
 		mid = start + n_values / 2;
-		median = stats->sorted[mid];
+		median = sorted_value(stats, mid);
 
 		/* the two halves contain the median value */
 		if (lower_end)
@@ -342,7 +399,7 @@ igt_stats_get_median_internal(igt_stats_t *stats,
 		 * values.
 		 */
 		mid = start + n_values / 2 - 1;
-		median = (stats->sorted[mid] + stats->sorted[mid + 1]) / 2.;
+		median = (sorted_value(stats, mid) + sorted_value(stats, mid+1))/2.;
 
 		if (lower_end)
 			*lower_end = mid + 1;
@@ -439,10 +496,10 @@ static void igt_stats_knuth_mean_variance(igt_stats_t *stats)
 		return;
 
 	for (i = 0; i < stats->n_values; i++) {
-		double delta = stats->values[i] - mean;
+		double delta = unsorted_value(stats, i) - mean;
 
 		mean += delta / (i + 1);
-		m2 += delta * (stats->values[i] - mean);
+		m2 += delta * (unsorted_value(stats, i) - mean);
 	}
 
 	stats->mean = mean;
@@ -518,7 +575,7 @@ double igt_stats_get_iqm(igt_stats_t *stats)
 
 	mean = 0;
 	for (i = 0; i <= q3 - q1; i++)
-		mean += (stats->sorted[q1 + i] - mean) / (i + 1);
+		mean += (sorted_value(stats, q1 + i) - mean) / (i + 1);
 
 	if (stats->n_values % 4) {
 		double rem = .5 * (stats->n_values % 4) / 4;
@@ -526,8 +583,8 @@ double igt_stats_get_iqm(igt_stats_t *stats)
 		q1 = (stats->n_values) / 4;
 		q3 = (3 * stats->n_values + 3) / 4;
 
-		mean += rem * (stats->sorted[q1] - mean) / i++;
-		mean += rem * (stats->sorted[q3] - mean) / i++;
+		mean += rem * (sorted_value(stats, q1) - mean) / i++;
+		mean += rem * (sorted_value(stats, q3) - mean) / i++;
 	}
 
 	return mean;
