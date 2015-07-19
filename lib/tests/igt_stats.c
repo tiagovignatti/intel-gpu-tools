@@ -217,10 +217,11 @@ static void test_reallocation(void)
 		if (i > 10)
 			igt_stats_get_median(&stats);
 	}
+	igt_assert(!stats.is_float);
 
 	igt_assert_eq(stats.n_values, 101);
 	for (i = 0; i < 101; i++)
-		igt_assert_eq(stats.values[i], i);
+		igt_assert_eq(stats.values_u64[i], i);
 	igt_assert_eq_double(igt_stats_get_mean(&stats), 50.0);
 	igt_assert_eq_double(igt_stats_get_median(&stats), 50.0);
 
