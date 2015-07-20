@@ -29,7 +29,7 @@ if HAVE_RST2MAN
 appman_DATA += $(appman_RST:rst=$(APP_MAN_SUFFIX))
 endif
 
-EXTRA_DIST = $(appman_PRE)
+EXTRA_DIST = $(appman_PRE) $(appman_RST)
 CLEANFILES = $(appman_DATA)
 
 # String replacements in MAN_SUBSTS now come from xorg-macros.m4 via configure
