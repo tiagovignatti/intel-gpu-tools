@@ -259,7 +259,7 @@ static void draw(struct context *ctx) {
 			size_t bo_stride = gbm_bo_get_stride(ctx->gbm_buffer[fb_idx]);
 			size_t bo_size = gbm_bo_get_stride(ctx->gbm_buffer[fb_idx]) * gbm_bo_get_height(ctx->gbm_buffer[fb_idx]);
 			uint32_t *bo_ptr;
-			uint32_t *ptr;
+			volatile uint32_t *ptr;
 			struct timeval start, end;
 
 			for (sequence_subindex = 0; sequence_subindex < 4; sequence_subindex++) {
@@ -293,11 +293,12 @@ static void draw(struct context *ctx) {
 						int x = ((char*)ptr - (char*)bo_ptr - bo_stride * y) / sizeof(*ptr);
 						x -= 100;
 						y -= 100;
-						*ptr = 0xff000000;
+						int var = 0xff000000;
 						if (x * x + y * y < i * i)
-							*ptr |= (i % 0x100) << 8;
+							var |= (i % 0x100) << 8;
 						else
-							*ptr |= 0xff | (sequence_index * 64 << 16);
+							var |= 0xff | (sequence_index * 64 << 16);
+            *ptr = var;
 					}
 					break;
 
