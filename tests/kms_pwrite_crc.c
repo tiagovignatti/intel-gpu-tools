@@ -52,7 +52,6 @@ typedef struct {
 
 static void test(data_t *data)
 {
-	igt_display_t *display = &data->display;
 	igt_output_t *output = data->output;
 	struct igt_fb *fb = &data->fb[1];
 	drmModeModeInfo *mode;
@@ -72,12 +71,20 @@ static void test(data_t *data)
 	cairo_destroy(cr);
 
 	/* flip to it to make it UC/WC and fully flushed */
-	igt_plane_set_fb(data->primary, fb);
-	igt_display_commit(display);
+	drmModeSetPlane(data->drm_fd,
+			data->primary->drm_plane->plane_id,
+			output->config.crtc->crtc_id,
+			fb->fb_id, 0,
+			0, 0, fb->width, fb->height,
+			0, 0, fb->width << 16, fb->height << 16);
 
 	/* flip back the original white buffer */
-	igt_plane_set_fb(data->primary, &data->fb[0]);
-	igt_display_commit(display);
+	drmModeSetPlane(data->drm_fd,
+			data->primary->drm_plane->plane_id,
+			output->config.crtc->crtc_id,
+			data->fb[0].fb_id, 0,
+			0, 0, fb->width, fb->height,
+			0, 0, fb->width << 16, fb->height << 16);
 
 	/* make sure caching mode has become UC/WT */
 	caching = gem_get_caching(data->drm_fd, fb->gem_handle);
@@ -91,8 +98,12 @@ static void test(data_t *data)
 	free(buf);
 
 	/* and flip to it */
-	igt_plane_set_fb(data->primary, fb);
-	igt_display_commit(display);
+	drmModeSetPlane(data->drm_fd,
+			data->primary->drm_plane->plane_id,
+			output->config.crtc->crtc_id,
+			fb->fb_id, 0,
+			0, 0, fb->width, fb->height,
+			0, 0, fb->width << 16, fb->height << 16);
 
 	/* check that the crc is as expected, which requires that caches got flushed */
 	igt_pipe_crc_collect_crc(data->pipe_crc, &crc);
