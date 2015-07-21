@@ -32,10 +32,10 @@
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
+#include <time.h>
 
 
-#define SLEEP_DURATION 3000 // in milliseconds
-#define CODE_TIME 50 // in microseconfs
+#define SLEEP_DURATION 3 /* in seconds */
 
 #define RC6_ENABLED	1
 #define RC6P_ENABLED	2
@@ -46,6 +46,7 @@ struct residencies {
 	int media_rc6;
 	int rc6p;
 	int rc6pp;
+	int duration;
 };
 
 static unsigned int readit(const char *path)
@@ -96,14 +97,15 @@ static int read_rc6_residency(const char *name_of_rc6_residency)
 }
 
 static void residency_accuracy(unsigned int diff,
+			       unsigned int duration,
 			       const char *name_of_rc6_residency)
 {
 	double ratio;
 
-	ratio = (double)diff / (SLEEP_DURATION + CODE_TIME);
+	ratio = (double)diff / duration;
 
-	igt_info("Residency in %s or deeper state: %u ms (ratio to expected duration: %.02f)\n",
-		 name_of_rc6_residency, diff, ratio);
+	igt_info("Residency in %s or deeper state: %u ms (sleep duration %u ms) (ratio to expected duration: %.02f)\n",
+		 name_of_rc6_residency, diff, duration, ratio);
 	igt_assert_f(ratio > 0.9 && ratio <= 1,
 		     "Sysfs RC6 residency counter is inaccurate.\n");
 }
@@ -125,12 +127,22 @@ static void read_residencies(int devid, unsigned int rc6_mask,
 		res->rc6pp = read_rc6_residency("rc6pp");
 }
 
+static unsigned long gettime_ms(void)
+{
+	struct timespec ts;
+
+	clock_gettime(CLOCK_MONOTONIC, &ts);
+
+	return ts.tv_sec * 1000 + ts.tv_nsec / 1000000;
+}
+
 static void measure_residencies(int devid, unsigned int rc6_mask,
 				struct residencies *res)
 {
 	struct residencies start = { };
 	struct residencies end = { };
 	int retry;
+	unsigned long t;
 
 	if (!rc6_mask)
 		return;
@@ -147,9 +159,11 @@ static void measure_residencies(int devid, unsigned int rc6_mask,
 	 * different platforms and so fixing it up would be non-trivial.
 	 */
 	for (retry = 0; retry < 2; retry++) {
+		t = gettime_ms();
 		read_residencies(devid, rc6_mask, &start);
-		sleep(SLEEP_DURATION / 1000);
+		sleep(SLEEP_DURATION);
 		read_residencies(devid, rc6_mask, &end);
+		t = gettime_ms() - t;
 
 		if (end.rc6 >= start.rc6 && end.media_rc6 >= start.media_rc6 &&
 		    end.rc6p >= start.rc6p && end.rc6pp >= start.rc6pp)
@@ -161,6 +175,7 @@ static void measure_residencies(int devid, unsigned int rc6_mask,
 	res->rc6p = end.rc6p - start.rc6p;
 	res->rc6pp = end.rc6pp - start.rc6pp;
 	res->media_rc6 = end.media_rc6 - start.media_rc6;
+	res->duration = t;
 
 	/*
 	 * For the purposes of this test case we want a given residency value
@@ -196,22 +211,22 @@ igt_main
 	igt_subtest("rc6-accuracy") {
 		igt_skip_on(!(rc6_mask & RC6_ENABLED));
 
-		residency_accuracy(res.rc6, "rc6");
+		residency_accuracy(res.rc6, res.duration, "rc6");
 	}
 	igt_subtest("media-rc6-accuracy") {
 		igt_skip_on(!((rc6_mask & RC6_ENABLED) &&
 			      (IS_VALLEYVIEW(devid) || IS_CHERRYVIEW(devid))));
 
-		residency_accuracy(res.media_rc6, "media_rc6");
+		residency_accuracy(res.media_rc6, res.duration, "media_rc6");
 	}
 	igt_subtest("rc6p-accuracy") {
 		igt_skip_on(!(rc6_mask & RC6P_ENABLED));
 
-		residency_accuracy(res.rc6p, "rc6p");
+		residency_accuracy(res.rc6p, res.duration, "rc6p");
 	}
 	igt_subtest("rc6pp-accuracy") {
 		igt_skip_on(!(rc6_mask & RC6PP_ENABLED));
 
-		residency_accuracy(res.rc6pp, "rc6pp");
+		residency_accuracy(res.rc6pp, res.duration, "rc6pp");
 	}
 }

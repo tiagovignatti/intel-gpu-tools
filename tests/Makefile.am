@@ -85,6 +85,7 @@ gem_userptr_blits_LDADD = $(LDADD) -lpthread
 
 gem_wait_LDADD = $(LDADD) -lrt
 kms_flip_LDADD = $(LDADD) -lrt -lpthread
+pm_rc6_residency_LDADD = $(LDADD) -lrt
 
 prime_nv_test_CFLAGS = $(AM_CFLAGS) $(DRM_NOUVEAU_CFLAGS)
 prime_nv_test_LDADD = $(LDADD) $(DRM_NOUVEAU_LIBS)
