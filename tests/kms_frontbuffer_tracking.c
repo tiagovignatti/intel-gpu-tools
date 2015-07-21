@@ -824,6 +824,14 @@ static void fbc_setup_compressing(void)
 		igt_info("FBC compression information not supported\n");
 }
 
+static bool fbc_not_enough_stolen(void)
+{
+	char buf[128];
+
+	igt_debugfs_read("i915_fbc_status", buf);
+	return strstr(buf, "FBC disabled: not enough stolen memory\n");
+}
+
 static bool fbc_wait_until_enabled(void)
 {
 	return igt_wait(fbc_is_enabled(), 5000, 1);
@@ -1548,6 +1556,7 @@ static int adjust_assertion_flags(const struct test_mode *t, int flags)
 									\
 	if (opt.check_status) {						\
 		if (flags_ & ASSERT_FBC_ENABLED) {			\
+			igt_require(!fbc_not_enough_stolen());		\
 			igt_assert(fbc_wait_until_enabled());		\
 									\
 			if (fbc.supports_compressing && 		\
