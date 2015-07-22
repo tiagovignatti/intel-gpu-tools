@@ -75,23 +75,32 @@
 
 uint16_t __drm_device_id;
 
-static int is_i915_device(int fd)
+static int __get_drm_device_name(int fd, char *name)
 {
 	drm_version_t version;
-	char name[5] = "";
 
 	memset(&version, 0, sizeof(version));
 	version.name_len = 4;
 	version.name = name;
 
-	if (drmIoctl(fd, DRM_IOCTL_VERSION, &version))
+	if (!drmIoctl(fd, DRM_IOCTL_VERSION, &version)){
 		return 0;
+	}
 
-	return strcmp("i915", name) == 0;
+	return -1;
 }
 
-static int
-is_intel(int fd)
+static bool is_i915_device(int fd)
+{
+	int ret;
+	char name[5] = "";
+
+	ret = __get_drm_device_name(fd, name);
+
+	return !ret && strcmp("i915", name) == 0;
+}
+
+static bool is_intel(int fd)
 {
 	struct drm_i915_getparam gp;
 	int devid = 0;
@@ -101,13 +110,13 @@ is_intel(int fd)
 	gp.value = &devid;
 
 	if (ioctl(fd, DRM_IOCTL_I915_GETPARAM, &gp, sizeof(gp)))
-		return 0;
+		return false;
 
 	if (!IS_INTEL(devid))
-		return 0;
+		return false;
 
 	__drm_device_id = devid;
-	return 1;
+	return true;
 }
 
 static void check_stop_rings(void)
@@ -230,19 +239,31 @@ int drm_get_card(void)
 	return -1;
 }
 
-/** Open the first DRM device we can find, searching up to 16 device nodes */
-int __drm_open_any(void)
+/**
+ * __drm_open_driver:
+ *
+ * Open the first DRM device we can find, searching up to 16 device nodes
+ *
+ * @chipset: OR'd flags for each chipset to search, eg. DRIVER_INTEL
+ *
+ * Returns:
+ * An open DRM fd or -1 on error
+ */
+int __drm_open_driver(int chipset)
 {
 	for (int i = 0; i < 16; i++) {
 		char name[80];
 		int fd;
+		bool found_intel;
 
 		sprintf(name, "/dev/dri/card%u", i);
 		fd = open(name, O_RDWR);
 		if (fd == -1)
 			continue;
 
-		if (is_i915_device(fd) && is_intel(fd))
+		found_intel =  is_i915_device(fd) && is_intel(fd) && (chipset & DRIVER_INTEL);
+
+		if ((chipset & DRIVER_ANY) || found_intel)
 			return fd;
 
 		close(fd);
@@ -252,7 +273,7 @@ int __drm_open_any(void)
 	return -1;
 }
 
-static int __drm_open_any_render(void)
+static int __drm_open_driver_render(int chipset)
 {
 	char *name;
 	int i, fd;
@@ -307,41 +328,43 @@ static void quiescent_gpu_at_exit_render(int sig)
 }
 
 /**
- * drm_open_any:
+ * drm_open_driver:
  *
- * Open an i915 drm legacy device node. This function always returns a valid
+ * Open a drm legacy device node. This function always returns a valid
  * file descriptor.
  *
- * Returns: a i915 drm file descriptor
+ * Returns: a drm file descriptor
  */
-int drm_open_any(void)
+int drm_open_driver(int chipset)
 {
 	static int open_count;
-	int fd = __drm_open_any();
+	int fd = __drm_open_driver(chipset);
 
 	igt_require(fd >= 0);
 
 	if (__sync_fetch_and_add(&open_count, 1))
 		return fd;
 
-	gem_quiescent_gpu(fd);
-	at_exit_drm_fd = __drm_open_any();
-	igt_install_exit_handler(quiescent_gpu_at_exit);
+   if(chipset & DRIVER_INTEL){
+		gem_quiescent_gpu(fd);
+		igt_install_exit_handler(quiescent_gpu_at_exit);
+	}
+	at_exit_drm_fd = __drm_open_driver(chipset);
 
 	return fd;
 }
 
 /**
- * drm_open_any_master:
+ * drm_open_driver_master:
  *
- * Open an i915 drm legacy device node and ensure that it is drm master.
+ * Open a drm legacy device node and ensure that it is drm master.
  *
  * Returns:
- * The i915 drm file descriptor or -1 on error
+ * The drm file descriptor or -1 on error
  */
-int drm_open_any_master(void)
+int drm_open_driver_master(int chipset)
 {
-	int fd = drm_open_any();
+	int fd = drm_open_driver(chipset);
 
 	igt_require(fd >= 0);
 	igt_require_f(drmSetMaster(fd) == 0, "Can't become DRM master, "
@@ -351,28 +374,30 @@ int drm_open_any_master(void)
 }
 
 /**
- * drm_open_any_render:
+ * drm_open_driver_render:
  *
- * Open an i915 drm render device node.
+ * Open a drm render device node.
  *
  * Returns:
- * The i915 drm file descriptor or -1 on error
+ * The drm file descriptor or -1 on error
  */
-int drm_open_any_render(void)
+int drm_open_driver_render(int chipset)
 {
 	static int open_count;
-	int fd = __drm_open_any_render();
+	int fd = __drm_open_driver_render(chipset);
 
-	/* no render nodes, fallback to drm_open_any() */
+	/* no render nodes, fallback to drm_open_driver() */
 	if (fd == -1)
-		return drm_open_any();
+		return drm_open_driver(chipset);
 
 	if (__sync_fetch_and_add(&open_count, 1))
 		return fd;
 
-	at_exit_drm_render_fd = __drm_open_any();
-	gem_quiescent_gpu(fd);
-	igt_install_exit_handler(quiescent_gpu_at_exit_render);
+	at_exit_drm_render_fd = __drm_open_driver(chipset);
+	if(chipset & DRIVER_INTEL){
+		gem_quiescent_gpu(fd);
+		igt_install_exit_handler(quiescent_gpu_at_exit_render);
+	}
 
 	return fd;
 }
