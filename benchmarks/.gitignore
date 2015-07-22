@@ -1,3 +1,5 @@
+gem_exec_nop
+gem_prw
 gem_userptr_benchmark
 intel_upload_blit_large
 intel_upload_blit_large_gtt
