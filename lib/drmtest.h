@@ -41,13 +41,6 @@
 #define DRIVER_ANY 0x1
 #define DRIVER_INTEL (0x1 << 1)
 
-/* provide the deprecated drm_open_any*() calls */
-#define drm_open_any() drm_open_driver(DRIVER_ANY)
-#define drm_open_any_master() drm_open_driver_master(DRIVER_ANY)
-#define drm_open_any_render() drm_open_driver_render(DRIVER_ANY)
-#define __drm_open_any() __drm_open_driver(DRIVER_ANY)
-
-
 #ifdef ANDROID
 #if (!(defined HAVE_MMAP64)) && (!(defined __x86_64__))
 extern void*  __mmap2(void *, size_t, int, int, int, off_t);
