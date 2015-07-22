@@ -1,4 +1,5 @@
 gem_exec_nop
+gem_mmap
 gem_prw
 gem_userptr_benchmark
 intel_upload_blit_large
