@@ -39,7 +39,7 @@ igt_simple_main
 	int fd, ret;
 	drm_client_t client;
 
-	fd = drm_open_any();
+	fd = drm_open_driver(DRIVER_INTEL);
 
 	/* Look for client index 0.  This should exist whether we're operating
 	 * on an otherwise unused drm device, or the X Server is running on

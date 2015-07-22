@@ -120,7 +120,7 @@ static void test_basic_auth(int master)
 	int slave;
 
 	/* open slave and make sure it's NOT a master */
-	slave = drm_open_any();
+	slave = drm_open_driver(DRIVER_INTEL);
 	igt_require(slave >= 0);
 	igt_require(drmSetMaster(slave) < 0);
 
@@ -151,7 +151,7 @@ igt_main
 	int master;
 
 	igt_fixture
-		master = drm_open_any_master();
+		master = drm_open_driver_master(DRIVER_INTEL);
 
 	igt_subtest("basic-auth")
 		test_basic_auth(master);

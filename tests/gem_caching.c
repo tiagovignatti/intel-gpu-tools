@@ -114,7 +114,7 @@ igt_main
 	igt_fixture {
 		srandom(0xdeadbeef);
 
-		fd = drm_open_any();
+		fd = drm_open_driver(DRIVER_INTEL);
 
 		gem_require_caching(fd);
 

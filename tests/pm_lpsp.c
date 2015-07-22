@@ -223,7 +223,7 @@ igt_main
 	igt_fixture {
 		int i;
 
-		drm_fd = drm_open_any_master();
+		drm_fd = drm_open_driver_master(DRIVER_INTEL);
 		igt_require(drm_fd >= 0);
 
 		devid = intel_get_drm_devid(drm_fd);

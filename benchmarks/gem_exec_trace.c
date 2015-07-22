@@ -118,7 +118,7 @@ static void replay(const char *filename)
 	madvise(ptr, st.st_size, MADV_SEQUENTIAL);
 
 	end = ptr + st.st_size;
-	fd = drm_open_any();
+	fd = drm_open_driver(DRIVER_INTEL);
 
 	clock_gettime(CLOCK_MONOTONIC, &t_start);
 	do {

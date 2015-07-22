@@ -58,7 +58,7 @@ igt_simple_main
 
 	igt_skip_on_simulation();
 
-	fd = drm_open_any();
+	fd = drm_open_driver(DRIVER_INTEL);
 
 	if (IS_GEN2(intel_get_drm_devid(fd)))
 		tile_height = 16;

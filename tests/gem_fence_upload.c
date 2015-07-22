@@ -56,7 +56,7 @@ static void performance(void)
 	int fd, num_fences;
 	double linear[2], tiled[2];
 
-	fd = drm_open_any();
+	fd = drm_open_driver(DRIVER_INTEL);
 
 	num_fences = gem_available_fences(fd);
 	igt_require(num_fences > 0);
@@ -161,7 +161,7 @@ static void thread_performance(unsigned mask)
 	int fd, num_fences;
 	double linear[2], tiled[2];
 
-	fd = drm_open_any();
+	fd = drm_open_driver(DRIVER_INTEL);
 
 	num_fences = gem_available_fences(fd);
 	igt_require(num_fences > 0);
@@ -288,7 +288,7 @@ static void thread_contention(void)
 	int fd, num_fences;
 	double linear[2], tiled[2];
 
-	fd = drm_open_any();
+	fd = drm_open_driver(DRIVER_INTEL);
 
 	num_fences = gem_available_fences(fd);
 	igt_require(num_fences > 0);
@@ -343,7 +343,7 @@ static void wc_contention(void)
 	int fd, num_fences;
 	double linear[2], tiled[2];
 
-	fd = drm_open_any();
+	fd = drm_open_driver(DRIVER_INTEL);
 	gem_require_mmap_wc(fd);
 
 	num_fences = gem_available_fences(fd);

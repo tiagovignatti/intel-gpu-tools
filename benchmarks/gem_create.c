@@ -88,7 +88,7 @@ static void make_busy(int fd, uint32_t handle)
 
 int main(int argc, char **argv)
 {
-	int fd = drm_open_any();
+	int fd = drm_open_driver(DRIVER_INTEL);
 	int size = 0;
 	int busy = 0;
 	int reps = 13;

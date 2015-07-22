@@ -207,7 +207,7 @@ static void run(int object_size, bool dumb)
 	int fd, len, count;
 	int ring;
 
-	fd = drm_open_any();
+	fd = drm_open_driver(DRIVER_INTEL);
 	if (dumb)
 		handle = dumb_create(fd);
 	else

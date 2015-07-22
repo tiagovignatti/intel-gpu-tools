@@ -724,7 +724,7 @@ int main(int argc, char **argv)
 	    specified_mode_num == -1 && !test_stereo_modes)
 		test_all_modes = 1;
 
-	drm_fd = drm_open_any();
+	drm_fd = drm_open_driver(DRIVER_INTEL);
 
 	if (test_stereo_modes &&
 	    drmSetClientCap(drm_fd, DRM_CLIENT_CAP_STEREO_3D, 1) < 0) {

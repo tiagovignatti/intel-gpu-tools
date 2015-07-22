@@ -101,7 +101,7 @@ int main(int argc, char **argv)
 	object_size = (object_size + 3) & -4;
 
 	igt_fixture {
-		fd = drm_open_any();
+		fd = drm_open_driver(DRIVER_INTEL);
 
 		dst = gem_create(fd, object_size);
 		src = malloc(object_size);

@@ -186,7 +186,7 @@ igt_main
 
 		intel_purge_vm_caches();
 
-		fd = drm_open_any();
+		fd = drm_open_driver(DRIVER_INTEL);
 
 		check_memory_layout();
 

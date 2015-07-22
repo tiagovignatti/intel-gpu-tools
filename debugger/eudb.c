@@ -551,7 +551,7 @@ int main(int argc, char* argv[]) {
 	 */
 	if (!clear_waits) {
 		int dh_handle;
-		drm_fd = drm_open_any();
+		drm_fd = drm_open_driver(DRIVER_INTEL);
 		bufmgr = drm_intel_bufmgr_gem_init(drm_fd, 4096);
 
 		setup_hw_bits();

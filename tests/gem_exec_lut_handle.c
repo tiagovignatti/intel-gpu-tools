@@ -103,7 +103,7 @@ igt_simple_main
 
 	igt_skip_on_simulation();
 
-	fd = drm_open_any();
+	fd = drm_open_driver(DRIVER_INTEL);
 
 	memset(gem_exec, 0, sizeof(gem_exec));
 	for (n = 0; n < MAX_NUM_EXEC; n++)

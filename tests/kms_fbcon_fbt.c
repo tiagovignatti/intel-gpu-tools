@@ -57,7 +57,7 @@ static void setup_drm(struct drm_info *drm)
 {
 	int i;
 
-	drm->fd = drm_open_any_master();
+	drm->fd = drm_open_driver_master(DRIVER_INTEL);
 
 	drm->res = drmModeGetResources(drm->fd);
 	igt_assert(drm->res->count_connectors <= MAX_CONNECTORS);
@@ -242,7 +242,7 @@ static void setup_environment(void)
 {
 	int drm_fd;
 
-	drm_fd = drm_open_any_master();
+	drm_fd = drm_open_driver_master(DRIVER_INTEL);
 	igt_require(drm_fd >= 0);
 	igt_assert(close(drm_fd) == 0);
 }

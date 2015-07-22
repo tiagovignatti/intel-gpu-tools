@@ -376,7 +376,7 @@ igt_main
 	int fd, sync;
 
 	igt_fixture
-		fd = drm_open_any();
+		fd = drm_open_driver(DRIVER_INTEL);
 
 	for (sync = 2; sync--; ) {
 		igt_subtest_f("cpu%s", sync ? "-sync":"")

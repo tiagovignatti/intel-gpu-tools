@@ -97,7 +97,7 @@ igt_simple_main
 
 	igt_skip_on_simulation();
 
-	fd = drm_open_any();
+	fd = drm_open_driver(DRIVER_INTEL);
 	igt_assert(fd >= 0);
 
 	bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);

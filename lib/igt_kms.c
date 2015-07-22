@@ -1957,7 +1957,7 @@ void igt_enable_connectors(void)
 	drmModeConnector *c;
 	int drm_fd;
 
-	drm_fd = drm_open_any();
+	drm_fd = drm_open_driver(DRIVER_INTEL);
 
 	res = drmModeGetResources(drm_fd);
 

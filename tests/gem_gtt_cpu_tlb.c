@@ -77,7 +77,7 @@ igt_simple_main
 
 	igt_skip_on_simulation();
 
-	fd = drm_open_any();
+	fd = drm_open_driver(DRIVER_INTEL);
 
 	handle = gem_create(fd, OBJ_SIZE);
 

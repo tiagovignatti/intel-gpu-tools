@@ -88,8 +88,8 @@ static void test_with_fd_dup(void)
 
 	counter = 0;
 
-	fd1 = drm_open_any();
-	fd2 = drm_open_any();
+	fd1 = drm_open_driver(DRIVER_INTEL);
+	fd2 = drm_open_driver(DRIVER_INTEL);
 
 	handle = gem_create(fd1, BO_SIZE);
 
@@ -116,8 +116,8 @@ static void test_with_two_bos(void)
 
 	counter = 0;
 
-	fd1 = drm_open_any();
-	fd2 = drm_open_any();
+	fd1 = drm_open_driver(DRIVER_INTEL);
+	fd2 = drm_open_driver(DRIVER_INTEL);
 
 	handle1 = gem_create(fd1, BO_SIZE);
 	handle2 = gem_create(fd1, BO_SIZE);
@@ -147,8 +147,8 @@ static void test_with_one_bo_two_files(void)
 	uint32_t handle_import, handle_open, handle_orig, flink_name;
 	int dma_buf_fd1, dma_buf_fd2;
 
-	fd1 = drm_open_any();
-	fd2 = drm_open_any();
+	fd1 = drm_open_driver(DRIVER_INTEL);
+	fd2 = drm_open_driver(DRIVER_INTEL);
 
 	handle_orig = gem_create(fd1, BO_SIZE);
 	dma_buf_fd1 = prime_handle_to_fd(fd1, handle_orig);
@@ -174,8 +174,8 @@ static void test_with_one_bo(void)
 	uint32_t handle, handle_import1, handle_import2, handle_selfimport;
 	int dma_buf_fd;
 
-	fd1 = drm_open_any();
-	fd2 = drm_open_any();
+	fd1 = drm_open_driver(DRIVER_INTEL);
+	fd2 = drm_open_driver(DRIVER_INTEL);
 
 	handle = gem_create(fd1, BO_SIZE);
 
@@ -258,7 +258,7 @@ static void test_reimport_close_race(void)
 
 	/* Allocate exit handler fds in here so that we dont screw
 	 * up the counts */
-	fake = drm_open_any();
+	fake = drm_open_driver(DRIVER_INTEL);
 
 	gem_quiescent_gpu(fake);
 	obj_count = get_object_count();
@@ -267,7 +267,7 @@ static void test_reimport_close_race(void)
 
 	threads = calloc(num_threads, sizeof(pthread_t));
 
-	fds[0] = drm_open_any();
+	fds[0] = drm_open_driver(DRIVER_INTEL);
 
 	handle = gem_create(fds[0], BO_SIZE);
 
@@ -350,12 +350,12 @@ static void test_export_close_race(void)
 
 	/* Allocate exit handler fds in here so that we dont screw
 	 * up the counts */
-	fake = drm_open_any();
+	fake = drm_open_driver(DRIVER_INTEL);
 
 	gem_quiescent_gpu(fake);
 	obj_count = get_object_count();
 
-	fd = drm_open_any();
+	fd = drm_open_driver(DRIVER_INTEL);
 
 	for (i = 0; i < num_threads; i++) {
 		r = pthread_create(&threads[i], NULL,
@@ -393,7 +393,7 @@ static void test_llseek_size(void)
 
 	counter = 0;
 
-	fd = drm_open_any();
+	fd = drm_open_driver(DRIVER_INTEL);
 
 
 	for (i = 0; i < 10; i++) {
@@ -420,7 +420,7 @@ static void test_llseek_bad(void)
 
 	counter = 0;
 
-	fd = drm_open_any();
+	fd = drm_open_driver(DRIVER_INTEL);
 
 
 	handle = gem_create(fd, BO_SIZE);

@@ -154,7 +154,7 @@ igt_main
 	int fd, i;
 
 	igt_fixture {
-		fd = drm_open_any();
+		fd = drm_open_driver(DRIVER_INTEL);
 		devid = intel_get_drm_devid(fd);
 
 		bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);

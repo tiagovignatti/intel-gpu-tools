@@ -132,7 +132,7 @@ igt_simple_main
 	uint32_t tiling, swizzle;
 	uint32_t handle;
 
-	fd = drm_open_any();
+	fd = drm_open_driver(DRIVER_INTEL);
 	gem_require_mmap_wc(fd);
 
 	handle = create_bo(fd);

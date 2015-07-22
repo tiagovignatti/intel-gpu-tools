@@ -823,7 +823,7 @@ static void run_forked(struct buffers *buffers,
 	igt_fork(child, 16) {
 		/* recreate process local variables */
 		buffers->count = 0;
-		fd = drm_open_any();
+		fd = drm_open_driver(DRIVER_INTEL);
 
 		batch = buffers_init(buffers, buffers->mode, fd);
 
@@ -1072,7 +1072,7 @@ igt_main
 		all = true;
 
 	igt_fixture {
-		fd = drm_open_any();
+		fd = drm_open_driver(DRIVER_INTEL);
 		devid = intel_get_drm_devid(fd);
 		gen = intel_gen(devid);
 		rendercopy = igt_get_render_copyfunc(devid);

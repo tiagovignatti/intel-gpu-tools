@@ -308,7 +308,7 @@ int main(int argc, char *argv[])
 	bool write, fail, targets[MAX+1] = {false};
 	int i, try = 1, set_freq[MAX+1] = {0};
 
-	devid = intel_get_drm_devid(drm_open_any());
+	devid = intel_get_drm_devid(drm_open_driver(DRIVER_INTEL));
 	device = drm_get_card();
 
 	write = parse(argc, argv, targets, ARRAY_SIZE(targets), set_freq);

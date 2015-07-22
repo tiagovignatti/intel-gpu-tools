@@ -228,7 +228,7 @@ igt_main
 	igt_skip_on_simulation();
 
 	igt_fixture {
-		fd = drm_open_any();
+		fd = drm_open_driver(DRIVER_INTEL);
 		num_fences = gem_available_fences(fd);
 		igt_assert(num_fences > 4);
 		devid = intel_get_drm_devid(fd);

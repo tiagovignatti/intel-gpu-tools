@@ -225,7 +225,7 @@ static void setup_environment(void)
 {
 	int i;
 
-	drm_fd = drm_open_any_master();
+	drm_fd = drm_open_driver_master(DRIVER_INTEL);
 	igt_require(drm_fd >= 0);
 
 	drm_res = drmModeGetResources(drm_fd);

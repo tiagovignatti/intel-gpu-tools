@@ -208,7 +208,7 @@ igt_main
 	uint32_t handle = 0;
 
 	igt_fixture {
-		device = drm_open_any();
+		device = drm_open_driver(DRIVER_INTEL);
 
 		min = sysfs_read("gt_min_freq_mhz");
 		max = sysfs_read("gt_max_freq_mhz");

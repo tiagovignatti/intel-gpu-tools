@@ -776,7 +776,7 @@ static int test_dmabuf(void)
 	int dma_buf_fd = -1;
 	int ret;
 
-	fd1 = drm_open_any();
+	fd1 = drm_open_driver(DRIVER_INTEL);
 
 	handle = create_userptr_bo(fd1, sizeof(linear));
 	memset(get_handle_ptr(handle), counter, sizeof(linear));
@@ -792,7 +792,7 @@ static int test_dmabuf(void)
 		igt_assert_lte(0, dma_buf_fd);
 	}
 
-	fd2 = drm_open_any();
+	fd2 = drm_open_driver(DRIVER_INTEL);
 	handle_import = prime_fd_to_handle(fd2, dma_buf_fd);
 	check_bo(fd1, handle, 1, fd2, handle_import);
 
@@ -1318,7 +1318,7 @@ int main(int argc, char **argv)
 	igt_fixture {
 		int ret;
 
-		fd = drm_open_any();
+		fd = drm_open_driver(DRIVER_INTEL);
 		igt_assert(fd >= 0);
 
 		ret = has_userptr(fd);

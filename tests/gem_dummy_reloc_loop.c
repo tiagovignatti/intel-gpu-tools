@@ -178,7 +178,7 @@ igt_main
 
 	igt_fixture {
 		int i;
-		fd = drm_open_any();
+		fd = drm_open_driver(DRIVER_INTEL);
 		devid = intel_get_drm_devid(fd);
 		num_rings = gem_get_num_rings(fd);
 		/* Not yet implemented on pre-snb. */
@@ -202,7 +202,7 @@ igt_main
 
 			for (i = 0; i < NUM_FD; i++) {
 				sprintf(buffer_name, "Target buffer %d\n", i);
-				mfd[i] = drm_open_any();
+				mfd[i] = drm_open_driver(DRIVER_INTEL);
 				mbufmgr[i] = drm_intel_bufmgr_gem_init(mfd[i], 4096);
 				igt_assert_f(mbufmgr[i],
 					     "fail to initialize buf manager "

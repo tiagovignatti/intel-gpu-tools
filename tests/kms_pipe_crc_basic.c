@@ -210,7 +210,7 @@ igt_main
 	igt_skip_on_simulation();
 
 	igt_fixture {
-		data.drm_fd = drm_open_any_master();
+		data.drm_fd = drm_open_driver_master(DRIVER_INTEL);
 
 		igt_enable_connectors();
 

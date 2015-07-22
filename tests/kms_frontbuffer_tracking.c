@@ -1244,7 +1244,7 @@ static void setup_drm(void)
 {
 	int i;
 
-	drm.fd = drm_open_any_master();
+	drm.fd = drm_open_driver_master(DRIVER_INTEL);
 
 	drm.res = drmModeGetResources(drm.fd);
 	igt_assert(drm.res->count_connectors <= MAX_CONNECTORS);

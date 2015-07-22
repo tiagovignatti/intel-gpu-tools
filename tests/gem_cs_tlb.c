@@ -154,7 +154,7 @@ igt_main
 	igt_skip_on_simulation();
 
 	igt_fixture {
-		fd = drm_open_any();
+		fd = drm_open_driver(DRIVER_INTEL);
 
 		/* This test is very sensitive to residual gtt_mm noise from previous
 		 * tests. Try to quiet thing down first. */

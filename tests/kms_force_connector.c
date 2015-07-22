@@ -40,7 +40,7 @@ igt_main
 	int start_n_modes;
 
 	igt_fixture {
-		drm_fd = drm_open_any_master();
+		drm_fd = drm_open_driver_master(DRIVER_INTEL);
 		res = drmModeGetResources(drm_fd);
 
 		/* find the vga connector */

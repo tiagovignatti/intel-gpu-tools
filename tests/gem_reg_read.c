@@ -151,7 +151,7 @@ igt_main
 	int fd = -1;
 
 	igt_fixture {
-		fd = drm_open_any();
+		fd = drm_open_driver(DRIVER_INTEL);
 		is_x86_64 = check_kernel_x86_64();
 		has_proper_timestamp = check_timestamp(fd);
 	}

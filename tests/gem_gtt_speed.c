@@ -71,7 +71,7 @@ int main(int argc, char **argv)
 
 	buf = malloc(size);
 	memset(buf, 0, size);
-	fd = drm_open_any();
+	fd = drm_open_driver(DRIVER_INTEL);
 
 	handle = gem_create(fd, size);
 	igt_assert(handle);

@@ -87,7 +87,7 @@ test_access(int fd)
 	handle = gem_create(fd, OBJECT_SIZE);
 	igt_assert(handle);
 
-	fd2 = drm_open_any();
+	fd2 = drm_open_driver(DRIVER_INTEL);
 
 	/* Check that fd1 can mmap. */
 	mmap_arg.handle = handle;
@@ -520,7 +520,7 @@ igt_main
 		OBJECT_SIZE = 1 * 1024 * 1024;
 
 	igt_fixture
-		fd = drm_open_any();
+		fd = drm_open_driver(DRIVER_INTEL);
 
 	igt_subtest("basic")
 		test_access(fd);

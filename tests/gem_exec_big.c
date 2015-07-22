@@ -189,7 +189,7 @@ igt_simple_main
 	uint64_t batch_size, max, reloc_ofs;
 	int fd;
 
-	fd = drm_open_any();
+	fd = drm_open_driver(DRIVER_INTEL);
 	use_64bit_relocs = intel_gen(intel_get_drm_devid(fd)) >= 8;
 
 	max = 3 * gem_aperture_size(fd) / 4;

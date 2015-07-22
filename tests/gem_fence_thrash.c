@@ -168,7 +168,7 @@ static int run_test(int threads_per_fence, void *f, int tiling,
 	pthread_t *threads;
 	int n, num_fences, num_threads;
 
-	t.fd = drm_open_any();
+	t.fd = drm_open_driver(DRIVER_INTEL);
 	t.tiling = tiling;
 	t.num_surfaces = surfaces_per_thread;
 

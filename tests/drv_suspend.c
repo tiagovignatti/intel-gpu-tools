@@ -179,7 +179,7 @@ igt_main
 	igt_skip_on_simulation();
 
 	igt_fixture
-		fd = drm_open_any();
+		fd = drm_open_driver(DRIVER_INTEL);
 
 	igt_subtest("fence-restore-tiled2untiled")
 		test_fence_restore(fd, true, false);

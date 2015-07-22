@@ -157,12 +157,12 @@ igt_simple_main
 	data_t data = {};
 
 	/* check for an intel gpu before goint nuts. */
-	int fd = drm_open_any();
+	int fd = drm_open_driver(DRIVER_INTEL);
 	close(fd);
 
 	igt_skip_on_simulation();
 
-	data.fd = drm_open_any();
+	data.fd = drm_open_driver(DRIVER_INTEL);
 	data.devid = intel_get_drm_devid(data.fd);
 	data.intel_gen = intel_gen(data.devid);
 

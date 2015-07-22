@@ -515,7 +515,7 @@ int main(int argc, char **argv)
 
 	igt_subtest_init(argc, argv);
 
-	fd = drm_open_any();
+	fd = drm_open_driver(DRIVER_INTEL);
 	igt_assert(fd >= 0);
 
 	ret = has_userptr(fd);

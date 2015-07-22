@@ -84,7 +84,7 @@ static const struct target_ring {
 
 static void check_context(const struct target_ring *ring)
 {
-	int fd = drm_open_any();
+	int fd = drm_open_driver(DRIVER_INTEL);
 
 	gem_context_destroy(fd,
 			    gem_context_create(fd));
@@ -341,7 +341,7 @@ static void test_rs(int num_fds, int hang_index, int rs_assumed_no_hang)
 	igt_assert_lt(hang_index, MAX_FD);
 
 	for (i = 0; i < num_fds; i++) {
-		fd[i] = drm_open_any();
+		fd[i] = drm_open_driver(DRIVER_INTEL);
 		igt_assert(fd[i]);
 	}
 
@@ -395,7 +395,7 @@ static void test_rs_ctx(int num_fds, int num_ctx, int hang_index,
 	test_rs(num_fds, -1, RS_NO_ERROR);
 
 	for (i = 0; i < num_fds; i++) {
-		fd[i] = drm_open_any();
+		fd[i] = drm_open_driver(DRIVER_INTEL);
 		igt_assert(fd[i]);
 		assert_reset_status(fd[i], 0, RS_NO_ERROR);
 
@@ -469,9 +469,9 @@ static void test_ban(void)
 	int active_count = 0, pending_count = 0;
 	struct local_drm_i915_reset_stats rs_bad, rs_good;
 
-	fd_bad = drm_open_any();
+	fd_bad = drm_open_driver(DRIVER_INTEL);
 
-	fd_good = drm_open_any();
+	fd_good = drm_open_driver(DRIVER_INTEL);
 
 	assert_reset_status(fd_bad, 0, RS_NO_ERROR);
 	assert_reset_status(fd_good, 0, RS_NO_ERROR);
@@ -556,7 +556,7 @@ static void test_ban_ctx(void)
 	int active_count = 0, pending_count = 0;
 	struct local_drm_i915_reset_stats rs_bad, rs_good;
 
-	fd = drm_open_any();
+	fd = drm_open_driver(DRIVER_INTEL);
 
 	assert_reset_status(fd, 0, RS_NO_ERROR);
 
@@ -647,8 +647,8 @@ static void test_unrelated_ctx(void)
 	int fd1,fd2;
 	int ctx_guilty, ctx_unrelated;
 
-	fd1 = drm_open_any();
-	fd2 = drm_open_any();
+	fd1 = drm_open_driver(DRIVER_INTEL);
+	fd2 = drm_open_driver(DRIVER_INTEL);
 	assert_reset_status(fd1, 0, RS_NO_ERROR);
 	assert_reset_status(fd2, 0, RS_NO_ERROR);
 	ctx_guilty = gem_context_create(fd1);
@@ -695,7 +695,7 @@ static void test_close_pending_ctx(void)
 	int fd, h;
 	uint32_t ctx;
 
-	fd = drm_open_any();
+	fd = drm_open_driver(DRIVER_INTEL);
 	ctx = gem_context_create(fd);
 
 	assert_reset_status(fd, ctx, RS_NO_ERROR);
@@ -713,7 +713,7 @@ static void test_close_pending(void)
 {
 	int fd, h;
 
-	fd = drm_open_any();
+	fd = drm_open_driver(DRIVER_INTEL);
 
 	assert_reset_status(fd, 0, RS_NO_ERROR);
 
@@ -775,7 +775,7 @@ static void test_close_pending_fork(const bool reverse)
 	int pid;
 	int fd, h;
 
-	fd = drm_open_any();
+	fd = drm_open_driver(DRIVER_INTEL);
 
 	assert_reset_status(fd, 0, RS_NO_ERROR);
 
@@ -790,7 +790,7 @@ static void test_close_pending_fork(const bool reverse)
 	 */
 	pid = fork();
 	if (pid == 0) {
-		const int fd2 = drm_open_any();
+		const int fd2 = drm_open_driver(DRIVER_INTEL);
 		igt_assert_lte(0, fd2);
 
 		/* The crucial component is that we schedule the same noop batch
@@ -814,7 +814,7 @@ static void test_close_pending_fork(const bool reverse)
 	close(fd);
 
 	/* Then we just wait on hang to happen */
-	fd = drm_open_any();
+	fd = drm_open_driver(DRIVER_INTEL);
 
 	h = exec_valid(fd, 0);
 	igt_assert_lte(0, h);
@@ -829,7 +829,7 @@ static void test_reset_count(const bool create_ctx)
 	int fd, h, ctx;
 	long c1, c2;
 
-	fd = drm_open_any();
+	fd = drm_open_driver(DRIVER_INTEL);
 	if (create_ctx)
 		ctx = gem_context_create(fd);
 	else
@@ -939,7 +939,7 @@ static void test_params_ctx(void)
 {
 	int fd, ctx;
 
-	fd = drm_open_any();
+	fd = drm_open_driver(DRIVER_INTEL);
 	ctx = gem_context_create(fd);
 
 	_test_param(fd, ctx);
@@ -951,7 +951,7 @@ static void test_params(void)
 {
 	int fd;
 
-	fd = drm_open_any();
+	fd = drm_open_driver(DRIVER_INTEL);
 
 	_test_param(fd, 0);
 
@@ -964,7 +964,7 @@ static void defer_hangcheck(int ring_num)
 	int fd, count_start, count_end;
 	int seconds = 30;
 	const struct target_ring *next_ring;
-	fd = drm_open_any();
+	fd = drm_open_driver(DRIVER_INTEL);
 
 	do {
 		next_ring = &rings[(++ring_num) % NUM_RINGS];
@@ -1044,7 +1044,7 @@ static void check_gpu_ok(void)
 	 */
 	igt_set_stop_rings(0);
 
-	fd = drm_open_any();
+	fd = drm_open_driver(DRIVER_INTEL);
 	gem_quiescent_gpu(fd);
 	close(fd);
 }
@@ -1060,7 +1060,7 @@ igt_main
 		int fd;
 
 		bool has_reset_stats;
-		fd = drm_open_any();
+		fd = drm_open_driver(DRIVER_INTEL);
 		devid = intel_get_drm_devid(fd);
 
 		has_reset_stats = gem_has_reset_stats(fd);
@@ -1081,7 +1081,7 @@ igt_main
 		name = current_ring->name;
 
 		igt_fixture {
-			int fd = drm_open_any();
+			int fd = drm_open_driver(DRIVER_INTEL);
 			gem_require_ring(fd, current_ring->exec);
 			close(fd);
 		}

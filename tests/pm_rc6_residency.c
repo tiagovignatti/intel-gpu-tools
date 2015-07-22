@@ -183,9 +183,9 @@ igt_main
 
 	igt_skip_on_simulation();
 
-	/* Use drm_open_any to verify device existence */
+	/* Use drm_open_driver to verify device existence */
 	igt_fixture {
-		fd = drm_open_any();
+		fd = drm_open_driver(DRIVER_INTEL);
 		devid = intel_get_drm_devid(fd);
 		close(fd);
 

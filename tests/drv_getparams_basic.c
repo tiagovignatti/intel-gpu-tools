@@ -40,7 +40,7 @@ int devid;
 static void
 init(void)
 {
-	drm_fd = drm_open_any();
+	drm_fd = drm_open_driver(DRIVER_INTEL);
 	devid = intel_get_drm_devid(drm_fd);
 }
 

@@ -535,7 +535,7 @@ igt_main
 	igt_fixture {
 		char buf[128];
 
-		data.drm_fd = drm_open_any_master();
+		data.drm_fd = drm_open_driver_master(DRIVER_INTEL);
 		kmstest_set_vt_graphics_mode();
 
 		data.devid = intel_get_drm_devid(data.drm_fd);

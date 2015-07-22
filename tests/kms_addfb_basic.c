@@ -416,7 +416,7 @@ int gen;
 igt_main
 {
 	igt_fixture {
-		fd = drm_open_any_master();
+		fd = drm_open_driver_master(DRIVER_INTEL);
 		gen = intel_gen(intel_get_drm_devid(fd));
 	}
 

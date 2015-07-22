@@ -272,7 +272,7 @@ static int forking_evictions(int fd, struct igt_eviction_test_ops *ops,
 		igt_permute_array(bo, bo_count, exchange_uint32_t);
 
 		if (flags & FORKING_EVICTIONS_DUP_DRMFD) {
-			realfd = drm_open_any();
+			realfd = drm_open_driver(DRIVER_INTEL);
 
 			/* We can overwrite the bo array since we're forked. */
 			for (l = 0; l < bo_count; l++) {

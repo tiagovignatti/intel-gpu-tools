@@ -70,7 +70,7 @@ typedef struct {
 
 static void data_init(data_t *data)
 {
-	data->fd = drm_open_any();
+	data->fd = drm_open_driver(DRIVER_INTEL);
 	data->devid = intel_get_drm_devid(data->fd);
 
 	data->bufmgr = drm_intel_bufmgr_gem_init(data->fd, 4096);

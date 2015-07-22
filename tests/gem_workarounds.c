@@ -183,7 +183,7 @@ igt_main
 		char *line = NULL;
 		size_t line_size;
 
-		drm_fd = drm_open_any();
+		drm_fd = drm_open_driver(DRIVER_INTEL);
 
 		bufmgr = drm_intel_bufmgr_gem_init(drm_fd, 4096);
 		devid = intel_get_drm_devid(drm_fd);

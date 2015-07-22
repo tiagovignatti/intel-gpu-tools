@@ -200,7 +200,7 @@ igt_main
 	int count = 0;
 
 	igt_fixture {
-		fd = drm_open_any();
+		fd = drm_open_driver(DRIVER_INTEL);
 	}
 
 	igt_subtest("basic") {

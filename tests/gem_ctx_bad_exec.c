@@ -92,7 +92,7 @@ igt_main
 	igt_skip_on_simulation();
 
 	igt_fixture {
-		fd = drm_open_any_render();
+		fd = drm_open_driver_render(DRIVER_INTEL);
 
 		ctx_id = gem_context_create(fd);
 

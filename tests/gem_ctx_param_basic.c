@@ -51,7 +51,7 @@ igt_main
 	memset(&ctx_param, 0, sizeof(ctx_param));
 
 	igt_fixture {
-		fd = drm_open_any_render();
+		fd = drm_open_driver_render(DRIVER_INTEL);
 		ctx = gem_context_create(fd);
 	}
 

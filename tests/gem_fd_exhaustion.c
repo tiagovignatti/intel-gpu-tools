@@ -54,7 +54,7 @@ igt_simple_main
 	rlim.rlim_max = nofile_rlim;
 	igt_assert(setrlimit(RLIMIT_NOFILE, &rlim) == 0);
 
-	fd = drm_open_any();
+	fd = drm_open_driver(DRIVER_INTEL);
 
 	igt_assert(open("/dev/null", O_RDONLY) >= 0);
 

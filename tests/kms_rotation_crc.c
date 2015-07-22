@@ -272,7 +272,7 @@ igt_main
 	igt_skip_on_simulation();
 
 	igt_fixture {
-		data.gfx_fd = drm_open_any_master();
+		data.gfx_fd = drm_open_driver_master(DRIVER_INTEL);
 		gen = intel_gen(intel_get_drm_devid(data.gfx_fd));
 
 		kmstest_set_vt_graphics_mode();

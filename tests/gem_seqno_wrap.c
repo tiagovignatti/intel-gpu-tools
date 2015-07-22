@@ -179,7 +179,7 @@ static void run_sync_test(int num_buffers, bool verify)
 	unsigned int *p_dst1, *p_dst2;
 	struct igt_buf *s_src, *s_dst;
 
-	fd = drm_open_any();
+	fd = drm_open_driver(DRIVER_INTEL);
 
 	gem_quiescent_gpu(fd);
 

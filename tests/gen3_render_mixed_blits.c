@@ -349,7 +349,7 @@ int main(int argc, char **argv)
 
 	igt_simple_init(argc, argv);
 
-	fd = drm_open_any();
+	fd = drm_open_driver(DRIVER_INTEL);
 
 	igt_require(IS_GEN3(intel_get_drm_devid(fd)));
 

@@ -117,7 +117,7 @@ igt_simple_main
 	uint32_t handle;
 	uint32_t devid;
 
-	fd = drm_open_any();
+	fd = drm_open_driver(DRIVER_INTEL);
 
 	handle = create_bo(fd);
 	gem_get_tiling(fd, handle, &tiling, &swizzle);

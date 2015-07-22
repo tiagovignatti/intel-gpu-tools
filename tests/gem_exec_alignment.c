@@ -55,7 +55,7 @@ igt_simple_main
 
 	igt_skip_on_simulation();
 
-	fd = drm_open_any();
+	fd = drm_open_driver(DRIVER_INTEL);
 
 	memset(&execobj, 0, sizeof(execobj));
 	memset(&execbuf, 0, sizeof(execbuf));

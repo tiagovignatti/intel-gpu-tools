@@ -76,7 +76,7 @@ static int loop(unsigned ring, int reps)
 	struct drm_i915_gem_exec_object2 gem_exec;
 	int count, fd;
 
-	fd = drm_open_any();
+	fd = drm_open_driver(DRIVER_INTEL);
 
 	memset(&gem_exec, 0, sizeof(gem_exec));
 	gem_exec.handle = batch(fd);

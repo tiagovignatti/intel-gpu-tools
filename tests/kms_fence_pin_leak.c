@@ -210,7 +210,7 @@ igt_simple_main
 
 	igt_skip_on_simulation();
 
-	data.drm_fd = drm_open_any_master();
+	data.drm_fd = drm_open_driver_master(DRIVER_INTEL);
 
 	data.devid = intel_get_drm_devid(data.drm_fd);
 

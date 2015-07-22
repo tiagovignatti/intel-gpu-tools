@@ -37,7 +37,7 @@ igt_simple_main
 	int fd;
 	drmVersionPtr v;
 
-	fd = drm_open_any();
+	fd = drm_open_driver(DRIVER_INTEL);
 	v = drmGetVersion(fd);
 	igt_assert(strlen(v->name) != 0);
 	igt_assert(strlen(v->date) != 0);

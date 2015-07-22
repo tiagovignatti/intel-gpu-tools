@@ -852,7 +852,7 @@ int main(int argc, char **argv)
 	igt_simple_init_parse_opts(&argc, argv,"ds:g:c:t:rbuxmo:fp:",
 				   long_options, NULL, parse_options, NULL);
 
-	drm_fd = drm_open_any();
+	drm_fd = drm_open_driver(DRIVER_INTEL);
 	devid = intel_get_drm_devid(drm_fd);
 
 	/* start our little helper early before too may allocations occur */

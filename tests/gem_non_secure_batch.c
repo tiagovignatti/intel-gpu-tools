@@ -78,7 +78,7 @@ igt_simple_main
 	int fd;
 	int devid;
 
-	fd = drm_open_any();
+	fd = drm_open_driver(DRIVER_INTEL);
 	devid = intel_get_drm_devid(fd);
 
 	if (HAS_BSD_RING(devid))

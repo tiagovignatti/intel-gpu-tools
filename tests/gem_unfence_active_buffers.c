@@ -73,7 +73,7 @@ igt_simple_main
 	for (i = 0; i < 1024*256; i++)
 		data[i] = i;
 
-	fd = drm_open_any();
+	fd = drm_open_driver(DRIVER_INTEL);
 
 	bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
 	drm_intel_bufmgr_gem_enable_reuse(bufmgr);

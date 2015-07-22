@@ -258,7 +258,7 @@ igt_main
 	igt_skip_on_simulation();
 
 	igt_fixture {
-		data.drm_fd = drm_open_any_master();
+		data.drm_fd = drm_open_driver_master(DRIVER_INTEL);
 		devid = intel_get_drm_devid(data.drm_fd);
 		igt_skip_on(!IS_IVYBRIDGE(devid));
 

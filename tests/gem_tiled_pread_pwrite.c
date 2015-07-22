@@ -107,7 +107,7 @@ igt_simple_main
 	uint32_t handle, handle_target;
 	int count;
 	
-	fd = drm_open_any();
+	fd = drm_open_driver(DRIVER_INTEL);
 	count = SLOW_QUICK(intel_get_total_ram_mb() * 9 / 10, 8) ;
 
 	for (i = 0; i < count/2; i++) {

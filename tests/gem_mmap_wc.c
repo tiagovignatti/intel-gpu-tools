@@ -441,7 +441,7 @@ igt_main
 		OBJECT_SIZE = 1 * 1024 * 1024;
 
 	igt_fixture
-		fd = drm_open_any();
+		fd = drm_open_driver(DRIVER_INTEL);
 
 	igt_subtest("invalid-flags")
 		test_invalid_flags(fd);

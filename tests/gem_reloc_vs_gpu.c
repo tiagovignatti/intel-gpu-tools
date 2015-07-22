@@ -273,7 +273,7 @@ static void do_forked_test(int fd, unsigned flags)
 
 	igt_fork(i, num_threads * 4) {
 		/* re-create process local data */
-		fd = drm_open_any();
+		fd = drm_open_driver(DRIVER_INTEL);
 		bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
 		batch = intel_batchbuffer_alloc(bufmgr, devid);
 
@@ -301,7 +301,7 @@ igt_main
 	memset(blob, 'A', sizeof(blob));
 
 	igt_fixture {
-		fd = drm_open_any();
+		fd = drm_open_driver(DRIVER_INTEL);
 		bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
 		/* disable reuse, otherwise the test fails */
 		//drm_intel_bufmgr_gem_enable_reuse(bufmgr);

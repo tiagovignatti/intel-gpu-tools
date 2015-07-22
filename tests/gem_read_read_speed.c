@@ -206,7 +206,7 @@ igt_main
 	igt_fixture {
 		int devid;
 
-		fd = drm_open_any();
+		fd = drm_open_driver(DRIVER_INTEL);
 
 		devid = intel_get_drm_devid(fd);
 		igt_require(intel_gen(devid) >= 6);

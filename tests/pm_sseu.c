@@ -251,7 +251,7 @@ gem_get_target_spins(double dt)
 static void
 gem_init(void)
 {
-	gem.drm_fd = drm_open_any();
+	gem.drm_fd = drm_open_driver(DRIVER_INTEL);
 	gem.init = 1;
 
 	gem.devid = intel_get_drm_devid(gem.drm_fd);

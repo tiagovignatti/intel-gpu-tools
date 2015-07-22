@@ -239,14 +239,14 @@ pthread_t test_thread_id4;
 
 igt_main {
 	igt_fixture {
-		fd1 = drm_open_any();
+		fd1 = drm_open_driver(DRIVER_INTEL);
 		igt_assert(fd1 >= 0);
 		bufmgr1 = drm_intel_bufmgr_gem_init(fd1, 8 *1024);
 		igt_assert(bufmgr1);
 
 		drm_intel_bufmgr_gem_enable_reuse(bufmgr1);
 
-		fd = drm_open_any();
+		fd = drm_open_driver(DRIVER_INTEL);
 		igt_assert(fd >= 0);
 		bufmgr = drm_intel_bufmgr_gem_init(fd, 8 *1024);
 		igt_assert(bufmgr);

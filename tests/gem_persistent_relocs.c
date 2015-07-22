@@ -324,7 +324,7 @@ igt_main
 	memset(blob, 'A', sizeof(blob));
 
 	igt_fixture {
-		fd = drm_open_any();
+		fd = drm_open_driver(DRIVER_INTEL);
 
 		bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
 		/* disable reuse, otherwise the test fails */

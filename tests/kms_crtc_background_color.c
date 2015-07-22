@@ -181,7 +181,7 @@ igt_simple_main
 
 	igt_skip_on_simulation();
 
-	data.gfx_fd = drm_open_any();
+	data.gfx_fd = drm_open_driver(DRIVER_INTEL);
 	igt_require_pipe_crc();
 	igt_display_init(&data.display, data.gfx_fd);
 

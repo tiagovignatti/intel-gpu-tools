@@ -61,7 +61,7 @@ int drm_fd;
 igt_main
 {
 	igt_fixture {
-		drm_fd = drm_open_any();
+		drm_fd = drm_open_driver(DRIVER_INTEL);
 		igt_require(drm_fd >= 0);
 
 		/* Set up other interesting stuff shared by all tests. */

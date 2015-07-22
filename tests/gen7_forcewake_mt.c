@@ -127,7 +127,7 @@ igt_simple_main
 	struct thread t[16];
 	int i;
 
-	t[0].fd = drm_open_any();
+	t[0].fd = drm_open_driver(DRIVER_INTEL);
 	t[0].mmio = igfx_get_mmio();
 
 	for (i = 2; i < 16; i++) {

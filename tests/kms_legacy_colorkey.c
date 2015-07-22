@@ -47,7 +47,7 @@ igt_simple_main
 {
 	igt_skip_on_simulation();
 
-	drm_fd = drm_open_any_master();
+	drm_fd = drm_open_driver_master(DRIVER_INTEL);
 
 	kmstest_set_vt_graphics_mode();
 

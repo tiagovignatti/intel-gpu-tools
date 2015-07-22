@@ -100,7 +100,7 @@ static void fork_rcs_copy(int target, dri_bo **dst, int count, unsigned flags)
 	int devid;
 
 	for (int child = 0; child < count; child++) {
-		int fd = drm_open_any();
+		int fd = drm_open_driver(DRIVER_INTEL);
 		drm_intel_bufmgr *bufmgr;
 
 		devid = intel_get_drm_devid(fd);
@@ -164,7 +164,7 @@ static void fork_bcs_copy(int target, dri_bo **dst, int count)
 
 	for (int child = 0; child < count; child++) {
 		drm_intel_bufmgr *bufmgr;
-		int fd = drm_open_any();
+		int fd = drm_open_driver(DRIVER_INTEL);
 
 		devid = intel_get_drm_devid(fd);
 
@@ -238,13 +238,13 @@ static void flink_and_close(void)
 	uint32_t bo, flinked_bo, new_bo, name;
 	uint64_t offset, offset_new;
 
-	fd = drm_open_any();
+	fd = drm_open_driver(DRIVER_INTEL);
 	igt_require(uses_full_ppgtt(fd));
 
 	bo = gem_create(fd, 4096);
 	name = gem_flink(fd, bo);
 
-	fd2 = drm_open_any();
+	fd2 = drm_open_driver(DRIVER_INTEL);
 
 	flinked_bo = gem_open(fd2, name);
 	offset = exec_and_get_offset(fd2, flinked_bo);

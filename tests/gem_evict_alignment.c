@@ -192,7 +192,7 @@ igt_main
 	int size, count;
 
 	igt_fixture {
-		fd = drm_open_any();
+		fd = drm_open_driver(DRIVER_INTEL);
 	}
 
 	igt_subtest("minor-normal") {

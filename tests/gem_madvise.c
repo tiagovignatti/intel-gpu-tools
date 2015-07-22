@@ -57,7 +57,7 @@ static void sigtrap(int sig)
 static void
 dontneed_before_mmap(void)
 {
-	int fd = drm_open_any();
+	int fd = drm_open_driver(DRIVER_INTEL);
 	uint32_t handle;
 	char *ptr;
 
@@ -72,7 +72,7 @@ dontneed_before_mmap(void)
 static void
 dontneed_after_mmap(void)
 {
-	int fd = drm_open_any();
+	int fd = drm_open_driver(DRIVER_INTEL);
 	uint32_t handle;
 	char *ptr;
 
@@ -99,7 +99,7 @@ dontneed_after_mmap(void)
 static void
 dontneed_before_pwrite(void)
 {
-	int fd = drm_open_any();
+	int fd = drm_open_driver(DRIVER_INTEL);
 	uint32_t buf[] = { MI_BATCH_BUFFER_END, 0 };
 	struct drm_i915_gem_pwrite gem_pwrite;
 
@@ -119,7 +119,7 @@ dontneed_before_pwrite(void)
 static void
 dontneed_before_exec(void)
 {
-	int fd = drm_open_any();
+	int fd = drm_open_driver(DRIVER_INTEL);
 	struct drm_i915_gem_execbuffer2 execbuf;
 	struct drm_i915_gem_exec_object2 exec;
 	uint32_t buf[] = { MI_BATCH_BUFFER_END, 0 };

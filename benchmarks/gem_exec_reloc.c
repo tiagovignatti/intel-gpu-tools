@@ -84,7 +84,7 @@ static int run(unsigned batch_size,
 	mem_reloc = calloc(sizeof(*mem_reloc), num_relocs);
 	target = calloc(sizeof(*target), num_relocs);
 
-	fd = drm_open_any();
+	fd = drm_open_driver(DRIVER_INTEL);
 
 	for (n = 0; n < num_objects; n++)
 		gem_exec[n].handle = gem_create(fd, 4096);

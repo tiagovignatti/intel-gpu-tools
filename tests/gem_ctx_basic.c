@@ -77,7 +77,7 @@ static void *work(void *arg)
 	int i;
 
 	if (multiple_fds)
-		td_fd = fd = drm_open_any_render();
+		td_fd = fd = drm_open_driver_render(DRIVER_INTEL);
 	else
 		td_fd = fd;
 
@@ -143,7 +143,7 @@ int main(int argc, char *argv[])
 	igt_simple_init_parse_opts(&argc, argv, "i:c:n:mu", NULL, NULL,
 				   opt_handler, NULL);
 
-	fd = drm_open_any_render();
+	fd = drm_open_driver_render(DRIVER_INTEL);
 	devid = intel_get_drm_devid(fd);
 
 	if (igt_run_in_simulation()) {

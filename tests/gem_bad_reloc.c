@@ -231,7 +231,7 @@ int fd;
 igt_main
 {
 	igt_fixture {
-		fd = drm_open_any();
+		fd = drm_open_driver(DRIVER_INTEL);
 	}
 
 	igt_subtest("negative-reloc")

@@ -14,7 +14,7 @@ int main(void)
 
 	signal(SIGALRM, SIG_IGN);
 
-	fd = __drm_open_any();
+	fd = __drm_open_driver(DRIVER_INTEL);
 	if (fd < 0)
 		return IGT_EXIT_SKIP;
 

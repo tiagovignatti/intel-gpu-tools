@@ -55,7 +55,7 @@ int fd;
 igt_main
 {
 	igt_fixture {
-		fd = drm_open_any();
+		fd = drm_open_driver(DRIVER_INTEL);
 
 		devid = intel_get_drm_devid(fd);
 

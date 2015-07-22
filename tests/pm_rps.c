@@ -606,7 +606,7 @@ static void blocking(void)
 	int pre_freqs[NUMFREQ];
 	int post_freqs[NUMFREQ];
 
-	int fd = drm_open_any();
+	int fd = drm_open_driver(DRIVER_INTEL);
 	igt_assert_lte(0, fd);
 
 	/*
@@ -661,8 +661,8 @@ igt_main
 		struct junk *junk = stuff;
 		int ret;
 
-		/* Use drm_open_any to verify device existence */
-		drm_fd = drm_open_any();
+		/* Use drm_open_driver to verify device existence */
+		drm_fd = drm_open_driver(DRIVER_INTEL);
 
 		do {
 			int val = -1;

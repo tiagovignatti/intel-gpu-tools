@@ -160,7 +160,7 @@ igt_main
 	igt_skip_on_simulation();
 
 	igt_fixture {
-		fd = drm_open_any_render();
+		fd = drm_open_driver_render(DRIVER_INTEL);
 
 		handle = gem_create(fd, 4096);
 

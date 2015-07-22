@@ -54,7 +54,7 @@ static uint64_t elapsed(const struct timespec *start,
 
 int main(int argc, char **argv)
 {
-	int fd = drm_open_any();
+	int fd = drm_open_driver(DRIVER_INTEL);
 	enum map {CPU, GTT, WC} map = CPU;
 	enum dir {READ, WRITE, CLEAR, FAULT} dir = READ;
 	int tiling = I915_TILING_NONE;

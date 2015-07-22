@@ -37,7 +37,7 @@ struct drm_i915_gem_context_create create;
 igt_main
 {
 	igt_fixture
-		fd = drm_open_any_render();
+		fd = drm_open_driver_render(DRIVER_INTEL);
 
 	igt_subtest("basic") {
 		create.ctx_id = rand();

@@ -260,7 +260,7 @@ int drm_fd;
 igt_main
 {
 	igt_fixture
-		drm_fd = drm_open_any();
+		drm_fd = drm_open_driver(DRIVER_INTEL);
 
 	igt_subtest("render_timeout")
 		render_timeout(drm_fd);

@@ -146,7 +146,7 @@ processes(void)
 
 	igt_skip_on_simulation();
 
-	fd = drm_open_any_render();
+	fd = drm_open_driver_render(DRIVER_INTEL);
 	devid = intel_get_drm_devid(fd);
 	aperture = gem_aperture_size(fd);
 
@@ -248,7 +248,7 @@ threads(void)
 
 	igt_skip_on_simulation();
 
-	fd = drm_open_any_render();
+	fd = drm_open_driver_render(DRIVER_INTEL);
 	devid = intel_get_drm_devid(fd);
 	aperture = gem_aperture_size(fd);
 

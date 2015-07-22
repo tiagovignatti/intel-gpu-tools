@@ -189,7 +189,7 @@ int main(int argc, char *argv[])
 	int row = 0, bank = 0, sbank = 0;
 	int fd[REAL_MAX_SLICES] = {0}, ret, i;
 	int action = '0';
-	int drm_fd = drm_open_any();
+	int drm_fd = drm_open_driver(DRIVER_INTEL);
 	int daemonize = 0;
 	devid = intel_get_drm_devid(drm_fd);
 

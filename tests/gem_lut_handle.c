@@ -180,7 +180,7 @@ igt_simple_main
 	uint32_t handle;
 	int fd, i;
 
-	fd = drm_open_any();
+	fd = drm_open_driver(DRIVER_INTEL);
 
 	handle = gem_create(fd, 4096);
 	gem_write(fd, handle, 0, batch, sizeof(batch));

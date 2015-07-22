@@ -299,7 +299,7 @@ igt_main
                 drm_i915_getparam_t gp;
 		int rc;
 
-		fd = drm_open_any();
+		fd = drm_open_driver(DRIVER_INTEL);
 
 		gp.param = I915_PARAM_CMD_PARSER_VERSION;
 		gp.value = &parser_version;

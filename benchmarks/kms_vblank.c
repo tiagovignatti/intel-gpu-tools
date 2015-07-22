@@ -161,7 +161,7 @@ int main(int argc, char **argv)
 		}
 	}
 
-	fd = drm_open_any();
+	fd = drm_open_driver(DRIVER_INTEL);
 	if (!crtc0_active(fd)) {
 		fprintf(stderr, "CRTC/pipe 0 not active\n");
 		return 77;

@@ -271,7 +271,7 @@ int main(int argc, char **argv)
 	igt_fixture {
 		uint32_t devid;
 
-		fd = drm_open_any();
+		fd = drm_open_driver(DRIVER_INTEL);
 
 		dst = gem_create(fd, object_size);
 		src = gem_create(fd, object_size);

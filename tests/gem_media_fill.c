@@ -103,7 +103,7 @@ igt_simple_main
 	igt_fillfunc_t media_fill = NULL;
 	int i, j;
 
-	data.drm_fd = drm_open_any_render();
+	data.drm_fd = drm_open_driver_render(DRIVER_INTEL);
 	data.devid = intel_get_drm_devid(data.drm_fd);
 
 	data.bufmgr = drm_intel_bufmgr_gem_init(data.drm_fd, 4096);

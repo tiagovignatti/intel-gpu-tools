@@ -332,7 +332,7 @@ igt_main
 	};
 
 	igt_fixture {
-		data.drm_fd = drm_open_any_render();
+		data.drm_fd = drm_open_driver_render(DRIVER_INTEL);
 		data.devid = intel_get_drm_devid(data.drm_fd);
 
 		data.n_buffers_load = 1000;

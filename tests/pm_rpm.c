@@ -699,7 +699,7 @@ static void setup_non_graphics_runtime_pm(void)
 
 static void setup_environment(void)
 {
-	drm_fd = drm_open_any_master();
+	drm_fd = drm_open_driver_master(DRIVER_INTEL);
 
 	init_mode_set_data(&ms_data);
 

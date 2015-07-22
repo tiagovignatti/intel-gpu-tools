@@ -101,7 +101,7 @@ static void test_flink_name(void)
 
 	threads = calloc(num_threads, sizeof(pthread_t));
 
-	fd = drm_open_any();
+	fd = drm_open_driver(DRIVER_INTEL);
 
 	for (i = 0; i < num_threads; i++) {
 		r = pthread_create(&threads[i], NULL,
@@ -162,7 +162,7 @@ static void test_flink_close(void)
 
 	/* Allocate exit handler fds in here so that we dont screw
 	 * up the counts */
-	fake = drm_open_any();
+	fake = drm_open_driver(DRIVER_INTEL);
 
 	gem_quiescent_gpu(fake);
 	obj_count = get_object_count();
@@ -171,7 +171,7 @@ static void test_flink_close(void)
 
 	threads = calloc(num_threads, sizeof(pthread_t));
 
-	fd = drm_open_any();
+	fd = drm_open_driver(DRIVER_INTEL);
 
 	for (i = 0; i < num_threads; i++) {
 		r = pthread_create(&threads[i], NULL,

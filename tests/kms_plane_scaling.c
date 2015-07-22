@@ -351,7 +351,7 @@ igt_simple_main
 	igt_skip_on_simulation();
 
 
-	data.drm_fd = drm_open_any();
+	data.drm_fd = drm_open_driver(DRIVER_INTEL);
 	igt_require_pipe_crc();
 	igt_display_init(&data.display, data.drm_fd);
 	data.devid = intel_get_drm_devid(data.drm_fd);

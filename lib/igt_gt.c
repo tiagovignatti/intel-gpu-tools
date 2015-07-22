@@ -200,7 +200,7 @@ int igt_fork_hang_helper(void)
 	if (igt_only_list_subtests())
 		return 1;
 
-	fd = drm_open_any();
+	fd = drm_open_driver(DRIVER_INTEL);
 	if (fd == -1)
 		return 0;
 

@@ -1695,7 +1695,7 @@ int main(int argc, char **argv)
 	igt_skip_on_simulation();
 
 	igt_fixture {
-		drm_fd = drm_open_any_master();
+		drm_fd = drm_open_driver_master(DRIVER_INTEL);
 
 		igt_enable_connectors();
 

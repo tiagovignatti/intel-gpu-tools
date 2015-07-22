@@ -222,7 +222,7 @@ int main(int argc, char **argv)
 	igt_subtest_init(argc, argv);
 
 	igt_fixture {
-		fd = drm_open_any();
+		fd = drm_open_driver(DRIVER_INTEL);
 	}
 
 	igt_subtest("basic")

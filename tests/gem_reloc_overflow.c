@@ -326,7 +326,7 @@ igt_main
 		int ring;
 		uint32_t batch_data [2] = { MI_NOOP, MI_BATCH_BUFFER_END };
 
-		fd = drm_open_any();
+		fd = drm_open_driver(DRIVER_INTEL);
 
 		devid = intel_get_drm_devid(fd);
 

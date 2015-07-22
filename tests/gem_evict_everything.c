@@ -189,7 +189,7 @@ igt_main
 	fd = -1;
 
 	igt_fixture {
-		fd = drm_open_any();
+		fd = drm_open_driver(DRIVER_INTEL);
 
 		size = 1024 * 1024;
 		count = 3*gem_aperture_size(fd) / size / 4;

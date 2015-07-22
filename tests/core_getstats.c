@@ -47,7 +47,7 @@ igt_simple_main
 	int fd, ret;
 	drm_stats_t stats;
 
-	fd = drm_open_any();
+	fd = drm_open_driver(DRIVER_INTEL);
 
 	ret = ioctl(fd, DRM_IOCTL_GET_STATS, &stats);
 	igt_assert(ret == 0);

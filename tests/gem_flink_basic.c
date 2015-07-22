@@ -123,7 +123,7 @@ test_flink_lifetime(int fd)
 
 	igt_info("Testing flink lifetime.\n");
 
-	fd2 = drm_open_any();
+	fd2 = drm_open_driver(DRIVER_INTEL);
 
 	memset(&create, 0, sizeof(create));
 	create.size = 16 * 1024;
@@ -140,7 +140,7 @@ test_flink_lifetime(int fd)
 	igt_assert(open_struct.handle != 0);
 
 	close(fd2);
-	fd2 = drm_open_any();
+	fd2 = drm_open_driver(DRIVER_INTEL);
 
 	open_struct.name = flink.name;
 	ret = ioctl(fd2, DRM_IOCTL_GEM_OPEN, &open_struct);
@@ -153,7 +153,7 @@ int fd;
 igt_main
 {
 	igt_fixture
-		fd = drm_open_any();
+		fd = drm_open_driver(DRIVER_INTEL);
 
 	igt_subtest("basic")
 		test_flink(fd);

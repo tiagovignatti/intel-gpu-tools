@@ -94,7 +94,7 @@ igt_simple_main
 	int fd;
 	int devid;
 
-	fd = drm_open_any();
+	fd = drm_open_driver(DRIVER_INTEL);
 	devid = intel_get_drm_devid(fd);
 	gem_require_ring(fd, I915_EXEC_BLT);
 

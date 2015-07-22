@@ -125,7 +125,7 @@ igt_main
 	int ret;
 
 	igt_fixture
-		fd = drm_open_any();
+		fd = drm_open_driver(DRIVER_INTEL);
 
 	igt_subtest("bad-object") {
 		memset(&arg, 0, sizeof(arg));

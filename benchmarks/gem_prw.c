@@ -54,7 +54,7 @@ static uint64_t elapsed(const struct timespec *start,
 
 int main(int argc, char **argv)
 {
-	int fd = drm_open_any();
+	int fd = drm_open_driver(DRIVER_INTEL);
 	int domain = I915_GEM_DOMAIN_GTT;
 	enum dir { READ, WRITE } dir = READ;
 	void *buf = malloc(OBJECT_SIZE);
