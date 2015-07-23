@@ -62,7 +62,7 @@ int main(int argc, char **argv)
 	int reps = 13;
 	int c, size;
 
-	while ((c = getopt (argc, argv, "d:r:")) != -1) {
+	while ((c = getopt (argc, argv, "D:d:r:")) != -1) {
 		switch (c) {
 		case 'd':
 			if (strcmp(optarg, "cpu") == 0)
