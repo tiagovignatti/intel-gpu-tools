@@ -6,4 +6,6 @@ bin_PROGRAMS =                          \
 	gem_exec_nop			\
 	gem_mmap			\
 	gem_prw				\
-	gem_userptr_benchmark
+	gem_userptr_benchmark		\
+	kms_vblank			\
+	$(NULL)
