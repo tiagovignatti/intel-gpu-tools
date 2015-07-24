@@ -56,7 +56,7 @@ int main(int argc, char **argv)
 {
 	int fd = drm_open_any();
 	enum map {CPU, GTT, WC} map = CPU;
-	enum dir {READ, WRITE, CLEAR} dir = READ;
+	enum dir {READ, WRITE, CLEAR, FAULT} dir = READ;
 	int tiling = I915_TILING_NONE;
 	void *buf = malloc(OBJECT_SIZE);
 	uint32_t handle;
@@ -84,6 +84,8 @@ int main(int argc, char **argv)
 				dir = WRITE;
 			else if (strcmp(optarg, "clear") == 0)
 				dir = CLEAR;
+			else if (strcmp(optarg, "fault") == 0)
+				dir = FAULT;
 			else
 				abort();
 			break;
@@ -146,12 +148,23 @@ int main(int argc, char **argv)
 
 		for (n = 0; n < reps; n++) {
 			struct timespec start, end;
+			int page;
 
 			clock_gettime(CLOCK_MONOTONIC, &start);
-			if (dir == CLEAR)
+			switch (dir) {
+			case CLEAR:
 				memset(dst, 0, size);
-			else
+				break;
+			case FAULT:
+				for (page = 0; page < OBJECT_SIZE; page += 4096) {
+					uint32_t *x = (uint32_t *)ptr + page/4;
+					page += *x; /* should be zero! */
+				}
+				break;
+			default:
 				memcpy(dst, src, size);
+				break;
+			}
 			clock_gettime(CLOCK_MONOTONIC, &end);
 
 			igt_stats_push(&stats, elapsed(&start, &end));
