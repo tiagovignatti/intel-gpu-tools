@@ -27,7 +27,6 @@
 
 struct context {
 	int drm_card_fd;
-	int vgem_card_fd;
 	struct gbm_device *drm_gbm;
 
 	drmModeRes *resources;
@@ -36,7 +35,7 @@ struct context {
 	drmModeModeInfo *mode;
 
 	struct gbm_bo *gbm_buffer[BUFFERS];
-	uint32_t vgem_bo_handle[BUFFERS];
+	uint32_t bo_handle[BUFFERS];
 	uint32_t drm_fb_id[BUFFERS];
 
 };
@@ -61,40 +60,6 @@ static void disable_psr(void) {
 
 static void do_fixes(void) {
 	disable_psr();
-}
-
-const char g_sys_card_path_format[] =
-   "/sys/bus/platform/devices/vgem/drm/card%d";
-const char g_dev_card_path_format[] =
-   "/dev/dri/card%d";
-
-static int drm_open_vgem(void) {
-	char *name;
-	int i, fd;
-
-	for (i = 0; i < 16; i++) {
-		struct stat _stat;
-		int ret;
-		ret = asprintf(&name, g_sys_card_path_format, i);
-		assert(ret != -1);
-
-		if (stat(name, &_stat) == -1) {
-			free(name);
-			continue;
-		}
-
-		free(name);
-		ret = asprintf(&name, g_dev_card_path_format, i);
-		assert(ret != -1);
-
-		fd = open(name, O_RDWR);
-		free(name);
-		if (fd == -1) {
-			continue;
-		}
-		return fd;
-	}
-	return -1;
 }
 
 static double elapsed(const struct timeval *start, const struct timeval *end) {
@@ -267,7 +232,7 @@ static void draw(struct context *ctx) {
 				case STEP_MMAP:
 					if (enable_profiling)
 						gettimeofday(&start, NULL);
-					bo_ptr = mmap_dumb_bo(ctx->vgem_card_fd, ctx->vgem_bo_handle[fb_idx], bo_size);
+					bo_ptr = mmap_dumb_bo(ctx->drm_card_fd, ctx->bo_handle[fb_idx], bo_size);
 					if (enable_profiling) {
 						gettimeofday(&end, NULL);
 						fprintf(stderr, "time to execute mmap: %7.3fms\n",
@@ -350,18 +315,11 @@ int main(int argc, char **argv)
 		goto fail;
 	}
 
-	ctx.vgem_card_fd = drm_open_vgem();
-	if (ctx.vgem_card_fd < 0) {
-		fprintf(stderr, "failed to open vgem card\n");
-		ret = 1;
-		goto close_drm_card;
-	}
-
 	ctx.drm_gbm = gbm_create_device(ctx.drm_card_fd);
 	if (!ctx.drm_gbm) {
 		fprintf(stderr, "failed to create gbm device on %s\n", drm_card_path);
 		ret = 1;
-		goto close_vgem_card;
+		goto close_drm_card;
 	}
 
 	if (!setup_drm(&ctx)) {
@@ -395,8 +353,8 @@ int main(int argc, char **argv)
 			goto free_buffers;
 		}
 
-		ret = drmPrimeFDToHandle(ctx.vgem_card_fd, drm_prime_fd,
-					 &ctx.vgem_bo_handle[i]);
+		ret = drmPrimeFDToHandle(ctx.drm_card_fd, drm_prime_fd,
+					 &ctx.bo_handle[i]);
 		if (ret) {
 			fprintf(stderr, "failed to import handle\n");
 			ret = 1;
@@ -435,8 +393,6 @@ free_buffers:
 	drmModeFreeResources(ctx.resources);
 destroy_drm_gbm:
 	gbm_device_destroy(ctx.drm_gbm);
-close_vgem_card:
-	close(ctx.vgem_card_fd);
 close_drm_card:
 	close(ctx.drm_card_fd);
 fail:
