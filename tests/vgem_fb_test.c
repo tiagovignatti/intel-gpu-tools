@@ -376,8 +376,7 @@ int main(int argc, char **argv)
 
 	for (i = 0; i < BUFFERS; ++i) {
 		ctx.gbm_buffer[i] = gbm_bo_create(ctx.drm_gbm,
-			ctx.mode->hdisplay, ctx.mode->vdisplay, GBM_BO_FORMAT_XRGB8888,
-			GBM_BO_USE_SCANOUT | GBM_BO_USE_RENDERING);
+			ctx.mode->hdisplay, ctx.mode->vdisplay, GBM_BO_FORMAT_XRGB8888, 0);
 
 		if (!ctx.gbm_buffer[i]) {
 			fprintf(stderr, "failed to create buffer object\n");
