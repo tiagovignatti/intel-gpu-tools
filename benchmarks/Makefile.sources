@@ -1,4 +1,6 @@
-bin_PROGRAMS =                          \
+benchmarksdir=$(libexecdir)/intel-gpu-tools/benchmarks
+
+benchmarks_PROGRAMS =			\
 	intel_upload_blit_large         \
 	intel_upload_blit_large_gtt     \
 	intel_upload_blit_large_map     \
