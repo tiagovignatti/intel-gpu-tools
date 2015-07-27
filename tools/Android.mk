@@ -25,7 +25,7 @@ define add_tool
     LOCAL_C_INCLUDES = $(LOCAL_PATH)/../lib
     LOCAL_C_INCLUDES += ${ANDROID_BUILD_TOP}/external/PRIVATE/drm/include/drm
 
-    LOCAL_MODULE := $1
+    LOCAL_MODULE := $1_tool
     LOCAL_MODULE_TAGS := optional
 
     LOCAL_STATIC_LIBRARIES := libintel_gpu_tools

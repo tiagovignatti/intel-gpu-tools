@@ -17,7 +17,7 @@ define add_benchmark
     # Excessive complaining for established cases. Rely on the Linux version warnings.
     LOCAL_CFLAGS += -Wno-sign-compare
 
-    LOCAL_MODULE := $1
+    LOCAL_MODULE := $1_benchmark
     LOCAL_MODULE_TAGS := optional
 
     LOCAL_STATIC_LIBRARIES := libintel_gpu_tools
