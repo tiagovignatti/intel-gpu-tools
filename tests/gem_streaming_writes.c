@@ -88,7 +88,6 @@ static void test_streaming(int fd, int mode, int sync)
 	memset(exec, 0, sizeof(exec));
 	exec[SRC].handle = gem_create(fd, OBJECT_SIZE);
 	exec[DST].handle = gem_create(fd, OBJECT_SIZE);
-	exec[DST].flags = EXEC_OBJECT_WRITE;
 
 	switch (mode) {
 	case 0: /* cpu/snoop */
@@ -115,7 +114,7 @@ static void test_streaming(int fd, int mode, int sync)
 	execbuf.flags = LOCAL_I915_EXEC_HANDLE_LUT;
 	if (!__gem_execbuf(fd, &execbuf)) {
 		execbuf.flags = 0;
-		igt_require(__gem_execbuf(fd, &execbuf) == 0);
+		igt_require(__gem_execbuf(fd, &execbuf));
 	}
 	/* We assume that the active objects are fixed to avoid relocations */
 	__src_offset = src_offset;
@@ -139,11 +138,12 @@ static void test_streaming(int fd, int mode, int sync)
 		reloc[2*i+1].read_domains = I915_GEM_DOMAIN_RENDER;
 		reloc[2*i+1].write_domain = 0;
 	}
-	igt_assert(__gem_execbuf(fd, &execbuf) == 0);
+	igt_assert(__gem_execbuf(fd, &execbuf));
 	igt_assert_eq_u64(__src_offset, src_offset);
 	igt_assert_eq_u64(__dst_offset, dst_offset);
 
-	exec[2].relocation_count = 2;
+	exec[DST].flags = EXEC_OBJECT_WRITE;
+	exec[BATCH].relocation_count = 2;
 	execbuf.buffer_count = 3;
 	execbuf.flags |= I915_EXEC_NO_RELOC;
 	if (gem_has_blt(fd))
@@ -208,18 +208,20 @@ static void test_streaming(int fd, int mode, int sync)
 					s[offset/4 + i] = (OBJECT_SIZE*pass + offset)/4 + i;
 			}
 
+			igt_assert(exec[DST].flags & EXEC_OBJECT_WRITE);
+
 			b = offset / CHUNK_SIZE / 64;
 			n = offset / CHUNK_SIZE % 64;
-			exec[2].relocs_ptr = (uintptr_t)(reloc + 2*n);
-			exec[2].handle = batch[b].handle;
-			exec[2].offset = batch[b].offset;
+			exec[BATCH].relocs_ptr = (uintptr_t)(reloc + 2*n);
+			exec[BATCH].handle = batch[b].handle;
+			exec[BATCH].offset = batch[b].offset;
 			execbuf.batch_start_offset = 64*n;
 
 			gem_execbuf(fd, &execbuf);
 			igt_assert_eq_u64(__src_offset, src_offset);
 			igt_assert_eq_u64(__dst_offset, dst_offset);
 
-			batch[b].offset = exec[2].offset;
+			batch[b].offset = exec[BATCH].offset;
 		}
 
 		gem_set_domain(fd, dst, I915_GEM_DOMAIN_CPU, 0);
@@ -252,7 +254,6 @@ static void test_batch(int fd, int mode, int reverse)
 
 	memset(exec, 0, sizeof(exec));
 	exec[DST].handle = gem_create(fd, OBJECT_SIZE);
-	exec[DST].flags = EXEC_OBJECT_WRITE;
 	exec[SRC].handle = gem_create(fd, OBJECT_SIZE);
 
 	s = gem_mmap__wc(fd, src, 0, OBJECT_SIZE, PROT_READ | PROT_WRITE);
@@ -279,26 +280,26 @@ static void test_batch(int fd, int mode, int reverse)
 	reloc[1].write_domain = 0;
 
 	batch_size = ALIGN(OBJECT_SIZE / CHUNK_SIZE * 128, 4096);
-	exec[2].relocs_ptr = (uintptr_t)reloc;
-	exec[2].relocation_count = 2;
-	exec[2].handle = gem_create(fd, batch_size);
+	exec[BATCH].relocs_ptr = (uintptr_t)reloc;
+	exec[BATCH].relocation_count = 2;
+	exec[BATCH].handle = gem_create(fd, batch_size);
 
 	switch (mode) {
 	case 0: /* cpu/snoop */
 		igt_require(gem_has_llc(fd));
-		base = gem_mmap__cpu(fd, exec[2].handle, 0, batch_size, PROT_READ | PROT_WRITE);
+		base = gem_mmap__cpu(fd, exec[BATCH].handle, 0, batch_size, PROT_READ | PROT_WRITE);
 		break;
 	case 1: /* gtt */
-		base = gem_mmap__gtt(fd, exec[2].handle, batch_size, PROT_READ | PROT_WRITE);
+		base = gem_mmap__gtt(fd, exec[BATCH].handle, batch_size, PROT_READ | PROT_WRITE);
 		break;
 	case 2: /* wc */
-		base = gem_mmap__wc(fd, exec[2].handle, 0, batch_size, PROT_READ | PROT_WRITE);
+		base = gem_mmap__wc(fd, exec[BATCH].handle, 0, batch_size, PROT_READ | PROT_WRITE);
 		break;
 	}
 	igt_assert(base);
 	*base = 0; /* fault the object into the mappable range first */
 
-	gem_write(fd, exec[2].handle, 0, tmp, sizeof(tmp));
+	gem_write(fd, exec[BATCH].handle, 0, tmp, sizeof(tmp));
 	memset(&execbuf, 0, sizeof(execbuf));
 	execbuf.buffers_ptr = (uintptr_t)exec;
 	execbuf.buffer_count = 3;
@@ -310,13 +311,14 @@ static void test_batch(int fd, int mode, int reverse)
 		gem_execbuf(fd, &execbuf);
 	}
 	execbuf.flags |= I915_EXEC_NO_RELOC;
+	exec[DST].flags = EXEC_OBJECT_WRITE;
 	/* We assume that the active objects are fixed to avoid relocations */
-	exec[2].relocation_count = 0;
+	exec[BATCH].relocation_count = 0;
 	__src_offset = src_offset;
 	__dst_offset = dst_offset;
 
 	offset = mode ? I915_GEM_DOMAIN_GTT : I915_GEM_DOMAIN_CPU;
-	gem_set_domain(fd, exec[2].handle, offset, offset);
+	gem_set_domain(fd, exec[BATCH].handle, offset, offset);
 	for (int pass = 0; pass < 256; pass++) {
 		gem_set_domain(fd, src, I915_GEM_DOMAIN_GTT, I915_GEM_DOMAIN_GTT);
 		for (offset = 0; offset < OBJECT_SIZE/4; offset++)
@@ -353,6 +355,7 @@ static void test_batch(int fd, int mode, int reverse)
 				base[k++] = src_offset >> 32;
 			base[k++] = MI_BATCH_BUFFER_END;
 
+			igt_assert(exec[DST].flags & EXEC_OBJECT_WRITE);
 			gem_execbuf(fd, &execbuf);
 			igt_assert_eq_u64(__src_offset, src_offset);
 			igt_assert_eq_u64(__dst_offset, dst_offset);
@@ -364,7 +367,7 @@ static void test_batch(int fd, int mode, int reverse)
 	}
 
 	munmap(base, OBJECT_SIZE / CHUNK_SIZE * 128);
-	gem_close(fd, exec[2].handle);
+	gem_close(fd, exec[BATCH].handle);
 
 	munmap(s, OBJECT_SIZE);
 	gem_close(fd, src);
