@@ -365,6 +365,24 @@ void igt_exit(void) __attribute__((noreturn));
 	} while (0)
 
 /**
+ * igt_assert_cmpu64:
+ * @n1: first value
+ * @cmp: compare operator
+ * @ncmp: negated version of @cmp
+ * @n2: second value
+ *
+ * Like igt_assert_cmpuint(), but for larger ints.
+ */
+#define igt_assert_cmpu64(n1, cmp, ncmp, n2) \
+	do { \
+		uint64_t __n1 = (n1), __n2 = (n2); \
+		if (__n1 cmp __n2) ; else \
+		__igt_fail_assert(IGT_LOG_DOMAIN, __FILE__, __LINE__, __func__, \
+				  #n1 " " #cmp " " #n2, \
+				  "error: %#llx " #ncmp " %#llx\n", (long long)__n1, (long long)__n2); \
+	} while (0)
+
+/**
  * igt_assert_cmpdouble:
  * @n1: first value
  * @cmp: compare operator
@@ -403,6 +421,15 @@ void igt_exit(void) __attribute__((noreturn));
  * Like igt_assert_eq(), but for uint32_t.
  */
 #define igt_assert_eq_u32(n1, n2) igt_assert_cmpuint(n1, ==, !=, n2)
+
+/**
+ * igt_assert_eq_u64:
+ * @n1: first integer
+ * @n2: second integer
+ *
+ * Like igt_assert_eq_u32(), but for uint64_t.
+ */
+#define igt_assert_eq_u64(n1, n2) igt_assert_cmpu64(n1, ==, !=, n2)
 
 /**
  * igt_assert_eq_double:

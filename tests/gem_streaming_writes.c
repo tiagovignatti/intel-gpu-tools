@@ -103,6 +103,7 @@ static void test_streaming(int fd, int mode, int sync)
 		break;
 	}
 	igt_assert(s);
+	*s = 0; /* fault the object into the mappable range first (for GTT) */
 
 	d = gem_mmap__cpu(fd, dst, 0, OBJECT_SIZE, PROT_READ);
 	igt_assert(d);
@@ -138,6 +139,9 @@ static void test_streaming(int fd, int mode, int sync)
 		reloc[2*i+1].read_domains = I915_GEM_DOMAIN_RENDER;
 		reloc[2*i+1].write_domain = 0;
 	}
+	igt_assert(__gem_execbuf(fd, &execbuf) == 0);
+	igt_assert_eq_u64(__src_offset, src_offset);
+	igt_assert_eq_u64(__dst_offset, dst_offset);
 
 	exec[2].relocation_count = 2;
 	execbuf.buffer_count = 3;
@@ -212,8 +216,8 @@ static void test_streaming(int fd, int mode, int sync)
 			execbuf.batch_start_offset = 64*n;
 
 			gem_execbuf(fd, &execbuf);
-			igt_assert(__src_offset == src_offset);
-			igt_assert(__dst_offset == dst_offset);
+			igt_assert_eq_u64(__src_offset, src_offset);
+			igt_assert_eq_u64(__dst_offset, dst_offset);
 
 			batch[b].offset = exec[2].offset;
 		}
@@ -292,6 +296,7 @@ static void test_batch(int fd, int mode, int reverse)
 		break;
 	}
 	igt_assert(base);
+	*base = 0; /* fault the object into the mappable range first */
 
 	gem_write(fd, exec[2].handle, 0, tmp, sizeof(tmp));
 	memset(&execbuf, 0, sizeof(execbuf));
@@ -349,8 +354,8 @@ static void test_batch(int fd, int mode, int reverse)
 			base[k++] = MI_BATCH_BUFFER_END;
 
 			gem_execbuf(fd, &execbuf);
-			igt_assert(__src_offset == src_offset);
-			igt_assert(__dst_offset == dst_offset);
+			igt_assert_eq_u64(__src_offset, src_offset);
+			igt_assert_eq_u64(__dst_offset, dst_offset);
 		}
 
 		gem_set_domain(fd, dst, I915_GEM_DOMAIN_CPU, 0);
