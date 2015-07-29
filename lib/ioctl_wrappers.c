@@ -1422,6 +1422,31 @@ int prime_handle_to_fd(int fd, uint32_t handle)
 }
 
 /**
+ * prime_handle_to_fd_for_mmap:
+ * @fd: open i915 drm file descriptor
+ * @handle: file-private gem buffer object handle
+ *
+ * Same as prime_handle_to_fd above but with DRM_RDWR capabilities, which can
+ * be useful for writing into the mmap'ed dma-buf file-descriptor.
+ *
+ * Returns: The created dma-buf fd handle or -1 if the ioctl fails.
+ */
+int prime_handle_to_fd_for_mmap(int fd, uint32_t handle)
+{
+	struct drm_prime_handle args;
+
+	memset(&args, 0, sizeof(args));
+	args.handle = handle;
+	args.flags = DRM_CLOEXEC | DRM_RDWR;
+	args.fd = -1;
+
+	if (drmIoctl(fd, DRM_IOCTL_PRIME_HANDLE_TO_FD, &args) != 0)
+		return -1;
+
+	return args.fd;
+}
+
+/**
  * prime_fd_to_handle:
  * @fd: open i915 drm file descriptor
  * @dma_buf_fd: dma-buf fd handle
