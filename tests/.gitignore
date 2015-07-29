@@ -163,6 +163,7 @@ pm_sseu
 prime_nv_api
 prime_nv_pcopy
 prime_nv_test
+prime_mmap
 prime_self_import
 prime_udl
 template

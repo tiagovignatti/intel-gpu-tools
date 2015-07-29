@@ -65,19 +65,6 @@ fill_bo(uint32_t handle, size_t size)
 	}
 }
 
-static int
-pattern_check(char *ptr, size_t size)
-{
-	off_t i;
-	for (i = 0; i < size; i+=sizeof(pattern))
-	{
-		if (memcmp(ptr, pattern, sizeof(pattern)) != 0)
-			return 1;
-	}
-
-	return 0;
-}
-
 static void
 test_correct(void)
 {
@@ -92,14 +79,14 @@ test_correct(void)
 	igt_assert(errno == 0);
 
 	/* Check correctness vs GEM_MMAP_GTT */
-	ptr1 = gem_mmap(fd, handle, BO_SIZE, PROT_READ | PROT_WRITE);
+	ptr1 = gem_mmap(fd, handle, BO_SIZE, PROT_READ);
 	ptr2 = mmap(NULL, BO_SIZE, PROT_READ, MAP_SHARED, dma_buf_fd, 0);
 	igt_assert(ptr1 != MAP_FAILED);
 	igt_assert(ptr2 != MAP_FAILED);
 	igt_assert(memcmp(ptr1, ptr2, BO_SIZE) == 0);
 
 	/* Check pattern correctness */
-	igt_assert(pattern_check(ptr2, BO_SIZE) == 0);
+	igt_assert(memcmp(ptr2, pattern, sizeof(pattern)) == 0);
 
 	munmap(ptr1, BO_SIZE);
 	munmap(ptr2, BO_SIZE);
@@ -122,13 +109,13 @@ test_map_unmap(void)
 
 	ptr = mmap(NULL, BO_SIZE, PROT_READ, MAP_SHARED, dma_buf_fd, 0);
 	igt_assert(ptr != MAP_FAILED);
-	igt_assert(pattern_check(ptr, BO_SIZE) == 0);
+	igt_assert(memcmp(ptr, pattern, sizeof(pattern)) == 0);
 
 	/* Unmap and remap */
 	munmap(ptr, BO_SIZE);
 	ptr = mmap(NULL, BO_SIZE, PROT_READ, MAP_SHARED, dma_buf_fd, 0);
 	igt_assert(ptr != MAP_FAILED);
-	igt_assert(pattern_check(ptr, BO_SIZE) == 0);
+	igt_assert(memcmp(ptr, pattern, sizeof(pattern)) == 0);
 
 	munmap(ptr, BO_SIZE);
 	close(dma_buf_fd);
@@ -151,16 +138,16 @@ test_reprime(void)
 
 	ptr = mmap(NULL, BO_SIZE, PROT_READ, MAP_SHARED, dma_buf_fd, 0);
 	igt_assert(ptr != MAP_FAILED);
-	igt_assert(pattern_check(ptr, BO_SIZE) == 0);
+	igt_assert(memcmp(ptr, pattern, sizeof(pattern)) == 0);
 
 	close (dma_buf_fd);
-	igt_assert(pattern_check(ptr, BO_SIZE) == 0);
+	igt_assert(memcmp(ptr, pattern, sizeof(pattern)) == 0);
 	munmap(ptr, BO_SIZE);
 
 	dma_buf_fd = prime_handle_to_fd(fd, handle);
 	ptr = mmap(NULL, BO_SIZE, PROT_READ, MAP_SHARED, dma_buf_fd, 0);
 	igt_assert(ptr != MAP_FAILED);
-	igt_assert(pattern_check(ptr, BO_SIZE) == 0);
+	igt_assert(memcmp(ptr, pattern, sizeof(pattern)) == 0);
 
 	munmap(ptr, BO_SIZE);
 	close(dma_buf_fd);
@@ -184,7 +171,7 @@ test_forked(void)
 	igt_fork(childno, 1) {
 		ptr = mmap(NULL, BO_SIZE, PROT_READ, MAP_SHARED, dma_buf_fd, 0);
 		igt_assert(ptr != MAP_FAILED);
-		igt_assert(pattern_check(ptr, BO_SIZE) == 0);
+		igt_assert(memcmp(ptr, pattern, sizeof(pattern)) == 0);
 		munmap(ptr, BO_SIZE);
 		close(dma_buf_fd);
 	}
@@ -210,7 +197,7 @@ test_refcounting(void)
 
 	ptr = mmap(NULL, BO_SIZE, PROT_READ, MAP_SHARED, dma_buf_fd, 0);
 	igt_assert(ptr != MAP_FAILED);
-	igt_assert(pattern_check(ptr, BO_SIZE) == 0);
+	igt_assert(memcmp(ptr, pattern, sizeof(pattern)) == 0);
 	munmap(ptr, BO_SIZE);
 	close (dma_buf_fd);
 }
@@ -231,7 +218,7 @@ test_dup(void)
 
 	ptr = mmap(NULL, BO_SIZE, PROT_READ, MAP_SHARED, dma_buf_fd, 0);
 	igt_assert(ptr != MAP_FAILED);
-	igt_assert(pattern_check(ptr, BO_SIZE) == 0);
+	igt_assert(memcmp(ptr, pattern, sizeof(pattern)) == 0);
 	munmap(ptr, BO_SIZE);
 	gem_close(fd, handle);
 	close (dma_buf_fd);
@@ -310,7 +297,7 @@ test_aperture_limit(void)
 	igt_assert(errno == 0);
 	ptr1 = mmap(NULL, size1, PROT_READ, MAP_SHARED, dma_buf_fd1, 0);
 	igt_assert(ptr1 != MAP_FAILED);
-	igt_assert(pattern_check(ptr1, BO_SIZE) == 0);
+	igt_assert(memcmp(ptr1, pattern, sizeof(pattern)) == 0);
 
 	handle2 = gem_create(fd, size1);
 	fill_bo(handle2, BO_SIZE);
@@ -318,7 +305,7 @@ test_aperture_limit(void)
 	igt_assert(errno == 0);
 	ptr2 = mmap(NULL, size2, PROT_READ, MAP_SHARED, dma_buf_fd2, 0);
 	igt_assert(ptr2 != MAP_FAILED);
-	igt_assert(pattern_check(ptr2, BO_SIZE) == 0);
+	igt_assert(memcmp(ptr2, pattern, sizeof(pattern)) == 0);
 
 	igt_assert(memcmp(ptr1, ptr2, BO_SIZE) == 0);
 
