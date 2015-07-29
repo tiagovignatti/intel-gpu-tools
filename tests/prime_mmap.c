@@ -22,6 +22,7 @@
  *
  * Authors:
  *    Rob Bradford <rob at linux.intel.com>
+ *    Tiago Vignatti <tiago.vignatti at intel.com>
  *
  */
 
@@ -63,6 +64,12 @@ fill_bo(uint32_t handle, size_t size)
 	{
 		gem_write(fd, handle, i, pattern, sizeof(pattern));
 	}
+}
+
+static void
+fill_bo_cpu(char *ptr)
+{
+	memcpy(ptr, pattern, sizeof(pattern));
 }
 
 static void
@@ -171,6 +178,62 @@ test_forked(void)
 	igt_fork(childno, 1) {
 		ptr = mmap(NULL, BO_SIZE, PROT_READ, MAP_SHARED, dma_buf_fd, 0);
 		igt_assert(ptr != MAP_FAILED);
+		igt_assert(memcmp(ptr, pattern, sizeof(pattern)) == 0);
+		munmap(ptr, BO_SIZE);
+		close(dma_buf_fd);
+	}
+	close(dma_buf_fd);
+	igt_waitchildren();
+	gem_close(fd, handle);
+}
+
+/* test CPU write. This has a rather big implication for the driver which must
+ * guarantee cache synchronization when writing the bo using CPU. */
+static void
+test_correct_cpu_write(void)
+{
+	int dma_buf_fd;
+	char *ptr;
+	uint32_t handle;
+
+	handle = gem_create(fd, BO_SIZE);
+
+	dma_buf_fd = prime_handle_to_fd(fd, handle);
+	igt_assert(errno == 0);
+
+	/* Check correctness of map using write protection (PROT_WRITE) */
+	ptr = mmap(NULL, BO_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, dma_buf_fd, 0);
+	igt_assert(ptr != MAP_FAILED);
+
+	/* Fill bo using CPU */
+	fill_bo_cpu(ptr);
+
+	/* Check pattern correctness */
+	igt_assert(memcmp(ptr, pattern, sizeof(pattern)) == 0);
+
+	munmap(ptr, BO_SIZE);
+	close(dma_buf_fd);
+	gem_close(fd, handle);
+}
+
+/* map from another process and then write using CPU */
+static void
+test_forked_cpu_write(void)
+{
+	int dma_buf_fd;
+	char *ptr;
+	uint32_t handle;
+
+	handle = gem_create(fd, BO_SIZE);
+
+	dma_buf_fd = prime_handle_to_fd(fd, handle);
+	igt_assert(errno == 0);
+
+	igt_fork(childno, 1) {
+		ptr = mmap(NULL, BO_SIZE, PROT_READ | PROT_WRITE , MAP_SHARED, dma_buf_fd, 0);
+		igt_assert(ptr != MAP_FAILED);
+		fill_bo_cpu(ptr);
+
 		igt_assert(memcmp(ptr, pattern, sizeof(pattern)) == 0);
 		munmap(ptr, BO_SIZE);
 		close(dma_buf_fd);
@@ -346,6 +409,8 @@ igt_main
 		{ "test_map_unmap", test_map_unmap },
 		{ "test_reprime", test_reprime },
 		{ "test_forked", test_forked },
+		{ "test_correct_cpu_write", test_correct_cpu_write },
+		{ "test_forked_cpu_write", test_forked_cpu_write },
 		{ "test_refcounting", test_refcounting },
 		{ "test_dup", test_dup },
 		{ "test_errors", test_errors },

@@ -1125,6 +1125,9 @@ void gem_require_ring(int fd, int ring_id)
 
 /* prime */
 
+#ifndef DRM_RDWR
+#define DRM_RDWR O_RDWR
+#endif
 /**
  * prime_handle_to_fd:
  * @fd: open i915 drm file descriptor
@@ -1142,7 +1145,7 @@ int prime_handle_to_fd(int fd, uint32_t handle)
 
 	memset(&args, 0, sizeof(args));
 	args.handle = handle;
-	args.flags = DRM_CLOEXEC;
+	args.flags = DRM_CLOEXEC | DRM_RDWR;
 	args.fd = -1;
 
 	do_ioctl(fd, DRM_IOCTL_PRIME_HANDLE_TO_FD, &args);
