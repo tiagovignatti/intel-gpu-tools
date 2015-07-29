@@ -22,6 +22,7 @@
  *
  * Authors:
  *    Rob Bradford <rob at linux.intel.com>
+ *    Tiago Vignatti <tiago.vignatti at intel.com>
  *
  */
 
@@ -63,6 +64,12 @@ fill_bo(uint32_t handle, size_t size)
 	{
 		gem_write(fd, handle, i, pattern, sizeof(pattern));
 	}
+}
+
+static void
+fill_bo_cpu(char *ptr)
+{
+	memcpy(ptr, pattern, sizeof(pattern));
 }
 
 static void
@@ -180,6 +187,65 @@ test_forked(void)
 	gem_close(fd, handle);
 }
 
+/* test simple CPU write */
+static void
+test_correct_cpu_write(void)
+{
+	int dma_buf_fd;
+	char *ptr;
+	uint32_t handle;
+
+	handle = gem_create(fd, BO_SIZE);
+
+	dma_buf_fd = prime_handle_to_fd_for_mmap(fd, handle);
+
+	/* Skip if DRM_RDWR is not supported */
+	igt_skip_on(errno == EINVAL);
+
+	/* Check correctness of map using write protection (PROT_WRITE) */
+	ptr = mmap(NULL, BO_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, dma_buf_fd, 0);
+	igt_assert(ptr != MAP_FAILED);
+
+	/* Fill bo using CPU */
+	fill_bo_cpu(ptr);
+
+	/* Check pattern correctness */
+	igt_assert(memcmp(ptr, pattern, sizeof(pattern)) == 0);
+
+	munmap(ptr, BO_SIZE);
+	close(dma_buf_fd);
+	gem_close(fd, handle);
+}
+
+/* map from another process and then write using CPU */
+static void
+test_forked_cpu_write(void)
+{
+	int dma_buf_fd;
+	char *ptr;
+	uint32_t handle;
+
+	handle = gem_create(fd, BO_SIZE);
+
+	dma_buf_fd = prime_handle_to_fd_for_mmap(fd, handle);
+
+	/* Skip if DRM_RDWR is not supported */
+	igt_skip_on(errno == EINVAL);
+
+	igt_fork(childno, 1) {
+		ptr = mmap(NULL, BO_SIZE, PROT_READ | PROT_WRITE , MAP_SHARED, dma_buf_fd, 0);
+		igt_assert(ptr != MAP_FAILED);
+		fill_bo_cpu(ptr);
+
+		igt_assert(memcmp(ptr, pattern, sizeof(pattern)) == 0);
+		munmap(ptr, BO_SIZE);
+		close(dma_buf_fd);
+	}
+	close(dma_buf_fd);
+	igt_waitchildren();
+	gem_close(fd, handle);
+}
+
 static void
 test_refcounting(void)
 {
@@ -224,15 +290,14 @@ test_dup(void)
 	close (dma_buf_fd);
 }
 
-
 /* Used for error case testing to avoid wrapper */
-static int prime_handle_to_fd_no_assert(uint32_t handle, int *fd_out)
+static int prime_handle_to_fd_no_assert(uint32_t handle, int flags, int *fd_out)
 {
 	struct drm_prime_handle args;
 	int ret;
 
 	args.handle = handle;
-	args.flags = DRM_CLOEXEC;
+	args.flags = flags;
 	args.fd = -1;
 
 	ret = drmIoctl(fd, DRM_IOCTL_PRIME_HANDLE_TO_FD, &args);
@@ -260,7 +325,7 @@ test_userptr(void)
 	gem_userptr(fd, (uint32_t *)ptr, BO_SIZE, 0, 0, &handle);
 
 	/* export userptr */
-	ret = prime_handle_to_fd_no_assert(handle, &dma_buf_fd);
+	ret = prime_handle_to_fd_no_assert(handle, DRM_CLOEXEC, &dma_buf_fd);
 	if (ret) {
 		igt_assert(ret == EINVAL || ret == ENODEV);
 		goto free_userptr;
@@ -281,15 +346,25 @@ free_userptr:
 static void
 test_errors(void)
 {
-	int dma_buf_fd;
+	int i, dma_buf_fd;
 	char *ptr;
 	uint32_t handle;
+	int invalid_flags[] = {DRM_CLOEXEC - 1, DRM_CLOEXEC + 1,
+	                       DRM_RDWR - 1, DRM_RDWR + 1};
+
+	/* Test for invalid flags */
+	handle = gem_create(fd, BO_SIZE);
+	for (i = 0; i < sizeof(invalid_flags) / sizeof(invalid_flags[0]); i++) {
+		prime_handle_to_fd_no_assert(handle, invalid_flags[i], &dma_buf_fd);
+		igt_assert_eq(errno, EINVAL);
+		errno = 0;
+	}
 
 	/* Close gem object before priming */
 	handle = gem_create(fd, BO_SIZE);
 	fill_bo(handle, BO_SIZE);
 	gem_close(fd, handle);
-	prime_handle_to_fd_no_assert(handle, &dma_buf_fd);
+	prime_handle_to_fd_no_assert(handle, DRM_CLOEXEC, &dma_buf_fd);
 	igt_assert(dma_buf_fd == -1 && errno == ENOENT);
 	errno = 0;
 
@@ -392,6 +467,8 @@ igt_main
 		{ "test_map_unmap", test_map_unmap },
 		{ "test_reprime", test_reprime },
 		{ "test_forked", test_forked },
+		{ "test_correct_cpu_write", test_correct_cpu_write },
+		{ "test_forked_cpu_write", test_forked_cpu_write },
 		{ "test_refcounting", test_refcounting },
 		{ "test_dup", test_dup },
 		{ "test_userptr", test_userptr },

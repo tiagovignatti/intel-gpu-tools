@@ -154,6 +154,10 @@ void gem_require_ring(int fd, int ring_id);
 
 /* prime */
 int prime_handle_to_fd(int fd, uint32_t handle);
+#ifndef DRM_RDWR
+#define DRM_RDWR O_RDWR
+#endif
+int prime_handle_to_fd_for_mmap(int fd, uint32_t handle);
 uint32_t prime_fd_to_handle(int fd, int dma_buf_fd);
 off_t prime_get_size(int dma_buf_fd);
 
