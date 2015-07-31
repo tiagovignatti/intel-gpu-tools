@@ -65,6 +65,11 @@ static struct bo *bos;
 
 #define DRM_MAJOR 226
 
+#ifndef DRM_I915_GEM_USERPTR
+#define DRM_I915_GEM_USERPTR		0x33
+#define DRM_IOCTL_I915_GEM_USERPTR	DRM_IOWR (DRM_COMMAND_BASE + DRM_I915_GEM_USERPTR, struct drm_i915_gem_userptr)
+#endif
+
 /* We set bit 0 in the map pointer for userptr BOs so we know not to
  * munmap them on DRM_IOCTL_GEM_CLOSE.
  */
