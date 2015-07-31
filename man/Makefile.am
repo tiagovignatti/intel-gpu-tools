@@ -1,5 +1,6 @@
 appmandir = $(APP_MAN_DIR)
 appman_PRE = 				\
+	intel_aubdump.man		\
 	intel_audio_dump.man		\
 	intel_bios_dumper.man		\
 	intel_bios_reader.man		\
