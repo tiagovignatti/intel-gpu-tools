@@ -42,8 +42,10 @@
  * the many different drawing methods we have. It also contains some wrappers
  * that make the process easier if you have the abstract objects in hand.
  *
- * All functions assume the buffers are in the XRGB 8:8:8 format.
- *
+ * This library only claims support for some pixel formats, but adding support
+ * for more formats should be faily easy now that we support both 16bpp and
+ * 32bpp. If you need a new pixel format, make sure you update both this file
+ * and tests/kms_draw_crc.c.
  */
 
 /* Some internal data structures to avoid having to pass tons of parameters
@@ -57,6 +59,7 @@ struct buf_data {
 	uint32_t handle;
 	uint32_t size;
 	uint32_t stride;
+	int bpp;
 };
 
 struct rect {
@@ -133,27 +136,27 @@ static int swizzle_addr(int addr, int swizzle)
 
 /* It's all in "pixel coordinates", so make sure you multiply/divide by the bpp
  * if you need to. */
-static int linear_x_y_to_tiled_pos(int x, int y, uint32_t stride, int swizzle)
+static int linear_x_y_to_tiled_pos(int x, int y, uint32_t stride, int swizzle,
+				   int bpp)
 {
 	int x_tile_size, y_tile_size;
 	int x_tile_n, y_tile_n, x_tile_off, y_tile_off;
 	int line_size, tile_size;
 	int tile_n, tile_off;
 	int tiled_pos, tiles_per_line;
-	int bpp;
+	int pixel_size = bpp / 8;
 
 	line_size = stride;
 	x_tile_size = 512;
 	y_tile_size = 8;
 	tile_size = x_tile_size * y_tile_size;
 	tiles_per_line = line_size / x_tile_size;
-	bpp = sizeof(uint32_t);
 
 	y_tile_n = y / y_tile_size;
 	y_tile_off = y % y_tile_size;
 
-	x_tile_n = (x * bpp) / x_tile_size;
-	x_tile_off = (x * bpp) % x_tile_size;
+	x_tile_n = (x * pixel_size) / x_tile_size;
+	x_tile_off = (x * pixel_size) % x_tile_size;
 
 	tile_n = y_tile_n * tiles_per_line + x_tile_n;
 	tile_off = y_tile_off * x_tile_size + x_tile_off;
@@ -161,19 +164,19 @@ static int linear_x_y_to_tiled_pos(int x, int y, uint32_t stride, int swizzle)
 
 	tiled_pos = swizzle_addr(tiled_pos, swizzle);
 
-	return tiled_pos / bpp;
+	return tiled_pos / pixel_size;
 }
 
 /* It's all in "pixel coordinates", so make sure you multiply/divide by the bpp
  * if you need to. */
 static void tiled_pos_to_x_y_linear(int tiled_pos, uint32_t stride,
-				    int swizzle, int *x, int *y)
+				    int swizzle, int bpp, int *x, int *y)
 {
 	int tile_n, tile_off, tiles_per_line, line_size;
 	int x_tile_off, y_tile_off;
 	int x_tile_n, y_tile_n;
 	int x_tile_size, y_tile_size, tile_size;
-	int bpp;
+	int pixel_size = bpp / 8;
 
 	tiled_pos = swizzle_addr(tiled_pos, swizzle);
 
@@ -182,7 +185,6 @@ static void tiled_pos_to_x_y_linear(int tiled_pos, uint32_t stride,
 	y_tile_size = 8;
 	tile_size = x_tile_size * y_tile_size;
 	tiles_per_line = line_size / x_tile_size;
-	bpp = sizeof(uint32_t);
 
 	tile_n = tiled_pos / tile_size;
 	tile_off = tiled_pos % tile_size;
@@ -193,32 +195,45 @@ static void tiled_pos_to_x_y_linear(int tiled_pos, uint32_t stride,
 	x_tile_n = tile_n % tiles_per_line;
 	y_tile_n = tile_n / tiles_per_line;
 
-	*x = (x_tile_n * x_tile_size + x_tile_off) / bpp;
+	*x = (x_tile_n * x_tile_size + x_tile_off) / pixel_size;
 	*y = y_tile_n * y_tile_size + y_tile_off;
 }
 
-static void draw_rect_ptr_linear(uint32_t *ptr, uint32_t stride,
-				  struct rect *rect, uint32_t color)
+static void set_pixel(void *_ptr, int index, uint32_t color, int bpp)
+{
+	if (bpp == 16) {
+		uint16_t *ptr = _ptr;
+		ptr[index] = color;
+	} else if (bpp == 32) {
+		uint32_t *ptr = _ptr;
+		ptr[index] = color;
+	} else {
+		igt_assert_f(false, "bpp: %d\n", bpp);
+	}
+}
+
+static void draw_rect_ptr_linear(void *ptr, uint32_t stride,
+				 struct rect *rect, uint32_t color, int bpp)
 {
 	int x, y, line_begin;
 
 	for (y = rect->y; y < rect->y + rect->h; y++) {
-		line_begin = y * stride / sizeof(uint32_t);
+		line_begin = y * stride / (bpp / 8);
 		for (x = rect->x; x < rect->x + rect->w; x++)
-			ptr[line_begin + x] = color;
+			set_pixel(ptr, line_begin + x, color, bpp);
 	}
-
 }
 
-static void draw_rect_ptr_tiled(uint32_t *ptr, uint32_t stride, int swizzle,
-				 struct rect *rect, uint32_t color)
+static void draw_rect_ptr_tiled(void *ptr, uint32_t stride, int swizzle,
+				struct rect *rect, uint32_t color, int bpp)
 {
 	int x, y, pos;
 
 	for (y = rect->y; y < rect->y + rect->h; y++) {
 		for (x = rect->x; x < rect->x + rect->w; x++) {
-			pos = linear_x_y_to_tiled_pos(x, y, stride, swizzle);
-			ptr[pos] = color;
+			pos = linear_x_y_to_tiled_pos(x, y, stride, swizzle,
+						      bpp);
+			set_pixel(ptr, pos, color, bpp);
 		}
 	}
 }
@@ -242,10 +257,11 @@ static void draw_rect_mmap_cpu(int fd, struct buf_data *buf, struct rect *rect,
 
 	switch (tiling) {
 	case I915_TILING_NONE:
-		draw_rect_ptr_linear(ptr, buf->stride, rect, color);
+		draw_rect_ptr_linear(ptr, buf->stride, rect, color, buf->bpp);
 		break;
 	case I915_TILING_X:
-		draw_rect_ptr_tiled(ptr, buf->stride, swizzle, rect, color);
+		draw_rect_ptr_tiled(ptr, buf->stride, swizzle, rect, color,
+				    buf->bpp);
 		break;
 	default:
 		igt_assert(false);
@@ -268,7 +284,7 @@ static void draw_rect_mmap_gtt(int fd, struct buf_data *buf, struct rect *rect,
 	ptr = gem_mmap__gtt(fd, buf->handle, buf->size, PROT_READ | PROT_WRITE);
 	igt_assert(ptr);
 
-	draw_rect_ptr_linear(ptr, buf->stride, rect, color);
+	draw_rect_ptr_linear(ptr, buf->stride, rect, color, buf->bpp);
 
 	igt_assert(munmap(ptr, buf->size) == 0);
 }
@@ -293,10 +309,11 @@ static void draw_rect_mmap_wc(int fd, struct buf_data *buf, struct rect *rect,
 
 	switch (tiling) {
 	case I915_TILING_NONE:
-		draw_rect_ptr_linear(ptr, buf->stride, rect, color);
+		draw_rect_ptr_linear(ptr, buf->stride, rect, color, buf->bpp);
 		break;
 	case I915_TILING_X:
-		draw_rect_ptr_tiled(ptr, buf->stride, swizzle, rect, color);
+		draw_rect_ptr_tiled(ptr, buf->stride, swizzle, rect, color,
+				    buf->bpp);
 		break;
 	default:
 		igt_assert(false);
@@ -309,17 +326,16 @@ static void draw_rect_mmap_wc(int fd, struct buf_data *buf, struct rect *rect,
 static void draw_rect_pwrite_untiled(int fd, struct buf_data *buf,
 				     struct rect *rect, uint32_t color)
 {
-	uint32_t tmp[rect->w];
-	int i, y, offset, bpp;
-
-	bpp = sizeof(uint32_t);
+	int i, y, offset;
+	int pixel_size = buf->bpp / 8;
+	uint8_t tmp[rect->w * pixel_size];
 
 	for (i = 0; i < rect->w; i++)
-		tmp[i] = color;
+		set_pixel(tmp, i, color, buf->bpp);
 
 	for (y = rect->y; y < rect->y + rect->h; y++) {
-		offset = (y * buf->stride) + (rect->x * bpp);
-		gem_write(fd, buf->handle, offset, tmp, rect->w * bpp);
+		offset = (y * buf->stride) + (rect->x * pixel_size);
+		gem_write(fd, buf->handle, offset, tmp, rect->w * pixel_size);
 	}
 }
 
@@ -328,25 +344,27 @@ static void draw_rect_pwrite_tiled(int fd, struct buf_data *buf,
 				   uint32_t swizzle)
 {
 	int i;
-	int tiled_pos, bpp, x, y;
-	uint32_t tmp[1024];
-	int tmp_used = 0, tmp_size = ARRAY_SIZE(tmp);
+	int tiled_pos, x, y, pixel_size;
+	uint8_t tmp[4096];
+	int tmp_used = 0, tmp_size;
 	bool flush_tmp = false;
 	int tmp_start_pos = 0;
 
 	/* We didn't implement suport for the older tiling methods yet. */
 	igt_require(intel_gen(intel_get_drm_devid(fd)) >= 5);
 
-	bpp = sizeof(uint32_t);
+	pixel_size = buf->bpp / 8;
+	tmp_size = sizeof(tmp) / pixel_size;
 
 	/* Instead of doing one pwrite per pixel, we try to group the maximum
 	 * amount of consecutive pixels we can in a single pwrite: that's why we
 	 * use the "tmp" variables. */
 	for (i = 0; i < tmp_size; i++)
-		tmp[i] = color;
+		set_pixel(tmp, i, color, buf->bpp);
 
-	for (tiled_pos = 0; tiled_pos < buf->size; tiled_pos += bpp) {
-		tiled_pos_to_x_y_linear(tiled_pos, buf->stride, swizzle, &x, &y);
+	for (tiled_pos = 0; tiled_pos < buf->size; tiled_pos += pixel_size) {
+		tiled_pos_to_x_y_linear(tiled_pos, buf->stride, swizzle,
+					buf->bpp, &x, &y);
 
 		if (x >= rect->x && x < rect->x + rect->w &&
 		    y >= rect->y && y < rect->y + rect->h) {
@@ -359,7 +377,7 @@ static void draw_rect_pwrite_tiled(int fd, struct buf_data *buf,
 
 		if (tmp_used == tmp_size || (flush_tmp && tmp_used > 0)) {
 			gem_write(fd, buf->handle, tmp_start_pos, tmp,
-				  tmp_used * bpp);
+				  tmp_used * pixel_size);
 			flush_tmp = false;
 			tmp_used = 0;
 		}
@@ -392,7 +410,7 @@ static void draw_rect_blt(int fd, struct cmd_data *cmd_data,
 {
 	drm_intel_bo *dst;
 	struct intel_batchbuffer *batch;
-	int blt_cmd_len, blt_cmd_tiling;
+	int blt_cmd_len, blt_cmd_tiling, blt_cmd_depth;
 	uint32_t devid = intel_get_drm_devid(fd);
 	int gen = intel_gen(devid);
 	uint32_t tiling, swizzle;
@@ -406,6 +424,20 @@ static void draw_rect_blt(int fd, struct cmd_data *cmd_data,
 	batch = intel_batchbuffer_alloc(cmd_data->bufmgr, devid);
 	igt_assert(batch);
 
+	switch (buf->bpp) {
+	case 8:
+		blt_cmd_depth = 0;
+		break;
+	case 16: /* we're assuming 565 */
+		blt_cmd_depth = 1 << 24;
+		break;
+	case 32:
+		blt_cmd_depth = 3 << 24;
+		break;
+	default:
+		igt_assert(false);
+	}
+
 	blt_cmd_len = (gen >= 8) ?  0x5 : 0x4;
 	blt_cmd_tiling = (tiling) ? XY_COLOR_BLT_TILED : 0;
 	pitch = (tiling) ? buf->stride / 4 : buf->stride;
@@ -413,7 +445,7 @@ static void draw_rect_blt(int fd, struct cmd_data *cmd_data,
 	BEGIN_BATCH(6, 1);
 	OUT_BATCH(XY_COLOR_BLT_CMD_NOLEN | XY_COLOR_BLT_WRITE_ALPHA |
 		  XY_COLOR_BLT_WRITE_RGB | blt_cmd_tiling | blt_cmd_len);
-	OUT_BATCH((3 << 24) | (0xF0 << 16) | pitch);
+	OUT_BATCH(blt_cmd_depth | (0xF0 << 16) | pitch);
 	OUT_BATCH((rect->y << 16) | rect->x);
 	OUT_BATCH(((rect->y + rect->h) << 16) | (rect->x + rect->w));
 	OUT_RELOC_FENCED(dst, 0, I915_GEM_DOMAIN_RENDER, 0);
@@ -435,15 +467,26 @@ static void draw_rect_render(int fd, struct cmd_data *cmd_data,
 	struct intel_batchbuffer *batch;
 	uint32_t tiling, swizzle;
 	struct buf_data tmp;
+	int pixel_size = buf->bpp / 8;
+	unsigned adjusted_w, adjusted_dst_x;
 
 	igt_skip_on(!rendercopy);
+
+	/* Rendercopy works at 32bpp, so if you try to do copies on buffers with
+	 * smaller bpps you won't succeeed if you need to copy "half" of a 32bpp
+	 * pixel or something similar. */
+	igt_skip_on(rect->x % (32 / buf->bpp) != 0 ||
+		    rect->y % (32 / buf->bpp) != 0 ||
+		    rect->w % (32 / buf->bpp) != 0 ||
+		    rect->h % (32 / buf->bpp) != 0);
 
 	gem_get_tiling(fd, buf->handle, &tiling, &swizzle);
 
 	/* We create a temporary buffer and copy from it using rendercopy. */
-	tmp.size = rect->w * rect->h * sizeof(uint32_t);
+	tmp.size = rect->w * rect->h * pixel_size;
 	tmp.handle = gem_create(fd, tmp.size);
-	tmp.stride = rect->w * sizeof(uint32_t);
+	tmp.stride = rect->w * pixel_size;
+	tmp.bpp = buf->bpp;
 	draw_rect_mmap_cpu(fd, &tmp, &(struct rect){0, 0, rect->w, rect->h},
 			   color);
 
@@ -464,8 +507,18 @@ static void draw_rect_render(int fd, struct cmd_data *cmd_data,
 	batch = intel_batchbuffer_alloc(cmd_data->bufmgr, devid);
 	igt_assert(batch);
 
-	rendercopy(batch, cmd_data->context, &src_buf, 0, 0, rect->w, rect->h,
-		   &dst_buf, rect->x, rect->y);
+	switch (buf->bpp) {
+	case 16:
+	case 32:
+		adjusted_w = rect->w / (32 / buf->bpp);
+		adjusted_dst_x = rect->x / (32 / buf->bpp);
+		break;
+	default:
+		igt_assert(false);
+	}
+
+	rendercopy(batch, cmd_data->context, &src_buf, 0, 0, adjusted_w,
+		   rect->h, &dst_buf, adjusted_dst_x, rect->y);
 
 	intel_batchbuffer_free(batch);
 	gem_close(fd, tmp.handle);
@@ -486,15 +539,15 @@ static void draw_rect_render(int fd, struct cmd_data *cmd_data,
  * @rect_w: width of the rectangle
  * @rect_h: height of the rectangle
  * @color: color of the rectangle
+ * @bpp: bits per pixel
  *
  * This function draws a colored rectangle on the destination buffer, allowing
- * you to specify the method used to draw the rectangle. We assume 32 bit pixels
- * with 8 bits per color.
+ * you to specify the method used to draw the rectangle.
  */
 void igt_draw_rect(int fd, drm_intel_bufmgr *bufmgr, drm_intel_context *context,
 		   uint32_t buf_handle, uint32_t buf_size, uint32_t buf_stride,
 		   enum igt_draw_method method, int rect_x, int rect_y,
-		   int rect_w, int rect_h, uint32_t color)
+		   int rect_w, int rect_h, uint32_t color, int bpp)
 {
 	struct cmd_data cmd_data = {
 		.bufmgr = bufmgr,
@@ -504,6 +557,7 @@ void igt_draw_rect(int fd, drm_intel_bufmgr *bufmgr, drm_intel_context *context,
 		.handle = buf_handle,
 		.size = buf_size,
 		.stride = buf_stride,
+		.bpp = bpp,
 	};
 	struct rect rect = {
 		.x = rect_x,
@@ -537,6 +591,20 @@ void igt_draw_rect(int fd, drm_intel_bufmgr *bufmgr, drm_intel_context *context,
 	}
 }
 
+static int get_format_bpp(uint32_t drm_format)
+{
+	switch (drm_format) {
+	case DRM_FORMAT_RGB565:
+		return 16;
+	case DRM_FORMAT_XRGB8888:
+	case DRM_FORMAT_ARGB8888:
+	case DRM_FORMAT_XRGB2101010:
+		return 32;
+	default:
+		igt_assert(false);
+	}
+}
+
 /**
  * igt_draw_rect_fb:
  * @fd: the DRM file descriptor
@@ -560,7 +628,8 @@ void igt_draw_rect_fb(int fd, drm_intel_bufmgr *bufmgr,
 		      int rect_w, int rect_h, uint32_t color)
 {
 	igt_draw_rect(fd, bufmgr, context, fb->gem_handle, fb->size, fb->stride,
-		      method, rect_x, rect_y, rect_w, rect_h, color);
+		      method, rect_x, rect_y, rect_w, rect_h, color,
+		      get_format_bpp(fb->drm_format));
 }
 
 /**
@@ -569,8 +638,7 @@ void igt_draw_rect_fb(int fd, drm_intel_bufmgr *bufmgr,
  * @fb: the FB that is going to be filled
  * @color: the color you're going to paint it
  *
- * This function just paints an igt_fb using the provided color. It assumes 32
- * bit pixels with 8 bit colors.
+ * This function just paints an igt_fb using the provided color.
  */
 void igt_draw_fill_fb(int fd, struct igt_fb *fb, uint32_t color)
 {

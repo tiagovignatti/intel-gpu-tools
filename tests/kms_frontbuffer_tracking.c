@@ -908,7 +908,7 @@ static void *busy_thread_func(void *data)
 		igt_draw_rect(drm.fd, drm.bufmgr, NULL, busy_thread.handle,
 			      busy_thread.size, busy_thread.stride,
 			      IGT_DRAW_BLT, 0, 0, busy_thread.width,
-			      busy_thread.height, 0xFF);
+			      busy_thread.height, 0xFF, 32);
 
 	pthread_exit(0);
 }

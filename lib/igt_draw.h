@@ -53,7 +53,7 @@ const char *igt_draw_get_method_name(enum igt_draw_method method);
 void igt_draw_rect(int fd, drm_intel_bufmgr *bufmgr, drm_intel_context *context,
 		   uint32_t buf_handle, uint32_t buf_size, uint32_t buf_stride,
 		   enum igt_draw_method method, int rect_x, int rect_y,
-		   int rect_w, int rect_h, uint32_t color);
+		   int rect_w, int rect_h, uint32_t color, int bpp);
 
 void igt_draw_rect_fb(int fd, drm_intel_bufmgr *bufmgr,
 		      drm_intel_context *context, struct igt_fb *fb,

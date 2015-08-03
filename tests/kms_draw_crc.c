@@ -45,8 +45,18 @@ drmModeConnectorPtr drm_connectors[MAX_CONNECTORS];
 drm_intel_bufmgr *bufmgr;
 igt_pipe_crc_t *pipe_crc;
 
-bool has_method_base_crc = false;
-igt_crc_t method_base_crc;
+#define N_FORMATS 3
+static const uint32_t formats[N_FORMATS] = {
+	DRM_FORMAT_XRGB8888,
+	DRM_FORMAT_RGB565,
+	DRM_FORMAT_XRGB2101010,
+};
+
+struct base_crc {
+	bool set;
+	igt_crc_t crc;
+};
+struct base_crc base_crcs[N_FORMATS];
 
 struct modeset_params ms;
 
@@ -77,26 +87,59 @@ static void find_modeset_params(void)
 
 }
 
-static void get_method_crc(enum igt_draw_method method, uint64_t tiling,
-			   igt_crc_t *crc)
+static uint32_t get_color(uint32_t drm_format, bool r, bool g, bool b)
+{
+	uint32_t color = 0;
+
+	switch (drm_format) {
+	case DRM_FORMAT_RGB565:
+		color |= r ? 0x1F << 11 : 0;
+		color |= g ? 0x3F << 5 : 0;
+		color |= b ? 0x1F : 0;
+		break;
+	case DRM_FORMAT_XRGB8888:
+		color |= r ? 0xFF << 16 : 0;
+		color |= g ? 0xFF << 8 : 0;
+		color |= b ? 0xFF : 0;
+		break;
+	case DRM_FORMAT_XRGB2101010:
+		color |= r ? 0x3FF << 20 : 0;
+		color |= g ? 0x3FF << 10 : 0;
+		color |= b ? 0x3FF : 0;
+		break;
+	default:
+		igt_assert(false);
+	}
+
+	return color;
+}
+
+static void get_method_crc(enum igt_draw_method method, uint32_t drm_format,
+			   uint64_t tiling, igt_crc_t *crc)
 {
 	struct igt_fb fb;
 	int rc;
 
 	igt_create_fb(drm_fd, ms.mode->hdisplay, ms.mode->vdisplay,
-		      DRM_FORMAT_XRGB8888, tiling, &fb);
+		      drm_format, tiling, &fb);
 	igt_draw_rect_fb(drm_fd, bufmgr, NULL, &fb, method,
-			 0, 0, fb.width, fb.height, 0xFF);
+			 0, 0, fb.width, fb.height,
+			 get_color(drm_format, 0, 0, 1));
 
 	igt_draw_rect_fb(drm_fd, bufmgr, NULL, &fb, method,
 			 fb.width / 4, fb.height / 4,
-			 fb.width / 2, fb.height / 2, 0xFF00);
+			 fb.width / 2, fb.height / 2,
+			 get_color(drm_format, 0, 1, 0));
 	igt_draw_rect_fb(drm_fd, bufmgr, NULL, &fb, method,
 			 fb.width / 8, fb.height / 8,
-			 fb.width / 4, fb.height / 4, 0xFF0000);
+			 fb.width / 4, fb.height / 4,
+			 get_color(drm_format, 1, 0, 0));
 	igt_draw_rect_fb(drm_fd, bufmgr, NULL, &fb, method,
 			 fb.width / 2, fb.height / 2,
-			 fb.width / 3, fb.height / 3, 0xFF00FF);
+			 fb.width / 3, fb.height / 3,
+			 get_color(drm_format, 1, 0, 1));
+	igt_draw_rect_fb(drm_fd, bufmgr, NULL, &fb, method, 1, 1, 15, 15,
+			 get_color(drm_format, 0, 1, 1));
 
 	rc = drmModeSetCrtc(drm_fd, ms.crtc_id, fb.fb_id, 0, 0,
 			    &ms.connector_id, 1, ms.mode);
@@ -108,7 +151,8 @@ static void get_method_crc(enum igt_draw_method method, uint64_t tiling,
 	igt_remove_fb(drm_fd, &fb);
 }
 
-static void draw_method_subtest(enum igt_draw_method method, uint64_t tiling)
+static void draw_method_subtest(enum igt_draw_method method,
+				uint32_t format_index, uint64_t tiling)
 {
 	igt_crc_t crc;
 
@@ -119,14 +163,15 @@ static void draw_method_subtest(enum igt_draw_method method, uint64_t tiling)
 	/* Use IGT_DRAW_MMAP_GTT on an untiled buffer as the parameter for
 	 * comparison. Cache the value so we don't recompute it for every single
 	 * subtest. */
-	if (!has_method_base_crc) {
-		get_method_crc(IGT_DRAW_MMAP_GTT, LOCAL_DRM_FORMAT_MOD_NONE,
-			       &method_base_crc);
-		has_method_base_crc = true;
+	if (!base_crcs[format_index].set) {
+		get_method_crc(IGT_DRAW_MMAP_GTT, formats[format_index],
+			       LOCAL_DRM_FORMAT_MOD_NONE,
+			       &base_crcs[format_index].crc);
+		base_crcs[format_index].set = true;
 	}
 
-	get_method_crc(method, tiling, &crc);
-	igt_assert_crc_equal(&crc, &method_base_crc);
+	get_method_crc(method, formats[format_index], tiling, &crc);
+	igt_assert_crc_equal(&crc, &base_crcs[format_index].crc);
 }
 
 static void get_fill_crc(uint64_t tiling, igt_crc_t *crc)
@@ -219,21 +264,41 @@ static void teardown_environment(void)
 	close(drm_fd);
 }
 
+static const char *format_str(int format_index)
+{
+	switch (formats[format_index]) {
+	case DRM_FORMAT_RGB565:
+		return "rgb565";
+	case DRM_FORMAT_XRGB8888:
+		return "xrgb8888";
+	case DRM_FORMAT_XRGB2101010:
+		return "xrgb2101010";
+	default:
+		igt_assert(false);
+	}
+}
+
 igt_main
 {
 	enum igt_draw_method method;
+	int format_index;
 
 	igt_fixture
 		setup_environment();
 
-	for (method = 0; method < IGT_DRAW_METHOD_COUNT; method++) {
-		igt_subtest_f("draw-method-%s-untiled",
-			      igt_draw_get_method_name(method))
-			draw_method_subtest(method, LOCAL_DRM_FORMAT_MOD_NONE);
-		igt_subtest_f("draw-method-%s-tiled",
-			      igt_draw_get_method_name(method))
-			draw_method_subtest(method,
-					    LOCAL_I915_FORMAT_MOD_X_TILED);
+	for (format_index = 0; format_index < N_FORMATS; format_index++) {
+		for (method = 0; method < IGT_DRAW_METHOD_COUNT; method++) {
+			igt_subtest_f("draw-method-%s-%s-untiled",
+				      format_str(format_index),
+				      igt_draw_get_method_name(method))
+				draw_method_subtest(method, format_index,
+						    LOCAL_DRM_FORMAT_MOD_NONE);
+			igt_subtest_f("draw-method-%s-%s-tiled",
+				      format_str(format_index),
+				      igt_draw_get_method_name(method))
+				draw_method_subtest(method, format_index,
+						LOCAL_I915_FORMAT_MOD_X_TILED);
+		}
 	}
 
 	igt_subtest("fill-fb")
