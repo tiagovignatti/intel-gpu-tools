@@ -10,6 +10,8 @@ contents and execution of the GEM application.
 
   -o, --output=FILE  Name of AUB file. Defaults to COMMAND.aub
 
+      --device=ID    Override PCI ID of the reported device
+
   -v                 Enable verbose output
 
       --help         Display this help message and exit
@@ -20,6 +22,7 @@ EOF
 }
 
 verbose=0
+device=0
 
 while true; do
       case "$1" in
@@ -37,6 +40,10 @@ while true; do
 	      ;;
 	  --output=*)
 	      file=${1##--output=}
+	      shift
+	      ;;
+	  --device=*)
+	      device=${1##--device=}
 	      shift
 	      ;;
 	  --help)
@@ -66,5 +73,5 @@ exec_prefix=@exec_prefix@
 libdir=@libdir@
 
 LD_PRELOAD=${libdir}/intel_aubdump.so${LD_PPRELOAD:+:${LD_PRELOAD}} \
-	  INTEL_AUBDUMP_ARGS="verbose=$verbose;file=$file" \
+	  INTEL_AUBDUMP_ARGS="verbose=$verbose;file=$file;device=$device" \
 	  exec -- "$@"

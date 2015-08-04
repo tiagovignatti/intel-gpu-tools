@@ -52,6 +52,8 @@ static FILE *file;
 static int gen = 0;
 static int verbose = 0;
 static const uint32_t gtt_size = 0x10000;
+static bool device_override;
+static uint32_t device;
 
 #define MAX_BO_COUNT 64 * 1024
 
@@ -315,15 +317,17 @@ dump_execbuffer2(int fd, struct drm_i915_gem_execbuffer2 *execbuffer2)
 	void *data;
 
 	/* We can't do this at open time as we're not yet authenticated. */
+	if (device == 0) {
+		device = gem_get_param(fd, I915_PARAM_CHIPSET_ID);
+		fail_if(device == 0 || gen == -1, "failed to identify chipset\n");
+	}
 	if (gen == 0) {
-		uint32_t chipset_id = gem_get_param(fd, I915_PARAM_CHIPSET_ID);
-		gen = intel_gen(chipset_id);
+		gen = intel_gen(device);
 
-		fail_if(chipset_id == 0 || gen == -1, "failed to identify chipset\n");
 		if (verbose)
 			printf("[intel_aubdump active: "
 			       "output file %s, chipset id 0x%04x, gen %d]\n",
-			       filename, chipset_id, gen);
+			       filename, device, gen);
 	}
 
 	for (uint32_t i = 0; i < execbuffer2->buffer_count; i++) {
@@ -430,6 +434,16 @@ ioctl(int fd, unsigned long request, ...)
 
 	if (fd == drm_fd) {
 		switch (request) {
+		case DRM_IOCTL_I915_GETPARAM: {
+			struct drm_i915_getparam *getparam = argp;
+
+			if (device_override && getparam->param == I915_PARAM_CHIPSET_ID) {
+				*getparam->value = device;
+				return 0;
+			}
+			return libc_ioctl(fd, request, argp);
+		}
+
 		case DRM_IOCTL_I915_GEM_EXECBUFFER: {
 			static bool once;
 			if (!once) {
@@ -442,6 +456,9 @@ ioctl(int fd, unsigned long request, ...)
 
 		case DRM_IOCTL_I915_GEM_EXECBUFFER2: {
 			dump_execbuffer2(fd, argp);
+			if (device_override)
+				return 0;
+
 			return libc_ioctl(fd, request, argp);
 		}
 
@@ -517,9 +534,13 @@ init(void)
 	fail_if(libc_open == NULL || libc_close == NULL || libc_ioctl == NULL,
 		"intel_aubdump: failed to get libc open or ioctl\n");
 
-	if (sscanf(args, "verbose=%d;file=%m[^;]", &verbose, &filename) != 2)
+	if (sscanf(args, "verbose=%d;file=%m[^;];device=%i",
+		   &verbose, &filename, &device) != 3)
 		filename = strdup("intel.aub");
 	fail_if(filename == NULL, "intel_aubdump: out of memory\n");
+
+	if (device)
+		device_override = true;
 
 	bos = malloc(MAX_BO_COUNT * sizeof(bos[0]));
 	fail_if(bos == NULL, "intel_aubdump: out of memory\n");

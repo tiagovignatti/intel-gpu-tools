@@ -25,7 +25,12 @@ Write the trace output to the file
 .IR FILE .
 Default is 
 .IR COMMAND .aub.
-
+.TP
+.BI \-\^\-device= ID
+Override the PCI ID of the drm device. This is useful for getting an
+aub dump for a different generation of GPU. In this mode intel_aubdump
+will intercept but not forward the execbuffer2 ioctl, as that would
+typically cause a GPU hang.
 .SH EXAMPLES
 .TP
 intel_aubdump -v --output=stuff.aub -- glxgears -geometry 500x500
