@@ -64,6 +64,7 @@ TESTS_progs_M = \
 	kms_addfb \
 	kms_cursor_crc \
 	kms_draw_crc \
+	kms_draw_crc_prime \
 	kms_fbc_crc \
 	kms_fbcon_fbt \
 	kms_flip \
