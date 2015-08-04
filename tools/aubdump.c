@@ -66,8 +66,24 @@ static struct bo *bos;
 #define DRM_MAJOR 226
 
 #ifndef DRM_I915_GEM_USERPTR
+
 #define DRM_I915_GEM_USERPTR		0x33
 #define DRM_IOCTL_I915_GEM_USERPTR	DRM_IOWR (DRM_COMMAND_BASE + DRM_I915_GEM_USERPTR, struct drm_i915_gem_userptr)
+
+struct drm_i915_gem_userptr {
+	__u64 user_ptr;
+	__u64 user_size;
+	__u32 flags;
+#define I915_USERPTR_READ_ONLY 0x1
+#define I915_USERPTR_UNSYNCHRONIZED 0x80000000
+	/**
+	 * Returned handle for the object.
+	 *
+	 * Object handles are nonzero.
+	 */
+	__u32 handle;
+};
+
 #endif
 
 /* We set bit 0 in the map pointer for userptr BOs so we know not to
