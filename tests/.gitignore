@@ -160,6 +160,7 @@ pm_rc6_residency
 pm_rpm
 pm_rps
 pm_sseu
+prime_crc
 prime_nv_api
 prime_nv_pcopy
 prime_nv_test
