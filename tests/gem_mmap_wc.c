@@ -104,7 +104,7 @@ test_invalid_flags(int fd)
 	gp.value = &val;
 
 	/* Do we have the new mmap_ioctl? */
-	do_ioctl(fd, DRM_IOCTL_I915_GETPARAM, &gp);
+	drmIoctl(fd, DRM_IOCTL_I915_GETPARAM, &gp);
 
 	if (val >= 1) {
 		/*
