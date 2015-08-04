@@ -266,7 +266,7 @@ AC_CONFIG_FILES([
 		 assembler/intel-gen4asm.pc
 		 overlay/Makefile
 		 ],
-		 [chmod +x tools/intel_aubdump])
+		 [chmod +x $(topbuilddir)/tools/intel_aubdump])
 
 AC_OUTPUT
 
