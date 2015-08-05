@@ -255,7 +255,6 @@ AC_CONFIG_FILES([
 		 scripts/Makefile
 		 tests/Makefile
 		 tools/Makefile
-		 tools/intel_aubdump
 		 tools/quick_dump/Makefile
 		 tools/null_state_gen/Makefile
 		 debugger/Makefile
@@ -265,8 +264,9 @@ AC_CONFIG_FILES([
 		 assembler/test/Makefile
 		 assembler/intel-gen4asm.pc
 		 overlay/Makefile
-		 ],
-		 [chmod +x $(topbuilddir)/tools/intel_aubdump])
+		 ])
+
+AC_CONFIG_FILES([tools/intel_aubdump], [chmod +x tools/intel_aubdump])
 
 AC_OUTPUT
 
