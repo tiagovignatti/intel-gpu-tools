@@ -138,6 +138,7 @@ TESTS_progs = \
 	gem_seqno_wrap \
 	gem_set_tiling_vs_gtt \
 	gem_set_tiling_vs_pwrite \
+	gem_storedw_loop \
 	gem_storedw_loop_blt \
 	gem_storedw_loop_bsd \
 	gem_storedw_loop_render \
