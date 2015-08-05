@@ -178,7 +178,7 @@ TESTS_scripts = \
 	debugfs_emon_crash \
 	drv_debugfs_reader \
 	drv_missed_irq_hang \
-	drv_module_reload \
+	drv_module_reload_basic \
 	kms_sysfs_edid_timing \
 	sysfs_l3_parity \
 	test_rte_check \
