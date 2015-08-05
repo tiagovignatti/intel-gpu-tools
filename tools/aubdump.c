@@ -37,7 +37,7 @@
 #include <errno.h>
 #include <sys/mman.h>
 #include <dlfcn.h>
-#include <drm/i915_drm.h>
+#include <i915_drm.h>
 
 #include "intel_aub.h"
 #include "intel_chipset.h"
