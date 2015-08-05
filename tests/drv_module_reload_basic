@@ -52,7 +52,7 @@ else
 fi
 
 # then try to run something
-if ! $SOURCE_DIR/gem_exec_nop > /dev/null ; then
+if ! $SOURCE_DIR/gem_linear_blits --run-subtest basic > /dev/null ; then
 	echo "failed to execute a simple batch after reload"
 	exit 3
 fi
