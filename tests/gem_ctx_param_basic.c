@@ -98,7 +98,7 @@ igt_main
 		ctx_param.size = 0;
 	}
 
-	ctx_param.param  = -1;
+	ctx_param.param  = LOCAL_CONTEXT_PARAM_BAN_PERIOD + 1;
 
 	igt_subtest("invalid-param-get") {
 		ctx_param.context = ctx;
