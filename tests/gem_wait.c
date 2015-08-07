@@ -236,7 +236,10 @@ static void invalid_flags(int fd)
 
 	wait.bo_handle = handle;
 	wait.timeout_ns = 1;
-	wait.flags = 0xffffffff;
+	/* NOTE: This test intentionally tests for just the next available flag.
+	 * Don't "fix" this testcase without the ABI testcases for new flags
+	 * first. */
+	wait.flags = 1;
 	ret = drmIoctl(fd, DRM_IOCTL_I915_GEM_WAIT, &wait);
 
 	igt_assert(ret != 0 && errno == EINVAL);

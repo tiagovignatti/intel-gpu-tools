@@ -221,6 +221,9 @@ igt_main
 	/* HANDLE_LUT and NO_RELOC are already exercised by gem_exec_lut_handle */
 
 	igt_subtest("invalid-flag") {
+		/* NOTE: This test intentionally exercise the next available
+		 * flag. Don't "fix" this testcase without adding the required
+		 * tests for the new flag first. */
 		execbuf.flags = I915_EXEC_RENDER | (LOCAL_I915_EXEC_RESOURCE_STREAMER << 1);
 		RUN_FAIL(EINVAL);
 	}

@@ -149,6 +149,9 @@ igt_main
 		TEST_SUCCESS(LOCAL_IOCTL_I915_GEM_CONTEXT_SETPARAM);
 	}
 
+	/* NOTE: This testcase intentionally tests for the next free parameter
+	 * to catch ABI extensions. Don't "fix" this testcase without adding all
+	 * the tests for the new param first. */
 	ctx_param.param = LOCAL_CONTEXT_PARAM_NO_ZEROMAP + 1;
 
 	igt_subtest("invalid-param-get") {
