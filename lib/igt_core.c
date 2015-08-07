@@ -1771,7 +1771,8 @@ static void igt_alarm_handler(int signal)
  * marked as failed.
  *
  * Any previous timer is cancelled and no timeout is scheduled if @seconds is
- * zero.
+ * zero. But for clarity the timeout set with this function should be cleared
+ * with igt_reset_timeout().
  */
 void igt_set_timeout(unsigned int seconds,
 		     const char *op)
@@ -1790,6 +1791,17 @@ void igt_set_timeout(unsigned int seconds,
 		sigaction(SIGALRM, &sa, NULL);
 
 	alarm(seconds);
+}
+
+/**
+ * igt_reset_timeout - reset timeout to default
+ *
+ * This function resets a timeout set by igt_set_timeout() and disables any
+ * timer set up by the former function.
+ */
+void igt_reset_timeout(void)
+{
+	igt_set_timeout(0, NULL);
 }
 
 FILE *__igt_fopen_data(const char* igt_srcdir, const char* igt_datadir,

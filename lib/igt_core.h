@@ -735,6 +735,8 @@ extern enum igt_log_level igt_log_level;
 void igt_set_timeout(unsigned int seconds,
 		     const char *op);
 
+void igt_reset_timeout(void);
+
 FILE *__igt_fopen_data(const char* igt_srcdir, const char* igt_datadir,
 		       const char* filename);
 /**

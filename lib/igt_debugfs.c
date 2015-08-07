@@ -465,7 +465,7 @@ static bool read_one_crc(igt_pipe_crc_t *pipe_crc, igt_crc_t *out)
 
 	igt_set_timeout(5, "CRC reading");
 	bytes_read = read(pipe_crc->crc_fd, &buf, pipe_crc->line_len);
-	igt_set_timeout(0, NULL);
+	igt_reset_timeout();
 
 	igt_assert_eq(bytes_read, pipe_crc->line_len);
 	buf[bytes_read] = '\0';
