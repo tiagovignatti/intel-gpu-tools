@@ -1748,9 +1748,13 @@ out:
 	free(line);
 }
 
+static const char *timeout_op;
 static void igt_alarm_handler(int signal)
 {
-	igt_info("Timed out\n");
+	if (timeout_op)
+		igt_info("Timed out: %s\n", timeout_op);
+	else
+		igt_info("Timed out\n");
 
 	/* exit with failure status */
 	igt_fail(IGT_EXIT_FAILURE);
@@ -1759,6 +1763,7 @@ static void igt_alarm_handler(int signal)
 /**
  * igt_set_timeout:
  * @seconds: number of seconds before timeout
+ * @op: Optional string to explain what operation has timed out in the debug log
  *
  * Fail a test and exit with #IGT_EXIT_FAILURE status after the specified
  * number of seconds have elapsed. If the current test has subtests and the
@@ -1768,13 +1773,16 @@ static void igt_alarm_handler(int signal)
  * Any previous timer is cancelled and no timeout is scheduled if @seconds is
  * zero.
  */
-void igt_set_timeout(unsigned int seconds)
+void igt_set_timeout(unsigned int seconds,
+		     const char *op)
 {
 	struct sigaction sa;
 
 	sa.sa_handler = igt_alarm_handler;
 	sigemptyset(&sa.sa_mask);
 	sa.sa_flags = 0;
+
+	timeout_op = op;
 
 	if (seconds == 0)
 		sigaction(SIGALRM, NULL, NULL);
