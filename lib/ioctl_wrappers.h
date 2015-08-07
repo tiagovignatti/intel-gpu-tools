@@ -102,6 +102,7 @@ struct local_i915_gem_context_param {
 	uint32_t size;
 	uint64_t param;
 #define LOCAL_CONTEXT_PARAM_BAN_PERIOD 0x1
+#define LOCAL_CONTEXT_PARAM_NO_ZEROMAP 0x2
 	uint64_t value;
 };
 void gem_context_require_ban_period(int fd);

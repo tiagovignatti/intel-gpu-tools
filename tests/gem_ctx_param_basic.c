@@ -57,7 +57,7 @@ igt_main
 		ctx = gem_context_create(fd);
 	}
 
-	ctx_param.param  = LOCAL_CONTEXT_PARAM_BAN_PERIOD;
+	ctx_param.param = LOCAL_CONTEXT_PARAM_BAN_PERIOD;
 
 	igt_subtest("basic") {
 		ctx_param.context = ctx;
@@ -98,19 +98,7 @@ igt_main
 		ctx_param.size = 0;
 	}
 
-	ctx_param.param  = LOCAL_CONTEXT_PARAM_BAN_PERIOD + 1;
-
-	igt_subtest("invalid-param-get") {
-		ctx_param.context = ctx;
-		TEST_FAIL(LOCAL_IOCTL_I915_GEM_CONTEXT_GETPARAM, EINVAL);
-	}
-
-	igt_subtest("invalid-param-set") {
-		ctx_param.context = ctx;
-		TEST_FAIL(LOCAL_IOCTL_I915_GEM_CONTEXT_SETPARAM, EINVAL);
-	}
-
-	ctx_param.param  = LOCAL_CONTEXT_PARAM_BAN_PERIOD;
+	ctx_param.param = LOCAL_CONTEXT_PARAM_BAN_PERIOD;
 
 	igt_subtest("non-root-set") {
 		igt_fork(child, 1) {
@@ -130,6 +118,47 @@ igt_main
 		TEST_SUCCESS(LOCAL_IOCTL_I915_GEM_CONTEXT_GETPARAM);
 		ctx_param.value--;
 		TEST_SUCCESS(LOCAL_IOCTL_I915_GEM_CONTEXT_SETPARAM);
+	}
+
+	ctx_param.param = LOCAL_CONTEXT_PARAM_NO_ZEROMAP;
+
+	igt_subtest("non-root-set-no-zeromap") {
+		igt_fork(child, 1) {
+			igt_drop_root();
+
+			ctx_param.context = ctx;
+			TEST_SUCCESS(LOCAL_IOCTL_I915_GEM_CONTEXT_GETPARAM);
+			ctx_param.value--;
+			TEST_FAIL(LOCAL_IOCTL_I915_GEM_CONTEXT_SETPARAM, EPERM);
+		}
+
+		igt_waitchildren();
+	}
+
+	igt_subtest("root-set-no-zeromap-enabled") {
+		ctx_param.context = ctx;
+		TEST_SUCCESS(LOCAL_IOCTL_I915_GEM_CONTEXT_GETPARAM);
+		ctx_param.value = 1;
+		TEST_SUCCESS(LOCAL_IOCTL_I915_GEM_CONTEXT_SETPARAM);
+	}
+
+	igt_subtest("root-set-no-zeromap-disabled") {
+		ctx_param.context = ctx;
+		TEST_SUCCESS(LOCAL_IOCTL_I915_GEM_CONTEXT_GETPARAM);
+		ctx_param.value = 0;
+		TEST_SUCCESS(LOCAL_IOCTL_I915_GEM_CONTEXT_SETPARAM);
+	}
+
+	ctx_param.param = LOCAL_CONTEXT_PARAM_NO_ZEROMAP + 1;
+
+	igt_subtest("invalid-param-get") {
+		ctx_param.context = ctx;
+		TEST_FAIL(LOCAL_IOCTL_I915_GEM_CONTEXT_GETPARAM, EINVAL);
+	}
+
+	igt_subtest("invalid-param-set") {
+		ctx_param.context = ctx;
+		TEST_FAIL(LOCAL_IOCTL_I915_GEM_CONTEXT_SETPARAM, EINVAL);
 	}
 
 	igt_fixture
