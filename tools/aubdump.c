@@ -42,7 +42,6 @@
 #include "intel_aub.h"
 #include "intel_chipset.h"
 
-static int (*libc_open)(const char *pathname, int flags, mode_t mode);
 static int (*libc_close)(int fd);
 static int (*libc_ioctl)(int fd, unsigned long request, void *argp);
 
@@ -325,7 +324,7 @@ dump_execbuffer2(int fd, struct drm_i915_gem_execbuffer2 *execbuffer2)
 		gen = intel_gen(device);
 
 		if (verbose)
-			printf("[intel_aubdump active: "
+			printf("[intel_aubdump: running, "
 			       "output file %s, chipset id 0x%04x, gen %d]\n",
 			       filename, device, gen);
 	}
@@ -392,27 +391,6 @@ remove_bo(int handle)
 }
 
 int
-open(const char *pathname, int flags, ...)
-{
-	va_list args;
-	struct stat buf;
-	mode_t mode;
-	int fd;
-
-	va_start(args, flags);
-	mode = va_arg(args, int);
-	va_end(args);
-
-	fd = libc_open(pathname, flags, mode);
-
-	if (fd >= 0 && fstat(fd, &buf) == 0 && 
-	    (buf.st_mode & S_IFMT) == S_IFCHR && major(buf.st_rdev) == DRM_MAJOR)
-		drm_fd = fd;
-
-	return fd;
-}
-
-int
 close(int fd)
 {
 	if (fd == drm_fd)
@@ -427,10 +405,19 @@ ioctl(int fd, unsigned long request, ...)
 	va_list args;
 	void *argp;
 	int ret;
+	struct stat buf;
 
 	va_start(args, request);
 	argp = va_arg(args, void *);
 	va_end(args);
+
+	if (_IOC_TYPE(request) == DRM_IOCTL_BASE &&
+	    drm_fd != fd && fstat(fd, &buf) == 0 &&
+	    (buf.st_mode & S_IFMT) == S_IFCHR && major(buf.st_rdev) == DRM_MAJOR) {
+		drm_fd = fd;
+		if (verbose)
+			printf("[intel_aubdump: intercept drm ioctl on fd %d]\n", fd);
+	}
 
 	if (fd == drm_fd) {
 		switch (request) {
@@ -528,11 +515,10 @@ init(void)
 {
 	const char *args = getenv("INTEL_AUBDUMP_ARGS");
 
-	libc_open = dlsym(RTLD_NEXT, "open");
 	libc_close = dlsym(RTLD_NEXT, "close");
 	libc_ioctl = dlsym(RTLD_NEXT, "ioctl");
-	fail_if(libc_open == NULL || libc_close == NULL || libc_ioctl == NULL,
-		"intel_aubdump: failed to get libc open or ioctl\n");
+	fail_if(libc_close == NULL || libc_ioctl == NULL,
+		"intel_aubdump: failed to get libc ioctl or close\n");
 
 	if (sscanf(args, "verbose=%d;file=%m[^;];device=%i",
 		   &verbose, &filename, &device) != 3)
