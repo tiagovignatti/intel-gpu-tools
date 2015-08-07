@@ -428,7 +428,17 @@ ioctl(int fd, unsigned long request, ...)
 				*getparam->value = device;
 				return 0;
 			}
-			return libc_ioctl(fd, request, argp);
+
+			ret = libc_ioctl(fd, request, argp);
+
+			/* If the application looks up chipset_id
+			 * (they typically do), we'll piggy-back on
+			 * their ioctl and store the id for later
+			 * use. */
+			if (getparam->param == I915_PARAM_CHIPSET_ID)
+				device = *getparam->value;
+
+			return ret;
 		}
 
 		case DRM_IOCTL_I915_GEM_EXECBUFFER: {
