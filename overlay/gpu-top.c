@@ -116,6 +116,23 @@ static uint32_t mmio_ring_read(struct mmio_ring *ring, uint32_t reg)
 	return igfx_read(ring->mmio, ring->base + reg);
 }
 
+static int has_execlists(void)
+{
+	int detected = 0;
+	FILE *file;
+
+	file = fopen("/sys/module/i915/parameters/enable_execlists", "r");
+	if (file) {
+		int value;
+		if (fscanf(file, "%d", &value) == 1)
+			detected = value != 0;
+		fclose(file);
+	}
+
+	return detected;
+
+}
+
 static void mmio_ring_init(struct mmio_ring *ring, void *mmio)
 {
 	uint32_t ctl;
@@ -123,7 +140,7 @@ static void mmio_ring_init(struct mmio_ring *ring, void *mmio)
 	ring->mmio = mmio;
 
 	ctl = mmio_ring_read(ring, RING_CTL);
-	if ((ctl & 1) == 0)
+	if ((ctl & 1) == 0 && !has_execlists())
 		ring->id = -1;
 }
 
@@ -239,10 +256,10 @@ static void mmio_init(struct gpu_top *gt)
 			usleep(1000);
 		}
 
+		memset(payload, 0, sizeof(payload));
 		mmio_ring_emit(&render_ring, 1000, payload);
 		mmio_ring_emit(&bsd_ring, 1000, payload);
 		mmio_ring_emit(&blt_ring, 1000, payload);
-
 		write(fd[1], payload, sizeof(payload));
 	}
 }
