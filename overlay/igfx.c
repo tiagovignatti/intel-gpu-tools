@@ -91,6 +91,22 @@ static const struct igfx_info haswell_info = {
 	.gen = 075,
 };
 
+static const struct igfx_info broadwell_info = {
+	.gen = 0100,
+};
+
+static const struct igfx_info cherryview_info = {
+	.gen = 0101,
+};
+
+static const struct igfx_info skylake_info = {
+	.gen = 0110,
+};
+
+static const struct igfx_info broxton_info = {
+	.gen = 0111,
+};
+
 static const struct pci_id_match match[] = {
 #if 0
 	INTEL_VGA_DEVICE(PCI_CHIP_I810, &i81x_info),
@@ -132,6 +148,14 @@ static const struct pci_id_match match[] = {
 
 	INTEL_VLV_D_IDS(&valleyview_info),
 	INTEL_VLV_M_IDS(&valleyview_info),
+
+	INTEL_BDW_D_IDS(&broadwell_info),
+	INTEL_BDW_M_IDS(&broadwell_info),
+
+	INTEL_CHV_IDS(&cherryview_info),
+
+	INTEL_SKL_IDS(&skylake_info),
+	INTEL_BXT_IDS(&broxton_info),
 
 	INTEL_VGA_DEVICE(PCI_MATCH_ANY, &generic_info),
 
