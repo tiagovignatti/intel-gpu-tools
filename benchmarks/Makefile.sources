@@ -6,6 +6,7 @@ bin_PROGRAMS =                          \
 	gem_create			\
 	gem_exec_ctx			\
 	gem_exec_nop			\
+	gem_exec_trace			\
 	gem_mmap			\
 	gem_prw				\
 	gem_userptr_benchmark		\
