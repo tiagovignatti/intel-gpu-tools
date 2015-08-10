@@ -173,6 +173,7 @@ TESTS_progs = \
 	kms_3d \
 	kms_fence_pin_leak \
 	kms_force_connector_basic \
+	kms_mmap_write_crc \
 	kms_pwrite_crc \
 	kms_sink_crc_basic \
 	prime_udl \
