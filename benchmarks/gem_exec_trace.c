@@ -249,6 +249,7 @@ static void replay(const char *filename)
 	} while (ptr < end);
 	clock_gettime(CLOCK_MONOTONIC, &t_end);
 	close(fd);
+	munmap(end-st.st_size, st.st_size);
 
 	printf("%s: %.3f\n", filename, elapsed(&t_start, &t_end));
 }
