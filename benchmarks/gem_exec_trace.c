@@ -103,9 +103,11 @@ static void *add_bo(void *ptr)
 	struct trace_add_bo *t = ptr;
 	uint32_t bb = 0xa << 23;
 
-	if (t->handle > num_bo) {
-		num_bo = (t->handle + 4095) & -4096;
-		bo = realloc(bo, sizeof(*bo)*num_bo);
+	if (t->handle >= num_bo) {
+		int new_bo = (t->handle + 4096) & -4096;
+		bo = realloc(bo, sizeof(*bo)*new_bo);
+		memset(bo + num_bo, 0, sizeof(*bo)*(new_bo - num_bo));
+		num_bo = new_bo;
 	}
 
 	bo[t->handle].handle = gem_create(fd, t->size);
