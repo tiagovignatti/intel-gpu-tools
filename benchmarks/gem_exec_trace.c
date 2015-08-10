@@ -225,6 +225,11 @@ static void replay(const char *filename)
 	ptr = mmap(0, st.st_size, PROT_READ, MAP_SHARED, fd, 0);
 	close(fd);
 
+	if (ptr == MAP_FAILED)
+		return;
+
+	madvise(ptr, st.st_size, MADV_SEQUENTIAL);
+
 	end = ptr + st.st_size;
 	fd = drm_open_any();
 
