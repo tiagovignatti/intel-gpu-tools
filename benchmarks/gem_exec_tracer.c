@@ -112,8 +112,8 @@ trace_exec(int fd, const struct drm_i915_gem_execbuffer2 *execbuffer2)
 
 	{
 		struct trace_exec t = {
-		       	EXEC, execbuffer2->buffer_count, execbuffer2->flags
-	       	};
+			EXEC, execbuffer2->buffer_count, execbuffer2->flags
+		};
 		fwrite(&t, sizeof(t), 1, file);
 	}
 
