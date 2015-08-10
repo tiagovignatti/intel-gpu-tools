@@ -58,7 +58,7 @@ static uint32_t device;
 
 struct bo {
 	uint32_t size;
-	uint32_t offset;
+	uint64_t offset;
 	void *map;
 };
 
@@ -115,6 +115,12 @@ align_u32(uint32_t v, uint32_t a)
 	return (v + a - 1) & ~(a - 1);
 }
 
+static inline uint64_t
+align_u64(uint64_t v, uint64_t a)
+{
+	return (v + a - 1) & ~(a - 1);
+}
+
 static void
 dword_out(uint32_t data)
 {
@@ -162,7 +168,7 @@ write_header(void)
  * everything goes badly after that.
  */
 static void
-aub_write_trace_block(uint32_t type, void *virtual, uint32_t size, uint32_t gtt_offset)
+aub_write_trace_block(uint32_t type, void *virtual, uint32_t size, uint64_t gtt_offset)
 {
 	uint32_t block_size;
 	uint32_t subtype = 0;
@@ -182,7 +188,7 @@ aub_write_trace_block(uint32_t type, void *virtual, uint32_t size, uint32_t gtt_
 		dword_out(gtt_offset + offset);
 		dword_out(align_u32(block_size, 4));
 		if (gen >= 8)
-			dword_out(0);
+			dword_out((gtt_offset + offset) >> 32);
 
 		if (virtual)
 			data_out(GET_PTR(virtual) + offset, block_size);
@@ -195,7 +201,7 @@ aub_write_trace_block(uint32_t type, void *virtual, uint32_t size, uint32_t gtt_
 }
 
 static void
-aub_dump_ringbuffer(uint32_t batch_offset, uint32_t offset, int ring_flag)
+aub_dump_ringbuffer(uint64_t batch_offset, uint64_t offset, int ring_flag)
 {
 	uint32_t ringbuffer[4096];
 	int ring = AUB_TRACE_TYPE_RING_PRB0; /* The default ring */
@@ -211,7 +217,7 @@ aub_dump_ringbuffer(uint32_t batch_offset, uint32_t offset, int ring_flag)
 	if (gen >= 8) {
 		ringbuffer[ring_count++] = AUB_MI_BATCH_BUFFER_START | (3 - 2);
 		ringbuffer[ring_count++] = batch_offset;
-		ringbuffer[ring_count++] = 0;
+		ringbuffer[ring_count++] = batch_offset >> 32;
 	} else {
 		ringbuffer[ring_count++] = AUB_MI_BATCH_BUFFER_START;
 		ringbuffer[ring_count++] = batch_offset;
@@ -227,7 +233,7 @@ aub_dump_ringbuffer(uint32_t batch_offset, uint32_t offset, int ring_flag)
 	dword_out(offset);
 	dword_out(ring_count * 4);
 	if (gen >= 8)
-		dword_out(0);
+		dword_out(offset >> 32);
 
 	data_out(ringbuffer, ring_count * 4);
 }
