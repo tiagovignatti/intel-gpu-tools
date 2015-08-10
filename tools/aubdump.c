@@ -328,6 +328,7 @@ dump_execbuffer2(int fd, struct drm_i915_gem_execbuffer2 *execbuffer2)
 	}
 	if (gen == 0) {
 		gen = intel_gen(device);
+		write_header();
 
 		if (verbose)
 			printf("[intel_aubdump: running, "
@@ -549,8 +550,6 @@ init(void)
 
 	file = fopen(filename, "w+");
 	fail_if(file == NULL, "intel_aubdump: failed to open file '%s'\n", filename);
-
-	write_header();
 }
 
 static void __attribute__ ((destructor))
