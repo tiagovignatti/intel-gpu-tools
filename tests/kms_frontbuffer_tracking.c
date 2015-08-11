@@ -454,9 +454,16 @@ static bool init_modeset_cached_params(void)
 	return true;
 }
 
-static void create_fb(int width, int height, uint32_t format, uint64_t tiling,
+static void create_fb(int width, int height, uint64_t tiling, int plane,
 		      struct igt_fb *fb)
 {
+	uint32_t format;
+
+	if (plane == PLANE_CUR)
+		format = DRM_FORMAT_ARGB8888;
+	else
+		format = DRM_FORMAT_XRGB8888;
+
 	igt_create_fb(drm.fd, width, height, format, tiling, fb);
 }
 
@@ -514,24 +521,24 @@ static void create_big_fb(void)
 
 	big_h = prim_h + scnd_h + offs_h + BIGFB_Y_OFFSET;
 
-	create_fb(big_w, big_h, DRM_FORMAT_XRGB8888,
-		  LOCAL_I915_FORMAT_MOD_X_TILED, &fbs.big);
+	create_fb(big_w, big_h, LOCAL_I915_FORMAT_MOD_X_TILED, PLANE_PRI,
+		  &fbs.big);
 }
 
 static void create_fbs(void)
 {
 	create_fb(prim_mode_params.mode->hdisplay,
-		  prim_mode_params.mode->vdisplay, DRM_FORMAT_XRGB8888,
-		  LOCAL_I915_FORMAT_MOD_X_TILED, &fbs.prim_pri);
+		  prim_mode_params.mode->vdisplay,
+		  LOCAL_I915_FORMAT_MOD_X_TILED, PLANE_PRI, &fbs.prim_pri);
 	create_fb(prim_mode_params.cursor.w,
-		  prim_mode_params.cursor.h, DRM_FORMAT_ARGB8888,
-		  LOCAL_DRM_FORMAT_MOD_NONE, &fbs.prim_cur);
+		  prim_mode_params.cursor.h, LOCAL_DRM_FORMAT_MOD_NONE,
+		  PLANE_CUR, &fbs.prim_cur);
 	create_fb(prim_mode_params.sprite.w,
-		  prim_mode_params.sprite.h, DRM_FORMAT_XRGB8888,
-		  LOCAL_I915_FORMAT_MOD_X_TILED, &fbs.prim_spr);
+		  prim_mode_params.sprite.h, LOCAL_I915_FORMAT_MOD_X_TILED,
+		  PLANE_SPR, &fbs.prim_spr);
 
-	create_fb(offscreen_fb.w, offscreen_fb.h, DRM_FORMAT_XRGB8888,
-		  LOCAL_I915_FORMAT_MOD_X_TILED, &fbs.offscreen);
+	create_fb(offscreen_fb.w, offscreen_fb.h,
+		  LOCAL_I915_FORMAT_MOD_X_TILED, PLANE_PRI, &fbs.offscreen);
 
 	create_big_fb();
 
@@ -539,14 +546,12 @@ static void create_fbs(void)
 		return;
 
 	create_fb(scnd_mode_params.mode->hdisplay,
-		  scnd_mode_params.mode->vdisplay, DRM_FORMAT_XRGB8888,
-		  LOCAL_I915_FORMAT_MOD_X_TILED, &fbs.scnd_pri);
+		  scnd_mode_params.mode->vdisplay,
+		  LOCAL_I915_FORMAT_MOD_X_TILED, PLANE_PRI, &fbs.scnd_pri);
 	create_fb(scnd_mode_params.cursor.w, scnd_mode_params.cursor.h,
-		  DRM_FORMAT_ARGB8888, LOCAL_DRM_FORMAT_MOD_NONE,
-		  &fbs.scnd_cur);
+		  LOCAL_DRM_FORMAT_MOD_NONE, PLANE_CUR, &fbs.scnd_cur);
 	create_fb(scnd_mode_params.sprite.w, scnd_mode_params.sprite.h,
-		  DRM_FORMAT_XRGB8888, LOCAL_I915_FORMAT_MOD_X_TILED,
-		  &fbs.scnd_spr);
+		  LOCAL_I915_FORMAT_MOD_X_TILED, PLANE_SPR, &fbs.scnd_spr);
 }
 
 static bool set_mode_for_params(struct modeset_params *params)
@@ -974,8 +979,8 @@ static void init_blue_crc(void)
 	unset_all_crtcs();
 
 	create_fb(prim_mode_params.mode->hdisplay,
-		  prim_mode_params.mode->vdisplay, DRM_FORMAT_XRGB8888,
-		  LOCAL_I915_FORMAT_MOD_X_TILED, &blue);
+		  prim_mode_params.mode->vdisplay,
+		  LOCAL_I915_FORMAT_MOD_X_TILED, PLANE_PRI, &blue);
 
 	igt_draw_fill_fb(drm.fd, &blue, 0xFF);
 
@@ -1002,8 +1007,8 @@ static void init_crcs(struct draw_pattern_info *pattern)
 
 	for (r = 0; r < pattern->n_rects; r++)
 		create_fb(prim_mode_params.mode->hdisplay,
-			  prim_mode_params.mode->vdisplay, DRM_FORMAT_XRGB8888,
-			  LOCAL_I915_FORMAT_MOD_X_TILED, &tmp_fbs[r]);
+			  prim_mode_params.mode->vdisplay,
+			  LOCAL_I915_FORMAT_MOD_X_TILED, PLANE_PRI, &tmp_fbs[r]);
 
 	for (r = 0; r < pattern->n_rects; r++)
 		igt_draw_fill_fb(drm.fd, &tmp_fbs[r], 0xFF);
@@ -1883,7 +1888,7 @@ static void flip_subtest(const struct test_mode *t, enum flip_type type)
 	prepare_subtest(t, pattern);
 
 	create_fb(params->fb.fb->width, params->fb.fb->height,
-		  DRM_FORMAT_XRGB8888, LOCAL_I915_FORMAT_MOD_X_TILED, &fb2);
+		  LOCAL_I915_FORMAT_MOD_X_TILED, t->plane, &fb2);
 	igt_draw_fill_fb(drm.fd, &fb2, bg_color);
 	orig_fb = params->fb.fb;
 
@@ -2157,8 +2162,8 @@ static void fullscreen_plane_subtest(const struct test_mode *t)
 	prepare_subtest(t, pattern);
 
 	rect = pattern->get_rect(&params->fb, 0);
-	create_fb(rect.w, rect.h, DRM_FORMAT_XRGB8888,
-		  LOCAL_I915_FORMAT_MOD_X_TILED, &fullscreen_fb);
+	create_fb(rect.w, rect.h, LOCAL_I915_FORMAT_MOD_X_TILED, t->plane,
+		  &fullscreen_fb);
 	igt_draw_fill_fb(drm.fd, &fullscreen_fb, rect.color);
 
 	rc = drmModeSetPlane(drm.fd, params->sprite_id, params->crtc_id,
@@ -2222,7 +2227,7 @@ static void modesetfrombusy_subtest(const struct test_mode *t)
 	prepare_subtest(t, NULL);
 
 	create_fb(params->fb.fb->width, params->fb.fb->height,
-		  DRM_FORMAT_XRGB8888, LOCAL_I915_FORMAT_MOD_X_TILED, &fb2);
+		  LOCAL_I915_FORMAT_MOD_X_TILED, t->plane, &fb2);
 	igt_draw_fill_fb(drm.fd, &fb2, 0xFF);
 
 	start_busy_thread(params->fb.fb);
@@ -2320,8 +2325,8 @@ static void farfromfence_subtest(const struct test_mode *t)
 	prepare_subtest(t, pattern);
 	target = pick_target(t, params);
 
-	create_fb(params->mode->hdisplay, max_height, DRM_FORMAT_XRGB8888,
-		  LOCAL_I915_FORMAT_MOD_X_TILED, &tall_fb);
+	create_fb(params->mode->hdisplay, max_height,
+		  LOCAL_I915_FORMAT_MOD_X_TILED, t->plane, &tall_fb);
 
 	igt_draw_fill_fb(drm.fd, &tall_fb, 0xFF);
 
@@ -2391,7 +2396,7 @@ static void badstride_subtest(const struct test_mode *t)
 	prepare_subtest(t, NULL);
 
 	create_fb(params->fb.fb->width + 4096, params->fb.fb->height,
-		  DRM_FORMAT_XRGB8888, LOCAL_I915_FORMAT_MOD_X_TILED, &wide_fb);
+		  LOCAL_I915_FORMAT_MOD_X_TILED, t->plane, &wide_fb);
 	igt_assert(wide_fb.stride > 16384);
 
 	igt_draw_fill_fb(drm.fd, &wide_fb, 0xFF);
