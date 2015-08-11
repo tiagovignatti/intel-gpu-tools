@@ -486,6 +486,13 @@ static uint32_t pick_color(struct igt_fb *fb, enum color ecolor)
 	bool alpha = false;
 
 	switch (fb->drm_format) {
+	case DRM_FORMAT_RGB565:
+		a =  0x0;
+		r =  0x1F << 11;
+		g =  0x3F << 5;
+		b =  0x1F;
+		b2 = 0x10;
+		break;
 	case DRM_FORMAT_ARGB8888:
 		alpha = true;
 	case DRM_FORMAT_XRGB8888:
@@ -494,6 +501,15 @@ static uint32_t pick_color(struct igt_fb *fb, enum color ecolor)
 		g =  0xFF << 8;
 		b =  0xFF;
 		b2 = 0x80;
+		break;
+	case DRM_FORMAT_ARGB2101010:
+		alpha = true;
+	case DRM_FORMAT_XRGB2101010:
+		a = 0x3 << 30;
+		r = 0x3FF << 20;
+		g = 0x3FF << 10;
+		b = 0x3FF;
+		b2 = 0x200;
 		break;
 	default:
 		igt_assert(false);
@@ -993,8 +1009,12 @@ static void *busy_thread_func(void *data)
 static int fb_get_bpp(struct igt_fb *fb)
 {
 	switch (fb->drm_format) {
+	case DRM_FORMAT_RGB565:
+		return 16;
 	case DRM_FORMAT_XRGB8888:
 	case DRM_FORMAT_ARGB8888:
+	case DRM_FORMAT_ARGB2101010:
+	case DRM_FORMAT_XRGB2101010:
 		return 32;
 	default:
 		igt_assert(false);
