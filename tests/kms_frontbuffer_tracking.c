@@ -454,6 +454,12 @@ static bool init_modeset_cached_params(void)
 	return true;
 }
 
+static void create_fb(int width, int height, uint32_t format, uint64_t tiling,
+		      struct igt_fb *fb)
+{
+	igt_create_fb(drm.fd, width, height, format, tiling, fb);
+}
+
 #define BIGFB_X_OFFSET 500
 #define BIGFB_Y_OFFSET 500
 /*
@@ -508,42 +514,39 @@ static void create_big_fb(void)
 
 	big_h = prim_h + scnd_h + offs_h + BIGFB_Y_OFFSET;
 
-	igt_create_fb(drm.fd, big_w, big_h, DRM_FORMAT_XRGB8888,
-		      LOCAL_I915_FORMAT_MOD_X_TILED, &fbs.big);
+	create_fb(big_w, big_h, DRM_FORMAT_XRGB8888,
+		  LOCAL_I915_FORMAT_MOD_X_TILED, &fbs.big);
 }
 
 static void create_fbs(void)
 {
-	igt_create_fb(drm.fd, prim_mode_params.mode->hdisplay,
-		      prim_mode_params.mode->vdisplay,
-		      DRM_FORMAT_XRGB8888, LOCAL_I915_FORMAT_MOD_X_TILED,
-		      &fbs.prim_pri);
-	igt_create_fb(drm.fd, prim_mode_params.cursor.w,
-		      prim_mode_params.cursor.h, DRM_FORMAT_ARGB8888,
-		      LOCAL_DRM_FORMAT_MOD_NONE, &fbs.prim_cur);
-	igt_create_fb(drm.fd, prim_mode_params.sprite.w,
-		      prim_mode_params.sprite.h, DRM_FORMAT_XRGB8888,
-		      LOCAL_I915_FORMAT_MOD_X_TILED, &fbs.prim_spr);
+	create_fb(prim_mode_params.mode->hdisplay,
+		  prim_mode_params.mode->vdisplay, DRM_FORMAT_XRGB8888,
+		  LOCAL_I915_FORMAT_MOD_X_TILED, &fbs.prim_pri);
+	create_fb(prim_mode_params.cursor.w,
+		  prim_mode_params.cursor.h, DRM_FORMAT_ARGB8888,
+		  LOCAL_DRM_FORMAT_MOD_NONE, &fbs.prim_cur);
+	create_fb(prim_mode_params.sprite.w,
+		  prim_mode_params.sprite.h, DRM_FORMAT_XRGB8888,
+		  LOCAL_I915_FORMAT_MOD_X_TILED, &fbs.prim_spr);
 
-	igt_create_fb(drm.fd, offscreen_fb.w, offscreen_fb.h,
-		      DRM_FORMAT_XRGB8888, LOCAL_I915_FORMAT_MOD_X_TILED,
-		      &fbs.offscreen);
+	create_fb(offscreen_fb.w, offscreen_fb.h, DRM_FORMAT_XRGB8888,
+		  LOCAL_I915_FORMAT_MOD_X_TILED, &fbs.offscreen);
 
 	create_big_fb();
 
 	if (!scnd_mode_params.connector_id)
 		return;
 
-	igt_create_fb(drm.fd, scnd_mode_params.mode->hdisplay,
-		      scnd_mode_params.mode->vdisplay,
-		      DRM_FORMAT_XRGB8888, LOCAL_I915_FORMAT_MOD_X_TILED,
-		      &fbs.scnd_pri);
-	igt_create_fb(drm.fd, scnd_mode_params.cursor.w,
-		      scnd_mode_params.cursor.h, DRM_FORMAT_ARGB8888,
-		      LOCAL_DRM_FORMAT_MOD_NONE, &fbs.scnd_cur);
-	igt_create_fb(drm.fd, scnd_mode_params.sprite.w,
-		      scnd_mode_params.sprite.h, DRM_FORMAT_XRGB8888,
-		      LOCAL_I915_FORMAT_MOD_X_TILED, &fbs.scnd_spr);
+	create_fb(scnd_mode_params.mode->hdisplay,
+		  scnd_mode_params.mode->vdisplay, DRM_FORMAT_XRGB8888,
+		  LOCAL_I915_FORMAT_MOD_X_TILED, &fbs.scnd_pri);
+	create_fb(scnd_mode_params.cursor.w, scnd_mode_params.cursor.h,
+		  DRM_FORMAT_ARGB8888, LOCAL_DRM_FORMAT_MOD_NONE,
+		  &fbs.scnd_cur);
+	create_fb(scnd_mode_params.sprite.w, scnd_mode_params.sprite.h,
+		  DRM_FORMAT_XRGB8888, LOCAL_I915_FORMAT_MOD_X_TILED,
+		  &fbs.scnd_spr);
 }
 
 static bool set_mode_for_params(struct modeset_params *params)
@@ -970,9 +973,9 @@ static void init_blue_crc(void)
 	disable_features();
 	unset_all_crtcs();
 
-	igt_create_fb(drm.fd, prim_mode_params.mode->hdisplay,
-		      prim_mode_params.mode->vdisplay, DRM_FORMAT_XRGB8888,
-		      LOCAL_I915_FORMAT_MOD_X_TILED, &blue);
+	create_fb(prim_mode_params.mode->hdisplay,
+		  prim_mode_params.mode->vdisplay, DRM_FORMAT_XRGB8888,
+		  LOCAL_I915_FORMAT_MOD_X_TILED, &blue);
 
 	igt_draw_fill_fb(drm.fd, &blue, 0xFF);
 
@@ -998,10 +1001,9 @@ static void init_crcs(struct draw_pattern_info *pattern)
 	pattern->crcs = calloc(pattern->n_rects, sizeof(*(pattern->crcs)));
 
 	for (r = 0; r < pattern->n_rects; r++)
-		igt_create_fb(drm.fd, prim_mode_params.mode->hdisplay,
-			      prim_mode_params.mode->vdisplay,
-			      DRM_FORMAT_XRGB8888,
-			      LOCAL_I915_FORMAT_MOD_X_TILED, &tmp_fbs[r]);
+		create_fb(prim_mode_params.mode->hdisplay,
+			  prim_mode_params.mode->vdisplay, DRM_FORMAT_XRGB8888,
+			  LOCAL_I915_FORMAT_MOD_X_TILED, &tmp_fbs[r]);
 
 	for (r = 0; r < pattern->n_rects; r++)
 		igt_draw_fill_fb(drm.fd, &tmp_fbs[r], 0xFF);
@@ -1880,8 +1882,8 @@ static void flip_subtest(const struct test_mode *t, enum flip_type type)
 
 	prepare_subtest(t, pattern);
 
-	igt_create_fb(drm.fd, params->fb.fb->width, params->fb.fb->height,
-		      DRM_FORMAT_XRGB8888, LOCAL_I915_FORMAT_MOD_X_TILED, &fb2);
+	create_fb(params->fb.fb->width, params->fb.fb->height,
+		  DRM_FORMAT_XRGB8888, LOCAL_I915_FORMAT_MOD_X_TILED, &fb2);
 	igt_draw_fill_fb(drm.fd, &fb2, bg_color);
 	orig_fb = params->fb.fb;
 
@@ -2155,8 +2157,8 @@ static void fullscreen_plane_subtest(const struct test_mode *t)
 	prepare_subtest(t, pattern);
 
 	rect = pattern->get_rect(&params->fb, 0);
-	igt_create_fb(drm.fd, rect.w, rect.h, DRM_FORMAT_XRGB8888,
-		      LOCAL_I915_FORMAT_MOD_X_TILED, &fullscreen_fb);
+	create_fb(rect.w, rect.h, DRM_FORMAT_XRGB8888,
+		  LOCAL_I915_FORMAT_MOD_X_TILED, &fullscreen_fb);
 	igt_draw_fill_fb(drm.fd, &fullscreen_fb, rect.color);
 
 	rc = drmModeSetPlane(drm.fd, params->sprite_id, params->crtc_id,
@@ -2219,8 +2221,8 @@ static void modesetfrombusy_subtest(const struct test_mode *t)
 
 	prepare_subtest(t, NULL);
 
-	igt_create_fb(drm.fd, params->fb.fb->width, params->fb.fb->height,
-		      DRM_FORMAT_XRGB8888, LOCAL_I915_FORMAT_MOD_X_TILED, &fb2);
+	create_fb(params->fb.fb->width, params->fb.fb->height,
+		  DRM_FORMAT_XRGB8888, LOCAL_I915_FORMAT_MOD_X_TILED, &fb2);
 	igt_draw_fill_fb(drm.fd, &fb2, 0xFF);
 
 	start_busy_thread(params->fb.fb);
@@ -2318,9 +2320,8 @@ static void farfromfence_subtest(const struct test_mode *t)
 	prepare_subtest(t, pattern);
 	target = pick_target(t, params);
 
-	igt_create_fb(drm.fd, params->mode->hdisplay, max_height,
-		      DRM_FORMAT_XRGB8888, LOCAL_I915_FORMAT_MOD_X_TILED,
-		      &tall_fb);
+	create_fb(params->mode->hdisplay, max_height, DRM_FORMAT_XRGB8888,
+		  LOCAL_I915_FORMAT_MOD_X_TILED, &tall_fb);
 
 	igt_draw_fill_fb(drm.fd, &tall_fb, 0xFF);
 
@@ -2389,9 +2390,8 @@ static void badstride_subtest(const struct test_mode *t)
 
 	prepare_subtest(t, NULL);
 
-	igt_create_fb(drm.fd, params->fb.fb->width + 4096,
-		      params->fb.fb->height, DRM_FORMAT_XRGB8888,
-		      LOCAL_I915_FORMAT_MOD_X_TILED, &wide_fb);
+	create_fb(params->fb.fb->width + 4096, params->fb.fb->height,
+		  DRM_FORMAT_XRGB8888, LOCAL_I915_FORMAT_MOD_X_TILED, &wide_fb);
 	igt_assert(wide_fb.stride > 16384);
 
 	igt_draw_fill_fb(drm.fd, &wide_fb, 0xFF);
