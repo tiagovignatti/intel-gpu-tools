@@ -120,6 +120,17 @@ enum flip_type {
 	FLIP_MODESET,
 };
 
+enum color {
+	COLOR_RED,
+	COLOR_GREEN,
+	COLOR_BLUE,
+	COLOR_MAGENTA,
+	COLOR_CYAN,
+	COLOR_SCND_BG,
+	COLOR_PRIM_BG = COLOR_BLUE,
+	COLOR_OFFSCREEN_BG = COLOR_SCND_BG,
+};
+
 struct rect {
 	int x;
 	int y;
@@ -267,6 +278,8 @@ struct {
 	uint32_t stride;
 	int width;
 	int height;
+	uint32_t color;
+	int bpp;
 } busy_thread = {
 	.stop = true,
 };
@@ -465,6 +478,59 @@ static void create_fb(int width, int height, uint64_t tiling, int plane,
 		format = DRM_FORMAT_XRGB8888;
 
 	igt_create_fb(drm.fd, width, height, format, tiling, fb);
+}
+
+static uint32_t pick_color(struct igt_fb *fb, enum color ecolor)
+{
+	uint32_t color, r, g, b, b2, a;
+	bool alpha = false;
+
+	switch (fb->drm_format) {
+	case DRM_FORMAT_ARGB8888:
+		alpha = true;
+	case DRM_FORMAT_XRGB8888:
+		a =  0xFF << 24;
+		r =  0xFF << 16;
+		g =  0xFF << 8;
+		b =  0xFF;
+		b2 = 0x80;
+		break;
+	default:
+		igt_assert(false);
+	}
+
+	switch (ecolor) {
+	case COLOR_RED:
+		color = r;
+		break;
+	case COLOR_GREEN:
+		color = g;
+		break;
+	case COLOR_BLUE:
+		color = b;
+		break;
+	case COLOR_MAGENTA:
+		color = r | b;
+		break;
+	case COLOR_CYAN:
+		color = g | b;
+		break;
+	case COLOR_SCND_BG:
+		color = b2;
+		break;
+	default:
+		igt_assert(false);
+	}
+
+	if (alpha)
+		color |= a;
+
+	return color;
+}
+
+static void fill_fb(struct igt_fb *fb, enum color ecolor)
+{
+	igt_draw_fill_fb(drm.fd, fb, pick_color(fb, ecolor));
 }
 
 #define BIGFB_X_OFFSET 500
@@ -716,28 +782,28 @@ static struct rect pat1_get_rect(struct fb_region *fb, int r)
 		rect.y = 0;
 		rect.w = fb->w / 8;
 		rect.h = fb->h / 8;
-		rect.color = 0x00FF00;
+		rect.color = pick_color(fb->fb, COLOR_GREEN);
 		break;
 	case 1:
 		rect.x = fb->w / 8 * 4;
 		rect.y = fb->h / 8 * 4;
 		rect.w = fb->w / 8 * 2;
 		rect.h = fb->h / 8 * 2;
-		rect.color = 0xFF0000;
+		rect.color = pick_color(fb->fb, COLOR_RED);
 		break;
 	case 2:
 		rect.x = fb->w / 16 + 1;
 		rect.y = fb->h / 16 + 1;
 		rect.w = fb->w / 8 + 1;
 		rect.h = fb->h / 8 + 1;
-		rect.color = 0xFF00FF;
+		rect.color = pick_color(fb->fb, COLOR_MAGENTA);
 		break;
 	case 3:
 		rect.x = fb->w - 64;
 		rect.y = fb->h - 64;
 		rect.w = 64;
 		rect.h = 64;
-		rect.color = 0x00FFFF;
+		rect.color = pick_color(fb->fb, COLOR_CYAN);
 		break;
 	default:
 		igt_assert(false);
@@ -757,24 +823,24 @@ static struct rect pat2_get_rect(struct fb_region *fb, int r)
 
 	switch (r) {
 	case 0:
-		rect.color = 0xFF00FF00;
+		rect.color = pick_color(fb->fb, COLOR_GREEN);
 		break;
 	case 1:
 		rect.x = 31;
 		rect.y = 31;
 		rect.w = 31;
 		rect.h = 31;
-		rect.color = 0xFFFF0000;
+		rect.color = pick_color(fb->fb, COLOR_RED);
 		break;
 	case 2:
 		rect.x = 16;
 		rect.y = 16;
 		rect.w = 32;
 		rect.h = 32;
-		rect.color = 0xFFFF00FF;
+		rect.color = pick_color(fb->fb, COLOR_MAGENTA);
 		break;
 	case 3:
-		rect.color = 0xFF00FFFF;
+		rect.color = pick_color(fb->fb, COLOR_CYAN);
 		break;
 	default:
 		igt_assert(false);
@@ -789,7 +855,7 @@ static struct rect pat3_get_rect(struct fb_region *fb, int r)
 
 	rect.w = 64;
 	rect.h = 64;
-	rect.color = 0xFF00FF00;
+	rect.color = pick_color(fb->fb, COLOR_GREEN);
 
 	switch (r) {
 	case 0:
@@ -829,7 +895,7 @@ static struct rect pat4_get_rect(struct fb_region *fb, int r)
 	rect.y = 0;
 	rect.w = fb->w;
 	rect.h = fb->h;
-	rect.color = 0xFF00FF00;
+	rect.color = pick_color(fb->fb, COLOR_GREEN);
 
 	return rect;
 }
@@ -877,8 +943,10 @@ static void draw_rect_igt_fb(struct draw_pattern_info *pattern,
 	draw_rect(pattern, &region, method, r);
 }
 
-static void fill_fb_region(struct fb_region *region, uint32_t color)
+static void fill_fb_region(struct fb_region *region, enum color ecolor)
 {
+	uint32_t color = pick_color(region->fb, ecolor);
+
 	igt_draw_rect_fb(drm.fd, NULL, NULL, region->fb, IGT_DRAW_MMAP_CPU,
 			 region->x, region->y, region->w, region->h,
 			 color);
@@ -916,9 +984,21 @@ static void *busy_thread_func(void *data)
 		igt_draw_rect(drm.fd, drm.bufmgr, NULL, busy_thread.handle,
 			      busy_thread.size, busy_thread.stride,
 			      IGT_DRAW_BLT, 0, 0, busy_thread.width,
-			      busy_thread.height, 0xFF, 32);
+			      busy_thread.height, busy_thread.color,
+			      busy_thread.bpp);
 
 	pthread_exit(0);
+}
+
+static int fb_get_bpp(struct igt_fb *fb)
+{
+	switch (fb->drm_format) {
+	case DRM_FORMAT_XRGB8888:
+	case DRM_FORMAT_ARGB8888:
+		return 32;
+	default:
+		igt_assert(false);
+	}
 }
 
 static void start_busy_thread(struct igt_fb *fb)
@@ -932,6 +1012,8 @@ static void start_busy_thread(struct igt_fb *fb)
 	busy_thread.stride = fb->stride;
 	busy_thread.width = fb->width;
 	busy_thread.height = fb->height;
+	busy_thread.color = pick_color(fb, COLOR_PRIM_BG);
+	busy_thread.bpp = fb_get_bpp(fb);
 
 	rc = pthread_create(&busy_thread.thread, NULL, busy_thread_func, NULL);
 	igt_assert(rc == 0);
@@ -982,7 +1064,7 @@ static void init_blue_crc(void)
 		  prim_mode_params.mode->vdisplay,
 		  LOCAL_I915_FORMAT_MOD_X_TILED, PLANE_PRI, &blue);
 
-	igt_draw_fill_fb(drm.fd, &blue, 0xFF);
+	fill_fb(&blue, COLOR_PRIM_BG);
 
 	rc = drmModeSetCrtc(drm.fd, prim_mode_params.crtc_id,
 			    blue.fb_id, 0, 0, &prim_mode_params.connector_id, 1,
@@ -1011,7 +1093,7 @@ static void init_crcs(struct draw_pattern_info *pattern)
 			  LOCAL_I915_FORMAT_MOD_X_TILED, PLANE_PRI, &tmp_fbs[r]);
 
 	for (r = 0; r < pattern->n_rects; r++)
-		igt_draw_fill_fb(drm.fd, &tmp_fbs[r], 0xFF);
+		fill_fb(&tmp_fbs[r], COLOR_PRIM_BG);
 
 	if (pattern->frames_stack) {
 		for (r = 0; r < pattern->n_rects; r++)
@@ -1123,7 +1205,7 @@ static void setup_sink_crc(void)
 	 * error" case. */
 	prim_mode_params.fb.fb = &fbs.prim_pri;
 	prim_mode_params.fb.x = prim_mode_params.fb.y = 0;
-	fill_fb_region(&prim_mode_params.fb, 0xFF);
+	fill_fb_region(&prim_mode_params.fb, COLOR_PRIM_BG);
 	unset_all_crtcs();
 	set_mode_for_params(&prim_mode_params);
 
@@ -1408,7 +1490,7 @@ static int adjust_assertion_flags(const struct test_mode *t, int flags)
 
 static void enable_prim_screen_and_wait(const struct test_mode *t)
 {
-	fill_fb_region(&prim_mode_params.fb, 0xFF);
+	fill_fb_region(&prim_mode_params.fb, COLOR_PRIM_BG);
 	set_mode_for_params(&prim_mode_params);
 
 	wanted_crc = &blue_crc;
@@ -1419,7 +1501,7 @@ static void enable_prim_screen_and_wait(const struct test_mode *t)
 
 static void enable_scnd_screen_and_wait(const struct test_mode *t)
 {
-	fill_fb_region(&scnd_mode_params.fb, 0x80);
+	fill_fb_region(&scnd_mode_params.fb, COLOR_SCND_BG);
 	set_mode_for_params(&scnd_mode_params);
 
 	do_assertions(ASSERT_NO_ACTION_CHANGE);
@@ -1430,7 +1512,7 @@ static void set_cursor_for_test(const struct test_mode *t,
 {
 	int rc;
 
-	fill_fb_region(&params->cursor, 0xFF0000FF);
+	fill_fb_region(&params->cursor, COLOR_PRIM_BG);
 
 	rc = drmModeMoveCursor(drm.fd, params->crtc_id, 0, 0);
 	igt_assert(rc == 0);
@@ -1449,7 +1531,7 @@ static void set_sprite_for_test(const struct test_mode *t,
 {
 	int rc;
 
-	fill_fb_region(&params->sprite, 0xFF0000FF);
+	fill_fb_region(&params->sprite, COLOR_PRIM_BG);
 
 	rc = drmModeSetPlane(drm.fd, params->sprite_id, params->crtc_id,
 			     params->sprite.fb->fb_id, 0, 0, 0,
@@ -1545,7 +1627,7 @@ static void prepare_subtest(const struct test_mode *t,
 	set_crtc_fbs(t);
 
 	if (t->screen == SCREEN_OFFSCREEN)
-		fill_fb_region(&offscreen_fb, 0x80);
+		fill_fb_region(&offscreen_fb, COLOR_OFFSCREEN_BG);
 
 	unset_all_crtcs();
 
@@ -1729,7 +1811,6 @@ static void multidraw_subtest(const struct test_mode *t)
 	struct modeset_params *params = pick_params(t);
 	struct fb_region *target;
 	enum igt_draw_method m, used_method;
-	uint32_t color;
 
 	switch (t->plane) {
 	case PLANE_PRI:
@@ -1769,18 +1850,7 @@ static void multidraw_subtest(const struct test_mode *t)
 			do_assertions(assertions);
 		}
 
-		switch (t->plane) {
-		case PLANE_PRI:
-			color = 0xFF;
-			break;
-		case PLANE_CUR:
-		case PLANE_SPR:
-			color = 0xFF0000FF;
-			break;
-		default:
-			igt_assert(false);
-		}
-		fill_fb_region(target, color);
+		fill_fb_region(target, COLOR_PRIM_BG);
 
 		update_wanted_crc(t, &blue_crc);
 		do_assertions(ASSERT_NO_ACTION_CHANGE);
@@ -1870,16 +1940,16 @@ static void flip_subtest(const struct test_mode *t, enum flip_type type)
 	struct igt_fb fb2, *orig_fb;
 	struct modeset_params *params = pick_params(t);
 	struct draw_pattern_info *pattern = &pattern1;
-	uint32_t bg_color;
+	enum color bg_color;
 
 	switch (t->screen) {
 	case SCREEN_PRIM:
 		assertions |= ASSERT_LAST_ACTION_CHANGED;
-		bg_color = 0xFF;
+		bg_color = COLOR_PRIM_BG;
 		break;
 	case SCREEN_SCND:
 		assertions |= ASSERT_NO_ACTION_CHANGE;
-		bg_color = 0x80;
+		bg_color = COLOR_SCND_BG;
 		break;
 	default:
 		igt_assert(false);
@@ -1889,7 +1959,7 @@ static void flip_subtest(const struct test_mode *t, enum flip_type type)
 
 	create_fb(params->fb.fb->width, params->fb.fb->height,
 		  LOCAL_I915_FORMAT_MOD_X_TILED, t->plane, &fb2);
-	igt_draw_fill_fb(drm.fd, &fb2, bg_color);
+	fill_fb(&fb2, bg_color);
 	orig_fb = params->fb.fb;
 
 	for (r = 0; r < pattern->n_rects; r++) {
@@ -2164,6 +2234,9 @@ static void fullscreen_plane_subtest(const struct test_mode *t)
 	rect = pattern->get_rect(&params->fb, 0);
 	create_fb(rect.w, rect.h, LOCAL_I915_FORMAT_MOD_X_TILED, t->plane,
 		  &fullscreen_fb);
+	/* Call pick_color() again since PRI and SPR may not support the same
+	 * pixel formats. */
+	rect.color = pick_color(&fullscreen_fb, COLOR_GREEN);
 	igt_draw_fill_fb(drm.fd, &fullscreen_fb, rect.color);
 
 	rc = drmModeSetPlane(drm.fd, params->sprite_id, params->crtc_id,
@@ -2228,7 +2301,7 @@ static void modesetfrombusy_subtest(const struct test_mode *t)
 
 	create_fb(params->fb.fb->width, params->fb.fb->height,
 		  LOCAL_I915_FORMAT_MOD_X_TILED, t->plane, &fb2);
-	igt_draw_fill_fb(drm.fd, &fb2, 0xFF);
+	fill_fb(&fb2, COLOR_PRIM_BG);
 
 	start_busy_thread(params->fb.fb);
 	usleep(10000);
@@ -2328,7 +2401,7 @@ static void farfromfence_subtest(const struct test_mode *t)
 	create_fb(params->mode->hdisplay, max_height,
 		  LOCAL_I915_FORMAT_MOD_X_TILED, t->plane, &tall_fb);
 
-	igt_draw_fill_fb(drm.fd, &tall_fb, 0xFF);
+	fill_fb(&tall_fb, COLOR_PRIM_BG);
 
 	params->fb.fb = &tall_fb;
 	params->fb.x = 0;
@@ -2399,7 +2472,7 @@ static void badstride_subtest(const struct test_mode *t)
 		  LOCAL_I915_FORMAT_MOD_X_TILED, t->plane, &wide_fb);
 	igt_assert(wide_fb.stride > 16384);
 
-	igt_draw_fill_fb(drm.fd, &wide_fb, 0xFF);
+	fill_fb(&wide_fb, COLOR_PRIM_BG);
 
 	params->fb.fb = &wide_fb;
 	set_mode_for_params(params);
