@@ -511,7 +511,11 @@ gen7_emit_push_constants(struct intel_batchbuffer *batch) {
 
 static void
 gen9_emit_state_base_address(struct intel_batchbuffer *batch) {
-	OUT_BATCH(GEN6_STATE_BASE_ADDRESS | (19 - 2));
+
+	/* WaBindlessSurfaceStateModifyEnable:skl,bxt */
+	/* The length has to be one less if we dont modify
+	   bindless state */
+	OUT_BATCH(GEN6_STATE_BASE_ADDRESS | (19 - 1 - 2));
 
 	/* general */
 	OUT_BATCH(0 | BASE_ADDRESS_MODIFY);
@@ -544,9 +548,9 @@ gen9_emit_state_base_address(struct intel_batchbuffer *batch) {
 	OUT_BATCH(1 << 12 | 1);
 
 	/* Bindless surface state base address */
-	OUT_BATCH(0 | BASE_ADDRESS_MODIFY);
 	OUT_BATCH(0);
-	OUT_BATCH(0xfffff000);
+	OUT_BATCH(0);
+	OUT_BATCH(0);
 }
 
 static void
