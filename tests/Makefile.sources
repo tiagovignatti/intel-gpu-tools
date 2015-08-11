@@ -47,6 +47,7 @@ TESTS_progs_M = \
 	gem_pread_after_blit \
 	gem_pwrite \
 	gem_pwrite_pread \
+	gem_pwrite_snooped \
 	gem_readwrite \
 	gem_read_read_speed \
 	gem_reloc_overflow \
