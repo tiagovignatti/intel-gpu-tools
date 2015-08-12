@@ -896,6 +896,47 @@ void gem_context_require_ban_period(int fd)
 	igt_require(has_ban_period);
 }
 
+int __gem_userptr(int fd, void *ptr, int size, int read_only, uint32_t flags, uint32_t *handle)
+{
+	struct local_i915_gem_userptr userptr;
+	int ret;
+
+	memset(&userptr, 0, sizeof(userptr));
+	userptr.user_ptr = (uintptr_t)ptr;
+	userptr.user_size = size;
+	userptr.flags = flags;
+	if (read_only)
+		userptr.flags |= LOCAL_I915_USERPTR_READ_ONLY;
+
+	ret = drmIoctl(fd, LOCAL_IOCTL_I915_GEM_USERPTR, &userptr);
+	if (ret)
+		ret = errno;
+	igt_skip_on_f(ret == ENODEV &&
+			(flags & LOCAL_I915_USERPTR_UNSYNCHRONIZED) == 0 &&
+			!read_only,
+			"Skipping, synchronized mappings with no kernel CONFIG_MMU_NOTIFIER?");
+	if (ret == 0)
+		*handle = userptr.handle;
+
+	return ret;
+}
+
+/**
+ * gem_userptr:
+ * @fd: open i915 drm file descriptor
+ * @ptr: userptr pointer to be passed
+ * @size: desired size of the buffer
+ * @read_only: specify whether userptr is opened read only
+ * @flags: other userptr flags
+ * @handle: returned handle for the object
+ *
+ * Returns userptr handle for the GEM object.
+ */
+void gem_userptr(int fd, void *ptr, int size, int read_only, uint32_t flags, uint32_t *handle)
+{
+	igt_assert_eq(__gem_userptr(fd, ptr, size, read_only, flags, handle), 0);
+}
+
 /**
  * gem_sw_finish:
  * @fd: open i915 drm file descriptor

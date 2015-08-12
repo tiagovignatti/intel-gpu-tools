@@ -53,15 +53,6 @@
 IGT_TEST_DESCRIPTION("Test of pread/pwrite/mmap behavior when writing to active"
 		     " buffers.");
 
-#define LOCAL_I915_GEM_USERPTR       0x33
-#define LOCAL_IOCTL_I915_GEM_USERPTR DRM_IOWR (DRM_COMMAND_BASE + LOCAL_I915_GEM_USERPTR, struct local_i915_gem_userptr)
-struct local_i915_gem_userptr {
-	uint64_t user_ptr;
-	uint64_t user_size;
-	uint32_t flags;
-	uint32_t handle;
-};
-
 int fd, devid, gen;
 struct intel_batchbuffer *batch;
 int all;

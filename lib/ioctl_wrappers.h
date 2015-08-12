@@ -114,6 +114,19 @@ void gem_context_get_param(int fd, struct local_i915_gem_context_param *p);
 void gem_context_set_param(int fd, struct local_i915_gem_context_param *p);
 int __gem_context_set_param(int fd, struct local_i915_gem_context_param *p);
 
+#define LOCAL_I915_GEM_USERPTR       0x33
+#define LOCAL_IOCTL_I915_GEM_USERPTR DRM_IOWR (DRM_COMMAND_BASE + LOCAL_I915_GEM_USERPTR, struct local_i915_gem_userptr)
+struct local_i915_gem_userptr {
+	uint64_t user_ptr;
+	uint64_t user_size;
+	uint32_t flags;
+#define LOCAL_I915_USERPTR_READ_ONLY (1<<0)
+#define LOCAL_I915_USERPTR_UNSYNCHRONIZED (1<<31)
+	uint32_t handle;
+};
+void gem_userptr(int fd, void *ptr, int size, int read_only, uint32_t flags, uint32_t *handle);
+int __gem_userptr(int fd, void *ptr, int size, int read_only, uint32_t flags, uint32_t *handle);
+
 void gem_sw_finish(int fd, uint32_t handle);
 
 bool gem_bo_busy(int fd, uint32_t handle);

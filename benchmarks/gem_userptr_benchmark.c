@@ -58,17 +58,6 @@
   #define PAGE_SIZE 4096
 #endif
 
-#define LOCAL_I915_GEM_USERPTR       0x33
-#define LOCAL_IOCTL_I915_GEM_USERPTR DRM_IOWR (DRM_COMMAND_BASE + LOCAL_I915_GEM_USERPTR, struct local_i915_gem_userptr)
-struct local_i915_gem_userptr {
-	uint64_t user_ptr;
-	uint64_t user_size;
-	uint32_t flags;
-#define LOCAL_I915_USERPTR_READ_ONLY (1<<0)
-#define LOCAL_I915_USERPTR_UNSYNCHRONIZED (1<<31)
-	uint32_t handle;
-};
-
 static uint32_t userptr_flags = LOCAL_I915_USERPTR_UNSYNCHRONIZED;
 
 #define BO_SIZE (65536)
@@ -81,30 +70,6 @@ static void gem_userptr_test_unsynchronized(void)
 static void gem_userptr_test_synchronized(void)
 {
 	userptr_flags = 0;
-}
-
-static int gem_userptr(int fd, void *ptr, int size, int read_only, uint32_t *handle)
-{
-	struct local_i915_gem_userptr userptr;
-	int ret;
-
-	userptr.user_ptr = (uintptr_t)ptr;
-	userptr.user_size = size;
-	userptr.flags = userptr_flags;
-	if (read_only)
-		userptr.flags |= LOCAL_I915_USERPTR_READ_ONLY;
-
-	ret = drmIoctl(fd, LOCAL_IOCTL_I915_GEM_USERPTR, &userptr);
-	if (ret)
-		ret = errno;
-	igt_skip_on_f(ret == ENODEV &&
-		      (userptr_flags & LOCAL_I915_USERPTR_UNSYNCHRONIZED) == 0 &&
-		      !read_only,
-		      "Skipping, synchronized mappings with no kernel CONFIG_MMU_NOTIFIER?");
-	if (ret == 0)
-		*handle = userptr.handle;
-
-	return ret;
 }
 
 static void **handle_ptr_map;
@@ -144,8 +109,7 @@ static uint32_t create_userptr_bo(int fd, int size)
 	ret = posix_memalign(&ptr, PAGE_SIZE, size);
 	igt_assert(ret == 0);
 
-	ret = gem_userptr(fd, (uint32_t *)ptr, size, 0, &handle);
-	igt_assert(ret == 0);
+	gem_userptr(fd, (uint32_t *)ptr, size, 0, userptr_flags, &handle);
 	add_handle_ptr(handle, ptr);
 
 	return handle;
@@ -167,7 +131,7 @@ static int has_userptr(int fd)
 	assert(posix_memalign(&ptr, PAGE_SIZE, PAGE_SIZE) == 0);
 	oldflags = userptr_flags;
 	gem_userptr_test_unsynchronized();
-	ret = gem_userptr(fd, ptr, PAGE_SIZE, 0, &handle);
+	ret = __gem_userptr(fd, ptr, PAGE_SIZE, 0, userptr_flags, &handle);
 	userptr_flags = oldflags;
 	if (ret != 0) {
 		free(ptr);
@@ -379,9 +343,7 @@ static void test_impact_overlap(int fd, const char *prefix)
 
 			for (i = 0, p = block; i < nr_bos[subtest];
 			     i++, p += PAGE_SIZE)
-				ret = gem_userptr(fd, (uint32_t *)p, BO_SIZE, 0,
-						  &handles[i]);
-				igt_assert(ret == 0);
+				gem_userptr(fd, (uint32_t *)p, BO_SIZE, 0, userptr_flags, &handles[i]);
 		}
 
 		if (nr_bos[subtest] > 0)
@@ -427,7 +389,6 @@ static void test_single(int fd)
 	char *ptr, *bo_ptr;
 	uint32_t handle = 0;
 	unsigned long iter = 0;
-	int ret;
 	unsigned long map_size = BO_SIZE + PAGE_SIZE - 1;
 
 	ptr = mmap(NULL, map_size, PROT_READ | PROT_WRITE,
@@ -439,8 +400,7 @@ static void test_single(int fd)
 	start_test(test_duration_sec);
 
 	while (run_test) {
-		ret = gem_userptr(fd, bo_ptr, BO_SIZE, 0, &handle);
-		assert(ret == 0);
+		gem_userptr(fd, bo_ptr, BO_SIZE, 0, userptr_flags, &handle);
 		gem_close(fd, handle);
 		iter++;
 	}
@@ -456,7 +416,6 @@ static void test_multiple(int fd, unsigned int batch, int random)
 	uint32_t handles[10000];
 	int map[10000];
 	unsigned long iter = 0;
-	int ret;
 	int i;
 	unsigned long map_size = batch * BO_SIZE + PAGE_SIZE - 1;
 
@@ -478,10 +437,8 @@ static void test_multiple(int fd, unsigned int batch, int random)
 		if (random)
 			igt_permute_array(map, batch, igt_exchange_int);
 		for (i = 0; i < batch; i++) {
-			ret = gem_userptr(fd, bo_ptr + map[i] * BO_SIZE,
-						BO_SIZE,
-						0, &handles[i]);
-			assert(ret == 0);
+			gem_userptr(fd, bo_ptr + map[i] * BO_SIZE, BO_SIZE,
+						0, userptr_flags, &handles[i]);
 		}
 		if (random)
 			igt_permute_array(map, batch, igt_exchange_int);
