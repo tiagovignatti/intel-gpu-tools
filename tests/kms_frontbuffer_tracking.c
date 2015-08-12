@@ -1976,6 +1976,87 @@ static void multidraw_subtest(const struct test_mode *t)
 	}
 }
 
+static bool format_is_valid(int feature_flags,
+			    enum pixel_format format)
+{
+	int devid = intel_get_drm_devid(drm.fd);
+
+	if (!(feature_flags & FEATURE_FBC))
+		return true;
+
+	switch (format) {
+	case FORMAT_RGB888:
+		return true;
+	case FORMAT_RGB565:
+		if (IS_GEN2(devid) || IS_G4X(devid))
+			return false;
+		return true;
+	case FORMAT_RGB101010:
+		return false;
+	default:
+		igt_assert(false);
+	}
+}
+
+/*
+ * badformat - test pixel formats that are not supported by at least one feature
+ *
+ * METHOD
+ *   We just do a modeset on a buffer with the given pixel format and check the
+ *   status of the relevant features.
+ *
+ * EXPECTED RESULTS
+ *   No assertion failures :)
+ *
+ * FAILURES
+ *   If you get a feature enabled/disabled assertion failure, then you should
+ *   probably check the Kernel code for the feature that checks the pixel
+ *   formats. If you get a CRC assertion failure, then you should use the
+ *   appropriate command line arguments that will allow you to look at the
+ *   screen, then judge what to do based on what you see.
+ */
+static void badformat_subtest(const struct test_mode *t)
+{
+	bool fbc_valid = format_is_valid(FEATURE_FBC, t->format);
+	bool psr_valid = format_is_valid(FEATURE_PSR, t->format);
+	int assertions = ASSERT_NO_ACTION_CHANGE;
+
+	prepare_subtest_data(t, NULL);
+
+	fill_fb_region(&prim_mode_params.fb, COLOR_PRIM_BG);
+	set_mode_for_params(&prim_mode_params);
+
+	wanted_crc = &blue_crcs[t->format].crc;
+
+	if (!fbc_valid)
+		assertions |= ASSERT_FBC_DISABLED;
+	if (!psr_valid)
+		assertions |= ASSERT_PSR_DISABLED;
+	do_assertions(assertions);
+}
+
+/*
+ * format_draw - test pixel formats that are not FORMAT_DEFAULT
+ *
+ * METHOD
+ *   The real subtest to be executed depends on whether the pixel format is
+ *   supported by the features being tested or not. Check the documentation of
+ *   each subtest.
+ *
+ * EXPECTED RESULTS
+ *   See the documentation for each subtest.
+ *
+ * FAILURES
+ *   See the documentation for each subtest.
+ */
+static void format_draw_subtest(const struct test_mode *t)
+{
+	if (format_is_valid(t->feature, t->format))
+		draw_subtest(t);
+	else
+		badformat_subtest(t);
+}
+
 static void flip_handler(int fd, unsigned int sequence, unsigned int tv_sec,
 			 unsigned int tv_usec, void *data)
 {
@@ -2739,6 +2820,20 @@ static const char *feature_str(int feature)
 	}
 }
 
+static const char *format_str(enum pixel_format format)
+{
+	switch (format) {
+	case FORMAT_RGB888:
+		return "rgb888";
+	case FORMAT_RGB565:
+		return "rgb565";
+	case FORMAT_RGB101010:
+		return "rgb101010";
+	default:
+		igt_assert(false);
+	}
+}
+
 #define TEST_MODE_ITER_BEGIN(t) \
 	t.format = FORMAT_DEFAULT;					   \
 	for (t.feature = 0; t.feature < FEATURE_COUNT; t.feature++) {	   \
@@ -2920,6 +3015,26 @@ int main(int argc, char *argv[])
 		if (t.pipes != PIPE_SINGLE ||
 		    t.screen != SCREEN_PRIM ||
 		    t.plane != PLANE_PRI ||
+		    t.fbs != FBS_INDIVIDUAL)
+			continue;
+
+		for (t.format = 0; t.format < FORMAT_COUNT; t.format++) {
+			/* Skip what we already tested. */
+			if (t.format == FORMAT_DEFAULT)
+				continue;
+
+			igt_subtest_f("%s-%s-draw-%s",
+				      feature_str(t.feature),
+				      format_str(t.format),
+				      igt_draw_get_method_name(t.method))
+				format_draw_subtest(&t);
+		}
+	TEST_MODE_ITER_END
+
+	TEST_MODE_ITER_BEGIN(t)
+		if (t.pipes != PIPE_SINGLE ||
+		    t.screen != SCREEN_PRIM ||
+		    t.plane != PLANE_PRI ||
 		    t.fbs != FBS_INDIVIDUAL ||
 		    t.method != IGT_DRAW_MMAP_CPU)
 			continue;
@@ -2934,12 +3049,6 @@ int main(int argc, char *argv[])
 		igt_subtest_f("%s-suspend", feature_str(t.feature))
 			suspend_subtest(&t);
 	TEST_MODE_ITER_END
-
-	/*
-	 * TODO: ideas for subtests:
-	 * - Add a new enum to struct test_mode that allows us to specify the
-	 *   BPP/depth configuration.
-	 */
 
 	igt_fixture
 		teardown_environment();
