@@ -61,17 +61,6 @@
 #define PAGE_SIZE 4096
 #endif
 
-#define LOCAL_I915_GEM_USERPTR       0x33
-#define LOCAL_IOCTL_I915_GEM_USERPTR DRM_IOWR (DRM_COMMAND_BASE + LOCAL_I915_GEM_USERPTR, struct local_i915_gem_userptr)
-struct local_i915_gem_userptr {
-	uint64_t user_ptr;
-	uint64_t user_size;
-	uint32_t flags;
-#define LOCAL_I915_USERPTR_READ_ONLY (1<<0)
-#define LOCAL_I915_USERPTR_UNSYNCHRONIZED (1<<31)
-	uint32_t handle;
-};
-
 static uint32_t userptr_flags = LOCAL_I915_USERPTR_UNSYNCHRONIZED;
 
 #define WIDTH 512
@@ -88,32 +77,6 @@ static void gem_userptr_test_synchronized(void)
 {
 	userptr_flags = 0;
 }
-
-static int gem_userptr(int fd, void *ptr, int size, int read_only, uint32_t *handle)
-{
-	struct local_i915_gem_userptr userptr;
-	int ret;
-
-	memset(&userptr, 0, sizeof(userptr));
-	userptr.user_ptr = (uintptr_t)ptr;
-	userptr.user_size = size;
-	userptr.flags = userptr_flags;
-	if (read_only)
-		userptr.flags |= LOCAL_I915_USERPTR_READ_ONLY;
-
-	ret = drmIoctl(fd, LOCAL_IOCTL_I915_GEM_USERPTR, &userptr);
-	if (ret)
-		ret = errno;
-	igt_skip_on_f(ret == ENODEV &&
-		      (userptr_flags & LOCAL_I915_USERPTR_UNSYNCHRONIZED) == 0 &&
-		      !read_only,
-		      "Skipping, synchronized mappings with no kernel CONFIG_MMU_NOTIFIER?");
-	if (ret == 0)
-		*handle = userptr.handle;
-
-	return ret;
-}
-
 
 static void gem_userptr_sync(int fd, uint32_t handle)
 {
@@ -289,10 +252,9 @@ static uint32_t
 create_userptr(int fd, uint32_t val, uint32_t *ptr)
 {
 	uint32_t handle;
-	int i, ret;
+	int i;
 
-	ret = gem_userptr(fd, ptr, sizeof(linear), 0, &handle);
-	igt_assert_eq(ret, 0);
+	gem_userptr(fd, ptr, sizeof(linear), 0, userptr_flags, &handle);
 	igt_assert(handle != 0);
 
 	/* Fill the BO with dwords starting at val */
@@ -363,7 +325,6 @@ static uint32_t create_userptr_bo(int fd, uint64_t size)
 {
 	void *ptr;
 	uint32_t handle;
-	int ret;
 
 	ptr = mmap(NULL, size,
 		   PROT_READ | PROT_WRITE,
@@ -371,8 +332,7 @@ static uint32_t create_userptr_bo(int fd, uint64_t size)
 		   -1, 0);
 	igt_assert(ptr != MAP_FAILED);
 
-	ret = gem_userptr(fd, (uint32_t *)ptr, size, 0, &handle);
-	igt_assert_eq(ret, 0);
+	gem_userptr(fd, (uint32_t *)ptr, size, 0, userptr_flags, &handle);
 	add_handle_ptr(handle, ptr, size);
 
 	return handle;
@@ -450,7 +410,7 @@ static int has_userptr(int fd)
 	igt_assert(posix_memalign(&ptr, PAGE_SIZE, PAGE_SIZE) == 0);
 	oldflags = userptr_flags;
 	gem_userptr_test_unsynchronized();
-	ret = gem_userptr(fd, ptr, PAGE_SIZE, 0, &handle);
+	ret = __gem_userptr(fd, ptr, PAGE_SIZE, 0, userptr_flags, &handle);
 	userptr_flags = oldflags;
 	if (ret != 0) {
 		free(ptr);
@@ -509,7 +469,7 @@ static int test_access_control(int fd)
 
 		igt_assert(posix_memalign(&ptr, PAGE_SIZE, PAGE_SIZE) == 0);
 
-		ret = gem_userptr(fd, ptr, PAGE_SIZE, 0, &handle);
+		ret = __gem_userptr(fd, ptr, PAGE_SIZE, 0, userptr_flags, &handle);
 		if (ret == 0)
 			gem_close(fd, handle);
 		free(ptr);
@@ -524,11 +484,9 @@ static int test_access_control(int fd)
 static int test_invalid_null_pointer(int fd)
 {
 	uint32_t handle;
-	int ret;
 
 	/* NULL pointer. */
-	ret = gem_userptr(fd, NULL, PAGE_SIZE, 0, &handle);
-	igt_assert_eq(ret, 0);
+	gem_userptr(fd, NULL, PAGE_SIZE, 0, userptr_flags, &handle);
 
 	copy(fd, handle, handle, ~0); /* QQQ Precise errno? */
 	gem_close(fd, handle);
@@ -540,7 +498,6 @@ static int test_invalid_gtt_mapping(int fd)
 {
 	uint32_t handle, handle2;
 	void *ptr;
-	int ret;
 
 	/* GTT mapping */
 	handle = create_bo(fd, 0);
@@ -550,8 +507,7 @@ static int test_invalid_gtt_mapping(int fd)
 	igt_assert(((unsigned long)ptr & (PAGE_SIZE - 1)) == 0);
 	igt_assert((sizeof(linear) & (PAGE_SIZE - 1)) == 0);
 
-	ret = gem_userptr(fd, ptr, sizeof(linear), 0, &handle2);
-	igt_assert_eq(ret, 0);
+	gem_userptr(fd, ptr, sizeof(linear), 0, userptr_flags, &handle2);
 	copy(fd, handle2, handle2, ~0); /* QQQ Precise errno? */
 	gem_close(fd, handle2);
 
@@ -594,8 +550,7 @@ static void test_forked_access(int fd)
 #ifdef MADV_DONTFORK
 	ret |= madvise(ptr1, sizeof(linear), MADV_DONTFORK);
 #endif
-	ret |= gem_userptr(fd, ptr1, sizeof(linear), 0, &handle1);
-	igt_assert_eq(ret, 0);
+	gem_userptr(fd, ptr1, sizeof(linear), 0, userptr_flags, &handle1);
 	igt_assert(ptr1);
 	igt_assert(handle1);
 
@@ -603,8 +558,7 @@ static void test_forked_access(int fd)
 #ifdef MADV_DONTFORK
 	ret |= madvise(ptr2, sizeof(linear), MADV_DONTFORK);
 #endif
-	ret |= gem_userptr(fd, ptr2, sizeof(linear), 0, &handle2);
-	igt_assert_eq(ret, 0);
+	gem_userptr(fd, ptr2, sizeof(linear), 0, userptr_flags, &handle2);
 	igt_assert(ptr2);
 	igt_assert(handle2);
 
@@ -651,8 +605,7 @@ static int test_forbidden_ops(int fd)
 
 	igt_assert(posix_memalign(&ptr, PAGE_SIZE, PAGE_SIZE) == 0);
 
-	ret = gem_userptr(fd, ptr, PAGE_SIZE, 0, &handle);
-	igt_assert_eq(ret, 0);
+	gem_userptr(fd, ptr, PAGE_SIZE, 0, userptr_flags, &handle);
 
 	/* pread/pwrite are not always forbidden, but when they
 	 * are they should fail with EINVAL.
@@ -839,19 +792,19 @@ static int test_usage_restrictions(int fd)
 	igt_assert(posix_memalign(&ptr, PAGE_SIZE, PAGE_SIZE * 2) == 0);
 
 	/* Address not aligned. */
-	ret = gem_userptr(fd, (char *)ptr + 1, PAGE_SIZE, 0, &handle);
+	ret = __gem_userptr(fd, (char *)ptr + 1, PAGE_SIZE, 0, userptr_flags, &handle);
 	igt_assert_neq(ret, 0);
 
 	/* Size not rounded to page size. */
-	ret = gem_userptr(fd, ptr, PAGE_SIZE - 1, 0, &handle);
+	ret = __gem_userptr(fd, ptr, PAGE_SIZE - 1, 0, userptr_flags, &handle);
 	igt_assert_neq(ret, 0);
 
 	/* Both wrong. */
-	ret = gem_userptr(fd, (char *)ptr + 1, PAGE_SIZE - 1, 0, &handle);
+	ret = __gem_userptr(fd, (char *)ptr + 1, PAGE_SIZE - 1, 0, userptr_flags, &handle);
 	igt_assert_neq(ret, 0);
 
 	/* Read-only not supported. */
-	ret = gem_userptr(fd, (char *)ptr, PAGE_SIZE, 1, &handle);
+	ret = __gem_userptr(fd, (char *)ptr, PAGE_SIZE, 1, userptr_flags, &handle);
 	igt_assert_neq(ret, 0);
 
 	free(ptr);
@@ -873,7 +826,7 @@ static int test_create_destroy(int fd, int time)
 		for (n = 0; n < 1000; n++) {
 			igt_assert(posix_memalign(&ptr, PAGE_SIZE, PAGE_SIZE) == 0);
 
-			do_or_die(gem_userptr(fd, ptr, PAGE_SIZE, 0, &handle));
+			do_or_die(__gem_userptr(fd, ptr, PAGE_SIZE, 0, userptr_flags, &handle));
 
 			gem_close(fd, handle);
 			free(ptr);
@@ -1065,41 +1018,40 @@ static void test_overlap(int fd, int expected)
 
 	igt_assert(posix_memalign((void *)&ptr, PAGE_SIZE, PAGE_SIZE * 3) == 0);
 
-	ret = gem_userptr(fd, ptr + PAGE_SIZE, PAGE_SIZE, 0, &handle);
-	igt_assert_eq(ret, 0);
+	gem_userptr(fd, ptr + PAGE_SIZE, PAGE_SIZE, 0, userptr_flags, &handle);
 
 	/* before, no overlap */
-	ret = gem_userptr(fd, ptr, PAGE_SIZE, 0, &handle2);
+	ret = __gem_userptr(fd, ptr, PAGE_SIZE, 0, userptr_flags, &handle2);
 	if (ret == 0)
 		gem_close(fd, handle2);
 	igt_assert_eq(ret, 0);
 
 	/* after, no overlap */
-	ret = gem_userptr(fd, ptr + PAGE_SIZE * 2, PAGE_SIZE, 0, &handle2);
+	ret = __gem_userptr(fd, ptr + PAGE_SIZE * 2, PAGE_SIZE, 0, userptr_flags, &handle2);
 	if (ret == 0)
 		gem_close(fd, handle2);
 	igt_assert_eq(ret, 0);
 
 	/* exactly overlapping */
-	ret = gem_userptr(fd, ptr + PAGE_SIZE, PAGE_SIZE, 0, &handle2);
+	ret = __gem_userptr(fd, ptr + PAGE_SIZE, PAGE_SIZE, 0, userptr_flags, &handle2);
 	if (ret == 0)
 		gem_close(fd, handle2);
 	igt_assert(ret == 0 || ret == expected);
 
 	/* start overlaps */
-	ret = gem_userptr(fd, ptr, PAGE_SIZE * 2, 0, &handle2);
+	ret = __gem_userptr(fd, ptr, PAGE_SIZE * 2, 0, userptr_flags, &handle2);
 	if (ret == 0)
 		gem_close(fd, handle2);
 	igt_assert(ret == 0 || ret == expected);
 
 	/* end overlaps */
-	ret = gem_userptr(fd, ptr + PAGE_SIZE, PAGE_SIZE * 2, 0, &handle2);
+	ret = __gem_userptr(fd, ptr + PAGE_SIZE, PAGE_SIZE * 2, 0, userptr_flags, &handle2);
 	if (ret == 0)
 		gem_close(fd, handle2);
 	igt_assert(ret == 0 || ret == expected);
 
 	/* subsumes */
-	ret = gem_userptr(fd, ptr, PAGE_SIZE * 3, 0, &handle2);
+	ret = __gem_userptr(fd, ptr, PAGE_SIZE * 3, 0, userptr_flags, &handle2);
 	if (ret == 0)
 		gem_close(fd, handle2);
 	igt_assert(ret == 0 || ret == expected);
@@ -1124,8 +1076,7 @@ static void test_unmap(int fd, int expected)
 	bo_ptr = (char *)ALIGN((unsigned long)ptr, PAGE_SIZE);
 
 	for (i = 0; i < num_obj; i++, bo_ptr += sizeof(linear)) {
-		ret = gem_userptr(fd, bo_ptr, sizeof(linear), 0, &bo[i]);
-		igt_assert_eq(ret, 0);
+		gem_userptr(fd, bo_ptr, sizeof(linear), 0, userptr_flags, &bo[i]);
 	}
 
 	bo[num_obj] = create_bo(fd, 0);
@@ -1159,8 +1110,7 @@ static void test_unmap_after_close(int fd)
 	bo_ptr = (char *)ALIGN((unsigned long)ptr, PAGE_SIZE);
 
 	for (i = 0; i < num_obj; i++, bo_ptr += sizeof(linear)) {
-		ret = gem_userptr(fd, bo_ptr, sizeof(linear), 0, &bo[i]);
-		igt_assert_eq(ret, 0);
+		gem_userptr(fd, bo_ptr, sizeof(linear), 0, userptr_flags, &bo[i]);
 	}
 
 	bo[num_obj] = create_bo(fd, 0);
@@ -1230,8 +1180,7 @@ static void test_stress_mm(int fd)
 	igt_assert_eq(ret, 0);
 
 	while (loops--) {
-		ret = gem_userptr(fd, ptr, PAGE_SIZE, 0, &handle);
-		igt_assert_eq(ret, 0);
+		gem_userptr(fd, ptr, PAGE_SIZE, 0, userptr_flags, &handle);
 
 		gem_close(fd, handle);
 	}
@@ -1265,8 +1214,7 @@ static void *mm_userptr_close_thread(void *data)
 	while (!t->stop) {
 		pthread_mutex_unlock(&t->mutex);
 		for (int i = 0; i < num_handles; i++)
-			igt_assert_eq(gem_userptr(t->fd, t->ptr, PAGE_SIZE, 0, &handle[i]),
-				      0);
+			gem_userptr(t->fd, t->ptr, PAGE_SIZE, 0, userptr_flags, &handle[i]);
 		for (int i = 0; i < num_handles; i++)
 			gem_close(t->fd, handle[i]);
 		pthread_mutex_lock(&t->mutex);
