@@ -32,8 +32,8 @@ gem_ctx_bad_exec
 gem_ctx_basic
 gem_ctx_create
 gem_ctx_exec
-gem_ctx_thrash
 gem_ctx_param_basic
+gem_ctx_thrash
 gem_double_irq_loop
 gem_dummy_reloc_loop
 gem_eio
@@ -67,8 +67,8 @@ gem_madvise
 gem_media_fill
 gem_mmap
 gem_mmap_gtt
-gem_mmap_wc
 gem_mmap_offset_exhaustion
+gem_mmap_wc
 gem_multi_bsd_sync_loop
 gem_non_secure_batch
 gem_partial_pwrite_pread
@@ -80,8 +80,9 @@ gem_pread
 gem_pread_after_blit
 gem_pwrite
 gem_pwrite_pread
-gem_readwrite
+gem_pwrite_snooped
 gem_read_read_speed
+gem_readwrite
 gem_reg_read
 gem_reloc_overflow
 gem_reloc_vs_gpu
@@ -118,8 +119,8 @@ gem_unfence_active_buffers
 gem_unref_active_buffers
 gem_userptr_blits
 gem_wait
-gem_write_read_ring_switch
 gem_workarounds
+gem_write_read_ring_switch
 gen3_mixed_blits
 gen3_render_linear_blits
 gen3_render_mixed_blits
@@ -128,6 +129,7 @@ gen3_render_tiledy_blits
 gen7_forcewake_mt
 kms_3d
 kms_addfb
+kms_crtc_background_color
 kms_cursor_crc
 kms_draw_crc
 kms_fbc_crc
@@ -140,9 +142,11 @@ kms_force_connector
 kms_frontbuffer_tracking
 kms_legacy_colorkey
 kms_mmio_vs_cs_flip
+kms_panel_fitting
 kms_pipe_b_c_ivb
 kms_pipe_crc_basic
 kms_plane
+kms_plane_scaling
 kms_psr_sink_crc
 kms_pwrite_crc
 kms_render
@@ -151,9 +155,6 @@ kms_setmode
 kms_sink_crc_basic
 kms_universal_plane
 kms_vblank
-kms_crtc_background_color
-kms_plane_scaling
-kms_panel_fitting
 pm_backlight
 pm_lpsp
 pm_rc6_residency
