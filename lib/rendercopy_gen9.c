@@ -590,12 +590,6 @@ gen8_emit_multisample(struct intel_batchbuffer *batch) {
 
 static void
 gen8_emit_vs(struct intel_batchbuffer *batch) {
-	OUT_BATCH(GEN7_3DSTATE_BINDING_TABLE_POINTERS_VS);
-	OUT_BATCH(0);
-
-	OUT_BATCH(GEN7_3DSTATE_SAMPLER_STATE_POINTERS_VS);
-	OUT_BATCH(0);
-
 	OUT_BATCH(GEN6_3DSTATE_CONSTANT_VS | (11-2));
 	OUT_BATCH(0);
 	OUT_BATCH(0);
@@ -606,6 +600,12 @@ gen8_emit_vs(struct intel_batchbuffer *batch) {
 	OUT_BATCH(0);
 	OUT_BATCH(0);
 	OUT_BATCH(0);
+	OUT_BATCH(0);
+
+	OUT_BATCH(GEN7_3DSTATE_BINDING_TABLE_POINTERS_VS);
+	OUT_BATCH(0);
+
+	OUT_BATCH(GEN7_3DSTATE_SAMPLER_STATE_POINTERS_VS);
 	OUT_BATCH(0);
 
 	OUT_BATCH(GEN6_3DSTATE_VS | (9-2));
@@ -998,13 +998,13 @@ void gen9_render_copyfunc(struct intel_batchbuffer *batch,
 
 	gen8_emit_sf(batch);
 
+	gen8_emit_ps(batch, ps_kernel_off);
+
 	OUT_BATCH(GEN7_3DSTATE_BINDING_TABLE_POINTERS_PS);
 	OUT_BATCH(ps_binding_table);
 
 	OUT_BATCH(GEN7_3DSTATE_SAMPLER_STATE_POINTERS_PS);
 	OUT_BATCH(ps_sampler_state);
-
-	gen8_emit_ps(batch, ps_kernel_off);
 
 	OUT_BATCH(GEN6_3DSTATE_SCISSOR_STATE_POINTERS);
 	OUT_BATCH(scissor_state);
