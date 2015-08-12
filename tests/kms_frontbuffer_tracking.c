@@ -1893,7 +1893,7 @@ static void draw_subtest(const struct test_mode *t)
  * METHOD
  *   This is just like the draw subtest, but now we keep alternating between two
  *   drawing methods. Each time we run multidraw_subtest we will test all the
- *   possible pairs containing t->method.
+ *   possible pairs of drawing methods.
  *
  * EXPECTED RESULTS
  *   The same as the draw subtest.
@@ -1912,7 +1912,7 @@ static void multidraw_subtest(const struct test_mode *t)
 	struct draw_pattern_info *pattern;
 	struct modeset_params *params = pick_params(t);
 	struct fb_region *target;
-	enum igt_draw_method m, used_method;
+	enum igt_draw_method m1, m2, used_method;
 
 	switch (t->plane) {
 	case PLANE_PRI:
@@ -1929,33 +1929,38 @@ static void multidraw_subtest(const struct test_mode *t)
 	prepare_subtest(t, pattern);
 	target = pick_target(t, params);
 
-	for (m = 0; m < IGT_DRAW_METHOD_COUNT; m++) {
-		if (m == t->method)
-			continue;
+	for (m1 = 0; m1 < IGT_DRAW_METHOD_COUNT; m1++) {
+		for (m2 = 0; m2 < IGT_DRAW_METHOD_COUNT; m2++) {
+			if (m1 == m2)
+				continue;
 
-		igt_debug("Method %s\n", igt_draw_get_method_name(m));
-		for (r = 0; r < pattern->n_rects; r++) {
-			used_method = (r % 2 == 0) ? t->method : m;
+			igt_debug("Methods %s and %s\n",
+				  igt_draw_get_method_name(m1),
+				  igt_draw_get_method_name(m2));
+			for (r = 0; r < pattern->n_rects; r++) {
+				used_method = (r % 2 == 0) ? m1 : m2;
 
-			igt_debug("Used method %s\n",
-				  igt_draw_get_method_name(used_method));
+				igt_debug("Used method %s\n",
+					igt_draw_get_method_name(used_method));
 
-			draw_rect(pattern, target, used_method, r);
-			update_wanted_crc(t, &pattern->crcs[t->format][r]);
+				draw_rect(pattern, target, used_method, r);
+				update_wanted_crc(t,
+						  &pattern->crcs[t->format][r]);
 
-			assertions = used_method != IGT_DRAW_MMAP_GTT ?
-				     ASSERT_LAST_ACTION_CHANGED :
-				     ASSERT_NO_ACTION_CHANGE;
-			if (op_disables_psr(t, used_method))
-				assertions |= ASSERT_PSR_DISABLED;
+				assertions = used_method != IGT_DRAW_MMAP_GTT ?
+					     ASSERT_LAST_ACTION_CHANGED :
+					     ASSERT_NO_ACTION_CHANGE;
+				if (op_disables_psr(t, used_method))
+					assertions |= ASSERT_PSR_DISABLED;
 
-			do_assertions(assertions);
+				do_assertions(assertions);
+			}
+
+			fill_fb_region(target, COLOR_PRIM_BG);
+
+			update_wanted_crc(t, &blue_crcs[t->format].crc);
+			do_assertions(ASSERT_NO_ACTION_CHANGE);
 		}
-
-		fill_fb_region(target, COLOR_PRIM_BG);
-
-		update_wanted_crc(t, &blue_crcs[t->format].crc);
-		do_assertions(ASSERT_NO_ACTION_CHANGE);
 	}
 }
 
@@ -2873,16 +2878,16 @@ int main(int argc, char *argv[])
 
 	TEST_MODE_ITER_BEGIN(t)
 		if (t.screen != SCREEN_PRIM ||
+		    t.method != IGT_DRAW_BLT ||
 		    (!opt.show_hidden && t.plane != PLANE_PRI) ||
 		    (!opt.show_hidden && t.fbs != FBS_INDIVIDUAL))
 			continue;
 
-		igt_subtest_f("%s-%s-%s-%s-multidraw-%s",
+		igt_subtest_f("%s-%s-%s-%s-multidraw",
 			      feature_str(t.feature),
 			      pipes_str(t.pipes),
 			      plane_str(t.plane),
-			      fbs_str(t.fbs),
-			      igt_draw_get_method_name(t.method))
+			      fbs_str(t.fbs))
 			multidraw_subtest(&t);
 	TEST_MODE_ITER_END
 
