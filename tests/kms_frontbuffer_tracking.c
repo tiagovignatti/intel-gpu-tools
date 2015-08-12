@@ -2557,7 +2557,11 @@ static const char *feature_str(int feature)
 			continue;					   \
 		if ((!opt.show_hidden && opt.only_feature != FEATURE_NONE) \
 		    && t.feature == FEATURE_NONE)			   \
+			continue;					   \
+		if (!opt.show_hidden && t.fbs == FBS_SHARED &&		   \
+		    (t.plane == PLANE_CUR || t.plane == PLANE_SPR))	   \
 			continue;
+
 
 #define TEST_MODE_ITER_END } } } } } }
 
