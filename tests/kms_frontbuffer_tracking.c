@@ -111,6 +111,16 @@ struct test_mode {
 		FEATURE_COUNT = 4,
 	} feature;
 
+	/* Possible pixel formats. We just use FORMAT_DEFAULT for most tests and
+	 * only test a few things on the other formats. */
+	enum pixel_format {
+		FORMAT_RGB888 = 0,
+		FORMAT_RGB565,
+		FORMAT_RGB101010,
+		FORMAT_COUNT,
+		FORMAT_DEFAULT = FORMAT_RGB888,
+	} format;
+
 	enum igt_draw_method method;
 };
 
@@ -179,7 +189,10 @@ struct both_crcs {
 };
 
 igt_pipe_crc_t *pipe_crc;
-struct both_crcs blue_crc;
+struct {
+	bool initialized;
+	struct both_crcs crc;
+} blue_crcs[FORMAT_COUNT];
 struct both_crcs *wanted_crc;
 
 struct {
@@ -202,11 +215,12 @@ struct fb_region {
 };
 
 struct draw_pattern_info {
-	bool initialized;
 	bool frames_stack;
 	int n_rects;
-	struct both_crcs *crcs;
 	struct rect (*get_rect)(struct fb_region *fb, int r);
+
+	bool initialized[FORMAT_COUNT];
+	struct both_crcs *crcs[FORMAT_COUNT];
 };
 
 /* Draw big rectangles on the screen. */
@@ -256,7 +270,9 @@ struct modeset_params {
 struct modeset_params prim_mode_params;
 struct modeset_params scnd_mode_params;
 struct fb_region offscreen_fb;
-struct {
+struct screen_fbs {
+	bool initialized;
+
 	struct igt_fb prim_pri;
 	struct igt_fb prim_cur;
 	struct igt_fb prim_spr;
@@ -267,7 +283,7 @@ struct {
 
 	struct igt_fb offscreen;
 	struct igt_fb big;
-} fbs;
+} fbs[FORMAT_COUNT];
 
 struct {
 	pthread_t thread;
@@ -467,15 +483,38 @@ static bool init_modeset_cached_params(void)
 	return true;
 }
 
-static void create_fb(int width, int height, uint64_t tiling, int plane,
-		      struct igt_fb *fb)
+static void create_fb(enum pixel_format pformat, int width, int height,
+		      uint64_t tiling, int plane, struct igt_fb *fb)
 {
 	uint32_t format;
 
-	if (plane == PLANE_CUR)
-		format = DRM_FORMAT_ARGB8888;
-	else
-		format = DRM_FORMAT_XRGB8888;
+	switch (pformat) {
+	case FORMAT_RGB888:
+		if (plane == PLANE_CUR)
+			format = DRM_FORMAT_ARGB8888;
+		else
+			format = DRM_FORMAT_XRGB8888;
+		break;
+	case FORMAT_RGB565:
+		/* Only the primary plane supports 16bpp! */
+		if (plane == PLANE_PRI)
+			format = DRM_FORMAT_RGB565;
+		else if (plane == PLANE_CUR)
+			format = DRM_FORMAT_ARGB8888;
+		else
+			format = DRM_FORMAT_XRGB8888;
+		break;
+	case FORMAT_RGB101010:
+		if (plane == PLANE_PRI)
+			format = DRM_FORMAT_XRGB2101010;
+		else if (plane == PLANE_CUR)
+			format = DRM_FORMAT_ARGB8888;
+		else
+			format = DRM_FORMAT_XRGB8888;
+		break;
+	default:
+		igt_assert(false);
+	}
 
 	igt_create_fb(drm.fd, width, height, format, tiling, fb);
 }
@@ -577,9 +616,10 @@ static void fill_fb(struct igt_fb *fb, enum color ecolor)
  * We do it vertically instead of the more common horizontal case in order to
  * avoid super huge strides not supported by FBC.
  */
-static void create_big_fb(void)
+static void create_big_fb(enum pixel_format format)
 {
 	int prim_w, prim_h, scnd_w, scnd_h, offs_w, offs_h, big_w, big_h;
+	struct screen_fbs *s = &fbs[format];
 
 	prim_w = prim_mode_params.mode->hdisplay;
 	prim_h = prim_mode_params.mode->vdisplay;
@@ -603,37 +643,63 @@ static void create_big_fb(void)
 
 	big_h = prim_h + scnd_h + offs_h + BIGFB_Y_OFFSET;
 
-	create_fb(big_w, big_h, LOCAL_I915_FORMAT_MOD_X_TILED, PLANE_PRI,
-		  &fbs.big);
+	create_fb(format, big_w, big_h, LOCAL_I915_FORMAT_MOD_X_TILED,
+		  PLANE_PRI, &s->big);
 }
 
-static void create_fbs(void)
+static void create_fbs(enum pixel_format format)
 {
-	create_fb(prim_mode_params.mode->hdisplay,
+	struct screen_fbs *s = &fbs[format];
+
+	if (s->initialized)
+		return;
+
+	s->initialized = true;
+
+	create_fb(format, prim_mode_params.mode->hdisplay,
 		  prim_mode_params.mode->vdisplay,
-		  LOCAL_I915_FORMAT_MOD_X_TILED, PLANE_PRI, &fbs.prim_pri);
-	create_fb(prim_mode_params.cursor.w,
+		  LOCAL_I915_FORMAT_MOD_X_TILED, PLANE_PRI, &s->prim_pri);
+	create_fb(format, prim_mode_params.cursor.w,
 		  prim_mode_params.cursor.h, LOCAL_DRM_FORMAT_MOD_NONE,
-		  PLANE_CUR, &fbs.prim_cur);
-	create_fb(prim_mode_params.sprite.w,
+		  PLANE_CUR, &s->prim_cur);
+	create_fb(format, prim_mode_params.sprite.w,
 		  prim_mode_params.sprite.h, LOCAL_I915_FORMAT_MOD_X_TILED,
-		  PLANE_SPR, &fbs.prim_spr);
+		  PLANE_SPR, &s->prim_spr);
 
-	create_fb(offscreen_fb.w, offscreen_fb.h,
-		  LOCAL_I915_FORMAT_MOD_X_TILED, PLANE_PRI, &fbs.offscreen);
+	create_fb(format, offscreen_fb.w, offscreen_fb.h,
+		  LOCAL_I915_FORMAT_MOD_X_TILED, PLANE_PRI, &s->offscreen);
 
-	create_big_fb();
+	create_big_fb(format);
 
 	if (!scnd_mode_params.connector_id)
 		return;
 
-	create_fb(scnd_mode_params.mode->hdisplay,
+	create_fb(format, scnd_mode_params.mode->hdisplay,
 		  scnd_mode_params.mode->vdisplay,
-		  LOCAL_I915_FORMAT_MOD_X_TILED, PLANE_PRI, &fbs.scnd_pri);
-	create_fb(scnd_mode_params.cursor.w, scnd_mode_params.cursor.h,
-		  LOCAL_DRM_FORMAT_MOD_NONE, PLANE_CUR, &fbs.scnd_cur);
-	create_fb(scnd_mode_params.sprite.w, scnd_mode_params.sprite.h,
-		  LOCAL_I915_FORMAT_MOD_X_TILED, PLANE_SPR, &fbs.scnd_spr);
+		  LOCAL_I915_FORMAT_MOD_X_TILED, PLANE_PRI, &s->scnd_pri);
+	create_fb(format, scnd_mode_params.cursor.w, scnd_mode_params.cursor.h,
+		  LOCAL_DRM_FORMAT_MOD_NONE, PLANE_CUR, &s->scnd_cur);
+	create_fb(format, scnd_mode_params.sprite.w, scnd_mode_params.sprite.h,
+		  LOCAL_I915_FORMAT_MOD_X_TILED, PLANE_SPR, &s->scnd_spr);
+}
+
+static void destroy_fbs(enum pixel_format format)
+{
+	struct screen_fbs *s = &fbs[format];
+
+	if (!s->initialized)
+		return;
+
+	if (scnd_mode_params.connector_id) {
+		igt_remove_fb(drm.fd, &s->scnd_pri);
+		igt_remove_fb(drm.fd, &s->scnd_cur);
+		igt_remove_fb(drm.fd, &s->scnd_spr);
+	}
+	igt_remove_fb(drm.fd, &s->prim_pri);
+	igt_remove_fb(drm.fd, &s->prim_cur);
+	igt_remove_fb(drm.fd, &s->prim_spr);
+	igt_remove_fb(drm.fd, &s->offscreen);
+	igt_remove_fb(drm.fd, &s->big);
 }
 
 static bool set_mode_for_params(struct modeset_params *params)
@@ -1072,15 +1138,15 @@ static void collect_crcs(struct both_crcs *crcs)
 		memcpy(&crcs->sink, "unsupported!", SINK_CRC_SIZE);
 }
 
-static void init_blue_crc(void)
+static void init_blue_crc(enum pixel_format format)
 {
 	struct igt_fb blue;
 	int rc;
 
-	disable_features();
-	unset_all_crtcs();
+	if (blue_crcs[format].initialized)
+		return;
 
-	create_fb(prim_mode_params.mode->hdisplay,
+	create_fb(format, prim_mode_params.mode->hdisplay,
 		  prim_mode_params.mode->vdisplay,
 		  LOCAL_I915_FORMAT_MOD_X_TILED, PLANE_PRI, &blue);
 
@@ -1090,25 +1156,29 @@ static void init_blue_crc(void)
 			    blue.fb_id, 0, 0, &prim_mode_params.connector_id, 1,
 			    prim_mode_params.mode);
 	igt_assert(rc == 0);
-	collect_crcs(&blue_crc);
+	collect_crcs(&blue_crcs[format].crc);
 
-	print_crc("Blue CRC:  ", &blue_crc);
+	print_crc("Blue CRC:  ", &blue_crcs[format].crc);
 
 	igt_remove_fb(drm.fd, &blue);
+
+	blue_crcs[format].initialized = true;
 }
 
-static void init_crcs(struct draw_pattern_info *pattern)
+static void init_crcs(enum pixel_format format,
+		      struct draw_pattern_info *pattern)
 {
 	int r, r_, rc;
 	struct igt_fb tmp_fbs[pattern->n_rects];
 
-	if (pattern->initialized)
+	if (pattern->initialized[format])
 		return;
 
-	pattern->crcs = calloc(pattern->n_rects, sizeof(*(pattern->crcs)));
+	pattern->crcs[format] = calloc(pattern->n_rects,
+				       sizeof(*(pattern->crcs[format])));
 
 	for (r = 0; r < pattern->n_rects; r++)
-		create_fb(prim_mode_params.mode->hdisplay,
+		create_fb(format, prim_mode_params.mode->hdisplay,
 			  prim_mode_params.mode->vdisplay,
 			  LOCAL_I915_FORMAT_MOD_X_TILED, PLANE_PRI, &tmp_fbs[r]);
 
@@ -1132,12 +1202,12 @@ static void init_crcs(struct draw_pattern_info *pattern)
 				   &prim_mode_params.connector_id, 1,
 				   prim_mode_params.mode);
 		igt_assert(rc == 0);
-		collect_crcs(&pattern->crcs[r]);
+		collect_crcs(&pattern->crcs[format][r]);
 	}
 
 	for (r = 0; r < pattern->n_rects; r++) {
 		igt_debug("Rect %d CRC:", r);
-		print_crc("", &pattern->crcs[r]);
+		print_crc("", &pattern->crcs[format][r]);
 	}
 
 	unset_all_crtcs();
@@ -1145,7 +1215,7 @@ static void init_crcs(struct draw_pattern_info *pattern)
 	for (r = 0; r < pattern->n_rects; r++)
 		igt_remove_fb(drm.fd, &tmp_fbs[r]);
 
-	pattern->initialized = true;
+	pattern->initialized[format] = true;
 }
 
 static void setup_drm(void)
@@ -1189,22 +1259,13 @@ static void setup_modeset(void)
 	offscreen_fb.fb = NULL;
 	offscreen_fb.w = 1024;
 	offscreen_fb.h = 1024;
-	create_fbs();
+	create_fbs(FORMAT_DEFAULT);
 	kmstest_set_vt_graphics_mode();
 }
 
 static void teardown_modeset(void)
 {
-	if (scnd_mode_params.connector_id) {
-		igt_remove_fb(drm.fd, &fbs.scnd_pri);
-		igt_remove_fb(drm.fd, &fbs.scnd_cur);
-		igt_remove_fb(drm.fd, &fbs.scnd_spr);
-	}
-	igt_remove_fb(drm.fd, &fbs.prim_pri);
-	igt_remove_fb(drm.fd, &fbs.prim_cur);
-	igt_remove_fb(drm.fd, &fbs.prim_spr);
-	igt_remove_fb(drm.fd, &fbs.offscreen);
-	igt_remove_fb(drm.fd, &fbs.big);
+	destroy_fbs(FORMAT_DEFAULT);
 }
 
 static void setup_sink_crc(void)
@@ -1223,7 +1284,7 @@ static void setup_sink_crc(void)
 	/* We need to make sure there's a mode set on the eDP screen and it's
 	 * not on DPMS state, otherwise we fall into the "Unexpected sink CRC
 	 * error" case. */
-	prim_mode_params.fb.fb = &fbs.prim_pri;
+	prim_mode_params.fb.fb = &fbs[FORMAT_DEFAULT].prim_pri;
 	prim_mode_params.fb.x = prim_mode_params.fb.y = 0;
 	fill_fb_region(&prim_mode_params.fb, COLOR_PRIM_BG);
 	unset_all_crtcs();
@@ -1245,47 +1306,62 @@ static void setup_sink_crc(void)
 
 static void setup_crcs(void)
 {
+	enum pixel_format f;
+
 	pipe_crc = igt_pipe_crc_new(0, INTEL_PIPE_CRC_SOURCE_AUTO);
 
 	setup_sink_crc();
 
-	init_blue_crc();
+	for (f = 0; f < FORMAT_COUNT; f++)
+		blue_crcs[f].initialized = false;
 
-	pattern1.initialized = false;
 	pattern1.frames_stack = true;
 	pattern1.n_rects = 4;
-	pattern1.crcs = NULL;
 	pattern1.get_rect = pat1_get_rect;
+	for (f = 0; f < FORMAT_COUNT; f++) {
+		pattern1.initialized[f] = false;
+		pattern1.crcs[f] = NULL;
+	}
 
-	pattern2.initialized = false;
 	pattern2.frames_stack = true;
 	pattern2.n_rects = 4;
-	pattern2.crcs = NULL;
 	pattern2.get_rect = pat2_get_rect;
+	for (f = 0; f < FORMAT_COUNT; f++) {
+		pattern2.initialized[f] = false;
+		pattern2.crcs[f] = NULL;
+	}
 
-	pattern3.initialized = false;
 	pattern3.frames_stack = false;
 	pattern3.n_rects = 5;
-	pattern3.crcs = NULL;
 	pattern3.get_rect = pat3_get_rect;
+	for (f = 0; f < FORMAT_COUNT; f++) {
+		pattern3.initialized[f] = false;
+		pattern3.crcs[f] = NULL;
+	}
 
-	pattern4.initialized = false;
 	pattern4.frames_stack = false;
 	pattern4.n_rects = 1;
-	pattern4.crcs = NULL;
 	pattern4.get_rect = pat4_get_rect;
+	for (f = 0; f < FORMAT_COUNT; f++) {
+		pattern4.initialized[f] = false;
+		pattern4.crcs[f] = NULL;
+	}
 }
 
 static void teardown_crcs(void)
 {
-	if (pattern1.crcs)
-		free(pattern1.crcs);
-	if (pattern2.crcs)
-		free(pattern2.crcs);
-	if (pattern3.crcs)
-		free(pattern3.crcs);
-	if (pattern4.crcs)
-		free(pattern4.crcs);
+	enum pixel_format f;
+
+	for (f = 0; f < FORMAT_COUNT; f++) {
+		if (pattern1.crcs[f])
+			free(pattern1.crcs[f]);
+		if (pattern2.crcs[f])
+			free(pattern2.crcs[f]);
+		if (pattern3.crcs[f])
+			free(pattern3.crcs[f]);
+		if (pattern4.crcs[f])
+			free(pattern4.crcs[f]);
+	}
 
 	if (sink_crc.fd != -1)
 		close(sink_crc.fd);
@@ -1513,7 +1589,7 @@ static void enable_prim_screen_and_wait(const struct test_mode *t)
 	fill_fb_region(&prim_mode_params.fb, COLOR_PRIM_BG);
 	set_mode_for_params(&prim_mode_params);
 
-	wanted_crc = &blue_crc;
+	wanted_crc = &blue_crcs[t->format].crc;
 	fbc_update_last_action();
 
 	do_assertions(ASSERT_NO_ACTION_CHANGE);
@@ -1597,11 +1673,15 @@ static void check_test_requirements(const struct test_mode *t)
 
 static void set_crtc_fbs(const struct test_mode *t)
 {
+	struct screen_fbs *s = &fbs[t->format];
+
+	create_fbs(t->format);
+
 	switch (t->fbs) {
 	case FBS_INDIVIDUAL:
-		prim_mode_params.fb.fb = &fbs.prim_pri;
-		scnd_mode_params.fb.fb = &fbs.scnd_pri;
-		offscreen_fb.fb = &fbs.offscreen;
+		prim_mode_params.fb.fb = &s->prim_pri;
+		scnd_mode_params.fb.fb = &s->scnd_pri;
+		offscreen_fb.fb = &s->offscreen;
 
 		prim_mode_params.fb.x = 0;
 		scnd_mode_params.fb.x = 0;
@@ -1613,9 +1693,9 @@ static void set_crtc_fbs(const struct test_mode *t)
 		break;
 	case FBS_SHARED:
 		/* Please see the comment at the top of create_big_fb(). */
-		prim_mode_params.fb.fb = &fbs.big;
-		scnd_mode_params.fb.fb = &fbs.big;
-		offscreen_fb.fb = &fbs.big;
+		prim_mode_params.fb.fb = &s->big;
+		scnd_mode_params.fb.fb = &s->big;
+		offscreen_fb.fb = &s->big;
 
 		prim_mode_params.fb.x = BIGFB_X_OFFSET;
 		scnd_mode_params.fb.x = BIGFB_X_OFFSET;
@@ -1630,10 +1710,10 @@ static void set_crtc_fbs(const struct test_mode *t)
 		igt_assert(false);
 	}
 
-	prim_mode_params.cursor.fb = &fbs.prim_cur;
-	prim_mode_params.sprite.fb = &fbs.prim_spr;
-	scnd_mode_params.cursor.fb = &fbs.scnd_cur;
-	scnd_mode_params.sprite.fb = &fbs.scnd_spr;
+	prim_mode_params.cursor.fb = &s->prim_cur;
+	prim_mode_params.sprite.fb = &s->prim_spr;
+	scnd_mode_params.cursor.fb = &s->scnd_cur;
+	scnd_mode_params.sprite.fb = &s->scnd_spr;
 }
 
 static void prepare_subtest(const struct test_mode *t,
@@ -1651,8 +1731,9 @@ static void prepare_subtest(const struct test_mode *t,
 
 	unset_all_crtcs();
 
+	init_blue_crc(t->format);
 	if (pattern)
-		init_crcs(pattern);
+		init_crcs(t->format, pattern);
 
 	enable_features_for_test(t);
 
@@ -1697,6 +1778,7 @@ static void rte_subtest(const struct test_mode *t)
 
 	disable_features();
 	set_crtc_fbs(t);
+	init_blue_crc(t->format);
 
 	enable_features_for_test(t);
 	unset_all_crtcs();
@@ -1799,7 +1881,7 @@ static void draw_subtest(const struct test_mode *t)
 	for (r = 0; r < pattern->n_rects; r++) {
 		igt_debug("Drawing rect %d\n", r);
 		draw_rect(pattern, target, t->method, r);
-		update_wanted_crc(t, &pattern->crcs[r]);
+		update_wanted_crc(t, &pattern->crcs[t->format][r]);
 		do_assertions(assertions);
 	}
 }
@@ -1859,7 +1941,7 @@ static void multidraw_subtest(const struct test_mode *t)
 				  igt_draw_get_method_name(used_method));
 
 			draw_rect(pattern, target, used_method, r);
-			update_wanted_crc(t, &pattern->crcs[r]);
+			update_wanted_crc(t, &pattern->crcs[t->format][r]);
 
 			assertions = used_method != IGT_DRAW_MMAP_GTT ?
 				     ASSERT_LAST_ACTION_CHANGED :
@@ -1872,7 +1954,7 @@ static void multidraw_subtest(const struct test_mode *t)
 
 		fill_fb_region(target, COLOR_PRIM_BG);
 
-		update_wanted_crc(t, &blue_crc);
+		update_wanted_crc(t, &blue_crcs[t->format].crc);
 		do_assertions(ASSERT_NO_ACTION_CHANGE);
 	}
 }
@@ -1977,7 +2059,7 @@ static void flip_subtest(const struct test_mode *t, enum flip_type type)
 
 	prepare_subtest(t, pattern);
 
-	create_fb(params->fb.fb->width, params->fb.fb->height,
+	create_fb(t->format, params->fb.fb->width, params->fb.fb->height,
 		  LOCAL_I915_FORMAT_MOD_X_TILED, t->plane, &fb2);
 	fill_fb(&fb2, bg_color);
 	orig_fb = params->fb.fb;
@@ -1988,7 +2070,7 @@ static void flip_subtest(const struct test_mode *t, enum flip_type type)
 		if (r != 0)
 			draw_rect(pattern, &params->fb, t->method, r - 1);
 		draw_rect(pattern, &params->fb, t->method, r);
-		update_wanted_crc(t, &pattern->crcs[r]);
+		update_wanted_crc(t, &pattern->crcs[t->format][r]);
 
 		page_flip_for_params(params, type);
 
@@ -2024,7 +2106,7 @@ static void move_subtest(const struct test_mode *t)
 
 	/* Just paint the right color since we start at 0x0. */
 	draw_rect(pattern, pick_target(t, params), t->method, 0);
-	update_wanted_crc(t, &pattern->crcs[0]);
+	update_wanted_crc(t, &pattern->crcs[t->format][0]);
 
 	do_assertions(assertions);
 
@@ -2049,7 +2131,7 @@ static void move_subtest(const struct test_mode *t)
 		default:
 			igt_assert(false);
 		}
-		update_wanted_crc(t, &pattern->crcs[r]);
+		update_wanted_crc(t, &pattern->crcs[t->format][r]);
 
 		do_assertions(assertions);
 
@@ -2087,7 +2169,7 @@ static void onoff_subtest(const struct test_mode *t)
 
 	/* Just paint the right color since we start at 0x0. */
 	draw_rect(pattern, pick_target(t, params), t->method, 0);
-	update_wanted_crc(t, &pattern->crcs[0]);
+	update_wanted_crc(t, &pattern->crcs[t->format][0]);
 	do_assertions(assertions);
 
 	for (r = 0; r < 4; r++) {
@@ -2107,7 +2189,7 @@ static void onoff_subtest(const struct test_mode *t)
 			default:
 				igt_assert(false);
 			}
-			update_wanted_crc(t, &blue_crc);
+			update_wanted_crc(t, &blue_crcs[t->format].crc);
 
 		} else {
 			switch (t->plane) {
@@ -2132,7 +2214,7 @@ static void onoff_subtest(const struct test_mode *t)
 			default:
 				igt_assert(false);
 			}
-			update_wanted_crc(t, &pattern->crcs[0]);
+			update_wanted_crc(t, &pattern->crcs[t->format][0]);
 
 		}
 
@@ -2252,8 +2334,8 @@ static void fullscreen_plane_subtest(const struct test_mode *t)
 	prepare_subtest(t, pattern);
 
 	rect = pattern->get_rect(&params->fb, 0);
-	create_fb(rect.w, rect.h, LOCAL_I915_FORMAT_MOD_X_TILED, t->plane,
-		  &fullscreen_fb);
+	create_fb(t->format, rect.w, rect.h, LOCAL_I915_FORMAT_MOD_X_TILED,
+		  t->plane, &fullscreen_fb);
 	/* Call pick_color() again since PRI and SPR may not support the same
 	 * pixel formats. */
 	rect.color = pick_color(&fullscreen_fb, COLOR_GREEN);
@@ -2265,7 +2347,7 @@ static void fullscreen_plane_subtest(const struct test_mode *t)
 			     fullscreen_fb.width << 16,
 			     fullscreen_fb.height << 16);
 	igt_assert(rc == 0);
-	update_wanted_crc(t, &pattern->crcs[0]);
+	update_wanted_crc(t, &pattern->crcs[t->format][0]);
 
 	switch (t->screen) {
 	case SCREEN_PRIM:
@@ -2288,7 +2370,7 @@ static void fullscreen_plane_subtest(const struct test_mode *t)
 
 	if (t->screen == SCREEN_PRIM)
 		assertions = ASSERT_LAST_ACTION_CHANGED;
-	update_wanted_crc(t, &blue_crc);
+	update_wanted_crc(t, &blue_crcs[t->format].crc);
 	do_assertions(assertions);
 
 	igt_remove_fb(drm.fd, &fullscreen_fb);
@@ -2319,7 +2401,7 @@ static void modesetfrombusy_subtest(const struct test_mode *t)
 
 	prepare_subtest(t, NULL);
 
-	create_fb(params->fb.fb->width, params->fb.fb->height,
+	create_fb(t->format, params->fb.fb->width, params->fb.fb->height,
 		  LOCAL_I915_FORMAT_MOD_X_TILED, t->plane, &fb2);
 	fill_fb(&fb2, COLOR_PRIM_BG);
 
@@ -2418,7 +2500,7 @@ static void farfromfence_subtest(const struct test_mode *t)
 	prepare_subtest(t, pattern);
 	target = pick_target(t, params);
 
-	create_fb(params->mode->hdisplay, max_height,
+	create_fb(t->format, params->mode->hdisplay, max_height,
 		  LOCAL_I915_FORMAT_MOD_X_TILED, t->plane, &tall_fb);
 
 	fill_fb(&tall_fb, COLOR_PRIM_BG);
@@ -2431,7 +2513,7 @@ static void farfromfence_subtest(const struct test_mode *t)
 
 	for (r = 0; r < pattern->n_rects; r++) {
 		draw_rect(pattern, target, t->method, r);
-		update_wanted_crc(t, &pattern->crcs[r]);
+		update_wanted_crc(t, &pattern->crcs[t->format][r]);
 		do_assertions(0);
 	}
 
@@ -2488,7 +2570,7 @@ static void badstride_subtest(const struct test_mode *t)
 
 	prepare_subtest(t, NULL);
 
-	create_fb(params->fb.fb->width + 4096, params->fb.fb->height,
+	create_fb(t->format, params->fb.fb->width + 4096, params->fb.fb->height,
 		  LOCAL_I915_FORMAT_MOD_X_TILED, t->plane, &wide_fb);
 	igt_assert(wide_fb.stride > 16384);
 
@@ -2640,6 +2722,7 @@ static const char *feature_str(int feature)
 }
 
 #define TEST_MODE_ITER_BEGIN(t) \
+	t.format = FORMAT_DEFAULT;					   \
 	for (t.feature = 0; t.feature < FEATURE_COUNT; t.feature++) {	   \
 	for (t.pipes = 0; t.pipes < PIPE_COUNT; t.pipes++) {		   \
 	for (t.screen = 0; t.screen < SCREEN_COUNT; t.screen++) {	   \
@@ -2697,6 +2780,7 @@ int main(int argc, char *argv[])
 			t.screen = SCREEN_PRIM;
 			t.plane = PLANE_PRI;
 			t.fbs = FBS_INDIVIDUAL;
+			t.format = FORMAT_DEFAULT;
 			/* Make sure nothing is using this value. */
 			t.method = -1;
 
