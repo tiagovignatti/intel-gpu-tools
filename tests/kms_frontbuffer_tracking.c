@@ -2691,6 +2691,7 @@ int main(int argc, char *argv[])
 
 	TEST_MODE_ITER_BEGIN(t)
 		if (t.screen != SCREEN_PRIM ||
+		    (!opt.show_hidden && t.plane != PLANE_PRI) ||
 		    (!opt.show_hidden && t.fbs != FBS_INDIVIDUAL))
 			continue;
 
