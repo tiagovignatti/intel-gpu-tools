@@ -491,7 +491,7 @@ void igt_exit(void) __attribute__((noreturn));
  */
 #define igt_require(expr) do { \
 	if (!(expr)) igt_skip_check(#expr , NULL); \
-	else igt_debug("Test requirement passed: "#expr"\n"); \
+	else igt_debug("Test requirement passed: %s\n", #expr); \
 } while (0)
 
 /**
@@ -506,7 +506,7 @@ void igt_exit(void) __attribute__((noreturn));
  */
 #define igt_skip_on(expr) do { \
 	if ((expr)) igt_skip_check("!(" #expr ")" , NULL); \
-	else igt_debug("Test requirement passed: !("#expr")\n"); \
+	else igt_debug("Test requirement passed: !(%s)\n", #expr); \
 } while (0)
 
 /**
@@ -525,7 +525,7 @@ void igt_exit(void) __attribute__((noreturn));
  */
 #define igt_require_f(expr, f...) do { \
 	if (!(expr)) igt_skip_check(#expr , f); \
-	else igt_debug("Test requirement passed: "#expr"\n"); \
+	else igt_debug("Test requirement passed: %s\n", #expr); \
 } while (0)
 
 /**
@@ -544,7 +544,7 @@ void igt_exit(void) __attribute__((noreturn));
  */
 #define igt_skip_on_f(expr, f...) do { \
 	if ((expr)) igt_skip_check("!("#expr")", f); \
-	else igt_debug("Test requirement passed: !("#expr")\n"); \
+	else igt_debug("Test requirement passed: !(%s)\n", #expr); \
 } while (0)
 
 /* fork support code */
