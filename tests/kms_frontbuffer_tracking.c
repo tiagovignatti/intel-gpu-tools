@@ -1615,7 +1615,7 @@ static void update_wanted_crc(const struct test_mode *t, struct both_crcs *crc)
 static bool op_disables_psr(const struct test_mode *t,
 			    enum igt_draw_method method)
 {
-	if (method != IGT_DRAW_MMAP_GTT && method != IGT_DRAW_MMAP_WC)
+	if (method != IGT_DRAW_MMAP_GTT)
 		return false;
 	if (t->screen == SCREEN_PRIM)
 		return true;
