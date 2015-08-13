@@ -1832,11 +1832,11 @@ int main(int argc, char *argv[])
 			stay_subtest();
 
 	/* Essential things */
-	igt_subtest("rte")
+	igt_subtest("basic-rte")
 		basic_subtest();
 	igt_subtest("drm-resources-equal")
 		drm_resources_equal_subtest();
-	igt_subtest("pci-d3-state")
+	igt_subtest("basic-pci-d3-state")
 		pci_d3_state_subtest();
 
 	/* Basic modeset */
