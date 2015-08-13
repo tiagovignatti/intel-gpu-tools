@@ -32,7 +32,7 @@ TESTS_progs_M = \
 	gem_fenced_exec_thrash \
 	gem_fence_thrash \
 	gem_fence_upload \
-	gem_flink \
+	gem_flink_basic \
 	gem_flink_race \
 	gem_linear_blits \
 	gem_madvise \

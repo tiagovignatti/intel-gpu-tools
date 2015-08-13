@@ -449,14 +449,14 @@ igt_main
 		const char *name;
 		void (*fn)(void);
 	} tests[] = {
-		{ "with_one_bo", test_with_one_bo },
-		{ "with_one_bo_two_files", test_with_one_bo_two_files },
-		{ "with_two_bos", test_with_two_bos },
-		{ "with_fd_dup", test_with_fd_dup },
+		{ "basic-with_one_bo", test_with_one_bo },
+		{ "basic-with_one_bo_two_files", test_with_one_bo_two_files },
+		{ "basic-with_two_bos", test_with_two_bos },
+		{ "basic-with_fd_dup", test_with_fd_dup },
 		{ "export-vs-gem_close-race", test_export_close_race },
 		{ "reimport-vs-gem_close-race", test_reimport_close_race },
-		{ "llseek-size", test_llseek_size },
-		{ "llseek-bad", test_llseek_bad },
+		{ "basic-llseek-size", test_llseek_size },
+		{ "basic-llseek-bad", test_llseek_bad },
 	};
 	int i;
 
