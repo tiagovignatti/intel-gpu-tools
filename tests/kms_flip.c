@@ -80,6 +80,7 @@
 #define TEST_TS_CONT		(1 << 27)
 #define TEST_BO_TOOBIG		(1 << 28)
 #define TEST_HANG_ONCE		(1 << 29)
+#define TEST_BASIC		(1 << 30)
 
 #define EVENT_FLIP		(1 << 0)
 #define EVENT_VBLANK		(1 << 1)
@@ -1649,21 +1650,20 @@ int main(int argc, char **argv)
 					"blt-wf_vblank-vs-modeset" },
 		{ 60,  TEST_VBLANK | TEST_MODESET | TEST_WITH_DUMMY_RCS,
 					"rcs-wf_vblank-vs-modeset" },
-
-		{ 30, TEST_FLIP , "plain-flip" },
+		{ 30, TEST_FLIP | TEST_BASIC, "plain-flip" },
 		{ 30, TEST_FLIP | TEST_EBUSY , "busy-flip" },
 		{ 30, TEST_FLIP | TEST_FENCE_STRESS , "flip-vs-fences" },
 		{ 30, TEST_FLIP | TEST_CHECK_TS, "plain-flip-ts-check" },
 		{ 30, TEST_FLIP | TEST_CHECK_TS | TEST_FB_RECREATE,
 			"plain-flip-fb-recreate" },
 		{ 30, TEST_FLIP | TEST_RMFB | TEST_MODESET , "flip-vs-rmfb" },
-		{ 60, TEST_FLIP | TEST_DPMS | TEST_EINVAL, "flip-vs-dpms" },
+		{ 60, TEST_FLIP | TEST_DPMS | TEST_EINVAL | TEST_BASIC, "flip-vs-dpms" },
 		{ 60, TEST_FLIP | TEST_DPMS | TEST_WITH_DUMMY_BCS, "blt-flip-vs-dpms" },
 		{ 60, TEST_FLIP | TEST_DPMS | TEST_WITH_DUMMY_RCS, "render-flip-vs-dpms" },
 		{ 30,  TEST_FLIP | TEST_PAN, "flip-vs-panning" },
 		{ 60, TEST_FLIP | TEST_PAN | TEST_WITH_DUMMY_BCS, "blt-flip-vs-panning" },
 		{ 60, TEST_FLIP | TEST_PAN | TEST_WITH_DUMMY_RCS, "render-flip-vs-panning" },
-		{ 60, TEST_FLIP | TEST_MODESET | TEST_EINVAL, "flip-vs-modeset" },
+		{ 60, TEST_FLIP | TEST_MODESET | TEST_EINVAL | TEST_BASIC, "flip-vs-modeset" },
 		{ 60, TEST_FLIP | TEST_MODESET | TEST_WITH_DUMMY_BCS, "blt-flip-vs-modeset" },
 		{ 60, TEST_FLIP | TEST_MODESET | TEST_WITH_DUMMY_RCS, "render-flip-vs-modeset" },
 		{ 30,  TEST_FLIP | TEST_VBLANK_EXPIRED_SEQ,
@@ -1671,7 +1671,7 @@ int main(int argc, char **argv)
 
 		{ 30, TEST_FLIP | TEST_VBLANK | TEST_VBLANK_ABSOLUTE |
 		      TEST_CHECK_TS, "flip-vs-absolute-wf_vblank" },
-		{ 30, TEST_FLIP | TEST_VBLANK | TEST_CHECK_TS,
+		{ 30, TEST_FLIP | TEST_VBLANK | TEST_CHECK_TS | TEST_BASIC,
 					"flip-vs-wf_vblank" },
 		{ 30, TEST_FLIP | TEST_VBLANK | TEST_VBLANK_BLOCK |
 			TEST_CHECK_TS, "flip-vs-blocking-wf-vblank" },
@@ -1718,7 +1718,9 @@ int main(int argc, char **argv)
 		test_nonblocking_read(drm_fd);
 
 	for (i = 0; i < sizeof(tests) / sizeof (tests[0]); i++) {
-		igt_subtest(tests[i].name)
+		igt_subtest_f("%s%s",
+			      tests[i].flags & TEST_BASIC ? "basic-" : "",
+			      tests[i].name)
 			run_test(tests[i].duration, tests[i].flags);
 
 		if (tests[i].flags & TEST_NO_2X_OUTPUT)
