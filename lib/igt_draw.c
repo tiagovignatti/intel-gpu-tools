@@ -349,6 +349,7 @@ static void draw_rect_pwrite_tiled(int fd, struct buf_data *buf,
 	int tmp_used = 0, tmp_size;
 	bool flush_tmp = false;
 	int tmp_start_pos = 0;
+	int pixels_written = 0;
 
 	/* We didn't implement suport for the older tiling methods yet. */
 	igt_require(intel_gen(intel_get_drm_devid(fd)) >= 5);
@@ -380,7 +381,11 @@ static void draw_rect_pwrite_tiled(int fd, struct buf_data *buf,
 			gem_write(fd, buf->handle, tmp_start_pos, tmp,
 				  tmp_used * pixel_size);
 			flush_tmp = false;
+			pixels_written += tmp_used;
 			tmp_used = 0;
+
+			if (pixels_written == rect->w * rect->h)
+				break;
 		}
 	}
 }
