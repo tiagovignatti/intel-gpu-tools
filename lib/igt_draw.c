@@ -375,7 +375,8 @@ static void draw_rect_pwrite_tiled(int fd, struct buf_data *buf,
 			flush_tmp = true;
 		}
 
-		if (tmp_used == tmp_size || (flush_tmp && tmp_used > 0)) {
+		if (tmp_used == tmp_size || (flush_tmp && tmp_used > 0) ||
+		    tiled_pos + pixel_size >= buf->size) {
 			gem_write(fd, buf->handle, tmp_start_pos, tmp,
 				  tmp_used * pixel_size);
 			flush_tmp = false;
