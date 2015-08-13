@@ -442,7 +442,7 @@ int gen9_setup_null_render_state(struct intel_batchbuffer *batch)
 	gen8_emit_vertex_elements(batch);
 
 	OUT_BATCH(GEN9_3DSTATE_COMPONENT_PACKING | 3);
-	OUT_BATCH(1);
+	OUT_BATCH(0xf);
 	OUT_BATCH(0);
 	OUT_BATCH(0);
 	OUT_BATCH(0);
