@@ -525,42 +525,42 @@ igt_main
 	igt_fixture
 		fd = drm_open_any();
 
-	igt_subtest("access")
+	igt_subtest("basic")
 		test_access(fd);
-	igt_subtest("short")
+	igt_subtest("basic-short")
 		test_short(fd);
-	igt_subtest("copy")
+	igt_subtest("basic-copy")
 		test_copy(fd);
-	igt_subtest("read")
+	igt_subtest("basic-read")
 		test_read(fd);
-	igt_subtest("write")
+	igt_subtest("basic-write")
 		test_write(fd);
-	igt_subtest("write-gtt")
+	igt_subtest("basic-write-gtt")
 		test_write_gtt(fd);
-	igt_subtest("read-write")
+	igt_subtest("basic-read-write")
 		test_read_write(fd, READ_BEFORE_WRITE);
-	igt_subtest("write-read")
+	igt_subtest("basic-write-read")
 		test_read_write(fd, READ_AFTER_WRITE);
-	igt_subtest("read-write-distinct")
+	igt_subtest("basic-read-write-distinct")
 		test_read_write2(fd, READ_BEFORE_WRITE);
-	igt_subtest("write-read-distinct")
+	igt_subtest("basic-write-read-distinct")
 		test_read_write2(fd, READ_AFTER_WRITE);
 	igt_subtest("fault-concurrent")
 		test_fault_concurrent(fd);
-	igt_subtest("read-no-prefault")
+	igt_subtest("basic-read-no-prefault")
 		run_without_prefault(fd, test_read);
-	igt_subtest("write-no-prefault")
+	igt_subtest("basic-write-no-prefault")
 		run_without_prefault(fd, test_write);
-	igt_subtest("write-gtt-no-prefault")
+	igt_subtest("basic-write-gtt-no-prefault")
 		run_without_prefault(fd, test_write_gtt);
-	igt_subtest("write-cpu-read-gtt")
+	igt_subtest("basic-write-cpu-read-gtt")
 		test_write_cpu_read_gtt(fd);
 
-	igt_subtest("small-bo")
+	igt_subtest("basic-small-bo")
 		test_huge_bo(fd, -1, I915_TILING_NONE);
-	igt_subtest("small-bo-tiledX")
+	igt_subtest("basic-small-bo-tiledX")
 		test_huge_bo(fd, -1, I915_TILING_X);
-	igt_subtest("small-bo-tiledY")
+	igt_subtest("basic-small-bo-tiledY")
 		test_huge_bo(fd, -1, I915_TILING_Y);
 
 	igt_subtest("big-bo")
@@ -577,9 +577,9 @@ igt_main
 	igt_subtest("huge-bo-tiledY")
 		test_huge_bo(fd, 1, I915_TILING_Y);
 
-	igt_subtest("small-copy")
+	igt_subtest("basic-small-copy")
 		test_huge_copy(fd, -2, I915_TILING_NONE, I915_TILING_NONE);
-	igt_subtest("small-copy-XY")
+	igt_subtest("basic-small-copy-XY")
 		test_huge_copy(fd, -2, I915_TILING_X, I915_TILING_Y);
 	igt_subtest("medium-copy")
 		test_huge_copy(fd, -1, I915_TILING_NONE, I915_TILING_NONE);
