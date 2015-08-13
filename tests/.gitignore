@@ -10,7 +10,7 @@ drm_vma_limiter
 drm_vma_limiter_cached
 drm_vma_limiter_cpu
 drm_vma_limiter_gtt
-drv_getparams
+drv_getparams_basic
 drv_hangman
 drv_suspend
 gem_alive

@@ -157,9 +157,9 @@ igt_main
 		init();
 	}
 
-	igt_subtest("subslice-total")
+	igt_subtest("basic-subslice-total")
 		subslice_total();
 
-	igt_subtest("eu-total")
+	igt_subtest("basic-eu-total")
 		eu_total();
 }
