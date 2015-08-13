@@ -83,7 +83,7 @@ igt_main
 {
 	/* root (which we run igt as) should always be authenticated */
 	igt_subtest("simple") {
-		int fd = drm_open_driver(DRIVER_INTEL);
+		int fd = drm_open_driver(DRIVER_ANY);
 
 		igt_assert(check_auth(fd) == true);
 
@@ -91,8 +91,8 @@ igt_main
 	}
 
 	igt_subtest("master-drop") {
-		int fd = drm_open_driver(DRIVER_INTEL);
-		int fd2 = drm_open_driver(DRIVER_INTEL);
+		int fd = drm_open_driver(DRIVER_ANY);
+		int fd2 = drm_open_driver(DRIVER_ANY);
 
 		igt_assert(check_auth(fd2) == true);
 
