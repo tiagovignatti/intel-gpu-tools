@@ -157,7 +157,7 @@ igt_main
 		igt_assert(backlight_read(&max, "max_brightness") > -1);
 	}
 
-	igt_subtest("brightness")
+	igt_subtest("basic-brightness")
 		test_brightness(max);
 	igt_subtest("bad-brightness")
 		test_bad_brightness(max);
