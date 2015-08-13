@@ -128,7 +128,7 @@ gen3_render_tiledx_blits
 gen3_render_tiledy_blits
 gen7_forcewake_mt
 kms_3d
-kms_addfb
+kms_addfb_basic
 kms_crtc_background_color
 kms_cursor_crc
 kms_draw_crc

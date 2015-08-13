@@ -121,7 +121,7 @@ static void pitch_tests(int fd)
 	}
 
 	f.handles[0] = gem_bo;
-	igt_subtest("normal") {
+	igt_subtest("basic") {
 		igt_assert(drmIoctl(fd, DRM_IOCTL_MODE_ADDFB2, &f) == 0);
 		igt_assert(drmIoctl(fd, DRM_IOCTL_MODE_RMFB, &f.fb_id) == 0);
 		f.fb_id = 0;
@@ -139,7 +139,7 @@ static void pitch_tests(int fd)
 		gem_set_tiling(fd, gem_bo, I915_TILING_X, 1024*4);
 	f.pitches[0] = 1024*4;
 
-	igt_subtest("X-tiled") {
+	igt_subtest("basic-X-tiled") {
 		igt_assert(drmIoctl(fd, DRM_IOCTL_MODE_ADDFB2, &f) == 0);
 		igt_assert(drmIoctl(fd, DRM_IOCTL_MODE_RMFB, &f.fb_id) == 0);
 		f.fb_id = 0;
@@ -162,7 +162,7 @@ static void pitch_tests(int fd)
 	igt_fixture
 		gem_set_tiling(fd, gem_bo, I915_TILING_Y, 1024*4);
 	f.pitches[0] = 1024*4;
-	igt_subtest("Y-tiled") {
+	igt_subtest("basic-Y-tiled") {
 		igt_assert(drmIoctl(fd, DRM_IOCTL_MODE_ADDFB2, &f) == -1 &&
 			   errno == EINVAL);
 	}

@@ -62,7 +62,7 @@ TESTS_progs_M = \
 	gem_tiled_partial_pwrite_pread \
 	gem_userptr_blits \
 	gem_write_read_ring_switch \
-	kms_addfb \
+	kms_addfb_basic \
 	kms_cursor_crc \
 	kms_draw_crc \
 	kms_fbc_crc \
