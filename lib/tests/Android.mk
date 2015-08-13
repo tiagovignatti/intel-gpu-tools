@@ -18,7 +18,7 @@ define add_test
     LOCAL_SHARED_LIBRARIES := ${IGT_LOCAL_SHARED_LIBRARIES}
 
     LOCAL_MODULE_TAGS := optional
-    LOCAL_MODULE_PATH := $(ANDROID_PRODUCT_OUT)/$(TARGET_COPY_OUT_VENDOR)/intel/validation/core/igt
+    LOCAL_MODULE_PATH := $(TARGET_OUT_VENDOR)/intel/validation/core/igt
 
     include $(BUILD_EXECUTABLE)
 endef

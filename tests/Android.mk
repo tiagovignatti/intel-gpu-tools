@@ -20,7 +20,7 @@ define add_test
     LOCAL_MODULE_TAGS := optional
     # ask linker to define a specific symbol; we use this to identify IGT tests
     LOCAL_LDFLAGS := -Wl,--defsym=$2=0
-    LOCAL_MODULE_PATH := $(ANDROID_PRODUCT_OUT)/$(TARGET_COPY_OUT_VENDOR)/intel/validation/core/igt
+    LOCAL_MODULE_PATH := $(TARGET_OUT_VENDOR)/intel/validation/core/igt
 
     include $(BUILD_EXECUTABLE)
 endef

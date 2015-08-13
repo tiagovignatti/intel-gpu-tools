@@ -19,6 +19,7 @@ define add_benchmark
 
     LOCAL_MODULE := $1_benchmark
     LOCAL_MODULE_TAGS := optional
+    LOCAL_MODULE_PATH := $(TARGET_OUT_VENDOR)/intel/validation/core/igt/benchmarks
 
     LOCAL_STATIC_LIBRARIES := libintel_gpu_tools
 
@@ -31,6 +32,6 @@ endef
 
 #================#
 
-benchmark_list := $(bin_PROGRAMS)
+benchmark_list := $(benchmarks_PROGRAMS)
 
 $(foreach item,$(benchmark_list),$(eval $(call add_benchmark,$(item))))
