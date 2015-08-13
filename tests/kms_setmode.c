@@ -685,7 +685,7 @@ int main(int argc, char **argv)
 		const char *name;
 	} tests[] = {
 		{ TEST_CLONE | TEST_SINGLE_CRTC_CLONE,
-					"clone-single-crtc" },
+					"basic-clone-single-crtc" },
 		{ TEST_INVALID | TEST_CLONE | TEST_SINGLE_CRTC_CLONE,
 					"invalid-clone-single-crtc" },
 		{ TEST_INVALID | TEST_CLONE | TEST_EXCLUSIVE_CRTC_CLONE,
