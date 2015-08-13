@@ -108,7 +108,7 @@ int main(int argc, char **argv)
 		src = malloc(object_size);
 	}
 
-	igt_subtest("normal") {
+	igt_subtest("basic") {
 		for (count = 1; count <= 1<<17; count <<= 1) {
 			struct timeval start, end;
 
