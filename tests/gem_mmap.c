@@ -138,7 +138,7 @@ igt_main
 		igt_assert(ret == -1 && errno == ENOENT);
 	}
 
-	igt_subtest("new-object") {
+	igt_subtest("basic") {
 		arg.handle = gem_create(fd, OBJECT_SIZE);
 		arg.offset = 0;
 		arg.size = OBJECT_SIZE;
@@ -174,7 +174,7 @@ igt_main
 		gem_close(fd, arg.handle);
 	}
 
-	igt_subtest("small-bo")
+	igt_subtest("basic-small-bo")
 		test_huge_bo(-1);
 	igt_subtest("big-bo")
 		test_huge_bo(0);
