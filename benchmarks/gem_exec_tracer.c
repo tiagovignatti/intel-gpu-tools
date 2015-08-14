@@ -170,6 +170,35 @@ close(int fd)
 	return libc_close(fd);
 }
 
+static unsigned long
+size_for_fb(const struct drm_mode_fb_cmd *cmd)
+{
+	unsigned long size;
+
+#ifndef ALIGN
+#define ALIGN(x, y) (((x) + (y) - 1) & -(y))
+#endif
+
+	size = ALIGN(cmd->width * cmd->bpp, 64);
+	size *= cmd->height;
+	return ALIGN(size, 4096);
+}
+
+static int is_i915(int fd)
+{
+	drm_version_t version;
+	char name[5] = "";
+
+	memset(&version, 0, sizeof(version));
+	version.name_len = 4;
+	version.name = name;
+
+	if (libc_ioctl(fd, DRM_IOCTL_VERSION, &version))
+		return 0;
+
+	return strcmp(name, "i915") == 0;
+}
+
 int
 ioctl(int fd, unsigned long request, ...)
 {
@@ -181,84 +210,72 @@ ioctl(int fd, unsigned long request, ...)
 	argp = va_arg(args, void *);
 	va_end(args);
 
-	if (_IOC_TYPE(request) == DRM_IOCTL_BASE && drm_fd != fd) {
+	ret = libc_ioctl(fd, request, argp);
+	if (ret)
+		return ret;
+
+	if (_IOC_TYPE(request) != DRM_IOCTL_BASE)
+		return 0;
+
+	if (drm_fd != fd) {
 		char filename[80];
+
+		if (!is_i915(fd))
+			return 0;
+
 		if (file)
 			fclose(file);
+
 		sprintf(filename, "/tmp/trace.%d", fd);
 		file = fopen(filename, "w+");
 		drm_fd = fd;
 	}
 
-	if (fd == drm_fd) {
-		switch (request) {
-		case DRM_IOCTL_I915_GEM_EXECBUFFER: {
-			return libc_ioctl(fd, request, argp);
-		}
+	switch (request) {
+	case DRM_IOCTL_I915_GEM_EXECBUFFER2:
+		trace_exec(fd, argp);
+		break;
 
-		case DRM_IOCTL_I915_GEM_EXECBUFFER2: {
-			trace_exec(fd, argp);
-			return libc_ioctl(fd, request, argp);
-		}
-
-		case DRM_IOCTL_I915_GEM_CREATE: {
-			struct drm_i915_gem_create *create = argp;
-
-			ret = libc_ioctl(fd, request, argp);
-			if (ret == 0)
-				trace_add(create->handle, create->size);
-
-			return ret;
-		}
-
-		case DRM_IOCTL_I915_GEM_USERPTR: {
-			struct drm_i915_gem_userptr *userptr = argp;
-
-			ret = libc_ioctl(fd, request, argp);
-			if (ret == 0)
-				trace_add(userptr->handle, userptr->user_size);
-			return ret;
-		}
-
-		case DRM_IOCTL_GEM_CLOSE: {
-			struct drm_gem_close *close = argp;
-
-			trace_del(close->handle);
-
-			return libc_ioctl(fd, request, argp);
-		}
-
-		case DRM_IOCTL_GEM_OPEN: {
-			struct drm_gem_open *open = argp;
-
-			ret = libc_ioctl(fd, request, argp);
-			if (ret == 0)
-				trace_add(open->handle, open->size);
-
-			return ret;
-		}
-
-		case DRM_IOCTL_PRIME_FD_TO_HANDLE: {
-			struct drm_prime_handle *prime = argp;
-
-			ret = libc_ioctl(fd, request, argp);
-			if (ret == 0) {
-				off_t size;
-
-				size = lseek(prime->fd, 0, SEEK_END);
-				fail_if(size == -1, "failed to get prime bo size\n");
-				trace_add(prime->handle, size);
-			}
-
-			return ret;
-		}
-
-		default:
-			return libc_ioctl(fd, request, argp);
-		}
-	} else {
-		return libc_ioctl(fd, request, argp);
+	case DRM_IOCTL_I915_GEM_CREATE: {
+		struct drm_i915_gem_create *create = argp;
+		trace_add(create->handle, create->size);
+		break;
 	}
+
+	case DRM_IOCTL_I915_GEM_USERPTR: {
+		struct drm_i915_gem_userptr *userptr = argp;
+		trace_add(userptr->handle, userptr->user_size);
+		break;
+	}
+
+	case DRM_IOCTL_GEM_CLOSE: {
+		struct drm_gem_close *close = argp;
+		trace_del(close->handle);
+		break;
+	}
+
+	case DRM_IOCTL_GEM_OPEN: {
+		struct drm_gem_open *open = argp;
+		trace_add(open->handle, open->size);
+		break;
+	}
+
+	case DRM_IOCTL_PRIME_FD_TO_HANDLE: {
+		struct drm_prime_handle *prime = argp;
+		off_t size = lseek(prime->fd, 0, SEEK_END);
+		fail_if(size == -1, "failed to get prime bo size\n");
+		trace_add(prime->handle, size);
+		break;
+	}
+
+	case DRM_IOCTL_MODE_GETFB: {
+		struct drm_mode_fb_cmd *cmd = argp;
+		trace_add(cmd->handle, size_for_fb(cmd));
+		break;
+	}
+	}
+
+	return 0;
 }
 
 static void __attribute__ ((constructor))
