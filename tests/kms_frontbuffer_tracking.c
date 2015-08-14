@@ -1725,8 +1725,8 @@ static void set_crtc_fbs(const struct test_mode *t)
 	scnd_mode_params.sprite.fb = &s->scnd_spr;
 }
 
-static void prepare_subtest(const struct test_mode *t,
-			    struct draw_pattern_info *pattern)
+static void prepare_subtest_data(const struct test_mode *t,
+				 struct draw_pattern_info *pattern)
 {
 	check_test_requirements(t);
 
@@ -1745,7 +1745,10 @@ static void prepare_subtest(const struct test_mode *t,
 		init_crcs(t->format, pattern);
 
 	enable_features_for_test(t);
+}
 
+static void prepare_subtest_screens(const struct test_mode *t)
+{
 	enable_prim_screen_and_wait(t);
 	if (t->screen == SCREEN_PRIM) {
 		if (t->plane == PLANE_CUR)
@@ -1766,6 +1769,13 @@ static void prepare_subtest(const struct test_mode *t,
 	}
 }
 
+static void prepare_subtest(const struct test_mode *t,
+			    struct draw_pattern_info *pattern)
+{
+	prepare_subtest_data(t, pattern);
+	prepare_subtest_screens(t);
+}
+
 /*
  * rte - the basic sanity test
  *
@@ -1783,13 +1793,8 @@ static void prepare_subtest(const struct test_mode *t,
  */
 static void rte_subtest(const struct test_mode *t)
 {
-	check_test_requirements(t);
+	prepare_subtest_data(t, NULL);
 
-	disable_features();
-	set_crtc_fbs(t);
-	init_blue_crc(t->format);
-
-	enable_features_for_test(t);
 	unset_all_crtcs();
 	do_assertions(ASSERT_FBC_DISABLED | ASSERT_PSR_DISABLED |
 		      DONT_ASSERT_CRC);
