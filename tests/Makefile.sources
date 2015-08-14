@@ -145,7 +145,7 @@ TESTS_progs = \
 	gem_storedw_loop_vebox \
 	gem_threaded_access_tiled \
 	gem_tiled_fence_blits \
-	gem_tiled_pread \
+	gem_tiled_pread_basic \
 	gem_tiled_pread_pwrite \
 	gem_tiled_swapping \
 	gem_tiled_wb \
