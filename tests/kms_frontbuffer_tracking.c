@@ -839,7 +839,7 @@ static bool fbc_wait_until_enabled(void)
 
 static bool psr_wait_until_enabled(void)
 {
-	return igt_wait(psr_is_enabled(), 5000, 1);
+	return igt_wait(psr_is_enabled(), 2000, 1);
 }
 
 #define fbc_enable() igt_set_module_param_int("enable_fbc", 1)
