@@ -44,13 +44,14 @@
 int fd;
 
 static void
-test_huge_bo(int huge, int tiling)
+test_huge_bo(int huge)
 {
-	uint64_t huge_object_size, last_offset;
+	uint64_t huge_object_size, last_offset, i;
+	unsigned check = CHECK_RAM;
 	char *ptr_cpu;
 	char *cpu_pattern;
 	uint32_t bo;
-	int i;
+	int loop;
 
 	switch (huge) {
 	case -1:
@@ -59,11 +60,17 @@ test_huge_bo(int huge, int tiling)
 	case 0:
 		huge_object_size = gem_mappable_aperture_size() + PAGE_SIZE;
 		break;
-	default:
+	case 1:
 		huge_object_size = gem_aperture_size(fd) + PAGE_SIZE;
 		break;
+	case 2:
+		huge_object_size = (intel_get_total_ram_mb() + 1) << 20;
+		check |= CHECK_SWAP;
+		break;
+	default:
+		return;
 	}
-	intel_require_memory(1, huge_object_size, CHECK_RAM);
+	intel_require_memory(1, huge_object_size, check);
 
 	last_offset = huge_object_size - PAGE_SIZE;
 
@@ -77,22 +84,35 @@ test_huge_bo(int huge, int tiling)
 	/* Obtain CPU mapping for the object. */
 	ptr_cpu = gem_mmap__cpu(fd, bo, 0, huge_object_size,
 				PROT_READ | PROT_WRITE);
-	igt_assert(ptr_cpu);
+	igt_require(ptr_cpu);
 	gem_set_domain(fd, bo, I915_GEM_DOMAIN_CPU, I915_GEM_DOMAIN_CPU);
 	gem_close(fd, bo);
 
-	/* Write first page through the mapping and assert reading it back
-	 * works. */
-	memcpy(ptr_cpu, cpu_pattern, PAGE_SIZE);
-	igt_assert(memcmp(ptr_cpu, cpu_pattern, PAGE_SIZE) == 0);
+	igt_debug("Exercising %'llu bytes\n", (long long)huge_object_size);
 
-	/* Write last page through the mapping and assert reading it back
-	 * works. */
-	memcpy(ptr_cpu + last_offset, cpu_pattern, PAGE_SIZE);
-	igt_assert(memcmp(ptr_cpu + last_offset, cpu_pattern, PAGE_SIZE) == 0);
+	loop = 0;
+	do {
+		/* Write first page through the mapping and
+		 * assert reading it back works.
+		 */
+		memcpy(ptr_cpu, cpu_pattern, PAGE_SIZE);
+		igt_assert(memcmp(ptr_cpu, cpu_pattern, PAGE_SIZE) == 0);
+		memset(ptr_cpu, 0xcc, PAGE_SIZE);
 
-	/* Cross check that accessing two simultaneous pages works. */
-	igt_assert(memcmp(ptr_cpu, ptr_cpu + last_offset, PAGE_SIZE) == 0);
+		/* Write last page through the mapping and
+		 * assert reading it back works.
+		 */
+		memcpy(ptr_cpu + last_offset, cpu_pattern, PAGE_SIZE);
+		igt_assert(memcmp(ptr_cpu + last_offset, cpu_pattern, PAGE_SIZE) == 0);
+		memset(ptr_cpu + last_offset, 0xcc, PAGE_SIZE);
+
+		/* Cross check that accessing two simultaneous pages works. */
+		igt_assert(memcmp(ptr_cpu, ptr_cpu + last_offset, PAGE_SIZE) == 0);
+
+		/* Force every page to be faulted and retest */
+		for (i = 0; i < huge_object_size; i += 4096)
+			ptr_cpu[i] = i >> 12;
+	} while (loop++ == 0);
 
 	munmap(ptr_cpu, huge_object_size);
 	free(cpu_pattern);
@@ -155,11 +175,13 @@ igt_main
 	}
 
 	igt_subtest("small-bo")
-		test_huge_bo(fd, -1);
+		test_huge_bo(-1);
 	igt_subtest("big-bo")
-		test_huge_bo(fd, 0);
+		test_huge_bo(0);
 	igt_subtest("huge-bo")
-		test_huge_bo(fd, 1);
+		test_huge_bo(1);
+	igt_subtest("swap-bo")
+		test_huge_bo(2);
 
 	igt_fixture
 		close(fd);
