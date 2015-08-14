@@ -2531,7 +2531,8 @@ static void farfromfence_subtest(const struct test_mode *t)
 	for (r = 0; r < pattern->n_rects; r++) {
 		draw_rect(pattern, target, t->method, r);
 		update_wanted_crc(t, &pattern->crcs[t->format][r]);
-		do_assertions(0);
+		/* GTT draws disable PSR. */
+		do_assertions(ASSERT_PSR_DISABLED);
 	}
 
 	igt_remove_fb(drm.fd, &tall_fb);
