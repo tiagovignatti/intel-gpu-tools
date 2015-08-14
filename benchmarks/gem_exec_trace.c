@@ -84,136 +84,23 @@ static double elapsed(const struct timespec *start, const struct timespec *end)
 	return 1e3*(end->tv_sec - start->tv_sec) + 1e-6*(end->tv_nsec - start->tv_nsec);
 }
 
-int fd;
-
-struct bo {
-	uint32_t handle;
-	uint64_t offset;
-
-	struct drm_i915_gem_relocation_entry *relocs;
-	uint32_t max_relocs;
-} *bo, **offsets;
-int num_bo;
-
-struct drm_i915_gem_exec_object2 *exec_objects;
-int max_objects;
-
-static void *add_bo(void *ptr)
-{
-	struct trace_add_bo *t = ptr;
-	uint32_t bb = 0xa << 23;
-
-	if (t->handle >= num_bo) {
-		int new_bo = (t->handle + 4096) & -4096;
-		bo = realloc(bo, sizeof(*bo)*new_bo);
-		memset(bo + num_bo, 0, sizeof(*bo)*(new_bo - num_bo));
-		num_bo = new_bo;
-	}
-
-	bo[t->handle].handle = gem_create(fd, t->size);
-	gem_write(fd, bo[t->handle].handle, 0, &bb, sizeof(bb));
-
-	return t + 1;
-}
-
-static void *del_bo(void *ptr)
-{
-	struct trace_del_bo *t = ptr;
-
-	gem_close(fd, bo[t->handle].handle);
-	bo[t->handle].handle = 0;
-
-	free(bo[t->handle].relocs);
-	bo[t->handle].relocs = NULL;
-	bo[t->handle].max_relocs = 0;
-
-	return t + 1;
-}
-
-static void *exec(void *ptr)
-{
-	struct trace_exec *t = ptr;
-	struct drm_i915_gem_execbuffer2 eb;
-	uint32_t i, j;
-
-	memset(&eb, 0, sizeof(eb));
-	eb.buffer_count = t->object_count;
-	eb.flags = t->flags & ~I915_EXEC_RING_MASK;
-
-	if (t->object_count > max_objects) {
-		free(exec_objects);
-		free(offsets);
-
-		max_objects = ALIGN(t->object_count, 4096);
-
-		exec_objects = malloc(max_objects*sizeof(*exec_objects));
-		offsets = malloc(max_objects*sizeof(*offsets));
-	}
-	eb.buffers_ptr = (uintptr_t)exec_objects;
-
-	ptr = t + 1;
-	for (i = 0; i < t->object_count; i++) {
-		struct drm_i915_gem_relocation_entry *relocs;
-		struct trace_exec_object *to = ptr;
-		ptr = to + 1;
-
-		offsets[i] = &bo[to->handle];
-
-		exec_objects[i].handle = bo[to->handle].handle;
-		exec_objects[i].offset = bo[to->handle].offset;
-		exec_objects[i].alignment = to->alignment;
-		exec_objects[i].flags = to->flags;
-		exec_objects[i].rsvd1 = to->rsvd1;
-		exec_objects[i].rsvd2 = to->rsvd2;
-
-		exec_objects[i].relocation_count = to->relocation_count;
-		if (!to->relocation_count)
-			continue;
-
-		if (to->relocation_count > bo[to->handle].max_relocs) {
-			free(bo[to->handle].relocs);
-
-			bo[to->handle].max_relocs = ALIGN(to->relocation_count, 128);
-			bo[to->handle].relocs = malloc(sizeof(*bo[to->handle].relocs)*bo[to->handle].max_relocs);
-		}
-		relocs = bo[to->handle].relocs;
-		exec_objects[i].relocs_ptr = (uintptr_t)relocs;
-
-		for (j = 0; j < to->relocation_count; j++) {
-			struct trace_exec_relocation *tr = ptr;
-			ptr = tr + 1;
-
-			if (t->flags & I915_EXEC_HANDLE_LUT) {
-				uint32_t handle;
-
-				relocs[j].target_handle = tr->target_handle;
-
-				handle = exec_objects[tr->target_handle].handle;
-				relocs[j].presumed_offset = bo[handle].offset;
-			} else {
-				relocs[j].target_handle = bo[tr->target_handle].handle;
-				relocs[j].presumed_offset = bo[tr->target_handle].offset;
-			}
-			relocs[j].delta = tr->delta;
-			relocs[j].offset = tr->offset;
-			relocs[j].read_domains = tr->read_domains;
-			relocs[j].write_domain = tr->write_domain;
-		}
-	}
-
-	gem_execbuf(fd, &eb);
-
-	for (i = 0; i < t->object_count; i++)
-		offsets[i]->offset = exec_objects[i].offset;
-
-	return ptr;
-}
-
 static void replay(const char *filename)
 {
 	struct timespec t_start, t_end;
+	struct drm_i915_gem_execbuffer2 eb = {};
+	struct bo {
+		uint32_t handle;
+		uint64_t offset;
+
+		struct drm_i915_gem_relocation_entry *relocs;
+		uint32_t max_relocs;
+	} *bo = NULL, **offsets = NULL;
+	int num_bo = 0;
+	struct drm_i915_gem_exec_object2 *exec_objects = NULL;
+	int max_objects = 0;
 	struct stat st;
 	uint8_t *ptr, *end;
+	int fd;
 
 	fd = open(filename, O_RDONLY);
 	if (fd < 0)
@@ -236,20 +123,120 @@ static void replay(const char *filename)
 	clock_gettime(CLOCK_MONOTONIC, &t_start);
 	do {
 		switch (*ptr++) {
-		case ADD_BO:
-			ptr = add_bo(ptr);
-			break;
-		case DEL_BO:
-			ptr = del_bo(ptr);
-			break;
-		case EXEC:
-			ptr = exec(ptr);
-			break;
+		case ADD_BO: {
+				     uint32_t bb = 0xa << 23;
+				     struct trace_add_bo *t = (void *)ptr;
+				     ptr = (void *)(t + 1);
+
+				     if (t->handle >= num_bo) {
+					     int new_bo = (t->handle + 4096) & -4096;
+					     bo = realloc(bo, sizeof(*bo)*new_bo);
+					     memset(bo + num_bo, 0, sizeof(*bo)*(new_bo - num_bo));
+					     num_bo = new_bo;
+				     }
+
+				     bo[t->handle].handle = gem_create(fd, t->size);
+				     gem_write(fd, bo[t->handle].handle, 0, &bb, sizeof(bb));
+				     break;
+			     }
+		case DEL_BO: {
+				     struct trace_del_bo *t = (void *)ptr;
+				     ptr = (void *)(t + 1);
+
+				     gem_close(fd, bo[t->handle].handle);
+				     bo[t->handle].handle = 0;
+
+				     free(bo[t->handle].relocs);
+				     bo[t->handle].relocs = NULL;
+				     bo[t->handle].max_relocs = 0;
+				     break;
+			     }
+		case EXEC: {
+				   struct trace_exec *t = (void *)ptr;
+				   uint32_t i, j;
+				   ptr = (void *)(t + 1);
+
+				   eb.buffer_count = t->object_count;
+				   eb.flags = t->flags & ~I915_EXEC_RING_MASK;
+
+				   if (eb.buffer_count > max_objects) {
+					   free(exec_objects);
+					   free(offsets);
+
+					   max_objects = ALIGN(eb.buffer_count, 4096);
+
+					   exec_objects = malloc(max_objects*sizeof(*exec_objects));
+					   offsets = malloc(max_objects*sizeof(*offsets));
+
+					   eb.buffers_ptr = (uintptr_t)exec_objects;
+				   }
+
+				   for (i = 0; i < eb.buffer_count; i++) {
+					   struct drm_i915_gem_relocation_entry *relocs;
+					   struct trace_exec_object *to = (void *)ptr;
+					   ptr = (void *)(to + 1);
+
+					   offsets[i] = &bo[to->handle];
+
+					   exec_objects[i].handle = bo[to->handle].handle;
+					   exec_objects[i].offset = bo[to->handle].offset;
+					   exec_objects[i].alignment = to->alignment;
+					   exec_objects[i].flags = to->flags;
+					   exec_objects[i].rsvd1 = to->rsvd1;
+					   exec_objects[i].rsvd2 = to->rsvd2;
+
+					   exec_objects[i].relocation_count = to->relocation_count;
+					   if (!to->relocation_count)
+						   continue;
+
+					   if (to->relocation_count > bo[to->handle].max_relocs) {
+						   free(bo[to->handle].relocs);
+
+						   bo[to->handle].max_relocs = ALIGN(to->relocation_count, 128);
+						   bo[to->handle].relocs = malloc(sizeof(*bo[to->handle].relocs)*bo[to->handle].max_relocs);
+					   }
+					   relocs = bo[to->handle].relocs;
+					   exec_objects[i].relocs_ptr = (uintptr_t)relocs;
+
+					   for (j = 0; j < to->relocation_count; j++) {
+						   struct trace_exec_relocation *tr = (void *)ptr;
+						   ptr = (void *)(tr + 1);
+
+						   if (eb.flags & I915_EXEC_HANDLE_LUT) {
+							   uint32_t handle;
+
+							   relocs[j].target_handle = tr->target_handle;
+
+							   handle = exec_objects[tr->target_handle].handle;
+							   relocs[j].presumed_offset = bo[handle].offset;
+						   } else {
+							   relocs[j].target_handle = bo[tr->target_handle].handle;
+							   relocs[j].presumed_offset = bo[tr->target_handle].offset;
+						   }
+						   relocs[j].delta = tr->delta;
+						   relocs[j].offset = tr->offset;
+						   relocs[j].read_domains = tr->read_domains;
+						   relocs[j].write_domain = tr->write_domain;
+					   }
+				   }
+
+				   gem_execbuf(fd, &eb);
+
+				   for (i = 0; i < eb.buffer_count; i++)
+					   offsets[i]->offset = exec_objects[i].offset;
+
+				   break;
+			   }
 		}
 	} while (ptr < end);
 	clock_gettime(CLOCK_MONOTONIC, &t_end);
 	close(fd);
 	munmap(end-st.st_size, st.st_size);
+
+	for (fd = 0; fd < num_bo; fd++)
+		free(bo[fd].relocs);
+	free(bo);
+	free(offsets);
 
 	printf("%s: %.3f\n", filename, elapsed(&t_start, &t_end));
 }
