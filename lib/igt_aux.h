@@ -86,10 +86,9 @@ uint64_t intel_get_avail_ram_mb(void);
 uint64_t intel_get_total_ram_mb(void);
 uint64_t intel_get_total_swap_mb(void);
 
-void intel_require_memory(uint32_t count, uint32_t size, unsigned mode);
+void intel_require_memory(uint32_t count, uint64_t size, unsigned mode);
 #define CHECK_RAM 0x1
 #define CHECK_SWAP 0x2
-
 
 #define min(a, b) ({			\
 	typeof(a) _a = (a);		\
