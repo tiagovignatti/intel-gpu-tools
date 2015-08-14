@@ -1939,9 +1939,7 @@ static void multidraw_subtest(const struct test_mode *t)
 	target = pick_target(t, params);
 
 	for (m1 = 0; m1 < IGT_DRAW_METHOD_COUNT; m1++) {
-		for (m2 = 0; m2 < IGT_DRAW_METHOD_COUNT; m2++) {
-			if (m1 == m2)
-				continue;
+		for (m2 = m1 + 1; m2 < IGT_DRAW_METHOD_COUNT; m2++) {
 
 			igt_debug("Methods %s and %s\n",
 				  igt_draw_get_method_name(m1),
