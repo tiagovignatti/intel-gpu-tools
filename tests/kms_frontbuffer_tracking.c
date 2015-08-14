@@ -809,7 +809,7 @@ static bool fbc_is_compressing(void)
 
 static bool fbc_wait_for_compression(void)
 {
-	return igt_wait(fbc_is_compressing(), 5000, 1);
+	return igt_wait(fbc_is_compressing(), 2000, 1);
 }
 
 static void fbc_setup_compressing(void)
@@ -834,7 +834,7 @@ static bool fbc_not_enough_stolen(void)
 
 static bool fbc_wait_until_enabled(void)
 {
-	return igt_wait(fbc_is_enabled(), 5000, 1);
+	return igt_wait(fbc_is_enabled(), 2000, 1);
 }
 
 static bool psr_wait_until_enabled(void)
