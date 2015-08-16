@@ -91,11 +91,14 @@ int gpu_freq_init(struct gpu_freq *gf)
 	if (strstr(buf, "PUNIT_REG_GPU_FREQ_STS")) {
 		/* Baytrail is special, ofc. */
 		gf->is_byt = 1;
+
 		s = strstr(buf, "max");
-		if (s == NULL)
-			goto err;
-		sscanf(s, "max GPU freq: %d MHz", &gf->max);
-		sscanf(s, "min GPU freq: %d MHz", &gf->min);
+		if (s != NULL)
+			sscanf(s, "max GPU freq: %d MHz", &gf->max);
+
+		s = strstr(buf, "min");
+		if (s != NULL)
+			sscanf(s, "min GPU freq: %d MHz", &gf->min);
 
 		gf->rp0 = gf->rp1 = gf->max;
 		gf->rpn = gf->min;
