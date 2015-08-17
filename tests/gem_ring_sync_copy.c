@@ -47,13 +47,10 @@
  *
  */
 
+#include "igt.h"
 #include <stdlib.h>
 #include <stdbool.h>
 
-#include "ioctl_wrappers.h"
-#include "drmtest.h"
-#include "intel_batchbuffer.h"
-#include "intel_chipset.h"
 
 IGT_TEST_DESCRIPTION("Ensure inter-ring dependencies are respected.");
 

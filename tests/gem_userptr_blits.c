@@ -36,6 +36,7 @@
  * The goal is to simply ensure the basics work.
  */
 
+#include "igt.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -52,11 +53,7 @@
 #include "drm.h"
 #include "i915_drm.h"
 
-#include "drmtest.h"
 #include "intel_bufmgr.h"
-#include "intel_batchbuffer.h"
-#include "intel_chipset.h"
-#include "ioctl_wrappers.h"
 
 #include "eviction_common.c"
 

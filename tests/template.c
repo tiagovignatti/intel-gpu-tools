@@ -24,7 +24,7 @@
  *
  */
 
-#include "drmtest.h"
+#include "igt.h"
 
 IGT_TEST_DESCRIPTION("Template test.");
 

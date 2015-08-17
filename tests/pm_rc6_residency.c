@@ -26,14 +26,13 @@
  */
 
 #define _GNU_SOURCE
+#include "igt.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
 
-#include "drmtest.h"
-#include "intel_chipset.h"
 
 #define SLEEP_DURATION 3000 // in milliseconds
 #define CODE_TIME 50 // in microseconfs

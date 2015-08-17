@@ -25,6 +25,7 @@
  *
  */
 
+#include "igt.h"
 #include <stdio.h>
 #include <stdint.h>
 #include <stdbool.h>
@@ -42,14 +43,6 @@
 
 #include <drm.h>
 
-#include "drmtest.h"
-#include "intel_batchbuffer.h"
-#include "intel_io.h"
-#include "intel_chipset.h"
-#include "ioctl_wrappers.h"
-#include "igt_aux.h"
-#include "igt_kms.h"
-#include "igt_gt.h"
 
 #define MSR_PC8_RES	0x630
 #define MSR_PC9_RES	0x631

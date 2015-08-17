@@ -29,6 +29,7 @@
  * This test is useful for finding memory and refcount leaks.
  */
 
+#include "igt.h"
 #include <pthread.h>
 #include <stdlib.h>
 #include <sys/ioctl.h>
@@ -40,12 +41,7 @@
 #include <sys/stat.h>
 #include <sys/time.h>
 #include "drm.h"
-#include "ioctl_wrappers.h"
-#include "drmtest.h"
 #include "intel_bufmgr.h"
-#include "intel_batchbuffer.h"
-#include "intel_io.h"
-#include "intel_chipset.h"
 
 IGT_TEST_DESCRIPTION("Basic test for memory and refcount leaks.");
 

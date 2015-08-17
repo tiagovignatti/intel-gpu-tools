@@ -25,6 +25,7 @@
  *
  */
 
+#include "igt.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -34,13 +35,8 @@
 #include <sys/stat.h>
 #include <sys/time.h>
 #include "drm.h"
-#include "ioctl_wrappers.h"
-#include "drmtest.h"
 #include "intel_bufmgr.h"
-#include "intel_batchbuffer.h"
-#include "intel_io.h"
 #include "i830_reg.h"
-#include "intel_chipset.h"
 
 IGT_TEST_DESCRIPTION("Basic check of ring<->ring sync using a dummy reloc.");
 

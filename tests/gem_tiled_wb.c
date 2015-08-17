@@ -32,6 +32,7 @@
  * to userspace, and that userspace has to respect the swizzle.
  */
 
+#include "igt.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -42,10 +43,6 @@
 #include <sys/time.h>
 #include <sys/ioctl.h>
 #include "drm.h"
-#include "ioctl_wrappers.h"
-#include "drmtest.h"
-#include "intel_io.h"
-#include "intel_chipset.h"
 
 IGT_TEST_DESCRIPTION("This is a test of write-combining mmap's behavior on"
 		     " tiled objects with respect to the reported swizzling"

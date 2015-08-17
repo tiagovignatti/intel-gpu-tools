@@ -30,6 +30,7 @@
 #include "config.h"
 #endif
 
+#include "igt.h"
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -41,8 +42,6 @@
 #include <sys/ioctl.h>
 #include <pthread.h>
 #include "drm.h"
-#include "ioctl_wrappers.h"
-#include "drmtest.h"
 
 #define OBJECT_SIZE (128*1024) /* restricted to 1MiB alignment on i915 fences */
 

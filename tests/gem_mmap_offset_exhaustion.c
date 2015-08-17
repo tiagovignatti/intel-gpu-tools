@@ -25,6 +25,7 @@
  *
  */
 
+#include "igt.h"
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -35,8 +36,6 @@
 #include <sys/stat.h>
 #include <sys/ioctl.h>
 #include "drm.h"
-#include "ioctl_wrappers.h"
-#include "drmtest.h"
 
 IGT_TEST_DESCRIPTION("Checks whether the kernel handles mmap offset exhaustion"
 		     " correctly.");

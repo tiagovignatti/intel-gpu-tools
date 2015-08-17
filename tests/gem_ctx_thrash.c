@@ -22,6 +22,7 @@
  *
  */
 
+#include "igt.h"
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
@@ -30,10 +31,6 @@
 #include <sys/stat.h>
 #include <sys/resource.h>
 
-#include "ioctl_wrappers.h"
-#include "igt_aux.h"
-#include "intel_chipset.h"
-#include "drmtest.h"
 
 IGT_TEST_DESCRIPTION("Fill the Gobal GTT with context objects and VMs\n");
 

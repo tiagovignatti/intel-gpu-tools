@@ -8,6 +8,7 @@
    test4 - export handle twice from intel, import into nouveau twice, check handle is the same
 */
 
+#include "igt.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -16,10 +17,6 @@
 
 #include "intel_bufmgr.h"
 #include "nouveau.h"
-#include "intel_io.h"
-#include "intel_batchbuffer.h"
-#include "drmtest.h"
-#include "intel_chipset.h"
 
 #define BO_SIZE (256*1024)
 

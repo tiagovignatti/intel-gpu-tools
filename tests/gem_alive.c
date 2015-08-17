@@ -1,3 +1,4 @@
+#include "igt.h"
 #include <sys/ioctl.h>
 #include <fcntl.h>
 #include <errno.h>
@@ -5,7 +6,6 @@
 #include <signal.h>
 #include <i915_drm.h>
 
-#include "drmtest.h"
 
 int main(void)
 {

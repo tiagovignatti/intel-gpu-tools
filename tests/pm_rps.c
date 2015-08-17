@@ -27,6 +27,7 @@
  */
 
 #define _GNU_SOURCE
+#include "igt.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -37,13 +38,7 @@
 #include <time.h>
 #include <sys/wait.h>
 
-#include "drmtest.h"
-#include "intel_io.h"
 #include "intel_bufmgr.h"
-#include "intel_batchbuffer.h"
-#include "intel_chipset.h"
-#include "igt_gt.h"
-#include "ioctl_wrappers.h"
 
 static int drm_fd;
 

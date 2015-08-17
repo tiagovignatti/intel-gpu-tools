@@ -29,6 +29,7 @@
  * This test covers basic context switch functionality
  */
 
+#include "igt.h"
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -43,10 +44,6 @@
 
 #include <drm.h>
 
-#include "ioctl_wrappers.h"
-#include "drmtest.h"
-#include "igt_aux.h"
-#include "igt_gt.h"
 
 IGT_TEST_DESCRIPTION("Test basic context switch functionality.");
 

@@ -24,15 +24,12 @@
  *   Damien Lespiau <damien.lespiau@intel.com>
  */
 
+#include "igt.h"
 #include <errno.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
 
-#include "drmtest.h"
-#include "igt_debugfs.h"
-#include "igt_kms.h"
-#include "igt_aux.h"
 
 typedef struct {
 	float red;

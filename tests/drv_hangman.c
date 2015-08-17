@@ -26,16 +26,12 @@
  *
  */
 
+#include "igt.h"
 #include <limits.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 
-#include "intel_chipset.h"
-#include "drmtest.h"
-#include "igt_aux.h"
-#include "igt_gt.h"
-#include "ioctl_wrappers.h"
 
 #ifndef I915_PARAM_CMD_PARSER_VERSION
 #define I915_PARAM_CMD_PARSER_VERSION       28

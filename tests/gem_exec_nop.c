@@ -25,6 +25,7 @@
  *
  */
 
+#include "igt.h"
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -38,10 +39,6 @@
 #include <sys/time.h>
 #include <time.h>
 #include "drm.h"
-#include "ioctl_wrappers.h"
-#include "drmtest.h"
-#include "intel_io.h"
-#include "igt_stats.h"
 
 #define LOCAL_I915_EXEC_NO_RELOC (1<<11)
 #define LOCAL_I915_EXEC_HANDLE_LUT (1<<12)

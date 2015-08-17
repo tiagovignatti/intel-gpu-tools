@@ -25,6 +25,7 @@
  *
  */
 
+#include "igt.h"
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -37,8 +38,6 @@
 #include <sys/ioctl.h>
 #include <sys/time.h>
 #include "drm.h"
-#include "ioctl_wrappers.h"
-#include "drmtest.h"
 
 #define OBJECT_SIZE 16384
 

@@ -30,6 +30,7 @@
  * boundary.
  */
 
+#include "igt.h"
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
@@ -41,15 +42,7 @@
 #include <signal.h>
 #include <errno.h>
 
-#include "ioctl_wrappers.h"
-#include "drmtest.h"
-#include "igt_core.h"
-#include "igt_aux.h"
-#include "igt_debugfs.h"
 #include "intel_bufmgr.h"
-#include "intel_batchbuffer.h"
-#include "intel_io.h"
-#include "intel_chipset.h"
 
 IGT_TEST_DESCRIPTION("Runs blitcopy -> rendercopy with multiple buffers over"
 		     " wrap boundary.");

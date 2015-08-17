@@ -26,6 +26,7 @@
  */
 
 #define _GNU_SOURCE
+#include "igt.h"
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -37,10 +38,6 @@
 #include <sys/stat.h>
 #include <sys/ioctl.h>
 #include "drm.h"
-#include "ioctl_wrappers.h"
-#include "drmtest.h"
-#include "igt_debugfs.h"
-#include "igt_aux.h"
 
 #ifndef PAGE_SIZE
 #define PAGE_SIZE 4096

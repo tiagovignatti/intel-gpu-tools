@@ -26,6 +26,7 @@
  */
 
 #define _GNU_SOURCE
+#include "igt.h"
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -37,9 +38,6 @@
 #include <sys/stat.h>
 #include <sys/ioctl.h>
 #include "drm.h"
-#include "ioctl_wrappers.h"
-#include "drmtest.h"
-#include "igt_debugfs.h"
 
 struct local_i915_gem_mmap_v2 {
 	uint32_t handle;

@@ -25,6 +25,7 @@
  *
  */
 
+#include "igt.h"
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -35,9 +36,6 @@
 #include <sys/stat.h>
 #include <sys/ioctl.h>
 #include "drm.h"
-#include "ioctl_wrappers.h"
-#include "drmtest.h"
-#include "intel_io.h"
 
 IGT_TEST_DESCRIPTION("Check set_tiling vs pwrite coherency.");
 

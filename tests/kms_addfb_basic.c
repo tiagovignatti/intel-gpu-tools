@@ -25,6 +25,7 @@
  *
  */
 
+#include "igt.h"
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -35,10 +36,7 @@
 #include <sys/stat.h>
 #include <sys/ioctl.h>
 #include "drm.h"
-#include "ioctl_wrappers.h"
-#include "drmtest.h"
 #include "drm_fourcc.h"
-#include "intel_chipset.h"
 
 uint32_t gem_bo;
 uint32_t gem_bo_small;

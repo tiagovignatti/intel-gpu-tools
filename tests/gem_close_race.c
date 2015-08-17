@@ -25,6 +25,7 @@
  *
  */
 
+#include "igt.h"
 #include <pthread.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -38,9 +39,6 @@
 #include <sys/ioctl.h>
 #include <sys/time.h>
 #include "drm.h"
-#include "ioctl_wrappers.h"
-#include "drmtest.h"
-#include "intel_chipset.h"
 
 #define OBJECT_SIZE (256 * 1024)
 

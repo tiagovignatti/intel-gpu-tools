@@ -24,14 +24,13 @@
  *    Mika Kuoppala <mika.kuoppala@intel.com>
  */
 
+#include "igt.h"
 #include <stdlib.h>
 #include <string.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <pthread.h>
 
-#include "drmtest.h"
-#include "ioctl_wrappers.h"
 #include "intel_bufmgr.h"
 
 IGT_TEST_DESCRIPTION("Check parallel access to tiled memory.");

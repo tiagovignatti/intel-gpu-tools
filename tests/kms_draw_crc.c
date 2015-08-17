@@ -24,12 +24,7 @@
 
 /* This program tests whether the igt_draw library actually works. */
 
-#include "drmtest.h"
-#include "igt_aux.h"
-#include "igt_draw.h"
-#include "igt_debugfs.h"
-#include "igt_fb.h"
-#include "igt_kms.h"
+#include "igt.h"
 
 #define MAX_CONNECTORS 32
 

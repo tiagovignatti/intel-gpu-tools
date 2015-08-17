@@ -25,6 +25,7 @@
  *
  */
 
+#include "igt.h"
 #include <limits.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -34,7 +35,6 @@
 #include <unistd.h>
 #include <time.h>
 
-#include "igt_core.h"
 
 #define TOLERANCE 5 /* percent */
 #define BACKLIGHT_PATH "/sys/class/backlight/intel_backlight"

@@ -25,6 +25,7 @@
  *
  */
 
+#include "igt.h"
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/resource.h>
@@ -32,9 +33,6 @@
 #include <fcntl.h>
 #include <limits.h>
 
-#include "drmtest.h"
-#include "ioctl_wrappers.h"
-#include "igt_aux.h"
 
 
 #define FD_ARR_SZ 100

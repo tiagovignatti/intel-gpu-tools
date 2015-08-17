@@ -24,6 +24,7 @@
 #include "config.h"
 #endif
 
+#include "igt.h"
 #include <cairo.h>
 #include <errno.h>
 #include <stdint.h>
@@ -31,11 +32,7 @@
 #include <string.h>
 #include <sys/time.h>
 
-#include "drmtest.h"
 #include "intel_bufmgr.h"
-#include "intel_batchbuffer.h"
-#include "intel_io.h"
-#include "igt_kms.h"
 
 #define MAX_CONNECTORS  10
 #define MAX_CRTCS       3

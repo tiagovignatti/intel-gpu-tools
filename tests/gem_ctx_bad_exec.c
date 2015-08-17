@@ -30,6 +30,7 @@
  *  test we can't submit contexts to unsupported rings
  */
 
+#include "igt.h"
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -42,8 +43,6 @@
 #include <sys/ioctl.h>
 #include <sys/time.h>
 #include "drm.h"
-#include "ioctl_wrappers.h"
-#include "drmtest.h"
 
 IGT_TEST_DESCRIPTION("Test that context cannot be submitted to unsupported"
 		     " rings.");

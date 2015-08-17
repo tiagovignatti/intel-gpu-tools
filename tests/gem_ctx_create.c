@@ -25,12 +25,11 @@
  *
  */
 
+#include "igt.h"
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
 
-#include "ioctl_wrappers.h"
-#include "drmtest.h"
 
 int ret, fd;
 struct drm_i915_gem_context_create create;

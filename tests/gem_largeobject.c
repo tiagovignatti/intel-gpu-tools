@@ -25,6 +25,7 @@
  *
  */
 
+#include "igt.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -34,8 +35,6 @@
 #include <sys/stat.h>
 #include <sys/ioctl.h>
 #include "drm.h"
-#include "ioctl_wrappers.h"
-#include "drmtest.h"
 
 /* Should take 64 pages to store the page pointers on 64 bit */
 #define OBJ_SIZE (128 * 1024 * 1024)

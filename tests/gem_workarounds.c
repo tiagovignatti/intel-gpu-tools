@@ -26,6 +26,7 @@
  */
 
 #define _GNU_SOURCE
+#include "igt.h"
 #include <stdbool.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -40,12 +41,6 @@
 #include <time.h>
 #include <signal.h>
 
-#include "ioctl_wrappers.h"
-#include "drmtest.h"
-#include "igt_gt.h"
-#include "igt_aux.h"
-#include "intel_chipset.h"
-#include "intel_io.h"
 
 enum operation {
 	GPU_RESET = 0x01,

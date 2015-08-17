@@ -22,18 +22,13 @@
  *
  */
 
+#include "igt.h"
 #include <errno.h>
 #include <limits.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
 
-#include "drmtest.h"
-#include "igt_debugfs.h"
-#include "igt_kms.h"
-#include "ioctl_wrappers.h"
-#include "intel_chipset.h"
-#include "igt_aux.h"
 
 IGT_TEST_DESCRIPTION("Exercises full ppgtt fence pin_count leak in the "
 		     "kernel.");

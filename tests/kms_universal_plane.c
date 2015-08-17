@@ -21,15 +21,12 @@
  * IN THE SOFTWARE.
  */
 
+#include "igt.h"
 #include <errno.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
 
-#include "drmtest.h"
-#include "igt_debugfs.h"
-#include "igt_kms.h"
-#include "intel_chipset.h"
 
 typedef struct {
 	int drm_fd;

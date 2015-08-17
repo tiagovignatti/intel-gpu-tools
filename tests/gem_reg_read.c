@@ -25,14 +25,13 @@
  *
  */
 
+#include "igt.h"
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
 #include <sys/utsname.h>
 #include <time.h>
 
-#include "ioctl_wrappers.h"
-#include "drmtest.h"
 
 static bool is_x86_64;
 static bool has_proper_timestamp;

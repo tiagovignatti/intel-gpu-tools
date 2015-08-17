@@ -24,15 +24,11 @@
  *
  */
 
+#include "igt.h"
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 
-#include "drmtest.h"
-#include "igt_aux.h"
-#include "igt_debugfs.h"
-#include "igt_draw.h"
-#include "igt_kms.h"
 
 IGT_TEST_DESCRIPTION("Test the relationship between fbcon and the frontbuffer "
 		     "tracking infrastructure.");

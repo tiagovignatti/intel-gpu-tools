@@ -22,19 +22,13 @@
  *
  */
 
+#include "igt.h"
 #include <errno.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
 
-#include "ioctl_wrappers.h"
-#include "drmtest.h"
 #include "intel_bufmgr.h"
-#include "intel_batchbuffer.h"
-#include "intel_chipset.h"
-#include "igt_debugfs.h"
-#include "igt_kms.h"
-#include "igt_aux.h"
 
 bool running_with_psr_disabled;
 

@@ -30,6 +30,7 @@
  * workload for the GPGPU pipeline.
  */
 
+#include "igt.h"
 #include <stdbool.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -42,12 +43,7 @@
 #include <sys/stat.h>
 #include <sys/time.h>
 #include "drm.h"
-#include "ioctl_wrappers.h"
-#include "drmtest.h"
 #include "intel_bufmgr.h"
-#include "intel_batchbuffer.h"
-#include "intel_io.h"
-#include "intel_chipset.h"
 
 #define WIDTH 64
 #define HEIGHT 64

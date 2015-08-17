@@ -29,6 +29,7 @@
  * workload for the 3D engine.
  */
 
+#include "igt.h"
 #include <stdbool.h>
 #include <unistd.h>
 #include <cairo.h>
@@ -44,13 +45,7 @@
 
 #include <drm.h>
 
-#include "ioctl_wrappers.h"
-#include "drmtest.h"
 #include "intel_bufmgr.h"
-#include "intel_batchbuffer.h"
-#include "intel_io.h"
-#include "intel_chipset.h"
-#include "igt_aux.h"
 
 IGT_TEST_DESCRIPTION("Basic test for the render_copy() function.");
 

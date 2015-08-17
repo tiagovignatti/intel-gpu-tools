@@ -24,15 +24,12 @@
  *
  */
 
+#include "igt.h"
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
 
-#include "drmtest.h"
-#include "igt_kms.h"
-#include "intel_io.h"
-#include "intel_chipset.h"
 
 /* We know that if we don't enable audio runtime PM, snd_hda_intel will never
  * release its power well refcount, and we'll never reach the LPSP sate. OTOH

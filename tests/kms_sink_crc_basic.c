@@ -22,6 +22,7 @@
  *
  */
 
+#include "igt.h"
 #include <errno.h>
 #include <limits.h>
 #include <stdbool.h>
@@ -30,9 +31,6 @@
 
 #include "drm_fourcc.h"
 
-#include "drmtest.h"
-#include "igt_debugfs.h"
-#include "igt_kms.h"
 
 #define CRC_BLACK "000000000000"
 

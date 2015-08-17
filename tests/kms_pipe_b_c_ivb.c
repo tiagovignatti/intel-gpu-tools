@@ -24,9 +24,7 @@
  *   Ander Conselvan de Oliveira <ander.conselvan.de.oliveira@intel.com>
  */
 
-#include "drmtest.h"
-#include "igt_kms.h"
-#include "intel_chipset.h"
+#include "igt.h"
 
 IGT_TEST_DESCRIPTION(
 "Exercise the FDI lane bifurcation code for IVB in the kernel by setting"

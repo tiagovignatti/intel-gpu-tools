@@ -24,19 +24,13 @@
  *
  */
 
+#include "igt.h"
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <poll.h>
 #include <pthread.h>
 
-#include "drmtest.h"
-#include "igt_aux.h"
-#include "igt_draw.h"
-#include "igt_kms.h"
-#include "igt_debugfs.h"
-#include "intel_chipset.h"
-#include "ioctl_wrappers.h"
 
 IGT_TEST_DESCRIPTION("Test the Kernel's frontbuffer tracking mechanism and "
 		     "its related features: FBC and PSR");

@@ -25,12 +25,12 @@
  *
  */
 
+#include "igt.h"
 #include <limits.h>
 #include <sys/ioctl.h>
 #include <stdlib.h>
 #include <errno.h>
 
-#include "drmtest.h"
 
 IGT_TEST_DESCRIPTION("Tests the DRM_IOCTL_GET_CLIENT ioctl.");
 

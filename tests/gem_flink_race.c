@@ -25,6 +25,7 @@
  */
 
 #define _GNU_SOURCE
+#include "igt.h"
 #include <sys/ioctl.h>
 #include <stdlib.h>
 #include <string.h>
@@ -33,10 +34,7 @@
 #include <pthread.h>
 #include <errno.h>
 
-#include "drmtest.h"
-#include "ioctl_wrappers.h"
 #include "intel_bufmgr.h"
-#include "igt_debugfs.h"
 
 IGT_TEST_DESCRIPTION("Check for flink/open vs. gem close races.");
 

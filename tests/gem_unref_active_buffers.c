@@ -32,6 +32,7 @@
  * will be the last one to hold a reference on them. Usually libdrm bo caching
  * prevents that by keeping another reference.
  */
+#include "igt.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -41,12 +42,7 @@
 #include <sys/stat.h>
 #include <sys/time.h>
 #include "drm.h"
-#include "ioctl_wrappers.h"
-#include "drmtest.h"
 #include "intel_bufmgr.h"
-#include "intel_batchbuffer.h"
-#include "intel_io.h"
-#include "intel_chipset.h"
 
 IGT_TEST_DESCRIPTION("Test unreferencing of active buffers.");
 

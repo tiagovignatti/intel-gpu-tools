@@ -30,16 +30,12 @@
  *
  */
 
+#include "igt.h"
 #include <sys/types.h>
 #include <pthread.h>
 #include <string.h>
 
 #include "drm.h"
-#include "ioctl_wrappers.h"
-#include "i915_pciids.h"
-#include "drmtest.h"
-#include "intel_io.h"
-#include "intel_chipset.h"
 
 IGT_TEST_DESCRIPTION("Exercise a suspect workaround required for"
 		     " FORCEWAKE_MT.");

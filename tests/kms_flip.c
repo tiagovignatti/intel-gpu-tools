@@ -25,6 +25,7 @@
 #include "config.h"
 #endif
 
+#include "igt.h"
 #include <cairo.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -42,13 +43,6 @@
 #include <time.h>
 #include <pthread.h>
 
-#include "ioctl_wrappers.h"
-#include "drmtest.h"
-#include "intel_chipset.h"
-#include "intel_batchbuffer.h"
-#include "igt_kms.h"
-#include "igt_aux.h"
-#include "igt_gt.h"
 
 #define TEST_DPMS		(1 << 0)
 #define TEST_WITH_DUMMY_BCS	(1 << 1)

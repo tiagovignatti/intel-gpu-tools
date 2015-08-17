@@ -22,16 +22,12 @@
  *
  */
 
+#include "igt.h"
 #include <errno.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
 
-#include "drmtest.h"
-#include "igt_gt.h"
-#include "igt_kms.h"
-#include "igt_aux.h"
-#include "ioctl_wrappers.h"
 
 typedef struct {
 	int drm_fd;

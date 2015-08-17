@@ -27,6 +27,7 @@
  *
  */
 
+#include "igt.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -38,11 +39,6 @@
 
 #include <drm.h>
 
-#include "drmtest.h"
-#include "ioctl_wrappers.h"
-#include "igt_core.h"
-#include "igt_aux.h"
-#include "igt_gt.h"
 
 IGT_TEST_DESCRIPTION("Test that specific ioctls report a wedged GPU (EIO).");
 

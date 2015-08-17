@@ -26,6 +26,7 @@
  */
 
 #define _GNU_SOURCE
+#include "igt.h"
 #include <stdbool.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -40,12 +41,6 @@
 #include <time.h>
 #include <signal.h>
 
-#include "ioctl_wrappers.h"
-#include "drmtest.h"
-#include "igt_gt.h"
-#include "intel_chipset.h"
-#include "intel_io.h"
-#include "igt_aux.h"
 
 #define RS_NO_ERROR      0
 #define RS_BATCH_ACTIVE  (1 << 0)

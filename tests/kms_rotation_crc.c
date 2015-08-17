@@ -22,13 +22,9 @@
  *
  */
 
+#include "igt.h"
 #include <math.h>
 
-#include "drmtest.h"
-#include "igt_debugfs.h"
-#include "igt_kms.h"
-#include "igt_core.h"
-#include "intel_chipset.h"
 
 typedef struct {
 	int gfx_fd;

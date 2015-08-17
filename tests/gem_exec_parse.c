@@ -22,6 +22,7 @@
  *
  */
 
+#include "igt.h"
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -29,9 +30,6 @@
 
 #include <drm.h>
 
-#include "drmtest.h"
-#include "ioctl_wrappers.h"
-#include "intel_chipset.h"
 
 #ifndef I915_PARAM_CMD_PARSER_VERSION
 #define I915_PARAM_CMD_PARSER_VERSION       28

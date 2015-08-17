@@ -35,6 +35,7 @@
  * https://bugs.launchpad.net/ubuntu/+source/xserver-xorg-video-intel/+bug/1063252
  */
 
+#include "igt.h"
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -49,10 +50,6 @@
 
 #include <drm.h>
 
-#include "ioctl_wrappers.h"
-#include "drmtest.h"
-#include "intel_io.h"
-#include "igt_aux.h"
 
 IGT_TEST_DESCRIPTION("Check whether we correctly invalidate the cs tlb.");
 

@@ -21,6 +21,7 @@
  * IN THE SOFTWARE.
  */
 
+#include "igt.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -32,7 +33,6 @@
 #include "config.h"
 #endif
 
-#include "igt_core.h"
 
 #if HAVE_UDEV
 #include <libudev.h>

@@ -22,9 +22,7 @@
  *
  */
 
-#include "igt_core.h"
-#include "igt_kms.h"
-#include "drmtest.h"
+#include "igt.h"
 
 IGT_TEST_DESCRIPTION("Check the debugfs force connector/edid features work"
 		     " correctly.");

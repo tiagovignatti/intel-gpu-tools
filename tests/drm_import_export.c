@@ -25,6 +25,7 @@
  */
 
 #define _GNU_SOURCE
+#include "igt.h"
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -40,8 +41,6 @@
 #include <unistd.h>
 #include <sys/syscall.h>
 
-#include "igt_core.h"
-#include "drmtest.h"
 
 int fd;
 drm_intel_bufmgr *bufmgr;

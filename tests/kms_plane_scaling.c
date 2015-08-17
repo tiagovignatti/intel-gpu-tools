@@ -22,14 +22,9 @@
  *
  */
 
+#include "igt.h"
 #include <math.h>
 
-#include "drmtest.h"
-#include "igt_debugfs.h"
-#include "igt_kms.h"
-#include "igt_core.h"
-#include "intel_chipset.h"
-#include "igt_aux.h"
 
 IGT_TEST_DESCRIPTION("Test display plane scaling");
 

@@ -32,6 +32,7 @@
  */
 
 #define _GNU_SOURCE
+#include "igt.h"
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -44,9 +45,6 @@
 #include <pthread.h>
 
 #include "drm.h"
-#include "ioctl_wrappers.h"
-#include "drmtest.h"
-#include "igt_debugfs.h"
 
 IGT_TEST_DESCRIPTION("Check whether prime import/export works on the same"
 		     " device.");

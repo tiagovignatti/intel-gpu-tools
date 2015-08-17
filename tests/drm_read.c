@@ -29,6 +29,7 @@
  * Testcase: boundary testing of read(drm_fd)
  */
 
+#include "igt.h"
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -43,9 +44,6 @@
 #include <sys/time.h>
 #include <sys/poll.h>
 #include "drm.h"
-#include "ioctl_wrappers.h"
-#include "drmtest.h"
-#include "igt_aux.h"
 
 IGT_TEST_DESCRIPTION("Call read(drm) and see if it behaves.");
 

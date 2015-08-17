@@ -30,6 +30,7 @@
  * This test checks whether gtt tlbs for cpu access are correctly invalidated.
  */
 
+#include "igt.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -40,9 +41,6 @@
 #include <sys/time.h>
 #include <sys/ioctl.h>
 #include "drm.h"
-#include "ioctl_wrappers.h"
-#include "drmtest.h"
-#include "intel_io.h"
 
 IGT_TEST_DESCRIPTION("Check whether gtt tlbs for cpu access are correctly"
 		     " invalidated.");

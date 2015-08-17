@@ -29,12 +29,11 @@
  * Negative test cases for destroy contexts
   */
 
+#include "igt.h"
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
 
-#include "ioctl_wrappers.h"
-#include "drmtest.h"
 
 IGT_TEST_DESCRIPTION("Negative test cases for destroy contexts.");
 

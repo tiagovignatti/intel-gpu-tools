@@ -27,6 +27,7 @@
 
 /* Exercises pinning of small bo */
 
+#include "igt.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -38,11 +39,6 @@
 
 #include <drm.h>
 
-#include "ioctl_wrappers.h"
-#include "drmtest.h"
-#include "intel_chipset.h"
-#include "intel_io.h"
-#include "igt_aux.h"
 
 IGT_TEST_DESCRIPTION("Exercises pinning of small buffer objects.");
 

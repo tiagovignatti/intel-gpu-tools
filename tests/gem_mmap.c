@@ -25,6 +25,7 @@
  *
  */
 
+#include "igt.h"
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -35,9 +36,6 @@
 #include <sys/stat.h>
 #include <sys/ioctl.h>
 #include "drm.h"
-#include "ioctl_wrappers.h"
-#include "igt_aux.h"
-#include "drmtest.h"
 
 #define OBJECT_SIZE 16384
 #define PAGE_SIZE 4096

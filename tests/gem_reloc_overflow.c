@@ -28,6 +28,7 @@
  *
  */
 
+#include "igt.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -43,10 +44,6 @@
 #include <sys/time.h>
 #include <sys/types.h>
 #include "drm.h"
-#include "ioctl_wrappers.h"
-#include "intel_chipset.h"
-#include "drmtest.h"
-#include "intel_io.h"
 
 IGT_TEST_DESCRIPTION("Check that kernel relocation overflows are caught.");
 

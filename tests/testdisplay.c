@@ -49,6 +49,7 @@
 #include "config.h"
 #endif
 
+#include "igt.h"
 #include <cairo.h>
 #include <errno.h>
 #include <getopt.h>
@@ -64,11 +65,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
-#include "ioctl_wrappers.h"
-#include "drmtest.h"
 #include "testdisplay.h"
-#include "igt_kms.h"
-#include "igt_core.h"
 
 #include <stdlib.h>
 #include <signal.h>

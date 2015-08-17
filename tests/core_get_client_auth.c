@@ -33,6 +33,7 @@
  */
 
 #define _GNU_SOURCE
+#include "igt.h"
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -44,8 +45,6 @@
 #endif
 
 #include "drm.h"
-#include "ioctl_wrappers.h"
-#include "drmtest.h"
 
 /* Checks whether the thread id is the current thread */
 static bool

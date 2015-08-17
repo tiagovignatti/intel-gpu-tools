@@ -25,12 +25,11 @@
  *
  */
 
+#include "igt.h"
 #include <unistd.h>
 #include <errno.h>
 #include <xf86drm.h>
 #include <i915_drm.h>
-#include "drmtest.h"
-#include "intel_chipset.h"
 #include "intel_bufmgr.h"
 
 IGT_TEST_DESCRIPTION("Tests the export of parameters via DRM_IOCTL_I915_GETPARAM\n");

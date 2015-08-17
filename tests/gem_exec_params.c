@@ -25,6 +25,7 @@
  *
  */
 
+#include "igt.h"
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -38,11 +39,6 @@
 #include <sys/time.h>
 #include "drm.h"
 
-#include "ioctl_wrappers.h"
-#include "drmtest.h"
-#include "intel_io.h"
-#include "intel_chipset.h"
-#include "igt_aux.h"
 
 #define LOCAL_I915_EXEC_VEBOX (4<<0)
 #define LOCAL_I915_EXEC_BSD_MASK (3<<13)

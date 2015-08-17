@@ -25,6 +25,7 @@
  *
  */
 
+#include "igt.h"
 #include <stdio.h>
 #include <time.h>
 #include <stdlib.h>
@@ -39,13 +40,7 @@
 
 #include <drm.h>
 
-#include "ioctl_wrappers.h"
-#include "drmtest.h"
 #include "intel_bufmgr.h"
-#include "intel_batchbuffer.h"
-#include "intel_io.h"
-#include "intel_chipset.h"
-#include "igt_aux.h"
 
 #define MSEC_PER_SEC	1000L
 #define USEC_PER_MSEC	1000L

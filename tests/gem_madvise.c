@@ -25,6 +25,7 @@
  *
  */
 
+#include "igt.h"
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -36,8 +37,6 @@
 #include <signal.h>
 
 #include "drm.h"
-#include "ioctl_wrappers.h"
-#include "drmtest.h"
 
 IGT_TEST_DESCRIPTION("Checks that the kernel reports EFAULT when trying to use"
 		     " purged bo.");

@@ -38,6 +38,7 @@
  * problem - the race window is too small.
  */
 
+#include "igt.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -48,12 +49,7 @@
 #include <sys/time.h>
 #include <stdbool.h>
 #include "drm.h"
-#include "ioctl_wrappers.h"
-#include "drmtest.h"
 #include "intel_bufmgr.h"
-#include "intel_batchbuffer.h"
-#include "intel_io.h"
-#include "intel_chipset.h"
 
 IGT_TEST_DESCRIPTION("Check for use-after-free in the fence stealing code.");
 

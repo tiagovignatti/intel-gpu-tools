@@ -21,50 +21,29 @@
  * IN THE SOFTWARE.
  */
 
-#include "igt.h"
-#include <errno.h>
+#ifndef IGT_H
+#define IGT_H
 
+#include "drmtest.h"
+#include "i915_3d.h"
+#include "i915_pciids.h"
+#include "igt_aux.h"
+#include "igt_core.h"
+#include "igt_core.h"
+#include "igt_debugfs.h"
+#include "igt_draw.h"
+#include "igt_fb.h"
+#include "igt_gt.h"
+#include "igt_kms.h"
+#include "igt_stats.h"
+#include "instdone.h"
+#include "intel_batchbuffer.h"
+#include "intel_chipset.h"
+#include "intel_io.h"
+#include "ioctl_wrappers.h"
+#include "media_fill.h"
+#include "media_spin.h"
+#include "rendercopy.h"
+#include "version.h"
 
-IGT_TEST_DESCRIPTION("Check that the legacy set colorkey ioctl only works on sprite planes.");
-
-static int drm_fd;
-static igt_display_t display;
-static int p;
-static igt_plane_t *plane;
-static uint32_t max_id;
-
-static void test_plane(uint32_t plane_id, int expected_ret)
-{
-	struct drm_intel_sprite_colorkey ckey = {
-		.plane_id = plane_id,
-	};
-
-	igt_assert(drmCommandWrite(drm_fd, DRM_I915_SET_SPRITE_COLORKEY, &ckey,
-				   sizeof(ckey)) == expected_ret);
-}
-
-igt_simple_main
-{
-	igt_skip_on_simulation();
-
-	drm_fd = drm_open_any_master();
-
-	kmstest_set_vt_graphics_mode();
-
-	igt_display_init(&display, drm_fd);
-
-	for_each_pipe(&display, p) {
-		for_each_plane_on_pipe(&display, p, plane) {
-			test_plane(plane->drm_plane->plane_id,
-				   (plane->is_cursor || plane->is_primary) ? -ENOENT : 0);
-
-			max_id = max(max_id, plane->drm_plane->plane_id);
-		}
-	}
-
-	/* try some invalid IDs too */
-	test_plane(0, -ENOENT);
-	test_plane(max_id + 1, -ENOENT);
-
-	igt_display_fini(&display);
-}
+#endif /* IGT_H */
