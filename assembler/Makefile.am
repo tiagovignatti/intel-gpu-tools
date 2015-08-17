@@ -47,7 +47,7 @@ intel_gen4disasm_LDADD = libbrw.la
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = intel-gen4asm.pc
 
-MAINTAINERCLEANFILES = $(BUILT_SOURCES)
+CLEANFILES = $(BUILT_SOURCES)
 EXTRA_DIST = \
 	README \
 	TODO \
