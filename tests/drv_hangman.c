@@ -252,7 +252,8 @@ static void check_error_state(const int gen,
 	while (getline(&line, &line_size, file) > 0) {
 		char *dashes = NULL;
 		int bb_matched = 0;
-		uint32_t gtt_offset;
+		uint32_t gtt_offset_upper, gtt_offset_lower;
+		uint64_t gtt_offset;
 		int req_matched = 0;
 		int requests;
 		uint32_t tail;
@@ -267,9 +268,11 @@ static void check_error_state(const int gen,
 		strncpy(ring_name, line, dashes - line);
 		ring_name[dashes - line - 1] = '\0';
 
-		bb_matched = sscanf(dashes, "--- gtt_offset = 0x%08x\n",
-				    &gtt_offset);
-		if (bb_matched == 1) {
+		bb_matched = sscanf(dashes, "--- gtt_offset = 0x%08x %08x\n",
+				    &gtt_offset_upper, &gtt_offset_lower);
+		gtt_offset = ((uint64_t)gtt_offset_upper << 32) | gtt_offset_lower;
+
+		if (bb_matched == 2) {
 			char expected_line[32];
 
 			igt_assert(strstr(ring_name, expected_ring_name));
@@ -305,7 +308,7 @@ static void check_error_state(const int gen,
 		}
 
 		ringbuf_matched = sscanf(dashes, "--- ringbuffer = 0x%08x\n",
-					 &gtt_offset);
+					 &gtt_offset_lower);
 		if (ringbuf_matched == 1) {
 			unsigned int offset, command, expected_addr = 0;
 
