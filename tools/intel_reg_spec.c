@@ -41,12 +41,12 @@ static const struct port_desc port_descs[] = {
 	{
 		.name = "portio-vga",
 		.port = PORT_PORTIO_VGA,
-		.stride = 4,
+		.stride = 1,
 	},
 	{
 		.name = "mmio-vga",
 		.port = PORT_MMIO_VGA,
-		.stride = 4,
+		.stride = 1,
 	},
 	{
 		.name = "bunit",
