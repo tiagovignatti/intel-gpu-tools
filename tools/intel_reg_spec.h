@@ -73,5 +73,6 @@ ssize_t intel_reg_spec_file(struct reg **regs, const char *filename);
 void intel_reg_spec_free(struct reg *regs, size_t n);
 int intel_reg_spec_decode(char *buf, size_t bufsize, const struct reg *reg,
 			  uint32_t val, uint32_t devid);
+void intel_reg_spec_print_ports(void);
 
 #endif /* __INTEL_REG_SPEC_H__ */

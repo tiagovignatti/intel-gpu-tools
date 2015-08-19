@@ -343,3 +343,11 @@ void intel_reg_spec_free(struct reg *regs, size_t n)
 	}
 	free(regs);
 }
+
+void intel_reg_spec_print_ports(void)
+{
+	int i;
+
+	for (i = 0; i < ARRAY_SIZE(port_descs); i++)
+		printf("%s%s", i == 0 ? "" : ", ", port_descs[i].name);
+}

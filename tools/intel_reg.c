@@ -631,6 +631,11 @@ static int intel_reg_help(struct config *config, int argc, char *argv[])
         printf("  [(PORTNAME|PORTNUM|MMIO-OFFSET):](REGNAME|REGADDR)\n");
 
 	printf("\n");
+	printf("PORTNAME is one of:\n");
+	intel_reg_spec_print_ports();
+	printf("\n");
+
+	printf("\n");
 	printf("OPTIONS common to most COMMANDS:\n");
 	printf(" --spec=PATH    Read register spec from directory or file\n");
 	printf(" --mmio=FILE    Use an MMIO snapshot\n");
