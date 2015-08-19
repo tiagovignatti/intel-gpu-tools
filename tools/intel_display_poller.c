@@ -88,6 +88,11 @@ static void write_reg(uint32_t reg, uint32_t val)
 	OUTREG(vlv_offset + reg, val);
 }
 
+static char pipe_name(int pipe)
+{
+	return pipe + 'A';
+}
+
 static int pipe_to_plane(uint32_t devid, int pipe)
 {
 	if (!IS_GEN2(devid) && !IS_GEN3(devid))
@@ -95,13 +100,21 @@ static int pipe_to_plane(uint32_t devid, int pipe)
 
 	switch (pipe) {
 	case 0:
-		if ((read_reg(DSPACNTR) & DISPPLANE_SEL_PIPE_MASK) == DISPPLANE_SEL_PIPE_B)
-			return 1;
-		return 0;
-	case 1:
 		if ((read_reg(DSPACNTR) & DISPPLANE_SEL_PIPE_MASK) == DISPPLANE_SEL_PIPE_A)
 			return 0;
-		return 1;
+		if ((read_reg(DSPBCNTR) & DISPPLANE_SEL_PIPE_MASK) == DISPPLANE_SEL_PIPE_A)
+			return 1;
+		fprintf(stderr, "no plane assigned to pipe %c, assuming %c\n",
+			pipe_name(pipe), pipe_name(pipe));
+		return pipe;
+	case 1:
+		if ((read_reg(DSPACNTR) & DISPPLANE_SEL_PIPE_MASK) == DISPPLANE_SEL_PIPE_B)
+			return 0;
+		if ((read_reg(DSPBCNTR) & DISPPLANE_SEL_PIPE_MASK) == DISPPLANE_SEL_PIPE_B)
+			return 1;
+		fprintf(stderr, "no plane assigned to pipe %c, assuming %c\n",
+			pipe_name(pipe), pipe_name(pipe));
+		return pipe;
 	}
 
 	assert(0);
@@ -884,11 +897,6 @@ static void poll_dsl_field(int pipe, uint32_t *min, uint32_t *max, const int cou
 		if (++i[field1] >= count)
 			break;
 	}
-}
-
-static char pipe_name(int pipe)
-{
-	return pipe + 'A';
 }
 
 static const char *test_name(enum test test, int pipe, int bit, bool test_pixel_count)
