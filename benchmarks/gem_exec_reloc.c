@@ -70,14 +70,14 @@ static int run(unsigned batch_size,
 {
 	uint32_t batch[2] = {MI_BATCH_BUFFER_END};
 	uint32_t cycle[16];
-	int fd, n, count, c, size;
-	struct drm_i915_gem_relocation_entry *reloc;
+	int fd, n, count, c, size = 0;
+	struct drm_i915_gem_relocation_entry *reloc = NULL;
 	struct drm_i915_gem_execbuffer2 execbuf;
 	struct drm_i915_gem_exec_object2 *objects;
 	struct timeval start, end;
-	uint32_t reloc_handle;
+	uint32_t reloc_handle = 0;
 	struct drm_i915_gem_exec_object2 *gem_exec;
-	struct drm_i915_gem_relocation_entry *mem_reloc;
+	struct drm_i915_gem_relocation_entry *mem_reloc = NULL;
 	int *target;
 
 	gem_exec = calloc(sizeof(*gem_exec), num_objects + 1);
@@ -112,17 +112,19 @@ static int run(unsigned batch_size,
 		mem_reloc[n].read_domains = I915_GEM_DOMAIN_RENDER;
 	}
 
-	size = ALIGN(sizeof(*mem_reloc)*num_relocs, 4096);
-	reloc_handle = gem_create(fd, size);
-	reloc = gem_mmap__cpu(fd, reloc_handle, 0, size, PROT_READ | PROT_WRITE);
-	memcpy(reloc, mem_reloc, sizeof(*mem_reloc)*num_relocs);
-	munmap(reloc, size);
-
-	if (flags & FAULT) {
-		igt_disable_prefault();
+	if (num_relocs) {
+		size = ALIGN(sizeof(*mem_reloc)*num_relocs, 4096);
+		reloc_handle = gem_create(fd, size);
 		reloc = gem_mmap__cpu(fd, reloc_handle, 0, size, PROT_READ | PROT_WRITE);
-	} else
-		reloc = mem_reloc;
+		memcpy(reloc, mem_reloc, sizeof(*mem_reloc)*num_relocs);
+		munmap(reloc, size);
+
+		if (flags & FAULT) {
+			igt_disable_prefault();
+			reloc = gem_mmap__cpu(fd, reloc_handle, 0, size, PROT_READ | PROT_WRITE);
+		} else
+			reloc = mem_reloc;
+	}
 
 	gem_exec[num_objects].relocation_count = num_relocs;
 	gem_exec[num_objects].relocs_ptr = (uintptr_t)reloc;
@@ -158,7 +160,7 @@ static int run(unsigned batch_size,
 					gem_exec[num_objects].handle = cycle[c];
 				}
 			}
-			if (flags & FAULT) {
+			if (flags & FAULT && reloc) {
 				munmap(reloc, size);
 				reloc = gem_mmap__cpu(fd, reloc_handle, 0, size, PROT_READ | PROT_WRITE);
 				gem_exec[num_objects].relocs_ptr = (uintptr_t)reloc;
@@ -169,7 +171,7 @@ static int run(unsigned batch_size,
 		printf("%.3f\n", ELAPSED(&start, &end));
 	}
 
-	if (flags & FAULT) {
+	if (flags & FAULT && reloc) {
 		munmap(reloc, size);
 		igt_enable_prefault();
 	}
