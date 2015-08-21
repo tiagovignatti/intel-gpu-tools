@@ -6,6 +6,7 @@ libintel_tools_la_SOURCES = 	\
 	i915_3d.h		\
 	i915_reg.h		\
 	i915_pciids.h		\
+	igt.h			\
 	igt_debugfs.c		\
 	igt_debugfs.h		\
 	igt_aux.c		\

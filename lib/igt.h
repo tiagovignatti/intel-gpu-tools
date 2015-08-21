@@ -44,6 +44,5 @@
 #include "media_fill.h"
 #include "media_spin.h"
 #include "rendercopy.h"
-#include "version.h"
 
 #endif /* IGT_H */
