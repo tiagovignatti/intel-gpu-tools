@@ -166,11 +166,15 @@ igt_main
 	}
 
 	for (i = 0; i < ARRAY_SIZE(rings); i++) {
-		igt_subtest_f("basic-%s", rings[i].name)
+		igt_subtest_f("basic-%s", rings[i].name) {
+			gem_require_ring(fd, rings[i].id);
 			store_test(rings[i].id, 16*1024);
+		}
 
-		igt_subtest_f("long-%s", rings[i].name)
+		igt_subtest_f("long-%s", rings[i].name) {
+			gem_require_ring(fd, rings[i].id);
 			store_test(rings[i].id, 1024*1024);
+		}
 	}
 
 	close(fd);
