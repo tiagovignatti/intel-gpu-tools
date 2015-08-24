@@ -717,6 +717,14 @@ static bool fbc_is_enabled(void)
 	return strstr(buf, "FBC enabled\n");
 }
 
+static void fbc_print_status(void)
+{
+	char buf[128];
+
+	igt_debugfs_read("i915_fbc_status", buf);
+	printf("FBC status:\n%s\n", buf);
+}
+
 static bool psr_is_enabled(void)
 {
 	char buf[256];
@@ -724,6 +732,14 @@ static bool psr_is_enabled(void)
 	igt_debugfs_read("i915_edp_psr_status", buf);
 	return strstr(buf, "\nActive: yes\n") &&
 	       strstr(buf, "\nHW Enabled & Active bit: yes\n");
+}
+
+static void psr_print_status(void)
+{
+	char buf[256];
+
+	igt_debugfs_read("i915_edp_psr_status", buf);
+	printf("PSR status:\n%s\n", buf);
 }
 
 static struct timespec fbc_get_last_action(void)
@@ -1540,6 +1556,37 @@ static int adjust_assertion_flags(const struct test_mode *t, int flags)
 	assert_sink_crc_equal(&crc_.sink, &wanted_crc->sink);		\
 } while (0)
 
+#define do_status_assertions(flags_) do {				\
+	if (!opt.check_status) {					\
+		/* Make sure we settle before continuing. */		\
+		sleep(1);						\
+		break;							\
+	}								\
+									\
+	if (flags_ & ASSERT_FBC_ENABLED) {				\
+		igt_require(!fbc_not_enough_stolen());			\
+		if (!fbc_wait_until_enabled()) {			\
+			fbc_print_status();				\
+			igt_assert_f(false, "FBC disabled\n");		\
+		}							\
+									\
+		if (fbc.supports_compressing && 			\
+		    opt.fbc_check_compression)				\
+			igt_assert(fbc_wait_for_compression());		\
+	} else if (flags_ & ASSERT_FBC_DISABLED) {			\
+		igt_assert(!fbc_wait_until_enabled());			\
+	}								\
+									\
+	if (flags_ & ASSERT_PSR_ENABLED) {				\
+		if (!psr_wait_until_enabled()) {			\
+			psr_print_status();				\
+			igt_assert_f(false, "PSR disabled\n");		\
+		}							\
+	} else if (flags_ & ASSERT_PSR_DISABLED) {			\
+		igt_assert(!psr_wait_until_enabled());			\
+	}								\
+} while (0)
+
 #define do_assertions(flags) do {					\
 	int flags_ = adjust_assertion_flags(t, (flags));		\
 									\
@@ -1552,26 +1599,7 @@ static int adjust_assertion_flags(const struct test_mode *t, int flags)
 	/* Now we can flush things to make the test faster. */		\
 	do_flush(t);							\
 									\
-	if (opt.check_status) {						\
-		if (flags_ & ASSERT_FBC_ENABLED) {			\
-			igt_require(!fbc_not_enough_stolen());		\
-			igt_assert(fbc_wait_until_enabled());		\
-									\
-			if (fbc.supports_compressing && 		\
-			    opt.fbc_check_compression)			\
-				igt_assert(fbc_wait_for_compression());	\
-		} else if (flags_ & ASSERT_FBC_DISABLED) {		\
-			igt_assert(!fbc_wait_until_enabled());		\
-		}							\
-									\
-		if (flags_ & ASSERT_PSR_ENABLED)			\
-			igt_assert(psr_wait_until_enabled());		\
-		else if (flags_ & ASSERT_PSR_DISABLED)			\
-			igt_assert(!psr_wait_until_enabled());		\
-	} else {							\
-		/* Make sure we settle before continuing. */		\
-		sleep(1);						\
-	}								\
+	do_status_assertions(flags_);					\
 									\
 	/* Check CRC again to make sure the compressed screen is ok,	\
 	 * except if we're not drawing on the primary screen. On this	\
