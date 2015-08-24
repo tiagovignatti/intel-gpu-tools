@@ -238,6 +238,8 @@ struct {
 	int step;
 	int only_feature;
 	int only_pipes;
+	int shared_fb_x_offset;
+	int shared_fb_y_offset;
 } opt = {
 	.check_status = true,
 	.check_crc = true,
@@ -249,6 +251,8 @@ struct {
 	.step = 0,
 	.only_feature = FEATURE_COUNT,
 	.only_pipes = PIPE_COUNT,
+	.shared_fb_x_offset = 500,
+	.shared_fb_y_offset = 500,
 };
 
 struct modeset_params {
@@ -582,16 +586,15 @@ static void fill_fb(struct igt_fb *fb, enum color ecolor)
 	igt_draw_fill_fb(drm.fd, fb, pick_color(fb, ecolor));
 }
 
-#define BIGFB_X_OFFSET 500
-#define BIGFB_Y_OFFSET 500
 /*
  * This is how the prim, scnd and offscreen FBs should be positioned inside the
- * big FB. The prim buffer starts at the X and Y offsets defined above, then
- * scnd starts at the same X pixel offset, right after prim ends on the Y axis,
- * then the offscreen fb starts after scnd ends. Just like the picture:
+ * shared FB. The prim buffer starts at the X and Y offsets defined by
+ * opt.shared_fb_{x,y}_offset, then scnd starts at the same X pixel offset,
+ * right after prim ends on the Y axis, then the offscreen fb starts after scnd
+ * ends. Just like the picture:
  *
- * +----------------------+--+
- * | big                  |  |
+ * +-------------------------+
+ * | shared fb               |
  * |   +------------------+  |
  * |   | prim             |  |
  * |   |                  |  |
@@ -610,7 +613,7 @@ static void fill_fb(struct igt_fb *fb, enum color ecolor)
  * We do it vertically instead of the more common horizontal case in order to
  * avoid super huge strides not supported by FBC.
  */
-static void create_big_fb(enum pixel_format format)
+static void create_shared_fb(enum pixel_format format)
 {
 	int prim_w, prim_h, scnd_w, scnd_h, offs_w, offs_h, big_w, big_h;
 	struct screen_fbs *s = &fbs[format];
@@ -633,9 +636,9 @@ static void create_big_fb(enum pixel_format format)
 		big_w = scnd_w;
 	if (offs_w > big_w)
 		big_w = offs_w;
-	big_w += BIGFB_X_OFFSET;
+	big_w += opt.shared_fb_x_offset;
 
-	big_h = prim_h + scnd_h + offs_h + BIGFB_Y_OFFSET;
+	big_h = prim_h + scnd_h + offs_h + opt.shared_fb_y_offset;
 
 	create_fb(format, big_w, big_h, LOCAL_I915_FORMAT_MOD_X_TILED,
 		  PLANE_PRI, &s->big);
@@ -663,7 +666,7 @@ static void create_fbs(enum pixel_format format)
 	create_fb(format, offscreen_fb.w, offscreen_fb.h,
 		  LOCAL_I915_FORMAT_MOD_X_TILED, PLANE_PRI, &s->offscreen);
 
-	create_big_fb(format);
+	create_shared_fb(format);
 
 	if (!scnd_mode_params.connector_id)
 		return;
@@ -1695,16 +1698,16 @@ static void set_crtc_fbs(const struct test_mode *t)
 		offscreen_fb.y = 0;
 		break;
 	case FBS_SHARED:
-		/* Please see the comment at the top of create_big_fb(). */
+		/* Please see the comment at the top of create_shared_fb(). */
 		prim_mode_params.fb.fb = &s->big;
 		scnd_mode_params.fb.fb = &s->big;
 		offscreen_fb.fb = &s->big;
 
-		prim_mode_params.fb.x = BIGFB_X_OFFSET;
-		scnd_mode_params.fb.x = BIGFB_X_OFFSET;
-		offscreen_fb.x = BIGFB_X_OFFSET;
+		prim_mode_params.fb.x = opt.shared_fb_x_offset;
+		scnd_mode_params.fb.x = opt.shared_fb_x_offset;
+		offscreen_fb.x = opt.shared_fb_x_offset;
 
-		prim_mode_params.fb.y = BIGFB_Y_OFFSET;
+		prim_mode_params.fb.y = opt.shared_fb_y_offset;
 		scnd_mode_params.fb.y = prim_mode_params.fb.y +
 					prim_mode_params.fb.h;
 		offscreen_fb.y = scnd_mode_params.fb.y + scnd_mode_params.fb.h;
@@ -2716,6 +2719,16 @@ static int opt_handler(int option, int option_index, void *data)
 		igt_assert(opt.only_feature == FEATURE_COUNT);
 		opt.only_feature = FEATURE_PSR;
 		break;
+	case 'x':
+		errno = 0;
+		opt.shared_fb_x_offset = strtol(optarg, NULL, 0);
+		igt_assert(errno == 0);
+		break;
+	case 'y':
+		errno = 0;
+		opt.shared_fb_y_offset = strtol(optarg, NULL, 0);
+		igt_assert(errno == 0);
+		break;
 	case '1':
 		igt_assert(opt.only_pipes == PIPE_COUNT);
 		opt.only_pipes = PIPE_SINGLE;
@@ -2743,6 +2756,8 @@ const char *help_str =
 "  --nop-only                  Only run the \"nop\" feature subtests\n"
 "  --fbc-only                  Only run the \"fbc\" feature subtests\n"
 "  --psr-only                  Only run the \"psr\" feature subtests\n"
+"  --shared-fb-x offset        Use 'offset' as the X offset for the shared FB\n"
+"  --shared-fb-y offset        Use 'offset' as the Y offset for the shared FB\n"
 "  --1p-only                   Only run subtests that use 1 pipe\n"
 "  --2p-only                   Only run subtests that use 2 pipes\n";
 
@@ -2868,6 +2883,8 @@ int main(int argc, char *argv[])
 		{ "nop-only",                 0, 0, 'n'},
 		{ "fbc-only",                 0, 0, 'f'},
 		{ "psr-only",                 0, 0, 'p'},
+		{ "shared-fb-x",              1, 0, 'x'},
+		{ "shared-fb-y",              1, 0, 'y'},
 		{ "1p-only",                  0, 0, '1'},
 		{ "2p-only",                  0, 0, '2'},
 		{ 0, 0, 0, 0 }
