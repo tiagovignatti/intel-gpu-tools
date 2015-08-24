@@ -424,7 +424,7 @@ igt_create_fb_with_bo_size(int fd, int width, int height,
 
 	bpp = igt_drm_format_to_bpp(format);
 
-	igt_debug("%s(width=%d, height=%d, format=0x%x [bpp=%d], tiling=0x%"PRIx64", size=%d\n",
+	igt_debug("%s(width=%d, height=%d, format=0x%x [bpp=%d], tiling=0x%"PRIx64", size=%d)\n",
 		  __func__, width, height, format, bpp, tiling, bo_size);
 	do_or_die(create_bo_for_fb(fd, width, height, bpp, tiling, bo_size,
 				   &fb->gem_handle, &fb->size, &fb->stride));
