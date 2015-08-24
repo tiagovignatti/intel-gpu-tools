@@ -722,7 +722,8 @@ static bool psr_is_enabled(void)
 	char buf[256];
 
 	igt_debugfs_read("i915_edp_psr_status", buf);
-	return (strstr(buf, "\nActive: yes\n"));
+	return strstr(buf, "\nActive: yes\n") &&
+	       strstr(buf, "\nHW Enabled & Active bit: yes\n");
 }
 
 static struct timespec fbc_get_last_action(void)
