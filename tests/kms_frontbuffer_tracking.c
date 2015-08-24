@@ -2055,6 +2055,43 @@ static void format_draw_subtest(const struct test_mode *t)
 		badformat_subtest(t);
 }
 
+/*
+ * slow_draw - sleep a little bit between drawing operations
+ *
+ * METHOD
+ *   This test is basically the same as the draw subtest, except that we sleep a
+ *   little bit after each drawing operation. The goal is to detect problems
+ *   that can happen in case a drawing operation is done while the machine is in
+ *   some deep sleep states.
+ *
+ * EXPECTED RESULTS
+ *   The pattern appears on the screen as expected.
+ *
+ * FAILURES
+ *   I've seen this happen in a SKL machine and still haven't investigated it.
+ *   My guess would be that preventing deep sleep states fixes the problem.
+ */
+static void slow_draw_subtest(const struct test_mode *t)
+{
+	int r;
+	struct draw_pattern_info *pattern = &pattern1;
+	struct modeset_params *params = pick_params(t);
+	struct fb_region *target;
+
+	prepare_subtest(t, pattern);
+	sleep(2);
+	target = pick_target(t, params);
+
+	for (r = 0; r < pattern->n_rects; r++) {
+		sleep(2);
+		draw_rect(pattern, target, t->method, r);
+		sleep(2);
+
+		update_wanted_crc(t, &pattern->crcs[t->format][r]);
+		do_assertions(0);
+	}
+}
+
 static void flip_handler(int fd, unsigned int sequence, unsigned int tv_sec,
 			 unsigned int tv_usec, void *data)
 {
@@ -3057,6 +3094,10 @@ int main(int argc, char *argv[])
 		if (t.feature & FEATURE_FBC)
 			igt_subtest_f("%s-badstride", feature_str(t.feature))
 				badstride_subtest(&t);
+
+		if (t.feature & FEATURE_PSR)
+			igt_subtest_f("%s-slowdraw", feature_str(t.feature))
+				slow_draw_subtest(&t);
 
 		igt_subtest_f("%s-suspend", feature_str(t.feature))
 			suspend_subtest(&t);
