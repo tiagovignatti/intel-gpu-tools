@@ -102,17 +102,6 @@ tools/
 	These tools generally must be run as root, safe for the ones that just
 	decode dumps.
 
-tools/quick_dump
-	Quick dumper is a python tool built with SWIG bindings to
-	important libraries exported by the rest of the tool suite. The tool
-	itself is quite straight forward, and should also be a useful example
-	for others wishing to write python based i915 tools.
-
-	Note to package maintainers: It is not recommended to package
-	this directory, as the tool is not yet designed for wide usage. If the
-	package is installed via "make install" the users will have to set
-	their python library path appropriately. Use --disable-dumper
-
 debugger/
 	This tool is to be used to do shader debugging. It acts like a
 	debug server accepting connections from debug clients such as
@@ -148,9 +137,7 @@ everything (package names may vary):
 	libcairo2-dev
 	libdrm-dev
 	libpciaccess-dev
-	libpython3.3-dev
 	libunwind-dev
 	python-docutils
-	swig2.0
 	x11proto-dri2-dev
 	xutils-dev

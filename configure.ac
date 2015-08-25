@@ -131,26 +131,6 @@ if test "x$NOUVEAU" = xyes; then
 fi
 AM_CONDITIONAL(HAVE_NOUVEAU, [test "x$NOUVEAU" = xyes])
 
-#Configure options for the python quick-dumper
-AC_ARG_ENABLE(dumper,
-	      AS_HELP_STRING([--disable-dumper],
-			     [Disable the python based register dumper (default: enabled)]),
-			     [DUMPER=$enableval], [DUMPER=auto])
-if test "x$DUMPER" = xauto; then
-	# AX_PYTHON_DEVEL/AX_SWIG_PYTHON are not super friendly and don't
-	# easily allow us to introspect the result of their checks. So if we
-	# find SWING on the system, that's enough to try compiling the dumper.
-	AX_PKG_SWIG(2.0.0, [DUMPER=yes], [DUMPER=no])
-fi
-if test "x$DUMPER" = xyes; then
-	AC_DEFINE(HAVE_DUMPER, 1, [Have dumper support])
-	# SWIG configuration
-	AX_PKG_SWIG(2.0.0, [], [ AC_MSG_ERROR([SWIG 2.0.0 or higher is required to build..]) ])
-	AX_PYTHON_DEVEL([>= '3.0'])
-	AX_SWIG_PYTHON
-fi
-AM_CONDITIONAL(HAVE_DUMPER, [test "x$DUMPER" = xyes])
-
 # Define a configure option for the shader debugger
 AC_ARG_ENABLE(shader-debugger, AS_HELP_STRING([--enable-shader-debugger],
 	      [Enable shader debugging support [autodetected]]),
@@ -237,9 +217,9 @@ AC_DEFINE_UNQUOTED(TARGET_CPU_PLATFORM, ["$host_cpu"], [Target platform])
 
 files="broadwell cherryview haswell ivybridge sandybridge valleyview skylake"
 for file in $files; do
-	QUICK_DUMP_EXTRA_DIST="$QUICK_DUMP_EXTRA_DIST $file `tr '\n' ' ' < $srcdir/tools/quick_dump/$file`"
+	REGISTERS_EXTRA_DIST="$REGISTERS_EXTRA_DIST $file `tr '\n' ' ' < $srcdir/tools/registers/$file`"
 done
-AC_SUBST(QUICK_DUMP_EXTRA_DIST)
+AC_SUBST(REGISTERS_EXTRA_DIST)
 
 AC_CONFIG_FILES([
 		 Makefile
@@ -255,8 +235,8 @@ AC_CONFIG_FILES([
 		 scripts/Makefile
 		 tests/Makefile
 		 tools/Makefile
-		 tools/quick_dump/Makefile
 		 tools/null_state_gen/Makefile
+		 tools/registers/Makefile
 		 debugger/Makefile
 		 debugger/system_routine/Makefile
 		 assembler/Makefile
@@ -284,7 +264,6 @@ echo ""
 echo " • Tools:"
 echo "       Assembler          : ${enable_assembler}"
 echo "       Debugger           : ${enable_debugger}"
-echo "       Python dumper      : ${DUMPER}"
 echo "       Overlay            : X: ${enable_overlay_xlib}, Xv: ${enable_overlay_xvlib}"
 echo ""
 echo " • API-Documentation      : ${enable_gtk_doc}"

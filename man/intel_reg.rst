@@ -197,8 +197,7 @@ variable, the directory is scanned for a spec file in this order:
 Register Spec File Format
 -------------------------
 
-The register spec format is compatible with the quick_dump.py format, briefly
-described below:
+The register spec format is briefly described below:
 
 * Empty lines and lines beginning with "#", ";", or "//" are ignored.
 
