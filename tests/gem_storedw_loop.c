@@ -144,6 +144,14 @@ struct ring {
 	{ "vebox", I915_EXEC_VEBOX },
 };
 
+static void
+check_test_requirements(int fd, int ringid)
+{
+	gem_require_ring(fd, ringid);
+	igt_skip_on_f(intel_gen(devid) == 6 && ringid == I915_EXEC_BSD,
+		      "MI_STORE_DATA broken on gen6 bsd\n");
+}
+
 igt_main
 {
 	int fd, i;
@@ -166,13 +174,14 @@ igt_main
 	}
 
 	for (i = 0; i < ARRAY_SIZE(rings); i++) {
+
 		igt_subtest_f("basic-%s", rings[i].name) {
-			gem_require_ring(fd, rings[i].id);
+			check_test_requirements(fd, rings[i].id);
 			store_test(rings[i].id, 16*1024);
 		}
 
 		igt_subtest_f("long-%s", rings[i].name) {
-			gem_require_ring(fd, rings[i].id);
+			check_test_requirements(fd, rings[i].id);
 			store_test(rings[i].id, 1024*1024);
 		}
 	}
