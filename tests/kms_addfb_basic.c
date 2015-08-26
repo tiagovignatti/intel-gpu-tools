@@ -63,30 +63,40 @@ static void invalid_tests(int fd)
 		f.fb_id = 0;
 	}
 
+	f.flags = LOCAL_DRM_MODE_FB_MODIFIERS;
+
 	igt_subtest("unused-handle") {
+		igt_require_fb_modifiers(fd);
+
 		f.handles[1] = gem_bo_small;
-		igt_assert(drmIoctl(fd, DRM_IOCTL_MODE_ADDFB2, &f) == -1 &&
+		igt_assert(drmIoctl(fd, LOCAL_DRM_IOCTL_MODE_ADDFB2, &f) == -1 &&
 			   errno == EINVAL);
 		f.handles[1] = 0;
 	}
 
 	igt_subtest("unused-pitches") {
+		igt_require_fb_modifiers(fd);
+
 		f.pitches[1] = 512;
-		igt_assert(drmIoctl(fd, DRM_IOCTL_MODE_ADDFB2, &f) == -1 &&
+		igt_assert(drmIoctl(fd, LOCAL_DRM_IOCTL_MODE_ADDFB2, &f) == -1 &&
 			   errno == EINVAL);
 		f.pitches[1] = 0;
 	}
 
 	igt_subtest("unused-offsets") {
+		igt_require_fb_modifiers(fd);
+
 		f.offsets[1] = 512;
-		igt_assert(drmIoctl(fd, DRM_IOCTL_MODE_ADDFB2, &f) == -1 &&
+		igt_assert(drmIoctl(fd, LOCAL_DRM_IOCTL_MODE_ADDFB2, &f) == -1 &&
 			   errno == EINVAL);
 		f.offsets[1] = 0;
 	}
 
 	igt_subtest("unused-modifier") {
+		igt_require_fb_modifiers(fd);
+
 		f.modifier[1] =  LOCAL_I915_FORMAT_MOD_X_TILED;
-		igt_assert(drmIoctl(fd, DRM_IOCTL_MODE_ADDFB2, &f) == -1 &&
+		igt_assert(drmIoctl(fd, LOCAL_DRM_IOCTL_MODE_ADDFB2, &f) == -1 &&
 			   errno == EINVAL);
 		f.modifier[1] = 0;
 	}
