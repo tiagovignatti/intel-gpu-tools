@@ -30,12 +30,8 @@
 #include <errno.h>
 #include <assert.h>
 
+#include "intel_renderstate.h"
 #include "intel_batchbuffer.h"
-
-extern int gen6_setup_null_render_state(struct intel_batchbuffer *batch);
-extern int gen7_setup_null_render_state(struct intel_batchbuffer *batch);
-extern int gen8_setup_null_render_state(struct intel_batchbuffer *batch);
-extern int gen9_setup_null_render_state(struct intel_batchbuffer *batch);
 
 static int debug = 0;
 
@@ -115,7 +111,7 @@ static int do_generate(int gen)
 {
 	struct intel_batchbuffer *batch;
 	int ret = -EINVAL;
-	int (*null_state_gen)(struct intel_batchbuffer *batch) = NULL;
+	void (*null_state_gen)(struct intel_batchbuffer *batch) = NULL;
 
 	batch = intel_batchbuffer_create();
 	if (batch == NULL)

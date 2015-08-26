@@ -25,7 +25,7 @@
  *	Mika Kuoppala <mika.kuoppala@intel.com>
  */
 
-#include "intel_batchbuffer.h"
+#include "intel_renderstate.h"
 #include <lib/gen9_render.h>
 #include <lib/intel_reg.h>
 
@@ -342,9 +342,8 @@ static void gen9_emit_state_base_address(struct intel_batchbuffer *batch) {
  * Generate the batch buffer commands needed to initialize the 3D engine
  * to its "golden state".
  */
-int gen9_setup_null_render_state(struct intel_batchbuffer *batch)
+void gen9_setup_null_render_state(struct intel_batchbuffer *batch)
 {
-	int ret;
 	int i;
 
 #define GEN8_PIPE_CONTROL_GLOBAL_GTT   (1 << 24)
@@ -477,6 +476,4 @@ int gen9_setup_null_render_state(struct intel_batchbuffer *batch)
 	gen8_emit_primitive(batch);
 
 	OUT_BATCH(MI_BATCH_BUFFER_END);
-
-	return ret;
 }

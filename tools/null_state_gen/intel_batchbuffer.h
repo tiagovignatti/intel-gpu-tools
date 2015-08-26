@@ -3,7 +3,7 @@
  * Copyright 2006 Tungsten Graphics, Inc., Cedar Park, Texas.
  * All Rights Reserved.
  *
- * Copyright 2014 Intel Corporation
+ * Copyright 2014, 2015 Intel Corporation
  * All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
@@ -86,6 +86,8 @@ uint32_t intel_batch_state_alloc(struct intel_batchbuffer *batch, unsigned bytes
 				 const char *name);
 uint32_t intel_batch_state_offset(struct intel_batchbuffer *batch, unsigned align);
 unsigned intel_batch_num_cmds(struct intel_batchbuffer *batch);
+struct bb_item *intel_batch_state_get(struct intel_batchbuffer *batch, unsigned i);
+unsigned intel_batch_num_state(struct intel_batchbuffer *batch);
 
 struct bb_item *intel_batch_cmd_get(struct intel_batchbuffer *batch, unsigned i);
 int intel_batch_is_reloc(struct intel_batchbuffer *batch, unsigned i);

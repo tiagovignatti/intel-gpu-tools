@@ -3,7 +3,7 @@
  * Copyright 2006 Tungsten Graphics, Inc., Cedar Park, Texas.
  * All Rights Reserved.
  *
- * Copyright 2014 Intel Corporation
+ * Copyright 2014, 2015 Intel Corporation
  * All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
@@ -164,7 +164,7 @@ unsigned intel_batch_num_cmds(struct intel_batchbuffer *batch)
 	return bb_area_items(batch->cmds);
 }
 
-static unsigned intel_batch_num_state(struct intel_batchbuffer *batch)
+unsigned intel_batch_num_state(struct intel_batchbuffer *batch)
 {
 	return bb_area_items(batch->state);
 }
@@ -217,9 +217,10 @@ uint32_t intel_batch_state_copy(struct intel_batchbuffer *batch,
 
 	for (i = 0; i < dwords; i++) {
 		char offsetinside[80];
+		uint32_t *s;
 		sprintf(offsetinside, "%s: 0x%x", str, i * 4);
 
-		uint32_t *s = (uint32_t *)(uint8_t *)d + i;
+		s = (uint32_t *)(uint8_t *)d + i;
 		bb_area_emit(batch->state, *s, STATE, offsetinside);
 	}
 

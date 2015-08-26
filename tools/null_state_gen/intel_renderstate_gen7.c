@@ -24,7 +24,7 @@
  *	Mika Kuoppala <mika.kuoppala@intel.com>
  */
 
-#include "intel_batchbuffer.h"
+#include "intel_renderstate.h"
 #include <lib/gen7_render.h>
 #include <lib/intel_reg.h>
 #include <string.h>
@@ -417,8 +417,6 @@ gen7_emit_null_depth_buffer(struct intel_batchbuffer *batch)
 
 void gen7_setup_null_render_state(struct intel_batchbuffer *batch)
 {
-	int ret;
-
 	OUT_BATCH(GEN7_PIPELINE_SELECT | PIPELINE_SELECT_3D);
 
 	gen7_emit_state_base_address(batch);

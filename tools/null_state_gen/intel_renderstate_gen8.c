@@ -24,6 +24,7 @@
  *	Mika Kuoppala <mika.kuoppala@intel.com>
  */
 
+#include "intel_renderstate.h"
 #include "intel_batchbuffer.h"
 #include <lib/gen8_render.h>
 #include <lib/intel_reg.h>
@@ -322,11 +323,8 @@ static void gen8_emit_primitive(struct intel_batchbuffer *batch)
         OUT_BATCH(0);   /* index buffer offset, ignored */
 }
 
-int gen8_setup_null_render_state(struct intel_batchbuffer *batch)
+void gen8_setup_null_render_state(struct intel_batchbuffer *batch)
 {
-	int ret;
-	int i;
-
 #define GEN8_PIPE_CONTROL_GLOBAL_GTT   (1 << 24)
 
 	OUT_BATCH(GEN6_PIPE_CONTROL | (6 - 2));

@@ -24,7 +24,7 @@
  *	Mika Kuoppala <mika.kuoppala@intel.com>
  */
 
-#include "intel_batchbuffer.h"
+#include "intel_renderstate.h"
 #include <lib/gen6_render.h>
 #include <lib/intel_reg.h>
 #include <string.h>
