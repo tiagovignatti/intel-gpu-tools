@@ -52,6 +52,7 @@ LDADD = ../lib/libintel_tools.la $(PCIACCESS_LIBS) $(DRM_LIBS) $(LIBUNWIND_LIBS)
 
 LDADD += $(CAIRO_LIBS) $(LIBUDEV_LIBS) $(GLIB_LIBS) -lm
 AM_CFLAGS += $(CAIRO_CFLAGS) $(LIBUDEV_CFLAGS) $(GLIB_CFLAGS)
+AM_LDFLAGS = -Wl,--as-needed
 
 drm_import_export_CFLAGS = $(AM_CFLAGS) $(THREAD_CFLAGS)
 drm_import_export_LDADD = $(LDADD) -lpthread
