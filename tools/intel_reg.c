@@ -439,7 +439,7 @@ static int intel_reg_write(struct config *config, int argc, char *argv[])
 		return EXIT_FAILURE;
 	}
 
-	intel_register_access_init(intel_get_pci_device(), 0);
+	intel_register_access_init(config->pci_dev, 0);
 
 	for (i = 1; i < argc; i += 2) {
 		struct reg reg;
