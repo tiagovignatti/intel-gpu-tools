@@ -45,7 +45,6 @@ IGT_TEST_DESCRIPTION("Basic CS check using MI_STORE_DATA_IMM.");
 static drm_intel_bufmgr *bufmgr;
 struct intel_batchbuffer *batch;
 static drm_intel_bo *target_buffer;
-static int has_ppgtt = 0;
 static int devid;
 
 /*
@@ -57,8 +56,6 @@ emit_store_dword_imm(drm_intel_bo *dest, uint32_t val)
 {
 	int cmd;
 	cmd = MI_STORE_DWORD_IMM;
-	if (!has_ppgtt)
-		cmd |= MI_MEM_VIRTUAL;
 
 	BEGIN_BATCH(4, 0);
 	OUT_BATCH(cmd);
@@ -163,14 +160,12 @@ igt_main
 		bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
 		igt_assert(bufmgr);
 
-		has_ppgtt = gem_uses_aliasing_ppgtt(fd);
-
 		igt_skip_on_f(intel_gen(devid) < 6,
 			      "MI_STORE_DATA can only use GTT address on gen4+/g33 and "
 			      "needs snoopable mem on pre-gen6\n");
 
 		/* This only works with ppgtt */
-		igt_require(has_ppgtt);
+		igt_require(gem_uses_aliasing_ppgtt(fd));
 	}
 
 	for (i = 0; i < ARRAY_SIZE(rings); i++) {
