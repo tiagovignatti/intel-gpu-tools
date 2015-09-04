@@ -217,9 +217,10 @@ AC_DEFINE_UNQUOTED(TARGET_CPU_PLATFORM, ["$host_cpu"], [Target platform])
 
 files="broadwell cherryview haswell ivybridge sandybridge valleyview skylake"
 for file in $files; do
-	REGISTERS_EXTRA_DIST="$REGISTERS_EXTRA_DIST $file `tr '\n' ' ' < $srcdir/tools/registers/$file`"
+	REGISTER_FILES="$REGISTER_FILES $file `cat $srcdir/tools/registers/$file`"
 done
-AC_SUBST(REGISTERS_EXTRA_DIST)
+REGISTER_FILES=`echo $REGISTER_FILES | tr ' ' '\n' | sort -u | tr '\n' ' '`
+AC_SUBST(REGISTER_FILES)
 
 AC_CONFIG_FILES([
 		 Makefile

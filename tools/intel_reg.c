@@ -713,7 +713,7 @@ static int get_reg_spec_file(char *buf, size_t buflen, const char *dir,
 static int read_reg_spec(struct config *config)
 {
 	char buf[PATH_MAX];
-	char *path;
+	const char *path;
 	struct stat st;
 	int r;
 
@@ -722,7 +722,7 @@ static int read_reg_spec(struct config *config)
 		path = getenv("INTEL_REG_SPEC");
 
 	if (!path)
-		goto builtin;
+		path = PKGDATADIR"/registers";
 
 	r = stat(path, &st);
 	if (r) {
