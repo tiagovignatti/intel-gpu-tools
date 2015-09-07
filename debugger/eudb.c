@@ -147,7 +147,9 @@ dump_debug(void *buf, size_t count) {
 	if (!debug_fd)
 		debug_fd = open(debug_file, O_CREAT | O_WRONLY | O_TRUNC, S_IRWXO);
 
-	write(debug_fd, buf, count);
+	if (write(debug_fd, buf, count) == -1)
+		fprintf(stderr, "Error writing to debug file: %s\n",
+			strerror(errno));
 }
 
 static volatile void *

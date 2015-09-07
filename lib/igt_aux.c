@@ -767,8 +767,12 @@ static void igt_module_param_exit_handler(int sig)
 
 		fd = open(file_path, O_RDWR);
 		if (fd >= 0) {
-			write(fd, data->original_value,
-			      strlen(data->original_value));
+			int size = strlen (data->original_value);
+
+			if (size != write(fd, data->original_value, size))
+				igt_warn("%s may not have been reset to its"
+					 " original value\n", file_path);
+
 			close(fd);
 		}
 	}

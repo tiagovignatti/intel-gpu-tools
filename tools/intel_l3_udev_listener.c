@@ -113,10 +113,10 @@ again:
 
 	udev_device_unref(udev_dev);
 
-	asprintf(&err_msg, "Parity error detected on: %d,%d,%d,%d. "
+	assert(asprintf(&err_msg, "Parity error detected on: %d,%d,%d,%d. "
 			"Try to run intel_l3_parity -r %d -b %d -s %d -w %d -d",
 			loc->slice, loc->row, loc->bank, loc->subbank,
-			loc->row, loc->bank, loc->subbank, loc->slice);
+			loc->row, loc->bank, loc->subbank, loc->slice) != -1);
 	if (daemon) {
 		syslog(LOG_INFO, "%s\n", err_msg);
 		goto again;

@@ -29,6 +29,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <assert.h>
 
 #include "perf.h"
 #include "igfx.h"
@@ -260,7 +261,8 @@ static void mmio_init(struct gpu_top *gt)
 		mmio_ring_emit(&render_ring, 1000, payload);
 		mmio_ring_emit(&bsd_ring, 1000, payload);
 		mmio_ring_emit(&blt_ring, 1000, payload);
-		write(fd[1], payload, sizeof(payload));
+		assert(write(fd[1], payload, sizeof(payload))
+		       == sizeof(payload));
 	}
 }
 

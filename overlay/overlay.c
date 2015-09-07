@@ -910,8 +910,8 @@ int main(int argc, char **argv)
 	if (daemonize && daemon(0, 0))
 		return EINVAL;
 
-	if (renice)
-		nice(renice);
+	if (renice && (nice(renice) == -1))
+		fprintf(stderr, "Could not renice: %s\n", strerror(errno));
 
 	signal(SIGUSR1, signal_snapshot);
 

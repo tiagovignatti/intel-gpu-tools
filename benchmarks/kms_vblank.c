@@ -41,6 +41,7 @@
 #include <drm.h>
 #include <xf86drm.h>
 #include "drmtest.h"
+#include "assert.h"
 
 static double elapsed(const struct timespec *start,
 		      const struct timespec *end,
@@ -89,7 +90,7 @@ static void vblank_query(int fd, int busy)
 
 	printf("%f\n", 1e6/elapsed(&start, &end, count));
 	if (busy)
-		read(fd, &event, sizeof(event));
+		assert(read(fd, &event, sizeof(event)) != -1);
 }
 
 static void vblank_event(int fd, int busy)
@@ -118,14 +119,14 @@ static void vblank_event(int fd, int busy)
 		vbl.request.sequence = 0;
 		drmIoctl(fd, DRM_IOCTL_WAIT_VBLANK, &vbl);
 
-		read(fd, &event, sizeof(event));
+		assert(read(fd, &event, sizeof(event)) != -1);
 		count++;
 	} while ((event.sequence - seq) <= 120);
 	clock_gettime(CLOCK_MONOTONIC, &end);
 
 	printf("%f\n", 1e6/elapsed(&start, &end, count));
 	if (busy)
-		read(fd, &event, sizeof(event));
+		assert(read(fd, &event, sizeof(event)) != -1);
 }
 
 int main(int argc, char **argv)
