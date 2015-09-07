@@ -865,7 +865,7 @@ int main(int argc, char *argv[])
 	argc -= optind;
 	argv += optind;
 
-	if (help)
+	if (help || (argc > 0 && strcmp(argv[0], "help") == 0))
 		return intel_reg_help(&config, argc, argv);
 
 	if (argc == 0) {
