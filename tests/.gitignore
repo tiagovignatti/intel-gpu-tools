@@ -99,10 +99,6 @@ gem_set_tiling_vs_blt
 gem_set_tiling_vs_gtt
 gem_set_tiling_vs_pwrite
 gem_storedw_batches_loop
-gem_storedw_loop_blt
-gem_storedw_loop_bsd
-gem_storedw_loop_render
-gem_storedw_loop_vebox
 gem_streaming_writes
 gem_stress
 gem_threaded_access_tiled
