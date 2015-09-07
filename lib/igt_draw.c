@@ -36,7 +36,7 @@
  * SECTION:igt_draw
  * @short_description: drawing helpers for tests
  * @title: Draw
- * @include: igt_draw.h
+ * @include: igt.h
  *
  * This library contains some functions for drawing rectangles on buffers using
  * the many different drawing methods we have. It also contains some wrappers

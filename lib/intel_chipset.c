@@ -45,7 +45,7 @@
  * SECTION:intel_chipset
  * @short_description: Feature macros and chipset helpers
  * @title: Chipset
- * @include: intel_chipset.h
+ * @include: igt.h
  *
  * This library mostly provides feature macros which use raw pci device ids. It
  * also provides a few more helper functions to handle pci devices, chipset

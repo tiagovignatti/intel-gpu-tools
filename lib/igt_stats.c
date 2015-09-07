@@ -38,7 +38,7 @@
  * SECTION:igt_stats
  * @short_description: Tools for statistical analysis
  * @title: Stats
- * @include: igt_stats.h
+ * @include: igt.h
  *
  * Various tools to make sense of data.
  *

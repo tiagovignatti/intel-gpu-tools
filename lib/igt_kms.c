@@ -166,7 +166,7 @@ const unsigned char* igt_kms_get_base_edid(void)
  * SECTION:igt_kms
  * @short_description: Kernel modesetting support library
  * @title: KMS
- * @include: igt_kms.h
+ * @include: igt.h
  *
  * This library provides support to enumerate and set modeset configurations.
  *

@@ -75,7 +75,7 @@
  * SECTION:igt_core
  * @short_description: Core i-g-t testing support
  * @title: Core
- * @include: igt_core.h
+ * @include: igt.h
  *
  * This library implements the core of the i-g-t test support infrastructure.
  * Main features are the subtest enumeration, cmdline option parsing helpers for
@@ -1794,7 +1794,7 @@ void igt_set_timeout(unsigned int seconds,
 }
 
 /**
- * igt_reset_timeout - reset timeout to default
+ * igt_reset_timeout:
  *
  * This function resets a timeout set by igt_set_timeout() and disables any
  * timer set up by the former function.

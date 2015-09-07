@@ -37,7 +37,7 @@
  * SECTION:igt_fb
  * @short_description: Framebuffer handling and drawing library
  * @title: Framebuffer
- * @include: igt_fb.h
+ * @include: igt.h
  *
  * This library contains helper functions for handling kms framebuffer objects
  * using #igt_fb structures to track all the metadata.  igt_create_fb() creates

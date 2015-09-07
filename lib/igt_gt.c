@@ -41,7 +41,7 @@
  * SECTION:igt_gt
  * @short_description: GT support library
  * @title: GT
- * @include: igt_gt.h
+ * @include: igt.h
  *
  * This library provides various auxiliary helper functions to handle general
  * interactions with the GT like forcewake handling, injecting hangs or stopping

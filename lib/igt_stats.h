@@ -30,7 +30,8 @@
 
 /**
  * igt_stats_t:
- * @values: An array containing the pushed values
+ * @values_u64: An array containing pushed integer values
+ * @values_f: An array containing pushed float values
  * @n_values: The number of pushed values
  */
 typedef struct {

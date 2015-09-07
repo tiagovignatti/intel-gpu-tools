@@ -62,7 +62,7 @@
  * SECTION:drmtest
  * @short_description: Base library for drm tests and tools
  * @title: drmtest
- * @include: drmtest.h
+ * @include: igt.h
  *
  * This library contains the basic support for writing tests, with the most
  * important part being the helper function to open drm device nodes.
