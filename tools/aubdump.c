@@ -191,7 +191,7 @@ aub_write_trace_block(uint32_t type, void *virtual, uint32_t size, uint64_t gtt_
 			dword_out((gtt_offset + offset) >> 32);
 
 		if (virtual)
-			data_out(GET_PTR(virtual) + offset, block_size);
+			data_out(((char *) GET_PTR(virtual)) + offset, block_size);
 		else
 			data_out(null_block, block_size);
 
@@ -261,7 +261,7 @@ relocate_bo(struct bo *bo, const struct drm_i915_gem_execbuffer2 *execbuffer2,
 		else
 			handle = relocs[i].target_handle;
 
-		dw = relocated + relocs[i].offset;
+		dw = (uint32_t*)(((char *) relocated) + relocs[i].offset);
 		*dw = bos[handle].offset + relocs[i].delta;
 	}
 
