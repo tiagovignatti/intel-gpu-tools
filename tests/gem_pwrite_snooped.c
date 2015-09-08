@@ -83,7 +83,10 @@ static void *memchr_inv(const void *s, int c, size_t n)
 
 	while (n--) {
 		if (*us != uc)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-qual"
 			return (void *) us;
+#pragma GCC diagnostic pop
 		us++;
 	}
 
