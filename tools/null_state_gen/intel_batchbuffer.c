@@ -202,7 +202,7 @@ uint32_t intel_batch_state_alloc(struct intel_batchbuffer *batch, unsigned bytes
 }
 
 uint32_t intel_batch_state_copy(struct intel_batchbuffer *batch,
-				void *d, unsigned bytes,
+				const void *d, unsigned bytes,
 				unsigned align,
 				const char *str)
 {
@@ -217,10 +217,10 @@ uint32_t intel_batch_state_copy(struct intel_batchbuffer *batch,
 
 	for (i = 0; i < dwords; i++) {
 		char offsetinside[80];
-		uint32_t *s;
+		const uint32_t *s;
 		sprintf(offsetinside, "%s: 0x%x", str, i * 4);
 
-		s = (uint32_t *)(uint8_t *)d + i;
+		s = (const uint32_t *)(const uint8_t *)d + i;
 		bb_area_emit(batch->state, *s, STATE, offsetinside);
 	}
 

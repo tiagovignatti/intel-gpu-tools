@@ -80,7 +80,7 @@ struct intel_batchbuffer *intel_batchbuffer_create(void);
 #define OUT_STATE_OFFSET(offset) bb_area_emit(batch->state, offset, STATE_OFFSET, #offset)
 #define OUT_STATE_STRUCT(name, align) intel_batch_state_copy(batch, &name, sizeof(name), align, #name " " #align)
 
-uint32_t intel_batch_state_copy(struct intel_batchbuffer *batch, void *d, unsigned bytes, unsigned align,
+uint32_t intel_batch_state_copy(struct intel_batchbuffer *batch, const void *d, unsigned bytes, unsigned align,
 				const char *name);
 uint32_t intel_batch_state_alloc(struct intel_batchbuffer *batch, unsigned bytes, unsigned align,
 				 const char *name);
