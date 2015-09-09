@@ -2,6 +2,8 @@ LOCAL_PATH := $(call my-dir)
 
 include $(LOCAL_PATH)/Makefile.sources
 
+LOCAL_TOOLS_DIR := intel/validation/core/igt/tools
+
 #================#
 
 define add_tool
@@ -34,10 +36,20 @@ define add_tool
                               libdrm        \
                               libdrm_intel
 
+    # Tools dir on host
+    LOCAL_MODULE_PATH := $(TARGET_OUT_VENDOR)/$(LOCAL_TOOLS_DIR)
+    # Tools dir on target.
+    LOCAL_CFLAGS += -DPKGDATADIR=\"/system/vendor/$(LOCAL_TOOLS_DIR)\"
+
     include $(BUILD_EXECUTABLE)
 endef
 
 #================#
+
+# Copy the register files
+$(shell mkdir -p $(TARGET_OUT_VENDOR)/$(LOCAL_TOOLS_DIR)/registers)
+$(shell cp $(LOCAL_PATH)/registers/* $(TARGET_OUT_VENDOR)/$(LOCAL_TOOLS_DIR)/registers)
+
 
 skip_tools_list := \
     intel_framebuffer_dump \
