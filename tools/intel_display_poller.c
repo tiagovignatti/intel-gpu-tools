@@ -1010,7 +1010,17 @@ int main(int argc, char *argv[])
 				usage(argv[0]);
 			break;
 		case 'p':
-			pipe = atoi(optarg);
+			if (optarg[1] != '\0')
+				usage(argv[0]);
+			pipe = optarg[0];
+			if (pipe >= 'a')
+				pipe -= 'a';
+			else if (pipe >= 'A')
+				pipe -= 'A';
+			else if (pipe >= '0')
+				pipe -= '0';
+			else
+				usage(argv[0]);
 			if (pipe < 0 || pipe > 2)
 				usage(argv[0]);
 			break;
