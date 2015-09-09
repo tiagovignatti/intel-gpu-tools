@@ -127,7 +127,7 @@ igt_main
 			ctx_param.context = ctx;
 			TEST_SUCCESS(LOCAL_IOCTL_I915_GEM_CONTEXT_GETPARAM);
 			ctx_param.value--;
-			TEST_FAIL(LOCAL_IOCTL_I915_GEM_CONTEXT_SETPARAM, EPERM);
+			TEST_SUCCESS(LOCAL_IOCTL_I915_GEM_CONTEXT_SETPARAM);
 		}
 
 		igt_waitchildren();
