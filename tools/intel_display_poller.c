@@ -314,7 +314,7 @@ static void poll_pixel_flip(uint32_t devid, int pipe, int target_pixel, int targ
 				break;
 		}
 
-		write_reg(surf, saved+4096);
+		write_reg(surf, saved+128*1024);
 
 		while (!quit){
 			pix2 = read_reg(pix) & PIPE_PIXEL_MASK;
@@ -763,7 +763,7 @@ static void poll_dsl_flip(uint32_t devid, int pipe, int target_scanline, int tar
 				break;
 		}
 
-		write_reg(surf, saved+4096);
+		write_reg(surf, saved+128*1024);
 
 		while (!quit) {
 			dsl2 = read_reg(dsl);
@@ -802,7 +802,7 @@ static void poll_dsl_surflive(uint32_t devid, int pipe,
 	saved = read_reg(surf);
 
 	surf1 = saved & ~0xfff;
-	surf2 = surf1 + 4096;
+	surf2 = surf1 + 128*1024;
 
 	while (!quit) {
 		write_reg(surf, surf2);
