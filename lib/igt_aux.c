@@ -47,6 +47,7 @@
 #include <sys/syscall.h>
 #include <sys/utsname.h>
 #include <termios.h>
+#include <assert.h>
 
 #include "drmtest.h"
 #include "i915_drm.h"
@@ -769,9 +770,13 @@ static void igt_module_param_exit_handler(int sig)
 		if (fd >= 0) {
 			int size = strlen (data->original_value);
 
-			if (size != write(fd, data->original_value, size))
-				igt_warn("%s may not have been reset to its"
-					 " original value\n", file_path);
+			if (size != write(fd, data->original_value, size)) {
+				const char msg[] = "WARNING: Module parameters "
+					"may not have been reset to their "
+					"original values\n";
+				assert(write(STDERR_FILENO, msg, sizeof(msg))
+				       == sizeof(msg));
+			}
 
 			close(fd);
 		}
