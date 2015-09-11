@@ -197,6 +197,7 @@ struct bdb_general_features {
 #define DEVICE_TYPE_HDMI_DVI		0x60d2
 #define DEVICE_TYPE_DVI			0x68d2
 #define DEVICE_TYPE_eDP			0x78C6
+#define DEVICE_TYPE_MIPI		0x7cc2
 
 #define DEVICE_CFG_NONE		0x00
 #define DEVICE_CFG_12BIT_DVOB	0x01

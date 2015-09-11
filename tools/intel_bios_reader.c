@@ -239,6 +239,7 @@ static const struct {
 	{ DEVICE_TYPE_HDMI_DVI, "HDMI/DVI" },
 	{ DEVICE_TYPE_DVI, "DVI" },
 	{ DEVICE_TYPE_eDP, "eDP" },
+	{ DEVICE_TYPE_MIPI, "MIPI" },
 };
 static const int num_child_device_types =
 	sizeof(child_device_types) / sizeof(child_device_types[0]);
