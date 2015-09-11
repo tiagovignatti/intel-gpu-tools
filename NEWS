@@ -1,6 +1,31 @@
 Release 1.12 (XXXX-XX-XX)
 -------------------------
 
+- Various new tests and tools
+
+- New statistical analysis functions. (Damien Lespiau)
+
+- New benchmark tests. (Chris Wilson)
+
+- Old register tools that were superseded by intel_reg have been removed.
+
+- Various tests have been marked "basic", to indicate they are suitable for
+  use in basic acceptance testing. (Jesse Barnes)
+
+- Per-ring gem_storedw_loop tests combined into a single test with subtests.
+  (Jesse Barnes)
+
+- New "aubdump" tool, used to launch an application and capture rendering to
+  an AUB file. (Kristian Høgsberg Kristensen)
+
+- Cherryview support added to intel_display_poller. (Ville Syrjälä)
+
+- Skylake and Broadwell support added to gem_gpgpu_fill tests.
+  (Dominik Zeromski)
+
+- Support for running core drm tests on any platform. (Micah Fedke)
+
+- Many other bug fixes
 
 Release 1.11 (2015-06-11)
 -------------------------
