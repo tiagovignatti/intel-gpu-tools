@@ -134,6 +134,14 @@ struct bdb_general_features {
 #define	GPIO_PIN_ADD_DDC	0x04	/* "ADDCARD DDC GPIO pins" */
 #define	GPIO_PIN_ADD_DDC_I2C	0x06	/* "ADDCARD DDC/I2C GPIO pins" */
 
+#define DEVICE_HANDLE_CRT	0x01
+#define DEVICE_HANDLE_EFP1	0x04
+#define DEVICE_HANDLE_EFP2	0x40
+#define DEVICE_HANDLE_EFP3	0x20
+#define DEVICE_HANDLE_EFP4	0x10
+#define DEVICE_HANDLE_LPF1	0x08
+#define DEVICE_HANDLE_LFP2	0x80
+
 /* Pre 915 */
 #define DEVICE_TYPE_NONE	0x00
 #define DEVICE_TYPE_CRT		0x01

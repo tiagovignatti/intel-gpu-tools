@@ -255,6 +255,32 @@ static const char *child_device_type(unsigned short type)
 }
 
 static const struct {
+	unsigned char handle;
+	const char *name;
+} child_device_handles[] = {
+	{ DEVICE_HANDLE_CRT, "CRT" },
+	{ DEVICE_HANDLE_EFP1, "EFP 1 (HDMI/DVI/DP)" },
+	{ DEVICE_HANDLE_EFP2, "EFP 2 (HDMI/DVI/DP)" },
+	{ DEVICE_HANDLE_EFP3, "EFP 3 (HDMI/DVI/DP)" },
+	{ DEVICE_HANDLE_EFP4, "EFP 4 (HDMI/DVI/DP)" },
+	{ DEVICE_HANDLE_LPF1, "LFP 1 (eDP)" },
+	{ DEVICE_HANDLE_LFP2, "LFP 2 (eDP)" },
+};
+static const int num_child_device_handles =
+	sizeof(child_device_handles) / sizeof(child_device_handles[0]);
+
+static const char *child_device_handle(unsigned char handle)
+{
+	int i;
+
+	for (i = 0; i < num_child_device_handles; i++)
+		if (child_device_handles[i].handle == handle)
+			return child_device_handles[i].name;
+
+	return "unknown";
+}
+
+static const struct {
 	unsigned short type;
 	const char *name;
 } efp_ports[] = {
@@ -324,6 +350,8 @@ static void dump_child_device(struct child_device_config *child)
 		struct efp_child_device_config *efp =
 			(struct efp_child_device_config *)child;
 		printf("\tEFP device info:\n");
+		printf("\t\tDevice handle: 0x%04x (%s)\n", efp->handle,
+		       child_device_handle(efp->handle));
 		printf("\t\tDevice type: 0x%04x (%s)\n", efp->device_type,
 		       child_device_type(efp->device_type));
 		printf("\t\tPort: 0x%02x (%s)\n", efp->port,
