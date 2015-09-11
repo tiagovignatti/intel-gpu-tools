@@ -254,6 +254,37 @@ static const char *child_device_type(unsigned short type)
 	return "unknown";
 }
 
+static const char * const child_device_type_bits[] = {
+	[DEVICE_TYPE_CLASS_EXTENSION] = "Class extension",
+	[DEVICE_TYPE_POWER_MANAGEMENT] = "Power management",
+	[DEVICE_TYPE_HOTPLUG_SIGNALING] = "Hotplug signaling",
+	[DEVICE_TYPE_INTERNAL_CONNECTOR] = "Internal connector",
+	[DEVICE_TYPE_NOT_HDMI_OUTPUT] = "HDMI output", /* decoded as inverse */
+	[DEVICE_TYPE_MIPI_OUTPUT] = "MIPI output",
+	[DEVICE_TYPE_COMPOSITE_OUTPUT] = "Composite output",
+	[DEVICE_TYPE_DIAL_CHANNEL] = "Dual channel",
+	[DEVICE_TYPE_CONTENT_PROTECTION] = "Content protection",
+	[DEVICE_TYPE_HIGH_SPEED_LINK] = "High speel link",
+	[DEVICE_TYPE_LVDS_SIGNALING] = "LVDS signaling",
+	[DEVICE_TYPE_TMDS_DVI_SIGNALING] = "TMDS/DVI signaling",
+	[DEVICE_TYPE_VIDEO_SIGNALING] = "Video signaling",
+	[DEVICE_TYPE_DISPLAYPORT_OUTPUT] = "DisplayPort output",
+	[DEVICE_TYPE_DIGITAL_OUTPUT] = "Digital output",
+	[DEVICE_TYPE_ANALOG_OUTPUT] = "Analog output",
+};
+
+static void dump_child_device_type_bits(uint16_t type)
+{
+	int bit;
+
+	type ^= 1 << DEVICE_TYPE_NOT_HDMI_OUTPUT;
+
+	for (bit = 15; bit >= 0; bit--) {
+		if (type & (1 << bit))
+			printf("\t\t\t%s\n", child_device_type_bits[bit]);
+	}
+}
+
 static const struct {
 	unsigned char handle;
 	const char *name;
@@ -354,6 +385,7 @@ static void dump_child_device(struct child_device_config *child)
 		       child_device_handle(efp->handle));
 		printf("\t\tDevice type: 0x%04x (%s)\n", efp->device_type,
 		       child_device_type(efp->device_type));
+		dump_child_device_type_bits(efp->device_type);
 		printf("\t\tPort: 0x%02x (%s)\n", efp->port,
 		       efp_port(efp->port));
 		printf("\t\tDDC pin: 0x%02x\n", efp->ddc_pin);
