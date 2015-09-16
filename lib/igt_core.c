@@ -56,6 +56,7 @@
 #include <ctype.h>
 #include <limits.h>
 #include <locale.h>
+#include <fnmatch.h>
 
 #include "drmtest.h"
 #include "intel_chipset.h"
@@ -771,7 +772,7 @@ bool __igt_run_subtest(const char *subtest_name)
 	}
 
 	if (run_single_subtest) {
-		if (strcmp(subtest_name, run_single_subtest) != 0)
+		if (fnmatch(run_single_subtest, subtest_name, 0) != 0)
 			return false;
 		else
 			run_single_subtest_found = true;
