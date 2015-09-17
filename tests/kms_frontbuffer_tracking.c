@@ -903,10 +903,10 @@ static struct rect pat1_get_rect(struct fb_region *fb, int r)
 		rect.color = pick_color(fb->fb, COLOR_MAGENTA);
 		break;
 	case 3:
-		rect.x = fb->w - 64;
-		rect.y = fb->h - 64;
-		rect.w = 64;
-		rect.h = 64;
+		rect.x = fb->w - 1;
+		rect.y = fb->h - 1;
+		rect.w = 1;
+		rect.h = 1;
 		rect.color = pick_color(fb->fb, COLOR_CYAN);
 		break;
 	default:
