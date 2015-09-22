@@ -128,7 +128,6 @@ store_test(int ring, int count)
 
 	drm_intel_bo_unreference(target_buffer);
 	intel_batchbuffer_free(batch);
-	drm_intel_bufmgr_destroy(bufmgr);
 }
 
 struct ring {
@@ -181,5 +180,6 @@ igt_main
 		}
 	}
 
+	drm_intel_bufmgr_destroy(bufmgr);
 	close(fd);
 }
