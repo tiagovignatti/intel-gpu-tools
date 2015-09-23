@@ -212,6 +212,37 @@ void __igt_debugfs_read(const char *filename, char *buf, int buf_size)
 	igt_assert(fclose(file) == 0);
 }
 
+/**
+ * igt_debugfs_search:
+ * @filename: file name
+ * @substring: string to search for in @filename
+ *
+ * Searches each line in @filename for the substring specified in @substring.
+ *
+ * Returns: True if the @substring is found to occur in @filename
+ */
+bool igt_debugfs_search(const char *filename, const char *substring)
+{
+	FILE *file;
+	size_t n = 0;
+	char *line = NULL;
+	bool matched = false;
+
+	file = igt_debugfs_fopen(filename, O_RDONLY);
+	igt_assert(file);
+
+	while (getline(&line, &n, file) >= 0) {
+		matched = (strstr(line, substring) != NULL);
+		if (matched)
+			break;
+	}
+
+	free(line);
+	fclose(file);
+
+	return matched;
+}
+
 /*
  * Pipe CRC
  */

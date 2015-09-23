@@ -35,6 +35,7 @@ int igt_debugfs_open(const char *filename, int mode);
 FILE *igt_debugfs_fopen(const char *filename,
 			const char *mode);
 void __igt_debugfs_read(const char *filename, char *buf, int buf_size);
+bool igt_debugfs_search(const char *filename, const char *substring);
 
 /**
  * igt_debugfs_read:

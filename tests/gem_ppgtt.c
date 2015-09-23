@@ -266,37 +266,6 @@ static void flink_and_close(void)
 	close(fd2);
 }
 
-static bool grep_name(const char *fname, const char *match)
-{
-	int fd;
-	FILE *fh;
-	size_t n = 0;
-	char *line = NULL;
-	char *matched = NULL;
-
-	fd = igt_debugfs_open(fname, O_RDONLY);
-	igt_assert(fd >= 0);
-
-	fh = fdopen(fd, "r");
-	igt_assert(fh);
-
-	while (getline(&line, &n, fh) >= 0) {
-		matched = strstr(line, match);
-		if (line) {
-			free(line);
-			line = NULL;
-		}
-		if (matched)
-			break;
-	}
-
-	if (line)
-		free(line);
-	fclose(fh);
-
-	return matched != NULL;
-}
-
 static void flink_and_exit(void)
 {
 	uint32_t fd, fd2;
@@ -323,7 +292,7 @@ static void flink_and_exit(void)
 	gem_sync(fd2, flinked_bo);
 
 	/* Verify looking for string works OK. */
-	matched = grep_name("i915_gem_gtt", match);
+	matched = igt_debugfs_search("i915_gem_gtt", match);
 	igt_assert_eq(matched, true);
 
 	gem_close(fd2, flinked_bo);
@@ -338,7 +307,7 @@ retry:
 	/* The flinked bo VMA should have been cleared now, so list of VMAs
 	 * in debugfs should not contain the one for the imported object.
 	 */
-	matched = grep_name("i915_gem_gtt", match);
+	matched = igt_debugfs_search("i915_gem_gtt", match);
 	if (matched && retry++ < retries)
 		goto retry;
 

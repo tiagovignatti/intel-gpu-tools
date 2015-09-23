@@ -157,19 +157,8 @@ static void thread_fini(struct thread *t)
 
 static void check_memory_layout(void)
 {
-	FILE *tiling_debugfs_file;
-	char *line = NULL;
-	size_t sz = 0;
-
-	tiling_debugfs_file = igt_debugfs_fopen("i915_swizzle_info", "r");
-	igt_assert(tiling_debugfs_file);
-
-	while (getline(&line, &sz, tiling_debugfs_file) > 0) {
-		if (strstr(line, "L-shaped") == NULL)
-			continue;
-
+	if (igt_debugfs_search("i915_swizzle_info", "L-shaped"))
 		igt_skip("L-shaped memory configuration detected\n");
-	}
 
 	igt_debug("normal memory configuration detected, continuing\n");
 }
