@@ -2265,6 +2265,54 @@ static void flip_subtest(const struct test_mode *t, enum flip_type type)
 }
 
 /*
+ * fliptrack - check if the hardware tracking works after page flips
+ *
+ * METHOD
+ *   Flip to a new buffer, then draw on it using MMAP_GTT and check the CRC to
+ *   make sure the hardware tracking detected the write.
+ *
+ * EXPECTED RESULTS
+ *   Everything works as expected, screen contents are properly updated.
+ *
+ * FAILURES
+ *   First you need to check if the draw and flip subtests pass. Only after both
+ *   are passing this test can be useful. If we're failing only on this subtest,
+ *   then maybe we are not properly updating the hardware tracking registers
+ *   during the flip operations.
+ */
+static void fliptrack_subtest(const struct test_mode *t, enum flip_type type)
+{
+	int r;
+	struct igt_fb fb2, *orig_fb;
+	struct modeset_params *params = pick_params(t);
+	struct draw_pattern_info *pattern = &pattern1;
+
+	prepare_subtest(t, pattern);
+
+	create_fb(t->format, params->fb.fb->width, params->fb.fb->height,
+		  LOCAL_I915_FORMAT_MOD_X_TILED, t->plane, &fb2);
+	fill_fb(&fb2, COLOR_PRIM_BG);
+	orig_fb = params->fb.fb;
+
+	for (r = 0; r < pattern->n_rects; r++) {
+		params->fb.fb = (r % 2 == 0) ? &fb2 : orig_fb;
+
+		if (r != 0)
+			draw_rect(pattern, &params->fb, t->method, r - 1);
+
+		page_flip_for_params(params, type);
+		do_assertions(0);
+
+		draw_rect(pattern, &params->fb, t->method, r);
+		update_wanted_crc(t, &pattern->crcs[t->format][r]);
+
+		do_assertions(ASSERT_PSR_DISABLED);
+	}
+
+	igt_remove_fb(drm.fd, &fb2);
+}
+
+/*
  * move - just move the sprite or cursor around
  *
  * METHOD
@@ -3098,6 +3146,21 @@ int main(int argc, char *argv[])
 			      fbs_str(t.fbs),
 			      igt_draw_get_method_name(t.method))
 			flip_subtest(&t, FLIP_MODESET);
+
+	TEST_MODE_ITER_END
+
+	TEST_MODE_ITER_BEGIN(t)
+		if (t.plane != PLANE_PRI ||
+		    t.screen != SCREEN_PRIM ||
+		    t.method != IGT_DRAW_MMAP_GTT ||
+		    (t.feature & FEATURE_FBC) == 0)
+			continue;
+
+		igt_subtest_f("%s-%s-%s-fliptrack",
+			      feature_str(t.feature),
+			      pipes_str(t.pipes),
+			      fbs_str(t.fbs))
+			fliptrack_subtest(&t, FLIP_PAGEFLIP);
 	TEST_MODE_ITER_END
 
 	TEST_MODE_ITER_BEGIN(t)
