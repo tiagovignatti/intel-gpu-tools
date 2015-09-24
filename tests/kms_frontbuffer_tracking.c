@@ -144,11 +144,14 @@ struct rect {
 };
 
 #define MAX_CONNECTORS 32
+#define MAX_PLANES 32
 struct {
 	int fd;
 	drmModeResPtr res;
 	drmModeConnectorPtr connectors[MAX_CONNECTORS];
-	drmModePlaneResPtr planes;
+	drmModePlaneResPtr plane_res;
+	drmModePlanePtr planes[MAX_PLANES];
+	uint64_t plane_types[MAX_PLANES];
 	drm_intel_bufmgr *bufmgr;
 } drm;
 
@@ -367,17 +370,11 @@ static void init_mode_params(struct modeset_params *params, uint32_t crtc_id,
 	uint32_t plane_id = 0;
 	int i;
 
-	for (i = 0; i < drm.planes->count_planes && plane_id == 0; i++) {
-		drmModePlanePtr plane;
+	for (i = 0; i < drm.plane_res->count_planes && plane_id == 0; i++)
+		if ((drm.planes[i]->possible_crtcs & (1 << crtc_index)) &&
+		    drm.plane_types[i] == DRM_PLANE_TYPE_OVERLAY)
+			plane_id = drm.planes[i]->plane_id;
 
-		plane = drmModeGetPlane(drm.fd, drm.planes->planes[i]);
-		igt_assert(plane);
-
-		if (plane->possible_crtcs & (1 << crtc_index))
-			plane_id = plane->plane_id;
-
-		drmModeFreePlane(plane);
-	}
 	igt_assert(plane_id);
 
 	params->crtc_id = crtc_id;
@@ -1069,9 +1066,9 @@ static void unset_all_crtcs(void)
 		igt_assert(rc == 0);
 	}
 
-	for (i = 0; i < drm.planes->count_planes; i++) {
-		rc = drmModeSetPlane(drm.fd, drm.planes->planes[i], 0, 0, 0, 0,
-				     0, 0, 0, 0, 0, 0, 0);
+	for (i = 0; i < drm.plane_res->count_planes; i++) {
+		rc = drmModeSetPlane(drm.fd, drm.plane_res->planes[i], 0, 0, 0,
+				     0, 0, 0, 0, 0, 0, 0, 0);
 		igt_assert(rc == 0);
 	}
 }
@@ -1240,9 +1237,25 @@ static void init_crcs(enum pixel_format format,
 	pattern->initialized[format] = true;
 }
 
+static uint64_t get_plane_type(uint32_t plane_id)
+{
+	bool found;
+	uint64_t prop_value;
+	drmModePropertyPtr prop;
+
+	found = kmstest_get_property(drm.fd, plane_id, DRM_MODE_OBJECT_PLANE,
+				     "type", NULL, &prop_value, &prop);
+	igt_assert(found);
+	igt_assert(prop->flags & DRM_MODE_PROP_ENUM);
+	igt_assert(prop_value < prop->count_enums);
+
+	drmModeFreeProperty(prop);
+	return prop_value;
+}
+
 static void setup_drm(void)
 {
-	int i;
+	int i, rc;
 
 	drm.fd = drm_open_driver_master(DRIVER_INTEL);
 
@@ -1253,7 +1266,16 @@ static void setup_drm(void)
 		drm.connectors[i] = drmModeGetConnector(drm.fd,
 						drm.res->connectors[i]);
 
-	drm.planes = drmModeGetPlaneResources(drm.fd);
+	rc = drmSetClientCap(drm.fd, DRM_CLIENT_CAP_UNIVERSAL_PLANES, 1);
+	igt_require(rc == 0);
+
+	drm.plane_res = drmModeGetPlaneResources(drm.fd);
+	igt_assert(drm.plane_res->count_planes <= MAX_PLANES);
+
+	for (i = 0; i < drm.plane_res->count_planes; i++) {
+		drm.planes[i] = drmModeGetPlane(drm.fd, drm.plane_res->planes[i]);
+		drm.plane_types[i] = get_plane_type(drm.plane_res->planes[i]);
+	}
 
 	drm.bufmgr = drm_intel_bufmgr_gem_init(drm.fd, 4096);
 	igt_assert(drm.bufmgr);
@@ -1266,7 +1288,9 @@ static void teardown_drm(void)
 
 	drm_intel_bufmgr_destroy(drm.bufmgr);
 
-	drmModeFreePlaneResources(drm.planes);
+	for (i = 0; i < drm.plane_res->count_planes; i++)
+		drmModeFreePlane(drm.planes[i]);
+	drmModeFreePlaneResources(drm.plane_res);
 
 	for (i = 0; i < drm.res->count_connectors; i++)
 		drmModeFreeConnector(drm.connectors[i]);
@@ -2383,91 +2407,26 @@ static void onoff_subtest(const struct test_mode *t)
 	}
 }
 
-static bool plane_is_primary(uint32_t plane_id)
-{
-	int i;
-	bool found, is_primary;
-	uint64_t prop_value;
-	drmModePropertyPtr prop;
-	const char *enum_name = NULL;
-
-	found = kmstest_get_property(drm.fd, plane_id, DRM_MODE_OBJECT_PLANE,
-				     "type", NULL, &prop_value, &prop);
-	if (!found) {
-		igt_debug("Property not found\n");
-		return false;
-	}
-	if (!(prop->flags & DRM_MODE_PROP_ENUM)) {
-		igt_debug("Property is not an enum\n");
-		return false;
-	}
-	if (prop_value >= prop->count_enums) {
-		igt_debug("Bad property value\n");
-		return false;
-	}
-
-	for (i = 0; i < prop->count_enums; i++) {
-		if (prop->enums[i].value == prop_value) {
-			enum_name = prop->enums[i].name;
-			break;
-		}
-	}
-	if (!enum_name) {
-		igt_debug("Enum name not found\n");
-		return false;
-	}
-
-	is_primary = (strcmp(enum_name, "Primary") == 0);
-	drmModeFreeProperty(prop);
-	return is_primary;
-}
-
 static bool prim_plane_disabled(void)
 {
 	int i, rc;
 	bool disabled, found = false;
-	drmModePlaneResPtr planes;
 
-	rc = drmSetClientCap(drm.fd, DRM_CLIENT_CAP_UNIVERSAL_PLANES, 1);
-	igt_assert(rc == 0);
-
-	planes = drmModeGetPlaneResources(drm.fd);
-	for (i = 0; i < planes->count_planes; i++) {
-		drmModePlanePtr plane;
-
-		plane = drmModeGetPlane(drm.fd, planes->planes[i]);
-		if (!plane) {
-			igt_debug("Failed to get plane\n");
-			goto fail;
-		}
-
+	for (i = 0; i < drm.plane_res->count_planes; i++) {
 		/* We just pick the first CRTC for the primary plane. */
-		if ((plane->possible_crtcs & 0x1) &&
-		    plane_is_primary(plane->plane_id)) {
+		if ((drm.planes[i]->possible_crtcs & 0x1) &&
+		    drm.plane_types[i] == DRM_PLANE_TYPE_PRIMARY) {
 			found = true;
-			disabled = (plane->crtc_id == 0);
+			disabled = (drm.planes[i]->crtc_id == 0);
 		}
-		drmModeFreePlane(plane);
 	}
-	drmModeFreePlaneResources(planes);
 
-	if (!found) {
-		igt_debug("Primary plane not found\n");
-		goto fail;
-	}
+	igt_assert(found);
 
 	rc = drmSetClientCap(drm.fd, DRM_CLIENT_CAP_UNIVERSAL_PLANES, 0);
 	igt_assert(rc == 0);
 
 	return disabled;
-
-fail:
-	/* Make sure we do this before failing any assertions so we don't mess
-	 * the other subtests. */
-	rc = drmSetClientCap(drm.fd, DRM_CLIENT_CAP_UNIVERSAL_PLANES, 0);
-	igt_assert(rc == 0);
-	igt_assert(false);
-	return false;
 }
 
 /*
