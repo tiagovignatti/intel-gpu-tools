@@ -37,6 +37,7 @@
 #include <drm.h>
 
 #include "intel_bufmgr.h"
+#include "igt_debugfs.h"
 
 #define WIDTH 512
 #define STRIDE (WIDTH*4)
@@ -265,6 +266,88 @@ static void flink_and_close(void)
 	close(fd2);
 }
 
+static bool grep_name(const char *fname, const char *match)
+{
+	int fd;
+	FILE *fh;
+	size_t n = 0;
+	char *line = NULL;
+	char *matched = NULL;
+
+	fd = igt_debugfs_open(fname, O_RDONLY);
+	igt_assert(fd >= 0);
+
+	fh = fdopen(fd, "r");
+	igt_assert(fh);
+
+	while (getline(&line, &n, fh) >= 0) {
+		matched = strstr(line, match);
+		if (line) {
+			free(line);
+			line = NULL;
+		}
+		if (matched)
+			break;
+	}
+
+	if (line)
+		free(line);
+	fclose(fh);
+
+	return matched != NULL;
+}
+
+static void flink_and_exit(void)
+{
+	uint32_t fd, fd2;
+	uint32_t bo, flinked_bo, name;
+	char match[100];
+	int to_match;
+	bool matched;
+	int retry = 0;
+	const int retries = 50;
+
+	fd = drm_open_driver(DRIVER_INTEL);
+	igt_require(uses_full_ppgtt(fd));
+
+	bo = gem_create(fd, 4096);
+	name = gem_flink(fd, bo);
+
+	to_match  = snprintf(match, sizeof(match), "(name: %u)", name);
+	igt_assert(to_match < sizeof(match));
+
+	fd2 = drm_open_driver(DRIVER_INTEL);
+
+	flinked_bo = gem_open(fd2, name);
+	exec_and_get_offset(fd2, flinked_bo);
+	gem_sync(fd2, flinked_bo);
+
+	/* Verify looking for string works OK. */
+	matched = grep_name("i915_gem_gtt", match);
+	igt_assert_eq(matched, true);
+
+	gem_close(fd2, flinked_bo);
+
+	/* Close the context. */
+	close(fd2);
+
+retry:
+	/* Give cleanup some time to run. */
+	usleep(100000);
+
+	/* The flinked bo VMA should have been cleared now, so list of VMAs
+	 * in debugfs should not contain the one for the imported object.
+	 */
+	matched = grep_name("i915_gem_gtt", match);
+	if (matched && retry++ < retries)
+		goto retry;
+
+	igt_assert_eq(matched, false);
+
+	gem_close(fd, bo);
+	close(fd);
+}
+
 #define N_CHILD 8
 int main(int argc, char **argv)
 {
@@ -296,6 +379,9 @@ int main(int argc, char **argv)
 
 	igt_subtest("flink-and-close-vma-leak")
 		flink_and_close();
+
+	igt_subtest("flink-and-exit-vma-leak")
+		flink_and_exit();
 
 	igt_exit();
 }
