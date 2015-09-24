@@ -34,6 +34,7 @@
  * 4. Test a crashing subtest preceeding a passing subtest is reported.
  */
 
+#include <signal.h>
 #include <stdlib.h>
 #include <sys/wait.h>
 #include <sys/types.h>
@@ -57,11 +58,15 @@ bool runc;
 char test[] = "test";
 char *argv_run[] = { test };
 
+static void crashme(void)
+{
+	raise(SIGSEGV);
+}
+
 static int do_fork(void)
 {
 	int pid, status;
 	int argc;
-	void (*crashme)(void) = NULL;
 
 	switch (pid = fork()) {
 	case -1:
