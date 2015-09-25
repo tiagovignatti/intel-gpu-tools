@@ -228,7 +228,7 @@ bool igt_debugfs_search(const char *filename, const char *substring)
 	char *line = NULL;
 	bool matched = false;
 
-	file = igt_debugfs_fopen(filename, O_RDONLY);
+	file = igt_debugfs_fopen(filename, "r");
 	igt_assert(file);
 
 	while (getline(&line, &n, file) >= 0) {
