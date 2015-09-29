@@ -4,6 +4,7 @@ benchmarks_PROGRAMS =			\
 	intel_upload_blit_large         \
 	intel_upload_blit_large_gtt     \
 	intel_upload_blit_large_map     \
+	intel_upload_blit_large_vgem     \
 	intel_upload_blit_small		\
 	gem_create			\
 	gem_exec_ctx			\

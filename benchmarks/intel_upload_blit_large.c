@@ -84,12 +84,13 @@ do_render(drm_intel_bufmgr *bufmgr, struct intel_batchbuffer *batch,
 	drm_intel_bo *src_bo;
 	int i;
 	static uint32_t seed = 1;
+	int x = 0;
 
 	/* Generate some junk.  Real workloads would be doing a lot more
 	 * work to generate the junk.
 	 */
 	for (i = 0; i < width * height; i++) {
-		data[i] = seed++;
+		x = data[i];
 	}
 
 	/* Upload the junk. */

@@ -82,6 +82,7 @@ do_render(drm_intel_bufmgr *bufmgr, struct intel_batchbuffer *batch,
 	drm_intel_bo *src_bo;
 	int i;
 	static uint32_t seed = 1;
+	int x = 0;
 
 	src_bo = drm_intel_bo_alloc(bufmgr, "src", width * height * 4, 4096);
 
@@ -89,7 +90,7 @@ do_render(drm_intel_bufmgr *bufmgr, struct intel_batchbuffer *batch,
 
 	data = src_bo->virtual;
 	for (i = 0; i < width * height; i++) {
-		data[i] = seed++;
+		x = data[i];
 	}
 
 	drm_intel_gem_bo_unmap_gtt(src_bo);

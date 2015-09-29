@@ -47,6 +47,7 @@
  * suitable)
  */
 
+#define _GNU_SOURCE
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -67,9 +68,65 @@
 #define OBJECT_WIDTH	1280
 #define OBJECT_HEIGHT	720
 
-int fd;
 
-static double
+int vgem_fd;
+
+const char g_sys_card_path_format[] =
+"/sys/bus/platform/devices/vgem/drm/card%d";
+const char g_dev_card_path_format[] =
+"/dev/dri/card%d";
+
+static int drm_open_vgem(void) {
+	char *name;
+	int i, fd;
+
+	for (i = 0; i < 16; i++) {
+		struct stat _stat;
+		int ret;
+		ret = asprintf(&name, g_sys_card_path_format, i);
+		assert(ret != -1);
+
+		if (stat(name, &_stat) == -1) {
+			free(name);
+			continue;
+		}
+
+		free(name);
+		ret = asprintf(&name, g_dev_card_path_format, i);
+		assert(ret != -1);
+
+		fd = open(name, O_RDWR);
+		free(name);
+		if (fd == -1) {
+			continue;
+		}
+		return fd;
+	}
+	return -1;
+}
+
+static void *mmap_dumb_bo(int fd, int handle, size_t size) {
+	struct drm_mode_map_dumb mmap_arg;
+	void *ptr;
+	int ret;
+
+	memset(&mmap_arg, 0, sizeof(mmap_arg));
+
+	mmap_arg.handle = handle;
+
+	ret = drmIoctl(fd, DRM_IOCTL_MODE_MAP_DUMB, &mmap_arg);
+	assert(ret == 0);
+	assert(mmap_arg.offset != 0);
+
+	ptr = mmap(NULL, size, (PROT_READ|PROT_WRITE), MAP_SHARED, fd,
+			mmap_arg.offset);
+
+	assert(ptr != MAP_FAILED);
+
+	return ptr;
+}
+
+	static double
 get_time_in_secs(void)
 {
 	struct timeval tv;
@@ -84,30 +141,30 @@ do_render(drm_intel_bufmgr *bufmgr, struct intel_batchbuffer *batch,
 	  drm_intel_bo *dst_bo, int width, int height)
 {
 	uint32_t *data;
-	drm_intel_bo *src_bo, *tmp_bo;
+	drm_intel_bo *src_bo;
 	int i, prime_fd;
 	static uint32_t seed = 1;
-	int x = 0;
+  int x = 0;
+	uint32_t vgem_bo;
+	uint32_t *bo_ptr;
+	volatile uint32_t *ptr;
 
 	src_bo = drm_intel_bo_alloc(bufmgr, "src", width * height * 4, 4096);
-#if 0
-	// this is here just to see overhead it takes and compare with vgem's.
-	{
-		drm_intel_bo_gem_export_to_prime(src_bo, &prime_fd);
-		if (drmPrimeFDToHandle(fd, prime_fd, &tmp_bo)) {
-			fprintf(stderr, "failed to import handle\n");
-			return;
-		}
-	}
-#endif
-	drm_intel_bo_map(src_bo, 1);
 
-	data = src_bo->virtual;
+	drm_intel_bo_gem_export_to_prime(src_bo, &prime_fd);
+	if (drmPrimeFDToHandle(vgem_fd, prime_fd, &vgem_bo)) {
+		fprintf(stderr, "failed to import handle\n");
+		return;
+	}
+
+	bo_ptr = mmap_dumb_bo(vgem_fd, vgem_bo, width * height * 4);
+	ptr = bo_ptr;
+
 	for (i = 0; i < width * height; i++) {
-		x = data[i];
+		x = ptr[i];
 	}
 
-	drm_intel_bo_unmap(src_bo);
+	munmap(bo_ptr, width * height * 4);
 
 	/* Render the junk to the dst. */
 	BLIT_COPY_BATCH_START(0);
@@ -129,6 +186,7 @@ do_render(drm_intel_bufmgr *bufmgr, struct intel_batchbuffer *batch,
 
 int main(int argc, char **argv)
 {
+	int fd;
 	int object_size = OBJECT_WIDTH * OBJECT_HEIGHT * 4;
 	double start_time, end_time;
 	drm_intel_bo *dst_bo;
@@ -137,6 +195,13 @@ int main(int argc, char **argv)
 	int i;
 
 	fd = drm_open_driver(DRIVER_INTEL);
+
+	vgem_fd = drm_open_vgem();
+	if (vgem_fd < 0) {
+		fprintf(stderr, "failed to open vgem card\n");
+		close(fd);
+		return 1;
+	}
 
 	bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
 	drm_intel_bufmgr_gem_enable_reuse(bufmgr);
