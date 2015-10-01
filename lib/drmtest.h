@@ -101,7 +101,23 @@ void gem_quiescent_gpu(int fd);
  * successfully executed.
  */
 #define do_ioctl(fd, ioc, ioc_data) do { \
-	igt_assert(drmIoctl((fd), (ioc), (ioc_data)) == 0); \
+	igt_assert_eq(drmIoctl((fd), (ioc), (ioc_data)), 0); \
+	errno = 0; \
+} while (0)
+
+/**
+ * do_ioctl_err:
+ * @fd: open i915 drm file descriptor
+ * @ioc: ioctl op definition from drm headers
+ * @ioc_data: data pointer for the ioctl operation
+ * @err: value to expect in errno
+ *
+ * This macro wraps drmIoctl() and uses igt_assert to check that it fails,
+ * returning a particular value in errno.
+ */
+#define do_ioctl_err(fd, ioc, ioc_data, err) do { \
+	igt_assert_eq(drmIoctl((fd), (ioc), (ioc_data)), -1); \
+	igt_assert_eq(errno, err); \
 	errno = 0; \
 } while (0)
 
