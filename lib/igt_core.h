@@ -454,6 +454,33 @@ void igt_exit(void) __attribute__((noreturn));
 #define igt_assert_neq(n1, n2) igt_assert_cmpint(n1, !=, ==, n2)
 
 /**
+ * igt_assert_neq_u32:
+ * @n1: first integer
+ * @n2: second integer
+ *
+ * Like igt_assert_neq(), but for uint32_t.
+ */
+#define igt_assert_neq_u32(n1, n2) igt_assert_cmpuint(n1, !=, ==, n2)
+
+/**
+ * igt_assert_neq_u64:
+ * @n1: first integer
+ * @n2: second integer
+ *
+ * Like igt_assert_neq_u32(), but for uint64_t.
+ */
+#define igt_assert_neq_u64(n1, n2) igt_assert_cmpu64(n1, !=, ==, n2)
+
+/**
+ * igt_assert_neq_double:
+ * @n1: first double
+ * @n2: second double
+ *
+ * Like igt_assert_neq(), but for doubles.
+ */
+#define igt_assert_neq_double(n1, n2) igt_assert_cmpdouble(n1, !=, ==, n2)
+
+/**
  * igt_assert_lte:
  * @n1: first integer
  * @n2: second integer
