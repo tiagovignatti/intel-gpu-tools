@@ -161,6 +161,12 @@ int E3, E4;
 - igt_assert(E1 < E2);
 + igt_assert_lt_u32(E1, E2);
 |
+- igt_assert(E1 >= E2);
++ igt_assert_lte_u32(E2, E1);
+|
+- igt_assert(E1 > E2);
++ igt_assert_lt_u32(E2, E1);
+|
 - igt_assert(E3 == E4);
 + igt_assert_eq(E3, E4);
 |
@@ -172,6 +178,12 @@ int E3, E4;
 |
 - igt_assert(E3 < E4);
 + igt_assert_lt(E3, E4);
+|
+- igt_assert(E3 >= E4);
++ igt_assert_lte(E4, E3);
+|
+- igt_assert(E3 > E4);
++ igt_assert_lt(E4, E3);
 )
 
 // avoid unused-result warnings when compiling with _FORTIFY_SOURCE defined
