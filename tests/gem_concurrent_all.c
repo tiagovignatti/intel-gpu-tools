@@ -298,8 +298,8 @@ gpu_set_bo(drm_intel_bo *bo, uint32_t val, int width, int height)
 	gem_pwrite.offset = 0;
 	gem_pwrite.size = execbuf.batch_len;
 	gem_pwrite.data_ptr = (uintptr_t)buf;
-	do_or_die(drmIoctl(fd, DRM_IOCTL_I915_GEM_PWRITE, &gem_pwrite));
-	do_or_die(drmIoctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf));
+	do_ioctl(fd, DRM_IOCTL_I915_GEM_PWRITE, &gem_pwrite);
+	do_ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf);
 
 	drmIoctl(fd, DRM_IOCTL_GEM_CLOSE, &create.handle);
 }
@@ -868,7 +868,7 @@ static void bit17_require(void)
 	arg.handle = gem_create(fd, 4096);
 	gem_set_tiling(fd, arg.handle, I915_TILING_X, 512);
 
-	do_or_die(drmIoctl(fd, DRM_IOCTL_I915_GEM_GET_TILING2, &arg));
+	do_ioctl(fd, DRM_IOCTL_I915_GEM_GET_TILING2, &arg);
 	gem_close(fd, arg.handle);
 	igt_require(arg.phys_swizzle_mode == arg.swizzle_mode);
 }

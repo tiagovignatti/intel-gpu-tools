@@ -40,9 +40,9 @@ int32_t ctx;
 #define LOCAL_IOCTL_I915_GEM_CONTEXT_SETPARAM DRM_IOWR (DRM_COMMAND_BASE + LOCAL_I915_GEM_CONTEXT_SETPARAM, struct local_i915_gem_context_param)
 
 #define TEST_SUCCESS(ioc) \
-	igt_assert(drmIoctl(fd, (ioc), &ctx_param) == 0);
+	do_ioctl(fd, (ioc), &ctx_param);
 #define TEST_FAIL(ioc, exp_errno) \
-	igt_assert(drmIoctl(fd, (ioc), &ctx_param) < 0 && errno == exp_errno);
+	do_ioctl_err(fd, (ioc), &ctx_param, exp_errno);
 
 igt_main
 {

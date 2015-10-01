@@ -123,7 +123,7 @@ get_tiling(int fd, uint32_t handle, uint32_t *tiling, uint32_t *swizzle)
 	memset(&arg, 0, sizeof(arg));
 	arg.handle = handle;
 
-	do_or_die(drmIoctl(fd, DRM_IOCTL_I915_GEM_GET_TILING2, &arg));
+	do_ioctl(fd, DRM_IOCTL_I915_GEM_GET_TILING2, &arg);
 	igt_require(arg.phys_swizzle_mode == arg.swizzle_mode);
 
 	*tiling = arg.tiling_mode;

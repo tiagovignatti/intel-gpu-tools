@@ -116,8 +116,7 @@ static void big_exec(int fd, uint32_t handle, int ring)
 
 	execbuf.buffer_count = 1;
 	i915_execbuffer2_set_context_id(execbuf, ctx_id1);
-	igt_assert(drmIoctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2,
-			    &execbuf) == 0);
+	do_ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf);
 
 	for (i = 0; i < num_buffers; i++) {
 		uint32_t tmp_handle = gem_create(fd, 4096);
@@ -141,12 +140,10 @@ static void big_exec(int fd, uint32_t handle, int ring)
 	       i - 1, num_buffers);
 
 	/* double check that it works */
-	igt_assert(drmIoctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2,
-			    &execbuf) == 0);
+	do_ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf);
 
 	i915_execbuffer2_set_context_id(execbuf, ctx_id2);
-	igt_assert(drmIoctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2,
-			    &execbuf) == 0);
+	do_ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf);
 	gem_sync(fd, handle);
 }
 

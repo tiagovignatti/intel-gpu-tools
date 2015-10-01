@@ -100,7 +100,7 @@ static void copy(int fd, uint32_t src, uint32_t dst, void *buf, int len, int loo
 
 	while (loops--) {
 		gem_write(fd, src, 0, buf, len);
-		do_or_die(drmIoctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf));
+		do_ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf);
 		gem_read(fd, dst, 0, buf, len);
 	}
 
@@ -120,7 +120,7 @@ static void as_gtt_mmap(int fd, uint32_t src, uint32_t dst, void *buf, int len, 
 			       I915_GEM_DOMAIN_GTT, I915_GEM_DOMAIN_GTT);
 		memcpy(src_ptr, buf, len);
 
-		do_or_die(drmIoctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf));
+		do_ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf);
 		gem_set_domain(fd, dst,
 			       I915_GEM_DOMAIN_GTT, 0);
 		memcpy(buf, dst_ptr, len);
@@ -145,7 +145,7 @@ static void as_cpu_mmap(int fd, uint32_t src, uint32_t dst, void *buf, int len, 
 			       I915_GEM_DOMAIN_CPU, I915_GEM_DOMAIN_CPU);
 		memcpy(src_ptr, buf, len);
 
-		do_or_die(drmIoctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf));
+		do_ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf);
 		gem_set_domain(fd, dst,
 			       I915_GEM_DOMAIN_CPU, 0);
 		memcpy(buf, dst_ptr, len);
@@ -167,7 +167,7 @@ static void test_copy(int fd, uint32_t src, uint32_t dst, uint32_t *buf, int len
 	gem_write(fd, src, 0, buf, len);
 	memset(buf, 0, len);
 
-	do_or_die(drmIoctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf));
+	do_ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf);
 	gem_read(fd, dst, 0, buf, len);
 
 	gem_close(fd, exec[2].handle);
@@ -189,7 +189,7 @@ static void test_as_gtt_mmap(int fd, uint32_t src, uint32_t dst, int len)
 	for (i = 0; i < len/4; i++)
 		src_ptr[i] = i;
 
-	do_or_die(drmIoctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf));
+	do_ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf);
 	gem_close(fd, exec[2].handle);
 
 	gem_set_domain(fd, dst, I915_GEM_DOMAIN_GTT, 0);
@@ -213,7 +213,7 @@ static void test_as_cpu_mmap(int fd, uint32_t src, uint32_t dst, int len)
 	for (i = 0; i < len/4; i++)
 		src_ptr[i] = i;
 
-	do_or_die(drmIoctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf));
+	do_ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf);
 	gem_close(fd, exec[2].handle);
 
 	gem_set_domain(fd, dst, I915_GEM_DOMAIN_CPU, 0);

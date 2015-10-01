@@ -94,7 +94,7 @@ set_mode_on_pipe(data_t *data, enum pipe pipe, igt_output_t *output)
 				    mode->hdisplay, mode->vdisplay,
 				    DRM_FORMAT_XRGB8888, I915_TILING_NONE,
 				    1.0, 1.0, 1.0, &fb);
-	igt_assert(fb_id >= 0);
+	igt_assert_lte(0, fb_id);
 
 	igt_plane_set_fb(primary, &fb);
 	return igt_display_try_commit2(&data->display, COMMIT_LEGACY);
@@ -150,12 +150,12 @@ test_dpms(data_t *data)
 		 kmstest_pipe_name(PIPE_C), igt_output_name(output2));
 
 	ret = set_big_mode_on_pipe(data, PIPE_B, output1);
-	igt_assert(ret == 0);
+	igt_assert_eq(ret, 0);
 
 	kmstest_set_connector_dpms(data->drm_fd, output1->config.connector, DRM_MODE_DPMS_OFF);
 
 	ret = set_big_mode_on_pipe(data, PIPE_C, output2);
-	igt_assert(ret != 0);
+	igt_assert_neq(ret, 0);
 }
 
 static void
@@ -172,13 +172,13 @@ test_lane_reduction(data_t *data)
 		 kmstest_pipe_name(PIPE_C), igt_output_name(output2));
 
 	ret = set_big_mode_on_pipe(data, PIPE_B, output1);
-	igt_assert(ret == 0);
+	igt_assert_eq(ret, 0);
 
 	ret = set_normal_mode_on_pipe(data, PIPE_B, output1);
-	igt_assert(ret == 0);
+	igt_assert_eq(ret, 0);
 
 	ret = set_normal_mode_on_pipe(data, PIPE_C, output2);
-	igt_assert(ret == 0);
+	igt_assert_eq(ret, 0);
 }
 
 static void
@@ -195,16 +195,16 @@ test_disable_pipe_B(data_t *data)
 		 kmstest_pipe_name(PIPE_C), igt_output_name(output2));
 
 	ret = set_big_mode_on_pipe(data, PIPE_B, output1);
-	igt_assert(ret == 0);
+	igt_assert_eq(ret, 0);
 
 	ret = disable_pipe(data, PIPE_B, output1);
-	igt_assert(ret == 0);
+	igt_assert_eq(ret, 0);
 
 	ret = set_normal_mode_on_pipe(data, PIPE_C, output2);
-	igt_assert(ret == 0);
+	igt_assert_eq(ret, 0);
 
 	ret = set_normal_mode_on_pipe(data, PIPE_B, output1);
-	igt_assert(ret == 0);
+	igt_assert_eq(ret, 0);
 }
 
 static void
@@ -221,13 +221,13 @@ test_from_C_to_B_with_3_lanes(data_t *data)
 		 kmstest_pipe_name(PIPE_C), igt_output_name(output2));
 
 	ret = set_normal_mode_on_pipe(data, PIPE_C, output2);
-	igt_assert(ret == 0);
+	igt_assert_eq(ret, 0);
 
 	ret = disable_pipe(data, PIPE_C, output2);
-	igt_assert(ret == 0);
+	igt_assert_eq(ret, 0);
 
 	ret = set_big_mode_on_pipe(data, PIPE_B, output1);
-	igt_assert(ret == 0);
+	igt_assert_eq(ret, 0);
 }
 
 static void
@@ -244,10 +244,10 @@ test_fail_enable_pipe_C_while_B_has_3_lanes(data_t *data)
 		 kmstest_pipe_name(PIPE_C), igt_output_name(output2));
 
 	ret = set_big_mode_on_pipe(data, PIPE_B, output1);
-	igt_assert(ret == 0);
+	igt_assert_eq(ret, 0);
 
 	ret = set_normal_mode_on_pipe(data, PIPE_C, output2);
-	igt_assert(ret != 0);
+	igt_assert_neq(ret, 0);
 }
 
 static data_t data;

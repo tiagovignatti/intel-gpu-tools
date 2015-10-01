@@ -90,9 +90,7 @@ test_access(int fd)
 
 	/* Check that fd1 can mmap. */
 	mmap_arg.handle = handle;
-	igt_assert(drmIoctl(fd,
-			    DRM_IOCTL_I915_GEM_MMAP_GTT,
-			    &mmap_arg) == 0);
+	do_ioctl(fd, DRM_IOCTL_I915_GEM_MMAP_GTT, &mmap_arg);
 
 	igt_assert(mmap64(0, OBJECT_SIZE, PROT_READ | PROT_WRITE,
 			  MAP_SHARED, fd, mmap_arg.offset));
@@ -122,9 +120,7 @@ test_short(int fd)
 	mmap_arg.handle = gem_create(fd, OBJECT_SIZE);
 	igt_assert(mmap_arg.handle);
 
-	igt_assert(drmIoctl(fd,
-			    DRM_IOCTL_I915_GEM_MMAP_GTT,
-			    &mmap_arg) == 0);
+	do_ioctl(fd, DRM_IOCTL_I915_GEM_MMAP_GTT, &mmap_arg);
 	for (pages = 1; pages <= OBJECT_SIZE / PAGE_SIZE; pages <<= 1) {
 		uint8_t *r, *w;
 

@@ -212,7 +212,7 @@ static void test_import_close_race(void)
 		else {
 			pthread_mutex_lock(&t_data.mutex);
 			igt_assert_eq(drm_intel_bo_gem_export_to_prime(bo, &(t_data.prime_fd)), 0);
-			igt_assert(t_data.prime_fd != -1);
+			igt_assert_neq(t_data.prime_fd, -1);
 			pthread_mutex_unlock(&t_data.mutex);
 		}
 

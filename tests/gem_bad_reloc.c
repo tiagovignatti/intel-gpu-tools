@@ -107,9 +107,7 @@ static int negative_reloc(int fd, unsigned flags)
 	execbuf.buffer_count = 2;
 	execbuf.batch_len = 8;
 
-	do_or_die(drmIoctl(fd,
-			   DRM_IOCTL_I915_GEM_EXECBUFFER2,
-			   &execbuf));
+	do_ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf);
 	gem_close(fd, gem_exec[1].handle);
 
 	igt_info("Found offset %lld for 4k batch\n", (long long)gem_exec[0].offset);
@@ -136,9 +134,7 @@ static int negative_reloc(int fd, unsigned flags)
 
 	execbuf.buffer_count = 1;
 	execbuf.flags = flags & USE_LUT;
-	do_or_die(drmIoctl(fd,
-			   DRM_IOCTL_I915_GEM_EXECBUFFER2,
-			   &execbuf));
+	do_ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf);
 
 	igt_info("Batch is now at offset %lld\n", (long long)gem_exec[0].offset);
 

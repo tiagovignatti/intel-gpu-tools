@@ -268,9 +268,9 @@ static void test_plane_rotation(data_t *data, enum igt_plane plane_type)
 			igt_plane_set_rotation(plane, data->rotation);
 			ret = igt_display_try_commit2(display, commit);
 			if (data->override_fmt || data->override_tiling) {
-				igt_assert(ret == -EINVAL);
+				igt_assert_eq(ret, -EINVAL);
 			} else {
-				igt_assert(ret == 0);
+				igt_assert_eq(ret, 0);
 				igt_pipe_crc_collect_crc(data->pipe_crc,
 							 &crc_output);
 				igt_assert_crc_equal(&data->ref_crc,

@@ -138,7 +138,7 @@ static void get_method_crc(enum igt_draw_method method, uint32_t drm_format,
 
 	rc = drmModeSetCrtc(drm_fd, ms.crtc_id, fb.fb_id, 0, 0,
 			    &ms.connector_id, 1, ms.mode);
-	igt_assert(rc == 0);
+	igt_assert_eq(rc, 0);
 
 	igt_pipe_crc_collect_crc(pipe_crc, crc);
 
@@ -181,7 +181,7 @@ static void get_fill_crc(uint64_t tiling, igt_crc_t *crc)
 
 	rc = drmModeSetCrtc(drm_fd, ms.crtc_id, fb.fb_id, 0, 0,
 			    &ms.connector_id, 1, ms.mode);
-	igt_assert(rc == 0);
+	igt_assert_eq(rc, 0);
 
 	igt_pipe_crc_collect_crc(pipe_crc, crc);
 
@@ -207,7 +207,7 @@ static void fill_fb_subtest(void)
 
 	rc = drmModeSetCrtc(drm_fd, ms.crtc_id, fb.fb_id, 0, 0,
 			    &ms.connector_id, 1, ms.mode);
-	igt_assert(rc == 0);
+	igt_assert_eq(rc, 0);
 
 	igt_pipe_crc_collect_crc(pipe_crc, &base_crc);
 

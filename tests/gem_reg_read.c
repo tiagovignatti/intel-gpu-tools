@@ -65,7 +65,7 @@ static bool check_kernel_x86_64(void)
 	struct utsname uts;
 
 	ret = uname(&uts);
-	igt_assert(ret == 0);
+	igt_assert_eq(ret, 0);
 
 	if (!strcmp(uts.machine, "x86_64"))
 		return true;

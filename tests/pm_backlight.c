@@ -95,12 +95,12 @@ static void test_and_verify(int val)
 {
 	int result;
 
-	igt_assert(backlight_write(val, "brightness") == 0);
-	igt_assert(backlight_read(&result, "brightness") == 0);
+	igt_assert_eq(backlight_write(val, "brightness"), 0);
+	igt_assert_eq(backlight_read(&result, "brightness"), 0);
 	/* Check that the exact value sticks */
-	igt_assert(result == val);
+	igt_assert_eq(result, val);
 
-	igt_assert(backlight_read(&result, "actual_brightness") == 0);
+	igt_assert_eq(backlight_read(&result, "actual_brightness"), 0);
 	/* Some rounding may happen depending on hw. Just check that it's close enough. */
 	igt_assert(result <= val + val * TOLERANCE / 100 && result >= val - val * TOLERANCE / 100);
 }
@@ -118,15 +118,15 @@ static void test_bad_brightness(int max)
 	/* First write some sane value */
 	backlight_write(max / 2, "brightness");
 	/* Writing invalid values should fail and not change the value */
-	igt_assert(backlight_write(-1, "brightness") < 0);
+	igt_assert_lt(backlight_write(-1, "brightness"), 0);
 	backlight_read(&val, "brightness");
-	igt_assert(val == max / 2);
-	igt_assert(backlight_write(max + 1, "brightness") < 0);
+	igt_assert_eq(val, max / 2);
+	igt_assert_lt(backlight_write(max + 1, "brightness"), 0);
 	backlight_read(&val, "brightness");
-	igt_assert(val == max / 2);
-	igt_assert(backlight_write(INT_MAX, "brightness") < 0);
+	igt_assert_eq(val, max / 2);
+	igt_assert_lt(backlight_write(INT_MAX, "brightness"), 0);
 	backlight_read(&val, "brightness");
-	igt_assert(val == max / 2);
+	igt_assert_eq(val, max / 2);
 }
 
 static void test_fade(int max)

@@ -80,7 +80,7 @@ static void exec(int fd, uint32_t handle, uint32_t offset)
 	i915_execbuffer2_set_context_id(execbuf, 0);
 	execbuf.rsvd2 = 0;
 
-	do_or_die(drmIoctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf));
+	do_ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf);
 	igt_assert(gem_exec[0].offset == offset);
 }
 
@@ -172,7 +172,7 @@ static void make_busy(int fd, uint32_t handle)
 
 	gem_write(fd, handle, 0, batch, execbuf.batch_len);
 	for (count = 0; count < 10; count++)
-		do_or_die(drmIoctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf));
+		do_ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf);
 	gem_close(fd, tmp);
 }
 

@@ -717,7 +717,7 @@ static void fbc_print_status(void)
 	char buf[128];
 
 	igt_debugfs_read("i915_fbc_status", buf);
-	printf("FBC status:\n%s\n", buf);
+	igt_info("FBC status:\n%s\n", buf);
 }
 
 static bool psr_is_enabled(void)
@@ -734,7 +734,7 @@ static void psr_print_status(void)
 	char buf[256];
 
 	igt_debugfs_read("i915_edp_psr_status", buf);
-	printf("PSR status:\n%s\n", buf);
+	igt_info("PSR status:\n%s\n", buf);
 }
 
 static struct timespec fbc_get_last_action(void)
@@ -988,7 +988,7 @@ static struct rect pat4_get_rect(struct fb_region *fb, int r)
 {
 	struct rect rect;
 
-	igt_assert(r == 0);
+	igt_assert_eq(r, 0);
 
 	rect.x = 0;
 	rect.y = 0;
@@ -1058,16 +1058,16 @@ static void unset_all_crtcs(void)
 	for (i = 0; i < drm.res->count_crtcs; i++) {
 		rc = drmModeSetCrtc(drm.fd, drm.res->crtcs[i], -1, 0, 0, NULL,
 				    0, NULL);
-		igt_assert(rc == 0);
+		igt_assert_eq(rc, 0);
 
 		rc = drmModeSetCursor(drm.fd, drm.res->crtcs[i], 0, 0, 0);
-		igt_assert(rc == 0);
+		igt_assert_eq(rc, 0);
 	}
 
 	for (i = 0; i < drm.plane_res->count_planes; i++) {
 		rc = drmModeSetPlane(drm.fd, drm.plane_res->planes[i], 0, 0, 0,
 				     0, 0, 0, 0, 0, 0, 0, 0);
-		igt_assert(rc == 0);
+		igt_assert_eq(rc, 0);
 	}
 }
 
@@ -1119,7 +1119,7 @@ static void start_busy_thread(struct igt_fb *fb)
 	busy_thread.bpp = fb_get_bpp(fb);
 
 	rc = pthread_create(&busy_thread.thread, NULL, busy_thread_func, NULL);
-	igt_assert(rc == 0);
+	igt_assert_eq(rc, 0);
 }
 
 static void stop_busy_thread(void)
@@ -1172,7 +1172,7 @@ static void init_blue_crc(enum pixel_format format)
 	rc = drmModeSetCrtc(drm.fd, prim_mode_params.crtc_id,
 			    blue.fb_id, 0, 0, &prim_mode_params.connector_id, 1,
 			    prim_mode_params.mode);
-	igt_assert(rc == 0);
+	igt_assert_eq(rc, 0);
 	collect_crcs(&blue_crcs[format].crc);
 
 	print_crc("Blue CRC:  ", &blue_crcs[format].crc);
@@ -1220,7 +1220,7 @@ static void init_crcs(enum pixel_format format,
 				   tmp_fbs[r].fb_id, 0, 0,
 				   &prim_mode_params.connector_id, 1,
 				   prim_mode_params.mode);
-		igt_assert(rc == 0);
+		igt_assert_eq(rc, 0);
 		collect_crcs(&pattern->crcs[format][r]);
 	}
 
@@ -1336,7 +1336,7 @@ static void setup_sink_crc(void)
 	set_mode_for_params(&prim_mode_params);
 
 	sink_crc.fd = igt_debugfs_open("i915_sink_crc_eDP1", O_RDONLY);
-	igt_assert(sink_crc.fd >= 0);
+	igt_assert_lte(0, sink_crc.fd);
 
 	rc = read(sink_crc.fd, crc.data, SINK_CRC_SIZE);
 	errno_ = errno;
@@ -1672,13 +1672,13 @@ static void set_cursor_for_test(const struct test_mode *t,
 	fill_fb_region(&params->cursor, COLOR_PRIM_BG);
 
 	rc = drmModeMoveCursor(drm.fd, params->crtc_id, 0, 0);
-	igt_assert(rc == 0);
+	igt_assert_eq(rc, 0);
 
 	rc = drmModeSetCursor(drm.fd, params->crtc_id,
 			      params->cursor.fb->gem_handle,
 			      params->cursor.w,
 			      params->cursor.h);
-	igt_assert(rc == 0);
+	igt_assert_eq(rc, 0);
 
 	do_assertions(ASSERT_NO_ACTION_CHANGE);
 }
@@ -1695,7 +1695,7 @@ static void set_sprite_for_test(const struct test_mode *t,
 			     params->sprite.w, params->sprite.h,
 			     0, 0, params->sprite.w << 16,
 			     params->sprite.h << 16);
-	igt_assert(rc == 0);
+	igt_assert_eq(rc, 0);
 
 	do_assertions(ASSERT_NO_ACTION_CHANGE);
 }
@@ -2170,7 +2170,7 @@ static void wait_flip_event(void)
 		break;
 	case 1:
 		rc = drmHandleEvent(drm.fd, &evctx);
-		igt_assert(rc == 0);
+		igt_assert_eq(rc, 0);
 		break;
 	default:
 		igt_assert_f(false, "Unexpected poll rc %d\n", rc);
@@ -2187,13 +2187,13 @@ static void page_flip_for_params(struct modeset_params *params,
 	case FLIP_PAGEFLIP:
 		rc = drmModePageFlip(drm.fd, params->crtc_id,
 				     params->fb.fb->fb_id, 0, NULL);
-		igt_assert(rc == 0);
+		igt_assert_eq(rc, 0);
 		break;
 	case FLIP_PAGEFLIP_EVENT:
 		rc = drmModePageFlip(drm.fd, params->crtc_id,
 				     params->fb.fb->fb_id,
 				     DRM_MODE_PAGE_FLIP_EVENT, NULL);
-		igt_assert(rc == 0);
+		igt_assert_eq(rc, 0);
 		wait_flip_event();
 		break;
 	case FLIP_MODESET:
@@ -2349,7 +2349,7 @@ static void move_subtest(const struct test_mode *t)
 		case PLANE_CUR:
 			rc = drmModeMoveCursor(drm.fd, params->crtc_id, rect.x,
 					       rect.y);
-			igt_assert(rc == 0);
+			igt_assert_eq(rc, 0);
 			break;
 		case PLANE_SPR:
 			rc = drmModeSetPlane(drm.fd, params->sprite_id,
@@ -2358,7 +2358,7 @@ static void move_subtest(const struct test_mode *t)
 					     rect.x, rect.y, rect.w,
 					     rect.h, 0, 0, rect.w << 16,
 					     rect.h << 16);
-			igt_assert(rc == 0);
+			igt_assert_eq(rc, 0);
 			break;
 		default:
 			igt_assert(false);
@@ -2410,13 +2410,13 @@ static void onoff_subtest(const struct test_mode *t)
 			case PLANE_CUR:
 				rc = drmModeSetCursor(drm.fd, params->crtc_id,
 						      0, 0, 0);
-				igt_assert(rc == 0);
+				igt_assert_eq(rc, 0);
 				break;
 			case PLANE_SPR:
 				rc = drmModeSetPlane(drm.fd, params->sprite_id,
 						     0, 0, 0, 0, 0, 0, 0, 0, 0,
 						     0, 0);
-				igt_assert(rc == 0);
+				igt_assert_eq(rc, 0);
 				break;
 			default:
 				igt_assert(false);
@@ -2430,7 +2430,7 @@ static void onoff_subtest(const struct test_mode *t)
 						  params->cursor.fb->gem_handle,
 						  params->cursor.w,
 						  params->cursor.h);
-				igt_assert(rc == 0);
+				igt_assert_eq(rc, 0);
 				break;
 			case PLANE_SPR:
 				rc = drmModeSetPlane(drm.fd, params->sprite_id,
@@ -2441,7 +2441,7 @@ static void onoff_subtest(const struct test_mode *t)
 						     0,
 						     params->sprite.w << 16,
 						     params->sprite.h << 16);
-				igt_assert(rc == 0);
+				igt_assert_eq(rc, 0);
 				break;
 			default:
 				igt_assert(false);
@@ -2471,7 +2471,7 @@ static bool prim_plane_disabled(void)
 	igt_assert(found);
 
 	rc = drmSetClientCap(drm.fd, DRM_CLIENT_CAP_UNIVERSAL_PLANES, 0);
-	igt_assert(rc == 0);
+	igt_assert_eq(rc, 0);
 
 	return disabled;
 }
@@ -2513,7 +2513,7 @@ static void fullscreen_plane_subtest(const struct test_mode *t)
 			     fullscreen_fb.height, 0, 0,
 			     fullscreen_fb.width << 16,
 			     fullscreen_fb.height << 16);
-	igt_assert(rc == 0);
+	igt_assert_eq(rc, 0);
 	update_wanted_crc(t, &pattern->crcs[t->format][0]);
 
 	switch (t->screen) {
@@ -2533,7 +2533,7 @@ static void fullscreen_plane_subtest(const struct test_mode *t)
 
 	rc = drmModeSetPlane(drm.fd, params->sprite_id, 0, 0, 0, 0, 0, 0, 0, 0,
 			     0, 0, 0);
-	igt_assert(rc == 0);
+	igt_assert_eq(rc, 0);
 
 	if (t->screen == SCREEN_PRIM)
 		assertions = ASSERT_LAST_ACTION_CHANGED;
@@ -2817,15 +2817,15 @@ static void try_invalid_strides(void)
 
 	/* Smaller than 512, yet still 64-byte aligned. */
 	rc = __gem_set_tiling(drm.fd, gem_handle, I915_TILING_X, 448);
-	igt_assert(rc == -EINVAL);
+	igt_assert_eq(rc, -EINVAL);
 
 	/* Bigger than 512, but not 64-byte aligned. */
 	rc = __gem_set_tiling(drm.fd, gem_handle, I915_TILING_X, 1022);
-	igt_assert(rc == -EINVAL);
+	igt_assert_eq(rc, -EINVAL);
 
 	/* Just make sure something actually works. */
 	rc = __gem_set_tiling(drm.fd, gem_handle, I915_TILING_X, 1024);
-	igt_assert(rc == 0);
+	igt_assert_eq(rc, 0);
 
 	gem_close(drm.fd, gem_handle);
 }
@@ -2950,11 +2950,11 @@ static int opt_handler(int option, int option_index, void *data)
 		igt_assert(errno == 0);
 		break;
 	case '1':
-		igt_assert(opt.only_pipes == PIPE_COUNT);
+		igt_assert_eq(opt.only_pipes, PIPE_COUNT);
 		opt.only_pipes = PIPE_SINGLE;
 		break;
 	case '2':
-		igt_assert(opt.only_pipes == PIPE_COUNT);
+		igt_assert_eq(opt.only_pipes, PIPE_COUNT);
 		opt.only_pipes = PIPE_DUAL;
 		break;
 	default:

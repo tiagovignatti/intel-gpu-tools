@@ -157,8 +157,8 @@ static void thread_fini(struct thread *t)
 
 static void check_memory_layout(void)
 {
-	if (igt_debugfs_search("i915_swizzle_info", "L-shaped"))
-		igt_skip("L-shaped memory configuration detected\n");
+	igt_skip_on_f(igt_debugfs_search("i915_swizzle_info", "L-shaped"),
+		      "L-shaped memory configuration detected\n");
 
 	igt_debug("normal memory configuration detected, continuing\n");
 }

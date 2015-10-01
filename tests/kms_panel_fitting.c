@@ -122,7 +122,7 @@ static void prepare_crtc(data_t *data, igt_output_t *output, enum pipe pipe,
 				&output->id,
 				1,
 				mode);
-		igt_assert(ret == 0);
+		igt_assert_eq(ret, 0);
 	} else {
 		igt_display_commit2(display, s);
 	}
