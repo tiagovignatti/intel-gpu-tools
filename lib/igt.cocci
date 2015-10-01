@@ -213,3 +213,21 @@ expression list E;
 @@
 -func(E);
 +igt_assert_neq(func(E), -1);
+
+// replace open-coded do_ioctl
+@@
+expression a, b, c, e;
+@@
+(
+-do_or_die(drmIoctl(a, b, c));
++do_ioctl(a, b, c);
+|
+-igt_assert(drmIoctl(a, b, c) == 0);
++do_ioctl(a, b, c);
+|
+-igt_assert(drmIoctl(a, b, c) == -1 && errno == e);
++do_ioctl_err(a, b, c, e);
+|
+-igt_assert(drmIoctl(a, b, c) < 0 && errno == e);
++do_ioctl_err(a, b, c, e);
+)
