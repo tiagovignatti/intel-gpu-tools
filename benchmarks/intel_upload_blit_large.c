@@ -44,6 +44,7 @@
  * The current workload doing this path is pixmap upload for non-KMS.
  */
 
+#include "igt.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -56,12 +57,6 @@
 
 #include <drm.h>
 #include <i915_drm.h>
-
-#include "drmtest.h"
-#include "intel_bufmgr.h"
-#include "intel_batchbuffer.h"
-#include "intel_io.h"
-#include "intel_chipset.h"
 
 #define OBJECT_WIDTH	1280
 #define OBJECT_HEIGHT	720
