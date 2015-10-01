@@ -507,6 +507,18 @@ void igt_exit(void) __attribute__((noreturn));
 #define igt_assert_lt(n1, n2) igt_assert_cmpint(n1, <, >=, n2)
 
 /**
+ * igt_assert_fd:
+ * @fd: file descriptor
+ *
+ * Fails (sub-) test if the given file descriptor is invalid.
+ *
+ * Like igt_assert(), but displays the values being compared on failure instead
+ * of simply printing the stringified expression.
+ */
+#define igt_assert_fd(fd) \
+	igt_assert_f(fd >= 0, "file descriptor " #fd " failed\n");
+
+/**
  * igt_require:
  * @expr: condition to test
  *
