@@ -458,7 +458,7 @@ void igt_exit(void) __attribute__((noreturn));
  * @n1: first integer
  * @n2: second integer
  *
- * Fails (sub-)test if the second integers is greater than the first.
+ * Fails (sub-)test if the second integer is strictly smaller than the first.
  * Beware that for now this only works on integers.
  *
  * Like igt_assert(), but displays the values being compared on failure instead
@@ -471,7 +471,7 @@ void igt_exit(void) __attribute__((noreturn));
  * @n1: first integer
  * @n2: second integer
  *
- * Fails (sub-)test if the second integers is strictly smaller than the first.
+ * Fails (sub-)test if the second integer is smaller than or equal to the first.
  * Beware that for now this only works on integers.
  *
  * Like igt_assert(), but displays the values being compared on failure instead
