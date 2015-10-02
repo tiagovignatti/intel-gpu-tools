@@ -2496,6 +2496,125 @@ static void fullscreen_plane_subtest(const struct test_mode *t)
 	igt_remove_fb(drm.fd, &fullscreen_fb);
 }
 
+/*
+ * scaledprimary - try different primary plane scaling strategies
+ *
+ * METHOD
+ *    Enable the primary plane, use drmModeSetPlane to force scaling in
+ *    different ways.
+ *
+ * EXPECTED RESULTS
+ *   SKIP on platforms that don't support primary plane scaling. Success on all
+ *   others.
+ *
+ * FAILURES
+ *   TODO: although we're exercising the code here, we're not really doing
+ *   assertions in order to check if things are working properly. The biggest
+ *   issue this code would be able to find would be an incorrectly calculated
+ *   CFB size, and today we don't have means to assert this. One day we might
+ *   implement some sort of stolen memory checking mechanism, then we'll be able
+ *   to force it to run after every drmModeSetPlane call here, so we'll be
+ *   checking if the expected CFB size is actually what we think it is.
+ */
+static void scaledprimary_subtest(const struct test_mode *t)
+{
+	struct igt_fb new_fb, *old_fb;
+	struct modeset_params *params = pick_params(t);
+	int i, rc;
+	uint32_t plane_id;
+
+	igt_require_f(intel_gen(intel_get_drm_devid(drm.fd)) >= 9,
+		      "Can't test primary plane scaling before gen 9\n");
+
+	prepare_subtest(t, NULL);
+
+	old_fb = params->fb.fb;
+
+	create_fb(t->format, params->fb.fb->width, params->fb.fb->height,
+		  LOCAL_I915_FORMAT_MOD_X_TILED,
+		  t->plane, &new_fb);
+	fill_fb(&new_fb, COLOR_BLUE);
+
+	igt_draw_rect_fb(drm.fd, drm.bufmgr, NULL, &new_fb, t->method,
+			 params->fb.x, params->fb.y,
+			 params->fb.w / 2, params->fb.h / 2,
+			 pick_color(&new_fb, COLOR_GREEN));
+	igt_draw_rect_fb(drm.fd, drm.bufmgr, NULL, &new_fb, t->method,
+			 params->fb.x + params->fb.w / 2,
+			 params->fb.y + params->fb.h / 2,
+			 params->fb.w / 2, params->fb.h / 2,
+			 pick_color(&new_fb, COLOR_RED));
+	igt_draw_rect_fb(drm.fd, drm.bufmgr, NULL, &new_fb, t->method,
+			 params->fb.x + params->fb.w / 2,
+			 params->fb.y + params->fb.h / 2,
+			 params->fb.w / 4, params->fb.h / 4,
+			 pick_color(&new_fb, COLOR_MAGENTA));
+
+	for (i = 0; i < drm.plane_res->count_planes; i++)
+		if ((drm.planes[i]->possible_crtcs & 1) &&
+		    drm.plane_types[i] == DRM_PLANE_TYPE_PRIMARY)
+			plane_id = drm.planes[i]->plane_id;
+
+	/* No scaling. */
+	rc = drmModeSetPlane(drm.fd, plane_id, params->crtc_id,
+			     new_fb.fb_id, 0,
+			     0, 0,
+			     params->mode->hdisplay, params->mode->vdisplay,
+			     params->fb.x << 16, params->fb.y << 16,
+			     params->fb.w << 16, params->fb.h << 16);
+	igt_assert(rc == 0);
+	do_assertions(DONT_ASSERT_CRC);
+
+	/* Source upscaling. */
+	rc = drmModeSetPlane(drm.fd, plane_id, params->crtc_id,
+			     new_fb.fb_id, 0,
+			     0, 0,
+			     params->mode->hdisplay, params->mode->vdisplay,
+			     params->fb.x << 16, params->fb.y << 16,
+			     (params->fb.w / 2) << 16,
+			     (params->fb.h / 2) << 16);
+	igt_assert(rc == 0);
+	do_assertions(DONT_ASSERT_CRC);
+
+	/* Destination doesn't fill the entire CRTC, no scaling. */
+	rc = drmModeSetPlane(drm.fd, plane_id, params->crtc_id,
+			     new_fb.fb_id, 0,
+			     params->mode->hdisplay / 4,
+			     params->mode->vdisplay / 4,
+			     params->mode->hdisplay / 2,
+			     params->mode->vdisplay / 2,
+			     params->fb.x << 16, params->fb.y << 16,
+			     (params->fb.w / 2) << 16,
+			     (params->fb.h / 2) << 16);
+	igt_assert(rc == 0);
+	do_assertions(DONT_ASSERT_CRC);
+
+	/* Destination doesn't fill the entire CRTC, upscaling. */
+	rc = drmModeSetPlane(drm.fd, plane_id, params->crtc_id,
+			     new_fb.fb_id, 0,
+			     params->mode->hdisplay / 4,
+			     params->mode->vdisplay / 4,
+			     params->mode->hdisplay / 2,
+			     params->mode->vdisplay / 2,
+			     (params->fb.x + params->fb.w / 2) << 16,
+			     (params->fb.y + params->fb.h / 2) << 16,
+			     (params->fb.w / 4) << 16,
+			     (params->fb.h / 4) << 16);
+	igt_assert(rc == 0);
+	do_assertions(DONT_ASSERT_CRC);
+
+	/* Back to the good and old blue fb. */
+	rc = drmModeSetPlane(drm.fd, plane_id, params->crtc_id,
+			     old_fb->fb_id, 0,
+			     0, 0,
+			     params->mode->hdisplay, params->mode->vdisplay,
+			     params->fb.x << 16, params->fb.y << 16,
+			     params->fb.w << 16, params->fb.h << 16);
+	igt_assert(rc == 0);
+	do_assertions(0);
+
+	igt_remove_fb(drm.fd, &new_fb);
+}
 /**
  * modesetfrombusy - modeset from a busy buffer to a non-busy buffer
  *
@@ -3065,6 +3184,18 @@ int main(int argc, char *argv[])
 				      igt_draw_get_method_name(t.method))
 				format_draw_subtest(&t);
 		}
+	TEST_MODE_ITER_END
+
+	TEST_MODE_ITER_BEGIN(t)
+		if (t.pipes != PIPE_SINGLE ||
+		    t.screen != SCREEN_PRIM ||
+		    t.plane != PLANE_PRI ||
+		    t.method != IGT_DRAW_MMAP_CPU)
+			continue;
+		igt_subtest_f("%s-%s-scaledprimary",
+			      feature_str(t.feature),
+			      fbs_str(t.fbs))
+			scaledprimary_subtest(&t);
 	TEST_MODE_ITER_END
 
 	TEST_MODE_ITER_BEGIN(t)
