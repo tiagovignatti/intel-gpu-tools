@@ -1333,7 +1333,6 @@ static void setup_sink_crc(void)
 	prim_mode_params.fb.fb = &fbs[FORMAT_DEFAULT].prim_pri;
 	prim_mode_params.fb.x = prim_mode_params.fb.y = 0;
 	fill_fb_region(&prim_mode_params.fb, COLOR_PRIM_BG);
-	unset_all_crtcs();
 	set_mode_for_params(&prim_mode_params);
 
 	sink_crc.fd = igt_debugfs_open("i915_sink_crc_eDP1", O_RDONLY);
