@@ -54,6 +54,13 @@ typedef struct {
 	struct igt_fb red_fb, blue_fb;
 } pageflip_test_t;
 
+typedef struct {
+	data_t *data;
+	int x, y;
+	int w, h;
+	struct igt_fb biggreen_fb, smallred_fb, smallblue_fb;
+} gen9_test_t;
+
 static void
 functional_test_init(functional_test_t *test, igt_output_t *output, enum pipe pipe)
 {
@@ -637,6 +644,101 @@ cursor_leak_test_pipe(data_t *data, enum pipe pipe, igt_output_t *output)
 }
 
 static void
+gen9_test_init(gen9_test_t *test, igt_output_t *output, enum pipe pipe)
+{
+	data_t *data = test->data;
+	drmModeModeInfo *mode;
+
+	igt_output_set_pipe(output, pipe);
+
+	mode = igt_output_get_mode(output);
+	test->w = mode->hdisplay / 2;
+	test->h = mode->vdisplay / 2;
+	test->x = mode->hdisplay / 4;
+	test->y = mode->vdisplay / 4;
+
+	/* Initial framebuffer of full CRTC size */
+	igt_create_color_fb(data->drm_fd, mode->hdisplay, mode->vdisplay,
+			    DRM_FORMAT_XRGB8888,
+			    LOCAL_DRM_FORMAT_MOD_NONE,
+			    0.0, 1.0, 0.0,
+			    &test->biggreen_fb);
+
+	/* Framebuffers that only cover a quarter of the CRTC size */
+	igt_create_color_fb(data->drm_fd, test->w, test->h,
+			    DRM_FORMAT_XRGB8888,
+			    LOCAL_DRM_FORMAT_MOD_NONE,
+			    1.0, 0.0, 0.0,
+			    &test->smallred_fb);
+	igt_create_color_fb(data->drm_fd, test->w, test->h,
+			    DRM_FORMAT_XRGB8888,
+			    LOCAL_DRM_FORMAT_MOD_NONE,
+			    0.0, 0.0, 1.0,
+			    &test->smallblue_fb);
+}
+
+static void
+gen9_test_fini(gen9_test_t *test, igt_output_t *output)
+{
+	igt_remove_fb(test->data->drm_fd, &test->biggreen_fb);
+	igt_remove_fb(test->data->drm_fd, &test->smallred_fb);
+	igt_remove_fb(test->data->drm_fd, &test->smallblue_fb);
+
+	igt_output_set_pipe(output, PIPE_ANY);
+	igt_display_commit2(&test->data->display, COMMIT_LEGACY);
+}
+
+/*
+ * Test features specific to gen9+ platforms (i.e., primary plane
+ * windowing)
+ */
+static void
+gen9_test_pipe(data_t *data, enum pipe pipe, igt_output_t *output)
+{
+	gen9_test_t test = { .data = data };
+	igt_plane_t *primary;
+
+	int ret = 0;
+
+	igt_skip_on(data->gen < 9);
+	igt_skip_on(pipe >= data->display.n_pipes);
+
+	igt_output_set_pipe(output, pipe);
+
+	gen9_test_init(&test, output, pipe);
+
+	primary = igt_output_get_plane(output, IGT_PLANE_PRIMARY);
+
+	/* Start with a full-screen primary plane */
+	igt_plane_set_fb(primary, &test.biggreen_fb);
+	igt_display_commit2(&data->display, COMMIT_LEGACY);
+
+	/* Set primary to windowed size/position */
+	igt_plane_set_fb(primary, &test.smallblue_fb);
+	igt_plane_set_position(primary, test.x, test.y);
+	igt_plane_set_size(primary, test.w, test.h);
+	igt_display_commit2(&data->display, COMMIT_UNIVERSAL);
+
+	/*
+	 * SetPlane update to another framebuffer of the same size
+	 * should succeed
+	 */
+	igt_plane_set_fb(primary, &test.smallred_fb);
+	igt_plane_set_position(primary, test.x, test.y);
+	igt_plane_set_size(primary, test.w, test.h);
+	igt_display_commit2(&data->display, COMMIT_UNIVERSAL);
+
+	/* PageFlip should also succeed */
+	ret = drmModePageFlip(data->drm_fd, output->config.crtc->crtc_id,
+			      test.smallblue_fb.fb_id, 0, NULL);
+	igt_assert_eq(ret, 0);
+
+	igt_plane_set_fb(primary, NULL);
+	igt_plane_set_position(primary, 0, 0);
+	gen9_test_fini(&test, output);
+}
+
+static void
 run_tests_for_pipe(data_t *data, enum pipe pipe)
 {
 	igt_output_t *output;
@@ -660,6 +762,11 @@ run_tests_for_pipe(data_t *data, enum pipe pipe)
 		      kmstest_pipe_name(pipe))
 		for_each_connected_output(&data->display, output)
 			cursor_leak_test_pipe(data, pipe, output);
+
+	igt_subtest_f("universal-plane-gen9-features-pipe-%s",
+		      kmstest_pipe_name(pipe))
+		for_each_connected_output(&data->display, output)
+			gen9_test_pipe(data, pipe, output);
 }
 
 static data_t data;
