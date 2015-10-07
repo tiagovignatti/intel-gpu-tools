@@ -10,6 +10,7 @@ check_PROGRAMS = \
 	igt_timeout \
 	igt_invalid_subtest_name \
 	igt_segfault \
+	igt_assert \
 	$(NULL)
 
 check_SCRIPTS = \
