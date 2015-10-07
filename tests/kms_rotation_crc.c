@@ -31,6 +31,7 @@ typedef struct {
 	igt_display_t display;
 	struct igt_fb fb;
 	struct igt_fb fb_modeset;
+	struct igt_fb fb_flip;
 	igt_crc_t ref_crc;
 	igt_pipe_crc_t *pipe_crc;
 	igt_rotation_t rotation;
@@ -39,17 +40,18 @@ typedef struct {
 	unsigned int w, h;
 	uint32_t override_fmt;
 	uint64_t override_tiling;
+	unsigned int flip_stress;
 } data_t;
 
 static void
 paint_squares(data_t *data, drmModeModeInfo *mode, igt_rotation_t rotation,
-	      igt_plane_t *plane)
+	      struct igt_fb *fb, float o)
 {
 	cairo_t *cr;
 	unsigned int w = data->w;
 	unsigned int h = data->h;
 
-	cr = igt_get_cairo_ctx(data->gfx_fd, &data->fb);
+	cr = igt_get_cairo_ctx(data->gfx_fd, fb);
 
 	if (rotation == IGT_ROTATION_180) {
 		cairo_translate(cr, w, h);
@@ -59,23 +61,23 @@ paint_squares(data_t *data, drmModeModeInfo *mode, igt_rotation_t rotation,
 	if (rotation == IGT_ROTATION_90) {
 		/* Paint 4 squares with width == height in Green, White,
 		Blue, Red Clockwise order to look like 270 degree rotated*/
-		igt_paint_color(cr, 0, 0, w / 2, h / 2, 0.0, 1.0, 0.0);
-		igt_paint_color(cr, w / 2, 0, w / 2, h / 2, 1.0, 1.0, 1.0);
-		igt_paint_color(cr, 0, h / 2, w / 2, h / 2, 1.0, 0.0, 0.0);
-		igt_paint_color(cr, w / 2, h / 2, w / 2, h / 2, 0.0, 0.0, 1.0);
+		igt_paint_color(cr, 0, 0, w / 2, h / 2, 0.0, o, 0.0);
+		igt_paint_color(cr, w / 2, 0, w / 2, h / 2, o, o, o);
+		igt_paint_color(cr, 0, h / 2, w / 2, h / 2, o, 0.0, 0.0);
+		igt_paint_color(cr, w / 2, h / 2, w / 2, h / 2, 0.0, 0.0, o);
 	} else if (rotation == IGT_ROTATION_270) {
 		/* Paint 4 squares with width == height in Blue, Red,
 		Green, White Clockwise order to look like 90 degree rotated*/
-		igt_paint_color(cr, 0, 0, w / 2, h / 2, 0.0, 0.0, 1.0);
-		igt_paint_color(cr, w / 2, 0, w / 2, h / 2, 1.0, 0.0, 0.0);
-		igt_paint_color(cr, 0, h / 2, w / 2, h / 2, 1.0, 1.0, 1.0);
-		igt_paint_color(cr, w / 2, h / 2, w / 2, h / 2, 0.0, 1.0, 0.0);
+		igt_paint_color(cr, 0, 0, w / 2, h / 2, 0.0, 0.0, o);
+		igt_paint_color(cr, w / 2, 0, w / 2, h / 2, o, 0.0, 0.0);
+		igt_paint_color(cr, 0, h / 2, w / 2, h / 2, o, o, o);
+		igt_paint_color(cr, w / 2, h / 2, w / 2, h / 2, 0.0, o, 0.0);
 	} else {
 		/* Paint with 4 squares of Red, Green, White, Blue Clockwise */
-		igt_paint_color(cr, 0, 0, w / 2, h / 2, 1.0, 0.0, 0.0);
-		igt_paint_color(cr, w / 2, 0, w / 2, h / 2, 0.0, 1.0, 0.0);
-		igt_paint_color(cr, 0, h / 2, w / 2, h / 2, 0.0, 0.0, 1.0);
-		igt_paint_color(cr, w / 2, h / 2, w / 2, h / 2, 1.0, 1.0, 1.0);
+		igt_paint_color(cr, 0, 0, w / 2, h / 2, o, 0.0, 0.0);
+		igt_paint_color(cr, w / 2, 0, w / 2, h / 2, 0.0, o, 0.0);
+		igt_paint_color(cr, 0, h / 2, w / 2, h / 2, 0.0, 0.0, o);
+		igt_paint_color(cr, w / 2, h / 2, w / 2, h / 2, o, o, o);
 	}
 
 	cairo_destroy(cr);
@@ -165,8 +167,18 @@ static void prepare_crtc(data_t *data, igt_output_t *output, enum pipe pipe,
 			      &data->fb);
 	igt_assert(fb_id);
 
+	if (data->flip_stress) {
+		fb_id = igt_create_fb(data->gfx_fd,
+				      w, h,
+				      pixel_format,
+				      tiling,
+				      &data->fb_flip);
+		igt_assert(fb_id);
+		paint_squares(data, mode, IGT_ROTATION_0, &data->fb_flip, 0.92);
+	}
+
 	/* Step 1: create a reference CRC for a software-rotated fb */
-	paint_squares(data, mode, data->rotation, plane);
+	paint_squares(data, mode, data->rotation, &data->fb, 1.0);
 	commit_crtc(data, output, plane);
 	igt_pipe_crc_collect_crc(data->pipe_crc, &data->ref_crc);
 
@@ -174,7 +186,7 @@ static void prepare_crtc(data_t *data, igt_output_t *output, enum pipe pipe,
 	 * Step 2: prepare the plane with an non-rotated fb let the hw
 	 * rotate it.
 	 */
-	paint_squares(data, mode, IGT_ROTATION_0, plane);
+	paint_squares(data, mode, IGT_ROTATION_0, &data->fb, 1.0);
 	igt_plane_set_fb(plane, &data->fb);
 }
 
@@ -187,6 +199,8 @@ static void cleanup_crtc(data_t *data, igt_output_t *output, igt_plane_t *plane)
 
 	igt_remove_fb(data->gfx_fd, &data->fb);
 	igt_remove_fb(data->gfx_fd, &data->fb_modeset);
+	if (data->fb_flip.fb_id)
+		igt_remove_fb(data->gfx_fd, &data->fb_flip);
 
 	/* XXX: see the note in prepare_crtc() */
 	if (!plane->is_primary) {
@@ -202,6 +216,23 @@ static void cleanup_crtc(data_t *data, igt_output_t *output, igt_plane_t *plane)
 	igt_display_commit(display);
 }
 
+static void wait_for_pageflip(int fd)
+{
+	drmEventContext evctx = { .version = DRM_EVENT_CONTEXT_VERSION };
+	struct timeval timeout = { .tv_sec = 0, .tv_usec = 32000 };
+	fd_set fds;
+	int ret;
+
+	/* Wait for pageflip completion, then consume event on fd */
+	FD_ZERO(&fds);
+	FD_SET(fd, &fds);
+	do {
+		ret = select(fd + 1, &fds, NULL, NULL, &timeout);
+	} while (ret < 0 && errno == EINTR);
+	igt_assert_eq(ret, 1);
+	igt_assert(drmHandleEvent(fd, &evctx) == 0);
+}
+
 static void test_plane_rotation(data_t *data, enum igt_plane plane_type)
 {
 	igt_display_t *display = &data->display;
@@ -210,6 +241,7 @@ static void test_plane_rotation(data_t *data, enum igt_plane plane_type)
 	int valid_tests = 0;
 	igt_crc_t crc_output, crc_unrotated;
 	enum igt_commit_style commit = COMMIT_LEGACY;
+	unsigned int flip_count;
 	int ret;
 
 	if (plane_type == IGT_PLANE_PRIMARY || plane_type == IGT_PLANE_CURSOR) {
@@ -243,6 +275,24 @@ static void test_plane_rotation(data_t *data, enum igt_plane plane_type)
 							 &crc_output);
 				igt_assert_crc_equal(&data->ref_crc,
 						     &crc_output);
+			}
+
+			flip_count = data->flip_stress;
+			while (flip_count--) {
+				ret = drmModePageFlip(data->gfx_fd,
+						      output->config.crtc->crtc_id,
+						      data->fb_flip.fb_id,
+						      DRM_MODE_PAGE_FLIP_EVENT,
+						      NULL);
+				igt_assert(ret == 0);
+				wait_for_pageflip(data->gfx_fd);
+				ret = drmModePageFlip(data->gfx_fd,
+						      output->config.crtc->crtc_id,
+						      data->fb.fb_id,
+						      DRM_MODE_PAGE_FLIP_EVENT,
+						      NULL);
+				igt_assert(ret == 0);
+				wait_for_pageflip(data->gfx_fd);
 			}
 
 			/*
@@ -342,6 +392,14 @@ igt_main
 		data.override_fmt = 0;
 		data.rotation = IGT_ROTATION_90;
 		data.override_tiling = LOCAL_DRM_FORMAT_MOD_NONE;
+		test_plane_rotation(&data, IGT_PLANE_PRIMARY);
+	}
+
+	igt_subtest_f("primary-rotation-90-flip-stress") {
+		igt_require(gen >= 9);
+		data.override_tiling = 0;
+		data.flip_stress = 60;
+		data.rotation = IGT_ROTATION_90;
 		test_plane_rotation(&data, IGT_PLANE_PRIMARY);
 	}
 
