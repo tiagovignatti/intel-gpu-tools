@@ -774,8 +774,11 @@ static void destroy_cairo_surface__gtt(void *arg)
 
 static void create_cairo_surface__gtt(int fd, struct igt_fb *fb)
 {
+	void *ptr = gem_mmap__gtt(fd, fb->gem_handle, fb->size, PROT_READ | PROT_WRITE);
+	igt_assert(ptr);
+
 	fb->cairo_surface =
-		cairo_image_surface_create_for_data(gem_mmap__gtt(fd, fb->gem_handle, fb->size, PROT_READ | PROT_WRITE),
+		cairo_image_surface_create_for_data(ptr,
 						    drm_format_to_cairo(fb->drm_format),
 						    fb->width, fb->height, fb->stride);
 
