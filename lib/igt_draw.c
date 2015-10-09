@@ -252,7 +252,7 @@ static void draw_rect_mmap_cpu(int fd, struct buf_data *buf, struct rect *rect,
 	if (tiling != I915_TILING_NONE)
 		igt_require(intel_gen(intel_get_drm_devid(fd)) >= 5);
 
-	ptr = gem_mmap__cpu(fd, buf->handle, 0, buf->size, 0);
+	ptr = __gem_mmap__cpu(fd, buf->handle, 0, buf->size, 0);
 	igt_assert(ptr);
 
 	switch (tiling) {
@@ -281,7 +281,7 @@ static void draw_rect_mmap_gtt(int fd, struct buf_data *buf, struct rect *rect,
 	gem_set_domain(fd, buf->handle, I915_GEM_DOMAIN_GTT,
 		       I915_GEM_DOMAIN_GTT);
 
-	ptr = gem_mmap__gtt(fd, buf->handle, buf->size, PROT_READ | PROT_WRITE);
+	ptr = __gem_mmap__gtt(fd, buf->handle, buf->size, PROT_READ | PROT_WRITE);
 	igt_assert(ptr);
 
 	draw_rect_ptr_linear(ptr, buf->stride, rect, color, buf->bpp);
@@ -303,7 +303,7 @@ static void draw_rect_mmap_wc(int fd, struct buf_data *buf, struct rect *rect,
 	if (tiling != I915_TILING_NONE)
 		igt_require(intel_gen(intel_get_drm_devid(fd)) >= 5);
 
-	ptr = gem_mmap__wc(fd, buf->handle, 0, buf->size,
+	ptr = __gem_mmap__wc(fd, buf->handle, 0, buf->size,
 			   PROT_READ | PROT_WRITE);
 	igt_assert(ptr);
 

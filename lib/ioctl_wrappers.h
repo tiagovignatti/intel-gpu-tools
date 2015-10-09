@@ -66,6 +66,10 @@ void *gem_mmap__cpu(int fd, uint32_t handle, uint64_t offset, uint64_t size, uns
 bool gem_mmap__has_wc(int fd);
 void *gem_mmap__wc(int fd, uint32_t handle, uint64_t offset, uint64_t size, unsigned prot);
 
+void *__gem_mmap__gtt(int fd, uint32_t handle, uint64_t size, unsigned prot);
+void *__gem_mmap__cpu(int fd, uint32_t handle, uint64_t offset, uint64_t size, unsigned prot);
+void *__gem_mmap__wc(int fd, uint32_t handle, uint64_t offset, uint64_t size, unsigned prot);
+
 /**
  * gem_require_mmap_wc:
  * @fd: open i915 drm file descriptor

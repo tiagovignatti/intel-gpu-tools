@@ -447,7 +447,7 @@ void gem_execbuf(int fd, struct drm_i915_gem_execbuffer2 *execbuf)
 }
 
 /**
- * gem_mmap__gtt:
+ * __gem_mmap__gtt:
  * @fd: open i915 drm file descriptor
  * @handle: gem buffer object handle
  * @size: size of the gem buffer
@@ -458,7 +458,7 @@ void gem_execbuf(int fd, struct drm_i915_gem_execbuffer2 *execbuf)
  *
  * Returns: A pointer to the created memory mapping, NULL on failure.
  */
-void *gem_mmap__gtt(int fd, uint32_t handle, uint64_t size, unsigned prot)
+void *__gem_mmap__gtt(int fd, uint32_t handle, uint64_t size, unsigned prot)
 {
 	struct drm_i915_gem_mmap_gtt mmap_arg;
 	void *ptr;
@@ -474,6 +474,24 @@ void *gem_mmap__gtt(int fd, uint32_t handle, uint64_t size, unsigned prot)
 	else
 		errno = 0;
 
+	return ptr;
+}
+
+/**
+ * gem_mmap__gtt:
+ * @fd: open i915 drm file descriptor
+ * @handle: gem buffer object handle
+ * @size: size of the gem buffer
+ * @prot: memory protection bits as used by mmap()
+ *
+ * Like __gem_mmap__gtt() except we assert on failure.
+ *
+ * Returns: A pointer to the created memory mapping
+ */
+void *gem_mmap__gtt(int fd, uint32_t handle, uint64_t size, unsigned prot)
+{
+	void *ptr = __gem_mmap__gtt(fd, handle, size, prot);
+	igt_assert(ptr);
 	return ptr;
 }
 
@@ -523,7 +541,7 @@ bool gem_mmap__has_wc(int fd)
 }
 
 /**
- * gem_mmap__wc:
+ * __gem_mmap__wc:
  * @fd: open i915 drm file descriptor
  * @handle: gem buffer object handle
  * @offset: offset in the gem buffer of the mmap arena
@@ -537,7 +555,7 @@ bool gem_mmap__has_wc(int fd)
  *
  * Returns: A pointer to the created memory mapping, NULL on failure.
  */
-void *gem_mmap__wc(int fd, uint32_t handle, uint64_t offset, uint64_t size, unsigned prot)
+void *__gem_mmap__wc(int fd, uint32_t handle, uint64_t offset, uint64_t size, unsigned prot)
 {
 	struct local_i915_gem_mmap_v2 arg;
 
@@ -559,7 +577,26 @@ void *gem_mmap__wc(int fd, uint32_t handle, uint64_t offset, uint64_t size, unsi
 }
 
 /**
- * gem_mmap__cpu:
+ * gem_mmap__wc:
+ * @fd: open i915 drm file descriptor
+ * @handle: gem buffer object handle
+ * @offset: offset in the gem buffer of the mmap arena
+ * @size: size of the mmap arena
+ * @prot: memory protection bits as used by mmap()
+ *
+ * Like __gem_mmap__wc() except we assert on failure.
+ *
+ * Returns: A pointer to the created memory mapping
+ */
+void *gem_mmap__wc(int fd, uint32_t handle, uint64_t offset, uint64_t size, unsigned prot)
+{
+	void *ptr = __gem_mmap__wc(fd, handle, offset, size, prot);
+	igt_assert(ptr);
+	return ptr;
+}
+
+/**
+ * __gem_mmap__cpu:
  * @fd: open i915 drm file descriptor
  * @handle: gem buffer object handle
  * @offset: offset in the gem buffer of the mmap arena
@@ -571,7 +608,7 @@ void *gem_mmap__wc(int fd, uint32_t handle, uint64_t offset, uint64_t size, unsi
  *
  * Returns: A pointer to the created memory mapping, NULL on failure.
  */
-void *gem_mmap__cpu(int fd, uint32_t handle, uint64_t offset, uint64_t size, unsigned prot)
+void *__gem_mmap__cpu(int fd, uint32_t handle, uint64_t offset, uint64_t size, unsigned prot)
 {
 	struct drm_i915_gem_mmap mmap_arg;
 
@@ -584,6 +621,25 @@ void *gem_mmap__cpu(int fd, uint32_t handle, uint64_t offset, uint64_t size, uns
 
 	errno = 0;
 	return (void *)(uintptr_t)mmap_arg.addr_ptr;
+}
+
+/**
+ * gem_mmap__cpu:
+ * @fd: open i915 drm file descriptor
+ * @handle: gem buffer object handle
+ * @offset: offset in the gem buffer of the mmap arena
+ * @size: size of the mmap arena
+ * @prot: memory protection bits as used by mmap()
+ *
+ * Like __gem_mmap__cpu() except we assert on failure.
+ *
+ * Returns: A pointer to the created memory mapping
+ */
+void *gem_mmap__cpu(int fd, uint32_t handle, uint64_t offset, uint64_t size, unsigned prot)
+{
+	void *ptr = __gem_mmap__cpu(fd, handle, offset, size, prot);
+	igt_assert(ptr);
+	return ptr;
 }
 
 /**

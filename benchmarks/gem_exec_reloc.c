@@ -115,13 +115,13 @@ static int run(unsigned batch_size,
 	if (num_relocs) {
 		size = ALIGN(sizeof(*mem_reloc)*num_relocs, 4096);
 		reloc_handle = gem_create(fd, size);
-		reloc = gem_mmap__cpu(fd, reloc_handle, 0, size, PROT_READ | PROT_WRITE);
+		reloc = __gem_mmap__cpu(fd, reloc_handle, 0, size, PROT_READ | PROT_WRITE);
 		memcpy(reloc, mem_reloc, sizeof(*mem_reloc)*num_relocs);
 		munmap(reloc, size);
 
 		if (flags & FAULT) {
 			igt_disable_prefault();
-			reloc = gem_mmap__cpu(fd, reloc_handle, 0, size, PROT_READ | PROT_WRITE);
+			reloc = __gem_mmap__cpu(fd, reloc_handle, 0, size, PROT_READ | PROT_WRITE);
 		} else
 			reloc = mem_reloc;
 	}
@@ -162,7 +162,7 @@ static int run(unsigned batch_size,
 			}
 			if (flags & FAULT && reloc) {
 				munmap(reloc, size);
-				reloc = gem_mmap__cpu(fd, reloc_handle, 0, size, PROT_READ | PROT_WRITE);
+				reloc = __gem_mmap__cpu(fd, reloc_handle, 0, size, PROT_READ | PROT_WRITE);
 				gem_exec[num_objects].relocs_ptr = (uintptr_t)reloc;
 			}
 			gem_execbuf(fd, &execbuf);

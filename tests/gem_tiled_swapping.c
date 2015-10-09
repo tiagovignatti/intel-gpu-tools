@@ -78,7 +78,7 @@ create_bo(int fd)
 	handle = gem_create(fd, LINEAR_DWORDS);
 	gem_set_tiling(fd, handle, current_tiling_mode, WIDTH * sizeof(uint32_t));
 
-	data = gem_mmap__gtt(fd, handle, LINEAR_DWORDS, PROT_READ | PROT_WRITE);
+	data = __gem_mmap__gtt(fd, handle, LINEAR_DWORDS, PROT_READ | PROT_WRITE);
 	if (data == NULL) {
 		gem_close(fd, handle);
 		return 0;
@@ -94,7 +94,7 @@ fill_bo(int fd, uint32_t handle)
 	uint32_t *data;
 	int i;
 
-	data = gem_mmap__gtt(fd, handle, LINEAR_DWORDS, PROT_READ | PROT_WRITE);
+	data = __gem_mmap__gtt(fd, handle, LINEAR_DWORDS, PROT_READ | PROT_WRITE);
 	igt_assert(data);
 
 	gem_set_domain(fd, handle, I915_GEM_DOMAIN_GTT, I915_GEM_DOMAIN_GTT);
@@ -109,7 +109,7 @@ check_bo(int fd, uint32_t handle)
 	uint32_t *data;
 	int j;
 
-	data = gem_mmap__gtt(fd, handle, LINEAR_DWORDS, PROT_READ);
+	data = __gem_mmap__gtt(fd, handle, LINEAR_DWORDS, PROT_READ);
 	igt_assert(data);
 	gem_set_domain(fd, handle, I915_GEM_DOMAIN_GTT, 0);
 	j = rand() % (WIDTH * HEIGHT);

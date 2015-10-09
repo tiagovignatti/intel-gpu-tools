@@ -88,21 +88,21 @@ static void test_streaming(int fd, int mode, int sync)
 	switch (mode) {
 	case 0: /* cpu/snoop */
 		gem_set_caching(fd, src, I915_CACHING_CACHED);
-		s = gem_mmap__cpu(fd, src, 0, OBJECT_SIZE, PROT_READ | PROT_WRITE);
+		s = __gem_mmap__cpu(fd, src, 0, OBJECT_SIZE, PROT_READ | PROT_WRITE);
 		igt_assert(s);
 		break;
 	case 1: /* gtt */
-		s = gem_mmap__gtt(fd, src, OBJECT_SIZE, PROT_READ | PROT_WRITE);
+		s = __gem_mmap__gtt(fd, src, OBJECT_SIZE, PROT_READ | PROT_WRITE);
 		igt_assert(s);
 		break;
 	case 2: /* wc */
-		s = gem_mmap__wc(fd, src, 0, OBJECT_SIZE, PROT_READ | PROT_WRITE);
+		s = __gem_mmap__wc(fd, src, 0, OBJECT_SIZE, PROT_READ | PROT_WRITE);
 		igt_assert(s);
 		break;
 	}
 	*s = 0; /* fault the object into the mappable range first (for GTT) */
 
-	d = gem_mmap__cpu(fd, dst, 0, OBJECT_SIZE, PROT_READ);
+	d = __gem_mmap__cpu(fd, dst, 0, OBJECT_SIZE, PROT_READ);
 	igt_assert(d);
 
 	gem_write(fd, dst, 0, tmp, sizeof(tmp));
@@ -154,7 +154,7 @@ static void test_streaming(int fd, int mode, int sync)
 		batch[i].handle = gem_create(fd, 4096);
 		batch[i].offset = 0;
 
-		base = gem_mmap__cpu(fd, batch[i].handle, 0, 4096, PROT_WRITE);
+		base = __gem_mmap__cpu(fd, batch[i].handle, 0, 4096, PROT_WRITE);
 		igt_assert(base);
 
 		for (int j = 0; j < 64; j++) {
@@ -254,10 +254,10 @@ static void test_batch(int fd, int mode, int reverse)
 	exec[DST].handle = gem_create(fd, OBJECT_SIZE);
 	exec[SRC].handle = gem_create(fd, OBJECT_SIZE);
 
-	s = gem_mmap__wc(fd, src, 0, OBJECT_SIZE, PROT_READ | PROT_WRITE);
+	s = __gem_mmap__wc(fd, src, 0, OBJECT_SIZE, PROT_READ | PROT_WRITE);
 	igt_assert(s);
 
-	d = gem_mmap__cpu(fd, dst, 0, OBJECT_SIZE, PROT_READ);
+	d = __gem_mmap__cpu(fd, dst, 0, OBJECT_SIZE, PROT_READ);
 	igt_assert(d);
 
 	memset(reloc, 0, sizeof(reloc));
@@ -285,15 +285,15 @@ static void test_batch(int fd, int mode, int reverse)
 	switch (mode) {
 	case 0: /* cpu/snoop */
 		igt_require(gem_has_llc(fd));
-		base = gem_mmap__cpu(fd, exec[BATCH].handle, 0, batch_size, PROT_READ | PROT_WRITE);
+		base = __gem_mmap__cpu(fd, exec[BATCH].handle, 0, batch_size, PROT_READ | PROT_WRITE);
 		igt_assert(base);
 		break;
 	case 1: /* gtt */
-		base = gem_mmap__gtt(fd, exec[BATCH].handle, batch_size, PROT_READ | PROT_WRITE);
+		base = __gem_mmap__gtt(fd, exec[BATCH].handle, batch_size, PROT_READ | PROT_WRITE);
 		igt_assert(base);
 		break;
 	case 2: /* wc */
-		base = gem_mmap__wc(fd, exec[BATCH].handle, 0, batch_size, PROT_READ | PROT_WRITE);
+		base = __gem_mmap__wc(fd, exec[BATCH].handle, 0, batch_size, PROT_READ | PROT_WRITE);
 		igt_assert(base);
 		break;
 	}

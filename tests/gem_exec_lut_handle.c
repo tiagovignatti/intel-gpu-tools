@@ -123,7 +123,7 @@ igt_simple_main
 
 	size = ALIGN(sizeof(mem_reloc), 4096);
 	reloc_handle = gem_create(fd, size);
-	reloc = gem_mmap__cpu(fd, reloc_handle, 0, size, PROT_READ | PROT_WRITE);
+	reloc = __gem_mmap__cpu(fd, reloc_handle, 0, size, PROT_READ | PROT_WRITE);
 	igt_assert(reloc);
 	for (n = 0; n < MAX_NUM_RELOC; n++) {
 		reloc[n].offset = 1024;
@@ -148,7 +148,7 @@ igt_simple_main
 				struct timeval start, end;
 
 				if (p->flags & FAULT)
-					reloc = gem_mmap__cpu(fd, reloc_handle, 0, size, PROT_READ | PROT_WRITE);
+					reloc = __gem_mmap__cpu(fd, reloc_handle, 0, size, PROT_READ | PROT_WRITE);
 				else
 					reloc = mem_reloc;
 
@@ -182,7 +182,7 @@ igt_simple_main
 					}
 					if (p->flags & FAULT) {
 						munmap(reloc, size);
-						reloc = gem_mmap__cpu(fd, reloc_handle, 0, size, PROT_READ | PROT_WRITE);
+						reloc = __gem_mmap__cpu(fd, reloc_handle, 0, size, PROT_READ | PROT_WRITE);
 						gem_exec[MAX_NUM_EXEC].relocs_ptr = (uintptr_t)reloc;
 					}
 					gem_execbuf(fd, &execbuf);
@@ -212,7 +212,7 @@ igt_simple_main
 					}
 					if (p->flags & FAULT) {
 						munmap(reloc, size);
-						reloc = gem_mmap__cpu(fd, reloc_handle, 0, size, PROT_READ | PROT_WRITE);
+						reloc = __gem_mmap__cpu(fd, reloc_handle, 0, size, PROT_READ | PROT_WRITE);
 						gem_exec[MAX_NUM_EXEC].relocs_ptr = (uintptr_t)reloc;
 					}
 					gem_execbuf(fd, &execbuf);

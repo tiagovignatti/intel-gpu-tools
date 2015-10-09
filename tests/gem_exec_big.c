@@ -203,9 +203,9 @@ igt_simple_main
 		gem_write(fd, handle, 0, batch, sizeof(batch));
 
 		if (!FORCE_PREAD_PWRITE && gem_has_llc(fd))
-			ptr = gem_mmap__cpu(fd, handle, 0, batch_size, PROT_READ);
+			ptr = __gem_mmap__cpu(fd, handle, 0, batch_size, PROT_READ);
 		else if (!FORCE_PREAD_PWRITE && gem_mmap__has_wc(fd))
-			ptr = gem_mmap__wc(fd, handle, 0, batch_size, PROT_READ);
+			ptr = __gem_mmap__wc(fd, handle, 0, batch_size, PROT_READ);
 		else
 			ptr = NULL;
 

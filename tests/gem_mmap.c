@@ -80,7 +80,7 @@ test_huge_bo(int huge)
 	bo = gem_create(fd, huge_object_size);
 
 	/* Obtain CPU mapping for the object. */
-	ptr_cpu = gem_mmap__cpu(fd, bo, 0, huge_object_size,
+	ptr_cpu = __gem_mmap__cpu(fd, bo, 0, huge_object_size,
 				PROT_READ | PROT_WRITE);
 	igt_require(ptr_cpu);
 	gem_set_domain(fd, bo, I915_GEM_DOMAIN_CPU, I915_GEM_DOMAIN_CPU);
@@ -166,7 +166,7 @@ igt_main
 	igt_subtest("short-mmap") {
 		igt_assert(OBJECT_SIZE > 4096);
 		arg.handle = gem_create(fd, OBJECT_SIZE);
-		addr = gem_mmap__cpu(fd, arg.handle, 0, 4096, PROT_WRITE);
+		addr = __gem_mmap__cpu(fd, arg.handle, 0, 4096, PROT_WRITE);
 		igt_assert(addr);
 		memset(addr, 0, 4096);
 		munmap(addr, 4096);

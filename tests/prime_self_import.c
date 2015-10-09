@@ -60,9 +60,9 @@ check_bo(int fd1, uint32_t handle1, int fd2, uint32_t handle2)
 	char *ptr1, *ptr2;
 	int i;
 
-	ptr1 = gem_mmap__gtt(fd1, handle1, BO_SIZE, PROT_READ | PROT_WRITE);
+	ptr1 = __gem_mmap__gtt(fd1, handle1, BO_SIZE, PROT_READ | PROT_WRITE);
 	igt_assert(ptr1);
-	ptr2 = gem_mmap__gtt(fd2, handle2, BO_SIZE, PROT_READ | PROT_WRITE);
+	ptr2 = __gem_mmap__gtt(fd2, handle2, BO_SIZE, PROT_READ | PROT_WRITE);
 	igt_assert(ptr2);
 
 	/* check whether it's still our old object first. */

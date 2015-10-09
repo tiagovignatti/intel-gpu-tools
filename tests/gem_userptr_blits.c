@@ -544,7 +544,7 @@ static int test_invalid_gtt_mapping(int fd)
 
 	/* GTT mapping */
 	handle = create_bo(fd, 0);
-	ptr = gem_mmap__gtt(fd, handle, sizeof(linear), PROT_READ | PROT_WRITE);
+	ptr = __gem_mmap__gtt(fd, handle, sizeof(linear), PROT_READ | PROT_WRITE);
 	gem_close(fd, handle);
 	igt_assert(ptr);
 	igt_assert(((unsigned long)ptr & (PAGE_SIZE - 1)) == 0);
@@ -573,7 +573,7 @@ static void test_process_exit(int fd, int flags)
 		handle = create_userptr_bo(fd, sizeof(linear));
 
 		if (flags & PE_GTT_MAP) {
-			uint32_t *ptr = gem_mmap__gtt(fd, handle, sizeof(linear), PROT_READ | PROT_WRITE);
+			uint32_t *ptr = __gem_mmap__gtt(fd, handle, sizeof(linear), PROT_READ | PROT_WRITE);
 			if (ptr)
 				*ptr = 0;
 		}
@@ -688,12 +688,12 @@ static void *umap(int fd, uint32_t handle)
 	void *ptr;
 
 	if (gem_has_llc(fd)) {
-		ptr = gem_mmap__gtt(fd, handle, sizeof(linear), PROT_READ | PROT_WRITE);
+		ptr = __gem_mmap__gtt(fd, handle, sizeof(linear), PROT_READ | PROT_WRITE);
 		igt_assert(ptr);
 	} else {
 		uint32_t tmp = gem_create(fd, sizeof(linear));
 		copy(fd, tmp, handle, 0);
-		ptr = gem_mmap__cpu(fd, tmp, 0, sizeof(linear), PROT_READ);
+		ptr = __gem_mmap__cpu(fd, tmp, 0, sizeof(linear), PROT_READ);
 		igt_assert(ptr);
 		gem_close(fd, tmp);
 	}

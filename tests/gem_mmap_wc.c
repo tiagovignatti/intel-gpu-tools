@@ -62,7 +62,7 @@ mmap_bo(int fd, uint32_t handle)
 {
 	void *ptr;
 
-	ptr = gem_mmap__wc(fd, handle, 0, OBJECT_SIZE, PROT_READ | PROT_WRITE);
+	ptr = __gem_mmap__wc(fd, handle, 0, OBJECT_SIZE, PROT_READ | PROT_WRITE);
 	igt_assert(ptr);
 
 	return ptr;
@@ -183,10 +183,10 @@ test_read_write2(int fd, enum test_read_write order)
 	handle = gem_create(fd, OBJECT_SIZE);
 	set_domain(fd, handle);
 
-	r = gem_mmap__wc(fd, handle, 0, OBJECT_SIZE, PROT_READ);
+	r = __gem_mmap__wc(fd, handle, 0, OBJECT_SIZE, PROT_READ);
 	igt_assert(r);
 
-	w = gem_mmap__wc(fd, handle, 0, OBJECT_SIZE, PROT_READ | PROT_WRITE);
+	w = __gem_mmap__wc(fd, handle, 0, OBJECT_SIZE, PROT_READ | PROT_WRITE);
 	igt_assert(w);
 
 	if (order == READ_BEFORE_WRITE) {
@@ -288,10 +288,10 @@ test_write_cpu_read_wc(int fd, int force_domain)
 
 	handle = gem_create(fd, OBJECT_SIZE);
 
-	dst = gem_mmap__wc(fd, handle, 0, OBJECT_SIZE, PROT_READ);
+	dst = __gem_mmap__wc(fd, handle, 0, OBJECT_SIZE, PROT_READ);
 	igt_assert(dst);
 
-	src = gem_mmap__cpu(fd, handle, 0, OBJECT_SIZE, PROT_WRITE);
+	src = __gem_mmap__cpu(fd, handle, 0, OBJECT_SIZE, PROT_WRITE);
 	igt_assert(src);
 
 	memset(src, 0xaa, OBJECT_SIZE);
@@ -315,10 +315,10 @@ test_write_gtt_read_wc(int fd)
 	handle = gem_create(fd, OBJECT_SIZE);
 	set_domain(fd, handle);
 
-	dst = gem_mmap__wc(fd, handle, 0, OBJECT_SIZE, PROT_READ);
+	dst = __gem_mmap__wc(fd, handle, 0, OBJECT_SIZE, PROT_READ);
 	igt_assert(dst);
 
-	src = gem_mmap__gtt(fd, handle, OBJECT_SIZE, PROT_WRITE);
+	src = __gem_mmap__gtt(fd, handle, OBJECT_SIZE, PROT_WRITE);
 	igt_assert(src);
 
 	memset(src, 0xaa, OBJECT_SIZE);

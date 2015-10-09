@@ -745,7 +745,7 @@ static void create_cairo_surface__blit(int fd, struct igt_fb *fb)
 		       I915_GEM_DOMAIN_CPU, I915_GEM_DOMAIN_CPU);
 
 	/* Setup cairo context */
-	blit->linear.map = gem_mmap__cpu(fd,
+	blit->linear.map = __gem_mmap__cpu(fd,
 					 blit->linear.handle,
 					 0,
 					 blit->linear.size,
@@ -774,7 +774,7 @@ static void destroy_cairo_surface__gtt(void *arg)
 
 static void create_cairo_surface__gtt(int fd, struct igt_fb *fb)
 {
-	void *ptr = gem_mmap__gtt(fd, fb->gem_handle, fb->size, PROT_READ | PROT_WRITE);
+	void *ptr = __gem_mmap__gtt(fd, fb->gem_handle, fb->size, PROT_READ | PROT_WRITE);
 	igt_assert(ptr);
 
 	fb->cairo_surface =

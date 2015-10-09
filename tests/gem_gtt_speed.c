@@ -89,7 +89,7 @@ int main(int argc, char **argv)
 				       I915_GEM_DOMAIN_CPU);
 
 			{
-				uint32_t *base = gem_mmap__cpu(fd, handle, 0, size, PROT_READ | PROT_WRITE);
+				uint32_t *base = __gem_mmap__cpu(fd, handle, 0, size, PROT_READ | PROT_WRITE);
 				volatile uint32_t *ptr = base;
 				int x = 0;
 
@@ -106,7 +106,7 @@ int main(int argc, char **argv)
 				/* mmap read */
 				gettimeofday(&start, NULL);
 				for (loop = 0; loop < 1000; loop++) {
-					base = gem_mmap__cpu(fd, handle, 0, size, PROT_READ | PROT_WRITE);
+					base = __gem_mmap__cpu(fd, handle, 0, size, PROT_READ | PROT_WRITE);
 					ptr = base;
 					x = 0;
 
@@ -127,7 +127,7 @@ int main(int argc, char **argv)
 				/* mmap write */
 				gettimeofday(&start, NULL);
 				for (loop = 0; loop < 1000; loop++) {
-					base = gem_mmap__cpu(fd, handle, 0, size, PROT_READ | PROT_WRITE);
+					base = __gem_mmap__cpu(fd, handle, 0, size, PROT_READ | PROT_WRITE);
 					ptr = base;
 
 					igt_assert(base);
@@ -143,7 +143,7 @@ int main(int argc, char **argv)
 
 				gettimeofday(&start, NULL);
 				for (loop = 0; loop < 1000; loop++) {
-					base = gem_mmap__cpu(fd, handle, 0, size, PROT_READ | PROT_WRITE);
+					base = __gem_mmap__cpu(fd, handle, 0, size, PROT_READ | PROT_WRITE);
 					igt_assert(base);
 					memset(base, 0, size);
 					munmap(base, size);
@@ -153,7 +153,7 @@ int main(int argc, char **argv)
 					 size/1024, elapsed(&start, &end, loop));
 
 				gettimeofday(&start, NULL);
-				base = gem_mmap__cpu(fd, handle, 0, size, PROT_READ | PROT_WRITE);
+				base = __gem_mmap__cpu(fd, handle, 0, size, PROT_READ | PROT_WRITE);
 				igt_assert(base);
 				for (loop = 0; loop < 1000; loop++)
 					memset(base, 0, size);
@@ -182,7 +182,7 @@ int main(int argc, char **argv)
 
 		/* prefault into gtt */
 		{
-			uint32_t *base = gem_mmap__gtt(fd, handle, size, PROT_READ | PROT_WRITE);
+			uint32_t *base = __gem_mmap__gtt(fd, handle, size, PROT_READ | PROT_WRITE);
 			volatile uint32_t *ptr = base;
 			int x = 0;
 
@@ -199,7 +199,7 @@ int main(int argc, char **argv)
 		/* mmap read */
 		gettimeofday(&start, NULL);
 		for (loop = 0; loop < 1000; loop++) {
-			uint32_t *base = gem_mmap__gtt(fd, handle, size, PROT_READ | PROT_WRITE);
+			uint32_t *base = __gem_mmap__gtt(fd, handle, size, PROT_READ | PROT_WRITE);
 			volatile uint32_t *ptr = base;
 			int x = 0;
 
@@ -220,7 +220,7 @@ int main(int argc, char **argv)
 		if (gem_mmap__has_wc(fd)) {
 			gettimeofday(&start, NULL);
 			for (loop = 0; loop < 1000; loop++) {
-				uint32_t *base = gem_mmap__wc(fd, handle, 0, size, PROT_READ | PROT_WRITE);
+				uint32_t *base = __gem_mmap__wc(fd, handle, 0, size, PROT_READ | PROT_WRITE);
 				volatile uint32_t *ptr = base;
 				int x = 0;
 
@@ -243,7 +243,7 @@ int main(int argc, char **argv)
 		/* mmap write */
 		gettimeofday(&start, NULL);
 		for (loop = 0; loop < 1000; loop++) {
-			uint32_t *base = gem_mmap__gtt(fd, handle, size, PROT_READ | PROT_WRITE);
+			uint32_t *base = __gem_mmap__gtt(fd, handle, size, PROT_READ | PROT_WRITE);
 			volatile uint32_t *ptr = base;
 
 			igt_assert(base);
@@ -261,7 +261,7 @@ int main(int argc, char **argv)
 			/* mmap write */
 			gettimeofday(&start, NULL);
 			for (loop = 0; loop < 1000; loop++) {
-				uint32_t *base = gem_mmap__wc(fd, handle, 0, size, PROT_READ | PROT_WRITE);
+				uint32_t *base = __gem_mmap__wc(fd, handle, 0, size, PROT_READ | PROT_WRITE);
 				volatile uint32_t *ptr = base;
 
 				igt_assert(base);
@@ -279,7 +279,7 @@ int main(int argc, char **argv)
 		/* mmap clear */
 		gettimeofday(&start, NULL);
 		for (loop = 0; loop < 1000; loop++) {
-			uint32_t *base = gem_mmap__gtt(fd, handle, size, PROT_READ | PROT_WRITE);
+			uint32_t *base = __gem_mmap__gtt(fd, handle, size, PROT_READ | PROT_WRITE);
 			memset(base, 0, size);
 			munmap(base, size);
 		}
@@ -291,7 +291,7 @@ int main(int argc, char **argv)
 			/* mmap clear */
 			gettimeofday(&start, NULL);
 			for (loop = 0; loop < 1000; loop++) {
-				uint32_t *base = gem_mmap__wc(fd, handle, 0, size, PROT_READ | PROT_WRITE);
+				uint32_t *base = __gem_mmap__wc(fd, handle, 0, size, PROT_READ | PROT_WRITE);
 				memset(base, 0, size);
 				munmap(base, size);
 			}
@@ -301,7 +301,7 @@ int main(int argc, char **argv)
 		}
 
 		gettimeofday(&start, NULL);{
-			uint32_t *base = gem_mmap__gtt(fd, handle, size, PROT_READ | PROT_WRITE);
+			uint32_t *base = __gem_mmap__gtt(fd, handle, size, PROT_READ | PROT_WRITE);
 			for (loop = 0; loop < 1000; loop++)
 				memset(base, 0, size);
 			munmap(base, size);
@@ -311,7 +311,7 @@ int main(int argc, char **argv)
 
 		if (gem_mmap__has_wc(fd)) {
 			gettimeofday(&start, NULL);{
-				uint32_t *base = gem_mmap__wc(fd, handle, 0, size, PROT_READ | PROT_WRITE);
+				uint32_t *base = __gem_mmap__wc(fd, handle, 0, size, PROT_READ | PROT_WRITE);
 				for (loop = 0; loop < 1000; loop++)
 					memset(base, 0, size);
 				munmap(base, size);
@@ -323,7 +323,7 @@ int main(int argc, char **argv)
 		/* mmap read */
 		gettimeofday(&start, NULL);
 		for (loop = 0; loop < 1000; loop++) {
-			uint32_t *base = gem_mmap__gtt(fd, handle, size, PROT_READ | PROT_WRITE);
+			uint32_t *base = __gem_mmap__gtt(fd, handle, size, PROT_READ | PROT_WRITE);
 			volatile uint32_t *ptr = base;
 			int x = 0;
 

@@ -359,7 +359,7 @@ static int prepare_primary_surface(int fd, int prim_width, int prim_height,
 	if (tiled)
 		gem_set_tiling(fd, *prim_handle, I915_TILING_X, *prim_stride);
 
-	prim_fb_ptr = gem_mmap__gtt(fd, *prim_handle, *prim_size, PROT_READ | PROT_WRITE);
+	prim_fb_ptr = __gem_mmap__gtt(fd, *prim_handle, *prim_size, PROT_READ | PROT_WRITE);
 
 	if (prim_fb_ptr != NULL) {
 		// Write primary surface with gray background
@@ -454,7 +454,7 @@ static int prepare_sprite_surfaces(int fd, int sprite_width, int sprite_height,
 			gem_set_tiling(fd, sprite_handles[i], I915_TILING_X, *sprite_stride);
 
 		// Get pointer to the surface
-		sprite_fb_ptr = gem_mmap__gtt(fd,
+		sprite_fb_ptr = __gem_mmap__gtt(fd,
 				sprite_handles[i], *sprite_size,
 				PROT_READ | PROT_WRITE);
 

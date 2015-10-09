@@ -177,7 +177,7 @@ static int run(int object, int batch, int count, int reps)
 
 	fd = drm_open_driver(DRIVER_INTEL);
 	handle = gem_create(fd, size);
-	buf = gem_mmap__cpu(fd, handle, 0, size, PROT_WRITE);
+	buf = __gem_mmap__cpu(fd, handle, 0, size, PROT_WRITE);
 	igt_assert(buf);
 
 	gen = intel_gen(intel_get_drm_devid(fd));

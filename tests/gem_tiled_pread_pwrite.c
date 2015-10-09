@@ -79,7 +79,7 @@ create_bo_and_fill(int fd)
 	gem_set_tiling(fd, handle, current_tiling_mode, WIDTH * sizeof(uint32_t));
 
 	/* Fill the BO with dwords starting at start_val */
-	data = gem_mmap__gtt(fd, handle, sizeof(linear), PROT_READ | PROT_WRITE);
+	data = __gem_mmap__gtt(fd, handle, sizeof(linear), PROT_READ | PROT_WRITE);
 	igt_assert(data);
 	for (i = 0; i < WIDTH*HEIGHT; i++)
 		data[i] = i;
@@ -123,7 +123,7 @@ igt_simple_main
 		gem_write(fd, handle_target, 0, linear, sizeof(linear));
 
 		/* Check the target bo's contents. */
-		data = gem_mmap__gtt(fd, handle_target, sizeof(linear), PROT_READ | PROT_WRITE);
+		data = __gem_mmap__gtt(fd, handle_target, sizeof(linear), PROT_READ | PROT_WRITE);
 		igt_assert(data);
 		for (j = 0; j < WIDTH*HEIGHT; j++)
 			igt_assert_f(data[j] == j,

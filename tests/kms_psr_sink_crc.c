@@ -379,7 +379,7 @@ static void run_test(data_t *data)
 		expected = "still GREEN";
 		break;
 	case MMAP_GTT:
-		ptr = gem_mmap__gtt(data->drm_fd, handle, data->mod_size,
+		ptr = __gem_mmap__gtt(data->drm_fd, handle, data->mod_size,
 				    PROT_WRITE);
 		igt_assert(ptr);
 		gem_set_domain(data->drm_fd, handle,
@@ -389,7 +389,7 @@ static void run_test(data_t *data)
 		expected = "BLACK or TRANSPARENT mark on top of plane in test";
 		break;
 	case MMAP_GTT_WAITING:
-		ptr = gem_mmap__gtt(data->drm_fd, handle, data->mod_size,
+		ptr = __gem_mmap__gtt(data->drm_fd, handle, data->mod_size,
 				    PROT_WRITE);
 		igt_assert(ptr);
 		gem_set_domain(data->drm_fd, handle,
@@ -413,7 +413,7 @@ static void run_test(data_t *data)
 		expected = "BLACK or TRANSPARENT mark on top of plane in test";
 		break;
 	case MMAP_CPU:
-		ptr = gem_mmap__cpu(data->drm_fd, handle, 0, data->mod_size, PROT_WRITE);
+		ptr = __gem_mmap__cpu(data->drm_fd, handle, 0, data->mod_size, PROT_WRITE);
 		igt_assert(ptr);
 		gem_set_domain(data->drm_fd, handle,
 			       I915_GEM_DOMAIN_CPU, I915_GEM_DOMAIN_CPU);
