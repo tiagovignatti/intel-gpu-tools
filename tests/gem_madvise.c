@@ -78,7 +78,7 @@ dontneed_after_mmap(void)
 
 	handle = gem_create(fd, OBJECT_SIZE);
 	ptr = gem_mmap__gtt(fd, handle, OBJECT_SIZE, PROT_READ | PROT_WRITE);
-	igt_assert(ptr != NULL);
+	igt_assert(ptr);
 	gem_madvise(fd, handle, I915_MADV_DONTNEED);
 	close(fd);
 

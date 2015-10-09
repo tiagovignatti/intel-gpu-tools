@@ -546,7 +546,7 @@ static int test_invalid_gtt_mapping(int fd)
 	handle = create_bo(fd, 0);
 	ptr = gem_mmap__gtt(fd, handle, sizeof(linear), PROT_READ | PROT_WRITE);
 	gem_close(fd, handle);
-	igt_assert(ptr != NULL);
+	igt_assert(ptr);
 	igt_assert(((unsigned long)ptr & (PAGE_SIZE - 1)) == 0);
 	igt_assert((sizeof(linear) & (PAGE_SIZE - 1)) == 0);
 
