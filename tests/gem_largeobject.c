@@ -64,8 +64,8 @@ test_large_object(int fd)
 	igt_assert(ioctl(fd, DRM_IOCTL_I915_GEM_CREATE, &create) == 0);
 
 	/* prefault */
-	ptr = __gem_mmap__gtt(fd, create.handle, obj_size, PROT_WRITE | PROT_READ);
-	igt_assert(ptr);
+	ptr = gem_mmap__gtt(fd, create.handle, obj_size,
+			    PROT_WRITE | PROT_READ);
 	*ptr = 0;
 
 	gem_write(fd, create.handle, 0, data, obj_size);

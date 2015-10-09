@@ -132,9 +132,8 @@ copy(int fd, uint32_t dst, uint32_t src, uint32_t *all_bo, int n_bo)
 
 static void clear(int fd, uint32_t handle, int size)
 {
-	void *base = __gem_mmap__cpu(fd, handle, 0, size, PROT_READ | PROT_WRITE);
+	void *base = gem_mmap__cpu(fd, handle, 0, size, PROT_READ | PROT_WRITE);
 
-	igt_assert(base != NULL);
 	memset(base, 0, size);
 	munmap(base, size);
 }

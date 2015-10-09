@@ -123,8 +123,7 @@ igt_simple_main
 
 	size = ALIGN(sizeof(mem_reloc), 4096);
 	reloc_handle = gem_create(fd, size);
-	reloc = __gem_mmap__cpu(fd, reloc_handle, 0, size, PROT_READ | PROT_WRITE);
-	igt_assert(reloc);
+	reloc = gem_mmap__cpu(fd, reloc_handle, 0, size, PROT_READ | PROT_WRITE);
 	for (n = 0; n < MAX_NUM_RELOC; n++) {
 		reloc[n].offset = 1024;
 		reloc[n].read_domains = I915_GEM_DOMAIN_RENDER;

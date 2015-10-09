@@ -94,8 +94,8 @@ fill_bo(int fd, uint32_t handle)
 	uint32_t *data;
 	int i;
 
-	data = __gem_mmap__gtt(fd, handle, LINEAR_DWORDS, PROT_READ | PROT_WRITE);
-	igt_assert(data);
+	data = gem_mmap__gtt(fd, handle, LINEAR_DWORDS,
+			     PROT_READ | PROT_WRITE);
 
 	gem_set_domain(fd, handle, I915_GEM_DOMAIN_GTT, I915_GEM_DOMAIN_GTT);
 	for (i = 0; i < WIDTH*HEIGHT; i++)
@@ -109,8 +109,7 @@ check_bo(int fd, uint32_t handle)
 	uint32_t *data;
 	int j;
 
-	data = __gem_mmap__gtt(fd, handle, LINEAR_DWORDS, PROT_READ);
-	igt_assert(data);
+	data = gem_mmap__gtt(fd, handle, LINEAR_DWORDS, PROT_READ);
 	gem_set_domain(fd, handle, I915_GEM_DOMAIN_GTT, 0);
 	j = rand() % (WIDTH * HEIGHT);
 	igt_assert_f(data[j] == j, "mismatch at %i: %i\n", j, data[j]);

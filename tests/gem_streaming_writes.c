@@ -88,22 +88,21 @@ static void test_streaming(int fd, int mode, int sync)
 	switch (mode) {
 	case 0: /* cpu/snoop */
 		gem_set_caching(fd, src, I915_CACHING_CACHED);
-		s = __gem_mmap__cpu(fd, src, 0, OBJECT_SIZE, PROT_READ | PROT_WRITE);
-		igt_assert(s);
+		s = gem_mmap__cpu(fd, src, 0, OBJECT_SIZE,
+				  PROT_READ | PROT_WRITE);
 		break;
 	case 1: /* gtt */
-		s = __gem_mmap__gtt(fd, src, OBJECT_SIZE, PROT_READ | PROT_WRITE);
-		igt_assert(s);
+		s = gem_mmap__gtt(fd, src, OBJECT_SIZE,
+				  PROT_READ | PROT_WRITE);
 		break;
 	case 2: /* wc */
-		s = __gem_mmap__wc(fd, src, 0, OBJECT_SIZE, PROT_READ | PROT_WRITE);
-		igt_assert(s);
+		s = gem_mmap__wc(fd, src, 0, OBJECT_SIZE,
+				 PROT_READ | PROT_WRITE);
 		break;
 	}
 	*s = 0; /* fault the object into the mappable range first (for GTT) */
 
-	d = __gem_mmap__cpu(fd, dst, 0, OBJECT_SIZE, PROT_READ);
-	igt_assert(d);
+	d = gem_mmap__cpu(fd, dst, 0, OBJECT_SIZE, PROT_READ);
 
 	gem_write(fd, dst, 0, tmp, sizeof(tmp));
 	memset(&execbuf, 0, sizeof(execbuf));
@@ -154,8 +153,7 @@ static void test_streaming(int fd, int mode, int sync)
 		batch[i].handle = gem_create(fd, 4096);
 		batch[i].offset = 0;
 
-		base = __gem_mmap__cpu(fd, batch[i].handle, 0, 4096, PROT_WRITE);
-		igt_assert(base);
+		base = gem_mmap__cpu(fd, batch[i].handle, 0, 4096, PROT_WRITE);
 
 		for (int j = 0; j < 64; j++) {
 			unsigned x = (n * CHUNK_SIZE) % 4096 >> 2;
@@ -254,11 +252,9 @@ static void test_batch(int fd, int mode, int reverse)
 	exec[DST].handle = gem_create(fd, OBJECT_SIZE);
 	exec[SRC].handle = gem_create(fd, OBJECT_SIZE);
 
-	s = __gem_mmap__wc(fd, src, 0, OBJECT_SIZE, PROT_READ | PROT_WRITE);
-	igt_assert(s);
+	s = gem_mmap__wc(fd, src, 0, OBJECT_SIZE, PROT_READ | PROT_WRITE);
 
-	d = __gem_mmap__cpu(fd, dst, 0, OBJECT_SIZE, PROT_READ);
-	igt_assert(d);
+	d = gem_mmap__cpu(fd, dst, 0, OBJECT_SIZE, PROT_READ);
 
 	memset(reloc, 0, sizeof(reloc));
 	reloc[0].offset =  4 * sizeof(uint32_t);
@@ -285,16 +281,16 @@ static void test_batch(int fd, int mode, int reverse)
 	switch (mode) {
 	case 0: /* cpu/snoop */
 		igt_require(gem_has_llc(fd));
-		base = __gem_mmap__cpu(fd, exec[BATCH].handle, 0, batch_size, PROT_READ | PROT_WRITE);
-		igt_assert(base);
+		base = gem_mmap__cpu(fd, exec[BATCH].handle, 0, batch_size,
+				     PROT_READ | PROT_WRITE);
 		break;
 	case 1: /* gtt */
-		base = __gem_mmap__gtt(fd, exec[BATCH].handle, batch_size, PROT_READ | PROT_WRITE);
-		igt_assert(base);
+		base = gem_mmap__gtt(fd, exec[BATCH].handle, batch_size,
+				     PROT_READ | PROT_WRITE);
 		break;
 	case 2: /* wc */
-		base = __gem_mmap__wc(fd, exec[BATCH].handle, 0, batch_size, PROT_READ | PROT_WRITE);
-		igt_assert(base);
+		base = gem_mmap__wc(fd, exec[BATCH].handle, 0, batch_size,
+				    PROT_READ | PROT_WRITE);
 		break;
 	}
 	*base = 0; /* fault the object into the mappable range first */

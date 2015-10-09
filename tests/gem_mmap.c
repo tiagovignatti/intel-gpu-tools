@@ -166,8 +166,7 @@ igt_main
 	igt_subtest("short-mmap") {
 		igt_assert(OBJECT_SIZE > 4096);
 		arg.handle = gem_create(fd, OBJECT_SIZE);
-		addr = __gem_mmap__cpu(fd, arg.handle, 0, 4096, PROT_WRITE);
-		igt_assert(addr);
+		addr = gem_mmap__cpu(fd, arg.handle, 0, 4096, PROT_WRITE);
 		memset(addr, 0, 4096);
 		munmap(addr, 4096);
 		gem_close(fd, arg.handle);

@@ -162,9 +162,8 @@ static void reloc_and_emit(int fd, drm_intel_bo *target_bo, bool faulting_reloc)
 
 	handle_relocs = gem_create(fd, 4096);
 	gem_write(fd, handle_relocs, 0, reloc, sizeof(reloc));
-	gtt_relocs = __gem_mmap__gtt(fd, handle_relocs, 4096,
-			      PROT_READ | PROT_WRITE);
-	igt_assert(gtt_relocs);
+	gtt_relocs = gem_mmap__gtt(fd, handle_relocs, 4096,
+				   PROT_READ | PROT_WRITE);
 
 	exec[1].handle = special_bo->handle;
 	exec[1].relocation_count = 1;

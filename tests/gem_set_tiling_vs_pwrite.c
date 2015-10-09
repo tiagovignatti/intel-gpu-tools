@@ -62,8 +62,7 @@ igt_simple_main
 		data[i] = i;
 
 	handle = gem_create(fd, OBJECT_SIZE);
-	ptr = __gem_mmap__gtt(fd, handle, OBJECT_SIZE, PROT_READ | PROT_WRITE);
-	igt_assert(ptr);
+	ptr = gem_mmap__gtt(fd, handle, OBJECT_SIZE, PROT_READ | PROT_WRITE);
 
 	gem_set_tiling(fd, handle, I915_TILING_X, TEST_STRIDE);
 

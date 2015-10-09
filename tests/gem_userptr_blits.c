@@ -544,9 +544,9 @@ static int test_invalid_gtt_mapping(int fd)
 
 	/* GTT mapping */
 	handle = create_bo(fd, 0);
-	ptr = __gem_mmap__gtt(fd, handle, sizeof(linear), PROT_READ | PROT_WRITE);
+	ptr = gem_mmap__gtt(fd, handle, sizeof(linear),
+			    PROT_READ | PROT_WRITE);
 	gem_close(fd, handle);
-	igt_assert(ptr);
 	igt_assert(((unsigned long)ptr & (PAGE_SIZE - 1)) == 0);
 	igt_assert((sizeof(linear) & (PAGE_SIZE - 1)) == 0);
 
@@ -688,13 +688,12 @@ static void *umap(int fd, uint32_t handle)
 	void *ptr;
 
 	if (gem_has_llc(fd)) {
-		ptr = __gem_mmap__gtt(fd, handle, sizeof(linear), PROT_READ | PROT_WRITE);
-		igt_assert(ptr);
+		ptr = gem_mmap__gtt(fd, handle, sizeof(linear),
+				    PROT_READ | PROT_WRITE);
 	} else {
 		uint32_t tmp = gem_create(fd, sizeof(linear));
 		copy(fd, tmp, handle, 0);
-		ptr = __gem_mmap__cpu(fd, tmp, 0, sizeof(linear), PROT_READ);
-		igt_assert(ptr);
+		ptr = gem_mmap__cpu(fd, tmp, 0, sizeof(linear), PROT_READ);
 		gem_close(fd, tmp);
 	}
 

@@ -188,8 +188,7 @@ static void fill_mmap_cpu(data_t *data, uint32_t handle, unsigned char color)
 {
 	void *ptr;
 
-	ptr = __gem_mmap__cpu(data->drm_fd, handle, 0, 4096, PROT_WRITE);
-	igt_assert(ptr);
+	ptr = gem_mmap__cpu(data->drm_fd, handle, 0, 4096, PROT_WRITE);
 	gem_set_domain(data->drm_fd, handle, I915_GEM_DOMAIN_CPU,
 		       I915_GEM_DOMAIN_CPU);
 	memset(ptr, color, 4);
@@ -201,8 +200,7 @@ static void fill_mmap_gtt(data_t *data, uint32_t handle, unsigned char color)
 {
 	void *ptr;
 
-	ptr = __gem_mmap__gtt(data->drm_fd, handle, 4096, PROT_WRITE);
-	igt_assert(ptr);
+	ptr = gem_mmap__gtt(data->drm_fd, handle, 4096, PROT_WRITE);
 	gem_set_domain(data->drm_fd, handle, I915_GEM_DOMAIN_GTT,
 		       I915_GEM_DOMAIN_GTT);
 	memset(ptr, color, 4);

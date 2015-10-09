@@ -65,8 +65,7 @@ create_bo(int fd)
 	gem_set_tiling(fd, handle, I915_TILING_X, WIDTH * sizeof(uint32_t));
 
 	/* Fill the BO with dwords starting at start_val */
-	data = __gem_mmap__gtt(fd, handle, SIZE, PROT_READ | PROT_WRITE);
-	igt_assert(data);
+	data = gem_mmap__gtt(fd, handle, SIZE, PROT_READ | PROT_WRITE);
 	for (i = 0; i < WIDTH*HEIGHT; i++)
 		data[i] = i;
 	munmap(data, SIZE);
@@ -174,8 +173,7 @@ igt_simple_main
 		first_page = offset & ~(PAGE_SIZE-1);
 		last_page = (offset + len + PAGE_SIZE) & ~(PAGE_SIZE-1);
 
-		linear = __gem_mmap__wc(fd, handle, first_page, last_page - first_page, PROT_READ);
-		igt_assert(linear);
+		linear = gem_mmap__wc(fd, handle, first_page, last_page - first_page, PROT_READ);
 
 		/* Translate from offsets in the read buffer to the swizzled
 		 * address that it corresponds to.  This is the opposite of

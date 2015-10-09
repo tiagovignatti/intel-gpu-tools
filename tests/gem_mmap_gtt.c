@@ -56,8 +56,7 @@ mmap_bo(int fd, uint32_t handle)
 {
 	void *ptr;
 
-	ptr = __gem_mmap__gtt(fd, handle, OBJECT_SIZE, PROT_READ | PROT_WRITE);
-	igt_assert(ptr);
+	ptr = gem_mmap__gtt(fd, handle, OBJECT_SIZE, PROT_READ | PROT_WRITE);
 
 	return ptr;
 }
@@ -179,8 +178,7 @@ test_read_write(int fd, enum test_read_write order)
 
 	handle = gem_create(fd, OBJECT_SIZE);
 
-	ptr = __gem_mmap__gtt(fd, handle, OBJECT_SIZE, PROT_READ | PROT_WRITE);
-	igt_assert(ptr);
+	ptr = gem_mmap__gtt(fd, handle, OBJECT_SIZE, PROT_READ | PROT_WRITE);
 
 	if (order == READ_BEFORE_WRITE) {
 		val = *(uint32_t *)ptr;
@@ -203,11 +201,9 @@ test_read_write2(int fd, enum test_read_write order)
 
 	handle = gem_create(fd, OBJECT_SIZE);
 
-	r = __gem_mmap__gtt(fd, handle, OBJECT_SIZE, PROT_READ);
-	igt_assert(r);
+	r = gem_mmap__gtt(fd, handle, OBJECT_SIZE, PROT_READ);
 
-	w = __gem_mmap__gtt(fd, handle, OBJECT_SIZE, PROT_READ | PROT_WRITE);
-	igt_assert(w);
+	w = gem_mmap__gtt(fd, handle, OBJECT_SIZE, PROT_READ | PROT_WRITE);
 
 	if (order == READ_BEFORE_WRITE) {
 		val = *(uint32_t *)r;
@@ -291,13 +287,11 @@ test_huge_bo(int fd, int huge, int tiling)
 	bo = gem_create(fd, PAGE_SIZE);
 	if (tiling)
 		gem_set_tiling(fd, bo, tiling, pitch);
-	linear_pattern = __gem_mmap__gtt(fd, bo, PAGE_SIZE,
+	linear_pattern = gem_mmap__gtt(fd, bo, PAGE_SIZE,
 				       PROT_READ | PROT_WRITE);
-	igt_assert(linear_pattern);
 	for (i = 0; i < PAGE_SIZE; i++)
 		linear_pattern[i] = i;
-	tiled_pattern = __gem_mmap__cpu(fd, bo, 0, PAGE_SIZE, PROT_READ);
-	igt_assert(tiled_pattern);
+	tiled_pattern = gem_mmap__cpu(fd, bo, 0, PAGE_SIZE, PROT_READ);
 
 	gem_set_domain(fd, bo, I915_GEM_DOMAIN_CPU | I915_GEM_DOMAIN_GTT, 0);
 	gem_close(fd, bo);
@@ -307,7 +301,7 @@ test_huge_bo(int fd, int huge, int tiling)
 		gem_set_tiling(fd, bo, tiling, pitch);
 
 	/* Initialise first/last page through CPU mmap */
-	ptr = __gem_mmap__cpu(fd, bo, 0, size, PROT_READ | PROT_WRITE);
+	ptr = gem_mmap__cpu(fd, bo, 0, size, PROT_READ | PROT_WRITE);
 	memcpy(ptr, tiled_pattern, PAGE_SIZE);
 	memcpy(ptr + last_offset, tiled_pattern, PAGE_SIZE);
 	munmap(ptr, size);
@@ -440,11 +434,9 @@ test_write_cpu_read_gtt(int fd)
 
 	handle = gem_create(fd, OBJECT_SIZE);
 
-	dst = __gem_mmap__gtt(fd, handle, OBJECT_SIZE, PROT_READ);
-	igt_assert(dst);
+	dst = gem_mmap__gtt(fd, handle, OBJECT_SIZE, PROT_READ);
 
-	src = __gem_mmap__cpu(fd, handle, 0, OBJECT_SIZE, PROT_WRITE);
-	igt_assert(src);
+	src = gem_mmap__cpu(fd, handle, 0, OBJECT_SIZE, PROT_WRITE);
 
 	gem_close(fd, handle);
 

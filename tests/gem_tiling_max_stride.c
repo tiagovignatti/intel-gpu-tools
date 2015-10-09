@@ -97,8 +97,7 @@ igt_simple_main
 
 	handle = gem_create(fd, size);
 
-	ptr = __gem_mmap__gtt(fd, handle, size, PROT_READ | PROT_WRITE);
-	igt_assert(ptr);
+	ptr = gem_mmap__gtt(fd, handle, size, PROT_READ | PROT_WRITE);
 
 	test_invalid_tiling(fd, handle, 0);
 	test_invalid_tiling(fd, handle, 64);

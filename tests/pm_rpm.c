@@ -973,13 +973,11 @@ static void gem_mmap_subtest(bool gtt_mmap)
 	handle = gem_create(drm_fd, buf_size);
 
 	if (gtt_mmap) {
-		gem_buf = __gem_mmap__gtt(drm_fd, handle, buf_size,
+		gem_buf = gem_mmap__gtt(drm_fd, handle, buf_size,
 					PROT_READ | PROT_WRITE);
-		igt_assert(gem_buf);
 	}
 	else {
-		gem_buf = __gem_mmap__cpu(drm_fd, handle, 0, buf_size, 0);
-		igt_assert(gem_buf);
+		gem_buf = gem_mmap__cpu(drm_fd, handle, 0, buf_size, 0);
 	}
 
 
@@ -1012,13 +1010,11 @@ static void gem_mmap_subtest(bool gtt_mmap)
 	disable_all_screens_and_wait(&ms_data);
 
 	if (gtt_mmap) {
-		gem_buf = __gem_mmap__gtt(drm_fd, handle, buf_size,
+		gem_buf = gem_mmap__gtt(drm_fd, handle, buf_size,
 					PROT_READ | PROT_WRITE);
-		igt_assert(gem_buf);
 	}
 	else {
-		gem_buf = __gem_mmap__cpu(drm_fd, handle, 0, buf_size, 0);
-		igt_assert(gem_buf);
+		gem_buf = gem_mmap__cpu(drm_fd, handle, 0, buf_size, 0);
 	}
 
 	igt_assert(wait_for_suspended());
@@ -1474,8 +1470,7 @@ static void fill_igt_fb(struct igt_fb *fb, uint32_t color)
 	int i;
 	uint32_t *ptr;
 
-	ptr = __gem_mmap__gtt(drm_fd, fb->gem_handle, fb->size, PROT_WRITE);
-	igt_assert(ptr);
+	ptr = gem_mmap__gtt(drm_fd, fb->gem_handle, fb->size, PROT_WRITE);
 	for (i = 0; i < fb->size/sizeof(uint32_t); i++)
 		ptr[i] = color;
 	igt_assert(munmap(ptr, fb->size) == 0);
@@ -1756,9 +1751,8 @@ static void fences_subtest(bool dpms)
 	gem_get_tiling(drm_fd, params.fb.gem_handle, &tiling, &swizzle);
 	igt_assert(tiling);
 
-	buf_ptr = __gem_mmap__gtt(drm_fd, params.fb.gem_handle,
-				params.fb.size, PROT_WRITE | PROT_READ);
-	igt_assert(buf_ptr);
+	buf_ptr = gem_mmap__gtt(drm_fd, params.fb.gem_handle, params.fb.size,
+				PROT_WRITE | PROT_READ);
 	for (i = 0; i < params.fb.size/sizeof(uint32_t); i++)
 		buf_ptr[i] = i;
 

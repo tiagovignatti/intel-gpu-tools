@@ -471,10 +471,8 @@ static void cpu_copy_bo(drm_intel_bo *dst, drm_intel_bo *src)
 
 	gem_set_domain(fd, src->handle, I915_GEM_DOMAIN_CPU, 0);
 	gem_set_domain(fd, dst->handle, I915_GEM_DOMAIN_CPU, I915_GEM_DOMAIN_CPU);
-	s = __gem_mmap__cpu(fd, src->handle, 0, size, PROT_READ);
-	igt_assert(s);
-	d = __gem_mmap__cpu(fd, dst->handle, 0, size, PROT_WRITE);
-	igt_assert(d);
+	s = gem_mmap__cpu(fd, src->handle, 0, size, PROT_READ);
+	d = gem_mmap__cpu(fd, dst->handle, 0, size, PROT_WRITE);
 
 	memcpy(d, s, size);
 
@@ -490,10 +488,8 @@ static void gtt_copy_bo(drm_intel_bo *dst, drm_intel_bo *src)
 	gem_set_domain(fd, src->handle, I915_GEM_DOMAIN_GTT, 0);
 	gem_set_domain(fd, dst->handle, I915_GEM_DOMAIN_GTT, I915_GEM_DOMAIN_GTT);
 
-	s = __gem_mmap__gtt(fd, src->handle, size, PROT_READ);
-	igt_assert(s);
-	d = __gem_mmap__gtt(fd, dst->handle, size, PROT_WRITE);
-	igt_assert(d);
+	s = gem_mmap__gtt(fd, src->handle, size, PROT_READ);
+	d = gem_mmap__gtt(fd, dst->handle, size, PROT_WRITE);
 
 	memcpy(d, s, size);
 
@@ -509,10 +505,8 @@ static void wc_copy_bo(drm_intel_bo *dst, drm_intel_bo *src)
 	gem_set_domain(fd, src->handle, I915_GEM_DOMAIN_GTT, 0);
 	gem_set_domain(fd, dst->handle, I915_GEM_DOMAIN_GTT, I915_GEM_DOMAIN_GTT);
 
-	s = __gem_mmap__wc(fd, src->handle, 0, size, PROT_READ);
-	igt_assert(s);
-	d = __gem_mmap__wc(fd, dst->handle, 0, size, PROT_WRITE);
-	igt_assert(d);
+	s = gem_mmap__wc(fd, src->handle, 0, size, PROT_READ);
+	d = gem_mmap__wc(fd, dst->handle, 0, size, PROT_WRITE);
 
 	memcpy(d, s, size);
 

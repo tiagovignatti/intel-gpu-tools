@@ -118,8 +118,7 @@ static void test_big_gtt(int fd, int scale)
 	handle = gem_create(fd, size);
 	gem_set_domain(fd, handle, I915_GEM_DOMAIN_GTT, I915_GEM_DOMAIN_GTT);
 
-	ptr = __gem_mmap__wc(fd, handle, 0, size, PROT_READ);
-	igt_assert(ptr);
+	ptr = gem_mmap__wc(fd, handle, 0, size, PROT_READ);
 
 	for (offset = 0; offset < size; offset += 4096) {
 		int suboffset = (offset >> 12) % (4096 / sizeof(offset) - 1) * sizeof(offset);

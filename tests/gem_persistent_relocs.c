@@ -225,10 +225,8 @@ static void do_test(int fd, bool faulting_reloc)
 
 		relocs_bo_handle[i] = gem_create(fd, 4096);
 		gem_write(fd, relocs_bo_handle[i], 0, reloc, sizeof(reloc));
-		gtt_relocs_ptr[i] = __gem_mmap__gtt(fd, relocs_bo_handle[i], 4096,
-				      PROT_READ | PROT_WRITE);
-		igt_assert(gtt_relocs_ptr[i]);
-
+		gtt_relocs_ptr[i] = gem_mmap__gtt(fd, relocs_bo_handle[i], 4096,
+						  PROT_READ | PROT_WRITE);
 	}
 
 	/* repeat must be smaller than 4096/small_pitch */

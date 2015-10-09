@@ -71,8 +71,7 @@ create_bo(int fd)
 	/* Write throught the fence to tiled the data.
 	 * We then manually detile on reading back through the mmap(wc).
 	 */
-	data = __gem_mmap__gtt(fd, handle, SIZE, PROT_READ | PROT_WRITE);
-	igt_assert(data);
+	data = gem_mmap__gtt(fd, handle, SIZE, PROT_READ | PROT_WRITE);
 	for (i = 0; i < WIDTH*HEIGHT; i++)
 		data[i] = i;
 	munmap(data, SIZE);
@@ -179,9 +178,7 @@ igt_simple_main
 		last_page = (offset + len + PAGE_SIZE) & ~(PAGE_SIZE-1);
 		offset -= first_page;
 
-		linear = __gem_mmap__cpu(fd, handle, first_page, last_page - first_page, PROT_READ);
-		igt_assert(linear);
-
+		linear = gem_mmap__cpu(fd, handle, first_page, last_page - first_page, PROT_READ);
 
 		/* Translate from offsets in the read buffer to the swizzled
 		 * address that it corresponds to.  This is the opposite of

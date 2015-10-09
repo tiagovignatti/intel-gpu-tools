@@ -68,8 +68,7 @@ static void performance(void)
 
 		for (n = 0; n < count; n++) {
 			handle[n] = gem_create(fd, OBJECT_SIZE);
-			ptr[n] = __gem_mmap__gtt(fd, handle[n], OBJECT_SIZE, PROT_READ | PROT_WRITE);
-			igt_assert(ptr[n]);
+			ptr[n] = gem_mmap__gtt(fd, handle[n], OBJECT_SIZE, PROT_READ | PROT_WRITE);
 		}
 
 		gettimeofday(&start, NULL);
@@ -176,8 +175,7 @@ static void thread_performance(unsigned mask)
 
 		for (n = 0; n < count; n++) {
 			handle[n] = gem_create(fd, OBJECT_SIZE);
-			ptr[n] = __gem_mmap__gtt(fd, handle[n], OBJECT_SIZE, PROT_READ | PROT_WRITE);
-			igt_assert(ptr[n]);
+			ptr[n] = gem_mmap__gtt(fd, handle[n], OBJECT_SIZE, PROT_READ | PROT_WRITE);
 
 			if (mask & READ) {
 				readers[n].id = n;
@@ -257,8 +255,7 @@ static void *no_contention(void *closure)
 	int n;
 
 	for (n = 0; n < t->loops; n++) {
-		uint32_t *ptr = __gem_mmap__gtt(t->fd, t->handle, OBJECT_SIZE, PROT_READ | PROT_WRITE);
-		igt_assert(ptr);
+		uint32_t *ptr = gem_mmap__gtt(t->fd, t->handle, OBJECT_SIZE, PROT_READ | PROT_WRITE);
 		memset(ptr + (rand() % 256) * 4096 / 4, 0, 4096);
 		munmap(ptr, OBJECT_SIZE);
 	}
@@ -272,8 +269,7 @@ static void *wc_mmap(void *closure)
 	int n;
 
 	for (n = 0; n < t->loops; n++) {
-		uint32_t *ptr = __gem_mmap__wc(t->fd, t->handle, 0, OBJECT_SIZE, PROT_READ | PROT_WRITE);
-		igt_assert(ptr);
+		uint32_t *ptr = gem_mmap__wc(t->fd, t->handle, 0, OBJECT_SIZE, PROT_READ | PROT_WRITE);
 		memset(ptr + (rand() % 256) * 4096 / 4, 0, 4096);
 		munmap(ptr, OBJECT_SIZE);
 	}

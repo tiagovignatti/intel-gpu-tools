@@ -66,8 +66,7 @@ igt_simple_main
 		tile_height = 8;
 
 	handle = gem_create(fd, OBJECT_SIZE);
-	ptr = __gem_mmap__gtt(fd, handle, OBJECT_SIZE, PROT_READ | PROT_WRITE);
-	igt_assert(ptr);
+	ptr = gem_mmap__gtt(fd, handle, OBJECT_SIZE, PROT_READ | PROT_WRITE);
 
 	/* gtt coherency is done with set_domain in libdrm, don't break that */
 	gem_set_domain(fd, handle, I915_GEM_DOMAIN_GTT, I915_GEM_DOMAIN_GTT);

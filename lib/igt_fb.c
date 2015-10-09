@@ -745,12 +745,11 @@ static void create_cairo_surface__blit(int fd, struct igt_fb *fb)
 		       I915_GEM_DOMAIN_CPU, I915_GEM_DOMAIN_CPU);
 
 	/* Setup cairo context */
-	blit->linear.map = __gem_mmap__cpu(fd,
+	blit->linear.map = gem_mmap__cpu(fd,
 					 blit->linear.handle,
 					 0,
 					 blit->linear.size,
 					 PROT_READ | PROT_WRITE);
-	igt_assert(blit->linear.map);
 
 	cairo_format = drm_format_to_cairo(fb->drm_format);
 	fb->cairo_surface =
@@ -774,8 +773,7 @@ static void destroy_cairo_surface__gtt(void *arg)
 
 static void create_cairo_surface__gtt(int fd, struct igt_fb *fb)
 {
-	void *ptr = __gem_mmap__gtt(fd, fb->gem_handle, fb->size, PROT_READ | PROT_WRITE);
-	igt_assert(ptr);
+	void *ptr = gem_mmap__gtt(fd, fb->gem_handle, fb->size, PROT_READ | PROT_WRITE);
 
 	fb->cairo_surface =
 		cairo_image_surface_create_for_data(ptr,
