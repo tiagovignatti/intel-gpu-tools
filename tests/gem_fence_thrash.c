@@ -74,7 +74,7 @@ bo_create (int fd, int tiling)
 
 	gem_set_tiling(fd, handle, tiling, 1024);
 
-	ptr = gem_mmap(fd, handle, OBJECT_SIZE, PROT_READ | PROT_WRITE);
+	ptr = gem_mmap__gtt(fd, handle, OBJECT_SIZE, PROT_READ | PROT_WRITE);
 	igt_assert(ptr);
 
 	gem_set_domain(fd, handle, I915_GEM_DOMAIN_GTT, I915_GEM_DOMAIN_GTT);

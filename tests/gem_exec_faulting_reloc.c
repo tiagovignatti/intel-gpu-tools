@@ -200,7 +200,7 @@ static void run(int object_size)
 
 	handle_relocs = gem_create(fd, 4096);
 	gem_write(fd, handle_relocs, 0, reloc, sizeof(reloc));
-	gtt_relocs = gem_mmap(fd, handle_relocs, 4096,
+	gtt_relocs = gem_mmap__gtt(fd, handle_relocs, 4096,
 			      PROT_READ | PROT_WRITE);
 	igt_assert(gtt_relocs);
 

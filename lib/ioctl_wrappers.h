@@ -76,22 +76,6 @@ void *gem_mmap__wc(int fd, uint32_t handle, uint64_t offset, uint64_t size, unsi
  */
 #define gem_require_mmap_wc(fd) igt_require(gem_mmap__has_wc(fd))
 
-/**
- * gem_mmap:
- * @fd: open i915 drm file descriptor
- * @handle: gem buffer object handle
- * @size: size of the gem buffer
- * @prot: memory protection bits as used by mmap()
- *
- * This functions wraps up procedure to establish a memory mapping through the
- * GTT.
- *
- * This is a simple convenience alias to gem_mmap__gtt()
- *
- * Returns: A pointer to the created memory mapping.
- */
-#define gem_mmap(fd, handle, size, prot) gem_mmap__gtt(fd, handle, size, prot)
-
 int gem_madvise(int fd, uint32_t handle, int state);
 
 uint32_t gem_context_create(int fd);

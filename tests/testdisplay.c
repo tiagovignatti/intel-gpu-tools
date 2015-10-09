@@ -221,7 +221,7 @@ paint_color_key(struct igt_fb *fb_info)
 	int i, j;
 	uint32_t *fb_ptr;
 
-	fb_ptr = gem_mmap(drm_fd, fb_info->gem_handle,
+	fb_ptr = gem_mmap__gtt(drm_fd, fb_info->gem_handle,
 			  fb_info->size, PROT_READ | PROT_WRITE);
 	igt_assert(fb_ptr);
 

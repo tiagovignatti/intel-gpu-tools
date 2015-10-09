@@ -190,7 +190,7 @@ igt_simple_main
 		gem_execbuf(t[0].fd, &execbuf);
 		gem_sync(t[0].fd, exec[1].handle);
 
-		p = gem_mmap(t[0].fd, exec[0].handle, 4096, PROT_READ);
+		p = gem_mmap__gtt(t[0].fd, exec[0].handle, 4096, PROT_READ);
 
 		igt_info("[%d]={ %08x %08x }\n", i, p[0], p[1]);
 		igt_assert(p[0] & 2);

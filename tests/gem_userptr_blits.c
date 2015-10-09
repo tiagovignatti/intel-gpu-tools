@@ -688,7 +688,7 @@ static void *umap(int fd, uint32_t handle)
 	void *ptr;
 
 	if (gem_has_llc(fd)) {
-		ptr = gem_mmap(fd, handle, sizeof(linear), PROT_READ | PROT_WRITE);
+		ptr = gem_mmap__gtt(fd, handle, sizeof(linear), PROT_READ | PROT_WRITE);
 	} else {
 		uint32_t tmp = gem_create(fd, sizeof(linear));
 		copy(fd, tmp, handle, 0);

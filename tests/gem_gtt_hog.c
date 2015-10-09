@@ -140,10 +140,10 @@ static void run(data_t *data, int child)
 	 * set-to-gtt-domain within the fault handler.
 	 */
 	if (write) {
-		ptr = gem_mmap(data->fd, handle, size, PROT_READ | PROT_WRITE);
+		ptr = gem_mmap__gtt(data->fd, handle, size, PROT_READ | PROT_WRITE);
 		ptr[rand() % (size / 4)] = canary;
 	} else
-		ptr = gem_mmap(data->fd, handle, size, PROT_READ);
+		ptr = gem_mmap__gtt(data->fd, handle, size, PROT_READ);
 	x = ptr[rand() % (size / 4)];
 	munmap(ptr, size);
 

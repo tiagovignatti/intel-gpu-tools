@@ -60,7 +60,7 @@ create_and_map_bo(int fd)
 
 	handle = gem_create(fd, OBJECT_SIZE);
 
-	ptr = gem_mmap(fd, handle, OBJECT_SIZE, PROT_READ | PROT_WRITE);
+	ptr = gem_mmap__gtt(fd, handle, OBJECT_SIZE, PROT_READ | PROT_WRITE);
 	igt_assert(ptr);
 
 	/* touch it to force it into the gtt */

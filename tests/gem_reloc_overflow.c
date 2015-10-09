@@ -85,7 +85,7 @@ static void source_offset_tests(int devid, bool reloc_gtt)
 		execbuf.buffer_count = 2;
 
 		if (reloc_gtt) {
-			dst_gtt = gem_mmap(fd, handle, 8192, PROT_READ | PROT_WRITE);
+			dst_gtt = gem_mmap__gtt(fd, handle, 8192, PROT_READ | PROT_WRITE);
 			igt_assert(dst_gtt != MAP_FAILED);
 			gem_set_domain(fd, handle, I915_GEM_DOMAIN_GTT, I915_GEM_DOMAIN_GTT);
 			memset(dst_gtt, 0, 8192);

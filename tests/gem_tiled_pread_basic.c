@@ -72,7 +72,7 @@ create_bo(int fd)
 	gem_set_tiling(fd, handle, I915_TILING_X, WIDTH * sizeof(uint32_t));
 
 	/* Fill the BO with dwords starting at start_val */
-	data = gem_mmap(fd, handle, sizeof(linear), PROT_READ | PROT_WRITE);
+	data = gem_mmap__gtt(fd, handle, sizeof(linear), PROT_READ | PROT_WRITE);
 	for (i = 0; i < WIDTH*HEIGHT; i++)
 		data[i] = i;
 	munmap(data, sizeof(linear));
