@@ -60,6 +60,7 @@ create_bo(int fd)
 
 	/* Fill the BO with dwords starting at start_val */
 	data = gem_mmap__gtt(fd, handle, OBJ_SIZE, PROT_READ | PROT_WRITE);
+	igt_assert(data);
 	for (i = 0; i < OBJ_SIZE/4; i++)
 		data[i] = i;
 	munmap(data, OBJ_SIZE);
@@ -83,6 +84,7 @@ igt_simple_main
 
 	/* touch one page */
 	ptr = gem_mmap__gtt(fd, handle, OBJ_SIZE, PROT_READ | PROT_WRITE);
+	igt_assert(ptr);
 	*ptr = 0xdeadbeef;
 	munmap(ptr, OBJ_SIZE);
 

@@ -65,6 +65,7 @@ test_large_object(int fd)
 
 	/* prefault */
 	ptr = gem_mmap__gtt(fd, create.handle, obj_size, PROT_WRITE | PROT_READ);
+	igt_assert(ptr);
 	*ptr = 0;
 
 	gem_write(fd, create.handle, 0, data, obj_size);

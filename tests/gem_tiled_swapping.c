@@ -110,6 +110,7 @@ check_bo(int fd, uint32_t handle)
 	int j;
 
 	data = gem_mmap__gtt(fd, handle, LINEAR_DWORDS, PROT_READ);
+	igt_assert(data);
 	gem_set_domain(fd, handle, I915_GEM_DOMAIN_GTT, 0);
 	j = rand() % (WIDTH * HEIGHT);
 	igt_assert_f(data[j] == j, "mismatch at %i: %i\n", j, data[j]);

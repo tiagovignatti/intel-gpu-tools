@@ -117,6 +117,7 @@ static void run_on_ring(int fd, unsigned ring_id, const char *ring_name)
 		handle_new = gem_create(fd, BATCH_SIZE);
 		batch_ptr = gem_mmap__cpu(fd, handle_new, 0, BATCH_SIZE,
 					  PROT_READ | PROT_WRITE);
+		igt_assert(batch_ptr);
 		batch_ptr[split*2] = MI_BATCH_BUFFER_END;
 
 		for (i = split*2 + 2; i < BATCH_SIZE/8; i++)

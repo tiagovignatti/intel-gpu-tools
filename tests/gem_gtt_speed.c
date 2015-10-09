@@ -93,6 +93,8 @@ int main(int argc, char **argv)
 				volatile uint32_t *ptr = base;
 				int x = 0;
 
+				igt_assert(base);
+
 				for (i = 0; i < size/sizeof(*ptr); i++)
 					x += ptr[i];
 
@@ -107,6 +109,8 @@ int main(int argc, char **argv)
 					base = gem_mmap__cpu(fd, handle, 0, size, PROT_READ | PROT_WRITE);
 					ptr = base;
 					x = 0;
+
+					igt_assert(base);
 
 					for (i = 0; i < size/sizeof(*ptr); i++)
 						x += ptr[i];
@@ -126,6 +130,8 @@ int main(int argc, char **argv)
 					base = gem_mmap__cpu(fd, handle, 0, size, PROT_READ | PROT_WRITE);
 					ptr = base;
 
+					igt_assert(base);
+
 					for (i = 0; i < size/sizeof(*ptr); i++)
 						ptr[i] = i;
 
@@ -138,6 +144,7 @@ int main(int argc, char **argv)
 				gettimeofday(&start, NULL);
 				for (loop = 0; loop < 1000; loop++) {
 					base = gem_mmap__cpu(fd, handle, 0, size, PROT_READ | PROT_WRITE);
+					igt_assert(base);
 					memset(base, 0, size);
 					munmap(base, size);
 				}
@@ -147,6 +154,7 @@ int main(int argc, char **argv)
 
 				gettimeofday(&start, NULL);
 				base = gem_mmap__cpu(fd, handle, 0, size, PROT_READ | PROT_WRITE);
+				igt_assert(base);
 				for (loop = 0; loop < 1000; loop++)
 					memset(base, 0, size);
 				munmap(base, size);
@@ -178,6 +186,8 @@ int main(int argc, char **argv)
 			volatile uint32_t *ptr = base;
 			int x = 0;
 
+			igt_assert(base);
+
 			for (i = 0; i < size/sizeof(*ptr); i++)
 				x += ptr[i];
 
@@ -192,6 +202,8 @@ int main(int argc, char **argv)
 			uint32_t *base = gem_mmap__gtt(fd, handle, size, PROT_READ | PROT_WRITE);
 			volatile uint32_t *ptr = base;
 			int x = 0;
+
+			igt_assert(base);
 
 			for (i = 0; i < size/sizeof(*ptr); i++)
 				x += ptr[i];
@@ -211,6 +223,8 @@ int main(int argc, char **argv)
 				uint32_t *base = gem_mmap__wc(fd, handle, 0, size, PROT_READ | PROT_WRITE);
 				volatile uint32_t *ptr = base;
 				int x = 0;
+
+				igt_assert(base);
 
 				for (i = 0; i < size/sizeof(*ptr); i++)
 					x += ptr[i];
@@ -232,6 +246,8 @@ int main(int argc, char **argv)
 			uint32_t *base = gem_mmap__gtt(fd, handle, size, PROT_READ | PROT_WRITE);
 			volatile uint32_t *ptr = base;
 
+			igt_assert(base);
+
 			for (i = 0; i < size/sizeof(*ptr); i++)
 				ptr[i] = i;
 
@@ -247,6 +263,8 @@ int main(int argc, char **argv)
 			for (loop = 0; loop < 1000; loop++) {
 				uint32_t *base = gem_mmap__wc(fd, handle, 0, size, PROT_READ | PROT_WRITE);
 				volatile uint32_t *ptr = base;
+
+				igt_assert(base);
 
 				for (i = 0; i < size/sizeof(*ptr); i++)
 					ptr[i] = i;

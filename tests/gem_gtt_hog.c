@@ -141,9 +141,12 @@ static void run(data_t *data, int child)
 	 */
 	if (write) {
 		ptr = gem_mmap__gtt(data->fd, handle, size, PROT_READ | PROT_WRITE);
+		igt_assert(ptr);
 		ptr[rand() % (size / 4)] = canary;
-	} else
+	} else {
 		ptr = gem_mmap__gtt(data->fd, handle, size, PROT_READ);
+		igt_assert(ptr);
+	}
 	x = ptr[rand() % (size / 4)];
 	munmap(ptr, size);
 

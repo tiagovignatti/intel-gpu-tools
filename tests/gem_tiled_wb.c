@@ -72,6 +72,7 @@ create_bo(int fd)
 	 * We then manually detile on reading back through the mmap(wc).
 	 */
 	data = gem_mmap__gtt(fd, handle, SIZE, PROT_READ | PROT_WRITE);
+	igt_assert(data);
 	for (i = 0; i < WIDTH*HEIGHT; i++)
 		data[i] = i;
 	munmap(data, SIZE);

@@ -80,6 +80,7 @@ create_bo_and_fill(int fd)
 
 	/* Fill the BO with dwords starting at start_val */
 	data = gem_mmap__gtt(fd, handle, sizeof(linear), PROT_READ | PROT_WRITE);
+	igt_assert(data);
 	for (i = 0; i < WIDTH*HEIGHT; i++)
 		data[i] = i;
 	munmap(data, sizeof(linear));
@@ -123,6 +124,7 @@ igt_simple_main
 
 		/* Check the target bo's contents. */
 		data = gem_mmap__gtt(fd, handle_target, sizeof(linear), PROT_READ | PROT_WRITE);
+		igt_assert(data);
 		for (j = 0; j < WIDTH*HEIGHT; j++)
 			igt_assert_f(data[j] == j,
 				     "mismatch at %i: %i\n",

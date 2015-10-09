@@ -113,7 +113,9 @@ static void as_gtt_mmap(int fd, uint32_t src, uint32_t dst, void *buf, int len, 
 	BUILD_EXEC;
 
 	src_ptr = gem_mmap__gtt(fd, src, OBJECT_SIZE, PROT_WRITE);
+	igt_assert(src_ptr);
 	dst_ptr = gem_mmap__gtt(fd, dst, OBJECT_SIZE, PROT_READ);
+	igt_assert(dst_ptr);
 
 	while (loops--) {
 		gem_set_domain(fd, src,
@@ -138,7 +140,9 @@ static void as_cpu_mmap(int fd, uint32_t src, uint32_t dst, void *buf, int len, 
 	BUILD_EXEC;
 
 	src_ptr = gem_mmap__cpu(fd, src, 0, OBJECT_SIZE, PROT_WRITE);
+	igt_assert(src_ptr);
 	dst_ptr = gem_mmap__cpu(fd, dst, 0, OBJECT_SIZE, PROT_READ);
+	igt_assert(dst_ptr);
 
 	while (loops--) {
 		gem_set_domain(fd, src,
@@ -183,7 +187,9 @@ static void test_as_gtt_mmap(int fd, uint32_t src, uint32_t dst, int len)
 	BUILD_EXEC;
 
 	src_ptr = gem_mmap__gtt(fd, src, OBJECT_SIZE, PROT_WRITE);
+	igt_assert(src_ptr);
 	dst_ptr = gem_mmap__gtt(fd, dst, OBJECT_SIZE, PROT_READ);
+	igt_assert(dst_ptr);
 
 	gem_set_domain(fd, src, I915_GEM_DOMAIN_GTT, I915_GEM_DOMAIN_GTT);
 	for (i = 0; i < len/4; i++)
@@ -207,7 +213,9 @@ static void test_as_cpu_mmap(int fd, uint32_t src, uint32_t dst, int len)
 	BUILD_EXEC;
 
 	src_ptr = gem_mmap__cpu(fd, src, 0, OBJECT_SIZE, PROT_WRITE);
+	igt_assert(src_ptr);
 	dst_ptr = gem_mmap__cpu(fd, dst, 0, OBJECT_SIZE, PROT_READ);
+	igt_assert(dst_ptr);
 
 	gem_set_domain(fd, src, I915_GEM_DOMAIN_CPU, I915_GEM_DOMAIN_CPU);
 	for (i = 0; i < len/4; i++)

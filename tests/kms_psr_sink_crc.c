@@ -381,6 +381,7 @@ static void run_test(data_t *data)
 	case MMAP_GTT:
 		ptr = gem_mmap__gtt(data->drm_fd, handle, data->mod_size,
 				    PROT_WRITE);
+		igt_assert(ptr);
 		gem_set_domain(data->drm_fd, handle,
 			       I915_GEM_DOMAIN_GTT, I915_GEM_DOMAIN_GTT);
 		memset(ptr, 0xcc, data->mod_size);
@@ -390,6 +391,7 @@ static void run_test(data_t *data)
 	case MMAP_GTT_WAITING:
 		ptr = gem_mmap__gtt(data->drm_fd, handle, data->mod_size,
 				    PROT_WRITE);
+		igt_assert(ptr);
 		gem_set_domain(data->drm_fd, handle,
 			       I915_GEM_DOMAIN_GTT, I915_GEM_DOMAIN_GTT);
 
@@ -412,6 +414,7 @@ static void run_test(data_t *data)
 		break;
 	case MMAP_CPU:
 		ptr = gem_mmap__cpu(data->drm_fd, handle, 0, data->mod_size, PROT_WRITE);
+		igt_assert(ptr);
 		gem_set_domain(data->drm_fd, handle,
 			       I915_GEM_DOMAIN_CPU, I915_GEM_DOMAIN_CPU);
 		memset(ptr, 0, data->mod_size);

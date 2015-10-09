@@ -689,10 +689,12 @@ static void *umap(int fd, uint32_t handle)
 
 	if (gem_has_llc(fd)) {
 		ptr = gem_mmap__gtt(fd, handle, sizeof(linear), PROT_READ | PROT_WRITE);
+		igt_assert(ptr);
 	} else {
 		uint32_t tmp = gem_create(fd, sizeof(linear));
 		copy(fd, tmp, handle, 0);
 		ptr = gem_mmap__cpu(fd, tmp, 0, sizeof(linear), PROT_READ);
+		igt_assert(ptr);
 		gem_close(fd, tmp);
 	}
 

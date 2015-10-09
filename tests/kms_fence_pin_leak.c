@@ -90,6 +90,7 @@ static void touch_fences(data_t *data)
 		void *ptr;
 
 		ptr = gem_mmap__gtt(data->drm_fd, handle, 4096, PROT_WRITE);
+		igt_assert(ptr);
 		gem_set_domain(data->drm_fd, handle, I915_GEM_DOMAIN_GTT, I915_GEM_DOMAIN_GTT);
 		memset(ptr, 0, 4);
 		munmap(ptr, 4096);

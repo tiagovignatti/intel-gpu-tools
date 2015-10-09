@@ -66,6 +66,7 @@ create_bo(int fd)
 
 	/* Fill the BO with dwords starting at start_val */
 	data = gem_mmap__gtt(fd, handle, SIZE, PROT_READ | PROT_WRITE);
+	igt_assert(data);
 	for (i = 0; i < WIDTH*HEIGHT; i++)
 		data[i] = i;
 	munmap(data, SIZE);
