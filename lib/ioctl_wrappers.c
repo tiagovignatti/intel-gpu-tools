@@ -456,7 +456,7 @@ void gem_execbuf(int fd, struct drm_i915_gem_execbuffer2 *execbuf)
  * This functions wraps up procedure to establish a memory mapping through the
  * GTT.
  *
- * Returns: A pointer to the created memory mapping.
+ * Returns: A pointer to the created memory mapping, NULL on failure.
  */
 void *gem_mmap__gtt(int fd, uint32_t handle, uint64_t size, unsigned prot)
 {
@@ -535,7 +535,7 @@ bool gem_mmap__has_wc(int fd)
  * bypassing the GTT system agent (i.e. there is no automatic tiling of
  * the mmapping through the fence registers).
  *
- * Returns: A pointer to the created memory mapping.
+ * Returns: A pointer to the created memory mapping, NULL on failure.
  */
 void *gem_mmap__wc(int fd, uint32_t handle, uint64_t offset, uint64_t size, unsigned prot)
 {
@@ -569,7 +569,7 @@ void *gem_mmap__wc(int fd, uint32_t handle, uint64_t offset, uint64_t size, unsi
  * This functions wraps up procedure to establish a memory mapping through
  * direct cpu access, bypassing the gpu completely.
  *
- * Returns: A pointer to the created memory mapping.
+ * Returns: A pointer to the created memory mapping, NULL on failure.
  */
 void *gem_mmap__cpu(int fd, uint32_t handle, uint64_t offset, uint64_t size, unsigned prot)
 {
