@@ -1091,13 +1091,21 @@ uint64_t gem_aperture_size(int fd)
 	static uint64_t aperture_size = 0;
 
 	if (aperture_size == 0) {
-		struct drm_i915_gem_get_aperture aperture;
+		struct local_i915_gem_context_param p;
 
-		memset(&aperture, 0, sizeof(aperture));
-		aperture.aper_size = 256*1024*1024;
-		do_ioctl(fd, DRM_IOCTL_I915_GEM_GET_APERTURE, &aperture);
+		memset(&p, 0, sizeof(p));
+		p.param = 0x3;
+		if (ioctl(fd, LOCAL_IOCTL_I915_GEM_CONTEXT_GETPARAM, &p) == 0) {
+			aperture_size = p.value;
+		} else {
+			struct drm_i915_gem_get_aperture aperture;
 
-		aperture_size =  aperture.aper_size;
+			memset(&aperture, 0, sizeof(aperture));
+			aperture.aper_size = 256*1024*1024;
+
+			do_ioctl(fd, DRM_IOCTL_I915_GEM_GET_APERTURE, &aperture);
+			aperture_size =  aperture.aper_size;
+		}
 	}
 
 	return aperture_size;
