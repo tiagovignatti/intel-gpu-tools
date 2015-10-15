@@ -55,6 +55,7 @@ typedef struct {
 	igt_crc_t ref_crc;
 	int left, right, top, bottom;
 	int screenw, screenh;
+	int refresh;
 	int curw, curh; /* cursor size */
 	int cursor_max_w, cursor_max_h;
 	igt_pipe_crc_t *pipe_crc;
@@ -327,6 +328,7 @@ static bool prepare_crtc(data_t *data, igt_output_t *output,
 	data->screenh = mode->vdisplay;
 	data->curw = cursor_w;
 	data->curh = cursor_h;
+	data->refresh = mode->vrefresh;
 
 	/* make sure cursor is disabled */
 	cursor_disable(data);
@@ -479,6 +481,42 @@ static void test_cursor_size(data_t *data)
 	}
 }
 
+static void test_rapid_movement(data_t *data)
+{
+	struct timeval start, end, delta;
+	int x = 0, y = 0;
+	long usec;
+	int crtc_id = data->output->config.crtc->crtc_id;
+
+	igt_assert_eq(drmModeSetCursor(data->drm_fd, crtc_id,
+			       data->fb.gem_handle, data->curw, data->curh), 0);
+
+	gettimeofday(&start, NULL);
+	for ( ; x < 100; x++)
+		igt_assert_eq(drmModeMoveCursor(data->drm_fd, crtc_id, x, y), 0);
+	for ( ; y < 100; y++)
+		igt_assert_eq(drmModeMoveCursor(data->drm_fd, crtc_id, x, y), 0);
+	for ( ; x > 0; x--)
+		igt_assert_eq(drmModeMoveCursor(data->drm_fd, crtc_id, x, y), 0);
+	for ( ; y > 0; y--)
+		igt_assert_eq(drmModeMoveCursor(data->drm_fd, crtc_id, x, y), 0);
+	gettimeofday(&end, NULL);
+
+	/*
+	 * We've done 400 cursor updates now.  If we're being throttled to
+	 * vblank, then that would take roughly 400/refresh seconds.  If the
+	 * elapsed time is greater than 90% of that value, we'll consider it
+	 * a failure (since cursor updates shouldn't be throttled).
+	 */
+	timersub(&end, &start, &delta);
+	usec = delta.tv_usec + 1000000 * delta.tv_sec;
+	igt_assert_lt(usec, 0.9 * 400 * 1000000 / data->refresh);
+
+	igt_assert_eq(drmModeSetCursor(data->drm_fd, crtc_id,
+			       0, data->curw, data->curh), 0);
+
+}
+
 static void run_test_generic(data_t *data)
 {
 	int cursor_size;
@@ -508,6 +546,10 @@ static void run_test_generic(data_t *data)
 			data->flags = TEST_SUSPEND;
 			run_test(data, test_crc_random, w, h);
 			data->flags = 0;
+		}
+
+		igt_subtest_f("cursor-%dx%d-rapid-movement", w, h) {
+			run_test(data, test_rapid_movement, w, h);
 		}
 
 		igt_fixture
