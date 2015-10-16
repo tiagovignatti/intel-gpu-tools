@@ -78,17 +78,17 @@ static void blit(drm_intel_bo *dst, drm_intel_bo *src,
 
 static void *memchr_inv(const void *s, int c, size_t n)
 {
-	const unsigned char *us = s;
-	unsigned char uc = c;
+	const uint8_t *us = s;
+	const uint8_t uc = c;
 
-	while (n--) {
-		if (*us != uc)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wcast-qual"
+	while (n--) {
+		if (*us != uc)
 			return (void *) us;
-#pragma GCC diagnostic pop
 		us++;
 	}
+#pragma GCC diagnostic pop
 
 	return NULL;
 }
