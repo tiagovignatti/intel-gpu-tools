@@ -1179,6 +1179,8 @@ static void init_blue_crc(enum pixel_format format)
 
 	print_crc("Blue CRC:  ", &blue_crcs[format].crc);
 
+	unset_all_crtcs();
+
 	igt_remove_fb(drm.fd, &blue);
 
 	blue_crcs[format].initialized = true;
