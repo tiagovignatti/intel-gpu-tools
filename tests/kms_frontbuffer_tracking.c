@@ -1540,23 +1540,26 @@ static void do_flush(const struct test_mode *t)
 }
 
 #define DONT_ASSERT_CRC			(1 << 0)
+#define DONT_ASSERT_FEATURE_STATUS	(1 << 1)
 
-#define FBC_ASSERT_FLAGS		(0xF << 1)
-#define ASSERT_FBC_ENABLED		(1 << 1)
-#define ASSERT_FBC_DISABLED		(1 << 2)
-#define ASSERT_LAST_ACTION_CHANGED	(1 << 3)
-#define ASSERT_NO_ACTION_CHANGE		(1 << 4)
+#define FBC_ASSERT_FLAGS		(0xF << 2)
+#define ASSERT_FBC_ENABLED		(1 << 2)
+#define ASSERT_FBC_DISABLED		(1 << 3)
+#define ASSERT_LAST_ACTION_CHANGED	(1 << 4)
+#define ASSERT_NO_ACTION_CHANGE		(1 << 5)
 
-#define PSR_ASSERT_FLAGS		(3 << 5)
-#define ASSERT_PSR_ENABLED		(1 << 5)
-#define ASSERT_PSR_DISABLED		(1 << 6)
+#define PSR_ASSERT_FLAGS		(3 << 6)
+#define ASSERT_PSR_ENABLED		(1 << 6)
+#define ASSERT_PSR_DISABLED		(1 << 7)
 
 static int adjust_assertion_flags(const struct test_mode *t, int flags)
 {
-	if (!(flags & ASSERT_FBC_DISABLED))
-		flags |= ASSERT_FBC_ENABLED;
-	if (!(flags & ASSERT_PSR_DISABLED))
-		flags |= ASSERT_PSR_ENABLED;
+	if (!(flags & DONT_ASSERT_FEATURE_STATUS)) {
+		if (!(flags & ASSERT_FBC_DISABLED))
+			flags |= ASSERT_FBC_ENABLED;
+		if (!(flags & ASSERT_PSR_DISABLED))
+			flags |= ASSERT_PSR_ENABLED;
+	}
 
 	if ((t->feature & FEATURE_FBC) == 0)
 		flags &= ~FBC_ASSERT_FLAGS;
