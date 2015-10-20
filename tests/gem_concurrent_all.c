@@ -106,6 +106,20 @@ unmapped_create_bo(drm_intel_bufmgr *bufmgr, int width, int height)
 	return bo;
 }
 
+static drm_intel_bo *
+snoop_create_bo(drm_intel_bufmgr *bufmgr, int width, int height)
+{
+	drm_intel_bo *bo;
+
+	igt_skip_on(gem_has_llc(fd));
+
+	bo = unmapped_create_bo(bufmgr, width, height);
+	gem_set_caching(fd, bo->handle, I915_CACHING_CACHED);
+	drm_intel_bo_disable_reuse(bo);
+
+	return bo;
+}
+
 static void
 gtt_set_bo(drm_intel_bo *bo, uint32_t val, int width, int height)
 {
@@ -319,6 +333,13 @@ const struct access_mode {
 		.set_bo = cpu_set_bo,
 		.cmp_bo = cpu_cmp_bo,
 		.create_bo = unmapped_create_bo,
+		.release_bo = nop_release_bo,
+	},
+	{
+		.name = "snoop",
+		.set_bo = cpu_set_bo,
+		.cmp_bo = cpu_cmp_bo,
+		.create_bo = snoop_create_bo,
 		.release_bo = nop_release_bo,
 	},
 	{
