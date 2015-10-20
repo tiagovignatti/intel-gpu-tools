@@ -2876,6 +2876,47 @@ static void badstride_subtest(const struct test_mode *t)
 	igt_remove_fb(drm.fd, &wide_fb);
 }
 
+/**
+ * stridechange - change the frontbuffer stride by doing a modeset
+ *
+ * METHOD
+ *   This test sets a mode on a CRTC, then creates a buffer with a different
+ *   stride - still compatible with FBC -, and sets the mode on it. The Kernel
+ *   currently shortcuts the modeset path for this case, so it won't trigger
+ *   calls to xx_crtc_enable or xx_crtc_disable, and that could lead to
+ *   problems, so test the case.
+ *
+ * EXPECTED RESULTS
+ *   With the current Kernel, FBC may or may not remain enabled on this case,
+ *   but we can still check the CRC values.
+ *
+ * FAILURES
+ *   A bad Kernel may just not resize the CFB while keeping FBC enabled, and
+ *   this can lead to underruns or stolen memory corruption. Underruns usually
+ *   lead to CRC check errors, and stolen memory corruption can't be easily
+ *   checked currently. A bad Kernel may also just throw some WARNs on dmesg.
+ */
+static void stridechange_subtest(const struct test_mode *t)
+{
+	struct igt_fb new_fb;
+	struct modeset_params *params = pick_params(t);
+
+	prepare_subtest(t, NULL);
+
+	create_fb(t->format, params->fb.fb->width + 512, params->fb.fb->height,
+		  LOCAL_I915_FORMAT_MOD_X_TILED, t->plane, &new_fb);
+	fill_fb(&new_fb, COLOR_PRIM_BG);
+
+	params->fb.fb = &new_fb;
+	set_mode_for_params(params);
+
+	/* We can't assert that FBC will be enabled since there may not be
+	 * enough space for the CFB, but we can check the CRC. */
+	do_assertions(DONT_ASSERT_FEATURE_STATUS);
+
+	igt_remove_fb(drm.fd, &new_fb);
+}
+
 static int opt_handler(int option, int option_index, void *data)
 {
 	switch (option) {
@@ -3276,9 +3317,13 @@ int main(int argc, char *argv[])
 		igt_subtest_f("%s-modesetfrombusy", feature_str(t.feature))
 			modesetfrombusy_subtest(&t);
 
-		if (t.feature & FEATURE_FBC)
+		if (t.feature & FEATURE_FBC) {
 			igt_subtest_f("%s-badstride", feature_str(t.feature))
 				badstride_subtest(&t);
+
+			igt_subtest_f("%s-stridechange", feature_str(t.feature))
+				stridechange_subtest(&t);
+		}
 
 		if (t.feature & FEATURE_PSR)
 			igt_subtest_f("%s-slowdraw", feature_str(t.feature))
