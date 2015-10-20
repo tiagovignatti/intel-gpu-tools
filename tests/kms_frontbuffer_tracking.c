@@ -239,7 +239,6 @@ struct {
 	bool small_modes;
 	bool show_hidden;
 	int step;
-	int only_feature;
 	int only_pipes;
 	int shared_fb_x_offset;
 	int shared_fb_y_offset;
@@ -252,7 +251,6 @@ struct {
 	.small_modes = false,
 	.show_hidden= false,
 	.step = 0,
-	.only_feature = FEATURE_COUNT,
 	.only_pipes = PIPE_COUNT,
 	.shared_fb_x_offset = 500,
 	.shared_fb_y_offset = 500,
@@ -1727,9 +1725,6 @@ static void check_test_requirements(const struct test_mode *t)
 			      "Can't test PSR without sink CRCs\n");
 	}
 
-	if (opt.only_feature != FEATURE_COUNT)
-		igt_require(t->feature == opt.only_feature);
-
 	if (opt.only_pipes != PIPE_COUNT)
 		igt_require(t->pipes == opt.only_pipes);
 }
@@ -2944,18 +2939,6 @@ static int opt_handler(int option, int option_index, void *data)
 	case 't':
 		opt.step++;
 		break;
-	case 'n':
-		igt_assert(opt.only_feature == FEATURE_COUNT);
-		opt.only_feature = FEATURE_NONE;
-		break;
-	case 'f':
-		igt_assert(opt.only_feature == FEATURE_COUNT);
-		opt.only_feature = FEATURE_FBC;
-		break;
-	case 'p':
-		igt_assert(opt.only_feature == FEATURE_COUNT);
-		opt.only_feature = FEATURE_PSR;
-		break;
 	case 'x':
 		errno = 0;
 		opt.shared_fb_x_offset = strtol(optarg, NULL, 0);
@@ -2990,9 +2973,6 @@ const char *help_str =
 "  --use-small-modes           Use smaller resolutions for the modes\n"
 "  --show-hidden               Show hidden subtests\n"
 "  --step                      Stop on each step so you can check the screen\n"
-"  --nop-only                  Only run the \"nop\" feature subtests\n"
-"  --fbc-only                  Only run the \"fbc\" feature subtests\n"
-"  --psr-only                  Only run the \"psr\" feature subtests\n"
 "  --shared-fb-x offset        Use 'offset' as the X offset for the shared FB\n"
 "  --shared-fb-y offset        Use 'offset' as the Y offset for the shared FB\n"
 "  --1p-only                   Only run subtests that use 1 pipe\n"
@@ -3095,8 +3075,7 @@ static const char *format_str(enum pixel_format format)
 		if (!opt.show_hidden && t.pipes == PIPE_DUAL &&		   \
 		    t.screen == SCREEN_OFFSCREEN)			   \
 			continue;					   \
-		if ((!opt.show_hidden && opt.only_feature != FEATURE_NONE) \
-		    && t.feature == FEATURE_NONE)			   \
+		if (!opt.show_hidden && t.feature == FEATURE_NONE)	   \
 			continue;					   \
 		if (!opt.show_hidden && t.fbs == FBS_SHARED &&		   \
 		    (t.plane == PLANE_CUR || t.plane == PLANE_SPR))	   \
@@ -3117,9 +3096,6 @@ int main(int argc, char *argv[])
 		{ "use-small-modes",          0, 0, 'm'},
 		{ "show-hidden",              0, 0, 'i'},
 		{ "step",                     0, 0, 't'},
-		{ "nop-only",                 0, 0, 'n'},
-		{ "fbc-only",                 0, 0, 'f'},
-		{ "psr-only",                 0, 0, 'p'},
 		{ "shared-fb-x",              1, 0, 'x'},
 		{ "shared-fb-y",              1, 0, 'y'},
 		{ "1p-only",                  0, 0, '1'},
@@ -3134,8 +3110,7 @@ int main(int argc, char *argv[])
 		setup_environment();
 
 	for (t.feature = 0; t.feature < FEATURE_COUNT; t.feature++) {
-		if ((!opt.show_hidden && opt.only_feature != FEATURE_NONE)
-		    && t.feature == FEATURE_NONE)
+		if (!opt.show_hidden && t.feature == FEATURE_NONE)
 			continue;
 		for (t.pipes = 0; t.pipes < PIPE_COUNT; t.pipes++) {
 			t.screen = SCREEN_PRIM;
