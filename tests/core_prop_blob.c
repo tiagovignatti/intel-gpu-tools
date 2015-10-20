@@ -208,6 +208,43 @@ test_lifetime(int fd)
 }
 
 static void
+test_multiple(int fd)
+{
+	uint32_t prop_ids[5];
+	int fd2;
+	int i;
+
+	fd2 = drm_open_driver(DRIVER_ANY);
+	igt_assert_fd(fd2);
+
+	/* Ensure destroying multiple properties explicitly works as needed. */
+	for (i = 0; i < ARRAY_SIZE(prop_ids); i++) {
+		prop_ids[i] = create_prop(fd2);
+		igt_assert_eq(validate_prop(fd, prop_ids[i]), 0);
+		igt_assert_eq(validate_prop(fd2, prop_ids[i]), 0);
+	}
+	for (i = 0; i < ARRAY_SIZE(prop_ids); i++) {
+		igt_assert_eq(destroy_prop(fd2, prop_ids[i]), 0);
+		igt_assert_eq(validate_prop(fd2, prop_ids[i]), ENOENT);
+	}
+	igt_assert_eq(close(fd2), 0);
+
+	fd2 = drm_open_driver(DRIVER_ANY);
+	igt_assert_fd(fd2);
+
+	/* Ensure that multiple properties get cleaned up on fd close. */
+	for (i = 0; i < ARRAY_SIZE(prop_ids); i++) {
+		prop_ids[i] = create_prop(fd2);
+		igt_assert_eq(validate_prop(fd, prop_ids[i]), 0);
+		igt_assert_eq(validate_prop(fd2, prop_ids[i]), 0);
+	}
+	igt_assert_eq(close(fd2), 0);
+
+	for (i = 0; i < ARRAY_SIZE(prop_ids); i++)
+		igt_assert_eq(validate_prop(fd, prop_ids[i]), ENOENT);
+}
+
+static void
 test_core(int fd)
 {
 	uint32_t prop_id;
@@ -255,6 +292,9 @@ igt_main
 
 	igt_subtest("blob-prop-lifetime")
 		test_lifetime(fd);
+
+	igt_subtest("blob-multiple")
+		test_multiple(fd);
 
 	igt_fixture
 		close(fd);
