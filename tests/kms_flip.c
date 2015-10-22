@@ -129,6 +129,28 @@ struct event_state {
 	int seq_step;
 };
 
+static void dump_event_state(const struct event_state *es)
+{
+	igt_debug("name = %s\n"
+		  "last_ts = %lu.%lu usec\n"
+		  "last_received_ts = %lu.%lu usec\n"
+		  "last_seq = %u\n"
+		  "current_ts = %lu.%lu usec\n"
+		  "current_received_ts = %lu.%lu usec\n"
+		  "current_seq = %u\n"
+		  "count = %u\n"
+		  "seq_step = %d\n",
+		  es->name,
+		  es->last_ts.tv_sec, es->last_ts.tv_usec,
+		  es->last_received_ts.tv_sec, es->last_received_ts.tv_usec,
+		  es->last_seq,
+		  es->current_ts.tv_sec, es->current_ts.tv_usec,
+		  es->current_received_ts.tv_sec, es->current_received_ts.tv_usec,
+		  es->current_seq,
+		  es->count,
+		  es->seq_step);
+}
+
 struct test_output {
 	int mode_valid;
 	drmModeModeInfo kmode[4];
@@ -615,6 +637,8 @@ static void check_state(struct test_output *o, struct event_state *es)
 {
 	struct timeval diff;
 	double usec_interflip;
+
+	dump_event_state(es);
 
 	timersub(&es->current_ts, &es->current_received_ts, &diff);
 	if (!analog_tv_connector(o)) {
