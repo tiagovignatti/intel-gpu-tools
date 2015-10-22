@@ -126,6 +126,12 @@ test_read_crc_for_output(data_t *data, int pipe, igt_output_t *output,
 		char *crc_str;
 
 		igt_output_set_pipe(output, pipe);
+		igt_display_commit(display);
+
+		if (!output->valid) {
+			igt_output_set_pipe(output, PIPE_ANY);
+			return 0;
+		}
 
 		igt_debug("Clearing the fb with color (%.02lf,%.02lf,%.02lf)\n",
 			  colors[c].r, colors[c].g, colors[c].b);
