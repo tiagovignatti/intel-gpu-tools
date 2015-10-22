@@ -357,6 +357,9 @@ void igt_system_suspend_autoresume(void)
 	 * seems to fare better. We need to investigate what's going on. */
 	igt_skip_on_simulation();
 
+	/* skip if system doesn't support suspend-to-mem */
+	igt_skip_on(system("rtcwake -n -s 30 -m mem") != 0);
+
 	ret = system("rtcwake -s 30 -m mem");
 	igt_assert_f(ret == 0,
 		     "This failure means that something is wrong with the "
@@ -383,6 +386,9 @@ void igt_system_hibernate_autoresume(void)
 	 * approach using /sys/power/pm_test to just test our driver's callbacks
 	 * seems to fare better. We need to investigate what's going on. */
 	igt_skip_on_simulation();
+
+	/* skip if system doesn't support suspend-to-disk */
+	igt_skip_on(system("rtcwake -n -s 90 -m disk") != 0);
 
 	/* The timeout might need to be adjusted if hibernation takes too long
 	 * or if we have to wait excessively long before resume
