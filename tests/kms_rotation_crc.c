@@ -314,6 +314,68 @@ static void test_plane_rotation(data_t *data, enum igt_plane plane_type)
 	igt_require_f(valid_tests, "no valid crtc/connector combinations found\n");
 }
 
+static void test_plane_rotation_ytiled_obj(data_t *data, enum igt_plane plane_type)
+{
+	igt_display_t *display = &data->display;
+	uint64_t tiling = LOCAL_I915_FORMAT_MOD_Y_TILED;
+	uint32_t format = DRM_FORMAT_XRGB8888;
+	int bpp = igt_drm_format_to_bpp(format);
+	enum igt_commit_style commit = COMMIT_LEGACY;
+	int fd = data->gfx_fd;
+	igt_output_t *output = &display->outputs[0];
+	igt_plane_t *plane;
+	drmModeModeInfo *mode;
+	unsigned int stride, size, w, h;
+	uint32_t gem_handle;
+	int ret;
+
+	igt_require(output != NULL && output->valid == true);
+
+	plane = igt_output_get_plane(output, plane_type);
+	igt_require(igt_plane_supports_rotation(plane));
+
+	if (plane_type == IGT_PLANE_PRIMARY || plane_type == IGT_PLANE_CURSOR) {
+		igt_require(data->display.has_universal_planes);
+		commit = COMMIT_UNIVERSAL;
+	}
+
+	mode = igt_output_get_mode(output);
+	w = mode->hdisplay;
+	h = mode->vdisplay;
+
+	for (stride = 512; stride < (w * bpp / 8); stride *= 2)
+		;
+	for (size = 1024*1024; size < stride * h; size *= 2)
+		;
+
+	gem_handle = gem_create(fd, size);
+	ret = __gem_set_tiling(fd, gem_handle, I915_TILING_Y, stride);
+	igt_assert(ret == 0);
+
+	do_or_die(__kms_addfb(fd, gem_handle, w, h, stride,
+		  format, tiling, LOCAL_DRM_MODE_FB_MODIFIERS,
+		  &data->fb.fb_id));
+	data->fb.width = w;
+	data->fb.height = h;
+	data->fb.gem_handle = gem_handle;
+
+	igt_plane_set_fb(plane, NULL);
+	igt_display_commit(display);
+
+	igt_plane_set_rotation(plane, data->rotation);
+	igt_plane_set_fb(plane, &data->fb);
+
+	drmModeObjectSetProperty(fd, plane->drm_plane->plane_id,
+				 DRM_MODE_OBJECT_PLANE,
+				 plane->rotation_property,
+				 plane->rotation);
+	ret = igt_display_try_commit2(display, commit);
+
+	kmstest_restore_vt_mode();
+	igt_remove_fb(fd, &data->fb);
+	igt_assert(ret == 0);
+}
+
 igt_main
 {
 	data_t data = {};
@@ -401,6 +463,12 @@ igt_main
 		data.flip_stress = 60;
 		data.rotation = IGT_ROTATION_90;
 		test_plane_rotation(&data, IGT_PLANE_PRIMARY);
+	}
+
+	igt_subtest_f("primary-rotation-90-Y-tiled") {
+		igt_require(gen >= 9);
+		data.rotation = IGT_ROTATION_90;
+		test_plane_rotation_ytiled_obj(&data, IGT_PLANE_PRIMARY);
 	}
 
 	igt_fixture {
