@@ -27,8 +27,9 @@
 IGT_TEST_DESCRIPTION("Check the debugfs force connector/edid features work"
 		     " correctly.");
 
-#define CHECK_MODE(m, h, w, r) igt_assert(m.hdisplay == h && m.vdisplay == w \
-					  && m.vrefresh == r)
+#define CHECK_MODE(m, h, w, r) \
+	igt_assert_eq(m.hdisplay, h); igt_assert_eq(m.vdisplay, w); \
+	igt_assert_eq(m.vrefresh, r);
 
 static void __attribute__((noreturn)) reset_connectors(void)
 {
@@ -107,8 +108,8 @@ int main(int argc, char **argv)
 		/* force the connector on and check the reported values */
 		kmstest_force_connector(drm_fd, vga_connector, FORCE_CONNECTOR_ON);
 		temp = drmModeGetConnector(drm_fd, vga_connector->connector_id);
-		igt_assert(temp->connection == DRM_MODE_CONNECTED);
-		igt_assert(temp->count_modes > 0);
+		igt_assert_eq(temp->connection, DRM_MODE_CONNECTED);
+		igt_assert_lt(0, temp->count_modes);
 		drmModeFreeConnector(temp);
 
 		/* attempt to use the display */
@@ -122,15 +123,15 @@ int main(int argc, char **argv)
 		kmstest_force_connector(drm_fd, vga_connector,
 					FORCE_CONNECTOR_OFF);
 		temp = drmModeGetConnector(drm_fd, vga_connector->connector_id);
-		igt_assert(temp->connection == DRM_MODE_DISCONNECTED);
-		igt_assert(temp->count_modes == 0);
+		igt_assert_eq(temp->connection, DRM_MODE_DISCONNECTED);
+		igt_assert_eq(0, temp->count_modes);
 		drmModeFreeConnector(temp);
 
 		/* check that the previous state is restored */
 		kmstest_force_connector(drm_fd, vga_connector,
 					FORCE_CONNECTOR_UNSPECIFIED);
 		temp = drmModeGetConnector(drm_fd, vga_connector->connector_id);
-		igt_assert(temp->connection == vga_connector->connection);
+		igt_assert_eq(temp->connection, vga_connector->connection);
 		drmModeFreeConnector(temp);
 	}
 
@@ -160,7 +161,7 @@ int main(int argc, char **argv)
 		temp = drmModeGetConnector(drm_fd, vga_connector->connector_id);
 		/* the connector should now have the same number of modes that
 		 * it started with */
-		igt_assert(temp->count_modes == start_n_modes);
+		igt_assert_eq(temp->count_modes, start_n_modes);
 		drmModeFreeConnector(temp);
 
 		kmstest_force_connector(drm_fd, vga_connector,
