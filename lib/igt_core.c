@@ -779,9 +779,12 @@ bool __igt_run_subtest(const char *subtest_name)
 	}
 
 	if (skip_subtests_henceforth) {
-		printf("Subtest %s: %s\n", subtest_name,
+		bool istty = isatty(STDOUT_FILENO);
+
+		printf("%sSubtest %s: %s%s\n",
+		       (istty) ? "\x1b[1m" : "", subtest_name,
 		       skip_subtests_henceforth == SKIP ?
-		       "SKIP" : "FAIL");
+		       "SKIP" : "FAIL", (istty) ? "\x1b[0m" : "");
 		return false;
 	}
 
@@ -825,12 +828,14 @@ static void exit_subtest(const char *result)
 {
 	struct timespec now;
 	double elapsed;
+	bool istty = isatty(STDOUT_FILENO);
 
 	gettime(&now);
 	elapsed = now.tv_sec - subtest_time.tv_sec;
 	elapsed += (now.tv_nsec - subtest_time.tv_nsec) * 1e-9;
 
-	printf("Subtest %s: %s (%.3fs)\n", in_subtest, result, elapsed);
+	printf("%sSubtest %s: %s (%.3fs)%s\n", (istty) ? "\x1b[1m" : "",
+	       in_subtest, result, elapsed, (istty) ? "\x1b[0m" : "");
 	fflush(stdout);
 
 	in_subtest = NULL;
