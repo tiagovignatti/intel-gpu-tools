@@ -122,6 +122,7 @@ enum flip_type {
 	FLIP_PAGEFLIP,
 	FLIP_PAGEFLIP_EVENT,
 	FLIP_MODESET,
+	FLIP_PLANES,
 };
 
 enum color {
@@ -2177,6 +2178,31 @@ static void wait_flip_event(void)
 	}
 }
 
+static void set_prim_plane_for_params(struct modeset_params *params)
+{
+	int rc, i, crtc_index = -1;
+	uint32_t plane_id = 0;
+
+	for (i = 0; i < drm.res->count_crtcs; i++)
+		if (drm.res->crtcs[i] == params->crtc_id)
+			crtc_index = i;
+	igt_assert(crtc_index >= 0);
+
+	for (i = 0; i < drm.plane_res->count_planes; i++)
+		if ((drm.planes[i]->possible_crtcs & (1 << crtc_index)) &&
+		    drm.plane_types[i] == DRM_PLANE_TYPE_PRIMARY)
+			plane_id = drm.planes[i]->plane_id;
+	igt_assert(plane_id);
+
+	rc = drmModeSetPlane(drm.fd, plane_id, params->crtc_id,
+			     params->fb.fb->fb_id, 0, 0, 0,
+			     params->mode->hdisplay,
+			     params->mode->vdisplay,
+			     params->fb.x << 16, params->fb.y << 16,
+			     params->fb.w << 16, params->fb.h << 16);
+	igt_assert(rc == 0);
+}
+
 static void page_flip_for_params(struct modeset_params *params,
 				 enum flip_type type)
 {
@@ -2197,6 +2223,9 @@ static void page_flip_for_params(struct modeset_params *params,
 		break;
 	case FLIP_MODESET:
 		set_mode_for_params(params);
+		break;
+	case FLIP_PLANES:
+		set_prim_plane_for_params(params);
 		break;
 	default:
 		igt_assert(false);
@@ -3167,6 +3196,13 @@ int main(int argc, char *argv[])
 			      igt_draw_get_method_name(t.method))
 			flip_subtest(&t, FLIP_MODESET);
 
+		igt_subtest_f("%s-%s-%s-%s-plflip-%s",
+			      feature_str(t.feature),
+			      pipes_str(t.pipes),
+			      screen_str(t.screen),
+			      fbs_str(t.fbs),
+			      igt_draw_get_method_name(t.method))
+			flip_subtest(&t, FLIP_PLANES);
 	TEST_MODE_ITER_END
 
 	TEST_MODE_ITER_BEGIN(t)
