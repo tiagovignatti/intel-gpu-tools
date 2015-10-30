@@ -115,14 +115,17 @@ struct test_mode {
 		FORMAT_DEFAULT = FORMAT_RGB888,
 	} format;
 
-	enum igt_draw_method method;
-};
+	/* There are multiple APIs where we can do the equivalent of a page flip
+	 * and they exercise slightly different codepaths inside the Kernel. */
+	enum flip_type {
+		FLIP_PAGEFLIP,
+		FLIP_PAGEFLIP_EVENT,
+		FLIP_MODESET,
+		FLIP_PLANES,
+		FLIP_COUNT,
+	} flip;
 
-enum flip_type {
-	FLIP_PAGEFLIP,
-	FLIP_PAGEFLIP_EVENT,
-	FLIP_MODESET,
-	FLIP_PLANES,
+	enum igt_draw_method method;
 };
 
 enum color {
@@ -2247,7 +2250,7 @@ static void page_flip_for_params(struct modeset_params *params,
  *   On a failure here you need to go directly to the Kernel's flip code and see
  *   how it interacts with the feature being tested.
  */
-static void flip_subtest(const struct test_mode *t, enum flip_type type)
+static void flip_subtest(const struct test_mode *t)
 {
 	int r;
 	int assertions = 0;
@@ -2284,7 +2287,7 @@ static void flip_subtest(const struct test_mode *t, enum flip_type type)
 		draw_rect(pattern, &params->fb, t->method, r);
 		update_wanted_crc(t, &pattern->crcs[t->format][r]);
 
-		page_flip_for_params(params, type);
+		page_flip_for_params(params, t->flip);
 
 		do_assertions(assertions);
 	}
@@ -3088,8 +3091,25 @@ static const char *format_str(enum pixel_format format)
 	}
 }
 
+static const char *flip_str(enum flip_type flip)
+{
+	switch (flip) {
+	case FLIP_PAGEFLIP:
+		return "pg";
+	case FLIP_PAGEFLIP_EVENT:
+		return "ev";
+	case FLIP_MODESET:
+		return "ms";
+	case FLIP_PLANES:
+		return "pl";
+	default:
+		igt_assert(false);
+	}
+}
+
 #define TEST_MODE_ITER_BEGIN(t) \
 	t.format = FORMAT_DEFAULT;					   \
+	t.flip = FLIP_PAGEFLIP;						   \
 	for (t.feature = 0; t.feature < FEATURE_COUNT; t.feature++) {	   \
 	for (t.pipes = 0; t.pipes < PIPE_COUNT; t.pipes++) {		   \
 	for (t.screen = 0; t.screen < SCREEN_COUNT; t.screen++) {	   \
@@ -3145,7 +3165,8 @@ int main(int argc, char *argv[])
 			t.plane = PLANE_PRI;
 			t.fbs = FBS_INDIVIDUAL;
 			t.format = FORMAT_DEFAULT;
-			/* Make sure nothing is using this value. */
+			/* Make sure nothing is using these values. */
+			t.flip = -1;
 			t.method = -1;
 
 			igt_subtest_f("%s-%s-rte",
@@ -3172,37 +3193,15 @@ int main(int argc, char *argv[])
 		    (!opt.show_hidden && t.method != IGT_DRAW_BLT))
 			continue;
 
-		igt_subtest_f("%s-%s-%s-%s-flip-%s",
-			      feature_str(t.feature),
-			      pipes_str(t.pipes),
-			      screen_str(t.screen),
-			      fbs_str(t.fbs),
-			      igt_draw_get_method_name(t.method))
-			flip_subtest(&t, FLIP_PAGEFLIP);
-
-		igt_subtest_f("%s-%s-%s-%s-evflip-%s",
-			      feature_str(t.feature),
-			      pipes_str(t.pipes),
-			      screen_str(t.screen),
-			      fbs_str(t.fbs),
-			      igt_draw_get_method_name(t.method))
-			flip_subtest(&t, FLIP_PAGEFLIP_EVENT);
-
-		igt_subtest_f("%s-%s-%s-%s-msflip-%s",
-			      feature_str(t.feature),
-			      pipes_str(t.pipes),
-			      screen_str(t.screen),
-			      fbs_str(t.fbs),
-			      igt_draw_get_method_name(t.method))
-			flip_subtest(&t, FLIP_MODESET);
-
-		igt_subtest_f("%s-%s-%s-%s-plflip-%s",
-			      feature_str(t.feature),
-			      pipes_str(t.pipes),
-			      screen_str(t.screen),
-			      fbs_str(t.fbs),
-			      igt_draw_get_method_name(t.method))
-			flip_subtest(&t, FLIP_PLANES);
+		for (t.flip = 0; t.flip < FLIP_COUNT; t.flip++)
+			igt_subtest_f("%s-%s-%s-%s-%sflip-%s",
+				      feature_str(t.feature),
+				      pipes_str(t.pipes),
+				      screen_str(t.screen),
+				      fbs_str(t.fbs),
+				      flip_str(t.flip),
+				      igt_draw_get_method_name(t.method))
+				flip_subtest(&t);
 	TEST_MODE_ITER_END
 
 	TEST_MODE_ITER_BEGIN(t)
