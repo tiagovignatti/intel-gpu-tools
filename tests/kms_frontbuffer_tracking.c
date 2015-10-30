@@ -2881,12 +2881,15 @@ static void try_invalid_strides(void)
  */
 static void badstride_subtest(const struct test_mode *t)
 {
-	struct igt_fb wide_fb;
+	struct igt_fb wide_fb, *old_fb;
 	struct modeset_params *params = pick_params(t);
+	int rc;
 
 	try_invalid_strides();
 
 	prepare_subtest(t, NULL);
+
+	old_fb = params->fb.fb;
 
 	create_fb(t->format, params->fb.fb->width + 4096, params->fb.fb->height,
 		  LOCAL_I915_FORMAT_MOD_X_TILED, t->plane, &wide_fb);
@@ -2894,10 +2897,30 @@ static void badstride_subtest(const struct test_mode *t)
 
 	fill_fb(&wide_fb, COLOR_PRIM_BG);
 
+	/* Try a simple modeset with the new fb. */
 	params->fb.fb = &wide_fb;
 	set_mode_for_params(params);
-
 	do_assertions(ASSERT_FBC_DISABLED);
+
+	/* Go back to the old fb so FBC works again. */
+	params->fb.fb = old_fb;
+	set_mode_for_params(params);
+	do_assertions(0);
+
+	/* We're doing the equivalent of a modeset, but with the planes API. */
+	params->fb.fb = &wide_fb;
+	set_prim_plane_for_params(params);
+	do_assertions(ASSERT_FBC_DISABLED);
+
+	params->fb.fb = old_fb;
+	set_mode_for_params(params);
+	do_assertions(0);
+
+	/* We can't use the page flip IOCTL to flip to a buffer with a different
+	 * stride. */
+	rc = drmModePageFlip(drm.fd, params->crtc_id, wide_fb.fb_id, 0, NULL);
+	igt_assert(rc == -EINVAL);
+	do_assertions(0);
 
 	igt_remove_fb(drm.fd, &wide_fb);
 }
@@ -2924,21 +2947,42 @@ static void badstride_subtest(const struct test_mode *t)
  */
 static void stridechange_subtest(const struct test_mode *t)
 {
-	struct igt_fb new_fb;
+	struct igt_fb new_fb, *old_fb;
 	struct modeset_params *params = pick_params(t);
+	int rc;
 
 	prepare_subtest(t, NULL);
+
+	old_fb = params->fb.fb;
 
 	create_fb(t->format, params->fb.fb->width + 512, params->fb.fb->height,
 		  LOCAL_I915_FORMAT_MOD_X_TILED, t->plane, &new_fb);
 	fill_fb(&new_fb, COLOR_PRIM_BG);
 
-	params->fb.fb = &new_fb;
-	set_mode_for_params(params);
-
 	/* We can't assert that FBC will be enabled since there may not be
 	 * enough space for the CFB, but we can check the CRC. */
+	params->fb.fb = &new_fb;
+	set_mode_for_params(params);
 	do_assertions(DONT_ASSERT_FEATURE_STATUS);
+
+	/* Go back to the fb that can have FBC. */
+	params->fb.fb = old_fb;
+	set_mode_for_params(params);
+	do_assertions(0);
+
+	/* This operation is the same as above, but with the planes API. */
+	params->fb.fb = &new_fb;
+	set_prim_plane_for_params(params);
+	do_assertions(DONT_ASSERT_FEATURE_STATUS);
+
+	params->fb.fb = old_fb;
+	set_prim_plane_for_params(params);
+	do_assertions(0);
+
+	/* We just can't page flip with a new stride. */
+	rc = drmModePageFlip(drm.fd, params->crtc_id, new_fb.fb_id, 0, NULL);
+	igt_assert(rc == -EINVAL);
+	do_assertions(0);
 
 	igt_remove_fb(drm.fd, &new_fb);
 }
