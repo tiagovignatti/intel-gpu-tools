@@ -246,14 +246,14 @@ static void waiter(int child)
 	close(fd);
 }
 
+static volatile int done;
+
 static void *thread(void *arg)
 {
-	uint64_t *c = arg;
+	volatile uint64_t *c = arg;
 
-	pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, NULL);
-
-	while (1)
-		__sync_fetch_and_add(c, 1);
+	while (!done)
+		++*c;
 
 	return NULL;
 }
@@ -272,12 +272,13 @@ static int run(int num_waiters)
 		waiter(child);
 	igt_waitchildren();
 
+	done = 1;
+	for (int n = 0; n < num_cpus; n++)
+		pthread_join(threads[n], NULL);
+
 	count = 0;
-	for (int n = 0; n < num_cpus; n++) {
-		pthread_cancel(threads[n]);
-		__sync_synchronize();
+	for (int n = 0; n < num_cpus; n++)
 		count += counters[8*n];
-	}
 	printf("%llu\n", (long long unsigned)count);
 
 	return 0;
