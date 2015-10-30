@@ -2989,6 +2989,51 @@ static void stridechange_subtest(const struct test_mode *t)
 	igt_remove_fb(drm.fd, &new_fb);
 }
 
+/**
+ * tilingchange - alternate between tiled and untiled in multiple ways
+ *
+ * METHOD
+ *   This test alternates between tiled and untiled frontbuffers of the same
+ *   size and format through multiple different APIs: the page flip IOCTL,
+ *   normal modesets and the plane APIs.
+ *
+ * EXPECTED RESULTS
+ *   FBC gets properly disabled for the untiled FB and reenabled for the
+ *   tiled FB.
+ *
+ * FAILURES
+ *   Bad Kernels may somehow leave FBC enabled, which can cause FIFO underruns
+ *   that lead to CRC assertion failures.
+ */
+static void tilingchange_subtest(const struct test_mode *t)
+{
+	struct igt_fb new_fb, *old_fb;
+	struct modeset_params *params = pick_params(t);
+	enum flip_type flip_type;
+
+	prepare_subtest(t, NULL);
+
+	old_fb = params->fb.fb;
+
+	create_fb(t->format, params->fb.fb->width, params->fb.fb->height,
+		  LOCAL_DRM_FORMAT_MOD_NONE, t->plane, &new_fb);
+	fill_fb(&new_fb, COLOR_PRIM_BG);
+
+	for (flip_type = 0; flip_type < FLIP_COUNT; flip_type++) {
+		igt_debug("Flip type: %d\n", flip_type);
+
+		/* Set a buffer with no tiling. */
+		params->fb.fb = &new_fb;
+		page_flip_for_params(params, flip_type);
+		do_assertions(ASSERT_FBC_DISABLED);
+
+		/* Put FBC back in a working state. */
+		params->fb.fb = old_fb;
+		page_flip_for_params(params, flip_type);
+		do_assertions(0);
+	}
+}
+
 static int opt_handler(int option, int option_index, void *data)
 {
 	switch (option) {
@@ -3378,6 +3423,9 @@ int main(int argc, char *argv[])
 
 			igt_subtest_f("%s-stridechange", feature_str(t.feature))
 				stridechange_subtest(&t);
+
+			igt_subtest_f("%s-tilingchange", feature_str(t.feature))
+				tilingchange_subtest(&t);
 		}
 
 		if (t.feature & FEATURE_PSR)
