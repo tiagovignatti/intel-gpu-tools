@@ -125,6 +125,4 @@ igt_main
 	igt_fixture {
 		drmModeFreeConnector(vga_connector);
 	}
-
-	igt_exit();
 }

@@ -115,6 +115,4 @@ igt_simple_main
 
 	drmModeFreeConnector(connector);
 	free(edid);
-
-	igt_exit();
 }

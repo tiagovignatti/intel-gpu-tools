@@ -210,6 +210,4 @@ igt_main
 		intel_require_memory(count, SIZE, CHECK_RAM | CHECK_SWAP);
 		run_test(fd, count);
 	}
-
-	igt_exit();
 }
