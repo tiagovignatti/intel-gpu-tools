@@ -255,6 +255,7 @@ static void test_crc(data_t *data, enum test_mode mode)
 {
 	uint32_t crtc_id = data->output->config.crtc->crtc_id;
 	uint32_t handle = data->fb[0].gem_handle;
+	drm_intel_context *context = NULL;
 
 	igt_assert(fbc_enabled(data));
 
@@ -268,7 +269,6 @@ static void test_crc(data_t *data, enum test_mode mode)
 	}
 
 	switch (mode) {
-		drm_intel_context *context = NULL;
 	case TEST_PAGE_FLIP:
 		break;
 	case TEST_MMAP_CPU:
