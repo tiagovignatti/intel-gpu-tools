@@ -305,7 +305,6 @@ drmModeModeInfo std_1024_mode = {
 	.hsync_start = 1048,
 	.hsync_end = 1184,
 	.htotal = 1344,
-	.vtotal = 806,
 	.hskew = 0,
 	.vdisplay = 768,
 	.vsync_start = 771,
