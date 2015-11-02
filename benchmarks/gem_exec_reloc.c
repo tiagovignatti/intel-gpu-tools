@@ -249,8 +249,6 @@ int main(int argc, char **argv)
 
 		case 'r':
 			num_relocs = atoi(optarg);
-			if (num_relocs < 0)
-				num_relocs = 0;
 			break;
 		}
 	}

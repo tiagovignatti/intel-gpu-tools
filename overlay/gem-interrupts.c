@@ -142,9 +142,12 @@ int gem_interrupts_update(struct gem_interrupts *irqs)
 		return irqs->error;
 
 	if (irqs->fd < 0) {
-		val = interrupts_read();
-		if (val < 0)
+		long long ret;
+		ret = interrupts_read();
+		if (ret < 0)
 			return irqs->error = ENODEV;
+		else
+			val = ret;
 	} else {
 		if (read(irqs->fd, &val, sizeof(val)) < 0)
 			return irqs->error = errno;
