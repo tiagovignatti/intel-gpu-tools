@@ -56,6 +56,7 @@ igt_main
 		}
 
 		igt_require(vga_connector);
+		igt_skip_on(vga_connector->connection == DRM_MODE_CONNECTED);
 	}
 
 	igt_subtest("force-connector-state") {
