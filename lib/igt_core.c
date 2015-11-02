@@ -1750,7 +1750,7 @@ out:
 }
 
 static const char *timeout_op;
-static void igt_alarm_handler(int signal)
+static void __attribute__((noreturn)) igt_alarm_handler(int signal)
 {
 	if (timeout_op)
 		igt_info("Timed out: %s\n", timeout_op);

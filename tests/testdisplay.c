@@ -552,7 +552,7 @@ static void __attribute__((noreturn)) usage(char *name, char opt)
 
 #define dump_resource(res) if (res) dump_##res()
 
-static void cleanup_and_exit(int ret)
+static void __attribute__((noreturn)) cleanup_and_exit(int ret)
 {
 	close(drm_fd);
 	exit(ret);

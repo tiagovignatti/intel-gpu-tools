@@ -1386,7 +1386,7 @@ static void pci_d3_state_subtest(void)
 	igt_assert(!device_in_pci_d3());
 }
 
-static void stay_subtest(void)
+static void __attribute__((noreturn)) stay_subtest(void)
 {
 	disable_all_screens_and_wait(&ms_data);
 

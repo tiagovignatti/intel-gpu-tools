@@ -326,7 +326,7 @@ db_shutdown(int sig) {
 	printf("Shutting down...\n");
 }
 
-static void
+static void __attribute__((noreturn))
 die(int reason) {
 	int i = 0;
 

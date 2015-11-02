@@ -946,7 +946,7 @@ static const char *test_name(enum test test, int pipe, int bit, bool test_pixel_
 	}
 }
 
-static void usage(const char *name)
+static void __attribute__((noreturn)) usage(const char *name)
 {
 	fprintf(stderr, "Usage: %s [options]\n"
 		" -t,--test <pipestat|iir|framecount|flipcount|pan|flip|surflive|wrap|field>\n"

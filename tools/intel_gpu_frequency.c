@@ -142,7 +142,7 @@ static int get_frequency(struct freq_info *freq_info)
 	return val;
 }
 
-static void
+static void __attribute__((noreturn))
 usage(const char *prog)
 {
 	printf("%s A program to manipulate Intel GPU frequencies.\n\n", prog);

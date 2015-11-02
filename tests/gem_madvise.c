@@ -49,7 +49,7 @@ IGT_TEST_DESCRIPTION("Checks that the kernel reports EFAULT when trying to use"
 
 static jmp_buf jmp;
 
-static void sigtrap(int sig)
+static void __attribute__((noreturn)) sigtrap(int sig)
 {
 	longjmp(jmp, sig);
 }
