@@ -36,7 +36,6 @@ igt_main
 	int drm_fd = 0;
 	drmModeRes *res;
 	drmModeConnector *vga_connector = NULL, *temp;
-	igt_display_t display;
 	int start_n_modes;
 
 	igt_fixture {
@@ -60,6 +59,8 @@ igt_main
 	}
 
 	igt_subtest("force-connector-state") {
+		igt_display_t display;
+
 		/* force the connector on and check the reported values */
 		kmstest_force_connector(drm_fd, vga_connector, FORCE_CONNECTOR_ON);
 		temp = drmModeGetConnector(drm_fd, vga_connector->connector_id);
@@ -71,6 +72,7 @@ igt_main
 		kmstest_set_vt_graphics_mode();
 		igt_display_init(&display, drm_fd);
 		igt_display_commit(&display);
+		igt_display_fini(&display);
 
 
 		/* force the connector off */
