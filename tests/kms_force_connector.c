@@ -30,13 +30,55 @@ IGT_TEST_DESCRIPTION("Check the debugfs force connector/edid features work"
 #define CHECK_MODE(m, h, w, r) igt_assert(m.hdisplay == h && m.vdisplay == w \
 					  && m.vrefresh == r)
 
-igt_main
+static void __attribute__((noreturn)) reset_connectors(void)
+{
+	int drm_fd = 0;
+	drmModeRes *res;
+	drmModeConnector *connector = NULL;
+
+	drm_fd = drm_open_driver_master(DRIVER_INTEL);
+	res = drmModeGetResources(drm_fd);
+
+	for (int i = 0; i < res->count_connectors; i++) {
+
+		connector = drmModeGetConnector(drm_fd, res->connectors[i]);
+
+		kmstest_force_connector(drm_fd, connector,
+					FORCE_CONNECTOR_UNSPECIFIED);
+
+		drmModeFreeConnector(connector);
+	}
+
+	exit(0);
+}
+
+static int opt_handler(int opt, int opt_index, void *data)
+{
+	switch (opt) {
+	case 'r':
+		reset_connectors();
+		break;
+	}
+
+	return 0;
+}
+
+int main(int argc, char **argv)
 {
 	/* force the VGA output and test that it worked */
 	int drm_fd = 0;
 	drmModeRes *res;
 	drmModeConnector *vga_connector = NULL, *temp;
 	int start_n_modes;
+	struct option long_opts[] = {
+		{"reset", 0, 0, 'r'},
+		{0, 0, 0, 0}
+	};
+	const char *help_str =
+	       "  --reset\t\tReset all connector force states.\n";
+
+	igt_subtest_init_parse_opts(&argc, argv, "", long_opts, help_str,
+				    opt_handler, NULL);
 
 	igt_fixture {
 		drm_fd = drm_open_driver_master(DRIVER_INTEL);
@@ -128,4 +170,6 @@ igt_main
 	igt_fixture {
 		drmModeFreeConnector(vga_connector);
 	}
+
+	igt_exit();
 }
