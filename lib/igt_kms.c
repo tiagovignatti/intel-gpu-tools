@@ -962,6 +962,15 @@ static int get_drm_plane_type(int drm_fd, uint32_t plane_id)
 	return DRM_PLANE_TYPE_OVERLAY;
 }
 
+/**
+ * igt_display_init:
+ * @display: a pointer to an #igt_display_t structure
+ * @drm_fd: a drm file descriptor
+ *
+ * Initialize @display and allocate the various resources required. Use
+ * #igt_display_fini to release the resources when they are no longer required.
+ *
+ */
 void igt_display_init(igt_display_t *display, int drm_fd)
 {
 	drmModeRes *resources;
@@ -1160,6 +1169,13 @@ static void igt_output_fini(igt_output_t *output)
 	free(output->name);
 }
 
+/**
+ * igt_display_fini:
+ * @display: a pointer to an #igt_display_t structure
+ *
+ * Release any resources associated with @display. This does not free @display
+ * itself.
+ */
 void igt_display_fini(igt_display_t *display)
 {
 	int i;
