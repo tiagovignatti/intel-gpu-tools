@@ -557,7 +557,8 @@ int main(int argc, char *argv[])
 		kmstest_set_vt_graphics_mode();
 		data.devid = intel_get_drm_devid(data.drm_fd);
 
-		igt_set_module_param_int("enable_psr", 1);
+		igt_set_module_param_int("enable_psr", running_with_psr_disabled ?
+					 0 : 1);
 
 		igt_skip_on(!psr_possible(&data));
 
