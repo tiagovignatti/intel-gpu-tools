@@ -47,6 +47,8 @@ static void __attribute__((noreturn)) reset_connectors(void)
 		kmstest_force_connector(drm_fd, connector,
 					FORCE_CONNECTOR_UNSPECIFIED);
 
+		kmstest_force_edid(drm_fd, connector, NULL, 0);
+
 		drmModeFreeConnector(connector);
 	}
 
@@ -76,7 +78,7 @@ int main(int argc, char **argv)
 		{0, 0, 0, 0}
 	};
 	const char *help_str =
-	       "  --reset\t\tReset all connector force states.\n";
+	       "  --reset\t\tReset all connector force states and edid.\n";
 
 	igt_subtest_init_parse_opts(&argc, argv, "", long_opts, help_str,
 				    opt_handler, NULL);
