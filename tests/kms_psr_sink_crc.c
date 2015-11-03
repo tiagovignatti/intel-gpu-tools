@@ -626,6 +626,30 @@ int main(int argc, char *argv[])
 		test_cleanup(&data);
 	}
 
+	igt_subtest_f("suspend_psr_active") {
+		data.test_plane = PRIMARY;
+		data.op = PAGE_FLIP;
+		setup_test_plane(&data);
+		igt_assert(wait_psr_entry(&data));
+
+		igt_system_suspend_autoresume();
+
+		run_test(&data);
+		test_cleanup(&data);
+	}
+
+	igt_subtest_f("suspend_psr_exit") {
+		data.test_plane = CURSOR;
+		data.op = PLANE_ONOFF;
+		setup_test_plane(&data);
+
+		igt_system_suspend_autoresume();
+
+		igt_assert(wait_psr_entry(&data));
+		run_test(&data);
+		test_cleanup(&data);
+	}
+
 	igt_fixture {
 		drm_intel_bufmgr_destroy(data.bufmgr);
 		display_fini(&data);
