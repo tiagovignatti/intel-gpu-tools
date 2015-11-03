@@ -897,8 +897,8 @@ static int test_coherency(int fd, int count)
 	uint32_t start = 0;
 	int i, ret;
 
-	intel_require_memory(count, sizeof(linear), CHECK_RAM);
 	igt_info("Using 2x%d 1MiB buffers\n", count);
+	intel_require_memory(2*count, sizeof(linear), CHECK_RAM);
 
 	ret = posix_memalign((void **)&memory, PAGE_SIZE, count*sizeof(linear));
 	igt_assert(ret == 0 && memory);
