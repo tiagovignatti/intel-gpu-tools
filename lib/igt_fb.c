@@ -116,7 +116,7 @@ static int create_bo_for_fb(int fd, int width, int height, int bpp,
 		ret = __gem_set_tiling(fd, gem_handle, I915_TILING_X, stride);
 
 	*stride_ret = stride;
-	*size_ret = size;
+	*size_ret = bo_size;
 	*gem_handle_ret = gem_handle;
 
 	return ret;
