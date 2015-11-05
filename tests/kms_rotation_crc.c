@@ -25,6 +25,7 @@
 #include "igt.h"
 #include <math.h>
 
+#define MAX_FENCES 32
 
 typedef struct {
 	int gfx_fd;
@@ -376,6 +377,108 @@ static void test_plane_rotation_ytiled_obj(data_t *data, enum igt_plane plane_ty
 	igt_assert(ret == 0);
 }
 
+static void test_plane_rotation_exhaust_fences(data_t *data, enum igt_plane plane_type)
+{
+	igt_display_t *display = &data->display;
+	uint64_t tiling = LOCAL_I915_FORMAT_MOD_Y_TILED;
+	uint32_t format = DRM_FORMAT_XRGB8888;
+	int bpp = igt_drm_format_to_bpp(format);
+	enum igt_commit_style commit = COMMIT_LEGACY;
+	int fd = data->gfx_fd;
+	igt_output_t *output = &display->outputs[0];
+	igt_plane_t *plane;
+	drmModeModeInfo *mode;
+	data_t data2[MAX_FENCES+1] = {};
+	unsigned int stride, size, w, h;
+	uint32_t gem_handle;
+	uint64_t total_aperture_size, total_fbs_size;
+	int i, ret;
+
+	igt_require(output != NULL && output->valid == true);
+
+	plane = igt_output_get_plane(output, plane_type);
+	igt_require(igt_plane_supports_rotation(plane));
+
+	if (plane_type == IGT_PLANE_PRIMARY || plane_type == IGT_PLANE_CURSOR) {
+		igt_require(data->display.has_universal_planes);
+		commit = COMMIT_UNIVERSAL;
+	}
+
+	mode = igt_output_get_mode(output);
+	w = mode->hdisplay;
+	h = mode->vdisplay;
+
+	for (stride = 512; stride < (w * bpp / 8); stride *= 2)
+		;
+	for (size = 1024*1024; size < stride * h; size *= 2)
+		;
+
+	/*
+	 * Make sure there is atleast 90% of the available GTT space left
+	 * for creating (MAX_FENCES+1) framebuffers.
+	 */
+	total_fbs_size = size * (MAX_FENCES + 1);
+	total_aperture_size = gem_available_aperture_size(fd);
+	igt_require(total_fbs_size < total_aperture_size * 0.9);
+
+	igt_plane_set_fb(plane, NULL);
+	igt_display_commit(display);
+
+	for (i = 0; i < MAX_FENCES + 1; i++) {
+		gem_handle = gem_create(fd, size);
+		ret = __gem_set_tiling(fd, gem_handle, I915_TILING_Y, stride);
+		if (ret) {
+			igt_warn("failed to set tiling\n");
+			goto err_alloc;
+		}
+
+		ret = (__kms_addfb(fd, gem_handle, w, h, stride,
+		       format, tiling, LOCAL_DRM_MODE_FB_MODIFIERS,
+		       &data2[i].fb.fb_id));
+		if (ret) {
+			igt_warn("failed to create framebuffer\n");
+			goto err_alloc;
+		}
+
+		data2[i].fb.width = w;
+		data2[i].fb.height = h;
+		data2[i].fb.gem_handle = gem_handle;
+
+		igt_plane_set_fb(plane, &data2[i].fb);
+		igt_plane_set_rotation(plane, IGT_ROTATION_0);
+
+		ret = igt_display_try_commit2(display, commit);
+		if (ret) {
+			igt_warn("failed to commit unrotated fb\n");
+			goto err_commit;
+		}
+
+		igt_plane_set_rotation(plane, IGT_ROTATION_90);
+
+		drmModeObjectSetProperty(fd, plane->drm_plane->plane_id,
+					 DRM_MODE_OBJECT_PLANE,
+					 plane->rotation_property,
+					 plane->rotation);
+		ret = igt_display_try_commit2(display, commit);
+		if (ret) {
+			igt_warn("failed to commit hardware rotated fb\n");
+			goto err_commit;
+		}
+	}
+
+err_alloc:
+	if (ret)
+		gem_close(fd, gem_handle);
+
+	i--;
+err_commit:
+	for (; i >= 0; i--)
+		igt_remove_fb(fd, &data2[i].fb);
+
+	kmstest_restore_vt_mode();
+	igt_assert(ret == 0);
+}
+
 igt_main
 {
 	data_t data = {};
@@ -469,6 +572,11 @@ igt_main
 		igt_require(gen >= 9);
 		data.rotation = IGT_ROTATION_90;
 		test_plane_rotation_ytiled_obj(&data, IGT_PLANE_PRIMARY);
+	}
+
+	igt_subtest_f("exhaust-fences") {
+		igt_require(gen >= 9);
+		test_plane_rotation_exhaust_fences(&data, IGT_PLANE_PRIMARY);
 	}
 
 	igt_fixture {
