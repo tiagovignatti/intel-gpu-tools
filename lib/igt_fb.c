@@ -76,9 +76,8 @@ static struct format_desc_struct {
 /* helpers to create nice-looking framebuffers */
 static int create_bo_for_fb(int fd, int width, int height, int bpp,
 			    uint64_t tiling, unsigned bo_size,
-			    uint32_t *gem_handle_ret,
-			    unsigned *size_ret,
-			    unsigned *stride_ret)
+			    unsigned bo_stride, uint32_t *gem_handle_ret,
+			    unsigned *size_ret, unsigned *stride_ret)
 {
 	uint32_t gem_handle;
 	int size, ret = 0;
@@ -110,12 +109,16 @@ static int create_bo_for_fb(int fd, int width, int height, int bpp,
 
 	if (bo_size == 0)
 		bo_size = size;
+	if (bo_stride == 0)
+		bo_stride = stride;
+
 	gem_handle = gem_create(fd, bo_size);
 
 	if (tiling == LOCAL_I915_FORMAT_MOD_X_TILED)
-		ret = __gem_set_tiling(fd, gem_handle, I915_TILING_X, stride);
+		ret = __gem_set_tiling(fd, gem_handle, I915_TILING_X,
+				       bo_stride);
 
-	*stride_ret = stride;
+	*stride_ret = bo_stride;
 	*size_ret = bo_size;
 	*gem_handle_ret = gem_handle;
 
@@ -401,6 +404,7 @@ void igt_paint_image(cairo_t *cr, const char *filename,
  * @tiling: tiling layout of the framebuffer (as framebuffer modifier)
  * @fb: pointer to an #igt_fb structure
  * @bo_size: size of the backing bo (0 for automatic size)
+ * @bo_stride: stride of the backing bo (0 for automatic stride)
  *
  * This function allocates a gem buffer object suitable to back a framebuffer
  * with the requested properties and then wraps it up in a drm framebuffer
@@ -415,7 +419,8 @@ void igt_paint_image(cairo_t *cr, const char *filename,
 unsigned int
 igt_create_fb_with_bo_size(int fd, int width, int height,
 			   uint32_t format, uint64_t tiling,
-			   struct igt_fb *fb, unsigned bo_size)
+			   struct igt_fb *fb, unsigned bo_size,
+			   unsigned bo_stride)
 {
 	uint32_t fb_id;
 	int bpp;
@@ -427,7 +432,8 @@ igt_create_fb_with_bo_size(int fd, int width, int height,
 	igt_debug("%s(width=%d, height=%d, format=0x%x [bpp=%d], tiling=0x%"PRIx64", size=%d)\n",
 		  __func__, width, height, format, bpp, tiling, bo_size);
 	do_or_die(create_bo_for_fb(fd, width, height, bpp, tiling, bo_size,
-				   &fb->gem_handle, &fb->size, &fb->stride));
+				   bo_stride, &fb->gem_handle, &fb->size,
+				   &fb->stride));
 
 	igt_debug("%s(handle=%d, pitch=%d)\n",
 		  __func__, fb->gem_handle, fb->stride);
@@ -485,7 +491,8 @@ igt_create_fb_with_bo_size(int fd, int width, int height,
 unsigned int igt_create_fb(int fd, int width, int height, uint32_t format,
 			   uint64_t tiling, struct igt_fb *fb)
 {
-	return igt_create_fb_with_bo_size(fd, width, height, format, tiling, fb, 0);
+	return igt_create_fb_with_bo_size(fd, width, height, format, tiling, fb,
+					  0, 0);
 }
 
 /**
@@ -714,7 +721,7 @@ static void create_cairo_surface__blit(int fd, struct igt_fb *fb)
 	 */
 	bpp = igt_drm_format_to_bpp(fb->drm_format);
 	ret = create_bo_for_fb(fd, fb->width, fb->height, bpp,
-				LOCAL_DRM_FORMAT_MOD_NONE, 0,
+				LOCAL_DRM_FORMAT_MOD_NONE, 0, 0,
 				&blit->linear.handle,
 				&blit->linear.size,
 				&blit->linear.stride);

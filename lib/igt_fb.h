@@ -72,7 +72,8 @@ enum igt_text_align {
 unsigned int
 igt_create_fb_with_bo_size(int fd, int width, int height,
 			   uint32_t format, uint64_t tiling,
-			   struct igt_fb *fb, unsigned bo_size);
+			   struct igt_fb *fb, unsigned bo_size,
+			   unsigned bo_stride);
 unsigned int igt_create_fb(int fd, int width, int height, uint32_t format,
 			   uint64_t tiling, struct igt_fb *fb);
 unsigned int igt_create_color_fb(int fd, int width, int height,
