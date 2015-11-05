@@ -2959,6 +2959,8 @@ static void stridechange_subtest(const struct test_mode *t)
 		  LOCAL_I915_FORMAT_MOD_X_TILED, t->plane, &new_fb);
 	fill_fb(&new_fb, COLOR_PRIM_BG);
 
+	igt_assert(old_fb->stride != new_fb.stride);
+
 	/* We can't assert that FBC will be enabled since there may not be
 	 * enough space for the CFB, but we can check the CRC. */
 	params->fb.fb = &new_fb;
