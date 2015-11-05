@@ -400,7 +400,7 @@ void igt_paint_image(cairo_t *cr, const char *filename,
  * @format: drm fourcc pixel format code
  * @tiling: tiling layout of the framebuffer (as framebuffer modifier)
  * @fb: pointer to an #igt_fb structure
- * @bo_size: size of the backing bo (0 for minimum needed size)
+ * @bo_size: size of the backing bo (0 for automatic size)
  *
  * This function allocates a gem buffer object suitable to back a framebuffer
  * with the requested properties and then wraps it up in a drm framebuffer
