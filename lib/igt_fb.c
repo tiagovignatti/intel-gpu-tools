@@ -104,7 +104,7 @@ static int create_bo_for_fb(int fd, int width, int height, int bpp,
 			;
 	} else {
 		/* Scan-out has a 64 byte alignment restriction */
-		stride = (width * (bpp / 8) + 63) & ~63;
+		stride = ALIGN(width * (bpp / 8), 64);
 		size = stride * height;
 	}
 
