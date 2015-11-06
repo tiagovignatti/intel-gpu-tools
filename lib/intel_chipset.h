@@ -198,13 +198,17 @@ void intel_check_pch(void);
 #define PCI_CHIP_SKYLAKE_ULX_GT2	0x191E
 #define PCI_CHIP_SKYLAKE_DT_GT2		0x1912
 #define PCI_CHIP_SKYLAKE_DT_GT1		0x1902
+#define PCI_CHIP_SKYLAKE_DT_GT4		0x1932
 #define PCI_CHIP_SKYLAKE_HALO_GT2	0x191B
 #define PCI_CHIP_SKYLAKE_HALO_GT3	0x192B
 #define PCI_CHIP_SKYLAKE_HALO_GT1 	0x190B
+#define PCI_CHIP_SKYLAKE_HALO_GT4 	0x193B
 #define PCI_CHIP_SKYLAKE_SRV_GT2	0x191A
 #define PCI_CHIP_SKYLAKE_SRV_GT3	0x192A
 #define PCI_CHIP_SKYLAKE_SRV_GT1	0x190A
+#define PCI_CHIP_SKYLAKE_SRV_GT4	0x193A
 #define PCI_CHIP_SKYLAKE_WKS_GT2 	0x191D
+#define PCI_CHIP_SKYLAKE_WKS_GT4 	0x193D
 
 #define PCI_CHIP_KABYLAKE_ULT_GT2      0x5916
 #define PCI_CHIP_KABYLAKE_ULT_GT1_5    0x5913
@@ -409,6 +413,11 @@ void intel_check_pch(void);
 				 (devid) == PCI_CHIP_SKYLAKE_HALO_GT3	|| \
 				 (devid) == PCI_CHIP_SKYLAKE_SRV_GT3)
 
+#define IS_SKL_GT4(devid)	((devid) == PCI_CHIP_SKYLAKE_DT_GT4	|| \
+				 (devid) == PCI_CHIP_SKYLAKE_HALO_GT4	|| \
+				 (devid) == PCI_CHIP_SKYLAKE_WKS_GT4	|| \
+				 (devid) == PCI_CHIP_SKYLAKE_SRV_GT4)
+
 #define IS_KBL_GT1(devid)	((devid) == PCI_CHIP_KABYLAKE_ULT_GT1_5|| \
 				 (devid) == PCI_CHIP_KABYLAKE_ULX_GT1_5|| \
 				 (devid) == PCI_CHIP_KABYLAKE_DT_GT1_5|| \
@@ -437,7 +446,8 @@ void intel_check_pch(void);
 #define IS_SKYLAKE(devid)	(IS_KABYLAKE(devid) || \
 				 IS_SKL_GT1(devid) || \
 				 IS_SKL_GT2(devid) || \
-				 IS_SKL_GT3(devid))
+				 IS_SKL_GT3(devid) || \
+				 IS_SKL_GT4(devid))
 
 #define IS_BROXTON(devid)	((devid) == PCI_CHIP_BROXTON_0 || \
 				 (devid) == PCI_CHIP_BROXTON_1 || \
