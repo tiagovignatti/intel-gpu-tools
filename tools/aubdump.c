@@ -315,7 +315,7 @@ dump_execbuffer2(int fd, struct drm_i915_gem_execbuffer2 *execbuffer2)
 {
 	struct drm_i915_gem_exec_object2 *exec_objects =
 		(struct drm_i915_gem_exec_object2 *) (uintptr_t) execbuffer2->buffers_ptr;
-	uint32_t ring_flag = 0;
+	uint32_t ring_flag = execbuffer2->flags & I915_EXEC_RING_MASK;
 	uint32_t offset = gtt_size;
 	struct drm_i915_gem_exec_object2 *obj;
 	struct bo *bo, *batch_bo;
