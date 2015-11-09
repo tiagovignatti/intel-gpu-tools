@@ -231,7 +231,7 @@ static void igt_interactive_info(const char *format, ...)
 {
 	va_list args;
 
-	if (!isatty(STDERR_FILENO))
+	if (!isatty(STDERR_FILENO) || __igt_plain_output)
 		return;
 
 	if (igt_log_level > IGT_LOG_INFO)

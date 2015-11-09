@@ -227,6 +227,8 @@ static enum {
 	CONT = 0, SKIP, FAIL
 } skip_subtests_henceforth = CONT;
 
+bool __igt_plain_output = false;
+
 /* fork support state */
 pid_t *test_children;
 int num_test_children;
@@ -523,11 +525,15 @@ static int common_init(int *argc, char **argv,
 	int extra_opt_count;
 	int all_opt_count;
 	int ret = 0;
-	char *env = getenv("IGT_LOG_LEVEL");
+	const char *env;
 
-	if (isatty(STDOUT_FILENO))
+	if (!isatty(STDOUT_FILENO) || getenv("IGT_PLAIN_OUTPUT"))
+		__igt_plain_output = true;
+
+	if (!__igt_plain_output)
 		setlocale(LC_ALL, "");
 
+	env = getenv("IGT_LOG_LEVEL");
 	if (env) {
 		if (strcmp(env, "debug") == 0)
 			igt_log_level = IGT_LOG_DEBUG;
@@ -779,12 +785,10 @@ bool __igt_run_subtest(const char *subtest_name)
 	}
 
 	if (skip_subtests_henceforth) {
-		bool istty = isatty(STDOUT_FILENO);
-
 		printf("%sSubtest %s: %s%s\n",
-		       (istty) ? "\x1b[1m" : "", subtest_name,
+		       (!__igt_plain_output) ? "\x1b[1m" : "", subtest_name,
 		       skip_subtests_henceforth == SKIP ?
-		       "SKIP" : "FAIL", (istty) ? "\x1b[0m" : "");
+		       "SKIP" : "FAIL", (!__igt_plain_output) ? "\x1b[0m" : "");
 		return false;
 	}
 
@@ -828,14 +832,15 @@ static void exit_subtest(const char *result)
 {
 	struct timespec now;
 	double elapsed;
-	bool istty = isatty(STDOUT_FILENO);
 
 	gettime(&now);
 	elapsed = now.tv_sec - subtest_time.tv_sec;
 	elapsed += (now.tv_nsec - subtest_time.tv_nsec) * 1e-9;
 
-	printf("%sSubtest %s: %s (%.3fs)%s\n", (istty) ? "\x1b[1m" : "",
-	       in_subtest, result, elapsed, (istty) ? "\x1b[0m" : "");
+	printf("%sSubtest %s: %s (%.3fs)%s\n",
+	       (!__igt_plain_output) ? "\x1b[1m" : "",
+	       in_subtest, result, elapsed,
+	       (!__igt_plain_output) ? "\x1b[0m" : "");
 	fflush(stdout);
 
 	in_subtest = NULL;

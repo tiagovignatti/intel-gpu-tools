@@ -45,6 +45,8 @@
 
 
 extern const char* __igt_test_description __attribute__((weak));
+extern bool __igt_plain_output;
+
 
 /**
  * IGT_TEST_DESCRIPTION:
