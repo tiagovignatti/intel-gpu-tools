@@ -26,6 +26,7 @@
  */
 
 #include <stdint.h>
+#include <stdbool.h>
 
 #define MAX_INSTDONE_BITS            100
 
