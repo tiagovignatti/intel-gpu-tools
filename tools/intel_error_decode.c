@@ -97,7 +97,8 @@ print_instdone(uint32_t devid, unsigned int instdone, unsigned int instdone1)
 	static int once;
 
 	if (!once) {
-		init_instdone_definitions(devid);
+		if (!init_instdone_definitions(devid))
+			return;
 		once = 1;
 	}
 

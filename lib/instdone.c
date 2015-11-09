@@ -423,7 +423,7 @@ init_gen9_instdone(void)
 	init_gen8_instdone();
 }
 
-void
+bool
 init_instdone_definitions(uint32_t devid)
 {
 	if (IS_GEN9(devid)) {
@@ -595,8 +595,7 @@ init_instdone_definitions(uint32_t devid)
 		gen3_instdone_bit(CC_DONE, "Color calculator");
 		gen3_instdone_bit(MAP_FILTER_DONE, "Map filter");
 		gen3_instdone_bit(MAP_L2_IDLE, "Map L2");
-	} else {
-		igt_assert(IS_GEN2(devid));
+	} else if (IS_GEN2(devid)) {
 		gen3_instdone_bit(I830_GMBUS_DONE, "GMBUS");
 		gen3_instdone_bit(I830_FBC_DONE, "FBC");
 		gen3_instdone_bit(I830_BINNER_DONE, "BINNER");
@@ -624,5 +623,8 @@ init_instdone_definitions(uint32_t devid)
 		gen3_instdone_bit(I830_SECONDARY_RING_0_DONE, "Secondary ring 0");
 		gen3_instdone_bit(I830_PRIMARY_RING_1_DONE, "Primary ring 1");
 		gen3_instdone_bit(I830_PRIMARY_RING_0_DONE, "Primary ring 0");
-	}
+	} else
+		return false;
+
+	return true;
 }

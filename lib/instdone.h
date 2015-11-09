@@ -38,4 +38,4 @@ struct instdone_bit {
 extern struct instdone_bit instdone_bits[MAX_INSTDONE_BITS];
 extern int num_instdone_bits;
 
-void init_instdone_definitions(uint32_t devid);
+bool init_instdone_definitions(uint32_t devid);
