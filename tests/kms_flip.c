@@ -1425,6 +1425,8 @@ static void run_test_on_crtc_set(struct test_output *o, int *crtc_idxs,
 	for (i = 0; i < o->count; i++)
 		kmstest_dump_mode(&o->kmode[i]);
 
+	kmstest_unset_all_crtcs(drm_fd, resources);
+
 	if (set_mode(o, o->fb_ids[0], 0, 0)) {
 		/* We may fail to apply the mode if there are hidden
 		 * constraints, such as bandwidth on the third pipe.
