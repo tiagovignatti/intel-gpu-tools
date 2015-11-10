@@ -158,6 +158,7 @@ struct test_output {
 	drmModeConnector *kconnector[4];
 	uint32_t _connector[4];
 	uint32_t _crtc[4];
+	int _pipe[4];
 	int count; /* 1:1 mapping between crtc:connector */
 	int flags;
 	int pipe; /* primary pipe for vblank */
@@ -1102,6 +1103,7 @@ static void connector_find_preferred_mode(uint32_t connector_id, int crtc_idx,
 	o->kconnector[0] = config.connector;
 	o->kencoder[0] = config.encoder;
 	o->_crtc[0] = config.crtc->crtc_id;
+	o->_pipe[0] = config.pipe;
 	o->kmode[0] = config.default_mode;
 	o->mode_valid = 1;
 
@@ -1170,11 +1172,13 @@ found:
 	o->kconnector[0] = config[0].connector;
 	o->kencoder[0] = config[0].encoder;
 	o->_crtc[0] = config[0].crtc->crtc_id;
+	o->_pipe[0] = config[0].pipe;
 	o->kmode[0] = *mode[0];
 
 	o->kconnector[1] = config[1].connector;
 	o->kencoder[1] = config[1].encoder;
 	o->_crtc[1] = config[1].crtc->crtc_id;
+	o->_pipe[1] = config[1].pipe;
 	o->kmode[1] = *mode[1];
 
 	drmModeFreeCrtc(config[0].crtc);
@@ -1350,22 +1354,32 @@ static void run_test_on_crtc_set(struct test_output *o, int *crtc_idxs,
 	switch (crtc_count) {
 	case 1:
 		connector_find_preferred_mode(o->_connector[0], crtc_idxs[0], o);
+		if (!o->mode_valid)
+			return;
 		snprintf(test_name, sizeof(test_name),
-			  "%s on crtc %d, connector %d",
-			  igt_subtest_name(), o->_crtc[0], o->_connector[0]);
+			 "%s on pipe %s, connector %s-%d",
+			 igt_subtest_name(),
+			 kmstest_pipe_name(o->_pipe[0]),
+			 kmstest_connector_type_str(o->kconnector[0]->connector_type),
+			 o->kconnector[0]->connector_type_id);
 		break;
 	case 2:
 		connector_find_compatible_mode(crtc_idxs[0], crtc_idxs[1], o);
+		if (!o->mode_valid)
+			return;
 		snprintf(test_name, sizeof(test_name),
-			 "%s on crtc %d:%d, connector %d:%d",
-			 igt_subtest_name(), o->_crtc[0], o->_crtc[1],
-			 o->_connector[0], o->_connector[1]);
+			 "%s on pipe %s:%s, connector %s-%d:%s-%d",
+			 igt_subtest_name(),
+			 kmstest_pipe_name(o->_pipe[0]),
+			 kmstest_pipe_name(o->_pipe[1]),
+			 kmstest_connector_type_str(o->kconnector[0]->connector_type),
+			 o->kconnector[0]->connector_type_id,
+			 kmstest_connector_type_str(o->kconnector[1]->connector_type),
+			 o->kconnector[1]->connector_type_id);
 		break;
 	default:
 		igt_assert(0);
 	}
-	if (!o->mode_valid)
-		return;
 
 	igt_assert_eq(o->count, crtc_count);
 
