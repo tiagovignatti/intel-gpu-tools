@@ -31,7 +31,7 @@ IGT_TEST_DESCRIPTION("Check the debugfs force connector/edid features work"
 	igt_assert_eq(m.hdisplay, h); igt_assert_eq(m.vdisplay, w); \
 	igt_assert_eq(m.vrefresh, r);
 
-static void __attribute__((noreturn)) reset_connectors(void)
+static void reset_connectors(void)
 {
 	int drm_fd = 0;
 	drmModeRes *res;
@@ -51,8 +51,6 @@ static void __attribute__((noreturn)) reset_connectors(void)
 
 		drmModeFreeConnector(connector);
 	}
-
-	exit(0);
 }
 
 static int opt_handler(int opt, int opt_index, void *data)
@@ -60,6 +58,7 @@ static int opt_handler(int opt, int opt_index, void *data)
 	switch (opt) {
 	case 'r':
 		reset_connectors();
+		exit(0);
 		break;
 	}
 
@@ -172,6 +171,9 @@ int main(int argc, char **argv)
 
 	igt_fixture {
 		drmModeFreeConnector(vga_connector);
+		close(drm_fd);
+
+		reset_connectors();
 	}
 
 	igt_exit();
