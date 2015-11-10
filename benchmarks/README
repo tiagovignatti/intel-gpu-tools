@@ -1,0 +1,9 @@
+These benchmarks are designed to be used from within a benchmark framework
+like http://cgit.freedesktop.org/~mperes/ezbench/.
+
+A typical way to run them would be:
+
+$ ~/ezbench/ezbench.sh -p ./linux,git -m '' -b gem: -r 15
+
+which executes the set of gem benchmarks, 15 times each, using HEAD of
+./linux.git as the reference commit.
