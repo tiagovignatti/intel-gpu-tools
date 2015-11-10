@@ -853,7 +853,7 @@ static int set_mode(struct test_output *o, uint32_t fb, int x, int y)
 {
 	int n;
 
-	for (n = 0; n < o->count; n++) {
+	for (n = o->count - 1; n >= 0; n--) {
 		if (fb == 0) {
 			int ret = drmModeSetCrtc(drm_fd, o->_crtc[n],
 						 0, 0, 0,
