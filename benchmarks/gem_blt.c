@@ -34,6 +34,7 @@
 #include <fcntl.h>
 #include <inttypes.h>
 #include <errno.h>
+#include <math.h>
 #include <sys/stat.h>
 #include <sys/ioctl.h>
 #include <sys/time.h>
@@ -146,11 +147,9 @@ static int gem_linear_blt(int fd,
 	return (b+2 - batch) * sizeof(uint32_t);
 }
 
-static double elapsed(const struct timespec *start,
-			const struct timespec *end,
-			int loop)
+static double elapsed(const struct timespec *start, const struct timespec *end)
 {
-	return ((end->tv_sec - start->tv_sec) + 1e-9*(end->tv_nsec - start->tv_nsec))/loop;
+	return (end->tv_sec - start->tv_sec) + 1e-9*(end->tv_nsec - start->tv_nsec);
 }
 
 static int __gem_execbuf(int fd, struct drm_i915_gem_execbuffer2 *execbuf)
@@ -161,7 +160,7 @@ static int __gem_execbuf(int fd, struct drm_i915_gem_execbuffer2 *execbuf)
 	return err;
 }
 
-static int run(int object, int batch, int count, int reps)
+static int run(int object, int batch, int count, int set, int reps)
 {
 	struct drm_i915_gem_execbuffer2 execbuf;
 	struct drm_i915_gem_exec_object2 exec[3];
@@ -219,14 +218,13 @@ static int run(int object, int batch, int count, int reps)
 
 	if (batch > 1) {
 		int nreloc = exec[2].relocation_count;
-		int i;
 
 		if (execbuf.flags & LOCAL_I915_EXEC_HANDLE_LUT) {
 			src = 0;
 			dst = 1;
 		}
 
-		for (i = 1; i < batch; i++) {
+		for (int i = 1; i < batch; i++) {
 			len = gem_linear_blt(fd, buf, len - 8,
 					     src, dst, object,
 					     reloc + exec[2].relocation_count);
@@ -239,17 +237,24 @@ static int run(int object, int batch, int count, int reps)
 	}
 
 	while (reps--) {
-		struct timespec start, end;
+		double min = HUGE_VAL;
 
-		sleep(1);
+		for (int s = 0; s < set; s++) {
+			struct timespec start, end;
+			double t;
 
-		clock_gettime(CLOCK_MONOTONIC, &start);
-		for (int loop = 0; loop < count; loop++)
-			gem_execbuf(fd, &execbuf);
-		gem_sync(fd, handle);
-		clock_gettime(CLOCK_MONOTONIC, &end);
+			clock_gettime(CLOCK_MONOTONIC, &start);
+			for (int loop = 0; loop < count; loop++)
+				gem_execbuf(fd, &execbuf);
+			gem_sync(fd, handle);
+			clock_gettime(CLOCK_MONOTONIC, &end);
 
-		printf("%7.3f\n", object/elapsed(&start, &end, batch*count)/(1024*1024));
+			t = elapsed(&start, &end);
+			if (t < min)
+				min = t;
+		}
+
+		printf("%7.3f\n", object/(1024*1024.)*batch*count/min);
 	}
 
 	close(fd);
@@ -261,10 +266,11 @@ int main(int argc, char **argv)
 	int size = 1024*1024;
 	int count = 1;
 	int reps = 13;
+	int set = 30;
 	int batch = 1;
 	int c;
 
-	while ((c = getopt (argc, argv, "c:r:s:b:")) != -1) {
+	while ((c = getopt (argc, argv, "c:r:s:b:S:")) != -1) {
 		switch (c) {
 		case 'c':
 			count = atoi(optarg);
@@ -276,6 +282,12 @@ int main(int argc, char **argv)
 			size = atoi(optarg);
 			if (size < 4096)
 				size = 4096;
+			break;
+
+		case 'S':
+			set = atoi(optarg);
+			if (set < 1)
+				set = 1;
 			break;
 
 		case 'r':
@@ -295,5 +307,5 @@ int main(int argc, char **argv)
 		}
 	}
 
-	return run(size, batch, count, reps);
+	return run(size, batch, count, set, reps);
 }
