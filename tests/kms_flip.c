@@ -1433,6 +1433,7 @@ static void run_test_on_crtc_set(struct test_output *o, int *crtc_idxs,
 		 */
 		igt_assert_f(crtc_count > 1 || crtc_idxs[0] < 2,
 			     "set_mode may only fail on the 3rd pipe or in multiple crtc tests\n");
+		igt_info("\n%s: SKIPPED\n\n", test_name);
 		goto out;
 	}
 	igt_assert(fb_is_bound(o, o->fb_ids[0]));
