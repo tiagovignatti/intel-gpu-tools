@@ -101,6 +101,16 @@ static void invalid_tests(int fd)
 		f.modifier[1] = 0;
 	}
 
+	igt_subtest("clobberred-modifier") {
+		f.flags = 0;
+		f.modifier[0] = 0;
+		gem_set_tiling(fd, gem_bo, I915_TILING_X, 512*4);
+		igt_assert(drmIoctl(fd, LOCAL_DRM_IOCTL_MODE_ADDFB2, &f) == 0);
+		igt_assert(drmIoctl(fd, DRM_IOCTL_MODE_RMFB, &f.fb_id) == 0);
+		f.fb_id = 0;
+		igt_assert(f.modifier[0] == 0);
+	}
+
 	igt_fixture {
 		gem_close(fd, gem_bo);
 		gem_close(fd, gem_bo_small);
