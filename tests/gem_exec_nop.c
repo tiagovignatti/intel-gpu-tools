@@ -133,7 +133,7 @@ static void loop(int fd, uint32_t handle, unsigned ring_id, const char *ring_nam
 	gem_sync(fd, handle);
 
 	for (count = 1; count <= SLOW_QUICK(1<<17, 1<<4); count <<= 1) {
-		const int reps = 13;
+		const int reps = 7;
 		igt_stats_t stats;
 		int n;
 
@@ -142,7 +142,7 @@ static void loop(int fd, uint32_t handle, unsigned ring_id, const char *ring_nam
 		for (n = 0; n < reps; n++) {
 			struct timespec start, end;
 			int loops = count;
-			sleep(1); /* wait for the hw to go back to sleep */
+			usleep(200000); /* wait 200ms for the hw to go back to sleep */
 			clock_gettime(CLOCK_MONOTONIC, &start);
 			while (loops--)
 				do_ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf);
