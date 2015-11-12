@@ -306,9 +306,17 @@ static void setup_crtcs(drmModeRes *resources, struct connector_config *cconf,
 			connector = cconf[i + j].connector;
 
 			/* Intel connectors have only a single encoder */
-			igt_assert(connector->count_encoders == 1);
-			encoder = drmModeGetEncoder(drm_fd,
-						    connector->encoders[0]);
+			if (connector->count_encoders == 1) {
+				encoder = drmModeGetEncoder(drm_fd,
+							    connector->encoders[0]);
+			} else {
+				igt_assert_eq(connector->connector_type,
+					      DRM_MODE_CONNECTOR_DisplayPort);
+
+				igt_assert(connector->count_encoders >= crtc->crtc_idx);
+				encoder = drmModeGetEncoder(drm_fd,
+					connector->encoders[crtc_count]);
+			}
 			igt_assert(encoder);
 
 			config_valid &= !!(encoder->possible_crtcs &
@@ -333,9 +341,13 @@ static void setup_crtcs(drmModeRes *resources, struct connector_config *cconf,
 	for (i = 0; i < connector_count; i++) {
 		drmModeConnector *connector = cconf[i].connector;
 		drmModeEncoder *encoder;
+		int idx = 0;
 
-		igt_assert(connector->count_encoders == 1);
-		encoder = drmModeGetEncoder(drm_fd, connector->encoders[0]);
+		/* DP MST configs are presumed valid */
+		if (connector->count_encoders > 1)
+			idx = cconf[i].crtc_idx;
+
+		encoder = drmModeGetEncoder(drm_fd, connector->encoders[idx]);
 		encoder_usage_count[get_encoder_idx(resources, encoder)]++;
 		drmModeFreeEncoder(encoder);
 	}
@@ -417,7 +429,7 @@ static void test_crtc_config(const struct test_config *tconf,
 		free(ids);
 
 		if (ret < 0) {
-			igt_assert(errno == EINVAL);
+			igt_assert_eq(errno, EINVAL);
 			config_failed = true;
 		}
 
@@ -534,7 +546,7 @@ static int get_connectors(drmModeRes *resources, int *connector_idxs,
 		int connector_id;
 
 		connector_idx = connector_idxs[i];
-		igt_assert(connector_idx < resources->count_connectors);
+		igt_assert_lt(connector_idx, resources->count_connectors);
 		connector_id = resources->connectors[connector_idx];
 
 		if (get_one_connector(resources, connector_id, &cconfs[i]) < 0)
