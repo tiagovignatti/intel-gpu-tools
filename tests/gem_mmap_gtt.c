@@ -282,7 +282,7 @@ test_huge_bo(int fd, int huge, int tiling)
 	/* Create pattern */
 	bo = gem_create(fd, PAGE_SIZE);
 	if (tiling)
-		gem_set_tiling(fd, bo, tiling, pitch);
+		igt_require(__gem_set_tiling(fd, bo, tiling, pitch) == 0);
 	linear_pattern = gem_mmap__gtt(fd, bo, PAGE_SIZE,
 				       PROT_READ | PROT_WRITE);
 	for (i = 0; i < PAGE_SIZE; i++)
@@ -294,7 +294,7 @@ test_huge_bo(int fd, int huge, int tiling)
 
 	bo = gem_create(fd, size);
 	if (tiling)
-		gem_set_tiling(fd, bo, tiling, pitch);
+		igt_require(__gem_set_tiling(fd, bo, tiling, pitch) == 0);
 
 	/* Initialise first/last page through CPU mmap */
 	ptr = gem_mmap__cpu(fd, bo, 0, size, PROT_READ | PROT_WRITE);
@@ -357,8 +357,7 @@ test_huge_copy(int fd, int huge, int tiling_a, int tiling_b)
 
 	bo = gem_create(fd, huge_object_size);
 	if (tiling_a)
-		gem_set_tiling(fd, bo, tiling_a,
-			       tiling_a == I915_TILING_Y ? 128 : 512);
+		igt_require(__gem_set_tiling(fd, bo, tiling_a, tiling_a == I915_TILING_Y ? 128 : 512) == 0);
 	a = __gem_mmap__gtt(fd, bo, huge_object_size, PROT_READ | PROT_WRITE);
 	igt_require(a);
 	gem_close(fd, bo);
@@ -368,8 +367,7 @@ test_huge_copy(int fd, int huge, int tiling_a, int tiling_b)
 
 	bo = gem_create(fd, huge_object_size);
 	if (tiling_b)
-		gem_set_tiling(fd, bo, tiling_b, 
-			       tiling_b == I915_TILING_Y ? 128 : 512);
+		igt_require(__gem_set_tiling(fd, bo, tiling_b, tiling_b == I915_TILING_Y ? 128 : 512) == 0);
 	b = __gem_mmap__gtt(fd, bo, huge_object_size, PROT_READ | PROT_WRITE);
 	igt_require(b);
 	gem_close(fd, bo);
