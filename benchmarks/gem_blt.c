@@ -166,7 +166,7 @@ static int run(int object, int batch, int count, int set, int reps)
 	struct drm_i915_gem_exec_object2 exec[3];
 	struct drm_i915_gem_relocation_entry *reloc;
 	uint32_t *buf, handle, src, dst;
-	int fd, len, gen, size;
+	int fd, len, gen, size, nreloc;
 	int ring;
 
 	size = ALIGN(batch * 64, 4096);
@@ -183,17 +183,18 @@ static int run(int object, int batch, int count, int set, int reps)
 	dst = gem_create(fd, object);
 
 	len = gem_linear_blt(fd, buf, 0, 0, 1, object, reloc);
+	if (has_64bit_reloc)
+		nreloc = len > 56 ? 4 : 2;
+	else
+		nreloc = len > 40 ? 4 : 2;
 
 	memset(exec, 0, sizeof(exec));
 	exec[0].handle = src;
 	exec[1].handle = dst;
 
 	exec[2].handle = handle;
-	if (has_64bit_reloc)
-		exec[2].relocation_count = len > 56 ? 4 : 2;
-	else
-		exec[2].relocation_count = len > 40 ? 4 : 2;
 	exec[2].relocs_ptr = (uintptr_t)reloc;
+	exec[2].relocation_count = nreloc;
 
 	ring = 0;
 	if (gen >= 6)
@@ -205,7 +206,6 @@ static int run(int object, int batch, int count, int set, int reps)
 	execbuf.batch_len = len;
 	execbuf.flags = ring;
 	execbuf.flags |= LOCAL_I915_EXEC_HANDLE_LUT;
-	execbuf.flags |= LOCAL_I915_EXEC_NO_RELOC;
 
 	if (__gem_execbuf(fd, &execbuf)) {
 		gem_set_domain(fd, handle, I915_GEM_DOMAIN_CPU, I915_GEM_DOMAIN_CPU);
@@ -217,24 +217,25 @@ static int run(int object, int batch, int count, int set, int reps)
 	gem_sync(fd, handle);
 
 	if (batch > 1) {
-		int nreloc = exec[2].relocation_count;
-
 		if (execbuf.flags & LOCAL_I915_EXEC_HANDLE_LUT) {
 			src = 0;
 			dst = 1;
 		}
 
+		gem_set_domain(fd, handle, I915_GEM_DOMAIN_CPU, I915_GEM_DOMAIN_CPU);
 		for (int i = 1; i < batch; i++) {
 			len = gem_linear_blt(fd, buf, len - 8,
 					     src, dst, object,
-					     reloc + exec[2].relocation_count);
-			exec[2].relocation_count += nreloc;
+					     reloc + nreloc * i);
 		}
+		exec[2].relocation_count = nreloc * batch;
 		execbuf.batch_len = len;
 
 		gem_execbuf(fd, &execbuf);
 		gem_sync(fd, handle);
 	}
+	if (execbuf.flags & LOCAL_I915_EXEC_HANDLE_LUT)
+		execbuf.flags |= LOCAL_I915_EXEC_NO_RELOC;
 
 	while (reps--) {
 		double min = HUGE_VAL;
