@@ -443,8 +443,7 @@ void intel_check_pch(void);
  				 IS_KBL_GT2(devid) || \
  				 IS_KBL_GT3(devid))
 
-#define IS_SKYLAKE(devid)	(IS_KABYLAKE(devid) || \
-				 IS_SKL_GT1(devid) || \
+#define IS_SKYLAKE(devid)	(IS_SKL_GT1(devid) || \
 				 IS_SKL_GT2(devid) || \
 				 IS_SKL_GT3(devid) || \
 				 IS_SKL_GT4(devid))
@@ -453,7 +452,9 @@ void intel_check_pch(void);
 				 (devid) == PCI_CHIP_BROXTON_1 || \
 				 (devid) == PCI_CHIP_BROXTON_2)
 
-#define IS_GEN9(devid)		(IS_SKYLAKE(devid) || IS_BROXTON(devid))
+#define IS_GEN9(devid)		(IS_KABYLAKE(devid) || \
+				 IS_SKYLAKE(devid) || \
+				 IS_BROXTON(devid))
 
 #define IS_965(devid)		(IS_GEN4(devid) || \
 				 IS_GEN5(devid) || \
