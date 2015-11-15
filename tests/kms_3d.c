@@ -72,7 +72,7 @@ igt_simple_main
 			mode_count++;
 	}
 
-	igt_assert(mode_count == 13);
+	igt_assert_eq(mode_count, 13);
 
 	/* set 3D modes */
 	igt_info("Testing:\n");
