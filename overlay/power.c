@@ -45,7 +45,7 @@ static int perf_open(void)
 
 	attr.type = i915_type_id();
 	if (attr.type == 0)
-		return -ENOENT;
+		return -1;
 	attr.config = I915_PERF_ENERGY;
 
 	attr.read_format = PERF_FORMAT_TOTAL_TIME_ENABLED;
