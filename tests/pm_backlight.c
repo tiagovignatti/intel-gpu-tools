@@ -94,6 +94,7 @@ static int backlight_write(int value, const char *fname)
 static void test_and_verify(int val)
 {
 	int result;
+	int tolerance = val * TOLERANCE / 100;
 
 	igt_assert_eq(backlight_write(val, "brightness"), 0);
 	igt_assert_eq(backlight_read(&result, "brightness"), 0);
@@ -102,7 +103,8 @@ static void test_and_verify(int val)
 
 	igt_assert_eq(backlight_read(&result, "actual_brightness"), 0);
 	/* Some rounding may happen depending on hw. Just check that it's close enough. */
-	igt_assert(result <= val + val * TOLERANCE / 100 && result >= val - val * TOLERANCE / 100);
+	igt_assert_lte(result, val + tolerance);
+	igt_assert_lte(val - tolerance, result);
 }
 
 static void test_brightness(int max)
