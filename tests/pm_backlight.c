@@ -95,7 +95,7 @@ static int backlight_write(int value, const char *fname)
 	return 0;
 }
 
-static void test_and_verify(int val)
+static void test_and_verify(struct context *context, int val)
 {
 	int result;
 	int tolerance = val * TOLERANCE / 100;
@@ -107,15 +107,15 @@ static void test_and_verify(int val)
 
 	igt_assert_eq(backlight_read(&result, "actual_brightness"), 0);
 	/* Some rounding may happen depending on hw. Just check that it's close enough. */
-	igt_assert_lte(result, val + tolerance);
-	igt_assert_lte(val - tolerance, result);
+	igt_assert_lte(result, min(context->max, val + tolerance));
+	igt_assert_lte(max(0, val - tolerance), result);
 }
 
 static void test_brightness(struct context *context)
 {
-	test_and_verify(0);
-	test_and_verify(context->max);
-	test_and_verify(context->max / 2);
+	test_and_verify(context, 0);
+	test_and_verify(context, context->max);
+	test_and_verify(context, context->max / 2);
 }
 
 static void test_bad_brightness(struct context *context)
@@ -142,11 +142,11 @@ static void test_fade(struct context *context)
 
 	/* Fade out, then in */
 	for (i = context->max; i > 0; i -= context->max / FADESTEPS) {
-		test_and_verify(i);
+		test_and_verify(context, i);
 		nanosleep(&ts, NULL);
 	}
 	for (i = 0; i <= context->max; i += context->max / FADESTEPS) {
-		test_and_verify(i);
+		test_and_verify(context, i);
 		nanosleep(&ts, NULL);
 	}
 }
