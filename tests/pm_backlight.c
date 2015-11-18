@@ -35,6 +35,10 @@
 #include <unistd.h>
 #include <time.h>
 
+struct context {
+	int max;
+};
+
 
 #define TOLERANCE 5 /* percent */
 #define BACKLIGHT_PATH "/sys/class/backlight/intel_backlight"
@@ -107,41 +111,41 @@ static void test_and_verify(int val)
 	igt_assert_lte(val - tolerance, result);
 }
 
-static void test_brightness(int max)
+static void test_brightness(struct context *context)
 {
 	test_and_verify(0);
-	test_and_verify(max);
-	test_and_verify(max / 2);
+	test_and_verify(context->max);
+	test_and_verify(context->max / 2);
 }
 
-static void test_bad_brightness(int max)
+static void test_bad_brightness(struct context *context)
 {
 	int val;
 	/* First write some sane value */
-	backlight_write(max / 2, "brightness");
+	backlight_write(context->max / 2, "brightness");
 	/* Writing invalid values should fail and not change the value */
 	igt_assert_lt(backlight_write(-1, "brightness"), 0);
 	backlight_read(&val, "brightness");
-	igt_assert_eq(val, max / 2);
-	igt_assert_lt(backlight_write(max + 1, "brightness"), 0);
+	igt_assert_eq(val, context->max / 2);
+	igt_assert_lt(backlight_write(context->max + 1, "brightness"), 0);
 	backlight_read(&val, "brightness");
-	igt_assert_eq(val, max / 2);
+	igt_assert_eq(val, context->max / 2);
 	igt_assert_lt(backlight_write(INT_MAX, "brightness"), 0);
 	backlight_read(&val, "brightness");
-	igt_assert_eq(val, max / 2);
+	igt_assert_eq(val, context->max / 2);
 }
 
-static void test_fade(int max)
+static void test_fade(struct context *context)
 {
 	int i;
 	static const struct timespec ts = { .tv_sec = 0, .tv_nsec = FADESPEED*1000000 };
 
 	/* Fade out, then in */
-	for (i = max; i > 0; i -= max / FADESTEPS) {
+	for (i = context->max; i > 0; i -= context->max / FADESTEPS) {
 		test_and_verify(i);
 		nanosleep(&ts, NULL);
 	}
-	for (i = 0; i <= max; i += max / FADESTEPS) {
+	for (i = 0; i <= context->max; i += context->max / FADESTEPS) {
 		test_and_verify(i);
 		nanosleep(&ts, NULL);
 	}
@@ -149,22 +153,23 @@ static void test_fade(int max)
 
 igt_main
 {
-	int max, old;
+	struct context context = {0};
+	int old;
 
 	igt_skip_on_simulation();
 
 	igt_fixture {
 		/* Get the max value and skip the whole test if sysfs interface not available */
 		igt_skip_on(backlight_read(&old, "brightness"));
-		igt_assert(backlight_read(&max, "max_brightness") > -1);
+		igt_assert(backlight_read(&context.max, "max_brightness") > -1);
 	}
 
 	igt_subtest("basic-brightness")
-		test_brightness(max);
+		test_brightness(&context);
 	igt_subtest("bad-brightness")
-		test_bad_brightness(max);
+		test_bad_brightness(&context);
 	igt_subtest("fade")
-		test_fade(max);
+		test_fade(&context);
 
 	igt_fixture {
 		/* Restore old brightness */
