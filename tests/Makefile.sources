@@ -53,6 +53,7 @@ TESTS_progs_M = \
 	gem_reloc_overflow \
 	gem_reloc_vs_gpu \
 	gem_render_copy_redux \
+	gem_request_retire \
 	gem_reset_stats \
 	gem_ringfill \
 	gem_set_tiling_vs_blt \

@@ -91,6 +91,7 @@ gem_render_copy
 gem_render_copy_redux
 gem_render_linear_blits
 gem_render_tiled_blits
+gem_request_retire
 gem_reset_stats
 gem_ring_sync_copy
 gem_ring_sync_loop
