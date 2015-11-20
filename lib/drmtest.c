@@ -147,56 +147,40 @@ static void check_stop_rings(void)
 void gem_quiescent_gpu(int fd)
 {
 	uint32_t batch[2] = {MI_BATCH_BUFFER_END, 0};
-	uint32_t handle;
 	struct drm_i915_gem_execbuffer2 execbuf;
 	struct drm_i915_gem_exec_object2 gem_exec[1];
 
 	check_stop_rings();
 
-	handle = gem_create(fd, 4096);
-	gem_write(fd, handle, 0, batch, sizeof(batch));
+	memset(gem_exec, 0, sizeof(gem_exec));
+	gem_exec[0].handle = gem_create(fd, 4096);
+	gem_write(fd, gem_exec[0].handle, 0, batch, sizeof(batch));
 
-	gem_exec[0].handle = handle;
-	gem_exec[0].relocation_count = 0;
-	gem_exec[0].relocs_ptr = 0;
-	gem_exec[0].alignment = 0;
-	gem_exec[0].offset = 0;
-	gem_exec[0].flags = 0;
-	gem_exec[0].rsvd1 = 0;
-	gem_exec[0].rsvd2 = 0;
-
+	memset(&execbuf, 0, sizeof(execbuf));
 	execbuf.buffers_ptr = (uintptr_t)gem_exec;
 	execbuf.buffer_count = 1;
-	execbuf.batch_start_offset = 0;
-	execbuf.batch_len = 8;
-	execbuf.cliprects_ptr = 0;
-	execbuf.num_cliprects = 0;
-	execbuf.DR1 = 0;
-	execbuf.DR4 = 0;
-	execbuf.flags = 0;
-	i915_execbuffer2_set_context_id(execbuf, 0);
-	execbuf.rsvd2 = 0;
 
-	do_ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf);
+	execbuf.flags = I915_EXEC_RENDER;
+	gem_execbuf(fd, &execbuf);
 
 	if (gem_has_blt(fd)) {
 		execbuf.flags = I915_EXEC_BLT;
-		do_ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf);
+		gem_execbuf(fd, &execbuf);
 	}
 
 	if (gem_has_bsd(fd)) {
 		execbuf.flags = I915_EXEC_BSD;
-		do_ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf);
+		gem_execbuf(fd, &execbuf);
 	}
 
 	if (gem_has_vebox(fd)) {
 		execbuf.flags = LOCAL_I915_EXEC_VEBOX;
-		do_ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf);
+		gem_execbuf(fd, &execbuf);
 	}
 
-	gem_sync(fd, handle);
+	gem_sync(fd, gem_exec[0].handle);
 	igt_drop_caches_set(DROP_RETIRE);
-	gem_close(fd, handle);
+	gem_close(fd, gem_exec[0].handle);
 }
 
 /**
