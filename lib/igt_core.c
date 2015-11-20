@@ -220,6 +220,7 @@ static char *run_single_subtest = NULL;
 static bool run_single_subtest_found = false;
 static const char *in_subtest = NULL;
 static struct timespec subtest_time;
+static clockid_t igt_clock = (clockid_t)-1;
 static bool in_fixture = false;
 static bool test_with_subtests = false;
 static bool in_atexit_handler = false;
@@ -337,14 +338,49 @@ static void kmsg(const char *format, ...)
 	fclose(file);
 }
 
-static void gettime(struct timespec *ts)
+#define time_valid(ts) ((ts)->tv_sec || (ts)->tv_nsec)
+
+static double
+time_elapsed(struct timespec *then,
+	     struct timespec* now)
+{
+	double elapsed = -1.;
+
+	if (time_valid(then) && time_valid(now)) {
+		elapsed = now->tv_sec - then->tv_sec;
+		elapsed += (now->tv_nsec - then->tv_nsec) * 1e-9;
+	}
+
+	return elapsed;
+}
+
+static int gettime(struct timespec *ts)
 {
 	memset(ts, 0, sizeof(*ts));
+	errno = 0;
 
-#ifdef CLOCK_MONOTONIC_COARSE
-	if (clock_gettime(CLOCK_MONOTONIC_COARSE, ts))
+	/* Stay on the same clock for consistency. */
+	if (igt_clock != (clockid_t)-1) {
+		if (clock_gettime(igt_clock, ts))
+			goto error;
+		return 0;
+	}
+
+#ifdef CLOCK_MONOTONIC_RAW
+	if (!clock_gettime(igt_clock = CLOCK_MONOTONIC_RAW, ts))
+		return 0;
 #endif
-		clock_gettime(CLOCK_MONOTONIC, ts);
+#ifdef CLOCK_MONOTONIC_COARSE
+	if (!clock_gettime(igt_clock = CLOCK_MONOTONIC_COARSE, ts))
+		return 0;
+#endif
+	if (!clock_gettime(igt_clock = CLOCK_MONOTONIC, ts))
+		return 0;
+error:
+	igt_warn("Could not read monotonic time: %s\n",
+		 strerror(errno));
+
+	return -errno;
 }
 
 bool __igt_fixture(void)
@@ -831,15 +867,11 @@ static void exit_subtest(const char *) __attribute__((noreturn));
 static void exit_subtest(const char *result)
 {
 	struct timespec now;
-	double elapsed;
 
 	gettime(&now);
-	elapsed = now.tv_sec - subtest_time.tv_sec;
-	elapsed += (now.tv_nsec - subtest_time.tv_nsec) * 1e-9;
-
 	printf("%sSubtest %s: %s (%.3fs)%s\n",
 	       (!__igt_plain_output) ? "\x1b[1m" : "",
-	       in_subtest, result, elapsed,
+	       in_subtest, result, time_elapsed(&subtest_time, &now),
 	       (!__igt_plain_output) ? "\x1b[0m" : "");
 	fflush(stdout);
 
@@ -1088,12 +1120,9 @@ void igt_exit(void)
 
 	if (!test_with_subtests) {
 		struct timespec now;
-		double elapsed;
 		const char *result;
 
 		gettime(&now);
-		elapsed = now.tv_sec - subtest_time.tv_sec;
-		elapsed += (now.tv_nsec - subtest_time.tv_nsec) * 1e-9;
 
 		switch (igt_exitcode) {
 			case IGT_EXIT_SUCCESS:
@@ -1109,8 +1138,7 @@ void igt_exit(void)
 				result = "FAIL";
 		}
 
-
-		printf("%s (%.3fs)\n", result, elapsed);
+		printf("%s (%.3fs)\n", result, time_elapsed(&subtest_time, &now));
 		exit(igt_exitcode);
 	}
 
