@@ -76,7 +76,6 @@ igt_simple_main
 {
 	uint32_t batch_end[4] = {MI_BATCH_BUFFER_END, 0, 0, 0};
 	int fd, i, ret;
-	uint64_t aper_size;
 	int count;
 	drm_intel_bo *sample_batch_bo;
 
@@ -89,13 +88,8 @@ igt_simple_main
 
 	drm_intel_bufmgr_gem_enable_reuse(bufmgr);
 	
-	aper_size = gem_aperture_size(fd);
-
-	/* presume a big per-bo overhead */
-	igt_skip_on_f(intel_get_total_ram_mb() < (aper_size / (1024*1024)) * 3 / 2,
-		      "not enough mem to run test\n");
-
-	count = aper_size / 4096;
+	count = gem_aperture_size(fd) / 4096;
+	intel_require_memory(count, 4096, CHECK_RAM);
 
 	batch = intel_batchbuffer_alloc(bufmgr, intel_get_drm_devid(fd));
 	igt_assert(batch);
