@@ -80,20 +80,21 @@ static void wait_for_event(int fd)
 static int setup(int in, int nonblock)
 {
 	int fd;
+	int ret = -1;
 
 	alarm(0);
 
 	fd = dup(in);
-	if (nonblock) {
-		int ret = -1;
-		if (fd != -1)
-			ret = fcntl(fd, F_GETFL);
-		if (ret != -1) {
+	if (fd != -1)
+		ret = fcntl(fd, F_GETFL);
+	if (ret != -1) {
+		if (nonblock)
 			ret |= O_NONBLOCK;
-			ret = fcntl(fd, F_SETFL, ret);
-		}
-		igt_require(ret != -1);
+		else
+			ret &= ~O_NONBLOCK;
+		ret = fcntl(fd, F_SETFL, ret);
 	}
+	igt_require(ret != -1);
 
 	assert_empty(fd);
 	return fd;
