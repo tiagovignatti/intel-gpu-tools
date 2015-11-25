@@ -119,6 +119,44 @@ static void test_invalid_buffer(int in)
 	teardown(fd);
 }
 
+static uint32_t dumb_create(int fd)
+{
+	struct drm_mode_create_dumb arg;
+
+	arg.bpp = 32;
+	arg.width = 32;
+	arg.height = 32;
+
+	do_ioctl(fd, DRM_IOCTL_MODE_CREATE_DUMB, &arg);
+	igt_assert(arg.size >= 4096);
+
+	return arg.handle;
+}
+
+static void test_fault_buffer(int in)
+{
+	int fd = setup(in, 0);
+	struct drm_mode_map_dumb arg;
+	char *buf;
+
+	memset(&arg, 0, sizeof(arg));
+	arg.handle = dumb_create(fd);
+
+	do_ioctl(fd, DRM_IOCTL_MODE_MAP_DUMB, &arg);
+
+	buf = mmap(0, 4096, PROT_WRITE, MAP_SHARED, fd, arg.offset);
+	igt_assert(buf != MAP_FAILED);
+
+	generate_event(fd);
+
+	alarm(1);
+
+	igt_assert(read(fd, buf, 4096) > 0);
+
+	munmap(buf, 4096);
+	teardown(fd);
+}
+
 static void test_empty(int in, int nonblock, int expected)
 {
 	char buffer[1024];
@@ -206,6 +244,9 @@ igt_main
 
 	igt_subtest("invalid-buffer")
 		test_invalid_buffer(fd);
+
+	igt_subtest("fault-buffer")
+		test_fault_buffer(fd);
 
 	igt_subtest("empty-block")
 		test_empty(fd, 0, EINTR);
