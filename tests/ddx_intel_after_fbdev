@@ -40,8 +40,8 @@ cp /var/log/Xorg.0.log $TMPDIR/Xorg.0.log.1.before.fbdev
 # run fbdev
 xinit -- /usr/bin/X -config $TMPDIR/xorg.conf.fbdev & 
 sleep 5
-if [ -f `which intel_reg_dumper` ]; then
-`which intel_reg_dumper` > $TMPDIR/intel_reg_dumped.1.fbdev
+if [ -f `which intel_reg` ]; then
+`which intel_reg` dump > $TMPDIR/intel_reg_dump.1.fbdev
 fi
 killall X
 
@@ -54,8 +54,8 @@ sleep 5
 # run intel
 xinit -- /usr/bin/X -config $TMPDIR/xorg.conf.intel & 
 sleep 5 
-if [ -f `which intel_reg_dumper` ]; then
-`which intel_reg_dumper` > $TMPDIR/intel_reg_dumped.2.intel
+if [ -f `which intel_reg` ]; then
+`which intel_reg` dump > $TMPDIR/intel_reg_dump.2.intel
 fi
 killall X
 
