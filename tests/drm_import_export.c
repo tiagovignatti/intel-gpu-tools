@@ -161,19 +161,19 @@ static void *import_close_thread(void *data)
 				pthread_mutex_unlock(&t->mutex);
 			}
 			else
-				/* We take the lock right after entering the loop */
+				/* Lock should be held on entering the loop */
 				continue;
 		}
+
 		if (bo == NULL) {
 			/*
 			 * If the bo is NULL it means that we've unreferenced in other
 			 * thread - therefore we should expect ENOENT
 			 */
 			igt_assert_eq(errno, ENOENT);
-			continue;
+		} else {
+			drm_intel_bo_unreference(bo);
 		}
-
-		drm_intel_bo_unreference(bo);
 
 		pthread_mutex_lock(&t->mutex);
 	}
