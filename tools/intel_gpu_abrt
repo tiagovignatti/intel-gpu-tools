@@ -55,7 +55,7 @@ get /etc/X11/xorg.conf.d/ X
 dmesg > $tardir/dmesg
 lspci -nn > $tardir/lspci
 
-$igtdir/intel_reg_dumper > $tardir/intel_reg_dumper.txt
+$igtdir/intel_reg dump > $tardir/intel_reg_dump.txt
 $igtdir/intel_bios_dumper $tardir/intel_bios_dump
 $igtdir/intel_stepping > $tardir/intel_stepping
 
