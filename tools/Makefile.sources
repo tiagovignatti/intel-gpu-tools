@@ -29,6 +29,7 @@ bin_PROGRAMS = 				\
 	intel_panel_fitter		\
 	intel_perf_counters		\
 	intel_reg_checker 		\
+	intel_residency			\
 	intel_stepping 			\
 	intel_watermark
 

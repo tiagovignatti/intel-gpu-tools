@@ -25,6 +25,7 @@ intel_panel_fitter
 intel_perf_counters
 intel_reg
 intel_reg_checker
+intel_residency
 intel_stepping
 intel_watermark
 skl_compute_wrpll
