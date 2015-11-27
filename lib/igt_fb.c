@@ -32,6 +32,7 @@
 #include "drmtest.h"
 #include "igt_fb.h"
 #include "ioctl_wrappers.h"
+#include "intel_chipset.h"
 
 /**
  * SECTION:igt_fb
@@ -72,26 +73,88 @@ static struct format_desc_struct {
 #define for_each_format(f)	\
 	for (f = format_desc; f - format_desc < ARRAY_SIZE(format_desc); f++)
 
-
-/* helpers to create nice-looking framebuffers */
-static int create_bo_for_fb(int fd, int width, int height, int bpp,
-			    uint64_t tiling, unsigned bo_size,
-			    unsigned bo_stride, uint32_t *gem_handle_ret,
-			    unsigned *size_ret, unsigned *stride_ret)
+static void igt_get_fb_tile_size(int fd, uint64_t tiling, int fb_bpp,
+				 unsigned *width_ret, unsigned *height_ret)
 {
-	uint32_t gem_handle;
-	int size, ret = 0;
-	unsigned stride;
+	uint32_t devid = intel_get_drm_devid(fd);
 
-	if (tiling != LOCAL_DRM_FORMAT_MOD_NONE) {
+	switch (tiling) {
+	case LOCAL_DRM_FORMAT_MOD_NONE:
+		*width_ret = 64;
+		*height_ret = 1;
+		break;
+	case LOCAL_I915_FORMAT_MOD_X_TILED:
+		if (intel_gen(devid) == 2) {
+			*width_ret = 128;
+			*height_ret = 16;
+		} else {
+			*width_ret = 512;
+			*height_ret = 8;
+		}
+		break;
+	case LOCAL_I915_FORMAT_MOD_Y_TILED:
+		if (IS_915(devid))
+			*width_ret = 512;
+		else
+			*width_ret = 128;
+		*height_ret = 32;
+		break;
+	case LOCAL_I915_FORMAT_MOD_Yf_TILED:
+		switch (fb_bpp) {
+		case 8:
+			*width_ret = 64;
+			*height_ret = 64;
+			break;
+		case 16:
+		case 32:
+			*width_ret = 128;
+			*height_ret = 32;
+			break;
+		case 64:
+		case 128:
+			*width_ret = 256;
+			*height_ret = 16;
+			break;
+		default:
+			igt_assert(false);
+		}
+		break;
+	default:
+		igt_assert(false);
+	}
+}
+
+/**
+ * igt_calc_fb_size:
+ * @fd: the DRM file descriptor
+ * @width: width of the framebuffer in pixels
+ * @height: height of the framebuffer in pixels
+ * @bpp: bytes per pixel of the framebuffer
+ * @tiling: tiling layout of the framebuffer (as framebuffer modifier)
+ * @size_ret: returned size for the framebuffer
+ * @stride_ret: returned stride for the framebuffer
+ *
+ * This function returns valid stride and size values for a framebuffer with the
+ * specified parameters.
+ */
+void igt_calc_fb_size(int fd, int width, int height, int bpp, uint64_t tiling,
+		      unsigned *size_ret, unsigned *stride_ret)
+{
+	unsigned int tile_width, tile_height, stride, size;
+	int byte_width = width * (bpp / 8);
+
+	igt_get_fb_tile_size(fd, tiling, bpp, &tile_width, &tile_height);
+
+	if (intel_gen(intel_get_drm_devid(fd)) <= 3 &&
+	    tiling != LOCAL_DRM_FORMAT_MOD_NONE) {
 		int v;
 
-		/* Round the tiling up to the next power-of-two and the
-		 * region up to the next pot fence size so that this works
-		 * on all generations.
+		/* Round the tiling up to the next power-of-two and the region
+		 * up to the next pot fence size so that this works on all
+		 * generations.
 		 *
-		 * This can still fail if the framebuffer is too large to
-		 * be tiled. But then that failure is expected.
+		 * This can still fail if the framebuffer is too large to be
+		 * tiled. But then that failure is expected.
 		 */
 
 		v = width * bpp / 8;
@@ -102,11 +165,25 @@ static int create_bo_for_fb(int fd, int width, int height, int bpp,
 		for (size = 1024*1024; size < v; size *= 2)
 			;
 	} else {
-		/* Scan-out has a 64 byte alignment restriction */
-		stride = ALIGN(width * (bpp / 8), 64);
-		size = stride * height;
+		stride = ALIGN(byte_width, tile_width);
+		size = stride * ALIGN(height, tile_height);
 	}
 
+	*stride_ret = stride;
+	*size_ret = size;
+}
+
+/* helpers to create nice-looking framebuffers */
+static int create_bo_for_fb(int fd, int width, int height, int bpp,
+			    uint64_t tiling, unsigned bo_size,
+			    unsigned bo_stride, uint32_t *gem_handle_ret,
+			    unsigned *size_ret, unsigned *stride_ret)
+{
+	uint32_t gem_handle;
+	int ret = 0;
+	unsigned size, stride;
+
+	igt_calc_fb_size(fd, width, height, bpp, tiling, &size, &stride);
 	if (bo_size == 0)
 		bo_size = size;
 	if (bo_stride == 0)
