@@ -1729,6 +1729,114 @@ static void planes_subtest(bool universal, bool dpms)
 	}
 }
 
+static void pm_test_tiling(void)
+{
+	uint32_t *handles;
+	uint8_t **gem_bufs;
+
+	int max_gem_objs = 0;
+	uint8_t off_bit = 14;
+	uint32_t gtt_obj_max_size = (256 * 1024);
+
+	uint32_t i, j, k, tiling_modes[3] = {
+		I915_TILING_NONE,
+		I915_TILING_X,
+		I915_TILING_Y,
+	};
+	uint32_t ti, sw;
+
+	/* default stride value */
+	uint32_t stride = 512;
+
+	/* calculate how many objects we can map */
+	for (i = 1 << off_bit; i <= gtt_obj_max_size; i <<= 1, max_gem_objs++)
+		;
+
+	gem_bufs = calloc(max_gem_objs, sizeof(*gem_bufs));
+	handles = calloc(max_gem_objs, sizeof(*handles));
+
+	/* try to set different tiling for each handle */
+	for (i = 0; i < ARRAY_SIZE(tiling_modes); i++) {
+
+		for (j = 0, k = 1 << off_bit;
+		     k <= gtt_obj_max_size; k <<= 1, j++) {
+			handles[j] = gem_create(drm_fd, k);
+			gem_bufs[j] = gem_mmap__gtt(drm_fd, handles[j],
+						    k, PROT_WRITE);
+			memset(gem_bufs[j], 0x0, k);
+		}
+
+		disable_all_screens_and_wait(&ms_data);
+
+		for (j = 0; j < max_gem_objs; j++) {
+			gem_set_tiling(drm_fd, handles[j],
+					tiling_modes[i], stride);
+			gem_get_tiling(drm_fd, handles[j], &ti, &sw);
+			igt_assert(tiling_modes[i] == ti);
+		}
+
+		enable_one_screen_and_wait(&ms_data);
+
+		for (j = 0, k = 1 << off_bit;
+		     k <= gtt_obj_max_size; k <<= 1, j++) {
+			igt_assert(munmap(gem_bufs[j], k) == 0);
+			gem_close(drm_fd, handles[j]);
+		}
+	}
+
+	free(gem_bufs);
+	free(handles);
+}
+
+static void pm_test_caching(void)
+{
+	uint32_t handle;
+	uint8_t *gem_buf;
+
+	uint32_t i, got_caching;
+	uint32_t gtt_obj_max_size = (16 * 1024);
+	uint32_t cache_levels[3] = {
+		I915_CACHING_NONE,
+		I915_CACHING_CACHED,            /* LLC caching */
+		I915_CACHING_DISPLAY,           /* eDRAM caching */
+	};
+
+
+	handle = gem_create(drm_fd, gtt_obj_max_size);
+	gem_buf = gem_mmap__gtt(drm_fd, handle, gtt_obj_max_size, PROT_WRITE);
+
+	for (i = 0; i < ARRAY_SIZE(cache_levels); i++) {
+		memset(gem_buf, 16 << i, gtt_obj_max_size);
+
+		disable_all_screens_and_wait(&ms_data);
+
+		igt_debug("Setting cache level %u\n", cache_levels[i]);
+
+		gem_set_caching(drm_fd, handle, cache_levels[i]);
+
+		got_caching = gem_get_caching(drm_fd, handle);
+
+		igt_debug("Got back %u\n", got_caching);
+
+		/*
+		 * Allow fall-back to CACHING_NONE in case the platform does
+		 * not support it.
+		 */
+		if (cache_levels[i] == I915_CACHING_DISPLAY)
+			igt_assert(got_caching == I915_CACHING_NONE ||
+				   got_caching == I915_CACHING_DISPLAY);
+		else
+			igt_assert(got_caching == cache_levels[i]);
+
+		enable_one_screen_and_wait(&ms_data);
+	}
+
+	igt_assert(munmap(gem_buf, gtt_obj_max_size) == 0);
+	gem_close(drm_fd, handle);
+}
+
+
+
 static void fences_subtest(bool dpms)
 {
 	int i;
@@ -1926,6 +2034,12 @@ int main(int argc, char *argv[])
 		gem_execbuf_stress_subtest(rounds, WAIT_PC8_RES);
 	igt_subtest("gem-execbuf-stress-extra-wait")
 		gem_execbuf_stress_subtest(rounds, WAIT_STATUS | WAIT_EXTRA);
+
+	/* power-wake reference tests */
+	igt_subtest("pm-tiling")
+		pm_test_tiling();
+	igt_subtest("pm-caching")
+		pm_test_caching();
 
 	igt_fixture
 		teardown_environment();
