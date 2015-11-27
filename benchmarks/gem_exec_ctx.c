@@ -44,7 +44,7 @@
 #include "intel_io.h"
 #include "igt_stats.h"
 
-enum mode { NOP, CREATE, SWITCH, };
+enum mode { NOP, CREATE, SWITCH, DEFAULT };
 
 #define LOCAL_I915_EXEC_NO_RELOC (1<<11)
 #define LOCAL_I915_EXEC_HANDLE_LUT (1<<12)
@@ -86,13 +86,15 @@ static int loop(unsigned ring, int reps, enum mode mode)
 {
 	struct drm_i915_gem_execbuffer2 execbuf;
 	struct drm_i915_gem_exec_object2 gem_exec;
-	int count, fd;
+	int count, fds[2], fd;
 	uint32_t ctx;
 
-	fd = drm_open_driver(DRIVER_INTEL);
+	fd = fds[0] = drm_open_driver(DRIVER_INTEL);
+	fds[1] = drm_open_driver(DRIVER_INTEL);
 
 	memset(&gem_exec, 0, sizeof(gem_exec));
 	gem_exec.handle = batch(fd);
+	igt_assert(gem_open(fds[1], gem_flink(fds[0], gem_exec.handle)) == gem_exec.handle);
 
 	memset(&execbuf, 0, sizeof(execbuf));
 	execbuf.buffers_ptr = (uintptr_t)&gem_exec;
@@ -100,16 +102,17 @@ static int loop(unsigned ring, int reps, enum mode mode)
 	execbuf.flags = ring;
 	execbuf.flags |= LOCAL_I915_EXEC_HANDLE_LUT;
 	execbuf.flags |= LOCAL_I915_EXEC_NO_RELOC;
-	execbuf.rsvd1 = __gem_context_create(fd);
-	if (execbuf.rsvd1 == 0)
-		return 77;
+	if (mode != DEFAULT) {
+		execbuf.rsvd1 = __gem_context_create(fd);
+		if (execbuf.rsvd1 == 0)
+			return 77;
+	}
 
 	if (__gem_execbuf(fd, &execbuf)) {
 		execbuf.flags = ring;
 		if (__gem_execbuf(fd, &execbuf))
 			return 77;
 	}
-
 	ctx = gem_context_create(fd);
 
 	for (count = 1; count <= 1<<16; count <<= 1) {
@@ -136,6 +139,11 @@ static int loop(unsigned ring, int reps, enum mode mode)
 					execbuf.rsvd1 = ctx;
 					ctx = tmp;
 					break;
+
+				case DEFAULT:
+					fd = fds[count & 1];
+					break;
+
 				case NOP:
 					break;
 				}
@@ -181,6 +189,8 @@ int main(int argc, char **argv)
 				mode = CREATE;
 			else if (strcmp(optarg, "switch") == 0)
 				mode = SWITCH;
+			else if (strcmp(optarg, "default") == 0)
+				mode = DEFAULT;
 			else if (strcmp(optarg, "nop") == 0)
 				mode = NOP;
 			else
