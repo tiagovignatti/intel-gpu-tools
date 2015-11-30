@@ -49,6 +49,9 @@
 
 #include "intel_bufmgr.h"
 
+IGT_TEST_DESCRIPTION("Collection of tests targeting request retirement code"
+		     " paths.");
+
 #define WIDTH 4096
 #define HEIGHT 4096
 #define BO_SIZE (WIDTH * HEIGHT * sizeof(uint32_t))
