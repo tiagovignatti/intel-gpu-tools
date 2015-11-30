@@ -225,10 +225,9 @@ int drm_get_card(void)
 
 /**
  * __drm_open_driver:
+ * @chipset: OR'd flags for each chipset to search, eg. #DRIVER_INTEL
  *
  * Open the first DRM device we can find, searching up to 16 device nodes
- *
- * @chipset: OR'd flags for each chipset to search, eg. DRIVER_INTEL
  *
  * Returns:
  * An open DRM fd or -1 on error
@@ -313,6 +312,7 @@ static void quiescent_gpu_at_exit_render(int sig)
 
 /**
  * drm_open_driver:
+ * @chipset: OR'd flags for each chipset to search, eg. #DRIVER_INTEL
  *
  * Open a drm legacy device node. This function always returns a valid
  * file descriptor.
@@ -340,6 +340,7 @@ int drm_open_driver(int chipset)
 
 /**
  * drm_open_driver_master:
+ * @chipset: OR'd flags for each chipset to search, eg. #DRIVER_INTEL
  *
  * Open a drm legacy device node and ensure that it is drm master.
  *
@@ -359,6 +360,7 @@ int drm_open_driver_master(int chipset)
 
 /**
  * drm_open_driver_render:
+ * @chipset: OR'd flags for each chipset to search, eg. #DRIVER_INTEL
  *
  * Open a drm render device node.
  *
