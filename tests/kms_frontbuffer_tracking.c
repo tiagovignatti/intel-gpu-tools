@@ -483,6 +483,9 @@ static void create_fb(enum pixel_format pformat, int width, int height,
 		      uint64_t tiling, int plane, struct igt_fb *fb)
 {
 	uint32_t format;
+	unsigned int size, stride;
+	int bpp;
+	uint64_t tiling_for_size;
 
 	switch (pformat) {
 	case FORMAT_RGB888:
@@ -512,7 +515,21 @@ static void create_fb(enum pixel_format pformat, int width, int height,
 		igt_assert(false);
 	}
 
-	igt_create_fb(drm.fd, width, height, format, tiling, fb);
+	/* We want all frontbuffers with the same width/height/format to have
+	 * the same size regardless of tiling since we want to properly exercise
+	 * the Kernel's specific tiling-checking code paths without accidentally
+	 * hitting size-checking ones first. */
+	bpp = igt_drm_format_to_bpp(format);
+	if (plane == PLANE_CUR)
+		tiling_for_size = LOCAL_DRM_FORMAT_MOD_NONE;
+	else
+		tiling_for_size = LOCAL_I915_FORMAT_MOD_X_TILED;
+
+	igt_calc_fb_size(drm.fd, width, height, bpp, tiling_for_size, &size,
+			 &stride);
+
+	igt_create_fb_with_bo_size(drm.fd, width, height, format, tiling, fb,
+				   size, stride);
 }
 
 static uint32_t pick_color(struct igt_fb *fb, enum color ecolor)
