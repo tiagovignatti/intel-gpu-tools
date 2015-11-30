@@ -98,11 +98,11 @@ TESTS_progs_M = \
 	$(NULL)
 
 TESTS_progs = \
+	core_auth \
 	core_getclient \
 	core_getstats \
 	core_getversion \
 	core_prop_blob \
-	drm_auth \
 	drm_import_export \
 	drm_read \
 	drm_vma_limiter \
