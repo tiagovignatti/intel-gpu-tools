@@ -393,6 +393,7 @@ bool kmstest_force_connector(int drm_fd, drmModeConnector *connector,
 	char *path, **tmp;
 	const char *value;
 	int debugfs_fd, ret, len;
+	drmModeConnector *temp;
 	uint32_t devid;
 
 	devid = intel_get_drm_devid(drm_fd);
@@ -459,6 +460,11 @@ bool kmstest_force_connector(int drm_fd, drmModeConnector *connector,
 
 	igt_install_exit_handler(reset_connectors_at_exit);
 
+	/* To allow callers to always use GetConnectorCurrent we need to force a
+	 * redetection here. */
+	temp = drmModeGetConnector(drm_fd, connector->connector_id);
+	drmModeFreeConnector(temp);
+
 	igt_assert(ret != -1);
 	return (ret == -1) ? false : true;
 }
@@ -480,6 +486,7 @@ void kmstest_force_edid(int drm_fd, drmModeConnector *connector,
 {
 	char *path;
 	int debugfs_fd, ret;
+	drmModeConnector *temp;
 
 	igt_assert_neq(asprintf(&path, "%s-%d/edid_override", kmstest_connector_type_str(connector->connector_type), connector->connector_type_id),
 		       -1);
@@ -493,6 +500,11 @@ void kmstest_force_edid(int drm_fd, drmModeConnector *connector,
 	else
 		ret = write(debugfs_fd, edid, length);
 	close(debugfs_fd);
+
+	/* To allow callers to always use GetConnectorCurrent we need to force a
+	 * redetection here. */
+	temp = drmModeGetConnector(drm_fd, connector->connector_id);
+	drmModeFreeConnector(temp);
 
 	igt_assert(ret != -1);
 }
@@ -556,7 +568,7 @@ bool kmstest_get_connector_config(int drm_fd, uint32_t connector_id,
 	}
 
 	/* First, find the connector & mode */
-	connector = drmModeGetConnector(drm_fd, connector_id);
+	connector = drmModeGetConnectorCurrent(drm_fd, connector_id);
 	if (!connector)
 		goto err2;
 
@@ -1979,7 +1991,7 @@ void igt_enable_connectors(void)
 
 	for (int i = 0; i < res->count_connectors; i++) {
 
-		c = drmModeGetConnector(drm_fd, res->connectors[i]);
+		c = drmModeGetConnectorCurrent(drm_fd, res->connectors[i]);
 
 		/* don't attempt to force connectors that are already connected
 		 */

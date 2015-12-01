@@ -504,7 +504,7 @@ static int get_one_connector(drmModeRes *resources, int connector_id,
 	drmModeConnector *connector;
 	drmModeModeInfo mode;
 
-	connector = drmModeGetConnector(drm_fd, connector_id);
+	connector = drmModeGetConnectorCurrent(drm_fd, connector_id);
 	igt_assert(connector);
 	cconf->connector = connector;
 

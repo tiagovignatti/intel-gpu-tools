@@ -42,7 +42,8 @@ static void reset_connectors(void)
 
 	for (int i = 0; i < res->count_connectors; i++) {
 
-		connector = drmModeGetConnector(drm_fd, res->connectors[i]);
+		connector = drmModeGetConnectorCurrent(drm_fd,
+						       res->connectors[i]);
 
 		kmstest_force_connector(drm_fd, connector,
 					FORCE_CONNECTOR_UNSPECIFIED);
@@ -71,7 +72,7 @@ int main(int argc, char **argv)
 	int drm_fd = 0;
 	drmModeRes *res;
 	drmModeConnector *vga_connector = NULL, *temp;
-	int start_n_modes;
+	int start_n_modes, start_connection;
 	struct option long_opts[] = {
 		{"reset", 0, 0, 'r'},
 		{0, 0, 0, 0}
@@ -89,10 +90,14 @@ int main(int argc, char **argv)
 		/* find the vga connector */
 		for (int i = 0; i < res->count_connectors; i++) {
 
-			vga_connector = drmModeGetConnector(drm_fd, res->connectors[i]);
+			vga_connector = drmModeGetConnectorCurrent(drm_fd,
+								   res->connectors[i]);
 
-			if (vga_connector->connector_type == DRM_MODE_CONNECTOR_VGA)
+			if (vga_connector->connector_type == DRM_MODE_CONNECTOR_VGA) {
+				start_n_modes = vga_connector->count_modes;
+				start_connection = vga_connector->connection;
 				break;
+			}
 
 			drmModeFreeConnector(vga_connector);
 
@@ -108,7 +113,8 @@ int main(int argc, char **argv)
 
 		/* force the connector on and check the reported values */
 		kmstest_force_connector(drm_fd, vga_connector, FORCE_CONNECTOR_ON);
-		temp = drmModeGetConnector(drm_fd, vga_connector->connector_id);
+		temp = drmModeGetConnectorCurrent(drm_fd,
+						  vga_connector->connector_id);
 		igt_assert_eq(temp->connection, DRM_MODE_CONNECTED);
 		igt_assert_lt(0, temp->count_modes);
 		drmModeFreeConnector(temp);
@@ -123,7 +129,8 @@ int main(int argc, char **argv)
 		/* force the connector off */
 		kmstest_force_connector(drm_fd, vga_connector,
 					FORCE_CONNECTOR_OFF);
-		temp = drmModeGetConnector(drm_fd, vga_connector->connector_id);
+		temp = drmModeGetConnectorCurrent(drm_fd,
+						  vga_connector->connector_id);
 		igt_assert_eq(temp->connection, DRM_MODE_DISCONNECTED);
 		igt_assert_eq(0, temp->count_modes);
 		drmModeFreeConnector(temp);
@@ -131,23 +138,26 @@ int main(int argc, char **argv)
 		/* check that the previous state is restored */
 		kmstest_force_connector(drm_fd, vga_connector,
 					FORCE_CONNECTOR_UNSPECIFIED);
-		temp = drmModeGetConnector(drm_fd, vga_connector->connector_id);
-		igt_assert_eq(temp->connection, vga_connector->connection);
+		temp = drmModeGetConnectorCurrent(drm_fd,
+						  vga_connector->connector_id);
+		igt_assert_eq(temp->connection, start_connection);
 		drmModeFreeConnector(temp);
 	}
 
 	igt_subtest("force-edid") {
 		kmstest_force_connector(drm_fd, vga_connector,
 					FORCE_CONNECTOR_ON);
-		temp = drmModeGetConnector(drm_fd, vga_connector->connector_id);
-		start_n_modes = temp->count_modes;
+		temp = drmModeGetConnectorCurrent(drm_fd,
+						  vga_connector->connector_id);
 		drmModeFreeConnector(temp);
 
 		/* test edid forcing */
 		kmstest_force_edid(drm_fd, vga_connector,
 				   igt_kms_get_base_edid(), EDID_LENGTH);
-		temp = drmModeGetConnector(drm_fd,
-					   vga_connector->connector_id);
+		temp = drmModeGetConnectorCurrent(drm_fd,
+						  vga_connector->connector_id);
+
+		igt_debug("num_conn %i\n", temp->count_modes);
 
 		CHECK_MODE(temp->modes[0], 1920, 1080, 60);
 		/* Don't check non-preferred modes to avoid to tight coupling
@@ -157,14 +167,15 @@ int main(int argc, char **argv)
 
 		/* remove edid */
 		kmstest_force_edid(drm_fd, vga_connector, NULL, 0);
-		temp = drmModeGetConnector(drm_fd, vga_connector->connector_id);
+		kmstest_force_connector(drm_fd, vga_connector,
+					FORCE_CONNECTOR_UNSPECIFIED);
+		temp = drmModeGetConnectorCurrent(drm_fd,
+						  vga_connector->connector_id);
 		/* the connector should now have the same number of modes that
 		 * it started with */
 		igt_assert_eq(temp->count_modes, start_n_modes);
 		drmModeFreeConnector(temp);
 
-		kmstest_force_connector(drm_fd, vga_connector,
-					FORCE_CONNECTOR_UNSPECIFIED);
 	}
 
 	igt_fixture {

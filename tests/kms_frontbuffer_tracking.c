@@ -1266,7 +1266,7 @@ static void setup_drm(void)
 	igt_assert(drm.res->count_connectors <= MAX_CONNECTORS);
 
 	for (i = 0; i < drm.res->count_connectors; i++)
-		drm.connectors[i] = drmModeGetConnector(drm.fd,
+		drm.connectors[i] = drmModeGetConnectorCurrent(drm.fd,
 						drm.res->connectors[i]);
 
 	rc = drmSetClientCap(drm.fd, DRM_CLIENT_CAP_UNIVERSAL_PLANES, 1);

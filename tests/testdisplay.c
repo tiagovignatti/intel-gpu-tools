@@ -132,7 +132,8 @@ static void dump_connectors_fd(int drmfd)
 	for (i = 0; i < mode_resources->count_connectors; i++) {
 		drmModeConnector *connector;
 
-		connector = drmModeGetConnector(drmfd, mode_resources->connectors[i]);
+		connector = drmModeGetConnectorCurrent(drmfd,
+						       mode_resources->connectors[i]);
 		if (!connector) {
 			igt_warn("could not get connector %i: %s\n", mode_resources->connectors[i], strerror(errno));
 			continue;

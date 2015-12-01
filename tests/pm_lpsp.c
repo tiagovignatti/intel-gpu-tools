@@ -231,7 +231,7 @@ igt_main
 		igt_assert(drm_res->count_connectors <= MAX_CONNECTORS);
 
 		for (i = 0; i < drm_res->count_connectors; i++)
-			drm_connectors[i] = drmModeGetConnector(drm_fd,
+			drm_connectors[i] = drmModeGetConnectorCurrent(drm_fd,
 							drm_res->connectors[i]);
 
 		disable_audio_runtime_pm();

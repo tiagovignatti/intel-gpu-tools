@@ -63,7 +63,7 @@ static void setup_drm(struct drm_info *drm)
 	igt_assert(drm->res->count_connectors <= MAX_CONNECTORS);
 
 	for (i = 0; i < drm->res->count_connectors; i++)
-		drm->connectors[i] = drmModeGetConnector(drm->fd,
+		drm->connectors[i] = drmModeGetConnectorCurrent(drm->fd,
 						drm->res->connectors[i]);
 
 	kmstest_set_vt_graphics_mode();

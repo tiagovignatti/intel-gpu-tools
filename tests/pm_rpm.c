@@ -370,7 +370,7 @@ static void init_mode_set_data(struct mode_set_data *data)
 	igt_assert(data->res->count_connectors <= MAX_CONNECTORS);
 
 	for (i = 0; i < data->res->count_connectors; i++) {
-		data->connectors[i] = drmModeGetConnector(drm_fd,
+		data->connectors[i] = drmModeGetConnectorCurrent(drm_fd,
 						data->res->connectors[i]);
 		data->edids[i] = get_connector_edid(data->connectors[i], i);
 	}
@@ -405,6 +405,8 @@ static void get_drm_info(struct compare_data *data)
 	igt_assert(data->res->count_crtcs <= MAX_CRTCS);
 
 	for (i = 0; i < data->res->count_connectors; i++) {
+		/* Don't use GetConnectorCurrent, we want to force a reprobe
+		 * here. */
 		data->connectors[i] = drmModeGetConnector(drm_fd,
 						data->res->connectors[i]);
 		data->edids[i] = get_connector_edid(data->connectors[i], i);

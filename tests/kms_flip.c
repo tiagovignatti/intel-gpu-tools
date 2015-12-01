@@ -418,7 +418,7 @@ static void dpms_off_other_outputs(struct test_output *o)
 				goto next;
 		}
 
-		connector = drmModeGetConnector(drm_fd, connector_id);
+		connector = drmModeGetConnectorCurrent(drm_fd, connector_id);
 
 		kmstest_set_connector_dpms(drm_fd, connector,  DRM_MODE_DPMS_ON);
 		kmstest_set_connector_dpms(drm_fd, connector,  DRM_MODE_DPMS_OFF);

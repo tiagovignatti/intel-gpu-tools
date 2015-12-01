@@ -43,7 +43,7 @@ igt_simple_main
 	/* find an hdmi connector */
 	for (int i = 0; i < res->count_connectors; i++) {
 
-		connector = drmModeGetConnector(drm_fd, res->connectors[i]);
+		connector = drmModeGetConnectorCurrent(drm_fd, res->connectors[i]);
 
 		if (connector->connector_type == DRM_MODE_CONNECTOR_HDMIA &&
 		    connector->connection == DRM_MODE_DISCONNECTED)
@@ -66,7 +66,7 @@ igt_simple_main
 
 	/* check for 3D modes */
 	mode_count = 0;
-	connector = drmModeGetConnector(drm_fd, connector_id);
+	connector = drmModeGetConnectorCurrent(drm_fd, connector_id);
 	for (int i = 0; i < connector->count_modes; i++) {
 		if (connector->modes[i].flags & DRM_MODE_FLAG_3D_MASK)
 			mode_count++;
