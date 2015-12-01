@@ -199,9 +199,10 @@ void gem_set_caching(int fd, uint32_t handle, uint32_t caching)
 	memset(&arg, 0, sizeof(arg));
 	arg.handle = handle;
 	arg.caching = caching;
-	ret = ioctl(fd, LOCAL_DRM_IOCTL_I915_GEM_SET_CACHEING, &arg);
 
+	ret = drmIoctl(fd, LOCAL_DRM_IOCTL_I915_GEM_SET_CACHEING, &arg);
 	igt_assert(ret == 0 || (errno == ENOTTY || errno == EINVAL));
+
 	igt_require(ret == 0);
 	errno = 0;
 }
