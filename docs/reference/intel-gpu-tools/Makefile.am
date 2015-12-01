@@ -125,9 +125,10 @@ EXTRA_HFILES=
 # Header files or dirs to ignore when scanning. Use base file/dir names
 # e.g. IGNORE_HFILES=gtkdebug.h gtkintl.h private_code
 IGNORE_HFILES=gen6_render.h gen7_media.h gen7_render.h gen8_media.h \
-	      gen8_render.h i830_reg.h i915_3d.h i915_pciids.h i915_reg.h \
-	      intel_reg.h debug.h instdone.h media_fill.h rendercopy.h \
-	      media_spin.h media_fill_gen9.h gen9_render.h version.h
+	      gen8_render.h gpgpu_fill.h i830_reg.h i915_3d.h i915_pciids.h \
+	      i915_reg.h intel_reg.h debug.h instdone.h media_fill.h \
+	      rendercopy.h media_spin.h media_fill_gen9.h gen9_render.h \
+	      version.h
 
 # Images to copy into HTML directory.
 # e.g. HTML_IMAGES=$(top_srcdir)/gtk/stock-icons/stock_about_24.png
