@@ -77,6 +77,17 @@ typedef struct {
 
 /**
  * intel_pipe_crc_source:
+ * @INTEL_PIPE_CRC_SOURCE_NONE: No source
+ * @INTEL_PIPE_CRC_SOURCE_PLANE1: Plane 1
+ * @INTEL_PIPE_CRC_SOURCE_PLANE2: Plane 2
+ * @INTEL_PIPE_CRC_SOURCE_PF: Panel Filter
+ * @INTEL_PIPE_CRC_SOURCE_PIPE: Pipe
+ * @INTEL_PIPE_CRC_SOURCE_TV: TV
+ * @INTEL_PIPE_CRC_SOURCE_DP_B: DisplayPort B
+ * @INTEL_PIPE_CRC_SOURCE_DP_C: DisplayPort C
+ * @INTEL_PIPE_CRC_SOURCE_DP_D: DisplayPort D
+ * @INTEL_PIPE_CRC_SOURCE_AUTO: Automatic source selection
+ * @INTEL_PIPE_CRC_SOURCE_MAX: Number of available sources
  *
  * Enumeration of all supported pipe CRC sources. Not all platforms and all
  * outputs support all of them. Generic tests should just use
