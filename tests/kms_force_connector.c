@@ -150,10 +150,8 @@ int main(int argc, char **argv)
 					   vga_connector->connector_id);
 
 		CHECK_MODE(temp->modes[0], 1920, 1080, 60);
-		CHECK_MODE(temp->modes[1], 1280, 720, 60);
-		CHECK_MODE(temp->modes[2], 1024, 768, 60);
-		CHECK_MODE(temp->modes[3], 800, 600, 60);
-		CHECK_MODE(temp->modes[4], 640, 480, 60);
+		/* Don't check non-preferred modes to avoid to tight coupling
+		 * with the in-kernel EDID parser. */
 
 		drmModeFreeConnector(temp);
 
