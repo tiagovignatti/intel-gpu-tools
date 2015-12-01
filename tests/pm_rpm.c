@@ -510,7 +510,6 @@ static void assert_drm_edids_equal(drmModePropertyBlobPtr e1,
 		return;
 	igt_assert(e1 && e2);
 
-	COMPARE(e1, e2, id);
 	COMPARE(e1, e2, length);
 
 	igt_assert(memcmp(e1->data, e2->data, e1->length) == 0);
