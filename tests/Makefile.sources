@@ -103,6 +103,7 @@ TESTS_progs = \
 	core_getstats \
 	core_getversion \
 	core_prop_blob \
+	core_setmaster_vs_auth \
 	drm_import_export \
 	drm_read \
 	drm_vma_limiter \
