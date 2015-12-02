@@ -390,6 +390,78 @@ void gem_sync(int fd, uint32_t handle)
 		       I915_GEM_DOMAIN_GTT, I915_GEM_DOMAIN_GTT);
 }
 
+bool gem_create__has_stolen_support(int fd)
+{
+	static int has_stolen_support = -1;
+	struct drm_i915_getparam gp;
+	int val = -1;
+
+	if (has_stolen_support < 0) {
+		memset(&gp, 0, sizeof(gp));
+		gp.param = 36; /* CREATE_VERSION */
+		gp.value = &val;
+
+		/* Do we have the extended gem_create_ioctl? */
+		ioctl(fd, DRM_IOCTL_I915_GETPARAM, &gp);
+		has_stolen_support = val >= 2;
+	}
+
+	return has_stolen_support;
+}
+
+struct local_i915_gem_create_v2 {
+	uint64_t size;
+	uint32_t handle;
+	uint32_t pad;
+#define I915_CREATE_PLACEMENT_STOLEN (1<<0)
+	uint32_t flags;
+};
+
+#define LOCAL_IOCTL_I915_GEM_CREATE       DRM_IOWR(DRM_COMMAND_BASE + DRM_I915_GEM_CREATE, struct local_i915_gem_create_v2)
+uint32_t __gem_create_stolen(int fd, uint64_t size)
+{
+	struct local_i915_gem_create_v2 create;
+	int ret;
+
+	memset(&create, 0, sizeof(create));
+	create.handle = 0;
+	create.size = size;
+	create.flags = I915_CREATE_PLACEMENT_STOLEN;
+	ret = drmIoctl(fd, LOCAL_IOCTL_I915_GEM_CREATE, &create);
+
+	if (ret < 0)
+		return 0;
+
+	errno = 0;
+	return create.handle;
+}
+
+/**
+ * gem_create_stolen:
+ * @fd: open i915 drm file descriptor
+ * @size: desired size of the buffer
+ *
+ * This wraps the new GEM_CREATE ioctl, which allocates a new gem buffer
+ * object of @size and placement in stolen memory region.
+ *
+ * Returns: The file-private handle of the created buffer object
+ */
+
+uint32_t gem_create_stolen(int fd, uint64_t size)
+{
+	struct local_i915_gem_create_v2 create;
+
+	memset(&create, 0, sizeof(create));
+	create.handle = 0;
+	create.size = size;
+	create.flags = I915_CREATE_PLACEMENT_STOLEN;
+	do_ioctl(fd, LOCAL_IOCTL_I915_GEM_CREATE, &create);
+	igt_assert(create.handle);
+
+	return create.handle;
+}
+
+
 uint32_t __gem_create(int fd, int size)
 {
 	struct drm_i915_gem_create create;

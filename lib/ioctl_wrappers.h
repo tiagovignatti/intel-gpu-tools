@@ -56,6 +56,9 @@ void gem_read(int fd, uint32_t handle, uint64_t offset, void *buf, uint64_t leng
 void gem_set_domain(int fd, uint32_t handle,
 		    uint32_t read_domains, uint32_t write_domain);
 void gem_sync(int fd, uint32_t handle);
+bool gem_create__has_stolen_support(int fd);
+uint32_t __gem_create_stolen(int fd, uint64_t size);
+uint32_t gem_create_stolen(int fd, uint64_t size);
 uint32_t __gem_create(int fd, int size);
 uint32_t gem_create(int fd, uint64_t size);
 void gem_execbuf(int fd, struct drm_i915_gem_execbuffer2 *execbuf);
@@ -69,6 +72,16 @@ void *gem_mmap__wc(int fd, uint32_t handle, uint64_t offset, uint64_t size, unsi
 void *__gem_mmap__gtt(int fd, uint32_t handle, uint64_t size, unsigned prot);
 void *__gem_mmap__cpu(int fd, uint32_t handle, uint64_t offset, uint64_t size, unsigned prot);
 void *__gem_mmap__wc(int fd, uint32_t handle, uint64_t offset, uint64_t size, unsigned prot);
+
+/**
+ * gem_require_stolen_support:
+ * @fd: open i915 drm file descriptor
+ *
+ * Test macro to query whether support for allocating objects from stolen
+ * memory is available. Automatically skips through igt_require() if not.
+ */
+#define gem_require_stolen_support(fd) \
+			igt_require(gem_create__has_stolen_support(fd))
 
 /**
  * gem_require_mmap_wc:
