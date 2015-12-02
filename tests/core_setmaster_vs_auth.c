@@ -45,6 +45,9 @@
 # include <pthread.h>
 #endif
 
+IGT_TEST_DESCRIPTION("Check that drop/setMaster correctly transfer master "
+		     "state");
+
 igt_simple_main
 {
 	int master1, master2, client;
