@@ -45,7 +45,7 @@
 # include <pthread.h>
 #endif
 
-igt_main
+igt_simple_main
 {
 	int master1, master2, client;
 	drm_magic_t magic;
