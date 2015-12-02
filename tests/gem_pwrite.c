@@ -132,12 +132,15 @@ static void test_big_gtt(int fd, int scale)
 }
 
 uint32_t *src, dst;
+uint32_t *src_user, dst_stolen;
 int fd;
 
 int main(int argc, char **argv)
 {
 	int object_size = 0;
-	uint32_t buf[20];
+	double usecs;
+	char* bps;
+	char buf[100];
 	int count;
 	const struct {
 		int level;
@@ -164,6 +167,8 @@ int main(int argc, char **argv)
 
 		dst = gem_create(fd, object_size);
 		src = malloc(object_size);
+		dst_stolen = gem_create_stolen(fd, object_size);
+		src_user = malloc(object_size);
 	}
 
 	igt_subtest("basic") {
@@ -173,10 +178,10 @@ int main(int argc, char **argv)
 			gettimeofday(&start, NULL);
 			do_gem_write(fd, dst, src, object_size, count);
 			gettimeofday(&end, NULL);
+			usecs = elapsed(&start, &end, count);
+			bps = bytes_per_sec(buf, object_size/usecs*1e6);
 			igt_info("Time to pwrite %d bytes x %6d:	%7.3fµs, %s\n",
-				 object_size, count,
-				 elapsed(&start, &end, count),
-				 bytes_per_sec((char *)buf, object_size/elapsed(&start, &end, count)*1e6));
+				 object_size, count, usecs, bps);
 			fflush(stdout);
 		}
 	}
@@ -191,10 +196,46 @@ int main(int argc, char **argv)
 				gettimeofday(&start, NULL);
 				do_gem_write(fd, dst, src, object_size, count);
 				gettimeofday(&end, NULL);
+				usecs = elapsed(&start, &end, count);
+				bps = bytes_per_sec(buf, object_size/usecs*1e6);
 				igt_info("Time to %s pwrite %d bytes x %6d:	%7.3fµs, %s\n",
+					 c->name, object_size, count, usecs, bps);
+				fflush(stdout);
+			}
+		}
+	}
+
+	igt_subtest("stolen-normal") {
+		for (count = 1; count <= 1<<17; count <<= 1) {
+			struct timeval start, end;
+
+			gettimeofday(&start, NULL);
+			do_gem_write(fd, dst_stolen, src_user,
+				     object_size, count);
+			gettimeofday(&end, NULL);
+			usecs = elapsed(&start, &end, count);
+			bps = bytes_per_sec(buf, object_size/usecs*1e6);
+			igt_info("Time to pwrite %d bytes x %6d:        %7.3fµs, %s\n",
+				 object_size, count, usecs, bps);
+			fflush(stdout);
+		}
+	}
+
+	for (c = cache; c->level != -1; c++) {
+		igt_subtest_f("stolen-%s", c->name) {
+			gem_set_caching(fd, dst, c->level);
+			for (count = 1; count <= 1<<17; count <<= 1) {
+				struct timeval start, end;
+
+				gettimeofday(&start, NULL);
+				do_gem_write(fd, dst_stolen, src_user,
+					     object_size, count);
+				gettimeofday(&end, NULL);
+				bps = bytes_per_sec(buf,
+						    object_size/usecs*1e6);
+				igt_info("Time to stolen-%s pwrite %d bytes x %6d:     %7.3fµs, %s\n",
 					 c->name, object_size, count,
-					 elapsed(&start, &end, count),
-					 bytes_per_sec((char *)buf, object_size/elapsed(&start, &end, count)*1e6));
+					 usecs, bps);
 				fflush(stdout);
 			}
 		}
@@ -203,6 +244,8 @@ int main(int argc, char **argv)
 	igt_fixture {
 		free(src);
 		gem_close(fd, dst);
+		free(src_user);
+		gem_close(fd, dst_stolen);
 	}
 
 	igt_subtest("big-cpu")
