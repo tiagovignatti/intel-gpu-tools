@@ -1,3 +1,25 @@
+Release 1.13 (XXXX-XX-XX)
+-------------------------
+
+- New test: kms_atomic tests atomic mode setting (Daniel Stone)
+
+- New test: core_prop_blob tests blob properties (Daniel Stone)
+
+- New test: gem_request_retire targets request retirement code paths
+  (Tvrtko Ursulin)
+
+- New test: core_setmaster_vs_auth checks that drop/setMaster correctly
+  transfer master state (Thomas Hellstrom/Daniel Vetter)
+
+- Wildcard characters are now accepted when using the --run-subtest command
+  line option to specify multiple subtests to run. (Thomas Wood)
+
+- Add support for Broxton in intel_audio_dump (Han Lu)
+
+- Added Kabylake support (Rodrigo Vivi/Wayne Boyer)
+
+- Many other bug fixes and improvements
+
 Release 1.12 (2015-09-11)
 -------------------------
 
