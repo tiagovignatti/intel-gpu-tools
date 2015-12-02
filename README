@@ -45,9 +45,9 @@ tests/
 	  -t <regex>      only include tests that match the regular expression
 	  -x <regex>      exclude tests that match the regular expression
 
-	Useful patterns for test filtering are described in
-	tests/NAMING-CONVENTION and the full list of tests and subtests can be
-	produced by passing -l to the run-tests.sh script.
+	Useful patterns for test filtering are described in the API
+	documentation and the full list of tests and subtests can be produced
+	by passing -l to the run-tests.sh script.
 
 	Results are written to a JSON file and an HTML summary can also be
 	created by passing -s to the run-tests.sh script. Further options are

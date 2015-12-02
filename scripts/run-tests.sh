@@ -64,7 +64,7 @@ function print_help {
 	echo "  -n              do not retry incomplete tests when resuming a"
 	echo "                  test run with -R"
 	echo ""
-	echo "Useful patterns for test filtering are described in tests/NAMING-CONVENTION"
+	echo "Useful patterns for test filtering are described in the API documentation."
 }
 
 function list_tests {
