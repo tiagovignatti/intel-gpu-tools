@@ -1,4 +1,4 @@
-Release 1.13 (XXXX-XX-XX)
+Release 1.13 (2015-12-02)
 -------------------------
 
 - New test: kms_atomic tests atomic mode setting (Daniel Stone)
