@@ -243,32 +243,32 @@ igt_main
 		test_major_evictions(fd, size, count);
 	}
 
-	if (igt_fork_hang_helper()) {
-		igt_fixture {
-			size = 1024 * 1024;
-			count = 3*gem_aperture_size(fd) / size / 4;
-		}
+	igt_fixture {
+		igt_fork_hang_helper();
 
-		igt_subtest("mlocked-hang")
-			test_mlocked_evictions(fd, size, count);
-
-		igt_subtest("swapping-hang")
-			test_swapping_evictions(fd, size, count);
-
-		igt_subtest("minor-hang")
-			test_minor_evictions(fd, size, count);
-
-		igt_subtest("major-hang") {
-			size = 3*gem_aperture_size(fd) / 4;
-			count = 4;
-			test_major_evictions(fd, size, count);
-		}
-
-		igt_stop_hang_helper();
+		size = 1024 * 1024;
+		count = 3*gem_aperture_size(fd) / size / 4;
 	}
-	igt_stop_signal_helper();
+
+	igt_subtest("mlocked-hang")
+		test_mlocked_evictions(fd, size, count);
+
+	igt_subtest("swapping-hang")
+		test_swapping_evictions(fd, size, count);
+
+	igt_subtest("minor-hang")
+		test_minor_evictions(fd, size, count);
+
+	igt_subtest("major-hang") {
+		size = 3*gem_aperture_size(fd) / 4;
+		count = 4;
+		test_major_evictions(fd, size, count);
+	}
+
+	igt_stop_hang_helper();
 
 	igt_fixture {
+		igt_stop_signal_helper();
 		close(fd);
 	}
 }

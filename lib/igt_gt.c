@@ -190,31 +190,22 @@ hang_helper_process(pid_t pid, int fd)
  * This is useful to exercise slow running code (such as aperture placement)
  * which needs to be robust against a GPU reset.
  *
- * In tests with subtests this function can be called outside of failure
- * catching code blocks like #igt_fixture or #igt_subtest.
+ * This function automatically skips when test requirements aren't met using
+ * igt_skip().
  */
-int igt_fork_hang_helper(void)
+void igt_fork_hang_helper(void)
 {
 	int fd, gen;
 
-	if (igt_only_list_subtests())
-		return 1;
-
 	fd = drm_open_driver(DRIVER_INTEL);
-	if (fd == -1)
-		return 0;
 
 	gen = intel_gen(intel_get_drm_devid(fd));
-	if (gen < 5) {
-		close(fd);
-		return 0;
-	}
+	igt_skip_on(gen < 5);
 
 	igt_fork_helper(&hang_helper)
 		hang_helper_process(getppid(), fd);
 
 	close(fd);
-	return 1;
 }
 
 /**
@@ -227,10 +218,8 @@ int igt_fork_hang_helper(void)
  */
 void igt_stop_hang_helper(void)
 {
-	if (igt_only_list_subtests())
-		return;
-
-	igt_stop_helper(&hang_helper);
+	if (hang_helper.running)
+		igt_stop_helper(&hang_helper);
 }
 
 /**

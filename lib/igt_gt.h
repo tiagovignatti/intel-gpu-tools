@@ -36,7 +36,7 @@ typedef struct igt_hang_ring {
 struct igt_hang_ring igt_hang_ring(int fd, int ring);
 void igt_post_hang_ring(int fd, struct igt_hang_ring arg);
 
-int igt_fork_hang_helper(void);
+void igt_fork_hang_helper(void);
 void igt_stop_hang_helper(void);
 
 int igt_open_forcewake_handle(void);

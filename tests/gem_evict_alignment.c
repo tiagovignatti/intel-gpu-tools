@@ -220,22 +220,22 @@ igt_main
 		major_evictions(fd, size, count);
 	}
 
-	if (igt_fork_hang_helper()) {
-		igt_subtest("minor-hang") {
-			size = 1024 * 1024;
-			count = 3*gem_aperture_size(fd) / size / 4;
-			minor_evictions(fd, size, count);
-		}
+	igt_subtest("minor-hang") {
+		igt_fork_hang_helper();
+		size = 1024 * 1024;
+		count = 3*gem_aperture_size(fd) / size / 4;
+		minor_evictions(fd, size, count);
+	}
 
-		igt_subtest("major-hang") {
-			size = 3*gem_aperture_size(fd) / 4;
-			count = 4;
-			major_evictions(fd, size, count);
-		}
-		igt_stop_hang_helper();
+	igt_subtest("major-hang") {
+		size = 3*gem_aperture_size(fd) / 4;
+		count = 4;
+		major_evictions(fd, size, count);
 	}
 	igt_stop_signal_helper();
 
-	igt_fixture
+	igt_fixture {
+		igt_stop_hang_helper();
 		close(fd);
+	}
 }
