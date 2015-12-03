@@ -34,6 +34,11 @@ for arg in $@ ; do
 	esac
 done
 
+skip() {
+	echo "$@"
+	exit $IGT_EXIT_SKIP
+}
+
 die() {
 	echo "$@"
 	exit $IGT_EXIT_FAILURE
@@ -60,7 +65,7 @@ for minor in `seq 0 16`; do
 done
 
 if [ $i915_dfs_path = "x" ] ; then
-	die " i915 debugfs path not found."
+	skip " i915 debugfs path not found."
 fi
 
 # read everything we can
