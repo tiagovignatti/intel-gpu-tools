@@ -217,10 +217,11 @@ static void test_error_state_basic(void)
 {
 	int fd;
 
+	fd = drm_open_driver(DRIVER_INTEL);
+
 	clear_error_state();
 	assert_error_state_clear();
 
-	fd = drm_open_driver(DRIVER_INTEL);
 	submit_batch(fd, I915_EXEC_RENDER, true);
 	close(fd);
 
@@ -373,9 +374,10 @@ static void test_error_state_capture(unsigned ring_id,
 	uint64_t offset;
 	bool cmd_parser;
 
+	fd = drm_open_driver(DRIVER_INTEL);
+
 	clear_error_state();
 
-	fd = drm_open_driver(DRIVER_INTEL);
 	gen = intel_gen(intel_get_drm_devid(fd));
 	cmd_parser = uses_cmd_parser(fd, gen);
 
