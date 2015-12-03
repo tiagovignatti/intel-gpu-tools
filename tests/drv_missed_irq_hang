@@ -19,20 +19,20 @@ function blt_wait {
 function check_for_missed_irq {
 	if test `cat i915_ring_missed_irq` = 0x00000000; then
 		echo "missed interrupts undetected"
-		exit 1
+		exit $IGT_EXIT_FAILURE
 	fi
 }
 
 function check_for_hang {
 	if cat i915_error_state | grep -v "no error state collected" > /dev/null ; then
 		echo "gpu hang reported"
-		exit 2
+		exit $IGT_EXIT_FAILURE
 	fi
 }
 
 if [ ! -f i915_ring_missed_irq ] ; then
 	echo "kernel doesn't support interrupt masking"
-	exit 77
+	exit $IGT_EXIT_SKIP
 fi
 
 # clear error state first
@@ -43,7 +43,7 @@ echo 0xf > i915_ring_test_irq
 echo "Interrupts masked"
 if test `cat i915_ring_test_irq` != 0x0000000f; then
 	echo "Failed to set interrupt mask"
-	exit 3
+	exit $IGT_EXIT_FAILURE
 fi
 
 blt_wait
@@ -57,7 +57,7 @@ echo 0 > i915_ring_test_irq
 echo "Interrupts unmasked"
 if test `cat i915_ring_test_irq` != 0x00000000; then
 	echo "Failed to clear interrupt mask"
-	exit 3
+	exit $IGT_EXIT_FAILURE
 fi
 
 blt_wait
@@ -67,7 +67,7 @@ echo 0 > i915_ring_missed_irq
 echo "Cleared missed interrupts"
 if test `cat i915_ring_missed_irq` != 0x00000000; then
 	echo "Failed to clear missed interrupts"
-	exit 3
+	exit $IGT_EXIT_FAILURE
 fi
 
-exit 0
+exit $IGT_EXIT_SUCCESS

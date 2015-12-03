@@ -19,7 +19,7 @@ RES=$(((TIME2 - TIME1) / 1000000))
 
 if [ $RES -gt 600 ]; then
 	echo "Talking to outputs took ${RES}ms, something is wrong"
-	exit 1
+	exit $IGT_EXIT_FAILURE
 fi
 
-exit 0
+exit $IGT_EXIT_SUCCESS

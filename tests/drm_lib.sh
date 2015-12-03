@@ -1,20 +1,26 @@
 #!/bin/sh
 
+IGT_EXIT_TIMEOUT=78
+IGT_EXIT_SKIP=77
+IGT_EXIT_SUCCESS=0
+IGT_EXIT_INVALID=79
+IGT_EXIT_FAILURE=99
+
 # hacked-up long option parsing
 for arg in $@ ; do
 	case $arg in
 		--list-subtests)
-			exit 79
+			exit $IGT_EXIT_INVALID
 			;;
 		--run-subtest)
-			exit 79
+			exit $IGT_EXIT_INVALID
 			;;
 		--debug)
 			IGT_LOG_LEVEL=debug
 			;;
 		--help-description)
 			echo $IGT_TEST_DESCRIPTION
-			exit 0
+			exit $IGT_EXIT_SUCCESS
 			;;
 		--help)
 			echo "Usage: `basename $0` [OPTIONS]"
@@ -23,18 +29,18 @@ for arg in $@ ; do
 			echo "  --debug"
 			echo "  --help-description"
 			echo "  --help"
-			exit 0
+			exit $IGT_EXIT_SUCCESS
 			;;
 	esac
 done
 
 die() {
 	echo "$@"
-	exit 1
+	exit $IGT_EXIT_FAILURE
 }
 
 do_or_die() {
-	$@ > /dev/null 2>&1 || (echo "FAIL: $@ ($?)" && exit -1)
+	$@ > /dev/null 2>&1 || (echo "FAIL: $@ ($?)" && exit $IGT_EXIT_FAILURE)
 }
 
 if [ -d /debug/dri ] ; then
@@ -63,7 +69,7 @@ if [ `cat $i915_dfs_path/clients | wc -l` -gt "2" ] ; then
 		die "ERROR: other drm clients running"
 fi
 
-whoami | grep -q root || ( echo ERROR: not running as root; exit 1 )
+whoami | grep -q root || ( echo ERROR: not running as root; exit $IGT_EXIT_FAILURE )
 
 i915_sfs_path=
 if [ -d /sys/class/drm ] ; then
@@ -76,7 +82,7 @@ fi
 
 function drmtest_skip_on_simulation()
 {
-	[ -n "$INTEL_SIMULATION" ] && exit 77
+	[ -n "$INTEL_SIMULATION" ] && exit $IGT_EXIT_SKIP
 }
 
 drmtest_skip_on_simulation

@@ -33,7 +33,7 @@ rmmod drm &> /dev/null
 
 if lsmod | grep i915 &> /dev/null ; then
 	echo WARNING: i915.ko still loaded!
-	exit 1
+	exit $IGT_EXIT_FAILURE
 else
 	echo module successfully unloaded
 fi
@@ -48,13 +48,13 @@ if $SOURCE_DIR/gem_alive > /dev/null ; then
 	echo "module successfully loaded again"
 else
 	echo "failed to reload module successfully"
-	exit 2
+	exit $IGT_EXIT_FAILURE
 fi
 
 # then try to run something
 if ! $SOURCE_DIR/gem_linear_blits --run-subtest basic > /dev/null ; then
 	echo "failed to execute a simple batch after reload"
-	exit 3
+	exit $IGT_EXIT_FAILURE
 fi
 
-exit 0
+exit $IGT_EXIT_SUCCESS

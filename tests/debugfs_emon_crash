@@ -13,4 +13,4 @@ done
 
 # If we got here, we haven't crashed
 
-exit 0
+exit $IGT_EXIT_SUCCESS

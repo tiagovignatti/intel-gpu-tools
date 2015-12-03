@@ -6,4 +6,4 @@ SOURCE_DIR="$( dirname "${BASH_SOURCE[0]}" )"
 # read everything we can
 cat $i915_dfs_path/* > /dev/null 2>&1
 
-exit 0
+exit $IGT_EXIT_SUCCESS

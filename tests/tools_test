@@ -12,5 +12,5 @@ do_or_die "intel_reg_dumper"
 
 # TODO: Add more tests
 
-exit 0
+exit $IGT_EXIT_SUCCESS
 

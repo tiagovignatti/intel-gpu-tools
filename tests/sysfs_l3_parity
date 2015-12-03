@@ -5,7 +5,7 @@ SOURCE_DIR="$( dirname "${BASH_SOURCE[0]}" )"
 
 if ! find /sys/class/drm/card*/ | grep l3_parity > /dev/null ; then
 	echo "no l3_parity interface, skipping test"
-	exit 77
+	exit $IGT_EXIT_SKIP
 fi
 
 $SOURCE_DIR/../tools/intel_l3_parity -r 0 -b 0 -s 0 -e
@@ -15,7 +15,7 @@ $SOURCE_DIR/../tools/intel_l3_parity -r 0 -b 0 -s 0 -d
 disabled=`$SOURCE_DIR/../tools/intel_l3_parity -l | grep -c 'Row 0, Bank 0, Subbank 0 is disabled'`
 if [ "$disabled" != "1" ] ; then
 	echo "Fail"
-	exit 1
+	exit $IGT_EXIT_FAILURE
 fi
 
 $SOURCE_DIR/../tools/intel_l3_parity -r 0 -b 0 -s 0 -e
@@ -23,5 +23,5 @@ $SOURCE_DIR/../tools/intel_l3_parity -r 0 -b 0 -s 0 -e
 #Check that we can clear remaps
 if [ `$SOURCE_DIR/../tools/intel_l3_parity -l | wc -l` != 1 ] ; then
 	echo "Fail 2"
-	exit 1
+	exit $IGT_EXIT_FAILURE
 fi

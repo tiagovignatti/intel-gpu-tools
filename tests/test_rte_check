@@ -3,4 +3,4 @@
 SOURCE_DIR="$( dirname "${BASH_SOURCE[0]}" )"
 . $SOURCE_DIR/drm_lib.sh
 
-exit 0
+exit $IGT_EXIT_SUCCESS
