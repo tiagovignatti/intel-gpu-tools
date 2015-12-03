@@ -859,12 +859,22 @@ static bool psr_wait_until_enabled(void)
 #define psr_enable() igt_set_module_param_int("enable_psr", 1)
 #define psr_disable() igt_set_module_param_int("enable_psr", 0)
 
-static void get_sink_crc(sink_crc_t *crc)
+static void get_sink_crc(sink_crc_t *crc, bool mandatory)
 {
+	int rc, errno_;
+
 	lseek(sink_crc.fd, 0, SEEK_SET);
 
-	igt_assert(read(sink_crc.fd, crc->data, SINK_CRC_SIZE) ==
-		   SINK_CRC_SIZE);
+	rc = read(sink_crc.fd, crc->data, SINK_CRC_SIZE);
+	errno_ = errno;
+
+	if (rc == -1 && errno_ == ETIMEDOUT) {
+		if (mandatory)
+			igt_skip("Sink CRC is unreliable on this machine. Try running this test again individually\n");
+		else
+			igt_info("Sink CRC is unreliable on this machine. Try running this test again individually\n");
+	}
+	igt_assert(rc == SINK_CRC_SIZE);
 }
 
 static bool sink_crc_equal(sink_crc_t *a, sink_crc_t *b)
@@ -1148,17 +1158,17 @@ static void print_crc(const char *str, struct both_crcs *crc)
 	free(pipe_str);
 }
 
-static void collect_crcs(struct both_crcs *crcs)
+static void collect_crcs(struct both_crcs *crcs, bool mandatory_sink_crc)
 {
 	igt_pipe_crc_collect_crc(pipe_crc, &crcs->pipe);
 
 	if (sink_crc.supported)
-		get_sink_crc(&crcs->sink);
+		get_sink_crc(&crcs->sink, mandatory_sink_crc);
 	else
 		memcpy(&crcs->sink, "unsupported!", SINK_CRC_SIZE);
 }
 
-static void init_blue_crc(enum pixel_format format)
+static void init_blue_crc(enum pixel_format format, bool mandatory_sink_crc)
 {
 	struct igt_fb blue;
 	int rc;
@@ -1176,7 +1186,7 @@ static void init_blue_crc(enum pixel_format format)
 			    blue.fb_id, 0, 0, &prim_mode_params.connector_id, 1,
 			    prim_mode_params.mode);
 	igt_assert_eq(rc, 0);
-	collect_crcs(&blue_crcs[format].crc);
+	collect_crcs(&blue_crcs[format].crc, mandatory_sink_crc);
 
 	print_crc("Blue CRC:  ", &blue_crcs[format].crc);
 
@@ -1188,7 +1198,8 @@ static void init_blue_crc(enum pixel_format format)
 }
 
 static void init_crcs(enum pixel_format format,
-		      struct draw_pattern_info *pattern)
+		      struct draw_pattern_info *pattern,
+		      bool mandatory_sink_crc)
 {
 	int r, r_, rc;
 	struct igt_fb tmp_fbs[pattern->n_rects];
@@ -1224,7 +1235,7 @@ static void init_crcs(enum pixel_format format,
 				   &prim_mode_params.connector_id, 1,
 				   prim_mode_params.mode);
 		igt_assert_eq(rc, 0);
-		collect_crcs(&pattern->crcs[format][r]);
+		collect_crcs(&pattern->crcs[format][r], mandatory_sink_crc);
 	}
 
 	for (r = 0; r < pattern->n_rects; r++) {
@@ -1345,6 +1356,8 @@ static void setup_sink_crc(void)
 	errno_ = errno;
 	if (rc == -1 && errno_ == ENOTTY)
 		igt_info("Sink CRC not supported: panel doesn't support it\n");
+	if (rc == -1 && errno_ == ETIMEDOUT)
+		igt_info("Sink CRC not reliable on this panel: skipping it\n");
 	else if (rc == SINK_CRC_SIZE)
 		sink_crc.supported = true;
 	else
@@ -1577,7 +1590,7 @@ static int adjust_assertion_flags(const struct test_mode *t, int flags)
 	if (!opt.check_crc || (flags__ & DONT_ASSERT_CRC))		\
 		break;							\
 									\
-	collect_crcs(&crc_);						\
+	collect_crcs(&crc_, mandatory_sink_crc);			\
 	print_crc("Calculated CRC:", &crc_);				\
 									\
 	igt_assert(wanted_crc);						\
@@ -1797,9 +1810,9 @@ static void prepare_subtest_data(const struct test_mode *t,
 
 	unset_all_crtcs();
 
-	init_blue_crc(t->format);
+	init_blue_crc(t->format, t->feature & FEATURE_PSR);
 	if (pattern)
-		init_crcs(t->format, pattern);
+		init_crcs(t->format, pattern, t->feature & FEATURE_PSR);
 
 	enable_features_for_test(t);
 }
