@@ -1570,7 +1570,7 @@ static int adjust_assertion_flags(const struct test_mode *t, int flags)
 	return flags;
 }
 
-#define do_crc_assertions(flags) do {					\
+#define do_crc_assertions(flags, mandatory_sink_crc) do {		\
 	int flags__ = (flags);						\
 	struct both_crcs crc_;						\
 									\
@@ -1582,7 +1582,11 @@ static int adjust_assertion_flags(const struct test_mode *t, int flags)
 									\
 	igt_assert(wanted_crc);						\
 	igt_assert_crc_equal(&crc_.pipe, &wanted_crc->pipe);		\
-	assert_sink_crc_equal(&crc_.sink, &wanted_crc->sink);		\
+	if (mandatory_sink_crc)						\
+		assert_sink_crc_equal(&crc_.sink, &wanted_crc->sink);	\
+	else								\
+		if (!sink_crc_equal(&crc_.sink, &wanted_crc->sink))	\
+			igt_info("Sink CRC differ, but not required\n"); \
 } while (0)
 
 #define do_status_assertions(flags_) do {				\
@@ -1618,12 +1622,13 @@ static int adjust_assertion_flags(const struct test_mode *t, int flags)
 
 #define do_assertions(flags) do {					\
 	int flags_ = adjust_assertion_flags(t, (flags));		\
+	bool mandatory_sink_crc = t->feature & FEATURE_PSR;		\
 									\
 	wait_user(2, "Paused before assertions.");			\
 									\
 	/* Check the CRC to make sure the drawing operations work	\
 	 * immediately, independently of the features being enabled. */	\
-	do_crc_assertions(flags_);					\
+	do_crc_assertions(flags_, mandatory_sink_crc);			\
 									\
 	/* Now we can flush things to make the test faster. */		\
 	do_flush(t);							\
@@ -1636,7 +1641,7 @@ static int adjust_assertion_flags(const struct test_mode *t, int flags)
 	 * would only delay the test suite while adding no value to the	\
 	 * test suite. */						\
 	if (t->screen == SCREEN_PRIM)					\
-		do_crc_assertions(flags_);				\
+		do_crc_assertions(flags_, mandatory_sink_crc);		\
 									\
 	if (fbc.supports_last_action && opt.fbc_check_last_action) {	\
 		if (flags_ & ASSERT_LAST_ACTION_CHANGED)		\
