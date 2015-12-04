@@ -146,7 +146,7 @@ static void checkit(const int *freqs)
 {
 	igt_assert_lte(freqs[MIN], freqs[MAX]);
 	igt_assert_lte(freqs[CUR], freqs[MAX]);
-	igt_assert_lte(freqs[MIN], freqs[CUR]);
+	igt_assert_lte(freqs[RPn], freqs[CUR]);
 	igt_assert_lte(freqs[RPn], freqs[MIN]);
 	igt_assert_lte(freqs[MAX], freqs[RP0]);
 	igt_assert_lte(freqs[RP1], freqs[RP0]);
@@ -472,14 +472,14 @@ static void idle_check(void)
 		read_freqs(freqs);
 		dump(freqs);
 		checkit(freqs);
-		if (freqs[CUR] == freqs[MIN])
+		if (freqs[CUR] == freqs[RPn])
 			break;
 		usleep(1000 * IDLE_WAIT_TIMESTEP_MSEC);
 		wait += IDLE_WAIT_TIMESTEP_MSEC;
 	} while (wait < IDLE_WAIT_TIMEOUT_MSEC);
 
-	igt_assert_eq(freqs[CUR], freqs[MIN]);
-	igt_debug("Required %d msec to reach cur=min\n", wait);
+	igt_assert_eq(freqs[CUR], freqs[RPn]);
+	igt_debug("Required %d msec to reach cur=idle\n", wait);
 }
 
 #define LOADED_WAIT_TIMESTEP_MSEC 100
