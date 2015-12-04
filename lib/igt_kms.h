@@ -286,6 +286,7 @@ void igt_reset_connectors(void);
 
 #define EDID_LENGTH 128
 const unsigned char* igt_kms_get_base_edid(void);
+const unsigned char* igt_kms_get_alt_edid(void);
 
 
 #endif /* __IGT_KMS_H__ */

@@ -178,6 +178,46 @@ int main(int argc, char **argv)
 
 	}
 
+	igt_subtest("prune-stale-modes") {
+		int i;
+
+		kmstest_force_connector(drm_fd, vga_connector,
+					FORCE_CONNECTOR_ON);
+
+		/* test pruning of stale modes */
+		kmstest_force_edid(drm_fd, vga_connector,
+				   igt_kms_get_alt_edid(), EDID_LENGTH);
+		temp = drmModeGetConnectorCurrent(drm_fd,
+						  vga_connector->connector_id);
+
+		for (i = 0; i < temp->count_modes; i++) {
+			if (temp->modes[i].hdisplay == 1400 &&
+			    temp->modes[i].vdisplay == 1050)
+				break;
+		}
+		igt_assert_f(i != temp->count_modes, "1400x1050 not on mode list\n");
+
+		drmModeFreeConnector(temp);
+
+		kmstest_force_edid(drm_fd, vga_connector,
+				   igt_kms_get_base_edid(), EDID_LENGTH);
+		temp = drmModeGetConnectorCurrent(drm_fd,
+						  vga_connector->connector_id);
+
+		for (i = 0; i < temp->count_modes; i++) {
+			if (temp->modes[i].hdisplay == 1400 &&
+			    temp->modes[i].vdisplay == 1050)
+				break;
+		}
+		igt_assert_f(i == temp->count_modes, "1400x1050 not pruned from mode list\n");
+
+		drmModeFreeConnector(temp);
+
+		kmstest_force_edid(drm_fd, vga_connector, NULL, 0);
+		kmstest_force_connector(drm_fd, vga_connector,
+					FORCE_CONNECTOR_UNSPECIFIED);
+	}
+
 	igt_fixture {
 		drmModeFreeConnector(vga_connector);
 		close(drm_fd);

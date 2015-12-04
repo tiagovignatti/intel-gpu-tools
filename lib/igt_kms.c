@@ -111,6 +111,46 @@ const unsigned char* igt_kms_get_base_edid(void)
 	return base_edid;
 }
 
+#define VFREQ 60
+#define CLOCK 101000
+#define HACTIVE 1400
+#define HBLANK 160
+#define VACTIVE 1050
+#define VBLANK 30
+#define HOFFSET 48
+#define HPULSE 32
+#define VOFFSET 3
+#define VPULSE 4
+
+#define HSIZE 52
+#define VSIZE 30
+
+#define EDID_NAME alt_edid
+#include "igt_edid_template.h"
+
+/**
+ * igt_kms_get_alt_edid:
+ *
+ * Get an alternate edid block, which includes the following modes:
+ *
+ *  - 1400x1050 60Hz
+ *  - 1920x1080 60Hz
+ *  - 1280x720 60Hz
+ *  - 1024x768 60Hz
+ *  - 800x600 60Hz
+ *  - 640x480 60Hz
+ *
+ * This can be extended with further features using functions such as
+ * #kmstest_edid_add_3d.
+ *
+ * Returns: an alternate edid block
+ */
+const unsigned char* igt_kms_get_alt_edid(void)
+{
+	update_edid_csum(alt_edid);
+
+	return alt_edid;
+}
 
 /**
  * SECTION:igt_kms
