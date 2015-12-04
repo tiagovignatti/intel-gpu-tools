@@ -102,6 +102,8 @@ static int loop(unsigned ring, int reps)
 		for (n = 0; n < reps; n++) {
 			struct timespec start, end;
 			int loops = count;
+			gem_set_domain(fd, gem_exec.handle,
+				       I915_GEM_DOMAIN_GTT, 0);
 			sleep(1); /* wait for the hw to go back to sleep */
 			clock_gettime(CLOCK_MONOTONIC, &start);
 			while (loops--)
