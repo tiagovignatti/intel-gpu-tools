@@ -260,7 +260,7 @@ static bool psr_active(data_t *data)
 
 static bool wait_psr_entry(data_t *data)
 {
-	int timeout = 10;
+	int timeout = 5;
 	while (timeout--) {
 		if (psr_active(data))
 			return true;
