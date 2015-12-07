@@ -388,10 +388,14 @@ static void min_max_config(void (*check)(void), bool load_gpu)
 
 	igt_debug("\nIncrease min to midpoint...\n");
 	writeval(stuff[MIN].filp, fmid);
+	if (load_gpu)
+		do_load_gpu();
 	check();
 
 	igt_debug("\nIncrease min to RP0...\n");
 	writeval(stuff[MIN].filp, origfreqs[RP0]);
+	if (load_gpu)
+		do_load_gpu();
 	check();
 
 	igt_debug("\nIncrease min above RP0 (invalid)...\n");
