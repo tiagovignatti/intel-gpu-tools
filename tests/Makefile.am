@@ -32,12 +32,16 @@ dist_pkgdata_DATA = \
 	$(IMAGES) \
 	$(NULL)
 
+all-local: .gitignore
+.gitignore: Makefile.sources
+	@echo "$(pkglibexec_PROGRAMS) $(HANG) test-list.txt .gitignore" | sed 's/\s\+/\n/g' | sort > $@
+
 pkgdata_DATA = test-list.txt
 
 EXTRA_PROGRAMS = $(HANG)
 EXTRA_DIST = $(common_files)
 
-CLEANFILES = $(EXTRA_PROGRAMS) test-list.txt
+CLEANFILES = $(EXTRA_PROGRAMS) test-list.txt .gitignore
 
 AM_CFLAGS = $(DRM_CFLAGS) $(CWARNFLAGS) $(DEBUG_CFLAGS)\
 	-I$(srcdir)/.. \
