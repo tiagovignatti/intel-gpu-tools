@@ -58,6 +58,7 @@ TESTS_progs_M = \
 	gem_reset_stats \
 	gem_ringfill \
 	gem_set_tiling_vs_blt \
+	gem_softpin \
 	gem_stolen \
 	gem_storedw_batches_loop \
 	gem_streaming_writes \

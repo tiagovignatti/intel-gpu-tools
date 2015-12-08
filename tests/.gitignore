@@ -101,6 +101,7 @@ gem_seqno_wrap
 gem_set_tiling_vs_blt
 gem_set_tiling_vs_gtt
 gem_set_tiling_vs_pwrite
+gem_softpin
 gem_storedw_batches_loop
 gem_streaming_writes
 gem_stress
