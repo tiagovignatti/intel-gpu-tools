@@ -569,6 +569,11 @@ int main(int argc, char *argv[])
 		display_init(&data);
 	}
 
+	igt_subtest("psr_basic") {
+		setup_test_plane(&data);
+		igt_assert(wait_psr_entry(&data));
+	}
+
 	for (op = PAGE_FLIP; op <= RENDER; op++) {
 		igt_subtest_f("primary_%s", op_str(op)) {
 			data.test_plane = PRIMARY;
