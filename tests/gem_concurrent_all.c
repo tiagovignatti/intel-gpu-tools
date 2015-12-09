@@ -555,6 +555,44 @@ static void hang_require(void)
 	igt_require_hang_ring(fd, -1);
 }
 
+static void check_gpu(void)
+{
+	unsigned missed_irq = 0;
+	FILE *file;
+
+	gem_quiescent_gpu(fd);
+
+	file = igt_debugfs_fopen("i915_ring_missed_irq", "r");
+	if (file) {
+		fscanf(file, "%x", &missed_irq);
+		fclose(file);
+	}
+	file = igt_debugfs_fopen("i915_ring_missed_irq", "w");
+	if (file) {
+		fwrite("0\n", 1, 2, file);
+		fclose(file);
+	}
+	igt_assert_eq(missed_irq, 0);
+}
+
+static void do_basic(struct buffers *buffers,
+		     do_copy do_copy_func,
+		     do_hang do_hang_func)
+{
+	gem_quiescent_gpu(fd);
+
+	for (int i = 0; i < buffers->count; i++) {
+		struct igt_hang_ring hang = do_hang_func();
+
+		buffers->mode->set_bo(buffers->src[i], i, width, height);
+		buffers->mode->set_bo(buffers->dst[i], ~i, width, height);
+		do_copy_func(buffers->dst[i], buffers->src[i]);
+		buffers->mode->cmp_bo(buffers->dst[i], i, width, height, buffers->dummy);
+
+		igt_post_hang_ring(fd, hang);
+	}
+}
+
 static void do_overwrite_source(struct buffers *buffers,
 				do_copy do_copy_func,
 				do_hang do_hang_func)
@@ -852,6 +890,7 @@ static void run_single(struct buffers *buffers,
 		       do_hang do_hang_func)
 {
 	do_test_func(buffers, do_copy_func, do_hang_func);
+	check_gpu();
 }
 
 static void run_interruptible(struct buffers *buffers,
@@ -863,6 +902,7 @@ static void run_interruptible(struct buffers *buffers,
 
 	for (loop = 0; loop < 10; loop++)
 		do_test_func(buffers, do_copy_func, do_hang_func);
+	check_gpu();
 }
 
 static void run_forked(struct buffers *buffers,
@@ -890,6 +930,7 @@ static void run_forked(struct buffers *buffers,
 	}
 
 	igt_waitchildren();
+	check_gpu();
 
 	num_buffers = old_num_buffers;
 }
@@ -977,6 +1018,14 @@ run_basic_modes(const struct access_mode *mode,
 		for (p = all ? pipelines : pskip; p->prefix; p++) {
 			igt_fixture {
 				batch = buffers_init(&buffers, mode, fd);
+			}
+
+			igt_subtest_f("%s-%s-basic%s%s", mode->name, p->prefix, suffix, h->suffix) {
+				h->require();
+				p->require();
+				buffers_create(&buffers, num_buffers);
+				run_wrap_func(&buffers, do_basic,
+					      p->copy, h->hang);
 			}
 
 			/* try to overwrite the source values */
