@@ -225,7 +225,7 @@ int main(int argc, char **argv)
 		fd = drm_open_driver(DRIVER_INTEL);
 	}
 
-	igt_subtest("sanitytcheck")
+	igt_subtest("basic")
 		run_test(fd, 2);
 
 	igt_subtest("normal") {

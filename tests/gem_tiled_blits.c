@@ -207,7 +207,7 @@ int main(int argc, char **argv)
 		batch = intel_batchbuffer_alloc(bufmgr, intel_get_drm_devid(fd));
 	}
 
-	igt_subtest("sanitycheck")
+	igt_subtest("basic")
 		run_test(2);
 
 	igt_subtest("normal") {
