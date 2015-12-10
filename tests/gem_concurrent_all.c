@@ -1020,7 +1020,7 @@ run_basic_modes(const struct access_mode *mode,
 				batch = buffers_init(&buffers, mode, fd);
 			}
 
-			igt_subtest_f("%s-%s-basic%s%s", mode->name, p->prefix, suffix, h->suffix) {
+			igt_subtest_f("%s-%s-sanitycheck%s%s", mode->name, p->prefix, suffix, h->suffix) {
 				h->require();
 				p->require();
 				buffers_create(&buffers, num_buffers);

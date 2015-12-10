@@ -249,7 +249,7 @@ igt_main
 		fd = drm_open_driver(DRIVER_INTEL);
 	}
 
-	igt_subtest("basic") {
+	igt_subtest("sanitycheck") {
 		run_test (fd, 10);
 	}
 
