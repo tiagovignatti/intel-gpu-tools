@@ -155,7 +155,7 @@ static uint32_t init_userptr(int fd, i915_gem_userptr *userptr, void *ptr,
 
 	memset((void*)userptr, 0, sizeof(i915_gem_userptr));
 
-	userptr->user_ptr = (uint64_t)ptr; /* Need the cast to overcome compiler warning */
+	userptr->user_ptr = (unsigned long)ptr; /* Need the cast to overcome compiler warning */
 	userptr->user_size = size;
 	userptr->flags = 0; /* use synchronized operation */
 
@@ -270,7 +270,7 @@ static void setup_execbuffer(struct drm_i915_gem_execbuffer2 *execbuf,
 			     struct drm_i915_gem_exec_object2 *exec_object,
 			     int ring, int buffer_count, int batch_length)
 {
-	execbuf->buffers_ptr = (uint64_t)exec_object;
+	execbuf->buffers_ptr = (unsigned long)exec_object;
 	execbuf->buffer_count = buffer_count;
 	execbuf->batch_start_offset = 0;
 	execbuf->batch_len = batch_length;
@@ -417,7 +417,7 @@ static void gem_pin_bo_test(void)
 		       EXEC_OBJECT_PINNED, pinning_offset);
 	setup_exec_obj(&exec_object2[1], batch_buf_handle, 0, 0);
 	exec_object2[1].relocation_count = 1;
-	exec_object2[1].relocs_ptr = (uint64_t)reloc;
+	exec_object2[1].relocs_ptr = (unsigned long)reloc;
 
 	ring = I915_EXEC_RENDER;
 
