@@ -55,39 +55,6 @@ void igt_stop_hang_helper(void);
 
 int igt_open_forcewake_handle(void);
 
-/**
- * stop_ring_flags:
- * @STOP_RING_NONE: Can be used to clear the pending stop (warning: hang might
- * be declared already). Returned by igt_get_stop_rings() if there is
- * no currently stopped rings.
- * @STOP_RING_RENDER: Render ring
- * @STOP_RING_BSD: Video encoding/decoding ring
- * @STOP_RING_BLT: Blitter ring
- * @STOP_RING_VEBOX: Video enhancement ring
- * @STOP_RING_ALL: All rings
- * @STOP_RING_ALLOW_ERRORS: Driver will not omit expected DRM_ERRORS
- * @STOP_RING_ALLOW_BAN: Driver will use context ban policy
- * @STOP_RING_DEFAULTS: STOP_RING_ALL | STOP_RING_ALLOW_ERRORS
- *
- * Enumeration of all supported flags for igt_set_stop_rings().
- *
- */
-enum stop_ring_flags {
-	STOP_RING_NONE = 0x00,
-	STOP_RING_RENDER = (1 << 0),
-	STOP_RING_BSD = (1 << 1),
-	STOP_RING_BLT = (1 << 2),
-	STOP_RING_VEBOX = (1 << 3),
-	STOP_RING_ALL = 0xff,
-	STOP_RING_ALLOW_ERRORS = (1 << 30),
-	STOP_RING_ALLOW_BAN = (1 << 31),
-	STOP_RING_DEFAULTS = STOP_RING_ALL | STOP_RING_ALLOW_ERRORS,
-};
-
-enum stop_ring_flags igt_to_stop_ring_flag(int ring);
-void igt_set_stop_rings(enum stop_ring_flags flags);
-enum stop_ring_flags igt_get_stop_rings(void);
-
 int igt_setup_clflush(void);
 void igt_clflush_range(void *addr, int size);
 

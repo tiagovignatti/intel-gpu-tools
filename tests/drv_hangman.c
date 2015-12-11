@@ -87,15 +87,6 @@ static void test_debugfs_error_state_exists(void)
 	close (fd);
 }
 
-static void test_debugfs_ring_stop_exists(void)
-{
-	int fd;
-
-	igt_assert_lte(0, (fd = igt_debugfs_open("i915_ring_stop", O_RDONLY)));
-
-	close(fd);
-}
-
 static void read_dfs(const char *fname, char *d, int maxlen)
 {
 	int fd;
@@ -335,9 +326,6 @@ igt_main
 
 	igt_subtest("error-state-sysfs-entry")
 		test_sysfs_error_exists();
-
-	igt_subtest("ring-stop-sysfs-entry")
-		test_debugfs_ring_stop_exists();
 
 	igt_subtest("error-state-basic")
 		test_error_state_basic();
