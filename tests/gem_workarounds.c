@@ -27,25 +27,11 @@
 
 #define _GNU_SOURCE
 #include "igt.h"
-#include <stdbool.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <fcntl.h>
-#include <inttypes.h>
-#include <errno.h>
-#include <sys/stat.h>
-#include <sys/ioctl.h>
-#include <sys/mman.h>
-#include <time.h>
-#include <signal.h>
-
 
 enum operation {
-	GPU_RESET = 0x01,
-	SUSPEND_RESUME = 0x02,
-	SIMPLE_READ = 0x03,
+	GPU_RESET,
+	SUSPEND_RESUME,
+	SIMPLE_READ,
 };
 
 struct intel_wa_reg {
@@ -54,57 +40,21 @@ struct intel_wa_reg {
 	uint32_t mask;
 };
 
-static int drm_fd;
-static uint32_t devid;
-static drm_intel_bufmgr *bufmgr;
-struct intel_batchbuffer *batch;
-static int num_wa_regs;
-
 static struct intel_wa_reg *wa_regs;
+static int num_wa_regs;
 
 static void wait_gpu(void)
 {
-	struct drm_i915_gem_execbuffer2 execbuf;
-	struct drm_i915_gem_exec_object2 gem_exec;
-	uint32_t b[2] = {MI_BATCH_BUFFER_END};
-
-	memset(&gem_exec, 0, sizeof(gem_exec));
-	gem_exec.handle = gem_create(drm_fd, 4096);
-	gem_write(drm_fd, gem_exec.handle, 0, b, sizeof(b));
-
-	memset(&execbuf, 0, sizeof(execbuf));
-	execbuf.buffers_ptr = (uintptr_t)&gem_exec;
-	execbuf.buffer_count = 1;
-	execbuf.batch_len = sizeof(b);
-
-	drmIoctl(drm_fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf);
-
-	gem_sync(drm_fd, gem_exec.handle);
-
-	gem_close(drm_fd, gem_exec.handle);
+	int fd = drm_open_driver(DRIVER_INTEL);
+	gem_quiescent_gpu(fd);
+	close(fd);
 }
 
 static void test_hang_gpu(void)
 {
-	int retry_count = 30;
-	enum stop_ring_flags flags;
-
-	igt_assert(retry_count);
-	igt_set_stop_rings(STOP_RING_DEFAULTS);
-
-	wait_gpu();
-
-	while(retry_count--) {
-		flags = igt_get_stop_rings();
-		if (flags == 0)
-			break;
-		igt_info("gpu hang not yet cleared, retries left %d\n", retry_count);
-		sleep(1);
-	}
-
-	flags = igt_get_stop_rings();
-	if (flags)
-		igt_set_stop_rings(STOP_RING_NONE);
+	int fd = drm_open_driver(DRIVER_INTEL);
+	igt_post_hang_ring(fd, igt_hang_ring(fd, I915_EXEC_DEFAULT));
+	close(fd);
 }
 
 static void test_suspend_resume(void)
@@ -116,8 +66,6 @@ static void test_suspend_resume(void)
 static int workaround_fail_count(void)
 {
 	int i, fail_count = 0;
-
-	intel_register_access_init(intel_get_pci_device(), 0);
 
 	/* There is a small delay after coming ot of rc6 to the correct
 	   render context values will get loaded by hardware (bdw,chv).
@@ -144,8 +92,6 @@ static int workaround_fail_count(void)
 			fail_count++;
 		}
 	}
-
-	intel_register_access_fini();
 
 	return fail_count;
 }
@@ -176,48 +122,44 @@ static void check_workarounds(enum operation op)
 igt_main
 {
 	igt_fixture {
-		int i;
-		int fd;
-		int ret;
+		struct pci_device *pci_dev;
 		FILE *file;
 		char *line = NULL;
 		size_t line_size;
+		int i;
 
-		drm_fd = drm_open_driver(DRIVER_INTEL);
+		pci_dev = intel_get_pci_device();
+		igt_require(pci_dev);
 
-		bufmgr = drm_intel_bufmgr_gem_init(drm_fd, 4096);
-		devid = intel_get_drm_devid(drm_fd);
-		batch = intel_batchbuffer_alloc(bufmgr, devid);
+		intel_register_access_init(pci_dev, 0);
 
-		fd = igt_debugfs_open("i915_wa_registers", O_RDONLY);
-		igt_assert(fd >= 0);
-
-		file = fdopen(fd, "r");
-		igt_assert(file > 0);
-
-		ret = getline(&line, &line_size, file);
-		igt_assert(ret > 0);
+		file = igt_debugfs_fopen("i915_wa_registers", "r");
+		igt_assert(getline(&line, &line_size, file) > 0);
+		igt_debug("i915_wa_registers: %s", line);
 		sscanf(line, "Workarounds applied: %d", &num_wa_regs);
 
-		if (IS_BROADWELL(devid) ||
-		    IS_CHERRYVIEW(devid))
+		if (IS_BROADWELL(pci_dev->device_id) ||
+		    IS_CHERRYVIEW(pci_dev->device_id))
 			igt_assert(num_wa_regs > 0);
 		else
 			igt_assert(num_wa_regs >= 0);
 
 		wa_regs = malloc(num_wa_regs * sizeof(*wa_regs));
+		igt_assert(wa_regs);
 
 		i = 0;
-		while(getline(&line, &line_size, file) > 0) {
-			sscanf(line, "0x%X: 0x%08X, mask: 0x%08X",
-			       &wa_regs[i].addr, &wa_regs[i].value,
-			       &wa_regs[i].mask);
-			++i;
+		while (getline(&line, &line_size, file) > 0) {
+			igt_debug("%s", line);
+			igt_assert(i < num_wa_regs);
+			if (sscanf(line, "0x%X: 0x%08X, mask: 0x%08X",
+				   &wa_regs[i].addr,
+				   &wa_regs[i].value,
+				   &wa_regs[i].mask) == 3)
+				i++;
 		}
 
 		free(line);
 		fclose(file);
-		close(fd);
 	}
 
 	igt_subtest("read")
@@ -231,6 +173,7 @@ igt_main
 
 	igt_fixture {
 		free(wa_regs);
-		close(drm_fd);
+		intel_register_access_fini();
 	}
+
 }
