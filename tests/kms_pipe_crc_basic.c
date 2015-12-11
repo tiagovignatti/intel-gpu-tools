@@ -43,55 +43,6 @@ static struct {
 	{ .r = 0.0, .g = 1.0, .b = 1.0 },
 };
 
-static uint64_t submit_batch(int fd, unsigned ring_id)
-{
-	const uint32_t batch[] = { MI_NOOP,
-				   MI_BATCH_BUFFER_END };
-	struct drm_i915_gem_execbuffer2 execbuf;
-	struct drm_i915_gem_exec_object2 exec;
-	uint64_t presumed_offset;
-
-	gem_require_ring(fd, ring_id);
-
-	exec.handle = gem_create(fd, 4096);
-	gem_write(fd, exec.handle, 0, batch, sizeof(batch));
-	exec.relocation_count = 0;
-	exec.relocs_ptr = 0;
-	exec.alignment = 0;
-	exec.offset = 0;
-	exec.flags = 0;
-	exec.rsvd1 = 0;
-	exec.rsvd2 = 0;
-
-	execbuf.buffers_ptr = (uintptr_t)&exec;
-	execbuf.buffer_count = 1;
-	execbuf.batch_start_offset = 0;
-	execbuf.batch_len = sizeof(batch);
-	execbuf.cliprects_ptr = 0;
-	execbuf.num_cliprects = 0;
-	execbuf.DR1 = 0;
-	execbuf.DR4 = 0;
-	execbuf.flags = ring_id;
-	i915_execbuffer2_set_context_id(execbuf, 0);
-	execbuf.rsvd2 = 0;
-
-	gem_execbuf(fd, &execbuf);
-	gem_sync(fd, exec.handle);
-	presumed_offset = exec.offset;
-
-	igt_set_stop_rings(igt_to_stop_ring_flag(ring_id));
-
-	gem_execbuf(fd, &execbuf);
-	gem_sync(fd, exec.handle);
-
-	igt_assert(igt_get_stop_rings() == STOP_RING_NONE);
-	igt_assert(presumed_offset == exec.offset);
-
-	gem_close(fd, exec.handle);
-
-	return exec.offset;
-}
-
 static void test_bad_command(data_t *data, const char *cmd)
 {
 	FILE *ctl;
@@ -277,8 +228,10 @@ igt_main
 		}
 
 		igt_subtest_f("hang-read-crc-pipe-%c", 'A'+i) {
-			submit_batch(data.drm_fd, I915_EXEC_RENDER);
-
+			igt_hang_ring_t hang =
+				igt_hang_ring(data.drm_fd, I915_EXEC_RENDER);
+			test_read_crc(&data, i, 0);
+			igt_post_hang_ring(data.drm_fd, hang);
 			test_read_crc(&data, i, 0);
 		}
 	}
