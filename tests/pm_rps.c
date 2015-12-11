@@ -525,6 +525,13 @@ static void stabilize_check(int *freqs)
 	igt_debug("Waited %d msec to stabilize cur\n", wait);
 }
 
+static void reset_gpu(void)
+{
+	int fd = drm_open_driver(DRIVER_INTEL);
+	igt_post_hang_ring(fd, igt_hang_ring(fd, I915_EXEC_DEFAULT));
+	close(fd);
+}
+
 /*
  * reset - test that turbo works across a ring stop
  *
@@ -560,11 +567,8 @@ static void reset(void)
 	load_helper_run(LOW);
 	stabilize_check(pre_freqs);
 
-	igt_debug("Stop rings...\n");
-	igt_set_stop_rings(STOP_RING_DEFAULTS);
-	while (igt_get_stop_rings())
-		usleep(1000 * 100);
-	igt_debug("Ring stop cleared\n");
+	igt_debug("Reset gpu...\n");
+	reset_gpu();
 
 	igt_debug("Apply high load...\n");
 	load_helper_set_load(HIGH);
