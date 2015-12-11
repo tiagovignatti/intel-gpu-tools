@@ -201,10 +201,10 @@ igt_main
 		 * the last context is leaked at every reset.
 		 */
 		for (i = 0; i < 20; i++) {
-                        igt_set_stop_rings(igt_to_stop_ring_flag(I915_EXEC_RENDER));
+			igt_hang_ring_t hang = igt_hang_ring(fd, I915_EXEC_RENDER);
 			igt_assert(exec(fd, handle, I915_EXEC_RENDER, 0) == 0);
 			igt_assert(exec(fd, handle, I915_EXEC_RENDER, ctx_id) == 0);
-			gem_sync(fd, handle);
+			igt_post_hang_ring(fd, hang);
 		}
 
 		gem_context_destroy(fd, ctx_id);
