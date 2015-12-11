@@ -147,59 +147,21 @@ static void assert_error_state_collected(void)
 	assert_dfs_entry_not("i915_error_state", "no error state collected");
 }
 
-#define MAGIC_NUMBER 0x10001
-const uint32_t batch[] = { MI_NOOP,
-			   MI_BATCH_BUFFER_END,
-			   MAGIC_NUMBER,
-			   MAGIC_NUMBER };
+const uint32_t *batch;
 
-static uint64_t submit_batch(int fd, unsigned ring_id, bool stop_ring)
+static uint64_t submit_hang(int fd, unsigned ring_id)
 {
-	struct drm_i915_gem_execbuffer2 execbuf;
-	struct drm_i915_gem_exec_object2 exec;
-	uint64_t presumed_offset;
+	uint64_t offset;
+	igt_hang_ring_t hang;
 
-	gem_require_ring(fd, ring_id);
+	hang = igt_hang_ctx(fd, 0, ring_id, HANG_ALLOW_CAPTURE, &offset);
 
-	exec.handle = gem_create(fd, 4096);
-	gem_write(fd, exec.handle, 0, batch, sizeof(batch));
-	exec.relocation_count = 0;
-	exec.relocs_ptr = 0;
-	exec.alignment = 0;
-	exec.offset = 0;
-	exec.flags = 0;
-	exec.rsvd1 = 0;
-	exec.rsvd2 = 0;
+	batch = gem_mmap__cpu(fd, hang.handle, 0, 4096, PROT_READ);
+	gem_set_domain(fd, hang.handle, I915_GEM_DOMAIN_CPU, 0);
 
-	execbuf.buffers_ptr = (uintptr_t)&exec;
-	execbuf.buffer_count = 1;
-	execbuf.batch_start_offset = 0;
-	execbuf.batch_len = sizeof(batch);
-	execbuf.cliprects_ptr = 0;
-	execbuf.num_cliprects = 0;
-	execbuf.DR1 = 0;
-	execbuf.DR4 = 0;
-	execbuf.flags = ring_id;
-	i915_execbuffer2_set_context_id(execbuf, 0);
-	execbuf.rsvd2 = 0;
+	igt_post_hang_ring(fd, hang);
 
-	gem_execbuf(fd, &execbuf);
-	gem_sync(fd, exec.handle);
-	presumed_offset = exec.offset;
-
-	if (stop_ring) {
-		igt_set_stop_rings(igt_to_stop_ring_flag(ring_id));
-
-		gem_execbuf(fd, &execbuf);
-		gem_sync(fd, exec.handle);
-
-		igt_assert(igt_get_stop_rings() == STOP_RING_NONE);
-		igt_assert(presumed_offset == exec.offset);
-	}
-
-	gem_close(fd, exec.handle);
-
-	return exec.offset;
+	return offset;
 }
 
 static void clear_error_state(void)
@@ -222,7 +184,7 @@ static void test_error_state_basic(void)
 	clear_error_state();
 	assert_error_state_clear();
 
-	submit_batch(fd, I915_EXEC_RENDER, true);
+	submit_hang(fd, I915_EXEC_RENDER);
 	close(fd);
 
 	assert_error_state_collected();
@@ -276,7 +238,7 @@ static void check_error_state(const int gen,
 			if (!uses_cmd_parser)
 				igt_assert(gtt_offset == expected_offset);
 
-			for (i = 0; i < sizeof(batch) / 4; i++) {
+			for (i = 0; i < 1024; i++) {
 				igt_assert(getline(&line, &line_size, file) > 0);
 				snprintf(expected_line, sizeof(expected_line), "%08x :  %08x",
 					 4*i, batch[i]);
@@ -381,7 +343,7 @@ static void test_error_state_capture(unsigned ring_id,
 	gen = intel_gen(intel_get_drm_devid(fd));
 	cmd_parser = uses_cmd_parser(fd, gen);
 
-	offset = submit_batch(fd, ring_id, true);
+	offset = submit_hang(fd, ring_id);
 	close(fd);
 
 	check_error_state(gen, cmd_parser, ring_name, offset);
