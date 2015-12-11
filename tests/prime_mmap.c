@@ -401,6 +401,30 @@ test_errors(void)
 	gem_close(fd, handle);
 }
 
+/* Test for invalid flags on sync ioctl */
+static void
+test_invalid_sync_flags(void)
+{
+	int i, dma_buf_fd;
+	uint32_t handle;
+	struct local_dma_buf_sync sync;
+	int invalid_flags[] = {-1,
+	                       0x00,
+	                       LOCAL_DMA_BUF_SYNC_RW + 1,
+	                       LOCAL_DMA_BUF_SYNC_VALID_FLAGS_MASK + 1};
+
+	handle = gem_create(fd, BO_SIZE);
+	dma_buf_fd = prime_handle_to_fd(fd, handle);
+	for (i = 0; i < sizeof(invalid_flags) / sizeof(invalid_flags[0]); i++) {
+		memset(&sync, 0, sizeof(sync));
+		sync.flags = invalid_flags[i];
+
+		drmIoctl(dma_buf_fd, LOCAL_DMA_BUF_IOCTL_SYNC, &sync);
+		igt_assert_eq(errno, EINVAL);
+		errno = 0;
+	}
+}
+
 static void
 test_aperture_limit(void)
 {
@@ -473,6 +497,7 @@ igt_main
 		{ "test_dup", test_dup },
 		{ "test_userptr", test_userptr },
 		{ "test_errors", test_errors },
+		{ "test_invalid_sync_flags", test_invalid_sync_flags },
 		{ "test_aperture_limit", test_aperture_limit },
 	};
 	int i;
