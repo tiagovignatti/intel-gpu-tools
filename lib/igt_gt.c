@@ -38,6 +38,10 @@
 #include "intel_reg.h"
 #include "intel_chipset.h"
 
+#if NEW_CONTEXT_PARAM_NO_ERROR_CAPTURE_API
+#define LOCAL_CONTEXT_PARAM_NO_ERROR_CAPTURE 0x4
+#endif
+
 /**
  * SECTION:igt_gt
  * @short_description: GT support library
@@ -109,18 +113,25 @@ void igt_require_hang_ring(int fd, int ring)
 }
 
 /**
- * igt_hang_ring:
+ * igt_hang_ring_ctx:
  * @fd: open i915 drm file descriptor
+ * @ctx: the contxt specifier
  * @ring: execbuf ring flag
+ * @flags: set of flags to control execution
  *
- * This helper function injects a hanging batch into @ring. It returns a
- * #igt_hang_ring_t structure which must be passed to igt_post_hang_ring() for
- * hang post-processing (after the gpu hang interaction has been tested.
+ * This helper function injects a hanging batch associated with @ctx into @ring.
+ * It returns a #igt_hang_ring_t structure which must be passed to
+ * igt_post_hang_ring() for hang post-processing (after the gpu hang
+ * interaction has been tested.
  *
  * Returns:
  * Structure with helper internal state for igt_post_hang_ring().
  */
-igt_hang_ring_t igt_hang_ring(int fd, int ring)
+igt_hang_ring_t igt_hang_ctx(int fd,
+			     uint32_t ctx,
+			     int ring,
+			     unsigned flags,
+			     uint64_t *offset)
 {
 	struct drm_i915_gem_relocation_entry reloc;
 	struct drm_i915_gem_execbuffer2 execbuf;
@@ -132,15 +143,34 @@ igt_hang_ring_t igt_hang_ring(int fd, int ring)
 
 	igt_require_hang_ring(fd, ring);
 
-	param.context = 0;
+	/* One day the kernel ABI will be fixed! */
+	igt_require(ctx == 0 || ring == I915_EXEC_RENDER);
+
+	param.context = ctx;
 	param.size = 0;
+
+	if ((flags & HANG_ALLOW_CAPTURE) == 0) {
+#if NEW_CONTEXT_PARAM_NO_ERROR_CAPTURE_API
+		param.param = LOCAL_CONTEXT_PARAM_NO_ERROR_CAPTURE;
+		param.value = 1;
+		/* Older kernels may not have NO_ERROR_CAPTURE, in which case
+		 * we just eat the error state in post-hang (and hope we eat
+		 * the right one).
+		 */
+		__gem_context_set_param(fd, &param);
+#endif
+	}
+
 	param.param = LOCAL_CONTEXT_PARAM_BAN_PERIOD;
 	param.value = 0;
 	gem_context_get_param(fd, &param);
 	ban = param.value;
 
-	param.value = 0;
-	gem_context_set_param(fd, &param);
+	if ((flags & HANG_ALLOW_BAN) == 0) {
+		param.param = LOCAL_CONTEXT_PARAM_BAN_PERIOD;
+		param.value = 0;
+		gem_context_set_param(fd, &param);
+	}
 
 	memset(&reloc, 0, sizeof(reloc));
 	memset(&exec, 0, sizeof(exec));
@@ -150,6 +180,7 @@ igt_hang_ring_t igt_hang_ring(int fd, int ring)
 	exec.relocation_count = 1;
 	exec.relocs_ptr = (uintptr_t)&reloc;
 
+	memset(b, 0xc5, sizeof(b));
 	len = 2;
 	if (intel_gen(intel_get_drm_devid(fd)) >= 8)
 		len++;
@@ -166,9 +197,39 @@ igt_hang_ring_t igt_hang_ring(int fd, int ring)
 	execbuf.buffer_count = 1;
 	execbuf.batch_len = sizeof(b);
 	execbuf.flags = ring;
+	i915_execbuffer2_set_context_id(execbuf, ctx);
 	gem_execbuf(fd, &execbuf);
 
-	return (struct igt_hang_ring){ exec.handle, ban };
+	if (offset)
+		*offset = exec.offset;
+
+	return (struct igt_hang_ring){ exec.handle, ctx, ban, flags };
+}
+
+/**
+ * igt_hang_ring:
+ * @fd: open i915 drm file descriptor
+ * @ring: execbuf ring flag
+ *
+ * This helper function injects a hanging batch into @ring. It returns a
+ * #igt_hang_ring_t structure which must be passed to igt_post_hang_ring() for
+ * hang post-processing (after the gpu hang interaction has been tested.
+ *
+ * Returns:
+ * Structure with helper internal state for igt_post_hang_ring().
+ */
+igt_hang_ring_t igt_hang_ring(int fd, int ring)
+{
+	return igt_hang_ctx(fd, 0, ring, 0, NULL);
+}
+
+static void eat_error_state(void)
+{
+	int fd;
+
+	fd = igt_debugfs_open("i915_error_state", O_WRONLY);
+	igt_assert(write(fd, "", 1) == 1);
+	close(fd);
 }
 
 /**
@@ -190,11 +251,22 @@ void igt_post_hang_ring(int fd, struct igt_hang_ring arg)
 		       I915_GEM_DOMAIN_GTT, I915_GEM_DOMAIN_GTT);
 	gem_close(fd, arg.handle);
 
-	param.context = 0;
+	param.context = arg.ctx;
 	param.size = 0;
 	param.param = LOCAL_CONTEXT_PARAM_BAN_PERIOD;
 	param.value = arg.ban;
 	gem_context_set_param(fd, &param);
+
+	if ((arg.flags & HANG_ALLOW_CAPTURE) == 0) {
+#if NEW_CONTEXT_PARAM_NO_ERROR_CAPTURE_API
+		param.param = LOCAL_CONTEXT_PARAM_NO_ERROR_CAPTURE;
+		param.value = 0;
+		if (__gem_context_set_param(fd, &param))
+			eat_error_state();
+#else
+		eat_error_state();
+#endif
+	}
 }
 
 /* GPU abusers */

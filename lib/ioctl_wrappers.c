@@ -816,6 +816,16 @@ void gem_context_get_param(int fd, struct local_i915_gem_context_param *p)
 	do_ioctl(fd, LOCAL_IOCTL_I915_GEM_CONTEXT_GETPARAM, p);
 }
 
+int __gem_context_set_param(int fd, struct local_i915_gem_context_param *p)
+{
+#define LOCAL_I915_GEM_CONTEXT_SETPARAM       0x35
+#define LOCAL_IOCTL_I915_GEM_CONTEXT_SETPARAM DRM_IOWR (DRM_COMMAND_BASE + LOCAL_I915_GEM_CONTEXT_SETPARAM, struct local_i915_gem_context_param)
+	if (drmIoctl(fd, LOCAL_IOCTL_I915_GEM_CONTEXT_SETPARAM, p))
+		return -errno;
+
+	errno = 0;
+	return 0;
+}
 /**
  * gem_context_set_param:
  * @fd: open i915 drm file descriptor
@@ -828,9 +838,7 @@ void gem_context_get_param(int fd, struct local_i915_gem_context_param *p)
  */
 void gem_context_set_param(int fd, struct local_i915_gem_context_param *p)
 {
-#define LOCAL_I915_GEM_CONTEXT_SETPARAM       0x35
-#define LOCAL_IOCTL_I915_GEM_CONTEXT_SETPARAM DRM_IOWR (DRM_COMMAND_BASE + LOCAL_I915_GEM_CONTEXT_SETPARAM, struct local_i915_gem_context_param)
-	do_ioctl(fd, LOCAL_IOCTL_I915_GEM_CONTEXT_SETPARAM, p);
+	igt_assert(__gem_context_set_param(fd, p) == 0);
 }
 
 /**
