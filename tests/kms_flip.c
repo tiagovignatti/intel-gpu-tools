@@ -776,72 +776,17 @@ static void set_y_tiling(struct test_output *o, int fb_idx)
 	drmFree(r);
 }
 
-static void stop_rings(bool stop)
+static igt_hang_ring_t hang_gpu(int fd)
 {
-	if (stop)
-		igt_set_stop_rings(STOP_RING_DEFAULTS);
-	else
-		igt_set_stop_rings(STOP_RING_NONE);
+	return igt_hang_ring(fd, I915_EXEC_DEFAULT);
 }
 
-static void eat_error_state(void)
+static void unhang_gpu(int fd, igt_hang_ring_t hang)
 {
-	static const char dfs_entry_error[] = "i915_error_state";
-	static const char data[] = "";
-	int fd;
-
-	fd = igt_debugfs_open(dfs_entry_error, O_WRONLY);
-	igt_assert_lte(0, fd);
-
-	igt_assert(write(fd, data, sizeof(data)) == sizeof(data));
-	close(fd);
-
-	/* and check whether stop_rings is not reset, i.e. the hang has indeed
-	 * happened */
-	igt_assert_f(igt_get_stop_rings() == STOP_RING_NONE,
-		     "no gpu hang detected, stop_rings is still 0x%x\n",
-		     igt_get_stop_rings());
-
-	close(fd);
+	igt_post_hang_ring(fd, hang);
 }
 
-static void unhang_gpu(int fd, uint32_t handle)
-{
-	gem_sync(drm_fd, handle);
-	gem_close(drm_fd, handle);
-	eat_error_state();
-	stop_rings(false);
-}
-
-static uint32_t hang_gpu(int fd)
-{
-	struct drm_i915_gem_execbuffer2 execbuf;
-	struct drm_i915_gem_exec_object2 gem_exec;
-	uint32_t b[2] = {MI_BATCH_BUFFER_END};
-
-	stop_rings(true);
-
-	memset(&gem_exec, 0, sizeof(gem_exec));
-	gem_exec.handle = gem_create(fd, 4096);
-	gem_write(fd, gem_exec.handle, 0, b, sizeof(b));
-
-	memset(&execbuf, 0, sizeof(execbuf));
-	execbuf.buffers_ptr = (uintptr_t)&gem_exec;
-	execbuf.buffer_count = 1;
-	execbuf.batch_len = sizeof(b);
-
-	if (drmIoctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf)) {
-		igt_assert_f(errno == EIO,
-			     "failed to exercise page flip hang recovery\n");
-
-		unhang_gpu(fd, gem_exec.handle);
-		gem_exec.handle = 0;
-	}
-
-	return gem_exec.handle;
-}
-
-static bool is_hung(int fd)
+static bool is_wedged(int fd)
 {
 	if (drmIoctl(fd, DRM_IOCTL_I915_GEM_THROTTLE, 0) == 0)
 		return false;
@@ -883,7 +828,7 @@ static unsigned int run_test_step(struct test_output *o)
 	bool do_vblank;
 	struct vblank_reply vbl_reply;
 	unsigned int target_seq;
-	uint32_t hang = 0;	/* Suppress GCC warning */
+	igt_hang_ring_t hang;
 
 	target_seq = o->vblank_state.seq_step;
 	/* Absolute waits only works once we have a frame counter. */
@@ -989,10 +934,9 @@ static unsigned int run_test_step(struct test_output *o)
 
 	igt_print_activity();
 
-	if (do_flip && (o->flags & TEST_HANG)) {
+	memset(&hang, 0, sizeof(hang));
+	if (do_flip && (o->flags & TEST_HANG))
 		hang = hang_gpu(drm_fd);
-		igt_assert_f(hang, "failed to exercise page flip hang recovery\n");
-	}
 
 	/* try to make sure we can issue two flips during the same frame */
 	if (do_flip && (o->flags & TEST_EBUSY)) {
@@ -1064,8 +1008,7 @@ static unsigned int run_test_step(struct test_output *o)
 	if (do_flip && (o->flags & TEST_EINVAL) && !(o->flags & TEST_FB_BAD_TILING))
 		igt_assert(do_page_flip(o, new_fb_id, true) == expected_einval);
 
-	if (hang)
-		unhang_gpu(drm_fd, hang);
+	unhang_gpu(drm_fd, hang);
 
 	return completed_events;
 }
@@ -1295,13 +1238,12 @@ static unsigned int wait_for_events(struct test_output *o)
 static unsigned event_loop(struct test_output *o, unsigned duration_ms)
 {
 	unsigned long start, end;
-	uint32_t hang = 0;	/* Suppress GCC warning */
+	igt_hang_ring_t hang;
 	int count = 0;
 
-	if (o->flags & TEST_HANG_ONCE) {
+	memset(&hang, 0, sizeof(hang));
+	if (o->flags & TEST_HANG_ONCE)
 		hang = hang_gpu(drm_fd);
-		igt_assert_f(hang, "failed to exercise page flip hang recovery\n");
-	}
 
 	start = gettime_us();
 
@@ -1322,8 +1264,7 @@ static unsigned event_loop(struct test_output *o, unsigned duration_ms)
 
 	end = gettime_us();
 
-	if (hang)
-		unhang_gpu(drm_fd, hang);
+	unhang_gpu(drm_fd, hang);
 
 	/* Flush any remaining events */
 	if (o->pending_events)
@@ -1488,7 +1429,7 @@ static int run_test(int duration, int flags)
 	struct test_output o;
 	int i, n, modes = 0;
 
-	igt_require((flags & TEST_HANG) == 0 || !is_hung(drm_fd));
+	igt_require((flags & TEST_HANG) == 0 || !is_wedged(drm_fd));
 
 	if (flags & TEST_RPM)
 		igt_require(igt_setup_runtime_pm());
@@ -1548,7 +1489,7 @@ static int run_pair(int duration, int flags)
 	struct test_output o;
 	int i, j, m, n, modes = 0;
 
-	igt_require((flags & TEST_HANG) == 0 || !is_hung(drm_fd));
+	igt_require((flags & TEST_HANG) == 0 || !is_wedged(drm_fd));
 
 	resources = drmModeGetResources(drm_fd);
 	igt_assert(resources);
