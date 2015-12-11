@@ -379,15 +379,14 @@ const struct access_mode {
 	},
 };
 
-#define MAX_NUM_BUFFERS 1024
-int num_buffers = MAX_NUM_BUFFERS;
+int num_buffers;
 const int width = 512, height = 512;
 igt_render_copyfunc_t rendercopy;
 
 struct buffers {
 	const struct access_mode *mode;
 	drm_intel_bufmgr *bufmgr;
-	drm_intel_bo *src[MAX_NUM_BUFFERS], *dst[MAX_NUM_BUFFERS];
+	drm_intel_bo **src, **dst;
 	drm_intel_bo *dummy, *spare;
 	int count;
 };
@@ -401,6 +400,10 @@ static void *buffers_init(struct buffers *data,
 
 	data->bufmgr = drm_intel_bufmgr_gem_init(_fd, 4096);
 	igt_assert(data->bufmgr);
+
+	data->src = malloc(2*sizeof(drm_intel_bo *)*num_buffers);
+	igt_assert(data->src);
+	data->dst = data->src + num_buffers;
 
 	drm_intel_bufmgr_gem_enable_reuse(data->bufmgr);
 	return intel_batchbuffer_alloc(data->bufmgr, devid);
@@ -444,6 +447,10 @@ static void buffers_fini(struct buffers *data)
 		return;
 
 	buffers_destroy(data);
+
+	free(data->src);
+	data->src = NULL;
+	data->dst = NULL;
 
 	intel_batchbuffer_free(batch);
 	drm_intel_bufmgr_destroy(data->bufmgr);
@@ -905,17 +912,19 @@ static void run_interruptible(struct buffers *buffers,
 	check_gpu();
 }
 
-static void run_forked(struct buffers *buffers,
-		       do_test do_test_func,
-		       do_copy do_copy_func,
-		       do_hang do_hang_func)
+static void __run_forked(struct buffers *buffers,
+			 int num_children, int loops,
+			 do_test do_test_func,
+			 do_copy do_copy_func,
+			 do_hang do_hang_func)
+
 {
 	const int old_num_buffers = num_buffers;
 
-	num_buffers /= 16;
+	num_buffers /= num_children;
 	num_buffers += 2;
 
-	igt_fork(child, 16) {
+	igt_fork(child, num_children) {
 		/* recreate process local variables */
 		buffers->count = 0;
 		fd = drm_open_driver(DRIVER_INTEL);
@@ -923,7 +932,7 @@ static void run_forked(struct buffers *buffers,
 		batch = buffers_init(buffers, buffers->mode, fd);
 
 		buffers_create(buffers, num_buffers);
-		for (int loop = 0; loop < 10; loop++)
+		for (int loop = 0; loop < loops; loop++)
 			do_test_func(buffers, do_copy_func, do_hang_func);
 
 		buffers_fini(buffers);
@@ -933,6 +942,24 @@ static void run_forked(struct buffers *buffers,
 	check_gpu();
 
 	num_buffers = old_num_buffers;
+}
+
+static void run_forked(struct buffers *buffers,
+		       do_test do_test_func,
+		       do_copy do_copy_func,
+		       do_hang do_hang_func)
+{
+	__run_forked(buffers, sysconf(_SC_NPROCESSORS_ONLN), 10,
+		     do_test_func, do_copy_func, do_hang_func);
+}
+
+static void run_bomb(struct buffers *buffers,
+		     do_test do_test_func,
+		     do_copy do_copy_func,
+		     do_hang do_hang_func)
+{
+	__run_forked(buffers, 8*sysconf(_SC_NPROCESSORS_ONLN), 10,
+		     do_test_func, do_copy_func, do_hang_func);
 }
 
 static void bit17_require(void)
@@ -983,7 +1010,8 @@ static void no_require(void)
 }
 
 static void
-run_basic_modes(const struct access_mode *mode,
+run_basic_modes(const char *prefix,
+		const struct access_mode *mode,
 		const char *suffix,
 		run_wrap run_wrap_func)
 {
@@ -1020,7 +1048,7 @@ run_basic_modes(const struct access_mode *mode,
 				batch = buffers_init(&buffers, mode, fd);
 			}
 
-			igt_subtest_f("%s-%s-sanitycheck%s%s", mode->name, p->prefix, suffix, h->suffix) {
+			igt_subtest_f("%s-%s-%s-sanitycheck%s%s", prefix, mode->name, p->prefix, suffix, h->suffix) {
 				h->require();
 				p->require();
 				buffers_create(&buffers, num_buffers);
@@ -1029,7 +1057,7 @@ run_basic_modes(const struct access_mode *mode,
 			}
 
 			/* try to overwrite the source values */
-			igt_subtest_f("%s-%s-overwrite-source-one%s%s", mode->name, p->prefix, suffix, h->suffix) {
+			igt_subtest_f("%s-%s-%s-overwrite-source-one%s%s", prefix, mode->name, p->prefix, suffix, h->suffix) {
 				h->require();
 				p->require();
 				buffers_create(&buffers, num_buffers);
@@ -1038,7 +1066,7 @@ run_basic_modes(const struct access_mode *mode,
 					      p->copy, h->hang);
 			}
 
-			igt_subtest_f("%s-%s-overwrite-source%s%s", mode->name, p->prefix, suffix, h->suffix) {
+			igt_subtest_f("%s-%s-%s-overwrite-source%s%s", prefix, mode->name, p->prefix, suffix, h->suffix) {
 				h->require();
 				p->require();
 				buffers_create(&buffers, num_buffers);
@@ -1047,7 +1075,7 @@ run_basic_modes(const struct access_mode *mode,
 					      p->copy, h->hang);
 			}
 
-			igt_subtest_f("%s-%s-overwrite-source-read-bcs%s%s", mode->name, p->prefix, suffix, h->suffix) {
+			igt_subtest_f("%s-%s-%s-overwrite-source-read-bcs%s%s", prefix, mode->name, p->prefix, suffix, h->suffix) {
 				h->require();
 				p->require();
 				buffers_create(&buffers, num_buffers);
@@ -1056,7 +1084,7 @@ run_basic_modes(const struct access_mode *mode,
 					      p->copy, h->hang);
 			}
 
-			igt_subtest_f("%s-%s-overwrite-source-read-rcs%s%s", mode->name, p->prefix, suffix, h->suffix) {
+			igt_subtest_f("%s-%s-%s-overwrite-source-read-rcs%s%s", prefix, mode->name, p->prefix, suffix, h->suffix) {
 				h->require();
 				p->require();
 				igt_require(rendercopy);
@@ -1066,7 +1094,7 @@ run_basic_modes(const struct access_mode *mode,
 					      p->copy, h->hang);
 			}
 
-			igt_subtest_f("%s-%s-overwrite-source-rev%s%s", mode->name, p->prefix, suffix, h->suffix) {
+			igt_subtest_f("%s-%s-%s-overwrite-source-rev%s%s", prefix, mode->name, p->prefix, suffix, h->suffix) {
 				h->require();
 				p->require();
 				buffers_create(&buffers, num_buffers);
@@ -1076,7 +1104,7 @@ run_basic_modes(const struct access_mode *mode,
 			}
 
 			/* try to intermix copies with GPU copies*/
-			igt_subtest_f("%s-%s-intermix-rcs%s%s", mode->name, p->prefix, suffix, h->suffix) {
+			igt_subtest_f("%s-%s-%s-intermix-rcs%s%s", prefix, mode->name, p->prefix, suffix, h->suffix) {
 				h->require();
 				p->require();
 				igt_require(rendercopy);
@@ -1085,7 +1113,7 @@ run_basic_modes(const struct access_mode *mode,
 					      do_intermix_rcs,
 					      p->copy, h->hang);
 			}
-			igt_subtest_f("%s-%s-intermix-bcs%s%s", mode->name, p->prefix, suffix, h->suffix) {
+			igt_subtest_f("%s-%s-%s-intermix-bcs%s%s", prefix, mode->name, p->prefix, suffix, h->suffix) {
 				h->require();
 				p->require();
 				igt_require(rendercopy);
@@ -1094,7 +1122,7 @@ run_basic_modes(const struct access_mode *mode,
 					      do_intermix_bcs,
 					      p->copy, h->hang);
 			}
-			igt_subtest_f("%s-%s-intermix-both%s%s", mode->name, p->prefix, suffix, h->suffix) {
+			igt_subtest_f("%s-%s-%s-intermix-both%s%s", prefix, mode->name, p->prefix, suffix, h->suffix) {
 				h->require();
 				p->require();
 				igt_require(rendercopy);
@@ -1105,7 +1133,7 @@ run_basic_modes(const struct access_mode *mode,
 			}
 
 			/* try to read the results before the copy completes */
-			igt_subtest_f("%s-%s-early-read%s%s", mode->name, p->prefix, suffix, h->suffix) {
+			igt_subtest_f("%s-%s-%s-early-read%s%s", prefix, mode->name, p->prefix, suffix, h->suffix) {
 				h->require();
 				p->require();
 				buffers_create(&buffers, num_buffers);
@@ -1115,7 +1143,7 @@ run_basic_modes(const struct access_mode *mode,
 			}
 
 			/* concurrent reads */
-			igt_subtest_f("%s-%s-read-read-bcs%s%s", mode->name, p->prefix, suffix, h->suffix) {
+			igt_subtest_f("%s-%s-%s-read-read-bcs%s%s", prefix, mode->name, p->prefix, suffix, h->suffix) {
 				h->require();
 				p->require();
 				buffers_create(&buffers, num_buffers);
@@ -1123,7 +1151,7 @@ run_basic_modes(const struct access_mode *mode,
 					      do_read_read_bcs,
 					      p->copy, h->hang);
 			}
-			igt_subtest_f("%s-%s-read-read-rcs%s%s", mode->name, p->prefix, suffix, h->suffix) {
+			igt_subtest_f("%s-%s-%s-read-read-rcs%s%s", prefix, mode->name, p->prefix, suffix, h->suffix) {
 				h->require();
 				p->require();
 				igt_require(rendercopy);
@@ -1134,7 +1162,7 @@ run_basic_modes(const struct access_mode *mode,
 			}
 
 			/* split copying between rings */
-			igt_subtest_f("%s-%s-write-read-bcs%s%s", mode->name, p->prefix, suffix, h->suffix) {
+			igt_subtest_f("%s-%s-%s-write-read-bcs%s%s", prefix, mode->name, p->prefix, suffix, h->suffix) {
 				h->require();
 				p->require();
 				buffers_create(&buffers, num_buffers);
@@ -1142,7 +1170,7 @@ run_basic_modes(const struct access_mode *mode,
 					      do_write_read_bcs,
 					      p->copy, h->hang);
 			}
-			igt_subtest_f("%s-%s-write-read-rcs%s%s", mode->name, p->prefix, suffix, h->suffix) {
+			igt_subtest_f("%s-%s-%s-write-read-rcs%s%s", prefix, mode->name, p->prefix, suffix, h->suffix) {
 				h->require();
 				p->require();
 				igt_require(rendercopy);
@@ -1153,7 +1181,7 @@ run_basic_modes(const struct access_mode *mode,
 			}
 
 			/* and finally try to trick the kernel into loosing the pending write */
-			igt_subtest_f("%s-%s-gpu-read-after-write%s%s", mode->name, p->prefix, suffix, h->suffix) {
+			igt_subtest_f("%s-%s-%s-gpu-read-after-write%s%s", prefix, mode->name, p->prefix, suffix, h->suffix) {
 				h->require();
 				p->require();
 				buffers_create(&buffers, num_buffers);
@@ -1170,24 +1198,28 @@ run_basic_modes(const struct access_mode *mode,
 }
 
 static void
-run_modes(const struct access_mode *mode)
+run_modes(const char *style, const struct access_mode *mode)
 {
+	igt_debug("%s: using 2x%d buffers, each 1MiB\n", style, num_buffers);
+	intel_require_memory(2*num_buffers, 1024*1024, CHECK_RAM);
+
 	if (all) {
-		run_basic_modes(mode, "", run_single);
+		run_basic_modes(style, mode, "", run_single);
 
 		igt_fork_signal_helper();
-		run_basic_modes(mode, "-interruptible", run_interruptible);
+		run_basic_modes(style, mode, "-interruptible", run_interruptible);
 		igt_stop_signal_helper();
 	}
 
 	igt_fork_signal_helper();
-	run_basic_modes(mode, "-forked", run_forked);
+	run_basic_modes(style, mode, "-forked", run_forked);
+	run_basic_modes(style, mode, "-bomb", run_bomb);
 	igt_stop_signal_helper();
 }
 
 igt_main
 {
-	int max, i;
+	int i;
 
 	igt_skip_on_simulation();
 
@@ -1199,18 +1231,26 @@ igt_main
 		devid = intel_get_drm_devid(fd);
 		gen = intel_gen(devid);
 		rendercopy = igt_get_render_copyfunc(devid);
+	}
 
-		max = gem_aperture_size (fd) / (1024 * 1024) / 2;
-		if (num_buffers > max)
-			num_buffers = max;
-
-		max = intel_get_total_ram_mb() * 3 / 4;
-		if (num_buffers > max)
-			num_buffers = max;
-		num_buffers /= 2;
-		igt_info("using 2x%d buffers, each 1MiB\n", num_buffers);
+	igt_fixture {
+		num_buffers = gem_mappable_aperture_size() / (1024 * 1024) / 4;
 	}
 
 	for (i = 0; i < ARRAY_SIZE(access_modes); i++)
-		run_modes(&access_modes[i]);
+		run_modes("small", &access_modes[i]);
+
+	igt_fixture {
+		num_buffers = gem_mappable_aperture_size() / (1024 * 1024);
+	}
+
+	for (i = 0; i < ARRAY_SIZE(access_modes); i++)
+		run_modes("thrash", &access_modes[i]);
+
+	igt_fixture {
+		num_buffers = gem_aperture_size(fd) / (1024 * 1024);
+	}
+
+	for (i = 0; i < ARRAY_SIZE(access_modes); i++)
+		run_modes("full", &access_modes[i]);
 }
