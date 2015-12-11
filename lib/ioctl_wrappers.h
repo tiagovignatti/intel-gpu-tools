@@ -148,6 +148,19 @@ void gem_require_caching(int fd);
 void gem_require_ring(int fd, int ring_id);
 
 /* prime */
+struct local_dma_buf_sync {
+	uint64_t flags;
+};
+
+#define LOCAL_DMA_BUF_SYNC_RW        (3 << 0)
+#define LOCAL_DMA_BUF_SYNC_START     (0 << 2)
+#define LOCAL_DMA_BUF_SYNC_END       (1 << 2)
+#define DMA_BUF_SYNC_VALID_FLAGS_MASK \
+		(DMA_BUF_SYNC_RW | DMA_BUF_SYNC_END)
+
+#define LOCAL_DMA_BUF_BASE 'b'
+#define LOCAL_DMA_BUF_IOCTL_SYNC _IOW(LOCAL_DMA_BUF_BASE, 0, struct local_dma_buf_sync)
+
 int prime_handle_to_fd(int fd, uint32_t handle);
 #ifndef DRM_RDWR
 #define DRM_RDWR O_RDWR
@@ -155,6 +168,8 @@ int prime_handle_to_fd(int fd, uint32_t handle);
 int prime_handle_to_fd_for_mmap(int fd, uint32_t handle);
 uint32_t prime_fd_to_handle(int fd, int dma_buf_fd);
 off_t prime_get_size(int dma_buf_fd);
+void prime_sync_start(int dma_buf_fd);
+void prime_sync_end(int dma_buf_fd);
 
 /* addfb2 fb modifiers */
 struct local_drm_mode_fb_cmd2 {
