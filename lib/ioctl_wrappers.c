@@ -1241,6 +1241,7 @@ void gem_require_caching(int fd)
 void gem_require_ring(int fd, int ring_id)
 {
 	switch (ring_id) {
+	case I915_EXEC_DEFAULT:
 	case I915_EXEC_RENDER:
 		return;
 	case I915_EXEC_BLT:
@@ -1255,6 +1256,7 @@ void gem_require_ring(int fd, int ring_id)
 		return;
 #endif
 	default:
+		igt_warn("Invalid ring: %d\n", ring_id);
 		igt_assert(0);
 		return;
 	}

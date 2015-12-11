@@ -30,6 +30,7 @@
 #include <fcntl.h>
 
 #include "drmtest.h"
+#include "igt_aux.h"
 #include "igt_core.h"
 #include "igt_gt.h"
 #include "igt_debugfs.h"
@@ -50,17 +51,21 @@
 
 static bool has_gpu_reset(int fd)
 {
-	struct drm_i915_getparam gp;
-	int val = 0;
+	static int once = -1;
+	if (once < 0) {
+		struct drm_i915_getparam gp;
+		int val = 0;
 
-	memset(&gp, 0, sizeof(gp));
-	gp.param = 35; /* HAS_GPU_RESET */
-	gp.value = &val;
+		memset(&gp, 0, sizeof(gp));
+		gp.param = 35; /* HAS_GPU_RESET */
+		gp.value = &val;
 
-	if (ioctl(fd, DRM_IOCTL_I915_GETPARAM, &gp))
-		return intel_gen(intel_get_drm_devid(fd)) >= 5;
-
-	return val > 0;
+		if (ioctl(fd, DRM_IOCTL_I915_GETPARAM, &gp))
+			once = intel_gen(intel_get_drm_devid(fd)) >= 5;
+		else
+			once = val > 0;
+	}
+	return once;
 }
 
 /**
@@ -71,11 +76,36 @@ static bool has_gpu_reset(int fd)
  * Convenience helper to check whether advanced hang injection is supported by
  * the kernel. Uses igt_skip to automatically skip the test/subtest if this
  * isn't the case.
+ *
+ * Note that we can't simply just call this from igt_hang_ring since some
+ * tests want to exercise gpu wedging behavior. For which we intentionally
+ * disable gpu reset support, but still want to inject a hang, see for example
+ * tests/gem_eio.c Instead, we expect that the first invocation of
+ * igt_require_hand_ring be from a vanilla context and use the has_gpu_reset()
+ * determined then for all later instances. This allows us the convenience
+ * of double checking when injecting hangs, whilst pushing the complexity
+ * to the tests that are deliberating trying to break the box.
+ *
+ * This function is also controlled by the environment variables:
+ *
+ * IGT_HANG (boolean) - if false, skip all tests that try to inject a hang.
+ * Default: true
+ *
+ * IGT_HANG_WITHOUT_RESET (boolean) - if true, allow the hang even if the
+ * kernel does not support GPU recovery. The machine will be wedged afterwards
+ * (and so require a reboot between testing), but it does allow limited testing
+ * to be done under hang injection.
+ * Default: false
  */
 void igt_require_hang_ring(int fd, int ring)
 {
+	if (!igt_check_boolean_env_var("IGT_HANG", true))
+		igt_skip("hang injection disabled by user");
+
+	gem_require_ring(fd, ring);
 	gem_context_require_ban_period(fd);
-	igt_require(has_gpu_reset(fd));
+	if (!igt_check_boolean_env_var("IGT_HANG_WITHOUT_RESET", false))
+		igt_require(has_gpu_reset(fd));
 }
 
 /**
@@ -99,6 +129,8 @@ igt_hang_ring_t igt_hang_ring(int fd, int ring)
 	uint32_t b[8];
 	unsigned ban;
 	unsigned len;
+
+	igt_require_hang_ring(fd, ring);
 
 	param.context = 0;
 	param.size = 0;
