@@ -47,6 +47,7 @@
 #define RS_BATCH_PENDING (1 << 1)
 #define RS_UNKNOWN       (1 << 2)
 
+
 static uint32_t devid;
 
 struct local_drm_i915_reset_stats {
@@ -64,65 +65,76 @@ struct local_drm_i915_reset_stats {
 
 #define LOCAL_I915_EXEC_VEBOX	(4 << 0)
 
-struct target_ring;
-
-static bool gem_has_render(int fd)
-{
-	return true;
-}
-
-static const struct target_ring {
-	uint32_t exec;
-	bool (*present)(int fd);
-	const char *name;
-} rings[] = {
-	{ I915_EXEC_RENDER, gem_has_render, "render" },
-	{ I915_EXEC_BLT, gem_has_blt, "blt" },
-	{ I915_EXEC_BSD, gem_has_bsd, "bsd" },
-	{ LOCAL_I915_EXEC_VEBOX, gem_has_vebox, "vebox" },
-};
-
-static void check_context(const struct target_ring *ring)
+static void sync_gpu(void)
 {
 	int fd = drm_open_driver(DRIVER_INTEL);
-
-	gem_context_destroy(fd,
-			    gem_context_create(fd));
+	gem_quiescent_gpu(fd);
 	close(fd);
-
-	igt_require(ring->exec == I915_EXEC_RENDER);
 }
 
-#define NUM_RINGS (sizeof(rings)/sizeof(struct target_ring))
+static int noop(int fd, uint32_t ctx, const struct intel_execution_engine *e)
+{
+	const uint32_t bbe = MI_BATCH_BUFFER_END;
+	struct drm_i915_gem_execbuffer2 eb;
+	struct drm_i915_gem_exec_object2 exec;
+	int ret;
 
-static const struct target_ring *current_ring;
+	memset(&exec, 0, sizeof(exec));
+	exec.handle = gem_create(fd, 4096);
+	igt_assert((int)exec.handle > 0);
+	gem_write(fd, exec.handle, 0, &bbe, sizeof(bbe));
+
+	memset(&eb, 0, sizeof(eb));
+	eb.buffers_ptr = (uintptr_t)&exec;
+	eb.buffer_count = 1;
+	eb.flags = e->exec_id | e->flags;
+	i915_execbuffer2_set_context_id(eb, ctx);
+
+	ret = __gem_execbuf(fd, &eb);
+	if (ret < 0) {
+		gem_close(fd, exec.handle);
+		return ret;
+	}
+
+	return exec.handle;
+}
+
+static int has_engine(int fd,
+		      uint32_t ctx,
+		      const struct intel_execution_engine *e)
+{
+	int handle = noop(fd, ctx, e);
+	if (handle < 0)
+		return 0;
+	gem_close(fd, handle);
+	return 1;
+}
+
+static void check_context(const struct intel_execution_engine *e)
+{
+	int fd = drm_open_driver(DRIVER_INTEL);
+	igt_require(has_engine(fd, gem_context_create(fd), e));
+	close(fd);
+}
 
 static int gem_reset_stats(int fd, int ctx_id,
 			   struct local_drm_i915_reset_stats *rs)
 {
-	int ret;
-
+	memset(rs, 0, sizeof(*rs));
 	rs->ctx_id = ctx_id;
-	rs->flags = 0;
-	rs->reset_count = rand();
-	rs->batch_active = rand();
-	rs->batch_pending = rand();
-	rs->pad = 0;
+	rs->reset_count = -1;
 
-	do {
-		ret = ioctl(fd, GET_RESET_STATS_IOCTL, rs);
-	} while (ret == -1 && (errno == EINTR || errno == EAGAIN));
-
-	if (ret < 0)
+	if (drmIoctl(fd, GET_RESET_STATS_IOCTL, rs))
 		return -errno;
 
+	igt_assert(rs->reset_count != -1);
 	return 0;
 }
 
 static int gem_reset_status(int fd, int ctx_id)
 {
-	int ret;
 	struct local_drm_i915_reset_stats rs;
+	int ret;
 
 	ret = gem_reset_stats(fd, ctx_id, &rs);
 	if (ret)
@@ -136,175 +148,47 @@ static int gem_reset_status(int fd, int ctx_id)
 	return RS_NO_ERROR;
 }
 
-static int exec_valid_ring(int fd, int ctx, int ring)
+#define BAN HANG_ALLOW_BAN
+#define ASYNC 2
+static void inject_hang(int fd, uint32_t ctx,
+			const struct intel_execution_engine *e,
+			unsigned flags)
 {
-	struct drm_i915_gem_execbuffer2 execbuf;
-	struct drm_i915_gem_exec_object2 exec;
-	int ret;
+	igt_hang_ring_t hang;
 
-	uint32_t buf[2] = { MI_BATCH_BUFFER_END, 0 };
-
-	exec.handle = gem_create(fd, 4096);
-	gem_write(fd, exec.handle, 0, buf, sizeof(buf));
-	exec.relocation_count = 0;
-	exec.relocs_ptr = 0;
-	exec.alignment = 0;
-	exec.offset = 0;
-	exec.flags = 0;
-	exec.rsvd1 = 0;
-	exec.rsvd2 = 0;
-
-	execbuf.buffers_ptr = (uintptr_t)&exec;
-	execbuf.buffer_count = 1;
-	execbuf.batch_start_offset = 0;
-	execbuf.batch_len = sizeof(buf);
-	execbuf.cliprects_ptr = 0;
-	execbuf.num_cliprects = 0;
-	execbuf.DR1 = 0;
-	execbuf.DR4 = 0;
-	execbuf.flags = ring;
-	i915_execbuffer2_set_context_id(execbuf, ctx);
-	execbuf.rsvd2 = 0;
-
-	ret = __gem_execbuf(fd, &execbuf);
-	if (ret < 0)
-		return ret;
-
-	return exec.handle;
+	hang = igt_hang_ctx(fd, ctx, e->exec_id | e->flags, flags & BAN, NULL);
+	if ((flags & ASYNC) == 0)
+		igt_post_hang_ring(fd, hang);
 }
 
-static int exec_valid(int fd, int ctx)
+static const char *status_to_string(int x)
 {
-	return exec_valid_ring(fd, ctx, current_ring->exec);
+	const char *strings[] = {
+		"No error",
+		"Guilty",
+		"Pending",
+	};
+	if (x >= ARRAY_SIZE(strings))
+		return "Unknown";
+	return strings[x];
 }
 
-#define BUFSIZE (4 * 1024)
-#define ITEMS   (BUFSIZE >> 2)
-
-static int inject_hang_ring(int fd, int ctx, int ring, bool ignore_ban_error)
-{
-	struct drm_i915_gem_execbuffer2 execbuf;
-	struct drm_i915_gem_exec_object2 exec;
-	uint64_t gtt_off;
-	uint32_t *buf;
-	int roff, i;
-	unsigned cmd_len = 2;
-	enum stop_ring_flags flags;
-
-	srandom(time(NULL));
-
-	if (intel_gen(devid) >= 8)
-		cmd_len = 3;
-
-	buf = malloc(BUFSIZE);
-	igt_assert(buf != NULL);
-
-	buf[0] = MI_BATCH_BUFFER_END;
-	buf[1] = MI_NOOP;
-
-	exec.handle = gem_create(fd, BUFSIZE);
-	gem_write(fd, exec.handle, 0, buf, BUFSIZE);
-	exec.relocation_count = 0;
-	exec.relocs_ptr = 0;
-	exec.alignment = 0;
-	exec.offset = 0;
-	exec.flags = 0;
-	exec.rsvd1 = 0;
-	exec.rsvd2 = 0;
-
-	execbuf.buffers_ptr = (uintptr_t)&exec;
-	execbuf.buffer_count = 1;
-	execbuf.batch_start_offset = 0;
-	execbuf.batch_len = BUFSIZE;
-	execbuf.cliprects_ptr = 0;
-	execbuf.num_cliprects = 0;
-	execbuf.DR1 = 0;
-	execbuf.DR4 = 0;
-	execbuf.flags = ring;
-	i915_execbuffer2_set_context_id(execbuf, ctx);
-	execbuf.rsvd2 = 0;
-
-	gem_execbuf(fd, &execbuf);
-	gtt_off = exec.offset;
-
-	for (i = 0; i < ITEMS; i++)
-		buf[i] = MI_NOOP;
-
-	roff = random() % (ITEMS - cmd_len - 1);
-	buf[roff] = MI_BATCH_BUFFER_START | (cmd_len - 2);
-	buf[roff + 1] = (gtt_off & 0xfffffffc) + (roff << 2);
-	if (cmd_len == 3)
-		buf[roff + 2] = (gtt_off & 0xffffffff00000000ull) >> 32;
-
-	buf[roff + cmd_len] = MI_BATCH_BUFFER_END;
-
-	igt_debug("loop injected at 0x%lx (off 0x%x, bo_start 0x%lx, bo_end 0x%lx)\n",
-		  (long unsigned int)((roff << 2) + gtt_off),
-		  roff << 2, (long unsigned int)gtt_off,
-		  (long unsigned int)(gtt_off + BUFSIZE - 1));
-	gem_write(fd, exec.handle, 0, buf, BUFSIZE);
-
-	exec.relocation_count = 0;
-	exec.relocs_ptr = 0;
-	exec.alignment = 0;
-	exec.offset = 0;
-	exec.flags = 0;
-	exec.rsvd1 = 0;
-	exec.rsvd2 = 0;
-
-	execbuf.buffers_ptr = (uintptr_t)&exec;
-	execbuf.buffer_count = 1;
-	execbuf.batch_start_offset = 0;
-	execbuf.batch_len = BUFSIZE;
-	execbuf.cliprects_ptr = 0;
-	execbuf.num_cliprects = 0;
-	execbuf.DR1 = 0;
-	execbuf.DR4 = 0;
-	execbuf.flags = ring;
-	i915_execbuffer2_set_context_id(execbuf, ctx);
-	execbuf.rsvd2 = 0;
-
-	gem_execbuf(fd, &execbuf);
-	igt_assert(gtt_off == exec.offset);
-
-	free(buf);
-
-	flags = igt_to_stop_ring_flag(ring);
-
-	flags |= STOP_RING_ALLOW_BAN;
-
-	if (!ignore_ban_error)
-		flags |= STOP_RING_ALLOW_ERRORS;
-
-	igt_set_stop_rings(flags);
-
-	return exec.handle;
-}
-
-static int inject_hang(int fd, int ctx)
-{
-	return inject_hang_ring(fd, ctx, current_ring->exec, false);
-}
-
-static int inject_hang_no_ban_error(int fd, int ctx)
-{
-	return inject_hang_ring(fd, ctx, current_ring->exec, true);
-}
-
-static int _assert_reset_status(int fd, int ctx, int status)
+static int _assert_reset_status(int idx, int fd, int ctx, int status)
 {
 	int rs;
 
 	rs = gem_reset_status(fd, ctx);
 	if (rs < 0) {
 		igt_info("reset status for %d ctx %d returned %d\n",
-			 fd, ctx, rs);
+			 idx, ctx, rs);
 		return rs;
 	}
 
 	if (rs != status) {
-		igt_info("%d:%d reset status %d differs from assumed %d\n",
-			 fd, ctx, rs, status);
+		igt_info("%d:%d expected '%s' [%d], found '%s' [%d]\n",
+			 idx, ctx,
+			 status_to_string(status), status,
+			 status_to_string(rs), rs);
 
 		return 1;
 	}
@@ -312,62 +196,59 @@ static int _assert_reset_status(int fd, int ctx, int status)
 	return 0;
 }
 
-#define assert_reset_status(fd, ctx, status) \
-	igt_assert(_assert_reset_status(fd, ctx, status) == 0)
+#define assert_reset_status(idx, fd, ctx, status) \
+	igt_assert(_assert_reset_status(idx, fd, ctx, status) == 0)
 
-static void test_rs(int num_fds, int hang_index, int rs_assumed_no_hang)
+static void test_rs(const struct intel_execution_engine *e,
+		    int num_fds, int hang_index, int rs_assumed_no_hang)
 {
-	int i;
 	int fd[MAX_FD];
-	int h[MAX_FD];
+	int i;
 
 	igt_assert_lte(num_fds, MAX_FD);
 	igt_assert_lt(hang_index, MAX_FD);
 
+	igt_debug("num fds=%d, hang index=%d\n", num_fds, hang_index);
+
 	for (i = 0; i < num_fds; i++) {
 		fd[i] = drm_open_driver(DRIVER_INTEL);
-		igt_assert(fd[i]);
+		assert_reset_status(i, fd[i], 0, RS_NO_ERROR);
 	}
 
-	for (i = 0; i < num_fds; i++)
-		assert_reset_status(fd[i], 0, RS_NO_ERROR);
-
+	sync_gpu();
 	for (i = 0; i < num_fds; i++) {
 		if (i == hang_index)
-			h[i] = inject_hang(fd[i], 0);
+			inject_hang(fd[i], 0, e, ASYNC);
 		else
-			h[i] = exec_valid(fd[i], 0);
+			igt_assert(noop(fd[i], 0, e) > 0);
 	}
-
-	gem_sync(fd[num_fds - 1], h[num_fds - 1]);
+	sync_gpu();
 
 	for (i = 0; i < num_fds; i++) {
 		if (hang_index < 0) {
-			assert_reset_status(fd[i], 0, rs_assumed_no_hang);
+			assert_reset_status(i, fd[i], 0, rs_assumed_no_hang);
 			continue;
 		}
 
 		if (i < hang_index)
-			assert_reset_status(fd[i], 0, RS_NO_ERROR);
+			assert_reset_status(i, fd[i], 0, RS_NO_ERROR);
 		if (i == hang_index)
-			assert_reset_status(fd[i], 0, RS_BATCH_ACTIVE);
+			assert_reset_status(i, fd[i], 0, RS_BATCH_ACTIVE);
 		if (i > hang_index)
-			assert_reset_status(fd[i], 0, RS_BATCH_PENDING);
+			assert_reset_status(i, fd[i], 0, RS_BATCH_PENDING);
 	}
 
-	for (i = 0; i < num_fds; i++) {
-		gem_close(fd[i], h[i]);
+	for (i = 0; i < num_fds; i++)
 		close(fd[i]);
-	}
 }
 
 #define MAX_CTX 100
-static void test_rs_ctx(int num_fds, int num_ctx, int hang_index,
+static void test_rs_ctx(const struct intel_execution_engine *e,
+			int num_fds, int num_ctx, int hang_index,
 			int hang_context)
 {
 	int i, j;
 	int fd[MAX_FD];
-	int h[MAX_FD][MAX_CTX];
 	int ctx[MAX_FD][MAX_CTX];
 
 	igt_assert_lte(num_fds, MAX_FD);
@@ -376,287 +257,210 @@ static void test_rs_ctx(int num_fds, int num_ctx, int hang_index,
 	igt_assert_lte(num_ctx, MAX_CTX);
 	igt_assert_lt(hang_context, MAX_CTX);
 
-	test_rs(num_fds, -1, RS_NO_ERROR);
+	test_rs(e, num_fds, -1, RS_NO_ERROR);
 
 	for (i = 0; i < num_fds; i++) {
 		fd[i] = drm_open_driver(DRIVER_INTEL);
 		igt_assert(fd[i]);
-		assert_reset_status(fd[i], 0, RS_NO_ERROR);
+		assert_reset_status(i, fd[i], 0, RS_NO_ERROR);
 
 		for (j = 0; j < num_ctx; j++) {
 			ctx[i][j] = gem_context_create(fd[i]);
-
 		}
 
-		assert_reset_status(fd[i], 0, RS_NO_ERROR);
+		assert_reset_status(i, fd[i], 0, RS_NO_ERROR);
 	}
 
 	for (i = 0; i < num_fds; i++) {
-
-		assert_reset_status(fd[i], 0, RS_NO_ERROR);
+		assert_reset_status(i, fd[i], 0, RS_NO_ERROR);
 
 		for (j = 0; j < num_ctx; j++)
-			assert_reset_status(fd[i], ctx[i][j], RS_NO_ERROR);
+			assert_reset_status(i, fd[i], ctx[i][j], RS_NO_ERROR);
 
-		assert_reset_status(fd[i], 0, RS_NO_ERROR);
+		assert_reset_status(i, fd[i], 0, RS_NO_ERROR);
 	}
 
 	for (i = 0; i < num_fds; i++) {
 		for (j = 0; j < num_ctx; j++) {
 			if (i == hang_index && j == hang_context)
-				h[i][j] = inject_hang(fd[i], ctx[i][j]);
+				inject_hang(fd[i], ctx[i][j], e, ASYNC);
 			else
-				h[i][j] = exec_valid(fd[i], ctx[i][j]);
+				igt_assert(noop(fd[i], ctx[i][j], e) > 0);
 		}
 	}
-
-	gem_sync(fd[num_fds - 1], ctx[num_fds - 1][num_ctx - 1]);
+	sync_gpu();
 
 	for (i = 0; i < num_fds; i++)
-		assert_reset_status(fd[i], 0, RS_NO_ERROR);
+		assert_reset_status(i, fd[i], 0, RS_NO_ERROR);
 
 	for (i = 0; i < num_fds; i++) {
 		for (j = 0; j < num_ctx; j++) {
 			if (i < hang_index)
-				assert_reset_status(fd[i], ctx[i][j], RS_NO_ERROR);
+				assert_reset_status(i, fd[i], ctx[i][j], RS_NO_ERROR);
 			if (i == hang_index && j < hang_context)
-				assert_reset_status(fd[i], ctx[i][j], RS_NO_ERROR);
+				assert_reset_status(i, fd[i], ctx[i][j], RS_NO_ERROR);
 			if (i == hang_index && j == hang_context)
-				assert_reset_status(fd[i], ctx[i][j],
+				assert_reset_status(i, fd[i], ctx[i][j],
 						    RS_BATCH_ACTIVE);
 			if (i == hang_index && j > hang_context)
-				assert_reset_status(fd[i], ctx[i][j],
+				assert_reset_status(i, fd[i], ctx[i][j],
 						    RS_BATCH_PENDING);
 			if (i > hang_index)
-				assert_reset_status(fd[i], ctx[i][j],
+				assert_reset_status(i, fd[i], ctx[i][j],
 						    RS_BATCH_PENDING);
 		}
 	}
 
 	for (i = 0; i < num_fds; i++) {
-		for (j = 0; j < num_ctx; j++) {
-			gem_close(fd[i], h[i][j]);
-			gem_context_destroy(fd[i], ctx[i][j]);
-		}
-
-		assert_reset_status(fd[i], 0, RS_NO_ERROR);
-
+		assert_reset_status(i, fd[i], 0, RS_NO_ERROR);
 		close(fd[i]);
 	}
 }
 
-static void test_ban(void)
+static void test_ban(const struct intel_execution_engine *e)
 {
-	int h1,h2,h3,h4,h5,h6,h7;
-	int fd_bad, fd_good;
-	int retry = 10;
-	int active_count = 0, pending_count = 0;
 	struct local_drm_i915_reset_stats rs_bad, rs_good;
+	int fd_bad, fd_good;
+	int ban, retry = 10;
+	int active_count = 0, pending_count = 0;
 
 	fd_bad = drm_open_driver(DRIVER_INTEL);
-
 	fd_good = drm_open_driver(DRIVER_INTEL);
 
-	assert_reset_status(fd_bad, 0, RS_NO_ERROR);
-	assert_reset_status(fd_good, 0, RS_NO_ERROR);
+	assert_reset_status(fd_bad, fd_bad, 0, RS_NO_ERROR);
+	assert_reset_status(fd_good, fd_good, 0, RS_NO_ERROR);
 
-	h1 = exec_valid(fd_bad, 0);
-	igt_assert_lte(0, h1);
-	h5 = exec_valid(fd_good, 0);
-	igt_assert_lte(0, h5);
+	noop(fd_bad, 0, e);
+	noop(fd_good, 0, e);
 
-	assert_reset_status(fd_bad, 0, RS_NO_ERROR);
-	assert_reset_status(fd_good, 0, RS_NO_ERROR);
+	assert_reset_status(fd_bad, fd_bad, 0, RS_NO_ERROR);
+	assert_reset_status(fd_good, fd_good, 0, RS_NO_ERROR);
 
-	h2 = inject_hang_no_ban_error(fd_bad, 0);
-	igt_assert_lte(0, h2);
+	inject_hang(fd_bad, 0, e, BAN | ASYNC);
 	active_count++;
-	/* Second hang will be pending for this */
-	pending_count++;
 
-	h6 = exec_valid(fd_good, 0);
-	h7 = exec_valid(fd_good, 0);
+	noop(fd_good, 0, e);
+	noop(fd_good, 0, e);
 
-        while (retry--) {
-                h3 = inject_hang_no_ban_error(fd_bad, 0);
-                igt_assert_lte(0, h3);
-                gem_sync(fd_bad, h3);
+	/* The second hang will count as pending and be discarded */
+	active_count--;
+	pending_count += 2; /* inject hang does 2 execs (query, then hang) */
+	while (retry--) {
+		inject_hang(fd_bad, 0, e, BAN);
 		active_count++;
-		/* This second hand will count as pending */
-                assert_reset_status(fd_bad, 0, RS_BATCH_ACTIVE);
 
-                h4 = exec_valid(fd_bad, 0);
-                if (h4 == -EIO) {
-                        gem_close(fd_bad, h3);
-                        break;
-                }
+		ban = noop(fd_bad, 0, e);
+		if (ban == -EIO)
+			break;
 
-                /* Should not happen often but sometimes hang is declared too slow
-                 * due to our way of faking hang using loop */
+		/* Should not happen often but sometimes hang is declared too
+		 * slow due to our way of faking hang using loop */
+		gem_close(fd_bad, ban);
 
-                igt_assert_lte(0, h4);
-                gem_close(fd_bad, h3);
-                gem_close(fd_bad, h4);
+		igt_info("retrying for ban (%d)\n", retry);
+	}
+	igt_assert_eq(ban, -EIO);
+	igt_assert_lt(0, noop(fd_good, 0, e));
 
-                igt_info("retrying for ban (%d)\n", retry);
-        }
-
-	igt_assert_eq(h4, -EIO);
-	assert_reset_status(fd_bad, 0, RS_BATCH_ACTIVE);
-
-	gem_sync(fd_good, h7);
-	assert_reset_status(fd_good, 0, RS_BATCH_PENDING);
-
-	igt_assert_eq(gem_reset_stats(fd_good, 0, &rs_good), 0);
+	assert_reset_status(fd_bad, fd_bad, 0, RS_BATCH_ACTIVE);
 	igt_assert_eq(gem_reset_stats(fd_bad, 0, &rs_bad), 0);
+	igt_assert_eq(rs_bad.batch_active, active_count);
+	igt_assert_eq(rs_bad.batch_pending, pending_count);
 
-	igt_assert(rs_bad.batch_active == active_count);
-	igt_assert(rs_bad.batch_pending == pending_count);
-	igt_assert(rs_good.batch_active == 0);
-	igt_assert(rs_good.batch_pending == 2);
-
-	gem_close(fd_bad, h1);
-	gem_close(fd_bad, h2);
-	gem_close(fd_good, h6);
-	gem_close(fd_good, h7);
-
-	h1 = exec_valid(fd_good, 0);
-	igt_assert_lte(0, h1);
-	gem_close(fd_good, h1);
+	assert_reset_status(fd_good, fd_good, 0, RS_BATCH_PENDING);
+	igt_assert_eq(gem_reset_stats(fd_good, 0, &rs_good), 0);
+	igt_assert_eq(rs_good.batch_active, 0);
+	igt_assert_eq(rs_good.batch_pending, 2);
 
 	close(fd_bad);
 	close(fd_good);
-
-	igt_assert_lt(gem_reset_status(fd_bad, 0), 0);
-	igt_assert_lt(gem_reset_status(fd_good, 0), 0);
 }
 
-static void test_ban_ctx(void)
+static void test_ban_ctx(const struct intel_execution_engine *e)
 {
-	int h1,h2,h3,h4,h5,h6,h7;
-	int ctx_good, ctx_bad;
-	int fd;
-	int retry = 10;
-	int active_count = 0, pending_count = 0;
 	struct local_drm_i915_reset_stats rs_bad, rs_good;
+	int fd, ban, retry = 10;
+	uint32_t ctx_good, ctx_bad;
+	int active_count = 0, pending_count = 0;
 
 	fd = drm_open_driver(DRIVER_INTEL);
 
-	assert_reset_status(fd, 0, RS_NO_ERROR);
+	assert_reset_status(fd, fd, 0, RS_NO_ERROR);
 
 	ctx_good = gem_context_create(fd);
 	ctx_bad = gem_context_create(fd);
 
-	assert_reset_status(fd, 0, RS_NO_ERROR);
-	assert_reset_status(fd, ctx_good, RS_NO_ERROR);
-	assert_reset_status(fd, ctx_bad, RS_NO_ERROR);
+	assert_reset_status(fd, fd, 0, RS_NO_ERROR);
+	assert_reset_status(fd, fd, ctx_good, RS_NO_ERROR);
+	assert_reset_status(fd, fd, ctx_bad, RS_NO_ERROR);
 
-	h1 = exec_valid(fd, ctx_bad);
-	igt_assert_lte(0, h1);
-	h5 = exec_valid(fd, ctx_good);
-	igt_assert_lte(0, h5);
+	noop(fd, ctx_bad, e);
+	noop(fd, ctx_good, e);
 
-	assert_reset_status(fd, ctx_good, RS_NO_ERROR);
-	assert_reset_status(fd, ctx_bad, RS_NO_ERROR);
+	assert_reset_status(fd, fd, ctx_good, RS_NO_ERROR);
+	assert_reset_status(fd, fd, ctx_bad, RS_NO_ERROR);
 
-	h2 = inject_hang_no_ban_error(fd, ctx_bad);
-	igt_assert_lte(0, h2);
+	inject_hang(fd, ctx_bad, e, BAN | ASYNC);
 	active_count++;
-	/* Second hang will be pending for this */
+
+	noop(fd, ctx_good, e);
+	noop(fd, ctx_good, e);
+
+	/* This second hang will count as pending and be discarded */
+	active_count--;
 	pending_count++;
-
-	h6 = exec_valid(fd, ctx_good);
-	h7 = exec_valid(fd, ctx_good);
-
-        while (retry--) {
-                h3 = inject_hang_no_ban_error(fd, ctx_bad);
-                igt_assert_lte(0, h3);
-                gem_sync(fd, h3);
+	while (retry--) {
+		inject_hang(fd, ctx_bad, e, BAN);
 		active_count++;
-		/* This second hand will count as pending */
-                assert_reset_status(fd, ctx_bad, RS_BATCH_ACTIVE);
 
-                h4 = exec_valid(fd, ctx_bad);
-                if (h4 == -EIO) {
-                        gem_close(fd, h3);
-                        break;
-                }
+		ban = noop(fd, ctx_bad, e);
+		if (ban == -EIO)
+			break;
 
-                /* Should not happen often but sometimes hang is declared too slow
-                 * due to our way of faking hang using loop */
+		/* Should not happen often but sometimes hang is declared too
+		 * slow due to our way of faking hang using loop */
+		gem_close(fd, ban);
 
-                igt_assert_lte(0, h4);
-                gem_close(fd, h3);
-                gem_close(fd, h4);
+		igt_info("retrying for ban (%d)\n", retry);
+	}
+	igt_assert_eq(ban, -EIO);
+	igt_assert_lt(0, noop(fd, ctx_good, e));
 
-                igt_info("retrying for ban (%d)\n", retry);
-        }
-
-	igt_assert_eq(h4, -EIO);
-	assert_reset_status(fd, ctx_bad, RS_BATCH_ACTIVE);
-
-	gem_sync(fd, h7);
-	assert_reset_status(fd, ctx_good, RS_BATCH_PENDING);
-
-	igt_assert_eq(gem_reset_stats(fd, ctx_good, &rs_good), 0);
+	assert_reset_status(fd, fd, ctx_bad, RS_BATCH_ACTIVE);
 	igt_assert_eq(gem_reset_stats(fd, ctx_bad, &rs_bad), 0);
+	igt_assert_eq(rs_bad.batch_active, active_count);
+	igt_assert_eq(rs_bad.batch_pending, pending_count);
 
-	igt_assert(rs_bad.batch_active == active_count);
-	igt_assert(rs_bad.batch_pending == pending_count);
-	igt_assert(rs_good.batch_active == 0);
-	igt_assert(rs_good.batch_pending == 2);
-
-	gem_close(fd, h1);
-	gem_close(fd, h2);
-	gem_close(fd, h6);
-	gem_close(fd, h7);
-
-	h1 = exec_valid(fd, ctx_good);
-	igt_assert_lte(0, h1);
-	gem_close(fd, h1);
-
-	gem_context_destroy(fd, ctx_good);
-	gem_context_destroy(fd, ctx_bad);
-	igt_assert_lt(gem_reset_status(fd, ctx_good), 0);
-	igt_assert_lt(gem_reset_status(fd, ctx_bad), 0);
-	igt_assert_lt(exec_valid(fd, ctx_good), 0);
-	igt_assert_lt(exec_valid(fd, ctx_bad), 0);
+	assert_reset_status(fd, fd, ctx_good, RS_BATCH_PENDING);
+	igt_assert_eq(gem_reset_stats(fd, ctx_good, &rs_good), 0);
+	igt_assert_eq(rs_good.batch_active, 0);
+	igt_assert_eq(rs_good.batch_pending, 2);
 
 	close(fd);
 }
 
-static void test_unrelated_ctx(void)
+static void test_unrelated_ctx(const struct intel_execution_engine *e)
 {
-	int h1,h2;
 	int fd1,fd2;
 	int ctx_guilty, ctx_unrelated;
 
 	fd1 = drm_open_driver(DRIVER_INTEL);
 	fd2 = drm_open_driver(DRIVER_INTEL);
-	assert_reset_status(fd1, 0, RS_NO_ERROR);
-	assert_reset_status(fd2, 0, RS_NO_ERROR);
+	assert_reset_status(0, fd1, 0, RS_NO_ERROR);
+	assert_reset_status(1, fd2, 0, RS_NO_ERROR);
 	ctx_guilty = gem_context_create(fd1);
 	ctx_unrelated = gem_context_create(fd2);
 
-	assert_reset_status(fd1, ctx_guilty, RS_NO_ERROR);
-	assert_reset_status(fd2, ctx_unrelated, RS_NO_ERROR);
+	assert_reset_status(0, fd1, ctx_guilty, RS_NO_ERROR);
+	assert_reset_status(1, fd2, ctx_unrelated, RS_NO_ERROR);
 
-	h1 = inject_hang(fd1, ctx_guilty);
-	igt_assert_lte(0, h1);
-	gem_sync(fd1, h1);
-	assert_reset_status(fd1, ctx_guilty, RS_BATCH_ACTIVE);
-	assert_reset_status(fd2, ctx_unrelated, RS_NO_ERROR);
+	inject_hang(fd1, ctx_guilty, e, 0);
+	assert_reset_status(0, fd1, ctx_guilty, RS_BATCH_ACTIVE);
+	assert_reset_status(1, fd2, ctx_unrelated, RS_NO_ERROR);
 
-	h2 = exec_valid(fd2, ctx_unrelated);
-	igt_assert_lte(0, h2);
-	gem_sync(fd2, h2);
-	assert_reset_status(fd1, ctx_guilty, RS_BATCH_ACTIVE);
-	assert_reset_status(fd2, ctx_unrelated, RS_NO_ERROR);
-	gem_close(fd1, h1);
-	gem_close(fd2, h2);
-
-	gem_context_destroy(fd1, ctx_guilty);
-	gem_context_destroy(fd2, ctx_unrelated);
+	gem_sync(fd2, noop(fd2, ctx_unrelated, e));
+	assert_reset_status(0, fd1, ctx_guilty, RS_BATCH_ACTIVE);
+	assert_reset_status(1, fd2, ctx_unrelated, RS_NO_ERROR);
 
 	close(fd1);
 	close(fd2);
@@ -674,98 +478,73 @@ static int get_reset_count(int fd, int ctx)
 	return rs.reset_count;
 }
 
-static void test_close_pending_ctx(void)
+static void test_close_pending_ctx(const struct intel_execution_engine *e)
 {
-	int fd, h;
-	uint32_t ctx;
+	int fd = drm_open_driver(DRIVER_INTEL);
+	uint32_t ctx = gem_context_create(fd);
 
-	fd = drm_open_driver(DRIVER_INTEL);
-	ctx = gem_context_create(fd);
+	assert_reset_status(fd, fd, ctx, RS_NO_ERROR);
 
-	assert_reset_status(fd, ctx, RS_NO_ERROR);
-
-	h = inject_hang(fd, ctx);
-	igt_assert_lte(0, h);
+	inject_hang(fd, ctx, e, 0);
 	gem_context_destroy(fd, ctx);
-	igt_assert(__gem_context_destroy(fd, ctx) == -ENOENT);
+	igt_assert_eq(__gem_context_destroy(fd, ctx), -ENOENT);
 
-	gem_close(fd, h);
 	close(fd);
 }
 
-static void test_close_pending(void)
+static void test_close_pending(const struct intel_execution_engine *e)
 {
-	int fd, h;
+	int fd = drm_open_driver(DRIVER_INTEL);
 
-	fd = drm_open_driver(DRIVER_INTEL);
+	assert_reset_status(fd, fd, 0, RS_NO_ERROR);
 
-	assert_reset_status(fd, 0, RS_NO_ERROR);
-
-	h = inject_hang(fd, 0);
-	igt_assert_lte(0, h);
-
-	gem_close(fd, h);
+	inject_hang(fd, 0, e, 0);
 	close(fd);
 }
 
-static void exec_noop_on_each_ring(int fd, const bool reverse)
+static void noop_on_each_ring(int fd, const bool reverse)
 {
-	uint32_t batch[2] = {MI_BATCH_BUFFER_END, 0};
-	uint32_t handle;
-	struct drm_i915_gem_execbuffer2 execbuf;
-	struct drm_i915_gem_exec_object2 exec[1];
+	const uint32_t bbe = MI_BATCH_BUFFER_END;
+	struct drm_i915_gem_execbuffer2 eb;
+	struct drm_i915_gem_exec_object2 obj;
+	const struct intel_execution_engine *e;
 
-	handle = gem_create(fd, 4096);
-	gem_write(fd, handle, 0, batch, sizeof(batch));
+	memset(&obj, 0, sizeof(obj));
+	obj.handle = gem_create(fd, 4096);
+	gem_write(fd, obj.handle, 0, &bbe, sizeof(bbe));
 
-	exec[0].handle = handle;
-	exec[0].relocation_count = 0;
-	exec[0].relocs_ptr = 0;
-	exec[0].alignment = 0;
-	exec[0].offset = 0;
-	exec[0].flags = 0;
-	exec[0].rsvd1 = 0;
-	exec[0].rsvd2 = 0;
+	memset(&eb, 0, sizeof(eb));
+	eb.buffers_ptr = (uintptr_t)&obj;
+	eb.buffer_count = 1;
 
-	execbuf.buffers_ptr = (uintptr_t)exec;
-	execbuf.buffer_count = 1;
-	execbuf.batch_start_offset = 0;
-	execbuf.batch_len = 8;
-	execbuf.cliprects_ptr = 0;
-	execbuf.num_cliprects = 0;
-	execbuf.DR1 = 0;
-	execbuf.DR4 = 0;
-	execbuf.flags = 0;
-	i915_execbuffer2_set_context_id(execbuf, 0);
-	execbuf.rsvd2 = 0;
-
-	for (unsigned i = 0; i < NUM_RINGS; i++) {
-		const struct target_ring *ring;
-
-		ring = reverse ? &rings[NUM_RINGS - 1 - i] : &rings[i];
-
-		if (ring->present(fd)) {
-			execbuf.flags = ring->exec;
-			do_ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf);
+	if (reverse) {
+		for (e = intel_execution_engines; e->name; e++)
+			;
+		while (--e >= intel_execution_engines) {
+			eb.flags = e->exec_id | e->flags;
+			__gem_execbuf(fd, &eb);
+		}
+	} else {
+		for (e = intel_execution_engines; e->name; e++) {
+			eb.flags = e->exec_id | e->flags;
+			__gem_execbuf(fd, &eb);
 		}
 	}
 
-	gem_sync(fd, handle);
-	gem_close(fd, handle);
+	gem_sync(fd, obj.handle);
+	gem_close(fd, obj.handle);
 }
 
-static void test_close_pending_fork(const bool reverse)
+static void test_close_pending_fork(const struct intel_execution_engine *e,
+				    const bool reverse)
 {
+	int fd = drm_open_driver(DRIVER_INTEL);
+	igt_hang_ring_t hang;
 	int pid;
-	int fd, h;
 
-	fd = drm_open_driver(DRIVER_INTEL);
+	assert_reset_status(fd, fd, 0, RS_NO_ERROR);
 
-	assert_reset_status(fd, 0, RS_NO_ERROR);
-
-	h = inject_hang(fd, 0);
-	igt_assert_lte(0, h);
-
+	hang = igt_hang_ctx(fd, 0, e->exec_id | e->flags, 0, NULL);
 	sleep(1);
 
 	/* Avoid helpers as we need to kill the child
@@ -781,10 +560,10 @@ static void test_close_pending_fork(const bool reverse)
 		 * on each ring. This exercises batch_obj reference counting,
 		 * when gpu is reset and ring lists are cleared.
 		 */
-		exec_noop_on_each_ring(fd2, reverse);
-
+		noop_on_each_ring(fd2, reverse);
 		close(fd2);
-		return;
+		pause();
+		exit(0);
 	} else {
 		igt_assert_lt(0, pid);
 		sleep(1);
@@ -794,41 +573,30 @@ static void test_close_pending_fork(const bool reverse)
 		kill(pid, SIGKILL);
 	}
 
-	gem_close(fd, h);
-	close(fd);
-
-	/* Then we just wait on hang to happen */
-	fd = drm_open_driver(DRIVER_INTEL);
-
-	h = exec_valid(fd, 0);
-	igt_assert_lte(0, h);
-
-	gem_sync(fd, h);
-	gem_close(fd, h);
+	igt_post_hang_ring(fd, hang);
 	close(fd);
 }
 
-static void test_reset_count(const bool create_ctx)
+static void test_reset_count(const struct intel_execution_engine *e,
+			     const bool create_ctx)
 {
-	int fd, h, ctx;
+	int fd = drm_open_driver(DRIVER_INTEL);
+	int ctx;
 	long c1, c2;
 
-	fd = drm_open_driver(DRIVER_INTEL);
 	if (create_ctx)
 		ctx = gem_context_create(fd);
 	else
 		ctx = 0;
 
-	assert_reset_status(fd, ctx, RS_NO_ERROR);
+	assert_reset_status(fd, fd, ctx, RS_NO_ERROR);
 
 	c1 = get_reset_count(fd, ctx);
 	igt_assert(c1 >= 0);
 
-	h = inject_hang(fd, ctx);
-	igt_assert_lte(0, h);
-	gem_sync(fd, h);
+	inject_hang(fd, ctx, e, 0);
 
-	assert_reset_status(fd, ctx, RS_BATCH_ACTIVE);
+	assert_reset_status(fd, fd, ctx, RS_BATCH_ACTIVE);
 	c2 = get_reset_count(fd, ctx);
 	igt_assert(c2 >= 0);
 	igt_assert(c2 == (c1 + 1));
@@ -846,8 +614,6 @@ static void test_reset_count(const bool create_ctx)
 
 	igt_waitchildren();
 
-	gem_close(fd, h);
-
 	if (create_ctx)
 		gem_context_destroy(fd, ctx);
 
@@ -857,8 +623,8 @@ static void test_reset_count(const bool create_ctx)
 static int _test_params(int fd, int ctx, uint32_t flags, uint32_t pad)
 {
 	struct local_drm_i915_reset_stats rs;
-	int ret;
 
+	memset(&rs, 0, sizeof(rs));
 	rs.ctx_id = ctx;
 	rs.flags = flags;
 	rs.reset_count = rand();
@@ -866,11 +632,7 @@ static int _test_params(int fd, int ctx, uint32_t flags, uint32_t pad)
 	rs.batch_pending = rand();
 	rs.pad = pad;
 
-	do {
-		ret = ioctl(fd, GET_RESET_STATS_IOCTL, &rs);
-	} while (ret == -1 && (errno == EINTR || errno == EAGAIN));
-
-	if (ret < 0)
+	if (drmIoctl(fd, GET_RESET_STATS_IOCTL, &rs))
 		return -errno;
 
 	return 0;
@@ -921,13 +683,10 @@ static void _test_param(const int fd, const int ctx)
 
 static void test_params_ctx(void)
 {
-	int fd, ctx;
+	int fd;
 
 	fd = drm_open_driver(DRIVER_INTEL);
-	ctx = gem_context_create(fd);
-
-	_test_param(fd, ctx);
-
+	_test_param(fd, gem_context_create(fd));
 	close(fd);
 }
 
@@ -936,36 +695,41 @@ static void test_params(void)
 	int fd;
 
 	fd = drm_open_driver(DRIVER_INTEL);
-
 	_test_param(fd, 0);
-
 	close(fd);
-
 }
 
-static void defer_hangcheck(int ring_num)
+static const struct intel_execution_engine *
+next_engine(int fd, const struct intel_execution_engine *e)
 {
+	do {
+		e++;
+		if (e->name == NULL)
+			e = intel_execution_engines;
+		if (e->exec_id == 0)
+			e++;
+	} while (!has_engine(fd, 0, e));
+
+	return e;
+}
+
+static void defer_hangcheck(const struct intel_execution_engine *engine)
+{
+	const struct intel_execution_engine *next;
 	int fd, count_start, count_end;
 	int seconds = 30;
-	const struct target_ring *next_ring;
+
 	fd = drm_open_driver(DRIVER_INTEL);
 
-	do {
-		next_ring = &rings[(++ring_num) % NUM_RINGS];
-
-		if (next_ring->present(fd))
-			break;
-
-	} while(next_ring != current_ring);
-
-	igt_skip_on(next_ring == current_ring);
+	next = next_engine(fd, engine);
+	igt_skip_on(next == engine);
 
 	count_start = get_reset_count(fd, 0);
 	igt_assert_lte(0, count_start);
 
-	igt_assert(inject_hang_ring(fd, 0, current_ring->exec, true));
+	inject_hang(fd, 0, engine, 0);
 	while (--seconds) {
-		igt_assert(exec_valid_ring(fd, 0, next_ring->exec));
+		noop(fd, 0, next);
 
 		count_end = get_reset_count(fd, 0);
 		igt_assert_lte(0, count_end);
@@ -1003,41 +767,12 @@ static bool gem_has_reset_stats(int fd)
 	return false;
 }
 
-static void check_gpu_ok(void)
-{
-	int retry_count = 30;
-	enum stop_ring_flags flags;
-	int fd;
-
-	igt_debug("checking gpu state\n");
-
-	while (retry_count--) {
-		flags = igt_get_stop_rings() & STOP_RING_ALL;
-		if (flags == 0)
-			break;
-
-		igt_debug("waiting previous hang to clear\n");
-		sleep(1);
-	}
-
-	igt_assert(flags == 0);
-
-	/*
-	 * Clear the _ALLOW_ERRORS and _ALLOW_BAN flags;
-	 * these are not cleared by individual ring reset.
-	 */
-	igt_set_stop_rings(0);
-
-	fd = drm_open_driver(DRIVER_INTEL);
-	gem_quiescent_gpu(fd);
-	close(fd);
-}
-
-#define RUN_TEST(...) do { check_gpu_ok(); __VA_ARGS__; check_gpu_ok(); } while (0)
-#define RUN_CTX_TEST(...) do { check_context(current_ring); RUN_TEST(__VA_ARGS__); } while (0)
+#define RUN_TEST(...) do { sync_gpu(); __VA_ARGS__; sync_gpu(); } while (0)
+#define RUN_CTX_TEST(...) do { check_context(e); RUN_TEST(__VA_ARGS__); } while (0)
 
 igt_main
 {
+	const struct intel_execution_engine *e;
 	igt_skip_on_simulation();
 
 	igt_fixture {
@@ -1058,60 +793,44 @@ igt_main
 	igt_subtest("params")
 		test_params();
 
-	for (int i = 0; i < NUM_RINGS; i++) {
-		const char *name;
+	igt_subtest_f("params-ctx")
+		RUN_TEST(test_params_ctx());
 
-		current_ring = &rings[i];
-		name = current_ring->name;
+	for (e = intel_execution_engines; e->name; e++) {
+		igt_subtest_f("reset-stats-%s", e->name)
+			RUN_TEST(test_rs(e, 4, 1, 0));
 
-		igt_fixture {
-			int fd = drm_open_driver(DRIVER_INTEL);
-			gem_require_ring(fd, current_ring->exec);
-			close(fd);
-		}
+		igt_subtest_f("reset-stats-ctx-%s", e->name)
+			RUN_CTX_TEST(test_rs_ctx(e, 4, 4, 1, 2));
 
-		igt_fixture
-			igt_require_f(intel_gen(devid) >= 4,
-				      "gen %d doesn't support reset\n", intel_gen(devid));
+		igt_subtest_f("ban-%s", e->name)
+			RUN_TEST(test_ban(e));
 
-		igt_subtest_f("params-ctx-%s", name)
-			RUN_CTX_TEST(test_params_ctx());
+		igt_subtest_f("ban-ctx-%s", e->name)
+			RUN_CTX_TEST(test_ban_ctx(e));
 
-		igt_subtest_f("reset-stats-%s", name)
-			RUN_TEST(test_rs(4, 1, 0));
+		igt_subtest_f("reset-count-%s", e->name)
+			RUN_TEST(test_reset_count(e, false));
 
-		igt_subtest_f("reset-stats-ctx-%s", name)
-			RUN_CTX_TEST(test_rs_ctx(4, 4, 1, 2));
+		igt_subtest_f("reset-count-ctx-%s", e->name)
+			RUN_CTX_TEST(test_reset_count(e, true));
 
-		igt_subtest_f("ban-%s", name)
-			RUN_TEST(test_ban());
+		igt_subtest_f("unrelated-ctx-%s", e->name)
+			RUN_CTX_TEST(test_unrelated_ctx(e));
 
-		igt_subtest_f("ban-ctx-%s", name)
-			RUN_CTX_TEST(test_ban_ctx());
+		igt_subtest_f("close-pending-%s", e->name)
+			RUN_TEST(test_close_pending(e));
 
-		igt_subtest_f("reset-count-%s", name)
-			RUN_TEST(test_reset_count(false));
+		igt_subtest_f("close-pending-ctx-%s", e->name)
+			RUN_CTX_TEST(test_close_pending_ctx(e));
 
-		igt_subtest_f("reset-count-ctx-%s", name)
-			RUN_CTX_TEST(test_reset_count(true));
+		igt_subtest_f("close-pending-fork-%s", e->name)
+			RUN_TEST(test_close_pending_fork(e, false));
 
-		igt_subtest_f("unrelated-ctx-%s", name)
-			RUN_CTX_TEST(test_unrelated_ctx());
+		igt_subtest_f("close-pending-fork-reverse-%s", e->name)
+			RUN_TEST(test_close_pending_fork(e, true));
 
-		igt_subtest_f("close-pending-%s", name)
-			RUN_TEST(test_close_pending());
-
-		igt_subtest_f("close-pending-ctx-%s", name)
-			RUN_CTX_TEST(test_close_pending_ctx());
-
-		igt_subtest_f("close-pending-fork-%s", name)
-			RUN_TEST(test_close_pending_fork(false));
-
-		igt_subtest_f("close-pending-fork-reverse-%s", name)
-			RUN_TEST(test_close_pending_fork(true));
-
-		igt_subtest_f("defer-hangcheck-%s", name)
-			RUN_TEST(defer_hangcheck(i));
-
+		igt_subtest_f("defer-hangcheck-%s", e->name)
+			RUN_TEST(defer_hangcheck(e));
 	}
 }

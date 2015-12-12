@@ -291,6 +291,8 @@ void gem_close(int fd, uint32_t handle)
 {
 	struct drm_gem_close close_bo;
 
+	igt_assert_neq(handle, 0);
+
 	memset(&close_bo, 0, sizeof(close_bo));
 	close_bo.handle = handle;
 	do_ioctl(fd, DRM_IOCTL_GEM_CLOSE, &close_bo);
