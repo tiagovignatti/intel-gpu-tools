@@ -139,7 +139,7 @@ int main(int argc, char **argv)
 {
 	int object_size = 0;
 	double usecs;
-	char* bps;
+	const char* bps;
 	char buf[100];
 	int count;
 	const struct {

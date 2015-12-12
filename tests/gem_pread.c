@@ -88,7 +88,7 @@ int main(int argc, char **argv)
 	int object_size = 0;
 	double usecs;
 	char buf[100];
-	char* bps;
+	const char* bps;
 	const struct {
 		int level;
 		const char *name;
