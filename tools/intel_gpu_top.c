@@ -679,7 +679,7 @@ int main(int argc, char **argv)
 
 			for (i = 0; i < MAX_NUM_TOP_BITS; i++) {
 				if (i < STATS_COUNT && HAS_STATS_REGS(devid)) {
-					fprintf(output, "%lu\t",
+					fprintf(output, "%"PRIu64"\t",
 						   stats[i] - last_stats[i]);
 					last_stats[i] = stats[i];
 				}

@@ -132,11 +132,11 @@ struct event_state {
 static void dump_event_state(const struct event_state *es)
 {
 	igt_debug("name = %s\n"
-		  "last_ts = %lu.%lu usec\n"
-		  "last_received_ts = %lu.%lu usec\n"
+		  "last_ts = %ld.%ld usec\n"
+		  "last_received_ts = %ld.%ld usec\n"
 		  "last_seq = %u\n"
-		  "current_ts = %lu.%lu usec\n"
-		  "current_received_ts = %lu.%lu usec\n"
+		  "current_ts = %ld.%ld usec\n"
+		  "current_received_ts = %ld.%ld usec\n"
 		  "current_seq = %u\n"
 		  "count = %u\n"
 		  "seq_step = %d\n",
@@ -644,8 +644,8 @@ static void check_state(struct test_output *o, struct event_state *es)
 	timersub(&es->current_ts, &es->current_received_ts, &diff);
 	if (!analog_tv_connector(o)) {
 		igt_assert_f(diff.tv_sec < 0 || (diff.tv_sec == 0 && diff.tv_usec <= 2000),
-			     "%s ts delayed for too long: %is, %iusec\n",
-			     es->name, (int)diff.tv_sec, (int)diff.tv_usec);
+			     "%s ts delayed for too long: %lds, %ldusec\n",
+			     es->name, diff.tv_sec, diff.tv_usec);
 
 	}
 
@@ -655,9 +655,9 @@ static void check_state(struct test_output *o, struct event_state *es)
 	timersub(&es->current_ts, &es->last_received_ts, &diff);
 	igt_assert_f(timercmp(&es->last_received_ts, &es->current_ts, <),
 		     "%s ts before the %s was issued!\n"
-		     "timerdiff %is, %ius\n",
+		     "timerdiff %lds, %ldusec\n",
 		     es->name, es->name,
-		     (int) diff.tv_sec, (int) diff.tv_usec);
+		     diff.tv_sec, diff.tv_usec);
 
 	/* check only valid if no modeset happens in between, that increments by
 	 * (1 << 23) on each step. This bounding matches the one in
@@ -688,8 +688,8 @@ static void check_state(struct test_output *o, struct event_state *es)
 
 		igt_assert_f(fabs((((double) diff.tv_usec) - usec_interflip) /
 				  usec_interflip) <= 0.005,
-			     "inter-%s ts jitter: %is, %ius\n",
-			     es->name, (int) diff.tv_sec, (int) diff.tv_usec);
+			     "inter-%s ts jitter: %lds, %ldusec\n",
+			     es->name, diff.tv_sec, diff.tv_usec);
 
 		igt_assert_f(es->current_seq == es->last_seq + o->seq_step,
 			     "unexpected %s seq %u, expected %u\n",

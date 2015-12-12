@@ -1937,7 +1937,7 @@ void igt_crtc_set_background(igt_pipe_t *pipe, uint64_t background)
 {
 	igt_display_t *display = pipe->display;
 
-	LOG(display, "%s.%d: crtc_set_background(%lu)\n",
+	LOG(display, "%s.%d: crtc_set_background(%"PRIx64")\n",
 	    kmstest_pipe_name(pipe->pipe),
 	    pipe->pipe, background);
 

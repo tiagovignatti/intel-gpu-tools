@@ -174,6 +174,6 @@ igt_simple_main
 	igt_waitchildren();
 	gettimeofday(&end, NULL);
 
-	igt_info("Time to execute %lu children:		%7.3fms\n",
+	igt_info("Time to execute %zu children:		%7.3fms\n",
 		 ARRAY_SIZE(children), elapsed(&start, &end) / 1000);
 }

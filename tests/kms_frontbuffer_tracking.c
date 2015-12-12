@@ -1361,7 +1361,7 @@ static void setup_sink_crc(void)
 	else if (rc == SINK_CRC_SIZE)
 		sink_crc.supported = true;
 	else
-		igt_info("Unexpected sink CRC error, rc=:%ld errno:%d %s\n",
+		igt_info("Unexpected sink CRC error, rc=:%zd errno:%d %s\n",
 			 rc, errno_, strerror(errno_));
 }
 

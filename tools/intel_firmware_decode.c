@@ -25,6 +25,7 @@
  */
 
 #include <fcntl.h>
+#include <inttypes.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -166,7 +167,7 @@ static void csr_open(csr_t *ctx, const char *filename)
 			 ctx->fd, 0);
 	igt_fail_on_f(ctx->base == MAP_FAILED, "Couldn't mmap %s\n", filename);
 
-	printf("Firmware: %s (%zd bytes)\n", filename, st.st_size);
+	printf("Firmware: %s (%"PRId64" bytes)\n", filename, (int64_t)st.st_size);
 
 	ctx->css_header = (struct intel_css_header *)ctx->base;
 	ctx->package_header = (struct intel_package_header *)
