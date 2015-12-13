@@ -194,7 +194,7 @@ test_read_crc_for_output(data_t *data, int pipe, igt_output_t *output,
 
 		if (flags & TEST_SEQUENCE)
 			for (j = 0; j < (n_crcs - 1); j++)
-				igt_assert(crcs[j].frame + 1 == crcs[j + 1].frame);
+				igt_assert_eq(crcs[j].frame + 1, crcs[j + 1].frame);
 
 		free(crcs);
 		igt_pipe_crc_free(pipe_crc);
