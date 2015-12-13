@@ -330,6 +330,18 @@ test_coherency(int fd)
 	gem_close(fd, handle);
 }
 
+static int tile_width(uint32_t devid, int tiling)
+{
+	if (intel_gen(devid) == 2)
+		return 128;
+	else if (tiling == I915_TILING_X)
+		return 512;
+	else if (IS_915(devid))
+		return 512;
+	else
+		return 128;
+}
+
 static void
 test_huge_bo(int fd, int huge, int tiling)
 {
@@ -338,7 +350,8 @@ test_huge_bo(int fd, int huge, int tiling)
 	char *tiled_pattern;
 	char *linear_pattern;
 	uint64_t size, last_offset;
-	int pitch = tiling == I915_TILING_Y ? 128 : 512;
+	uint32_t devid = intel_get_drm_devid(fd);
+	int pitch = tile_width(devid, tiling);
 	int i;
 
 	switch (huge) {
@@ -404,6 +417,7 @@ test_huge_bo(int fd, int huge, int tiling)
 static void
 test_huge_copy(int fd, int huge, int tiling_a, int tiling_b)
 {
+	uint32_t devid = intel_get_drm_devid(fd);
 	uint64_t huge_object_size, i;
 	uint32_t bo, *pattern_a, *pattern_b;
 	char *a, *b;
@@ -434,7 +448,7 @@ test_huge_copy(int fd, int huge, int tiling_a, int tiling_b)
 
 	bo = gem_create(fd, huge_object_size);
 	if (tiling_a)
-		igt_require(__gem_set_tiling(fd, bo, tiling_a, tiling_a == I915_TILING_Y ? 128 : 512) == 0);
+		igt_require(__gem_set_tiling(fd, bo, tiling_a, tile_width(devid, tiling_a)) == 0);
 	a = __gem_mmap__gtt(fd, bo, huge_object_size, PROT_READ | PROT_WRITE);
 	igt_require(a);
 	gem_close(fd, bo);
@@ -444,7 +458,7 @@ test_huge_copy(int fd, int huge, int tiling_a, int tiling_b)
 
 	bo = gem_create(fd, huge_object_size);
 	if (tiling_b)
-		igt_require(__gem_set_tiling(fd, bo, tiling_b, tiling_b == I915_TILING_Y ? 128 : 512) == 0);
+		igt_require(__gem_set_tiling(fd, bo, tiling_b, tile_width(devid, tiling_b)) == 0);
 	b = __gem_mmap__gtt(fd, bo, huge_object_size, PROT_READ | PROT_WRITE);
 	igt_require(b);
 	gem_close(fd, bo);
