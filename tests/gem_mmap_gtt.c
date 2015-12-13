@@ -453,8 +453,10 @@ test_huge_copy(int fd, int huge, int tiling_a, int tiling_b)
 	igt_require(a);
 	gem_close(fd, bo);
 
-	for (i = 0; i < huge_object_size / PAGE_SIZE; i++)
+	for (i = 0; i < huge_object_size / PAGE_SIZE; i++) {
 		memcpy(a + PAGE_SIZE*i, pattern_a, PAGE_SIZE);
+		igt_progress("Writing a ", i, huge_object_size / PAGE_SIZE);
+	}
 
 	bo = gem_create(fd, huge_object_size);
 	if (tiling_b)
@@ -463,14 +465,17 @@ test_huge_copy(int fd, int huge, int tiling_a, int tiling_b)
 	igt_require(b);
 	gem_close(fd, bo);
 
-	for (i = 0; i < huge_object_size / PAGE_SIZE; i++)
+	for (i = 0; i < huge_object_size / PAGE_SIZE; i++) {
 		memcpy(b + PAGE_SIZE*i, pattern_b, PAGE_SIZE);
+		igt_progress("Writing b ", i, huge_object_size / PAGE_SIZE);
+	}
 
 	for (i = 0; i < huge_object_size / PAGE_SIZE; i++) {
 		if (i & 1)
 			memcpy(a + i *PAGE_SIZE, b + i*PAGE_SIZE, PAGE_SIZE);
 		else
 			memcpy(b + i *PAGE_SIZE, a + i*PAGE_SIZE, PAGE_SIZE);
+		igt_progress("Copying a<->b ", i, huge_object_size / PAGE_SIZE);
 	}
 
 	for (i = 0; i < huge_object_size / PAGE_SIZE; i++) {
@@ -478,6 +483,7 @@ test_huge_copy(int fd, int huge, int tiling_a, int tiling_b)
 			igt_assert(memcmp(pattern_b, a + PAGE_SIZE*i, PAGE_SIZE) == 0);
 		else
 			igt_assert(memcmp(pattern_a, a + PAGE_SIZE*i, PAGE_SIZE) == 0);
+		igt_progress("Checking a ", i, huge_object_size / PAGE_SIZE);
 	}
 	munmap(a, huge_object_size);
 
@@ -486,6 +492,7 @@ test_huge_copy(int fd, int huge, int tiling_a, int tiling_b)
 			igt_assert(memcmp(pattern_b, b + PAGE_SIZE*i, PAGE_SIZE) == 0);
 		else
 			igt_assert(memcmp(pattern_a, b + PAGE_SIZE*i, PAGE_SIZE) == 0);
+		igt_progress("Checking b ", i, huge_object_size / PAGE_SIZE);
 	}
 	munmap(b, huge_object_size);
 
