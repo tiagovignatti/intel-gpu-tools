@@ -674,9 +674,9 @@ static void check_state(struct test_output *o, struct event_state *es)
 		igt_assert_f(es->current_seq - es->last_seq >= 0,
 			     "unexpected %s seq %u, should be >= %u\n",
 			     es->name, es->current_seq, es->last_seq);
-		igt_assert_f(es->current_seq - es->last_seq <= 100,
+		igt_assert_f(es->current_seq - es->last_seq <= 150,
 			     "unexpected %s seq %u, should be < %u\n",
-			     es->name, es->current_seq, es->last_seq + 100);
+			     es->name, es->current_seq, es->last_seq + 150);
 
 		igt_debug("testing ts continuity: Current frame %u, old frame %u\n",
 			  es->current_seq, es->last_seq);
