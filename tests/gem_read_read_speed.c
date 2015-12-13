@@ -154,7 +154,8 @@ static drm_intel_bo *create_bo(drm_intel_bufmgr *bufmgr,
 					&tiling_mode, &pitch, 0);
 }
 
-static void run(drm_intel_bufmgr *bufmgr, int _width, int _height)
+static void run(drm_intel_bufmgr *bufmgr, int _width, int _height,
+		bool write_bcs, bool write_rcs)
 {
 	drm_intel_bo *src = NULL, *bcs = NULL, *rcs = NULL;
 	drm_intel_bo *bcs_batch, *rcs_batch;
@@ -170,8 +171,16 @@ static void run(drm_intel_bufmgr *bufmgr, int _width, int _height)
 
 	set_bo(src, 0xdeadbeef);
 
-	rcs_batch = rcs_copy_bo(rcs, src);
-	bcs_batch = bcs_copy_bo(bcs, src);
+	if (write_bcs) {
+		bcs_batch = bcs_copy_bo(src, bcs);
+	} else {
+		bcs_batch = bcs_copy_bo(bcs, src);
+	}
+	if (write_rcs) {
+		rcs_batch = rcs_copy_bo(src, rcs);
+	} else {
+		rcs_batch = rcs_copy_bo(rcs, src);
+	}
 
 	drm_intel_bo_unreference(rcs);
 	drm_intel_bo_unreference(bcs);
@@ -185,7 +194,9 @@ static void run(drm_intel_bufmgr *bufmgr, int _width, int _height)
 	drm_intel_gem_bo_start_gtt_access(src, true);
 	clock_gettime(CLOCK_MONOTONIC, &end);
 
-	igt_info("Time to read-read %dx%d [%dk]:		%7.3fµs\n",
+	igt_info("Time to %s-%s %dx%d [%dk]:		%7.3fµs\n",
+		 write_bcs ? "write" : "read",
+		 write_rcs ? "write" : "read",
 		 width, height, 4*width*height/1024,
 		 elapsed(&start, &end, loops));
 
@@ -222,7 +233,14 @@ igt_main
 		igt_info("Semaphores: %d\n", semaphores_enabled(fd));
 	}
 
-	for (i = 0; sizes[i] != 0; i++)
+	for (i = 0; sizes[i] != 0; i++) {
 		igt_subtest_f("read-read-%dx%d", sizes[i], sizes[i])
-			run(bufmgr, sizes[i], sizes[i]);
+			run(bufmgr, sizes[i], sizes[i], false, false);
+		igt_subtest_f("read-write-%dx%d", sizes[i], sizes[i])
+			run(bufmgr, sizes[i], sizes[i], false, true);
+		igt_subtest_f("write-read-%dx%d", sizes[i], sizes[i])
+			run(bufmgr, sizes[i], sizes[i], true, false);
+		igt_subtest_f("write-write-%dx%d", sizes[i], sizes[i])
+			run(bufmgr, sizes[i], sizes[i], true, true);
+	}
 }
