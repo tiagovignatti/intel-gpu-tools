@@ -357,6 +357,18 @@ test_huge_bo(int fd, int huge, int tiling)
 	switch (huge) {
 	case -1:
 		size = gem_mappable_aperture_size() / 2;
+
+		/* Power of two fence size, natural fence
+		 * alignment, and the guard page at the end
+		 * gtt means that if the entire gtt is
+		 * mappable, we can't usually fit in a tiled
+		 * object half the size of the gtt. Let's use
+		 * a quarter size one instead.
+		 */
+		if (tiling &&
+		    intel_gen(intel_get_drm_devid(fd)) < 4 &&
+		    size >= gem_aperture_size(fd) / 2)
+			size /= 2;
 		break;
 	case 0:
 		size = gem_mappable_aperture_size() + PAGE_SIZE;
