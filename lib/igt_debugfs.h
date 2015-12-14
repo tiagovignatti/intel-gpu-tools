@@ -165,4 +165,10 @@ void igt_drop_caches_set(uint64_t val);
 void igt_disable_prefault(void);
 void igt_enable_prefault(void);
 
+/*
+ * Put the driver into a stable (quiescent) state and get the current number of
+ * gem buffer objects
+ */
+int igt_get_stable_obj_count(int driver);
+
 #endif /* __IGT_DEBUGFS_H__ */

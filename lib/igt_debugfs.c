@@ -667,3 +667,61 @@ void igt_enable_prefault(void)
 {
 	igt_prefault_control(true);
 }
+
+static int get_object_count(void)
+{
+	FILE *file;
+	int ret, scanned;
+
+	igt_drop_caches_set(DROP_RETIRE | DROP_ACTIVE);
+
+	file = igt_debugfs_fopen("i915_gem_objects", "r");
+
+	scanned = fscanf(file, "%i objects", &ret);
+	igt_assert_eq(scanned, 1);
+
+	return ret;
+}
+
+/**
+ * igt_get_stable_obj_count:
+ * @driver: fd to drm/i915 GEM driver
+ *
+ * This puts the driver into a stable (quiescent) state and then returns the
+ * current number of gem buffer objects as reported in the i915_gem_objects
+ * debugFS interface.
+ */
+int igt_get_stable_obj_count(int driver)
+{
+	int obj_count;
+	gem_quiescent_gpu(driver);
+	obj_count = get_object_count();
+	/* The test relies on the system being in the same state before and
+	 * after the test so any difference in the object count is a result of
+	 * leaks during the test. gem_quiescent_gpu() mostly achieves this but
+	 * on android occasionally obj_count can still change briefly.
+	 * The loop ensures obj_count has remained stable over several checks
+	 */
+#ifdef ANDROID
+	{
+		int loop_count = 0;
+		int prev_obj_count = obj_count;
+		while (loop_count < 4) {
+			usleep(200000);
+			gem_quiescent_gpu(driver);
+			obj_count = get_object_count();
+			if (obj_count == prev_obj_count) {
+				loop_count++;
+			} else {
+				igt_debug("loop_count=%d, obj_count=%d, prev_obj_count=%d\n",
+					loop_count, obj_count, prev_obj_count);
+				loop_count = 0;
+				prev_obj_count = obj_count;
+			}
+
+		}
+	}
+#endif
+	return obj_count;
+}
+

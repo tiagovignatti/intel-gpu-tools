@@ -47,7 +47,7 @@
 #include "drm.h"
 
 IGT_TEST_DESCRIPTION("Check whether prime import/export works on the same"
-		     " device.");
+		     " device... but with different fds.");
 
 #define BO_SIZE (16*1024)
 
@@ -157,7 +157,7 @@ static void test_with_one_bo_two_files(void)
 	dma_buf_fd2 = prime_handle_to_fd(fd2, handle_open);
 	handle_import = prime_fd_to_handle(fd2, dma_buf_fd2);
 
-	/* dma-buf selfimporting an flink bo should give the same handle */
+	/* dma-buf self importing an flink bo should give the same handle */
 	igt_assert_eq_u32(handle_import, handle_open);
 
 	close(fd1);
@@ -211,21 +211,6 @@ static void test_with_one_bo(void)
 	check_bo(fd2, handle_import1, fd2, handle_import1);
 }
 
-static int get_object_count(void)
-{
-	FILE *file;
-	int ret, scanned;
-
-	igt_drop_caches_set(DROP_RETIRE | DROP_ACTIVE);
-
-	file = igt_debugfs_fopen("i915_gem_objects", "r");
-
-	scanned = fscanf(file, "%i objects", &ret);
-	igt_assert_eq(scanned, 1);
-
-	return ret;
-}
-
 static void *thread_fn_reimport_vs_close(void *p)
 {
 	struct drm_gem_close close_bo;
@@ -258,8 +243,7 @@ static void test_reimport_close_race(void)
 	 * up the counts */
 	fake = drm_open_driver(DRIVER_INTEL);
 
-	gem_quiescent_gpu(fake);
-	obj_count = get_object_count();
+	obj_count = igt_get_stable_obj_count(fake);
 
 	num_threads = sysconf(_SC_NPROCESSORS_ONLN);
 
@@ -290,8 +274,7 @@ static void test_reimport_close_race(void)
 	close(fds[0]);
 	close(fds[1]);
 
-	gem_quiescent_gpu(fake);
-	obj_count = get_object_count() - obj_count;
+	obj_count = igt_get_stable_obj_count(fake) - obj_count;
 
 	igt_info("leaked %i objects\n", obj_count);
 
@@ -350,8 +333,7 @@ static void test_export_close_race(void)
 	 * up the counts */
 	fake = drm_open_driver(DRIVER_INTEL);
 
-	gem_quiescent_gpu(fake);
-	obj_count = get_object_count();
+	obj_count = igt_get_stable_obj_count(fake);
 
 	fd = drm_open_driver(DRIVER_INTEL);
 
@@ -373,8 +355,7 @@ static void test_export_close_race(void)
 
 	close(fd);
 
-	gem_quiescent_gpu(fake);
-	obj_count = get_object_count() - obj_count;
+	obj_count = igt_get_stable_obj_count(fake) - obj_count;
 
 	igt_info("leaked %i objects\n", obj_count);
 
