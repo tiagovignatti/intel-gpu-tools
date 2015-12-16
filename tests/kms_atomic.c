@@ -867,7 +867,6 @@ static void plane_overlay(struct kms_atomic_crtc_state *crtc,
 	uint32_t format = plane_get_igt_format(&plane);
 	drmModeAtomicReq *req = drmModeAtomicAlloc();
 	struct igt_fb fb;
-	cairo_t *cr;
 
 	igt_require(req);
 	igt_require(format != 0);
@@ -881,12 +880,9 @@ static void plane_overlay(struct kms_atomic_crtc_state *crtc,
 	plane.crtc_w = mode->hdisplay / 2;
 	plane.crtc_h = mode->vdisplay / 2;
 	plane.crtc_id = crtc->obj;
-	plane.fb_id = igt_create_fb(plane.state->desc->fd,
-				    plane.crtc_w, plane.crtc_h,
-				    format, I915_TILING_NONE, &fb);
-
-	cr = igt_get_cairo_ctx(plane.state->desc->fd, &fb);
-	igt_paint_test_pattern(cr, plane.crtc_w, plane.crtc_h);
+	plane.fb_id = igt_create_pattern_fb(plane.state->desc->fd,
+					    plane.crtc_w, plane.crtc_h,
+					    format, I915_TILING_NONE, &fb);
 
 	/* Enable the overlay plane using the atomic API, and double-check
 	 * state is what we think it should be. */
@@ -916,7 +912,6 @@ static void plane_primary(struct kms_atomic_crtc_state *crtc,
 	uint32_t *connectors;
 	int num_connectors;
 	struct igt_fb fb;
-	cairo_t *cr;
 	int i;
 
 	connectors = calloc(crtc->state->num_connectors, sizeof(*connectors));
@@ -939,12 +934,9 @@ static void plane_primary(struct kms_atomic_crtc_state *crtc,
 	plane.crtc_w = mode->hdisplay;
 	plane.crtc_h = mode->vdisplay;
 	plane.crtc_id = crtc->obj;
-	plane.fb_id = igt_create_fb(plane.state->desc->fd,
-				    plane.crtc_w, plane.crtc_h,
-				    format, I915_TILING_NONE, &fb);
-
-	cr = igt_get_cairo_ctx(plane.state->desc->fd, &fb);
-	igt_paint_test_pattern(cr, plane.crtc_w, plane.crtc_h);
+	plane.fb_id = igt_create_pattern_fb(plane.state->desc->fd,
+					    plane.crtc_w, plane.crtc_h,
+					    format, I915_TILING_NONE, &fb);
 
 	/* Flip the primary plane using the atomic API, and double-check
 	 * state is what we think it should be. */
@@ -1044,7 +1036,6 @@ static void plane_invalid_params(struct kms_atomic_crtc_state *crtc,
 	uint32_t format = plane_get_igt_format(&plane);
 	drmModeAtomicReq *req = drmModeAtomicAlloc();
 	struct igt_fb fb;
-	cairo_t *cr;
 
 	/* Pass a series of invalid object IDs for the FB ID. */
 	plane.fb_id = plane.obj;
@@ -1098,12 +1089,9 @@ static void plane_invalid_params(struct kms_atomic_crtc_state *crtc,
 	plane.crtc_w = mode->hdisplay;
 	plane.crtc_h = mode->vdisplay;
 	plane.crtc_id = crtc->obj;
-	plane.fb_id = igt_create_fb(plane.state->desc->fd,
-				    plane.crtc_w - 1, plane.crtc_h - 1,
-				    format, I915_TILING_NONE, &fb);
-
-	cr = igt_get_cairo_ctx(plane.state->desc->fd, &fb);
-	igt_paint_test_pattern(cr, plane.crtc_w - 1, plane.crtc_h - 1);
+	plane.fb_id = igt_create_pattern_fb(plane.state->desc->fd,
+					    plane.crtc_w - 1, plane.crtc_h - 1,
+					    format, I915_TILING_NONE, &fb);
 
 	plane_commit_atomic_err(&plane, plane_old, req,
 	                        ATOMIC_RELAX_NONE, ENOSPC);

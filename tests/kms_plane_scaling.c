@@ -55,26 +55,6 @@ typedef struct {
 
 #define FILE_NAME   "1080p-left.png"
 
-static void
-paint_color(data_t *d, struct igt_fb *fb, uint16_t w, uint16_t h)
-{
-	cairo_t *cr;
-
-	cr = igt_get_cairo_ctx(d->drm_fd, fb);
-	igt_paint_test_pattern(cr, w, h);
-	cairo_destroy(cr);
-}
-
-static void
-paint_image(data_t *d, struct igt_fb *fb, uint16_t w, uint16_t h)
-{
-	cairo_t *cr;
-
-	cr = igt_get_cairo_ctx(d->drm_fd, fb);
-	igt_paint_image(cr, FILE_NAME, 0, 0, w, h);
-	cairo_destroy(cr);
-}
-
 static void prepare_crtc(data_t *data, igt_output_t *output, enum pipe pipe,
 			igt_plane_t *plane, drmModeModeInfo *mode, enum igt_commit_style s)
 {
@@ -93,14 +73,12 @@ static void prepare_crtc(data_t *data, igt_output_t *output, enum pipe pipe,
 	}
 
 	/* allocate fb for plane 1 */
-	data->fb_id1 = igt_create_fb(data->drm_fd,
-			mode->hdisplay, mode->vdisplay,
-			DRM_FORMAT_XRGB8888,
-			LOCAL_I915_FORMAT_MOD_X_TILED, /* tiled */
-			&data->fb1);
+	data->fb_id1 = igt_create_pattern_fb(data->drm_fd,
+					     mode->hdisplay, mode->vdisplay,
+					     DRM_FORMAT_XRGB8888,
+					     LOCAL_I915_FORMAT_MOD_X_TILED, /* tiled */
+					     &data->fb1);
 	igt_assert(data->fb_id1);
-
-	paint_color(data, &data->fb1, mode->hdisplay, mode->vdisplay);
 
 	/*
 	 * We always set the primary plane to actually enable the pipe as
@@ -201,7 +179,6 @@ static void test_plane_scaling(data_t *d)
 {
 	igt_display_t *display = &d->display;
 	igt_output_t *output;
-	cairo_surface_t *image;
 	enum pipe pipe;
 	int valid_tests = 0;
 	int primary_plane_scaling = 0; /* For now */
@@ -218,27 +195,18 @@ static void test_plane_scaling(data_t *d)
 		mode = igt_output_get_mode(output);
 
 		/* allocate fb2 with image size */
-		image = cairo_image_surface_create_from_png(FILE_NAME);
-		igt_assert(cairo_surface_status(image) == CAIRO_STATUS_SUCCESS);
-		d->image_w = cairo_image_surface_get_width(image);
-		d->image_h = cairo_image_surface_get_height(image);
-		cairo_surface_destroy(image);
-
-		d->fb_id2 = igt_create_fb(d->drm_fd,
-				d->image_w, d->image_h,
-				DRM_FORMAT_XRGB8888,
-				LOCAL_I915_FORMAT_MOD_X_TILED, /* tiled */
-				&d->fb2);
+		d->fb_id2 = igt_create_image_fb(d->drm_fd, 0, 0,
+						DRM_FORMAT_XRGB8888,
+						LOCAL_I915_FORMAT_MOD_X_TILED, /* tiled */
+						FILE_NAME, &d->fb2);
 		igt_assert(d->fb_id2);
-		paint_image(d, &d->fb2, d->fb2.width, d->fb2.height);
 
-		d->fb_id3 = igt_create_fb(d->drm_fd,
-				mode->hdisplay, mode->vdisplay,
-				DRM_FORMAT_XRGB8888,
-				LOCAL_I915_FORMAT_MOD_X_TILED, /* tiled */
-				&d->fb3);
+		d->fb_id3 = igt_create_pattern_fb(d->drm_fd,
+						  mode->hdisplay, mode->vdisplay,
+						  DRM_FORMAT_XRGB8888,
+						  LOCAL_I915_FORMAT_MOD_X_TILED, /* tiled */
+						  &d->fb3);
 		igt_assert(d->fb_id3);
-		paint_color(d, &d->fb3, mode->hdisplay, mode->vdisplay);
 
 		/* Set up display with plane 1 */
 		d->plane1 = igt_output_get_plane(output, IGT_PLANE_PRIMARY);

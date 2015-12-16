@@ -259,8 +259,6 @@ static void paint_output_info(struct connector *c, struct igt_fb *fb)
 	double max_width;
 	int i;
 
-	igt_paint_test_pattern(cr, l_width, l_height);
-
 	cairo_move_to(cr, l_width / 2, l_height / 2);
 
 	/* Print connector and mode name */
@@ -353,9 +351,9 @@ set_mode(struct connector *c)
 		width = c->mode.hdisplay;
 		height = c->mode.vdisplay;
 
-		fb_id = igt_create_fb(drm_fd, width, height,
-				      igt_bpp_depth_to_drm_format(bpp, depth),
-				      tiling, &fb_info[current_fb]);
+		fb_id = igt_create_pattern_fb(drm_fd, width, height,
+					      igt_bpp_depth_to_drm_format(bpp, depth),
+					      tiling, &fb_info[current_fb]);
 		paint_output_info(c, &fb_info[current_fb]);
 		paint_color_key(&fb_info[current_fb]);
 

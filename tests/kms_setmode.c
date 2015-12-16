@@ -146,8 +146,6 @@ static int paint_fb(struct igt_fb *fb, const char *test_name,
 
 	cr = igt_get_cairo_ctx(drm_fd, fb);
 
-	igt_paint_test_pattern(cr, fb->width, fb->height);
-
 	cairo_move_to(cr, fb->width / 2, fb->height / 2);
 	cairo_set_font_size(cr, 24);
 	igt_cairo_printf_line(cr, align_hcenter, 40, "%s", test_name);
@@ -180,10 +178,11 @@ static void create_fb_for_crtc(struct crtc_config *crtc,
 
 	bpp = 32;
 	depth = 24;
-	fb_id = igt_create_fb(drm_fd, crtc->mode.hdisplay,
-				  crtc->mode.vdisplay,
-				  igt_bpp_depth_to_drm_format(bpp, depth),
-				  LOCAL_DRM_FORMAT_MOD_NONE, fb_info);
+	fb_id = igt_create_pattern_fb(drm_fd, crtc->mode.hdisplay,
+				      crtc->mode.vdisplay,
+				      igt_bpp_depth_to_drm_format(bpp, depth),
+				      LOCAL_DRM_FORMAT_MOD_NONE,
+				      fb_info);
 	igt_assert_lt(0, fb_id);
 }
 

@@ -503,7 +503,7 @@ unsigned int igt_create_fb(int fd, int width, int height, uint32_t format,
  * @format: drm fourcc pixel format code
  * @tiling: tiling layout of the framebuffer
  * @r: red value to use as fill color
- * @g: gree value to use as fill color
+ * @g: green value to use as fill color
  * @b: blue value to use as fill color
  * @fb: pointer to an #igt_fb structure
  *
@@ -531,6 +531,132 @@ unsigned int igt_create_color_fb(int fd, int width, int height,
 
 	cr = igt_get_cairo_ctx(fd, fb);
 	igt_paint_color(cr, 0, 0, width, height, r, g, b);
+	igt_assert(cairo_status(cr) == 0);
+	cairo_destroy(cr);
+
+	return fb_id;
+}
+
+/**
+ * igt_create_pattern_fb:
+ * @fd: open i915 drm file descriptor
+ * @width: width of the framebuffer in pixel
+ * @height: height of the framebuffer in pixel
+ * @format: drm fourcc pixel format code
+ * @tiling: tiling layout of the framebuffer
+ * @fb: pointer to an #igt_fb structure
+ *
+ * This function allocates a gem buffer object suitable to back a framebuffer
+ * with the requested properties and then wraps it up in a drm framebuffer
+ * object. All metadata is stored in @fb.
+ *
+ * Compared to igt_create_fb() this function also draws the standard test pattern
+ * into the framebuffer.
+ *
+ * Returns:
+ * The kms id of the created framebuffer on success or a negative error code on
+ * failure.
+ */
+unsigned int igt_create_pattern_fb(int fd, int width, int height,
+				   uint32_t format, uint64_t tiling,
+				   struct igt_fb *fb /* out */)
+{
+	unsigned int fb_id;
+	cairo_t *cr;
+
+	fb_id = igt_create_fb(fd, width, height, format, tiling, fb);
+	igt_assert(fb_id);
+
+	cr = igt_get_cairo_ctx(fd, fb);
+	igt_paint_test_pattern(cr, width, height);
+	igt_assert(cairo_status(cr) == 0);
+	cairo_destroy(cr);
+
+	return fb_id;
+}
+
+/**
+ * igt_create_color_pattern_fb:
+ * @fd: open i915 drm file descriptor
+ * @width: width of the framebuffer in pixel
+ * @height: height of the framebuffer in pixel
+ * @format: drm fourcc pixel format code
+ * @tiling: tiling layout of the framebuffer
+ * @r: red value to use as fill color
+ * @g: green value to use as fill color
+ * @b: blue value to use as fill color
+ * @fb: pointer to an #igt_fb structure
+ *
+ * This function allocates a gem buffer object suitable to back a framebuffer
+ * with the requested properties and then wraps it up in a drm framebuffer
+ * object. All metadata is stored in @fb.
+ *
+ * Compared to igt_create_fb() this function also fills the entire framebuffer
+ * with the given color, and then draws the standard test pattern into the
+ * framebuffer.
+ *
+ * Returns:
+ * The kms id of the created framebuffer on success or a negative error code on
+ * failure.
+ */
+unsigned int igt_create_color_pattern_fb(int fd, int width, int height,
+					 uint32_t format, uint64_t tiling,
+					 double r, double g, double b,
+					 struct igt_fb *fb /* out */)
+{
+	unsigned int fb_id;
+	cairo_t *cr;
+
+	fb_id = igt_create_fb(fd, width, height, format, tiling, fb);
+	igt_assert(fb_id);
+
+	cr = igt_get_cairo_ctx(fd, fb);
+	igt_paint_color(cr, 0, 0, width, height, r, g, b);
+	igt_paint_test_pattern(cr, width, height);
+	igt_assert(cairo_status(cr) == 0);
+	cairo_destroy(cr);
+
+	return fb_id;
+}
+
+/**
+ * igt_create_image_fb:
+ * @drm_fd: open i915 drm file descriptor
+ * @width: width of the framebuffer in pixel or 0
+ * @height: height of the framebuffer in pixel or 0
+ * @format: drm fourcc pixel format code
+ * @tiling: tiling layout of the framebuffer
+ * @filename: filename of the png image to draw
+ * @fb: pointer to an #igt_fb structure
+ *
+ * Create a framebuffer with the specified image. If @width is zero the
+ * image width will be used. If @height is zero the image height will be used.
+ *
+ * Returns:
+ * The kms id of the created framebuffer on success or a negative error code on
+ * failure.
+ */
+unsigned int igt_create_image_fb(int fd, int width, int height,
+				 uint32_t format, uint64_t tiling,
+				 const char *filename,
+				 struct igt_fb *fb /* out */)
+{
+	cairo_surface_t *image;
+	uint32_t fb_id;
+	cairo_t *cr;
+
+	image = cairo_image_surface_create_from_png(filename);
+	igt_assert(cairo_surface_status(image) == CAIRO_STATUS_SUCCESS);
+	if (width == 0)
+		width = cairo_image_surface_get_width(image);
+	if (height == 0)
+		height = cairo_image_surface_get_height(image);
+	cairo_surface_destroy(image);
+
+	fb_id = igt_create_fb(fd, width, height, format, tiling, fb);
+
+	cr = igt_get_cairo_ctx(fd, fb);
+	igt_paint_image(cr, filename, 0, 0, width, height);
 	igt_assert(cairo_status(cr) == 0);
 	cairo_destroy(cr);
 

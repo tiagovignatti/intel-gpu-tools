@@ -233,7 +233,6 @@ static bool init_modeset_params_for_type(struct mode_set_data *data,
 	int i;
 	uint32_t connector_id = 0;
 	drmModeModeInfoPtr mode = NULL;
-	cairo_t *cr;
 
 	for (i = 0; i < data->res->count_connectors; i++) {
 		drmModeConnectorPtr c = data->connectors[i];
@@ -256,12 +255,9 @@ static bool init_modeset_params_for_type(struct mode_set_data *data,
 	if (!connector_id)
 		return false;
 
-	igt_create_fb(drm_fd, mode->hdisplay, mode->vdisplay,
-		      DRM_FORMAT_XRGB8888, LOCAL_DRM_FORMAT_MOD_NONE,
-		      &params->fb);
-	cr = igt_get_cairo_ctx(drm_fd, &params->fb);
-	igt_paint_test_pattern(cr, mode->hdisplay, mode->vdisplay);
-	cairo_destroy(cr);
+	igt_create_pattern_fb(drm_fd, mode->hdisplay, mode->vdisplay,
+			      DRM_FORMAT_XRGB8888, LOCAL_DRM_FORMAT_MOD_NONE,
+			      &params->fb);
 
 	params->crtc_id = data->res->crtcs[0];
 	params->connector_id = connector_id;

@@ -39,16 +39,6 @@ typedef struct {
 	int gen;
 } data_t;
 
-static void
-fill_fb(struct igt_fb *fb, data_t *data, drmModeModeInfo *mode)
-{
-	cairo_t *cr;
-
-	cr = igt_get_cairo_ctx(data->drm_fd, fb);
-	igt_paint_test_pattern(cr, mode->hdisplay, mode->vdisplay);
-	cairo_destroy(cr);
-}
-
 static igt_pipe_crc_t *_pipe_crc;
 
 static igt_pipe_crc_t *pipe_crc_new(int pipe)
@@ -121,19 +111,16 @@ test_flip_tiling(data_t *data, igt_output_t *output, uint64_t tiling[2])
 			width *= 2;
 	}
 
-	fb_id = igt_create_fb(data->drm_fd, width, mode->vdisplay,
-			      DRM_FORMAT_XRGB8888, tiling[0],
-			      &fb[0]);
+	fb_id = igt_create_pattern_fb(data->drm_fd, width, mode->vdisplay,
+				      DRM_FORMAT_XRGB8888, tiling[0],
+				      &fb[0]);
 	igt_assert(fb_id);
 
 	/* Second fb has different background so CRC does not match. */
-	fb_id = igt_create_color_fb(data->drm_fd, width, mode->vdisplay,
-				    DRM_FORMAT_XRGB8888, tiling[1],
-				    0.5, 0.5, 0.5, &fb[1]);
+	fb_id = igt_create_color_pattern_fb(data->drm_fd, width, mode->vdisplay,
+				      DRM_FORMAT_XRGB8888, tiling[1],
+				      0.5, 0.5, 0.5, &fb[1]);
 	igt_assert(fb_id);
-
-	fill_fb(&fb[0], data, mode);
-	fill_fb(&fb[1], data, mode);
 
 	/* Set the crtc and generate a reference CRC. */
 	igt_plane_set_fb(primary, &fb[1]);

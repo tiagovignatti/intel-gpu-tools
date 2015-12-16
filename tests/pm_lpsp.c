@@ -78,16 +78,9 @@ static void screens_disabled_subtest(int drm_fd, drmModeResPtr drm_res)
 static uint32_t create_fb(int drm_fd, int width, int height)
 {
 	struct igt_fb fb;
-	cairo_t *cr;
-	uint32_t buffer_id;
 
-	buffer_id = igt_create_fb(drm_fd, width, height, DRM_FORMAT_XRGB8888,
-				  LOCAL_DRM_FORMAT_MOD_NONE, &fb);
-	cr = igt_get_cairo_ctx(drm_fd, &fb);
-	igt_paint_test_pattern(cr, width, height);
-	cairo_destroy(cr);
-
-	return buffer_id;
+	return igt_create_pattern_fb(drm_fd, width, height, DRM_FORMAT_XRGB8888,
+				     LOCAL_DRM_FORMAT_MOD_NONE, &fb);
 }
 
 static void edp_subtest(int drm_fd, drmModeResPtr drm_res,

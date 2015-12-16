@@ -50,7 +50,6 @@ static void test(data_t *data)
 	igt_output_t *output = data->output;
 	struct igt_fb *fb = &data->fb[1];
 	drmModeModeInfo *mode;
-	cairo_t *cr;
 	uint32_t caching;
 	void *buf;
 	igt_crc_t crc;
@@ -58,12 +57,8 @@ static void test(data_t *data)
 	mode = igt_output_get_mode(output);
 
 	/* create a non-white fb where we can pwrite later */
-	igt_create_fb(data->drm_fd, mode->hdisplay, mode->vdisplay,
-		      DRM_FORMAT_XRGB8888, LOCAL_DRM_FORMAT_MOD_NONE, fb);
-
-	cr = igt_get_cairo_ctx(data->drm_fd, fb);
-	igt_paint_test_pattern(cr, fb->width, fb->height);
-	cairo_destroy(cr);
+	igt_create_pattern_fb(data->drm_fd, mode->hdisplay, mode->vdisplay,
+			      DRM_FORMAT_XRGB8888, LOCAL_DRM_FORMAT_MOD_NONE, fb);
 
 	/* flip to it to make it UC/WC and fully flushed */
 	drmModeSetPlane(data->drm_fd,
