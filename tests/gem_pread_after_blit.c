@@ -233,10 +233,8 @@ igt_main
 			do_test(fd, t->cache, src, start, dst, 100, no_hang);
 		igt_stop_signal_helper();
 
-		igt_subtest_f("%s-hang", t->name) {
-			igt_require_hang_ring(fd, -1);
+		igt_subtest_f("%s-hang", t->name)
 			do_test(fd, t->cache, src, start, dst, 1, bcs_hang);
-		}
 	}
 
 	igt_fixture {

@@ -652,11 +652,6 @@ static struct igt_hang_ring rcs_hang(void)
 	return igt_hang_ring(fd, I915_EXEC_RENDER);
 }
 
-static void hang_require(void)
-{
-	igt_require_hang_ring(fd, -1);
-}
-
 static void check_gpu(void)
 {
 	unsigned missed_irq = 0;
@@ -1145,10 +1140,6 @@ static void rcs_require(void)
 	igt_require(rendercopy);
 }
 
-static void no_require(void)
-{
-}
-
 static void
 run_basic_modes(const char *prefix,
 		const struct access_mode *mode,
@@ -1170,11 +1161,10 @@ run_basic_modes(const char *prefix,
 	const struct {
 		const char *suffix;
 		do_hang hang;
-		void (*require)(void);
 	} hangs[] = {
-		{ "", no_hang, no_require },
-		{ "-hang-blt", bcs_hang, hang_require },
-		{ "-hang-render", rcs_hang, hang_require },
+		{ "", no_hang },
+		{ "-hang-blt", bcs_hang },
+		{ "-hang-render", rcs_hang },
 		{ NULL, NULL },
 	}, *h;
 	struct buffers buffers;
@@ -1189,7 +1179,6 @@ run_basic_modes(const char *prefix,
 			}
 
 			igt_subtest_f("%s-%s-%s-sanitycheck0%s%s", prefix, mode->name, p->prefix, suffix, h->suffix) {
-				h->require();
 				p->require();
 				buffers_create(&buffers, num_buffers);
 				run_wrap_func(&buffers, do_basic0,
@@ -1197,7 +1186,6 @@ run_basic_modes(const char *prefix,
 			}
 
 			igt_subtest_f("%s-%s-%s-sanitycheck1%s%s", prefix, mode->name, p->prefix, suffix, h->suffix) {
-				h->require();
 				p->require();
 				buffers_create(&buffers, num_buffers);
 				run_wrap_func(&buffers, do_basic1,
@@ -1205,7 +1193,6 @@ run_basic_modes(const char *prefix,
 			}
 
 			igt_subtest_f("%s-%s-%s-sanitycheckN%s%s", prefix, mode->name, p->prefix, suffix, h->suffix) {
-				h->require();
 				p->require();
 				buffers_create(&buffers, num_buffers);
 				run_wrap_func(&buffers, do_basicN,
@@ -1214,7 +1201,6 @@ run_basic_modes(const char *prefix,
 
 			/* try to overwrite the source values */
 			igt_subtest_f("%s-%s-%s-overwrite-source-one%s%s", prefix, mode->name, p->prefix, suffix, h->suffix) {
-				h->require();
 				p->require();
 				buffers_create(&buffers, num_buffers);
 				run_wrap_func(&buffers,
@@ -1223,7 +1209,6 @@ run_basic_modes(const char *prefix,
 			}
 
 			igt_subtest_f("%s-%s-%s-overwrite-source%s%s", prefix, mode->name, p->prefix, suffix, h->suffix) {
-				h->require();
 				p->require();
 				buffers_create(&buffers, num_buffers);
 				run_wrap_func(&buffers,
@@ -1232,7 +1217,6 @@ run_basic_modes(const char *prefix,
 			}
 
 			igt_subtest_f("%s-%s-%s-overwrite-source-read-bcs%s%s", prefix, mode->name, p->prefix, suffix, h->suffix) {
-				h->require();
 				p->require();
 				buffers_create(&buffers, num_buffers);
 				run_wrap_func(&buffers,
@@ -1241,7 +1225,6 @@ run_basic_modes(const char *prefix,
 			}
 
 			igt_subtest_f("%s-%s-%s-overwrite-source-read-rcs%s%s", prefix, mode->name, p->prefix, suffix, h->suffix) {
-				h->require();
 				p->require();
 				igt_require(rendercopy);
 				buffers_create(&buffers, num_buffers);
@@ -1251,7 +1234,6 @@ run_basic_modes(const char *prefix,
 			}
 
 			igt_subtest_f("%s-%s-%s-overwrite-source-rev%s%s", prefix, mode->name, p->prefix, suffix, h->suffix) {
-				h->require();
 				p->require();
 				buffers_create(&buffers, num_buffers);
 				run_wrap_func(&buffers,
@@ -1261,7 +1243,6 @@ run_basic_modes(const char *prefix,
 
 			/* try to intermix copies with GPU copies*/
 			igt_subtest_f("%s-%s-%s-intermix-rcs%s%s", prefix, mode->name, p->prefix, suffix, h->suffix) {
-				h->require();
 				p->require();
 				igt_require(rendercopy);
 				buffers_create(&buffers, num_buffers);
@@ -1270,7 +1251,6 @@ run_basic_modes(const char *prefix,
 					      p->copy, h->hang);
 			}
 			igt_subtest_f("%s-%s-%s-intermix-bcs%s%s", prefix, mode->name, p->prefix, suffix, h->suffix) {
-				h->require();
 				p->require();
 				igt_require(rendercopy);
 				buffers_create(&buffers, num_buffers);
@@ -1279,7 +1259,6 @@ run_basic_modes(const char *prefix,
 					      p->copy, h->hang);
 			}
 			igt_subtest_f("%s-%s-%s-intermix-both%s%s", prefix, mode->name, p->prefix, suffix, h->suffix) {
-				h->require();
 				p->require();
 				igt_require(rendercopy);
 				buffers_create(&buffers, num_buffers);
@@ -1290,7 +1269,6 @@ run_basic_modes(const char *prefix,
 
 			/* try to read the results before the copy completes */
 			igt_subtest_f("%s-%s-%s-early-read%s%s", prefix, mode->name, p->prefix, suffix, h->suffix) {
-				h->require();
 				p->require();
 				buffers_create(&buffers, num_buffers);
 				run_wrap_func(&buffers,
@@ -1300,7 +1278,6 @@ run_basic_modes(const char *prefix,
 
 			/* concurrent reads */
 			igt_subtest_f("%s-%s-%s-read-read-bcs%s%s", prefix, mode->name, p->prefix, suffix, h->suffix) {
-				h->require();
 				p->require();
 				buffers_create(&buffers, num_buffers);
 				run_wrap_func(&buffers,
@@ -1308,7 +1285,6 @@ run_basic_modes(const char *prefix,
 					      p->copy, h->hang);
 			}
 			igt_subtest_f("%s-%s-%s-read-read-rcs%s%s", prefix, mode->name, p->prefix, suffix, h->suffix) {
-				h->require();
 				p->require();
 				igt_require(rendercopy);
 				buffers_create(&buffers, num_buffers);
@@ -1319,7 +1295,6 @@ run_basic_modes(const char *prefix,
 
 			/* split copying between rings */
 			igt_subtest_f("%s-%s-%s-write-read-bcs%s%s", prefix, mode->name, p->prefix, suffix, h->suffix) {
-				h->require();
 				p->require();
 				buffers_create(&buffers, num_buffers);
 				run_wrap_func(&buffers,
@@ -1327,7 +1302,6 @@ run_basic_modes(const char *prefix,
 					      p->copy, h->hang);
 			}
 			igt_subtest_f("%s-%s-%s-write-read-rcs%s%s", prefix, mode->name, p->prefix, suffix, h->suffix) {
-				h->require();
 				p->require();
 				igt_require(rendercopy);
 				buffers_create(&buffers, num_buffers);
@@ -1338,7 +1312,6 @@ run_basic_modes(const char *prefix,
 
 			/* and finally try to trick the kernel into loosing the pending write */
 			igt_subtest_f("%s-%s-%s-gpu-read-after-write%s%s", prefix, mode->name, p->prefix, suffix, h->suffix) {
-				h->require();
 				p->require();
 				buffers_create(&buffers, num_buffers);
 				run_wrap_func(&buffers,

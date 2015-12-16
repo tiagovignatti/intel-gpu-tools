@@ -318,18 +318,14 @@ igt_main
 	igt_subtest("interruptible")
 		do_test(fd, false, no_hang);
 
-	igt_subtest("interruptible-hang") {
-		igt_require_hang_ring(fd, I915_EXEC_BLT);
+	igt_subtest("interruptible-hang")
 		do_test(fd, false, bcs_hang);
-	}
 
 	igt_subtest("faulting-reloc-interruptible")
 		do_test(fd, true, no_hang);
 
-	igt_subtest("faulting-reloc-interruptible-hang") {
-		igt_require_hang_ring(fd, I915_EXEC_BLT);
+	igt_subtest("faulting-reloc-interruptible-hang")
 		do_test(fd, true, bcs_hang);
-	}
 	igt_stop_signal_helper();
 
 	for (unsigned flags = 0; flags <= ALL_FLAGS; flags++) {
