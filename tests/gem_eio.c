@@ -161,9 +161,21 @@ static void test_wait(int fd)
 {
 	igt_hang_ring_t hang;
 
+	/* If the request we wait on completes due to a hang (even for
+	 * that request), the user expects the return value to 0 (success).
+	 */
 	hang = igt_hang_ring(fd, I915_EXEC_DEFAULT);
-	igt_assert_eq(__gem_wait(fd, hang.handle, -1), -EIO);
+	igt_assert_eq(__gem_wait(fd, hang.handle, -1), 0);
 	igt_post_hang_ring(fd, hang);
+
+	/* If the GPU is wedged during the wait, again we expect the return
+	 * value to be 0 (success).
+	 */
+	igt_require(i915_reset_control(false));
+	hang = igt_hang_ring(fd, I915_EXEC_DEFAULT);
+	igt_assert_eq(__gem_wait(fd, hang.handle, -1), 0);
+	igt_post_hang_ring(fd, hang);
+	igt_require(i915_reset_control(true));
 
 	trigger_reset(fd);
 }
