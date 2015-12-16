@@ -71,7 +71,7 @@ static void loop(int fd, uint32_t handle, unsigned ring_id, const char *ring_nam
 	}
 	gem_sync(fd, handle);
 
-	for (count = 1; count <= 1<<17; count <<= 1) {
+	for (count = 1; count <= SLOW_QUICK(1<<17, 1<<4); count <<= 1) {
 		int loops = count;
 		gem_set_domain(fd, handle, I915_GEM_DOMAIN_GTT, 0);
 		while (loops--)
