@@ -582,9 +582,26 @@ static void check_gpu(void)
 	igt_assert_eq(missed_irq, 0);
 }
 
-static void do_basic(struct buffers *buffers,
-		     do_copy do_copy_func,
-		     do_hang do_hang_func)
+static void do_basic0(struct buffers *buffers,
+		      do_copy do_copy_func,
+		      do_hang do_hang_func)
+{
+	gem_quiescent_gpu(fd);
+
+	buffers->mode->set_bo(buffers->src[0], 0xdeadbeef, width, height);
+	for (int i = 0; i < buffers->count; i++) {
+		struct igt_hang_ring hang = do_hang_func();
+
+		do_copy_func(buffers->dst[i], buffers->src[0]);
+		buffers->mode->cmp_bo(buffers->dst[i], 0xdeadbeef, width, height, buffers->dummy);
+
+		igt_post_hang_ring(fd, hang);
+	}
+}
+
+static void do_basic1(struct buffers *buffers,
+		      do_copy do_copy_func,
+		      do_hang do_hang_func)
 {
 	gem_quiescent_gpu(fd);
 
@@ -593,11 +610,39 @@ static void do_basic(struct buffers *buffers,
 
 		buffers->mode->set_bo(buffers->src[i], i, width, height);
 		buffers->mode->set_bo(buffers->dst[i], ~i, width, height);
+
 		do_copy_func(buffers->dst[i], buffers->src[i]);
+		usleep(0); /* let someone else claim the mutex */
 		buffers->mode->cmp_bo(buffers->dst[i], i, width, height, buffers->dummy);
 
 		igt_post_hang_ring(fd, hang);
 	}
+}
+
+static void do_basicN(struct buffers *buffers,
+		      do_copy do_copy_func,
+		      do_hang do_hang_func)
+{
+	struct igt_hang_ring hang;
+
+	gem_quiescent_gpu(fd);
+
+	for (int i = 0; i < buffers->count; i++) {
+		buffers->mode->set_bo(buffers->src[i], i, width, height);
+		buffers->mode->set_bo(buffers->dst[i], ~i, width, height);
+	}
+
+	hang = do_hang_func();
+
+	for (int i = 0; i < buffers->count; i++) {
+		do_copy_func(buffers->dst[i], buffers->src[i]);
+		usleep(0); /* let someone else claim the mutex */
+	}
+
+	for (int i = 0; i < buffers->count; i++)
+		buffers->mode->cmp_bo(buffers->dst[i], i, width, height, buffers->dummy);
+
+	igt_post_hang_ring(fd, hang);
 }
 
 static void do_overwrite_source(struct buffers *buffers,
@@ -1048,11 +1093,27 @@ run_basic_modes(const char *prefix,
 				batch = buffers_init(&buffers, mode, fd);
 			}
 
-			igt_subtest_f("%s-%s-%s-sanitycheck%s%s", prefix, mode->name, p->prefix, suffix, h->suffix) {
+			igt_subtest_f("%s-%s-%s-sanitycheck0%s%s", prefix, mode->name, p->prefix, suffix, h->suffix) {
 				h->require();
 				p->require();
 				buffers_create(&buffers, num_buffers);
-				run_wrap_func(&buffers, do_basic,
+				run_wrap_func(&buffers, do_basic0,
+					      p->copy, h->hang);
+			}
+
+			igt_subtest_f("%s-%s-%s-sanitycheck1%s%s", prefix, mode->name, p->prefix, suffix, h->suffix) {
+				h->require();
+				p->require();
+				buffers_create(&buffers, num_buffers);
+				run_wrap_func(&buffers, do_basic1,
+					      p->copy, h->hang);
+			}
+
+			igt_subtest_f("%s-%s-%s-sanitycheckN%s%s", prefix, mode->name, p->prefix, suffix, h->suffix) {
+				h->require();
+				p->require();
+				buffers_create(&buffers, num_buffers);
+				run_wrap_func(&buffers, do_basicN,
 					      p->copy, h->hang);
 			}
 
