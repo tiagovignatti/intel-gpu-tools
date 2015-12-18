@@ -280,11 +280,10 @@ char *igt_crc_to_string(igt_crc_t *crc)
 {
 	char buf[128];
 
-	if (crc->n_words == 5)
-		sprintf(buf, "%08x %08x %08x %08x %08x", crc->crc[0],
-			crc->crc[1], crc->crc[2], crc->crc[3], crc->crc[4]);
-	else
-		igt_assert(0);
+	igt_assert_eq(crc->n_words, 5);
+
+	sprintf(buf, "%08x %08x %08x %08x %08x", crc->crc[0],
+		crc->crc[1], crc->crc[2], crc->crc[3], crc->crc[4]);
 
 	return strdup(buf);
 }
