@@ -9,7 +9,6 @@ gem_mmap
 gem_prw
 gem_set_domain
 gem_userptr_benchmark
-gem_wait
 intel_upload_blit_large
 intel_upload_blit_large_gtt
 intel_upload_blit_large_map

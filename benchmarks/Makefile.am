@@ -9,9 +9,6 @@ benchmarks_LTLIBRARIES = gem_exec_tracer.la
 gem_exec_tracer_la_LDFLAGS = -module -avoid-version -no-undefined
 gem_exec_tracer_la_LIBADD = -ldl
 
-gem_wait_CFLAGS = $(AM_CFLAGS) $(THREAD_CFLAGS)
-gem_wait_LDADD = $(LDADD) -lpthread
-
 gem_latency_CFLAGS = $(AM_CFLAGS) $(THREAD_CFLAGS)
 gem_latency_LDADD = $(LDADD) -lpthread
 

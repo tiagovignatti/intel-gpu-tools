@@ -16,6 +16,5 @@ benchmarks_PROGRAMS =			\
 	gem_prw				\
 	gem_set_domain			\
 	gem_userptr_benchmark		\
-	gem_wait				\
 	kms_vblank			\
 	$(NULL)
