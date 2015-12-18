@@ -115,11 +115,14 @@ char *igt_crc_to_string(igt_crc_t *crc);
 void igt_require_pipe_crc(void);
 igt_pipe_crc_t *
 igt_pipe_crc_new(enum pipe pipe, enum intel_pipe_crc_source source);
+igt_pipe_crc_t *
+igt_pipe_crc_new_nonblock(enum pipe pipe, enum intel_pipe_crc_source source);
 void igt_pipe_crc_free(igt_pipe_crc_t *pipe_crc);
 void igt_pipe_crc_start(igt_pipe_crc_t *pipe_crc);
 void igt_pipe_crc_stop(igt_pipe_crc_t *pipe_crc);
-void igt_pipe_crc_get_crcs(igt_pipe_crc_t *pipe_crc, int n_crcs,
-			   igt_crc_t **out_crcs);
+__attribute__((warn_unused_result))
+int igt_pipe_crc_get_crcs(igt_pipe_crc_t *pipe_crc, int n_crcs,
+			  igt_crc_t **out_crcs);
 void igt_pipe_crc_collect_crc(igt_pipe_crc_t *pipe_crc, igt_crc_t *out_crc);
 
 /*

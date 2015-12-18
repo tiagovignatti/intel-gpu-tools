@@ -298,6 +298,7 @@ struct _igt_pipe_crc {
 	int crc_fd;
 	int line_len;
 	int buffer_len;
+	int flags;
 
 	enum pipe pipe;
 	enum intel_pipe_crc_source source;
@@ -389,19 +390,8 @@ void igt_require_pipe_crc(void)
 	fclose(ctl);
 }
 
-/**
- * igt_pipe_crc_new:
- * @pipe: display pipe to use as source
- * @source: CRC tap point to use as source
- *
- * This sets up a new pipe CRC capture object for the given @pipe and @source.
- *
- * Returns: A pipe CRC object if the given @pipe and @source. The library
- * assumes that the source is always available since recent kernels support at
- * least INTEL_PIPE_CRC_SOURCE_AUTO everywhere.
- */
-igt_pipe_crc_t *
-igt_pipe_crc_new(enum pipe pipe, enum intel_pipe_crc_source source)
+static igt_pipe_crc_t *
+pipe_crc_new(enum pipe pipe, enum intel_pipe_crc_source source, int flags)
 {
 	igt_pipe_crc_t *pipe_crc;
 	char buf[128];
@@ -414,15 +404,52 @@ igt_pipe_crc_new(enum pipe pipe, enum intel_pipe_crc_source source)
 	igt_assert(pipe_crc->ctl_fd != -1);
 
 	sprintf(buf, "i915_pipe_%s_crc", kmstest_pipe_name(pipe));
-	pipe_crc->crc_fd = igt_debugfs_open(buf, O_RDONLY);
+	pipe_crc->crc_fd = igt_debugfs_open(buf, flags);
 	igt_assert(pipe_crc->crc_fd != -1);
 
 	pipe_crc->line_len = PIPE_CRC_LINE_LEN;
 	pipe_crc->buffer_len = PIPE_CRC_BUFFER_LEN;
 	pipe_crc->pipe = pipe;
 	pipe_crc->source = source;
+	pipe_crc->flags = flags;
 
 	return pipe_crc;
+}
+
+/**
+ * igt_pipe_crc_new:
+ * @pipe: display pipe to use as source
+ * @source: CRC tap point to use as source
+ *
+ * This sets up a new pipe CRC capture object for the given @pipe and @source
+ * in blocking mode.
+ *
+ * Returns: A pipe CRC object for the given @pipe and @source. The library
+ * assumes that the source is always available since recent kernels support at
+ * least INTEL_PIPE_CRC_SOURCE_AUTO everywhere.
+ */
+igt_pipe_crc_t *
+igt_pipe_crc_new(enum pipe pipe, enum intel_pipe_crc_source source)
+{
+	return pipe_crc_new(pipe, source, O_RDONLY);
+}
+
+/**
+ * igt_pipe_crc_new_nonblock:
+ * @pipe: display pipe to use as source
+ * @source: CRC tap point to use as source
+ *
+ * This sets up a new pipe CRC capture object for the given @pipe and @source
+ * in nonblocking mode.
+ *
+ * Returns: A pipe CRC object for the given @pipe and @source. The library
+ * assumes that the source is always available since recent kernels support at
+ * least INTEL_PIPE_CRC_SOURCE_AUTO everywhere.
+ */
+igt_pipe_crc_t *
+igt_pipe_crc_new_nonblock(enum pipe pipe, enum intel_pipe_crc_source source)
+{
+	return pipe_crc_new(pipe, source, O_RDONLY | O_NONBLOCK);
 }
 
 /**
@@ -441,6 +468,45 @@ void igt_pipe_crc_free(igt_pipe_crc_t *pipe_crc)
 	free(pipe_crc);
 }
 
+static bool pipe_crc_init_from_string(igt_crc_t *crc, const char *line)
+{
+	int n;
+
+	crc->n_words = 5;
+	n = sscanf(line, "%8u %8x %8x %8x %8x %8x", &crc->frame, &crc->crc[0],
+		   &crc->crc[1], &crc->crc[2], &crc->crc[3], &crc->crc[4]);
+	return n == 6;
+}
+
+static int read_crc(igt_pipe_crc_t *pipe_crc, igt_crc_t *out)
+{
+	ssize_t bytes_read;
+	char buf[pipe_crc->buffer_len];
+
+	igt_set_timeout(5, "CRC reading");
+	bytes_read = read(pipe_crc->crc_fd, &buf, pipe_crc->line_len);
+	igt_reset_timeout();
+
+	if (bytes_read < 0 && errno == EAGAIN) {
+		igt_assert(pipe_crc->flags & O_NONBLOCK);
+		bytes_read = 0;
+	} else {
+		igt_assert_eq(bytes_read, pipe_crc->line_len);
+	}
+	buf[bytes_read] = '\0';
+
+	if (bytes_read && !pipe_crc_init_from_string(out, buf))
+		return -EINVAL;
+
+	return bytes_read;
+}
+
+static void read_one_crc(igt_pipe_crc_t *pipe_crc, igt_crc_t *out)
+{
+	while (read_crc(pipe_crc, out) == 0)
+		usleep(1000);
+}
+
 /**
  * igt_pipe_crc_start:
  * @pipe_crc: pipe CRC object
@@ -449,7 +515,7 @@ void igt_pipe_crc_free(igt_pipe_crc_t *pipe_crc)
  */
 void igt_pipe_crc_start(igt_pipe_crc_t *pipe_crc)
 {
-	igt_crc_t *crcs = NULL;
+	igt_crc_t crc;
 
 	igt_assert(igt_pipe_crc_do_start(pipe_crc));
 
@@ -460,8 +526,8 @@ void igt_pipe_crc_start(igt_pipe_crc_t *pipe_crc)
 	 * On CHV sometimes the second CRC is bonkers as well, so don't trust
 	 * that one either.
 	 */
-	igt_pipe_crc_get_crcs(pipe_crc, 2, &crcs);
-	free(crcs);
+	read_one_crc(pipe_crc, &crc);
+	read_one_crc(pipe_crc, &crc);
 }
 
 /**
@@ -478,34 +544,6 @@ void igt_pipe_crc_stop(igt_pipe_crc_t *pipe_crc)
 	igt_assert_eq(write(pipe_crc->ctl_fd, buf, strlen(buf)), strlen(buf));
 }
 
-static bool pipe_crc_init_from_string(igt_crc_t *crc, const char *line)
-{
-	int n;
-
-	crc->n_words = 5;
-	n = sscanf(line, "%8u %8x %8x %8x %8x %8x", &crc->frame, &crc->crc[0],
-		   &crc->crc[1], &crc->crc[2], &crc->crc[3], &crc->crc[4]);
-	return n == 6;
-}
-
-static bool read_one_crc(igt_pipe_crc_t *pipe_crc, igt_crc_t *out)
-{
-	ssize_t bytes_read;
-	char buf[pipe_crc->buffer_len];
-
-	igt_set_timeout(5, "CRC reading");
-	bytes_read = read(pipe_crc->crc_fd, &buf, pipe_crc->line_len);
-	igt_reset_timeout();
-
-	igt_assert_eq(bytes_read, pipe_crc->line_len);
-	buf[bytes_read] = '\0';
-
-	if (!pipe_crc_init_from_string(out, buf))
-		return false;
-
-	return true;
-}
-
 /**
  * igt_pipe_crc_get_crcs:
  * @pipe_crc: pipe CRC object
@@ -518,8 +556,11 @@ static bool read_one_crc(igt_pipe_crc_t *pipe_crc, igt_crc_t *out)
  *
  * Callers must start and stop the capturing themselves by calling
  * igt_pipe_crc_start() and igt_pipe_crc_stop().
+ *
+ * Returns: The number of CRCs captured. Should be equal to @n_crcs in blocking
+ * mode, but can be less (even zero) in non-blocking mode.
  */
-void
+int
 igt_pipe_crc_get_crcs(igt_pipe_crc_t *pipe_crc, int n_crcs,
 		      igt_crc_t **out_crcs)
 {
@@ -530,14 +571,19 @@ igt_pipe_crc_get_crcs(igt_pipe_crc_t *pipe_crc, int n_crcs,
 
 	do {
 		igt_crc_t *crc = &crcs[n];
+		int ret;
 
-		if (!read_one_crc(pipe_crc, crc))
+		ret = read_crc(pipe_crc, crc);
+		if (ret < 0)
 			continue;
+		if (ret == 0)
+			break;
 
 		n++;
 	} while (n < n_crcs);
 
 	*out_crcs = crcs;
+	return n;
 }
 
 static void crc_sanity_checks(igt_crc_t *crc)
