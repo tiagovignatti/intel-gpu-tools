@@ -110,6 +110,7 @@ static void test_bad_command(data_t *data, const char *cmd)
 #define N_CRCS	3
 
 #define TEST_SEQUENCE (1<<0)
+#define TEST_NONBLOCK (1<<1)
 
 static int
 test_read_crc_for_output(data_t *data, int pipe, igt_output_t *output,
@@ -152,13 +153,28 @@ test_read_crc_for_output(data_t *data, int pipe, igt_output_t *output,
 
 		igt_display_commit(display);
 
-		pipe_crc = igt_pipe_crc_new(pipe, INTEL_PIPE_CRC_SOURCE_AUTO);
+		if (flags & TEST_NONBLOCK)
+			pipe_crc = igt_pipe_crc_new_nonblock(pipe, INTEL_PIPE_CRC_SOURCE_AUTO);
+		else
+			pipe_crc = igt_pipe_crc_new(pipe, INTEL_PIPE_CRC_SOURCE_AUTO);
 
 		igt_pipe_crc_start(pipe_crc);
 
 		/* wait for N_CRCS vblanks and the corresponding N_CRCS CRCs */
-		n_crcs = igt_pipe_crc_get_crcs(pipe_crc, N_CRCS, &crcs);
-		igt_assert_eq(n_crcs, N_CRCS);
+		if (flags & TEST_NONBLOCK) {
+			int i;
+
+			for (i = 0; i < N_CRCS; i++)
+				igt_wait_for_vblank(data->drm_fd, pipe);
+
+			n_crcs = igt_pipe_crc_get_crcs(pipe_crc, N_CRCS * 3, &crcs);
+			/* allow a one frame difference */
+			igt_assert_lte(n_crcs, N_CRCS + 1);
+			igt_assert_lte(N_CRCS, n_crcs + 1);
+		} else {
+			n_crcs = igt_pipe_crc_get_crcs(pipe_crc, N_CRCS, &crcs);
+			igt_assert_eq(n_crcs, N_CRCS);
+		}
 
 		igt_pipe_crc_stop(pipe_crc);
 
@@ -173,11 +189,11 @@ test_read_crc_for_output(data_t *data, int pipe, igt_output_t *output,
 		free(crc_str);
 
 		/* and ensure that they'are all equal, we haven't changed the fb */
-		for (j = 0; j < (N_CRCS - 1); j++)
+		for (j = 0; j < (n_crcs - 1); j++)
 			igt_assert_crc_equal(&crcs[j], &crcs[j + 1]);
 
 		if (flags & TEST_SEQUENCE)
-			for (j = 0; j < (N_CRCS - 1); j++)
+			for (j = 0; j < (n_crcs - 1); j++)
 				igt_assert(crcs[j].frame + 1 == crcs[j + 1].frame);
 
 		free(crcs);
@@ -247,6 +263,12 @@ igt_main
 
 		igt_subtest_f("read-crc-pipe-%c-frame-sequence", 'A'+i)
 			test_read_crc(&data, i, TEST_SEQUENCE);
+
+		igt_subtest_f("nonblocking-crc-pipe-%c", 'A'+i)
+			test_read_crc(&data, i, TEST_NONBLOCK);
+
+		igt_subtest_f("nonblocking-crc-pipe-%c-frame-sequence", 'A'+i)
+			test_read_crc(&data, i, TEST_SEQUENCE | TEST_NONBLOCK);
 
 		igt_subtest_f("suspend-read-crc-pipe-%c", 'A'+i) {
 			igt_system_suspend_autoresume();
