@@ -121,7 +121,7 @@ struct option;
 #endif
 int igt_subtest_init_parse_opts(int *argc, char **argv,
 				const char *extra_short_opts,
-				struct option *extra_long_opts,
+				const struct option *extra_long_opts,
 				const char *help_str,
 				igt_opt_handler_t extra_opt_handler,
 				void *handler_data);
@@ -217,7 +217,7 @@ bool igt_only_list_subtests(void);
 const char *igt_test_name(void);
 void igt_simple_init_parse_opts(int *argc, char **argv,
 				const char *extra_short_opts,
-				struct option *extra_long_opts,
+				const struct option *extra_long_opts,
 				const char *help_str,
 				igt_opt_handler_t extra_opt_handler,
 				void *handler_data);

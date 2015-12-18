@@ -540,7 +540,7 @@ static void oom_adjust_for_doom(void)
 
 static int common_init(int *argc, char **argv,
 		       const char *extra_short_opts,
-		       struct option *extra_long_opts,
+		       const struct option *extra_long_opts,
 		       const char *help_str,
 		       igt_opt_handler_t extra_opt_handler,
 		       void *handler_data)
@@ -746,7 +746,7 @@ out:
  */
 int igt_subtest_init_parse_opts(int *argc, char **argv,
 				const char *extra_short_opts,
-				struct option *extra_long_opts,
+				const struct option *extra_long_opts,
 				const char *help_str,
 				igt_opt_handler_t extra_opt_handler,
 				void *handler_data)
@@ -777,7 +777,7 @@ enum igt_log_level igt_log_level = IGT_LOG_INFO;
  */
 void igt_simple_init_parse_opts(int *argc, char **argv,
 				const char *extra_short_opts,
-				struct option *extra_long_opts,
+				const struct option *extra_long_opts,
 				const char *help_str,
 				igt_opt_handler_t extra_opt_handler,
 				void *handler_data)
