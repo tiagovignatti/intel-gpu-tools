@@ -4,6 +4,7 @@ gem_exec_ctx
 gem_exec_nop
 gem_exec_reloc
 gem_exec_trace
+gem_latency
 gem_mmap
 gem_prw
 gem_set_domain
