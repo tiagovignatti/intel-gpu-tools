@@ -76,6 +76,7 @@ struct producer {
 	uint32_t *last_timestamp;
 	int wait;
 	int complete;
+	int done;
 	igt_stats_t latency, throughput;
 
 	int nop;
@@ -299,6 +300,14 @@ static void *producer(void *arg)
 		p->complete++;
 	}
 
+	pthread_mutex_lock(&p->lock);
+	p->wait = p->nconsumers;
+	p->done = true;
+	for (n = 0; n < p->nconsumers; n++)
+		p->consumers[n].wait = 1;
+	pthread_cond_broadcast(&p->c_cond);
+	pthread_mutex_unlock(&p->lock);
+
 	return NULL;
 }
 
@@ -311,7 +320,7 @@ static void *consumer(void *arg)
 	 * wait upon the batch to finish. This is to add extra waiters to
 	 * the same request - increasing wakeup contention.
 	 */
-	while (!done) {
+	do {
 		pthread_mutex_lock(&p->lock);
 		if (--p->wait == 0)
 			pthread_cond_signal(&p->p_cond);
@@ -319,11 +328,11 @@ static void *consumer(void *arg)
 			pthread_cond_wait(&p->c_cond, &p->lock);
 		c->wait = 0;
 		pthread_mutex_unlock(&p->lock);
+		if (p->done)
+			return NULL;
 
 		measure_latency(p, &c->latency);
-	}
-
-	return NULL;
+	} while (1);
 }
 
 static double l_estimate(igt_stats_t *stats)
@@ -394,6 +403,10 @@ static int run(int seconds,
 			pthread_create(&p[n].consumers[m].thread, NULL,
 				       consumer, &p[n].consumers[m]);
 		}
+		pthread_mutex_lock(&p->lock);
+		while (p->wait)
+			pthread_cond_wait(&p->p_cond, &p->lock);
+		pthread_mutex_unlock(&p->lock);
 	}
 
 	for (n = 0; n < nproducers; n++)
@@ -406,7 +419,6 @@ static int run(int seconds,
 	igt_stats_init_with_size(&throughput, nproducers);
 	igt_stats_init_with_size(&latency, nconsumers*nproducers);
 	for (n = 0; n < nproducers; n++) {
-		pthread_cancel(p[n].thread);
 		pthread_join(p[n].thread, NULL);
 
 		if (!p[n].complete)
@@ -418,7 +430,6 @@ static int run(int seconds,
 		igt_stats_push_float(&throughput, l_estimate(&p[n].throughput));
 
 		for (m = 0; m < nconsumers; m++) {
-			pthread_cancel(p[n].consumers[m].thread);
 			pthread_join(p[n].consumers[m].thread, NULL);
 			igt_stats_push_float(&latency, l_estimate(&p[n].consumers[m].latency));
 		}
