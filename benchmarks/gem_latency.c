@@ -91,7 +91,10 @@ static void setup_batch(struct producer *p, int gen, uint32_t scratch)
 	p->exec[1].relocation_count = 3;
 	p->exec[1].relocs_ptr = (uintptr_t)p->reloc;
 	p->exec[1].handle = gem_create(fd, 4096);
-	map = gem_mmap__cpu(fd, p->exec[1].handle, 0, 4096, PROT_WRITE);
+	if (gem_has_llc(fd))
+		map = gem_mmap__cpu(fd, p->exec[1].handle, 0, 4096, PROT_WRITE);
+	else
+		map = gem_mmap__gtt(fd, p->exec[1].handle, 4096, PROT_WRITE);
 
 	/* XY_SRC_COPY */
 	map[i++] = COPY_BLT_CMD | BLT_WRITE_ALPHA | BLT_WRITE_RGB;
@@ -152,7 +155,8 @@ static void setup_batch(struct producer *p, int gen, uint32_t scratch)
 static void measure_latency(struct producer *p, igt_stats_t *stats)
 {
 	gem_sync(fd, p->exec[1].handle);
-	igt_stats_push(stats, INREG(BCS_TIMESTAMP) - *p->last_timestamp);
+#define READ(x) *(volatile uint32_t *)((volatile char *)igt_global_mmio + x)
+	igt_stats_push(stats, READ(BCS_TIMESTAMP) - *p->last_timestamp);
 }
 
 static void *producer(void *arg)
