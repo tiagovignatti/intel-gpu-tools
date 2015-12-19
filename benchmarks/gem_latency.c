@@ -57,6 +57,7 @@ struct consumer {
 struct producer {
 	pthread_t thread;
 	uint32_t ctx;
+	uint32_t nop_handle;
 	struct drm_i915_gem_exec_object2 exec[2];
 	struct drm_i915_gem_relocation_entry reloc[3];
 
@@ -67,6 +68,7 @@ struct producer {
 	int complete;
 	igt_stats_t latency, throughput;
 
+	int nop;
 	int workload;
 	int nconsumers;
 	struct consumer *consumers;
@@ -82,7 +84,7 @@ struct producer {
 
 #define BCS_TIMESTAMP (0x22000 + 0x358)
 
-static void setup_batch(struct producer *p, int gen, uint32_t scratch)
+static void setup_workload(struct producer *p, int gen, uint32_t scratch)
 {
 	const int has_64bit_reloc = gen >= 8;
 	uint32_t *map;
@@ -153,6 +155,17 @@ static void setup_batch(struct producer *p, int gen, uint32_t scratch)
 	map[i++] = MI_BATCH_BUFFER_END;
 }
 
+static uint32_t setup_nop(void)
+{
+	uint32_t buf = MI_BATCH_BUFFER_END;
+	uint32_t handle;
+
+	handle = gem_create(fd, 4096);
+	gem_write(fd, handle, 0, &buf, sizeof(buf));
+
+	return handle;
+}
+
 #define READ(x) *(volatile uint32_t *)((volatile char *)igt_global_mmio + x)
 static void measure_latency(struct producer *p, igt_stats_t *stats)
 {
@@ -163,21 +176,48 @@ static void measure_latency(struct producer *p, igt_stats_t *stats)
 static void *producer(void *arg)
 {
 	struct producer *p = arg;
-	struct drm_i915_gem_execbuffer2 execbuf;
+	struct drm_i915_gem_execbuffer2 nop, workload;
+	struct drm_i915_gem_exec_object2 exec;
 	int n;
 
-	memset(&execbuf, 0, sizeof(execbuf));
-	execbuf.buffers_ptr = (uintptr_t)p->exec;
-	execbuf.buffer_count = 2;
-	execbuf.flags = I915_EXEC_BLT | LOCAL_EXEC_NO_RELOC;
-	execbuf.rsvd1 = p->ctx;
+	memset(&exec, 0, sizeof(exec));
+	exec.handle = p->nop_handle;
+	memset(&nop, 0, sizeof(nop));
+	nop.buffers_ptr = (uintptr_t)&exec;
+	nop.buffer_count = 1;
+	nop.flags = I915_EXEC_BLT | LOCAL_EXEC_NO_RELOC;
+	nop.rsvd1 = p->ctx;
+
+	memset(&workload, 0, sizeof(workload));
+	workload.buffers_ptr = (uintptr_t)p->exec;
+	workload.buffer_count = 2;
+	workload.flags = I915_EXEC_BLT | LOCAL_EXEC_NO_RELOC;
+	workload.rsvd1 = p->ctx;
 
 	while (!done) {
 		uint32_t start = READ(BCS_TIMESTAMP);
-		int batches = p->workload;
-		while (batches--)
-			gem_execbuf(fd, &execbuf);
+		int batches;
 
+		/* Submitting a set of empty batches has a two fold effect:
+		 * - increases contention on execbuffer, i.e. measure dispatch
+		 *   latency with number of clients.
+		 * - generates lots of spurious interrupts (if someone is
+		 *   waiting).
+		 */
+		batches = p->nop;
+		while (batches--)
+			gem_execbuf(fd, &nop);
+
+		/* Control the amount of work we do, similar to submitting
+		 * empty buffers above, except this time we will load the
+		 * GPU with a small amount of real work - so there is a small
+		 * period between execution and interrupts.
+		 */
+		batches = p->workload;
+		while (batches--)
+			gem_execbuf(fd, &workload);
+
+		/* Wake all the associated clients to wait upon our batch */
 		pthread_mutex_lock(&p->lock);
 		p->wait = p->nconsumers;
 		for (n = 0; n < p->nconsumers; n++)
@@ -185,9 +225,14 @@ static void *producer(void *arg)
 		pthread_cond_broadcast(&p->c_cond);
 		pthread_mutex_unlock(&p->lock);
 
+		/* Wait for this batch to finish and record how long we waited,
+		 * and how long it took for the batch to be submitted
+		 * (including the nop delays).
+		 */
 		measure_latency(p, &p->latency);
 		igt_stats_push(&p->throughput, *p->last_timestamp - start);
 
+		/* Tidy up all the extra threads before we submit again. */
 		pthread_mutex_lock(&p->lock);
 		while (p->wait)
 			pthread_cond_wait(&p->p_cond, &p->lock);
@@ -204,6 +249,10 @@ static void *consumer(void *arg)
 	struct consumer *c = arg;
 	struct producer *p = c->producer;
 
+	/* Sit around waiting for the "go" signal from the producer, then
+	 * wait upon the batch to finish. This is to add extra waiters to
+	 * the same request - increasing wakeup contention.
+	 */
 	while (!done) {
 		pthread_mutex_lock(&p->lock);
 		if (--p->wait == 0)
@@ -230,14 +279,23 @@ static double l_estimate(igt_stats_t *stats)
 }
 
 #define CONTEXT 1
-static int run(int nproducers, int nconsumers, int workload, unsigned flags)
+static int run(int nproducers,
+	       int nconsumers,
+	       int nop,
+	       int workload,
+	       unsigned flags)
 {
 	struct producer *p;
 	igt_stats_t latency, throughput;
-	uint32_t handle;
+	uint32_t scratch, batch;
 	int gen, n, m;
 	int complete;
 	int nrun;
+
+#if 0
+	printf("producers=%d, consumers=%d, nop=%d, workload=%d, flags=%x\n",
+	       nproducers, nconsumers, nop, workload, flags);
+#endif
 
 	fd = drm_open_driver(DRIVER_INTEL);
 	gen = intel_gen(intel_get_drm_devid(fd));
@@ -246,11 +304,13 @@ static int run(int nproducers, int nconsumers, int workload, unsigned flags)
 
 	intel_register_access_init(intel_get_pci_device(), false);
 
-	handle = gem_create(fd, 4*WIDTH*HEIGHT);
+	batch = setup_nop();
+	scratch = gem_create(fd, 4*WIDTH*HEIGHT);
 
 	p = calloc(nproducers, sizeof(*p));
 	for (n = 0; n < nproducers; n++) {
-		setup_batch(&p[n], gen, handle);
+		p[n].nop_handle = batch;
+		setup_workload(&p[n], gen, scratch);
 		if (flags & CONTEXT)
 			p[n].ctx = gem_context_create(fd);
 
@@ -261,6 +321,7 @@ static int run(int nproducers, int nconsumers, int workload, unsigned flags)
 		igt_stats_init(&p[n].latency);
 		igt_stats_init(&p[n].throughput);
 		p[n].wait = nconsumers;
+		p[n].nop = nop;
 		p[n].workload = workload;
 		p[n].nconsumers = nconsumers;
 		p[n].consumers = calloc(nconsumers, sizeof(struct consumer));
@@ -308,33 +369,50 @@ static int run(int nproducers, int nconsumers, int workload, unsigned flags)
 
 int main(int argc, char **argv)
 {
-	int producers = 8;
-	int consumers = 1;
-	int workload = 10;
+	int producers = 1;
+	int consumers = 0;
+	int nop = 0;
+	int workload = 1;
 	unsigned flags = 0;
 	int c;
 
-	while ((c = getopt (argc, argv, "p:c:w:s")) != -1) {
+	while ((c = getopt(argc, argv, "p:c:n:w:s")) != -1) {
 		switch (c) {
 		case 'p':
+			/* How many threads generate work? */
 			producers = atoi(optarg);
 			if (producers < 1)
 				producers = 1;
 			break;
 
 		case 'c':
+			/* How many threads wait upon each piece of work? */
 			consumers = atoi(optarg);
 			if (consumers < 0)
 				consumers = 0;
 			break;
 
+		case 'n':
+			/* Extra dispatch contention + interrupts */
+			nop = atoi(optarg);
+			if (nop < 0)
+				nop = 0;
+			break;
+
 		case 'w':
+			/* Control the amount of real work done */
 			workload = atoi(optarg);
 			if (workload < 1)
 				workload = 1;
 			break;
 
 		case 's':
+			/* Assign each producer to its own context, adding
+			 * context switching into the mix (e.g. execlists
+			 * can amalgamate requests from one context, so
+			 * having each producer submit in different contexts
+			 * should force more execlist interrupts).
+			 */
 			flags |= CONTEXT;
 			break;
 
@@ -343,5 +421,5 @@ int main(int argc, char **argv)
 		}
 	}
 
-	return run(producers, consumers, workload, flags);
+	return run(producers, consumers, nop, workload, flags);
 }
