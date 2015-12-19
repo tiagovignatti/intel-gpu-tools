@@ -63,7 +63,6 @@ struct producer {
 	} nop_dispatch;
 	struct {
 		struct drm_i915_gem_exec_object2 exec[2];
-		struct drm_i915_gem_relocation_entry reloc[2];
 		struct drm_i915_gem_execbuffer2 execbuf;
 	} workload_dispatch;
 	struct {
@@ -80,7 +79,6 @@ struct producer {
 	igt_stats_t latency, throughput;
 
 	int nop;
-	int workload;
 	int nconsumers;
 	struct consumer *consumers;
 };
@@ -90,68 +88,79 @@ struct producer {
 #define BLT_WRITE_ALPHA		(1<<21)
 #define BLT_WRITE_RGB		(1<<20)
 
-#define WIDTH 128
-#define HEIGHT 128
+#define WIDTH 1024
+#define HEIGHT 1024
 
 #define BCS_TIMESTAMP (0x22000 + 0x358)
 #define CYCLES_TO_NS(x) (80*(x))
 #define CYCLES_TO_US(x) (CYCLES_TO_NS(x)/1000.)
 
-static uint32_t create_workload(int gen, uint32_t scratch)
+static uint32_t create_workload(int gen, uint32_t scratch, int factor)
 {
 	const int has_64bit_reloc = gen >= 8;
 	uint32_t handle = gem_create(fd, 4096);
-	uint32_t buf[80];
+	uint32_t *map = gem_mmap__cpu(fd, handle, 0, 4096, PROT_WRITE);
 	int i = 0;
 
-	/* XY_SRC_COPY */
-	buf[i++] = COPY_BLT_CMD | BLT_WRITE_ALPHA | BLT_WRITE_RGB;
-	if (has_64bit_reloc)
-		buf[i-1] += 2;
-	buf[i++] = 0xcc << 16 | 1 << 25 | 1 << 24 | (4*WIDTH);
-	buf[i++] = 0;
-	buf[i++] = HEIGHT << 16 | WIDTH;
-	buf[i++] = 0;
-	if (has_64bit_reloc)
-		buf[i++] = 0;
-	buf[i++] = 0;
-	buf[i++] = 4096;
-	buf[i++] = 0;
-	if (has_64bit_reloc)
-		buf[i++] = 0;
-	buf[i++] = MI_BATCH_BUFFER_END;
+	while (factor--) {
+		/* XY_SRC_COPY */
+		map[i++] = COPY_BLT_CMD | BLT_WRITE_ALPHA | BLT_WRITE_RGB;
+		if (has_64bit_reloc)
+			map[i-1] += 2;
+		map[i++] = 0xcc << 16 | 1 << 25 | 1 << 24 | (4*WIDTH);
+		map[i++] = 0;
+		map[i++] = HEIGHT << 16 | WIDTH;
+		map[i++] = 0;
+		if (has_64bit_reloc)
+			map[i++] = 0;
+		map[i++] = 0;
+		map[i++] = 4096;
+		map[i++] = 0;
+		if (has_64bit_reloc)
+			map[i++] = 0;
+	}
+	map[i++] = MI_BATCH_BUFFER_END;
+	munmap(map, 4096);
 
-	gem_write(fd, handle, 0, buf, i*sizeof(buf[0]));
 	return handle;
 }
 
 static void setup_workload(struct producer *p, int gen,
 			   uint32_t scratch,
-			   uint32_t batch)
+			   uint32_t batch,
+			   int factor)
 {
 	struct drm_i915_gem_execbuffer2 *eb;
 	const int has_64bit_reloc = gen >= 8;
+	struct drm_i915_gem_relocation_entry *reloc;
+	int offset;
+
+	reloc = calloc(sizeof(*reloc), 2*factor);
 
 	p->workload_dispatch.exec[0].handle = scratch;
-	p->workload_dispatch.exec[1].relocation_count = 2;
-	p->workload_dispatch.exec[1].relocs_ptr = (uintptr_t)p->workload_dispatch.reloc;
+	p->workload_dispatch.exec[1].relocation_count = 2*factor;
+	p->workload_dispatch.exec[1].relocs_ptr = (uintptr_t)reloc;
 	p->workload_dispatch.exec[1].handle = batch;
 
-	p->workload_dispatch.reloc[0].offset = 4 * sizeof(uint32_t);
-	p->workload_dispatch.reloc[0].delta = 0;
-	p->workload_dispatch.reloc[0].target_handle = scratch;
-	p->workload_dispatch.reloc[0].read_domains = I915_GEM_DOMAIN_RENDER;
-	p->workload_dispatch.reloc[0].write_domain = I915_GEM_DOMAIN_RENDER;
-	p->workload_dispatch.reloc[0].presumed_offset = 0;
+	offset = 0;
+	while (factor--) {
+		reloc->offset = (offset+4) * sizeof(uint32_t);
+		reloc->target_handle = scratch;
+		reloc->read_domains = I915_GEM_DOMAIN_RENDER;
+		reloc->write_domain = I915_GEM_DOMAIN_RENDER;
+		reloc++;
 
-	p->workload_dispatch.reloc[1].offset = 7 * sizeof(uint32_t);
-	if (has_64bit_reloc)
-		p->workload_dispatch.reloc[1].offset += sizeof(uint32_t);
-	p->workload_dispatch.reloc[1].delta = 0;
-	p->workload_dispatch.reloc[1].target_handle = scratch;
-	p->workload_dispatch.reloc[1].read_domains = I915_GEM_DOMAIN_RENDER;
-	p->workload_dispatch.reloc[1].write_domain = 0;
-	p->workload_dispatch.reloc[1].presumed_offset = 0;
+		reloc->offset = (offset+7) * sizeof(uint32_t);
+		if (has_64bit_reloc)
+			reloc->offset += sizeof(uint32_t);
+		reloc->target_handle = scratch;
+		reloc->read_domains = I915_GEM_DOMAIN_RENDER;
+		reloc++;
+
+		offset += 8;
+		if (has_64bit_reloc)
+			offset += 2;
+	}
 
 	eb = memset(&p->workload_dispatch.execbuf, 0, sizeof(*eb));
 	eb->buffers_ptr = (uintptr_t)p->workload_dispatch.exec;
@@ -244,6 +253,13 @@ static void *producer(void *arg)
 		uint32_t start = READ(BCS_TIMESTAMP);
 		int batches;
 
+		/* Control the amount of work we do, similar to submitting
+		 * empty buffers below, except this time we will load the
+		 * GPU with a small amount of real work - so there is a small
+		 * period between execution and interrupts.
+		 */
+		gem_execbuf(fd, &p->workload_dispatch.execbuf);
+
 		/* Submitting a set of empty batches has a two fold effect:
 		 * - increases contention on execbuffer, i.e. measure dispatch
 		 *   latency with number of clients.
@@ -253,15 +269,6 @@ static void *producer(void *arg)
 		batches = p->nop;
 		while (batches--)
 			gem_execbuf(fd, &p->nop_dispatch.execbuf);
-
-		/* Control the amount of work we do, similar to submitting
-		 * empty buffers above, except this time we will load the
-		 * GPU with a small amount of real work - so there is a small
-		 * period between execution and interrupts.
-		 */
-		batches = p->workload;
-		while (batches--)
-			gem_execbuf(fd, &p->workload_dispatch.execbuf);
 
 		/* Finally, execute a batch that just reads the current
 		 * TIMESTAMP so we can measure the latency.
@@ -360,7 +367,7 @@ static int run(int seconds,
 
 	scratch = gem_create(fd, 4*WIDTH*HEIGHT);
 	nop_batch = create_nop();
-	workload_batch = create_workload(gen, scratch);
+	workload_batch = create_workload(gen, scratch, workload);
 
 	p = calloc(nproducers, sizeof(*p));
 	for (n = 0; n < nproducers; n++) {
@@ -368,7 +375,7 @@ static int run(int seconds,
 			p[n].ctx = gem_context_create(fd);
 
 		setup_nop(&p[n], nop_batch);
-		setup_workload(&p[n], gen, scratch, workload_batch);
+		setup_workload(&p[n], gen, scratch, workload_batch, workload);
 		setup_latency(&p[n], gen);
 
 		pthread_mutex_init(&p[n].lock, NULL);
@@ -379,7 +386,6 @@ static int run(int seconds,
 		igt_stats_init(&p[n].throughput);
 		p[n].wait = nconsumers;
 		p[n].nop = nop;
-		p[n].workload = workload;
 		p[n].nconsumers = nconsumers;
 		p[n].consumers = calloc(nconsumers, sizeof(struct consumer));
 		for (m = 0; m < nconsumers; m++) {
@@ -471,8 +477,10 @@ int main(int argc, char **argv)
 		case 'w':
 			/* Control the amount of real work done */
 			workload = atoi(optarg);
-			if (workload < 1)
-				workload = 1;
+			if (workload < 0)
+				workload = 0;
+			if (workload > 100)
+				workload = 100;
 			break;
 
 		case 't':
