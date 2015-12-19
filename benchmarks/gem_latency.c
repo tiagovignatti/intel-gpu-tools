@@ -44,6 +44,10 @@
 
 static int done;
 static int fd;
+static volatile uint32_t *timestamp_reg;
+
+#define REG(x) (volatile uint32_t *)((volatile char *)igt_global_mmio + x)
+#define REG_OFFSET(x) ((volatile char *)(x) - (volatile char *)igt_global_mmio)
 
 struct consumer {
 	pthread_t thread;
@@ -92,8 +96,9 @@ struct producer {
 #define WIDTH 1024
 #define HEIGHT 1024
 
+#define RCS_TIMESTAMP (0x2000 + 0x358)
 #define BCS_TIMESTAMP (0x22000 + 0x358)
-#define CYCLES_TO_NS(x) (80*(x))
+#define CYCLES_TO_NS(x) (80.*(x))
 #define CYCLES_TO_US(x) (CYCLES_TO_NS(x)/1000.)
 
 static uint32_t create_workload(int gen, uint32_t scratch, int factor)
@@ -193,7 +198,7 @@ static void setup_latency(struct producer *p, int gen)
 	map[i++] = 0x24 << 23 | 1;
 	if (has_64bit_reloc)
 		map[i-1]++;
-	map[i++] = BCS_TIMESTAMP;
+	map[i++] = REG_OFFSET(timestamp_reg);
 	p->latency_dispatch.reloc[0].offset = i * sizeof(uint32_t);
 	p->latency_dispatch.reloc[0].delta = 4000;
 	p->latency_dispatch.reloc[0].target_handle = handle;
@@ -238,11 +243,10 @@ static void setup_nop(struct producer *p, uint32_t batch)
 	eb->rsvd1 = p->ctx;
 }
 
-#define READ(x) *(volatile uint32_t *)((volatile char *)igt_global_mmio + x)
 static void measure_latency(struct producer *p, igt_stats_t *stats)
 {
 	gem_sync(fd, p->latency_dispatch.exec[0].handle);
-	igt_stats_push(stats, READ(BCS_TIMESTAMP) - *p->last_timestamp);
+	igt_stats_push(stats, *timestamp_reg - *p->last_timestamp);
 }
 
 static void *producer(void *arg)
@@ -251,7 +255,7 @@ static void *producer(void *arg)
 	int n;
 
 	while (!done) {
-		uint32_t start = READ(BCS_TIMESTAMP);
+		uint32_t start = *timestamp_reg;
 		int batches;
 
 		/* Control the amount of work we do, similar to submitting
@@ -373,6 +377,16 @@ static int run(int seconds,
 		return 77; /* Needs BCS timestamp */
 
 	intel_register_access_init(intel_get_pci_device(), false);
+
+	if (gen == 6)
+		timestamp_reg = REG(RCS_TIMESTAMP);
+	else
+		timestamp_reg = REG(BCS_TIMESTAMP);
+
+	nrun = *timestamp_reg;
+	usleep(1);
+	if (*timestamp_reg == nrun)
+		return 77;
 
 	scratch = gem_create(fd, 4*WIDTH*HEIGHT);
 	nop_batch = create_nop();
