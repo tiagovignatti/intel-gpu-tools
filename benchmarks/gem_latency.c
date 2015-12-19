@@ -67,6 +67,7 @@ struct producer {
 	int complete;
 	igt_stats_t latency, throughput;
 
+	int workload;
 	int nconsumers;
 	struct consumer *consumers;
 };
@@ -76,8 +77,8 @@ struct producer {
 #define BLT_WRITE_ALPHA		(1<<21)
 #define BLT_WRITE_RGB		(1<<20)
 
-#define WIDTH 256
-#define HEIGHT 256
+#define WIDTH 128
+#define HEIGHT 128
 
 #define BCS_TIMESTAMP (0x22000 + 0x358)
 
@@ -173,7 +174,7 @@ static void *producer(void *arg)
 
 	while (!done) {
 		uint32_t start = READ(BCS_TIMESTAMP);
-		int batches = 10;
+		int batches = p->workload;
 		while (batches--)
 			gem_execbuf(fd, &execbuf);
 
@@ -229,7 +230,7 @@ static double l_estimate(igt_stats_t *stats)
 }
 
 #define CONTEXT 1
-static int run(int nproducers, int nconsumers, unsigned flags)
+static int run(int nproducers, int nconsumers, int workload, unsigned flags)
 {
 	struct producer *p;
 	igt_stats_t latency, throughput;
@@ -260,6 +261,7 @@ static int run(int nproducers, int nconsumers, unsigned flags)
 		igt_stats_init(&p[n].latency);
 		igt_stats_init(&p[n].throughput);
 		p[n].wait = nconsumers;
+		p[n].workload = workload;
 		p[n].nconsumers = nconsumers;
 		p[n].consumers = calloc(nconsumers, sizeof(struct consumer));
 		for (m = 0; m < nconsumers; m++) {
@@ -308,17 +310,28 @@ int main(int argc, char **argv)
 {
 	int producers = 8;
 	int consumers = 1;
+	int workload = 10;
 	unsigned flags = 0;
 	int c;
 
-	while ((c = getopt (argc, argv, "p:c:sa")) != -1) {
+	while ((c = getopt (argc, argv, "p:c:w:s")) != -1) {
 		switch (c) {
 		case 'p':
 			producers = atoi(optarg);
+			if (producers < 1)
+				producers = 1;
 			break;
 
 		case 'c':
 			consumers = atoi(optarg);
+			if (consumers < 0)
+				consumers = 0;
+			break;
+
+		case 'w':
+			workload = atoi(optarg);
+			if (workload < 1)
+				workload = 1;
 			break;
 
 		case 's':
@@ -330,5 +343,5 @@ int main(int argc, char **argv)
 		}
 	}
 
-	return run(producers, consumers, flags);
+	return run(producers, consumers, workload, flags);
 }
