@@ -57,9 +57,20 @@ struct consumer {
 struct producer {
 	pthread_t thread;
 	uint32_t ctx;
-	uint32_t nop_handle;
-	struct drm_i915_gem_exec_object2 exec[2];
-	struct drm_i915_gem_relocation_entry reloc[3];
+	struct {
+		struct drm_i915_gem_exec_object2 exec[1];
+		struct drm_i915_gem_execbuffer2 execbuf;
+	} nop_dispatch;
+	struct {
+		struct drm_i915_gem_exec_object2 exec[2];
+		struct drm_i915_gem_relocation_entry reloc[2];
+		struct drm_i915_gem_execbuffer2 execbuf;
+	} workload_dispatch;
+	struct {
+		struct drm_i915_gem_exec_object2 exec[1];
+		struct drm_i915_gem_relocation_entry reloc[1];
+		struct drm_i915_gem_execbuffer2 execbuf;
+	} latency_dispatch;
 
 	pthread_mutex_t lock;
 	pthread_cond_t p_cond, c_cond;
@@ -84,78 +95,114 @@ struct producer {
 
 #define BCS_TIMESTAMP (0x22000 + 0x358)
 
-static void setup_workload(struct producer *p, int gen, uint32_t scratch)
+static uint32_t create_workload(int gen, uint32_t scratch)
 {
 	const int has_64bit_reloc = gen >= 8;
+	uint32_t handle = gem_create(fd, 4096);
+	uint32_t buf[80];
+	int i = 0;
+
+	/* XY_SRC_COPY */
+	buf[i++] = COPY_BLT_CMD | BLT_WRITE_ALPHA | BLT_WRITE_RGB;
+	if (has_64bit_reloc)
+		buf[i-1] += 2;
+	buf[i++] = 0xcc << 16 | 1 << 25 | 1 << 24 | (4*WIDTH);
+	buf[i++] = 0;
+	buf[i++] = HEIGHT << 16 | WIDTH;
+	buf[i++] = 0;
+	if (has_64bit_reloc)
+		buf[i++] = 0;
+	buf[i++] = 0;
+	buf[i++] = 4096;
+	buf[i++] = 0;
+	if (has_64bit_reloc)
+		buf[i++] = 0;
+	buf[i++] = MI_BATCH_BUFFER_END;
+
+	gem_write(fd, handle, 0, buf, i*sizeof(buf[0]));
+	return handle;
+}
+
+static void setup_workload(struct producer *p, int gen,
+			   uint32_t scratch,
+			   uint32_t batch)
+{
+	struct drm_i915_gem_execbuffer2 *eb;
+	const int has_64bit_reloc = gen >= 8;
+
+	p->workload_dispatch.exec[0].handle = scratch;
+	p->workload_dispatch.exec[1].relocation_count = 2;
+	p->workload_dispatch.exec[1].relocs_ptr = (uintptr_t)p->workload_dispatch.reloc;
+	p->workload_dispatch.exec[1].handle = batch;
+
+	p->workload_dispatch.reloc[0].offset = 4 * sizeof(uint32_t);
+	p->workload_dispatch.reloc[0].delta = 0;
+	p->workload_dispatch.reloc[0].target_handle = scratch;
+	p->workload_dispatch.reloc[0].read_domains = I915_GEM_DOMAIN_RENDER;
+	p->workload_dispatch.reloc[0].write_domain = I915_GEM_DOMAIN_RENDER;
+	p->workload_dispatch.reloc[0].presumed_offset = 0;
+
+	p->workload_dispatch.reloc[1].offset = 7 * sizeof(uint32_t);
+	if (has_64bit_reloc)
+		p->workload_dispatch.reloc[1].offset += sizeof(uint32_t);
+	p->workload_dispatch.reloc[1].delta = 0;
+	p->workload_dispatch.reloc[1].target_handle = scratch;
+	p->workload_dispatch.reloc[1].read_domains = I915_GEM_DOMAIN_RENDER;
+	p->workload_dispatch.reloc[1].write_domain = 0;
+	p->workload_dispatch.reloc[1].presumed_offset = 0;
+
+	eb = memset(&p->workload_dispatch.execbuf, 0, sizeof(*eb));
+	eb->buffers_ptr = (uintptr_t)p->workload_dispatch.exec;
+	eb->buffer_count = 2;
+	eb->flags = I915_EXEC_BLT | LOCAL_EXEC_NO_RELOC;
+	eb->rsvd1 = p->ctx;
+}
+
+static void setup_latency(struct producer *p, int gen)
+{
+	struct drm_i915_gem_execbuffer2 *eb;
+	const int has_64bit_reloc = gen >= 8;
+	uint32_t handle;
 	uint32_t *map;
 	int i = 0;
 
-	p->exec[0].handle = scratch;
-	p->exec[1].relocation_count = 3;
-	p->exec[1].relocs_ptr = (uintptr_t)p->reloc;
-	p->exec[1].handle = gem_create(fd, 4096);
+	handle = gem_create(fd, 4096);
 	if (gem_has_llc(fd))
-		map = gem_mmap__cpu(fd, p->exec[1].handle, 0, 4096, PROT_WRITE);
+		map = gem_mmap__cpu(fd, handle, 0, 4096, PROT_WRITE);
 	else
-		map = gem_mmap__gtt(fd, p->exec[1].handle, 4096, PROT_WRITE);
+		map = gem_mmap__gtt(fd, handle, 4096, PROT_WRITE);
 
-	/* XY_SRC_COPY */
-	map[i++] = COPY_BLT_CMD | BLT_WRITE_ALPHA | BLT_WRITE_RGB;
-	if (has_64bit_reloc)
-		map[i-1] += 2;
-	map[i++] = 0xcc << 16 | 1 << 25 | 1 << 24 | (4*WIDTH);
-	map[i++] = 0;
-	map[i++] = HEIGHT << 16 | WIDTH;
-	p->reloc[0].offset = i * sizeof(uint32_t);
-	p->reloc[0].delta = 0;
-	p->reloc[0].target_handle = scratch;
-	p->reloc[0].read_domains = I915_GEM_DOMAIN_RENDER;
-	p->reloc[0].write_domain = I915_GEM_DOMAIN_RENDER;
-	p->reloc[0].presumed_offset = 0;
-	map[i++] = 0;
-	if (has_64bit_reloc)
-		map[i++] = 0;
-	map[i++] = 0;
-	map[i++] = 4096;
-	p->reloc[1].offset = i * sizeof(uint32_t);
-	p->reloc[1].delta = 0;
-	p->reloc[1].target_handle = scratch;
-	p->reloc[1].read_domains = I915_GEM_DOMAIN_RENDER;
-	p->reloc[1].write_domain = 0;
-	p->reloc[1].presumed_offset = 0;
-	map[i++] = 0;
-	if (has_64bit_reloc)
-		map[i++] = 0;
-
-	/* MI_FLUSH_DW */
-	map[i++] = 0x26 << 23 | 1;
-	if (has_64bit_reloc)
-		map[i-1]++;
-	map[i++] = 0;
-	map[i++] = 0;
-	if (has_64bit_reloc)
-		map[i++] = 0;
+	p->latency_dispatch.exec[0].relocation_count = 1;
+	p->latency_dispatch.exec[0].relocs_ptr =
+		(uintptr_t)p->latency_dispatch.reloc;
+	p->latency_dispatch.exec[0].handle = handle;
 
 	/* MI_STORE_REG_MEM */
 	map[i++] = 0x24 << 23 | 1;
 	if (has_64bit_reloc)
 		map[i-1]++;
 	map[i++] = BCS_TIMESTAMP;
-	p->reloc[2].offset = i * sizeof(uint32_t);
-	p->reloc[2].delta = 4000;
-	p->reloc[2].target_handle = p->exec[1].handle;
-	p->reloc[2].read_domains = I915_GEM_DOMAIN_INSTRUCTION;
-	p->reloc[2].write_domain = 0; /* We lie! */
-	p->reloc[2].presumed_offset = 0;
+	p->latency_dispatch.reloc[0].offset = i * sizeof(uint32_t);
+	p->latency_dispatch.reloc[0].delta = 4000;
+	p->latency_dispatch.reloc[0].target_handle = handle;
+	p->latency_dispatch.reloc[0].read_domains = I915_GEM_DOMAIN_INSTRUCTION;
+	p->latency_dispatch.reloc[0].write_domain = 0; /* We lie! */
+	p->latency_dispatch.reloc[0].presumed_offset = 0;
 	p->last_timestamp = &map[1000];
 	map[i++] = 4000;
 	if (has_64bit_reloc)
 		map[i++] = 0;
 
 	map[i++] = MI_BATCH_BUFFER_END;
+
+	eb = memset(&p->latency_dispatch.execbuf, 0, sizeof(*eb));
+	eb->buffers_ptr = (uintptr_t)p->latency_dispatch.exec;
+	eb->buffer_count = 1;
+	eb->flags = I915_EXEC_BLT | LOCAL_EXEC_NO_RELOC;
+	eb->rsvd1 = p->ctx;
 }
 
-static uint32_t setup_nop(void)
+static uint32_t create_nop(void)
 {
 	uint32_t buf = MI_BATCH_BUFFER_END;
 	uint32_t handle;
@@ -166,33 +213,30 @@ static uint32_t setup_nop(void)
 	return handle;
 }
 
+static void setup_nop(struct producer *p, uint32_t batch)
+{
+	struct drm_i915_gem_execbuffer2 *eb;
+
+	p->nop_dispatch.exec[0].handle = batch;
+
+	eb = memset(&p->nop_dispatch.execbuf, 0, sizeof(*eb));
+	eb->buffers_ptr = (uintptr_t)p->nop_dispatch.exec;
+	eb->buffer_count = 1;
+	eb->flags = I915_EXEC_BLT | LOCAL_EXEC_NO_RELOC;
+	eb->rsvd1 = p->ctx;
+}
+
 #define READ(x) *(volatile uint32_t *)((volatile char *)igt_global_mmio + x)
 static void measure_latency(struct producer *p, igt_stats_t *stats)
 {
-	gem_sync(fd, p->exec[1].handle);
+	gem_sync(fd, p->latency_dispatch.exec[0].handle);
 	igt_stats_push(stats, READ(BCS_TIMESTAMP) - *p->last_timestamp);
 }
 
 static void *producer(void *arg)
 {
 	struct producer *p = arg;
-	struct drm_i915_gem_execbuffer2 nop, workload;
-	struct drm_i915_gem_exec_object2 exec;
 	int n;
-
-	memset(&exec, 0, sizeof(exec));
-	exec.handle = p->nop_handle;
-	memset(&nop, 0, sizeof(nop));
-	nop.buffers_ptr = (uintptr_t)&exec;
-	nop.buffer_count = 1;
-	nop.flags = I915_EXEC_BLT | LOCAL_EXEC_NO_RELOC;
-	nop.rsvd1 = p->ctx;
-
-	memset(&workload, 0, sizeof(workload));
-	workload.buffers_ptr = (uintptr_t)p->exec;
-	workload.buffer_count = 2;
-	workload.flags = I915_EXEC_BLT | LOCAL_EXEC_NO_RELOC;
-	workload.rsvd1 = p->ctx;
 
 	while (!done) {
 		uint32_t start = READ(BCS_TIMESTAMP);
@@ -206,7 +250,7 @@ static void *producer(void *arg)
 		 */
 		batches = p->nop;
 		while (batches--)
-			gem_execbuf(fd, &nop);
+			gem_execbuf(fd, &p->nop_dispatch.execbuf);
 
 		/* Control the amount of work we do, similar to submitting
 		 * empty buffers above, except this time we will load the
@@ -215,7 +259,12 @@ static void *producer(void *arg)
 		 */
 		batches = p->workload;
 		while (batches--)
-			gem_execbuf(fd, &workload);
+			gem_execbuf(fd, &p->workload_dispatch.execbuf);
+
+		/* Finally, execute a batch that just reads the current
+		 * TIMESTAMP so we can measure the latency.
+		 */
+		gem_execbuf(fd, &p->latency_dispatch.execbuf);
 
 		/* Wake all the associated clients to wait upon our batch */
 		pthread_mutex_lock(&p->lock);
@@ -288,7 +337,9 @@ static int run(int seconds,
 {
 	struct producer *p;
 	igt_stats_t latency, throughput;
-	uint32_t scratch, batch;
+	uint32_t nop_batch;
+	uint32_t workload_batch;
+	uint32_t scratch;
 	int gen, n, m;
 	int complete;
 	int nrun;
@@ -305,15 +356,18 @@ static int run(int seconds,
 
 	intel_register_access_init(intel_get_pci_device(), false);
 
-	batch = setup_nop();
 	scratch = gem_create(fd, 4*WIDTH*HEIGHT);
+	nop_batch = create_nop();
+	workload_batch = create_workload(gen, scratch);
 
 	p = calloc(nproducers, sizeof(*p));
 	for (n = 0; n < nproducers; n++) {
-		p[n].nop_handle = batch;
-		setup_workload(&p[n], gen, scratch);
 		if (flags & CONTEXT)
 			p[n].ctx = gem_context_create(fd);
+
+		setup_nop(&p[n], nop_batch);
+		setup_workload(&p[n], gen, scratch, workload_batch);
+		setup_latency(&p[n], gen);
 
 		pthread_mutex_init(&p[n].lock, NULL);
 		pthread_cond_init(&p[n].p_cond, NULL);
@@ -374,7 +428,7 @@ int main(int argc, char **argv)
 	int producers = 1;
 	int consumers = 0;
 	int nop = 0;
-	int workload = 1;
+	int workload = 0;
 	unsigned flags = 0;
 	int c;
 
