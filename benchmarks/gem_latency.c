@@ -50,7 +50,7 @@ struct consumer {
 
 	int wait;
 
-	igt_stats_t stats;
+	igt_stats_t latency;
 	struct producer *producer;
 };
 
@@ -65,7 +65,7 @@ struct producer {
 	uint32_t *last_timestamp;
 	int wait;
 	int complete;
-	igt_stats_t stats;
+	igt_stats_t latency, throughput;
 
 	int nconsumers;
 	struct consumer *consumers;
@@ -152,10 +152,10 @@ static void setup_batch(struct producer *p, int gen, uint32_t scratch)
 	map[i++] = MI_BATCH_BUFFER_END;
 }
 
+#define READ(x) *(volatile uint32_t *)((volatile char *)igt_global_mmio + x)
 static void measure_latency(struct producer *p, igt_stats_t *stats)
 {
 	gem_sync(fd, p->exec[1].handle);
-#define READ(x) *(volatile uint32_t *)((volatile char *)igt_global_mmio + x)
 	igt_stats_push(stats, READ(BCS_TIMESTAMP) - *p->last_timestamp);
 }
 
@@ -172,6 +172,7 @@ static void *producer(void *arg)
 	execbuf.rsvd1 = p->ctx;
 
 	while (!done) {
+		uint32_t start = READ(BCS_TIMESTAMP);
 		int batches = 10;
 		while (batches--)
 			gem_execbuf(fd, &execbuf);
@@ -183,7 +184,8 @@ static void *producer(void *arg)
 		pthread_cond_broadcast(&p->c_cond);
 		pthread_mutex_unlock(&p->lock);
 
-		measure_latency(p, &p->stats);
+		measure_latency(p, &p->latency);
+		igt_stats_push(&p->throughput, *p->last_timestamp - start);
 
 		pthread_mutex_lock(&p->lock);
 		while (p->wait)
@@ -210,7 +212,7 @@ static void *consumer(void *arg)
 		c->wait = 0;
 		pthread_mutex_unlock(&p->lock);
 
-		measure_latency(p, &c->stats);
+		measure_latency(p, &c->latency);
 	}
 
 	return NULL;
@@ -230,7 +232,7 @@ static double l_estimate(igt_stats_t *stats)
 static int run(int nproducers, int nconsumers, unsigned flags)
 {
 	struct producer *p;
-	igt_stats_t stats;
+	igt_stats_t latency, throughput;
 	uint32_t handle;
 	int gen, n, m;
 	int complete;
@@ -255,13 +257,14 @@ static int run(int nproducers, int nconsumers, unsigned flags)
 		pthread_cond_init(&p[n].p_cond, NULL);
 		pthread_cond_init(&p[n].c_cond, NULL);
 
-		igt_stats_init(&p[n].stats);
+		igt_stats_init(&p[n].latency);
+		igt_stats_init(&p[n].throughput);
 		p[n].wait = nconsumers;
 		p[n].nconsumers = nconsumers;
 		p[n].consumers = calloc(nconsumers, sizeof(struct consumer));
 		for (m = 0; m < nconsumers; m++) {
 			p[n].consumers[m].producer = &p[n];
-			igt_stats_init(&p[n].consumers[m].stats);
+			igt_stats_init(&p[n].consumers[m].latency);
 			pthread_create(&p[n].consumers[m].thread, NULL,
 				       consumer, &p[n].consumers[m]);
 		}
@@ -274,7 +277,8 @@ static int run(int nproducers, int nconsumers, unsigned flags)
 	done = true;
 
 	nrun = complete = 0;
-	igt_stats_init_with_size(&stats, nconsumers*nproducers);
+	igt_stats_init_with_size(&throughput, nproducers);
+	igt_stats_init_with_size(&latency, nconsumers*nproducers);
 	for (n = 0; n < nproducers; n++) {
 		pthread_cancel(p[n].thread);
 		pthread_join(p[n].thread, NULL);
@@ -284,15 +288,18 @@ static int run(int nproducers, int nconsumers, unsigned flags)
 
 		nrun++;
 		complete += p[n].complete;
-		igt_stats_push_float(&stats, l_estimate(&p[n].stats));
+		igt_stats_push_float(&latency, l_estimate(&p[n].latency));
+		igt_stats_push_float(&throughput, l_estimate(&p[n].throughput));
 
 		for (m = 0; m < nconsumers; m++) {
 			pthread_cancel(p[n].consumers[m].thread);
 			pthread_join(p[n].consumers[m].thread, NULL);
-			igt_stats_push_float(&stats, l_estimate(&p[n].consumers[m].stats));
+			igt_stats_push_float(&latency, l_estimate(&p[n].consumers[m].latency));
 		}
 	}
-	printf("%d/%d: %7.3fus\n", complete, nrun, 80/1000.*l_estimate(&stats));
+	printf("%d/%d: %7.3fus %7.3fus\n", complete, nrun,
+	       80/1000.*l_estimate(&throughput),
+	       80/1000.*l_estimate(&latency));
 
 	return 0;
 }
