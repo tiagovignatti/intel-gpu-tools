@@ -94,6 +94,8 @@ struct producer {
 #define HEIGHT 128
 
 #define BCS_TIMESTAMP (0x22000 + 0x358)
+#define CYCLES_TO_NS(x) (80*(x))
+#define CYCLES_TO_US(x) (CYCLES_TO_NS(x)/1000.)
 
 static uint32_t create_workload(int gen, uint32_t scratch)
 {
@@ -415,9 +417,20 @@ static int run(int seconds,
 			igt_stats_push_float(&latency, l_estimate(&p[n].consumers[m].latency));
 		}
 	}
-	printf("%d/%d: %7.3fus %7.3fus\n", complete, nrun,
-	       80/1000.*l_estimate(&throughput),
-	       80/1000.*l_estimate(&latency));
+
+	switch ((flags >> 8) & 0xf) {
+	default:
+		printf("%d/%d: %7.3fus %7.3fus\n", complete, nrun,
+		       CYCLES_TO_US(l_estimate(&throughput)),
+		       CYCLES_TO_US(l_estimate(&latency)));
+		break;
+	case 1:
+		printf("%f\n", CYCLES_TO_US(l_estimate(&throughput)));
+		break;
+	case 2:
+		printf("%f\n", CYCLES_TO_US(l_estimate(&latency)));
+		break;
+	}
 
 	return 0;
 }
@@ -432,7 +445,7 @@ int main(int argc, char **argv)
 	unsigned flags = 0;
 	int c;
 
-	while ((c = getopt(argc, argv, "p:c:n:w:t:s")) != -1) {
+	while ((c = getopt(argc, argv, "p:c:n:w:t:f:s")) != -1) {
 		switch (c) {
 		case 'p':
 			/* How many threads generate work? */
@@ -467,6 +480,11 @@ int main(int argc, char **argv)
 			time = atoi(optarg);
 			if (time < 1)
 				time = 1;
+			break;
+
+		case 'f':
+			/* Select an output field */
+			flags |= atoi(optarg) << 8;
 			break;
 
 		case 's':
