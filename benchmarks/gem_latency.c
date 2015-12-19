@@ -279,7 +279,8 @@ static double l_estimate(igt_stats_t *stats)
 }
 
 #define CONTEXT 1
-static int run(int nproducers,
+static int run(int seconds,
+	       int nproducers,
 	       int nconsumers,
 	       int nop,
 	       int workload,
@@ -336,7 +337,7 @@ static int run(int nproducers,
 	for (n = 0; n < nproducers; n++)
 		pthread_create(&p[n].thread, NULL, producer, &p[n]);
 
-	sleep(10);
+	sleep(seconds);
 	done = true;
 
 	nrun = complete = 0;
@@ -369,6 +370,7 @@ static int run(int nproducers,
 
 int main(int argc, char **argv)
 {
+	int time = 10;
 	int producers = 1;
 	int consumers = 0;
 	int nop = 0;
@@ -376,7 +378,7 @@ int main(int argc, char **argv)
 	unsigned flags = 0;
 	int c;
 
-	while ((c = getopt(argc, argv, "p:c:n:w:s")) != -1) {
+	while ((c = getopt(argc, argv, "p:c:n:w:t:s")) != -1) {
 		switch (c) {
 		case 'p':
 			/* How many threads generate work? */
@@ -406,6 +408,13 @@ int main(int argc, char **argv)
 				workload = 1;
 			break;
 
+		case 't':
+			/* How long to run the benchmark for (seconds) */
+			time = atoi(optarg);
+			if (time < 1)
+				time = 1;
+			break;
+
 		case 's':
 			/* Assign each producer to its own context, adding
 			 * context switching into the mix (e.g. execlists
@@ -421,5 +430,5 @@ int main(int argc, char **argv)
 		}
 	}
 
-	return run(producers, consumers, nop, workload, flags);
+	return run(time, producers, consumers, nop, workload, flags);
 }
