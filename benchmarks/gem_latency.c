@@ -40,6 +40,7 @@
 #include <sys/stat.h>
 #include <sys/ioctl.h>
 #include <sys/time.h>
+#include <sys/resource.h>
 #include "drm.h"
 
 static int done;
@@ -347,6 +348,12 @@ static double l_estimate(igt_stats_t *stats)
 		return igt_stats_get_mean(stats);
 }
 
+static double cpu_time(const struct rusage *r)
+{
+	return 10e6*(r->ru_utime.tv_sec + r->ru_stime.tv_sec) +
+		(r->ru_utime.tv_usec + r->ru_stime.tv_usec);
+}
+
 #define CONTEXT 1
 #define REALTIME 2
 static int run(int seconds,
@@ -359,6 +366,7 @@ static int run(int seconds,
 	pthread_attr_t attr;
 	struct producer *p;
 	igt_stats_t platency, latency, dispatch;
+	struct rusage rused;
 	uint32_t nop_batch;
 	uint32_t workload_batch;
 	uint32_t scratch;
@@ -458,12 +466,16 @@ static int run(int seconds,
 		}
 	}
 
+	getrusage(RUSAGE_SELF, &rused);
+
 	switch ((flags >> 8) & 0xf) {
 	default:
-		printf("%d/%d: %7.3fus %7.3fus %7.3fus\n", complete, nrun,
+		printf("%d/%d: %7.3fus %7.3fus %7.3fus %7.3fus\n",
+		       complete, nrun,
 		       CYCLES_TO_US(l_estimate(&dispatch)),
 		       CYCLES_TO_US(l_estimate(&latency)),
-		       CYCLES_TO_US(l_estimate(&platency)));
+		       CYCLES_TO_US(l_estimate(&platency)),
+		       cpu_time(&rused) / complete);
 		break;
 	case 1:
 		printf("%f\n", CYCLES_TO_US(l_estimate(&dispatch)));
@@ -473,6 +485,9 @@ static int run(int seconds,
 		break;
 	case 3:
 		printf("%f\n", CYCLES_TO_US(l_estimate(&platency)));
+		break;
+	case 4:
+		printf("%f\n", cpu_time(&rused) / complete);
 		break;
 	}
 
