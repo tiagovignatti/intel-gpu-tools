@@ -52,7 +52,7 @@ static volatile uint32_t *timestamp_reg;
 struct consumer {
 	pthread_t thread;
 
-	int wait;
+	int go;
 
 	igt_stats_t latency;
 	struct producer *producer;
@@ -81,7 +81,7 @@ struct producer {
 	int wait;
 	int complete;
 	int done;
-	igt_stats_t latency, throughput;
+	igt_stats_t latency, dispatch;
 
 	int nop;
 	int nconsumers;
@@ -281,19 +281,17 @@ static void *producer(void *arg)
 		gem_execbuf(fd, &p->latency_dispatch.execbuf);
 
 		/* Wake all the associated clients to wait upon our batch */
-		pthread_mutex_lock(&p->lock);
 		p->wait = p->nconsumers;
 		for (n = 0; n < p->nconsumers; n++)
-			p->consumers[n].wait = 1;
+			p->consumers[n].go = 1;
 		pthread_cond_broadcast(&p->c_cond);
-		pthread_mutex_unlock(&p->lock);
 
 		/* Wait for this batch to finish and record how long we waited,
 		 * and how long it took for the batch to be submitted
 		 * (including the nop delays).
 		 */
 		measure_latency(p, &p->latency);
-		igt_stats_push(&p->throughput, *p->last_timestamp - start);
+		igt_stats_push(&p->dispatch, *p->last_timestamp - start);
 
 		/* Tidy up all the extra threads before we submit again. */
 		pthread_mutex_lock(&p->lock);
@@ -308,7 +306,7 @@ static void *producer(void *arg)
 	p->wait = p->nconsumers;
 	p->done = true;
 	for (n = 0; n < p->nconsumers; n++)
-		p->consumers[n].wait = 1;
+		p->consumers[n].go = 1;
 	pthread_cond_broadcast(&p->c_cond);
 	pthread_mutex_unlock(&p->lock);
 
@@ -328,9 +326,9 @@ static void *consumer(void *arg)
 		pthread_mutex_lock(&p->lock);
 		if (--p->wait == 0)
 			pthread_cond_signal(&p->p_cond);
-		while (!c->wait)
+		while (!c->go)
 			pthread_cond_wait(&p->c_cond, &p->lock);
-		c->wait = 0;
+		c->go = 0;
 		pthread_mutex_unlock(&p->lock);
 		if (p->done)
 			return NULL;
@@ -350,6 +348,7 @@ static double l_estimate(igt_stats_t *stats)
 }
 
 #define CONTEXT 1
+#define REALTIME 2
 static int run(int seconds,
 	       int nproducers,
 	       int nconsumers,
@@ -357,8 +356,9 @@ static int run(int seconds,
 	       int workload,
 	       unsigned flags)
 {
+	pthread_attr_t attr;
 	struct producer *p;
-	igt_stats_t latency, throughput;
+	igt_stats_t platency, latency, dispatch;
 	uint32_t nop_batch;
 	uint32_t workload_batch;
 	uint32_t scratch;
@@ -406,7 +406,7 @@ static int run(int seconds,
 		pthread_cond_init(&p[n].c_cond, NULL);
 
 		igt_stats_init(&p[n].latency);
-		igt_stats_init(&p[n].throughput);
+		igt_stats_init(&p[n].dispatch);
 		p[n].wait = nconsumers;
 		p[n].nop = nop;
 		p[n].nconsumers = nconsumers;
@@ -423,14 +423,22 @@ static int run(int seconds,
 		pthread_mutex_unlock(&p->lock);
 	}
 
+	pthread_attr_init(&attr);
+	if (flags & REALTIME) {
+		struct sched_param param = { .sched_priority = 99 };
+		pthread_attr_setinheritsched(&attr, PTHREAD_EXPLICIT_SCHED);
+		pthread_attr_setschedpolicy(&attr, SCHED_FIFO);
+		pthread_attr_setschedparam(&attr, &param);
+	}
 	for (n = 0; n < nproducers; n++)
-		pthread_create(&p[n].thread, NULL, producer, &p[n]);
+		pthread_create(&p[n].thread, &attr, producer, &p[n]);
 
 	sleep(seconds);
 	done = true;
 
 	nrun = complete = 0;
-	igt_stats_init_with_size(&throughput, nproducers);
+	igt_stats_init_with_size(&dispatch, nproducers);
+	igt_stats_init_with_size(&platency, nproducers);
 	igt_stats_init_with_size(&latency, nconsumers*nproducers);
 	for (n = 0; n < nproducers; n++) {
 		pthread_join(p[n].thread, NULL);
@@ -441,7 +449,8 @@ static int run(int seconds,
 		nrun++;
 		complete += p[n].complete;
 		igt_stats_push_float(&latency, l_estimate(&p[n].latency));
-		igt_stats_push_float(&throughput, l_estimate(&p[n].throughput));
+		igt_stats_push_float(&platency, l_estimate(&p[n].latency));
+		igt_stats_push_float(&dispatch, l_estimate(&p[n].dispatch));
 
 		for (m = 0; m < nconsumers; m++) {
 			pthread_join(p[n].consumers[m].thread, NULL);
@@ -451,15 +460,19 @@ static int run(int seconds,
 
 	switch ((flags >> 8) & 0xf) {
 	default:
-		printf("%d/%d: %7.3fus %7.3fus\n", complete, nrun,
-		       CYCLES_TO_US(l_estimate(&throughput)),
-		       CYCLES_TO_US(l_estimate(&latency)));
+		printf("%d/%d: %7.3fus %7.3fus %7.3fus\n", complete, nrun,
+		       CYCLES_TO_US(l_estimate(&dispatch)),
+		       CYCLES_TO_US(l_estimate(&latency)),
+		       CYCLES_TO_US(l_estimate(&platency)));
 		break;
 	case 1:
-		printf("%f\n", CYCLES_TO_US(l_estimate(&throughput)));
+		printf("%f\n", CYCLES_TO_US(l_estimate(&dispatch)));
 		break;
 	case 2:
 		printf("%f\n", CYCLES_TO_US(l_estimate(&latency)));
+		break;
+	case 3:
+		printf("%f\n", CYCLES_TO_US(l_estimate(&platency)));
 		break;
 	}
 
@@ -476,7 +489,7 @@ int main(int argc, char **argv)
 	unsigned flags = 0;
 	int c;
 
-	while ((c = getopt(argc, argv, "p:c:n:w:t:f:s")) != -1) {
+	while ((c = getopt(argc, argv, "p:c:n:w:t:f:sR")) != -1) {
 		switch (c) {
 		case 'p':
 			/* How many threads generate work? */
@@ -528,6 +541,11 @@ int main(int argc, char **argv)
 			 * should force more execlist interrupts).
 			 */
 			flags |= CONTEXT;
+			break;
+
+		case 'R':
+			/* Run the producers at RealTime priority */
+			flags |= REALTIME;
 			break;
 
 		default:
