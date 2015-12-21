@@ -122,7 +122,9 @@ struct opregion_asle {
 	uint8_t fdss[8];
 	uint32_t fdsp;
 	uint32_t stat;
-	uint8_t rsvd[86];
+	uint64_t rvda;		/* Physical address of raw vbt data */
+	uint32_t rvds;		/* Size of raw vbt data */
+	uint8_t rsvd[58];
 } __attribute__((packed));
 
 /* OpRegion mailbox #4: VBT */
@@ -308,6 +310,8 @@ static void decode_asle(const void *buffer)
 
 	printf("\tfdsp:\t0x%08x\n", asle->fdsp);
 	printf("\tstat:\t0x%08x\n", asle->stat);
+	printf("\trvda:\t0x%016lx\n", asle->rvda);
+	printf("\trvds:\t0x%08x\n", asle->rvds);
 
 	printf("\n");
 }
