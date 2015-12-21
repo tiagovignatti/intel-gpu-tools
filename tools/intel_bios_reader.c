@@ -894,12 +894,35 @@ static const uint8_t *mipi_dump_gpio(const uint8_t *data)
 	return data;
 }
 
+static const uint8_t *mipi_dump_i2c(const uint8_t *data)
+{
+	uint8_t flags, index, bus, offset, len, i;
+	uint16_t address;
+
+	flags = *data++;
+	index = *data++;
+	bus = *data++;
+	address = *((uint16_t *) data);
+	data += 2;
+	offset = *data++;
+	len = *data++;
+
+	printf("\t\tSend I2C: Flags %02x, Index %02x, Bus %02x, Address %04x, Offset %02x, Length %u, Data",
+	       flags, index, bus, address, offset, len);
+	for (i = 0; i < len; i++)
+		printf(" %02x", *data++);
+	printf("\n");
+
+	return data;
+}
+
 typedef const uint8_t * (*fn_mipi_elem_dump)(const uint8_t *data);
 
 static const fn_mipi_elem_dump dump_elem[] = {
 	[MIPI_SEQ_ELEM_SEND_PKT] = mipi_dump_send_packet,
 	[MIPI_SEQ_ELEM_DELAY] = mipi_dump_delay,
 	[MIPI_SEQ_ELEM_GPIO] = mipi_dump_gpio,
+	[MIPI_SEQ_ELEM_I2C] = mipi_dump_i2c,
 };
 
 static const char * const seq_name[] = {
