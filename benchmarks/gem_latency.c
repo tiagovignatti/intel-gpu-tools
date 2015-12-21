@@ -46,9 +46,28 @@
 static int done;
 static int fd;
 static volatile uint32_t *timestamp_reg;
+static pthread_spinlock_t timestamp_lock;
 
 #define REG(x) (volatile uint32_t *)((volatile char *)igt_global_mmio + x)
 #define REG_OFFSET(x) ((volatile char *)(x) - (volatile char *)igt_global_mmio)
+
+static uint32_t read_timestamp_unlocked(void)
+{
+	return *timestamp_reg;
+}
+
+static uint32_t read_timestamp_locked(void)
+{
+	uint32_t t;
+
+	pthread_spin_lock(&timestamp_lock);
+	t = *timestamp_reg;
+	pthread_spin_unlock(&timestamp_lock);
+
+	return t;
+}
+
+static uint32_t (*read_timestamp)(void) = read_timestamp_unlocked;
 
 struct consumer {
 	pthread_t thread;
@@ -247,7 +266,7 @@ static void setup_nop(struct producer *p, uint32_t batch)
 static void measure_latency(struct producer *p, igt_stats_t *stats)
 {
 	gem_sync(fd, p->latency_dispatch.exec[0].handle);
-	igt_stats_push(stats, *timestamp_reg - *p->last_timestamp);
+	igt_stats_push(stats, read_timestamp() - *p->last_timestamp);
 }
 
 static void *producer(void *arg)
@@ -256,7 +275,7 @@ static void *producer(void *arg)
 	int n;
 
 	while (!done) {
-		uint32_t start = *timestamp_reg;
+		uint32_t start = read_timestamp();
 		int batches;
 
 		/* Control the amount of work we do, similar to submitting
@@ -391,9 +410,14 @@ static int run(int seconds,
 	else
 		timestamp_reg = REG(BCS_TIMESTAMP);
 
-	nrun = *timestamp_reg;
+	if (gen < 8) {
+		pthread_spin_init(&timestamp_lock, 0);
+		read_timestamp = read_timestamp_locked;
+	}
+
+	nrun = read_timestamp();
 	usleep(1);
-	if (*timestamp_reg == nrun)
+	if (read_timestamp() == nrun)
 		return 77;
 
 	scratch = gem_create(fd, 4*WIDTH*HEIGHT);
