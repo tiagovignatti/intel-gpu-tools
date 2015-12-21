@@ -46,7 +46,6 @@
 static int done;
 static int fd;
 static volatile uint32_t *timestamp_reg;
-static pthread_spinlock_t timestamp_lock;
 
 #define REG(x) (volatile uint32_t *)((volatile char *)igt_global_mmio + x)
 #define REG_OFFSET(x) ((volatile char *)(x) - (volatile char *)igt_global_mmio)
@@ -55,7 +54,10 @@ static uint32_t read_timestamp_unlocked(void)
 {
 	return *timestamp_reg;
 }
+static uint32_t (*read_timestamp)(void) = read_timestamp_unlocked;
 
+#ifdef __USE_XOPEN2K
+static pthread_spinlock_t timestamp_lock;
 static uint32_t read_timestamp_locked(void)
 {
 	uint32_t t;
@@ -66,8 +68,20 @@ static uint32_t read_timestamp_locked(void)
 
 	return t;
 }
+static int setup_timestamp_locked(void)
+{
+	if (pthread_spin_init(&timestamp_lock, 0))
+		return 0;
 
-static uint32_t (*read_timestamp)(void) = read_timestamp_unlocked;
+	read_timestamp = read_timestamp_locked;
+	return 1;
+}
+#else
+static int setup_timestamp_locked(void)
+{
+	return 0;
+}
+#endif
 
 struct consumer {
 	pthread_t thread;
@@ -401,7 +415,7 @@ static int run(int seconds,
 	fd = drm_open_driver(DRIVER_INTEL);
 	gen = intel_gen(intel_get_drm_devid(fd));
 	if (gen < 6)
-		return 77; /* Needs BCS timestamp */
+		return IGT_EXIT_SKIP; /* Needs BCS timestamp */
 
 	intel_register_access_init(intel_get_pci_device(), false);
 
@@ -410,15 +424,13 @@ static int run(int seconds,
 	else
 		timestamp_reg = REG(BCS_TIMESTAMP);
 
-	if (gen < 8) {
-		pthread_spin_init(&timestamp_lock, 0);
-		read_timestamp = read_timestamp_locked;
-	}
+	if (gen < 8 && !setup_timestamp_locked())
+		return IGT_EXIT_SKIP;
 
 	nrun = read_timestamp();
 	usleep(1);
 	if (read_timestamp() == nrun)
-		return 77;
+		return IGT_EXIT_SKIP;
 
 	scratch = gem_create(fd, 4*WIDTH*HEIGHT);
 	nop_batch = create_nop();
@@ -463,7 +475,7 @@ static int run(int seconds,
 		pthread_attr_setschedpolicy(&attr, SCHED_FIFO);
 		pthread_attr_setschedparam(&attr, &param);
 #else
-		return 77;
+		return IGT_EXIT_SKIP;
 #endif
 	}
 	for (n = 0; n < nproducers; n++)
