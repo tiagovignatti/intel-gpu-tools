@@ -102,7 +102,7 @@ struct producer {
 #define CYCLES_TO_NS(x) (80.*(x))
 #define CYCLES_TO_US(x) (CYCLES_TO_NS(x)/1000.)
 
-static uint32_t create_workload(int gen, uint32_t scratch, int factor)
+static uint32_t create_workload(int gen, int factor)
 {
 	const int has_64bit_reloc = gen >= 8;
 	uint32_t handle = gem_create(fd, 4096);
@@ -398,7 +398,7 @@ static int run(int seconds,
 
 	scratch = gem_create(fd, 4*WIDTH*HEIGHT);
 	nop_batch = create_nop();
-	workload_batch = create_workload(gen, scratch, workload);
+	workload_batch = create_workload(gen, workload);
 
 	p = calloc(nproducers, sizeof(*p));
 	for (n = 0; n < nproducers; n++) {
@@ -433,10 +433,14 @@ static int run(int seconds,
 
 	pthread_attr_init(&attr);
 	if (flags & REALTIME) {
+#ifdef PTHREAD_EXPLICIT_SCHED
 		struct sched_param param = { .sched_priority = 99 };
 		pthread_attr_setinheritsched(&attr, PTHREAD_EXPLICIT_SCHED);
 		pthread_attr_setschedpolicy(&attr, SCHED_FIFO);
 		pthread_attr_setschedparam(&attr, &param);
+#else
+		return 77;
+#endif
 	}
 	for (n = 0; n < nproducers; n++)
 		pthread_create(&p[n].thread, &attr, producer, &p[n]);
