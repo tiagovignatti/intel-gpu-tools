@@ -851,41 +851,46 @@ static void dump_mipi_config(const struct bdb_block *block)
 
 static const uint8_t *mipi_dump_send_packet(const uint8_t *data)
 {
-	uint8_t type, byte, count;
-	uint16_t len;
+	uint8_t flags, type;
+	uint16_t len, i;
 
-	byte = *data++;
-	/* get packet type and increment the pointer */
+	flags = *data++;
 	type = *data++;
-
 	len = *((uint16_t *) data);
 	data += 2;
-	printf("\t\t SEND COMMAND: ");
-	printf("0x%x 0x%x 0x%x", byte, type, len);
-	for (count = 0; count < len; count++)
-		printf(" 0x%x",*(data+count));
+
+	printf("\t\tSend DCS: Port %s, VC %d, %s, Type %02x, Length %u, Data",
+	       (flags >> 3) & 1 ? "C" : "A",
+	       (flags >> 1) & 3,
+	       flags & 1 ? "HS" : "LP",
+	       type,
+	       len);
+	for (i = 0; i < len; i++)
+		printf(" %02x", *data++);
 	printf("\n");
-	data += len;
+
 	return data;
 }
 
 static const uint8_t *mipi_dump_delay(const uint8_t *data)
 {
-	printf("\t\t Delay : 0x%x 0x%x 0x%x 0x%x\n", data[0], data[1], data[2], data[3]);
-	data += 4;
-	return data;
+	printf("\t\tDelay: %u us\n", *((const uint32_t *)data));
+
+	return data + 4;
 }
 
 static const uint8_t *mipi_dump_gpio(const uint8_t *data)
 {
-	uint8_t gpio, action;
+	uint8_t index, flags;
 
-	printf("\t\t GPIO value:");
-	gpio = *data++;
+	index = *data++;
+	flags = *data++;
 
-	/* pull up/down */
-	action = *data++;
-	printf(" 0x%x 0x%x\n", gpio, action);
+	printf("\t\tGPIO index %u, source %d, set %d\n",
+	       index,
+	       (flags >> 1) & 3,
+	       flags & 1);
+
 	return data;
 }
 
