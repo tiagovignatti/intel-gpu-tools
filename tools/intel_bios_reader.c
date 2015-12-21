@@ -1036,6 +1036,11 @@ static void dump_mipi_sequence(const struct bdb_block *block)
 		return;
 	}
 
+	printf("\tSequence block version v%u\n", sequence->version);
+
+	if (sequence->version >= 3)
+		return;
+
 	block_size = get_blocksize(sequence);
 
 	/*
