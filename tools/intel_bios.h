@@ -763,22 +763,31 @@ struct bdb_mipi_sequence {
 	uint8_t data[0];
 } __attribute__ ((packed));
 
-/* MIPI Sequnece Block definitions */
-enum MIPI_SEQ {
-	MIPI_SEQ_UNDEFINED = 0,
+/* MIPI Sequence Block definitions */
+enum mipi_seq {
+	MIPI_SEQ_END = 0,
 	MIPI_SEQ_ASSERT_RESET,
 	MIPI_SEQ_INIT_OTP,
 	MIPI_SEQ_DISPLAY_ON,
 	MIPI_SEQ_DISPLAY_OFF,
 	MIPI_SEQ_DEASSERT_RESET,
+	MIPI_SEQ_BACKLIGHT_ON,		/* sequence block v2+ */
+	MIPI_SEQ_BACKLIGHT_OFF,		/* sequence block v2+ */
+	MIPI_SEQ_TEAR_ON,		/* sequence block v2+ */
+	MIPI_SEQ_TEAR_OFF,		/* sequence block v3+ */
+	MIPI_SEQ_POWER_ON,		/* sequence block v3+ */
+	MIPI_SEQ_POWER_OFF,		/* sequence block v3+ */
 	MIPI_SEQ_MAX
 };
 
-enum MIPI_SEQ_ELEMENT {
-	MIPI_SEQ_ELEM_UNDEFINED = 0,
+enum mipi_seq_element {
+	MIPI_SEQ_ELEM_END = 0,
 	MIPI_SEQ_ELEM_SEND_PKT,
 	MIPI_SEQ_ELEM_DELAY,
 	MIPI_SEQ_ELEM_GPIO,
+	MIPI_SEQ_ELEM_I2C,		/* sequence block v2+ */
+	MIPI_SEQ_ELEM_SPI,		/* sequence block v3+ */
+	MIPI_SEQ_ELEM_PMIC,		/* sequence block v3+ */
 	MIPI_SEQ_ELEM_MAX
 };
 
