@@ -1748,7 +1748,7 @@ void igt_vlog(const char *domain, enum igt_log_level level, const char *format, 
 		goto out;
 	}
 
-	line_continuation = line[strlen(line)] != '\n';
+	line_continuation = line[strlen(line) - 1] != '\n';
 
 	/* append log buffer */
 	_igt_log_buffer_append(formatted_line);
