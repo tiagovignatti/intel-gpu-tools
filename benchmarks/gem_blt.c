@@ -53,6 +53,37 @@
 
 static int has_64bit_reloc;
 
+static double
+elapsed(const struct timespec *start, const struct timespec *end)
+{
+	return (end->tv_sec - start->tv_sec) + 1e-9*(end->tv_nsec - start->tv_nsec);
+}
+
+static int baseline(uint64_t bytes, int milliseconds)
+{
+	struct timespec start, end;
+	const int size = 64*1024*1024;
+	int count = 0;
+	void *mem;
+
+	mem = malloc(size);
+	if (mem == NULL)
+		return 1;
+
+	clock_gettime(CLOCK_MONOTONIC, &start);
+	do {
+		memset(mem, count, size);
+		count++;
+		clock_gettime(CLOCK_MONOTONIC, &end);
+		if (elapsed(&start, &end) > 0.1)
+			break;
+	} while (1);
+
+	free(mem);
+
+	return ceil(1e-3*milliseconds/elapsed(&start, &end) * (count * size) / bytes);
+}
+
 static int gem_linear_blt(int fd,
 			  uint32_t *batch,
 			  int offset,
@@ -147,11 +178,6 @@ static int gem_linear_blt(int fd,
 	return (b+2 - batch) * sizeof(uint32_t);
 }
 
-static double elapsed(const struct timespec *start, const struct timespec *end)
-{
-	return (end->tv_sec - start->tv_sec) + 1e-9*(end->tv_nsec - start->tv_nsec);
-}
-
 static int __gem_execbuf(int fd, struct drm_i915_gem_execbuffer2 *execbuf)
 {
 	int err = 0;
@@ -160,14 +186,14 @@ static int __gem_execbuf(int fd, struct drm_i915_gem_execbuffer2 *execbuf)
 	return err;
 }
 
-static int run(int object, int batch, int count, int set, int reps)
+static int run(int object, int batch, int time, int reps)
 {
 	struct drm_i915_gem_execbuffer2 execbuf;
 	struct drm_i915_gem_exec_object2 exec[3];
 	struct drm_i915_gem_relocation_entry *reloc;
 	uint32_t *buf, handle, src, dst;
 	int fd, len, gen, size, nreloc;
-	int ring;
+	int ring, count;
 
 	size = ALIGN(batch * 64, 4096);
 	reloc = malloc(sizeof(*reloc)*size/32*2);
@@ -237,10 +263,13 @@ static int run(int object, int batch, int count, int set, int reps)
 	if (execbuf.flags & LOCAL_I915_EXEC_HANDLE_LUT)
 		execbuf.flags |= LOCAL_I915_EXEC_NO_RELOC;
 
+	/* Guess how many loops we need for 0.1s */
+	count = baseline((uint64_t)object * batch, 100);
+
 	while (reps--) {
 		double min = HUGE_VAL;
 
-		for (int s = 0; s < set; s++) {
+		for (int s = 0; s <= time / 100; s++) {
 			struct timespec start, end;
 			double t;
 
@@ -265,30 +294,23 @@ static int run(int object, int batch, int count, int set, int reps)
 int main(int argc, char **argv)
 {
 	int size = 1024*1024;
-	int count = 1;
 	int reps = 13;
-	int set = 30;
+	int time = 2000;
 	int batch = 1;
 	int c;
 
-	while ((c = getopt (argc, argv, "c:r:s:b:S:")) != -1) {
+	while ((c = getopt (argc, argv, "s:b:r:t:")) != -1) {
 		switch (c) {
-		case 'c':
-			count = atoi(optarg);
-			if (count < 1)
-				count = 1;
-			break;
-
 		case 's':
 			size = atoi(optarg);
 			if (size < 4096)
 				size = 4096;
 			break;
 
-		case 'S':
-			set = atoi(optarg);
-			if (set < 1)
-				set = 1;
+		case 't':
+			time = atoi(optarg);
+			if (time < 1)
+				time = 1;
 			break;
 
 		case 'r':
@@ -308,5 +330,5 @@ int main(int argc, char **argv)
 		}
 	}
 
-	return run(size, batch, count, set, reps);
+	return run(size, batch, time, reps);
 }
