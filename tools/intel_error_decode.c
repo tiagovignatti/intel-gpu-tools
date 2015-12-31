@@ -438,7 +438,7 @@ print_fault_data(unsigned devid, uint32_t data1, uint32_t data0)
 static void decode(struct drm_intel_decode *ctx,
 		   const char *buffer_name,
 		   const char *ring_name,
-		   uint32_t gtt_offset,
+		   uint64_t gtt_offset,
 		   uint32_t head_offset,
 		   uint32_t *data,
 		   int *count)
@@ -446,9 +446,13 @@ static void decode(struct drm_intel_decode *ctx,
 	if (!*count)
 		return;
 
-	printf("%s (%s) at 0x%08x", buffer_name, ring_name, gtt_offset);
+	printf("%s (%s) at 0x%08x_%08x", buffer_name, ring_name,
+	       (unsigned)(gtt_offset >> 32),
+	       (unsigned)(gtt_offset & 0xffffffff));
 	if (head_offset != -1)
-		printf("; HEAD points to: 0x%08x", head_offset+ gtt_offset);
+		printf("; HEAD points to: 0x%08x_%08x",
+		       (unsigned)((head_offset + gtt_offset) >> 32),
+		       (unsigned)((head_offset + gtt_offset) & 0xffffffff));
 	printf("\n");
 
 	drm_intel_decode_set_batch_pointer(ctx, data, gtt_offset, *count);
@@ -551,7 +555,7 @@ read_data_file(FILE *file)
 	char *line = NULL;
 	size_t line_size;
 	uint32_t offset, value, ring_length = 0;
-	uint32_t gtt_offset = 0, new_gtt_offset;
+	uint64_t gtt_offset = 0, new_gtt_offset;
 	uint32_t head_offset = -1;
 	const char *buffer_name = "batch buffer";
 	char *ring_name = NULL;
@@ -562,13 +566,20 @@ read_data_file(FILE *file)
 
 		dashes = strstr(line, "---");
 		if (dashes) {
+			uint32_t lo, hi;
 			char *new_ring_name = malloc(dashes - line);
 			strncpy(new_ring_name, line, dashes - line);
 			new_ring_name[dashes - line - 1] = '\0';
 
-			matched = sscanf(dashes, "--- gtt_offset = 0x%08x\n",
-					&new_gtt_offset);
-			if (matched == 1) {
+			matched = sscanf(dashes, "--- gtt_offset = 0x%08x %08x\n",
+					 &hi, &lo);
+			if (matched > 0) {
+				new_gtt_offset = hi;
+				if (matched == 2) {
+					new_gtt_offset <<= 32;
+					new_gtt_offset |= lo;
+				}
+
 				decode(decode_ctx,
 				       buffer_name, ring_name,
 				       gtt_offset, head_offset,
@@ -581,9 +592,15 @@ read_data_file(FILE *file)
 				continue;
 			}
 
-			matched = sscanf(dashes, "--- ringbuffer = 0x%08x\n",
-					&new_gtt_offset);
-			if (matched == 1) {
+			matched = sscanf(dashes, "--- ringbuffer = 0x%08x %08x\n",
+					 &hi, &lo);
+			if (matched > 0) {
+				new_gtt_offset = hi;
+				if (matched == 2) {
+					new_gtt_offset <<= 32;
+					new_gtt_offset |= lo;
+				}
+
 				decode(decode_ctx,
 				       buffer_name, ring_name,
 				       gtt_offset, head_offset,
@@ -599,9 +616,15 @@ read_data_file(FILE *file)
 				continue;
 			}
 
-			matched = sscanf(dashes, "--- HW Context = 0x%08x\n",
-					&new_gtt_offset);
-			if (matched == 1) {
+			matched = sscanf(dashes, "--- HW Context = 0x%08x %08x\n",
+					 &hi, &lo);
+			if (matched > 0) {
+				new_gtt_offset = hi;
+				if (matched == 2) {
+					new_gtt_offset <<= 32;
+					new_gtt_offset |= lo;
+				}
+
 				decode(decode_ctx,
 				       buffer_name, ring_name,
 				       gtt_offset, head_offset,
