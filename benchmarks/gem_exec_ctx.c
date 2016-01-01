@@ -141,7 +141,7 @@ static int loop(unsigned ring, int reps, enum mode mode)
 					break;
 
 				case DEFAULT:
-					fd = fds[count & 1];
+					fd = fds[loops & 1];
 					break;
 
 				case NOP:
