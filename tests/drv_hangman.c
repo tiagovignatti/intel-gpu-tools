@@ -198,114 +198,53 @@ static void check_error_state(const int gen,
 			      uint64_t expected_offset)
 {
 	FILE *file;
-	int debug_fd;
 	char *line = NULL;
 	size_t line_size = 0;
-	char *ring_name = NULL;
-	bool bb_ok = false, req_ok = false, ringbuf_ok = false;
 
-	debug_fd = igt_debugfs_open("i915_error_state", O_RDONLY);
-	igt_assert_lte(0, debug_fd);
-	file = fdopen(debug_fd, "r");
+	file = igt_debugfs_fopen("i915_error_state", "r");
+	igt_require(file);
 
 	while (getline(&line, &line_size, file) > 0) {
-		char *dashes = NULL;
-		int bb_matched = 0;
+		char *dashes;
 		uint32_t gtt_offset_upper, gtt_offset_lower;
-		uint64_t gtt_offset;
-		int req_matched = 0;
-		int requests;
-		uint32_t tail;
-		int ringbuf_matched = 0;
-		int i, items;
+		int matched;
 
 		dashes = strstr(line, "---");
 		if (!dashes)
 			continue;
 
-		ring_name = realloc(ring_name, dashes - line);
-		strncpy(ring_name, line, dashes - line);
-		ring_name[dashes - line - 1] = '\0';
-
-		bb_matched = sscanf(dashes, "--- gtt_offset = 0x%08x %08x\n",
+		matched = sscanf(dashes, "--- gtt_offset = 0x%08x %08x\n",
 				    &gtt_offset_upper, &gtt_offset_lower);
-		gtt_offset = ((uint64_t)gtt_offset_upper << 32) | gtt_offset_lower;
+		if (matched) {
+			char expected_line[64];
+			uint64_t gtt_offset;
+			int i;
 
-		if (bb_matched == 2) {
-			char expected_line[32];
+			strncpy(expected_line, line, dashes - line);
+			expected_line[dashes - line - 1] = '\0';
+			igt_assert(strstr(expected_line, expected_ring_name));
 
-			igt_assert(strstr(ring_name, expected_ring_name));
+			gtt_offset = gtt_offset_upper;
+			if (matched == 2) {
+				gtt_offset <<= 32;
+				gtt_offset |= gtt_offset_lower;
+			}
 			if (!uses_cmd_parser)
-				igt_assert(gtt_offset == expected_offset);
+				igt_assert_eq_u64(gtt_offset, expected_offset);
 
 			for (i = 0; i < 1024; i++) {
 				igt_assert(getline(&line, &line_size, file) > 0);
-				snprintf(expected_line, sizeof(expected_line), "%08x :  %08x",
+				snprintf(expected_line, sizeof(expected_line),
+					 "%08x :  %08x",
 					 4*i, batch[i]);
 				igt_assert(strstr(line, expected_line));
 			}
-			bb_ok = true;
-			continue;
-		}
-
-		req_matched = sscanf(dashes, "--- %d requests\n", &requests);
-		if (req_matched == 1) {
-			igt_assert(strstr(ring_name, expected_ring_name));
-			igt_assert_lt(0, requests);
-
-			for (i = 0; i < requests; i++) {
-				uint32_t seqno;
-				long jiffies;
-
-				igt_assert(getline(&line, &line_size, file) > 0);
-				items = sscanf(line, "  seqno 0x%08x, emitted %ld, tail 0x%08x\n",
-					       &seqno, &jiffies, &tail);
-				igt_assert_eq(items, 3);
-			}
-			req_ok = true;
-			continue;
-		}
-
-		ringbuf_matched = sscanf(dashes, "--- ringbuffer = 0x%08x\n",
-					 &gtt_offset_lower);
-		if (ringbuf_matched == 1) {
-			unsigned int offset, command, expected_addr = 0;
-
-			if (!strstr(ring_name, expected_ring_name))
-				continue;
-			igt_assert(req_ok);
-
-			for (i = 0; i < tail / 4; i++) {
-				igt_assert(getline(&line, &line_size, file) > 0);
-				items = sscanf(line, "%08x :  %08x\n",
-					       &offset, &command);
-				igt_assert_eq(items, 2);
-				if ((command & 0x1F800000) == MI_BATCH_BUFFER_START) {
-					igt_assert(getline(&line, &line_size, file) > 0);
-					items = sscanf(line, "%08x :  %08x\n",
-						       &offset, &expected_addr);
-					igt_assert_eq(items, 2);
-					i++;
-				}
-			}
-			if (!uses_cmd_parser) {
-				if (gen >= 4)
-					igt_assert(expected_addr == expected_offset);
-				else
-					igt_assert((expected_addr & ~0x1) == expected_offset);
-			}
-			ringbuf_ok = true;
-			continue;
-		}
-
-		if (bb_ok && req_ok && ringbuf_ok)
 			break;
+		}
 	}
-	igt_assert(bb_ok && req_ok && ringbuf_ok);
 
 	free(line);
-	free(ring_name);
-	close(debug_fd);
+	fclose(file);
 }
 
 static bool uses_cmd_parser(int fd, int gen)
