@@ -45,15 +45,15 @@
 #include "igt_stats.h"
 
 enum mode { NOP, CREATE, SWITCH, DEFAULT };
+#define SYNC 0x1
 
 #define LOCAL_I915_EXEC_NO_RELOC (1<<11)
 #define LOCAL_I915_EXEC_HANDLE_LUT (1<<12)
 
-static uint64_t elapsed(const struct timespec *start,
-		const struct timespec *end,
-		int loop)
+static double elapsed(const struct timespec *start,
+		      const struct timespec *end)
 {
-	return (1000000000ULL*(end->tv_sec - start->tv_sec) + (end->tv_nsec - start->tv_nsec))/loop;
+	return (end->tv_sec - start->tv_sec) + 1e-9*(end->tv_nsec - start->tv_nsec);
 }
 
 static int __gem_execbuf(int fd, struct drm_i915_gem_execbuffer2 *execbuf)
@@ -82,11 +82,11 @@ static uint32_t __gem_context_create(int fd)
 	return create.ctx_id;
 }
 
-static int loop(unsigned ring, int reps, enum mode mode)
+static int loop(unsigned ring, int reps, enum mode mode, unsigned flags)
 {
 	struct drm_i915_gem_execbuffer2 execbuf;
 	struct drm_i915_gem_exec_object2 gem_exec;
-	int count, fds[2], fd;
+	int fds[2], fd;
 	uint32_t ctx;
 
 	fd = fds[0] = drm_open_driver(DRIVER_INTEL);
@@ -115,49 +115,49 @@ static int loop(unsigned ring, int reps, enum mode mode)
 	}
 	ctx = gem_context_create(fd);
 
-	for (count = 1; count <= 1<<16; count <<= 1) {
-		igt_stats_t stats;
-		int n;
+	while (reps--) {
+		struct timespec start, end;
+		unsigned count = 0;
 
-		igt_stats_init_with_size(&stats, reps);
+		sleep(1); /* wait for the hw to go back to sleep */
 
-		for (n = 0; n < reps; n++) {
-			struct timespec start, end;
-			int loops = count;
-			sleep(1); /* wait for the hw to go back to sleep */
-			clock_gettime(CLOCK_MONOTONIC, &start);
-			while (loops--) {
-				uint32_t tmp;
-				switch (mode) {
-				case CREATE:
-					ctx = execbuf.rsvd1;
-					execbuf.rsvd1 = gem_context_create(fd);
-					break;
+		clock_gettime(CLOCK_MONOTONIC, &start);
+		do {
+			uint32_t tmp;
+			switch (mode) {
+			case CREATE:
+				ctx = execbuf.rsvd1;
+				execbuf.rsvd1 = gem_context_create(fd);
+				break;
 
-				case SWITCH:
-					tmp = execbuf.rsvd1;
-					execbuf.rsvd1 = ctx;
-					ctx = tmp;
-					break;
+			case SWITCH:
+				tmp = execbuf.rsvd1;
+				execbuf.rsvd1 = ctx;
+				ctx = tmp;
+				break;
 
-				case DEFAULT:
-					fd = fds[loops & 1];
-					break;
+			case DEFAULT:
+				fd = fds[count & 1];
+				break;
 
-				case NOP:
-					break;
-				}
-				do_ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf);
-				if (mode == CREATE)
-					gem_context_destroy(fd, ctx);
+			case NOP:
+				break;
 			}
-			gem_sync(fd, gem_exec.handle);
-			clock_gettime(CLOCK_MONOTONIC, &end);
-			igt_stats_push(&stats, elapsed(&start, &end, count));
-		}
+			do_ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf);
+			count++;
+			if (mode == CREATE)
+				gem_context_destroy(fd, ctx);
 
-		printf("%7.3f\n", igt_stats_get_trimean(&stats)/1000);
-		igt_stats_fini(&stats);
+			if (flags & SYNC)
+				gem_sync(fd, gem_exec.handle);
+
+			clock_gettime(CLOCK_MONOTONIC, &end);
+		} while (elapsed(&start, &end) < 2.);
+
+		gem_sync(fd, gem_exec.handle);
+
+		clock_gettime(CLOCK_MONOTONIC, &end);
+		printf("%7.3f\n", 1e6*elapsed(&start, &end) / count);
 	}
 	return 0;
 }
@@ -165,11 +165,12 @@ static int loop(unsigned ring, int reps, enum mode mode)
 int main(int argc, char **argv)
 {
 	unsigned ring = I915_EXEC_RENDER;
+	unsigned flags = 0;
 	enum mode mode = NOP;
-	int reps = 13;
+	int reps = 1;
 	int c;
 
-	while ((c = getopt (argc, argv, "e:r:b:")) != -1) {
+	while ((c = getopt (argc, argv, "e:r:b:s")) != -1) {
 		switch (c) {
 		case 'e':
 			if (strcmp(optarg, "rcs") == 0)
@@ -203,10 +204,14 @@ int main(int argc, char **argv)
 				reps = 1;
 			break;
 
+		case 's':
+			flags |= SYNC;
+			break;
+
 		default:
 			break;
 		}
 	}
 
-	return loop(ring, reps, mode);
+	return loop(ring, reps, mode, flags);
 }
