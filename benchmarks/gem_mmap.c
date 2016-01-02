@@ -46,10 +46,10 @@
 
 #define OBJECT_SIZE (1<<23)
 
-static uint64_t elapsed(const struct timespec *start,
-			const struct timespec *end)
+static double elapsed(const struct timespec *start,
+		const struct timespec *end)
 {
-	return 1000000000ULL*(end->tv_sec - start->tv_sec) + (end->tv_nsec - start->tv_nsec);
+	return (end->tv_sec - start->tv_sec) + 1e-9*(end->tv_nsec - start->tv_nsec);
 }
 
 int main(int argc, char **argv)
@@ -58,11 +58,13 @@ int main(int argc, char **argv)
 	enum map {CPU, GTT, WC} map = CPU;
 	enum dir {READ, WRITE, CLEAR, FAULT} dir = READ;
 	int tiling = I915_TILING_NONE;
+	struct timespec start, end;
 	void *buf = malloc(OBJECT_SIZE);
 	uint32_t handle;
 	void *ptr, *src, *dst;
-	int reps = 13;
-	int c, size;
+	int reps = 1;
+	int loops;
+	int c;
 
 	while ((c = getopt (argc, argv, "m:d:r:t:")) != -1) {
 		switch (c) {
@@ -140,38 +142,56 @@ int main(int argc, char **argv)
 		dst = ptr;
 	}
 
-	for (size = 1; size <= OBJECT_SIZE; size <<= 1) {
-		igt_stats_t stats;
-		int n;
+	clock_gettime(CLOCK_MONOTONIC, &start);
+	switch (dir) {
+	case CLEAR:
+	case FAULT:
+		memset(dst, 0, OBJECT_SIZE);
+		break;
+	default:
+		memcpy(dst, src, OBJECT_SIZE);
+		break;
+	}
+	clock_gettime(CLOCK_MONOTONIC, &end);
 
-		igt_stats_init_with_size(&stats, reps);
-
-		for (n = 0; n < reps; n++) {
-			struct timespec start, end;
+	loops = 2 / elapsed(&start, &end);
+	while (reps--) {
+		clock_gettime(CLOCK_MONOTONIC, &start);
+		for (c = 0; c < loops; c++) {
 			int page;
 
-			clock_gettime(CLOCK_MONOTONIC, &start);
 			switch (dir) {
 			case CLEAR:
-				memset(dst, 0, size);
+				memset(dst, 0, OBJECT_SIZE);
 				break;
 			case FAULT:
+				munmap(ptr, OBJECT_SIZE);
+				switch (map) {
+				case CPU:
+					ptr = gem_mmap__cpu(fd, handle, 0, OBJECT_SIZE, PROT_WRITE);
+					break;
+				case GTT:
+					ptr = gem_mmap__gtt(fd, handle, OBJECT_SIZE, PROT_WRITE);
+					break;
+				case WC:
+					ptr = gem_mmap__wc(fd, handle, 0, OBJECT_SIZE, PROT_WRITE);
+					break;
+				default:
+					abort();
+				}
 				for (page = 0; page < OBJECT_SIZE; page += 4096) {
 					uint32_t *x = (uint32_t *)ptr + page/4;
+					__asm__ __volatile__("": : :"memory");
 					page += *x; /* should be zero! */
 				}
 				break;
 			default:
-				memcpy(dst, src, size);
+				memcpy(dst, src, OBJECT_SIZE);
 				break;
 			}
-			clock_gettime(CLOCK_MONOTONIC, &end);
-
-			igt_stats_push(&stats, elapsed(&start, &end));
 		}
-
-		printf("%7.3f\n", igt_stats_get_trimean(&stats)/1000);
-		igt_stats_fini(&stats);
+		clock_gettime(CLOCK_MONOTONIC, &end);
+		printf("%7.3f\n", OBJECT_SIZE / elapsed(&start, &end) * loops / (1024*1024));
 	}
 
 	return 0;
