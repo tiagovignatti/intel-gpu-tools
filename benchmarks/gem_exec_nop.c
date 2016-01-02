@@ -47,11 +47,12 @@
 #define LOCAL_I915_EXEC_NO_RELOC (1<<11)
 #define LOCAL_I915_EXEC_HANDLE_LUT (1<<12)
 
-static uint64_t elapsed(const struct timespec *start,
-		const struct timespec *end,
-		int loop)
+#define SYNC 0x1
+
+static double elapsed(const struct timespec *start,
+		      const struct timespec *end)
 {
-	return (1000000000ULL*(end->tv_sec - start->tv_sec) + (end->tv_nsec - start->tv_nsec))/loop;
+	return (end->tv_sec - start->tv_sec) + 1e-9*(end->tv_nsec - start->tv_nsec);
 }
 
 static int __gem_execbuf(int fd, struct drm_i915_gem_execbuffer2 *execbuf)
@@ -70,11 +71,11 @@ static uint32_t batch(int fd)
 	return handle;
 }
 
-static int loop(unsigned ring, int reps)
+static int loop(unsigned ring, int reps, unsigned flags)
 {
 	struct drm_i915_gem_execbuffer2 execbuf;
 	struct drm_i915_gem_exec_object2 gem_exec;
-	int count, fd;
+	int fd;
 
 	fd = drm_open_driver(DRIVER_INTEL);
 
@@ -93,28 +94,26 @@ static int loop(unsigned ring, int reps)
 			return 77;
 	}
 
-	for (count = 1; count <= 1<<16; count <<= 1) {
-		igt_stats_t stats;
-		int n;
+	while (reps--) {
+		struct timespec start, end;
+		unsigned count = 0;
 
-		igt_stats_init_with_size(&stats, reps);
+		gem_set_domain(fd, gem_exec.handle, I915_GEM_DOMAIN_GTT, 0);
+		sleep(1); /* wait for the hw to go back to sleep */
 
-		for (n = 0; n < reps; n++) {
-			struct timespec start, end;
-			int loops = count;
-			gem_set_domain(fd, gem_exec.handle,
-				       I915_GEM_DOMAIN_GTT, 0);
-			sleep(1); /* wait for the hw to go back to sleep */
-			clock_gettime(CLOCK_MONOTONIC, &start);
-			while (loops--)
-				do_ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf);
-			gem_sync(fd, gem_exec.handle);
+		clock_gettime(CLOCK_MONOTONIC, &start);
+		do {
+			do_ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf);
+			count++;
+			if (flags & SYNC)
+				gem_sync(fd, gem_exec.handle);
 			clock_gettime(CLOCK_MONOTONIC, &end);
-			igt_stats_push(&stats, elapsed(&start, &end, count));
-		}
+		} while (elapsed(&start, &end) < 2.);
 
-		printf("%7.3f\n", igt_stats_get_trimean(&stats)/1000);
-		igt_stats_fini(&stats);
+		gem_sync(fd, gem_exec.handle);
+		clock_gettime(CLOCK_MONOTONIC, &end);
+
+		printf("%7.3f\n", 1e6*elapsed(&start, &end)/count);
 	}
 	return 0;
 }
@@ -122,10 +121,11 @@ static int loop(unsigned ring, int reps)
 int main(int argc, char **argv)
 {
 	unsigned ring = I915_EXEC_RENDER;
-	int reps = 13;
+	unsigned flags = 0;
+	int reps = 1;
 	int c;
 
-	while ((c = getopt (argc, argv, "e:r:")) != -1) {
+	while ((c = getopt (argc, argv, "e:r:s")) != -1) {
 		switch (c) {
 		case 'e':
 			if (strcmp(optarg, "rcs") == 0)
@@ -146,10 +146,14 @@ int main(int argc, char **argv)
 				reps = 1;
 			break;
 
+		case 's':
+			flags |= SYNC;
+			break;
+
 		default:
 			break;
 		}
 	}
 
-	return loop(ring, reps);
+	return loop(ring, reps, flags);
 }
