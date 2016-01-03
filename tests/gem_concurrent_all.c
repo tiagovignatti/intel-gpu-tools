@@ -96,14 +96,74 @@ prw_cmp_bo(drm_intel_bo *bo, uint32_t val, int width, int height, drm_intel_bo *
 }
 
 static drm_intel_bo *
-unmapped_create_bo(drm_intel_bufmgr *bufmgr, int width, int height)
+create_normal_bo(drm_intel_bufmgr *bufmgr, uint64_t size)
 {
 	drm_intel_bo *bo;
 
-	bo = drm_intel_bo_alloc(bufmgr, "bo", 4*width*height, 0);
+	bo = drm_intel_bo_alloc(bufmgr, "bo", size, 0);
 	igt_assert(bo);
 
 	return bo;
+}
+
+static bool can_create_normal(void)
+{
+	return true;
+}
+
+static drm_intel_bo *
+create_private_bo(drm_intel_bufmgr *bufmgr, uint64_t size)
+{
+	drm_intel_bo *bo;
+	uint32_t handle;
+
+	/* XXX gem_create_with_flags(fd, size, I915_CREATE_PRIVATE); */
+
+	handle = gem_create(fd, size);
+	bo = gem_handle_to_libdrm_bo(bufmgr, fd, "stolen", handle);
+	gem_close(fd, handle);
+
+	return bo;
+}
+
+static bool can_create_private(void)
+{
+	return false;
+}
+
+static drm_intel_bo *
+create_stolen_bo(drm_intel_bufmgr *bufmgr, uint64_t size)
+{
+	drm_intel_bo *bo;
+	uint32_t handle;
+
+	/* XXX gem_create_with_flags(fd, size, I915_CREATE_STOLEN); */
+
+	handle = gem_create(fd, size);
+	bo = gem_handle_to_libdrm_bo(bufmgr, fd, "stolen", handle);
+	gem_close(fd, handle);
+
+	return bo;
+}
+
+static bool can_create_stolen(void)
+{
+	/* XXX check num_buffers against available stolen */
+	return false;
+}
+
+static drm_intel_bo *
+(*create_func)(drm_intel_bufmgr *bufmgr, uint64_t size);
+
+static void create_cpu_require(void)
+{
+	igt_require(create_func != create_stolen_bo);
+}
+
+static drm_intel_bo *
+unmapped_create_bo(drm_intel_bufmgr *bufmgr, int width, int height)
+{
+	return create_func(bufmgr, (uint64_t)4*width*height);
 }
 
 static drm_intel_bo *
@@ -203,7 +263,6 @@ gpu_create_bo(drm_intel_bufmgr *bufmgr, int width, int height)
 {
 	return unmapped_create_bo(bufmgr, width, height);
 }
-
 
 static drm_intel_bo *
 gpuX_create_bo(drm_intel_bufmgr *bufmgr, int width, int height)
@@ -316,6 +375,7 @@ gpu_cmp_bo(drm_intel_bo *bo, uint32_t val, int width, int height, drm_intel_bo *
 
 const struct access_mode {
 	const char *name;
+	void (*require)(void);
 	void (*set_bo)(drm_intel_bo *bo, uint32_t val, int w, int h);
 	void (*cmp_bo)(drm_intel_bo *bo, uint32_t val, int w, int h, drm_intel_bo *tmp);
 	drm_intel_bo *(*create_bo)(drm_intel_bufmgr *bufmgr, int width, int height);
@@ -330,6 +390,7 @@ const struct access_mode {
 	},
 	{
 		.name = "cpu",
+		.require = create_cpu_require,
 		.set_bo = cpu_set_bo,
 		.cmp_bo = cpu_cmp_bo,
 		.create_bo = unmapped_create_bo,
@@ -337,6 +398,7 @@ const struct access_mode {
 	},
 	{
 		.name = "snoop",
+		.require = create_cpu_require,
 		.set_bo = cpu_set_bo,
 		.cmp_bo = cpu_cmp_bo,
 		.create_bo = snoop_create_bo,
@@ -1261,6 +1323,9 @@ run_basic_modes(const char *prefix,
 static void
 run_modes(const char *style, const struct access_mode *mode)
 {
+	if (mode->require)
+		mode->require();
+
 	igt_debug("%s: using 2x%d buffers, each 1MiB\n", style, num_buffers);
 	intel_require_memory(2*num_buffers, 1024*1024, CHECK_RAM);
 
@@ -1280,6 +1345,16 @@ run_modes(const char *style, const struct access_mode *mode)
 
 igt_main
 {
+	const struct {
+		const char *name;
+		drm_intel_bo *(*create)(drm_intel_bufmgr *, uint64_t size);
+		bool (*require)(void);
+	} create[] = {
+		{ "", create_normal_bo, can_create_normal},
+		{ "private-", create_private_bo, can_create_private },
+		{ "stolen-", create_stolen_bo, can_create_stolen },
+		{ NULL, NULL }
+	}, *c;
 	int i;
 
 	igt_skip_on_simulation();
@@ -1294,24 +1369,39 @@ igt_main
 		rendercopy = igt_get_render_copyfunc(devid);
 	}
 
-	igt_fixture {
-		num_buffers = gem_mappable_aperture_size() / (1024 * 1024) / 4;
+	for (c = create; c->name; c++) {
+		char name[80];
+
+		create_func = c->create;
+
+		igt_fixture {
+			num_buffers = gem_mappable_aperture_size() / (1024 * 1024) / 4;
+		}
+
+		if (c->require()) {
+			snprintf(name, sizeof(name), "%s%s", c->name, "small");
+			for (i = 0; i < ARRAY_SIZE(access_modes); i++)
+				run_modes(name, &access_modes[i]);
+		}
+
+		igt_fixture {
+			num_buffers = gem_mappable_aperture_size() / (1024 * 1024);
+		}
+
+		if (c->require()) {
+			snprintf(name, sizeof(name), "%s%s", c->name, "thrash");
+			for (i = 0; i < ARRAY_SIZE(access_modes); i++)
+				run_modes(name, &access_modes[i]);
+		}
+
+		igt_fixture {
+			num_buffers = gem_aperture_size(fd) / (1024 * 1024);
+		}
+
+		if (c->require()) {
+			snprintf(name, sizeof(name), "%s%s", c->name, "full");
+			for (i = 0; i < ARRAY_SIZE(access_modes); i++)
+				run_modes(name, &access_modes[i]);
+		}
 	}
-
-	for (i = 0; i < ARRAY_SIZE(access_modes); i++)
-		run_modes("small", &access_modes[i]);
-
-	igt_fixture {
-		num_buffers = gem_mappable_aperture_size() / (1024 * 1024);
-	}
-
-	for (i = 0; i < ARRAY_SIZE(access_modes); i++)
-		run_modes("thrash", &access_modes[i]);
-
-	igt_fixture {
-		num_buffers = gem_aperture_size(fd) / (1024 * 1024);
-	}
-
-	for (i = 0; i < ARRAY_SIZE(access_modes); i++)
-		run_modes("full", &access_modes[i]);
 }
