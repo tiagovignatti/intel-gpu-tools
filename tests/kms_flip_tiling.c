@@ -75,7 +75,7 @@ static void pipe_crc_free(void)
 static void wait_for_pageflip(int fd)
 {
 	drmEventContext evctx = { .version = DRM_EVENT_CONTEXT_VERSION };
-	struct timeval timeout = { .tv_sec = 0, .tv_usec = 32000 };
+	struct timeval timeout = { .tv_sec = 0, .tv_usec = 50000 };
 	fd_set fds;
 	int ret;
 
