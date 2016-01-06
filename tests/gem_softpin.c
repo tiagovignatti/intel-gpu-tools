@@ -67,7 +67,7 @@ static void *create_mem_buffer(uint64_t size);
 static int gem_call_userptr_ioctl(int fd, i915_gem_userptr *userptr);
 static void gem_pin_userptr_test(void);
 static void gem_pin_bo_test(void);
-static void gem_pin_invalid_vma_test(bool test_decouple_flags);
+static void gem_pin_invalid_vma_test(bool test_decouple_flags, bool test_canonical_offset);
 static void gem_pin_overlap_test(void);
 static void gem_pin_high_address_test(void);
 
@@ -196,6 +196,18 @@ static void setup_exec_obj(struct drm_i915_gem_exec_object2 *exec,
 	exec->handle = handle;
 	exec->flags = flags;
 	exec->offset = offset;
+}
+
+/* gen8_canonical_addr
+ * Used to convert any address into canonical form, i.e. [63:48] == [47].
+ * Based on kernel's sign_extend64 implementation.
+ * @address - a virtual address
+*/
+#define GEN8_HIGH_ADDRESS_BIT 47
+static uint64_t gen8_canonical_addr(uint64_t address)
+{
+	__u8 shift = 63 - GEN8_HIGH_ADDRESS_BIT;
+	return (__s64)(address << shift) >> shift;
 }
 
 /* gem_store_data_svm
@@ -630,6 +642,7 @@ static void gem_pin_overlap_test(void)
  * Share with GPU using userptr ioctl
  * Create batch buffer to write DATA in first element of each buffer
  * Pin each buffer to varying addresses starting from 0x800000000000 going below
+ * (requires offsets in canonical form)
  * Execute Batch Buffer on Blit ring STRESS_NUM_LOOPS times
  * Validate every buffer has DATA in first element
  * Rinse and Repeat on Render ring
@@ -637,7 +650,7 @@ static void gem_pin_overlap_test(void)
 #define STRESS_NUM_BUFFERS 100000
 #define STRESS_NUM_LOOPS 100
 #define STRESS_STORE_COMMANDS 4 * STRESS_NUM_BUFFERS
-
+#define STRESS_START_ADDRESS 0x800000000000
 static void gem_softpin_stress_test(void)
 {
 	i915_gem_userptr userptr;
@@ -650,7 +663,7 @@ static void gem_softpin_stress_test(void)
 	uint32_t batch_buf_handle;
 	int ring, len;
 	int buf, loop;
-	uint64_t pinning_offset = 0x800000000000;
+	uint64_t pinning_offset = STRESS_START_ADDRESS;
 
 	fd = drm_open_driver(DRIVER_INTEL);
 	igt_require(uses_full_ppgtt(fd, FULL_48_BIT_PPGTT));
@@ -680,10 +693,10 @@ static void gem_softpin_stress_test(void)
 		setup_exec_obj(&exec_object2[buf], shared_handle[buf],
 			       EXEC_OBJECT_PINNED |
 			       EXEC_OBJECT_SUPPORTS_48B_ADDRESS,
-			       pinning_offset);
+			       gen8_canonical_addr(pinning_offset));
 		len += gem_store_data_svm(fd, batch_buffer + (len/4),
-					  pinning_offset, buf,
-					  (buf == STRESS_NUM_BUFFERS-1)? \
+					  gen8_canonical_addr(pinning_offset),
+					  buf, (buf == STRESS_NUM_BUFFERS-1)? \
 					  true:false);
 
 		/* decremental 4K aligned address */
@@ -705,10 +718,11 @@ static void gem_softpin_stress_test(void)
 		for (loop = 0; loop < STRESS_NUM_LOOPS; loop++) {
 			submit_and_sync(fd, &execbuf, batch_buf_handle);
 			/* Set pinning offset back to original value */
-			pinning_offset = 0x800000000000;
+			pinning_offset = STRESS_START_ADDRESS;
 			for(buf = 0; buf < STRESS_NUM_BUFFERS; buf++) {
 				gem_userptr_sync(fd, shared_handle[buf]);
-				igt_assert(exec_object2[buf].offset == pinning_offset);
+				igt_assert(exec_object2[buf].offset ==
+					gen8_canonical_addr(pinning_offset));
 				igt_fail_on_f(*shared_buffer[buf] != buf, \
 				"Mismatch in buffer %d, iteration %d: 0x%08X\n", \
 				buf, loop, *shared_buffer[buf]);
@@ -727,10 +741,11 @@ static void gem_softpin_stress_test(void)
 			 STRESS_NUM_BUFFERS + 1, len);
 	for (loop = 0; loop < STRESS_NUM_LOOPS; loop++) {
 		submit_and_sync(fd, &execbuf, batch_buf_handle);
-		pinning_offset = 0x800000000000;
+		pinning_offset = STRESS_START_ADDRESS;
 		for(buf = 0; buf < STRESS_NUM_BUFFERS; buf++) {
 			gem_userptr_sync(fd, shared_handle[buf]);
-			igt_assert(exec_object2[buf].offset == pinning_offset);
+			igt_assert(exec_object2[buf].offset ==
+				gen8_canonical_addr(pinning_offset));
 			igt_fail_on_f(*shared_buffer[buf] != buf, \
 			"Mismatch in buffer %d, \
 			iteration %d: 0x%08X\n", buf, loop, *shared_buffer[buf]);
@@ -837,12 +852,14 @@ static void gem_write_multipage_buffer_test(void)
  * This test will request to pin a shared buffer to an invalid
  * VMA  > 48-bit address if system supports 48B PPGTT; it also
  * will test that any attempt of using a 48-bit address requires
- * the SUPPORTS_48B_ADDRESS flag.
+ * the SUPPORTS_48B_ADDRESS flag, and that 48-bit address need to be
+ * in canonical form (bits [63:48] == [47]).
  * If system supports 32B PPGTT, it will test the equivalent invalid VMA
  * Create shared buffer of size 4K
  * Try and Pin object to invalid address
 */
-static void gem_pin_invalid_vma_test(bool test_decouple_flags)
+static void gem_pin_invalid_vma_test(bool test_decouple_flags,
+				     bool test_canonical_offset)
 {
 	i915_gem_userptr userptr;
 	int fd, ret;
@@ -852,6 +869,7 @@ static void gem_pin_invalid_vma_test(bool test_decouple_flags)
 	uint32_t shared_buf_handle;
 	int ring;
 	uint64_t invalid_address_for_48b = 0x9000000000000; /* 52 bit address */
+	uint64_t noncanonical_address_for_48b = 0xFF0000000000; /* 48 bit address in noncanonical form */
 	uint64_t invalid_address_for_32b = 0x900000000; /* 36 bit address */
 
 	fd = drm_open_driver(DRIVER_INTEL);
@@ -865,7 +883,11 @@ static void gem_pin_invalid_vma_test(bool test_decouple_flags)
 	/* share with GPU */
 	shared_buf_handle = init_userptr(fd, &userptr, shared_buffer, BO_SIZE);
 
-	if (uses_full_ppgtt(fd, FULL_48_BIT_PPGTT) && !test_decouple_flags) {
+	if (uses_full_ppgtt(fd, FULL_48_BIT_PPGTT) && test_canonical_offset) {
+		setup_exec_obj(&exec_object2[0], shared_buf_handle,
+			       EXEC_OBJECT_PINNED | EXEC_OBJECT_SUPPORTS_48B_ADDRESS,
+			       noncanonical_address_for_48b);
+	} else if (uses_full_ppgtt(fd, FULL_48_BIT_PPGTT) && !test_decouple_flags) {
 		setup_exec_obj(&exec_object2[0], shared_buf_handle,
 			       EXEC_OBJECT_PINNED | EXEC_OBJECT_SUPPORTS_48B_ADDRESS,
 			       invalid_address_for_48b);
@@ -965,7 +987,10 @@ static void gem_pin_high_address_test(void)
  * This test will create a shared buffer,
  * and create a command for GPU to write data in it. It will attempt
  * to pin the buffer at address > 47 bits <= 48-bit.
- * CPU will read and make sure expected value is obtained
+ * CPU will read and make sure expected value is obtained.
+ * Note that we must submit addresses in canonical form, not only
+ * because the addresss will be validated, but also the returned offset
+ * will be in this format.
 
  * Malloc a 4K buffer
  * Share buffer with with GPU by using userptr ioctl
@@ -990,7 +1015,7 @@ static void gem_pin_near_48Bit_test(void)
 	uint32_t batch_buf_handle, shared_buf_handle;
 	int ring, len;
 	const uint32_t data = 0x12345678;
-	uint64_t high_address;
+	uint64_t high_address, can_high_address;
 
 	fd = drm_open_driver(DRIVER_INTEL);
 	igt_require(uses_full_ppgtt(fd, FULL_48_BIT_PPGTT));
@@ -1007,14 +1032,15 @@ static void gem_pin_near_48Bit_test(void)
 
 	for (high_address = BEGIN_HIGH_ADDRESS; high_address <= END_HIGH_ADDRESS;
 						high_address+=ADDRESS_INCREMENT) {
+		can_high_address = gen8_canonical_addr(high_address);
 		/* create command buffer with write command */
-		len = gem_store_data_svm(fd, batch_buffer, high_address,
+		len = gem_store_data_svm(fd, batch_buffer, can_high_address,
 					data, true);
 		gem_write(fd, batch_buf_handle, 0, batch_buffer, len);
 		/* submit command buffer */
 		setup_exec_obj(&exec_object2[0], shared_buf_handle,
 			       EXEC_OBJECT_PINNED | EXEC_OBJECT_SUPPORTS_48B_ADDRESS,
-			       high_address);
+			       can_high_address);
 		setup_exec_obj(&exec_object2[1], batch_buf_handle, 0, 0);
 
 		ring = I915_EXEC_RENDER;
@@ -1022,7 +1048,7 @@ static void gem_pin_near_48Bit_test(void)
 		submit_and_sync(fd, &execbuf, batch_buf_handle);
 		gem_userptr_sync(fd, shared_buf_handle);
 
-		igt_assert(exec_object2[0].offset == high_address);
+		igt_assert(exec_object2[0].offset == can_high_address);
 		/* check on CPU to see if value changes */
 		igt_fail_on_f(shared_buffer[0] != data,
 		"\nCPU read does not match GPU write, expected: 0x%x, \
@@ -1063,12 +1089,15 @@ int main(int argc, char* argv[])
 
 	/* Following tests need 32/48 Bit PPGTT support */
 	igt_subtest("gem_pin_invalid_vma") {
-		gem_pin_invalid_vma_test(false);
+		gem_pin_invalid_vma_test(false, false);
 	}
 
 	/* Following tests need 48 Bit PPGTT support */
+	igt_subtest("gen_pin_noncanonical_high_address") {
+		gem_pin_invalid_vma_test(false, true);
+	}
 	igt_subtest("gem_pin_high_address_without_correct_flag") {
-		gem_pin_invalid_vma_test(true);
+		gem_pin_invalid_vma_test(true, false);
 	}
 	igt_subtest("gem_softpin_stress") {
 		gem_softpin_stress_test();
