@@ -224,12 +224,33 @@ static void disable_or_dpms_all_screens(struct mode_set_data *data, bool dpms)
 	igt_assert(wait_for_suspended()); \
 } while (0)
 
+static uint32_t find_crtc_for_connector(drmModeResPtr res,
+					drmModeConnectorPtr connector)
+{
+	drmModeEncoderPtr e;
+	uint32_t crtc_id = 0;
+	int i, j;
+
+	for (i = 0; i < connector->count_encoders && !crtc_id; i++) {
+		e = drmModeGetEncoder(drm_fd, connector->encoders[i]);
+
+		for (j = 0; (e->possible_crtcs >> j) && !crtc_id; j++)
+			if (e->possible_crtcs & (1 << j))
+				crtc_id = res->crtcs[j];
+
+		drmModeFreeEncoder(e);
+	}
+
+	igt_assert(crtc_id);
+	return crtc_id;
+}
+
 static bool init_modeset_params_for_type(struct mode_set_data *data,
 					 struct modeset_params *params,
 					 enum screen_type type)
 {
 	int i;
-	uint32_t connector_id = 0;
+	drmModeConnectorPtr connector = NULL;
 	drmModeModeInfoPtr mode = NULL;
 
 	for (i = 0; i < data->res->count_connectors; i++) {
@@ -244,21 +265,21 @@ static bool init_modeset_params_for_type(struct mode_set_data *data,
 			continue;
 
 		if (c->connection == DRM_MODE_CONNECTED && c->count_modes) {
-			connector_id = c->connector_id;
+			connector = c;
 			mode = &c->modes[0];
 			break;
 		}
 	}
 
-	if (!connector_id)
+	if (!connector)
 		return false;
 
 	igt_create_pattern_fb(drm_fd, mode->hdisplay, mode->vdisplay,
 			      DRM_FORMAT_XRGB8888, LOCAL_DRM_FORMAT_MOD_NONE,
 			      &params->fb);
 
-	params->crtc_id = data->res->crtcs[0];
-	params->connector_id = connector_id;
+	params->crtc_id = find_crtc_for_connector(data->res, connector);
+	params->connector_id = connector->connector_id;
 	params->mode = mode;
 
 	return true;
@@ -1599,7 +1620,6 @@ static void test_one_plane(bool dpms, uint32_t plane_id,
 
 	disable_all_screens_and_wait(&ms_data);
 
-	igt_require(default_mode_params);
 	crtc_id = default_mode_params->crtc_id;
 
 	switch (plane_type) {
@@ -1681,11 +1701,25 @@ static void test_one_plane(bool dpms, uint32_t plane_id,
 	igt_assert(wait_for_suspended());
 }
 
+static int get_crtc_idx(drmModeResPtr res, uint32_t crtc_id)
+{
+	int i;
+
+	for (i = 0; i < res->count_crtcs; i++)
+		if (res->crtcs[i] == crtc_id)
+			return i;
+
+	igt_assert(false);
+}
+
 /* This one also triggered WARNs on our driver at some point in time. */
 static void planes_subtest(bool universal, bool dpms)
 {
-	int i, rc, planes_tested = 0;
+	int i, rc, planes_tested = 0, crtc_idx;
 	drmModePlaneResPtr planes;
+
+	igt_require(default_mode_params);
+	crtc_idx = get_crtc_idx(ms_data.res, default_mode_params->crtc_id);
 
 	if (universal) {
 		rc = drmSetClientCap(drm_fd, DRM_CLIENT_CAP_UNIVERSAL_PLANES,
@@ -1700,9 +1734,7 @@ static void planes_subtest(bool universal, bool dpms)
 		plane = drmModeGetPlane(drm_fd, planes->planes[i]);
 		igt_assert(plane);
 
-		/* We just pick the first CRTC on the list, so we can test for
-		 * 0x1 as the index. */
-		if (plane->possible_crtcs & 0x1) {
+		if (plane->possible_crtcs & (1 << crtc_idx)) {
 			enum plane_type type;
 
 			type = universal ? get_plane_type(plane->plane_id) :
