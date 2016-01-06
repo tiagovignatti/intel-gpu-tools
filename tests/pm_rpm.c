@@ -52,8 +52,6 @@
 #define MAX_ENCODERS	32
 #define MAX_CRTCS	16
 
-#define POWER_DIR "/sys/devices/pci0000:00/0000:00:02.0/power"
-
 enum pc8_status {
 	PC8_ENABLED,
 	PC8_DISABLED
