@@ -36,6 +36,7 @@
 #include <string.h>
 #include <fcntl.h>
 #include <inttypes.h>
+#include <limits.h>
 #include <errno.h>
 #include <sys/stat.h>
 #include <sys/ioctl.h>
@@ -579,8 +580,8 @@ int main(int argc, char **argv)
 		case 't':
 			/* How long to run the benchmark for (seconds) */
 			time = atoi(optarg);
-			if (time < 1)
-				time = 1;
+			if (time < 0)
+				time = INT_MAX;
 			break;
 
 		case 'f':
