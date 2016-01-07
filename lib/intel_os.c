@@ -192,6 +192,38 @@ intel_get_total_swap_mb(void)
 	return retval / (1024*1024);
 }
 
+int __intel_check_memory(uint32_t count, uint64_t size, unsigned mode,
+			 uint64_t *out_required, uint64_t *out_total)
+{
+/* rough estimate of how many bytes the kernel requires to track each object */
+#define KERNEL_BO_OVERHEAD 512
+	uint64_t required, total;
+
+	required = count;
+	required *= size + KERNEL_BO_OVERHEAD;
+	required = ALIGN(required, 4096);
+
+	igt_debug("Checking %'u surfaces of size %'llu bytes (total %'llu) against %s%s\n",
+		  count, (long long)size, (long long)required,
+		  mode & (CHECK_RAM | CHECK_SWAP) ? "RAM" : "",
+		  mode & CHECK_SWAP ? " + swap": "");
+
+	total = 0;
+	if (mode & (CHECK_RAM | CHECK_SWAP))
+		total += intel_get_avail_ram_mb();
+	if (mode & CHECK_SWAP)
+		total += intel_get_total_swap_mb();
+	total *= 1024 * 1024;
+
+	if (out_required)
+		*out_required = required;
+
+	if (out_total)
+		*out_total = total;
+
+	return required < total;
+}
+
 /**
  * intel_require_memory:
  * @count: number of surfaces that will be created
@@ -217,27 +249,10 @@ intel_get_total_swap_mb(void)
  */
 void intel_require_memory(uint32_t count, uint64_t size, unsigned mode)
 {
-/* rough estimate of how many bytes the kernel requires to track each object */
-#define KERNEL_BO_OVERHEAD 512
 	uint64_t required, total;
 
-	required = count;
-	required *= size + KERNEL_BO_OVERHEAD;
-	required = ALIGN(required, 4096);
-
-	igt_debug("Checking %'u surfaces of size %'llu bytes (total %'llu) against %s%s\n",
-		  count, (long long)size, (long long)required,
-		  mode & (CHECK_RAM | CHECK_SWAP) ? "RAM" : "",
-		  mode & CHECK_SWAP ? " + swap": "");
-
-	total = 0;
-	if (mode & (CHECK_RAM | CHECK_SWAP))
-		total += intel_get_avail_ram_mb();
-	if (mode & CHECK_SWAP)
-		total += intel_get_total_swap_mb();
-	total *= 1024 * 1024;
-
-	igt_skip_on_f(total <= required,
+	igt_skip_on_f(!__intel_check_memory(count, size, mode,
+					    &required, &total),
 		      "Estimated that we need %'llu bytes for the test, but only have %'llu bytes available (%s%s)\n",
 		      (long long)required, (long long)total,
 		      mode & (CHECK_RAM | CHECK_SWAP) ? "RAM" : "",

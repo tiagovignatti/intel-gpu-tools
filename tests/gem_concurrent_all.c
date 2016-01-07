@@ -155,9 +155,9 @@ static bool can_create_stolen(void)
 static drm_intel_bo *
 (*create_func)(drm_intel_bufmgr *bufmgr, uint64_t size);
 
-static void create_cpu_require(void)
+static bool create_cpu_require(void)
 {
-	igt_require(create_func != create_stolen_bo);
+	return create_func != create_stolen_bo;
 }
 
 static drm_intel_bo *
@@ -375,7 +375,7 @@ gpu_cmp_bo(drm_intel_bo *bo, uint32_t val, int width, int height, drm_intel_bo *
 
 const struct access_mode {
 	const char *name;
-	void (*require)(void);
+	bool (*require)(void);
 	void (*set_bo)(drm_intel_bo *bo, uint32_t val, int w, int h);
 	void (*cmp_bo)(drm_intel_bo *bo, uint32_t val, int w, int h, drm_intel_bo *tmp);
 	drm_intel_bo *(*create_bo)(drm_intel_bufmgr *bufmgr, int width, int height);
@@ -1321,24 +1321,22 @@ run_basic_modes(const char *prefix,
 }
 
 static void
-run_modes(const char *style, const struct access_mode *mode)
+run_modes(const char *style, const struct access_mode *mode, unsigned allow_mem)
 {
-	if (mode->require)
-		mode->require();
+	if (mode->require && !mode->require())
+		return;
 
-	igt_debug("%s: using 2x%d buffers, each 1MiB\n", style, num_buffers);
-	intel_require_memory(2*num_buffers, 1024*1024, CHECK_RAM);
+	igt_debug("%s: using 2x%d buffers, each 1MiB\n",
+			style, num_buffers);
+	if (!__intel_check_memory(2*num_buffers, 1024*1024, allow_mem,
+				  NULL, NULL))
+		return;
 
-	if (all) {
-		run_basic_modes(style, mode, "", run_single);
-
-		igt_fork_signal_helper();
-		run_basic_modes(style, mode, "-interruptible", run_interruptible);
-		igt_stop_signal_helper();
-	}
+	run_basic_modes(style, mode, "", run_single);
+	run_basic_modes(style, mode, "-forked", run_forked);
 
 	igt_fork_signal_helper();
-	run_basic_modes(style, mode, "-forked", run_forked);
+	run_basic_modes(style, mode, "-interruptible", run_interruptible);
 	run_basic_modes(style, mode, "-bomb", run_bomb);
 	igt_stop_signal_helper();
 }
@@ -1355,6 +1353,8 @@ igt_main
 		{ "stolen-", create_stolen_bo, can_create_stolen },
 		{ NULL, NULL }
 	}, *c;
+	uint64_t pin_sz = 0;
+	void *pinned = NULL;
 	int i;
 
 	igt_skip_on_simulation();
@@ -1381,7 +1381,7 @@ igt_main
 		if (c->require()) {
 			snprintf(name, sizeof(name), "%s%s", c->name, "small");
 			for (i = 0; i < ARRAY_SIZE(access_modes); i++)
-				run_modes(name, &access_modes[i]);
+				run_modes(name, &access_modes[i], CHECK_RAM);
 		}
 
 		igt_fixture {
@@ -1391,7 +1391,7 @@ igt_main
 		if (c->require()) {
 			snprintf(name, sizeof(name), "%s%s", c->name, "thrash");
 			for (i = 0; i < ARRAY_SIZE(access_modes); i++)
-				run_modes(name, &access_modes[i]);
+				run_modes(name, &access_modes[i], CHECK_RAM);
 		}
 
 		igt_fixture {
@@ -1401,7 +1401,37 @@ igt_main
 		if (c->require()) {
 			snprintf(name, sizeof(name), "%s%s", c->name, "full");
 			for (i = 0; i < ARRAY_SIZE(access_modes); i++)
-				run_modes(name, &access_modes[i]);
+				run_modes(name, &access_modes[i], CHECK_RAM);
+		}
+
+		igt_fixture {
+			num_buffers = gem_mappable_aperture_size() / (1024 * 1024);
+			pin_sz = intel_get_avail_ram_mb() - num_buffers;
+
+			igt_debug("Pinning %ld MiB\n", pin_sz);
+			pin_sz *= 1024 * 1024;
+
+			if (posix_memalign(&pinned, 4096, pin_sz) ||
+			    mlock(pinned, pin_sz) ||
+			    madvise(pinned, pin_sz, MADV_DONTFORK)) {
+				free(pinned);
+				pinned = NULL;
+			}
+			igt_require(pinned);
+		}
+
+		if (c->require()) {
+			snprintf(name, sizeof(name), "%s%s", c->name, "swap");
+			for (i = 0; i < ARRAY_SIZE(access_modes); i++)
+				run_modes(name, &access_modes[i], CHECK_RAM | CHECK_SWAP);
+		}
+
+		igt_fixture {
+			if (pinned) {
+				munlock(pinned, pin_sz);
+				free(pinned);
+				pinned = NULL;
+			}
 		}
 	}
 }
