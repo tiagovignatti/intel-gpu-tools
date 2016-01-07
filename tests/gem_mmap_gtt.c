@@ -253,6 +253,83 @@ test_write_gtt(int fd)
 	munmap(src, OBJECT_SIZE);
 }
 
+static unsigned int clflush_size;
+static int setup_clflush(void)
+{
+	FILE *file;
+	char *line = NULL;
+	size_t size = 0;
+	int first_stanza = 1;
+	int has_clflush = 0;
+
+	file = fopen("/proc/cpuinfo", "r");
+	if (file == NULL)
+		return 0;
+
+	while (getline(&line, &size, file) != -1) {
+		if (strncmp(line, "processor", 9) == 0) {
+			if (!first_stanza)
+				break;
+			first_stanza = 0;
+		}
+
+		if (strncmp(line, "flags", 5) == 0) {
+			if (strstr(line, "clflush"))
+				has_clflush = 1;
+		}
+
+		if (strncmp(line, "clflush size", 12) == 0) {
+			char *colon = strchr(line, ':');
+			if (colon)
+				clflush_size = atoi(colon + 1);
+		}
+	}
+	free(line);
+	fclose(file);
+
+	return has_clflush && clflush_size;
+}
+
+static void clflush(void *addr, int size)
+{
+	char *p, *end;
+
+	end = (char *)addr + size;
+	p = (char *)((uintptr_t)addr & ~((uintptr_t)clflush_size - 1));
+
+	asm volatile("mfence" ::: "memory");
+	for (; p < end; p += clflush_size)
+		asm volatile("clflush %0" : "+m" (*(volatile char *)p));
+	asm volatile("mfence" ::: "memory");
+}
+
+static void
+test_coherency(int fd)
+{
+	uint32_t handle;
+	uint32_t *gtt, *cpu;
+	int i;
+
+	igt_require(setup_clflush());
+
+	handle = gem_create(fd, OBJECT_SIZE);
+
+	gtt = gem_mmap__gtt(fd, handle, OBJECT_SIZE, PROT_READ | PROT_WRITE);
+	cpu = gem_mmap__cpu(fd, handle, 0, OBJECT_SIZE, PROT_READ | PROT_WRITE);
+	set_domain_gtt(fd, handle);
+
+	for (i = 0; i < OBJECT_SIZE / 64; i++) {
+		int x = 16*i + (i%16);
+		gtt[x] = i;
+		clflush(&cpu[x], sizeof(cpu[x]));
+		igt_assert_eq(cpu[x], i);
+	}
+
+	munmap(cpu, OBJECT_SIZE);
+	munmap(gtt, OBJECT_SIZE);
+	gem_close(fd, handle);
+}
+
 static void
 test_huge_bo(int fd, int huge, int tiling)
 {
@@ -520,6 +597,8 @@ igt_main
 		test_write(fd);
 	igt_subtest("basic-write-gtt")
 		test_write_gtt(fd);
+	igt_subtest("coherency")
+		test_coherency(fd);
 	igt_subtest("basic-read-write")
 		test_read_write(fd, READ_BEFORE_WRITE);
 	igt_subtest("basic-write-read")
