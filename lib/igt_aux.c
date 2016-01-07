@@ -79,7 +79,7 @@ static void __attribute__((noreturn)) signal_helper_process(pid_t pid)
 	/* Interrupt the parent process at 500Hz, just to be annoying */
 	while (1) {
 		usleep(1000 * 1000 / 500);
-		if (kill(pid, SIGUSR1)) /* Parent has died, so must we. */
+		if (kill(pid, SIGCONT)) /* Parent has died, so must we. */
 			exit(0);
 	}
 }
@@ -93,7 +93,7 @@ static void sig_handler(int i)
  * igt_fork_signal_helper:
  *
  * Fork a child process using #igt_fork_helper to interrupt the parent process
- * with a SIGUSR1 signal at regular quick intervals. The corresponding dummy
+ * with a SIGCONT signal at regular quick intervals. The corresponding dummy
  * signal handler is installed in the parent process.
  *
  * This is useful to exercise ioctl error paths, at least where those can be
@@ -108,10 +108,23 @@ void igt_fork_signal_helper(void)
 	if (igt_only_list_subtests())
 		return;
 
-	signal(SIGUSR1, sig_handler);
+	/* We pick SIGCONT as it is a "safe" signal - if we send SIGCONT to
+	 * an unexpecting process it spuriously wakes up and does nothing.
+	 * Most other signals (e.g. SIGUSR1) cause the process to die if they
+	 * are not handled. This is an issue in case the sighandler is not
+	 * inherited correctly (or if there is a race in the inheritance
+	 * and we send the signal at exactly the wrong time).
+	 */
+	signal(SIGCONT, sig_handler);
+	setpgrp(); /* define a new process group for the tests */
 
 	igt_fork_helper(&signal_helper) {
-		signal_helper_process(getppid());
+		setpgrp(); /* Escape from the test process group */
+
+		/* Pass along the test process group identifier,
+		 * negative pid => send signal to everyone in the group.
+		 */
+		signal_helper_process(-getppid());
 	}
 }
 
