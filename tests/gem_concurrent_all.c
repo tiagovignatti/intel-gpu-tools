@@ -58,6 +58,8 @@ struct intel_batchbuffer *batch;
 int all;
 int pass;
 
+#define MIN_BUFFERS 3
+
 static void
 nop_release_bo(drm_intel_bo *bo)
 {
@@ -1059,7 +1061,7 @@ static void __run_forked(struct buffers *buffers,
 	const int old_num_buffers = num_buffers;
 
 	num_buffers /= num_children;
-	num_buffers += 2;
+	num_buffers += MIN_BUFFERS;
 
 	igt_fork(child, num_children) {
 		/* recreate process local variables */
@@ -1404,6 +1406,13 @@ igt_main
 		char name[80];
 
 		create_func = c->create;
+
+		num_buffers = MIN_BUFFERS;
+		if (c->require()) {
+			snprintf(name, sizeof(name), "%s%s", c->name, "tiny");
+			for (i = 0; i < ARRAY_SIZE(access_modes); i++)
+				run_modes(name, &access_modes[i], CHECK_RAM);
+		}
 
 		igt_fixture {
 			num_buffers = gem_mappable_aperture_size() / (1024 * 1024) / 4;
