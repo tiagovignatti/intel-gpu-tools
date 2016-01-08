@@ -78,12 +78,12 @@ copy_bo(drm_intel_bo *src, drm_intel_bo *dst)
 }
 
 static void
-blt_bo_fill(drm_intel_bo *tmp_bo, drm_intel_bo *bo, int val)
+blt_bo_fill(drm_intel_bo *tmp_bo, drm_intel_bo *bo, uint8_t val)
 {
 	uint8_t *gtt_ptr;
 	int i;
 
-	drm_intel_gem_bo_map_gtt(tmp_bo);
+	do_or_die(drm_intel_gem_bo_map_gtt(tmp_bo));
 	gtt_ptr = tmp_bo->virtual;
 
 	for (i = 0; i < BO_SIZE; i++)
@@ -102,30 +102,33 @@ blt_bo_fill(drm_intel_bo *tmp_bo, drm_intel_bo *bo, int val)
 #define ROUNDS 1000
 uint8_t tmp[BO_SIZE];
 
+static void get_range(int *start, int *len)
+{
+	*start = random() % (BO_SIZE - 1);
+	*len = random() % (BO_SIZE - *start - 1) + 1;
+}
+
 static void test_partial_reads(void)
 {
 	int i, j;
 
 	igt_info("checking partial reads\n");
 	for (i = 0; i < ROUNDS; i++) {
+		uint8_t val = i;
 		int start, len;
-		int val = i % 256;
 
-		blt_bo_fill(staging_bo, scratch_bo, i);
+		blt_bo_fill(staging_bo, scratch_bo, val);
 
-		start = random() % BO_SIZE;
-		len = random() % (BO_SIZE-start) + 1;
-
-		drm_intel_bo_get_subdata(scratch_bo, start, len, tmp);
+		get_range(&start, &len);
+		do_or_die(drm_intel_bo_get_subdata(scratch_bo, start, len, tmp));
 		for (j = 0; j < len; j++) {
 			igt_assert_f(tmp[j] == val,
-				     "mismatch at %i, got: %i, expected: %i\n",
-				     j, tmp[j], val);
+				     "mismatch at %i [%i + %i], got: %i, expected: %i\n",
+				     j, start, len, tmp[j], val);
 		}
 
 		igt_progress("partial reads test: ", i, ROUNDS);
 	}
-
 }
 
 static void test_partial_writes(void)
@@ -135,16 +138,14 @@ static void test_partial_writes(void)
 
 	igt_info("checking partial writes\n");
 	for (i = 0; i < ROUNDS; i++) {
+		uint8_t val = i;
 		int start, len;
-		int val = i % 256;
 
-		blt_bo_fill(staging_bo, scratch_bo, i);
-
-		start = random() % BO_SIZE;
-		len = random() % (BO_SIZE-start) + 1;
+		blt_bo_fill(staging_bo, scratch_bo, val);
 
 		memset(tmp, i + 63, BO_SIZE);
 
+		get_range(&start, &len);
 		drm_intel_bo_subdata(scratch_bo, start, len, tmp);
 
 		copy_bo(scratch_bo, staging_bo);
@@ -153,24 +154,23 @@ static void test_partial_writes(void)
 
 		for (j = 0; j < start; j++) {
 			igt_assert_f(gtt_ptr[j] == val,
-				     "mismatch at %i, got: %i, expected: %i\n",
-				     j, tmp[j], val);
+				     "mismatch at %i (start=%i), got: %i, expected: %i\n",
+				     j, start, tmp[j], val);
 		}
 		for (; j < start + len; j++) {
 			igt_assert_f(gtt_ptr[j] == tmp[0],
-				     "mismatch at %i, got: %i, expected: %i\n",
-				     j, tmp[j], i);
+				     "mismatch at %i (%i/%i), got: %i, expected: %i\n",
+				     j, j-start, len, tmp[j], i);
 		}
 		for (; j < BO_SIZE; j++) {
 			igt_assert_f(gtt_ptr[j] == val,
-				     "mismatch at %i, got: %i, expected: %i\n",
-				     j, tmp[j], val);
+				     "mismatch at %i (end=%i), got: %i, expected: %i\n",
+				     j, start+len, tmp[j], val);
 		}
 		drm_intel_gem_bo_unmap_gtt(staging_bo);
 
 		igt_progress("partial writes test: ", i, ROUNDS);
 	}
-
 }
 
 static void test_partial_read_writes(void)
@@ -180,53 +180,49 @@ static void test_partial_read_writes(void)
 
 	igt_info("checking partial writes after partial reads\n");
 	for (i = 0; i < ROUNDS; i++) {
+		uint8_t val = i;
 		int start, len;
-		int val = i % 256;
 
-		blt_bo_fill(staging_bo, scratch_bo, i);
+		blt_bo_fill(staging_bo, scratch_bo, val);
 
 		/* partial read */
-		start = random() % BO_SIZE;
-		len = random() % (BO_SIZE-start) + 1;
-
+		get_range(&start, &len);
 		drm_intel_bo_get_subdata(scratch_bo, start, len, tmp);
 		for (j = 0; j < len; j++) {
 			igt_assert_f(tmp[j] == val,
-				     "mismatch in read at %i, got: %i, expected: %i\n",
-				     j, tmp[j], val);
+				     "mismatch in read at %i [%i + %i], got: %i, expected: %i\n",
+				     j, start, len, tmp[j], val);
 		}
 
 		/* Change contents through gtt to make the pread cachelines
 		 * stale. */
-		val = (i + 17) % 256;
+		val += 17;
 		blt_bo_fill(staging_bo, scratch_bo, val);
 
 		/* partial write */
-		start = random() % BO_SIZE;
-		len = random() % (BO_SIZE-start) + 1;
-
 		memset(tmp, i + 63, BO_SIZE);
 
+		get_range(&start, &len);
 		drm_intel_bo_subdata(scratch_bo, start, len, tmp);
 
 		copy_bo(scratch_bo, staging_bo);
-		drm_intel_gem_bo_map_gtt(staging_bo);
+		do_or_die(drm_intel_gem_bo_map_gtt(staging_bo));
 		gtt_ptr = staging_bo->virtual;
 
 		for (j = 0; j < start; j++) {
 			igt_assert_f(gtt_ptr[j] == val,
-				     "mismatch at %i, got: %i, expected: %i\n",
-				     j, tmp[j], val);
+				     "mismatch at %i (start=%i), got: %i, expected: %i\n",
+				     j, start, tmp[j], val);
 		}
 		for (; j < start + len; j++) {
 			igt_assert_f(gtt_ptr[j] == tmp[0],
-				     "mismatch at %i, got: %i, expected: %i\n",
-				     j, tmp[j], tmp[0]);
+				     "mismatch at %i (%i/%i), got: %i, expected: %i\n",
+				     j, j - start, len, tmp[j], tmp[0]);
 		}
 		for (; j < BO_SIZE; j++) {
 			igt_assert_f(gtt_ptr[j] == val,
-				     "mismatch at %i, got: %i, expected: %i\n",
-				     j, tmp[j], val);
+				     "mismatch at %i (end=%i), got: %i, expected: %i\n",
+				     j, start + len, tmp[j], val);
 		}
 		drm_intel_gem_bo_unmap_gtt(staging_bo);
 
