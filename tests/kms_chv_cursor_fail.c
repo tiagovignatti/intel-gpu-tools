@@ -394,24 +394,28 @@ int main(int argc, char **argv)
 			igt_subtest_f("pipe-%s-%dx%d-left-edge",
 				      kmstest_pipe_name(data.pipe),
 				      data.curw, data.curh) {
+				igt_require(data.pipe < data.display.n_pipes);
 				igt_require(data.curw <= max_curw && data.curh <= max_curh);
 				test_crtc(&data, EDGE_LEFT);
 			}
 			igt_subtest_f("pipe-%s-%dx%d-right-edge",
 				      kmstest_pipe_name(data.pipe),
 				      data.curw, data.curh) {
+				igt_require(data.pipe < data.display.n_pipes);
 				igt_require(data.curw <= max_curw && data.curh <= max_curh);
 				test_crtc(&data, EDGE_RIGHT);
 			}
 			igt_subtest_f("pipe-%s-%dx%d-top-edge",
 				      kmstest_pipe_name(data.pipe),
 				      data.curw, data.curh) {
+				igt_require(data.pipe < data.display.n_pipes);
 				igt_require(data.curw <= max_curw && data.curh <= max_curh);
 				test_crtc(&data, EDGE_TOP);
 			}
 			igt_subtest_f("pipe-%s-%dx%d-bottom-edge",
 				      kmstest_pipe_name(data.pipe),
 				      data.curw, data.curh) {
+				igt_require(data.pipe < data.display.n_pipes);
 				igt_require(data.curw <= max_curw && data.curh <= max_curh);
 				test_crtc(&data, EDGE_BOTTOM);
 			}
