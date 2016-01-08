@@ -199,63 +199,22 @@ static void fill_render(data_t *data, uint32_t handle, unsigned char color)
 
 static bool psr_possible(data_t *data)
 {
-	FILE *file;
-	char buf[4096];
-	int ret;
+	char buf[512];
 
-	if (running_with_psr_disabled)
-		return true;
+	igt_debugfs_read("i915_edp_psr_status", buf);
 
-	file = igt_debugfs_fopen("i915_edp_psr_status", "r");
-	igt_require(file);
-
-	/* First dump the entire file into the debug log for later analysis
-	 * if required.
-	 */
-	ret = fread(buf, 1, 4095, file);
-	igt_require(ret > 0);
-	buf[ret] = '\0';
-	igt_debug("i915_edp_psr_status:\n%s", buf);
-	fseek(file, 0, SEEK_SET);
-
-	/* Now check that we have all the preconditions required for PSR */
-	ret = fscanf(file, "Sink_Support: %s\n", buf);
-	igt_require_f(ret == 1 && strcmp(buf, "yes") == 0,
-		      "Sink_Support: %s\n", buf);
-
-	fclose(file);
-	return true;
+	return running_with_psr_disabled ||
+		strstr(buf, "Sink_Support: yes\n");
 }
 
 static bool psr_active(data_t *data)
 {
-	int ret;
-	FILE *file;
-	char str[4];
+	char buf[512];
 
-	if (running_with_psr_disabled)
-		return true;
+	igt_debugfs_read("i915_edp_psr_status", buf);
 
-	file = igt_debugfs_fopen("i915_edp_psr_status", "r");
-	igt_require(file);
-
-	ret = fscanf(file, "Sink_Support: %s\n", str);
-	igt_assert_neq(ret, 0);
-	ret = fscanf(file, "Source_OK: %s\n", str);
-	igt_assert_neq(ret, 0);
-	ret = fscanf(file, "Enabled: %s\n", str);
-	igt_assert_neq(ret, 0);
-	ret = fscanf(file, "Active: %s\n", str);
-	igt_assert_neq(ret, 0);
-	ret = fscanf(file, "Busy frontbuffer bits: %s\n", str);
-	igt_assert_neq(ret, 0);
-	ret = fscanf(file, "Re-enable work scheduled: %s\n", str);
-	igt_assert_neq(ret, 0);
-	ret = fscanf(file, "HW Enabled & Active bit: %s\n", str);
-	igt_assert_neq(ret, 0);
-
-	fclose(file);
-	return strcmp(str, "yes") == 0;
+	return running_with_psr_disabled ||
+		strstr(buf, "HW Enabled & Active bit: yes\n");
 }
 
 static bool wait_psr_entry(data_t *data)
