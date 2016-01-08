@@ -343,3 +343,57 @@ void igt_set_stop_rings(enum stop_ring_flags flags)
 		      "i915_ring_stop readback mismatch 0x%x vs 0x%x\n",
 		      flags, current);
 }
+
+static unsigned int clflush_size;
+
+int igt_setup_clflush(void)
+{
+	FILE *file;
+	char *line = NULL;
+	size_t size = 0;
+	int first_stanza = 1;
+	int has_clflush = 0;
+
+	if (clflush_size)
+		return 1;
+
+	file = fopen("/proc/cpuinfo", "r");
+	if (file == NULL)
+		return 0;
+
+	while (getline(&line, &size, file) != -1) {
+		if (strncmp(line, "processor", 9) == 0) {
+			if (!first_stanza)
+				break;
+			first_stanza = 0;
+		}
+
+		if (strncmp(line, "flags", 5) == 0) {
+			if (strstr(line, "clflush"))
+				has_clflush = 1;
+		}
+
+		if (strncmp(line, "clflush size", 12) == 0) {
+			char *colon = strchr(line, ':');
+			if (colon)
+				clflush_size = atoi(colon + 1);
+		}
+	}
+	free(line);
+	fclose(file);
+
+	return has_clflush && clflush_size;
+}
+
+void igt_clflush_range(void *addr, int size)
+{
+	char *p, *end;
+
+	end = (char *)addr + size;
+	p = (char *)((uintptr_t)addr & ~((uintptr_t)clflush_size - 1));
+
+	asm volatile("mfence" ::: "memory");
+	for (; p < end; p += clflush_size)
+		asm volatile("clflush %0" : "+m" (*(volatile char *)p));
+	asm volatile("mfence" ::: "memory");
+}

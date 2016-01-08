@@ -218,6 +218,33 @@ test_write(int fd)
 }
 
 static void
+test_coherency(int fd)
+{
+	uint32_t handle;
+	uint32_t *wc, *cpu;
+	int i;
+
+	igt_require(igt_setup_clflush());
+
+	handle = gem_create(fd, OBJECT_SIZE);
+
+	wc = gem_mmap__wc(fd, handle, 0, OBJECT_SIZE, PROT_READ | PROT_WRITE);
+	cpu = gem_mmap__cpu(fd, handle, 0, OBJECT_SIZE, PROT_READ | PROT_WRITE);
+	gem_set_domain(fd, handle, I915_GEM_DOMAIN_GTT, I915_GEM_DOMAIN_GTT);
+
+	for (i = 0; i < OBJECT_SIZE / 64; i++) {
+		int x = 16*i + (i%16);
+		wc[x] = i;
+		igt_clflush_range(&cpu[x], sizeof(cpu[x]));
+		igt_assert_eq(cpu[x], i);
+	}
+
+	munmap(cpu, OBJECT_SIZE);
+	munmap(wc, OBJECT_SIZE);
+	gem_close(fd, handle);
+}
+
+static void
 test_write_gtt(int fd)
 {
 	uint32_t dst;
@@ -446,6 +473,8 @@ igt_main
 		test_read(fd);
 	igt_subtest("write")
 		test_write(fd);
+	igt_subtest("coherency")
+		test_coherency(fd);
 	igt_subtest("write-gtt")
 		test_write_gtt(fd);
 	igt_subtest("read-write")

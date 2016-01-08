@@ -74,4 +74,7 @@ enum stop_ring_flags igt_to_stop_ring_flag(int ring);
 void igt_set_stop_rings(enum stop_ring_flags flags);
 enum stop_ring_flags igt_get_stop_rings(void);
 
+int igt_setup_clflush(void);
+void igt_clflush_range(void *addr, int size);
+
 #endif /* IGT_GT_H */
