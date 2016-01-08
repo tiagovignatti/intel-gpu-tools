@@ -56,6 +56,7 @@ IGT_TEST_DESCRIPTION("Test of pread/pwrite/mmap behavior when writing to active"
 int fd, devid, gen;
 struct intel_batchbuffer *batch;
 int all;
+int pass;
 
 static void
 nop_release_bo(drm_intel_bo *bo)
@@ -93,6 +94,29 @@ prw_cmp_bo(drm_intel_bo *bo, uint32_t val, int width, int height, drm_intel_bo *
 	for (i = 0; i < size; i++)
 		igt_assert_eq_u32(vaddr[i], val);
 	drm_intel_bo_unmap(tmp);
+}
+
+#define pixel(y, width) ((y)*(width) + (((y) + pass)%(width)))
+
+static void
+partial_set_bo(drm_intel_bo *bo, uint32_t val, int width, int height)
+{
+	int y;
+
+	for (y = 0; y < height; y++)
+		do_or_die(drm_intel_bo_subdata(bo, 4*pixel(y, width), 4, &val));
+}
+
+static void
+partial_cmp_bo(drm_intel_bo *bo, uint32_t val, int width, int height, drm_intel_bo *tmp)
+{
+	int y;
+
+	for (y = 0; y < height; y++) {
+		uint32_t buf;
+		do_or_die(drm_intel_bo_get_subdata(bo, 4*pixel(y, width), 4, &buf));
+		igt_assert_eq_u32(buf, val);
+	}
 }
 
 static drm_intel_bo *
@@ -200,7 +224,7 @@ gtt_cmp_bo(drm_intel_bo *bo, uint32_t val, int width, int height, drm_intel_bo *
 	/* GTT access is slow. So we just compare a few points */
 	drm_intel_gem_bo_start_gtt_access(bo, false);
 	for (y = 0; y < height; y++)
-		igt_assert_eq_u32(vaddr[y*width+y], val);
+		igt_assert_eq_u32(vaddr[pixel(y, width)], val);
 }
 
 static drm_intel_bo *
@@ -385,6 +409,13 @@ const struct access_mode {
 		.name = "prw",
 		.set_bo = prw_set_bo,
 		.cmp_bo = prw_cmp_bo,
+		.create_bo = unmapped_create_bo,
+		.release_bo = nop_release_bo,
+	},
+	{
+		.name = "partial",
+		.set_bo = partial_set_bo,
+		.cmp_bo = partial_cmp_bo,
 		.create_bo = unmapped_create_bo,
 		.release_bo = nop_release_bo,
 	},
@@ -901,7 +932,7 @@ static void do_read_read_bcs(struct buffers *buffers,
 		do_copy_func(buffers->dst[i], buffers->src[i]);
 		blt_copy_bo(buffers->spare, buffers->src[i]);
 	}
-	cpu_cmp_bo(buffers->spare, 0xdeadbeef^(buffers->count-1), width, height, NULL);
+	buffers->mode->cmp_bo(buffers->spare, 0xdeadbeef^(buffers->count-1), width, height, buffers->dummy);
 	hang = do_hang_func();
 	for (i = buffers->count; i--; )
 		buffers->mode->cmp_bo(buffers->dst[i], 0xdeadbeef ^ i, width, height, buffers->dummy);
@@ -942,7 +973,7 @@ static void do_read_read_rcs(struct buffers *buffers,
 		do_copy_func(buffers->dst[i], buffers->src[i]);
 		render_copy_bo(buffers->spare, buffers->src[i]);
 	}
-	cpu_cmp_bo(buffers->spare, 0xdeadbeef^(buffers->count-1), width, height, NULL);
+	buffers->mode->cmp_bo(buffers->spare, 0xdeadbeef^(buffers->count-1), width, height, buffers->dummy);
 	hang = do_hang_func();
 	for (i = buffers->count; i--; )
 		buffers->mode->cmp_bo(buffers->dst[i], 0xdeadbeef ^ i, width, height, buffers->dummy);
@@ -1012,10 +1043,9 @@ static void run_interruptible(struct buffers *buffers,
 			      do_copy do_copy_func,
 			      do_hang do_hang_func)
 {
-	int loop;
-
-	for (loop = 0; loop < 10; loop++)
+	for (pass = 0; pass < 10; pass++)
 		do_test_func(buffers, do_copy_func, do_hang_func);
+	pass = 0;
 	check_gpu();
 }
 
@@ -1039,8 +1069,9 @@ static void __run_forked(struct buffers *buffers,
 		batch = buffers_init(buffers, buffers->mode, fd);
 
 		buffers_create(buffers, num_buffers);
-		for (int loop = 0; loop < loops; loop++)
+		for (pass = 0; pass < loops; pass++)
 			do_test_func(buffers, do_copy_func, do_hang_func);
+		pass = 0;
 
 		buffers_fini(buffers);
 	}
