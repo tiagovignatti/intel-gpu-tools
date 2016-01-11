@@ -23,9 +23,14 @@ define add_tool
     LOCAL_CFLAGS += -Wno-error=return-type
     # Excessive complaining for established cases. Rely on the Linux version warnings.
     LOCAL_CFLAGS += -Wno-sign-compare
+    ifeq ($($(1)_LDFLAGS),)
+    else
+        LOCAL_LDFLAGS += $($(1)_LDFLAGS)
+    endif
 
     LOCAL_C_INCLUDES = $(LOCAL_PATH)/../lib
     LOCAL_C_INCLUDES += ${ANDROID_BUILD_TOP}/external/PRIVATE/drm/include/drm
+    LOCAL_C_INCLUDES += ${ANDROID_BUILD_TOP}/external/zlib
 
     LOCAL_MODULE := $1_tool
     LOCAL_MODULE_TAGS := optional
