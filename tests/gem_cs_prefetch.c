@@ -36,23 +36,73 @@
  * very last gtt pte.
  */
 #include "igt.h"
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <fcntl.h>
-#include <inttypes.h>
-#include <errno.h>
-#include <sys/stat.h>
-#include <sys/time.h>
-
-#include <drm.h>
-
-#include "intel_bufmgr.h"
 
 IGT_TEST_DESCRIPTION("Test the CS prefetch behaviour on batches.");
 
-static drm_intel_bufmgr *bufmgr;
-struct intel_batchbuffer *batch;
+#define BATCH_SIZE 4096
+
+struct shadow {
+	uint32_t handle;
+	struct drm_i915_gem_relocation_entry reloc;
+};
+
+static void setup(int fd, struct shadow *shadow)
+{
+	int gen = intel_gen(intel_get_drm_devid(fd));
+	uint32_t *cpu;
+	int i = 0;
+
+	shadow->handle = gem_create(fd, 4096);
+
+	cpu = gem_mmap__cpu(fd, shadow->handle, 0, 4096, PROT_WRITE);
+	gem_set_domain(fd, shadow->handle,
+			I915_GEM_DOMAIN_CPU, I915_GEM_DOMAIN_CPU);
+	cpu[i++] = MI_STORE_DWORD_IMM;
+	if (gen >= 8) {
+		cpu[i++] = BATCH_SIZE - sizeof(uint32_t);
+		cpu[i++] = 0;
+	} else if (gen >= 4) {
+		cpu[i++] = 0;
+		cpu[i++] = BATCH_SIZE - sizeof(uint32_t);
+	} else {
+		cpu[i-1]--;
+		cpu[i++] = BATCH_SIZE - sizeof(uint32_t);
+	}
+	cpu[i++] = MI_BATCH_BUFFER_END;
+	cpu[i++] = MI_BATCH_BUFFER_END;
+	munmap(cpu, 4096);
+
+	memset(&shadow->reloc, 0, sizeof(shadow->reloc));
+	if (gen >= 8 || gen < 4)
+		shadow->reloc.offset = sizeof(uint32_t);
+	else
+		shadow->reloc.offset = 2*sizeof(uint32_t);
+	shadow->reloc.delta = BATCH_SIZE - sizeof(uint32_t);
+	shadow->reloc.read_domains = I915_GEM_DOMAIN_INSTRUCTION;
+	shadow->reloc.write_domain = I915_GEM_DOMAIN_INSTRUCTION;
+}
+
+static uint32_t new_batch(int fd, struct shadow *shadow)
+{
+	struct drm_i915_gem_execbuffer2 execbuf;
+	struct drm_i915_gem_exec_object2 gem_exec[2];
+
+	memset(gem_exec, 0, sizeof(gem_exec));
+	gem_exec[0].handle = gem_create(fd, BATCH_SIZE);
+	gem_exec[1].handle = shadow->handle;
+
+	shadow->reloc.target_handle = gem_exec[0].handle;
+	gem_exec[1].relocs_ptr = (uintptr_t)&shadow->reloc;
+	gem_exec[1].relocation_count = 1;
+
+	memset(&execbuf, 0, sizeof(execbuf));
+	execbuf.buffers_ptr = (uintptr_t)gem_exec;
+	execbuf.buffer_count = 2;
+
+	gem_execbuf(fd, &execbuf);
+
+	return gem_exec[0].handle;
+}
 
 static void exec(int fd, uint32_t handle)
 {
@@ -66,77 +116,33 @@ static void exec(int fd, uint32_t handle)
 	execbuf.buffers_ptr = (uintptr_t)gem_exec;
 	execbuf.buffer_count = 1;
 	execbuf.batch_start_offset = 0;
-	execbuf.batch_len = 4096;
+	execbuf.batch_len = BATCH_SIZE;
 
 	gem_execbuf(fd, &execbuf);
-	gem_sync(fd, handle);
 }
 
 igt_simple_main
 {
-	uint32_t batch_end[4] = {MI_BATCH_BUFFER_END, 0, 0, 0};
-	int fd, i, ret;
-	int count;
-	drm_intel_bo *sample_batch_bo;
+	struct shadow shadow;
+	uint64_t i, count;
+	int fd;
 
 	igt_skip_on_simulation();
 
 	fd = drm_open_driver(DRIVER_INTEL);
+	setup(fd, &shadow);
 
-	bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
-	igt_assert(bufmgr);
+	count = gem_aperture_size(fd) / BATCH_SIZE;
+	intel_require_memory(count, BATCH_SIZE, CHECK_RAM);
 
-	drm_intel_bufmgr_gem_enable_reuse(bufmgr);
-	
-	count = gem_aperture_size(fd) / 4096;
-	intel_require_memory(count, 4096, CHECK_RAM);
-
-	batch = intel_batchbuffer_alloc(bufmgr, intel_get_drm_devid(fd));
-	igt_assert(batch);
-
-	sample_batch_bo = drm_intel_bo_alloc(bufmgr, "", 4096, 4096);
-	igt_assert(sample_batch_bo);
-	ret = drm_intel_bo_subdata(sample_batch_bo, 4096-sizeof(batch_end),
-				   sizeof(batch_end), batch_end);
-	igt_assert(ret == 0);
-
-	/* fill the entire gart with batches and run them */
+	/* Fill the entire gart with batches and run them. */
 	for (i = 0; i < count; i++) {
-		drm_intel_bo *batch_bo;
-
-		batch_bo = drm_intel_bo_alloc(bufmgr, "", 4096, 4096);
-		igt_assert(batch_bo);
-
-		/* copy the sample batch with the gpu to the new one, so that we
-		 * also test the unmappable part of the gtt. */
-		BLIT_COPY_BATCH_START(0);
-		OUT_BATCH((3 << 24) | /* 32 bits */
-			  (0xcc << 16) | /* copy ROP */
-			  4096);
-		OUT_BATCH(0); /* dst y1,x1 */
-		OUT_BATCH((1 << 16) | 1024);
-		OUT_RELOC_FENCED(batch_bo, I915_GEM_DOMAIN_RENDER, I915_GEM_DOMAIN_RENDER, 0);
-		OUT_BATCH((0 << 16) | 0); /* src x1, y1 */
-		OUT_BATCH(4096);
-		OUT_RELOC_FENCED(sample_batch_bo, I915_GEM_DOMAIN_RENDER, 0, 0);
-		ADVANCE_BATCH();
-
-		intel_batchbuffer_flush(batch);
-		if (i % 100 == 0)
-			gem_sync(fd, batch_bo->handle);
-
-		drm_intel_bo_disable_reuse(batch_bo);
-
-		/* launch the newly created batch */
-		exec(fd, batch_bo->handle);
-
-		// leak buffers
-		//drm_intel_bo_unreference(batch_bo);
+		/* Launch the newly created batch... */
+		exec(fd, new_batch(fd, &shadow));
+		/* ...and leak the handle to consume the GTT */
 		igt_progress("gem_cs_prefetch: ", i, count);
 	}
 
 	igt_info("Test suceeded, cleanup up - this might take a while.\n");
-	drm_intel_bufmgr_destroy(bufmgr);
-
 	close(fd);
 }
