@@ -150,6 +150,11 @@ store_test(int fd, int ring, int count)
 	if (!igt_run_in_simulation()) {
 		store_dword_loop(fd, ring, count, 3);
 		store_dword_loop(fd, ring, count, 5);
+		store_dword_loop(fd, ring, count, 7);
+		store_dword_loop(fd, ring, count, 11);
+		store_dword_loop(fd, ring, count, 13);
+		store_dword_loop(fd, ring, count, 17);
+		store_dword_loop(fd, ring, count, 19);
 	}
 }
 
