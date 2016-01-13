@@ -192,7 +192,7 @@ intel_get_total_swap_mb(void)
 	return retval / (1024*1024);
 }
 
-int __intel_check_memory(uint32_t count, uint64_t size, unsigned mode,
+int __intel_check_memory(uint64_t count, uint64_t size, unsigned mode,
 			 uint64_t *out_required, uint64_t *out_total)
 {
 /* rough estimate of how many bytes the kernel requires to track each object */
@@ -203,8 +203,8 @@ int __intel_check_memory(uint32_t count, uint64_t size, unsigned mode,
 	required *= size + KERNEL_BO_OVERHEAD;
 	required = ALIGN(required, 4096);
 
-	igt_debug("Checking %'u surfaces of size %'llu bytes (total %'llu) against %s%s\n",
-		  count, (long long)size, (long long)required,
+	igt_debug("Checking %'llu surfaces of size %'llu bytes (total %'llu) against %s%s\n",
+		  (long long)count, (long long)size, (long long)required,
 		  mode & (CHECK_RAM | CHECK_SWAP) ? "RAM" : "",
 		  mode & CHECK_SWAP ? " + swap": "");
 
@@ -247,14 +247,15 @@ int __intel_check_memory(uint32_t count, uint64_t size, unsigned mode,
  * assumption that any test that needs to check for memory requirements is a
  * thrashing test unsuitable for slow simulated systems.
  */
-void intel_require_memory(uint32_t count, uint64_t size, unsigned mode)
+void intel_require_memory(uint64_t count, uint64_t size, unsigned mode)
 {
 	uint64_t required, total;
 
 	igt_skip_on_f(!__intel_check_memory(count, size, mode,
 					    &required, &total),
-		      "Estimated that we need %'llu bytes for the test, but only have %'llu bytes available (%s%s)\n",
-		      (long long)required, (long long)total,
+		      "Estimated that we need %'llu MiB for the test, but only have %'llu MiB available (%s%s)\n",
+		      (long long)((required + ((1<<20) - 1)) >> 20),
+		      (long long)(total >> 20),
 		      mode & (CHECK_RAM | CHECK_SWAP) ? "RAM" : "",
 		      mode & CHECK_SWAP ? " + swap": "");
 
