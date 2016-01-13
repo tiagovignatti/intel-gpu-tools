@@ -36,98 +36,121 @@
 #include <sys/stat.h>
 #include <sys/time.h>
 #include "drm.h"
-#include "intel_bufmgr.h"
 
 IGT_TEST_DESCRIPTION("Basic CS check using MI_STORE_DATA_IMM.");
 
 #define LOCAL_I915_EXEC_VEBOX (4<<0)
 
-static drm_intel_bufmgr *bufmgr;
-struct intel_batchbuffer *batch;
-static drm_intel_bo *target_buffer;
 static int devid;
 
 /*
  * Testcase: Basic bsd MI check using MI_STORE_DATA_IMM
  */
 
-static void
-emit_store_dword_imm(drm_intel_bo *dest, uint32_t val)
-{
-	int cmd;
-	cmd = MI_STORE_DWORD_IMM;
+static unsigned coherent_domain;
 
-	BEGIN_BATCH(4, 0);
-	OUT_BATCH(cmd);
-	if (batch->gen >= 8) {
-		OUT_RELOC(dest, I915_GEM_DOMAIN_INSTRUCTION,
-			  I915_GEM_DOMAIN_INSTRUCTION, 0);
-		OUT_BATCH(val);
-	} else {
-		OUT_BATCH(0); /* reserved */
-		OUT_RELOC(dest, I915_GEM_DOMAIN_INSTRUCTION,
-			  I915_GEM_DOMAIN_INSTRUCTION, 0);
-		OUT_BATCH(val);
+static void *
+mmap_coherent(int fd, uint32_t handle, int size)
+{
+	if (gem_has_llc(fd)) {
+		coherent_domain = I915_GEM_DOMAIN_CPU;
+		return gem_mmap__cpu(fd, handle, 0, size, PROT_WRITE);
 	}
-	ADVANCE_BATCH();
+
+	coherent_domain = I915_GEM_DOMAIN_GTT;
+	if (gem_mmap__has_wc(fd))
+		return gem_mmap__wc(fd, handle, 0, size, PROT_WRITE);
+	else
+		return gem_mmap__gtt(fd, handle, size, PROT_WRITE);
 }
 
 static void
-store_dword_loop(int ring, int count, int divider)
+store_dword_loop(int fd, int ring, int count, int divider)
 {
 	int i, val = 0;
-	uint32_t *buf;
+	struct drm_i915_gem_execbuffer2 execbuf;
+	struct drm_i915_gem_exec_object2 obj[2];
+	struct drm_i915_gem_relocation_entry reloc[divider];
+	uint32_t handle[divider];
+	uint32_t *batch[divider];
+	uint32_t *target;
+	int gen = intel_gen(devid);
+
+	memset(obj, 0, sizeof(obj));
+	obj[0].handle = gem_create(fd, 4096);
+	target = mmap_coherent(fd, obj[0].handle, 4096);
+
+	memset(reloc, 0, sizeof(reloc));
+	for (i = 0; i < divider; i++) {
+		uint32_t *b;
+
+		handle[i] = gem_create(fd, 4096);
+		batch[i] = mmap_coherent(fd, handle[i], 4096);
+		gem_set_domain(fd, handle[i], coherent_domain, coherent_domain);
+
+		b = batch[i];
+		*b++ = MI_STORE_DWORD_IMM;
+		*b++ = 0;
+		*b++ = 0;
+		*b++ = 0;
+		*b++ = MI_BATCH_BUFFER_END;
+
+		reloc[i].target_handle = obj[0].handle;
+		reloc[i].offset = 4;
+		if (gen < 8)
+			reloc[i].offset += 4;
+		reloc[i].read_domains = I915_GEM_DOMAIN_INSTRUCTION;
+		reloc[i].write_domain = I915_GEM_DOMAIN_INSTRUCTION;
+		obj[1].relocation_count = 1;
+	}
+
+	memset(&execbuf, 0, sizeof(execbuf));
+	execbuf.buffers_ptr = (uintptr_t)obj;
+	execbuf.buffer_count = 2;
+	execbuf.flags = ring;
 
 	igt_info("running storedw loop on render with stall every %i batch\n", divider);
 
 	for (i = 0; i < SLOW_QUICK(0x2000, 0x10); i++) {
-		emit_store_dword_imm(target_buffer, val);
-		intel_batchbuffer_flush_on_ring(batch, ring);
+		int j = i % divider;
 
-		if (i % divider != 0)
-			goto cont;
+		gem_set_domain(fd, handle[j], coherent_domain, coherent_domain);
+		batch[j][3] = val;
+		obj[1].handle = handle[j];
+		obj[1].relocs_ptr = (uintptr_t)&reloc[j];
+		gem_execbuf(fd, &execbuf);
 
-		drm_intel_bo_map(target_buffer, 0);
+		if (j == 0) {
+			gem_set_domain(fd, obj[0].handle, coherent_domain, 0);
+			igt_assert_f(*target == val,
+				     "%d: value mismatch: stored 0x%08x, expected 0x%08x\n",
+				     i, *target, val);
+		}
 
-		buf = target_buffer->virtual;
-		igt_assert_f(buf[0] == val,
-			     "value mismatch: cur 0x%08x, stored 0x%08x\n",
-			     buf[0], val);
-
-		drm_intel_bo_unmap(target_buffer);
-
-cont:
 		val++;
 	}
 
-	drm_intel_bo_map(target_buffer, 0);
-	buf = target_buffer->virtual;
+	gem_set_domain(fd, obj[0].handle, coherent_domain, 0);
+	igt_info("completed %d writes successfully, current value: 0x%08x\n",
+		 i, target[0]);
 
-	igt_info("completed %d writes successfully, current value: 0x%08x\n", i,
-			buf[0]);
-	drm_intel_bo_unmap(target_buffer);
+	munmap(target, 4096);
+	gem_close(fd, obj[0].handle);
+	for (i = 0; i < divider; ++i) {
+		munmap(batch[i], 4096);
+		gem_close(fd, handle[i]);
+	}
 }
 
 static void
-store_test(int ring, int count)
+store_test(int fd, int ring, int count)
 {
-	drm_intel_bufmgr_gem_enable_reuse(bufmgr);
-
-	batch = intel_batchbuffer_alloc(bufmgr, devid);
-	igt_assert(batch);
-
-	target_buffer = drm_intel_bo_alloc(bufmgr, "target bo", 4096, 4096);
-	igt_assert(target_buffer);
-
-	store_dword_loop(ring, count, 1);
-	store_dword_loop(ring, count, 2);
+	store_dword_loop(fd, ring, count, 1);
+	store_dword_loop(fd, ring, count, 2);
 	if (!igt_run_in_simulation()) {
-		store_dword_loop(ring, count, 3);
-		store_dword_loop(ring, count, 5);
+		store_dword_loop(fd, ring, count, 3);
+		store_dword_loop(fd, ring, count, 5);
 	}
-
-	drm_intel_bo_unreference(target_buffer);
-	intel_batchbuffer_free(batch);
 }
 
 struct ring {
@@ -156,9 +179,6 @@ igt_main
 		fd = drm_open_driver(DRIVER_INTEL);
 		devid = intel_get_drm_devid(fd);
 
-		bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
-		igt_assert(bufmgr);
-
 		igt_skip_on_f(intel_gen(devid) < 6,
 			      "MI_STORE_DATA can only use GTT address on gen4+/g33 and "
 			      "needs snoopable mem on pre-gen6\n");
@@ -171,17 +191,16 @@ igt_main
 
 		igt_subtest_f("basic-%s", rings[i].name) {
 			check_test_requirements(fd, rings[i].id);
-			store_test(rings[i].id, 16*1024);
+			store_test(fd, rings[i].id, 16*1024);
 		}
 
 		igt_subtest_f("long-%s", rings[i].name) {
 			check_test_requirements(fd, rings[i].id);
-			store_test(rings[i].id, 1024*1024);
+			store_test(fd, rings[i].id, 1024*1024);
 		}
 	}
 
 	igt_fixture {
-		drm_intel_bufmgr_destroy(bufmgr);
 		close(fd);
 	}
 }
