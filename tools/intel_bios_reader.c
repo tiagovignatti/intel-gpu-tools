@@ -973,7 +973,7 @@ static const char *sequence_name(enum mipi_seq seq_id)
 		return "(unknown)";
 }
 
-static const uint8_t *dump_sequence(const uint8_t *data)
+static const uint8_t *dump_sequence(const uint8_t *data, uint8_t seq_version)
 {
 	fn_mipi_elem_dump mipi_elem_dump;
 
@@ -982,21 +982,33 @@ static const uint8_t *dump_sequence(const uint8_t *data)
 	/* Skip Sequence Byte. */
 	data++;
 
+	/* Skip Size of Sequence. */
+	if (seq_version >= 3)
+		data += 4;
+
 	while (1) {
 		uint8_t operation_byte = *data++;
+		uint8_t operation_size = 0;
 
 		if (operation_byte == MIPI_SEQ_ELEM_END)
 			break;
 
-		if (operation_byte < ARRAY_SIZE(dump_elem) &&
-		    dump_elem[operation_byte])
+		if (operation_byte < ARRAY_SIZE(dump_elem))
 			mipi_elem_dump = dump_elem[operation_byte];
 		else
 			mipi_elem_dump = NULL;
 
+		/* Size of Operation. */
+		if (seq_version >= 3)
+			operation_size = *data++;
+
 		if (mipi_elem_dump) {
 			data = mipi_elem_dump(data);
+		} else if (operation_size) {
+			/* We have size, skip. */
+			data += operation_size;
 		} else {
+			/* No size, can't skip without parsing. */
 			printf("Error: Unsupported MIPI element %u\n",
 			       operation_byte);
 			return NULL;
@@ -1167,7 +1179,8 @@ static void dump_mipi_sequence(const struct bdb_header *bdb,
 	const struct bdb_mipi_sequence *sequence = block->data;
 	const uint8_t *data;
 	uint32_t seq_size;
-	int index = 0;
+	int index = 0, i;
+	const uint8_t *sequence_ptrs[MIPI_SEQ_MAX] = {};
 
 	/* Check if we have sequence block as well */
 	if (!sequence) {
@@ -1200,6 +1213,8 @@ static void dump_mipi_sequence(const struct bdb_header *bdb,
 			return;
 		}
 
+		sequence_ptrs[seq_id] = data + index;
+
 		if (sequence->version >= 3)
 			index = goto_next_sequence_v3(data, index, seq_size);
 		else
@@ -1210,26 +1225,10 @@ static void dump_mipi_sequence(const struct bdb_header *bdb,
 		}
 	}
 
-	if (sequence->version >= 3) {
-		fprintf(stderr, "Unable to dump MIPI Sequence Block v%u\n",
-			sequence->version);
-		return;
-	}
-
-	/*
-	 * loop into the sequence data and split into multiple sequneces
-	 * There are only 5 types of sequences as of now
-	 */
-
-        while (1) {
-		int seq_id = *data;
-		if (seq_id == MIPI_SEQ_END)
-			break;
-
-		data = dump_sequence(data);
-		if (!data)
-			break;
-	}
+	/* Dump the sequences. Corresponds to sequence execution in kernel. */
+	for (i = 0; i < ARRAY_SIZE(sequence_ptrs); i++)
+		if (sequence_ptrs[i])
+			dump_sequence(sequence_ptrs[i], sequence->version);
 }
 
 static int
