@@ -1054,12 +1054,120 @@ find_panel_sequence_block(const struct bdb_mipi_sequence *sequence,
 	return NULL;
 }
 
+static int goto_next_sequence(const uint8_t *data, int index, int total)
+{
+	uint16_t len;
+
+	/* Skip Sequence Byte. */
+	for (index = index + 1; index < total; index += len) {
+		uint8_t operation_byte = *(data + index);
+		index++;
+
+		switch (operation_byte) {
+		case MIPI_SEQ_ELEM_END:
+			return index;
+		case MIPI_SEQ_ELEM_SEND_PKT:
+			if (index + 4 > total)
+				return 0;
+
+			len = *((const uint16_t *)(data + index + 2)) + 4;
+			break;
+		case MIPI_SEQ_ELEM_DELAY:
+			len = 4;
+			break;
+		case MIPI_SEQ_ELEM_GPIO:
+			len = 2;
+			break;
+		case MIPI_SEQ_ELEM_I2C:
+			if (index + 7 > total)
+				return 0;
+			len = *(data + index + 6) + 7;
+			break;
+		default:
+			fprintf(stderr, "Unknown operation byte\n");
+			return 0;
+		}
+	}
+
+	return 0;
+}
+
+static int goto_next_sequence_v3(const uint8_t *data, int index, int total)
+{
+	int seq_end;
+	uint16_t len;
+	uint32_t size_of_sequence;
+
+	/*
+	 * Could skip sequence based on Size of Sequence alone, but also do some
+	 * checking on the structure.
+	 */
+	if (total < 5) {
+		fprintf(stderr, "Too small sequence size\n");
+		return 0;
+	}
+
+	/* Skip Sequence Byte. */
+	index++;
+
+	/*
+	 * Size of Sequence. Excludes the Sequence Byte and the size itself,
+	 * includes MIPI_SEQ_ELEM_END byte, excludes the final MIPI_SEQ_END
+	 * byte.
+	 */
+	size_of_sequence = *((const uint32_t *)(data + index));
+	index += 4;
+
+	seq_end = index + size_of_sequence;
+	if (seq_end > total) {
+		fprintf(stderr, "Invalid sequence size\n");
+		return 0;
+	}
+
+	for (; index < total; index += len) {
+		uint8_t operation_byte = *(data + index);
+		index++;
+
+		if (operation_byte == MIPI_SEQ_ELEM_END) {
+			if (index != seq_end) {
+				fprintf(stderr, "Invalid element structure\n");
+				return 0;
+			}
+			return index;
+		}
+
+		len = *(data + index);
+		index++;
+
+		/*
+		 * FIXME: Would be nice to check elements like for v1/v2 in
+		 * goto_next_sequence() above.
+		 */
+		switch (operation_byte) {
+		case MIPI_SEQ_ELEM_SEND_PKT:
+		case MIPI_SEQ_ELEM_DELAY:
+		case MIPI_SEQ_ELEM_GPIO:
+		case MIPI_SEQ_ELEM_I2C:
+		case MIPI_SEQ_ELEM_SPI:
+		case MIPI_SEQ_ELEM_PMIC:
+			break;
+		default:
+			fprintf(stderr, "Unknown operation byte %u\n",
+				operation_byte);
+			break;
+		}
+	}
+
+	return 0;
+}
+
 static void dump_mipi_sequence(const struct bdb_header *bdb,
 			       const struct bdb_block *block)
 {
 	const struct bdb_mipi_sequence *sequence = block->data;
 	const uint8_t *data;
 	uint32_t seq_size;
+	int index = 0;
 
 	/* Check if we have sequence block as well */
 	if (!sequence) {
@@ -1069,13 +1177,44 @@ static void dump_mipi_sequence(const struct bdb_header *bdb,
 
 	printf("\tSequence block version v%u\n", sequence->version);
 
-	if (sequence->version >= 3)
+	/* Fail gracefully for forward incompatible sequence block. */
+	if (sequence->version >= 4) {
+		fprintf(stderr, "Unable to parse MIPI Sequence Block v%u\n",
+			sequence->version);
 		return;
+	}
 
 	data = find_panel_sequence_block(sequence, panel_type,
 					 block->size, &seq_size);
 	if (!data)
 		return;
+
+	/* Parse the sequences. Corresponds to VBT parsing in the kernel. */
+	for (;;) {
+		uint8_t seq_id = *(data + index);
+		if (seq_id == MIPI_SEQ_END)
+			break;
+
+		if (seq_id >= MIPI_SEQ_MAX) {
+			fprintf(stderr, "Unknown sequence %u\n", seq_id);
+			return;
+		}
+
+		if (sequence->version >= 3)
+			index = goto_next_sequence_v3(data, index, seq_size);
+		else
+			index = goto_next_sequence(data, index, seq_size);
+		if (!index) {
+			fprintf(stderr, "Invalid sequence %u\n", seq_id);
+			return;
+		}
+	}
+
+	if (sequence->version >= 3) {
+		fprintf(stderr, "Unable to dump MIPI Sequence Block v%u\n",
+			sequence->version);
+		return;
+	}
 
 	/*
 	 * loop into the sequence data and split into multiple sequneces
