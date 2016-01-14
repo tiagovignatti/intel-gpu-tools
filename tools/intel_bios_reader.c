@@ -69,10 +69,10 @@ uint8_t *VBIOS;
 struct bdb_block {
 	uint8_t id;
 	uint32_t size;
-	void *data;
+	const void *data;
 };
 
-struct bdb_lvds_lfp_data_ptrs *lvds_lfp_data_ptrs;
+const struct bdb_lvds_lfp_data_ptrs *lvds_lfp_data_ptrs;
 static int tv_present;
 static int lvds_present;
 static int panel_type;
@@ -91,7 +91,7 @@ static struct bdb_block *find_section(const struct bdb_header *bdb,
 				      int section_id, int length)
 {
 	struct bdb_block *block;
-	unsigned char *base = (unsigned char *)bdb;
+	const uint8_t *base = (const uint8_t *)bdb;
 	int index = 0;
 	uint32_t total, current_size;
 	unsigned char current_id;
@@ -134,7 +134,7 @@ static struct bdb_block *find_section(const struct bdb_header *bdb,
 static void dump_general_features(const struct bdb_header *bdb,
 				  const struct bdb_block *block)
 {
-	struct bdb_general_features *features = block->data;
+	const struct bdb_general_features *features = block->data;
 
 	printf("\tPanel fitting: ");
 	switch (features->panel_fitting) {
@@ -187,8 +187,8 @@ static void dump_general_features(const struct bdb_header *bdb,
 static void dump_backlight_info(const struct bdb_header *bdb,
 				const struct bdb_block *block)
 {
-	struct bdb_lvds_backlight *backlight = block->data;
-	struct blc_struct *blc;
+	const struct bdb_lvds_backlight *backlight = block->data;
+	const struct blc_struct *blc;
 
 	if (sizeof(struct blc_struct) != backlight->blcstruct_size) {
 		printf("\tBacklight struct sizes don't match (expected %zu, got %u), skipping\n",
@@ -409,7 +409,7 @@ static void dump_child_device(const struct bdb_header *bdb,
 static void dump_general_definitions(const struct bdb_header *bdb,
 				     const struct bdb_block *block)
 {
-	struct bdb_general_definitions *defs = block->data;
+	const struct bdb_general_definitions *defs = block->data;
 	int i;
 	int child_device_num;
 
@@ -432,8 +432,8 @@ static void dump_general_definitions(const struct bdb_header *bdb,
 static void dump_child_devices(const struct bdb_header *bdb,
 			       const struct bdb_block *block)
 {
-	struct bdb_child_devices *child_devs = block->data;
-	struct child_device_config *child;
+	const struct bdb_child_devices *child_devs = block->data;
+	const struct child_device_config *child;
 	int i;
 
 	for (i = 0; i < DEVICE_CHILD_SIZE; i++) {
@@ -456,7 +456,7 @@ static void dump_child_devices(const struct bdb_header *bdb,
 static void dump_lvds_options(const struct bdb_header *bdb,
 			      const struct bdb_block *block)
 {
-	struct bdb_lvds_options *options = block->data;
+	const struct bdb_lvds_options *options = block->data;
 
 	panel_type = options->panel_type;
 	printf("\tPanel type: %d\n", panel_type);
@@ -473,7 +473,7 @@ static void dump_lvds_options(const struct bdb_header *bdb,
 static void dump_lvds_ptr_data(const struct bdb_header *bdb,
 			       const struct bdb_block *block)
 {
-	struct bdb_lvds_lfp_data_ptrs *ptrs = block->data;
+	const struct bdb_lvds_lfp_data_ptrs *ptrs = block->data;
 
 	printf("\tNumber of entries: %d\n", ptrs->lvds_entries);
 
@@ -484,8 +484,8 @@ static void dump_lvds_ptr_data(const struct bdb_header *bdb,
 static void dump_lvds_data(const struct bdb_header *bdb,
 			   const struct bdb_block *block)
 {
-	struct bdb_lvds_lfp_data *lvds_data = block->data;
-	struct bdb_lvds_lfp_data_ptrs *ptrs = lvds_lfp_data_ptrs;
+	const struct bdb_lvds_lfp_data *lvds_data = block->data;
+	const struct bdb_lvds_lfp_data_ptrs *ptrs = lvds_lfp_data_ptrs;
 	int num_entries;
 	int i;
 	int hdisplay, hsyncstart, hsyncend, htotal;
@@ -509,11 +509,11 @@ static void dump_lvds_data(const struct bdb_header *bdb,
 	       num_entries);
 
 	for (i = 0; i < num_entries; i++) {
-		uint8_t *lfp_data_ptr =
-		    (uint8_t *) lvds_data->data + lfp_data_size * i;
-		uint8_t *timing_data = lfp_data_ptr + dvo_offset;
-		struct bdb_lvds_lfp_data_entry *lfp_data =
-		    (struct bdb_lvds_lfp_data_entry *)lfp_data_ptr;
+		const uint8_t *lfp_data_ptr =
+		    (const uint8_t *) lvds_data->data + lfp_data_size * i;
+		const uint8_t *timing_data = lfp_data_ptr + dvo_offset;
+		const struct bdb_lvds_lfp_data_entry *lfp_data =
+		    (const struct bdb_lvds_lfp_data_entry *)lfp_data_ptr;
 		char marker;
 
 		if (i == panel_type)
@@ -557,7 +557,7 @@ static void dump_lvds_data(const struct bdb_header *bdb,
 static void dump_driver_feature(const struct bdb_header *bdb,
 				const struct bdb_block *block)
 {
-	struct bdb_driver_feature *feature = block->data;
+	const struct bdb_driver_feature *feature = block->data;
 
 	printf("\tBoot Device Algorithm: %s\n", feature->boot_dev_algorithm ?
 	       "driver default" : "os default");
@@ -624,7 +624,7 @@ static void dump_driver_feature(const struct bdb_header *bdb,
 static void dump_edp(const struct bdb_header *bdb,
 		     const struct bdb_block *block)
 {
-	struct bdb_edp *edp = block->data;
+	const struct bdb_edp *edp = block->data;
 	int bpp, msa;
 	int i;
 
@@ -723,7 +723,7 @@ static void dump_edp(const struct bdb_header *bdb,
 }
 
 static void
-print_detail_timing_data(struct lvds_dvo_timing2 *dvo_timing)
+print_detail_timing_data(const struct lvds_dvo_timing2 *dvo_timing)
 {
 	int display, sync_start, sync_end, total;
 
@@ -754,7 +754,7 @@ print_detail_timing_data(struct lvds_dvo_timing2 *dvo_timing)
 static void dump_sdvo_panel_dtds(const struct bdb_header *bdb,
 				 const struct bdb_block *block)
 {
-	struct lvds_dvo_timing2 *dvo_timing = block->data;
+	const struct lvds_dvo_timing2 *dvo_timing = block->data;
 	int n, count;
 
 	count = block->size / sizeof(struct lvds_dvo_timing2);
@@ -767,7 +767,7 @@ static void dump_sdvo_panel_dtds(const struct bdb_header *bdb,
 static void dump_sdvo_lvds_options(const struct bdb_header *bdb,
 				   const struct bdb_block *block)
 {
-	struct bdb_sdvo_lvds_options *options = block->data;
+	const struct bdb_sdvo_lvds_options *options = block->data;
 
 	printf("\tbacklight: %d\n", options->panel_backlight);
 	printf("\th40 type: %d\n", options->h40_set_panel_type);
@@ -789,9 +789,9 @@ static void dump_sdvo_lvds_options(const struct bdb_header *bdb,
 static void dump_mipi_config(const struct bdb_header *bdb,
 			     const struct bdb_block *block)
 {
-	struct bdb_mipi_config *start = block->data;
-	struct mipi_config *config;
-	struct mipi_pps_data *pps;
+	const struct bdb_mipi_config *start = block->data;
+	const struct mipi_config *config;
+	const struct mipi_pps_data *pps;
 
 	config = &start->config[panel_type];
 	pps = &start->pps[panel_type];
@@ -1009,7 +1009,7 @@ static const uint8_t *dump_sequence(const uint8_t *data)
 static void dump_mipi_sequence(const struct bdb_header *bdb,
 			       const struct bdb_block *block)
 {
-	struct bdb_mipi_sequence *sequence = block->data;
+	const struct bdb_mipi_sequence *sequence = block->data;
 	const uint8_t *data;
 	int i, panel_id, seq_size;
 	uint32_t block_size;
@@ -1168,7 +1168,7 @@ struct dumper dumpers[] = {
 static void hex_dump(const struct bdb_block *block)
 {
 	int i;
-	uint8_t *p = block->data;
+	const uint8_t *p = block->data;
 
 	for (i = 0; i < block->size; i++) {
 		if (i % 16 == 0)
