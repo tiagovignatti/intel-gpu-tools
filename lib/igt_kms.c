@@ -533,18 +533,20 @@ bool kmstest_get_connector_default_mode(int drm_fd, drmModeConnector *connector,
 }
 
 /**
- * kmstest_get_connector_config:
+ * _kmstest_connector_config:
  * @drm_fd: DRM fd
  * @connector_id: DRM connector id
  * @crtc_idx_mask: mask of allowed DRM CRTC indices
  * @config: structure filled with the possible configuration
+ * @probe: whether to fully re-probe mode list or not
  *
  * This tries to find a suitable configuration for the given connector and CRTC
  * constraint and fills it into @config.
  */
-bool kmstest_get_connector_config(int drm_fd, uint32_t connector_id,
-				  unsigned long crtc_idx_mask,
-				  struct kmstest_connector_config *config)
+static bool _kmstest_connector_config(int drm_fd, uint32_t connector_id,
+				      unsigned long crtc_idx_mask,
+				      struct kmstest_connector_config *config,
+				      bool probe)
 {
 	drmModeRes *resources;
 	drmModeConnector *connector;
@@ -558,7 +560,11 @@ bool kmstest_get_connector_config(int drm_fd, uint32_t connector_id,
 	}
 
 	/* First, find the connector & mode */
-	connector = drmModeGetConnectorCurrent(drm_fd, connector_id);
+	if (probe)
+		connector = drmModeGetConnector(drm_fd, connector_id);
+	else
+		connector = drmModeGetConnectorCurrent(drm_fd, connector_id);
+
 	if (!connector)
 		goto err2;
 
@@ -631,6 +637,43 @@ err2:
 	drmModeFreeResources(resources);
 err1:
 	return false;
+}
+
+/**
+ * kmstest_get_connector_config:
+ * @drm_fd: DRM fd
+ * @connector_id: DRM connector id
+ * @crtc_idx_mask: mask of allowed DRM CRTC indices
+ * @config: structure filled with the possible configuration
+ *
+ * This tries to find a suitable configuration for the given connector and CRTC
+ * constraint and fills it into @config.
+ */
+bool kmstest_get_connector_config(int drm_fd, uint32_t connector_id,
+				  unsigned long crtc_idx_mask,
+				  struct kmstest_connector_config *config)
+{
+	return _kmstest_connector_config(drm_fd, connector_id, crtc_idx_mask,
+					 config, 0);
+}
+
+/**
+ * kmstest_probe_connector_config:
+ * @drm_fd: DRM fd
+ * @connector_id: DRM connector id
+ * @crtc_idx_mask: mask of allowed DRM CRTC indices
+ * @config: structure filled with the possible configuration
+ *
+ * This tries to find a suitable configuration for the given connector and CRTC
+ * constraint and fills it into @config, fully probing the connector in the
+ * process.
+ */
+bool kmstest_probe_connector_config(int drm_fd, uint32_t connector_id,
+				    unsigned long crtc_idx_mask,
+				    struct kmstest_connector_config *config)
+{
+	return _kmstest_connector_config(drm_fd, connector_id, crtc_idx_mask,
+					 config, 1);
 }
 
 /**

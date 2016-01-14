@@ -191,12 +191,19 @@ static void dump_info(void)
 
 static void connector_find_preferred_mode(uint32_t connector_id,
 					  unsigned long crtc_idx_mask,
-					  int mode_num, struct connector *c)
+					  int mode_num, struct connector *c,
+					  bool probe)
 {
 	struct kmstest_connector_config config;
+	bool ret;
 
-	if (!kmstest_get_connector_config(drm_fd, connector_id, crtc_idx_mask,
-					  &config)) {
+	if (probe)
+		ret = kmstest_probe_connector_config(drm_fd, connector_id,
+						     crtc_idx_mask, &config);
+	else
+		ret = kmstest_get_connector_config(drm_fd, connector_id,
+						   crtc_idx_mask, &config);
+	if (!ret) {
 		c->mode_valid = 0;
 		return;
 	}
@@ -456,7 +463,7 @@ set_stereo_mode(struct connector *c)
  * Each connector has a corresponding encoder, except in the SDVO case
  * where an encoder may have multiple connectors.
  */
-int update_display(void)
+int update_display(bool probe)
 {
 	struct connector *connectors;
 	int c;
@@ -488,7 +495,7 @@ int update_display(void)
 			connector_find_preferred_mode(connector->id,
 						      crtc_idx_mask,
 						      specified_mode_num,
-						      connector);
+						      connector, probe);
 			if (!connector->mode_valid)
 				continue;
 
@@ -513,7 +520,7 @@ int update_display(void)
 			connector_find_preferred_mode(connector->id,
 						      -1UL,
 						      specified_mode_num,
-						      connector);
+						      connector, probe);
 			if (!connector->mode_valid)
 				continue;
 
@@ -765,7 +772,7 @@ int main(int argc, char **argv)
 
 	ret = 0;
 
-	if (!update_display()) {
+	if (!update_display(false)) {
 		ret = 1;
 		goto out_stdio;
 	}

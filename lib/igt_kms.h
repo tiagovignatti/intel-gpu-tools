@@ -140,6 +140,9 @@ bool kmstest_get_connector_default_mode(int drm_fd, drmModeConnector *connector,
 bool kmstest_get_connector_config(int drm_fd, uint32_t connector_id,
 				  unsigned long crtc_idx_mask,
 				  struct kmstest_connector_config *config);
+bool kmstest_probe_connector_config(int drm_fd, uint32_t connector_id,
+				    unsigned long crtc_idx_mask,
+				    struct kmstest_connector_config *config);
 void kmstest_free_connector_config(struct kmstest_connector_config *config);
 
 void kmstest_set_connector_dpms(int fd, drmModeConnector *connector, int mode);

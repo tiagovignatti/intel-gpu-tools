@@ -32,4 +32,4 @@ gboolean testdisplay_setup_hotplug(void);
 void testdisplay_cleanup_hotplug(void);
 
 /* called by the hotplug code */
-int update_display(void);
+int update_display(bool probe);

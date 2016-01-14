@@ -59,7 +59,7 @@ static gboolean hotplug_event(GIOChannel *source, GIOCondition condition,
 
 	if (memcmp(&s.st_rdev, &udev_devnum, sizeof(dev_t)) == 0 &&
 	    hotplug && atoi(hotplug) == 1)
-		update_display();
+		update_display(true);
 
 	udev_device_unref(dev);
 out:
