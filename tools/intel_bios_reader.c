@@ -1006,13 +1006,60 @@ static const uint8_t *dump_sequence(const uint8_t *data)
 	return data;
 }
 
+/* Find the sequence block and size for the given panel. */
+static const uint8_t *
+find_panel_sequence_block(const struct bdb_mipi_sequence *sequence,
+			  uint16_t panel_id, uint32_t total, uint32_t *seq_size)
+{
+	const uint8_t *data = &sequence->data[0];
+	uint8_t current_id;
+	uint32_t current_size;
+	int header_size = sequence->version >= 3 ? 5 : 3;
+	int index = 0;
+	int i;
+
+	/* skip new block size */
+	if (sequence->version >= 3)
+		data += 4;
+
+	for (i = 0; i < MAX_MIPI_CONFIGURATIONS && index < total; i++) {
+		if (index + header_size > total) {
+			fprintf(stderr, "Invalid sequence block (header)\n");
+			return NULL;
+		}
+
+		current_id = *(data + index);
+		if (sequence->version >= 3)
+			current_size = *((const uint32_t *)(data + index + 1));
+		else
+			current_size = *((const uint16_t *)(data + index + 1));
+
+		index += header_size;
+
+		if (index + current_size > total) {
+			fprintf(stderr, "Invalid sequence block\n");
+			return NULL;
+		}
+
+		if (current_id == panel_id) {
+			*seq_size = current_size;
+			return data + index;
+		}
+
+		index += current_size;
+	}
+
+	fprintf(stderr, "Sequence block detected but no valid configuration\n");
+
+	return NULL;
+}
+
 static void dump_mipi_sequence(const struct bdb_header *bdb,
 			       const struct bdb_block *block)
 {
 	const struct bdb_mipi_sequence *sequence = block->data;
 	const uint8_t *data;
-	int i, panel_id, seq_size;
-	uint32_t block_size;
+	uint32_t seq_size;
 
 	/* Check if we have sequence block as well */
 	if (!sequence) {
@@ -1025,34 +1072,10 @@ static void dump_mipi_sequence(const struct bdb_header *bdb,
 	if (sequence->version >= 3)
 		return;
 
-	block_size = block->size;
-
-	data = &sequence->data[0];
-
-	/*
-	 * sequence block is variable length and hence we need to parse and
-	 * get the sequence data for specific panel id
-	 */
-	for (i = 0; i < MAX_MIPI_CONFIGURATIONS; i++) {
-		panel_id = *data;
-		seq_size = *((uint16_t *) (data + 1));
-		data += 3;
-
-		if (data + seq_size > (const uint8_t *)sequence + block_size) {
-			printf("Invalid sequence block\n");
-			return;
-		}
-
-		if (panel_id == panel_type)
-			break;
-
-		data += seq_size;
-	}
-
-	if (i == MAX_MIPI_CONFIGURATIONS) {
-		printf("Sequence block detected but no valid configuration\n");
+	data = find_panel_sequence_block(sequence, panel_type,
+					 block->size, &seq_size);
+	if (!data)
 		return;
-	}
 
 	/*
 	 * loop into the sequence data and split into multiple sequneces
