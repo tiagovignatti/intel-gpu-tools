@@ -65,9 +65,10 @@ uint8_t *VBIOS;
 
 #define YESNO(val) ((val) ? "yes" : "no")
 
+/* This is not for mapping to memory layout. */
 struct bdb_block {
 	uint8_t id;
-	uint16_t size;
+	uint32_t size;
 	void *data;
 };
 
@@ -76,17 +77,27 @@ static int tv_present;
 static int lvds_present;
 static int panel_type;
 
+/* Get BDB block size given a pointer to Block ID. */
+static uint32_t _get_blocksize(const uint8_t *block_base)
+{
+	/* The MIPI Sequence Block v3+ has a separate size field. */
+	if (*block_base == BDB_MIPI_SEQUENCE && *(block_base + 3) >= 3)
+		return *((const uint32_t *)(block_base + 4));
+	else
+		return *((const uint16_t *)(block_base + 1));
+}
+
 static struct bdb_block *find_section(const struct bdb_header *bdb,
 				      int section_id, int length)
 {
 	struct bdb_block *block;
 	unsigned char *base = (unsigned char *)bdb;
-	int idx = 0;
-	uint16_t total, current_size;
+	int index = 0;
+	uint32_t total, current_size;
 	unsigned char current_id;
 
 	/* skip to first section */
-	idx += bdb->header_size;
+	index += bdb->header_size;
 	total = bdb->bdb_size;
 	if (total > length)
 		total = length;
@@ -98,20 +109,22 @@ static struct bdb_block *find_section(const struct bdb_header *bdb,
 	}
 
 	/* walk the sections looking for section_id */
-	while (idx + 3 < total) {
-		current_id = *(base + idx);
-		current_size = *(uint16_t *)(base + idx + 1);
-		if (idx + current_size > total)
+	while (index + 3 < total) {
+		current_id = *(base + index);
+		current_size = _get_blocksize(base + index);
+		index += 3;
+
+		if (index + current_size > total)
 			return NULL;
 
 		if (current_id == section_id) {
 			block->id = current_id;
 			block->size = current_size;
-			block->data = base + idx + 3;
+			block->data = base + index;
 			return block;
 		}
 
-		idx += current_size + 3;
+		index += current_size;
 	}
 
 	free(block);
@@ -993,22 +1006,13 @@ static const uint8_t *dump_sequence(const uint8_t *data)
 	return data;
 }
 
-static uint16_t get_blocksize(void *p)
-{
-	uint16_t *block_ptr, block_size;
-
-	block_ptr = (uint16_t *)((char *)p - 2);
-	block_size = *block_ptr;
-	return block_size;
-}
-
 static void dump_mipi_sequence(const struct bdb_header *bdb,
 			       const struct bdb_block *block)
 {
 	struct bdb_mipi_sequence *sequence = block->data;
 	const uint8_t *data;
 	int i, panel_id, seq_size;
-	uint16_t block_size;
+	uint32_t block_size;
 
 	/* Check if we have sequence block as well */
 	if (!sequence) {
@@ -1021,7 +1025,7 @@ static void dump_mipi_sequence(const struct bdb_header *bdb,
 	if (sequence->version >= 3)
 		return;
 
-	block_size = get_blocksize(sequence);
+	block_size = block->size;
 
 	data = &sequence->data[0];
 
