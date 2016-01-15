@@ -11,6 +11,7 @@ TESTS_progs_M = \
 	drv_hangman \
 	gem_bad_reloc \
 	gem_basic \
+	gem_busy \
 	gem_caching \
 	gem_close_race \
 	gem_concurrent_blit \
