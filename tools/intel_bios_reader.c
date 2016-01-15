@@ -869,7 +869,7 @@ static void dump_mipi_config(const struct bdb_header *bdb,
 
 	printf("\tMIPI PPS\n");
 	printf("\t\tPanel power ON delay: %d\n", pps->panel_on_delay);
-	printf("\t\tPanel power on to Baklight enable delay: %d\n", pps->bl_enable_delay);
+	printf("\t\tPanel power on to Backlight enable delay: %d\n", pps->bl_enable_delay);
 	printf("\t\tBacklight disable to Panel power OFF delay: %d\n", pps->bl_disable_delay);
 	printf("\t\tPanel power OFF delay: %d\n", pps->panel_off_delay);
 	printf("\t\tPanel power cycle delay: %d\n", pps->panel_power_cycle_delay);
