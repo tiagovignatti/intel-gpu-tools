@@ -26,23 +26,8 @@
  */
 
 #include "igt.h"
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <fcntl.h>
-#include <inttypes.h>
-#include <errno.h>
-#include <sys/stat.h>
-#include <sys/time.h>
-#include "drm.h"
-#include "intel_bufmgr.h"
-#include "i830_reg.h"
 
-IGT_TEST_DESCRIPTION("Basic check of ring<->ring sync using a dummy reloc.");
-
-static drm_intel_bufmgr *bufmgr;
-struct intel_batchbuffer *batch;
-static drm_intel_bo *target_buffer;
+IGT_TEST_DESCRIPTION("Basic check of ring<->ring write synchronisation.");
 
 /*
  * Testcase: Basic check of ring<->ring sync using a dummy reloc
@@ -50,70 +35,95 @@ static drm_intel_bo *target_buffer;
  * Extremely efficient at catching missed irqs with semaphores=0 ...
  */
 
-#define MI_COND_BATCH_BUFFER_END	(0x36<<23 | 1)
-#define MI_DO_COMPARE			(1<<21)
+static int __gem_execbuf(int fd, struct drm_i915_gem_execbuffer2 *eb)
+{
+	int err = 0;
+	if (drmIoctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, eb))
+		err = -errno;
+	return err;
+}
 
 static void
-store_dword_loop(int fd)
+sync_loop(int fd)
 {
-	int i;
+	const uint32_t bbe = MI_BATCH_BUFFER_END;
 	int num_rings = gem_get_num_rings(fd);
+	struct drm_i915_gem_execbuffer2 execbuf;
+	struct drm_i915_gem_exec_object2 object[2];
+	struct drm_i915_gem_relocation_entry reloc[1];
+	int i;
+
+	memset(object, 0, sizeof(object));
+	object[0].handle = gem_create(fd, 4096);
+	object[0].flags = EXEC_OBJECT_WRITE;
+	object[1].handle = gem_create(fd, 4096);
+	gem_write(fd, object[1].handle, 0, &bbe, sizeof(bbe));
+
+	memset(&execbuf, 0, sizeof(execbuf));
+	execbuf.buffers_ptr = (uintptr_t)object;
+	execbuf.buffer_count = 2;
+
+	/* Check if we have no-reloc support first */
+	if (__gem_execbuf(fd, &execbuf)) {
+		object[0].flags = 0;
+		object[1].relocs_ptr = (uintptr_t)reloc;
+		object[1].relocation_count = 1;
+
+		/* Add a dummy relocation to mark the object as writing */
+		memset(reloc, 0, sizeof(reloc));
+		reloc->offset = 1000;
+		reloc->target_handle = object[0].handle;
+		reloc->read_domains = I915_GEM_DOMAIN_RENDER;
+		reloc->write_domain = I915_GEM_DOMAIN_RENDER;
+
+		gem_execbuf(fd, &execbuf);
+	}
 
 	srandom(0xdeadbeef);
 
 	for (i = 0; i < SLOW_QUICK(0x100000, 10); i++) {
-		int ring = random() % num_rings + 1;
-
-		if (ring == I915_EXEC_RENDER) {
-			BEGIN_BATCH(4, 1);
-			OUT_BATCH(MI_COND_BATCH_BUFFER_END | MI_DO_COMPARE);
-			OUT_BATCH(0xffffffff); /* compare dword */
-			OUT_RELOC(target_buffer, I915_GEM_DOMAIN_RENDER,
-					I915_GEM_DOMAIN_RENDER, 0);
-			OUT_BATCH(MI_NOOP);
-			ADVANCE_BATCH();
-		} else {
-			BEGIN_BATCH(4, 1);
-			OUT_BATCH(MI_FLUSH_DW | 1);
-			OUT_BATCH(0); /* reserved */
-			OUT_RELOC(target_buffer, I915_GEM_DOMAIN_RENDER,
-					I915_GEM_DOMAIN_RENDER, 0);
-			OUT_BATCH(MI_NOOP | (1<<22) | (0xf));
-			ADVANCE_BATCH();
-		}
-		intel_batchbuffer_flush_on_ring(batch, ring);
+		execbuf.flags = random() % num_rings + 1;
+		gem_execbuf(fd, &execbuf);
 	}
 
-	drm_intel_bo_map(target_buffer, 0);
-	// map to force waiting on rendering
-	drm_intel_bo_unmap(target_buffer);
+	gem_sync(fd, object[1].handle);
+	gem_close(fd, object[1].handle);
+	gem_close(fd, object[0].handle);
+}
+
+static unsigned intel_detect_and_clear_missed_irq(int fd)
+{
+	unsigned missed = 0;
+	FILE *file;
+
+	gem_quiescent_gpu(fd);
+
+	file = igt_debugfs_fopen("i915_ring_missed_irq", "r");
+	if (file) {
+		igt_assert(fscanf(file, "%x", &missed) == 1);
+		fclose(file);
+	}
+	if (missed) {
+		file = igt_debugfs_fopen("i915_ring_missed_irq", "w");
+		if (file) {
+			fwrite("0\n", 1, 2, file);
+			fclose(file);
+		}
+	}
+
+	return missed;
 }
 
 igt_simple_main
 {
 	int fd;
-	int devid;
 
 	fd = drm_open_driver(DRIVER_INTEL);
-	devid = intel_get_drm_devid(fd);
-	gem_require_ring(fd, I915_EXEC_BLT);
+	igt_require(gem_get_num_rings(fd) > 1);
+	intel_detect_and_clear_missed_irq(fd); /* clear before we begin */
 
+	sync_loop(fd);
 
-	bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
-	igt_assert(bufmgr);
-	drm_intel_bufmgr_gem_enable_reuse(bufmgr);
-
-	batch = intel_batchbuffer_alloc(bufmgr, devid);
-	igt_assert(batch);
-
-	target_buffer = drm_intel_bo_alloc(bufmgr, "target bo", 4096, 4096);
-	igt_assert(target_buffer);
-
-	store_dword_loop(fd);
-
-	drm_intel_bo_unreference(target_buffer);
-	intel_batchbuffer_free(batch);
-	drm_intel_bufmgr_destroy(bufmgr);
-
+	igt_assert_eq(intel_detect_and_clear_missed_irq(fd), 0);
 	close(fd);
 }
