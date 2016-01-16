@@ -154,6 +154,8 @@ static void test_streaming(int fd, int mode, int sync)
 		batch[i].offset = 0;
 
 		base = gem_mmap__cpu(fd, batch[i].handle, 0, 4096, PROT_WRITE);
+		gem_set_domain(fd, batch[i].handle,
+				I915_GEM_DOMAIN_CPU, I915_GEM_DOMAIN_CPU);
 
 		for (int j = 0; j < 64; j++) {
 			unsigned x = (n * CHUNK_SIZE) % 4096 >> 2;
