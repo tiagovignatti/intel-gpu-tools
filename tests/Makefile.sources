@@ -148,6 +148,7 @@ TESTS_progs = \
 	gem_set_tiling_vs_gtt \
 	gem_set_tiling_vs_pwrite \
 	gem_storedw_loop \
+	gem_sync \
 	gem_threaded_access_tiled \
 	gem_tiled_fence_blits \
 	gem_tiled_pread_basic \
