@@ -100,15 +100,18 @@ static void many(int fd)
 	execobj = calloc(sizeof(*execobj), count + 1);
 	igt_assert(execobj);
 
-	for (i = 0; i < count; i++)
+	for (i = 0; i < count; i++) {
 		execobj[i].handle = gem_create(fd, 4096);
+		if ((gtt_size-1) >> 32)
+			execobj[i].flags = 1<<3; /* EXEC_OBJECT_SUPPORTS_48B_ADDRESS */
+	}
 	execobj[i].handle = gem_create(fd, 4096);
 	gem_write(fd, execobj[i].handle, 0, &bbe, sizeof(bbe));
 
 	memset(&execbuf, 0, sizeof(execbuf));
 	execbuf.buffers_ptr = (uintptr_t)execobj;
 	execbuf.buffer_count = count + 1;
-	gem_execbuf(fd, &execbuf);
+	igt_require(__gem_execbuf(fd, &execbuf) == 0);
 
 	for (alignment = 4096; alignment < gtt_size; alignment <<= 1) {
 		for (i = 0; i < count; i++)
@@ -119,9 +122,10 @@ static void many(int fd)
 			execbuf.buffers_ptr = (uintptr_t)(execobj + (factor - 1) * count / factor);
 		}
 
-		igt_debug("testing %lld x alignment=%lld\n",
-			  (long long)execbuf.buffer_count,
-			  (long long)alignment);
+		igt_debug("testing %lld x alignment=%#llx [%db]\n",
+			  (long long)execbuf.buffer_count - 1,
+			  (long long)alignment,
+			  find_last_bit(alignment));
 		gem_execbuf(fd, &execbuf);
 		for (i = 0; i < count; i++)
 			igt_assert_eq_u64(execobj[i].alignment, alignment);
@@ -143,12 +147,18 @@ static void single(int fd)
 
 	memset(&execobj, 0, sizeof(execobj));
 	execobj.handle = gem_create(fd, 4096);
+	execobj.flags = 1<<3; /* EXEC_OBJECT_SUPPORTS_48B_ADDRESS */
 	gem_write(fd, execobj.handle, 0, &batch, sizeof(batch));
 
 	memset(&execbuf, 0, sizeof(execbuf));
 	execbuf.buffers_ptr = (uintptr_t)&execobj;
 	execbuf.buffer_count = 1;
 
+	gtt_size = gem_aperture_size(fd);
+	if (__gem_execbuf(fd, &execbuf)) {
+		execobj.flags = 0;
+		gtt_size = 1ull << 32;
+	}
 	gem_execbuf(fd, &execbuf);
 
 	execobj.alignment = 3*4096;
@@ -169,13 +179,13 @@ static void single(int fd)
 		igt_assert_eq_u64(execobj.offset % execobj.alignment, 0);
 	}
 
-	gtt_size = gem_aperture_size(fd);
 	for (execobj.alignment = 4096;
 	     execobj.alignment < gtt_size;
 	     execobj.alignment <<= 1) {
-		igt_debug("starting offset: %#llx, next alignment: %#llx\n",
+		igt_debug("starting offset: %#llx, next alignment: %#llx [%db]\n",
 			  (long long)execobj.offset,
-			  (long long)execobj.alignment);
+			  (long long)execobj.alignment,
+			  find_last_bit(execobj.alignment));
 		gem_execbuf(fd, &execbuf);
 		igt_assert_eq_u64(execobj.offset % execobj.alignment, 0);
 	}
