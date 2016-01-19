@@ -50,6 +50,7 @@ igt_simple_main
 	struct drm_i915_gem_exec_object2 execobj;
 	struct drm_i915_gem_execbuffer2 execbuf;
 	uint32_t batch = MI_BATCH_BUFFER_END;
+	uint64_t gtt_size;
 	int non_pot;
 	int fd;
 
@@ -79,7 +80,21 @@ igt_simple_main
 		if (!non_pot && execobj.alignment & -execobj.alignment)
 			continue;
 
+		igt_debug("starting offset: %#llx, next alignment: %#llx\n",
+			  (long long)execobj.offset,
+			  (long long)execobj.alignment);
 		gem_execbuf(fd, &execbuf);
-		igt_assert_eq(execobj.offset % execobj.alignment, 0);
+		igt_assert_eq_u64(execobj.offset % execobj.alignment, 0);
+	}
+
+	gtt_size = gem_aperture_size(fd);
+	for (execobj.alignment = 4096;
+	     execobj.alignment < gtt_size;
+	     execobj.alignment <<= 1) {
+		igt_debug("starting offset: %#llx, next alignment: %#llx\n",
+			  (long long)execobj.offset,
+			  (long long)execobj.alignment);
+		gem_execbuf(fd, &execbuf);
+		igt_assert_eq_u64(execobj.offset % execobj.alignment, 0);
 	}
 }
