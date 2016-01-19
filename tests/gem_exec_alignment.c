@@ -45,25 +45,107 @@ static int __gem_execbuf(int fd, struct drm_i915_gem_execbuffer2 *eb)
 	return drmIoctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, eb);
 }
 
-igt_simple_main
+static uint32_t find_last_bit(uint64_t x)
+{
+	uint32_t i = 0;
+	while (x) {
+		x >>= 1;
+		i++;
+	}
+	return i;
+}
+
+static uint32_t file_max(void)
+{
+	static uint32_t max;
+	if (max == 0) {
+		FILE *file = fopen("/proc/sys/fs/file-max", "r");
+		max = 80000;
+		if (file) {
+			igt_assert(fscanf(file, "%d", &max) == 1);
+			fclose(file);
+		}
+		max /= 2;
+	}
+	return max;
+}
+
+static void many(int fd)
+{
+	uint32_t bbe = MI_BATCH_BUFFER_END;
+	struct drm_i915_gem_exec_object2 *execobj;
+	struct drm_i915_gem_execbuffer2 execbuf;
+	uint64_t gtt_size, ram_size;
+	uint64_t alignment, max_alignment, count, i;
+
+	gtt_size = gem_aperture_size(fd);
+	ram_size = intel_get_total_ram_mb();
+	ram_size *= 1024 * 1024;
+	count = ram_size / 4096;
+	if (count > file_max()) /* vfs cap */
+		count = file_max();
+	max_alignment = find_last_bit(gtt_size / count);
+	if (max_alignment <= 12)
+		max_alignment = 4096;
+	else
+		max_alignment = 1ull << max_alignment;
+	count = gtt_size / max_alignment / 2;
+
+	igt_info("gtt_size=%lld MiB, max-alignment=%lld, count=%lld\n",
+		 (long long)gtt_size/1024/1024,
+		 (long long)max_alignment,
+		 (long long)count);
+	intel_require_memory(count, 4096, CHECK_RAM);
+
+	execobj = calloc(sizeof(*execobj), count + 1);
+	igt_assert(execobj);
+
+	for (i = 0; i < count; i++)
+		execobj[i].handle = gem_create(fd, 4096);
+	execobj[i].handle = gem_create(fd, 4096);
+	gem_write(fd, execobj[i].handle, 0, &bbe, sizeof(bbe));
+
+	memset(&execbuf, 0, sizeof(execbuf));
+	execbuf.buffers_ptr = (uintptr_t)execobj;
+	execbuf.buffer_count = count + 1;
+	gem_execbuf(fd, &execbuf);
+
+	for (alignment = 4096; alignment < gtt_size; alignment <<= 1) {
+		for (i = 0; i < count; i++)
+			execobj[i].alignment = alignment;
+		if (alignment > max_alignment) {
+			uint64_t factor = alignment / max_alignment;
+			execbuf.buffer_count = count / factor + 1;
+			execbuf.buffers_ptr = (uintptr_t)(execobj + (factor - 1) * count / factor);
+		}
+
+		igt_debug("testing %lld x alignment=%lld\n",
+			  (long long)execbuf.buffer_count,
+			  (long long)alignment);
+		gem_execbuf(fd, &execbuf);
+		for (i = 0; i < count; i++)
+			igt_assert_eq_u64(execobj[i].alignment, alignment);
+	}
+
+	for (i = 0; i < count; i++)
+		gem_close(fd, execobj[i].handle);
+	gem_close(fd, execobj[i].handle);
+	free(execobj);
+}
+
+static void single(int fd)
 {
 	struct drm_i915_gem_exec_object2 execobj;
 	struct drm_i915_gem_execbuffer2 execbuf;
 	uint32_t batch = MI_BATCH_BUFFER_END;
 	uint64_t gtt_size;
 	int non_pot;
-	int fd;
-
-	igt_skip_on_simulation();
-
-	fd = drm_open_driver(DRIVER_INTEL);
 
 	memset(&execobj, 0, sizeof(execobj));
-	memset(&execbuf, 0, sizeof(execbuf));
-
 	execobj.handle = gem_create(fd, 4096);
 	gem_write(fd, execobj.handle, 0, &batch, sizeof(batch));
 
+	memset(&execbuf, 0, sizeof(execbuf));
 	execbuf.buffers_ptr = (uintptr_t)&execobj;
 	execbuf.buffer_count = 1;
 
@@ -97,4 +179,18 @@ igt_simple_main
 		gem_execbuf(fd, &execbuf);
 		igt_assert_eq_u64(execobj.offset % execobj.alignment, 0);
 	}
+
+	gem_close(fd, execobj.handle);
+}
+
+igt_simple_main
+{
+	int fd;
+
+	igt_skip_on_simulation();
+	fd = drm_open_driver(DRIVER_INTEL);
+
+	single(fd);
+	many(fd);
+
 }
