@@ -85,10 +85,10 @@ static void many(int fd)
 	if (count > file_max()) /* vfs cap */
 		count = file_max();
 	max_alignment = find_last_bit(gtt_size / count);
-	if (max_alignment <= 12)
+	if (max_alignment <= 13)
 		max_alignment = 4096;
 	else
-		max_alignment = 1ull << max_alignment;
+		max_alignment = 1ull << (max_alignment - 1);
 	count = gtt_size / max_alignment / 2;
 
 	igt_info("gtt_size=%lld MiB, max-alignment=%lld, count=%lld\n",
@@ -125,7 +125,7 @@ static void many(int fd)
 		igt_debug("testing %lld x alignment=%#llx [%db]\n",
 			  (long long)execbuf.buffer_count - 1,
 			  (long long)alignment,
-			  find_last_bit(alignment));
+			  find_last_bit(alignment)-1);
 		gem_execbuf(fd, &execbuf);
 		for (i = 0; i < count; i++)
 			igt_assert_eq_u64(execobj[i].alignment, alignment);
@@ -185,7 +185,7 @@ static void single(int fd)
 		igt_debug("starting offset: %#llx, next alignment: %#llx [%db]\n",
 			  (long long)execobj.offset,
 			  (long long)execobj.alignment,
-			  find_last_bit(execobj.alignment));
+			  find_last_bit(execobj.alignment)-1);
 		gem_execbuf(fd, &execbuf);
 		igt_assert_eq_u64(execobj.offset % execobj.alignment, 0);
 	}
