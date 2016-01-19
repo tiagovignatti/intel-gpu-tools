@@ -193,14 +193,16 @@ static void single(int fd)
 	gem_close(fd, execobj.handle);
 }
 
-igt_simple_main
+igt_main
 {
 	int fd;
 
-	igt_skip_on_simulation();
-	fd = drm_open_driver(DRIVER_INTEL);
+	igt_fixture
+		fd = drm_open_driver(DRIVER_INTEL);
 
-	single(fd);
-	many(fd);
+	igt_subtest("single") /* basic! */
+		single(fd);
+	igt_subtest("many")
+		many(fd);
 
 }
