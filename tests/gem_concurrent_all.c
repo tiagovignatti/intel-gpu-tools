@@ -53,6 +53,15 @@
 IGT_TEST_DESCRIPTION("Test of pread/pwrite/mmap behavior when writing to active"
 		     " buffers.");
 
+#define LOCAL_I915_GEM_USERPTR       0x33
+#define LOCAL_IOCTL_I915_GEM_USERPTR DRM_IOWR (DRM_COMMAND_BASE + LOCAL_I915_GEM_USERPTR, struct local_i915_gem_userptr)
+struct local_i915_gem_userptr {
+	uint64_t user_ptr;
+	uint64_t user_size;
+	uint32_t flags;
+	uint32_t handle;
+};
+
 int fd, devid, gen;
 struct intel_batchbuffer *batch;
 int all;
@@ -192,6 +201,14 @@ unmapped_create_bo(drm_intel_bufmgr *bufmgr, int width, int height)
 	return create_func(bufmgr, (uint64_t)4*width*height);
 }
 
+static bool create_snoop_require(void)
+{
+	if (!create_cpu_require())
+		return false;
+
+	return !gem_has_llc(fd);
+}
+
 static drm_intel_bo *
 snoop_create_bo(drm_intel_bufmgr *bufmgr, int width, int height)
 {
@@ -204,6 +221,84 @@ snoop_create_bo(drm_intel_bufmgr *bufmgr, int width, int height)
 	drm_intel_bo_disable_reuse(bo);
 
 	return bo;
+}
+
+static bool create_userptr_require(void)
+{
+	static int found = -1;
+	if (found < 0) {
+		struct drm_i915_gem_userptr arg;
+
+		found = 0;
+
+		memset(&arg, 0, sizeof(arg));
+		arg.user_ptr = -4096ULL;
+		arg.user_size = 8192;
+		errno = 0;
+		drmIoctl(fd, LOCAL_IOCTL_I915_GEM_USERPTR, &arg);
+		if (errno == EFAULT) {
+			igt_assert(posix_memalign((void **)&arg.user_ptr,
+						  4096, arg.user_size) == 0);
+			found = drmIoctl(fd,
+					 LOCAL_IOCTL_I915_GEM_USERPTR,
+					 &arg) == 0;
+			free((void *)(uintptr_t)arg.user_ptr);
+		}
+
+	}
+	return found;
+}
+
+static drm_intel_bo *
+userptr_create_bo(drm_intel_bufmgr *bufmgr, int width, int height)
+{
+	struct local_i915_gem_userptr userptr;
+	drm_intel_bo *bo;
+
+	memset(&userptr, 0, sizeof(userptr));
+	userptr.user_size = width * height * 4;
+	userptr.user_size = (userptr.user_size + 4095) & -4096;
+	igt_assert(posix_memalign((void **)&userptr.user_ptr,
+				4096, userptr.user_size) == 0);
+
+	do_or_die(drmIoctl(fd, LOCAL_IOCTL_I915_GEM_USERPTR, &userptr));
+	bo = gem_handle_to_libdrm_bo(bufmgr, fd, "userptr", userptr.handle);
+	bo->virtual = (void *)(uintptr_t)userptr.user_ptr;
+
+	return bo;
+}
+
+static void
+userptr_set_bo(drm_intel_bo *bo, uint32_t val, int width, int height)
+{
+	int size = width * height;
+	uint32_t *vaddr = bo->virtual;
+
+	gem_set_domain(fd, bo->handle,
+		       I915_GEM_DOMAIN_CPU, I915_GEM_DOMAIN_CPU);
+	while (size--)
+		*vaddr++ = val;
+}
+
+static void
+userptr_cmp_bo(drm_intel_bo *bo, uint32_t val, int width, int height, drm_intel_bo *tmp)
+{
+	int size = width * height;
+	uint32_t *vaddr = bo->virtual;
+
+	gem_set_domain(fd, bo->handle,
+		       I915_GEM_DOMAIN_CPU, 0);
+	while (size--)
+		igt_assert_eq_u32(*vaddr++, val);
+}
+
+static void
+userptr_release_bo(drm_intel_bo *bo)
+{
+	free(bo->virtual);
+	bo->virtual = NULL;
+
+	drm_intel_bo_unreference(bo);
 }
 
 static void
@@ -431,11 +526,19 @@ const struct access_mode {
 	},
 	{
 		.name = "snoop",
-		.require = create_cpu_require,
+		.require = create_snoop_require,
 		.set_bo = cpu_set_bo,
 		.cmp_bo = cpu_cmp_bo,
 		.create_bo = snoop_create_bo,
 		.release_bo = nop_release_bo,
+	},
+	{
+		.name = "userptr",
+		.require = create_userptr_require,
+		.set_bo = userptr_set_bo,
+		.cmp_bo = userptr_cmp_bo,
+		.create_bo = userptr_create_bo,
+		.release_bo = userptr_release_bo,
 	},
 	{
 		.name = "gtt",
