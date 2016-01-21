@@ -391,7 +391,10 @@ static void test_noreloc(int fd)
 	for (i = 0; i < ARRAY_SIZE(object) - 1; i++) {
 		*b++ = MI_STORE_DWORD_IMM;
 		if (gen < 8) {
-			*b++ = 0;
+			if (gen < 4)
+				b[-1]--;
+			else
+				*b++ = 0;
 			*b++ = object[i].offset;
 		} else {
 			*b++ = object[i].offset;
