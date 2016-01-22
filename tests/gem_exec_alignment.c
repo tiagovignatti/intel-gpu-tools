@@ -118,8 +118,9 @@ static void many(int fd)
 			execobj[i].alignment = alignment;
 		if (alignment > max_alignment) {
 			uint64_t factor = alignment / max_alignment;
-			execbuf.buffer_count = count / factor + 1;
-			execbuf.buffers_ptr = (uintptr_t)(execobj + (factor - 1) * count / factor);
+			execbuf.buffer_count = 2*count / factor;
+			execbuf.buffers_ptr =
+				(uintptr_t)(execobj + count - execbuf.buffer_count);
 		}
 
 		igt_debug("testing %lld x alignment=%#llx [%db]\n",
