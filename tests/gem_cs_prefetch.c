@@ -45,10 +45,10 @@ struct shadow {
 	uint32_t handle;
 	struct drm_i915_gem_relocation_entry reloc;
 };
+int gen;
 
 static void setup(int fd, struct shadow *shadow)
 {
-	int gen = intel_gen(intel_get_drm_devid(fd));
 	uint32_t *cpu;
 	int i = 0;
 
@@ -66,6 +66,7 @@ static void setup(int fd, struct shadow *shadow)
 		cpu[i++] = BATCH_SIZE - sizeof(uint32_t);
 	} else {
 		cpu[i-1]--;
+		cpu[i-1] |= 1 << 22;
 		cpu[i++] = BATCH_SIZE - sizeof(uint32_t);
 	}
 	cpu[i++] = MI_BATCH_BUFFER_END;
@@ -98,6 +99,8 @@ static uint32_t new_batch(int fd, struct shadow *shadow)
 	memset(&execbuf, 0, sizeof(execbuf));
 	execbuf.buffers_ptr = (uintptr_t)gem_exec;
 	execbuf.buffer_count = 2;
+	if (gen < 4)
+		execbuf.flags |= I915_EXEC_SECURE;
 
 	gem_execbuf(fd, &execbuf);
 
@@ -129,7 +132,8 @@ igt_simple_main
 
 	igt_skip_on_simulation();
 
-	fd = drm_open_driver(DRIVER_INTEL);
+	fd = drm_open_driver_master(DRIVER_INTEL);
+	gen = intel_gen(intel_get_drm_devid(fd));
 	setup(fd, &shadow);
 
 	count = gem_aperture_size(fd) / BATCH_SIZE;

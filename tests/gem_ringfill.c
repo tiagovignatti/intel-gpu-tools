@@ -100,6 +100,8 @@ static void run_test(int fd, unsigned ring, unsigned flags)
 	execbuf.buffers_ptr = (uintptr_t)obj;
 	execbuf.buffer_count = 2;
 	execbuf.flags = ring | (1 << 11);
+	if (gen < 4)
+		execbuf.flags |= I915_EXEC_SECURE;
 
 	memset(obj, 0, sizeof(obj));
 	obj[0].handle = gem_create(fd, 4096);
@@ -121,8 +123,8 @@ static void run_test(int fd, unsigned ring, unsigned flags)
 		uint64_t offset;
 
 		reloc[i].target_handle = obj[0].handle;
-		reloc[i].offset = (b - batch + 1) * sizeof(*batch);
 		reloc[i].presumed_offset = obj[0].offset;
+		reloc[i].offset = (b - batch + 1) * sizeof(*batch);
 		reloc[i].delta = i * sizeof(uint32_t);
 		reloc[i].read_domains = I915_GEM_DOMAIN_INSTRUCTION;
 		reloc[i].write_domain = I915_GEM_DOMAIN_INSTRUCTION;
@@ -137,6 +139,8 @@ static void run_test(int fd, unsigned ring, unsigned flags)
 			*b++ = offset;
 			reloc[i].offset += sizeof(*batch);
 		} else {
+			b[-1] -= 1;
+			b[-1] |= 1 << 22;
 			*b++ = offset;
 		}
 		*b++ = i;
@@ -144,6 +148,7 @@ static void run_test(int fd, unsigned ring, unsigned flags)
 	*b++ = MI_BATCH_BUFFER_END;
 	munmap(batch, 16*1024+4096);
 	gem_execbuf(fd, &execbuf);
+	check_bo(fd, obj[0].handle);
 
 	memset(&hang, 0, sizeof(hang));
 	if (flags & HANG)
@@ -215,7 +220,7 @@ igt_main
 	igt_skip_on_simulation();
 
 	igt_fixture
-		fd = drm_open_driver(DRIVER_INTEL);
+		fd = drm_open_driver_master(DRIVER_INTEL);
 
 	for (mode = modes; mode->prefix; mode++) {
 		for (ring = rings; ring->name; ring++) {
