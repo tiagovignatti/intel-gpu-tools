@@ -1435,7 +1435,8 @@ run_modes(const char *style, const struct access_mode *mode, unsigned allow_mem)
 		return;
 
 	run_basic_modes(style, mode, "", run_single);
-	run_basic_modes(style, mode, "-child", run_child);
+	if (mode->create_bo != userptr_create_bo)
+		run_basic_modes(style, mode, "-child", run_child);
 	run_basic_modes(style, mode, "-forked", run_forked);
 
 	igt_fork_signal_helper();
