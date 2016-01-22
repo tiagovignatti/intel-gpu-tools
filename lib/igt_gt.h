@@ -89,4 +89,6 @@ enum stop_ring_flags igt_get_stop_rings(void);
 int igt_setup_clflush(void);
 void igt_clflush_range(void *addr, int size);
 
+unsigned intel_detect_and_clear_missed_interrupts(int fd);
+
 #endif /* IGT_GT_H */

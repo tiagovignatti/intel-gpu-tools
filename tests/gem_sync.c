@@ -33,29 +33,6 @@ IGT_TEST_DESCRIPTION("Basic check of ring<->ring write synchronisation.");
  * Extremely efficient at catching missed irqs
  */
 
-static unsigned intel_detect_and_clear_missed_irq(int fd)
-{
-	unsigned missed = 0;
-	FILE *file;
-
-	gem_quiescent_gpu(fd);
-
-	file = igt_debugfs_fopen("i915_ring_missed_irq", "r");
-	if (file) {
-		igt_assert(fscanf(file, "%x", &missed) == 1);
-		fclose(file);
-	}
-	if (missed) {
-		file = igt_debugfs_fopen("i915_ring_missed_irq", "w");
-		if (file) {
-			fwrite("0\n", 1, 2, file);
-			fclose(file);
-		}
-	}
-
-	return missed;
-}
-
 static double gettime(void)
 {
 	static clockid_t clock = -1;
@@ -105,7 +82,7 @@ sync_ring(int fd, int ring, unsigned flags)
 	double start, elapsed;
 	unsigned long cycles;
 
-	intel_detect_and_clear_missed_irq(fd); /* clear before we begin */
+	intel_detect_and_clear_missed_interrupts(fd);
 
 	memset(&object, 0, sizeof(object));
 	object.handle = gem_create(fd, 4096);
@@ -130,7 +107,7 @@ sync_ring(int fd, int ring, unsigned flags)
 	igt_info("Completed %ld cycles: %.3f us\n", cycles, elapsed*1e6/cycles);
 
 	gem_close(fd, object.handle);
-	igt_assert_eq(intel_detect_and_clear_missed_irq(fd), 0);
+	igt_assert_eq(intel_detect_and_clear_missed_interrupts(fd), 0);
 }
 
 igt_main

@@ -755,26 +755,6 @@ static struct igt_hang_ring rcs_hang(void)
 	return igt_hang_ring(fd, I915_EXEC_RENDER);
 }
 
-static void check_gpu(void)
-{
-	unsigned missed_irq = 0;
-	FILE *file;
-
-	gem_quiescent_gpu(fd);
-
-	file = igt_debugfs_fopen("i915_ring_missed_irq", "r");
-	if (file) {
-		fscanf(file, "%x", &missed_irq);
-		fclose(file);
-	}
-	file = igt_debugfs_fopen("i915_ring_missed_irq", "w");
-	if (file) {
-		fwrite("0\n", 1, 2, file);
-		fclose(file);
-	}
-	igt_assert_eq(missed_irq, 0);
-}
-
 static void do_basic0(struct buffers *buffers,
 		      do_copy do_copy_func,
 		      do_hang do_hang_func)
@@ -1135,7 +1115,7 @@ static void run_single(struct buffers *buffers,
 		       do_hang do_hang_func)
 {
 	do_test_func(buffers, do_copy_func, do_hang_func);
-	check_gpu();
+	igt_assert_eq(intel_detect_and_clear_missed_interrupts(fd), 0);
 }
 
 static void run_interruptible(struct buffers *buffers,
@@ -1146,7 +1126,7 @@ static void run_interruptible(struct buffers *buffers,
 	for (pass = 0; pass < 10; pass++)
 		do_test_func(buffers, do_copy_func, do_hang_func);
 	pass = 0;
-	check_gpu();
+	igt_assert_eq(intel_detect_and_clear_missed_interrupts(fd), 0);
 }
 
 static void __run_forked(struct buffers *buffers,
@@ -1177,7 +1157,7 @@ static void __run_forked(struct buffers *buffers,
 	}
 
 	igt_waitchildren();
-	check_gpu();
+	igt_assert_eq(intel_detect_and_clear_missed_interrupts(fd), 0);
 
 	num_buffers = old_num_buffers;
 }
@@ -1473,6 +1453,7 @@ igt_main
 
 	igt_fixture {
 		fd = drm_open_driver(DRIVER_INTEL);
+		intel_detect_and_clear_missed_interrupts(fd);
 		devid = intel_get_drm_devid(fd);
 		gen = intel_gen(devid);
 		rendercopy = igt_get_render_copyfunc(devid);

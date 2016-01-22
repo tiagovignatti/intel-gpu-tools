@@ -91,39 +91,16 @@ sync_loop(int fd)
 	gem_close(fd, object[0].handle);
 }
 
-static unsigned intel_detect_and_clear_missed_irq(int fd)
-{
-	unsigned missed = 0;
-	FILE *file;
-
-	gem_quiescent_gpu(fd);
-
-	file = igt_debugfs_fopen("i915_ring_missed_irq", "r");
-	if (file) {
-		igt_assert(fscanf(file, "%x", &missed) == 1);
-		fclose(file);
-	}
-	if (missed) {
-		file = igt_debugfs_fopen("i915_ring_missed_irq", "w");
-		if (file) {
-			fwrite("0\n", 1, 2, file);
-			fclose(file);
-		}
-	}
-
-	return missed;
-}
-
 igt_simple_main
 {
 	int fd;
 
 	fd = drm_open_driver(DRIVER_INTEL);
 	igt_require(gem_get_num_rings(fd) > 1);
-	intel_detect_and_clear_missed_irq(fd); /* clear before we begin */
+	intel_detect_and_clear_missed_interrupts(fd);
 
 	sync_loop(fd);
 
-	igt_assert_eq(intel_detect_and_clear_missed_irq(fd), 0);
+	igt_assert_eq(intel_detect_and_clear_missed_interrupts(fd), 0);
 	close(fd);
 }

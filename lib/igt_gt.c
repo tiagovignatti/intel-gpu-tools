@@ -501,3 +501,35 @@ void igt_clflush_range(void *addr, int size)
 		asm volatile("clflush %0" : "+m" (*(volatile char *)p));
 	asm volatile("mfence" ::: "memory");
 }
+
+/**
+ * intel_detect_and_clear_missed_irq:
+ * @fd: open i915 drm file descriptor, used to quiesce the gpu
+ *
+ * This functions idles the GPU and then queries whether there has
+ * been a missed interrupt reported by the driver. Afterwards it
+ * clears the missed interrupt flag, in order to disable the timer
+ * fallback for the next test.
+ */
+unsigned intel_detect_and_clear_missed_interrupts(int fd)
+{
+	unsigned missed = 0;
+	FILE *file;
+
+	gem_quiescent_gpu(fd);
+
+	file = igt_debugfs_fopen("i915_ring_missed_irq", "r");
+	if (file) {
+		igt_assert(fscanf(file, "%x", &missed) == 1);
+		fclose(file);
+	}
+	if (missed) {
+		file = igt_debugfs_fopen("i915_ring_missed_irq", "w");
+		if (file) {
+			fwrite("0\n", 1, 2, file);
+			fclose(file);
+		}
+	}
+
+	return missed;
+}
