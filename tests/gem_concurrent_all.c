@@ -1135,8 +1135,20 @@ static void run_child(struct buffers *buffers,
 		      do_hang do_hang_func)
 
 {
-	igt_fork(child, 1)
+	/* We inherit the buffers from the parent, but the bufmgr/batch
+	 * needs to be local as the cache of reusable itself will be COWed,
+	 * leading to the child closing an object without the parent knowing.
+	 */
+	igt_fork(child, 1) {
+		buffers->bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
+		drm_intel_bufmgr_gem_enable_reuse(buffers->bufmgr);
+		batch = intel_batchbuffer_alloc(buffers->bufmgr, devid);
+
 		do_test_func(buffers, do_copy_func, do_hang_func);
+
+		intel_batchbuffer_free(batch);
+		drm_intel_bufmgr_destroy(buffers->bufmgr);
+	}
 
 	igt_waitchildren();
 	igt_assert_eq(intel_detect_and_clear_missed_interrupts(fd), 0);
