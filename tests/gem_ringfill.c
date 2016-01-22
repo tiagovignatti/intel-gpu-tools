@@ -108,6 +108,7 @@ static void run_test(int fd, unsigned ring, unsigned flags)
 
 	memset(obj, 0, sizeof(obj));
 	obj[0].handle = gem_create(fd, 4096);
+	obj[0].flags |= EXEC_OBJECT_WRITE;
 	obj[1].handle = gem_create(fd, 1024*16 + 4096);
 	gem_write(fd, obj[1].handle, 0, &bbe, sizeof(bbe));
 	igt_require(__gem_execbuf(fd, &execbuf) == 0);
