@@ -677,6 +677,45 @@ static int test_forbidden_ops(int fd)
 	return 0;
 }
 
+static void test_relocations(int fd)
+{
+	struct drm_i915_gem_relocation_entry *reloc;
+	struct drm_i915_gem_exec_object2 obj;
+	struct drm_i915_gem_execbuffer2 exec;
+	unsigned size;
+	void *ptr;
+	int i;
+
+	size = PAGE_SIZE + ALIGN(sizeof(*reloc)*256, PAGE_SIZE);
+
+	memset(&obj, 0, sizeof(obj));
+	igt_assert(posix_memalign(&ptr, PAGE_SIZE, size) == 0);
+	igt_assert_eq(gem_userptr(fd, ptr, size, 0, &obj.handle), 0);
+	if (!gem_has_llc(fd))
+		gem_set_caching(fd, obj.handle, 0);
+	*(uint32_t *)ptr = MI_BATCH_BUFFER_END;
+
+	reloc = (typeof(reloc))((char *)ptr + PAGE_SIZE);
+	obj.relocs_ptr = (uintptr_t)reloc;
+	obj.relocation_count = 256;
+
+	memset(reloc, 0, 256*sizeof(*reloc));
+	for (i = 0; i < 256; i++) {
+		reloc[i].offset = 2048 - 4*i;
+		reloc[i].target_handle = obj.handle;
+		reloc[i].read_domains = I915_GEM_DOMAIN_INSTRUCTION;
+	}
+
+	memset(&exec, 0, sizeof(exec));
+	exec.buffers_ptr = (uintptr_t)&obj;
+	exec.buffer_count = 1;
+	gem_execbuf(fd, &exec);
+
+	gem_sync(fd, obj.handle);
+	gem_close(fd, obj.handle);
+	free(ptr);
+}
+
 static unsigned char counter;
 
 static void (* volatile orig_sigbus)(int sig, siginfo_t *info, void *param);
@@ -1362,6 +1401,9 @@ int main(int argc, char **argv)
 
 	igt_subtest("forbidden-operations")
 		test_forbidden_ops(fd);
+
+	igt_subtest("relocations")
+		test_relocations(fd);
 
 	igt_info("Testing unsynchronized mappings...\n");
 	gem_userptr_test_unsynchronized();
