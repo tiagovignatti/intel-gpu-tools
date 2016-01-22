@@ -50,117 +50,104 @@
 
 #include <drm.h>
 
-
 IGT_TEST_DESCRIPTION("Check whether we correctly invalidate the cs tlb.");
 
-#define LOCAL_I915_EXEC_VEBOX (4<<0)
+#define LOCAL_I915_EXEC_VEBOX	(4<<0)
+#define EXEC_OBJECT_PINNED	(1<<4)
 #define BATCH_SIZE (1024*1024)
 
-static int exec(int fd, uint32_t handle, int split,
-		uint64_t *gtt_ofs, unsigned ring_id)
+static bool has_softpin(int fd)
 {
-	struct drm_i915_gem_execbuffer2 execbuf;
-	struct drm_i915_gem_exec_object2 gem_exec[1];
-	int ret = 0;
+	struct drm_i915_getparam gp;
+	int val = 0;
 
-	gem_exec[0].handle = handle;
-	gem_exec[0].relocation_count = 0;
-	gem_exec[0].relocs_ptr = 0;
-	gem_exec[0].alignment = 0;
-	gem_exec[0].offset = 0x00100000;
-	gem_exec[0].flags = 0;
-	gem_exec[0].rsvd1 = 0;
-	gem_exec[0].rsvd2 = 0;
+	memset(&gp, 0, sizeof(gp));
+	gp.param = 37; /* I915_PARAM_HAS_EXEC_SOFTPIN */
+	gp.value = &val;
 
-	execbuf.buffers_ptr = (uintptr_t)gem_exec;
-	execbuf.buffer_count = 1;
-	execbuf.batch_start_offset = 0;
-	execbuf.batch_len = 8*(split+1);
-	execbuf.cliprects_ptr = 0;
-	execbuf.num_cliprects = 0;
-	execbuf.DR1 = 0;
-	execbuf.DR4 = 0;
-	execbuf.flags = ring_id;
-	i915_execbuffer2_set_context_id(execbuf, 0);
-	execbuf.rsvd2 = 0;
+	if (drmIoctl(fd, DRM_IOCTL_I915_GETPARAM, &gp))
+		return 0;
 
-	ret = drmIoctl(fd,
-		       DRM_IOCTL_I915_GEM_EXECBUFFER2,
-		       &execbuf);
+	errno = 0;
+	return (val == 1);
+}
 
-	*gtt_ofs = gem_exec[0].offset;
+static void *
+mmap_coherent(int fd, uint32_t handle, int size)
+{
+	int domain;
+	void *ptr;
 
-	return ret;
+	if (gem_has_llc(fd) || !gem_mmap__has_wc(fd)) {
+		domain = I915_GEM_DOMAIN_CPU;
+		ptr = gem_mmap__cpu(fd, handle, 0, size, PROT_WRITE);
+	} else {
+		domain = I915_GEM_DOMAIN_GTT;
+		ptr = gem_mmap__wc(fd, handle, 0, size, PROT_WRITE);
+	}
+
+	gem_set_domain(fd, handle, domain, domain);
+	return ptr;
 }
 
 static void run_on_ring(int fd, unsigned ring_id, const char *ring_name)
 {
-	uint32_t handle, handle_new;
-	uint64_t gtt_offset, gtt_offset_new;
-	uint32_t *batch_ptr, *batch_ptr_old;
-	unsigned split;
+	struct drm_i915_gem_execbuffer2 execbuf;
+	struct drm_i915_gem_exec_object2 execobj;
+	struct {
+		uint32_t handle;
+		uint32_t *batch;
+	} obj[2];
+	unsigned i;
 	char buf[100];
-	int i;
 
 	gem_require_ring(fd, ring_id);
+	igt_require(has_softpin(fd));
 
-	sprintf(buf, "testing %s cs tlb coherency: ", ring_name);
-
-	/* Shut up gcc, too stupid. */
-	batch_ptr_old = NULL;
-	handle = 0;
-	gtt_offset = 0;
-
-	for (split = 0; split < BATCH_SIZE/8 - 1; split += 2) {
-		igt_progress(buf, split, BATCH_SIZE/8 - 1);
-
-		handle_new = gem_create(fd, BATCH_SIZE);
-		batch_ptr = gem_mmap__cpu(fd, handle_new, 0, BATCH_SIZE,
-					  PROT_READ | PROT_WRITE);
-		batch_ptr[split*2] = MI_BATCH_BUFFER_END;
-
-		for (i = split*2 + 2; i < BATCH_SIZE/8; i++)
-			batch_ptr[i] = 0xffffffff;
-
-		if (split > 0) {
-			gem_sync(fd, handle);
-			gem_close(fd, handle);
-		}
-
-		igt_assert_eq(exec(fd, handle_new, split, &gtt_offset_new, ring_id),
-			      0);
-
-		if (split > 0) {
-			/* Check that we've managed to collide in the tlb. */
-			igt_assert(gtt_offset == gtt_offset_new);
-
-			/* We hang onto the storage of the old batch by keeping
-			 * the cpu mmap around. */
-			munmap(batch_ptr_old, BATCH_SIZE);
-		}
-
-		handle = handle_new;
-		gtt_offset = gtt_offset_new;
-		batch_ptr_old = batch_ptr;
+	for (i = 0; i < 2; i++) {
+		obj[i].handle = gem_create(fd, BATCH_SIZE);
+		obj[i].batch = mmap_coherent(fd, obj[i].handle, BATCH_SIZE);
+		memset(obj[i].batch, 0xff, BATCH_SIZE);
 	}
 
-}
+	memset(&execobj, 0, sizeof(execobj));
+	execobj.handle = obj[0].handle;
+	obj[0].batch[0] = MI_BATCH_BUFFER_END;
 
-int fd;
+	memset(&execbuf, 0, sizeof(execbuf));
+	execbuf.buffers_ptr = (uintptr_t)&execobj;
+	execbuf.buffer_count = 1;
+	execbuf.flags = ring_id;
+
+	/* Execute once to allocate a gtt-offset */
+	gem_execbuf(fd, &execbuf);
+	execobj.flags = EXEC_OBJECT_PINNED;
+
+	sprintf(buf, "Testing %s cs tlb coherency: ", ring_name);
+	for (i = 0; i < BATCH_SIZE/8; i++) {
+		igt_progress(buf, i, BATCH_SIZE/8);
+
+		execobj.handle = obj[i&1].handle;
+		obj[i&1].batch[i*2] = MI_BATCH_BUFFER_END;
+		execbuf.batch_start_offset = i*8;
+
+		gem_execbuf(fd, &execbuf);
+	}
+
+	for (i = 0; i < 2; i++) {
+		gem_close(fd, obj[i].handle);
+		munmap(obj[i].batch, BATCH_SIZE);
+	}
+}
 
 igt_main
 {
+	int fd = -1;
 
 	igt_skip_on_simulation();
 
-	igt_fixture {
+	igt_fixture
 		fd = drm_open_driver(DRIVER_INTEL);
-
-		/* This test is very sensitive to residual gtt_mm noise from previous
-		 * tests. Try to quiet thing down first. */
-		gem_quiescent_gpu(fd);
-		sleep(5); /* needs more serious ducttape */
-	}
 
 	igt_subtest("render")
 		run_on_ring(fd, I915_EXEC_RENDER, "render");
