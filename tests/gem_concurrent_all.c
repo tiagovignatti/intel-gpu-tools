@@ -1129,6 +1129,19 @@ static void run_interruptible(struct buffers *buffers,
 	igt_assert_eq(intel_detect_and_clear_missed_interrupts(fd), 0);
 }
 
+static void run_child(struct buffers *buffers,
+		      do_test do_test_func,
+		      do_copy do_copy_func,
+		      do_hang do_hang_func)
+
+{
+	igt_fork(child, 1)
+		do_test_func(buffers, do_copy_func, do_hang_func);
+
+	igt_waitchildren();
+	igt_assert_eq(intel_detect_and_clear_missed_interrupts(fd), 0);
+}
+
 static void __run_forked(struct buffers *buffers,
 			 int num_children, int loops,
 			 do_test do_test_func,
@@ -1422,6 +1435,7 @@ run_modes(const char *style, const struct access_mode *mode, unsigned allow_mem)
 		return;
 
 	run_basic_modes(style, mode, "", run_single);
+	run_basic_modes(style, mode, "-child", run_child);
 	run_basic_modes(style, mode, "-forked", run_forked);
 
 	igt_fork_signal_helper();
