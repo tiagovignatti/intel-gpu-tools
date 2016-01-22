@@ -96,6 +96,9 @@ static void run_test(int fd, unsigned ring, unsigned flags)
 	uint32_t *batch, *b;
 	int i;
 
+	igt_skip_on_f(gen == 6 && (ring & ~(3<<13)) == I915_EXEC_BSD,
+		      "MI_STORE_DATA broken on gen6 bsd\n");
+
 	memset(&execbuf, 0, sizeof(execbuf));
 	execbuf.buffers_ptr = (uintptr_t)obj;
 	execbuf.buffer_count = 2;
