@@ -369,6 +369,8 @@ static void test_noreloc(int fd)
 	memset(&execbuf, 0, sizeof(execbuf));
 	execbuf.buffers_ptr = (unsigned long)object;
 	execbuf.buffer_count = 1;
+	if (gen < 4)
+		execbuf.flags |= I915_EXEC_SECURE;
 	gem_execbuf(fd, &execbuf);
 	gem_close(fd, object[0].handle);
 
@@ -391,9 +393,10 @@ static void test_noreloc(int fd)
 	for (i = 0; i < ARRAY_SIZE(object) - 1; i++) {
 		*b++ = MI_STORE_DWORD_IMM;
 		if (gen < 8) {
-			if (gen < 4)
+			if (gen < 4) {
 				b[-1]--;
-			else
+				b[-1] |= 1 << 22;
+			} else
 				*b++ = 0;
 			*b++ = object[i].offset;
 		} else {
@@ -429,7 +432,7 @@ igt_main
 	igt_skip_on_simulation();
 
 	igt_fixture {
-		fd = drm_open_driver(DRIVER_INTEL);
+		fd = drm_open_driver_master(DRIVER_INTEL);
 		igt_require(has_softpin_support(fd));
 	}
 
