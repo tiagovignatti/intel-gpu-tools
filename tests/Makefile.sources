@@ -4,6 +4,10 @@ NOUVEAU_TESTS_M = \
 	prime_nv_test \
 	$(NULL)
 
+VC4_TESTS_M = \
+	vc4_wait_seqno \
+	$(NULL)
+
 TESTS_progs_M = \
 	core_get_client_auth \
 	drv_getparams_basic \

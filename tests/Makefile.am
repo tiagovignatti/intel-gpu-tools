@@ -4,6 +4,10 @@ if HAVE_NOUVEAU
     TESTS_progs_M += $(NOUVEAU_TESTS_M)
 endif
 
+if HAVE_VC4
+    TESTS_progs_M += $(VC4_TESTS_M)
+endif
+
 if BUILD_TESTS
 test-list.txt: Makefile.sources
 	@echo TESTLIST > $@
@@ -97,5 +101,7 @@ prime_nv_api_CFLAGS = $(AM_CFLAGS) $(DRM_NOUVEAU_CFLAGS)
 prime_nv_api_LDADD = $(LDADD) $(DRM_NOUVEAU_LIBS)
 prime_nv_pcopy_CFLAGS = $(AM_CFLAGS) $(DRM_NOUVEAU_CFLAGS)
 prime_nv_pcopy_LDADD = $(LDADD) $(DRM_NOUVEAU_LIBS)
+vc4_wait_seqno_CFLAGS = $(AM_CFLAGS) $(DRM_VC4_CFLAGS)
+vc4_wait_seqno_LDADD = $(LDADD) $(DRM_VC4_LIBS)
 endif
 
