@@ -100,6 +100,16 @@ static bool is_i915_device(int fd)
 	return !ret && strcmp("i915", name) == 0;
 }
 
+static bool is_vc4_device(int fd)
+{
+	int ret;
+	char name[5] = "";
+
+	ret = __get_drm_device_name(fd, name);
+
+	return !ret && strcmp("vc4", name) == 0;
+}
+
 static bool is_intel(int fd)
 {
 	struct drm_i915_getparam gp;
@@ -237,7 +247,7 @@ int __drm_open_driver(int chipset)
 	for (int i = 0; i < 16; i++) {
 		char name[80];
 		int fd;
-		bool found_intel;
+		bool found_intel, found_vc4;
 
 		sprintf(name, "/dev/dri/card%u", i);
 		fd = open(name, O_RDWR);
@@ -246,7 +256,9 @@ int __drm_open_driver(int chipset)
 
 		found_intel =  is_i915_device(fd) && is_intel(fd) && (chipset & DRIVER_INTEL);
 
-		if ((chipset & DRIVER_ANY) || found_intel)
+		found_vc4 = is_vc4_device(fd) && (chipset & DRIVER_VC4);
+
+		if ((chipset & DRIVER_ANY) || found_intel || found_vc4)
 			return fd;
 
 		close(fd);

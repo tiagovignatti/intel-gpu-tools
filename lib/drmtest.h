@@ -40,6 +40,7 @@
 
 #define DRIVER_ANY 0x1
 #define DRIVER_INTEL (0x1 << 1)
+#define DRIVER_VC4 (0x1 << 2)
 
 #ifdef ANDROID
 #if (!(defined HAVE_MMAP64)) && (!(defined __x86_64__))
