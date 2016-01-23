@@ -51,11 +51,6 @@
 
 IGT_TEST_DESCRIPTION("Test of streaming writes into active GPU sources");
 
-static bool __gem_execbuf(int fd, struct drm_i915_gem_execbuffer2 *eb)
-{
-	return drmIoctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, eb) == 0;
-}
-
 #define SRC 0
 #define DST 1
 #define BATCH 2
@@ -109,9 +104,9 @@ static void test_streaming(int fd, int mode, int sync)
 	execbuf.buffers_ptr = (uintptr_t)exec;
 	execbuf.buffer_count = 2;
 	execbuf.flags = LOCAL_I915_EXEC_HANDLE_LUT;
-	if (!__gem_execbuf(fd, &execbuf)) {
+	if (__gem_execbuf(fd, &execbuf)) {
 		execbuf.flags = 0;
-		igt_require(__gem_execbuf(fd, &execbuf));
+		igt_require(__gem_execbuf(fd, &execbuf) == 0);
 	}
 	/* We assume that the active objects are fixed to avoid relocations */
 	__src_offset = src_offset;
@@ -135,7 +130,7 @@ static void test_streaming(int fd, int mode, int sync)
 		reloc[2*i+1].read_domains = I915_GEM_DOMAIN_RENDER;
 		reloc[2*i+1].write_domain = 0;
 	}
-	igt_assert(__gem_execbuf(fd, &execbuf));
+	gem_execbuf(fd, &execbuf);
 	igt_assert_eq_u64(__src_offset, src_offset);
 	igt_assert_eq_u64(__dst_offset, dst_offset);
 
@@ -304,7 +299,7 @@ static void test_batch(int fd, int mode, int reverse)
 	execbuf.flags = LOCAL_I915_EXEC_HANDLE_LUT;
 	if (gem_has_blt(fd))
 		execbuf.flags |= I915_EXEC_BLT;
-	if (!__gem_execbuf(fd, &execbuf)) {
+	if (__gem_execbuf(fd, &execbuf)) {
 		execbuf.flags &= ~LOCAL_I915_EXEC_HANDLE_LUT;
 		gem_execbuf(fd, &execbuf);
 	}

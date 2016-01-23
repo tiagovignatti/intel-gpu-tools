@@ -40,11 +40,6 @@
 
 IGT_TEST_DESCRIPTION("Exercises the basic execbuffer using object alignments");
 
-static int __gem_execbuf(int fd, struct drm_i915_gem_execbuffer2 *eb)
-{
-	return drmIoctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, eb);
-}
-
 static uint32_t find_last_bit(uint64_t x)
 {
 	uint32_t i = 0;
@@ -163,8 +158,8 @@ static void single(int fd)
 	if (__gem_execbuf(fd, &execbuf)) {
 		execobj.flags = 0;
 		gtt_size = 1ull << 32;
+		gem_execbuf(fd, &execbuf);
 	}
-	gem_execbuf(fd, &execbuf);
 
 	execobj.alignment = 3*4096;
 	non_pot = __gem_execbuf(fd, &execbuf) == 0;

@@ -122,14 +122,6 @@ static uint32_t busy_blt(int fd)
 	return object[0].handle;
 }
 
-static int __gem_execbuf(int fd, struct drm_i915_gem_execbuffer2 *eb)
-{
-	int err = 0;
-	if (drmIoctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, eb))
-		err = -errno;
-	return err;
-}
-
 static bool exec_noop(int fd,
 		      uint32_t *handles,
 		      unsigned ring,

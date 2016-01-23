@@ -71,14 +71,6 @@ static void fill_ring(int fd, struct drm_i915_gem_execbuffer2 *execbuf)
 		gem_execbuf(fd, execbuf);
 }
 
-static int __gem_execbuf(int fd, struct drm_i915_gem_execbuffer2 *execbuf)
-{
-	int err = 0;
-	if (drmIoctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, execbuf))
-		err = -errno;
-	return err;
-}
-
 #define INTERRUPTIBLE 0x1
 #define HANG 0x2
 #define CHILD 0x8

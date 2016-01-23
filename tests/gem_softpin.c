@@ -43,14 +43,6 @@ static uint64_t gen8_canonical_addr(uint64_t address)
 	return (__s64)(address << shift) >> shift;
 }
 
-static int __gem_execbuf(int fd, struct drm_i915_gem_execbuffer2 *eb)
-{
-	int err = 0;
-	if (drmIoctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, eb))
-		err = -errno;
-	return err;
-}
-
 static void test_invalid(int fd)
 {
 	const uint32_t bbe = MI_BATCH_BUFFER_END;

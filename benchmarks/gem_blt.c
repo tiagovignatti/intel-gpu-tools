@@ -178,14 +178,6 @@ static int gem_linear_blt(int fd,
 	return (b+2 - batch) * sizeof(uint32_t);
 }
 
-static int __gem_execbuf(int fd, struct drm_i915_gem_execbuffer2 *execbuf)
-{
-	int err = 0;
-	if (drmIoctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, execbuf))
-		err = -errno;
-	return err;
-}
-
 static int run(int object, int batch, int time, int reps)
 {
 	struct drm_i915_gem_execbuffer2 execbuf;

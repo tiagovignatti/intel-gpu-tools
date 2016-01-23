@@ -35,14 +35,6 @@ IGT_TEST_DESCRIPTION("Basic check of ring<->ring write synchronisation.");
  * Extremely efficient at catching missed irqs with semaphores=0 ...
  */
 
-static int __gem_execbuf(int fd, struct drm_i915_gem_execbuffer2 *eb)
-{
-	int err = 0;
-	if (drmIoctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, eb))
-		err = -errno;
-	return err;
-}
-
 static void
 sync_loop(int fd)
 {

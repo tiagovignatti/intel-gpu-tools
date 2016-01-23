@@ -503,6 +503,22 @@ uint32_t gem_create(int fd, uint64_t size)
 }
 
 /**
+ * __gem_execbuf:
+ * @fd: open i915 drm file descriptor
+ * @execbuf: execbuffer data structure
+ *
+ * This wraps the EXECBUFFER2 ioctl, which submits a batchbuffer for the gpu to
+ * run. This is allowed to fail, with -errno returned.
+ */
+int __gem_execbuf(int fd, struct drm_i915_gem_execbuffer2 *execbuf)
+{
+	int err = 0;
+	if (drmIoctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, execbuf))
+		err = -errno;
+	return err;
+}
+
+/**
  * gem_execbuf:
  * @fd: open i915 drm file descriptor
  * @execbuf: execbuffer data structure
@@ -512,10 +528,7 @@ uint32_t gem_create(int fd, uint64_t size)
  */
 void gem_execbuf(int fd, struct drm_i915_gem_execbuffer2 *execbuf)
 {
-	int result;
-
-	result = drmIoctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, execbuf);
-	igt_assert(result == 0);
+	igt_assert_eq(__gem_execbuf(fd, execbuf), 0);
 	errno = 0;
 }
 

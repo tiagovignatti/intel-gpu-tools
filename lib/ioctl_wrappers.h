@@ -62,6 +62,7 @@ uint32_t gem_create_stolen(int fd, uint64_t size);
 uint32_t __gem_create(int fd, int size);
 uint32_t gem_create(int fd, uint64_t size);
 void gem_execbuf(int fd, struct drm_i915_gem_execbuffer2 *execbuf);
+int __gem_execbuf(int fd, struct drm_i915_gem_execbuffer2 *execbuf);
 
 void *gem_mmap__gtt(int fd, uint32_t handle, uint64_t size, unsigned prot);
 void *gem_mmap__cpu(int fd, uint32_t handle, uint64_t offset, uint64_t size, unsigned prot);

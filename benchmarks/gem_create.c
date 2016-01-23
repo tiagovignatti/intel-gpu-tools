@@ -49,15 +49,6 @@
 #define LOCAL_I915_EXEC_NO_RELOC (1<<11)
 #define LOCAL_I915_EXEC_HANDLE_LUT (1<<12)
 
-static int __gem_execbuf(int fd, struct drm_i915_gem_execbuffer2 *execbuf)
-{
-	int err = 0;
-	if (drmIoctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, execbuf))
-		err = -errno;
-	return err;
-}
-
-
 static double elapsed(const struct timespec *start,
                         const struct timespec *end)
 {

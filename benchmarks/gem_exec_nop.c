@@ -55,14 +55,6 @@ static double elapsed(const struct timespec *start,
 	return (end->tv_sec - start->tv_sec) + 1e-9*(end->tv_nsec - start->tv_nsec);
 }
 
-static int __gem_execbuf(int fd, struct drm_i915_gem_execbuffer2 *execbuf)
-{
-	int err = 0;
-	if (drmIoctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, execbuf))
-		err = -errno;
-	return err;
-}
-
 static uint32_t batch(int fd)
 {
 	const uint32_t buf[] = {MI_BATCH_BUFFER_END};

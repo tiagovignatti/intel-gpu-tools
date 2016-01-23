@@ -136,20 +136,6 @@ static int gem_reset_status(int fd, int ctx_id)
 	return RS_NO_ERROR;
 }
 
-static int gem_exec(int fd, struct drm_i915_gem_execbuffer2 *execbuf)
-{
-	int ret;
-
-	ret = ioctl(fd,
-		    DRM_IOCTL_I915_GEM_EXECBUFFER2,
-		    execbuf);
-
-	if (ret < 0)
-		return -errno;
-
-	return 0;
-}
-
 static int exec_valid_ring(int fd, int ctx, int ring)
 {
 	struct drm_i915_gem_execbuffer2 execbuf;
@@ -180,7 +166,7 @@ static int exec_valid_ring(int fd, int ctx, int ring)
 	i915_execbuffer2_set_context_id(execbuf, ctx);
 	execbuf.rsvd2 = 0;
 
-	ret = gem_exec(fd, &execbuf);
+	ret = __gem_execbuf(fd, &execbuf);
 	if (ret < 0)
 		return ret;
 

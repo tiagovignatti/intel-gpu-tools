@@ -35,14 +35,6 @@
 #define I915_PARAM_CMD_PARSER_VERSION       28
 #endif
 
-static int __gem_execbuf(int fd, struct drm_i915_gem_execbuffer2 *execbuf)
-{
-	if (drmIoctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, execbuf))
-		return -errno;
-
-	return 0;
-}
-
 static void exec_batch_patched(int fd, uint32_t cmd_bo, uint32_t *cmds,
 			       int size, int patch_offset, uint64_t expected_value)
 {
