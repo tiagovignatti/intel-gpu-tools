@@ -78,7 +78,7 @@ static void test_invalid(int fd)
 	struct drm_i915_gem_exec_object2 object;
 
 	memset(&execbuf, 0, sizeof(execbuf));
-	execbuf.buffers_ptr = (unsigned long)&object;
+	execbuf.buffers_ptr = (uintptr_t)&object;
 	execbuf.buffer_count = 1;
 
 	memset(&object, 0, sizeof(object));
@@ -132,7 +132,7 @@ static void test_softpin(int fd)
 	int loop;
 
 	memset(&execbuf, 0, sizeof(execbuf));
-	execbuf.buffers_ptr = (unsigned long)&object;
+	execbuf.buffers_ptr = (uintptr_t)&object;
 	execbuf.buffer_count = 1;
 	for (loop = 0; loop < 1024; loop++) {
 		memset(&object, 0, sizeof(object));
@@ -178,7 +178,7 @@ static void test_overlap(int fd)
 
 	/* Find a hole */
 	memset(&execbuf, 0, sizeof(execbuf));
-	execbuf.buffers_ptr = (unsigned long)object;
+	execbuf.buffers_ptr = (uintptr_t)object;
 	execbuf.buffer_count = 1;
 	gem_execbuf(fd, &execbuf);
 
@@ -241,7 +241,7 @@ static uint64_t busy_batch(int fd)
 	*map = MI_BATCH_BUFFER_END;
 
 	memset(&execbuf, 0, sizeof(execbuf));
-	execbuf.buffers_ptr = (unsigned long)object;
+	execbuf.buffers_ptr = (uintptr_t)object;
 	execbuf.buffer_count = 2;
 	if (gen >= 6)
 		execbuf.flags = I915_EXEC_BLT;
@@ -301,13 +301,70 @@ static void test_evict_active(int fd)
 
 	/* Replace the active batch with ourselves, forcing an eviction */
 	memset(&execbuf, 0, sizeof(execbuf));
-	execbuf.buffers_ptr = (unsigned long)&object;
+	execbuf.buffers_ptr = (uintptr_t)&object;
 	execbuf.buffer_count = 1;
 
 	gem_execbuf(fd, &execbuf);
 	gem_close(fd, object.handle);
 
 	igt_assert_eq_u64(object.offset, expected);
+}
+
+static void test_evict_snoop(int fd)
+{
+	const uint32_t bbe = MI_BATCH_BUFFER_END;
+	struct drm_i915_gem_execbuffer2 execbuf;
+	struct drm_i915_gem_exec_object2 object[2];
+	uint64_t hole;
+
+	igt_require(!gem_has_llc(fd));
+	igt_require(!gem_uses_aliasing_ppgtt(fd));
+
+	memset(&execbuf, 0, sizeof(execbuf));
+	execbuf.buffers_ptr = (uintptr_t)object;
+	execbuf.buffer_count = 1;
+
+	/* Find a hole */
+	memset(object, 0, sizeof(object));
+	object[0].handle = gem_create(fd, 3*4096);
+	gem_write(fd, object[0].handle, 0, &bbe, sizeof(bbe));
+	gem_execbuf(fd, &execbuf);
+	gem_close(fd, object[0].handle);
+	hole = object[0].offset;
+
+	/* Create a snoop + uncached pair */
+	object[0].handle = gem_create(fd, 4096);
+	object[0].flags = EXEC_OBJECT_PINNED;
+	gem_set_caching(fd, object[0].handle, 1);
+	object[1].handle = gem_create(fd, 4096);
+	object[1].flags = EXEC_OBJECT_PINNED;
+	gem_write(fd, object[1].handle, 4096-sizeof(bbe), &bbe, sizeof(bbe));
+	execbuf.buffer_count = 2;
+
+	/* snoop abutting before uncached -> error */
+	object[0].offset = hole;
+	object[1].offset = hole + 4096;
+	igt_assert_eq(__gem_execbuf(fd, &execbuf), -EINVAL);
+
+	/* snoop abutting after uncached -> error */
+	object[0].offset = hole + 4096;
+	object[1].offset = hole;
+	igt_assert_eq(__gem_execbuf(fd, &execbuf), -EINVAL);
+
+	/* with gap -> okay */
+	object[0].offset = hole + 2*4096;
+	object[1].offset = hole;
+	igt_assert_eq(__gem_execbuf(fd, &execbuf), 0);
+
+	/* And we should force the snoop away (or the GPU may hang) */
+	object[0].flags = 0;
+	object[1].offset = hole + 4096;
+	igt_assert_eq(__gem_execbuf(fd, &execbuf), 0);
+	igt_assert(object[0].offset != hole);
+	igt_assert(object[0].offset != hole + 2*4096);
+
+	gem_close(fd, object[0].handle);
+	gem_close(fd, object[1].handle);
 }
 
 static void test_evict_hang(int fd)
@@ -328,7 +385,7 @@ static void test_evict_hang(int fd)
 
 	/* Replace the hanging batch with ourselves, forcing an eviction */
 	memset(&execbuf, 0, sizeof(execbuf));
-	execbuf.buffers_ptr = (unsigned long)&object;
+	execbuf.buffers_ptr = (uintptr_t)&object;
 	execbuf.buffer_count = 1;
 
 	gem_execbuf(fd, &execbuf);
@@ -367,7 +424,7 @@ static void test_noreloc(int fd)
 
 	/* Find a hole */
 	memset(&execbuf, 0, sizeof(execbuf));
-	execbuf.buffers_ptr = (unsigned long)object;
+	execbuf.buffers_ptr = (uintptr_t)object;
 	execbuf.buffer_count = 1;
 	if (gen < 4)
 		execbuf.flags |= I915_EXEC_SECURE;
@@ -446,6 +503,8 @@ igt_main
 		test_noreloc(fd);
 	igt_subtest("evict-active")
 		test_evict_active(fd);
+	igt_subtest("evict-snoop")
+		test_evict_snoop(fd);
 	igt_subtest("evict-hang")
 		test_evict_hang(fd);
 
