@@ -254,12 +254,16 @@ userptr_create_bo(drm_intel_bufmgr *bufmgr, int width, int height)
 {
 	struct local_i915_gem_userptr userptr;
 	drm_intel_bo *bo;
+	void *ptr;
 
 	memset(&userptr, 0, sizeof(userptr));
 	userptr.user_size = width * height * 4;
 	userptr.user_size = (userptr.user_size + 4095) & -4096;
-	igt_assert(posix_memalign((void **)&userptr.user_ptr,
-				4096, userptr.user_size) == 0);
+
+	ptr = mmap(NULL, userptr.user_size,
+		   PROT_READ | PROT_WRITE, MAP_ANON | MAP_SHARED, -1, 0);
+	igt_assert(ptr != (void *)-1);
+	userptr.user_ptr = (uintptr_t)ptr;
 
 	do_or_die(drmIoctl(fd, LOCAL_IOCTL_I915_GEM_USERPTR, &userptr));
 	bo = gem_handle_to_libdrm_bo(bufmgr, fd, "userptr", userptr.handle);
@@ -295,7 +299,7 @@ userptr_cmp_bo(drm_intel_bo *bo, uint32_t val, int width, int height, drm_intel_
 static void
 userptr_release_bo(drm_intel_bo *bo)
 {
-	free(bo->virtual);
+	munmap(bo->virtual, bo->size);
 	bo->virtual = NULL;
 
 	drm_intel_bo_unreference(bo);
@@ -1447,8 +1451,7 @@ run_modes(const char *style, const struct access_mode *mode, unsigned allow_mem)
 		return;
 
 	run_basic_modes(style, mode, "", run_single);
-	if (mode->create_bo != userptr_create_bo)
-		run_basic_modes(style, mode, "-child", run_child);
+	run_basic_modes(style, mode, "-child", run_child);
 	run_basic_modes(style, mode, "-forked", run_forked);
 
 	igt_fork_signal_helper();
