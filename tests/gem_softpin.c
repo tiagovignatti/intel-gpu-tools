@@ -129,7 +129,10 @@ static void test_softpin(int fd)
 	struct drm_i915_gem_execbuffer2 execbuf;
 	struct drm_i915_gem_exec_object2 object;
 	uint64_t offset, end;
+	uint32_t last_handle;
 	int loop;
+
+	last_handle = gem_create(fd, size);
 
 	memset(&execbuf, 0, sizeof(execbuf));
 	execbuf.buffers_ptr = (uintptr_t)&object;
@@ -142,6 +145,7 @@ static void test_softpin(int fd)
 		/* Find a hole */
 		gem_execbuf(fd, &execbuf);
 		gem_close(fd, object.handle);
+		gem_close(fd, last_handle);
 
 		igt_debug("Made a 2 MiB hole: %08llx\n",
 			  object.offset);
@@ -157,7 +161,7 @@ static void test_softpin(int fd)
 			igt_assert_eq_u64(object.offset, offset);
 		}
 
-		gem_close(fd, object.handle);
+		last_handle = object.handle;
 	}
 }
 
