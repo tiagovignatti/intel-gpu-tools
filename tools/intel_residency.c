@@ -23,6 +23,8 @@
  * Authors: Paulo Zanoni <paulo.r.zanoni@intel.com>
  *
  */
+
+#include <sys/time.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -311,6 +313,14 @@ static void setup_alarm(void)
 	sigaction(SIGALRM, &sa, NULL);
 }
 
+static void set_alarm(time_t sec, suseconds_t usec)
+{
+	struct itimerval timerval = {{0, 0}, {sec, usec}};
+
+	alarm_received = false;
+	igt_assert(setitimer(ITIMER_REAL, &timerval, NULL) == 0);
+}
+
 static void unset_mode(void)
 {
 	int rc;
@@ -370,8 +380,7 @@ static void wait_until_idle(void)
 	uint64_t tsc, pc, res;
 
 	do {
-		alarm_received = false;
-		ualarm(500 * 1000, 0);
+		set_alarm(0, 500 * 1000);
 
 		tsc = msr_read(IA32_TIME_STAMP_COUNTER);
 		pc = msr_read(deepest_pc_state);
@@ -398,12 +407,10 @@ static uint64_t do_measurement(void (*callback)(void *ptr), void *ptr)
 
 	wait_until_idle();
 
-	alarm_received = false;
-	alarm(opts.res_warm_time);
+	set_alarm(opts.res_warm_time, 0);
 	callback(ptr);
 
-	alarm_received = false;
-	alarm(opts.res_calc_time);
+	set_alarm(opts.res_calc_time, 0);
 
 	tsc = msr_read(IA32_TIME_STAMP_COUNTER);
 	pc = msr_read(deepest_pc_state);
@@ -423,13 +430,11 @@ static void setup_idle(void)
 
 	for (retries = 0; ; retries++) {
 
-		alarm_received = false;
-		alarm(opts.res_warm_time);
+		set_alarm(opts.res_warm_time, 0);
 		while (!alarm_received)
 			pause();
 
-		alarm_received = false;
-		alarm(opts.res_calc_time);
+		set_alarm(opts.res_calc_time, 0);
 
 		tsc = msr_read(IA32_TIME_STAMP_COUNTER);
 		for (pc_i = best_pc_i; pc_i < NUM_PC_STATES; pc_i++)
