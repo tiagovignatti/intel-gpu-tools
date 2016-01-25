@@ -388,7 +388,7 @@ static void flink_userptr_bo(uint32_t old_handle, uint32_t new_handle)
 		       handle_size_map[old_handle]);
 }
 
-static void clear(int fd, uint32_t handle, int size)
+static void clear(int fd, uint32_t handle, uint64_t size)
 {
 	void *ptr = get_handle_ptr(handle);
 
@@ -1344,7 +1344,7 @@ static void test_invalidate_close_race(int fd, bool overlap)
 	free(t_data.ptr);
 }
 
-unsigned int total_ram;
+uint64_t total_ram;
 uint64_t aperture_size;
 int fd, count;
 
@@ -1376,7 +1376,7 @@ int main(int argc, char **argv)
 			count = 2 * aperture_size / (1024*1024) / 3;
 
 		total_ram = intel_get_total_ram_mb();
-		igt_info("Total RAM is %u MiB\n", total_ram);
+		igt_info("Total RAM is %'llu MiB\n", (long long)total_ram);
 
 		if (count > total_ram * 3 / 4) {
 			count = intel_get_total_ram_mb() * 3 / 4;

@@ -185,11 +185,10 @@ static void major_evictions(int fd, int size, int count)
 	free(bo);
 }
 
-int fd;
-
 igt_main
 {
-	int size, count;
+	uint64_t size, count;
+	int fd = -1;
 
 	igt_fixture {
 		fd = drm_open_driver(DRIVER_INTEL);

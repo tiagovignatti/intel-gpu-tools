@@ -31,14 +31,13 @@
 #include <stdlib.h>
 
 
-struct igt_eviction_test_ops
-{
+struct igt_eviction_test_ops {
 	uint32_t (*create)(int fd, uint64_t size);
 	void (*flink)(uint32_t old_handle, uint32_t new_handle);
 	void	 (*close)(int fd, uint32_t bo);
 	int	 (*copy)(int fd, uint32_t dst, uint32_t src,
 			 uint32_t *all_bo, int nr_bos);
-	void	 (*clear)(int fd, uint32_t bo, int size);
+	void	 (*clear)(int fd, uint32_t bo, uint64_t size);
 };
 
 #define FORKING_EVICTIONS_INTERRUPTIBLE	  (1 << 0)
@@ -58,11 +57,12 @@ static void exchange_uint32_t(void *array, unsigned i, unsigned j)
 }
 
 static int minor_evictions(int fd, struct igt_eviction_test_ops *ops,
-			   int surface_size, int nr_surfaces)
+			   uint64_t surface_size,
+			   uint64_t nr_surfaces)
 {
 	uint32_t *bo, *sel;
-	int n, m, pass, fail;
-	int total_surfaces;
+	uint64_t n, m, total_surfaces;
+	int pass, fail;
 
 	/* Make sure nr_surfaces is not divisible by seven
 	 * to avoid duplicates in the selection loop below.
@@ -102,11 +102,11 @@ static int minor_evictions(int fd, struct igt_eviction_test_ops *ops,
 }
 
 static int major_evictions(int fd, struct igt_eviction_test_ops *ops,
-			   int surface_size, int nr_surfaces)
+			   uint64_t surface_size, uint64_t nr_surfaces)
 {
-	int n, m, loop;
+	uint64_t n, m;
 	uint32_t *bo;
-	int ret;
+	int ret, loop;
 
 	intel_require_memory(nr_surfaces, surface_size, CHECK_RAM);
 
@@ -130,8 +130,8 @@ static int major_evictions(int fd, struct igt_eviction_test_ops *ops,
 }
 
 static void mlocked_evictions(int fd, struct igt_eviction_test_ops *ops,
-			      int surface_size,
-			      int surface_count)
+			      uint64_t surface_size,
+			      uint64_t surface_count)
 {
 	size_t sz, pin;
 	void *locked;
@@ -159,7 +159,8 @@ static void mlocked_evictions(int fd, struct igt_eviction_test_ops *ops,
 
 	igt_fork(child, 1) {
 		uint32_t *bo;
-		int n, ret;
+		uint64_t n;
+		int ret;
 
 		bo = malloc(surface_count*sizeof(*bo));
 		igt_assert(bo);
@@ -195,12 +196,13 @@ static void mlocked_evictions(int fd, struct igt_eviction_test_ops *ops,
 }
 
 static int swapping_evictions(int fd, struct igt_eviction_test_ops *ops,
-			      int surface_size,
-			      int working_surfaces,
-			      int trash_surfaces)
+			      uint64_t surface_size,
+			      uint64_t working_surfaces,
+			      uint64_t trash_surfaces)
 {
 	uint32_t *bo;
-	int i, n, pass, ret;
+	uint64_t i, n;
+	int pass, ret;
 
 	intel_require_memory(working_surfaces, surface_size, CHECK_RAM);
 
@@ -232,13 +234,15 @@ static int swapping_evictions(int fd, struct igt_eviction_test_ops *ops,
 }
 
 static int forking_evictions(int fd, struct igt_eviction_test_ops *ops,
-				int surface_size, int working_surfaces,
-				int trash_surfaces, unsigned flags)
+			     uint64_t surface_size,
+			     uint64_t working_surfaces,
+			     uint64_t trash_surfaces,
+			     unsigned flags)
 {
+	const int num_threads = sysconf(_SC_NPROCESSORS_ONLN);
+	uint64_t bo_count, n, l;
 	uint32_t *bo;
-	int n, pass, l, ret;
-	int num_threads = sysconf(_SC_NPROCESSORS_ONLN);
-	int bo_count;
+	int pass, ret;
 
 	intel_require_memory(working_surfaces, surface_size, CHECK_RAM);
 

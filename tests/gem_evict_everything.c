@@ -130,10 +130,9 @@ copy(int fd, uint32_t dst, uint32_t src, uint32_t *all_bo, int n_bo)
 	return ret;
 }
 
-static void clear(int fd, uint32_t handle, int size)
+static void clear(int fd, uint32_t handle, uint64_t size)
 {
-	void *base = gem_mmap__cpu(fd, handle, 0, size, PROT_READ | PROT_WRITE);
-
+	void *base = gem_mmap__cpu(fd, handle, 0, size, PROT_WRITE);
 	memset(base, 0, size);
 	munmap(base, size);
 }
@@ -183,7 +182,9 @@ static void test_major_evictions(int fd, int size, int count)
 
 igt_main
 {
-	int size, count, fd;
+	uint64_t size, count;
+	int fd;
+
 	size = count = 0;
 	fd = -1;
 
