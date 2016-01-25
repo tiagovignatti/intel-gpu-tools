@@ -34,6 +34,38 @@
 #include <sys/ioctl.h>
 #include "vc4_drm.h"
 
+static void
+test_used_bo(int fd, uint64_t timeout)
+{
+	size_t size = 4096;
+	uint32_t clearval = 0xaabbccdd + timeout;
+	int handle = igt_vc4_get_cleared_bo(fd, size, clearval);
+	struct drm_vc4_wait_bo wait = {
+		.timeout_ns = timeout,
+		.handle = handle,
+	};
+	int ret, i;
+
+	ret = ioctl(fd, DRM_IOCTL_VC4_WAIT_BO, &wait);
+	if (timeout == ~0ull) {
+		igt_assert_eq_u32(ret, 0);
+	} else {
+		if (ret == -1 && errno == ETIME)
+			igt_debug("Timeout triggered\n");
+		igt_assert(ret == 0 || (ret == -1 && errno == ETIME));
+	}
+
+	if (ret == 0) {
+		uint32_t *map = igt_vc4_mmap_bo(fd, handle, size, PROT_READ);
+		for (i = 0; i < size / 4; i++) {
+			igt_assert_eq_u32(map[i], clearval);
+		}
+		munmap((void *)map, size);
+	}
+
+	gem_close(fd, handle);
+}
+
 igt_main
 {
 	int fd;
@@ -76,6 +108,15 @@ igt_main
 		};
 		do_ioctl(fd, DRM_IOCTL_VC4_WAIT_BO, &arg);
 	}
+
+	igt_subtest("used-bo-0ns")
+		test_used_bo(fd, 0);
+
+	igt_subtest("used-bo-1ns")
+		test_used_bo(fd, 1);
+
+	igt_subtest("used-bo")
+		test_used_bo(fd, ~0ull);
 
 	igt_fixture
 		close(fd);
