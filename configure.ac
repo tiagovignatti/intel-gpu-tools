@@ -34,6 +34,7 @@ AC_USE_SYSTEM_EXTENSIONS
 AC_SYS_LARGEFILE
 AC_GNU_SOURCE
 AC_CANONICAL_HOST
+AC_CANONICAL_TARGET
 
 AM_INIT_AUTOMAKE([1.12 foreign subdir-objects dist-bzip2])
 AM_PATH_PYTHON([3],, [:])
@@ -87,8 +88,31 @@ AC_SUBST(ASSEMBLER_WARN_CFLAGS)
 
 PKG_CHECK_MODULES(DRM, [libdrm_intel >= 2.4.64 libdrm])
 PKG_CHECK_MODULES(PCIACCESS, [pciaccess >= 0.10])
-PKG_CHECK_MODULES(OVERLAY_XVLIB, [xv x11 xext dri2proto >= 2.6], enable_overlay_xvlib=yes, enable_overlay_xvlib=no)
-PKG_CHECK_MODULES(OVERLAY_XLIB, [cairo-xlib dri2proto >= 2.6], enable_overlay_xlib=yes, enable_overlay_xlib=no)
+
+case "$target_cpu" in
+	x86*)
+		build_x86="yes"
+		;;
+	*)
+		build_x86="no"
+		;;
+esac
+
+if test x"$build_x86" = xyes; then
+	PKG_CHECK_MODULES(OVERLAY_XVLIB, [xv x11 xext dri2proto >= 2.6], enable_overlay_xvlib=yes, enable_overlay_xvlib=no)
+	PKG_CHECK_MODULES(OVERLAY_XLIB, [cairo-xlib dri2proto >= 2.6], enable_overlay_xlib=yes, enable_overlay_xlib=no)
+	AS_IF([test x"$LEX" != "x:" -a x"$YACC" != xyacc],
+		[enable_assembler=yes],
+		[enable_assembler=no])
+else
+	enable_overlay_xvlib="no"
+	enable_overlay_xlib="no"
+	enable_assembler="no"
+	BUILD_SHADER_DEBUGGER="no"
+fi
+AM_CONDITIONAL(BUILD_X86, [test "x$build_x86" = xyes])
+
+AM_CONDITIONAL(BUILD_ASSEMBLER, [test "x$enable_assembler" = xyes])
 
 AM_CONDITIONAL(BUILD_OVERLAY_XVLIB, [test "x$enable_overlay_xvlib" = xyes])
 AM_CONDITIONAL(BUILD_OVERLAY_XLIB, [test "x$enable_overlay_xlib" = xyes])
@@ -109,12 +133,6 @@ if test x"$udev" = xyes; then
 fi
 PKG_CHECK_MODULES(GLIB, glib-2.0)
 
-# can we build the assembler?
-AS_IF([test x"$LEX" != "x:" -a x"$YACC" != xyacc],
-      [enable_assembler=yes],
-      [enable_assembler=no])
-AM_CONDITIONAL(BUILD_ASSEMBLER, [test "x$enable_assembler" = xyes])
-
 # -----------------------------------------------------------------------------
 #			Configuration options
 # -----------------------------------------------------------------------------
@@ -134,7 +152,7 @@ AM_CONDITIONAL(HAVE_NOUVEAU, [test "x$NOUVEAU" = xyes])
 # Define a configure option for the shader debugger
 AC_ARG_ENABLE(shader-debugger, AS_HELP_STRING([--enable-shader-debugger],
 	      [Enable shader debugging support [autodetected]]),
-	      [BUILD_SHADER_DEBUGGER="$enableval"], [BUILD_SHADER_DEBUGGER=auto])
+	      [BUILD_SHADER_DEBUGGER="$enableval"], [BUILD_SHADER_DEBUGGER=$build_x86])
 
 # Shader debugger depends on python3, intel-genasm and objcopy
 if test "x$BUILD_SHADER_DEBUGGER" != xno; then
@@ -266,6 +284,7 @@ echo " • Tools:"
 echo "       Assembler          : ${enable_assembler}"
 echo "       Debugger           : ${enable_debugger}"
 echo "       Overlay            : X: ${enable_overlay_xlib}, Xv: ${enable_overlay_xvlib}"
+echo "       x86-specific tools : ${build_x86}"
 echo ""
 echo " • API-Documentation      : ${enable_gtk_doc}"
 echo ""

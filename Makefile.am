@@ -21,8 +21,13 @@
 
 ACLOCAL_AMFLAGS = ${ACLOCAL_FLAGS} -I m4
 
-SUBDIRS = lib man tools scripts benchmarks demos overlay
+SUBDIRS = lib man tools scripts benchmarks
 
+if BUILD_TESTS
+SUBDIRS += tests
+endif
+
+if BUILD_X86
 if BUILD_ASSEMBLER
 SUBDIRS += assembler
 endif
@@ -31,8 +36,7 @@ if BUILD_SHADER_DEBUGGER
 SUBDIRS += debugger
 endif
 
-if BUILD_TESTS
-SUBDIRS += tests
+SUBDIRS += overlay demos benchmarks
 endif
 
 SUBDIRS += docs
