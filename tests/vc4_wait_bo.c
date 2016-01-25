@@ -22,6 +22,7 @@
  */
 
 #include "igt.h"
+#include "igt_vc4.h"
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -39,14 +40,8 @@ igt_main
 	int bo_handle;
 
 	igt_fixture {
-		struct drm_vc4_create_bo create = {
-			.size = 4096,
-		};
-
 		fd = drm_open_driver(DRIVER_VC4);
-
-		do_ioctl(fd, DRM_IOCTL_VC4_CREATE_BO, &create);
-		bo_handle = create.handle;
+		bo_handle = igt_vc4_create_bo(fd, 4096);
 	}
 
 	igt_subtest("bad-bo") {

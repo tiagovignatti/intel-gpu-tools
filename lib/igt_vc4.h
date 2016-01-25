@@ -25,6 +25,7 @@
 #define IGT_VC4_H
 
 uint32_t igt_vc4_get_cleared_bo(int fd, size_t size, uint32_t clearval);
+int igt_vc4_create_bo(int fd, size_t size);
 void *igt_vc4_mmap_bo(int fd, uint32_t handle, uint32_t size, unsigned prot);
 
 #endif /* IGT_VC4_H */

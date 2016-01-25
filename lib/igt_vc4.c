@@ -68,9 +68,7 @@ uint32_t igt_vc4_get_cleared_bo(int fd, size_t size, uint32_t clearval)
 	/* A single row will be a page. */
 	uint32_t width = 1024;
 	uint32_t height = size / (width * 4);
-	struct drm_vc4_create_bo create = {
-		.size = size,
-	};
+	uint32_t handle = igt_vc4_create_bo(fd, size);
 	struct drm_vc4_submit_cl submit = {
 		.color_write = {
 			.hindex = 0,
@@ -84,7 +82,7 @@ uint32_t igt_vc4_get_cleared_bo(int fd, size_t size, uint32_t clearval)
 		.msaa_color_write = { .hindex = ~0 },
 		.msaa_zs_write = { .hindex = ~0 },
 
-		.bo_handles = (uint64_t)(uintptr_t)&create.handle,
+		.bo_handles = (uint64_t)(uintptr_t)&handle,
 		.bo_handle_count = 1,
 		.width = width,
 		.height = height,
@@ -96,9 +94,19 @@ uint32_t igt_vc4_get_cleared_bo(int fd, size_t size, uint32_t clearval)
 
 	igt_assert_eq_u32(width * height * 4, size);
 
-	do_ioctl(fd, DRM_IOCTL_VC4_CREATE_BO, &create);
-
 	do_ioctl(fd, DRM_IOCTL_VC4_SUBMIT_CL, &submit);
+
+	return handle;
+}
+
+int
+igt_vc4_create_bo(int fd, size_t size)
+{
+	struct drm_vc4_create_bo create = {
+		.size = size,
+	};
+
+	do_ioctl(fd, DRM_IOCTL_VC4_CREATE_BO, &create);
 
 	return create.handle;
 }
