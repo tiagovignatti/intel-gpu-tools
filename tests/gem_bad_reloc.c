@@ -46,16 +46,7 @@ IGT_TEST_DESCRIPTION("Simulates SNA behaviour using negative self-relocations"
 
 static uint64_t get_page_table_size(int fd)
 {
-	struct drm_i915_getparam gp;
-	int val = 0;
-
-	memset(&gp, 0, sizeof(gp));
-	gp.param = 18; /* HAS_ALIASING_PPGTT */
-	gp.value = &val;
-
-	if (drmIoctl(fd, DRM_IOCTL_I915_GETPARAM, &gp))
-		return 0;
-	errno = 0;
+	int val = gem_gtt_type(fd);
 
 	switch (val) {
 	case 0:

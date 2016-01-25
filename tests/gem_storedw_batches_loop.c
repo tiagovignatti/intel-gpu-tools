@@ -136,7 +136,7 @@ igt_main
 		fd = drm_open_driver(DRIVER_INTEL);
 		devid = intel_get_drm_devid(fd);
 
-		has_ppgtt = gem_uses_aliasing_ppgtt(fd);
+		has_ppgtt = gem_uses_ppgtt(fd);
 
 		/* storedw needs gtt address on gen4+/g33 and snoopable memory.
 		 * Strictly speaking we could implement this now ... */

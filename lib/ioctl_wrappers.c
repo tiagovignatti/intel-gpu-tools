@@ -924,18 +924,18 @@ bool gem_bo_busy(int fd, uint32_t handle)
 /* feature test helpers */
 
 /**
- * gem_uses_aliasing_ppgtt:
+ * gem_gtt_type:
  * @fd: open i915 drm file descriptor
  *
- * Feature test macro to check whether the kernel internally uses ppgtt to
- * execute batches. The /aliasing/ in the function name is a bit a misnomer,
- * this driver parameter is also true when full ppgtt address spaces are
- * available since for batchbuffer construction only ppgtt or global gtt is
- * relevant.
+ * Feature test macro to check what type of gtt is being used by the kernel:
+ * 0 - global gtt
+ * 1 - aliasing ppgtt
+ * 2 - full ppgtt, limited to 32bit address space
+ * 3 - full ppgtt, 64bit address space
  *
- * Returns: Whether batches are run through ppgtt.
+ * Returns: Type of gtt being used.
  */
-bool gem_uses_aliasing_ppgtt(int fd)
+int gem_gtt_type(int fd)
 {
 	struct drm_i915_getparam gp;
 	int val = 0;
@@ -949,6 +949,35 @@ bool gem_uses_aliasing_ppgtt(int fd)
 
 	errno = 0;
 	return val;
+}
+
+/**
+ * gem_uses_ppgtt:
+ * @fd: open i915 drm file descriptor
+ *
+ * Feature test macro to check whether the kernel internally uses ppgtt to
+ * execute batches. Note that this is also true when we're using full ppgtt.
+ *
+ * Returns: Whether batches are run through ppgtt.
+ */
+bool gem_uses_ppgtt(int fd)
+{
+	return gem_gtt_type(fd) > 0;
+}
+
+/**
+ * gem_uses_full_ppgtt:
+ * @fd: open i915 drm file descriptor
+ *
+ * Feature test macro to check whether the kernel internally uses full
+ * per-process gtt to execute batches. Note that this is also true when we're
+ * using full 64b ppgtt.
+ *
+ * Returns: Whether batches are run through full ppgtt.
+ */
+bool gem_uses_full_ppgtt(int fd)
+{
+	return gem_gtt_type(fd) > 1;
 }
 
 /**

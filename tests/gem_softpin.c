@@ -322,7 +322,7 @@ static void test_evict_snoop(int fd)
 	uint64_t hole;
 
 	igt_require(!gem_has_llc(fd));
-	igt_require(!gem_uses_aliasing_ppgtt(fd));
+	igt_require(!gem_uses_ppgtt(fd));
 
 	memset(&execbuf, 0, sizeof(execbuf));
 	execbuf.buffers_ptr = (uintptr_t)object;

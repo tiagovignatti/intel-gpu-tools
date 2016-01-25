@@ -306,7 +306,7 @@ igt_main
 		rc = drmIoctl(fd, DRM_IOCTL_I915_GETPARAM, &gp);
 		igt_require(!rc && parser_version > 0);
 
-		igt_require(gem_uses_aliasing_ppgtt(fd));
+		igt_require(gem_uses_ppgtt(fd));
 
 		handle = gem_create(fd, 4096);
 

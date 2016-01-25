@@ -358,7 +358,7 @@ static bool uses_cmd_parser(int fd, int gen)
 	if (rc || parser_version == 0)
 		return false;
 
-	if (!gem_uses_aliasing_ppgtt(fd))
+	if (!gem_uses_ppgtt(fd))
 		return false;
 
 	if (gen != 7)

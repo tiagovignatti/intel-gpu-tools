@@ -44,22 +44,6 @@
 #define HEIGHT 512
 #define SIZE (HEIGHT*STRIDE)
 
-static bool uses_full_ppgtt(int fd)
-{
-	struct drm_i915_getparam gp;
-	int val = 0;
-
-	memset(&gp, 0, sizeof(gp));
-	gp.param = 18; /* HAS_ALIASING_PPGTT */
-	gp.value = &val;
-
-	if (drmIoctl(fd, DRM_IOCTL_I915_GETPARAM, &gp))
-		return 0;
-
-	errno = 0;
-	return val > 1;
-}
-
 static drm_intel_bo *create_bo(drm_intel_bufmgr *bufmgr,
 			       uint32_t pixel)
 {
@@ -240,7 +224,7 @@ static void flink_and_close(void)
 	uint64_t offset, offset_new;
 
 	fd = drm_open_driver(DRIVER_INTEL);
-	igt_require(uses_full_ppgtt(fd));
+	igt_require(gem_uses_full_ppgtt(fd));
 
 	bo = gem_create(fd, 4096);
 	name = gem_flink(fd, bo);
@@ -277,7 +261,7 @@ static void flink_and_exit(void)
 	const int retries = 50;
 
 	fd = drm_open_driver(DRIVER_INTEL);
-	igt_require(uses_full_ppgtt(fd));
+	igt_require(gem_uses_full_ppgtt(fd));
 
 	bo = gem_create(fd, 4096);
 	name = gem_flink(fd, bo);

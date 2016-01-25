@@ -189,7 +189,7 @@ igt_main
 			      "needs snoopable mem on pre-gen6\n");
 
 		/* This only works with ppgtt */
-		igt_require(gem_uses_aliasing_ppgtt(fd));
+		igt_require(gem_uses_ppgtt(fd));
 	}
 
 	for (i = 0; i < ARRAY_SIZE(rings); i++) {

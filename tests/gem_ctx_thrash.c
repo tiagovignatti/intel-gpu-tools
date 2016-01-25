@@ -117,22 +117,6 @@ static void *thread(void *bufmgr)
 	return NULL;
 }
 
-static int uses_ppgtt(int _fd)
-{
-	struct drm_i915_getparam gp;
-	int val = 0;
-
-	memset(&gp, 0, sizeof(gp));
-	gp.param = 18; /* HAS_ALIASING_PPGTT */
-	gp.value = &val;
-
-	if (drmIoctl(_fd, DRM_IOCTL_I915_GETPARAM, &gp))
-		return 0;
-
-	errno = 0;
-	return val;
-}
-
 static void
 processes(void)
 {
@@ -150,7 +134,7 @@ processes(void)
 	devid = intel_get_drm_devid(fd);
 	aperture = gem_aperture_size(fd);
 
-	ppgtt_mode = uses_ppgtt(fd);
+	ppgtt_mode = gem_gtt_type(fd);
 	igt_require(ppgtt_mode);
 
 	render_copy = igt_get_render_copyfunc(devid);
@@ -252,7 +236,7 @@ threads(void)
 	devid = intel_get_drm_devid(fd);
 	aperture = gem_aperture_size(fd);
 
-	ppgtt_mode = uses_ppgtt(fd);
+	ppgtt_mode = gem_gtt_type(fd);
 	igt_require(ppgtt_mode);
 
 	render_copy = igt_get_render_copyfunc(devid);

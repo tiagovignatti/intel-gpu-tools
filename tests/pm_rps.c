@@ -288,7 +288,7 @@ static void load_helper_stop(void)
 static void load_helper_init(void)
 {
 	lh.devid = intel_get_drm_devid(drm_fd);
-	lh.has_ppgtt = gem_uses_aliasing_ppgtt(drm_fd);
+	lh.has_ppgtt = gem_uses_ppgtt(drm_fd);
 
 	/* MI_STORE_DATA can only use GTT address on gen4+/g33 and needs
 	 * snoopable mem on pre-gen6. Hence load-helper only works on gen6+, but
