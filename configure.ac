@@ -149,6 +149,18 @@ if test "x$NOUVEAU" = xyes; then
 fi
 AM_CONDITIONAL(HAVE_NOUVEAU, [test "x$NOUVEAU" = xyes])
 
+AC_ARG_ENABLE(vc4, AS_HELP_STRING([--disable-vc4],
+	      [Enable building of vc4 tests (default: auto)]),
+	      [VC4=$enableval], [VC4=auto])
+if test "x$VC4" = xauto; then
+	PKG_CHECK_EXISTS([libdrm_vc4], [VC4=yes], [VC4=no])
+fi
+if test "x$VC4" = xyes; then
+	PKG_CHECK_MODULES(DRM_VC4, [libdrm_vc4])
+	AC_DEFINE(HAVE_VC4, 1, [Have vc4 support])
+fi
+AM_CONDITIONAL(HAVE_VC4, [test "x$VC4" = xyes])
+
 # Define a configure option for the shader debugger
 AC_ARG_ENABLE(shader-debugger, AS_HELP_STRING([--enable-shader-debugger],
 	      [Enable shader debugging support [autodetected]]),
