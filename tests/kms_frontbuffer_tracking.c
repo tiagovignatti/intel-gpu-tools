@@ -1102,21 +1102,6 @@ static void *busy_thread_func(void *data)
 	pthread_exit(0);
 }
 
-static int fb_get_bpp(struct igt_fb *fb)
-{
-	switch (fb->drm_format) {
-	case DRM_FORMAT_RGB565:
-		return 16;
-	case DRM_FORMAT_XRGB8888:
-	case DRM_FORMAT_ARGB8888:
-	case DRM_FORMAT_ARGB2101010:
-	case DRM_FORMAT_XRGB2101010:
-		return 32;
-	default:
-		igt_assert(false);
-	}
-}
-
 static void start_busy_thread(struct igt_fb *fb)
 {
 	int rc;
@@ -1129,7 +1114,7 @@ static void start_busy_thread(struct igt_fb *fb)
 	busy_thread.width = fb->width;
 	busy_thread.height = fb->height;
 	busy_thread.color = pick_color(fb, COLOR_PRIM_BG);
-	busy_thread.bpp = fb_get_bpp(fb);
+	busy_thread.bpp = igt_drm_format_to_bpp(fb->drm_format);
 
 	rc = pthread_create(&busy_thread.thread, NULL, busy_thread_func, NULL);
 	igt_assert_eq(rc, 0);
