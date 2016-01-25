@@ -491,6 +491,7 @@ int igt_setup_clflush(void)
 
 void igt_clflush_range(void *addr, int size)
 {
+#if defined(__i386__) || defined(__x86_64__)
 	char *p, *end;
 
 	end = (char *)addr + size;
@@ -500,6 +501,9 @@ void igt_clflush_range(void *addr, int size)
 	for (; p < end; p += clflush_size)
 		asm volatile("clflush %0" : "+m" (*(volatile char *)p));
 	asm volatile("mfence" ::: "memory");
+#else
+	fprintf(stderr, "igt_clflush_range() unsupported\n");
+#endif
 }
 
 /**
