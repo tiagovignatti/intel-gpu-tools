@@ -594,20 +594,6 @@ void igt_draw_rect(int fd, drm_intel_bufmgr *bufmgr, drm_intel_context *context,
 	}
 }
 
-static int get_format_bpp(uint32_t drm_format)
-{
-	switch (drm_format) {
-	case DRM_FORMAT_RGB565:
-		return 16;
-	case DRM_FORMAT_XRGB8888:
-	case DRM_FORMAT_ARGB8888:
-	case DRM_FORMAT_XRGB2101010:
-		return 32;
-	default:
-		igt_assert(false);
-	}
-}
-
 /**
  * igt_draw_rect_fb:
  * @fd: the DRM file descriptor
@@ -632,7 +618,7 @@ void igt_draw_rect_fb(int fd, drm_intel_bufmgr *bufmgr,
 {
 	igt_draw_rect(fd, bufmgr, context, fb->gem_handle, fb->size, fb->stride,
 		      method, rect_x, rect_y, rect_w, rect_h, color,
-		      get_format_bpp(fb->drm_format));
+		      igt_drm_format_to_bpp(fb->drm_format));
 }
 
 /**
