@@ -25,6 +25,7 @@
 #include <string.h>
 #include <signal.h>
 #include <errno.h>
+#include <sys/mman.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/ioctl.h>
@@ -100,4 +101,21 @@ uint32_t igt_vc4_get_cleared_bo(int fd, size_t size, uint32_t clearval)
 	do_ioctl(fd, DRM_IOCTL_VC4_SUBMIT_CL, &submit);
 
 	return create.handle;
+}
+
+void *
+igt_vc4_mmap_bo(int fd, uint32_t handle, uint32_t size, unsigned prot)
+{
+	struct drm_vc4_mmap_bo mmap_bo = {
+		.handle = handle,
+	};
+	void *ptr;
+
+	do_ioctl(fd, DRM_IOCTL_VC4_MMAP_BO, &mmap_bo);
+
+	ptr = mmap(0, size, prot, MAP_SHARED, fd, mmap_bo.offset);
+	if (ptr == MAP_FAILED)
+		return NULL;
+	else
+		return ptr;
 }
