@@ -5,6 +5,7 @@ NOUVEAU_TESTS_M = \
 	$(NULL)
 
 VC4_TESTS_M = \
+	vc4_create_bo \
 	vc4_wait_bo \
 	vc4_wait_seqno \
 	$(NULL)
