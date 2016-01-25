@@ -31,26 +31,6 @@
 #define EXEC_OBJECT_PINNED	(1<<4)
 #define EXEC_OBJECT_SUPPORTS_48B_ADDRESS (1<<3)
 
-/* has_softpin_support
- * Finds if softpin feature is supported
- * @fd DRM fd
-*/
-static bool has_softpin_support(int fd)
-{
-	struct drm_i915_getparam gp;
-	int val = 0;
-
-	memset(&gp, 0, sizeof(gp));
-	gp.param = 37; /* I915_PARAM_HAS_EXEC_SOFTPIN */
-	gp.value = &val;
-
-	if (drmIoctl(fd, DRM_IOCTL_I915_GETPARAM, &gp))
-		return 0;
-
-	errno = 0;
-	return (val == 1);
-}
-
 /* gen8_canonical_addr
  * Used to convert any address into canonical form, i.e. [63:48] == [47].
  * Based on kernel's sign_extend64 implementation.
@@ -494,7 +474,7 @@ igt_main
 
 	igt_fixture {
 		fd = drm_open_driver_master(DRIVER_INTEL);
-		igt_require(has_softpin_support(fd));
+		igt_require(gem_has_softpin(fd));
 	}
 
 	igt_subtest("invalid")

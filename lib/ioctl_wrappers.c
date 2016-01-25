@@ -1242,6 +1242,35 @@ uint64_t gem_mappable_aperture_size(void)
 	return pci_dev->regions[bar].size;
 }
 
+#define LOCAL_I915_PARAM_HAS_EXEC_SOFTPIN 37
+/**
+ * gem_has_softpin:
+ * @fd: open i915 drm file descriptor
+ *
+ * Feature test macro to query whether the softpinning functionality is
+ * supported.
+ *
+ * Returns: Whether softpin support is available
+ */
+bool gem_has_softpin(int fd)
+{
+	static int has_softpin = -1;
+
+	if (has_softpin < 0) {
+		struct drm_i915_getparam gp;
+
+		memset(&gp, 0, sizeof(gp));
+		gp.param = LOCAL_I915_PARAM_HAS_EXEC_SOFTPIN;
+		gp.value = &has_softpin;
+
+		has_softpin = 0;
+		ioctl(fd, DRM_IOCTL_I915_GETPARAM, &gp, sizeof(gp));
+		errno = 0;
+	}
+
+	return has_softpin;
+}
+
 /**
  * gem_require_caching:
  * @fd: open i915 drm file descriptor

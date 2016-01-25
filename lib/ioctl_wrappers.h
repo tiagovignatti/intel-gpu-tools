@@ -132,6 +132,7 @@ int gem_available_fences(int fd);
 uint64_t gem_available_aperture_size(int fd);
 uint64_t gem_aperture_size(int fd);
 uint64_t gem_mappable_aperture_size(void);
+bool gem_has_softpin(int fd);
 
 /* check functions which auto-skip tests by calling igt_skip() */
 void gem_require_caching(int fd);
