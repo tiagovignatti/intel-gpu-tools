@@ -99,6 +99,8 @@ static void run_test(int fd, unsigned ring, unsigned flags)
 	igt_skip_on_f(gen == 6 && (ring & ~(3<<13)) == I915_EXEC_BSD,
 		      "MI_STORE_DATA broken on gen6 bsd\n");
 
+	gem_quiescent_gpu(fd);
+
 	memset(&execbuf, 0, sizeof(execbuf));
 	execbuf.buffers_ptr = (uintptr_t)obj;
 	execbuf.buffer_count = 2;
@@ -228,7 +230,6 @@ igt_main
 
 	for (mode = modes; mode->prefix; mode++) {
 		for (ring = rings; ring->name; ring++) {
-			gem_quiescent_gpu(fd);
 			igt_subtest_f("%s%s%s",
 				      ring->flags || mode->flags ? "" : mode->prefix,
 				      ring->name,
