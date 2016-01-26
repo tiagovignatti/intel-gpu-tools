@@ -128,8 +128,10 @@ static void many(int fd)
 			  (long long)alignment,
 			  find_last_bit(alignment)-1);
 		gem_execbuf(fd, &execbuf);
-		for (i = 0; i < count; i++)
+		for(i = count - execbuf.buffer_count; i < count; i++) {
 			igt_assert_eq_u64(execobj[i].alignment, alignment);
+			igt_assert_eq_u64(execobj[i].offset % alignment, 0);
+		}
 	}
 
 	for (i = 0; i < count; i++)
