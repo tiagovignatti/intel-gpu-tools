@@ -64,6 +64,7 @@ skip_tools_list := \
 
 ifneq ("${ANDROID_HAS_CAIRO}", "1")
     skip_tools_list += intel_display_crc
+    skip_tools_list += intel_residency
 endif
 
 tools_list := $(filter-out $(skip_tools_list),$(bin_PROGRAMS))
