@@ -79,6 +79,8 @@ static void many(int fd)
 	uint64_t alignment, max_alignment, count, i;
 
 	gtt_size = gem_aperture_size(fd);
+	if (!gem_uses_full_ppgtt(fd))
+		gtt_size /= 2; /* We have to *share* our GTT! */
 	ram_size = intel_get_total_ram_mb();
 	ram_size *= 1024 * 1024;
 	count = ram_size / 4096;
