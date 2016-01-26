@@ -843,7 +843,7 @@ static uint32_t plane_get_igt_format(struct kms_atomic_plane_state *plane)
 	plane_kms = drmModeGetPlane(plane->state->desc->fd, plane->obj);
 	igt_assert(plane_kms);
 
-	igt_get_all_formats(&igt_formats, &num_igt_formats);
+	igt_get_all_cairo_formats(&igt_formats, &num_igt_formats);
 	for (i = 0; i < num_igt_formats; i++) {
 		int j;
 

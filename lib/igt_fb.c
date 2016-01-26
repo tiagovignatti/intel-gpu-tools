@@ -1141,28 +1141,34 @@ const char *igt_format_str(uint32_t drm_format)
 }
 
 /**
- * igt_get_all_formats:
+ * igt_get_all_cairo_formats:
  * @formats: pointer to pointer to store the allocated formats array
  * @format_count: pointer to integer to store the size of the allocated array
  *
- * This functions returns an array of all the drm fourcc codes supported by this
- * library.
+ * This functions returns an array of all the drm fourcc codes supported by
+ * cairo and this library.
  */
-void igt_get_all_formats(const uint32_t **formats, int *format_count)
+void igt_get_all_cairo_formats(const uint32_t **formats, int *format_count)
 {
 	static uint32_t *drm_formats;
+	static int n_formats;
 
 	if (!drm_formats) {
 		struct format_desc_struct *f;
 		uint32_t *format;
 
-		drm_formats = calloc(ARRAY_SIZE(format_desc),
-				     sizeof(*drm_formats));
+		n_formats = 0;
+		for_each_format(f)
+			if (f->cairo_id != CAIRO_FORMAT_INVALID)
+				n_formats++;
+
+		drm_formats = calloc(n_formats, sizeof(*drm_formats));
 		format = &drm_formats[0];
 		for_each_format(f)
-			*format++ = f->drm_id;
+			if (f->cairo_id != CAIRO_FORMAT_INVALID)
+				*format++ = f->drm_id;
 	}
 
 	*formats = drm_formats;
-	*format_count = ARRAY_SIZE(format_desc);
+	*format_count = n_formats;
 }

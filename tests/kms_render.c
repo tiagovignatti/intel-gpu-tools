@@ -173,7 +173,7 @@ static void test_connector(const char *test_name,
 	int format_count;
 	int i;
 
-	igt_get_all_formats(&formats, &format_count);
+	igt_get_all_cairo_formats(&formats, &format_count);
 	for (i = 0; i < format_count; i++) {
 		if (intel_gen(intel_get_drm_devid(drm_fd)) < 4
 		    && formats[i] == DRM_FORMAT_XRGB2101010) {

@@ -117,7 +117,7 @@ int igt_cairo_printf_line(cairo_t *cr, enum igt_text_align align,
 uint32_t igt_bpp_depth_to_drm_format(int bpp, int depth);
 uint32_t igt_drm_format_to_bpp(uint32_t drm_format);
 const char *igt_format_str(uint32_t drm_format);
-void igt_get_all_formats(const uint32_t **formats, int *format_count);
+void igt_get_all_cairo_formats(const uint32_t **formats, int *format_count);
 
 #endif /* __IGT_FB_H__ */
 
