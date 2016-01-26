@@ -1146,7 +1146,7 @@ const char *igt_format_str(uint32_t drm_format)
  * @format_count: pointer to integer to store the size of the allocated array
  *
  * This functions returns an array of all the drm fourcc codes supported by this
- * library. The caller must free the allocated array again with free().
+ * library.
  */
 void igt_get_all_formats(const uint32_t **formats, int *format_count)
 {
