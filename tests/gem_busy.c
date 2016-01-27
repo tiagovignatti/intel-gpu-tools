@@ -223,6 +223,7 @@ static bool has_semaphores(int fd)
 
 igt_main
 {
+	const struct intel_execution_engine *e;
 	int fd = -1;
 
 	igt_skip_on_simulation();
@@ -232,18 +233,9 @@ igt_main
 		igt_require(has_semaphores(fd));
 	}
 
-	igt_subtest("render")
-		test_ring(fd, I915_EXEC_RENDER, 0);
-	igt_subtest("bsd")
-		test_ring(fd, I915_EXEC_BSD, 0);
-	igt_subtest("bsd1")
-		test_ring(fd, I915_EXEC_BSD, 1<<13 /*I915_EXEC_BSD_RING1*/);
-	igt_subtest("bsd2")
-		test_ring(fd, I915_EXEC_BSD, 2<<13 /*I915_EXEC_BSD_RING2*/);
-	igt_subtest("blt")
-		test_ring(fd, I915_EXEC_BLT, 0);
-	igt_subtest("vebox")
-		test_ring(fd, I915_EXEC_VEBOX, 0);
+	for (e = intel_execution_engines; e->name; e++)
+		igt_subtest_f("%s", e->name)
+			test_ring(fd, e->exec_id, e->flags);
 
 	igt_fixture
 		close(fd);

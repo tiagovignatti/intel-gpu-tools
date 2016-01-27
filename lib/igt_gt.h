@@ -91,4 +91,10 @@ void igt_clflush_range(void *addr, int size);
 
 unsigned intel_detect_and_clear_missed_interrupts(int fd);
 
+extern const struct intel_execution_engine {
+	const char *name;
+	unsigned exec_id;
+	unsigned flags;
+} intel_execution_engines[];
+
 #endif /* IGT_GT_H */
