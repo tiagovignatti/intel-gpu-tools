@@ -67,9 +67,19 @@ struct intel_batchbuffer *batch;
 int all;
 int pass;
 
+struct buffers {
+	const struct access_mode *mode;
+	drm_intel_bufmgr *bufmgr;
+	drm_intel_bo **src, **dst;
+	drm_intel_bo *snoop, *spare;
+	uint32_t *tmp;
+	int width, height, size;
+	int count;
+};
+
 #define MIN_BUFFERS 3
 
-static void blt_copy_bo(drm_intel_bo *dst, drm_intel_bo *src);
+static void blt_copy_bo(struct buffers *b, drm_intel_bo *dst, drm_intel_bo *src);
 
 static void
 nop_release_bo(drm_intel_bo *bo)
@@ -78,56 +88,39 @@ nop_release_bo(drm_intel_bo *bo)
 }
 
 static void
-prw_set_bo(drm_intel_bo *bo, uint32_t val, int width, int height)
+prw_set_bo(struct buffers *b, drm_intel_bo *bo, uint32_t val)
 {
-	int size = width * height, i;
-	uint32_t *tmp;
-
-	tmp = malloc(4*size);
-	if (tmp) {
-		for (i = 0; i < size; i++)
-			tmp[i] = val;
-		drm_intel_bo_subdata(bo, 0, 4*size, tmp);
-		free(tmp);
-	} else {
-		for (i = 0; i < size; i++)
-			drm_intel_bo_subdata(bo, 4*i, 4, &val);
-	}
+	for (int i = 0; i < b->size; i++)
+		b->tmp[i] = val;
+	drm_intel_bo_subdata(bo, 0, 4*b->size, b->tmp);
 }
 
 static void
-prw_cmp_bo(drm_intel_bo *bo, uint32_t val, int width, int height, drm_intel_bo *tmp)
+prw_cmp_bo(struct buffers *b, drm_intel_bo *bo, uint32_t val)
 {
-	int size = width * height, i;
 	uint32_t *vaddr;
 
-	do_or_die(drm_intel_bo_map(tmp, true));
-	do_or_die(drm_intel_bo_get_subdata(bo, 0, 4*size, tmp->virtual));
-	vaddr = tmp->virtual;
-	for (i = 0; i < size; i++)
+	vaddr = b->tmp;
+	do_or_die(drm_intel_bo_get_subdata(bo, 0, 4*b->size, vaddr));
+	for (int i = 0; i < b->size; i++)
 		igt_assert_eq_u32(vaddr[i], val);
-	drm_intel_bo_unmap(tmp);
 }
 
 #define pixel(y, width) ((y)*(width) + (((y) + pass)%(width)))
 
 static void
-partial_set_bo(drm_intel_bo *bo, uint32_t val, int width, int height)
+partial_set_bo(struct buffers *b, drm_intel_bo *bo, uint32_t val)
 {
-	int y;
-
-	for (y = 0; y < height; y++)
-		do_or_die(drm_intel_bo_subdata(bo, 4*pixel(y, width), 4, &val));
+	for (int y = 0; y < b->height; y++)
+		do_or_die(drm_intel_bo_subdata(bo, 4*pixel(y, b->width), 4, &val));
 }
 
 static void
-partial_cmp_bo(drm_intel_bo *bo, uint32_t val, int width, int height, drm_intel_bo *tmp)
+partial_cmp_bo(struct buffers *b, drm_intel_bo *bo, uint32_t val)
 {
-	int y;
-
-	for (y = 0; y < height; y++) {
+	for (int y = 0; y < b->height; y++) {
 		uint32_t buf;
-		do_or_die(drm_intel_bo_get_subdata(bo, 4*pixel(y, width), 4, &buf));
+		do_or_die(drm_intel_bo_get_subdata(bo, 4*pixel(y, b->width), 4, &buf));
 		igt_assert_eq_u32(buf, val);
 	}
 }
@@ -216,8 +209,6 @@ snoop_create_bo(drm_intel_bufmgr *bufmgr, int width, int height)
 {
 	drm_intel_bo *bo;
 
-	igt_skip_on(gem_has_llc(fd));
-
 	bo = unmapped_create_bo(bufmgr, width, height);
 	gem_set_caching(fd, bo->handle, I915_CACHING_CACHED);
 	drm_intel_bo_disable_reuse(bo);
@@ -276,9 +267,9 @@ userptr_create_bo(drm_intel_bufmgr *bufmgr, int width, int height)
 }
 
 static void
-userptr_set_bo(drm_intel_bo *bo, uint32_t val, int width, int height)
+userptr_set_bo(struct buffers *b, drm_intel_bo *bo, uint32_t val)
 {
-	int size = width * height;
+	int size = b->size;
 	uint32_t *vaddr = bo->virtual;
 
 	gem_set_domain(fd, bo->handle,
@@ -288,9 +279,9 @@ userptr_set_bo(drm_intel_bo *bo, uint32_t val, int width, int height)
 }
 
 static void
-userptr_cmp_bo(drm_intel_bo *bo, uint32_t val, int width, int height, drm_intel_bo *tmp)
+userptr_cmp_bo(struct buffers *b, drm_intel_bo *bo, uint32_t val)
 {
-	int size = width * height;
+	int size =  b->size;
 	uint32_t *vaddr = bo->virtual;
 
 	gem_set_domain(fd, bo->handle,
@@ -309,10 +300,10 @@ userptr_release_bo(drm_intel_bo *bo)
 }
 
 static void
-gtt_set_bo(drm_intel_bo *bo, uint32_t val, int width, int height)
+gtt_set_bo(struct buffers *b, drm_intel_bo *bo, uint32_t val)
 {
 	uint32_t *vaddr = bo->virtual;
-	int size = width * height;
+	int size = b->size;
 
 	drm_intel_gem_bo_start_gtt_access(bo, true);
 	while (size--)
@@ -320,15 +311,14 @@ gtt_set_bo(drm_intel_bo *bo, uint32_t val, int width, int height)
 }
 
 static void
-gtt_cmp_bo(drm_intel_bo *bo, uint32_t val, int width, int height, drm_intel_bo *tmp)
+gtt_cmp_bo(struct buffers *b, drm_intel_bo *bo, uint32_t val)
 {
 	uint32_t *vaddr = bo->virtual;
-	int y;
 
 	/* GTT access is slow. So we just compare a few points */
 	drm_intel_gem_bo_start_gtt_access(bo, false);
-	for (y = 0; y < height; y++)
-		igt_assert_eq_u32(vaddr[pixel(y, width)], val);
+	for (int y = 0; y < b->height; y++)
+		igt_assert_eq_u32(vaddr[pixel(y, b->width)], val);
 }
 
 static drm_intel_bo *
@@ -399,9 +389,9 @@ gpuX_create_bo(drm_intel_bufmgr *bufmgr, int width, int height)
 }
 
 static void
-cpu_set_bo(drm_intel_bo *bo, uint32_t val, int width, int height)
+cpu_set_bo(struct buffers *b, drm_intel_bo *bo, uint32_t val)
 {
-	int size = width * height;
+	int size = b->size;
 	uint32_t *vaddr;
 
 	do_or_die(drm_intel_bo_map(bo, true));
@@ -412,9 +402,9 @@ cpu_set_bo(drm_intel_bo *bo, uint32_t val, int width, int height)
 }
 
 static void
-cpu_cmp_bo(drm_intel_bo *bo, uint32_t val, int width, int height, drm_intel_bo *tmp)
+cpu_cmp_bo(struct buffers *b, drm_intel_bo *bo, uint32_t val)
 {
-	int size = width * height;
+	int size = b->size;
 	uint32_t *vaddr;
 
 	do_or_die(drm_intel_bo_map(bo, false));
@@ -425,7 +415,7 @@ cpu_cmp_bo(drm_intel_bo *bo, uint32_t val, int width, int height, drm_intel_bo *
 }
 
 static void
-gpu_set_bo(drm_intel_bo *bo, uint32_t val, int width, int height)
+gpu_set_bo(struct buffers *buffers, drm_intel_bo *bo, uint32_t val)
 {
 	struct drm_i915_gem_relocation_entry reloc[1];
 	struct drm_i915_gem_exec_object2 gem_exec[2];
@@ -445,12 +435,12 @@ gpu_set_bo(drm_intel_bo *bo, uint32_t val, int width, int height)
 		COLOR_BLT_WRITE_ALPHA | XY_COLOR_BLT_WRITE_RGB;
 	if (gen >= 4 && tiling) {
 		b[-1] |= XY_COLOR_BLT_TILED;
-		*b = width;
+		*b = buffers->width;
 	} else
-		*b = width << 2;
+		*b = buffers->width << 2;
 	*b++ |= 0xf0 << 16 | 1 << 25 | 1 << 24;
 	*b++ = 0;
-	*b++ = height << 16 | width;
+	*b++ = buffers->height << 16 | buffers->width;
 	reloc[0].offset = (b - buf) * sizeof(uint32_t);
 	reloc[0].target_handle = bo->handle;
 	reloc[0].read_domains = I915_GEM_DOMAIN_RENDER;
@@ -483,17 +473,17 @@ gpu_set_bo(drm_intel_bo *bo, uint32_t val, int width, int height)
 }
 
 static void
-gpu_cmp_bo(drm_intel_bo *bo, uint32_t val, int width, int height, drm_intel_bo *tmp)
+gpu_cmp_bo(struct buffers *b, drm_intel_bo *bo, uint32_t val)
 {
-	blt_copy_bo(tmp, bo);
-	cpu_cmp_bo(tmp, val, width, height, NULL);
+	blt_copy_bo(b, b->snoop, bo);
+	cpu_cmp_bo(b, b->snoop, val);
 }
 
 const struct access_mode {
 	const char *name;
 	bool (*require)(void);
-	void (*set_bo)(drm_intel_bo *bo, uint32_t val, int w, int h);
-	void (*cmp_bo)(drm_intel_bo *bo, uint32_t val, int w, int h, drm_intel_bo *tmp);
+	void (*set_bo)(struct buffers *b, drm_intel_bo *bo, uint32_t val);
+	void (*cmp_bo)(struct buffers *b, drm_intel_bo *bo, uint32_t val);
 	drm_intel_bo *(*create_bo)(drm_intel_bufmgr *bufmgr, int width, int height);
 	void (*release_bo)(drm_intel_bo *bo);
 } access_modes[] = {
@@ -573,23 +563,21 @@ const struct access_mode {
 };
 
 int num_buffers;
-const int width = 512, height = 512;
 igt_render_copyfunc_t rendercopy;
-
-struct buffers {
-	const struct access_mode *mode;
-	drm_intel_bufmgr *bufmgr;
-	drm_intel_bo **src, **dst;
-	drm_intel_bo *dummy, *spare;
-	int count;
-};
 
 static void *buffers_init(struct buffers *data,
 			  const struct access_mode *mode,
+			  int width, int height,
 			  int _fd)
 {
 	data->mode = mode;
 	data->count = 0;
+
+	data->width = width;
+	data->height = height;
+	data->size = width * height;
+	data->tmp = malloc(4*data->size);
+	igt_assert(data->tmp);
 
 	data->bufmgr = drm_intel_bufmgr_gem_init(_fd, 4096);
 	igt_assert(data->bufmgr);
@@ -611,7 +599,7 @@ static void buffers_destroy(struct buffers *data)
 		data->mode->release_bo(data->src[i]);
 		data->mode->release_bo(data->dst[i]);
 	}
-	data->mode->release_bo(data->dummy);
+	data->mode->release_bo(data->snoop);
 	data->mode->release_bo(data->spare);
 	data->count = 0;
 }
@@ -619,6 +607,7 @@ static void buffers_destroy(struct buffers *data)
 static void buffers_create(struct buffers *data,
 			   int count)
 {
+	int width = data->width, height = data->height;
 	igt_assert(data->bufmgr);
 
 	buffers_destroy(data);
@@ -629,8 +618,8 @@ static void buffers_create(struct buffers *data,
 		data->dst[i] =
 			data->mode->create_bo(data->bufmgr, width, height);
 	}
-	data->dummy = data->mode->create_bo(data->bufmgr, width, height);
 	data->spare = data->mode->create_bo(data->bufmgr, width, height);
+	data->snoop = snoop_create_bo(data->bufmgr, width, height);
 	data->count = count;
 }
 
@@ -641,6 +630,7 @@ static void buffers_fini(struct buffers *data)
 
 	buffers_destroy(data);
 
+	free(data->tmp);
 	free(data->src);
 	data->src = NULL;
 	data->dst = NULL;
@@ -650,21 +640,21 @@ static void buffers_fini(struct buffers *data)
 	data->bufmgr = NULL;
 }
 
-typedef void (*do_copy)(drm_intel_bo *dst, drm_intel_bo *src);
+typedef void (*do_copy)(struct buffers *b, drm_intel_bo *dst, drm_intel_bo *src);
 typedef struct igt_hang_ring (*do_hang)(void);
 
-static void render_copy_bo(drm_intel_bo *dst, drm_intel_bo *src)
+static void render_copy_bo(struct buffers *b, drm_intel_bo *dst, drm_intel_bo *src)
 {
 	struct igt_buf d = {
 		.bo = dst,
-		.size = width * height * 4,
-		.num_tiles = width * height * 4,
-		.stride = width * 4,
+		.size = b->size * 4,
+		.num_tiles = b->size * 4,
+		.stride = b->width * 4,
 	}, s = {
 		.bo = src,
-		.size = width * height * 4,
-		.num_tiles = width * height * 4,
-		.stride = width * 4,
+		.size = b->size * 4,
+		.num_tiles = b->size * 4,
+		.stride = b->width * 4,
 	};
 	uint32_t swizzle;
 
@@ -673,21 +663,21 @@ static void render_copy_bo(drm_intel_bo *dst, drm_intel_bo *src)
 
 	rendercopy(batch, NULL,
 		   &s, 0, 0,
-		   width, height,
+		   b->width, b->height,
 		   &d, 0, 0);
 }
 
-static void blt_copy_bo(drm_intel_bo *dst, drm_intel_bo *src)
+static void blt_copy_bo(struct buffers *b, drm_intel_bo *dst, drm_intel_bo *src)
 {
 	intel_blt_copy(batch,
-		       src, 0, 0, 4*width,
-		       dst, 0, 0, 4*width,
-		       width, height, 32);
+		       src, 0, 0, 4*b->width,
+		       dst, 0, 0, 4*b->width,
+		       b->width, b->height, 32);
 }
 
-static void cpu_copy_bo(drm_intel_bo *dst, drm_intel_bo *src)
+static void cpu_copy_bo(struct buffers *b, drm_intel_bo *dst, drm_intel_bo *src)
 {
-	const int size = width * height * sizeof(uint32_t);
+	const int size = b->size * sizeof(uint32_t);
 	void *d, *s;
 
 	gem_set_domain(fd, src->handle, I915_GEM_DOMAIN_CPU, 0);
@@ -701,9 +691,9 @@ static void cpu_copy_bo(drm_intel_bo *dst, drm_intel_bo *src)
 	munmap(s, size);
 }
 
-static void gtt_copy_bo(drm_intel_bo *dst, drm_intel_bo *src)
+static void gtt_copy_bo(struct buffers *b, drm_intel_bo *dst, drm_intel_bo *src)
 {
-	const int size = width * height * sizeof(uint32_t);
+	const int size = b->size * sizeof(uint32_t);
 	void *d, *s;
 
 	gem_set_domain(fd, src->handle, I915_GEM_DOMAIN_GTT, 0);
@@ -718,9 +708,9 @@ static void gtt_copy_bo(drm_intel_bo *dst, drm_intel_bo *src)
 	munmap(s, size);
 }
 
-static void wc_copy_bo(drm_intel_bo *dst, drm_intel_bo *src)
+static void wc_copy_bo(struct buffers *b, drm_intel_bo *dst, drm_intel_bo *src)
 {
-	const int size = width * height * sizeof(uint32_t);
+	const int size = b->width * sizeof(uint32_t);
 	void *d, *s;
 
 	gem_set_domain(fd, src->handle, I915_GEM_DOMAIN_GTT, 0);
@@ -756,12 +746,12 @@ static void do_basic0(struct buffers *buffers,
 {
 	gem_quiescent_gpu(fd);
 
-	buffers->mode->set_bo(buffers->src[0], 0xdeadbeef, width, height);
+	buffers->mode->set_bo(buffers, buffers->src[0], 0xdeadbeef);
 	for (int i = 0; i < buffers->count; i++) {
 		struct igt_hang_ring hang = do_hang_func();
 
-		do_copy_func(buffers->dst[i], buffers->src[0]);
-		buffers->mode->cmp_bo(buffers->dst[i], 0xdeadbeef, width, height, buffers->dummy);
+		do_copy_func(buffers, buffers->dst[i], buffers->src[0]);
+		buffers->mode->cmp_bo(buffers, buffers->dst[i], 0xdeadbeef);
 
 		igt_post_hang_ring(fd, hang);
 	}
@@ -776,12 +766,12 @@ static void do_basic1(struct buffers *buffers,
 	for (int i = 0; i < buffers->count; i++) {
 		struct igt_hang_ring hang = do_hang_func();
 
-		buffers->mode->set_bo(buffers->src[i], i, width, height);
-		buffers->mode->set_bo(buffers->dst[i], ~i, width, height);
+		buffers->mode->set_bo(buffers, buffers->src[i], i);
+		buffers->mode->set_bo(buffers, buffers->dst[i], ~i);
 
-		do_copy_func(buffers->dst[i], buffers->src[i]);
+		do_copy_func(buffers, buffers->dst[i], buffers->src[i]);
 		usleep(0); /* let someone else claim the mutex */
-		buffers->mode->cmp_bo(buffers->dst[i], i, width, height, buffers->dummy);
+		buffers->mode->cmp_bo(buffers, buffers->dst[i], i);
 
 		igt_post_hang_ring(fd, hang);
 	}
@@ -796,19 +786,19 @@ static void do_basicN(struct buffers *buffers,
 	gem_quiescent_gpu(fd);
 
 	for (int i = 0; i < buffers->count; i++) {
-		buffers->mode->set_bo(buffers->src[i], i, width, height);
-		buffers->mode->set_bo(buffers->dst[i], ~i, width, height);
+		buffers->mode->set_bo(buffers, buffers->src[i], i);
+		buffers->mode->set_bo(buffers, buffers->dst[i], ~i);
 	}
 
 	hang = do_hang_func();
 
 	for (int i = 0; i < buffers->count; i++) {
-		do_copy_func(buffers->dst[i], buffers->src[i]);
+		do_copy_func(buffers, buffers->dst[i], buffers->src[i]);
 		usleep(0); /* let someone else claim the mutex */
 	}
 
 	for (int i = 0; i < buffers->count; i++)
-		buffers->mode->cmp_bo(buffers->dst[i], i, width, height, buffers->dummy);
+		buffers->mode->cmp_bo(buffers, buffers->dst[i], i);
 
 	igt_post_hang_ring(fd, hang);
 }
@@ -822,16 +812,16 @@ static void do_overwrite_source(struct buffers *buffers,
 
 	gem_quiescent_gpu(fd);
 	for (i = 0; i < buffers->count; i++) {
-		buffers->mode->set_bo(buffers->src[i], i, width, height);
-		buffers->mode->set_bo(buffers->dst[i], ~i, width, height);
+		buffers->mode->set_bo(buffers, buffers->src[i], i);
+		buffers->mode->set_bo(buffers, buffers->dst[i], ~i);
 	}
 	for (i = 0; i < buffers->count; i++)
-		do_copy_func(buffers->dst[i], buffers->src[i]);
+		do_copy_func(buffers, buffers->dst[i], buffers->src[i]);
 	hang = do_hang_func();
 	for (i = buffers->count; i--; )
-		buffers->mode->set_bo(buffers->src[i], 0xdeadbeef, width, height);
+		buffers->mode->set_bo(buffers, buffers->src[i], 0xdeadbeef);
 	for (i = 0; i < buffers->count; i++)
-		buffers->mode->cmp_bo(buffers->dst[i], i, width, height, buffers->dummy);
+		buffers->mode->cmp_bo(buffers, buffers->dst[i], i);
 	igt_post_hang_ring(fd, hang);
 }
 
@@ -846,23 +836,23 @@ static void do_overwrite_source_read(struct buffers *buffers,
 
 	gem_quiescent_gpu(fd);
 	for (i = 0; i < half; i++) {
-		buffers->mode->set_bo(buffers->src[i], i, width, height);
-		buffers->mode->set_bo(buffers->dst[i], ~i, width, height);
-		buffers->mode->set_bo(buffers->dst[i+half], ~i, width, height);
+		buffers->mode->set_bo(buffers, buffers->src[i], i);
+		buffers->mode->set_bo(buffers, buffers->dst[i], ~i);
+		buffers->mode->set_bo(buffers, buffers->dst[i+half], ~i);
 	}
 	for (i = 0; i < half; i++) {
-		do_copy_func(buffers->dst[i], buffers->src[i]);
+		do_copy_func(buffers, buffers->dst[i], buffers->src[i]);
 		if (do_rcs)
-			render_copy_bo(buffers->dst[i+half], buffers->src[i]);
+			render_copy_bo(buffers, buffers->dst[i+half], buffers->src[i]);
 		else
-			blt_copy_bo(buffers->dst[i+half], buffers->src[i]);
+			blt_copy_bo(buffers, buffers->dst[i+half], buffers->src[i]);
 	}
 	hang = do_hang_func();
 	for (i = half; i--; )
-		buffers->mode->set_bo(buffers->src[i], 0xdeadbeef, width, height);
+		buffers->mode->set_bo(buffers, buffers->src[i], 0xdeadbeef);
 	for (i = 0; i < half; i++) {
-		buffers->mode->cmp_bo(buffers->dst[i], i, width, height, buffers->dummy);
-		buffers->mode->cmp_bo(buffers->dst[i+half], i, width, height, buffers->dummy);
+		buffers->mode->cmp_bo(buffers, buffers->dst[i], i);
+		buffers->mode->cmp_bo(buffers, buffers->dst[i+half], i);
 	}
 	igt_post_hang_ring(fd, hang);
 }
@@ -890,16 +880,16 @@ static void do_overwrite_source__rev(struct buffers *buffers,
 
 	gem_quiescent_gpu(fd);
 	for (i = 0; i < buffers->count; i++) {
-		buffers->mode->set_bo(buffers->src[i], i, width, height);
-		buffers->mode->set_bo(buffers->dst[i], ~i, width, height);
+		buffers->mode->set_bo(buffers, buffers->src[i], i);
+		buffers->mode->set_bo(buffers, buffers->dst[i], ~i);
 	}
 	for (i = 0; i < buffers->count; i++)
-		do_copy_func(buffers->dst[i], buffers->src[i]);
+		do_copy_func(buffers, buffers->dst[i], buffers->src[i]);
 	hang = do_hang_func();
 	for (i = 0; i < buffers->count; i++)
-		buffers->mode->set_bo(buffers->src[i], 0xdeadbeef, width, height);
+		buffers->mode->set_bo(buffers, buffers->src[i], 0xdeadbeef);
 	for (i = buffers->count; i--; )
-		buffers->mode->cmp_bo(buffers->dst[i], i, width, height, buffers->dummy);
+		buffers->mode->cmp_bo(buffers, buffers->dst[i], i);
 	igt_post_hang_ring(fd, hang);
 }
 
@@ -910,12 +900,12 @@ static void do_overwrite_source__one(struct buffers *buffers,
 	struct igt_hang_ring hang;
 
 	gem_quiescent_gpu(fd);
-	buffers->mode->set_bo(buffers->src[0], 0, width, height);
-	buffers->mode->set_bo(buffers->dst[0], ~0, width, height);
-	do_copy_func(buffers->dst[0], buffers->src[0]);
+	buffers->mode->set_bo(buffers, buffers->src[0], 0);
+	buffers->mode->set_bo(buffers, buffers->dst[0], ~0);
+	do_copy_func(buffers, buffers->dst[0], buffers->src[0]);
 	hang = do_hang_func();
-	buffers->mode->set_bo(buffers->src[0], 0xdeadbeef, width, height);
-	buffers->mode->cmp_bo(buffers->dst[0], 0, width, height, buffers->dummy);
+	buffers->mode->set_bo(buffers, buffers->src[0], 0xdeadbeef);
+	buffers->mode->cmp_bo(buffers, buffers->dst[0], 0);
 	igt_post_hang_ring(fd, hang);
 }
 
@@ -930,27 +920,27 @@ static void do_intermix(struct buffers *buffers,
 
 	gem_quiescent_gpu(fd);
 	for (i = 0; i < buffers->count; i++) {
-		buffers->mode->set_bo(buffers->src[i], 0xdeadbeef^~i, width, height);
-		buffers->mode->set_bo(buffers->dst[i], i, width, height);
+		buffers->mode->set_bo(buffers, buffers->src[i], 0xdeadbeef^~i);
+		buffers->mode->set_bo(buffers, buffers->dst[i], i);
 	}
 	for (i = 0; i < half; i++) {
 		if (do_rcs == 1 || (do_rcs == -1 && i & 1))
-			render_copy_bo(buffers->dst[i], buffers->src[i]);
+			render_copy_bo(buffers, buffers->dst[i], buffers->src[i]);
 		else
-			blt_copy_bo(buffers->dst[i], buffers->src[i]);
+			blt_copy_bo(buffers, buffers->dst[i], buffers->src[i]);
 
-		do_copy_func(buffers->dst[i+half], buffers->src[i]);
+		do_copy_func(buffers, buffers->dst[i+half], buffers->src[i]);
 
 		if (do_rcs == 1 || (do_rcs == -1 && (i & 1) == 0))
-			render_copy_bo(buffers->dst[i], buffers->dst[i+half]);
+			render_copy_bo(buffers, buffers->dst[i], buffers->dst[i+half]);
 		else
-			blt_copy_bo(buffers->dst[i], buffers->dst[i+half]);
+			blt_copy_bo(buffers, buffers->dst[i], buffers->dst[i+half]);
 
-		do_copy_func(buffers->dst[i+half], buffers->src[i+half]);
+		do_copy_func(buffers, buffers->dst[i+half], buffers->src[i+half]);
 	}
 	hang = do_hang_func();
 	for (i = 0; i < 2*half; i++)
-		buffers->mode->cmp_bo(buffers->dst[i], 0xdeadbeef^~i, width, height, buffers->dummy);
+		buffers->mode->cmp_bo(buffers, buffers->dst[i], 0xdeadbeef^~i);
 	igt_post_hang_ring(fd, hang);
 }
 
@@ -984,12 +974,12 @@ static void do_early_read(struct buffers *buffers,
 
 	gem_quiescent_gpu(fd);
 	for (i = buffers->count; i--; )
-		buffers->mode->set_bo(buffers->src[i], 0xdeadbeef, width, height);
+		buffers->mode->set_bo(buffers, buffers->src[i], 0xdeadbeef);
 	for (i = 0; i < buffers->count; i++)
-		do_copy_func(buffers->dst[i], buffers->src[i]);
+		do_copy_func(buffers, buffers->dst[i], buffers->src[i]);
 	hang = do_hang_func();
 	for (i = buffers->count; i--; )
-		buffers->mode->cmp_bo(buffers->dst[i], 0xdeadbeef, width, height, buffers->dummy);
+		buffers->mode->cmp_bo(buffers, buffers->dst[i], 0xdeadbeef);
 	igt_post_hang_ring(fd, hang);
 }
 
@@ -1002,15 +992,15 @@ static void do_read_read_bcs(struct buffers *buffers,
 
 	gem_quiescent_gpu(fd);
 	for (i = buffers->count; i--; )
-		buffers->mode->set_bo(buffers->src[i], 0xdeadbeef ^ i, width, height);
+		buffers->mode->set_bo(buffers, buffers->src[i], 0xdeadbeef ^ i);
 	for (i = 0; i < buffers->count; i++) {
-		do_copy_func(buffers->dst[i], buffers->src[i]);
-		blt_copy_bo(buffers->spare, buffers->src[i]);
+		do_copy_func(buffers, buffers->dst[i], buffers->src[i]);
+		blt_copy_bo(buffers, buffers->spare, buffers->src[i]);
 	}
-	buffers->mode->cmp_bo(buffers->spare, 0xdeadbeef^(buffers->count-1), width, height, buffers->dummy);
+	buffers->mode->cmp_bo(buffers, buffers->spare, 0xdeadbeef^(buffers->count-1));
 	hang = do_hang_func();
 	for (i = buffers->count; i--; )
-		buffers->mode->cmp_bo(buffers->dst[i], 0xdeadbeef ^ i, width, height, buffers->dummy);
+		buffers->mode->cmp_bo(buffers, buffers->dst[i], 0xdeadbeef ^ i);
 	igt_post_hang_ring(fd, hang);
 }
 
@@ -1023,14 +1013,14 @@ static void do_write_read_bcs(struct buffers *buffers,
 
 	gem_quiescent_gpu(fd);
 	for (i = buffers->count; i--; )
-		buffers->mode->set_bo(buffers->src[i], 0xdeadbeef ^ i, width, height);
+		buffers->mode->set_bo(buffers, buffers->src[i], 0xdeadbeef ^ i);
 	for (i = 0; i < buffers->count; i++) {
-		blt_copy_bo(buffers->spare, buffers->src[i]);
-		do_copy_func(buffers->dst[i], buffers->spare);
+		blt_copy_bo(buffers, buffers->spare, buffers->src[i]);
+		do_copy_func(buffers, buffers->dst[i], buffers->spare);
 	}
 	hang = do_hang_func();
 	for (i = buffers->count; i--; )
-		buffers->mode->cmp_bo(buffers->dst[i], 0xdeadbeef ^ i, width, height, buffers->dummy);
+		buffers->mode->cmp_bo(buffers, buffers->dst[i], 0xdeadbeef ^ i);
 	igt_post_hang_ring(fd, hang);
 }
 
@@ -1043,15 +1033,15 @@ static void do_read_read_rcs(struct buffers *buffers,
 
 	gem_quiescent_gpu(fd);
 	for (i = buffers->count; i--; )
-		buffers->mode->set_bo(buffers->src[i], 0xdeadbeef ^ i, width, height);
+		buffers->mode->set_bo(buffers, buffers->src[i], 0xdeadbeef ^ i);
 	for (i = 0; i < buffers->count; i++) {
-		do_copy_func(buffers->dst[i], buffers->src[i]);
-		render_copy_bo(buffers->spare, buffers->src[i]);
+		do_copy_func(buffers, buffers->dst[i], buffers->src[i]);
+		render_copy_bo(buffers, buffers->spare, buffers->src[i]);
 	}
-	buffers->mode->cmp_bo(buffers->spare, 0xdeadbeef^(buffers->count-1), width, height, buffers->dummy);
+	buffers->mode->cmp_bo(buffers, buffers->spare, 0xdeadbeef^(buffers->count-1));
 	hang = do_hang_func();
 	for (i = buffers->count; i--; )
-		buffers->mode->cmp_bo(buffers->dst[i], 0xdeadbeef ^ i, width, height, buffers->dummy);
+		buffers->mode->cmp_bo(buffers, buffers->dst[i], 0xdeadbeef ^ i);
 	igt_post_hang_ring(fd, hang);
 }
 
@@ -1064,14 +1054,14 @@ static void do_write_read_rcs(struct buffers *buffers,
 
 	gem_quiescent_gpu(fd);
 	for (i = buffers->count; i--; )
-		buffers->mode->set_bo(buffers->src[i], 0xdeadbeef ^ i, width, height);
+		buffers->mode->set_bo(buffers, buffers->src[i], 0xdeadbeef ^ i);
 	for (i = 0; i < buffers->count; i++) {
-		render_copy_bo(buffers->spare, buffers->src[i]);
-		do_copy_func(buffers->dst[i], buffers->spare);
+		render_copy_bo(buffers, buffers->spare, buffers->src[i]);
+		do_copy_func(buffers, buffers->dst[i], buffers->spare);
 	}
 	hang = do_hang_func();
 	for (i = buffers->count; i--; )
-		buffers->mode->cmp_bo(buffers->dst[i], 0xdeadbeef ^ i, width, height, buffers->dummy);
+		buffers->mode->cmp_bo(buffers, buffers->dst[i], 0xdeadbeef ^ i);
 	igt_post_hang_ring(fd, hang);
 }
 
@@ -1084,14 +1074,14 @@ static void do_gpu_read_after_write(struct buffers *buffers,
 
 	gem_quiescent_gpu(fd);
 	for (i = buffers->count; i--; )
-		buffers->mode->set_bo(buffers->src[i], 0xabcdabcd, width, height);
+		buffers->mode->set_bo(buffers, buffers->src[i], 0xabcdabcd);
 	for (i = 0; i < buffers->count; i++)
-		do_copy_func(buffers->dst[i], buffers->src[i]);
+		do_copy_func(buffers, buffers->dst[i], buffers->src[i]);
 	for (i = buffers->count; i--; )
-		do_copy_func(buffers->dummy, buffers->dst[i]);
+		do_copy_func(buffers, buffers->spare, buffers->dst[i]);
 	hang = do_hang_func();
 	for (i = buffers->count; i--; )
-		buffers->mode->cmp_bo(buffers->dst[i], 0xabcdabcd, width, height, buffers->dummy);
+		buffers->mode->cmp_bo(buffers, buffers->dst[i], 0xabcdabcd);
 	igt_post_hang_ring(fd, hang);
 }
 
@@ -1144,7 +1134,6 @@ static void run_child(struct buffers *buffers,
 		intel_batchbuffer_free(batch);
 		drm_intel_bufmgr_destroy(buffers->bufmgr);
 	}
-
 	igt_waitchildren();
 	igt_assert_eq(intel_detect_and_clear_missed_interrupts(fd), 0);
 }
@@ -1166,7 +1155,9 @@ static void __run_forked(struct buffers *buffers,
 		buffers->count = 0;
 		fd = drm_open_driver(DRIVER_INTEL);
 
-		batch = buffers_init(buffers, buffers->mode, fd);
+		batch = buffers_init(buffers, buffers->mode,
+				     buffers->width, buffers->height,
+				     fd);
 
 		buffers_create(buffers, num_buffers);
 		for (pass = 0; pass < loops; pass++)
@@ -1279,7 +1270,8 @@ run_basic_modes(const char *prefix,
 			struct buffers buffers;
 
 			igt_fixture
-				batch = buffers_init(&buffers, mode, fd);
+				batch = buffers_init(&buffers, mode,
+						     512, 512, fd);
 
 			igt_subtest_f("%s-%s-%s-sanitycheck0%s%s", prefix, mode->name, p->prefix, suffix, h->suffix) {
 				p->require();
