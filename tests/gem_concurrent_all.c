@@ -270,6 +270,7 @@ userptr_create_bo(drm_intel_bufmgr *bufmgr, int width, int height)
 	do_or_die(drmIoctl(fd, LOCAL_IOCTL_I915_GEM_USERPTR, &userptr));
 	bo = gem_handle_to_libdrm_bo(bufmgr, fd, "userptr", userptr.handle);
 	bo->virtual = (void *)(uintptr_t)userptr.user_ptr;
+	gem_close(fd, userptr.handle);
 
 	return bo;
 }
