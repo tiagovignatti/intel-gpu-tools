@@ -568,7 +568,7 @@ igt_render_copyfunc_t rendercopy;
 static void *buffers_init(struct buffers *data,
 			  const struct access_mode *mode,
 			  int width, int height,
-			  int _fd)
+			  int _fd, int enable_reuse)
 {
 	data->mode = mode;
 	data->count = 0;
@@ -586,7 +586,8 @@ static void *buffers_init(struct buffers *data,
 	igt_assert(data->src);
 	data->dst = data->src + num_buffers;
 
-	drm_intel_bufmgr_gem_enable_reuse(data->bufmgr);
+	if (enable_reuse)
+		drm_intel_bufmgr_gem_enable_reuse(data->bufmgr);
 	return intel_batchbuffer_alloc(data->bufmgr, devid);
 }
 
@@ -1124,16 +1125,8 @@ static void run_child(struct buffers *buffers,
 	 * needs to be local as the cache of reusable itself will be COWed,
 	 * leading to the child closing an object without the parent knowing.
 	 */
-	igt_fork(child, 1) {
-		buffers->bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
-		drm_intel_bufmgr_gem_enable_reuse(buffers->bufmgr);
-		batch = intel_batchbuffer_alloc(buffers->bufmgr, devid);
-
+	igt_fork(child, 1)
 		do_test_func(buffers, do_copy_func, do_hang_func);
-
-		intel_batchbuffer_free(batch);
-		drm_intel_bufmgr_destroy(buffers->bufmgr);
-	}
 	igt_waitchildren();
 	igt_assert_eq(intel_detect_and_clear_missed_interrupts(fd), 0);
 }
@@ -1157,7 +1150,7 @@ static void __run_forked(struct buffers *buffers,
 
 		batch = buffers_init(buffers, buffers->mode,
 				     buffers->width, buffers->height,
-				     fd);
+				     fd, true);
 
 		buffers_create(buffers, num_buffers);
 		for (pass = 0; pass < loops; pass++)
@@ -1271,7 +1264,8 @@ run_basic_modes(const char *prefix,
 
 			igt_fixture
 				batch = buffers_init(&buffers, mode,
-						     512, 512, fd);
+						     512, 512, fd,
+						     run_wrap_func != run_child);
 
 			igt_subtest_f("%s-%s-%s-sanitycheck0%s%s", prefix, mode->name, p->prefix, suffix, h->suffix) {
 				p->require();
