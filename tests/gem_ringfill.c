@@ -199,7 +199,7 @@ igt_main
 		unsigned flags;
 	} modes[] = {
 		{ "basic-", "", 0 },
-		{ "", "-interuptible", INTERRUPTIBLE },
+		{ "", "-interruptible", INTERRUPTIBLE },
 		{ "", "-hang", HANG },
 		{ "", "-child", CHILD },
 		{ "", "-forked", FORKED },
