@@ -1308,6 +1308,27 @@ void gem_require_caching(int fd)
 	errno = 0;
 }
 
+static int gem_has_ring(int fd, int ring)
+{
+	uint32_t bbe = MI_BATCH_BUFFER_END;
+	struct drm_i915_gem_execbuffer2 execbuf;
+	struct drm_i915_gem_exec_object2 exec;
+	int ret;
+
+	memset(&exec, 0, sizeof(exec));
+	exec.handle = gem_create(fd, 4096);
+	gem_write(fd, exec.handle, 0, &bbe, sizeof(bbe));
+
+	memset(&execbuf, 0, sizeof(execbuf));
+	execbuf.buffers_ptr = (uintptr_t)&exec;
+	execbuf.buffer_count = 1;
+	execbuf.flags = ring;
+	ret = __gem_execbuf(fd, &execbuf);
+	gem_close(fd, exec.handle);
+
+	return ret == 0;
+}
+
 /**
  * gem_require_ring:
  * @fd: open i915 drm file descriptor
@@ -1319,26 +1340,7 @@ void gem_require_caching(int fd)
  */
 void gem_require_ring(int fd, int ring_id)
 {
-	switch (ring_id) {
-	case I915_EXEC_DEFAULT:
-	case I915_EXEC_RENDER:
-		return;
-	case I915_EXEC_BLT:
-		igt_require(gem_has_blt(fd));
-		return;
-	case I915_EXEC_BSD:
-		igt_require(gem_has_bsd(fd));
-		return;
-#ifdef I915_EXEC_VEBOX
-	case I915_EXEC_VEBOX:
-		igt_require(gem_has_vebox(fd));
-		return;
-#endif
-	default:
-		igt_warn("Invalid ring: %d\n", ring_id);
-		igt_assert(0);
-		return;
-	}
+	igt_require(gem_has_ring(fd, ring_id));
 }
 
 /* prime */
