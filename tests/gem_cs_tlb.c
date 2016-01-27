@@ -142,6 +142,7 @@ static void run_on_ring(int fd, unsigned ring_id, const char *ring_name)
 
 igt_main
 {
+	const struct intel_execution_engine *e;
 	int fd = -1;
 
 	igt_skip_on_simulation();
@@ -149,17 +150,9 @@ igt_main
 	igt_fixture
 		fd = drm_open_driver(DRIVER_INTEL);
 
-	igt_subtest("render")
-		run_on_ring(fd, I915_EXEC_RENDER, "render");
-
-	igt_subtest("bsd")
-		run_on_ring(fd, I915_EXEC_BSD, "bsd");
-
-	igt_subtest("blt")
-		run_on_ring(fd, I915_EXEC_BLT, "blt");
-
-	igt_subtest("vebox")
-		run_on_ring(fd, LOCAL_I915_EXEC_VEBOX, "vebox");
+	for (e = intel_execution_engines; e->name; e++)
+		igt_subtest_f("%s", e->name)
+			run_on_ring(fd, e->exec_id | e->flags, e->name);
 
 	igt_fixture
 		close(fd);
