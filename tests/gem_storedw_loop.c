@@ -145,6 +145,7 @@ store_dword_loop(int fd, int ring, int count, int divider)
 static void
 store_test(int fd, int ring, int count)
 {
+	gem_require_ring(fd, ring);
 	store_dword_loop(fd, ring, count, 1);
 	store_dword_loop(fd, ring, count, 2);
 	if (!igt_run_in_simulation()) {
@@ -158,16 +159,6 @@ store_test(int fd, int ring, int count)
 	}
 }
 
-struct ring {
-	const char *name;
-	int id;
-} rings[] = {
-	{ "bsd", I915_EXEC_BSD },
-	{ "render", I915_EXEC_RENDER },
-	{ "blt", I915_EXEC_BLT },
-	{ "vebox", I915_EXEC_VEBOX },
-};
-
 static void
 check_test_requirements(int fd, int ringid)
 {
@@ -178,7 +169,8 @@ check_test_requirements(int fd, int ringid)
 
 igt_main
 {
-	int fd, i;
+	const struct intel_execution_engine *e;
+	int fd;
 
 	igt_fixture {
 		fd = drm_open_driver(DRIVER_INTEL);
@@ -192,16 +184,15 @@ igt_main
 		igt_require(gem_uses_ppgtt(fd));
 	}
 
-	for (i = 0; i < ARRAY_SIZE(rings); i++) {
-
-		igt_subtest_f("basic-%s", rings[i].name) {
-			check_test_requirements(fd, rings[i].id);
-			store_test(fd, rings[i].id, 16*1024);
+	for (e = intel_execution_engines; e->name; e++) {
+		igt_subtest_f("basic-%s", e->name) {
+			check_test_requirements(fd, e->exec_id);
+			store_test(fd, e->exec_id | e->flags, 16*1024);
 		}
 
-		igt_subtest_f("long-%s", rings[i].name) {
-			check_test_requirements(fd, rings[i].id);
-			store_test(fd, rings[i].id, 1024*1024);
+		igt_subtest_f("long-%s", e->name) {
+			check_test_requirements(fd, e->exec_id);
+			store_test(fd, e->exec_id | e->flags, 1024*1024);
 		}
 	}
 
