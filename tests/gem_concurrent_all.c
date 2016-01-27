@@ -69,6 +69,8 @@ int pass;
 
 #define MIN_BUFFERS 3
 
+static void blt_copy_bo(drm_intel_bo *dst, drm_intel_bo *src);
+
 static void
 nop_release_bo(drm_intel_bo *bo)
 {
@@ -427,8 +429,6 @@ gpu_set_bo(drm_intel_bo *bo, uint32_t val, int width, int height)
 	struct drm_i915_gem_relocation_entry reloc[1];
 	struct drm_i915_gem_exec_object2 gem_exec[2];
 	struct drm_i915_gem_execbuffer2 execbuf;
-	struct drm_i915_gem_pwrite gem_pwrite;
-	struct drm_i915_gem_create create;
 	uint32_t buf[10], *b;
 	uint32_t tiling, swizzle;
 
@@ -465,10 +465,7 @@ gpu_set_bo(drm_intel_bo *bo, uint32_t val, int width, int height)
 	gem_exec[0].handle = bo->handle;
 	gem_exec[0].flags = EXEC_OBJECT_NEEDS_FENCE;
 
-	create.handle = 0;
-	create.size = 4096;
-	drmIoctl(fd, DRM_IOCTL_I915_GEM_CREATE, &create);
-	gem_exec[1].handle = create.handle;
+	gem_exec[1].handle = gem_create(fd, 4096);
 	gem_exec[1].relocation_count = 1;
 	gem_exec[1].relocs_ptr = (uintptr_t)reloc;
 
@@ -478,23 +475,16 @@ gpu_set_bo(drm_intel_bo *bo, uint32_t val, int width, int height)
 	if (gen >= 6)
 		execbuf.flags = I915_EXEC_BLT;
 
-	gem_pwrite.handle = gem_exec[1].handle;
-	gem_pwrite.offset = 0;
-	gem_pwrite.size = execbuf.batch_len;
-	gem_pwrite.data_ptr = (uintptr_t)buf;
-	do_ioctl(fd, DRM_IOCTL_I915_GEM_PWRITE, &gem_pwrite);
-	do_ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf);
+	gem_write(fd, gem_exec[1].handle, 0, buf, execbuf.batch_len);
+	gem_execbuf(fd, &execbuf);
 
-	drmIoctl(fd, DRM_IOCTL_GEM_CLOSE, &create.handle);
+	gem_close(fd, gem_exec[1].handle);
 }
 
 static void
 gpu_cmp_bo(drm_intel_bo *bo, uint32_t val, int width, int height, drm_intel_bo *tmp)
 {
-	intel_blt_copy(batch,
-		       bo, 0, 0, 4*width,
-		       tmp, 0, 0, 4*width,
-		       width, height, 32);
+	blt_copy_bo(tmp, bo);
 	cpu_cmp_bo(tmp, val, width, height, NULL);
 }
 
