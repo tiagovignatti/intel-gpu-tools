@@ -90,6 +90,7 @@ static void run_test(int fd, unsigned ring, unsigned flags)
 
 	igt_skip_on_f(gen == 6 && (ring & ~(3<<13)) == I915_EXEC_BSD,
 		      "MI_STORE_DATA broken on gen6 bsd\n");
+	gem_require_ring(fd, ring);
 
 	gem_quiescent_gpu(fd);
 
@@ -200,19 +201,7 @@ igt_main
 		{ "", "-bomb", BOMB | INTERRUPTIBLE },
 		{ NULL, NULL, 0 }
 	}, *mode;
-	const struct {
-		const char *name;
-		unsigned int flags;
-	} rings[] = {
-		{ "default", I915_EXEC_DEFAULT },
-		{ "rcs", I915_EXEC_RENDER },
-		{ "bcs", I915_EXEC_BLT },
-		{ "bsd", I915_EXEC_BSD },
-		{ "bsd1", I915_EXEC_BSD | 1 << 13 },
-		{ "bsd2", I915_EXEC_BSD | 2 << 13 },
-		{ "vebox", I915_EXEC_VEBOX },
-		{ NULL, 0 }
-	}, *ring;
+	const struct intel_execution_engine *e;
 	int fd;
 
 	igt_skip_on_simulation();
@@ -221,12 +210,12 @@ igt_main
 		fd = drm_open_driver_master(DRIVER_INTEL);
 
 	for (mode = modes; mode->prefix; mode++) {
-		for (ring = rings; ring->name; ring++) {
+		for (e = intel_execution_engines; e->name; e++) {
 			igt_subtest_f("%s%s%s",
-				      ring->flags || mode->flags ? "" : mode->prefix,
-				      ring->name,
+				      e->exec_id || mode->flags ? "" : mode->prefix,
+				      e->name,
 				      mode->suffix)
-				run_test(fd, ring->flags, mode->flags);
+				run_test(fd, e->exec_id | e->flags, mode->flags);
 		}
 	}
 
