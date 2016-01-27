@@ -224,8 +224,7 @@ static int inject_hang_ring(int fd, int ctx, int ring, bool ignore_ban_error)
 	i915_execbuffer2_set_context_id(execbuf, ctx);
 	execbuf.rsvd2 = 0;
 
-	igt_assert_eq(gem_exec(fd, &execbuf), 0);
-
+	gem_execbuf(fd, &execbuf);
 	gtt_off = exec.offset;
 
 	for (i = 0; i < ITEMS; i++)
@@ -265,8 +264,7 @@ static int inject_hang_ring(int fd, int ctx, int ring, bool ignore_ban_error)
 	i915_execbuffer2_set_context_id(execbuf, ctx);
 	execbuf.rsvd2 = 0;
 
-	igt_assert_eq(gem_exec(fd, &execbuf), 0);
-
+	gem_execbuf(fd, &execbuf);
 	igt_assert(gtt_off == exec.offset);
 
 	free(buf);
