@@ -45,33 +45,38 @@ struct shadow {
 	uint32_t handle;
 	struct drm_i915_gem_relocation_entry reloc;
 };
-int gen;
 
-static void setup(int fd, struct shadow *shadow)
+static void gem_require_store_dword(int fd, unsigned ring)
 {
-	uint32_t *cpu;
-	int i = 0;
+	int gen = intel_gen(intel_get_drm_devid(fd));
+	ring &= ~(3 << 13);
+	igt_skip_on_f(gen == 6 && ring == I915_EXEC_BSD,
+		      "MI_STORE_DATA broken on gen6 bsd\n");
+}
+
+static void setup(int fd, int gen, struct shadow *shadow)
+{
+	uint32_t buf[16];
+	int i;
 
 	shadow->handle = gem_create(fd, 4096);
 
-	cpu = gem_mmap__cpu(fd, shadow->handle, 0, 4096, PROT_WRITE);
-	gem_set_domain(fd, shadow->handle,
-			I915_GEM_DOMAIN_CPU, I915_GEM_DOMAIN_CPU);
-	cpu[i++] = MI_STORE_DWORD_IMM;
+	i = 0;
+	buf[i++] = MI_STORE_DWORD_IMM;
 	if (gen >= 8) {
-		cpu[i++] = BATCH_SIZE - sizeof(uint32_t);
-		cpu[i++] = 0;
+		buf[i++] = BATCH_SIZE - sizeof(uint32_t);
+		buf[i++] = 0;
 	} else if (gen >= 4) {
-		cpu[i++] = 0;
-		cpu[i++] = BATCH_SIZE - sizeof(uint32_t);
+		buf[i++] = 0;
+		buf[i++] = BATCH_SIZE - sizeof(uint32_t);
 	} else {
-		cpu[i-1]--;
-		cpu[i-1] |= 1 << 22;
-		cpu[i++] = BATCH_SIZE - sizeof(uint32_t);
+		buf[i-1]--;
+		buf[i-1] |= 1 << 22;
+		buf[i++] = BATCH_SIZE - sizeof(uint32_t);
 	}
-	cpu[i++] = MI_BATCH_BUFFER_END;
-	cpu[i++] = MI_BATCH_BUFFER_END;
-	munmap(cpu, 4096);
+	buf[i++] = MI_BATCH_BUFFER_END;
+	buf[i++] = MI_BATCH_BUFFER_END;
+	gem_write(fd, shadow->handle, 0, buf, sizeof(buf));
 
 	memset(&shadow->reloc, 0, sizeof(shadow->reloc));
 	if (gen >= 8 || gen < 4)
@@ -83,70 +88,70 @@ static void setup(int fd, struct shadow *shadow)
 	shadow->reloc.write_domain = I915_GEM_DOMAIN_INSTRUCTION;
 }
 
-static uint32_t new_batch(int fd, struct shadow *shadow)
+static void can_test_ring(unsigned ring)
 {
-	struct drm_i915_gem_execbuffer2 execbuf;
-	struct drm_i915_gem_exec_object2 gem_exec[2];
+	int master = drm_open_driver_master(DRIVER_INTEL);
+	int fd = drm_open_driver(DRIVER_INTEL);
 
-	memset(gem_exec, 0, sizeof(gem_exec));
-	gem_exec[0].handle = gem_create(fd, BATCH_SIZE);
-	gem_exec[1].handle = shadow->handle;
-
-	shadow->reloc.target_handle = gem_exec[0].handle;
-	gem_exec[1].relocs_ptr = (uintptr_t)&shadow->reloc;
-	gem_exec[1].relocation_count = 1;
-
-	memset(&execbuf, 0, sizeof(execbuf));
-	execbuf.buffers_ptr = (uintptr_t)gem_exec;
-	execbuf.buffer_count = 2;
-	if (gen < 4)
-		execbuf.flags |= I915_EXEC_SECURE;
-
-	gem_execbuf(fd, &execbuf);
-
-	return gem_exec[0].handle;
+	/* Dance to avoid dying with master open */
+	close(master);
+	gem_require_ring(fd, ring);
+	gem_require_store_dword(fd, ring);
+	close(fd);
 }
 
-static void exec(int fd, uint32_t handle)
+static void test_ring(unsigned ring)
 {
 	struct drm_i915_gem_execbuffer2 execbuf;
-	struct drm_i915_gem_exec_object2 gem_exec[1];
-
-	memset(gem_exec, 0, sizeof(gem_exec));
-	gem_exec[0].handle = handle;
-
-	memset(&execbuf, 0, sizeof(execbuf));
-	execbuf.buffers_ptr = (uintptr_t)gem_exec;
-	execbuf.buffer_count = 1;
-	execbuf.batch_start_offset = 0;
-	execbuf.batch_len = BATCH_SIZE;
-
-	gem_execbuf(fd, &execbuf);
-}
-
-igt_simple_main
-{
+	struct drm_i915_gem_exec_object2 obj[2];
 	struct shadow shadow;
 	uint64_t i, count;
-	int fd;
+	int fd, gen;
 
-	igt_skip_on_simulation();
+	can_test_ring(ring);
 
 	fd = drm_open_driver_master(DRIVER_INTEL);
 	gen = intel_gen(intel_get_drm_devid(fd));
-	setup(fd, &shadow);
+	setup(fd, gen, &shadow);
 
 	count = gem_aperture_size(fd) / BATCH_SIZE;
 	intel_require_memory(count, BATCH_SIZE, CHECK_RAM);
-
 	/* Fill the entire gart with batches and run them. */
+	memset(obj, 0, sizeof(obj));
+	obj[1].handle = shadow.handle;
+	obj[1].relocs_ptr = (uintptr_t)&shadow.reloc;
+	obj[1].relocation_count = 1;
+
+	memset(&execbuf, 0, sizeof(execbuf));
+	execbuf.buffers_ptr = (uintptr_t)obj;
+	execbuf.flags = ring;
+	if (gen < 4)
+		execbuf.flags |= I915_EXEC_SECURE;
+
 	for (i = 0; i < count; i++) {
-		/* Launch the newly created batch... */
-		exec(fd, new_batch(fd, &shadow));
+		/* Create the new batch using the GPU */
+		obj[0].handle = gem_create(fd, BATCH_SIZE);
+		shadow.reloc.target_handle = obj[0].handle;
+		execbuf.buffer_count = 2;
+		gem_execbuf(fd, &execbuf);
+
+		/* ...then execute the new batch */
+		execbuf.buffer_count = 1;
+		gem_execbuf(fd, &execbuf);
+
 		/* ...and leak the handle to consume the GTT */
-		igt_progress("gem_cs_prefetch: ", i, count);
 	}
 
-	igt_info("Test suceeded, cleanup up - this might take a while.\n");
 	close(fd);
+}
+
+igt_main
+{
+	const struct intel_execution_engine *e;
+
+	igt_skip_on_simulation();
+
+	for (e = intel_execution_engines; e->name; e++)
+		igt_subtest_f("%s", e->name)
+			test_ring(e->exec_id | e->flags);
 }
