@@ -1270,16 +1270,16 @@ run_basic_modes(const char *prefix,
 		{ "-hang-render", rcs_hang },
 		{ NULL, NULL },
 	}, *h;
-	struct buffers buffers;
 
 	for (h = hangs; h->suffix; h++) {
 		if (!all && *h->suffix)
 			continue;
 
 		for (p = all ? pipelines : pskip; p->prefix; p++) {
-			igt_fixture {
+			struct buffers buffers;
+
+			igt_fixture
 				batch = buffers_init(&buffers, mode, fd);
-			}
 
 			igt_subtest_f("%s-%s-%s-sanitycheck0%s%s", prefix, mode->name, p->prefix, suffix, h->suffix) {
 				p->require();
@@ -1422,9 +1422,8 @@ run_basic_modes(const char *prefix,
 					      p->copy, h->hang);
 			}
 
-			igt_fixture {
+			igt_fixture
 				buffers_fini(&buffers);
-			}
 		}
 	}
 }
