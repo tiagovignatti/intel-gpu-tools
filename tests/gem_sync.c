@@ -66,13 +66,15 @@ out:
 }
 
 static void
-sync_ring(int fd, int ring, unsigned flags)
+sync_ring(int fd, unsigned ring)
 {
 	const uint32_t bbe = MI_BATCH_BUFFER_END;
 	struct drm_i915_gem_execbuffer2 execbuf;
 	struct drm_i915_gem_exec_object2 object;
 	double start, elapsed;
 	unsigned long cycles;
+
+	gem_require_ring(fd, ring);
 
 	intel_detect_and_clear_missed_interrupts(fd);
 
@@ -83,9 +85,8 @@ sync_ring(int fd, int ring, unsigned flags)
 	memset(&execbuf, 0, sizeof(execbuf));
 	execbuf.buffers_ptr = (uintptr_t)&object;
 	execbuf.buffer_count = 1;
-	execbuf.flags = ring | flags;
-
-	igt_require(__gem_execbuf(fd, &execbuf) == 0);
+	execbuf.flags = ring;
+	gem_execbuf(fd, &execbuf);
 
 	srandom(0xdeadbeef);
 
@@ -104,6 +105,7 @@ sync_ring(int fd, int ring, unsigned flags)
 
 igt_main
 {
+	const struct intel_execution_engine *e;
 	int fd = -1;
 
 	igt_skip_on_simulation();
@@ -111,18 +113,9 @@ igt_main
 	igt_fixture
 		fd = drm_open_driver(DRIVER_INTEL);
 
-	igt_subtest("basic-render")
-		sync_ring(fd, I915_EXEC_RENDER, 0);
-	igt_subtest("basic-blt")
-		sync_ring(fd, I915_EXEC_BLT, 0);
-	igt_subtest("bsd")
-		sync_ring(fd, I915_EXEC_BSD, 0);
-	igt_subtest("bsd1")
-		sync_ring(fd, I915_EXEC_BSD, 1<<13 /*I915_EXEC_BSD_RING1*/);
-	igt_subtest("bsd2")
-		sync_ring(fd, I915_EXEC_BSD, 2<<13 /*I915_EXEC_BSD_RING2*/);
-	igt_subtest("vebox")
-		sync_ring(fd, I915_EXEC_VEBOX, 0);
+	for (e = intel_execution_engines; e->name; e++)
+		igt_subtest_f("basic-%s", e->name)
+			sync_ring(fd, e->exec_id | e->flags);
 
 	igt_fixture
 		close(fd);
