@@ -82,6 +82,7 @@ static void loop(int fd, uint32_t handle, unsigned ring_id, const char *ring_nam
 
 igt_main
 {
+	const struct intel_execution_engine *e;
 	uint32_t handle = 0;
 
 	igt_fixture {
@@ -90,17 +91,9 @@ igt_main
 		gem_write(device, handle, 0, batch, sizeof(batch));
 	}
 
-	igt_subtest("render")
-		loop(device, handle, I915_EXEC_RENDER, "render");
-
-	igt_subtest("bsd")
-		loop(device, handle, I915_EXEC_BSD, "bsd");
-
-	igt_subtest("blt")
-		loop(device, handle, I915_EXEC_BLT, "blt");
-
-	igt_subtest("vebox")
-		loop(device, handle, LOCAL_I915_EXEC_VEBOX, "vebox");
+	for (e = intel_execution_engines; e->name; e++)
+		igt_subtest_f("%s", e->name)
+			loop(device, handle, e->exec_id | e->flags, e->name);
 
 	igt_fixture {
 		gem_close(device, handle);
