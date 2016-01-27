@@ -27,6 +27,7 @@ TESTS_progs_M = \
 	gem_evict_everything \
 	gem_exec_alignment \
 	gem_exec_bad_domains \
+	gem_exec_basic \
 	gem_exec_faulting_reloc \
 	gem_exec_nop \
 	gem_exec_params \
