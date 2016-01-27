@@ -233,9 +233,13 @@ igt_main
 		igt_require(has_semaphores(fd));
 	}
 
-	for (e = intel_execution_engines; e->name; e++)
+	for (e = intel_execution_engines; e->name; e++) {
+		if (e->exec_id == 0) /* default exec-id is purely symbolic */
+			continue;
+
 		igt_subtest_f("%s", e->name)
 			test_ring(fd, e->exec_id, e->flags);
+	}
 
 	igt_fixture
 		close(fd);

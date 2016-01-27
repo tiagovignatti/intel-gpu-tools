@@ -212,7 +212,7 @@ igt_main
 	for (mode = modes; mode->prefix; mode++) {
 		for (e = intel_execution_engines; e->name; e++) {
 			igt_subtest_f("%s%s%s",
-				      e->exec_id || mode->flags ? "" : mode->prefix,
+				      e->exec_id || (mode->flags & ~INTERRUPTIBLE) ? "" : mode->prefix,
 				      e->name,
 				      mode->suffix)
 				run_test(fd, e->exec_id | e->flags, mode->flags);
