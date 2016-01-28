@@ -88,9 +88,9 @@ static void run_test(int fd, unsigned ring, unsigned flags)
 	uint32_t *batch, *b;
 	int i;
 
+	gem_require_ring(fd, ring);
 	igt_skip_on_f(gen == 6 && (ring & ~(3<<13)) == I915_EXEC_BSD,
 		      "MI_STORE_DATA broken on gen6 bsd\n");
-	gem_require_ring(fd, ring);
 
 	gem_quiescent_gpu(fd);
 
@@ -98,7 +98,7 @@ static void run_test(int fd, unsigned ring, unsigned flags)
 	execbuf.buffers_ptr = (uintptr_t)obj;
 	execbuf.buffer_count = 2;
 	execbuf.flags = ring | (1 << 11);
-	if (gen < 4)
+	if (gen < 6)
 		execbuf.flags |= I915_EXEC_SECURE;
 
 	memset(obj, 0, sizeof(obj));
@@ -129,7 +129,7 @@ static void run_test(int fd, unsigned ring, unsigned flags)
 		reloc[i].write_domain = I915_GEM_DOMAIN_INSTRUCTION;
 
 		offset = obj[0].offset + reloc[i].delta;
-		*b++ = MI_STORE_DWORD_IMM;
+		*b++ = MI_STORE_DWORD_IMM | (gen < 6 ? 1 << 22 : 0);
 		if (gen >= 8) {
 			*b++ = offset;
 			*b++ = offset >> 32;
@@ -139,7 +139,6 @@ static void run_test(int fd, unsigned ring, unsigned flags)
 			reloc[i].offset += sizeof(*batch);
 		} else {
 			b[-1] -= 1;
-			b[-1] |= 1 << 22;
 			*b++ = offset;
 		}
 		*b++ = i;
