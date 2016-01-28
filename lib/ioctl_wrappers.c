@@ -1341,6 +1341,12 @@ static int gem_has_ring(int fd, int ring)
 void gem_require_ring(int fd, int ring_id)
 {
 	igt_require(gem_has_ring(fd, ring_id));
+
+	/* silly ABI, the kernel thinks everyone who has BSD also has BSD2 */
+	if ((ring_id & ~(3<<13)) == I915_EXEC_BSD) {
+		if (ring_id & (3 << 13))
+			igt_require(gem_has_bsd2(fd));
+	}
 }
 
 /* prime */
