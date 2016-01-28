@@ -161,6 +161,8 @@ static void test_ring(int fd, unsigned ring, uint32_t flags)
 	uint32_t active;
 	unsigned i;
 
+	gem_require_ring(fd, ring | flags);
+
 	handle[TEST] = gem_create(fd, 4096);
 	handle[BATCH] = gem_create(fd, 4096);
 	gem_write(fd, handle[BATCH], 0, &bbe, sizeof(bbe));
@@ -169,14 +171,14 @@ static void test_ring(int fd, unsigned ring, uint32_t flags)
 	handle[BUSY] = busy_blt(fd);
 
 	/* Queue a batch after the busy, it should block and remain "busy" */
-	igt_require(exec_noop(fd, handle, ring | flags, false));
+	igt_assert(exec_noop(fd, handle, ring | flags, false));
 	igt_assert(still_busy(fd, handle[BUSY]));
 	__gem_busy(fd, handle[TEST], &read, &write);
 	igt_assert_eq(read, 1 << ring);
 	igt_assert_eq(write, 0);
 
 	/* Requeue with a write */
-	igt_require(exec_noop(fd, handle, ring | flags, true));
+	igt_assert(exec_noop(fd, handle, ring | flags, true));
 	igt_assert(still_busy(fd, handle[BUSY]));
 	__gem_busy(fd, handle[TEST], &read, &write);
 	igt_assert_eq(read, 1 << ring);
