@@ -52,7 +52,7 @@ static void write_dword(int fd,
 	obj[1].handle = gem_create(fd, 4096);
 
 	i = 0;
-	buf[i++] = MI_STORE_DWORD_IMM;
+	buf[i++] = MI_STORE_DWORD_IMM | (gen < 6 ? 1<<22 : 0);
 	if (gen >= 8) {
 		buf[i++] = target_offset;
 		buf[i++] = target_offset >> 32;
@@ -61,7 +61,6 @@ static void write_dword(int fd,
 		buf[i++] = target_offset;
 	} else {
 		buf[i-1]--;
-		buf[i-1] |= 1 << 22;
 		buf[i++] = target_offset;
 	}
 	buf[i++] = value;
@@ -84,6 +83,7 @@ static void write_dword(int fd,
 	memset(&execbuf, 0, sizeof(execbuf));
 	execbuf.buffers_ptr = (uintptr_t)obj;
 	execbuf.buffer_count = 2;
+	execbuf.flags = I915_EXEC_SECURE;
 	gem_execbuf(fd, &execbuf);
 	gem_close(fd, obj[1].handle);
 }
@@ -211,7 +211,7 @@ igt_main
 	int fd = -1;
 
 	igt_fixture
-		fd = drm_open_driver(DRIVER_INTEL);
+		fd = drm_open_driver_master(DRIVER_INTEL);
 
 	for (size = 4096; size <= 4ull*1024*1024*1024; size <<= 1) {
 		igt_subtest_f("mmap-%u", find_last_set(size) - 1)

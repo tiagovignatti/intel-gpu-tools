@@ -402,7 +402,7 @@ static void test_noreloc(int fd)
 	memset(&execbuf, 0, sizeof(execbuf));
 	execbuf.buffers_ptr = (uintptr_t)object;
 	execbuf.buffer_count = 1;
-	if (gen < 4)
+	if (gen < 6)
 		execbuf.flags |= I915_EXEC_SECURE;
 	gem_execbuf(fd, &execbuf);
 	gem_close(fd, object[0].handle);
@@ -424,17 +424,16 @@ static void test_noreloc(int fd)
 	gem_set_domain(fd, object[i].handle,
 		       I915_GEM_DOMAIN_CPU, I915_GEM_DOMAIN_CPU);
 	for (i = 0; i < ARRAY_SIZE(object) - 1; i++) {
-		*b++ = MI_STORE_DWORD_IMM;
-		if (gen < 8) {
-			if (gen < 4) {
-				b[-1]--;
-				b[-1] |= 1 << 22;
-			} else
-				*b++ = 0;
-			*b++ = object[i].offset;
-		} else {
+		*b++ = MI_STORE_DWORD_IMM | (gen < 6 ? 1 << 22 : 0);
+		if (gen >= 8) {
 			*b++ = object[i].offset;
 			*b++ = object[i].offset >> 32;
+		} else if (gen >= 4) {
+			*b++ = 0;
+			*b++ = object[i].offset;
+		} else {
+			b[-1]--;
+			*b++ = object[i].offset;
 		}
 		*b++ = i;
 	}
@@ -451,7 +450,7 @@ static void test_noreloc(int fd)
 			uint32_t val;
 
 			gem_read(fd, object[i].handle, 0, &val, sizeof(val));
-			igt_assert_eq(val, (object[i].offset - offset)/ size);
+			igt_assert_eq(val, (object[i].offset - offset)/size);
 		}
 	}
 	for (i = 0; i < ARRAY_SIZE(object); i++)

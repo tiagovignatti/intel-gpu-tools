@@ -62,7 +62,7 @@ static void setup(int fd, int gen, struct shadow *shadow)
 	shadow->handle = gem_create(fd, 4096);
 
 	i = 0;
-	buf[i++] = MI_STORE_DWORD_IMM;
+	buf[i++] = MI_STORE_DWORD_IMM | (gen < 6 ? 1 << 22 : 0);
 	if (gen >= 8) {
 		buf[i++] = BATCH_SIZE - sizeof(uint32_t);
 		buf[i++] = 0;
@@ -71,7 +71,6 @@ static void setup(int fd, int gen, struct shadow *shadow)
 		buf[i++] = BATCH_SIZE - sizeof(uint32_t);
 	} else {
 		buf[i-1]--;
-		buf[i-1] |= 1 << 22;
 		buf[i++] = BATCH_SIZE - sizeof(uint32_t);
 	}
 	buf[i++] = MI_BATCH_BUFFER_END;
@@ -125,7 +124,7 @@ static void test_ring(unsigned ring)
 	memset(&execbuf, 0, sizeof(execbuf));
 	execbuf.buffers_ptr = (uintptr_t)obj;
 	execbuf.flags = ring;
-	if (gen < 4)
+	if (gen < 6)
 		execbuf.flags |= I915_EXEC_SECURE;
 
 	for (i = 0; i < count; i++) {
