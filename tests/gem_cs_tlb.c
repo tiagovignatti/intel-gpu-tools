@@ -124,12 +124,12 @@ static void run_on_ring(int fd, unsigned ring_id, const char *ring_name)
 	execobj.flags = EXEC_OBJECT_PINNED;
 
 	sprintf(buf, "Testing %s cs tlb coherency: ", ring_name);
-	for (i = 0; i < BATCH_SIZE/8; i++) {
-		igt_progress(buf, i, BATCH_SIZE/8);
+	for (i = 0; i < BATCH_SIZE/64; i++) {
+		igt_progress(buf, i, BATCH_SIZE/64);
 
 		execobj.handle = obj[i&1].handle;
-		obj[i&1].batch[i*2] = MI_BATCH_BUFFER_END;
-		execbuf.batch_start_offset = i*8;
+		obj[i&1].batch[i*64/4] = MI_BATCH_BUFFER_END;
+		execbuf.batch_start_offset = i*64;
 
 		gem_execbuf(fd, &execbuf);
 	}
