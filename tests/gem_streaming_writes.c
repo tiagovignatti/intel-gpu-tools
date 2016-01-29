@@ -240,6 +240,7 @@ static void test_batch(int fd, int mode, int reverse)
 	struct drm_i915_gem_relocation_entry reloc[2];
 	uint32_t tmp[] = { MI_BATCH_BUFFER_END };
 	uint64_t __src_offset, __dst_offset;
+	bool need_64b_start_offset = true;
 	uint64_t batch_size;
 	uint32_t *s, *d;
 	uint32_t *base;
@@ -324,7 +325,8 @@ static void test_batch(int fd, int mode, int reverse)
 			int k;
 
 			execbuf.batch_start_offset = 128 * offset;
-			execbuf.batch_start_offset += 8 * (pass & 7);
+			if (!need_64b_start_offset)
+				execbuf.batch_start_offset += 8 * (pass & 7);
 			igt_assert(execbuf.batch_start_offset <= batch_size - 64);
 			if (reverse)
 				execbuf.batch_start_offset = batch_size - execbuf.batch_start_offset - 64;
