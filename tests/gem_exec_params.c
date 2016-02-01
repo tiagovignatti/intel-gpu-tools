@@ -46,6 +46,30 @@
 #define LOCAL_I915_EXEC_BSD_RING2 (2<<13)
 #define LOCAL_I915_EXEC_RESOURCE_STREAMER (1<<15)
 
+static bool has_ring(int fd, unsigned ring_exec_flags)
+{
+	switch (ring_exec_flags & I915_EXEC_RING_MASK) {
+	case 0:
+	case I915_EXEC_RENDER:
+		return true;
+
+	case I915_EXEC_BSD:
+		if (ring_exec_flags & LOCAL_I915_EXEC_BSD_MASK)
+			return gem_has_bsd2(fd);
+		else
+			return gem_has_bsd(fd);
+
+	case I915_EXEC_BLT:
+		return gem_has_blt(fd);
+
+	case I915_EXEC_VEBOX:
+		return gem_has_vebox(fd);
+	}
+
+	igt_assert_f(0, "invalid exec flag 0x%x\n", ring_exec_flags);
+	return false;
+}
+
 struct drm_i915_gem_execbuffer2 execbuf;
 struct drm_i915_gem_exec_object2 gem_exec[1];
 uint32_t batch[2] = {MI_BATCH_BUFFER_END};
@@ -54,6 +78,8 @@ int fd;
 
 igt_main
 {
+	const struct intel_execution_engine *e;
+
 	igt_fixture {
 		fd = drm_open_driver(DRIVER_INTEL);
 
@@ -85,13 +111,12 @@ igt_main
 	}
 
 	igt_subtest("control") {
-		igt_assert(drmIoctl(fd,
-				    DRM_IOCTL_I915_GEM_EXECBUFFER2,
-				    &execbuf) == 0);
-		execbuf.flags = I915_EXEC_RENDER;
-		igt_assert(drmIoctl(fd,
-				    DRM_IOCTL_I915_GEM_EXECBUFFER2,
-				    &execbuf) == 0);
+		for (e = intel_execution_engines; e->name; e++) {
+			if (has_ring(fd, e->exec_id | e->flags)) {
+				execbuf.flags = e->exec_id | e->flags;
+				gem_execbuf(fd, &execbuf);
+			}
+		}
 	}
 
 #define RUN_FAIL(expected_errno) do { \
