@@ -288,19 +288,10 @@ static void test_error_state_capture(unsigned ring_id,
 	check_error_state(gen, cmd_parser, ring_name, offset);
 }
 
-static const struct target_ring {
-	const int id;
-	const char *short_name;
-	const char *full_name;
-} rings[] = {
-	{ I915_EXEC_RENDER, "render", "render ring" },
-	{ I915_EXEC_BSD, "bsd", "bsd ring" },
-	{ I915_EXEC_BLT, "blt", "blitter ring" },
-	{ I915_EXEC_VEBOX, "vebox", "video enhancement ring" },
-};
-
 igt_main
 {
+	const struct intel_execution_engine *e;
+
 	igt_skip_on_simulation();
 
 	igt_subtest("error-state-debugfs-entry")
@@ -315,8 +306,12 @@ igt_main
 	igt_subtest("error-state-basic")
 		test_error_state_basic();
 
-	for (int i = 0; i < sizeof(rings)/sizeof(rings[0]); i++) {
-		igt_subtest_f("error-state-capture-%s", rings[i].short_name)
-			test_error_state_capture(rings[i].id, rings[i].full_name);
+	for (e = intel_execution_engines; e->name; e++) {
+		if (e->exec_id == 0)
+			continue;
+
+		igt_subtest_f("error-state-capture-%s", e->name)
+			test_error_state_capture(e->exec_id | e->flags,
+						 e->full_name);
 	}
 }

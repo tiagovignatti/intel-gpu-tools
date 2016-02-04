@@ -93,6 +93,7 @@ unsigned intel_detect_and_clear_missed_interrupts(int fd);
 
 extern const struct intel_execution_engine {
 	const char *name;
+	const char *full_name;
 	unsigned exec_id;
 	unsigned flags;
 } intel_execution_engines[];
