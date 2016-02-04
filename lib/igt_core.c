@@ -56,7 +56,7 @@
 #include <ctype.h>
 #include <limits.h>
 #include <locale.h>
-#include <fnmatch.h>
+#include <uwildmat/uwildmat.h>
 
 #include "drmtest.h"
 #include "intel_chipset.h"
@@ -209,6 +209,19 @@
  * intel gpu to be present). Then individual subtests can be run with
  * "--run-subtest". Usage help for tests with subtests can be obtained with the
  * "--help" command line option.
+ *
+ * A wildcard expression can be given to --run-subtest to specify a subset of
+ * subtests to run. See https://tools.ietf.org/html/rfc3977#section-4 for a
+ * description of allowed wildcard expressions.
+ * Some examples of allowed wildcard expressions are:
+ *
+ * - '*basic*' match any subtest containing basic
+ * - 'basic-???' match any subtest named basic- with 3 characters after -
+ * - 'basic-[0-9]' match any subtest named basic- with a single number after -
+ * - 'basic-[^0-9]' match any subtest named basic- with a single non numerical character after -
+ * - 'basic*,advanced*' match any subtest starting basic or advanced
+ * - '*,!basic*' match any subtest not starting basic
+ * - 'basic*,!basic-render*' match any subtest starting basic but not starting basic-render
  */
 
 static unsigned int exit_handler_count;
@@ -814,7 +827,7 @@ bool __igt_run_subtest(const char *subtest_name)
 	}
 
 	if (run_single_subtest) {
-		if (fnmatch(run_single_subtest, subtest_name, 0) != 0)
+		if (uwildmat(subtest_name, run_single_subtest) == 0)
 			return false;
 		else
 			run_single_subtest_found = true;
