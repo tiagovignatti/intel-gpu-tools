@@ -31,29 +31,9 @@
 #include <sys/stat.h>
 #include <sys/resource.h>
 
-
 IGT_TEST_DESCRIPTION("Fill the Gobal GTT with context objects and VMs\n");
 
-#define OBJECT_SIZE (1024 * 1024)
-#define NUM_THREADS 8
-
-static int fd;
-static unsigned devid;
-static igt_render_copyfunc_t render_copy;
-
-static dri_bo **all_bo;
-static int num_bo;
-static int bo_per_ctx;
-
-static drm_intel_context **all_ctx;
-static int num_ctx;
-static int ctx_per_thread;
-
-static void xchg_ptr(void *array, unsigned i, unsigned j)
-{
-	void **A = array;
-	igt_swap(A[i], A[j]);
-}
+#define NUM_THREADS sysconf(_SC_NPROCESSORS_ONLN)
 
 static void xchg_int(void *array, unsigned i, unsigned j)
 {
@@ -61,93 +41,80 @@ static void xchg_int(void *array, unsigned i, unsigned j)
 	igt_swap(A[i], A[j]);
 }
 
-static int reopen(int _fd)
+static unsigned get_num_contexts(int fd)
 {
-	struct stat st;
-	char name[128];
+	uint64_t ggtt_size;
+	unsigned size;
+	unsigned count;
 
-	igt_assert(fstat(_fd, &st) == 0);
-
-	sprintf(name, "/dev/dri/card%u", (unsigned)(st.st_rdev & 0x7f));
-	return open(name, O_RDWR);
-}
-
-static void *thread(void *bufmgr)
-{
-	struct intel_batchbuffer *batch;
-	dri_bo **bo;
-	drm_intel_context **ctx;
-	int c, b;
-
-	batch = intel_batchbuffer_alloc(bufmgr, devid);
-
-	bo = malloc(num_bo * sizeof(dri_bo *));
-	igt_assert(bo);
-	memcpy(bo, all_bo, num_bo * sizeof(dri_bo *));
-
-	ctx = malloc(num_ctx * sizeof(drm_intel_context *));
-	igt_assert(ctx);
-	memcpy(ctx, all_ctx, num_ctx * sizeof(drm_intel_context *));
-	igt_permute_array(ctx, num_ctx, xchg_ptr);
-
-	for (c = 0; c < ctx_per_thread; c++) {
-		igt_permute_array(bo, num_bo, xchg_ptr);
-		for (b = 0; b < bo_per_ctx; b++) {
-			struct igt_buf src, dst;
-
-			src.bo = bo[b % num_bo];
-			src.stride = 64;
-			src.size = OBJECT_SIZE;
-			src.tiling = I915_TILING_NONE;
-
-			dst.bo = bo[(b+1) % num_bo];
-			dst.stride = 64;
-			dst.size = OBJECT_SIZE;
-			dst.tiling = I915_TILING_NONE;
-
-			render_copy(batch, ctx[c % num_ctx],
-				    &src, 0, 0, 16, 16, &dst, 0, 0);
-		}
-	}
-
-	free(ctx);
-	free(bo);
-	intel_batchbuffer_free(batch);
-
-	return NULL;
-}
-
-static void
-processes(void)
-{
-	int *all_fds;
-	uint64_t aperture;
-	struct rlimit rlim;
-	int ppgtt_mode;
-	int ctx_size;
-	int obj_size;
-	int n;
-
-	igt_skip_on_simulation();
-
-	fd = drm_open_driver_render(DRIVER_INTEL);
-	devid = intel_get_drm_devid(fd);
-	aperture = gem_aperture_size(fd);
-
-	ppgtt_mode = gem_gtt_type(fd);
-	igt_require(ppgtt_mode);
-
-	render_copy = igt_get_render_copyfunc(devid);
-	igt_require_f(render_copy, "no render-copy function\n");
-
-	if (ppgtt_mode > 1)
-		ctx_size = aperture >> 10; /* Assume full-ppgtt of maximum size */
+	/* Compute the number of contexts we can allocate to fill the GGTT */
+	if (intel_gen(intel_get_drm_devid(fd)) >= 8)
+		ggtt_size = 1ull << 32;
 	else
-		ctx_size = 64 << 10; /* Most gen require at least 64k for ctx */
-	num_ctx = 3 * (aperture / ctx_size) / 2;
-	igt_info("Creating %d contexts (assuming of size %d)\n",
-		 num_ctx, ctx_size);
-	intel_require_memory(num_ctx, ctx_size, CHECK_RAM | CHECK_SWAP);
+		ggtt_size = 1ull << 31;
+
+	size = 64 << 10; /* Most gen require at least 64k for ctx */
+
+	count = 3 * (ggtt_size / size) / 2;
+	igt_info("Creating %lld contexts (assuming of size %lld)\n",
+		 (long long)count, (long long)size);
+
+	intel_require_memory(count, size, CHECK_RAM | CHECK_SWAP);
+	return count;
+}
+
+static int has_engine(int fd, const struct intel_execution_engine *e)
+{
+	uint32_t bbe = MI_BATCH_BUFFER_END;
+	struct drm_i915_gem_execbuffer2 execbuf;
+	struct drm_i915_gem_exec_object2 exec;
+	int ret;
+
+	memset(&exec, 0, sizeof(exec));
+	exec.handle = gem_create(fd, 4096);
+	gem_write(fd, exec.handle, 0, &bbe, sizeof(bbe));
+
+	memset(&execbuf, 0, sizeof(execbuf));
+	execbuf.buffers_ptr = (uintptr_t)&exec;
+	execbuf.buffer_count = 1;
+	execbuf.flags = e->exec_id | e->flags;
+	ret = __gem_execbuf(fd, &execbuf);
+	gem_close(fd, exec.handle);
+
+	return ret == 0;
+}
+
+static void processes(void)
+{
+	const struct intel_execution_engine *e;
+	unsigned engines[16];
+	int num_engines;
+	struct rlimit rlim;
+	unsigned num_ctx;
+	uint32_t name;
+	int fd, *fds;
+
+	fd = drm_open_driver(DRIVER_INTEL);
+	num_ctx = get_num_contexts(fd);
+
+	num_engines = 0;
+	for (e = intel_execution_engines; e->name; e++) {
+		if (e->exec_id == 0)
+			continue;
+
+		if (!has_engine(fd, e))
+			continue;
+
+		if (e->exec_id == I915_EXEC_BSD) {
+			int is_bsd2 = e->flags != 0;
+			if (gem_has_bsd2(fd) != is_bsd2)
+				continue;
+		}
+
+		engines[num_engines++] = e->exec_id | e->flags;
+		if (num_engines == ARRAY_SIZE(engines))
+			break;
+	}
 
 	/* tweak rlimits to allow us to create this many files */
 	igt_assert(getrlimit(RLIMIT_NOFILE, &rlim) == 0);
@@ -158,134 +125,115 @@ processes(void)
 		igt_assert(setrlimit(RLIMIT_NOFILE, &rlim) == 0);
 	}
 
-	all_fds = malloc(num_ctx * sizeof(int));
-	igt_assert(all_fds);
-	for (n = 0; n < num_ctx; n++) {
-		all_fds[n] = reopen(fd);
-		if (all_fds[n] == -1) {
+	fds = malloc(num_ctx * sizeof(int));
+	igt_assert(fds);
+	for (unsigned n = 0; n < num_ctx; n++) {
+		fds[n] = drm_open_driver(DRIVER_INTEL);
+		if (fds[n] == -1) {
 			int err = errno;
-			for (int i = n; i--; )
-				close(all_fds[i]);
-			free(all_fds);
+			for (unsigned i = n; i--; )
+				close(fds[i]);
+			free(fds);
 			errno = err;
-			igt_assert_f(0, "failed to create context %d/%d\n", n, num_ctx);
+			igt_assert_f(0, "failed to create context %lld/%lld\n", (long long)n, (long long)num_ctx);
 		}
 	}
 
-	num_bo = 2 * num_ctx;
-	obj_size = (2 * aperture / num_bo + 4095) & -4096;
-	igt_info("Creating %d surfaces (of size %d)\n", num_bo, obj_size);
-	intel_require_memory(num_bo, obj_size, CHECK_RAM);
+	if (1) {
+		uint32_t bbe = MI_BATCH_BUFFER_END;
+		name = gem_create(fd, 4096);
+		gem_write(fd, name, 0, &bbe, sizeof(bbe));
+		name = gem_flink(fd, name);
+	}
 
 	igt_fork(child, NUM_THREADS) {
-		drm_intel_bufmgr *bufmgr;
-		struct intel_batchbuffer *batch;
-		int c;
+		struct drm_i915_gem_execbuffer2 execbuf;
+		struct drm_i915_gem_exec_object2 obj;
 
-		igt_permute_array(all_fds, num_ctx, xchg_int);
+		memset(&obj, 0, sizeof(obj));
+		memset(&execbuf, 0, sizeof(execbuf));
+		execbuf.buffers_ptr = (uintptr_t)&obj;
+		execbuf.buffer_count = 1;
 
-		for (c = 0; c < num_ctx; c++) {
-			struct igt_buf src, dst;
-
-			bufmgr = drm_intel_bufmgr_gem_init(all_fds[c], 4096);
-			igt_assert(bufmgr);
-			batch = intel_batchbuffer_alloc(bufmgr, devid);
-
-			src.bo = drm_intel_bo_alloc(bufmgr, "", obj_size, 0);
-			igt_assert(src.bo);
-			src.stride = 64;
-			src.size = obj_size;
-			src.tiling = I915_TILING_NONE;
-
-			dst.bo = drm_intel_bo_alloc(bufmgr, "", obj_size, 0);
-			igt_assert(dst.bo);
-			dst.stride = 64;
-			dst.size = obj_size;
-			dst.tiling = I915_TILING_NONE;
-
-			render_copy(batch, NULL,
-				    &src, 0, 0, 16, 16, &dst, 0, 0);
-
-			intel_batchbuffer_free(batch);
-			drm_intel_bo_unreference(src.bo);
-			drm_intel_bo_unreference(dst.bo);
-			drm_intel_bufmgr_destroy(bufmgr);
+		igt_permute_array(fds, num_ctx, xchg_int);
+		for (unsigned n = 0; n < num_ctx; n++) {
+			obj.handle = gem_open(fds[n], name);
+			execbuf.flags = engines[n % num_engines];
+			gem_execbuf(fds[n], &execbuf);
+			gem_close(fds[n], obj.handle);
 		}
 	}
 	igt_waitchildren();
 
-	for (n = 0; n < num_ctx; n++)
-		close(all_fds[n]);
-	free(all_fds);
+	for (unsigned n = 0; n < num_ctx; n++)
+		close(fds[n]);
+	free(fds);
 	close(fd);
 }
 
-static void
-threads(void)
+struct thread {
+	int fd;
+	uint32_t *all_ctx;
+	unsigned num_ctx;
+};
+
+static void *thread(void *data)
+{
+	struct thread *t = data;
+	uint32_t bbe = MI_BATCH_BUFFER_END;
+	struct drm_i915_gem_execbuffer2 execbuf;
+	struct drm_i915_gem_exec_object2 obj;
+	uint32_t *ctx;
+
+	memset(&obj, 0, sizeof(obj));
+	obj.handle = gem_create(t->fd, 4096);
+	gem_write(t->fd, obj.handle, 0, &bbe, sizeof(bbe));
+
+	memset(&execbuf, 0, sizeof(execbuf));
+	execbuf.buffers_ptr = (uintptr_t)&obj;
+	execbuf.buffer_count = 1;
+
+	ctx = malloc(t->num_ctx * sizeof(uint32_t));
+	igt_assert(ctx);
+	memcpy(ctx, t->all_ctx, t->num_ctx * sizeof(uint32_t));
+	igt_permute_array(ctx, t->num_ctx, xchg_int);
+
+	for (unsigned n = 0; n < t->num_ctx; n++) {
+		execbuf.rsvd1 = ctx[n];
+		gem_execbuf(t->fd, &execbuf);
+	}
+
+	free(ctx);
+	gem_close(t->fd, obj.handle);
+
+	return NULL;
+}
+
+static void threads(void)
 {
 	pthread_t threads[NUM_THREADS];
-	drm_intel_bufmgr *bufmgr;
-	uint64_t aperture;
-	int ppgtt_mode;
-	int ctx_size;
-	int n;
+	struct thread data;
 
-	igt_skip_on_simulation();
+	data.fd = drm_open_driver_render(DRIVER_INTEL);
+	data.num_ctx = get_num_contexts(data.fd);
+	data.all_ctx = malloc(data.num_ctx * sizeof(uint32_t));
+	igt_assert(data.all_ctx);
+	for (unsigned n = 0; n < data.num_ctx; n++)
+		data.all_ctx[n] = gem_context_create(data.fd);
 
-	fd = drm_open_driver_render(DRIVER_INTEL);
-	devid = intel_get_drm_devid(fd);
-	aperture = gem_aperture_size(fd);
+	for (int n = 0; n < NUM_THREADS; n++)
+		pthread_create(&threads[n], NULL, thread, &data);
 
-	ppgtt_mode = gem_gtt_type(fd);
-	igt_require(ppgtt_mode);
-
-	render_copy = igt_get_render_copyfunc(devid);
-	igt_require_f(render_copy, "no render-copy function\n");
-
-	bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
-	igt_assert(bufmgr);
-	drm_intel_bufmgr_gem_enable_reuse(bufmgr);
-
-	if (ppgtt_mode > 1)
-		ctx_size = aperture >> 10; /* Assume full-ppgtt of maximum size */
-	else
-		ctx_size = 64 << 10; /* Most gen require at least 64k for ctx */
-	num_ctx = 3 * (aperture / ctx_size) / 2;
-	igt_info("Creating %d contexts (assuming of size %d)\n",
-		 num_ctx, ctx_size);
-	intel_require_memory(num_ctx, ctx_size, CHECK_RAM | CHECK_SWAP);
-	all_ctx = malloc(num_ctx * sizeof(drm_intel_context *));
-	igt_assert(all_ctx);
-	for (n = 0; n < num_ctx; n++) {
-		all_ctx[n] = drm_intel_gem_context_create(bufmgr);
-		igt_assert(all_ctx[n]);
-	}
-
-	num_bo = 3 * (aperture / OBJECT_SIZE) / 2;
-	igt_info("Creating %d surfaces (of size %d)\n", num_bo, OBJECT_SIZE);
-	intel_require_memory(num_bo, OBJECT_SIZE, CHECK_RAM);
-	all_bo = malloc(num_bo * sizeof(dri_bo *));
-	igt_assert(all_bo);
-	for (n = 0; n < num_bo; n++) {
-		all_bo[n] = drm_intel_bo_alloc(bufmgr, "", OBJECT_SIZE, 0);
-		igt_assert(all_bo[n]);
-	}
-
-	ctx_per_thread = 3 * num_ctx / NUM_THREADS / 2;
-	bo_per_ctx = 3 * num_bo / NUM_THREADS / 2;
-
-	for (n = 0; n < NUM_THREADS; n++)
-		pthread_create(&threads[n], NULL, thread, bufmgr);
-
-	for (n = 0; n < NUM_THREADS; n++)
+	for (int n = 0; n < NUM_THREADS; n++)
 		pthread_join(threads[n], NULL);
 
-	drm_intel_bufmgr_destroy(bufmgr);
-	close(fd);
+	close(data.fd);
 }
 
 igt_main
 {
+	igt_skip_on_simulation();
+
 	igt_subtest("processes")
 		processes();
 
