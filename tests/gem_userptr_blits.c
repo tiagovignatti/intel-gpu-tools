@@ -173,8 +173,8 @@ copy(int fd, uint32_t dst, uint32_t src, unsigned int error)
 	reloc[1].read_domains = I915_GEM_DOMAIN_RENDER;
 	reloc[1].write_domain = 0;
 
+	memset(&exec, 0, sizeof(exec));
 	memset(obj, 0, sizeof(obj));
-	exec.buffer_count = 0;
 	obj[exec.buffer_count++].handle = dst;
 	if (src != dst)
 		obj[exec.buffer_count++].handle = src;
@@ -183,19 +183,9 @@ copy(int fd, uint32_t dst, uint32_t src, unsigned int error)
 	obj[exec.buffer_count].relocs_ptr = (uintptr_t)reloc;
 	exec.buffer_count++;
 	exec.buffers_ptr = (uintptr_t)obj;
-
-	exec.batch_start_offset = 0;
-	exec.batch_len = i * 4;
-	exec.DR1 = exec.DR4 = 0;
-	exec.num_cliprects = 0;
-	exec.cliprects_ptr = 0;
 	exec.flags = HAS_BLT_RING(intel_get_drm_devid(fd)) ? I915_EXEC_BLT : 0;
-	i915_execbuffer2_set_context_id(exec, 0);
-	exec.rsvd2 = 0;
 
-	ret = drmIoctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &exec);
-	if (ret)
-		ret = errno;
+	ret = __gem_execbuf(fd, &exec);
 
 	if (error == ~0)
 		igt_assert_neq(ret, 0);
@@ -257,6 +247,7 @@ blit(int fd, uint32_t dst, uint32_t src, uint32_t *all_bo, int n_bo)
 	reloc[1].read_domains = I915_GEM_DOMAIN_RENDER;
 	reloc[1].write_domain = 0;
 
+	memset(&exec, 0, sizeof(exec));
 	obj = calloc(n_bo + 1, sizeof(*obj));
 	for (n = 0; n < n_bo; n++)
 		obj[n].handle = all_bo[n];
@@ -266,19 +257,9 @@ blit(int fd, uint32_t dst, uint32_t src, uint32_t *all_bo, int n_bo)
 
 	exec.buffers_ptr = (uintptr_t)obj;
 	exec.buffer_count = n_bo + 1;
-	exec.batch_start_offset = 0;
-	exec.batch_len = i * 4;
-	exec.DR1 = exec.DR4 = 0;
-	exec.num_cliprects = 0;
-	exec.cliprects_ptr = 0;
 	exec.flags = HAS_BLT_RING(intel_get_drm_devid(fd)) ? I915_EXEC_BLT : 0;
-	i915_execbuffer2_set_context_id(exec, 0);
-	exec.rsvd2 = 0;
 
-	ret = drmIoctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &exec);
-	if (ret)
-		ret = errno;
-
+	ret = __gem_execbuf(fd, &exec);
 	gem_close(fd, handle);
 	free(obj);
 
@@ -1067,6 +1048,7 @@ static void test_forking_evictions(int fd, int size, int count,
 
 static void test_mlocked_evictions(int fd, int size, int count)
 {
+	count = min(256, count/2);
 	mlocked_evictions(fd, &fault_ops, size, count);
 	reset_handle_ptr();
 }

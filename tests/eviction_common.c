@@ -133,7 +133,7 @@ static void mlocked_evictions(int fd, struct igt_eviction_test_ops *ops,
 			      uint64_t surface_size,
 			      uint64_t surface_count)
 {
-	size_t sz, pin;
+	uint64_t sz, pin;
 	void *locked;
 
 	intel_require_memory(surface_count, surface_size, CHECK_RAM);
@@ -142,10 +142,11 @@ static void mlocked_evictions(int fd, struct igt_eviction_test_ops *ops,
 	pin = intel_get_avail_ram_mb();
 	pin *= 1024 * 1024;
 	igt_require(pin > sz);
-	pin -= 3*sz/2;
+	pin -= sz;
 
-	igt_debug("Pinning [%ld, %ld] MiB\n",
-		  (long)pin/(1024*1024), (long)(pin + sz)/(1024*1024));
+	igt_debug("Pinning [%'lld, %'lld] MiB\n",
+		  (long long)pin/(1024*1024),
+		  (long long)(pin + sz)/(1024*1024));
 
 	locked = malloc(pin + sz);
 	if (locked != NULL && mlock(locked, pin + sz)) {
@@ -185,7 +186,7 @@ static void mlocked_evictions(int fd, struct igt_eviction_test_ops *ops,
 
 			locked = malloc(surface_size);
 			if (locked == NULL || mlock(locked, surface_size))
-				exit(ENOSPC);
+				free(locked);
 		}
 
 		for (n = 0; n < surface_count; n++)
