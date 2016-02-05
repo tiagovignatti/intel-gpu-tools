@@ -103,6 +103,8 @@ static void many(int fd)
 			execobj[i].flags = 1<<3; /* EXEC_OBJECT_SUPPORTS_48B_ADDRESS */
 	}
 	execobj[i].handle = gem_create(fd, 4096);
+	if ((gtt_size-1) >> 32)
+		execobj[i].flags = 1<<3; /* EXEC_OBJECT_SUPPORTS_48B_ADDRESS */
 	gem_write(fd, execobj[i].handle, 0, &bbe, sizeof(bbe));
 
 	memset(&execbuf, 0, sizeof(execbuf));
