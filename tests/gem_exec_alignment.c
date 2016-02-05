@@ -119,7 +119,7 @@ static void many(int fd)
 			uint64_t factor = alignment / max_alignment;
 			execbuf.buffer_count = 2*count / factor;
 			execbuf.buffers_ptr =
-				(uintptr_t)(execobj + count - execbuf.buffer_count);
+				(uintptr_t)(execobj + count - execbuf.buffer_count + 1);
 		}
 
 		igt_debug("testing %lld x alignment=%#llx [%db]\n",
@@ -127,7 +127,7 @@ static void many(int fd)
 			  (long long)alignment,
 			  find_last_bit(alignment)-1);
 		gem_execbuf(fd, &execbuf);
-		for(i = count - execbuf.buffer_count; i < count; i++) {
+		for(i = count - execbuf.buffer_count + 1; i < count; i++) {
 			igt_assert_eq_u64(execobj[i].alignment, alignment);
 			igt_assert_eq_u64(execobj[i].offset % alignment, 0);
 		}
@@ -197,7 +197,7 @@ static void single(int fd)
 
 igt_main
 {
-	int fd;
+	int fd = -1;
 
 	igt_fixture
 		fd = drm_open_driver(DRIVER_INTEL);
