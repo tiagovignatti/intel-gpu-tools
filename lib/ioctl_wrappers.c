@@ -771,12 +771,14 @@ int gem_madvise(int fd, uint32_t handle, int state)
 uint32_t gem_context_create(int fd)
 {
 	struct drm_i915_gem_context_create create;
-	int ret;
 
 	memset(&create, 0, sizeof(create));
-	ret = drmIoctl(fd, DRM_IOCTL_I915_GEM_CONTEXT_CREATE, &create);
-	igt_require(ret == 0 || (errno != ENODEV && errno != EINVAL));
-	igt_assert(ret == 0);
+	if (drmIoctl(fd, DRM_IOCTL_I915_GEM_CONTEXT_CREATE, &create)) {
+		int err = -errno;
+		igt_skip_on(err == -ENODEV || errno == -EINVAL);
+		igt_assert_eq(err, 0);
+	}
+	igt_assert(create.ctx_id != 0);
 	errno = 0;
 
 	return create.ctx_id;
