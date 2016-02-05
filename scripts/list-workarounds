@@ -18,7 +18,7 @@ def find_nth(haystack, needle, n):
 	return start
 
 valid_platforms = ('ctg', 'elk', 'ilk', 'snb', 'ivb', 'vlv', 'hsw', 'bdw',
-		   'chv', 'skl', 'bxt')
+		   'chv', 'skl', 'bxt', 'kbl')
 def parse_platforms(line, p):
 	l =  p.split(',')
 	for p in l:
@@ -65,8 +65,14 @@ def execute(cmd):
 	return out, err
 
 def parse_options(args):
-	usage = "Usage: list-workarounds [options] path-to-kernel"
+	usage = "Usage: list-workarounds [options] path-to-kernel -k path-to-kernel -m path-to-mesa"
 	parser = optparse.OptionParser(usage, version=1.0)
+
+	parser.add_option("-k", "--kernel-path", dest="kernel_path", default=None,
+			  help="path to kernel")
+
+	parser.add_option("-m", "--mesa-path", dest="mesa_path", default=None,
+			  help="path to mesa")
 
 	parser.add_option("-v", "--verbose", action="store_true",
 			  dest="verbose", default=False,
@@ -76,38 +82,64 @@ def parse_options(args):
 			  help="List workarounds for the specified platform")
 
 	(options, args) = parser.parse_args()
-
 	return (options, args)
 
-if __name__ == '__main__':
-	(options, args) = parse_options(sys.argv[1:])
-	verbose = options.verbose
-
-	if not len(args):
-		sys.stderr.write("error: A path to a kernel tree is required\n")
-		sys.exit(1)
-
-	kernel_path = args[0]
-	kconfig = os.path.join(kernel_path, 'Kconfig')
-	if not os.path.isfile(kconfig):
-		sys.stderr.write("error: %s does not point to a kernel tree \n"
-				 % kernel_path)
-		sys.exit(1)
-
-	i915_dir = os.path.join('drivers', 'gpu', 'drm', 'i915')
+def print_workarounds(project_root, driver_dir, project):
 	olddir = os.getcwd()
-	os.chdir(kernel_path)
+	os.chdir(project_root)
 	work_arounds, err = execute(['git', 'grep', '-n',
 				     '-e', 'W[aA][A-Z0-9][a-zA-Z0-9_]\+',
-				     i915_dir])
+				     driver_dir])
 	os.chdir(olddir)
 	if err:
 		print(err)
 		sys.exit(1)
 
 	parse(work_arounds)
+	print "\nList of workarounds found in %s:" % project
 	for wa in sorted(workarounds.keys()):
 		if not options.platform:
 			print("%s: %s" % (wa, ', '.join(workarounds[wa])))
 		elif options.platform in workarounds[wa]:
 			print(wa)
+
+
+if __name__ == '__main__':
+	(options, args) = parse_options(sys.argv)
+	verbose = options.verbose
+	kernel_path = None
+
+	if not len(args) and options.kernel_path == None and options.mesa_path == None:
+		sys.stderr.write("error: A path to either a kernel tree or Mesa is required\n")
+		sys.exit(1)
+
+	if len(args):
+		kernel_path = args[0]
+	elif options.kernel_path != None:
+		kernel_path = options.kernel_path
+
+	if kernel_path != None:
+	# --- list Kernel workarounds if path is provided ---
+		kconfig = os.path.join(kernel_path, 'Kconfig')
+		if not os.path.isfile(kconfig):
+			sys.stderr.write("error: %s does not point to a kernel tree \n"
+							% kernel_path)
+			sys.exit(1)
+
+		i915_dir = os.path.join('drivers', 'gpu', 'drm', 'i915')
+		print_workarounds(kernel_path, i915_dir, "kernel")
+
+	# --- list mesa workarounds if path is provided ---
+	if options.mesa_path != None:
+		# reset workarounds array
+		workarounds = {}
+
+		mesa_path = options.mesa_path
+		i965_dir = os.path.join('src', 'mesa', 'drivers', 'dri', 'i965')
+		mesa_dir = os.path.join(mesa_path, i965_dir)
+		if not os.path.exists(mesa_dir):
+			sys.stderr.write("error: %s does not point to a valid mesa path \n"
+							% mesa_path)
+			sys.exit(1)
+
+		print_workarounds(mesa_path, i965_dir, "Mesa")
