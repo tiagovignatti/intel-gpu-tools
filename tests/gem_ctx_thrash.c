@@ -33,7 +33,7 @@
 
 IGT_TEST_DESCRIPTION("Fill the Gobal GTT with context objects and VMs\n");
 
-#define NUM_THREADS sysconf(_SC_NPROCESSORS_ONLN)
+#define NUM_THREADS (2*sysconf(_SC_NPROCESSORS_ONLN))
 
 static void xchg_int(void *array, unsigned i, unsigned j)
 {
@@ -175,19 +175,18 @@ struct thread {
 	int fd;
 	uint32_t *all_ctx;
 	unsigned num_ctx;
+	uint32_t batch;
 };
 
 static void *thread(void *data)
 {
 	struct thread *t = data;
-	uint32_t bbe = MI_BATCH_BUFFER_END;
 	struct drm_i915_gem_execbuffer2 execbuf;
 	struct drm_i915_gem_exec_object2 obj;
 	uint32_t *ctx;
 
 	memset(&obj, 0, sizeof(obj));
-	obj.handle = gem_create(t->fd, 4096);
-	gem_write(t->fd, obj.handle, 0, &bbe, sizeof(bbe));
+	obj.handle = t->batch;
 
 	memset(&execbuf, 0, sizeof(execbuf));
 	execbuf.buffers_ptr = (uintptr_t)&obj;
@@ -204,13 +203,13 @@ static void *thread(void *data)
 	}
 
 	free(ctx);
-	gem_close(t->fd, obj.handle);
 
 	return NULL;
 }
 
 static void threads(void)
 {
+	uint32_t bbe = MI_BATCH_BUFFER_END;
 	pthread_t threads[NUM_THREADS];
 	struct thread data;
 
@@ -220,6 +219,8 @@ static void threads(void)
 	igt_assert(data.all_ctx);
 	for (unsigned n = 0; n < data.num_ctx; n++)
 		data.all_ctx[n] = gem_context_create(data.fd);
+	data.batch = gem_create(data.fd, 4096);
+	gem_write(data.fd, data.batch, 0, &bbe, sizeof(bbe));
 
 	for (int n = 0; n < NUM_THREADS; n++)
 		pthread_create(&threads[n], NULL, thread, &data);
