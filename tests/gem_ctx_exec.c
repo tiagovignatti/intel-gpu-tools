@@ -86,7 +86,7 @@ static void big_exec(int fd, uint32_t handle, int ring)
 	struct drm_i915_gem_execbuffer2 execbuf;
 	struct drm_i915_gem_exec_object2 *gem_exec;
 	uint32_t ctx_id1, ctx_id2;
-	int num_buffers = gem_available_aperture_size(fd) / 4096;
+	int num_buffers = gem_global_aperture_size(fd) / 4096;
 	int i;
 
 	/* Make sure we only fill half of RAM with gem objects. */

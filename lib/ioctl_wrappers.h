@@ -143,8 +143,8 @@ int gem_gtt_type(int fd);
 bool gem_uses_ppgtt(int fd);
 bool gem_uses_full_ppgtt(int fd);
 int gem_available_fences(int fd);
-uint64_t gem_available_aperture_size(int fd);
 uint64_t gem_aperture_size(int fd);
+uint64_t gem_global_aperture_size(int fd);
 uint64_t gem_mappable_aperture_size(void);
 bool gem_has_softpin(int fd);
 

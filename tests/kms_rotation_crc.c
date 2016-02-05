@@ -418,7 +418,7 @@ static void test_plane_rotation_exhaust_fences(data_t *data, enum igt_plane plan
 	 * for creating (MAX_FENCES+1) framebuffers.
 	 */
 	total_fbs_size = size * (MAX_FENCES + 1);
-	total_aperture_size = gem_available_aperture_size(fd);
+	total_aperture_size = gem_global_aperture_size(fd);
 	igt_require(total_fbs_size < total_aperture_size * 0.9);
 
 	igt_plane_set_fb(plane, NULL);

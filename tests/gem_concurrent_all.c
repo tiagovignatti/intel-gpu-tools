@@ -1489,6 +1489,16 @@ igt_main
 		}
 
 		igt_fixture {
+			num_buffers = gem_global_aperture_size(fd) / (1024 * 1024);
+		}
+
+		if (c->require()) {
+			snprintf(name, sizeof(name), "%s%s", c->name, "global");
+			for (i = 0; i < ARRAY_SIZE(access_modes); i++)
+				run_modes(name, &access_modes[i], CHECK_RAM);
+		}
+
+		igt_fixture {
 			num_buffers = gem_aperture_size(fd) / (1024 * 1024);
 		}
 

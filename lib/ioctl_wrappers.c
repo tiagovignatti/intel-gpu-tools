@@ -1226,25 +1226,6 @@ bool gem_has_bsd2(int fd)
 		has_bsd2 = gem_has_enable_ring(fd,LOCAL_I915_PARAM_HAS_BSD2);
 	return has_bsd2;
 }
-/**
- * gem_available_aperture_size:
- * @fd: open i915 drm file descriptor
- *
- * Feature test macro to query the kernel for the available gpu aperture size
- * usable in a batchbuffer.
- *
- * Returns: The available gtt address space size.
- */
-uint64_t gem_available_aperture_size(int fd)
-{
-	struct drm_i915_gem_get_aperture aperture;
-
-	memset(&aperture, 0, sizeof(aperture));
-	aperture.aper_size = 256*1024*1024;
-	do_ioctl(fd, DRM_IOCTL_I915_GEM_GET_APERTURE, &aperture);
-
-	return aperture.aper_available_size;
-}
 
 /**
  * gem_aperture_size:
@@ -1298,6 +1279,25 @@ uint64_t gem_mappable_aperture_size(void)
 		bar = 2;
 
 	return pci_dev->regions[bar].size;
+}
+
+/**
+ * gem_global_aperture_size:
+ *
+ * Feature test macro to query the kernel for the global gpu aperture size.
+ * This is the area available for the kernel to perform address translations.
+ *
+ * Returns: The mappable gtt address space size.
+ */
+uint64_t gem_global_aperture_size(int fd)
+{
+	struct drm_i915_gem_get_aperture aperture;
+
+	memset(&aperture, 0, sizeof(aperture));
+	aperture.aper_size = 256*1024*1024;
+	do_ioctl(fd, DRM_IOCTL_I915_GEM_GET_APERTURE, &aperture);
+
+	return aperture.aper_size;
 }
 
 #define LOCAL_I915_PARAM_HAS_EXEC_SOFTPIN 37

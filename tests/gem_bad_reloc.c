@@ -44,23 +44,6 @@ IGT_TEST_DESCRIPTION("Simulates SNA behaviour using negative self-relocations"
 
 #define USE_LUT (1 << 12)
 
-static uint64_t get_page_table_size(int fd)
-{
-	int val = gem_gtt_type(fd);
-
-	switch (val) {
-	case 0:
-	case 1:
-		return gem_aperture_size(fd);
-	case 2:
-		return 1ULL << 32;
-	case 3:
-		return 1ULL << 48;
-	}
-
-	return 0;
-}
-
 /* Simulates SNA behaviour using negative self-relocations for
  * STATE_BASE_ADDRESS command packets. If they wrap around (to values greater
  * than the total size of the GTT), the GPU will hang.
@@ -71,7 +54,7 @@ static int negative_reloc(int fd, unsigned flags)
 	struct drm_i915_gem_execbuffer2 execbuf;
 	struct drm_i915_gem_exec_object2 gem_exec[2];
 	struct drm_i915_gem_relocation_entry gem_reloc[1000];
-	uint64_t gtt_max = get_page_table_size(fd);
+	uint64_t gtt_max = gem_aperture_size(fd);
 	uint32_t buf[1024] = {MI_BATCH_BUFFER_END};
 	int i;
 

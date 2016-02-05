@@ -84,7 +84,7 @@ static void test_big_cpu(int fd, int scale)
 	uint64_t offset, size;
 	uint32_t handle;
 
-	size = scale * gem_aperture_size(fd) >> 2;
+	size = scale * gem_global_aperture_size(fd) >> 2;
 	intel_require_memory(1, size, CHECK_RAM);
 
 	igt_require(gem_mmap__has_wc(fd));
@@ -110,7 +110,7 @@ static void test_big_gtt(int fd, int scale)
 	uint64_t *ptr;
 	uint32_t handle;
 
-	size = scale * gem_aperture_size(fd) >> 2;
+	size = scale * gem_global_aperture_size(fd) >> 2;
 	intel_require_memory(1, size, CHECK_RAM);
 
 	igt_require(gem_mmap__has_wc(fd));

@@ -48,11 +48,7 @@ static unsigned get_num_contexts(int fd)
 	unsigned count;
 
 	/* Compute the number of contexts we can allocate to fill the GGTT */
-	if (intel_gen(intel_get_drm_devid(fd)) >= 8)
-		ggtt_size = 1ull << 32;
-	else
-		ggtt_size = 1ull << 31;
-
+	ggtt_size = gem_global_aperture_size(fd);
 	size = 64 << 10; /* Most gen require at least 64k for ctx */
 
 	count = 3 * (ggtt_size / size) / 2;
