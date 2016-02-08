@@ -96,7 +96,7 @@ def print_workarounds(project_root, driver_dir, project):
 		sys.exit(1)
 
 	parse(work_arounds)
-	print "\nList of workarounds found in %s:" % project
+	print("\nList of workarounds found in %s:" % project)
 	for wa in sorted(workarounds.keys()):
 		if not options.platform:
 			print("%s: %s" % (wa, ', '.join(workarounds[wa])))
