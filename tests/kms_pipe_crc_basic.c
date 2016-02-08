@@ -222,6 +222,7 @@ igt_main
 			test_read_crc(&data, i, TEST_SEQUENCE | TEST_NONBLOCK);
 
 		igt_subtest_f("suspend-read-crc-pipe-%c", 'A'+i) {
+			igt_skip_on(i >= data.display.n_pipes);
 			igt_system_suspend_autoresume();
 
 			test_read_crc(&data, i, 0);
