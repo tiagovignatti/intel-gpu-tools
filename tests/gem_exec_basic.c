@@ -30,7 +30,6 @@ static void noop(int fd, unsigned ring)
 	uint32_t bbe = MI_BATCH_BUFFER_END;
 	struct drm_i915_gem_execbuffer2 execbuf;
 	struct drm_i915_gem_exec_object2 exec;
-	int ret;
 
 	gem_require_ring(fd, ring);
 
