@@ -141,6 +141,8 @@ int __gem_set_tiling(int fd, uint32_t handle, uint32_t tiling, uint32_t stride)
 	struct drm_i915_gem_set_tiling st;
 	int ret;
 
+	igt_require_intel(fd);
+
 	memset(&st, 0, sizeof(st));
 	do {
 		st.handle = handle;
