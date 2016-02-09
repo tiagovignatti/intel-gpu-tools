@@ -9,9 +9,9 @@ noinst_LTLIBRARIES = libintel_tools.la
 noinst_HEADERS = check-ndebug.h
 
 if HAVE_VC4
-	libintel_tools_la_SOURCES += 	\
-		igt_vc4.c		\
-		igt_vc4.h
+    libintel_tools_la_SOURCES += 	\
+        igt_vc4.c			\
+        igt_vc4.h
 endif
 
 AM_CPPFLAGS = -I$(top_srcdir)
