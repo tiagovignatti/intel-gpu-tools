@@ -82,6 +82,8 @@ int __drm_open_driver(int chipset);
 
 void gem_quiescent_gpu(int fd);
 
+void igt_require_intel(int fd);
+
 /**
  * do_or_die:
  * @x: command

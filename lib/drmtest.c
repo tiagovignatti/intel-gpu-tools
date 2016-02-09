@@ -379,3 +379,8 @@ int drm_open_driver_render(int chipset)
 
 	return fd;
 }
+
+void igt_require_intel(int fd)
+{
+	igt_require(is_i915_device(fd) && has_known_intel_chipset(fd));
+}
