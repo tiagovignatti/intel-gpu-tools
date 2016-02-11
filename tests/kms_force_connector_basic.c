@@ -52,6 +52,8 @@ static void reset_connectors(void)
 
 		drmModeFreeConnector(connector);
 	}
+
+	igt_set_module_param_int("load_detect_test", 0);
 }
 
 static int opt_handler(int opt, int opt_index, void *data)
@@ -106,6 +108,21 @@ int main(int argc, char **argv)
 
 		igt_require(vga_connector);
 		igt_skip_on(vga_connector->connection == DRM_MODE_CONNECTED);
+	}
+
+	igt_subtest("force-load-detect") {
+		igt_set_module_param_int("load_detect_test", 1);
+
+		/* This can't use drmModeGetConnectorCurrent
+		 * because connector probing is the point of this test.
+		 */
+		temp = drmModeGetConnector(drm_fd, vga_connector->connector_id);
+
+		igt_set_module_param_int("load_detect_test", 0);
+
+		igt_assert(temp->connection != DRM_MODE_UNKNOWNCONNECTION);
+
+		drmModeFreeConnector(temp);
 	}
 
 	igt_subtest("force-connector-state") {
