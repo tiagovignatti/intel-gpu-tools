@@ -53,7 +53,8 @@ IGT_TEST_DESCRIPTION("Run a couple of big batches to force the unbind on"
 #define WIDTH 1024
 
 static void
-copy(int fd, uint32_t dst, uint32_t src, uint32_t *all_bo, int n_bo, int alignment, int error)
+copy(int fd, uint32_t dst, uint32_t src, uint32_t *all_bo,
+     uint64_t n_bo, uint64_t alignment, int error)
 {
 	uint32_t batch[12];
 	struct drm_i915_gem_relocation_entry reloc[2];
@@ -129,10 +130,11 @@ copy(int fd, uint32_t dst, uint32_t src, uint32_t *all_bo, int n_bo, int alignme
 	free(obj);
 }
 
-static void minor_evictions(int fd, int size, int count)
+static void minor_evictions(int fd, uint64_t size, uint64_t count)
 {
 	uint32_t *bo, *sel;
-	int n, m, alignment, pass, fail;
+	uint64_t n, m, alignment;
+	int pass, fail;
 
 	intel_require_memory(2 * count, size, CHECK_RAM);
 
@@ -159,9 +161,10 @@ static void minor_evictions(int fd, int size, int count)
 	free(bo);
 }
 
-static void major_evictions(int fd, int size, int count)
+static void major_evictions(int fd, uint64_t size, uint64_t count)
 {
-	int n, m, loop, alignment, max;
+	uint64_t n, m, alignment, max;
+	int loop;
 	uint32_t *bo;
 
 	intel_require_memory(count, size, CHECK_RAM);
