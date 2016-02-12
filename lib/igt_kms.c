@@ -1912,7 +1912,7 @@ void igt_fb_set_size(struct igt_fb *fb, igt_plane_t *plane,
 	igt_pipe_t *pipe = plane->pipe;
 	igt_display_t *display = pipe->display;
 
-	LOG(display, "%s.%d: fb_set_position(%dx%d)\n",
+	LOG(display, "%s.%d: fb_set_size(%dx%d)\n",
 	    kmstest_pipe_name(pipe->pipe), plane->index, w, h);
 
 	fb->src_w = w;
