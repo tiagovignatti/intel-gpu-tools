@@ -149,13 +149,12 @@ copy(int fd, uint32_t dst, uint32_t src, unsigned int error)
 	exec.flags = HAS_BLT_RING(intel_get_drm_devid(fd)) ? I915_EXEC_BLT : 0;
 
 	ret = __gem_execbuf(fd, &exec);
+	gem_close(fd, handle);
 
 	if (error == ~0)
 		igt_assert_neq(ret, 0);
 	else
-		igt_assert(ret == error);
-
-	gem_close(fd, handle);
+		igt_assert_eq(ret, -error);
 }
 
 static int
