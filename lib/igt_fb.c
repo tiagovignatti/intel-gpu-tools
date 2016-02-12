@@ -93,11 +93,16 @@ static void igt_get_fb_tile_size(int fd, uint64_t tiling, int fb_bpp,
 		}
 		break;
 	case LOCAL_I915_FORMAT_MOD_Y_TILED:
-		if (IS_915(devid))
-			*width_ret = 512;
-		else
+		if (intel_gen(devid) == 2) {
 			*width_ret = 128;
-		*height_ret = 32;
+			*height_ret = 16;
+		} else if (IS_915(devid)) {
+			*width_ret = 512;
+			*height_ret = 8;
+		} else {
+			*width_ret = 128;
+			*height_ret = 32;
+		}
 		break;
 	case LOCAL_I915_FORMAT_MOD_Yf_TILED:
 		switch (fb_bpp) {
