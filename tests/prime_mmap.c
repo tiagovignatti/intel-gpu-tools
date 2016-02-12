@@ -504,10 +504,10 @@ igt_main
 
 	igt_fixture {
 		fd = drm_open_driver(DRIVER_INTEL);
+		igt_skip_on((check_for_dma_buf_mmap() != 0));
 		errno = 0;
 	}
 
-	igt_skip_on((check_for_dma_buf_mmap() != 0));
 
 	for (i = 0; i < ARRAY_SIZE(tests); i++) {
 		igt_subtest(tests[i].name)
