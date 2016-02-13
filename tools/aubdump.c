@@ -113,6 +113,18 @@ fail_if(int cond, const char *format, ...)
 	raise(SIGTRAP);
 }
 
+static struct bo *
+get_bo(uint32_t handle)
+{
+	struct bo *bo;
+
+	fail_if(handle >= MAX_BO_COUNT, "bo handle too large\n");
+	bo = &bos[handle];
+	fail_if(bo->size == 0, "invalid bo handle (%d) in execbuf\n", handle);
+
+	return bo;
+}
+
 static inline uint32_t
 align_u32(uint32_t v, uint32_t a)
 {
@@ -266,7 +278,7 @@ relocate_bo(struct bo *bo, const struct drm_i915_gem_execbuffer2 *execbuffer2,
 			handle = relocs[i].target_handle;
 
 		dw = (uint32_t*)(((char *) relocated) + relocs[i].offset);
-		*dw = bos[handle].offset + relocs[i].delta;
+		*dw = get_bo(handle)->offset + relocs[i].delta;
 	}
 
 	return relocated;
@@ -342,7 +354,7 @@ dump_execbuffer2(int fd, struct drm_i915_gem_execbuffer2 *execbuffer2)
 
 	for (uint32_t i = 0; i < execbuffer2->buffer_count; i++) {
 		obj = &exec_objects[i];
-		bo = &bos[obj->handle];
+		bo = get_bo(obj->handle);
 
 		bo->offset = offset;
 		offset = align_u32(offset + bo->size + 4095, 4096);
@@ -352,10 +364,10 @@ dump_execbuffer2(int fd, struct drm_i915_gem_execbuffer2 *execbuffer2)
 		fail_if(bo->map == MAP_FAILED, "intel_aubdump: bo mmap failed\n");
 	}
 
-	batch_bo = &bos[exec_objects[execbuffer2->buffer_count - 1].handle];
+	batch_bo = get_bo(exec_objects[execbuffer2->buffer_count - 1].handle);
 	for (uint32_t i = 0; i < execbuffer2->buffer_count; i++) {
 		obj = &exec_objects[i];
-		bo = &bos[obj->handle];
+		bo = get_bo(obj->handle);
 
 		if (obj->relocation_count > 0)
 			data = relocate_bo(bo, execbuffer2, obj);
@@ -394,7 +406,7 @@ add_new_bo(int handle, uint64_t size, void *map)
 static void
 remove_bo(int handle)
 {
-	struct bo *bo = &bos[handle];
+	struct bo *bo = get_bo(handle);
 
 	if (bo->map && !IS_USERPTR(bo->map))
 		munmap(bo->map, bo->size);
