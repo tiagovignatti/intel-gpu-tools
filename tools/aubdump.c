@@ -28,6 +28,7 @@
 #include <string.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <signal.h>
 #include <stdarg.h>
 #include <fcntl.h>
 #include <sys/types.h>
@@ -106,7 +107,7 @@ fail_if(int cond, const char *format, ...)
 	vfprintf(stderr, format, args);
 	va_end(args);
 
-	exit(1);
+	raise(SIGTRAP);
 }
 
 static inline uint32_t
