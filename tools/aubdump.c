@@ -43,8 +43,11 @@
 #include "intel_aub.h"
 #include "intel_chipset.h"
 
-static int (*libc_close)(int fd);
-static int (*libc_ioctl)(int fd, unsigned long request, void *argp);
+static int close_init_helper(int fd);
+static int ioctl_init_helper(int fd, unsigned long request, ...);
+
+static int (*libc_close)(int fd) = close_init_helper;
+static int (*libc_ioctl)(int fd, unsigned long request, ...) = ioctl_init_helper;
 
 static int drm_fd = -1;
 static char *filename;
@@ -528,7 +531,7 @@ ioctl(int fd, unsigned long request, ...)
 	}
 }
 
-static void __attribute__ ((constructor))
+static void
 init(void)
 {
 	const char *args = getenv("INTEL_AUBDUMP_ARGS");
@@ -551,6 +554,27 @@ init(void)
 
 	file = fopen(filename, "w+");
 	fail_if(file == NULL, "intel_aubdump: failed to open file '%s'\n", filename);
+}
+
+static int
+close_init_helper(int fd)
+{
+	init();
+	return libc_close(fd);
+}
+
+static int
+ioctl_init_helper(int fd, unsigned long request, ...)
+{
+	va_list args;
+	void *argp;
+
+	va_start(args, request);
+	argp = va_arg(args, void *);
+	va_end(args);
+
+	init();
+	return libc_ioctl(fd, request, argp);
 }
 
 static void __attribute__ ((destructor))
