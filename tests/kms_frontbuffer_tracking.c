@@ -2820,9 +2820,10 @@ static void farfromfence_subtest(const struct test_mode *t)
 	struct modeset_params *params = pick_params(t);
 	struct draw_pattern_info *pattern = &pattern1;
 	struct fb_region *target;
-	int max_height;
+	int max_height, assertions = 0;
+	int gen = intel_gen(intel_get_drm_devid(drm.fd));
 
-	switch (intel_gen(intel_get_drm_devid(drm.fd))) {
+	switch (gen) {
 	case 2:
 		max_height = 2048;
 		break;
@@ -2833,6 +2834,11 @@ static void farfromfence_subtest(const struct test_mode *t)
 		max_height = 8192;
 		break;
 	}
+
+	/* Gen 9 doesn't do the same dspaddr_offset magic as the older
+	 * gens, so FBC may not be enabled there. */
+	if (gen >= 9)
+		assertions |= DONT_ASSERT_FEATURE_STATUS;
 
 	prepare_subtest(t, pattern);
 	target = pick_target(t, params);
@@ -2846,13 +2852,14 @@ static void farfromfence_subtest(const struct test_mode *t)
 	params->fb.x = 0;
 	params->fb.y = max_height - params->mode->vdisplay;
 	set_mode_for_params(params);
-	do_assertions(0);
+	do_assertions(assertions);
 
 	for (r = 0; r < pattern->n_rects; r++) {
 		draw_rect(pattern, target, t->method, r);
 		update_wanted_crc(t, &pattern->crcs[t->format][r]);
+
 		/* GTT draws disable PSR. */
-		do_assertions(ASSERT_PSR_DISABLED);
+		do_assertions(assertions | ASSERT_PSR_DISABLED);
 	}
 
 	igt_remove_fb(drm.fd, &tall_fb);
