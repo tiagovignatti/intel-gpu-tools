@@ -97,12 +97,15 @@ struct test_mode {
 		FBS_COUNT,
 	} fbs;
 
-	/* Which features are we going to test now? This is a mask! */
+	/* Which features are we going to test now? This is a mask!
+	 * FEATURE_DEFAULT is a special value which instruct the test to just
+	 * keep what's already enabled by default in the Kernel. */
 	enum {
 		FEATURE_NONE  = 0,
 		FEATURE_FBC   = 1,
 		FEATURE_PSR   = 2,
 		FEATURE_COUNT = 4,
+		FEATURE_DEFAULT = 4,
 	} feature;
 
 	/* Possible pixel formats. We just use FORMAT_DEFAULT for most tests and
@@ -1101,8 +1104,11 @@ static void unset_all_crtcs(void)
 	}
 }
 
-static void disable_features(void)
+static void disable_features(const struct test_mode *t)
 {
+	if (t->feature == FEATURE_DEFAULT)
+		return;
+
 	fbc_disable();
 	psr_disable();
 }
@@ -1725,6 +1731,9 @@ static void set_sprite_for_test(const struct test_mode *t,
 
 static void enable_features_for_test(const struct test_mode *t)
 {
+	if (t->feature == FEATURE_DEFAULT)
+		return;
+
 	if (t->feature & FEATURE_FBC)
 		fbc_enable();
 	if (t->feature & FEATURE_PSR)
@@ -1804,7 +1813,7 @@ static void prepare_subtest_data(const struct test_mode *t,
 
 	stop_busy_thread();
 
-	disable_features();
+	disable_features(t);
 	set_crtc_fbs(t);
 
 	if (t->screen == SCREEN_OFFSCREEN)
@@ -3061,6 +3070,64 @@ static void tilingchange_subtest(const struct test_mode *t)
 	}
 }
 
+/*
+ * basic - do some basic operations regardless of which features are enabled
+ *
+ * METHOD
+ *   This subtest does page flips and draw operations and checks the CRCs of the
+ *   results. The big difference between this and the others is that here we
+ *   don't enable/disable any features such as FBC or PSR: we go with whatever
+ *   the Kernel has enabled by default for us. This subtest only does things
+ *   that are exercised by the other subtests and in a less exhaustive way: it's
+ *   completely redundant. On the other hand, it is very quick and was created
+ *   with the CI system in mind: it's a quick way to detect regressions, so if
+ *   it fails, then we can run the other subtests to find out why.
+ *
+ * EXPECTED RESULTS
+ *   Passed CRC assertions.
+ *
+ * FAILURES
+ *   If you get a failure here, you should run the more specific draw and flip
+ *   subtests of each feature in order to discover what exactly is failing and
+ *   why.
+ *
+ * TODO: do sink CRC assertions in case sink_crc.supported. Only do this after
+ * our sink CRC code gets 100% reliable, in order to avoid CI false negatives.
+ */
+static void basic_subtest(const struct test_mode *t)
+{
+	struct draw_pattern_info *pattern = &pattern1;
+	struct modeset_params *params = pick_params(t);
+	enum igt_draw_method method;
+	struct igt_fb *fb1, fb2;
+	int r;
+	int assertions = DONT_ASSERT_FEATURE_STATUS;
+
+	prepare_subtest(t, pattern);
+
+	create_fb(t->format, params->fb.fb->width, params->fb.fb->height,
+		  LOCAL_I915_FORMAT_MOD_X_TILED, t->plane, &fb2);
+	fb1 = params->fb.fb;
+
+	for (r = 0, method = 0; method < IGT_DRAW_METHOD_COUNT; method++, r++) {
+		if (r == pattern->n_rects) {
+			params->fb.fb = (params->fb.fb == fb1) ? &fb2 : fb1;
+
+			fill_fb_region(&params->fb, COLOR_PRIM_BG);
+			update_wanted_crc(t, &blue_crcs[t->format].crc);
+
+			page_flip_for_params(params, t->flip);
+			do_assertions(assertions);
+
+			r = 0;
+		}
+
+		draw_rect(pattern, &params->fb, method, r);
+		update_wanted_crc(t, &pattern->crcs[t->format][r]);
+		do_assertions(assertions);
+	}
+}
+
 static int opt_handler(int option, int option_index, void *data)
 {
 	switch (option) {
@@ -3462,6 +3529,16 @@ int main(int argc, char *argv[])
 		igt_subtest_f("%s-suspend", feature_str(t.feature))
 			suspend_subtest(&t);
 	TEST_MODE_ITER_END
+
+	t.pipes = PIPE_SINGLE;
+	t.screen = SCREEN_PRIM;
+	t.plane = PLANE_PRI;
+	t.fbs = FBS_INDIVIDUAL;
+	t.feature = FEATURE_DEFAULT;
+	t.format = FORMAT_DEFAULT;
+	t.flip = FLIP_PAGEFLIP;
+	igt_subtest("basic")
+		basic_subtest(&t);
 
 	igt_fixture
 		teardown_environment();
