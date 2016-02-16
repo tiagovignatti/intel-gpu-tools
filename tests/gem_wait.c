@@ -155,7 +155,7 @@ static void render_timeout(int fd)
 
 	igt_assert_lt(iter, 1000000);
 
-	igt_info("%d iters is enough work\n", iter);
+	igt_debug("%d iters is enough work\n", iter);
 	gem_quiescent_gpu(fd);
 	if (do_signals)
 		igt_fork_signal_helper();
@@ -174,9 +174,8 @@ static void render_timeout(int fd)
 	igt_assert_neq(timeout, 0);
 	if (timeout ==  (ENOUGH_WORK_IN_SECONDS * NSEC_PER_SEC))
 		igt_info("Buffer was already done!\n");
-	else {
-		igt_info("Finished with %" PRIu64 " time remaining\n", timeout);
-	}
+	else
+		igt_info("Finished with %fs remaining\n", timeout*1e-9);
 
 	/* check that polling with timeout=0 works. */
 	timeout = 0;

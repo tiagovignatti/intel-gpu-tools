@@ -63,7 +63,7 @@ static unsigned get_num_contexts(int fd)
 	return count;
 }
 
-static int has_engine(int fd, const struct intel_execution_engine *e)
+static int has_engine(int fd, const struct intel_execution_engine *e, uint32_t ctx)
 {
 	uint32_t bbe = MI_BATCH_BUFFER_END;
 	struct drm_i915_gem_execbuffer2 execbuf;
@@ -78,10 +78,137 @@ static int has_engine(int fd, const struct intel_execution_engine *e)
 	execbuf.buffers_ptr = (uintptr_t)&exec;
 	execbuf.buffer_count = 1;
 	execbuf.flags = e->exec_id | e->flags;
+	execbuf.rsvd1 = ctx;
 	ret = __gem_execbuf(fd, &execbuf);
 	gem_close(fd, exec.handle);
 
-	return ret == 0;
+	return ret;
+}
+
+static void single(const char *name, bool all_engines)
+{
+	struct drm_i915_gem_exec_object2 *obj;
+	struct drm_i915_gem_relocation_entry *reloc;
+	const struct intel_execution_engine *e;
+	unsigned engines[16];
+	uint64_t size;
+	uint32_t *ctx, *map, scratch;
+	unsigned num_ctx;
+	int fd, gen, num_engines;
+#define MAX_LOOP 16
+
+	fd = drm_open_driver_master(DRIVER_INTEL);
+	gen = intel_gen(intel_get_drm_devid(fd));
+	num_ctx = get_num_contexts(fd);
+
+	num_engines = 0;
+	if (all_engines) {
+		for (e = intel_execution_engines; e->name; e++) {
+			if (e->exec_id == 0)
+				continue;
+
+			if (has_engine(fd, e, 0))
+				continue;
+
+			if (e->exec_id == I915_EXEC_BSD) {
+				int is_bsd2 = e->flags != 0;
+				if (gem_has_bsd2(fd) != is_bsd2)
+					continue;
+			}
+
+			igt_require(has_engine(fd, e, 1) == -ENOENT);
+
+			engines[num_engines++] = e->exec_id | e->flags;
+			if (num_engines == ARRAY_SIZE(engines))
+				break;
+		}
+	} else
+		engines[num_engines++] = 0;
+
+	size = ALIGN(num_ctx * sizeof(uint32_t), 4096);
+	scratch = gem_create(fd, ALIGN(num_ctx * sizeof(uint32_t), 4096));
+	gem_set_caching(fd, scratch, I915_CACHING_CACHED);
+	obj = calloc(num_ctx, 2 * sizeof(*obj));
+	reloc = calloc(num_ctx, sizeof(*reloc));
+
+	ctx = malloc(num_ctx * sizeof(uint32_t));
+	igt_assert(ctx);
+	for (unsigned n = 0; n < num_ctx; n++) {
+		ctx[n] = gem_context_create(fd);
+		obj[2*n + 0].handle = scratch;
+
+		reloc[n].target_handle = scratch;
+		reloc[n].presumed_offset = 0;
+		reloc[n].offset = sizeof(uint32_t);
+		reloc[n].delta = n * sizeof(uint32_t);
+		reloc[n].read_domains = I915_GEM_DOMAIN_INSTRUCTION;
+		reloc[n].write_domain = 0; /* lies! */
+		if (gen >= 4 && gen < 8)
+			reloc[n].offset += sizeof(uint32_t);
+
+		obj[2*n + 1].relocs_ptr = (uintptr_t)&reloc[n];
+		obj[2*n + 1].relocation_count = 1;
+	}
+
+	map = gem_mmap__cpu(fd, scratch, 0, size, PROT_WRITE);
+	for (unsigned loop = 1; loop <= MAX_LOOP; loop <<= 1) {
+		unsigned count = loop * num_ctx;
+		uint32_t *all;
+
+		all = malloc(count * sizeof(uint32_t));
+		for (unsigned n = 0; n < count; n++)
+			all[n] = ctx[n % num_ctx];
+		igt_permute_array(all, count, xchg_int);
+		for (unsigned n = 0; n < count; n++) {
+			struct drm_i915_gem_execbuffer2 execbuf;
+			unsigned r = n % num_ctx;
+			uint64_t offset = reloc[r].presumed_offset + reloc[r].delta;
+			uint32_t handle = gem_create(fd, 4096);
+			uint32_t buf[16];
+			int i;
+
+			buf[i = 0] = MI_STORE_DWORD_IMM;
+			if (gen >= 8) {
+				buf[++i] = offset;
+				buf[++i] = offset >> 32;
+			} else if (gen >= 4) {
+				if (gen < 6)
+					buf[i] |= 1 << 22;
+				buf[++i] = 0;
+				buf[++i] = offset;
+			} else {
+				buf[i]--;
+				buf[++i] = offset;
+			}
+			buf[++i] = all[n];
+			buf[++i] = MI_BATCH_BUFFER_END;
+			gem_write(fd, handle, 0, buf, sizeof(buf));
+			obj[2*r + 1].handle = handle;
+
+			memset(&execbuf, 0, sizeof(execbuf));
+			execbuf.buffers_ptr = (uintptr_t)&obj[2*r];
+			execbuf.buffer_count = 2;
+			execbuf.flags = engines[n % num_engines];
+			execbuf.rsvd1 = all[n];
+			gem_execbuf(fd, &execbuf);
+			gem_close(fd, handle);
+		}
+
+		/* Note we lied about the write-domain when writing from the
+		 * GPU (in order to avoid inter-ring synchronisation), so now
+		 * we have to force the synchronisation here.
+		 */
+		gem_set_domain(fd, scratch,
+			       I915_GEM_DOMAIN_CPU, I915_GEM_DOMAIN_CPU);
+		for (unsigned n = count - num_ctx; n < count; n++)
+			igt_assert_eq(map[n % num_ctx], all[n]);
+		free(all);
+		igt_progress(name, loop, MAX_LOOP);
+	}
+	munmap(map, size);
+
+	free(ctx);
+	close(fd);
 }
 
 static void processes(void)
@@ -102,7 +229,7 @@ static void processes(void)
 		if (e->exec_id == 0)
 			continue;
 
-		if (!has_engine(fd, e))
+		if (has_engine(fd, e, 0))
 			continue;
 
 		if (e->exec_id == I915_EXEC_BSD) {
@@ -234,6 +361,11 @@ static void threads(void)
 igt_main
 {
 	igt_skip_on_simulation();
+
+	igt_subtest("single")
+		single("single", false);
+	igt_subtest("engines")
+		single("engines", true);
 
 	igt_subtest("processes")
 		processes();
