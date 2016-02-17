@@ -1607,51 +1607,6 @@ err:
 	igt_assert_f(0, "failed to install the signal handler\n");
 }
 
-/**
- * igt_disable_exit_handler:
- *
- * Temporarily disable all exit handlers. Useful for library code doing tricky
- * things.
- */
-void igt_disable_exit_handler(void)
-{
-	sigset_t set;
-	int i;
-
-	if (exit_handler_disabled)
-		return;
-
-	sigemptyset(&set);
-	for (i = 0; i < ARRAY_SIZE(handled_signals); i++)
-		sigaddset(&set, handled_signals[i].number);
-
-	if (sigprocmask(SIG_BLOCK, &set, &saved_sig_mask)) {
-		perror("sigprocmask");
-		return;
-	}
-
-	exit_handler_disabled = true;
-}
-
-/**
- * igt_enable_exit_handler:
- *
- * Re-enable all exit handlers temporarily disabled with
- * igt_disable_exit_handler().
- */
-void igt_enable_exit_handler(void)
-{
-	if (!exit_handler_disabled)
-		return;
-
-	if (sigprocmask(SIG_SETMASK, &saved_sig_mask, NULL)) {
-		perror("sigprocmask");
-		return;
-	}
-
-	exit_handler_disabled = false;
-}
-
 /* simulation enviroment support */
 
 /**

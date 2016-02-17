@@ -667,8 +667,6 @@ typedef void (*igt_exit_handler_t)(int sig);
 
 /* reliable atexit helpers, also work when killed by a signal (if possible) */
 void igt_install_exit_handler(igt_exit_handler_t fn);
-void igt_enable_exit_handler(void);
-void igt_disable_exit_handler(void);
 
 /* helpers to automatically reduce test runtime in simulation */
 bool igt_run_in_simulation(void);
