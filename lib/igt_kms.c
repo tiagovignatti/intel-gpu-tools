@@ -383,9 +383,7 @@ void kmstest_set_vt_graphics_mode(void)
 
 	igt_install_exit_handler((igt_exit_handler_t) kmstest_restore_vt_mode);
 
-	igt_disable_exit_handler();
 	ret = set_vt_mode(KD_GRAPHICS);
-	igt_enable_exit_handler();
 
 	igt_assert(ret >= 0);
 	orig_vt_mode = ret;
