@@ -80,6 +80,7 @@ core
 #
 *.swo
 *.swp
+*.dirstamp
 cscope.*
 TAGS
 build-aux/
@@ -87,6 +88,8 @@ __pycache__
 
 gtk-doc.make
 gtk-doc.m4
+
+intel-gpu-tools-*/
 
 piglit
 results
