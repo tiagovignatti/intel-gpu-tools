@@ -243,6 +243,8 @@ static void run_test(data_t *data)
 	igt_skip("no valid crtc/connector combinations found\n");
 }
 
+struct igt_helper_process hog;
+
 /**
  * fork_cpuhog_helper:
  *
@@ -250,15 +252,9 @@ static void run_test(data_t *data)
  * fill the CPU caches with random information so they can get stalled,
  * provoking incoherency with the GPU most likely.
  */
-static void fork_cpuhog_helper(void) {
-
-	/* TODO: if the parent is about to die before its child, e.g.
-	 * igt_assert_crc_equal() fails, there will be a boring exit handler
-	 * waiting the child to exit also. A workaround is to simply disable that
-	 * handler, buy this needs to be fixed properly in an elegant way. */
-	igt_disable_exit_handler();
-
-	igt_fork(hog, 1) {
+static void fork_cpuhog_helper(void)
+{
+	igt_fork_helper(&hog) {
 		while (1) {
 			usleep(10); /* quite ramdom really. */
 
@@ -297,16 +293,19 @@ int main(int argc, char **argv)
 		igt_require_pipe_crc();
 
 		igt_display_init(&data.display, data.drm_fd);
+
+		fork_cpuhog_helper();
 	}
 
 	igt_info("Using %d rounds for the test\n", ROUNDS);
-	fork_cpuhog_helper();
 
 	for (i = 0; i < ROUNDS; i++)
 		run_test(&data);
 
 	igt_fixture {
 		igt_display_fini(&data.display);
+
+		igt_stop_helper(&hog);
 	}
 
 	igt_exit();
