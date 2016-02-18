@@ -38,6 +38,7 @@
 #include <sys/mman.h>
 #include "i915_drm.h"
 
+#include "drmtest.h"
 #include "intel_chipset.h"
 #include "igt_core.h"
 
@@ -129,6 +130,7 @@ intel_get_drm_devid(int fd)
 {
 	const char *override;
 
+	igt_assert(is_i915_device(fd));
 	igt_assert(__drm_device_id);
 
 	override = getenv("INTEL_DEVID_OVERRIDE");
