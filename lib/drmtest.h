@@ -84,6 +84,8 @@ void gem_quiescent_gpu(int fd);
 
 void igt_require_intel(int fd);
 
+bool is_i915_device(int fd);
+
 /**
  * do_or_die:
  * @x: command

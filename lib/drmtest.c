@@ -90,7 +90,7 @@ static int __get_drm_device_name(int fd, char *name)
 	return -1;
 }
 
-static bool is_i915_device(int fd)
+bool is_i915_device(int fd)
 {
 	int ret;
 	char name[5] = "";
