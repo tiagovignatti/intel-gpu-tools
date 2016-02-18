@@ -1,6 +1,7 @@
 # Please keep sorted alphabetically
 igt_assert
 igt_fork_helper
+igt_exit_handler
 igt_invalid_subtest_name
 igt_list_only
 igt_no_exit

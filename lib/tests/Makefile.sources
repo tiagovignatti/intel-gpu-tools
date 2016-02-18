@@ -11,6 +11,7 @@ check_PROGRAMS = \
 	igt_invalid_subtest_name \
 	igt_segfault \
 	igt_assert \
+	igt_exit_handler \
 	$(NULL)
 
 check_SCRIPTS = \
