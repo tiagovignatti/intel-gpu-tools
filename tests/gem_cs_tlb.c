@@ -125,8 +125,6 @@ static void run_on_ring(int fd, unsigned ring_id, const char *ring_name)
 
 	sprintf(buf, "Testing %s cs tlb coherency: ", ring_name);
 	for (i = 0; i < BATCH_SIZE/64; i++) {
-		igt_progress(buf, i, BATCH_SIZE/64);
-
 		execobj.handle = obj[i&1].handle;
 		obj[i&1].batch[i*64/4] = MI_BATCH_BUFFER_END;
 		execbuf.batch_start_offset = i*64;
@@ -151,7 +149,7 @@ igt_main
 		fd = drm_open_driver(DRIVER_INTEL);
 
 	for (e = intel_execution_engines; e->name; e++)
-		igt_subtest_f("%s", e->name)
+		igt_subtest_f("%s%s", e->exec_id ? "" : "basic-", e->name)
 			run_on_ring(fd, e->exec_id | e->flags, e->name);
 
 	igt_fixture

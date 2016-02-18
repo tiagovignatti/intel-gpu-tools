@@ -151,6 +151,6 @@ igt_main
 	igt_skip_on_simulation();
 
 	for (e = intel_execution_engines; e->name; e++)
-		igt_subtest_f("%s", e->name)
+		igt_subtest_f("%s%s", e->exec_id ? "" : "basic-", e->name)
 			test_ring(e->exec_id | e->flags);
 }
