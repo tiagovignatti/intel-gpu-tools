@@ -1,5 +1,5 @@
 /*
- * Copyright © 2013 Intel Corporation
+ * Copyright © 2013, 2015 Intel Corporation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -108,6 +108,8 @@ struct modeset_params {
 struct modeset_params lpsp_mode_params;
 struct modeset_params non_lpsp_mode_params;
 struct modeset_params *default_mode_params;
+
+static int8_t *pm_data = NULL;
 
 /* If the read fails, then the machine doesn't support PC8+ residencies. */
 static bool supports_pc8_plus_residencies(void)
@@ -685,41 +687,13 @@ static void setup_pc8(void)
 	has_pc8 = true;
 }
 
-/* If we want to actually reach PC8+ states, we need to properly configure all
- * the devices on the system to allow this. This function will try to setup the
- * things we know we need, but won't scream in case anything fails: we don't
- * know which devices are present on your machine, so we can't really expect
- * anything, just try to help with the more common problems. */
-static void setup_non_graphics_runtime_pm(void)
-{
-	int fd, i;
-	char *file_name;
-
-	/* Disk runtime PM policies. */
-	file_name = malloc(PATH_MAX);
-	for (i = 0; ; i++) {
-
-		snprintf(file_name, PATH_MAX,
-			 "/sys/class/scsi_host/host%d/link_power_management_policy",
-			 i);
-
-		fd = open(file_name, O_WRONLY);
-		if (fd < 0)
-			break;
-
-		igt_assert(write(fd, "min_power\n", 10) == 10);
-		close(fd);
-	}
-	free(file_name);
-}
-
 static void setup_environment(void)
 {
 	drm_fd = drm_open_driver_master(DRIVER_INTEL);
 
 	init_mode_set_data(&ms_data);
 
-	setup_non_graphics_runtime_pm();
+	pm_data = igt_pm_enable_sata_link_power_management();
 
 	has_runtime_pm = igt_setup_runtime_pm();
 	setup_pc8();
@@ -728,11 +702,17 @@ static void setup_environment(void)
 	igt_info("PC8 residency support: %d\n", has_pc8);
 
 	igt_require(has_runtime_pm);
+}
 
+static void restore_environment(void)
+{
+	igt_pm_restore_sata_link_power_management(pm_data);
+	free(pm_data);
 }
 
 static void teardown_environment(void)
 {
+	restore_environment();
 	fini_mode_set_data(&ms_data);
 	drmClose(drm_fd);
 	close(msr_fd);

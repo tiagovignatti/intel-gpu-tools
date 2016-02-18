@@ -31,29 +31,6 @@
 #include <unistd.h>
 
 
-/* We know that if we don't enable audio runtime PM, snd_hda_intel will never
- * release its power well refcount, and we'll never reach the LPSP sate. OTOH
- * there's no guarantee that it will release the power well if we enable runtime
- * PM, but at least we can try.  We don't have any assertions since the user may
- * not even have snd_hda_intel loaded, which is not a problem. */
-static void disable_audio_runtime_pm(void)
-{
-	int fd;
-
-	fd = open("/sys/module/snd_hda_intel/parameters/power_save", O_WRONLY);
-	if (fd >= 0) {
-		igt_assert_eq(write(fd, "1\n", 2), 2);
-		close(fd);
-	}
-	fd = open("/sys/bus/pci/devices/0000:00:03.0/power/control", O_WRONLY);
-	if (fd >= 0) {
-		igt_assert_eq(write(fd, "auto\n", 5), 5);
-		close(fd);
-	}
-	/* Give some time for it to react. */
-	sleep(1);
-}
-
 static bool supports_lpsp(uint32_t devid)
 {
 	return IS_HASWELL(devid) || IS_BROADWELL(devid);
@@ -227,7 +204,7 @@ igt_main
 			drm_connectors[i] = drmModeGetConnectorCurrent(drm_fd,
 							drm_res->connectors[i]);
 
-		disable_audio_runtime_pm();
+		igt_pm_enable_audio_runtime_pm();
 
 		igt_require(supports_lpsp(devid));
 

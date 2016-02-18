@@ -21,29 +21,11 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef IGT_H
-#define IGT_H
+#ifndef IGT_PM_H
+#define IGT_PM_H
 
-#include "drmtest.h"
-#include "i915_3d.h"
-#include "i915_pciids.h"
-#include "igt_aux.h"
-#include "igt_core.h"
-#include "igt_core.h"
-#include "igt_debugfs.h"
-#include "igt_draw.h"
-#include "igt_fb.h"
-#include "igt_gt.h"
-#include "igt_kms.h"
-#include "igt_pm.h"
-#include "igt_stats.h"
-#include "instdone.h"
-#include "intel_batchbuffer.h"
-#include "intel_chipset.h"
-#include "intel_io.h"
-#include "ioctl_wrappers.h"
-#include "media_fill.h"
-#include "media_spin.h"
-#include "rendercopy.h"
+void igt_pm_enable_audio_runtime_pm(void);
+int8_t *igt_pm_enable_sata_link_power_management(void);
+void igt_pm_restore_sata_link_power_management(int8_t *pm_data);
 
-#endif /* IGT_H */
+#endif /* IGT_PM_H */

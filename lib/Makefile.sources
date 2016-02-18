@@ -60,6 +60,8 @@ libintel_tools_la_SOURCES = 	\
 	igt_core.h		\
 	igt_draw.c		\
 	igt_draw.h		\
+	igt_pm.c		\
+	igt_pm.h		\
 	uwildmat/uwildmat.h	\
 	uwildmat/uwildmat.c	\
 	$(NULL)
