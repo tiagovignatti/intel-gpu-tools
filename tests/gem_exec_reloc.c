@@ -88,14 +88,17 @@ static void write_dword(int fd,
 	gem_close(fd, obj[1].handle);
 }
 
-static void from_mmap(int fd, uint64_t size, int use_gtt)
+enum mode { MEM, CPU, WC, GTT };
+static void from_mmap(int fd, uint64_t size, enum mode mode)
 {
 	uint32_t bbe = MI_BATCH_BUFFER_END;
 	struct drm_i915_gem_execbuffer2 execbuf;
 	struct drm_i915_gem_exec_object2 obj;
 	struct drm_i915_gem_relocation_entry *relocs;
+	uint32_t reloc_handle;
 	uint64_t value;
 	uint64_t max, i;
+	int retry = 2;
 
 	intel_require_memory(1, size, CHECK_RAM);
 
@@ -104,32 +107,39 @@ static void from_mmap(int fd, uint64_t size, int use_gtt)
 	gem_write(fd, obj.handle, 0, &bbe, sizeof(bbe));
 
 	max = size / sizeof(*relocs);
-	if (use_gtt < 0) {
+	switch (mode) {
+	case MEM:
 		relocs = mmap(0, size,
 			      PROT_WRITE, MAP_PRIVATE | MAP_ANON,
 			      -1, 0);
 		igt_assert(relocs != (void *)-1);
-	} else if (use_gtt) {
-		uint32_t reloc_handle;
-
+		break;
+	case GTT:
 		reloc_handle = gem_create(fd, size);
 		relocs = gem_mmap__gtt(fd, reloc_handle, size, PROT_WRITE);
 		gem_set_domain(fd, reloc_handle,
 				I915_GEM_DOMAIN_GTT, I915_GEM_DOMAIN_GTT);
 		gem_close(fd, reloc_handle);
-	} else {
-		uint32_t reloc_handle;
-
+		break;
+	case CPU:
 		reloc_handle = gem_create(fd, size);
 		relocs = gem_mmap__cpu(fd, reloc_handle, 0, size, PROT_WRITE);
 		gem_set_domain(fd, reloc_handle,
 			       I915_GEM_DOMAIN_CPU, I915_GEM_DOMAIN_CPU);
 		gem_close(fd, reloc_handle);
+		break;
+	case WC:
+		reloc_handle = gem_create(fd, size);
+		relocs = gem_mmap__wc(fd, reloc_handle, 0, size, PROT_WRITE);
+		gem_set_domain(fd, reloc_handle,
+			       I915_GEM_DOMAIN_GTT, I915_GEM_DOMAIN_GTT);
+		gem_close(fd, reloc_handle);
+		break;
 	}
 
 	for (i = 0; i < max; i++) {
 		relocs[i].target_handle = obj.handle;
-		relocs[i].presumed_offset = 0;
+		relocs[i].presumed_offset = ~0ull;
 		relocs[i].offset = 1024;
 		relocs[i].delta = i;
 		relocs[i].read_domains = I915_GEM_DOMAIN_INSTRUCTION;
@@ -141,16 +151,16 @@ static void from_mmap(int fd, uint64_t size, int use_gtt)
 	memset(&execbuf, 0, sizeof(execbuf));
 	execbuf.buffers_ptr = (uintptr_t)&obj;
 	execbuf.buffer_count = 1;
-	gem_execbuf(fd, &execbuf);
+	while (relocs[0].presumed_offset == ~0ull && retry--)
+		gem_execbuf(fd, &execbuf);
 	gem_read(fd, obj.handle, 1024, &value, sizeof(value));
 	gem_close(fd, obj.handle);
 
 	igt_assert_eq_u64(value, obj.offset + max - 1);
-	for (i = 0; i < max; i++) {
-		if (relocs[i].presumed_offset == ~0ull)
-			continue;
-
-		igt_assert_eq_u64(relocs[i].presumed_offset, obj.offset);
+	if (relocs[0].presumed_offset != ~0ull) {
+		for (i = 0; i < max; i++)
+			igt_assert_eq_u64(relocs[i].presumed_offset,
+					  obj.offset);
 	}
 	munmap(relocs, size);
 }
@@ -215,11 +225,13 @@ igt_main
 
 	for (size = 4096; size <= 4ull*1024*1024*1024; size <<= 1) {
 		igt_subtest_f("mmap-%u", find_last_set(size) - 1)
-			from_mmap(fd, size, -1);
+			from_mmap(fd, size, MEM);
 		igt_subtest_f("cpu-%u", find_last_set(size) - 1)
-			from_mmap(fd, size, 0);
+			from_mmap(fd, size, CPU);
+		igt_subtest_f("wc-%u", find_last_set(size) - 1)
+			from_mmap(fd, size, WC);
 		igt_subtest_f("gtt-%u", find_last_set(size) - 1)
-			from_mmap(fd, size, 1);
+			from_mmap(fd, size, GTT);
 	}
 
 	igt_subtest("gpu")
