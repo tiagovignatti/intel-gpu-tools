@@ -224,13 +224,18 @@ test_plane_position(data_t *data, enum pipe pipe, enum igt_plane plane,
 		    unsigned int flags)
 {
 	igt_output_t *output;
+	int connected_outs = 0;
 
 	igt_skip_on(pipe >= data->display.n_pipes);
 	igt_skip_on(plane >= data->display.pipes[pipe].n_planes);
 
-	for_each_connected_output(&data->display, output)
+	for_each_connected_output(&data->display, output) {
 		test_plane_position_with_output(data, pipe, plane, output,
 						flags);
+		connected_outs++;
+	}
+
+	igt_skip_on(connected_outs == 0);
 }
 
 /*
@@ -346,13 +351,18 @@ test_plane_panning(data_t *data, enum pipe pipe, enum igt_plane plane,
             unsigned int flags)
 {
 	igt_output_t *output;
+	int connected_outs = 0;
 
 	igt_skip_on(pipe >= data->display.n_pipes);
 	igt_skip_on(plane >= data->display.pipes[pipe].n_planes);
 
-	for_each_connected_output(&data->display, output)
+	for_each_connected_output(&data->display, output) {
 		test_plane_panning_with_output(data, pipe, plane, output,
 						flags);
+		connected_outs++;
+	}
+
+	igt_skip_on(connected_outs == 0);
 }
 
 static void
