@@ -70,6 +70,7 @@ enum test_flags {
 	TEST_CLONE			= 0x02,
 	TEST_SINGLE_CRTC_CLONE		= 0x04,
 	TEST_EXCLUSIVE_CRTC_CLONE	= 0x08,
+	TEST_STEALING			= 0x10,
 };
 
 struct test_config {
@@ -380,6 +381,34 @@ static uint32_t *get_connector_ids(struct crtc_config *crtc)
 	return ids;
 }
 
+static int test_stealing(int drm_fd, const struct crtc_config *crtc, uint32_t *ids)
+{
+	int i, ret = 0;
+
+	if (!crtc->connector_count)
+		return drmModeSetCrtc(drm_fd, crtc->crtc_id,
+				     crtc->fb_info.fb_id, 0, 0,
+				     ids, crtc->connector_count, &crtc->mode);
+
+	for (i = 0; i < crtc->connector_count; ++i) {
+		ret = drmModeSetCrtc(drm_fd, crtc->crtc_id,
+				     crtc->fb_info.fb_id, 0, 0,
+				     &ids[i], 1, &crtc->mode);
+
+		igt_assert_eq(ret, 0);
+
+		ret = drmModeSetCrtc(drm_fd, crtc->crtc_id,
+				     crtc->fb_info.fb_id, 0, 0,
+				     ids, crtc->connector_count, &crtc->mode);
+
+		/* This should fail with -EINVAL */
+		if (!ret)
+			return 0;
+	}
+
+	return ret;
+}
+
 static void test_crtc_config(const struct test_config *tconf,
 			     struct crtc_config *crtcs, int crtc_count)
 {
@@ -422,9 +451,13 @@ static void test_crtc_config(const struct test_config *tconf,
 		paint_fb(&crtc->fb_info, tconf->name, crtc_strs, crtc_count, i);
 
 		ids = get_connector_ids(crtc);
-		ret = drmModeSetCrtc(drm_fd, crtc->crtc_id,
-				     crtc->fb_info.fb_id, 0, 0, ids,
-				     crtc->connector_count, &crtc->mode);
+		if (tconf->flags & TEST_STEALING)
+			ret = test_stealing(drm_fd, crtc, ids);
+		else
+			ret = drmModeSetCrtc(drm_fd, crtc->crtc_id,
+					     crtc->fb_info.fb_id, 0, 0, ids,
+					     crtc->connector_count, &crtc->mode);
+
 		free(ids);
 
 		if (ret < 0) {
@@ -623,6 +656,9 @@ static void test_combinations(const struct test_config *tconf,
 	struct connector_config *cconfs;
 	int i;
 
+	if (connector_count > 2 && (tconf->flags & TEST_STEALING))
+		return;
+
 	get_combinations(tconf->resources->count_connectors, connector_count,
 			 false, &connector_combs);
 	get_combinations(tconf->resources->count_crtcs, connector_count,
@@ -700,6 +736,8 @@ int main(int argc, char **argv)
 					"invalid-clone-exclusive-crtc" },
 		{ TEST_CLONE | TEST_EXCLUSIVE_CRTC_CLONE,
 					"clone-exclusive-crtc" },
+		{ TEST_INVALID | TEST_CLONE | TEST_SINGLE_CRTC_CLONE | TEST_STEALING,
+					"invalid-clone-single-crtc-stealing" }
 	};
 	const char *help_str =
 	       "  -d\t\tDon't run any test, only print what would be done. (still needs DRM access)\n"
