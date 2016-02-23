@@ -370,6 +370,36 @@ void gem_set_domain(int fd, uint32_t handle,
 }
 
 /**
+ * __gem_wait:
+ * @fd: open i915 drm file descriptor
+ * @handle: gem buffer object handle
+ * @timeout_ns: [in] time to wait, [out] remaining time (in nanoseconds)
+ *
+ * This functions waits for outstanding rendering to complete, upto
+ * the timeout_ns. If no timeout_ns is provided, the wait is indefinite and
+ * only returns upon an error or when the rendering is complete.
+ */
+int gem_wait(int fd, uint32_t handle, int64_t *timeout_ns)
+{
+	struct drm_i915_gem_wait wait;
+	int ret;
+
+	memset(&wait, 0, sizeof(wait));
+	wait.bo_handle = handle;
+	wait.timeout_ns = timeout_ns ? *timeout_ns : -1;
+	wait.flags = 0;
+
+	ret = 0;
+	if (drmIoctl(fd, DRM_IOCTL_I915_GEM_WAIT, &wait))
+		ret = -errno;
+
+	if (timeout_ns)
+		*timeout_ns = wait.timeout_ns;
+
+	return ret;
+}
+
+/**
  * gem_sync:
  * @fd: open i915 drm file descriptor
  * @handle: gem buffer object handle
@@ -378,19 +408,13 @@ void gem_set_domain(int fd, uint32_t handle,
  */
 void gem_sync(int fd, uint32_t handle)
 {
-	struct drm_i915_gem_wait wait;
-
-	memset(&wait, 0, sizeof(wait));
-	wait.bo_handle = handle;
-	wait.timeout_ns =-1;
-	if (drmIoctl(fd, DRM_IOCTL_I915_GEM_WAIT, &wait) == 0) {
-		errno = 0;
-		return;
-	}
-
-	gem_set_domain(fd, handle,
-		       I915_GEM_DOMAIN_GTT, I915_GEM_DOMAIN_GTT);
+	if (gem_wait(fd, handle, NULL))
+		gem_set_domain(fd, handle,
+			       I915_GEM_DOMAIN_GTT,
+			       I915_GEM_DOMAIN_GTT);
+	errno = 0;
 }
+
 
 bool gem_create__has_stolen_support(int fd)
 {

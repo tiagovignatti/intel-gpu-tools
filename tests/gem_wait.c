@@ -64,23 +64,6 @@ do_time_diff(struct timespec *end, struct timespec *start)
 	return ret;
 }
 
-static int
-gem_bo_wait_timeout(int fd, uint32_t handle, int64_t *timeout_ns)
-{
-	struct drm_i915_gem_wait wait;
-	int ret;
-
-	igt_assert(timeout_ns);
-
-	wait.bo_handle = handle;
-	wait.timeout_ns = *timeout_ns;
-	wait.flags = 0;
-	ret = drmIoctl(fd, DRM_IOCTL_I915_GEM_WAIT, &wait);
-	*timeout_ns = wait.timeout_ns;
-
-	return ret ? -errno : 0;
-}
-
 static void blt_color_fill(struct intel_batchbuffer *batch,
 			   drm_intel_bo *buf,
 			   const unsigned int pages)
@@ -122,7 +105,7 @@ static void render_timeout(int fd)
 	dst = drm_intel_bo_alloc(bufmgr, "dst", BUF_SIZE, 4096);
 	dst2 = drm_intel_bo_alloc(bufmgr, "dst2", BUF_SIZE, 4096);
 
-	igt_skip_on_f(gem_bo_wait_timeout(fd, dst->handle, &timeout) == -EINVAL,
+	igt_skip_on_f(gem_wait(fd, dst->handle, &timeout) == -EINVAL,
 		      "kernel doesn't support wait_timeout, skipping test\n");
 	timeout = ENOUGH_WORK_IN_SECONDS * NSEC_PER_SEC;
 
@@ -169,7 +152,7 @@ static void render_timeout(int fd)
 	intel_batchbuffer_flush(batch);
 	igt_assert(gem_bo_busy(fd, dst2->handle) == true);
 
-	igt_assert_eq(gem_bo_wait_timeout(fd, dst2->handle, &timeout), 0);
+	igt_assert_eq(gem_wait(fd, dst2->handle, &timeout), 0);
 	igt_assert(gem_bo_busy(fd, dst2->handle) == false);
 	igt_assert_neq(timeout, 0);
 	if (timeout ==  (ENOUGH_WORK_IN_SECONDS * NSEC_PER_SEC))
@@ -179,7 +162,7 @@ static void render_timeout(int fd)
 
 	/* check that polling with timeout=0 works. */
 	timeout = 0;
-	igt_assert_eq(gem_bo_wait_timeout(fd, dst2->handle, &timeout), 0);
+	igt_assert_eq(gem_wait(fd, dst2->handle, &timeout), 0);
 	igt_assert_eq(timeout, 0);
 
 	/* Now check that we correctly time out, twice the auto-tune load should
@@ -190,14 +173,14 @@ static void render_timeout(int fd)
 
 	intel_batchbuffer_flush(batch);
 
-	ret = gem_bo_wait_timeout(fd, dst2->handle, &timeout);
+	ret = gem_wait(fd, dst2->handle, &timeout);
 	igt_assert_eq(ret, -ETIME);
 	igt_assert_eq(timeout, 0);
 	igt_assert(gem_bo_busy(fd, dst2->handle) == true);
 
 	/* check that polling with timeout=0 works. */
 	timeout = 0;
-	igt_assert_eq(gem_bo_wait_timeout(fd, dst2->handle, &timeout), -ETIME);
+	igt_assert_eq(gem_wait(fd, dst2->handle, &timeout), -ETIME);
 	igt_assert_eq(timeout, 0);
 
 
@@ -208,7 +191,7 @@ static void render_timeout(int fd)
 
 	intel_batchbuffer_flush(batch);
 
-	igt_assert_eq(gem_bo_wait_timeout(fd, dst2->handle, &negative_timeout), 0);
+	igt_assert_eq(gem_wait(fd, dst2->handle, &negative_timeout), 0);
 	igt_assert_eq(negative_timeout, -1); /* infinity always remains */
 	igt_assert(gem_bo_busy(fd, dst2->handle) == false);
 
