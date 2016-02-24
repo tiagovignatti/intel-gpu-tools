@@ -3134,6 +3134,8 @@ static void tilingchange_subtest(const struct test_mode *t)
 		page_flip_for_params(params, flip_type);
 		do_assertions(0);
 	}
+
+	igt_remove_fb(drm.fd, &new_fb);
 }
 
 /*
@@ -3192,6 +3194,8 @@ static void basic_subtest(const struct test_mode *t)
 		update_wanted_crc(t, &pattern->crcs[t->format][r]);
 		do_assertions(assertions);
 	}
+
+	igt_remove_fb(drm.fd, &fb2);
 }
 
 static int opt_handler(int option, int option_index, void *data)
