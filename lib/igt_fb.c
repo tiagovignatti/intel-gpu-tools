@@ -31,6 +31,7 @@
 
 #include "drmtest.h"
 #include "igt_fb.h"
+#include "igt_kms.h"
 #include "ioctl_wrappers.h"
 #include "intel_chipset.h"
 
@@ -179,30 +180,84 @@ void igt_calc_fb_size(int fd, int width, int height, int bpp, uint64_t tiling,
 	*size_ret = size;
 }
 
+/**
+ * igt_create_bo_with_dimensions:
+ * @fd: open drm file descriptor
+ * @width: width of the buffer object in pixels
+ * @height: height of the buffer object in pixels
+ * @format: drm fourcc pixel format code
+ * @modifier: modifier corresponding to the tiling layout of the buffer object
+ * @stride: stride of the buffer object in bytes (0 for automatic stride)
+ * @size_ret: size of the buffer object as created by the kernel
+ * @stride_ret: stride of the buffer object as created by the kernel
+ * @is_dumb: whether the created buffer object is a dumb buffer or not
+ *
+ * This function allocates a gem buffer object matching the requested
+ * properties.
+ *
+ * Returns:
+ * The kms id of the created buffer object.
+ */
+int igt_create_bo_with_dimensions(int fd, int width, int height,
+				  uint32_t format, uint64_t modifier,
+				  unsigned stride, unsigned *size_ret,
+				  unsigned *stride_ret, bool *is_dumb)
+{
+	int bpp = igt_drm_format_to_bpp(format);
+	int bo;
+
+	if (modifier || stride) {
+		unsigned size, calculated_stride;
+
+		igt_calc_fb_size(fd, width, height, bpp, modifier, &size,
+				 &calculated_stride);
+		if (stride == 0)
+			stride = calculated_stride;
+
+		if (is_dumb)
+			*is_dumb = false;
+
+		if (is_i915_device(fd)) {
+
+			bo = gem_create(fd, size);
+			gem_set_tiling(fd, bo, modifier, stride);
+
+			if (size_ret)
+				*size_ret = size;
+
+			if (stride_ret)
+				*stride_ret = stride;
+
+			return bo;
+		} else {
+			bool driver_has_tiling_support = false;
+
+			igt_require(driver_has_tiling_support);
+			return -EINVAL;
+		}
+	} else {
+		if (is_dumb)
+			*is_dumb = true;
+
+		return kmstest_dumb_create(fd, width, height, bpp, stride_ret,
+					   size_ret);
+	}
+}
+
 /* helpers to create nice-looking framebuffers */
-static int create_bo_for_fb(int fd, int width, int height, int bpp,
+static int create_bo_for_fb(int fd, int width, int height, uint32_t format,
 			    uint64_t tiling, unsigned bo_size,
 			    unsigned bo_stride, uint32_t *gem_handle_ret,
-			    unsigned *size_ret, unsigned *stride_ret)
+			    unsigned *size_ret, unsigned *stride_ret,
+			    bool *is_dumb)
 {
 	uint32_t gem_handle;
 	int ret = 0;
-	unsigned size, stride;
 
-	igt_calc_fb_size(fd, width, height, bpp, tiling, &size, &stride);
-	if (bo_size == 0)
-		bo_size = size;
-	if (bo_stride == 0)
-		bo_stride = stride;
+	gem_handle = igt_create_bo_with_dimensions(fd, width, height, format,
+						   tiling, bo_stride, size_ret,
+						   stride_ret, is_dumb);
 
-	gem_handle = gem_create(fd, bo_size);
-
-	if (tiling == LOCAL_I915_FORMAT_MOD_X_TILED)
-		ret = __gem_set_tiling(fd, gem_handle, I915_TILING_X,
-				       bo_stride);
-
-	*stride_ret = bo_stride;
-	*size_ret = bo_size;
 	*gem_handle_ret = gem_handle;
 
 	return ret;
@@ -540,17 +595,14 @@ igt_create_fb_with_bo_size(int fd, int width, int height,
 			   unsigned bo_stride)
 {
 	uint32_t fb_id;
-	int bpp;
 
 	memset(fb, 0, sizeof(*fb));
 
-	bpp = igt_drm_format_to_bpp(format);
-
-	igt_debug("%s(width=%d, height=%d, format=0x%x [bpp=%d], tiling=0x%"PRIx64", size=%d)\n",
-		  __func__, width, height, format, bpp, tiling, bo_size);
-	do_or_die(create_bo_for_fb(fd, width, height, bpp, tiling, bo_size,
+	igt_debug("%s(width=%d, height=%d, format=0x%x, tiling=0x%"PRIx64", size=%d)\n",
+		  __func__, width, height, format, tiling, bo_size);
+	do_or_die(create_bo_for_fb(fd, width, height, format, tiling, bo_size,
 				   bo_stride, &fb->gem_handle, &fb->size,
-				   &fb->stride));
+				   &fb->stride, &fb->is_dumb));
 
 	igt_debug("%s(handle=%d, pitch=%d)\n",
 		  __func__, fb->gem_handle, fb->stride);
@@ -900,6 +952,7 @@ struct fb_blit_upload {
 		uint32_t handle;
 		unsigned size, stride;
 		uint8_t *map;
+		bool is_dumb;
 	} linear;
 };
 
@@ -968,7 +1021,8 @@ static void create_cairo_surface__blit(int fd, struct igt_fb *fb)
 				LOCAL_DRM_FORMAT_MOD_NONE, 0, 0,
 				&blit->linear.handle,
 				&blit->linear.size,
-				&blit->linear.stride);
+				&blit->linear.stride,
+				&blit->linear.is_dumb);
 
 	igt_assert(ret == 0);
 

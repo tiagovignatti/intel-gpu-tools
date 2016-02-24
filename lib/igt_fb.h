@@ -48,6 +48,7 @@ struct igt_fb {
 	uint32_t fb_id;
 	int fd;
 	uint32_t gem_handle;
+	bool is_dumb;
 	uint32_t drm_format;
 	int width;
 	int height;
@@ -95,6 +96,11 @@ unsigned int igt_create_stereo_fb(int drm_fd, drmModeModeInfo *mode,
 				  uint32_t format, uint64_t tiling);
 void igt_remove_fb(int fd, struct igt_fb *fb);
 int igt_dirty_fb(int fd, struct igt_fb *fb);
+
+int igt_create_bo_with_dimensions(int fd, int width, int height, uint32_t format,
+				  uint64_t modifier, unsigned stride,
+				  unsigned *stride_out, unsigned *size_out,
+				  bool *is_dumb);
 
 /* cairo-based painting */
 cairo_t *igt_get_cairo_ctx(int fd, struct igt_fb *fb);
