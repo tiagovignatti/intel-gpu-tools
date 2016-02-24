@@ -51,9 +51,11 @@ static void invalid_tests(int fd)
 	f.pitches[0] = 512*4;
 
 	igt_fixture {
-		gem_bo = gem_create(fd, 1024*1024*4);
+		gem_bo = igt_create_bo_with_dimensions(fd, 1024, 1024,
+			DRM_FORMAT_XRGB8888, 0, 0, NULL, NULL, NULL);
 		igt_assert(gem_bo);
-		gem_bo_small = gem_create(fd, 1024*1024*4 - 4096);
+		gem_bo_small = igt_create_bo_with_dimensions(fd, 1024, 1023,
+			DRM_FORMAT_XRGB8888, 0, 0, NULL, NULL, NULL);
 		igt_assert(gem_bo_small);
 
 		f.handles[0] = gem_bo;
@@ -129,7 +131,8 @@ static void pitch_tests(int fd)
 	f.pitches[0] = 1024*4;
 
 	igt_fixture {
-		gem_bo = gem_create(fd, 1024*1024*4);
+		gem_bo = igt_create_bo_with_dimensions(fd, 1024, 1024,
+			DRM_FORMAT_XRGB8888, 0, 0, NULL, NULL, NULL);
 		igt_assert(gem_bo);
 	}
 
@@ -211,9 +214,11 @@ static void size_tests(int fd)
 	f_8.pitches[0] = 1024*2;
 
 	igt_fixture {
-		gem_bo = gem_create(fd, 1024*1024*4);
+		gem_bo = igt_create_bo_with_dimensions(fd, 1024, 1024,
+			DRM_FORMAT_XRGB8888, 0, 0, NULL, NULL, NULL);
 		igt_assert(gem_bo);
-		gem_bo_small = gem_create(fd, 1024*1024*4 - 4096);
+		gem_bo_small = igt_create_bo_with_dimensions(fd, 1024, 1023,
+			DRM_FORMAT_XRGB8888, 0, 0, NULL, NULL, NULL);
 		igt_assert(gem_bo_small);
 	}
 
@@ -293,7 +298,8 @@ static void addfb25_tests(int fd)
 	struct local_drm_mode_fb_cmd2 f = {};
 
 	igt_fixture {
-		gem_bo = gem_create(fd, 1024*1024*4);
+		gem_bo = igt_create_bo_with_dimensions(fd, 1024, 1024,
+			DRM_FORMAT_XRGB8888, 0, 0, NULL, NULL, NULL);
 		igt_assert(gem_bo);
 
 		memset(&f, 0, sizeof(f));
@@ -364,9 +370,11 @@ static void addfb25_ytile(int fd, int gen)
 	int shouldret;
 
 	igt_fixture {
-		gem_bo = gem_create(fd, 1024*1024*4);
+		gem_bo = igt_create_bo_with_dimensions(fd, 1024, 1024,
+			DRM_FORMAT_XRGB8888, 0, 0, NULL, NULL, NULL);
 		igt_assert(gem_bo);
-		gem_bo_small = gem_create(fd, 1024*1023*4);
+		gem_bo_small = igt_create_bo_with_dimensions(fd, 1024, 1023,
+			DRM_FORMAT_XRGB8888, 0, 0, NULL, NULL, NULL);
 		igt_assert(gem_bo_small);
 
 		shouldret = gen >= 9 ? 0 : -1;
