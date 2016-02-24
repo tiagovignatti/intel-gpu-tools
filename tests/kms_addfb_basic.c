@@ -399,10 +399,21 @@ static void addfb25_tests(int fd)
 		gem_close(fd, gem_bo);
 }
 
-static void addfb25_ytile(int fd, int gen)
+static int addfb_expected_ret(int fd)
+{
+	int gen;
+
+	if (!is_i915_device(fd))
+		return 0;
+
+	gen = intel_gen(intel_get_drm_devid(fd));
+	return gen >= 9 ? 0 : -1;
+}
+
+static void addfb25_ytile(int fd)
 {
 	struct local_drm_mode_fb_cmd2 f = {};
-	int shouldret;
+	int gen;
 
 	igt_fixture {
 		gem_bo = igt_create_bo_with_dimensions(fd, 1024, 1024,
@@ -411,8 +422,6 @@ static void addfb25_ytile(int fd, int gen)
 		gem_bo_small = igt_create_bo_with_dimensions(fd, 1024, 1023,
 			DRM_FORMAT_XRGB8888, 0, 0, NULL, NULL, NULL);
 		igt_assert(gem_bo_small);
-
-		shouldret = gen >= 9 ? 0 : -1;
 
 		memset(&f, 0, sizeof(f));
 
@@ -430,8 +439,9 @@ static void addfb25_ytile(int fd, int gen)
 		igt_require_fb_modifiers(fd);
 
 		f.modifier[0] = LOCAL_I915_FORMAT_MOD_Y_TILED;
-		igt_assert(drmIoctl(fd, LOCAL_DRM_IOCTL_MODE_ADDFB2, &f) == shouldret);
-		if (!shouldret)
+		igt_assert(drmIoctl(fd, LOCAL_DRM_IOCTL_MODE_ADDFB2, &f) ==
+			   addfb_expected_ret(fd));
+		if (!addfb_expected_ret(fd))
 			igt_assert(drmIoctl(fd, DRM_IOCTL_MODE_RMFB, &f.fb_id) == 0);
 		f.fb_id = 0;
 	}
@@ -440,14 +450,17 @@ static void addfb25_ytile(int fd, int gen)
 		igt_require_fb_modifiers(fd);
 
 		f.modifier[0] = LOCAL_I915_FORMAT_MOD_Yf_TILED;
-		igt_assert(drmIoctl(fd, LOCAL_DRM_IOCTL_MODE_ADDFB2, &f) == shouldret);
-		if (!shouldret)
+		igt_assert(drmIoctl(fd, LOCAL_DRM_IOCTL_MODE_ADDFB2, &f) ==
+			   addfb_expected_ret(fd));
+		if (!addfb_expected_ret(fd))
 			igt_assert(drmIoctl(fd, DRM_IOCTL_MODE_RMFB, &f.fb_id) == 0);
 		f.fb_id = 0;
 	}
 
 	igt_subtest("addfb25-Y-tiled-small") {
 		igt_require_fb_modifiers(fd);
+
+		gen = intel_gen(intel_get_drm_devid(fd));
 		igt_require(gen >= 9);
 
 		f.modifier[0] = LOCAL_I915_FORMAT_MOD_Y_TILED;
@@ -464,14 +477,11 @@ static void addfb25_ytile(int fd, int gen)
 }
 
 int fd;
-int gen;
 
 igt_main
 {
-	igt_fixture {
+	igt_fixture
 		fd = drm_open_driver_master(DRIVER_INTEL);
-		gen = intel_gen(intel_get_drm_devid(fd));
-	}
 
 	invalid_tests(fd);
 
@@ -481,7 +491,7 @@ igt_main
 
 	addfb25_tests(fd);
 
-	addfb25_ytile(fd, gen);
+	addfb25_ytile(fd);
 
 	tiling_tests(fd);
 
