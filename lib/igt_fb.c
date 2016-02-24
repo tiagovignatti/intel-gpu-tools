@@ -76,15 +76,14 @@ static struct format_desc_struct {
 static void igt_get_fb_tile_size(int fd, uint64_t tiling, int fb_bpp,
 				 unsigned *width_ret, unsigned *height_ret)
 {
-	uint32_t devid = intel_get_drm_devid(fd);
-
 	switch (tiling) {
 	case LOCAL_DRM_FORMAT_MOD_NONE:
 		*width_ret = 64;
 		*height_ret = 1;
 		break;
 	case LOCAL_I915_FORMAT_MOD_X_TILED:
-		if (intel_gen(devid) == 2) {
+		igt_require_intel(fd);
+		if (intel_gen(intel_get_drm_devid(fd)) == 2) {
 			*width_ret = 128;
 			*height_ret = 16;
 		} else {
@@ -93,10 +92,11 @@ static void igt_get_fb_tile_size(int fd, uint64_t tiling, int fb_bpp,
 		}
 		break;
 	case LOCAL_I915_FORMAT_MOD_Y_TILED:
-		if (intel_gen(devid) == 2) {
+		igt_require_intel(fd);
+		if (intel_gen(intel_get_drm_devid(fd)) == 2) {
 			*width_ret = 128;
 			*height_ret = 16;
-		} else if (IS_915(devid)) {
+		} else if (IS_915(intel_get_drm_devid(fd))) {
 			*width_ret = 512;
 			*height_ret = 8;
 		} else {
@@ -105,6 +105,7 @@ static void igt_get_fb_tile_size(int fd, uint64_t tiling, int fb_bpp,
 		}
 		break;
 	case LOCAL_I915_FORMAT_MOD_Yf_TILED:
+		igt_require_intel(fd);
 		switch (fb_bpp) {
 		case 8:
 			*width_ret = 64;
@@ -150,8 +151,8 @@ void igt_calc_fb_size(int fd, int width, int height, int bpp, uint64_t tiling,
 
 	igt_get_fb_tile_size(fd, tiling, bpp, &tile_width, &tile_height);
 
-	if (intel_gen(intel_get_drm_devid(fd)) <= 3 &&
-	    tiling != LOCAL_DRM_FORMAT_MOD_NONE) {
+	if (tiling != LOCAL_DRM_FORMAT_MOD_NONE &&
+	    intel_gen(intel_get_drm_devid(fd)) <= 3) {
 		int v;
 
 		/* Round the tiling up to the next power-of-two and the region
