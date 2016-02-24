@@ -582,6 +582,7 @@ igt_create_fb_with_bo_size(int fd, int width, int height,
 	fb->tiling = tiling;
 	fb->drm_format = format;
 	fb->fb_id = fb_id;
+	fb->fd = fd;
 
 	return fb_id;
 }
@@ -1034,11 +1035,21 @@ static void destroy_cairo_surface__gtt(void *arg)
 
 	munmap(cairo_image_surface_get_data(fb->cairo_surface), fb->size);
 	fb->cairo_surface = NULL;
+
+	if (fb->is_dumb)
+		igt_dirty_fb(fb->fd, fb);
 }
 
 static void create_cairo_surface__gtt(int fd, struct igt_fb *fb)
 {
-	void *ptr = gem_mmap__gtt(fd, fb->gem_handle, fb->size, PROT_READ | PROT_WRITE);
+	void *ptr;
+
+	if (fb->is_dumb)
+		ptr = kmstest_dumb_map_buffer(fd, fb->gem_handle, fb->size,
+					      PROT_READ | PROT_WRITE);
+	else
+		ptr = gem_mmap__gtt(fd, fb->gem_handle, fb->size,
+				    PROT_READ | PROT_WRITE);
 
 	fb->cairo_surface =
 		cairo_image_surface_create_for_data(ptr,
@@ -1061,7 +1072,9 @@ static cairo_surface_t *get_cairo_surface(int fd, struct igt_fb *fb)
 			create_cairo_surface__gtt(fd, fb);
 	}
 
-	gem_set_domain(fd, fb->gem_handle, fb->domain, fb->domain);
+	if (!fb->is_dumb)
+		gem_set_domain(fd, fb->gem_handle, I915_GEM_DOMAIN_CPU,
+			       I915_GEM_DOMAIN_CPU);
 
 	igt_assert(cairo_surface_status(fb->cairo_surface) == CAIRO_STATUS_SUCCESS);
 	return fb->cairo_surface;

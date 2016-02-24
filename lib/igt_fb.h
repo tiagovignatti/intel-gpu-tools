@@ -46,6 +46,7 @@ typedef struct _cairo cairo_t;
 /* helpers to create nice-looking framebuffers */
 struct igt_fb {
 	uint32_t fb_id;
+	int fd;
 	uint32_t gem_handle;
 	uint32_t drm_format;
 	int width;
