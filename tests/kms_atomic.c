@@ -720,7 +720,7 @@ static void atomic_setup(struct kms_atomic_state *state)
 	drmModePlaneResPtr res_plane;
 	int i;
 
-	desc->fd = drm_open_driver_master(DRIVER_INTEL);
+	desc->fd = drm_open_driver_master(DRIVER_ANY);
 	igt_assert_fd(desc->fd);
 
 	igt_skip_on(drmSetClientCap(desc->fd, DRM_CLIENT_CAP_ATOMIC, 1));

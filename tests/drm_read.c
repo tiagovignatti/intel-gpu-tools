@@ -225,7 +225,7 @@ igt_main
 	siginterrupt(SIGALRM, 1);
 
 	igt_fixture {
-		fd = drm_open_driver_master(DRIVER_INTEL);
+		fd = drm_open_driver_master(DRIVER_ANY);
 		igt_require(pipe0_enabled(fd));
 	}
 

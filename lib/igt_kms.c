@@ -2490,7 +2490,7 @@ void igt_enable_connectors(void)
 	drmModeConnector *c;
 	int drm_fd;
 
-	drm_fd = drm_open_driver(DRIVER_INTEL);
+	drm_fd = drm_open_driver(DRIVER_ANY);
 
 	res = drmModeGetResources(drm_fd);
 

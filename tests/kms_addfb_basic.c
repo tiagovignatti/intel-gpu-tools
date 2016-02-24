@@ -481,7 +481,7 @@ int fd;
 igt_main
 {
 	igt_fixture
-		fd = drm_open_driver_master(DRIVER_INTEL);
+		fd = drm_open_driver_master(DRIVER_ANY);
 
 	invalid_tests(fd);
 
