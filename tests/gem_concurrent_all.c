@@ -1523,14 +1523,16 @@ run_basic_modes(const char *prefix,
 static void
 run_modes(const char *style, const struct access_mode *mode, unsigned allow_mem)
 {
-	if (mode->require && !mode->require())
-		return;
+	if (!igt_only_list_subtests()) {
+		if (mode->require && !mode->require())
+			return;
 
-	igt_debug("%s: using 2x%d buffers, each 1MiB\n",
-			style, num_buffers);
-	if (!__intel_check_memory(2*num_buffers, 1024*1024, allow_mem,
-				  NULL, NULL))
-		return;
+		igt_debug("%s: using 2x%d buffers, each 1MiB\n",
+			  style, num_buffers);
+		if (!__intel_check_memory(2*num_buffers, 1024*1024, allow_mem,
+					  NULL, NULL))
+			return;
+	}
 
 	run_basic_modes(style, mode, "", run_single);
 	run_basic_modes(style, mode, "-child", run_child);
