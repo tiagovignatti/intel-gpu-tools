@@ -110,7 +110,7 @@ static void test(data_t *data)
 	 * firstly demonstrate the need for DMA_BUF_SYNC_START ("begin_cpu_access")
 	 */
 	if (ioctl_sync)
-		prime_sync_start(dma_buf_fd);
+		prime_sync_start(dma_buf_fd, true);
 
 	/* use dmabuf pointer to make the other fb all white too */
 	buf = malloc(fb->size);
@@ -142,7 +142,7 @@ static void test(data_t *data)
 
 	/* sync start, to move to CPU domain */
 	if (ioctl_sync)
-		prime_sync_start(dma_buf_fd);
+		prime_sync_start(dma_buf_fd, true);
 
 	/* use dmabuf pointer in the same fb to make it all white */
 	buf = malloc(fb->size);
@@ -154,7 +154,7 @@ static void test(data_t *data)
 	/* if we don't change to the GTT domain again, the whites won't get flushed
 	 * and therefore we demonstrates the need for sync end here */
 	if (ioctl_sync)
-		prime_sync_end(dma_buf_fd);
+		prime_sync_end(dma_buf_fd, true);
 
 	/* check that the crc is as expected, which requires that caches got flushed */
 	igt_pipe_crc_collect_crc(data->pipe_crc, &crc);

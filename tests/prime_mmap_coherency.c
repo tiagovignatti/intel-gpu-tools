@@ -97,7 +97,7 @@ static void test_read_flush(bool expect_stale_cache)
 	 * until we try to read them again in step #4. This behavior could be fixed
 	 * by flush CPU read right before accessing the CPU pointer */
 	if (!expect_stale_cache)
-		prime_sync_start(dma_buf_fd);
+		prime_sync_start(dma_buf_fd, false);
 
 	for (i = 0; i < (width * height) / 4; i++)
 		if (ptr_cpu[i] != 0x11111111) {
@@ -149,7 +149,7 @@ static void test_write_flush(bool expect_stale_cache)
 	/* This is the main point of this test: !llc hw requires a cache write
 	 * flush right here (explained in step #4). */
 	if (!expect_stale_cache)
-		prime_sync_start(dma_buf_fd);
+		prime_sync_start(dma_buf_fd, true);
 
 	memset(ptr_cpu, 0x11, width * height);
 

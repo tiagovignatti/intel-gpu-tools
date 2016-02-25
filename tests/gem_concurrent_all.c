@@ -365,10 +365,10 @@ dmabuf_set_bo(struct buffers *b, drm_intel_bo *bo, uint32_t val)
 	uint32_t *v;
 	int size;
 
-	prime_sync_start(dmabuf->fd);
+	prime_sync_start(dmabuf->fd, true);
 	for (v = dmabuf->map, size = b->size; size--; v++)
 		*v = val;
-	prime_sync_end(dmabuf->fd);
+	prime_sync_end(dmabuf->fd, true);
 }
 
 static void
@@ -378,10 +378,10 @@ dmabuf_cmp_bo(struct buffers *b, drm_intel_bo *bo, uint32_t val)
 	uint32_t *v;
 	int size;
 
-	prime_sync_start(dmabuf->fd);
+	prime_sync_start(dmabuf->fd, false);
 	for (v = dmabuf->map, size = b->size; size--; v++)
 		igt_assert_eq_u32(*v, val);
-	prime_sync_end(dmabuf->fd);
+	prime_sync_end(dmabuf->fd, false);
 }
 
 static void

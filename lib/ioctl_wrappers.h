@@ -177,8 +177,8 @@ int prime_handle_to_fd(int fd, uint32_t handle);
 int prime_handle_to_fd_for_mmap(int fd, uint32_t handle);
 uint32_t prime_fd_to_handle(int fd, int dma_buf_fd);
 off_t prime_get_size(int dma_buf_fd);
-void prime_sync_start(int dma_buf_fd);
-void prime_sync_end(int dma_buf_fd);
+void prime_sync_start(int dma_buf_fd, bool write);
+void prime_sync_end(int dma_buf_fd, bool write);
 
 /* addfb2 fb modifiers */
 struct local_drm_mode_fb_cmd2 {

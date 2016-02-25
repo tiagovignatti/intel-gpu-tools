@@ -1539,12 +1539,15 @@ off_t prime_get_size(int dma_buf_fd)
  * prime_sync_start
  * @dma_buf_fd: dma-buf fd handle
  */
-void prime_sync_start(int dma_buf_fd)
+void prime_sync_start(int dma_buf_fd, bool write)
 {
 	struct local_dma_buf_sync sync_start;
 
 	memset(&sync_start, 0, sizeof(sync_start));
-	sync_start.flags = LOCAL_DMA_BUF_SYNC_START | LOCAL_DMA_BUF_SYNC_RW;
+	sync_start.flags = LOCAL_DMA_BUF_SYNC_START;
+	sync_start.flags |= LOCAL_DMA_BUF_SYNC_READ;
+	if (write)
+		sync_start.flags |= LOCAL_DMA_BUF_SYNC_WRITE;
 	do_ioctl(dma_buf_fd, LOCAL_DMA_BUF_IOCTL_SYNC, &sync_start);
 }
 
@@ -1552,12 +1555,15 @@ void prime_sync_start(int dma_buf_fd)
  * prime_sync_end
  * @dma_buf_fd: dma-buf fd handle
  */
-void prime_sync_end(int dma_buf_fd)
+void prime_sync_end(int dma_buf_fd, bool write)
 {
 	struct local_dma_buf_sync sync_end;
 
 	memset(&sync_end, 0, sizeof(sync_end));
-	sync_end.flags = LOCAL_DMA_BUF_SYNC_END | LOCAL_DMA_BUF_SYNC_RW;
+	sync_end.flags = LOCAL_DMA_BUF_SYNC_END;
+	sync_end.flags |= LOCAL_DMA_BUF_SYNC_READ;
+	if (write)
+		sync_end.flags |= LOCAL_DMA_BUF_SYNC_WRITE;
 	do_ioctl(dma_buf_fd, LOCAL_DMA_BUF_IOCTL_SYNC, &sync_end);
 }
 
