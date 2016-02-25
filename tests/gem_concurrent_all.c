@@ -290,6 +290,113 @@ userptr_release_bo(drm_intel_bo *bo)
 	drm_intel_bo_unreference(bo);
 }
 
+static bool create_dmabuf_require(void)
+{
+	static int found = -1;
+	if (found < 0) {
+		struct drm_prime_handle args;
+		void *ptr;
+
+		memset(&args, 0, sizeof(args));
+		args.handle = gem_create(fd, 4096);
+		args.flags = DRM_RDWR;
+		args.fd = -1;
+
+		drmIoctl(fd, DRM_IOCTL_PRIME_HANDLE_TO_FD, &args);
+		gem_close(fd, args.handle);
+
+		found = 0;
+		ptr = mmap(NULL, 4096, PROT_READ, MAP_SHARED, args.fd, 0);
+		if (ptr != MAP_FAILED) {
+			found = 1;
+			munmap(ptr, 4096);
+		}
+
+		close(args.fd);
+	}
+	return found;
+}
+
+struct dmabuf {
+	int fd;
+	void *map;
+};
+
+static drm_intel_bo *
+dmabuf_create_bo(drm_intel_bufmgr *bufmgr, int width, int height)
+{
+	struct drm_prime_handle args;
+	drm_intel_bo *bo;
+	struct dmabuf *dmabuf;
+	int size;
+
+	size = 4*width*height;
+	size = (size + 4095) & -4096;
+
+	memset(&args, 0, sizeof(args));
+	args.handle = gem_create(fd, size);
+	args.flags = DRM_RDWR;
+	args.fd = -1;
+
+	do_ioctl(fd, DRM_IOCTL_PRIME_HANDLE_TO_FD, &args);
+	gem_close(fd, args.handle);
+
+	bo = drm_intel_bo_gem_create_from_prime(bufmgr, args.fd, size);
+	igt_assert(bo);
+
+	dmabuf = malloc(sizeof(*dmabuf));
+	igt_assert(dmabuf);
+
+	dmabuf->fd = args.fd;
+	dmabuf->map = mmap(NULL, size,
+			   PROT_READ | PROT_WRITE, MAP_SHARED,
+			   dmabuf->fd, 0);
+	igt_assert(dmabuf->map != (void *)-1);
+
+	bo->virtual = dmabuf;
+
+	return bo;
+}
+
+static void
+dmabuf_set_bo(struct buffers *b, drm_intel_bo *bo, uint32_t val)
+{
+	struct dmabuf *dmabuf = bo->virtual;
+	uint32_t *v;
+	int size;
+
+	prime_sync_start(dmabuf->fd);
+	for (v = dmabuf->map, size = b->size; size--; v++)
+		*v = val;
+	prime_sync_end(dmabuf->fd);
+}
+
+static void
+dmabuf_cmp_bo(struct buffers *b, drm_intel_bo *bo, uint32_t val)
+{
+	struct dmabuf *dmabuf = bo->virtual;
+	uint32_t *v;
+	int size;
+
+	prime_sync_start(dmabuf->fd);
+	for (v = dmabuf->map, size = b->size; size--; v++)
+		igt_assert_eq_u32(*v, val);
+	prime_sync_end(dmabuf->fd);
+}
+
+static void
+dmabuf_release_bo(drm_intel_bo *bo)
+{
+	struct dmabuf *dmabuf = bo->virtual;
+
+	munmap(dmabuf->map, bo->size);
+	close(dmabuf->fd);
+	free(dmabuf);
+
+	bo->virtual = NULL;
+	drm_intel_bo_unreference(bo);
+}
+
 static void
 gtt_set_bo(struct buffers *b, drm_intel_bo *bo, uint32_t val)
 {
@@ -517,6 +624,14 @@ const struct access_mode {
 		.release_bo = userptr_release_bo,
 	},
 	{
+		.name = "dmabuf",
+		.require = create_dmabuf_require,
+		.set_bo = dmabuf_set_bo,
+		.cmp_bo = dmabuf_cmp_bo,
+		.create_bo = dmabuf_create_bo,
+		.release_bo = dmabuf_release_bo,
+	},
+	{
 		.name = "gtt",
 		.set_bo = gtt_set_bo,
 		.cmp_bo = gtt_cmp_bo,
@@ -591,7 +706,7 @@ static void buffers_destroy(struct buffers *data)
 		data->mode->release_bo(data->src[i]);
 		data->mode->release_bo(data->dst[i]);
 	}
-	data->mode->release_bo(data->snoop);
+	nop_release_bo(data->snoop);
 	data->mode->release_bo(data->spare);
 	data->count = 0;
 }
