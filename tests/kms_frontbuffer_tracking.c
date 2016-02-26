@@ -368,7 +368,8 @@ static void print_mode_info(const char *screen, struct modeset_params *params)
 }
 
 static void init_mode_params(struct modeset_params *params, uint32_t crtc_id,
-			     uint32_t connector_id, drmModeModeInfoPtr mode)
+			     drmModeConnectorPtr connector,
+			     drmModeModeInfoPtr mode)
 {
 	uint32_t plane_id = 0;
 	int crtc_idx = kmstest_get_crtc_idx(drm.res, crtc_id);
@@ -382,7 +383,7 @@ static void init_mode_params(struct modeset_params *params, uint32_t crtc_id,
 	igt_assert(plane_id);
 
 	params->crtc_id = crtc_id;
-	params->connector_id = connector_id;
+	params->connector_id = connector->connector_id;
 	params->mode = mode;
 	params->sprite_id = plane_id;
 
@@ -427,56 +428,61 @@ static bool connector_get_mode(drmModeConnectorPtr c, drmModeModeInfoPtr *mode)
 	return true;
 }
 
+static bool find_connector(bool edp_only, uint32_t forbidden_id,
+			   drmModeConnectorPtr *ret_connector,
+			   drmModeModeInfoPtr *ret_mode)
+{
+	drmModeConnectorPtr c = NULL;
+	drmModeModeInfoPtr mode = NULL;
+	int i;
+
+	for (i = 0; i < drm.res->count_connectors; i++) {
+		c = drm.connectors[i];
+
+		if (edp_only && c->connector_type != DRM_MODE_CONNECTOR_eDP)
+			continue;
+		if (c->connector_id == forbidden_id)
+			continue;
+		if (!connector_get_mode(c, &mode))
+			continue;
+
+		*ret_connector = c;
+		*ret_mode = mode;
+		return true;
+	}
+
+	return false;
+}
+
 static bool init_modeset_cached_params(void)
 {
-	int i;
-	uint32_t prim_connector_id = 0, scnd_connector_id = 0;
+	drmModeConnectorPtr prim_connector = NULL, scnd_connector = NULL;
 	drmModeModeInfoPtr prim_mode = NULL, scnd_mode = NULL;
-	drmModeModeInfoPtr tmp_mode;
 
 	/* First, try to find an eDP monitor since it's the only possible type
 	 * for PSR.  */
-	for (i = 0; i < drm.res->count_connectors; i++) {
-		if (drm.connectors[i]->connector_type != DRM_MODE_CONNECTOR_eDP)
-			continue;
+	find_connector(true, 0, &prim_connector, &prim_mode);
+	if (!prim_connector)
+		find_connector(false, 0, &prim_connector, &prim_mode);
 
-		if (connector_get_mode(drm.connectors[i], &tmp_mode)) {
-			prim_connector_id = drm.res->connectors[i];
-			prim_mode = tmp_mode;
-		}
-	}
-	for (i = 0; i < drm.res->count_connectors; i++) {
-		/* Don't pick again what we just selected on the above loop. */
-		if (drm.res->connectors[i] == prim_connector_id)
-			continue;
-
-		if (connector_get_mode(drm.connectors[i], &tmp_mode)) {
-			if (!prim_connector_id) {
-				prim_connector_id = drm.res->connectors[i];
-				prim_mode = tmp_mode;
-			} else if (!scnd_connector_id) {
-				scnd_connector_id = drm.res->connectors[i];
-				scnd_mode = tmp_mode;
-				break;
-			}
-		}
-	}
-
-	if (!prim_connector_id)
+	if (!prim_connector)
 		return false;
 
+	find_connector(false, prim_connector->connector_id, &scnd_connector,
+		       &scnd_mode);
+
 	init_mode_params(&prim_mode_params, drm.res->crtcs[0],
-			 prim_connector_id, prim_mode);
+			 prim_connector, prim_mode);
 	print_mode_info("Primary", &prim_mode_params);
 
-	if (!scnd_connector_id) {
+	if (!scnd_connector) {
 		scnd_mode_params.connector_id = 0;
 		return true;
 	}
 
 	igt_assert(drm.res->count_crtcs >= 2);
 	init_mode_params(&scnd_mode_params, drm.res->crtcs[1],
-			 scnd_connector_id, scnd_mode);
+			 scnd_connector, scnd_mode);
 	print_mode_info("Secondary", &scnd_mode_params);
 
 	return true;
