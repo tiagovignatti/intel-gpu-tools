@@ -2110,6 +2110,7 @@ static int do_display_commit(igt_display_t *display,
 			     bool fail_on_error)
 {
 	int i, ret;
+	int valid_outs = 0;
 
 	LOG_INDENT(display, "commit");
 
@@ -2129,11 +2130,15 @@ static int do_display_commit(igt_display_t *display,
 		if (!output->valid)
 			continue;
 
+		valid_outs++;
 		ret = igt_output_commit(output, s, fail_on_error);
 		CHECK_RETURN(ret, fail_on_error);
 	}
 
 	LOG_UNINDENT(display);
+
+	if (valid_outs == 0)
+		return -1;
 
 	igt_debug_wait_for_keypress("modeset");
 
