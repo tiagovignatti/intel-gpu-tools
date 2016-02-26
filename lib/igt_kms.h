@@ -151,6 +151,9 @@ bool kmstest_get_property(int drm_fd, uint32_t object_id, uint32_t object_type,
 			  drmModePropertyPtr *prop);
 void kmstest_unset_all_crtcs(int drm_fd, drmModeResPtr resources);
 int kmstest_get_crtc_idx(drmModeRes *res, uint32_t crtc_id);
+uint32_t kmstest_find_crtc_for_connector(int fd, drmModeRes *res,
+					 drmModeConnector *connector,
+					 uint32_t crtc_blacklist_idx_mask);
 
 /*
  * A small modeset API

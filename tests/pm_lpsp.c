@@ -65,7 +65,8 @@ static void edp_subtest(int drm_fd, drmModeResPtr drm_res,
 			bool use_panel_fitter)
 {
 	int i, rc;
-	uint32_t connector_id = 0, crtc_id = 0, buffer_id = 0;
+	uint32_t crtc_id = 0, buffer_id = 0;
+	drmModeConnectorPtr connector = NULL;
 	drmModeModeInfoPtr mode = NULL;
 	drmModeModeInfo std_1024_mode = {
 		.clock = 65000,
@@ -96,12 +97,12 @@ static void edp_subtest(int drm_fd, drmModeResPtr drm_res,
 			continue;
 
 		if (!use_panel_fitter && c->count_modes) {
-			connector_id = c->connector_id;
+			connector = c;
 			mode = &c->modes[0];
 			break;
 		}
 		if (use_panel_fitter) {
-			connector_id = c->connector_id;
+			connector = c;
 
 			/* This is one of the modes Xorg creates for panels, so
 			 * it should work just fine. Notice that Gens that
@@ -116,18 +117,18 @@ static void edp_subtest(int drm_fd, drmModeResPtr drm_res,
 			break;
 		}
 	}
-	igt_require(connector_id);
+	igt_require(connector);
 
-	crtc_id = drm_res->crtcs[0];
+	crtc_id = kmstest_find_crtc_for_connector(drm_fd, drm_res, connector,
+						  0);
 	buffer_id = create_fb(drm_fd, mode->hdisplay, mode->vdisplay);
 
-	igt_assert(crtc_id);
 	igt_assert(buffer_id);
-	igt_assert(connector_id);
+	igt_assert(connector);
 	igt_assert(mode);
 
-	rc = drmModeSetCrtc(drm_fd, crtc_id, buffer_id, 0, 0, &connector_id, 1,
-			    mode);
+	rc = drmModeSetCrtc(drm_fd, crtc_id, buffer_id, 0, 0,
+			    &connector->connector_id, 1, mode);
 	igt_assert_eq(rc, 0);
 
 	if (use_panel_fitter) {
@@ -144,7 +145,8 @@ static void non_edp_subtest(int drm_fd, drmModeResPtr drm_res,
 			    drmModeConnectorPtr *drm_connectors)
 {
 	int i, rc;
-	uint32_t connector_id = 0, crtc_id = 0, buffer_id = 0;
+	uint32_t crtc_id = 0, buffer_id = 0;
+	drmModeConnectorPtr connector = NULL;
 	drmModeModeInfoPtr mode = NULL;
 
 	kmstest_unset_all_crtcs(drm_fd, drm_res);
@@ -158,23 +160,22 @@ static void non_edp_subtest(int drm_fd, drmModeResPtr drm_res,
 			continue;
 
 		if (c->count_modes) {
-			connector_id = c->connector_id;
+			connector = c;
 			mode = &c->modes[0];
 			break;
 		}
 	}
-	igt_require(connector_id);
+	igt_require(connector);
 
-	crtc_id = drm_res->crtcs[0];
+	crtc_id = kmstest_find_crtc_for_connector(drm_fd, drm_res, connector,
+						  0);
 	buffer_id = create_fb(drm_fd, mode->hdisplay, mode->vdisplay);
 
-	igt_assert(crtc_id);
 	igt_assert(buffer_id);
-	igt_assert(connector_id);
 	igt_assert(mode);
 
-	rc = drmModeSetCrtc(drm_fd, crtc_id, buffer_id, 0, 0, &connector_id, 1,
-			    mode);
+	rc = drmModeSetCrtc(drm_fd, crtc_id, buffer_id, 0, 0,
+			    &connector->connector_id, 1, mode);
 	igt_assert_eq(rc, 0);
 
 	igt_assert(!lpsp_is_enabled(drm_fd));

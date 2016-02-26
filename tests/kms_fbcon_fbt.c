@@ -114,7 +114,7 @@ static void set_mode_for_one_screen(struct drm_info *drm, struct igt_fb *fb,
 				    connector_possible_fn connector_possible)
 {
 	int i, rc;
-	uint32_t connector_id = 0, crtc_id;
+	uint32_t crtc_id;
 	drmModeModeInfoPtr mode;
 	uint32_t buffer_id;
 	drmModeConnectorPtr c = NULL;
@@ -124,14 +124,14 @@ static void set_mode_for_one_screen(struct drm_info *drm, struct igt_fb *fb,
 
 		if (c->connection == DRM_MODE_CONNECTED && c->count_modes &&
 		    connector_possible(c)) {
-			connector_id = c->connector_id;
 			mode = &c->modes[0];
 			break;
 		}
 	}
-	igt_require_f(connector_id, "No connector available\n");
+	igt_require_f(i < drm->res->count_connectors,
+		      "No connector available\n");
 
-	crtc_id = drm->res->crtcs[0];
+	crtc_id = kmstest_find_crtc_for_connector(drm->fd, drm->res, c, 0);
 
 	buffer_id = igt_create_fb(drm->fd, mode->hdisplay, mode->vdisplay,
 				  DRM_FORMAT_XRGB8888,
@@ -142,8 +142,8 @@ static void set_mode_for_one_screen(struct drm_info *drm, struct igt_fb *fb,
 		 mode->hdisplay, mode->vdisplay,
 		 kmstest_connector_type_str(c->connector_type));
 
-	rc = drmModeSetCrtc(drm->fd, crtc_id, buffer_id, 0, 0, &connector_id, 1,
-			    mode);
+	rc = drmModeSetCrtc(drm->fd, crtc_id, buffer_id, 0, 0,
+			    &c->connector_id, 1, mode);
 	igt_assert_eq(rc, 0);
 }
 

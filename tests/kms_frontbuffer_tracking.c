@@ -374,10 +374,11 @@ static void print_mode_info(const char *screen, struct modeset_params *params)
 {
 	drmModeConnectorPtr c = get_connector(params->connector_id);
 
-	igt_info("%s screen: %s %s\n",
+	igt_info("%s screen: %s %s, crtc %d\n",
 		 screen,
 		 kmstest_connector_type_str(c->connector_type),
-		 params->mode->name);
+		 params->mode->name,
+		 params->crtc_id);
 }
 
 static void init_mode_params(struct modeset_params *params, uint32_t crtc_id,
@@ -484,6 +485,7 @@ static bool init_modeset_cached_params(void)
 {
 	drmModeConnectorPtr prim_connector = NULL, scnd_connector = NULL;
 	drmModeModeInfoPtr prim_mode = NULL, scnd_mode = NULL;
+	uint32_t prim_crtc_id, scnd_crtc_id;
 
 	/*
 	 * We have this problem where PSR is only present on eDP monitors and
@@ -507,7 +509,9 @@ static bool init_modeset_cached_params(void)
 	find_connector(false, false, prim_connector->connector_id,
 		       &scnd_connector, &scnd_mode);
 
-	init_mode_params(&prim_mode_params, drm.res->crtcs[0],
+	prim_crtc_id = kmstest_find_crtc_for_connector(drm.fd, drm.res,
+						       prim_connector, 0);
+	init_mode_params(&prim_mode_params, prim_crtc_id,
 			 prim_connector, prim_mode);
 	print_mode_info("Primary", &prim_mode_params);
 
@@ -517,7 +521,10 @@ static bool init_modeset_cached_params(void)
 	}
 
 	igt_assert(drm.res->count_crtcs >= 2);
-	init_mode_params(&scnd_mode_params, drm.res->crtcs[1],
+	scnd_crtc_id = kmstest_find_crtc_for_connector(drm.fd, drm.res,
+						      scnd_connector,
+			1 << kmstest_get_crtc_idx(drm.res, prim_crtc_id));
+	init_mode_params(&scnd_mode_params, scnd_crtc_id,
 			 scnd_connector, scnd_mode);
 	print_mode_info("Secondary", &scnd_mode_params);
 
@@ -2575,10 +2582,10 @@ static bool prim_plane_disabled(void)
 {
 	int i, rc;
 	bool disabled, found = false;
+	int crtc_idx = kmstest_get_crtc_idx(drm.res, prim_mode_params.crtc_id);
 
 	for (i = 0; i < drm.plane_res->count_planes; i++) {
-		/* We just pick the first CRTC for the primary plane. */
-		if ((drm.planes[i]->possible_crtcs & 0x1) &&
+		if ((drm.planes[i]->possible_crtcs & (1 << crtc_idx)) &&
 		    drm.plane_types[i] == DRM_PLANE_TYPE_PRIMARY) {
 			found = true;
 			disabled = (drm.planes[i]->crtc_id == 0);
@@ -2686,6 +2693,8 @@ static void scaledprimary_subtest(const struct test_mode *t)
 	struct modeset_params *params = pick_params(t);
 	int i, rc;
 	uint32_t plane_id;
+	int prim_crtc_idx = kmstest_get_crtc_idx(drm.res,
+						 prim_mode_params.crtc_id);
 
 	igt_require_f(intel_gen(intel_get_drm_devid(drm.fd)) >= 9,
 		      "Can't test primary plane scaling before gen 9\n");
@@ -2715,7 +2724,7 @@ static void scaledprimary_subtest(const struct test_mode *t)
 			 pick_color(&new_fb, COLOR_MAGENTA));
 
 	for (i = 0; i < drm.plane_res->count_planes; i++)
-		if ((drm.planes[i]->possible_crtcs & 1) &&
+		if ((drm.planes[i]->possible_crtcs & (1 << prim_crtc_idx)) &&
 		    drm.plane_types[i] == DRM_PLANE_TYPE_PRIMARY)
 			plane_id = drm.planes[i]->plane_id;
 

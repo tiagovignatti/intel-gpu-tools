@@ -249,20 +249,21 @@ static void draw_rect(struct igt_fb *fb, enum igt_draw_method method,
 static void setup_modeset(void)
 {
 	int i;
+	drmModeConnectorPtr connector;
 
 	for (i = 0; i < drm.res->count_connectors; i++) {
-		drmModeConnectorPtr c = drm.connectors[i];
+		connector = drm.connectors[i];
 
-		if (c->connection == DRM_MODE_CONNECTED &&
-		    c->count_modes > 0) {
-			modeset.connector_id = c->connector_id;
-			modeset.mode = &c->modes[0];
+		if (connector->connection == DRM_MODE_CONNECTED &&
+		    connector->count_modes > 0)
 			break;
-		}
 	}
 	igt_assert(i < drm.res->count_connectors);
 
-	modeset.crtc_id = drm.res->crtcs[0];
+	modeset.connector_id = connector->connector_id;
+	modeset.mode = &connector->modes[0];
+	modeset.crtc_id = kmstest_find_crtc_for_connector(drm.fd, drm.res,
+							  connector, 0);
 
 	for (i = 0; i < 2; i++) {
 		igt_create_fb(drm.fd, modeset.mode->hdisplay,

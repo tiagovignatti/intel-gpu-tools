@@ -58,25 +58,26 @@ struct modeset_params ms;
 static void find_modeset_params(void)
 {
 	int i;
-	uint32_t connector_id = 0, crtc_id;
+	uint32_t crtc_id;
+	drmModeConnectorPtr connector = NULL;
 	drmModeModeInfoPtr mode = NULL;
 
 	for (i = 0; i < drm_res->count_connectors; i++) {
 		drmModeConnectorPtr c = drm_connectors[i];
 
 		if (c->count_modes) {
-			connector_id = c->connector_id;
+			connector = c;
 			mode = &c->modes[0];
 			break;
 		}
 	}
-	igt_require(connector_id);
+	igt_require(connector);
 
-	crtc_id = drm_res->crtcs[0];
-	igt_assert(crtc_id);
+	crtc_id = kmstest_find_crtc_for_connector(drm_fd, drm_res, connector,
+						  0);
 	igt_assert(mode);
 
-	ms.connector_id = connector_id;
+	ms.connector_id = connector->connector_id;
 	ms.crtc_id = crtc_id;
 	ms.mode = mode;
 

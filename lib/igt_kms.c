@@ -277,6 +277,38 @@ int kmstest_get_pipe_from_crtc_id(int fd, int crtc_id)
 	return pfci.pipe;
 }
 
+/**
+ * kmstest_find_crtc_for_connector:
+ * @fd: DRM fd
+ * @res: libdrm resources pointer
+ * @connector: libdrm connector pointer
+ * @crtc_blacklist_idx_mask: a mask of CRTC indexes that we can't return
+ *
+ * Returns: the CRTC ID for a CRTC that fits the connector, otherwise it asserts
+ * false and never returns. The blacklist mask can be used in case you have
+ * CRTCs that are already in use by other connectors.
+ */
+uint32_t kmstest_find_crtc_for_connector(int fd, drmModeRes *res,
+					 drmModeConnector *connector,
+					 uint32_t crtc_blacklist_idx_mask)
+{
+	drmModeEncoder *e;
+	uint32_t possible_crtcs;
+	int i, j;
+
+	for (i = 0; i < connector->count_encoders; i++) {
+		e = drmModeGetEncoder(fd, connector->encoders[i]);
+		possible_crtcs = e->possible_crtcs & ~crtc_blacklist_idx_mask;
+		drmModeFreeEncoder(e);
+
+		for (j = 0; possible_crtcs >> j; j++)
+			if (possible_crtcs & (1 << j))
+				return res->crtcs[j];
+	}
+
+	igt_assert(false);
+}
+
 /*
  * Returns: the previous mode, or KD_GRAPHICS if no /dev/tty0 was
  * found and nothing was done.

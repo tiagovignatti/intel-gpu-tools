@@ -226,27 +226,6 @@ static void disable_or_dpms_all_screens(struct mode_set_data *data, bool dpms)
 	igt_assert(wait_for_suspended()); \
 } while (0)
 
-static uint32_t find_crtc_for_connector(drmModeResPtr res,
-					drmModeConnectorPtr connector)
-{
-	drmModeEncoderPtr e;
-	uint32_t crtc_id = 0;
-	int i, j;
-
-	for (i = 0; i < connector->count_encoders && !crtc_id; i++) {
-		e = drmModeGetEncoder(drm_fd, connector->encoders[i]);
-
-		for (j = 0; (e->possible_crtcs >> j) && !crtc_id; j++)
-			if (e->possible_crtcs & (1 << j))
-				crtc_id = res->crtcs[j];
-
-		drmModeFreeEncoder(e);
-	}
-
-	igt_assert(crtc_id);
-	return crtc_id;
-}
-
 static bool init_modeset_params_for_type(struct mode_set_data *data,
 					 struct modeset_params *params,
 					 enum screen_type type)
@@ -280,7 +259,8 @@ static bool init_modeset_params_for_type(struct mode_set_data *data,
 			      DRM_FORMAT_XRGB8888, LOCAL_DRM_FORMAT_MOD_NONE,
 			      &params->fb);
 
-	params->crtc_id = find_crtc_for_connector(data->res, connector);
+	params->crtc_id = kmstest_find_crtc_for_connector(drm_fd, data->res,
+							  connector, 0);
 	params->connector_id = connector->connector_id;
 	params->mode = mode;
 
