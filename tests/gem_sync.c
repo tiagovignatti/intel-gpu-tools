@@ -66,40 +66,41 @@ out:
 }
 
 static void
-sync_ring(int fd, unsigned ring)
+sync_ring(int fd, unsigned ring, int num_children)
 {
-	const uint32_t bbe = MI_BATCH_BUFFER_END;
-	struct drm_i915_gem_execbuffer2 execbuf;
-	struct drm_i915_gem_exec_object2 object;
-	double start, elapsed;
-	unsigned long cycles;
-
 	gem_require_ring(fd, ring);
-
 	intel_detect_and_clear_missed_interrupts(fd);
 
-	memset(&object, 0, sizeof(object));
-	object.handle = gem_create(fd, 4096);
-	gem_write(fd, object.handle, 4096-sizeof(bbe), &bbe, sizeof(bbe));
+	igt_fork(child, num_children) {
+		const uint32_t bbe = MI_BATCH_BUFFER_END;
+		struct drm_i915_gem_execbuffer2 execbuf;
+		struct drm_i915_gem_exec_object2 object;
+		double start, elapsed;
+		unsigned long cycles;
 
-	memset(&execbuf, 0, sizeof(execbuf));
-	execbuf.buffers_ptr = (uintptr_t)&object;
-	execbuf.buffer_count = 1;
-	execbuf.flags = ring;
-	gem_execbuf(fd, &execbuf);
+		memset(&object, 0, sizeof(object));
+		object.handle = gem_create(fd, 4096);
+		gem_write(fd, object.handle, 0, &bbe, sizeof(bbe));
 
-	srandom(0xdeadbeef);
-
-	start = gettime();
-	cycles = 0;
-	do {
+		memset(&execbuf, 0, sizeof(execbuf));
+		execbuf.buffers_ptr = (uintptr_t)&object;
+		execbuf.buffer_count = 1;
+		execbuf.flags = ring;
 		gem_execbuf(fd, &execbuf);
-		gem_sync(fd, object.handle);
-		cycles++;
-	} while ((elapsed = gettime() - start) < SLOW_QUICK(10, 1));
-	igt_info("Completed %ld cycles: %.3f us\n", cycles, elapsed*1e6/cycles);
 
-	gem_close(fd, object.handle);
+		start = gettime();
+		cycles = 0;
+		do {
+			do {
+				gem_execbuf(fd, &execbuf);
+				gem_sync(fd, object.handle);
+			} while (++cycles & 1023);
+		} while ((elapsed = gettime() - start) < SLOW_QUICK(10, 1));
+		igt_info("Completed %ld cycles: %.3f us\n", cycles, elapsed*1e6/cycles);
+
+		gem_close(fd, object.handle);
+	}
+	igt_waitchildren();
 	igt_assert_eq(intel_detect_and_clear_missed_interrupts(fd), 0);
 }
 
@@ -113,9 +114,12 @@ igt_main
 	igt_fixture
 		fd = drm_open_driver(DRIVER_INTEL);
 
-	for (e = intel_execution_engines; e->name; e++)
+	for (e = intel_execution_engines; e->name; e++) {
 		igt_subtest_f("basic-%s", e->name)
-			sync_ring(fd, e->exec_id | e->flags);
+			sync_ring(fd, e->exec_id | e->flags, 1);
+		igt_subtest_f("forked-%s", e->name)
+			sync_ring(fd, e->exec_id | e->flags, sysconf(_SC_NPROCESSORS_ONLN));
+	}
 
 	igt_fixture
 		close(fd);
