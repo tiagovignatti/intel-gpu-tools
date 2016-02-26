@@ -1131,6 +1131,9 @@ void igt_exit(void)
 	kmsg(KERN_INFO "%s: exiting, ret=%d\n", command_str, igt_exitcode);
 	igt_debug("Exiting with status code %d\n", igt_exitcode);
 
+	for (int c = 0; c < num_test_children; c++)
+		kill(test_children[c], SIGKILL);
+
 	if (!test_with_subtests) {
 		struct timespec now;
 		const char *result;
@@ -1399,6 +1402,20 @@ void igt_waitchildren(void)
 	num_test_children = 0;
 	if (err)
 		igt_fail(err);
+}
+
+/**
+ * igt_waitchildren_timeout:
+ *
+ * Wait for all children forked with igt_fork, for a maximum of @seconds.
+ *
+ * Wraps igt_waitchildren() and igt_set_timeout()
+ */
+void igt_waitchildren_timeout(int seconds, const char *reason)
+{
+	igt_set_timeout(seconds, reason);
+	igt_waitchildren();
+	igt_reset_timeout();
 }
 
 /* exit handler code */

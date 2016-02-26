@@ -155,7 +155,7 @@ sync_ring(int fd, unsigned ring, int num_children)
 
 		gem_close(fd, object.handle);
 	}
-	igt_waitchildren();
+	igt_waitchildren_timeout(20, NULL);
 	igt_assert_eq(intel_detect_and_clear_missed_interrupts(fd), 0);
 }
 
