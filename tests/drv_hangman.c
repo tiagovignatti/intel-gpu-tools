@@ -32,10 +32,11 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
-
 #ifndef I915_PARAM_CMD_PARSER_VERSION
 #define I915_PARAM_CMD_PARSER_VERSION       28
 #endif
+
+static char read_buffer[1024];
 
 static int _read_sysfs(void *dst, int maxlen,
 		      const char* path,
@@ -73,9 +74,7 @@ static int read_sysfs(void *dst, int maxlen, const char *fname)
 
 static void test_sysfs_error_exists(void)
 {
-	char tmp[1024];
-
-	igt_assert_lt(0, read_sysfs(tmp, sizeof(tmp), "error"));
+	igt_assert_lt(0, read_sysfs(read_buffer, sizeof(read_buffer), "error"));
 }
 
 static void test_debugfs_error_state_exists(void)
@@ -112,29 +111,26 @@ static void read_dfs(const char *fname, char *d, int maxlen)
 	igt_debug("dfs entry %s read '%s'\n", fname, d);
 }
 
-static void _assert_dfs_entry(const char *fname, const char *s, bool inverse)
+static int compare_dfs_entry(const char *fname, const char *s)
 {
-	char tmp[1024];
-	const int l = min(strlen(s), sizeof(tmp));
+	const int l = min(strlen(s), sizeof(read_buffer));
 
-	read_dfs(fname, tmp, l + 1);
-	if (!inverse) {
-		igt_fail_on_f(strncmp(tmp, s, l) != 0,
-			      "contents of %s: '%s' (expected '%s')\n", fname, tmp, s);
-	} else {
-		igt_fail_on_f(strncmp(tmp, s, l) == 0,
-			      "contents of %s: '%s' (expected not '%s'\n", fname, tmp, s);
-	}
+	read_dfs(fname, read_buffer, l + 1);
+	return strncmp(read_buffer, s, l);
 }
 
 static void assert_dfs_entry(const char *fname, const char *s)
 {
-	_assert_dfs_entry(fname, s, false);
+	igt_fail_on_f(compare_dfs_entry(fname, s) != 0,
+		      "contents of %s: '%s' (expected '%s')\n",
+		      fname, read_buffer, s);
 }
 
 static void assert_dfs_entry_not(const char *fname, const char *s)
 {
-	_assert_dfs_entry(fname, s, true);
+	igt_fail_on_f(compare_dfs_entry(fname, s) == 0,
+		      "contents of %s: '%s' (expected not '%s'\n",
+		      fname, read_buffer, s);
 }
 
 static void assert_error_state_clear(void)
