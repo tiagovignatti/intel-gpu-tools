@@ -152,10 +152,12 @@ struct rect {
 
 #define MAX_CONNECTORS 32
 #define MAX_PLANES 32
+#define MAX_ENCODERS 32
 struct {
 	int fd;
 	drmModeResPtr res;
 	drmModeConnectorPtr connectors[MAX_CONNECTORS];
+	drmModeEncoderPtr encoders[MAX_ENCODERS];
 	drmModePlaneResPtr plane_res;
 	drmModePlanePtr planes[MAX_PLANES];
 	uint64_t plane_types[MAX_PLANES];
@@ -357,6 +359,17 @@ static drmModeConnectorPtr get_connector(uint32_t id)
 	igt_assert(false);
 }
 
+static drmModeEncoderPtr get_encoder(uint32_t id)
+{
+	int i;
+
+	for (i = 0; i < drm.res->count_encoders; i++)
+		if (drm.res->encoders[i] == id)
+			return drm.encoders[i];
+
+	igt_assert(false);
+}
+
 static void print_mode_info(const char *screen, struct modeset_params *params)
 {
 	drmModeConnectorPtr c = get_connector(params->connector_id);
@@ -428,7 +441,18 @@ static bool connector_get_mode(drmModeConnectorPtr c, drmModeModeInfoPtr *mode)
 	return true;
 }
 
-static bool find_connector(bool edp_only, uint32_t forbidden_id,
+static bool connector_supports_pipe_a(drmModeConnectorPtr connector)
+{
+	int i;
+
+	for (i = 0; i < connector->count_encoders; i++)
+		if (get_encoder(connector->encoders[i])->possible_crtcs & 1)
+			return true;
+
+	return false;
+}
+
+static bool find_connector(bool edp_only, bool pipe_a, uint32_t forbidden_id,
 			   drmModeConnectorPtr *ret_connector,
 			   drmModeModeInfoPtr *ret_mode)
 {
@@ -440,6 +464,8 @@ static bool find_connector(bool edp_only, uint32_t forbidden_id,
 		c = drm.connectors[i];
 
 		if (edp_only && c->connector_type != DRM_MODE_CONNECTOR_eDP)
+			continue;
+		if (pipe_a && !connector_supports_pipe_a(c))
 			continue;
 		if (c->connector_id == forbidden_id)
 			continue;
@@ -459,17 +485,27 @@ static bool init_modeset_cached_params(void)
 	drmModeConnectorPtr prim_connector = NULL, scnd_connector = NULL;
 	drmModeModeInfoPtr prim_mode = NULL, scnd_mode = NULL;
 
-	/* First, try to find an eDP monitor since it's the only possible type
-	 * for PSR.  */
-	find_connector(true, 0, &prim_connector, &prim_mode);
+	/*
+	 * We have this problem where PSR is only present on eDP monitors and
+	 * FBC is only present on pipe A for some platforms. So we search first
+	 * for the ideal case of eDP supporting pipe A, and try the less optimal
+	 * configs later, sacrificing  one of the features.
+	 * TODO: refactor the code in a way that allows us to have different
+	 * sets of prim/scnd structs for different features.
+	 */
+	find_connector(true, true, 0, &prim_connector, &prim_mode);
 	if (!prim_connector)
-		find_connector(false, 0, &prim_connector, &prim_mode);
+		find_connector(true, false, 0, &prim_connector, &prim_mode);
+	if (!prim_connector)
+		find_connector(false, true, 0, &prim_connector, &prim_mode);
+	if (!prim_connector)
+		find_connector(false, false, 0, &prim_connector, &prim_mode);
 
 	if (!prim_connector)
 		return false;
 
-	find_connector(false, prim_connector->connector_id, &scnd_connector,
-		       &scnd_mode);
+	find_connector(false, false, prim_connector->connector_id,
+		       &scnd_connector, &scnd_mode);
 
 	init_mode_params(&prim_mode_params, drm.res->crtcs[0],
 			 prim_connector, prim_mode);
@@ -1289,10 +1325,14 @@ static void setup_drm(void)
 
 	drm.res = drmModeGetResources(drm.fd);
 	igt_assert(drm.res->count_connectors <= MAX_CONNECTORS);
+	igt_assert(drm.res->count_encoders <= MAX_ENCODERS);
 
 	for (i = 0; i < drm.res->count_connectors; i++)
 		drm.connectors[i] = drmModeGetConnectorCurrent(drm.fd,
 						drm.res->connectors[i]);
+	for (i = 0; i < drm.res->count_encoders; i++)
+		drm.encoders[i] = drmModeGetEncoder(drm.fd,
+						    drm.res->encoders[i]);
 
 	rc = drmSetClientCap(drm.fd, DRM_CLIENT_CAP_UNIVERSAL_PLANES, 1);
 	igt_require(rc == 0);
@@ -1320,6 +1360,8 @@ static void teardown_drm(void)
 		drmModeFreePlane(drm.planes[i]);
 	drmModeFreePlaneResources(drm.plane_res);
 
+	for (i = 0; i < drm.res->count_encoders; i++)
+		drmModeFreeEncoder(drm.encoders[i]);
 	for (i = 0; i < drm.res->count_connectors; i++)
 		drmModeFreeConnector(drm.connectors[i]);
 
@@ -1454,8 +1496,21 @@ static bool fbc_supported_on_chipset(void)
 
 static void setup_fbc(void)
 {
+	drmModeConnectorPtr c = get_connector(prim_mode_params.connector_id);
+
 	if (!fbc_supported_on_chipset()) {
 		igt_info("Can't test FBC: not supported on this chipset\n");
+		return;
+	}
+
+	/*
+	 * While some platforms do allow FBC on pipes B/C, this test suite
+	 * is not prepared for that yet.
+	 * TODO: solve this.
+	 */
+	if (!connector_supports_pipe_a(c)) {
+		igt_info("Can't test FBC: primary connector doesn't support "
+			 "pipe A\n");
 		return;
 	}
 	fbc.can_test = true;
