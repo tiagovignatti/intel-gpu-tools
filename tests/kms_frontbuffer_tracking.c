@@ -368,14 +368,14 @@ static void print_mode_info(const char *screen, struct modeset_params *params)
 }
 
 static void init_mode_params(struct modeset_params *params, uint32_t crtc_id,
-			     int crtc_index, uint32_t connector_id,
-			     drmModeModeInfoPtr mode)
+			     uint32_t connector_id, drmModeModeInfoPtr mode)
 {
 	uint32_t plane_id = 0;
+	int crtc_idx = kmstest_get_crtc_idx(drm.res, crtc_id);
 	int i;
 
 	for (i = 0; i < drm.plane_res->count_planes && plane_id == 0; i++)
-		if ((drm.planes[i]->possible_crtcs & (1 << crtc_index)) &&
+		if ((drm.planes[i]->possible_crtcs & (1 << crtc_idx)) &&
 		    drm.plane_types[i] == DRM_PLANE_TYPE_OVERLAY)
 			plane_id = drm.planes[i]->plane_id;
 
@@ -465,7 +465,7 @@ static bool init_modeset_cached_params(void)
 	if (!prim_connector_id)
 		return false;
 
-	init_mode_params(&prim_mode_params, drm.res->crtcs[0], 0,
+	init_mode_params(&prim_mode_params, drm.res->crtcs[0],
 			 prim_connector_id, prim_mode);
 	print_mode_info("Primary", &prim_mode_params);
 
@@ -475,7 +475,7 @@ static bool init_modeset_cached_params(void)
 	}
 
 	igt_assert(drm.res->count_crtcs >= 2);
-	init_mode_params(&scnd_mode_params, drm.res->crtcs[1], 1,
+	init_mode_params(&scnd_mode_params, drm.res->crtcs[1],
 			 scnd_connector_id, scnd_mode);
 	print_mode_info("Secondary", &scnd_mode_params);
 
