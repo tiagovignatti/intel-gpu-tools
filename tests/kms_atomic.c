@@ -909,19 +909,7 @@ static void plane_primary(struct kms_atomic_crtc_state *crtc,
 	struct kms_atomic_plane_state plane = *plane_old;
 	uint32_t format = plane_get_igt_format(&plane);
 	drmModeAtomicReq *req = drmModeAtomicAlloc();
-	uint32_t *connectors;
-	int num_connectors;
 	struct igt_fb fb;
-	int i;
-
-	connectors = calloc(crtc->state->num_connectors, sizeof(*connectors));
-	igt_assert(connectors);
-
-	for (i = 0; i < crtc->state->num_connectors; i++) {
-		if (crtc->state->connectors[i].crtc_id == crtc->obj)
-			connectors[num_connectors++] =
-				crtc->state->connectors[i].obj;
-	}
 
 	igt_require(format != 0);
 
