@@ -1681,17 +1681,6 @@ static void test_one_plane(bool dpms, uint32_t plane_id,
 	igt_assert(wait_for_suspended());
 }
 
-static int get_crtc_idx(drmModeResPtr res, uint32_t crtc_id)
-{
-	int i;
-
-	for (i = 0; i < res->count_crtcs; i++)
-		if (res->crtcs[i] == crtc_id)
-			return i;
-
-	igt_assert(false);
-}
-
 /* This one also triggered WARNs on our driver at some point in time. */
 static void planes_subtest(bool universal, bool dpms)
 {
@@ -1699,7 +1688,8 @@ static void planes_subtest(bool universal, bool dpms)
 	drmModePlaneResPtr planes;
 
 	igt_require(default_mode_params);
-	crtc_idx = get_crtc_idx(ms_data.res, default_mode_params->crtc_id);
+	crtc_idx = kmstest_get_crtc_idx(ms_data.res,
+					default_mode_params->crtc_id);
 
 	if (universal) {
 		rc = drmSetClientCap(drm_fd, DRM_CLIENT_CAP_UNIVERSAL_PLANES,

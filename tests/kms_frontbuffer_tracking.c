@@ -2212,16 +2212,12 @@ static void wait_flip_event(void)
 
 static void set_prim_plane_for_params(struct modeset_params *params)
 {
-	int rc, i, crtc_index = -1;
+	int rc, i;
+	int crtc_idx = kmstest_get_crtc_idx(drm.res, params->crtc_id);
 	uint32_t plane_id = 0;
 
-	for (i = 0; i < drm.res->count_crtcs; i++)
-		if (drm.res->crtcs[i] == params->crtc_id)
-			crtc_index = i;
-	igt_assert(crtc_index >= 0);
-
 	for (i = 0; i < drm.plane_res->count_planes; i++)
-		if ((drm.planes[i]->possible_crtcs & (1 << crtc_index)) &&
+		if ((drm.planes[i]->possible_crtcs & (1 << crtc_idx)) &&
 		    drm.plane_types[i] == DRM_PLANE_TYPE_PRIMARY)
 			plane_id = drm.planes[i]->plane_id;
 	igt_assert(plane_id);

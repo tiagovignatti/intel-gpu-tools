@@ -150,6 +150,7 @@ bool kmstest_get_property(int drm_fd, uint32_t object_id, uint32_t object_type,
 			  const char *name, uint32_t *prop_id, uint64_t *value,
 			  drmModePropertyPtr *prop);
 void kmstest_unset_all_crtcs(int drm_fd, drmModeResPtr resources);
+int kmstest_get_crtc_idx(drmModeRes *res, uint32_t crtc_id);
 
 /*
  * A small modeset API

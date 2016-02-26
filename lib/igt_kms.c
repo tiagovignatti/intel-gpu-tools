@@ -875,6 +875,24 @@ void kmstest_unset_all_crtcs(int drm_fd, drmModeResPtr resources)
 	}
 }
 
+/**
+ * kmstest_get_crtc_idx: get the CRTC index based on its ID
+ * @res: the libdrm resources
+ * @crtc_id: the CRTC id
+ *
+ * This is useful since a few places of libdrm deal with CRTC masks.
+ */
+int kmstest_get_crtc_idx(drmModeRes *res, uint32_t crtc_id)
+{
+	int i;
+
+	for (i = 0; i < res->count_crtcs; i++)
+		if (res->crtcs[i] == crtc_id)
+			return i;
+
+	igt_assert(false);
+}
+
 /*
  * A small modeset API
  */
