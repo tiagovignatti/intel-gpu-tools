@@ -68,6 +68,7 @@ test_grab_crc(data_t *data, igt_output_t *output, enum pipe pipe,
 	drmModeModeInfo *mode;
 	igt_plane_t *primary;
 	char *crc_str;
+	int ret;
 
 	igt_output_set_pipe(output, pipe);
 
@@ -81,7 +82,8 @@ test_grab_crc(data_t *data, igt_output_t *output, enum pipe pipe,
 			    &fb);
 	igt_plane_set_fb(primary, &fb);
 
-	igt_display_commit(&data->display);
+	ret = igt_display_try_commit2(&data->display, COMMIT_LEGACY);
+	igt_skip_on(ret != 0);
 
 	igt_pipe_crc_collect_crc(data->pipe_crc, crc);
 
