@@ -88,6 +88,7 @@ int main(int argc, char **argv)
 	igt_fixture {
 		drm_fd = drm_open_driver_master(DRIVER_INTEL);
 		res = drmModeGetResources(drm_fd);
+		igt_assert(res);
 
 		/* find the vga connector */
 		for (int i = 0; i < res->count_connectors; i++) {
@@ -111,6 +112,13 @@ int main(int argc, char **argv)
 	}
 
 	igt_subtest("force-load-detect") {
+		/*
+		 * disable all outputs to make sure we have a
+		 * free crtc available for load detect
+		 */
+		kmstest_set_vt_graphics_mode();
+		kmstest_unset_all_crtcs(drm_fd, res);
+
 		igt_set_module_param_int("load_detect_test", 1);
 
 		/* This can't use drmModeGetConnectorCurrent
