@@ -192,6 +192,20 @@ intel_get_total_swap_mb(void)
 	return retval / (1024*1024);
 }
 
+static uint64_t vfs_file_max(void)
+{
+	static long long unsigned max;
+	if (max == 0) {
+		FILE *file = fopen("/proc/sys/fs/file-max", "r");
+		max = 80000;
+		if (file) {
+			igt_assert(fscanf(file, "%llu", &max) == 1);
+			fclose(file);
+		}
+	}
+	return max;
+}
+
 int __intel_check_memory(uint64_t count, uint64_t size, unsigned mode,
 			 uint64_t *out_required, uint64_t *out_total)
 {
@@ -220,6 +234,9 @@ int __intel_check_memory(uint64_t count, uint64_t size, unsigned mode,
 
 	if (out_total)
 		*out_total = total;
+
+	if (count > vfs_file_max())
+		return false;
 
 	return required < total;
 }
@@ -253,11 +270,13 @@ void intel_require_memory(uint64_t count, uint64_t size, unsigned mode)
 
 	igt_skip_on_f(!__intel_check_memory(count, size, mode,
 					    &required, &total),
-		      "Estimated that we need %'llu MiB for the test, but only have %'llu MiB available (%s%s)\n",
+		      "Estimated that we need %'llu objects and %'llu MiB for the test, but only have %'llu MiB available (%s%s) and a maximum of %'llu objects\n",
+		      (long long)count,
 		      (long long)((required + ((1<<20) - 1)) >> 20),
 		      (long long)(total >> 20),
 		      mode & (CHECK_RAM | CHECK_SWAP) ? "RAM" : "",
-		      mode & CHECK_SWAP ? " + swap": "");
+		      mode & CHECK_SWAP ? " + swap": "",
+		      (long long)vfs_file_max());
 
 	igt_skip_on_simulation();
 }
