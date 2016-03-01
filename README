@@ -141,3 +141,10 @@ everything (package names may vary):
 	python-docutils
 	x11proto-dri2-dev
 	xutils-dev
+
+Releases for maintainers
+------------------------
+
+(1.14)
+
+http://www.x.org/wiki/Development/Documentation/ReleaseHOWTO/
