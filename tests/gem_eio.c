@@ -58,24 +58,9 @@ static bool i915_reset_control(bool enable)
 	return ret;
 }
 
-static bool i915_wedged_set(void)
-{
-	int fd, ret;
-
-	igt_debug("Triggering GPU reset\n");
-
-	fd = igt_debugfs_open("i915_wedged", O_RDWR);
-	igt_require(fd >= 0);
-
-	ret = write(fd, "1\n", 2) == 2;
-	close(fd);
-
-	return ret;
-}
-
 static void trigger_reset(int fd)
 {
-	igt_assert(i915_wedged_set());
+	igt_force_gpu_reset();
 
 	/* And just check the gpu is indeed running again */
 	igt_debug("Checking that the GPU recovered\n");

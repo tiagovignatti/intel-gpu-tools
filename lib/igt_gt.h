@@ -48,6 +48,8 @@ struct igt_hang_ring igt_hang_ctx(int fd,
 struct igt_hang_ring igt_hang_ring(int fd, int ring);
 void igt_post_hang_ring(int fd, struct igt_hang_ring arg);
 
+void igt_force_gpu_reset(void);
+
 void igt_fork_hang_helper(void);
 void igt_stop_hang_helper(void);
 

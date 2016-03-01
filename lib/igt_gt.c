@@ -269,6 +269,29 @@ void igt_post_hang_ring(int fd, struct igt_hang_ring arg)
 	}
 }
 
+/**
+ * igt_force_gpu_reset:
+ *
+ * forces a gpu reset using the i915_wedged debugfs interface. To be used to
+ * recover from situations where the hangcheck didn't trigger and/or the gpu is
+ * stuck, either because the test manually disabled gpu resets or because the
+ * test hit an hangcheck bug
+ */
+void igt_force_gpu_reset(void)
+{
+	int fd, ret;
+
+	igt_debug("Triggering GPU reset\n");
+
+	fd = igt_debugfs_open("i915_wedged", O_RDWR);
+	igt_require(fd >= 0);
+
+	ret = write(fd, "-1\n", 3);
+	close(fd);
+
+	igt_assert_eq(ret, 3);
+}
+
 /* GPU abusers */
 static struct igt_helper_process hang_helper;
 static void __attribute__((noreturn))
