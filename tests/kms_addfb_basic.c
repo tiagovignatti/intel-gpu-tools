@@ -156,16 +156,50 @@ static void pitch_tests(int fd)
 		}
 	}
 
+	igt_fixture
+		gem_close(fd, gem_bo);
+}
+
+
+static void tiling_tests(int fd)
+{
+	struct drm_mode_fb_cmd2 f = {};
+	uint32_t tiled_x_bo;
+	uint32_t tiled_y_bo;
+
+	f.width = 512;
+	f.height = 512;
+	f.pixel_format = DRM_FORMAT_XRGB8888;
 	f.pitches[0] = 1024*4;
 
+	igt_fixture {
+		tiled_x_bo = igt_create_bo_with_dimensions(fd, 1024, 1024,
+			DRM_FORMAT_XRGB8888, LOCAL_I915_FORMAT_MOD_X_TILED,
+			1024*4, NULL, NULL, NULL);
+		igt_assert(tiled_x_bo);
+
+		tiled_y_bo = igt_create_bo_with_dimensions(fd, 1024, 1024,
+			DRM_FORMAT_XRGB8888, LOCAL_I915_FORMAT_MOD_Y_TILED,
+			1024*4, NULL, NULL, NULL);
+		igt_assert(tiled_y_bo);
+
+		gem_bo = igt_create_bo_with_dimensions(fd, 1024, 1024,
+			DRM_FORMAT_XRGB8888, 0, 0, NULL, NULL, NULL);
+		igt_assert(gem_bo);
+	}
+
+	f.pitches[0] = 1024*4;
 	igt_subtest("basic-X-tiled") {
-		gem_set_tiling(fd, gem_bo, I915_TILING_X, 1024*4);
+		f.handles[0] = tiled_x_bo;
+
 		igt_assert(drmIoctl(fd, DRM_IOCTL_MODE_ADDFB2, &f) == 0);
 		igt_assert(drmIoctl(fd, DRM_IOCTL_MODE_RMFB, &f.fb_id) == 0);
 		f.fb_id = 0;
 	}
 
 	igt_subtest("framebuffer-vs-set-tiling") {
+		f.handles[0] = gem_bo;
+
 		gem_set_tiling(fd, gem_bo, I915_TILING_X, 1024*4);
 		igt_assert(drmIoctl(fd, DRM_IOCTL_MODE_ADDFB2, &f) == 0);
 		igt_assert(__gem_set_tiling(fd, gem_bo, I915_TILING_X, 512*4) == -EBUSY);
@@ -176,20 +210,24 @@ static void pitch_tests(int fd)
 
 	f.pitches[0] = 512*4;
 	igt_subtest("tile-pitch-mismatch") {
-		gem_set_tiling(fd, gem_bo, I915_TILING_X, 1024*4);
+		f.handles[0] = tiled_x_bo;
+
 		igt_assert(drmIoctl(fd, DRM_IOCTL_MODE_ADDFB2, &f) == -1 &&
 			   errno == EINVAL);
 	}
 
 	f.pitches[0] = 1024*4;
 	igt_subtest("basic-Y-tiled") {
-		gem_set_tiling(fd, gem_bo, I915_TILING_Y, 1024*4);
+		f.handles[0] = tiled_y_bo;
+
 		igt_assert(drmIoctl(fd, DRM_IOCTL_MODE_ADDFB2, &f) == -1 &&
 			   errno == EINVAL);
 	}
 
-	igt_fixture
-		gem_close(fd, gem_bo);
+	igt_fixture {
+		gem_close(fd, tiled_x_bo);
+		gem_close(fd, tiled_y_bo);
+	}
 }
 
 static void size_tests(int fd)
@@ -447,6 +485,8 @@ igt_main
 	addfb25_tests(fd);
 
 	addfb25_ytile(fd, gen);
+
+	tiling_tests(fd);
 
 	igt_fixture
 		close(fd);
