@@ -178,7 +178,9 @@ static int gem_linear_blt(int fd,
 	return (b+2 - batch) * sizeof(uint32_t);
 }
 
-static int run(int object, int batch, int time, int reps)
+#define SYNC 0x1
+
+static int run(int object, int batch, int time, int reps, unsigned flags)
 {
 	struct drm_i915_gem_execbuffer2 execbuf;
 	struct drm_i915_gem_exec_object2 exec[3];
@@ -257,6 +259,10 @@ static int run(int object, int batch, int time, int reps)
 
 	/* Guess how many loops we need for 0.1s */
 	count = baseline((uint64_t)object * batch, 100);
+	if (flags & SYNC) {
+		time *= count / 2;
+		count = 1;
+	}
 
 	while (reps--) {
 		double min = HUGE_VAL;
@@ -289,14 +295,19 @@ int main(int argc, char **argv)
 	int reps = 13;
 	int time = 2000;
 	int batch = 1;
+	unsigned flags = 0;
 	int c;
 
-	while ((c = getopt (argc, argv, "s:b:r:t:")) != -1) {
+	while ((c = getopt (argc, argv, "Ss:b:r:t:")) != -1) {
 		switch (c) {
 		case 's':
 			size = atoi(optarg);
 			if (size < 4096)
 				size = 4096;
+			break;
+
+		case 'S':
+			flags |= SYNC;
 			break;
 
 		case 't':
@@ -322,5 +333,5 @@ int main(int argc, char **argv)
 		}
 	}
 
-	return run(size, batch, time, reps);
+	return run(size, batch, time, reps, flags);
 }
