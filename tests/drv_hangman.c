@@ -284,6 +284,46 @@ static void test_error_state_capture(unsigned ring_id,
 	check_error_state(gen, cmd_parser, ring_name, offset);
 }
 
+
+/* This test covers the case where we end up in an uninitialised area of the
+ * ppgtt and keep executing through it. This is particularly relevant if 48b
+ * ppgtt is enabled because the ppgtt is massively bigger compared to the 32b
+ * case and it takes a lot more time to wrap, so the acthd can potentially keep
+ * increasing for a long time
+ */
+#define NSEC_PER_SEC	1000000000L
+static void hangcheck_unterminated(void)
+{
+	int fd;
+	/* timeout needs to be greater than ~5*hangcheck */
+	int64_t timeout_ns = 100 * NSEC_PER_SEC; /* 100 seconds */
+	struct drm_i915_gem_execbuffer2 execbuf;
+	struct drm_i915_gem_exec_object2 gem_exec;
+	uint32_t handle;
+
+	fd = drm_open_driver(DRIVER_INTEL);
+	igt_require(gem_uses_full_ppgtt(fd));
+	igt_require_hang_ring(fd, 0);
+
+	handle = gem_create(fd, 4096);
+
+	memset(&gem_exec, 0, sizeof(gem_exec));
+	gem_exec.handle = handle;
+
+	memset(&execbuf, 0, sizeof(execbuf));
+	execbuf.buffers_ptr = (uintptr_t)&gem_exec;
+	execbuf.buffer_count = 1;
+
+	gem_execbuf(fd, &execbuf);
+	if (gem_wait(fd, handle, &timeout_ns) != 0) {
+		/* need to manually trigger an hang to clean before failing */
+		igt_force_gpu_reset();
+		igt_assert_f(0, "unterminated batch did not trigger an hang!");
+	}
+
+	close(fd);
+}
+
 igt_main
 {
 	const struct intel_execution_engine *e;
@@ -310,4 +350,7 @@ igt_main
 			test_error_state_capture(e->exec_id | e->flags,
 						 e->full_name);
 	}
+
+	igt_subtest("hangcheck-unterminated")
+		hangcheck_unterminated();
 }
