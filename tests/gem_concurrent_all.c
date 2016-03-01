@@ -54,18 +54,18 @@ IGT_TEST_DESCRIPTION("Test of pread/pwrite/mmap behavior when writing to active"
 		     " buffers.");
 
 int fd, devid, gen;
-struct intel_batchbuffer *batch;
 int all;
 int pass;
 
 struct buffers {
 	const struct access_mode *mode;
 	drm_intel_bufmgr *bufmgr;
+	struct intel_batchbuffer *batch;
 	drm_intel_bo **src, **dst;
 	drm_intel_bo *snoop, *spare;
 	uint32_t *tmp;
 	int width, height, size;
-	int count;
+	int count, num_buffers;
 };
 
 #define MIN_BUFFERS 3
@@ -284,6 +284,8 @@ userptr_cmp_bo(struct buffers *b, drm_intel_bo *bo, uint32_t val)
 static void
 userptr_release_bo(drm_intel_bo *bo)
 {
+	igt_assert(bo->virtual);
+
 	munmap(bo->virtual, bo->size);
 	bo->virtual = NULL;
 
@@ -388,6 +390,7 @@ static void
 dmabuf_release_bo(drm_intel_bo *bo)
 {
 	struct dmabuf *dmabuf = bo->virtual;
+	igt_assert(dmabuf);
 
 	munmap(dmabuf->map, bo->size);
 	close(dmabuf->fd);
@@ -468,6 +471,8 @@ wc_create_bo(drm_intel_bufmgr *bufmgr, int width, int height)
 static void
 wc_release_bo(drm_intel_bo *bo)
 {
+	igt_assert(bo->virtual);
+
 	munmap(bo->virtual, bo->size);
 	bo->virtual = NULL;
 
@@ -668,15 +673,17 @@ const struct access_mode {
 	},
 };
 
-int num_buffers;
 igt_render_copyfunc_t rendercopy;
 
-static void *buffers_init(struct buffers *data,
-			  const struct access_mode *mode,
-			  int width, int height,
-			  int _fd, int enable_reuse)
+static void buffers_init(struct buffers *data,
+			 const struct access_mode *mode,
+			 int num_buffers,
+			 int width, int height,
+			 int _fd, int enable_reuse)
 {
+	memset(data, 0, sizeof(*data));
 	data->mode = mode;
+	data->num_buffers = num_buffers;
 	data->count = 0;
 
 	data->width = width;
@@ -694,15 +701,17 @@ static void *buffers_init(struct buffers *data,
 
 	if (enable_reuse)
 		drm_intel_bufmgr_gem_enable_reuse(data->bufmgr);
-	return intel_batchbuffer_alloc(data->bufmgr, devid);
+	data->batch = intel_batchbuffer_alloc(data->bufmgr, devid);
+	igt_assert(data->batch);
 }
 
 static void buffers_destroy(struct buffers *data)
 {
-	if (data->count == 0)
+	int count = data->count;
+	if (count == 0)
 		return;
 
-	for (int i = 0; i < data->count; i++) {
+	for (int i = 0; i < count; i++) {
 		data->mode->release_bo(data->src[i]);
 		data->mode->release_bo(data->dst[i]);
 	}
@@ -711,13 +720,14 @@ static void buffers_destroy(struct buffers *data)
 	data->count = 0;
 }
 
-static void buffers_create(struct buffers *data,
-			   int count)
+static void buffers_create(struct buffers *data)
 {
+	int count = data->num_buffers;
 	int width = data->width, height = data->height;
 	igt_assert(data->bufmgr);
 
 	buffers_destroy(data);
+	igt_assert(data->count == 0);
 
 	for (int i = 0; i < count; i++) {
 		data->src[i] =
@@ -739,12 +749,11 @@ static void buffers_fini(struct buffers *data)
 
 	free(data->tmp);
 	free(data->src);
-	data->src = NULL;
-	data->dst = NULL;
 
-	intel_batchbuffer_free(batch);
+	intel_batchbuffer_free(data->batch);
 	drm_intel_bufmgr_destroy(data->bufmgr);
-	data->bufmgr = NULL;
+
+	memset(data, 0, sizeof(*data));
 }
 
 typedef void (*do_copy)(struct buffers *b, drm_intel_bo *dst, drm_intel_bo *src);
@@ -768,7 +777,7 @@ static void render_copy_bo(struct buffers *b, drm_intel_bo *dst, drm_intel_bo *s
 	drm_intel_bo_get_tiling(dst, &d.tiling, &swizzle);
 	drm_intel_bo_get_tiling(src, &s.tiling, &swizzle);
 
-	rendercopy(batch, NULL,
+	rendercopy(b->batch, NULL,
 		   &s, 0, 0,
 		   b->width, b->height,
 		   &d, 0, 0);
@@ -776,7 +785,7 @@ static void render_copy_bo(struct buffers *b, drm_intel_bo *dst, drm_intel_bo *s
 
 static void blt_copy_bo(struct buffers *b, drm_intel_bo *dst, drm_intel_bo *src)
 {
-	intel_blt_copy(batch,
+	intel_blt_copy(b->batch,
 		       src, 0, 0, 4*b->width,
 		       dst, 0, 0, 4*b->width,
 		       b->width, b->height, 32);
@@ -1244,32 +1253,26 @@ static void __run_forked(struct buffers *buffers,
 			 do_hang do_hang_func)
 
 {
-	const int old_num_buffers = num_buffers;
+	int _num_buffers = buffers->num_buffers;
 
-	num_buffers /= num_children;
-	num_buffers += MIN_BUFFERS;
+	_num_buffers /= num_children;
+	_num_buffers += MIN_BUFFERS;
 
 	igt_fork(child, num_children) {
 		/* recreate process local variables */
-		buffers->count = 0;
 		fd = drm_open_driver(DRIVER_INTEL);
+		buffers_init(buffers, buffers->mode, _num_buffers,
+			     buffers->width, buffers->height,
+			     fd, true);
 
-		batch = buffers_init(buffers, buffers->mode,
-				     buffers->width, buffers->height,
-				     fd, true);
-
-		buffers_create(buffers, num_buffers);
+		buffers_create(buffers);
 		for (pass = 0; pass < loops; pass++)
 			do_test_func(buffers, do_copy_func, do_hang_func);
 		pass = 0;
-
-		buffers_fini(buffers);
 	}
 
 	igt_waitchildren();
 	igt_assert_eq(intel_detect_and_clear_missed_interrupts(fd), 0);
-
-	num_buffers = old_num_buffers;
 }
 
 static void run_forked(struct buffers *buffers,
@@ -1336,6 +1339,7 @@ static void rcs_require(void)
 static void
 run_basic_modes(const char *prefix,
 		const struct access_mode *mode,
+		const int num_buffers,
 		const char *suffix,
 		run_wrap run_wrap_func)
 {
@@ -1369,27 +1373,27 @@ run_basic_modes(const char *prefix,
 			struct buffers buffers;
 
 			igt_fixture
-				batch = buffers_init(&buffers, mode,
-						     512, 512, fd,
-						     run_wrap_func != run_child);
+				buffers_init(&buffers, mode, num_buffers,
+					     512, 512, fd,
+					     run_wrap_func != run_child);
 
 			igt_subtest_f("%s-%s-%s-sanitycheck0%s%s", prefix, mode->name, p->prefix, suffix, h->suffix) {
 				p->require();
-				buffers_create(&buffers, num_buffers);
+				buffers_create(&buffers);
 				run_wrap_func(&buffers, do_basic0,
 					      p->copy, h->hang);
 			}
 
 			igt_subtest_f("%s-%s-%s-sanitycheck1%s%s", prefix, mode->name, p->prefix, suffix, h->suffix) {
 				p->require();
-				buffers_create(&buffers, num_buffers);
+				buffers_create(&buffers);
 				run_wrap_func(&buffers, do_basic1,
 					      p->copy, h->hang);
 			}
 
 			igt_subtest_f("%s-%s-%s-sanitycheckN%s%s", prefix, mode->name, p->prefix, suffix, h->suffix) {
 				p->require();
-				buffers_create(&buffers, num_buffers);
+				buffers_create(&buffers);
 				run_wrap_func(&buffers, do_basicN,
 					      p->copy, h->hang);
 			}
@@ -1397,7 +1401,7 @@ run_basic_modes(const char *prefix,
 			/* try to overwrite the source values */
 			igt_subtest_f("%s-%s-%s-overwrite-source-one%s%s", prefix, mode->name, p->prefix, suffix, h->suffix) {
 				p->require();
-				buffers_create(&buffers, num_buffers);
+				buffers_create(&buffers);
 				run_wrap_func(&buffers,
 					      do_overwrite_source__one,
 					      p->copy, h->hang);
@@ -1405,7 +1409,7 @@ run_basic_modes(const char *prefix,
 
 			igt_subtest_f("%s-%s-%s-overwrite-source%s%s", prefix, mode->name, p->prefix, suffix, h->suffix) {
 				p->require();
-				buffers_create(&buffers, num_buffers);
+				buffers_create(&buffers);
 				run_wrap_func(&buffers,
 					      do_overwrite_source,
 					      p->copy, h->hang);
@@ -1413,7 +1417,7 @@ run_basic_modes(const char *prefix,
 
 			igt_subtest_f("%s-%s-%s-overwrite-source-read-bcs%s%s", prefix, mode->name, p->prefix, suffix, h->suffix) {
 				p->require();
-				buffers_create(&buffers, num_buffers);
+				buffers_create(&buffers);
 				run_wrap_func(&buffers,
 					      do_overwrite_source_read_bcs,
 					      p->copy, h->hang);
@@ -1422,7 +1426,7 @@ run_basic_modes(const char *prefix,
 			igt_subtest_f("%s-%s-%s-overwrite-source-read-rcs%s%s", prefix, mode->name, p->prefix, suffix, h->suffix) {
 				p->require();
 				igt_require(rendercopy);
-				buffers_create(&buffers, num_buffers);
+				buffers_create(&buffers);
 				run_wrap_func(&buffers,
 					      do_overwrite_source_read_rcs,
 					      p->copy, h->hang);
@@ -1430,7 +1434,7 @@ run_basic_modes(const char *prefix,
 
 			igt_subtest_f("%s-%s-%s-overwrite-source-rev%s%s", prefix, mode->name, p->prefix, suffix, h->suffix) {
 				p->require();
-				buffers_create(&buffers, num_buffers);
+				buffers_create(&buffers);
 				run_wrap_func(&buffers,
 					      do_overwrite_source__rev,
 					      p->copy, h->hang);
@@ -1440,7 +1444,7 @@ run_basic_modes(const char *prefix,
 			igt_subtest_f("%s-%s-%s-intermix-rcs%s%s", prefix, mode->name, p->prefix, suffix, h->suffix) {
 				p->require();
 				igt_require(rendercopy);
-				buffers_create(&buffers, num_buffers);
+				buffers_create(&buffers);
 				run_wrap_func(&buffers,
 					      do_intermix_rcs,
 					      p->copy, h->hang);
@@ -1448,7 +1452,7 @@ run_basic_modes(const char *prefix,
 			igt_subtest_f("%s-%s-%s-intermix-bcs%s%s", prefix, mode->name, p->prefix, suffix, h->suffix) {
 				p->require();
 				igt_require(rendercopy);
-				buffers_create(&buffers, num_buffers);
+				buffers_create(&buffers);
 				run_wrap_func(&buffers,
 					      do_intermix_bcs,
 					      p->copy, h->hang);
@@ -1456,7 +1460,7 @@ run_basic_modes(const char *prefix,
 			igt_subtest_f("%s-%s-%s-intermix-both%s%s", prefix, mode->name, p->prefix, suffix, h->suffix) {
 				p->require();
 				igt_require(rendercopy);
-				buffers_create(&buffers, num_buffers);
+				buffers_create(&buffers);
 				run_wrap_func(&buffers,
 					      do_intermix_both,
 					      p->copy, h->hang);
@@ -1465,7 +1469,7 @@ run_basic_modes(const char *prefix,
 			/* try to read the results before the copy completes */
 			igt_subtest_f("%s-%s-%s-early-read%s%s", prefix, mode->name, p->prefix, suffix, h->suffix) {
 				p->require();
-				buffers_create(&buffers, num_buffers);
+				buffers_create(&buffers);
 				run_wrap_func(&buffers,
 					      do_early_read,
 					      p->copy, h->hang);
@@ -1474,7 +1478,7 @@ run_basic_modes(const char *prefix,
 			/* concurrent reads */
 			igt_subtest_f("%s-%s-%s-read-read-bcs%s%s", prefix, mode->name, p->prefix, suffix, h->suffix) {
 				p->require();
-				buffers_create(&buffers, num_buffers);
+				buffers_create(&buffers);
 				run_wrap_func(&buffers,
 					      do_read_read_bcs,
 					      p->copy, h->hang);
@@ -1482,7 +1486,7 @@ run_basic_modes(const char *prefix,
 			igt_subtest_f("%s-%s-%s-read-read-rcs%s%s", prefix, mode->name, p->prefix, suffix, h->suffix) {
 				p->require();
 				igt_require(rendercopy);
-				buffers_create(&buffers, num_buffers);
+				buffers_create(&buffers);
 				run_wrap_func(&buffers,
 					      do_read_read_rcs,
 					      p->copy, h->hang);
@@ -1491,7 +1495,7 @@ run_basic_modes(const char *prefix,
 			/* split copying between rings */
 			igt_subtest_f("%s-%s-%s-write-read-bcs%s%s", prefix, mode->name, p->prefix, suffix, h->suffix) {
 				p->require();
-				buffers_create(&buffers, num_buffers);
+				buffers_create(&buffers);
 				run_wrap_func(&buffers,
 					      do_write_read_bcs,
 					      p->copy, h->hang);
@@ -1499,7 +1503,7 @@ run_basic_modes(const char *prefix,
 			igt_subtest_f("%s-%s-%s-write-read-rcs%s%s", prefix, mode->name, p->prefix, suffix, h->suffix) {
 				p->require();
 				igt_require(rendercopy);
-				buffers_create(&buffers, num_buffers);
+				buffers_create(&buffers);
 				run_wrap_func(&buffers,
 					      do_write_read_rcs,
 					      p->copy, h->hang);
@@ -1508,7 +1512,7 @@ run_basic_modes(const char *prefix,
 			/* and finally try to trick the kernel into loosing the pending write */
 			igt_subtest_f("%s-%s-%s-gpu-read-after-write%s%s", prefix, mode->name, p->prefix, suffix, h->suffix) {
 				p->require();
-				buffers_create(&buffers, num_buffers);
+				buffers_create(&buffers);
 				run_wrap_func(&buffers,
 					      do_gpu_read_after_write,
 					      p->copy, h->hang);
@@ -1521,7 +1525,10 @@ run_basic_modes(const char *prefix,
 }
 
 static void
-run_modes(const char *style, const struct access_mode *mode, unsigned allow_mem)
+run_modes(const char *style,
+	  const struct access_mode *mode,
+	  const int num_buffers,
+	  unsigned allow_mem)
 {
 	if (!igt_only_list_subtests()) {
 		if (mode->require && !mode->require())
@@ -1534,13 +1541,15 @@ run_modes(const char *style, const struct access_mode *mode, unsigned allow_mem)
 			return;
 	}
 
-	run_basic_modes(style, mode, "", run_single);
-	run_basic_modes(style, mode, "-child", run_child);
-	run_basic_modes(style, mode, "-forked", run_forked);
+	run_basic_modes(style, mode, num_buffers, "", run_single);
+	run_basic_modes(style, mode, num_buffers, "-child", run_child);
+	run_basic_modes(style, mode, num_buffers, "-forked", run_forked);
 
 	igt_fork_signal_helper();
-	run_basic_modes(style, mode, "-interruptible", run_interruptible);
-	run_basic_modes(style, mode, "-bomb", run_bomb);
+	run_basic_modes(style, mode, num_buffers,
+			"-interruptible", run_interruptible);
+	run_basic_modes(style, mode, num_buffers,
+			"-bomb", run_bomb);
 	igt_stop_signal_helper();
 }
 
@@ -1558,6 +1567,7 @@ igt_main
 	}, *c;
 	uint64_t pin_sz = 0;
 	void *pinned = NULL;
+	int num_buffers = 0;
 	int i;
 
 	igt_skip_on_simulation();
@@ -1582,7 +1592,7 @@ igt_main
 		if (c->require()) {
 			snprintf(name, sizeof(name), "%s%s", c->name, "tiny");
 			for (i = 0; i < ARRAY_SIZE(access_modes); i++)
-				run_modes(name, &access_modes[i], CHECK_RAM);
+				run_modes(name, &access_modes[i], num_buffers, CHECK_RAM);
 		}
 
 		igt_fixture {
@@ -1592,7 +1602,7 @@ igt_main
 		if (c->require()) {
 			snprintf(name, sizeof(name), "%s%s", c->name, "small");
 			for (i = 0; i < ARRAY_SIZE(access_modes); i++)
-				run_modes(name, &access_modes[i], CHECK_RAM);
+				run_modes(name, &access_modes[i], num_buffers, CHECK_RAM);
 		}
 
 		igt_fixture {
@@ -1602,7 +1612,7 @@ igt_main
 		if (c->require()) {
 			snprintf(name, sizeof(name), "%s%s", c->name, "thrash");
 			for (i = 0; i < ARRAY_SIZE(access_modes); i++)
-				run_modes(name, &access_modes[i], CHECK_RAM);
+				run_modes(name, &access_modes[i], num_buffers, CHECK_RAM);
 		}
 
 		igt_fixture {
@@ -1612,7 +1622,7 @@ igt_main
 		if (c->require()) {
 			snprintf(name, sizeof(name), "%s%s", c->name, "global");
 			for (i = 0; i < ARRAY_SIZE(access_modes); i++)
-				run_modes(name, &access_modes[i], CHECK_RAM);
+				run_modes(name, &access_modes[i], num_buffers, CHECK_RAM);
 		}
 
 		igt_fixture {
@@ -1622,7 +1632,7 @@ igt_main
 		if (c->require()) {
 			snprintf(name, sizeof(name), "%s%s", c->name, "full");
 			for (i = 0; i < ARRAY_SIZE(access_modes); i++)
-				run_modes(name, &access_modes[i], CHECK_RAM);
+				run_modes(name, &access_modes[i], num_buffers, CHECK_RAM);
 		}
 
 		igt_fixture {
@@ -1644,7 +1654,7 @@ igt_main
 		if (c->require()) {
 			snprintf(name, sizeof(name), "%s%s", c->name, "swap");
 			for (i = 0; i < ARRAY_SIZE(access_modes); i++)
-				run_modes(name, &access_modes[i], CHECK_RAM | CHECK_SWAP);
+				run_modes(name, &access_modes[i], num_buffers, CHECK_RAM | CHECK_SWAP);
 		}
 
 		igt_fixture {
