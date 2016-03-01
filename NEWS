@@ -1,3 +1,45 @@
+Release 1.14 (2016-03-01)
+-------------------------
+
+- New test: gem_create validate parameters for GEM_CREATE ioctl
+(Ankitprasad Sharma)
+
+- New test: gem_softpin exercise the userptr ioctl to create shared
+buffers between CPU and GPU (Vinay Belgaumkar)
+
+- New tests: prime_mmap_coherency/kms_mmap_write_crc cache coherency
+tests (Tiago Vignatti)
+
+- New test: prime_mmap mmap() on dma-buf fds (Rob Bradford)
+
+- New test: gem_exec_reloc sanity check of execbuf-ioctl relocations (Chris
+Wilson)
+
+- New test: gem_exec_basic sanity check of execbuf-ioctl rings (Chris Wilson)
+
+- improved igt_hang_ring() infrastructure for generic hang injection support in
+the core library (Chris Wilson)
+
+- new igt_pm library to collect power management testing helpers (David
+Weinehall)
+
+- lig/igt_vc4: VC4 support library (Eric Anholt)
+
+- kms_frontbuffer_tracking: included in BAT (Paulo Zanoni)
+
+- kms_psr_sink_crc: Add BAT test for PSR active (Rodrigo Vivi)
+
+- gem_wait: test superseded by gem_latency in benchmarks (Chris Wilson)
+
+- igt_core: Fix logging to display extended line (Derek Morton)
+
+- igt_core: Expand --run-subtest functionality (Derek Morton)
+
+- kms_force_connector_basic: various fixes and included in BAT set (Daniel
+Vetter)
+
+- Many other improvements and bug fixes.
+
 Release 1.13 (2015-12-02)
 -------------------------
 
