@@ -316,10 +316,8 @@ static void size_tests(int fd)
 		f.fb_id = 0;
 	}
 
-	igt_fixture
-		gem_set_tiling(fd, gem_bo_small, I915_TILING_X, 1024*4);
-
 	igt_subtest("bo-too-small-due-to-tiling") {
+		gem_set_tiling(fd, gem_bo_small, I915_TILING_X, 1024*4);
 		igt_assert(drmIoctl(fd, DRM_IOCTL_MODE_ADDFB2, &f) == -1 &&
 			   errno == EINVAL);
 	}
@@ -368,10 +366,8 @@ static void addfb25_tests(int fd)
 		igt_assert(drmIoctl(fd, LOCAL_DRM_IOCTL_MODE_ADDFB2, &f) < 0 && errno == EINVAL);
 	}
 
-	igt_fixture
-		gem_set_tiling(fd, gem_bo, I915_TILING_X, 1024*4);
-
 	igt_subtest("addfb25-X-tiled-mismatch") {
+		gem_set_tiling(fd, gem_bo, I915_TILING_X, 1024*4);
 		igt_require_fb_modifiers(fd);
 
 		f.modifier[0] = LOCAL_DRM_FORMAT_MOD_NONE;
@@ -379,6 +375,7 @@ static void addfb25_tests(int fd)
 	}
 
 	igt_subtest("addfb25-X-tiled") {
+		gem_set_tiling(fd, gem_bo, I915_TILING_X, 1024*4);
 		igt_require_fb_modifiers(fd);
 
 		f.modifier[0] = LOCAL_I915_FORMAT_MOD_X_TILED;
