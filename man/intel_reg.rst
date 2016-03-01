@@ -5,18 +5,18 @@ intel_reg
 ---------------------------------
 Intel graphics register multitool
 ---------------------------------
-
+.. include:: defs.rst
 :Author: Jani Nikula <jani.nikula@intel.com>
-:Date: 2015-04-14
-:Version: intel-gpu-tools
-:Copyright: 2015 Intel Corporation
-:Manual section: 1
-:Manual group: General Commands Manual
+:Date: 2016-03-01
+:Version: |PACKAGE_STRING|
+:Copyright: 2015-2016 Intel Corporation
+:Manual section: |MANUAL_SECTION|
+:Manual group: |MANUAL_GROUP|
 
 SYNOPSIS
 ========
 
-**intel_reg** [*option* ...] *command*
+**intel_reg** [*OPTIONS*] *COMMAND*
 
 DESCRIPTION
 ===========
@@ -30,50 +30,33 @@ OPTIONS
 Some options are global, and some specific to commands.
 
 --verbose
----------
-
-Increase verbosity.
+    Increase verbosity.
 
 --quiet
--------
-
-Decrease verbosity.
+    Decrease verbosity.
 
 --count=N
----------
-
-Read N registers.
+    Read N registers.
 
 --binary
---------
-
-Output binary values.
+    Output binary values.
 
 --all
------
-
-Decode registers for all known platforms.
+    Decode registers for all known platforms.
 
 --mmio=FILE
------------
-
-Use MMIO bar from FILE.
+    Use MMIO bar from FILE.
 
 --devid=DEVID
--------------
-
-Pretend to be PCI ID DEVID. Useful with MMIO bar snapshots from other machines.
+    Pretend to be PCI ID DEVID. Useful with MMIO bar snapshots from other
+    machines.
 
 --spec=PATH
------------
-
-Read register spec from directory or file specified by PATH; see REGISTER SPEC
-DEFINITIONS below for details.
+    Read register spec from directory or file specified by PATH; see REGISTER
+    SPEC DEFINITIONS below for details.
 
 --help
-------
-
-Show brief help.
+    Show brief help.
 
 COMMANDS
 ========
@@ -123,52 +106,42 @@ REGISTER REFERENCES
 Registers are defined as [(PORTNAME|PORTNUM|MMIO-OFFSET):](REGNAME|REGADDR).
 
 PORTNAME
---------
+    The register access method, most often MMIO, which is the default. The
+    methods supported on all platforms are "mmio", "portio-vga", and "mmio-vga".
 
-The register access method, most often MMIO, which is the default. The methods
-supported on all platforms are "mmio", "portio-vga", and "mmio-vga".
-
-On BYT and CHV, the sideband ports "bunit", "punit", "nc", "dpio", "gpio-nc",
-"cck", "ccu", "dpio2", and "flisdsi" are also supported.
+    On BYT and CHV, the sideband ports "bunit", "punit", "nc", "dpio",
+    "gpio-nc", "cck", "ccu", "dpio2", and "flisdsi" are also supported.
 
 PORTNUM
--------
+    Port number for the sideband ports supported on BYT and CHV. Only numbers
+    mapped to the supported ports are allowed, arbitrary numbers are not
+    accepted.
 
-Port number for the sideband ports supported on BYT and CHV. Only numbers mapped
-to the supported ports are allowed, arbitrary numbers are not accepted.
-
-Numbers above 0xff are automatically interpreted as MMIO offsets, not port
-numbers.
+    Numbers above 0xff are automatically interpreted as MMIO offsets, not port
+    numbers.
 
 MMIO-OFFSET
------------
+    Use MMIO, and add this offset to the register address.
 
-Use MMIO, and add this offset to the register address.
-
-Numbers equal to or below 0xff are automatically interpreted as port numbers,
-not MMIO offsets.
+    Numbers equal to or below 0xff are automatically interpreted as port
+    numbers, not MMIO offsets.
 
 REGNAME
--------
+    Name of the register as defined in the register spec.
 
-Name of the register as defined in the register spec.
-
-If MMIO offset is not specified, it is picked up from the register
-spec. However, ports are not; the port is a namespace for the register names.
+    If MMIO offset is not specified, it is picked up from the register
+    spec. However, ports are not; the port is a namespace for the register
+    names.
 
 REGADDR
--------
-
-Register address. The corresponding register name need not be specified in the
-register spec.
+    Register address. The corresponding register name need not be specified in
+    the register spec.
 
 ENVIRONMENT
 ===========
 
 INTEL_REG_SPEC
---------------
-
-Path to a directory or a file containing register spec definitions.
+    Path to a directory or a file containing register spec definitions.
 
 REGISTER SPEC DEFINITIONS
 =========================
@@ -226,3 +199,8 @@ BUGS
 ====
 
 Reading some registers may hang the GPU or the machine.
+
+REPORTING BUGS
+==============
+
+Report bugs to https://bugs.freedesktop.org.
