@@ -38,6 +38,7 @@ TESTS_progs_M = \
 	gem_exec_nop \
 	gem_exec_params \
 	gem_exec_parse \
+	gem_exec_suspend \
 	gem_exec_reloc \
 	gem_fenced_exec_thrash \
 	gem_fence_thrash \
