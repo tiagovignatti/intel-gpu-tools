@@ -45,6 +45,43 @@ static double elapsed(const struct timespec *start,
 	return (end->tv_sec - start->tv_sec) + 1e-9*(end->tv_nsec - start->tv_nsec);
 }
 
+static void files(int core, int timeout)
+{
+	const uint32_t bbe = MI_BATCH_BUFFER_END;
+	struct drm_i915_gem_execbuffer2 execbuf;
+	struct drm_i915_gem_exec_object2 obj;
+	struct timespec start, end;
+	uint32_t batch, name;
+	unsigned count = 0;
+
+	batch = gem_create(core, 4096);
+	gem_write(core, batch, 0, &bbe, sizeof(bbe));
+	name = gem_flink(core, batch);
+
+	memset(&obj, 0, sizeof(obj));
+	memset(&execbuf, 0, sizeof(execbuf));
+	execbuf.buffers_ptr = (uintptr_t)&obj;
+	execbuf.buffer_count = 1;
+
+	clock_gettime(CLOCK_MONOTONIC, &start);
+	do {
+		do {
+			int fd = drm_open_driver(DRIVER_INTEL);
+			obj.handle = gem_open(fd, name);
+			gem_execbuf(fd, &execbuf);
+			close(fd);
+		} while (++count & 1023);
+		clock_gettime(CLOCK_MONOTONIC, &end);
+	} while (elapsed(&start, &end) < timeout);
+
+	gem_sync(core, batch);
+	clock_gettime(CLOCK_MONOTONIC, &end);
+	igt_info("File creation + execution: %.3f us\n",
+		 elapsed(&start, &end) / count *1e6);
+
+	gem_close(core, batch);
+}
+
 static void active(int fd, int timeout)
 {
 	const uint32_t bbe = MI_BATCH_BUFFER_END;
@@ -64,7 +101,6 @@ static void active(int fd, int timeout)
 	clock_gettime(CLOCK_MONOTONIC, &start);
 	do {
 		do {
-
 			execbuf.rsvd1 = gem_context_create(fd);
 			gem_execbuf(fd, &execbuf);
 			gem_context_destroy(fd, execbuf.rsvd1);
@@ -86,7 +122,7 @@ igt_main
 	int fd;
 
 	igt_fixture {
-		fd = drm_open_driver_render(DRIVER_INTEL);
+		fd = drm_open_driver(DRIVER_INTEL);
 
 		memset(&create, 0, sizeof(create));
 		igt_require(__gem_context_create(fd, &create) == 0);
@@ -108,6 +144,9 @@ igt_main
 		create.pad = 1;
 		igt_assert_eq(__gem_context_create(fd, &create), -EINVAL);
 	}
+
+	igt_subtest("files")
+		files(fd, 20);
 
 	igt_subtest("active")
 		active(fd, 20);
