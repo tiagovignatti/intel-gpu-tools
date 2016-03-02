@@ -1800,7 +1800,8 @@ static void pm_test_caching(void)
 	uint32_t handle;
 	uint8_t *gem_buf;
 
-	uint32_t i, got_caching;
+	uint32_t i;
+	uint32_t default_cache_level;
 	uint32_t gtt_obj_max_size = (16 * 1024);
 	uint32_t cache_levels[3] = {
 		I915_CACHING_NONE,
@@ -1808,41 +1809,33 @@ static void pm_test_caching(void)
 		I915_CACHING_DISPLAY,           /* eDRAM caching */
 	};
 
+	disable_all_screens(&ms_data);
 
 	handle = gem_create(drm_fd, gtt_obj_max_size);
+	default_cache_level = gem_get_caching(drm_fd, handle);
 	gem_buf = gem_mmap__gtt(drm_fd, handle, gtt_obj_max_size, PROT_WRITE);
 
 	for (i = 0; i < ARRAY_SIZE(cache_levels); i++) {
+		igt_assert(wait_for_suspended());
+		gem_set_caching(drm_fd, handle, default_cache_level);
+
+		/* Ensure we bind the vma into the GGTT */
 		memset(gem_buf, 16 << i, gtt_obj_max_size);
 
-		disable_all_screens_and_wait(&ms_data);
-
-		igt_debug("Setting cache level %u\n", cache_levels[i]);
-
-		gem_set_caching(drm_fd, handle, cache_levels[i]);
-
-		got_caching = gem_get_caching(drm_fd, handle);
-
-		igt_debug("Got back %u\n", got_caching);
-
-		/*
-		 * Allow fall-back to CACHING_NONE in case the platform does
-		 * not support it.
+		/* Now try changing the cache-level on the bound object.
+		 * This will either unlikely unbind the object from the GGTT,
+		 * or more likely just change the PTEs inside the GGTT. Either
+		 * way the driver must take the rpm wakelock around the GSM
+		 * access.
 		 */
-		if (cache_levels[i] == I915_CACHING_DISPLAY)
-			igt_assert(got_caching == I915_CACHING_NONE ||
-				   got_caching == I915_CACHING_DISPLAY);
-		else
-			igt_assert(got_caching == cache_levels[i]);
-
-		enable_one_screen_and_wait(&ms_data);
+		igt_debug("Setting cache level %u\n", cache_levels[i]);
+		igt_assert(wait_for_suspended());
+		gem_set_caching(drm_fd, handle, cache_levels[i]);
 	}
 
 	igt_assert(munmap(gem_buf, gtt_obj_max_size) == 0);
 	gem_close(drm_fd, handle);
 }
-
-
 
 static void fences_subtest(bool dpms)
 {
