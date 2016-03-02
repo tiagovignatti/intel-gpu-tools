@@ -54,6 +54,7 @@ struct igt_fb {
 	uint64_t tiling;
 	unsigned size;
 	cairo_surface_t *cairo_surface;
+	unsigned domain;
 	uint32_t src_x;
 	uint32_t src_y;
 	uint32_t src_w;

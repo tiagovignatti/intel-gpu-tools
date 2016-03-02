@@ -967,6 +967,7 @@ static void create_cairo_surface__blit(int fd, struct igt_fb *fb)
 						    cairo_format,
 						    fb->width, fb->height,
 						    blit->linear.stride);
+	fb->domain = I915_GEM_DOMAIN_GTT;
 
 	cairo_surface_set_user_data(fb->cairo_surface,
 				    (cairo_user_data_key_t *)create_cairo_surface__blit,
@@ -989,6 +990,7 @@ static void create_cairo_surface__gtt(int fd, struct igt_fb *fb)
 		cairo_image_surface_create_for_data(ptr,
 						    drm_format_to_cairo(fb->drm_format),
 						    fb->width, fb->height, fb->stride);
+	fb->domain = I915_GEM_DOMAIN_GTT;
 
 	cairo_surface_set_user_data(fb->cairo_surface,
 				    (cairo_user_data_key_t *)create_cairo_surface__gtt,
@@ -1005,8 +1007,7 @@ static cairo_surface_t *get_cairo_surface(int fd, struct igt_fb *fb)
 			create_cairo_surface__gtt(fd, fb);
 	}
 
-	gem_set_domain(fd, fb->gem_handle,
-		       I915_GEM_DOMAIN_CPU, I915_GEM_DOMAIN_CPU);
+	gem_set_domain(fd, fb->gem_handle, fb->domain, fb->domain);
 
 	igt_assert(cairo_surface_status(fb->cairo_surface) == CAIRO_STATUS_SUCCESS);
 	return fb->cairo_surface;
