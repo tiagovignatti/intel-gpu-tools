@@ -170,22 +170,6 @@ static const char *bytes_per_sec(char *buf, double v)
 	return buf;
 }
 
-static uint32_t dumb_create(int fd)
-{
-	struct drm_mode_create_dumb arg;
-	int ret;
-
-	arg.bpp = 32;
-	arg.width = 32;
-	arg.height = 32;
-
-	ret = drmIoctl(fd, DRM_IOCTL_MODE_CREATE_DUMB, &arg);
-	igt_assert_eq(ret, 0);
-	igt_assert(arg.size >= 4096);
-
-	return arg.handle;
-}
-
 static int dcmp(const void *A, const void *B)
 {
 	const double *a = A, *b = B;
@@ -209,7 +193,7 @@ static void run(int object_size, bool dumb)
 
 	fd = drm_open_driver(DRIVER_INTEL);
 	if (dumb)
-		handle = dumb_create(fd);
+		handle = kmstest_dumb_create(fd, 32, 32, 32, NULL, NULL);
 	else
 		handle = gem_create(fd, 4096);
 

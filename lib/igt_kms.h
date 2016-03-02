@@ -175,6 +175,9 @@ uint32_t kmstest_find_crtc_for_connector(int fd, drmModeRes *res,
 					 drmModeConnector *connector,
 					 uint32_t crtc_blacklist_idx_mask);
 
+uint32_t kmstest_dumb_create(int fd, int width, int height, int bpp,
+			     unsigned *stride, unsigned *size);
+
 /*
  * A small modeset API
  */

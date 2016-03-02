@@ -426,6 +426,42 @@ uint32_t kmstest_find_crtc_for_connector(int fd, drmModeRes *res,
 	igt_assert(false);
 }
 
+/**
+ * kmstest_dumb_create:
+ * @fd: open drm file descriptor
+ * @width: width of the buffer in pixels
+ * @height: height of the buffer in pixels
+ * @bpp: bytes per pixel of the buffer
+ *
+ * This wraps the CREATE_DUMB ioctl, which allocates a new dumb buffer object
+ * for the specified dimensions.
+ *
+ * Returns: The file-private handle of the created buffer object
+ */
+uint32_t kmstest_dumb_create(int fd, int width, int height, int bpp,
+			     unsigned *stride, unsigned *size)
+{
+	struct drm_mode_create_dumb create;
+
+	memset(&create, 0, sizeof(create));
+	create.width = width;
+	create.height = height;
+	create.bpp = bpp;
+
+	create.handle = 0;
+	do_ioctl(fd, DRM_IOCTL_MODE_CREATE_DUMB, &create);
+	igt_assert(create.handle);
+	igt_assert(create.size >= width * height * bpp / 8);
+
+	if (stride)
+		*stride = create.pitch;
+
+	if (size)
+		*size = create.size;
+
+	return create.handle;
+}
+
 /*
  * Returns: the previous mode, or KD_GRAPHICS if no /dev/tty0 was
  * found and nothing was done.

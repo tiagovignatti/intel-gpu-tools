@@ -120,20 +120,6 @@ static void test_invalid_buffer(int in)
 	teardown(fd);
 }
 
-static uint32_t dumb_create(int fd)
-{
-	struct drm_mode_create_dumb arg;
-
-	arg.bpp = 32;
-	arg.width = 32;
-	arg.height = 32;
-
-	do_ioctl(fd, DRM_IOCTL_MODE_CREATE_DUMB, &arg);
-	igt_assert(arg.size >= 4096);
-
-	return arg.handle;
-}
-
 static void test_fault_buffer(int in)
 {
 	int fd = setup(in, 0);
@@ -141,7 +127,7 @@ static void test_fault_buffer(int in)
 	char *buf;
 
 	memset(&arg, 0, sizeof(arg));
-	arg.handle = dumb_create(fd);
+	arg.handle = kmstest_dumb_create(fd, 32, 32, 32, NULL, NULL);
 
 	do_ioctl(fd, DRM_IOCTL_MODE_MAP_DUMB, &arg);
 
