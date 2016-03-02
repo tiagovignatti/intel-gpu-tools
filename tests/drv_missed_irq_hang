@@ -11,16 +11,11 @@ oldpath=`pwd`
 cd $i915_dfs_path
 
 function blt_wait {
-	(cd $oldpath; $SOURCE_DIR/gem_exec_blt 16384) > /dev/null
-	(cd $oldpath; $SOURCE_DIR/gem_exec_blt 65536) > /dev/null
-	(cd $oldpath; $SOURCE_DIR/gem_exec_blt 262144) > /dev/null
+	$oldpath/$SOURCE_DIR/../benchmarks/gem_blt -r 1 -b 64 -t 1 -S > /dev/null
 }
 
 function check_for_missed_irq {
-	if test `cat i915_ring_missed_irq` = 0x00000000; then
-		echo "missed interrupts undetected"
-		exit $IGT_EXIT_FAILURE
-	fi
+	test `cat i915_ring_missed_irq` != 0x00000000
 }
 
 function check_for_hang {
@@ -37,6 +32,11 @@ fi
 
 # clear error state first
 echo > i915_error_state
+blt_wait
+if check_for_missed_irq; then
+	echo "missed interrupts detected before starting test"
+	exit $IGT_EXIT_SKOP
+fi
 check_for_hang
 
 echo 0xf > i915_ring_test_irq
@@ -47,10 +47,10 @@ if test `cat i915_ring_test_irq` != 0x0000000f; then
 fi
 
 blt_wait
-check_for_missed_irq
-check_for_hang
-
-blt_wait
+if ! check_for_missed_irq; then
+	echo "missed interrupts undetected"
+	exit $IGT_EXIT_FAILURE
+fi
 check_for_hang
 
 echo 0 > i915_ring_test_irq
@@ -69,5 +69,12 @@ if test `cat i915_ring_missed_irq` != 0x00000000; then
 	echo "Failed to clear missed interrupts"
 	exit $IGT_EXIT_FAILURE
 fi
+
+blt_wait
+if check_for_missed_irq; then
+	echo "missed interrupts detected afterwards"
+	exit $IGT_EXIT_FAILURE
+fi
+check_for_hang
 
 exit $IGT_EXIT_SUCCESS
