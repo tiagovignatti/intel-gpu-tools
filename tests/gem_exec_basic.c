@@ -45,6 +45,60 @@ static void noop(int fd, unsigned ring)
 	gem_close(fd, exec.handle);
 }
 
+static void readonly(int fd, unsigned ring)
+{
+	uint32_t bbe = MI_BATCH_BUFFER_END;
+	struct drm_i915_gem_execbuffer2 *execbuf;
+	struct drm_i915_gem_exec_object2 exec;
+
+	gem_require_ring(fd, ring);
+
+	memset(&exec, 0, sizeof(exec));
+	exec.handle = gem_create(fd, 4096);
+	gem_write(fd, exec.handle, 0, &bbe, sizeof(bbe));
+
+	execbuf = mmap(NULL, 4096, PROT_WRITE, MAP_ANON | MAP_PRIVATE, -1, 0);
+	igt_assert(execbuf != NULL);
+
+	execbuf->buffers_ptr = (uintptr_t)&exec;
+	execbuf->buffer_count = 1;
+	execbuf->flags = ring;
+	igt_assert(mprotect(execbuf, 4096, PROT_READ) == 0);
+
+	gem_execbuf(fd, execbuf);
+	munmap(execbuf, 4096);
+	gem_close(fd, exec.handle);
+}
+
+static void gtt(int fd, unsigned ring)
+{
+	uint32_t bbe = MI_BATCH_BUFFER_END;
+	struct drm_i915_gem_execbuffer2 *execbuf;
+	struct drm_i915_gem_exec_object2 *exec;
+	uint32_t handle;
+
+	gem_require_ring(fd, ring);
+
+	handle = gem_create(fd, 4096);
+
+	gem_set_domain(fd, handle, I915_GEM_DOMAIN_GTT, I915_GEM_DOMAIN_GTT);
+	execbuf = gem_mmap__gtt(fd, handle, 4096, PROT_WRITE);
+	exec = (struct drm_i915_gem_exec_object2 *)(execbuf + 1);
+	gem_close(fd, handle);
+
+	exec->handle = gem_create(fd, 4096);
+	gem_write(fd, exec->handle, 0, &bbe, sizeof(bbe));
+
+	execbuf->buffers_ptr = (uintptr_t)exec;
+	execbuf->buffer_count = 1;
+	execbuf->flags = ring;
+
+	gem_execbuf(fd, execbuf);
+	gem_close(fd, exec->handle);
+
+	munmap(execbuf, 4096);
+}
+
 igt_main
 {
 	const struct intel_execution_engine *e;
@@ -53,9 +107,14 @@ igt_main
 	igt_fixture
 		fd = drm_open_driver(DRIVER_INTEL);
 
-	for (e = intel_execution_engines; e->name; e++)
+	for (e = intel_execution_engines; e->name; e++) {
 		igt_subtest_f("basic-%s", e->name)
 			noop(fd, e->exec_id | e->flags);
+		igt_subtest_f("readonly-%s", e->name)
+			readonly(fd, e->exec_id | e->flags);
+		igt_subtest_f("gtt-%s", e->name)
+			gtt(fd, e->exec_id | e->flags);
+	}
 
 	igt_fixture
 		close(fd);
