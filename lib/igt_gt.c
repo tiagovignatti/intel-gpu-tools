@@ -481,6 +481,11 @@ int igt_setup_clflush(void)
 	int first_stanza = 1;
 	int has_clflush = 0;
 
+#if !defined(__x86_64__) && !defined(__SSE2__)
+	/* requires mfence + clflush, both SSE2 instructions */
+	return 0;
+#endif
+
 	if (clflush_size)
 		return 1;
 
@@ -514,16 +519,16 @@ int igt_setup_clflush(void)
 
 void igt_clflush_range(void *addr, int size)
 {
-#if defined(__i386__) || defined(__x86_64__)
+#if defined(__x86_64__) || defined(__SSE2__)
 	char *p, *end;
 
 	end = (char *)addr + size;
 	p = (char *)((uintptr_t)addr & ~((uintptr_t)clflush_size - 1));
 
-	asm volatile("mfence" ::: "memory");
+	__builtin_ia32_mfence();
 	for (; p < end; p += clflush_size)
-		asm volatile("clflush %0" : "+m" (*(volatile char *)p));
-	asm volatile("mfence" ::: "memory");
+		__builtin_ia32_clflush(p);
+	__builtin_ia32_mfence();
 #else
 	fprintf(stderr, "igt_clflush_range() unsupported\n");
 #endif
