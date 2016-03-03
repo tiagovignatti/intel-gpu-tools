@@ -380,7 +380,8 @@ static void xchg_offset(void *array, unsigned i, unsigned j)
 	object[j].offset = tmp;
 }
 
-static void test_noreloc(int fd)
+enum sleep { NOSLEEP, SUSPEND, HIBERNATE };
+static void test_noreloc(int fd, enum sleep sleep)
 {
 	const int gen = intel_gen(intel_get_drm_devid(fd));
 	const uint32_t size = 4096;
@@ -446,6 +447,19 @@ static void test_noreloc(int fd)
 		igt_permute_array(object, ARRAY_SIZE(object)-1, xchg_offset);
 		gem_execbuf(fd, &execbuf);
 
+		if ((loop & 127) == 0) {
+			switch (sleep) {
+			case NOSLEEP:
+				break;
+			case SUSPEND:
+				igt_system_suspend_autoresume();
+				break;
+			case HIBERNATE:
+				igt_system_hibernate_autoresume();
+				break;
+			}
+		}
+
 		for (i = 0; i < ARRAY_SIZE(object) - 1; i++) {
 			uint32_t val;
 
@@ -453,6 +467,7 @@ static void test_noreloc(int fd)
 			igt_assert_eq(val, (object[i].offset - offset)/size);
 		}
 	}
+
 	for (i = 0; i < ARRAY_SIZE(object); i++)
 		gem_close(fd, object[i].handle);
 }
@@ -475,7 +490,11 @@ igt_main
 	igt_subtest("overlap")
 		test_overlap(fd);
 	igt_subtest("noreloc")
-		test_noreloc(fd);
+		test_noreloc(fd, NOSLEEP);
+	igt_subtest("noreloc-S3")
+		test_noreloc(fd, SUSPEND);
+	igt_subtest("noreloc-S4")
+		test_noreloc(fd, HIBERNATE);
 	igt_subtest("evict-active")
 		test_evict_active(fd);
 	igt_subtest("evict-snoop")
