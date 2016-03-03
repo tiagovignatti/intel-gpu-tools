@@ -354,6 +354,8 @@ void igt_cleanup_aperture_trashers(void)
 	free(trash_bos);
 }
 
+#define SQUELCH ">/dev/null 2>&1"
+
 /**
  * igt_system_suspend_autoresume:
  *
@@ -370,7 +372,7 @@ void igt_system_suspend_autoresume(void)
 	igt_skip_on_simulation();
 
 	/* skip if system doesn't support suspend-to-mem */
-	igt_skip_on(system("rtcwake -n -s 30 -m mem") != 0);
+	igt_require(system("rtcwake -n -s 30 -m mem" SQUELCH) == 0);
 
 	igt_assert_f(system("rtcwake -s 30 -m mem") == 0,
 		     "This failure means that something is wrong with the "
@@ -388,8 +390,6 @@ void igt_system_suspend_autoresume(void)
  */
 void igt_system_hibernate_autoresume(void)
 {
-	int ret;
-
 	/* FIXME: I'm guessing simulation behaves the same way as with
 	 * suspend/resume, but it might be prudent to make sure
 	 */
@@ -399,13 +399,12 @@ void igt_system_hibernate_autoresume(void)
 	igt_skip_on_simulation();
 
 	/* skip if system doesn't support suspend-to-disk */
-	igt_skip_on(system("rtcwake -n -s 90 -m disk") != 0);
+	igt_require(system("rtcwake -n -s 90 -m disk" SQUELCH) == 0);
 
 	/* The timeout might need to be adjusted if hibernation takes too long
 	 * or if we have to wait excessively long before resume
 	 */
-	ret = system("rtcwake -s 90 -m disk");
-	igt_assert_f(ret == 0,
+	igt_assert_f(system("rtcwake -s 90 -m disk") == 0,
 		     "This failure means that something is wrong with the "
 		     "rtcwake tool or how your distro is set up. This is not "
 		     "a i915.ko or i-g-t bug.\n");
