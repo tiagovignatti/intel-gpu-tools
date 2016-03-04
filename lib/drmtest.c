@@ -183,6 +183,11 @@ void gem_quiescent_gpu(int fd)
 		gem_execbuf(fd, &execbuf);
 	}
 
+	if (gem_has_bsd2(fd)) {
+		execbuf.flags = I915_EXEC_BSD | (2 << 13);
+		gem_execbuf(fd, &execbuf);
+	}
+
 	if (gem_has_vebox(fd)) {
 		execbuf.flags = LOCAL_I915_EXEC_VEBOX;
 		gem_execbuf(fd, &execbuf);
