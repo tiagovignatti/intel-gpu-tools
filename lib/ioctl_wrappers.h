@@ -152,7 +152,8 @@ bool gem_has_softpin(int fd);
 
 /* check functions which auto-skip tests by calling igt_skip() */
 void gem_require_caching(int fd);
-void gem_require_ring(int fd, int ring_id);
+bool gem_has_ring(int fd, unsigned ring);
+void gem_require_ring(int fd, unsigned ring);
 
 /* prime */
 struct local_dma_buf_sync {

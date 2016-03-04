@@ -1396,10 +1396,16 @@ void gem_require_caching(int fd)
 	errno = 0;
 }
 
-static int gem_has_ring(int fd, int ring)
+bool gem_has_ring(int fd, unsigned ring)
 {
 	struct drm_i915_gem_execbuffer2 execbuf;
 	struct drm_i915_gem_exec_object2 exec;
+
+	/* silly ABI, the kernel thinks everyone who has BSD also has BSD2 */
+	if ((ring & ~(3<<13)) == I915_EXEC_BSD) {
+		if (ring & (3 << 13) && !gem_has_bsd2(fd))
+			return false;
+	}
 
 	memset(&exec, 0, sizeof(exec));
 	memset(&execbuf, 0, sizeof(execbuf));
@@ -1412,21 +1418,15 @@ static int gem_has_ring(int fd, int ring)
 /**
  * gem_require_ring:
  * @fd: open i915 drm file descriptor
- * @ring_id: ring flag bit as used in gem_execbuf()
+ * @ring: ring flag bit as used in gem_execbuf()
  *
  * Feature test macro to query whether a specific ring is available.
  * In contrast to gem_has_enable_ring() this automagically skips if the ring
  * isn't available by calling igt_require().
  */
-void gem_require_ring(int fd, int ring_id)
+void gem_require_ring(int fd, unsigned ring)
 {
-	igt_require(gem_has_ring(fd, ring_id));
-
-	/* silly ABI, the kernel thinks everyone who has BSD also has BSD2 */
-	if ((ring_id & ~(3<<13)) == I915_EXEC_BSD) {
-		if (ring_id & (3 << 13))
-			igt_require(gem_has_bsd2(fd));
-	}
+	igt_require(gem_has_ring(fd, ring));
 }
 
 /* prime */

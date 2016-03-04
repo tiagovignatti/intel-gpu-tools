@@ -36,6 +36,8 @@ enum mode {
 	HIBERNATE,
 };
 
+static void run_test(int fd, unsigned ring, enum mode mode);
+
 static void check_bo(int fd, uint32_t handle)
 {
 	uint32_t *map;
@@ -49,6 +51,14 @@ static void check_bo(int fd, uint32_t handle)
 	munmap(map, 4096);
 }
 
+static void test_all(int fd)
+{
+	const struct intel_execution_engine *e;
+	for (e = intel_execution_engines; e->name; e++)
+		if (gem_has_ring(fd, e->exec_id | e->flags))
+			run_test(fd, e->exec_id | e->flags, NOSLEEP);
+}
+
 static void run_test(int fd, unsigned ring, enum mode mode)
 {
 	const int gen = intel_gen(intel_get_drm_devid(fd));
@@ -60,6 +70,10 @@ static void run_test(int fd, unsigned ring, enum mode mode)
 	gem_require_ring(fd, ring);
 	igt_skip_on_f(gen == 6 && (ring & ~(3<<13)) == I915_EXEC_BSD,
 		      "MI_STORE_DATA broken on gen6 bsd\n");
+
+	/* Before suspending, check normal operation */
+	if (mode != NOSLEEP)
+		test_all(fd);
 
 	gem_quiescent_gpu(fd);
 
@@ -135,6 +149,12 @@ static void run_test(int fd, unsigned ring, enum mode mode)
 
 	check_bo(fd, obj[0].handle);
 	gem_close(fd, obj[0].handle);
+
+	gem_quiescent_gpu(fd);
+
+	/* After resume, make sure it still works */
+	if (mode != NOSLEEP)
+		test_all(fd);
 }
 
 igt_main
