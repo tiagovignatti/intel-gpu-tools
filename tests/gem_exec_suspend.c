@@ -30,13 +30,15 @@
 #include "igt.h"
 #include "igt_gt.h"
 
-enum mode {
-	NOSLEEP = 0,
-	SUSPEND,
-	HIBERNATE,
-};
+#define NOSLEEP 0
+#define SUSPEND 1
+#define HIBERNATE 2
+#define mode(x) ((x) & 0xff)
 
-static void run_test(int fd, unsigned ring, enum mode mode);
+#define UNCACHED (0<<8)
+#define CACHED (1<<8)
+
+static void run_test(int fd, unsigned ring, unsigned flags);
 
 static void check_bo(int fd, uint32_t handle)
 {
@@ -51,15 +53,15 @@ static void check_bo(int fd, uint32_t handle)
 	munmap(map, 4096);
 }
 
-static void test_all(int fd)
+static void test_all(int fd, unsigned flags)
 {
 	unsigned engine;
 
 	for_each_engine(fd, engine)
-		run_test(fd, engine, NOSLEEP);
+		run_test(fd, engine, flags & ~0xff);
 }
 
-static void run_test(int fd, unsigned ring, enum mode mode)
+static void run_test(int fd, unsigned ring, unsigned flags)
 {
 	const int gen = intel_gen(intel_get_drm_devid(fd));
 	const uint32_t bbe = MI_BATCH_BUFFER_END;
@@ -72,8 +74,8 @@ static void run_test(int fd, unsigned ring, enum mode mode)
 		      "MI_STORE_DATA broken on gen6 bsd\n");
 
 	/* Before suspending, check normal operation */
-	if (mode != NOSLEEP)
-		test_all(fd);
+	if (mode(flags) != NOSLEEP)
+		test_all(fd, flags);
 
 	gem_quiescent_gpu(fd);
 
@@ -86,6 +88,7 @@ static void run_test(int fd, unsigned ring, enum mode mode)
 
 	memset(obj, 0, sizeof(obj));
 	obj[0].handle = gem_create(fd, 4096);
+	gem_set_caching(fd, obj[0].handle, !!(flags & CACHED));
 	obj[0].flags |= EXEC_OBJECT_WRITE;
 	obj[1].handle = gem_create(fd, 4096);
 	gem_write(fd, obj[1].handle, 0, &bbe, sizeof(bbe));
@@ -134,7 +137,7 @@ static void run_test(int fd, unsigned ring, enum mode mode)
 		gem_close(fd, obj[1].handle);
 	}
 
-	switch (mode) {
+	switch (mode(flags)) {
 	case NOSLEEP:
 		break;
 
@@ -153,15 +156,15 @@ static void run_test(int fd, unsigned ring, enum mode mode)
 	gem_quiescent_gpu(fd);
 
 	/* After resume, make sure it still works */
-	if (mode != NOSLEEP)
-		test_all(fd);
+	if (mode(flags) != NOSLEEP)
+		test_all(fd, flags);
 }
 
 igt_main
 {
 	const struct {
 		const char *suffix;
-		enum mode mode;
+		unsigned mode;
 	} modes[] = {
 		{ "", NOSLEEP },
 		{ "-S3", SUSPEND },
@@ -176,8 +179,12 @@ igt_main
 
 	for (e = intel_execution_engines; e->name; e++) {
 		for (m = modes; m->suffix; m++) {
-			igt_subtest_f("%s%s", e->name, m->suffix)
-				run_test(fd, e->exec_id | e->flags, m->mode);
+			igt_subtest_f("%s-uncached%s", e->name, m->suffix)
+				run_test(fd, e->exec_id | e->flags,
+					 m->mode | UNCACHED);
+			igt_subtest_f("%s-cached%s", e->name, m->suffix)
+				run_test(fd, e->exec_id | e->flags,
+					 m->mode | CACHED);
 		}
 	}
 
