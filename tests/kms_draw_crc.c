@@ -154,8 +154,6 @@ static void draw_method_subtest(enum igt_draw_method method,
 
 	kmstest_unset_all_crtcs(drm_fd, drm_res);
 
-	find_modeset_params();
-
 	/* Use IGT_DRAW_MMAP_GTT on an untiled buffer as the parameter for
 	 * comparison. Cache the value so we don't recompute it for every single
 	 * subtest. */
@@ -197,8 +195,6 @@ static void fill_fb_subtest(void)
 	igt_crc_t base_crc, crc;
 
 	kmstest_unset_all_crtcs(drm_fd, drm_res);
-
-	find_modeset_params();
 
 	igt_create_fb(drm_fd, ms.mode->hdisplay, ms.mode->vdisplay,
 		      DRM_FORMAT_XRGB8888, LOCAL_DRM_FORMAT_MOD_NONE, &fb);
@@ -242,7 +238,9 @@ static void setup_environment(void)
 	igt_assert(bufmgr);
 	drm_intel_bufmgr_gem_enable_reuse(bufmgr);
 
-	pipe_crc = igt_pipe_crc_new(0, INTEL_PIPE_CRC_SOURCE_AUTO);
+	find_modeset_params();
+	pipe_crc = igt_pipe_crc_new(kmstest_get_crtc_idx(drm_res, ms.crtc_id),
+				    INTEL_PIPE_CRC_SOURCE_AUTO);
 }
 
 static void teardown_environment(void)
