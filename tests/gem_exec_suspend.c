@@ -53,10 +53,10 @@ static void check_bo(int fd, uint32_t handle)
 
 static void test_all(int fd)
 {
-	const struct intel_execution_engine *e;
-	for (e = intel_execution_engines; e->name; e++)
-		if (gem_has_ring(fd, e->exec_id | e->flags))
-			run_test(fd, e->exec_id | e->flags, NOSLEEP);
+	unsigned engine;
+
+	for_each_engine(fd, engine)
+		run_test(fd, engine, NOSLEEP);
 }
 
 static void run_test(int fd, unsigned ring, enum mode mode)
