@@ -1431,8 +1431,9 @@ static void setup_sink_crc(void)
 static void setup_crcs(void)
 {
 	enum pixel_format f;
+	int crtc_idx = kmstest_get_crtc_idx(drm.res, prim_mode_params.crtc_id);
 
-	pipe_crc = igt_pipe_crc_new(0, INTEL_PIPE_CRC_SOURCE_AUTO);
+	pipe_crc = igt_pipe_crc_new(crtc_idx, INTEL_PIPE_CRC_SOURCE_AUTO);
 
 	setup_sink_crc();
 
