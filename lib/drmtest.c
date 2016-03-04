@@ -156,46 +156,35 @@ static void check_stop_rings(void)
  */
 void gem_quiescent_gpu(int fd)
 {
-	uint32_t batch[2] = {MI_BATCH_BUFFER_END, 0};
+	uint32_t bbe = MI_BATCH_BUFFER_END;
 	struct drm_i915_gem_execbuffer2 execbuf;
-	struct drm_i915_gem_exec_object2 gem_exec[1];
+	struct drm_i915_gem_exec_object2 obj;
+	unsigned ring;
 
 	check_stop_rings();
 
-	memset(gem_exec, 0, sizeof(gem_exec));
-	gem_exec[0].handle = gem_create(fd, 4096);
-	gem_write(fd, gem_exec[0].handle, 0, batch, sizeof(batch));
+	memset(&obj, 0, sizeof(obj));
+	obj.handle = gem_create(fd, 4096);
+	gem_write(fd, obj.handle, 0, &bbe, sizeof(&bbe));
 
 	memset(&execbuf, 0, sizeof(execbuf));
-	execbuf.buffers_ptr = (uintptr_t)gem_exec;
+	execbuf.buffers_ptr = (uintptr_t)&obj;
 	execbuf.buffer_count = 1;
 
-	execbuf.flags = I915_EXEC_RENDER;
-	gem_execbuf(fd, &execbuf);
-
-	if (gem_has_blt(fd)) {
-		execbuf.flags = I915_EXEC_BLT;
-		gem_execbuf(fd, &execbuf);
-	}
-
-	if (gem_has_bsd(fd)) {
-		execbuf.flags = I915_EXEC_BSD;
-		gem_execbuf(fd, &execbuf);
+	for (ring = 0; ring < 1<<6; ring++) {
+		execbuf.flags = ring;
+		__gem_execbuf(fd, &execbuf);
 	}
 
 	if (gem_has_bsd2(fd)) {
 		execbuf.flags = I915_EXEC_BSD | (2 << 13);
-		gem_execbuf(fd, &execbuf);
+		__gem_execbuf(fd, &execbuf);
 	}
 
-	if (gem_has_vebox(fd)) {
-		execbuf.flags = LOCAL_I915_EXEC_VEBOX;
-		gem_execbuf(fd, &execbuf);
-	}
+	gem_sync(fd, obj.handle);
+	gem_close(fd, obj.handle);
 
-	gem_sync(fd, gem_exec[0].handle);
 	igt_drop_caches_set(DROP_RETIRE);
-	gem_close(fd, gem_exec[0].handle);
 }
 
 /**
