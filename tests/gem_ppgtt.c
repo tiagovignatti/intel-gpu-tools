@@ -252,8 +252,8 @@ static void flink_and_close(void)
 
 static void flink_and_exit(void)
 {
-	uint32_t fd, fd2;
-	uint32_t bo, flinked_bo, name;
+	uint32_t fd, fd2, fd3;
+	uint32_t bo, bo2, flinked_bo, name;
 	char match[100];
 	int to_match;
 	bool matched;
@@ -270,12 +270,19 @@ static void flink_and_exit(void)
 	igt_assert(to_match < sizeof(match));
 
 	fd2 = drm_open_driver(DRIVER_INTEL);
-
 	flinked_bo = gem_open(fd2, name);
+
+	fd3 = drm_open_driver(DRIVER_INTEL);
+	bo2 = gem_create(fd3, 4096);
+
+	/* Verify VMA is not there yet. */
+	matched = igt_debugfs_search("i915_gem_gtt", match);
+	igt_assert_eq(matched, false);
+
 	exec_and_get_offset(fd2, flinked_bo);
 	gem_sync(fd2, flinked_bo);
 
-	/* Verify looking for string works OK. */
+	/* Verify VMA has been created. */
 	matched = igt_debugfs_search("i915_gem_gtt", match);
 	igt_assert_eq(matched, true);
 
@@ -283,6 +290,11 @@ static void flink_and_exit(void)
 
 	/* Close the context. */
 	close(fd2);
+
+	/* Execute a different and unrelated (wrt object sharing) context to
+	 * ensure engine drops its last context reference.
+	 */
+	exec_and_get_offset(fd3, bo2);
 
 retry:
 	/* Give cleanup some time to run. */
@@ -296,6 +308,9 @@ retry:
 		goto retry;
 
 	igt_assert_eq(matched, false);
+
+	gem_close(fd3, bo2);
+	close(fd3);
 
 	gem_close(fd, bo);
 	close(fd);
