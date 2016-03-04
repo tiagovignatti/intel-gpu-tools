@@ -76,6 +76,8 @@ static void fill_ring(int fd, struct drm_i915_gem_execbuffer2 *execbuf)
 #define CHILD 0x8
 #define FORKED 0x8
 #define BOMB 0x10
+#define SUSPEND 0x20
+#define HIBERNATE 0x40
 
 static void run_test(int fd, unsigned ring, unsigned flags)
 {
@@ -91,6 +93,9 @@ static void run_test(int fd, unsigned ring, unsigned flags)
 	gem_require_ring(fd, ring);
 	igt_skip_on_f(gen == 6 && (ring & ~(3<<13)) == I915_EXEC_BSD,
 		      "MI_STORE_DATA broken on gen6 bsd\n");
+
+	if (flags & (SUSPEND | HIBERNATE))
+		run_test(fd, ring, 0);
 
 	gem_quiescent_gpu(fd);
 
@@ -169,6 +174,12 @@ static void run_test(int fd, unsigned ring, unsigned flags)
 		igt_fork(child, nchild)
 			fill_ring(fd, &execbuf);
 
+		if (flags & SUSPEND)
+			igt_system_suspend_autoresume();
+
+		if (flags & HIBERNATE)
+			igt_system_hibernate_autoresume();
+
 		igt_waitchildren();
 	} else
 		fill_ring(fd, &execbuf);
@@ -183,6 +194,11 @@ static void run_test(int fd, unsigned ring, unsigned flags)
 
 	gem_close(fd, obj[1].handle);
 	gem_close(fd, obj[0].handle);
+
+	gem_quiescent_gpu(fd);
+
+	if (flags & (SUSPEND | HIBERNATE))
+		run_test(fd, ring, 0);
 }
 
 igt_main
@@ -197,6 +213,8 @@ igt_main
 		{ "-child", CHILD },
 		{ "-forked", FORKED },
 		{ "-bomb", BOMB | INTERRUPTIBLE },
+		{ "-S3", BOMB | SUSPEND },
+		{ "-S4", BOMB | HIBERNATE },
 		{ NULL, 0 }
 	}, *mode;
 	const struct intel_execution_engine *e;
