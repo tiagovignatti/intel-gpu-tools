@@ -541,6 +541,7 @@ int __gem_execbuf(int fd, struct drm_i915_gem_execbuffer2 *execbuf)
 	int err = 0;
 	if (drmIoctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, execbuf))
 		err = -errno;
+	errno = 0;
 	return err;
 }
 
@@ -555,7 +556,6 @@ int __gem_execbuf(int fd, struct drm_i915_gem_execbuffer2 *execbuf)
 void gem_execbuf(int fd, struct drm_i915_gem_execbuffer2 *execbuf)
 {
 	igt_assert_eq(__gem_execbuf(fd, execbuf), 0);
-	errno = 0;
 }
 
 /**
@@ -1398,23 +1398,15 @@ void gem_require_caching(int fd)
 
 static int gem_has_ring(int fd, int ring)
 {
-	uint32_t bbe = MI_BATCH_BUFFER_END;
 	struct drm_i915_gem_execbuffer2 execbuf;
 	struct drm_i915_gem_exec_object2 exec;
-	int ret;
 
 	memset(&exec, 0, sizeof(exec));
-	exec.handle = gem_create(fd, 4096);
-	gem_write(fd, exec.handle, 0, &bbe, sizeof(bbe));
-
 	memset(&execbuf, 0, sizeof(execbuf));
 	execbuf.buffers_ptr = (uintptr_t)&exec;
 	execbuf.buffer_count = 1;
 	execbuf.flags = ring;
-	ret = __gem_execbuf(fd, &execbuf);
-	gem_close(fd, exec.handle);
-
-	return ret == 0;
+	return __gem_execbuf(fd, &execbuf) == -ENOENT;
 }
 
 /**
