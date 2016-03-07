@@ -52,19 +52,18 @@ IGT_TEST_DESCRIPTION("Check that kernel relocation overflows are caught.");
  */
 
 int fd, entries, num;
-size_t reloc_size;
-uint32_t *handles;
-struct drm_i915_gem_exec_object2 *execobjs;
-struct drm_i915_gem_execbuffer2 execbuf = { 0 };
+struct drm_i915_gem_exec_object2 *obj;
+struct drm_i915_gem_execbuffer2 execbuf;
 struct drm_i915_gem_relocation_entry *reloc;
 
-uint32_t handle;
-uint32_t batch_handle;
+static uint32_t target_handle(void)
+{
+	return execbuf.flags & I915_EXEC_HANDLE_LUT ? 0 : obj[0].handle;
+}
 
 static void source_offset_tests(int devid, bool reloc_gtt)
 {
 	struct drm_i915_gem_relocation_entry single_reloc;
-	void *dst_gtt;
 	const char *relocation_type;
 
 	if (reloc_gtt)
@@ -73,25 +72,18 @@ static void source_offset_tests(int devid, bool reloc_gtt)
 		relocation_type = "reloc-cpu";
 
 	igt_fixture {
-		handle = gem_create(fd, 8192);
+		obj[1].relocation_count = 0;
+		obj[1].relocs_ptr = 0;
 
-		execobjs[1].handle = batch_handle;
-		execobjs[1].relocation_count = 0;
-		execobjs[1].relocs_ptr = 0;
-
-		execobjs[0].handle = handle;
-		execobjs[0].relocation_count = 1;
-		execobjs[0].relocs_ptr = (uintptr_t) &single_reloc;
+		obj[0].relocation_count = 1;
+		obj[0].relocs_ptr = (uintptr_t) &single_reloc;
 		execbuf.buffer_count = 2;
 
 		if (reloc_gtt) {
-			dst_gtt = __gem_mmap__gtt(fd, handle, 8192, PROT_READ | PROT_WRITE);
-			igt_assert(dst_gtt != MAP_FAILED);
-			gem_set_domain(fd, handle, I915_GEM_DOMAIN_GTT, I915_GEM_DOMAIN_GTT);
-			memset(dst_gtt, 0, 8192);
-			munmap(dst_gtt, 8192);
+			gem_set_domain(fd, obj[0].handle, I915_GEM_DOMAIN_GTT, I915_GEM_DOMAIN_GTT);
 			relocation_type = "reloc-gtt";
 		} else {
+			gem_set_domain(fd, obj[0].handle, I915_GEM_DOMAIN_CPU, I915_GEM_DOMAIN_CPU);
 			relocation_type = "reloc-cpu";
 		}
 	}
@@ -101,39 +93,36 @@ static void source_offset_tests(int devid, bool reloc_gtt)
 		igt_require(intel_gen(devid) >= 8);
 		single_reloc.offset = 4096 - 4;
 		single_reloc.delta = 0;
-		single_reloc.target_handle = handle;
+		single_reloc.target_handle = target_handle();
 		single_reloc.read_domains = I915_GEM_DOMAIN_RENDER;
 		single_reloc.write_domain = I915_GEM_DOMAIN_RENDER;
 		single_reloc.presumed_offset = 0;
+		gem_execbuf(fd, &execbuf);
 
-		igt_assert(ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf) == 0);
 		single_reloc.delta = 1024;
-		igt_assert(ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf) == 0);
+		gem_execbuf(fd, &execbuf);
 	}
 
 	igt_subtest_f("source-offset-end-gen8-%s", relocation_type) {
 		igt_require(intel_gen(devid) >= 8);
 		single_reloc.offset = 8192 - 8;
 		single_reloc.delta = 0;
-		single_reloc.target_handle = handle;
+		single_reloc.target_handle = target_handle();
 		single_reloc.read_domains = I915_GEM_DOMAIN_RENDER;
 		single_reloc.write_domain = I915_GEM_DOMAIN_RENDER;
 		single_reloc.presumed_offset = 0;
-
-		igt_assert(ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf) == 0);
+		gem_execbuf(fd, &execbuf);
 	}
 
 	igt_subtest_f("source-offset-overflow-gen8-%s", relocation_type) {
 		igt_require(intel_gen(devid) >= 8);
 		single_reloc.offset = 8192 - 4;
 		single_reloc.delta = 0;
-		single_reloc.target_handle = handle;
+		single_reloc.target_handle = target_handle();
 		single_reloc.read_domains = I915_GEM_DOMAIN_RENDER;
 		single_reloc.write_domain = I915_GEM_DOMAIN_RENDER;
 		single_reloc.presumed_offset = 0;
-
-		igt_assert(ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf) != 0);
-		igt_assert(errno == EINVAL);
+		igt_assert_eq(__gem_execbuf(fd, &execbuf), -EINVAL);
 	}
 
 	/* Tests for old 4byte relocs on pre-gen8. */
@@ -141,140 +130,209 @@ static void source_offset_tests(int devid, bool reloc_gtt)
 		igt_require(intel_gen(devid) < 8);
 		single_reloc.offset = 8192 - 4;
 		single_reloc.delta = 0;
-		single_reloc.target_handle = handle;
+		single_reloc.target_handle = target_handle();
 		single_reloc.read_domains = I915_GEM_DOMAIN_RENDER;
 		single_reloc.write_domain = I915_GEM_DOMAIN_RENDER;
 		single_reloc.presumed_offset = 0;
-
-		igt_assert(ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf) == 0);
+		gem_execbuf(fd, &execbuf);
 	}
 
 	igt_subtest_f("source-offset-big-%s", relocation_type) {
 		single_reloc.offset = 8192;
 		single_reloc.delta = 0;
-		single_reloc.target_handle = handle;
+		single_reloc.target_handle = target_handle();
 		single_reloc.read_domains = I915_GEM_DOMAIN_RENDER;
 		single_reloc.write_domain = I915_GEM_DOMAIN_RENDER;
 		single_reloc.presumed_offset = 0;
-
-		igt_assert(ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf) != 0);
-		igt_assert(errno == EINVAL);
+		igt_assert_eq(__gem_execbuf(fd, &execbuf), -EINVAL);
 	}
 
 	igt_subtest_f("source-offset-negative-%s", relocation_type) {
 		single_reloc.offset = (int64_t) -4;
 		single_reloc.delta = 0;
-		single_reloc.target_handle = handle;
+		single_reloc.target_handle = target_handle();
 		single_reloc.read_domains = I915_GEM_DOMAIN_RENDER;
 		single_reloc.write_domain = I915_GEM_DOMAIN_RENDER;
 		single_reloc.presumed_offset = 0;
-
-		igt_assert(ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf) != 0);
-		igt_assert(errno == EINVAL);
+		igt_assert_eq(__gem_execbuf(fd, &execbuf), -EINVAL);
 	}
 
 	igt_subtest_f("source-offset-unaligned-%s", relocation_type) {
 		single_reloc.offset = 1;
 		single_reloc.delta = 0;
-		single_reloc.target_handle = handle;
+		single_reloc.target_handle = target_handle();
 		single_reloc.read_domains = I915_GEM_DOMAIN_RENDER;
 		single_reloc.write_domain = I915_GEM_DOMAIN_RENDER;
 		single_reloc.presumed_offset = 0;
-
-		igt_assert(ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf) != 0);
-		igt_assert(errno == EINVAL);
-	}
-
-	igt_fixture {
-		gem_close(fd, handle);
+		igt_assert_eq(__gem_execbuf(fd, &execbuf), -EINVAL);
 	}
 }
 
-static void reloc_tests(void)
+static void reloc_tests(const char *suffix)
 {
+	uint64_t max_relocations;
 	int i;
-	unsigned int total_unsigned = 0;
 
-	igt_subtest("invalid-address") {
+	max_relocations = min(ULONG_MAX, SIZE_MAX);
+	max_relocations /= sizeof(struct drm_i915_gem_relocation_entry);
+	igt_debug("Maximum allocable relocations: %'llu\n",
+		  (long long)max_relocations);
+
+	igt_subtest_f("invalid-address%s", suffix) {
 		/* Attempt unmapped single entry. */
-		execobjs[0].relocation_count = 1;
-		execobjs[0].relocs_ptr = 0;
+		obj[0].relocation_count = 1;
+		obj[0].relocs_ptr = 0;
 		execbuf.buffer_count = 1;
 
-		errno = 0;
-		ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf);
-		igt_assert(errno == EFAULT);
+		igt_assert_eq(__gem_execbuf(fd, &execbuf), -EFAULT);
 	}
 
-	igt_subtest("single-overflow") {
-		/* Attempt single overflowed entry. */
-		execobjs[0].relocation_count = (1 << 31);
-		execobjs[0].relocs_ptr = (uintptr_t)reloc;
+	igt_subtest_f("single-fault%s", suffix) {
+		obj[0].relocation_count = entries + 1;
 		execbuf.buffer_count = 1;
 
-		errno = 0;
-		ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf);
-		igt_assert(errno == EINVAL);
+		/* out-of-bounds after */
+		obj[0].relocs_ptr = (uintptr_t)reloc;
+		igt_assert_eq(__gem_execbuf(fd, &execbuf), -EFAULT);
+
+		/* out-of-bounds before */
+		obj[0].relocs_ptr = (uintptr_t)(reloc - 1);
+		igt_assert_eq(__gem_execbuf(fd, &execbuf), -EFAULT);
 	}
 
 	igt_fixture {
-		execobjs[0].handle = batch_handle;
-		execobjs[0].relocation_count = 0;
-		execobjs[0].relocs_ptr = 0;
+		obj[0].relocation_count = 0;
+		obj[0].relocs_ptr = 0;
 
 		execbuf.buffer_count = 1;
 
 		/* Make sure the batch would succeed except for the thing we're
 		 * testing. */
-		execbuf.batch_start_offset = 0;
-		execbuf.batch_len = 8;
-		igt_assert(ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf) == 0);
+		igt_require(__gem_execbuf(fd, &execbuf) == 0);
 	}
 
-	igt_subtest("batch-start-unaligned") {
+	igt_subtest_f("batch-start-unaligned%s", suffix) {
 		execbuf.batch_start_offset = 1;
 		execbuf.batch_len = 8;
-
-		igt_assert(ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf) != 0);
-		igt_assert(errno == EINVAL);
+		igt_assert_eq(__gem_execbuf(fd, &execbuf), -EINVAL);
 	}
 
-	igt_subtest("batch-end-unaligned") {
+	igt_subtest_f("batch-end-unaligned%s", suffix) {
 		execbuf.batch_start_offset = 0;
 		execbuf.batch_len = 7;
+		igt_assert_eq(__gem_execbuf(fd, &execbuf), -EINVAL);
+	}
 
-		igt_assert(ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf) != 0);
-		igt_assert(errno == EINVAL);
+	igt_subtest_f("batch-both-unaligned%s", suffix) {
+		execbuf.batch_start_offset = 1;
+		execbuf.batch_len = 7;
+		igt_assert_eq(__gem_execbuf(fd, &execbuf), -EINVAL);
 	}
 
 	igt_fixture {
 		/* Undo damage for next tests. */
 		execbuf.batch_start_offset = 0;
-		execbuf.batch_len = 8;
+		execbuf.batch_len = 0;
+		igt_require(__gem_execbuf(fd, &execbuf) == 0);
 	}
 
-	igt_subtest("wrapped-overflow") {
-		/* Attempt wrapped overflow entries. */
-		for (i = 0; i < num; i++) {
-			struct drm_i915_gem_exec_object2 *obj = &execobjs[i];
-			obj->handle = handles[i];
-
-			if (i == num - 1) {
-				/* Wraps to 1 on last count. */
-				obj->relocation_count = 1 - total_unsigned;
-				obj->relocs_ptr = (uintptr_t)reloc;
-			} else {
-				obj->relocation_count = entries;
-				obj->relocs_ptr = (uintptr_t)reloc;
-			}
-
-			total_unsigned += obj->relocation_count;
+	igt_subtest_f("single-overflow%s", suffix) {
+		if (*suffix) {
+			igt_require_f(intel_get_avail_ram_mb() >
+				      sizeof(struct drm_i915_gem_relocation_entry) * entries / (1024*1024),
+				      "Test requires at least %'llu MiB, but only %'llu MiB of RAM available\n",
+				      (long long)sizeof(struct drm_i915_gem_relocation_entry) * entries / (1024*1024),
+				      (long long)intel_get_avail_ram_mb());
 		}
-		execbuf.buffer_count = num;
 
-		errno = 0;
-		ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf);
-		igt_assert(errno == EINVAL);
+		obj[0].relocs_ptr = (uintptr_t)reloc;
+		obj[0].relocation_count = entries;
+		execbuf.buffer_count = 1;
+		gem_execbuf(fd, &execbuf);
+
+		/* Attempt single overflowed entry. */
+		obj[0].relocation_count = -1;
+		igt_debug("relocation_count=%u\n",
+				obj[0].relocation_count);
+		if (max_relocations <= obj[0].relocation_count)
+			igt_assert_eq(__gem_execbuf(fd, &execbuf), -EINVAL);
+		else
+			igt_assert_eq(__gem_execbuf(fd, &execbuf), -EFAULT);
+
+		if (max_relocations + 1 < obj[0].relocation_count) {
+			obj[0].relocation_count = max_relocations + 1;
+			igt_debug("relocation_count=%u\n",
+				  obj[0].relocation_count);
+			igt_assert_eq(__gem_execbuf(fd, &execbuf), -EINVAL);
+
+			obj[0].relocation_count = max_relocations - 1;
+			igt_debug("relocation_count=%u\n",
+				  obj[0].relocation_count);
+			igt_assert_eq(__gem_execbuf(fd, &execbuf), -EFAULT);
+		}
+	}
+
+	igt_subtest_f("wrapped-overflow%s", suffix) {
+		if (*suffix) {
+			igt_require_f(intel_get_avail_ram_mb() >
+				      sizeof(struct drm_i915_gem_relocation_entry) * entries * num / (1024*1024),
+				      "Test requires at least %'llu MiB, but only %'llu MiB of RAM available\n",
+				      (long long)sizeof(struct drm_i915_gem_relocation_entry) * entries * num / (1024*1024),
+				      (long long)intel_get_avail_ram_mb());
+		}
+
+		for (i = 0; i < num; i++) {
+			struct drm_i915_gem_exec_object2 *o = &obj[i];
+
+			o->relocs_ptr = (uintptr_t)reloc;
+			o->relocation_count = entries;
+		}
+		execbuf.buffer_count = i;
+		gem_execbuf(fd, &execbuf);
+
+		obj[i-1].relocation_count = -1;
+		igt_debug("relocation_count[%d]=%u\n",
+			  i-1, obj[i-1].relocation_count);
+                if (max_relocations <= obj[i-1].relocation_count)
+                        igt_assert_eq(__gem_execbuf(fd, &execbuf), -EINVAL);
+		else
+                        igt_assert_eq(__gem_execbuf(fd, &execbuf), -EFAULT);
+
+		if (max_relocations < obj[i-1].relocation_count) {
+			obj[i-1].relocation_count = max_relocations;
+			igt_debug("relocation_count[%d]=%u\n",
+				  i-1, obj[i-1].relocation_count);
+			/* Whether the kernel reports the EFAULT for the
+			 * invalid relocation array or EINVAL for the overflow
+			 * in array size depends upon the order of the
+			 * individual tests. From a consistency perspective
+			 * EFAULT is preferred (i.e. using that relocation
+			 * array by itself would cause EFAULT not EINVAL).
+			 */
+			igt_assert_eq(__gem_execbuf(fd, &execbuf), -EFAULT);
+
+			obj[i-1].relocation_count = max_relocations - 1;
+			igt_debug("relocation_count[%d]=%u\n",
+				  i-1, obj[i-1].relocation_count);
+			igt_assert_eq(__gem_execbuf(fd, &execbuf), -EFAULT);
+		}
+
+		obj[i-1].relocation_count = entries + 1;
+		igt_debug("relocation_count[%d]=%u\n",
+                          i-1, obj[i-1].relocation_count);
+		igt_assert_eq(__gem_execbuf(fd, &execbuf), -EFAULT);
+
+		obj[0].relocation_count = -1;
+		if (max_relocations < obj[0].relocation_count) {
+			execbuf.buffer_count = 1;
+			gem_execbuf(fd, &execbuf);
+
+			/* As outlined above, this is why EFAULT is preferred */
+			obj[0].relocation_count = max_relocations;
+			igt_debug("relocation_count[0]=%u\n",
+				  obj[0].relocation_count);
+			igt_assert_eq(__gem_execbuf(fd, &execbuf), -EFAULT);
+		}
 	}
 }
 
@@ -282,39 +340,25 @@ static void buffer_count_tests(void)
 {
 	igt_subtest("buffercount-overflow") {
 		for (int i = 0; i < num; i++) {
-			execobjs[i].relocation_count = 0;
-			execobjs[i].relocs_ptr = 0;
-			execobjs[i].handle = handles[i];
+			obj[i].relocation_count = 0;
+			obj[i].relocs_ptr = 0;
 		}
 
-		execobjs[0].relocation_count = 0;
-		execobjs[0].relocs_ptr = 0;
 		/* We only have num buffers actually, but the overflow will make
 		 * sure we blow up the kernel before we blow up userspace. */
 		execbuf.buffer_count = num;
 
-		/* Put a real batch at the end. */
-		execobjs[num - 1].handle = batch_handle;
-
 		/* Make sure the basic thing would work first ... */
-		errno = 0;
-		ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf);
-		igt_assert(errno == 0);
+		gem_execbuf(fd, &execbuf);
 
 		/* ... then be evil: Overflow of the pointer table (which has a
 		 * bit of lead datastructures, so no + 1 needed to overflow). */
 		execbuf.buffer_count = INT_MAX / sizeof(void *);
-
-		errno = 0;
-		ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf);
-		igt_assert(errno == EINVAL);
+		igt_assert_eq(__gem_execbuf(fd, &execbuf), -EINVAL);
 
 		/* ... then be evil: Copying/allocating the array. */
-		execbuf.buffer_count = UINT_MAX / sizeof(execobjs[0]) + 1;
-
-		errno = 0;
-		ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf);
-		igt_assert(errno == EINVAL);
+		execbuf.buffer_count = UINT_MAX / sizeof(obj[0]) + 1;
+		igt_assert_eq(__gem_execbuf(fd, &execbuf), -EINVAL);
 	}
 }
 
@@ -323,58 +367,65 @@ igt_main
 	int devid = 0;
 
 	igt_fixture {
-		int ring;
-		uint32_t batch_data [2] = { MI_NOOP, MI_BATCH_BUFFER_END };
+		uint32_t bbe = MI_BATCH_BUFFER_END;
+		size_t reloc_size;
 
 		fd = drm_open_driver(DRIVER_INTEL);
-
 		devid = intel_get_drm_devid(fd);
 
 		/* Create giant reloc buffer area. */
 		num = 257;
 		entries = ((1ULL << 32) / (num - 1));
 		reloc_size = entries * sizeof(struct drm_i915_gem_relocation_entry);
-		reloc = mmap(NULL, reloc_size, PROT_READ | PROT_WRITE,
+		igt_assert((reloc_size & 4095) == 0);
+		reloc = mmap(NULL, reloc_size + 2*4096, PROT_READ | PROT_WRITE,
 			     MAP_PRIVATE | MAP_ANON, -1, 0);
 		igt_assert(reloc != MAP_FAILED);
+		igt_require_f(mlock(reloc, reloc_size) == 0,
+			      "Tests require at least %'lu MiB of available memory\n",
+			      reloc_size / (1024*1024));
+
+		/* disable access before + after */
+		mprotect(reloc, 4096, 0);
+		reloc = (struct drm_i915_gem_relocation_entry *)((char *)reloc + 4096);
+		mprotect(reloc + entries, 4096, 0);
 
 		/* Allocate the handles we'll need to wrap. */
-		handles = calloc(num, sizeof(*handles));
-		for (int i = 0; i < num; i++)
-			handles[i] = gem_create(fd, 4096);
+		intel_require_memory(num+1, 4096, CHECK_RAM);
+		obj = calloc(num, sizeof(*obj));
+		igt_assert(obj);
 
-		if (intel_gen(devid) >= 6)
-			ring = I915_EXEC_BLT;
-		else
-			ring = 0;
+		/* First object is used for page crossing tests */
+		obj[0].handle = gem_create(fd, 8192);
+		gem_write(fd, obj[0].handle, 0, &bbe, sizeof(bbe));
+		for (int i = 1; i < num; i++) {
+			obj[i].handle = gem_create(fd, 4096);
+			gem_write(fd, obj[i].handle, 0, &bbe, sizeof(bbe));
+		}
 
 		/* Create relocation objects. */
-		execobjs = calloc(num, sizeof(*execobjs));
-		execbuf.buffers_ptr = (uintptr_t)execobjs;
-		execbuf.batch_start_offset = 0;
-		execbuf.batch_len = 8;
-		execbuf.cliprects_ptr = 0;
-		execbuf.num_cliprects = 0;
-		execbuf.DR1 = 0;
-		execbuf.DR4 = 0;
-		execbuf.flags = ring;
-		i915_execbuffer2_set_context_id(execbuf, 0);
-		execbuf.rsvd2 = 0;
+		memset(&execbuf, 0, sizeof(execbuf));
+		execbuf.buffers_ptr = (uintptr_t)obj;
+		execbuf.buffer_count = 1;
+		execbuf.flags = I915_EXEC_HANDLE_LUT;
+		if (__gem_execbuf(fd, &execbuf))
+			execbuf.flags = 0;
 
-		batch_handle = gem_create(fd, 4096);
-
-		gem_write(fd, batch_handle, 0, batch_data, sizeof(batch_data));
+		for (int i = 0; i < entries; i++) {
+			reloc[i].target_handle = target_handle();
+			reloc[i].offset = 1024;
+			reloc[i].read_domains = I915_GEM_DOMAIN_INSTRUCTION;
+			reloc[i].write_domain = 0;
+		}
 	}
 
-	reloc_tests();
+	reloc_tests("");
+	igt_disable_prefault();
+	reloc_tests("-noprefault");
+	igt_enable_prefault();
 
 	source_offset_tests(devid, false);
 	source_offset_tests(devid, true);
 
 	buffer_count_tests();
-
-	igt_fixture {
-		gem_close(fd, batch_handle);
-		close(fd);
-	}
 }
