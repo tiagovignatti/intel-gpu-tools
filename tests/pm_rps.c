@@ -130,7 +130,7 @@ static int do_writeval(FILE *filp, int val, int lerrno, bool readback_check)
 			igt_assert_eq(readval(filp), orig);
 	} else {
 		/* Expecting no error */
-		igt_assert_neq(ret, 0);
+		igt_assert_lt(0, ret);
 		wait_freq_settle();
 		if (readback_check)
 			igt_assert_eq(readval(filp), val);
