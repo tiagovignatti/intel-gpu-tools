@@ -462,6 +462,22 @@ uint32_t kmstest_dumb_create(int fd, int width, int height, int bpp,
 	return create.handle;
 }
 
+void *kmstest_dumb_map_buffer(int fd, uint32_t handle, uint64_t size,
+			      unsigned prot)
+{
+	struct drm_mode_map_dumb arg = {};
+	void *ptr;
+
+	arg.handle = handle;
+
+	do_ioctl(fd, DRM_IOCTL_MODE_MAP_DUMB, &arg);
+
+	ptr = mmap(NULL, size, prot, MAP_SHARED, fd, arg.offset);
+	igt_assert(ptr != MAP_FAILED);
+
+	return ptr;
+}
+
 /*
  * Returns: the previous mode, or KD_GRAPHICS if no /dev/tty0 was
  * found and nothing was done.

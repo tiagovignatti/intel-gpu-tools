@@ -178,6 +178,9 @@ uint32_t kmstest_find_crtc_for_connector(int fd, drmModeRes *res,
 uint32_t kmstest_dumb_create(int fd, int width, int height, int bpp,
 			     unsigned *stride, unsigned *size);
 
+void *kmstest_dumb_map_buffer(int fd, uint32_t handle, uint64_t size,
+			      unsigned prot);
+
 /*
  * A small modeset API
  */
