@@ -381,23 +381,23 @@ static uint32_t *get_connector_ids(struct crtc_config *crtc)
 	return ids;
 }
 
-static int test_stealing(int drm_fd, const struct crtc_config *crtc, uint32_t *ids)
+static int test_stealing(int fd, struct crtc_config *crtc, uint32_t *ids)
 {
 	int i, ret = 0;
 
 	if (!crtc->connector_count)
-		return drmModeSetCrtc(drm_fd, crtc->crtc_id,
+		return drmModeSetCrtc(fd, crtc->crtc_id,
 				     crtc->fb_info.fb_id, 0, 0,
 				     ids, crtc->connector_count, &crtc->mode);
 
 	for (i = 0; i < crtc->connector_count; ++i) {
-		ret = drmModeSetCrtc(drm_fd, crtc->crtc_id,
+		ret = drmModeSetCrtc(fd, crtc->crtc_id,
 				     crtc->fb_info.fb_id, 0, 0,
 				     &ids[i], 1, &crtc->mode);
 
 		igt_assert_eq(ret, 0);
 
-		ret = drmModeSetCrtc(drm_fd, crtc->crtc_id,
+		ret = drmModeSetCrtc(fd, crtc->crtc_id,
 				     crtc->fb_info.fb_id, 0, 0,
 				     ids, crtc->connector_count, &crtc->mode);
 
