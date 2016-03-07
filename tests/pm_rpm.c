@@ -1337,15 +1337,13 @@ static void reg_read_ioctl_subtest(void)
 
 static bool device_in_pci_d3(void)
 {
-	struct pci_device *pci_dev;
-	int rc;
 	uint16_t val;
+	int rc;
 
-	pci_dev = intel_get_pci_device();
-
-	rc = pci_device_cfg_read_u16(pci_dev, &val, 0xd4);
+	rc = pci_device_cfg_read_u16(intel_get_pci_device(), &val, 0xd4);
 	igt_assert_eq(rc, 0);
 
+	igt_debug("%s: PCI D3 state=%d\n", __func__, val & 0x3);
 	return (val & 0x3) == 0x3;
 }
 
@@ -1354,11 +1352,9 @@ static void pci_d3_state_subtest(void)
 	igt_require(has_runtime_pm);
 
 	disable_all_screens_and_wait(&ms_data);
-
-	igt_assert(device_in_pci_d3());
+	igt_assert(igt_wait(device_in_pci_d3(), 2000, 100));
 
 	enable_one_screen_and_wait(&ms_data);
-
 	igt_assert(!device_in_pci_d3());
 }
 
