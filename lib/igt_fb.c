@@ -1014,6 +1014,20 @@ static void create_cairo_surface__blit(int fd, struct igt_fb *fb)
 				    blit, destroy_cairo_surface__blit);
 }
 
+/**
+ * igt_dirty_fb:
+ * @fd: open drm file descriptor
+ * @fb: pointer to an #igt_fb structure
+ *
+ * Flushes out the whole framebuffer.
+ *
+ * Returns: 0 upon success.
+ */
+int igt_dirty_fb(int fd, struct igt_fb *fb)
+{
+	return drmModeDirtyFB(fb->fd, fb->fb_id, NULL, 0);
+}
+
 static void destroy_cairo_surface__gtt(void *arg)
 {
 	struct igt_fb *fb = arg;

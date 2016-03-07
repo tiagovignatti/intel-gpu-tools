@@ -93,6 +93,7 @@ unsigned int igt_create_image_fb(int drm_fd,  int width, int height,
 unsigned int igt_create_stereo_fb(int drm_fd, drmModeModeInfo *mode,
 				  uint32_t format, uint64_t tiling);
 void igt_remove_fb(int fd, struct igt_fb *fb);
+int igt_dirty_fb(int fd, struct igt_fb *fb);
 
 /* cairo-based painting */
 cairo_t *igt_get_cairo_ctx(int fd, struct igt_fb *fb);
