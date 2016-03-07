@@ -125,7 +125,7 @@ if [ "x$RESUME" != "x" ]; then
 	sudo IGT_TEST_ROOT="$IGT_TEST_ROOT" "$PIGLIT" resume "$RESULTS" $NORETRY
 else
 	mkdir -p "$RESULTS"
-	sudo IGT_TEST_ROOT="$IGT_TEST_ROOT" "$PIGLIT" run igt "$RESULTS" -s $VERBOSE $EXCLUDE $FILTER
+	sudo IGT_TEST_ROOT="$IGT_TEST_ROOT" "$PIGLIT" run igt -o "$RESULTS" -s $VERBOSE $EXCLUDE $FILTER
 fi
 
 if [ "$SUMMARY" == "html" ]; then
