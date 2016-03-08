@@ -89,7 +89,7 @@ struct consumer {
 
 	int go;
 
-	igt_stats_t latency;
+	struct igt_mean latency;
 	struct producer *producer;
 };
 
@@ -116,7 +116,7 @@ struct producer {
 	int wait;
 	int complete;
 	int done;
-	igt_stats_t latency, dispatch;
+	struct igt_mean latency, dispatch;
 
 	int nop;
 	int nconsumers;
@@ -278,10 +278,10 @@ static void setup_nop(struct producer *p, uint32_t batch)
 	eb->rsvd1 = p->ctx;
 }
 
-static void measure_latency(struct producer *p, igt_stats_t *stats)
+static void measure_latency(struct producer *p, struct igt_mean *mean)
 {
 	gem_sync(fd, p->latency_dispatch.exec[0].handle);
-	igt_stats_push(stats, read_timestamp() - *p->last_timestamp);
+	igt_mean_add(mean, read_timestamp() - *p->last_timestamp);
 }
 
 static void *producer(void *arg)
@@ -326,7 +326,7 @@ static void *producer(void *arg)
 		 * (including the nop delays).
 		 */
 		measure_latency(p, &p->latency);
-		igt_stats_push(&p->dispatch, *p->last_timestamp - start);
+		igt_mean_add(&p->dispatch, *p->last_timestamp - start);
 
 		/* Tidy up all the extra threads before we submit again. */
 		pthread_mutex_lock(&p->lock);
@@ -450,15 +450,15 @@ static int run(int seconds,
 		pthread_cond_init(&p[n].p_cond, NULL);
 		pthread_cond_init(&p[n].c_cond, NULL);
 
-		igt_stats_init(&p[n].latency);
-		igt_stats_init(&p[n].dispatch);
+		igt_mean_init(&p[n].latency);
+		igt_mean_init(&p[n].dispatch);
 		p[n].wait = nconsumers;
 		p[n].nop = nop;
 		p[n].nconsumers = nconsumers;
 		p[n].consumers = calloc(nconsumers, sizeof(struct consumer));
 		for (m = 0; m < nconsumers; m++) {
 			p[n].consumers[m].producer = &p[n];
-			igt_stats_init(&p[n].consumers[m].latency);
+			igt_mean_init(&p[n].consumers[m].latency);
 			pthread_create(&p[n].consumers[m].thread, NULL,
 				       consumer, &p[n].consumers[m]);
 		}
@@ -497,13 +497,14 @@ static int run(int seconds,
 
 		nrun++;
 		complete += p[n].complete;
-		igt_stats_push_float(&latency, l_estimate(&p[n].latency));
-		igt_stats_push_float(&platency, l_estimate(&p[n].latency));
-		igt_stats_push_float(&dispatch, l_estimate(&p[n].dispatch));
+		igt_stats_push_float(&latency, p[n].latency.mean);
+		igt_stats_push_float(&platency, p[n].latency.mean);
+		igt_stats_push_float(&dispatch, p[n].dispatch.mean);
 
 		for (m = 0; m < nconsumers; m++) {
 			pthread_join(p[n].consumers[m].thread, NULL);
-			igt_stats_push_float(&latency, l_estimate(&p[n].consumers[m].latency));
+			igt_stats_push_float(&latency,
+					     p[n].consumers[m].latency.mean);
 		}
 	}
 

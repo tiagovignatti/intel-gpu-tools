@@ -80,4 +80,31 @@ double igt_stats_get_median(igt_stats_t *stats);
 double igt_stats_get_variance(igt_stats_t *stats);
 double igt_stats_get_std_deviation(igt_stats_t *stats);
 
+struct igt_mean {
+	double mean, sq;
+	unsigned long count;
+};
+
+static inline void igt_mean_init(struct igt_mean *m)
+{
+	memset(m, 0, sizeof(*m));
+}
+
+static inline void igt_mean_add(struct igt_mean *m, double v)
+{
+	double delta = v - m->mean;
+	m->mean += delta / m->count++;
+	m->sq += delta * (v - m->mean);
+}
+
+static inline double igt_mean_get(struct igt_mean *m)
+{
+	return m->mean;
+}
+
+static inline double igt_mean_get_variance(struct igt_mean *m)
+{
+	return m->sq / m->count;
+}
+
 #endif /* __IGT_STATS_H__ */
