@@ -110,7 +110,7 @@ static bool is_vc4_device(int fd)
 	return !ret && strcmp("vc4", name) == 0;
 }
 
-static bool is_intel(int fd)
+static bool has_known_intel_chipset(int fd)
 {
 	struct drm_i915_getparam gp;
 	int devid = 0;
@@ -199,7 +199,7 @@ int drm_get_card(void)
 		if (fd == -1)
 			continue;
 
-		if (!is_i915_device(fd) || !is_intel(fd)) {
+		if (!is_i915_device(fd) || !has_known_intel_chipset(fd)) {
 			close(fd);
 			continue;
 		}
@@ -234,7 +234,9 @@ int __drm_open_driver(int chipset)
 		if (fd == -1)
 			continue;
 
-		found_intel =  is_i915_device(fd) && is_intel(fd) && (chipset & DRIVER_INTEL);
+		found_intel = is_i915_device(fd) &&
+			      has_known_intel_chipset(fd) &&
+			      (chipset & DRIVER_INTEL);
 
 		found_vc4 = is_vc4_device(fd) && (chipset & DRIVER_VC4);
 
@@ -265,7 +267,7 @@ static int __drm_open_driver_render(int chipset)
 		if (fd == -1)
 			continue;
 
-		if (!is_i915_device(fd) || !is_intel(fd)) {
+		if (!is_i915_device(fd) || !has_known_intel_chipset(fd)) {
 			close(fd);
 			fd = -1;
 			continue;
