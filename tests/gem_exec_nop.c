@@ -43,57 +43,123 @@
 #define LOCAL_I915_EXEC_NO_RELOC (1<<11)
 #define LOCAL_I915_EXEC_HANDLE_LUT (1<<12)
 
-#define LOCAL_I915_EXEC_VEBOX (4<<0)
+#define LOCAL_I915_EXEC_BSD_SHIFT      (13)
+#define LOCAL_I915_EXEC_BSD_MASK       (3 << LOCAL_I915_EXEC_BSD_SHIFT)
 
-const uint32_t batch[2] = {MI_BATCH_BUFFER_END};
-int device;
+#define ENGINE_FLAGS  (I915_EXEC_RING_MASK | LOCAL_I915_EXEC_BSD_MASK)
 
-static void loop(int fd, uint32_t handle, unsigned ring_id, const char *ring_name)
+static double elapsed(const struct timespec *start, const struct timespec *end)
+{
+	return ((end->tv_sec - start->tv_sec) +
+		(end->tv_nsec - start->tv_nsec)*1e-9);
+}
+
+static void single(int fd, uint32_t handle, unsigned ring_id, const char *ring_name)
 {
 	struct drm_i915_gem_execbuffer2 execbuf;
-	struct drm_i915_gem_exec_object2 gem_exec[1];
-	int count;
+	struct drm_i915_gem_exec_object2 obj;
+	struct timespec start, now;
+	unsigned int count = 0;
 
 	gem_require_ring(fd, ring_id);
 
-	memset(&gem_exec, 0, sizeof(gem_exec));
-	gem_exec[0].handle = handle;
+	memset(&obj, 0, sizeof(obj));
+	obj.handle = handle;
 
 	memset(&execbuf, 0, sizeof(execbuf));
-	execbuf.buffers_ptr = (uintptr_t)gem_exec;
+	execbuf.buffers_ptr = (uintptr_t)&obj;
 	execbuf.buffer_count = 1;
 	execbuf.flags = ring_id;
 	execbuf.flags |= LOCAL_I915_EXEC_HANDLE_LUT;
 	execbuf.flags |= LOCAL_I915_EXEC_NO_RELOC;
-	if (drmIoctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf)) {
+	if (__gem_execbuf(fd, &execbuf) == 0) {
 		execbuf.flags = ring_id;
-		do_ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf);
+		gem_execbuf(fd, &execbuf);
 	}
 	gem_sync(fd, handle);
 
-	for (count = 1; count <= SLOW_QUICK(1<<17, 1<<4); count <<= 1) {
-		int loops = count;
-		gem_set_domain(fd, handle, I915_GEM_DOMAIN_GTT, 0);
-		while (loops--)
-			do_ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf);
-		gem_sync(fd, handle);
+	clock_gettime(CLOCK_MONOTONIC, &start);
+	do {
+		for (int loop = 0; loop < 1024; loop++) {
+			gem_execbuf(fd, &execbuf);
+			count++;
+		}
+		clock_gettime(CLOCK_MONOTONIC, &now);
+	} while (elapsed(&start, &now) < 20.);
+	gem_sync(fd, handle);
+	clock_gettime(CLOCK_MONOTONIC, &now);
+
+	igt_info("%s: %'u cycles: %.3fus\n",
+		 ring_name, count, elapsed(&start, &now)*1e6 / count);
+}
+
+static void all(int fd, uint32_t handle)
+{
+	struct drm_i915_gem_execbuffer2 execbuf;
+	struct drm_i915_gem_exec_object2 obj;
+	struct timespec start, now;
+	unsigned engines[16];
+	unsigned nengine;
+	unsigned engine;
+	unsigned int count = 0;
+
+	nengine = 0;
+	for_each_engine(fd, engine)
+		engines[nengine++] = engine;
+
+	memset(&obj, 0, sizeof(obj));
+	obj.handle = handle;
+
+	memset(&execbuf, 0, sizeof(execbuf));
+	execbuf.buffers_ptr = (uintptr_t)&obj;
+	execbuf.buffer_count = 1;
+	execbuf.flags |= LOCAL_I915_EXEC_HANDLE_LUT;
+	execbuf.flags |= LOCAL_I915_EXEC_NO_RELOC;
+	if (__gem_execbuf(fd, &execbuf) == 0) {
+		execbuf.flags = 0;
+		gem_execbuf(fd, &execbuf);
 	}
+	gem_sync(fd, handle);
+
+	clock_gettime(CLOCK_MONOTONIC, &start);
+	do {
+		for (int loop = 0; loop < 1024; loop++) {
+			for (int n = 0; n < nengine; n++) {
+				execbuf.flags &= ~ENGINE_FLAGS;
+				execbuf.flags |= engines[n];
+				gem_execbuf(fd, &execbuf);
+			}
+		}
+		count += nengine * 1024;
+		clock_gettime(CLOCK_MONOTONIC, &now);
+	} while (elapsed(&start, &now) < 150.); /* Hang detection ~120s */
+	gem_sync(fd, handle);
+	clock_gettime(CLOCK_MONOTONIC, &now);
+
+	igt_info("All (%d engines): %'u cycles: %.3fus\n",
+		 nengine, count, elapsed(&start, &now)*1e6 / count);
 }
 
 igt_main
 {
 	const struct intel_execution_engine *e;
 	uint32_t handle = 0;
+	int device = -1;
 
 	igt_fixture {
+		const uint32_t bbe = MI_BATCH_BUFFER_END;
+
 		device = drm_open_driver(DRIVER_INTEL);
 		handle = gem_create(device, 4096);
-		gem_write(device, handle, 0, batch, sizeof(batch));
+		gem_write(device, handle, 0, &bbe, sizeof(bbe));
 	}
 
 	for (e = intel_execution_engines; e->name; e++)
 		igt_subtest_f("%s", e->name)
-			loop(device, handle, e->exec_id | e->flags, e->name);
+			single(device, handle, e->exec_id | e->flags, e->name);
+
+	igt_subtest("basic")
+		all(device, handle);
 
 	igt_fixture {
 		gem_close(device, handle);
