@@ -420,9 +420,11 @@ igt_main
 	}
 
 	reloc_tests("");
-	igt_disable_prefault();
+	igt_fixture
+		igt_disable_prefault();
 	reloc_tests("-noprefault");
-	igt_enable_prefault();
+	igt_fixture
+		igt_enable_prefault();
 
 	source_offset_tests(devid, false);
 	source_offset_tests(devid, true);
