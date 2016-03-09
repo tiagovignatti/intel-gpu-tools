@@ -378,20 +378,35 @@ void kmstest_dump_mode(drmModeModeInfo *mode)
  * @fd: DRM fd
  * @crtc_id: DRM CRTC id
  *
- * Returns: The pipe number for the given DRM CRTC @crtc_id. This maps directly
- * to an enum pipe value used in other helper functions.
+ * Returns: The crtc index for the given DRM CRTC ID @crtc_id. The crtc index
+ * is the equivalent of the pipe id.  This value maps directly to an enum pipe
+ * value used in other helper functions.  Returns 0 if the index could not be
+ * determined.
  */
+
 int kmstest_get_pipe_from_crtc_id(int fd, int crtc_id)
 {
-	struct drm_i915_get_pipe_from_crtc_id pfci;
-	int ret;
+	drmModeRes *res;
+	drmModeCrtc *crtc;
+	int i, cur_id;
 
-	memset(&pfci, 0, sizeof(pfci));
-	pfci.crtc_id = crtc_id;
-	ret = drmIoctl(fd, DRM_IOCTL_I915_GET_PIPE_FROM_CRTC_ID, &pfci);
-	igt_assert(ret == 0);
+	res = drmModeGetResources(fd);
+	igt_assert(res);
 
-	return pfci.pipe;
+	for (i = 0; i < res->count_crtcs; i++) {
+		crtc = drmModeGetCrtc(fd, res->crtcs[i]);
+		igt_assert(crtc);
+		cur_id = crtc->crtc_id;
+		drmModeFreeCrtc(crtc);
+		if (cur_id == crtc_id)
+			break;
+	}
+
+	drmModeFreeResources(res);
+
+	igt_assert(i < res->count_crtcs);
+
+	return i;
 }
 
 /**
