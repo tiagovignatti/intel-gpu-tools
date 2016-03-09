@@ -1433,7 +1433,6 @@ static struct {
 
 static igt_exit_handler_t exit_handler_fn[MAX_EXIT_HANDLERS];
 static bool exit_handler_disabled;
-static sigset_t saved_sig_mask;
 #define SIGDEF(x) { x, #x, sizeof(#x) - 1 }
 #define SILENT(x) { x, NULL, 0 }
 static const struct { int number; const char *name; size_t name_len; } handled_signals[] =
