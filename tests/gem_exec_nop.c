@@ -93,6 +93,17 @@ static void single(int fd, uint32_t handle, unsigned ring_id, const char *ring_n
 		 ring_name, count, elapsed(&start, &now)*1e6 / count);
 }
 
+static bool ignore_engine(int fd, unsigned engine)
+{
+	if (engine == 0)
+		return true;
+
+	if (gem_has_bsd2(fd) && engine == I915_EXEC_BSD)
+		return true;
+
+	return false;
+}
+
 static void all(int fd, uint32_t handle)
 {
 	struct drm_i915_gem_execbuffer2 execbuf;
@@ -105,7 +116,8 @@ static void all(int fd, uint32_t handle)
 
 	nengine = 0;
 	for_each_engine(fd, engine)
-		engines[nengine++] = engine;
+		if (!ignore_engine(fd, engine)) engines[nengine++] = engine;
+	igt_require(nengine);
 
 	memset(&obj, 0, sizeof(obj));
 	obj.handle = handle;
