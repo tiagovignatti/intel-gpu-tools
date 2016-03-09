@@ -27,6 +27,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <math.h>
 
 /**
  * igt_stats_t:
@@ -81,20 +82,26 @@ double igt_stats_get_variance(igt_stats_t *stats);
 double igt_stats_get_std_deviation(igt_stats_t *stats);
 
 struct igt_mean {
-	double mean, sq;
+	double mean, sq, min, max;
 	unsigned long count;
 };
 
 static inline void igt_mean_init(struct igt_mean *m)
 {
 	memset(m, 0, sizeof(*m));
+	m->max = -HUGE_VAL;
+	m->min = HUGE_VAL;
 }
 
 static inline void igt_mean_add(struct igt_mean *m, double v)
 {
 	double delta = v - m->mean;
-	m->mean += delta / m->count++;
+	m->mean += delta / ++m->count;
 	m->sq += delta * (v - m->mean);
+	if (v < m->min)
+		m->min = v;
+	if (v > m->max)
+		m->max = v;
 }
 
 static inline double igt_mean_get(struct igt_mean *m)
