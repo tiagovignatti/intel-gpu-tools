@@ -75,6 +75,16 @@ static void bind_cpu(pthread_t thread, int cpu)
 	pthread_setaffinity_np(thread, sizeof(mask), &mask);
 }
 
+static void force_low_latency(void)
+{
+	int32_t target = 0;
+	int fd = open("/dev/cpu_dma_latency", O_RDWR);
+	if (fd < 0 || write(fd, &target, sizeof(target)) < 0)
+		fprintf(stderr,
+			"Unable to prevent CPU sleeps and force low latency using /dev/cpu_dma_latency: %s\n",
+			strerror(errno));
+}
+
 #define LOCAL_I915_EXEC_NO_RELOC (1<<11)
 #define LOCAL_I915_EXEC_HANDLE_LUT (1<<12)
 
@@ -246,8 +256,10 @@ int main(int argc, char **argv)
 		default:
 			break;
 		}
-
 	}
+
+	/* Prevent CPU sleeps so that busy and idle loads are consistent. */
+	force_low_latency();
 
 	busy = calloc(ncpus, sizeof(*busy));
 	if (enable_gem_sysbusy) {
