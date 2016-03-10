@@ -226,6 +226,18 @@ static double l_estimate(igt_stats_t *stats)
 		return igt_stats_get_mean(stats);
 }
 
+static double min_measurement_error(void)
+{
+	struct timespec start, end;
+	int n;
+
+	clock_gettime(CLOCK_MONOTONIC, &start);
+	for (n = 0; n < 1024; n++)
+		clock_gettime(CLOCK_MONOTONIC, &end);
+
+	return elapsed(&start, &end) / n;
+}
+
 int main(int argc, char **argv)
 {
 	struct gem_busyspin *busy;
@@ -233,6 +245,7 @@ int main(int argc, char **argv)
 	pthread_attr_t attr;
 	int ncpus = sysconf(_SC_NPROCESSORS_ONLN);
 	igt_stats_t cycles, mean, max;
+	double min;
 	int time = 10;
 	int field = -1;
 	int enable_gem_sysbusy = 1;
@@ -260,6 +273,7 @@ int main(int argc, char **argv)
 
 	/* Prevent CPU sleeps so that busy and idle loads are consistent. */
 	force_low_latency();
+	min = min_measurement_error();
 
 	busy = calloc(ncpus, sizeof(*busy));
 	if (enable_gem_sysbusy) {
@@ -302,17 +316,17 @@ int main(int argc, char **argv)
 	default:
 		printf("gem_syslatency: cycles=%.0f, latency mean=%.3fus max=%.0fus\n",
 		       igt_stats_get_mean(&cycles),
-		       igt_stats_get_mean(&mean) / 1000,
-		       l_estimate(&max) / 1000);
+		       (igt_stats_get_mean(&mean) - min)/ 1000,
+		       (l_estimate(&max) - min) / 1000);
 		break;
 	case 0:
 		printf("%.0f\n", igt_stats_get_mean(&cycles));
 		break;
 	case 1:
-		printf("%.3f\n", igt_stats_get_mean(&mean) / 1000);
+		printf("%.3f\n", (igt_stats_get_mean(&mean) - min) / 1000);
 		break;
 	case 2:
-		printf("%.0f\n", l_estimate(&max) / 1000);
+		printf("%.0f\n", (l_estimate(&max) - min) / 1000);
 		break;
 	}
 
