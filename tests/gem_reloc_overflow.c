@@ -382,8 +382,8 @@ igt_main
 			     MAP_PRIVATE | MAP_ANON, -1, 0);
 		igt_assert(reloc != MAP_FAILED);
 		igt_require_f(mlock(reloc, reloc_size) == 0,
-			      "Tests require at least %'lu MiB of available memory\n",
-			      reloc_size / (1024*1024));
+			      "Tests require at least %'llu MiB of available memory\n",
+			      (long long unsigned)reloc_size / (1024*1024));
 
 		/* disable access before + after */
 		mprotect(reloc, 4096, 0);
