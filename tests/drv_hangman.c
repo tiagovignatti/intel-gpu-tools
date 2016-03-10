@@ -291,7 +291,7 @@ static void test_error_state_capture(unsigned ring_id,
  * case and it takes a lot more time to wrap, so the acthd can potentially keep
  * increasing for a long time
  */
-#define NSEC_PER_SEC	1000000000L
+#define NSEC_PER_SEC	1000000000LL
 static void hangcheck_unterminated(void)
 {
 	int fd;
