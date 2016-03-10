@@ -1639,7 +1639,7 @@ igt_main
 			num_buffers = gem_mappable_aperture_size() / (1024 * 1024);
 			pin_sz = intel_get_avail_ram_mb() - num_buffers;
 
-			igt_debug("Pinning %ld MiB\n", pin_sz);
+			igt_debug("Pinning %lld MiB\n", (long long)pin_sz);
 			pin_sz *= 1024 * 1024;
 
 			if (posix_memalign(&pinned, 4096, pin_sz) ||
