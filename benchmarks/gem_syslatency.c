@@ -52,28 +52,13 @@ static volatile int done;
 
 struct gem_busyspin {
 	pthread_t thread;
-	int cpu;
 	unsigned long count;
 };
 
 struct sys_wait {
 	pthread_t thread;
-	int cpu;
 	struct igt_mean mean;
 };
-
-static void bind_cpu(pthread_t thread, int cpu)
-{
-	cpu_set_t mask;
-
-	if (cpu == -1)
-		return;
-
-	CPU_ZERO(&mask);
-	CPU_SET(cpu, &mask);
-
-	pthread_setaffinity_np(thread, sizeof(mask), &mask);
-}
 
 static void force_low_latency(void)
 {
@@ -114,8 +99,6 @@ static void *gem_busyspin(void *arg)
 	unsigned nengine;
 	unsigned engine;
 	int fd;
-
-	bind_cpu(bs->thread, bs->cpu);
 
 	fd = drm_open_driver(DRIVER_INTEL);
 
@@ -169,8 +152,6 @@ static void *sys_wait(void *arg)
 	struct timespec now;
 #define SIG SIGRTMIN
 
-	bind_cpu(w->thread, w->cpu);
-
 	sigemptyset(&mask);
 	sigaddset(&mask, SIG);
 	sigprocmask(SIG_SETMASK, &mask, NULL);
@@ -204,6 +185,21 @@ static void *sys_wait(void *arg)
 	timer_delete(timer);
 
 	return NULL;
+}
+
+static void bind_cpu(pthread_attr_t *attr, int cpu)
+{
+#ifdef __USE_GNU
+	cpu_set_t mask;
+
+	if (cpu == -1)
+		return;
+
+	CPU_ZERO(&mask);
+	CPU_SET(cpu, &mask);
+
+	pthread_attr_setaffinity_np(attr, sizeof(mask), &mask);
+#endif
 }
 
 static void rtprio(pthread_attr_t *attr, int prio)
@@ -276,10 +272,11 @@ int main(int argc, char **argv)
 	min = min_measurement_error();
 
 	busy = calloc(ncpus, sizeof(*busy));
+	pthread_attr_init(&attr);
 	if (enable_gem_sysbusy) {
 		for (n = 0; n < ncpus; n++) {
-			busy[n].cpu = n;
-			pthread_create(&busy[n].thread, NULL,
+			bind_cpu(&attr, n);
+			pthread_create(&busy[n].thread, &attr,
 				       gem_busyspin, &busy[n]);
 		}
 	}
@@ -288,8 +285,8 @@ int main(int argc, char **argv)
 	pthread_attr_init(&attr);
 	rtprio(&attr, 99);
 	for (n = 0; n < ncpus; n++) {
-		wait[n].cpu = n;
 		igt_mean_init(&wait[n].mean);
+		bind_cpu(&attr, n);
 		pthread_create(&wait[n].thread, &attr, sys_wait, &wait[n]);
 	}
 
