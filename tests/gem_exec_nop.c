@@ -72,7 +72,7 @@ static void single(int fd, uint32_t handle, unsigned ring_id, const char *ring_n
 	execbuf.flags = ring_id;
 	execbuf.flags |= LOCAL_I915_EXEC_HANDLE_LUT;
 	execbuf.flags |= LOCAL_I915_EXEC_NO_RELOC;
-	if (__gem_execbuf(fd, &execbuf) == 0) {
+	if (__gem_execbuf(fd, &execbuf)) {
 		execbuf.flags = ring_id;
 		gem_execbuf(fd, &execbuf);
 	}
@@ -127,7 +127,7 @@ static void all(int fd, uint32_t handle)
 	execbuf.buffer_count = 1;
 	execbuf.flags |= LOCAL_I915_EXEC_HANDLE_LUT;
 	execbuf.flags |= LOCAL_I915_EXEC_NO_RELOC;
-	if (__gem_execbuf(fd, &execbuf) == 0) {
+	if (__gem_execbuf(fd, &execbuf)) {
 		execbuf.flags = 0;
 		gem_execbuf(fd, &execbuf);
 	}

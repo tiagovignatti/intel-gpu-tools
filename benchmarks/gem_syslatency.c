@@ -105,7 +105,6 @@ static void *gem_busyspin(void *arg)
 	nengine = 0;
 	for_each_engine(fd, engine)
 		if (!ignore_engine(fd, engine)) engines[nengine++] = engine;
-	igt_require(nengine);
 
 	memset(&obj, 0, sizeof(obj));
 	obj.handle = gem_create(fd, 4096);
@@ -116,7 +115,7 @@ static void *gem_busyspin(void *arg)
 	execbuf.buffer_count = 1;
 	execbuf.flags |= LOCAL_I915_EXEC_HANDLE_LUT;
 	execbuf.flags |= LOCAL_I915_EXEC_NO_RELOC;
-	if (__gem_execbuf(fd, &execbuf) == 0) {
+	if (__gem_execbuf(fd, &execbuf)) {
 		execbuf.flags = 0;
 		gem_execbuf(fd, &execbuf);
 	}
