@@ -147,7 +147,7 @@ static void *gem_busyspin(void *arg)
 
 static double elapsed(const struct timespec *a, const struct timespec *b)
 {
-	return NSEC_PER_SEC*(b->tv_sec - a->tv_sec) + (b->tv_nsec - a ->tv_nsec);
+	return 1e9*(b->tv_sec - a->tv_sec) + (b->tv_nsec - a ->tv_nsec);
 }
 
 static void *sys_wait(void *arg)
@@ -225,10 +225,14 @@ int main(int argc, char **argv)
 	igt_stats_t cycles, mean, max;
 	int time = 10;
 	int field = -1;
+	int enable_gem_sysbusy = 1;
 	int n, c;
 
-	while ((c = getopt(argc, argv, "t:f:")) != -1) {
+	while ((c = getopt(argc, argv, "t:f:n")) != -1) {
 		switch (c) {
+		case 'n': /* dry run, measure baseline system latency */
+			enable_gem_sysbusy = 0;
+			break;
 		case 't':
 			/* How long to run the benchmark for (seconds) */
 			time = atoi(optarg);
@@ -246,13 +250,15 @@ int main(int argc, char **argv)
 	}
 
 	busy = calloc(ncpus, sizeof(*busy));
-	wait = calloc(ncpus, sizeof(*wait));
-
-	for (n = 0; n < ncpus; n++) {
-		busy[n].cpu = n;
-		pthread_create(&busy[n].thread, NULL, gem_busyspin, &busy[n]);
+	if (enable_gem_sysbusy) {
+		for (n = 0; n < ncpus; n++) {
+			busy[n].cpu = n;
+			pthread_create(&busy[n].thread, NULL,
+				       gem_busyspin, &busy[n]);
+		}
 	}
 
+	wait = calloc(ncpus, sizeof(*wait));
 	pthread_attr_init(&attr);
 	rtprio(&attr, 99);
 	for (n = 0; n < ncpus; n++) {
@@ -265,9 +271,11 @@ int main(int argc, char **argv)
 	done = 1;
 
 	igt_stats_init_with_size(&cycles, ncpus);
-	for (n = 0; n < ncpus; n++) {
-		pthread_join(busy[n].thread, NULL);
-		igt_stats_push(&cycles, busy[n].count);
+	if (enable_gem_sysbusy) {
+		for (n = 0; n < ncpus; n++) {
+			pthread_join(busy[n].thread, NULL);
+			igt_stats_push(&cycles, busy[n].count);
+		}
 	}
 
 	igt_stats_init_with_size(&mean, ncpus);
@@ -280,19 +288,19 @@ int main(int argc, char **argv)
 
 	switch (field) {
 	default:
-		printf("gem_syslatency: cycles=%.0f, latency mean=%.3fns max=%.0fns\n",
+		printf("gem_syslatency: cycles=%.0f, latency mean=%.3fus max=%.0fus\n",
 		       igt_stats_get_mean(&cycles),
-		       igt_stats_get_mean(&mean),
-		       l_estimate(&max));
+		       igt_stats_get_mean(&mean) / 1000,
+		       l_estimate(&max) / 1000);
 		break;
 	case 0:
 		printf("%.0f\n", igt_stats_get_mean(&cycles));
 		break;
 	case 1:
-		printf("%.3f\n", igt_stats_get_mean(&mean));
+		printf("%.3f\n", igt_stats_get_mean(&mean) / 1000);
 		break;
 	case 2:
-		printf("%.0f\n", l_estimate(&max));
+		printf("%.0f\n", l_estimate(&max) / 1000);
 		break;
 	}
 
