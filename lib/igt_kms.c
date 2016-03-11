@@ -145,6 +145,120 @@ const unsigned char* igt_kms_get_base_edid(void)
  *
  * Returns: an alternate edid block
  */
+static const char *igt_plane_prop_names[IGT_NUM_PLANE_PROPS] = {
+	"SRC_X",
+	"SRC_Y",
+	"SRC_W",
+	"SRC_H",
+	"CRTC_X",
+	"CRTC_Y",
+	"CRTC_W",
+	"CRTC_H",
+	"FB_ID",
+	"CRTC_ID",
+	"type",
+	"rotation"
+};
+
+static const char *igt_crtc_prop_names[IGT_NUM_CRTC_PROPS] = {
+	"background_color"
+};
+
+static const char *igt_connector_prop_names[IGT_NUM_CONNECTOR_PROPS] = {
+	"scaling mode",
+	"DPMS"
+};
+
+/*
+ * Retrieve all the properies specified in props_name and store them into
+ * plane->atomic_props_plane.
+ */
+static void
+igt_atomic_fill_plane_props(igt_display_t *display, igt_plane_t *plane,
+			int num_props, const char **prop_names)
+{
+	drmModeObjectPropertiesPtr props;
+	int i, j, fd;
+
+	fd = display->drm_fd;
+
+	props = drmModeObjectGetProperties(fd, plane->drm_plane->plane_id, DRM_MODE_OBJECT_PLANE);
+	igt_assert(props);
+
+	for (i = 0; i < props->count_props; i++) {
+		drmModePropertyPtr prop =
+			drmModeGetProperty(fd, props->props[i]);
+
+		for (j = 0; j < num_props; j++) {
+			if (strcmp(prop->name, prop_names[j]) != 0)
+				continue;
+
+			plane->atomic_props_plane[j] = props->props[i];
+			break;
+		}
+
+		drmModeFreeProperty(prop);
+	}
+
+	drmModeFreeObjectProperties(props);
+}
+
+/*
+ * Retrieve all the properies specified in props_name and store them into
+ * config->atomic_props_crtc and config->atomic_props_connector.
+ */
+static void
+igt_atomic_fill_props(igt_display_t *display, igt_output_t *output,
+			int num_crtc_props, const char **crtc_prop_names,
+			int num_connector_props, const char **conn_prop_names)
+{
+	drmModeObjectPropertiesPtr props;
+	int i, j, fd;
+
+	fd = display->drm_fd;
+
+	props = drmModeObjectGetProperties(fd, output->config.crtc->crtc_id, DRM_MODE_OBJECT_CRTC);
+	igt_assert(props);
+
+	for (i = 0; i < props->count_props; i++) {
+		drmModePropertyPtr prop =
+			drmModeGetProperty(fd, props->props[i]);
+
+		for (j = 0; j < num_crtc_props; j++) {
+			if (strcmp(prop->name, crtc_prop_names[j]) != 0)
+				continue;
+
+			output->config.atomic_props_crtc[j] = props->props[i];
+			break;
+		}
+
+		drmModeFreeProperty(prop);
+	}
+
+	drmModeFreeObjectProperties(props);
+	props = NULL;
+	props = drmModeObjectGetProperties(fd, output->config.connector->connector_id, DRM_MODE_OBJECT_CONNECTOR);
+	igt_assert(props);
+
+	for (i = 0; i < props->count_props; i++) {
+		drmModePropertyPtr prop =
+			drmModeGetProperty(fd, props->props[i]);
+
+		for (j = 0; j < num_connector_props; j++) {
+			if (strcmp(prop->name, conn_prop_names[j]) != 0)
+				continue;
+
+			output->config.atomic_props_connector[j] = props->props[i];
+			break;
+		}
+
+		drmModeFreeProperty(prop);
+	}
+
+	drmModeFreeObjectProperties(props);
+
+}
+
 const unsigned char* igt_kms_get_alt_edid(void)
 {
 	update_edid_csum(alt_edid);
@@ -1000,6 +1114,8 @@ static void igt_output_refresh(igt_output_t *output)
 	    kmstest_pipe_name(output->config.pipe));
 
 	display->pipes_in_use |= 1 << output->config.pipe;
+	igt_atomic_fill_props(display, output, IGT_NUM_CRTC_PROPS, igt_crtc_prop_names,
+		IGT_NUM_CONNECTOR_PROPS, igt_connector_prop_names);
 }
 
 static bool
@@ -1069,6 +1185,7 @@ void igt_display_init(igt_display_t *display, int drm_fd)
 	drmModeRes *resources;
 	drmModePlaneRes *plane_resources;
 	int i;
+	int is_atomic = 0;
 
 	memset(display, 0, sizeof(igt_display_t));
 
@@ -1086,6 +1203,7 @@ void igt_display_init(igt_display_t *display, int drm_fd)
 	display->n_pipes = resources->count_crtcs;
 
 	drmSetClientCap(drm_fd, DRM_CLIENT_CAP_UNIVERSAL_PLANES, 1);
+	is_atomic = drmSetClientCap(drm_fd, DRM_CLIENT_CAP_ATOMIC, 1);
 	plane_resources = drmModeGetPlaneResources(display->drm_fd);
 	igt_assert(plane_resources);
 
@@ -1142,6 +1260,10 @@ void igt_display_init(igt_display_t *display, int drm_fd)
 
 			plane->pipe = pipe;
 			plane->drm_plane = drm_plane;
+			if (is_atomic == 0) {
+				display->is_atomic = 1;
+				igt_atomic_fill_plane_props(display, plane, IGT_NUM_PLANE_PROPS, igt_plane_prop_names);
+			}
 
 			get_plane_property(display->drm_fd, drm_plane->plane_id,
 					   "rotation",
@@ -1397,6 +1519,80 @@ static uint32_t igt_plane_get_fb_gem_handle(igt_plane_t *plane)
 	igt_assert(r == 0);	\
 }
 
+
+
+
+/*
+ * Add position and fb changes of a plane to the atomic property set
+ */
+static void
+igt_atomic_prepare_plane_commit(igt_plane_t *plane, igt_output_t *output,
+	drmModeAtomicReq *req)
+{
+
+	igt_display_t *display = output->display;
+	uint32_t fb_id, crtc_id;
+
+	igt_assert(plane->drm_plane);
+
+	/* it's an error to try an unsupported feature */
+	igt_assert(igt_plane_supports_rotation(plane) ||
+			!plane->rotation_changed);
+
+	fb_id = igt_plane_get_fb_id(plane);
+	crtc_id = output->config.crtc->crtc_id;
+
+	LOG(display,
+	    "%s: populating plane data: %s.%d, fb %u\n",
+	    igt_output_name(output),
+	    kmstest_pipe_name(output->config.pipe),
+	    plane->index,
+	    fb_id);
+
+	if (plane->fb_changed) {
+		igt_atomic_populate_plane_req(req, plane, IGT_PLANE_CRTC_ID, fb_id ? crtc_id : 0);
+		igt_atomic_populate_plane_req(req, plane, IGT_PLANE_FB_ID, fb_id);
+	}
+
+	if (plane->position_changed || plane->size_changed) {
+		uint32_t src_x = IGT_FIXED(plane->fb->src_x, 0); /* src_x */
+		uint32_t src_y = IGT_FIXED(plane->fb->src_y, 0); /* src_y */
+		uint32_t src_w = IGT_FIXED(plane->fb->src_w, 0); /* src_w */
+		uint32_t src_h = IGT_FIXED(plane->fb->src_h, 0); /* src_h */
+		int32_t crtc_x = plane->crtc_x;
+		int32_t crtc_y = plane->crtc_y;
+		uint32_t crtc_w = plane->crtc_w;
+		uint32_t crtc_h = plane->crtc_h;
+
+		LOG(display,
+		"src = (%d, %d) %u x %u "
+		"dst = (%d, %d) %u x %u\n",
+		src_x >> 16, src_y >> 16, src_w >> 16, src_h >> 16,
+		crtc_x, crtc_y, crtc_w, crtc_h);
+
+		igt_atomic_populate_plane_req(req, plane, IGT_PLANE_SRC_X, src_x);
+		igt_atomic_populate_plane_req(req, plane, IGT_PLANE_SRC_Y, src_y);
+		igt_atomic_populate_plane_req(req, plane, IGT_PLANE_SRC_W, src_w);
+		igt_atomic_populate_plane_req(req, plane, IGT_PLANE_SRC_H, src_h);
+
+		igt_atomic_populate_plane_req(req, plane, IGT_PLANE_CRTC_X, crtc_x);
+		igt_atomic_populate_plane_req(req, plane, IGT_PLANE_CRTC_Y, crtc_y);
+		igt_atomic_populate_plane_req(req, plane, IGT_PLANE_CRTC_W, crtc_w);
+		igt_atomic_populate_plane_req(req, plane, IGT_PLANE_CRTC_H, crtc_h);
+	}
+
+	if (plane->rotation_changed)
+		igt_atomic_populate_plane_req(req, plane,
+			IGT_PLANE_ROTATION, plane->rotation);
+
+	plane->fb_changed = false;
+	plane->position_changed = false;
+	plane->size_changed = false;
+	plane->rotation_changed = false;
+}
+
+
+
 /*
  * Commit position and fb changes to a DRM plane via the SetPlane ioctl; if the
  * DRM call to program the plane fails, we'll either fail immediately (for
@@ -1649,7 +1845,7 @@ static int igt_plane_commit(igt_plane_t *plane,
 		return igt_primary_plane_commit_legacy(plane, output,
 						       fail_on_error);
 	} else {
-		return igt_drm_plane_commit(plane, output, fail_on_error);
+			return igt_drm_plane_commit(plane, output, fail_on_error);
 	}
 }
 
@@ -1703,6 +1899,89 @@ static int igt_output_commit(igt_output_t *output,
 	return 0;
 }
 
+
+/*
+ * Add crtc property changes to the atomic property set
+ */
+static void igt_atomic_prepare_crtc_commit(igt_output_t *output, drmModeAtomicReq *req)
+{
+
+	igt_pipe_t *pipe_obj = igt_output_get_driving_pipe(output);
+
+	if (pipe_obj->background_changed)
+		igt_atomic_populate_crtc_req(req, output, IGT_CRTC_BACKGROUND, pipe_obj->background);
+
+	/*
+	 *	TODO: Add all crtc level properties here
+	 */
+
+}
+
+/*
+ * Add connector property changes to the atomic property set
+ */
+static void igt_atomic_prepare_connector_commit(igt_output_t *output, drmModeAtomicReq *req)
+{
+
+	struct kmstest_connector_config *config = &output->config;
+
+	if (config->connector_scaling_mode_changed)
+		igt_atomic_populate_connector_req(req, output, IGT_CONNECTOR_SCALING_MODE, config->connector_scaling_mode);
+
+	if (config->connector_dpms_changed)
+		igt_atomic_populate_connector_req(req, output, IGT_CONNECTOR_DPMS, config->connector_dpms);
+	/*
+	 *	TODO: Add all other connector level properties here
+	 */
+
+}
+
+/*
+ * Commit all the changes of all the planes,crtcs, connectors
+ * atomically using drmModeAtomicCommit()
+ */
+static int igt_atomic_commit(igt_display_t *display)
+{
+
+	int ret = 0;
+	drmModeAtomicReq *req;
+	igt_output_t *output;
+	if (display->is_atomic != 1)
+		return -1;
+	req = drmModeAtomicAlloc();
+	drmModeAtomicSetCursor(req, 0);
+
+	for_each_connected_output(display, output) {
+		igt_pipe_t *pipe_obj;
+		igt_plane_t *plane;
+		enum pipe pipe;
+
+		/*
+		 * Add CRTC Properties to the property set
+		 */
+		igt_atomic_prepare_crtc_commit(output, req);
+
+		/*
+		 * Add Connector Properties to the property set
+		 */
+		igt_atomic_prepare_connector_commit(output, req);
+
+
+		pipe_obj = igt_output_get_driving_pipe(output);
+
+		pipe = pipe_obj->pipe;
+
+		for_each_plane_on_pipe(display, pipe, plane) {
+			igt_atomic_prepare_plane_commit(plane, output, req);
+		}
+
+	}
+
+	ret = drmModeAtomicCommit(display->drm_fd, req, 0, NULL);
+	drmModeAtomicFree(req);
+	return ret;
+
+}
 /*
  * Commit all plane changes across all outputs of the display.
  *
@@ -1721,6 +2000,14 @@ static int do_display_commit(igt_display_t *display,
 	LOG_INDENT(display, "commit");
 
 	igt_display_refresh(display);
+
+	if (s == COMMIT_ATOMIC) {
+
+		ret = igt_atomic_commit(display);
+		CHECK_RETURN(ret, fail_on_error);
+		return 0;
+
+	}
 
 	for (i = 0; i < display->n_outputs; i++) {
 		igt_output_t *output = &display->outputs[i];
