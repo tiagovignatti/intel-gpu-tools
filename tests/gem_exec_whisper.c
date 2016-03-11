@@ -84,6 +84,7 @@ static bool ignore_engine(int gen, unsigned engine)
 }
 
 #define CONTEXTS 0x1
+#define FDS 0x2
 
 static void whisper(int fd, unsigned flags)
 {
@@ -91,6 +92,7 @@ static void whisper(int fd, unsigned flags)
 	struct drm_i915_gem_exec_object2 batches[1024];
 	struct drm_i915_gem_relocation_entry inter[1024];
 	struct drm_i915_gem_relocation_entry reloc;
+	int fds[64];
 	uint32_t contexts[64];
 	uint32_t scratch;
 	unsigned engines[16];
@@ -132,6 +134,11 @@ static void whisper(int fd, unsigned flags)
 		for (n = 1; n < 64; n++)
 			contexts[n] = gem_context_create(fd);
 	}
+	if (flags & FDS) {
+		igt_require(gen >= 6);
+		for (n = 0; n < 64; n++)
+			fds[n] = drm_open_driver(DRIVER_INTEL);
+	}
 
 	memset(batches, 0, sizeof(batches));
 	for (n = 0; n < 1024; n++) {
@@ -171,16 +178,39 @@ static void whisper(int fd, unsigned flags)
 
 		gem_write(fd, batches[1023].handle, 4*loc, &pass, sizeof(pass));
 		for (n = 1024; --n >= 1; ) {
+			int this_fd = fd;
+			uint32_t handle[2];
+
 			execbuf.buffers_ptr = (uintptr_t)&batches[n-1];
 			batches[n-1].relocation_count = 0;
+
+			if (flags & FDS) {
+				this_fd = fds[rand() % 64];
+				handle[0] = batches[n-1].handle;
+				handle[1] = batches[n].handle;
+				batches[n-1].handle =
+					gem_open(this_fd,
+						 gem_flink(fd, handle[0]));
+				batches[n].handle =
+					gem_open(this_fd,
+						 gem_flink(fd, handle[1]));
+			}
 
 			execbuf.flags &= ~ENGINE_MASK;
 			execbuf.flags |= engines[rand() % nengine];
 			if (flags & CONTEXTS)
 				execbuf.rsvd1 = contexts[rand() % 64];
-			gem_execbuf(fd, &execbuf);
+			gem_execbuf(this_fd, &execbuf);
 
 			batches[n-1].relocation_count = 1;
+
+			if (this_fd != fd) {
+				gem_close(this_fd, batches[n-1].handle);
+				batches[n-1].handle = handle[0];
+
+				gem_close(this_fd, batches[n].handle);
+				batches[n].handle = handle[1];
+			}
 		}
 		execbuf.flags &= ~ENGINE_MASK;
 		execbuf.rsvd1 = 0;
@@ -204,6 +234,15 @@ static void whisper(int fd, unsigned flags)
 
 	check_bo(fd, scratch);
 	gem_close(fd, scratch);
+
+	if (flags & FDS) {
+		for (n = 0; n < 64; n++)
+			close(fds[n]);
+	}
+	if (flags & CONTEXTS) {
+		for (n = 0; n < 64; n++)
+			gem_context_destroy(fd, contexts[n]);
+	}
 	for (n = 0; n < 1024; n++)
 		gem_create(fd, batches[n].handle);
 }
@@ -220,6 +259,9 @@ igt_main
 
 	igt_subtest("contexts")
 		whisper(fd, CONTEXTS);
+
+	igt_subtest("fds")
+		whisper(fd, FDS);
 
 	igt_fixture
 		close(fd);
