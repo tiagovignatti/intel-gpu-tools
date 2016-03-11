@@ -41,6 +41,7 @@ TESTS_progs_M = \
 	gem_exec_store \
 	gem_exec_suspend \
 	gem_exec_reloc \
+	gem_exec_whisper \
 	gem_fenced_exec_thrash \
 	gem_fence_thrash \
 	gem_fence_upload \
