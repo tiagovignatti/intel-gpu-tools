@@ -159,7 +159,7 @@ static void whisper(int fd, unsigned flags)
 		memset(tmp, 0, sizeof(tmp));
 		tmp[0].handle = scratch;
 		tmp[1].handle = gem_create(fd, 4096);
-		reloc.presumed_offset = 0;
+		reloc.presumed_offset = ~0;
 		reloc.delta = 4*pass;
 		batch[loc] = ~pass;
 		gem_write(fd, tmp[1].handle, 0, batch, sizeof(batch));
@@ -171,7 +171,7 @@ static void whisper(int fd, unsigned flags)
 
 		batch[loc] = pass;
 		gem_write(fd, batches[0].handle, 0, batch, sizeof(batch));
-		inter[0].presumed_offset = ~0;
+		inter[0].presumed_offset = 0;
 		for (n = 0; n < 1023; n++) {
 			tmp[0] = batches[n+1];
 			tmp[0].relocation_count = 0;
@@ -183,8 +183,7 @@ static void whisper(int fd, unsigned flags)
 				execbuf.rsvd1 = contexts[rand() % 64];
 			gem_execbuf(fd, &execbuf);
 		}
-		if (flags & CONTEXTS)
-			execbuf.rsvd1 = 0;
+		execbuf.rsvd1 = 0;
 
 		tmp[0].handle = gem_create(fd, 4096);
 		gem_write(fd, tmp[0].handle, 0, batch, sizeof(batch));
@@ -194,7 +193,7 @@ static void whisper(int fd, unsigned flags)
 
 		tmp[1] = tmp[0];
 		tmp[0].handle = scratch;
-		reloc.presumed_offset = 0;
+		reloc.presumed_offset = ~0;
 		reloc.delta = 4*pass;
 		tmp[1].relocs_ptr = (uintptr_t)&reloc;
 		tmp[1].relocation_count = 1;
