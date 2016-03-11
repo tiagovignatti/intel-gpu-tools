@@ -10,51 +10,67 @@ SOURCE_DIR="$( dirname "${BASH_SOURCE[0]}" )"
 
 # no other drm service should be running, so we can just unbind
 
-# we must kick away fbcon (but only fbcon)
-for vtcon in /sys/class/vtconsole/vtcon*/ ; do
-	if grep "frame buffer device" $vtcon/name > /dev/null ; then
-		echo unbinding $vtcon: `cat $vtcon/name`
-		echo 0 > $vtcon/bind
+function reload() {
+	echo Reloading i915.ko with $*
+
+	# we must kick away fbcon (but only fbcon)
+	for vtcon in /sys/class/vtconsole/vtcon*/ ; do
+		if grep "frame buffer device" $vtcon/name > /dev/null ; then
+			echo unbinding $vtcon: `cat $vtcon/name`
+			echo 0 > $vtcon/bind
+		fi
+	done
+
+	# The sound driver uses our power well
+	pkill alsactl
+	rmmod snd_hda_intel &> /dev/null
+
+	#ignore errors in ips - gen5 only
+	rmmod intel_ips &> /dev/null
+	rmmod i915 || return $IGT_EXIT_SKIP
+	#ignore errors in intel-gtt, often built-in
+	rmmod intel-gtt &> /dev/null
+	# drm may be used by other devices (nouveau, radeon, udl, etc)
+	rmmod drm_kms_helper &> /dev/null
+	rmmod drm &> /dev/null
+
+	if lsmod | grep i915 &> /dev/null ; then
+		echo WARNING: i915.ko still loaded!
+		return $IGT_EXIT_FAILURE
+	else
+		echo module successfully unloaded
 	fi
+
+	modprobe i915 $*
+	echo 1 > /sys/class/vtconsole/vtcon1/bind
+
+	modprobe snd_hda_intel
+
+	# does the device exist?
+	if $SOURCE_DIR/gem_alive > /dev/null ; then
+		echo "module successfully loaded again"
+	else
+		echo "failed to reload module successfully"
+		return $IGT_EXIT_FAILURE
+	fi
+
+	# then try to run something
+	if ! $SOURCE_DIR/gem_exec_store > /dev/null ; then
+		echo "failed to execute a simple batch after reload"
+		return $IGT_EXIT_FAILURE
+	fi
+
+	return $IGT_EXIT_SUCCESS
+}
+
+reload || exit $?
+
+# Repeat the module reload trying to to generate faults
+fault=1
+for i in $(seq 0 31); do
+	reload i915.fault_injection=$fault
+	fault=$(($fault * 2))
 done
 
-# The sound driver uses our power well
-pkill alsactl
-rmmod snd_hda_intel &> /dev/null
-
-#ignore errors in ips - gen5 only
-rmmod intel_ips &> /dev/null
-rmmod i915
-#ignore errors in intel-gtt, often built-in
-rmmod intel-gtt &> /dev/null
-# drm may be used by other devices (nouveau, radeon, udl, etc)
-rmmod drm_kms_helper &> /dev/null
-rmmod drm &> /dev/null
-
-if lsmod | grep i915 &> /dev/null ; then
-	echo WARNING: i915.ko still loaded!
-	exit $IGT_EXIT_FAILURE
-else
-	echo module successfully unloaded
-fi
-
-modprobe i915
-echo 1 > /sys/class/vtconsole/vtcon1/bind
-
-modprobe snd_hda_intel
-
-# does the device exist?
-if $SOURCE_DIR/gem_alive > /dev/null ; then
-	echo "module successfully loaded again"
-else
-	echo "failed to reload module successfully"
-	exit $IGT_EXIT_FAILURE
-fi
-
-# then try to run something
-if ! $SOURCE_DIR/gem_linear_blits --run-subtest basic > /dev/null ; then
-	echo "failed to execute a simple batch after reload"
-	exit $IGT_EXIT_FAILURE
-fi
-
-exit $IGT_EXIT_SUCCESS
+reload
+exit $?
