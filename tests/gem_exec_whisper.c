@@ -137,6 +137,7 @@ static void whisper(int fd, unsigned flags)
 	for (n = 0; n < 1024; n++) {
 		batches[n].handle = gem_create(fd, 4096);
 		inter[n] = reloc;
+		inter[n].presumed_offset = ~0;
 		inter[n].delta = sizeof(uint32_t) * loc;
 		batches[n].relocs_ptr = (uintptr_t)&inter[n];
 		batches[n].relocation_count = 1;
@@ -152,44 +153,44 @@ static void whisper(int fd, unsigned flags)
 		memset(&execbuf, 0, sizeof(execbuf));
 		execbuf.buffers_ptr = (uintptr_t)tmp;
 		execbuf.buffer_count = 2;
-		execbuf.flags = 1 << 11 | 1 << 12;
+		execbuf.flags = LOCAL_I915_EXEC_HANDLE_LUT;
 		if (gen < 6)
 			execbuf.flags |= I915_EXEC_SECURE;
 
 		memset(tmp, 0, sizeof(tmp));
 		tmp[0].handle = scratch;
-		tmp[1].handle = gem_create(fd, 4096);
 		reloc.presumed_offset = ~0;
 		reloc.delta = 4*pass;
 		batch[loc] = ~pass;
+		tmp[1].handle = gem_create(fd, 4096);
 		gem_write(fd, tmp[1].handle, 0, batch, sizeof(batch));
 		tmp[1].relocs_ptr = (uintptr_t)&reloc;
 		tmp[1].relocation_count = 1;
 		execbuf.flags &= ~ENGINE_MASK;
 		igt_require(__gem_execbuf(fd, &execbuf) == 0);
-		gem_close(fd, tmp[1].handle);
 
-		batch[loc] = pass;
-		gem_write(fd, batches[0].handle, 0, batch, sizeof(batch));
-		inter[0].presumed_offset = 0;
-		for (n = 0; n < 1023; n++) {
-			tmp[0] = batches[n+1];
-			tmp[0].relocation_count = 0;
-			tmp[1] = batches[n];
+		gem_write(fd, batches[1023].handle, 4*loc, &pass, sizeof(pass));
+		for (n = 1024; --n >= 1; ) {
+			execbuf.buffers_ptr = (uintptr_t)&batches[n-1];
+			batches[n-1].relocation_count = 0;
 
 			execbuf.flags &= ~ENGINE_MASK;
 			execbuf.flags |= engines[rand() % nengine];
 			if (flags & CONTEXTS)
 				execbuf.rsvd1 = contexts[rand() % 64];
 			gem_execbuf(fd, &execbuf);
-		}
-		execbuf.rsvd1 = 0;
 
-		tmp[0].handle = gem_create(fd, 4096);
-		gem_write(fd, tmp[0].handle, 0, batch, sizeof(batch));
-		tmp[1] = batches[n];
+			batches[n-1].relocation_count = 1;
+		}
 		execbuf.flags &= ~ENGINE_MASK;
+		execbuf.rsvd1 = 0;
+		execbuf.buffers_ptr = (uintptr_t)&tmp;
+
+		tmp[0] = tmp[1];
+		tmp[0].relocation_count = 0;
+		tmp[1] = batches[0];
 		gem_execbuf(fd, &execbuf);
+		batches[0] = tmp[1];
 
 		tmp[1] = tmp[0];
 		tmp[0].handle = scratch;
