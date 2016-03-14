@@ -43,106 +43,95 @@ IGT_TEST_DESCRIPTION("Simulates SNA behaviour using negative self-relocations"
 		     " for STATE_BASE_ADDRESS command packets.");
 
 #define USE_LUT (1 << 12)
+#define BIAS (256*1024)
 
 /* Simulates SNA behaviour using negative self-relocations for
  * STATE_BASE_ADDRESS command packets. If they wrap around (to values greater
  * than the total size of the GTT), the GPU will hang.
  * See https://bugs.freedesktop.org/show_bug.cgi?id=78533
  */
-static int negative_reloc(int fd, unsigned flags)
+static void negative_reloc(int fd, unsigned engine, unsigned flags)
 {
 	struct drm_i915_gem_execbuffer2 execbuf;
-	struct drm_i915_gem_exec_object2 gem_exec[2];
-	struct drm_i915_gem_relocation_entry gem_reloc[1000];
+	struct drm_i915_gem_exec_object2 obj;
+	struct drm_i915_gem_relocation_entry reloc[1000];
 	uint64_t gtt_max = gem_aperture_size(fd);
-	uint32_t buf[1024] = {MI_BATCH_BUFFER_END};
+	uint32_t bbe = MI_BATCH_BUFFER_END;
+	uint64_t *offsets;
 	int i;
 
-#define BIAS (256*1024)
-
+	gem_require_ring(fd, engine);
 	igt_require(intel_gen(intel_get_drm_devid(fd)) >= 7);
 
-	memset(gem_exec, 0, sizeof(gem_exec));
-	gem_exec[0].handle = gem_create(fd, 4096);
-	gem_write(fd, gem_exec[0].handle, 0, buf, 8);
-
-	gem_reloc[0].offset = 1024;
-	gem_reloc[0].delta = 0;
-	gem_reloc[0].target_handle = gem_exec[0].handle;
-	gem_reloc[0].read_domains = I915_GEM_DOMAIN_COMMAND;
-
-	gem_exec[1].handle = gem_create(fd, 4096);
-	gem_write(fd, gem_exec[1].handle, 0, buf, 8);
-	gem_exec[1].relocation_count = 1;
-	gem_exec[1].relocs_ptr = (uintptr_t)gem_reloc;
+	memset(&obj, 0, sizeof(obj));
+	obj.handle = gem_create(fd, 8192);
+	gem_write(fd, obj.handle, 0, &bbe, sizeof(bbe));
 
 	memset(&execbuf, 0, sizeof(execbuf));
-	execbuf.buffers_ptr = (uintptr_t)gem_exec;
-	execbuf.buffer_count = 2;
-	execbuf.batch_len = 8;
+	execbuf.buffers_ptr = (uintptr_t)&obj;
+	execbuf.buffer_count = 1;
+	execbuf.flags = engine | (flags & USE_LUT);
+	igt_require(__gem_execbuf(fd, &execbuf) == 0);
 
-	do_ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf);
-	gem_close(fd, gem_exec[1].handle);
-
-	igt_info("Found offset %lld for 4k batch\n", (long long)gem_exec[0].offset);
+	igt_info("Found offset %lld for 4k batch\n", (long long)obj.offset);
 	/*
 	 * Ideally we'd like to be able to control where the kernel is going to
 	 * place the buffer. We don't SKIP here because it causes the test
 	 * to "randomly" flip-flop between the SKIP and PASS states.
 	 */
-	if (gem_exec[0].offset < BIAS) {
+	if (obj.offset < BIAS) {
 		igt_info("Offset is below BIAS, not testing anything\n");
-		return 0;
+		return;
 	}
 
-	memset(gem_reloc, 0, sizeof(gem_reloc));
-	for (i = 0; i < sizeof(gem_reloc)/sizeof(gem_reloc[0]); i++) {
-		gem_reloc[i].offset = 8 + 4*i;
-		gem_reloc[i].delta = -BIAS*i/1024;
-		gem_reloc[i].target_handle = flags & USE_LUT ? 0 : gem_exec[0].handle;
-		gem_reloc[i].read_domains = I915_GEM_DOMAIN_COMMAND;
+	memset(reloc, 0, sizeof(reloc));
+	for (i = 0; i < ARRAY_SIZE(reloc); i++) {
+		reloc[i].offset = 8 + 8*i;
+		reloc[i].delta = -BIAS*i/1024;
+		reloc[i].presumed_offset = -1;
+		reloc[i].target_handle = flags & USE_LUT ? 0 : obj.handle;
+		reloc[i].read_domains = I915_GEM_DOMAIN_COMMAND;
 	}
+	obj.relocation_count = i;
+	obj.relocs_ptr = (uintptr_t)reloc;
+	gem_execbuf(fd, &execbuf);
 
-	gem_exec[0].relocation_count = sizeof(gem_reloc)/sizeof(gem_reloc[0]);
-	gem_exec[0].relocs_ptr = (uintptr_t)gem_reloc;
+	igt_info("Batch is now at offset %#llx, max GTT %#llx\n",
+		 (long long)obj.offset, (long long)gtt_max);
 
-	execbuf.buffer_count = 1;
-	execbuf.flags = flags & USE_LUT;
-	do_ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf);
+	offsets = gem_mmap__cpu(fd, obj.handle, 0, 8192, PROT_READ);
+	gem_set_domain(fd, obj.handle, I915_GEM_DOMAIN_CPU, 0);
+	gem_close(fd, obj.handle);
 
-	igt_info("Batch is now at offset %lld\n", (long long)gem_exec[0].offset);
-
-	gem_read(fd, gem_exec[0].handle, 0, buf, sizeof(buf));
-	gem_close(fd, gem_exec[0].handle);
-
-	for (i = 0; i < sizeof(gem_reloc)/sizeof(gem_reloc[0]); i++)
-		igt_assert(buf[2 + i] < gtt_max);
-
-	return 0;
+	for (i = 0; i < ARRAY_SIZE(reloc); i++)
+		igt_assert_f(offsets[1 + i] < gtt_max,
+			     "Offset[%d]=%#llx, expected less than %#llx\n",
+			     i, (long long)offsets[i+i], (long long)gtt_max);
+	munmap(offsets, 8192);
 }
 
-static int negative_reloc_blt(int fd)
+static void negative_reloc_blt(int fd)
 {
 	const int gen = intel_gen(intel_get_drm_devid(fd));
 	struct drm_i915_gem_execbuffer2 execbuf;
-	struct drm_i915_gem_exec_object2 gem_exec[1024][2];
-	struct drm_i915_gem_relocation_entry gem_reloc;
+	struct drm_i915_gem_exec_object2 obj[1024][2];
+	struct drm_i915_gem_relocation_entry reloc;
 	uint32_t buf[1024], *b;
 	int i;
 
-	memset(&gem_reloc, 0, sizeof(gem_reloc));
-	gem_reloc.offset = 4 * sizeof(uint32_t);
-	gem_reloc.presumed_offset = ~0ULL;
-	gem_reloc.delta = -4096;
-	gem_reloc.target_handle = 0;
-	gem_reloc.read_domains = I915_GEM_DOMAIN_RENDER;
-	gem_reloc.write_domain = I915_GEM_DOMAIN_RENDER;
+	memset(&reloc, 0, sizeof(reloc));
+	reloc.offset = 4 * sizeof(uint32_t);
+	reloc.presumed_offset = ~0ULL;
+	reloc.delta = -4096;
+	reloc.target_handle = 0;
+	reloc.read_domains = I915_GEM_DOMAIN_RENDER;
+	reloc.write_domain = I915_GEM_DOMAIN_RENDER;
 
 	for (i = 0; i < 1024; i++) {
-		memset(gem_exec[i], 0, sizeof(gem_exec[i]));
+		memset(obj[i], 0, sizeof(obj[i]));
 
-		gem_exec[i][0].handle = gem_create(fd, 4096);
-		gem_exec[i][0].flags = EXEC_OBJECT_NEEDS_FENCE;
+		obj[i][0].handle = gem_create(fd, 4096);
+		obj[i][0].flags = EXEC_OBJECT_NEEDS_FENCE;
 
 		b = buf;
 		*b++ = XY_COLOR_BLT_CMD_NOLEN |
@@ -159,10 +148,10 @@ static int negative_reloc_blt(int fd)
 		if ((b - buf) & 1)
 			*b++ = 0;
 
-		gem_exec[i][1].handle = gem_create(fd, 4096);
-		gem_write(fd, gem_exec[i][1].handle, 0, buf, (b - buf) * sizeof(uint32_t));
-		gem_exec[i][1].relocation_count = 1;
-		gem_exec[i][1].relocs_ptr = (uintptr_t)&gem_reloc;
+		obj[i][1].handle = gem_create(fd, 4096);
+		gem_write(fd, obj[i][1].handle, 0, buf, (b - buf) * sizeof(uint32_t));
+		obj[i][1].relocation_count = 1;
+		obj[i][1].relocs_ptr = (uintptr_t)&reloc;
 	}
 
 	memset(&execbuf, 0, sizeof(execbuf));
@@ -173,15 +162,15 @@ static int negative_reloc_blt(int fd)
 		execbuf.flags |= I915_EXEC_BLT;
 
 	for (i = 0; i < 1024; i++) {
-		execbuf.buffers_ptr = (uintptr_t)gem_exec[i];
+		execbuf.buffers_ptr = (uintptr_t)obj[i];
 		gem_execbuf(fd, &execbuf);
 	}
 
 	for (i = 1024; i--;) {
-		gem_read(fd, gem_exec[i][0].handle,
+		gem_read(fd, obj[i][0].handle,
 			 i*sizeof(uint32_t), buf + i, sizeof(uint32_t));
-		gem_close(fd, gem_exec[i][0].handle);
-		gem_close(fd, gem_exec[i][1].handle);
+		gem_close(fd, obj[i][0].handle);
+		gem_close(fd, obj[i][1].handle);
 	}
 
 	if (0) {
@@ -192,28 +181,27 @@ static int negative_reloc_blt(int fd)
 	}
 	for (i = 0; i < 1024; i++)
 		igt_assert_eq(buf[i], 0xc0ffee ^ i);
-
-	return 0;
 }
-
-int fd;
 
 igt_main
 {
-	igt_fixture {
+	const struct intel_execution_engine *e;
+	int fd = -1;
+
+	igt_fixture
 		fd = drm_open_driver(DRIVER_INTEL);
+
+	for (e = intel_execution_engines; e->name; e++) {
+		igt_subtest_f("negative-reloc-%s", e->name)
+			negative_reloc(fd, e->exec_id | e->flags, 0);
+
+		igt_subtest_f("negative-reloc-lut-%s", e->name)
+			negative_reloc(fd, e->exec_id | e->flags, USE_LUT);
 	}
-
-	igt_subtest("negative-reloc")
-		negative_reloc(fd, 0);
-
-	igt_subtest("negative-reloc-lut")
-		negative_reloc(fd, USE_LUT);
 
 	igt_subtest("negative-reloc-blt")
 		negative_reloc_blt(fd);
 
-	igt_fixture {
+	igt_fixture
 		close(fd);
-	}
 }
