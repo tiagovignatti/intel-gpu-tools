@@ -104,7 +104,7 @@ static bool ignore_engine(int fd, unsigned engine)
 	return false;
 }
 
-static void all(int fd, uint32_t handle)
+static void all(int fd, uint32_t handle, int timeout)
 {
 	struct drm_i915_gem_execbuffer2 execbuf;
 	struct drm_i915_gem_exec_object2 obj;
@@ -144,7 +144,7 @@ static void all(int fd, uint32_t handle)
 		}
 		count += nengine * 1024;
 		clock_gettime(CLOCK_MONOTONIC, &now);
-	} while (elapsed(&start, &now) < 150.); /* Hang detection ~120s */
+	} while (elapsed(&start, &now) < timeout); /* Hang detection ~120s */
 	gem_sync(fd, handle);
 	clock_gettime(CLOCK_MONOTONIC, &now);
 
@@ -166,12 +166,15 @@ igt_main
 		gem_write(device, handle, 0, &bbe, sizeof(bbe));
 	}
 
+	igt_subtest("basic")
+		all(device, handle, 10);
+
 	for (e = intel_execution_engines; e->name; e++)
 		igt_subtest_f("%s", e->name)
 			single(device, handle, e->exec_id | e->flags, e->name);
 
-	igt_subtest("basic")
-		all(device, handle);
+	igt_subtest("all")
+		all(device, handle, 150);
 
 	igt_fixture {
 		gem_close(device, handle);
