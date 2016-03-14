@@ -102,7 +102,7 @@ static bool ignore_engine(int gen, unsigned engine)
 #define CONTEXTS 0x1
 #define FDS 0x2
 
-static void whisper(int fd, unsigned flags)
+static void whisper(int fd, unsigned engine, unsigned flags)
 {
 	const int gen = intel_gen(intel_get_drm_devid(fd));
 	struct drm_i915_gem_exec_object2 batches[1024];
@@ -115,13 +115,20 @@ static void whisper(int fd, unsigned flags)
 	uint32_t contexts[64];
 	unsigned engines[16];
 	unsigned nengine;
-	unsigned engine;
 	uint32_t batch[16];
 	int i, n, pass, loc;
 
 	nengine = 0;
-	for_each_engine(fd, engine)
-		if (!ignore_engine(gen, engine)) engines[nengine++] = engine;
+	if (engine == -1) {
+		for_each_engine(fd, engine) {
+			if (!ignore_engine(gen, engine))
+				engines[nengine++] = engine;
+		}
+	} else {
+		igt_require(gem_has_ring(fd, engine));
+		igt_require(!ignore_engine(gen, engine));
+		engines[nengine++] = engine;
+	}
 	igt_require(nengine);
 
 	memset(&scratch, 0, sizeof(scratch));
@@ -304,7 +311,7 @@ static void whisper(int fd, unsigned flags)
 			gem_context_destroy(fd, contexts[n]);
 	}
 	for (n = 0; n < 1024; n++)
-		gem_create(fd, batches[n].handle);
+		gem_close(fd, batches[n].handle);
 }
 
 igt_main
@@ -315,13 +322,26 @@ igt_main
 		fd = drm_open_driver_master(DRIVER_INTEL);
 
 	igt_subtest("basic")
-		whisper(fd, 0);
+		whisper(fd, -1, 0);
 
 	igt_subtest("contexts")
-		whisper(fd, CONTEXTS);
+		whisper(fd, -1, CONTEXTS);
 
 	igt_subtest("fds")
-		whisper(fd, FDS);
+		whisper(fd, -1, FDS);
+
+	for (const struct intel_execution_engine *e = intel_execution_engines;
+	     e->name; e++) {
+		if (e->exec_id == 0)
+			continue;
+
+		igt_subtest_f("normal-%s", e->name)
+			whisper(fd, e->exec_id | e->flags, 0);
+		igt_subtest_f("contexts-%s", e->name)
+			whisper(fd, e->exec_id | e->flags, CONTEXTS);
+		igt_subtest_f("fds-%s", e->name)
+			whisper(fd, e->exec_id | e->flags, FDS);
+	}
 
 	igt_fixture
 		close(fd);
