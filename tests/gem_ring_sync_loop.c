@@ -39,11 +39,18 @@ static void
 sync_loop(int fd)
 {
 	const uint32_t bbe = MI_BATCH_BUFFER_END;
-	int num_rings = gem_get_num_rings(fd);
 	struct drm_i915_gem_execbuffer2 execbuf;
 	struct drm_i915_gem_exec_object2 object[2];
 	struct drm_i915_gem_relocation_entry reloc[1];
+	unsigned engines[16];
+	unsigned nengine;
+	unsigned engine;
 	int i;
+
+	nengine = 0;
+	for_each_engine(fd, engine)
+		engines[nengine++] = engine;
+	igt_require(nengine);
 
 	memset(object, 0, sizeof(object));
 	object[0].handle = gem_create(fd, 4096);
@@ -74,7 +81,7 @@ sync_loop(int fd)
 	srandom(0xdeadbeef);
 
 	for (i = 0; i < SLOW_QUICK(0x100000, 10); i++) {
-		execbuf.flags = random() % num_rings + 1;
+		execbuf.flags = engines[rand() % nengine];
 		gem_execbuf(fd, &execbuf);
 	}
 
@@ -88,7 +95,6 @@ igt_simple_main
 	int fd;
 
 	fd = drm_open_driver(DRIVER_INTEL);
-	igt_require(gem_get_num_rings(fd) > 1);
 	intel_detect_and_clear_missed_interrupts(fd);
 
 	sync_loop(fd);
