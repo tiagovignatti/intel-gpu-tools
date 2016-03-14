@@ -1109,44 +1109,6 @@ bool gem_has_llc(int fd)
 	return has_llc;
 }
 
-/**
- * gem_get_num_rings:
- * @fd: open i915 drm file descriptor
- *
- * Feature test macro to query the number of available rings. This is useful in
- * test loops which need to step through all rings and similar logic.
- *
- * For more explicit tests of ring availability see the ring specific versions
- * like gem_has_ring() and for example gem_has_bsd().
- *
- * Returns: The number of available rings.
- */
-int gem_get_num_rings(int fd)
-{
-	static int num_rings = -1;
-
-	if (num_rings < 0) {
-		num_rings = 1;	/* render ring is always available */
-
-		if (gem_has_bsd(fd))
-			num_rings++;
-		else
-			goto skip;
-
-		if (gem_has_blt(fd))
-			num_rings++;
-		else
-			goto skip;
-
-		if (gem_has_vebox(fd))
-			num_rings++;
-		else
-			goto skip;
-	}
-skip:
-	return num_rings;
-}
-
 static bool has_param(int fd, int param)
 {
 	drm_i915_getparam_t gp;
