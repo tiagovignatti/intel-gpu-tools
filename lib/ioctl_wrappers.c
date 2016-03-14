@@ -1116,8 +1116,8 @@ bool gem_has_llc(int fd)
  * Feature test macro to query the number of available rings. This is useful in
  * test loops which need to step through all rings and similar logic.
  *
- * For more explicit tests of ring availability see gem_has_enable_ring() and
- * the ring specific versions like gem_has_bsd().
+ * For more explicit tests of ring availability see the ring specific versions
+ * like gem_has_ring() and for example gem_has_bsd().
  *
  * Returns: The number of available rings.
  */
@@ -1147,16 +1147,7 @@ skip:
 	return num_rings;
 }
 
-/**
- * gem_has_enable_ring:
- * @fd: open i915 drm file descriptor
- * @param: ring flag bit as used in gem_execbuf()
- *
- * Feature test macro to query whether a specific ring is available.
- *
- * Returns: Whether the ring is available or not.
- */
-bool gem_has_enable_ring(int fd,int param)
+static bool has_param(int fd, int param)
 {
 	drm_i915_getparam_t gp;
 	int tmp = 0;
@@ -1176,8 +1167,7 @@ bool gem_has_enable_ring(int fd,int param)
  * gem_has_bsd:
  * @fd: open i915 drm file descriptor
  *
- * Feature test macro to query whether the BSD ring is available. This is simply
- * a specific version of gem_has_enable_ring() for the BSD ring.
+ * Feature test macro to query whether the BSD ring is available.
  *
  * Note that recent Bspec calls this the VCS ring for Video Command Submission.
  *
@@ -1187,7 +1177,7 @@ bool gem_has_bsd(int fd)
 {
 	static int has_bsd = -1;
 	if (has_bsd < 0)
-		has_bsd = gem_has_enable_ring(fd,I915_PARAM_HAS_BSD);
+		has_bsd = has_param(fd, I915_PARAM_HAS_BSD);
 	return has_bsd;
 }
 
@@ -1195,8 +1185,7 @@ bool gem_has_bsd(int fd)
  * gem_has_blt:
  * @fd: open i915 drm file descriptor
  *
- * Feature test macro to query whether the blitter ring is available. This is simply
- * a specific version of gem_has_enable_ring() for the blitter ring.
+ * Feature test macro to query whether the blitter ring is available.
  *
  * Note that recent Bspec calls this the BCS ring for Blitter Command Submission.
  *
@@ -1206,7 +1195,7 @@ bool gem_has_blt(int fd)
 {
 	static int has_blt = -1;
 	if (has_blt < 0)
-		has_blt =  gem_has_enable_ring(fd,I915_PARAM_HAS_BLT);
+		has_blt =  has_param(fd, I915_PARAM_HAS_BLT);
 	return has_blt;
 }
 
@@ -1215,8 +1204,7 @@ bool gem_has_blt(int fd)
  * gem_has_vebox:
  * @fd: open i915 drm file descriptor
  *
- * Feature test macro to query whether the vebox ring is available. This is simply
- * a specific version of gem_has_enable_ring() for the vebox ring.
+ * Feature test macro to query whether the vebox ring is available.
  *
  * Note that recent Bspec calls this the VECS ring for Video Enhancement Command
  * Submission.
@@ -1227,7 +1215,7 @@ bool gem_has_vebox(int fd)
 {
 	static int has_vebox = -1;
 	if (has_vebox < 0)
-		has_vebox =  gem_has_enable_ring(fd,LOCAL_I915_PARAM_HAS_VEBOX);
+		has_vebox =  has_param(fd, LOCAL_I915_PARAM_HAS_VEBOX);
 	return has_vebox;
 }
 
@@ -1236,8 +1224,7 @@ bool gem_has_vebox(int fd)
  * gem_has_bsd2:
  * @fd: open i915 drm file descriptor
  *
- * Feature test macro to query whether the BSD2 ring is available. This is simply
- * a specific version of gem_has_enable_ring() for the BSD2 ring.
+ * Feature test macro to query whether the BSD2 ring is available.
  *
  * Note that recent Bspec calls this the VCS ring for Video Command Submission.
  *
@@ -1247,7 +1234,7 @@ bool gem_has_bsd2(int fd)
 {
 	static int has_bsd2 = -1;
 	if (has_bsd2 < 0)
-		has_bsd2 = gem_has_enable_ring(fd,LOCAL_I915_PARAM_HAS_BSD2);
+		has_bsd2 = has_param(fd, LOCAL_I915_PARAM_HAS_BSD2);
 	return has_bsd2;
 }
 /**
@@ -1421,8 +1408,8 @@ bool gem_has_ring(int fd, unsigned ring)
  * @ring: ring flag bit as used in gem_execbuf()
  *
  * Feature test macro to query whether a specific ring is available.
- * In contrast to gem_has_enable_ring() this automagically skips if the ring
- * isn't available by calling igt_require().
+ * This automagically skips if the ring isn't available by
+ * calling igt_require().
  */
 void gem_require_ring(int fd, unsigned ring)
 {
