@@ -25,6 +25,11 @@
 
 IGT_TEST_DESCRIPTION("Basic sanity check of execbuf-ioctl relocations.");
 
+#define LOCAL_I915_EXEC_BSD_SHIFT      (13)
+#define LOCAL_I915_EXEC_BSD_MASK       (3 << LOCAL_I915_EXEC_BSD_SHIFT)
+
+#define ENGINE_MASK  (I915_EXEC_RING_MASK | LOCAL_I915_EXEC_BSD_MASK)
+
 static uint32_t find_last_set(uint64_t x)
 {
 	uint32_t i = 0;
@@ -215,6 +220,102 @@ static void from_gpu(int fd)
 	munmap(relocs, 4096);
 }
 
+static bool ignore_engine(int gen, unsigned engine)
+{
+	return gen == 6 && (engine & ~(3<<13)) == I915_EXEC_BSD;
+}
+
+static void check_bo(int fd, uint32_t handle)
+{
+	uint32_t *map;
+	int i;
+
+	igt_debug("Verifying result\n");
+	map = gem_mmap__cpu(fd, handle, 0, 4096, PROT_READ);
+	gem_set_domain(fd, handle, I915_GEM_DOMAIN_CPU, 0);
+	for (i = 0; i < 1024; i++)
+		igt_assert_eq(map[i], i);
+	munmap(map, 4096);
+}
+
+static void active(int fd, unsigned engine)
+{
+	const int gen = intel_gen(intel_get_drm_devid(fd));
+	struct drm_i915_gem_relocation_entry reloc;
+	struct drm_i915_gem_exec_object2 obj[2];
+	struct drm_i915_gem_execbuffer2 execbuf;
+	unsigned engines[16];
+	unsigned nengine;
+	int pass;
+
+	nengine = 0;
+	if (engine == -1) {
+		for_each_engine(fd, engine) {
+			if (!ignore_engine(gen, engine))
+				engines[nengine++] = engine;
+		}
+	} else {
+		igt_require(gem_has_ring(fd, engine));
+		igt_require(!ignore_engine(gen, engine));
+		engines[nengine++] = engine;
+	}
+	igt_require(nengine);
+
+	memset(obj, 0, sizeof(obj));
+	obj[0].handle = gem_create(fd, 4096);
+	obj[1].handle = gem_create(fd, 64*1024);
+	obj[1].relocs_ptr = (uintptr_t)&reloc;
+	obj[1].relocation_count = 1;
+
+	memset(&reloc, 0, sizeof(reloc));
+	reloc.offset = sizeof(uint32_t);
+	reloc.target_handle = obj[0].handle;
+	if (gen < 8 && gen >= 4)
+		reloc.offset += sizeof(uint32_t);
+	reloc.read_domains = I915_GEM_DOMAIN_INSTRUCTION;
+	reloc.write_domain = I915_GEM_DOMAIN_INSTRUCTION;
+
+	memset(&execbuf, 0, sizeof(execbuf));
+	execbuf.buffers_ptr = (uintptr_t)obj;
+	execbuf.buffer_count = 2;
+	if (gen < 6)
+		execbuf.flags |= I915_EXEC_SECURE;
+
+	for (pass = 0; pass < 1024; pass++) {
+		uint32_t batch[16];
+		int i = 0;
+		batch[i] = MI_STORE_DWORD_IMM | (gen < 6 ? 1 << 22 : 0);
+		if (gen >= 8) {
+			batch[++i] = 0;
+			batch[++i] = 0;
+		} else if (gen >= 4) {
+			batch[++i] = 0;
+			batch[++i] = 0;
+		} else {
+			batch[i]--;
+			batch[++i] = 0;
+		}
+		batch[++i] = pass;
+		batch[++i] = MI_BATCH_BUFFER_END;
+		gem_write(fd, obj[1].handle, pass*sizeof(batch),
+			  batch, sizeof(batch));
+	}
+
+	for (pass = 0; pass < 1024; pass++) {
+		reloc.delta = 4*pass;
+		reloc.presumed_offset = -1;
+		execbuf.flags &= ~ENGINE_MASK;
+		execbuf.flags |= engines[rand() % nengine];
+		gem_execbuf(fd, &execbuf);
+		execbuf.batch_start_offset += 64;
+		reloc.offset += 64;
+	}
+	gem_close(fd, obj[1].handle);
+
+	check_bo(fd, obj[0].handle);
+	gem_close(fd, obj[0].handle);
+}
+
 igt_main
 {
 	uint64_t size;
@@ -237,6 +338,13 @@ igt_main
 	igt_subtest("gpu")
 		from_gpu(fd);
 
+	igt_subtest("active")
+		active(fd, -1);
+	for (const struct intel_execution_engine *e = intel_execution_engines;
+	     e->name; e++) {
+		igt_subtest_f("active-%s", e->name)
+			active(fd, e->exec_id | e->flags);
+	}
 	igt_fixture
 		close(fd);
 }
