@@ -42,10 +42,15 @@ function reload() {
 	fi
 
 	modprobe i915 $*
-	echo 1 > /sys/class/vtconsole/vtcon1/bind
+
+	if [ -f /sys/class/vtconsole/vtcon1/bind ]; then
+		echo 1 > /sys/class/vtconsole/vtcon1/bind
+	fi
 
 	modprobe snd_hda_intel
+}
 
+function finish_load() {
 	# does the device exist?
 	if $SOURCE_DIR/gem_alive > /dev/null ; then
 		echo "module successfully loaded again"
@@ -64,13 +69,16 @@ function reload() {
 }
 
 reload || exit $?
+finish_load || exit $?
 
 # Repeat the module reload trying to to generate faults
 fault=1
-for i in $(seq 0 31); do
-	reload i915.fault_injection=$fault
+for i in $(seq 0 4); do
+	reload inject_load_failure=$fault
 	fault=$(($fault * 2))
 done
 
-reload
+reload || exit $?
+finish_load
+
 exit $?
