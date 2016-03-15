@@ -199,7 +199,7 @@ igt_main
 			negative_reloc(fd, e->exec_id | e->flags, USE_LUT);
 	}
 
-	igt_subtest("negative-reloc-blt")
+	igt_subtest("negative-reloc-bltcopy")
 		negative_reloc_blt(fd);
 
 	igt_fixture
