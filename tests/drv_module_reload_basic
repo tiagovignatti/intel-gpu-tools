@@ -72,10 +72,8 @@ reload || exit $?
 finish_load || exit $?
 
 # Repeat the module reload trying to to generate faults
-fault=1
-for i in $(seq 0 4); do
-	reload inject_load_failure=$fault
-	fault=$(($fault * 2))
+for i in $(seq 1 4); do
+	reload inject_load_failure=$i
 done
 
 reload || exit $?
