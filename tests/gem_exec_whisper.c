@@ -96,7 +96,13 @@ static int __gem_context_create(int fd, uint32_t *ctx_id)
 
 static bool ignore_engine(int gen, unsigned engine)
 {
-	return gen == 6 && (engine & ~(3<<13)) == I915_EXEC_BSD;
+	if (engine == 0)
+		return true;
+
+	if (gen == 6 && (engine & ~(3<<13)) == I915_EXEC_BSD)
+		return true;
+
+	return false;
 }
 
 #define CONTEXTS 0x1
@@ -128,7 +134,6 @@ static void whisper(int fd, unsigned engine, unsigned flags)
 		}
 	} else {
 		igt_require(gem_has_ring(fd, engine));
-		igt_require(!ignore_engine(gen, engine));
 		engines[nengine++] = engine;
 	}
 	igt_require(nengine);
@@ -348,9 +353,6 @@ igt_main
 
 	for (const struct intel_execution_engine *e = intel_execution_engines;
 	     e->name; e++) {
-		if (e->exec_id == 0)
-			continue;
-
 		igt_subtest_f("normal-%s", e->name)
 			whisper(fd, e->exec_id | e->flags, 0);
 		igt_subtest_f("contexts-%s", e->name)
