@@ -225,10 +225,14 @@ igt_hang_ring_t igt_hang_ring(int fd, int ring)
 
 static void eat_error_state(void)
 {
-	int fd;
+	int fd, ret;
 
 	fd = igt_debugfs_open("i915_error_state", O_WRONLY);
-	igt_assert(write(fd, "", 1) == 1);
+	do {
+		ret = write(fd, "", 1);
+		if (ret < 0)
+			ret = -errno;
+	} while (ret == -EINTR || ret == -EAGAIN);
 	close(fd);
 }
 
