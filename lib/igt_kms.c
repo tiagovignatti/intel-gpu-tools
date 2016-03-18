@@ -1214,6 +1214,7 @@ void igt_display_init(igt_display_t *display, int drm_fd)
 		int p = IGT_PLANE_2;
 		int j, type;
 
+		pipe->crtc_id = resources->crtcs[i];
 		pipe->display = display;
 		pipe->pipe = i;
 

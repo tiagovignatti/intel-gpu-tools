@@ -256,6 +256,7 @@ struct igt_pipe {
 	uint64_t background; /* Background color MSB BGR 16bpc LSB */
 	uint32_t background_changed : 1;
 	uint32_t background_property;
+	uint32_t crtc_id;
 };
 
 typedef struct {
