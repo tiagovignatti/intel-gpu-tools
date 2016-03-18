@@ -64,11 +64,8 @@ intel_get_total_ram_mb(void)
 
 #ifdef HAVE_STRUCT_SYSINFO_TOTALRAM /* Linux */
 	struct sysinfo sysinf;
-	int ret;
 
-	ret = sysinfo(&sysinf);
-	igt_assert(ret == 0);
-
+	igt_assert(sysinfo(&sysinf) == 0);
 	retval = sysinf.totalram;
 	retval *= sysinf.mem_unit;
 #elif defined(_SC_PAGESIZE) && defined(_SC_PHYS_PAGES) /* Solaris */
@@ -98,18 +95,10 @@ intel_get_avail_ram_mb(void)
 
 #ifdef HAVE_STRUCT_SYSINFO_TOTALRAM /* Linux */
 	struct sysinfo sysinf;
-	int fd, ret;
 
-	fd = open("/proc/sys/vm/drop_caches", O_RDWR);
-	if (fd != -1) {
-		ret = write(fd, "3\n", 2);
-		close(fd);
-		(void)ret;
-	}
+	intel_purge_vm_caches();
 
-	ret = sysinfo(&sysinf);
-	igt_assert(ret == 0);
-
+	igt_assert(sysinfo(&sysinf) == 0);
 	retval = sysinf.freeram;
 	retval *= sysinf.mem_unit;
 #elif defined(_SC_PAGESIZE) && defined(_SC_AVPHYS_PAGES) /* Solaris */
@@ -139,11 +128,8 @@ intel_get_total_swap_mb(void)
 
 #ifdef HAVE_STRUCT_SYSINFO_TOTALRAM /* Linux */
 	struct sysinfo sysinf;
-	int ret;
 
-	ret = sysinfo(&sysinf);
-	igt_assert(ret == 0);
-
+	igt_assert(sysinfo(&sysinf) == 0);
 	retval = sysinf.freeswap;
 	retval *= sysinf.mem_unit;
 #elif defined(HAVE_SWAPCTL) /* Solaris */
@@ -284,13 +270,18 @@ void intel_require_memory(uint64_t count, uint64_t size, unsigned mode)
 void
 intel_purge_vm_caches(void)
 {
+	static int once;
 	int fd;
 
 	fd = open("/proc/sys/vm/drop_caches", O_RDWR);
 	if (fd < 0)
 		return;
 
-	igt_assert_eq(write(fd, "3\n", 2), 2);
+	if (!once) {
+		igt_assert_eq(write(fd, "4\n", 2), 2); /* Be quiet! */
+		once = 1;
+	}
+	igt_assert_eq(write(fd, "3\n", 2), 2); /* Drop page/slab caches */
 	close(fd);
 }
 
