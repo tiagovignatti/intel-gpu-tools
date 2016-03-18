@@ -91,6 +91,7 @@ TESTS_progs_M = \
 	kms_legacy_colorkey \
 	kms_mmio_vs_cs_flip \
 	kms_pipe_b_c_ivb \
+	kms_pipe_color \
 	kms_pipe_crc_basic \
 	kms_plane \
 	kms_psr_sink_crc \
