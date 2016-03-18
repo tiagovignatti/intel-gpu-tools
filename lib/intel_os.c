@@ -268,7 +268,7 @@ void intel_require_memory(uint64_t count, uint64_t size, unsigned mode)
 {
 	uint64_t required, total;
 
-	igt_skip_on_f(!__intel_check_memory(count, size, mode,
+	igt_require_f(__intel_check_memory(count, size, mode,
 					    &required, &total),
 		      "Estimated that we need %'llu objects and %'llu MiB for the test, but only have %'llu MiB available (%s%s) and a maximum of %'llu objects\n",
 		      (long long)count,
