@@ -129,6 +129,17 @@ static double *generate_table_max(uint32_t lut_size)
 	return coeffs;
 }
 
+static double *generate_table_zero(uint32_t lut_size)
+{
+	double *coeffs = malloc(sizeof(double) * lut_size);
+	uint32_t i;
+
+	for (i = 0; i < lut_size; i++)
+		coeffs[i] = 0.0;
+
+	return coeffs;
+}
+
 static struct _drm_color_lut *coeffs_to_lut(data_t *data,
 					    const double *coefficients,
 					    uint32_t lut_size,
@@ -516,6 +527,131 @@ static void test_pipe_legacy_gamma(data_t *data,
 	free(blue_lut);
 }
 
+static drmModePropertyBlobPtr
+get_blob(data_t *data, igt_pipe_t *pipe, const char *property_name)
+{
+	uint64_t prop_value;
+	drmModePropertyPtr prop;
+	drmModePropertyBlobPtr blob;
+
+	igt_assert(igt_pipe_get_property(pipe, property_name,
+					 NULL, &prop_value, &prop));
+
+	if (prop_value == 0)
+		return NULL;
+
+	igt_assert(prop->flags & DRM_MODE_PROP_BLOB);
+	blob = drmModeGetPropertyBlob(data->drm_fd, prop_value);
+	drmModeFreeProperty(prop);
+
+	return blob;
+}
+
+/*
+ * Verify that setting the legacy gamma LUT resets the gamma LUT set
+ * through the GAMMA_LUT property.
+ */
+static void test_pipe_legacy_gamma_reset(data_t *data,
+					 igt_plane_t *primary)
+{
+	const double ctm_identity[] = {
+		1.0, 0.0, 0.0,
+		0.0, 1.0, 0.0,
+		0.0, 0.0, 1.0
+	};
+	drmModeCrtc *kms_crtc;
+	double *degamma_linear, *gamma_zero;
+	uint32_t i, legacy_lut_size;
+	uint16_t *red_lut, *green_lut, *blue_lut;
+	struct _drm_color_lut *lut;
+	drmModePropertyBlobPtr blob;
+	igt_output_t *output;
+
+	degamma_linear = generate_table(data->degamma_lut_size, 1.0);
+	gamma_zero = generate_table_zero(data->gamma_lut_size);
+
+	for_each_connected_output(&data->display, output) {
+		igt_output_set_pipe(output, primary->pipe->pipe);
+
+		/* Ensure we have a clean state to start with. */
+		disable_degamma(primary->pipe);
+		disable_ctm(primary->pipe);
+		disable_gamma(primary->pipe);
+		igt_display_commit(&data->display);
+
+		/* Set a degama & gamma LUT and a CTM using the
+		 * properties and verify the content of the
+		 * properties. */
+		set_degamma(data, primary->pipe, degamma_linear);
+		set_ctm(primary->pipe, ctm_identity);
+		set_gamma(data, primary->pipe, gamma_zero);
+		igt_display_commit(&data->display);
+
+		blob = get_blob(data, primary->pipe, "DEGAMMA_LUT");
+		igt_assert(blob &&
+			   blob->length == (sizeof(struct _drm_color_lut) *
+					    data->degamma_lut_size));
+		drmModeFreePropertyBlob(blob);
+
+		blob = get_blob(data, primary->pipe, "CTM");
+		igt_assert(blob &&
+			   blob->length == sizeof(struct _drm_color_ctm));
+		drmModeFreePropertyBlob(blob);
+
+		blob = get_blob(data, primary->pipe, "GAMMA_LUT");
+		igt_assert(blob &&
+			   blob->length == (sizeof(struct _drm_color_lut) *
+					    data->gamma_lut_size));
+		lut = (struct _drm_color_lut *) blob->data;
+		for (i = 0; i < data->gamma_lut_size; i++)
+			igt_assert(lut[i].red == 0 &&
+				   lut[i].green == 0 &&
+				   lut[i].blue == 0);
+		drmModeFreePropertyBlob(blob);
+
+		/* Set a gamma LUT using the legacy ioctl and verify
+		 * the content of the GAMMA_LUT property is changed
+		 * and that CTM and DEGAMMA_LUT are empty. */
+		kms_crtc = drmModeGetCrtc(data->drm_fd, primary->pipe->crtc_id);
+		legacy_lut_size = kms_crtc->gamma_size;
+		drmModeFreeCrtc(kms_crtc);
+
+		red_lut = malloc(sizeof(uint16_t) * legacy_lut_size);
+		green_lut = malloc(sizeof(uint16_t) * legacy_lut_size);
+		blue_lut = malloc(sizeof(uint16_t) * legacy_lut_size);
+
+		for (i = 0; i < legacy_lut_size; i++)
+			red_lut[i] = green_lut[i] = blue_lut[i] = 0xffff;
+
+		igt_assert_eq(drmModeCrtcSetGamma(data->drm_fd,
+						  primary->pipe->crtc_id,
+						  legacy_lut_size,
+						  red_lut, green_lut, blue_lut),
+			      0);
+		igt_display_commit(&data->display);
+
+		igt_assert(get_blob(data, primary->pipe,
+				    "DEGAMMA_LUT") == NULL);
+		igt_assert(get_blob(data, primary->pipe, "CTM") == NULL);
+
+		blob = get_blob(data, primary->pipe, "GAMMA_LUT");
+		igt_assert(blob &&
+			   blob->length == (sizeof(struct _drm_color_lut) *
+					    legacy_lut_size));
+		lut = (struct _drm_color_lut *) blob->data;
+		for (i = 0; i < legacy_lut_size; i++)
+			igt_assert(lut[i].red == 0xffff &&
+				   lut[i].green == 0xffff &&
+				   lut[i].blue == 0xffff);
+		drmModeFreePropertyBlob(blob);
+
+		igt_output_set_pipe(output, PIPE_ANY);
+	}
+
+	free(degamma_linear);
+	free(gamma_zero);
+}
+
 /*
  * Draw 3 rectangles using before colors with the ctm matrix apply and verify
  * the CRC is equal to using after colors with an identify ctm matrix.
@@ -893,6 +1029,9 @@ run_tests_for_pipe(data_t *data, enum pipe p)
 
 	igt_subtest_f("legacy-gamma-pipe%d", p)
 		test_pipe_legacy_gamma(data, primary);
+
+	igt_subtest_f("legacy-gamma-reset-pipe%d", p)
+		test_pipe_legacy_gamma_reset(data, primary);
 
 	igt_fixture {
 		for_each_connected_output(&data->display, output)
