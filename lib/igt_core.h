@@ -197,6 +197,30 @@ bool __igt_run_subtest(const char *subtest_name);
 const char *igt_subtest_name(void);
 bool igt_only_list_subtests(void);
 
+void __igt_subtest_group_save(int *);
+void __igt_subtest_group_restore(int);
+/**
+ * igt_subtest_group:
+ *
+ * Group a set of subtests together with their common setup code
+ *
+ * Testcase with subtests often need to set up a bunch of shared state as the
+ * common test fixture. But if there are multiple with different requirements
+ * the commont setup code can't be extracted, since a test condition failure in
+ * e.g. igt_require() would result in all subsequent tests skipping. Even those
+ * from a different group.
+ *
+ * This macro allows to group together a set of #igt_fixture and #igt_subtest
+ * clauses. If any common setup in a fixture fails, only the subtests in this
+ * group will fail or skip. Subtest groups can be arbitrarily nested.
+ */
+#define igt_subtest_group for (int igt_tokencat(__tmpint,__LINE__) = 0, \
+			       igt_tokencat(__save,__LINE__) = 0; \
+			       igt_tokencat(__tmpint,__LINE__) < 1 && \
+			       (__igt_subtest_group_save(& igt_tokencat(__save,__LINE__) ), true); \
+			       igt_tokencat(__tmpint,__LINE__) ++, \
+			       __igt_subtest_group_restore(igt_tokencat(__save,__LINE__) ))
+
 /**
  * igt_main:
  *

@@ -97,7 +97,9 @@
  *
  * To allow this i-g-t provides #igt_fixture code blocks for setup code outside
  * of subtests and automatically skips the subtest code blocks themselves. For
- * special cases igt_only_list_subtests() is also provided.
+ * special cases igt_only_list_subtests() is also provided. For setup code only
+ * shared by a group of subtest encapsulate the #igt_fixture block and all the
+ * subtestest in a #igt_subtest_group block.
  *
  * # Magic Control Blocks
  *
@@ -887,6 +889,16 @@ const char *igt_subtest_name(void)
 bool igt_only_list_subtests(void)
 {
 	return list_subtests;
+}
+
+void __igt_subtest_group_save(int *save)
+{
+	*save = skip_subtests_henceforth;
+}
+
+void __igt_subtest_group_restore(int save)
+{
+	skip_subtests_henceforth = save;
 }
 
 static bool skipped_one = false;

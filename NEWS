@@ -1,3 +1,9 @@
+Release 1.15 (XXXX-XX-XX)
+-------------------------
+
+- Add igt_subtest_group to allow igt_fixture for only a subset of subtests
+  without skipping/failing all subsequent subtests.
+
 Release 1.14 (2016-03-01)
 -------------------------
 
