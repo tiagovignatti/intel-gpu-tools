@@ -282,6 +282,40 @@ igt_paint_color_gradient(cairo_t *cr, int x, int y, int w, int h,
 	cairo_pattern_destroy(pat);
 }
 
+/**
+ * igt_paint_color_gradient_range:
+ * @cr: cairo drawing context
+ * @x: pixel x-coordination of the fill rectangle
+ * @y: pixel y-coordination of the fill rectangle
+ * @w: width of the fill rectangle
+ * @h: height of the fill rectangle
+ * @sr: red value to use as start gradient color
+ * @sg: green value to use as start gradient color
+ * @sb: blue value to use as start gradient color
+ * @er: red value to use as end gradient color
+ * @eg: green value to use as end gradient color
+ * @eb: blue value to use as end gradient color
+ *
+ * This functions draws a gradient into the rectangle which fades in
+ * from one color to the other using the drawing context @cr.
+ */
+void
+igt_paint_color_gradient_range(cairo_t *cr, int x, int y, int w, int h,
+			       double sr, double sg, double sb,
+			       double er, double eg, double eb)
+{
+	cairo_pattern_t *pat;
+
+	pat = cairo_pattern_create_linear(x, y, x + w, y + h);
+	cairo_pattern_add_color_stop_rgba(pat, 1, sr, sg, sb, 1);
+	cairo_pattern_add_color_stop_rgba(pat, 0, er, eg, eb, 1);
+
+	cairo_rectangle(cr, x, y, w, h);
+	cairo_set_source(cr, pat);
+	cairo_fill(cr);
+	cairo_pattern_destroy(pat);
+}
+
 static void
 paint_test_patterns(cairo_t *cr, int width, int height)
 {
