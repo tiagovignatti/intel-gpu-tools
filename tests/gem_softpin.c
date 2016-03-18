@@ -271,19 +271,19 @@ static void test_evict_active(int fd)
 	object.handle = gem_create(fd, 4096);
 	gem_write(fd, object.handle, 0, &bbe, sizeof(bbe));
 
+	memset(&execbuf, 0, sizeof(execbuf));
+	execbuf.buffers_ptr = (uintptr_t)&object;
+	execbuf.buffer_count = 1;
+
 	expected = busy_batch(fd);
 	object.offset = expected;
 	object.flags = EXEC_OBJECT_PINNED;
 
 	/* Replace the active batch with ourselves, forcing an eviction */
-	memset(&execbuf, 0, sizeof(execbuf));
-	execbuf.buffers_ptr = (uintptr_t)&object;
-	execbuf.buffer_count = 1;
-
 	gem_execbuf(fd, &execbuf);
-	gem_close(fd, object.handle);
-
 	igt_assert_eq_u64(object.offset, expected);
+
+	gem_close(fd, object.handle);
 }
 
 static void test_evict_snoop(int fd)
@@ -348,28 +348,27 @@ static void test_evict_hang(int fd)
 	const uint32_t bbe = MI_BATCH_BUFFER_END;
 	struct drm_i915_gem_execbuffer2 execbuf;
 	struct drm_i915_gem_exec_object2 object;
-	uint64_t expected;
 	igt_hang_ring_t hang;
+	uint64_t expected;
 
 	memset(&object, 0, sizeof(object));
 	object.handle = gem_create(fd, 4096);
 	gem_write(fd, object.handle, 0, &bbe, sizeof(bbe));
 
-	hang = igt_hang_ctx(fd, 0, 0, 0, (uint64_t *)&expected);
-	object.offset = expected;
-	object.flags = EXEC_OBJECT_PINNED;
-
-	/* Replace the hanging batch with ourselves, forcing an eviction */
 	memset(&execbuf, 0, sizeof(execbuf));
 	execbuf.buffers_ptr = (uintptr_t)&object;
 	execbuf.buffer_count = 1;
 
-	gem_execbuf(fd, &execbuf);
-	gem_close(fd, object.handle);
+	hang = igt_hang_ctx(fd, 0, 0, 0, (uint64_t *)&expected);
+	object.offset = expected;
+	object.flags = EXEC_OBJECT_PINNED;
 
+	/* Replace the hung batch with ourselves, forcing an eviction */
+	gem_execbuf(fd, &execbuf);
 	igt_assert_eq_u64(object.offset, expected);
 
 	igt_post_hang_ring(fd, hang);
+	gem_close(fd, object.handle);
 }
 
 static void xchg_offset(void *array, unsigned i, unsigned j)
@@ -489,18 +488,43 @@ igt_main
 		test_softpin(fd);
 	igt_subtest("overlap")
 		test_overlap(fd);
+
 	igt_subtest("noreloc")
 		test_noreloc(fd, NOSLEEP);
 	igt_subtest("noreloc-S3")
 		test_noreloc(fd, SUSPEND);
 	igt_subtest("noreloc-S4")
 		test_noreloc(fd, HIBERNATE);
+
 	igt_subtest("evict-active")
 		test_evict_active(fd);
 	igt_subtest("evict-snoop")
 		test_evict_snoop(fd);
 	igt_subtest("evict-hang")
 		test_evict_hang(fd);
+
+	igt_fork_signal_helper();
+	igt_subtest("noreloc-interruptible") {
+		struct timespec start = {};
+		while (igt_seconds_elapsed(&start) < 20)
+			test_noreloc(fd, NOSLEEP);
+	}
+	igt_subtest("evict-active-interruptible") {
+		struct timespec start = {};
+		while (igt_seconds_elapsed(&start) < 20)
+			test_evict_active(fd);
+	}
+	igt_subtest("evict-snoop-interruptible") {
+		struct timespec start = {};
+		while (igt_seconds_elapsed(&start) < 20)
+			test_evict_snoop(fd);
+	}
+	igt_subtest("evict-hang-interruptible") {
+		struct timespec start = {};
+		while (igt_seconds_elapsed(&start) < 20)
+			test_evict_hang(fd);
+	}
+	igt_stop_signal_helper();
 
 	igt_fixture
 		close(fd);

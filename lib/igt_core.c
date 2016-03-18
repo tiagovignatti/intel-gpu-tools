@@ -396,6 +396,23 @@ error:
 	return -errno;
 }
 
+#define MSEC_PER_SEC (1000)
+#define USEC_PER_SEC (1000*MSEC_PER_SEC)
+#define NSEC_PER_SEC (1000*USEC_PER_SEC)
+uint64_t igt_nsec_elapsed(struct timespec *start)
+{
+	struct timespec now;
+
+	gettime(&now);
+	if ((start->tv_sec | start->tv_nsec) == 0) {
+		*start = now;
+		return 0;
+	}
+
+	return ((now.tv_nsec - start->tv_nsec) +
+		NSEC_PER_SEC*(now.tv_sec - start->tv_sec));
+}
+
 bool __igt_fixture(void)
 {
 	assert(!in_fixture);

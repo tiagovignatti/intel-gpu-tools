@@ -32,6 +32,7 @@
 
 #include <setjmp.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -774,6 +775,40 @@ extern enum igt_log_level igt_log_level;
 
 void igt_set_timeout(unsigned int seconds,
 		     const char *op);
+
+/**
+ * igt_nsec_elapsed:
+ * @start: measure from this point in time
+ *
+ * Reports the difference in the monotonic clock from the start time
+ * in nanoseconds. On the first invocation, start should be zeroed and will
+ * be set by the call.
+ *
+ * Typical use would be:
+ *
+ * igt_subtest("test") {
+ * 	struct timespec start = {};
+ * 	while (igt_nsec_elapsed(&start) < test_timeout_ns)
+ *	 	do_test();
+ * }
+ *
+ * A handy approximation is to use nsec >> 30 to convert to seconds,
+ * nsec >> 20 to convert to milliseconds - the error is about 8%, acceptable
+ * for test run times.
+ */
+uint64_t igt_nsec_elapsed(struct timespec *start);
+
+/**
+ * igt_seconds_elapsed:
+ * @start: measure from this point in time
+ *
+ * A wrapper around igt_nsec_elapsed that reports the approximate (8% error)
+ * number of seconds since the start point.
+ */
+static inline uint32_t igt_seconds_elapsed(struct timespec *start)
+{
+	return igt_nsec_elapsed(start) >> 30;
+}
 
 void igt_reset_timeout(void);
 
