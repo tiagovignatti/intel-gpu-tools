@@ -180,6 +180,113 @@ static void test_write_flush(bool expect_stale_cache)
 	munmap(ptr_cpu, width * height);
 }
 
+static void blit_and_cmp(void)
+{
+	drm_intel_bo *bo_1;
+	drm_intel_bo *bo_2;
+	uint32_t *ptr_cpu;
+	uint32_t *ptr2_cpu;
+	int dma_buf_fd, dma_buf2_fd, i;
+	int local_fd;
+	drm_intel_bufmgr *local_bufmgr;
+	struct intel_batchbuffer *local_batch;
+
+	/* recreate process local variables */
+	local_fd = drm_open_driver(DRIVER_INTEL);
+	local_bufmgr = drm_intel_bufmgr_gem_init(local_fd, 4096);
+	igt_assert(local_bufmgr);
+
+	local_batch = intel_batchbuffer_alloc(local_bufmgr, intel_get_drm_devid(local_fd));
+	igt_assert(local_batch);
+
+	bo_1 = drm_intel_bo_alloc(local_bufmgr, "BO 1", width * height * 4, 4096);
+	dma_buf_fd = prime_handle_to_fd_for_mmap(local_fd, bo_1->handle);
+	igt_skip_on(errno == EINVAL);
+
+	ptr_cpu = mmap(NULL, width * height, PROT_READ | PROT_WRITE,
+		       MAP_SHARED, dma_buf_fd, 0);
+	igt_assert(ptr_cpu != MAP_FAILED);
+
+	bo_2 = drm_intel_bo_alloc(local_bufmgr, "BO 2", width * height * 4, 4096);
+	dma_buf2_fd = prime_handle_to_fd_for_mmap(local_fd, bo_2->handle);
+
+	ptr2_cpu = mmap(NULL, width * height, PROT_READ | PROT_WRITE,
+			MAP_SHARED, dma_buf2_fd, 0);
+	igt_assert(ptr2_cpu != MAP_FAILED);
+
+	/* Fill up BO 1 with '1's and BO 2 with '0's */
+	prime_sync_start(dma_buf_fd, true);
+	memset(ptr_cpu, 0x11, width * height);
+	prime_sync_end(dma_buf_fd, true);
+
+	prime_sync_start(dma_buf2_fd, true);
+	memset(ptr2_cpu, 0x00, width * height);
+	prime_sync_end(dma_buf2_fd, true);
+
+	/* Copy BO 1 into BO 2, using blitter. */
+	intel_copy_bo(local_batch, bo_2, bo_1, width * height);
+	usleep(0); /* let someone else claim the mutex */
+
+	/* Compare BOs. If prime_sync_* were executed properly, the caches
+	 * should be synced. */
+	prime_sync_start(dma_buf2_fd, false);
+	for (i = 0; i < (width * height) / 4; i++)
+		igt_fail_on_f(ptr2_cpu[i] != 0x11111111, "Found 0x%08x at offset 0x%08x\n", ptr2_cpu[i], i);
+	prime_sync_end(dma_buf2_fd, false);
+
+	drm_intel_bo_unreference(bo_1);
+	drm_intel_bo_unreference(bo_2);
+	munmap(ptr_cpu, width * height);
+	munmap(ptr2_cpu, width * height);
+
+	close(dma_buf_fd);
+	close(dma_buf2_fd);
+
+	intel_batchbuffer_free(local_batch);
+	drm_intel_bufmgr_destroy(local_bufmgr);
+	close(local_fd);
+}
+
+/*
+ * Constantly interrupt concurrent blits to stress out prime_sync_* and make
+ * sure these ioctl errors are handled accordingly.
+ *
+ * Important to note that in case of failure (e.g. in a case where the ioctl
+ * wouldn't try again in a return error) this test does not reliably catch the
+ * problem with 100% of accuracy.
+ */
+static void test_ioctl_errors(void)
+{
+	int ncpus = sysconf(_SC_NPROCESSORS_ONLN);
+
+	/* Ensure we can do at least one child */
+	intel_require_memory(2, width*height*4, CHECK_RAM);
+
+	igt_fork_signal_helper();
+	for (int num_children = 1; num_children <= 8 *ncpus; num_children <<= 1) {
+		uint64_t required, total;
+
+		igt_info("Spawing %d interruptible children\n", num_children);
+		if (!__intel_check_memory(2*num_children,
+					  width*height*4,
+					  CHECK_RAM,
+					  &required, &total)) {
+			igt_debug("Estimated that we need %'lluMiB for test, but only have %'lluMiB\n",
+				  (long long)(required >> 20),
+				  (long long)(total >> 20));
+			break;
+		}
+
+		igt_fork(child, num_children) {
+			struct timespec start = {};
+			while (igt_seconds_elapsed(&start) <= num_children)
+				blit_and_cmp();
+		}
+		igt_waitchildren();
+	}
+	igt_stop_signal_helper();
+}
+
 int main(int argc, char **argv)
 {
 	int i;
@@ -233,6 +340,11 @@ int main(int argc, char **argv)
 		for (i = 0; i < ROUNDS; i++)
 			test_write_flush(expect_stale_cache);
 		igt_fail_on_f(!stale, "couldn't find any stale cache lines\n");
+	}
+
+	igt_subtest("ioctl-errors") {
+		igt_info("exercising concurrent blit to get ioctl errors\n");
+		test_ioctl_errors();
 	}
 
 	igt_fixture {
