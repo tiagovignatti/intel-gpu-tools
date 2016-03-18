@@ -180,6 +180,23 @@ struct local_drm_i915_gem_caching {
 #define LOCAL_DRM_IOCTL_I915_GEM_GET_CACHEING \
 	DRM_IOWR(DRM_COMMAND_BASE + LOCAL_DRM_I915_GEM_GET_CACHEING, struct local_drm_i915_gem_caching)
 
+static int __gem_set_caching(int fd, uint32_t handle, uint32_t caching)
+{
+	struct local_drm_i915_gem_caching arg;
+	int err;
+
+	memset(&arg, 0, sizeof(arg));
+	arg.handle = handle;
+	arg.caching = caching;
+
+	err = 0;
+	if (drmIoctl(fd, LOCAL_DRM_IOCTL_I915_GEM_SET_CACHEING, &arg)) {
+		err = -errno;
+		igt_assert(errno == ENOTTY || errno == EINVAL);
+	}
+	return err;
+}
+
 /**
  * gem_set_caching:
  * @fd: open i915 drm file descriptor
@@ -193,17 +210,7 @@ struct local_drm_i915_gem_caching {
  */
 void gem_set_caching(int fd, uint32_t handle, uint32_t caching)
 {
-	struct local_drm_i915_gem_caching arg;
-	int ret;
-
-	memset(&arg, 0, sizeof(arg));
-	arg.handle = handle;
-	arg.caching = caching;
-
-	ret = drmIoctl(fd, LOCAL_DRM_IOCTL_I915_GEM_SET_CACHEING, &arg);
-	igt_assert(ret == 0 || (errno == ENOTTY || errno == EINVAL));
-
-	igt_require(ret == 0);
+	igt_require(__gem_set_caching(fd, handle, caching) == 0);
 	errno = 0;
 }
 
@@ -221,8 +228,8 @@ uint32_t gem_get_caching(int fd, uint32_t handle)
 	struct local_drm_i915_gem_caching arg;
 	int ret;
 
+	memset(&arg, 0, sizeof(arg));
 	arg.handle = handle;
-	arg.caching = 0;
 	ret = ioctl(fd, LOCAL_DRM_IOCTL_I915_GEM_GET_CACHEING, &arg);
 	igt_assert(ret == 0);
 	errno = 0;
@@ -1330,18 +1337,12 @@ bool gem_has_softpin(int fd)
  */
 void gem_require_caching(int fd)
 {
-	struct local_drm_i915_gem_caching arg;
-	int ret;
+	uint32_t handle;
 
-	memset(&arg, 0, sizeof(arg));
-	arg.handle = gem_create(fd, 4096);
-	igt_assert(arg.handle != 0);
+	handle = gem_create(fd, 4096);
+	gem_set_caching(fd, handle, 0);
+	gem_close(fd, handle);
 
-	arg.caching = 0;
-	ret = ioctl(fd, LOCAL_DRM_IOCTL_I915_GEM_SET_CACHEING, &arg);
-	gem_close(fd, arg.handle);
-
-	igt_require(ret == 0);
 	errno = 0;
 }
 
