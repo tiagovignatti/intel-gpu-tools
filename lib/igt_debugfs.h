@@ -124,6 +124,7 @@ __attribute__((warn_unused_result))
 int igt_pipe_crc_get_crcs(igt_pipe_crc_t *pipe_crc, int n_crcs,
 			  igt_crc_t **out_crcs);
 void igt_pipe_crc_collect_crc(igt_pipe_crc_t *pipe_crc, igt_crc_t *out_crc);
+bool igt_crc_equal(igt_crc_t *a, igt_crc_t *b);
 
 /*
  * Drop caches

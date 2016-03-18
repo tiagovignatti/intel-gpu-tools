@@ -252,6 +252,23 @@ bool igt_debugfs_search(const char *filename, const char *substring)
  * @a: first pipe CRC value
  * @b: second pipe CRC value
  *
+ * Compares two CRC values.
+ */
+bool igt_crc_equal(igt_crc_t *a, igt_crc_t *b)
+{
+	int i;
+
+	for (i = 0; i < a->n_words; i++)
+		if (a->crc[i] != b->crc[i])
+			return false;
+	return true;
+}
+
+/**
+ * igt_assert_crc_equal:
+ * @a: first pipe CRC value
+ * @b: second pipe CRC value
+ *
  * Compares two CRC values and fails the testcase if they don't match with
  * igt_fail(). Note that due to CRC collisions CRC based testcase can only
  * assert that CRCs match, never that they are different. Otherwise there might
