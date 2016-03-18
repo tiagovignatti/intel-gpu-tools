@@ -161,7 +161,10 @@ static const char *igt_plane_prop_names[IGT_NUM_PLANE_PROPS] = {
 };
 
 static const char *igt_crtc_prop_names[IGT_NUM_CRTC_PROPS] = {
-	"background_color"
+	"background_color",
+	"DEGAMMA_LUT",
+	"CTM",
+	"GAMMA_LUT",
 };
 
 static const char *igt_connector_prop_names[IGT_NUM_CONNECTOR_PROPS] = {
@@ -1343,6 +1346,7 @@ void igt_display_init(igt_display_t *display, int drm_fd)
 		for (j = 0; j < display->n_pipes; j++) {
 			uint64_t prop_value;
 			igt_pipe_t *pipe = &display->pipes[j];
+
 			if (output->config.crtc) {
 				get_crtc_property(display->drm_fd, output->config.crtc->crtc_id,
 						   "background_color",
@@ -1350,6 +1354,21 @@ void igt_display_init(igt_display_t *display, int drm_fd)
 						   &prop_value,
 						   NULL);
 				pipe->background = (uint32_t)prop_value;
+				get_crtc_property(display->drm_fd, output->config.crtc->crtc_id,
+						  "DEGAMMA_LUT",
+						  &pipe->degamma_property,
+						  NULL,
+						  NULL);
+				get_crtc_property(display->drm_fd, output->config.crtc->crtc_id,
+						  "CTM",
+						  &pipe->ctm_property,
+						  NULL,
+						  NULL);
+				get_crtc_property(display->drm_fd, output->config.crtc->crtc_id,
+						  "GAMMA_LUT",
+						  &pipe->gamma_property,
+						  NULL,
+						  NULL);
 			}
 		}
 	}
@@ -1497,6 +1516,16 @@ static igt_plane_t *igt_pipe_get_plane(igt_pipe_t *pipe, enum igt_plane plane)
 	}
 
 	return &pipe->planes[idx];
+}
+
+bool igt_pipe_get_property(igt_pipe_t *pipe, const char *name,
+			   uint32_t *prop_id, uint64_t *value,
+			   drmModePropertyPtr *prop)
+{
+	return get_crtc_property(pipe->display->drm_fd,
+				 pipe->crtc_id,
+				 name,
+				 prop_id, value, prop);
 }
 
 static uint32_t igt_plane_get_fb_id(igt_plane_t *plane)
@@ -1880,6 +1909,17 @@ static int igt_output_commit(igt_output_t *output,
 		pipe->background_changed = false;
 	}
 
+	if (pipe->color_mgmt_changed) {
+		igt_crtc_set_property(output, pipe->degamma_property,
+				      pipe->degamma_blob);
+		igt_crtc_set_property(output, pipe->ctm_property,
+				      pipe->ctm_blob);
+		igt_crtc_set_property(output, pipe->gamma_property,
+				      pipe->gamma_blob);
+
+		pipe->color_mgmt_changed = false;
+	}
+
 	for (i = 0; i < pipe->n_planes; i++) {
 		igt_plane_t *plane = &pipe->planes[i];
 
@@ -1913,10 +1953,15 @@ static void igt_atomic_prepare_crtc_commit(igt_output_t *output, drmModeAtomicRe
 	if (pipe_obj->background_changed)
 		igt_atomic_populate_crtc_req(req, output, IGT_CRTC_BACKGROUND, pipe_obj->background);
 
+	if (pipe_obj->color_mgmt_changed) {
+		igt_atomic_populate_crtc_req(req, output, IGT_CRTC_DEGAMMA_LUT, pipe_obj->degamma_blob);
+		igt_atomic_populate_crtc_req(req, output, IGT_CRTC_CTM, pipe_obj->ctm_blob);
+		igt_atomic_populate_crtc_req(req, output, IGT_CRTC_GAMMA_LUT, pipe_obj->gamma_blob);
+	}
+
 	/*
 	 *	TODO: Add all crtc level properties here
 	 */
-
 }
 
 /*
@@ -2301,6 +2346,44 @@ void igt_plane_set_rotation(igt_plane_t *plane, igt_rotation_t rotation)
 	plane->rotation = rotation;
 
 	plane->rotation_changed = true;
+}
+
+static void
+igt_pipe_replace_blob(igt_pipe_t *pipe, uint64_t *blob, void *ptr, size_t length)
+{
+	igt_display_t *display = pipe->display;
+	uint32_t blob_id = 0;
+
+	if (*blob != 0)
+		igt_assert(drmModeDestroyPropertyBlob(display->drm_fd,
+						      *blob) == 0);
+
+	if (length > 0)
+		igt_assert(drmModeCreatePropertyBlob(display->drm_fd,
+						     ptr, length, &blob_id) == 0);
+
+	*blob = blob_id;
+}
+
+void
+igt_pipe_set_degamma_lut(igt_pipe_t *pipe, void *ptr, size_t length)
+{
+	igt_pipe_replace_blob(pipe, &pipe->degamma_blob, ptr, length);
+	pipe->color_mgmt_changed = 1;
+}
+
+void
+igt_pipe_set_ctm_matrix(igt_pipe_t *pipe, void *ptr, size_t length)
+{
+	igt_pipe_replace_blob(pipe, &pipe->ctm_blob, ptr, length);
+	pipe->color_mgmt_changed = 1;
+}
+
+void
+igt_pipe_set_gamma_lut(igt_pipe_t *pipe, void *ptr, size_t length)
+{
+	igt_pipe_replace_blob(pipe, &pipe->gamma_blob, ptr, length);
+	pipe->color_mgmt_changed = 1;
 }
 
 /**

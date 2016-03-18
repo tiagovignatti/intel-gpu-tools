@@ -108,6 +108,9 @@ void kmstest_restore_vt_mode(void);
 
 enum igt_atomic_crtc_properties {
        IGT_CRTC_BACKGROUND = 0,
+       IGT_CRTC_CTM,
+       IGT_CRTC_DEGAMMA_LUT,
+       IGT_CRTC_GAMMA_LUT,
        IGT_NUM_CRTC_PROPS
 };
 
@@ -256,6 +259,15 @@ struct igt_pipe {
 	uint64_t background; /* Background color MSB BGR 16bpc LSB */
 	uint32_t background_changed : 1;
 	uint32_t background_property;
+
+	uint64_t degamma_blob;
+	uint32_t degamma_property;
+	uint64_t ctm_blob;
+	uint32_t ctm_property;
+	uint64_t gamma_blob;
+	uint32_t gamma_property;
+	uint32_t color_mgmt_changed : 1;
+
 	uint32_t crtc_id;
 };
 
@@ -295,11 +307,18 @@ drmModeModeInfo *igt_output_get_mode(igt_output_t *output);
 void igt_output_override_mode(igt_output_t *output, drmModeModeInfo *mode);
 void igt_output_set_pipe(igt_output_t *output, enum pipe pipe);
 igt_plane_t *igt_output_get_plane(igt_output_t *output, enum igt_plane plane);
+bool igt_pipe_get_property(igt_pipe_t *pipe, const char *name,
+			   uint32_t *prop_id, uint64_t *value,
+			   drmModePropertyPtr *prop);
 
 static inline bool igt_plane_supports_rotation(igt_plane_t *plane)
 {
 	return plane->rotation_property != 0;
 }
+
+void igt_pipe_set_degamma_lut(igt_pipe_t *pipe, void *ptr, size_t length);
+void igt_pipe_set_ctm_matrix(igt_pipe_t *pipe, void *ptr, size_t length);
+void igt_pipe_set_gamma_lut(igt_pipe_t *pipe, void *ptr, size_t length);
 
 void igt_plane_set_fb(igt_plane_t *plane, struct igt_fb *fb);
 void igt_plane_set_position(igt_plane_t *plane, int x, int y);
@@ -368,4 +387,3 @@ const unsigned char* igt_kms_get_alt_edid(void);
 
 
 #endif /* __IGT_KMS_H__ */
-
