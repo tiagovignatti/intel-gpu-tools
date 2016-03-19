@@ -34,6 +34,14 @@
 #include "igt.h"
 #include "igt_gt.h"
 
+#define INTERRUPTIBLE 0x1
+#define HANG 0x2
+#define CHILD 0x8
+#define FORKED 0x8
+#define BOMB 0x10
+#define SUSPEND 0x20
+#define HIBERNATE 0x40
+
 static void check_bo(int fd, uint32_t handle)
 {
 	uint32_t *map;
@@ -47,10 +55,10 @@ static void check_bo(int fd, uint32_t handle)
 	munmap(map, 4096);
 }
 
-static void fill_ring(int fd, struct drm_i915_gem_execbuffer2 *execbuf)
+static void fill_ring(int fd,
+		      struct drm_i915_gem_execbuffer2 *execbuf,
+		      unsigned flags)
 {
-	int i;
-
 	/* The ring we've been using is 128k, and each rendering op
 	 * will use at least 8 dwords:
 	 *
@@ -67,17 +75,11 @@ static void fill_ring(int fd, struct drm_i915_gem_execbuffer2 *execbuf)
 	 * doing this, we aren't likely to with this test.
 	 */
 	igt_debug("Executing execbuf %d times\n", 128*1024/(8*4));
-	for (i = 0; i < 128*1024 / (8 * 4); i++)
-		gem_execbuf(fd, execbuf);
+	igt_interruptible(flags & INTERRUPTIBLE) {
+		for (int i = 0; i < 128*1024 / (8 * 4); i++)
+			gem_execbuf(fd, execbuf);
+	}
 }
-
-#define INTERRUPTIBLE 0x1
-#define HANG 0x2
-#define CHILD 0x8
-#define FORKED 0x8
-#define BOMB 0x10
-#define SUSPEND 0x20
-#define HIBERNATE 0x40
 
 static void run_test(int fd, unsigned ring, unsigned flags)
 {
@@ -157,22 +159,19 @@ static void run_test(int fd, unsigned ring, unsigned flags)
 	if (flags & HANG)
 		hang = igt_hang_ring(fd, ring & ~(3<<13));
 
-	if (flags & INTERRUPTIBLE)
-		igt_fork_signal_helper();
-
 	if (flags & (CHILD | FORKED | BOMB)) {
 		int nchild;
 
-		if (flags & CHILD)
-			nchild = 1;
-		else if (flags & FORKED)
+		if (flags & FORKED)
 			nchild = sysconf(_SC_NPROCESSORS_ONLN);
-		else
+		else if (flags & BOMB)
 			nchild = 8*sysconf(_SC_NPROCESSORS_ONLN);
+		else
+			nchild = 1;
 
 		igt_debug("Forking %d children\n", nchild);
 		igt_fork(child, nchild)
-			fill_ring(fd, &execbuf);
+			fill_ring(fd, &execbuf, flags);
 
 		if (flags & SUSPEND)
 			igt_system_suspend_autoresume();
@@ -182,10 +181,7 @@ static void run_test(int fd, unsigned ring, unsigned flags)
 
 		igt_waitchildren();
 	} else
-		fill_ring(fd, &execbuf);
-
-	if (flags & INTERRUPTIBLE)
-		igt_stop_signal_helper();
+		fill_ring(fd, &execbuf, flags);
 
 	if (flags & HANG)
 		igt_post_hang_ring(fd, hang);
