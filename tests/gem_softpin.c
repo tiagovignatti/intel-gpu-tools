@@ -491,40 +491,21 @@ igt_main
 
 	igt_subtest("noreloc")
 		test_noreloc(fd, NOSLEEP);
+	igt_subtest("noreloc-interruptible")
+		igt_interruptible(true) test_noreloc(fd, NOSLEEP);
 	igt_subtest("noreloc-S3")
 		test_noreloc(fd, SUSPEND);
 	igt_subtest("noreloc-S4")
 		test_noreloc(fd, HIBERNATE);
 
-	igt_subtest("evict-active")
-		test_evict_active(fd);
-	igt_subtest("evict-snoop")
-		test_evict_snoop(fd);
+	for (int signal = 0; signal <= 1; signal++) {
+		igt_subtest_f("evict-active%s", signal ? "-interruptible" : "")
+			igt_interruptible(signal) test_evict_active(fd);
+		igt_subtest_f("evict-snoop%s", signal ? "-interruptible" : "")
+			igt_interruptible(signal) test_evict_snoop(fd);
+	}
 	igt_subtest("evict-hang")
 		test_evict_hang(fd);
-
-	igt_fork_signal_helper();
-	igt_subtest("noreloc-interruptible") {
-		struct timespec start = {};
-		while (igt_seconds_elapsed(&start) < 20)
-			test_noreloc(fd, NOSLEEP);
-	}
-	igt_subtest("evict-active-interruptible") {
-		struct timespec start = {};
-		while (igt_seconds_elapsed(&start) < 20)
-			test_evict_active(fd);
-	}
-	igt_subtest("evict-snoop-interruptible") {
-		struct timespec start = {};
-		while (igt_seconds_elapsed(&start) < 20)
-			test_evict_snoop(fd);
-	}
-	igt_subtest("evict-hang-interruptible") {
-		struct timespec start = {};
-		while (igt_seconds_elapsed(&start) < 20)
-			test_evict_hang(fd);
-	}
-	igt_stop_signal_helper();
 
 	igt_fixture
 		close(fd);
