@@ -237,7 +237,12 @@ bool igt_sigiter_continue(struct igt_sigiter *iter, bool enable)
 	if (iter->pass++ == 0)
 		return igt_sigiter_start(iter, enable);
 
-	if (__igt_sigiter.stat.miss == __igt_sigiter.stat.ioctls)
+	/* If nothing reported SIGINT, nothing will on the next pass, so
+	 * give up! Also give up if everything is now executing faster
+	 * than current sigtimer.
+	 */
+	if (__igt_sigiter.stat.hit == 0 ||
+	    __igt_sigiter.stat.miss == __igt_sigiter.stat.ioctls)
 		return igt_sigiter_stop(iter, enable);
 
 	igt_debug("%s: pass %d, missed %ld/%ld\n",
