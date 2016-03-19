@@ -77,6 +77,9 @@
  * distinguish them.
  */
 
+int (*igt_ioctl)(int fd, unsigned long request, void *arg) = drmIoctl;
+
+
 /**
  * gem_handle_to_libdrm_bo:
  * @bufmgr: libdrm buffer manager instance
@@ -126,7 +129,7 @@ gem_get_tiling(int fd, uint32_t handle, uint32_t *tiling, uint32_t *swizzle)
 	memset(&get_tiling, 0, sizeof(get_tiling));
 	get_tiling.handle = handle;
 
-	ret = drmIoctl(fd, DRM_IOCTL_I915_GEM_GET_TILING, &get_tiling);
+	ret = igt_ioctl(fd, DRM_IOCTL_I915_GEM_GET_TILING, &get_tiling);
 	igt_assert(ret == 0);
 
 	*tiling = get_tiling.tiling_mode;
@@ -190,7 +193,7 @@ static int __gem_set_caching(int fd, uint32_t handle, uint32_t caching)
 	arg.caching = caching;
 
 	err = 0;
-	if (drmIoctl(fd, LOCAL_DRM_IOCTL_I915_GEM_SET_CACHEING, &arg)) {
+	if (igt_ioctl(fd, LOCAL_DRM_IOCTL_I915_GEM_SET_CACHEING, &arg)) {
 		err = -errno;
 		igt_assert(errno == ENOTTY || errno == EINVAL);
 	}
@@ -397,7 +400,7 @@ int gem_wait(int fd, uint32_t handle, int64_t *timeout_ns)
 	wait.flags = 0;
 
 	ret = 0;
-	if (drmIoctl(fd, DRM_IOCTL_I915_GEM_WAIT, &wait))
+	if (igt_ioctl(fd, DRM_IOCTL_I915_GEM_WAIT, &wait))
 		ret = -errno;
 
 	if (timeout_ns)
@@ -460,7 +463,7 @@ uint32_t __gem_create_stolen(int fd, uint64_t size)
 	create.handle = 0;
 	create.size = size;
 	create.flags = I915_CREATE_PLACEMENT_STOLEN;
-	ret = drmIoctl(fd, LOCAL_IOCTL_I915_GEM_CREATE, &create);
+	ret = igt_ioctl(fd, LOCAL_IOCTL_I915_GEM_CREATE, &create);
 
 	if (ret < 0)
 		return 0;
@@ -503,7 +506,7 @@ uint32_t __gem_create(int fd, int size)
 	memset(&create, 0, sizeof(create));
 	create.handle = 0;
 	create.size = size;
-	ret = drmIoctl(fd, DRM_IOCTL_I915_GEM_CREATE, &create);
+	ret = igt_ioctl(fd, DRM_IOCTL_I915_GEM_CREATE, &create);
 
 	if (ret < 0)
 		return 0;
@@ -546,7 +549,7 @@ uint32_t gem_create(int fd, uint64_t size)
 int __gem_execbuf(int fd, struct drm_i915_gem_execbuffer2 *execbuf)
 {
 	int err = 0;
-	if (drmIoctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, execbuf))
+	if (igt_ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, execbuf))
 		err = -errno;
 	errno = 0;
 	return err;
@@ -584,7 +587,7 @@ void *__gem_mmap__gtt(int fd, uint32_t handle, uint64_t size, unsigned prot)
 
 	memset(&mmap_arg, 0, sizeof(mmap_arg));
 	mmap_arg.handle = handle;
-	if (drmIoctl(fd, DRM_IOCTL_I915_GEM_MMAP_GTT, &mmap_arg))
+	if (igt_ioctl(fd, DRM_IOCTL_I915_GEM_MMAP_GTT, &mmap_arg))
 		return NULL;
 
 	ptr = mmap64(0, size, prot, MAP_SHARED, fd, mmap_arg.offset);
@@ -650,7 +653,7 @@ bool gem_mmap__has_wc(int fd)
 			arg.offset = 0;
 			arg.size = 4096;
 			arg.flags = I915_MMAP_WC;
-			has_wc = drmIoctl(fd, LOCAL_IOCTL_I915_GEM_MMAP_v2, &arg) == 0;
+			has_wc = igt_ioctl(fd, LOCAL_IOCTL_I915_GEM_MMAP_v2, &arg) == 0;
 			gem_close(fd, arg.handle);
 		}
 		errno = 0;
@@ -688,7 +691,7 @@ void *__gem_mmap__wc(int fd, uint32_t handle, uint64_t offset, uint64_t size, un
 	arg.offset = offset;
 	arg.size = size;
 	arg.flags = I915_MMAP_WC;
-	if (drmIoctl(fd, LOCAL_IOCTL_I915_GEM_MMAP_v2, &arg))
+	if (igt_ioctl(fd, LOCAL_IOCTL_I915_GEM_MMAP_v2, &arg))
 		return NULL;
 
 	errno = 0;
@@ -735,7 +738,7 @@ void *__gem_mmap__cpu(int fd, uint32_t handle, uint64_t offset, uint64_t size, u
 	mmap_arg.handle = handle;
 	mmap_arg.offset = offset;
 	mmap_arg.size = size;
-	if (drmIoctl(fd, DRM_IOCTL_I915_GEM_MMAP, &mmap_arg))
+	if (igt_ioctl(fd, DRM_IOCTL_I915_GEM_MMAP, &mmap_arg))
 		return NULL;
 
 	errno = 0;
@@ -804,7 +807,7 @@ uint32_t gem_context_create(int fd)
 	struct drm_i915_gem_context_create create;
 
 	memset(&create, 0, sizeof(create));
-	if (drmIoctl(fd, DRM_IOCTL_I915_GEM_CONTEXT_CREATE, &create)) {
+	if (igt_ioctl(fd, DRM_IOCTL_I915_GEM_CONTEXT_CREATE, &create)) {
 		int err = -errno;
 		igt_skip_on(err == -ENODEV || errno == -EINVAL);
 		igt_assert_eq(err, 0);
@@ -823,7 +826,7 @@ int __gem_context_destroy(int fd, uint32_t ctx_id)
 	memset(&destroy, 0, sizeof(destroy));
 	destroy.ctx_id = ctx_id;
 
-	ret = drmIoctl(fd, DRM_IOCTL_I915_GEM_CONTEXT_DESTROY, &destroy);
+	ret = igt_ioctl(fd, DRM_IOCTL_I915_GEM_CONTEXT_DESTROY, &destroy);
 	if (ret)
 		return -errno;
 	return 0;
@@ -868,7 +871,7 @@ int __gem_context_set_param(int fd, struct local_i915_gem_context_param *p)
 {
 #define LOCAL_I915_GEM_CONTEXT_SETPARAM       0x35
 #define LOCAL_IOCTL_I915_GEM_CONTEXT_SETPARAM DRM_IOWR (DRM_COMMAND_BASE + LOCAL_I915_GEM_CONTEXT_SETPARAM, struct local_i915_gem_context_param)
-	if (drmIoctl(fd, LOCAL_IOCTL_I915_GEM_CONTEXT_SETPARAM, p))
+	if (igt_ioctl(fd, LOCAL_IOCTL_I915_GEM_CONTEXT_SETPARAM, p))
 		return -errno;
 
 	errno = 0;
@@ -906,7 +909,7 @@ void gem_context_require_param(int fd, uint64_t param)
 	p.value = 0;
 	p.size = 0;
 
-	igt_require(drmIoctl(fd, LOCAL_IOCTL_I915_GEM_CONTEXT_GETPARAM, &p) == 0);
+	igt_require(igt_ioctl(fd, LOCAL_IOCTL_I915_GEM_CONTEXT_GETPARAM, &p) == 0);
 }
 
 void gem_context_require_ban_period(int fd)
@@ -921,7 +924,7 @@ void gem_context_require_ban_period(int fd)
 		p.value = 0;
 		p.size = 0;
 
-		has_ban_period = drmIoctl(fd, LOCAL_IOCTL_I915_GEM_CONTEXT_GETPARAM, &p) == 0;
+		has_ban_period = igt_ioctl(fd, LOCAL_IOCTL_I915_GEM_CONTEXT_GETPARAM, &p) == 0;
 	}
 
 	igt_require(has_ban_period);
@@ -939,7 +942,7 @@ int __gem_userptr(int fd, void *ptr, int size, int read_only, uint32_t flags, ui
 	if (read_only)
 		userptr.flags |= LOCAL_I915_USERPTR_READ_ONLY;
 
-	ret = drmIoctl(fd, LOCAL_IOCTL_I915_GEM_USERPTR, &userptr);
+	ret = igt_ioctl(fd, LOCAL_IOCTL_I915_GEM_USERPTR, &userptr);
 	if (ret)
 		ret = errno;
 	igt_skip_on_f(ret == ENODEV &&
@@ -1125,7 +1128,7 @@ static bool has_param(int fd, int param)
 	gp.value = &tmp;
 	gp.param = param;
 
-	if (drmIoctl(fd, DRM_IOCTL_I915_GETPARAM, &gp))
+	if (igt_ioctl(fd, DRM_IOCTL_I915_GETPARAM, &gp))
 		return false;
 
 	errno = 0;
@@ -1425,7 +1428,7 @@ int prime_handle_to_fd_for_mmap(int fd, uint32_t handle)
 	args.flags = DRM_CLOEXEC | DRM_RDWR;
 	args.fd = -1;
 
-	if (drmIoctl(fd, DRM_IOCTL_PRIME_HANDLE_TO_FD, &args) != 0)
+	if (igt_ioctl(fd, DRM_IOCTL_PRIME_HANDLE_TO_FD, &args) != 0)
 		return -1;
 
 	return args.fd;
@@ -1551,7 +1554,7 @@ int __kms_addfb(int fd, uint32_t handle, uint32_t width, uint32_t height,
 	f.pitches[0] = stride;
 	f.modifier[0] = modifier;
 
-	ret = drmIoctl(fd, LOCAL_DRM_IOCTL_MODE_ADDFB2, &f);
+	ret = igt_ioctl(fd, LOCAL_DRM_IOCTL_MODE_ADDFB2, &f);
 
 	*buf_id = f.fb_id;
 

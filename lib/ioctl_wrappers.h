@@ -35,6 +35,8 @@
 #include <intel_bufmgr.h>
 #include <i915_drm.h>
 
+extern int (*igt_ioctl)(int fd, unsigned long request, void *arg);
+
 /* libdrm interfacing */
 drm_intel_bo * gem_handle_to_libdrm_bo(drm_intel_bufmgr *bufmgr, int fd,
 				       const char *name, uint32_t handle);
