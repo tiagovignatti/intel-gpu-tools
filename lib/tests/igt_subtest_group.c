@@ -28,6 +28,7 @@
 igt_main
 {
 	bool t1 = false;
+	int t2 = 0;
 
 	igt_subtest_group {
 		igt_fixture {
@@ -59,5 +60,24 @@ igt_main
 		}
 	}
 
+	igt_subtest_group {
+		igt_fixture {
+			assert(t2 == 0);
+			t2 = 1;
+		}
+
+		igt_subtest("run-again") {
+			assert(t2 == 1);
+			t2 = 2;
+		}
+
+		igt_fixture {
+			assert(t2 == 2);
+			t2 = 3;
+
+		}
+	}
+
 	assert(t1);
+	assert(t2 == 3);
 }
