@@ -97,6 +97,7 @@ uint64_t intel_get_total_swap_mb(void);
 int __intel_check_memory(uint64_t count, uint64_t size, unsigned mode,
 			 uint64_t *out_required, uint64_t *out_total);
 void intel_require_memory(uint64_t count, uint64_t size, unsigned mode);
+void intel_require_files(uint64_t count);
 #define CHECK_RAM 0x1
 #define CHECK_SWAP 0x2
 

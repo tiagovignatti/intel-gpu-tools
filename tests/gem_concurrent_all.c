@@ -59,7 +59,7 @@ int pass;
 
 struct create {
 	const char *name;
-	void (*require)(const struct create *);
+	void (*require)(const struct create *, unsigned);
 	drm_intel_bo *(*create)(drm_intel_bufmgr *, uint64_t size);
 };
 
@@ -141,7 +141,7 @@ create_normal_bo(drm_intel_bufmgr *bufmgr, uint64_t size)
 	return bo;
 }
 
-static void can_create_normal(const struct create *create)
+static void can_create_normal(const struct create *create, unsigned count)
 {
 }
 
@@ -161,7 +161,7 @@ create_private_bo(drm_intel_bufmgr *bufmgr, uint64_t size)
 	return bo;
 }
 
-static void can_create_private(const struct create *create)
+static void can_create_private(const struct create *create, unsigned count)
 {
 	igt_require(0);
 }
@@ -183,14 +183,14 @@ create_stolen_bo(drm_intel_bufmgr *bufmgr, uint64_t size)
 	return bo;
 }
 
-static void can_create_stolen(const struct create *create)
+static void can_create_stolen(const struct create *create, unsigned count)
 {
 	/* XXX check num_buffers against available stolen */
 	igt_require(0);
 }
 #endif
 
-static void create_cpu_require(const struct create *create)
+static void create_cpu_require(const struct create *create, unsigned count)
 {
 #if HAVE_CREATE_STOLEN
 	igt_require(create->create != create_stolen_bo);
@@ -203,9 +203,9 @@ unmapped_create_bo(const struct buffers *b)
 	return b->create->create(b->bufmgr, 4*b->npixels);
 }
 
-static void create_snoop_require(const struct create *create)
+static void create_snoop_require(const struct create *create, unsigned count)
 {
-	create_cpu_require(create);
+	create_cpu_require(create, count);
 	igt_require(!gem_has_llc(fd));
 }
 
@@ -221,7 +221,7 @@ snoop_create_bo(const struct buffers *b)
 	return bo;
 }
 
-static void create_userptr_require(const struct create *create)
+static void create_userptr_require(const struct create *create, unsigned count)
 {
 	static int has_userptr = -1;
 	if (has_userptr < 0) {
@@ -313,7 +313,7 @@ userptr_release_bo(drm_intel_bo *bo)
 	drm_intel_bo_unreference(bo);
 }
 
-static void create_dmabuf_require(const struct create *create)
+static void create_dmabuf_require(const struct create *create, unsigned count)
 {
 	static int has_dmabuf = -1;
 	if (has_dmabuf < 0) {
@@ -338,6 +338,7 @@ static void create_dmabuf_require(const struct create *create)
 		close(args.fd);
 	}
 	igt_require(has_dmabuf);
+	intel_require_files(2*count);
 }
 
 struct dmabuf {
@@ -504,7 +505,7 @@ static void wc_require(void)
 }
 
 static void
-wc_create_require(const struct create *create)
+wc_create_require(const struct create *create, unsigned count)
 {
 	wc_require();
 }
@@ -635,7 +636,7 @@ gpu_cmp_bo(struct buffers *b, drm_intel_bo *bo, uint32_t val)
 
 struct access_mode {
 	const char *name;
-	void (*require)(const struct create *);
+	void (*require)(const struct create *, unsigned);
 	drm_intel_bo *(*create_bo)(const struct buffers *b);
 	void (*set_bo)(struct buffers *b, drm_intel_bo *bo, uint32_t val);
 	void (*cmp_bo)(struct buffers *b, drm_intel_bo *bo, uint32_t val);
@@ -1517,7 +1518,7 @@ run_modes(const char *style,
 		igt_subtest_group {
 			igt_fixture {
 				if (mode->require)
-					mode->require(create);
+					mode->require(create, num);
 			}
 
 			for (const struct wrap *w = wrappers; w->suffix; w++) {
@@ -1541,9 +1542,6 @@ num_buffers(char *buf, int buflen,
 	unsigned size = 4*s->width*s->height;
 	unsigned n;
 
-	if (c->require)
-		c->require(c);
-
 	if (max == 0)
 		n = MIN_BUFFERS;
 	else
@@ -1551,6 +1549,9 @@ num_buffers(char *buf, int buflen,
 
 	igt_require(n);
 	igt_require(set_max_map_count(2*n));
+
+	if (c->require)
+		c->require(c, n);
 
 	igt_debug("%s: using 2x%d buffers, each %s\n",
 		  name, n, s->name);

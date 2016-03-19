@@ -192,6 +192,19 @@ static uint64_t vfs_file_max(void)
 	return max;
 }
 
+/**
+ * intel_require_files:
+ * @count: number of files that will be created
+ *
+ * Does the system support enough file descriptors for the test?
+ */
+void intel_require_files(uint64_t count)
+{
+	igt_require_f(count < vfs_file_max(),
+		      "Estimated that we need %'llu files, but the VFS maximum is only %'llu\n",
+		      (long long)count, (long long)vfs_file_max());
+}
+
 int __intel_check_memory(uint64_t count, uint64_t size, unsigned mode,
 			 uint64_t *out_required, uint64_t *out_total)
 {
