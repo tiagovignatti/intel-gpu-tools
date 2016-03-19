@@ -66,6 +66,20 @@ AC_CHECK_TYPES([sighandler_t],[],[],[AC_INCLUDES_DEFAULT
 AC_CHECK_FUNCS([swapctl])
 AC_CHECK_FUNCS([asprintf])
 
+dnl Check for POSIX timers
+AC_CHECK_FUNCS(timer_create, [], [
+	AC_CHECK_LIB(rt, timer_create, [
+		AC_DEFINE(HAVE_TIMER_CREATE, 1)
+		TIMER_LIBS="-lrt"
+		], [
+		AC_CHECK_LIB(pthread, timer_create, [
+			AC_DEFINE(HAVE_TIMER_CREATE, 1)
+			TIMER_LIBS="-lpthread"
+		])
+	])
+])
+AC_SUBST(TIMER_LIBS)
+
 # Initialize libtool
 AC_DISABLE_STATIC
 AC_PROG_LIBTOOL

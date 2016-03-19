@@ -40,6 +40,7 @@
 #include <signal.h>
 #include <pciaccess.h>
 #include <stdlib.h>
+#include <time.h>
 #include <unistd.h>
 #include <sys/wait.h>
 #include <sys/time.h>
@@ -73,6 +74,193 @@
 
 
 /* signal interrupt helpers */
+
+#define MSEC_PER_SEC (1000)
+#define USEC_PER_SEC (1000*MSEC_PER_SEC)
+#define NSEC_PER_SEC (1000*USEC_PER_SEC)
+
+/* signal interrupt helpers */
+#define gettid() syscall(__NR_gettid)
+#define sigev_notify_thread_id _sigev_un._tid
+
+static struct __igt_sigiter {
+	pid_t tid;
+	timer_t timer;
+	struct timespec offset;
+	struct {
+		long hit, miss;
+		long ioctls, signals;
+	} stat;
+} __igt_sigiter;
+
+static void sigiter(int sig, siginfo_t *info, void *arg)
+{
+	__igt_sigiter.stat.signals++;
+}
+
+#if 0
+#define SIG_ASSERT(expr) igt_assert(expr)
+#else
+#define SIG_ASSERT(expr)
+#endif
+
+static int
+sig_ioctl(int fd, unsigned long request, void *arg)
+{
+	struct itimerspec its;
+	int ret;
+
+	SIG_ASSERT(__igt_sigiter.timer);
+	SIG_ASSERT(__igt_sigiter.tid == gettid());
+
+	memset(&its, 0, sizeof(its));
+	its.it_value = __igt_sigiter.offset;
+	do {
+		long serial;
+
+		__igt_sigiter.stat.ioctls++;
+
+		ret = 0;
+		serial = __igt_sigiter.stat.signals;
+		igt_assert(timer_settime(__igt_sigiter.timer, 0, &its, NULL) == 0);
+		if (ioctl(fd, request, arg))
+			ret = errno;
+		if (__igt_sigiter.stat.signals == serial)
+			__igt_sigiter.stat.miss++;
+		if (ret == 0)
+			break;
+
+		if (ret == EINTR) {
+			__igt_sigiter.stat.hit++;
+
+			its.it_value.tv_sec *= 2;
+			its.it_value.tv_nsec *= 2;
+			while (its.it_value.tv_nsec >= NSEC_PER_SEC) {
+				its.it_value.tv_nsec -= NSEC_PER_SEC;
+				its.it_value.tv_sec += 1;
+			}
+
+			SIG_ASSERT(its.it_value.tv_nsec >= 0);
+			SIG_ASSERT(its.it_value.tv_sec >= 0);
+		}
+	} while (ret == EAGAIN || ret == EINTR);
+
+	memset(&its, 0, sizeof(its));
+	timer_settime(__igt_sigiter.timer, 0, &its, NULL);
+
+	errno = ret;
+	return ret ? -1 : 0;
+}
+
+static bool igt_sigiter_start(struct igt_sigiter *iter, bool enable)
+{
+	/* Note that until we can automatically clean up on failed/skipped
+	 * tests, we cannot assume the state of the igt_ioctl indirection.
+	 */
+	SIG_ASSERT(igt_ioctl == drmIoctl);
+	igt_ioctl = drmIoctl;
+
+	if (enable) {
+		struct sigevent sev;
+		struct sigaction act;
+
+		igt_ioctl = sig_ioctl;
+		__igt_sigiter.tid = gettid();
+
+		memset(&sev, 0, sizeof(sev));
+		sev.sigev_notify = SIGEV_SIGNAL | SIGEV_THREAD_ID;
+		sev.sigev_notify_thread_id = __igt_sigiter.tid;
+		sev.sigev_signo = SIGRTMIN;
+		igt_assert(timer_create(CLOCK_MONOTONIC, &sev, &__igt_sigiter.timer) == 0);
+
+		memset(&act, 0, sizeof(act));
+		act.sa_sigaction = sigiter;
+		act.sa_flags = SA_SIGINFO;
+		igt_assert(sigaction(SIGRTMIN, &act, NULL) == 0);
+
+		__igt_sigiter.offset.tv_sec = 0;
+		__igt_sigiter.offset.tv_nsec = 50;
+	}
+
+	return true;
+}
+
+static bool igt_sigiter_stop(struct igt_sigiter *iter, bool enable)
+{
+	if (enable) {
+		struct sigaction act;
+
+		SIG_ASSERT(igt_ioctl == sig_ioctl);
+		SIG_ASSERT(__igt_sigiter.tid == gettid());
+		igt_ioctl = drmIoctl;
+
+		timer_delete(__igt_sigiter.timer);
+
+		memset(&act, 0, sizeof(act));
+		act.sa_handler = SIG_IGN;
+		sigaction(SIGRTMIN, &act, NULL);
+
+		memset(&__igt_sigiter, 0, sizeof(__igt_sigiter));
+	}
+
+	memset(iter, 0, sizeof(*iter));
+	return false;
+}
+
+/**
+ * igt_sigiter_continue:
+ * @iter: the control struct
+ * @enable: a boolean as to whether or not we want to enable interruptions
+ *
+ * Provides control flow such that all drmIoctl() (strictly igt_ioctl())
+ * within the loop are forcibly injected with signals (SIGRTMIN).
+ *
+ * This is useful to exercise ioctl error paths, at least where those can be
+ * exercises by interrupting blocking waits, like stalling for the gpu.
+ *
+ * igt_sigiter_continue() returns false when it has detected that it
+ * cannot inject any more signals in the ioctls from previous runs.
+ *
+ * Typical usage is
+ * 	struct igt_sigiter iter = {};
+ * 	while (igt_sigiter_continue(&iter, test_flags & TEST_INTERRUPTIBLE))
+ * 		do_test();
+ *
+ * This is condensed into the igt_interruptible() macro.
+ *
+ * Note that since this overloads the igt_ioctl(), this method is not useful
+ * for widespread signal injection, for example providing coverage of
+ * pagefaults. To interrupt everything, see igt_fork_signal_helper().
+ */
+bool igt_sigiter_continue(struct igt_sigiter *iter, bool enable)
+{
+	if (iter->pass++ == 0)
+		return igt_sigiter_start(iter, enable);
+
+	if (__igt_sigiter.stat.miss == __igt_sigiter.stat.ioctls)
+		return igt_sigiter_stop(iter, enable);
+
+	igt_debug("%s: pass %d, missed %ld/%ld\n",
+		  __func__, iter->pass - 1,
+		  __igt_sigiter.stat.miss,
+		  __igt_sigiter.stat.ioctls);
+
+	SIG_ASSERT(igt_ioctl == sig_ioctl);
+	SIG_ASSERT(__igt_sigiter.timer);
+
+	__igt_sigiter.offset.tv_sec *= 2;
+	__igt_sigiter.offset.tv_nsec *= 2;
+	while (__igt_sigiter.offset.tv_nsec >= NSEC_PER_SEC) {
+		__igt_sigiter.offset.tv_nsec -= NSEC_PER_SEC;
+		__igt_sigiter.offset.tv_sec += 1;
+	}
+	SIG_ASSERT(__igt_sigiter.offset.tv_nsec >= 0);
+	SIG_ASSERT(__igt_sigiter.offset.tv_sec >= 0);
+
+	memset(&__igt_sigiter.stat, 0, sizeof(__igt_sigiter.stat));
+	return true;
+}
+
 static struct igt_helper_process signal_helper;
 long long int sig_stat;
 static void __attribute__((noreturn)) signal_helper_process(pid_t pid)

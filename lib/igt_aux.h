@@ -40,6 +40,14 @@ extern int num_trash_bos;
 void igt_fork_signal_helper(void);
 void igt_stop_signal_helper(void);
 
+struct igt_sigiter {
+	unsigned pass;
+};
+
+bool igt_sigiter_continue(struct igt_sigiter *iter, bool interrupt);
+#define igt_interruptible(E) \
+	for (struct igt_sigiter iter__={}; igt_sigiter_continue(&iter__, (E)); )
+
 void igt_exchange_int(void *array, unsigned i, unsigned j);
 void igt_permute_array(void *array, unsigned size,
 			   void (*exchange_func)(void *array,
