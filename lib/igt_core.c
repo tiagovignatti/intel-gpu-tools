@@ -1444,7 +1444,7 @@ void igt_waitchildren(void)
 /**
  * igt_waitchildren_timeout:
  * @seconds: timeout in seconds to wait
- * @reasons: debug string explaining what timedout
+ * @reason: debug string explaining what timedout
  *
  * Wait for all children forked with igt_fork, for a maximum of @seconds.
  *
