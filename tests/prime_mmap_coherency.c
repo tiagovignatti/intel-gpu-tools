@@ -262,7 +262,6 @@ static void test_ioctl_errors(void)
 	/* Ensure we can do at least one child */
 	intel_require_memory(2, width*height*4, CHECK_RAM);
 
-	igt_fork_signal_helper();
 	for (int num_children = 1; num_children <= 8 *ncpus; num_children <<= 1) {
 		uint64_t required, total;
 
@@ -277,14 +276,10 @@ static void test_ioctl_errors(void)
 			break;
 		}
 
-		igt_fork(child, num_children) {
-			struct timespec start = {};
-			while (igt_seconds_elapsed(&start) <= num_children)
-				blit_and_cmp();
-		}
+		igt_fork(child, num_children)
+			igt_interruptible(true) blit_and_cmp();
 		igt_waitchildren();
 	}
-	igt_stop_signal_helper();
 }
 
 int main(int argc, char **argv)
