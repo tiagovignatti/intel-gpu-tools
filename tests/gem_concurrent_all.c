@@ -80,7 +80,6 @@ struct buffers {
 	uint32_t *tmp;
 	int width, height, npixels;
 	int count, num_buffers;
-	unsigned allow_mem;
 };
 
 #define MIN_BUFFERS 3
@@ -264,10 +263,17 @@ userptr_create_bo(const struct buffers *b)
 	igt_assert(ptr != (void *)-1);
 	userptr.user_ptr = (uintptr_t)ptr;
 
+#if 0
 	do_or_die(drmIoctl(fd, LOCAL_IOCTL_I915_GEM_USERPTR, &userptr));
 	bo = gem_handle_to_libdrm_bo(b->bufmgr, fd, "userptr", userptr.handle);
-	bo->virtual = (void *)(uintptr_t)userptr.user_ptr;
 	gem_close(fd, userptr.handle);
+#else
+	bo = drm_intel_bo_alloc_userptr(b->bufmgr, "name",
+					ptr, I915_TILING_NONE, 0,
+					userptr.user_size, 0);
+	igt_assert(bo);
+#endif
+	bo->virtual = (void *)(uintptr_t)userptr.user_ptr;
 
 	return bo;
 }
@@ -627,98 +633,14 @@ gpu_cmp_bo(struct buffers *b, drm_intel_bo *bo, uint32_t val)
 	cpu_cmp_bo(b, b->snoop, val);
 }
 
-const struct access_mode {
+struct access_mode {
 	const char *name;
 	void (*require)(const struct create *);
 	drm_intel_bo *(*create_bo)(const struct buffers *b);
 	void (*set_bo)(struct buffers *b, drm_intel_bo *bo, uint32_t val);
 	void (*cmp_bo)(struct buffers *b, drm_intel_bo *bo, uint32_t val);
 	void (*release_bo)(drm_intel_bo *bo);
-} access_modes[] = {
-	{
-		.name = "prw",
-		.create_bo = unmapped_create_bo,
-		.set_bo = prw_set_bo,
-		.cmp_bo = prw_cmp_bo,
-		.release_bo = nop_release_bo,
-	},
-	{
-		.name = "partial",
-		.create_bo = unmapped_create_bo,
-		.set_bo = partial_set_bo,
-		.cmp_bo = partial_cmp_bo,
-		.release_bo = nop_release_bo,
-	},
-	{
-		.name = "cpu",
-		.create_bo = unmapped_create_bo,
-		.require = create_cpu_require,
-		.set_bo = cpu_set_bo,
-		.cmp_bo = cpu_cmp_bo,
-		.release_bo = nop_release_bo,
-	},
-	{
-		.name = "snoop",
-		.create_bo = snoop_create_bo,
-		.require = create_snoop_require,
-		.set_bo = cpu_set_bo,
-		.cmp_bo = cpu_cmp_bo,
-		.release_bo = nop_release_bo,
-	},
-	{
-		.name = "userptr",
-		.create_bo = userptr_create_bo,
-		.require = create_userptr_require,
-		.set_bo = userptr_set_bo,
-		.cmp_bo = userptr_cmp_bo,
-		.release_bo = userptr_release_bo,
-	},
-	{
-		.name = "dmabuf",
-		.create_bo = dmabuf_create_bo,
-		.require = create_dmabuf_require,
-		.set_bo = dmabuf_set_bo,
-		.cmp_bo = dmabuf_cmp_bo,
-		.release_bo = dmabuf_release_bo,
-	},
-	{
-		.name = "gtt",
-		.create_bo = gtt_create_bo,
-		.set_bo = gtt_set_bo,
-		.cmp_bo = gtt_cmp_bo,
-		.release_bo = nop_release_bo,
-	},
-	{
-		.name = "gttX",
-		.create_bo = gttX_create_bo,
-		.set_bo = gtt_set_bo,
-		.cmp_bo = gtt_cmp_bo,
-		.release_bo = nop_release_bo,
-	},
-	{
-		.name = "wc",
-		.require = wc_create_require,
-		.create_bo = wc_create_bo,
-		.set_bo = gtt_set_bo,
-		.cmp_bo = gtt_cmp_bo,
-		.release_bo = wc_release_bo,
-	},
-	{
-		.name = "gpu",
-		.create_bo = gpu_create_bo,
-		.set_bo = gpu_set_bo,
-		.cmp_bo = gpu_cmp_bo,
-		.release_bo = nop_release_bo,
-	},
-	{
-		.name = "gpuX",
-		.create_bo = gpuX_create_bo,
-		.set_bo = gpu_set_bo,
-		.cmp_bo = gpu_cmp_bo,
-		.release_bo = nop_release_bo,
-	},
 };
-
 igt_render_copyfunc_t rendercopy;
 
 static int read_sysctl(const char *path)
@@ -757,22 +679,14 @@ static void buffers_init(struct buffers *b,
 			 const struct access_mode *mode,
 			 const struct size *size,
 			 int num_buffers,
-			 unsigned allow_mem,
 			 int _fd, int enable_reuse)
 {
-	igt_require(num_buffers);
-	igt_debug("%s: using 2x%d buffers, each %s\n",
-		  name, num_buffers, size->name);
-
-	igt_require(set_max_map_count(2*num_buffers));
-
 	memset(b, 0, sizeof(*b));
 	b->name = name;
 	b->create = create;
 	b->mode = mode;
 	b->size = size;
 	b->num_buffers = num_buffers;
-	b->allow_mem = allow_mem;
 	b->count = 0;
 
 	b->width = size->width;
@@ -813,8 +727,6 @@ static void buffers_create(struct buffers *b)
 {
 	int count = b->num_buffers;
 	igt_assert(b->bufmgr);
-
-	intel_require_memory(2*count, 4*b->npixels, b->allow_mem);
 
 	buffers_destroy(b);
 	igt_assert(b->count == 0);
@@ -1303,6 +1215,7 @@ static void run_single(struct buffers *buffers,
 		       do_copy do_copy_func,
 		       do_hang do_hang_func)
 {
+	pass = 0;
 	do_test_func(buffers, do_copy_func, do_hang_func);
 	igt_assert_eq(intel_detect_and_clear_missed_interrupts(fd), 0);
 }
@@ -1312,10 +1225,9 @@ static void run_interruptible(struct buffers *buffers,
 			      do_copy do_copy_func,
 			      do_hang do_hang_func)
 {
-	struct timespec start = {};
-	while (igt_seconds_elapsed(&start) < 10)
-		do_test_func(buffers, do_copy_func, do_hang_func);
 	pass = 0;
+	igt_interruptible(true)
+		do_test_func(buffers, do_copy_func, do_hang_func);
 	igt_assert_eq(intel_detect_and_clear_missed_interrupts(fd), 0);
 }
 
@@ -1329,6 +1241,7 @@ static void run_child(struct buffers *buffers,
 	 * needs to be local as the cache of reusable itself will be COWed,
 	 * leading to the child closing an object without the parent knowing.
 	 */
+	pass = 0;
 	igt_fork(child, 1)
 		do_test_func(buffers, do_copy_func, do_hang_func);
 	igt_waitchildren();
@@ -1336,7 +1249,7 @@ static void run_child(struct buffers *buffers,
 }
 
 static void __run_forked(struct buffers *buffers,
-			 int num_children, int loops,
+			 int num_children, int loops, bool interrupt,
 			 do_test do_test_func,
 			 do_copy do_copy_func,
 			 do_hang do_hang_func)
@@ -1347,20 +1260,24 @@ static void __run_forked(struct buffers *buffers,
 	_num_buffers /= num_children;
 	_num_buffers += MIN_BUFFERS;
 
+	buffers_destroy(buffers);
+
 	igt_fork(child, num_children) {
 		/* recreate process local variables */
 		fd = drm_open_driver(DRIVER_INTEL);
 		buffers_init(buffers, buffers->name,
 			     buffers->create, buffers->mode,
-			     buffers->size, _num_buffers, buffers->allow_mem,
-			     fd, true);
+			     buffers->size, _num_buffers, fd, true);
 
 		buffers_create(buffers);
-		for (pass = 0; pass < loops; pass++)
-			do_test_func(buffers, do_copy_func, do_hang_func);
-		pass = 0;
-	}
 
+		igt_interruptible(interrupt) {
+			for (pass = 0; pass < loops; pass++)
+				do_test_func(buffers,
+					     do_copy_func,
+					     do_hang_func);
+		}
+	}
 	igt_waitchildren();
 	igt_assert_eq(intel_detect_and_clear_missed_interrupts(fd), 0);
 }
@@ -1370,7 +1287,8 @@ static void run_forked(struct buffers *buffers,
 		       do_copy do_copy_func,
 		       do_hang do_hang_func)
 {
-	__run_forked(buffers, sysconf(_SC_NPROCESSORS_ONLN), 10,
+	const int ncpus = sysconf(_SC_NPROCESSORS_ONLN);
+	__run_forked(buffers, ncpus, ncpus, false,
 		     do_test_func, do_copy_func, do_hang_func);
 }
 
@@ -1379,7 +1297,8 @@ static void run_bomb(struct buffers *buffers,
 		     do_copy do_copy_func,
 		     do_hang do_hang_func)
 {
-	__run_forked(buffers, 8*sysconf(_SC_NPROCESSORS_ONLN), 10,
+	const int ncpus = sysconf(_SC_NPROCESSORS_ONLN);
+	__run_forked(buffers, 8*ncpus, 2, true,
 		     do_test_func, do_copy_func, do_hang_func);
 }
 
@@ -1402,14 +1321,13 @@ static void rcs_require(void)
 }
 
 static void
-run_basic_modes(const char *prefix,
-		const struct create *create,
-		const struct access_mode *mode,
-		const struct size *size,
-		const int num_buffers,
-		const unsigned allow_mem,
-		const char *suffix,
-		run_wrap run_wrap_func)
+run_mode(const char *prefix,
+	 const struct create *create,
+	 const struct access_mode *mode,
+	 const struct size *size,
+	 const int num_buffers,
+	 const char *suffix,
+	 run_wrap run_wrap_func)
 {
 	const struct {
 		const char *prefix;
@@ -1432,23 +1350,19 @@ run_basic_modes(const char *prefix,
 		{ "-hang-render", rcs_hang },
 		{ NULL, NULL },
 	}, *h;
+	struct buffers buffers;
+
+	igt_fixture
+		buffers_init(&buffers, prefix, create, mode,
+			     size, num_buffers,
+			     fd, run_wrap_func != run_child);
 
 	for (h = hangs; h->suffix; h++) {
 		if (!all && *h->suffix)
 			continue;
 
 		for (p = all ? pipelines : pskip; p->prefix; p++) {
-			struct buffers buffers;
-
-			/* No nesting to avoid this looking ridiculous. */
-			igt_subtest_group {
-
-			igt_fixture {
-				buffers_init(&buffers, prefix, create, mode,
-					     size, num_buffers, allow_mem,
-					     fd, run_wrap_func != run_child);
-				p->require();
-			}
+			igt_fixture p->require();
 
 			igt_subtest_f("%s-%s-%s-sanitycheck0%s%s", prefix, mode->name, p->prefix, suffix, h->suffix) {
 				buffers_create(&buffers);
@@ -1573,12 +1487,11 @@ run_basic_modes(const char *prefix,
 					      do_gpu_read_after_write,
 					      p->copy, h->hang);
 			}
-
-			igt_fixture
-				buffers_fini(&buffers);
-			}
 		}
 	}
+
+	igt_fixture
+		buffers_fini(&buffers);
 }
 
 static void
@@ -1586,36 +1499,157 @@ run_modes(const char *style,
 	  const struct create *create,
 	  const struct access_mode *mode,
 	  const struct size *size,
-	  const int num,
-	  unsigned allow_mem)
+	  const int num)
 {
-	igt_subtest_group {
-		igt_fixture {
-			if (create->require)
-				create->require(create);
+	const struct wrap {
+		const char *suffix;
+		run_wrap func;
+	} wrappers[] = {
+		{ "", run_single },
+		{ "-child", run_child },
+		{ "-forked", run_forked },
+		{ "-interruptible", run_interruptible },
+		{ "-bomb", run_bomb },
+		{ NULL },
+	};
 
-			if (mode->require)
-				mode->require(create);
+	while (mode->name) {
+		igt_subtest_group {
+			igt_fixture {
+				if (mode->require)
+					mode->require(create);
+			}
+
+			for (const struct wrap *w = wrappers; w->suffix; w++) {
+				run_mode(style, create, mode, size, num,
+					 w->suffix, w->func);
+			}
 		}
 
-		run_basic_modes(style, create, mode, size, num, allow_mem,
-				"", run_single);
-		run_basic_modes(style, create, mode, size, num, allow_mem,
-				"-child", run_child);
-		run_basic_modes(style, create, mode, size, num, allow_mem,
-				"-forked", run_forked);
-
-		igt_fork_signal_helper();
-		run_basic_modes(style, create, mode, size, num, allow_mem,
-				"-interruptible", run_interruptible);
-		run_basic_modes(style, create, mode, size, num, allow_mem,
-				"-bomb", run_bomb);
-		igt_stop_signal_helper();
+		mode++;
 	}
+}
+
+static unsigned
+num_buffers(char *buf, int buflen,
+	    uint64_t max,
+	    const struct size *s,
+	    const struct create *c,
+	    const char *name,
+	    unsigned allow_mem)
+{
+	unsigned size = 4*s->width*s->height;
+	unsigned n;
+
+	if (c->require)
+		c->require(c);
+
+	if (max == 0)
+		n = MIN_BUFFERS;
+	else
+		n = max / size;
+
+	igt_require(n);
+	igt_require(set_max_map_count(2*n));
+
+	igt_debug("%s: using 2x%d buffers, each %s\n",
+		  name, n, s->name);
+
+	snprintf(buf, buflen, "%s%s-%s",
+		 c->name, s->name, name);
+
+	intel_require_memory(2*n, size, allow_mem);
+
+	return n;
 }
 
 igt_main
 {
+	const struct access_mode modes[] = {
+		{
+			.name = "prw",
+			.create_bo = unmapped_create_bo,
+			.set_bo = prw_set_bo,
+			.cmp_bo = prw_cmp_bo,
+			.release_bo = nop_release_bo,
+		},
+		{
+			.name = "partial",
+			.create_bo = unmapped_create_bo,
+			.set_bo = partial_set_bo,
+			.cmp_bo = partial_cmp_bo,
+			.release_bo = nop_release_bo,
+		},
+		{
+			.name = "cpu",
+			.create_bo = unmapped_create_bo,
+			.require = create_cpu_require,
+			.set_bo = cpu_set_bo,
+			.cmp_bo = cpu_cmp_bo,
+			.release_bo = nop_release_bo,
+		},
+		{
+			.name = "snoop",
+			.create_bo = snoop_create_bo,
+			.require = create_snoop_require,
+			.set_bo = cpu_set_bo,
+			.cmp_bo = cpu_cmp_bo,
+			.release_bo = nop_release_bo,
+		},
+		{
+			.name = "userptr",
+			.create_bo = userptr_create_bo,
+			.require = create_userptr_require,
+			.set_bo = userptr_set_bo,
+			.cmp_bo = userptr_cmp_bo,
+			.release_bo = userptr_release_bo,
+		},
+		{
+			.name = "dmabuf",
+			.create_bo = dmabuf_create_bo,
+			.require = create_dmabuf_require,
+			.set_bo = dmabuf_set_bo,
+			.cmp_bo = dmabuf_cmp_bo,
+			.release_bo = dmabuf_release_bo,
+		},
+		{
+			.name = "gtt",
+			.create_bo = gtt_create_bo,
+			.set_bo = gtt_set_bo,
+			.cmp_bo = gtt_cmp_bo,
+			.release_bo = nop_release_bo,
+		},
+		{
+			.name = "gttX",
+			.create_bo = gttX_create_bo,
+			.set_bo = gtt_set_bo,
+			.cmp_bo = gtt_cmp_bo,
+			.release_bo = nop_release_bo,
+		},
+		{
+			.name = "wc",
+			.require = wc_create_require,
+			.create_bo = wc_create_bo,
+			.set_bo = gtt_set_bo,
+			.cmp_bo = gtt_cmp_bo,
+			.release_bo = wc_release_bo,
+		},
+		{
+			.name = "gpu",
+			.create_bo = gpu_create_bo,
+			.set_bo = gpu_set_bo,
+			.cmp_bo = gpu_cmp_bo,
+			.release_bo = nop_release_bo,
+		},
+		{
+			.name = "gpuX",
+			.create_bo = gpuX_create_bo,
+			.set_bo = gpu_set_bo,
+			.cmp_bo = gpu_cmp_bo,
+			.release_bo = nop_release_bo,
+		},
+		{ NULL },
+	};
 	const struct create create[] = {
 		{ "", can_create_normal, create_normal_bo},
 #if HAVE_CREATE_PRIVATE
@@ -1625,18 +1659,18 @@ igt_main
 		{ "stolen-", can_create_stolen, create_stolen_bo},
 #endif
 		{ NULL, NULL }
-	}, *c;
+	};
 	const struct size sizes[] = {
 		{ "4KiB", 128, 8 },
 		{ "256KiB", 128, 128 },
 		{ "1MiB", 512, 512 },
 		{ "16MiB", 2048, 2048 },
 		{ NULL}
-	}, *s;
+	};
 	uint64_t pin_sz = 0;
 	void *pinned = NULL;
-	int num_buffers = 0;
-	int i;
+	char name[80];
+	int count = 0;
 
 	igt_skip_on_simulation();
 
@@ -1651,85 +1685,88 @@ igt_main
 		rendercopy = igt_get_render_copyfunc(devid);
 	}
 
-	for (c = create; c->name; c++) {
-		for (s = sizes; s->name; s++) {
-			char name[80];
-			int size = s->width * s->height * 4;
-
-			num_buffers = MIN_BUFFERS;
-			snprintf(name, sizeof(name), "%s%s-%s",
-				 c->name, s->name, "tiny");
-			for (i = 0; i < ARRAY_SIZE(access_modes); i++)
-				run_modes(name, c, &access_modes[i],
-					  s, num_buffers, CHECK_RAM);
-
-			igt_fixture {
-				num_buffers = gem_mappable_aperture_size() / size / 4;
-			}
-
-			snprintf(name, sizeof(name), "%s%s-%s",
-				 c->name, s->name, "small");
-			for (i = 0; i < ARRAY_SIZE(access_modes); i++)
-				run_modes(name, c, &access_modes[i],
-					  s, num_buffers, CHECK_RAM);
-
-			igt_fixture {
-				num_buffers = gem_mappable_aperture_size() / size;
-			}
-
-			snprintf(name, sizeof(name), "%s%s-%s",
-				 c->name, s->name, "thrash");
-			for (i = 0; i < ARRAY_SIZE(access_modes); i++)
-				run_modes(name, c, &access_modes[i],
-					  s, num_buffers, CHECK_RAM);
-
-			igt_fixture {
-				num_buffers = gem_global_aperture_size(fd) / size;
-			}
-
-			snprintf(name, sizeof(name), "%s%s-%s",
-				 c->name, s->name, "global");
-			for (i = 0; i < ARRAY_SIZE(access_modes); i++)
-				run_modes(name, c, &access_modes[i],
-					  s, num_buffers, CHECK_RAM);
-
-			igt_fixture {
-				num_buffers = gem_aperture_size(fd) / size;
-			}
-
-			snprintf(name, sizeof(name), "%s%s-%s",
-				 c->name, s->name, "full");
-			for (i = 0; i < ARRAY_SIZE(access_modes); i++)
-				run_modes(name, c, &access_modes[i],
-					  s, num_buffers, CHECK_RAM);
-
-			igt_fixture {
-				num_buffers = gem_mappable_aperture_size() / size;
-				pin_sz = intel_get_avail_ram_mb() - gem_mappable_aperture_size()/(1024*1024);
-
-				igt_debug("Pinning %lld MiB\n", (long long)pin_sz);
-				pin_sz *= 1024 * 1024;
-
-				if (posix_memalign(&pinned, 4096, pin_sz) ||
-				    mlock(pinned, pin_sz) ||
-				    madvise(pinned, pin_sz, MADV_DONTFORK)) {
-					free(pinned);
-					pinned = NULL;
+	for (const struct create *c = create; c->name; c++) {
+		for (const struct size *s = sizes; s->name; s++) {
+			/* Minimum test set */
+			igt_subtest_group {
+				igt_fixture {
+					count = num_buffers(name, sizeof(name),
+							    0, s, c,
+							    "tiny", CHECK_RAM);
 				}
-				igt_require(pinned);
+				run_modes(name, c, modes, s, count);
 			}
 
-			snprintf(name, sizeof(name), "%s%s-%s",
-				 c->name, s->name, "swap");
-			for (i = 0; i < ARRAY_SIZE(access_modes); i++)
-				run_modes(name, c, &access_modes[i],
-					  s, num_buffers, CHECK_RAM | CHECK_SWAP);
+			/* "Average" test set */
+			igt_subtest_group {
+				igt_fixture {
+					count = num_buffers(name, sizeof(name),
+							    gem_mappable_aperture_size()/4, s, c,
+							    "small", CHECK_RAM);
+				}
+				run_modes(name, c, modes, s, count);
+			}
 
-			igt_fixture {
-				if (pinned) {
-					munlock(pinned, pin_sz);
-					free(pinned);
-					pinned = NULL;
+			/* Use the entire mappable aperture */
+			igt_subtest_group {
+				igt_fixture {
+					count = num_buffers(name, sizeof(name),
+							    gem_mappable_aperture_size(), s, c,
+							    "thrash", CHECK_RAM);
+				}
+				run_modes(name, c, modes, s, count);
+			}
+
+			/* Use the entire global GTT */
+			igt_subtest_group {
+				igt_fixture {
+					count = num_buffers(name, sizeof(name),
+							    gem_global_aperture_size(fd), s, c,
+							    "global", CHECK_RAM);
+				}
+				run_modes(name, c, modes, s, count);
+			}
+
+			/* Use the entire per-process GTT */
+			igt_subtest_group {
+				igt_fixture {
+					count = num_buffers(name, sizeof(name),
+							    gem_aperture_size(fd), s, c,
+							    "full", CHECK_RAM);
+				}
+				run_modes(name, c, modes, s, count);
+			}
+
+			/* Use the entire mappable aperture, force swapping */
+			igt_subtest_group {
+				igt_fixture {
+					if (intel_get_avail_ram_mb() > gem_mappable_aperture_size()/(1024*1024)) {
+						pin_sz = intel_get_avail_ram_mb() - gem_mappable_aperture_size()/(1024*1024);
+
+						igt_debug("Pinning %lld MiB\n", (long long)pin_sz);
+						pin_sz *= 1024 * 1024;
+
+						if (posix_memalign(&pinned, 4096, pin_sz) ||
+						    mlock(pinned, pin_sz) ||
+						    madvise(pinned, pin_sz, MADV_DONTFORK)) {
+							free(pinned);
+							pinned = NULL;
+						}
+						igt_require(pinned);
+					}
+
+					count = num_buffers(name, sizeof(name),
+							    gem_mappable_aperture_size(), s, c,
+							    "swap", CHECK_RAM | CHECK_SWAP);
+				}
+				run_modes(name, c, modes, s, count);
+
+				igt_fixture {
+					if (pinned) {
+						munlock(pinned, pin_sz);
+						free(pinned);
+						pinned = NULL;
+					}
 				}
 			}
 		}
