@@ -42,6 +42,7 @@
 #include <fcntl.h>
 #include <inttypes.h>
 #include <errno.h>
+#include <sys/resource.h>
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/wait.h>
@@ -1554,6 +1555,26 @@ num_buffers(uint64_t max,
 	return n;
 }
 
+static bool allow_unlimited_files(void)
+{
+	struct rlimit rlim;
+	unsigned nofile_rlim = 1024*1024;
+
+	FILE *file = fopen("/proc/sys/fs/file-max", "r");
+	if (file) {
+		igt_assert(fscanf(file, "%u", &nofile_rlim) == 1);
+		igt_info("System limit for open files is %u\n", nofile_rlim);
+		fclose(file);
+	}
+
+	if (getrlimit(RLIMIT_NOFILE, &rlim))
+		return false;
+
+	rlim.rlim_cur = nofile_rlim;
+	rlim.rlim_max = nofile_rlim;
+	return setrlimit(RLIMIT_NOFILE, &rlim) == 0;
+}
+
 igt_main
 {
 	const struct access_mode modes[] = {
@@ -1669,6 +1690,8 @@ igt_main
 		all = true;
 
 	igt_fixture {
+		igt_require(allow_unlimited_files());
+
 		fd = drm_open_driver(DRIVER_INTEL);
 		intel_detect_and_clear_missed_interrupts(fd);
 		devid = intel_get_drm_devid(fd);
