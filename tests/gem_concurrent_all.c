@@ -716,13 +716,28 @@ static void buffers_destroy(struct buffers *b)
 	if (count == 0)
 		return;
 
-	for (int i = 0; i < count; i++) {
-		b->mode->release_bo(b->src[i]);
-		b->mode->release_bo(b->dst[i]);
-	}
-	nop_release_bo(b->snoop);
-	b->mode->release_bo(b->spare);
+	/* Be safe so that we can clean up a partial creation */
 	b->count = 0;
+	for (int i = 0; i < count; i++) {
+		if (b->src[i]) {
+			b->mode->release_bo(b->src[i]);
+			b->src[i] = NULL;
+		} else
+			break;
+
+		if (b->dst[i]) {
+			b->mode->release_bo(b->dst[i]);
+			b->dst[i] = NULL;
+		}
+	}
+	if (b->snoop) {
+		nop_release_bo(b->snoop);
+		b->snoop = NULL;
+	}
+	if (b->spare) {
+		b->mode->release_bo(b->spare);
+		b->spare = NULL;
+	}
 }
 
 static void buffers_create(struct buffers *b)
@@ -732,6 +747,7 @@ static void buffers_create(struct buffers *b)
 
 	buffers_destroy(b);
 	igt_assert(b->count == 0);
+	b->count = count;
 
 	for (int i = 0; i < count; i++) {
 		b->src[i] = b->mode->create_bo(b);
@@ -739,7 +755,6 @@ static void buffers_create(struct buffers *b)
 	}
 	b->spare = b->mode->create_bo(b);
 	b->snoop = snoop_create_bo(b);
-	b->count = count;
 }
 
 static void buffers_fini(struct buffers *b)
