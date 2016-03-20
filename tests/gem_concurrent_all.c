@@ -873,6 +873,35 @@ static struct igt_hang_ring rcs_hang(void)
 	return igt_hang_ring(fd, I915_EXEC_RENDER);
 }
 
+static struct igt_hang_ring all_hang(void)
+{
+	uint32_t bbe = MI_BATCH_BUFFER_END;
+	struct drm_i915_gem_execbuffer2 execbuf;
+	struct drm_i915_gem_exec_object2 obj;
+	struct igt_hang_ring hang;
+	unsigned engine;
+
+	memset(&obj, 0, sizeof(obj));
+	obj.handle = gem_create(fd, 4096);
+	gem_write(fd, obj.handle, 0, &bbe, sizeof(&bbe));
+
+	memset(&execbuf, 0, sizeof(execbuf));
+	execbuf.buffers_ptr = (uintptr_t)&obj;
+	execbuf.buffer_count = 1;
+
+	for_each_engine(fd, engine) {
+		hang = igt_hang_ring(fd, engine);
+
+		execbuf.flags = engine;
+		__gem_execbuf(fd, &execbuf);
+
+		gem_close(fd, hang.handle);
+	}
+
+	hang.handle = obj.handle;
+	return hang;
+}
+
 static void do_basic0(struct buffers *buffers,
 		      do_copy do_copy_func,
 		      do_hang do_hang_func)
@@ -1365,6 +1394,7 @@ run_mode(const char *prefix,
 		{ "", no_hang },
 		{ "-hang-blt", bcs_hang },
 		{ "-hang-render", rcs_hang },
+		{ "-hang-all", all_hang },
 		{ NULL, NULL },
 	}, *h;
 	struct buffers buffers;
