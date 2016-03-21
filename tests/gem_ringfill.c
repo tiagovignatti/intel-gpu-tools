@@ -202,30 +202,31 @@ igt_main
 	const struct {
 		const char *suffix;
 		unsigned flags;
+		bool basic;
 	} modes[] = {
-		{ "", 0 },
-		{ "-interruptible", INTERRUPTIBLE },
-		{ "-hang", HANG },
+		{ "", 0, true},
+		{ "-interruptible", INTERRUPTIBLE, true },
+		{ "-hang", HANG, true },
 		{ "-child", CHILD },
-		{ "-forked", FORKED },
+		{ "-forked", FORKED, true },
 		{ "-bomb", BOMB | INTERRUPTIBLE },
 		{ "-S3", BOMB | SUSPEND },
 		{ "-S4", BOMB | HIBERNATE },
-		{ NULL, 0 }
-	}, *mode;
+		{ NULL }
+	}, *m;
 	const struct intel_execution_engine *e;
 	int fd;
 
 	igt_fixture
 		fd = drm_open_driver_master(DRIVER_INTEL);
 
-	for (mode = modes; mode->suffix; mode++) {
+	for (m = modes; m->suffix; m++) {
 		for (e = intel_execution_engines; e->name; e++) {
 			igt_subtest_f("%s%s%s",
-				      e->exec_id ? "" : "basic-",
+				      m->basic && !e->exec_id ? "" : "basic-",
 				      e->name,
-				      mode->suffix)
-				run_test(fd, e->exec_id | e->flags, mode->flags);
+				      m->suffix)
+				run_test(fd, e->exec_id | e->flags, m->flags);
 		}
 	}
 
