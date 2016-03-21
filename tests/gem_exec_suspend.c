@@ -55,10 +55,15 @@ static void check_bo(int fd, uint32_t handle)
 
 static void test_all(int fd, unsigned flags)
 {
+	const int gen = intel_gen(intel_get_drm_devid(fd));
 	unsigned engine;
 
-	for_each_engine(fd, engine)
+	for_each_engine(fd, engine) {
+		if (gen == 6 && (engine & ~(3<<13)) == I915_EXEC_BSD)
+			continue;
+
 		run_test(fd, engine, flags & ~0xff);
+	}
 }
 
 static void run_test(int fd, unsigned ring, unsigned flags)
