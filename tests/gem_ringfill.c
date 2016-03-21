@@ -223,7 +223,7 @@ igt_main
 	for (m = modes; m->suffix; m++) {
 		for (e = intel_execution_engines; e->name; e++) {
 			igt_subtest_f("%s%s%s",
-				      m->basic && !e->exec_id ? "" : "basic-",
+				      m->basic && !e->exec_id ? "basic-" : "",
 				      e->name,
 				      m->suffix)
 				run_test(fd, e->exec_id | e->flags, m->flags);
