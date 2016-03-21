@@ -94,12 +94,17 @@ static int __gem_context_create(int fd, uint32_t *ctx_id)
 	return ret;
 }
 
+static bool can_mi_store_dword(int gen, unsigned engine)
+{
+	return !(gen == 6 && (engine & ~(3<<13)) == I915_EXEC_BSD);
+}
+
 static bool ignore_engine(int gen, unsigned engine)
 {
 	if (engine == 0)
 		return true;
 
-	if (gen == 6 && (engine & ~(3<<13)) == I915_EXEC_BSD)
+	if (!can_mi_store_dword(gen, engine))
 		return true;
 
 	return false;
@@ -135,6 +140,7 @@ static void whisper(int fd, unsigned engine, unsigned flags)
 		}
 	} else {
 		igt_require(gem_has_ring(fd, engine));
+		igt_require(can_mi_store_dword(fd, engine));
 		engines[nengine++] = engine;
 	}
 	igt_require(nengine);
