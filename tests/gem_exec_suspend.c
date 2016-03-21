@@ -35,6 +35,11 @@
 #define HIBERNATE 2
 #define mode(x) ((x) & 0xff)
 
+#define LOCAL_I915_EXEC_BSD_SHIFT      (13)
+#define LOCAL_I915_EXEC_BSD_MASK       (3 << LOCAL_I915_EXEC_BSD_SHIFT)
+
+#define ENGINE_MASK  (I915_EXEC_RING_MASK | LOCAL_I915_EXEC_BSD_MASK)
+
 #define UNCACHED (0<<8)
 #define CACHED (1<<8)
 
@@ -53,30 +58,82 @@ static void check_bo(int fd, uint32_t handle)
 	munmap(map, 4096);
 }
 
+static bool can_mi_store_dword(int gen, unsigned engine)
+{
+	return !(gen == 6 && (engine & ~(3<<13)) == I915_EXEC_BSD);
+}
+
+static bool ignore_engine(int gen, unsigned engine)
+{
+	if (engine == 0)
+		return true;
+
+	if (!can_mi_store_dword(gen, engine))
+		return true;
+
+	return false;
+}
+
 static void test_all(int fd, unsigned flags)
 {
 	const int gen = intel_gen(intel_get_drm_devid(fd));
 	unsigned engine;
 
 	for_each_engine(fd, engine) {
-		if (gen == 6 && (engine & ~(3<<13)) == I915_EXEC_BSD)
-			continue;
-
-		run_test(fd, engine, flags & ~0xff);
+		if (!ignore_engine(gen, engine))
+			run_test(fd, engine, flags & ~0xff);
 	}
 }
 
-static void run_test(int fd, unsigned ring, unsigned flags)
+static bool has_semaphores(int fd)
+{
+	struct drm_i915_getparam gp;
+	int val = -1;
+
+	memset(&gp, 0, sizeof(gp));
+	gp.param = I915_PARAM_HAS_SEMAPHORES;
+	gp.value = &val;
+
+	drmIoctl(fd, DRM_IOCTL_I915_GETPARAM, &gp);
+	errno = 0;
+
+	return val > 0;
+}
+
+static void run_test(int fd, unsigned engine, unsigned flags)
 {
 	const int gen = intel_gen(intel_get_drm_devid(fd));
 	const uint32_t bbe = MI_BATCH_BUFFER_END;
 	struct drm_i915_gem_exec_object2 obj[2];
 	struct drm_i915_gem_relocation_entry reloc;
 	struct drm_i915_gem_execbuffer2 execbuf;
+	unsigned engines[16];
+	unsigned nengine;
 
-	gem_require_ring(fd, ring);
-	igt_skip_on_f(gen == 6 && (ring & ~(3<<13)) == I915_EXEC_BSD,
-		      "MI_STORE_DATA broken on gen6 bsd\n");
+	nengine = 0;
+	if (engine == -1) {
+		/* If we don't have semaphores, then every ring switch
+		 * will result in a CPU stall until the previous write
+		 * has finished. This is likely to hide any issue with
+		 * the GPU being active across the suspend (because the
+		 * GPU is then unlikely to be active!)
+		 */
+		if (has_semaphores(fd)) {
+			for_each_engine(fd, engine) {
+				if (!ignore_engine(gen, engine))
+					engines[nengine++] = engine;
+			}
+		} else {
+			igt_require(gem_has_ring(fd, 0));
+			igt_require(can_mi_store_dword(gen, 0));
+			engines[nengine++] = 0;
+		}
+	} else {
+		igt_require(gem_has_ring(fd, engine));
+		igt_require(can_mi_store_dword(gen, engine));
+		engines[nengine++] = engine;
+	}
+	igt_require(nengine);
 
 	/* Before suspending, check normal operation */
 	if (mode(flags) != NOSLEEP)
@@ -87,7 +144,7 @@ static void run_test(int fd, unsigned ring, unsigned flags)
 	memset(&execbuf, 0, sizeof(execbuf));
 	execbuf.buffers_ptr = (uintptr_t)obj;
 	execbuf.buffer_count = 2;
-	execbuf.flags = ring | (1 << 11);
+	execbuf.flags = 1 << 11;
 	if (gen < 6)
 		execbuf.flags |= I915_EXEC_SECURE;
 
@@ -138,6 +195,8 @@ static void run_test(int fd, unsigned ring, unsigned flags)
 		buf[++b] = MI_BATCH_BUFFER_END;
 		gem_write(fd, obj[1].handle,
 			  4096-sizeof(buf), buf, sizeof(buf));
+		execbuf.flags &= ~ENGINE_MASK;
+		execbuf.flags |= engines[rand() % nengine];
 		gem_execbuf(fd, &execbuf);
 		gem_close(fd, obj[1].handle);
 	}
@@ -181,6 +240,11 @@ igt_main
 
 	igt_fixture
 		fd = drm_open_driver_master(DRIVER_INTEL);
+
+	igt_subtest("basic-S3")
+		run_test(fd, -1, SUSPEND);
+	igt_subtest("basic-S4")
+		run_test(fd, -1, HIBERNATE);
 
 	for (e = intel_execution_engines; e->name; e++) {
 		for (m = modes; m->suffix; m++) {
