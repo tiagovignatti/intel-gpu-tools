@@ -130,6 +130,7 @@ static void whisper(int fd, unsigned engine, unsigned flags)
 	uint32_t batch[16];
 	int i, n, pass, loc;
 	unsigned int reloc_migrations = 0;
+	unsigned int reloc_interruptions = 0;
 	unsigned int eb_migrations = 0;
 
 	nengine = 0;
@@ -140,7 +141,7 @@ static void whisper(int fd, unsigned engine, unsigned flags)
 		}
 	} else {
 		igt_require(gem_has_ring(fd, engine));
-		igt_require(can_mi_store_dword(fd, engine));
+		igt_require(can_mi_store_dword(gen, engine));
 		engines[nengine++] = engine;
 	}
 	igt_require(nengine);
@@ -213,6 +214,7 @@ static void whisper(int fd, unsigned engine, unsigned flags)
 	memset(batches, 0, sizeof(batches));
 	for (n = 0; n < 1024; n++) {
 		batches[n].handle = gem_create(fd, 4096);
+		batches[n].offset = store.offset;
 		inter[n] = reloc;
 		inter[n].presumed_offset = store.offset;
 		inter[n].delta = loc;
@@ -245,11 +247,12 @@ static void whisper(int fd, unsigned engine, unsigned flags)
 			gem_write(fd, store.handle, 0, batch, sizeof(batch));
 
 			tmp[0] = scratch;
+			igt_assert(tmp[0].flags & EXEC_OBJECT_WRITE);
 			tmp[1] = store;
 			verify_reloc(fd, store.handle, &reloc);
 			execbuf.buffers_ptr = (uintptr_t)tmp;
 			gem_execbuf(fd, &execbuf);
-			reloc_migrations += reloc.presumed_offset == -1;
+			reloc_interruptions += reloc.presumed_offset == -1;
 			igt_assert_eq_u64(reloc.presumed_offset, tmp[0].offset);
 			scratch = tmp[0];
 
@@ -259,6 +262,7 @@ static void whisper(int fd, unsigned engine, unsigned flags)
 				uint32_t handle[2];
 
 				execbuf.buffers_ptr = (uintptr_t)&batches[n-1];
+				reloc_migrations += batches[n-1].offset != inter[n].presumed_offset;
 				batches[n-1].offset = inter[n].presumed_offset;
 				batches[n-1].relocation_count = 0;
 				batches[n-1].flags |= EXEC_OBJECT_WRITE;
@@ -281,7 +285,7 @@ static void whisper(int fd, unsigned engine, unsigned flags)
 				if (flags & CONTEXTS)
 					execbuf.rsvd1 = contexts[rand() % 64];
 				gem_execbuf(this_fd, &execbuf);
-				reloc_migrations += inter[n].presumed_offset == -1;
+				reloc_interruptions += inter[n].presumed_offset == -1;
 				inter[n].presumed_offset = batches[n-1].offset;
 
 				batches[n-1].relocation_count = 1;
@@ -302,15 +306,17 @@ static void whisper(int fd, unsigned engine, unsigned flags)
 			tmp[0] = tmp[1];
 			tmp[0].relocation_count = 0;
 			tmp[0].flags = EXEC_OBJECT_WRITE;
+			reloc_migrations += tmp[0].offset != inter[0].presumed_offset;
 			tmp[0].offset = inter[0].presumed_offset;
 			tmp[1] = batches[0];
 			verify_reloc(fd, batches[0].handle, &inter[0]);
 			gem_execbuf(fd, &execbuf);
-			reloc_migrations += inter[0].presumed_offset == -1;
+			reloc_interruptions += inter[0].presumed_offset == -1;
 			batches[0] = tmp[1];
 
 			tmp[1] = tmp[0];
 			tmp[0] = scratch;
+			igt_assert(tmp[0].flags & EXEC_OBJECT_WRITE);
 			igt_assert_eq_u64(reloc.presumed_offset, tmp[0].offset);
 			igt_assert(tmp[1].relocs_ptr == (uintptr_t)&reloc);
 			tmp[1].relocation_count = 1;
@@ -319,14 +325,14 @@ static void whisper(int fd, unsigned engine, unsigned flags)
 			gem_execbuf(fd, &execbuf);
 			eb_migrations += tmp[0].offset != scratch.offset;
 			eb_migrations += tmp[1].offset != store.offset;
-			reloc_migrations += reloc.presumed_offset == -1;
+			reloc_interruptions += reloc.presumed_offset == -1;
 			igt_assert_eq_u64(reloc.presumed_offset, tmp[0].offset);
 			store = tmp[1];
 			scratch = tmp[0];
 		}
 	}
 	igt_info("Number of migrations for execbuf: %d\n", eb_migrations);
-	igt_info("Number of migrations for reloc: %d\n", reloc_migrations);
+	igt_info("Number of migrations for reloc: %d, interrupted %d\n", reloc_migrations, reloc_interruptions);
 
 	check_bo(fd, scratch.handle);
 	gem_close(fd, scratch.handle);
