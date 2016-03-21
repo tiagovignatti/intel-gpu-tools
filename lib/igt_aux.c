@@ -161,8 +161,10 @@ static bool igt_sigiter_start(struct igt_sigiter *iter, bool enable)
 	igt_ioctl = drmIoctl;
 
 	if (enable) {
+		struct timespec start, end;
 		struct sigevent sev;
 		struct sigaction act;
+		struct itimerspec its;
 
 		igt_ioctl = sig_ioctl;
 		__igt_sigiter.tid = gettid();
@@ -178,8 +180,25 @@ static bool igt_sigiter_start(struct igt_sigiter *iter, bool enable)
 		act.sa_flags = SA_SIGINFO;
 		igt_assert(sigaction(SIGRTMIN, &act, NULL) == 0);
 
-		__igt_sigiter.offset.tv_sec = 0;
-		__igt_sigiter.offset.tv_nsec = 50;
+		/* Try to find the approximate delay required to skip over
+		 * the timer_setttime and into the following ioctl() to try
+		 * and avoid the timer firing before we enter the drmIoctl.
+		 */
+		igt_assert(clock_gettime(CLOCK_MONOTONIC, &start) == 0);
+		memset(&its, 0, sizeof(its));
+		igt_assert(timer_settime(__igt_sigiter.timer, 0, &its, NULL) == 0);
+		igt_assert(clock_gettime(CLOCK_MONOTONIC, &end) == 0);
+
+		__igt_sigiter.offset.tv_sec = end.tv_sec - start.tv_sec;
+		__igt_sigiter.offset.tv_nsec = end.tv_nsec - start.tv_nsec;
+		if (__igt_sigiter.offset.tv_nsec < 0) {
+			__igt_sigiter.offset.tv_nsec += NSEC_PER_SEC;
+			__igt_sigiter.offset.tv_sec -= 1;
+		}
+
+		igt_debug("Initial delay for interruption: %ld.%09lds\n",
+			  __igt_sigiter.offset.tv_sec,
+			  __igt_sigiter.offset.tv_nsec);
 	}
 
 	return true;
