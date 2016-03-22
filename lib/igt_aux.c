@@ -42,6 +42,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <unistd.h>
+#include <sys/poll.h>
 #include <sys/wait.h>
 #include <sys/time.h>
 #include <sys/types.h>
@@ -358,6 +359,85 @@ void igt_stop_signal_helper(void)
 
 	sig_stat = 0;
 }
+
+#if HAVE_UDEV
+#include <libudev.h>
+
+static struct igt_helper_process hang_detector;
+static void __attribute__((noreturn))
+hang_detector_process(pid_t pid, dev_t rdev)
+{
+	struct udev_monitor *mon =
+		udev_monitor_new_from_netlink(udev_new(), "kernel");
+	struct pollfd pfd;
+
+	udev_monitor_filter_add_match_subsystem_devtype(mon, "drm", NULL);
+	udev_monitor_enable_receiving(mon);
+
+	pfd.fd = udev_monitor_get_fd(mon);
+	pfd.events = POLLIN;
+
+	while (poll(&pfd, 1, -1) > 0) {
+		struct udev_device *dev = udev_monitor_receive_device(mon);
+		dev_t devnum;
+
+		if (dev == NULL)
+			break;
+
+		devnum = udev_device_get_devnum(dev);
+		if (memcmp(&rdev, &devnum, sizeof(dev_t)) == 0) {
+			const char *str;
+
+			str = udev_device_get_property_value(dev, "ERROR");
+			if (str && atoi(str) == 1)
+				kill(pid, SIGRTMAX);
+		}
+
+		udev_device_unref(dev);
+		if (kill(pid, 0)) /* Parent has died, so must we. */
+			break;
+	}
+
+	exit(0);
+}
+
+static void sig_abort(int sig)
+{
+	igt_assert(!"GPU hung");
+}
+
+void igt_fork_hang_detector(int fd)
+{
+	struct stat st;
+
+	if (igt_only_list_subtests())
+		return;
+
+	igt_assert(fstat(fd, &st) == 0);
+
+	signal(SIGRTMAX, sig_abort);
+	igt_fork_helper(&hang_detector)
+		hang_detector_process(getppid(), st.st_rdev);
+}
+
+void igt_stop_hang_detector(void)
+{
+	if (igt_only_list_subtests())
+		return;
+
+	igt_stop_helper(&hang_detector);
+}
+#else
+void igt_fork_hang_detector(int fd)
+{
+	if (igt_only_list_subtests())
+		return;
+}
+
+void igt_stop_hang_detector(void)
+{
+}
+#endif
 
 /**
  * igt_check_boolean_env_var:

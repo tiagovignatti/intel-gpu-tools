@@ -15,12 +15,20 @@ if HAVE_VC4
 endif
 
 AM_CPPFLAGS = -I$(top_srcdir)
-AM_CFLAGS = $(DRM_CFLAGS) $(CWARNFLAGS) $(LIBUNWIND_CFLAGS) $(DEBUG_CFLAGS) \
+AM_CFLAGS = $(CWARNFLAGS) $(DRM_CFLAGS) $(PCIACCESS_CFLAGS) $(LIBUNWIND_CFLAGS) $(DEBUG_CFLAGS) \
 	    -DIGT_SRCDIR=\""$(abs_top_srcdir)/tests"\" \
 	    -DIGT_DATADIR=\""$(pkgdatadir)"\" \
 	    -DIGT_LOG_DOMAIN=\""$(subst _,-,$*)"\" \
 	    -pthread
 
-LDADD = $(CAIRO_LIBS) $(LIBUNWIND_LIBS) $(TIMER_LIBS) -lm
 AM_CFLAGS += $(CAIRO_CFLAGS)
+
+libintel_tools_la_LIBADD = \
+	$(DRM_LIBS) \
+	$(PCIACCESS_LIBS) \
+	$(CAIRO_LIBS) \
+	$(LIBUDEV_LIBS) \
+	$(LIBUNWIND_LIBS) \
+	$(TIMER_LIBS) \
+	-lm
 

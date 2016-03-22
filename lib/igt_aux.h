@@ -40,6 +40,9 @@ extern int num_trash_bos;
 void igt_fork_signal_helper(void);
 void igt_stop_signal_helper(void);
 
+void igt_fork_hang_detector(int fd);
+void igt_stop_hang_detector(void);
+
 struct igt_sigiter {
 	unsigned pass;
 };

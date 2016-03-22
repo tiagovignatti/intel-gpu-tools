@@ -4,7 +4,7 @@ SUBDIRS = null_state_gen registers
 
 AM_CPPFLAGS = -I$(top_srcdir) -I$(top_srcdir)/lib
 AM_CFLAGS = $(DEBUG_CFLAGS) $(DRM_CFLAGS) $(PCIACCESS_CFLAGS) $(CWARNFLAGS) $(CAIRO_CFLAGS) $(LIBUNWIND_CFLAGS) -DPKGDATADIR=\"$(pkgdatadir)\"
-LDADD = $(top_builddir)/lib/libintel_tools.la $(DRM_LIBS) $(PCIACCESS_LIBS) $(CAIRO_LIBS) $(LIBUDEV_LIBS) $(LIBUNWIND_LIBS) $(TIMER_LIBS) -lm
+LDADD = $(top_builddir)/lib/libintel_tools.la
 AM_LDFLAGS = -Wl,--as-needed
 
 

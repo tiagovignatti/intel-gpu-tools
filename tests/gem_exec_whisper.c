@@ -368,6 +368,8 @@ igt_main
 	igt_fixture
 		fd = drm_open_driver_master(DRIVER_INTEL);
 
+	igt_fork_hang_detector(fd);
+
 	for (const struct mode *m = modes; m->name; m++)
 		igt_subtest_f("%s", *m->name ? m->name : "basic")
 			whisper(fd, -1, m->flags);
@@ -381,6 +383,8 @@ igt_main
 				      m->name)
 				whisper(fd, e->exec_id | e->flags, m->flags);
 	}
+
+	igt_stop_hang_detector();
 
 	igt_fixture
 		close(fd);

@@ -15,4 +15,4 @@ AM_CFLAGS = 			\
 	$(LIBUNWIND_CFLAGS)	\
 	$(CWARNFLAGS)
 
-LDADD = $(top_builddir)/lib/libintel_tools.la $(DRM_LIBS) $(PCIACCESS_LIBS) $(CAIRO_LIBS) $(LIBUNWIND_LIBS) $(TIMER_LIBS)
+LDADD = $(top_builddir)/lib/libintel_tools.la
