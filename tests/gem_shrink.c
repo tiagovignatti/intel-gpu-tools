@@ -52,7 +52,7 @@ static void mmap_gtt(uint64_t alloc, int timeout)
 		uint32_t *ptr = gem_mmap__gtt(fd, handle, alloc, PROT_WRITE);
 		for (int page = 0; page < alloc >>12; page++)
 			ptr[page<<10] = 0;
-		munmap(ptr, handle);
+		munmap(ptr, alloc);
 		gem_close(fd, handle);
 	}
 	close(fd);
@@ -66,7 +66,7 @@ static void mmap_cpu(uint64_t alloc, int timeout)
 		uint32_t *ptr = gem_mmap__cpu(fd, handle, 0, alloc, PROT_WRITE);
 		for (int page = 0; page < alloc >>12; page++)
 			ptr[page<<10] = 0;
-		munmap(ptr, handle);
+		munmap(ptr, alloc);
 		gem_close(fd, handle);
 	}
 	close(fd);
@@ -126,6 +126,40 @@ static void execbufN(uint64_t alloc, int timeout)
 	close(fd);
 }
 
+static void hang(uint64_t alloc, int timeout)
+{
+	const uint32_t bbe = MI_BATCH_BUFFER_END;
+	struct drm_i915_gem_exec_object2 *obj;
+	struct drm_i915_gem_execbuffer2 execbuf;
+	int count = alloc >> 20;
+	int fd;
+
+	obj = calloc(alloc + 1, sizeof(&obj));
+	memset(&execbuf, 0, sizeof(execbuf));
+
+	fd = drm_open_driver(DRIVER_INTEL);
+	obj[count].handle = gem_create(fd, 4096);
+	gem_write(fd, obj[count].handle, 0, &bbe, sizeof(bbe));
+
+	igt_timeout(timeout) {
+		for (int i = 0; i < count; i++) {
+			int j = count - i - 1;
+
+			obj[j].handle = gem_create(fd, alloc >> 20);
+			execbuf.buffers_ptr = (uintptr_t)&obj[j];
+			execbuf.buffer_count = i + 1;
+			gem_execbuf(fd, &execbuf);
+		}
+
+		gem_close(fd, igt_hang_ring(fd, 0).handle);
+
+		for (int i = 0; i < count; i++)
+			gem_close(fd, obj[i].handle);
+	}
+
+	close(fd);
+}
+
 #define SOLO 1
 #define PURGEABLE 2
 
@@ -171,6 +205,7 @@ igt_main
 		{ "mmap-cpu", mmap_cpu },
 		{ "execbuf1", execbuf1 },
 		{ "execbufN", execbufN },
+		{ "hang", hang },
 		{ NULL },
 	};
 	const struct mode {
