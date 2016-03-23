@@ -47,6 +47,11 @@
 #define LOCAL_I915_EXEC_NO_RELOC (1<<11)
 #define LOCAL_I915_EXEC_HANDLE_LUT (1<<12)
 
+#define LOCAL_I915_EXEC_BSD_SHIFT      (13)
+#define LOCAL_I915_EXEC_BSD_MASK       (3 << LOCAL_I915_EXEC_BSD_SHIFT)
+
+#define ENGINE_FLAGS  (I915_EXEC_RING_MASK | LOCAL_I915_EXEC_BSD_MASK)
+
 #define SYNC 0x1
 
 static double elapsed(const struct timespec *start,
@@ -67,6 +72,8 @@ static int loop(unsigned ring, int reps, unsigned flags)
 {
 	struct drm_i915_gem_execbuffer2 execbuf;
 	struct drm_i915_gem_exec_object2 gem_exec;
+	unsigned engines[16];
+	unsigned nengine;
 	int fd;
 
 	fd = drm_open_driver(DRIVER_INTEL);
@@ -77,14 +84,25 @@ static int loop(unsigned ring, int reps, unsigned flags)
 	memset(&execbuf, 0, sizeof(execbuf));
 	execbuf.buffers_ptr = (uintptr_t)&gem_exec;
 	execbuf.buffer_count = 1;
-	execbuf.flags = ring;
 	execbuf.flags |= LOCAL_I915_EXEC_HANDLE_LUT;
 	execbuf.flags |= LOCAL_I915_EXEC_NO_RELOC;
 	if (__gem_execbuf(fd, &execbuf)) {
-		execbuf.flags = ring;
+		execbuf.flags = 0;
 		if (__gem_execbuf(fd, &execbuf))
 			return 77;
 	}
+
+	nengine = 0;
+	if (ring == -1) {
+		for (ring = 1; ring < 16; ring++) {
+			execbuf.flags &= ~ENGINE_FLAGS;
+			execbuf.flags |= ring;
+			if (__gem_execbuf(fd, &execbuf) == 0)
+				engines[nengine++] = ring;
+		}
+	} else
+		engines[nengine++] = ring;
+
 
 	while (reps--) {
 		struct timespec start, end;
@@ -95,10 +113,14 @@ static int loop(unsigned ring, int reps, unsigned flags)
 
 		clock_gettime(CLOCK_MONOTONIC, &start);
 		do {
-			do_ioctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf);
-			count++;
-			if (flags & SYNC)
-				gem_sync(fd, gem_exec.handle);
+			for (int inner = 0; inner < 1024; inner++) {
+				execbuf.flags &= ~ENGINE_FLAGS;
+				execbuf.flags |= engines[count++ % nengine];
+				gem_execbuf(fd, &execbuf);
+				if (flags & SYNC)
+					gem_sync(fd, gem_exec.handle);
+			}
+
 			clock_gettime(CLOCK_MONOTONIC, &end);
 		} while (elapsed(&start, &end) < 2.);
 
@@ -128,6 +150,8 @@ int main(int argc, char **argv)
 				ring = I915_EXEC_BLT;
 			else if (strcmp(optarg, "vecs") == 0)
 				ring = I915_EXEC_VEBOX;
+			else if (strcmp(optarg, "all") == 0)
+				ring = -1;
 			else
 				ring = atoi(optarg);
 			break;
