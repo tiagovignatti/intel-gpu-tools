@@ -33,172 +33,136 @@
 #define igt_timeout(T) \
 	for (struct timespec t__={}; igt_seconds_elapsed(&t__) < (T); )
 
-static void get_pages(uint64_t alloc, int timeout)
+static void get_pages(int fd, uint64_t alloc)
 {
-	int fd = drm_open_driver(DRIVER_INTEL);
-	igt_timeout(timeout) {
-		uint32_t handle = gem_create(fd, alloc);
-		gem_set_domain(fd, handle, I915_GEM_DOMAIN_GTT, 0);
-		gem_close(fd, handle);
-	}
-	close(fd);
+	uint32_t handle = gem_create(fd, alloc);
+	gem_set_domain(fd, handle, I915_GEM_DOMAIN_GTT, 0);
+	gem_madvise(fd, handle, I915_MADV_DONTNEED);
 }
 
-static void mmap_gtt(uint64_t alloc, int timeout)
+static void mmap_gtt(int fd, uint64_t alloc)
 {
-	int fd = drm_open_driver(DRIVER_INTEL);
-	igt_timeout(timeout) {
-		uint32_t handle = gem_create(fd, alloc);
-		uint32_t *ptr = gem_mmap__gtt(fd, handle, alloc, PROT_WRITE);
-		for (int page = 0; page < alloc >>12; page++)
-			ptr[page<<10] = 0;
-		munmap(ptr, alloc);
-		gem_close(fd, handle);
-	}
-	close(fd);
+	uint32_t handle = gem_create(fd, alloc);
+	uint32_t *ptr = gem_mmap__gtt(fd, handle, alloc, PROT_WRITE);
+	for (int page = 0; page < alloc >>12; page++)
+		ptr[page<<10] = 0;
+	munmap(ptr, alloc);
+	gem_madvise(fd, handle, I915_MADV_DONTNEED);
 }
 
-static void mmap_cpu(uint64_t alloc, int timeout)
+static void mmap_cpu(int fd, uint64_t alloc)
 {
-	int fd = drm_open_driver(DRIVER_INTEL);
-	igt_timeout(timeout) {
-		uint32_t handle = gem_create(fd, alloc);
-		uint32_t *ptr = gem_mmap__cpu(fd, handle, 0, alloc, PROT_WRITE);
-		for (int page = 0; page < alloc >>12; page++)
-			ptr[page<<10] = 0;
-		munmap(ptr, alloc);
-		gem_close(fd, handle);
-	}
-	close(fd);
+	uint32_t handle = gem_create(fd, alloc);
+	uint32_t *ptr = gem_mmap__cpu(fd, handle, 0, alloc, PROT_WRITE);
+	for (int page = 0; page < alloc >>12; page++)
+		ptr[page<<10] = 0;
+	munmap(ptr, alloc);
+	gem_madvise(fd, handle, I915_MADV_DONTNEED);
 }
 
-static void execbuf1(uint64_t alloc, int timeout)
+static void execbuf1(int fd, uint64_t alloc)
 {
 	const uint32_t bbe = MI_BATCH_BUFFER_END;
 	struct drm_i915_gem_exec_object2 obj;
 	struct drm_i915_gem_execbuffer2 execbuf;
-	int fd;
 
 	memset(&obj, 0, sizeof(obj));
 	memset(&execbuf, 0, sizeof(execbuf));
 	execbuf.buffers_ptr = (uintptr_t)&obj;
 	execbuf.buffer_count = 1;
 
-	fd = drm_open_driver(DRIVER_INTEL);
-	igt_timeout(timeout) {
-		obj.handle = gem_create(fd, alloc);
-		gem_write(fd, obj.handle, 0, &bbe, sizeof(bbe));
+	obj.handle = gem_create(fd, alloc);
+	gem_write(fd, obj.handle, 0, &bbe, sizeof(bbe));
+	gem_execbuf(fd, &execbuf);
+	gem_madvise(fd, obj.handle, I915_MADV_DONTNEED);
+}
+
+static void execbufN(int fd, uint64_t alloc)
+{
+	const uint32_t bbe = MI_BATCH_BUFFER_END;
+	struct drm_i915_gem_exec_object2 *obj;
+	struct drm_i915_gem_execbuffer2 execbuf;
+	int count = alloc >> 20;
+
+	obj = calloc(alloc + 1, sizeof(&obj));
+	memset(&execbuf, 0, sizeof(execbuf));
+
+	obj[count].handle = gem_create(fd, 4096);
+	gem_write(fd, obj[count].handle, 0, &bbe, sizeof(bbe));
+
+	for (int i = 0; i < count; i++) {
+		int j = count - i - 1;
+
+		obj[j].handle = gem_create(fd, 1 << 20);
+		execbuf.buffers_ptr = (uintptr_t)&obj[j];
+		execbuf.buffer_count = i + 1;
 		gem_execbuf(fd, &execbuf);
-		gem_close(fd, obj.handle);
 	}
-	close(fd);
+
+	for (int i = 0; i <= count; i++)
+		gem_madvise(fd, obj[i].handle, I915_MADV_DONTNEED);
 }
 
-static void execbufN(uint64_t alloc, int timeout)
+static void hang(int fd, uint64_t alloc)
 {
 	const uint32_t bbe = MI_BATCH_BUFFER_END;
 	struct drm_i915_gem_exec_object2 *obj;
 	struct drm_i915_gem_execbuffer2 execbuf;
 	int count = alloc >> 20;
-	int fd;
 
 	obj = calloc(alloc + 1, sizeof(&obj));
 	memset(&execbuf, 0, sizeof(execbuf));
 
-	fd = drm_open_driver(DRIVER_INTEL);
 	obj[count].handle = gem_create(fd, 4096);
 	gem_write(fd, obj[count].handle, 0, &bbe, sizeof(bbe));
 
-	igt_timeout(timeout) {
-		for (int i = 0; i < count; i++) {
-			int j = count - i - 1;
+	for (int i = 0; i < count; i++) {
+		int j = count - i - 1;
 
-			obj[j].handle = gem_create(fd, alloc >> 20);
-			execbuf.buffers_ptr = (uintptr_t)&obj[j];
-			execbuf.buffer_count = i + 1;
-			gem_execbuf(fd, &execbuf);
-		}
-
-		for (int i = 0; i < count; i++)
-			gem_close(fd, obj[i].handle);
+		obj[j].handle = gem_create(fd, 1 << 20);
+		execbuf.buffers_ptr = (uintptr_t)&obj[j];
+		execbuf.buffer_count = i + 1;
+		gem_execbuf(fd, &execbuf);
 	}
 
-	close(fd);
-}
-
-static void hang(uint64_t alloc, int timeout)
-{
-	const uint32_t bbe = MI_BATCH_BUFFER_END;
-	struct drm_i915_gem_exec_object2 *obj;
-	struct drm_i915_gem_execbuffer2 execbuf;
-	int count = alloc >> 20;
-	int fd;
-
-	obj = calloc(alloc + 1, sizeof(&obj));
-	memset(&execbuf, 0, sizeof(execbuf));
-
-	fd = drm_open_driver(DRIVER_INTEL);
-	obj[count].handle = gem_create(fd, 4096);
-	gem_write(fd, obj[count].handle, 0, &bbe, sizeof(bbe));
-
-	igt_timeout(timeout) {
-		for (int i = 0; i < count; i++) {
-			int j = count - i - 1;
-
-			obj[j].handle = gem_create(fd, alloc >> 20);
-			execbuf.buffers_ptr = (uintptr_t)&obj[j];
-			execbuf.buffer_count = i + 1;
-			gem_execbuf(fd, &execbuf);
-		}
-
-		gem_close(fd, igt_hang_ring(fd, 0).handle);
-
-		for (int i = 0; i < count; i++)
-			gem_close(fd, obj[i].handle);
-	}
-
-	close(fd);
+	gem_close(fd, igt_hang_ring(fd, 0).handle);
+	for (int i = 0; i <= count; i++)
+		gem_madvise(fd, obj[i].handle, I915_MADV_DONTNEED);
 }
 
 #define SOLO 1
-#define PURGEABLE 2
-
-static struct igt_helper_process purgeable_helper;
-
-static void purgeable(void)
-{
-	while (true) {
-		int fd = drm_open_driver(DRIVER_INTEL);
-		for (int i = 0; i < 1<<16; i++) {
-			uint32_t handle = gem_create(fd, 1<<20);
-			gem_set_domain(fd, handle, I915_GEM_DOMAIN_GTT, 0);
-			gem_madvise(fd, handle, I915_MADV_DONTNEED);
-		}
-		close(fd);
-	}
-}
 
 static void run_test(int nchildren, uint64_t alloc,
-		     void (*func)(uint64_t, int), unsigned flags)
+		     void (*func)(int, uint64_t), unsigned flags)
 {
-	if (flags & PURGEABLE) {
-		igt_fork_helper(&purgeable_helper)
-			purgeable();
+	if (flags & SOLO)
+		nchildren = 1;
+
+	igt_fork(child, nchildren) {
+		igt_timeout(flags & SOLO ? 1 : 20) {
+			int fd = drm_open_driver(DRIVER_INTEL);
+
+			/* Each pass consumes alloc bytes and doesn't drop
+			 * its reference to object (i.e. calls
+			 * gem_madvise(DONTNEED) instead of gem_close()).
+			 * After nchildren passes we expect each process
+			 * to have enough objects to consume all of memory
+			 * if left unchecked.
+			 */
+			for (int pass = 0; pass < nchildren; pass++)
+				func(fd, alloc);
+
+			close(fd);
+		}
 	}
-
-	igt_fork(child, flags & SOLO ? 1 : nchildren)
-		func(alloc, flags & SOLO ? 1 : 20);
 	igt_waitchildren();
-
-	if (flags & PURGEABLE)
-		igt_stop_helper(&purgeable_helper);
 }
 
 igt_main
 {
 	const struct test {
 		const char *name;
-		void (*func)(uint64_t, int);
+		void (*func)(int, uint64_t);
 	} tests[] = {
 		{ "get-pages", get_pages },
 		{ "mmap-gtt", mmap_gtt },
@@ -214,7 +178,6 @@ igt_main
 	} modes[] = {
 		{ "-sanitycheck", SOLO },
 		{ "", 0 },
-		{ "-purgeable", PURGEABLE },
 		{ NULL },
 	};
 	uint64_t alloc_size = 0;
