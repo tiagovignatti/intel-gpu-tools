@@ -35,9 +35,6 @@
 
 drmModeRes *resources;
 int drm_fd;
-static drm_intel_bufmgr *bufmgr;
-struct intel_batchbuffer *batch;
-uint32_t devid;
 
 enum test_flags {
 	TEST_DIRECT_RENDER	= 0x01,
@@ -70,6 +67,15 @@ static void gpu_blit(struct igt_fb *dst_fb, struct igt_fb *src_fb)
 	drm_intel_bo *dst_bo;
 	drm_intel_bo *src_bo;
 	int bpp;
+	static drm_intel_bufmgr *bufmgr;
+	struct intel_batchbuffer *batch;
+	uint32_t devid;
+
+	igt_require_intel(drm_fd);
+
+	bufmgr = drm_intel_bufmgr_gem_init(drm_fd, 4096);
+	devid = intel_get_drm_devid(drm_fd);
+	batch = intel_batchbuffer_alloc(bufmgr, devid);
 
 	igt_assert(dst_fb->drm_format == src_fb->drm_format);
 	igt_assert(src_fb->drm_format == DRM_FORMAT_RGB565 ||
@@ -175,7 +181,8 @@ static void test_connector(const char *test_name,
 
 	igt_get_all_cairo_formats(&formats, &format_count);
 	for (i = 0; i < format_count; i++) {
-		if (intel_gen(intel_get_drm_devid(drm_fd)) < 4
+		if (is_i915_device(drm_fd)
+		    && intel_gen(intel_get_drm_devid(drm_fd)) < 4
 		    && formats[i] == DRM_FORMAT_XRGB2101010) {
 			igt_info("gen2/3 don't support 10bpc, skipping\n");
 			continue;
@@ -232,11 +239,7 @@ igt_main
 	igt_skip_on_simulation();
 
 	igt_fixture {
-		drm_fd = drm_open_driver_master(DRIVER_INTEL);
-
-		bufmgr = drm_intel_bufmgr_gem_init(drm_fd, 4096);
-		devid = intel_get_drm_devid(drm_fd);
-		batch = intel_batchbuffer_alloc(bufmgr, devid);
+		drm_fd = drm_open_driver_master(DRIVER_ANY);
 
 		kmstest_set_vt_graphics_mode();
 	}
