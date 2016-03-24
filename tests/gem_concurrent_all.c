@@ -1408,6 +1408,9 @@ run_mode(const char *prefix,
 		if (!all && *h->suffix)
 			continue;
 
+		if (!*h->suffix)
+			igt_fork_hang_detector(fd);
+
 		for (p = all ? pipelines : pskip; p->prefix; p++) {
 			igt_fixture p->require();
 
@@ -1535,6 +1538,9 @@ run_mode(const char *prefix,
 					      p->copy, h->hang);
 			}
 		}
+
+		if (!*h->suffix)
+			igt_stop_hang_detector();
 	}
 
 	igt_fixture
@@ -1596,6 +1602,8 @@ num_buffers(uint64_t max,
 
 	if (c->require)
 		c->require(c, n);
+
+	intel_require_memory(2*n, size, allow_mem);
 
 	return n;
 }
