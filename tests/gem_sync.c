@@ -65,27 +65,6 @@ out:
 	return ts.tv_sec + 1e-9*ts.tv_nsec;
 }
 
-static int has_engine(int fd, const struct intel_execution_engine *e)
-{
-	uint32_t bbe = MI_BATCH_BUFFER_END;
-	struct drm_i915_gem_execbuffer2 execbuf;
-	struct drm_i915_gem_exec_object2 exec;
-	int ret;
-
-	memset(&exec, 0, sizeof(exec));
-	exec.handle = gem_create(fd, 4096);
-	gem_write(fd, exec.handle, 0, &bbe, sizeof(bbe));
-
-	memset(&execbuf, 0, sizeof(execbuf));
-	execbuf.buffers_ptr = (uintptr_t)&exec;
-	execbuf.buffer_count = 1;
-	execbuf.flags = e->exec_id | e->flags;
-	ret = __gem_execbuf(fd, &execbuf);
-	gem_close(fd, exec.handle);
-
-	return ret;
-}
-
 static void
 sync_ring(int fd, unsigned ring, int num_children)
 {
@@ -100,7 +79,7 @@ sync_ring(int fd, unsigned ring, int num_children)
 			if (e->exec_id == 0)
 				continue;
 
-			if (has_engine(fd, e))
+			if (!gem_has_ring(fd, e->exec_id | e->flags))
 				continue;
 
 			if (e->exec_id == I915_EXEC_BSD) {
@@ -159,6 +138,69 @@ sync_ring(int fd, unsigned ring, int num_children)
 	igt_assert_eq(intel_detect_and_clear_missed_interrupts(fd), 0);
 }
 
+static void
+sync_all(int fd, int num_children)
+{
+	const struct intel_execution_engine *e;
+	unsigned engines[16];
+	int num_engines = 0;
+
+	for (e = intel_execution_engines; e->name; e++) {
+		if (e->exec_id == 0)
+			continue;
+
+		if (!gem_has_ring(fd, e->exec_id | e->flags))
+			continue;
+
+		if (e->exec_id == I915_EXEC_BSD) {
+			int is_bsd2 = e->flags != 0;
+			if (gem_has_bsd2(fd) != is_bsd2)
+				continue;
+		}
+
+		engines[num_engines++] = e->exec_id | e->flags;
+		if (num_engines == ARRAY_SIZE(engines))
+			break;
+	}
+	igt_require(num_engines);
+
+	intel_detect_and_clear_missed_interrupts(fd);
+	igt_fork(child, num_children) {
+		const uint32_t bbe = MI_BATCH_BUFFER_END;
+		struct drm_i915_gem_exec_object2 object;
+		struct drm_i915_gem_execbuffer2 execbuf;
+		double start, elapsed;
+		unsigned long cycles;
+
+		memset(&object, 0, sizeof(object));
+		object.handle = gem_create(fd, 4096);
+		gem_write(fd, object.handle, 0, &bbe, sizeof(bbe));
+
+		memset(&execbuf, 0, sizeof(execbuf));
+		execbuf.buffers_ptr = (uintptr_t)&object;
+		execbuf.buffer_count = 1;
+		gem_execbuf(fd, &execbuf);
+
+		start = gettime();
+		cycles = 0;
+		do {
+			do {
+				for (int n = 0; n < num_engines; n++) {
+					execbuf.flags = engines[n];
+					gem_execbuf(fd, &execbuf);
+				}
+				gem_sync(fd, object.handle);
+			} while (++cycles & 1023);
+		} while ((elapsed = gettime() - start) < SLOW_QUICK(10, 1));
+		igt_info("Completed %ld cycles: %.3f us\n",
+			 cycles, elapsed*1e6/cycles);
+
+		gem_close(fd, object.handle);
+	}
+	igt_waitchildren_timeout(20, NULL);
+	igt_assert_eq(intel_detect_and_clear_missed_interrupts(fd), 0);
+}
+
 igt_main
 {
 	const struct intel_execution_engine *e;
@@ -179,10 +221,15 @@ igt_main
 			sync_ring(fd, e->exec_id | e->flags, ncpus);
 	}
 
-	igt_subtest("basic-all")
+	igt_subtest("basic-each")
 		sync_ring(fd, ~0u, 1);
-	igt_subtest("forked-all")
+	igt_subtest("forked-each")
 		sync_ring(fd, ~0u, ncpus);
+
+	igt_subtest("basic-all")
+		sync_all(fd, 1);
+	igt_subtest("forked-all")
+		sync_all(fd, ncpus);
 
 	igt_stop_hang_detector();
 
