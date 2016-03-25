@@ -1346,13 +1346,16 @@ static void run_test_on_crtc_set(struct test_output *o, int *crtc_idxs,
 	o->fb_ids[1] = igt_create_fb_with_bo_size(drm_fd, o->fb_width, o->fb_height,
 					 igt_bpp_depth_to_drm_format(o->bpp, o->depth),
 					 tiling, &o->fb_info[1], bo_size, 0);
-	o->fb_ids[2] = igt_create_fb(drm_fd, o->fb_width, o->fb_height,
-					 igt_bpp_depth_to_drm_format(o->bpp, o->depth),
-					 LOCAL_I915_FORMAT_MOD_X_TILED, &o->fb_info[2]);
+
 	igt_assert(o->fb_ids[0]);
 	igt_assert(o->fb_ids[1]);
-	if (o->flags & TEST_FB_BAD_TILING)
+
+	if (o->flags & TEST_FB_BAD_TILING) {
+		o->fb_ids[2] = igt_create_fb(drm_fd, o->fb_width, o->fb_height,
+				igt_bpp_depth_to_drm_format(o->bpp, o->depth),
+				LOCAL_I915_FORMAT_MOD_X_TILED, &o->fb_info[2]);
 		igt_require(o->fb_ids[2]);
+	}
 
 	paint_flip_mode(&o->fb_info[0], false);
 	if (!(o->flags & TEST_BO_TOOBIG))
