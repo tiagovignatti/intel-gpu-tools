@@ -96,9 +96,13 @@ igt_main
 	igt_fixture
 		fd = drm_open_driver_master(DRIVER_INTEL);
 
+	igt_fork_hang_detector(fd);
+
 	for (e = intel_execution_engines; e->name; e++)
 		igt_subtest_f("basic-%s", e->name)
 			store_dword(fd, e->exec_id | e->flags);
+
+	igt_stop_hang_detector();
 
 	igt_fixture
 		close(fd);

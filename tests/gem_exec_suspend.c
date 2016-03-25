@@ -241,6 +241,8 @@ igt_main
 	igt_fixture
 		fd = drm_open_driver_master(DRIVER_INTEL);
 
+	igt_fork_hang_detector(fd);
+
 	igt_subtest("basic-S3")
 		run_test(fd, -1, SUSPEND);
 	igt_subtest("basic-S4")
@@ -256,6 +258,8 @@ igt_main
 					 m->mode | CACHED);
 		}
 	}
+
+	igt_stop_hang_detector();
 
 	igt_fixture
 		close(fd);

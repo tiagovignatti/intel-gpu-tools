@@ -166,6 +166,8 @@ igt_main
 		gem_write(device, handle, 0, &bbe, sizeof(bbe));
 	}
 
+	igt_fork_hang_detector(device);
+
 	igt_subtest("basic")
 		all(device, handle, 10);
 
@@ -175,6 +177,8 @@ igt_main
 
 	igt_subtest("all")
 		all(device, handle, 150);
+
+	igt_stop_hang_detector();
 
 	igt_fixture {
 		gem_close(device, handle);

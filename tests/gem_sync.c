@@ -170,6 +170,8 @@ igt_main
 	igt_fixture
 		fd = drm_open_driver(DRIVER_INTEL);
 
+	igt_fork_hang_detector(fd);
+
 	for (e = intel_execution_engines; e->name; e++) {
 		igt_subtest_f("basic-%s", e->name)
 			sync_ring(fd, e->exec_id | e->flags, 1);
@@ -181,6 +183,8 @@ igt_main
 		sync_ring(fd, ~0u, 1);
 	igt_subtest("forked-all")
 		sync_ring(fd, ~0u, ncpus);
+
+	igt_stop_hang_detector();
 
 	igt_fixture
 		close(fd);
