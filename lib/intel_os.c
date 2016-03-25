@@ -46,6 +46,7 @@
 #elif defined(HAVE_SWAPCTL) /* Solaris */
 #include <sys/swap.h>
 #endif
+#include <sys/resource.h>
 
 #include "intel_io.h"
 #include "drmtest.h"
@@ -192,6 +193,16 @@ static uint64_t vfs_file_max(void)
 	return max;
 }
 
+static unsigned max_open_files(void)
+{
+	struct rlimit rlim;
+
+	if (getrlimit(RLIMIT_NOFILE, &rlim))
+		rlim.rlim_cur = 64 << 10;
+
+	return rlim.rlim_cur;
+}
+
 /**
  * intel_require_files:
  * @count: number of files that will be created
@@ -200,9 +211,9 @@ static uint64_t vfs_file_max(void)
  */
 void intel_require_files(uint64_t count)
 {
-	igt_require_f(count < vfs_file_max(),
-		      "Estimated that we need %'llu files, but the VFS maximum is only %'llu\n",
-		      (long long)count, (long long)vfs_file_max());
+	igt_require_f(count < max_open_files(),
+		      "Estimated that we need %'llu files, but the process maximum is only %'llu\n",
+		      (long long)count, (long long)max_open_files());
 }
 
 int __intel_check_memory(uint64_t count, uint64_t size, unsigned mode,

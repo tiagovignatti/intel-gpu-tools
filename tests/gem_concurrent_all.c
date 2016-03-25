@@ -1743,7 +1743,7 @@ igt_main
 		all = true;
 
 	igt_fixture {
-		igt_require(allow_unlimited_files());
+		allow_unlimited_files();
 
 		fd = drm_open_driver(DRIVER_INTEL);
 		intel_detect_and_clear_missed_interrupts(fd);
