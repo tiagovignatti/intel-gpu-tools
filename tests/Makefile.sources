@@ -135,6 +135,7 @@ TESTS_progs = \
 	gem_ctx_bad_destroy \
 	gem_ctx_basic \
 	gem_ctx_create \
+	gem_ctx_switch \
 	gem_ctx_thrash \
 	gem_double_irq_loop \
 	gem_exec_big \
