@@ -368,6 +368,7 @@ igt_main
 		unsigned flags;
 	} modes[] = {
 		{ "", 0 },
+		{ "interruptible", INTERRUPTIBLE },
 		{ "contexts", CONTEXTS },
 		{ "contexts-interruptible", CONTEXTS | INTERRUPTIBLE},
 		{ "fds", FDS },
