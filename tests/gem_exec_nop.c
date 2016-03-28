@@ -54,14 +54,13 @@ static double elapsed(const struct timespec *start, const struct timespec *end)
 		(end->tv_nsec - start->tv_nsec)*1e-9);
 }
 
-static void single(int fd, uint32_t handle, unsigned ring_id, const char *ring_name)
+static double nop_on_ring(int fd, uint32_t handle, unsigned ring_id,
+			  int timeout, unsigned long *out)
 {
 	struct drm_i915_gem_execbuffer2 execbuf;
 	struct drm_i915_gem_exec_object2 obj;
 	struct timespec start, now;
-	unsigned int count = 0;
-
-	gem_require_ring(fd, ring_id);
+	unsigned long count;
 
 	memset(&obj, 0, sizeof(obj));
 	obj.handle = handle;
@@ -78,19 +77,33 @@ static void single(int fd, uint32_t handle, unsigned ring_id, const char *ring_n
 	}
 	gem_sync(fd, handle);
 
+	count = 0;
 	clock_gettime(CLOCK_MONOTONIC, &start);
 	do {
-		for (int loop = 0; loop < 1024; loop++) {
+		for (int loop = 0; loop < 1024; loop++)
 			gem_execbuf(fd, &execbuf);
-			count++;
-		}
+
+		count += 1024;
 		clock_gettime(CLOCK_MONOTONIC, &now);
-	} while (elapsed(&start, &now) < 20.);
+	} while (elapsed(&start, &now) < timeout);
 	gem_sync(fd, handle);
 	clock_gettime(CLOCK_MONOTONIC, &now);
 
-	igt_info("%s: %'u cycles: %.3fus\n",
-		 ring_name, count, elapsed(&start, &now)*1e6 / count);
+	*out = count;
+	return elapsed(&start, &now);
+}
+
+static void single(int fd, uint32_t handle,
+		   unsigned ring_id, const char *ring_name)
+{
+	double time;
+	unsigned long count;
+
+	gem_require_ring(fd, ring_id);
+
+	time = nop_on_ring(fd, handle, ring_id, 20, &count);
+	igt_info("%s: %'lu cycles: %.3fus\n",
+		 ring_name, count, time*1e6 / count);
 }
 
 static bool ignore_engine(int fd, unsigned engine)
@@ -112,12 +125,26 @@ static void all(int fd, uint32_t handle, int timeout)
 	unsigned engines[16];
 	unsigned nengine;
 	unsigned engine;
-	unsigned int count = 0;
+	unsigned long count;
+	double time, max = 0, sum = 0;
+	const char *name;
 
 	nengine = 0;
-	for_each_engine(fd, engine)
-		if (!ignore_engine(fd, engine)) engines[nengine++] = engine;
+	for_each_engine(fd, engine) {
+		if (ignore_engine(fd, engine))
+			continue;
+
+		time = nop_on_ring(fd, handle, engine, 1, &count) / count;
+		if (time > max) {
+			name = e__->name;
+			max = time;
+		}
+		sum += time;
+		engines[nengine++] = engine;
+	}
 	igt_require(nengine);
+	igt_info("Maximum execution latency on %s, %.3fus, total %.3fus per cycle\n",
+		 name, max*1e6, sum*1e6);
 
 	memset(&obj, 0, sizeof(obj));
 	obj.handle = handle;
@@ -133,6 +160,7 @@ static void all(int fd, uint32_t handle, int timeout)
 	}
 	gem_sync(fd, handle);
 
+	count = 0;
 	clock_gettime(CLOCK_MONOTONIC, &start);
 	do {
 		for (int loop = 0; loop < 1024; loop++) {
@@ -148,8 +176,10 @@ static void all(int fd, uint32_t handle, int timeout)
 	gem_sync(fd, handle);
 	clock_gettime(CLOCK_MONOTONIC, &now);
 
-	igt_info("All (%d engines): %'u cycles: %.3fus\n",
-		 nengine, count, elapsed(&start, &now)*1e6 / count);
+	time = elapsed(&start, &now) / count;
+	igt_info("All (%d engines): %'lu cycles, average %.3fus per cycle\n",
+		 nengine, count, 1e6*time);
+	igt_assert(time < 2*sum/nengine); /* ensure parallel execution */
 }
 
 igt_main
