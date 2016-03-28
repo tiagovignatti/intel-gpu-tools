@@ -126,7 +126,7 @@ static void all(int fd, uint32_t handle, int timeout)
 	unsigned nengine;
 	unsigned engine;
 	unsigned long count;
-	double time, max = 0, sum = 0;
+	double time, max = 0, min = HUGE_VAL, sum = 0;
 	const char *name;
 
 	nengine = 0;
@@ -139,6 +139,8 @@ static void all(int fd, uint32_t handle, int timeout)
 			name = e__->name;
 			max = time;
 		}
+		if (time < min)
+			min = time;
 		sum += time;
 		engines[nengine++] = engine;
 	}
@@ -179,7 +181,13 @@ static void all(int fd, uint32_t handle, int timeout)
 	time = elapsed(&start, &now) / count;
 	igt_info("All (%d engines): %'lu cycles, average %.3fus per cycle\n",
 		 nengine, count, 1e6*time);
-	igt_assert(time < 2*sum/nengine); /* ensure parallel execution */
+
+	/* The rate limiting step is how fast the slowest engine can
+	 * its queue of requests, if we wait upon a full ring all dispatch
+	 * is frozen. So in general we cannot go faster than the slowest
+	 * engine, but we should equally not go any slower.
+	 */
+	igt_assert(time < max + min); /* ensure parallel execution */
 }
 
 igt_main
