@@ -382,7 +382,7 @@ hang_detector_process(pid_t pid, dev_t rdev)
 		dev_t devnum;
 
 		if (dev == NULL)
-			break;
+			continue;
 
 		devnum = udev_device_get_devnum(dev);
 		if (memcmp(&rdev, &devnum, sizeof(dev_t)) == 0) {
