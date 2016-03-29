@@ -243,6 +243,8 @@ igt_main
 
 	igt_fork_hang_detector(fd);
 
+	igt_subtest("basic")
+		run_test(fd, -1, NOSLEEP);
 	igt_subtest("basic-S3")
 		run_test(fd, -1, SUSPEND);
 	igt_subtest("basic-S4")
