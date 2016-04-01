@@ -28,6 +28,18 @@ IGT_TEST_DESCRIPTION("Basic check of busy-ioctl ABI.");
 
 enum { TEST = 0, BUSY, BATCH };
 
+static bool gem_busy(int fd, uint32_t handle)
+{
+	struct drm_i915_gem_busy busy;
+
+	memset(&busy, 0, sizeof(busy));
+	busy.handle = handle;
+
+	do_ioctl(fd, DRM_IOCTL_I915_GEM_BUSY, &busy);
+
+	return busy.busy != 0;
+}
+
 static void __gem_busy(int fd,
 		       uint32_t handle,
 		       uint32_t *read,
@@ -153,7 +165,7 @@ static bool still_busy(int fd, uint32_t handle)
 	return write;
 }
 
-static void test_ring(int fd, unsigned ring, uint32_t flags)
+static void semaphore(int fd, unsigned ring, uint32_t flags)
 {
 	uint32_t bbe = MI_BATCH_BUFFER_END;
 	uint32_t handle[3];
@@ -208,6 +220,84 @@ static void test_ring(int fd, unsigned ring, uint32_t flags)
 		gem_close(fd, handle[i]);
 }
 
+static void store(int fd, unsigned ring, uint32_t flags)
+{
+	const int gen = intel_gen(intel_get_drm_devid(fd));
+	struct drm_i915_gem_exec_object2 obj[2];
+	struct drm_i915_gem_relocation_entry reloc;
+	struct drm_i915_gem_execbuffer2 execbuf;
+	uint32_t read[2], write[2];
+	struct timespec tv;
+	uint32_t batch[16];
+	int i, count;
+
+	gem_require_ring(fd, ring | flags);
+	igt_skip_on_f(gen == 6 && (ring & ~(3<<13)) == I915_EXEC_BSD,
+		      "MI_STORE_DATA broken on gen6 bsd\n");
+
+	memset(&execbuf, 0, sizeof(execbuf));
+	execbuf.buffers_ptr = (uintptr_t)obj;
+	execbuf.buffer_count = 2;
+	execbuf.flags = ring | flags;
+	if (gen < 6)
+		execbuf.flags |= I915_EXEC_SECURE;
+
+	memset(obj, 0, sizeof(obj));
+	obj[0].handle = gem_create(fd, 4096);
+	obj[1].handle = gem_create(fd, 4096);
+
+	memset(&reloc, 0, sizeof(reloc));
+	reloc.target_handle = obj[0].handle;
+	reloc.presumed_offset = 0;
+	reloc.offset = sizeof(uint32_t);
+	reloc.delta = 0;
+	reloc.read_domains = I915_GEM_DOMAIN_INSTRUCTION;
+	reloc.write_domain = I915_GEM_DOMAIN_INSTRUCTION;
+	obj[1].relocs_ptr = (uintptr_t)&reloc;
+	obj[1].relocation_count = 1;
+
+	i = 0;
+	batch[i] = MI_STORE_DWORD_IMM | (gen < 6 ? 1 << 22 : 0);
+	if (gen >= 8) {
+		batch[++i] = 0;
+		batch[++i] = 0;
+	} else if (gen >= 4) {
+		batch[++i] = 0;
+		batch[++i] = 0;
+		reloc.offset += sizeof(uint32_t);
+	} else {
+		batch[i]--;
+		batch[++i] = 0;
+	}
+	batch[++i] = 0xc0ffee;
+	batch[++i] = MI_BATCH_BUFFER_END;
+	gem_write(fd, obj[1].handle, 0, batch, sizeof(batch));
+
+	count = 16;
+	do {
+		for (i = 0; i < count; i++)
+			gem_execbuf(fd, &execbuf);
+		__gem_busy(fd, obj[0].handle, &read[0], &write[0]);
+		__gem_busy(fd, obj[1].handle, &read[1], &write[1]);
+		count <<= 1;
+	} while (read[0] == 0 || read[1] == 0);
+
+	igt_assert_eq(write[0], ring);
+	igt_assert_eq(read[0], 1 << ring);
+
+	igt_assert_eq(write[1], 0);
+	igt_assert_eq(read[1], 1 << ring);
+
+	/* Calling busy in a loop should be enough to flush the rendering */
+	memset(&tv, 0, sizeof(tv));
+	while (gem_busy(fd, obj[1].handle))
+		igt_assert(igt_seconds_elapsed(&tv) < 2);
+	igt_assert(!gem_busy(fd, obj[0].handle));
+
+	gem_close(fd, obj[1].handle);
+	gem_close(fd, obj[0].handle);
+}
+
 static bool has_semaphores(int fd)
 {
 	struct drm_i915_getparam gp;
@@ -230,17 +320,32 @@ igt_main
 
 	igt_skip_on_simulation();
 
-	igt_fixture {
-		fd = drm_open_driver(DRIVER_INTEL);
-		igt_require(has_semaphores(fd));
+	igt_fixture
+		fd = drm_open_driver_master(DRIVER_INTEL);
+
+	igt_subtest_group {
+		for (e = intel_execution_engines; e->name; e++) {
+			/* default exec-id is purely symbolic */
+			if (e->exec_id == 0)
+				continue;
+
+			igt_subtest_f("basic-%s", e->name)
+				store(fd, e->exec_id, e->flags);
+		}
 	}
 
-	for (e = intel_execution_engines; e->name; e++) {
-		if (e->exec_id == 0) /* default exec-id is purely symbolic */
-			continue;
+	igt_subtest_group {
+		igt_fixture
+			igt_require(has_semaphores(fd));
 
-		igt_subtest_f("%s", e->name)
-			test_ring(fd, e->exec_id, e->flags);
+		for (e = intel_execution_engines; e->name; e++) {
+			/* default exec-id is purely symbolic */
+			if (e->exec_id == 0)
+				continue;
+
+			igt_subtest_f("semaphore-%s", e->name)
+				semaphore(fd, e->exec_id, e->flags);
+		}
 	}
 
 	igt_fixture
