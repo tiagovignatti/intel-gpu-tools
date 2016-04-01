@@ -94,6 +94,7 @@ static void write_dword(int fd,
 }
 
 enum mode { MEM, CPU, WC, GTT };
+#define RO 0x100
 static void from_mmap(int fd, uint64_t size, enum mode mode)
 {
 	uint32_t bbe = MI_BATCH_BUFFER_END;
@@ -112,7 +113,7 @@ static void from_mmap(int fd, uint64_t size, enum mode mode)
 	gem_write(fd, obj.handle, 0, &bbe, sizeof(bbe));
 
 	max = size / sizeof(*relocs);
-	switch (mode) {
+	switch (mode & ~RO) {
 	case MEM:
 		relocs = mmap(0, size,
 			      PROT_WRITE, MAP_PRIVATE | MAP_ANON,
@@ -152,6 +153,9 @@ static void from_mmap(int fd, uint64_t size, enum mode mode)
 	}
 	obj.relocation_count = max;
 	obj.relocs_ptr = (uintptr_t)relocs;
+
+	if (mode & RO)
+		mprotect(relocs, size, PROT_READ);
 
 	memset(&execbuf, 0, sizeof(execbuf));
 	execbuf.buffers_ptr = (uintptr_t)&obj;
@@ -327,6 +331,8 @@ igt_main
 	for (size = 4096; size <= 4ull*1024*1024*1024; size <<= 1) {
 		igt_subtest_f("mmap-%u", find_last_set(size) - 1)
 			from_mmap(fd, size, MEM);
+		igt_subtest_f("readonly-%u", find_last_set(size) - 1)
+			from_mmap(fd, size, MEM | RO);
 		igt_subtest_f("cpu-%u", find_last_set(size) - 1)
 			from_mmap(fd, size, CPU);
 		igt_subtest_f("wc-%u", find_last_set(size) - 1)
