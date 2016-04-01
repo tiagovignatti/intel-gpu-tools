@@ -279,6 +279,9 @@ static void store(int fd, unsigned ring, uint32_t flags)
 			gem_execbuf(fd, &execbuf);
 		__gem_busy(fd, obj[0].handle, &read[0], &write[0]);
 		__gem_busy(fd, obj[1].handle, &read[1], &write[1]);
+		igt_debug("After %d cycles: read[0]=%x read[1]=%x\n",
+			  count, read[0], read[1]);
+		igt_require(count <= 1 << 12);
 		count <<= 1;
 	} while (read[0] == 0 || read[1] == 0);
 
