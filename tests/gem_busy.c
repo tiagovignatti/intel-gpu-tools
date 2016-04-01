@@ -23,6 +23,8 @@
 
 #include "igt.h"
 
+#define LOCAL_EXEC_NO_RELOC (1<<11)
+
 /* Exercise the busy-ioctl, ensuring the ABI is never broken */
 IGT_TEST_DESCRIPTION("Basic check of busy-ioctl ABI.");
 
@@ -224,54 +226,65 @@ static void store(int fd, unsigned ring, uint32_t flags)
 {
 	const int gen = intel_gen(intel_get_drm_devid(fd));
 	struct drm_i915_gem_exec_object2 obj[2];
-	struct drm_i915_gem_relocation_entry reloc;
+	struct drm_i915_gem_relocation_entry reloc[1024];
 	struct drm_i915_gem_execbuffer2 execbuf;
+	unsigned size = ALIGN(ARRAY_SIZE(reloc)*16 + 4, 4096);
 	uint32_t read[2], write[2];
 	struct timespec tv;
-	uint32_t batch[16];
+	uint32_t *batch;
 	int i, count;
 
 	gem_require_ring(fd, ring | flags);
 	igt_skip_on_f(gen == 6 && (ring & ~(3<<13)) == I915_EXEC_BSD,
 		      "MI_STORE_DATA broken on gen6 bsd\n");
 
+	gem_quiescent_gpu(fd);
+
 	memset(&execbuf, 0, sizeof(execbuf));
 	execbuf.buffers_ptr = (uintptr_t)obj;
 	execbuf.buffer_count = 2;
-	execbuf.flags = ring | flags;
+	execbuf.flags = ring | flags | LOCAL_EXEC_NO_RELOC;
 	if (gen < 6)
 		execbuf.flags |= I915_EXEC_SECURE;
 
 	memset(obj, 0, sizeof(obj));
 	obj[0].handle = gem_create(fd, 4096);
-	obj[1].handle = gem_create(fd, 4096);
+	obj[0].flags = EXEC_OBJECT_WRITE;
+	obj[1].handle = gem_create(fd, size);
 
-	memset(&reloc, 0, sizeof(reloc));
-	reloc.target_handle = obj[0].handle;
-	reloc.presumed_offset = 0;
-	reloc.offset = sizeof(uint32_t);
-	reloc.delta = 0;
-	reloc.read_domains = I915_GEM_DOMAIN_INSTRUCTION;
-	reloc.write_domain = I915_GEM_DOMAIN_INSTRUCTION;
-	obj[1].relocs_ptr = (uintptr_t)&reloc;
-	obj[1].relocation_count = 1;
+	memset(reloc, 0, sizeof(reloc));
+	obj[1].relocs_ptr = (uintptr_t)reloc;
+	obj[1].relocation_count = ARRAY_SIZE(reloc);
+
+	batch = gem_mmap__cpu(fd, obj[1].handle, 0, size, PROT_WRITE);
+	gem_set_domain(fd, obj[1].handle,
+			I915_GEM_DOMAIN_CPU, I915_GEM_DOMAIN_CPU);
 
 	i = 0;
-	batch[i] = MI_STORE_DWORD_IMM | (gen < 6 ? 1 << 22 : 0);
-	if (gen >= 8) {
-		batch[++i] = 0;
-		batch[++i] = 0;
-	} else if (gen >= 4) {
-		batch[++i] = 0;
-		batch[++i] = 0;
-		reloc.offset += sizeof(uint32_t);
-	} else {
-		batch[i]--;
-		batch[++i] = 0;
+	for (count = 0; count < ARRAY_SIZE(reloc); count++) {
+		reloc[count].target_handle = obj[0].handle;
+		reloc[count].presumed_offset = 0;
+		reloc[count].offset = sizeof(uint32_t) * (i + 1);
+		reloc[count].delta = 0;
+		reloc[count].read_domains = I915_GEM_DOMAIN_INSTRUCTION;
+		reloc[count].write_domain = I915_GEM_DOMAIN_INSTRUCTION;
+		batch[i] = MI_STORE_DWORD_IMM | (gen < 6 ? 1 << 22 : 0);
+		if (gen >= 8) {
+			batch[++i] = 0;
+			batch[++i] = 0;
+		} else if (gen >= 4) {
+			batch[++i] = 0;
+			batch[++i] = 0;
+			reloc[count].offset += sizeof(uint32_t);
+		} else {
+			batch[i]--;
+			batch[++i] = 0;
+		}
+		batch[++i] = 0xc0ffee;
 	}
-	batch[++i] = 0xc0ffee;
 	batch[++i] = MI_BATCH_BUFFER_END;
-	gem_write(fd, obj[1].handle, 0, batch, sizeof(batch));
+	munmap(batch, size);
+	igt_require(__gem_execbuf(fd, &execbuf) == 0);
 
 	count = 16;
 	do {
@@ -281,7 +294,7 @@ static void store(int fd, unsigned ring, uint32_t flags)
 		__gem_busy(fd, obj[1].handle, &read[1], &write[1]);
 		igt_debug("After %d cycles: read[0]=%x read[1]=%x\n",
 			  count, read[0], read[1]);
-		igt_require(count <= 1 << 12);
+		igt_require(count <= 1 << 10);
 		count <<= 1;
 	} while (read[0] == 0 || read[1] == 0);
 
@@ -294,7 +307,7 @@ static void store(int fd, unsigned ring, uint32_t flags)
 	/* Calling busy in a loop should be enough to flush the rendering */
 	memset(&tv, 0, sizeof(tv));
 	while (gem_busy(fd, obj[1].handle))
-		igt_assert(igt_seconds_elapsed(&tv) < 2);
+		igt_assert(igt_seconds_elapsed(&tv) < 10);
 	igt_assert(!gem_busy(fd, obj[0].handle));
 
 	gem_close(fd, obj[1].handle);
