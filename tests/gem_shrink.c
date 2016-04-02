@@ -40,11 +40,29 @@ static void get_pages(int fd, uint64_t alloc)
 	gem_madvise(fd, handle, I915_MADV_DONTNEED);
 }
 
+static void pwrite_(int fd, uint64_t alloc)
+{
+	uint32_t tmp;
+	uint32_t handle = gem_create(fd, alloc);
+	for (int page = 0; page < alloc>>12; page++)
+		gem_write(fd, handle, (page + page % 4095) & ~3, &tmp, 4);
+	gem_madvise(fd, handle, I915_MADV_DONTNEED);
+}
+
+static void pread_(int fd, uint64_t alloc)
+{
+	uint32_t tmp;
+	uint32_t handle = gem_create(fd, alloc);
+	for (int page = 0; page < alloc>>12; page++)
+		gem_read(fd, handle, (page + page % 4095) & ~3, &tmp, 4);
+	gem_madvise(fd, handle, I915_MADV_DONTNEED);
+}
+
 static void mmap_gtt(int fd, uint64_t alloc)
 {
 	uint32_t handle = gem_create(fd, alloc);
 	uint32_t *ptr = gem_mmap__gtt(fd, handle, alloc, PROT_WRITE);
-	for (int page = 0; page < alloc >>12; page++)
+	for (int page = 0; page < alloc>>12; page++)
 		ptr[page<<10] = 0;
 	munmap(ptr, alloc);
 	gem_madvise(fd, handle, I915_MADV_DONTNEED);
@@ -54,7 +72,7 @@ static void mmap_cpu(int fd, uint64_t alloc)
 {
 	uint32_t handle = gem_create(fd, alloc);
 	uint32_t *ptr = gem_mmap__cpu(fd, handle, 0, alloc, PROT_WRITE);
-	for (int page = 0; page < alloc >>12; page++)
+	for (int page = 0; page < alloc>>12; page++)
 		ptr[page<<10] = 0;
 	munmap(ptr, alloc);
 	gem_madvise(fd, handle, I915_MADV_DONTNEED);
@@ -165,6 +183,8 @@ igt_main
 		void (*func)(int, uint64_t);
 	} tests[] = {
 		{ "get-pages", get_pages },
+		{ "pwrite", pwrite_ },
+		{ "pread", pread_ },
 		{ "mmap-gtt", mmap_gtt },
 		{ "mmap-cpu", mmap_cpu },
 		{ "execbuf1", execbuf1 },
