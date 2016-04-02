@@ -102,7 +102,7 @@ static void execbufN(int fd, uint64_t alloc)
 	struct drm_i915_gem_execbuffer2 execbuf;
 	int count = alloc >> 20;
 
-	obj = calloc(alloc + 1, sizeof(&obj));
+	obj = calloc(alloc + 1, sizeof(*obj));
 	memset(&execbuf, 0, sizeof(execbuf));
 
 	obj[count].handle = gem_create(fd, 4096);
@@ -119,6 +119,7 @@ static void execbufN(int fd, uint64_t alloc)
 
 	for (int i = 0; i <= count; i++)
 		gem_madvise(fd, obj[i].handle, I915_MADV_DONTNEED);
+	free(obj);
 }
 
 static void hang(int fd, uint64_t alloc)
@@ -128,7 +129,7 @@ static void hang(int fd, uint64_t alloc)
 	struct drm_i915_gem_execbuffer2 execbuf;
 	int count = alloc >> 20;
 
-	obj = calloc(alloc + 1, sizeof(&obj));
+	obj = calloc(alloc + 1, sizeof(*obj));
 	memset(&execbuf, 0, sizeof(execbuf));
 
 	obj[count].handle = gem_create(fd, 4096);
@@ -146,30 +147,85 @@ static void hang(int fd, uint64_t alloc)
 	gem_close(fd, igt_hang_ring(fd, 0).handle);
 	for (int i = 0; i <= count; i++)
 		gem_madvise(fd, obj[i].handle, I915_MADV_DONTNEED);
+	free(obj);
+}
+
+static void userptr(int fd, uint64_t alloc)
+{
+	struct local_i915_gem_userptr userptr;
+	void *ptr;
+
+	igt_assert((alloc & 4095) == 0);
+
+	ptr = mmap(NULL, alloc,
+		   PROT_READ | PROT_WRITE, MAP_ANON | MAP_PRIVATE,
+		   -1, 0);
+	igt_assert(ptr != (void *)-1);
+
+	memset(&userptr, 0, sizeof(userptr));
+	userptr.user_size = alloc;
+	userptr.user_ptr = (uintptr_t)ptr;
+	do_ioctl(fd, LOCAL_IOCTL_I915_GEM_USERPTR, &userptr);
+
+	gem_set_domain(fd, userptr.handle, I915_GEM_DOMAIN_GTT, 0);
+}
+
+static bool has_userptr(void)
+{
+	struct local_i915_gem_userptr userptr;
+	int fd = drm_open_driver(DRIVER_INTEL);
+	int err;
+
+	memset(&userptr, 0, sizeof(userptr));
+	userptr.user_size = 8192;
+	userptr.user_ptr = -4096;
+
+	err = 0;
+	if (drmIoctl(fd, LOCAL_IOCTL_I915_GEM_USERPTR, &userptr))
+		err = errno;
+
+	close(fd);
+
+	return err == EFAULT;
 }
 
 #define SOLO 1
+#define USERPTR 2
 
 static void run_test(int nchildren, uint64_t alloc,
 		     void (*func)(int, uint64_t), unsigned flags)
 {
+	/* Each pass consumes alloc bytes and doesn't drop
+	 * its reference to object (i.e. calls
+	 * gem_madvise(DONTNEED) instead of gem_close()).
+	 * After nchildren passes we expect each process
+	 * to have enough objects to consume all of memory
+	 * if left unchecked.
+	 */
+
 	if (flags & SOLO)
 		nchildren = 1;
 
+	/* Background load */
+	if (flags & USERPTR) {
+		igt_require(has_userptr());
+		igt_fork(child, (nchildren + 1)/2) {
+			igt_timeout(flags & SOLO ? 1 : 20) {
+				int fd = drm_open_driver(DRIVER_INTEL);
+				for (int pass = 0; pass < nchildren; pass++)
+					userptr(fd, alloc);
+				close(fd);
+			}
+		}
+		nchildren = (nchildren + 1)/2;
+	}
+
+	/* Exercise major ioctls */
 	igt_fork(child, nchildren) {
 		igt_timeout(flags & SOLO ? 1 : 20) {
 			int fd = drm_open_driver(DRIVER_INTEL);
-
-			/* Each pass consumes alloc bytes and doesn't drop
-			 * its reference to object (i.e. calls
-			 * gem_madvise(DONTNEED) instead of gem_close()).
-			 * After nchildren passes we expect each process
-			 * to have enough objects to consume all of memory
-			 * if left unchecked.
-			 */
 			for (int pass = 0; pass < nchildren; pass++)
 				func(fd, alloc);
-
 			close(fd);
 		}
 	}
@@ -198,6 +254,7 @@ igt_main
 	} modes[] = {
 		{ "-sanitycheck", SOLO },
 		{ "", 0 },
+		{ "-userptr", USERPTR },
 		{ NULL },
 	};
 	uint64_t alloc_size = 0;
