@@ -115,6 +115,12 @@ sig_ioctl(int fd, unsigned long request, void *arg)
 	SIG_ASSERT(__igt_sigiter.tid == gettid());
 
 	memset(&its, 0, sizeof(its));
+	if (timer_settime(__igt_sigiter.timer, 0, &its, NULL)) {
+		/* oops, we didn't undo the interrupter (i.e. !unwound abort) */
+		igt_ioctl = drmIoctl;
+		return drmIoctl(fd, request, arg);
+	}
+
 	its.it_value = __igt_sigiter.offset;
 	do {
 		long serial;
