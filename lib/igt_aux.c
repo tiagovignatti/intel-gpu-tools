@@ -403,6 +403,7 @@ hang_detector_process(pid_t pid, dev_t rdev)
 
 static void sig_abort(int sig)
 {
+	errno = 0; /* inside a signal, last errno reporting is confusing */
 	igt_assert(!"GPU hung");
 }
 
