@@ -44,6 +44,10 @@
 #include <sys/resource.h>
 #include "drm.h"
 
+#define CONTEXT		0x1
+#define REALTIME	0x2
+#define CMDPARSER	0x4
+
 static int done;
 static int fd;
 static volatile uint32_t *timestamp_reg;
@@ -169,7 +173,8 @@ static uint32_t create_workload(int gen, int factor)
 static void setup_workload(struct producer *p, int gen,
 			   uint32_t scratch,
 			   uint32_t batch,
-			   int factor)
+			   int factor,
+			   unsigned flags)
 {
 	struct drm_i915_gem_execbuffer2 *eb;
 	const int has_64bit_reloc = gen >= 8;
@@ -206,11 +211,13 @@ static void setup_workload(struct producer *p, int gen,
 	eb = memset(&p->workload_dispatch.execbuf, 0, sizeof(*eb));
 	eb->buffers_ptr = (uintptr_t)p->workload_dispatch.exec;
 	eb->buffer_count = 2;
+	if (flags & CMDPARSER)
+		eb->batch_len = 4096;
 	eb->flags = I915_EXEC_BLT | LOCAL_EXEC_NO_RELOC;
 	eb->rsvd1 = p->ctx;
 }
 
-static void setup_latency(struct producer *p, int gen)
+static void setup_latency(struct producer *p, int gen, unsigned flags)
 {
 	struct drm_i915_gem_execbuffer2 *eb;
 	const int has_64bit_reloc = gen >= 8;
@@ -250,6 +257,8 @@ static void setup_latency(struct producer *p, int gen)
 	eb = memset(&p->latency_dispatch.execbuf, 0, sizeof(*eb));
 	eb->buffers_ptr = (uintptr_t)p->latency_dispatch.exec;
 	eb->buffer_count = 1;
+	if (flags & CMDPARSER)
+		eb->batch_len = sizeof(*map) * ((i + 1) & ~1);
 	eb->flags = I915_EXEC_BLT | LOCAL_EXEC_NO_RELOC;
 	eb->rsvd1 = p->ctx;
 }
@@ -265,7 +274,7 @@ static uint32_t create_nop(void)
 	return handle;
 }
 
-static void setup_nop(struct producer *p, uint32_t batch)
+static void setup_nop(struct producer *p, uint32_t batch, unsigned flags)
 {
 	struct drm_i915_gem_execbuffer2 *eb;
 
@@ -274,6 +283,8 @@ static void setup_nop(struct producer *p, uint32_t batch)
 	eb = memset(&p->nop_dispatch.execbuf, 0, sizeof(*eb));
 	eb->buffers_ptr = (uintptr_t)p->nop_dispatch.exec;
 	eb->buffer_count = 1;
+	if (flags & CMDPARSER)
+		eb->batch_len = 8;
 	eb->flags = I915_EXEC_BLT | LOCAL_EXEC_NO_RELOC;
 	eb->rsvd1 = p->ctx;
 }
@@ -388,8 +399,6 @@ static double cpu_time(const struct rusage *r)
 		(r->ru_utime.tv_usec + r->ru_stime.tv_usec);
 }
 
-#define CONTEXT 1
-#define REALTIME 2
 static int run(int seconds,
 	       int nproducers,
 	       int nconsumers,
@@ -442,9 +451,9 @@ static int run(int seconds,
 		if (flags & CONTEXT)
 			p[n].ctx = gem_context_create(fd);
 
-		setup_nop(&p[n], nop_batch);
-		setup_workload(&p[n], gen, scratch, workload_batch, workload);
-		setup_latency(&p[n], gen);
+		setup_nop(&p[n], nop_batch, flags);
+		setup_workload(&p[n], gen, scratch, workload_batch, workload, flags);
+		setup_latency(&p[n], gen, flags);
 
 		pthread_mutex_init(&p[n].lock, NULL);
 		pthread_cond_init(&p[n].p_cond, NULL);
@@ -546,7 +555,7 @@ int main(int argc, char **argv)
 	unsigned flags = 0;
 	int c;
 
-	while ((c = getopt(argc, argv, "p:c:n:w:t:f:sR")) != -1) {
+	while ((c = getopt(argc, argv, "Cp:c:n:w:t:f:sR")) != -1) {
 		switch (c) {
 		case 'p':
 			/* How many threads generate work? */
@@ -603,6 +612,11 @@ int main(int argc, char **argv)
 		case 'R':
 			/* Run the producers at RealTime priority */
 			flags |= REALTIME;
+			break;
+
+		case 'C':
+			/* Don't hide from the command parser (gen7) */
+			flags |= CMDPARSER;
 			break;
 
 		default:
