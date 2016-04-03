@@ -1,0 +1,19 @@
+[ -e $IGT_BENCHMARKS/gem_exec_trace ] || return 1
+sudo -n true || return 1
+
+function __trace__ {
+    sudo $IGT_BENCHMARKS/gem_exec_trace $IGT_TRACES/$2.gem_exec_trace >/dev/null
+    for (( c=0; c<$1; c++ )); do
+        sudo $IGT_BENCHMARKS/gem_exec_trace $IGT_TRACES/$2.gem_exec_trace | sed 's/.*: //'
+    done
+}
+
+for i in $IGT_TRACES/*.gem_exec_trace; do
+        trace=$(basename $i .gem_exec_trace)
+	name=gem:exec:trace:$trace
+	test_name="$test_name $name"
+	eval "${name}_run() { __trace__ \$1 $trace; }"
+done
+
+test_exec_time=4
+test_invert=1

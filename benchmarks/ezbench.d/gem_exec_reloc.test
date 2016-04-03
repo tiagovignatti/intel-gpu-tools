@@ -1,0 +1,20 @@
+test_exec_time=18
+test_invert=1
+
+[ -e $IGT_BENCHMARKS/gem_exec_reloc ] || return 1
+sudo -n true || return 1
+
+for i in old lut; do
+    for j in busy cyclic fault skip none; do
+	for k in constant sequential reverse random; do
+	    for b in 2 4096; do
+		test_name="$test_name gem:exec:reloc:$i:$j:$k:$b"
+		eval "gem:exec:reloc:${i}:${j}:${k}:${b}_run() { sudo $IGT_BENCHMARKS/gem_exec_reloc -s 65536 -m $i -e $j -o $k -l \$1 -b $b -r 4096 ; } "
+            done
+	done
+    done
+    for j in 0 32 1024 32768; do
+	test_name="$test_name gem:exec:reloc:$i:0:$j"
+	eval "gem:exec:reloc:${i}:0:${j}_run() { sudo $IGT_BENCHMARKS/gem_exec_reloc -s 4096 -m $i -e  none -o constant -l \$1 -b $j -r 0 ; } "
+    done
+done

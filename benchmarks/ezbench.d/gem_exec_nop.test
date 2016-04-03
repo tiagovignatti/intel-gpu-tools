@@ -1,0 +1,15 @@
+[ -e $IGT_BENCHMARKS/gem_exec_nop ] || return 1
+sudo -n true || return 1
+
+for ring in rcs bcs vcs vecs all; do
+    name="gem:exec:nop:$ring:single"
+    test_name="$test_name $name"
+    eval "${name}_run() { sudo $IGT_BENCHMARKS/gem_exec_nop -s -e $ring -r \$1 ; }"
+
+    name="gem:exec:nop:$ring:continuous"
+    test_name="$test_name $name"
+    eval "${name}_run() { sudo $IGT_BENCHMARKS/gem_exec_nop -e $ring -r \$1 ; }"
+done
+
+test_exec_time=3
+test_invert=1

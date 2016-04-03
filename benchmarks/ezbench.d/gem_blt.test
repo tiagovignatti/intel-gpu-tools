@@ -1,0 +1,34 @@
+test_exec_time=2
+
+[ -e $IGT_BENCHMARKS/gem_blt ] || return 1
+sudo -n true || return 1
+
+while read size batch label; do
+    name="gem:blt:copy:${label}"
+    test_name="$test_name $name"
+    eval "${name}_run() { sudo $IGT_BENCHMARKS/gem_blt -r \$1 -s $size -b $batch; }"
+done<<SIZES
+4096	1	4KiBx1
+4096	16	4KiBx16
+4096	64	4KiBx64
+4096	256	4KiBx256
+4096	1024	4KiBx1024
+131072	1	128KiBx1
+131072	16	128KiBx16
+131072	64	128KiBx64
+131072	256	128KiBx256
+131072	1024	128KiBx1024
+4194304	1	4MiBx1
+4194304	32	4MiBx32
+4194304	1024	4MiBx1024
+SIZES
+
+while read size label; do
+    name="gem:blt:copy:${label}:sync"
+    test_name="$test_name $name"
+    eval "${name}_run() { sudo $IGT_BENCHMARKS/gem_blt -S -r \$1 -s $size -b 1 ; }"
+done<<SIZES
+4096	4KiB
+131072	128KiB
+4194304	4MiB
+SIZES

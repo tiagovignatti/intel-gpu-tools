@@ -1,0 +1,21 @@
+# This outputs a graph of time(N), the us it takes to execute N empty batches
+# performing the associated context operation each time.
+# e.g. 110 59 34 22 16 13 11 10 10 10 9 4 1.4 1.4 1.2 0.9 0.8
+# As a summary, print the number of nop/s (so that it matches the bigger is
+# better motif of fps).
+
+[ -e $IGT_BENCHMARKS/gem_exec_ctx ] || return 1
+sudo -n true || return 1
+
+for i in nop default switch create; do
+    name="gem:exec:ctx:$i:single"
+    test_name="$test_name $name"
+    eval "${name}_run() { sudo $IGT_BENCHMARKS/gem_exec_ctx -s -b $i -r \$1 ; }"
+
+    name="gem:exec:ctx:$i:continuous"
+    test_name="$test_name $name"
+    eval "${name}_run() { sudo $IGT_BENCHMARKS/gem_exec_ctx -b $i -r \$1 ; }"
+done
+
+test_exec_time=3
+test_invert=1

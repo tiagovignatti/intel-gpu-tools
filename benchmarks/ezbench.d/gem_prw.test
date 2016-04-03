@@ -1,0 +1,20 @@
+# This outputs a graph of time(N), the time it takes to write 1<<N bytes in us.
+# e.g. 0 1 2 4 8 16 32
+# The last value is for 4M, convert that to MiB/s for comparison
+#
+# Ideally we want to run this per ring,
+#	gem_exec_nop:rcs, gem_exec_nop:bcs, gem_exec_nop:vcs
+# though for the time being just one will suffice
+
+[ -e $IGT_BENCHMARKS/gem_prw ] || return 1
+sudo -n true || return 1
+
+for j in read write; do
+    for i in cpu gtt; do
+        test_name="$test_name gem:p$j:$i"
+        eval "gem:p$j:${i}_run() { sudo $IGT_BENCHMARKS/gem_prw -D $j -d $i -r \$1 ; }"
+        eval "gem:p$j:${i}_process() { bc -l <<< \" 4*1000000 / \${@: -1} \" ; }"
+    done
+done
+
+test_exec_time=1

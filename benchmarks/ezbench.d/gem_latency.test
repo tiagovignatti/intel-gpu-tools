@@ -1,0 +1,79 @@
+test_exec_time=2
+test_invert=1
+
+[ -e $IGT_BENCHMARKS/gem_latency ] || return 1
+sudo -n true || return 1
+
+__gem:dispatch__() {
+    for (( c=0; c<$1; c++ )); do
+        sudo $IGT_BENCHMARKS/gem_latency -t 2 -n $2 -p $3 -f 1 $4
+    done
+}
+
+# Measure the delay to execute N nops
+for n in 0 1 2 4 8 16 32 64 128 256 512 1024; do
+	name="gem:exec:latency:$n"
+	test_name="$test_name $name"
+	eval "${name}_run() { __gem:dispatch__ \$1 $n 1 ; } "
+done
+
+for n in 0 1 2 4 8 16 32 64 128 256 512 1024; do
+	name="gem:parser:latency:$n"
+	test_name="$test_name $name"
+	eval "${name}_run() { __gem:dispatch__ \$1 $n 1 -C ; } "
+done
+
+# Measure the execution delay vs contention, just for fun
+for p in 1 2 4 8 16 32 64 128 256 512 1024; do
+	name="gem:latency:dispatch:$p"
+	test_name="$test_name $name"
+	eval "${name}_run() { __gem:dispatch__ \$1 0 $p ; } "
+done
+
+# Measure the wakeup delay (each wakeup should be uncontended)
+__gem:latency:wait__() {
+    for (( c=0; c<$1; c++ )); do
+        sudo $IGT_BENCHMARKS/gem_latency -t 2 -w 2 -p $2 -f 2
+    done
+}
+for p in 1 2 4 8 16 32 64 128 256 512 1024; do
+	name="gem:latency:wait:$p"
+	test_name="$test_name $name"
+	eval "${name}_run() { __gem:latency:wait__ \$1 $p ; } "
+done
+
+# Measure the total CPU cycles for the uncontended wakeups
+__gem:latency:cpu__() {
+    for (( c=0; c<$1; c++ )); do
+        sudo $IGT_BENCHMARKS/gem_latency -t 2 -w 2 -p $2 -f 4
+    done
+}
+for p in 1 2 4 8 16 32 64 128 512 1024; do
+	name="gem:latency:cpu:$p"
+	test_name="$test_name $name"
+	eval "${name}_run() { __gem:latency:cpu__ \$1 $p ; } "
+done
+
+# Measure the wakeup delay for contended wakeups (multiple waiters per request)
+__gem:latency:herd__() {
+    for (( c=0; c<$1; c++ )); do
+        sudo $IGT_BENCHMARKS/gem_latency -t 2 -w 1 -c $2 -f 2
+    done
+}
+for p in 0 1 2 4 8 16 32 64 128 512 1024; do
+	name="gem:latency:herd:$p"
+	test_name="$test_name $name"
+	eval "${name}_run() { __gem:latency:herd__ \$1 $p ; } "
+done
+
+# Measure the impact of contended wakeups on the RealTime waiter
+__gem:latency:realtime__() {
+    for (( c=0; c<$1; c++ )); do
+        sudo $IGT_BENCHMARKS/gem_latency -t 2 -w 1 -c $2 -R -f 3
+    done
+}
+for p in 0 1 2 4 8 16 32 64 128 512 1024; do
+	name="gem:latency:realtime:$p"
+	test_name="$test_name $name"
+	eval "${name}_run() { __gem:latency:realtime__ \$1 $p ; } "
+done

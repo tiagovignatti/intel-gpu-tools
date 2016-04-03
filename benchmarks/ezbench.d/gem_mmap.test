@@ -1,0 +1,14 @@
+[ -e $IGT_BENCHMARKS/gem_mmap ] || return 1
+sudo -n true || return 1
+
+for i in cpu gtt wc; do
+    for j in fault clear write read; do
+        for k in none x y; do
+            test_name="$test_name gem:mmap:$i:$j:$k"
+            eval "gem:mmap:${i}:${j}:${k}_run() { sudo $IGT_BENCHMARKS/gem_mmap -m $i -d $j -t $k -r \$1 ; } "
+
+        done
+    done
+done
+
+test_exec_time=2

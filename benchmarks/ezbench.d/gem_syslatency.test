@@ -1,0 +1,12 @@
+test_name="gem:sys:latency"
+test_exec_time=10
+test_invert=1
+
+[ -e $IGT_BENCHMARKS/gem_syslatency ] || return 1
+sudo -n true || return 1
+
+gem:sys:latency_run() {
+    for (( c=0; c<$1; c++ )); do
+        sudo $IGT_BENCHMARKS/gem_syslatency -f 1
+    done
+}
