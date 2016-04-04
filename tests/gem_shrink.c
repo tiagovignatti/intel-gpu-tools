@@ -33,6 +33,10 @@
 #define igt_timeout(T) \
 	for (struct timespec t__={}; igt_seconds_elapsed(&t__) < (T); )
 
+#ifndef MADV_FREE
+#define MADV_FREE 8
+#endif
+
 static void get_pages(int fd, uint64_t alloc)
 {
 	uint32_t handle = gem_create(fd, alloc);
@@ -168,6 +172,8 @@ static void userptr(int fd, uint64_t alloc)
 	do_ioctl(fd, LOCAL_IOCTL_I915_GEM_USERPTR, &userptr);
 
 	gem_set_domain(fd, userptr.handle, I915_GEM_DOMAIN_GTT, 0);
+
+	madvise(ptr, alloc, MADV_FREE);
 }
 
 static bool has_userptr(void)
@@ -189,12 +195,30 @@ static bool has_userptr(void)
 	return err == EFAULT;
 }
 
+static void leak(int fd, uint64_t alloc)
+{
+	char *ptr;
+
+	ptr = mmap(NULL, alloc, PROT_READ | PROT_WRITE,
+		   MAP_ANON | MAP_PRIVATE | MAP_POPULATE,
+		   -1, 0);
+	igt_assert(ptr != (char *)-1);
+
+	while (alloc) {
+		alloc -= 4096;
+		ptr[alloc] = 0;
+	}
+}
+
 #define SOLO 1
 #define USERPTR 2
+#define OOM 4
 
 static void run_test(int nchildren, uint64_t alloc,
 		     void (*func)(int, uint64_t), unsigned flags)
 {
+	const int timeout = flags & SOLO ? 1 : 20;
+
 	/* Each pass consumes alloc bytes and doesn't drop
 	 * its reference to object (i.e. calls
 	 * gem_madvise(DONTNEED) instead of gem_close()).
@@ -207,10 +231,21 @@ static void run_test(int nchildren, uint64_t alloc,
 		nchildren = 1;
 
 	/* Background load */
+	if (flags & OOM) {
+		igt_fork(child, nchildren) {
+			igt_timeout(timeout) {
+				int fd = drm_open_driver(DRIVER_INTEL);
+				for (int pass = 0; pass < nchildren; pass++)
+					leak(fd, alloc);
+				close(fd);
+			}
+		}
+	}
+
 	if (flags & USERPTR) {
 		igt_require(has_userptr());
 		igt_fork(child, (nchildren + 1)/2) {
-			igt_timeout(flags & SOLO ? 1 : 20) {
+			igt_timeout(timeout) {
 				int fd = drm_open_driver(DRIVER_INTEL);
 				for (int pass = 0; pass < nchildren; pass++)
 					userptr(fd, alloc);
@@ -222,7 +257,7 @@ static void run_test(int nchildren, uint64_t alloc,
 
 	/* Exercise major ioctls */
 	igt_fork(child, nchildren) {
-		igt_timeout(flags & SOLO ? 1 : 20) {
+		igt_timeout(timeout) {
 			int fd = drm_open_driver(DRIVER_INTEL);
 			for (int pass = 0; pass < nchildren; pass++)
 				func(fd, alloc);
@@ -255,6 +290,7 @@ igt_main
 		{ "-sanitycheck", SOLO },
 		{ "", 0 },
 		{ "-userptr", USERPTR },
+		{ "-oom", USERPTR | OOM },
 		{ NULL },
 	};
 	uint64_t alloc_size = 0;
