@@ -202,7 +202,8 @@ static void leak(int fd, uint64_t alloc)
 	ptr = mmap(NULL, alloc, PROT_READ | PROT_WRITE,
 		   MAP_ANON | MAP_PRIVATE | MAP_POPULATE,
 		   -1, 0);
-	igt_assert(ptr != (char *)-1);
+	if (ptr != (char *)-1)
+		return;
 
 	while (alloc) {
 		alloc -= 4096;
