@@ -464,7 +464,7 @@ static void basic_check(void)
 }
 
 #define IDLE_WAIT_TIMESTEP_MSEC 100
-#define IDLE_WAIT_TIMEOUT_MSEC 10000
+#define IDLE_WAIT_TIMEOUT_MSEC 15000
 static void idle_check(void)
 {
 	int freqs[NUMFREQ];
@@ -510,7 +510,7 @@ static void loaded_check(void)
 }
 
 #define STABILIZE_WAIT_TIMESTEP_MSEC 100
-#define STABILIZE_WAIT_TIMEOUT_MSEC 10000
+#define STABILIZE_WAIT_TIMEOUT_MSEC 15000
 static void stabilize_check(int *freqs)
 {
 	int wait = 0;
