@@ -2580,7 +2580,7 @@ static bool is_945gm(uint32_t devid, uint32_t pch)
 
 static bool is_gen234(uint32_t devid, uint32_t pch)
 {
-	return IS_GEN2(devid) || IS_GEN3(devid) || IS_GEN3(devid);
+	return IS_GEN2(devid) || IS_GEN3(devid) || IS_GEN4(devid);
 }
 
 #define DECLARE_REGS(d,r,m)				\
