@@ -1586,10 +1586,10 @@ igt_atomic_prepare_plane_commit(igt_plane_t *plane, igt_output_t *output,
 	}
 
 	if (plane->position_changed || plane->size_changed) {
-		uint32_t src_x = IGT_FIXED(plane->fb->src_x, 0); /* src_x */
-		uint32_t src_y = IGT_FIXED(plane->fb->src_y, 0); /* src_y */
-		uint32_t src_w = IGT_FIXED(plane->fb->src_w, 0); /* src_w */
-		uint32_t src_h = IGT_FIXED(plane->fb->src_h, 0); /* src_h */
+		uint32_t src_x = IGT_FIXED(plane->src_x, 0); /* src_x */
+		uint32_t src_y = IGT_FIXED(plane->src_y, 0); /* src_y */
+		uint32_t src_w = IGT_FIXED(plane->src_w, 0); /* src_w */
+		uint32_t src_h = IGT_FIXED(plane->src_h, 0); /* src_h */
 		int32_t crtc_x = plane->crtc_x;
 		int32_t crtc_y = plane->crtc_y;
 		uint32_t crtc_w = plane->crtc_w;
@@ -1677,10 +1677,10 @@ static int igt_drm_plane_commit(igt_plane_t *plane,
 		CHECK_RETURN(ret, fail_on_error);
 	} else if (plane->fb_changed || plane->position_changed ||
 		plane->size_changed) {
-		src_x = IGT_FIXED(plane->fb->src_x,0); /* src_x */
-		src_y = IGT_FIXED(plane->fb->src_y,0); /* src_y */
-		src_w = IGT_FIXED(plane->fb->src_w,0); /* src_w */
-		src_h = IGT_FIXED(plane->fb->src_h,0); /* src_h */
+		src_x = IGT_FIXED(plane->src_x,0); /* src_x */
+		src_y = IGT_FIXED(plane->src_y,0); /* src_y */
+		src_w = IGT_FIXED(plane->src_w,0); /* src_w */
+		src_h = IGT_FIXED(plane->src_h,0); /* src_h */
 		crtc_x = plane->crtc_x;
 		crtc_y = plane->crtc_y;
 		crtc_w = plane->crtc_w;
@@ -2201,10 +2201,10 @@ void igt_plane_set_fb(igt_plane_t *plane, struct igt_fb *fb)
 		plane->crtc_h = fb->height;
 
 		/* set default src pos/size as fb size */
-		fb->src_x = 0;
-		fb->src_y = 0;
-		fb->src_w = fb->width;
-		fb->src_h = fb->height;
+		plane->src_x = 0;
+		plane->src_y = 0;
+		plane->src_w = fb->width;
+		plane->src_h = fb->height;
 	} else {
 		plane->crtc_w = 0;
 		plane->crtc_h = 0;
@@ -2271,8 +2271,8 @@ void igt_fb_set_position(struct igt_fb *fb, igt_plane_t *plane,
 	LOG(display, "%s.%d: fb_set_position(%d,%d)\n",
 	    kmstest_pipe_name(pipe->pipe), plane->index, x, y);
 
-	fb->src_x = x;
-	fb->src_y = y;
+	plane->src_x = x;
+	plane->src_y = y;
 
 	plane->fb_changed = true;
 }
@@ -2297,8 +2297,8 @@ void igt_fb_set_size(struct igt_fb *fb, igt_plane_t *plane,
 	LOG(display, "%s.%d: fb_set_size(%dx%d)\n",
 	    kmstest_pipe_name(pipe->pipe), plane->index, w, h);
 
-	fb->src_w = w;
-	fb->src_h = h;
+	plane->src_w = w;
+	plane->src_h = h;
 
 	plane->fb_changed = true;
 }

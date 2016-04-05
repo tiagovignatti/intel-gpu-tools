@@ -243,6 +243,14 @@ typedef struct {
 	int crtc_x, crtc_y;
 	/* size within pipe_src_w x pipe_src_h */
 	int crtc_w, crtc_h;
+
+	/* position within the framebuffer */
+	uint32_t src_x;
+	uint32_t src_y;
+	/* size within the framebuffer*/
+	uint32_t src_w;
+	uint32_t src_h;
+
 	/* panning offset within the fb */
 	unsigned int pan_x, pan_y;
 	igt_rotation_t rotation;

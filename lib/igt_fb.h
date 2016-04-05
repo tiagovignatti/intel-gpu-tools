@@ -55,10 +55,6 @@ struct igt_fb {
 	unsigned size;
 	cairo_surface_t *cairo_surface;
 	unsigned domain;
-	uint32_t src_x;
-	uint32_t src_y;
-	uint32_t src_w;
-	uint32_t src_h;
 };
 
 enum igt_text_align {
