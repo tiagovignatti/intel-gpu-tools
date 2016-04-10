@@ -650,7 +650,8 @@ static int read_sysctl(const char *path)
 	FILE *file = fopen(path, "r");
 	int max = 0;
 	if (file) {
-		fscanf(file, "%d", &max);
+		if (fscanf(file, "%d", &max) != 1)
+			max = 0; /* silence! */
 		fclose(file);
 	}
 	return max;
@@ -755,6 +756,27 @@ static void buffers_create(struct buffers *b)
 	}
 	b->spare = b->mode->create_bo(b);
 	b->snoop = snoop_create_bo(b);
+}
+
+static void buffers_reset(struct buffers *b, bool enable_reuse)
+{
+	buffers_destroy(b);
+
+	igt_assert(b->count == 0);
+	igt_assert(b->tmp);
+	igt_assert(b->src);
+	igt_assert(b->dst);
+
+	intel_batchbuffer_free(b->batch);
+	drm_intel_bufmgr_destroy(b->bufmgr);
+
+	b->bufmgr = drm_intel_bufmgr_gem_init(fd, 4096);
+	igt_assert(b->bufmgr);
+
+	if (enable_reuse)
+		drm_intel_bufmgr_gem_enable_reuse(b->bufmgr);
+	b->batch = intel_batchbuffer_alloc(b->bufmgr, devid);
+	igt_assert(b->batch);
 }
 
 static void buffers_fini(struct buffers *b)
@@ -1301,20 +1323,17 @@ static void __run_forked(struct buffers *buffers,
 			 do_hang do_hang_func)
 
 {
-	int _num_buffers = buffers->num_buffers;
-
-	_num_buffers /= num_children;
-	_num_buffers += MIN_BUFFERS;
-
-	buffers_destroy(buffers);
+	/* purge the libdrm caches before cloing the process */
+	buffers_reset(buffers, true);
 
 	igt_fork(child, num_children) {
 		/* recreate process local variables */
 		fd = drm_open_driver(DRIVER_INTEL);
-		buffers_init(buffers, buffers->name,
-			     buffers->create, buffers->mode,
-			     buffers->size, _num_buffers, fd, true);
 
+		buffers->num_buffers /= num_children;
+		buffers->num_buffers += MIN_BUFFERS;
+
+		buffers_reset(buffers, true);
 		buffers_create(buffers);
 
 		igt_interruptible(interrupt) {
