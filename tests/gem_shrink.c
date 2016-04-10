@@ -112,8 +112,8 @@ static void execbufN(int fd, uint64_t alloc)
 	obj[count].handle = gem_create(fd, 4096);
 	gem_write(fd, obj[count].handle, 0, &bbe, sizeof(bbe));
 
-	for (int i = 0; i < count; i++) {
-		int j = count - i - 1;
+	for (int i = 1; i <= count; i++) {
+		int j = count - i;
 
 		obj[j].handle = gem_create(fd, 1 << 20);
 		execbuf.buffers_ptr = (uintptr_t)&obj[j];
@@ -139,8 +139,8 @@ static void hang(int fd, uint64_t alloc)
 	obj[count].handle = gem_create(fd, 4096);
 	gem_write(fd, obj[count].handle, 0, &bbe, sizeof(bbe));
 
-	for (int i = 0; i < count; i++) {
-		int j = count - i - 1;
+	for (int i = 1; i <= count; i++) {
+		int j = count - i;
 
 		obj[j].handle = gem_create(fd, 1 << 20);
 		execbuf.buffers_ptr = (uintptr_t)&obj[j];
