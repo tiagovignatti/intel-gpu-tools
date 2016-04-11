@@ -281,6 +281,7 @@ static void store(int fd, unsigned ring, uint32_t flags)
 			batch[++i] = 0;
 		}
 		batch[++i] = 0xc0ffee;
+		i++;
 	}
 	batch[++i] = MI_BATCH_BUFFER_END;
 	munmap(batch, size);
