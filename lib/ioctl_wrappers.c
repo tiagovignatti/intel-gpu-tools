@@ -1401,6 +1401,30 @@ void gem_require_ring(int fd, unsigned ring)
 	igt_require(gem_has_ring(fd, ring));
 }
 
+/**
+ * gem_has_mocs_registers:
+ * @fd: open i915 drm file descriptor
+ *
+ * Feature test macro to query whether the device has MOCS registers.
+ * These exist gen 9+.
+ */
+bool gem_has_mocs_registers(int fd)
+{
+	return intel_gen(intel_get_drm_devid(fd)) >= 9;
+}
+
+/**
+ * gem_require_mocs_registers:
+ * @fd: open i915 drm file descriptor
+ *
+ * Feature test macro to query whether the device has MOCS registers.
+ * These exist gen 9+.
+ */
+void gem_require_mocs_registers(int fd)
+{
+	igt_require(gem_has_mocs_registers(fd));
+}
+
 /* prime */
 
 /**

@@ -154,6 +154,8 @@ bool gem_has_softpin(int fd);
 void gem_require_caching(int fd);
 bool gem_has_ring(int fd, unsigned ring);
 void gem_require_ring(int fd, unsigned ring);
+bool gem_has_mocs_registers(int fd);
+void gem_require_mocs_registers(int fd);
 
 /* prime */
 struct local_dma_buf_sync {
