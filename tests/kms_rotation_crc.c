@@ -111,6 +111,9 @@ static void commit_crtc(data_t *data, igt_output_t *output, igt_plane_t *plane)
 		commit = COMMIT_UNIVERSAL;
 	}
 
+	if (data->display.is_atomic)
+		commit = COMMIT_ATOMIC;
+
 	igt_display_commit2(display, commit);
 }
 
@@ -250,6 +253,9 @@ static void test_plane_rotation(data_t *data, enum igt_plane plane_type)
 		commit = COMMIT_UNIVERSAL;
 	}
 
+	if (data->display.is_atomic)
+		commit = COMMIT_ATOMIC;
+
 	for_each_connected_output(display, output) {
 		for_each_pipe(display, pipe) {
 			igt_plane_t *plane;
@@ -340,6 +346,9 @@ static void test_plane_rotation_ytiled_obj(data_t *data, enum igt_plane plane_ty
 		commit = COMMIT_UNIVERSAL;
 	}
 
+	if (data->display.is_atomic)
+		commit = COMMIT_ATOMIC;
+
 	mode = igt_output_get_mode(output);
 	w = mode->hdisplay;
 	h = mode->vdisplay;
@@ -403,6 +412,9 @@ static void test_plane_rotation_exhaust_fences(data_t *data, enum igt_plane plan
 		igt_require(data->display.has_universal_planes);
 		commit = COMMIT_UNIVERSAL;
 	}
+
+	if (data->display.is_atomic)
+		commit = COMMIT_ATOMIC;
 
 	mode = igt_output_get_mode(output);
 	w = mode->hdisplay;
