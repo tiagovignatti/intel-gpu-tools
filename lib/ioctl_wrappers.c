@@ -308,6 +308,23 @@ void gem_close(int fd, uint32_t handle)
 	do_ioctl(fd, DRM_IOCTL_GEM_CLOSE, &close_bo);
 }
 
+static int __gem_write(int fd, uint32_t handle, uint64_t offset, const void *buf, uint64_t length)
+{
+	struct drm_i915_gem_pwrite gem_pwrite;
+	int err;
+
+	memset(&gem_pwrite, 0, sizeof(gem_pwrite));
+	gem_pwrite.handle = handle;
+	gem_pwrite.offset = offset;
+	gem_pwrite.size = length;
+	gem_pwrite.data_ptr = (uintptr_t)buf;
+
+	err = 0;
+	if (drmIoctl(fd, DRM_IOCTL_I915_GEM_PWRITE, &gem_pwrite))
+		err = -errno;
+	return err;
+}
+
 /**
  * gem_write:
  * @fd: open i915 drm file descriptor
@@ -321,16 +338,25 @@ void gem_close(int fd, uint32_t handle)
  */
 void gem_write(int fd, uint32_t handle, uint64_t offset, const void *buf, uint64_t length)
 {
-	struct drm_i915_gem_pwrite gem_pwrite;
-
-	memset(&gem_pwrite, 0, sizeof(gem_pwrite));
-	gem_pwrite.handle = handle;
-	gem_pwrite.offset = offset;
-	gem_pwrite.size = length;
-	gem_pwrite.data_ptr = (uintptr_t)buf;
-	do_ioctl(fd, DRM_IOCTL_I915_GEM_PWRITE, &gem_pwrite);
+	igt_assert_eq(__gem_write(fd, handle, offset, buf, length), 0);
 }
 
+static int __gem_read(int fd, uint32_t handle, uint64_t offset, void *buf, uint64_t length)
+{
+	struct drm_i915_gem_pread gem_pread;
+	int err;
+
+	memset(&gem_pread, 0, sizeof(gem_pread));
+	gem_pread.handle = handle;
+	gem_pread.offset = offset;
+	gem_pread.size = length;
+	gem_pread.data_ptr = (uintptr_t)buf;
+
+	err = 0;
+	if (drmIoctl(fd, DRM_IOCTL_I915_GEM_PREAD, &gem_pread))
+		err = -errno;
+	return err;
+}
 /**
  * gem_read:
  * @fd: open i915 drm file descriptor
@@ -344,14 +370,7 @@ void gem_write(int fd, uint32_t handle, uint64_t offset, const void *buf, uint64
  */
 void gem_read(int fd, uint32_t handle, uint64_t offset, void *buf, uint64_t length)
 {
-	struct drm_i915_gem_pread gem_pread;
-
-	memset(&gem_pread, 0, sizeof(gem_pread));
-	gem_pread.handle = handle;
-	gem_pread.offset = offset;
-	gem_pread.size = length;
-	gem_pread.data_ptr = (uintptr_t)buf;
-	do_ioctl(fd, DRM_IOCTL_I915_GEM_PREAD, &gem_pread);
+	igt_assert_eq(__gem_read(fd, handle, offset, buf, length), 0);
 }
 
 /**
