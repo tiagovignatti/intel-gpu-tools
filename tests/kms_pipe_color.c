@@ -452,10 +452,6 @@ static void test_pipe_legacy_gamma(data_t *data,
 	green_lut = malloc(sizeof(uint16_t) * legacy_lut_size);
 	blue_lut = malloc(sizeof(uint16_t) * legacy_lut_size);
 
-	red_lut[0] = green_lut[0] = blue_lut[0] = 0;
-	for (i = 1; i < legacy_lut_size; i++)
-		red_lut[i] = green_lut[i] = blue_lut[i] = 0xffff;
-
 	for_each_connected_output(&data->display, output) {
 		drmModeModeInfo *mode;
 		struct igt_fb fb_modeset, fb;
@@ -500,6 +496,10 @@ static void test_pipe_legacy_gamma(data_t *data,
 		 */
 		paint_gradient_rectangles(data, mode, red_green_blue, &fb);
 		igt_plane_set_fb(primary, &fb);
+
+		red_lut[0] = green_lut[0] = blue_lut[0] = 0;
+		for (i = 1; i < legacy_lut_size; i++)
+			red_lut[i] = green_lut[i] = blue_lut[i] = 0xffff;
 		igt_assert_eq(drmModeCrtcSetGamma(data->drm_fd, primary->pipe->crtc_id,
 						  legacy_lut_size, red_lut, green_lut, blue_lut), 0);
 		igt_display_commit(&data->display);
