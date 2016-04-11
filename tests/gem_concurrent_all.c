@@ -1609,14 +1609,13 @@ num_buffers(uint64_t max,
 	    unsigned allow_mem)
 {
 	unsigned size = 4*s->width*s->height;
-	unsigned n;
+	uint64_t n;
 
-	if (max == 0)
-		n = MIN_BUFFERS;
-	else
-		n = max / size;
+	igt_assert(size);
+	n = max / (2*size);
+	n += MIN_BUFFERS;
 
-	igt_require(n);
+	igt_require(n < INT32_MAX);
 	igt_require(set_max_map_count(2*n));
 
 	if (c->require)
