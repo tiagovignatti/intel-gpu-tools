@@ -65,7 +65,9 @@ static bool ignore_engine(int fd, unsigned engine)
 	return false;
 }
 
-static void all(int fd, int timeout)
+#define LEAK 0x1
+
+static void all(int fd, unsigned flags, int timeout)
 {
 	const uint32_t bbe = MI_BATCH_BUFFER_END;
 	struct drm_i915_gem_execbuffer2 execbuf;
@@ -112,7 +114,10 @@ static void all(int fd, int timeout)
 				execbuf.flags &= ~ENGINE_FLAGS;
 				execbuf.flags |= engines[n];
 				gem_execbuf(fd, &execbuf);
-				gem_close(fd, obj.handle);
+				if (flags & LEAK)
+					gem_madvise(fd, obj.handle, I915_MADV_DONTNEED);
+				else
+					gem_close(fd, obj.handle);
 			}
 		}
 		count += nengine * 1024;
@@ -136,7 +141,10 @@ igt_main
 	igt_fork_hang_detector(device);
 
 	igt_subtest("basic")
-		all(device, 20);
+		all(device, 0, 20);
+
+	igt_subtest("madvise")
+		all(device, LEAK, 20);
 
 	igt_stop_hang_detector();
 
