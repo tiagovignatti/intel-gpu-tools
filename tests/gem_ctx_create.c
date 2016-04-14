@@ -31,6 +31,14 @@
 #include <errno.h>
 #include <time.h>
 
+#define LOCAL_I915_EXEC_BSD_SHIFT      (13)
+#define LOCAL_I915_EXEC_BSD_MASK       (3 << LOCAL_I915_EXEC_BSD_SHIFT)
+
+#define ENGINE_FLAGS  (I915_EXEC_RING_MASK | LOCAL_I915_EXEC_BSD_MASK)
+
+static unsigned ppgtt_engines[16];
+static unsigned ppgtt_nengine;
+
 static int __gem_context_create(int fd, struct drm_i915_gem_context_create *arg)
 {
 	int ret = 0;
@@ -68,6 +76,8 @@ static void files(int core, int timeout)
 		do {
 			int fd = drm_open_driver(DRIVER_INTEL);
 			obj.handle = gem_open(fd, name);
+			execbuf.flags &= ~ENGINE_FLAGS;
+			execbuf.flags |= ppgtt_engines[count % ppgtt_nengine];
 			gem_execbuf(fd, &execbuf);
 			close(fd);
 		} while (++count & 1023);
@@ -82,13 +92,15 @@ static void files(int core, int timeout)
 	gem_close(core, batch);
 }
 
-static void active(int fd, int timeout)
+static void active(int fd, unsigned engine, int timeout)
 {
 	const uint32_t bbe = MI_BATCH_BUFFER_END;
 	struct drm_i915_gem_execbuffer2 execbuf;
 	struct drm_i915_gem_exec_object2 obj;
 	struct timespec start, end;
 	unsigned count = 0;
+
+	gem_require_ring(fd, engine);
 
 	memset(&obj, 0, sizeof(obj));
 	obj.handle = gem_create(fd, 4096);
@@ -97,6 +109,7 @@ static void active(int fd, int timeout)
 	memset(&execbuf, 0, sizeof(execbuf));
 	execbuf.buffers_ptr = (uintptr_t)&obj;
 	execbuf.buffer_count = 1;
+	execbuf.flags = engine;
 
 	clock_gettime(CLOCK_MONOTONIC, &start);
 	do {
@@ -127,7 +140,20 @@ igt_main
 		memset(&create, 0, sizeof(create));
 		igt_require(__gem_context_create(fd, &create) == 0);
 		gem_context_destroy(fd, create.ctx_id);
+
+		if (gem_uses_full_ppgtt(fd)) {
+			unsigned engine;
+
+			for_each_engine(fd, engine) {
+				if (engine == 0)
+					continue;
+				ppgtt_engines[ppgtt_nengine++] = engine;
+			}
+		} else
+			ppgtt_engines[ppgtt_nengine++] = 0;
 	}
+
+	igt_fork_hang_detector(fd);
 
 	igt_subtest("basic") {
 		memset(&create, 0, sizeof(create));
@@ -148,8 +174,12 @@ igt_main
 	igt_subtest("files")
 		files(fd, 20);
 
-	igt_subtest("active")
-		active(fd, 20);
+	for (const struct intel_execution_engine *e = intel_execution_engines;
+	     e->name; e++)
+		igt_subtest_f("active-%s", e->name)
+			active(fd, e->exec_id | e->flags, 20);
+
+	igt_stop_hang_detector();
 
 	igt_fixture
 		close(fd);
