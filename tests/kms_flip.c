@@ -246,6 +246,8 @@ static int _emit_dummy_load__bcs(struct test_output *o, int limit, int timeout)
 	drm_intel_bo *src_bo, *dst_bo, *fb_bo;
 	struct igt_fb *fb_info = &o->fb_info[o->current_fb_id];
 
+	igt_require(bufmgr);
+
 	src_bo = drm_intel_bo_alloc(bufmgr, "dummy_bo", 2048*2048*4, 4096);
 	igt_assert(src_bo);
 
@@ -298,6 +300,8 @@ static void emit_fence_stress(struct test_output *o)
 	drm_intel_bo **bo;
 	int i;
 
+	igt_require(bufmgr);
+
 	bo = calloc(sizeof(*bo), num_fences);
 	exec = calloc(sizeof(*exec), num_fences+1);
 	for (i = 0; i < num_fences - 1; i++) {
@@ -336,6 +340,8 @@ static int _emit_dummy_load__rcs(struct test_output *o, int limit, int timeout)
 	igt_render_copyfunc_t copyfunc;
 	struct igt_buf sb[3], *src, *dst, *fb;
 	int i, ret = 0;
+
+	igt_require(bufmgr);
 
 	copyfunc = igt_get_render_copyfunc(devid);
 	if (copyfunc == NULL)
@@ -1689,8 +1695,10 @@ int main(int argc, char **argv)
 		get_timestamp_format();
 
 		bufmgr = drm_intel_bufmgr_gem_init(drm_fd, 4096);
-		devid = intel_get_drm_devid(drm_fd);
-		batch = intel_batchbuffer_alloc(bufmgr, devid);
+		if (bufmgr) {
+			devid = intel_get_drm_devid(drm_fd);
+			batch = intel_batchbuffer_alloc(bufmgr, devid);
+		}
 	}
 
 	igt_subtest("nonblocking-read")
