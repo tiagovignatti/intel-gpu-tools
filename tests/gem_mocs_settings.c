@@ -435,7 +435,7 @@ static void test_mocs_values(int fd)
 	test_mocs_l3cc_values(fd);
 }
 
-static void non_context_tests(unsigned mode)
+static void default_context_tests(unsigned mode)
 {
 	int fd = drm_open_driver_master(DRIVER_INTEL);
 
@@ -452,7 +452,45 @@ static void non_context_tests(unsigned mode)
 	test_mocs_values(fd);
 	close(fd);
 
-	igt_debug("Testing Pristine Context\n");
+	igt_debug("Testing Pristine Defaults\n");
+	test_mocs_values(-1);
+}
+
+static void default_dirty_tests(unsigned mode)
+{
+	const struct intel_execution_engine *e;
+	int fd = drm_open_driver_master(DRIVER_INTEL);
+
+	igt_debug("Testing Dirty Default Context Engines\n");
+	test_mocs_values(fd);
+
+	for (e = intel_execution_engines; e->name; e++) {
+		unsigned engine = e->exec_id | e->flags;
+
+		if (!local_has_ring(fd, engine))
+			continue;
+
+		write_registers(fd, 0,
+				GEN9_GFX_MOCS_0,
+				write_values, ARRAY_SIZE(write_values),
+				engine);
+
+		write_registers(fd, 0,
+				GEN9_LNCFCMOCS0,
+				write_values, ARRAY_SIZE(write_values),
+				engine);
+	}
+
+	switch (mode) {
+	case NONE:	break;
+	case RESET:	igt_force_gpu_reset();	break;
+	case SUSPEND:	igt_system_suspend_autoresume(); break;
+	case HIBERNATE:	igt_system_hibernate_autoresume(); break;
+	}
+
+	close(fd);
+
+	igt_debug("Testing Pristine after Dirty Defaults\n");
 	test_mocs_values(-1);
 }
 
@@ -490,6 +528,8 @@ static void context_dirty_test(unsigned mode)
 	check_control_registers(fd, I915_EXEC_RENDER, ctx_id, false);
 	check_l3cc_registers(fd, I915_EXEC_RENDER, ctx_id, false);
 
+	/* XXX !RCS as well */
+
 	write_registers(fd,
 			ctx_id,
 			GEN9_GFX_MOCS_0,
@@ -526,7 +566,8 @@ static void context_dirty_test(unsigned mode)
 
 static void run_tests(unsigned mode)
 {
-	non_context_tests(mode);
+	default_context_tests(mode);
+	default_dirty_tests(mode);
 	context_save_restore_test(mode);
 	context_dirty_test(mode);
 }
