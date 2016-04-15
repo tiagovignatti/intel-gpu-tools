@@ -385,6 +385,7 @@ static void addfb25_tests(int fd)
 	}
 
 	igt_subtest("addfb25-framebuffer-vs-set-tiling") {
+		gem_set_tiling(fd, gem_bo, I915_TILING_X, 1024*4);
 		igt_require_fb_modifiers(fd);
 
 		f.modifier[0] = LOCAL_I915_FORMAT_MOD_X_TILED;
