@@ -113,6 +113,7 @@ TESTS_progs_M = \
 	pm_sseu \
 	prime_mmap \
 	prime_mmap_coherency \
+	prime_mmap_kms \
 	prime_self_import \
 	template \
 	$(NULL)
