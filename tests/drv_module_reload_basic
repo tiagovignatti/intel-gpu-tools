@@ -11,6 +11,8 @@ SOURCE_DIR="$( dirname "${BASH_SOURCE[0]}" )"
 # no other drm service should be running, so we can just unbind
 
 function reload() {
+	local snd_hda_intel_unloaded
+
 	echo Reloading i915.ko with $*
 
 	# we must kick away fbcon (but only fbcon)
@@ -23,7 +25,8 @@ function reload() {
 
 	# The sound driver uses our power well
 	pkill alsactl
-	rmmod snd_hda_intel &> /dev/null
+	snd_hda_intel_unloaded=0
+	rmmod snd_hda_intel &> /dev/null && snd_hda_intel_unloaded=1
 
 	#ignore errors in ips - gen5 only
 	rmmod intel_ips &> /dev/null
@@ -47,7 +50,7 @@ function reload() {
 		echo 1 > /sys/class/vtconsole/vtcon1/bind
 	fi
 
-	modprobe snd_hda_intel
+	modprobe -q snd_hda_intel || return $snd_hda_intel_unloaded
 }
 
 function finish_load() {
