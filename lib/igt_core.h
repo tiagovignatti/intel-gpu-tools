@@ -107,7 +107,7 @@ void __igt_fixture_end(void) __attribute__((noreturn));
  * enumeration (e.g. when enumerating on systems without an intel gpu) such
  * blocks should be annotated with igt_fixture.
  */
-#define igt_fixture for (int igt_tokencat(__tmpint,__LINE__) = 0; \
+#define igt_fixture for (volatile int igt_tokencat(__tmpint,__LINE__) = 0; \
 			 igt_tokencat(__tmpint,__LINE__) < 1 && \
 			 __igt_fixture() && \
 			 (sigsetjmp(igt_subtest_jmpbuf, 1) == 0); \
