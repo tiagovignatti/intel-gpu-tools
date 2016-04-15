@@ -188,7 +188,7 @@ static void all(int fd, uint32_t handle, int timeout)
 	 * engine, but we should equally not go any slower.
 	 */
 	igt_assert_f(time < max + 10*min/9, /* ensure parallel execution */
-		     "Average time (%.3fus) exceeds expecation for parallel execution (min %.3fus, max %3.fus; limit set at %.3fus)\n",
+		     "Average time (%.3fus) exceeds expecation for parallel execution (min %.3fus, max %.3fus; limit set at %.3fus)\n",
 		     time, min, max, max + 10*min/9);
 }
 
