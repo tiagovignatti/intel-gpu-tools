@@ -79,52 +79,126 @@ static const char *bytes_per_sec(char *buf, double v)
 	return buf;
 }
 
-static void test_big_cpu(int fd, int scale)
+#define FORWARD 0x1
+#define BACKWARD 0x2
+#define RANDOM 0x4
+static void test_big_cpu(int fd, int scale, unsigned flags)
 {
 	uint64_t offset, size;
 	uint32_t handle;
 
-	size = scale * gem_global_aperture_size(fd) >> 2;
+	switch (scale) {
+	case 0:
+		size = gem_mappable_aperture_size() + 4096;
+		break;
+	case 1:
+		size = gem_global_aperture_size(fd) + 4096;
+		break;
+	case 2:
+		size = gem_aperture_size(fd) + 4096;
+		break;
+	}
 	intel_require_memory(1, size, CHECK_RAM);
-
-	igt_require(gem_mmap__has_wc(fd));
 
 	handle = gem_create(fd, size);
 	gem_set_domain(fd, handle, I915_GEM_DOMAIN_CPU, I915_GEM_DOMAIN_CPU);
 
-	for (offset = 0; offset < size; offset += 4096) {
-		int suboffset = (offset >> 12) % (4096 - sizeof(offset));
-		uint64_t tmp;
+	if (flags & FORWARD) {
+		igt_debug("Forwards\n");
+		for (offset = 0; offset < size; offset += 4096) {
+			int suboffset = (offset >> 12) % (4096 - sizeof(offset));
+			uint64_t tmp;
 
-		gem_write(fd, handle, offset + suboffset , &offset, sizeof(offset));
-		gem_read(fd, handle, offset + suboffset, &tmp, sizeof(tmp));
-		igt_assert_eq(offset, tmp);
+			gem_write(fd, handle, offset + suboffset, &offset, sizeof(offset));
+			gem_read(fd, handle, offset + suboffset, &tmp, sizeof(tmp));
+			igt_assert_eq_u64(offset, tmp);
+		}
+	}
+
+	if (flags & BACKWARD) {
+		igt_debug("Backwards\n");
+		for (offset = size >> 12; offset--; ) {
+			int suboffset = 4096 - (offset % (4096 - sizeof(offset)));
+			uint64_t tmp;
+
+			gem_write(fd, handle, (offset<<12) + suboffset, &offset, sizeof(offset));
+			gem_read(fd, handle, (offset<<12) + suboffset, &tmp, sizeof(tmp));
+			igt_assert_eq_u64(offset, tmp);
+		}
+	}
+
+	if (flags & RANDOM) {
+		igt_debug("Random\n");
+		for (offset = 0; offset < size >> 12; offset++) {
+			uint64_t tmp = rand() % (size >> 12);
+			int suboffset = tmp % (4096 - sizeof(offset));
+
+			gem_write(fd, handle, (tmp << 12) + suboffset, &offset, sizeof(offset));
+			gem_read(fd, handle, (tmp << 12) + suboffset, &tmp, sizeof(tmp));
+			igt_assert_eq_u64(offset, tmp);
+		}
 	}
 
 	gem_close(fd, handle);
 }
 
-static void test_big_gtt(int fd, int scale)
+static void test_big_gtt(int fd, int scale, unsigned flags)
 {
 	uint64_t offset, size;
 	uint64_t *ptr;
 	uint32_t handle;
 
-	size = scale * gem_global_aperture_size(fd) >> 2;
-	intel_require_memory(1, size, CHECK_RAM);
-
 	igt_require(gem_mmap__has_wc(fd));
+	switch (scale) {
+	case 0:
+		size = gem_mappable_aperture_size() + 4096;
+		break;
+	case 1:
+		size = gem_global_aperture_size(fd) + 4096;
+		break;
+	case 2:
+		size = gem_aperture_size(fd) + 4096;
+		break;
+	}
+	intel_require_memory(1, size, CHECK_RAM);
 
 	handle = gem_create(fd, size);
 	gem_set_domain(fd, handle, I915_GEM_DOMAIN_GTT, I915_GEM_DOMAIN_GTT);
 
 	ptr = gem_mmap__wc(fd, handle, 0, size, PROT_READ);
 
-	for (offset = 0; offset < size; offset += 4096) {
-		int suboffset = (offset >> 12) % (4096 / sizeof(offset) - 1) * sizeof(offset);
+	if (flags & FORWARD) {
+		igt_debug("Forwards\n");
+		for (offset = 0; offset < size; offset += 4096) {
+			int suboffset = (offset >> 12) % (4096 / sizeof(offset) - 1) * sizeof(offset);
 
-		gem_write(fd, handle, offset + suboffset, &offset, sizeof(offset));
-		igt_assert_eq(ptr[(offset + suboffset)/sizeof(offset)], offset);
+			gem_write(fd, handle, offset + suboffset, &offset, sizeof(offset));
+			gem_set_domain(fd, handle, I915_GEM_DOMAIN_GTT, 0);
+			igt_assert_eq_u64(ptr[(offset + suboffset)/sizeof(offset)], offset);
+		}
+	}
+
+	if (flags & BACKWARD) {
+		igt_debug("Backwards\n");
+		for (offset = size >> 12; offset--; ) {
+			int suboffset = (4096 - (offset % (4096 - sizeof(offset)))) & -sizeof(offset);
+			gem_write(fd, handle, (offset<<12) + suboffset, &offset, sizeof(offset));
+			gem_set_domain(fd, handle, I915_GEM_DOMAIN_GTT, 0);
+			igt_assert_eq_u64(ptr[((offset<<12) + suboffset)/sizeof(offset)], offset);
+		}
+	}
+
+	if (flags & RANDOM) {
+		igt_debug("Random\n");
+		for (offset = 0; offset < size >> 12; offset++) {
+			uint64_t tmp = rand() % (size >> 12);
+			int suboffset = (tmp % 4096) & -sizeof(offset);
+
+			tmp = (tmp << 12) + suboffset;
+			gem_write(fd, handle, tmp, &offset, sizeof(offset));
+			gem_set_domain(fd, handle, I915_GEM_DOMAIN_GTT, 0);
+			igt_assert_eq_u64(ptr[tmp/sizeof(offset)], offset);
+		}
 	}
 
 	munmap(ptr, size);
@@ -248,15 +322,34 @@ int main(int argc, char **argv)
 		gem_close(fd, dst_stolen);
 	}
 
-	igt_subtest("big-cpu")
-		test_big_cpu(fd, 3);
-	igt_subtest("big-gtt")
-		test_big_gtt(fd, 3);
+	{
+		const struct mode {
+			const char *name;
+			unsigned flags;
+		} modes[] = {
+			{ "forwards", FORWARD },
+			{ "backwards", BACKWARD },
+			{ "random", RANDOM },
+			{ "fbr", FORWARD | BACKWARD | RANDOM },
+			{ NULL },
+		}, *m;
+		for (m = modes; m->name; m++) {
+			igt_subtest_f("small-cpu-%s", m->name)
+				test_big_cpu(fd, 0, m->flags);
+			igt_subtest_f("small-gtt-%s", m->name)
+				test_big_gtt(fd, 0, m->flags);
 
-	igt_subtest("huge-cpu")
-		test_big_cpu(fd, 6);
-	igt_subtest("huge-gtt")
-		test_big_gtt(fd, 6);
+			igt_subtest_f("big-cpu-%s", m->name)
+				test_big_cpu(fd, 1, m->flags);
+			igt_subtest_f("big-gtt-%s", m->name)
+				test_big_gtt(fd, 1, m->flags);
+
+			igt_subtest_f("huge-cpu-%s", m->name)
+				test_big_cpu(fd, 2, m->flags);
+			igt_subtest_f("huge-gtt-%s", m->name)
+				test_big_gtt(fd, 2, m->flags);
+		}
+	}
 
 	igt_fixture
 		close(fd);
