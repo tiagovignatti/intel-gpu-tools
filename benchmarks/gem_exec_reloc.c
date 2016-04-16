@@ -144,7 +144,7 @@ static int run(unsigned batch_size,
 			reloc[n].target_handle = target[n];
 		else
 			reloc[n].target_handle = objects[target[n]].handle;
-		reloc[n].presumed_offset = 0;
+		reloc[n].presumed_offset = -1;
 	}
 
 	gem_execbuf(fd, &execbuf);
@@ -154,7 +154,7 @@ static int run(unsigned batch_size,
 		for (count = 0; count < 1000; count++) {
 			if ((flags & SKIP_RELOC) == 0) {
 				for (n = 0; n < num_relocs; n++)
-					reloc[n].presumed_offset = 0;
+					reloc[n].presumed_offset = -1;
 				if (flags & CYCLE_BATCH) {
 					c = (c + 1) % 16;
 					gem_exec[num_objects].handle = cycle[c];

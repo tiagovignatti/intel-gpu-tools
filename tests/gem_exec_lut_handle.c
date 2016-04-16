@@ -165,7 +165,7 @@ igt_simple_main
 				for (j = 0; j < m; j++) {
 					target[j] = hars_petruska_f54_1_random() % n;
 					reloc[j].target_handle = target[j];
-					reloc[j].presumed_offset = 0;
+					reloc[j].presumed_offset = -1;
 				}
 
 				gem_execbuf(fd,&execbuf);
@@ -173,7 +173,7 @@ igt_simple_main
 				for (count = 0; count < 1000; count++) {
 					if ((p->flags & SKIP_RELOC) == 0) {
 						for (j = 0; j < m; j++)
-							reloc[j].presumed_offset = 0;
+							reloc[j].presumed_offset = -1;
 						if (p->flags & CYCLE_BATCH) {
 							c = (c + 1) % 16;
 							gem_exec[MAX_NUM_EXEC].handle = cycle[c];
@@ -203,7 +203,7 @@ igt_simple_main
 				for (count = 0; count < 1000; count++) {
 					if ((p->flags & SKIP_RELOC) == 0) {
 						for (j = 0; j < m; j++)
-							reloc[j].presumed_offset = 0;
+							reloc[j].presumed_offset = -1;
 						if (p->flags & CYCLE_BATCH) {
 							c = (c + 1) % 16;
 							gem_exec[MAX_NUM_EXEC].handle = cycle[c];
