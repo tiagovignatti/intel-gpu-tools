@@ -24,9 +24,9 @@ TESTS_progs_M = \
 	gem_concurrent_all \
 	gem_create \
 	gem_cs_tlb \
-	gem_ctx_param_basic \
 	gem_ctx_bad_exec \
 	gem_ctx_exec \
+	gem_ctx_param \
 	gem_eio \
 	gem_evict_alignment \
 	gem_evict_everything \
