@@ -62,7 +62,7 @@ static bool test(data_t *data, enum pipe pipe, igt_output_t *output)
 
 	igt_create_color_fb(data->drm_fd, mode->hdisplay, mode->vdisplay,
 			    DRM_FORMAT_XRGB8888,
-			    LOCAL_I915_FORMAT_MOD_X_TILED,
+			    LOCAL_DRM_FORMAT_MOD_NONE,
 			    0.0, 0.0, 0.0, &fb[0]);
 
 	igt_plane_set_fb(primary, &fb[0]);
@@ -78,7 +78,7 @@ static bool test(data_t *data, enum pipe pipe, igt_output_t *output)
 
 	igt_create_color_fb(fd, mode->hdisplay, mode->vdisplay,
 			    DRM_FORMAT_XRGB8888,
-			    LOCAL_I915_FORMAT_MOD_X_TILED,
+			    LOCAL_DRM_FORMAT_MOD_NONE,
 			    0.0, 0.0, 0.0, &fb[1]);
 	ret = drmModePageFlip(fd, output->config.crtc->crtc_id,
 			      fb[1].fb_id, DRM_MODE_PAGE_FLIP_EVENT,
