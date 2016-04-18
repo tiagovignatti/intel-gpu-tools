@@ -68,7 +68,7 @@ static bool test(data_t *data, enum pipe pipe, igt_output_t *output)
 	igt_plane_set_fb(primary, &fb[0]);
 	igt_display_commit2(&data->display, COMMIT_LEGACY);
 
-	fd = drm_open_driver(DRIVER_INTEL);
+	fd = drm_open_driver(DRIVER_ANY);
 
 	ret = drmDropMaster(data->drm_fd);
 	igt_assert_eq(ret, 0);
@@ -109,7 +109,7 @@ igt_simple_main
 
 	igt_skip_on_simulation();
 
-	data.drm_fd = drm_open_driver_master(DRIVER_INTEL);
+	data.drm_fd = drm_open_driver_master(DRIVER_ANY);
 	kmstest_set_vt_graphics_mode();
 
 	igt_display_init(&data.display, data.drm_fd);
