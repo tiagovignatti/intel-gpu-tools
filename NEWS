@@ -1,6 +1,9 @@
 Release 1.15 (XXXX-XX-XX)
 -------------------------
 
+- piglit changed its behaviour to prevent overwriting the results. A fairly new
+version of piglit is required to run i-g-t tests.
+
 - Add igt_subtest_group to allow igt_fixture for only a subset of subtests
   without skipping/failing all subsequent subtests.
 
