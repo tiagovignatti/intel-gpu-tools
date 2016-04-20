@@ -42,7 +42,9 @@ igt_simple_main
 	igt_assert_neq(strlen(v->name), 0);
 	igt_assert_neq(strlen(v->date), 0);
 	igt_assert_neq(strlen(v->desc), 0);
-	igt_assert_lte(1, v->version_major);
+	if (is_i915_device(fd))
+		igt_assert_lte(1, v->version_major);
+
 	drmFree(v);
 	close(fd);
 }
