@@ -671,9 +671,9 @@ void igt_system_suspend_autoresume(void)
 	igt_skip_on_simulation();
 
 	/* skip if system doesn't support suspend-to-mem */
-	igt_require(system("rtcwake -n -s 30 -m mem" SQUELCH) == 0);
+	igt_require(system("rtcwake -n -s 15 -m mem" SQUELCH) == 0);
 
-	igt_assert_f(system("rtcwake -s 30 -m mem") == 0,
+	igt_assert_f(system("rtcwake -s 15 -m mem") == 0,
 		     "This failure means that something is wrong with the "
 		     "rtcwake tool or how your distro is set up. This is not "
 		     "a i915.ko or i-g-t bug.\n");
@@ -698,12 +698,12 @@ void igt_system_hibernate_autoresume(void)
 	igt_skip_on_simulation();
 
 	/* skip if system doesn't support suspend-to-disk */
-	igt_require(system("rtcwake -n -s 90 -m disk" SQUELCH) == 0);
+	igt_require(system("rtcwake -n -s 30 -m disk" SQUELCH) == 0);
 
 	/* The timeout might need to be adjusted if hibernation takes too long
 	 * or if we have to wait excessively long before resume
 	 */
-	igt_assert_f(system("rtcwake -s 90 -m disk") == 0,
+	igt_assert_f(system("rtcwake -s 30 -m disk") == 0,
 		     "This failure means that something is wrong with the "
 		     "rtcwake tool or how your distro is set up. This is not "
 		     "a i915.ko or i-g-t bug.\n");
