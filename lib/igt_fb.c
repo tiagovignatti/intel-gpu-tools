@@ -1006,7 +1006,7 @@ static void create_cairo_surface__blit(int fd, struct igt_fb *fb)
 	struct fb_blit_upload *blit;
 	cairo_format_t cairo_format;
 	unsigned int obj_tiling = fb_mod_to_obj_tiling(fb->tiling);
-	int bpp, ret;
+	int ret;
 
 	blit = malloc(sizeof(*blit));
 	igt_assert(blit);
@@ -1016,8 +1016,7 @@ static void create_cairo_surface__blit(int fd, struct igt_fb *fb)
 	 * cairo). This linear bo will be then blitted to its final
 	 * destination, tiling it at the same time.
 	 */
-	bpp = igt_drm_format_to_bpp(fb->drm_format);
-	ret = create_bo_for_fb(fd, fb->width, fb->height, bpp,
+	ret = create_bo_for_fb(fd, fb->width, fb->height, fb->drm_format,
 				LOCAL_DRM_FORMAT_MOD_NONE, 0, 0,
 				&blit->linear.handle,
 				&blit->linear.size,
