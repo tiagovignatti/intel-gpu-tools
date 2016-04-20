@@ -1361,7 +1361,7 @@ igt_main
 
 	igt_subtest("atomic_invalid_params") {
 		struct kms_atomic_state *scratch = atomic_state_dup(current);
-		struct kms_atomic_crtc_state *crtc = &scratch->crtcs[0];
+		struct kms_atomic_crtc_state *crtc = find_crtc(scratch, true);
 		struct kms_atomic_plane_state *plane =
 			find_plane(scratch, NUM_PLANE_TYPE_PROPS, crtc);
 		struct kms_atomic_connector_state *conn =
