@@ -51,6 +51,9 @@ bool igt_sigiter_continue(struct igt_sigiter *iter, bool interrupt);
 #define igt_interruptible(E) \
 	for (struct igt_sigiter iter__={}; igt_sigiter_continue(&iter__, (E)); )
 
+#define igt_timeout(T) \
+	for (struct timespec t__={}; igt_seconds_elapsed(&t__) < (T); )
+
 void igt_exchange_int(void *array, unsigned i, unsigned j);
 void igt_permute_array(void *array, unsigned size,
 			   void (*exchange_func)(void *array,

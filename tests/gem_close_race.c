@@ -132,7 +132,7 @@ static uint32_t load(int fd)
 	return handle;
 }
 
-static void run(int child)
+static void process(int child)
 {
 	uint32_t handle;
 	int fd;
@@ -145,13 +145,12 @@ static void run(int child)
 		gem_read(fd, handle, 0, &handle, sizeof(handle));
 }
 
-#define NUM_FD 768
-
 struct thread {
 	pthread_mutex_t mutex;
 	int device;
-	int fds[NUM_FD];
 	int done;
+	int nfd;
+	int fds[0];
 };
 
 static void *thread_run(void *_data)
@@ -164,7 +163,7 @@ static void *thread_run(void *_data)
 	while (!t->done) {
 		pthread_mutex_unlock(&t->mutex);
 
-		for (int n = 0; n < NUM_FD; n++) {
+		for (int n = 0; n < t->nfd; n++) {
 			int fd = t->fds[n];
 
 			arg.handle = 0;
@@ -194,7 +193,7 @@ static void *thread_busy(void *_data)
 	pthread_mutex_lock(&t->mutex);
 	while (!t->done) {
 		struct drm_i915_gem_busy busy;
-		int fd = t->fds[rand() % NUM_FD];
+		int fd = t->fds[rand() % t->nfd];
 
 		pthread_mutex_unlock(&t->mutex);
 
@@ -220,6 +219,47 @@ static void *thread_busy(void *_data)
 	return 0;
 }
 
+static void threads(int nfd, int timeout)
+{
+	pthread_t thread[2];
+	struct thread *data = calloc(1, sizeof(struct thread));
+	int n;
+
+	data = calloc(1, sizeof(struct thread) + sizeof(int)*nfd);
+	igt_assert(data);
+
+	pthread_mutex_init(&data->mutex, NULL);
+	data->device = open(device, O_RDWR);
+	for (n = 0; n < nfd; n++)
+		data->fds[n] = open(device, O_RDWR);
+	data->nfd = nfd;
+
+	pthread_create(&thread[0], NULL, thread_run, data);
+	pthread_create(&thread[1], NULL, thread_busy, data);
+
+	igt_timeout(timeout) {
+		int i = rand() % nfd;
+		if (data->fds[i] == -1) {
+			data->fds[i] = open(device, O_RDWR);
+		} else{
+			close(data->fds[i]);
+			data->fds[i] = -1;
+		}
+	}
+
+	pthread_mutex_lock(&data->mutex);
+	data->done = 1;
+	pthread_mutex_unlock(&data->mutex);
+
+	pthread_join(thread[1], NULL);
+	pthread_join(thread[0], NULL);
+
+	for (n = 0; n < nfd; n++)
+		close(data->fds[n]);
+	close(data->device);
+	free(data);
+}
+
 igt_main
 {
 	igt_skip_on_simulation();
@@ -236,47 +276,21 @@ igt_main
 		close(fd);
 	}
 
-	igt_subtest("process-exit") {
-		igt_fork(child, NUM_FD)
-			run(child);
+	igt_subtest("basic-process") {
+		igt_fork(child, 1)
+			process(child);
 		igt_waitchildren();
 	}
 
-	igt_subtest("gem-close-race") {
-		pthread_t thread[2];
-		struct thread *data = calloc(1, sizeof(struct thread));
-		int n;
+	igt_subtest("basic-threads")
+		threads(sysconf(_SC_NPROCESSORS_ONLN), 10);
 
-		igt_assert(data);
-
-		pthread_mutex_init(&data->mutex, NULL);
-		data->device = open(device, O_RDWR);
-		for (n = 0; n < NUM_FD; n++)
-			data->fds[n] = open(device, O_RDWR);
-
-		pthread_create(&thread[0], NULL, thread_run, data);
-		pthread_create(&thread[1], NULL, thread_busy, data);
-
-		for (n = 0; n < 1000*NUM_FD; n++) {
-			int i = rand() % NUM_FD;
-			if (data->fds[i] == -1) {
-				data->fds[i] = open(device, O_RDWR);
-			} else{
-				close(data->fds[i]);
-				data->fds[i] = -1;
-			}
-		}
-
-		pthread_mutex_lock(&data->mutex);
-		data->done = 1;
-		pthread_mutex_unlock(&data->mutex);
-
-		pthread_join(thread[1], NULL);
-		pthread_join(thread[0], NULL);
-
-		for (n = 0; n < NUM_FD; n++)
-			close(data->fds[n]);
-		close(data->device);
-		free(data);
+	igt_subtest("process-exit") {
+		igt_fork(child, 768)
+			process(child);
+		igt_waitchildren();
 	}
+
+	igt_subtest("gem-close-race")
+		threads(2*sysconf(_SC_NPROCESSORS_ONLN), 120);
 }

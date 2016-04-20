@@ -30,9 +30,6 @@
 #include "igt.h"
 #include "igt_gt.h"
 
-#define igt_timeout(T) \
-	for (struct timespec t__={}; igt_seconds_elapsed(&t__) < (T); )
-
 #ifndef MADV_FREE
 #define MADV_FREE 8
 #endif
