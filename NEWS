@@ -1,11 +1,15 @@
 Release 1.15 (XXXX-XX-XX)
 -------------------------
 
+- Removed from tests/test-list.txt, tests/gem_concurrent_all/blt and added 
+tests/test-list-full.txt that contains all the tests. This will speed
+up considerably piglit when starting tests. (Gabriel Feceoru)
+
 - piglit changed its behaviour to prevent overwriting the results. A fairly new
-version of piglit is required to run i-g-t tests.
+version of piglit is required to run i-g-t tests. (Gabriel Feceoru)
 
 - Add igt_subtest_group to allow igt_fixture for only a subset of subtests
-  without skipping/failing all subsequent subtests.
+  without skipping/failing all subsequent subtests. (Daniel Vetter)
 
 Release 1.14 (2016-03-01)
 -------------------------
