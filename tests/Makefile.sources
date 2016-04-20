@@ -20,8 +20,6 @@ TESTS_progs_M = \
 	gem_busy \
 	gem_caching \
 	gem_close_race \
-	gem_concurrent_blit \
-	gem_concurrent_all \
 	gem_create \
 	gem_cs_tlb \
 	gem_ctx_bad_exec \
@@ -116,6 +114,11 @@ TESTS_progs_M = \
 	prime_self_import \
 	template \
 	$(NULL)
+
+TESTS_progs_XM = \
+    gem_concurrent_blit \
+    gem_concurrent_all \
+    $(NULL)
 
 TESTS_progs = \
 	core_auth \
@@ -219,6 +222,15 @@ multi_kernel_tests = \
 	$(TESTS_scripts_M) \
 	$(NULL)
 
+
+# This target contains testcases with lots of subtests.
+# It was split from multi_kernel_tests because of the overhead of listing all
+# the subtests in piglit
+extra_multi_kernel_tests = \
+	$(TESTS_progs_XM) \
+	$(NULL)
+
+
 # This target is for simple testcase which don't expose any subtest.
 #
 # Your testcase should probably use igt_simple_main, but none of the other magic
@@ -231,6 +243,12 @@ single_kernel_tests = \
 kernel_tests = \
 	$(single_kernel_tests) \
 	$(multi_kernel_tests) \
+	$(NULL)
+
+kernel_tests_full = \
+    $(single_kernel_tests) \
+    $(multi_kernel_tests) \
+	$(extra_multi_kernel_tests) \
 	$(NULL)
 
 # Test that exercise specific asserts in the test framework library and are

@@ -14,6 +14,12 @@ test-list.txt: Makefile.sources
 	@echo ${single_kernel_tests} ${multi_kernel_tests} >> $@
 	@echo END TESTLIST >> $@
 
+test-list-full.txt: Makefile.sources
+	@echo TESTLIST > $@
+	@echo ${single_kernel_tests} ${multi_kernel_tests} ${extra_multi_kernel_tests} >> $@
+	@echo END TESTLIST >> $@
+
+
 noinst_PROGRAMS = \
 	$(HANG) \
 	$(TESTS_testsuite) \
@@ -38,14 +44,14 @@ dist_pkgdata_DATA = \
 
 all-local: .gitignore
 .gitignore: Makefile.sources
-	@echo "$(pkglibexec_PROGRAMS) $(HANG) test-list.txt .gitignore" | sed 's/\s\+/\n/g' | sort > $@
+	@echo "$(pkglibexec_PROGRAMS) $(HANG) test-list.txt test-list-full.txt .gitignore" | sed 's/\s\+/\n/g' | sort > $@
 
-pkgdata_DATA = test-list.txt
+pkgdata_DATA = test-list.txt test-list-full.txt
 
 EXTRA_PROGRAMS = $(HANG)
 EXTRA_DIST = $(common_files)
 
-CLEANFILES = $(EXTRA_PROGRAMS) test-list.txt .gitignore
+CLEANFILES = $(EXTRA_PROGRAMS) test-list.txt test-list-full.txt .gitignore
 
 AM_CFLAGS = $(DRM_CFLAGS) $(CWARNFLAGS) $(DEBUG_CFLAGS)\
 	-I$(srcdir)/.. \
