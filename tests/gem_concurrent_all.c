@@ -1327,11 +1327,15 @@ static void __run_forked(struct buffers *buffers,
 	buffers_reset(buffers, true);
 
 	igt_fork(child, num_children) {
+		int num_buffers;
+
 		/* recreate process local variables */
 		fd = drm_open_driver(DRIVER_INTEL);
 
-		buffers->num_buffers /= num_children;
-		buffers->num_buffers += MIN_BUFFERS;
+		num_buffers = buffers->num_buffers / num_children;
+		num_buffers += MIN_BUFFERS;
+		if (num_buffers < buffers->num_buffers)
+			buffers->num_buffers = num_buffers;
 
 		buffers_reset(buffers, true);
 		buffers_create(buffers);
