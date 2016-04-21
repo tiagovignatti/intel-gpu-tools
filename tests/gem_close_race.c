@@ -282,7 +282,7 @@ igt_main
 		igt_waitchildren();
 	}
 
-	igt_subtest("basic-threads")
+	igt_subtest("threads")
 		threads(sysconf(_SC_NPROCESSORS_ONLN), 10);
 
 	igt_subtest("process-exit") {
