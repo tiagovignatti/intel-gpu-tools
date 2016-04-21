@@ -50,11 +50,12 @@ const char *kmstest_pipe_name(enum pipe pipe);
 
 /* We namespace this enum to not conflict with the Android i915_drm.h */
 enum igt_plane {
-        IGT_PLANE_1 = 0,
-        IGT_PLANE_PRIMARY = IGT_PLANE_1,
-        IGT_PLANE_2,
-        IGT_PLANE_3,
-        IGT_PLANE_CURSOR,
+	IGT_PLANE_1 = 0,
+	IGT_PLANE_PRIMARY = IGT_PLANE_1,
+	IGT_PLANE_2,
+	IGT_PLANE_3,
+	IGT_PLANE_CURSOR,
+	IGT_MAX_PLANES,
 };
 
 const char *kmstest_plane_name(enum igt_plane plane);
@@ -267,7 +268,6 @@ struct igt_pipe {
 	igt_display_t *display;
 	enum pipe pipe;
 	bool enabled;
-#define IGT_MAX_PLANES	4
 	int n_planes;
 	igt_plane_t planes[IGT_MAX_PLANES];
 	uint64_t background; /* Background color MSB BGR 16bpc LSB */
