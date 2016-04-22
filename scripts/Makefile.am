@@ -1,3 +1,2 @@
-
-dist_noinst_SCRIPTS = who.sh run-tests.sh
+dist_noinst_SCRIPTS = intel-gfx-trybot who.sh run-tests.sh
 noinst_PYTHON = throttle.py

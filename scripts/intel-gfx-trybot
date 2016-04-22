@@ -1,0 +1,13 @@
+#!/bin/sh
+
+COMMIT=$1
+INTEL=intel
+DIN=${INTEL}/drm-intel-nightly
+
+git fetch ${INTEL}
+git merge-base --is-ancestor ${DIN} ${COMMIT} || {
+	echo Tree is out of date
+	exit 1
+}
+
+git send-email --to intel-gfx-trybot@lists.freedesktop.org --suppress-cc=all ${DIN}..${COMMIT}
