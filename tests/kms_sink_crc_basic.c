@@ -62,40 +62,24 @@ static void get_crc(char *crc) {
 	igt_assert(strcmp(crc, CRC_BLACK) != 0);
 }
 
-static void assert_color(char *crc, enum color color)
+static void assert_color(const char *crc, enum color color)
 {
-	char color_mask[5] = "FFFF\0";
-	char rs[5], gs[5], bs[5];
-	unsigned int rh, gh, bh, mask;
+	unsigned int r, g, b;
 	int ret;
 
-	sscanf(color_mask, "%4x", &mask);
-
-	memcpy(rs, &crc[0], 4);
-	rs[4] = '\0';
-	ret = sscanf(rs, "%4x", &rh);
-	igt_require(ret > 0);
-
-	memcpy(gs, &crc[4], 4);
-	gs[4] = '\0';
-	ret = sscanf(gs, "%4x", &gh);
-	igt_require(ret > 0);
-
-	memcpy(bs, &crc[8], 4);
-	bs[4] = '\0';
-	ret = sscanf(bs, "%4x", &bh);
-	igt_require(ret > 0);
+	ret = sscanf(crc, "%4x%4x%4x", &r, &g, &b);
+	igt_assert_eq(ret, 3);
 
 	switch (color) {
 	case RED:
-		igt_assert((rh & mask) != 0 &&
-			   (gh & mask) == 0 &&
-			   (bh & mask) == 0);
+		igt_assert_lt(0, r);
+		igt_assert_eq(0, g);
+		igt_assert_eq(0, b);
 		break;
 	case GREEN:
-		igt_assert((rh & mask) == 0 &&
-			   (gh & mask) != 0 &&
-			   (bh & mask) == 0);
+		igt_assert_eq(0, r);
+		igt_assert_lt(0, g);
+		igt_assert_eq(0, b);
 		break;
 	default:
 		igt_fail(IGT_EXIT_FAILURE);
