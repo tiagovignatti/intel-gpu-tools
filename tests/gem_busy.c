@@ -222,98 +222,49 @@ static void semaphore(int fd, unsigned ring, uint32_t flags)
 		gem_close(fd, handle[i]);
 }
 
-static void create_indirect(int fd,
-			    struct drm_i915_gem_exec_object2 *obj,
-			    struct drm_i915_gem_exec_object2 *target)
-{
-	const int gen = intel_gen(intel_get_drm_devid(fd));
-	const int nreloc = 128;
-	struct drm_i915_gem_relocation_entry *reloc;
-	uint32_t *batch;
-	int i, count;
-
-	reloc = calloc(nreloc, sizeof(*reloc));
-
-	obj->handle = gem_create(fd, 4096);
-	obj->relocs_ptr = (uintptr_t)reloc;
-	obj->relocation_count = nreloc;
-
-	batch = gem_mmap__cpu(fd, obj->handle, 0, 4096, PROT_WRITE);
-	gem_set_domain(fd, obj->handle,
-			I915_GEM_DOMAIN_CPU, I915_GEM_DOMAIN_CPU);
-
-	i = 0;
-	for (count = 0; count < nreloc; count++) {
-		reloc[count].target_handle = target->handle;
-		reloc[count].presumed_offset = target->offset;
-		reloc[count].offset = sizeof(uint32_t) * (i + 1);
-		reloc[count].delta = 0;
-		reloc[count].read_domains = I915_GEM_DOMAIN_COMMAND;
-		reloc[count].write_domain = 0;
-		batch[i] = MI_BATCH_BUFFER_START;
-		if (gen >= 8) {
-			batch[i] |= 1 << 8 | 1;
-			batch[++i] = target->offset;
-			batch[++i] = target->offset >> 32;
-		} else if (gen >= 6) {
-			batch[i] |= 1 << 8;
-			batch[++i] = target->offset;
-		} else {
-			batch[i] |= 2 << 6;
-			batch[++i] = target->offset;
-			if (gen < 4) {
-				batch[i] |= 1;
-				reloc[count].delta = 1;
-			}
-		}
-		i++;
-	}
-	batch[++i] = MI_BATCH_BUFFER_END;
-	igt_assert(i < 4096/sizeof(*batch));
-	munmap(batch, 4096);
-}
-
 static void store(int fd, unsigned ring, uint32_t flags)
 {
 	const int gen = intel_gen(intel_get_drm_devid(fd));
-	struct drm_i915_gem_exec_object2 obj[16];
-	struct drm_i915_gem_relocation_entry store[1024];
+	struct drm_i915_gem_exec_object2 obj[2];
+#define SCRATCH 0
+#define BATCH 1
+	struct drm_i915_gem_relocation_entry store[1024+1];
 	struct drm_i915_gem_execbuffer2 execbuf;
 	unsigned size = ALIGN(ARRAY_SIZE(store)*16 + 4, 4096);
 	uint32_t read[2], write[2];
 	struct timespec tv;
-	uint32_t *batch;
-	int i, count, idx;
+	uint32_t *batch, *bbe;
+	int i, count;
 
 	gem_require_ring(fd, ring | flags);
 	igt_skip_on_f(gen == 6 && (ring & ~(3<<13)) == I915_EXEC_BSD,
 		      "MI_STORE_DATA broken on gen6 bsd\n");
+	gem_require_mmap_wc(fd);
 
 	gem_quiescent_gpu(fd);
 
 	memset(&execbuf, 0, sizeof(execbuf));
 	execbuf.buffers_ptr = (uintptr_t)obj;
 	execbuf.buffer_count = 2;
-	execbuf.flags = ring | flags | LOCAL_EXEC_NO_RELOC;
+	execbuf.flags = ring | flags;
 	if (gen < 6)
 		execbuf.flags |= I915_EXEC_SECURE;
 
 	memset(obj, 0, sizeof(obj));
-	obj[0].handle = gem_create(fd, 4096);
-	obj[0].flags = EXEC_OBJECT_WRITE;
-	obj[1].handle = gem_create(fd, size);
+	obj[SCRATCH].handle = gem_create(fd, 4096);
 
+	obj[BATCH].handle = gem_create(fd, size);
+	obj[BATCH].relocs_ptr = (uintptr_t)store;
+	obj[BATCH].relocation_count = ARRAY_SIZE(store);
 	memset(store, 0, sizeof(store));
-	obj[1].relocs_ptr = (uintptr_t)store;
-	obj[1].relocation_count = ARRAY_SIZE(store);
 
-	batch = gem_mmap__cpu(fd, obj[1].handle, 0, size, PROT_WRITE);
-	gem_set_domain(fd, obj[1].handle,
-			I915_GEM_DOMAIN_CPU, I915_GEM_DOMAIN_CPU);
+	batch = gem_mmap__wc(fd, obj[BATCH].handle, 0, size, PROT_WRITE);
+	gem_set_domain(fd, obj[BATCH].handle,
+			I915_GEM_DOMAIN_GTT, I915_GEM_DOMAIN_GTT);
 
 	i = 0;
-	for (count = 0; count < ARRAY_SIZE(store); count++) {
-		store[count].target_handle = obj[0].handle;
+	for (count = 0; count < 1024; count++) {
+		store[count].target_handle = obj[SCRATCH].handle;
 		store[count].presumed_offset = -1;
 		store[count].offset = sizeof(uint32_t) * (i + 1);
 		store[count].delta = sizeof(uint32_t) * count;
@@ -334,50 +285,61 @@ static void store(int fd, unsigned ring, uint32_t flags)
 		batch[++i] = count;
 		i++;
 	}
-	batch[++i] = MI_BATCH_BUFFER_END;
+
+	bbe = &batch[i];
+	store[count].target_handle = obj[BATCH].handle; /* recurse */
+	store[count].presumed_offset = 0;
+	store[count].offset = sizeof(uint32_t) * (i + 1);
+	store[count].delta = 0;
+	store[count].read_domains = I915_GEM_DOMAIN_COMMAND;
+	store[count].write_domain = 0;
+	batch[i] = MI_BATCH_BUFFER_START;
+	if (gen >= 8) {
+		batch[i] |= 1 << 8 | 1;
+		batch[++i] = 0;
+		batch[++i] = 0;
+	} else if (gen >= 6) {
+		batch[i] |= 1 << 8;
+		batch[++i] = 0;
+	} else {
+		batch[i] |= 2 << 6;
+		batch[++i] = 0;
+		if (gen < 4) {
+			batch[i] |= 1;
+			store[count].delta = 1;
+		}
+	}
+	i++;
+
 	igt_assert(i < size/sizeof(*batch));
-	munmap(batch, size);
 	igt_require(__gem_execbuf(fd, &execbuf) == 0);
 
-	do {
-		idx = execbuf.buffer_count++;
-		igt_require(idx < ARRAY_SIZE(obj));
-		create_indirect(fd, &obj[idx], &obj[idx-1]);
-		igt_require(__gem_execbuf(fd, &execbuf) == 0);
+	__gem_busy(fd, obj[SCRATCH].handle, &read[SCRATCH], &write[SCRATCH]);
+	__gem_busy(fd, obj[BATCH].handle, &read[BATCH], &write[BATCH]);
 
-		gem_execbuf(fd, &execbuf);
-		__gem_busy(fd, obj[0].handle, &read[0], &write[0]);
-		__gem_busy(fd, obj[idx].handle, &read[1], &write[1]);
-		igt_debug("After %d cycles: read[0]=%x read[1]=%x\n",
-			  idx-1, read[0], read[1]);
-	} while (read[0] == 0 || read[1] == 0);
+	*bbe = MI_BATCH_BUFFER_END;
+	__sync_synchronize();
 
-	igt_assert_eq(write[0], ring);
-	igt_assert_eq_u32(read[0], 1 << ring);
+	igt_assert_eq(write[SCRATCH], ring);
+	igt_assert_eq_u32(read[SCRATCH], 1 << ring);
 
-	igt_assert_eq(write[1], 0);
-	igt_assert_eq_u32(read[1], 1 << ring);
+	igt_assert_eq(write[BATCH], 0);
+	igt_assert_eq_u32(read[BATCH], 1 << ring);
 
 	/* Calling busy in a loop should be enough to flush the rendering */
 	memset(&tv, 0, sizeof(tv));
-	while (gem_busy(fd, obj[idx].handle))
+	while (gem_busy(fd, obj[BATCH].handle))
 		igt_assert(igt_seconds_elapsed(&tv) < 10);
-	igt_assert(!gem_busy(fd, obj[0].handle));
+	igt_assert(!gem_busy(fd, obj[SCRATCH].handle));
 
-	batch = gem_mmap__gtt(fd, obj[0].handle, 4096, PROT_READ);
+	munmap(batch, size);
+	batch = gem_mmap__wc(fd, obj[SCRATCH].handle, 0, 4096, PROT_READ);
 	for (i = 0; i < 1024; i++)
 		igt_assert_eq_u32(batch[i], i);
 	munmap(batch, 4096);
 
-	for (i = 0; i <= idx; i++) {
-		struct drm_i915_gem_relocation_entry *r;
-
-		r = (struct drm_i915_gem_relocation_entry *)
-			(uintptr_t)obj[i].relocs_ptr;
-		if (r != store)
-			free(r);
-		gem_close(fd, obj[i].handle);
-	}
+	gem_close(fd, obj[BATCH].handle);
+	gem_close(fd, obj[SCRATCH].handle);
 }
 
 static bool has_semaphores(int fd)
