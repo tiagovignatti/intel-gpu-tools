@@ -169,8 +169,10 @@ static void threads(int timeout)
 {
 	struct sigevent sev;
 	struct sigaction act;
+	struct drm_gem_open name;
 	struct itimerspec its;
 	timer_t timer;
+	int fd;
 
 	memset(&act, 0, sizeof(act));
 	act.sa_handler = crashme_now;
@@ -182,8 +184,9 @@ static void threads(int timeout)
 	sev.sigev_signo = SIGRTMIN;
 	igt_assert(timer_create(CLOCK_MONOTONIC, &sev, &timer) == 0);
 
+	fd = open(device, O_RDWR);
+	name.name = gem_flink(fd, gem_create(fd, OBJECT_SIZE));
 
-	int count = 0;
 	igt_timeout(timeout) {
 		crashme.fd = open(device, O_RDWR);
 
@@ -192,24 +195,16 @@ static void threads(int timeout)
 		igt_assert(timer_settime(timer, 0, &its, NULL) == 0);
 
 		do {
-			struct drm_i915_gem_create create;
-
-			count++;
-			memset(&create, 0, sizeof(create));
-			create.handle = 0;
-			create.size = 4096;
-			drmIoctl(crashme.fd, DRM_IOCTL_I915_GEM_CREATE, &create);
-
-			selfcopy(crashme.fd, create.handle, 100);
-
-			if (drmIoctl(crashme.fd, DRM_IOCTL_GEM_CLOSE, &create.handle))
+			if (drmIoctl(crashme.fd, DRM_IOCTL_GEM_OPEN, &name))
 				break;
-		} while (1);
 
+			selfcopy(crashme.fd, name.handle, 100);
+			drmIoctl(crashme.fd, DRM_IOCTL_GEM_CLOSE, &name.handle);
+		} while (1);
 	}
-		printf("count = %d\n", count);
 
 	timer_delete(timer);
+	close(fd);
 }
 
 igt_main
@@ -246,7 +241,7 @@ igt_main
 	}
 
 	igt_subtest("gem-close-race")
-		threads(120);
+		threads(150);
 
 	igt_stop_hang_detector();
 }
