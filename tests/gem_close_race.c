@@ -28,6 +28,7 @@
 #include "igt.h"
 #include <pthread.h>
 #include <unistd.h>
+#include <signal.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -38,6 +39,7 @@
 #include <sys/stat.h>
 #include <sys/ioctl.h>
 #include <sys/time.h>
+#include <sys/syscall.h>
 #include "drm.h"
 
 #define OBJECT_SIZE (256 * 1024)
@@ -50,6 +52,9 @@ static char device[80];
 static uint32_t devid;
 static bool has_64bit_relocations;
 
+#define gettid() syscall(__NR_gettid)
+#define sigev_notify_thread_id _sigev_un._tid
+
 static void selfcopy(int fd, uint32_t handle, int loops)
 {
 	struct drm_i915_gem_relocation_entry reloc[2];
@@ -57,11 +62,9 @@ static void selfcopy(int fd, uint32_t handle, int loops)
 	struct drm_i915_gem_execbuffer2 execbuf;
 	struct drm_i915_gem_pwrite gem_pwrite;
 	struct drm_i915_gem_create create;
-	uint32_t buf[12], *b = buf;
+	uint32_t buf[16], *b = buf;
 
 	memset(reloc, 0, sizeof(reloc));
-	memset(gem_exec, 0, sizeof(gem_exec));
-	memset(&execbuf, 0, sizeof(execbuf));
 
 	*b = COPY_BLT_CMD | BLT_WRITE_ALPHA | BLT_WRITE_RGB;
 	if (has_64bit_relocations)
@@ -93,8 +96,10 @@ static void selfcopy(int fd, uint32_t handle, int loops)
 	*b++ = MI_BATCH_BUFFER_END;
 	*b++ = 0;
 
+	memset(gem_exec, 0, sizeof(gem_exec));
 	gem_exec[0].handle = handle;
 
+	memset(&create, 0, sizeof(create));
 	create.handle = 0;
 	create.size = 4096;
 	drmIoctl(fd, DRM_IOCTL_I915_GEM_CREATE, &create);
@@ -102,19 +107,22 @@ static void selfcopy(int fd, uint32_t handle, int loops)
 	gem_exec[1].relocation_count = 2;
 	gem_exec[1].relocs_ptr = (uintptr_t)reloc;
 
+	memset(&execbuf, 0, sizeof(execbuf));
 	execbuf.buffers_ptr = (uintptr_t)gem_exec;
 	execbuf.buffer_count = 2;
 	execbuf.batch_len = (b - buf) * sizeof(*b);
 	if (HAS_BLT_RING(devid))
 		execbuf.flags |= I915_EXEC_BLT;
 
-	gem_pwrite.handle = gem_exec[1].handle;
+	memset(&gem_pwrite, 0, sizeof(gem_pwrite));
+	gem_pwrite.handle = create.handle;
 	gem_pwrite.offset = 0;
-	gem_pwrite.size = execbuf.batch_len;
+	gem_pwrite.size = sizeof(buf);
 	gem_pwrite.data_ptr = (uintptr_t)buf;
 	if (drmIoctl(fd, DRM_IOCTL_I915_GEM_PWRITE, &gem_pwrite) == 0) {
-		while (loops--)
-			drmIoctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf);
+		while (loops-- &&
+		       drmIoctl(fd, DRM_IOCTL_I915_GEM_EXECBUFFER2, &execbuf) == 0)
+			;
 	}
 
 	drmIoctl(fd, DRM_IOCTL_GEM_CLOSE, &create.handle);
@@ -145,119 +153,63 @@ static void process(int child)
 		gem_read(fd, handle, 0, &handle, sizeof(handle));
 }
 
-struct thread {
-	pthread_mutex_t mutex;
-	int device;
-	int done;
-	int nfd;
-	int fds[0];
-};
+struct crashme {
+	int fd;
+} crashme;
 
-static void *thread_run(void *_data)
+static void crashme_now(int sig)
 {
-	struct thread *t = _data;
-	uint32_t handle = gem_create(t->device, OBJECT_SIZE);
-	struct drm_gem_open arg = { gem_flink(t->device, handle) };
-
-	pthread_mutex_lock(&t->mutex);
-	while (!t->done) {
-		pthread_mutex_unlock(&t->mutex);
-
-		for (int n = 0; n < t->nfd; n++) {
-			int fd = t->fds[n];
-
-			arg.handle = 0;
-			drmIoctl(fd, DRM_IOCTL_GEM_OPEN, &arg);
-			if (arg.handle == 0)
-				continue;
-
-			selfcopy(fd, arg.handle, 100);
-
-			drmIoctl(fd, DRM_IOCTL_GEM_CLOSE, &arg.handle);
-		}
-
-		pthread_mutex_lock(&t->mutex);
-	}
-	pthread_mutex_unlock(&t->mutex);
-
-	gem_close(t->device, handle);
-	return 0;
+	close(crashme.fd);
 }
 
-static void *thread_busy(void *_data)
+#define usec(x) (1000*(x))
+#define msec(x) usec(1000*(x))
+
+static void threads(int timeout)
 {
-	struct thread *t = _data;
-	uint32_t handle = gem_create(t->device, OBJECT_SIZE);
-	struct drm_gem_open arg = { gem_flink(t->device, handle) };
+	struct sigevent sev;
+	struct sigaction act;
+	struct itimerspec its;
+	timer_t timer;
 
-	pthread_mutex_lock(&t->mutex);
-	while (!t->done) {
-		struct drm_i915_gem_busy busy;
-		int fd = t->fds[rand() % t->nfd];
+	memset(&act, 0, sizeof(act));
+	act.sa_handler = crashme_now;
+	igt_assert(sigaction(SIGRTMIN, &act, NULL) == 0);
 
-		pthread_mutex_unlock(&t->mutex);
+	memset(&sev, 0, sizeof(sev));
+	sev.sigev_notify = SIGEV_SIGNAL | SIGEV_THREAD_ID;
+	sev.sigev_notify_thread_id = gettid();
+	sev.sigev_signo = SIGRTMIN;
+	igt_assert(timer_create(CLOCK_MONOTONIC, &sev, &timer) == 0);
 
-		arg.handle = 0;
-		drmIoctl(fd, DRM_IOCTL_GEM_OPEN, &arg);
-		if (arg.handle == 0)
-			continue;
 
-		selfcopy(fd, arg.handle, 10);
-
-		busy.handle = arg.handle;
-		drmIoctl(fd, DRM_IOCTL_I915_GEM_BUSY, &busy);
-
-		drmIoctl(fd, DRM_IOCTL_GEM_CLOSE, &arg.handle);
-
-		usleep(10*1000);
-
-		pthread_mutex_lock(&t->mutex);
-	}
-	pthread_mutex_unlock(&t->mutex);
-
-	gem_close(t->device, handle);
-	return 0;
-}
-
-static void threads(int nfd, int timeout)
-{
-	pthread_t thread[2];
-	struct thread *data = calloc(1, sizeof(struct thread));
-	int n;
-
-	data = calloc(1, sizeof(struct thread) + sizeof(int)*nfd);
-	igt_assert(data);
-
-	pthread_mutex_init(&data->mutex, NULL);
-	data->device = open(device, O_RDWR);
-	for (n = 0; n < nfd; n++)
-		data->fds[n] = open(device, O_RDWR);
-	data->nfd = nfd;
-
-	pthread_create(&thread[0], NULL, thread_run, data);
-	pthread_create(&thread[1], NULL, thread_busy, data);
-
+	int count = 0;
 	igt_timeout(timeout) {
-		int i = rand() % nfd;
-		if (data->fds[i] == -1) {
-			data->fds[i] = open(device, O_RDWR);
-		} else{
-			close(data->fds[i]);
-			data->fds[i] = -1;
-		}
+		crashme.fd = open(device, O_RDWR);
+
+		memset(&its, 0, sizeof(its));
+		its.it_value.tv_nsec = msec(1) + (rand() % msec(10));
+		igt_assert(timer_settime(timer, 0, &its, NULL) == 0);
+
+		do {
+			struct drm_i915_gem_create create;
+
+			count++;
+			memset(&create, 0, sizeof(create));
+			create.handle = 0;
+			create.size = 4096;
+			drmIoctl(crashme.fd, DRM_IOCTL_I915_GEM_CREATE, &create);
+
+			selfcopy(crashme.fd, create.handle, 100);
+
+			if (drmIoctl(crashme.fd, DRM_IOCTL_GEM_CLOSE, &create.handle))
+				break;
+		} while (1);
+
 	}
+		printf("count = %d\n", count);
 
-	pthread_mutex_lock(&data->mutex);
-	data->done = 1;
-	pthread_mutex_unlock(&data->mutex);
-
-	pthread_join(thread[1], NULL);
-	pthread_join(thread[0], NULL);
-
-	for (n = 0; n < nfd; n++)
-		close(data->fds[n]);
-	close(data->device);
-	free(data);
+	timer_delete(timer);
 }
 
 igt_main
@@ -273,6 +225,8 @@ igt_main
 		igt_assert(fd != -1);
 		devid = intel_get_drm_devid(fd);
 		has_64bit_relocations = intel_gen(devid) >= 8;
+
+		igt_fork_hang_detector(fd);
 		close(fd);
 	}
 
@@ -283,7 +237,7 @@ igt_main
 	}
 
 	igt_subtest("threads")
-		threads(sysconf(_SC_NPROCESSORS_ONLN), 10);
+		threads(10);
 
 	igt_subtest("process-exit") {
 		igt_fork(child, 768)
@@ -292,5 +246,7 @@ igt_main
 	}
 
 	igt_subtest("gem-close-race")
-		threads(2*sysconf(_SC_NPROCESSORS_ONLN), 120);
+		threads(120);
+
+	igt_stop_hang_detector();
 }
