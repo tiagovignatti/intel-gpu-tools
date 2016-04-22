@@ -76,6 +76,7 @@ static double nop_on_ring(int fd, uint32_t handle, unsigned ring_id,
 		gem_execbuf(fd, &execbuf);
 	}
 	gem_sync(fd, handle);
+	intel_detect_and_clear_missed_interrupts(fd);
 
 	count = 0;
 	clock_gettime(CLOCK_MONOTONIC, &start);
@@ -88,6 +89,7 @@ static double nop_on_ring(int fd, uint32_t handle, unsigned ring_id,
 	} while (elapsed(&start, &now) < timeout);
 	gem_sync(fd, handle);
 	clock_gettime(CLOCK_MONOTONIC, &now);
+	igt_assert_eq(intel_detect_and_clear_missed_interrupts(fd), 0);
 
 	*out = count;
 	return elapsed(&start, &now);
@@ -161,6 +163,7 @@ static void all(int fd, uint32_t handle, int timeout)
 		gem_execbuf(fd, &execbuf);
 	}
 	gem_sync(fd, handle);
+	intel_detect_and_clear_missed_interrupts(fd);
 
 	count = 0;
 	clock_gettime(CLOCK_MONOTONIC, &start);
@@ -177,6 +180,7 @@ static void all(int fd, uint32_t handle, int timeout)
 	} while (elapsed(&start, &now) < timeout); /* Hang detection ~120s */
 	gem_sync(fd, handle);
 	clock_gettime(CLOCK_MONOTONIC, &now);
+	igt_assert_eq(intel_detect_and_clear_missed_interrupts(fd), 0);
 
 	time = elapsed(&start, &now) / count;
 	igt_info("All (%d engines): %'lu cycles, average %.3fus per cycle\n",
