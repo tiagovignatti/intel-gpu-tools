@@ -407,8 +407,8 @@ igt_main
 					      e->exec_id == I915_EXEC_BSD,
 					      "MI_STORE_DATA broken on gen6 bsd\n");
 				gem_quiescent_gpu(fd);
-			}
 				one(fd, e->exec_id, e->flags, PARALLEL);
+			}
 		}
 	}
 
