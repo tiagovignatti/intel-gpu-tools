@@ -318,6 +318,12 @@ static void one(int fd, unsigned ring, uint32_t flags, unsigned test_flags)
 			if (e->exec_id == 0 || e->exec_id == ring)
 				continue;
 
+			if (e->exec_id == I915_EXEC_BSD && gen == 6)
+				continue;
+
+			if (!gem_has_ring(fd, e->exec_id | e->flags))
+				continue;
+
 			igt_debug("Testing %s in parallel\n", e->name);
 			one(fd, e->exec_id, e->flags, 0);
 		}

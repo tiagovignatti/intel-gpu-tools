@@ -178,7 +178,7 @@ AM_CONDITIONAL(HAVE_VC4, [test "x$VC4" = xyes])
 # Define a configure option for the shader debugger
 AC_ARG_ENABLE(shader-debugger, AS_HELP_STRING([--enable-shader-debugger],
 	      [Enable shader debugging support [autodetected]]),
-	      [BUILD_SHADER_DEBUGGER="$enableval"], [BUILD_SHADER_DEBUGGER=$build_x86])
+	      [BUILD_SHADER_DEBUGGER="$enableval"], [BUILD_SHADER_DEBUGGER=no])
 
 # Shader debugger depends on python3, intel-genasm and objcopy
 if test "x$BUILD_SHADER_DEBUGGER" != xno; then
