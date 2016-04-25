@@ -222,7 +222,8 @@ static void semaphore(int fd, unsigned ring, uint32_t flags)
 		gem_close(fd, handle[i]);
 }
 
-static void store(int fd, unsigned ring, uint32_t flags)
+#define PARALLEL 1
+static void one(int fd, unsigned ring, uint32_t flags, unsigned test_flags)
 {
 	const int gen = intel_gen(intel_get_drm_devid(fd));
 	struct drm_i915_gem_exec_object2 obj[2];
@@ -235,13 +236,6 @@ static void store(int fd, unsigned ring, uint32_t flags)
 	struct timespec tv;
 	uint32_t *batch, *bbe;
 	int i, count;
-
-	gem_require_ring(fd, ring | flags);
-	igt_skip_on_f(gen == 6 && (ring & ~(3<<13)) == I915_EXEC_BSD,
-		      "MI_STORE_DATA broken on gen6 bsd\n");
-	gem_require_mmap_wc(fd);
-
-	gem_quiescent_gpu(fd);
 
 	memset(&execbuf, 0, sizeof(execbuf));
 	execbuf.buffers_ptr = (uintptr_t)obj;
@@ -317,6 +311,18 @@ static void store(int fd, unsigned ring, uint32_t flags)
 	__gem_busy(fd, obj[SCRATCH].handle, &read[SCRATCH], &write[SCRATCH]);
 	__gem_busy(fd, obj[BATCH].handle, &read[BATCH], &write[BATCH]);
 
+	if (test_flags & PARALLEL) {
+		const struct intel_execution_engine *e;
+
+		for (e = intel_execution_engines; e->name; e++) {
+			if (e->exec_id == 0 || e->exec_id == ring)
+				continue;
+
+			igt_debug("Testing %s in parallel\n", e->name);
+			one(fd, e->exec_id, e->flags, 0);
+		}
+	}
+
 	*bbe = MI_BATCH_BUFFER_END;
 	__sync_synchronize();
 
@@ -368,13 +374,41 @@ igt_main
 		fd = drm_open_driver_master(DRIVER_INTEL);
 
 	igt_subtest_group {
+		int gen = 0;
+
+		igt_fixture {
+			gem_require_mmap_wc(fd);
+			gen = intel_gen(intel_get_drm_devid(fd));
+		}
+
 		for (e = intel_execution_engines; e->name; e++) {
 			/* default exec-id is purely symbolic */
 			if (e->exec_id == 0)
 				continue;
 
-			igt_subtest_f("basic-%s", e->name)
-				store(fd, e->exec_id, e->flags);
+			igt_subtest_f("basic-%s", e->name) {
+				gem_require_ring(fd, e->exec_id | e->flags);
+				igt_skip_on_f(gen == 6 &&
+					      e->exec_id == I915_EXEC_BSD,
+					      "MI_STORE_DATA broken on gen6 bsd\n");
+				gem_quiescent_gpu(fd);
+				one(fd, e->exec_id, e->flags, 0);
+			}
+		}
+
+		for (e = intel_execution_engines; e->name; e++) {
+			/* default exec-id is purely symbolic */
+			if (e->exec_id == 0)
+				continue;
+
+			igt_subtest_f("basic-parallel-%s", e->name) {
+				gem_require_ring(fd, e->exec_id | e->flags);
+				igt_skip_on_f(gen == 6 &&
+					      e->exec_id == I915_EXEC_BSD,
+					      "MI_STORE_DATA broken on gen6 bsd\n");
+				gem_quiescent_gpu(fd);
+			}
+				one(fd, e->exec_id, e->flags, PARALLEL);
 		}
 	}
 
