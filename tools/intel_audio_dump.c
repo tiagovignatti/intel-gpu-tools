@@ -2483,8 +2483,9 @@ int main(int argc, char **argv)
 		|| IS_BROADWELL(devid) || IS_HASWELL(devid)) {
 		printf("%s audio registers:\n\n",
 			IS_BROXTON(devid) ? "Broxton" :
+			(IS_KABYLAKE(devid) ? "Kabylake" :
 			(IS_SKYLAKE(devid) ? "Skylake" :
-			(IS_BROADWELL(devid) ? "Broadwell" : "Haswell")));
+			(IS_BROADWELL(devid) ? "Broadwell" : "Haswell"))));
 		dump_hsw_plus();
 	} else if (IS_GEN6(devid) || IS_GEN7(devid)
 		|| getenv("HAS_PCH_SPLIT")) {

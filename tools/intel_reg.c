@@ -669,6 +669,8 @@ static const char *get_codename(uint32_t devid)
 		return "broadwell";
 	else if (IS_SKYLAKE(devid))
 		return "skylake";
+	else if (IS_KABYLAKE(devid))
+		return "kabylake";
 	else if (IS_CHERRYVIEW(devid))
 		return "cherryview";
 	else if (IS_VALLEYVIEW(devid))
