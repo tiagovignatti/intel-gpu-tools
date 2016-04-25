@@ -95,6 +95,9 @@ struct ilk_wm_level {
 
 struct ilk_wm {
 	struct ilk_wm_level pipe[3];
+	struct {
+		int linetime, ips;
+	} linetime[3];
 	struct ilk_wm_level lp[3];
 };
 
@@ -133,6 +136,7 @@ static void ilk_wm_dump(void)
 	uint32_t dspcntr[3];
 	uint32_t spcntr[3];
 	uint32_t wm_pipe[3];
+	uint32_t wm_linetime[3];
 	uint32_t wm_lp[3];
 	uint32_t wm_lp_spr[3];
 	uint32_t arb_ctl, arb_ctl2, wm_misc = 0;
@@ -153,6 +157,13 @@ static void ilk_wm_dump(void)
 	wm_pipe[1] = read_reg(0x45104);
 	if (num_pipes == 3)
 		wm_pipe[2] = read_reg(0x45200);
+
+	if (is_hsw_plus(devid)) {
+		wm_linetime[0] = read_reg(0x45270);
+		wm_linetime[1] = read_reg(0x45274);
+		wm_linetime[2] = read_reg(0x45278);
+	}
+
 	wm_lp[0] = read_reg(0x45108);
 	wm_lp[1] = read_reg(0x4510c);
 	wm_lp[2] = read_reg(0x45110);
@@ -171,24 +182,33 @@ static void ilk_wm_dump(void)
 	intel_register_access_fini();
 
 	for (i = 0; i < num_pipes; i++)
-		printf("  WM_PIPE_%c = 0x%08x\n", pipe_name(i), wm_pipe[i]);
-	printf("     WM_LP1 = 0x%08x\n", wm_lp[0]);
-	printf("     WM_LP2 = 0x%08x\n", wm_lp[1]);
-	printf("     WM_LP3 = 0x%08x\n", wm_lp[2]);
-	printf(" WM_LP1_SPR = 0x%08x\n", wm_lp_spr[0]);
-	if (is_gen7_plus(devid)) {
-		printf(" WM_LP2_SPR = 0x%08x\n", wm_lp_spr[1]);
-		printf(" WM_LP3_SPR = 0x%08x\n", wm_lp_spr[2]);
+		printf("    WM_PIPE_%c = 0x%08x\n", pipe_name(i), wm_pipe[i]);
+	if (is_hsw_plus(devid)) {
+		for (i = 0; i < num_pipes; i++)
+			printf("WM_LINETIME_%c = 0x%08x\n", pipe_name(i), wm_linetime[i]);
 	}
-	printf("    ARB_CTL = 0x%08x\n", arb_ctl);
-	printf("   ARB_CTL2 = 0x%08x\n", arb_ctl2);
+	printf("       WM_LP1 = 0x%08x\n", wm_lp[0]);
+	printf("       WM_LP2 = 0x%08x\n", wm_lp[1]);
+	printf("       WM_LP3 = 0x%08x\n", wm_lp[2]);
+	printf("   WM_LP1_SPR = 0x%08x\n", wm_lp_spr[0]);
+	if (is_gen7_plus(devid)) {
+		printf("   WM_LP2_SPR = 0x%08x\n", wm_lp_spr[1]);
+		printf("   WM_LP3_SPR = 0x%08x\n", wm_lp_spr[2]);
+	}
+	printf("      ARB_CTL = 0x%08x\n", arb_ctl);
+	printf("     ARB_CTL2 = 0x%08x\n", arb_ctl2);
 	if (is_hsw_plus(devid))
-		printf("    WM_MISC = 0x%08x\n", wm_misc);
+		printf("      WM_MISC = 0x%08x\n", wm_misc);
 
 	for (i = 0 ; i < num_pipes; i++) {
 		wm.pipe[i].primary = REG_DECODE1(wm_pipe[i], 16, 8);
 		wm.pipe[i].sprite = REG_DECODE1(wm_pipe[i], 8, 8);
 		wm.pipe[i].cursor = REG_DECODE1(wm_pipe[i], 0, 6);
+
+		if (is_hsw_plus(devid)) {
+			wm.linetime[i].linetime = REG_DECODE1(wm_linetime[i], 0, 9);
+			wm.linetime[i].ips = REG_DECODE1(wm_linetime[i], 16, 9);
+		}
 
 		wm.pipe[i].primary_trickle_feed_dis =
 			REG_DECODE1(dspcntr[i], 14, 1);
@@ -217,6 +237,12 @@ static void ilk_wm_dump(void)
 	for (i = 0; i < num_pipes; i++) {
 		printf("WM_PIPE_%c: primary=%d, cursor=%d, sprite=%d\n",
 		       pipe_name(i), wm.pipe[i].primary, wm.pipe[i].cursor, wm.pipe[i].sprite);
+	}
+	if (is_hsw_plus(devid)) {
+		for (i = 0; i < num_pipes; i++) {
+			printf("WM_LINETIME_%c: line time=%d, ips line time=%d\n",
+			       pipe_name(i), wm.linetime[i].linetime, wm.linetime[i].ips);
+		}
 	}
 	if (is_gen7_plus(devid)) {
 		for (i = 0; i < 3; i++) {
