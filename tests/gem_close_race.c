@@ -231,7 +231,7 @@ igt_main
 		igt_waitchildren();
 	}
 
-	igt_subtest("threads")
+	igt_subtest("basic-threads")
 		threads(10);
 
 	igt_subtest("process-exit") {
