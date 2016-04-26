@@ -243,5 +243,6 @@ igt_main
 	igt_subtest("gem-close-race")
 		threads(150);
 
-	igt_stop_hang_detector();
+	igt_fixture
+	    igt_stop_hang_detector();
 }
