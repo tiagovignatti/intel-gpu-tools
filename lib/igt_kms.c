@@ -402,9 +402,9 @@ int kmstest_get_pipe_from_crtc_id(int fd, int crtc_id)
 			break;
 	}
 
-	drmModeFreeResources(res);
-
 	igt_assert(i < res->count_crtcs);
+
+	drmModeFreeResources(res);
 
 	return i;
 }
