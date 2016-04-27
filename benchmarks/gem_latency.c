@@ -471,10 +471,10 @@ static int run(int seconds,
 			pthread_create(&p[n].consumers[m].thread, NULL,
 				       consumer, &p[n].consumers[m]);
 		}
-		pthread_mutex_lock(&p->lock);
-		while (p->wait)
-			pthread_cond_wait(&p->p_cond, &p->lock);
-		pthread_mutex_unlock(&p->lock);
+		pthread_mutex_lock(&p[n].lock);
+		while (p[n].wait)
+			pthread_cond_wait(&p[n].p_cond, &p[n].lock);
+		pthread_mutex_unlock(&p[n].lock);
 	}
 
 	pthread_attr_init(&attr);
