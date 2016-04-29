@@ -54,7 +54,7 @@ DEBUGSTRING(i830_debug_dcc)
 	if (!IS_MOBILE(devid))
 		return;
 
-	if (IS_965(devid)) {
+	if (IS_GEN4(devid)) {
 		if (val & (1 << 1))
 			addressing = "dual channel interleaved";
 		else
@@ -151,11 +151,11 @@ DEBUGSTRING(i830_debug_pipeconf)
 	char buf[256];
 	int buf_len;
 
-	if (IS_965(devid))
-		bit30 = val & I965_PIPECONF_ACTIVE ? "active" : "inactive";
+	if (IS_GEN2(devid) || IS_GEN3(devid))
+		bit30 = val & PIPEACONF_DOUBLE_WIDE ?
+			"double-wide" : "single-wide";
 	else
-		bit30 =
-		    val & PIPEACONF_DOUBLE_WIDE ? "double-wide" : "single-wide";
+		bit30 = val & I965_PIPECONF_ACTIVE ? "active" : "inactive";
 
 	buf_len = snprintf(buf, sizeof(buf), "%s, %s", enabled, bit30);
 
@@ -701,7 +701,7 @@ DEBUGSTRING(i810_debug_915_fence)
 	unsigned int offset = val & 0x0ff00000;
 	int size = (1024 * 1024) << ((val & 0x700) >> 8);
 
-	if (IS_965(devid) || (IS_915(devid) && reg >= FENCE_NEW))
+	if (IS_GEN4(devid) || (IS_915(devid) && reg >= FENCE_NEW))
 		return;
 
 	if (format == 'X')
@@ -722,7 +722,7 @@ DEBUGSTRING(i810_debug_965_fence_start)
 	int pitch = ((val & 0xffc) >> 2) * 128 + 128;
 	unsigned int offset = val & 0xfffff000;
 
-	if (!IS_965(devid))
+	if (!IS_GEN4(devid))
 		return;
 
 	snprintf(result, len, "%s, %c tile walk, %4d pitch, 0x%08x start",
@@ -733,7 +733,7 @@ DEBUGSTRING(i810_debug_965_fence_end)
 {
 	unsigned int end = val & 0xfffff000;
 
-	if (!IS_965(devid))
+	if (!IS_GEN4(devid))
 		return;
 
 	snprintf(result, len, "                                   0x%08x end", end);
