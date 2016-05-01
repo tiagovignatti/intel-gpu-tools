@@ -370,6 +370,7 @@ int igt_open_forcewake_handle(void)
 }
 static unsigned int clflush_size;
 
+#if defined(__x86_64__) || defined(__i386__)
 int igt_setup_clflush(void)
 {
 	FILE *file;
@@ -377,11 +378,6 @@ int igt_setup_clflush(void)
 	size_t size = 0;
 	int first_stanza = 1;
 	int has_clflush = 0;
-
-#if !defined(__x86_64__) && !defined(__SSE2__)
-	/* requires mfence + clflush, both SSE2 instructions */
-	return 0;
-#endif
 
 	if (clflush_size)
 		return 1;
@@ -414,9 +410,9 @@ int igt_setup_clflush(void)
 	return has_clflush && clflush_size;
 }
 
+__attribute__((target("sse2")))
 void igt_clflush_range(void *addr, int size)
 {
-#if defined(__x86_64__) || defined(__SSE2__)
 	char *p, *end;
 
 	end = (char *)addr + size;
@@ -427,10 +423,19 @@ void igt_clflush_range(void *addr, int size)
 		__builtin_ia32_clflush(p);
 	__builtin_ia32_clflush(end - 1); /* magic serialisation for byt+ */
 	__builtin_ia32_mfence();
-#else
-	fprintf(stderr, "igt_clflush_range() unsupported\n");
-#endif
 }
+#else
+int igt_setup_clflush(void)
+{
+	/* requires mfence + clflush, both SSE2 instructions */
+	return 0;
+}
+
+void igt_clflush_range(void *addr, int size)
+{
+	fprintf(stderr, "igt_clflush_range() unsupported\n");
+}
+#endif
 
 /**
  * intel_detect_and_clear_missed_irq:
