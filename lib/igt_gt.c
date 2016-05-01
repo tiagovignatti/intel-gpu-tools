@@ -425,6 +425,7 @@ void igt_clflush_range(void *addr, int size)
 	__builtin_ia32_mfence();
 	for (; p < end; p += clflush_size)
 		__builtin_ia32_clflush(p);
+	__builtin_ia32_clflush(end - 1); /* magic serialisation for byt+ */
 	__builtin_ia32_mfence();
 #else
 	fprintf(stderr, "igt_clflush_range() unsupported\n");
