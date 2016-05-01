@@ -30,8 +30,10 @@ IGT_TEST_DESCRIPTION("Basic check of flushing after batches");
 #define UNCACHED 0
 #define COHERENT 1
 #define WRITE 2
+#define KERNEL 2
 
-static void run(int fd, unsigned ring, int nchild, unsigned flags, int timeout)
+static void run(int fd, unsigned ring, int nchild, int timeout,
+		unsigned flags)
 {
 	const int gen = intel_gen(intel_get_drm_devid(fd));
 
@@ -156,20 +158,39 @@ static void run(int fd, unsigned ring, int nchild, unsigned flags, int timeout)
 			execbuf.buffer_count = 2 + xor;
 
 			gem_execbuf(fd, &execbuf);
-			gem_sync(fd, obj[0].handle);
 
-			if (!(flags & COHERENT) && !gem_has_llc(fd))
-				igt_clflush_range(&map[i], sizeof(map[i]));
+			if (flags & KERNEL) {
+				uint32_t val;
 
-			if (xor)
-				igt_assert_eq_u32(map[i], i ^ 0xffffffff);
-			else
-				igt_assert_eq_u32(map[i], i);
+				gem_read(fd, obj[0].handle, i*sizeof(uint32_t),
+					 &val, sizeof(val));
 
-			if (flags & WRITE) {
-				map[i] = 0xdeadbeef;
-				if (!(flags & COHERENT))
+				if (xor)
+					igt_assert_eq_u32(val, i ^ 0xffffffff);
+				else
+					igt_assert_eq_u32(val, i);
+
+				if (flags & WRITE) {
+					val = 0xdeadbeef;
+					gem_write(fd, obj[0].handle, i*sizeof(uint32_t),
+						  &val, sizeof(val));
+				}
+			} else {
+				gem_sync(fd, obj[0].handle);
+
+				if (!(flags & COHERENT) && !gem_has_llc(fd))
 					igt_clflush_range(&map[i], sizeof(map[i]));
+
+				if (xor)
+					igt_assert_eq_u32(map[i], i ^ 0xffffffff);
+				else
+					igt_assert_eq_u32(map[i], i);
+
+				if (flags & WRITE) {
+					map[i] = 0xdeadbeef;
+					if (!(flags & COHERENT))
+						igt_clflush_range(&map[i], sizeof(map[i]));
+				}
 			}
 		}
 		igt_info("Child[%d]: %lu cycles\n", child, cycles);
@@ -187,6 +208,16 @@ igt_main
 {
 	const struct intel_execution_engine *e;
 	const int ncpus = sysconf(_SC_NPROCESSORS_ONLN);
+	const struct mode {
+		const char *name;
+		unsigned flags;
+	} modes[] = {
+		{ "ro", 0 },
+		{ "rw", WRITE },
+		{ "pro", KERNEL },
+		{ "prw", KERNEL | WRITE },
+		{ NULL },
+	};
 	int gen = -1;
 	int fd = -1;
 
@@ -210,21 +241,21 @@ igt_main
 				      "MI_STORE_DATA broken on gen6 bsd\n");
 		}
 
-		igt_subtest_f("%suc-ro-%s",
-			      e->exec_id == 0 ? "basic-" : "", e->name)
-			run(fd, ring, ncpus, UNCACHED, timeout);
+		for (const struct mode *m = modes; m->name; m++) {
+			igt_subtest_f("%suc-%s-%s",
+				      e->exec_id == 0 ? "basic-" : "",
+				      m->name,
+				      e->name)
+				run(fd, ring, ncpus, timeout,
+				    UNCACHED | m->flags);
 
-		igt_subtest_f("%suc-rw-%s",
-			      e->exec_id == 0 ? "basic-" : "", e->name)
-			run(fd, ring, ncpus, UNCACHED | WRITE, timeout);
-
-		igt_subtest_f("%swb-ro-%s",
-			      e->exec_id == 0 ? "basic-" : "", e->name)
-			run(fd, ring, ncpus, COHERENT, timeout);
-
-		igt_subtest_f("%swb-rw-%s",
-			      e->exec_id == 0 ? "basic-" : "", e->name)
-			run(fd, ring, ncpus, COHERENT | WRITE, timeout);
+			igt_subtest_f("%swb-%s-%s",
+				      e->exec_id == 0 ? "basic-" : "",
+				      m->name,
+				      e->name)
+				run(fd, ring, ncpus, timeout,
+				    COHERENT | m->flags);
+		}
 	}
 
 	igt_stop_hang_detector();
