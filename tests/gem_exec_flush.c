@@ -35,10 +35,6 @@ static void run(int fd, unsigned ring, int nchild, unsigned flags, int timeout)
 {
 	const int gen = intel_gen(intel_get_drm_devid(fd));
 
-	gem_require_ring(fd, ring);
-	igt_skip_on_f(gen == 6 && (ring & ~(3<<13)) == I915_EXEC_BSD,
-			"MI_STORE_DATA broken on gen6 bsd\n");
-
 	igt_fork(child, nchild) {
 		const uint32_t bbe = MI_BATCH_BUFFER_END;
 		struct drm_i915_gem_exec_object2 obj[3];
@@ -191,6 +187,7 @@ igt_main
 {
 	const struct intel_execution_engine *e;
 	const int ncpus = sysconf(_SC_NPROCESSORS_ONLN);
+	int gen = -1;
 	int fd = -1;
 
 	igt_skip_on_simulation();
@@ -198,30 +195,36 @@ igt_main
 	igt_fixture {
 		igt_require(igt_setup_clflush());
 		fd = drm_open_driver(DRIVER_INTEL);
+		gen = intel_gen(intel_get_drm_devid(fd));
 	}
 
 	igt_fork_hang_detector(fd);
 
-	for (e = intel_execution_engines; e->name; e++) {
+	for (e = intel_execution_engines; e->name; e++) igt_subtest_group {
+		unsigned ring = e->exec_id | e->flags;
+		unsigned timeout = 2 + 120*!!e->exec_id;
+
+		igt_fixture {
+			gem_require_ring(fd, ring);
+			igt_skip_on_f(gen == 6 && e->exec_id == I915_EXEC_BSD,
+				      "MI_STORE_DATA broken on gen6 bsd\n");
+		}
+
 		igt_subtest_f("%suc-ro-%s",
 			      e->exec_id == 0 ? "basic-" : "", e->name)
-			run(fd, e->exec_id | e->flags, ncpus,
-			    UNCACHED, 2 + 120*!!e->exec_id);
+			run(fd, ring, ncpus, UNCACHED, timeout);
 
 		igt_subtest_f("%suc-rw-%s",
 			      e->exec_id == 0 ? "basic-" : "", e->name)
-			run(fd, e->exec_id | e->flags, ncpus,
-			    UNCACHED | WRITE, 2 + 120*!!e->exec_id);
+			run(fd, ring, ncpus, UNCACHED | WRITE, timeout);
 
 		igt_subtest_f("%swb-ro-%s",
 			      e->exec_id == 0 ? "basic-" : "", e->name)
-			run(fd, e->exec_id | e->flags, ncpus,
-			    COHERENT, 2 + 120*!!e->exec_id);
+			run(fd, ring, ncpus, COHERENT, timeout);
 
 		igt_subtest_f("%swb-rw-%s",
 			      e->exec_id == 0 ? "basic-" : "", e->name)
-			run(fd, e->exec_id | e->flags, ncpus,
-			    COHERENT | WRITE, 2 + 120*!!e->exec_id);
+			run(fd, ring, ncpus, COHERENT | WRITE, timeout);
 	}
 
 	igt_stop_hang_detector();
