@@ -412,7 +412,7 @@ uint64_t igt_nsec_elapsed(struct timespec *start)
 	}
 
 	return ((now.tv_nsec - start->tv_nsec) +
-		NSEC_PER_SEC*(now.tv_sec - start->tv_sec));
+		(uint64_t)NSEC_PER_SEC*(now.tv_sec - start->tv_sec));
 }
 
 bool __igt_fixture(void)
