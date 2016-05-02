@@ -182,6 +182,9 @@ static bool igt_sigiter_start(struct igt_sigiter *iter, bool enable)
 		sev.sigev_signo = SIGRTMIN;
 		igt_assert(timer_create(CLOCK_MONOTONIC, &sev, &__igt_sigiter.timer) == 0);
 
+		memset(&its, 0, sizeof(its));
+		igt_assert(timer_settime(__igt_sigiter.timer, 0, &its, NULL) == 0);
+
 		memset(&act, 0, sizeof(act));
 		act.sa_sigaction = sigiter;
 		act.sa_flags = SA_SIGINFO;
@@ -192,7 +195,6 @@ static bool igt_sigiter_start(struct igt_sigiter *iter, bool enable)
 		 * and avoid the timer firing before we enter the drmIoctl.
 		 */
 		igt_assert(clock_gettime(CLOCK_MONOTONIC, &start) == 0);
-		memset(&its, 0, sizeof(its));
 		igt_assert(timer_settime(__igt_sigiter.timer, 0, &its, NULL) == 0);
 		igt_assert(clock_gettime(CLOCK_MONOTONIC, &end) == 0);
 
@@ -202,6 +204,11 @@ static bool igt_sigiter_start(struct igt_sigiter *iter, bool enable)
 			__igt_sigiter.offset.tv_nsec += NSEC_PER_SEC;
 			__igt_sigiter.offset.tv_sec -= 1;
 		}
+		if (__igt_sigiter.offset.tv_sec < 0) {
+			__igt_sigiter.offset.tv_nsec = 0;
+			__igt_sigiter.offset.tv_sec = 0;
+		}
+		igt_assert(__igt_sigiter.offset.tv_sec == 0);
 
 		igt_debug("Initial delay for interruption: %ld.%09lds\n",
 			  __igt_sigiter.offset.tv_sec,
