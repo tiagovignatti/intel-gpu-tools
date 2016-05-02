@@ -152,7 +152,10 @@ static void run(int fd, unsigned ring, int nchild, int timeout,
 
 		igt_timeout(timeout) {
 			bool xor = (cycles >> 10) & 1;
-			i = cycles++ % 1024;
+			int idx = cycles++ % 1024;
+
+			/* Inspect a different cacheline each iteration */
+			i = 16 * (idx % 64) + (idx / 64);
 
 			obj[1].relocs_ptr = (uintptr_t)&reloc0[i];
 			obj[2].relocs_ptr = (uintptr_t)&reloc1[i];
