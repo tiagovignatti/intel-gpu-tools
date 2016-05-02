@@ -164,51 +164,55 @@ static void run(int fd, unsigned ring, int nchild, int timeout,
 
 			gem_execbuf(fd, &execbuf);
 
-			igt_interruptible(flags & INTERRUPTIBLE) {
-				if (flags & SET_DOMAIN) {
+			if (flags & SET_DOMAIN) {
+				igt_interruptible(flags & INTERRUPTIBLE)
 					gem_set_domain(fd, obj[0].handle,
 						       I915_GEM_DOMAIN_GTT,
 						       (flags & WRITE) ? I915_GEM_DOMAIN_GTT : 0);
 
-					if (xor)
-						igt_assert_eq_u32(map[i], i ^ 0xffffffff);
-					else
-						igt_assert_eq_u32(map[i], i);
+				if (xor)
+					igt_assert_eq_u32(map[i], i ^ 0xffffffff);
+				else
+					igt_assert_eq_u32(map[i], i);
 
-					if (flags & WRITE)
-						map[i] = 0xdeadbeef;
-				} else if (flags & KERNEL) {
-					uint32_t val;
+				if (flags & WRITE)
+					map[i] = 0xdeadbeef;
+			} else if (flags & KERNEL) {
+				uint32_t val;
 
-					gem_read(fd, obj[0].handle, i*sizeof(uint32_t),
+				igt_interruptible(flags & INTERRUPTIBLE)
+					gem_read(fd, obj[0].handle,
+						 i*sizeof(uint32_t),
 						 &val, sizeof(val));
 
-					if (xor)
-						igt_assert_eq_u32(val, i ^ 0xffffffff);
-					else
-						igt_assert_eq_u32(val, i);
+				if (xor)
+					igt_assert_eq_u32(val, i ^ 0xffffffff);
+				else
+					igt_assert_eq_u32(val, i);
 
-					if (flags & WRITE) {
-						val = 0xdeadbeef;
-						gem_write(fd, obj[0].handle, i*sizeof(uint32_t),
+				if (flags & WRITE) {
+					val = 0xdeadbeef;
+					igt_interruptible(flags & INTERRUPTIBLE)
+						gem_write(fd, obj[0].handle,
+							  i*sizeof(uint32_t),
 							  &val, sizeof(val));
-					}
-				} else {
+				}
+			} else {
+				igt_interruptible(flags & INTERRUPTIBLE)
 					gem_sync(fd, obj[0].handle);
 
-					if (!(flags & COHERENT) && !gem_has_llc(fd))
+				if (!(flags & COHERENT) && !gem_has_llc(fd))
+					igt_clflush_range(&map[i], sizeof(map[i]));
+
+				if (xor)
+					igt_assert_eq_u32(map[i], i ^ 0xffffffff);
+				else
+					igt_assert_eq_u32(map[i], i);
+
+				if (flags & WRITE) {
+					map[i] = 0xdeadbeef;
+					if (!(flags & COHERENT))
 						igt_clflush_range(&map[i], sizeof(map[i]));
-
-					if (xor)
-						igt_assert_eq_u32(map[i], i ^ 0xffffffff);
-					else
-						igt_assert_eq_u32(map[i], i);
-
-					if (flags & WRITE) {
-						map[i] = 0xdeadbeef;
-						if (!(flags & COHERENT))
-							igt_clflush_range(&map[i], sizeof(map[i]));
-					}
 				}
 			}
 		}
