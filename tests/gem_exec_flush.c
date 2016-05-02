@@ -167,8 +167,8 @@ overwrite:
 			if (flags & SET_DOMAIN) {
 				igt_interruptible(flags & INTERRUPTIBLE)
 					gem_set_domain(fd, obj[0].handle,
-						       I915_GEM_DOMAIN_GTT,
-						       (flags & WRITE) ? I915_GEM_DOMAIN_GTT : 0);
+						       I915_GEM_DOMAIN_CPU,
+						       (flags & WRITE) ? I915_GEM_DOMAIN_CPU : 0);
 
 				if (xor)
 					igt_assert_eq_u32(map[i], i ^ 0xffffffff);
