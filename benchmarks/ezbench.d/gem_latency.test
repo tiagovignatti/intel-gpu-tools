@@ -6,7 +6,7 @@ sudo -n true || return 1
 
 __gem:dispatch__() {
     for (( c=0; c<$1; c++ )); do
-        sudo $IGT_BENCHMARKS/gem_latency -t 2 -n $2 -p $3 -f 1 $4
+        sudo $IGT_BENCHMARKS/gem_latency -t 2 -n $2 -p $3 -f $4
     done
 }
 
@@ -14,20 +14,20 @@ __gem:dispatch__() {
 for n in 0 1 2 4 8 16 32 64 128 256 512 1024; do
 	name="gem:exec:latency:$n"
 	test_name="$test_name $name"
-	eval "${name}_run() { __gem:dispatch__ \$1 $n 1 ; } "
-done
-
-for n in 0 1 2 4 8 16 32 64 128 256 512 1024; do
-	name="gem:parser:latency:$n"
-	test_name="$test_name $name"
-	eval "${name}_run() { __gem:dispatch__ \$1 $n 1 -C ; } "
+	eval "${name}_run() { __gem:dispatch__ \$1 $n 1 1 ; } "
 done
 
 # Measure the execution delay vs contention, just for fun
 for p in 1 2 4 8 16 32 64 128 256 512 1024; do
 	name="gem:latency:dispatch:$p"
 	test_name="$test_name $name"
-	eval "${name}_run() { __gem:dispatch__ \$1 0 $p ; } "
+	eval "${name}_run() { __gem:dispatch__ \$1 0 $p 1 ; } "
+done
+
+for p in 1 2 4 8 16 32 64 128 256 512 1024; do
+	name="gem:throughput:dispatch:$p"
+	test_name="$test_name $name"
+	eval "${name}_run() { __gem:dispatch__ \$1 8 $p 5 ; } "
 done
 
 # Measure the wakeup delay (each wakeup should be uncontended)

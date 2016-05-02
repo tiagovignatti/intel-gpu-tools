@@ -540,6 +540,9 @@ static int run(int seconds,
 	case 4:
 		printf("%f\n", cpu_time(&rused) / complete);
 		break;
+	case 5:
+		printf("%d\n", complete);
+		break;
 	}
 
 	return 0;
