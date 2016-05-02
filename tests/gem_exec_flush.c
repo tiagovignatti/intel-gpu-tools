@@ -151,17 +151,17 @@ static void run(int fd, unsigned ring, int nchild, int timeout,
 		munmap(ptr, 64*1024);
 
 		igt_timeout(timeout) {
-			bool xor = (cycles >> 10) & 1;
+			bool xor = false;
 			int idx = cycles++ % 1024;
 
 			/* Inspect a different cacheline each iteration */
 			i = 16 * (idx % 64) + (idx / 64);
-
 			obj[1].relocs_ptr = (uintptr_t)&reloc0[i];
 			obj[2].relocs_ptr = (uintptr_t)&reloc1[i];
 			execbuf.batch_start_offset =  64*i;
-			execbuf.buffer_count = 2 + xor;
 
+overwrite:
+			execbuf.buffer_count = 2 + xor;
 			gem_execbuf(fd, &execbuf);
 
 			if (flags & SET_DOMAIN) {
@@ -214,6 +214,11 @@ static void run(int fd, unsigned ring, int nchild, int timeout,
 					if (!(flags & COHERENT))
 						igt_clflush_range(&map[i], sizeof(map[i]));
 				}
+			}
+
+			if (!xor) {
+				xor= true;
+				goto overwrite;
 			}
 		}
 		igt_info("Child[%d]: %lu cycles\n", child, cycles);
