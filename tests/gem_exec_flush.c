@@ -32,6 +32,7 @@ IGT_TEST_DESCRIPTION("Basic check of flushing after batches");
 #define WRITE 2
 #define KERNEL 4
 #define SET_DOMAIN 8
+#define INTERRUPTIBLE 16
 
 static void run(int fd, unsigned ring, int nchild, int timeout,
 		unsigned flags)
@@ -160,49 +161,51 @@ static void run(int fd, unsigned ring, int nchild, int timeout,
 
 			gem_execbuf(fd, &execbuf);
 
-			if (flags & SET_DOMAIN) {
-				gem_set_domain(fd, obj[0].handle,
-					       I915_GEM_DOMAIN_GTT,
-					       flags & WRITE ?  I915_GEM_DOMAIN_GTT : 0);
+			igt_interruptible(flags & INTERRUPTIBLE) {
+				if (flags & SET_DOMAIN) {
+					gem_set_domain(fd, obj[0].handle,
+						       I915_GEM_DOMAIN_GTT,
+						       (flags & WRITE) ? I915_GEM_DOMAIN_GTT : 0);
 
-				if (xor)
-					igt_assert_eq_u32(map[i], i ^ 0xffffffff);
-				else
-					igt_assert_eq_u32(map[i], i);
+					if (xor)
+						igt_assert_eq_u32(map[i], i ^ 0xffffffff);
+					else
+						igt_assert_eq_u32(map[i], i);
 
-				if (flags & WRITE)
-					map[i] = 0xdeadbeef;
-			} else if (flags & KERNEL) {
-				uint32_t val;
+					if (flags & WRITE)
+						map[i] = 0xdeadbeef;
+				} else if (flags & KERNEL) {
+					uint32_t val;
 
-				gem_read(fd, obj[0].handle, i*sizeof(uint32_t),
-					 &val, sizeof(val));
+					gem_read(fd, obj[0].handle, i*sizeof(uint32_t),
+						 &val, sizeof(val));
 
-				if (xor)
-					igt_assert_eq_u32(val, i ^ 0xffffffff);
-				else
-					igt_assert_eq_u32(val, i);
+					if (xor)
+						igt_assert_eq_u32(val, i ^ 0xffffffff);
+					else
+						igt_assert_eq_u32(val, i);
 
-				if (flags & WRITE) {
-					val = 0xdeadbeef;
-					gem_write(fd, obj[0].handle, i*sizeof(uint32_t),
-						  &val, sizeof(val));
-				}
-			} else {
-				gem_sync(fd, obj[0].handle);
+					if (flags & WRITE) {
+						val = 0xdeadbeef;
+						gem_write(fd, obj[0].handle, i*sizeof(uint32_t),
+							  &val, sizeof(val));
+					}
+				} else {
+					gem_sync(fd, obj[0].handle);
 
-				if (!(flags & COHERENT) && !gem_has_llc(fd))
-					igt_clflush_range(&map[i], sizeof(map[i]));
-
-				if (xor)
-					igt_assert_eq_u32(map[i], i ^ 0xffffffff);
-				else
-					igt_assert_eq_u32(map[i], i);
-
-				if (flags & WRITE) {
-					map[i] = 0xdeadbeef;
-					if (!(flags & COHERENT))
+					if (!(flags & COHERENT) && !gem_has_llc(fd))
 						igt_clflush_range(&map[i], sizeof(map[i]));
+
+					if (xor)
+						igt_assert_eq_u32(map[i], i ^ 0xffffffff);
+					else
+						igt_assert_eq_u32(map[i], i);
+
+					if (flags & WRITE) {
+						map[i] = 0xdeadbeef;
+						if (!(flags & COHERENT))
+							igt_clflush_range(&map[i], sizeof(map[i]));
+					}
 				}
 			}
 		}
@@ -263,12 +266,26 @@ igt_main
 				run(fd, ring, ncpus, timeout,
 				    UNCACHED | m->flags);
 
+			igt_subtest_f("%suc-%s-%s-interruptible",
+				      e->exec_id == 0 ? "basic-" : "",
+				      m->name,
+				      e->name)
+				run(fd, ring, ncpus, timeout,
+				    UNCACHED | m->flags | INTERRUPTIBLE);
+
 			igt_subtest_f("%swb-%s-%s",
 				      e->exec_id == 0 ? "basic-" : "",
 				      m->name,
 				      e->name)
 				run(fd, ring, ncpus, timeout,
 				    COHERENT | m->flags);
+
+			igt_subtest_f("%swb-%s-%s-interruptible",
+				      e->exec_id == 0 ? "basic-" : "",
+				      m->name,
+				      e->name)
+				run(fd, ring, ncpus, timeout,
+				    COHERENT | m->flags | INTERRUPTIBLE);
 		}
 	}
 
