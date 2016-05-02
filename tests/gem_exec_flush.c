@@ -30,7 +30,8 @@ IGT_TEST_DESCRIPTION("Basic check of flushing after batches");
 #define UNCACHED 0
 #define COHERENT 1
 #define WRITE 2
-#define KERNEL 2
+#define KERNEL 4
+#define SET_DOMAIN 8
 
 static void run(int fd, unsigned ring, int nchild, int timeout,
 		unsigned flags)
@@ -159,7 +160,19 @@ static void run(int fd, unsigned ring, int nchild, int timeout,
 
 			gem_execbuf(fd, &execbuf);
 
-			if (flags & KERNEL) {
+			if (flags & SET_DOMAIN) {
+				gem_set_domain(fd, obj[0].handle,
+					       I915_GEM_DOMAIN_GTT,
+					       flags & WRITE ?  I915_GEM_DOMAIN_GTT : 0);
+
+				if (xor)
+					igt_assert_eq_u32(map[i], i ^ 0xffffffff);
+				else
+					igt_assert_eq_u32(map[i], i);
+
+				if (flags & WRITE)
+					map[i] = 0xdeadbeef;
+			} else if (flags & KERNEL) {
 				uint32_t val;
 
 				gem_read(fd, obj[0].handle, i*sizeof(uint32_t),
@@ -216,6 +229,7 @@ igt_main
 		{ "rw", WRITE },
 		{ "pro", KERNEL },
 		{ "prw", KERNEL | WRITE },
+		{ "set", SET_DOMAIN | WRITE },
 		{ NULL },
 	};
 	int gen = -1;
