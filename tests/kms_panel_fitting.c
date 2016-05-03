@@ -139,9 +139,18 @@ static void test_panel_fitting(data_t *d)
 
 	for_each_connected_output(display, output) {
 		drmModeModeInfo *mode, native_mode;
+		bool scaling_mode_set;
 
-		if (output->config.connector->connector_type !=
-		    DRM_MODE_CONNECTOR_eDP)
+		scaling_mode_set = kmstest_get_property(d->drm_fd,
+			output->config.connector->connector_id,
+			DRM_MODE_OBJECT_CONNECTOR,
+			"scaling mode",
+			NULL,
+			NULL,
+			NULL);
+
+		/* Check that the "scaling mode" property has been set. */
+		if (!scaling_mode_set)
 			continue;
 
 		pipe = output->config.pipe;
