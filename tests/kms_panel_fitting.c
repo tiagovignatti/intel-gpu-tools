@@ -212,7 +212,7 @@ igt_simple_main
 
 	igt_skip_on_simulation();
 
-	data.drm_fd = drm_open_driver(DRIVER_INTEL);
+	data.drm_fd = drm_open_driver(DRIVER_ANY);
 	igt_display_init(&data.display, data.drm_fd);
 
 	test_panel_fitting(&data);
