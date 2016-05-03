@@ -31,7 +31,6 @@ IGT_TEST_DESCRIPTION("Test display panel fitting");
 typedef struct {
 	int drm_fd;
 	igt_display_t display;
-	igt_crc_t ref_crc;
 
 	int image_w;
 	int image_h;
