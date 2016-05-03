@@ -150,8 +150,9 @@ static void test_panel_fitting(data_t *d)
 	for_each_connected_output(display, output) {
 		drmModeModeInfo *mode, native_mode;
 
-		igt_require(output->config.connector->connector_type ==
-			DRM_MODE_CONNECTOR_eDP);
+		if (output->config.connector->connector_type !=
+		    DRM_MODE_CONNECTOR_eDP)
+			continue;
 
 		pipe = output->config.pipe;
 		igt_output_set_pipe(output, pipe);
