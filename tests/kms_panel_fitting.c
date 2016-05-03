@@ -32,7 +32,6 @@ typedef struct {
 	int drm_fd;
 	igt_display_t display;
 	igt_crc_t ref_crc;
-	igt_pipe_crc_t *pipe_crc;
 
 	int image_w;
 	int image_h;
@@ -58,10 +57,6 @@ static void prepare_crtc(data_t *data, igt_output_t *output, enum pipe pipe,
 	igt_display_t *display = &data->display;
 
 	igt_output_set_pipe(output, pipe);
-
-	/* create the pipe_crc object for this pipe */
-	igt_pipe_crc_free(data->pipe_crc);
-	data->pipe_crc = igt_pipe_crc_new(pipe, INTEL_PIPE_CRC_SOURCE_AUTO);
 
 	/* before allocating, free if any older fb */
 	if (data->fb_id1) {
@@ -108,9 +103,6 @@ static void prepare_crtc(data_t *data, igt_output_t *output, enum pipe pipe,
 static void cleanup_crtc(data_t *data, igt_output_t *output, igt_plane_t *plane)
 {
 	igt_display_t *display = &data->display;
-
-	igt_pipe_crc_free(data->pipe_crc);
-	data->pipe_crc = NULL;
 
 	if (data->fb_id1) {
 		igt_remove_fb(data->drm_fd, &data->fb1);
@@ -222,7 +214,6 @@ igt_simple_main
 	igt_skip_on_simulation();
 
 	data.drm_fd = drm_open_driver(DRIVER_INTEL);
-	igt_require_pipe_crc();
 	igt_display_init(&data.display, data.drm_fd);
 
 	test_panel_fitting(&data);
