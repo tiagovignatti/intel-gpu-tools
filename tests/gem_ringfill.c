@@ -103,17 +103,18 @@ static void run_test(int fd, unsigned ring, unsigned flags)
 
 	memset(&execbuf, 0, sizeof(execbuf));
 	execbuf.buffers_ptr = (uintptr_t)obj;
-	execbuf.buffer_count = 2;
-	execbuf.flags = ring | (1 << 11);
+	execbuf.flags = ring | (1 << 11) | (1 << 12);
 	if (gen < 6)
 		execbuf.flags |= I915_EXEC_SECURE;
 
 	memset(obj, 0, sizeof(obj));
 	obj[0].handle = gem_create(fd, 4096);
+	gem_write(fd, obj[0].handle, 0, &bbe, sizeof(bbe));
+	execbuf.buffer_count = 1;
+	igt_require(__gem_execbuf(fd, &execbuf) == 0);
+
 	obj[0].flags |= EXEC_OBJECT_WRITE;
 	obj[1].handle = gem_create(fd, 1024*16 + 4096);
-	gem_write(fd, obj[1].handle, 0, &bbe, sizeof(bbe));
-	igt_require(__gem_execbuf(fd, &execbuf) == 0);
 
 	obj[1].relocs_ptr = (uintptr_t)reloc;
 	obj[1].relocation_count = 1024;
@@ -128,7 +129,6 @@ static void run_test(int fd, unsigned ring, unsigned flags)
 	for (i = 0; i < 1024; i++) {
 		uint64_t offset;
 
-		reloc[i].target_handle = obj[0].handle;
 		reloc[i].presumed_offset = obj[0].offset;
 		reloc[i].offset = (b - batch + 1) * sizeof(*batch);
 		reloc[i].delta = i * sizeof(uint32_t);
@@ -152,6 +152,7 @@ static void run_test(int fd, unsigned ring, unsigned flags)
 	}
 	*b++ = MI_BATCH_BUFFER_END;
 	munmap(batch, 16*1024+4096);
+	execbuf.buffer_count = 2;
 	gem_execbuf(fd, &execbuf);
 	check_bo(fd, obj[0].handle);
 
