@@ -1153,9 +1153,21 @@ void igt_exit(void)
 		exit(IGT_EXIT_INVALID);
 	}
 
-
 	if (igt_only_list_subtests())
 		exit(IGT_EXIT_SUCCESS);
+
+	/* Calling this without calling one of the above is a failure */
+	assert(!test_with_subtests ||
+	       skipped_one ||
+	       succeeded_one ||
+	       failed_one);
+
+	if (test_with_subtests && !failed_one) {
+		if (succeeded_one)
+			igt_exitcode = IGT_EXIT_SUCCESS;
+		else
+			igt_exitcode = IGT_EXIT_SKIP;
+	}
 
 	kmsg(KERN_INFO "%s: exiting, ret=%d\n", command_str, igt_exitcode);
 	igt_debug("Exiting with status code %d\n", igt_exitcode);
@@ -1183,19 +1195,11 @@ void igt_exit(void)
 				result = "FAIL";
 		}
 
-		printf("%s (%.3fs)\n", result, time_elapsed(&subtest_time, &now));
-		exit(igt_exitcode);
+		printf("%s (%.3fs)\n",
+		       result, time_elapsed(&subtest_time, &now));
 	}
 
-	/* Calling this without calling one of the above is a failure */
-	assert(skipped_one || succeeded_one || failed_one);
-
-	if (failed_one)
-		exit(igt_exitcode);
-	else if (succeeded_one)
-		exit(IGT_EXIT_SUCCESS);
-	else
-		exit(IGT_EXIT_SKIP);
+	exit(igt_exitcode);
 }
 
 /* fork support code */
