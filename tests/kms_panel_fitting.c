@@ -65,10 +65,10 @@ static void prepare_crtc(data_t *data, igt_output_t *output, enum pipe pipe,
 
 	/* allocate fb for plane 1 */
 	data->fb_id1 = igt_create_pattern_fb(data->drm_fd,
-					     mode->hdisplay, mode->vdisplay,
-					     DRM_FORMAT_XRGB8888,
-					     LOCAL_I915_FORMAT_MOD_X_TILED, /* tiled */
-					     &data->fb1);
+						mode->hdisplay, mode->vdisplay,
+						DRM_FORMAT_XRGB8888,
+						LOCAL_DRM_FORMAT_MOD_NONE,
+						&data->fb1);
 	igt_assert(data->fb_id1);
 
 	/*
@@ -159,7 +159,7 @@ static void test_panel_fitting(data_t *d)
 
 		d->fb_id2 = igt_create_image_fb(d->drm_fd, 0, 0,
 						DRM_FORMAT_XRGB8888,
-						LOCAL_I915_FORMAT_MOD_X_TILED, /* tiled */
+						LOCAL_DRM_FORMAT_MOD_NONE,
 						FILE_NAME, &d->fb2);
 		igt_assert(d->fb_id2);
 
