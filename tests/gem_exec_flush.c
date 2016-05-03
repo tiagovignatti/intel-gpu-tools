@@ -240,7 +240,7 @@ enum batch_mode {
 	BATCH_WC,
 };
 static void batch(int fd, unsigned ring, int nchild, int timeout,
-		  enum batch_mode mode)
+		  enum batch_mode mode, unsigned flags)
 {
 	const int gen = intel_gen(intel_get_drm_devid(fd));
 
@@ -258,6 +258,7 @@ static void batch(int fd, unsigned ring, int nchild, int timeout,
 		obj[0].handle = gem_create(fd, 4096);
 		obj[0].flags |= EXEC_OBJECT_WRITE;
 
+		gem_set_caching(fd, obj[0].handle, !!(flags & COHERENT));
 		map = gem_mmap__cpu(fd, obj[0].handle, 0, 4096, PROT_WRITE);
 
 		gem_set_domain(fd, obj[0].handle,
@@ -273,7 +274,7 @@ static void batch(int fd, unsigned ring, int nchild, int timeout,
 		if (gen < 6)
 			execbuf.flags |= I915_EXEC_SECURE;
 
-		obj[1].handle = gem_create(fd, 4096);
+		obj[1].handle = gem_create(fd, 64<<10);
 		gem_write(fd, obj[1].handle, 0, &bbe, sizeof(bbe));
 		igt_require(__gem_execbuf(fd, &execbuf) == 0);
 
@@ -283,38 +284,40 @@ static void batch(int fd, unsigned ring, int nchild, int timeout,
 		switch (mode) {
 		case BATCH_CPU:
 		case BATCH_USER:
-			ptr = gem_mmap__cpu(fd, obj[1].handle, 0, 4096,
+			ptr = gem_mmap__cpu(fd, obj[1].handle, 0, 64<<10,
 					    PROT_WRITE);
 			break;
 
 		case BATCH_WC:
-			ptr = gem_mmap__wc(fd, obj[1].handle, 0, 4096,
+			ptr = gem_mmap__wc(fd, obj[1].handle, 0, 64<<10,
 					    PROT_WRITE);
 			break;
 
 		case BATCH_GTT:
-			ptr = gem_mmap__gtt(fd, obj[1].handle, 4096,
+			ptr = gem_mmap__gtt(fd, obj[1].handle, 64<<10,
 					    PROT_WRITE);
 			break;
 
 		case BATCH_KERNEL:
-			ptr = mmap(0, 4096, PROT_WRITE,
+			ptr = mmap(0, 64<<10, PROT_WRITE,
 				   MAP_PRIVATE | MAP_ANON, -1, 0);
 			break;
 		}
 
 		memset(&reloc, 0, sizeof(reloc));
-		reloc.presumed_offset = obj[0].offset;
-		reloc.offset = sizeof(uint32_t);
-		if (gen >= 4 && gen < 8)
-			reloc.offset += sizeof(uint32_t);
 		reloc.read_domains = I915_GEM_DOMAIN_INSTRUCTION;
 		reloc.write_domain = I915_GEM_DOMAIN_INSTRUCTION;
 
 		igt_timeout(timeout) {
+			execbuf.batch_start_offset = 0;
+			reloc.offset = sizeof(uint32_t);
+			if (gen >= 4 && gen < 8)
+				reloc.offset += sizeof(uint32_t);
+
 			for (i = 0; i < 1024; i++) {
 				uint64_t offset;
-				uint32_t *b = ptr;
+				uint32_t *start = &ptr[execbuf.batch_start_offset/sizeof(*start)];
+				uint32_t *b = start;
 
 				switch (mode) {
 				case BATCH_CPU:
@@ -329,13 +332,11 @@ static void batch(int fd, unsigned ring, int nchild, int timeout,
 					break;
 
 				case BATCH_USER:
-					gem_sync(fd, obj[1].handle);
-					break;
-
 				case BATCH_KERNEL:
 					break;
 				}
 
+				reloc.presumed_offset = obj[0].offset;
 				reloc.delta = i * sizeof(uint32_t);
 
 				offset = reloc.presumed_offset + reloc.delta;
@@ -355,12 +356,13 @@ static void batch(int fd, unsigned ring, int nchild, int timeout,
 
 				switch (mode) {
 				case BATCH_KERNEL:
-					gem_write(fd, obj[1].handle, 0,
-						  ptr, (b - ptr) * sizeof(uint32_t));
+					gem_write(fd, obj[1].handle,
+						  execbuf.batch_start_offset,
+						  start, (b - start) * sizeof(uint32_t));
 					break;
 
 				case BATCH_USER:
-					igt_clflush_range(ptr, (b - ptr) * sizeof(uint32_t));
+					igt_clflush_range(start, (b - start) * sizeof(uint32_t));
 					break;
 
 				case BATCH_CPU:
@@ -370,19 +372,28 @@ static void batch(int fd, unsigned ring, int nchild, int timeout,
 				}
 				gem_execbuf(fd, &execbuf);
 				cycles++;
+
+				execbuf.batch_start_offset += 64;
+				reloc.offset += 64;
 			}
 
-			gem_set_domain(fd, obj[0].handle,
-				       I915_GEM_DOMAIN_CPU,
-				       I915_GEM_DOMAIN_CPU);
+			if (!(flags & COHERENT)) {
+				gem_set_domain(fd, obj[0].handle,
+						I915_GEM_DOMAIN_CPU,
+						I915_GEM_DOMAIN_CPU);
+			} else
+				gem_sync(fd, obj[0].handle);
 			for (i = 0; i < 1024; i++) {
 				igt_assert_eq(map[i], i);
 				map[i] = 0xabcdabcd;
 			}
+
+			if (mode == BATCH_USER)
+				gem_sync(fd, obj[1].handle);
 		}
 		igt_info("Child[%d]: %lu cycles\n", child, cycles);
 
-		munmap(ptr, 4096);
+		munmap(ptr, 64<<10);
 		gem_close(fd, obj[1].handle);
 
 		munmap(map, 4096);
@@ -442,11 +453,16 @@ igt_main
 		}
 
 		for (const struct batch *b = batches; b->name; b++) {
-			igt_subtest_f("%sbatch-%s-%s",
+			igt_subtest_f("%sbatch-%s-%s-uc",
 				      e->exec_id == 0 ? "basic-" : "",
 				      b->name,
 				      e->name)
-				batch(fd, ring, ncpus, timeout, b->mode);
+				batch(fd, ring, ncpus, timeout, b->mode, 0);
+			igt_subtest_f("%sbatch-%s-%s-wb",
+				      e->exec_id == 0 ? "basic-" : "",
+				      b->name,
+				      e->name)
+				batch(fd, ring, ncpus, timeout, b->mode, COHERENT);
 		}
 
 		for (const struct mode *m = modes; m->name; m++) {
