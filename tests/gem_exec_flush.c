@@ -351,7 +351,7 @@ static void batch(int fd, unsigned ring, int nchild, int timeout,
 					b[-1] -= 1;
 					*b++ = offset;
 				}
-				*b++ = i;
+				*b++ = cycles + i;
 				*b++ = MI_BATCH_BUFFER_END;
 
 				switch (mode) {
@@ -371,7 +371,6 @@ static void batch(int fd, unsigned ring, int nchild, int timeout,
 					break;
 				}
 				gem_execbuf(fd, &execbuf);
-				cycles++;
 
 				execbuf.batch_start_offset += 64;
 				reloc.offset += 64;
@@ -379,14 +378,15 @@ static void batch(int fd, unsigned ring, int nchild, int timeout,
 
 			if (!(flags & COHERENT)) {
 				gem_set_domain(fd, obj[0].handle,
-						I915_GEM_DOMAIN_CPU,
-						I915_GEM_DOMAIN_CPU);
+					       I915_GEM_DOMAIN_CPU,
+					       I915_GEM_DOMAIN_CPU);
 			} else
 				gem_sync(fd, obj[0].handle);
 			for (i = 0; i < 1024; i++) {
-				igt_assert_eq(map[i], i);
-				map[i] = 0xabcdabcd;
+				igt_assert_eq_u32(map[i], cycles + i);
+				map[i] = 0xabcdabcd ^ cycles;
 			}
+			cycles += 1024;
 
 			if (mode == BATCH_USER)
 				gem_sync(fd, obj[1].handle);
