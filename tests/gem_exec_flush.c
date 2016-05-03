@@ -232,10 +232,180 @@ overwrite:
 	igt_waitchildren();
 }
 
+enum batch_mode {
+	BATCH_KERNEL,
+	BATCH_USER,
+	BATCH_CPU,
+	BATCH_GTT,
+	BATCH_WC,
+};
+static void batch(int fd, unsigned ring, int nchild, int timeout,
+		  enum batch_mode mode)
+{
+	const int gen = intel_gen(intel_get_drm_devid(fd));
+
+	igt_fork(child, nchild) {
+		const uint32_t bbe = MI_BATCH_BUFFER_END;
+		struct drm_i915_gem_exec_object2 obj[2];
+		struct drm_i915_gem_relocation_entry reloc;
+		struct drm_i915_gem_execbuffer2 execbuf;
+		unsigned long cycles = 0;
+		uint32_t *ptr;
+		uint32_t *map;
+		int i;
+
+		memset(obj, 0, sizeof(obj));
+		obj[0].handle = gem_create(fd, 4096);
+		obj[0].flags |= EXEC_OBJECT_WRITE;
+
+		map = gem_mmap__cpu(fd, obj[0].handle, 0, 4096, PROT_WRITE);
+
+		gem_set_domain(fd, obj[0].handle,
+				I915_GEM_DOMAIN_CPU,
+				I915_GEM_DOMAIN_CPU);
+		for (i = 0; i < 1024; i++)
+			map[i] = 0xabcdabcd;
+
+		memset(&execbuf, 0, sizeof(execbuf));
+		execbuf.buffers_ptr = (uintptr_t)obj;
+		execbuf.buffer_count = 2;
+		execbuf.flags = ring | (1 << 11) | (1<<12);
+		if (gen < 6)
+			execbuf.flags |= I915_EXEC_SECURE;
+
+		obj[1].handle = gem_create(fd, 4096);
+		gem_write(fd, obj[1].handle, 0, &bbe, sizeof(bbe));
+		igt_require(__gem_execbuf(fd, &execbuf) == 0);
+
+		obj[1].relocation_count = 1;
+		obj[1].relocs_ptr = (uintptr_t)&reloc;
+
+		switch (mode) {
+		case BATCH_CPU:
+		case BATCH_USER:
+			ptr = gem_mmap__cpu(fd, obj[1].handle, 0, 4096,
+					    PROT_WRITE);
+			break;
+
+		case BATCH_WC:
+			ptr = gem_mmap__wc(fd, obj[1].handle, 0, 4096,
+					    PROT_WRITE);
+			break;
+
+		case BATCH_GTT:
+			ptr = gem_mmap__gtt(fd, obj[1].handle, 4096,
+					    PROT_WRITE);
+			break;
+
+		case BATCH_KERNEL:
+			ptr = mmap(0, 4096, PROT_WRITE,
+				   MAP_PRIVATE | MAP_ANON, -1, 0);
+			break;
+		}
+
+		memset(&reloc, 0, sizeof(reloc));
+		reloc.presumed_offset = obj[0].offset;
+		reloc.offset = sizeof(uint32_t);
+		if (gen >= 4 && gen < 8)
+			reloc.offset += sizeof(uint32_t);
+		reloc.read_domains = I915_GEM_DOMAIN_INSTRUCTION;
+		reloc.write_domain = I915_GEM_DOMAIN_INSTRUCTION;
+
+		igt_timeout(timeout) {
+			for (i = 0; i < 1024; i++) {
+				uint64_t offset;
+				uint32_t *b = ptr;
+
+				switch (mode) {
+				case BATCH_CPU:
+					gem_set_domain(fd, obj[1].handle,
+						       I915_GEM_DOMAIN_CPU, I915_GEM_DOMAIN_CPU);
+					break;
+
+				case BATCH_WC:
+				case BATCH_GTT:
+					gem_set_domain(fd, obj[1].handle,
+						       I915_GEM_DOMAIN_GTT, I915_GEM_DOMAIN_GTT);
+					break;
+
+				case BATCH_USER:
+					gem_sync(fd, obj[1].handle);
+					break;
+
+				case BATCH_KERNEL:
+					break;
+				}
+
+				reloc.delta = i * sizeof(uint32_t);
+
+				offset = reloc.presumed_offset + reloc.delta;
+				*b++ = MI_STORE_DWORD_IMM | (gen < 6 ? 1 << 22 : 0);
+				if (gen >= 8) {
+					*b++ = offset;
+					*b++ = offset >> 32;
+				} else if (gen >= 4) {
+					*b++ = 0;
+					*b++ = offset;
+				} else {
+					b[-1] -= 1;
+					*b++ = offset;
+				}
+				*b++ = i;
+				*b++ = MI_BATCH_BUFFER_END;
+
+				switch (mode) {
+				case BATCH_KERNEL:
+					gem_write(fd, obj[1].handle, 0,
+						  ptr, (b - ptr) * sizeof(uint32_t));
+					break;
+
+				case BATCH_USER:
+					igt_clflush_range(ptr, (b - ptr) * sizeof(uint32_t));
+					break;
+
+				case BATCH_CPU:
+				case BATCH_GTT:
+				case BATCH_WC:
+					break;
+				}
+				gem_execbuf(fd, &execbuf);
+				cycles++;
+			}
+
+			gem_set_domain(fd, obj[0].handle,
+				       I915_GEM_DOMAIN_CPU,
+				       I915_GEM_DOMAIN_CPU);
+			for (i = 0; i < 1024; i++) {
+				igt_assert_eq(map[i], i);
+				map[i] = 0xabcdabcd;
+			}
+		}
+		igt_info("Child[%d]: %lu cycles\n", child, cycles);
+
+		munmap(ptr, 4096);
+		gem_close(fd, obj[1].handle);
+
+		munmap(map, 4096);
+		gem_close(fd, obj[0].handle);
+	}
+	igt_waitchildren();
+}
+
 igt_main
 {
 	const struct intel_execution_engine *e;
 	const int ncpus = sysconf(_SC_NPROCESSORS_ONLN);
+	const struct batch {
+		const char *name;
+		unsigned mode;
+	} batches[] = {
+		{ "kernel", BATCH_KERNEL },
+		{ "user", BATCH_USER },
+		{ "cpu", BATCH_CPU },
+		{ "gtt", BATCH_GTT },
+		{ "wc", BATCH_WC },
+		{ NULL }
+	};
 	const struct mode {
 		const char *name;
 		unsigned flags;
@@ -245,7 +415,7 @@ igt_main
 		{ "pro", KERNEL },
 		{ "prw", KERNEL | WRITE },
 		{ "set", SET_DOMAIN | WRITE },
-		{ NULL },
+		{ NULL }
 	};
 	int gen = -1;
 	int fd = -1;
@@ -269,6 +439,14 @@ igt_main
 			gem_require_ring(fd, ring);
 			igt_skip_on_f(gen == 6 && e->exec_id == I915_EXEC_BSD,
 				      "MI_STORE_DATA broken on gen6 bsd\n");
+		}
+
+		for (const struct batch *b = batches; b->name; b++) {
+			igt_subtest_f("%sbatch-%s-%s",
+				      e->exec_id == 0 ? "basic-" : "",
+				      b->name,
+				      e->name)
+				batch(fd, ring, ncpus, timeout, b->mode);
 		}
 
 		for (const struct mode *m = modes; m->name; m++) {
