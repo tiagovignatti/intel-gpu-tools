@@ -29,7 +29,6 @@
 IGT_TEST_DESCRIPTION("Test display panel fitting");
 
 typedef struct {
-	uint32_t devid;
 	int drm_fd;
 	igt_display_t display;
 	igt_crc_t ref_crc;
@@ -225,7 +224,6 @@ igt_simple_main
 	data.drm_fd = drm_open_driver(DRIVER_INTEL);
 	igt_require_pipe_crc();
 	igt_display_init(&data.display, data.drm_fd);
-	data.devid = intel_get_drm_devid(data.drm_fd);
 
 	test_panel_fitting(&data);
 
