@@ -464,7 +464,7 @@ igt_main
 
 	for (e = intel_execution_engines; e->name; e++) igt_subtest_group {
 		unsigned ring = e->exec_id | e->flags;
-		unsigned timeout = 2 + 120*!!e->exec_id;
+		unsigned timeout = 5 + 120*!!e->exec_id;
 
 		igt_fixture {
 			gem_require_ring(fd, ring);
@@ -499,8 +499,7 @@ igt_main
 				run(fd, ring, ncpus, timeout,
 				    UNCACHED | m->flags);
 
-			igt_subtest_f("%suc-%s-%s-interruptible",
-				      e->exec_id == 0 ? "basic-" : "",
+			igt_subtest_f("uc-%s-%s-interruptible",
 				      m->name,
 				      e->name)
 				run(fd, ring, ncpus, timeout,
@@ -513,8 +512,7 @@ igt_main
 				run(fd, ring, ncpus, timeout,
 				    COHERENT | m->flags);
 
-			igt_subtest_f("%swb-%s-%s-interruptible",
-				      e->exec_id == 0 ? "basic-" : "",
+			igt_subtest_f("wb-%s-%s-interruptible",
 				      m->name,
 				      e->name)
 				run(fd, ring, ncpus, timeout,
