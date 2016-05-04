@@ -33,6 +33,7 @@ IGT_TEST_DESCRIPTION("Basic check of flushing after batches");
 #define KERNEL 4
 #define SET_DOMAIN 8
 #define INTERRUPTIBLE 16
+#define CMDPARSER 32
 
 static void run(int fd, unsigned ring, int nchild, int timeout,
 		unsigned flags)
@@ -244,6 +245,16 @@ static void batch(int fd, unsigned ring, int nchild, int timeout,
 {
 	const int gen = intel_gen(intel_get_drm_devid(fd));
 
+	if (flags & CMDPARSER) {
+		int cmdparser = -1;
+                drm_i915_getparam_t gp;
+
+		gp.param = I915_PARAM_CMD_PARSER_VERSION;
+		gp.value = &cmdparser;
+		drmIoctl(fd, DRM_IOCTL_I915_GETPARAM, &gp);
+		igt_require(cmdparser > 0);
+	}
+
 	igt_fork(child, nchild) {
 		const uint32_t bbe = MI_BATCH_BUFFER_END;
 		struct drm_i915_gem_exec_object2 obj[2];
@@ -354,6 +365,13 @@ static void batch(int fd, unsigned ring, int nchild, int timeout,
 				*b++ = cycles + i;
 				*b++ = MI_BATCH_BUFFER_END;
 
+				if (flags & CMDPARSER) {
+					execbuf.batch_len =
+						(b - start) * sizeof(uint32_t);
+					if (execbuf.batch_len & 4)
+						execbuf.batch_len += 4;
+				}
+
 				switch (mode) {
 				case BATCH_KERNEL:
 					gem_write(fd, obj[1].handle,
@@ -362,7 +380,9 @@ static void batch(int fd, unsigned ring, int nchild, int timeout,
 					break;
 
 				case BATCH_USER:
-					igt_clflush_range(start, (b - start) * sizeof(uint32_t));
+					if (!gem_has_llc(fd))
+						igt_clflush_range(start,
+								  (b - start) * sizeof(uint32_t));
 					break;
 
 				case BATCH_CPU:
@@ -463,6 +483,12 @@ igt_main
 				      b->name,
 				      e->name)
 				batch(fd, ring, ncpus, timeout, b->mode, COHERENT);
+			igt_subtest_f("%sbatch-%s-%s-cmd",
+				      e->exec_id == 0 ? "basic-" : "",
+				      b->name,
+				      e->name)
+				batch(fd, ring, ncpus, timeout, b->mode,
+				      COHERENT | CMDPARSER);
 		}
 
 		for (const struct mode *m = modes; m->name; m++) {
